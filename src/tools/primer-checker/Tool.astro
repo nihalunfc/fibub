@@ -1,0 +1,205 @@
+---
+// Primer checker: Tm by simple formulas, GC, clamp, runs, hairpins, dimers, and binding sites and products on a template.
+// The example primers and template are made up (random sequence).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+const tpl = `>example made-up template
+GGATCACAGTCTACACTGCTCACTCCAACCCCGGCCCCTGAGTCCGAGGAGAGGGTGCTT
+CAGAGTATGTATACCACTGGGTAGGATACGGCGGAGGGCACGTCAATACGGTTCAATGCC
+CTACTGCATGCTCTTGTGGTTCATCTGCATGGAGAGGGTGGGCATGGGTGGGGGTGCTGG
+CCCGTGATCTGGACCTCCCAACTCACATCGGTGTCACCTGGTGTAGAGAGGGGCTTGTCC
+TTCCAGATAGCGTTTCTGTTTCGGTGTAGGTGCTAATCGACTATGCTACTGCGGTTAACG
+GGGATGGCAAGTACATTTTTTCGTAGATGTGCCTTGCTAACGAAAGTATTAAACACGTCC
+CTCACAATAGAATCATAGTTGGACGCGCGACGGCCGTTCCAGAAAATCTTTGAATACTCA
+ATCCTGCGGGTTCGGTGACCTAAAACCCATTGATTGTGTTACCCAGTTCGAGCGCATAGG
+GAATTCAGGTCCACACATGGCTGGATCCCCATGATATTCAAGAACTATACATTAAGTTGA
+ACCTCCAGAACACATGTTTCAGTCACGTAGTGCCATCATCGATCACGGAATGTAGCATCA
+ATGATCGAGCCGTGGAAAAAACGTGACTCGCGGACCAGCCTTTAGGTCTTCTACTTAACT
+ACAACTGTTCCGCGGCGGCATTGCCCTTAACTAGCGTTACTAACTAGAGTTTTACTGACG
+GAAAGTGAGCAAAGGCTAACGTTATTCCGTGAGCACGGGACATCCATTCTTCGTGAGCTA
+CAGCTCGAGAATCAGCTTCTAACCAAGCGATGCAGAACCGGCTACTTTAAGCATTGATGA
+ATGCGTCGTAAGTGATACTCGACGATTCTCATGCAACGAAGTTAACCTATAGTAACTTAC
+GATGCACACGCCGTGAAGTATGGAACTAATATCCATGTCTCAGAACTAGCGGCCGAGAAT
+GGGTTCCGAATCCTAAACTCCGACATGAGTTAAGGTTGCATACTAGGTCTGATACTAAAA
+GCGGGGTCAGGAGTCCGTCCAGAATATAATATTCAAAAATGAGATGGTGGAGTTTCCGGC
+TACGATTTCCCTCTGACTGTCCCTGGGACGTGGTAAAGAAGCATCGGATGAGAGGTTAAG
+ACAATATTACTAGAGGATTACCAAATTAGGTTACCTCCGACGATGTGGCGTTTACCTATC
+CCCATGTCTAGGGAACAGTTGGAGCTGTGCGCAATCGTGTTGGACTATTGACATACCCCT
+ATTCGACCAGTGCAGTAGACTATACCACTTTTGAATCATCAGCAGACCTAATAGCTTCAT
+CCCTTCTAGTCGACTTTCCGGACCGATGCGCACTAATGATCGAAGTGTGTCTTTACTGAA
+TCAGAAGTCGGAGAAAATTCTGCTGTACGAGATGTACGTAGCGATGATGATACGGGTGAT
+TCTTACATGAGGTACATCGAAAAAGGGTCATTGCGTTTACGTGAATGGGATTTGCCTGGC`;
+---
+<div class="ax prc">
+  <div class="ax-card">
+    <h2>Primers</h2>
+    <div class="ax-grid">
+      <label>Forward primer (5′→3′) <input class="pr-f" spellcheck="false" autocomplete="off" value="ACTCACATCGGTGTCACCTG" /></label>
+      <label>Reverse primer (5′→3′, optional) <input class="pr-r" spellcheck="false" autocomplete="off" value="TACTTCACGGCGTGTGCATC" /></label>
+      <label>Sodium (mM) <input class="pr-na" inputmode="decimal" value="50" /></label>
+    </div>
+    <p class="ax-help">Type each primer 5′ to 3′ as written on the order sheet (the reverse primer as it is, not its complement). Spaces and dashes are ignored; only A, C, G, T (or U) are accepted. Sodium is used only by the salt-adjusted Tm.</p>
+    <p class="ax-err pr-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Template (optional)</h2>
+    <label>DNA to find binding sites and products on, as FASTA or plain letters <textarea class="pr-tpl" rows="4" spellcheck="false">{tpl}</textarea></label>
+    <div class="ax-grid">
+      <label>Mismatches allowed <select class="pr-mm"><option value="0">0</option><option value="1" selected>1</option><option value="2">2</option></select></label>
+      <label>Largest product (bp) <input class="pr-max" inputmode="numeric" value="5000" /></label>
+    </div>
+    <p class="ax-help">Both strands are searched. Sites may have the mismatches you allow, but the last 3 bases at the primer's 3′ end must match, since that is where the polymerase starts. Up to 1 million bases; letters other than A, C, G, T are skipped over as mismatches. The example template is random made-up sequence.</p>
+  </div>
+
+  <div class="ax-card pr-out">
+    <h2>Checks</h2>
+    <p class="ax-big pr-big"></p>
+    <dl class="ax-facts pr-facts"></dl>
+    <div class="ax-scroll"><table class="pr-tab"></table></div>
+    <h3 class="pr-h">Strongest primer-dimer</h3>
+    <pre class="pr-dim"></pre>
+    <div class="pr-tplout">
+      <h3 class="pr-h">On the template</h3>
+      <div class="ax-scroll"><table class="pr-stab"></table></div>
+    </div>
+    <p class="ax-help">Ranges are common rules of thumb (length 18–30, GC 40–60 %, 1–3 G or C in the last 5 bases, no runs of 4 or more, Tm within 5 °C). The Tm formulas are simple estimates that ignore neighbouring bases; real annealing temperatures depend on your polymerase and buffer, so check the supplier's calculator for the final setting.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { clean, gcCount, tmWallace, tmBasic, tmSalt, runs, clamp, hairpin, dimer, sites, products } from '../../lib/sci/primer';
+  import { wireDownloads, type Section } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (!Number.isFinite(x)) return '–'; if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const t1 = (x: number) => x.toFixed(1);
+  const root = document.querySelector<HTMLElement>('.prc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let sections: Section[] = [];
+
+  function table(sel: string, head: string[], rows: string[][], right: number[] = []) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; if (c.endsWith('(check)')) td.classList.add('pr-bad'); }); });
+  }
+
+  type One = ReturnType<typeof check1>;
+  function check1(s: string, na: number) {
+    const gc = (100 * gcCount(s)) / s.length, r = runs(s), hp = hairpin(s), sd = dimer(s, s), cl = clamp(s);
+    const issues: string[] = [];
+    if (s.length < 18 || s.length > 30) issues.push(`length ${s.length} nt (18–30 is usual)`);
+    if (gc < 40 || gc > 60) issues.push(`GC ${t1(gc)} % (40–60 % is usual)`);
+    if (cl === 0) issues.push('no G or C in the last 5 bases (weak 3′ end)');
+    if (cl > 3) issues.push(`${cl} G or C in the last 5 bases (may prime falsely)`);
+    if (r.run.len >= 4) issues.push(`run of ${r.run.len} ${r.run.base}`);
+    if (r.di.reps >= 4) issues.push(`${r.di.unit} repeated ${r.di.reps} times`);
+    if (hp.stem >= 4) issues.push(`hairpin with a ${hp.stem} bp stem`);
+    if (sd.threePrime >= 3 || sd.longest >= 6) issues.push(`self-dimer of ${sd.longest} bp${sd.threePrime >= 3 ? `, ${sd.threePrime} at the 3′ end` : ''}`);
+    return { s, gc, r, hp, sd, cl, issues, wal: tmWallace(s), basic: tmBasic(s), salt: tmSalt(s, na), tm: s.length < 14 ? tmWallace(s) : tmBasic(s) };
+  }
+  const mark = (txt: string, bad: boolean) => (bad ? `${txt} (check)` : txt);
+
+  // Text picture of the strongest dimer between a and b: a on top 5′→3′, b below 3′→5′, bars at complementary bases.
+  function dimerPic(a: string, b: string) {
+    const d = dimer(a, b), br = b.split('').reverse().join(''), off = d.at.off;
+    if (!d.longest) return 'No complementary bases line up.';
+    const pa = Math.max(0, -off), pb = Math.max(0, off);
+    let bars = '';
+    for (let col = 0; col < Math.max(pa + a.length, pb + br.length); col++) {
+      const i = col - pa, j = col - pb, ok = i >= 0 && i < a.length && j >= 0 && j < br.length && { A: 'T', T: 'A', G: 'C', C: 'G' }[a[i] as 'A'] === br[j];
+      bars += ok && i >= d.at.ai && i < d.at.ai + d.longest ? '|' : ' ';
+    }
+    return `5′ ${' '.repeat(pa)}${a} 3′\n   ${bars}\n3′ ${' '.repeat(pb)}${br} 5′`;
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.pr-err').textContent = m; q('.pr-err').hidden = false; q('.pr-out').hidden = true; sections = []; };
+    q('.pr-err').hidden = true;
+    const fRaw = q<HTMLInputElement>('.pr-f').value, rRaw = q<HTMLInputElement>('.pr-r').value;
+    const F = clean(fRaw), R = clean(rRaw), na = num(q<HTMLInputElement>('.pr-na').value);
+    if (F === null || (rRaw.trim() && R === null)) return fail('Primers may contain only A, C, G and T (U is read as T). Mixed bases such as N or R are not supported.');
+    if (!F || F.length < 6) return fail('Give a forward primer of at least 6 bases.');
+    if (R && R.length < 6) return fail('The reverse primer needs at least 6 bases, or leave it blank.');
+    if (F.length > 100 || (R && R.length > 100)) return fail('Primers up to 100 bases, please.');
+    if (!(na > 0 && na <= 2000)) return fail('Give the sodium concentration in mM (above 0, up to 2,000).');
+    const a = check1(F, na), b = R ? check1(R, na) : null;
+    const pairIssues: string[] = [];
+    let cross: ReturnType<typeof dimer> | null = null;
+    if (b) {
+      if (Math.abs(a.tm - b.tm) > 5) pairIssues.push(`Tm differ by ${t1(Math.abs(a.tm - b.tm))} °C (5 °C or less is usual)`);
+      cross = dimer(F, R!);
+      if (cross.threePrime >= 3 || cross.longest >= 6) pairIssues.push(`cross-dimer of ${cross.longest} bp${cross.threePrime >= 3 ? `, ${cross.threePrime} at a 3′ end` : ''}`);
+    }
+    // Template
+    const tRaw = q<HTMLTextAreaElement>('.pr-tpl').value.split(/\r?\n/).filter((l) => !l.startsWith('>')).join('').toUpperCase().replace(/U/g, 'T').replace(/[^A-Z]/g, '');
+    const mm = Number(q<HTMLSelectElement>('.pr-mm').value), maxLen = num(q<HTMLInputElement>('.pr-max').value);
+    let tplRows: string[][] = [], prod: ReturnType<typeof products> = [], tplNote = '';
+    if (tRaw) {
+      if (tRaw.length > 1e6) return fail('Templates up to 1 million bases, please.');
+      if (!(maxLen >= 20 && maxLen <= 1e6)) return fail('Give the largest product size in bp (20 or more).');
+      const fs = sites(tRaw, F, mm), rs = R ? sites(tRaw, R, mm) : [];
+      prod = R ? products(fs, rs, R.length, maxLen) : [];
+      const fP = fs.filter((x) => x.strand === '+').length, rP = rs.filter((x) => x.strand === '−').length;
+      tplRows = [
+        ...fs.slice(0, 50).map((x) => ['Forward site', x.strand, `${x.pos + 1}–${x.pos + F.length}`, String(x.mm)]),
+        ...rs.slice(0, 50).map((x) => ['Reverse site', x.strand, `${x.pos + 1}–${x.pos + R!.length}`, String(x.mm)]),
+        ...prod.slice(0, 50).map((p) => ['Product', `${p.size.toLocaleString('en')} bp`, `${p.start + 1}–${p.end}`, String(p.mm)]),
+      ];
+      if (!fs.length) pairIssues.push('the forward primer does not bind the template');
+      if (R && !rs.length) pairIssues.push('the reverse primer does not bind the template');
+      if (R && fs.length && rs.length && !prod.length) pairIssues.push(`no product up to ${maxLen.toLocaleString('en')} bp (check the primers face each other)`);
+      if (prod.length > 1) pairIssues.push(`${prod.length} possible products`);
+      const extra = fs.length + rs.length - (fP ? 1 : 0) - (rP ? 1 : 0);
+      if (extra > 0) pairIssues.push(`${extra} extra binding site${extra > 1 ? 's' : ''} on the template`);
+      tplNote = `${tRaw.length.toLocaleString('en')} bases searched, up to ${mm} mismatch${mm === 1 ? '' : 'es'}`;
+    }
+    const issues = [...a.issues.map((x) => `Forward: ${x}`), ...(b ? b.issues.map((x) => `Reverse: ${x}`) : []), ...pairIssues];
+    q('.pr-out').hidden = false;
+    const tmTxt = b ? `Tm ${t1(a.tm)} / ${t1(b.tm)} °C` : `Tm ${t1(a.tm)} °C`;
+    q('.pr-big').textContent = issues.length ? `${issues.length} thing${issues.length > 1 ? 's' : ''} to check; ${tmTxt}` : `${b ? 'Pair looks good' : 'Primer looks good'}: ${tmTxt}${prod.length === 1 ? `, ${prod[0].size.toLocaleString('en')} bp product` : ''}`;
+    q('.pr-facts').replaceChildren(
+      fact('To check', issues.length ? issues.slice(0, 6).join('; ') + (issues.length > 6 ? '…' : '') : 'nothing flagged', 'against common rules of thumb'),
+      ...(b ? [fact('Suggested annealing start', `${t1(Math.min(a.tm, b.tm) - 5)} °C`, '5 °C below the lower Tm (basic formula); optimise with a gradient')] : []),
+      ...(tRaw ? [fact('Template', prod.length ? `${prod.length} product${prod.length > 1 ? 's' : ''}${prod.length ? `, ${prod.map((p) => p.size.toLocaleString('en')).slice(0, 4).join(', ')} bp` : ''}` : 'no product', tplNote)] : []),
+    );
+    const col = (f: (o: One) => string) => [f(a), ...(b ? [f(b)] : [])];
+    const rows: string[][] = [
+      ['Length (nt)', ...col((o) => mark(String(o.s.length), o.s.length < 18 || o.s.length > 30))],
+      ['GC (%)', ...col((o) => mark(t1(o.gc), o.gc < 40 || o.gc > 60))],
+      ['Tm, basic (°C)', ...col((o) => t1(o.basic))],
+      [`Tm, salt-adjusted ${sg(na, 4)} mM (°C)`, ...col((o) => t1(o.salt))],
+      ['Tm, Wallace 2+4 (°C)', ...col((o) => String(o.wal))],
+      ['G or C in last 5', ...col((o) => mark(String(o.cl), o.cl === 0 || o.cl > 3))],
+      ['Longest run', ...col((o) => mark(o.r.run.len > 1 ? `${o.r.run.len} ${o.r.run.base}` : '1', o.r.run.len >= 4))],
+      ['Dinucleotide repeat', ...col((o) => mark(o.r.di.reps > 1 ? `${o.r.di.unit} × ${o.r.di.reps}` : 'none', o.r.di.reps >= 4))],
+      ['Hairpin stem (bp)', ...col((o) => mark(o.hp.stem ? String(o.hp.stem) : '0', o.hp.stem >= 4))],
+      ['Self-dimer: longest / at 3′ (bp)', ...col((o) => mark(`${o.sd.longest} / ${o.sd.threePrime}`, o.sd.threePrime >= 3 || o.sd.longest >= 6))],
+      ...(b && cross ? [['Cross-dimer: longest / at 3′ (bp)', mark(`${cross.longest} / ${cross.threePrime}`, cross.threePrime >= 3 || cross.longest >= 6), '']] : []),
+    ];
+    const head = ['Check', 'Forward', ...(b ? ['Reverse'] : [])];
+    table('.pr-tab', head, rows, b ? [1, 2] : [1]);
+    // Dimer picture: the cross-dimer for a pair, otherwise the self-dimer.
+    q('.pr-dim').textContent = b ? dimerPic(F, R!) : dimerPic(F, F);
+    q('.pr-tplout').hidden = !tRaw;
+    if (tRaw) table('.pr-stab', ['What', 'Strand / size', 'Position', 'Mismatches'], tplRows.length ? tplRows : [['No sites found', '', '', '']], [3]);
+    sections = [{ title: q('.pr-big').textContent!, facts: [...q('.pr-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), table: { head, rows, align: head.map((_, i) => (i ? 'r' : 'l') as 'l' | 'r') } },
+      { title: 'Strongest primer-dimer', text: q('.pr-dim').textContent!.replace(/′/g, "'").split('\n') },
+      ...(tRaw ? [{ title: 'On the template', facts: [['Searched', tplNote]] as [string, string][], table: { head: ['What', 'Strand / size', 'Position', 'Mismatches'], rows: tplRows, align: ['l', 'l', 'l', 'r'] as ('l' | 'r')[] } }] : [])];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Primer check', subtitle: q('.pr-big').textContent ?? '', file: 'primer-check', sections }));
+</script>
+
+<style is:global>
+  .prc .pr-h { font-size: 1rem; margin: 16px 0 6px; }
+  .prc .pr-dim { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem; overflow-x: auto; white-space: pre; margin: 0; padding: 8px; border: 1px solid var(--line, #ddd); border-radius: 6px; }
+  .prc .pr-bad { font-weight: 700; }
+  .prc select { max-width: 100%; }
+</style>

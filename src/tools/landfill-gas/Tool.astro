@@ -1,0 +1,145 @@
+---
+// Landfill gas generation by first-order decay, with collection, cover oxidation, CO2e and power. The example
+// tonnages and the default k and L0 are illustrative, not any regulator's values.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const example = 'year\twaste (t)\n' + Array.from({ length: 20 }, (_, i) => `${2005 + i}\t${Math.round(50000 * 1.03 ** i)}`).join('\n');
+---
+<div class="ax lfg">
+  <div class="ax-card">
+    <h2>Waste placed</h2>
+    <label>Year, then tonnes of waste placed that year, one row per year.
+      <textarea class="lf-data" rows="8" spellcheck="false">{example}</textarea></label>
+    <DataFile target=".lf-data" maxCols={10} maxRows={500} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Decay rate k (per year) <input class="lf-k" inputmode="decimal" value="0.05" /></label>
+      <label>Methane potential L₀ (m³/t) <input class="lf-L0" inputmode="decimal" value="100" /></label>
+      <label>Methane in the gas (%) <input class="lf-pct" inputmode="decimal" value="50" /></label>
+      <label>Gas volumes at <select class="lf-T"><option value="0" selected>0 °C, 1 atm</option><option value="15">15 °C, 1 atm</option><option value="25">25 °C, 1 atm</option></select></label>
+      <label>Collected (%) <input class="lf-col" inputmode="decimal" value="0" /></label>
+      <label>Oxidised in the cover (%) <input class="lf-ox" inputmode="decimal" value="10" /></label>
+      <label>Methane GWP (100 years) <select class="lf-gwp"><option value="27" selected>27 (IPCC AR6, non-fossil)</option><option value="28">28 (IPCC AR5)</option><option value="25">25 (IPCC AR4)</option></select></label>
+      <label>Engine efficiency (%) <input class="lf-eff" inputmode="decimal" value="35" /></label>
+      <label>Report year <input class="lf-yr" inputmode="numeric" value="2026" /></label>
+      <label>Show until <input class="lf-to" inputmode="numeric" placeholder="last year + 50" /></label>
+    </div>
+    <p class="ax-help">k sets how fast the waste breaks down (wetter climates and food waste are faster); L₀ is the methane a tonne can make in total. The defaults are illustrative starting values only: use the values your regulator or reporting scheme sets for your site. Collected gas is assumed flared or used; oxidation is the share of the uncollected methane that soil bacteria in the cover turn into CO₂. Use the GWP your reporting scheme asks for. Up to 500 years of waste. The example tonnages are made up.</p>
+    <p class="ax-err lf-err" hidden></p>
+  </div>
+
+  <div class="ax-card lf-out">
+    <h2>Gas generation</h2>
+    <p class="ax-big lf-big"></p>
+    <dl class="ax-facts lf-facts"></dl>
+    <canvas class="ax-fig lf-fig"></canvas>
+    <details class="lf-yby">
+      <summary>Year by year (table)</summary>
+      <div class="ax-scroll"><table class="lf-tab"></table></div>
+    </details>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small lf-csv">Download year by year (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { generation, ch4Density, fate, halfLife } from '../../lib/sci/lfg';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (!Number.isFinite(x)) return '–'; if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const tn = (x: number) => (Math.abs(x) >= 1e4 ? Math.round(x).toLocaleString('en') : sg(x, 4));
+  const big = (x: number) => (x >= 1e6 ? `${sg(x / 1e6, 3)} million` : Math.round(x).toLocaleString('en'));
+  const root = document.querySelector<HTMLElement>('.lfg')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const HOURS = 8760, LHV = 50.0; // MJ per kg of methane, lower heating value
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function table(sel: string, head: string[], rows: string[][], right: number[] = []) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.lf-err').textContent = m; q('.lf-err').hidden = false; q('.lf-out').hidden = true; fig = null; sections = []; csvRows = []; };
+    q('.lf-err').hidden = true;
+    const byYear = new Map<number, number>();
+    for (const r of parseTable(q<HTMLTextAreaElement>('.lf-data').value)) {
+      const y = num(r[0]), t = num(r[1]);
+      if (!Number.isFinite(y) || !Number.isFinite(t)) continue;
+      if (!Number.isInteger(y) || y < 1800 || y > 2300) return fail(`Years must be whole years such as 2015 (found ${r[0]}).`);
+      if (t < 0) return fail(`Tonnes cannot be negative (year ${y}).`);
+      byYear.set(y, (byYear.get(y) ?? 0) + t);
+    }
+    if (!byYear.size) return fail('Give at least one row: a year, then the tonnes of waste placed that year.');
+    if (byYear.size > 500) return fail('Up to 500 years of waste, please.');
+    const years = [...byYear.keys()].sort((a, b) => a - b), tonnes = years.map((y) => byYear.get(y)!);
+    if (!tonnes.some((t) => t > 0)) return fail('All the tonnages are zero, so no gas is made.');
+    const k = val('.lf-k'), L0 = val('.lf-L0'), pct = val('.lf-pct') / 100, col = val('.lf-col') / 100, ox = val('.lf-ox') / 100, eff = val('.lf-eff') / 100;
+    if (!(k > 0 && k <= 2)) return fail('Set the decay rate k between 0 and 2 per year (typical values are a few hundredths).');
+    if (!(L0 > 0 && L0 <= 1000)) return fail('Set the methane potential L₀ in m³ per tonne, above 0 and up to 1,000.');
+    if (!(pct > 0 && pct <= 1)) return fail('Set the methane share of the gas between 0 and 100 %.');
+    if (!(col >= 0 && col <= 1) || !(ox >= 0 && ox <= 1) || !(eff >= 0 && eff <= 1)) return fail('Collected, oxidised and engine efficiency must each be between 0 and 100 %.');
+    const first = years[0], last = years[years.length - 1];
+    const toIn = q<HTMLInputElement>('.lf-to').value.trim(), to = toIn ? Math.round(num(toIn)) : last + 50;
+    if (!(to >= last && to <= first + 600)) return fail(`"Show until" must be a year from ${last} to ${first + 600}.`);
+    q('.lf-out').hidden = false;
+    const rho = ch4Density(val('.lf-T') || 0) / 1000, gwp = Number(q<HTMLSelectElement>('.lf-gwp').value), Tlab = `${q<HTMLSelectElement>('.lf-T').value} °C`;
+
+    const g = generation(years, tonnes, k, L0, first, to);
+    const peak = g.reduce((a, b) => (b.ch4 > a.ch4 ? b : a));
+    q('.lf-big').textContent = `Peak ${big(peak.ch4)} m³ of methane in ${peak.year}`;
+    const yr = Math.round(val('.lf-yr')), R = g.find((r) => r.year === yr);
+    const total = years.reduce((s, _, i) => s + tonnes[i] * L0, 0), byTo = g.reduce((s, r) => s + r.ch4, 0);
+    const facts: HTMLElement[] = [];
+    if (R) {
+      const f = fate(R.ch4, col, ox), mw = (f.collected * rho * 1000 * LHV * eff) / (HOURS * 3600);
+      facts.push(
+        fact(`Methane made in ${yr}`, `${big(R.ch4)} m³`, `${tn(R.ch4 * rho)} t; ${sg(R.ch4 / HOURS, 4)} m³/h on average`),
+        fact(`Landfill gas in ${yr}`, `${sg(R.ch4 / pct / HOURS, 4)} m³/h`, `${big(R.ch4 / pct)} m³ in the year at ${Math.round(pct * 100)} % methane`),
+        fact('Collected', `${big(f.collected)} m³`, col > 0 ? `about ${sg(mw, 3)} MW of electricity at ${Math.round(eff * 100)} % engine efficiency` : 'set "Collected" to plan a gas system'),
+        fact('Methane emitted', `${tn(f.emitted * rho)} t`, `after collection and ${Math.round(ox * 100)} % oxidation in the cover`),
+        fact('As CO₂ equivalent', `${tn(f.emitted * rho * gwp)} t CO₂e`, `methane emitted × GWP ${gwp}`),
+      );
+    } else facts.push(fact('Report year', `${yr} is outside ${first} to ${to}`, 'pick a year in the range shown'));
+    facts.push(
+      fact('Half-life of the waste', `${sg(halfLife(k), 3)} years`, `k = ${sg(k, 4)} per year`),
+      fact('Methane still to come', `${big(Math.max(0, total - byTo))} m³ after ${to}`, `of ${big(total)} m³ in total (waste × L₀)`),
+    );
+    q('.lf-facts').replaceChildren(...facts);
+
+    const rows = g.map((r) => { const f = fate(r.ch4, col, ox); return [String(r.year), byYear.has(r.year) ? Math.round(byYear.get(r.year)!).toLocaleString('en') : '', big(r.ch4), tn(r.ch4 * rho), sg(r.ch4 / pct / HOURS, 4), big(f.collected), tn(f.emitted * rho), tn(f.emitted * rho * gwp)]; });
+    const head = ['Year', 'Waste (t)', 'Methane (m³)', 'Methane (t)', 'Gas (m³/h)', 'Collected (m³)', 'Emitted (t CH₄)', 't CO₂e'];
+    table('.lf-tab', head, rows, [1, 2, 3, 4, 5, 6, 7]);
+    const xs = g.map((r) => r.year), M = (v: number) => v / 1e6;
+    fig = chartFigure({ h: 340, xLabel: 'Year', yLabel: `Methane (million m³ at ${Tlab})`, yMin: 0, legend: 'below', series: [
+      { name: 'Generated', x: xs, y: g.map((r) => M(r.ch4)), mode: 'line', width: 2 },
+      ...(col > 0 ? [{ name: 'Collected', x: xs, y: g.map((r) => M(fate(r.ch4, col, ox).collected)), mode: 'line' as const }] : []),
+      { name: 'Emitted', x: xs, y: g.map((r) => M(fate(r.ch4, col, ox).emitted)), mode: 'line', dash: [5, 4] },
+    ], marks: [{ kind: 'vline', at: last, dash: [2, 3], label: 'last waste' }, ...(R ? [{ kind: 'vline' as const, at: yr, label: String(yr) }] : [])] }, `Landfill methane generation peaking in ${peak.year}`);
+    paint(q<HTMLCanvasElement>('.lf-fig'), fig);
+
+    csvRows = [head.map((h) => h.replace('₄', '4').replace('₂', '2')), ...g.map((r) => { const f = fate(r.ch4, col, ox); return [String(r.year), String(byYear.get(r.year) ?? ''), sg(r.ch4, 8), sg(r.ch4 * rho, 6), sg(r.ch4 / pct / HOURS, 6), sg(f.collected, 8), sg(f.emitted * rho, 6), sg(f.emitted * rho * gwp, 6)]; })];
+    sections = [{ title: q('.lf-big').textContent!, text: [`First-order decay: methane made at k·L₀·M·e^(−k·age), with waste placed evenly through each year (k = ${sg(k, 4)} per year, L₀ = ${sg(L0, 4)} m³/t). Volumes at ${Tlab}.`],
+      facts: [...q('.lf-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig,
+      table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'r'] } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.lf-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'landfill-gas.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.lf-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Landfill gas generation', subtitle: q('.lf-big').textContent ?? '', file: 'landfill-gas', sections }));
+</script>
+
+<style is:global>
+  .lfg select { max-width: 100%; }
+  .lfg .lf-yby { margin-top: 14px; }
+  .lfg .lf-yby summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+</style>

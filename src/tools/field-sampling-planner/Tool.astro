@@ -1,0 +1,224 @@
+---
+// Field sampling planner: number of samples (fixed, to estimate a mean, to compare with an action level, or to find a
+// hot spot), and the sample points on the user's site boundary by grid, stratified random or simple random layout.
+// The example site is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const site = 'x (m),y (m)\n0,0\n180,-10\n240,90\n200,170\n90,150\n40,190\n-30,110';
+---
+<div class="ax fsp">
+  <div class="ax-card">
+    <h2>Site</h2>
+    <div class="ax-grid">
+      <label>Coordinates <select class="fs-crs">
+        <option value="m" selected>x and y in metres</option>
+        <option value="deg">Longitude and latitude (degrees)</option>
+      </select></label>
+    </div>
+    <label>Site boundary, one corner per row (x, y) <textarea class="fs-poly" rows="7" spellcheck="false">{site}</textarea></label>
+    <DataFile target=".fs-poly" maxCols={10} maxRows={20000} label="Open a boundary file" />
+    <p class="ax-help">List the corners in order around the edge; there is no need to repeat the first one. With longitude and latitude, the tool works on a flat map around the middle of the site, which is fine for a site up to a few tens of kilometres across, and gives the points back in degrees. Up to 20,000 corners. The example site is made up.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>How many samples</h2>
+    <div class="ax-grid">
+      <label>Set the number by <select class="fs-mode">
+        <option value="n">Giving it myself</option>
+        <option value="mean">Estimating the average</option>
+        <option value="action">Comparing with an action level</option>
+        <option value="hot" selected>Finding a hot spot</option>
+      </select></label>
+    </div>
+    <div class="ax-grid fs-g-n" style="margin-top:10px"><label>Number of samples <input class="fs-n" inputmode="numeric" value="30" /></label></div>
+    <div class="ax-grid fs-g-mean" style="margin-top:10px">
+      <label>Expected variability, CV (%) <input class="fs-cv" inputmode="decimal" value="60" /></label>
+      <label>Margin of error (± % of the average) <input class="fs-e" inputmode="decimal" value="20" /></label>
+      <label>Confidence (%) <input class="fs-conf" inputmode="decimal" value="95" /></label>
+    </div>
+    <div class="ax-grid fs-g-action" style="margin-top:10px">
+      <label>Expected standard deviation <input class="fs-sd" inputmode="decimal" value="40" /></label>
+      <label>Gap to detect (action level − expected average) <input class="fs-gap" inputmode="decimal" value="25" /></label>
+      <label>False "clean" risk, α (%) <input class="fs-alpha" inputmode="decimal" value="5" /></label>
+      <label>Power, 1 − β (%) <input class="fs-power" inputmode="decimal" value="80" /></label>
+    </div>
+    <div class="ax-grid fs-g-hot" style="margin-top:10px">
+      <label>Hot spot radius (m) <input class="fs-r" inputmode="decimal" value="12" /></label>
+      <label>Chance of hitting it (%) <input class="fs-p" inputmode="decimal" value="90" /></label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Layout <select class="fs-lay">
+        <option value="square">Square grid</option>
+        <option value="tri" selected>Triangular grid</option>
+        <option value="strat">Stratified random (one per grid cell)</option>
+        <option value="random">Simple random</option>
+      </select></label>
+      <label>Random seed <input class="fs-seed" inputmode="numeric" value="1" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small fs-new">New random layout</button></div>
+    <p class="ax-help">The CV is the standard deviation as a percentage of the average, from earlier data or a pilot survey. The action level way works out how many samples a one-sided t test needs to show the site average is below the level when it really is lower by the gap; α is the risk of calling a dirty site clean. The hot spot way finds the widest grid that still lands at least one sample in a round hot spot of that radius with the chance you ask for. A grid starts at a random point; the seed fixes it so you get the same points again.</p>
+    <p class="ax-err fs-err" hidden></p>
+  </div>
+
+  <div class="ax-card fs-out">
+    <h2>Sampling plan</h2>
+    <p class="ax-big fs-big"></p>
+    <dl class="ax-facts fs-facts"></dl>
+    <canvas class="ax-fig fs-map"></canvas>
+    <details class="fs-sd2">
+      <summary>Sample points (table)</summary>
+      <div class="ax-scroll"><table class="fs-tab"></table></div>
+    </details>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small fs-csv">Download points (CSV)</button>
+      <button type="button" class="btn secondary small fs-gpx" hidden>Download points for GPS (GPX)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { hotspotP, spacingFor, spacingForN, cellArea, nForMean, nForAction, randomPoints, gridPoints, stratifiedPoints, area, type Grid } from '../../lib/sci/sampling';
+  import { selfCrossing, lonLatToKm, type Pt } from '../../lib/sci/thiessen';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (!Number.isFinite(x)) return '–'; if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const tn = (x: number) => (Math.abs(x) >= 1000 ? Math.round(x).toLocaleString('en') : sg(x, 3));
+  const root = document.querySelector<HTMLElement>('.fsp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const isNum = (s: string | undefined) => s !== undefined && s.trim() !== '' && Number.isFinite(num(s));
+  const areaStr = (a: number) => (a >= 1e6 ? `${sg(a / 1e6, 3)} km²` : a >= 1e4 ? `${sg(a / 1e4, 3)} ha (${tn(a)} m²)` : `${tn(a)} m²`);
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [], gpx = '';
+
+  function table(sel: string, head: string[], rows: string[][], right: number[] = []) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+
+  /** Walking order: row by row, turning back at the end of each row. */
+  function serpentine(pts: Pt[], dy: number): Pt[] {
+    if (!pts.length) return pts;
+    const y0 = Math.min(...pts.map((p) => p[1]));
+    const row = (p: Pt) => Math.round((p[1] - y0) / dy);
+    return [...pts].sort((a, b) => row(a) - row(b) || (row(a) % 2 ? b[0] - a[0] : a[0] - b[0]));
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.fs-err').textContent = m; q('.fs-err').hidden = false; q('.fs-out').hidden = true; fig = null; sections = []; csvRows = []; gpx = ''; };
+    q('.fs-err').hidden = true;
+    const mode = q<HTMLSelectElement>('.fs-mode').value, lay = q<HTMLSelectElement>('.fs-lay').value, crs = q<HTMLSelectElement>('.fs-crs').value;
+    (['n', 'mean', 'action', 'hot'] as const).forEach((m) => { q(`.fs-g-${m}`).hidden = m !== mode; });
+    const pr = parseTable(q<HTMLTextAreaElement>('.fs-poly').value).filter((r) => isNum(r[0]) && isNum(r[1]));
+    let raw: Pt[] = pr.map((r) => [num(r[0]), num(r[1])]);
+    if (raw.length > 1 && raw[0][0] === raw[raw.length - 1][0] && raw[0][1] === raw[raw.length - 1][1]) raw = raw.slice(0, -1);
+    if (raw.length < 3) return fail('Give the site boundary as at least 3 corners, one "x, y" per row.');
+    if (raw.length > 20000) return fail('Up to 20,000 boundary corners, please.');
+    let poly = raw, centre: Pt = [0, 0], kx = 1, ky = 1;
+    if (crs === 'deg') {
+      if (!raw.every(([lo, la]) => Math.abs(lo) <= 180 && Math.abs(la) <= 85)) return fail('Longitudes must be within ±180° and latitudes within ±85°.');
+      const p = lonLatToKm(raw); poly = p.pts.map(([x, y]) => [x * 1000, y * 1000]); centre = p.centre;
+      kx = 111320 * Math.cos((centre[1] * Math.PI) / 180); ky = 110574;
+    }
+    if (selfCrossing(poly)) return fail('The boundary crosses itself. List the corners in order around the edge.');
+    const A = area(poly);
+    if (!(A > 0)) return fail('The boundary has no area.');
+    if (crs === 'deg' && A > 2.5e9) return fail('With longitude and latitude the site can be up to about 2,500 km²; use projected metres for bigger areas.');
+    const grid: Grid = lay === 'tri' ? 'tri' : 'square';
+
+    let nWant: number, G: number, why: string, extra: HTMLElement[] = [];
+    const r = val('.fs-r'), P = val('.fs-p') / 100;
+    if (mode === 'n') {
+      nWant = Math.round(val('.fs-n'));
+      if (!(nWant >= 1 && nWant <= 5000)) return fail('Give a number of samples from 1 to 5,000.');
+      why = 'the number you gave';
+    } else if (mode === 'mean') {
+      const cv = val('.fs-cv') / 100, e = val('.fs-e') / 100, c = val('.fs-conf') / 100;
+      if (!(cv > 0 && cv <= 10) || !(e > 0 && e < 1) || !(c >= 0.5 && c < 1)) return fail('Give a CV above 0 (up to 1,000 %), a margin of error between 0 and 100 %, and a confidence from 50 to 99.9 %.');
+      nWant = nForMean(cv, e, c); why = `to estimate the average within ±${sg(e * 100, 3)} % at ${sg(c * 100, 3)} % confidence with a CV of ${sg(cv * 100, 3)} %`;
+    } else if (mode === 'action') {
+      const sd = val('.fs-sd'), gap = val('.fs-gap'), a = val('.fs-alpha') / 100, pw = val('.fs-power') / 100;
+      if (!(sd > 0) || !(gap > 0)) return fail('Give the standard deviation and the gap to detect, both above 0 and in the same units.');
+      if (!(a > 0 && a < 0.5) || !(pw > 0.5 && pw < 1)) return fail('Give α between 0 and 50 % and the power between 50 and 100 %.');
+      nWant = nForAction(sd, gap, a, 1 - pw); why = `for a one-sided test at α ${sg(a * 100, 3)} % with ${sg(pw * 100, 3)} % power when the average is ${sg(gap, 4)} below the level (SD ${sg(sd, 4)})`;
+    } else {
+      if (!(r > 0)) return fail('Give the hot spot radius in metres (above 0).');
+      if (!(P > 0 && P <= 1)) return fail('Give the chance of hitting the hot spot as a percentage above 0 and up to 100.');
+      G = spacingFor(r, P, grid); nWant = Math.max(1, Math.round(A / cellArea(G, grid)));
+      why = `to hit a hot spot ${sg(r, 3)} m in radius with a ${sg(P * 100, 3)} % chance`;
+    }
+    if (nWant > 5000) return fail(`That needs about ${tn(nWant)} samples. Up to 5,000 are laid out; widen the margin, the gap or the hot spot.`);
+    if (mode !== 'hot') G = spacingForN(A, nWant, grid);
+    const seed = Math.max(1, Math.round(val('.fs-seed')) || 1);
+    let pts: Pt[];
+    if (lay === 'random') pts = randomPoints(poly, nWant, seed);
+    else if (lay === 'strat') pts = serpentine(stratifiedPoints(poly, G!, seed), G!);
+    else pts = serpentine(gridPoints(poly, G!, grid, seed), grid === 'square' ? G! : (G! * Math.sqrt(3)) / 2);
+    if (!pts.length) return fail('No point landed inside the site; the spacing is wider than the site. Try another seed or more samples.');
+    q('.fs-out').hidden = false;
+
+    const Gs = G!, pHit = hotspotP(mode === 'hot' ? r : Gs / 2, Gs, grid);
+    const layName = { square: 'square grid', tri: 'triangular grid', strat: 'stratified random layout', random: 'simple random layout' }[lay]!;
+    q('.fs-big').textContent = lay === 'random' ? `${pts.length} sample points, placed at random` : `${pts.length} sample points, ${sg(Gs, 3)} m apart`;
+    const facts = [
+      fact('Site area', areaStr(A), crs === 'deg' ? 'on a flat map around the middle of the site' : 'from the boundary'),
+      fact('Samples needed', `${tn(nWant)}`, why),
+      fact('Points laid out', `${pts.length}`, lay === 'random' ? 'exactly the number needed' : `a ${layName} lands a few more or fewer than ${tn(nWant)} depending on where it starts; about ${tn(Math.round(A / cellArea(Gs, lay === 'strat' ? 'square' : grid)))} on average`),
+    ];
+    if (lay !== 'random') facts.push(fact(lay === 'strat' ? 'Cell size' : 'Grid spacing', `${sg(Gs, 3)} m`, lay === 'tri' ? `rows ${sg((Gs * Math.sqrt(3)) / 2, 3)} m apart, every other row shifted by half` : lay === 'strat' ? 'one random point in each square cell' : 'rows and columns'));
+    if (lay === 'square' || lay === 'tri') {
+      facts.push(mode === 'hot'
+        ? fact('Chance of hitting the hot spot', `${sg(pHit * 100, 3)} %`, `a round hot spot ${sg(r, 3)} m in radius anywhere on the site; certain for a radius of ${sg(lay === 'tri' ? Gs / Math.sqrt(3) : Gs / Math.SQRT2, 3)} m or more`)
+        : fact('Hot spots it will find', `radius ${sg(lay === 'tri' ? Gs / Math.sqrt(3) : Gs / Math.SQRT2, 3)} m or more, always`, `one ${sg(Gs / 2, 3)} m in radius is hit ${sg(pHit * 100, 3)} % of the time`));
+    } else if (mode === 'hot') facts.push(fact('Hot spot', 'use a grid', `the ${sg(P * 100, 3)} % chance is for a ${grid === 'tri' ? 'triangular' : 'square'} grid; a ${layName} with the same number of points finds hot spots less reliably`));
+    q('.fs-facts').replaceChildren(...facts, ...extra);
+
+    // Back to the input coordinates.
+    const out = (p: Pt): Pt => (crs === 'deg' ? [centre[0] + p[0] / kx, centre[1] + p[1] / ky] : p);
+    const dp = crs === 'deg' ? 6 : 1, ids = pts.map((_, i) => `S${i + 1}`);
+    const head = crs === 'deg' ? ['Point', 'Longitude', 'Latitude'] : ['Point', 'x (m)', 'y (m)'];
+    const rows = pts.map((p, i) => { const o = out(p); return [ids[i], o[0].toFixed(dp), o[1].toFixed(dp)]; });
+    table('.fs-tab', head, rows, [1, 2]);
+    csvRows = [crs === 'deg' ? ['point', 'longitude', 'latitude'] : ['point', 'x_m', 'y_m'], ...rows];
+    q('.fs-gpx').hidden = crs !== 'deg';
+    gpx = crs === 'deg' ? `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="fibub.com" xmlns="http://www.topografix.com/GPX/1/1">\n${rows.map((r) => `  <wpt lat="${r[2]}" lon="${r[1]}"><name>${r[0]}</name></wpt>`).join('\n')}\n</gpx>\n` : '';
+
+    const label = pts.length <= 60;
+    fig = { w: 640, h: 560, alt: `Site boundary with ${pts.length} sample points`, draw: (ctx, W, H, pal) => {
+      const xs = poly.map((p) => p[0]), ys = poly.map((p) => p[1]), xa = Math.min(...xs), xb = Math.max(...xs), ya = Math.min(...ys), yb = Math.max(...ys);
+      const top = 40, s = Math.min((W - 40) / (xb - xa || 1), (H - top - 20) / (yb - ya || 1)), ox = (W - (xb - xa) * s) / 2, oy = top + (H - top - 20 - (yb - ya) * s) / 2;
+      const T = (p: Pt): Pt => [ox + (p[0] - xa) * s, oy + (yb - p[1]) * s];
+      ctx.beginPath(); poly.forEach((p, j) => { const [x, y] = T(p); if (j) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); ctx.closePath();
+      ctx.globalAlpha = 0.08; ctx.fillStyle = pal.accent; ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = pal.ink; ctx.lineWidth = 2.5; ctx.stroke();
+      if (pts.length > 1 && lay !== 'random') { ctx.beginPath(); pts.forEach((p, j) => { const [x, y] = T(p); if (j) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.setLineDash([3, 4]); ctx.stroke(); ctx.setLineDash([]); }
+      const rad = pts.length > 400 ? 3 : 6;
+      ctx.font = '16px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      pts.forEach((p, i) => { const [x, y] = T(p); ctx.beginPath(); ctx.arc(x, y, rad, 0, 2 * Math.PI); ctx.fillStyle = pal.accent; ctx.fill(); if (label) { ctx.fillStyle = pal.ink; ctx.fillText(String(i + 1), x, y - rad - 2); } });
+      if (mode === 'hot' && r * s > 3) { const [cx, cy] = T(poly[0]); ctx.beginPath(); ctx.arc(cx, cy, r * s, 0, 2 * Math.PI); ctx.strokeStyle = pal.bad; ctx.lineWidth = 2; ctx.setLineDash([5, 4]); ctx.stroke(); ctx.setLineDash([]); }
+      ctx.font = '20px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillStyle = pal.ink;
+      ctx.fillText(`${pts.length} points, ${layName}${lay !== 'random' ? `, ${sg(Gs, 3)} m` : ''}${mode === 'hot' ? '; dashed circle = hot spot size' : ''}`, 6, 6);
+    } };
+    paint(q<HTMLCanvasElement>('.fs-map'), fig);
+    sections = [{ title: q('.fs-big').textContent!, facts: [...q('.fs-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig, table: { head, rows, align: ['l', 'r', 'r'] } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.fs-new').addEventListener('click', () => { const s = q<HTMLInputElement>('.fs-seed'); s.value = String((Math.max(1, Math.round(num(s.value)) || 1) % 999999) + 1); calc(); });
+  q('.fs-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'sampling-points.csv', 'text/csv'); });
+  q('.fs-gpx').addEventListener('click', () => { if (gpx) save(new TextEncoder().encode(gpx), 'sampling-points.gpx', 'application/gpx+xml'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.fs-map'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Field sampling plan', subtitle: q('.fs-big').textContent ?? '', file: 'sampling-plan', sections }));
+</script>
+
+<style is:global>
+  .fsp select { max-width: 100%; }
+  .fsp .fs-sd2 { margin-top: 14px; }
+  .fsp .fs-sd2 summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+</style>

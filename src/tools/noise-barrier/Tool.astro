@@ -1,0 +1,142 @@
+---
+// Noise barrier insertion loss: path difference over a long thin barrier, Fresnel number per octave band, Kurze–Anderson
+// or simple 10·lg(3 + 20δ/λ) attenuation with a cap, and A-weighted totals. The example spectrum is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+const bands = [63, 125, 250, 500, 1000, 2000, 4000, 8000], spec = [78, 76, 74, 73, 72, 69, 65, 58];
+const lbl = (f: number) => (f >= 1000 ? `${f / 1000} kHz` : `${f} Hz`);
+---
+<div class="ax nbr">
+  <div class="ax-card">
+    <h2>Cross-section</h2>
+    <div class="ax-grid">
+      <label>Source height (m) <input class="nb-hs" inputmode="decimal" value="0.5" /></label>
+      <label>Source to barrier (m) <input class="nb-ds" inputmode="decimal" value="10" /></label>
+      <label>Barrier height (m) <input class="nb-hb" inputmode="decimal" value="4" /></label>
+      <label>Barrier to receiver (m) <input class="nb-dr" inputmode="decimal" value="30" /></label>
+      <label>Receiver height (m) <input class="nb-hr" inputmode="decimal" value="1.5" /></label>
+      <label>Air temperature (°C) <input class="nb-t" inputmode="decimal" value="15" /></label>
+      <label>Method <select class="nb-m">
+        <option value="ka" selected>Kurze–Anderson (Maekawa curve)</option>
+        <option value="simple">Simple: 10·lg(3 + 20δ/λ)</option>
+      </select></label>
+      <label>Most a barrier can give (dB) <input class="nb-cap" inputmode="decimal" value="20" /></label>
+    </div>
+    <p class="ax-help">Measure all heights from the same ground level and the distances along the ground, at right angles to the barrier. A road is a line of sources; use a point in the middle of the near lane, or work out the near and far lanes separately. In practice a single barrier rarely gives more than about 20 dB because sound also bends round the ends and scatters in the air, so the loss is capped; change the cap to suit your guidance.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Sound at the receiver without the barrier</h2>
+    <div class="ax-grid nb-spec">
+      {bands.map((f, i) => <label>{lbl(f)} (dB) <input class={`nb-L nb-L${i}`} inputmode="decimal" value={String(spec[i])} /></label>)}
+    </div>
+    <p class="ax-help">Unweighted octave band sound pressure levels at the receiver with no barrier, from a measurement or a source model. Leave a band blank if you have no data for it. The example spectrum is made up, roughly the shape of road traffic noise.</p>
+    <p class="ax-err nb-err" hidden></p>
+  </div>
+
+  <div class="ax-card nb-out">
+    <h2>With the barrier</h2>
+    <p class="ax-big nb-big"></p>
+    <dl class="ax-facts nb-facts"></dl>
+    <canvas class="ax-fig nb-sec"></canvas>
+    <canvas class="ax-fig nb-fig" style="margin-top:12px"></canvas>
+    <div class="ax-scroll"><table class="nb-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small nb-csv">Download band results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { barrier, soundSpeed, BANDS, AWEIGHT, dbSum, type Section as Sec } from '../../lib/sci/barrier';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (!Number.isFinite(x)) return '–'; if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const d1 = (x: number) => (Number.isFinite(x) ? x.toFixed(1).replace('-', '−') : '–');
+  const root = document.querySelector<HTMLElement>('.nbr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fl = (f: number) => (f >= 1000 ? `${f / 1000}\u00a0kHz` : `${f}\u00a0Hz`);
+  let sec: Figure | null = null, fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function table(sel: string, head: string[], rows: string[][], right: number[] = []) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.nb-err').textContent = m; q('.nb-err').hidden = false; q('.nb-out').hidden = true; sec = fig = null; sections = []; csvRows = []; };
+    q('.nb-err').hidden = true;
+    const g: Sec = { hs: val('.nb-hs'), ds: val('.nb-ds'), hb: val('.nb-hb'), dr: val('.nb-dr'), hr: val('.nb-hr') };
+    if (![g.hs, g.hb, g.hr].every((h) => h >= 0 && h <= 500)) return fail('Give the source, barrier and receiver heights in metres, from 0 to 500.');
+    if (!(g.ds > 0 && g.dr > 0 && g.ds <= 1e5 && g.dr <= 1e5)) return fail('Give the distances from the source to the barrier and from the barrier to the receiver (above 0).');
+    const tC = val('.nb-t'), cap = val('.nb-cap'), method = q<HTMLSelectElement>('.nb-m').value as 'ka' | 'simple';
+    if (!(tC >= -50 && tC <= 60)) return fail('Give an air temperature from −50 to 60 °C.');
+    if (!(cap > 0 && cap <= 40)) return fail('Give the most a barrier can give as a number of dB from 1 to 40.');
+    const raw = BANDS.map((_, i) => q<HTMLInputElement>(`.nb-L${i}`).value.trim()), have = raw.map((s) => s !== '');
+    const L = raw.map((s) => (s === '' ? NaN : num(s)));
+    if (!have.some(Boolean)) return fail('Give the sound level in at least one octave band.');
+    const bad = L.findIndex((v, i) => have[i] && !(v >= -20 && v <= 200));
+    if (bad >= 0) return fail(`The ${fl(BANDS[bad])} level should be a number of dB from −20 to 200.`);
+    const c = soundSpeed(tC), r = barrier(g, L.map((v) => (Number.isFinite(v) ? v : -999)), { c, cap, method });
+    const use = r.bands.filter((_, i) => have[i]);
+    const LA0 = dbSum(use.map((b) => b.aBefore)), LA1 = dbSum(use.map((b) => b.aAfter));
+    q('.nb-out').hidden = false;
+    q('.nb-big').textContent = `Barrier cuts ${d1(LA0 - LA1)} dB(A): ${d1(LA0)} → ${d1(LA1)} dB(A)`;
+    const capped = use.filter((b) => b.il >= cap - 1e-9).map((b) => fl(b.f));
+    const b500 = r.bands[3];
+    q('.nb-facts').replaceChildren(
+      fact('Line of sight', r.blocked ? 'broken by the barrier' : 'not broken', r.blocked ? `the barrier top is ${sg(r.clearance, 3)} m above the straight line from source to receiver` : `the straight line passes ${sg(-r.clearance, 3)} m above the barrier top${r.bands[0].N > -0.2 ? '; only the low bands get a little screening' : ''}`),
+      fact('Path difference δ', `${sg(r.delta * 1000, 3)} mm`, `over the top ${sg(r.A + r.B, 5)} m against ${sg(r.d, 5)} m straight`),
+      fact('Fresnel number at 500 Hz', sg(b500.N, 3), `N = 2δ/λ with λ ${sg(b500.lam, 3)} m (speed of sound ${sg(c, 4)} m/s)`),
+      fact('Insertion loss', `${d1(Math.min(...use.map((b) => b.il)))} to ${d1(Math.max(...use.map((b) => b.il)))} dB`, `lowest band to highest${capped.length ? `; capped at ${sg(cap, 3)} dB in ${capped.join(', ')}` : ''}`),
+      fact('Unweighted total', `${d1(dbSum(use.map((b) => b.before)))} → ${d1(dbSum(use.map((b) => b.after)))} dB`, 'low frequencies bend over a barrier most easily, so the unweighted cut is smaller'),
+      fact('Not included', 'ground, reflections, wind', 'the barrier is taken as long and thin, with the same ground effect with and without it; a reflecting barrier on the other side of a road, or wind blowing toward the receiver, makes it work less well'),
+    );
+    // Cross-section.
+    sec = { w: 640, h: 300, alt: 'Cross-section with source, barrier, receiver and the sound paths', draw: (ctx, W, H, pal) => {
+      const X = g.ds + g.dr, Y = Math.max(g.hs, g.hb, g.hr) * 1.25 || 1, pl = 20, pr = 20, pt = 44, pb = 34;
+      const sx = (W - pl - pr) / X, sy = Math.min((H - pt - pb) / Y, sx * 6), x = (v: number) => pl + v * sx, y = (v: number) => H - pb - v * sy;
+      ctx.strokeStyle = pal.muted; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(pl - 10, y(0)); ctx.lineTo(W - pr + 10, y(0)); ctx.stroke();
+      ctx.fillStyle = pal.ink; ctx.fillRect(x(g.ds) - 3, y(g.hb), 6, y(0) - y(g.hb));
+      ctx.setLineDash([5, 4]); ctx.strokeStyle = pal.muted; ctx.beginPath(); ctx.moveTo(x(0), y(g.hs)); ctx.lineTo(x(X), y(g.hr)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = pal.accent; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x(0), y(g.hs)); ctx.lineTo(x(g.ds), y(g.hb)); ctx.lineTo(x(X), y(g.hr)); ctx.stroke();
+      for (const [px, py] of [[0, g.hs], [X, g.hr]]) { ctx.beginPath(); ctx.arc(x(px), y(py), 7, 0, 2 * Math.PI); ctx.fillStyle = pal.ink; ctx.fill(); }
+      ctx.font = '20px system-ui, sans-serif'; ctx.fillStyle = pal.ink; ctx.textBaseline = 'bottom';
+      ctx.textAlign = 'left'; ctx.fillText('Source', x(0) - 4, y(g.hs) - 10);
+      ctx.textAlign = 'right'; ctx.fillText('Receiver', x(X) + 4, y(g.hr) - 10);
+      ctx.textAlign = 'center'; ctx.fillText(`${sg(g.hb, 3)} m`, x(g.ds), y(g.hb) - 6);
+      ctx.textBaseline = 'top'; ctx.fillStyle = pal.muted; ctx.fillText(`${sg(g.ds, 4)} m`, x(g.ds / 2), y(0) + 6); ctx.fillText(`${sg(g.dr, 4)} m`, x(g.ds + g.dr / 2), y(0) + 6);
+      ctx.textAlign = 'left'; ctx.fillStyle = pal.ink; ctx.fillText(`δ = ${sg(r.delta * 1000, 3)} mm (heights stretched ×${sg(sy / sx, 2)})`, 6, 6);
+    } };
+    paint(q<HTMLCanvasElement>('.nb-sec'), sec);
+    const fx = use.map((b) => b.f);
+    fig = chartFigure({ h: 300, xLabel: 'Octave band (Hz)', yLabel: 'A-weighted level (dB)', xLog: true, legend: 'below', series: [
+      { name: 'Without barrier', x: fx, y: use.map((b) => b.aBefore), mode: 'both', width: 2 },
+      { name: 'With barrier', x: fx, y: use.map((b) => b.aAfter), mode: 'both', width: 2, dash: [6, 4] },
+    ] }, `A-weighted band levels with and without the barrier: ${d1(LA0 - LA1)} dB(A) less`);
+    paint(q<HTMLCanvasElement>('.nb-fig'), fig);
+    const head = ['Band', 'λ (m)', 'N', 'Loss (dB)', 'Before (dB)', 'After (dB)', 'After (dB(A))'];
+    const rows = use.map((b) => [fl(b.f), sg(b.lam, 3), sg(b.N, 3), d1(b.il), d1(b.before), d1(b.after), d1(b.aAfter)]);
+    table('.nb-tab', head, rows, [1, 2, 3, 4, 5, 6]);
+    csvRows = [['band_hz', 'wavelength_m', 'fresnel_N', 'insertion_loss_db', 'before_db', 'after_db', 'a_weighting_db', 'after_dba'], ...use.map((b) => [String(b.f), sg(b.lam, 6), sg(b.N, 6), sg(b.il, 6), sg(b.before, 6), sg(b.after, 6), String(AWEIGHT[BANDS.indexOf(b.f)]), sg(b.aAfter, 6)])];
+    sections = [{ title: q('.nb-big').textContent!, text: [`${method === 'ka' ? 'Kurze–Anderson' : 'Simple 10·lg(3 + 20δ/λ)'} barrier attenuation, capped at ${sg(cap, 3)} dB. Source ${sg(g.hs, 3)} m high, ${sg(g.ds, 4)} m from a ${sg(g.hb, 3)} m barrier; receiver ${sg(g.hr, 3)} m high, ${sg(g.dr, 4)} m beyond it.`],
+      facts: [...q('.nb-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: sec },
+      { title: 'Octave bands', figure: fig, table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r'] } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.nb-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'noise-barrier.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (sec) paint(q<HTMLCanvasElement>('.nb-sec'), sec); if (fig) paint(q<HTMLCanvasElement>('.nb-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Noise barrier', subtitle: q('.nb-big').textContent ?? '', file: 'noise-barrier', sections }));
+</script>
+
+<style is:global>
+  .nbr select { max-width: 100%; }
+</style>

@@ -137,6 +137,20 @@ import * as THS from '../src/lib/sci/thiessen.ts';
 import * as PRB from '../src/lib/sci/probit.ts';
 import * as SSD from '../src/lib/sci/ssd.ts';
 import * as NDS from '../src/lib/sci/censored.ts';
+import * as LFG from '../src/lib/sci/lfg.ts';
+import * as POND from '../src/lib/sci/pond.ts';
+import * as WQI from '../src/lib/sci/wqi.ts';
+import * as ASL from '../src/lib/sci/asludge.ts';
+import * as SMP from '../src/lib/sci/sampling.ts';
+import * as BIO from '../src/lib/sci/bioacc.ts';
+import * as NB from '../src/lib/sci/barrier.ts';
+import * as TC from '../src/lib/sci/treecarbon.ts';
+import * as LCA from '../src/lib/sci/lca.ts';
+import * as SQ from '../src/lib/sci/seqtools.ts';
+import * as NC from '../src/lib/sci/nucconc.ts';
+import * as QP from '../src/lib/sci/qpcr.ts';
+import * as LG from '../src/lib/sci/ligation.ts';
+import * as PR from '../src/lib/sci/primer.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2743,6 +2757,236 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('cen MLE mean 2', NDS.mleLognormal(b).mean, 2.314573952100603, 1e-7);
   near('cen half-DL mean', NDS.substitute(a, 0.5).mean, (1.2 + 1.5 + 2.3 + 3.1 + 0.8 + 4.6 + 2 + 6.2 + 1.1 + 9.8 + 2.7 + 0.5 * 3 + 1 * 2) / 16, 1e-12);
   near('cen percentile', NDS.percentile([1, 2, 3, 4], 0.5), 2.5, 1e-12);
+}
+// #154 Landfill gas first-order decay (NumPy brute-force integration over 1000 placement slices per year)
+{
+  const yrs = Array.from({ length: 20 }, (_, i) => 2005 + i), M = yrs.map((y) => 50000 * 1.03 ** (y - 2005));
+  const g = LFG.generation(yrs, M, 0.05, 100, 2005, 2600), at = (n) => g.find((r) => r.year === n).ch4;
+  [[2005, 122942.45057942776], [2010, 1291407.2976990691], [2024, 4342686.1141046835], [2025, 4342907.97858614], [2026, 4131101.8571300535], [2050, 1244263.9681873207], [2100, 102135.40611642308]].forEach(([n, v]) => near(`lfg ${n}`, at(n), v, v * 1e-8));
+  near('lfg mass conserved', g.reduce((s, r) => s + r.ch4, 0), M.reduce((a, b) => a + b) * 100, 1e-3);
+  near('lfg share sum', [0, 1, 2, 3].reduce((s, a) => s + LFG.yearShare(0.3, a), 0) + LFG.yearShare(0.3, 4) / (1 - Math.exp(-0.3)), 1, 1e-12);
+  check('lfg before placement', LFG.yearShare(0.05, -1) === 0);
+  near('lfg CH4 density 0 C', LFG.ch4Density(0), 0.7157589809371521, 1e-12); near('lfg half-life', LFG.halfLife(0.05), 13.862943611198906, 1e-12);
+  const f = LFG.fate(100, 0.6, 0.1); near('lfg fate emitted', f.emitted, 36, 1e-12); near('lfg fate oxidised', f.oxidised, 4, 1e-12);
+}
+// #155 Detention pond routing (SciPy solve_ivp DOP853, rtol 1e-11, same outlet equations)
+{
+  const g = { L: 40, W: 25, z: 3, depth: 2 }, o = { d: 0.3, cd: 0.6, invert: 0, crest: 1.6, weirL: 3, cw: 1.7 };
+  const H = POND.rationalHydro(0.65, 60, 12, 15, 30);
+  near('pond rational peak', H.peak, 1.3, 1e-12); near('pond rational volume', H.volume, 2340, 1e-9);
+  const r = POND.route(H.Q, g, o, 6 * 3600, 10);
+  near('pond peak outflow', r.peakO, 0.21862271075257772, 2e-6); near('pond max level', r.hMax, 1.504329269359554, 2e-6); near('pond max storage', r.sMax, 1986.4672306274406, 0.01);
+  [[600, 0.2399965093352044], [1800, 1.2489366443321148], [3600, 1.3771212582383374], [7200, 0.926793253898842]].forEach(([t, h]) => near(`pond level at ${t} s`, r.h[r.t.indexOf(t)], h, 2e-6));
+  check('pond no spill', !r.spill);
+  const d = POND.sizeOrifice(H.Q, g, o, 6 * 3600, 0.4); near('pond sized orifice gives target', POND.route(H.Q, g, { ...o, d }, 6 * 3600, 10).peakO, 0.4, 1e-6);
+  // Storage is the integral of the surface area.
+  let num = 0; for (let k = 0; k < 2000; k++) num += POND.areaAt(g, (k + 0.5) * 0.001) * 0.001; near('pond storage = ∫ area', POND.storageAt(g, 2), num, 1e-3);
+  const T = POND.tableHydro([0, 600, 1800], [0, 2, 0]); near('pond table interp', T.Q(900), 1.5, 1e-12); near('pond table volume', T.volume, 1800, 1e-9);
+  check('pond orifice continuous-ish', POND.orificeQ(o, 0.3) > 0 && POND.orificeQ(o, 0) === 0 && POND.weirQ(o, 1.7) > 0);
+}
+// #156 Water quality index, CCME-style F1/F2/F3 (independent Python implementation)
+{
+  const N = NaN, objs = [{ name: 'pH', min: 6.5, max: 8.5 }, { name: 'DO', min: 5.5, max: N }, { name: 'TP', min: N, max: 0.05 }, { name: 'NO3', min: N, max: 2.5 }, { name: 'Ecoli', min: N, max: 150 }, { name: 'Turb', min: N, max: 8 }];
+  const d = [[7.2, 7.8, 8.2, 7.5, 6.9, 7.9, 8.1, 7.6], [8.1, 7.4, 5.0, 6.2, 4.6, 7.9, 8.4, 6.8], [0.03, 0.07, 0.04, 0.12, 0.05, 0.02, 0.06, 0.03], [1.2, 1.8, 2.1, 1.1, 0.9, 2.3, 2.2, 1.5], [90, 240, 60, 1200, 130, 80, 45, 310], [3.1, 6.5, 12.0, 4.2, 2.8, 9.5, 5.0, 4.4]];
+  const r = WQI.wqi(objs, d.flatMap((row, v) => row.map((value) => ({ v, value }))));
+  near('wqi F1', r.F1, 66.66666666666667, 1e-12); near('wqi F2', r.F2, 20.833333333333332, 1e-12); near('wqi F3', r.F3, 19.53035074878442, 1e-12);
+  near('wqi index', r.index, 58.12631923710902, 1e-11); check('wqi category', r.category === 'Marginal');
+  near('wqi excursion max', WQI.excursion(objs[4], 1200), 7, 1e-12); near('wqi excursion min', WQI.excursion(objs[1], 4.6), 5.5 / 4.6 - 1, 1e-12);
+  check('wqi value at limit passes', !WQI.fails(objs[2], 0.05) && WQI.excursion(objs[2], 0.05) === 0);
+  check('wqi categories', WQI.category(95) === 'Excellent' && WQI.category(94.9) === 'Good' && WQI.category(44.9) === 'Poor');
+  const all = WQI.wqi(objs, [{ v: 0, value: 7 }, { v: 2, value: 0.01 }]); near('wqi all pass = 100', all.index, 100, 1e-12);
+  check('wqi unused variable not counted', all.nVar === 2);
+}
+{
+  // Activated sludge: checked against an independent Python mass balance (same textbook equations).
+  const p = { Q: 4000, S0: 200, srt: 8, mlss: 3000, Y: 0.6, kd: 0.1, fd: 0.15, mumax: 5, Ks: 40, nbVSS: 20, iTSS: 10, vssRatio: 0.85, bcodRatio: 1.6, ote: 0.10, Xr: 8000 };
+  const r = ASL.size(p);
+  near('as S', r.S, 1.8848167539267013, 1e-10); near('as bio', r.bio, 264.15357766143103, 1e-8); near('as debris', r.debris, 31.698429319371723, 1e-8);
+  near('as pxVSS', r.pxVSS, 375.85200698080274, 1e-8); near('as pxTSS', r.pxTSS, 468.06118468329737, 1e-8); near('as V', r.V, 1248.1631591554597, 1e-7);
+  near('as hrt', r.hrt, 7.488978954932758, 1e-10); near('as fm', r.fm, 0.26606216846703623, 1e-12); near('as o2', r.o2, 847.827322862129, 1e-7);
+  near('as air', r.airM3min, 21.078050686283213, 1e-9); near('as R', r.R, 0.6, 1e-12); near('as Qw', r.Qw, 58.50764808541217, 1e-9);
+  near('as minSrt', ASL.minSrt(p), 0.24590163934426226, 1e-12);
+  check('as washout', ASL.effluentS({ ...p, srt: 0.2 }) === Infinity);
+  // Mass balance: biomass in the tank equals production times SRT.
+  near('as tank solids', (r.V * p.mlss) / 1000, r.pxTSS * p.srt, 1e-6);
+}
+{
+  // Field sampling: hot-spot hit chance against Shapely (union of 4096-segment discs over one lattice period).
+  const ref = [[10, 25, 'square', 0.5026548122535792], [10, 15, 'square', 0.9933196175521842], [10, 30, 'tri', 0.4030665155056459], [10, 18, 'tri', 0.9940536106215377], [5, 40, 'square', 0.0490873840091386], [10, 14.5, 'square', 0.9987712873090376]];
+  for (const [r, G, g, want] of ref) near(`hotspot ${g} r${r} G${G}`, SMP.hotspotP(r, G, g), want, 1e-7);
+  check('hotspot full cover', SMP.hotspotP(10, 14, 'square') === 1 && SMP.hotspotP(10, 17, 'tri') === 1);
+  near('hotspot spacing inverse', SMP.hotspotP(10, SMP.spacingFor(10, 0.9, 'square'), 'square'), 0.9, 1e-9);
+  near('hotspot spacing inverse tri', SMP.hotspotP(10, SMP.spacingFor(10, 0.75, 'tri'), 'tri'), 0.75, 1e-9);
+  // Sample sizes against SciPy (t iteration) and the normal formula.
+  check('n for mean', SMP.nForMean(0.5, 0.2, 0.95) === 27 && SMP.nForMean(1.2, 0.1, 0.9) === 392);
+  check('n for action level', SMP.nForAction(10, 5, 0.05, 0.2) === 27);
+  // Point layouts: all inside, and about A / cell area of them.
+  const poly = [[0, 0], [200, 0], [260, 120], [120, 180], [-20, 100]], A = SMP.area(poly);
+  let cnt = 0, allIn = true;
+  for (let sd = 1; sd <= 200; sd++) { const pts = SMP.stratifiedPoints(poly, 30, sd); cnt += pts.length; allIn &&= pts.every((q) => SMP.inside(poly, q)); }
+  near('stratified mean count', cnt / 200, A / 900, 0.5);
+  let g2 = 0; for (let sd = 1; sd <= 200; sd++) g2 += SMP.gridPoints(poly, 30, 'tri', sd).length;
+  near('tri grid mean count', g2 / 200, A / SMP.cellArea(30, 'tri'), 0.5);
+  const rp = SMP.randomPoints(poly, 50, 7);
+  check('random points', rp.length === 50 && rp.every((q) => SMP.inside(poly, q)) && allIn);
+}
+{
+  // Bioaccumulation: kinetic BCF against SciPy curve_fit (ln and raw), TMF against scipy.stats.linregress. Made-up test data.
+  const t = [1, 3, 7, 14, 21, 28, 29, 31, 35, 42, 49, 56], c = [153, 351, 746, 976, 1195, 1170, 1092, 800, 557, 211, 103, 41];
+  const L = BIO.fitKinetic(t, c, 1, 28, true);
+  near('bcf ln k1', L.k1, 150.81758385304565, 1e-5); near('bcf ln k2', L.k2, 0.12024114347069645, 1e-8);
+  near('bcf ln se k1', L.se1, 3.7858978116694186, 1e-5); near('bcf ln se k2', L.se2, 0.0015831102773930842, 1e-8);
+  near('bcf ln BCF', L.bcf, 1254.2926613950647, 1e-4); near('bcf ln se BCF', L.seBcf, 22.123009923053544, 1e-4);
+  const R = BIO.fitKinetic(t, c, 1, 28, false);
+  near('bcf raw k1', R.k1, 149.64562591457783, 1e-5); near('bcf raw k2', R.k2, 0.11992791849408492, 1e-8);
+  near('bcf raw se k2', R.se2, 0.00437348291681905, 1e-8); near('bcf raw BCF', R.bcf, 1247.7964079895096, 1e-4);
+  check('bcf converged', L.converged && R.converged);
+  // The model: steady state k1/k2·Cw, continuity at the end of uptake, and a start value that decays.
+  near('bcf model plateau', BIO.model(1e4 - 1, 100, 0.5, 2, 1e4), 400, 1e-9);
+  near('bcf model continuity', BIO.model(28, 150, 0.12, 1, 28), BIO.model(28 + 1e-12, 150, 0.12, 1, 28), 1e-6);
+  near('bcf model c0', BIO.model(10, 0, 0.1, 1, 28, 50), 50 * Math.exp(-1), 1e-9);
+  near('growth rate', BIO.growthRate(10, 20, 14), Math.LN2 / 14, 1e-15);
+  near('lipid norm', BIO.lipidNorm(1000, 10), 500, 1e-12);
+  const T = BIO.tmf([2.0, 2.3, 2.6, 3.0, 3.1, 3.4, 3.8, 4.0, 4.2, 4.5], [12, 18, 15, 30, 41, 36, 70, 95, 82, 160]);
+  near('tmf slope', T.slope, 0.4348981085880527, 1e-12); near('tmf se', T.se, 0.034171602655777074, 1e-12);
+  near('tmf', T.tmf, 2.7220626001240946, 1e-12); near('tmf lo', T.lo, 2.270378427336983, 1e-9); near('tmf hi', T.hi, 3.263607824042527, 1e-9);
+  near('tmf r2', T.r2, 0.952933878462072, 1e-12); near('tmf p', T.p, 1.3678427349225121e-06, 1e-12);
+}
+{
+  // Noise barrier: against an independent NumPy implementation (vector path difference, both attenuation forms).
+  const g = { hs: 0.5, ds: 10, hb: 4, dr: 30, hr: 1.5 }, L = [78, 76, 74, 73, 72, 69, 65, 58], c = NB.soundSpeed(15);
+  near('barrier c', c, 340.2750805118605, 1e-10);
+  const k = NB.barrier(g, L, { c, cap: 20, method: 'ka' }), s = NB.barrier(g, L, { c, cap: 20, method: 'simple' });
+  near('barrier delta', k.delta, 0.6862984497041751, 1e-12);
+  [8.422937880938196, 10.502269232068151, 13.131422892110754, 16.04268141969565, 19.03966362869852, 20, 20, 20].forEach((v, i) => near(`barrier KA ${NB.BANDS[i]} Hz`, k.bands[i].il, v, 1e-9));
+  [7.436105078356229, 9.05376632978495, 11.167559804322462, 13.64905989410345, 16.368674750955698, 19.22599471263698, 20, 20].forEach((v, i) => near(`barrier simple ${NB.BANDS[i]} Hz`, s.bands[i].il, v, 1e-9));
+  near('barrier LA before', k.LA0, 76.52603646781606, 1e-10); near('barrier LA after KA', k.LA1, 59.355497095993606, 1e-10); near('barrier LA after simple', s.LA1, 61.34039711495346, 1e-10);
+  near('KA grazing', NB.kurzeAnderson(0), 5, 1e-12); near('KA N -0.1', NB.kurzeAnderson(-0.1), 2.8555483741517955, 1e-12);
+  check('KA clear', NB.kurzeAnderson(-0.3) === 0 && NB.simpleIL(-0.1) === 0);
+  near('KA N 1 about 13 dB', NB.kurzeAnderson(1), 13.1, 0.05);
+  const clear = NB.pathDiff({ hs: 0.5, ds: 10, hb: 1, dr: 30, hr: 3 });
+  check('barrier line of sight clear', !clear.blocked && clear.delta < 0);
+  check('barrier cap', NB.barrier({ ...g, hb: 15 }, L, { c, cap: 25, method: 'ka' }).bands.every((b) => b.il <= 25));
+}
+{
+  // Tree carbon: against an independent NumPy sum (made-up trees, illustrative coefficients).
+  const trees = [['Oak 1', 42, 18, 38, 17], ['Oak 2', 35, 16, 32, 15.5], ['Maple', 28, 14, 25, 13], ['Birch', 19, 13, 17, 12], ['Pine 1', 51, 22, 47, 21], ['Pine 2', 46, 21, 43, 20], ['Ash', 23, 12, 20, 11], ['Cherry', 14, 8, 12, 7]].map(([id, D, H, D0, H0]) => ({ id, D, H, D0, H0 }));
+  const m1 = { form: 'd', a: 0.1, b: 2.4, rho: 0.55 }, m2 = { form: 'rdh', a: 0.06, b: 1, rho: 0.55 };
+  const r1 = TC.forest(trees, m1, 0.25, 0.47, { years: 5 }), r2 = TC.forest(trees, m2, 0.25, 0.47, { years: 5 });
+  near('tree agb D', r1.agb, 4183.073550174934, 1e-8); near('tree total D', r1.total, 5228.841937718667, 1e-8); near('tree co2 D', r1.co2, 9004.728836173006, 1e-8); near('tree per year D', r1.perYear, 346.22522487541244, 1e-9);
+  near('tree agb rdh', r2.agb, 5827.635, 1e-8); near('tree co2 rdh', r2.co2, 12544.908020801246, 1e-8); near('tree per year rdh', r2.perYear, 508.7011882383857, 1e-9);
+  near('tree growth D', TC.forest(trees, m1, 0.25, 0.47, { g: 0.6 }).perYear, 338.79289863239137, 1e-9);
+  near('tree growth rdh', TC.forest(trees, m2, 0.25, 0.47, { g: 0.6 }).perYear, 380.8929449998768, 1e-9);
+  near('CO2 per C', TC.CO2_PER_C, 3.664, 1e-3);
+}
+{
+  // LCA lite: against an independent Python version (same mulberry32 stream for the Monte Carlo). Made-up factors.
+  const raw = [['A', 'Materials', 'Stainless steel', 0.3, 6, 'once', 20], ['A', 'Materials', 'Plastic cap', 0.02, 3, 'once', 20], ['A', 'Manufacturing', 'Factory electricity', 2, 0.4, 'once', 30], ['A', 'Transport', 'Truck and ship', 0.6, 0.1, 'once', 40], ['A', 'Use', 'Washing', 0.05, 0.4, 'use', 50], ['A', 'End of life', 'Landfill and recycling', 0.32, 0.05, 'once', 50],
+    ['B', 'Materials', 'PET plastic', 0.025, 3, 'once', 20], ['B', 'Manufacturing', 'Factory electricity', 0.08, 0.4, 'once', 30], ['B', 'Transport', 'Truck', 0.05, 0.1, 'once', 40], ['B', 'End of life', 'Landfill and recycling', 0.025, 0.1, 'once', 50]];
+  const rows = raw.map(([p, stage, item, amount, factor, b, u]) => ({ p, stage, item, amount, factor, perUse: b === 'use', unc: u / 100 })), life = { A: 500, B: 1 };
+  near('lca A 1 use', LCA.totals(rows, life, 1).A, 2.756, 1e-12); near('lca B 1 use', LCA.totals(rows, life, 1).B, 0.1145, 1e-12);
+  near('lca A 365', LCA.totals(rows, life, 365).A, 10.036, 1e-12); near('lca B 365', LCA.totals(rows, life, 365).B, 41.7925, 1e-12);
+  near('lca A 501 uses buys a second bottle', LCA.totals(rows, life, 501).A - LCA.totals(rows, life, 500).A, 2.756, 1e-12);
+  check('lca break-even', LCA.breakEven(rows, life) === 29);
+  const fl = LCA.flips(rows, life, 365);
+  near('lca flip steel', fl[0], 17.642500000000005, 1e-12); near('lca flip washing', fl[4], 4.350205479452055, 1e-12); near('lca flip PET', fl[6], -1.1600547945205482, 1e-12);
+  const m1 = LCA.monteCarlo(rows, life, 365, 10000, 1), m2 = LCA.monteCarlo(rows, life, 30, 10000, 1);
+  check('lca MC 365', m1.pA === 1); near('lca MC 365 p50', m1.p50, 31.825753420237692, 1e-9);
+  near('lca MC 30 pA', m2.pA, 0.5923, 1e-12); near('lca MC 30 p5', m2.p5, -0.6048322133878243, 1e-9); near('lca MC 30 p95', m2.p95, 0.8201603659705721, 1e-9);
+}
+{
+  // Sequence tools: against Biopython 1.88 (reverse complement, translation in three frames, GC, ORFs with an
+  // independent first-M-after-stop scan, codon counts). The test sequence is random with two planted ORFs (made up).
+  const seq = 'GCTAAAGACAATTACATAACATACACGTCAGCACGAAACTATGTGTTGGCCCAGTGTGAATCGCTTAAGGGTTAAGGTGTGCATACGCCTTTACTTGCTGTGTCCACCCCATCGGACTGGCATTTTTATTACACTCAGAAACAGAACTCGGGTAATTTTGACAGGTCACGCAGAGGCGCGCCCTCCTGAAGTGCGTGGACACTCGCTAATCTCTGATTTACCCACTCTGCCAAACTCCAGCGCGGTCAGTTCCATCACCCTAAGTAACCGAATAATGCGTTCGCTCTATCTACGACGCGCTCATTCCCTTGTCGGAGAGTTATGGAACAAGGACGCTGTCGACAAGACAGATAGTGCACACGACCGGCGTCGGAGAAACTCTATTTGCCGCCTGACAAGTCAATAATGCGATCCGTAGGGGCAGCGCAGTATGCCAAGACTATAGGCACTGTCGCATTAAGCAGCTAAGTTCATGGAGCCACTTGCAGCTTTACGCTGGTTTATGGGTGAAATTAAATGAAAGCTGGCCATCCAGAAATGCCGCTCGTGGGAACAGAGTGGTAACGACCCCCAAGGTACGAATTGATACGCACGGCTTCTCACTAATCCCTGTACCTCCAGCAAATGTAAAGCTCGCCGTTGGACATATCGTAAACCAGTCATATGCCCGTGTAAAGGGCTCATGTTAATCGTTTGTGACATAGTGTCAGACTCGCCTCGGATCCTTACTAC';
+  const p = SQ.parse('>test seq\n' + seq.match(/.{1,60}/g).join('\n'));
+  check('seq parse', p.name === 'test seq' && p.seq === seq && p.dropped === 0 && !p.rna);
+  check('seq revcomp', SQ.reverseComplement(seq).slice(0, 60) === 'GTAGTAAGGATCCGAGGCGAGTCTGACACTATGTCACAAACGATTAACATGAGCCCTTTA');
+  near('seq gc', SQ.gc(seq), 0.49453551912568305, 1e-15);
+  ["AKDNYITYTSARNYVLAQCESLKG*GVHTPLLAVSTPSDWHFYYTQKQNSGNFDRSRRGAPS*SAWTLANL*FTHSAKLQRGQFHHPK*PNNAFALSTTRSFPCRRVMEQGRCRQDR*CTRPASEKLYLPPDKSIMRSVGAAQYAKTIGTVALSS*VHGATCSFTLVYG*N*MKAGHPEMPLVGTEW*RPPRYELIRTASH*SLYLQQM*SSPLDIS*TSHMPV*RAHVNRL*HSVRLASDPYY", "LKTIT*HTRQHETMCWPSVNRLRVKVCIRLYLLCPPHRTGIFITLRNRTRVILTGHAEARPPEVRGHSLISDLPTLPNSSAVSSITLSNRIMRSLYLRRAHSLVGELWNKDAVDKTDSAHDRRRRNSICRLTSQ*CDP*GQRSMPRL*ALSH*AAKFMEPLAALRWFMGEIK*KLAIQKCRSWEQSGNDPQGTN*YARLLTNPCTSSKCKARRWTYRKPVICPCKGLMLIVCDIVSDSPRILT", "*RQLHNIHVSTKLCVGPV*IA*GLRCAYAFTCCVHPIGLAFLLHSETELG*F*QVTQRRALLKCVDTR*SLIYPLCQTPARSVPSP*VTE*CVRSIYDALIPLSESYGTRTLSTRQIVHTTGVGETLFAA*QVNNAIRRGSAVCQDYRHCRIKQLSSWSHLQLYAGLWVKLNESWPSRNAARGNRVVTTPKVRIDTHGFSLIPVPPANVKLAVGHIVNQSYARVKGSC*SFVT*CQTRLGSLL"].forEach((t, f) => check(`seq translate frame ${f + 1}`, SQ.translate(seq, f) === t));
+  const o = SQ.findOrfs(seq, 30, 'atg', true);
+  check('seq orfs', JSON.stringify(o.map((x) => [x.strand === '+' ? '+' : '-', x.frame, x.start, x.end, x.aa])) === '[["+",2,41,406,121],["-",1,457,702,81]]');
+  const u = SQ.codonUsage([seq.slice(o[0].start - 1, o[0].end)]);
+  check('seq codon counts', u.n.ATG === 2 && u.n.TAA === 1 && u.n.GCT === 2 && u.n.CTG === 3 && u.total === 122);
+  near('seq RSCU sums', ['CTG', 'CTA', 'CTC', 'CTT', 'TTA', 'TTG'].reduce((a, c) => a + (u.rscu[c] || 0), 0), 6, 1e-12);
+  check('seq IUPAC revcomp', SQ.reverseComplement('ACGTRYKMBVDHNSW') === 'WSNDHBVKMRYACGT');
+  const r = SQ.parse('augGCU uaa\n123 x');
+  check('seq RNA parse', r.rna && r.seq === 'ATGGCTTAA' && r.dropped === 1 && SQ.translate(r.seq) === 'MA*');
+  check('seq ambiguous codon', SQ.translate('ATGNNNTAA') === 'MX*');
+  check('seq stop mode', SQ.findOrfs('AAATAAGGGCCCTTTTGA', 3, 'stop', false).some((x) => x.start === 7 && x.end === 18 && !x.complete));
+}
+// #164 nucleic acid concentration: masses from elemental formulas, checked against an independent Python calculation.
+{
+  near('nc dA residue', NC.DNA_RES.A, 313.21, 1e-9); near('nc U residue', NC.RNA_RES.U, 306.167, 1e-9);
+  near('nc ds 3000 linear', NC.molarMass('ds', 3000), 1853733.03, 1e-4);
+  near('nc ds 5000 circular', NC.molarMass('ds', 5000, '', true), 3089495.0, 1e-4);
+  near('nc ss 20', NC.molarMass('ss', 20), 6197.005, 1e-6);
+  near('nc rna 1000', NC.molarMass('rna', 1000), 321459.765, 1e-4);
+  near('nc ds seq', NC.molarMass('ds', 0, 'ATGCGTACGTTAGC'), 8686.616, 1e-6);
+  near('nc ss seq', NC.molarMass('ss', 0, 'ATGCGTACGTTAGC'), 4358.813, 1e-6);
+  near('nc rna seq (T read as U)', NC.molarMass('rna', 0, 'ATGCGTACGTTAGC'), 4526.691, 1e-6);
+  const c = NC.conc(0.75, 50, 10, 1, 0.01), mw = NC.molarMass('ds', 3000);
+  near('nc conc', c, 370, 1e-9); near('nc nM', NC.nM(c, mw), 199.59724189626164, 1e-9); near('nc copies', NC.copies(c, mw) / 1e11, 1.2020026860070567, 1e-12);
+  near('nc conc 0.1 cm path', NC.conc(0.1, 40, 1, 0.1), 40, 1e-12);
+  near('nc protein', NC.proteinConc(0.62, 43824, 66463, 2, 1, 0.02), 1.8199069003285868, 1e-12);
+  const d = NC.diluteTo(370, 10, 50); near('nc dilute stock', d.stock, 50 * 10 / 370, 1e-12); near('nc dilute diluent', d.diluent + d.stock, 50, 1e-12); near('nc fold', d.fold, 37, 1e-12);
+  check('nc dilute too weak', NC.diluteTo(5, 10, 50) === null);
+  check('nc purity ok', NC.purity('ds', 1.85, 2.1).ok); check('nc purity protein', NC.purity('ds', 1.5, 2.1).notes[0].includes('protein'));
+  check('nc purity rna fine at 2.05', NC.purity('rna', 2.05, NaN).ok); check('nc purity salt', NC.purity('rna', 2.0, 1.2).notes[0].includes('260/230'));
+}
+// #165 qPCR: checked against scipy.stats.linregress and an independent NumPy ΔΔCq / Pfaffl calculation.
+{
+  const c = QP.stdCurve([1e6, 1e6, 1e5, 1e5, 1e4, 1e4, 1e3, 1e3, 1e2, 1e2], [15.12, 15.30, 18.55, 18.41, 21.90, 22.04, 25.31, 25.20, 28.75, 28.60]);
+  near('qp slope', c.slope, -3.3705, 1e-10); near('qp intercept', c.intercept, 35.4, 1e-10); near('qp r2', c.r2, 0.9996807653500582, 1e-12);
+  near('qp se slope', c.seSlope, 0.02129480570468995, 1e-12); near('qp efficiency', c.eff, 0.9801217103905819, 1e-12);
+  near('qp eff lo', c.effLo, 0.9716469715842233, 1e-12); near('qp eff hi', c.effHi, 0.9887413422597298, 1e-12);
+  near('qp unknown', QP.quantify(c, 20) / 37072.76995950164, 1, 1e-12);
+  const W = [];
+  const add = (s, g, v) => v.forEach((cq) => W.push({ sample: s, gene: g, cq }));
+  add('Ctrl', 'GOI', [24.1, 24.3, 24.2]); add('Ctrl', 'REF', [18.0, 18.1, 17.9]); add('Ctrl', 'REF2', [20.2, 20.0, 20.1]);
+  add('Drug', 'GOI', [22.0, 22.3, 22.1]); add('Drug', 'REF', [18.1, 18.2, 18.0]); add('Drug', 'REF2', [20.3, 20.1, 20.2]);
+  const one = QP.relative(W.filter((w) => w.gene !== 'REF2'), ['REF'], 'Ctrl'), d = one.rows.find((r) => r.sample === 'Drug');
+  near('qp ddcq', d.ddCq, -2.1666666666666643, 1e-12); near('qp fold', d.nrq, 4.489848193237485, 1e-12);
+  near('qp fold lo', d.lo, 3.956137256980559, 1e-12); near('qp fold hi', d.hi, 5.095560514931085, 1e-12);
+  near('qp control is 1', one.rows.find((r) => r.sample === 'Ctrl').nrq, 1, 1e-12);
+  near('qp pfaffl', QP.relative(W.filter((w) => w.gene !== 'REF2'), ['REF'], 'Ctrl', { GOI: 1.95, REF: 2.05 }).rows.find((r) => r.sample === 'Drug').nrq, 4.2714984153955955, 1e-12);
+  const two = QP.relative(W, ['REF', 'REF2'], 'Ctrl').rows.find((r) => r.sample === 'Drug');
+  near('qp two refs', two.nrq, 4.48984819323749, 1e-12); near('qp two refs sd', two.sdLog2, 0.1683250823060347, 1e-12);
+  check('qp missing ref skipped', QP.relative(W.filter((w) => w.gene !== 'REF2' && !(w.sample === 'Drug' && w.gene === 'REF')), ['REF'], 'Ctrl').rows.length === 1);
+}
+// #166 ligation / assembly: checked against an independent Python calculation from the same residue masses.
+{
+  near('lg vector pmol', LG.pmol(50, 5400), 0.014984907366134812, 1e-15);
+  near('lg ng round trip', LG.ngOf(LG.pmol(33, 1200), 1200), 33, 1e-12);
+  near('lg simple', LG.insertNgSimple(50, 5400, 1200, 3), 33.333333333333336, 1e-12);
+  const frags = [{ name: 'V', bp: 5400, conc: 62.5, ratio: 1 }, { name: 'A', bp: 1200, conc: 40, ratio: 3 }, { name: 'B', bp: 850, conc: 25, ratio: 3 }, { name: 'C', bp: 400, conc: 18, ratio: 5 }];
+  const r = LG.reaction(frags, 50, { total: 20, bufferFraction: 0.1, enzyme: 1 });
+  near('lg insert A ng', r.rows[1].ng, 33.33459311449561, 1e-10); near('lg insert B vol', r.rows[2].vol, 0.9444990349614764, 1e-12);
+  near('lg insert C pmol', r.rows[3].pmol, 0.07492453683067406, 1e-15); near('lg dna vol', r.dna, 3.6068093119525715, 1e-12);
+  near('lg water', r.water, 13.39319068804743, 1e-12); near('lg max vector', r.maxVectorNg, 235.66535585432615, 1e-9); check('lg fits', r.fits);
+  const a = LG.reaction(frags, 50, { total: 20, bufferFraction: 0.5, enzyme: 0 });
+  near('lg assembly water', a.water, 6.3931906880474285, 1e-12);
+  check('lg does not fit', !LG.reaction(frags, 400, { total: 20, bufferFraction: 0.5, enzyme: 0 }).fits);
+}
+// #167 primer checker: Tm against Biopython 1.88 MeltingTemp (Tm_Wallace, Tm_GC valueset 3); hairpins and dimers against
+// an independent brute-force Python search.
+{
+  const F = 'ACTCACATCGGTGTCACCTG', R = 'TACTTCACGGCGTGTGCATC';
+  near('pr wallace', PR.tmWallace(F), 62, 1e-12); near('pr basic', PR.tmBasic(F), 53.83000000000001, 1e-10);
+  near('pr salt 50', PR.tmSalt(F), 48.7029020719779, 1e-10); near('pr salt 200', PR.tmSalt(F, 200), 58.69709792802209, 1e-10);
+  near('pr salt short', PR.tmSalt('GCGCAAAATTTTGCGC'), 38.215402071977906, 1e-10);
+  check('pr hairpin F', PR.hairpin(F).stem === 3); check('pr hairpin stem 6', PR.hairpin('GCGCAAAATTTTGCGC').stem === 6 && PR.hairpin('GCGCAAAATTTTGCGC').loop === 4);
+  check('pr hairpin stem 8', PR.hairpin('AAAAGGGCTTTTTGCCCTTTT').stem === 8);
+  const dd = (a, b) => { const r = PR.dimer(a, b); return `${r.longest},${r.threePrime}`; };
+  check('pr dimers', dd(F, F) === '4,2' && dd(F, R) === '4,2' && dd(R, R) === '4,1' && dd('ACGTTTTTCCGGA', 'TTTTTCCGGAAAA') === '9,9');
+  const r = PR.runs('ACGAAAAATATATATGC'); check('pr runs', r.run.len === 5 && r.run.base === 'A' && r.di.reps === 4 && r.di.unit === 'AT');
+  check('pr clamp', PR.clamp(F) === 3); check('pr clean', PR.clean('acg u-1') === 'ACGT' && PR.clean('ACGN') === null);
+  const T = 'GGG' + F + 'A'.repeat(50) + PR.rc(R) + 'CC';
+  const fs = PR.sites(T, F), rs = PR.sites(T, R), pp = PR.products(fs, rs, R.length);
+  check('pr sites', fs.length === 1 && fs[0].pos === 3 && rs.length === 1 && rs[0].pos === 73 && rs[0].strand === '−');
+  check('pr product', pp.length === 1 && pp[0].size === 90);
+  const m1 = 'TT' + F.slice(0, 5) + 'G' + F.slice(6) + 'TT', m3 = 'TT' + F.slice(0, 19) + 'A' + 'TT';
+  check('pr one mismatch found', PR.sites(m1, F, 1).some((x) => x.pos === 2 && x.mm === 1) && PR.sites(m1, F, 0).length === 0);
+  check('pr 3-prime mismatch rejected', PR.sites(m3, F, 2).length === 0);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

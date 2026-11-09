@@ -2835,6 +2835,253 @@ try {
     check((await page.textContent('.nds .nd-facts')).includes('5 detected, 2 non-detects'), 'nd: file open with flag column');
     { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.nds .nd-csv')]); check(dl.suggestedFilename() === 'non-detect-statistics.csv', 'nd: CSV'); }
     { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.nds .dl [data-f=pdf]')]); check(dl.suggestedFilename().endsWith('.pdf'), 'nd: PDF'); }
+    // #154 landfill gas
+    await page.goto(`${BASE}/science/landfill-gas/`); await page.waitForTimeout(600);
+    check((await page.textContent('.lfg .lf-big')) === 'Peak 4.34 million m³ of methane in 2025', 'lfg: example peak');
+    { const t = await page.textContent('.lfg .lf-facts'); check(t.includes('4.13 million m³') && t.includes('943.2 m³/h') && t.includes('2661 t') && t.includes('71,852 t CO₂e'), 'lfg: report-year facts'); }
+    await page.fill('.lfg .lf-col', '60'); await page.waitForTimeout(400);
+    check((await page.textContent('.lfg .lf-facts')).includes('about 0.984 MW'), 'lfg: power from collected gas');
+    await page.selectOption('.lfg .lf-gwp', '28'); await page.waitForTimeout(400);
+    check((await page.textContent('.lfg .lf-facts')).includes('GWP 28'), 'lfg: GWP choice');
+    await page.fill('.lfg .lf-k', '0'); await page.waitForTimeout(400);
+    check((await page.textContent('.lfg .lf-err')).includes('decay rate'), 'lfg: k error');
+    await page.fill('.lfg .lf-k', '0.05'); await page.fill('.lfg .lf-data', 'year,t\n2010.5,100'); await page.waitForTimeout(400);
+    check((await page.textContent('.lfg .lf-err')).includes('whole years'), 'lfg: year error');
+    await page.setInputFiles('.lfg .dfb-in', { name: 'waste.csv', mimeType: 'text/csv', buffer: Buffer.from('year,tonnes\n2020,10000\n2020,10000\n2021,20000\n') });
+    await page.fill('.lfg .lf-yr', '2022'); await page.waitForTimeout(600);
+    check((await page.textContent('.lfg .lf-big')).includes('in 2022'), 'lfg: file open, duplicate years added');
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.lfg .lf-csv')]); check(dl.suggestedFilename() === 'landfill-gas.csv', 'lfg: CSV'); }
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.lfg .dl [data-f=pdf]')]); check(dl.suggestedFilename().endsWith('.pdf'), 'lfg: PDF'); }
+    // #155 detention pond
+    await page.goto(`${BASE}/science/detention-pond/`); await page.waitForTimeout(1200);
+    check((await page.textContent('.dpd .dp-big')) === 'Peak outflow 0.219 m³/s, cut by 83 %', 'pond: example');
+    { const t = await page.textContent('.dpd .dp-facts'); check(t.includes('1,986 m³') && t.includes('425 mm diameter') && t.includes('not reached'), 'pond: storage, sizing, weir'); }
+    await page.fill('.dpd .dp-L', '15'); await page.fill('.dpd .dp-W', '10'); await page.waitForTimeout(1200);
+    { const t = await page.textContent('.dpd .dp-facts'); check(t.includes('the pond overtops') || t.includes('used'), 'pond: small pond spills or overtops'); }
+    await page.fill('.dpd .dp-L', '40'); await page.fill('.dpd .dp-W', '25'); await page.fill('.dpd .dp-C', '1.5'); await page.waitForTimeout(800);
+    check((await page.textContent('.dpd .dp-err')).includes('runoff coefficient'), 'pond: C error');
+    await page.fill('.dpd .dp-C', '0.65'); await page.selectOption('.dpd .dp-src', 'tab'); await page.waitForTimeout(1200);
+    check((await page.textContent('.dpd .dp-facts')).includes('pasted hydrograph'), 'pond: pasted hydrograph');
+    await page.setInputFiles('.dpd .dfb-in', { name: 'h.csv', mimeType: 'text/csv', buffer: Buffer.from('t,q\n0,0\n20,2\n10,1\n') }); await page.waitForTimeout(1000);
+    check((await page.textContent('.dpd .dp-err')).includes('Times must increase'), 'pond: file open, order check');
+    await page.selectOption('.dpd .dp-src', 'rat'); await page.waitForTimeout(1200);
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.dpd .dp-csv')]); check(dl.suggestedFilename() === 'detention-pond.csv', 'pond: CSV'); }
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.dpd .dl [data-f=pdf]')]); check(dl.suggestedFilename().endsWith('.pdf'), 'pond: PDF'); }
+    // #156 water quality index
+    await page.goto(`${BASE}/science/water-quality-index/`); await page.waitForTimeout(600);
+    check((await page.textContent('.wqx .wq-big')) === 'WQI 58 (Marginal)', 'wqi: example');
+    { const t = await page.textContent('.wqx .wq-facts'); check(t.includes('4 of 6 variables') && t.includes('10 of 48 tests') && t.includes('19.5'), 'wqi: F1 F2 F3'); }
+    check((await page.textContent('.wqx .wq-tab')).includes('8×'), 'wqi: worst E. coli as multiple');
+    await page.fill('.wqx .wq-res', 'site,pH,Zinc,Nitrate (mg/L)\nA,7,5,<0.5\nB,7.1,6,1'); await page.waitForTimeout(500);
+    { const t = await page.textContent('.wqx .wq-facts'); check(t.includes('Zinc') && t.includes('Results below detection') && t.includes('Caution'), 'wqi: unknown column, <DL, caution'); }
+    check((await page.textContent('.wqx .wq-big')).startsWith('WQI 100'), 'wqi: all pass');
+    await page.fill('.wqx .wq-obj', 'variable,lo,hi\npH,9,6'); await page.waitForTimeout(500);
+    check((await page.textContent('.wqx .wq-err')).includes('lowest allowed value is above'), 'wqi: objective order error');
+    await page.fill('.wqx .wq-obj', 'variable,lo,hi\npH,6.5,8.5\nNitrate (mg/L),,2.5');
+    await page.setInputFiles('.wqx .dfb-in >> nth=1', { name: 'r.csv', mimeType: 'text/csv', buffer: Buffer.from('date,pH,Nitrate (mg/L)\n1,7,1\n2,9,5\n3,7,1\n4,7,1\n') });
+    await page.waitForTimeout(700);
+    check((await page.textContent('.wqx .wq-facts')).includes('2 of 2 variables'), 'wqi: results file open');
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.wqx .wq-csv')]); check(dl.suggestedFilename() === 'water-quality-index.csv', 'wqi: CSV'); }
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.wqx .dl [data-f=pdf]')]); check(dl.suggestedFilename().endsWith('.pdf'), 'wqi: PDF'); }
+    // #157 activated sludge
+    await page.goto(`${BASE}/science/activated-sludge/`); await page.waitForTimeout(600);
+    check((await page.textContent('.asl .as-big')) === 'Aeration tank 1,248 m³ (HRT 7.49 h)', 'asludge: example');
+    { const t = await page.textContent('.asl .as-facts'); check(t.includes('1.88 mg/L') && t.includes('468 kg TSS/day') && t.includes('848 kg O₂/day') && t.includes('21.1 m³/min') && t.includes('60 % of the flow'), 'asludge: facts'); }
+    await page.fill('.asl .as-srt', '0.2'); await page.waitForTimeout(500);
+    check((await page.textContent('.asl .as-err')).includes('Washout'), 'asludge: washout');
+    await page.fill('.asl .as-srt', '8'); await page.fill('.asl .as-xr', '2000'); await page.waitForTimeout(500);
+    check((await page.textContent('.asl .as-err')).includes('thicker than the MLSS'), 'asludge: return check');
+    await page.fill('.asl .as-xr', '8000'); await page.waitForTimeout(500);
+    check((await page.textContent('.asl .as-tabl')).includes('30'), 'asludge: SRT table');
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.asl .as-csv')]); check(dl.suggestedFilename() === 'activated-sludge.csv', 'asludge: CSV'); }
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.asl .dl [data-f=pdf]')]); check(dl.suggestedFilename().endsWith('.pdf'), 'asludge: PDF'); }
+    // #158 field sampling planner
+    await page.goto(`${BASE}/science/field-sampling-planner/`); await page.waitForTimeout(600);
+    check((await page.textContent('.fsp .fs-big')) === '73 sample points, 24.1 m apart', 'fsp: example');
+    { const t = await page.textContent('.fsp .fs-facts'); check(t.includes('3.87 ha') && t.includes('77') && t.includes('90 %') && t.includes('13.9 m'), 'fsp: facts'); }
+    await page.selectOption('.fsp .fs-mode', 'mean'); await page.waitForTimeout(500);
+    check((await page.textContent('.fsp .fs-facts')).includes('37'), 'fsp: n for mean');
+    await page.selectOption('.fsp .fs-mode', 'action'); await page.selectOption('.fsp .fs-lay', 'random'); await page.waitForTimeout(500);
+    check((await page.textContent('.fsp .fs-big')) === '18 sample points, placed at random', 'fsp: action level, random');
+    await page.selectOption('.fsp .fs-mode', 'n'); await page.selectOption('.fsp .fs-lay', 'strat'); await page.waitForTimeout(500);
+    { const a = await page.textContent('.fsp .fs-tab'); await page.click('.fsp .fs-new'); await page.waitForTimeout(300); check(a !== (await page.textContent('.fsp .fs-tab')), 'fsp: new layout'); }
+    await page.fill('.fsp .fs-poly', '0,0\n10,10\n10,0\n0,10'); await page.waitForTimeout(500);
+    check((await page.textContent('.fsp .fs-err')).includes('crosses itself'), 'fsp: self-crossing');
+    await page.selectOption('.fsp .fs-crs', 'deg'); await page.fill('.fsp .fs-poly', 'lon,lat\n-79.08,43.08\n-79.075,43.08\n-79.075,43.084\n-79.08,43.084'); await page.waitForTimeout(500);
+    check((await page.textContent('.fsp .fs-tab')).includes('-79.07') && !(await page.isHidden('.fsp .fs-gpx')), 'fsp: degrees out');
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.fsp .fs-gpx')]); check(dl.suggestedFilename() === 'sampling-points.gpx', 'fsp: GPX'); }
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.fsp .fs-csv')]); check(dl.suggestedFilename() === 'sampling-points.csv', 'fsp: CSV'); }
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.fsp .dl [data-f=pdf]')]); check(dl.suggestedFilename().endsWith('.pdf'), 'fsp: PDF'); }
+    // #159 bioaccumulation factor
+    await page.goto(`${BASE}/science/bioaccumulation-factor/`); await page.waitForTimeout(700);
+    check((await page.textContent('.bioa .bi-big')) === 'BCF 1,254 L/kg (k1/k2)', 'bcf: example');
+    { const t = await page.textContent('.bioa .bi-facts'); check(t.includes('1,205 to 1,304') && t.includes('0.1202 per day') && t.includes('1,114 L/kg') && t.includes('1,360 L/kg') && t.includes('1,568 L/kg'), 'bcf: facts'); }
+    await page.selectOption('.bioa .bi-log', 'raw'); await page.waitForTimeout(600);
+    check((await page.textContent('.bioa .bi-big')) === 'BCF 1,248 L/kg (k1/k2)', 'bcf: raw fit');
+    await page.fill('.bioa .bi-w2', ''); await page.waitForTimeout(500);
+    check((await page.textContent('.bioa .bi-err')).includes('both fish weights'), 'bcf: weight check');
+    await page.fill('.bioa .bi-w1', ''); await page.fill('.bioa .bi-tu', '60'); await page.waitForTimeout(500);
+    check((await page.textContent('.bioa .bi-err')).includes('2 after it'), 'bcf: phase check');
+    await page.fill('.bioa .bi-tu', '28'); await page.waitForTimeout(500);
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.bioa .bi-csv')]); check(dl.suggestedFilename() === 'bcf-fit.csv', 'bcf: CSV'); }
+    await page.selectOption('.bioa .bi-mode', 'tmf'); await page.waitForTimeout(600);
+    check((await page.textContent('.bioa .bi-big')) === 'TMF 2.72 (95 % CI 2.27 to 3.26)', 'tmf: example');
+    check((await page.textContent('.bioa .bi-facts')).includes('biomagnifies'), 'tmf: verdict');
+    await page.setInputFiles('.bioa .dfb-in >> nth=1', { name: 'w.csv', mimeType: 'text/csv', buffer: Buffer.from('tl,c\n2,10\n3,12\n4,9\n') });
+    await page.waitForTimeout(700);
+    check((await page.textContent('.bioa .bi-facts')).includes('no clear trend') && (await page.textContent('.bioa .bi-facts')).includes('3 samples'), 'tmf: file open, flat');
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.bioa .dl [data-f=pdf]')]); check(dl.suggestedFilename().endsWith('.pdf'), 'tmf: PDF'); }
+    // #160 noise barrier
+    await page.goto(`${BASE}/science/noise-barrier/`); await page.waitForTimeout(600);
+    check((await page.textContent('.nbr .nb-big')) === 'Barrier cuts 17.2 dB(A): 76.5 → 59.4 dB(A)', 'barrier: example');
+    { const t = await page.textContent('.nbr .nb-facts'); check(t.includes('686 mm') && t.includes('2.02') && t.includes('8.4 to 20.0 dB'), 'barrier: facts'); }
+    await page.selectOption('.nbr .nb-m', 'simple'); await page.waitForTimeout(400);
+    check((await page.textContent('.nbr .nb-big')) === 'Barrier cuts 15.2 dB(A): 76.5 → 61.3 dB(A)', 'barrier: simple method');
+    await page.fill('.nbr .nb-hb', '0.6'); await page.waitForTimeout(400);
+    check((await page.textContent('.nbr .nb-facts')).includes('not broken'), 'barrier: clear line of sight');
+    await page.fill('.nbr .nb-hb', '4'); await page.fill('.nbr .nb-L0', ''); await page.fill('.nbr .nb-L7', 'x'); await page.waitForTimeout(400);
+    check((await page.textContent('.nbr .nb-err')).includes('kHz level should be'), 'barrier: band check');
+    await page.fill('.nbr .nb-L7', '58'); await page.waitForTimeout(400);
+    check(!(await page.textContent('.nbr .nb-tab')).includes('63\u00a0Hz') && (await page.textContent('.nbr .nb-tab')).includes('125\u00a0Hz'), 'barrier: blank band left out');
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.nbr .nb-csv')]); check(dl.suggestedFilename() === 'noise-barrier.csv', 'barrier: CSV'); }
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.nbr .dl [data-f=pdf]')]); check(dl.suggestedFilename().endsWith('.pdf'), 'barrier: PDF'); }
+    // #161 tree carbon
+    await page.goto(`${BASE}/science/tree-carbon/`); await page.waitForTimeout(600);
+    check((await page.textContent('.tkc .tk-big')) === '9 t CO₂e stored in 8 trees', 'tree: example');
+    { const t = await page.textContent('.tkc .tk-facts'); check(t.includes('346 kg CO₂e per year') && t.includes('2.46 t') && t.includes('Pine 1, 2.7 t'), 'tree: facts'); }
+    await page.fill('.tkc .tk-data', 'A,30,15\nB,40,20'); await page.waitForTimeout(500);
+    check((await page.textContent('.tkc .tk-facts')).includes('growing DBH by 0.5 cm'), 'tree: growth rate');
+    await page.selectOption('.tkc .tk-form', 'rdh'); await page.waitForTimeout(400);
+    check(!(await page.isHidden('.tkc .tk-rhol')) && (await page.textContent('.tkc .tk-big')).includes('2 trees'), 'tree: density form');
+    await page.fill('.tkc .tk-data', 'A,30\nB,40,20'); await page.waitForTimeout(500);
+    check((await page.textContent('.tkc .tk-err')).includes('needs a height'), 'tree: height check');
+    await page.selectOption('.tkc .tk-form', 'd'); await page.waitForTimeout(400);
+    await page.setInputFiles('.tkc .dfb-in', { name: 't.csv', mimeType: 'text/csv', buffer: Buffer.from('tree,dbh\nX,25\nY,35\nZ,45\n') });
+    await page.waitForTimeout(700);
+    check((await page.textContent('.tkc .tk-big')).includes('3 trees'), 'tree: file open');
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.tkc .tk-csv')]); check(dl.suggestedFilename() === 'tree-carbon.csv', 'tree: CSV'); }
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.tkc .dl [data-f=pdf]')]); check(dl.suggestedFilename().endsWith('.pdf'), 'tree: PDF'); }
+    // #162 LCA compare
+    await page.goto(`${BASE}/science/lca-compare/`); await page.waitForTimeout(900);
+    check((await page.textContent('.lcc .lx-big')) === 'Reusable bottle is 76 % lower over 365 uses', 'lca: example');
+    { const t = await page.textContent('.lcc .lx-facts'); check(t.includes('41.8 kg CO₂e') && t.includes('29 uses') && t.includes('100 % of runs') && t.includes('+435 %'), 'lca: facts'); }
+    await page.fill('.lcc .lx-n', '30'); await page.waitForTimeout(900);
+    check((await page.textContent('.lcc .lx-facts')).includes('59.2 % of runs'), 'lca: 30 uses uncertainty');
+    await page.fill('.lcc .lx-n', '10'); await page.waitForTimeout(900);
+    check((await page.textContent('.lcc .lx-big')).startsWith('Single-use bottles is'), 'lca: below break-even');
+    await page.fill('.lcc .lx-data', 'A,Materials,Steel,0.3,6,sometimes,20\nB,Materials,PET,0.025,3,once,20'); await page.waitForTimeout(700);
+    check((await page.textContent('.lcc .lx-err')).includes('"counted"'), 'lca: basis check');
+    await page.setInputFiles('.lcc .dfb-in', { name: 'l.csv', mimeType: 'text/csv', buffer: Buffer.from('product,stage,input,amount,factor,counted\nA,Make,Glass,1,1,once\nB,Make,Can,0.1,5,once\n') });
+    await page.waitForTimeout(900);
+    check((await page.textContent('.lcc .lx-big')) === 'Reusable bottle is 80 % lower over 10 uses', 'lca: file open');
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.lcc .lx-csv')]); check(dl.suggestedFilename() === 'lca-compare.csv', 'lca: CSV'); }
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.lcc .dl [data-f=pdf]')]); check(dl.suggestedFilename().endsWith('.pdf'), 'lca: PDF'); }
+    // #163 DNA sequence tools
+    await page.goto(`${BASE}/science/sequence-tools/`); await page.waitForTimeout(900);
+    check((await page.textContent('.sqt .sq-big')) === '732 bp, GC 49.5 %, 2 ORFs', 'seq: example');
+    check((await page.inputValue('.sqt .sq-rc')).startsWith('>example made-up sequence reverse complement\nGTAGTAAGGATCC'), 'seq: reverse complement');
+    { const t = await page.textContent('.sqt .sq-tab'); check(t.includes('41') && t.includes('406') && t.includes('121') && t.includes('457') && t.includes('702') && t.includes('81'), 'seq: ORF table'); }
+    await page.selectOption('.sqt .sq-both', '0'); await page.waitForTimeout(700);
+    check((await page.textContent('.sqt .sq-big')).endsWith('1 ORF'), 'seq: top strand only');
+    await page.selectOption('.sqt .sq-both', '1'); await page.fill('.sqt .sq-min', '10'); await page.waitForTimeout(700);
+    check(Number((await page.textContent('.sqt .sq-big')).match(/(\d+) ORFs/)[1]) > 2, 'seq: shorter minimum finds more');
+    await page.fill('.sqt .sq-in', '123 !!'); await page.waitForTimeout(700);
+    check(!(await page.isHidden('.sqt .sq-err')), 'seq: no bases error');
+    await page.fill('.sqt .sq-in', 'AUGGCC'); await page.waitForTimeout(700);
+    check((await page.textContent('.sqt .sq-big')).startsWith('6 nt'), 'seq: RNA read');
+    check((await page.inputValue('.sqt .sq-rc')).endsWith('GGCCAT'), 'seq: RNA reverse complement');
+    await page.setInputFiles('.sqt .sq-file', { name: 's.fasta', mimeType: 'text/plain', buffer: Buffer.from('>one\nATGAAATTTGGGTAA\n>two\nCCCC\n') });
+    await page.waitForTimeout(900);
+    check((await page.textContent('.sqt .sq-big')).startsWith('15 bp'), 'seq: file open');
+    check((await page.textContent('.sqt .sq-facts')).includes('first of 2'), 'seq: multi-record note');
+    await page.fill('.sqt .sq-min', '3'); await page.waitForTimeout(700);
+    check((await page.textContent('.sqt .sq-big')).endsWith('1 ORF'), 'seq: small ORF');
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.sqt .sq-csv')]); check(dl.suggestedFilename() === 'orfs.csv', 'seq: CSV'); }
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.sqt .sq-faa')]); check(dl.suggestedFilename() === 'orf-proteins.fasta', 'seq: protein FASTA'); }
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.sqt .sq-dl-rc')]); check(dl.suggestedFilename() === 'reverse-complement.fasta', 'seq: RC FASTA'); }
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.sqt .dl [data-f=pdf]')]); check(dl.suggestedFilename().endsWith('.pdf'), 'seq: PDF'); }
+    // #164 nucleic acid concentration
+    await page.goto(`${BASE}/science/nucleic-acid-concentration/`); await page.waitForTimeout(900);
+    check((await page.textContent('.nac .nc-big')) === '4 samples, 43–369 ng/µL; 2 to check', 'nac: example');
+    check((await page.textContent('.nac .nc-facts')).includes('1,853,733 g/mol'), 'nac: molar mass');
+    { const t = await page.textContent('.nac .nc-tab'); check(t.includes('369') && t.includes('199') && t.includes('1.36') && t.includes('48.6') && t.includes('protein or phenol') && t.includes('260/230 below'), 'nac: table'); }
+    await page.selectOption('.nac .nc-kind', 'rna'); await page.waitForTimeout(700);
+    check((await page.textContent('.nac .nc-big')) === '4 samples, 34.4–295 ng/µL; 4 to check', 'nac: RNA factor and ranges');
+    await page.selectOption('.nac .nc-kind', 'protein'); await page.waitForTimeout(700);
+    check((await page.textContent('.nac .nc-big')) === '4 samples, 0.53–3.96 mg/mL', 'nac: protein');
+    check(await page.isHidden('.nac .nc-sizec'), 'nac: protein hides size');
+    await page.selectOption('.nac .nc-kind', 'ds'); await page.fill('.nac .nc-data', 'X,0.5,0.27'); await page.waitForTimeout(700);
+    check((await page.textContent('.nac .nc-big')).startsWith('25 ng/µL, 8.12'), 'nac: single sample');
+    await page.selectOption('.nac .nc-unit', 'cp'); await page.fill('.nac .nc-tgt', '1e9'); await page.fill('.nac .nc-vol', '20'); await page.waitForTimeout(700);
+    { const t = await page.textContent('.nac .nc-tab'); check(t.includes('2.46') && t.includes('17.5'), 'nac: dilute to copies'); }
+    await page.fill('.nac .nc-seq', 'ATGCGTACGTTAGC'); await page.waitForTimeout(700);
+    check((await page.textContent('.nac .nc-facts')).includes('8,687 g/mol'), 'nac: mass from sequence');
+    await page.fill('.nac .nc-dil', '0'); await page.waitForTimeout(700);
+    check((await page.textContent('.nac .nc-err')).includes('dilution factor'), 'nac: dilution check');
+    await page.fill('.nac .nc-dil', '1');
+    await page.setInputFiles('.nac .dfb-in', { name: 'a.csv', mimeType: 'text/csv', buffer: Buffer.from('name,A260,A280\nS1,1.0,0.5\n') });
+    await page.waitForTimeout(900);
+    check((await page.textContent('.nac .nc-big')).startsWith('50 ng/µL'), 'nac: file open');
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.nac .nc-csv')]); check(dl.suggestedFilename() === 'concentrations.csv', 'nac: CSV'); }
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.nac .dl [data-f=pdf]')]); check(dl.suggestedFilename().endsWith('.pdf'), 'nac: PDF'); }
+    // #165 qPCR analyser
+    await page.goto(`${BASE}/science/qpcr-analyser/`); await page.waitForTimeout(900);
+    check((await page.textContent('.qpa .qp-big')) === 'GeneX up 4.49× in Drug A', 'qpcr: example');
+    { const t = await page.textContent('.qpa .qp-tab'); check(t.includes('−2.17') && t.includes('0.477'), 'qpcr: table'); }
+    check((await page.textContent('.qpa .qp-facts')).includes('Drug B GeneX (0.9)'), 'qpcr: replicate flag');
+    check((await page.textContent('.qpa .qp-sbig')) === '2 curves, efficiency 98, 97.8 %', 'qpcr: curves');
+    check((await page.textContent('.qpa .qp-utab')).includes('37073'), 'qpcr: unknown');
+    await page.selectOption('.qpa .qp-eff', 'curve'); await page.waitForTimeout(700);
+    check((await page.textContent('.qpa .qp-big')) === 'GeneX up 4.4× in Drug A', 'qpcr: efficiency corrected');
+    await page.selectOption('.qpa .qp-eff', '100'); await page.fill('.qpa .qp-refs', 'Ref1'); await page.waitForTimeout(700);
+    check((await page.textContent('.qpa .qp-big')).startsWith('GeneX up 4.49×'), 'qpcr: one reference');
+    await page.fill('.qpa .qp-refs', 'Nope'); await page.waitForTimeout(700);
+    check((await page.textContent('.qpa .qp-err')).includes('No wells for the reference gene Nope'), 'qpcr: unknown reference');
+    await page.fill('.qpa .qp-refs', 'Ref1, Ref2'); await page.waitForTimeout(500); await page.selectOption('.qpa .qp-ctrl', 'Drug A'); await page.waitForTimeout(700);
+    check((await page.textContent('.qpa .qp-big')) === 'GeneX down 4.49× in Control', 'qpcr: other control');
+    await page.fill('.qpa .qp-refs', 'R');
+    await page.setInputFiles('.qpa .dfb-in >> nth=0', { name: 'q.csv', mimeType: 'text/csv', buffer: Buffer.from('sample,gene,Cq\nA,T,25\nA,R,18\nB,T,24\nB,R,18\nB,R,Undetermined\n') });
+    await page.waitForTimeout(900);
+    check((await page.textContent('.qpa .qp-big')) === 'T up 2× in B', 'qpcr: file open');
+    check((await page.textContent('.qpa .qp-facts')).includes('1 skipped'), 'qpcr: undetermined skipped');
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.qpa .qp-csv')]); check(dl.suggestedFilename() === 'qpcr-results.csv', 'qpcr: CSV'); }
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.qpa .dl [data-f=pdf]')]); check(dl.suggestedFilename().endsWith('.pdf'), 'qpcr: PDF'); }
+    // #166 ligation and assembly calculator
+    await page.goto(`${BASE}/science/ligation-calculator/`); await page.waitForTimeout(900);
+    check((await page.textContent('.lgc .lg-big')) === '3.61 µL DNA + 13.4 µL water in 20 µL', 'lig: example');
+    { const t = await page.textContent('.lgc .lg-tab'); check(t.includes('Buffer (10×)2.00') && t.includes('Insert A0.8333.345') && t.includes('Linker C1.0318.574.9'), 'lig: table'); }
+    check((await page.textContent('.lgc .lg-facts')).includes('up to 236 ng'), 'lig: room');
+    check((await page.textContent('.lgc .lg-rtab')).includes('5:155.61.39'), 'lig: other ratios');
+    await page.selectOption('.lgc .lg-kind', 'asm'); await page.waitForTimeout(700);
+    check((await page.textContent('.lgc .lg-big')) === '3.61 µL DNA + 6.39 µL water in 20 µL', 'lig: assembly preset');
+    await page.fill('.lgc .lg-vng', '400'); await page.waitForTimeout(700);
+    check((await page.textContent('.lgc .lg-big')).startsWith('Too much DNA') && (await page.textContent('.lgc .lg-facts')).includes('at most 139 ng'), 'lig: does not fit');
+    await page.fill('.lgc .lg-vng', '50'); await page.fill('.lgc .lg-data', 'V,5400,500,1\nI,1200,40,3'); await page.waitForTimeout(700);
+    check((await page.textContent('.lgc .lg-facts')).includes('V under 0.5 µL'), 'lig: small volume');
+    await page.fill('.lgc .lg-data', 'V,5400,50,1\nI,1200,0,3'); await page.waitForTimeout(700);
+    check((await page.textContent('.lgc .lg-err')).includes('I: give the concentration'), 'lig: bad concentration');
+    await page.setInputFiles('.lgc .dfb-in', { name: 'f.csv', mimeType: 'text/csv', buffer: Buffer.from('name,bp,conc,ratio\nVec,3000,50,1\nIns,1000,20,3\n') });
+    await page.waitForTimeout(900);
+    check((await page.textContent('.lgc .lg-big')).startsWith('3.50 µL DNA'), 'lig: file open');
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.lgc .lg-csv')]); check(dl.suggestedFilename() === 'reaction-setup.csv', 'lig: CSV'); }
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.lgc .dl [data-f=pdf]')]); check(dl.suggestedFilename().endsWith('.pdf'), 'lig: PDF'); }
+    // #167 primer checker
+    await page.goto(`${BASE}/science/primer-checker/`); await page.waitForTimeout(900);
+    check((await page.textContent('.prc .pr-big')) === 'Pair looks good: Tm 53.8 / 53.8 °C, 720 bp product', 'primer: example');
+    { const t = await page.textContent('.prc .pr-tab'); check(t.includes('Tm, basic (°C)53.853.8') && t.includes('Tm, Wallace 2+4 (°C)6262') && t.includes('4 / 2'), 'primer: table'); }
+    check((await page.textContent('.prc .pr-stab')).includes('Product720 bp201–920'), 'primer: product');
+    check((await page.textContent('.prc .pr-dim')).includes('||||'), 'primer: dimer picture');
+    await page.fill('.prc .pr-f', 'ACTCAGATCGGTGTCACCTG'); await page.selectOption('.prc .pr-mm', '0'); await page.waitForTimeout(700);
+    check((await page.textContent('.prc .pr-facts')).includes('the forward primer does not bind the template'), 'primer: mismatch, none allowed');
+    await page.selectOption('.prc .pr-mm', '1'); await page.waitForTimeout(700);
+    check((await page.textContent('.prc .pr-stab')).includes('Product720 bp201–9201'), 'primer: one mismatch allowed');
+    await page.fill('.prc .pr-f', 'GCGCAAAATTTTGCGC'); await page.fill('.prc .pr-tpl', ''); await page.waitForTimeout(700);
+    { const t = await page.textContent('.prc .pr-facts'); check(t.includes('Forward: length 16 nt') && t.includes('hairpin with a 6 bp stem') && t.includes('run of 4'), 'primer: bad primer flagged'); }
+    await page.fill('.prc .pr-f', 'ACGTNACGT'); await page.waitForTimeout(700);
+    check((await page.textContent('.prc .pr-err')).includes('only A, C, G and T'), 'primer: bad letters');
+    await page.fill('.prc .pr-f', 'acucacaucggugucaccug'); await page.fill('.prc .pr-r', ''); await page.waitForTimeout(700);
+    check((await page.textContent('.prc .pr-big')) === 'Primer looks good: Tm 53.8 °C', 'primer: single RNA-letter primer');
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.prc .dl [data-f=pdf]')]); check(dl.suggestedFilename().endsWith('.pdf'), 'primer: PDF'); }
   }
   check(pageErrors.length === 0, `no page or CSP errors ${pageErrors.join(' | ')}`);
 
@@ -2868,7 +3115,7 @@ try {
   writeFileSync(OUT + 'big.csv', Buffer.alloc(51 * 1024 * 1024, 65));
   await phone.setInputFiles('.cmp-input', OUT + 'big.csv');
   check(/limit is 50/.test(await phone.textContent('.cmp-error')), 'phone: 51 MB file gets a clear limit message');
-  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/', '/science/astronomy/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/', '/science/hemocytometer/', '/science/radiocarbon-calibration/', '/science/sql-playground/', '/science/biodiversity-indices/', '/science/reliability-analysis/', '/science/cosmology-calculator/', '/science/sub-exposure-calculator/', '/science/backfocus-calculator/', '/science/magnitude-flux-converter/', '/science/dark-sky-calendar/', '/science/rocket-equation/', '/science/orbit-transfer-calculator/', '/science/period-finder/', '/science/mosaic-planner/', '/science/meteor-shower-planner/', '/science/light-pollution-calculator/', '/science/habitable-zone-calculator/', '/science/mars-time/', '/science/transit-planner/', '/science/redshift-calculator/', '/science/blackbody-calculator/', '/science/exoplanet-mass-calculator/', '/science/impact-crater-calculator/', '/science/link-budget-calculator/', '/science/radio-telescope-calculator/', '/science/sun-position-calculator/', '/science/jupiter-moons/', '/science/porkchop-plot/', '/science/radial-velocity-fitter/', '/science/eclipse-finder/', '/science/satellite-tracker/', '/science/uv-coverage/', '/science/double-star-calculator/', '/science/rotation-curve-fitter/', '/science/spectral-line-identifier/', '/science/transit-light-curve-fitter/', '/science/star-fwhm-checker/', '/science/hydrogen-line-analyser/', '/science/planet-data-explorer/', '/science/sunspot-counter/', '/science/image-stacker/', '/science/variable-star-log/', '/science/molar-mass-calculator/', '/science/equation-balancer/', '/science/isotope-pattern-calculator/', '/science/reaction-kinetics-fitter/', '/science/titration-curve/', '/science/gas-law-calculator/', '/science/beer-lambert-calculator/', '/science/reaction-equivalents/', '/science/chromatography-calculator/', '/science/method-validation/', '/science/colligative-properties/', '/science/equilibrium-solver/', '/science/cyclic-voltammetry/', '/science/tlc-rf-calculator/', '/science/huckel-mo-calculator/', '/science/crystal-field-calculator/', '/science/diatomic-spectroscopy/', '/science/thermochemistry-calculator/', '/science/nernst-calculator/', '/science/electroplating-calculator/', '/science/green-chemistry-metrics/', '/science/decay-calculator/', '/science/polymer-molar-mass/', '/science/copolymer-composition/', '/science/glass-transition-calculator/', '/science/dsc-tga-analyser/', '/science/battery-cycling-analyser/', '/science/tafel-corrosion-rate/', '/science/nmr-impurity-checker/', '/science/electron-count-calculator/', '/science/phase-diagram-calculator/', '/science/ir-band-finder/', '/science/point-group-finder/', '/science/impedance-fitter/', '/science/enzyme-kinetics-fitter/', '/science/buffer-recipe-calculator/', '/science/binding-curve-fitter/', '/science/centrifuge-calculator/', '/science/air-quality-calculator/', '/science/altermagnet-checker/', '/science/gaussian-plume-calculator/', '/science/mccabe-thiele-calculator/', '/science/vapour-pressure-calculator/', '/science/radiometric-age-calculator/', '/science/isotope-delta-converter/', '/science/mixing-model-calculator/', '/science/ternary-plot-maker/', '/science/piper-diagram/', '/science/pump-test-analyser/', '/science/slug-test-analyser/', '/science/darcy-flow-calculator/', '/science/well-field-drawdown/', '/science/grade-tonnage-calculator/', '/science/drill-hole-composites/', '/science/traverse-calculator/', '/science/level-book-reducer/', '/science/gps-track-analyser/', '/science/spectral-index-calculator/', '/science/skew-t-sounding/', '/science/koppen-climate/', '/science/trend-analyser/', '/science/wave-calculator/', '/science/manning-weir-calculator/', '/science/runoff-calculator/', '/science/flood-frequency/', '/science/et0-calculator/', '/science/rating-curve/', '/science/altermagnet-bands/', '/science/anomalous-hall-checker/', '/science/spin-splitter-conductivity/', '/science/chiral-magnon-bands/', '/science/unit-hydrograph/', '/science/rain-gauge-average/', '/science/lc50-probit/', '/science/species-sensitivity/', '/science/non-detects/', '/science/environment/', '/science/cell-biology/', '/science/ecology/', '/science/social/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
+  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/', '/science/astronomy/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/', '/science/hemocytometer/', '/science/radiocarbon-calibration/', '/science/sql-playground/', '/science/biodiversity-indices/', '/science/reliability-analysis/', '/science/cosmology-calculator/', '/science/sub-exposure-calculator/', '/science/backfocus-calculator/', '/science/magnitude-flux-converter/', '/science/dark-sky-calendar/', '/science/rocket-equation/', '/science/orbit-transfer-calculator/', '/science/period-finder/', '/science/mosaic-planner/', '/science/meteor-shower-planner/', '/science/light-pollution-calculator/', '/science/habitable-zone-calculator/', '/science/mars-time/', '/science/transit-planner/', '/science/redshift-calculator/', '/science/blackbody-calculator/', '/science/exoplanet-mass-calculator/', '/science/impact-crater-calculator/', '/science/link-budget-calculator/', '/science/radio-telescope-calculator/', '/science/sun-position-calculator/', '/science/jupiter-moons/', '/science/porkchop-plot/', '/science/radial-velocity-fitter/', '/science/eclipse-finder/', '/science/satellite-tracker/', '/science/uv-coverage/', '/science/double-star-calculator/', '/science/rotation-curve-fitter/', '/science/spectral-line-identifier/', '/science/transit-light-curve-fitter/', '/science/star-fwhm-checker/', '/science/hydrogen-line-analyser/', '/science/planet-data-explorer/', '/science/sunspot-counter/', '/science/image-stacker/', '/science/variable-star-log/', '/science/molar-mass-calculator/', '/science/equation-balancer/', '/science/isotope-pattern-calculator/', '/science/reaction-kinetics-fitter/', '/science/titration-curve/', '/science/gas-law-calculator/', '/science/beer-lambert-calculator/', '/science/reaction-equivalents/', '/science/chromatography-calculator/', '/science/method-validation/', '/science/colligative-properties/', '/science/equilibrium-solver/', '/science/cyclic-voltammetry/', '/science/tlc-rf-calculator/', '/science/huckel-mo-calculator/', '/science/crystal-field-calculator/', '/science/diatomic-spectroscopy/', '/science/thermochemistry-calculator/', '/science/nernst-calculator/', '/science/electroplating-calculator/', '/science/green-chemistry-metrics/', '/science/decay-calculator/', '/science/polymer-molar-mass/', '/science/copolymer-composition/', '/science/glass-transition-calculator/', '/science/dsc-tga-analyser/', '/science/battery-cycling-analyser/', '/science/tafel-corrosion-rate/', '/science/nmr-impurity-checker/', '/science/electron-count-calculator/', '/science/phase-diagram-calculator/', '/science/ir-band-finder/', '/science/point-group-finder/', '/science/impedance-fitter/', '/science/enzyme-kinetics-fitter/', '/science/buffer-recipe-calculator/', '/science/binding-curve-fitter/', '/science/centrifuge-calculator/', '/science/air-quality-calculator/', '/science/altermagnet-checker/', '/science/gaussian-plume-calculator/', '/science/mccabe-thiele-calculator/', '/science/vapour-pressure-calculator/', '/science/radiometric-age-calculator/', '/science/isotope-delta-converter/', '/science/mixing-model-calculator/', '/science/ternary-plot-maker/', '/science/piper-diagram/', '/science/pump-test-analyser/', '/science/slug-test-analyser/', '/science/darcy-flow-calculator/', '/science/well-field-drawdown/', '/science/grade-tonnage-calculator/', '/science/drill-hole-composites/', '/science/traverse-calculator/', '/science/level-book-reducer/', '/science/gps-track-analyser/', '/science/spectral-index-calculator/', '/science/skew-t-sounding/', '/science/koppen-climate/', '/science/trend-analyser/', '/science/wave-calculator/', '/science/manning-weir-calculator/', '/science/runoff-calculator/', '/science/flood-frequency/', '/science/et0-calculator/', '/science/rating-curve/', '/science/altermagnet-bands/', '/science/anomalous-hall-checker/', '/science/spin-splitter-conductivity/', '/science/chiral-magnon-bands/', '/science/unit-hydrograph/', '/science/rain-gauge-average/', '/science/lc50-probit/', '/science/species-sensitivity/', '/science/non-detects/', '/science/landfill-gas/', '/science/detention-pond/', '/science/water-quality-index/', '/science/activated-sludge/', '/science/field-sampling-planner/', '/science/bioaccumulation-factor/', '/science/noise-barrier/', '/science/tree-carbon/', '/science/lca-compare/', '/science/sequence-tools/', '/science/nucleic-acid-concentration/', '/science/qpcr-analyser/', '/science/ligation-calculator/', '/science/primer-checker/', '/science/environment/', '/science/cell-biology/', '/science/ecology/', '/science/social/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
     await phone.goto(BASE + path);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
     check(sw <= 390, `${path} fits a phone (scrollWidth ${sw})`);
@@ -2892,7 +3139,7 @@ try {
   await phone.click('.at-close');
   // The picture of each tool's steps stays on one row, even on a 320 px screen.
   await phone.setViewportSize({ width: 320, height: 640 });
-  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/', '/science/hemocytometer/', '/science/radiocarbon-calibration/', '/science/sql-playground/', '/science/biodiversity-indices/', '/science/reliability-analysis/', '/science/cosmology-calculator/', '/science/sub-exposure-calculator/', '/science/backfocus-calculator/', '/science/magnitude-flux-converter/', '/science/dark-sky-calendar/', '/science/rocket-equation/', '/science/orbit-transfer-calculator/', '/science/period-finder/', '/science/mosaic-planner/', '/science/meteor-shower-planner/', '/science/light-pollution-calculator/', '/science/habitable-zone-calculator/', '/science/mars-time/', '/science/transit-planner/', '/science/redshift-calculator/', '/science/blackbody-calculator/', '/science/exoplanet-mass-calculator/', '/science/impact-crater-calculator/', '/science/link-budget-calculator/', '/science/radio-telescope-calculator/', '/science/sun-position-calculator/', '/science/jupiter-moons/', '/science/porkchop-plot/', '/science/radial-velocity-fitter/', '/science/eclipse-finder/', '/science/satellite-tracker/', '/science/uv-coverage/', '/science/double-star-calculator/', '/science/rotation-curve-fitter/', '/science/spectral-line-identifier/', '/science/transit-light-curve-fitter/', '/science/star-fwhm-checker/', '/science/hydrogen-line-analyser/', '/science/planet-data-explorer/', '/science/sunspot-counter/', '/science/image-stacker/', '/science/variable-star-log/', '/science/molar-mass-calculator/', '/science/equation-balancer/', '/science/isotope-pattern-calculator/', '/science/reaction-kinetics-fitter/', '/science/titration-curve/', '/science/gas-law-calculator/', '/science/beer-lambert-calculator/', '/science/reaction-equivalents/', '/science/chromatography-calculator/', '/science/method-validation/', '/science/colligative-properties/', '/science/equilibrium-solver/', '/science/cyclic-voltammetry/', '/science/tlc-rf-calculator/', '/science/huckel-mo-calculator/', '/science/crystal-field-calculator/', '/science/diatomic-spectroscopy/', '/science/thermochemistry-calculator/', '/science/nernst-calculator/', '/science/electroplating-calculator/', '/science/green-chemistry-metrics/', '/science/decay-calculator/', '/science/polymer-molar-mass/', '/science/copolymer-composition/', '/science/glass-transition-calculator/', '/science/dsc-tga-analyser/', '/science/battery-cycling-analyser/', '/science/tafel-corrosion-rate/', '/science/nmr-impurity-checker/', '/science/electron-count-calculator/', '/science/phase-diagram-calculator/', '/science/ir-band-finder/', '/science/point-group-finder/', '/science/impedance-fitter/', '/science/enzyme-kinetics-fitter/', '/science/buffer-recipe-calculator/', '/science/binding-curve-fitter/', '/science/centrifuge-calculator/', '/science/air-quality-calculator/', '/science/altermagnet-checker/', '/science/gaussian-plume-calculator/', '/science/mccabe-thiele-calculator/', '/science/vapour-pressure-calculator/', '/science/radiometric-age-calculator/', '/science/isotope-delta-converter/', '/science/mixing-model-calculator/', '/science/ternary-plot-maker/', '/science/piper-diagram/', '/science/pump-test-analyser/', '/science/slug-test-analyser/', '/science/darcy-flow-calculator/', '/science/well-field-drawdown/', '/science/grade-tonnage-calculator/', '/science/drill-hole-composites/', '/science/traverse-calculator/', '/science/level-book-reducer/', '/science/gps-track-analyser/', '/science/spectral-index-calculator/', '/science/skew-t-sounding/', '/science/koppen-climate/', '/science/trend-analyser/', '/science/wave-calculator/', '/science/manning-weir-calculator/', '/science/runoff-calculator/', '/science/flood-frequency/', '/science/et0-calculator/', '/science/rating-curve/', '/science/altermagnet-bands/', '/science/anomalous-hall-checker/', '/science/spin-splitter-conductivity/', '/science/chiral-magnon-bands/', '/science/unit-hydrograph/', '/science/rain-gauge-average/', '/science/lc50-probit/', '/science/species-sensitivity/', '/science/non-detects/']) {
+  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/', '/science/hemocytometer/', '/science/radiocarbon-calibration/', '/science/sql-playground/', '/science/biodiversity-indices/', '/science/reliability-analysis/', '/science/cosmology-calculator/', '/science/sub-exposure-calculator/', '/science/backfocus-calculator/', '/science/magnitude-flux-converter/', '/science/dark-sky-calendar/', '/science/rocket-equation/', '/science/orbit-transfer-calculator/', '/science/period-finder/', '/science/mosaic-planner/', '/science/meteor-shower-planner/', '/science/light-pollution-calculator/', '/science/habitable-zone-calculator/', '/science/mars-time/', '/science/transit-planner/', '/science/redshift-calculator/', '/science/blackbody-calculator/', '/science/exoplanet-mass-calculator/', '/science/impact-crater-calculator/', '/science/link-budget-calculator/', '/science/radio-telescope-calculator/', '/science/sun-position-calculator/', '/science/jupiter-moons/', '/science/porkchop-plot/', '/science/radial-velocity-fitter/', '/science/eclipse-finder/', '/science/satellite-tracker/', '/science/uv-coverage/', '/science/double-star-calculator/', '/science/rotation-curve-fitter/', '/science/spectral-line-identifier/', '/science/transit-light-curve-fitter/', '/science/star-fwhm-checker/', '/science/hydrogen-line-analyser/', '/science/planet-data-explorer/', '/science/sunspot-counter/', '/science/image-stacker/', '/science/variable-star-log/', '/science/molar-mass-calculator/', '/science/equation-balancer/', '/science/isotope-pattern-calculator/', '/science/reaction-kinetics-fitter/', '/science/titration-curve/', '/science/gas-law-calculator/', '/science/beer-lambert-calculator/', '/science/reaction-equivalents/', '/science/chromatography-calculator/', '/science/method-validation/', '/science/colligative-properties/', '/science/equilibrium-solver/', '/science/cyclic-voltammetry/', '/science/tlc-rf-calculator/', '/science/huckel-mo-calculator/', '/science/crystal-field-calculator/', '/science/diatomic-spectroscopy/', '/science/thermochemistry-calculator/', '/science/nernst-calculator/', '/science/electroplating-calculator/', '/science/green-chemistry-metrics/', '/science/decay-calculator/', '/science/polymer-molar-mass/', '/science/copolymer-composition/', '/science/glass-transition-calculator/', '/science/dsc-tga-analyser/', '/science/battery-cycling-analyser/', '/science/tafel-corrosion-rate/', '/science/nmr-impurity-checker/', '/science/electron-count-calculator/', '/science/phase-diagram-calculator/', '/science/ir-band-finder/', '/science/point-group-finder/', '/science/impedance-fitter/', '/science/enzyme-kinetics-fitter/', '/science/buffer-recipe-calculator/', '/science/binding-curve-fitter/', '/science/centrifuge-calculator/', '/science/air-quality-calculator/', '/science/altermagnet-checker/', '/science/gaussian-plume-calculator/', '/science/mccabe-thiele-calculator/', '/science/vapour-pressure-calculator/', '/science/radiometric-age-calculator/', '/science/isotope-delta-converter/', '/science/mixing-model-calculator/', '/science/ternary-plot-maker/', '/science/piper-diagram/', '/science/pump-test-analyser/', '/science/slug-test-analyser/', '/science/darcy-flow-calculator/', '/science/well-field-drawdown/', '/science/grade-tonnage-calculator/', '/science/drill-hole-composites/', '/science/traverse-calculator/', '/science/level-book-reducer/', '/science/gps-track-analyser/', '/science/spectral-index-calculator/', '/science/skew-t-sounding/', '/science/koppen-climate/', '/science/trend-analyser/', '/science/wave-calculator/', '/science/manning-weir-calculator/', '/science/runoff-calculator/', '/science/flood-frequency/', '/science/et0-calculator/', '/science/rating-curve/', '/science/altermagnet-bands/', '/science/anomalous-hall-checker/', '/science/spin-splitter-conductivity/', '/science/chiral-magnon-bands/', '/science/unit-hydrograph/', '/science/rain-gauge-average/', '/science/lc50-probit/', '/science/species-sensitivity/', '/science/non-detects/', '/science/landfill-gas/', '/science/detention-pond/', '/science/water-quality-index/', '/science/activated-sludge/', '/science/field-sampling-planner/', '/science/bioaccumulation-factor/', '/science/noise-barrier/', '/science/tree-carbon/', '/science/lca-compare/', '/science/sequence-tools/', '/science/nucleic-acid-concentration/', '/science/qpcr-analyser/', '/science/ligation-calculator/', '/science/primer-checker/']) {
     await phone.goto(BASE + path);
     const rows = await phone.$$eval('.flow-step', (els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top))).size);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);

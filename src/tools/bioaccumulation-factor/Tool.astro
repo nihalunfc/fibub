@@ -1,0 +1,200 @@
+---
+// Bioaccumulation: kinetic BCF (k1/k2) fitted to a fish uptake and depuration test, with steady-state, lipid and growth
+// corrections; and the trophic magnification factor from a food web. The example data are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const fish = 'day,fish (µg/kg)\n1,153\n3,351\n7,746\n14,976\n21,1195\n28,1170\n29,1092\n31,800\n35,557\n42,211\n49,103\n56,41';
+const web = 'organism,trophic level,concentration (ng/g lipid)\nAlgae,2.0,12\nZooplankton A,2.3,18\nZooplankton B,2.6,15\nMussel,3.0,30\nShrimp,3.1,41\nMinnow,3.4,36\nPerch,3.8,70\nTrout,4.0,95\nEel,4.2,82\nPike,4.5,160';
+---
+<div class="ax bioa">
+  <div class="ax-card">
+    <div class="ax-grid">
+      <label>Work out <select class="bi-mode">
+        <option value="kin" selected>Bioconcentration factor from a fish test</option>
+        <option value="tmf">Trophic magnification factor (food web)</option>
+      </select></label>
+    </div>
+  </div>
+
+  <div class="ax-card bi-kin">
+    <h2>Fish test</h2>
+    <label>Time (days) and fish concentration, one row per fish or sample <textarea class="bi-data" rows="8" spellcheck="false">{fish}</textarea></label>
+    <DataFile target=".bi-data" maxCols={10} maxRows={2000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Water concentration during uptake <input class="bi-cw" inputmode="decimal" value="1" /></label>
+      <label>Uptake ends on day <input class="bi-tu" inputmode="decimal" value="28" /></label>
+      <label>Fit on <select class="bi-log">
+        <option value="ln" selected>Log concentrations</option>
+        <option value="raw">Raw concentrations</option>
+      </select></label>
+      <label>Fish lipid content (%, optional) <input class="bi-lip" inputmode="decimal" value="4" /></label>
+      <label>Fish weight at end of uptake (g, optional) <input class="bi-w1" inputmode="decimal" value="2.0" /></label>
+      <label>Fish weight at end of test (g, optional) <input class="bi-w2" inputmode="decimal" value="2.6" /></label>
+    </div>
+    <p class="ax-help">The tool fits the one-compartment model: during uptake the fish take up the chemical at rate k1 and lose it at rate k2, then in clean water they only lose it. The BCF is k1/k2, in L/kg when the water is in µg/L and the fish in µg/kg (keep the units matching). Use several rows per day for several fish. The lipid content gives a BCF normalised to 5 % lipid; the weights give the growth rate, which is taken off k2 because growth dilutes the chemical. Up to 2,000 rows. The example data are made up.</p>
+    <p class="ax-err bi-err" hidden></p>
+  </div>
+
+  <div class="ax-card bi-tmfc" hidden>
+    <h2>Food web</h2>
+    <label>Organism (optional), trophic level and concentration <textarea class="bi-web" rows="9" spellcheck="false">{web}</textarea></label>
+    <DataFile target=".bi-web" maxCols={10} maxRows={5000} />
+    <p class="ax-help">Use lipid-normalised concentrations for chemicals that dissolve in fat, and trophic levels from stable nitrogen isotopes or diet studies. The tool regresses log₁₀ concentration on trophic level; the TMF is 10 to the power of the slope. A TMF above 1 means the chemical builds up up the food chain. Up to 5,000 rows. The example food web is made up.</p>
+    <p class="ax-err bi-err2" hidden></p>
+  </div>
+
+  <div class="ax-card bi-out">
+    <h2>Result</h2>
+    <p class="ax-big bi-big"></p>
+    <dl class="ax-facts bi-facts"></dl>
+    <canvas class="ax-fig bi-fig"></canvas>
+    <details class="bi-sd">
+      <summary>Data and fit (table)</summary>
+      <div class="ax-scroll"><table class="bi-tab"></table></div>
+    </details>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small bi-csv">Download the table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { fitKinetic, model, growthRate, lipidNorm, tmf } from '../../lib/sci/bioacc';
+  import { tInv } from '../../lib/sci/stats';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (!Number.isFinite(x)) return '–'; if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const tn = (x: number) => (Math.abs(x) >= 1000 ? Math.round(x).toLocaleString('en') : sg(x, 3));
+  const root = document.querySelector<HTMLElement>('.bioa')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const opt = (c: string) => { const s = q<HTMLInputElement>(c).value.trim(); return s === '' ? NaN : num(s); };
+  const isNum = (s: string | undefined) => s !== undefined && s.trim() !== '' && Number.isFinite(num(s));
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [], csvName = 'bcf-fit.csv';
+
+  function table(sel: string, head: string[], rows: string[][], right: number[] = []) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+  const facts = (f: HTMLElement[]) => q('.bi-facts').replaceChildren(...f);
+  const factPairs = () => [...q('.bi-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+
+  function kinetic() {
+    const fail = (m: string) => { q('.bi-err').textContent = m; q('.bi-err').hidden = false; q('.bi-out').hidden = true; fig = null; sections = []; csvRows = []; };
+    q('.bi-err').hidden = true;
+    const rows = parseTable(q<HTMLTextAreaElement>('.bi-data').value).filter((r) => isNum(r[0]) && isNum(r[1]));
+    if (rows.length > 2000) return fail('Up to 2,000 rows, please.');
+    const t = rows.map((r) => num(r[0])), c = rows.map((r) => num(r[1]));
+    const Cw = val('.bi-cw'), tu = val('.bi-tu'), log = q<HTMLSelectElement>('.bi-log').value === 'ln';
+    if (!(Cw > 0)) return fail('Give the water concentration during uptake (above 0).');
+    if (!(tu > 0)) return fail('Give the day the uptake phase ends (above 0).');
+    if (t.some((x) => x < 0) || c.some((x) => x < 0)) return fail('Days and concentrations cannot be negative.');
+    const nu = t.filter((x) => x > 0 && x <= tu).length, nd = t.filter((x) => x > tu).length;
+    if (nu < 2 || nd < 2) return fail(`Give at least 2 samples during uptake (days up to ${sg(tu, 4)}) and 2 after it, one "day, concentration" per row.`);
+    if (log && c.filter((x, i) => x > 0).length < 4) return fail('Fitting on logs needs positive concentrations.');
+    const fit = fitKinetic(t, c, Cw, tu, log);
+    if (!(fit.k1 > 0 && fit.k2 > 0) || !Number.isFinite(fit.bcf)) return fail('The model would not fit these data. Check that the concentrations rise during uptake and fall afterwards.');
+    q('.bi-out').hidden = false;
+    const tq = fit.df > 0 ? tInv(0.975, fit.df) : NaN, half = Math.LN2 / fit.k2, t95 = Math.log(20) / fit.k2;
+    q('.bi-big').textContent = `BCF ${tn(fit.bcf)} L/kg (k1/k2)`;
+    const out = [
+      fact('95 % confidence interval', `${tn(fit.bcf - tq * fit.seBcf)} to ${tn(fit.bcf + tq * fit.seBcf)} L/kg`, `log₁₀ BCF ${sg(Math.log10(fit.bcf), 3)}; ${fit.n} samples, fitted on ${log ? 'log' : 'raw'} concentrations`),
+      fact('Uptake rate k1', `${sg(fit.k1, 4)} L/kg per day`, `± ${sg(fit.se1, 2)} (standard error)`),
+      fact('Depuration rate k2', `${sg(fit.k2, 4)} per day`, `± ${sg(fit.se2, 2)}; half-life ${sg(half, 3)} days`),
+      fact('Time to 95 % of steady state', `${sg(t95, 3)} days`, t95 > tu ? `longer than the ${sg(tu, 4)}-day uptake: the fish never reached steady state, so only the kinetic BCF is valid` : `the ${sg(tu, 4)}-day uptake was long enough`),
+    ];
+    // Steady state: the last three uptake sampling days within ±20 % of their mean.
+    const days = [...new Set(t.filter((x) => x > 0 && x <= tu))].sort((a, b) => a - b).slice(-3);
+    if (days.length === 3) {
+      const means = days.map((d) => { const v = c.filter((_, i) => t[i] === d); return v.reduce((a, b) => a + b, 0) / v.length; }), m = means.reduce((a, b) => a + b) / 3;
+      const flat = means.every((v) => Math.abs(v - m) <= 0.2 * m);
+      out.push(fact('Steady-state BCF', flat ? `${tn(m / Cw)} L/kg` : 'not at steady state', flat ? `mean of days ${days.map((d) => sg(d, 4)).join(', ')} divided by the water concentration; all within ±20 %` : `the last three uptake days (${days.map((d) => sg(d, 4)).join(', ')}) differ by more than ±20 % from their mean`));
+    }
+    const w1 = opt('.bi-w1'), w2 = opt('.bi-w2'), tEnd = Math.max(...t);
+    let bcfG = NaN;
+    if (Number.isFinite(w1) || Number.isFinite(w2)) {
+      if (!(w1 > 0 && w2 > 0)) return fail('Give both fish weights (above 0), or leave both blank.');
+      const kg = growthRate(w1, w2, tEnd - tu), k2g = fit.k2 - kg;
+      bcfG = k2g > 0 ? fit.k1 / k2g : NaN;
+      out.push(fact('Growth-corrected BCF', k2g > 0 ? `${tn(bcfG)} L/kg` : 'cannot be worked out', k2g > 0 ? `growth rate ${sg(kg, 3)} per day over days ${sg(tu, 4)} to ${sg(tEnd, 4)}; k2 without growth ${sg(k2g, 3)} per day, half-life ${sg(Math.LN2 / k2g, 3)} days` : `the growth rate ${sg(kg, 3)} per day is as fast as the measured depuration, so the fish lose almost none by themselves`));
+    }
+    const lip = opt('.bi-lip');
+    if (Number.isFinite(lip)) {
+      if (!(lip > 0 && lip <= 100)) return fail('Give the lipid content as a percentage above 0, or leave it blank.');
+      out.push(fact('BCF at 5 % lipid', `${tn(lipidNorm(fit.bcf, lip))} L/kg`, `from ${sg(lip, 3)} % lipid${Number.isFinite(bcfG) ? `; growth-corrected and lipid-normalised ${tn(lipidNorm(bcfG, lip))} L/kg` : ''}`));
+    }
+    out.push(fact('Fit', log ? `residual SD ${sg(Math.sqrt(fit.rss / fit.df), 3)} on the log scale` : `residual SD ${sg(Math.sqrt(fit.rss / fit.df), 3)}`, fit.converged ? 'least squares (Levenberg–Marquardt) for k1 and k2 together' : 'the fit did not fully settle; treat the result with care'));
+    facts(out);
+
+    const xs: number[] = [], ys: number[] = [];
+    for (let k = 0; k <= 200; k++) { const x = (tEnd * 1.02 * k) / 200; xs.push(x); ys.push(model(x, fit.k1, fit.k2, Cw, tu)); }
+    fig = chartFigure({ h: 320, xLabel: 'Time (days)', yLabel: 'Fish concentration', yMin: 0, legend: 'below', series: [
+      { name: 'Measured', x: t, y: c, mode: 'points' },
+      { name: 'Fitted model', x: xs, y: ys, mode: 'line', width: 2 },
+    ], marks: [{ kind: 'vline', at: tu, dash: [4, 3], label: 'uptake ends' }, { kind: 'hline', at: fit.bcf * Cw, dash: [2, 4], label: 'steady state' }] }, `Uptake and depuration with the fitted model: BCF ${tn(fit.bcf)} L/kg`);
+    paint(q<HTMLCanvasElement>('.bi-fig'), fig);
+    const head = ['Day', 'Measured', 'Fitted', 'Phase'];
+    const rws = t.map((x, i) => [sg(x, 4), sg(c[i], 4), sg(fit.fitted[i], 4), x <= tu ? 'uptake' : 'depuration']);
+    table('.bi-tab', head, rws, [0, 1, 2]);
+    csvRows = [['day', 'measured', 'fitted', 'phase'], ...t.map((x, i) => [String(x), String(c[i]), sg(fit.fitted[i], 6), x <= tu ? 'uptake' : 'depuration'])]; csvName = 'bcf-fit.csv';
+    sections = [{ title: q('.bi-big').textContent!, text: [`One-compartment model fitted to ${fit.n} fish samples, water concentration ${sg(Cw, 4)} during a ${sg(tu, 4)}-day uptake phase.`], facts: factPairs(), figure: fig, table: { head, rows: rws, align: ['r', 'r', 'r', 'l'] } }];
+  }
+
+  function trophic() {
+    const fail = (m: string) => { q('.bi-err2').textContent = m; q('.bi-err2').hidden = false; q('.bi-out').hidden = true; fig = null; sections = []; csvRows = []; };
+    q('.bi-err2').hidden = true;
+    const all = parseTable(q<HTMLTextAreaElement>('.bi-web').value).filter((r) => r.some((x) => x.trim() !== ''));
+    if (!all.length) return fail('Give at least 3 rows of trophic level and concentration.');
+    const last = all[all.length - 1], x0 = isNum(last[0]) && isNum(last[1]) && !isNum(last[2]) ? 0 : 1;
+    const data = all.filter((r) => isNum(r[x0]) && isNum(r[x0 + 1]));
+    if (data.length > 5000) return fail('Up to 5,000 rows, please.');
+    const names = data.map((r, i) => (x0 ? r[0] || `Row ${i + 1}` : `Row ${i + 1}`)), tl = data.map((r) => num(r[x0])), cc = data.map((r) => num(r[x0 + 1]));
+    if (data.length < 3) return fail('Give at least 3 rows of trophic level and concentration.');
+    if (cc.some((v) => !(v > 0))) return fail('Concentrations must be above 0 (the regression uses their logs). Replace non-detects with a value or leave them out.');
+    if (Math.max(...tl) === Math.min(...tl)) return fail('The organisms need different trophic levels.');
+    const r = tmf(tl, cc);
+    q('.bi-out').hidden = false;
+    q('.bi-big').textContent = `TMF ${sg(r.tmf, 3)} (95 % CI ${sg(r.lo, 3)} to ${sg(r.hi, 3)})`;
+    const verdict = r.lo > 1 ? 'biomagnifies: the whole interval is above 1' : r.hi < 1 ? 'trophic dilution: the whole interval is below 1' : 'no clear trend: the interval includes 1';
+    facts([
+      fact('Meaning', verdict, `concentration changes by a factor of ${sg(r.tmf, 3)} for each step up the food chain`),
+      fact('Slope', `${sg(r.slope, 4)} log₁₀ units per trophic level`, `± ${sg(r.se, 2)}; p = ${r.p < 1e-4 ? r.p.toExponential(1) : sg(r.p, 2)}`),
+      fact('R²', sg(r.r2, 3), `${tl.length} samples, trophic levels ${sg(Math.min(...tl), 3)} to ${sg(Math.max(...tl), 3)}`),
+    ]);
+    const lo = Math.min(...tl), hi = Math.max(...tl);
+    fig = chartFigure({ h: 320, xLabel: 'Trophic level', yLabel: 'Concentration (log scale)', yLog: true, legend: 'below', series: [
+      { name: 'Samples', x: tl, y: cc, mode: 'points', labels: tl.length <= 15 ? names : undefined },
+      { name: `TMF ${sg(r.tmf, 3)}`, x: [lo, hi], y: [10 ** (r.icept + r.slope * lo), 10 ** (r.icept + r.slope * hi)], mode: 'line', width: 2 },
+    ] }, `Concentration against trophic level: TMF ${sg(r.tmf, 3)}`);
+    paint(q<HTMLCanvasElement>('.bi-fig'), fig);
+    const head = ['Organism', 'Trophic level', 'Concentration', 'Fitted'];
+    const rws = tl.map((x, i) => [names[i], sg(x, 3), sg(cc[i], 4), sg(10 ** (r.icept + r.slope * x), 3)]);
+    table('.bi-tab', head, rws, [1, 2, 3]);
+    csvRows = [['organism', 'trophic_level', 'concentration', 'fitted'], ...rws]; csvName = 'tmf.csv';
+    sections = [{ title: q('.bi-big').textContent!, facts: factPairs(), figure: fig, table: { head, rows: rws, align: ['l', 'r', 'r', 'r'] } }];
+  }
+
+  function calc() {
+    const m = q<HTMLSelectElement>('.bi-mode').value;
+    q('.bi-kin').hidden = m !== 'kin'; q('.bi-tmfc').hidden = m !== 'tmf';
+    if (m === 'kin') kinetic(); else trophic();
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.bi-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), csvName, 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.bi-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Bioaccumulation', subtitle: q('.bi-big').textContent ?? '', file: 'bioaccumulation', sections }));
+</script>
+
+<style is:global>
+  .bioa select { max-width: 100%; }
+  .bioa .bi-sd { margin-top: 14px; }
+  .bioa .bi-sd summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+</style>

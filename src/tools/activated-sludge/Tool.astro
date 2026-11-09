@@ -1,0 +1,146 @@
+---
+// Activated sludge sizing (complete mix, carbon removal only): effluent BOD, sludge production, tank volume, F/M,
+// oxygen and air, return and waste sludge. Textbook mass balances; the kinetic coefficients are illustrative inputs.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax asl">
+  <div class="ax-card">
+    <h2>Wastewater and plant</h2>
+    <div class="ax-grid">
+      <label>Flow (m³/day) <input class="as-Q" inputmode="decimal" value="4000" /></label>
+      <label>Influent BOD after settling (mg/L) <input class="as-S0" inputmode="decimal" value="200" /></label>
+      <label>Influent non-biodegradable VSS (mg/L) <input class="as-nb" inputmode="decimal" value="20" /></label>
+      <label>Influent inert inorganic solids (mg/L) <input class="as-it" inputmode="decimal" value="10" /></label>
+      <label>Sludge age, SRT (days) <input class="as-srt" inputmode="decimal" value="8" /></label>
+      <label>MLSS in the tank (mg/L) <input class="as-mlss" inputmode="decimal" value="3000" /></label>
+      <label>Return sludge solids (mg/L) <input class="as-xr" inputmode="decimal" value="8000" /></label>
+      <label>Field oxygen transfer efficiency (%) <input class="as-ote" inputmode="decimal" value="10" /></label>
+    </div>
+    <p class="ax-help">The sludge age (solids retention time) is how long the bacteria stay in the plant on average; it sets how clean the effluent gets and how much sludge you make. MLSS is the solids concentration you plan to run the tank at. The field transfer efficiency is the share of the oxygen blown in that dissolves in real wastewater (lower than the clean-water figure a diffuser maker quotes).</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Kinetic coefficients</h2>
+    <div class="ax-grid">
+      <label>Yield Y (g VSS per g BOD) <input class="as-Y" inputmode="decimal" value="0.6" /></label>
+      <label>Decay rate kd (per day) <input class="as-kd" inputmode="decimal" value="0.1" /></label>
+      <label>Debris fraction fd <input class="as-fd" inputmode="decimal" value="0.15" /></label>
+      <label>Maximum growth rate µmax (per day) <input class="as-mu" inputmode="decimal" value="5" /></label>
+      <label>Half-saturation Ks (mg/L BOD) <input class="as-ks" inputmode="decimal" value="40" /></label>
+      <label>VSS/TSS of the biomass <input class="as-vr" inputmode="decimal" value="0.85" /></label>
+      <label>bCOD per BOD <input class="as-bc" inputmode="decimal" value="1.6" /></label>
+    </div>
+    <p class="ax-help">These numbers are illustrative starting values, not taken from any design table. Kinetic coefficients depend on the wastewater and temperature; use values measured for your plant or from your design reference. The debris fraction is the part of dead bacteria that does not break down.</p>
+    <p class="ax-err as-err" hidden></p>
+  </div>
+
+  <div class="ax-card as-out">
+    <h2>Aeration tank</h2>
+    <p class="ax-big as-big"></p>
+    <dl class="ax-facts as-facts"></dl>
+    <canvas class="ax-fig as-fig"></canvas>
+    <canvas class="ax-fig as-fig2" style="margin-top:12px"></canvas>
+    <details class="as-sd">
+      <summary>Results against sludge age (table)</summary>
+      <div class="ax-scroll"><table class="as-tabl"></table></div>
+    </details>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small as-csv">Download the sludge-age table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { size, minSrt, type AsIn } from '../../lib/sci/asludge';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (!Number.isFinite(x)) return '–'; if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const tn = (x: number) => (Math.abs(x) >= 1000 ? Math.round(x).toLocaleString('en') : sg(x, 3));
+  const root = document.querySelector<HTMLElement>('.asl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  let fig: Figure | null = null, fig2: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function table(sel: string, head: string[], rows: string[][], right: number[] = []) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.as-err').textContent = m; q('.as-err').hidden = false; q('.as-out').hidden = true; fig = fig2 = null; sections = []; csvRows = []; };
+    q('.as-err').hidden = true;
+    const p: AsIn = { Q: val('.as-Q'), S0: val('.as-S0'), srt: val('.as-srt'), mlss: val('.as-mlss'), Y: val('.as-Y'), kd: val('.as-kd'), fd: val('.as-fd'), mumax: val('.as-mu'), Ks: val('.as-ks'),
+      nbVSS: val('.as-nb'), iTSS: val('.as-it'), vssRatio: val('.as-vr'), bcodRatio: val('.as-bc'), ote: val('.as-ote') / 100, Xr: val('.as-xr') };
+    if (!(p.Q > 0 && p.Q <= 1e8)) return fail('Give the flow in m³ per day (above 0).');
+    if (!(p.S0 > 0 && p.S0 <= 1e5)) return fail('Give the influent BOD in mg/L (above 0).');
+    if (!(p.nbVSS >= 0 && p.iTSS >= 0)) return fail('The influent solids cannot be negative (use 0 for none).');
+    if (!(p.srt > 0 && p.srt <= 365)) return fail('Give a sludge age between 0 and 365 days.');
+    if (!(p.mlss >= 100 && p.mlss <= 30000)) return fail('Give an MLSS between 100 and 30,000 mg/L.');
+    if (!(p.Xr > p.mlss && p.Xr <= 50000)) return fail('The return sludge must be thicker than the MLSS (and up to 50,000 mg/L).');
+    if (!(p.ote > 0 && p.ote <= 1)) return fail('Give the oxygen transfer efficiency as a percentage above 0 and up to 100.');
+    if (!(p.Y > 0 && p.Y < 2) || !(p.kd >= 0 && p.kd < 5) || !(p.fd >= 0 && p.fd <= 1)) return fail('Check the yield (0 to 2), the decay rate (0 to 5 per day) and the debris fraction (0 to 1).');
+    if (!(p.mumax > p.kd && p.mumax <= 100) || !(p.Ks > 0)) return fail('The maximum growth rate must be above the decay rate, and Ks above 0.');
+    if (!(p.vssRatio > 0 && p.vssRatio <= 1) || !(p.bcodRatio > 0 && p.bcodRatio <= 5)) return fail('VSS/TSS is between 0 and 1, and bCOD per BOD between 0 and 5 (often about 1.6).');
+    const sMin = minSrt(p);
+    if (!(sMin > 0)) return fail('With these coefficients the bacteria cannot grow on this BOD at any sludge age (decay beats growth). Check µmax, kd and Ks.');
+    if (p.srt <= sMin) return fail(`Washout: at a sludge age of ${sg(p.srt, 3)} days the bacteria leave faster than they grow. The shortest possible is ${sg(sMin, 3)} days; designs use several times that.`);
+    const r = size(p);
+    if (!(r.o2 > 0)) return fail('No oxygen demand with these numbers; check the bCOD per BOD ratio and the yield.');
+    q('.as-out').hidden = false;
+
+    q('.as-big').textContent = `Aeration tank ${tn(r.V)} m³ (HRT ${sg(r.hrt, 3)} h)`;
+    const sf = p.srt / sMin;
+    const facts = [
+      fact('Effluent soluble BOD', `${sg(r.S, 3)} mg/L`, `${sg((100 * (p.S0 - r.S)) / p.S0, 3)} % of the soluble BOD removed; ${tn(r.removed)} kg/day`),
+      fact('F/M ratio', `${sg(r.fm, 3)} kg BOD per kg MLVSS per day`, `MLVSS ${tn(r.mlvss)} mg/L`),
+      fact('Volumetric BOD load', `${sg(r.olr, 3)} kg/m³ per day`),
+      fact('Sludge production', `${tn(r.pxTSS)} kg TSS/day`, `${tn(r.pxVSS)} kg VSS/day: ${tn(r.bio)} new bacteria, ${tn(r.debris)} cell debris, ${tn((p.Q * p.nbVSS) / 1000)} from the influent`),
+      fact('Observed yield', `${sg(r.yobs, 3)} g VSS per g BOD removed`),
+      fact('Oxygen demand', `${tn(r.o2)} kg O₂/day`, `${sg(r.o2 / 24, 3)} kg/h on average; peaks are higher`),
+      fact('Air flow', `${sg(r.airM3min, 3)} m³/min`, `${tn(r.airM3d)} m³/day of air at 20 °C, at ${sg(p.ote * 100, 3)} % field transfer`),
+      fact('Return sludge', `${sg(100 * r.R, 3)} % of the flow`, `${tn(r.R * p.Q)} m³/day back to the tank`),
+      fact('Waste sludge', `${tn(r.Qw)} m³/day`, `taken from the return line at ${tn(p.Xr)} mg/L, ignoring solids in the effluent`),
+      fact('Washout sludge age', `${sg(sMin, 3)} days`, `your sludge age is ${sg(sf, 3)} times this${sf < 3 ? '; that is a thin margin' : ''}`),
+      fact('Not included', 'nitrification', 'Ammonia removal needs a longer sludge age and much more oxygen. This tool sizes for BOD only.'),
+    ];
+    q('.as-facts').replaceChildren(...facts);
+
+    // Sweep the sludge age: from just above washout to past the chosen value.
+    const lo = Math.max(sMin * 1.5, 0.5), hi = Math.max(30, p.srt * 2), N = 60, xs: number[] = [], V: number[] = [], O: number[] = [], P: number[] = [], S: number[] = [], tRows: string[][] = [];
+    for (let k = 0; k <= N; k++) { const s = lo + ((hi - lo) * k) / N, rr = size({ ...p, srt: s }); xs.push(s); V.push(rr.V); O.push(rr.o2); P.push(rr.pxTSS); S.push(rr.S); }
+    const marks = [{ kind: 'vline' as const, at: p.srt, dash: [4, 3], label: 'your SRT' }];
+    fig = chartFigure({ h: 300, xLabel: 'Sludge age, SRT (days)', yLabel: 'Tank volume (m³)', yMin: 0, series: [{ name: 'Tank volume', x: xs, y: V, mode: 'line', width: 2 }], marks }, `Tank volume against sludge age: ${tn(r.V)} m³ at ${sg(p.srt, 3)} days`);
+    paint(q<HTMLCanvasElement>('.as-fig'), fig);
+    fig2 = chartFigure({ h: 300, xLabel: 'Sludge age, SRT (days)', yLabel: 'kg per day', yMin: 0, legend: 'below', series: [
+      { name: 'Oxygen demand (kg O₂)', x: xs, y: O, mode: 'line', width: 2 },
+      { name: 'Sludge production (kg TSS)', x: xs, y: P, mode: 'line', width: 2, dash: [6, 4] },
+    ], marks }, 'Oxygen demand rises and sludge production falls with a longer sludge age');
+    paint(q<HTMLCanvasElement>('.as-fig2'), fig2);
+
+    const ages = [...new Set([1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, p.srt].filter((s) => s > sMin * 1.2).map((s) => +s.toFixed(4)))].sort((a, b) => a - b);
+    const head = ['SRT (d)', 'Effluent BOD (mg/L)', 'Volume (m³)', 'HRT (h)', 'F/M', 'Sludge (kg TSS/d)', 'O₂ (kg/d)', 'Air (m³/min)'];
+    ages.forEach((s) => { const rr = size({ ...p, srt: s }); tRows.push([sg(s, 3), sg(rr.S, 3), tn(rr.V), sg(rr.hrt, 3), sg(rr.fm, 3), tn(rr.pxTSS), tn(rr.o2), sg(rr.airM3min, 3)]); });
+    table('.as-tabl', head, tRows, [0, 1, 2, 3, 4, 5, 6, 7]);
+    csvRows = [['srt_d', 'effluent_bod_mg_l', 'volume_m3', 'hrt_h', 'fm', 'sludge_kg_tss_d', 'o2_kg_d', 'air_m3_min'], ...ages.map((s) => { const rr = size({ ...p, srt: s }); return [s, rr.S, rr.V, rr.hrt, rr.fm, rr.pxTSS, rr.o2, rr.airM3min].map((v) => sg(v, 6)); })];
+    sections = [{ title: q('.as-big').textContent!, text: [`Complete-mix activated sludge for BOD removal: ${tn(p.Q)} m³/day at ${sg(p.S0, 4)} mg/L BOD, sludge age ${sg(p.srt, 3)} days, MLSS ${tn(p.mlss)} mg/L. Coefficients Y ${sg(p.Y, 3)}, kd ${sg(p.kd, 3)}/d, fd ${sg(p.fd, 3)}, µmax ${sg(p.mumax, 3)}/d, Ks ${sg(p.Ks, 3)} mg/L (user inputs).`],
+      facts: [...q('.as-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig },
+      { title: 'Against sludge age', figure: fig2, table: { head, rows: tRows, align: head.map(() => 'r' as const) } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('input').forEach((i) => i.addEventListener('input', later));
+  q('.as-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'activated-sludge.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.as-fig'), fig); if (fig2) paint(q<HTMLCanvasElement>('.as-fig2'), fig2); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Activated sludge sizing', subtitle: q('.as-big').textContent ?? '', file: 'activated-sludge', sections }));
+</script>
+
+<style is:global>
+  .asl .as-sd { margin-top: 14px; }
+  .asl .as-sd summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+</style>

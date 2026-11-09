@@ -1,5 +1,131 @@
 [
  {
+  "sha": "471930612754",
+  "date": "2026-11-09T04:30:23+00:00",
+  "title": "Add #167 primer checker: Tm, GC clamp, runs, hairpins, dimers and template products",
+  "tools": [
+   "primer-checker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8184d23ab387",
+  "date": "2026-11-09T04:16:33+00:00",
+  "title": "Add #166 ligation and assembly calculator: molar ratios, amounts and pipetting volumes",
+  "tools": [
+   "ligation-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ed9ea445672d",
+  "date": "2026-11-09T04:03:20+00:00",
+  "title": "Add #165 qPCR analyser: ΔΔCq and efficiency-corrected fold change, standard curves and unknowns",
+  "tools": [
+   "qpcr-analyser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c63c4817db5b",
+  "date": "2026-11-09T03:49:38+00:00",
+  "title": "Add #164 DNA, RNA and protein concentration: A260/A280, purity, molarity, copy number and dilution",
+  "tools": [
+   "nucleic-acid-concentration"
+  ],
+  "site": false
+ },
+ {
+  "sha": "018af27c971d",
+  "date": "2026-11-09T03:33:00+00:00",
+  "title": "Add #163 DNA sequence tools: reverse complement, six-frame translation, ORF finder and codon usage",
+  "tools": [
+   "sequence-tools"
+  ],
+  "site": false
+ },
+ {
+  "sha": "cd37a91a5bb0",
+  "date": "2026-11-09T03:17:57+00:00",
+  "title": "Add #162 LCA lite comparison (user factors, break-even, flip sensitivity, Monte Carlo)",
+  "tools": [
+   "lca-compare"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e643aa768e44",
+  "date": "2026-11-09T03:05:04+00:00",
+  "title": "Add #161 tree carbon calculator (allometric biomass, CO2e, yearly uptake)",
+  "tools": [
+   "tree-carbon"
+  ],
+  "site": false
+ },
+ {
+  "sha": "23071eba6035",
+  "date": "2026-11-09T02:52:59+00:00",
+  "title": "Add #160 noise barrier calculator (octave-band insertion loss, dB(A))",
+  "tools": [
+   "noise-barrier"
+  ],
+  "site": false
+ },
+ {
+  "sha": "97799b189cc0",
+  "date": "2026-11-09T02:34:58+00:00",
+  "title": "Add #159 bioaccumulation factor calculator (kinetic BCF, TMF)",
+  "tools": [
+   "bioaccumulation-factor"
+  ],
+  "site": false
+ },
+ {
+  "sha": "34325f675dad",
+  "date": "2026-11-09T02:20:40+00:00",
+  "title": "Add #158 field sampling planner (sample numbers, hot-spot grids, point layouts)",
+  "tools": [
+   "field-sampling-planner"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9e59ef1e5ee2",
+  "date": "2026-11-09T02:07:05+00:00",
+  "title": "Add #157 activated sludge sizer (BOD removal, SRT design)",
+  "tools": [
+   "activated-sludge"
+  ],
+  "site": false
+ },
+ {
+  "sha": "99079079034f",
+  "date": "2026-11-09T01:54:06+00:00",
+  "title": "Add #156 water quality index (CCME method, user objectives)",
+  "tools": [
+   "water-quality-index"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1edf57054db5",
+  "date": "2026-11-09T01:41:03+00:00",
+  "title": "Add #155 detention pond router",
+  "tools": [
+   "detention-pond"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b70d204a40f9",
+  "date": "2026-11-09T01:27:58+00:00",
+  "title": "Add #154 landfill gas estimator (first-order decay)",
+  "tools": [
+   "landfill-gas"
+  ],
+  "site": false
+ },
+ {
   "sha": "5c63cb10643c",
   "date": "2026-11-09T01:14:35+00:00",
   "title": "Add #153 non-detect statistics (Kaplan-Meier, ROS, MLE)",

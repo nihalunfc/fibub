@@ -1,0 +1,292 @@
+---
+// qPCR analyser: relative expression (ΔΔCq, or efficiency-corrected with several reference genes) and standard curves
+// with efficiency and unknowns. The example wells and curves are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const wells = `sample,gene,Cq
+Control,GeneX,24.1
+Control,GeneX,24.3
+Control,GeneX,24.2
+Control,GeneY,27.0
+Control,GeneY,27.2
+Control,GeneY,27.1
+Control,Ref1,18.0
+Control,Ref1,18.1
+Control,Ref1,17.9
+Control,Ref2,20.2
+Control,Ref2,20.0
+Control,Ref2,20.1
+Drug A,GeneX,22.0
+Drug A,GeneX,22.3
+Drug A,GeneX,22.1
+Drug A,GeneY,28.4
+Drug A,GeneY,28.1
+Drug A,GeneY,28.3
+Drug A,Ref1,18.1
+Drug A,Ref1,18.2
+Drug A,Ref1,18.0
+Drug A,Ref2,20.3
+Drug A,Ref2,20.1
+Drug A,Ref2,20.2
+Drug B,GeneX,23.5
+Drug B,GeneX,23.4
+Drug B,GeneX,24.3
+Drug B,GeneY,27.3
+Drug B,GeneY,27.1
+Drug B,GeneY,27.2
+Drug B,Ref1,17.9
+Drug B,Ref1,18.0
+Drug B,Ref1,18.1
+Drug B,Ref2,20.0
+Drug B,Ref2,20.2
+Drug B,Ref2,20.1`;
+const curves = `gene,quantity,Cq
+GeneX,1000000,15.12
+GeneX,1000000,15.30
+GeneX,100000,18.55
+GeneX,100000,18.41
+GeneX,10000,21.90
+GeneX,10000,22.04
+GeneX,1000,25.31
+GeneX,1000,25.20
+GeneX,100,28.75
+GeneX,100,28.60
+Ref1,1000000,14.02
+Ref1,100000,17.38
+Ref1,10000,20.81
+Ref1,1000,24.15
+Ref1,100,27.52
+GeneX,,20.0`;
+---
+<div class="ax qpa">
+  <div class="ax-card">
+    <h2>Wells</h2>
+    <label>Sample, gene and Cq, one well per row <textarea class="qp-data" rows="8" spellcheck="false">{wells}</textarea></label>
+    <DataFile target=".qp-data" maxCols={10} maxRows={10000} />
+    <p class="ax-help">Technical replicates are wells with the same sample and gene; they are averaged. Wells marked "Undetermined", "N/A" or left blank are skipped and counted. Up to 10,000 wells. The example is made up.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Reference gene(s), separated by commas <input class="qp-refs" value="Ref1, Ref2" /></label>
+      <label>Control sample (fold change 1) <select class="qp-ctrl"></select></label>
+      <label>Efficiencies <select class="qp-eff">
+        <option value="100" selected>100 % for every gene (ΔΔCq)</option>
+        <option value="curve">From the standard curves below</option>
+      </select></label>
+    </div>
+    <p class="ax-help">Every other gene is a target. With several reference genes the tool uses their geometric mean, which is steadier than one gene. "From the standard curves" corrects each gene for its own efficiency (genes without a curve stay at 100 %).</p>
+    <p class="ax-err qp-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Standard curves (optional)</h2>
+    <label>Gene, quantity and Cq of a dilution series; leave the quantity blank for an unknown <textarea class="qp-std" rows="6" spellcheck="false">{curves}</textarea></label>
+    <DataFile target=".qp-std" maxCols={10} maxRows={10000} />
+    <p class="ax-help">Quantity in any unit (copies, ng, or relative dilution such as 1, 0.1, 0.01). The line is Cq = slope × log₁₀(quantity) + intercept, and efficiency = 10^(−1/slope) − 1: a slope of −3.32 is 100 %. Unknowns are read off the curve of their gene.</p>
+    <p class="ax-err qp-serr" hidden></p>
+  </div>
+
+  <div class="ax-card qp-out">
+    <h2>Relative expression</h2>
+    <p class="ax-big qp-big"></p>
+    <dl class="ax-facts qp-facts"></dl>
+    <canvas class="ax-fig qp-fig"></canvas>
+    <div class="ax-scroll"><table class="qp-tab"></table></div>
+    <details class="qp-sd">
+      <summary>Replicates</summary>
+      <div class="ax-scroll"><table class="qp-rtab"></table></div>
+    </details>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small qp-csv">Download results (CSV)</button></div>
+  </div>
+
+  <div class="ax-card qp-sout">
+    <h2>Standard curves</h2>
+    <p class="ax-big qp-sbig"></p>
+    <div class="ax-scroll"><table class="qp-stab"></table></div>
+    <canvas class="ax-fig qp-sfig"></canvas>
+    <div class="qp-unk"><h3>Unknowns</h3><div class="ax-scroll"><table class="qp-utab"></table></div></div>
+  </div>
+
+  <div class="ax-card"><Downloads /></div>
+</div>
+
+<script>
+  import { stdCurve, quantify, relative, type Curve, type Well } from '../../lib/sci/qpcr';
+  import { chartFigure, OKABE_ITO } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (!Number.isFinite(x)) return '–'; if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const f2 = (x: number) => (Number.isFinite(x) ? (x < 0 ? `−${Math.abs(x).toFixed(2)}` : x.toFixed(2)) : '–');
+  const root = document.querySelector<HTMLElement>('.qpa')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const isNum = (s: string | undefined) => s !== undefined && s.trim() !== '' && Number.isFinite(num(s));
+  const HEAD = /^(sample|gene|target|cq|ct|quantity|qty|name)$/i;
+  let fig: Figure | null = null, sfig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function table(sel: string, head: string[], rows: string[][], right: number[] = []) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+
+  // Bars of log2 fold change per sample, one bar per target, with ± SD whiskers; the axis is labelled in fold.
+  function barFigure(rows: ReturnType<typeof relative>['rows'], samples: string[], targets: string[], control: string): Figure {
+    const lo = Math.min(-1, ...rows.map((r) => Math.log2(r.lo))), hi = Math.max(1, ...rows.map((r) => Math.log2(r.hi)));
+    const a = Math.floor(lo), b = Math.ceil(hi);
+    return {
+      w: 720, h: 360, alt: `Fold change of ${targets.join(', ')} in ${samples.length} samples against ${control}, log scale`,
+      draw(ctx, W, H, pal) {
+        const fs = 20 * (W / 640), cols = pal.red ? ['#a30000', '#7a0000', '#c00000', '#5a0000'] : pal.bg === '#ffffff' ? OKABE_ITO : ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4', '#f0e442', '#9ecae1'];
+        ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+        const L = fs * 3.6, R = W - fs * 0.6, T = fs * (targets.length > 1 ? 2.2 : 0.8), B = H - fs * 2.2;
+        const Y = (v: number) => B - ((v - a) / (b - a)) * (B - T);
+        ctx.font = `${fs * 0.8}px system-ui, sans-serif`; ctx.textBaseline = 'middle';
+        const step = b - a > 8 ? 2 : 1;
+        for (let v = a; v <= b; v += step) {
+          ctx.strokeStyle = v === 0 ? pal.ink : pal.grid; ctx.lineWidth = v === 0 ? 1.5 : 1; ctx.beginPath(); ctx.moveTo(L, Y(v)); ctx.lineTo(R, Y(v)); ctx.stroke();
+          ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.fillText(v >= 0 ? `${2 ** v}×` : `1/${2 ** -v}`, L - 6, Y(v));
+        }
+        const gw = (R - L) / samples.length, bw = Math.min(fs * 2.4, (gw * 0.8) / targets.length);
+        samples.forEach((s, i) => {
+          const x0 = L + gw * i + (gw - bw * targets.length) / 2;
+          targets.forEach((t, j) => {
+            const r = rows.find((z) => z.sample === s && z.target === t); if (!r) return;
+            const v = Math.log2(r.nrq), x = x0 + bw * j;
+            ctx.fillStyle = cols[j % cols.length]; ctx.fillRect(x + 2, Math.min(Y(0), Y(v)), bw - 4, Math.abs(Y(v) - Y(0)) || 1);
+            ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; const xm = x + bw / 2;
+            ctx.beginPath(); ctx.moveTo(xm, Y(Math.log2(r.lo))); ctx.lineTo(xm, Y(Math.log2(r.hi))); ctx.moveTo(xm - 5, Y(Math.log2(r.lo))); ctx.lineTo(xm + 5, Y(Math.log2(r.lo))); ctx.moveTo(xm - 5, Y(Math.log2(r.hi))); ctx.lineTo(xm + 5, Y(Math.log2(r.hi))); ctx.stroke();
+          });
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+          let lab = s; while (ctx.measureText(lab).width > gw - 4 && lab.length > 2) lab = lab.slice(0, -2) + '…';
+          ctx.fillText(lab, L + gw * (i + 0.5), B + fs * 0.4); ctx.textBaseline = 'middle';
+        });
+        if (targets.length > 1) {
+          let x = L; ctx.textAlign = 'left';
+          targets.forEach((t, j) => { ctx.fillStyle = cols[j % cols.length]; ctx.fillRect(x, fs * 0.5, fs * 0.8, fs * 0.8); ctx.fillStyle = pal.ink; ctx.fillText(t, x + fs, fs * 0.9); x += fs * 1.6 + ctx.measureText(t).width; });
+        }
+      },
+    };
+  }
+
+  function readTable(sel: string) {
+    const rows = parseTable(q<HTMLTextAreaElement>(sel).value).filter((r) => r.some((x) => x.trim() !== ''));
+    return rows.length && rows[0].some((x) => HEAD.test(x.trim())) && !rows[0].some((x) => isNum(x)) ? rows.slice(1) : rows;
+  }
+
+  function curvesCalc() {
+    const serr = (m: string) => { q('.qp-serr').textContent = m; q('.qp-serr').hidden = false; q('.qp-sout').hidden = true; sfig = null; return {} as Record<string, Curve>; };
+    q('.qp-serr').hidden = true;
+    const rows = readTable('.qp-std');
+    if (!rows.length) { q('.qp-sout').hidden = true; sfig = null; return {} as Record<string, Curve>; }
+    const pts = new Map<string, { q: number[]; c: number[] }>(), unk: { gene: string; cq: number }[] = [];
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i], g = (r[0] ?? '').trim();
+      if (!g) return serr(`Curve row ${i + 1}: give the gene name first.`);
+      if (!isNum(r[2])) { if ((r[2] ?? '').trim() === '' || /undet|n\/?a/i.test(r[2])) continue; return serr(`Curve row ${i + 1}: the Cq "${r[2]}" is not a number.`); }
+      const cq = num(r[2]);
+      if (!(cq > 0 && cq < 60)) return serr(`Curve row ${i + 1}: Cq should be between 0 and 60.`);
+      if ((r[1] ?? '').trim() === '') { unk.push({ gene: g, cq }); continue; }
+      const qq = num(r[1]);
+      if (!(qq > 0)) return serr(`Curve row ${i + 1}: the quantity must be above 0 (leave it blank for an unknown).`);
+      if (!pts.has(g)) pts.set(g, { q: [], c: [] });
+      pts.get(g)!.q.push(qq); pts.get(g)!.c.push(cq);
+    }
+    const out: Record<string, Curve> = {};
+    for (const [g, p] of pts) {
+      if (new Set(p.q).size < 3) return serr(`${g}: a standard curve needs at least 3 different quantities.`);
+      out[g] = stdCurve(p.q, p.c);
+    }
+    if (!Object.keys(out).length) return serr('Give at least one dilution series: gene, quantity, Cq.');
+    q('.qp-sout').hidden = false;
+    const gs = Object.keys(out), ok = (c: Curve) => c.eff >= 0.9 && c.eff <= 1.1 && c.r2 >= 0.98;
+    const bad = gs.filter((g) => !ok(out[g]));
+    q('.qp-sbig').textContent = gs.length === 1 ? `${gs[0]}: efficiency ${sg(out[gs[0]].eff * 100, 3)} %, R² ${out[gs[0]].r2.toFixed(4)}` : `${gs.length} curves, efficiency ${gs.map((g) => sg(out[g].eff * 100, 3)).join(', ')} %${bad.length ? `; ${bad.length} to check` : ''}`;
+    table('.qp-stab', ['Gene', 'Points', 'Slope', 'Intercept', 'R²', 'Efficiency (%)', '± 1 SE', 'Check'], gs.map((g) => { const c = out[g]; return [g, String(c.n), sg(c.slope, 4), sg(c.intercept, 4), c.r2.toFixed(4), sg(c.eff * 100, 3), Number.isFinite(c.effLo) ? `${sg(c.effLo * 100, 3)}–${sg(c.effHi * 100, 3)}` : '–', ok(c) ? 'OK' : c.r2 < 0.98 ? 'R² below 0.98' : 'outside 90–110 %']; }), [1, 2, 3, 4, 5]);
+    const series: Parameters<typeof chartFigure>[0]['series'] = [];
+    gs.forEach((g) => {
+      const p = pts.get(g)!, c = out[g], xs = [Math.min(...p.q), Math.max(...p.q)];
+      series.push({ name: g, x: p.q, y: p.c, mode: 'points' }, { name: `${g} line`, x: xs, y: xs.map((x) => c.slope * Math.log10(x) + c.intercept), mode: 'line', width: 2 });
+    });
+    sfig = chartFigure({ h: 340, xLog: true, xLabel: 'Quantity', yLabel: 'Cq', legend: gs.length > 1 ? 'below' : 'none', series, colors: undefined }, `Standard curves of ${gs.join(', ')}: Cq against log quantity`);
+    paint(q<HTMLCanvasElement>('.qp-sfig'), sfig);
+    const urows = unk.map((u) => { const c = out[u.gene]; if (!c) return [u.gene, sg(u.cq, 4), 'no curve for this gene']; const v = quantify(c, u.cq), p = pts.get(u.gene)!; const inside = v >= Math.min(...p.q) && v <= Math.max(...p.q); return [u.gene, sg(u.cq, 4), `${sg(v, 4)}${inside ? '' : ' (outside the curve)'}`]; });
+    q('.qp-unk').hidden = !urows.length;
+    table('.qp-utab', ['Gene', 'Cq', 'Quantity'], urows, [1, 2]);
+    return out;
+  }
+
+  function calc() {
+    const curves = curvesCalc();
+    const fail = (m: string) => { q('.qp-err').textContent = m; q('.qp-err').hidden = false; q('.qp-out').hidden = true; fig = null; csvRows = []; finish(); };
+    q('.qp-err').hidden = true;
+    const rows = readTable('.qp-data');
+    const wells: Well[] = []; let skipped = 0;
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i], s = (r[0] ?? '').trim(), g = (r[1] ?? '').trim();
+      if (!s || !g) return fail(`Row ${i + 1}: give the sample, the gene and the Cq.`);
+      if (!isNum(r[2])) { if ((r[2] ?? '').trim() === '' || /undet|n\/?a|no ?ct|^-$/i.test(r[2])) { skipped++; continue; } return fail(`Row ${i + 1}: the Cq "${r[2]}" is not a number.`); }
+      const cq = num(r[2]);
+      if (!(cq > 0 && cq < 60)) return fail(`Row ${i + 1}: Cq should be between 0 and 60.`);
+      wells.push({ sample: s, gene: g, cq });
+    }
+    if (!wells.length) return fail('Give the wells: sample, gene and Cq on each row.');
+    const genes = [...new Set(wells.map((w) => w.gene))], samples = [...new Set(wells.map((w) => w.sample))];
+    const refs = q<HTMLInputElement>('.qp-refs').value.split(',').map((x) => x.trim()).filter(Boolean);
+    const missing = refs.filter((r) => !genes.includes(r));
+    if (!refs.length) return fail('Name at least one reference gene.');
+    if (missing.length) return fail(`No wells for the reference gene ${missing.join(', ')}. Genes in your data: ${genes.slice(0, 12).join(', ')}.`);
+    if (refs.length === genes.length) return fail('Every gene is a reference gene; leave at least one target.');
+    const sel = q<HTMLSelectElement>('.qp-ctrl'), prev = sel.value;
+    if ([...sel.options].map((o) => o.value).join('\u0000') !== samples.join('\u0000')) { sel.replaceChildren(...samples.map((s) => { const o = document.createElement('option'); o.value = s; o.textContent = s; return o; })); sel.value = samples.includes(prev) ? prev : samples[0]; }
+    if (samples.length < 2) return fail('Give at least two samples: a control and one to compare.');
+    const control = sel.value, useCurve = q<HTMLSelectElement>('.qp-eff').value === 'curve';
+    if (useCurve && !Object.keys(curves).length) return fail('Add standard curves below, or choose 100 % efficiency.');
+    const amp: Record<string, number> = {};
+    if (useCurve) for (const g of genes) if (curves[g]) amp[g] = curves[g].amp;
+    const res = relative(wells, refs, control, amp);
+    if (!res.rows.length) return fail('No sample has every target and reference gene measured, including the control.');
+    q('.qp-out').hidden = false;
+    const others = res.rows.filter((r) => r.sample !== control);
+    const top = others.reduce((x, y) => (Math.abs(Math.log2(y.nrq)) > Math.abs(Math.log2(x.nrq)) ? y : x), others[0] ?? res.rows[0]);
+    q('.qp-big').textContent = top.nrq >= 1 ? `${top.target} up ${sg(top.nrq, 3)}× in ${top.sample}` : `${top.target} down ${sg(1 / top.nrq, 3)}× in ${top.sample}`;
+    const spread = res.reps.filter((r) => r.n > 1 && r.spread > 0.5), late = res.reps.filter((r) => r.mean > 35), single = res.reps.filter((r) => r.n === 1);
+    const refRange = refs.map((g) => { const m = res.reps.filter((r) => r.gene === g).map((r) => r.mean); return { g, range: Math.max(...m) - Math.min(...m) }; });
+    const shaky = refRange.filter((r) => r.range > 1);
+    const effText = useCurve ? genes.map((g) => `${g} ${sg(((amp[g] ?? 2) - 1) * 100, 3)} %`).join(', ') : '100 % for every gene';
+    q('.qp-facts').replaceChildren(
+      fact('Method', useCurve ? 'Efficiency-corrected (Pfaffl)' : '2^−ΔΔCq (Livak)', `${effText}; reference${refs.length > 1 ? 's' : ''} ${refs.join(', ')} (${refs.length > 1 ? 'geometric mean' : 'one gene'}); control ${control}`),
+      fact('Replicates', spread.length ? `${spread.length} group${spread.length > 1 ? 's' : ''} spread more than 0.5 cycles` : 'all within 0.5 cycles', spread.length ? spread.slice(0, 4).map((r) => `${r.sample} ${r.gene} (${sg(r.spread, 2)})`).join(', ') + (spread.length > 4 ? '…' : '') : `${wells.length} wells${skipped ? `, ${skipped} skipped (no Cq)` : ''}${single.length ? `; ${single.length} groups have one well only` : ''}`),
+      fact('Reference genes', shaky.length ? `${shaky.map((r) => r.g).join(', ')} varies by over 1 cycle` : 'steady across samples', refRange.map((r) => `${r.g}: range ${sg(r.range, 2)} cycles`).join('; ')),
+      ...(late.length ? [fact('Late Cq', `${late.length} group${late.length > 1 ? 's' : ''} above 35 cycles`, 'near the detection limit: treat with care')] : []),
+    );
+    fig = barFigure(res.rows, res.samples.filter((s) => res.rows.some((r) => r.sample === s)), res.targets, control);
+    paint(q<HTMLCanvasElement>('.qp-fig'), fig);
+    const head = ['Sample', 'Target', 'ΔCq', 'ΔΔCq', 'Fold change', 'Range (± SD)'];
+    const trs = res.rows.map((r) => [r.sample, r.target, f2(r.dCq), f2(r.ddCq), sg(r.nrq, 3), `${sg(r.lo, 3)}–${sg(r.hi, 3)}`]);
+    table('.qp-tab', head, trs, [2, 3, 4, 5]);
+    table('.qp-rtab', ['Sample', 'Gene', 'Wells', 'Mean Cq', 'SD', 'Spread'], res.reps.map((r) => [r.sample, r.gene, String(r.n), f2(r.mean), r.n > 1 ? sg(r.sd, 2) : '–', r.n > 1 ? `${sg(r.spread, 2)}${r.spread > 0.5 ? ' (check)' : ''}` : '–']), [2, 3, 4, 5]);
+    csvRows = [['sample', 'target', 'delta_cq', 'delta_delta_cq', 'fold_change', 'low', 'high', 'sd_log2'], ...res.rows.map((r) => [r.sample, r.target, sg(r.dCq, 6), sg(r.ddCq, 6), sg(r.nrq, 6), sg(r.lo, 6), sg(r.hi, 6), sg(r.sdLog2, 6)])];
+    finish(head, trs);
+  }
+  function finish(head?: string[], trs?: string[][]) {
+    sections = [];
+    if (head && trs) sections.push({ title: q('.qp-big').textContent!, facts: [...q('.qp-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), ...(fig ? { figure: fig } : {}), table: { head, rows: trs, align: ['l', 'l', 'r', 'r', 'r', 'r'] } });
+    if (sfig) sections.push({ title: `Standard curves: ${q('.qp-sbig').textContent}`, facts: [], figure: sfig });
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.qp-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'qpcr-results.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.qp-fig'), fig); if (sfig) paint(q<HTMLCanvasElement>('.qp-sfig'), sfig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'qPCR analysis', subtitle: q('.qp-big').textContent ?? '', file: 'qpcr', sections }));
+</script>
+
+<style is:global>
+  .qpa select { max-width: 100%; }
+  .qpa .qp-sd { margin-top: 14px; }
+  .qpa .qp-sd summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+  .qpa .qp-unk h3 { font-size: 1rem; margin: 14px 0 6px; }
+</style>
