@@ -1,0 +1,170 @@
+---
+// Seismic refraction: layer speeds and depths from first-arrival picks (intercept-time and crossover methods),
+// the dipping-layer solution from forward and reverse shots, and forward travel-time curves. Example picks made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+// Made-up line: shots at 0 and 125 m, geophones every 5 m; speeds 500, 1800 and 4000 m/s; both interfaces dip
+// toward the reverse shot (5 m and 20 m deep under the forward shot, dipping 2° and 3°); picks have small errors added.
+const fwd = 'offset_m\ttime_ms\n5\t10.0\n10\t20.4\n15\t28.9\n20\t31.5\n25\t34.7\n30\t37.7\n35\t41.2\n40\t44.1\n45\t47.4\n50\t49.8\n55\t53.2\n60\t54.3\n65\t56.2\n70\t57.6\n75\t59.2\n80\t61.0\n85\t62.8\n90\t64.1\n95\t65.8\n100\t67.7\n105\t68.8\n110\t70.3\n115\t72.5\n120\t73.8';
+const rev = 'offset_m\ttime_ms\n5\t9.4\n10\t19.8\n15\t29.9\n20\t39.6\n25\t47.7\n30\t50.6\n35\t53.3\n40\t55.4\n45\t57.7\n50\t60.5\n55\t63.0\n60\t64.4\n65\t65.5\n70\t66.5\n75\t67.0\n80\t67.7\n85\t68.9\n90\t69.7\n95\t70.8\n100\t71.0\n105\t72.0\n110\t72.8\n115\t73.4\n120\t74.8';
+---
+<div class="ax srf">
+  <div class="ax-card">
+    <h2>First-arrival picks</h2>
+    <div class="ax-grid">
+      <label>Layers <select class="sr-n"><option value="2">2</option><option value="3" selected>3</option></select></label>
+      <label>Distance between the shots (m) <input class="sr-L" type="text" inputmode="decimal" value="125" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="sr-org" checked /> Direct wave passes through zero time at the shot</label>
+    <label style="margin-top:10px">Forward shot: offset from the shot (m) and time (ms)
+      <textarea class="sr-f" rows="6" spellcheck="false">{fwd}</textarea></label>
+    <DataFile target=".sr-f" maxCols={4} maxRows={5000} label="Open a file" />
+    <label style="margin-top:8px">Forward layer breaks (offsets in m between layers; blank to find them) <input class="sr-fb" type="text" placeholder="automatic" /></label>
+    <label style="margin-top:12px">Reverse shot (optional, at the far end): offset from that shot (m) and time (ms)
+      <textarea class="sr-r" rows="6" spellcheck="false">{rev}</textarea></label>
+    <DataFile target=".sr-r" maxCols={4} maxRows={5000} label="Open a file" />
+    <label style="margin-top:8px">Reverse layer breaks (m) <input class="sr-rb" type="text" placeholder="automatic" /></label>
+    <p class="ax-help">Automatic breaks try every split and keep the best straight-line fit in which speeds increase with depth. Check them on the plot and type your own if a point is on the wrong line. The example picks are made up.</p>
+    <p class="ax-err sr-err" hidden></p>
+  </div>
+
+  <div class="ax-card sr-out">
+    <h2>Layers</h2>
+    <p class="ax-big sr-big"></p>
+    <dl class="ax-facts sr-facts"></dl>
+    <canvas class="ax-fig sr-fig" style="margin-top:12px"></canvas>
+    <div class="ax-scroll" style="margin-top:12px"><table class="sr-tab"></table></div>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small sr-csv">Download picks and fits (CSV)</button></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Forward model (flat layers)</h2>
+    <div class="ax-grid">
+      <label>Speeds, top down (m/s) <input class="sr-mv" type="text" value="500, 1800, 4000" /></label>
+      <label>Thicknesses, top down (m) <input class="sr-mh" type="text" value="5, 15" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="sr-show" /> Draw the model on the plot (from both shots)</label>
+    <p class="ax-err sr-merr" hidden></p>
+    <div class="ax-scroll" style="margin-top:10px"><table class="sr-mtab"></table></div>
+    <p class="ax-help sr-mrms"></p>
+  </div>
+</div>
+
+<script>
+  import { segment, crossover, interceptDepths, crossoverDepths, dippingLayer, forwardTimes, sortPicks, type Line } from '../../lib/sci/refraction';
+  import { groupFigure } from '../../lib/sci/geomap';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, numericColumns, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.srf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const tr = (cells: string[], th = false) => { const e = document.createElement('tr'); cells.forEach((c, j) => { const d = document.createElement(th ? 'th' : 'td'); d.textContent = c; if (j) d.className = 'r'; e.append(d); }); return e; };
+  const list = (s: string) => s.split(/[\s,;]+/).filter(Boolean).map(num);
+  const m1 = (v: number) => (Number.isFinite(v) ? v.toFixed(1) : '');
+  let fig: Figure | null = null, report: Section[] = [], csvRows: (string | number)[][] = [];
+
+  type Shot = { x: number[]; t: number[]; lines: Line[]; starts: number[]; hI: number[]; hX: number[]; xc: number[] };
+  function solveShot(text: string, breaks: string, n: number, origin: boolean, label: string): Shot | string | null {
+    if (!text.trim()) return null;
+    const tab = numericColumns(text);
+    if (tab.cols.length < 2) return `${label}: paste two columns, offset (m) and time (ms).`;
+    const p = sortPicks(tab.cols[0], tab.cols[1]);
+    if (p.t.some((v) => !(v >= 0))) return `${label}: times must be zero or more.`;
+    const b = breaks.trim() ? list(breaks) : undefined;
+    if (b && b.some((v) => !Number.isFinite(v))) return `${label} breaks: type offsets in metres, separated by commas.`;
+    let seg: ReturnType<typeof segment>;
+    try { seg = segment(p.x, p.t, n, { breaks: b, origin }); } catch (e) { return `${label}: ${(e as Error).message}.`; }
+    const v = seg.lines.map((l) => l.v), ti = seg.lines.map((l) => l.ti);
+    const xc = seg.lines.slice(1).map((l, k) => crossover(seg.lines[k], l));
+    return { ...p, ...seg, hI: interceptDepths(v, ti), hX: crossoverDepths(v, xc), xc };
+  }
+  const depthsTxt = (h: number[]) => h.map((_, k) => h.slice(0, k + 1).reduce((s, v) => s + v, 0).toFixed(1)).join(' m and ') + ' m';
+
+  function calc() {
+    const err = q('.sr-err'), out = q('.sr-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const mod = model();
+    const n = Number((q<HTMLSelectElement>('.sr-n')).value), origin = q<HTMLInputElement>('.sr-org').checked, L = val('.sr-L');
+    const F = solveShot(q<HTMLTextAreaElement>('.sr-f').value, q<HTMLInputElement>('.sr-fb').value, n, origin, 'Forward shot');
+    if (F === null) return fail('Paste the forward shot picks: offset in metres and time in milliseconds.');
+    if (typeof F === 'string') return fail(F);
+    const Rv = solveShot(q<HTMLTextAreaElement>('.sr-r').value, q<HTMLInputElement>('.sr-rb').value, n, origin, 'Reverse shot');
+    if (typeof Rv === 'string') return fail(Rv);
+    if (Rv && !(L > 0)) return fail('Enter the distance between the two shots, so the reverse picks can be placed on the line.');
+    err.hidden = true; out.hidden = false;
+    const shots: [string, Shot][] = [['Forward', F]]; if (Rv) shots.push(['Reverse', Rv]);
+    q('.sr-big').textContent = `Layer tops at ${depthsTxt(F.hI)} under the forward shot${Rv ? `, ${depthsTxt(Rv.hI)} under the reverse shot` : ''}`;
+    const fs: HTMLElement[] = [];
+    fs.push(fact('Speeds, forward shot', F.lines.map((l) => sig(l.v, 4)).join(', ') + ' m/s', `${F.x.length} picks; fit RMS ${(Math.sqrt(F.lines.reduce((s, l) => s + l.rms * l.rms * l.n, 0) / F.x.length) * 1000).toFixed(2)} ms`));
+    if (Rv) {
+      fs.push(fact('Speeds, reverse shot', Rv.lines.map((l) => sig(l.v, 4)).join(', ') + ' m/s', 'differences between the shots point to dipping layers'));
+      const v1 = 2 / (1 / F.lines[0].v + 1 / Rv.lines[0].v);
+      try {
+        const d = dippingLayer(v1, F.lines[1], Rv.lines[1]);
+        fs.push(fact('Dipping first refractor', `V2 ${sig(d.v2, 4)} m/s, dip ${Math.abs(d.dip).toFixed(2)}°`, `deepening toward the ${d.dip >= 0 ? 'reverse' : 'forward'} shot; V1 ${sig(v1, 4)} m/s from both direct waves; critical angle ${d.crit.toFixed(1)}°`));
+        fs.push(fact('Depth to first refractor', `${d.hVertF.toFixed(2)} m forward, ${d.hVertR.toFixed(2)} m reverse`, `vertically below each shot (${d.hPerpF.toFixed(2)} and ${d.hPerpR.toFixed(2)} m at right angles to the layer)`));
+      } catch (e) { fs.push(fact('Dipping first refractor', 'not solved', (e as Error).message)); }
+      if (n === 3) { const a = F.lines[2].v, b = Rv.lines[2].v; fs.push(fact('Deeper refractor speed', `about ${sig((2 * a * b) / (a + b), 4)} m/s`, `2·Vf·Vr/(Vf + Vr) from ${sig(a, 4)} and ${sig(b, 4)} m/s; good for dips of a few degrees`)); }
+      const lf = F.lines[n - 1], lr = Rv.lines[n - 1], tf = lf.ti + L / lf.v, trv = lr.ti + L / lr.v;
+      fs.push(fact('Reciprocal times', `${(tf * 1000).toFixed(1)} and ${(trv * 1000).toFixed(1)} ms`, `deepest arrivals extended to the other shot; they should be equal (difference ${(Math.abs(tf - trv) * 1000).toFixed(1)} ms)`));
+    }
+    q('.sr-facts').replaceChildren(...fs);
+    // Table per shot and layer.
+    const head = ['Shot', 'Layer', 'Picks', 'Offsets (m)', 'Speed (m/s)', 'Intercept (ms)', 'Crossover (m)', 'Thickness, intercept (m)', 'Thickness, crossover (m)'];
+    const rows: string[][] = [];
+    for (const [nm, S] of shots) S.lines.forEach((l, k) => rows.push([nm, String(k + 1), String(l.n), `${sig(l.x0, 4)}–${sig(l.x1, 4)}`, sig(l.v, 4), (l.ti * 1000).toFixed(2), k ? m1(S.xc[k - 1]) : '', k < S.lines.length - 1 ? S.hI[k].toFixed(2) : '', k < S.lines.length - 1 ? S.hX[k].toFixed(2) : '']));
+    q<HTMLTableElement>('.sr-tab').replaceChildren(tr(head, true), ...rows.map((r) => tr(r)));
+    // Plot along the line: forward picks at their offsets, reverse picks at L − offset.
+    const ser: any[] = [], grp: number[] = [];
+    const place = (S: Shot, rev: boolean) => S.x.map((x) => (rev ? L - x : x));
+    ser.push({ name: 'Forward picks', x: place(F, false), y: F.t.map((t) => t * 1000), mode: 'points', marker: 'circle', size: 3.2 }); grp.push(0);
+    if (Rv) { ser.push({ name: 'Reverse picks', x: place(Rv, true), y: Rv.t.map((t) => t * 1000), mode: 'points', marker: 'square', size: 3.2 }); grp.push(1); }
+    const lineSer = (S: Shot, rev: boolean, color: number) => S.lines.forEach((l) => { const xa = Math.max(0, l.x0 - 8), xb = l.x1 + 8; ser.push({ name: '', x: [xa, xb].map((x) => (rev ? L - x : x)), y: [xa, xb].map((x) => (l.ti + x / l.v) * 1000), mode: 'line', width: 1.3 }); grp.push(color); });
+    lineSer(F, false, 0); if (Rv) lineSer(Rv, true, 1);
+    csvRows = [['shot', 'offset_m', 'position_m', 'time_ms', 'layer', 'fitted_ms']];
+    for (const [nm, S] of shots) S.x.forEach((x, i) => { const k = S.starts.filter((s) => s <= i).length - 1, l = S.lines[k]; csvRows.push([nm.toLowerCase(), x, nm === 'Reverse' ? +(L - x).toFixed(4) : x, +(S.t[i] * 1000).toFixed(4), k + 1, +((l.ti + x / l.v) * 1000).toFixed(4)]); });
+    // Forward model overlay.
+    const show = q<HTMLInputElement>('.sr-show').checked;
+    if (show && mod) {
+      const xs = Array.from({ length: 121 }, (_, i) => ((Rv ? L : Math.max(...F.x)) * i) / 120);
+      ser.push({ name: 'Model', x: xs, y: forwardTimes(mod.v, mod.h, xs).first.map((t) => t * 1000), mode: 'line', dash: [5, 3], width: 1.5 }); grp.push(2);
+      if (Rv) { ser.push({ name: '', x: xs.map((x) => L - x), y: forwardTimes(mod.v, mod.h, xs).first.map((t) => t * 1000), mode: 'line', dash: [5, 3], width: 1.5 }); grp.push(2); }
+    }
+    fig = groupFigure({ w: 420, h: 320, xLabel: Rv ? 'Position along the line (m)' : 'Offset (m)', yLabel: 'Time (ms)', legend: 'below', series: ser, xMin: 0, xMax: Rv ? L : undefined }, grp, 'Travel-time plot with fitted lines');
+    paint(q<HTMLCanvasElement>('.sr-fig'), fig);
+    report = [{ title: q('.sr-big').textContent!, facts: fs.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig, table: { head, rows, align: head.map((_, j) => (j ? 'r' : 'l')) } }];
+    modelTable(mod, F);
+  }
+
+  function model() {
+    const v = list(q<HTMLInputElement>('.sr-mv').value), h = list(q<HTMLInputElement>('.sr-mh').value), e = q('.sr-merr');
+    const bad = (m: string) => { e.textContent = m; e.hidden = false; q('.sr-mtab').replaceChildren(); q('.sr-mrms').textContent = ''; return null; };
+    if (v.length < 2 || v.some((x) => !(x > 0))) return bad('Enter two or more speeds above zero, top layer first.');
+    if (h.length !== v.length - 1 || h.some((x) => !(x > 0))) return bad(`Enter ${v.length - 1} thickness${v.length > 2 ? 'es' : ''} above zero, one for every layer except the bottom one.`);
+    e.hidden = true;
+    return { v, h };
+  }
+  function modelTable(mod: { v: number[]; h: number[] } | null, F: Shot) {
+    if (!mod) return;
+    const ft = forwardTimes(mod.v, mod.h, F.x);
+    const rows = mod.v.map((vn, n) => { const hd = ft.heads[n]; return [String(n + 1), sig(vn, 4), n < mod.h.length ? sig(mod.h[n], 4) : 'half-space', n ? (hd.ok ? (hd.ti * 1000).toFixed(2) : 'none') : '0', n ? (hd.ok ? hd.xcrit.toFixed(1) : '') : '', n ? (hd.ok ? (() => { const a = ft.heads[n - 1]; return a.ok ? ((hd.ti - a.ti) / (1 / mod.v[n - 1] - 1 / vn)).toFixed(1) : ''; })() : '') : '']; });
+    q<HTMLTableElement>('.sr-mtab').replaceChildren(tr(['Layer', 'Speed (m/s)', 'Thickness (m)', 'Intercept (ms)', 'Critical distance (m)', 'Crossover (m)'], true), ...rows.map((r) => tr(r)));
+    const d = F.t.map((t, i) => t - ft.first[i]);
+    q('.sr-mrms').textContent = `Against the forward picks: RMS ${(Math.sqrt(d.reduce((s, v) => s + v * v, 0) / d.length) * 1000).toFixed(2)} ms. Crossover here is where each head wave overtakes the one above it.`;
+  }
+
+  root.querySelectorAll('input, textarea, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  q('.sr-csv').addEventListener('click', () => save(new Blob([csv(csvRows)], { type: 'text/csv' }), 'refraction-picks.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.sr-fig'), fig));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Seismic refraction', subtitle: q('.sr-big').textContent ?? '', file: 'seismic-refraction', sections: report }));
+</script>
+
+<style is:global>
+  .srf select, .srf input { max-width: 100%; }
+  .srf textarea { width: 100%; }
+</style>
