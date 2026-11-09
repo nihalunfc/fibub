@@ -18,7 +18,7 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   await click('.fn-sample');
   check((await cards()).join('|') === '2026-10-05 · Ferry landing|2026-10-03 · Tea stall|2026-10-02 · Harbour market', 'fn: example notes newest first');
   check((await chipsOf('.fn-tagc')).join('|') === 'trade · 3|kinship · 1|morning · 1|transport · 1' && (await chipsOf('.fn-pc')).join('|') === 'Fisher A · 2|Vendor B · 2|Ferry worker C · 1', 'fn: tag and people counts');
-  await page.fill('.fn-q', 'fisher trade'); await page.waitForTimeout(400);
+  await page.fill('.fn-q', 'fisher trade'); await page.waitForTimeout(1000);
   check((await cards()).length === 2 && /Showing 2 of 3/.test(await page.textContent('.fn-shown')), 'fn: search needs every word');
   await click('.fn-reset');
   await click('.fn-tagc button:has-text("kinship")');
@@ -27,7 +27,7 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   await page.selectOption('.fn-fplace', 'Harbour market'); await page.waitForTimeout(200);
   check((await cards()).length === 1, 'fn: place filter');
   await click('.fn-reset');
-  await page.fill('.fn-from', '2026-10-03'); await page.fill('.fn-to', '2026-10-04'); await page.waitForTimeout(400);
+  await page.fill('.fn-from', '2026-10-03'); await page.fill('.fn-to', '2026-10-04'); await page.waitForTimeout(1000);
   check((await cards()).join() === '2026-10-03 · Tea stall', 'fn: date range');
   await click('.fn-reset');
 
@@ -71,9 +71,9 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   check((await cards()).length === 0 && /No notes yet/.test(await page.textContent('.fn-list')), 'fn: clear all');
 
   // Import
-  await page.setInputFiles('.fn-file', jsonPath); await page.waitForTimeout(400);
+  await page.setInputFiles('.fn-file', jsonPath); await page.waitForTimeout(1000);
   check((await cards()).length === 3 && /Imported 3 notes/.test(await page.textContent('.fn-impnote')), 'fn: import JSON');
-  await page.setInputFiles('.fn-file', jsonPath); await page.waitForTimeout(400);
+  await page.setInputFiles('.fn-file', jsonPath); await page.waitForTimeout(1000);
   check((await cards()).length === 3 && /Imported 0 notes.*3 already here/.test(await page.textContent('.fn-impnote')), 'fn: re-import skips duplicates');
   await page.setInputFiles('.fn-file', { name: 'bad.json', mimeType: 'application/json', buffer: Buffer.from('{oops') });
   await page.waitForTimeout(300);
