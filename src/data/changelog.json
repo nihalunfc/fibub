@@ -1,5 +1,50 @@
 [
  {
+  "sha": "0b4b3c53ee14",
+  "date": "2026-11-09T06:15:16+00:00",
+  "title": "Add #172 pairwise sequence alignment (global, local, semi-global, affine gaps, dot plot)",
+  "tools": [
+   "sequence-alignment"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b03bbfef2762",
+  "date": "2026-11-09T05:43:55+00:00",
+  "title": "Add #171 FASTQ and FASTA quality inspector (streaming, gzip, quality boxes, GC, repeats)",
+  "tools": [
+   "fastq-inspector"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f9a7e8ca78b3",
+  "date": "2026-11-09T05:28:21+00:00",
+  "title": "Add #170 plasmid map viewer and editor (GenBank in and out, circular or linear map, SVG)",
+  "tools": [
+   "plasmid-map"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b4aa75c65a52",
+  "date": "2026-11-09T05:06:36+00:00",
+  "title": "Add #169 gel band size estimator (log-linear, cubic or point-to-point ladder fit, photo taps)",
+  "tools": [
+   "gel-band-sizer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "101e107ea921",
+  "date": "2026-11-09T04:45:33+00:00",
+  "title": "Add #168 restriction digest simulator: sites on both strands, fragments, map and virtual gel",
+  "tools": [
+   "restriction-digest"
+  ],
+  "site": false
+ },
+ {
   "sha": "471930612754",
   "date": "2026-11-09T04:30:23+00:00",
   "title": "Add #167 primer checker: Tm, GC clamp, runs, hairpins, dimers and template products",
@@ -106,6 +151,13 @@
    "water-quality-index"
   ],
   "site": false
+ },
+ {
+  "sha": "8992fac23ac0",
+  "date": "2026-11-09T01:50:26+00:00",
+  "title": "Show public view and use counters on tool pages and site views in the footer",
+  "tools": [],
+  "site": true
  },
  {
   "sha": "1edf57054db5",

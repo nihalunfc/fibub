@@ -1,0 +1,264 @@
+---
+// Plasmid map viewer and editor: reads GenBank (or plain sequence), draws a circular or linear map with features,
+// arrows and single-cutter sites, lets you edit features and move the origin, and writes SVG and GenBank back out.
+// The example plasmid is random made-up sequence with made-up features.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { writeGenBank, parseLocation, type Feature } from '../../lib/sci/genbank';
+const seq = 'TGGCAAGGGGTCCCTAATTATGATGCGCCATGAACTCGACATCGTAGTTGAGCGCTGACCCTAGGATGAGGAGTTGAAGCTAAAGCGAATTTACGACCTCGTAGACAAGCCTTACGGATCGTCTGCCGACATACTGGACATAGCCACTATACGCATGGCTCCAGCCGTTGACAACATATACGTGTGATGGTGTCCCCGAGGCTTGTGACATAATCGAACCGTGGACATAACGCAACAGTGATAAGGAACCCAGTAGATCGTGGCGGCTTCATTTTGTTCAACTCCGTTGCGGAAATCTAAACGTAGTATTTTGGCAGATATCTACTAGCCCTCATTTCATCCTGCGTTATTTCAGGCAAAGTTTTCTCGATGTTAATATAGAATTCTTTATCTATCATGAGGTGCTAGCCTCATACAGTAATCATTAACTGTTTATAGTATGCCGATAGAATTTCCCACACCGCCGAAAGCAACCCGAGACAACCAGAAAGGTTCTGTTGTTCTAATGCCCATCAGGATGATCTCGCTCCCCTCCATCTCGTCAAAGACTTCGCGGGATGCTTACTCTAACTTTAAACTCGCCCCCACAAGTATTGCCCATTTCCCCTCAGCGTACTATTGATTCTCCCGGCGTCAGCGTATACTGGTTAAGGACAGCGATTTAACTCTCACAAACTCGACATAAGCGTCTCCCTAGTAGACTCGGACGCCGACAAACCGACCGGTCCAATGTACAGGCCAATCAAAAAAGGTCCTTCGATTCGGTCTTCCTTCTCGTGGCTGTATGATAAGGGCGCGAATAGCAAACCCTGGACTCGGAGTCAATTTTTCCTCTCACTTCGATCTGATGGCATATTCCGCTCCCCAGATGTGACCACTTCCAACGGGACTTCGTCTAAGACTGCCGCATGTTTGGGTCTGTCTGTAGCTCACCTCCACCCTCATGCGGCAGAACTACGCTATGGGTTATGTTCTTAAGGCTTTTTCTGGCCATCGTGGTTGGTAGTCTGAGCTTCTGTCCAAGCTATGCGACGATAAGGCACGAGTTCGGAACGAGGTCTCAACGATTCCGGCACCGGATCTTCCCGTGGGAATTACACGTACTAGACTCTATAGGGTTGCACGTGCGCTAGAACGCTTTGTAATTACTGGATCCTCCGATCTGACGAGTTTTTAACAGTTGCAACAGTGAACTTTGACGTGGCTACACACGCAATCTCGTAATCGTTGTACAAGTATCGTTATTCATGGCAGCCCATGGGCCTAACGTAGATATGCACCGATTAATGTATCTAGATGATCGTGGCAACAGAGAGCCAAGCAGCCTCTAGAGGATGGATTGTCTCTCCAGTGAGAGAACCGTCGTAAGCGAGAGGTATCCGTAAATGTATGCATCCTTCACTCCATTTTCTTTAGTGACCGTAAAGCCTCCGTTAAGTCCAATTTACCTCACAAGAGCAGATCTTACATCAGTAAGACATCTACGGAAGATCCCACCGCGGGGTATAGCACCTTTGGGTAAGAGCCGAGGTTTTTGTTGTACTGTACCTAACTCAGTCCGATATGAGCAAGGGGTTGTTTCCGTTTACACGCAAGACCCCGGAGTTGCCGACCTCGGCTTCGATCAACGAATCCGGTTCAGGACAACTCTCCACGGCTTGGAGACGTATAGAATACCTGACAATCAGCCAGATAGCGTCGTACGCCCTTGAACTTGTACGCGCCCTAAACCCCTAGACATAGTAATTGCGTGCGACTTTAGCTCTAAGCGCCCACGAAGAGGTATTCTCGATGGAGAGGGAATTCTTCCAAGAATGGTCGAGTGGTTCTCTGGGATTGCGACAGAGACACGTGTCCCTAGGGACGATAGGCATGGCGAAGGTGATAGGTGCGCATTTGTGGATACTCGGAGGGGCAATGAGACACGGTAAAGAGCATCCGTTGAAAGGAACACCATCCCACTCCACCTGTTAACCTCGAAAGCCGCTTACATCTAATGTGGGGCGGCACCCTTACATGAGAGCTTATCGCGGTGGACGAGTCTACTGTGCCGTCGACCTATAGATGAAGGATTTGTAGCGCCCGATGGCTTAAGTCGATTTCTAAGTGGGGATATTTGGGTTTATTGCAGTAAATTAACAACGTATCCATCCAGAACGGGGGGACCTATGGTACAAGCGTATGATCAGATCCCTTCTCCTTACATGTCCAAGCTTCCCATGCGCAGGATGTTCGACCCAGGTCTGCTTGAGACGTTGCAGTCAGACCTCAGTAAGCATGGTCTAAAAAGCTGTGATGGAACCAAAATGTTTAAACATGCCGGATAATCTGTTAACGAGTGTGTGCTGACCTATCCTCTAGCTCCCCTTTTGCGTCTAACAGTATGTGATCCGTGCGGCTATCCTGGAGATGTTAACACCCAAATTCCGTTTATCCTCAGGAATCGCCAGGAAGCTCCTTGATTATGACCGTACCACTTCCTCTGACTTCACACGGCGTCTCTGCTTAAGGTCAAACGGCCCGGGCGGATAGCAAGTTTAGTGATACACAGGTCTACCCATGTAACGACATAGATGAGGTCTCGTGTCAGATAGAGTTCCTCTAGAAAGGGTTAGTTTTACCTACCGGTTCTATAATTCTTTTTAGCTGGCTGCAGTGCGGTACACCGTCGTTGGTCCTGCCCAAAAACTGAGCAAAATATAACGACCCTGGATGGCATTAGTCGTTCAACTATATCGGAAGGACACATTCAGCTAATTTCATATCGCCTGAAATCTTCTTCGATCCCGGTGGACGGGGGTCGAAGATCATATACGATAAGCGCGCCCATCGTAGACCACATAGATGTTAGGTCCGTTCTTCACACAGTTAGCACACACCTGCGTACAAGCCGTAATCATTGATATATGCCTAAGAGGTCGCGAAACCACCATCCAACTGATATTGGATGTCCCCCATTTCGGCGATTTGTTTGTCTCGTTTCTGCACGCAACATAACAA';
+const f = (type: string, loc: string, quals: [string, string][]): Feature => ({ type, parts: parseLocation(loc)!, quals });
+const example = writeGenBank({
+  name: 'pDemo1', definition: 'made-up example plasmid (random sequence, made-up features)', circular: true, seq,
+  features: [
+    f('source', '1..3000', [['organism', 'synthetic construct'], ['mol_type', 'other DNA']]),
+    f('promoter', '120..175', [['label', 'pDemo promoter'], ['note', 'made-up feature for the example']]),
+    f('primer_bind', '181..200', [['label', 'fwd primer']]),
+    f('CDS', '201..1106', [['label', 'reporterX'], ['note', 'made-up gene for the example']]),
+    f('terminator', '1131..1178', [['label', 'T1']]),
+    f('rep_origin', '1301..1889', [['label', 'ori']]),
+    f('CDS', 'complement(1981..2841)', [['label', 'markerA'], ['note', 'made-up selection marker for the example']]),
+    f('misc_feature', 'join(2961..3000,1..40)', [['label', 'MCS']]),
+  ],
+}, '09-NOV-2026');
+---
+<div class="ax pmv">
+  <div class="ax-card">
+    <h2>Plasmid</h2>
+    <label>GenBank file, FASTA or plain sequence <textarea class="pm-in" rows="6" spellcheck="false">{example}</textarea></label>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small pm-open">Open a GenBank or FASTA file</button>
+      <input type="file" class="pm-file" accept=".gb,.gbk,.gbff,.genbank,.ape,.fa,.fasta,.fna,.seq,.txt,text/plain" hidden />
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Name <input class="pm-name" maxlength="40" /></label>
+      <label>Shape <select class="pm-top"><option value="circ">Circular (plasmid)</option><option value="lin">Linear</option></select></label>
+      <label>Enzyme sites <select class="pm-sites"><option value="single" selected>Single cutters</option><option value="all">All sites of the 12 classic enzymes</option><option value="none">None</option></select></label>
+    </div>
+    <p class="ax-help">GenBank (.gb, .gbk, or a file from most plasmid editors) or FASTA up to 20 MB; the first record is used, up to 1 million bases. The file stays on your device. Changing this box starts again from it, so download your edits first. The example is random made-up sequence with made-up features.</p>
+    <p class="ax-err pm-err" hidden></p>
+  </div>
+
+  <div class="ax-card pm-out">
+    <h2>Map</h2>
+    <p class="ax-big pm-big"></p>
+    <canvas class="ax-fig pm-fig"></canvas>
+    <dl class="ax-facts pm-facts"></dl>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small pm-svg">Download map (SVG)</button>
+      <button type="button" class="btn secondary small pm-gb">Download GenBank</button>
+    </div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card pm-edit">
+    <h2>Features</h2>
+    <p class="ax-help">Edit a name, type, position, strand or colour and the map follows. Start can be larger than end on a circular plasmid for a feature that crosses base 1. Features made of several pieces keep their pieces; change those in the GenBank text. Untick a feature to hide it from the map.</p>
+    <div class="pm-list"></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pm-add">Add a feature</button></div>
+    <h3 style="margin-top:16px">Move the origin</h3>
+    <div class="ax-grid">
+      <label>Make this base number 1 <input class="pm-rot" type="number" min="1" step="1" inputmode="numeric" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small pm-rotbtn">Move origin</button></div>
+    <p class="ax-help">Moving the origin renumbers the sequence and every feature; features that cross the new base 1 are split into two pieces, and pieces that meet again are joined.</p>
+  </div>
+</div>
+
+<script>
+  import { parseGenBank, writeGenBank, rotate, labelOf, strandOf, formatLocation, featureLength, type Feature, type Part } from '../../lib/sci/genbank';
+  import { circularMap, linearMap, toSvg, drawMap, type MapOut } from '../../lib/sci/plasmidmap';
+  import { CLASSIC, cuts } from '../../lib/sci/digest';
+  import { paint, wireDownloads, save, fileSafe, LIGHT, type Figure, type Section } from '../../lib/report';
+  import { OKABE_ITO } from '../../lib/sci/plot';
+
+  const root = document.querySelector<HTMLElement>('.pmv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const tn = (x: number) => Math.round(x).toLocaleString('en');
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const COLOURS: [string, string][] = [['Blue', '#0072B2'], ['Green', '#009E73'], ['Orange', '#E69F00'], ['Vermilion', '#D55E00'], ['Sky', '#56B4E9'], ['Pink', '#CC79A7'], ['Yellow', '#F0E442'], ['Grey', '#999999']];
+  void OKABE_ITO;
+  const byType = (t: string) => ({ CDS: '#0072B2', gene: '#56B4E9', promoter: '#009E73', terminator: '#D55E00', rep_origin: '#E69F00', primer_bind: '#CC79A7', protein_bind: '#F0E442', RBS: '#F0E442' } as Record<string, string>)[t] ?? '#999999';
+  const TYPES = ['CDS', 'gene', 'promoter', 'terminator', 'rep_origin', 'primer_bind', 'protein_bind', 'RBS', 'misc_feature', 'enhancer', 'polyA_signal', 'LTR', 'regulatory', 'source'];
+
+  type Rec = { name: string; definition: string; circular: boolean; seq: string; features: Feature[] };
+  type Meta = { color: string; show: boolean; arrow: boolean };
+  let rec: Rec | null = null, meta: Meta[] = [], fig: Figure | null = null, out: MapOut | null = null, sections: Section[] = [];
+  const MAXF = 300;
+
+  const err = (m: string) => { q('.pm-err').textContent = m; q('.pm-err').hidden = !m; };
+
+  function load(text: string) {
+    err('');
+    const t = text.trim();
+    if (!t) { rec = null; return draw(); }
+    if (/^LOCUS\s/m.test(t)) {
+      try {
+        const r = parseGenBank(t);
+        if (!r.seq) { rec = null; err('This GenBank file has no sequence after ORIGIN, so there is nothing to draw.'); return draw(); }
+        rec = { name: r.name, definition: r.definition, circular: r.circular, seq: r.seq, features: r.features };
+        const notes = [r.records > 1 ? `The file has ${r.records} records; the first is shown.` : '', r.skipped ? `${r.skipped} feature${r.skipped > 1 ? 's' : ''} with a location that could not be read (for example one that points into another record) ${r.skipped > 1 ? 'were' : 'was'} left out.` : ''].filter(Boolean);
+        if (notes.length) err(notes.join(' '));
+      } catch (e) { rec = null; err((e as Error).message); return draw(); }
+    } else {
+      const lines = t.split(/\r?\n/); let name = 'sequence', body: string[] = [], seen = false;
+      for (const l of lines) { if (l.startsWith('>')) { if (seen) break; seen = true; name = l.slice(1).trim().split(/\s+/)[0] || 'sequence'; continue; } body.push(l); }
+      const seq = body.join('').toUpperCase().replace(/U/g, 'T').replace(/[^ACGTRYSWKMBDHVN]/g, '');
+      if (!seq) { rec = null; err('No DNA letters found. Paste a GenBank file (starting with LOCUS), FASTA or plain sequence.'); return draw(); }
+      rec = { name, definition: '', circular: true, seq, features: [] };
+    }
+    if (rec.seq.length > 1e6) { rec = null; err('Up to 1 million bases, please.'); return draw(); }
+    if (rec.seq.length < 10) { rec = null; err('The sequence needs at least 10 bases.'); return draw(); }
+    meta = rec.features.map((f) => ({ color: byType(f.type), show: f.type !== 'source' && featureLength(f) < rec!.seq.length, arrow: true }));
+    q<HTMLInputElement>('.pm-name').value = rec.name;
+    q<HTMLSelectElement>('.pm-top').value = rec.circular ? 'circ' : 'lin';
+    q<HTMLInputElement>('.pm-rot').max = String(rec.seq.length);
+    list(); draw();
+  }
+
+  /** 1-based start and end of a feature that is one piece, or two pieces that only cross base 1. */
+  function span(f: Feature) {
+    const L = rec!.seq.length, p = strandOf(f) === -1 ? [...f.parts].reverse() : f.parts;
+    if (p.length === 1) return { start: p[0].start + 1, end: p[0].end };
+    if (p.length === 2 && p[0].end === L && p[1].start === 0) return { start: p[0].start + 1, end: p[1].end };
+    return null;
+  }
+  function setSpan(f: Feature, start: number, end: number, strand: 1 | -1) {
+    const L = rec!.seq.length;
+    let parts: Part[] = start <= end ? [{ start: start - 1, end, strand }] : [{ start: start - 1, end: L, strand }, { start: 0, end, strand }];
+    if (strand === -1) parts = parts.reverse();
+    f.parts = parts;
+  }
+
+  function list() {
+    const box = q('.pm-list'); box.replaceChildren();
+    if (!rec) return;
+    rec.features.forEach((f, i) => {
+      const d = document.createElement('div'); d.className = 'pm-feat'; d.dataset.i = String(i);
+      const sp = span(f), st = strandOf(f);
+      d.innerHTML = `<label class="pm-show"><input type="checkbox" data-k="show" /> Show</label>
+        <label>Name <input data-k="label" maxlength="60" /></label>
+        <label>Type <input data-k="type" list="pm-types" maxlength="20" /></label>
+        <label>Start <input data-k="start" type="number" min="1" step="1" inputmode="numeric" /></label>
+        <label>End <input data-k="end" type="number" min="1" step="1" inputmode="numeric" /></label>
+        <label>Strand <select data-k="strand"><option value="1">Forward →</option><option value="-1">Reverse ←</option><option value="0">No arrow</option></select></label>
+        <label>Colour <select data-k="color">${COLOURS.map(([n, c]) => `<option value="${c}">${n}</option>`).join('')}</select></label>
+        <button type="button" class="btn secondary small pm-del">Remove</button>
+        <p class="ax-help pm-loc"></p>`;
+      (d.querySelector('[data-k=show]') as HTMLInputElement).checked = meta[i].show;
+      (d.querySelector('[data-k=label]') as HTMLInputElement).value = labelOf(f);
+      (d.querySelector('[data-k=type]') as HTMLInputElement).value = f.type;
+      const s = d.querySelector('[data-k=start]') as HTMLInputElement, e = d.querySelector('[data-k=end]') as HTMLInputElement;
+      if (sp) { s.value = String(sp.start); e.value = String(sp.end); } else { s.disabled = e.disabled = true; }
+      (d.querySelector('[data-k=strand]') as HTMLSelectElement).value = String(meta[i].arrow ? st : 0);
+      const cs = d.querySelector('[data-k=color]') as HTMLSelectElement;
+      if (!COLOURS.some((c) => c[1] === meta[i].color)) meta[i].color = '#999999';
+      cs.value = meta[i].color;
+      d.querySelector('.pm-loc')!.textContent = `${formatLocation(f)}, ${tn(featureLength(f))} bp`;
+      box.append(d);
+    });
+    if (!document.getElementById('pm-types')) { const dl = document.createElement('datalist'); dl.id = 'pm-types'; dl.innerHTML = TYPES.map((t) => `<option value="${t}"></option>`).join(''); root.append(dl); }
+  }
+
+  function edit(ev: Event) {
+    const el = ev.target as HTMLInputElement, row = el.closest<HTMLElement>('.pm-feat');
+    if (!row || !rec || !el.dataset.k) return;
+    const i = +row.dataset.i!, f = rec.features[i], k = el.dataset.k, L = rec.seq.length;
+    err('');
+    if (k === 'show') meta[i].show = el.checked;
+    else if (k === 'color') meta[i].color = el.value;
+    else if (k === 'type') f.type = el.value.trim().replace(/\s+/g, '_') || 'misc_feature';
+    else if (k === 'label') { const v = el.value.trim(), j = f.quals.findIndex((x) => x[0] === 'label'); if (j >= 0) { if (v) f.quals[j][1] = v; else f.quals.splice(j, 1); } else if (v) f.quals.unshift(['label', v]); }
+    else if (k === 'strand') {
+      const ns = +el.value as 1 | -1 | 0, sp = span(f);
+      meta[i].arrow = ns !== 0;
+      if (ns !== 0) { if (sp) setSpan(f, sp.start, sp.end, ns); else if (strandOf(f) !== ns) f.parts = [...f.parts].reverse().map((p) => ({ ...p, strand: ns })); }
+    } else if (k === 'start' || k === 'end') {
+      const s = Math.round(+(row.querySelector('[data-k=start]') as HTMLInputElement).value), e = Math.round(+(row.querySelector('[data-k=end]') as HTMLInputElement).value);
+      if (!(s >= 1 && s <= L && e >= 1 && e <= L)) return err(`Start and end must be between 1 and ${tn(L)}.`);
+      if (s > e && !rec.circular) return err('On a linear sequence the start must not be after the end.');
+      const st = strandOf(f); setSpan(f, s, e, st === -1 ? -1 : 1);
+    }
+    row.querySelector('.pm-loc')!.textContent = `${formatLocation(f)}, ${tn(featureLength(f))} bp`;
+    draw();
+  }
+  q('.pm-list').addEventListener('change', edit);
+  q('.pm-list').addEventListener('input', (ev) => { const k = (ev.target as HTMLElement).dataset.k; if (k === 'label') edit(ev); });
+  q('.pm-list').addEventListener('click', (ev) => {
+    const b = (ev.target as HTMLElement).closest('.pm-del'); if (!b || !rec) return;
+    const i = +b.closest<HTMLElement>('.pm-feat')!.dataset.i!;
+    rec.features.splice(i, 1); meta.splice(i, 1); list(); draw();
+  });
+  q('.pm-add').addEventListener('click', () => {
+    if (!rec) return;
+    const L = rec.seq.length;
+    rec.features.push({ type: 'misc_feature', parts: [{ start: 0, end: Math.min(100, L), strand: 1 }], quals: [['label', 'new feature']] });
+    meta.push({ color: '#999999', show: true, arrow: true }); list(); draw();
+    const last = q('.pm-list').lastElementChild?.querySelector<HTMLInputElement>('[data-k=label]'); last?.focus(); last?.select();
+  });
+  q('.pm-rotbtn').addEventListener('click', () => {
+    if (!rec) return;
+    const L = rec.seq.length, p = Math.round(+q<HTMLInputElement>('.pm-rot').value);
+    if (!(p >= 1 && p <= L)) return err(`Type a base number from 1 to ${tn(L)}.`);
+    if (!rec.circular) return err('Only a circular plasmid has an origin to move.');
+    err(''); rec = rotate(rec, p - 1); list(); draw();
+  });
+  q('.pm-name').addEventListener('input', () => { if (rec) { rec.name = q<HTMLInputElement>('.pm-name').value.trim() || 'plasmid'; draw(); } });
+  q('.pm-top').addEventListener('change', () => { if (rec) { rec.circular = q<HTMLSelectElement>('.pm-top').value === 'circ'; draw(); } });
+  q('.pm-sites').addEventListener('change', draw);
+
+  function draw() {
+    if (!rec) { q('.pm-out').hidden = true; fig = null; out = null; sections = []; return; }
+    q('.pm-out').hidden = false;
+    const L = rec.seq.length, circ = rec.circular;
+    const cutBy = CLASSIC.map((e) => ({ e, at: cuts(rec!.seq, e, circ) }));
+    const single = cutBy.filter((c) => c.at.length === 1), none = cutBy.filter((c) => !c.at.length);
+    const mode = q<HTMLSelectElement>('.pm-sites').value;
+    const sites = mode === 'none' ? [] : (mode === 'single' ? single : cutBy).flatMap((c) => c.at.map((p) => ({ pos: p, label: c.e.name }))).slice(0, 60);
+    const shown = rec.features.map((f, i) => ({ f, i })).filter((x) => meta[x.i].show).slice(0, MAXF);
+    const mf = shown.map(({ f, i }) => ({ label: labelOf(f), parts: f.parts.map((p) => ({ start: p.start, end: Math.max(p.end, p.start) })), strand: meta[i].arrow ? strandOf(f) : 0, color: meta[i].color }));
+    out = circ ? circularMap(rec.name, L, mf, sites, 640) : linearMap(rec.name, L, mf, sites, 640);
+    const m = out;
+    fig = { w: m.w, h: m.h, alt: `${circ ? 'Circular' : 'Linear'} map of ${rec.name}, ${tn(L)} bp, with ${mf.length} features and ${sites.length} enzyme sites`, draw(ctx, W, H, pal) { ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H); drawMap(ctx, m, W, mapPal(pal)); } };
+    paint(q<HTMLCanvasElement>('.pm-fig'), fig);
+    const gc = [...rec.seq].filter((c) => c === 'G' || c === 'C' || c === 'S').length / L;
+    q('.pm-big').textContent = `${rec.name}: ${tn(L)} bp, ${circ ? 'circular' : 'linear'}, ${rec.features.length} feature${rec.features.length === 1 ? '' : 's'}, ${single.length} single cutter${single.length === 1 ? '' : 's'}`;
+    q('.pm-facts').replaceChildren(
+      fact('GC content', `${(gc * 100).toFixed(1)} %`, `${tn(L)} bases`),
+      fact('Cut once', single.length ? single.map((c) => `${c.e.name} (${tn(c.at[0])})`).join(', ') : 'none of the 12', 'position = bases before the cut on the top strand'),
+      fact('Do not cut', none.length ? none.map((c) => c.e.name).join(', ') : 'all 12 cut at least once'),
+      ...(rec.features.length > shown.length ? [fact('Hidden from the map', `${rec.features.length - shown.length} feature${rec.features.length - shown.length > 1 ? 's' : ''}`, rec.features.length - meta.filter((x) => !x.show).length > MAXF ? `up to ${MAXF} are drawn` : 'tick Show to draw them')] : []),
+    );
+    const rows = rec.features.map((f) => [labelOf(f), f.type, formatLocation(f), tn(featureLength(f)), strandOf(f) === 1 ? '+' : strandOf(f) === -1 ? '−' : 'mixed']);
+    sections = [{ title: q('.pm-big').textContent!, facts: [...q('.pm-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig, table: { head: ['Feature', 'Type', 'Location', 'Length (bp)', 'Strand'], rows, align: ['l', 'l', 'l', 'r', 'l'] } }];
+  }
+  const mapPal = (pal: { bg: string; ink: string; muted: string; line: string; red: boolean; accent2: string }) => ({ bg: pal.bg, ink: pal.ink, muted: pal.muted, line: pal.line, ...(pal.red ? { red: pal.accent2 } : {}) });
+
+  q('.pm-svg').addEventListener('click', () => { if (out && rec) save(new Blob([toSvg(out, { bg: LIGHT.bg, ink: LIGHT.ink, muted: LIGHT.muted, line: LIGHT.line })], { type: 'image/svg+xml' }), `${fileSafe(rec.name)}-map.svg`, 'image/svg+xml'); });
+  q('.pm-gb').addEventListener('click', () => {
+    if (!rec) return;
+    const d = new Date(), M = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    const date = `${String(d.getDate()).padStart(2, '0')}-${M[d.getMonth()]}-${d.getFullYear()}`;
+    save(new Blob([writeGenBank(rec, date)], { type: 'text/plain' }), `${fileSafe(rec.name)}.gb`, 'text/plain');
+  });
+  q('.pm-open').addEventListener('click', () => q<HTMLInputElement>('.pm-file').click());
+  q('.pm-file').addEventListener('change', async () => {
+    const f = q<HTMLInputElement>('.pm-file').files?.[0]; q<HTMLInputElement>('.pm-file').value = '';
+    if (!f) return;
+    if (f.size > 20e6) return err('That file is over 20 MB. Try a single record.');
+    const text = await f.text(); q<HTMLTextAreaElement>('.pm-in').value = text.length > 2e6 ? text.slice(0, 2e6) + '\n' : text; load(text);
+  });
+  let timer = 0;
+  q('.pm-in').addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(() => load(q<HTMLTextAreaElement>('.pm-in').value), 400); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.pm-fig'), fig); });
+  load(q<HTMLTextAreaElement>('.pm-in').value);
+  wireDownloads(q('.dl'), () => ({ title: 'Plasmid map', subtitle: q('.pm-big').textContent ?? '', file: rec ? `${fileSafe(rec.name)}-map` : 'plasmid-map', sections }));
+</script>
+
+<style is:global>
+  .pmv .pm-list { display: grid; gap: 10px; }
+  .pmv .pm-feat { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 130px), 1fr)); gap: 6px 10px; align-items: end; padding: 10px 0; border-top: 1px solid var(--line, #ddd); }
+  .pmv .pm-feat .pm-loc { grid-column: 1 / -1; margin: 0; font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
+  .pmv .pm-show { display: flex; gap: 6px; align-items: center; grid-column: 1 / -1; font-weight: 600; }
+  .pmv .pm-feat input:disabled { opacity: 0.55; }
+  .pmv select { max-width: 100%; }
+</style>

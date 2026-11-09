@@ -151,6 +151,12 @@ import * as NC from '../src/lib/sci/nucconc.ts';
 import * as QP from '../src/lib/sci/qpcr.ts';
 import * as LG from '../src/lib/sci/ligation.ts';
 import * as PR from '../src/lib/sci/primer.ts';
+import * as DG from '../src/lib/sci/digest.ts';
+import * as GS from '../src/lib/sci/gelsize.ts';
+import * as GB from '../src/lib/sci/genbank.ts';
+import * as PM from '../src/lib/sci/plasmidmap.ts';
+import * as FQ from '../src/lib/sci/fastq.ts';
+import * as AL from '../src/lib/sci/align.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2987,6 +2993,191 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   const m1 = 'TT' + F.slice(0, 5) + 'G' + F.slice(6) + 'TT', m3 = 'TT' + F.slice(0, 19) + 'A' + 'TT';
   check('pr one mismatch found', PR.sites(m1, F, 1).some((x) => x.pos === 2 && x.mm === 1) && PR.sites(m1, F, 0).length === 0);
   check('pr 3-prime mismatch rejected', PR.sites(m3, F, 2).length === 0);
+}
+// #168 restriction digest: cut positions follow Biopython 1.88 Restriction (search(), 1-based first base after the cut),
+// checked there on random sequence for the classic enzymes, IUPAC sites (AvaI, HincII), a non-palindromic site on both
+// strands (BbvCI) and a site across the origin of a circle; these small cases repeat the same rules.
+{
+  const E = (t) => DG.parseEnzyme(t);
+  check('dg parse', JSON.stringify(E('EcoRI G^AATTC')) === '{"name":"EcoRI","site":"GAATTC","cut":1,"bottom":5}' && E('X CC^TCA_GC').bottom === 5 && E('bad GAATTC') === null && E('two G^A^ATTC') === null);
+  check('dg classic count', DG.CLASSIC.length === 12 && DG.CLASSIC.every((e) => e.site.length >= 6));
+  const s = 'AAA' + 'GAATTC' + 'T'.repeat(20) + 'GGATCC' + 'A'.repeat(30) + 'CTGCAG' + 'TT';
+  check('dg EcoRI', DG.cuts(s, E('EcoRI G^AATTC'), false).join() === '4'); check('dg BamHI', DG.cuts(s, E('BamHI G^GATCC'), false).join() === '30');
+  check('dg PstI', DG.cuts(s, E('PstI CTGCA^G'), false).join() === '70');
+  check('dg AvaI iupac', DG.cuts('TTCTCGAGTTCCCGGGTTCTCGGGTT', E('AvaI C^YCGRG'), false).join() === '3,11,19');
+  check('dg BbvCI reverse strand', DG.cuts('TTTTGCTGAGGTTTT', E('BbvCI CC^TCA_GC'), false).join() === '6' && DG.cuts('TTTTCCTCAGCTTTT', E('BbvCI CC^TCA_GC'), false).join() === '6');
+  const w = 'ATTC' + 'A'.repeat(20) + 'GA';
+  check('dg across origin', DG.cuts(w, E('EcoRI G^AATTC'), true).join() === '25' && DG.cuts(w, E('EcoRI G^AATTC'), false).length === 0);
+  const lin = DG.fragments(3000, [{ pos: 381, enz: 'EcoRI' }, { pos: 1151, enz: 'BamHI' }, { pos: 1801, enz: 'EcoRI' }], false).map((f) => f.size).join();
+  const circ = DG.fragments(3000, [{ pos: 381, enz: 'EcoRI' }, { pos: 1151, enz: 'BamHI' }, { pos: 1801, enz: 'EcoRI' }], true).map((f) => f.size).join();
+  check('dg fragments linear', lin === '381,770,650,1199'); check('dg fragments circular', circ === '770,650,1580');
+  check('dg one cut circle', DG.fragments(3000, [{ pos: 10, enz: 'X' }], true)[0].size === 3000);
+  near('dg migration ends', DG.migration(10000, 100, 10000), 0.06, 1e-12); near('dg migration mid', DG.migration(1000, 100, 10000), 0.5, 1e-12);
+}
+// #169 gel band sizer: fits checked against numpy.polyfit (degrees 1 and 3) and numpy.interp in log10 size.
+{
+  const L = [10000, 5000, 3000, 2000, 1500, 1000, 700, 500, 400, 300, 200, 100], D = [6.2, 11.6, 16.6, 20.6, 23.0, 27.2, 31.2, 34.2, 37.0, 39.8, 44.8, 52.7];
+  const lin = GS.fit(D, L, 'linear'), cub = GS.fit(D, L, 'cubic'), itp = GS.fit(D, L, 'interp');
+  near('gs lin slope', lin.coef[0], -0.042695246826678, 1e-12); near('gs lin int', lin.coef[1], 4.191923535863206, 1e-11);
+  near('gs lin s', lin.s, 0.036113942715523144, 1e-12); near('gs lin r2', lin.r2, 0.9966193483947875, 1e-12);
+  near('gs cubic c3', cub.coef[0], -1.9297564278643435e-06, 1e-15); near('gs cubic c0', cub.coef[3], 4.331966031451878, 1e-10);
+  near('gs cubic s', cub.s, 0.011024419919015576, 1e-11); near('gs cubic r2', cub.r2, 0.999747970087764, 1e-12);
+  [[lin, [2073.3421459429933, 738.5346639718673, 150.2131265450127]], [cub, [1967.7271953943562, 692.5139650680809, 160.36231792270402]], [itp, [2020.3763546918221, 712.5956026078567, 162.02343866708017]]].forEach(([m, want], k) =>
+    [20.5, 31.0, 47.2].forEach((d, i) => near(`gs size ${m.method} ${d}`, GS.sizeAt(m, d).size / want[i], 1, 1e-9)));
+  const e = GS.sizeAt(lin, 31); near('gs spread', e.hi / e.size, 10 ** 0.036113942715523144, 1e-12);
+  check('gs outside', !GS.sizeAt(lin, 60).inside && GS.sizeAt(lin, 30).inside);
+  check('gs interp no spread', Number.isNaN(GS.sizeAt(itp, 30).hi));
+}
+// #170 plasmid map: GenBank reader checked against Biopython 1.88 SeqIO (positions, strands, part order, qualifiers,
+// feature sequences), writer round trip, and origin rotation keeping every feature's own sequence.
+{
+  const T = `LOCUS       pTest1                   200 bp    DNA     circular SYN 09-NOV-2026
+DEFINITION  made-up test plasmid with
+            a two line definition.
+FEATURES             Location/Qualifiers
+     promoter        10..40
+                     /label="pX"
+                     /note="a note that goes on and on across
+                     two lines with ""quotes"" inside"
+     CDS             complement(join(50..80,
+                     90..120))
+                     /gene="abc"
+                     /codon_start=2
+                     /translation="MKLV
+                     AAAR"
+                     /pseudo
+     misc_feature    join(190..200,1..5)
+                     /label="wrap"
+     primer_bind     <130..>140
+     misc_feature    complement(<150..160)
+     variation       170
+     misc_feature    175^176
+     misc_feature    join(complement(60..65),70..75)
+     gene            order(5..8,12..15)
+                     /note="has /slash = inside"
+ORIGIN
+        1 acgtacgtac gtacgtacgt acgtacgtac gtacgtacgt acgtacgtac gtacgtacgt
+       61 acgtacgtac gtacgtacgt acgtacgtac gtacgtacgt acgtacgtac gtacgtacgt
+      121 acgtacgtac gtacgtacgt acgtacgtac gtacgtacgt acgtacgtac gtacgtacgt
+      181 acgtacgtac gtacgtacgt
+//
+`;
+  const r = GB.parseGenBank(T);
+  check('gb: name, length, topology', r.name === 'pTest1' && r.seq.length === 200 && r.circular && r.records === 1);
+  check('gb: two-line definition', r.definition === 'made-up test plasmid with a two line definition');
+  check('gb: 9 features', r.features.length === 9 && r.skipped === 0);
+  const P = (i) => JSON.stringify(r.features[i].parts.map((p) => [p.start, p.end, p.strand]));
+  check('gb: simple location', P(0) === '[[9,40,1]]');
+  check('gb: complement(join) in Biopython part order', P(1) === '[[89,120,-1],[49,80,-1]]');
+  check('gb: join across the origin', P(2) === '[[189,200,1],[0,5,1]]');
+  check('gb: partial ends', P(3) === '[[129,140,1]]' && r.features[3].parts[0].lt && r.features[3].parts[0].gt);
+  check('gb: complement of a partial', P(4) === '[[149,160,-1]]' && r.features[4].parts[0].gt && !r.features[4].parts[0].lt);
+  check('gb: single base and between bases', P(5) === '[[169,170,1]]' && P(6) === '[[175,175,1]]');
+  check('gb: mixed strands', P(7) === '[[59,65,-1],[69,75,1]]' && GB.strandOf(r.features[7]) === 0);
+  check('gb: multi-line quoted note with ""', GB.qual(r.features[0], 'note') === 'a note that goes on and on across two lines with "quotes" inside');
+  check('gb: translation joined without spaces', GB.qual(r.features[1], 'translation') === 'MKLVAAAR' && GB.qual(r.features[1], 'codon_start') === '2');
+  check('gb: flag qualifier', r.features[1].quals.some(([k, v]) => k === 'pseudo' && v === null));
+  check('gb: slash inside a value', GB.qual(r.features[8], 'note') === 'has /slash = inside');
+  const bio = ["CGTACGTACGTACGTACGTACGTACGTACGT","ACGTACGTACGTACGTACGTACGTACGTACGACGTACGTACGTACGTACGTACGTACGTACG","CGTACGTACGTACGTA","CGTACGTACGT","ACGTACGTACG","C","","TACGTACGTACG","ACGTTACG"];
+  check('gb: feature sequences match Biopython extract', JSON.stringify(r.features.map((f) => GB.extract(r.seq, f))) === JSON.stringify(bio));
+  check('gb: label falls back gene, type', GB.labelOf(r.features[0]) === 'pX' && GB.labelOf(r.features[1]) === 'abc' && GB.labelOf(r.features[3]) === 'primer_bind');
+  check('gb: location text', GB.formatLocation(r.features[1]) === 'complement(join(50..80,90..120))' && GB.formatLocation(r.features[4]) === 'complement(<150..160)' && GB.formatLocation(r.features[7]) === 'join(complement(60..65),70..75)');
+  const w = GB.writeGenBank(r, '09-NOV-2026');
+  check('gb: LOCUS line', w.startsWith('LOCUS       pTest1                   200 bp    DNA     circular SYN 09-NOV-2026\n'));
+  check('gb: ORIGIN lines', w.includes('\n      181 acgtacgtac gtacgtacgt\n//'));
+  const r2 = GB.parseGenBank(w);
+  check('gb: writer round trip', JSON.stringify(r2.features.map((f) => [f.type, f.parts, f.quals])) === JSON.stringify(r.features.map((f) => [f.type, f.parts.map((p) => ({ ...p })), f.quals])) && r2.seq === r.seq);
+  for (const p of [1, 37, 150, 199]) {
+    const t = GB.rotate(r, p);
+    check(`gb: rotate ${p} keeps feature sequences`, t.features.every((f, i) => GB.extract(t.seq, f) === bio[i]) && t.seq === r.seq.slice(p) + r.seq.slice(0, p));
+  }
+  check('gb: rotation splits and re-joins across the origin', JSON.stringify(GB.rotate(r, 1).features[2].parts.map((p) => [p.start, p.end])) === '[[188,200],[0,4]]' && GB.rotate(r, 189).features[2].parts.length === 1 && GB.rotate(r, 189).features[2].parts[0].end === 16);
+  check('gb: rotate a minus-strand wrap', JSON.stringify(GB.rotate(GB.rotate(r, 100), 100).features.map((f) => f.parts.length)) === JSON.stringify(r.features.map((f) => f.parts.length)));
+  check('gb: bad location skipped', GB.parseGenBank('LOCUS       x 10 bp DNA linear\nFEATURES             Location/Qualifiers\n     gene            AB000001.1:1..5\nORIGIN\n        1 acgtacgtac\n//').skipped === 1);
+  check('gb: not GenBank', (() => { try { GB.parseGenBank('>fasta\nACGT'); return false; } catch { return true; } })());
+}
+// #170 plasmid map layout helpers.
+{
+  check('pm: nice steps', PM.niceStep(375) === 500 && PM.niceStep(120) === 200 && PM.niceStep(0.3) === 0.5 && PM.niceStep(1000) === 1000);
+  check('pm: tracks for overlaps', JSON.stringify(PM.assignTracks([{ a: 0, b: 100 }, { a: 50, b: 150 }, { a: 120, b: 200 }, { a: 10, b: 20 }], 1000, false)) === '[0,1,0,1]');
+  check('pm: wrapped interval overlaps the start', JSON.stringify(PM.assignTracks([{ a: 950, b: 1050 }, { a: 20, b: 60 }, { a: 60, b: 90 }], 1000, true)) === '[0,1,0]');
+  const sp = PM.spread([10, 11, 12, 50], 5, 0, 100);
+  check('pm: labels spread apart', JSON.stringify(sp) === '[10,15,20,50]');
+  check('pm: labels pushed back inside', JSON.stringify(PM.spread([95, 96, 97], 5, 0, 100)) === '[90,95,100]');
+  const f = [{ label: 'a<b', parts: [{ start: 0, end: 500 }], strand: 1, color: '#0072B2' }, { label: 'wrap', parts: [{ start: 900, end: 1000 }, { start: 0, end: 50 }], strand: -1, color: '#999999' }];
+  const c = PM.circularMap('p', 1000, f, [{ pos: 300, label: 'EcoRI' }], 640);
+  check('pm: circular map size and labels', c.w === 960 && c.h === 640 && c.prims.some((p) => p.k === 'text' && p.s === 'EcoRI (300)') && c.prims.some((p) => p.k === 'text' && p.s === '1,000 bp'));
+  check('pm: shapes stay on the canvas', c.prims.every((p) => p.k === 'text' ? p.x >= 0 && p.x <= c.w && p.y >= 0 && p.y <= c.h : p.pts.every((v, i) => v >= -1 && v <= (i % 2 ? c.h : c.w) + 1)));
+  const l = PM.linearMap('p', 1000, f, [], 640);
+  check('pm: linear map stacks overlapping features', l.prims.filter((p) => p.k === 'text' && (p.s === 'a<b' || p.s === 'wrap')).map((p) => p.y).reduce((a, b) => a !== b));
+  const svg = PM.toSvg(c, { bg: '#fff', ink: '#000', muted: '#555', line: '#ccc' });
+  check('pm: SVG escapes text', svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640"') && svg.includes('>a&lt;b</text>') && !svg.includes('a<b'));
+}
+// #171 FASTA/FASTQ inspector: the made-up example read in odd-sized chunks, checked against Biopython 1.88 SeqIO and
+// NumPy (percentiles with method='inverted_cdf') on the same reads, as Phred+33, Phred+64 and FASTA.
+{
+  const run = (txt, step) => { const st = new FQ.SeqStats(); for (let i = 0, k = 0; i < txt.length; k++) { const n = step(k); st.push(txt.slice(i, i + n)); i += n; } st.end(); return st.result(); };
+  const fq = FQ.exampleFastq(500, 100, 7);
+  check('fq: example is the same every time', fq === FQ.exampleFastq(500, 100, 7) && fq.startsWith('@demo_read_1\n'));
+  const r = run(fq, (k) => 1 + ((k * 7919) % 613));
+  check('fq: reads, bases, lengths, N50', r.format === 'fastq' && r.reads === 500 && r.bases === 49226 && r.minLen === 70 && r.maxLen === 100 && r.n50 === 100);
+  near('fq: GC', r.gc, 0.4961633185, 1e-9);
+  check('fq: base counts', r.counts.A === 12539 && r.counts.C === 12277 && r.counts.G === 12100 && r.counts.T === 12215 && r.counts.N === 95 && r.counts.other === 0);
+  check('fq: Phred+33 found', r.offset === 33 && r.errors.length === 0);
+  near('fq: share of bases Q30+', r.q30, 0.5169828952, 1e-9);
+  near('fq: mean base quality', r.meanQ, 29.3258847, 1e-6);
+  check('fq: reads by mean quality', r.readQ[28] === 35 && r.readQ[29] === 291 && r.readQ[30] === 152);
+  check('fq: GC per read', r.gcHist[33] === 1 && r.gcHist[35] === 1 && r.gcHist.reduce((a, b) => a + b, 0) === 500);
+  const bx = FQ.qualityBoxes(r, 1000);
+  check('fq: quality box at base 1', bx[0].mean.toFixed(6) === '35.856000' && [bx[0].p10, bx[0].p25, bx[0].med, bx[0].p75, bx[0].p90].join() === '32,33,37,40,41');
+  check('fq: quality box at base 50', bx[49].mean.toFixed(6) === '29.238000' && [bx[49].p10, bx[49].p25, bx[49].med, bx[49].p75, bx[49].p90].join() === '25,26,30,33,35');
+  check('fq: quality box at base 100', bx[99].mean.toFixed(6) === '22.788889' && [bx[99].p10, bx[99].p25, bx[99].med, bx[99].p75, bx[99].p90].join() === '18,20,23,26,28');
+  check('fq: grouped boxes', FQ.qualityBoxes(r, 20).length === 20 && FQ.qualityBoxes(r, 20)[0].from === 1 && FQ.qualityBoxes(r, 20)[0].to === 5);
+  const cp = FQ.composition(r, 1000);
+  check('fq: composition per position', cp[0].A.toFixed(6) === '26.600000' && cp[99].N === 0 && Math.abs(cp[10].A + cp[10].C + cp[10].G + cp[10].T + cp[10].N - 100) < 1e-9);
+  check('fq: duplicates', r.distinct === 487 && r.top[0].count === 14 && r.top[0].seq.startsWith('GATTACAGAT'));
+  const r64 = run(fq.split('\n').map((l, i) => (i % 4 === 3 ? [...l].map((c) => String.fromCharCode(c.charCodeAt(0) + 31)).join('') : l)).join('\n'), () => 4096);
+  check('fq: Phred+64 found and read the same', r64.offset === 64 && Math.abs(r64.meanQ - 29.3258847) < 1e-6 && r64.readQ[29] === 291 && FQ.qualityBoxes(r64, 1000)[0].p90 === 41);
+  const fa = fq.split('\n').reduce((a, l, i) => (i % 4 === 0 && l ? a + '>' + l.slice(1) + '\n' : i % 4 === 1 ? a + l.slice(0, 40) + '\n' + l.slice(40) + '\n' : a), '');
+  const rf = run(fa.replace(/\n/g, '\r\n'), (k) => 3 + (k % 50));
+  check('fq: FASTA with wrapped lines and CRLF', rf.format === 'fasta' && rf.reads === 500 && rf.bases === 49226 && Math.abs(rf.gc - 0.4961633185) < 1e-9 && rf.distinct === 487 && Number.isNaN(rf.q30));
+  const plain = run('ACGTNNACGT\n', () => 100);
+  check('fq: plain sequence', plain.reads === 1 && plain.bases === 10 && plain.counts.N === 2 && plain.gc === 0.5);
+  const bad = run('@r1\nACGT\n+\nIII\n@r2\nACGT\n+\nIIII\n', () => 5);
+  check('fq: quality length mismatch skipped', bad.reads === 1 && bad.errors[0].includes('4 bases but 3 quality'));
+  const cut = run('@r1\nACGT\n+\nIIII\n@r2\nAC', () => 64);
+  check('fq: file cut short', cut.reads === 1 && cut.errors.some((e) => e.includes('ends in the middle of read 2')));
+  check('fq: histogram quantile', FQ.histQuantile([0, 2, 0, 2], 0.5) === 1 && FQ.histQuantile([0, 2, 0, 2], 0.51) === 3 && Number.isNaN(FQ.histQuantile([0, 0], 0.5)));
+  check('fq: seeded random', (() => { const a = FQ.rng(1), b = FQ.rng(1); return a() === b() && a() !== a(); })());
+}
+// #172 pairwise alignment: optimal scores checked against Biopython 1.88 PairwiseAligner with the same scoring
+// (match/mismatch or the fibub group matrix, affine gaps, end gaps free for semi-global); 600 random cases agreed
+// during development, 12 are kept here. Each alignment must also rescore to its score and give back its sequences.
+{
+  const cases = [{"a": "GGGTGAGGCCTCGGAACCCGAGGCTTTCGCAGTCAGCGGTATTCAATCGCGGAGACGTCCCAGCTC", "b": "ATGGCCACGAGCTTTCGCATCAGACGGTATTCGTCGAGGTAGAGTCCCGCTTGTTTAAGCCG", "prot": false, "mode": "global", "sc": {"match": 2, "mismatch": -3, "open": -5, "extend": -1}, "score": 8}, {"a": "CLGKRKHNIYG", "b": "QLGKEKHTNPYG", "prot": true, "mode": "local", "sc": {"same": 5, "similar": 2, "different": -2, "open": -9, "extend": -1}, "score": 27}, {"a": "CGCGGGTAGTGGAAGACCAACTGTAAAGTGACCACTCCAG", "b": "CGTCGAGTAGGGGAAGACAAACCTGTAAAGGGACCACTCCAG", "prot": false, "mode": "local", "sc": {"match": 2, "mismatch": -3, "open": -5, "extend": -2}, "score": 51}, {"a": "GQGLQMWFAQQPYEDYPGGRQYHHCA", "b": "QPYQMWGIAQPNYEDYTGGRYHHEHDLWNPVNAM", "prot": true, "mode": "semiglobal", "sc": {"same": 5, "similar": 2, "different": -2, "open": -9, "extend": -1}, "score": 46}, {"a": "AGGCAACAGTGAGAACCAATAATAA", "b": "AAGGCAACACGTAGACGCAAATATA", "prot": false, "mode": "global", "sc": {"match": 2, "mismatch": -3, "open": -5, "extend": -1}, "score": 8}, {"a": "TCTAGCGGGTCTGATCTCAACGGATAAGTGGAAAATAATTTGCGTGGCGTTGTTTGT", "b": "TTCTAGCGGGTCGATCTCAACGGTAAGTGGAAAATAATTTGCGTGGCCGTTGTTTGT", "prot": false, "mode": "semiglobal", "sc": {"match": 2, "mismatch": -3, "open": -5, "extend": -2}, "score": 95}, {"a": "CCTATGACACCT", "b": "CTTGATAGAACCGT", "prot": false, "mode": "local", "sc": {"match": 2, "mismatch": -3, "open": -5, "extend": -2}, "score": 6}, {"a": "INRLIRFWIRFFVH", "b": "INRNIRFIRLFQVH", "prot": true, "mode": "local", "sc": {"same": 5, "similar": 2, "different": -2, "open": -7, "extend": -1}, "score": 37}, {"a": "FVYFRPYGRGPQGIHKASYRYKRNRYSRI", "b": "VYFGPYGRGPQGHMKASTKRYKRYSRI", "prot": true, "mode": "semiglobal", "sc": {"same": 5, "similar": 2, "different": -2, "open": -7, "extend": -1}, "score": 87}, {"a": "CTATCACTATAAACGTATAAAGG", "b": "CGTATCAGTAATAAACTGTTAAAACGG", "prot": false, "mode": "global", "sc": {"match": 2, "mismatch": -3, "open": -5, "extend": -1}, "score": 13}, {"a": "HRGVDVSEFFTLMSDDMMAEAKEKEEYQGLDR", "b": "GYRFFGLMIDDNMFEALKETKVEMQGLDRVDQGEMLAKD", "prot": true, "mode": "local", "sc": {"same": 5, "similar": 2, "different": -2, "open": -9, "extend": -1}, "score": 60}, {"a": "CCTTTG", "b": "ACTTTG", "prot": false, "mode": "semiglobal", "sc": {"match": 2, "mismatch": -3, "open": -5, "extend": -2}, "score": 7}];
+  for (const [n, c] of cases.entries()) {
+    const S = c.prot ? AL.proteinScoring(c.sc.same, c.sc.similar, c.sc.different, c.sc.open, c.sc.extend) : AL.dnaScoring(c.sc.match, c.sc.mismatch, c.sc.open, c.sc.extend);
+    const al = AL.align(c.a, c.b, S, c.mode);
+    const back = al.a.replace(/-/g, '') === (c.mode === 'local' ? c.a.slice(al.aStart - 1, al.aEnd) : c.a) && al.b.replace(/-/g, '') === (c.mode === 'local' ? c.b.slice(al.bStart - 1, al.bEnd) : c.b);
+    check(`align: case ${n + 1} ${c.mode} ${c.prot ? 'protein' : 'DNA'} score ${c.score}`, al.score === c.score && back && AL.rescore(al.a, al.b, S, c.mode) === c.score);
+  }
+  const d = AL.dnaScoring(2, -3, -5, -2);
+  const g = AL.align('ACGTACGT', 'ACGTCGT', d, 'global');
+  check('align: one deletion', g.score === 9 && g.a === 'ACGTACGT' && g.b.replace(/-/g, '') === 'ACGTCGT' && g.gaps === 1 && g.gapOpenings === 1 && g.identities === 7 && g.columns === 8);
+  const l = AL.align('TTTTTGATTACATTTTT', 'CCGATTACACC', d, 'local');
+  check('align: local finds the shared word', l.a === 'GATTACA' && l.b === 'GATTACA' && l.score === 14 && l.aStart === 6 && l.aEnd === 12 && l.bStart === 3 && l.bEnd === 9);
+  const sg = AL.align('GATTACA', 'CCCGATTACAGGG', d, 'semiglobal');
+  check('align: semi-global end gaps free', sg.score === 14 && sg.a === '---GATTACA---' && sg.b === 'CCCGATTACAGGG');
+  const gl = AL.align('GATTACA', 'CCCGATTACAGGG', d, 'global');
+  check('align: global pays for end gaps', gl.score === 14 - 2 * (5 + 2 * 2) && AL.rescore(gl.a, gl.b, d, 'global') === gl.score);
+  check('align: affine gap, one run of 3', AL.rescore('ACGTTTACG', 'ACG---ACG', d, 'global') === 12 - 5 - 4 && AL.rescore('ACGTTTACG', 'ACG-T-ACG', d, 'global') === 14 - 10);
+  check('align: protein groups', AL.sameGroup('I', 'V') && AL.sameGroup('D', 'E') && !AL.sameGroup('D', 'K') && AL.proteinScoring().score('L', 'L') === 5 && AL.proteinScoring().score('L', 'I') === 2 && AL.proteinScoring().score('L', 'D') === -2);
+  const bl = AL.blocks(g, d, 4, ['s1', 's2']);
+  check('align: text blocks', bl[0] === 's1 1 ACGT 4' && bl[2] === 's2 1 ACGT 4' && bl[1] === '     ||||' && bl[4].startsWith('s1 5 ACGT 8'));
+  const dp = AL.dotPlot('ACGTACGT', 'ACGT', 4, 1000, true);
+  check('align: dot plot words', JSON.stringify(dp.fwd) === '[[0,0],[4,0]]' && dp.rev.length === 2);
+  check('align: type guess', AL.guessType('ACGTNACGT') === 'dna' && AL.guessType('MKVLAAGIV') === 'protein');
+  check('align: size limit', (() => { try { AL.align('A'.repeat(6000), 'A'.repeat(6000), d, 'global'); return false; } catch { return true; } })());
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

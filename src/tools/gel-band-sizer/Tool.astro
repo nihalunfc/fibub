@@ -1,0 +1,171 @@
+---
+// Gel band sizer: fit the ladder (log10 size against distance) and read unknown bands off it, with an optional photo to
+// tap bands on (the photo never leaves the browser). The example ladder and bands are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const ladder = 'size (bp),distance\n10000,6.2\n5000,11.6\n3000,16.6\n2000,20.6\n1500,23.0\n1000,27.2\n700,31.2\n500,34.2\n400,37.0\n300,39.8\n200,44.8\n100,52.7';
+const bands = 'band,distance\nLane 2 upper,20.5\nLane 2 lower,31.0\nLane 3,47.2';
+---
+<div class="ax gbs">
+  <div class="ax-card">
+    <h2>Ladder</h2>
+    <label>Band size (bp) and how far it ran from the well, one band per row <textarea class="gb-lad" rows="6" spellcheck="false">{ladder}</textarea></label>
+    <DataFile target=".gb-lad" maxCols={2} maxRows={200} />
+    <label style="margin-top:10px">Unknown bands: name (optional) and distance <textarea class="gb-unk" rows="4" spellcheck="false">{bands}</textarea></label>
+    <DataFile target=".gb-unk" maxCols={2} maxRows={500} />
+    <div class="ax-grid">
+      <label>Fit <select class="gb-m">
+        <option value="linear" selected>Straight line in log size</option>
+        <option value="cubic">Cubic curve in log size (5+ bands)</option>
+        <option value="interp">Point to point between ladder bands</option>
+      </select></label>
+    </div>
+    <p class="ax-help">Distances can be in mm, cm or pixels, as long as all use the same unit and are measured from the well. A straight line is the classic method; a cubic follows the bend at the ends of a real gel; point to point joins neighbouring ladder bands. The example ladder and bands are made up.</p>
+    <p class="ax-err gb-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Gel photo (optional)</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small gb-open">Open a gel photo</button>
+      <input type="file" class="gb-file" accept="image/*" hidden />
+      <button type="button" class="btn secondary small gb-clear" hidden>Clear taps</button>
+    </div>
+    <div class="ax-grid gb-tools" hidden>
+      <label>A tap marks <select class="gb-mode"><option value="well" selected>The well (start line)</option><option value="lad">The next ladder band, largest first</option><option value="unk">An unknown band</option></select></label>
+    </div>
+    <canvas class="gb-photo" hidden></canvas>
+    <p class="ax-help gb-ph">Open a photo, tap the wells first, then each ladder band from the top down (they take the sizes listed above in order, largest first), then your unknown bands. The distances above fill in as pixels. The photo stays on your device and is never uploaded.</p>
+  </div>
+
+  <div class="ax-card gb-out">
+    <h2>Band sizes</h2>
+    <p class="ax-big gb-big"></p>
+    <dl class="ax-facts gb-facts"></dl>
+    <canvas class="ax-fig gb-fig"></canvas>
+    <div class="ax-scroll"><table class="gb-tab"></table></div>
+    <details class="gb-sd"><summary>Ladder fit, band by band</summary><div class="ax-scroll"><table class="gb-ltab"></table></div></details>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { fit, sizeAt, type Method } from '../../lib/sci/gelsize';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (!Number.isFinite(x)) return '–'; if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const bp = (x: number) => (x >= 1000 ? Math.round(x).toLocaleString('en') : sg(x, 3));
+  const root = document.querySelector<HTMLElement>('.gbs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const isNum = (s: string | undefined) => s !== undefined && s.trim() !== '' && Number.isFinite(num(s));
+  let fig: Figure | null = null, sections: Section[] = [];
+
+  function table(sel: string, head: string[], rows: string[][], right: number[] = []) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+  const rowsOf = (sel: string) => parseTable(q<HTMLTextAreaElement>(sel).value).filter((r) => r.some((c) => c.trim() !== '')).filter((r) => r.some((c) => isNum(c)));
+
+  function calc() {
+    const fail = (m: string) => { q('.gb-err').textContent = m; q('.gb-err').hidden = false; q('.gb-out').hidden = true; fig = null; sections = []; };
+    q('.gb-err').hidden = true;
+    const lr = rowsOf('.gb-lad');
+    const size: number[] = [], dist: number[] = [];
+    for (let i = 0; i < lr.length; i++) {
+      const s = num(lr[i][0]), d = num(lr[i][1]);
+      if (!(s >= 1 && s <= 1e8)) return fail(`Ladder row ${i + 1}: give the band size in bp first.`);
+      if (!Number.isFinite(d)) return fail(`Ladder row ${i + 1}: give the distance after the size.`);
+      size.push(s); dist.push(d);
+    }
+    const method = q<HTMLSelectElement>('.gb-m').value as Method;
+    const need = method === 'cubic' ? 5 : method === 'linear' ? 3 : 2;
+    if (lr.length < need) return fail(`This fit needs at least ${need} ladder bands with a size and a distance.`);
+    if (new Set(dist).size < dist.length) return fail('Two ladder bands have the same distance; each band needs its own.');
+    // Bigger bands must run less far.
+    const ord = dist.map((d, i) => [d, size[i]]).sort((a, b) => a[0] - b[0]);
+    if (ord.some((p, i) => i && p[1] >= ord[i - 1][1])) return fail('Larger bands should run a shorter distance. Check that each size is next to its own distance.');
+    const m = fit(dist, size, method);
+    const ur = rowsOf('.gb-unk');
+    if (ur.length > 500) return fail('Up to 500 unknown bands, please.');
+    const named = ur.some((r) => !isNum(r[0])), o = named ? 1 : 0;
+    const unk = ur.map((r, i) => ({ name: named ? (r[0] ?? '').trim() || `Band ${i + 1}` : `Band ${i + 1}`, d: num(r[o]) }));
+    if (unk.some((u) => !Number.isFinite(u.d))) return fail('Each unknown band needs a distance (a name before it is optional).');
+    const est = unk.map((u) => ({ ...u, ...sizeAt(m, u.d) }));
+    q('.gb-out').hidden = false;
+    const out = est.filter((e) => !e.inside);
+    q('.gb-big').textContent = est.length ? `${est.length} band${est.length > 1 ? 's' : ''}: ${est.slice(0, 5).map((e) => bp(e.size)).join(', ')}${est.length > 5 ? '…' : ''} bp` : 'Ladder fitted; add unknown bands';
+    const eq = method === 'linear' ? `log₁₀(bp) = ${sg(m.coef[1], 5)} ${m.coef[0] < 0 ? '−' : '+'} ${sg(Math.abs(m.coef[0]), 4)} × distance` : method === 'cubic' ? 'cubic in distance' : 'straight lines between neighbouring ladder bands';
+    q('.gb-facts').replaceChildren(
+      fact('Fit', eq, method === 'interp' ? 'passes through every ladder band' : `R² ${m.r2.toFixed(4)} on log size, ${m.n} bands`),
+      ...(method !== 'interp' && Number.isFinite(m.s) ? [fact('Typical error', `± ${sg((10 ** m.s - 1) * 100, 2)} %`, 'one residual SD of the ladder around the fit; ranges in the table use it')] : []),
+      ...(out.length ? [fact('Outside the ladder', `${out.map((e) => e.name).slice(0, 4).join(', ')}${out.length > 4 ? '…' : ''}`, `beyond ${bp(m.sizeMin)}–${bp(m.sizeMax)} bp: extrapolated, treat with care`)] : []),
+    );
+    const xs = Array.from({ length: 81 }, (_, k) => m.dMin + ((m.dMax - m.dMin) * k) / 80);
+    const series: Parameters<typeof chartFigure>[0]['series'] = [
+      { name: 'Ladder', x: m.pts.map((p) => p.d), y: m.pts.map((p) => p.size), mode: 'points' },
+      { name: 'Fit', x: xs, y: xs.map((d) => sizeAt(m, d).size), mode: 'line', width: 2 },
+      ...(est.length ? [{ name: 'Unknown bands', x: est.map((e) => e.d), y: est.map((e) => e.size), mode: 'points' as const, marker: 'open-square' as const, labels: est.length <= 10 ? est.map((e) => e.name) : undefined }] : []),
+    ];
+    const allY = [...m.pts.map((p) => p.size), ...est.map((e) => e.size)].filter((v) => v > 0 && Number.isFinite(v));
+    fig = chartFigure({ h: 340, yLog: true, yMin: Math.min(...allY) / 1.5, yMax: Math.max(...allY) * 1.5, xLabel: 'Distance from the well', yLabel: 'Size (bp)', legend: 'below', series }, `Ladder fit: size against distance on a log scale, with ${est.length} unknown bands`);
+    paint(q<HTMLCanvasElement>('.gb-fig'), fig);
+    const head = ['Band', 'Distance', 'Size (bp)', 'Range (bp)', ...(out.length ? ['Note'] : [])];
+    const trs = est.map((e) => [e.name, sg(e.d, 4), bp(e.size), Number.isFinite(e.lo) ? `${bp(e.lo)}–${bp(e.hi)}` : '–', ...(out.length ? [e.inside ? '' : 'outside the ladder'] : [])]);
+    table('.gb-tab', head, trs, [1, 2, 3]);
+    table('.gb-ltab', ['Size (bp)', 'Distance', 'Fit (bp)', 'Off by'], m.pts.map((p) => { const f = sizeAt(m, p.d).size; return [bp(p.size), sg(p.d, 4), bp(f), `${f >= p.size ? '+' : '−'}${sg((Math.abs(f - p.size) / p.size) * 100, 2)} %`]; }), [0, 1, 2, 3]);
+    sections = [{ title: q('.gb-big').textContent!, facts: [...q('.gb-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig, table: { head, rows: trs, align: (['l', 'r', 'r', 'r', 'l'] as ('l' | 'r')[]).slice(0, head.length) } }];
+  }
+
+  // Photo taps: distances in image pixels from the well line.
+  let img: HTMLImageElement | null = null, wellY: number | null = null, ladY: number[] = [], unkY: number[] = [], ladSizes: number[] = [];
+  function drawPhoto() {
+    if (!img) return;
+    const c = q<HTMLCanvasElement>('.gb-photo'), w = Math.min(img.naturalWidth, 1600), h = (img.naturalHeight * w) / img.naturalWidth, s = w / img.naturalWidth;
+    c.width = w; c.height = h; const ctx = c.getContext('2d')!; ctx.drawImage(img, 0, 0, w, h);
+    const line = (y: number, col: string, dash: number[]) => { ctx.strokeStyle = col; ctx.setLineDash(dash); ctx.lineWidth = Math.max(2, w / 400); ctx.beginPath(); ctx.moveTo(0, y * s); ctx.lineTo(w, y * s); ctx.stroke(); ctx.setLineDash([]); };
+    if (wellY !== null) line(wellY, '#d55e00', [8, 6]);
+    ladY.forEach((y) => line(y, '#0072b2', []));
+    unkY.forEach((y) => line(y, '#009e73', [3, 3]));
+  }
+  function applyTaps() {
+    if (wellY === null) return;
+    if (ladY.length) q<HTMLTextAreaElement>('.gb-lad').value = 'size (bp),distance (px)\n' + ladY.map((y, i) => `${ladSizes[i] ?? ''},${Math.round(y - wellY!)}`).join('\n');
+    if (unkY.length) q<HTMLTextAreaElement>('.gb-unk').value = 'band,distance (px)\n' + unkY.map((y, i) => `Band ${i + 1},${Math.round(y - wellY!)}`).join('\n');
+    calc();
+  }
+  q('.gb-open').addEventListener('click', () => q<HTMLInputElement>('.gb-file').click());
+  q('.gb-file').addEventListener('change', () => {
+    const f = q<HTMLInputElement>('.gb-file').files?.[0]; if (!f) return;
+    const url = URL.createObjectURL(f), im = new Image();
+    im.onload = () => { img = im; wellY = null; ladY = []; unkY = []; q('.gb-photo').hidden = false; q('.gb-tools').hidden = false; q('.gb-clear').hidden = false; q<HTMLSelectElement>('.gb-mode').value = 'well'; drawPhoto(); };
+    im.onerror = () => { q('.gb-err').textContent = 'That image could not be opened. Try a PNG or JPEG.'; q('.gb-err').hidden = false; };
+    im.src = url; q<HTMLInputElement>('.gb-file').value = '';
+  });
+  q('.gb-photo').addEventListener('click', (ev) => {
+    if (!img) return;
+    const c = q<HTMLCanvasElement>('.gb-photo'), r = c.getBoundingClientRect(), y = ((ev.clientY - r.top) / r.height) * img.naturalHeight, mode = q<HTMLSelectElement>('.gb-mode').value;
+    if (mode === 'lad' && !ladY.length) ladSizes = rowsOf('.gb-lad').map((r) => num(r[0])).filter((x) => x > 0).sort((a, b) => b - a);
+    if (mode === 'well') { wellY = y; q<HTMLSelectElement>('.gb-mode').value = 'lad'; } else if (mode === 'lad') ladY.push(y); else unkY.push(y);
+    drawPhoto(); applyTaps();
+  });
+  q('.gb-clear').addEventListener('click', () => { wellY = null; ladY = []; unkY = []; q<HTMLSelectElement>('.gb-mode').value = 'well'; drawPhoto(); });
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, .gb-m').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.gb-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Gel band sizes', subtitle: q('.gb-big').textContent ?? '', file: 'gel-band-sizes', sections }));
+</script>
+
+<style is:global>
+  .gbs .gb-photo { display: block; width: 100%; height: auto; margin-top: 10px; cursor: crosshair; border: 1px solid var(--line, #ddd); }
+  .gbs .gb-sd { margin-top: 14px; }
+  .gbs .gb-sd summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+  .gbs select { max-width: 100%; }
+</style>
