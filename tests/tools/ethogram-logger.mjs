@@ -44,5 +44,5 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   check((await page.textContent(R + '.eth-deferr')).includes('used twice'), 'ethogram: duplicate key message');
   await page.fill(R + '.eth-def', 'a, Alert, sometimes');
   check((await page.textContent(R + '.eth-deferr')).includes('"state" or "event"'), 'ethogram: bad type message');
-  await page.clock.resume(); // let time run again for the tools tested after this one
+  await page.clock.setSystemTime(new Date()); await page.clock.resume(); // give back the real date and let time run, for the tools tested after this one
 };
