@@ -1,0 +1,188 @@
+---
+// Reactivity series lab: drop a metal strip into a salt solution (or dilute acid) and see whether it displaces the
+// metal; results fill a grid and give a series; tap any metal for its reactions and how it is extracted.
+import '../../styles/astro.css';
+import '../../styles/chemquiz.css';
+import { SERIES, SOLUTIONS, STRIPS } from '../../lib/sci/reactivity';
+const sub = (f: string) => f.replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈₉'[+d]);
+const name = (s: string) => SERIES.find((m) => m.sym === s)!.name;
+---
+<div class="ax rx">
+  <div class="ax-card">
+    <h2>The lab</h2>
+    <label>Metal strip <select class="rx-m">{STRIPS.map((s) => <option value={s} selected={s === 'Fe'}>{s}: {name(s)}</option>)}</select></label>
+    <label style="margin-top:8px">Solution <select class="rx-s">{SOLUTIONS.map((s) => <option value={s.id} selected={s.id === 'CuSO4'}>{sub(s.formula)}: {s.text}</option>)}</select></label>
+    <svg class="rx-svg" viewBox="0 0 320 190" role="img" aria-label="Beaker"></svg>
+    <div class="ax-row"><button type="button" class="btn rx-go">Drop it in</button><button type="button" class="btn secondary small rx-all">Test this metal in every solution</button></div>
+    <p class="ax-big rx-big" style="margin:12px 0 4px"></p>
+    <p class="lx-eq rx-eq" hidden></p>
+    <ul class="rx-seen"></ul>
+    <p class="ax-help">Strips are clean and the solutions dilute. Never put potassium, sodium or calcium in water or acid in a school lab: they react violently.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Your results</h2>
+    <div class="ax-scroll"><table class="rx-grid"></table></div>
+    <h3 style="margin:12px 0 4px">Series from your results</h3>
+    <ol class="rx-order"></ol>
+    <p class="ax-help rx-ohelp"></p>
+    <div class="ax-row"><button type="button" class="btn secondary small rx-clear">Clear results</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>The reactivity series</h2>
+    <p class="ax-help" style="margin-top:0">Tap a metal. Its place in the series decides how it reacts and how it is taken out of its ore.</p>
+    <div class="rx-ladder">{SERIES.map((m) => <button type="button" class={`rx-rung rx-${m.ext}${m.sym === 'H' ? ' rx-h' : ''}`} data-s={m.sym}><b>{m.sym}</b> {m.name}</button>)}</div>
+    <dl class="ax-facts rx-facts" style="margin-top:12px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lx-try">
+      <li>Drop iron into copper(II) sulfate, then copper into iron(II) sulfate. Why does only one of them work?</li>
+      <li>Test zinc, iron and copper in every solution with the second button. Put the three in order from your results.</li>
+      <li>Copper does not fizz in dilute acid, but it does displace silver. What does that tell you about where hydrogen sits?</li>
+      <li>Tap aluminium and zinc in the series. Why is one made by electrolysis and the other with carbon?</li>
+      <li>Try sodium in any solution. What goes wrong?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cq">
+    <h2>Check yourself</h2>
+    <ol class="cq-list"></ol>
+    <button type="button" class="btn secondary small cq-new">New questions</button>
+  </div>
+</div>
+
+<style is:inline>
+  .rx label { max-width: 420px; }
+  .rx select { font-size: 16px; min-height: 44px; }
+  .rx-svg { display: block; width: 100%; max-width: 380px; margin: 12px auto 8px; }
+  .rx-seen { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 4px; }
+  .rx-ladder { display: grid; gap: 4px; }
+  .rx-rung { text-align: left; font: inherit; font-size: 15px; padding: 9px 12px; min-height: 42px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; border-left-width: 6px; }
+  .rx-rung b { display: inline-block; min-width: 2.2em; }
+  .rx-rung.rx-electrolysis { border-left-color: var(--ink); }
+  .rx-rung.rx-carbon { border-left-color: var(--muted); }
+  .rx-rung.rx-heat, .rx-rung.rx-native { border-left-color: var(--line); }
+  .rx-rung.rx-h { border-style: dashed; color: var(--muted); }
+  .rx-rung[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .rx-grid td, .rx-grid th { text-align: center !important; }
+  .rx-grid td:first-child, .rx-grid th:first-child { text-align: left !important; }
+  .rx-svg .glass { fill: none; stroke: var(--ink); stroke-width: 2.5; }
+  .rx-svg .liq { transition: fill 1.2s ease; }
+  .rx-svg .strip { fill: #9aa0a6; stroke: var(--ink); stroke-width: 1; }
+  .rx-svg .coat { transition: opacity 1.2s ease; }
+  .rx-svg .bub { fill: var(--bg); stroke: var(--ink); stroke-width: 1; transition: opacity 0.6s ease; }
+  .rx-svg .lab { fill: var(--ink); font: 600 13px system-ui, sans-serif; }
+  .rx-svg .lab2 { fill: var(--muted); font: 12px system-ui, sans-serif; }
+</style>
+
+<script>
+  import { SERIES, SOLUTIONS, STRIPS, METAL, rank, test, seriesFrom, pretty, type Result } from '../../lib/sci/reactivity';
+  import { mountQuiz, same, pickOne, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.rx')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const NS = 'http://www.w3.org/2000/svg';
+  const sv = (tag: string, attrs: Record<string, string | number>, text?: string) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, String(v)); if (text != null) n.textContent = text; return n; };
+  const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
+  const results = new Map<string, Result>(); // key metal|solution
+
+  const COAT: Record<string, string> = { Cu: '#a0522d', Ag: '#d9dde1', Pb: '#55595e', Zn: '#7d8288', Fe: '#5b4b44', Al: '#c7ccd1', H: 'none' };
+
+  function beaker(r: Result | null, before = false) {
+    const m = q<HTMLSelectElement>('.rx-m').value, s = SOLUTIONS.find((x) => x.id === q<HTMLSelectElement>('.rx-s').value)!;
+    const svg = q<SVGSVGElement>('.rx-svg'); svg.replaceChildren();
+    const fill = r && !before ? r.after.colour : s.colour;
+    const liq = sv('rect', { x: 92, y: 70, width: 136, height: 98, class: 'liq', fill });
+    svg.append(liq);
+    svg.append(sv('path', { d: 'M88 30 L88 172 Q88 178 94 178 L226 178 Q232 178 232 172 L232 30', class: 'glass' }));
+    // strip hangs into the liquid
+    svg.append(sv('rect', { x: 150, y: 14, width: 20, height: 140, class: 'strip' }));
+    const coat = sv('rect', { x: 148, y: 72, width: 24, height: 82, fill: r && r.reacts && r.sol.metal !== 'H' ? COAT[r.sol.metal] : 'none', class: 'coat', opacity: r && r.reacts && !before ? 1 : 0 });
+    svg.append(coat);
+    if (r && r.reacts && r.sol.metal === 'H') for (let i = 0; i < 9; i++) svg.append(sv('circle', { cx: 140 + (i % 3) * 20 + (i % 2) * 4, cy: 150 - Math.floor(i / 3) * 26, r: 3 + (i % 3), class: 'bub', opacity: before ? 0 : 1 }));
+    svg.append(sv('text', { x: 178, y: 26, class: 'lab' }, `${m} strip`));
+    svg.append(sv('text', { x: 236, y: 100, class: 'lab' }, pretty(s.formula)));
+    svg.append(sv('text', { x: 236, y: 116, class: 'lab2' }, r && !before ? r.after.colourName : s.colourName));
+    svg.setAttribute('aria-label', `A ${METAL(m).name} strip in ${s.text}${r && !before ? `: ${r.seen[0]}` : ''}`);
+  }
+
+  function show(r: Result) {
+    q('.rx-big').textContent = r.waterFirst ? `${cap(r.metal.name)}: reacts with the water itself` : r.reacts ? `Yes: ${r.metal.name} displaces ${r.sol.metal === 'H' ? 'hydrogen' : METAL(r.sol.metal).name}` : `No reaction`;
+    const eq = q('.rx-eq'); eq.hidden = !r.equation; eq.textContent = r.equation ? pretty(r.equation) : '';
+    const ul = q('.rx-seen'); ul.replaceChildren(); for (const t of r.seen) { const li = document.createElement('li'); li.textContent = t; ul.append(li); }
+  }
+
+  function run(m: string, sId: string, animate: boolean) {
+    const r = test(m, sId); results.set(`${m}|${sId}`, r);
+    if (animate) {
+      beaker(r, true);
+      const svg = q<SVGSVGElement>('.rx-svg');
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        svg.querySelector('.liq')?.setAttribute('fill', r.after.colour);
+        if (r.reacts) svg.querySelectorAll('.coat, .bub').forEach((n) => n.setAttribute('opacity', '1'));
+        svg.querySelector('.lab2')!.textContent = r.after.colourName;
+        svg.setAttribute('aria-label', `A ${r.metal.name} strip in ${r.sol.text}: ${r.seen[0]}`);
+      }));
+    } else beaker(r);
+    show(r); grid();
+  }
+
+  function grid() {
+    const tb = q<HTMLTableElement>('.rx-grid'); tb.replaceChildren();
+    const metals = STRIPS.filter((m) => [...results.values()].some((r) => r.metal.sym === m));
+    if (!metals.length) { const c = tb.insertRow().insertCell(); c.textContent = 'Nothing tested yet. Drop a metal into a solution.'; q('.rx-order').replaceChildren(); q('.rx-ohelp').textContent = ''; return; }
+    const hr = tb.createTHead().insertRow(); const h0 = document.createElement('th'); h0.textContent = 'Metal ↓ / solution →'; hr.append(h0);
+    for (const s of SOLUTIONS) { const th = document.createElement('th'); th.textContent = pretty(s.formula); hr.append(th); }
+    const bd = tb.createTBody();
+    for (const m of metals) {
+      const tr = bd.insertRow(); tr.insertCell().textContent = m;
+      for (const s of SOLUTIONS) { const r = results.get(`${m}|${s.id}`); const td = tr.insertCell(); td.textContent = !r ? '' : r.waterFirst ? 'water' : r.metal.sym === r.sol.metal ? '–' : r.reacts ? '✓' : '✗'; if (r) td.title = r.seen[0]; }
+    }
+    const usable = [...results.values()].filter((r) => !r.waterFirst && r.metal.sym !== r.sol.metal).map((r) => ({ metal: r.metal.sym, solMetal: r.sol.metal, reacts: r.reacts }));
+    const order = seriesFrom(usable);
+    const ol = q('.rx-order'); ol.replaceChildren();
+    for (const o of order) { const li = document.createElement('li'); li.textContent = `${o.sym} (${METAL(o.sym).name}): above ${o.wins} other${o.wins === 1 ? '' : 's'}`; ol.append(li); }
+    const ties = order.some((o, i) => i && order[i - 1].wins === o.wins);
+    q('.rx-ohelp').textContent = ties ? 'Some metals have the same count so far: test more pairs to separate them. ✓ = displaced, ✗ = no reaction.' : '✓ = displaced, ✗ = no reaction. A metal that displaces another sits above it; one that cannot sits below it.';
+  }
+
+  const fact = (k: string, v: string) => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.style.fontSize = '15px'; dd.style.fontWeight = '500'; dd.textContent = v; d.append(dt, dd); return d; };
+  const METHOD = { electrolysis: 'Top of the series: electrolysis', carbon: 'Middle: reduce the oxide with carbon', heat: 'Low: heat the ore alone', native: 'Bottom: found free in nature' } as const;
+  function rung(sym: string) {
+    root.querySelectorAll<HTMLButtonElement>('.rx-rung').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.s === sym)));
+    const m = METAL(sym), f = q('.rx-facts'); f.replaceChildren();
+    if (sym === 'H') { f.append(fact('Hydrogen', 'Not a metal, but placed in the series: metals above it push hydrogen out of dilute acids; metals below it cannot.')); return; }
+    f.append(fact('Place', `${rank(sym) + 1 - (rank(sym) > rank('H') ? 1 : 0)} of ${SERIES.length - 1}`), fact('With water', cap(m.water)), fact('With dilute acid', cap(m.acid)), fact(METHOD[m.ext], cap(m.extraction)));
+  }
+
+  q('.rx-go').addEventListener('click', () => run(q<HTMLSelectElement>('.rx-m').value, q<HTMLSelectElement>('.rx-s').value, true));
+  q('.rx-all').addEventListener('click', () => { const m = q<HTMLSelectElement>('.rx-m').value; for (const s of SOLUTIONS) run(m, s.id, false); run(m, q<HTMLSelectElement>('.rx-s').value, false); });
+  q('.rx-clear').addEventListener('click', () => { results.clear(); grid(); });
+  const reset = () => { beaker(null); q('.rx-big').textContent = 'Press Drop it in.'; q('.rx-eq').hidden = true; q('.rx-seen').replaceChildren(); };
+  q('.rx-m').addEventListener('change', reset); q('.rx-s').addEventListener('change', reset);
+  root.querySelectorAll<HTMLButtonElement>('.rx-rung').forEach((b) => b.addEventListener('click', () => rung(b.dataset.s!)));
+  reset(); grid(); rung('Fe');
+
+  // Check yourself
+  const LAB = ['Mg', 'Al', 'Zn', 'Fe', 'Pb', 'Cu', 'Ag'];
+  mountQuiz(q('.cq'), (): Question[] => {
+    const yn = () => { const m = pickOne(LAB); let s = pickOne(SOLUTIONS); while (s.metal === m) s = pickOne(SOLUTIONS); return test(m, s.id); };
+    const r1 = yn(), r2 = yn();
+    let a = pickOne(LAB), b = pickOne(LAB); while (b === a) b = pickOne(LAB);
+    const more = rank(a) < rank(b) ? a : b;
+    const m4 = pickOne(['K', 'Na', 'Ca', 'Mg', 'Al', 'Zn', 'Fe', 'Pb', 'Cu', 'Hg', 'Ag', 'Au']), e4 = METAL(m4).ext;
+    const ext4 = { electrolysis: 'electrolysis', carbon: 'carbon', heat: 'heating', native: 'native' }[e4];
+    let r5: Result; do { r5 = yn(); } while (!r5.reacts);
+    const freed = r5.sol.metal === 'H' ? 'hydrogen' : METAL(r5.sol.metal).name;
+    return [
+      { q: `Will ${r1.metal.name} displace anything from ${r1.sol.text}? (yes or no)`, hint: 'yes or no', answer: r1.reacts ? 'yes' : 'no', ok: same(r1.reacts ? 'yes' : 'no', r1.reacts ? 'y' : 'n'), worked: `${cap(r1.metal.name)} is ${r1.reacts ? 'above' : 'below'} ${r1.sol.metal === 'H' ? 'hydrogen' : METAL(r1.sol.metal).name} in the series.` },
+      { q: `Will ${r2.metal.name} react with ${r2.sol.text}? (yes or no)`, hint: 'yes or no', answer: r2.reacts ? 'yes' : 'no', ok: same(r2.reacts ? 'yes' : 'no', r2.reacts ? 'y' : 'n'), worked: `${cap(r2.metal.name)} is ${r2.reacts ? 'above' : 'below'} ${r2.sol.metal === 'H' ? 'hydrogen' : METAL(r2.sol.metal).name} in the series.` },
+      { q: `Which is more reactive, ${METAL(a).name} or ${METAL(b).name}?`, hint: 'a metal', answer: METAL(more).name, ok: same(METAL(more).name, more, METAL(more).name.replace('aluminium', 'aluminum')), worked: `${cap(METAL(more).name)} comes higher in the reactivity series.` },
+      { q: `How is ${METAL(m4).name} usually obtained from its ore: electrolysis, carbon (reduction with coke), heating (the ore alone) or native (found free)?`, hint: 'one word', answer: ext4, ok: same(ext4, ...(e4 === 'carbon' ? ['reduction', 'coke', 'carbon reduction'] : e4 === 'heat' ? ['heat', 'roasting'] : e4 === 'native' ? ['free', 'found free'] : [])), worked: `${cap(METAL(m4).name)}: ${METAL(m4).extraction}.` },
+      { q: `${cap(r5.metal.name)} is put in ${r5.sol.text}. What element is pushed out?`, hint: 'an element', answer: freed, ok: same(freed, r5.sol.metal === 'H' ? 'H2' : r5.sol.metal, ...(r5.sol.metal === 'H' ? ['hydrogen gas'] : [])), worked: `${pretty(r5.equation!)}.` },
+    ];
+  });
+</script>
