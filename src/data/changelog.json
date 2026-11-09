@@ -1,5 +1,14 @@
 [
  {
+  "sha": "ea2c51f0754c",
+  "date": "2026-11-09T00:08:22+00:00",
+  "title": "Add the unit hydrograph builder (#149)",
+  "tools": [
+   "unit-hydrograph"
+  ],
+  "site": false
+ },
+ {
   "sha": "1d41ee4670db",
   "date": "2026-11-08T23:54:32+00:00",
   "title": "Add the chiral magnon bands tool (#148)",
