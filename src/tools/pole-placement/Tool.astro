@@ -1,0 +1,162 @@
+---
+// State space analysis and pole placement (Ackermann, single input), observer gain by duality, closed-loop step
+// response. The example system is made up. Nothing is uploaded.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ppl">
+  <div class="ax-card">
+    <h2>System ẋ = Ax + Bu, y = Cx + Du</h2>
+    <div class="ax-row"><button type="button" class="btn secondary small pp-ex">Use the example</button></div>
+    <div class="ax-grid pp-mats" style="margin-top:10px">
+      <label>A (n × n) <textarea class="pp-A" rows="4" spellcheck="false"></textarea></label>
+      <label>B (n × inputs) <textarea class="pp-B" rows="4" spellcheck="false"></textarea></label>
+      <label>C (outputs × n) <textarea class="pp-C" rows="2" spellcheck="false"></textarea></label>
+      <label>D (outputs × inputs, empty = zeros) <textarea class="pp-D" rows="2" spellcheck="false"></textarea></label>
+    </div>
+    <p class="ax-help">One row per line (or rows separated by ;), numbers separated by spaces or commas; MATLAB-style [1 2; 3 4] works too. Up to 10 states. The example is a made-up position servo with three states.</p>
+    <h3>Design</h3>
+    <div class="ax-grid">
+      <label>Closed-loop poles for A − BK <input class="pp-P" type="text" spellcheck="false" /></label>
+      <label>Observer poles for A − LC (empty = 4 × faster) <input class="pp-O" type="text" spellcheck="false" /></label>
+      <label>Step response length (s, empty = automatic) <input class="pp-t" type="text" inputmode="decimal" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="pp-N" checked /> Scale the reference so the output settles at 1 (N = 1 / DC gain)</label>
+    <p class="ax-help">Write poles like −2, −1+3j, −1−3j or −1±3j; complex poles come in conjugate pairs. Pole placement here uses Ackermann's formula, which needs one input (B with one column); the observer needs one output (C with one row). Observer poles are usually 2 to 6 times faster than the controller's.</p>
+    <p class="ax-err pp-err" hidden></p>
+  </div>
+
+  <div class="ax-card pp-out" hidden>
+    <h2>Analysis</h2>
+    <dl class="ax-facts pp-facts"></dl>
+    <h3>Controllability matrix [B AB … Aⁿ⁻¹B]</h3>
+    <div class="ax-scroll"><table class="pp-ctab"></table></div>
+    <h3>Observability matrix [C; CA; … CAⁿ⁻¹]</h3>
+    <div class="ax-scroll"><table class="pp-otab"></table></div>
+  </div>
+
+  <div class="ax-card pp-dout" hidden>
+    <h2>Pole placement</h2>
+    <p class="ax-big pp-big"></p>
+    <dl class="ax-facts pp-dfacts"></dl>
+    <p class="ax-err pp-derr" hidden></p>
+    <canvas class="ax-fig pp-fig"></canvas>
+    <dl class="ax-facts pp-sfacts" style="margin-top:10px"></dl>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pp-csv">Download step response and gains (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .ppl h3 { margin: 22px 0 8px; font-size: 15px; }
+  .ppl .pp-mats { grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); }
+  .ppl .pp-ctab td, .ppl .pp-otab td { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; text-align: right; white-space: nowrap; }
+</style>
+
+<script>
+  import * as S from '../../lib/sci/eng-statespace';
+  import { chartFigure, type Series } from '../../lib/sci/plot';
+  import { csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ppl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const txt = (c: string) => (q(c) as HTMLInputElement).value;
+  const f = (x: number, d = 5) => { const v = Math.abs(x) < 1e-12 ? 0 : +x.toPrecision(d); return String(v).replace('-', '−'); };
+  const vec = (M: S.Mat) => `[${M.flat().map((x) => f(x)).join(', ')}]`;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const matTable = (t: HTMLElement, M: S.Mat) => { t.replaceChildren(); for (const r of M) { const tr = t.insertRow(); for (const x of r) tr.insertCell().textContent = f(x); } };
+  const eigText = (z: S.C[]) => z.map((x) => S.fmtC(x)).join(', ');
+  let res: { t: number[]; y: number[][]; K: S.Mat; L: S.Mat | null; N: number } | null = null, fig: Figure | null = null, report: Section[] = [];
+
+  function read(c: string, name: string): S.Mat {
+    try { return S.parseMatrix(txt(c)); } catch (e) { throw new Error(`${name}: ${(e as Error).message === 'not a number' ? 'something there is not a number' : 'every row needs the same number of entries'}.`); }
+  }
+
+  function run() {
+    const err = q('.pp-err'), out = q('.pp-out'), dout = q('.pp-dout'), derr = q('.pp-derr');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; dout.hidden = true; res = null; report = []; };
+    if (!txt('.pp-A').trim()) { err.hidden = true; out.hidden = true; dout.hidden = true; res = null; return; }
+    let A: S.Mat, B: S.Mat, C: S.Mat, D: S.Mat;
+    try { A = read('.pp-A', 'A'); B = read('.pp-B', 'B'); C = read('.pp-C', 'C'); D = read('.pp-D', 'D'); } catch (e) { return fail((e as Error).message); }
+    const n = A.length;
+    if (!n || A[0].length !== n) return fail('A must be square (n rows of n numbers).');
+    if (n > 10) return fail('Up to 10 states.');
+    if (B.length !== n) return fail(`B needs ${n} rows, one per state.`);
+    if (!C.length || C[0].length !== n) return fail(`C needs ${n} columns, one per state.`);
+    const m = B[0].length, p = C.length;
+    if (!D.length) D = S.zeros(p, m);
+    if (D.length !== p || D[0].length !== m) return fail(`D must be ${p} × ${m} (outputs × inputs), or empty.`);
+    err.hidden = true; out.hidden = false;
+    const eA = S.eig(A), Wc = S.ctrb(A, B), Wo = S.obsv(A, C), rc = S.rank(Wc), ro = S.rank(Wo);
+    const stable = eA.every((z) => z.re < 0);
+    q('.pp-facts').replaceChildren(
+      fact('Size', `${n} states, ${m} input${m > 1 ? 's' : ''}, ${p} output${p > 1 ? 's' : ''}`),
+      fact('Open-loop eigenvalues', eigText(eA), stable ? 'all in the left half-plane: stable' : 'at least one on or right of the imaginary axis: not asymptotically stable'),
+      fact('Controllable', rc === n ? 'yes' : 'no', `rank ${rc} of ${n}${rc === n ? ': every pole can be moved' : ': some modes cannot be reached by the input'}`),
+      fact('Observable', ro === n ? 'yes' : 'no', `rank ${ro} of ${n}${ro === n ? ': every state can be estimated from the output' : ': some modes do not show in the output'}`),
+    );
+    matTable(q('.pp-ctab'), Wc); matTable(q('.pp-otab'), Wo);
+    report = [{ title: 'Analysis', facts: [...q('.pp-facts').querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]) }];
+    // Design.
+    dout.hidden = false; derr.hidden = true; res = null;
+    const dfail = (msg: string) => { derr.textContent = msg; derr.hidden = false; q('.pp-big').textContent = ''; q('.pp-dfacts').replaceChildren(); q('.pp-sfacts').replaceChildren(); q('.pp-fig').hidden = true; q<HTMLButtonElement>('.pp-csv').disabled = true; };
+    if (m !== 1) return dfail('Pole placement here needs a single input: B has more than one column. (Multi-input placement has many answers and needs a robust method such as Kautsky-Nichols, which this tool does not include.)');
+    let P: S.C[];
+    try { P = S.parsePoles(txt('.pp-P')); } catch (e) { return dfail((e as Error).message); }
+    let K: S.Mat;
+    try { K = S.acker(A, B, P); } catch (e) { return dfail((e as Error).message); }
+    const Acl = S.add(A, S.mul(B, K), -1), eCl = S.eig(Acl), Ccl = S.add(C, S.mul(D, K), -1);
+    let N = 1;
+    const useN = (q('.pp-N') as HTMLInputElement).checked;
+    if (useN) { try { const g = S.dcGain(Acl, B, Ccl, D)[0][0]; if (Math.abs(g) < 1e-12) throw new Error(); N = 1 / g; } catch { N = 1; } }
+    let L: S.Mat | null = null, Lmsg = '';
+    if (p === 1) {
+      try {
+        const O = txt('.pp-O').trim() ? S.parsePoles(txt('.pp-O')) : P.map((z) => ({ re: 4 * z.re, im: 4 * z.im }));
+        L = S.observerGain(A, C, O);
+      } catch (e) { Lmsg = (e as Error).message; }
+    } else Lmsg = 'The observer needs a single output (C with one row).';
+    q('.pp-big').textContent = `K = ${vec(K)}`;
+    const dfacts = [
+      fact('Closed-loop eigenvalues of A − BK', eigText(eCl), 'worked out again from A − BK, as a check'),
+      fact('Reference gain N', useN ? f(N) : '1 (off)', useN ? 'u = N·r − Kx, so the output settles at the reference' : 'u = r − Kx'),
+      fact('Observer gain L', L ? vec(L) : 'not worked out', L ? `eigenvalues of A − LC: ${eigText(S.eig(S.add(A, S.mul(L, C), -1)))}` : Lmsg),
+    ];
+    q('.pp-dfacts').replaceChildren(...dfacts);
+    // Step response of the closed loop (input r, output y).
+    const slow = Math.min(...eCl.map((z) => Math.abs(z.re)).filter((x) => x > 0), Infinity);
+    const tIn = Number(txt('.pp-t').replace(',', '.'));
+    const tEnd = txt('.pp-t').trim() && tIn > 0 ? tIn : Number.isFinite(slow) ? +(8 / slow).toPrecision(2) : 10;
+    const st = S.step(Acl, S.scale(B, N), Ccl, S.scale(D, N), tEnd, 400);
+    const series: Series[] = [{ name: 'Closed loop', x: st.t, y: st.y.map((r) => r[0]), mode: 'line', width: 2 }];
+    if (stable) { const so = S.step(A, B, C, D, tEnd, 400); series.push({ name: 'Open loop (u = 1)', x: so.t, y: so.y.map((r) => r[0]), mode: 'line', width: 1.4, dash: [5, 4] }); }
+    fig = chartFigure({ w: root.clientWidth < 520 ? 380 : 560, h: 280, xLabel: 'Time (s)', yLabel: 'Output y', legend: series.length > 1 ? 'below' : 'none', series }, `Closed-loop step response over ${tEnd} s`);
+    q('.pp-fig').hidden = false; paint(q<HTMLCanvasElement>('.pp-fig'), fig);
+    const clStable = eCl.every((z) => z.re < 0);
+    const fin = clStable ? (() => { try { return S.dcGain(Acl, S.scale(B, N), Ccl, S.scale(D, N))[0][0]; } catch { return NaN; } })() : NaN;
+    const info = Number.isFinite(fin) && fin !== 0 ? S.stepInfo(st.t, st.y.map((r) => r[0]), fin) : null;
+    q('.pp-sfacts').replaceChildren(...(info ? [
+      fact('Final value', f(fin, 4)), fact('Rise time (10–90 %)', Number.isFinite(info.rise) ? `${f(info.rise, 3)} s` : '–'),
+      fact('Overshoot', `${f(info.overshoot, 3)} %`), fact('Settling time (2 %)', `${f(info.settling, 3)} s`, info.settling >= tEnd * 0.99 ? 'not settled within the plot: make it longer' : ''),
+    ] : [fact('Step response', clStable ? 'settles at 0' : 'unstable closed loop', clStable ? '' : 'choose poles with negative real parts')]));
+    q<HTMLButtonElement>('.pp-csv').disabled = false;
+    res = { t: st.t, y: st.y, K, L, N };
+    report.push({ title: q('.pp-big').textContent!, facts: [...dfacts, ...q('.pp-sfacts').querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig });
+  }
+
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(run, 300); };
+  root.querySelectorAll('textarea, input[type=text]').forEach((i) => i.addEventListener('input', later));
+  q('.pp-N').addEventListener('change', run);
+  q('.pp-ex').addEventListener('click', () => {
+    const E = S.EXAMPLE;
+    (q('.pp-A') as HTMLTextAreaElement).value = E.A; (q('.pp-B') as HTMLTextAreaElement).value = E.B; (q('.pp-C') as HTMLTextAreaElement).value = E.C; (q('.pp-D') as HTMLTextAreaElement).value = E.D;
+    (q('.pp-P') as HTMLInputElement).value = E.poles; (q('.pp-O') as HTMLInputElement).value = E.obs; (q('.pp-t') as HTMLInputElement).value = ''; run();
+  });
+  q('.pp-csv').addEventListener('click', () => { if (!res) return; const r = res;
+    save(new Blob([csv([['time_s', ...r.y[0].map((_, i) => `y${i + 1}`)], ...r.t.map((t, i) => [+t.toPrecision(8), ...r.y[i].map((v) => v.toPrecision(10))]), [], ['K', ...r.K[0].map((v) => v.toPrecision(12))], ['N', r.N.toPrecision(12)], ...(r.L ? [['L', ...r.L.map((x) => x[0].toPrecision(12))]] : [])])], { type: 'text/csv' }), 'pole-placement.csv', 'text/csv'); });
+  wireDownloads(q('.dl'), () => ({ title: 'State space and pole placement', subtitle: q('.pp-big').textContent ?? '', file: 'pole-placement', sections: report }));
+  document.addEventListener('fibub:theme', () => { if (fig && res) paint(q<HTMLCanvasElement>('.pp-fig'), fig); });
+  q('.pp-ex').click();
+</script>
