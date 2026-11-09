@@ -30,6 +30,7 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
 
   // Heat weight, layers and blur.
   await page.selectOption('.et-wt', 'n'); await page.uncheck('.et-show-p'); await settle();
+  await page.waitForFunction(() => /^Heat map and scanpath of 7 fixations on a 800 by 600/.test(document.querySelector('.et-fig').getAttribute('aria-label') || '') && document.querySelector('.et-fig').width > 0);
   check(await page.isVisible('.et-fig'), 'eye-tracking: count weighting and hidden scanpath still draw');
   await page.check('.et-show-p'); await page.selectOption('.et-wt', 'dur');
   await page.fill('.et-s', '0'); await settle();
