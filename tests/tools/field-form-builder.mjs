@@ -6,7 +6,8 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   await ctx.grantPermissions(['geolocation'], { origin: BASE });
   await ctx.setGeolocation({ latitude: 51.5007292, longitude: -0.1246254, accuracy: 7.5 });
   await page.goto(`${BASE}/science/field-form-builder/`); await page.waitForTimeout(400);
-  await page.evaluate(() => localStorage.removeItem('fibub-field-form-v1')); await page.reload(); await page.waitForTimeout(400);
+  await page.evaluate(() => { localStorage.removeItem('fibub-field-form-v1'); localStorage.removeItem('fibub-field-form-v1-on'); }); await page.reload(); await page.waitForTimeout(400);
+  check(!(await page.isChecked(`${R} .ff-keep`)), 'field form: keep box off at first');
   const box = (k) => `${R} .ff-in[data-key="${k}"]`;
   check((await page.textContent(`${R} .ff-ftitle`)) === 'Roadside pollinator count' && (await page.locator(`${R} .ff-in`).count()) === 9, 'field form: example form ready to fill');
   // Empty save: required fields flagged
@@ -25,7 +26,7 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   check((await page.textContent(`${box('temperature')} .ff-e`)) === 'The largest allowed value is 45 °C.' && (await page.textContent(`${R} .ff-rmsg`)).startsWith('Not saved: 1 field'), 'field form: range check');
   await page.fill(`${box('temperature')} input`, '21.5');
   await page.click(`${R} .ff-rsave`); await page.waitForTimeout(80);
-  check((await page.textContent(`${R} .ff-rmsg`)) === 'Record 1 saved.' && (await page.textContent(`${R} .ff-n`)) === '(1)' && (await page.inputValue(`${box('site')} textarea`)) === '', 'field form: record saved and form cleared');
+  check((await page.textContent(`${R} .ff-rmsg`)) === 'Record 1 saved. It is only on this page until you tick “Keep the form and records in this browser” under Records.' && (await page.textContent(`${R} .ff-n`)) === '(1)' && (await page.inputValue(`${box('site')} textarea`)) === '', 'field form: record saved and form cleared');
   // Second record, typed location absent, Now button
   await page.fill(`${box('site')} textarea`, 'Gate, "north"');
   await page.click(`${box('when')} button`);
@@ -36,7 +37,7 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   check((await page.textContent(`${box('location')} .ff-e`)) === 'Latitude runs from -90 to 90.', 'field form: typed latitude checked');
   await page.click(`${box('location')} button:has-text("Clear")`);
   await page.click(`${R} .ff-rsave`); await page.waitForTimeout(80);
-  check((await page.textContent(`${R} .ff-rmsg`)) === 'Record 2 saved.', 'field form: record without a location');
+  check((await page.textContent(`${R} .ff-rmsg`)).startsWith('Record 2 saved.'), 'field form: record without a location');
   // Records view and exports
   await page.click(`${R} .ff-tabs [data-v=records]`); await page.waitForTimeout(80);
   check((await page.textContent(`${R} .ff-rcount`)) === '2 records.' && (await page.locator(`${R} .ff-tab tbody tr`).count()) === 2 && (await page.textContent(`${R} .ff-tab tbody tr:first-child`)).includes('51.50073, -0.12463 ±7.5 m'), 'field form: records table');
@@ -52,6 +53,8 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   check((await page.textContent(`${R} .ff-ftitle`)).endsWith('editing record 2') && (await page.inputValue(`${box('count')} input`)) === '3' && (await page.isChecked(`${box('sky')} input[value="Overcast"]`)), 'field form: edit loads the record');
   await page.fill(`${box('count')} input`, '4'); await page.click(`${R} .ff-rsave`); await page.waitForTimeout(80);
   check((await page.textContent(`${R} .ff-rmsg`)) === 'Record 2 updated.', 'field form: record updated');
+  check(await page.evaluate(() => localStorage.getItem('fibub-field-form-v1') === null), 'field form: nothing saved until the box is ticked');
+  await page.click(`${R} .ff-tabs [data-v=records]`); await page.check(`${R} .ff-keep`); await page.waitForTimeout(50);
   // Kept after a reload
   await page.reload(); await page.waitForTimeout(400);
   check((await page.textContent(`${R} .ff-n`)) === '(2)', 'field form: records kept in this browser');
@@ -85,5 +88,5 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   await page.click(`${R} .ff-delall`); check((await page.textContent(`${R} .ff-delall`)) === 'Tap again to delete 2 records', 'field form: delete asks twice');
   await page.click(`${R} .ff-delall`); await page.waitForTimeout(50);
   check((await page.textContent(`${R} .ff-n`)) === '(0)' && (await page.evaluate(() => JSON.parse(localStorage.getItem('fibub-field-form-v1')).recs.length)) === 0, 'field form: all records deleted');
-  await page.evaluate(() => localStorage.removeItem('fibub-field-form-v1'));
+  await page.evaluate(() => { localStorage.removeItem('fibub-field-form-v1'); localStorage.removeItem('fibub-field-form-v1-on'); });
 };

@@ -6,7 +6,7 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   await page.reload(); await page.waitForTimeout(300);
   const big = () => page.textContent('.dmp .dm-big');
   const sec = (id) => `.dmp .dm-sec[data-id="${id}"]`;
-  check((await big()) === '0 words, 0 of 8 sections written' && (await page.locator('.dmp .dm-sec').count()) === 8 && await page.isChecked('.dmp .dm-keep'), 'dmp: starts empty with eight sections, keep ticked');
+  check((await big()) === '0 words, 0 of 8 sections written' && (await page.locator('.dmp .dm-sec').count()) === 8 && !(await page.isChecked('.dmp .dm-keep')), 'dmp: starts empty with eight sections, keep off at first');
   await page.click(`${sec('data')} .dm-q summary`);
   check((await page.locator(`${sec('data')} .dm-q li`).count()) === 5 && await page.isVisible(`${sec('data')} .dm-q li >> nth=0`), 'dmp: questions to answer open');
   await page.click('.dmp .dm-ex'); await page.waitForTimeout(100);
@@ -21,6 +21,8 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   { const [d] = await Promise.all([page.waitForEvent('download'), page.click('.dmp .dm-md')]); const f = OUT + 'dmp.md'; await d.saveAs(f); const t = readFileSync(f, 'utf8');
     check(d.suggestedFilename() === 'Soil-life-in-city-allotment-gardens-made-up-example.md' && t.startsWith('# Soil life') && t.includes('## Costs and resources\n\nStorage is free.\n\nTen days of time.') && t.includes('- **Date:** 2026-11-09'), 'dmp: Markdown download'); }
   for (const f of ['pdf', 'docx', 'png']) { const [d] = await Promise.all([page.waitForEvent('download'), page.click(`.dmp .dl [data-f=${f}]`)]); const p = OUT + 'dmp.' + f; await d.saveAs(p); const b = readFileSync(p); check(b.length > 2000 && (f !== 'pdf' || b.slice(0, 4).toString() === '%PDF'), `dmp: ${f} download`); }
+  check(await page.evaluate(() => localStorage.getItem('fibub-dmp-v1') === null && localStorage.getItem('fibub-dmp-keep-v1') === null), 'dmp: nothing saved until keep is ticked');
+  await page.check('.dmp .dm-keep'); await page.waitForTimeout(100);
   // Kept in this browser: reload and it is back.
   await page.reload(); await page.waitForTimeout(300);
   check((await page.inputValue(`${sec('costs')} .dm-text`)) === 'Storage is free.\n\nTen days of time.' && (await page.inputValue(`${sec('ethics')} .dm-limit`)) === '40' && (await page.textContent('.dmp .dm-note')).includes('saved draft'), 'dmp: draft kept in this browser');

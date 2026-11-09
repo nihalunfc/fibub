@@ -85,6 +85,8 @@ export default async ({ page, check, BASE: URLBASE, OUT, readFileSync, writeFile
   check((await page.getAttribute(R + '.ct-img', 'src')).startsWith('blob:'), 'camera trap: own photo shown from this device');
   await page.click(R + '.ct-pos'); await page.keyboard.press('1'); await page.keyboard.press('ArrowRight'); await page.keyboard.press('2'); await wait();
   check((await big()).startsWith('2 detections of 2 species in '), 'camera trap: tagged own photos');
+  check(!(await page.isChecked(R + '.ct-keep')) && await page.evaluate(() => localStorage.getItem('fibub-camtrap-v1') === null && localStorage.getItem('fibub-camtrap-keep') === null), 'camera trap: remember box off at first, nothing saved');
+  await page.click(R + '.ct-keep'); await wait();
   { const s = await page.evaluate(() => JSON.parse(localStorage.getItem('fibub-camtrap-v1'))); check(Object.keys(s.tags).length === 3 && s.tags['IMG_0001.JPG|' + 0 + '|x'] === undefined && Object.keys(s.tags).some((k) => k.startsWith('IMG_0001.JPG|') && k.endsWith('|2026:06:01 22:10:00')), 'camera trap: tags kept in this browser by name, size and time'); }
   await page.reload(); await wait(800);
   await page.setInputFiles(R + '.ct-in', files); await wait(800);

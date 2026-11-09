@@ -45,7 +45,7 @@ Each section has a short list of **questions to answer** (open *Questions to ans
 3. **Word counts.** Each section shows its word count. Type a **word limit** if your template has one: the count turns red and says how many words you are over. The summary table lists every section as written, not written yet, or over its limit.
 4. **Download.** *Download Markdown* gives a plain text file with a heading per section. *Image*, *PDF* and *Word* make a tidy report with the summary first.
 
-**Keep my draft in this browser** (ticked at first) saves what you type in this browser's local storage, so the plan is still here when you come back. It is never sent anywhere. Untick it, or press *Start again*, to delete the saved draft. To move a plan to another computer, download the Markdown and open it there with *Open a Markdown file*.
+**Keep my draft in this browser** (off at first, so nothing is saved until you tick it) saves what you type in this browser's local storage, so the plan is still here when you come back. It is never sent anywhere. Untick it, or press *Start again*, to delete the saved draft. To move a plan to another computer, download the Markdown and open it there with *Open a Markdown file*.
 
 ## Worked example
 

@@ -21,8 +21,8 @@ import { DMP_SECTIONS } from '../../lib/sci/dmp';
       <input type="file" class="dm-file" accept=".md,.markdown,.txt,text/markdown,text/plain" hidden />
       <button type="button" class="btn secondary small dm-clear">Start again</button>
     </div>
-    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="dm-keep" checked /> Keep my draft in this browser</label>
-    <p class="ax-help">When ticked, the draft is saved in this browser only (local storage), so it is here next time you open the page. It never leaves your device. Untick it or press <em>Start again</em> to delete it. <em>Open a Markdown file</em> reads back a plan you downloaded from this page (up to 1 MB).</p>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="dm-keep" /> Keep my draft in this browser</label>
+    <p class="ax-help">Off at first: nothing is saved unless you tick it. When ticked, the draft is saved in this browser only (local storage), so it is here next time you open the page. It never leaves your device. Untick it or press <em>Start again</em> to delete it. <em>Open a Markdown file</em> reads back a plan you downloaded from this page (up to 1 MB).</p>
     <p class="ax-help dm-note" hidden></p>
     <p class="ax-err dm-err" hidden></p>
   </div>
@@ -119,7 +119,7 @@ import { DMP_SECTIONS } from '../../lib/sci/dmp';
   root.addEventListener('input', (e) => { if ((e.target as HTMLElement).closest('.dm-sec, .ax-grid')) update(); });
   root.addEventListener('change', (e) => { if ((e.target as HTMLElement).closest('.ax-grid')) update(); });
   inp('.dm-keep').addEventListener('change', () => {
-    try { localStorage.setItem(KEEP, keep() ? '1' : '0'); } catch {}
+    try { if (keep()) localStorage.setItem(KEEP, '1'); else localStorage.removeItem(KEEP); } catch {}
     if (keep()) { update(); note('Your draft is now kept in this browser.'); } else { forget(); note('The saved draft was deleted from this browser. What is on the page stays until you close it.'); }
   });
   q('.dm-ex').addEventListener('click', () => {
@@ -147,7 +147,7 @@ import { DMP_SECTIONS } from '../../lib/sci/dmp';
   q('.dm-md').addEventListener('click', () => { const p = read(); save(new Blob([toMarkdown(p)], { type: 'text/markdown' }), `${fileSafe(p.title || 'data-management-plan')}.md`, 'text/markdown'); });
 
   let saved: DmpPlan | null = null;
-  try { inp('.dm-keep').checked = localStorage.getItem(KEEP) !== '0'; saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch {}
+  try { inp('.dm-keep').checked = localStorage.getItem(KEEP) === '1' || localStorage.getItem(KEY) !== null; saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch {}
   if (saved && saved.texts) { fill({ ...emptyPlan(), ...saved, texts: { ...emptyPlan().texts, ...saved.texts }, limits: { ...emptyPlan().limits, ...saved.limits } }); note('Your saved draft from this browser was opened.'); }
   else update();
   wireDownloads(q('.dl'), () => { const p = read(); return { title: p.title.trim() || 'Data management plan', subtitle: p.title.trim() ? 'Data management plan' : '', file: fileSafe(p.title || 'data-management-plan'), sections }; });
