@@ -1,0 +1,365 @@
+---
+// Exploratory factor analysis: KMO, Bartlett, scree and parallel analysis, principal axis or ML, varimax or promax.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax fa">
+  <div class="ax-card">
+    <h2>Data</h2>
+    <div class="ax-grid">
+      <label>My data is <select class="fa-form"><option value="raw" selected>Scores (one row per person)</option><option value="corr">A correlation matrix</option></select></label>
+      <label class="fa-nl" hidden>Number of people (n) <input class="fa-n" inputmode="numeric" value="" placeholder="e.g. 200" /></label>
+    </div>
+    <label style="margin-top:10px"><span class="fa-what">One row per person, one column per variable (item). A header row with names is optional. Rows with a blank cell are left out.</span>
+      <textarea class="fa-in" rows="9" spellcheck="false" wrap="off">V1	V2	V3	V4	V5	V6	V7	V8
+3	2	4	4	4	3	4	3
+3	2	2	3	4	4	4	3
+4	4	3	3	5	3	5	4
+5	5	4	5	3	5	5	4
+4	2	2	2	3	4	2	2
+3	2	4	3	3	3	3	2
+2	2	3	4	3	2	3	3
+1	1	1	1	2	1	2	3
+4	2	3	2	5	5	5	4
+4	4	4	4	2	2	3	1
+3	4	3	2	3	4	5	4
+3	3	3	4	3	4	3	5
+4	2	3	2	3	2	2	2
+3	1	2	1	1	1	1	1
+3	4	3	5	3	2	4	2
+5	3	5	5	3	3	2	4
+4	3	1	3	5	2	3	3
+2	2	1	1	2	3	2	4
+3	3	4	4	5	5	5	4
+2	3	3	3	4	3	4	3
+3	2	1	3	3	4	2	3
+4	5	4	5	4	3	3	2
+3	4	3	3	3	3	1	4
+3	3	5	3	4	3	5	2
+4	3	2	5	3	3	4	3
+2	3	3	4	3	4	3	5
+2	2	2	1	1	2	2	4
+2	3	3	2	3	4	5	4
+1	4	5	2	1	1	4	2
+3	4	4	3	3	5	5	3
+4	5	4	5	1	4	1	3
+3	3	2	3	4	4	5	5
+4	3	4	4	1	1	2	1
+2	2	1	3	2	2	5	2
+3	4	5	3	5	4	3	3
+3	3	3	4	3	4	4	1
+2	2	3	2	3	4	3	4
+4	3	2	2	2	2	4	1
+2	2	3	2	4	3	3	4
+3	5	4	5	5	5	4	4
+5	3	4	2	2	4	5	4
+4	2	2	3	3	3	5	4
+5	2	4	4	5	5	5	5
+3	2	1	4	3	2	3	3
+3	3	4	5	5	5	3	4
+2	2	3	1	1	4	2	4
+1	1	1	1	2	2	2	2
+4	3	3	5	4	3	5	3
+4	3	4	4	3	3	2	2
+3	2	3	2	5	2	3	4
+2	4	4	4	4	5	2	3
+3	4	4	3	4	4	4	4
+3	3	4	2	3	1	1	1
+2	3	5	1	4	3	3	3
+3	5	4	2	3	3	5	4
+2	3	2	3	2	2	3	3
+4	3	4	3	3	4	4	3
+4	4	2	3	4	3	4	3
+3	4	5	3	4	4	4	5
+2	2	2	2	3	3	2	4
+5	4	3	4	3	5	4	3
+4	4	3	4	3	4	4	4
+2	3	4	2	3	3	1	2
+3	4	4	2	5	4	3	5
+3	3	3	3	2	3	2	2
+2	3	3	3	3	2	2	1
+5	3	4	3	2	2	1	1
+2	3	3	3	2	3	4	3
+1	1	1	2	2	2	2	2
+3	3	2	4	2	2	3	2
+3	4	4	4	3	1	2	3
+3	2	1	3	3	3	5	4
+5	5	4	5	5	3	5	3
+3	2	3	2	4	3	3	2
+3	4	5	2	3	3	4	4
+3	2	2	3	3	3	3	2
+3	4	3	2	1	4	2	2
+4	4	4	2	3	3	2	4
+3	3	2	5	4	4	3	3
+2	3	1	3	3	3	3	2
+4	1	5	2	4	4	4	5
+4	5	5	5	3	5	4	3
+4	4	1	1	3	2	4	4
+2	3	4	3	1	3	4	1
+5	4	5	5	5	5	4	3
+4	3	2	3	4	3	4	2
+2	1	3	1	2	3	3	1
+1	1	2	1	2	1	2	2
+1	2	1	3	1	1	3	3
+3	4	4	3	4	4	3	4
+4	4	3	5	4	4	4	5
+2	3	3	4	2	2	1	2
+1	1	1	1	2	2	2	3
+4	4	5	4	2	2	2	2
+3	3	4	1	2	3	2	3
+3	2	3	3	2	2	3	4
+5	5	5	4	3	5	4	3
+4	3	3	3	2	3	2	3
+2	2	1	2	1	1	1	2
+2	2	2	2	2	3	3	4
+4	5	3	4	4	3	3	3
+4	4	3	4	4	4	4	2
+3	3	2	2	3	2	4	3
+2	3	4	2	4	4	4	2
+3	3	2	4	3	3	5	3
+5	5	4	4	4	3	2	4
+4	4	4	4	3	1	3	4
+3	5	3	3	4	5	3	4
+2	4	2	3	4	3	2	4
+1	1	1	1	5	3	3	3
+2	2	3	3	2	2	2	1
+4	5	3	3	3	3	4	2
+2	4	3	2	4	2	3	3
+2	1	2	1	2	2	1	2
+2	4	3	2	3	2	4	1
+2	3	2	3	3	4	2	1
+2	4	3	4	3	4	3	4
+4	5	4	4	3	3	4	3
+3	2	5	5	2	3	3	5
+4	5	2	5	2	1	3	2
+2	3	1	3	3	1	2	2
+2	2	1	4	3	2	2	2
+4	1	4	2	4	4	4	3
+2	4	4	2	3	3	3	1
+3	3	2	2	3	3	2	1
+2	2	1	3	1	1	2	2
+4	3	2	2	3	3	2	2
+4	4	3	2	3	2	3	3
+4	4	4	4	4	3	3	3
+3	3	3	2	2	3	3	3
+2	3	3	3	4	4	4	2
+1	4	2	4	2	2	2	2
+4	3	2	4	1	2	1	2
+4	4	3	3	2	4	2	1
+1	1	1	1	3	3	3	3
+2	2	2	1	2	4	2	3
+4	3	4	2	4	4	3	3
+2	3	5	2	3	3	3	2
+1	3	1	1	2	4	3	3
+4	3	4	3	3	4	3	4
+4	3	4	2	2	2	2	3
+2	3	3	3	3	3	2	4
+4	3	4	2	5	4	3	5
+2	1	1	4	3	3	2	3
+2	2	1	3	3	2	2	2
+2	3	1	3	2	3	3	3
+5	2	4	2	4	4	3	4
+3	2	4	4	5	4	4	4
+1	1	1	1	3	3	3	5
+4	4	4	3	2	2	2	3</textarea></label>
+    <DataFile target=".fa-in" maxCols={60} maxRows={20000} />
+    <p class="ax-help">Made-up example: 150 people answering 8 items on a 1 to 5 scale, built to have two related factors.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Options</h2>
+    <div class="ax-grid">
+      <label>Factors <select class="fa-k"><option value="auto" selected>From parallel analysis</option></select></label>
+      <label>Extraction <select class="fa-method"><option value="pa" selected>Principal axis</option><option value="ml">Maximum likelihood</option></select></label>
+      <label>Rotation <select class="fa-rot"><option value="promax" selected>Promax (oblique)</option><option value="varimax">Varimax (orthogonal)</option><option value="none">None</option></select></label>
+      <label>Grey out loadings below <select class="fa-cut"><option value="0">Show all</option><option value="0.3" selected>0.30</option><option value="0.4">0.40</option></select></label>
+    </div>
+    <p class="ax-help">Principal axis works with any data; maximum likelihood also gives a chi-square test of fit but assumes roughly normal scores. Promax lets factors correlate (usual for psychological scales); varimax keeps them independent.</p>
+    <p class="ax-err fa-err" hidden></p>
+  </div>
+
+  <div class="ax-card fa-out" hidden>
+    <h2>Is the data suitable?</h2>
+    <dl class="ax-facts fa-facts"></dl>
+    <h3 class="fa-h3">Eigenvalues and parallel analysis</h3>
+    <canvas class="ax-fig fa-fig"></canvas>
+    <div class="ax-scroll"><table class="fa-eig"></table></div>
+    <h3 class="fa-h3 fa-lh"></h3>
+    <div class="ax-scroll"><table class="fa-load"></table></div>
+    <div class="fa-phiw" hidden><h3 class="fa-h3">Factor correlations</h3><div class="ax-scroll"><table class="fa-phi"></table></div></div>
+    <dl class="ax-facts fa-fit" style="margin-top:12px"></dl>
+    <p class="ax-help fa-note"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small fa-csv">Download loadings (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .fa .fa-h3 { margin: 16px 0 6px; font-size: 16px; }
+  .fa .fa-load td.fa-dim { color: var(--muted); opacity: 0.55; }
+  .fa .fa-load td.fa-hi { font-weight: 700; }
+  .fa td.fa-bad { color: var(--bad); font-weight: 600; }
+</style>
+
+<script>
+  import { parseTable, num, sig, csv } from '../../lib/sci/num';
+  import { correlation, eigenSym, kmo, bartlett, efa, parallel } from '../../lib/sci/efa';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { wireDownloads, save, paint, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.fa')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  let report: Section[] = [], csvRows: (string | number)[][] = [], fig: Figure | null = null, lastP = 0;
+  const f3 = (x: number) => (Number.isFinite(x) ? x.toFixed(3).replace(/^-/, '−') : '–');
+  const f2 = (x: number) => (Number.isFinite(x) ? x.toFixed(2).replace(/^-/, '−') : '–');
+  const pTxt = (p: number) => (!Number.isFinite(p) ? '–' : p < 0.001 ? '< 0.001' : p.toFixed(3));
+  const kmoBand = (k: number) => k < 0.5 ? 'unacceptable' : k < 0.6 ? 'poor' : k < 0.7 ? 'mediocre' : k < 0.8 ? 'middling' : k < 0.9 ? 'meritorious' : 'marvellous';
+  let paCache = { key: '', v: null as null | ReturnType<typeof parallel> };
+
+  function table(t: HTMLTableElement, head: string[], rows: string[][], cls?: (r: number, c: number) => string) {
+    t.innerHTML = '';
+    const hr = t.createTHead().insertRow();
+    head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody();
+    rows.forEach((r, ri) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; td.className = [i ? 'r' : '', cls?.(ri, i) ?? ''].join(' ').trim(); }); });
+  }
+  function facts(dl: HTMLElement, list: [string, string][]) {
+    dl.innerHTML = '';
+    for (const [k, v] of list) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d); }
+  }
+
+  function readData(): { R: number[][]; n: number; names: string[]; dropped: number } {
+    const rows = parseTable(q<HTMLTextAreaElement>('.fa-in').value);
+    if (!rows.length) throw new Error('Paste your data first.');
+    const isNum = (c: string) => c.trim() === '' || Number.isFinite(num(c));
+    const hasHead = !rows[0].every(isNum);
+    let body = hasHead ? rows.slice(1) : rows;
+    if (sel('.fa-form') === 'corr') {
+      const labelled = body.every((r) => r[0] !== undefined && !isNum(r[0]));
+      const names = labelled ? body.map((r) => r[0]) : hasHead ? rows[0].filter((c) => c.trim() !== '') : body.map((_, i) => `V${i + 1}`);
+      if (labelled) body = body.map((r) => r.slice(1));
+      const p = body.length;
+      const R = body.map((r, i) => Array.from({ length: p }, (_, j) => { const v = num(r[j] ?? ''); return Number.isFinite(v) ? v : NaN; }));
+      // A lower triangle is filled in from its mirror.
+      for (let i = 0; i < p; i++) for (let j = 0; j < p; j++) if (!Number.isFinite(R[i][j]) && Number.isFinite(R[j][i])) R[i][j] = R[j][i];
+      for (let i = 0; i < p; i++) for (let j = 0; j < p; j++) {
+        if (!Number.isFinite(R[i][j])) throw new Error(`The matrix needs ${p} rows and ${p} columns of numbers (row ${i + 1} is short).`);
+        if (Math.abs(R[i][j] - R[j][i]) > 1e-6) throw new Error(`The matrix is not symmetric: row ${i + 1}, column ${j + 1} differs from row ${j + 1}, column ${i + 1}.`);
+        if (i === j && Math.abs(R[i][i] - 1) > 1e-6) throw new Error('The diagonal of a correlation matrix must be all 1.');
+        if (Math.abs(R[i][j]) > 1) throw new Error('Correlations must be between −1 and 1.');
+      }
+      if (p < 3) throw new Error('Need at least three variables.');
+      const n = num(q<HTMLInputElement>('.fa-n').value);
+      if (!(Number.isInteger(n) && n > p)) throw new Error(`Enter the number of people (n), a whole number above ${p}.`);
+      return { R, n, names: names.slice(0, p).map((x, i) => x || `V${i + 1}`), dropped: 0 };
+    }
+    const k = Math.max(...body.map((r) => r.length));
+    const names = Array.from({ length: k }, (_, j) => (hasHead ? rows[0][j]?.trim() : '') || `V${j + 1}`);
+    const X = body.map((r, i) => Array.from({ length: k }, (_, j) => {
+      const c = (r[j] ?? '').trim(); if (c === '') return NaN;
+      const v = num(c); if (!Number.isFinite(v)) throw new Error(`"${c}" in row ${i + 1} (${names[j]}) is not a number.`); return v;
+    }));
+    const { R, n } = correlation(X);
+    if (n <= k) throw new Error(`Only ${n} complete rows for ${k} variables. Factor analysis needs more people than variables, ideally many more.`);
+    return { R, n, names, dropped: X.length - n };
+  }
+
+  function calc() {
+    const err = q('.fa-err');
+    try {
+      const { R, n, names, dropped } = readData(), p = R.length;
+      // Factor choices follow the number of variables.
+      const ks = q<HTMLSelectElement>('.fa-k');
+      if (p !== lastP) {
+        const cur = ks.value; ks.length = 1;
+        for (let m = 1; m <= Math.min(p - 1, 12); m++) ks.add(new Option(String(m), String(m)));
+        ks.value = [...ks.options].some((o) => o.value === cur) ? cur : 'auto'; lastP = p;
+      }
+      const ev = eigenSym(R).values, K = kmo(R), B = bartlett(R, n);
+      const key = `${n}x${p}`;
+      if (paCache.key !== key) paCache = { key, v: parallel(n, p, 100, 1) };
+      const pa = paCache.v!;
+      let suggest = 0; while (suggest < p && ev[suggest] > pa.p95[suggest]) suggest++;
+      const kaiser = ev.filter((v) => v > 1).length;
+      const m = ks.value === 'auto' ? Math.max(1, Math.min(suggest, p - 1)) : Number(ks.value);
+      const method = sel('.fa-method') as 'pa' | 'ml', rotation = sel('.fa-rot') as 'none' | 'varimax' | 'promax';
+      const r = efa(R, n, { factors: m, method, rotation });
+      const cut = Number(sel('.fa-cut'));
+
+      const ff: [string, string][] = [
+        ['People, variables', `${n}, ${p}${dropped ? ` (${dropped} incomplete row${dropped > 1 ? 's' : ''} left out)` : ''}`],
+        ['KMO', `${f3(K.overall)} (${kmoBand(K.overall)})`],
+        ["Bartlett's test", `χ²(${B.df}) = ${sig(B.chi2, 4)}, p ${pTxt(B.p).startsWith('<') ? pTxt(B.p) : '= ' + pTxt(B.p)}`],
+        ['Parallel analysis suggests', `${suggest} factor${suggest === 1 ? '' : 's'}`],
+        ['Eigenvalues above 1', String(kaiser)],
+      ];
+      facts(q('.fa-facts'), ff);
+
+      const F = Array.from({ length: m }, (_, j) => `F${j + 1}`);
+      const eHead = ['Factor', 'Eigenvalue', '% of variance', 'Cumulative %', 'Random mean', 'Random 95th'];
+      let cum = 0;
+      const eRows = ev.map((v, i) => { cum += v; return [String(i + 1), f3(v), (100 * v / p).toFixed(1), (100 * cum / p).toFixed(1), f3(pa.mean[i]), f3(pa.p95[i])]; });
+      table(q<HTMLTableElement>('.fa-eig'), eHead, eRows, (ri, c) => (c === 1 && ev[ri] > pa.p95[ri] ? 'fa-hi' : ''));
+      fig = chartFigure({ h: 300, xLabel: 'Factor number', yLabel: 'Eigenvalue', xMin: 0.5, xMax: p + 0.5, yMin: 0, series: [
+        { name: 'Your data', x: ev.map((_, i) => i + 1), y: ev, mode: 'both', marker: 'circle' },
+        { name: 'Random data (95th percentile)', x: ev.map((_, i) => i + 1), y: pa.p95, mode: 'both', marker: 'open-square', dash: [6, 4] },
+      ], marks: [{ kind: 'hline', at: 1, dash: [2, 4], label: 'Eigenvalue 1' }] }, `Scree plot: ${suggest} eigenvalue${suggest === 1 ? '' : 's'} above random data`);
+      paint(q<HTMLCanvasElement>('.fa-fig'), fig);
+
+      const label = rotation === 'promax' && m > 1 ? 'Pattern loadings (promax)' : rotation === 'varimax' && m > 1 ? 'Loadings (varimax)' : 'Loadings (unrotated)';
+      q('.fa-lh').textContent = `${label}, ${method === 'ml' ? 'maximum likelihood' : 'principal axis'}, ${m} factor${m > 1 ? 's' : ''}`;
+      const lHead = ['Variable', ...F, 'h²', 'u²', 'MSA'];
+      const lRows = names.map((nm, i) => [nm, ...r.loadings[i].map(f3), f3(r.communalities[i]), f3(r.uniqueness[i]), f3(K.items[i])]);
+      table(q<HTMLTableElement>('.fa-load'), lHead, lRows, (ri, c) => {
+        if (c >= 1 && c <= m) { const v = Math.abs(r.loadings[ri][c - 1]); return v < cut ? 'fa-dim' : v === Math.max(...r.loadings[ri].map(Math.abs)) ? 'fa-hi' : ''; }
+        if (c === m + 3 && K.items[ri] < 0.6) return 'fa-bad';
+        if (c === m + 1 && r.communalities[ri] >= 0.995) return 'fa-bad';
+        return '';
+      });
+      const ssRow = ['Sum of squared loadings', ...r.ss.map(f3), '', '', ''], pvRow = ['Share of variance', ...r.propVar.map((v) => `${(100 * v).toFixed(1)} %`), '', '', ''];
+      const tb = q<HTMLTableElement>('.fa-load').tBodies[0];
+      for (const row of [ssRow, pvRow]) { const tr = tb.insertRow(); row.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); tr.className = 'dim'; }
+      q('.fa-phiw').hidden = !r.phi;
+      if (r.phi) table(q<HTMLTableElement>('.fa-phi'), ['', ...F], r.phi.map((row, i) => [F[i], ...row.map(f3)]));
+
+      const fit: [string, string][] = [['RMS of residual correlations', f3(r.rmsr)]];
+      if (r.ml) fit.unshift(['Chi-square test of fit', r.ml.df > 0 ? `χ²(${r.ml.df}) = ${sig(r.ml.chi2, 4)}, p = ${pTxt(r.ml.p)}` : 'no degrees of freedom left']);
+      facts(q('.fa-fit'), fit);
+
+      const notes: string[] = [];
+      if (K.overall < 0.6) notes.push('KMO is below 0.6: the variables share too little to factor well.');
+      const lowMsa = names.filter((_, i) => K.items[i] < 0.6);
+      if (lowMsa.length) notes.push(`Low sampling adequacy (MSA below 0.6): ${lowMsa.join(', ')}. Consider leaving ${lowMsa.length > 1 ? 'them' : 'it'} out.`);
+      if (r.heywood.length) notes.push(`${r.heywood.map((i) => names[i]).join(', ')} ${r.heywood.length > 1 ? 'have' : 'has'} a communality near 1 (a Heywood case): try fewer factors or principal axis.`);
+      if (!r.converged) notes.push('The extraction did not fully converge; treat the loadings with care.');
+      if (r.ml && r.ml.df > 0) notes.push(r.ml.p < 0.05 ? 'The chi-square test rejects exact fit, which is common with large samples; look at the residuals as well.' : 'The chi-square test does not reject the model.');
+      notes.push(`Parallel analysis compares your eigenvalues with the 95th percentile of ${pa.reps} random data sets of the same size (fixed seed). Bold loadings mark each variable's main factor. h² is the communality (variance shared with the factors), u² = 1 − h², MSA the variable's own KMO.`);
+      q('.fa-note').textContent = notes.join(' ');
+
+      csvRows = [lHead, ...names.map((nm, i) => [nm, ...r.loadings[i].map((v) => +v.toFixed(6)), +r.communalities[i].toFixed(6), +r.uniqueness[i].toFixed(6), +K.items[i].toFixed(6)])];
+      report = [
+        { title: 'Suitability', facts: ff },
+        { title: 'Eigenvalues and parallel analysis', figure: fig, table: { head: eHead, rows: eRows, align: ['l', 'r', 'r', 'r', 'r', 'r'] } },
+        { title: q('.fa-lh').textContent!, table: { head: lHead, rows: [...lRows, ssRow, pvRow], align: ['l', ...lHead.slice(1).map(() => 'r' as const)] } },
+        ...(r.phi ? [{ title: 'Factor correlations', table: { head: ['', ...F], rows: r.phi.map((row, i) => [F[i], ...row.map(f3)]), align: ['l', ...F.map(() => 'r' as const)] } } as Section] : []),
+        { title: 'Fit', facts: fit, note: notes.join(' ') },
+      ];
+      err.hidden = true; q('.fa-out').hidden = false;
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.fa-out').hidden = true; report = []; csvRows = []; }
+  }
+
+  q('.fa-form').addEventListener('change', () => {
+    const corr = sel('.fa-form') === 'corr';
+    q('.fa-nl').hidden = !corr;
+    q('.fa-what').textContent = corr ? 'A square correlation matrix, with names in the first row and column if you like. The lower triangle alone is enough.' : 'One row per person, one column per variable (item). A header row with names is optional. Rows with a blank cell are left out.';
+  });
+  let t = 0;
+  root.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(calc, 300); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select')) calc(); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.fa-fig'), fig); });
+  q('.fa-csv').addEventListener('click', () => { if (csvRows.length > 1) save(new TextEncoder().encode(csv(csvRows)), 'factor-loadings.csv', 'text/csv'); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Exploratory factor analysis', file: 'factor-analysis', sections: report }));
+</script>
