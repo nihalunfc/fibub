@@ -11,7 +11,7 @@ order: 1064
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [random-walk-diffusion, phase-diagram-calculator]
+related: [heating-curve, kinetic-theory, random-walk-diffusion, phase-diagram-calculator]
 sources:
   - "Particle model of solids, liquids and gases, melting and boiling at constant temperature, Kelvin scale K = °C + 273.15, mean kinetic energy (3/2)kT with the Boltzmann constant k = 1.380649 × 10⁻²³ J/K (SI, exact), diffusion faster at higher temperature: standard science."
   - "Melting and boiling points at normal pressure are rounded general values: water 0 and 100 °C, ethanol −114 and 78 °C, oxygen −218 and −183 °C, iron 1,538 and 2,862 °C."
@@ -27,7 +27,7 @@ flow:
 
 Everything is made of tiny particles that are always moving. How strongly they hold on to each other, and how fast they move, decides whether a substance is a **solid**, a **liquid** or a **gas**. This page puts a few particles in a box and lets you **heat** or **cool** them. In a solid they only shake about fixed places; heat them to the **melting point** and they break free and slide past each other as a liquid; heat them to the **boiling point** and they fly apart as a gas that fills the box. A second view shows **diffusion**: two colours of particles spreading into each other once a divider is lifted.
 
-It follows the school topics on matter: Class 8 Science, the particulate nature of matter (states of matter and the particle model), and Class 9 Science, Matter in Our Surroundings (characteristics of particles, states of matter, change of state, melting and boiling points, the kelvin scale, diffusion and evaporation). For the maths of particles wandering, see [[random-walk-diffusion]], and for where the states meet at other pressures, [[phase-diagram-calculator]].
+It follows the school topics on matter: Class 8 Science, the particulate nature of matter (states of matter and the particle model), and Class 9 Science, Matter in Our Surroundings (characteristics of particles, states of matter, change of state, melting and boiling points, the kelvin scale, diffusion and evaporation). Next, [[heating-curve]] shows why the temperature stops rising while ice melts, and [[kinetic-theory]] shows how gas particles make pressure. For the maths of particles wandering, see [[random-walk-diffusion]].
 
 ## How to use it
 
