@@ -1,0 +1,139 @@
+---
+// Chi-square goodness of fit for Mendelian ratios, with each class's share and an exact test.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { MENDEL_RATIOS } from '../../lib/sci/mendel';
+---
+<div class="ax mcs">
+  <div class="ax-card">
+    <h2>Cross and counts</h2>
+    <div class="ax-grid">
+      <label>Expected ratio <select class="mc-preset">
+        {MENDEL_RATIOS.map((m) => <option value={m.id} selected={m.id === '9:3:3:1'}>{m.name}</option>)}
+        <option value="custom">My own ratio</option>
+      </select></label>
+      <label>Ratio <input class="mc-ratio" value="9:3:3:1" /></label>
+    </div>
+    <label style="margin-top:10px">Class names (commas) <input class="mc-names" value="A_B_, A_bb, aaB_, aabb" /></label>
+    <label style="margin-top:10px">Observed counts, in the same order (commas or spaces) <input class="mc-obs" inputmode="decimal" value="290, 102, 95, 33" /></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Significance level <select class="mc-alpha"><option value="0.1">0.10</option><option value="0.05" selected>0.05</option><option value="0.01">0.01</option></select></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="mc-exact" checked /> Also run the exact test (binomial or multinomial)</label>
+    <p class="ax-help">Pick a classic ratio or type your own (any whole or decimal parts, such as 9:7 or 1:2:1). The chi-square test compares your counts with the counts the ratio predicts; a small p-value (below the significance level) means the ratio does not fit. The exact test gives the same answer without the large-sample approximation, so use it when expected counts are small. The example counts are made up.</p>
+    <p class="ax-err mc-err" hidden></p>
+  </div>
+
+  <div class="ax-card mc-out">
+    <h2>Result</h2>
+    <p class="ax-big mc-big"></p>
+    <dl class="ax-facts mc-facts"></dl>
+    <h3>Each class</h3>
+    <div class="ax-scroll"><table class="mc-tab"></table></div>
+    <p class="ax-help mc-note"></p>
+    <canvas class="ax-fig mc-fig"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small mc-csv">Download table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { MENDEL_RATIOS, chiGof, exactGof, parseRatio, outcomes } from '../../lib/sci/mendel';
+  import { chiSqInv } from '../../lib/sci/nesize';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { niceTicks } from '../../lib/sci/plot';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.mcs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const s3 = (x: number) => String(+x.toPrecision(3)).replace('-', '−');
+  const s4 = (x: number) => String(+x.toPrecision(4)).replace('-', '−');
+  const pv = (p: number) => (p >= 0.9995 ? '1.00' : sig(p, 3));
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function bars(names: string[], obs: number[], exp: number[]): Figure {
+    return { w: 720, h: 300, alt: 'Observed and expected counts in each class', draw: (ctx, W, H, pal) => {
+      const L = 56, Rm = 12, T = 34, B = 44, top = Math.max(...obs, ...exp) * 1.1 || 1, ticks = niceTicks(0, top, 5);
+      const ymax = Math.max(top, ticks[ticks.length - 1]), Y = (v: number) => H - B - (v / ymax) * (H - B - T), gw = (W - L - Rm) / names.length, bw = Math.min(40, gw * 0.35);
+      ctx.font = '16px system-ui, sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      for (const v of ticks) { ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(L, Y(v)); ctx.lineTo(W - Rm, Y(v)); ctx.stroke(); ctx.fillStyle = pal.ink; ctx.fillText(String(v), L - 6, Y(v)); }
+      const cO = pal.red ? pal.ink : pal.accent, cE = pal.red ? pal.muted : pal.accent2;
+      names.forEach((nm, i) => {
+        const x = L + gw * i + gw / 2;
+        ctx.fillStyle = cO; ctx.fillRect(x - bw - 2, Y(obs[i]), bw, Y(0) - Y(obs[i]));
+        ctx.fillStyle = cE; ctx.fillRect(x + 2, Y(exp[i]), bw, Y(0) - Y(exp[i]));
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(nm.length > 14 ? nm.slice(0, 13) + '…' : nm, x, H - B + 8);
+      });
+      ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(L, T - 4); ctx.lineTo(L, Y(0)); ctx.lineTo(W - Rm, Y(0)); ctx.stroke();
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = cO; ctx.fillRect(L + 8, 8, 12, 12); ctx.fillStyle = pal.ink; ctx.fillText('Observed', L + 26, 14);
+      ctx.fillStyle = cE; ctx.fillRect(L + 120, 8, 12, 12); ctx.fillStyle = pal.ink; ctx.fillText('Expected', L + 138, 14);
+    } };
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.mc-err').textContent = m; q('.mc-err').hidden = false; q('.mc-out').hidden = true; fig = null; sections = []; csvRows = []; };
+    q('.mc-err').hidden = true;
+    const ratio = parseRatio(q<HTMLInputElement>('.mc-ratio').value), obs = q<HTMLInputElement>('.mc-obs').value.split(/[\s,;]+/).filter(Boolean).map(num);
+    if (ratio.length < 2 || ratio.some((r) => !(r > 0))) return fail('Type the ratio as two or more positive numbers, such as 9:3:3:1.');
+    if (ratio.length > 20) return fail('Up to 20 classes, please.');
+    if (obs.length !== ratio.length) return fail(`The ratio has ${ratio.length} classes but you typed ${obs.length} count${obs.length === 1 ? '' : 's'}. Give one count per class.`);
+    if (obs.some((o) => !(Number.isInteger(o) && o >= 0))) return fail('Counts must be whole numbers of zero or more.');
+    const n = obs.reduce((a, b) => a + b, 0);
+    if (n === 0) return fail('All counts are zero.');
+    if (n > 1e7) return fail('Up to 10 million individuals in total, please.');
+    const typed = q<HTMLInputElement>('.mc-names').value.split(',').map((s) => s.trim());
+    const names = ratio.map((_, i) => typed[i] || `Class ${i + 1}`);
+    const alpha = Number(q<HTMLSelectElement>('.mc-alpha').value), g = chiGof(obs, ratio), crit = chiSqInv(1 - alpha, g.df);
+    const rtext = ratio.map((r) => String(r)).join(':'), fits = g.p >= alpha;
+    q('.mc-out').hidden = false;
+    q('.mc-big').textContent = `χ² = ${s3(g.chi2)}, df = ${g.df}, p = ${pv(g.p)}: ${fits ? `consistent with ${rtext}` : `does not fit ${rtext}`}`;
+    let exText = 'not run', exNote = '';
+    if (q<HTMLInputElement>('.mc-exact').checked) {
+      if (g.k > 2 && outcomes(n, g.k) > 4e7) { exText = 'too many outcomes'; exNote = 'the sample is large enough for the chi-square test to be reliable'; }
+      else { const pe = exactGof(obs, ratio); exText = `p = ${pv(pe)}`; exNote = `${g.k === 2 ? 'binomial' : 'multinomial'} test: ${pe >= alpha ? 'fits' : 'does not fit'} at ${alpha}`; }
+    }
+    const worst = g.contrib.indexOf(Math.max(...g.contrib));
+    const facts = [
+      fact('Chi-square χ²', s3(g.chi2), `sum of (O − E)² / E over ${g.k} classes`),
+      fact('Degrees of freedom', String(g.df), 'classes − 1'),
+      fact('p-value', pv(g.p), fits ? `at or above ${alpha}: the difference could easily be chance` : `below ${alpha}: unlikely to be chance alone`),
+      fact(`Critical value at ${alpha}`, s3(crit), `χ² above this rejects the ratio`),
+      fact('Exact test', exText, exNote),
+      fact('Total counted', n.toLocaleString('en'), ''),
+      fact('Biggest contributor', names[worst], g.chi2 > 0 ? `${Math.round((100 * g.contrib[worst]) / g.chi2)} % of χ²; ${obs[worst] > g.expected[worst] ? 'more' : 'fewer'} than expected` : 'perfect fit'),
+    ];
+    q('.mc-facts').replaceChildren(...facts);
+    const head = ['Class', 'Ratio', 'Observed', 'Expected', 'O − E', '(O − E)²/E', 'Share of χ²', 'Residual'];
+    const rows = names.map((nm, i) => [nm, String(ratio[i]), String(obs[i]), s4(g.expected[i]), s4(obs[i] - g.expected[i]), s3(g.contrib[i]), g.chi2 > 0 ? `${Math.round((100 * g.contrib[i]) / g.chi2)} %` : '0 %', s3(g.resid[i])]);
+    rows.push(['Total', String(ratio.reduce((a, b) => a + b, 0)), String(n), String(n), '0', s3(g.chi2), '100 %', '']);
+    const tb = q<HTMLTableElement>('.mc-tab'); tb.replaceChildren();
+    const hr = tb.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.style.textAlign = 'right'; hr.append(th); });
+    const bd = tb.createTBody(); rows.forEach((r) => { const tr = bd.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.style.textAlign = 'right'; }); });
+    q('.mc-note').textContent = `Residual = (O − E)/√E: beyond about ±2 a class stands out.${g.smallClasses ? ` ${g.smallClasses} class${g.smallClasses > 1 ? 'es have' : ' has'} an expected count below 5, so the chi-square p-value is unreliable: use the exact test${g.k > 2 ? ', or merge small classes' : ''}.` : ''}`;
+    fig = bars(names, obs, g.expected); paint(q<HTMLCanvasElement>('.mc-fig'), fig);
+    csvRows = [head, ...rows];
+    sections = [{ title: q('.mc-big').textContent!, text: [`Expected ratio ${rtext}. Pearson chi-square goodness of fit with ${g.df} degrees of freedom.`], facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]),
+      table: { head, rows, align: head.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] }, figure: fig }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 300); };
+  q('.mc-preset').addEventListener('change', () => {
+    const m = MENDEL_RATIOS.find((x) => x.id === q<HTMLSelectElement>('.mc-preset').value);
+    if (m) { q<HTMLInputElement>('.mc-ratio').value = m.ratio.join(':'); q<HTMLInputElement>('.mc-names').value = m.classes.join(', '); }
+    calc();
+  });
+  q('.mc-ratio').addEventListener('input', () => { const r = q<HTMLInputElement>('.mc-ratio').value.replace(/\s/g, ''); const m = MENDEL_RATIOS.find((x) => x.id === r); q<HTMLSelectElement>('.mc-preset').value = m ? m.id : 'custom'; });
+  root.querySelectorAll('input, select:not(.mc-preset)').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.mc-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'mendelian-chi-square.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.mc-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Mendelian chi-square test', subtitle: q('.mc-big').textContent ?? '', file: 'mendelian-chi-square', sections }));
+</script>
+
+<style is:global>
+  .mcs select { max-width: 100%; }
+  .mcs .mc-tab td, .mcs .mc-tab th { white-space: nowrap; }
+</style>
