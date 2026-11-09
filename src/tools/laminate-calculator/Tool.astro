@@ -1,0 +1,243 @@
+---
+// Composite laminate calculator: ply properties from fibre and matrix, then classical lamination theory (Q, Q-bar,
+// ABD, effective moduli, ply stresses under N and M) with first-ply failure by maximum stress and Tsai-Wu.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax lmc">
+  <div class="ax-card">
+    <h2>1. Ply properties</h2>
+    <div class="ax-seg lmc-mode" role="group" aria-label="Where the ply properties come from">
+      <button type="button" data-m="fm" aria-pressed="true">From fibre and matrix</button>
+      <button type="button" data-m="ply" aria-pressed="false">Type ply properties</button>
+    </div>
+    <div class="lmc-fm" style="margin-top:12px">
+      <div class="ax-grid">
+        <label><span>Fibre modulus E<sub>f</sub> (GPa)</span> <input class="lmc-ef" inputmode="decimal" value="75" /></label>
+        <label><span>Fibre Poisson's ratio ν<sub>f</sub></span> <input class="lmc-nuf" inputmode="decimal" value="0.2" /></label>
+        <label><span>Matrix modulus E<sub>m</sub> (GPa)</span> <input class="lmc-em" inputmode="decimal" value="3.5" /></label>
+        <label><span>Matrix Poisson's ratio ν<sub>m</sub></span> <input class="lmc-num" inputmode="decimal" value="0.35" /></label>
+        <label><span>Fibre volume fraction V<sub>f</sub></span> <input class="lmc-vf" inputmode="decimal" value="0.6" /></label>
+        <label>Transverse model <select class="lmc-model"><option value="halpin" selected>Halpin-Tsai (ξ = 2 for E₂, 1 for G₁₂)</option><option value="reuss">Inverse rule of mixtures (Reuss)</option></select></label>
+      </div>
+      <p class="ax-help">E₁ and ν₁₂ follow the rule of mixtures (fibres and matrix stretch together). E₂ and G₁₂ come from the model you pick: Reuss (fibres and matrix in series) is a lower bound; Halpin-Tsai is usually much closer to tests. Shear moduli are taken as E/(2(1 + ν)), so the fibre is treated as isotropic. The example values are round made-up numbers.</p>
+    </div>
+    <div class="lmc-pp" style="margin-top:12px" hidden>
+      <div class="ax-grid">
+        <label><span>E<sub>1</sub>, along the fibres (GPa)</span> <input class="lmc-e1" inputmode="decimal" value="140" /></label>
+        <label><span>E<sub>2</sub>, across the fibres (GPa)</span> <input class="lmc-e2" inputmode="decimal" value="10" /></label>
+        <label><span>Shear modulus G<sub>12</sub> (GPa)</span> <input class="lmc-g12" inputmode="decimal" value="5" /></label>
+        <label><span>Poisson's ratio ν<sub>12</sub></span> <input class="lmc-nu12" inputmode="decimal" value="0.3" /></label>
+      </div>
+      <p class="ax-help">Use values measured on your ply material (unidirectional tests). The suggested numbers are round made-up values.</p>
+    </div>
+    <p class="ax-err lmc-perr" hidden></p>
+    <dl class="ax-facts lmc-ply" style="margin-top:12px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>2. Stacking and laminate stiffness</h2>
+    <div class="ax-grid">
+      <label class="lmc-wide">Ply angles, first ply at z = −h/2 <input class="lmc-stack" value="[0/±45/90]s" spellcheck="false" autocomplete="off" /></label>
+      <label>Ply thickness (mm) <input class="lmc-t" inputmode="decimal" value="0.125" /></label>
+    </div>
+    <p class="ax-help">Angles in degrees from the x axis. Write them with / or commas; ±45 adds +45 and −45, 0_2 repeats a ply, ]2 repeats the group, and a final s mirrors the stack (symmetric). Example: [0/±45/90]s is 8 plies.</p>
+    <p class="ax-err lmc-serr" hidden></p>
+    <div class="lmc-sout">
+      <p class="ax-help lmc-plies" style="margin-top:12px"></p>
+      <dl class="ax-facts lmc-eff" style="margin-top:12px"></dl>
+      <h3 class="lmc-h3">ABD matrix</h3>
+      <p class="ax-help" style="margin-top:0">[N; M] = [A B; B D] [ε⁰; κ]. A in N/mm, B in N, D in N·mm.</p>
+      <div class="ax-scroll"><table class="lmc-abd"></table></div>
+      <h3 class="lmc-h3">Q and Q-bar (GPa)</h3>
+      <p class="ax-help" style="margin-top:0">Q is the ply stiffness in its own axes (1 along the fibres); Q-bar is the same ply turned to its angle, in laminate axes.</p>
+      <div class="ax-scroll"><table class="lmc-q"></table></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>3. Loads, ply stresses and first-ply failure</h2>
+    <div class="ax-grid">
+      <label><span>N<sub>x</sub> (N/mm)</span> <input class="lmc-nx" inputmode="decimal" value="40" /></label>
+      <label><span>N<sub>y</sub> (N/mm)</span> <input class="lmc-ny" inputmode="decimal" value="0" /></label>
+      <label><span>N<sub>xy</sub> (N/mm)</span> <input class="lmc-nxy" inputmode="decimal" value="0" /></label>
+      <label><span>M<sub>x</sub> (N·mm/mm)</span> <input class="lmc-mx" inputmode="decimal" value="0" /></label>
+      <label><span>M<sub>y</sub> (N·mm/mm)</span> <input class="lmc-my" inputmode="decimal" value="0" /></label>
+      <label><span>M<sub>xy</sub> (N·mm/mm)</span> <input class="lmc-mxy" inputmode="decimal" value="0" /></label>
+    </div>
+    <p class="ax-help">N is force per unit width of the laminate (stress × thickness); M is bending moment per unit width.</p>
+    <h3 class="lmc-h3">Ply strengths (MPa)</h3>
+    <div class="ax-grid">
+      <label><span>X<sub>t</sub>, fibre tension</span> <input class="lmc-xt" inputmode="decimal" value="1000" /></label>
+      <label><span>X<sub>c</sub>, fibre compression</span> <input class="lmc-xc" inputmode="decimal" value="600" /></label>
+      <label><span>Y<sub>t</sub>, transverse tension</span> <input class="lmc-yt" inputmode="decimal" value="30" /></label>
+      <label><span>Y<sub>c</sub>, transverse compression</span> <input class="lmc-yc" inputmode="decimal" value="120" /></label>
+      <label>S, in-plane shear <input class="lmc-ss" inputmode="decimal" value="50" /></label>
+      <label><span>Tsai-Wu F<sub>12</sub>*</span> <input class="lmc-f12" inputmode="decimal" value="-0.5" /></label>
+    </div>
+    <p class="ax-help">Type compressive strengths as positive numbers. F₁₂* sets the Tsai-Wu interaction term F₁₂ = F₁₂* √(F₁₁F₂₂); −0.5 is the usual choice, and it must lie between −1 and 1. The example strengths are made-up round numbers.</p>
+    <p class="ax-err lmc-lerr" hidden></p>
+    <div class="lmc-lout">
+      <p class="ax-big lmc-big"></p>
+      <dl class="ax-facts lmc-fpf"></dl>
+      <canvas class="ax-fig lmc-fig" style="margin-top:12px"></canvas>
+      <div class="ax-row" style="margin-top:8px">
+        <label class="lmc-inline">Plot <select class="lmc-plot"><option value="12" selected>ply-axis stresses σ₁, σ₂, τ₁₂</option><option value="xy">laminate-axis stresses σx, σy, τxy</option><option value="eps">laminate-axis strains εx, εy, γxy</option></select></label>
+      </div>
+      <h3 class="lmc-h3">Each ply, bottom and top face</h3>
+      <p class="ax-help" style="margin-top:0">Stresses in MPa in ply axes; R is the strength ratio, the factor on all loads at which that point fails (below 1 means it has failed).</p>
+      <div class="ax-scroll"><table class="lmc-tab"></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small lmc-csv">Download ply results (CSV)</button></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { micromechanics, parseStack, laminate, effective, plyResults, type Ply, type Laminate, type PlyPoint } from '../../lib/sci/laminate';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.lmc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const gpa = (x: number) => `${sig(x / 1000, 4)} GPa`;
+  const f = (x: number, n = 4) => sig(Math.abs(x) < 1e-9 ? 0 : x, n);
+  const deg = (x: number) => `${String(x).replace('-', '−')}°`;
+  const ratio = (r: number) => (Number.isFinite(r) ? sig(r, 4) : '∞');
+  const width = () => Math.round(Math.min(720, Math.max(300, root.clientWidth - 34 || 640)));
+  let mode = 'fm', ply: Ply | null = null, lam: Laminate | null = null, res: ReturnType<typeof plyResults> | null = null, fig: Figure | null = null;
+  let abdRows: string[][] = [], qRows: string[][] = [], plyRows: string[][] = [];
+  const err = (c: string, out: string | null, m: string) => { q(c).textContent = m; q(c).hidden = !m; if (out) q(out).hidden = !!m; };
+  const table = (el: HTMLElement, head: string[], rows: string[][], right = true) => {
+    const th = document.createElement('thead'), tr = document.createElement('tr');
+    head.forEach((h, i) => { const c = document.createElement('th'); c.textContent = h; if (right && i) c.className = 'r'; tr.append(c); }); th.append(tr);
+    const tb = document.createElement('tbody');
+    rows.forEach((r) => { const t = document.createElement('tr'); r.forEach((x, i) => { const c = document.createElement('td'); c.textContent = x; if (right && i) c.className = 'r'; t.append(c); }); tb.append(t); });
+    el.replaceChildren(th, tb);
+  };
+
+  function plyStep() {
+    ply = null;
+    q('.lmc-fm').hidden = mode !== 'fm'; q('.lmc-pp').hidden = mode !== 'ply';
+    if (mode === 'fm') {
+      const Ef = v('.lmc-ef') * 1000, nuf = v('.lmc-nuf'), Em = v('.lmc-em') * 1000, nm = v('.lmc-num'), Vf = v('.lmc-vf');
+      if (!(Ef > 0) || !(Em > 0)) return err('.lmc-perr', '.lmc-ply', 'Give fibre and matrix moduli above zero.');
+      if (!(nuf > -1 && nuf < 0.5) || !(nm > -1 && nm < 0.5)) return err('.lmc-perr', '.lmc-ply', "Poisson's ratios must be between −1 and 0.5.");
+      if (!(Vf >= 0 && Vf < 1)) return err('.lmc-perr', '.lmc-ply', 'The fibre volume fraction must be from 0 to just below 1 (for example 0.6).');
+      const m = micromechanics({ Ef, nuf, Em, num: nm, Vf }, q<HTMLSelectElement>('.lmc-model').value as 'halpin' | 'reuss');
+      ply = m.ply; err('.lmc-perr', '.lmc-ply', '');
+      const ht = q<HTMLSelectElement>('.lmc-model').value === 'halpin';
+      q('.lmc-ply').replaceChildren(
+        fact('E₁ (rule of mixtures)', gpa(ply.E1), `Vf Ef + (1 − Vf) Em`),
+        fact('E₂', gpa(ply.E2), ht ? `Halpin-Tsai; Reuss gives ${gpa(m.E2reuss)}` : `Reuss; Halpin-Tsai gives ${gpa(m.E2halpin)}`),
+        fact('G₁₂', gpa(ply.G12), ht ? `Halpin-Tsai; Reuss gives ${gpa(m.G12reuss)}` : `Reuss; Halpin-Tsai gives ${gpa(m.G12halpin)}`),
+        fact('ν₁₂', f(ply.nu12, 4), `ν₂₁ = ${f((ply.nu12 * ply.E2) / ply.E1, 4)}`),
+        fact('Fibre and matrix G', `${gpa(m.Gf)} and ${gpa(m.Gm)}`, 'E/(2(1 + ν))'),
+      );
+    } else {
+      const E1 = v('.lmc-e1') * 1000, E2 = v('.lmc-e2') * 1000, G12 = v('.lmc-g12') * 1000, nu12 = v('.lmc-nu12');
+      if (!(E1 > 0) || !(E2 > 0) || !(G12 > 0)) return err('.lmc-perr', '.lmc-ply', 'Give E₁, E₂ and G₁₂ above zero.');
+      if (!(nu12 > -1) || nu12 * nu12 * (E2 / E1) >= 1) return err('.lmc-perr', '.lmc-ply', 'ν₁₂ is not physical for these moduli: ν₁₂² E₂/E₁ must be below 1.');
+      ply = { E1, E2, G12, nu12 }; err('.lmc-perr', '.lmc-ply', '');
+      q('.lmc-ply').replaceChildren(fact('ν₂₁ = ν₁₂ E₂/E₁', f((nu12 * E2) / E1, 4), 'the minor Poisson\'s ratio'));
+    }
+  }
+
+  function stackStep() {
+    lam = null;
+    if (!ply) return err('.lmc-serr', '.lmc-sout', 'Fix the ply properties first.');
+    const a = parseStack(q<HTMLInputElement>('.lmc-stack').value), t = v('.lmc-t');
+    if (typeof a === 'string') return err('.lmc-serr', '.lmc-sout', a);
+    if (!(t > 0)) return err('.lmc-serr', '.lmc-sout', 'Give a ply thickness above zero.');
+    lam = laminate(ply, a, t); err('.lmc-serr', '.lmc-sout', '');
+    const e = effective(lam), Aa = lam.A, scaleA = Math.max(...Aa.flat().map(Math.abs));
+    const sym = lam.B.flat().every((x) => Math.abs(x) < 1e-9 * scaleA * lam!.h), bal = Math.abs(Aa[0][2]) < 1e-9 * scaleA && Math.abs(Aa[1][2]) < 1e-9 * scaleA;
+    q('.lmc-plies').textContent = `${a.length} plies, ${sig(lam.h, 4)} mm thick: ${a.map(deg).join(' / ')}. ${sym ? 'Symmetric (B = 0: stretching does not bend it).' : 'Not symmetric: B ≠ 0, so stretching also bends or twists it.'} ${bal ? 'Balanced (A₁₆ = A₂₆ = 0: no stretch-shear coupling).' : 'Not balanced: A₁₆ or A₂₆ ≠ 0, so stretching also shears it.'}`;
+    q('.lmc-eff').replaceChildren(
+      fact('Ex', gpa(e.Ex), 'in-plane, 1/(h a₁₁)'), fact('Ey', gpa(e.Ey), '1/(h a₂₂)'), fact('Gxy', gpa(e.Gxy), '1/(h a₆₆)'),
+      fact('νxy', f(e.nuxy, 4), `νyx = ${f(e.nuyx, 4)}`), fact('Bending Ex', gpa(e.Efx), `12/(h³ d₁₁); bending Ey ${gpa(e.Efy)}`),
+    );
+    const L = ['Nx', 'Ny', 'Nxy', 'Mx', 'My', 'Mxy'], Cn = ['εx⁰', 'εy⁰', 'γxy⁰', 'κx', 'κy', 'κxy'];
+    abdRows = lam.ABD.map((r, i) => [L[i], ...r.map((x) => f(x, 5))]);
+    table(q('.lmc-abd'), ['', ...Cn], abdRows);
+    const uniq = [...new Set(a)];
+    const ent = (m: number[][]) => [m[0][0], m[0][1], m[1][1], m[0][2], m[1][2], m[2][2]].map((x) => f(x / 1000, 4));
+    qRows = [['Q (ply axes)', ...ent(lam.Q)], ...uniq.map((ang) => [`Q-bar at ${deg(ang)}`, ...ent(lam!.Qb[a.indexOf(ang)])])];
+    table(q('.lmc-q'), ['', '11', '12', '22', '16', '26', '66'], qRows);
+  }
+
+  function loadStep() {
+    res = null; fig = null;
+    if (!lam) return err('.lmc-lerr', '.lmc-lout', 'Fix the ply properties and stacking first.');
+    const N = ['.lmc-nx', '.lmc-ny', '.lmc-nxy'].map(v), M = ['.lmc-mx', '.lmc-my', '.lmc-mxy'].map(v);
+    if ([...N, ...M].some((x) => !Number.isFinite(x))) return err('.lmc-lerr', '.lmc-lout', 'Type a number for every load (0 if there is none).');
+    if ([...N, ...M].every((x) => x === 0)) return err('.lmc-lerr', '.lmc-lout', 'Give at least one load that is not zero.');
+    const S = { Xt: v('.lmc-xt'), Xc: v('.lmc-xc'), Yt: v('.lmc-yt'), Yc: v('.lmc-yc'), S: v('.lmc-ss'), F12star: v('.lmc-f12') };
+    if (![S.Xt, S.Xc, S.Yt, S.Yc, S.S].every((x) => x > 0)) return err('.lmc-lerr', '.lmc-lout', 'All five strengths must be above zero (type compressive strengths as positive numbers).');
+    if (!(S.F12star > -1 && S.F12star < 1)) return err('.lmc-lerr', '.lmc-lout', 'F₁₂* must be between −1 and 1, or the Tsai-Wu surface is not closed.');
+    res = plyResults(lam, N, M, S); err('.lmc-lerr', '.lmc-lout', '');
+    const ms = res.firstMS, tw = res.firstTW, where = (p: PlyPoint) => `ply ${p.ply} (${deg(p.angle)}), ${p.pos} face`;
+    const R = Math.min(ms.msR, tw.twR);
+    q('.lmc-big').textContent = R >= 1 ? `First ply fails at ${ratio(tw.twR)} × these loads (Tsai-Wu)` : `First-ply failure already reached (Tsai-Wu R = ${ratio(tw.twR)})`;
+    const scaled = (r: number) => (Number.isFinite(r) ? [...N, ...M].map((x, i) => (x ? `${['Nx', 'Ny', 'Nxy', 'Mx', 'My', 'Mxy'][i]} = ${sig(x * r, 4)}` : '')).filter(Boolean).join(', ') : 'never');
+    q('.lmc-fpf').replaceChildren(
+      fact('Tsai-Wu strength ratio', ratio(tw.twR), `${where(tw)}; first-ply failure at ${scaled(tw.twR)}`),
+      fact('Maximum stress strength ratio', ratio(ms.msR), `${where(ms)}, ${ms.msMode}; failure at ${scaled(ms.msR)}`),
+      fact('Mid-plane strains', res.e0.map((x) => f(x * 1e6, 4)).join(', '), 'εx⁰, εy⁰, γxy⁰ in microstrain'),
+      fact('Curvatures', res.k.map((x) => f(x * 1000, 4)).join(', '), 'κx, κy, κxy in 1/m'),
+    );
+    plyRows = res.pts.map((p) => [String(p.ply), deg(p.angle), p.pos, f(p.z, 4), ...p.sig12.map((x) => f(x, 4)), ...p.eps12.map((x) => f(x * 1e6, 4)), ratio(p.msR), p.msMode, ratio(p.twR)]);
+    table(q('.lmc-tab'), ['Ply', 'Angle', 'Face', 'z (mm)', 'σ₁', 'σ₂', 'τ₁₂', 'ε₁ (µε)', 'ε₂ (µε)', 'γ₁₂ (µε)', 'R max stress', 'Mode', 'R Tsai-Wu'], plyRows);
+    q('.lmc-tab').querySelectorAll('tbody tr').forEach((tr, i) => { const p = res!.pts[i]; if (p === tw || p === ms) tr.classList.add('lmc-hit'); });
+    draw();
+  }
+
+  function draw() {
+    if (!res) return;
+    const kind = q<HTMLSelectElement>('.lmc-plot').value;
+    const names = kind === '12' ? ['σ₁', 'σ₂', 'τ₁₂'] : kind === 'xy' ? ['σx', 'σy', 'τxy'] : ['εx', 'εy', 'γxy'];
+    const val = (p: PlyPoint, j: number) => (kind === '12' ? p.sig12[j] : kind === 'xy' ? p.sig[j] : p.eps[j] * 1e6);
+    const z = res.pts.map((p) => p.z), W = width();
+    fig = chartFigure({ w: W, h: W < 500 ? 320 : 380, xLabel: kind === 'eps' ? 'Strain (microstrain)' : 'Stress (MPa)', yLabel: 'z (mm)', series: names.map((n, j) => ({ name: n, x: res!.pts.map((p) => val(p, j)), y: z, mode: 'line' as const, width: 1.8 })), marks: lam!.z.slice(1, -1).map((zz) => ({ kind: 'hline' as const, at: zz, dash: [2, 3] })), legend: 'below' }, `Through-thickness ${kind === 'eps' ? 'strains' : 'stresses'} in each ply`);
+    paint(q<HTMLCanvasElement>('.lmc-fig'), fig);
+  }
+
+  const all = () => { plyStep(); stackStep(); loadStep(); };
+  root.querySelectorAll('input, select:not(.lmc-plot)').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
+  q('.lmc-plot').addEventListener('change', draw);
+  q('.lmc-mode').querySelectorAll('button').forEach((bt) => bt.addEventListener('click', () => { mode = bt.dataset.m!; q('.lmc-mode').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === bt))); all(); }));
+  q('.lmc-csv').addEventListener('click', () => {
+    if (!res) return;
+    const rows: (string | number)[][] = [['ply', 'angle_deg', 'face', 'z_mm', 'sigma_x_MPa', 'sigma_y_MPa', 'tau_xy_MPa', 'sigma_1_MPa', 'sigma_2_MPa', 'tau_12_MPa', 'eps_1', 'eps_2', 'gamma_12', 'R_max_stress', 'max_stress_mode', 'R_tsai_wu']];
+    for (const p of res.pts) rows.push([p.ply, p.angle, p.pos, +p.z.toPrecision(10), ...p.sig.map((x) => +x.toPrecision(8)), ...p.sig12.map((x) => +x.toPrecision(8)), ...p.eps12.map((x) => +x.toPrecision(8)), Number.isFinite(p.msR) ? +p.msR.toPrecision(8) : 'inf', p.msMode, Number.isFinite(p.twR) ? +p.twR.toPrecision(8) : 'inf']);
+    save(new TextEncoder().encode(csv(rows)), 'laminate-ply-results.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.lmc-fig'), fig); });
+  let lastW = 0;
+  window.addEventListener('resize', () => { const w = root.clientWidth; if (w && Math.abs(w - lastW) > 40) { lastW = w; draw(); } });
+  all(); lastW = root.clientWidth;
+  const facts = (c: string) => [...root.querySelectorAll(`${c} > div`)].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  wireDownloads(q('.dl'), () => {
+    const s: Section[] = [];
+    if (ply) s.push({ title: 'Ply properties', facts: facts('.lmc-ply') });
+    if (lam) {
+      s.push({ title: 'Laminate', text: [q('.lmc-plies').textContent!], facts: facts('.lmc-eff'), table: { head: ['', 'εx⁰', 'εy⁰', 'γxy⁰', 'κx', 'κy', 'κxy'], rows: abdRows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r'] } });
+      s.push({ title: 'Q and Q-bar (GPa)', table: { head: ['', '11', '12', '22', '16', '26', '66'], rows: qRows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r'] } });
+    }
+    if (res) s.push({ title: q('.lmc-big').textContent!, facts: facts('.lmc-fpf'), ...(fig ? { figure: fig } : {}), table: { head: ['Ply', 'Angle', 'Face', 'z', 'σ₁', 'σ₂', 'τ₁₂', 'ε₁ µε', 'ε₂ µε', 'γ₁₂ µε', 'R MS', 'Mode', 'R TW'], rows: plyRows } });
+    return { title: 'Laminate calculator', subtitle: 'Classical lamination theory and first-ply failure', file: 'laminate', sections: s };
+  });
+</script>
+
+<style is:global>
+  .lmc select { max-width: 100%; }
+  .lmc [hidden] { display: none !important; }
+  .lmc .lmc-wide { grid-column: 1 / -1; }
+  .lmc .lmc-h3 { font-size: 15px; margin: 16px 0 6px; }
+  .lmc .lmc-inline { display: inline-flex; flex-direction: row; gap: 8px; align-items: center; font-size: 14px; }
+  .lmc table td, .lmc table th { white-space: nowrap; }
+  .lmc tr.lmc-hit td { font-weight: 700; }
+</style>
