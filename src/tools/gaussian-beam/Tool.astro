@@ -1,0 +1,117 @@
+---
+// Gaussian beam along an optical rail: q-parameter (ABCD) propagation through thin lenses and curved mirrors. Example made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax gbm">
+  <div class="ax-card">
+    <h2>Beam</h2>
+    <div class="ax-grid">
+      <label>Wavelength (nm) <input class="gb-l" type="text" inputmode="decimal" value="633" /></label>
+      <label>Beam quality M² <input class="gb-m2" type="text" inputmode="decimal" value="1" /></label>
+      <label>Waist radius w₀ (mm) <input class="gb-w0" type="text" inputmode="decimal" value="0.5" /></label>
+      <label>Waist position (mm) <input class="gb-z0" type="text" inputmode="decimal" value="0" /></label>
+      <label>Rail length (mm) <input class="gb-end" type="text" inputmode="decimal" value="1000" /></label>
+      <label>Look at position (mm) <input class="gb-p" type="text" inputmode="decimal" value="850" /></label>
+    </div>
+    <p class="ax-help">Waist radius: the 1/e² intensity radius at the narrowest point (half the diameter on a laser's data sheet). Waist position: where that waist is on the rail; negative means before the start (inside the laser). M² = 1 for a perfect Gaussian beam; real lasers are 1.05 to 1.5 or more, which makes the beam spread faster.</p>
+    <label style="margin-top:10px"><span>Lenses and mirrors on the rail, one per line: <code>lens position focal-length</code> or <code>mirror position radius</code> (mm; concave mirror radius positive, a negative focal length is a diverging lens; an optional name at the end)</span> <textarea class="gb-els" rows="4" spellcheck="false">lens 200 50 expander 1
+lens 400 150 expander 2
+lens 600 250 focusing lens</textarea></label>
+    <p class="ax-help">A curved mirror is drawn as a lens with f = R/2 on a straight ("unfolded") rail: the beam continues after it as if the mirror were a lens. The example (a 3× beam expander then a focusing lens) is made up.</p>
+    <p class="ax-err gb-err" hidden></p>
+  </div>
+
+  <div class="ax-card gb-out">
+    <h2>Result</h2>
+    <p class="ax-big gb-big"></p>
+    <dl class="ax-facts gb-facts"></dl>
+    <canvas class="ax-fig gb-fig"></canvas>
+    <h3>Each stretch of the rail</h3>
+    <div class="ax-scroll"><table class="gb-tab"></table></div>
+    <p class="ax-help">Thin-lens, paraxial Gaussian optics: no aberrations, no clipping by apertures, and every element is treated as having zero thickness. For study and planning; check a real set-up with a beam profiler.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small gb-csv">Download the beam profile (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseElements, propagate, systemMatrix, beamAt, radiusAt, curvatureAt, gouyAt, type Element, type Segment } from '../../lib/sci/phgauss';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.gbm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const len = (mm: number) => (Math.abs(mm) < 1 ? `${sig(mm * 1000, 3)} µm` : `${sig(mm, 4)} mm`);
+  const pos = (mm: number) => `${sig(mm, 5)} mm`;
+  let fig: Figure | null = null, report: Section[] = [], profile: (string | number)[][] = [];
+
+  function calc() {
+    const err = q('.gb-err'), out = q('.gb-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; profile = []; };
+    const lam = val('.gb-l'), m2 = val('.gb-m2'), w0 = val('.gb-w0'), z0 = val('.gb-z0'), end = val('.gb-end'), zp = val('.gb-p');
+    if (!(lam >= 100 && lam <= 100000)) return fail('Give a wavelength between 100 and 100,000 nm.');
+    if (!(m2 >= 1 && m2 <= 1000)) return fail('M² is 1 for a perfect Gaussian beam and never less than 1.');
+    if (!(w0 > 0 && w0 < 1000)) return fail('Give a waist radius in mm, greater than 0.');
+    if (!Number.isFinite(z0)) return fail('Give the waist position in mm (0 if the waist is at the start of the rail).');
+    if (!(end > 0)) return fail('Give the rail length in mm, greater than 0.');
+    let els: Element[];
+    try { els = parseElements(q<HTMLTextAreaElement>('.gb-els').value); } catch (e) { return fail((e as Error).message); }
+    const off = els.filter((e) => e.z < 0 || e.z > end);
+    err.hidden = true; out.hidden = false;
+    const segs = propagate(w0, z0, lam, m2, els, end), on = els.filter((e) => e.z >= 0 && e.z <= end);
+    const last = segs[segs.length - 1];
+    const inside = last.zw >= last.from && last.zw <= end;
+    q('.gb-big').textContent = on.length
+      ? `Final waist ${len(last.w0)} radius ${inside ? 'at' : last.zw < last.from ? '(virtual) at' : 'beyond the rail, at'} ${pos(last.zw)}`
+      : `Waist ${len(last.w0)} radius, Rayleigh range ${pos(last.zR)}`;
+    const p = Number.isFinite(zp) ? Math.min(Math.max(zp, 0), end) : end, bp = beamAt(segs, p);
+    const M = systemMatrix(els, end);
+    const f = [
+      fact('Starting beam', `w₀ ${len(w0)}, z_R ${pos(segs[0].zR)}`, `divergence ${sig(segs[0].theta * 1e3, 3)} mrad half-angle; depth of focus 2z_R = ${pos(2 * segs[0].zR)}`),
+      fact('Final beam', `w₀ ${len(last.w0)}, z_R ${len(last.zR)}`, `divergence ${sig(last.theta * 1e3, 3)} mrad half-angle; waist at ${pos(last.zw)}`),
+      fact(`At ${pos(p)}`, `w = ${len(radiusAt(bp, p))}`, `diameter ${len(2 * radiusAt(bp, p))}; wavefront radius ${Number.isFinite(curvatureAt(bp, p)) ? pos(curvatureAt(bp, p)) : '∞ (at a waist)'}; Gouy phase ${sig((gouyAt(bp, p) * 180) / Math.PI, 3)}°`),
+      fact('Overall magnification', `${sig(last.w0 / w0, 4)}×`, 'final waist ÷ starting waist'),
+      fact('Beam parameter product', `${sig(w0 * segs[0].theta * 1000, 3)} mm·mrad`, 'w₀ × θ; thin lenses never change it'),
+      fact('ABCD matrix, 0 to end', `A ${sig(M[0], 4)}, B ${sig(M[1], 4)} mm`, `C ${sig(M[2], 4)} /mm, D ${sig(M[3], 4)}`),
+    ];
+    if (off.length) f.push(fact('Ignored', `${off.length} element${off.length > 1 ? 's' : ''} off the rail`, off.map((e) => `${e.label} at ${pos(e.z)}`).join(', ')));
+    q('.gb-facts').replaceChildren(...f);
+    // Table.
+    const head = ['Stretch', 'From–to (mm)', 'Waist radius', 'Waist at (mm)', 'Rayleigh range', 'Divergence (mrad)', 'w at start', 'w at end'];
+    const rows = segs.map((s: Segment, i) => [i === 0 ? 'Input' : `After ${on[i - 1].label}`, `${sig(s.from, 5)}–${sig(s.to, 5)}`, len(s.w0), sig(s.zw, 5), len(s.zR), sig(s.theta * 1e3, 3), len(s.wIn), len(s.wOut)]);
+    const t = q<HTMLTableElement>('.gb-tab');
+    t.replaceChildren();
+    const tr = (cells: string[], th: boolean) => { const r = document.createElement('tr'); cells.forEach((c, j) => { const e = document.createElement(th ? 'th' : 'td'); e.textContent = c; if (j > 0) e.className = 'r'; r.append(e); }); return r; };
+    t.append(tr(head, true), ...rows.map((r) => tr(r, false)));
+    // Profile.
+    const N = 600, zs: number[] = [], ws: number[] = [];
+    profile = [['z_mm', 'w_mm', 'R_mm']];
+    for (let i = 0; i <= N; i++) { const z = (end * i) / N, b = beamAt(segs, z), w = radiusAt(b, z); zs.push(z); ws.push(w); profile.push([+z.toFixed(4), +w.toPrecision(6), Number.isFinite(curvatureAt(b, z)) ? +curvatureAt(b, z).toPrecision(6) : 'inf']); }
+    for (const e of on) { const b = beamAt(segs, e.z); zs.push(e.z); ws.push(radiusAt(b, e.z)); }
+    const ord = zs.map((_, i) => i).sort((a, b) => zs[a] - zs[b]);
+    const X = ord.map((i) => zs[i]), Y = ord.map((i) => ws[i]);
+    const um = Math.max(...Y) < 1, k = um ? 1000 : 1, u = um ? 'µm' : 'mm';
+    fig = chartFigure({ w: 400, h: 240, xLabel: 'Position on the rail (mm)', yLabel: `Beam radius w (${u})`, xMin: 0, xMax: end, legend: 'none', series: [
+      { name: '+w', x: X, y: Y.map((v) => v * k), mode: 'line', width: 2 },
+      { name: '−w', x: X, y: Y.map((v) => -v * k), mode: 'line', width: 2 },
+    ], marks: [{ kind: 'hline', at: 0, dash: [2, 3] }, ...on.map((e) => ({ kind: 'vline' as const, at: e.z, dash: [4, 3], label: e.kind === 'lens' ? `f ${sig(e.f, 3)}` : `R ${sig(e.value, 3)}` }))] }, `Beam radius along the rail: final waist ${len(last.w0)} at ${pos(last.zw)}`);
+    paint(q<HTMLCanvasElement>('.gb-fig'), fig);
+    const plain = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    report = [{ title: q('.gb-big').textContent!, facts: plain(f), figure: fig }, { title: 'Each stretch of the rail', table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'r'] }, note: `λ = ${lam} nm, M² = ${m2}. Thin-lens paraxial Gaussian optics.` }];
+  }
+
+  root.querySelectorAll('input, select, textarea').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.gb-out').hidden) paint(q<HTMLCanvasElement>('.gb-fig'), fig); });
+  q('.gb-csv').addEventListener('click', () => { if (profile.length) save(new TextEncoder().encode(csv(profile)), 'gaussian-beam-profile.csv', 'text/csv'); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Gaussian beam', subtitle: `λ = ${q<HTMLInputElement>('.gb-l').value} nm, w₀ = ${q<HTMLInputElement>('.gb-w0').value} mm`, file: 'gaussian-beam', sections: report }));
+</script>
+
+<style is:global>
+  .gbm h3 { margin: 18px 0 8px; font-size: 15px; }
+  .gbm code { font-size: 13px; }
+</style>
