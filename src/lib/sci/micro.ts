@@ -199,8 +199,10 @@ export function edt(m: Uint8Array, w: number, h: number): Float32Array {
   return out;
 }
 
+const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 /** Marker watershed on a height map: grows each marker label over the mask in order of height (lowest first,
- *  ties by arrival), 8-connected, as scikit-image's watershed with a mask. Unreached mask pixels stay 0. */
+ *  ties by arrival), 4-connected, as scikit-image's watershed with a mask (connectivity 1). Unreached mask pixels
+ *  stay 0. */
 export function watershed(height: ArrayLike<number>, markers: Int32Array, mask: Uint8Array, w: number, h: number): Int32Array {
   const out = new Int32Array(markers), heap: [number, number, number][] = []; let age = 0;
   const less = (a: [number, number, number], b: [number, number, number]) => a[0] < b[0] || (a[0] === b[0] && a[1] < b[1]);
@@ -209,8 +211,7 @@ export function watershed(height: ArrayLike<number>, markers: Int32Array, mask: 
   for (let i = 0; i < out.length; i++) if (out[i]) push([height[i], age++, i]);
   while (heap.length) {
     const [, , i] = pop(), x = i % w, y = (i - x) / w;
-    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-      if (!dx && !dy) continue;
+    for (const [dx, dy] of N4) {
       const xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
       const j = yy * w + xx; if (!mask[j] || out[j]) continue;
       out[j] = out[i]; push([height[j], age++, j]);
@@ -226,22 +227,23 @@ export function distPeaks(dist: Float32Array, mask: Uint8Array, w: number, h: nu
   // h-maxima: reconstruct dist - h under dist by dilation; regional maxima of the result that rise h are peaks.
   const n = w * h, marker = new Float32Array(n);
   for (let i = 0; i < n; i++) marker[i] = mask[i] ? Math.max(0, dist[i] - hMin) : 0;
-  // Reconstruction by dilation with a priority queue (highest first).
-  const rec = new Float32Array(marker), heap: number[] = [];
-  const hv = (i: number) => rec[i];
-  const up = (k: number) => { while (k > 0) { const p = (k - 1) >> 1; if (hv(heap[k]) > hv(heap[p])) { [heap[k], heap[p]] = [heap[p], heap[k]]; k = p; } else break; } };
-  const down = (k: number) => { for (;;) { const l = 2 * k + 1, r = l + 1; let s = k; if (l < heap.length && hv(heap[l]) > hv(heap[s])) s = l; if (r < heap.length && hv(heap[r]) > hv(heap[s])) s = r; if (s === k) break; [heap[k], heap[s]] = [heap[s], heap[k]]; k = s; } };
-  for (let i = 0; i < n; i++) if (mask[i]) { heap.push(i); up(heap.length - 1); }
+  // Reconstruction by dilation with a priority queue (highest first); entries carry the value they were pushed with,
+  // and stale ones are skipped.
+  const rec = new Float32Array(marker), hk: number[] = [], hi: number[] = [];
+  const up = (k: number) => { while (k > 0) { const p = (k - 1) >> 1; if (hk[k] > hk[p]) { [hk[k], hk[p]] = [hk[p], hk[k]]; [hi[k], hi[p]] = [hi[p], hi[k]]; k = p; } else break; } };
+  const down = (k: number) => { for (;;) { const l = 2 * k + 1, r = l + 1; let s = k; if (l < hk.length && hk[l] > hk[s]) s = l; if (r < hk.length && hk[r] > hk[s]) s = r; if (s === k) break; [hk[k], hk[s]] = [hk[s], hk[k]]; [hi[k], hi[s]] = [hi[s], hi[k]]; k = s; } };
+  const push = (i: number) => { hk.push(rec[i]); hi.push(i); up(hk.length - 1); };
+  for (let i = 0; i < n; i++) if (mask[i]) push(i);
   const done = new Uint8Array(n);
-  while (heap.length) {
-    const i = heap[0], last = heap.pop()!; if (heap.length) { heap[0] = last; down(0); }
-    if (done[i]) continue; done[i] = 1;
+  while (hk.length) {
+    const key = hk[0], i = hi[0], lk = hk.pop()!, li = hi.pop()!; if (hk.length) { hk[0] = lk; hi[0] = li; down(0); }
+    if (done[i] || key < rec[i]) continue; done[i] = 1;
     const x = i % w, y = (i - x) / w;
     for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
       const xx = x + dx, yy = y + dy; if ((!dx && !dy) || xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
       const j = yy * w + xx; if (!mask[j] || done[j]) continue;
       const v = Math.min(rec[i], dist[j]);
-      if (v > rec[j]) { rec[j] = v; heap.push(j); up(heap.length - 1); }
+      if (v > rec[j]) { rec[j] = v; push(j); }
     }
   }
   // Peaks: plateaus where dist - rec >= hMin (to float tolerance), grouped 8-connected.
