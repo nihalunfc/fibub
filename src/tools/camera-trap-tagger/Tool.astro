@@ -28,10 +28,10 @@ import Downloads from '../../components/Downloads.astro';
       <label>Behaviours (keys Q W E R T) <input class="ct-beh" type="text" value="Moving, Feeding, Resting, Vigilant, Other" /></label>
     </div>
     <div class="ax-row" style="margin-top:10px">
-      <label class="ax-check"><input type="checkbox" class="ct-keep" checked /> Remember my tags in this browser</label>
+      <label class="ax-check"><input type="checkbox" class="ct-keep" /> Remember my tags in this browser</label>
       <button type="button" class="btn secondary small ct-clear">Clear saved tags</button>
     </div>
-    <p class="ax-help">Tags are kept only in this browser on this device (by file name, size and time), never sent anywhere, so they are back when you open the same photos again. Untick the box to stop and delete them, or press Clear.</p>
+    <p class="ax-help">Off at first: nothing is saved unless you tick the box. Then tags are kept only in this browser on this device (by file name, size and time), never sent anywhere, so they are back when you open the same photos again. Untick the box to stop and delete them, or press Clear.</p>
     <p class="ax-err ct-err" hidden></p>
   </div>
 
@@ -97,7 +97,8 @@ import Downloads from '../../components/Downloads.astro';
   const lsSet = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* storage blocked */ } };
   const lsDel = (k: string) => { try { localStorage.removeItem(k); } catch { /* storage blocked */ } };
   const keep = () => q<HTMLInputElement>('.ct-keep').checked;
-  q<HTMLInputElement>('.ct-keep').checked = lsGet(PREF) !== '0';
+  // Off unless the visitor ticked it; tags saved before this became opt-in still show as kept so they can be deleted.
+  q<HTMLInputElement>('.ct-keep').checked = lsGet(PREF) === '1' || lsGet(STORE) !== null;
   function loadSaved(): Record<string, Tag> { try { const o = JSON.parse(lsGet(STORE) || '{}'); return o && typeof o.tags === 'object' ? o.tags : {}; } catch { return {}; } }
   function persist() {
     if (example || !keep()) return;
@@ -302,8 +303,8 @@ import Downloads from '../../components/Downloads.astro';
   q('.ct-act').addEventListener('change', summary);
   q('.ct-ev').closest('details')!.addEventListener('toggle', eventsTable);
   q('.ct-keep').addEventListener('change', () => {
-    if (keep()) { lsDel(PREF); persist(); q('.ct-note').textContent = 'Tags will be kept in this browser.'; }
-    else { lsSet(PREF, '0'); lsDel(STORE); q('.ct-note').textContent = 'Saved tags deleted from this browser; new tags are not kept.'; }
+    if (keep()) { lsSet(PREF, '1'); persist(); q('.ct-note').textContent = 'Tags will be kept in this browser.'; }
+    else { lsDel(PREF); lsDel(STORE); q('.ct-note').textContent = 'Saved tags deleted from this browser; new tags are not kept.'; }
   });
   q('.ct-clear').addEventListener('click', () => { lsDel(STORE); q('.ct-note').textContent = 'Saved tags cleared from this browser. Tags on this page stay until you close it.'; });
   document.addEventListener('keydown', (e) => {

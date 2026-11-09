@@ -16,7 +16,7 @@ sources:
   - "The EXIF reader, event grouping, independent detections (a gap rule applied per station and species), the relative abundance index (detections per 100 trap-nights) and naive occupancy are written by fibub. The tests check the EXIF reader against exifread and Pillow on JPEGs made with Pillow, and the detection counts and summaries against the same rules in pandas on made-up records."
   - "EXIF 2.3 (JEITA CP-3451) tags DateTimeOriginal, DateTimeDigitized and DateTime: open specification."
   - "The example survey (three cameras, species, times and counts) is made up by fibub; its pictures are drawn placeholders."
-  - "Photos you open are read on the page only and never uploaded. Tags are kept in this browser only if you leave the box ticked."
+  - "Photos you open are read on the page only and never uploaded. Tags are kept in this browser only if you tick the box (off at first)."
 flow:
   - { icon: camera, label: "Photos" }
   - { icon: clock, label: "Events" }
@@ -61,7 +61,7 @@ Change the independence interval from 30 to 60 minutes and visits that came back
 
 **Are my photos uploaded?** No. They are read on this device. Only the file name, size and time are used to remember tags, and only in this browser.
 
-**Where are my tags kept?** In this browser's local storage on this device, by file name, size and time, so they come back if you open the same photos again. Untick "Remember my tags in this browser" to stop and delete them, or press **Clear saved tags**.
+**Where are my tags kept?** In this browser's local storage on this device, by file name, size and time, but only after you tick "Remember my tags in this browser" (it is off at first, so nothing is saved unless you ask). They come back if you open the same photos again. Untick "Remember my tags in this browser" to stop and delete them, or press **Clear saved tags**.
 
 **My photos have no date.** Some cameras or editing programs strip EXIF data. The page then uses the file's date, which may be the date it was copied, and says so in the caption and the CSV.
 

@@ -62,8 +62,8 @@ import '../../styles/astro.css';
     <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="ff-keepun" /> GeoJSON: include records with no location (no geometry)</label>
     <p class="ax-help ff-emsg" aria-live="polite"></p>
     <h3 class="ff-h">Kept in this browser</h3>
-    <label class="ax-check"><input type="checkbox" class="ff-keep" checked /> Keep the form and records in this browser</label>
-    <p class="ax-help">On by default, so records you make in the field are still here after the page is closed, even with no internet. They are stored only in this browser on this device and never leave it. Export a CSV to keep a copy. Untick to remove the stored copy (records on screen stay until you leave the page).</p>
+    <label class="ax-check"><input type="checkbox" class="ff-keep" /> Keep the form and records in this browser</label>
+    <p class="ax-help">Off at first: nothing is saved unless you tick it. Tick it before going out so records you make in the field are still here after the page is closed, even with no internet. They are then stored only in this browser on this device and never leave it. Export a CSV to keep a copy. Untick to remove the stored copy (records on screen stay until you leave the page).</p>
     <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small ff-delall">Delete all records</button></div>
   </div>
 </div>
@@ -306,7 +306,7 @@ import '../../styles/astro.css';
     if (n) { rmsg(`Not saved: ${n} field${n === 1 ? ' needs' : 's need'} attention.`, 'bad'); root.querySelector<HTMLElement>('.ff-in.bad')?.scrollIntoView({ block: 'center' }); return; }
     const today = nowParts().date;
     if (editing) { const r = recs.find((x) => x.no === editing)!; r.values = { ...r.values, ...values }; rmsg(`Record ${editing} updated.`, 'good'); }
-    else { recs.push({ no: next, values, saved: today }); rmsg(`Record ${next} saved.`, 'good'); next++; }
+    else { recs.push({ no: next, values, saved: today }); rmsg(`Record ${next} saved.${keeping() ? '' : ' It is only on this page until you tick “Keep the form and records in this browser” under Records.'}`, 'good'); next++; }
     store(); counts(); resetFill();
   });
   q('.ff-rclear').addEventListener('click', () => { const e = editing; resetFill(); if (e) rmsg('', ''); });
@@ -351,11 +351,11 @@ import '../../styles/astro.css';
   q<HTMLInputElement>('.ff-keep').addEventListener('change', () => {
     if (keeping()) { store(); q('.ff-emsg').textContent = 'The form and records are kept in this browser.'; }
     else { try { localStorage.removeItem(KEY); } catch { /* nothing stored */ } q('.ff-emsg').textContent = 'The stored copy was removed. Records on screen go when you leave the page.'; }
-    try { localStorage.setItem(KEY + '-off', keeping() ? '' : '1'); if (keeping()) localStorage.removeItem(KEY + '-off'); } catch { /* fine */ }
+    try { if (keeping()) localStorage.setItem(KEY + '-on', '1'); else localStorage.removeItem(KEY + '-on'); localStorage.removeItem(KEY + '-off'); } catch { /* fine */ }
   });
 
   // ---------- start ----------
-  try { if (localStorage.getItem(KEY + '-off') === '1') q<HTMLInputElement>('.ff-keep').checked = false; } catch { /* fine */ }
+  try { q<HTMLInputElement>('.ff-keep').checked = localStorage.getItem(KEY + '-on') === '1' || localStorage.getItem(KEY) !== null; } catch { /* fine */ }
   if (keeping()) restore();
   drawDesign(); counts(); view('fill');
 </script>

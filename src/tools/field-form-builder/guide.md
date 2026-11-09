@@ -4,7 +4,7 @@ num: 827
 shelf: science
 section: citizen-science
 title: "Field data form builder: design a survey form, record observations offline with GPS, export CSV or GeoJSON"
-summary: "Design a field data form with text, numbers with an allowed range, choices, dates and times, photo notes and a GPS location. Fill in records outdoors, even with no signal once the page is open; records stay only in this browser. Export them as CSV or GeoJSON, and share the form as a small file."
+summary: "Design a field data form with text, numbers with an allowed range, choices, dates and times, photo notes and a GPS location. Fill in records outdoors, even with no signal once the page is open; records stay on your device, kept in this browser only if you tick the box. Export them as CSV or GeoJSON, and share the form as a small file."
 status: live
 ads: false
 order: 827
@@ -15,7 +15,7 @@ related: [field-sampling-planner, gps-track-analyser, biodiversity-indices, data
 sources:
   - "The form layout, checks and exports are written by fibub. CSV follows RFC 4180 and GeoJSON follows RFC 7946 (longitude before latitude, WGS 84)."
   - "The example form (a roadside pollinator count) is made up."
-  - "Location comes from your device's Geolocation API only when you tap Get my location. Records are kept only in this browser and never leave your device."
+  - "Location comes from your device's Geolocation API only when you tap Get my location. Records are kept in this browser only if you tick the box (off at first) and never leave your device."
 flow:
   - { icon: pencil, label: "Design" }
   - { icon: compass, label: "Record" }
@@ -30,7 +30,7 @@ Citizen-science projects, student field trips and small surveys need a simple fo
 - **Design** a form from eight kinds of field: *text*, *number* (with a unit and an allowed range), *choice* (one option, or a checklist when "more than one" is ticked), *date*, *time*, *date and time*, *photo note* (the photo number and what it shows; the photo itself stays in your camera) and *location (GPS)*. Mark fields as required and add a hint under any of them.
 - **Fill** a record in the field. Numbers outside the range, impossible dates and missing required answers are pointed out before the record is saved. *Today* and *Now* buttons fill in the date and time.
 - **Location only when you ask.** Tap *Get my location* and the browser asks your device for one fix (latitude, longitude and its accuracy in metres). Nothing reads your location at any other time. You can also type the coordinates, for example from a handheld GPS.
-- **Records** are listed in a table where you can edit or delete them, and are kept in this browser so they survive closing the page with no signal.
+- **Records** are listed in a table where you can edit or delete them, and, once you tick *Keep the form and records in this browser* (off at first), are kept in this browser so they survive closing the page with no signal.
 - **Export** as CSV for a spreadsheet or R and Python, or as GeoJSON to put the points on a map in QGIS or another GIS. Save the form as a .json file so a whole team fills in exactly the same form.
 
 ## How to use it
@@ -53,7 +53,7 @@ With the example form, fill in Site name *Verge A*, Date and time *2026-06-14 11
 
 ## FAQ
 
-**Does anything leave my phone?** No. The form, the records and the location are kept in this browser on this device, and only you can export them. Untick *Keep the form and records in this browser* to remove the stored copy, and *Delete all records* to clear them.
+**Does anything leave my phone?** No. Nothing is saved at all until you tick *Keep the form and records in this browser*; then the form, the records and the location are kept in this browser on this device, and only you can export them. Untick *Keep the form and records in this browser* to remove the stored copy, and *Delete all records* to clear them.
 
 **Can I attach photos?** Not in the form. Photos are large and the page keeps everything on your device without uploading, so the *photo note* field records the photo number and what it shows; match them up later.
 
