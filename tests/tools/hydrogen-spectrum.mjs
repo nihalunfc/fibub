@@ -26,7 +26,7 @@ export default async ({ page, check, BASE }) => {
   check(!(await t('.hy-facts')).includes('Orbit radius'), 'hyd: Class 11 hides orbits');
   // Tap two levels on the diagram: the level nearest the bottom is n = 1, so tap n = 2 then n = 1.
   const box = await page.$eval(R + '.hy-cv', (c) => { c.scrollIntoView({ block: 'center' }); const r = c.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width }; });
-  const yOf = (n) => 16 + 266 * Math.sqrt(1 / (n * n));
+  const yOf = (n) => 16 + 276 * Math.sqrt(1 / (n * n));
   await page.mouse.click(box.x + box.w / 2, box.y + yOf(2)); await page.waitForTimeout(100);
   await page.mouse.click(box.x + box.w / 2, box.y + yOf(1)); await page.waitForTimeout(150);
   check((await t('.hy-big')) === 'Gives out a photon of 121.6 nm (ultraviolet)', 'hyd: tapping 2 then 1 gives Lyman alpha 121.6 nm');

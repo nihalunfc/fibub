@@ -58,7 +58,7 @@ export function step(ps: P[], dt: number, phase: Phase, heat: number, rand: () =
       p.vx *= 0.8; p.vy *= 0.8;
     } else if (mode === 'liquid') {
       const kick = 0.08 + 0.25 * heat;
-      p.vx += (rand() - 0.5) * kick; p.vy += (rand() - 0.5) * kick - 1.2 * dt;
+      p.vx += (rand() - 0.5) * kick; p.vy += (rand() - 0.5) * kick - 3 * dt;
       for (let j = 0; j < n; j++) if (j !== i) {
         const q = ps[j], dx = p.x - q.x, dy = p.y - q.y, d = Math.hypot(dx, dy);
         if (d > 0 && d < R) { const f = ((R - d) / R) * 3 * dt * 60; p.vx += (dx / d) * f * 0.02; p.vy += (dy / d) * f * 0.02; }

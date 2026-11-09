@@ -66,7 +66,7 @@ import '../../styles/learnquiz-d.css';
   const yOf = (e: number, top: number, h: number) => top + h * Math.sqrt(-e / RY_EV);
 
   function draw() {
-    const pal = pagePalette(), { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.hy-cv'), 300), top = 16, h = H - 34, lx = 54, rx = W - 70;
+    const pal = pagePalette(), { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.hy-cv'), 320), top = 16, h = H - 44, lx = 54, rx = W - 70;
     ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
     const a = val(fromSel), b = val(toSel);
     ctx.font = '12px system-ui, sans-serif';
@@ -126,7 +126,7 @@ import '../../styles/learnquiz-d.css';
   }
 
   q<HTMLCanvasElement>('.hy-cv').addEventListener('click', (ev) => {
-    const cv = q<HTMLCanvasElement>('.hy-cv'), rect = cv.getBoundingClientRect(), y = ev.clientY - rect.top, top = 16, h = 300 - 34;
+    const cv = q<HTMLCanvasElement>('.hy-cv'), rect = cv.getBoundingClientRect(), y = ev.clientY - rect.top, top = 16, h = 320 - 44;
     let best = LEVELS[0], bd = Infinity; for (const n of LEVELS) { const d = Math.abs(yOf(E(n), top, h) - y); if (d < bd) { bd = d; best = n; } }
     if (bd > 22) return;
     if (pending === null) { pending = best; draw(); return; }

@@ -78,7 +78,7 @@ import '../../styles/learnquiz-d.css';
 
   function draw(dt: number) {
     const s = state(); tAnim += dt / SLOW;
-    const { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.sv-cv'), 230), pal = pagePalette();
+    const { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.sv-cv'), 252), pal = pagePalette();
     ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
     const top = 14, rows = 7, rowH = 15, cols = 110, gap = W / cols, lamPx = (s.lam / WINDOW) * W;
     const visA = Math.min((0.8 * lamPx) / (2 * Math.PI), 0.8 * gap * 3) * (s.A / 1);
@@ -109,7 +109,7 @@ import '../../styles/learnquiz-d.css';
       if (xr > 8 && xr < W - 8) ctx.fillText('R', xr, gy + gA + 14);
     }
     // Wavelength bar
-    const by = H - 10, bx = 8, bw = Math.min(lamPx, W - 16);
+    const by = H - 8, bx = 8, bw = Math.min(lamPx, W - 16);
     ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + bw, by); ctx.moveTo(bx, by - 5); ctx.lineTo(bx, by + 5); ctx.moveTo(bx + bw, by - 5); ctx.lineTo(bx + bw, by + 5); ctx.stroke();
     ctx.fillStyle = pal.ink; ctx.textAlign = lamPx > W - 16 ? 'right' : 'left';
     const lt = lamPx > W - 16 ? `λ = ${sig(s.lam, 3)} m (longer than the picture, ${WINDOW} m wide)` : `λ = ${sig(s.lam, 3)} m`;
