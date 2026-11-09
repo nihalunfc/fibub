@@ -1,0 +1,193 @@
+---
+// Likert chart: survey answers (raw or counts) to diverging stacked bars centred on the neutral answer,
+// with % agree, medians and downloads as PNG, SVG and CSV. Maths and drawing in src/lib/sci/likert.ts.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import example from './example.csv?raw';
+---
+<div class="ax lk">
+  <div class="ax-card">
+    <h2>Your answers</h2>
+    <div class="ax-seg lk-mode" role="group" aria-label="Data">
+      <button type="button" data-m="raw" aria-pressed="true">One row per person</button><button type="button" data-m="counts" aria-pressed="false">Counts per answer</button>
+    </div>
+    <div class="lk-p" data-m="raw">
+      <label style="margin-top:10px">One column per statement with the statement as its header, one row per person. Answers can be codes (1 = most negative) or the answer labels. The sample is a made-up staff survey of 150 people.
+        <textarea class="lk-in" rows="7" spellcheck="false" wrap="off">{example.trim()}</textarea></label>
+      <DataFile target=".lk-in" maxCols={100} maxRows={100000} />
+      <h3>Statements to chart</h3>
+      <div class="lk-list lk-items"></div>
+    </div>
+    <div class="lk-p" data-m="counts" hidden>
+      <label style="margin-top:10px">One row per statement: its text, then the number of people giving each answer, most negative first.
+        <textarea class="lk-cin" rows="6" spellcheck="false" wrap="off">Statement	Strongly disagree	Disagree	Neither	Agree	Strongly agree
+The course was well organised	4	9	15	42	30
+The workload was reasonable	12	25	20	28	15
+I would take another course like this	6	8	18	37	31</textarea></label>
+      <p class="ax-help">Made-up example counts.</p>
+    </div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Answer options <select class="lk-k"><option value="4">4 (no middle)</option><option value="5" selected>5</option><option value="6">6 (no middle)</option><option value="7">7</option></select></label>
+      <label>Order of statements <select class="lk-sort"><option value="agree" selected>Most agreement first</option><option value="disagree">Most disagreement first</option><option value="mean">Highest mean first</option><option value="none">As in the data</option></select></label>
+      <label>Chart title <input class="lk-title" placeholder="optional" /></label>
+    </div>
+    <label style="margin-top:10px">Answer labels, most negative first, separated by commas
+      <input class="lk-labels" /></label>
+    <p class="ax-help">Disagreeing answers go left of the centre line and agreeing answers right; a middle answer is split across the line. % agree counts the answers above the middle.</p>
+    <p class="ax-err lk-err" hidden></p>
+  </div>
+
+  <div class="ax-card lk-out" hidden>
+    <h2>Diverging stacked bar chart</h2>
+    <canvas class="lk-fig"></canvas>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small lk-png">Chart as PNG</button>
+      <button type="button" class="btn secondary small lk-svg">Chart as SVG</button>
+      <button type="button" class="btn secondary small lk-csv">Summary as CSV</button>
+    </div>
+    <h3>Summary</h3>
+    <div class="ax-scroll"><table class="lk-tab"></table></div>
+    <p class="ax-help lk-note"></p>
+    <Downloads label="Report" />
+  </div>
+</div>
+
+<style is:global>
+  .lk h3 { font-size: 15px; margin: 14px 0 6px; }
+  .lk .lk-list { display: grid; gap: 4px; }
+  .lk .lk-list .ax-check { font-size: 14px; }
+  .lk canvas.lk-fig { display: block; width: 100%; height: auto; }
+  .lk .lk-tab td, .lk .lk-tab th { white-space: nowrap; }
+  .lk .lk-tab td:first-child { white-space: normal; min-width: 140px; }
+</style>
+
+<script>
+  import { parseTable, num } from '../../lib/sci/num';
+  import { readColumns } from '../../lib/sci/econometrics';
+  import { summarise, countRaw, sortItems, drawLikert, chartHeight, DEFAULT_LABELS, type Item } from '../../lib/sci/likert';
+  import { canvasPainter, svgPainter } from '../../lib/sci/plot';
+  import { pagePalette, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.lk')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string, el: ParentNode = root) => el.querySelector(c) as T;
+  let mode = 'raw', items: Item[] = [], labels: string[] = [], report: Section[] = [], lastHead = '', title = '';
+  const pc = (x: number) => `${x.toFixed(1)} %`;
+  const fmt = (x: number) => (Number.isInteger(x) ? String(x) : x.toFixed(1));
+
+  function figure(w: number): Figure {
+    const h = chartHeight(items.length, labels.length, w, w < 500 ? 11 : 13);
+    return { w, h, alt: `Diverging stacked bars of ${items.length} statements`, draw: (ctx, W, H, pal) => drawLikert(canvasPainter(ctx), { w: W, h: H, items, labels, title, ink: pal.ink, muted: pal.muted, grid: pal.grid, font: W < 500 ? 11 : 13 }) };
+  }
+  function paintChart() {
+    const cv = q<HTMLCanvasElement>('.lk-fig'), pal = pagePalette();
+    const w = Math.max(300, Math.round(cv.clientWidth || cv.parentElement!.clientWidth - 2)), fig = figure(w);
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    cv.width = Math.round(w * dpr); cv.height = Math.round(fig.h * dpr); cv.style.aspectRatio = `${w} / ${fig.h}`;
+    const ctx = cv.getContext('2d')!; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, fig.h);
+    fig.draw(ctx, w, fig.h, pal);
+    cv.setAttribute('aria-label', fig.alt);
+  }
+
+  function readLabels(k: number) {
+    const inp = q<HTMLInputElement>('.lk-labels');
+    let l = inp.value.split(',').map((s) => s.trim()).filter(Boolean);
+    if (l.length !== k) { l = DEFAULT_LABELS[k]; inp.value = l.join(', '); }
+    return l;
+  }
+  function build() {
+    const k = Number(q<HTMLSelectElement>('.lk-k').value);
+    labels = readLabels(k);
+    title = q<HTMLInputElement>('.lk-title').value.trim();
+    let list: Item[];
+    if (mode === 'raw') {
+      const { head, cols } = readColumns(parseTable(q<HTMLTextAreaElement>('.lk-in').value));
+      const key = head.join('\u0000');
+      if (key !== lastHead) {
+        lastHead = key;
+        const box = q('.lk-items'); box.innerHTML = '';
+        for (const h of head) {
+          const l = document.createElement('label'), c = document.createElement('input');
+          l.className = 'ax-check'; c.type = 'checkbox'; c.value = h;
+          c.checked = !/^(id|respondent|person|participant|case|date|time|name)\b/i.test(h);
+          l.append(c, ' ' + h); box.append(l);
+        }
+      }
+      const pick = [...root.querySelectorAll<HTMLInputElement>('.lk-items input:checked')].map((i) => i.value);
+      if (!pick.length) throw new Error('Tick at least one statement to chart.');
+      list = pick.map((h) => summarise(h, countRaw(h, cols[h], labels)));
+    } else {
+      const rows = parseTable(q<HTMLTextAreaElement>('.lk-cin').value);
+      const body = rows.filter((r) => r.slice(1).some((c) => c.trim() !== '') && r.slice(1).every((c) => c.trim() === '' || Number.isFinite(num(c))));
+      if (!body.length) throw new Error('Paste one row per statement: its text, then the counts.');
+      list = body.map((r) => {
+        const c = r.slice(1).map((x) => (x.trim() === '' ? 0 : num(x)));
+        if (c.length !== k) throw new Error(`"${r[0]}" has ${c.length} counts but the scale has ${k} answer options. Change "Answer options" or the counts.`);
+        if (c.some((v) => !(v >= 0))) throw new Error(`"${r[0]}" has a negative count.`);
+        return summarise(r[0], c);
+      });
+    }
+    items = sortItems(list, q<HTMLSelectElement>('.lk-sort').value as 'agree');
+  }
+  function summaryRows() {
+    const odd = labels.length % 2 === 1;
+    return items.map((it) => [it.name, String(it.n), pc(it.disagree), ...(odd ? [pc(it.neutral)] : []), pc(it.agree), fmt(it.median), `${it.mean.toFixed(2)} (${Number.isFinite(it.sd) ? it.sd.toFixed(2) : '–'})`]);
+  }
+  function calc() {
+    const err = q('.lk-err');
+    try {
+      build();
+      err.hidden = true; q('.lk-out').hidden = false;
+      paintChart();
+      const odd = labels.length % 2 === 1;
+      const head = ['Statement', 'n', '% disagree', ...(odd ? ['% neutral'] : []), '% agree', 'Median', 'Mean (SD)'];
+      const t = q<HTMLTableElement>('.lk-tab'); t.innerHTML = '';
+      const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+      const tb = t.createTBody(); summaryRows().forEach((r) => { const tr = tb.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+      q('.lk-note').textContent = `Median and mean use the codes 1 (${labels[0]}) to ${labels.length} (${labels[labels.length - 1]}). With an even number of answers the median can fall halfway between two codes. Likert answers are ordered categories, so the median and the percentages are safer to report than the mean.`;
+      report = [{ title: title || 'Likert responses', figure: figure(900) }, { title: 'Summary', table: { head, rows: summaryRows(), align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'r'].slice(0, head.length) as ('l' | 'r')[] }, note: q('.lk-note').textContent! }];
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.lk-out').hidden = true; report = []; items = []; }
+  }
+  function setMode(m: string) {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.lk-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.lk-p').forEach((p) => (p.hidden = p.dataset.m !== m));
+    calc();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.lk-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  let tm = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('textarea, input:not([type=checkbox])')) { clearTimeout(tm); tm = window.setTimeout(calc, 300); } });
+  root.addEventListener('change', (e) => {
+    const el = e.target as HTMLElement;
+    if (el.matches('.lk-k')) q<HTMLInputElement>('.lk-labels').value = '';
+    if (el.matches('select, input[type=checkbox]')) calc();
+  });
+  const fileBase = () => (title ? title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) : '') || 'likert-chart';
+  q('.lk-png').addEventListener('click', () => {
+    if (!items.length) return;
+    const fig = figure(900), c = document.createElement('canvas');
+    c.width = fig.w * 2; c.height = fig.h * 2;
+    const ctx = c.getContext('2d')!; ctx.scale(2, 2); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, fig.w, fig.h);
+    drawLikert(canvasPainter(ctx), { w: fig.w, h: fig.h, items, labels, title, ink: '#0a0a0a', muted: '#5c5c5c', grid: '#e2e2e2' });
+    c.toBlob((b) => b && save(b, `${fileBase()}.png`, 'image/png'), 'image/png');
+  });
+  q('.lk-svg').addEventListener('click', () => {
+    if (!items.length) return;
+    const w = 900, h = chartHeight(items.length, labels.length, w), P = svgPainter(w, h);
+    P.poly([[0, 0], [w, 0], [w, h], [0, h]], '#ffffff', null);
+    drawLikert(P, { w, h, items, labels, title, ink: '#0a0a0a', muted: '#5c5c5c', grid: '#e2e2e2' });
+    save(new TextEncoder().encode(P.toString()), `${fileBase()}.svg`, 'image/svg+xml');
+  });
+  q('.lk-csv').addEventListener('click', () => {
+    if (!items.length) return;
+    const rows = [['statement', 'n', ...labels.map((l) => `${l} (count)`), ...labels.map((l) => `${l} (%)`), 'pct_disagree', 'pct_neutral', 'pct_agree', 'median', 'mean', 'sd'],
+      ...items.map((it) => [it.name, String(it.n), ...it.counts.map(String), ...it.pct.map((p) => p.toFixed(2)), it.disagree.toFixed(2), it.neutral.toFixed(2), it.agree.toFixed(2), String(it.median), it.mean.toFixed(4), Number.isFinite(it.sd) ? it.sd.toFixed(4) : ''])];
+    save(new TextEncoder().encode(rows.map((r) => r.map((c) => (/[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c)).join(',')).join('\n') + '\n'), `${fileBase()}.csv`, 'text/csv');
+  });
+  let rt = 0;
+  window.addEventListener('resize', () => { clearTimeout(rt); rt = window.setTimeout(() => items.length && paintChart(), 150); });
+  document.addEventListener('fibub:theme', () => { if (items.length) paintChart(); });
+  setMode('raw');
+  wireDownloads(q('.lk .dl'), () => ({ title: title || 'Likert responses', file: fileBase(), sections: report }));
+</script>
