@@ -281,6 +281,8 @@ Greywick	Fairhaven	10</textarea></label>
       err.hidden = true; q('.gm-out').hidden = false;
       report = mode === 'fit' ? runFit() : runPredict();
     } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.gm-out').hidden = true; report = []; csvRows = []; }
+    // For tests: how many times the result was worked out, and whether an update is still waiting.
+    root.dataset.runs = String(Number(root.dataset.runs || 0) + 1); delete root.dataset.busy;
   }
   function setMode(m: string) {
     mode = m;
@@ -297,7 +299,7 @@ Greywick	Fairhaven	10</textarea></label>
     setMode('predict');
   });
   let tm = 0;
-  root.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(calc, 300); });
+  root.addEventListener('input', () => { root.dataset.busy = '1'; clearTimeout(tm); tm = window.setTimeout(calc, 300); });
   root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select')) calc(); });
   q('.gm-csv').addEventListener('click', () => csvRows.length > 1 && save(new Blob([csv(csvRows)], { type: 'text/csv' }), `gravity-${mode === 'fit' ? 'fit' : 'prediction'}.csv`, 'text/csv'));
   wireDownloads(q('.dl'), () => ({ title: mode === 'fit' ? 'Gravity model fit' : 'Gravity model prediction', file: `gravity-${mode === 'fit' ? 'fit' : 'prediction'}`, sections: report }));

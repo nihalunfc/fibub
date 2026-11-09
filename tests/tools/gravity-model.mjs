@@ -1,9 +1,12 @@
 import { haversine } from '../../src/lib/sci/gravity.ts';
 export const path = '/science/gravity-model/';
 export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) => {
-  const wait = () => page.waitForTimeout(500);
-  await page.goto(BASE + path);
-  await page.waitForSelector('.gm-out:not([hidden])');
+  const runs = () => page.evaluate(() => +(document.querySelector('.gm').dataset.runs || 0));
+  let mark = 0;
+  const before = async () => { mark = await runs(); };
+  const wait = () => page.waitForFunction((n) => { const r = document.querySelector('.gm'); return +(r.dataset.runs || 0) > n && !r.dataset.busy; }, mark);
+  await page.goto(BASE + path, { timeout: 120000 });
+  await page.waitForSelector('.gm-out:not([hidden])', { timeout: 60000 });
   check((await page.textContent('.gm-big')) === 'Distance exponent c = 1.66 (PPML)', `gravity tool: example c (${await page.textContent('.gm-big')})`);
   const facts = await page.textContent('.gm-facts');
   check(/42 \(2 zero\)/.test(facts) && /0\.916/.test(facts) && /0\.924/.test(facts) && /Great circle/.test(facts), 'gravity tool: pairs, R², pseudo R²');
@@ -32,7 +35,7 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   check((await page.textContent('.gm-h')) === 'Predicted flows' && /Observed total/.test(await page.textContent('.gm-facts')), 'gravity tool: predict mode with observed flows');
 
   // Newton's parameters
-  await page.fill('.gm-k', '1'); await page.fill('.gm-a', '1'); await page.fill('.gm-b', '1'); await page.fill('.gm-c', '2'); await wait();
+  await before(); await page.fill('.gm-k', '1'); await page.fill('.gm-a', '1'); await page.fill('.gm-b', '1'); await page.fill('.gm-c', '2'); await wait();
   const d = haversine(46.2, 3.1, 46.95, 4.4), want = 820 * 310 / d ** 2;
   const first = await page.textContent('.gm-tab tbody tr:first-child');
   check(first.includes(want.toPrecision(3)), `gravity tool: predicted Ashford Bay → Brimley ${want.toPrecision(3)} (${first})`);
@@ -44,7 +47,7 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   // Given distances, no coordinates
   await page.fill('.gm-places', 'A,100\nB,200\nC,50');
   await page.selectOption('.gm-pairs', 'flows');
-  await page.fill('.gm-flows', 'A,B,,10\nB,C,,20\nA,C,,5'); await wait();
+  await before(); await page.fill('.gm-flows', 'A,B,,10\nB,C,,20\nA,C,,5'); await wait();
   check(/Pairs3/.test((await page.textContent('.gm-facts')).replace(/\s/g, '')) && (await page.textContent('.gm-tab tbody tr:first-child')).includes('200'), 'gravity tool: distances from the flows table (A→B = 100·200/10² = 200)');
   await page.selectOption('.gm-pairs', 'all');
   check(/No coordinates for A/.test(await page.textContent('.gm-err')), 'gravity tool: missing coordinates explained');
@@ -52,17 +55,17 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   // Fit errors
   await page.locator('.gm-mode button[data-m="fit"]').click();
   check(/the flow from A to B must be a number/.test(await page.textContent('.gm-err')), 'gravity tool: missing flow when fitting');
-  await page.fill('.gm-flows', 'A,B,4,10\nB,C,3,20\nA,C,2,5'); await wait();
+  await before(); await page.fill('.gm-flows', 'A,B,4,10\nB,C,3,20\nA,C,2,5'); await wait();
   check(/at least 6 flows/.test(await page.textContent('.gm-err')), 'gravity tool: too few flows');
-  await page.fill('.gm-flows', 'A,Q,4,10'); await wait();
+  await before(); await page.fill('.gm-flows', 'A,Q,4,10'); await wait();
   check(/"Q" is not in the places list/.test(await page.textContent('.gm-err')), 'gravity tool: unknown place');
-  await page.fill('.gm-places', 'A,x'); await wait();
+  await before(); await page.fill('.gm-places', 'A,x'); await wait();
   check(/mass of A must be a number above zero|at least two places/.test(await page.textContent('.gm-err')), 'gravity tool: bad mass');
 
   // Opening a file
   writeFileSync(OUT + 'gm-places.csv', 'Place,Mass,Lat,Lon\nP1,100,10,10\nP2,200,10,11\nP3,300,11,10\n');
-  await page.setInputFiles('.gm .dfb-in >> nth=0', OUT + 'gm-places.csv');
   await page.locator('.gm-mode button[data-m="predict"]').click();
+  await before(); await page.setInputFiles('.gm .dfb-in >> nth=0', OUT + 'gm-places.csv');
   await wait();
   check((await page.locator('.gm-tab tbody tr').count()) === 6, 'gravity tool: opens a places file');
 };
