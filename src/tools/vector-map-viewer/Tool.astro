@@ -1,0 +1,400 @@
+---
+// Vector map viewer: GeoJSON, KML/KMZ, zipped shapefiles and CSV (WKT) on a pan-and-zoom canvas, with an
+// attribute table, geodesic areas and lengths, and conversion between formats (src/lib/sci/vecmap.ts).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax vmv">
+  <div class="ax-card">
+    <h2>Map file</h2>
+    <div class="ax-row">
+      <button type="button" class="btn small vmv-open">Open files</button>
+      <input type="file" class="vmv-in" multiple hidden accept=".geojson,.json,.kml,.kmz,.zip,.shp,.dbf,.prj,.cpg,.shx,.csv,.tsv,.txt" />
+      <button type="button" class="btn secondary small vmv-ex">Use the example</button>
+    </div>
+    <p class="ax-help">GeoJSON, KML or KMZ, a shapefile as a .zip (with its .shp, .dbf, .prj and .cpg) or its files chosen together, or a CSV with a WKT column or latitude and longitude columns. Up to 50 MB in all and 200,000 features. <strong>Your files stay on this device</strong>: they are read in your browser and never uploaded.</p>
+    <details class="vmv-pastebox">
+      <summary>Or paste GeoJSON, KML or CSV text</summary>
+      <textarea class="vmv-paste" rows="5" spellcheck="false" autocapitalize="off" wrap="off" placeholder='{"type": "FeatureCollection", ...}'></textarea>
+      <button type="button" class="btn secondary small vmv-read" style="margin-top:8px">Read the pasted text</button>
+    </details>
+    <p class="ax-err vmv-err" hidden></p>
+    <label class="vmv-layerbox" hidden>Layer <select class="vmv-layer"></select></label>
+  </div>
+
+  <div class="ax-card vmv-res" hidden>
+    <h2 class="vmv-title">Map</h2>
+    <div class="vmv-mapwrap">
+      <canvas class="vmv-map" tabindex="0" aria-label="Map of the features"></canvas>
+      <div class="vmv-tools">
+        <button type="button" class="vmv-zin" aria-label="Zoom in">+</button>
+        <button type="button" class="vmv-zout" aria-label="Zoom out">−</button>
+        <button type="button" class="vmv-fit" aria-label="Fit all features">Fit</button>
+      </div>
+    </div>
+    <div class="ax-row" style="margin-top:8px">
+      <label class="ax-check"><input type="checkbox" class="vmv-land" checked /> World coastline</label>
+      <label class="ax-check"><input type="checkbox" class="vmv-labels" /> Labels</label>
+      <span class="ax-help vmv-coord" style="margin:0" aria-live="polite"></span>
+    </div>
+    <p class="ax-help">Drag to move, scroll or pinch to zoom, tap a feature to select it. The map is drawn in a simple latitude-longitude view for looking at the data; areas and lengths below are worked out on the ellipsoid, not from the picture.</p>
+    <div class="vmv-sel" hidden>
+      <h3 class="vmv-selh"></h3>
+      <dl class="ax-facts vmv-selfacts"></dl>
+    </div>
+  </div>
+
+  <div class="ax-card vmv-res" hidden>
+    <h2>Features</h2>
+    <p class="ax-big vmv-big"></p>
+    <dl class="ax-facts vmv-facts"></dl>
+    <p class="ax-help vmv-notes"></p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Area unit <select class="vmv-au"><option value="m2">m²</option><option value="ha" selected>hectares</option><option value="km2">km²</option><option value="ac">acres</option></select></label>
+      <label>Length unit <select class="vmv-lu"><option value="m" selected>metres</option><option value="km">kilometres</option><option value="mi">miles</option></select></label>
+    </div>
+    <div class="ax-scroll vmv-tablebox" style="margin-top:10px"><table class="vmv-table"><thead></thead><tbody></tbody></table></div>
+    <p class="ax-help vmv-tnote"></p>
+    <p class="ax-help">Area is on the WGS 84 ellipsoid with geodesic edges, holes taken off. Perimeter includes the edges of holes. Tap a row to show that feature on the map.</p>
+  </div>
+
+  <div class="ax-card vmv-res" hidden>
+    <h2>Convert and download</h2>
+    <div class="ax-seg vmv-fmt" role="group" aria-label="Format">
+      <button type="button" data-fmt="geojson" aria-pressed="true">GeoJSON</button>
+      <button type="button" data-fmt="kml" aria-pressed="false">KML</button>
+      <button type="button" data-fmt="csv" aria-pressed="false">CSV (WKT)</button>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="vmv-addm" /> Add area, perimeter and length columns</label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small vmv-dl">Download GeoJSON</button>
+      <span class="ax-help vmv-done" style="margin:0" aria-live="polite"></span>
+    </div>
+    <p class="ax-help vmv-fhelp"></p>
+    <Downloads label="Report" />
+  </div>
+</div>
+
+<style is:global>
+  .vmv .vmv-mapwrap { position: relative; }
+  .vmv canvas.vmv-map { display: block; width: 100%; height: clamp(260px, 62vw, 520px); border: 1px solid var(--line); border-radius: 8px; touch-action: none; cursor: grab; background: var(--bg); }
+  .vmv .vmv-tools { position: absolute; right: 8px; top: 8px; display: grid; gap: 6px; }
+  .vmv .vmv-tools button { min-width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; font-size: 18px; cursor: pointer; }
+  .vmv .vmv-tools .vmv-fit { font-size: 13px; }
+  .vmv .vmv-pastebox { margin-top: 10px; font-size: 14px; }
+  .vmv .vmv-pastebox summary { cursor: pointer; color: var(--accent); }
+  .vmv .vmv-pastebox textarea { margin-top: 8px; }
+  .vmv .vmv-table td { white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+  .vmv .vmv-table tbody tr { cursor: pointer; }
+  .vmv .vmv-table tr.on td { background: var(--warn-soft); }
+  .vmv .vmv-sel { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+  .vmv .vmv-sel h3 { margin: 0 0 8px; font-size: 16px; }
+  .vmv .vmv-selfacts { grid-template-columns: repeat(auto-fill, minmax(min(100%, 125px), 1fr)); }
+  .vmv .vmv-selfacts dd { font-size: 15px; font-weight: 600; }
+  .vmv-layerbox { margin-top: 10px; max-width: 360px; }
+</style>
+
+<script>
+  import { readAny, measure, planarMeasure, bounds, toGeoJSON, toKML, toCsvWkt, readGeoJSON, readKML, readCsv, pointInRing, EXAMPLE, type Layer, type Geom, type Pos, type Measure, type Props } from '../../lib/sci/vecmap';
+  import { save, fileSafe, pagePalette, wireDownloads, type Figure, type Palette, type Section } from '../../lib/report';
+  import LAND from '../../data/world-land-110m.json';
+
+  const root = document.querySelector<HTMLElement>('.vmv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const MAX_BYTES = 50e6, MAX_FEATURES = 200000, MAX_ROWS = 1000;
+  let layers: Layer[] = [], layer: Layer | null = null, meas: Measure[] = [], planar: { area: number; perimeter: number }[] | null = null;
+  let sel = -1, fmt: 'geojson' | 'kml' | 'csv' = 'geojson';
+  // View: equirectangular x = lon·cos(lat0), y = lat; centre (cx, cy) and pixels per degree.
+  let k0 = 1, cx = 0, cy = 0, ppd = 1, W = 0, H = 0;
+
+  const err = (m: string) => { const e = q('.vmv-err'); e.textContent = m; e.hidden = !m; };
+  const AU: Record<string, [number, string]> = { m2: [1, 'm²'], ha: [1e4, 'ha'], km2: [1e6, 'km²'], ac: [4046.8564224, 'acres'] };
+  const LU: Record<string, [number, string]> = { m: [1, 'm'], km: [1e3, 'km'], mi: [1609.344, 'mi'] };
+  const sig = (x: number) => (x === 0 ? '0' : Math.abs(x) >= 1e5 ? Math.round(x).toLocaleString('en') : Number(x.toPrecision(6)).toLocaleString('en', { maximumFractionDigits: 6 }));
+  const fa = (m2: number) => { const [d, u] = AU[q<HTMLSelectElement>('.vmv-au').value]; return `${sig(m2 / d)} ${u}`; };
+  const fl = (m: number) => { const [d, u] = LU[q<HTMLSelectElement>('.vmv-lu').value]; return `${sig(m / d)} ${u}`; };
+  const fact = (dl: HTMLElement, k: string, v: string) => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; d.append(dt, dd); dl.append(d); };
+  const typeName = (g: Geom | null) => (g ? g.type.replace('LineString', 'Line').replace('GeometryCollection', 'Collection') : 'none');
+
+  // ---------- loading ----------
+  async function openFiles(fl: FileList | File[]) {
+    err('');
+    const files = [...fl];
+    const total = files.reduce((s, f) => s + f.size, 0);
+    if (!files.length) return;
+    if (total > MAX_BYTES) return err(`These files are ${(total / 1e6).toFixed(1)} MB; the limit here is 50 MB.`);
+    try {
+      const got = await Promise.all(files.map(async (f) => ({ name: f.name, bytes: new Uint8Array(await f.arrayBuffer()) })));
+      setLayers(readAny(got));
+    } catch (e) { err((e as Error).message); }
+  }
+  function readPasted() {
+    err('');
+    const t = q<HTMLTextAreaElement>('.vmv-paste').value.trim();
+    if (!t) return err('Paste GeoJSON, KML or a CSV table first.');
+    try { setLayers([t.startsWith('{') || t.startsWith('[') ? readGeoJSON(t, 'Pasted GeoJSON') : t.startsWith('<') ? readKML(t, 'Pasted KML') : readCsv(t, 'Pasted table')]); }
+    catch (e) { err((e as Error).message); }
+  }
+  function setLayers(ls: Layer[]) {
+    const big = ls.find((l) => l.features.length > MAX_FEATURES);
+    if (big) return err(`${big.name} has ${big.features.length.toLocaleString('en')} features; the limit here is ${MAX_FEATURES.toLocaleString('en')}.`);
+    layers = ls;
+    const s = q<HTMLSelectElement>('.vmv-layer'); s.replaceChildren();
+    ls.forEach((l, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = `${l.name} (${l.source}, ${l.features.length} features)`; s.append(o); });
+    q('.vmv-layerbox').hidden = ls.length < 2;
+    useLayer(0);
+  }
+  function useLayer(i: number) {
+    layer = layers[i]; sel = -1;
+    meas = layer.features.map((f) => measure(f.geometry));
+    planar = layer.planar ? layer.planar.map((f) => planarMeasure(f.geometry)) : null;
+    prepare(); fit(); summary(); table(); select(-1); exportHelp();
+    root.querySelectorAll<HTMLElement>('.vmv-res').forEach((e) => (e.hidden = false));
+    q('.vmv-title').textContent = layer.name;
+    requestAnimationFrame(() => { size(); fit(); draw(); });
+  }
+
+  // ---------- summary and table ----------
+  function summary() {
+    if (!layer) return;
+    const counts = new Map<string, number>();
+    for (const f of layer.features) counts.set(typeName(f.geometry), (counts.get(typeName(f.geometry)) ?? 0) + 1);
+    q('.vmv-big').textContent = `${layer.features.length.toLocaleString('en')} feature${layer.features.length === 1 ? '' : 's'}`;
+    const dl = q('.vmv-facts'); dl.replaceChildren();
+    fact(dl, 'Kinds', [...counts].map(([k, n]) => `${n} ${k}`).join(', '));
+    const A = meas.reduce((s, m) => s + m.area, 0), P = meas.reduce((s, m) => s + m.perimeter, 0), L = meas.reduce((s, m) => s + m.length, 0);
+    if (A) { fact(dl, 'Total area', fa(A)); fact(dl, 'Total perimeter', fl(P)); }
+    if (L) fact(dl, 'Total line length', fl(L));
+    fact(dl, 'Vertices', meas.reduce((s, m) => s + m.vertices, 0).toLocaleString('en'));
+    const b = bounds(layer.features);
+    if (b) fact(dl, 'Extent (lon, lat)', `${b[0].toFixed(4)} to ${b[2].toFixed(4)}, ${b[1].toFixed(4)} to ${b[3].toFixed(4)}`);
+    fact(dl, 'Coordinates', layer.crs);
+    if (planar) { const pa = planar.reduce((s, m) => s + m.area, 0); if (pa) fact(dl, `Map-plane area (in the file's projection)`, `${sig(pa)} ${layer.planarUnit === 'Meter' || /met/i.test(layer.planarUnit ?? '') ? 'm²' : `square ${layer.planarUnit}`}`); }
+    q('.vmv-notes').textContent = layer.notes.join(' ');
+  }
+  const keyField = () => layer ? layer.fields.find((f) => /^name$/i.test(f)) ?? layer.fields.find((f) => /name|label|title/i.test(f)) : undefined;
+  function table() {
+    if (!layer) return;
+    const hasA = meas.some((m) => m.area), hasL = meas.some((m) => m.length);
+    // The name column (if there is one) comes first so it stays in view on a phone.
+    const key = keyField(), rest = layer.fields.filter((f) => f !== key);
+    const head: [string, boolean][] = [['#', true], ...(key ? [[key, false]] as [string, boolean][] : []), ['Kind', false], ...(hasA ? [['Area', true], ['Perimeter', true]] as [string, boolean][] : []), ...(hasL ? [['Length', true]] as [string, boolean][] : []), ...rest.map((f) => [f, false] as [string, boolean])];
+    const tr = document.createElement('tr');
+    head.forEach(([h, r]) => { const th = document.createElement('th'); th.textContent = h; if (r) th.className = 'r'; tr.append(th); });
+    q('.vmv-table thead').replaceChildren(tr);
+    const tb = q('.vmv-table tbody'); tb.replaceChildren();
+    layer.features.slice(0, MAX_ROWS).forEach((f, i) => {
+      const r = document.createElement('tr'); r.dataset.i = String(i);
+      const td = (t: string, cls = '') => { const c = document.createElement('td'); c.textContent = t; if (cls) c.className = cls; c.title = t; r.append(c); };
+      const val = (k: string) => { const v = f.properties[k]; return v == null ? '' : String(v); };
+      td(String(i + 1), 'r'); if (key) td(val(key)); td(typeName(f.geometry));
+      if (hasA) { td(meas[i].area ? fa(meas[i].area) : '', 'r'); td(meas[i].area ? fl(meas[i].perimeter) : '', 'r'); }
+      if (hasL) td(meas[i].length ? fl(meas[i].length) : '', 'r');
+      for (const k of rest) td(val(k));
+      tb.append(r);
+    });
+    q('.vmv-tnote').textContent = layer.features.length > MAX_ROWS ? `The table shows the first ${MAX_ROWS} of ${layer.features.length.toLocaleString('en')} features; the downloads have all of them.` : '';
+  }
+  function select(i: number, zoom = false) {
+    sel = i;
+    root.querySelectorAll('.vmv-table tr.on').forEach((e) => e.classList.remove('on'));
+    const box = q('.vmv-sel');
+    if (i < 0 || !layer) { box.hidden = true; draw(); return; }
+    root.querySelector(`.vmv-table tr[data-i="${i}"]`)?.classList.add('on');
+    const f = layer.features[i], m = meas[i];
+    q('.vmv-selh').textContent = `Feature ${i + 1}: ${typeName(f.geometry)}`;
+    const dl = q('.vmv-selfacts'); dl.replaceChildren();
+    if (m.area) { fact(dl, 'Area', fa(m.area)); fact(dl, 'Perimeter', fl(m.perimeter)); if (m.outer !== m.perimeter) fact(dl, 'Outer perimeter', fl(m.outer)); }
+    if (m.length) fact(dl, 'Length', fl(m.length));
+    if (f.geometry?.type === 'Point') fact(dl, 'Position (lat, lon)', `${f.geometry.coordinates[1].toFixed(6)}, ${f.geometry.coordinates[0].toFixed(6)}`);
+    if (planar && planar[i].area) fact(dl, 'Map-plane area', sig(planar[i].area));
+    fact(dl, 'Vertices', String(m.vertices));
+    for (const k of layer.fields) fact(dl, k, f.properties[k] == null ? '–' : String(f.properties[k]));
+    box.hidden = false;
+    if (zoom) { const b = bounds([f]); if (b) fitTo(b, true); }
+    draw();
+  }
+
+  // ---------- map ----------
+  type Shape = { kind: 'poly' | 'line' | 'point'; rings: number[][] };
+  let shapes: Shape[][] = [];
+  const LANDX = (LAND as number[][]);
+  function prepare() {
+    if (!layer) return;
+    const b = bounds(layer.features)!;
+    k0 = Math.cos((((b?.[1] ?? 0) + (b?.[3] ?? 0)) / 2) * Math.PI / 180);
+    if (!(k0 > 0.05)) k0 = 0.05;
+    const flat = (r: Pos[]) => { const a: number[] = []; for (const p of r) a.push(p[0] * k0, p[1]); return a; };
+    const go = (g: Geom | null, out: Shape[]) => {
+      if (!g) return;
+      switch (g.type) {
+        case 'Point': out.push({ kind: 'point', rings: [[g.coordinates[0] * k0, g.coordinates[1]]] }); break;
+        case 'MultiPoint': for (const p of g.coordinates) out.push({ kind: 'point', rings: [[p[0] * k0, p[1]]] }); break;
+        case 'LineString': out.push({ kind: 'line', rings: [flat(g.coordinates)] }); break;
+        case 'MultiLineString': for (const c of g.coordinates) out.push({ kind: 'line', rings: [flat(c)] }); break;
+        case 'Polygon': out.push({ kind: 'poly', rings: g.coordinates.map(flat) }); break;
+        case 'MultiPolygon': for (const c of g.coordinates) out.push({ kind: 'poly', rings: c.map(flat) }); break;
+        case 'GeometryCollection': for (const x of g.geometries) go(x, out); break;
+      }
+    };
+    shapes = layer.features.map((f) => { const o: Shape[] = []; go(f.geometry, o); return o; });
+  }
+  const canvas = q<HTMLCanvasElement>('.vmv-map');
+  function size() { const r = canvas.getBoundingClientRect(); W = r.width; H = r.height; const d = Math.min(3, devicePixelRatio || 1); canvas.width = Math.round(W * d); canvas.height = Math.round(H * d); }
+  function fitTo(b: number[], keepZoomOut = false) {
+    if (!W) size();
+    const x0 = b[0] * k0, x1 = b[2] * k0, y0 = b[1], y1 = b[3];
+    cx = (x0 + x1) / 2; cy = (y0 + y1) / 2;
+    const w = Math.max(x1 - x0, 1e-6), h = Math.max(y1 - y0, 1e-6);
+    const z = Math.min((W * 0.88) / w, (H * 0.88) / h, 2e7);
+    ppd = keepZoomOut ? Math.min(z, Math.max(ppd, z / 8)) : z;
+  }
+  function fit() { if (layer) { const b = bounds(layer.features); if (b) fitTo(b); } }
+  const sx = (x: number) => W / 2 + (x - cx) * ppd, sy = (y: number) => H / 2 - (y - cy) * ppd;
+  function drawAll(ctx: CanvasRenderingContext2D, w: number, h: number, pal: Palette, land: boolean, labels: boolean) {
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, h);
+    const tx = (x: number) => w / 2 + (x - cx) * ppd, ty = (y: number) => h / 2 - (y - cy) * ppd;
+    if (land) {
+      ctx.beginPath();
+      for (const r of LANDX) { for (let i = 0; i < r.length; i += 2) { const X = tx(r[i] * k0), Y = ty(r[i + 1]); if (i) ctx.lineTo(X, Y); else ctx.moveTo(X, Y); } ctx.closePath(); }
+      ctx.fillStyle = pal.red ? '#140000' : pal.grid; ctx.fill(); ctx.strokeStyle = pal.line; ctx.lineWidth = 0.8; ctx.stroke();
+    }
+    const path = (rings: number[][], close: boolean) => { ctx.beginPath(); for (const r of rings) { for (let i = 0; i < r.length; i += 2) { const X = tx(r[i]), Y = ty(r[i + 1]); if (i) ctx.lineTo(X, Y); else ctx.moveTo(X, Y); } if (close) ctx.closePath(); } };
+    const one = (s: Shape, on: boolean) => {
+      if (s.kind === 'poly') { path(s.rings, true); ctx.globalAlpha = on ? 0.4 : 0.22; ctx.fillStyle = on ? pal.warn : pal.accent; ctx.fill('evenodd'); ctx.globalAlpha = 1; ctx.strokeStyle = on ? pal.warn : pal.accent; ctx.lineWidth = on ? 2.5 : 1.2; ctx.stroke(); }
+      else if (s.kind === 'line') { path(s.rings, false); ctx.strokeStyle = on ? pal.warn : pal.accent2; ctx.lineWidth = on ? 3.5 : 2; ctx.stroke(); }
+      else { ctx.beginPath(); ctx.arc(tx(s.rings[0][0]), ty(s.rings[0][1]), on ? 6.5 : 4.5, 0, 2 * Math.PI); ctx.fillStyle = on ? pal.warn : pal.ink; ctx.fill(); ctx.strokeStyle = pal.bg; ctx.lineWidth = 1.5; ctx.stroke(); }
+    };
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    shapes.forEach((ss, i) => { if (i !== sel) for (const s of ss) one(s, false); });
+    if (sel >= 0) for (const s of shapes[sel] ?? []) one(s, true);
+    if (labels && layer) {
+      const key = keyField() ?? layer.fields.find((f) => /id/i.test(f)) ?? layer.fields[0];
+      ctx.font = '12px system-ui, sans-serif'; ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      let n = 0;
+      layer.features.forEach((f, i) => {
+        if (n > 400 || !key || f.properties[key] == null) return;
+        const b = bounds([f]); if (!b) return;
+        const X = tx(((b[0] + b[2]) / 2) * k0), Y = ty((b[1] + b[3]) / 2) - (shapes[i][0]?.kind === 'point' ? 12 : 0);
+        if (X < 0 || X > w || Y < 0 || Y > h) return;
+        ctx.strokeStyle = pal.bg; ctx.lineWidth = 3; ctx.strokeText(String(f.properties[key]), X, Y); ctx.fillText(String(f.properties[key]), X, Y); n++;
+      });
+    }
+    // Scale bar: metres per pixel at the centre latitude.
+    const mpp = 111320 / ppd;
+    const target = mpp * Math.min(120, w / 4), pw = 10 ** Math.floor(Math.log10(target)), step = [1, 2, 5, 10].find((m) => m * pw >= target)! * pw;
+    const len = step / mpp;
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(12, h - 14); ctx.lineTo(12 + len, h - 14); ctx.moveTo(12, h - 19); ctx.lineTo(12, h - 9); ctx.moveTo(12 + len, h - 19); ctx.lineTo(12 + len, h - 9); ctx.stroke();
+    ctx.font = '12px system-ui, sans-serif'; ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+    ctx.fillText(step >= 1000 ? `${step / 1000} km` : `${step} m`, 16 + len, h - 8);
+  }
+  let pending = false;
+  function draw() {
+    if (pending) return; pending = true;
+    requestAnimationFrame(() => {
+      pending = false;
+      if (!layer || !W) return;
+      const ctx = canvas.getContext('2d')!, d = canvas.width / W;
+      ctx.setTransform(d, 0, 0, d, 0, 0);
+      drawAll(ctx, W, H, pagePalette(), q<HTMLInputElement>('.vmv-land').checked, q<HTMLInputElement>('.vmv-labels').checked);
+      canvas.dataset.drawn = String(Date.now());
+    });
+  }
+  const zoomAt = (f: number, px = W / 2, py = H / 2) => {
+    const x = cx + (px - W / 2) / ppd, y = cy - (py - H / 2) / ppd;
+    ppd = Math.max(0.2, Math.min(2e8, ppd * f));
+    cx = x - (px - W / 2) / ppd; cy = y + (py - H / 2) / ppd; draw();
+  };
+  function hit(px: number, py: number) {
+    if (!layer) return -1;
+    let best = -1, bestScore = Infinity;
+    const x = cx + (px - W / 2) / ppd, y = cy - (py - H / 2) / ppd;
+    shapes.forEach((ss, i) => {
+      for (const s of ss) {
+        if (s.kind === 'point') { const d = Math.hypot(sx(s.rings[0][0]) - px, sy(s.rings[0][1]) - py); if (d < 10 && d < bestScore) { best = i; bestScore = d; } }
+        else if (s.kind === 'line') {
+          for (const r of s.rings) for (let k = 2; k < r.length; k += 2) {
+            const ax = sx(r[k - 2]), ay = sy(r[k - 1]), bx = sx(r[k]), by = sy(r[k + 1]);
+            const L2 = (bx - ax) ** 2 + (by - ay) ** 2, t = L2 ? Math.max(0, Math.min(1, ((px - ax) * (bx - ax) + (py - ay) * (by - ay)) / L2)) : 0;
+            const d = Math.hypot(ax + t * (bx - ax) - px, ay + t * (by - ay) - py);
+            if (d < 8 && d + 1 < bestScore) { best = i; bestScore = d + 1; }
+          }
+        } else {
+          const ring = (r: number[]) => { const a: Pos[] = []; for (let k = 0; k < r.length; k += 2) a.push([r[k], r[k + 1]]); return a; };
+          let inside = pointInRing([x, y], ring(s.rings[0]));
+          for (const h of s.rings.slice(1)) if (inside && pointInRing([x, y], ring(h))) inside = false;
+          if (inside) { const score = 20 + Math.log10(1 + meas[i].area); if (score < bestScore) { best = i; bestScore = score; } }
+        }
+      }
+    });
+    return best;
+  }
+  // Pointer: drag to pan, two fingers to pinch, a tap selects.
+  const ptrs = new Map<number, { x: number; y: number }>();
+  let moved = 0, pinch = 0;
+  const rel = (e: PointerEvent) => { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  canvas.addEventListener('pointerdown', (e) => { canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, rel(e)); moved = 0; if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = Math.hypot(a.x - b.x, a.y - b.y); } });
+  canvas.addEventListener('pointermove', (e) => {
+    const p = rel(e), old = ptrs.get(e.pointerId);
+    if (!old) { if (layer && W) { const x = (cx + (p.x - W / 2) / ppd) / k0, y = cy - (p.y - H / 2) / ppd; q('.vmv-coord').textContent = `${y.toFixed(5)}, ${x.toFixed(5)}`; } return; }
+    if (ptrs.size === 1) { cx -= (p.x - old.x) / ppd; cy += (p.y - old.y) / ppd; moved += Math.abs(p.x - old.x) + Math.abs(p.y - old.y); ptrs.set(e.pointerId, p); draw(); }
+    else if (ptrs.size === 2) {
+      ptrs.set(e.pointerId, p); const [a, b] = [...ptrs.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinch) zoomAt(d / pinch, (a.x + b.x) / 2, (a.y + b.y) / 2); pinch = d; moved += 10;
+    }
+  });
+  const up = (e: PointerEvent) => { const p = ptrs.get(e.pointerId); ptrs.delete(e.pointerId); if (p && moved < 6 && !ptrs.size) { const i = hit(p.x, p.y); select(i); } if (ptrs.size < 2) pinch = 0; };
+  canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', (e) => ptrs.delete(e.pointerId));
+  canvas.addEventListener('wheel', (e) => { e.preventDefault(); const p = { x: e.offsetX, y: e.offsetY }; zoomAt(Math.exp(-e.deltaY * 0.0015), p.x, p.y); }, { passive: false });
+  canvas.addEventListener('keydown', (e) => { const s = 40 / ppd; if (e.key === '+' || e.key === '=') zoomAt(1.5); else if (e.key === '-') zoomAt(1 / 1.5); else if (e.key === 'ArrowLeft') { cx -= s; draw(); } else if (e.key === 'ArrowRight') { cx += s; draw(); } else if (e.key === 'ArrowUp') { cy += s; draw(); } else if (e.key === 'ArrowDown') { cy -= s; draw(); } else return; e.preventDefault(); });
+  q('.vmv-zin').addEventListener('click', () => zoomAt(1.6));
+  q('.vmv-zout').addEventListener('click', () => zoomAt(1 / 1.6));
+  q('.vmv-fit').addEventListener('click', () => { fit(); draw(); });
+  q('.vmv-land').addEventListener('change', draw); q('.vmv-labels').addEventListener('change', draw);
+  new ResizeObserver(() => { if (!layer) return; const w0 = W; size(); if (!w0) fit(); draw(); }).observe(canvas);
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+
+  q('.vmv-table tbody').addEventListener('click', (e) => { const r = (e.target as HTMLElement).closest<HTMLElement>('tr[data-i]'); if (r) { select(Number(r.dataset.i), true); canvas.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } });
+  for (const c of ['.vmv-au', '.vmv-lu']) q(c).addEventListener('change', () => { summary(); table(); select(sel); });
+
+  // ---------- export ----------
+  const extra = () => { const [ad, au] = AU[q<HTMLSelectElement>('.vmv-au').value], [ld, lu] = LU[q<HTMLSelectElement>('.vmv-lu').value]; return (k: number): Props => ({ [`area_${au === 'm²' ? 'm2' : au === 'km²' ? 'km2' : au}`]: +(meas[k].area / ad).toPrecision(10), [`perimeter_${lu}`]: +(meas[k].perimeter / ld).toPrecision(10), [`length_${lu}`]: +(meas[k].length / ld).toPrecision(10) }); };
+  function exportHelp() {
+    q('.vmv-dl').textContent = `Download ${fmt === 'geojson' ? 'GeoJSON' : fmt === 'kml' ? 'KML' : 'CSV'}`;
+    q('.vmv-fhelp').textContent = fmt === 'geojson' ? 'GeoJSON (RFC 7946): WGS 84 longitude and latitude, outer rings counter-clockwise. Opens in QGIS, ArcGIS, web maps and code.' : fmt === 'kml' ? 'KML for Google Earth and many GPS and phone apps; attributes become ExtendedData.' : 'One row per feature: the geometry as WKT (WGS 84 longitude latitude) and every attribute, for spreadsheets and databases (PostGIS, SpatiaLite).';
+  }
+  q('.vmv-fmt').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-fmt]'); if (!b) return; fmt = b.dataset.fmt as typeof fmt; root.querySelectorAll('.vmv-fmt button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); exportHelp(); });
+  q('.vmv-dl').addEventListener('click', () => {
+    if (!layer) return;
+    const ex = q<HTMLInputElement>('.vmv-addm').checked ? extra() : undefined, base = fileSafe(layer.name.replace(/\.[a-z]+$/i, ''));
+    if (fmt === 'geojson') save(new TextEncoder().encode(toGeoJSON(layer, ex)), `${base}.geojson`, 'application/geo+json');
+    else if (fmt === 'kml') save(new TextEncoder().encode(toKML(layer, ex)), `${base}.kml`, 'application/vnd.google-earth.kml+xml');
+    else save(new TextEncoder().encode('﻿' + toCsvWkt(layer, ex)), `${base}.csv`, 'text/csv');
+    q('.vmv-done').textContent = 'Saved.';
+  });
+  wireDownloads(root, () => {
+    if (!layer) return { title: '', sections: [], file: 'map' };
+    const land = q<HTMLInputElement>('.vmv-land').checked, labels = q<HTMLInputElement>('.vmv-labels').checked;
+    const fw = 1000, fh = Math.round((fw * H) / Math.max(W, 1));
+    const fig: Figure = { w: fw, h: fh, alt: `Map of ${layer.name}`, draw: (ctx, w, h, pal) => { const s = ppd; ppd = ppd * (w / W); drawAll(ctx, w, h, pal, land, labels); ppd = s; } };
+    const hasA = meas.some((m) => m.area), hasL = meas.some((m) => m.length);
+    const sections: Section[] = [
+      { title: 'Summary', facts: [...root.querySelectorAll('.vmv-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]), note: layer.notes.join(' ') || undefined },
+      { title: 'Map', figure: fig },
+      { title: 'Features', table: { head: ['#', 'Kind', ...(hasA ? ['Area', 'Perimeter'] : []), ...(hasL ? ['Length'] : []), ...layer.fields.slice(0, 4)], rows: layer.features.slice(0, 200).map((f, i) => [String(i + 1), typeName(f.geometry), ...(hasA ? [meas[i].area ? fa(meas[i].area) : '', meas[i].area ? fl(meas[i].perimeter) : ''] : []), ...(hasL ? [meas[i].length ? fl(meas[i].length) : ''] : []), ...layer!.fields.slice(0, 4).map((k) => (f.properties[k] == null ? '' : String(f.properties[k])))]) }, note: layer.features.length > 200 ? `First 200 of ${layer.features.length} features.` : undefined },
+    ];
+    return { title: `Map: ${layer.name}`, subtitle: 'Areas on the WGS 84 ellipsoid (geodesic edges). Made with fibub.com', sections, file: `${fileSafe(layer.name)}-map` };
+  });
+
+  const input = q<HTMLInputElement>('.vmv-in');
+  q('.vmv-open').addEventListener('click', () => input.click());
+  input.addEventListener('change', () => { if (input.files) openFiles(input.files); input.value = ''; });
+  root.addEventListener('dragover', (e) => e.preventDefault());
+  root.addEventListener('drop', (e) => { e.preventDefault(); if (e.dataTransfer?.files.length) openFiles(e.dataTransfer.files); });
+  q('.vmv-read').addEventListener('click', readPasted);
+  q('.vmv-ex').addEventListener('click', () => { err(''); setLayers([readGeoJSON(EXAMPLE, 'Example farm (made up)')]); });
+  q('.vmv-layer').addEventListener('change', () => useLayer(Number(q<HTMLSelectElement>('.vmv-layer').value)));
+  setLayers([readGeoJSON(EXAMPLE, 'Example farm (made up)')]);
+</script>
