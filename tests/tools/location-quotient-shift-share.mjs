@@ -1,7 +1,11 @@
 export const path = '/science/location-quotient-shift-share/';
 export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) => {
-  await page.goto(BASE + path);
-  await page.waitForSelector('.lqs-out:not([hidden])');
+  const runs = () => page.evaluate(() => +(document.querySelector('.lqs').dataset.runs || 0));
+  let mark = 0;
+  const before = async () => { mark = await runs(); };
+  const wait = () => page.waitForFunction((n) => { const r = document.querySelector('.lqs'); return +(r.dataset.runs || 0) > n && !r.dataset.busy; }, mark);
+  await page.goto(BASE + path, { timeout: 120000 });
+  await page.waitForSelector('.lqs-out:not([hidden])', { timeout: 60000 });
   check((await page.textContent('.lqs-big')) === 'Base multiplier 8.33', `lq tool: example multiplier (${await page.textContent('.lqs-big')})`);
   const facts = await page.textContent('.lqs-facts');
   check(/\+4,250 \(\+12\.2 %\)/.test(facts) && /\+8\.6 %/.test(facts) && /\+3,002/.test(facts) && /−768/.test(facts) && /\+2,015/.test(facts), 'lq tool: shift-share totals 3,002 / −768 / 2,015');
@@ -28,26 +32,26 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   check(/3,924 of 34,950/.test(await page.textContent('.lqs-facts')), 'lq tool: basic jobs for the first year');
 
   // One year only
-  await page.fill('.lqs-in', 'Sector,Town,Nation\nA,300,10000\nB,100,20000\nC,100,10000');
-  await page.waitForTimeout(450);
+  await before(); await page.fill('.lqs-in', 'Sector,Town,Nation\nA,300,10000\nB,100,20000\nC,100,10000');
+  await wait();
   const f1 = await page.textContent('.lqs-facts');
   check(!(await page.isVisible('.lqs-fig2')) && /175 of 500/.test(f1) && (await page.textContent('.lqs-big')) === 'Base multiplier 2.86', `lq tool: one year (${f1})`);
   check(/^A300/.test((await page.textContent('.lqs-tab tbody tr:first-child')).replace(/\s/g, '')) && /2\.40/.test(await page.textContent('.lqs-tab tbody tr:first-child')), 'lq tool: one-year LQ 2.40');
 
   // Opening a file
   writeFileSync(OUT + 'lq-in.csv', 'Industry,Region,Reference\nX,50,1000\nY,50,3000\n');
-  await page.setInputFiles('.lqs .dfb-in', OUT + 'lq-in.csv');
-  await page.waitForTimeout(450);
+  await before(); await page.setInputFiles('.lqs .dfb-in', OUT + 'lq-in.csv');
+  await wait();
   check(/LQ/.test(await page.textContent('.lqs-tab thead')) && /2\.00/.test(await page.textContent('.lqs-tab tbody tr:first-child')), 'lq tool: opens a CSV file');
 
   // Bad input
-  await page.fill('.lqs-in', 'A,1,2,3\nB,4,5,6');
-  await page.waitForTimeout(450);
+  await before(); await page.fill('.lqs-in', 'A,1,2,3\nB,4,5,6');
+  await wait();
   check(/3 columns .* or 5/.test(await page.textContent('.lqs-err')) && await page.isHidden('.lqs-out'), 'lq tool: wrong column count explained');
-  await page.fill('.lqs-in', 'A,10,x\nB,4,5');
-  await page.waitForTimeout(450);
+  await before(); await page.fill('.lqs-in', 'A,10,x\nB,4,5');
+  await wait();
   check(/"x" in row 1, column 3 is not a number/.test(await page.textContent('.lqs-err')), 'lq tool: text in numbers reported');
-  await page.fill('.lqs-in', 'A,10,0\nB,4,5');
-  await page.waitForTimeout(450);
+  await before(); await page.fill('.lqs-in', 'A,10,0\nB,4,5');
+  await wait();
   check(/none in the reference area/.test(await page.textContent('.lqs-err')), 'lq tool: zero reference jobs reported');
 };

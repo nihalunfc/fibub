@@ -126,6 +126,8 @@ Public administration	2100	2200	410000	420000</textarea></label>
       err.hidden = true; q('.lqs-out').hidden = false;
       show(r, labels, years);
     } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.lqs-out').hidden = true; report = []; }
+    // For tests: how many times the result was worked out, and whether an update is still waiting.
+    root.dataset.runs = String(Number(root.dataset.runs || 0) + 1); delete root.dataset.busy;
   }
 
   function show(r: LqResult, labels: string[], years: string[]) {
@@ -188,7 +190,7 @@ Public administration	2100	2200	410000	420000</textarea></label>
   }
 
   let tm = 0;
-  root.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(calc, 250); });
+  root.addEventListener('input', () => { root.dataset.busy = '1'; clearTimeout(tm); tm = window.setTimeout(calc, 250); });
   q('.lqs-year').addEventListener('change', calc);
   q('.lqs-csv').addEventListener('click', () => csvRows.length > 1 && save(new Blob([csv(csvRows)], { type: 'text/csv' }), 'location-quotients-shift-share.csv', 'text/csv'));
   wireDownloads(q('.dl'), () => ({ title: 'Location quotients and shift-share', file: 'location-quotients-shift-share', sections: report }));
