@@ -1,0 +1,303 @@
+---
+// Meta-analysis: effect sizes, fixed and random effects pooling, heterogeneity, forest and funnel plots, Egger's test.
+import DataFile from '../../components/DataFile.astro';
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ma">
+  <div class="ax-card">
+    <p class="ma-med-note">For study and teaching, not medical advice. Check with a qualified professional.</p>
+    <h2>Studies</h2>
+    <div class="ax-seg ma-kind" role="group" aria-label="What each study gives">
+      <button type="button" data-k="binary" aria-pressed="true">Events</button><button type="button" data-k="continuous" aria-pressed="false">Means</button><button type="button" data-k="generic" aria-pressed="false">Effect + SE</button><button type="button" data-k="ci" aria-pressed="false">Effect + CI</button>
+    </div>
+    <p class="ax-help ma-what"></p>
+
+    <div class="ma-p" data-k="binary">
+      <label>Study, events and total in the treated group, events and total in the control group.
+        <textarea class="ma-in ma-in-binary" rows="9" spellcheck="false" wrap="off">Trial	Events (treated)	Total (treated)	Events (control)	Total (control)
+Trial A	12	120	20	118
+Trial B	8	85	15	90
+Trial C	30	310	41	305
+Trial D	3	46	9	50
+Trial E	0	25	4	27
+Trial F	22	200	25	195
+Trial G	15	140	30	142
+Trial H	12	60	5	58</textarea></label>
+      <DataFile target=".ma-in-binary" maxRows={500} maxCols={8} />
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Measure <select class="ma-mbin"><option value="OR" selected>Odds ratio</option><option value="RR">Risk ratio</option><option value="RD">Risk difference</option></select></label>
+      </div>
+      <p class="ax-help">A trial with a zero (or every subject) in a group gets 0.5 added to each cell. Trials with no events in either group say nothing about a ratio and are left out of the odds and risk ratio.</p>
+    </div>
+    <div class="ma-p" data-k="continuous" hidden>
+      <label>Study, then mean, SD and number for group 1 (treated), then the same for group 2 (control).
+        <textarea class="ma-in ma-in-continuous" rows="8" spellcheck="false" wrap="off">Study	Mean 1	SD 1	n 1	Mean 2	SD 2	n 2
+Study 1	4.1	1.8	30	5.0	2.0	31
+Study 2	3.8	2.1	45	4.9	2.2	44
+Study 3	5.2	1.9	22	5.4	1.7	25
+Study 4	3.5	1.6	60	4.8	1.9	58
+Study 5	4.4	2.4	18	5.6	2.2	20
+Study 6	4.0	2.0	80	4.6	2.1	82</textarea></label>
+      <DataFile target=".ma-in-continuous" maxRows={500} maxCols={8} />
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Measure <select class="ma-mcont"><option value="MD" selected>Mean difference</option><option value="SMD">Standardised (Hedges' g)</option></select></label>
+      </div>
+      <p class="ax-help">Use the mean difference when every study used the same scale; Hedges' g when the scales differ (it divides by the pooled SD and corrects the small-sample bias).</p>
+    </div>
+    <div class="ma-p" data-k="generic" hidden>
+      <label>Study, effect estimate and its standard error (SE). For ratios, enter the log ratio and the SE of the log.
+        <textarea class="ma-in ma-in-generic" rows="8" spellcheck="false" wrap="off">Study	Effect	SE
+Study 1	0.42	0.15
+Study 2	0.18	0.11
+Study 3	0.55	0.21
+Study 4	0.05	0.09
+Study 5	0.31	0.13
+Study 6	0.62	0.25
+Study 7	0.12	0.08</textarea></label>
+      <DataFile target=".ma-in-generic" maxRows={500} maxCols={8} />
+      <div class="ax-grid" style="margin-top:10px"><label>Effect name <input class="ma-gname" value="Effect" /></label></div>
+    </div>
+    <div class="ma-p" data-k="ci" hidden>
+      <label>Study, estimate, lower limit and upper limit of its confidence interval.
+        <textarea class="ma-in ma-in-ci" rows="7" spellcheck="false" wrap="off">Trial	HR	Lower	Upper
+Trial 1	0.78	0.61	1.00
+Trial 2	0.65	0.45	0.94
+Trial 3	0.91	0.74	1.12
+Trial 4	0.70	0.52	0.95
+Trial 5	1.05	0.80	1.38</textarea></label>
+      <DataFile target=".ma-in-ci" maxRows={500} maxCols={8} />
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Interval in the papers <select class="ma-cilvl"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+        <label>Effect name <input class="ma-cname" value="Hazard ratio" /></label>
+      </div>
+      <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="ma-log" checked /> These are ratios (OR, RR, HR): pool on the log scale</label>
+      <p class="ax-help">The SE is worked out from the interval width: (upper − lower) ÷ (2 × z), on the log scale for ratios.</p>
+    </div>
+
+    <h3>Model</h3>
+    <div class="ax-grid">
+      <label>Main result <select class="ma-model"><option value="random" selected>Random effects</option><option value="fixed">Fixed effect</option></select></label>
+      <label>Between-study variance <select class="ma-tau"><option value="DL" selected>DerSimonian-Laird</option><option value="REML">REML</option><option value="PM">Paule-Mandel</option></select></label>
+      <label>Level <select class="ma-lvl"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+      <label>Left of the line <input class="ma-left" value="Favours treatment" /></label>
+      <label>Right of the line <input class="ma-right" value="Favours control" /></label>
+    </div>
+    <p class="ax-help">Fixed effect assumes every study measures one true effect. Random effects lets the true effect vary between studies (by tau²) and is the usual choice. DerSimonian-Laird is the classic estimate of tau²; REML and Paule-Mandel are often preferred, especially with few studies.</p>
+    <p class="ax-err ma-err" hidden></p>
+    <p class="ax-help ma-skip" hidden></p>
+  </div>
+
+  <div class="ax-card ma-out" hidden>
+    <h2>Pooled result</h2>
+    <p class="ax-big ma-big"></p>
+    <dl class="ax-facts ma-facts"></dl>
+    <h3>Forest plot</h3>
+    <canvas class="ax-fig ma-forest"></canvas>
+    <h3>Funnel plot</h3>
+    <canvas class="ax-fig ma-funnel"></canvas>
+    <p class="ax-help ma-egg"></p>
+  </div>
+
+  <div class="ax-card ma-out" hidden>
+    <h2>Studies</h2>
+    <div class="ax-row"><button type="button" class="btn secondary small ma-csv">Download table (CSV)</button></div>
+    <div class="ax-scroll" style="margin-top:10px"><table class="ma-tab"></table></div>
+    <p class="ax-help ma-note"></p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .ma .ma-med-note { margin: 0 0 12px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; font-weight: 600; }
+  .ma h3 { font-size: 15px; margin: 18px 0 8px; }
+  .ma .ma-p { margin-top: 12px; }
+  .ma .ma-tab td { white-space: nowrap; }
+  .ma .ma-tab tr.ma-pool td { font-weight: 700; }
+  .ma canvas.ma-funnel { max-width: 560px; }
+</style>
+
+<script>
+  import { csv } from '../../lib/sci/num';
+  import { parseStudies, metaAnalysis, isRatio, type InputKind, type Measure, type Tau, type Study, type MetaResult } from '../../lib/sci/meta';
+  import { drawChart, canvasPainter, niceTicks, type Series } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure, type Palette } from '../../lib/report';
+  import { normInv } from '../../lib/sci/stats';
+
+  const root = document.querySelector<HTMLElement>('.ma')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string, el: ParentNode = root) => el.querySelector(c) as T;
+  let kind: InputKind = 'binary', report: Section[] = [], forest: Figure | null = null, funnel: Figure | null = null, tabCsv: (string | number)[][] = [];
+  const WHAT: Record<InputKind, string> = {
+    binary: 'Each study gives counts: how many had the event in each group (a 2×2 table).',
+    continuous: 'Each study gives the mean, SD and number in each group.',
+    generic: 'Each study gives an effect estimate and its standard error, from any kind of analysis.',
+    ci: 'Each study gives an estimate and its confidence interval, as most papers report them.',
+  };
+  const NAMES: Record<string, string> = { OR: 'Odds ratio', RR: 'Risk ratio', RD: 'Risk difference', MD: 'Mean difference', SMD: "Hedges' g" };
+  const f3 = (x: number) => (Number.isFinite(x) ? (Math.abs(x) >= 100 ? x.toFixed(1) : x.toFixed(3)).replace(/^-/, '−') : '–');
+  const pTxt = (p: number) => (!Number.isFinite(p) ? '–' : p < 0.001 ? '< 0.001' : p.toFixed(3));
+  const pEq = (p: number) => (p < 0.001 ? 'p < 0.001' : `p = ${pTxt(p)}`);
+
+  function facts(list: [string, string][]) {
+    const dl = q('.ma-facts'); dl.innerHTML = '';
+    for (const [k, v] of list) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d); }
+  }
+
+  type Row = { name: string; y: number; lo: number; hi: number; w: number; pooled?: 'fixed' | 'random'; pi?: [number, number] };
+  /** The forest plot, drawn row by row: name, interval with a box sized by weight, then the numbers. */
+  function forestFigure(rows: Row[], ratio: boolean, label: string, left: string, right: string): Figure {
+    const cw = q('.ma-forest').clientWidth || 720, narrow = cw < 520;
+    const W0 = narrow ? Math.max(300, Math.round(cw)) : 720, fs = narrow ? 11 : 12.5, rowH = fs * 1.75, top = fs * 2.4, bottom = fs * 4.6;
+    const H0 = Math.round(top + rows.length * rowH + bottom);
+    const fx = (v: number) => (ratio ? Math.exp(v) : v);
+    return {
+      w: W0, h: H0, alt: `Forest plot of ${rows.length - 2} studies, ${label}`,
+      draw: (ctx, W, H, pal: Palette) => {
+        const P = canvasPainter(ctx), ink = pal.ink, muted = pal.muted, acc = pal.red ? pal.ink : pal.accent;
+        const nameW = Math.min(W * 0.3, Math.max(...rows.map((r) => P.measure(r.name, fs, !!r.pooled))) + 8);
+        const txt = (r: Row) => (narrow ? f3(fx(r.y)) : `${f3(fx(r.y))} [${f3(fx(r.lo))}, ${f3(fx(r.hi))}]`);
+        const numW = Math.max(...rows.map((r) => P.measure(txt(r), fs, !!r.pooled))) + 10;
+        const wW = narrow ? 0 : P.measure('100.0 %', fs) + 10;
+        const x0 = nameW + 10, x1 = W - numW - wW - 10;
+        // Axis range covers every interval and the line of no effect.
+        let a = Math.min(0, ...rows.flatMap((r) => [r.lo, r.pi?.[0] ?? r.lo])), b = Math.max(0, ...rows.flatMap((r) => [r.hi, r.pi?.[1] ?? r.hi]));
+        const pad = (b - a) * 0.04 || 0.1; a -= pad; b += pad;
+        const X = (v: number) => x0 + ((v - a) / (b - a)) * (x1 - x0);
+        let ticks: number[];
+        if (ratio) { ticks = [0.01, 0.02, 0.05, 0.1, 0.2, 0.25, 0.5, 1, 2, 4, 5, 10, 20, 50, 100].filter((t) => Math.log(t) >= a && Math.log(t) <= b).map(Math.log); if (ticks.length > (narrow ? 5 : 7)) ticks = ticks.filter((t) => (narrow ? [0.01, 0.1, 1, 10, 100] : [0.01, 0.1, 0.5, 1, 2, 10, 100]).some((s) => Math.abs(Math.log(s) - t) < 1e-9)); }
+        else ticks = niceTicks(a, b, narrow ? 4 : 6).filter((t) => t >= a && t <= b);
+        P.text(4, fs * 0.6, 'Study', fs, muted, 'start', 'top', 0, true);
+        P.text(W - wW - 4, fs * 0.6, narrow ? label : `${label} [${pctLabel()}]`, fs, muted, 'end', 'top', 0, true);
+        if (wW) P.text(W - 4, fs * 0.6, 'Weight', fs, muted, 'end', 'top', 0, true);
+        const yAxis = top + rows.length * rowH + 4;
+        P.line([[X(0), top - 4], [X(0), yAxis]], muted, 1);
+        const wMax = Math.max(...rows.filter((r) => !r.pooled).map((r) => r.w));
+        rows.forEach((r, i) => {
+          const y = top + (i + 0.5) * rowH;
+          P.text(4, y, r.name, fs, ink, 'start', 'middle', 0, !!r.pooled);
+          P.text(W - wW - 4, y, txt(r), fs, ink, 'end', 'middle', 0, !!r.pooled);
+          if (wW && !r.pooled) P.text(W - 4, y, `${(r.w * 100).toFixed(1)} %`, fs, muted, 'end', 'middle');
+          P.clip(x0, top - 4, x1 - x0, rows.length * rowH + 8);
+          if (r.pooled) {
+            if (r.pi) P.line([[X(r.pi[0]), y], [X(r.pi[1]), y]], acc, 1.6, [4, 3]);
+            const h = rowH * 0.32;
+            P.poly([[X(r.lo), y], [X(r.y), y - h], [X(r.hi), y], [X(r.y), y + h]], r.pooled === 'random' ? acc : ink, null);
+          } else {
+            P.line([[X(r.lo), y], [X(r.hi), y]], ink, 1.3);
+            const s = Math.max(2.2, (rowH * 0.42) * Math.sqrt(r.w / wMax));
+            P.poly([[X(r.y) - s, y - s], [X(r.y) + s, y - s], [X(r.y) + s, y + s], [X(r.y) - s, y + s]], ink, null);
+          }
+          P.unclip();
+        });
+        P.line([[x0, yAxis], [x1, yAxis]], ink, 1);
+        for (const t of ticks) { P.line([[X(t), yAxis], [X(t), yAxis + 4]], ink, 1); P.text(X(t), yAxis + 6, ratio ? String(+fx(t).toPrecision(3)) : String(+t.toPrecision(4)).replace('-', '−'), fs * 0.92, ink, 'middle', 'top'); }
+        const yl = yAxis + fs * 2.1;
+        P.text(X(0) - 6, yl, `← ${left}`, fs * 0.92, muted, 'end', 'top');
+        P.text(X(0) + 6, yl, `${right} →`, fs * 0.92, muted, 'start', 'top');
+      },
+    };
+  }
+  const pctLabel = () => `${Math.round(Number(q<HTMLSelectElement>('.ma-lvl').value) * 100)} % CI`;
+
+  function funnelFigure(st: Study[], r: MetaResult, ratio: boolean, label: string): Figure {
+    const narrow = (q('.ma-funnel').clientWidth || 560) < 480, w = narrow ? 380 : 560;
+    const se = st.map((s) => Math.sqrt(s.v)), smax = Math.max(...se) * 1.08, mu = r.fixed.est, z = normInv(0.975);
+    const fx = (v: number) => (ratio ? Math.exp(v) : v);
+    return {
+      w, h: Math.round(w * 0.78), alt: `Funnel plot of ${st.length} studies`,
+      draw: (ctx, W, H, pal) => {
+        const ink = pal.ink, acc = pal.red ? pal.ink : pal.accent;
+        const series: Series[] = [
+          { name: '', x: [fx(mu - z * smax), fx(mu), fx(mu + z * smax)], y: [smax, 0, smax], mode: 'line', color: pal.muted, width: 1, dash: [5, 4] },
+          { name: '', x: [fx(mu), fx(mu)], y: [0, smax], mode: 'line', color: pal.muted, width: 1 },
+          { name: '', x: st.map((s) => fx(s.y)), y: se, mode: 'points', marker: 'circle', size: 4, color: acc },
+        ];
+        drawChart(canvasPainter(ctx), { w: W, h: H, xLabel: label + (ratio ? ' (log scale)' : ''), yLabel: 'Standard error', xLog: ratio, yReverse: true, yMin: 0, yMax: smax, series, legend: 'none', ink, muted: pal.muted, gridColor: pal.grid, bg: null });
+      },
+    };
+  }
+
+  function calc() {
+    const err = q('.ma-err'), outs = root.querySelectorAll<HTMLElement>('.ma-out');
+    try {
+      const lvl = Number(q<HTMLSelectElement>('.ma-lvl').value), tau = q<HTMLSelectElement>('.ma-tau').value as Tau, model = q<HTMLSelectElement>('.ma-model').value;
+      const text = q<HTMLTextAreaElement>(`.ma-in-${kind}`).value;
+      let measure: Measure = 'generic', label = 'Effect', log = false;
+      if (kind === 'binary') { measure = q<HTMLSelectElement>('.ma-mbin').value as Measure; label = NAMES[measure]; }
+      else if (kind === 'continuous') { measure = q<HTMLSelectElement>('.ma-mcont').value as Measure; label = NAMES[measure]; }
+      else if (kind === 'generic') label = q<HTMLInputElement>('.ma-gname').value.trim() || 'Effect';
+      else { log = q<HTMLInputElement>('.ma-log').checked; measure = log ? 'ratio' : 'generic'; label = q<HTMLInputElement>('.ma-cname').value.trim() || (log ? 'Ratio' : 'Effect'); }
+      const ratio = isRatio(measure);
+      const p = parseStudies(text, kind, { measure, log, conf: Number(q<HTMLSelectElement>('.ma-cilvl').value) });
+      const notes = [...p.skipped.map((s) => `Left out ${s}.`), ...(p.excluded.length ? [`Left out ${p.excluded.join(', ')}: no events in either group (or events in everyone), so no ${label.toLowerCase()} can be worked out.`] : []), ...(p.corrected.length ? [`0.5 added to each cell for ${p.corrected.join(', ')} (a zero cell).`] : [])];
+      const sk = q('.ma-skip'); sk.hidden = !notes.length; sk.textContent = notes.join(' ');
+      if (p.studies.length < 2) throw new Error(`Only ${p.studies.length} usable ${p.studies.length === 1 ? 'study' : 'studies'}: a meta-analysis needs at least two.`);
+      const st = p.studies, r = metaAnalysis(st.map((s) => s.y), st.map((s) => s.v), tau, lvl);
+      const z = normInv(1 - (1 - lvl) / 2), fx = (v: number) => (ratio ? Math.exp(v) : v), pct = `${Math.round(lvl * 100)} %`;
+      const main = model === 'fixed' ? r.fixed : r.random, tauName = { DL: 'DerSimonian-Laird', REML: 'REML', PM: 'Paule-Mandel' }[tau];
+      outs.forEach((o) => (o.hidden = false));
+      q('.ma-big').textContent = `${model === 'fixed' ? 'Fixed effect' : 'Random effects'}: ${label} ${f3(fx(main.est))} (${pct} CI ${f3(fx(main.lo))} to ${f3(fx(main.hi))}), ${pEq(main.p)}`;
+      const fl: [string, string][] = [
+        ['Studies', String(r.k)],
+        ['Fixed effect', `${f3(fx(r.fixed.est))} (${f3(fx(r.fixed.lo))} to ${f3(fx(r.fixed.hi))})`],
+        [`Random effects (${tauName})`, `${f3(fx(r.random.est))} (${f3(fx(r.random.lo))} to ${f3(fx(r.random.hi))})`],
+        ['Heterogeneity Q', `${f3(r.Q)} (${r.df} df), ${pEq(r.pQ)}`],
+        ['I²', `${(r.I2 * 100).toFixed(1)} %`],
+        [`tau² (${tauName})`, `${r.tau2 < 1e-4 && r.tau2 > 0 ? r.tau2.toExponential(2) : f3(r.tau2)}${ratio ? ' (log scale)' : ''}`],
+        [`${pct} prediction interval`, r.k >= 3 ? `${f3(fx(r.pi[0]))} to ${f3(fx(r.pi[1]))}` : 'needs 3 or more studies'],
+        ["Egger's test", r.egger ? `intercept ${f3(r.egger.intercept)}, ${pEq(r.egger.p)}` : 'needs 3 or more studies'],
+      ];
+      facts(fl);
+      // Forest plot rows (log scale for ratios).
+      const wts = model === 'fixed' ? r.weightsFixed : r.weightsRandom;
+      const rows: Row[] = st.map((s, i) => ({ name: s.name, y: s.y, lo: s.y - z * Math.sqrt(s.v), hi: s.y + z * Math.sqrt(s.v), w: wts[i] }));
+      rows.push({ name: 'Fixed effect', y: r.fixed.est, lo: r.fixed.lo, hi: r.fixed.hi, w: model === 'fixed' ? 1 : 0, pooled: 'fixed' });
+      rows.push({ name: `Random effects`, y: r.random.est, lo: r.random.lo, hi: r.random.hi, w: model === 'fixed' ? 0 : 1, pooled: 'random', pi: r.k >= 3 ? r.pi : undefined });
+      forest = forestFigure(rows, ratio, label, q<HTMLInputElement>('.ma-left').value.trim(), q<HTMLInputElement>('.ma-right').value.trim());
+      paint(q<HTMLCanvasElement>('.ma-forest'), forest);
+      funnel = funnelFigure(st, r, ratio, label);
+      paint(q<HTMLCanvasElement>('.ma-funnel'), funnel);
+      q('.ma-egg').textContent = r.egger
+        ? `Dots are studies; the dashed funnel is where 95 % of studies should fall around the fixed-effect estimate if there were no bias or heterogeneity. Egger's test: intercept ${f3(r.egger.intercept)} (SE ${f3(r.egger.se)}), t = ${f3(r.egger.t)} on ${r.egger.df} df, ${pEq(r.egger.p)}. ${r.egger.p < 0.1 ? 'The funnel looks lopsided: small studies may show different effects (publication bias is one possible reason).' : 'No clear sign of a lopsided funnel.'}${r.k < 10 ? ' With fewer than 10 studies the test has little power.' : ''}`
+        : 'Egger\'s test needs 3 or more studies.';
+      // Studies table and CSV.
+      const head = ['Study', label, `${pct} CI`, 'Weight (fixed)', 'Weight (random)'];
+      const trows = st.map((s, i) => [s.name, f3(fx(s.y)), `${f3(fx(rows[i].lo))} to ${f3(fx(rows[i].hi))}`, `${(r.weightsFixed[i] * 100).toFixed(1)} %`, `${(r.weightsRandom[i] * 100).toFixed(1)} %`]);
+      trows.push(['Fixed effect', f3(fx(r.fixed.est)), `${f3(fx(r.fixed.lo))} to ${f3(fx(r.fixed.hi))}`, '100 %', '']);
+      trows.push([`Random effects (${tauName})`, f3(fx(r.random.est)), `${f3(fx(r.random.lo))} to ${f3(fx(r.random.hi))}`, '', '100 %']);
+      const t = q<HTMLTableElement>('.ma-tab'); t.innerHTML = '';
+      const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+      const tb = t.createTBody(); trows.forEach((row, ri) => { const tr = tb.insertRow(); if (ri >= st.length) tr.className = 'ma-pool'; row.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+      const sc = ratio ? 'log_' : '';
+      tabCsv = [['study', `${sc}effect`, 'se', `${sc}lower`, `${sc}upper`, ...(ratio ? ['ratio', 'ratio_lower', 'ratio_upper'] : []), 'weight_fixed', 'weight_random'],
+        ...st.map((s, i) => [s.name, s.y, Math.sqrt(s.v), rows[i].lo, rows[i].hi, ...(ratio ? [Math.exp(s.y), Math.exp(rows[i].lo), Math.exp(rows[i].hi)] : []), r.weightsFixed[i], r.weightsRandom[i]]),
+        ['Fixed effect', r.fixed.est, r.fixed.se, r.fixed.lo, r.fixed.hi, ...(ratio ? [Math.exp(r.fixed.est), Math.exp(r.fixed.lo), Math.exp(r.fixed.hi)] : []), 1, ''],
+        [`Random effects (${tauName})`, r.random.est, r.random.se, r.random.lo, r.random.hi, ...(ratio ? [Math.exp(r.random.est), Math.exp(r.random.lo), Math.exp(r.random.hi)] : []), '', 1]];
+      q('.ma-note').textContent = `${ratio ? 'Ratios are pooled as logs and shown back on the ratio scale. ' : ''}I² is the share of the spread between studies that is beyond chance: about 25 % low, 50 % moderate, 75 % high (Higgins 2003). The prediction interval is where the true effect in a new study would probably lie; it is wider than the confidence interval when studies disagree.`;
+      err.hidden = true;
+      report = [
+        { title: 'Meta-analysis', text: [q('.ma-big').textContent!, `${label}${ratio ? ', pooled on the log scale' : ''}; inverse-variance weights; random effects with tau² by ${tauName}; ${pct} intervals.`], facts: fl, figure: forest },
+        { title: 'Funnel plot', figure: funnel, text: [q('.ma-egg').textContent!] },
+        { title: 'Studies', table: { head, rows: trows, align: ['l', 'r', 'r', 'r', 'r'] }, note: 'For study and teaching, not medical advice.' },
+      ];
+    } catch (e) {
+      err.textContent = (e as Error).message; err.hidden = false; report = []; forest = funnel = null;
+      outs.forEach((o) => (o.hidden = true));
+    }
+  }
+  function setKind(k: InputKind) {
+    kind = k;
+    root.querySelectorAll<HTMLButtonElement>('.ma-kind button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.k === k)));
+    root.querySelectorAll<HTMLElement>('.ma-p').forEach((p) => (p.hidden = p.dataset.k !== k));
+    q('.ma-what').textContent = WHAT[k];
+    calc();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.ma-kind button').forEach((b) => b.addEventListener('click', () => setKind(b.dataset.k as InputKind)));
+  let tm = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('textarea, input:not([type=checkbox])')) { clearTimeout(tm); tm = window.setTimeout(calc, 250); } });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select, input[type=checkbox]')) calc(); });
+  q('.ma-csv').addEventListener('click', () => tabCsv.length > 1 && save(new TextEncoder().encode(csv(tabCsv)), 'meta-analysis.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (forest) paint(q<HTMLCanvasElement>('.ma-forest'), forest); if (funnel) paint(q<HTMLCanvasElement>('.ma-funnel'), funnel); });
+  setKind('binary');
+  wireDownloads(q('.dl'), () => ({ title: 'Meta-analysis', subtitle: q('.ma-big').textContent ?? '', file: 'meta-analysis', sections: report }));
+</script>
