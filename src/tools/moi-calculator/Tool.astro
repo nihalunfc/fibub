@@ -1,0 +1,289 @@
+---
+// MOI calculator: MOI from cells, titre and volume (and the volume for a target MOI), the Poisson share of cells
+// getting 0, 1, 2 … particles, the MOI for a target % infected, and a plate plan with predilutions and CSVs.
+// The example numbers are made up and rounded. Nothing is uploaded or stored.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax moi">
+  <div class="ax-card">
+    <h2>Cells and virus</h2>
+    <div class="ax-grid">
+      <label>Cells per well (at the time of infection) <input class="mo-cells" type="text" inputmode="decimal" value="2e5" /></label>
+      <label>Virus titre <input class="mo-titre" type="text" inputmode="decimal" value="5e7" /></label>
+      <label>Titre unit <select class="mo-unit"></select></label>
+      <label class="mo-lf" hidden>Infectious units per TCID₅₀ <input class="mo-tf" type="text" inputmode="decimal" value="0.693" /></label>
+    </div>
+    <p class="ax-help mo-fh" hidden>In an end-point assay a well is infected when it gets at least one particle, so the dose that infects half the wells holds ln 2 = 0.693 particles on average. Use 0.693 to turn TCID₅₀ into infectious units (the usual “PFU ≈ 0.7 × TCID₅₀”), or 1 to treat one TCID₅₀ as one unit.</p>
+    <div class="ax-row" style="margin-top:12px">
+      <div class="ax-seg" role="group" aria-label="What to work out">
+        <button type="button" class="mo-mode" data-m="moi" aria-pressed="true">MOI from a volume</button>
+        <button type="button" class="mo-mode" data-m="vol" aria-pressed="false">Volume for an MOI</button>
+      </div>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="mo-lv">Virus added per well (µL) <input class="mo-vol" type="text" inputmode="decimal" value="4" /></label>
+      <label class="mo-lm" hidden>Target MOI <input class="mo-moi" type="text" inputmode="decimal" value="3" /></label>
+    </div>
+    <p class="ax-big mo-big"></p>
+    <p class="ax-err mo-err" hidden></p>
+    <dl class="ax-facts mo-facts"></dl>
+    <button type="button" class="btn secondary small mo-ex" style="margin-top:12px">Use the example</button>
+    <p class="ax-help">MOI is the number of infectious particles added per cell: titre × volume ÷ cells. It counts what you add, not what gets in — how much of it infects depends on the cells, the virus and the time.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>How many cells get 0, 1, 2 … particles</h2>
+    <p class="ax-help" style="margin-top:0">If particles land on cells independently and at random, the number landing on one cell follows a Poisson distribution with mean = MOI.</p>
+    <div class="ax-grid">
+      <label>MOI <input class="mo-pm" type="text" inputmode="decimal" value="3" /></label>
+      <label>Target infected (%) <input class="mo-target" type="text" inputmode="decimal" value="90" /></label>
+      <label>…with at least this many particles <input class="mo-k" type="text" inputmode="numeric" value="1" /></label>
+    </div>
+    <p class="ax-big mo-pbig"></p>
+    <p class="ax-err mo-perr" hidden></p>
+    <p class="mo-need"></p>
+    <canvas class="ax-fig mo-fig"></canvas>
+    <div class="ax-scroll"><table class="mo-ptab"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small mo-pcsv">Download the Poisson table (CSV)</button>
+      <button type="button" class="btn secondary small mo-pmoi">Use this MOI above</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Plate plan for several MOIs</h2>
+    <div class="ax-grid">
+      <label>MOIs (comma separated) <input class="mo-mois" type="text" inputmode="decimal" value="0, 0.01, 0.1, 1, 10" /></label>
+      <label>Wells per MOI <input class="mo-wells" type="text" inputmode="numeric" value="3" /></label>
+      <label>Inoculum per well (µL) <input class="mo-inoc" type="text" inputmode="decimal" value="200" /></label>
+      <label>Spare (%) <input class="mo-spare" type="text" inputmode="decimal" value="10" /></label>
+      <label>Smallest volume you pipette (µL) <input class="mo-min" type="text" inputmode="decimal" value="2" /></label>
+    </div>
+    <p class="ax-big mo-wbig"></p>
+    <p class="ax-err mo-werr" hidden></p>
+    <ul class="mo-warn" hidden></ul>
+    <div class="ax-scroll"><table class="mo-wtab"></table></div>
+    <p class="ax-help">Each row is one mix, enough for every well at that MOI plus the spare. When the volume of stock would be too small to pipette, the page makes a predilution first and tells you what to mix. Add the inoculum to the cells, then top up with medium after the adsorption time your protocol gives.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small mo-wcsv">Download the plate plan (CSV)</button>
+    </div>
+    <Downloads label="MOI report" />
+  </div>
+</div>
+
+<style is:global>
+  .moi .mo-need { font-size: 15px; margin: 6px 0 0; }
+  .moi .ax-card > .ax-help + .ax-grid { margin-top: 10px; }
+  .moi .mo-wtab td, .moi .mo-wtab th, .moi .mo-ptab td, .moi .mo-ptab th { white-space: nowrap; }
+  .moi .mo-warn { margin: 8px 0 0; padding-left: 20px; font-size: 14px; color: var(--warn); }
+  .moi .mo-warn li.bad { color: var(--bad); }
+  .moi canvas.mo-fig { margin-top: 12px; }
+  .moi .mo-ptab tr.on td, .moi .mo-wtab tr.on td { background: var(--accent-soft); }
+</style>
+
+<script>
+  import { UNITS, infectiousTitre, moiFrom, volumeFor, pExactly, pAtLeast, moiForShare, poissonTable, platePlan, parseMois, EXAMPLE, type TitreUnit } from '../../lib/sci/moi';
+  import { num, csv, sig, fmtExp } from '../../lib/sci/num';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.moi')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const unitSel = q<HTMLSelectElement>('.mo-unit');
+  unitSel.replaceChildren(...(Object.keys(UNITS) as TitreUnit[]).map((k) => new Option(UNITS[k].name, k)));
+  const pct = (x: number) => (x === 0 ? '0 %' : x < 0.0001 ? `${sig(x * 100, 2)} %` : `${(x * 100).toFixed(x < 0.01 ? 3 : x < 0.1 ? 2 : 1)} %`);
+  const big = (x: number) => (x >= 1e6 || (x > 0 && x < 1e-3) ? fmtExp(x, 3) : Number.isInteger(x) ? x.toLocaleString('en') : sig(x, 4));
+  const vol = (x: number) => (x >= 1000 ? `${sig(x / 1000, 4)} mL` : `${sig(x, 3)} µL`);
+  const table = (t: HTMLElement, head: string[], rows: (string | number | HTMLElement)[][], cls: string[] = []) => {
+    t.replaceChildren();
+    const h = t.insertRow();
+    head.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (cls[k]) th.className = cls[k]; h.append(th); });
+    for (const r of rows) { const tr = t.insertRow(); r.forEach((x, k) => { const td = tr.insertCell(); if (x instanceof HTMLElement) td.append(x); else td.textContent = String(x); if (cls[k]) td.className = cls[k]; }); }
+  };
+  const err = (c: string, msg: string) => { const e = q(c); e.textContent = msg; e.hidden = !msg; };
+
+  let mode: 'moi' | 'vol' = 'moi';
+  let fig: Figure | null = null;
+  let pRows: ReturnType<typeof poissonTable> = [], pMoi = 3, needMsg = '';
+  let plan: ReturnType<typeof platePlan> = [], planHead: string[] = [], planNote = '';
+  const unit = () => unitSel.value as TitreUnit;
+  const short = () => UNITS[unit()].short;
+
+  // ---------- Cells and virus ----------
+  function infTitre(): number { return infectiousTitre(val('.mo-titre'), unit(), unit() === 'tcid50' ? val('.mo-tf') : 1); }
+  function top() {
+    err('.mo-err', '');
+    q('.mo-big').textContent = ''; q('.mo-facts').replaceChildren();
+    try {
+      const cells = val('.mo-cells'), t = infTitre();
+      const facts: [string, string][] = [];
+      let moi: number;
+      if (mode === 'moi') {
+        const v = val('.mo-vol');
+        moi = moiFrom(cells, t, v);
+        q('.mo-big').textContent = `MOI ${big(moi)} ${short()} per cell`;
+        facts.push(['Infectious units added', `${big(t * v / 1000)} ${short()}`], ['Virus added', vol(v)]);
+      } else {
+        moi = val('.mo-moi');
+        const v = volumeFor(moi, cells, t);
+        q('.mo-big').textContent = `Add ${vol(v)} of virus per well`;
+        facts.push(['Infectious units needed', `${big(moi * cells)} ${short()}`], ['At MOI', big(moi)]);
+      }
+      facts.push(['Cells per well', big(cells)], ['Infectious titre', `${big(t)} units/mL`], ['Cells infected (Poisson)', pct(moi > 0 ? 1 - Math.exp(-moi) : 0)], ['Uninfected cells', pct(moi > 0 ? Math.exp(-moi) : 1)]);
+      const dl = q('.mo-facts');
+      for (const [k, v] of facts) { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; d.append(dt, dd); dl.append(d); }
+      return { cells, t, moi };
+    } catch (e) { err('.mo-err', (e as Error).message); return null; }
+  }
+
+  // ---------- Poisson ----------
+  function poisson() {
+    err('.mo-perr', ''); needMsg = '';
+    const t = q('.mo-ptab'), canvas = q<HTMLCanvasElement>('.mo-fig');
+    try {
+      pMoi = val('.mo-pm');
+      pRows = poissonTable(pMoi);
+      q('.mo-pbig').textContent = `At MOI ${big(pMoi)}: ${pct(pRows[0].exactly)} of cells get no particle, ${pct(pAtLeast(pMoi, 1))} get at least one, ${pct(pAtLeast(pMoi, 2))} get two or more`;
+      table(t, ['Particles per cell', 'Exactly this many', 'This many or more'],
+        pRows.map((r) => [r.last ? `${r.k} or more` : String(r.k), pct(r.exactly), pct(r.atLeast)]), ['', 'r', 'r']);
+      // Target infected
+      const target = val('.mo-target') / 100, k = val('.mo-k');
+      const need = moiForShare(target, k);
+      needMsg = `To infect ${pct(target)} of cells with at least ${k} particle${k === 1 ? '' : 's'}, use MOI ${sig(need, 4)}.`;
+      q('.mo-need').textContent = needMsg;
+      drawFig(canvas);
+    } catch (e) {
+      err('.mo-perr', (e as Error).message);
+      if (!pRows.length) { t.replaceChildren(); canvas.hidden = true; }
+      q('.mo-need').textContent = needMsg;
+    }
+  }
+  function drawFig(canvas: HTMLCanvasElement) {
+    const rows = pRows, m = pMoi;
+    fig = {
+      w: 640, h: 300, alt: `Share of cells getting 0 to ${rows.at(-1)!.k} or more particles at MOI ${sig(m, 3)}`,
+      draw: (ctx, W, H, pal) => {
+        const L = 46, R = 12, T = 18, B = 42, hi = Math.max(...rows.map((r) => r.exactly)) || 1;
+        const X = (i: number) => L + ((i + 0.5) / rows.length) * (W - L - R);
+        const Y = (p: number) => H - B - (p / hi) * (H - B - T);
+        ctx.strokeStyle = pal.line; ctx.lineWidth = 1;
+        ctx.font = '11px Arial, Helvetica, sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        for (let g = 0; g <= 4; g++) {
+          const p = (hi * g) / 4, y = Y(p);
+          ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(W - R, y); ctx.stroke();
+          ctx.fillStyle = pal.muted; ctx.fillText(`${(p * 100).toFixed(hi < 0.1 ? 1 : 0)} %`, L - 6, y);
+        }
+        ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(L, H - B); ctx.lineTo(W - R, H - B); ctx.stroke();
+        const bw = Math.max(3, ((W - L - R) / rows.length) * 0.66);
+        ctx.textAlign = 'center';
+        rows.forEach((r, i) => {
+          const x = X(i), y = Y(r.exactly);
+          ctx.fillStyle = r.k === 0 ? pal.accent2 : pal.accent;
+          ctx.fillRect(x - bw / 2, y, bw, H - B - y);
+          ctx.fillStyle = pal.muted; ctx.textBaseline = 'top';
+          if (rows.length <= 14 || i % 2 === 0) ctx.fillText(r.last ? `${r.k}+` : String(r.k), x, H - B + 6);
+        });
+        ctx.fillStyle = pal.muted; ctx.textBaseline = 'bottom'; ctx.fillText('Particles per cell', W / 2, H - 6);
+      },
+    };
+    canvas.hidden = false; paint(canvas, fig);
+  }
+
+  // ---------- Plate plan ----------
+  function plate() {
+    err('.mo-werr', '');
+    const warnBox = q('.mo-warn');
+    try {
+      const { mois, bad } = parseMois(q<HTMLInputElement>('.mo-mois').value, num);
+      if (bad.length) throw new Error(`“${bad[0]}” is not a number. Separate the MOIs with commas, such as 0.1, 1, 10.`);
+      const t = infTitre();
+      plan = platePlan({ mois, cells: val('.mo-cells'), titrePerMl: t, wells: Math.round(val('.mo-wells')), inocUl: val('.mo-inoc'), spare: val('.mo-spare'), minUl: val('.mo-min') });
+      const wells = Math.round(val('.mo-wells'));
+      q('.mo-wbig').textContent = `${plan.length} mix${plan.length === 1 ? '' : 'es'} of ${vol(plan[0].totalUl)} each, for ${wells} well${wells === 1 ? '' : 's'} per MOI`;
+      planHead = ['MOI', 'Virus', 'Medium', `Working titre (${short()}/mL)`, `${short()} per well`, 'Infected', 'Predilution to make first (stock + medium)'];
+      table(q('.mo-wtab'), planHead, plan.map((r) => [
+        sig(r.moi, 3), r.virusUl > 0 ? vol(r.virusUl) : '–', vol(r.mediumUl), big(r.workPerMl), big(r.perWell), pct(r.infected),
+        r.predil > 1 ? `1 : ${r.predil} — ${vol(r.preStockUl)} + ${vol(r.preMediumUl)}` : r.moi === 0 ? 'nothing' : 'use the stock',
+      ]), ['r', 'r', 'r', 'r', 'r', 'r', '']);
+      planNote = plan.some((r) => r.predil > 1) ? 'Virus is taken from the predilution in the last column where there is one, otherwise from the stock.' : '';
+      const ws = plan.filter((r) => r.warn && !/mock/.test(r.warn));
+      warnBox.replaceChildren(...ws.map((r) => { const li = document.createElement('li'); li.textContent = `MOI ${sig(r.moi, 3)}: ${r.warn}`; if (!r.ok) li.className = 'bad'; return li; }));
+      warnBox.hidden = !ws.length;
+    } catch (e) {
+      err('.mo-werr', (e as Error).message); q('.mo-wbig').textContent = '';
+      q('.mo-wtab').replaceChildren(); warnBox.hidden = true; plan = [];
+    }
+  }
+
+  const run = () => { top(); poisson(); plate(); };
+
+  // ---------- Report ----------
+  function sections(): Section[] {
+    const t = top();
+    const out: Section[] = [{
+      title: 'Cells and virus',
+      facts: [...[...q('.mo-facts').children].map((d) => [d.querySelector('dt')!.textContent ?? '', d.querySelector('dd')!.textContent ?? ''] as [string, string])],
+      text: [q('.mo-big').textContent ?? ''],
+    }];
+    if (pRows.length) out.push({
+      title: `Particles per cell at MOI ${sig(pMoi, 4)}`,
+      figure: fig ?? undefined,
+      table: { head: ['Particles per cell', 'Exactly', 'This many or more'], rows: pRows.map((r) => [r.last ? `${r.k} or more` : String(r.k), pct(r.exactly), pct(r.atLeast)]), align: ['l', 'r', 'r'] },
+      note: needMsg,
+    });
+    if (plan.length) out.push({
+      title: 'Plate plan',
+      table: { head: planHead.map((h) => h.replace('₅₀', '50')), rows: plan.map((r) => [sig(r.moi, 3), r.virusUl > 0 ? vol(r.virusUl) : '-', vol(r.mediumUl), big(r.workPerMl), big(r.perWell), pct(r.infected), r.predil > 1 ? `1 : ${r.predil} - ${vol(r.preStockUl)} stock + ${vol(r.preMediumUl)} medium` : r.moi === 0 ? 'nothing' : 'use the stock']), align: ['r', 'r', 'r', 'r', 'r', 'r', 'l'] },
+      note: [planNote, ...plan.filter((r) => r.warn).map((r) => `MOI ${sig(r.moi, 3)}: ${r.warn}`)].filter(Boolean).join(' '),
+    });
+    if (t) out.push({ title: 'Notes', text: ['MOI = infectious units added / cells. The shares of cells getting 0, 1, 2 … particles come from a Poisson distribution with mean = MOI, which assumes particles land independently and at random and that every cell is equally reachable.', 'Titres, cell numbers and volumes in this report are the ones typed on the page.'] });
+    return out;
+  }
+
+  // ---------- Wiring ----------
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(run, 200); };
+  for (const c of ['.mo-cells', '.mo-titre', '.mo-tf', '.mo-vol', '.mo-moi', '.mo-wells', '.mo-inoc', '.mo-spare', '.mo-min']) q(c).addEventListener('input', later);
+  for (const c of ['.mo-pm', '.mo-target', '.mo-k']) q(c).addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(poisson, 200); });
+  q('.mo-mois').addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(plate, 200); });
+  unitSel.addEventListener('change', () => { const tc = unit() === 'tcid50'; q('.mo-lf').hidden = !tc; q('.mo-fh').hidden = !tc; run(); });
+  root.querySelectorAll<HTMLButtonElement>('.mo-mode').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m as 'moi' | 'vol';
+    root.querySelectorAll<HTMLButtonElement>('.mo-mode').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.mo-lv').hidden = mode !== 'moi'; q('.mo-lm').hidden = mode !== 'vol';
+    top();
+  }));
+  q('.mo-pmoi').addEventListener('click', () => {
+    mode = 'vol';
+    root.querySelectorAll<HTMLButtonElement>('.mo-mode').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.m === 'vol')));
+    q('.mo-lv').hidden = true; q('.mo-lm').hidden = false;
+    q<HTMLInputElement>('.mo-moi').value = String(Number(sig(pMoi, 6).replace('−', '-')));
+    top(); q('.mo-big').scrollIntoView({ block: 'center', behavior: 'smooth' });
+  });
+  q('.mo-ex').addEventListener('click', () => {
+    q<HTMLInputElement>('.mo-cells').value = EXAMPLE.cells; q<HTMLInputElement>('.mo-titre').value = EXAMPLE.titre;
+    unitSel.value = EXAMPLE.unit; q('.mo-lf').hidden = true; q('.mo-fh').hidden = true; q<HTMLInputElement>('.mo-tf').value = '0.693';
+    q<HTMLInputElement>('.mo-vol').value = EXAMPLE.volUl; q<HTMLInputElement>('.mo-moi').value = EXAMPLE.moi;
+    q<HTMLInputElement>('.mo-pm').value = EXAMPLE.moi; q<HTMLInputElement>('.mo-target').value = EXAMPLE.target; q<HTMLInputElement>('.mo-k').value = EXAMPLE.atLeast;
+    q<HTMLInputElement>('.mo-mois').value = EXAMPLE.mois; q<HTMLInputElement>('.mo-wells').value = EXAMPLE.wells;
+    q<HTMLInputElement>('.mo-inoc').value = EXAMPLE.inocUl; q<HTMLInputElement>('.mo-spare').value = EXAMPLE.spare; q<HTMLInputElement>('.mo-min').value = EXAMPLE.minUl;
+    mode = 'moi';
+    root.querySelectorAll<HTMLButtonElement>('.mo-mode').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.m === 'moi')));
+    q('.mo-lv').hidden = false; q('.mo-lm').hidden = true;
+    run();
+  });
+  q('.mo-pcsv').addEventListener('click', () => {
+    const rows: (string | number)[][] = [['moi', 'particles_per_cell', 'exactly_fraction', 'this_many_or_more_fraction']];
+    for (const r of pRows) rows.push([pMoi, r.last ? `${r.k}+` : r.k, r.exactly, r.atLeast]);
+    save(new Blob([csv(rows)], { type: 'text/csv' }), `moi-${sig(pMoi, 3).replace(/[^\d.]/g, '')}-poisson.csv`, 'text/csv');
+  });
+  q('.mo-wcsv').addEventListener('click', () => {
+    const rows: (string | number)[][] = [['moi', 'virus_ul', 'medium_ul', 'total_ul', 'working_titre_per_ml', 'units_per_well', 'fraction_infected', 'predilution', 'predilution_stock_ul', 'predilution_medium_ul', 'note']];
+    for (const r of plan) rows.push([r.moi, r.virusUl, r.mediumUl, r.totalUl, r.workPerMl, r.perWell, r.infected, r.predil, r.preStockUl, r.preMediumUl, r.warn]);
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'moi-plate-plan.csv', 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => ({ title: 'MOI calculator', subtitle: q('.mo-big').textContent ?? '', file: 'moi-report', sections: sections() }));
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.mo-fig').hidden) paint(q<HTMLCanvasElement>('.mo-fig'), fig); });
+  run();
+</script>
