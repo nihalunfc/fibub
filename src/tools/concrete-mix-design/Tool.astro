@@ -1,0 +1,168 @@
+---
+// Concrete mix proportions by the absolute volume method. Every factor is entered by the user; the example values are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cmx">
+  <div class="ax-card">
+    <h2>Target strength</h2>
+    <div class="ax-grid">
+      <label>Specified strength f'c (MPa) <input class="cm-fc" type="text" inputmode="decimal" value="30" /></label>
+      <label>Standard deviation s (MPa) <input class="cm-s" type="text" inputmode="decimal" value="4" /></label>
+      <label>Factor k <input class="cm-k" type="text" inputmode="decimal" value="1.65" /></label>
+    </div>
+    <p class="ax-help">Target mean strength f'cr = f'c + k × s. The standard deviation comes from your plant's past test results. k sets how many results may fall below f'c (1.65 leaves about 5 %); your code may use other rules, so enter its values.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Mix (per m³ of concrete)</h2>
+    <div class="ax-grid">
+      <label>Water / cement ratio <input class="cm-wc" type="text" inputmode="decimal" value="0.45" /></label>
+      <label>Free water (kg/m³) <input class="cm-w" type="text" inputmode="decimal" value="180" /></label>
+      <label>Air content (%) <input class="cm-air" type="text" inputmode="decimal" value="2" /></label>
+      <label>Coarse aggregate bulk volume fraction <input class="cm-caf" type="text" inputmode="decimal" value="0.6" /></label>
+      <label>Coarse aggregate dry-rodded density (kg/m³) <input class="cm-car" type="text" inputmode="decimal" value="1600" /></label>
+    </div>
+    <p class="ax-help">The w/c ratio sets strength and durability; the water sets workability (slump). The coarse aggregate fraction is the dry-rodded volume of stone per m³ of concrete. Take all of these from your trial mixes or your local mix-design method. The example values are made up.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Materials</h2>
+    <div class="ax-grid">
+      <label>Cement specific gravity <input class="cm-sgc" type="text" inputmode="decimal" value="3.15" /></label>
+      <label>Coarse aggregate SG (oven-dry) <input class="cm-sgca" type="text" inputmode="decimal" value="2.68" /></label>
+      <label>Fine aggregate SG (oven-dry) <input class="cm-sgfa" type="text" inputmode="decimal" value="2.62" /></label>
+      <label>Coarse: moisture in stock (%) <input class="cm-cam" type="text" inputmode="decimal" value="1" /></label>
+      <label>Coarse: absorption (%) <input class="cm-caa" type="text" inputmode="decimal" value="0.5" /></label>
+      <label>Fine: moisture in stock (%) <input class="cm-fam" type="text" inputmode="decimal" value="4" /></label>
+      <label>Fine: absorption (%) <input class="cm-faa" type="text" inputmode="decimal" value="1" /></label>
+    </div>
+    <p class="ax-help">Specific gravity is density ÷ density of water. Moisture and absorption are % of the oven-dry mass: wetter than absorption means the aggregate brings extra water, drier means it soaks some up. Test your own materials.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Batch</h2>
+    <div class="ax-grid">
+      <label>Batch volume (m³) <input class="cm-bv" type="text" inputmode="decimal" value="0.05" /></label>
+      <label>Cement bag mass (kg) <input class="cm-bag" type="text" inputmode="decimal" value="50" /></label>
+    </div>
+    <p class="ax-help">A small trial batch, a mixer load or a truck. Add a little extra for waste on site.</p>
+    <p class="ax-err cm-err" hidden></p>
+  </div>
+
+  <div class="ax-card cm-out">
+    <h2>Batch weights</h2>
+    <p class="ax-big cm-big"></p>
+    <dl class="ax-facts cm-facts"></dl>
+    <div class="ax-scroll"><table class="cm-tab"></table></div>
+    <canvas class="ax-fig cm-vol"></canvas>
+    <canvas class="ax-fig cm-dist"></canvas>
+    <p class="ax-help">For study and planning, not a substitute for professional judgement: check your local code and a qualified engineer, and confirm any mix with trial batches and tests.</p>
+    <div class="ax-row cm-row"><button type="button" class="btn secondary small cm-csv">Download batch weights (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { mixDesign, targetStrength, type Mix } from '../../lib/sci/eng-concrete';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const kg = (x: number) => (Math.abs(x) >= 100 ? x.toFixed(0) : x.toFixed(1)).replace('-', '−');
+  const root = document.querySelector<HTMLElement>('.cmx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let figs: Figure[] = [], report: Section[] = [], rows: (string | number)[][] = [];
+
+  function run() {
+    const err = q('.cm-err'), out = q('.cm-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; rows = []; };
+    const fc = val('.cm-fc'), s = val('.cm-s'), k = val('.cm-k');
+    const p = { wc: val('.cm-wc'), water: val('.cm-w'), air: val('.cm-air'), caFrac: val('.cm-caf'), caRodded: val('.cm-car'), sgC: val('.cm-sgc'), sgCA: val('.cm-sgca'), sgFA: val('.cm-sgfa'), caM: val('.cm-cam'), caA: val('.cm-caa'), faM: val('.cm-fam'), faA: val('.cm-faa') };
+    const bv = val('.cm-bv'), bag = val('.cm-bag');
+    if (!(fc > 0)) return fail("Give the specified strength f'c.");
+    if (!(s >= 0) || !(k >= 0)) return fail('Give the standard deviation and k (0 or more).');
+    if (!(p.wc > 0.15 && p.wc < 1.5)) return fail('Give a water / cement ratio between 0.15 and 1.5.');
+    if (!(p.water > 50 && p.water < 400)) return fail('Give the free water in kg per m³ (usually 120 to 250).');
+    if (!(p.air >= 0 && p.air < 20)) return fail('Give the air content in % (0 to 20).');
+    if (!(p.caFrac > 0 && p.caFrac < 1)) return fail('Give the coarse aggregate bulk volume fraction (between 0 and 1, often 0.5 to 0.75).');
+    if (!(p.caRodded > 500 && p.caRodded < 3000)) return fail('Give the dry-rodded density of the coarse aggregate in kg/m³.');
+    if (![p.sgC, p.sgCA, p.sgFA].every((v) => v > 1 && v < 5)) return fail('Give the specific gravities (between 1 and 5).');
+    if (![p.caM, p.caA, p.faM, p.faA].every((v) => v >= 0 && v < 30)) return fail('Give moisture and absorption as % of dry mass (0 to 30).');
+    if (!(bv > 0)) return fail('Give the batch volume in m³.');
+    if (!(bag > 0)) return fail('Give the cement bag mass.');
+    const m: Mix = mixDesign(p);
+    if (!(m.vol.fa > 0.05)) return fail(`The water, cement, air and stone already fill ${sg((1 - m.vol.fa) * 100, 3)} % of the volume, leaving no room for sand. Lower the coarse aggregate fraction or the water.`);
+    err.hidden = true; out.hidden = false;
+    const t = targetStrength(fc, k, s);
+    q('.cm-big').textContent = `1 : ${m.ratio[1].toFixed(2)} : ${m.ratio[2].toFixed(2)} by mass, ${kg(m.cement)} kg cement per m³`;
+    const facts = [
+      fact("Target mean strength f'cr", `${sg(t.fcr, 4)} MPa`, `${sg(fc)} + ${sg(k)} × ${sg(s)}; about ${sg(t.below * 100, 2)} % of results below f'c if they are normally spread`),
+      fact('Fresh density', `${kg(m.density)} kg/m³`, 'sum of the design masses'),
+      fact('Sand by volume', `${sg(m.vol.fa * 1000, 4)} L/m³`, `the volume left after water, cement, air and stone`),
+      fact('Free water from aggregates', `${kg(m.caFree + m.faFree)} kg/m³`, `coarse ${kg(m.caFree)}, fine ${kg(m.faFree)}; subtracted from the mixing water`),
+      fact('Cement per batch', `${sg(m.cement * bv / bag, 3)} bags`, `${kg(m.cement * bv)} kg in ${sg(bv)} m³, ${sg(bag)} kg bags`),
+    ];
+    q('.cm-facts').replaceChildren(...facts);
+    const items: [string, number, number, number][] = [
+      ['Cement', m.cement, m.field.cement, m.vol.cement],
+      ['Water', m.water, m.field.water, m.vol.water],
+      ['Stone (coarse)', m.ca, m.field.ca, m.vol.ca],
+      ['Sand (fine)', m.fa, m.field.fa, m.vol.fa],
+      ['Air', 0, 0, m.vol.air],
+    ];
+    const head = ['Material', 'Volume L/m³', 'Design kg/m³ (dry)', 'Field kg/m³ (wet)', `Batch kg (${sg(bv)} m³)`];
+    const body = items.map(([n, d, f, v]) => [n, sg(v * 1000, 4), n === 'Air' ? '–' : kg(d), n === 'Air' ? '–' : kg(f), n === 'Air' ? '–' : sg(f * bv, 4)]);
+    const tot = ['Total', '1000', kg(m.density), kg(m.field.cement + m.field.water + m.field.ca + m.field.fa), sg((m.field.cement + m.field.water + m.field.ca + m.field.fa) * bv, 4)];
+    const tab = q<HTMLTableElement>('.cm-tab');
+    tab.replaceChildren();
+    const tr = (cells: string[], th: boolean) => { const r = document.createElement('tr'); cells.forEach((c, i) => { const e = document.createElement(th ? 'th' : 'td'); e.textContent = c; if (i) e.className = 'r'; r.append(e); }); return r; };
+    const thead = document.createElement('thead'); thead.append(tr(head, true));
+    const tb = document.createElement('tbody'); [...body, tot].forEach((r) => tb.append(tr(r, false)));
+    tab.append(thead, tb);
+    rows = [['material', 'volume_L_per_m3', 'design_kg_per_m3', 'field_kg_per_m3', 'batch_kg'], ...items.map(([n, d, f, v]) => [n, +(v * 1000).toFixed(2), n === 'Air' ? '' : +d.toFixed(2), n === 'Air' ? '' : +f.toFixed(2), n === 'Air' ? '' : +(f * bv).toFixed(3)])];
+    // Volume bar.
+    const parts: [string, number][] = [['Water', m.vol.water], ['Cement', m.vol.cement], ['Air', m.vol.air], ['Sand', m.vol.fa], ['Stone', m.vol.ca]];
+    const vol: Figure = { w: 380, h: 110, alt: 'Volumes in one cubic metre: ' + parts.map(([n, v]) => `${n} ${sg(v * 100, 3)} %`).join(', '), draw: (ctx, W, H, pal) => {
+      const cols = pal.red ? ['#5a0000', '#a30000', '#200000', '#7a0000', '#3a0000'] : pal.bg === '#ffffff' ? ['#56B4E9', '#555555', '#eeeeee', '#E69F00', '#0072B2'] : ['#56B4E9', '#a3a3a3', '#333333', '#E69F00', '#1f5fae'];
+      const x0 = 10, w = W - 20, y = 34, h = 34;
+      ctx.font = '12px system-ui, sans-serif'; ctx.fillStyle = pal.ink; ctx.textBaseline = 'top'; ctx.textAlign = 'left';
+      ctx.fillText('Absolute volumes in 1 m³ of concrete', x0, 8);
+      let x = x0;
+      parts.forEach(([n, v], i) => {
+        const dw = v * w; ctx.fillStyle = cols[i]; ctx.fillRect(x, y, dw, h); ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(x, y, dw, h);
+        ctx.fillStyle = pal.ink; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'center';
+        const lab = `${n} ${sg(v * 100, 2)}%`;
+        const lw = ctx.measureText(lab).width, lx = Math.min(W - 4 - lw / 2, Math.max(4 + lw / 2, x + dw / 2));
+        ctx.textBaseline = 'top'; ctx.fillText(lab, lx, y + h + 6 + (i % 2) * 15);
+        x += dw;
+      });
+    } };
+    paint(q<HTMLCanvasElement>('.cm-vol'), vol);
+    // Strength distribution.
+    const sd = s > 0 ? s : Math.max(fc * 0.05, 0.5), xs: number[] = [], ys: number[] = [];
+    for (let i = 0; i <= 120; i++) { const x = t.fcr - 4 * sd + (8 * sd * i) / 120; xs.push(x); ys.push(Math.exp(-0.5 * ((x - t.fcr) / sd) ** 2) / (sd * Math.sqrt(2 * Math.PI))); }
+    const dist = chartFigure({ w: 380, h: 220, xLabel: 'Cube or cylinder strength (MPa)', yLabel: 'Share of results', yMin: 0, legend: 'none', series: [{ name: 'Expected spread', x: xs, y: ys, mode: 'line', width: 2 }], marks: [{ kind: 'vline', at: fc, dash: [4, 3], label: "f'c" }, { kind: 'vline', at: t.fcr, label: "f'cr" }] }, `Expected spread of strength results around f'cr ${sg(t.fcr, 3)} MPa with f'c ${sg(fc, 3)} MPa`);
+    if (s > 0) { paint(q<HTMLCanvasElement>('.cm-dist'), dist); q('.cm-dist').hidden = false; } else q('.cm-dist').hidden = true;
+    figs = s > 0 ? [vol, dist] : [vol];
+    report = [
+      { title: q('.cm-big').textContent!, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: vol },
+      { title: 'Batch weights', table: { head, rows: [...body, tot], align: ['l', 'r', 'r', 'r', 'r'] }, ...(s > 0 ? { figure: dist } : {}), note: 'Example inputs are made up. For study and planning, not a substitute for professional judgement: check your local code and a qualified engineer, and confirm with trial batches.' },
+    ];
+  }
+  root.querySelectorAll('input').forEach((i) => i.addEventListener('input', run));
+  document.addEventListener('fibub:theme', () => { if (!q('.cm-out').hidden) { paint(q<HTMLCanvasElement>('.cm-vol'), figs[0]); if (figs[1]) paint(q<HTMLCanvasElement>('.cm-dist'), figs[1]); } });
+  q('.cm-csv').addEventListener('click', () => { if (rows.length) save(new Blob([csv(rows)], { type: 'text/csv' }), 'concrete-mix.csv', 'text/csv'); });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Concrete mix', subtitle: q('.cm-big').textContent ?? '', file: 'concrete-mix', sections: report }));
+</script>
+
+<style is:global>
+  .cmx .cm-row { margin-top: 10px; }
+  .cmx .cm-tab { margin: 12px 0; }
+  .cmx .cm-tab th { white-space: normal; }
+  .cmx .cm-tab th, .cmx .cm-tab td { padding: 7px 5px; }
+</style>
