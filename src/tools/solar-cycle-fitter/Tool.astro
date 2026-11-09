@@ -1,0 +1,246 @@
+---
+// Solar cycle fitter: monthly sunspot numbers in, 13-month running mean, cycle minima and maxima, lengths, rise
+// times and amplitudes, a shape function fitted to each cycle, and the current cycle carried on with a band.
+// Everything runs on the page; the example series is made up by the script (not real data).
+import '../../styles/astro.css';
+import DataFile from '../../components/DataFile.astro';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax scf">
+  <div class="ax-card">
+    <h2>Monthly numbers</h2>
+    <p class="ax-help" style="margin-top:0">One month per line: the month and its value, such as <code>2024-03, 120.5</code>. Also read: <code>2024 3 120.5</code>, a decimal year such as <code>2024.208 120.5</code>, and <code>year;month;decimal year;value;…</code> lines.</p>
+    <label>Month and value
+      <textarea class="scf-in" rows="8" spellcheck="false"></textarea></label>
+    <DataFile target=".scf-in" maxCols={10} maxRows={50000} />
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small scf-ex">Use the made-up example</button>
+      <button type="button" class="btn secondary small scf-clear">Clear</button>
+    </div>
+    <p class="ax-help">A blank, NaN or negative value (such as −1) is a missing month. The example is a made-up series of five and a bit cycles drawn by this page with random noise. It is <b>not real sunspot data</b>. Your numbers stay on this device.</p>
+    <p class="ax-help scf-warn" hidden></p>
+    <p class="ax-err scf-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Settings</h2>
+    <div class="ax-grid">
+      <label>What the numbers are <input class="scf-what" type="text" value="Sunspot number" maxlength="40" /></label>
+      <label>Shortest time between minima (years) <input class="scf-gap" type="number" min="2" max="30" step="0.5" value="7" inputmode="decimal" /></label>
+      <label>Shape constant c <input class="scf-c" type="number" min="0" max="0.99" step="0.05" value="0.7" inputmode="decimal" /></label>
+      <label>Fit each cycle to <select class="scf-to"><option value="monthly" selected>Monthly values</option><option value="smoothed">13-month mean</option></select></label>
+      <label>Carry the current cycle on with <select class="scf-m">
+        <option value="auto" selected>Automatic</option>
+        <option value="past">Shape from past cycles</option>
+        <option value="free">Free fit of this cycle</option>
+      </select></label>
+      <label>Band <select class="scf-lv"><option value="0.95" selected>95 %</option><option value="0.68">68 %</option></select></label>
+      <label>Number of the first full cycle <input class="scf-n0" type="number" min="-99" max="999" step="1" value="1" inputmode="numeric" /></label>
+    </div>
+    <p class="ax-help"><b>13-month mean:</b> R̄ₙ = (Rₙ₋₆ + 2(Rₙ₋₅ + … + Rₙ₊₅) + Rₙ₊₆) / 24, the usual tapered running mean, so the first and last 6 months have none. <b>Minima</b> are the lowest smoothed month within half the shortest spacing on each side; each <b>maximum</b> is the highest smoothed month between two minima.</p>
+    <p class="ax-help"><b>Shape:</b> f(t) = a (t − t₀)³ / (exp((t − t₀)²/b²) − c) after the start t₀ (years), 0 before. a sets the size, b the rise time, c (fixed, 0 to 0.99) the lopsidedness; a, b and t₀ are fitted to each cycle by least squares. <b>Shape from past cycles</b> keeps b at the mean of the complete cycles and fits a and t₀; the band comes from the spread of b between cycles plus the fit's own uncertainty. A <b>free fit</b> fits all three and draws the band from their uncertainties. Automatic uses the past shape when two or more cycles are fitted.</p>
+    <p class="ax-err scf-serr" hidden></p>
+  </div>
+
+  <div class="ax-card scf-out" hidden>
+    <h2>Cycles</h2>
+    <p class="ax-big scf-big"></p>
+    <dl class="ax-facts scf-facts"></dl>
+    <p class="ax-help scf-note" hidden></p>
+    <canvas class="ax-fig scf-f1"></canvas>
+    <h3 style="margin:18px 0 6px">Cycle by cycle</h3>
+    <div class="ax-scroll"><table class="scf-tab"></table></div>
+    <h3 style="margin:18px 0 6px">Cycles side by side</h3>
+    <canvas class="ax-fig scf-f2"></canvas>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn secondary small scf-csv">Download months (CSV)</button>
+      <button type="button" class="btn secondary small scf-ccsv">Download cycles (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseSeries, analyse, exampleSeries, dateOf, peakOf, shape, type Result } from '../../lib/sci/solarcycle';
+  import { drawChart, canvasPainter, type Chart, type Series } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, fileSafe, type Figure, type Section, type Palette } from '../../lib/report';
+  import { sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.scf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const f1 = (x: number) => (Number.isFinite(x) ? x.toFixed(1) : '–');
+  const f2 = (x: number) => (Number.isFinite(x) ? x.toFixed(2) : '–');
+  const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
+
+  let res: Result | null = null, what = 'Sunspot number', fig1: Figure | null = null, fig2: Figure | null = null, sections: Section[] = [];
+  let head: string[] = [], rows: string[][] = [], name = 'solar-cycles';
+
+  // Colours by role, so light, dark and red-light pages all read well.
+  const roles = (pal: Palette) => pal.red
+    ? { raw: '#5a0000', sm: '#a30000', fit: '#c00000', fc: '#a30000', ext: '#a30000', cyc: ['#a30000', '#7a0000', '#c00000', '#5a0000'] }
+    : pal.bg === '#ffffff'
+      ? { raw: '#9a9a9a', sm: '#0072B2', fit: '#D55E00', fc: '#009E73', ext: '#000000', cyc: ['#0072B2', '#D55E00', '#009E73', '#CC79A7', '#E69F00', '#56B4E9', '#000000', '#8c564b'] }
+      : { raw: '#6a6a6a', sm: '#56B4E9', fit: '#E69F00', fc: '#5fd3a8', ext: '#f5f5f5', cyc: ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4', '#f0e442', '#9ecae1', '#ffffff', '#d55e00'] };
+  // Narrower drawings on phones, so the labels stay readable when the canvas is scaled to the screen.
+  const figure = (h: number, alt: string, build: (r: ReturnType<typeof roles>) => Omit<Chart, 'w' | 'h'>): Figure => {
+    const w = Math.round(Math.min(720, Math.max(420, q('.scf-out').clientWidth || 720)));
+    return { w, h: w < 600 ? Math.round(h * 0.9) : h, alt,
+      draw: (ctx, W, H, pal) => drawChart(canvasPainter(ctx), { ...build(roles(pal)), w: W, h: H, ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: null }) };
+  };
+
+  function settings(): { gapYears: number; c: number; firstNumber: number; fitTo: 'monthly' | 'smoothed'; method: 'auto' | 'past' | 'free'; level: number } | string {
+    const gap = Number(inp('.scf-gap').value), c = Number(inp('.scf-c').value), n0 = Number(inp('.scf-n0').value);
+    if (!(gap >= 2 && gap <= 30)) return 'The shortest time between minima is between 2 and 30 years.';
+    if (!(c >= 0 && c <= 0.99) || inp('.scf-c').value.trim() === '') return 'The shape constant c is between 0 and 0.99.';
+    if (!(Number.isInteger(n0) && n0 >= -99 && n0 <= 999)) return 'The first cycle number is a whole number from −99 to 999.';
+    return { gapYears: gap, c, firstNumber: n0, fitTo: q<HTMLSelectElement>('.scf-to').value as 'monthly', method: q<HTMLSelectElement>('.scf-m').value as 'auto', level: Number(q<HTMLSelectElement>('.scf-lv').value) };
+  }
+
+  function run() {
+    const err = q('.scf-err'), serr = q('.scf-serr'), warn = q('.scf-warn'), out = q('.scf-out');
+    const fail = (el: HTMLElement, m: string) => { el.textContent = m; el.hidden = false; out.hidden = true; sections = []; res = null; };
+    err.hidden = true; serr.hidden = true; warn.hidden = true;
+    const o = settings();
+    if (typeof o === 'string') return fail(serr, o);
+    what = inp('.scf-what').value.trim() || 'Value';
+    const text = q<HTMLTextAreaElement>('.scf-in').value;
+    if (!text.trim()) return fail(err, 'Paste or open monthly numbers, or use the made-up example.');
+    const p = parseSeries(text);
+    if (p.bad.length) { warn.textContent = `${plural(p.bad.length, 'line')} left out. ${p.bad.slice(0, 3).join(' ')}${p.bad.length > 3 ? ' …' : ''}`; warn.hidden = false; }
+    const good = p.pts.filter((x) => Number.isFinite(x.v)).length;
+    if (p.pts.length > 50000) return fail(err, 'Up to 50,000 months (about 4,000 years), please.');
+    if (good < 13) return fail(err, `Only ${plural(good, 'month')} with a value: at least 13 are needed for the 13-month mean, and a few cycles' worth (30 years or more) to find cycles.`);
+    const r = analyse(p.pts, o);
+    res = r; out.hidden = false;
+    const done = r.cycles.filter((c) => c.complete), cur = r.current, fc = r.fc;
+    const last = p.pts[p.pts.length - 1];
+    const lv = Math.round(o.level * 100);
+
+    // Headline
+    let big = '';
+    if (cur && fc) {
+      const pk = fc.peakT[0] > last.t ? 'expected' : 'fitted';
+      big = `Cycle ${cur.n} (in progress): peak ${pk} ${dateOf(fc.peakT[0])} (${dateOf(fc.peakT[1])} to ${dateOf(fc.peakT[2])}), height ${f1(fc.peakV[0])} (${f1(fc.peakV[1])} to ${f1(fc.peakV[2])})`;
+    } else if (r.cycles.length) big = `${plural(done.length, 'complete cycle')}${done.length ? `, mean length ${f1(r.meanLen)} years` : ''}${cur ? `; cycle ${cur.n} started ${dateOf(cur.tMin)}` : ''}`;
+    else big = 'No cycle minimum found yet';
+    q('.scf-big').textContent = big;
+    const note = q('.scf-note');
+    note.textContent = !r.cycles.length ? `No minimum found: the series needs a clear low point with at least ${f1(o.gapYears / 2)} years of data on each side (the 13-month mean also loses 6 months at each end). Give a longer series or lower the shortest time between minima.` : r.note;
+    note.hidden = !note.textContent;
+
+    const facts: [string, string, string][] = [];
+    facts.push(['Data', `${p.first} to ${p.last}`, `${plural(p.pts.length, 'month')}${p.gaps ? `, ${p.gaps} missing` : ', none missing'}; 13-month mean from ${dateOf(p.pts[Math.min(6, p.pts.length - 1)].t)} to ${dateOf(p.pts[Math.max(0, p.pts.length - 7)].t)}`]);
+    if (done.length) {
+      const rises = done.map((c) => c.rise).filter(Number.isFinite), amps = done.map((c) => c.vMax).filter(Number.isFinite);
+      facts.push(['Complete cycles', `${done.length}: length ${f1(r.meanLen)}${Number.isFinite(r.sdLen) ? ` ± ${f1(r.sdLen)}` : ''} years`, `mean rise time ${f1(rises.reduce((s, x) => s + x, 0) / rises.length)} years, mean peak ${f1(amps.reduce((s, x) => s + x, 0) / amps.length)} (13-month mean); ± is the standard deviation between cycles`]);
+    }
+    if (cur) {
+      facts.push(['Current cycle', `${cur.n}, from ${dateOf(cur.tMin)}`, `minimum ${f1(cur.vMin)}; ${f1(last.t - cur.tMin)} years of data since${r.ext.lastMaxIsPeak ? `; the 13-month mean peaked at ${f1(cur.vMax)} in ${dateOf(cur.tMax)}` : ''}`]);
+      if (fc) {
+        const se = fc.fit.se;
+        facts.push(['Fit', fc.method === 'past' ? 'shape from past cycles' : 'free fit of this cycle',
+          fc.method === 'past' ? `b = ${f2(fc.fit.p.b)} years (mean of ${done.filter((c) => c.fit).length} cycles), a = ${sig(fc.fit.p.a, 4)} ± ${sig(se[0], 2)}, t₀ = ${f2(fc.fit.p.t0)} ± ${f2(se[1])}` : `a = ${sig(fc.fit.p.a, 4)} ± ${sig(se[0], 2)}, b = ${f2(fc.fit.p.b)} ± ${f2(se[1])} years, t₀ = ${f2(fc.fit.p.t0)} ± ${f2(se[2])}`]);
+        facts.push([`Peak (${lv} % band)`, `${dateOf(fc.peakT[0])}, height ${f1(fc.peakV[0])}`, `time ${dateOf(fc.peakT[1])} to ${dateOf(fc.peakT[2])}, height ${f1(fc.peakV[1])} to ${f1(fc.peakV[2])}, from ${fc.used} curves drawn from the parameters' scatter`]);
+      }
+      if (done.length >= 2) facts.push(['Next minimum', `about ${dateOf(cur.tMin + r.meanLen)}`, `this cycle's start plus the mean length, ± ${f1(r.sdLen)} years`]);
+    }
+    q('.scf-facts').replaceChildren(...facts.map(([k, v, s]) => fact(k, v, s)));
+
+    // Table
+    head = ['Cycle', 'Minimum', 'Min.', 'Maximum', 'Max.', 'Rise (yr)', 'Length (yr)', 'Fit peak', 'a', 'b (yr)', 't₀', 'RMS'];
+    rows = r.cycles.map((c) => {
+      const f = c.complete ? c.fit : fc?.fit ?? null, pk = f ? peakOf(f.p) : null;
+      return [`${c.n}${c.complete ? '' : ' (now)'}`, dateOf(c.tMin), f1(c.vMin), c.iMax !== null && (c.complete || r.ext.lastMaxIsPeak) ? dateOf(c.tMax) : '–', c.iMax !== null && (c.complete || r.ext.lastMaxIsPeak) ? f1(c.vMax) : '–',
+        c.iMax !== null && (c.complete || r.ext.lastMaxIsPeak) ? f2(c.rise) : '–', f2(c.length), pk ? `${f1(pk.v)} (${dateOf(pk.t)})` : '–', f ? sig(f.p.a, 4) : '–', f ? f2(f.p.b) : '–', f ? f2(f.p.t0) : '–', f ? f1(f.rms) : '–'];
+    });
+    const t = q<HTMLTableElement>('.scf-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.style.textAlign = 'right'; hr.append(th); });
+    const tb = t.createTBody(); rows.forEach((rw) => { const tr = tb.insertRow(); rw.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.style.textAlign = 'right'; }); });
+
+    // Main chart
+    const T = p.pts.map((x) => x.t), V = p.pts.map((x) => x.v);
+    const fitTo = o.fitTo;
+    fig1 = figure(400, `${what} by month with the 13-month mean, cycle minima and maxima, shape fits and the current cycle carried on`, (k) => {
+      const s: Series[] = [
+        { name: 'Monthly', x: T, y: V, mode: 'line', width: 0.8, color: k.raw },
+        { name: '13-month mean', x: T, y: r.S, mode: 'line', width: 2.2, color: k.sm },
+      ];
+      r.cycles.forEach((c, i) => { if (c.complete && c.fit) { const xs = T.slice(c.iMin, c.iNext! + 1); s.push({ name: i === 0 || !s.some((z) => z.name === 'Shape fits') ? 'Shape fits' : '', x: xs, y: xs.map((x) => shape(x, c.fit!.p)), mode: 'line', width: 1.6, dash: [6, 4], color: k.fit }); } });
+      if (fc) {
+        s.push({ name: 'Current cycle fit', x: fc.grid, y: fc.mid, mode: 'line', width: 2, color: k.fc });
+        s.push({ name: `${lv} % band`, x: fc.grid, y: fc.lo, mode: 'line', width: 1, dash: [3, 3], color: k.fc });
+        s.push({ name: '', x: fc.grid, y: fc.hi, mode: 'line', width: 1, dash: [3, 3], color: k.fc });
+      }
+      s.push({ name: 'Minima', x: r.ext.minima.map((i) => T[i]), y: r.ext.minima.map((i) => r.S[i]), mode: 'points', marker: 'open-circle', size: 4.5, color: k.ext });
+      if (r.ext.maxima.length) s.push({ name: 'Maxima', x: r.ext.maxima.map((i) => T[i]), y: r.ext.maxima.map((i) => r.S[i]), mode: 'points', marker: 'triangle', size: 4, color: k.ext });
+      return { xLabel: 'Year', yLabel: what, legend: 'below', series: s, yMin: 0, marks: fc ? [{ kind: 'vline', at: last.t, dash: [2, 3], label: 'last month' }] : [] };
+    });
+    paint(q<HTMLCanvasElement>('.scf-f1'), fig1);
+
+    // Side by side: the 13-month mean of each cycle against years since its minimum (the last 8 cycles).
+    const show = r.cycles.slice(-8);
+    fig2 = figure(340, 'The 13-month mean of each cycle against years since its minimum', (k) => {
+      const s: Series[] = show.map((c, j) => {
+        const end = c.iNext ?? T.length - 1, xs: number[] = [], ys: number[] = [];
+        for (let i = c.iMin; i <= end; i++) { xs.push(T[i] - c.tMin); ys.push(r.S[i]); }
+        return { name: `Cycle ${c.n}${c.complete ? '' : ' (now)'}`, x: xs, y: ys, mode: 'line', width: c.complete ? 1.6 : 2.6, color: k.cyc[j % k.cyc.length] };
+      });
+      if (fc && cur) s.push({ name: 'Carried on', x: fc.grid.map((g) => g - cur.tMin), y: fc.mid, mode: 'line', width: 1.6, dash: [6, 4], color: k.cyc[(show.length - 1) % k.cyc.length] });
+      return { xLabel: 'Years since the minimum', yLabel: `${what} (13-month mean)`, legend: 'below', series: s, yMin: 0 };
+    });
+    paint(q<HTMLCanvasElement>('.scf-f2'), fig2);
+
+    sections = [
+      { title: big, facts: facts.map(([k2, v]) => [k2, v] as [string, string]), figure: fig1, note: `13-month mean: (Rₙ₋₆ + 2(Rₙ₋₅ + … + Rₙ₊₅) + Rₙ₊₆)/24. Shape f(t) = a(t − t₀)³/(exp((t − t₀)²/b²) − c) with c = ${o.c}, fitted by least squares to the ${fitTo === 'monthly' ? 'monthly values' : '13-month mean'} of each cycle.` },
+      { title: 'Cycle by cycle', table: { head, rows, align: head.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] }, figure: fig2 },
+    ];
+  }
+
+  function monthsCsv(): string {
+    const r = res!, T = r.pts.map((x) => x.t), fc = r.fc, cur = r.current;
+    const fitAt = new Array(T.length).fill(NaN), cyc = new Array(T.length).fill('');
+    r.cycles.forEach((c) => {
+      const end = c.iNext ?? T.length - 1;
+      for (let i = c.iMin; i <= end; i++) { cyc[i] = String(c.n); if (c.complete && c.fit) fitAt[i] = shape(T[i], c.fit.p); }
+    });
+    const out: (string | number)[][] = [['month', 'decimal_year', 'value', 'mean_13_month', 'cycle', 'shape_fit', 'current_cycle_fit', 'band_low', 'band_high']];
+    const n = (x: number, d = 3) => (Number.isFinite(x) ? x.toFixed(d) : '');
+    const fcAt = (i: number) => (fc && cur ? i - cur.iMin : -1);
+    T.forEach((t, i) => { const g = fcAt(i), ok = fc && g >= 0 && g < fc.grid.length; out.push([dateOf(t), t.toFixed(4), n(r.pts[i].v, 1), n(r.S[i]), cyc[i], n(fitAt[i]), ok ? n(fc!.mid[g]) : '', ok ? n(fc!.lo[g]) : '', ok ? n(fc!.hi[g]) : '']); });
+    if (fc && cur) for (let g = T.length - cur.iMin; g < fc.grid.length; g++) out.push([dateOf(fc.grid[g]), fc.grid[g].toFixed(4), '', '', String(cur.n), '', n(fc.mid[g]), n(fc.lo[g]), n(fc.hi[g])]);
+    return csv(out);
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(run, 300); };
+  q('.scf-in').addEventListener('input', later);
+  ['.scf-what', '.scf-gap', '.scf-c', '.scf-n0'].forEach((c) => q(c).addEventListener('input', later));
+  ['.scf-to', '.scf-m', '.scf-lv'].forEach((c) => q(c).addEventListener('change', run));
+  q('.scf-ex').addEventListener('click', () => { q<HTMLTextAreaElement>('.scf-in').value = exampleSeries(); name = 'made-up-example'; run(); });
+  q('.scf-clear').addEventListener('click', () => { q<HTMLTextAreaElement>('.scf-in').value = ''; name = 'solar-cycles'; run(); });
+  q('.scf-csv').addEventListener('click', () => { if (res) save(new Blob([monthsCsv()], { type: 'text/csv' }), `${fileSafe(name)}-months.csv`, 'text/csv'); });
+  q('.scf-ccsv').addEventListener('click', () => {
+    if (!res) return;
+    const r = res, fc = r.fc;
+    const out: (string | number)[][] = [['cycle', 'complete', 'minimum', 'min_value', 'maximum', 'max_value', 'rise_years', 'length_years', 'fit_peak_month', 'fit_peak_value', 'a', 'a_se', 'b_years', 'b_se', 't0', 't0_se', 'rms', 'fit_method']];
+    for (const c of r.cycles) {
+      const f = c.complete ? c.fit : fc?.fit ?? null, pk = f ? peakOf(f.p) : null, peaked = c.iMax !== null && (c.complete || r.ext.lastMaxIsPeak);
+      const se = (k: 'a' | 'b' | 't0') => { if (!f) return ''; const j = f.free.indexOf(k); return j >= 0 ? f.se[j].toPrecision(4) : 'fixed'; };
+      out.push([c.n, c.complete ? 'yes' : 'no', dateOf(c.tMin), c.vMin.toFixed(2), peaked ? dateOf(c.tMax) : '', peaked ? c.vMax.toFixed(2) : '', peaked ? c.rise.toFixed(3) : '', c.complete ? c.length.toFixed(3) : '',
+        pk ? dateOf(pk.t) : '', pk ? pk.v.toFixed(2) : '', f ? f.p.a.toPrecision(6) : '', se('a'), f ? f.p.b.toFixed(4) : '', se('b'), f ? f.p.t0.toFixed(4) : '', se('t0'), f ? f.rms.toFixed(3) : '', !f ? '' : c.complete ? 'free' : fc!.method]);
+    }
+    save(new Blob([csv(out)], { type: 'text/csv' }), `${fileSafe(name)}-cycles.csv`, 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (!q('.scf-out').hidden) { if (fig1) paint(q<HTMLCanvasElement>('.scf-f1'), fig1); if (fig2) paint(q<HTMLCanvasElement>('.scf-f2'), fig2); } });
+  wireDownloads(q('.dl'), () => ({ title: 'Solar cycle fitter', subtitle: q('.scf-big').textContent ?? '', file: `${fileSafe(name)}-solar-cycles`, sections }));
+  if (!q<HTMLTextAreaElement>('.scf-in').value.trim()) { q<HTMLTextAreaElement>('.scf-in').value = exampleSeries(); name = 'made-up-example'; }
+  run();
+</script>
+
+<style is:inline>
+  .scf select { max-width: 100%; }
+  .scf code { font-size: 0.92em; }
+  .scf .scf-tab td, .scf .scf-tab th { white-space: nowrap; }
+</style>
