@@ -1,0 +1,162 @@
+---
+// Light exposure budget for museum objects: lux-hours per year, the share of a budget the user's institution sets,
+// display time or lux allowed, UV from µW/lm, and a plan of display periods. Everything runs in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax leb">
+  <div class="ax-card">
+    <h2>Budget</h2>
+    <div class="ax-grid">
+      <label>Yearly light budget (lux-hours) <input class="le-budget" inputmode="decimal" value="100000" /></label>
+      <label>UV content of the light (µW/lm, optional) <input class="le-uv" inputmode="decimal" value="30" /></label>
+      <label>Your UV limit (µW/lm, optional) <input class="le-uvmax" inputmode="decimal" placeholder="none" /></label>
+    </div>
+    <p class="ax-help">The budget and UV figures here are examples. Use the figures your institution, conservator or loan agreement sets for this object: they depend on how light-sensitive it is.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>One display</h2>
+    <div class="ax-grid">
+      <label>Light level (lux) <input class="le-lux" inputmode="decimal" value="50" /></label>
+      <label>Hours lit per day <input class="le-h" inputmode="decimal" value="8" /></label>
+      <label>Days per year on display <input class="le-d" inputmode="decimal" value="300" /></label>
+    </div>
+    <p class="ax-err le-err" hidden></p>
+    <div class="le-out">
+      <p class="ax-big le-big"></p>
+      <dl class="ax-facts le-facts"></dl>
+      <p class="ax-help le-note"></p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Plan of display periods</h2>
+      <button type="button" class="btn secondary small le-ex">Use the example</button>
+    </div>
+    <label style="margin-top:10px">One period per line: a name, lux, hours lit per day, days <textarea class="le-in" rows="6" spellcheck="false" wrap="off" placeholder="Period&#9;Lux&#9;Hours per day&#9;Days&#10;Opening display&#9;50&#9;8&#9;180"></textarea></label>
+    <DataFile target=".le-in" maxCols={6} maxRows={2000} />
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Years the plan covers <input class="le-years" inputmode="decimal" value="2" /></label>
+      <label>Next display at (lux) <input class="le-nlux" inputmode="decimal" value="50" /></label>
+      <label>Next display, hours per day <input class="le-nh" inputmode="decimal" value="8" /></label>
+    </div>
+    <p class="ax-help">The plan's budget is the yearly budget × the years it covers. Dark storage uses none, so leave it out.</p>
+    <p class="ax-err le-perr" hidden></p>
+    <div class="le-pout" hidden>
+      <p class="ax-big le-pbig"></p>
+      <dl class="ax-facts le-pfacts"></dl>
+      <canvas class="ax-fig le-fig" style="margin-top:10px"></canvas>
+      <div class="ax-scroll"><table class="le-tab"></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small le-csv">Download the plan (CSV)</button></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .leb .le-tab { min-width: 560px; }
+  .leb .le-tab tr.over td { color: var(--bad); }
+</style>
+
+<script>
+  import { luxHours, allowedDays, allowedLux, uvIrradiance, uvDose, plan, parsePlan, EXAMPLE_PLAN, type Plan } from '../../lib/sci/lightbudget';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.leb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const n0 = (x: number) => Math.round(x).toLocaleString('en').replace('-', '−');
+  const p1 = (x: number) => x.toFixed(1);
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const days = (x: number) => (Number.isFinite(x) ? `${sig(x, 3)} days` : 'no limit');
+  let fig: Figure | null = null, P: Plan | null = null, oneFacts: [string, string][] = [];
+
+  function budget(errEl: HTMLElement): number | null {
+    const b = v('.le-budget');
+    if (!(b > 0)) { errEl.textContent = 'Give a yearly budget in lux-hours above 0.'; errEl.hidden = false; return null; }
+    return b;
+  }
+  const uv = () => { const u = v('.le-uv'), m = v('.le-uvmax'); return { u: u >= 0 ? u : NaN, m: m > 0 ? m : NaN }; };
+
+  function one() {
+    const err = q('.le-err'); err.hidden = true;
+    const B = budget(err), lux = v('.le-lux'), h = v('.le-h'), d = v('.le-d');
+    if (B == null) { q('.le-out').hidden = true; return; }
+    const bad = [!(lux >= 0) && 'the light level must be 0 or more', !(h >= 0 && h <= 24) && 'hours per day run from 0 to 24', !(d >= 0 && d <= 366) && 'days per year run from 0 to 366'].filter(Boolean);
+    if (bad.length) { err.textContent = `Check the numbers: ${bad.join('; ')}.`; err.hidden = false; q('.le-out').hidden = true; return; }
+    q('.le-out').hidden = false;
+    const lxh = luxHours(lux, h, d), pct = (100 * lxh) / B, left = B - lxh;
+    q('.le-big').textContent = `${n0(lxh)} lux-hours a year: ${p1(pct)} % of the budget`;
+    const { u, m } = uv();
+    oneFacts = [
+      ['Lux-hours per year', n0(lxh)],
+      [left >= 0 ? 'Budget left each year' : 'Over the budget by', `${n0(Math.abs(left))} lx·h`],
+      [`Days allowed at ${sig(lux, 4)} lux, ${sig(h, 3)} h a day`, days(allowedDays(B, lux, h))],
+      [`Lux allowed for ${sig(h, 3)} h × ${sig(d, 4)} days`, Number.isFinite(allowedLux(B, h, d)) ? `${sig(allowedLux(B, h, d), 3)} lux` : 'no limit'],
+      ['Hours lit per year', n0(h * d)],
+      ...(Number.isFinite(u) ? [['UV irradiance', `${sig(uvIrradiance(lux, u), 3)} mW/m²`], ['UV exposure per year', `${sig(uvDose(lxh, u) / 1000, 3)} kJ/m²`]] as [string, string][] : []),
+    ];
+    q('.le-facts').replaceChildren(...oneFacts.map(([k, x]) => fact(k, x)));
+    const notes = [left >= 0 ? `This display fits the yearly budget with ${n0(left)} lux-hours to spare.` : `This display is over the yearly budget: lower the light, shorten the hours, or show the object for fewer days (${days(allowedDays(B, lux, h))} at this light level).`];
+    if (Number.isFinite(u) && Number.isFinite(m)) notes.push(u > m ? `The light has ${sig(u, 3)} µW/lm of UV, over your limit of ${sig(m, 3)} µW/lm: consider a UV filter.` : `The UV content (${sig(u, 3)} µW/lm) is within your limit of ${sig(m, 3)} µW/lm.`);
+    q('.le-note').textContent = notes.join(' ');
+  }
+
+  function planRun() {
+    const err = q('.le-perr'); err.hidden = true;
+    const text = q<HTMLTextAreaElement>('.le-in').value;
+    if (!text.trim()) { q('.le-pout').hidden = true; P = null; return; }
+    const B = budget(err), years = v('.le-years');
+    if (B == null) { q('.le-pout').hidden = true; return; }
+    if (!(years > 0)) { err.textContent = 'Give the years the plan covers, above 0.'; err.hidden = false; q('.le-pout').hidden = true; return; }
+    const r = parsePlan(text);
+    if (r.bad.length) { err.textContent = r.bad.slice(0, 3).join(' ') + (r.bad.length > 3 ? ` And ${r.bad.length - 3} more.` : ''); err.hidden = false; }
+    if (!r.periods.length) { q('.le-pout').hidden = true; P = null; if (!r.bad.length) { err.textContent = 'No periods found: give a name, lux, hours per day and days on each line.'; err.hidden = false; } return; }
+    P = plan(r.periods, B, years);
+    q('.le-pout').hidden = false;
+    q('.le-pbig').textContent = `${n0(P.total)} of ${n0(P.budget)} lux-hours used (${p1(P.pct)} %)`;
+    const nl = v('.le-nlux'), nh = v('.le-nh'), { u } = uv();
+    q('.le-pfacts').replaceChildren(
+      fact(P.left >= 0 ? 'Budget left' : 'Over the budget by', `${n0(Math.abs(P.left))} lx·h`),
+      fact('Average per year', `${n0(P.perYear)} lx·h`, `budget ${n0(B)} a year`),
+      fact(`Next display at ${Number.isFinite(nl) ? sig(nl, 4) : '?'} lux, ${Number.isFinite(nh) ? sig(nh, 3) : '?'} h a day`, P.left > 0 && nl > 0 && nh > 0 ? `up to ${days(Math.floor(allowedDays(P.left, nl, nh)))}` : P.left > 0 ? 'give a lux and hours' : 'no budget left'),
+      ...(Number.isFinite(u) ? [fact('UV exposure in the plan', `${sig(uvDose(P.total, u) / 1000, 3)} kJ/m²`, `at ${sig(u, 3)} µW/lm`)] : []),
+    );
+    const t = q<HTMLTableElement>('.le-tab'); t.replaceChildren();
+    const head = ['Period', 'Lux', 'Hours/day', 'Days', 'Lux-hours', 'Running total', '% of plan budget'];
+    const hr = t.insertRow(); head.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (k) th.className = 'r'; hr.append(th); });
+    for (const x of P.rows) {
+      const tr = t.insertRow(); if (x.over) tr.className = 'over';
+      [x.name, sig(x.lux, 4), sig(x.hours, 3), sig(x.days, 4), n0(x.lxh), n0(x.cum), p1(x.pct) + (x.over ? ' (over)' : '')].forEach((s, k) => { const td = tr.insertCell(); td.textContent = s; if (k) td.className = 'r'; });
+    }
+    const xs = [0, ...P.rows.map((_, i) => i + 1)], ys = [0, ...P.rows.map((x) => x.cum)];
+    fig = chartFigure({ h: 300, xLabel: 'Display period (in plan order)', yLabel: 'Lux-hours used', legend: 'none', yMin: 0, xMin: 0, xMax: P.rows.length,
+      series: [{ name: 'Running total', x: xs, y: ys, mode: 'both', marker: 'circle' }],
+      marks: [{ kind: 'hline', at: P.budget, dash: [5, 4], label: `Budget ${n0(P.budget)}` }] }, `Running total of lux-hours over ${P.rows.length} display periods against a budget of ${n0(P.budget)}`);
+    paint(q<HTMLCanvasElement>('.le-fig'), fig);
+  }
+
+  const all = () => { one(); planRun(); };
+  let tm = 0;
+  const later = (f: () => void) => { clearTimeout(tm); tm = window.setTimeout(f, 200); };
+  for (const c of ['.le-budget', '.le-uv', '.le-uvmax']) q(c).addEventListener('input', () => later(all));
+  for (const c of ['.le-lux', '.le-h', '.le-d']) q(c).addEventListener('input', () => later(one));
+  for (const c of ['.le-in', '.le-years', '.le-nlux', '.le-nh']) q(c).addEventListener('input', () => later(planRun));
+  q('.le-ex').addEventListener('click', () => { q<HTMLTextAreaElement>('.le-in').value = EXAMPLE_PLAN; q<HTMLInputElement>('.le-years').value = '2'; planRun(); });
+  q('.le-csv').addEventListener('click', () => {
+    if (!P) return;
+    save(new Blob([csv([['period', 'lux', 'hours_per_day', 'days', 'lux_hours', 'running_total', 'percent_of_plan_budget'], ...P.rows.map((x) => [x.name, x.lux, x.hours, x.days, x.lxh, x.cum, x.pct.toFixed(2)]), ['plan budget', '', '', '', P.budget, '', '']])], { type: 'text/csv' }), 'light-exposure-plan.csv', 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => {
+    const sections: Section[] = [{ title: 'One display', text: [q('.le-big').textContent ?? '', q('.le-note').textContent ?? ''], facts: oneFacts }];
+    if (P) sections.push({ title: 'Plan of display periods', text: [q('.le-pbig').textContent ?? ''], figure: fig ?? undefined, table: { head: ['Period', 'Lux', 'Hours/day', 'Days', 'Lux-hours', 'Running total', '%'], rows: P.rows.map((x) => [x.name, sig(x.lux, 4), sig(x.hours, 3), sig(x.days, 4), n0(x.lxh), n0(x.cum), p1(x.pct)]), align: ['l', 'r', 'r', 'r', 'r', 'r', 'r'] } });
+    return { title: 'Light exposure budget', subtitle: `Yearly budget ${n0(v('.le-budget'))} lux-hours (set by the user)`, file: 'light-exposure-budget', sections };
+  });
+  document.addEventListener('fibub:theme', () => { if (fig && P) paint(q<HTMLCanvasElement>('.le-fig'), fig); });
+  q<HTMLTextAreaElement>('.le-in').value = EXAMPLE_PLAN; all();
+</script>

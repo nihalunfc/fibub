@@ -33,6 +33,6 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   writeFileSync(OUT + 'nut-in.csv', 'Ingredient,Amount (g),Energy (kcal),Protein\nRice,100,350,7\n');
   await page.setInputFiles(R + '.dfb-in', OUT + 'nut-in.csv'); await page.waitForTimeout(400);
   check((await page.textContent(R + '.rn-big')).startsWith('175 kcal per serving (50 g)'), 'nutrition: open a CSV file');
-  await page.click(R + '.rn-ex'); await page.setViewportSize({ width: 375, height: 800 }); await page.waitForTimeout(200);
-  await page.screenshot({ path: OUT + 'nutrition-375.png', fullPage: true }); await page.setViewportSize({ width: 1280, height: 800 });
+  await page.click(R + '.rn-ex'); const vp0 = page.viewportSize(); await page.setViewportSize({ width: 375, height: 800 }); await page.waitForTimeout(200);
+  await page.screenshot({ path: OUT + 'nutrition-375.png', fullPage: true }); await page.setViewportSize(vp0);
 };
