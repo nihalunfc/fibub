@@ -50,7 +50,7 @@ export default async ({ page, check, BASE }) => {
   // Check yourself: the right option is the one the page says is right; pick by reading the answers after a blank check.
   check((await page.$$('.ccn .cc-q1')).length === 3 && (await page.$$('.ccn .cc-q1 input[type=radio]')).length >= 9, 'chain: 3 questions with choices');
   await page.click('.ccn .cc-check');
-  const answers = await page.$$eval('.ccn .cc-ans', (a) => a.map((x) => x.textContent.match(/It is (.+?)\.\s/)?.[1] || ''));
+  const answers = await page.$$eval('.ccn .cc-ans', (a) => a.map((x) => x.textContent.match(/^✗ It is (.+?)\.\s/)?.[1] || ''));
   check((await t('.cc-score')) === '0 of 3 right' && answers.every((a) => a === ''), 'chain: blank answers');
   const right = await page.$$eval('.ccn .cc-q1', (qs) => qs.map((d) => d.querySelector('.cc-ans').textContent.split('Put it together: ')[1]?.replace(/\.$/, '')));
   for (let i = 0; i < 3; i++) await page.check(`.ccn .cc-q1:nth-child(${i + 1}) input[value="${right[i]}"]`);
