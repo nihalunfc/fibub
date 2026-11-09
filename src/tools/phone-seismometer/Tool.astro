@@ -1,0 +1,272 @@
+---
+// Phone seismometer: record the phone's accelerometer (DeviceMotion, only after a button press), show the three
+// components live, remove gravity with a highpass, peak ground acceleration, amplitude spectrum and dominant
+// frequency; save recordings in this browser only; CSV and SAC out. A toy for learning, not an earthquake detector.
+// Maths in src/lib/sci/phoneseis.ts (+ dsp.ts, seisio.ts). Nothing leaves the device.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax phs">
+  <div class="ax-card">
+    <h2>Record</h2>
+    <p class="ps-toy"><strong>A toy for learning, not an earthquake detector.</strong> A phone's accelerometer is far less sensitive than a seismometer, picks up every footstep and tap, and this page gives no warnings. For earthquake alerts and reports, follow your national geological survey or civil protection agency.</p>
+    <div class="ax-grid">
+      <label>Stop after <select class="ps-max"><option value="30">30 seconds</option><option value="60" selected>1 minute</option><option value="120">2 minutes</option><option value="300">5 minutes</option></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small ps-start">Start recording</button>
+      <button type="button" class="btn secondary small ps-stop" disabled>Stop</button>
+      <button type="button" class="btn secondary small ps-demo">Use the demo recording</button>
+    </div>
+    <p class="ax-help">Lay the phone flat on a table or the floor, screen up, press Start and don't touch it. Your phone may ask to allow motion and orientation access; the readings stay on this page. Keep the screen on while recording.</p>
+    <p class="ax-help ps-status" aria-live="polite"></p>
+    <p class="ax-err ps-err" hidden></p>
+    <canvas class="ax-fig ps-live" hidden></canvas>
+    <details class="ps-file">
+      <summary>On a computer: open or paste a recording (CSV)</summary>
+      <p class="ax-help">Columns time (s), x, y, z in m/s², as this page's CSV download or apps such as phyphox write them (a time column named in ms is read as milliseconds). Or three columns x, y, z with the sampling rate below.</p>
+      <textarea class="ps-text" rows="6" spellcheck="false" placeholder="time_s, x, y, z"></textarea>
+      <DataFile target=".ps-text" maxCols={8} maxRows={200000} maxMB={20} label="Open a CSV recording" />
+      <div class="ax-grid" style="margin-top:8px"><label>Sampling rate for x, y, z only (Hz) <input class="ps-fsin" type="text" inputmode="decimal" placeholder="from the times" /></label></div>
+    </details>
+  </div>
+
+  <div class="ax-card ps-out" hidden>
+    <h2>Analysis</h2>
+    <div class="ax-grid">
+      <label>Remove below (Hz) <input class="ps-hp" type="text" inputmode="decimal" value="0.5" /></label>
+      <label>Remove above (Hz) <input class="ps-lp" type="text" inputmode="decimal" placeholder="none" /></label>
+      <label>Filter order <select class="ps-ord"><option selected>2</option><option>4</option></select></label>
+    </div>
+    <p class="ax-help">Gravity and slow tilt are removed by a zero-phase Butterworth highpass (after removing a straight line and tapering 5 % at each end). Set "Remove above" to cut fast noise too.</p>
+    <p class="ax-err ps-aerr" hidden></p>
+    <p class="ax-big ps-big"></p>
+    <dl class="ax-facts ps-facts"></dl>
+    <div class="ax-scroll" style="margin-top:12px"><table class="ps-tab"></table></div>
+    <canvas class="ax-fig ps-fig" style="margin-top:12px"></canvas>
+    <div class="ax-grid" style="margin-top:12px"><label>Spectrum of <select class="ps-comp"><option value="0">x (across the screen)</option><option value="1">y (along the screen)</option><option value="2" selected>z (out of the screen)</option></select></label></div>
+    <canvas class="ax-fig ps-spec" style="margin-top:12px"></canvas>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn secondary small ps-csv">Download recording (CSV)</button>
+      <button type="button" class="btn secondary small ps-sac">Download this component (SAC)</button>
+    </div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card ps-saved">
+    <h2>Saved in this browser</h2>
+    <p class="ax-help">Recordings you save are kept only in this browser on this device (its local storage), never sent anywhere, and stay until you delete them here or clear the site's data. Up to 5 minutes each.</p>
+    <div class="ax-row">
+      <label class="ps-namel">Name <input class="ps-name" type="text" maxlength="60" placeholder="e.g. kitchen table, lorry passing" /></label>
+      <button type="button" class="btn secondary small ps-save" disabled>Save this recording</button>
+    </div>
+    <p class="ax-help ps-smsg" aria-live="polite"></p>
+    <div class="ax-scroll"><table class="ps-list"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ps-clearall">Delete all saved recordings</button></div>
+  </div>
+</div>
+
+<script>
+  import { uniform, analyse, parseRecording, jitter, feel, demo, G0, type Rec } from '../../lib/sci/phoneseis';
+  import { writeSac } from '../../lib/sci/seisio';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.phs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement | HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const tr = (cells: (string | Node)[], th = false) => { const e = document.createElement('tr'); cells.forEach((c, j) => { const d = document.createElement(th ? 'th' : 'td'); if (typeof c === 'string') d.textContent = c; else d.append(c); if (j) d.className = 'r'; e.append(d); }); return e; };
+  const KEY = 'fibub-phoneseis-v1', NAMES = ['x', 'y', 'z'] as const;
+  const err = (c: string, m: string) => { const e = q(c); e.textContent = m; e.hidden = !m; };
+
+  let rec: Rec | null = null, info = '', figs: Figure[] = [], report: Section[] = [], an: ReturnType<typeof analyse> | null = null;
+
+  // ---------- recording ----------
+  let buf: { t: number[]; x: number[]; y: number[]; z: number[] } = { t: [], x: [], y: [], z: [] };
+  let recording = false, t0 = 0, raf = 0, watchdog = 0, gravityFree = false;
+  function onMotion(e: DeviceMotionEvent) {
+    const a = e.accelerationIncludingGravity ?? e.acceleration;
+    if (!a || a.x == null || a.y == null || a.z == null) return;
+    if (!e.accelerationIncludingGravity) gravityFree = true;
+    const t = e.timeStamp / 1000;
+    if (buf.t.length && t <= buf.t[buf.t.length - 1]) return;
+    buf.t.push(t); buf.x.push(a.x); buf.y.push(a.y); buf.z.push(a.z);
+    if (t - buf.t[0] >= Number(val('.ps-max'))) stop();
+  }
+  async function start() {
+    err('.ps-err', '');
+    const DM = (window as unknown as { DeviceMotionEvent?: { requestPermission?: () => Promise<string> } }).DeviceMotionEvent;
+    if (!DM) { err('.ps-err', 'This browser does not report motion. On a computer, open a CSV recording below or use the demo.'); return; }
+    if (typeof DM.requestPermission === 'function') {
+      try { if ((await DM.requestPermission()) !== 'granted') { err('.ps-err', 'Motion access was not allowed. To try again, close and reopen this page, or allow Motion & Orientation Access in your browser settings.'); return; } }
+      catch { err('.ps-err', 'Motion access could not be asked for. Press Start again.'); return; }
+    }
+    buf = { t: [], x: [], y: [], z: [] }; gravityFree = false; recording = true; t0 = performance.now();
+    window.addEventListener('devicemotion', onMotion);
+    q<HTMLButtonElement>('.ps-start').disabled = true; q<HTMLButtonElement>('.ps-stop').disabled = false;
+    q('.ps-live').hidden = false;
+    watchdog = window.setTimeout(() => { if (recording && buf.t.length < 3) { stop(true); err('.ps-err', 'No motion readings are coming from this device (computers usually have no accelerometer). Open a CSV recording below or use the demo.'); } }, 3000);
+    loop();
+  }
+  function stop(silent = false) {
+    if (!recording) return;
+    recording = false; window.removeEventListener('devicemotion', onMotion); cancelAnimationFrame(raf); clearTimeout(watchdog);
+    q<HTMLButtonElement>('.ps-start').disabled = false; q<HTMLButtonElement>('.ps-stop').disabled = true;
+    if (silent) { q('.ps-live').hidden = true; q('.ps-status').textContent = ''; return; }
+    try {
+      const j = jitter(buf.t);
+      load(uniform(buf.t, buf.x, buf.y, buf.z), `Recorded ${buf.t.length.toLocaleString('en')} readings; intervals ${sig(j.mean * 1000, 3)} ± ${sig(j.sd * 1000, 2)} ms (longest ${sig(j.max * 1000, 3)} ms), resampled evenly.${gravityFree ? ' This device gave acceleration without gravity.' : ''}`, `Phone recording ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`);
+    } catch (e) { err('.ps-err', (e as Error).message + '.'); }
+  }
+  function loop() {
+    const c = q<HTMLCanvasElement>('.ps-live'), n = buf.t.length;
+    const secs = n ? buf.t[n - 1] - buf.t[0] : 0;
+    q('.ps-status').textContent = recording ? `Recording: ${sig(secs, 3)} s, ${n} readings${n > 10 ? `, about ${Math.round((n - 1) / secs)} per second` : ''}.` : '';
+    const w = Math.max(300, Math.min(900, c.clientWidth || 600));
+    paint(c, { w, h: 240, alt: 'Live trace of the last 10 seconds', draw: (ctx, W, H, pal) => {
+      const tEnd = n ? buf.t[n - 1] : 0, tA = tEnd - 10, rowH = H / 3;
+      let i0 = n; while (i0 > 0 && buf.t[i0 - 1] >= tA) i0--;
+      ctx.font = '12px system-ui, sans-serif'; ctx.textBaseline = 'top';
+      NAMES.forEach((k, r) => {
+        const v = buf[k].slice(i0); const m = v.length ? v.reduce((s, a) => s + a, 0) / v.length : 0;
+        const amp = Math.max(0.02, ...v.map((a) => Math.abs(a - m)));
+        if (r) { ctx.strokeStyle = pal.line; ctx.beginPath(); ctx.moveTo(0, r * rowH); ctx.lineTo(W, r * rowH); ctx.stroke(); }
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.beginPath();
+        v.forEach((a, j) => { const x = ((buf.t[i0 + j] - tA) / 10) * W, y = r * rowH + rowH / 2 - ((a - m) / amp) * (rowH / 2 - 6); j ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+        ctx.stroke();
+        ctx.fillStyle = pal.muted; ctx.fillText(`${k}  ±${sig(amp, 2)} m/s² (mean removed)`, 6, r * rowH + 4);
+      });
+    } });
+    if (recording) raf = requestAnimationFrame(loop);
+  }
+
+  // ---------- analysis ----------
+  function load(r: Rec, text: string, name: string) {
+    rec = { ...r, name }; info = text;
+    q('.ps-status').textContent = text; q('.ps-live').hidden = true; err('.ps-err', '');
+    q<HTMLButtonElement>('.ps-save').disabled = false;
+    if (!q<HTMLInputElement>('.ps-name').value) q<HTMLInputElement>('.ps-name').placeholder = name;
+    run();
+  }
+
+  function run() {
+    if (!rec) return;
+    const out = q('.ps-out'); out.hidden = false; err('.ps-aerr', '');
+    const hp = num(val('.ps-hp')), lpTxt = val('.ps-lp').trim(), lp = lpTxt ? num(lpTxt) : undefined, order = Number(val('.ps-ord'));
+    const nyq = rec.fs / 2;
+    if (!(hp >= 0) || !Number.isFinite(hp)) return err('.ps-aerr', 'Type a number for "Remove below", 0 or more (0 keeps everything, gravity included as a straight line removed).');
+    if (lp !== undefined && !(lp > hp && lp < nyq)) return err('.ps-aerr', `"Remove above" must be above "Remove below" and below half the sampling rate (${sig(nyq, 3)} Hz), or blank.`);
+    if (hp >= nyq) return err('.ps-aerr', `"Remove below" must be below half the sampling rate (${sig(nyq, 3)} Hz).`);
+    try { an = analyse(rec, { hp, lp, order }); } catch (e) { return err('.ps-aerr', (e as Error).message + '.'); }
+    const a = an, n = rec.x.length, dur = (n - 1) / rec.fs;
+    const top = a.per.reduce((b, p) => (p.pga.a > b.pga.a ? p : b));
+    q('.ps-big').textContent = `PGA ${sig(top.pga.a, 3)} m/s² (${sig((top.pga.a / G0) * 100, 3)} % g) on ${top.k}`;
+    const fs = [
+      fact('Shaking', feel(top.pga.a / G0), 'a rough guide to scale only'),
+      fact('3-D peak', `${sig(a.vec.a, 3)} m/s²`, `all three components together, at ${sig(a.vec.i / rec.fs, 4)} s`),
+      fact('Horizontal peak', `${sig(a.hor.a, 3)} m/s²`, 'x and y together (phone lying flat)'),
+      fact('Recording', `${sig(dur, 4)} s at ${sig(rec.fs, 4)} Hz`, info),
+    ];
+    q('.ps-facts').replaceChildren(...fs);
+    const head = ['Component', 'PGA (m/s²)', 'PGA (% g)', 'At (s)', 'Dominant (Hz)'];
+    const rows = a.per.map((p) => [p.k, sig(p.pga.a, 4), sig((p.pga.a / G0) * 100, 3), (p.pga.i / rec!.fs).toFixed(2), Number.isFinite(p.dom.f) ? sig(p.dom.f, 3) : '—']);
+    q('.ps-tab').replaceChildren(tr(head, true), ...rows.map((r) => tr(r)));
+    // Traces, offset for clarity.
+    const step = Math.max(...a.per.map((p) => p.pga.a)) * 2.2 || 1, tt = Array.from({ length: n }, (_, i) => i / rec!.fs);
+    const stride = Math.max(1, Math.floor(n / 6000)), pick = <T,>(v: ArrayLike<T>) => Array.from({ length: Math.ceil(n / stride) }, (_, i) => v[i * stride]);
+    figs = [chartFigure({ w: 640, h: 380, xLabel: 'Time (s)', yLabel: `Acceleration, offset by ${sig(step, 2)} m/s²`, legend: 'below', series: a.per.map((p, j) => ({ name: p.k, x: pick(tt), y: pick(a.comps[p.k]).map((v) => v + (2 - j) * step), mode: 'line' as const, width: 1 })) }, 'Three components with gravity removed')];
+    paint(q<HTMLCanvasElement>('.ps-fig'), figs[0]);
+    spec();
+    report = [{ title: q('.ps-big').textContent!, facts: fs.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), table: { head, rows, align: head.map((_, j) => (j ? 'r' : 'l')) }, figure: figs[0], note: 'A toy recording from a phone accelerometer, not a seismometer.' }, { title: 'Amplitude spectrum', figure: figs[1] }];
+  }
+
+  function spec() {
+    if (!an || !rec) return;
+    const p = an.per[Number(val('.ps-comp'))], fx: number[] = [], ay: number[] = [];
+    for (let k = 1; k < p.sp.f.length; k++) if (p.sp.a[k] > 0 && p.sp.f[k] >= an.fmin * 0.5) { fx.push(p.sp.f[k]); ay.push(p.sp.a[k]); }
+    figs[1] = chartFigure({ w: 640, h: 330, xLog: true, yLog: true, xLabel: 'Frequency (Hz)', yLabel: 'Amplitude (m/s²)', legend: 'none', series: [{ name: p.k, x: fx, y: ay, mode: 'line', width: 1.2 }], marks: Number.isFinite(p.dom.f) ? [{ kind: 'vline', at: p.dom.f, label: `${sig(p.dom.f, 3)} Hz` }] : [] }, `Amplitude spectrum of ${p.k}`);
+    paint(q<HTMLCanvasElement>('.ps-spec'), figs[1]);
+    if (report[1]) report[1].figure = figs[1];
+  }
+
+  function fromText() {
+    const text = q<HTMLTextAreaElement>('.ps-text').value;
+    if (!text.trim()) return;
+    try {
+      const fsIn = num(val('.ps-fsin')), p = parseRecording(text, fsIn > 0 ? fsIn : undefined);
+      const r = uniform(p.t, p.x, p.y, p.z, p.timed ? undefined : fsIn);
+      const j = jitter(p.t);
+      load(r, p.timed ? `Read ${p.t.length.toLocaleString('en')} rows; intervals ${sig(j.mean * 1000, 3)} ± ${sig(j.sd * 1000, 2)} ms, resampled evenly at ${r.fs} Hz.` : `Read ${p.t.length.toLocaleString('en')} rows at ${sig(fsIn, 4)} Hz.`, 'Opened recording');
+    } catch (e) { err('.ps-err', (e as Error).message + '.'); }
+  }
+
+  // ---------- saved recordings (this browser only) ----------
+  type Saved = { name: string; date: string; fs: number; x: number[]; y: number[]; z: number[] };
+  const readSaved = (): Saved[] => { try { const v = JSON.parse(localStorage.getItem(KEY) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
+  function listSaved() {
+    const s = readSaved();
+    q('.ps-list').replaceChildren(...(s.length ? [tr(['Name', 'Saved', 'Length', '', ''], true)] : []), ...s.map((r, i) => {
+      const o = document.createElement('button'); o.type = 'button'; o.className = 'btn secondary small'; o.textContent = 'Open';
+      o.addEventListener('click', () => load({ fs: r.fs, x: Float64Array.from(r.x), y: Float64Array.from(r.y), z: Float64Array.from(r.z), start: 0 }, `Saved recording "${r.name}" from ${r.date}.`, r.name));
+      const d = document.createElement('button'); d.type = 'button'; d.className = 'btn secondary small'; d.textContent = 'Delete';
+      d.addEventListener('click', () => { const all = readSaved(); all.splice(i, 1); try { localStorage.setItem(KEY, JSON.stringify(all)); if (!all.length) localStorage.removeItem(KEY); } catch {} listSaved(); q('.ps-smsg').textContent = `Deleted "${r.name}".`; });
+      return tr([r.name, r.date, `${sig((r.x.length - 1) / r.fs, 3)} s`, o, d]);
+    }));
+    q<HTMLButtonElement>('.ps-clearall').hidden = !s.length;
+    if (!s.length && !q('.ps-smsg').textContent) q('.ps-smsg').textContent = 'Nothing saved yet.';
+  }
+  q('.ps-save').addEventListener('click', () => {
+    if (!rec) return;
+    if ((rec.x.length - 1) / rec.fs > 300.5) { q('.ps-smsg').textContent = 'Recordings over 5 minutes cannot be saved here; download the CSV instead.'; return; }
+    const r5 = (v: Float64Array) => Array.from(v, (a) => +a.toFixed(5));
+    const name = q<HTMLInputElement>('.ps-name').value.trim() || rec.name || 'Recording';
+    const all = readSaved(); all.push({ name, date: new Date().toISOString().slice(0, 16).replace('T', ' '), fs: rec.fs, x: r5(rec.x), y: r5(rec.y), z: r5(rec.z) });
+    try { localStorage.setItem(KEY, JSON.stringify(all)); q('.ps-smsg').textContent = `Saved "${name}" in this browser.`; }
+    catch { q('.ps-smsg').textContent = 'This browser has no room left (or blocks storage). Delete older recordings or download the CSV instead.'; }
+    listSaved();
+  });
+  q('.ps-clearall').addEventListener('click', () => { try { localStorage.removeItem(KEY); } catch {} q('.ps-smsg').textContent = 'All saved recordings deleted from this browser.'; listSaved(); });
+
+  // ---------- downloads ----------
+  q('.ps-csv').addEventListener('click', () => {
+    if (!rec || !an) return;
+    const rows: (string | number)[][] = [['time_s', 'x_m_s2', 'y_m_s2', 'z_m_s2', 'x_clean', 'y_clean', 'z_clean']];
+    for (let i = 0; i < rec.x.length; i++) rows.push([+(i / rec.fs).toFixed(6), +rec.x[i].toFixed(6), +rec.y[i].toFixed(6), +rec.z[i].toFixed(6), +an.comps.x[i].toFixed(7), +an.comps.y[i].toFixed(7), +an.comps.z[i].toFixed(7)]);
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'phone-seismometer.csv', 'text/csv');
+  });
+  q('.ps-sac').addEventListener('click', () => {
+    if (!rec || !an) return;
+    const k = NAMES[Number(val('.ps-comp'))];
+    save(writeSac({ net: '', sta: 'PHONE', loc: '', cha: `HN${k === 'z' ? 'Z' : k === 'x' ? '1' : '2'}`, start: Date.now() - ((rec.x.length - 1) / rec.fs) * 1000, fs: rec.fs, data: an.comps[k] }), `phone-${k}.sac`, 'application/octet-stream');
+  });
+
+  q('.ps-start').addEventListener('click', start);
+  q('.ps-stop').addEventListener('click', () => stop());
+  const loadDemo = () => { const d = demo(), j = jitter(d.t); load(uniform(d.t, d.x, d.y, d.z), `Made-up demo: a phone on a table, a lorry passing (8 to 16 s) and a door slammed (21 s). ${d.t.length.toLocaleString('en')} readings, intervals ${sig(j.mean * 1000, 3)} ± ${sig(j.sd * 1000, 2)} ms, resampled evenly.`, 'Demo recording'); };
+  q('.ps-demo').addEventListener('click', loadDemo);
+  let timer = 0;
+  const later = (f: () => void) => () => { clearTimeout(timer); timer = window.setTimeout(f, 250); };
+  for (const c of ['.ps-hp', '.ps-lp']) q(c).addEventListener('input', later(run));
+  q('.ps-ord').addEventListener('change', run);
+  q('.ps-comp').addEventListener('change', spec);
+  q('.ps-text').addEventListener('input', later(fromText));
+  q('.ps-fsin').addEventListener('input', later(fromText));
+  document.addEventListener('fibub:theme', () => { if (figs[0]) paint(q<HTMLCanvasElement>('.ps-fig'), figs[0]); if (figs[1]) paint(q<HTMLCanvasElement>('.ps-spec'), figs[1]); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && recording) stop(); });
+  wireDownloads(q('.dl'), () => ({ title: 'Phone seismometer', subtitle: info, file: 'phone-seismometer', sections: report }));
+  listSaved();
+  loadDemo();
+</script>
+
+<style is:global>
+  .phs select, .phs input[type='text'] { max-width: 100%; }
+  .phs textarea { width: 100%; }
+  .phs td { white-space: nowrap; }
+  .phs .ps-toy { margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 15px; }
+  .phs .ps-file { margin-top: 14px; }
+  .phs .ps-file summary { cursor: pointer; font-weight: 600; }
+  .phs .ps-namel { display: flex; flex-direction: column; gap: 4px; flex: 1 1 200px; }
+</style>
