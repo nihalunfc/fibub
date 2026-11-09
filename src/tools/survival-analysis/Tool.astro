@@ -1,0 +1,289 @@
+---
+// Survival analysis: Kaplan-Meier curves, median survival, numbers at risk, log-rank test and Cox regression.
+import DataFile from '../../components/DataFile.astro';
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax sv">
+  <div class="ax-card">
+    <p class="sv-med-note">For study and teaching, not medical advice. Check with a qualified professional.</p>
+    <h2>Data</h2>
+    <label>One row per subject: time, event (1 = event happened, 0 = censored), then group and any numeric covariates. A header row is optional.
+      <textarea class="sv-data" rows="10" spellcheck="false" wrap="off">Months	Event	Group	Age
+1	1	Control	64
+35	0	Treatment	79
+13	0	Control	53
+10	0	Treatment	49
+1	1	Control	78
+5	1	Treatment	67
+18	1	Control	67
+27	0	Treatment	46
+20	0	Control	45
+2	1	Treatment	46
+1	1	Control	75
+12	0	Treatment	45
+9	1	Control	79
+14	1	Treatment	58
+15	0	Control	58
+16	0	Treatment	76
+29	0	Control	69
+7	1	Treatment	63
+31	0	Control	55
+5	1	Treatment	48
+10	1	Control	77
+15	1	Treatment	61
+2	1	Control	69
+14	0	Treatment	58
+14	1	Control	68
+12	0	Treatment	72
+18	1	Control	57
+20	0	Treatment	62
+6	1	Control	45
+21	0	Treatment	54
+9	1	Control	63
+35	0	Treatment	72
+4	1	Control	74
+17	0	Treatment	63
+15	1	Control	48
+29	0	Treatment	62
+9	1	Control	52
+27	1	Treatment	45
+7	1	Control	68
+32	0	Treatment	47</textarea></label>
+    <DataFile target=".sv-data" maxRows={5000} />
+    <p class="ax-help">The example is made up: 40 people followed for up to 35 months. Event words such as dead/alive or yes/no work too.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Column 3 is <select class="sv-gc"><option value="group" selected>The group</option><option value="cov">A covariate (one group)</option></select></label>
+      <label>Time unit <input class="sv-unit" value="months" /></label>
+      <label>Interval <select class="sv-ci"><option value="log-log" selected>Log-log (default)</option><option value="log">Log</option><option value="plain">Plain</option></select></label>
+      <label>Level <select class="sv-lvl"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+    </div>
+    <p class="ax-help">The interval is Greenwood's, worked out on the log-log scale (as lifelines and Stata do), the log scale (R's default) or directly (plain, which can run past 0 or 1 and is cut there).</p>
+    <p class="ax-err sv-err" hidden></p>
+    <p class="ax-help sv-skip" hidden></p>
+  </div>
+
+  <div class="ax-card sv-out" hidden>
+    <h2>Kaplan-Meier curves</h2>
+    <p class="ax-big sv-big"></p>
+    <dl class="ax-facts sv-facts"></dl>
+    <label class="ax-check" style="margin-top:12px"><input type="checkbox" class="sv-bands" /> Show confidence bands</label>
+    <canvas class="ax-fig sv-fig" style="margin-top:10px"></canvas>
+    <p class="ax-help">Each step down is an event; × marks a censored subject (followed up to then, event not seen).</p>
+    <h3>Number at risk</h3>
+    <div class="ax-scroll"><table class="sv-risk"></table></div>
+    <h3>Median survival</h3>
+    <div class="ax-scroll"><table class="sv-medtab"></table></div>
+    <div class="sv-lrw">
+      <h3>Log-rank test</h3>
+      <div class="ax-scroll"><table class="sv-lr"></table></div>
+      <p class="ax-help sv-lrnote"></p>
+    </div>
+  </div>
+
+  <div class="ax-card sv-out" hidden>
+    <h2>Cox proportional hazards model</h2>
+    <p class="ax-help">Tick what goes in the model. Groups enter as yes/no indicators against the reference group.</p>
+    <div class="ax-row sv-terms" style="margin-top:6px"></div>
+    <div class="ax-grid sv-refw" style="margin-top:10px"><label>Reference group <select class="sv-ref"></select></label></div>
+    <p class="ax-err sv-coxerr" hidden></p>
+    <div class="sv-coxout">
+      <dl class="ax-facts sv-coxfacts" style="margin-top:12px"></dl>
+      <div class="ax-scroll" style="margin-top:12px"><table class="sv-coxtab"></table></div>
+      <p class="ax-help sv-coxnote"></p>
+    </div>
+  </div>
+
+  <div class="ax-card sv-out" hidden>
+    <h2>Life table</h2>
+    <p class="ax-help">Every distinct time, by group: number at risk just before it, events, censored, survival and its interval.</p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small sv-csv">Download life table (CSV)</button></div>
+    <details class="sv-lifew" style="margin-top:10px"><summary>Show the table</summary><div class="ax-scroll"><table class="sv-life"></table></div></details>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .sv .sv-med-note { margin: 0 0 12px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; font-weight: 600; }
+  .sv h3 { font-size: 15px; margin: 18px 0 6px; }
+  .sv .sv-terms label { display: inline-flex; }
+  .sv .sv-life td, .sv .sv-risk td, .sv .sv-risk th { white-space: nowrap; }
+  .sv .sv-coxtab tr.sv-sig td:first-child { font-weight: 650; }
+</style>
+
+<script>
+  import { sig, csv } from '../../lib/sci/num';
+  import { parseSurvival, kaplanMeier, logRank, coxPH, design, atRiskAt, type Dataset, type KMResult, type CIType } from '../../lib/sci/survival';
+  import { drawChart, canvasPainter, niceTicks, OKABE_ITO, type Series } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.sv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string, el: ParentNode = root) => el.querySelector(c) as T;
+  let fig: Figure | null = null, report: Section[] = [], lifeCsv: (string | number)[][] = [];
+  const termState = new Map<string, boolean>();
+  const pTxt = (p: number) => (!Number.isFinite(p) ? '–' : p < 0.001 ? '< 0.001' : p.toFixed(3));
+  const tm = (t: number) => String(Number(t.toPrecision(6))).replace('-', '−');
+  const tTxt = (t: number) => (t === Infinity ? 'not reached' : tm(t));
+  const ciTxt = (a: number, b: number) => `${a === Infinity ? '–' : tm(a)} to ${b === Infinity ? '–' : tm(b)}`;
+  const f3 = (x: number) => (Number.isFinite(x) ? x.toFixed(3) : '–');
+
+  function table(sel: string, head: string[], rows: string[][], rowCls?: (i: number) => string) {
+    const t = q<HTMLTableElement>(sel); t.innerHTML = '';
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r, ri) => { const tr = b.insertRow(); if (rowCls) tr.className = rowCls(ri); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+  }
+  function facts(sel: string, list: [string, string][]) {
+    const dl = q(sel); dl.innerHTML = '';
+    for (const [k, v] of list) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d); }
+  }
+
+  /** The curves as a figure; colours follow the page theme, one per group. */
+  function kmFigure(curves: [string, KMResult][], bands: boolean, unit: string, maxT: number): Figure {
+    const build = (cols: string[]): Series[] => {
+      const out: Series[] = [];
+      curves.forEach(([g, km], gi) => {
+        const color = cols[gi % cols.length], x = [0], y = [1], lo = [1], hi = [1], lx = [0];
+        let S = 1, L = 1, H = 1;
+        for (const s of km.steps) {
+          x.push(s.t, s.t); y.push(S, s.S); S = s.S;
+          if (s.events) { lx.push(s.t, s.t); lo.push(L, s.lo); hi.push(H, s.hi); L = s.lo; H = s.hi; }
+        }
+        x.push(maxT); y.push(S); lx.push(km.steps[km.steps.length - 1]?.t ?? maxT); lo.push(L); hi.push(H);
+        out.push({ name: curves.length > 1 ? g : '', x, y, mode: 'line', color, width: 2 });
+        if (bands) {
+          out.push({ name: '', x: lx, y: lo, mode: 'line', color, width: 1, dash: [4, 3] });
+          out.push({ name: '', x: lx, y: hi, mode: 'line', color, width: 1, dash: [4, 3] });
+        }
+        const cs = km.steps.filter((s) => s.censored);
+        out.push({ name: '', x: cs.map((s) => s.t), y: cs.map((s) => s.S), mode: 'points', marker: 'cross', size: 3.2, color });
+      });
+      return out;
+    };
+    const alt = `Kaplan-Meier survival curves for ${curves.map(([g]) => g).join(', ')}`;
+    const narrow = (q('.sv-fig').clientWidth || 720) < 520;
+    return {
+      w: narrow ? 420 : 720, h: narrow ? 340 : 400, alt,
+      draw: (ctx, W, H, pal) => {
+        const cols = pal.red ? ['#a30000', '#7a0000', '#c00000', '#5a0000'] : pal.bg === '#ffffff' ? OKABE_ITO : ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4', '#f0e442', '#9ecae1', '#ffffff', '#d55e00'];
+        drawChart(canvasPainter(ctx), { w: W, h: H, xLabel: `Time${unit ? ` (${unit})` : ''}`, yLabel: 'Survival probability', xMin: 0, xMax: maxT, yMin: 0, yMax: 1, series: build(cols), legend: 'auto', ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: null });
+      },
+    };
+  }
+
+  function buildTerms(ds: Dataset) {
+    const box = q('.sv-terms'), want = [...(ds.hasGroup && ds.groups.length > 1 ? ['Group'] : []), ...ds.covNames];
+    const have = [...box.querySelectorAll<HTMLInputElement>('input')].map((i) => i.dataset.t);
+    if (have.join('\u0001') !== want.join('\u0001')) {
+      box.innerHTML = '';
+      for (const t of want) {
+        const l = document.createElement('label'), c = document.createElement('input');
+        l.className = 'ax-check'; c.type = 'checkbox'; c.dataset.t = t; c.checked = termState.get(t) ?? true;
+        l.append(c, ' ' + t); box.append(l);
+      }
+    }
+    const ref = q<HTMLSelectElement>('.sv-ref'), keep = ref.value;
+    if ([...ref.options].map((o) => o.value).join('\u0001') !== ds.groups.join('\u0001')) {
+      ref.innerHTML = ''; for (const g of ds.groups) ref.add(new Option(g, g));
+      if (ds.groups.includes(keep)) ref.value = keep;
+    }
+    q('.sv-refw').hidden = !(ds.hasGroup && ds.groups.length > 1);
+  }
+
+  function calc() {
+    const err = q('.sv-err');
+    try {
+      const ds = parseSurvival(q<HTMLTextAreaElement>('.sv-data').value, q<HTMLSelectElement>('.sv-gc').value === 'group');
+      if (ds.rows.length > 5000) throw new Error(`There are ${ds.rows.length.toLocaleString('en')} rows; this tool takes up to 5,000.`);
+      const type = q<HTMLSelectElement>('.sv-ci').value as CIType, lvl = Number(q<HTMLSelectElement>('.sv-lvl').value), pct = `${Math.round(lvl * 100)} %`;
+      const unit = q<HTMLInputElement>('.sv-unit').value.trim();
+      const sk = q('.sv-skip');
+      sk.hidden = !ds.skipped.length;
+      sk.textContent = ds.skipped.length ? `${ds.skipped.length} row${ds.skipped.length > 1 ? 's' : ''} left out: ${ds.skipped.slice(0, 3).join('; ')}${ds.skipped.length > 3 ? '; …' : ''}.` : '';
+      const T = ds.rows.map((r) => r.t), E = ds.rows.map((r) => r.e), maxT = Math.max(...T);
+      const curves: [string, KMResult][] = ds.groups.map((g) => { const rr = ds.rows.filter((r) => r.g === g); return [g, kaplanMeier(rr.map((r) => r.t), rr.map((r) => r.e), lvl, type)]; });
+      const events = E.reduce<number>((a, b) => a + b, 0);
+      if (!events) throw new Error('No events (1s) in the event column, so there is no curve to draw.');
+      q('.sv-big').textContent = 'Median survival: ' + curves.map(([g, k]) => `${curves.length > 1 ? g + ' ' : ''}${tTxt(k.median)}${k.median !== Infinity && unit ? ' ' + unit : ''}`).join(', ');
+      // Log-rank test.
+      let lrFacts: [string, string][] = [], lrSec: Section | null = null;
+      q('.sv-lrw').hidden = curves.length < 2;
+      if (curves.length >= 2) {
+        const lr = logRank(T, E, ds.rows.map((r) => r.g));
+        const rows = lr.groups.map((g, j) => [g, String(lr.observed[j]), sig(lr.expected[j], 4), f3(lr.observed[j] / lr.expected[j])]);
+        table('.sv-lr', ['Group', 'Observed events', 'Expected', 'O / E'], rows);
+        lrFacts = [['Log-rank χ²', `${sig(lr.chi2, 4)} (${lr.df} df)`], ['p value', pTxt(lr.p)]];
+        q('.sv-lrnote').textContent = `${lr.p < 0.05 ? 'The curves differ more than chance alone would usually give (p < 0.05).' : 'No clear difference between the curves (p ≥ 0.05).'} The log-rank test weighs every event time equally and has most power when one group's hazard is a steady multiple of the other's.`;
+        lrSec = { title: 'Log-rank test', facts: lrFacts, table: { head: ['Group', 'Observed', 'Expected', 'O/E'], rows, align: ['l', 'r', 'r', 'r'] } };
+      }
+      facts('.sv-facts', [['Subjects, events, censored', `${ds.rows.length}, ${events}, ${ds.rows.length - events}`], ...lrFacts]);
+      // Figure and numbers at risk.
+      root.querySelectorAll<HTMLElement>('.sv-out').forEach((x) => (x.hidden = false));
+      fig = kmFigure(curves, q<HTMLInputElement>('.sv-bands').checked, unit, maxT);
+      paint(q<HTMLCanvasElement>('.sv-fig'), fig);
+      const ticks = niceTicks(0, maxT, 6).filter((t) => t <= maxT);
+      const riskRows = curves.map(([g]) => [g, ...ticks.map((t) => String(atRiskAt(ds.rows.filter((r) => r.g === g).map((r) => r.t), t)))]);
+      const riskHead = [`Time${unit ? ` (${unit})` : ''}`, ...ticks.map((t) => tm(t))];
+      table('.sv-risk', riskHead, riskRows);
+      const medRows = curves.map(([g, k]) => [g, String(k.n), String(k.events), tTxt(k.median), ciTxt(k.medianLo, k.medianHi)]);
+      const medHead = ['Group', 'n', 'Events', `Median${unit ? ` (${unit})` : ''}`, `${pct} interval`];
+      table('.sv-medtab', medHead, medRows);
+      // Life table and CSV.
+      lifeCsv = [['group', 'time', 'at_risk', 'events', 'censored', 'survival', 'std_error', `lower_${Math.round(lvl * 100)}`, `upper_${Math.round(lvl * 100)}`]];
+      const lifeRows: string[][] = [];
+      for (const [g, k] of curves) for (const s of k.steps) {
+        lifeCsv.push([g, s.t, s.atRisk, s.events, s.censored, s.S, Number.isFinite(s.se) ? s.se : '', Number.isFinite(s.lo) ? s.lo : '', Number.isFinite(s.hi) ? s.hi : '']);
+        lifeRows.push([g, tm(s.t), String(s.atRisk), String(s.events), String(s.censored), f3(s.S), f3(s.se), `${f3(s.lo)} to ${f3(s.hi)}`]);
+      }
+      const lifeHead = ['Group', 'Time', 'At risk', 'Events', 'Censored', 'Survival', 'SE', `${pct} interval`];
+      table('.sv-life', lifeHead, lifeRows);
+      // Cox model.
+      buildTerms(ds);
+      const coxSec = cox(ds, lvl, pct);
+      q('.sv-out').hidden = false; root.querySelectorAll<HTMLElement>('.sv-out').forEach((e) => (e.hidden = false));
+      err.hidden = true;
+      report = [
+        { title: 'Kaplan-Meier estimate', text: [`Greenwood ${pct} intervals on the ${type} scale. ${ds.rows.length} subjects, ${events} events.`], facts: [['Median survival', q('.sv-big').textContent!.replace('Median survival: ', '')]], figure: fig },
+        { title: 'Number at risk', table: { head: riskHead, rows: riskRows, align: riskHead.map((_, i) => (i ? 'r' : 'l')) } },
+        { title: 'Median survival', table: { head: medHead, rows: medRows, align: ['l', 'r', 'r', 'r', 'r'] } },
+        ...(lrSec ? [lrSec] : []),
+        ...(coxSec ? [coxSec] : []),
+        { title: 'Life table', table: { head: lifeHead, rows: lifeRows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'r'] }, note: 'For study and teaching, not medical advice.' },
+      ];
+    } catch (e) {
+      err.textContent = (e as Error).message; err.hidden = false; report = []; fig = null;
+      root.querySelectorAll<HTMLElement>('.sv-out').forEach((x) => (x.hidden = true));
+    }
+  }
+
+  function cox(ds: Dataset, lvl: number, pct: string): Section | null {
+    const ce = q('.sv-coxerr'), out = q('.sv-coxout');
+    const on = [...q('.sv-terms').querySelectorAll<HTMLInputElement>('input')].filter((i) => i.checked).map((i) => i.dataset.t!);
+    try {
+      if (!on.length) throw new Error('Tick at least one term to fit a Cox model.');
+      const covs = ds.covNames.map((n, j) => (on.includes(n) ? j : -1)).filter((j) => j >= 0);
+      const d = design(ds, on.includes('Group'), covs, q<HTMLSelectElement>('.sv-ref').value);
+      const r = coxPH(ds.rows.map((x) => x.t), ds.rows.map((x) => x.e), d.X, d.names, lvl);
+      const head = ['Term', 'Hazard ratio', `${pct} interval`, 'p', 'Coefficient', 'SE'];
+      const rows = r.terms.map((t) => [t.name, sig(t.hr, 4), `${sig(t.lo, 4)} to ${sig(t.hi, 4)}`, pTxt(t.p), sig(t.beta, 4), sig(t.se, 4)]);
+      table('.sv-coxtab', head, rows, (i) => (r.terms[i].p < 0.05 ? 'sv-sig' : ''));
+      const fl: [string, string][] = [['Likelihood ratio test', `χ² = ${sig(r.lr, 4)} (${r.df} df), p ${pTxt(r.lrP).startsWith('<') ? pTxt(r.lrP) : '= ' + pTxt(r.lrP)}`], ['Log partial likelihood', sig(r.loglik, 6)], ['Subjects, events', `${r.n}, ${r.events}`]];
+      facts('.sv-coxfacts', fl);
+      const per = r.events / r.terms.length;
+      q('.sv-coxnote').textContent = [r.warning, per < 10 ? `Only ${sig(per, 2)} events per term: with fewer than about 10, estimates can be unstable and biased.` : '', 'A hazard ratio below 1 means a lower event rate than the reference (or per unit of a covariate), above 1 a higher one, holding the other terms fixed. Ties use Efron\'s method. The model assumes hazards stay in proportion over time: check that the curves do not cross.'].filter(Boolean).join(' ');
+      ce.hidden = true; out.hidden = false;
+      return { title: 'Cox proportional hazards model', facts: fl, table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r'] }, note: r.warning || undefined };
+    } catch (e) { ce.textContent = (e as Error).message; ce.hidden = false; out.hidden = true; return null; }
+  }
+
+  let t = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('textarea, input:not([type=checkbox])')) { clearTimeout(t); t = window.setTimeout(calc, 250); } });
+  root.addEventListener('change', (e) => {
+    const el = e.target as HTMLElement;
+    if (el.matches('.sv-terms input')) termState.set((el as HTMLInputElement).dataset.t!, (el as HTMLInputElement).checked);
+    if (el.matches('select, input[type=checkbox]')) calc();
+  });
+  q('.sv-csv').addEventListener('click', () => lifeCsv.length > 1 && save(new TextEncoder().encode(csv(lifeCsv)), 'life-table.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.sv-fig'), fig));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Survival analysis', subtitle: q('.sv-big').textContent ?? '', file: 'survival-analysis', sections: report }));
+</script>
