@@ -1,0 +1,327 @@
+---
+// Equations of motion from the v-t graph: drag the graph, see the areas, solve for any two unknowns, and
+// stopping distance. Maths in src/lib/sci/suvat.ts.
+import '../../styles/astro.css';
+---
+<div class="ax em">
+  <div class="ax-card">
+    <div class="ax-row em-top">
+      <span class="em-lab">Level</span>
+      <div class="ax-seg em-level" role="group" aria-label="Level">
+        <button type="button" data-l="9" aria-pressed="true">Class 9</button>
+        <button type="button" data-l="11" aria-pressed="false">Class 11</button>
+      </div>
+    </div>
+    <div class="ax-seg em-mode" role="group" aria-label="What to do">
+      <button type="button" data-m="explore" aria-pressed="true">Explore the graph</button>
+      <button type="button" data-m="solve" aria-pressed="false">Solve a problem</button>
+      <button type="button" data-m="brake" aria-pressed="false">Stopping distance</button>
+    </div>
+
+    <canvas class="em-g" aria-label="Velocity-time graph"></canvas>
+    <div class="ax-legend em-leg"><span><i class="em-k1"></i><span class="em-k1t">Rectangle: u × t</span></span><span><i class="em-k2"></i><span class="em-k2t">Triangle: ½ × t × (v − u)</span></span></div>
+    <canvas class="em-road" aria-label="The car on the road"></canvas>
+    <div class="ax-row"><button type="button" class="btn secondary small em-play">Play</button><span class="ax-help em-hint">Drag the two round handles on the graph.</span></div>
+
+    <div class="em-p em-p-explore">
+      <label>Starting velocity u: <b class="em-uv"></b><input class="em-u" type="range" min="-10" max="20" step="0.5" value="2" /></label>
+      <label>Acceleration a: <b class="em-av"></b><input class="em-a" type="range" min="-4" max="4" step="0.25" value="1.5" /></label>
+      <label>Time t: <b class="em-tv"></b><input class="em-t" type="range" min="0.5" max="12" step="0.5" value="4" /></label>
+    </div>
+
+    <div class="em-p em-p-solve" hidden>
+      <p class="ax-help">Type any three of the five values and leave two empty. Use a minus sign for backwards velocities or slowing down.</p>
+      <div class="ax-grid">
+        <label>u, starting velocity (m/s) <input class="em-su" type="text" inputmode="decimal" value="0" /></label>
+        <label>v, final velocity (m/s) <input class="em-sv" type="text" inputmode="decimal" value="20" /></label>
+        <label>a, acceleration (m/s²) <input class="em-sa" type="text" inputmode="decimal" value="" /></label>
+        <label>s, displacement (m) <input class="em-ss" type="text" inputmode="decimal" value="100" /></label>
+        <label>t, time (s) <input class="em-st" type="text" inputmode="decimal" value="" /></label>
+      </div>
+      <p class="ax-err em-err" hidden></p>
+      <div class="em-sol" aria-live="polite"></div>
+    </div>
+
+    <div class="em-p em-p-brake" hidden>
+      <label>Speed: <b class="em-kv"></b><input class="em-k" type="range" min="18" max="126" step="9" value="54" /></label>
+      <label>Reaction time: <b class="em-rv"></b><input class="em-r" type="range" min="0.5" max="2.5" step="0.1" value="1" /></label>
+      <label>Road <select class="em-road-type">
+        <option value="7" selected>Dry road (made-up round value: 7 m/s²)</option>
+        <option value="4.5">Wet road (made-up round value: 4.5 m/s²)</option>
+        <option value="2.5">Gravel or snow (made-up round value: 2.5 m/s²)</option>
+      </select></label>
+      <p class="ax-help">The numbers are rounded teaching values, not data for a real car or road. Real stopping distances depend on the tyres, brakes, slope and the driver; follow your local highway code.</p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="em-h">The three equations</h2>
+    <dl class="ax-facts em-facts"></dl>
+    <div class="em-eq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="em-try">
+      <li>Set a = 0. The triangle vanishes: s = ut is just the rectangle.</li>
+      <li>Set u = 0. The rectangle vanishes: s = ½at² is just the triangle.</li>
+      <li>Make a negative and t long enough for v to go below zero. The car turns round: part of the area is below the axis and counts as negative.</li>
+      <li>In Stopping distance, double the speed. The thinking distance doubles but the braking distance becomes four times as long.</li>
+      <li>In Solve, try u = 20, a = −10, s = 15: there are two answers, on the way up and on the way back down.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="em-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { solve, pathLength, stopping, questions, type Full } from '../../lib/sci/suvat';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { pagePalette, type Palette } from '../../lib/report';
+  import { num } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.em')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const f = (x: number, d = 2) => { const r = Math.round(x * 10 ** d) / 10 ** d; return (Object.is(r, -0) ? 0 : r).toFixed(d).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '').replace('-', '−'); };
+  const p = (x: number) => (x < 0 ? `(${f(x)})` : f(x));
+
+  let level: 9 | 11 = 9, mode: 'explore' | 'solve' | 'brake' = 'explore';
+  let u = 2, a = 1.5, t = 4, tau = 4, playing = false;
+  // graph window
+  let W = { t0: 0, t1: 12, v0: -10, v1: 20 };
+
+  function setup(c: HTMLCanvasElement, h: number) {
+    const w = Math.max(260, Math.round(c.clientWidth || c.parentElement!.clientWidth || 320)), dpr = Math.min(3, window.devicePixelRatio || 1);
+    c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c.style.height = `${h}px`;
+    const ctx = c.getContext('2d')!; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w };
+  }
+  const nice = (span: number) => { const pw = 10 ** Math.floor(Math.log10(span / 4)), m = span / 4 / pw; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * pw; };
+  const GH = 280, L = 44, R = 12, TOP = 10, BOT = GH - 30;
+  const gx = (w: number) => (tt: number) => L + ((tt - W.t0) / (W.t1 - W.t0)) * (w - L - R);
+  const gy = (vv: number) => BOT - ((vv - W.v0) / (W.v1 - W.v0)) * (BOT - TOP);
+
+  type Shape = { pts: [number, number][]; kind: 1 | 2 };
+  function drawGraph(pal: Palette, line: [number, number][], shapes: Shape[], handles: [number, number][], cursor: number | null) {
+    const c = q<HTMLCanvasElement>('.em-g'), { ctx, w } = setup(c, GH), X = gx(w), Y = gy;
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, GH);
+    ctx.font = '11px system-ui, sans-serif'; ctx.lineWidth = 1;
+    const sv = nice(W.v1 - W.v0), st = nice(W.t1 - W.t0);
+    ctx.textAlign = 'right'; ctx.fillStyle = pal.muted;
+    for (let v = Math.ceil(W.v0 / sv) * sv; v <= W.v1 + 1e-9; v += sv) { ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(L, Y(v)); ctx.lineTo(w - R, Y(v)); ctx.stroke(); ctx.fillText(f(v), L - 5, Y(v) + 4); }
+    ctx.textAlign = 'center';
+    for (let tt = 0; tt <= W.t1 + 1e-9; tt += st) { ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(X(tt), TOP); ctx.lineTo(X(tt), BOT); ctx.stroke(); ctx.fillText(f(tt), X(tt), BOT + 14); }
+    ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(L, TOP); ctx.lineTo(L, BOT); ctx.moveTo(L, Y(0)); ctx.lineTo(w - R, Y(0)); ctx.stroke();
+    ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.font = '600 12px system-ui, sans-serif'; ctx.fillText('v (m/s)', L + 6, TOP + 12);
+    ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.fillText('t (s)', w - R, BOT + 26);
+    for (const s of shapes) {
+      ctx.save(); ctx.globalAlpha = pal.red ? (s.kind === 1 ? 0.35 : 0.6) : 0.28; ctx.fillStyle = s.kind === 1 ? pal.accent : pal.accent2;
+      ctx.beginPath(); s.pts.forEach(([tt, vv], i) => (i ? ctx.lineTo(X(tt), Y(vv)) : ctx.moveTo(X(tt), Y(vv)))); ctx.closePath(); ctx.fill(); ctx.restore();
+    }
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2.5; ctx.beginPath(); line.forEach(([tt, vv], i) => (i ? ctx.lineTo(X(tt), Y(vv)) : ctx.moveTo(X(tt), Y(vv)))); ctx.stroke();
+    if (cursor !== null) { ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(X(cursor), TOP); ctx.lineTo(X(cursor), BOT); ctx.stroke(); ctx.setLineDash([]); }
+    for (const [tt, vv] of handles) { ctx.fillStyle = pal.bg; ctx.strokeStyle = pal.ink; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(X(tt), Y(vv), 9, 0, 7); ctx.fill(); ctx.stroke(); ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.arc(X(tt), Y(vv), 3, 0, 7); ctx.fill(); }
+  }
+
+  function drawRoad(pal: Palette, xs: number[], xNow: number, marks: [number, string][]) {
+    const c = q<HTMLCanvasElement>('.em-road'), { ctx, w } = setup(c, 78);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, 78);
+    let lo = Math.min(0, ...xs), hi = Math.max(1, ...xs); const pd = (hi - lo) * 0.05; lo -= pd; hi += pd;
+    const pad = 20, X = (x: number) => pad + ((x - lo) / (hi - lo)) * (w - 2 * pad), yR = 50;
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(pad - 8, yR); ctx.lineTo(w - pad + 8, yR); ctx.stroke();
+    ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = pal.muted; ctx.strokeStyle = pal.muted; ctx.lineWidth = 1;
+    for (const [x, lab] of marks) { ctx.beginPath(); ctx.moveTo(X(x), yR - 30); ctx.lineTo(X(x), yR + 6); ctx.stroke(); ctx.fillText(lab, X(x), yR + 20); }
+    const cx = X(xNow);
+    ctx.fillStyle = pal.ink; ctx.fillRect(cx - 15, yR - 18, 30, 11); ctx.fillRect(cx - 8, yR - 26, 16, 9);
+    ctx.fillStyle = pal.bg; ctx.strokeStyle = pal.ink; ctx.lineWidth = 2;
+    for (const dx of [-8, 8]) { ctx.beginPath(); ctx.arc(cx + dx, yR - 5, 4, 0, 7); ctx.fill(); ctx.stroke(); }
+  }
+
+  function fact(k: string, v: string, sm = '') {
+    const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd');
+    dt.textContent = k; dd.textContent = v;
+    if (sm) { const e = document.createElement('small'); e.textContent = sm; dd.append(e); }
+    d.append(dt, dd); return d;
+  }
+  function para(parts: (string | [string])[]) { const el = document.createElement('p'); for (const x of parts) { if (typeof x === 'string') el.append(x); else { const b = document.createElement('b'); b.textContent = x[0]; el.append(b); } } return el; }
+
+  // ---- explore and solve: one steady-acceleration motion u, a, t -----------------------------------------
+  function suvatView(pal: Palette) {
+    const v = u + a * t, s = u * t + 0.5 * a * t * t;
+    const vmin = Math.min(0, u, v), vmax = Math.max(0, u, v);
+    W = mode === 'explore' ? { t0: 0, t1: 12, v0: -10, v1: 20 } : { t0: 0, t1: Math.max(1, t * 1.15), v0: Math.min(0, vmin - (vmax - vmin) * 0.1), v1: Math.max(1, vmax + (vmax - vmin) * 0.12 + 0.5) };
+    const shapes: Shape[] = [{ pts: [[0, 0], [0, u], [t, u], [t, 0]], kind: 1 }, { pts: [[0, u], [t, v], [t, u]], kind: 2 }];
+    drawGraph(pal, [[0, u], [t, v]], shapes, mode === 'explore' ? [[0, u], [t, v]] : [], playing || tau < t ? tau : null);
+    const xs: number[] = []; for (let i = 0; i <= 60; i++) { const tt = (t * i) / 60; xs.push(u * tt + 0.5 * a * tt * tt); }
+    drawRoad(pal, xs, u * tau + 0.5 * a * tau * tau, [[0, 'start'], [s, `s = ${f(s)} m`]]);
+    q('.em-k1t').textContent = `Rectangle: u × t = ${p(u)} × ${f(t)} = ${f(u * t)} m`;
+    q('.em-k2t').textContent = `Triangle: ½ × t × (v − u) = ${f(0.5 * a * t * t)} m`;
+    const dist = pathLength(u, a, t);
+    const facts = [fact('Final velocity v', `${f(v)} m/s`), fact('Displacement s', `${f(s)} m`, 'area under the v-t graph'), fact('Distance travelled', `${f(dist)} m`, Math.abs(dist - Math.abs(s)) > 1e-6 ? 'it turned round: area below the axis counts as negative in s' : 'same as |s|: it never turned round'), fact('Average velocity', `${f(s / t)} m/s`, '½(u + v) = s ÷ t')];
+    q('.em-facts').replaceChildren(...facts);
+    const eq: HTMLElement[] = [
+      para([['1. v = u + at'], ` → ${f(v)} = ${f(u)} + ${p(a)} × ${f(t)}`]),
+      para([['2. s = ut + ½at²'], ` → ${f(s)} = ${p(u)} × ${f(t)} + ½ × ${p(a)} × ${f(t)}² = ${f(u * t)} + ${f(0.5 * a * t * t)}`]),
+      para([['3. v² = u² + 2as'], ` → ${f(v * v)} = ${f(u * u)} + 2 × ${p(a)} × ${p(s)} = ${f(u * u + 2 * a * s)} ✓`]),
+    ];
+    if (level === 9) eq.push(
+      para([['Where they come from (the graph): '], 'the slope of the v-t line is the acceleration, so a = (v − u) ÷ t, which gives equation 1. The area under the line is the displacement: the rectangle u × t plus the triangle ½ × t × (v − u) = ½ × t × at, which gives equation 2. The same area is a trapezium, s = ½(u + v) × t; put in t = (v − u) ÷ a and multiply out to get equation 3.']));
+    else eq.push(
+      para([['With calculus: '], 'a = dv/dt is constant, so integrating from 0 to t gives v = u + at. Then v = dx/dt; integrating again gives s = ut + ½at². Writing a = dv/dt = v dv/dx and integrating v dv = a dx from u to v gives ½v² − ½u² = as, which is equation 3.']),
+      para([['Instant velocity at the dashed line: '], `v(${f(tau, 1)} s) = ${f(u + a * tau)} m/s, position ${f(u * tau + 0.5 * a * tau * tau)} m.`]));
+    q('.em-eq').replaceChildren(...eq);
+    q('.em-h').textContent = 'The three equations';
+  }
+
+  function readExplore() {
+    u = Number(inp('.em-u').value); a = Number(inp('.em-a').value); t = Number(inp('.em-t').value);
+    q('.em-uv').textContent = `${f(u)} m/s`; q('.em-av').textContent = `${f(a)} m/s²`; q('.em-tv').textContent = `${f(t)} s`;
+  }
+
+  let sols: Full[] = [];
+  function readSolve(): boolean {
+    const err = q('.em-err'), out = q('.em-sol');
+    const raw = { u: inp('.em-su').value, v: inp('.em-sv').value, a: inp('.em-sa').value, s: inp('.em-ss').value, t: inp('.em-st').value };
+    const k: Record<string, number> = {};
+    for (const [key, val] of Object.entries(raw)) { if (val.trim() === '') continue; const x = num(val); if (!Number.isFinite(x)) { err.textContent = `${key} is not a number. Leave it empty if it is unknown.`; err.hidden = false; out.replaceChildren(); sols = []; return false; } k[key] = x; }
+    const r = solve(k);
+    if (!r.ok) { err.textContent = r.msg; err.hidden = false; out.replaceChildren(); sols = []; return false; }
+    err.hidden = true; sols = r.sols;
+    const lines: HTMLElement[] = [para([['Used: '], r.used + '.'])];
+    r.sols.forEach((c, i) => lines.push(para([[r.sols.length > 1 ? `Answer ${i + 1}: ` : 'Answer: '], `u = ${f(c.u)} m/s, v = ${f(c.v)} m/s, a = ${f(c.a)} m/s², s = ${f(c.s)} m, t = ${f(c.t)} s`])));
+    if (r.sols.length > 1) lines.push(para(['Two answers: it passes the same point twice, once going and once coming back. The graph shows answer 1.']));
+    out.replaceChildren(...lines);
+    const c = r.sols[0]; u = c.u; a = c.a; t = Math.max(c.t, 1e-6);
+    return true;
+  }
+
+  // ---- stopping distance -------------------------------------------------------------------------------------
+  function brakeView(pal: Palette) {
+    const kmh = Number(inp('.em-k').value), tr = Number(inp('.em-r').value), dec = Number(q<HTMLSelectElement>('.em-road-type').value);
+    q('.em-kv').textContent = `${kmh} km/h (${f(kmh / 3.6)} m/s)`; q('.em-rv').textContent = `${f(tr, 1)} s`;
+    const r = stopping(kmh, tr, dec), r2 = stopping(kmh * 2, tr, dec);
+    W = { t0: 0, t1: Math.max(4, r.tTotal * 1.12), v0: 0, v1: Math.max(10, r.v * 1.15) };
+    const shapes: Shape[] = [{ pts: [[0, 0], [0, r.v], [tr, r.v], [tr, 0]], kind: 1 }, { pts: [[tr, 0], [tr, r.v], [r.tTotal, 0]], kind: 2 }];
+    const line: [number, number][] = [[0, r.v], [tr, r.v], [r.tTotal, 0], [W.t1, 0]];
+    drawGraph(pal, line, shapes, [], playing || tau < r.tTotal ? tau : null);
+    const xAt = (tt: number) => (tt <= tr ? r.v * tt : r.think + r.v * Math.min(tt - tr, r.tBrake) - 0.5 * dec * Math.min(tt - tr, r.tBrake) ** 2);
+    drawRoad(pal, [0, r.total], xAt(tau), [[0, 'sees danger'], [r.think, 'brakes'], [r.total, 'stops']]);
+    q('.em-k1t').textContent = `Thinking: speed × reaction time = ${f(r.think)} m`;
+    q('.em-k2t').textContent = `Braking: v² ÷ 2a = ${f(r.brake)} m`;
+    q('.em-facts').replaceChildren(
+      fact('Stopping distance', `${f(r.total, 1)} m`, `about ${Math.round(r.total / 4.5)} car lengths`),
+      fact('Thinking distance', `${f(r.think, 1)} m`, 'before the brakes go on'),
+      fact('Braking distance', `${f(r.brake, 1)} m`, `${f(r.tBrake, 1)} s of braking`),
+      fact(`At ${kmh * 2} km/h`, `${f(r2.total, 1)} m`, `thinking ×2 (${f(r2.think, 1)} m), braking ×4 (${f(r2.brake, 1)} m)`));
+    q('.em-eq').replaceChildren(
+      para([['Thinking distance'], ` = u × reaction time = ${f(r.v)} × ${f(tr, 1)} = ${f(r.think)} m (the rectangle).`]),
+      para([['Braking distance'], ` from v² = u² + 2as with v = 0 and a = −${f(dec)}: s = u² ÷ 2a = ${f(r.v)}² ÷ (2 × ${f(dec)}) = ${f(r.brake)} m (the triangle).`]),
+      para([['Why speed matters so much: '], 'braking distance grows with the square of the speed, so double the speed means four times the braking distance.']));
+    q('.em-h').textContent = 'Stopping distance';
+    return r.tTotal;
+  }
+
+  function draw() {
+    const pal = pagePalette();
+    if (mode === 'brake') return brakeView(pal);
+    if (mode === 'explore') readExplore();
+    else if (!readSolve()) { const c = q<HTMLCanvasElement>('.em-g'); setup(c, GH).ctx.clearRect(0, 0, c.width, c.height); q('.em-facts').replaceChildren(); q('.em-eq').replaceChildren(); return 0; }
+    suvatView(pal);
+    return t;
+  }
+  function redraw() { if (!playing) tau = Infinity; const end = draw(); if (!playing) { tau = end; draw(); } }
+
+  // ---- dragging the handles ---------------------------------------------------------------------------------
+  const gc = q<HTMLCanvasElement>('.em-g');
+  let drag: 0 | 1 | 2 = 0;
+  const toData = (e: PointerEvent) => { const r = gc.getBoundingClientRect(), w = r.width, x = e.clientX - r.left, y = e.clientY - r.top; return { tt: W.t0 + ((x - L) / (w - L - R)) * (W.t1 - W.t0), vv: W.v0 + ((BOT - y) / (BOT - TOP)) * (W.v1 - W.v0), x, y, w }; };
+  gc.addEventListener('pointerdown', (e) => {
+    if (mode !== 'explore') return;
+    const d = toData(e), X = gx(d.w);
+    const d1 = Math.hypot(d.x - X(0), d.y - gy(u)), d2 = Math.hypot(d.x - X(t), d.y - gy(u + a * t));
+    drag = d2 < 30 && d2 <= d1 ? 2 : d1 < 30 ? 1 : 0;
+    if (drag) { gc.setPointerCapture(e.pointerId); e.preventDefault(); }
+  });
+  gc.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const d = toData(e), snap = (x: number, s: number) => Math.round(x / s) * s, clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
+    if (drag === 1) { const v = u + a * t; const nu = clamp(snap(d.vv, 0.5), -10, 20); inp('.em-u').value = String(nu); inp('.em-a').value = String(clamp(snap((v - nu) / t, 0.25), -4, 4)); }
+    else { const nt = clamp(snap(d.tt, 0.5), 0.5, 12), nv = clamp(d.vv, -10, 20); inp('.em-t').value = String(nt); inp('.em-a').value = String(clamp(snap((nv - u) / nt, 0.25), -4, 4)); }
+    redraw();
+  });
+  const end = () => { drag = 0; };
+  gc.addEventListener('pointerup', end); gc.addEventListener('pointercancel', end);
+
+  q('.em-play').addEventListener('click', () => {
+    if (playing) { playing = false; q('.em-play').textContent = 'Play'; redraw(); return; }
+    playing = true; q('.em-play').textContent = 'Pause'; tau = 0;
+    let last = performance.now();
+    const dur = mode === 'brake' ? stopping(Number(inp('.em-k').value), Number(inp('.em-r').value), Number(q<HTMLSelectElement>('.em-road-type').value)).tTotal : t;
+    const speed = Math.max(1, dur / 5);
+    const step = (now: number) => {
+      if (!playing) return;
+      tau = Math.min(dur, tau + Math.min(0.1, (now - last) / 1000) * speed); last = now;
+      draw();
+      if (tau >= dur) { playing = false; q('.em-play').textContent = 'Play'; return; }
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+
+  root.querySelectorAll<HTMLButtonElement>('.em-level button').forEach((b) => b.addEventListener('click', () => {
+    level = Number(b.dataset.l) as 9 | 11;
+    root.querySelectorAll('.em-level button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    renderQuiz(); redraw();
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.em-mode button').forEach((b) => b.addEventListener('click', () => {
+    playing = false; q('.em-play').textContent = 'Play';
+    mode = b.dataset.m as typeof mode;
+    root.querySelectorAll('.em-mode button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    for (const m of ['explore', 'solve', 'brake']) q(`.em-p-${m}`).hidden = m !== mode;
+    q('.em-hint').hidden = mode !== 'explore';
+    redraw();
+  }));
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', redraw); i.addEventListener('change', redraw); });
+
+  let renderQuiz = () => {};
+  renderQuiz = mountQuiz(q('.em-quiz'), () => questions(level));
+  redraw();
+  document.addEventListener('fibub:theme', redraw);
+  let rw = 0; new ResizeObserver(() => { const w = gc.clientWidth; if (w !== rw) { rw = w; redraw(); } }).observe(gc);
+</script>
+
+<style is:inline>
+  .em .em-top { margin-bottom: 10px; }
+  .em .em-lab { font-size: 14px; color: var(--muted); }
+  .em .em-mode { margin-bottom: 12px; }
+  .em .ax-seg button { min-height: 44px; }
+  .em .em-p { display: grid; gap: 10px; margin-top: 12px; }
+  .em .em-p[hidden] { display: none; }
+  .em input[type=range] { width: 100%; height: 32px; accent-color: var(--ink); }
+  .em label b { color: var(--ink); }
+  .em canvas { display: block; width: 100%; }
+  .em .em-g { touch-action: pan-y; }
+  .em .em-road { margin: 8px 0 4px; }
+  .em .btn.small { min-height: 44px; }
+  .em .em-k1 { background: #1f5fae; opacity: .45; }
+  .em .em-k2 { background: #c26a00; opacity: .45; }
+  html[data-theme=dark] .em .em-k1 { background: #7fb2f0; }
+  html[data-theme=dark] .em .em-k2 { background: #f0b45a; }
+  html.red-mode .em .em-k1, html.red-mode .em .em-k2 { background: #a30000; }
+  .em .em-eq p, .em .em-sol p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .em .em-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>

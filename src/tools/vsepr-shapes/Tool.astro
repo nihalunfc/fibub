@@ -1,0 +1,271 @@
+---
+// VSEPR shape viewer: bond pairs and lone pairs on a central atom → 3D shape you can turn, ideal angles,
+// hybridisation, counting pairs from a formula, and a small "Check yourself" quiz.
+import '../../styles/astro.css';
+import { EXAMPLES } from '../../lib/sci/vsepr';
+const CENTRES = ['Be', 'B', 'Al', 'C', 'Si', 'N', 'P', 'O', 'S', 'Se', 'F', 'Cl', 'Br', 'I', 'Xe', 'Kr'];
+const OUTER = ['H', 'F', 'Cl', 'Br', 'I', 'O', 'S', 'N'];
+---
+<div class="ax vsp">
+  <div class="ax-card">
+    <h2>Build a shape</h2>
+    <label>Molecule <select class="vs-ex">{EXAMPLES.map((e) => <option value={e.id} selected={e.id === 'nh3'}>{e.name}</option>)}<option value="own">Your own numbers</option></select></label>
+    <div class="vs-steps">
+      <div class="vs-step"><span>Bonded atoms</span><div class="vs-pm"><button type="button" class="vs-bdn" aria-label="One bonded atom fewer">−</button><output class="vs-b">3</output><button type="button" class="vs-bup" aria-label="One bonded atom more">+</button></div></div>
+      <div class="vs-step"><span>Lone pairs</span><div class="vs-pm"><button type="button" class="vs-ldn" aria-label="One lone pair fewer">−</button><output class="vs-l">1</output><button type="button" class="vs-lup" aria-label="One lone pair more">+</button></div></div>
+    </div>
+    <p class="ax-err vs-err" hidden></p>
+    <p class="ax-big vs-shape"></p>
+    <canvas class="ax-fig vs-fig" tabindex="0"></canvas>
+    <div class="ax-row vs-under"><span class="ax-help" style="margin:0">Drag the picture to turn it.</span><button type="button" class="btn secondary small vs-reset">Reset view</button><label class="ax-check"><input type="checkbox" class="vs-lp" checked /> Show lone pairs</label></div>
+    <p class="vs-formula"></p>
+    <dl class="ax-facts vs-facts"></dl>
+    <p class="ax-help vs-note"></p>
+    <ol class="vs-count"></ol>
+  </div>
+
+  <div class="ax-card">
+    <h2>Count the pairs from a formula</h2>
+    <p class="ax-help" style="margin-top:0">Pick the central atom, the outer atoms and the charge. The tool counts the electrons left on the central atom after bonding.</p>
+    <div class="ax-grid">
+      <label>Central atom <select class="vs-c">{CENTRES.map((c) => <option selected={c === 'S'}>{c}</option>)}</select></label>
+      <label>Outer atom <select class="vs-o">{OUTER.map((c) => <option selected={c === 'F'}>{c}</option>)}</select></label>
+      <label>How many <input class="vs-n" type="number" inputmode="numeric" min="1" max="6" value="4" /></label>
+      <label>Charge <select class="vs-q"><option value="-2">2−</option><option value="-1">1−</option><option value="0" selected>0</option><option value="1">1+</option><option value="2">2+</option></select></label>
+    </div>
+    <p class="ax-big vs-fbig"></p>
+    <ol class="vs-fsteps"></ol>
+    <p class="ax-err vs-ferr" hidden></p>
+    <button type="button" class="btn small vs-show">Show this shape above</button>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="vs-try">
+      <li>Start at 4 bonded atoms (CH₄). Swap one bond for a lone pair, then another: tetrahedral → pyramidal → bent. The electron pairs stay tetrahedral; only the name changes.</li>
+      <li>Pick PCl₅ and turn it: the 3 equatorial atoms are 120° apart, the 2 axial ones are 90° from them.</li>
+      <li>Pick SF₄, ClF₃ and XeF₂. Where do the lone pairs go, and why the middle "belt"?</li>
+      <li>Compare XeF₄ with SF₆: two lone pairs opposite each other leave a flat square.</li>
+      <li>Is CO₂ polar? Is H₂O? Look at whether the bonds point evenly in all directions.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card vs-quiz">
+    <h2>Check yourself</h2>
+    <p class="ax-help" style="margin-top:0">Work out the shape of each molecule or ion, then press Check. New questions every time; nothing is saved.</p>
+    <div class="vs-qs"></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn small vs-check">Check</button><button type="button" class="btn secondary small vs-new">New questions</button><span class="vs-score" aria-live="polite"></span></div>
+  </div>
+</div>
+
+<style is:inline>
+  .vs-steps { display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 12px 0 4px; }
+  .vs-step { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .vs-pm { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .vs-pm button { width: 48px; height: 48px; border: 0; background: var(--surface); color: var(--ink); font: inherit; font-size: 24px; cursor: pointer; }
+  .vs-pm button:active { background: var(--bg); }
+  .vs-pm output { min-width: 44px; text-align: center; font-size: 22px; font-weight: 700; color: var(--ink); }
+  .vs-shape { margin: 8px 0 6px; }
+  .vs-fig { max-width: 420px; margin: 0 auto; touch-action: none; cursor: grab; border: 1px solid var(--line); }
+  .vs-under { margin: 8px 0; }
+  .vs-formula { font-size: 15px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; overflow-wrap: anywhere; }
+  .vs-count, .vs-fsteps { margin: 10px 0 0; padding-left: 20px; font-size: 14px; }
+  .vs-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .vs-qs { display: grid; gap: 12px; }
+  .vs-qs .vs-q1 { display: grid; gap: 6px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+  .vs-qs .vs-ans { font-size: 14px; margin: 0; }
+  .vs-qs .ok { color: var(--good); } .vs-qs .no { color: var(--bad); }
+  .vs-score { font-weight: 700; }
+</style>
+
+<script>
+  import { EXAMPLES, shapeOf, countPairs, isSymmetric, formulaText, pickQuiz, type Shape, type Example } from '../../lib/sci/vsepr';
+  import { I3, mul, rotX, rotY, apply, project, type M3, type V3 } from '../../lib/sci/mol3d';
+  import { paint, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.vsp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const cv = q<HTMLCanvasElement>('.vs-fig');
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const li = (t: string) => { const e = document.createElement('li'); e.textContent = t; return e; };
+
+  let bonds = 3, lone = 1, central = 'N', outerEl = 'H', ex: Example | null = EXAMPLES.find((e) => e.id === 'nh3')!;
+  const START: M3 = mul(rotX(-0.35), rotY(0.45));
+  let R: M3 = START;
+  let sh: Shape | null = null;
+
+  const COL: Record<string, string> = { H: '#ffffff', F: '#7fd36b', Cl: '#2fa84f', Br: '#a33a2a', I: '#7b3fa0', O: '#e0412f', S: '#e3c32a', N: '#3b6fe0', C: '#555555' };
+  const colour = (el: string) => COL[el] || '#9a9a9a';
+
+  function figure(): Figure {
+    const s = sh;
+    return { w: 400, h: 340, alt: s ? `${s.shape} shape: ${s.bonds} bonded atoms and ${s.lone} lone pairs around the central atom` : 'No shape', draw: (ctx, W, H, pal) => {
+      if (!s) return;
+      const cx = W / 2, cy = H / 2, L = Math.min(W, H) * 0.34, showLp = q<HTMLInputElement>('.vs-lp').checked;
+      type Item = { z: number; draw: () => void };
+      const items: Item[] = [];
+      const c0 = project([0, 0, 0], cx, cy, L);
+      const centreR = 22;
+      s.positions.forEach((p, i) => {
+        const v = apply(R, p as V3), isLp = i >= s.bonds;
+        if (isLp) {
+          if (!showLp) return;
+          const tip = project([v[0] * 0.95, v[1] * 0.95, v[2] * 0.95], cx, cy, L), mid = project([v[0] * 0.55, v[1] * 0.55, v[2] * 0.55], cx, cy, L);
+          items.push({ z: v[2] * 0.55, draw: () => {
+            const dx = tip.x - c0.x, dy = tip.y - c0.y, len = Math.hypot(dx, dy), ang = Math.atan2(dy, dx);
+            ctx.save(); ctx.translate(mid.x, mid.y); ctx.rotate(ang);
+            ctx.beginPath(); ctx.ellipse(0, 0, Math.max(16, len * 0.5), 20 * mid.k, 0, 0, Math.PI * 2);
+            ctx.globalAlpha = pal.red ? 0.35 : 0.22; ctx.fillStyle = pal.accent; ctx.fill(); ctx.globalAlpha = 1;
+            ctx.lineWidth = 1.5; ctx.strokeStyle = pal.accent; ctx.setLineDash([4, 3]); ctx.stroke(); ctx.setLineDash([]);
+            ctx.restore();
+            const e1 = project([v[0] * 0.7, v[1] * 0.7, v[2] * 0.7], cx, cy, L);
+            const nx = -dy / (len || 1), ny = dx / (len || 1);
+            ctx.fillStyle = pal.ink; for (const sgn of [-1, 1]) { ctx.beginPath(); ctx.arc(e1.x + sgn * nx * 5, e1.y + sgn * ny * 5, 3, 0, Math.PI * 2); ctx.fill(); }
+          } });
+        } else {
+          const a = project(v, cx, cy, L), r = (outerEl === 'H' ? 13 : 17) * a.k;
+          items.push({ z: v[2] * 0.5, draw: () => { ctx.strokeStyle = pal.ink; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(c0.x, c0.y); ctx.lineTo(a.x, a.y); ctx.stroke(); } });
+          items.push({ z: v[2], draw: () => {
+            ctx.beginPath(); ctx.arc(a.x, a.y, r, 0, Math.PI * 2); ctx.fillStyle = pal.red ? '#300000' : colour(outerEl); ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = pal.ink; ctx.stroke();
+            ctx.fillStyle = pal.red ? pal.ink : ['I', 'Br', 'N', 'Cl'].includes(outerEl) ? '#ffffff' : '#000000'; ctx.font = `600 ${Math.round(12 * a.k)}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(outerEl, a.x, a.y + 0.5);
+          } });
+        }
+      });
+      items.push({ z: 0, draw: () => {
+        ctx.beginPath(); ctx.arc(c0.x, c0.y, centreR, 0, Math.PI * 2); ctx.fillStyle = pal.red ? '#200000' : pal.muted; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = pal.ink; ctx.stroke();
+        ctx.fillStyle = pal.red ? pal.ink : '#ffffff'; ctx.font = '700 14px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(central, c0.x, c0.y + 0.5);
+      } });
+      items.sort((a, b) => a.z - b.z).forEach((it) => it.draw());
+      // Mark the smallest bond angle with an arc and its ideal value.
+      if (s.bonds >= 2) {
+        let bi = 0, bj = 1, best = 9;
+        for (let i = 0; i < s.bonds; i++) for (let j = i + 1; j < s.bonds; j++) { const a = s.positions[i], b = s.positions[j], d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; const t = Math.acos(Math.max(-1, Math.min(1, d))); const vi = apply(R, a as V3), vj = apply(R, b as V3); const score = t - 0.001 * (vi[2] + vj[2]); if (score < best) { best = score; bi = i; bj = j; } }
+        const a = apply(R, s.positions[bi] as V3), b = apply(R, s.positions[bj] as V3);
+        ctx.strokeStyle = pal.accent2; ctx.lineWidth = 2; ctx.beginPath();
+        for (let k = 0; k <= 20; k++) { const t = k / 20; const v: V3 = [a[0] * (1 - t) + b[0] * t, a[1] * (1 - t) + b[1] * t, a[2] * (1 - t) + b[2] * t]; const n = Math.hypot(...v) || 1; const p = project([v[0] / n * 0.42, v[1] / n * 0.42, v[2] / n * 0.42], cx, cy, L); if (k) ctx.lineTo(p.x, p.y); else ctx.moveTo(p.x, p.y); }
+        ctx.stroke();
+        const m: V3 = [a[0] + b[0], a[1] + b[1], a[2] + b[2]], n = Math.hypot(...m);
+        const p = n < 1e-6 ? project([0, 0.55, 0], cx, cy, L) : project([m[0] / n * 0.6, m[1] / n * 0.6, m[2] / n * 0.6], cx, cy, L);
+        const ang = Math.round((Math.acos(Math.max(-1, Math.min(1, a[0] * b[0] + a[1] * b[1] + a[2] * b[2]))) * 1800) / Math.PI) / 10;
+        const txt = `${s.lone && (s.domains === 3 || s.domains === 4) ? 'under ' : ''}${Math.abs(ang - 109.5) < 0.1 ? '109.5' : ang}°`;
+        ctx.font = '700 14px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        const w = ctx.measureText(txt).width + 8; ctx.fillStyle = pal.bg; ctx.fillRect(p.x - w / 2, p.y - 10, w, 20); ctx.fillStyle = pal.accent2; ctx.fillText(txt, p.x, p.y);
+      }
+      ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      ctx.fillText(showLp && s.lone ? 'shaded lobes = lone pairs' : 'balls = atoms, sticks = bonds', 8, H - 8);
+    } };
+  }
+  const draw = () => paint(cv, figure());
+
+  function update() {
+    q('.vs-b').textContent = String(bonds); q('.vs-l').textContent = String(lone);
+    const r = shapeOf(bonds, lone), err = q('.vs-err');
+    if (typeof r === 'string') { err.textContent = r; err.hidden = false; sh = null; q('.vs-shape').textContent = ''; q('.vs-facts').replaceChildren(); q('.vs-formula').textContent = ''; q('.vs-note').textContent = ''; draw(); return; }
+    err.hidden = true; sh = r;
+    const name = ex ? ex.name : `AX${bonds > 1 ? String(bonds).replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈₉'[+d]) : ''}${lone ? 'E' + (lone > 1 ? String(lone).replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈₉'[+d]) : '') : ''}`;
+    q('.vs-shape').textContent = `${name}: ${r.shape}`;
+    q('.vs-formula').textContent = `Electron pairs = bonded atoms + lone pairs = ${bonds} + ${lone} = ${r.domains} → ${r.electronGeometry} arrangement, ${r.hybrid} hybrid orbitals`;
+    const sym = isSymmetric(r);
+    const facts = [
+      fact('Shape (atoms only)', r.shape),
+      fact('Electron pairs arranged', r.electronGeometry, `${r.domains} pairs around the centre`),
+      fact('Bond angle', r.ideal, ex?.measured ? `measured ${ex.measured}` : r.lone ? 'ideal value, before lone pairs squeeze it' : 'ideal value'),
+      fact('Hybridisation', r.hybrid, `${r.domains} hybrid orbitals: ${r.domains === 2 ? 's + p' : r.domains === 3 ? 's + 2 p' : r.domains === 4 ? 's + 3 p' : r.domains === 5 ? 's + 3 p + d' : 's + 3 p + 2 d'}`),
+      fact('Bond dipoles cancel?', bonds < 2 ? 'no (one bond)' : sym ? 'yes: non-polar' : 'no: polar', 'if all the outer atoms are the same'),
+    ];
+    q('.vs-facts').replaceChildren(...facts);
+    q('.vs-note').textContent = r.note;
+    const cnt = q('.vs-count');
+    if (ex) { const c = countPairs(ex.central, ex.outer, ex.charge); cnt.replaceChildren(...(typeof c === 'string' ? [] : c.steps.map(li))); } else cnt.replaceChildren();
+    draw();
+  }
+
+  function setExample(id: string) {
+    ex = EXAMPLES.find((e) => e.id === id) || null;
+    if (ex) { const c = countPairs(ex.central, ex.outer, ex.charge); if (typeof c !== 'string') { bonds = c.bonds; lone = c.lone; } central = ex.central; outerEl = ex.outer[0].el; }
+    else { central = 'A'; outerEl = 'X'; }
+    update();
+  }
+  q('.vs-ex').addEventListener('change', () => setExample(q<HTMLSelectElement>('.vs-ex').value));
+  const step = (which: 'b' | 'l', d: number) => {
+    if (which === 'b') bonds = Math.max(1, Math.min(6, bonds + d)); else lone = Math.max(0, Math.min(5, lone + d));
+    ex = null; central = 'A'; outerEl = 'X'; q<HTMLSelectElement>('.vs-ex').value = 'own';
+    update();
+  };
+  q('.vs-bdn').addEventListener('click', () => step('b', -1)); q('.vs-bup').addEventListener('click', () => step('b', 1));
+  q('.vs-ldn').addEventListener('click', () => step('l', -1)); q('.vs-lup').addEventListener('click', () => step('l', 1));
+  q('.vs-lp').addEventListener('change', draw);
+  q('.vs-reset').addEventListener('click', () => { R = START; draw(); });
+
+  // Drag to turn.
+  let last: { x: number; y: number } | null = null;
+  cv.addEventListener('pointerdown', (e) => { cv.setPointerCapture(e.pointerId); last = { x: e.clientX, y: e.clientY }; });
+  cv.addEventListener('pointermove', (e) => { if (!last) return; const dx = e.clientX - last.x, dy = e.clientY - last.y; last = { x: e.clientX, y: e.clientY }; R = mul(mul(rotY(dx * 0.012), rotX(dy * 0.012)), R); draw(); });
+  const stop = () => { last = null; }; cv.addEventListener('pointerup', stop); cv.addEventListener('pointercancel', stop);
+  cv.addEventListener('keydown', (e) => { const m: Record<string, M3> = { ArrowLeft: rotY(-0.15), ArrowRight: rotY(0.15), ArrowUp: rotX(-0.15), ArrowDown: rotX(0.15) }; if (m[e.key]) { e.preventDefault(); R = mul(m[e.key], R); draw(); } });
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+
+  // Formula counter.
+  let fres: { bonds: number; lone: number; ex: Example } | null = null;
+  function formula() {
+    const c = q<HTMLSelectElement>('.vs-c').value, o = q<HTMLSelectElement>('.vs-o').value, nTxt = q<HTMLInputElement>('.vs-n').value.trim(), n = Number(nTxt), ch = Number(q<HTMLSelectElement>('.vs-q').value);
+    const err = q('.vs-ferr'); fres = null;
+    const bad = (m: string) => { err.textContent = m; err.hidden = false; q('.vs-fbig').textContent = ''; q('.vs-fsteps').replaceChildren(); q<HTMLButtonElement>('.vs-show').disabled = true; };
+    if (!/^\d+$/.test(nTxt) || n < 1 || n > 6) return bad('Type how many outer atoms: a whole number from 1 to 6.');
+    const r = countPairs(c, [{ el: o, n }], ch);
+    if (typeof r === 'string') return bad(r);
+    const s = shapeOf(r.bonds, r.lone);
+    const name = formulaText(c, [{ el: o, n }], ch);
+    if (typeof s === 'string') { bad(s); q('.vs-fsteps').replaceChildren(...r.steps.map(li)); return; }
+    err.hidden = true; q<HTMLButtonElement>('.vs-show').disabled = false;
+    q('.vs-fbig').textContent = `${name}: ${s.shape}`;
+    const steps = r.steps.map(li);
+    if (['B', 'Be', 'Al'].includes(c) && r.bonds + r.lone < 4) steps.push(li(`${c} ends up with fewer than 8 electrons around it: an incomplete octet, which is fine for this element.`));
+    if (r.bonds + r.lone > 4) steps.push(li(`${r.bonds + r.lone} pairs is more than an octet: only atoms from period 3 down (P, S, Cl, Xe …) can do this.`));
+    if (['C', 'N', 'O', 'F', 'B', 'Be'].includes(c) && r.bonds + r.lone > 4) steps.push(li(`${c} is in period 2 and cannot hold more than 4 pairs, so this molecule does not exist.`));
+    if (r.odd) steps.push(li('An odd number of electrons: the molecule is a radical with one unpaired electron.'));
+    q('.vs-fsteps').replaceChildren(...steps);
+    fres = { bonds: r.bonds, lone: r.lone, ex: { id: 'own', name, central: c, outer: [{ el: o, n }], charge: ch } };
+  }
+  for (const c of ['.vs-c', '.vs-o', '.vs-q']) q(c).addEventListener('change', formula);
+  q('.vs-n').addEventListener('input', formula);
+  q('.vs-show').addEventListener('click', () => {
+    if (!fres) return;
+    bonds = fres.bonds; lone = fres.lone; ex = fres.ex; central = fres.ex.central; outerEl = fres.ex.outer[0].el;
+    const known = EXAMPLES.find((e) => e.name === fres!.ex.name); q<HTMLSelectElement>('.vs-ex').value = known ? known.id : 'own'; if (known) ex = known;
+    update(); cv.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  });
+
+  // Check yourself.
+  const NAMES = ['linear', 'bent (V-shaped)', 'trigonal planar', 'trigonal pyramidal', 'tetrahedral', 'trigonal bipyramidal', 'see-saw', 'T-shaped', 'square pyramidal', 'square planar', 'octahedral'];
+  let quiz: { m: Example; answer: string; steps: string[] }[] = [];
+  function newQuiz() {
+    quiz = [];
+    for (const m of pickQuiz(4)) {
+      const c = countPairs(m.central, m.outer, m.charge); if (typeof c === 'string') continue;
+      const s = shapeOf(c.bonds, c.lone); if (typeof s === 'string') continue;
+      quiz.push({ m, answer: s.shape, steps: [...c.steps, `${s.domains} pairs, ${c.lone} of them lone → ${s.shape}.`] });
+    }
+    q('.vs-qs').replaceChildren(...quiz.map((x, i) => {
+      const d = document.createElement('div'); d.className = 'vs-q1';
+      const lab = document.createElement('label'); lab.textContent = `${i + 1}. What shape is ${x.m.name}?`;
+      const sel = document.createElement('select'); sel.className = 'vs-qa'; sel.innerHTML = '<option value="">Choose a shape</option>' + NAMES.map((n) => `<option>${n}</option>`).join('');
+      lab.append(sel); const p = document.createElement('p'); p.className = 'vs-ans'; p.hidden = true;
+      d.append(lab, p); return d;
+    }));
+    q('.vs-score').textContent = '';
+  }
+  q('.vs-check').addEventListener('click', () => {
+    let right = 0;
+    root.querySelectorAll<HTMLElement>('.vs-q1').forEach((d, i) => {
+      const v = d.querySelector<HTMLSelectElement>('select')!.value, p = d.querySelector<HTMLElement>('.vs-ans')!, x = quiz[i];
+      const ok = v === x.answer; if (ok) right++;
+      p.hidden = false; p.className = 'vs-ans ' + (ok ? 'ok' : 'no');
+      p.textContent = `${ok ? '✓ Right.' : v ? `✗ Not ${v}.` : '✗ No answer yet.'} ${x.steps.join(' ')}`;
+    });
+    q('.vs-score').textContent = `${right} of ${quiz.length} right`;
+  });
+  q('.vs-new').addEventListener('click', newQuiz);
+
+  setExample('nh3'); formula(); newQuiz();
+</script>

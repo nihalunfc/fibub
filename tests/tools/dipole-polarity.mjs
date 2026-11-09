@@ -1,0 +1,46 @@
+// #1109 Dipole moment and polarity
+import { polarity, PRESETS } from '../../src/lib/sci/dipole.ts';
+export const path = '/learn/dipole-polarity/';
+export default async ({ page, check, BASE }) => {
+  await page.goto(`${BASE}/learn/dipole-polarity/`); await page.waitForTimeout(1200);
+  const t = (s) => page.textContent('.dpp ' + s);
+  const fig = () => page.$eval('.dpp .dp-fig', (c) => c.toDataURL());
+  check((await t('.dp-big')) === 'H₂O: polar' && (await t('.dp-why')).includes('not symmetric') && (await t('.dp-lp')).includes('adds'), 'dp: water polar, lone pairs add');
+  check(await page.isHidden('.dpp .dp-num') && (await t('.dp-sum')).includes('do not cancel'), 'dp: basic level hides numbers');
+  const f0 = await fig();
+  await page.selectOption('.dpp .dp-ex', 'co2'); await page.waitForTimeout(100);
+  check((await t('.dp-big')) === 'CO₂: non-polar' && (await t('.dp-why')).includes('symmetric') && await page.isHidden('.dpp .dp-lp') && (await fig()) !== f0, 'dp: CO2 non-polar, redrawn');
+  check((await page.$$('.dpp .dp-o')).length === 0 && (await t('.dp-outer')).includes('O'), 'dp: O atoms fixed');
+  await page.click('.dpp .dp-lvl button[data-v="num"]'); await page.waitForTimeout(100);
+  check((await t('.dp-sum')).includes('2 × C–O (ΔEN 0.89, towards O)') && (await t('.dp-facts')).includes('0.00 D') && await page.isVisible('.dpp .dp-num'), 'dp: numbers level, CO2 measured 0 D');
+  await page.selectOption('.dpp .dp-ex', 'nf3'); await page.waitForTimeout(100);
+  check((await t('.dp-big')) === 'NF₃: polar' && (await t('.dp-lp')).includes('partly cancels') && (await t('.dp-facts')).includes('0.23 D'), 'dp: NF3 lone pair opposes, 0.23 D');
+  await page.selectOption('.dpp .dp-ex', 'ch4'); await page.waitForTimeout(100);
+  check((await t('.dp-big')) === 'CH₄: non-polar' && (await page.$$('.dpp .dp-o')).length === 4, 'dp: CH4, four swappable atoms');
+  await page.selectOption('.dpp .dp-o[data-i="0"]', 'Cl'); await page.waitForTimeout(100);
+  check((await t('.dp-big')) === 'CH₃Cl: polar' && (await t('.dp-why')).includes('differ') && !(await t('.dp-facts')).includes(' D'), 'dp: swap to CH3Cl, no measured value for a custom molecule');
+  for (const i of [1, 2, 3]) await page.selectOption(`.dpp .dp-o[data-i="${i}"]`, 'Cl');
+  await page.waitForTimeout(100);
+  check((await t('.dp-big')) === 'CCl₄: non-polar', 'dp: all Cl → CCl4 non-polar');
+  await page.selectOption('.dpp .dp-ex', 'hcl'); await page.waitForTimeout(100);
+  check((await t('.dp-big')) === 'HCl: polar' && (await t('.dp-why')).startsWith('Only one bond'), 'dp: HCl');
+  await page.$eval('.dpp .dp-fig', (c) => c.scrollIntoView({ block: 'center' })); await page.selectOption('.dpp .dp-ex', 'nh3'); await page.waitForTimeout(100);
+  const b = await (await page.$('.dpp .dp-fig')).boundingBox(); const f1 = await fig();
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.down(); await page.mouse.move(b.x + b.width / 2 + 60, b.y + b.height / 2 + 20, { steps: 4 }); await page.mouse.up(); await page.waitForTimeout(100);
+  check((await fig()) !== f1, 'dp: drag turns the molecule');
+  await page.click('.dpp .dp-reset'); await page.waitForTimeout(100);
+  check((await fig()) === f1, 'dp: reset view');
+  // Check yourself.
+  const qs = await page.$$eval('.dpp .dp-q1 label', (l) => l.map((x) => x.firstChild.textContent));
+  check(qs.length === 4, 'dp: 4 questions');
+  const names = Object.fromEntries(PRESETS.map((p) => { const r = polarity(p.central, p.outer); return [r.name, r.polar ? 'polar' : 'non-polar']; }));
+  const ans = qs.map((s) => names[s.match(/Is (.+) polar\?/)[1]]);
+  const sels = await page.$$('.dpp .dp-qa');
+  for (let i = 0; i < 4; i++) await sels[i].selectOption(ans[i]);
+  await page.click('.dpp .dp-check');
+  check((await t('.dp-score')) === '4 of 4 right', `dp: quiz all right (${await t('.dp-score')})`);
+  await sels[0].selectOption(ans[0] === 'polar' ? 'non-polar' : 'polar'); await page.click('.dpp .dp-check');
+  check((await t('.dp-score')) === '3 of 4 right' && (await t('.dp-qs')).includes('✗'), 'dp: wrong answer explained');
+  await page.click('.dpp .dp-new');
+  check((await t('.dp-score')) === '', 'dp: new questions');
+};

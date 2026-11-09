@@ -1,0 +1,224 @@
+---
+// Derivative as a slope: a secant PQ turns into the tangent as h → 0, with f'(x) drawn under f(x),
+// first-principles working for xⁿ and sin x, and left/right slopes for corners. Class 11 and 12 maths.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax dsl">
+  <div class="ax-card">
+    <h2>Pick a function</h2>
+    <div class="ax-grid">
+      <label>Function f(x) <select class="ds-fn">
+        <option value="x2" selected>x²</option><option value="x3">x³ − 3x</option><option value="sin">sin x</option><option value="cos">cos x</option>
+        <option value="exp">eˣ</option><option value="ln">ln x</option><option value="sqrt">√x</option><option value="abs">|x| (a corner)</option><option value="inv">1/x</option><option value="own">My own…</option>
+      </select></label>
+      <label class="ds-ownl" hidden>Type f(x) <input class="ds-own" type="text" value="x^3/3 - x" autocomplete="off" spellcheck="false" /></label>
+    </div>
+    <p class="ax-err ds-err" hidden></p>
+    <div class="ax-row ds-lv"><span class="ax-help">Level</span>
+      <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-lv="11" aria-pressed="true">Class 11</button><button type="button" data-lv="12" aria-pressed="false">Class 12</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Secant to tangent</h2>
+    <canvas class="ax-fig ds-main" role="img"></canvas>
+    <p class="ax-help">Drag along the curve to move P, or drag Q. Blue: the secant line PQ. Dashed: the tangent at P.</p>
+    <div class="ds-sl">
+      <label>Point P at x = <b class="ds-av"></b><input class="ds-a" type="range" min="-3" max="3" step="0.01" value="1" /></label>
+      <label>Gap h = <b class="ds-hv"></b><input class="ds-h" type="range" min="0" max="1000" step="1" value="900" /></label>
+    </div>
+    <div class="ax-row">
+      <button type="button" class="btn small ds-go">Slide Q to P</button>
+      <label class="ax-check"><input type="checkbox" class="ds-left" /> Q on the left (h &lt; 0)</label>
+    </div>
+    <p class="ds-formula"></p>
+    <dl class="ax-facts ds-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>The slope graph f′(x)</h2>
+    <canvas class="ax-fig ds-dfig" role="img"></canvas>
+    <p class="ax-help ds-dnote"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Shrink h: the slope settles</h2>
+    <div class="ax-scroll"><table class="ds-tab"><thead><tr><th class="r">h</th><th class="r">slope of PQ (h &gt; 0)</th><th class="r">slope (h &lt; 0)</th></tr></thead><tbody></tbody></table></div>
+    <p class="ax-help ds-tnote"></p>
+  </div>
+
+  <div class="ax-card ds-fp">
+    <h2>From first principles</h2>
+    <div class="ax-row"><div class="ax-seg ds-fpk" role="group" aria-label="Which function"><button type="button" data-k="pow" aria-pressed="true">xⁿ</button><button type="button" data-k="sin" aria-pressed="false">sin x</button></div>
+      <label class="ds-nl">n <select class="ds-n"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label></div>
+    <ol class="ds-steps"></ol>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="ds-try">
+      <li>With f(x) = x², put P at x = 1 and press <b>Slide Q to P</b>. Watch the slope of PQ go 3, 2.1, 2.01 … towards 2.</li>
+      <li>Tick <b>Q on the left</b>: the slopes come up from below (1.9, 1.99 …) to the same 2.</li>
+      <li>Pick <b>|x|</b> and put P at 0. From the right the slope is 1, from the left −1: no single tangent, so no derivative there.</li>
+      <li>Pick <b>sin x</b> and look at the slope graph: it is cos x.</li>
+      <li>Pick <b>eˣ</b>: the slope graph sits right on top of the curve.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="ds-quiz" />
+</div>
+
+<script>
+  import { preset, readFn, secant, deriv, sideSlopes, firstPrinciplesPower, firstPrinciplesSin, type Fn } from '../../lib/sci/school-calculus';
+  import { paint, pagePalette, type Figure } from '../../lib/report';
+  import { view, axes, curve, line, dot, label, px, py, wx, pointer, fmt, type View } from '../../lib/sm-graph';
+  import { quiz, rint, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.dsl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380, H = 270, H2 = 200;
+  let f: Fn = (x) => x * x, d: Fn = (x) => 2 * x, dText = '2x', name = 'x²', vw: [number, number, number, number] = [-3, 3, -2, 9], exact = true;
+  let level = '11', fpk = 'pow', anim = 0;
+  const aIn = q<HTMLInputElement>('.ds-a'), hIn = q<HTMLInputElement>('.ds-h'), leftIn = q<HTMLInputElement>('.ds-left');
+  const hOf = (v: number) => (leftIn.checked ? -1 : 1) * Math.pow(10, -3 + v / 300);
+  const hVal = () => { const h = hOf(+hIn.value), r = Math.pow(10, Math.round(Math.log10(Math.abs(h)))); return Math.abs(Math.abs(h) / r - 1) < 1e-9 ? Math.sign(h) * r : h; };
+  let mainV: View = view(-3, 3, -2, 9, W, H), drag = '';
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+  const hs = (h: number) => { const a = Math.abs(h); return (h < 0 ? '−' : '') + (a >= 0.0995 ? fmt(a, 2) : a >= 0.00995 ? fmt(a, 3) : fmt(a, 4)); };
+
+  function setFn() {
+    const id = q<HTMLSelectElement>('.ds-fn').value, err = q('.ds-err');
+    q('.ds-ownl').hidden = id !== 'own'; err.hidden = true;
+    if (id === 'own') {
+      try { const g = readFn(q<HTMLInputElement>('.ds-own').value); f = g; d = (x) => deriv(g, x); dText = 'worked out numerically'; name = q<HTMLInputElement>('.ds-own').value.trim(); exact = false; }
+      catch (e) { err.textContent = (e as Error).message; err.hidden = false; return false; }
+      const ys: number[] = []; for (let i = 0; i <= 60; i++) { const y = f(-4 + (8 * i) / 60); if (Number.isFinite(y)) ys.push(y); }
+      ys.sort((a, b) => a - b);
+      const lo = ys.length ? ys[Math.floor(ys.length * 0.05)] : -5, hi = ys.length ? ys[Math.ceil(ys.length * 0.95) - 1] : 5, pad = Math.max(1, (hi - lo) * 0.15);
+      vw = [-4, 4, Math.max(-50, lo - pad), Math.min(50, hi + pad)];
+    } else { const p = preset(id)!; f = p.f; d = p.d; dText = p.dText; name = p.label; vw = p.view; exact = true; }
+    aIn.min = String(vw[0] + (vw[1] - vw[0]) * 0.05); aIn.max = String(vw[1] - (vw[1] - vw[0]) * 0.05);
+    let a = +aIn.value; if (!Number.isFinite(f(a)) || a < +aIn.min || a > +aIn.max) { a = id === 'ln' || id === 'sqrt' ? 1 : id === 'inv' ? 1 : 1; aIn.value = String(a); }
+    return true;
+  }
+
+  function draw() {
+    const pal = pagePalette(), a = +aIn.value, h = hVal(), fa = f(a), fb = f(a + h), s = secant(f, a, h), m = d(a);
+    q('.ds-av').textContent = fmt(a, 2); q('.ds-hv').textContent = hs(h);
+    mainV = view(vw[0], vw[1], vw[2], vw[3], W, H);
+    const fig: Figure = { w: W, h: H, alt: `Graph of ${name} with the secant through P (${fmt(a, 2)}, ${fmt(fa)}) and Q, slope ${fmt(s)}`, draw: (ctx, w, hh, pl) => {
+      const v = mainV; axes(ctx, v, pl, { xName: 'x', yName: 'y' });
+      curve(ctx, v, f, pl.ink, 2.2);
+      if (Number.isFinite(m)) line(ctx, v, v.x0, fa + m * (v.x0 - a), v.x1, fa + m * (v.x1 - a), pl.accent2, 1.6, [6, 4]);
+      if (Number.isFinite(s)) line(ctx, v, v.x0, fa + s * (v.x0 - a), v.x1, fa + s * (v.x1 - a), pl.accent, 2);
+      if (Number.isFinite(fb)) { line(ctx, v, a, fa, a + h, fa, pl.muted, 1, [2, 3]); line(ctx, v, a + h, fa, a + h, fb, pl.muted, 1, [2, 3]); }
+      dot(ctx, v, a, fa, pl.ink, 5.5, false, pl.bg); label(ctx, v, a, fa, 'P', pl.ink, -14, -6);
+      if (Number.isFinite(fb)) { dot(ctx, v, a + h, fb, pl.accent, 7, false, pl.bg); label(ctx, v, a + h, fb, 'Q', pl.accent, 8, -6); }
+    } };
+    paint(q<HTMLCanvasElement>('.ds-main'), fig, pal);
+    // Slope graph.
+    const ys: number[] = []; for (let i = 0; i <= 80; i++) { const y = d(vw[0] + ((vw[1] - vw[0]) * i) / 80); if (Number.isFinite(y)) ys.push(y); }
+    ys.sort((x, y) => x - y);
+    let lo = ys.length ? ys[Math.floor(ys.length * 0.05)] : -1, hi = ys.length ? ys[Math.ceil(ys.length * 0.95) - 1] : 1;
+    lo = Math.min(lo, 0, Number.isFinite(s) ? s : 0); hi = Math.max(hi, 0, Number.isFinite(s) ? s : 0); const pad = Math.max(0.5, (hi - lo) * 0.15);
+    const dv = view(vw[0], vw[1], Math.max(-30, lo - pad), Math.min(30, hi + pad), W, H2);
+    const dfig: Figure = { w: W, h: H2, alt: `Graph of the slope f′(x) = ${dText}; at x = ${fmt(a, 2)} it is ${fmt(m)}`, draw: (ctx, w, hh, pl) => {
+      axes(ctx, dv, pl, { xName: 'x', yName: 'f′(x)' });
+      curve(ctx, dv, f, pl.line, 1.2);
+      curve(ctx, dv, d, pl.accent2, 2.2);
+      line(ctx, dv, a, dv.y0, a, dv.y1, pl.muted, 1, [2, 3]);
+      if (Number.isFinite(m)) dot(ctx, dv, a, m, pl.accent2, 5.5, false, pl.bg);
+      if (Number.isFinite(s)) dot(ctx, dv, a, s, pl.accent, 4.5, true, pl.bg);
+    } };
+    paint(q<HTMLCanvasElement>('.ds-dfig'), dfig, pal);
+    q('.ds-dnote').textContent = `Orange: f′(x) = ${dText}. Grey: f(x) for comparison. The open blue dot is the slope of PQ right now; it slides onto the orange dot as h → 0.`;
+    // Formula with numbers.
+    q('.ds-formula').textContent = Number.isFinite(s)
+      ? `Slope of PQ = [f(a + h) − f(a)] / h = [f(${fmt(a + h, 4)}) − f(${fmt(a, 2)})] / ${hs(h)} = (${fmt(fb, 4)} − ${fmt(fa, 4)}) / ${hs(h)} = ${fmt(s, 4)}`
+      : `f is not defined at x = ${fmt(a + h, 3)} or ${fmt(a, 2)}: move P or Q.`;
+    const ss = sideSlopes(f, a);
+    const facts = [
+      fact('Slope of PQ', fmt(s, 4), `h = ${hs(h)}`),
+      fact("Tangent slope f′(a)", Number.isFinite(m) ? fmt(m, 4) : 'none', Number.isFinite(m) ? `f′(x) = ${dText}` : 'no single tangent here'),
+      fact('Gap to the tangent', Number.isFinite(m) && Number.isFinite(s) ? fmt(Math.abs(s - m), 4) : '–', 'shrinks as h → 0'),
+    ];
+    if (Number.isFinite(m) && Number.isFinite(fa)) facts.push(fact('Tangent line at P', `y = ${fmt(m, 3)}x ${fa - m * a < 0 ? '−' : '+'} ${fmt(Math.abs(fa - m * a), 3)}`, 'y − f(a) = f′(a)(x − a)'));
+    if (level === '12') {
+      const corner = Number.isFinite(ss.left) && Number.isFinite(ss.right) && Math.abs(ss.left - ss.right) > 1e-3 * Math.max(1, Math.abs(ss.left));
+      facts.push(fact('Left-hand slope (h → 0⁻)', fmt(ss.left, 4)), fact('Right-hand slope (h → 0⁺)', fmt(ss.right, 4)));
+      facts.push(fact('Differentiable at a?', !Number.isFinite(fa) ? 'No: f is not defined' : corner ? 'No: a corner' : Number.isFinite(m) ? 'Yes' : 'No', corner ? 'left and right slopes differ, though f is continuous' : 'left and right slopes agree'));
+    }
+    q('.ds-facts').replaceChildren(...facts);
+    // Table.
+    const rows = [1, 0.1, 0.01, 0.001, 0.0001].map((hh) => { const tr = document.createElement('tr'); [hs(hh), fmt(secant(f, a, hh), 5), fmt(secant(f, a, -hh), 5)].forEach((t) => { const td = document.createElement('td'); td.className = 'r'; td.textContent = t; tr.append(td); }); return tr; });
+    q('.ds-tab tbody').replaceChildren(...rows);
+    q('.ds-tnote').textContent = Number.isFinite(m) ? `Both columns head for f′(${fmt(a, 2)}) = ${fmt(m, 4)}.` : 'The two columns do not head for the same number, so there is no derivative at this point.';
+  }
+
+  function steps() {
+    const box = q('.ds-steps');
+    q('.ds-nl').hidden = fpk !== 'pow';
+    const lines = fpk === 'pow' ? firstPrinciplesPower(+q<HTMLSelectElement>('.ds-n').value) : firstPrinciplesSin();
+    box.replaceChildren(...lines.map((t) => { const li = document.createElement('li'); li.textContent = t; return li; }));
+  }
+
+  const update = () => { if (setFn()) draw(); };
+  q('.ds-fn').addEventListener('change', update);
+  q('.ds-own').addEventListener('input', update);
+  aIn.addEventListener('input', draw); hIn.addEventListener('input', () => { cancelAnimationFrame(anim); draw(); }); leftIn.addEventListener('change', draw);
+  q('.ds-go').addEventListener('click', () => {
+    cancelAnimationFrame(anim);
+    const t0 = performance.now(), v0 = Math.max(+hIn.value, 900);
+    const step = (t: number) => { const k = Math.min(1, (t - t0) / 2200); hIn.value = String(Math.round(v0 * (1 - k))); draw(); if (k < 1) anim = requestAnimationFrame(step); };
+    anim = requestAnimationFrame(step);
+  });
+  root.querySelectorAll<HTMLButtonElement>('.ds-lv button').forEach((b) => b.addEventListener('click', () => { level = b.dataset.lv!; root.querySelectorAll('.ds-lv button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); draw(); }));
+  root.querySelectorAll<HTMLButtonElement>('.ds-fpk button').forEach((b) => b.addEventListener('click', () => { fpk = b.dataset.k!; root.querySelectorAll('.ds-fpk button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); steps(); }));
+  q('.ds-n').addEventListener('change', steps);
+  // Drag P (anywhere) or Q (near it) on the picture.
+  const cv = q<HTMLCanvasElement>('.ds-main');
+  cv.addEventListener('pointerdown', (e) => {
+    const { X, Y } = pointer(cv, e, W, H), a = +aIn.value, h = hVal(), fb = f(a + h);
+    drag = Number.isFinite(fb) && Math.hypot(X - px(mainV, a + h), Y - py(mainV, fb)) < 24 ? 'q' : 'p';
+    cv.setPointerCapture(e.pointerId); move(e);
+  });
+  const move = (e: PointerEvent) => {
+    if (!drag) return;
+    const { X } = pointer(cv, e, W, H), x = wx(mainV, X), a = +aIn.value;
+    if (drag === 'p') { aIn.value = String(Math.min(+aIn.max, Math.max(+aIn.min, x))); }
+    else { const h = x - a; if (Math.abs(h) < 1e-3) return; leftIn.checked = h < 0; hIn.value = String(Math.round(Math.min(1000, Math.max(0, (Math.log10(Math.abs(h)) + 3) * 300)))); cancelAnimationFrame(anim); }
+    draw();
+  };
+  cv.addEventListener('pointermove', move);
+  cv.addEventListener('pointerup', () => { drag = ''; }); cv.addEventListener('pointercancel', () => { drag = ''; });
+  document.addEventListener('fibub:theme', draw);
+  setFn(); draw(); steps();
+
+  // Check yourself.
+  quiz(q('.ds-quiz'), (): Question[] => {
+    const a = rint(1, 4), b = rint(-6, 6), c = rint(-5, 5), k = rint(-3, 3);
+    const p = rint(1, 4), h = [0.1, 0.5, 1, 2][rint(0, 3)];
+    const n = rint(3, 5), x0 = rint(1, 2);
+    const s = rint(2, 5);
+    const pol = `${a === 1 ? '' : a}x² ${b < 0 ? '−' : '+'} ${Math.abs(b)}x ${c < 0 ? '−' : '+'} ${Math.abs(c)}`;
+    return [
+      { text: `f(x) = ${pol}. What is f′(${k})?`, answer: 2 * a * k + b, worked: `f′(x) = ${2 * a}x ${b < 0 ? '−' : '+'} ${Math.abs(b)}, so f′(${k}) = ${2 * a} × ${k} ${b < 0 ? '−' : '+'} ${Math.abs(b)} = ${2 * a * k + b}.` },
+      { text: `For f(x) = x², what is the slope of the secant from x = ${p} to x = ${p} + ${h}?`, answer: 2 * p + h, worked: `[(${p} + ${h})² − ${p}²] / ${h} = (${(p + h) ** 2} − ${p * p}) / ${h} = ${fmt(2 * p + h, 4)}. In general it is 2a + h, which tends to 2a = ${2 * p} as h → 0.` },
+      { text: `What is the slope of y = x${'⁰¹²³⁴⁵⁶'[n]} at x = ${x0}?`, answer: n * x0 ** (n - 1), worked: `d/dx xⁿ = n xⁿ⁻¹, so the slope is ${n} × ${x0}${'⁰¹²³⁴⁵⁶'[n - 1]} = ${n * x0 ** (n - 1)}.` },
+      { text: `f(x) = ${s} sin x. What is f′(0)?`, answer: s, worked: `f′(x) = ${s} cos x, and cos 0 = 1, so f′(0) = ${s}.` },
+      { text: 'Does f(x) = |x| have a derivative at x = 0?', choices: ['Yes, it is 0', 'Yes, it is 1', 'No'], correct: 2, worked: 'From the right the slope is +1, from the left it is −1. They differ, so there is no single tangent and no derivative at 0 (though |x| is continuous there).' },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .dsl .ds-sl { display: grid; gap: 10px; margin: 10px 0; }
+  .dsl .ds-sl label { color: var(--ink); font-size: 15px; }
+  .dsl .ds-sl input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .dsl canvas.ds-main { touch-action: pan-y; cursor: grab; }
+  .dsl .ds-formula { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; margin: 10px 0; }
+  .dsl .ds-steps { padding-left: 22px; display: grid; gap: 6px; overflow-wrap: anywhere; }
+  .dsl .ds-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+  .dsl .ax-seg button { min-height: 40px; }
+</style>

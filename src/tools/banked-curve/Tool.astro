@@ -1,0 +1,163 @@
+---
+// Banked road and friction: speed, radius, bank angle and μ; the forces on the car, the friction needed,
+// and the safe speed range. Maths in src/lib/sci/banked.ts.
+import '../../styles/astro.css';
+---
+<div class="ax bc">
+  <div class="ax-card">
+    <canvas class="bc-c" aria-label="A car on a banked curve"></canvas>
+    <p class="bc-state"><span class="ax-pill bc-pill"></span></p>
+    <label>Speed: <b class="bc-vv"></b><input class="bc-v" type="range" min="10" max="200" step="1" value="72" /></label>
+    <label>Radius of the curve: <b class="bc-rv"></b><input class="bc-r" type="range" min="20" max="400" step="5" value="100" /></label>
+    <label>Bank angle θ (drag sideways on the road picture too): <b class="bc-av"></b><input class="bc-a" type="range" min="0" max="40" step="1" value="15" /></label>
+    <label>Road surface <select class="bc-surf">
+      <option value="0.7" selected>Dry road (made-up round value: μ 0.7)</option>
+      <option value="0.4">Wet road (made-up round value: μ 0.4)</option>
+      <option value="0.1">Icy road (made-up round value: μ 0.1)</option>
+      <option value="0">No friction at all</option>
+    </select></label>
+    <p class="ax-help">μ is how strongly the tyres grip the road sideways. g = 9.8 m/s². The values are rounded teaching numbers, not data for real tyres or roads.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Forces and the safe speeds</h2>
+    <dl class="ax-facts bc-facts"></dl>
+    <div class="bc-eq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="bc-try">
+      <li>Set the bank to 0° (a flat road). All the force towards the centre must come from friction, so the top speed is √(μ r g).</li>
+      <li>Choose "No friction at all". There is just one speed that works, the ideal speed √(r g tan θ). Any faster and the car slides up and out; slower and it slides down and in.</li>
+      <li>Switch to the icy road and find the safe range. Why do racing tracks bank their curves steeply?</li>
+      <li>Double the radius. How much faster can the car go safely?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="bc-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { G, forces, speeds, verdict, questions } from '../../lib/sci/banked';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { pagePalette, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.bc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => Number(inp(c).value);
+  const f = (x: number, d = 2) => { const r = Math.round(x * 10 ** d) / 10 ** d; return (Object.is(r, -0) ? 0 : r).toFixed(d).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '').replace('-', '−'); };
+  const kmh = (v: number) => (Number.isFinite(v) ? `${f(v * 3.6, 0)} km/h` : 'no limit');
+  const H = 370;
+
+  function setup(c: HTMLCanvasElement, h: number) {
+    const w = Math.max(260, Math.round(c.clientWidth || c.parentElement!.clientWidth || 320)), dpr = Math.min(3, window.devicePixelRatio || 1);
+    c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c.style.height = `${h}px`;
+    const ctx = c.getContext('2d')!; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w };
+  }
+  function arrow(ctx: CanvasRenderingContext2D, x: number, y: number, dx: number, dy: number, col: string, label: string, dash = false) {
+    const len = Math.hypot(dx, dy); if (len < 3) return;
+    const ux = dx / len, uy = dy / len;
+    ctx.save(); ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = dash ? 2 : 3; if (dash) ctx.setLineDash([6, 4]);
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + dx - ux * 8, y + dy - uy * 8); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(x + dx, y + dy); ctx.lineTo(x + dx - ux * 10 - uy * 5, y + dy - uy * 10 + ux * 5); ctx.lineTo(x + dx - ux * 10 + uy * 5, y + dy - uy * 10 - ux * 5); ctx.closePath(); ctx.fill();
+    ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = ux > 0.3 ? 'left' : ux < -0.3 ? 'right' : 'center';
+    ctx.fillText(label, x + dx + ux * 6, y + dy + uy * 6 + (uy > 0.3 ? 12 : uy < -0.3 ? -3 : 4)); ctx.restore();
+  }
+
+  let road = { x0: 0, w: 0 };
+  function draw() {
+    const pal = pagePalette(), c = q<HTMLCanvasElement>('.bc-c'), { ctx, w } = setup(c, H);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, H);
+    const v = val('.bc-v') / 3.6, r = val('.bc-r'), ang = val('.bc-a'), mu = Number(q<HTMLSelectElement>('.bc-surf').value);
+    const fo = forces(v, r, ang), sp = speeds(r, ang, mu), vd = verdict(v, r, ang, mu);
+    // ---- top view (upper part): a quarter circle of road, the car and its path
+    const topH = 140, R = Math.min(w * 0.55, topH - 20), ox = 20, oy = topH - 6;
+    ctx.fillStyle = pal.muted; ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText('From above', ox, 14);
+    ctx.strokeStyle = pal.grid; ctx.lineWidth = 22; ctx.beginPath(); ctx.arc(ox, oy, R, -Math.PI / 2, 0); ctx.stroke();
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(ox, oy, R - 11, -Math.PI / 2, 0); ctx.stroke(); ctx.beginPath(); ctx.arc(ox, oy, R + 11, -Math.PI / 2, 0); ctx.stroke();
+    ctx.fillStyle = pal.muted; ctx.beginPath(); ctx.arc(ox, oy, 3, 0, 7); ctx.fill(); ctx.font = '11px system-ui, sans-serif'; ctx.fillText(`centre, r = ${r} m`, ox + 6, oy - 4);
+    // path: follows the arc, or drifts out / in after the car's position
+    const a0 = -Math.PI / 4;
+    ctx.save(); ctx.setLineDash([5, 4]); ctx.strokeStyle = vd === 'safe' ? pal.good : pal.bad; ctx.lineWidth = 2; ctx.beginPath();
+    for (let i = 0; i <= 30; i++) { const a = a0 + (i / 30) * (Math.PI / 4) * 0.95, rr = R + (vd === 'out' ? 1 : vd === 'in' ? -1 : 0) * (i / 30) ** 2 * 40; const x = ox + rr * Math.cos(a), y = oy + rr * Math.sin(a); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+    ctx.stroke(); ctx.restore();
+    ctx.fillStyle = pal.ink; ctx.save(); ctx.translate(ox + R * Math.cos(a0), oy + R * Math.sin(a0)); ctx.rotate(a0 + Math.PI / 2); ctx.fillRect(-6, -10, 12, 20); ctx.restore();
+    // ---- cross-section (lower part): the banked road and forces on the car
+    const y0 = topH + 20, cx = w / 2, cy = y0 + 110, th = (ang * Math.PI) / 180, half = Math.min(w / 2 - 20, 160);
+    ctx.fillStyle = pal.muted; ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText('From behind (centre of the curve to the left)', 10, y0 - 2);
+    const ux = Math.cos(th), uy = Math.sin(th); // road surface direction (up the slope = right and up)
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(cx - half * ux, cy + half * uy); ctx.lineTo(cx + half * ux, cy - half * uy); ctx.stroke();
+    ctx.fillStyle = pal.grid; ctx.beginPath(); ctx.moveTo(cx - half * ux, cy + half * uy); ctx.lineTo(cx + half * ux, cy - half * uy); ctx.lineTo(cx + half * ux, cy + half * uy + 8); ctx.lineTo(cx - half * ux, cy + half * uy + 8); ctx.closePath(); ctx.fill();
+    road = { x0: cx, w: half };
+    if (ang > 0) { ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(cx - half * ux, cy + half * uy); ctx.lineTo(cx - half * ux + 60, cy + half * uy); ctx.stroke(); ctx.fillStyle = pal.ink; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(`${ang}°`, cx - half * ux + 44, cy + half * uy - 4); }
+    // car body, sitting on the slope
+    const nx = -uy, ny = -ux; // outward normal in screen coords (up-left)
+    const bx = cx + nx * 14, by = cy + ny * 14;
+    ctx.save(); ctx.translate(bx, by); ctx.rotate(-th); ctx.fillStyle = pal.bg; ctx.strokeStyle = pal.ink; ctx.lineWidth = 2.5; ctx.fillRect(-26, -14, 52, 28); ctx.strokeRect(-26, -14, 52, 28); ctx.restore();
+    const k = 5.5; // px per m/s² (forces per kg)
+    arrow(ctx, bx, by, 0, G * k, pal.ink, `mg`);
+    arrow(ctx, bx, by, nx * fo.N * k, ny * fo.N * k, pal.muted, 'N');
+    // friction along the slope: f > 0 acts down the slope (towards the centre, to the left)
+    if (Math.abs(fo.f) > 0.02) { const ff = Math.min(Math.abs(fo.f), mu * fo.N || Math.abs(fo.f)) * Math.sign(fo.f); arrow(ctx, cx, cy, -ux * ff * k, uy * ff * k, vd === 'safe' ? pal.accent2 : pal.bad, vd === 'safe' ? 'friction' : 'friction (not enough)'); }
+    arrow(ctx, bx, by - 72, -fo.ac * k, 0, pal.accent, '', true); ctx.fillStyle = pal.accent; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left'; const nl = `needed: v²/r = ${f(fo.ac, 2)} m/s²`, nw = ctx.measureText(nl).width; ctx.fillText(nl, Math.max(8, Math.min(w - 8 - nw, bx - fo.ac * k - 20)), by - 82);
+    c.setAttribute('aria-label', `Car at ${f(v * 3.6, 0)} km/h on a ${ang}° bank: ${vd === 'safe' ? 'safe' : vd === 'out' ? 'skids outwards' : 'slides inwards'}`);
+
+    // ---- readouts
+    q('.bc-vv').textContent = `${val('.bc-v')} km/h (${f(v, 1)} m/s)`; q('.bc-rv').textContent = `${r} m`; q('.bc-av').textContent = `${ang}°`;
+    const pill = q('.bc-pill');
+    pill.textContent = vd === 'safe' ? 'Safe: the tyres grip' : vd === 'out' ? 'Too fast: the car skids up and outwards' : 'Too slow: the car slides down and inwards';
+    pill.className = `ax-pill ${vd === 'safe' ? 'good' : 'bad'} bc-pill`;
+    const fact = (kk: string, vv: string, sm = '') => { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = kk; dd.textContent = vv; if (sm) { const e = document.createElement('small'); e.textContent = sm; dd.append(e); } d.append(dt, dd); return d; };
+    q('.bc-facts').replaceChildren(
+      fact('Needed towards the centre', `${f(fo.ac, 2)} m/s²`, `v²/r, ${f(fo.ac / G, 2)} × g`),
+      fact('Ideal speed (no friction)', kmh(sp.ideal), `√(r g tan θ) = ${f(sp.ideal, 1)} m/s`),
+      fact('Safe speeds', `${kmh(sp.vMin)} to ${kmh(sp.vMax)}`, `with μ = ${f(mu)}`),
+      fact('Grip needed', `μ = ${f(fo.muNeeded, 3)}`, `the road gives up to ${f(mu)}`),
+      fact('Friction direction', Math.abs(fo.f) < 0.005 ? 'none needed' : fo.f > 0 ? 'down the slope' : 'up the slope', fo.f > 0 ? 'stops it sliding out' : fo.f < 0 ? 'stops it sliding in' : 'just right'),
+    );
+    const p = (x: number) => f(x, 3);
+    q('.bc-eq').replaceChildren(...[
+      ['Towards the centre: ', `N sin θ + f cos θ = m v²/r. Upwards: N cos θ − f sin θ = m g. Per kg here: N = g cos θ + (v²/r) sin θ = ${p(fo.N)} N/kg and f = (v²/r) cos θ − g sin θ = ${p(fo.f)} N/kg.`],
+      ['Safe if '] .concat([`|f| ≤ μ N: ${p(Math.abs(fo.f))} ${Math.abs(fo.f) <= mu * fo.N + 1e-12 ? '≤' : '>'} ${f(mu)} × ${p(fo.N)} = ${p(mu * fo.N)}.`]),
+      ['Speed limits: '].concat([`v max = √(r g (sin θ + μ cos θ) ÷ (cos θ − μ sin θ)), v min = √(r g (sin θ − μ cos θ) ÷ (cos θ + μ sin θ)) (0 if μ ≥ tan θ). On a flat road this gives v max = √(μ r g).`]),
+    ].map(([b, t]) => { const el = document.createElement('p'), bb = document.createElement('b'); bb.textContent = b; el.append(bb, t); return el; }));
+  }
+
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', draw); i.addEventListener('change', draw); });
+  const cv = q<HTMLCanvasElement>('.bc-c');
+  let x0 = -1, a0 = 0;
+  cv.addEventListener('pointerdown', (e) => { const r = cv.getBoundingClientRect(); if (e.clientY - r.top < 150) return; x0 = e.clientX; a0 = val('.bc-a'); cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointermove', (e) => { if (x0 < 0) return; inp('.bc-a').value = String(Math.max(0, Math.min(40, Math.round(a0 + (e.clientX - x0) / 5)))); draw(); });
+  const up = () => { x0 = -1; }; cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  mountQuiz(q('.bc-quiz'), () => questions());
+  draw();
+  document.addEventListener('fibub:theme', draw);
+  let rw = 0; new ResizeObserver(() => { const w = cv.clientWidth; if (w !== rw) { rw = w; draw(); } }).observe(cv);
+</script>
+
+<style is:inline>
+  .bc canvas { display: block; width: 100%; touch-action: pan-y; }
+  .bc > .ax-card:first-child > label { display: grid; margin-top: 10px; }
+  .bc input[type=range] { width: 100%; height: 32px; accent-color: var(--ink); }
+  .bc label b { color: var(--ink); }
+  .bc .bc-state { margin: 8px 0 0; }
+  .bc .bc-pill { font-size: 14px; white-space: normal; }
+  .bc .bc-eq p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .bc .bc-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>

@@ -1,0 +1,251 @@
+---
+// Unit circle to wave: drag the angle round the circle and watch sin, cos and tan traced as graphs, with
+// degrees and radians, exact values, ASTC signs, a sin(bx + c) + d sliders and inverse trig principal
+// branches by reflection in y = x. Class 11 and 12 maths.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax ucl">
+  <div class="ax-card">
+    <div class="ax-seg uc-mode" role="group" aria-label="What to show">
+      <button type="button" data-m="circle" aria-pressed="true">Unit circle</button><button type="button" data-m="wave" aria-pressed="false">a sin(bx + c) + d</button><button type="button" data-m="inv" aria-pressed="false">Inverse trig</button>
+    </div>
+  </div>
+
+  <div class="ax-card uc-circle">
+    <h2>Angle θ = <span class="uc-title"></span></h2>
+    <canvas class="ax-fig uc-cfig" role="img"></canvas>
+    <p class="ax-help">Drag the point round the circle. Orange: cos θ (across). Blue: sin θ (up). Green: tan θ, on the line x = 1.</p>
+    <label class="uc-sl">θ in degrees <input class="uc-th" type="range" min="0" max="720" step="1" value="30" /></label>
+    <div class="ax-row"><label class="uc-dl">Type an angle <input class="uc-deg" type="text" inputmode="decimal" value="30" /></label>
+      <div class="ax-seg uc-unit" role="group" aria-label="Unit"><button type="button" data-u="deg" aria-pressed="true">degrees</button><button type="button" data-u="rad" aria-pressed="false">radians</button></div>
+      <label class="ax-check"><input type="checkbox" class="uc-snap" checked /> Snap to 15°</label></div>
+    <p class="ax-err uc-err" hidden></p>
+    <dl class="ax-facts uc-facts"></dl>
+    <h3>Traced as waves</h3>
+    <div class="ax-row uc-show">
+      <label class="ax-check"><input type="checkbox" class="uc-ss" checked /> sin</label>
+      <label class="ax-check"><input type="checkbox" class="uc-sc" checked /> cos</label>
+      <label class="ax-check"><input type="checkbox" class="uc-st" /> tan</label>
+    </div>
+    <canvas class="ax-fig uc-wfig" role="img"></canvas>
+  </div>
+
+  <div class="ax-card uc-wave" hidden>
+    <h2 class="uc-wtitle"></h2>
+    <canvas class="ax-fig uc-tfig" role="img"></canvas>
+    <div class="ax-row"><div class="ax-seg uc-base" role="group" aria-label="Base wave"><button type="button" data-b="sin" aria-pressed="true">sin</button><button type="button" data-b="cos" aria-pressed="false">cos</button></div></div>
+    <div class="uc-sls">
+      <label class="uc-sl">a (stretch up and down) = <b class="uc-av"></b><input class="uc-a" type="range" min="-3" max="3" step="0.5" value="2" /></label>
+      <label class="uc-sl">b (squeeze sideways) = <b class="uc-bv"></b><input class="uc-b" type="range" min="0.5" max="4" step="0.5" value="2" /></label>
+      <label class="uc-sl">c (slide sideways) = <b class="uc-cv"></b><input class="uc-c" type="range" min="-6" max="6" step="1" value="0" /></label>
+      <label class="uc-sl">d (lift) = <b class="uc-dv"></b><input class="uc-d" type="range" min="-2" max="2" step="0.5" value="0" /></label>
+    </div>
+    <p class="ax-help">c moves in steps of π/6 (30°).</p>
+    <dl class="ax-facts uc-wfacts"></dl>
+  </div>
+
+  <div class="ax-card uc-inv" hidden>
+    <h2 class="uc-ititle"></h2>
+    <div class="ax-seg uc-ik" role="group" aria-label="Inverse function"><button type="button" data-k="asin" aria-pressed="true">sin⁻¹</button><button type="button" data-k="acos" aria-pressed="false">cos⁻¹</button><button type="button" data-k="atan" aria-pressed="false">tan⁻¹</button></div>
+    <canvas class="ax-fig uc-ifig" role="img"></canvas>
+    <p class="ax-help">Grey: the whole trig curve. Thick blue: the principal branch, where it is one-one. Orange: its mirror image in the line y = x, which is the inverse function.</p>
+    <label class="uc-sl">x = <b class="uc-xv"></b><input class="uc-x" type="range" min="-1" max="1" step="0.01" value="0.5" /></label>
+    <label class="uc-sl">Any angle θ (degrees) = <b class="uc-anyv"></b><input class="uc-any" type="range" min="-360" max="360" step="5" value="150" /></label>
+    <dl class="ax-facts uc-ifacts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="uc-try">
+      <li>Drag θ from 0° to 360° and watch the blue sin line rise to 1 at 90°, fall to −1 at 270° and come back: that is the sine wave.</li>
+      <li>Go into the second quadrant (90° to 180°): only sin stays positive. The four quadrants spell <b>A</b>ll, <b>S</b>in, <b>T</b>an, <b>C</b>os.</li>
+      <li>Near 90° the green tan line shoots off: tan 90° is undefined.</li>
+      <li>In <b>a sin(bx + c) + d</b>, set b = 2: two whole waves fit where one did, so the period halves to π.</li>
+      <li>In <b>Inverse trig</b>, set θ = 150°: sin 150° = 1/2, but sin⁻¹(1/2) = 30°, because 30° is the angle in the principal branch.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="uc-quiz" />
+</div>
+
+<script>
+  import { piFraction, exact, quadrant, waveShape, INV, principal, backAgain, norm360, type Inv } from '../../lib/sci/school-trig';
+  import { paint, pagePalette, type Figure } from '../../lib/report';
+  import { view, axes, curve, line, dot, label, px, py, wx, wy, pointer, fmt, FONT } from '../../lib/sm-graph';
+  import { quiz, rint, pick, readAnswer, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.ucl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const D = Math.PI / 180, W = 380;
+  let mode = 'circle', unit = 'deg', base = 'sin', ik: Inv = 'asin', dragging = false;
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+  const seg = (sel: string, on: (b: HTMLButtonElement) => void) => root.querySelectorAll<HTMLButtonElement>(sel + ' button').forEach((b) => b.addEventListener('click', () => { root.querySelectorAll(sel + ' button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); on(b); draw(); }));
+  const thIn = q<HTMLInputElement>('.uc-th');
+  const deg = () => +thIn.value;
+  const radText = (d: number) => `${piFraction(d)}${Math.abs(d - Math.round(d)) < 1e-9 && d !== 0 ? '' : ''} rad`;
+  const piTicks = (lo: number, hi: number, step: number) => { const t: number[] = [], l: string[] = []; for (let k = Math.ceil(lo / step); k * step <= hi + 1e-9; k++) { t.push(k * step * D); l.push(piFraction(k * step)); } return { t, l }; };
+
+  function drawCircle() {
+    const pal = pagePalette(), d = deg(), r = d * D, c = Math.cos(r), s = Math.sin(r), tn = Math.tan(r);
+    const v = view(-1.6, 1.9, -1.45, 1.45, W, 300, { l: 10, r: 10, t: 8, b: 8 });
+    const ex = exact(d), qd = quadrant(d);
+    q('.uc-title').textContent = `${fmt(d, 1)}° = ${radText(d)}`;
+    const fig: Figure = { w: W, h: 300, alt: `Unit circle at ${fmt(d, 1)}°: cos ${fmt(c)}, sin ${fmt(s)}`, draw: (ctx, w, h, pl) => {
+      ctx.strokeStyle = pl.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(px(v, -1.6), py(v, 0)); ctx.lineTo(px(v, 1.9), py(v, 0)); ctx.moveTo(px(v, 0), py(v, -1.45)); ctx.lineTo(px(v, 0), py(v, 1.45)); ctx.strokeStyle = pl.muted; ctx.stroke();
+      // Quadrant letters.
+      ctx.font = '600 14px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      [['A', 0.75, 0.75, 1], ['S', -0.75, 0.75, 2], ['T', -0.75, -0.75, 3], ['C', 0.75, -0.75, 4]].forEach(([t, x, y, k]) => { ctx.fillStyle = qd.q === k ? pl.good : pl.line; ctx.fillText(String(t), px(v, +x), py(v, +y)); });
+      ctx.strokeStyle = pl.ink; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(px(v, 0), py(v, 0), px(v, 1) - px(v, 0), 0, 2 * Math.PI); ctx.stroke();
+      // Angle arc.
+      ctx.strokeStyle = pl.muted; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(px(v, 0), py(v, 0), 18, 0, -norm360(d) * D, true); ctx.stroke();
+      // tan on x = 1.
+      line(ctx, v, 1, -1.45, 1, 1.45, pl.line, 1, [3, 3]);
+      if (Math.abs(c) > 1e-9 && Math.abs(tn) < 50) { line(ctx, v, 0, 0, 1, tn, pl.good, 1.2, [4, 3]); line(ctx, v, 1, 0, 1, tn, pl.good, 3); dot(ctx, v, 1, tn, pl.good, 4); label(ctx, v, 1, tn, 'tan θ', pl.good, 6, 4); }
+      line(ctx, v, 0, 0, c, s, pl.ink, 1.6);
+      line(ctx, v, 0, 0, c, 0, pl.accent2, 3.5); line(ctx, v, c, 0, c, s, pl.accent, 3.5);
+      dot(ctx, v, c, s, pl.ink, 8, false, pl.bg);
+      label(ctx, v, c / 2, 0, 'cos θ', pl.accent2, 0, s >= 0 ? 16 : -6, 'center');
+      label(ctx, v, c, s / 2, 'sin θ', pl.accent, c >= 0 ? 6 : -6, 6, c >= 0 ? 'left' : 'right');
+      ctx.font = FONT; ctx.fillStyle = pl.ink; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.fillText(`P = (cos θ, sin θ) = (${fmt(c, 3)}, ${fmt(s, 3)})`, 8, 6);
+    } };
+    const cv = q<HTMLCanvasElement>('.uc-cfig'); paint(cv, fig, pal); (cv as unknown as { _v: typeof v })._v = v;
+    q('.uc-facts').replaceChildren(
+      fact('sin θ', ex ? ex.sin : fmt(s, 4), ex ? `≈ ${fmt(s, 4)}` : ''),
+      fact('cos θ', ex ? ex.cos : fmt(c, 4), ex ? `≈ ${fmt(c, 4)}` : ''),
+      fact('tan θ = sin θ / cos θ', ex ? ex.tan : Math.abs(c) < 1e-12 ? 'undefined' : fmt(tn, 4), ex && ex.tan !== 'undefined' ? `≈ ${fmt(tn, 4)}` : ''),
+      fact('Radians', radText(d), `${fmt(d, 1)} × π/180 = ${fmt(r, 4)}`),
+      fact('Quadrant', qd.q ? String(qd.q) : '–', qd.positive),
+      fact('Check: sin² + cos²', fmt(s * s + c * c, 6), 'always 1, by Pythagoras'),
+    );
+    // Waves, traced up to θ.
+    const show = { s: q<HTMLInputElement>('.uc-ss').checked, c: q<HTMLInputElement>('.uc-sc').checked, t: q<HTMLInputElement>('.uc-st').checked };
+    const wv = view(0, 4 * Math.PI, -2.2, 2.2, W, 200), tk = piTicks(0, 720, 90);
+    const wfig: Figure = { w: W, h: 200, alt: `sin, cos and tan traced from 0 to ${fmt(d, 1)}°`, draw: (ctx, w, h, pl) => {
+      axes(ctx, wv, pl, { xTicks: tk.t, xLabels: tk.l, yTicks: [-2, -1, 0, 1, 2] });
+      if (show.s) { curve(ctx, wv, Math.sin, pl.line, 1); curve(ctx, wv, Math.sin, pl.accent, 2.4, [], 0, r); dot(ctx, wv, r, s, pl.accent, 4.5); }
+      if (show.c) { curve(ctx, wv, Math.cos, pl.line, 1); curve(ctx, wv, Math.cos, pl.accent2, 2.4, [], 0, r); dot(ctx, wv, r, c, pl.accent2, 4.5); }
+      if (show.t) { curve(ctx, wv, Math.tan, pl.line, 1); curve(ctx, wv, Math.tan, pl.good, 2.4, [], 0, r); if (Math.abs(tn) < 2.2) dot(ctx, wv, r, tn, pl.good, 4.5); }
+      line(ctx, wv, r, -2.2, r, 2.2, pl.muted, 1, [2, 3]);
+    } };
+    paint(q<HTMLCanvasElement>('.uc-wfig'), wfig, pal);
+  }
+
+  function drawWave() {
+    const pal = pagePalette(), a = +q<HTMLInputElement>('.uc-a').value, b = +q<HTMLInputElement>('.uc-b').value, ck = +q<HTMLInputElement>('.uc-c').value, d = +q<HTMLInputElement>('.uc-d').value;
+    const c = (ck * Math.PI) / 6, w = waveShape(a, b, c, d), g = base === 'sin' ? Math.sin : Math.cos;
+    q('.uc-av').textContent = fmt(a); q('.uc-bv').textContent = fmt(b); q('.uc-cv').textContent = piFraction(ck * 30); q('.uc-dv').textContent = fmt(d);
+    const sg = (x: number, t: string) => (x < 0 ? ` − ${t}` : ` + ${t}`);
+    const eq = `y = ${a === 1 ? '' : a === -1 ? '−' : fmt(a)}${base}(${b === 1 ? '' : fmt(b)}x${ck ? sg(ck, piFraction(Math.abs(ck) * 30)) : ''})${d ? sg(d, fmt(Math.abs(d))) : ''}`;
+    q('.uc-wtitle').textContent = eq;
+    const v = view(-2 * Math.PI, 2 * Math.PI, -5.5, 5.5, W, 260), tk = piTicks(-360, 360, 90);
+    const fig: Figure = { w: W, h: 260, alt: `Graph of ${eq} with ${base} x for comparison`, draw: (ctx, ww, h, pl) => {
+      axes(ctx, v, pl, { xTicks: tk.t, xLabels: tk.l, yTicks: [-4, -2, 0, 2, 4] });
+      curve(ctx, v, g, pl.line, 1.5);
+      line(ctx, v, v.x0, w.max, v.x1, w.max, pl.muted, 1, [2, 4]); line(ctx, v, v.x0, w.min, v.x1, w.min, pl.muted, 1, [2, 4]); line(ctx, v, v.x0, d, v.x1, d, pl.accent2, 1, [6, 4]);
+      curve(ctx, v, (x) => a * g(b * x + c) + d, pl.accent, 2.6);
+      // One period marked from the shift.
+      const x0 = w.shift; line(ctx, v, x0, d, x0 + w.period, d, pl.accent2, 3); dot(ctx, v, x0, d, pl.accent2, 3.5); dot(ctx, v, x0 + w.period, d, pl.accent2, 3.5);
+    } };
+    paint(q<HTMLCanvasElement>('.uc-tfig'), fig, pal);
+    const per = (w.period / Math.PI);
+    q('.uc-wfacts').replaceChildren(
+      fact('Amplitude |a|', fmt(w.amplitude), w.flipped ? 'a < 0 flips the wave upside down' : 'half the height from top to bottom'),
+      fact('Period 2π/b', `${fmt(per, 3)}π`, `≈ ${fmt(w.period, 3)}; ${fmt(b)} wave${b === 1 ? '' : 's'} in every 2π`),
+      fact('Phase shift −c/b', ck ? `${w.shift < 0 ? 'left' : 'right'} by ${fmt(Math.abs(w.shift / Math.PI), 3)}π` : 'none', ck ? `≈ ${fmt(Math.abs(w.shift), 3)}` : 'c = 0'),
+      fact('Middle line y = d', fmt(d), 'dashed orange'),
+      fact('Range', `[${fmt(w.min)}, ${fmt(w.max)}]`, 'lowest and highest y'),
+    );
+  }
+
+  function drawInv() {
+    const pal = pagePalette(), k = ik, I = INV[k], xIn = q<HTMLInputElement>('.uc-x');
+    if (k === 'atan') { xIn.min = '-4'; xIn.max = '4'; } else { xIn.min = '-1'; xIn.max = '1'; if (Math.abs(+xIn.value) > 1) xIn.value = '0.5'; }
+    const x = +xIn.value, pv = principal(k, x), th = +q<HTMLInputElement>('.uc-any').value, back = backAgain(k, th);
+    q('.uc-xv').textContent = fmt(x, 2); q('.uc-anyv').textContent = `${th}°`;
+    q('.uc-ititle').textContent = `y = ${I.name} x: reflect the principal branch of ${I.of} x`;
+    const f = k === 'asin' ? Math.sin : k === 'acos' ? Math.cos : Math.tan, inv = k === 'asin' ? Math.asin : k === 'acos' ? Math.acos : Math.atan;
+    const lo = I.range[0] * D, hi = I.range[1] * D;
+    const v = view(-4, 4, -3.4, 3.6, W, 300);
+    const fig: Figure = { w: W, h: 300, alt: `${I.name}: the principal branch of ${I.of} and its reflection in y = x`, draw: (ctx, w, h, pl) => {
+      axes(ctx, v, pl, { xName: 'x', yName: 'y' });
+      line(ctx, v, -4, -4, 4, 4, pl.muted, 1, [4, 4]); label(ctx, v, 3, 3, 'y = x', pl.muted, 4, 12);
+      curve(ctx, v, f, pl.line, 1.4);
+      curve(ctx, v, f, pl.accent, 3, [], lo + (k === 'atan' ? 0.02 : 0), hi - (k === 'atan' ? 0.02 : 0));
+      curve(ctx, v, inv, pl.accent2, 3, [], k === 'atan' ? -4 : -1, k === 'atan' ? 4 : 1);
+      if (Number.isFinite(pv)) { const y = pv * D; dot(ctx, v, x, y, pl.accent2, 5.5, false, pl.bg); dot(ctx, v, y, x, pl.accent, 5.5, false, pl.bg); line(ctx, v, x, y, y, x, pl.muted, 1, [2, 3]); }
+    } };
+    paint(q<HTMLCanvasElement>('.uc-ifig'), fig, pal);
+    const ex = exact(th), val = k === 'asin' ? Math.sin(th * D) : k === 'acos' ? Math.cos(th * D) : Math.tan(th * D);
+    const exVal = ex ? (k === 'asin' ? ex.sin : k === 'acos' ? ex.cos : ex.tan) : fmt(val, 4);
+    q('.uc-ifacts').replaceChildren(
+      fact(`${I.name}(${fmt(x, 2)})`, Number.isFinite(pv) ? `${fmt(pv, 2)}°` : 'undefined', Number.isFinite(pv) ? `= ${fmt(pv * D, 4)} rad` : 'outside the domain'),
+      fact('Domain', I.domainText, `the x values ${I.name} accepts`),
+      fact('Principal range', I.rangeText, `${I.range[0]}° to ${I.range[1]}°`),
+      fact(`${I.name}(${I.of} ${th}°)`, exVal === 'undefined' ? 'undefined' : `${fmt(back, 2)}°`, exVal === 'undefined' ? `${I.of} ${th}° is undefined` : `${I.of} ${th}° = ${exVal}; ${Math.abs(back - th) < 1e-6 ? 'θ is already in the principal range' : 'not θ: the answer must lie in the principal range'}`),
+    );
+  }
+
+  function draw() {
+    q('.uc-circle').hidden = mode !== 'circle'; q('.uc-wave').hidden = mode !== 'wave'; q('.uc-inv').hidden = mode !== 'inv';
+    if (mode === 'circle') drawCircle(); else if (mode === 'wave') drawWave(); else drawInv();
+  }
+  const setDeg = (d: number) => { thIn.value = String(Math.min(720, Math.max(0, d))); q<HTMLInputElement>('.uc-deg').value = unit === 'deg' ? fmt(+thIn.value, 2).replace('−', '-') : fmt(+thIn.value * D, 4).replace('−', '-'); q('.uc-err').hidden = true; };
+  thIn.addEventListener('input', () => { setDeg(+thIn.value); draw(); });
+  q('.uc-deg').addEventListener('input', () => {
+    let v = readAnswer(q<HTMLInputElement>('.uc-deg').value.replace(/π/g, 'pi').replace(/(\d)\s*pi/g, '$1*pi'));
+    if (!Number.isFinite(v)) { q('.uc-err').textContent = unit === 'deg' ? 'Type an angle in degrees, such as 135.' : 'Type an angle in radians, such as 2.356 or 3π/4.'; q('.uc-err').hidden = false; return; }
+    if (unit === 'rad') v /= D;
+    if (v < 0 || v > 720) { q('.uc-err').textContent = 'Use an angle from 0° to 720° (two full turns).'; q('.uc-err').hidden = false; return; }
+    q('.uc-err').hidden = true; thIn.value = String(v); draw();
+  });
+  seg('.uc-mode', (b) => { mode = b.dataset.m!; });
+  seg('.uc-unit', (b) => { unit = b.dataset.u!; setDeg(+thIn.value); });
+  seg('.uc-base', (b) => { base = b.dataset.b!; });
+  seg('.uc-ik', (b) => { ik = b.dataset.k as Inv; });
+  root.querySelectorAll('.uc-show input, .uc-a, .uc-b, .uc-c, .uc-d, .uc-x, .uc-any').forEach((e) => e.addEventListener('input', draw));
+  const cv = q<HTMLCanvasElement>('.uc-cfig');
+  const move = (e: PointerEvent) => {
+    if (!dragging) return;
+    const v = (cv as unknown as { _v: Parameters<typeof wx>[0] })._v, { X, Y } = pointer(cv, e, W, 300);
+    let d = norm360(Math.atan2(wy(v, Y), wx(v, X)) / D);
+    const prev = +thIn.value; if (prev >= 360) d += 360; // stay on the second turn when there
+    if (q<HTMLInputElement>('.uc-snap').checked) d = Math.round(d / 15) * 15;
+    setDeg(d); draw();
+  };
+  cv.addEventListener('pointerdown', (e) => { dragging = true; cv.setPointerCapture(e.pointerId); move(e); });
+  cv.addEventListener('pointermove', move);
+  cv.addEventListener('pointerup', () => { dragging = false; }); cv.addEventListener('pointercancel', () => { dragging = false; });
+  document.addEventListener('fibub:theme', draw);
+  draw();
+
+  quiz(q('.uc-quiz'), (): Question[] => {
+    const d1 = pick([30, 45, 60, 120, 135, 150, 210, 225, 240, 300, 315, 330]), f1 = pick(['sin', 'cos']);
+    const v1 = f1 === 'sin' ? Math.sin(d1 * D) : Math.cos(d1 * D), e1 = exact(d1)!;
+    const d2 = pick([15, 36, 72, 108, 135, 210, 270, 330]);
+    const b = pick([2, 3, 4]), a = rint(2, 5), dd = rint(-3, 3);
+    const d4 = pick([120, 135, 150]);
+    const d5 = pick([100, 200, 300]);
+    return [
+      { text: `What is ${f1} ${d1}°? (a decimal or something like sqrt(3)/2)`, answer: v1, tol: 0.002, worked: `${d1}° is in quadrant ${quadrant(d1).q}, where ${quadrant(d1).positive.toLowerCase()} positive. The reference angle gives ${f1} ${d1}° = ${f1 === 'sin' ? e1.sin : e1.cos} ≈ ${fmt(v1, 4)}.` },
+      { text: `Write ${d2}° in radians as a decimal (or like 3*pi/4).`, answer: d2 * D, tol: 0.002, worked: `Multiply by π/180: ${d2} × π/180 = ${piFraction(d2)} ≈ ${fmt(d2 * D, 4)}.` },
+      { text: `What is the period of y = ${a} sin(${b}x) ${dd < 0 ? '−' : '+'} ${Math.abs(dd)}? (use pi for π)`, answer: (2 * Math.PI) / b, tol: 0.002, worked: `Period = 2π/b = 2π/${b} = ${piFraction(360 / b)} ≈ ${fmt((2 * Math.PI) / b, 4)}. The ${a} and ${dd} change the height, not the period.` },
+      { text: `What is sin⁻¹(sin ${d4}°), in degrees?`, answer: 180 - d4, tol: 0.01, worked: `sin ${d4}° = sin ${180 - d4}°, and the principal range of sin⁻¹ is −90° to 90°, so the answer is ${180 - d4}°, not ${d4}°.` },
+      { text: `In which quadrant is ${d5}°, and which ratio is positive there?`, choices: ['Q2: sin', 'Q3: tan', 'Q4: cos'], correct: d5 === 100 ? 0 : d5 === 200 ? 1 : 2, worked: `${d5}° is in quadrant ${quadrant(d5).q}: ${quadrant(d5).positive}. Remember All, Sin, Tan, Cos going anticlockwise from the first quadrant.` },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .ucl .uc-sl { display: grid; gap: 4px; color: var(--ink); font-size: 15px; margin-top: 10px; }
+  .ucl .uc-sl input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .ucl canvas.uc-cfig { touch-action: none; cursor: grab; max-width: 420px; margin: 0 auto; }
+  .ucl .uc-dl { max-width: 160px; }
+  .ucl .ax-row { margin-top: 10px; }
+  .ucl .ax-seg button { min-height: 40px; }
+  .ucl .uc-ik { margin-bottom: 10px; }
+  .ucl h3 { margin: 16px 0 6px; font-size: 16px; }
+  .ucl .uc-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+  .ucl .uc-facts, .ucl .uc-wfacts, .ucl .uc-ifacts { margin-top: 12px; }
+</style>

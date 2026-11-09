@@ -1,0 +1,393 @@
+---
+// Motion graphs live: a car on a straight road, its x-t, v-t and a-t graphs, slope and area readouts,
+// slider driving and a match-the-graph challenge. Maths in src/lib/sci/motion-graphs.ts.
+import '../../styles/astro.css';
+---
+<div class="ax mg">
+  <div class="ax-card">
+    <div class="ax-row mg-top">
+      <span class="mg-lab">Level</span>
+      <div class="ax-seg mg-level" role="group" aria-label="Level">
+        <button type="button" data-l="9" aria-pressed="true">Class 9</button>
+        <button type="button" data-l="11" aria-pressed="false">Class 11</button>
+      </div>
+    </div>
+    <div class="ax-seg mg-mode" role="group" aria-label="What moves the car">
+      <button type="button" data-m="story" aria-pressed="true">Stories</button>
+      <button type="button" data-m="drive" aria-pressed="false">Drive it</button>
+      <button type="button" data-m="match" aria-pressed="false">Match the graph</button>
+    </div>
+
+    <div class="mg-p mg-p-story">
+      <label>Motion <select class="mg-story">
+        <option value="steady">Steady walk (1.5 m/s)</option>
+        <option value="speeding">Speeding up (0.5 m/s²)</option>
+        <option value="braking">Braking to a stop</option>
+        <option value="stopgo" selected>Stop and go</option>
+        <option value="outback">Out and back (rolls up a slope, then back)</option>
+        <option value="custom">Make your own</option>
+      </select></label>
+      <div class="mg-custom" hidden>
+        <label>Starting velocity u: <b class="mg-uv">2 m/s</b><input class="mg-u" type="range" min="-4" max="4" step="0.5" value="2" /></label>
+        <label>Acceleration from 0 to 4 s: <b class="mg-a1v">0 m/s²</b><input class="mg-a1" type="range" min="-2" max="2" step="0.25" value="0" /></label>
+        <label>Acceleration from 4 to 8 s: <b class="mg-a2v">0.5 m/s²</b><input class="mg-a2" type="range" min="-2" max="2" step="0.25" value="0.5" /></label>
+        <label>Acceleration from 8 to 12 s: <b class="mg-a3v">−1 m/s²</b><input class="mg-a3" type="range" min="-2" max="2" step="0.25" value="-1" /></label>
+      </div>
+    </div>
+
+    <div class="mg-p mg-p-drive" hidden>
+      <label>Velocity you ask for: <b class="mg-dvv">0 m/s</b><input class="mg-dv" type="range" min="-3" max="3" step="0.5" value="0" /></label>
+      <p class="ax-help">Press Start, then move the slider while the clock runs for 12 s. The car speeds up or slows down at up to 2 m/s² to reach the velocity you ask for. Negative means backwards (to the left).</p>
+      <div class="ax-row"><button type="button" class="btn small mg-go">Start</button></div>
+    </div>
+
+    <div class="mg-p mg-p-match" hidden>
+      <p class="ax-help">The dashed line on the x-t graph is the target. Set the slider to the starting slope, press Start, and use the slider to make the car's x-t graph follow the target for 12 s. A flat part means stand still; a steeper part means go faster.</p>
+      <label>Velocity you ask for: <b class="mg-mvv">0 m/s</b><input class="mg-mv" type="range" min="-3" max="3" step="0.5" value="0" /></label>
+      <div class="ax-row"><button type="button" class="btn small mg-mgo">Start</button><button type="button" class="btn secondary small mg-show">Show me</button><button type="button" class="btn secondary small mg-new">New target</button></div>
+      <p class="mg-score" aria-live="polite"></p>
+    </div>
+
+    <canvas class="mg-road" aria-label="The car on a straight road"></canvas>
+    <label class="mg-tl">Look at time t = <b class="mg-tv">4 s</b><input class="mg-t" type="range" min="0" max="12" step="0.1" value="4" /></label>
+    <div class="ax-row"><button type="button" class="btn secondary small mg-play">Play</button><span class="ax-help mg-hint">Drag along the graphs to move through time.</span></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Graphs</h2>
+    <canvas class="mg-g" aria-label="Position, velocity and acceleration against time"></canvas>
+    <div class="ax-legend"><span><i class="mg-k1"></i>The motion</span><span><i class="mg-k2"></i>Shaded: area under the v-t graph (displacement)</span><span class="mg-k3w" hidden><i class="mg-k3"></i>Tangent: slope = velocity</span><span class="mg-k4w" hidden><i class="mg-k4"></i>Target</span></div>
+    <dl class="ax-facts mg-facts"></dl>
+    <div class="mg-eq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="mg-try">
+      <li><b>Steady walk:</b> the x-t graph is a straight line. Its slope (rise ÷ run) is the speed, so the v-t graph is flat.</li>
+      <li><b>Speeding up:</b> the x-t graph curves upwards. The v-t graph is a sloping line: its slope is the acceleration.</li>
+      <li><b>Braking:</b> drag the time to 8 s. The car has stopped, so the x-t graph goes flat and the shaded area stops growing.</li>
+      <li><b>Out and back:</b> at 12 s the car is back where it started. Displacement is 0, but the distance travelled is 36 m. Below the axis, area counts as negative.</li>
+      <li><b>Drive it:</b> try to draw a straight sloping x-t line, then a flat one. What does the v-t graph look like when you stand still?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="mg-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { STORIES, at, sample, distance, displacement, driveStep, randomTarget, targetX, matchScore, questions, total, type Story } from '../../lib/sci/motion-graphs';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { pagePalette, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.mg')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const rng = (c: string) => q<HTMLInputElement>(c);
+  const T_END = 12, DT = 0.05;
+  const f = (x: number, d = 2) => { const r = Math.round(x * 10 ** d) / 10 ** d; return (Object.is(r, -0) ? 0 : r).toFixed(d).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '').replace('-', '−'); };
+
+  let level: 9 | 11 = 9, mode: 'story' | 'drive' | 'match' = 'story';
+  // The track being shown: samples every DT seconds (recorded while driving), or an exact story.
+  let story: Story | null = null;
+  let rec = { t: [] as number[], x: [] as number[], v: [] as number[], a: [] as number[] };
+  let target = randomTarget();
+  let tNow = 4, running = false, playing = false, auto = false, raf = 0;
+
+  function customStory(): Story {
+    const u = Number(rng('.mg-u').value), a = ['.mg-a1', '.mg-a2', '.mg-a3'].map((c) => Number(rng(c).value));
+    q('.mg-uv').textContent = `${f(u)} m/s`;
+    ['.mg-a1v', '.mg-a2v', '.mg-a3v'].forEach((c, i) => { q(c).textContent = `${f(a[i])} m/s²`; });
+    return { x0: 0, v0: u, phases: a.map((ai) => ({ dur: 4, a: ai })) };
+  }
+  function loadStory() {
+    const k = q<HTMLSelectElement>('.mg-story').value;
+    q('.mg-custom').hidden = k !== 'custom';
+    story = k === 'custom' ? customStory() : STORIES[k].story;
+  }
+  const tEnd = () => (story ? total(story) : rec.t.length ? rec.t[rec.t.length - 1] : 0);
+
+  // State at time t, from the exact story or by interpolating the recording.
+  function stateAt(t: number) {
+    if (story) return at(story, t);
+    const n = rec.t.length;
+    if (!n) return { x: mode === 'match' ? target.x0 : 0, v: 0, a: 0 };
+    const i = Math.min(n - 1, Math.max(0, Math.round(t / DT)));
+    return { x: rec.x[i], v: rec.v[i], a: rec.a[i] };
+  }
+  function moved(t: number) {
+    if (story) return { disp: displacement(story, 0, t), dist: distance(story, 0, t) };
+    const n = Math.min(rec.t.length - 1, Math.round(t / DT));
+    let d = 0; for (let i = 1; i <= n; i++) d += Math.abs(rec.x[i] - rec.x[i - 1]);
+    return { disp: n >= 0 ? rec.x[Math.max(0, n)] - rec.x[0] : 0, dist: d };
+  }
+  function track() { return story ? sample(story, 240) : rec; }
+
+  // ---- drawing ------------------------------------------------------------------------------------
+  function setup(c: HTMLCanvasElement, h: number) {
+    const w = Math.max(260, Math.round(c.clientWidth || c.parentElement!.clientWidth || 320)), dpr = Math.min(3, window.devicePixelRatio || 1);
+    c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c.style.height = `${h}px`;
+    const ctx = c.getContext('2d')!; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w };
+  }
+  const nice = (span: number) => { const p = 10 ** Math.floor(Math.log10(span / 4)), m = span / 4 / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; };
+
+  function drawRoad(pal: Palette) {
+    const c = q<HTMLCanvasElement>('.mg-road'), { ctx, w } = setup(c, 96);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, 96);
+    const tr = track();
+    let lo = Math.min(0, ...tr.x), hi = Math.max(10, ...tr.x);
+    if (mode === 'match') { lo = Math.min(lo, 0); hi = Math.max(hi, 20); }
+    if (mode === 'drive') { lo = Math.min(lo, -10); hi = Math.max(hi, 10); }
+    const pad = 22, X = (x: number) => pad + ((x - lo) / (hi - lo)) * (w - 2 * pad), yR = 66;
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(pad - 10, yR); ctx.lineTo(w - pad + 10, yR); ctx.stroke();
+    const st = nice(hi - lo);
+    ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 1; ctx.strokeStyle = pal.muted;
+    for (let x = Math.ceil(lo / st) * st; x <= hi + 1e-9; x += st) { ctx.beginPath(); ctx.moveTo(X(x), yR); ctx.lineTo(X(x), yR + 5); ctx.stroke(); ctx.fillText(`${f(x)} m`, X(x), yR + 18); }
+    const s = stateAt(tNow), cx = X(s.x);
+    // car body and wheels
+    ctx.fillStyle = pal.ink; ctx.fillRect(cx - 16, yR - 20, 32, 12); ctx.fillRect(cx - 9, yR - 28, 18, 9);
+    ctx.fillStyle = pal.bg; ctx.strokeStyle = pal.ink; ctx.lineWidth = 2;
+    for (const dx of [-9, 9]) { ctx.beginPath(); ctx.arc(cx + dx, yR - 6, 4.5, 0, 7); ctx.fill(); ctx.stroke(); }
+    // velocity arrow
+    if (Math.abs(s.v) > 0.01) {
+      const L = Math.sign(s.v) * Math.min(80, 8 + Math.abs(s.v) * 14), y = 14;
+      ctx.strokeStyle = pal.accent; ctx.fillStyle = pal.accent; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(cx, y); ctx.lineTo(cx + L, y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx + L + Math.sign(L) * 7, y); ctx.lineTo(cx + L, y - 5); ctx.lineTo(cx + L, y + 5); ctx.fill();
+      ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = L > 0 ? 'left' : 'right'; ctx.fillText(`${f(s.v, 1)} m/s`, cx + L + Math.sign(L) * 10, y + 4);
+    }
+  }
+
+  function drawGraphs(pal: Palette) {
+    const panels = level === 11 ? 3 : 2, ph = 132, gap = 14, H = panels * ph + (panels - 1) * gap;
+    const c = q<HTMLCanvasElement>('.mg-g'), { ctx, w } = setup(c, H);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, H);
+    const tr = track(), L = 46, R = 10, TT = T_END;
+    const X = (t: number) => L + (t / TT) * (w - L - R);
+    const s = stateAt(tNow);
+    const defs: { key: 'x' | 'v' | 'a'; label: string; unit: string }[] = [{ key: 'x', label: 'x (m)', unit: 'm' }, { key: 'v', label: 'v (m/s)', unit: 'm/s' }, { key: 'a', label: 'a (m/s²)', unit: 'm/s²' }];
+    defs.slice(0, panels).forEach((d, pi) => {
+      const top = pi * (ph + gap) + 6, bot = top + ph - 26;
+      let vals = tr[d.key].slice();
+      if (d.key === 'x' && mode === 'match') for (let i = 0; i <= 48; i++) vals.push(targetX(target.x0, target.vs, i / 4));
+      let lo = Math.min(0, ...vals), hi = Math.max(0, ...vals);
+      if (d.key === 'x') { if (mode === 'drive') { lo = Math.min(lo, -10); hi = Math.max(hi, 10); } hi = Math.max(hi, lo + 4); }
+      else { lo = Math.min(lo, -1); hi = Math.max(hi, 1); }
+      const padv = (hi - lo) * 0.08; lo -= padv; hi += padv;
+      const Y = (v: number) => bot - ((v - lo) / (hi - lo)) * (bot - top);
+      // grid and labels
+      ctx.font = '11px system-ui, sans-serif'; ctx.lineWidth = 1;
+      const st = nice(hi - lo);
+      ctx.textAlign = 'right'; ctx.fillStyle = pal.muted;
+      for (let v = Math.ceil(lo / st) * st; v <= hi; v += st) { ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(L, Y(v)); ctx.lineTo(w - R, Y(v)); ctx.stroke(); ctx.fillText(f(v), L - 5, Y(v) + 4); }
+      ctx.textAlign = 'center';
+      for (let t = 0; t <= TT; t += 2) { ctx.fillText(String(t), X(t), bot + 13); }
+      ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(L, top); ctx.lineTo(L, bot); ctx.moveTo(L, Y(0)); ctx.lineTo(w - R, Y(0)); ctx.stroke();
+      ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.font = '600 12px system-ui, sans-serif'; ctx.fillText(d.label, L + 6, top + 11);
+      ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.fillText('t (s)', w - R, bot + 24);
+      // shaded area under v-t (and a-t at Class 11) from 0 to t
+      if (d.key !== 'x' && tr.t.length) {
+        ctx.save(); ctx.globalAlpha = pal.red ? 0.45 : 0.22; ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.moveTo(X(0), Y(0));
+        for (let i = 0; i < tr.t.length && tr.t[i] <= tNow + 1e-9; i++) ctx.lineTo(X(tr.t[i]), Y(tr[d.key][i]));
+        const sv = d.key === 'v' ? s.v : s.a;
+        ctx.lineTo(X(tNow), Y(sv)); ctx.lineTo(X(tNow), Y(0)); ctx.closePath(); ctx.fill(); ctx.restore();
+      }
+      // target (match)
+      if (d.key === 'x' && mode === 'match') {
+        ctx.save(); ctx.setLineDash([6, 5]); ctx.strokeStyle = pal.accent2; ctx.lineWidth = 2.5; ctx.beginPath();
+        for (let i = 0; i <= 48; i++) { const t = i / 4, y = Y(targetX(target.x0, target.vs, t)); i ? ctx.lineTo(X(t), y) : ctx.moveTo(X(t), y); }
+        ctx.stroke(); ctx.restore();
+      }
+      // the motion
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 2.2; ctx.beginPath();
+      tr.t.forEach((t, i) => { const y = Y(tr[d.key][i]); i ? ctx.lineTo(X(t), y) : ctx.moveTo(X(t), y); });
+      ctx.stroke();
+      // tangent on x-t (Class 11)
+      if (d.key === 'x' && level === 11 && tr.t.length) {
+        const h = 1.5; ctx.save(); ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.8; ctx.setLineDash([4, 3]); ctx.beginPath();
+        ctx.moveTo(X(Math.max(0, tNow - h)), Y(s.x - s.v * Math.min(h, tNow))); ctx.lineTo(X(Math.min(TT, tNow + h)), Y(s.x + s.v * Math.min(h, TT - tNow))); ctx.stroke(); ctx.restore();
+      }
+      // cursor
+      if (tr.t.length || story) {
+        const val = d.key === 'x' ? s.x : d.key === 'v' ? s.v : s.a;
+        ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(tNow), top); ctx.lineTo(X(tNow), bot); ctx.stroke();
+        ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(X(tNow), Y(val), 4.5, 0, 7); ctx.fill();
+      }
+    });
+    c.setAttribute('aria-label', `Graphs at t = ${f(tNow, 1)} s: x = ${f(s.x)} m, v = ${f(s.v)} m/s${level === 11 ? `, a = ${f(s.a)} m/s²` : ''}`);
+  }
+
+  function fact(k: string, v: string, sm = '') {
+    const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd');
+    dt.textContent = k; dd.textContent = v;
+    if (sm) { const e = document.createElement('small'); e.textContent = sm; dd.append(e); }
+    d.append(dt, dd); return d;
+  }
+  function line(html: [string, string][]) { const p = document.createElement('p'); for (const [tag, txt] of html) { if (tag) { const e = document.createElement(tag); e.textContent = txt; p.append(e); } else p.append(txt); } return p; }
+
+  function readouts() {
+    const s = stateAt(tNow), m = moved(tNow), t = tNow;
+    const hasData = !!story || rec.t.length > 0;
+    q('.mg-tv').textContent = `${f(t, 1)} s`;
+    const facts = [
+      fact('Time', `${f(t, 1)} s`),
+      fact('Position x', `${f(s.x)} m`),
+      fact('Velocity v', `${f(s.v)} m/s`, 'slope of the x-t graph'),
+      fact('Acceleration a', `${f(s.a)} m/s²`, 'slope of the v-t graph'),
+      fact('Displacement from t = 0', `${f(m.disp)} m`, 'area under the v-t graph'),
+      fact('Distance travelled', `${f(m.dist)} m`, 'counts backwards motion too'),
+    ];
+    q('.mg-facts').replaceChildren(...(hasData ? facts : [fact('Time', '0 s', 'press Start')]));
+    const eq: HTMLElement[] = [];
+    if (hasData && t > 0) {
+      eq.push(line([['b', 'Average velocity'], ['', ` = displacement ÷ time = ${f(m.disp)} m ÷ ${f(t, 1)} s = ${f(m.disp / t)} m/s`]]));
+      eq.push(line([['b', 'Average speed'], ['', ` = distance ÷ time = ${f(m.dist)} m ÷ ${f(t, 1)} s = ${f(m.dist / t)} m/s`]]));
+    }
+    if (hasData && level === 11) {
+      eq.push(line([['b', 'v = dx/dt'], ['', `: the slope of the tangent to the x-t graph at t = ${f(t, 1)} s is ${f(s.v)} m/s.`]]));
+      eq.push(line([['b', 'a = dv/dt'], ['', ` = ${f(s.a)} m/s², and `], ['b', 'x − x₀ = ∫ v dt'], ['', ` from 0 to ${f(t, 1)} s = ${f(m.disp)} m.`]]));
+      eq.push(line([['b', 'Δv = ∫ a dt'], ['', ` = area under the a-t graph = ${f(s.v - stateAt(0).v)} m/s.`]]));
+    }
+    q('.mg-eq').replaceChildren(...eq);
+    q('.mg-k3w').hidden = level !== 11; q('.mg-k4w').hidden = mode !== 'match';
+  }
+
+  function draw() { const pal = pagePalette(); drawRoad(pal); drawGraphs(pal); readouts(); }
+
+  // ---- time cursor and play -------------------------------------------------------------------------
+  function setT(t: number) { tNow = Math.max(0, Math.min(tEnd(), t)); rng('.mg-t').value = String(Math.round(tNow * 10) / 10); draw(); }
+  rng('.mg-t').addEventListener('input', () => { if (!running) setT(Number(rng('.mg-t').value)); });
+  q('.mg-play').addEventListener('click', () => {
+    if (running) return;
+    if (playing) { playing = false; q('.mg-play').textContent = 'Play'; return; }
+    if (tNow >= tEnd() - 1e-6) tNow = 0;
+    playing = true; q('.mg-play').textContent = 'Pause';
+    let last = performance.now();
+    const step = (now: number) => {
+      if (!playing) return;
+      const dt = Math.min(0.1, (now - last) / 1000); last = now;
+      setT(tNow + dt);
+      if (tNow >= tEnd() - 1e-6) { playing = false; q('.mg-play').textContent = 'Play'; return; }
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+  const gc = q<HTMLCanvasElement>('.mg-g');
+  const fromPointer = (e: PointerEvent) => { if (running) return; const r = gc.getBoundingClientRect(), L = 46, R = 10; setT(Math.round(((e.clientX - r.left - L) / (r.width - L - R)) * T_END * 10) / 10); };
+  gc.addEventListener('pointerdown', (e) => { gc.setPointerCapture(e.pointerId); fromPointer(e); });
+  gc.addEventListener('pointermove', (e) => { if (e.buttons) fromPointer(e); });
+
+  // ---- driving (Drive it and Match the graph) -----------------------------------------------------
+  function startDrive() {
+    if (running) return;
+    playing = false; q('.mg-play').textContent = 'Play';
+    story = null; running = true;
+    const slider = rng(mode === 'match' ? '.mg-mv' : '.mg-dv'), maxA = mode === 'match' ? 4 : 2;
+    if (auto) { slider.value = String(target.vs[0]); showSliders(); }
+    // Match the graph starts at the slider's velocity (set it before Start); Drive it starts from rest.
+    const x0 = mode === 'match' ? target.x0 : 0, v0 = mode === 'match' ? Number(slider.value) : 0;
+    rec = { t: [0], x: [x0], v: [v0], a: [0] };
+    let st = { x: x0, v: v0, a: 0 }, t = 0, acc = 0, last = performance.now();
+    q('.mg-score').textContent = '';
+    for (const b of root.querySelectorAll<HTMLButtonElement>('.mg-go, .mg-mgo')) { b.disabled = true; b.textContent = 'Driving…'; }
+    const tick = (now: number) => {
+      if (!running) return;
+      acc += Math.min(0.25, (now - last) / 1000); last = now;
+      while (acc >= DT && t < T_END - 1e-9) {
+        if (auto) {
+          // Show me: switch to the next part's velocity half a speed-change early, so the position catches up exactly.
+          let part = Math.min(2, Math.floor((t + DT / 2) / 4));
+          if (part < 2) { const dv = Math.abs(target.vs[part + 1] - target.vs[part]); if (t + DT / 2 >= (part + 1) * 4 - dv / (2 * maxA)) part++; }
+          slider.value = String(target.vs[part]); showSliders();
+        }
+        st = driveStep(st, Number(slider.value), DT, maxA); t = Math.round((t + DT) * 1000) / 1000; acc -= DT;
+        rec.t.push(t); rec.x.push(st.x); rec.v.push(st.v); rec.a.push(st.a);
+      }
+      tNow = t; rng('.mg-t').value = String(Math.round(t * 10) / 10); draw();
+      if (t >= T_END - 1e-9) { finishDrive(); return; }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+  }
+  function finishDrive() {
+    running = false; auto = false;
+    for (const b of root.querySelectorAll<HTMLButtonElement>('.mg-go, .mg-mgo')) { b.disabled = false; b.textContent = 'Start again'; }
+    if (mode === 'match') {
+      const r = matchScore(target.x0, target.vs, rec.t, rec.x);
+      q('.mg-score').textContent = `Score ${r.score} out of 100 (average gap ${f(r.rms)} m). ${r.score >= 90 ? 'Great match!' : r.score >= 60 ? 'Close. Watch the steep parts.' : 'Keep trying: the slope of the target is the velocity to ask for.'}`;
+    }
+    draw();
+  }
+  function stopDrive() { running = false; auto = false; cancelAnimationFrame(raf); for (const b of root.querySelectorAll<HTMLButtonElement>('.mg-go, .mg-mgo')) { b.disabled = false; b.textContent = 'Start'; } }
+  function showSliders() { q('.mg-dvv').textContent = `${f(Number(rng('.mg-dv').value))} m/s`; q('.mg-mvv').textContent = `${f(Number(rng('.mg-mv').value))} m/s`; }
+  rng('.mg-dv').addEventListener('input', showSliders); rng('.mg-mv').addEventListener('input', showSliders);
+  q('.mg-go').addEventListener('click', startDrive);
+  q('.mg-mgo').addEventListener('click', startDrive);
+  q('.mg-show').addEventListener('click', () => { if (running) return; auto = true; startDrive(); });
+  q('.mg-new').addEventListener('click', () => { if (running) return; target = randomTarget(); rec = { t: [], x: [], v: [], a: [] }; q('.mg-score').textContent = ''; tNow = 0; setT(0); });
+
+  // ---- level, mode, stories ---------------------------------------------------------------------------
+  root.querySelectorAll<HTMLButtonElement>('.mg-level button').forEach((b) => b.addEventListener('click', () => {
+    level = Number(b.dataset.l) as 9 | 11;
+    root.querySelectorAll('.mg-level button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    renderQuiz(); draw();
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.mg-mode button').forEach((b) => b.addEventListener('click', () => {
+    stopDrive(); playing = false; q('.mg-play').textContent = 'Play';
+    mode = b.dataset.m as typeof mode;
+    root.querySelectorAll('.mg-mode button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    for (const m of ['story', 'drive', 'match']) q(`.mg-p-${m}`).hidden = m !== mode;
+    if (mode === 'story') { loadStory(); setT(4); }
+    else { story = null; rec = { t: [], x: [], v: [], a: [] }; q('.mg-score').textContent = ''; tNow = 0; setT(0); }
+  }));
+  q('.mg-story').addEventListener('change', () => { loadStory(); setT(tNow); });
+  for (const c of ['.mg-u', '.mg-a1', '.mg-a2', '.mg-a3']) rng(c).addEventListener('input', () => { loadStory(); setT(tNow); });
+
+  // ---- check yourself ---------------------------------------------------------------------------------
+  let renderQuiz = () => {};
+  renderQuiz = mountQuiz(q('.mg-quiz'), () => questions(level));
+
+  loadStory(); setT(4);
+  document.addEventListener('fibub:theme', draw);
+  let rw = 0; new ResizeObserver(() => { const w = q('.mg-g').clientWidth; if (w !== rw) { rw = w; draw(); } }).observe(q('.mg-g'));
+</script>
+
+<style is:inline>
+  .mg .mg-top { margin-bottom: 10px; }
+  .mg .mg-lab { font-size: 14px; color: var(--muted); }
+  .mg .mg-mode { margin-bottom: 12px; }
+  .mg .ax-seg button { min-height: 44px; }
+  .mg .mg-p { display: grid; gap: 10px; margin-bottom: 12px; }
+  .mg .mg-p[hidden], .mg .mg-custom[hidden] { display: none; }
+  .mg .mg-custom { display: grid; gap: 10px; }
+  .mg input[type=range] { width: 100%; height: 32px; accent-color: var(--ink); }
+  .mg label b { color: var(--ink); }
+  .mg canvas { display: block; width: 100%; touch-action: pan-y; }
+  .mg .mg-road { margin: 6px 0 4px; }
+  .mg .mg-tl { margin-top: 4px; }
+  .mg .btn.small { min-height: 44px; }
+  .mg .mg-score { font-weight: 650; margin: 4px 0 0; }
+  .mg .mg-k1 { background: var(--ink); }
+  .mg .mg-k2 { background: #1f5fae; opacity: .35; }
+  .mg .mg-k3 { background: #1f5fae; }
+  .mg .mg-k4 { background: #c26a00; }
+  html[data-theme=dark] .mg .mg-k2, html[data-theme=dark] .mg .mg-k3 { background: #7fb2f0; }
+  html[data-theme=dark] .mg .mg-k4 { background: #f0b45a; }
+  html.red-mode .mg .mg-k2, html.red-mode .mg .mg-k3, html.red-mode .mg .mg-k4 { background: #a30000; }
+  .mg .mg-facts { margin-top: 12px; }
+  .mg .mg-eq p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .mg .mg-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>

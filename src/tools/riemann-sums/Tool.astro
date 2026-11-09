@@ -1,0 +1,252 @@
+---
+// Riemann sums to integral: left, right, midpoint and trapezium sums with an n slider and the error,
+// the antiderivative family F(x) + C, and the area between two curves. Class 12 maths, integrals.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax rms">
+  <div class="ax-card">
+    <div class="ax-seg rs-mode" role="group" aria-label="What to show">
+      <button type="button" data-m="sum" aria-pressed="true">Riemann sums</button><button type="button" data-m="anti" aria-pressed="false">Antiderivative + C</button><button type="button" data-m="area" aria-pressed="false">Area between curves</button>
+    </div>
+    <div class="ax-grid rs-in">
+      <label>Function f(x) <select class="rs-fn">
+        <option value="x2" selected>x²</option><option value="x3">x³ − 3x</option><option value="sin">sin x</option><option value="cos">cos x</option><option value="exp">eˣ</option><option value="sqrt">√x</option><option value="own">My own…</option>
+      </select></label>
+      <label class="rs-ownl" hidden>Type f(x) <input class="rs-own" type="text" value="4 - x^2" autocomplete="off" spellcheck="false" /></label>
+      <label class="rs-gl" hidden>Second curve g(x) <input class="rs-g" type="text" value="x" autocomplete="off" spellcheck="false" /></label>
+      <label class="rs-ab">From a <input class="rs-a" type="text" inputmode="decimal" value="0" /></label>
+      <label class="rs-ab">To b <input class="rs-b" type="text" inputmode="decimal" value="2" /></label>
+    </div>
+    <label class="ax-check rs-crossl" hidden><input type="checkbox" class="rs-cross" checked /> Use the points where the curves cross as a and b</label>
+    <p class="ax-err rs-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="rs-h"></h2>
+    <canvas class="ax-fig rs-fig" role="img"></canvas>
+    <div class="rs-sumc">
+      <div class="ax-seg rs-meth" role="group" aria-label="Kind of sum"><button type="button" data-k="left" aria-pressed="true">Left</button><button type="button" data-k="right" aria-pressed="false">Right</button><button type="button" data-k="mid" aria-pressed="false">Midpoint</button><button type="button" data-k="trap" aria-pressed="false">Trapezium</button></div>
+      <label class="rs-sl">Number of strips n = <b class="rs-nv"></b><input class="rs-n" type="range" min="1" max="100" value="4" /></label>
+    </div>
+    <div class="rs-antic" hidden>
+      <label class="rs-sl">Constant C = <b class="rs-cv"></b><input class="rs-c" type="range" min="-3" max="3" step="0.1" value="0" /></label>
+      <label class="rs-sl">Tangents at x = <b class="rs-xv"></b><input class="rs-x" type="range" min="-3" max="3" step="0.01" value="1" /></label>
+    </div>
+    <p class="rs-formula"></p>
+    <dl class="ax-facts rs-facts"></dl>
+  </div>
+
+  <div class="ax-card rs-tabc">
+    <h2>More strips, smaller error</h2>
+    <div class="ax-scroll"><table class="rs-tab"><thead><tr><th class="r">n</th><th class="r">Left</th><th class="r">Right</th><th class="r">Mid</th><th class="r">Trap</th></tr></thead><tbody></tbody></table></div>
+    <p class="ax-help rs-tnote"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="rs-try">
+      <li>With x² from 0 to 2, slide n from 1 to 100. The left sum creeps up and the right sum creeps down towards 8/3 ≈ 2.667.</li>
+      <li>Compare Midpoint and Trapezium: the midpoint error is about half the trapezium error, on the other side.</li>
+      <li>Take sin x from 0 to 6.283 (2π): the blue strips above the axis and the orange ones below cancel to 0.</li>
+      <li>In <b>Antiderivative + C</b>, move C: the curve slides up and down but the tangents at x stay parallel. That is why ∫ f dx has a + C.</li>
+      <li>In <b>Area between curves</b>, try f = 4 − x² and g = x: the curves cross at −2.56 and 1.56 and the area between them is about 11.68.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="rs-quiz" />
+</div>
+
+<script>
+  import { preset, readFn, deriv, type Fn } from '../../lib/sci/school-calculus';
+  import { riemann, simpson, areaBetween, crossings, type Method } from '../../lib/sci/school-integral';
+  import { paint, pagePalette, type Figure } from '../../lib/report';
+  import { view, axes, curve, line, dot, label, px, py, fmt } from '../../lib/sm-graph';
+  import { num } from '../../lib/sci/num';
+  import { quiz, rint, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.rms')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380, H = 280;
+  let mode = 'sum', meth: Method = 'left';
+  const NAMES: Record<string, string> = { left: 'Left', right: 'Right', mid: 'Midpoint', trap: 'Trapezium' };
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+  const seg = (sel: string, on: (b: HTMLButtonElement) => void) => root.querySelectorAll<HTMLButtonElement>(sel + ' button').forEach((b) => b.addEventListener('click', () => { root.querySelectorAll(sel + ' button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); on(b); run(); }));
+
+  function getF(): { f: Fn; name: string; F?: Fn; FText?: string } {
+    const id = q<HTMLSelectElement>('.rs-fn').value;
+    if (id === 'own' || mode === 'area') { const src = q<HTMLInputElement>('.rs-own').value; return { f: readFn(src), name: src.trim() }; }
+    const p = preset(id)!; return { f: p.f, name: p.label, F: p.F, FText: p.FText };
+  }
+  /** y-range covering f on [x0, x1] (5 % to 95 % of the values, plus 0). */
+  function yRange(fs: Fn[], x0: number, x1: number): [number, number] {
+    const ys: number[] = [0];
+    for (const f of fs) for (let i = 0; i <= 120; i++) { const y = f(x0 + ((x1 - x0) * i) / 120); if (Number.isFinite(y)) ys.push(y); }
+    ys.sort((a, b) => a - b);
+    const lo = Math.min(0, ys[Math.floor(ys.length * 0.03)]), hi = Math.max(0, ys[Math.ceil(ys.length * 0.97) - 1]), pad = Math.max(0.3, (hi - lo) * 0.12);
+    return [Math.max(-60, lo - pad), Math.min(60, hi + pad)];
+  }
+
+  function run() {
+    const err = q('.rs-err'); err.hidden = true;
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; };
+    const id = q<HTMLSelectElement>('.rs-fn').value;
+    q('.rs-ownl').hidden = !(id === 'own' || mode === 'area'); q('.rs-fn').parentElement!.hidden = mode === 'area';
+    q('.rs-gl').hidden = mode !== 'area'; q('.rs-crossl').hidden = mode !== 'area';
+    q('.rs-sumc').hidden = mode !== 'sum'; q('.rs-antic').hidden = mode !== 'anti'; q('.rs-tabc').hidden = mode !== 'sum';
+    root.querySelectorAll<HTMLElement>('.rs-ab').forEach((e) => { e.hidden = mode === 'anti'; });
+    let F: ReturnType<typeof getF>;
+    try { F = getF(); } catch (e) { return fail((e as Error).message); }
+    const { f } = F, pal = pagePalette();
+    if (mode === 'anti') return anti(F, pal);
+    let a = num(q<HTMLInputElement>('.rs-a').value), b = num(q<HTMLInputElement>('.rs-b').value);
+    let g: Fn = () => 0;
+    if (mode === 'area') {
+      try { g = readFn(q<HTMLInputElement>('.rs-g').value); } catch (e) { return fail('Second curve: ' + (e as Error).message); }
+      if (q<HTMLInputElement>('.rs-cross').checked) {
+        const c = crossings(f, g, -10, 10, 4000);
+        if (c.length < 2) return fail('These curves cross fewer than twice between −10 and 10. Untick the box and type a and b.');
+        a = c[0]; b = c[c.length - 1]; q<HTMLInputElement>('.rs-a').value = fmt(a, 4).replace('−', '-'); q<HTMLInputElement>('.rs-b').value = fmt(b, 4).replace('−', '-');
+      }
+    }
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return fail('Type the start a and end b as numbers.');
+    if (!(b > a)) return fail('The end b must be bigger than the start a.');
+    if (b - a > 40) return fail('Keep the interval shorter than 40 so the strips can be seen.');
+    if (mode === 'area') return area(F, g, a, b, pal);
+    const n = +q<HTMLInputElement>('.rs-n').value; q('.rs-nv').textContent = String(n);
+    const r = riemann(f, a, b, n, meth);
+    const exact = F.F ? F.F(b) - F.F(a) : simpson(f, a, b, 4000);
+    if (!Number.isFinite(r.sum) || !Number.isFinite(exact)) return fail('f is not defined everywhere between a and b; pick another interval.');
+    const span = b - a, x0 = a - span * 0.12, x1 = b + span * 0.12, [y0, y1] = yRange([f], x0, x1);
+    const v = view(x0, x1, y0, y1, W, H);
+    q('.rs-h').textContent = `${NAMES[meth]} sum with ${n} strip${n > 1 ? 's' : ''}`;
+    const fig: Figure = { w: W, h: H, alt: `${NAMES[meth]} sum of ${F.name} from ${fmt(a)} to ${fmt(b)} with ${n} strips: ${fmt(r.sum, 4)}`, draw: (ctx, w, h, pl) => {
+      axes(ctx, v, pl, { xName: 'x', yName: 'y' });
+      for (const s of r.strips) {
+        const pos = s.h0 + s.h1 >= 0;
+        ctx.beginPath(); ctx.moveTo(px(v, s.x0), py(v, 0)); ctx.lineTo(px(v, s.x0), py(v, s.h0)); ctx.lineTo(px(v, s.x1), py(v, s.h1)); ctx.lineTo(px(v, s.x1), py(v, 0)); ctx.closePath();
+        ctx.globalAlpha = 0.28; ctx.fillStyle = pos ? pl.accent : pl.accent2; ctx.fill(); ctx.globalAlpha = 1;
+        ctx.strokeStyle = pos ? pl.accent : pl.accent2; ctx.lineWidth = n > 50 ? 0.5 : 1.2; ctx.stroke();
+        if (meth !== 'trap' && n <= 30) { const xs = meth === 'left' ? s.x0 : meth === 'right' ? s.x1 : (s.x0 + s.x1) / 2; dot(ctx, v, xs, s.h0, pl.ink, 3, false, pl.bg); }
+      }
+      curve(ctx, v, f, pl.ink, 2.2);
+      line(ctx, v, a, y0, a, y1, pl.muted, 1, [3, 3]); line(ctx, v, b, y0, b, y1, pl.muted, 1, [3, 3]);
+      label(ctx, v, a, y0, 'a', pl.muted, 4, -4); label(ctx, v, b, y0, 'b', pl.muted, 4, -4);
+    } };
+    paint(q<HTMLCanvasElement>('.rs-fig'), fig, pal);
+    const rule = meth === 'trap' ? 'Δx × [½f(x₀) + f(x₁) + … + ½f(xₙ)]' : `Δx × [f at the ${meth === 'mid' ? 'middle' : meth} of each strip, added up]`;
+    q('.rs-formula').textContent = `Δx = (b − a)/n = (${fmt(b)} − ${fmt(a)})/${n} = ${fmt(r.dx, 4)}. ${NAMES[meth]} sum = ${rule} = ${fmt(r.sum, 5)}`;
+    const e = r.sum - exact;
+    q('.rs-facts').replaceChildren(
+      fact(`${NAMES[meth]} sum`, fmt(r.sum, 5), `${n} strips of width ${fmt(r.dx, 4)}`),
+      fact(`∫ from ${fmt(a)} to ${fmt(b)}`, fmt(exact, 5), F.F ? `[${F.FText}] from a to b = ${fmt(F.F(b), 4)} − ${fmt(F.F(a), 4)}` : "Simpson's rule, 4000 strips"),
+      fact('Error (sum − integral)', fmt(e, 5), `${fmt(Math.abs(e / exact) * 100, 2)} % of the integral`),
+    );
+    const rows = [4, 8, 16, 32, 64, 128].map((k) => {
+      const tr = document.createElement('tr');
+      [String(k), ...(["left", "right", "mid", "trap"] as Method[]).map((m) => fmt(riemann(f, a, b, k, m).sum, 4))].forEach((t) => { const td = document.createElement('td'); td.className = 'r'; td.textContent = t; tr.append(td); });
+      return tr;
+    });
+    q('.rs-tab tbody').replaceChildren(...rows);
+    q('.rs-tnote').textContent = `The exact value is ${fmt(exact, 5)}. Doubling n roughly halves the left and right errors, and quarters the midpoint and trapezium errors.`;
+  }
+
+  function anti(F: ReturnType<typeof getF>, pal: ReturnType<typeof pagePalette>) {
+    const Ffn: Fn = F.F ?? ((x) => simpson(F.f, 0, x, 400));
+    const C = +q<HTMLInputElement>('.rs-c').value, x0 = +q<HTMLInputElement>('.rs-x').value;
+    q('.rs-cv').textContent = fmt(C, 1); q('.rs-xv').textContent = fmt(x0, 2);
+    const id = q<HTMLSelectElement>('.rs-fn').value, vw = id === 'own' ? [-3, 3] : preset(id)!.view;
+    const xs = [vw[0], vw[1]], [ya, yb] = yRange([(x) => Ffn(x) - 3, (x) => Ffn(x) + 3], xs[0], xs[1]);
+    const v = view(xs[0], xs[1], ya, yb, W, H), m = F.f(x0);
+    q('.rs-h').textContent = `The family F(x) + C for f(x) = ${F.name}`;
+    const fig: Figure = { w: W, h: H, alt: `Antiderivatives of ${F.name}: curves shifted up and down, with parallel tangents of slope ${fmt(m)} at x = ${fmt(x0)}`, draw: (ctx, w, h, pl) => {
+      axes(ctx, v, pl, { xName: 'x', yName: 'y' });
+      for (let c = -3; c <= 3; c++) {
+        curve(ctx, v, (x) => Ffn(x) + c, pl.line, 1.3);
+        const y = Ffn(x0) + c; if (Number.isFinite(m) && Number.isFinite(y)) line(ctx, v, x0 - 0.6, y - 0.6 * m, x0 + 0.6, y + 0.6 * m, pl.muted, 1.2);
+      }
+      curve(ctx, v, (x) => Ffn(x) + C, pl.accent, 2.6);
+      const y = Ffn(x0) + C;
+      if (Number.isFinite(m) && Number.isFinite(y)) { line(ctx, v, x0 - 1, y - m, x0 + 1, y + m, pl.accent2, 2.2); dot(ctx, v, x0, y, pl.accent2, 5, false, pl.bg); }
+      curve(ctx, v, F.f, pl.ink, 1.6, [6, 4]);
+      label(ctx, v, xs[0], F.f(xs[0] + 0.15 * (xs[1] - xs[0])), 'f(x), dashed', pl.ink, 6, -6);
+    } };
+    paint(q<HTMLCanvasElement>('.rs-fig'), fig, pal);
+    q('.rs-formula').textContent = F.F ? `∫ ${F.name} dx = ${F.FText} + C. Here C = ${fmt(C, 1)}.` : `F(x) here is the area under f from 0 to x (worked out numerically), plus C = ${fmt(C, 1)}.`;
+    q('.rs-facts').replaceChildren(
+      fact(`Slope of every curve at x = ${fmt(x0, 2)}`, fmt(m, 4), `= f(${fmt(x0, 2)}): the tangents are parallel`),
+      fact('Check: slope of F + C', fmt(deriv((x) => Ffn(x) + C, x0), 4), 'measured on the blue curve'),
+      fact('F(x) + C at that x', fmt(Ffn(x0) + C, 4), 'C only moves the curve up or down'),
+    );
+  }
+
+  function area(F: ReturnType<typeof getF>, g: Fn, a: number, b: number, pal: ReturnType<typeof pagePalette>) {
+    const f = F.f, r = areaBetween(f, g, a, b);
+    if (!Number.isFinite(r.area)) { q('.rs-err').textContent = 'A curve is not defined everywhere between a and b; pick another interval.'; q('.rs-err').hidden = false; return; }
+    const span = b - a, x0 = a - span * 0.25, x1 = b + span * 0.25, [y0, y1] = yRange([f, g], x0, x1), v = view(x0, x1, y0, y1, W, H);
+    const gs = q<HTMLInputElement>('.rs-g').value.trim();
+    q('.rs-h').textContent = `Area between y = ${F.name} and y = ${gs}`;
+    const fig: Figure = { w: W, h: H, alt: `Area between y = ${F.name} and y = ${gs} from ${fmt(a)} to ${fmt(b)}: ${fmt(r.area, 4)}`, draw: (ctx, w, h, pl) => {
+      axes(ctx, v, pl, { xName: 'x', yName: 'y' });
+      for (const p of r.pieces) {
+        ctx.beginPath(); const N = 120;
+        for (let i = 0; i <= N; i++) { const x = p.from + ((p.to - p.from) * i) / N; const X = px(v, x), Y = py(v, f(x)); if (i) ctx.lineTo(X, Y); else ctx.moveTo(X, Y); }
+        for (let i = N; i >= 0; i--) { const x = p.from + ((p.to - p.from) * i) / N; ctx.lineTo(px(v, x), py(v, g(x))); }
+        ctx.closePath(); ctx.globalAlpha = 0.3; ctx.fillStyle = p.top === 'f' ? pl.accent : pl.accent2; ctx.fill(); ctx.globalAlpha = 1;
+      }
+      curve(ctx, v, f, pl.accent, 2.2); curve(ctx, v, g, pl.accent2, 2.2);
+      label(ctx, v, x1 - span * 0.05, f(x1 - span * 0.05), 'f', pl.accent, -14, -4); label(ctx, v, x1 - span * 0.05, g(x1 - span * 0.05), 'g', pl.accent2, -14, 14);
+      for (const x of [a, b]) dot(ctx, v, x, f(x), pl.ink, 3.5, false, pl.bg);
+    } };
+    paint(q<HTMLCanvasElement>('.rs-fig'), fig, pal);
+    q('.rs-formula').textContent = `Area = ∫ |f(x) − g(x)| dx from ${fmt(a, 4)} to ${fmt(b, 4)} = ${r.pieces.map((p) => fmt(p.area, 4)).join(' + ')} = ${fmt(r.area, 4)}`;
+    q('.rs-facts').replaceChildren(
+      fact('Area between the curves', fmt(r.area, 5), 'always positive'),
+      fact('∫ (f − g) dx', fmt(r.signed, 5), r.pieces.length > 1 ? 'pieces where g is on top count as negative' : 'the same, as one curve stays on top'),
+      ...r.pieces.map((p, i) => fact(`Piece ${i + 1}: ${fmt(p.from, 3)} to ${fmt(p.to, 3)}`, fmt(p.area, 4), `${p.top === 'f' ? 'f' : 'g'} on top`)),
+    );
+  }
+
+  seg('.rs-mode', (b) => {
+    mode = b.dataset.m!;
+    if (mode === 'area') { q<HTMLInputElement>('.rs-own').value = '4 - x^2'; q<HTMLInputElement>('.rs-g').value = 'x'; q<HTMLInputElement>('.rs-cross').checked = true; }
+  });
+  seg('.rs-meth', (b) => { meth = b.dataset.k as Method; });
+  q('.rs-fn').addEventListener('change', () => {
+    const id = q<HTMLSelectElement>('.rs-fn').value;
+    const ab: Record<string, [string, string]> = { x2: ['0', '2'], x3: ['-1', '2'], sin: ['0', '3.1416'], cos: ['0', '1.5708'], exp: ['0', '1'], sqrt: ['0', '4'], own: ['-2', '2'] };
+    [q<HTMLInputElement>('.rs-a').value, q<HTMLInputElement>('.rs-b').value] = ab[id];
+    run();
+  });
+  root.querySelectorAll('.rs-own, .rs-g, .rs-a, .rs-b, .rs-n, .rs-c, .rs-x').forEach((e) => e.addEventListener('input', run));
+  q('.rs-a').addEventListener('input', () => { q<HTMLInputElement>('.rs-cross').checked = false; });
+  q('.rs-b').addEventListener('input', () => { q<HTMLInputElement>('.rs-cross').checked = false; });
+  q('.rs-cross').addEventListener('change', run);
+  document.addEventListener('fibub:theme', run);
+  run();
+
+  quiz(q('.rs-quiz'), (): Question[] => {
+    const n = rint(2, 4), b = 2 * n / 2 * 1, dx = b / n;
+    let L = 0; for (let i = 0; i < n; i++) L += (i * dx) ** 2 * dx;
+    const k = rint(1, 4), m = rint(1, 5), c = rint(-3, 4);
+    const K = rint(1, 3), cc = rint(1, 4);
+    return [
+      { text: `Left sum of f(x) = x² on [0, ${b}] with ${n} equal strips?`, answer: L, worked: `Δx = ${b}/${n} = ${fmt(dx)}. Left ends: ${Array.from({ length: n }, (_, i) => fmt(i * dx)).join(', ')}. Sum = ${fmt(dx)} × (${Array.from({ length: n }, (_, i) => fmt((i * dx) ** 2)).join(' + ')}) = ${fmt(L, 4)}.` },
+      { text: `∫ from 0 to ${k} of (${m}x ${c < 0 ? '−' : '+'} ${Math.abs(c)}) dx = ?`, answer: (m * k * k) / 2 + c * k, worked: `An antiderivative is ${m}x²/2 ${c < 0 ? '−' : '+'} ${Math.abs(c)}x. At ${k}: ${fmt((m * k * k) / 2)} ${c < 0 ? '−' : '+'} ${Math.abs(c * k)} = ${fmt((m * k * k) / 2 + c * k)}; at 0 it is 0.` },
+      { text: `∫ from 0 to ${K} of x² dx = ? (a fraction is fine)`, answer: K ** 3 / 3, worked: `[x³/3] from 0 to ${K} = ${K ** 3}/3 ≈ ${fmt(K ** 3 / 3, 4)}.` },
+      { text: `Area between y = x² and y = ${cc}x?`, answer: cc ** 3 / 6, worked: `They cross where x² = ${cc}x, at x = 0 and x = ${cc}. The line is on top: ∫₀^${cc} (${cc}x − x²) dx = ${cc}·${cc}²/2 − ${cc}³/3 = ${cc ** 3}/6 ≈ ${fmt(cc ** 3 / 6, 4)}.` },
+      { text: 'For a straight line f(x) = mx + c, which sum always gives the exact area?', choices: ['Left', 'Right', 'Trapezium'], correct: 2, worked: 'Each trapezium fits a straight line exactly, so the trapezium sum has no error. (The midpoint sum is exact too.) Left and right sums are too low or too high unless the line is flat.' },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .rms .rs-sl { display: grid; gap: 4px; color: var(--ink); font-size: 15px; margin-top: 10px; }
+  .rms .rs-sl input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .rms .rs-sumc .ax-seg, .rms .rs-mode { margin: 10px 0; }
+  .rms .rs-mode { margin-top: 0; }
+  .rms .ax-seg button { min-height: 40px; }
+  .rms .rs-formula { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; margin: 10px 0; }
+  .rms .rs-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+  .rms .rs-in { margin-top: 12px; }
+</style>

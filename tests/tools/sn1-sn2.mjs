@@ -1,0 +1,52 @@
+// #1108 SN1 vs SN2 race
+import { predict, SUBSTRATES } from '../../src/lib/sci/sn.ts';
+export const path = '/learn/sn1-sn2/';
+export default async ({ page, check, BASE }) => {
+  await page.goto(`${BASE}/learn/sn1-sn2/`); await page.waitForTimeout(1200);
+  const t = (s) => page.textContent('.sns ' + s);
+  check((await t('.sn-big')) === 'Favoured: SN2' && (await t('.sn-p2')) === '3' && (await t('.sn-p1')) === '-1', 'sn: secondary, strong, aprotic → SN2 (3 vs −1)');
+  check((await t('.sn-reasons')).includes('Secondary') && (await t('.sn-rates')).includes('k[R–X][Nu⁻]'), 'sn: reasons and rate laws');
+  const prof = () => page.$eval('.sns .sn-prof', (c) => c.toDataURL()); const p0 = await prof();
+  await page.click('.sns .sn-n button[data-v="weak"]'); await page.click('.sns .sn-v button[data-v="protic"]'); await page.waitForTimeout(100);
+  check((await t('.sn-big')) === 'Favoured: SN1' && (await t('.sn-p1')) === '3' && (await prof()) !== p0 && (await t('.sn-nhelp')).includes('H₂O'), 'sn: weak, protic → SN1, profile redrawn');
+  await page.selectOption('.sns .sn-s', 'tertiary'); await page.click('.sns .sn-n button[data-v="strong"]'); await page.waitForTimeout(100);
+  check((await t('.sn-big')) === 'Favoured: SN1' && await page.isVisible('.sns .sn-elim'), 'sn: tertiary + strong base warns about elimination');
+  await page.selectOption('.sns .sn-s', 'methyl'); await page.click('.sns .sn-v button[data-v="aprotic"]'); await page.waitForTimeout(100);
+  check((await t('.sn-big')) === 'Favoured: SN2' && await page.isHidden('.sns .sn-elim'), 'sn: methyl SN2');
+  await page.selectOption('.sns .sn-s', 'benzylic'); await page.click('.sns .sn-n button[data-v="weak"]'); await page.waitForTimeout(100);
+  check((await t('.sn-big')) === predict('benzylic', 'weak', 'aprotic').winner.replace(/^(SN.)$/, 'Favoured: $1').replace('both', 'Both SN1 and SN2 compete'), 'sn: benzylic, weak, aprotic matches the model');
+  const p1 = await prof(); await page.selectOption('.sns .sn-lg', 'F'); await page.waitForTimeout(100);
+  check((await prof()) !== p1 && (await t('.sn-reasons')).includes('very slow'), 'sn: leaving group F');
+  // Animation.
+  check((await t('.sn-stereo')) === '(R)-2-bromobutane → (S)-butan-2-ol: inversion of configuration (Walden inversion). One pure enantiomer in, the other one out.', 'sn: SN2 inversion R → S');
+  const fig = () => page.$eval('.sns .sn-fig', (c) => c.toDataURL()); const f0 = await fig();
+  await page.$eval('.sns .sn-t', (e) => { e.value = '50'; e.dispatchEvent(new Event('input', { bubbles: true })); }); await page.waitForTimeout(100);
+  check((await t('.sn-stage')).startsWith('Transition state') && (await fig()) !== f0, 'sn: transition state at halfway');
+  await page.$eval('.sns .sn-t', (e) => { e.value = '100'; e.dispatchEvent(new Event('input', { bubbles: true })); }); await page.waitForTimeout(100);
+  check((await t('.sn-stage')) === 'Product: inverted', 'sn: product');
+  await page.click('.sns .sn-mech button[data-m="SN1"]'); await page.waitForTimeout(100);
+  check(await page.isVisible('.sns .sn-side') && (await t('.sn-stereo')).includes('front gives (R)') && (await t('.sn-stereo')).includes('back (S)') && (await t('.sn-stereo')).includes('racemic'), 'sn: SN1 racemic');
+  await page.$eval('.sns .sn-t', (e) => { e.value = '50'; e.dispatchEvent(new Event('input', { bubbles: true })); }); await page.waitForTimeout(100);
+  check((await t('.sn-stage')) === 'Flat carbocation (sp²)', 'sn: carbocation stage');
+  await page.click('.sns .sn-side button[data-s="1"]'); await page.$eval('.sns .sn-t', (e) => { e.value = '80'; e.dispatchEvent(new Event('input', { bubbles: true })); }); await page.waitForTimeout(100);
+  check((await t('.sn-stage')).includes('from the front'), 'sn: front attack');
+  await page.$eval('.sns .sn-t', (e) => { e.value = '0'; e.dispatchEvent(new Event('input', { bubbles: true })); });
+  await page.click('.sns .sn-play'); await page.waitForTimeout(700); await page.click('.sns .sn-play');
+  check(Number(await page.inputValue('.sns .sn-t')) > 0 && (await t('.sn-play')) === 'Play', 'sn: play and pause');
+  await page.$eval('.sns .sn-fig', (c) => c.scrollIntoView({ block: 'center' })); await page.waitForTimeout(100);
+  const b = await (await page.$('.sns .sn-fig')).boundingBox(); const f1 = await fig();
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.down(); await page.mouse.move(b.x + b.width / 2 + 70, b.y + b.height / 2 + 20, { steps: 4 }); await page.mouse.up(); await page.waitForTimeout(100);
+  check((await fig()) !== f1, 'sn: drag turns the molecule');
+  // Check yourself.
+  const qs = await page.$$eval('.sns .sn-q1 label', (l) => l.map((x) => x.firstChild.textContent));
+  check(qs.length === 4, 'sn: 4 questions');
+  const ans = qs.map((s) => { const sub = SUBSTRATES.find((x) => s.includes(x.example)); const n = s.includes('strong nucleophile') ? 'strong' : 'weak'; const v = s.includes('aprotic') ? 'aprotic' : 'protic'; return predict(sub.id, n, v).winner; });
+  const sels = await page.$$('.sns .sn-qa');
+  for (let i = 0; i < 4; i++) await sels[i].selectOption(ans[i]);
+  await page.click('.sns .sn-check');
+  check((await t('.sn-score')) === '4 of 4 right', `sn: quiz all right (${await t('.sn-score')})`);
+  await sels[0].selectOption(ans[0] === 'SN1' ? 'SN2' : 'SN1'); await page.click('.sns .sn-check');
+  check((await t('.sn-score')) === '3 of 4 right' && (await t('.sn-qs')).includes('✗'), 'sn: wrong answer explained');
+  await page.click('.sns .sn-new');
+  check((await t('.sn-score')) === '', 'sn: new questions');
+};

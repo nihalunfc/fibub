@@ -1,0 +1,147 @@
+---
+// Isomer explorer: every structural isomer of a small formula, named, with condensed formulas; tap two to see the
+// kind of isomerism (chain, position, functional, metamers); cis–trans and chiral flags; Check yourself.
+import '../../styles/astro.css';
+import { FORMULAS } from '../../lib/sci/isomers';
+const FAM: Record<string, string> = { alkane: 'alkanes', alkene: 'alkenes', 'CnH2n+2O': 'alcohols and ethers', CnH2nO: 'aldehydes and ketones', CnH2nO2: 'acids and esters' };
+---
+<div class="ax ise">
+  <div class="ax-card">
+    <h2>Pick a formula</h2>
+    <label>Molecular formula <select class="is-f">{FORMULAS.map((f) => <option value={f.id} selected={f.id === 'C4H10O'}>{f.label} ({FAM[f.kind]})</option>)}</select></label>
+    <p class="ax-big is-big"></p>
+    <p class="ax-help is-note"></p>
+    <div class="is-cmp" aria-live="polite"></div>
+    <ol class="is-list"></ol>
+  </div>
+
+  <div class="ax-card">
+    <h2>Kinds of structural isomers</h2>
+    <dl class="ax-facts is-kinds">
+      <div><dt>Chain</dt><dd>Different carbon skeleton<small>butane and 2-methylpropane</small></dd></div>
+      <div><dt>Position</dt><dd>Same skeleton, group moved<small>butan-1-ol and butan-2-ol</small></dd></div>
+      <div><dt>Functional</dt><dd>Different family<small>ethanol and methoxymethane</small></dd></div>
+      <div><dt>Metamers</dt><dd>Different groups each side of O<small>ethoxyethane and 1-methoxypropane</small></dd></div>
+    </dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="is-try">
+      <li>Step through C₄H₁₀, C₅H₁₂, C₆H₁₄ and C₇H₁₆: 2, 3, 5, 9 isomers. The number grows fast.</li>
+      <li>In C₄H₁₀O tap butan-1-ol and ethoxyethane, then ethoxyethane and 1-methoxypropane. What changes?</li>
+      <li>Find the isomers marked "cis and trans": each of them is really two compounds.</li>
+      <li>Find the ones marked "chiral carbon": each has a mirror-image twin (optical isomers).</li>
+    </ul>
+  </div>
+
+  <div class="ax-card is-quiz">
+    <h2>Check yourself</h2>
+    <p class="ax-help" style="margin-top:0">New questions every time; nothing is saved.</p>
+    <div class="is-qs"></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn small is-check">Check</button><button type="button" class="btn secondary small is-new">New questions</button><span class="is-score" aria-live="polite"></span></div>
+  </div>
+</div>
+
+<style is:inline>
+  .is-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
+  .is-list button { width: 100%; text-align: left; display: grid; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font: inherit; cursor: pointer; min-height: 48px; }
+  .is-list button[aria-pressed=true] { border: 2px solid var(--accent); padding: 9px 11px; }
+  .is-list .is-n { font-size: 12px; color: var(--muted); }
+  .is-list .is-name { font-weight: 700; font-size: 16px; overflow-wrap: anywhere; }
+  .is-list .is-cond { font: 14px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: anywhere; }
+  .is-list .is-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .is-cmp { margin-top: 10px; font-size: 15px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  .is-cmp b { font-weight: 700; }
+  .is-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .is-kinds dd { font-size: 15px; }
+  .is-qs { display: grid; gap: 12px; }
+  .is-q1 { display: grid; gap: 6px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+  .is-q1 input, .is-q1 select { max-width: 220px; }
+  .is-ans { font-size: 14px; margin: 0; }
+  .is-ans.ok { color: var(--good); } .is-ans.no { color: var(--bad); }
+  .is-score { font-weight: 700; }
+</style>
+
+<script>
+  import { FORMULAS, isomersOf, relation, type Isomer, type Formula } from '../../lib/sci/isomers';
+
+  const root = document.querySelector<HTMLElement>('.ise')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const cache = new Map<string, Isomer[]>();
+  const list = (f: Formula) => { if (!cache.has(f.id)) cache.set(f.id, isomersOf(f)); return cache.get(f.id)!; };
+  let picked: number[] = [];
+  const pill = (t: string, cls = '') => { const s = document.createElement('span'); s.className = 'ax-pill' + (cls ? ' ' + cls : ''); s.textContent = t; return s; };
+
+  function compare(iso: Isomer[]) {
+    const box = q('.is-cmp');
+    if (picked.length < 2) { box.textContent = picked.length ? `Picked ${iso[picked[0]].name}. Tap one more to compare.` : 'Tap two isomers to see what kind of isomers they are.'; return; }
+    const [a, b] = picked.map((i) => iso[i]), r = relation(a, b);
+    box.replaceChildren();
+    const s = document.createElement('b'); s.textContent = `${a.name} and ${b.name}: ${r.kind === 'metamers' ? 'metamers' : `${r.kind} isomers`}. `;
+    box.append(s, document.createTextNode(r.why));
+  }
+
+  function render() {
+    const f = FORMULAS.find((x) => x.id === q<HTMLSelectElement>('.is-f').value)!, iso = list(f);
+    const ct = iso.filter((x) => x.cisTrans).length, ch = iso.filter((x) => x.chiral).length;
+    q('.is-big').textContent = `${f.label}: ${iso.length} structural isomers`;
+    const fams = [...new Set(iso.map((x) => x.family))];
+    q('.is-note').textContent = [fams.map((fm) => `${iso.filter((x) => x.family === fm).length} ${fm}${iso.filter((x) => x.family === fm).length === 1 ? '' : 's'}`).join(', ') + '.', ct ? `Counting cis and trans forms separately gives ${iso.length + ct}.` : '', ch ? `${ch} ${ch === 1 ? 'has' : 'have'} a chiral carbon (a mirror-image pair each).` : '', f.note].filter(Boolean).join(' ');
+    q('.is-list').replaceChildren(...iso.map((x, i) => {
+      const li = document.createElement('li'), b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-pressed', String(picked.includes(i))); b.dataset.i = String(i);
+      const n = document.createElement('span'); n.className = 'is-n'; n.textContent = `Isomer ${i + 1}`;
+      const nm = document.createElement('span'); nm.className = 'is-name'; nm.textContent = x.name;
+      const cd = document.createElement('span'); cd.className = 'is-cond'; cd.textContent = x.condensed;
+      const tg = document.createElement('span'); tg.className = 'is-tags'; tg.append(pill(x.family)); if (x.cisTrans) tg.append(pill('cis and trans', 'warn')); if (x.chiral) tg.append(pill('chiral carbon', 'good'));
+      b.append(n, nm, cd, tg); li.append(b); return li;
+    }));
+    compare(iso);
+  }
+  q('.is-f').addEventListener('change', () => { picked = []; render(); });
+  q('.is-list').addEventListener('click', (e) => {
+    const b = (e.target as Element).closest('button'); if (!b) return;
+    const i = Number(b.dataset.i);
+    if (picked.includes(i)) picked = picked.filter((x) => x !== i); else { picked.push(i); if (picked.length > 2) picked.shift(); }
+    render();
+  });
+
+  // Check yourself.
+  type Q = { text: string; kind: 'count' | 'rel'; answer: string; why: string };
+  let quiz: Q[] = [];
+  const KINDS = ['chain', 'position', 'functional', 'metamers'];
+  function newQuiz() {
+    quiz = [];
+    const fs = FORMULAS.slice().sort(() => Math.random() - 0.5);
+    for (const f of fs.slice(0, 2)) { const iso = list(f); quiz.push({ kind: 'count', text: `How many structural isomers does ${f.label} have (${f.kind === 'alkane' || f.kind === 'alkene' ? 'open chains' : 'the families in this tool'})?`, answer: String(iso.length), why: `${iso.length}: ${iso.map((x) => x.name).join(', ')}.` }); }
+    const seen = new Set<string>();
+    while (quiz.length < 4) {
+      const f = FORMULAS[Math.floor(Math.random() * FORMULAS.length)], iso = list(f);
+      const a = iso[Math.floor(Math.random() * iso.length)], b = iso[Math.floor(Math.random() * iso.length)];
+      if (a === b) continue; const r = relation(a, b); if (seen.has(r.kind) && Math.random() < 0.7) continue; seen.add(r.kind);
+      quiz.push({ kind: 'rel', text: `What kind of isomers are ${a.name} (${a.condensed}) and ${b.name} (${b.condensed})?`, answer: r.kind, why: r.why });
+    }
+    q('.is-qs').replaceChildren(...quiz.map((x, i) => {
+      const d = document.createElement('div'); d.className = 'is-q1';
+      const lab = document.createElement('label'); lab.textContent = `${i + 1}. ${x.text}`;
+      let inp: HTMLInputElement | HTMLSelectElement;
+      if (x.kind === 'count') { inp = document.createElement('input'); inp.inputMode = 'numeric'; inp.autocomplete = 'off'; }
+      else { inp = document.createElement('select'); inp.innerHTML = '<option value="">Choose</option>' + KINDS.map((k) => `<option value="${k}">${k === 'metamers' ? 'metamers' : k + ' isomers'}</option>`).join(''); }
+      inp.className = 'is-qa'; lab.append(inp);
+      const p = document.createElement('p'); p.className = 'is-ans'; p.hidden = true; d.append(lab, p); return d;
+    }));
+    q('.is-score').textContent = '';
+  }
+  q('.is-check').addEventListener('click', () => {
+    let right = 0;
+    root.querySelectorAll<HTMLElement>('.is-q1').forEach((d, i) => {
+      const x = quiz[i], v = (d.querySelector('.is-qa') as HTMLInputElement).value.trim(), p = d.querySelector<HTMLElement>('.is-ans')!, ok = v === x.answer; if (ok) right++;
+      p.hidden = false; p.className = 'is-ans ' + (ok ? 'ok' : 'no');
+      p.textContent = `${ok ? '✓ Right.' : v ? `✗ The answer is ${x.kind === 'rel' && x.answer !== 'metamers' ? x.answer + ' isomers' : x.answer}.` : '✗ No answer yet.'} ${x.why}`;
+    });
+    q('.is-score').textContent = `${right} of ${quiz.length} right`;
+  });
+  q('.is-new').addEventListener('click', newQuiz);
+
+  render(); newQuiz();
+</script>

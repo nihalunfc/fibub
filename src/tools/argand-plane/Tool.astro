@@ -1,0 +1,197 @@
+---
+// Argand plane: drag z and w and see z + w as a parallelogram, z × w as rotate-and-stretch, the conjugate
+// as a reflection, modulus and argument, powers of i and zⁿ, and the complex roots of a quadratic.
+// Class 11 maths, complex numbers and quadratic equations.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax agp">
+  <div class="ax-card">
+    <h2>Pick what to do with z and w</h2>
+    <div class="ax-seg ag-op" role="group" aria-label="Operation">
+      <button type="button" data-o="add" aria-pressed="true">z + w</button><button type="button" data-o="sub" aria-pressed="false">z − w</button><button type="button" data-o="mul" aria-pressed="false">z × w</button><button type="button" data-o="div" aria-pressed="false">z ÷ w</button><button type="button" data-o="conj" aria-pressed="false">z̄</button><button type="button" data-o="ipow" aria-pressed="false">i × z</button><button type="button" data-o="pow" aria-pressed="false">zⁿ</button>
+    </div>
+    <div class="ax-grid ag-in">
+      <label>z = a + bi: a <input class="ag-za" type="text" inputmode="decimal" value="3" /></label>
+      <label>b <input class="ag-zb" type="text" inputmode="decimal" value="1" /></label>
+      <label class="ag-w">w = c + di: c <input class="ag-wa" type="text" inputmode="decimal" value="1" /></label>
+      <label class="ag-w">d <input class="ag-wb" type="text" inputmode="decimal" value="2" /></label>
+    </div>
+    <p class="ax-err ag-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="ag-title"></h2>
+    <canvas class="ax-fig ag-fig" role="img"></canvas>
+    <p class="ax-help">Drag the blue z or the orange w. Green is the answer.</p>
+    <div class="ax-row"><label class="ax-check"><input type="checkbox" class="ag-snap" checked /> Snap to halves</label></div>
+    <label class="ag-sl ag-nl" hidden>Power n = <b class="ag-nv"></b><input class="ag-n" type="range" min="0" max="8" value="3" /></label>
+    <p class="ag-formula"></p>
+    <dl class="ax-facts ag-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Complex roots of a quadratic</h2>
+    <p class="ag-qeq"></p>
+    <div class="ag-qs">
+      <label class="ag-sl">a = <b class="ag-qav"></b><input class="ag-qa" type="range" min="-3" max="3" step="0.5" value="1" /></label>
+      <label class="ag-sl">b = <b class="ag-qbv"></b><input class="ag-qb" type="range" min="-6" max="6" step="0.5" value="2" /></label>
+      <label class="ag-sl">c = <b class="ag-qcv"></b><input class="ag-qc" type="range" min="-6" max="10" step="0.5" value="5" /></label>
+    </div>
+    <div class="ag-two"><canvas class="ax-fig ag-par" role="img"></canvas><canvas class="ax-fig ag-qz" role="img"></canvas></div>
+    <p class="ag-qnote"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="ag-try">
+      <li>z + w: the answer is the fourth corner of the parallelogram on z and w, just like adding vectors.</li>
+      <li>z × w with w = i (c = 0, d = 1): z turns a quarter turn anticlockwise and keeps its length.</li>
+      <li>z × w in general: the lengths multiply and the angles add.</li>
+      <li>Press <b>i × z</b> and watch z, iz, i²z = −z and i³z = −iz go round a square.</li>
+      <li>In the quadratic, lift c until the parabola leaves the x-axis: the two real roots meet, then split into a conjugate pair above and below the real axis.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="ag-quiz" />
+</div>
+
+<script>
+  import { cx, add, sub, mul, div, conj, abs, arg, pow, iPower, quadRoots, show, type C } from '../../lib/sci/school-complex';
+  import { paint, type Figure, type Palette } from '../../lib/report';
+  import { view, axes, curve, line, dot, label, px, py, wx, wy, pointer, fmt, type View } from '../../lib/sm-graph';
+  import { num } from '../../lib/sci/num';
+  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.agp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380, H = 340;
+  let op = 'add', drag = '';
+  const V: View = view(-5, 5, -4.55, 4.55, W, H);
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+  const deg = (r: number) => (Number.isNaN(r) ? 'undefined' : `${fmt((r * 180) / Math.PI, 2)}°`);
+  const polar = (z: C) => (abs(z) === 0 ? '0' : `${fmt(abs(z), 3)}(cos ${deg(arg(z))} + i sin ${deg(arg(z))})`);
+  const arrow = (ctx: CanvasRenderingContext2D, v: View, a: C, b: C, col: string, w = 2.4, dash: number[] = []) => {
+    line(ctx, v, a.re, a.im, b.re, b.im, col, w, dash);
+    const X = px(v, b.re), Y = py(v, b.im), ang = Math.atan2(Y - py(v, a.im), X - px(v, a.re));
+    if (Math.hypot(X - px(v, a.re), Y - py(v, a.im)) < 8) return;
+    ctx.beginPath(); ctx.moveTo(X, Y); ctx.lineTo(X - 10 * Math.cos(ang - 0.4), Y - 10 * Math.sin(ang - 0.4)); ctx.lineTo(X - 10 * Math.cos(ang + 0.4), Y - 10 * Math.sin(ang + 0.4)); ctx.closePath(); ctx.fillStyle = col; ctx.fill();
+  };
+  const angleArc = (ctx: CanvasRenderingContext2D, v: View, a: number, r: number, col: string) => { if (Number.isNaN(a)) return; ctx.beginPath(); ctx.arc(px(v, 0), py(v, 0), r, 0, -a, a > 0); ctx.strokeStyle = col; ctx.lineWidth = 1.6; ctx.stroke(); };
+
+  function read() { return { z: cx(num(q<HTMLInputElement>('.ag-za').value), num(q<HTMLInputElement>('.ag-zb').value)), w: cx(num(q<HTMLInputElement>('.ag-wa').value), num(q<HTMLInputElement>('.ag-wb').value)) }; }
+
+  function run() {
+    const err = q('.ag-err'); err.hidden = true;
+    const { z, w } = read();
+    const usesW = ['add', 'sub', 'mul', 'div'].includes(op);
+    root.querySelectorAll<HTMLElement>('.ag-w').forEach((e) => { e.hidden = !usesW; });
+    q('.ag-nl').hidden = op !== 'pow';
+    if (![z.re, z.im].every(Number.isFinite) || (usesW && ![w.re, w.im].every(Number.isFinite))) { err.textContent = 'Type each part as a number, such as 3 or −1.5.'; err.hidden = false; return; }
+    const n = +q<HTMLInputElement>('.ag-n').value; q('.ag-nv').textContent = String(n);
+    let res: C | null = null, title = '', formula = '';
+    const facts: HTMLElement[] = [fact('z', show(z), `|z| = ${fmt(abs(z), 4)}, arg z = ${deg(arg(z))}`)];
+    if (usesW) facts.push(fact('w', show(w), `|w| = ${fmt(abs(w), 4)}, arg w = ${deg(arg(w))}`));
+    if (op === 'add') { res = add(z, w); title = 'z + w: complete the parallelogram'; formula = `(${show(z)}) + (${show(w)}) = (${fmt(z.re)} + ${fmt(w.re)}) + (${fmt(z.im)} + ${fmt(w.im)})i = ${show(res)}`; }
+    else if (op === 'sub') { res = sub(z, w); title = 'z − w: the arrow from w to z'; formula = `(${show(z)}) − (${show(w)}) = ${show(res)}`; }
+    else if (op === 'mul') { res = mul(z, w); title = 'z × w: stretch by |w| and turn by arg w'; formula = `(${fmt(z.re)} + ${fmt(z.im)}i)(${fmt(w.re)} + ${fmt(w.im)}i) = (${fmt(z.re)}·${fmt(w.re)} − ${fmt(z.im)}·${fmt(w.im)}) + (${fmt(z.re)}·${fmt(w.im)} + ${fmt(z.im)}·${fmt(w.re)})i = ${show(res)}, using i² = −1`;
+      facts.push(fact('|z × w| = |z| × |w|', fmt(abs(res), 4), `${fmt(abs(z), 4)} × ${fmt(abs(w), 4)}`), fact('arg(z × w)', deg(arg(res)), `arg z + arg w = ${deg(arg(z) + arg(w))}${Math.abs(arg(z) + arg(w)) > Math.PI ? ', minus 360°' : ''}`)); }
+    else if (op === 'div') { res = div(z, w); title = 'z ÷ w: shrink by |w| and turn back by arg w';
+      if (!res) { err.textContent = 'You cannot divide by 0: move w away from the origin.'; err.hidden = false; }
+      else formula = `z ÷ w = z w̄ / |w|² = (${show(mul(z, conj(w)))}) / ${fmt(abs(w) ** 2, 4)} = ${show(res)}`; }
+    else if (op === 'conj') { res = conj(z); title = 'The conjugate z̄: reflect in the real axis'; formula = `z̄ = ${show(res)}; z + z̄ = ${show(add(z, res))} (real) and z × z̄ = ${show(mul(z, res))} = |z|²`; }
+    else if (op === 'ipow') { res = mul(cx(0, 1), z); title = 'Multiply by i: a quarter turn'; formula = `i × (${show(z)}) = ${show(res)}. i² = −1, i³ = −i, i⁴ = 1: four quarter turns bring z home.`; }
+    else { res = pow(z, n); title = `zⁿ: ${n} turns of arg z, length |z|ⁿ`; formula = `z${'⁰¹²³⁴⁵⁶⁷⁸'[n]} = ${show(res)}; |z|ⁿ = ${fmt(abs(z) ** n, 4)}, n × arg z = ${deg(n * arg(z))}`; }
+    q('.ag-title').textContent = title; q('.ag-formula').textContent = formula;
+    if (res) facts.push(fact('Answer', show(res), `|answer| = ${fmt(abs(res), 4)}, arg = ${deg(arg(res))}`), fact('Polar form of the answer', polar(res)));
+    q('.ag-facts').replaceChildren(...facts);
+    const O = cx(0, 0);
+    const fig: Figure = { w: W, h: H, alt: `${title}. z = ${show(z)}${usesW ? `, w = ${show(w)}` : ''}${res ? `, answer ${show(res)}` : ''}`, draw: (ctx, ww, hh, pl: Palette) => {
+      axes(ctx, V, pl, { xName: 'Re', yName: 'Im' });
+      ctx.beginPath(); ctx.arc(px(V, 0), py(V, 0), px(V, 1) - px(V, 0), 0, 2 * Math.PI); ctx.strokeStyle = pl.line; ctx.lineWidth = 1; ctx.setLineDash([3, 3]); ctx.stroke(); ctx.setLineDash([]);
+      if (op === 'add' && res) { line(ctx, V, z.re, z.im, res.re, res.im, pl.accent2, 1.2, [5, 4]); line(ctx, V, w.re, w.im, res.re, res.im, pl.accent, 1.2, [5, 4]); }
+      if (op === 'sub' && res) { arrow(ctx, V, w, z, pl.good, 1.4, [5, 4]); }
+      if (op === 'mul' || op === 'div') { angleArc(ctx, V, arg(z), 22, pl.accent); angleArc(ctx, V, arg(w), 30, pl.accent2); if (res) angleArc(ctx, V, arg(res), 38, pl.good); }
+      if (op === 'conj') line(ctx, V, z.re, z.im, z.re, -z.im, pl.muted, 1, [3, 3]);
+      if (op === 'ipow') { let p = z; for (let k = 1; k <= 3; k++) { const nx = mul(cx(0, 1), p); line(ctx, V, p.re, p.im, nx.re, nx.im, pl.line, 1.2, [3, 3]); p = nx; } line(ctx, V, p.re, p.im, z.re, z.im, pl.line, 1.2, [3, 3]); [mul(cx(-1), z), mul(cx(0, -1), z)].forEach((pp, k) => { dot(ctx, V, pp.re, pp.im, pl.muted, 3.5); label(ctx, V, pp.re, pp.im, k ? 'i³z' : 'i²z', pl.muted); }); }
+      if (op === 'pow') { let p = cx(1, 0); for (let k = 0; k <= n; k++) { dot(ctx, V, p.re, p.im, pl.muted, 3); if (k) label(ctx, V, p.re, p.im, `z${'⁰¹²³⁴⁵⁶⁷⁸'[k]}`, pl.muted); p = mul(p, z); } }
+      arrow(ctx, V, O, z, pl.accent); dot(ctx, V, z.re, z.im, pl.accent, 7, false, pl.bg); label(ctx, V, z.re, z.im, 'z', pl.accent, 9, -6);
+      if (usesW) { arrow(ctx, V, O, w, pl.accent2); dot(ctx, V, w.re, w.im, pl.accent2, 7, false, pl.bg); label(ctx, V, w.re, w.im, 'w', pl.accent2, 9, -6); }
+      if (res) { arrow(ctx, V, O, res, pl.good, 2.8); dot(ctx, V, res.re, res.im, pl.good, 5); label(ctx, V, res.re, res.im, show(res), pl.good, 8, 14); }
+    } };
+    paint(q<HTMLCanvasElement>('.ag-fig'), fig);
+  }
+
+  function quad() {
+    const a = +q<HTMLInputElement>('.ag-qa').value, b = +q<HTMLInputElement>('.ag-qb').value, c = +q<HTMLInputElement>('.ag-qc').value;
+    q('.ag-qav').textContent = fmt(a); q('.ag-qbv').textContent = fmt(b); q('.ag-qcv').textContent = fmt(c);
+    const sg = (x: number) => (x < 0 ? '−' : '+');
+    q('.ag-qeq').textContent = `${fmt(a)}x² ${sg(b)} ${fmt(Math.abs(b))}x ${sg(c)} ${fmt(Math.abs(c))} = 0`;
+    if (a === 0) { q('.ag-qnote').textContent = 'With a = 0 this is not a quadratic: move a away from 0.'; return; }
+    const r = quadRoots(a, b, c), [r1, r2] = r.roots;
+    const pv = view(-6, 6, -8, 12, 180, 200, { l: 26, r: 6, t: 8, b: 20 });
+    paint(q<HTMLCanvasElement>('.ag-par'), { w: 180, h: 200, alt: `Parabola y = ${q('.ag-qeq').textContent}`, draw: (ctx, w, h, pl) => {
+      axes(ctx, pv, pl, { xTicks: [-4, 0, 4], yTicks: [-5, 0, 5, 10] }); curve(ctx, pv, (x) => a * x * x + b * x + c, pl.accent, 2.2);
+      if (r.kind !== 'complex') for (const z of r.roots) dot(ctx, pv, z.re, 0, pl.good, 4.5);
+    } });
+    const zv = view(-6, 6, -6, 6, 180, 200, { l: 26, r: 6, t: 8, b: 20 });
+    paint(q<HTMLCanvasElement>('.ag-qz'), { w: 180, h: 200, alt: `Roots on the Argand plane: ${show(r1)} and ${show(r2)}`, draw: (ctx, w, h, pl) => {
+      axes(ctx, zv, pl, { xTicks: [-4, 0, 4], yTicks: [-4, 0, 4], xName: 'Re', yName: 'Im' });
+      if (r.kind === 'complex') line(ctx, zv, r1.re, r1.im, r2.re, r2.im, pl.muted, 1, [3, 3]);
+      for (const z of r.roots) dot(ctx, zv, z.re, z.im, pl.good, 5);
+    } });
+    const dtxt = `D = b² − 4ac = ${fmt(b * b)} − ${fmt(4 * a * c)} = ${fmt(r.D)}`;
+    q('.ag-qnote').textContent = r.kind === 'complex'
+      ? `${dtxt} < 0: the parabola never meets the x-axis, so there are no real roots. The roots are x = (−b ± i√(−D)) / 2a = ${show(r1)} and ${show(r2)}, a conjugate pair, mirror images in the real axis.`
+      : r.kind === 'repeated' ? `${dtxt}: the parabola just touches the axis. One repeated real root, x = ${show(r1)}.` : `${dtxt} > 0: two real roots, x = ${show(r1)} and ${show(r2)}, on the real axis.`;
+  }
+
+  const setIn = (s: string, v: number) => { q<HTMLInputElement>(s).value = fmt(v, 2).replace('−', '-'); };
+  const cv = q<HTMLCanvasElement>('.ag-fig');
+  cv.addEventListener('pointerdown', (e) => {
+    const { X, Y } = pointer(cv, e, W, H), { z, w } = read();
+    const dz = Math.hypot(X - px(V, z.re), Y - py(V, z.im)), dw = ['add', 'sub', 'mul', 'div'].includes(op) ? Math.hypot(X - px(V, w.re), Y - py(V, w.im)) : Infinity;
+    drag = dz <= dw && dz < 36 ? 'z' : dw < 36 ? 'w' : '';
+    if (drag) { cv.setPointerCapture(e.pointerId); e.preventDefault(); }
+  });
+  cv.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const { X, Y } = pointer(cv, e, W, H), snap = q<HTMLInputElement>('.ag-snap').checked;
+    let a = Math.max(-5, Math.min(5, wx(V, X))), b = Math.max(-4.5, Math.min(4.5, wy(V, Y)));
+    if (snap) { a = Math.round(a * 2) / 2; b = Math.round(b * 2) / 2; }
+    setIn(drag === 'z' ? '.ag-za' : '.ag-wa', a); setIn(drag === 'z' ? '.ag-zb' : '.ag-wb', b); run();
+  });
+  const stop = () => { drag = ''; };
+  cv.addEventListener('pointerup', stop); cv.addEventListener('pointercancel', stop);
+  root.querySelectorAll<HTMLButtonElement>('.ag-op button').forEach((b) => b.addEventListener('click', () => { op = b.dataset.o!; root.querySelectorAll('.ag-op button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); run(); }));
+  root.querySelectorAll('.ag-in input, .ag-n').forEach((e) => e.addEventListener('input', run));
+  root.querySelectorAll('.ag-qa, .ag-qb, .ag-qc').forEach((e) => e.addEventListener('input', quad));
+  document.addEventListener('fibub:theme', () => { run(); quad(); });
+  run(); quad();
+
+  quiz(q('.ag-quiz'), (): Question[] => {
+    const [p, r] = pick([[3, 4], [5, 12], [6, 8], [8, 15], [7, 24]]), s1 = pick([1, -1]), s2 = pick([1, -1]);
+    const a = rint(-4, 4), b = rint(-4, 4, true), c = rint(-4, 4), d = rint(-4, 4, true);
+    const k = rint(5, 40);
+    const h = rint(-3, 3), m = rint(1, 4);
+    return [
+      { text: `What is |${s1 * p} ${s2 < 0 ? '−' : '+'} ${r}i|?`, answer: Math.hypot(p, r), worked: `|a + bi| = √(a² + b²) = √(${p * p} + ${r * r}) = √${p * p + r * r} = ${Math.hypot(p, r)}.` },
+      { text: `What is the real part of (${show(cx(a, b))})(${show(cx(c, d))})?`, answer: a * c - b * d, worked: `Real part = ac − bd = (${a})(${c}) − (${b})(${d}) = ${a * c - b * d}, because bi × di = bd i² = −bd. The full product is ${show(mul(cx(a, b), cx(c, d)))}.` },
+      { text: `What is i^${k}?`, choices: ['1', 'i', '−1', '−i'], correct: ((k % 4) + 4) % 4, worked: `Powers of i repeat every 4. ${k} = 4 × ${Math.floor(k / 4)} + ${k % 4}, so i^${k} = i^${k % 4} = ${iPower(k)}.` },
+      { text: 'What is arg(−1 + i) in degrees (principal value)?', answer: 135, tol: 0.01, worked: '−1 + i is in the second quadrant, at 45° above the negative real axis: 180° − 45° = 135° (3π/4).' },
+      { text: `x² ${-2 * h < 0 ? '−' : '+'} ${Math.abs(2 * h)}x + ${h * h + m * m} = 0 has complex roots p ± qi with q > 0. What is q?`, answer: m, worked: `D = ${4 * h * h} − ${4 * (h * h + m * m)} = ${-4 * m * m}. x = (${2 * h} ± i√${4 * m * m}) / 2 = ${h} ± ${m}i, so q = ${m}.` },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .agp .ag-sl { display: grid; gap: 4px; color: var(--ink); font-size: 15px; margin-top: 8px; }
+  .agp .ag-sl input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .agp .ax-seg button { min-height: 44px; min-width: 52px; }
+  .agp .ag-in { margin-top: 12px; }
+  .agp canvas.ag-fig { touch-action: none; max-width: 520px; margin: 0 auto; }
+  .agp .ag-formula { overflow-wrap: anywhere; margin: 10px 0; }
+  .agp .ag-two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .agp .ag-qeq { font-size: 18px; font-weight: 650; margin: 0; }
+  .agp .ag-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+</style>

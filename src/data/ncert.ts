@@ -141,7 +141,7 @@ export const CLASSES: SchoolClass[] = [
         c(1, 'Some Basic Concepts of Chemistry', 'Mole concept, empirical formula, stoichiometry, concentration', ['mole-bridge', 'molar-mass-calculator', 'concentration-converter', 'reaction-equivalents']),
         c(2, 'Structure of Atom', 'Atomic models, spectra, Bohr model, orbitals, configuration', ['electron-configuration', 'hydrogen-spectrum', 'hydrogen-orbitals', 'photoelectric-lab']),
         c(3, 'Classification of Elements and Periodicity in Properties', 'Periodic table, periodic trends', ['periodic-table', 'electron-configuration']),
-        c(4, 'Chemical Bonding and Molecular Structure', 'Lewis structures, VSEPR, hybridisation, MO theory', ['vsepr-shapes', 'lewis-structures', 'mo-diagram', 'molecule-viewer']),
+        c(4, 'Chemical Bonding and Molecular Structure', 'Lewis structures, VSEPR, hybridisation, MO theory', ['vsepr-shapes', 'lewis-structures', 'mo-diagram', 'dipole-polarity', 'molecule-viewer']),
         c(5, 'Thermodynamics', 'Enthalpy, Hess\'s law, entropy, Gibbs energy', ['thermochemistry-calculator']),
         c(6, 'Equilibrium', 'Equilibrium constant, Le Chatelier, pH, buffers, solubility', ['le-chatelier', 'equilibrium-solver', 'ph-scale-explorer', 'buffer-recipe-calculator']),
         c(7, 'Redox Reactions', 'Oxidation numbers, balancing redox', ['oxidation-number', 'equation-balancer']),
