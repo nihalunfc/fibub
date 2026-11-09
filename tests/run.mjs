@@ -121,7 +121,11 @@ async function pageSizes(path) {
 const CSP = readFileSync(new URL('../public/_headers', import.meta.url), 'utf8').match(/Content-Security-Policy: (.+)/)[1];
 
 // ---------- run ----------
-const server = spawn('npx', ['astro', 'preview', '--port', String(PORT)], { stdio: 'ignore' });
+// A server left on this port by an earlier run would answer with a stale build, so refuse to start.
+if (await fetch(BASE).then(() => true, () => false)) { console.log(`Port ${PORT} is busy (an old preview?). Run: pkill -f "astro preview"`); process.exit(1); }
+const server = spawn('npx', ['astro', 'preview', '--port', String(PORT)], { stdio: 'ignore', detached: true });
+// npx starts astro as a child, so kill the whole process group, not just npx.
+const stopServer = () => { try { process.kill(-server.pid); } catch { server.kill(); } };
 try {
   for (let i = 0; i < 50; i++) { try { await fetch(BASE); break; } catch { await new Promise((r) => setTimeout(r, 200)); } }
   const browser = await chromium.launch();
@@ -3561,7 +3565,7 @@ try {
   await ctx.unrouteAll({ behavior: 'ignoreErrors' });
   await browser.close();
 } finally {
-  server.kill();
+  stopServer();
 }
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');
 process.exit(failures ? 1 : 0);

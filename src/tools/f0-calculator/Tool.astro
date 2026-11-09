@@ -1,0 +1,270 @@
+---
+// Autoclave F0 value calculator: lethality from a time and temperature log (one or more probes), the running F0
+// curve, time at the hold temperature, equivalent minutes at another temperature, and for one organism (its D and
+// z, typed by the user) the log reduction, the chance of a survivor and the time needed at a temperature for a
+// target sterility assurance level. The example log and organism values are made up. Nothing is uploaded or stored.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax f0c">
+  <div class="ax-card">
+    <h2>Temperature log</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small f0-ex">Use the example</button>
+      <button type="button" class="btn secondary small f0-clear">Clear</button>
+    </div>
+    <label style="margin-top:10px">Time, then one temperature column per probe, with an optional header row
+      <textarea class="f0-in" rows="8" spellcheck="false" wrap="off" placeholder="Minutes,Chamber,Load&#10;0,22,22&#10;1,49.5,41.3"></textarea></label>
+    <DataFile target=".f0-in" />
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Times are in <select class="f0-tu"><option value="min" selected>minutes</option><option value="s">seconds</option><option value="h">hours</option></select></label>
+      <label>Temperatures in <select class="f0-tf"><option value="c" selected>°C</option><option value="f">°F</option></select></label>
+    </div>
+    <p class="ax-help">Paste the log from your autoclave printout or data logger, or open its CSV or Excel file. Clock times such as 10:15:30 also work (then the unit above is ignored). Each extra column is another probe; the page finds the coldest one. The example cycle is made up.</p>
+    <p class="ax-err f0-perr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Settings</h2>
+    <div class="ax-grid">
+      <label>Reference temperature (°C) <input class="f0-tref" inputmode="decimal" value="121.1" /></label>
+      <label>z-value (°C) <input class="f0-z" inputmode="decimal" value="10" /></label>
+      <label>Hold from (°C) <input class="f0-hold" inputmode="decimal" value="121" /></label>
+      <label>Equivalent time at (°C) <input class="f0-eqt" inputmode="decimal" value="134" /></label>
+      <label>Add up readings by <select class="f0-meth"><option value="trap" selected>straight lines (trapezoids)</option><option value="left">holding each until the next</option></select></label>
+    </div>
+    <p class="ax-help">F0 is lethality in minutes at the reference temperature: 121.1 °C (250 °F) with z = 10 °C is the usual convention for steam. The z-value is how many degrees make the kill ten times faster. "Hold from" sets which part of the cycle counts as the hold. Straight lines between readings is the usual way to add them up; holding each reading is how some loggers do it.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>F0</h2>
+    <p class="ax-err f0-err" hidden></p>
+    <div class="f0-out">
+      <p class="ax-big f0-big" aria-live="polite"></p>
+      <p class="ax-help f0-sub"></p>
+      <div class="ax-scroll"><table class="f0-tab"></table></div>
+      <ul class="f0-warn"></ul>
+      <h3>Temperature</h3>
+      <canvas class="ax-fig f0-figt"></canvas>
+      <h3>Running F0</h3>
+      <canvas class="ax-fig f0-figf"></canvas>
+      <div class="ax-legend f0-legend"></div>
+      <div class="ax-row f0-dlrow"><button type="button" class="btn secondary small f0-csv">Download F0 CSV</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Kill of one organism</h2>
+    <div class="ax-grid">
+      <label>D-value (min) <input class="f0-d" inputmode="decimal" value="1.5" /></label>
+      <label>D measured at (°C) <input class="f0-dt" inputmode="decimal" value="121.1" /></label>
+      <label>Organism z (°C) <input class="f0-oz" inputmode="decimal" value="10" /></label>
+      <label>Organisms per item at the start <input class="f0-n0" inputmode="decimal" value="1e6" /></label>
+      <label>Target SAL <input class="f0-sal" inputmode="decimal" value="1e-6" /></label>
+      <label>Plan at (°C) <input class="f0-pt" inputmode="decimal" value="121.1" /></label>
+      <label>Probe <select class="f0-probe"></select></label>
+    </div>
+    <p class="ax-help">The D-value is the time at one temperature that kills 90 % (one log) of the organism. The example values (D = 1.5 min at 121.1 °C, z = 10 °C) are made up round numbers: type the certified values of your own biological indicator. SAL (sterility assurance level) is the chance that one organism survives on an item, such as 1e-6 (one in a million).</p>
+    <p class="ax-err f0-oerr" hidden></p>
+    <div class="f0-oout">
+      <p class="ax-big f0-obig" aria-live="polite"></p>
+      <p class="f0-verdict"><span class="ax-pill f0-pill"></span> <span class="ax-help f0-vtext"></span></p>
+      <dl class="ax-facts f0-ofacts"></dl>
+      <h3>Hold time for the target</h3>
+      <div class="ax-scroll"><table class="f0-plan"></table></div>
+      <p class="ax-help">Time at a steady temperature, not counting heating up and cooling down, which add a little extra kill.</p>
+    </div>
+    <Downloads label="Report" />
+  </div>
+</div>
+
+<script>
+  import { analyse, parseLog, equivalentTime, dAt, organismKill, neededLR, timeFor, survivors, EXAMPLE_CSV, type Result, type Log, type Method } from '../../lib/sci/f0';
+  import { num, sig, parseTable, csv } from '../../lib/sci/num';
+  import { drawChart, canvasPainter, OKABE_ITO, type Series } from '../../lib/sci/plot';
+  import { save, wireDownloads, paint, pagePalette, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.f0c')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => num(inp(c).value);
+  const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', text = '') => { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; };
+  const box = q<HTMLTextAreaElement>('.f0-in');
+  const f4 = (x: number) => sig(x, 4);
+  const mins = (x: number) => `${f4(x)} min`;
+  const deg = (x: number) => `${+x.toFixed(2)} °C`;
+  const colours = (pal: Palette) => (pal.red ? ['#a30000', '#7a0000', '#c00000', '#5a0000'] : pal.bg === '#ffffff' ? OKABE_ITO : ['#56B4E9', '#E69F00', '#5fd3a8', '#f0a0c8', '#f5f5f5', '#9fd0f5']);
+
+  let log: Log | null = null, res: Result | null = null, method: Method = 'trap';
+
+  function run() {
+    const perr = q('.f0-perr'), err = q('.f0-err');
+    const fail = (m: string) => { res = null; err.textContent = m; err.hidden = false; q('.f0-out').hidden = true; organism(); };
+    const text = box.value;
+    if (!text.trim()) { log = null; perr.hidden = true; return fail('Paste a temperature log, open a file, or use the example.'); }
+    log = parseLog(parseTable(text), num, q<HTMLSelectElement>('.f0-tu').value as 'min' | 's' | 'h', q<HTMLSelectElement>('.f0-tf').value === 'f');
+    perr.textContent = log.errors.length ? `Left out: ${log.errors.slice(0, 3).join(' ')}${log.errors.length > 3 ? ` and ${log.errors.length - 3} more.` : ''}` : '';
+    perr.hidden = !log.errors.length;
+    q('.f0-tu').closest('label')!.classList.toggle('f0-dim', log.clock);
+    const tref = val('.f0-tref'), z = val('.f0-z'), hold = val('.f0-hold');
+    method = q<HTMLSelectElement>('.f0-meth').value as Method;
+    if (!Number.isFinite(tref)) return fail('Type a reference temperature, such as 121.1.');
+    if (!(z > 0)) return fail('Type a z-value above 0, such as 10.');
+    if (!Number.isFinite(hold)) return fail('Type the temperature the hold starts from, such as 121.');
+    try { res = analyse(log, { tref, z, method }, hold); } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; q('.f0-out').hidden = false;
+    const r = res, c = r.probes[r.cold], many = r.probes.length > 1;
+    q('.f0-big').textContent = `F0 = ${mins(c.f0)}${many ? ` at the coldest probe (${c.name})` : ''}`;
+    const eqT = val('.f0-eqt');
+    q('.f0-sub').textContent = `The same kill as ${mins(c.f0)} at ${f4(tref)} °C${Number.isFinite(eqT) ? `, or ${mins(equivalentTime(c.f0, tref, z, eqT))} at ${f4(eqT)} °C` : ''}. ${f4(c.above)} min at or above ${f4(hold)} °C${c.above > 0 ? `, from ${f4(c.firstAbove)} to ${f4(c.lastAbove)} min` : ''}.`;
+    const tab = q<HTMLTableElement>('.f0-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow();
+    head().forEach((h, j) => hr.append(el('th', j ? 'r' : '', h)));
+    const tb = tab.createTBody();
+    body().forEach((row, i) => { const tr = tb.insertRow(); if (many && i === r.cold) tr.className = 'f0-cold'; row.forEach((x, j) => { const td = tr.insertCell(); td.textContent = x; if (j) td.className = 'r'; }); });
+    q('.f0-warn').replaceChildren(...r.warn.map((w) => el('li', '', w)));
+    const probe = q<HTMLSelectElement>('.f0-probe'), was = probe.value;
+    probe.replaceChildren(...r.probes.map((p, i) => { const o = el('option', '', p.name + (many && i === r.cold ? ' (coldest)' : '')); o.value = String(i); return o; }));
+    probe.value = was && +was < r.probes.length ? was : String(r.cold);
+    probe.closest('label')!.hidden = !many;
+    draw();
+    organism();
+  }
+  const head = () => { const r = res!, eqT = val('.f0-eqt'); return ['Probe', 'F0 (min)', `F0 at ≥ ${f4(r.holdFrom)} °C`, `Time at ≥ ${f4(r.holdFrom)} °C`, 'Peak', ...(Number.isFinite(eqT) ? [`Equivalent at ${f4(eqT)} °C`] : [])]; };
+  const body = () => { const r = res!, eqT = val('.f0-eqt'); return r.probes.map((p) => [p.name, f4(p.f0), f4(p.f0Above), mins(p.above), `${deg(p.peak)} at ${f4(p.peakAt)} min`, ...(Number.isFinite(eqT) ? [mins(equivalentTime(p.f0, r.tref, r.z, eqT))] : [])]); };
+
+  function tempFigure(W: number, H: number): Figure {
+    const r = res!, t = log!.t;
+    return {
+      w: W, h: H, alt: `Temperature against time for ${r.probes.map((p) => p.name).join(', ')}, with the reference temperature ${f4(r.tref)} °C`,
+      draw: (ctx, w, h, pal) => {
+        const c = colours(pal);
+        const series: Series[] = log!.temps.map((T, k) => ({ name: r.probes[k].name, x: t, y: T, mode: 'line', color: c[k % c.length], width: 2 }));
+        drawChart(canvasPainter(ctx), { w, h, xLabel: 'Time (min)', yLabel: 'Temperature (°C)', series, marks: [{ kind: 'hline', at: r.tref, color: pal.muted, dash: [5, 4], label: `${f4(r.tref)} °C` }], font: w < 480 ? 11 : 13, legend: 'none', ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: null });
+      },
+    };
+  }
+  function fFigure(W: number, H: number): Figure {
+    const r = res!, t = log!.t;
+    return {
+      w: W, h: H, alt: `Running F0 against time: ${r.probes.map((p) => `${p.name} ${mins(p.f0)}`).join(', ')}`,
+      draw: (ctx, w, h, pal) => {
+        const c = colours(pal);
+        const series: Series[] = r.probes.map((p, k) => ({ name: p.name, x: t, y: p.cum, mode: 'line', color: c[k % c.length], width: 2 }));
+        drawChart(canvasPainter(ctx), { w, h, xLabel: 'Time (min)', yLabel: 'F0 (min)', yMin: 0, series, font: w < 480 ? 11 : 13, legend: 'none', ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: null });
+      },
+    };
+  }
+  function draw() {
+    if (!res) return;
+    const ct = q<HTMLCanvasElement>('.f0-figt'), cf = q<HTMLCanvasElement>('.f0-figf');
+    const W = Math.max(280, Math.min(760, Math.round(ct.parentElement!.clientWidth || 640))), H = W < 480 ? 240 : 320;
+    paint(ct, tempFigure(W, H)); paint(cf, fFigure(W, H));
+    const c = colours(pagePalette());
+    q('.f0-legend').replaceChildren(...res.probes.map((p, k) => { const s = el('span'), i = el('i'); i.style.background = c[k % c.length]; s.append(i, p.name); return s; }));
+  }
+
+  // ---------- Organism ----------
+  type Kill = { probe: string; F: number; lr: number; need: number; left: number; ok: boolean; dPlan: number; tPlan: number; plan: [number, number][] };
+  let kill: Kill | null = null;
+  function organism() {
+    const e = q('.f0-oerr');
+    const fail = (m: string) => { kill = null; e.textContent = m; e.hidden = false; q('.f0-oout').hidden = true; };
+    const d = val('.f0-d'), dT = val('.f0-dt'), oz = val('.f0-oz'), n0 = val('.f0-n0'), sal = val('.f0-sal'), pT = val('.f0-pt');
+    if (!(d > 0)) return fail('Type a D-value above 0 (minutes).');
+    if (!Number.isFinite(dT)) return fail('Type the temperature the D-value was measured at.');
+    if (!(oz > 0)) return fail("Type the organism's z-value, above 0.");
+    if (!(n0 > 0)) return fail('Type how many organisms are on an item at the start, such as 1e6.');
+    if (!(sal > 0 && sal < n0)) return fail('Type a target SAL above 0 and below the starting number, such as 1e-6.');
+    if (!Number.isFinite(pT)) return fail('Type a temperature to plan the hold at.');
+    if (!res || !log) return fail('The F0 above needs a working log first.');
+    const k = Math.min(+q<HTMLSelectElement>('.f0-probe').value || 0, res.probes.length - 1), p = res.probes[k];
+    const { F, lr } = organismKill(log.t, log.temps[k], d, dT, oz, method);
+    const need = neededLR(n0, sal), left = survivors(n0, lr);
+    const temps = [...new Set([pT, 115, 118, 121.1, 126, 134].map((x) => +x.toFixed(2)))].sort((a, b) => a - b);
+    kill = { probe: p.name, F, lr, need, left, ok: lr >= need, dPlan: dAt(d, dT, oz, pT), tPlan: timeFor(need, d, dT, oz, pT), plan: temps.map((T) => [T, timeFor(need, d, dT, oz, T)]) };
+    e.hidden = true; q('.f0-oout').hidden = false;
+    const K = kill;
+    q('.f0-obig').textContent = `${f4(lr)} log reduction${res.probes.length > 1 ? ` at ${p.name}` : ''}`;
+    const pill = q('.f0-pill');
+    pill.textContent = K.ok ? 'Meets the target' : 'Short of the target';
+    pill.className = `ax-pill f0-pill ${K.ok ? 'good' : 'bad'}`;
+    q('.f0-vtext').textContent = K.ok
+      ? `${f4(need)} logs were needed to go from ${sig(n0, 3)} to ${sig(sal, 3)} per item; this cycle gives ${f4(lr - need)} logs to spare.`
+      : `${f4(need)} logs are needed to go from ${sig(n0, 3)} to ${sig(sal, 3)} per item; this cycle is ${f4(need - lr)} logs short.`;
+    const fact = (kk: string, v: string, sm = '') => { const x = el('div'); x.append(el('dt', '', kk), el('dd', '', v)); if (sm) x.lastElementChild!.append(el('small', '', sm)); return x; };
+    q('.f0-ofacts').replaceChildren(
+      fact('Organisms left per item', sig(left, 3), left < 1 ? 'also the chance that one survives' : 'more than one survives'),
+      fact(`Lethality for this organism`, mins(F), `minutes at ${f4(dT)} °C with z = ${f4(oz)} °C`),
+      fact('Logs needed', f4(need), `log₁₀ ${sig(n0, 3)} − log₁₀ ${sig(sal, 3)}`),
+      fact(`D at ${f4(pT)} °C`, mins(K.dPlan), `D = ${f4(d)} min at ${f4(dT)} °C`),
+      fact(`Hold at ${f4(pT)} °C`, mins(K.tPlan), `${f4(need)} × D for the target`),
+    );
+    const t = q<HTMLTableElement>('.f0-plan'); t.replaceChildren();
+    const hr = t.createTHead().insertRow();
+    planHead().forEach((h, j) => hr.append(el('th', j ? 'r' : '', h)));
+    const tb = t.createTBody();
+    planBody().forEach((row, i) => { const tr = tb.insertRow(); if (K.plan[i][0] === +pT.toFixed(2)) tr.className = 'f0-cold'; row.forEach((x, j) => { const td = tr.insertCell(); td.textContent = x; if (j) td.className = 'r'; }); });
+  }
+  const planHead = () => ['Temperature', 'D-value', `Hold for ${f4(kill!.need)} logs`];
+  const planBody = () => kill!.plan.map(([T, m]) => [`${f4(T)} °C`, mins(dAt(val('.f0-d'), val('.f0-dt'), val('.f0-oz'), T)), mins(m)]);
+
+  // ---------- Wiring ----------
+  box.addEventListener('input', run);
+  for (const c of ['.f0-tu', '.f0-tf', '.f0-meth']) q(c).addEventListener('change', run);
+  for (const c of ['.f0-tref', '.f0-z', '.f0-hold', '.f0-eqt']) inp(c).addEventListener('input', run);
+  for (const c of ['.f0-d', '.f0-dt', '.f0-oz', '.f0-n0', '.f0-sal', '.f0-pt']) inp(c).addEventListener('input', organism);
+  q('.f0-probe').addEventListener('change', organism);
+  q('.f0-ex').addEventListener('click', () => {
+    box.value = EXAMPLE_CSV;
+    q<HTMLSelectElement>('.f0-tu').value = 'min'; q<HTMLSelectElement>('.f0-tf').value = 'c';
+    run();
+  });
+  q('.f0-clear').addEventListener('click', () => { box.value = ''; run(); box.focus(); });
+
+  q('.f0-csv').addEventListener('click', () => {
+    if (!res || !log) return;
+    const r = res, nm = (s: string) => s.replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_|_$/g, '') || 'probe';
+    const rows: (string | number)[][] = [['time_min', ...r.probes.flatMap((p) => [`${nm(p.name)}_C`, `${nm(p.name)}_lethal_rate`, `${nm(p.name)}_F0_min`])]];
+    log.t.forEach((t, i) => rows.push([+t.toPrecision(10), ...r.probes.flatMap((p, k) => [+log!.temps[k][i].toPrecision(8), +(10 ** ((log!.temps[k][i] - r.tref) / r.z)).toPrecision(6), +p.cum[i].toPrecision(6)])]));
+    rows.push([]);
+    rows.push(['reference_C', r.tref], ['z_C', r.z], ['method', method === 'trap' ? 'trapezoids' : 'held readings'], ['hold_from_C', r.holdFrom]);
+    for (const p of r.probes) rows.push([`F0_min_${nm(p.name)}`, +p.f0.toPrecision(6)]);
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'f0-log.csv', 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => {
+    const sections: Section[] = [];
+    if (res) {
+      sections.push({ title: q('.f0-big').textContent!, text: [q('.f0-sub').textContent!, ...res.warn.map((w) => 'Check: ' + w)], table: { head: head(), rows: body(), align: head().map((_, j) => (j ? 'r' : 'l')) } });
+      sections.push({ title: 'Temperature', figure: tempFigure(720, 340) });
+      sections.push({ title: 'Running F0', figure: fFigure(720, 340), note: `F0 with Tref = ${f4(res.tref)} °C and z = ${f4(res.z)} °C, ${method === 'trap' ? 'straight lines between readings' : 'each reading held until the next'}. Worked out on fibub.com.` });
+    }
+    if (kill) {
+      sections.push({ title: q('.f0-obig').textContent!, text: [`${q('.f0-pill').textContent}. ${q('.f0-vtext').textContent}`], facts: [...q('.f0-ofacts').querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.firstChild!.textContent!] as [string, string]) });
+      sections.push({ title: 'Hold time for the target', table: { head: planHead(), rows: planBody(), align: ['l', 'r', 'r'] }, note: 'Check the D- and z-values against your biological indicator certificate and your own validated cycle.' });
+    }
+    return { title: 'Autoclave F0 value', subtitle: res ? q('.f0-big').textContent! : '', file: 'f0-calculator', sections };
+  });
+  document.addEventListener('fibub:theme', draw);
+  let rw = 0;
+  window.addEventListener('resize', () => { clearTimeout(rw); rw = window.setTimeout(draw, 150); });
+  box.value = EXAMPLE_CSV;
+  run();
+</script>
+
+<style is:global>
+  .f0c [hidden] { display: none !important; }
+  .f0c h3 { font-size: 15px; margin: 16px 0 6px; }
+  .f0c .f0-sub { margin: 2px 0 12px; }
+  .f0c .f0-warn { margin: 10px 0 0; padding-left: 20px; color: var(--bad); font-size: 14px; }
+  .f0c .f0-warn:empty { display: none; }
+  .f0c .f0-dlrow { margin-top: 14px; }
+  .f0c .f0-dim { opacity: 0.55; }
+  .f0c tr.f0-cold td { font-weight: 700; }
+  .f0c .f0-tab th, .f0c .f0-tab td, .f0c .f0-plan th, .f0c .f0-plan td { white-space: nowrap; }
+  .f0c .f0-verdict { margin: 4px 0 12px; }
+  .f0c .f0-verdict .ax-help { margin: 0; }
+  .f0c .f0-oout .ax-facts { margin-bottom: 4px; }
+  .f0c select { max-width: 100%; }
+</style>

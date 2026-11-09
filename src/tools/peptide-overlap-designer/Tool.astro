@@ -1,0 +1,288 @@
+---
+// Overlapping peptide library designer for epitope mapping: peptide spans, masses, flags for peptides that are
+// often hard to make, matrix pools and a helper that works back from positive pools. Everything runs in the
+// browser; nothing is uploaded. The example protein is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax pod">
+  <div class="ax-card">
+    <h2>Protein</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small po-open">Open a FASTA file</button>
+      <input type="file" class="po-file" accept=".fa,.fasta,.faa,.txt,text/plain" hidden />
+      <button type="button" class="btn secondary small po-ex">Use the example</button>
+    </div>
+    <label style="margin-top:10px">Protein sequence (one-letter codes, FASTA is fine) <textarea class="po-in" rows="4" spellcheck="false"></textarea></label>
+    <p class="ax-help">Only the first protein in a file is used. Up to 5,000 amino acids. Letters that are not amino acids (such as X or B) are left out, and the page says so.</p>
+    <p class="ax-help po-warn" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Peptides</h2>
+    <div class="ax-grid">
+      <label>Peptide length <input class="po-len" type="number" min="4" max="60" step="1" value="15" inputmode="numeric" /></label>
+      <label>Set the <select class="po-mode"><option value="overlap" selected>Overlap (shared residues)</option><option value="step">Offset (start every)</option></select></label>
+      <label><span class="po-vl">Overlap (amino acids)</span> <input class="po-val" type="number" min="0" max="59" step="1" value="11" inputmode="numeric" /></label>
+      <label>Name prefix <input class="po-pre" type="text" value="P" maxlength="12" spellcheck="false" autocomplete="off" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="po-end" checked /> Add a last peptide that ends at the C-terminus</label>
+    <p class="ax-help">The overlap is how many residues each peptide shares with the next; the offset is how far apart they start (length − overlap). 15-mers overlapping by 11 are a common choice for T-cell work; longer overlaps cost more peptides. The extra last peptide makes sure the final residues are in a peptide too.</p>
+    <details class="po-rules">
+      <summary>Flags for hard-to-make peptides</summary>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Water-repelling letters <input class="po-hyd" type="text" value="AFILMVWY" spellcheck="false" autocomplete="off" /></label>
+        <label>Flag when more than (%) <input class="po-hmax" type="number" min="0" max="100" step="5" value="50" inputmode="numeric" /></label>
+        <label>Flag cysteines from <input class="po-cys" type="number" min="0" max="20" step="1" value="2" inputmode="numeric" /></label>
+        <label>Motifs to flag <input class="po-mot" type="text" value="DP, NG" spellcheck="false" autocomplete="off" /></label>
+        <label>N-terminal letters to flag <input class="po-nt" type="text" value="QE" spellcheck="false" autocomplete="off" /></label>
+        <label>Flag peptides longer than <input class="po-long" type="number" min="1" max="100" step="1" value="20" inputmode="numeric" /></label>
+      </div>
+      <p class="ax-help">These are rules of thumb, not a prediction, and you can change every one. Many water-repelling residues can make a peptide hard to make and to dissolve. Two or more cysteines can pair up the wrong way or join peptides together (0 turns this off). DP can split in acid; NG tends to change (deamidate) on storage. An N-terminal Q or E can close into a ring (pyroglutamate). Long peptides are harder and dearer to make. Ask your supplier about any flagged peptide.</p>
+    </details>
+    <p class="ax-err po-err" hidden></p>
+  </div>
+
+  <div class="ax-card po-out" hidden>
+    <h2>Peptide library</h2>
+    <p class="ax-big po-big"></p>
+    <dl class="ax-facts po-facts"></dl>
+    <canvas class="ax-fig po-fig"></canvas>
+    <p class="ax-legend po-leg"><span><i class="po-k0"></i>Peptide</span> <span><i class="po-k1"></i>Flagged</span></p>
+    <div class="ax-scroll po-tw"><table class="po-tab"></table></div>
+    <p class="ax-help">Masses are for the free peptide (free N-terminal amine and C-terminal acid, no modifications): monoisotopic in daltons, and average for weighing. Ask for the peptides "as listed" or add your own end groups when you order.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small po-csv">Download the order list (CSV)</button></div>
+  </div>
+
+  <div class="ax-card po-pools" hidden>
+    <h2>Matrix pools</h2>
+    <div class="ax-grid">
+      <label>Rows <input class="po-rows" type="number" min="1" max="200" step="1" placeholder="auto" inputmode="numeric" /></label>
+    </div>
+    <p class="ax-help">The peptides fill a grid row by row. Each row is one pool and each column is another, so every peptide is in exactly two pools. Leave Rows empty for a near-square grid, which needs the fewest pools.</p>
+    <p class="ax-big po-pbig"></p>
+    <h3>Which pools were positive?</h3>
+    <p class="ax-help">Tap the row and column pools that gave a response (R1, C1 and so on). The peptides where a positive row meets a positive column are the candidates; test them one by one to confirm.</p>
+    <div class="ax-scroll"><table class="po-mat"></table></div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small po-clear">Clear the positive pools</button></div>
+    <p class="ax-big po-dbig" aria-live="polite"></p>
+    <ul class="po-dl"></ul>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small po-pcsv">Download the pool list (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .pod h3 { margin: 22px 0 8px; font-size: 15px; }
+  .pod .po-rules summary { cursor: pointer; font-weight: 600; margin-top: 12px; }
+  .pod .po-tw { max-height: 460px; overflow-y: auto; }
+  .pod td.seq { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; word-break: break-all; min-width: 9em; }
+  .pod td.fl { font-size: 13px; color: var(--warn); min-width: 7em; }
+  .pod .po-leg span { margin-right: 14px; }
+  .pod .po-leg i { display: inline-block; width: 14px; height: 8px; margin-right: 6px; vertical-align: middle; background: var(--accent); }
+  .pod .po-leg i.po-k1 { background: var(--warn); }
+  .pod .po-mat th, .pod .po-mat td { text-align: center; padding: 4px; }
+  .pod .po-mat td { font-size: 13px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .pod .po-mat td.hit { background: var(--warn-soft); color: var(--warn); font-weight: 700; }
+  .pod .po-mat button { min-width: 40px; min-height: 34px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+  .pod .po-mat button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .pod .po-dl { margin: 6px 0 0; padding-left: 20px; font-size: 14px; }
+  .pod .po-dl li { margin: 3px 0; overflow-wrap: anywhere; }
+  .pod .po-dl code { font-size: 13px; }
+</style>
+
+<script>
+  import { design, guaranteedSpan, matrix, deconvolve, rowName, colName, EXAMPLE_PROTEIN, RULES_DEFAULT, type Pep, type Rules } from '../../lib/sci/peptide-overlap';
+  import { readProtein } from '../../lib/sci/protparam';
+  import { csv } from '../../lib/sci/num';
+  import { wireDownloads, save, fileSafe, paint, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pod')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const fact = (k: string, v: string) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; };
+  const f4 = (x: number) => x.toFixed(4), f2 = (x: number) => x.toFixed(2);
+  const MAX_AA = 5000;
+
+  let seq = '', name = 'protein', peps: Pep[] = [], L = 15, step = 4, guar = 0, fig: Figure | null = null;
+  let mat: ReturnType<typeof matrix> | null = null;
+  const posR = new Set<number>(), posC = new Set<number>();
+
+  const letters = (s: string) => [...new Set(s.toUpperCase().replace(/[^A-Z]/g, ''))].join('');
+  function rules(): Rules {
+    const n = (c: string, d: number) => { const v = Number(inp(c).value); return inp(c).value.trim() !== '' && Number.isFinite(v) ? v : d; };
+    return {
+      hydro: letters(inp('.po-hyd').value), hydroMax: n('.po-hmax', RULES_DEFAULT.hydroMax), cysMax: Math.round(n('.po-cys', RULES_DEFAULT.cysMax)),
+      motifs: inp('.po-mot').value.toUpperCase().split(/[\s,;]+/).map((m) => m.replace(/[^A-Z]/g, '')).filter(Boolean),
+      nTerm: letters(inp('.po-nt').value), longLen: n('.po-long', RULES_DEFAULT.longLen),
+    };
+  }
+
+  function fail(msg: string) {
+    const e = q('.po-err'); e.textContent = msg; e.hidden = !msg;
+    if (msg) { q('.po-out').hidden = true; q('.po-pools').hidden = true; peps = []; }
+  }
+
+  function run() {
+    const text = q<HTMLTextAreaElement>('.po-in').value, r = readProtein(text)[0], warn = q('.po-warn');
+    warn.hidden = true;
+    if (!r || !r.seq) { q('.po-out').hidden = true; q('.po-pools').hidden = true; peps = []; fail(text.trim() ? 'No amino acids found. Paste a protein sequence in one-letter codes.' : ''); return; }
+    const odd = { ...r.skipped, ...r.ambiguous }, oddN = Object.values(odd).reduce((s, v) => s + v, 0);
+    if (oddN) { warn.textContent = `Left out ${oddN} character${oddN > 1 ? 's' : ''} that ${oddN > 1 ? 'are' : 'is'} not a single amino acid: ${Object.keys(odd).join(', ')}. The positions below count only the amino acids kept.`; warn.hidden = false; }
+    if (r.seq.length > MAX_AA) return fail(`That protein has ${r.seq.length.toLocaleString('en')} amino acids. Up to ${MAX_AA.toLocaleString('en')}, please.`);
+    L = Math.round(Number(inp('.po-len').value));
+    if (!(L >= 4 && L <= 60)) return fail('Give a peptide length from 4 to 60.');
+    const v = Math.round(Number(inp('.po-val').value)), byOverlap = q<HTMLSelectElement>('.po-mode').value === 'overlap';
+    if (inp('.po-val').value.trim() === '' || !Number.isFinite(v)) return fail(byOverlap ? 'Give the overlap in amino acids.' : 'Give the offset in amino acids.');
+    if (byOverlap && !(v >= 0 && v < L)) return fail(`The overlap must be from 0 to ${L - 1} (less than the peptide length).`);
+    if (!byOverlap && !(v >= 1 && v <= L)) return fail(`The offset must be from 1 to ${L} (no more than the peptide length, or residues would be missed).`);
+    step = byOverlap ? L - v : v;
+    seq = r.seq; name = r.name;
+    const pre = inp('.po-pre').value.replace(/[^\p{L}\p{N}_-]/gu, '') || 'P';
+    peps = design(seq, { len: L, step, coverEnd: inp('.po-end').checked, prefix: pre, rules: rules() });
+    if (peps.length > 2000) return fail(`That makes ${peps.length.toLocaleString('en')} peptides. Up to 2,000, please: use a larger offset.`);
+    fail('');
+    guar = guaranteedSpan(seq.length, peps);
+    show(); pools();
+  }
+
+  function show() {
+    q('.po-out').hidden = false;
+    const ov = L - step, flagged = peps.filter((p) => p.flags.length).length, res = peps.reduce((s, p) => s + p.len, 0);
+    const extra = peps.length > 1 && peps[peps.length - 1].start - peps[peps.length - 2].start !== step;
+    q('.po-big').textContent = seq.length <= L
+      ? `1 peptide: the whole protein (${seq.length} amino acids) is no longer than ${L}`
+      : `${peps.length} peptides of ${L} amino acids, overlapping by ${ov} (a new one every ${step})`;
+    q('.po-facts').replaceChildren(
+      fact('Protein', `${name}, ${seq.length} amino acids`),
+      fact('Residues to make', `${res.toLocaleString('en')} (${(res / seq.length).toFixed(2)} × the protein)`),
+      fact('Every stretch of', guar ? `${guar} amino acids lies wholly in at least one peptide` : 'some residues are in no peptide: tick the last-peptide box'),
+      fact('Last peptide', extra ? `${peps[peps.length - 1].name} (${peps[peps.length - 1].start}–${peps[peps.length - 1].end}) added to reach the C-terminus` : 'the regular peptides reach the end'),
+      fact('Flagged', `${flagged} of ${peps.length} peptides`),
+    );
+    const t = q<HTMLTableElement>('.po-tab'); t.replaceChildren();
+    const head = ['Name', 'Position', 'Peptide', 'Mono mass', 'Avg mass', 'Water-repelling', 'Flags'];
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i === 1 || (i >= 3 && i <= 5)) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody();
+    for (const p of peps) {
+      const tr = b.insertRow();
+      [p.name, `${p.start}–${p.end}`, p.seq, f4(p.mono), f2(p.avg), `${Math.round(p.hydro)} %`, p.flags.map((f) => f.text).join(', ') || '–'].forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; td.className = i === 2 ? 'seq' : i === 6 ? (p.flags.length ? 'fl' : '') : i ? 'r' : ''; });
+    }
+    // Coverage map: each peptide a bar under the protein's length, staggered so overlaps show.
+    const lanes = Math.max(1, Math.min(peps.length, Math.ceil(L / step))), n = seq.length;
+    const H = Math.min(300, 56 + lanes * 12);
+    fig = {
+      w: 560, h: H, alt: `Coverage map: ${peps.length} peptides along ${n} amino acids, ${flagged} flagged`,
+      draw: (ctx, W, Hh, pal) => {
+        const Lm = 14, R = 14, T = 12, B = 30, X = (a: number) => Lm + ((a - 1) / n) * (W - Lm - R);
+        const lh = Math.max(3, Math.min(10, (Hh - T - B) / lanes - 2));
+        peps.forEach((p, i) => {
+          const y = T + (i % lanes) * (lh + 2);
+          ctx.fillStyle = p.flags.length ? pal.warn : pal.accent;
+          ctx.fillRect(X(p.start), y, Math.max(1.5, X(p.end + 1) - X(p.start) - 1), lh);
+        });
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(Lm, Hh - B); ctx.lineTo(W - R, Hh - B); ctx.stroke();
+        ctx.fillStyle = pal.muted; ctx.font = '11px Arial, Helvetica, sans-serif'; ctx.textBaseline = 'top'; ctx.textAlign = 'center';
+        const tick = n > 2000 ? 500 : n > 800 ? 200 : n > 300 ? 50 : n > 120 ? 25 : 10;
+        for (let a = 0; a <= n; a += tick) { const x = X(Math.max(1, a)); ctx.beginPath(); ctx.moveTo(x, Hh - B); ctx.lineTo(x, Hh - B + 4); ctx.strokeStyle = pal.ink; ctx.stroke(); ctx.fillText(String(Math.max(1, a)), x, Hh - B + 6); }
+        ctx.textAlign = 'right'; ctx.fillText('residue', W - R, Hh - 12);
+      },
+    };
+    paint(q<HTMLCanvasElement>('.po-fig'), fig);
+  }
+
+  function pools() {
+    q('.po-pools').hidden = false;
+    const rIn = inp('.po-rows').value.trim(), rv = Math.round(Number(rIn));
+    const old = mat;
+    mat = matrix(peps.length, rIn && rv >= 1 ? rv : undefined);
+    if (!old || old.rows !== mat.rows || old.cols !== mat.cols) { posR.clear(); posC.clear(); }
+    const m = mat;
+    const pl = (k: number, w: string) => `${k} ${w}${k === 1 ? '' : 's'}`;
+    q('.po-pbig').textContent = `${pl(m.rows, 'row')} × ${pl(m.cols, 'column')} = ${pl(m.pools, 'pool')}, up to ${pl(m.maxPool, 'peptide')} in each`;
+    const t = q<HTMLTableElement>('.po-mat'); t.replaceChildren();
+    const btn = (label: string, kind: 'r' | 'c', k: number) => { const bt = document.createElement('button'); bt.type = 'button'; bt.textContent = label; bt.dataset.k = kind + k; bt.setAttribute('aria-pressed', String((kind === 'r' ? posR : posC).has(k))); bt.setAttribute('aria-label', `${kind === 'r' ? 'Row' : 'Column'} pool ${label} positive`); return bt; };
+    const hr = t.createTHead().insertRow(); hr.append(document.createElement('th'));
+    for (let c = 0; c < m.cols; c++) { const th = document.createElement('th'); th.append(btn(colName(c), 'c', c)); hr.append(th); }
+    const b = t.createTBody();
+    for (let r = 0; r < m.rows; r++) {
+      const tr = b.insertRow(); const th = document.createElement('th'); th.append(btn(rowName(r), 'r', r)); tr.append(th);
+      for (let c = 0; c < m.cols; c++) { const i = r * m.cols + c, td = tr.insertCell(); td.textContent = i < peps.length ? peps[i].name : ''; if (i < peps.length) { td.dataset.i = String(i); td.title = `${peps[i].seq} (${peps[i].start}–${peps[i].end})`; } }
+    }
+    decon();
+  }
+
+  function decon() {
+    if (!mat) return;
+    const d = deconvolve(peps, mat, [...posR], [...posC]);
+    q('.po-mat').querySelectorAll<HTMLElement>('td[data-i]').forEach((td) => td.classList.toggle('hit', d.cand.includes(Number(td.dataset.i))));
+    const big = q('.po-dbig'), ul = q('.po-dl'); ul.replaceChildren();
+    const li = (txt: string, code = '') => { const e = document.createElement('li'); e.textContent = txt; if (code) { const c = document.createElement('code'); c.textContent = code; e.append(c); } ul.append(e); };
+    if (!posR.size && !posC.size) { big.textContent = 'No positive pools chosen yet.'; return; }
+    if (!posR.size || !posC.size) { big.textContent = `Choose at least one ${posR.size ? 'column' : 'row'} pool too.`; return; }
+    big.textContent = !d.cand.length ? 'No peptide sits where a positive row meets a positive column.'
+      : d.unique ? `One candidate: ${peps[d.cand[0]].name}` : `${d.cand.length} candidates: ${d.cand.map((i) => peps[i].name).join(', ')}`;
+    for (const i of d.cand) li(`${peps[i].name} (${peps[i].start}–${peps[i].end}): `, peps[i].seq);
+    for (const r of d.runs) li(r.shared ? `${peps[r.from].name} to ${peps[r.to].name} are neighbours; a single epitope that lights up all of them would sit in residues ${r.start}–${r.end}: ` : `${peps[r.from].name} to ${peps[r.to].name} are neighbours but share no single stretch.`, r.shared);
+    if (d.lonelyRows.length || d.lonelyCols.length) li(`Positive pools with no candidate: ${[...d.lonelyRows.map(rowName), ...d.lonelyCols.map(colName)].join(', ')}. Check for a weak or false signal.`);
+    if (d.cand.length > 1) li('More than one candidate: test each one on its own to find the true positive(s).');
+  }
+
+  q('.po-mat').addEventListener('click', (e) => {
+    const bt = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-k]'); if (!bt) return;
+    const k = bt.dataset.k!, set = k[0] === 'r' ? posR : posC, i = Number(k.slice(1));
+    if (set.has(i)) set.delete(i); else set.add(i);
+    bt.setAttribute('aria-pressed', String(set.has(i))); decon();
+  });
+  q('.po-clear').addEventListener('click', () => { posR.clear(); posC.clear(); pools(); });
+
+  const modeLabel = () => { q('.po-vl').textContent = q<HTMLSelectElement>('.po-mode').value === 'overlap' ? 'Overlap (amino acids)' : 'Offset (amino acids)'; };
+  q('.po-mode').addEventListener('change', () => {
+    // Keep the same design when switching: overlap = length − offset.
+    const v = Number(inp('.po-val').value), l = Number(inp('.po-len').value);
+    if (Number.isFinite(v) && Number.isFinite(l) && inp('.po-val').value.trim() !== '') inp('.po-val').value = String(Math.max(0, Math.round(l - v)));
+    modeLabel(); run();
+  });
+
+  let tm = 0;
+  const later = (f: () => void) => { clearTimeout(tm); tm = window.setTimeout(f, 250); };
+  for (const c of ['.po-in', '.po-len', '.po-val', '.po-pre', '.po-hyd', '.po-hmax', '.po-cys', '.po-mot', '.po-nt', '.po-long']) q(c).addEventListener('input', () => later(run));
+  q('.po-end').addEventListener('change', run);
+  q('.po-rows').addEventListener('input', () => later(() => { if (peps.length) pools(); }));
+
+  q('.po-ex').addEventListener('click', () => {
+    q<HTMLTextAreaElement>('.po-in').value = EXAMPLE_PROTEIN;
+    inp('.po-len').value = '15'; q<HTMLSelectElement>('.po-mode').value = 'overlap'; inp('.po-val').value = '11'; inp('.po-end').checked = true; inp('.po-rows').value = ''; modeLabel();
+    mat = null; run();
+  });
+  q('.po-open').addEventListener('click', () => inp('.po-file').click());
+  q('.po-file').addEventListener('change', async () => {
+    const f = inp('.po-file').files?.[0]; if (!f) return;
+    if (f.size > 5e6) { fail('That file is over 5 MB.'); return; }
+    q<HTMLTextAreaElement>('.po-in').value = await f.text(); inp('.po-file').value = ''; run();
+  });
+
+  q('.po-csv').addEventListener('click', () => {
+    const m = mat!;
+    const rows = [['name', 'sequence', 'length', 'start', 'end', 'mono_mass', 'avg_mass', 'water_repelling_pct', 'cys', 'row_pool', 'column_pool', 'flags'],
+      ...peps.map((p, i) => [p.name, p.seq, p.len, p.start, p.end, f4(p.mono), f2(p.avg), Math.round(p.hydro), p.cys, rowName(m.cell[i][0]), colName(m.cell[i][1]), p.flags.map((f) => f.text).join('; ')])];
+    save(new Blob([csv(rows)], { type: 'text/csv' }), `${fileSafe(name)}-${L}mers-peptides.csv`, 'text/csv');
+  });
+  q('.po-pcsv').addEventListener('click', () => {
+    const m = mat!;
+    const rows = [['pool', 'peptides', 'count'], ...m.rowPools.map((p, r) => [rowName(r), p.map((i) => peps[i].name).join(' '), p.length]), ...m.colPools.map((p, c) => [colName(c), p.map((i) => peps[i].name).join(' '), p.length])];
+    save(new Blob([csv(rows)], { type: 'text/csv' }), `${fileSafe(name)}-pools.csv`, 'text/csv');
+  });
+
+  wireDownloads(q('.dl'), () => {
+    const m = mat!, factsOf = (sel: string) => [...q(sel).querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent ?? '', d.querySelector('dd')!.textContent ?? ''] as [string, string]);
+    const sections: Section[] = [
+      { title: 'Design', facts: factsOf('.po-facts'), figure: fig ?? undefined },
+      { title: 'Peptides', table: { head: ['Name', 'Position', 'Peptide', 'Mono mass', 'Avg mass', 'Flags'], rows: peps.slice(0, 400).map((p) => [p.name, `${p.start}-${p.end}`, p.seq, f4(p.mono), f2(p.avg), p.flags.map((f) => f.text).join(', ')]), align: ['l', 'r', 'l', 'r', 'r', 'l'] }, note: peps.length > 400 ? `First 400 of ${peps.length}; the CSV has them all.` : undefined },
+      { title: 'Matrix pools', text: [q('.po-pbig').textContent ?? ''], table: { head: ['Pool', 'Peptides'], rows: [...m.rowPools.map((p, r) => [rowName(r), p.map((i) => peps[i].name).join(' ')]), ...m.colPools.map((p, c) => [colName(c), p.map((i) => peps[i].name).join(' ')])], align: ['l', 'l'] } },
+      ...(posR.size || posC.size ? [{ title: 'Positive pools', text: [`Positive: ${[...[...posR].sort((a, b) => a - b).map(rowName), ...[...posC].sort((a, b) => a - b).map(colName)].join(', ')}`, q('.po-dbig').textContent ?? '', ...[...q('.po-dl').querySelectorAll('li')].map((l) => l.textContent ?? '')] }] : []),
+    ];
+    return { title: 'Overlapping peptide library', subtitle: q('.po-big').textContent ?? '', file: `${fileSafe(name)}-peptide-library`, sections };
+  });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.po-out').hidden) paint(q<HTMLCanvasElement>('.po-fig'), fig); });
+</script>

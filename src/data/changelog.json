@@ -1,5 +1,59 @@
 [
  {
+  "sha": "badc5366031e",
+  "date": "2026-11-09T10:22:36+00:00",
+  "title": "Add #193 Cryovial inventory and freezing helper",
+  "tools": [
+   "cryovial-inventory"
+  ],
+  "site": false
+ },
+ {
+  "sha": "21c28c7c5268",
+  "date": "2026-11-09T10:18:06+00:00",
+  "title": "Add #191 Fluorescence image analyser",
+  "tools": [
+   "fluorescence-image-analyser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "91f4ac85e8c8",
+  "date": "2026-11-09T10:15:36+00:00",
+  "title": "Add #185 PDB structure viewer",
+  "tools": [
+   "pdb-viewer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a2d9daebbb64",
+  "date": "2026-11-09T10:15:00+00:00",
+  "title": "Add #190 Transfection and plate layout planner",
+  "tools": [
+   "transfection-planner"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8d0d3233b301",
+  "date": "2026-11-09T10:13:47+00:00",
+  "title": "Add #189 Cell doubling time and passage planner",
+  "tools": [
+   "cell-doubling-time"
+  ],
+  "site": false
+ },
+ {
+  "sha": "81184f620d24",
+  "date": "2026-11-09T10:13:47+00:00",
+  "title": "Add #187 Crystallisation screen designer",
+  "tools": [
+   "crystallisation-screen"
+  ],
+  "site": false
+ },
+ {
   "sha": "172b319a9a43",
   "date": "2026-11-09T10:02:38+00:00",
   "title": "Add #188 Cryo-EM sampling and resolution calculator",
