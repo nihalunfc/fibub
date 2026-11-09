@@ -1,0 +1,314 @@
+---
+// Energy track: a ball on a track the student shapes; KE, PE and heat bars; friction; loop the loop.
+// Maths in src/lib/sci/energy-track.ts.
+import '../../styles/astro.css';
+---
+<div class="ax et">
+  <div class="ax-card">
+    <div class="ax-row et-top">
+      <span class="et-lab">Level</span>
+      <div class="ax-seg et-level" role="group" aria-label="Level">
+        <button type="button" data-l="9" aria-pressed="true">Class 9</button>
+        <button type="button" data-l="11" aria-pressed="false">Class 11</button>
+      </div>
+    </div>
+    <div class="ax-seg et-mode" role="group" aria-label="Track">
+      <button type="button" data-m="track" aria-pressed="true">Shape a track</button>
+      <button type="button" data-m="loop" aria-pressed="false">Loop the loop</button>
+    </div>
+    <canvas class="et-c" aria-label="A ball on a track"></canvas>
+    <div class="ax-row"><button type="button" class="btn small et-go">Play</button><button type="button" class="btn secondary small et-reset">Reset</button><span class="ax-help et-hint">Drag the round handles to shape the track. Tap the track to put the ball there.</span></div>
+
+    <div class="et-bars" aria-live="off">
+      <div class="et-bar"><span>Kinetic (KE)</span><div><i class="et-b-ke"></i></div><b class="et-v-ke"></b></div>
+      <div class="et-bar"><span>Potential (PE)</span><div><i class="et-b-pe"></i></div><b class="et-v-pe"></b></div>
+      <div class="et-bar"><span>Heat</span><div><i class="et-b-heat"></i></div><b class="et-v-heat"></b></div>
+      <div class="et-bar"><span>Total</span><div><i class="et-b-tot"></i></div><b class="et-v-tot"></b></div>
+    </div>
+
+    <div class="et-p et-p-track">
+      <label>Friction: <b class="et-muv"></b><input class="et-mu" type="range" min="0" max="0.3" step="0.01" value="0" /></label>
+      <label>Mass of the ball: <b class="et-mv"></b><input class="et-m" type="range" min="1" max="10" step="1" value="2" /></label>
+      <p class="ax-help">Friction here is a simple sliding-friction number μ (0 is a perfectly smooth track). The ball bounces off the walls at both ends without losing energy.</p>
+    </div>
+    <div class="et-p et-p-loop" hidden>
+      <label>Starting height h: <b class="et-hv"></b><input class="et-h" type="range" min="1" max="10" step="0.5" value="6" /></label>
+      <label>Loop radius r: <b class="et-rv"></b><input class="et-r" type="range" min="0.5" max="3" step="0.25" value="2" /></label>
+      <p class="ax-help">A smooth ramp (no friction) runs into a vertical loop. Does the ball make it round?</p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>The numbers</h2>
+    <p class="et-state"><span class="ax-pill et-pill"></span></p>
+    <dl class="ax-facts et-facts"></dl>
+    <div class="et-eq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="et-try">
+      <li>With no friction, the ball always comes back to the height it started from: energy is not lost, only swapped between KE and PE.</li>
+      <li>Make the middle hump higher than the start. The ball can never get over it.</li>
+      <li>Add friction. The heat bar grows, the ball rises less each time, and in the end it stops. The total stays the same.</li>
+      <li>Double the mass. Every energy doubles, but the ball moves exactly the same way.</li>
+      <li>In Loop the loop, find the lowest start that gets round. Compare it with 2.5 × the radius.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="et-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { G, buildTrack, onTrack, sAtX, startBall, advance, energies, loop, questions, type Track, type Ball } from '../../lib/sci/energy-track';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { pagePalette, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.et')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => Number(inp(c).value);
+  const f = (x: number, d = 2) => { const r = Math.round(x * 10 ** d) / 10 ** d; return (Object.is(r, -0) ? 0 : r).toFixed(d).replace(/\.?0+$/, '').replace('-', '−'); };
+  const H = 260, W_M = 10, H_M = 8;
+
+  let level: 9 | 11 = 9, mode: 'track' | 'loop' = 'track';
+  let hs = [6, 1, 3, 0.5, 4], tr: Track = buildTrack(hs), s0 = 0, ball: Ball = startBall(0), e0 = G * 6, playing = false, raf = 0, last = 0, maxH = 6;
+  // loop state: phase time
+  let lt = 0, lplaying = false;
+
+  function setup(c: HTMLCanvasElement, h: number) {
+    const w = Math.max(260, Math.round(c.clientWidth || c.parentElement!.clientWidth || 320)), dpr = Math.min(3, window.devicePixelRatio || 1);
+    c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c.style.height = `${h}px`;
+    const ctx = c.getContext('2d')!; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w };
+  }
+  let map = { X: (x: number) => x, Y: (y: number) => y, w: 0 };
+
+  // ---- shape a track --------------------------------------------------------------------------------------
+  function resetBall() { ball = startBall(s0); e0 = G * onTrack(tr, s0).y; maxH = onTrack(tr, s0).y; }
+  function drawTrack(pal: Palette) {
+    const c = q<HTMLCanvasElement>('.et-c'), { ctx, w } = setup(c, H);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, H);
+    const L = 34, R = 16, T = 16, B = H - 24;
+    const X = (x: number) => L + (x / W_M) * (w - L - R), Y = (y: number) => B - (y / H_M) * (B - T);
+    map = { X, Y, w };
+    ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.lineWidth = 1;
+    for (let y = 0; y <= H_M; y += 2) { ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(L, Y(y)); ctx.lineTo(w - R, Y(y)); ctx.stroke(); ctx.fillText(`${y} m`, L - 4, Y(y) + 4); }
+    // the starting energy line (the highest the ball could reach)
+    ctx.save(); ctx.setLineDash([5, 4]); ctx.strokeStyle = pal.accent2; ctx.beginPath(); ctx.moveTo(L, Y(e0 / G)); ctx.lineTo(w - R, Y(e0 / G)); ctx.stroke(); ctx.restore();
+    // track and ground fill
+    ctx.fillStyle = pal.grid; ctx.beginPath(); ctx.moveTo(X(0), Y(0)); tr.x.forEach((x, i) => ctx.lineTo(X(x), Y(tr.y[i]))); ctx.lineTo(X(W_M), Y(0)); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 3; ctx.beginPath(); tr.x.forEach((x, i) => (i ? ctx.lineTo(X(x), Y(tr.y[i])) : ctx.moveTo(X(x), Y(tr.y[i])))); ctx.stroke();
+    ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(0), Y(H_M)); ctx.moveTo(X(W_M), Y(0)); ctx.lineTo(X(W_M), Y(H_M)); ctx.stroke();
+    // handles
+    hs.forEach((h, i) => { const x = X((W_M * i) / (hs.length - 1)), y = Y(h); ctx.fillStyle = pal.bg; ctx.strokeStyle = pal.muted; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, 9, 0, 7); ctx.fill(); ctx.stroke(); });
+    // ball
+    const p = onTrack(tr, ball.s), bx = X(p.x), by = Y(p.y), nx = -p.sin, ny = p.cos, rr = 9;
+    ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(bx + nx * rr * 1.1, by - ny * rr * 1.1, rr, 0, 7); ctx.fill();
+    c.setAttribute('aria-label', `Ball at ${f(p.y)} m high moving at ${f(ball.v)} m/s`);
+  }
+  function trackReadouts() {
+    const m = val('.et-m'), mu = val('.et-mu'), e = energies(tr, ball, e0, m);
+    q('.et-muv').textContent = mu === 0 ? 'none (μ = 0)' : `μ = ${f(mu)}`; q('.et-mv').textContent = `${m} kg`;
+    bars(e.ke, e.pe, e.heat, e.start);
+    const pill = q('.et-pill');
+    pill.textContent = ball.stopped ? 'Stopped: friction has turned the rest into heat' : playing ? (ball.v < 0.05 ? 'Turning round' : 'Rolling') : 'Press Play';
+    pill.className = `ax-pill ${ball.stopped ? 'warn' : ''} et-pill`;
+    const facts = [['Height', `${f(e.y)} m`, ''], ['Speed', `${f(ball.v)} m/s`, ''], ['Kinetic energy', `${f(e.ke, 1)} J`, '½ m v²'], ['Potential energy', `${f(e.pe, 1)} J`, 'm g h'], ['Heat from friction', `${f(e.heat, 1)} J`, ''], ['Total', `${f(e.total, 1)} J`, `starts at ${f(e.start, 1)} J`]];
+    q('.et-facts').replaceChildren(...facts.map(([k, v, s]) => fact(k, v, s)));
+    const eq = [para([['KE + PE + heat'], ` = ${f(e.ke, 1)} + ${f(e.pe, 1)} + ${f(e.heat, 1)} = ${f(e.total, 1)} J, the same as the ${f(e.start, 1)} J it started with (m g h = ${m} × 9.8 × ${f(e0 / G)}).`])];
+    if (mu === 0) eq.push(para([['No friction: '], `the fastest it can go is at the lowest point, where v = √(2gΔh). It can never rise above its starting height of ${f(e0 / G)} m (the dashed line).`]));
+    else eq.push(para([['With friction: '], 'some energy turns into heat (and a little sound) every metre, so each swing is lower than the last.']));
+    if (level === 11) eq.push(para([['Work-energy theorem: '], `the work done by friction is −${f(e.heat, 1)} J, and it equals the change in mechanical energy (KE + PE). Gravity is a conservative force: its work depends only on the change in height, ${f(e0 / G)} m → ${f(e.y)} m.`]));
+    q('.et-eq').replaceChildren(...eq);
+  }
+
+  // ---- loop the loop ----------------------------------------------------------------------------------------
+  // geometry in metres: ramp from (0, h) straight down to (rampEnd, 0), flat to the loop bottom at xc, loop radius r
+  function loopPath(h: number, r: number) {
+    const ramp = Math.max(2, h * 0.9), xc = ramp + 1 + r;
+    return { ramp, xc };
+  }
+  function loopPos(t: number) {
+    // frictionless: time along the ramp then around the loop by energy; return x, y (m) and phase
+    const h = val('.et-h'), r = val('.et-r'), L = loop(h, r), { ramp, xc } = loopPath(h, r);
+    const len = Math.hypot(ramp, h), aR = G * h / len; // acceleration along the straight ramp
+    const tR = Math.sqrt(2 * len / aR), vB = L.vBottom;
+    if (t <= tR) { const d = 0.5 * aR * t * t, k = d / len; return { x: ramp * k, y: h * (1 - k), v: aR * t, phase: 'ramp' }; }
+    let tt = t - tR;
+    if (tt <= 1 / vB) return { x: ramp + vB * tt, y: 0, v: vB, phase: 'flat' };
+    tt -= 1 / vB;
+    // around the loop: integrate θ with small steps (dθ/dt = v/r, v² = vB² − 2 g r(1 − cos θ))
+    let th = 0, time = 0; const dt = 0.002;
+    const thEnd = L.result === 'round' ? 2 * Math.PI : L.result === 'falls' ? (L.leaveDeg * Math.PI) / 180 : Math.acos(1 - h / r);
+    while (time < tt) {
+      const v2 = vB * vB - 2 * G * r * (1 - Math.cos(th));
+      if (L.result !== 'falls' && L.result !== 'round' && (v2 <= 1e-6 || th >= thEnd)) return { x: xc + r * Math.sin(thEnd), y: r * (1 - Math.cos(thEnd)), v: 0, phase: 'stop' };
+      if (th >= thEnd) break;
+      th += (Math.sqrt(Math.max(v2, 1e-6)) / r) * dt; time += dt;
+    }
+    if (time < tt && L.result === 'round') { const tt2 = tt - time; return { x: xc + vB * tt2, y: 0, v: vB, phase: 'out', th: 2 * Math.PI }; }
+    if (time < tt && L.result === 'falls') {
+      // projectile from the leaving point
+      const thL = thEnd, v = L.vLeave!, x0 = xc + r * Math.sin(thL), y0 = r * (1 - Math.cos(thL));
+      const vx = v * Math.cos(thL), vy = v * Math.sin(thL), t2 = tt - time;
+      const y = y0 + vy * t2 - 0.5 * G * t2 * t2;
+      return { x: x0 + vx * t2, y: Math.max(0, y), v, phase: y <= 0 ? 'stop' : 'fly' };
+    }
+    return { x: xc + r * Math.sin(Math.min(th, thEnd)), y: r * (1 - Math.cos(Math.min(th, thEnd))), v: Math.sqrt(Math.max(0, vB * vB - 2 * G * r * (1 - Math.cos(th)))), phase: 'loop' };
+  }
+  function drawLoop(pal: Palette) {
+    const c = q<HTMLCanvasElement>('.et-c'), { ctx, w } = setup(c, H);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, H);
+    const h = val('.et-h'), r = val('.et-r'), { ramp, xc } = loopPath(h, r), Wm = xc + r + 2.5, Hm = Math.max(h, 2 * r) + 0.6;
+    const sc = Math.min((w - 30) / Wm, (H - 30) / Hm), X = (x: number) => 15 + x * sc, Y = (y: number) => H - 15 - y * sc;
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(X(0), Y(h)); ctx.lineTo(X(ramp), Y(0)); ctx.lineTo(X(Wm), Y(0)); ctx.stroke();
+    ctx.beginPath(); ctx.arc(X(xc), Y(r), r * sc, 0, 7); ctx.stroke();
+    ctx.save(); ctx.setLineDash([5, 4]); ctx.strokeStyle = pal.accent2; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(0), Y(2.5 * r)); ctx.lineTo(X(Wm), Y(2.5 * r)); ctx.stroke();
+    ctx.fillStyle = pal.accent2; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'right'; ctx.fillText(`2.5 r = ${f(2.5 * r)} m`, w - 6, Y(2.5 * r) - 4); ctx.restore();
+    const p = loopPos(lt);
+    let bx = X(p.x), by = Y(p.y) - 8;
+    if (p.phase === 'loop' || p.phase === 'stop' && p.x > ramp) { const ang = Math.atan2(p.y - r, p.x - xc); bx = X(xc + (r - 8 / sc) * Math.cos(ang)); by = Y(r + (r - 8 / sc) * Math.sin(ang)); }
+    ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(bx, by, 8, 0, 7); ctx.fill();
+    ctx.fillStyle = pal.ink; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(`h = ${f(h)} m`, X(0) + 4, Y(h) - 6);
+    return p;
+  }
+  function loopReadouts() {
+    const h = val('.et-h'), r = val('.et-r'), L = loop(h, r), m = val('.et-m');
+    q('.et-hv').textContent = `${f(h)} m`; q('.et-rv').textContent = `${f(r)} m`;
+    const p = loopPos(lt), pe = m * G * p.y, ke = 0.5 * m * p.v * p.v;
+    bars(ke, pe, 0, m * G * h);
+    const pill = q('.et-pill');
+    pill.textContent = L.result === 'round' ? 'Makes it round the loop' : L.result === 'falls' ? `Falls off the loop ${f(L.leaveHeight, 1)} m up` : 'Rolls back: never gets above the middle of the loop';
+    pill.className = `ax-pill ${L.result === 'round' ? 'good' : 'warn'} et-pill`;
+    const facts = [['Speed at the bottom', `${f(L.vBottom)} m/s`, '√(2 g h)'], ['Lowest start that works', `${f(L.hMin)} m`, '2.5 × radius'], ['Speed needed at the top', `${f(L.vNeedTop)} m/s`, '√(g r)']];
+    if (L.result === 'round') facts.push(['Speed at the top', `${f(L.vTop)} m/s`, '√(2g(h − 2r))']);
+    else if (L.result === 'falls') facts.push(['Leaves the track at', `${f(L.leaveDeg, 1)}° round the loop`, `${f(L.leaveHeight)} m up`]);
+    q('.et-facts').replaceChildren(...facts.map(([k, v, s]) => fact(k, v, s)));
+    const eq = [para([['Energy: '], `m g h = ½ m v² at the bottom, so v = √(2 × 9.8 × ${f(h)}) = ${f(L.vBottom)} m/s.`])];
+    eq.push(para([['At the top of the loop'], ` the track can only push, not pull, so gravity alone must give the circular motion: v² ≥ g r = ${f(G * r)}. Energy then needs h ≥ 2r + r/2 = 2.5 r = ${f(L.hMin)} m.`]));
+    if (level === 11 && L.result === 'falls') eq.push(para([['Where it leaves: '], `the normal force m(v²/r + g cos θ) reaches zero when cos θ = −2(h − r) ÷ 3r = ${f(Math.cos(L.leaveDeg * Math.PI / 180), 3)}, θ = ${f(L.leaveDeg, 1)}° from the bottom. After that it flies as a projectile.`]));
+    q('.et-eq').replaceChildren(...eq);
+  }
+
+  // ---- shared ------------------------------------------------------------------------------------------------
+  function bars(ke: number, pe: number, heat: number, total: number) {
+    const pct = (x: number) => `${Math.max(0, Math.min(100, (x / (total || 1)) * 100))}%`;
+    q('.et-b-ke').style.width = pct(ke); q('.et-b-pe').style.width = pct(pe); q('.et-b-heat').style.width = pct(heat); q('.et-b-tot').style.width = pct(ke + pe + heat);
+    q('.et-v-ke').textContent = `${f(ke, 0)} J`; q('.et-v-pe').textContent = `${f(pe, 0)} J`; q('.et-v-heat').textContent = `${f(heat, 0)} J`; q('.et-v-tot').textContent = `${f(ke + pe + heat, 0)} J`;
+  }
+  function fact(k: string, v: string, sm = '') {
+    const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd');
+    dt.textContent = k; dd.textContent = v;
+    if (sm) { const e = document.createElement('small'); e.textContent = sm; dd.append(e); }
+    d.append(dt, dd); return d;
+  }
+  function para(parts: (string | [string])[]) { const el = document.createElement('p'); for (const x of parts) { if (typeof x === 'string') el.append(x); else { const b = document.createElement('b'); b.textContent = x[0]; el.append(b); } } return el; }
+  function draw() { const pal = pagePalette(); if (mode === 'track') { drawTrack(pal); trackReadouts(); } else { drawLoop(pal); loopReadouts(); } }
+
+  function stop() { playing = false; lplaying = false; cancelAnimationFrame(raf); raf = 0; q('.et-go').textContent = 'Play'; }
+  function frame(now: number) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (mode === 'track') {
+      ball = advance(tr, ball, e0, val('.et-mu'), dt);
+      draw();
+      if (ball.stopped) { stop(); draw(); return; }
+    } else {
+      lt += dt * 0.8; const p = loopPos(lt); draw();
+      if (p.phase === 'stop' || p.phase === 'out' && p.x > loopPath(val('.et-h'), val('.et-r')).xc + val('.et-r') + 2 || lt > 30) { stop(); draw(); return; }
+    }
+    raf = requestAnimationFrame(frame);
+  }
+  q('.et-go').addEventListener('click', () => {
+    if (playing || lplaying) { stop(); draw(); return; }
+    if (mode === 'track') { if (ball.stopped) resetBall(); playing = true; } else { const p = loopPos(lt); if (p.phase === 'stop' || p.phase === 'out') lt = 0; lplaying = true; }
+    q('.et-go').textContent = 'Pause'; last = performance.now(); raf = requestAnimationFrame(frame);
+  });
+  q('.et-reset').addEventListener('click', () => { stop(); if (mode === 'track') resetBall(); else lt = 0; draw(); });
+
+  // dragging handles and placing the ball
+  const cv = q<HTMLCanvasElement>('.et-c');
+  let drag = -1;
+  cv.addEventListener('pointerdown', (e) => {
+    if (mode !== 'track') return;
+    const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+    let best = -1, bd = 26;
+    hs.forEach((h, i) => { const d = Math.hypot(x - map.X((W_M * i) / (hs.length - 1)), y - map.Y(h)); if (d < bd) { bd = d; best = i; } });
+    if (best >= 0) { drag = best; cv.setPointerCapture(e.pointerId); stop(); return; }
+    // tap near the track: put the ball there
+    const xm = ((x - map.X(0)) / (map.X(W_M) - map.X(0))) * W_M;
+    if (xm >= 0 && xm <= W_M) { const s = sAtX(tr, xm), p = onTrack(tr, s); if (Math.abs(map.Y(p.y) - y) < 40) { stop(); s0 = s; resetBall(); draw(); } }
+  });
+  cv.addEventListener('pointermove', (e) => {
+    if (drag < 0) return;
+    const r = cv.getBoundingClientRect(), y = e.clientY - r.top, ym = ((map.Y(0) - y) / (map.Y(0) - map.Y(H_M))) * H_M;
+    hs[drag] = Math.max(0, Math.min(H_M - 0.5, Math.round(ym * 4) / 4));
+    const xs = onTrack(tr, s0).x; tr = buildTrack(hs); s0 = sAtX(tr, xs); resetBall(); draw();
+  });
+  const up = () => { drag = -1; };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+
+  root.querySelectorAll<HTMLButtonElement>('.et-level button').forEach((b) => b.addEventListener('click', () => {
+    level = Number(b.dataset.l) as 9 | 11;
+    root.querySelectorAll('.et-level button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    renderQuiz(); draw();
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.et-mode button').forEach((b) => b.addEventListener('click', () => {
+    stop(); mode = b.dataset.m as typeof mode;
+    root.querySelectorAll('.et-mode button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    q('.et-p-track').hidden = mode !== 'track'; q('.et-p-loop').hidden = mode !== 'loop'; q('.et-hint').hidden = mode !== 'track';
+    lt = 0; draw();
+  }));
+  for (const c of ['.et-mu', '.et-m']) inp(c).addEventListener('input', () => { if (!playing) draw(); });
+  for (const c of ['.et-h', '.et-r']) inp(c).addEventListener('input', () => { stop(); lt = 0; draw(); });
+
+  let renderQuiz = () => {};
+  renderQuiz = mountQuiz(q('.et-quiz'), () => questions(level));
+  resetBall(); draw();
+  document.addEventListener('fibub:theme', draw);
+  let rw = 0; new ResizeObserver(() => { const w = cv.clientWidth; if (w !== rw) { rw = w; draw(); } }).observe(cv);
+</script>
+
+<style is:inline>
+  .et .et-top { margin-bottom: 10px; }
+  .et .et-lab { font-size: 14px; color: var(--muted); }
+  .et .et-mode { margin-bottom: 12px; }
+  .et .ax-seg button { min-height: 44px; }
+  .et canvas { display: block; width: 100%; touch-action: pan-y; }
+  .et .btn.small { min-height: 44px; }
+  .et .et-bars { display: grid; gap: 6px; margin: 12px 0; }
+  .et .et-bar { display: grid; grid-template-columns: 7.5em 1fr 4.5em; gap: 8px; align-items: center; font-size: 14px; }
+  .et .et-bar > div { height: 16px; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+  .et .et-bar i { display: block; height: 100%; width: 0; }
+  .et .et-bar b { text-align: right; font-variant-numeric: tabular-nums; }
+  .et .et-b-ke { background: #1f5fae; }
+  .et .et-b-pe { background: #c26a00; }
+  .et .et-b-heat { background: #b3261e; }
+  .et .et-b-tot { background: var(--ink); }
+  html[data-theme=dark] .et .et-b-ke { background: #7fb2f0; }
+  html[data-theme=dark] .et .et-b-pe { background: #f0b45a; }
+  html[data-theme=dark] .et .et-b-heat { background: #f28b82; }
+  html.red-mode .et .et-bar i { background: #a30000; }
+  .et .et-p { display: grid; gap: 10px; }
+  .et .et-p[hidden] { display: none; }
+  .et input[type=range] { width: 100%; height: 32px; accent-color: var(--ink); }
+  .et label b { color: var(--ink); }
+  .et .et-state { margin: 0 0 12px; }
+  .et .et-pill { font-size: 14px; white-space: normal; }
+  .et .et-eq p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .et .et-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>
