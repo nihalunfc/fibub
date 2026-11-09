@@ -1,0 +1,293 @@
+---
+// Simple machines lab: levers (three classes), pulleys with 1 to 4 strands, the ramp and the wheel and
+// axle; effort, mechanical advantage, velocity ratio and efficiency. Maths in src/lib/sci/machines.ts.
+import '../../styles/astro.css';
+---
+<div class="ax sm">
+  <div class="ax-card">
+    <div class="ax-seg sm-mode" role="group" aria-label="Machine">
+      <button type="button" data-m="lever" aria-pressed="true">Lever</button>
+      <button type="button" data-m="pulley" aria-pressed="false">Pulleys</button>
+      <button type="button" data-m="ramp" aria-pressed="false">Ramp</button>
+      <button type="button" data-m="wheel" aria-pressed="false">Wheel and axle</button>
+    </div>
+    <canvas class="sm-c" aria-label="The machine"></canvas>
+    <label>Pull (how far the effort has moved): <b class="sm-pullv"></b><input class="sm-pull" type="range" min="0" max="1" step="0.01" value="0.5" /></label>
+    <label>Load mass: <b class="sm-loadv"></b><input class="sm-load" type="range" min="10" max="200" step="5" value="60" /></label>
+
+    <div class="sm-p sm-p-lever">
+      <div class="ax-seg sm-class" role="group" aria-label="Lever class">
+        <button type="button" data-c="1" aria-pressed="true">Class 1</button>
+        <button type="button" data-c="2" aria-pressed="false">Class 2</button>
+        <button type="button" data-c="3" aria-pressed="false">Class 3</button>
+      </div>
+      <label><span class="sm-posl">Fulcrum position</span>: <b class="sm-posv"></b><input class="sm-pos" type="range" min="0.1" max="1.9" step="0.05" value="0.5" /></label>
+      <label>Friction at the pivot (efficiency): <b class="sm-leffv"></b><input class="sm-leff" type="range" min="0.5" max="1" step="0.05" value="1" /></label>
+    </div>
+    <div class="sm-p sm-p-pulley" hidden>
+      <div class="ax-seg sm-n" role="group" aria-label="Supporting strands">
+        <button type="button" data-n="1" aria-pressed="false">1 strand</button>
+        <button type="button" data-n="2" aria-pressed="true">2</button>
+        <button type="button" data-n="3" aria-pressed="false">3</button>
+        <button type="button" data-n="4" aria-pressed="false">4</button>
+      </div>
+      <label>Mass of the moving pulleys: <b class="sm-bmv"></b><input class="sm-bm" type="range" min="0" max="10" step="0.5" value="2" /></label>
+      <label>Friction in the pulleys: <b class="sm-pfv"></b><input class="sm-pf" type="range" min="0" max="0.3" step="0.01" value="0.05" /></label>
+    </div>
+    <div class="sm-p sm-p-ramp" hidden>
+      <label>Ramp length: <b class="sm-rlv"></b><input class="sm-rl" type="range" min="2" max="10" step="0.5" value="5" /></label>
+      <label>Ramp height: <b class="sm-rhv"></b><input class="sm-rh" type="range" min="0.5" max="3" step="0.25" value="1" /></label>
+      <label>Friction μ: <b class="sm-rmuv"></b><input class="sm-rmu" type="range" min="0" max="0.5" step="0.05" value="0.1" /></label>
+    </div>
+    <div class="sm-p sm-p-wheel" hidden>
+      <label>Wheel (handle) radius: <b class="sm-wrv"></b><input class="sm-wr" type="range" min="10" max="60" step="1" value="30" /></label>
+      <label>Axle radius: <b class="sm-arv"></b><input class="sm-ar" type="range" min="2" max="10" step="0.5" value="5" /></label>
+      <label>Efficiency: <b class="sm-weffv"></b><input class="sm-weff" type="range" min="0.5" max="1" step="0.05" value="0.9" /></label>
+    </div>
+    <p class="ax-help">g = 9.8 m/s². Masses and friction values are made-up examples; change any of them.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Effort, MA, VR and efficiency</h2>
+    <dl class="ax-facts sm-facts"></dl>
+    <div class="sm-eq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Lever, class 1: move the fulcrum closer to the load. The effort falls, but you have to push further.</li>
+      <li>Lever, class 3: the effort is always bigger than the load (MA below 1). What does it gain? Speed and distance at the load end.</li>
+      <li>Pulleys: go from 1 to 4 strands. The effort drops to about a quarter, and you pull four times as much rope.</li>
+      <li>Ramp: make it longer but keep the height. Easier to push, longer to push.</li>
+      <li>In every machine, work out (load × distance it rises) is never more than work in (effort × distance it moves).</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="sm-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { G, lever, leverClass, pulleys, incline, wheelAxle, questions, type Machine } from '../../lib/sci/machines';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { pagePalette, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.sm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => Number(inp(c).value);
+  const f = (x: number, d = 2) => { const r = Math.round(x * 10 ** d) / 10 ** d; return (Object.is(r, -0) ? 0 : r).toFixed(d).replace(/\.?0+$/, '').replace('-', '−'); };
+  const H = 250, BEAM = 2;
+  let mode: 'lever' | 'pulley' | 'ramp' | 'wheel' = 'lever', cls: 1 | 2 | 3 = 1, strands = 2;
+
+  function setup(c: HTMLCanvasElement, h: number) {
+    const w = Math.max(260, Math.round(c.clientWidth || c.parentElement!.clientWidth || 320)), dpr = Math.min(3, window.devicePixelRatio || 1);
+    c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c.style.height = `${h}px`;
+    const ctx = c.getContext('2d')!; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w };
+  }
+  function arrow(ctx: CanvasRenderingContext2D, x: number, y: number, dx: number, dy: number, col: string, label = '') {
+    const len = Math.hypot(dx, dy); if (len < 3) return;
+    const ux = dx / len, uy = dy / len;
+    ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + dx - ux * 8, y + dy - uy * 8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + dx, y + dy); ctx.lineTo(x + dx - ux * 10 - uy * 5, y + dy - uy * 10 + ux * 5); ctx.lineTo(x + dx - ux * 10 + uy * 5, y + dy - uy * 10 - ux * 5); ctx.closePath(); ctx.fill();
+    if (label) { ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(label, x + dx + ux * 12, y + dy + uy * 14 + (Math.abs(uy) < 0.5 ? -8 : 0)); }
+  }
+  function box(ctx: CanvasRenderingContext2D, pal: Palette, cx: number, bottom: number, label: string, s = 34) {
+    ctx.fillStyle = pal.bg; ctx.strokeStyle = pal.ink; ctx.lineWidth = 2.5; ctx.fillRect(cx - s / 2, bottom - s, s, s); ctx.strokeRect(cx - s / 2, bottom - s, s, s);
+    ctx.fillStyle = pal.ink; ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(label, cx, bottom - s / 2 + 4);
+  }
+
+  // ---- each machine: numbers, how far effort and load move for the pull, and the picture --------------
+  type Calc = { m: Machine; load: number; effDist: number; loadDist: number; extra: string[] };
+  function calc(): Calc {
+    const load = val('.sm-load') * G, pull = val('.sm-pull');
+    if (mode === 'lever') {
+      const pos = val('.sm-pos');
+      const geo = cls === 1 ? { fulcrum: pos, loadAt: 0, effortAt: BEAM } : cls === 2 ? { fulcrum: 0, loadAt: pos, effortAt: BEAM } : { fulcrum: 0, loadAt: BEAM, effortAt: pos };
+      const la = Math.abs(geo.loadAt - geo.fulcrum), ea = Math.abs(geo.effortAt - geo.fulcrum), m = lever(load, la, ea, val('.sm-leff'));
+      const turn = 0.25 * pull; // radians the beam turns
+      return { m, load, effDist: ea * turn, loadDist: la * turn, extra: [`load arm ${f(la)} m, effort arm ${f(ea)} m`, `class ${leverClass(geo.fulcrum, geo.loadAt, geo.effortAt)}`] };
+    }
+    if (mode === 'pulley') {
+      const m = pulleys(load, strands, val('.sm-bm') * G, val('.sm-pf')), lift = 1 * pull;
+      return { m, load, effDist: lift * strands, loadDist: lift, extra: [] };
+    }
+    if (mode === 'ramp') {
+      const L = val('.sm-rl'), h = Math.min(val('.sm-rh'), L * 0.9), m = incline(load, L, h, val('.sm-rmu'));
+      return { m, load, effDist: L * pull, loadDist: h * pull, extra: [] };
+    }
+    const R = val('.sm-wr') / 100, r = val('.sm-ar') / 100, m = wheelAxle(load, R, r, val('.sm-weff')), turns = 2 * pull;
+    return { m, load, effDist: 2 * Math.PI * R * turns, loadDist: 2 * Math.PI * r * turns, extra: [] };
+  }
+
+  function drawLever(ctx: CanvasRenderingContext2D, pal: Palette, w: number, c: Calc) {
+    const pos = val('.sm-pos'), geo = cls === 1 ? { fulcrum: pos, loadAt: 0, effortAt: BEAM } : cls === 2 ? { fulcrum: 0, loadAt: pos, effortAt: BEAM } : { fulcrum: 0, loadAt: BEAM, effortAt: pos };
+    const L = 30, R = 30, X = (x: number) => L + (x / BEAM) * (w - L - R), yP = 150;
+    const turn = 0.25 * val('.sm-pull'); // class 1: the effort end (right) goes down; classes 2 and 3: it goes up
+    const pt = (x: number) => { const d = (x - geo.fulcrum) * ((w - L - R) / BEAM), a = (cls === 1 ? 1 : -1) * turn * 0.6; return { x: X(geo.fulcrum) + d * Math.cos(a), y: yP + d * Math.sin(a) }; };
+    // ground and fulcrum
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, yP + 34); ctx.lineTo(w, yP + 34); ctx.stroke();
+    ctx.fillStyle = pal.grid; ctx.beginPath(); ctx.moveTo(X(geo.fulcrum), yP + 4); ctx.lineTo(X(geo.fulcrum) - 16, yP + 34); ctx.lineTo(X(geo.fulcrum) + 16, yP + 34); ctx.closePath(); ctx.fill(); ctx.stroke();
+    const a = pt(0), b = pt(BEAM);
+    ctx.lineWidth = 7; ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    const lp = pt(geo.loadAt), ep = pt(geo.effortAt);
+    box(ctx, pal, lp.x, lp.y - 4, `${val('.sm-load')} kg`);
+    const up = cls !== 1, len = Math.min(70, 14 + c.m.effort / 15);
+    arrow(ctx, ep.x, up ? ep.y + len + 4 : ep.y - len - 4, 0, up ? -len : len, pal.accent, `${f(c.m.effort, 0)} N`);
+    ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('fulcrum', X(geo.fulcrum), yP + 50);
+  }
+  function drawPulley(ctx: CanvasRenderingContext2D, pal: Palette, w: number, c: Calc) {
+    const cx = w / 2, top = 18, rp = 14, pull = val('.sm-pull');
+    ctx.fillStyle = pal.grid; ctx.fillRect(cx - 120, 4, 240, 10); ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.strokeRect(cx - 120, 4, 240, 10);
+    const yLoad = 200 - pull * 70, n = strands;
+    ctx.lineWidth = 2;
+    if (n === 1) {
+      const py = top + 26; ctx.beginPath(); ctx.moveTo(cx, 14); ctx.lineTo(cx, py); ctx.stroke(); ctx.beginPath(); ctx.arc(cx, py, rp, 0, 7); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx - rp, py); ctx.lineTo(cx - rp, yLoad - 34); ctx.stroke();
+      box(ctx, pal, cx - rp, yLoad, `${val('.sm-load')} kg`);
+      const ey = 150 + pull * 70; ctx.beginPath(); ctx.moveTo(cx + rp, py); ctx.lineTo(cx + rp, ey); ctx.stroke();
+      arrow(ctx, cx + rp, ey, 0, 40, pal.accent, `${f(c.m.effort, 0)} N`);
+      return;
+    }
+    const topPul = Math.ceil(n / 2), botPul = Math.floor(n / 2), yT = top + 26, yB = yLoad - 52;
+    const xs = (k: number, i: number) => cx - ((k - 1) * 34) / 2 + i * 34;
+    for (let i = 0; i < topPul; i++) { ctx.beginPath(); ctx.arc(xs(topPul, i), yT, rp, 0, 7); ctx.stroke(); }
+    ctx.beginPath(); ctx.moveTo(cx, 14); ctx.lineTo(cx, yT - rp); ctx.stroke();
+    for (let i = 0; i < botPul; i++) { ctx.beginPath(); ctx.arc(xs(botPul, i), yB, rp, 0, 7); ctx.stroke(); }
+    // strands: n vertical lines between the blocks, spread out
+    ctx.strokeStyle = pal.accent2; ctx.lineWidth = 2.2;
+    for (let i = 0; i < n; i++) { const x = cx - ((n - 1) * 17) / 2 + i * 17; ctx.beginPath(); ctx.moveTo(x, yT + 4); ctx.lineTo(x, yB - 4); ctx.stroke(); }
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx, yB + rp); ctx.lineTo(cx, yLoad - 34); ctx.stroke();
+    box(ctx, pal, cx, yLoad, `${val('.sm-load')} kg`);
+    const ex = cx + Math.max(topPul, 1) * 17 + 30, ey = 120 + pull * 80;
+    ctx.beginPath(); ctx.moveTo(xs(topPul, topPul - 1) + rp, yT); ctx.lineTo(ex, yT); ctx.lineTo(ex, ey); ctx.stroke();
+    arrow(ctx, ex, ey, 0, 40, pal.accent, `${f(c.m.effort, 0)} N`);
+    ctx.fillStyle = pal.ink; ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(`${n} strands hold the load`, 10, H - 10);
+  }
+  function drawRamp(ctx: CanvasRenderingContext2D, pal: Palette, w: number, c: Calc) {
+    const L = val('.sm-rl'), h = Math.min(val('.sm-rh'), L * 0.9), base = Math.sqrt(L * L - h * h);
+    const sc = Math.min((w - 60) / base, 170 / h), x0 = 30, yB = H - 30;
+    const xT = x0 + base * sc, yT = yB - h * sc, pull = val('.sm-pull');
+    ctx.fillStyle = pal.grid; ctx.strokeStyle = pal.ink; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x0, yB); ctx.lineTo(xT, yT); ctx.lineTo(xT, yB); ctx.closePath(); ctx.fill(); ctx.stroke();
+    const th = Math.atan2(h, base), px = x0 + pull * base * sc, py = yB - pull * h * sc;
+    ctx.save(); ctx.translate(px, py); ctx.rotate(-th); ctx.fillStyle = pal.bg; ctx.lineWidth = 2.5; ctx.fillRect(-17, -30, 34, 30); ctx.strokeRect(-17, -30, 34, 30);
+    ctx.fillStyle = pal.ink; ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(`${val('.sm-load')} kg`, 0, -11); ctx.restore();
+    const ux = Math.cos(th), uy = -Math.sin(th), len = Math.min(80, 20 + c.m.effort / 15);
+    arrow(ctx, px - ux * (20 + len) - Math.sin(th) * 15, py - uy * (20 + len) - Math.cos(th) * 15, ux * len, uy * len, pal.accent, `${f(c.m.effort, 0)} N`);
+    ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(`length ${f(L)} m`, x0 + 8, yB + 18); ctx.fillText(`height ${f(h)} m`, xT - 80 < x0 ? x0 : xT - 80, yT - 8 < 12 ? 12 : yT - 8);
+  }
+  function drawWheel(ctx: CanvasRenderingContext2D, pal: Palette, w: number, c: Calc) {
+    const R = val('.sm-wr'), r = val('.sm-ar'), sc = 1.8, cx = w / 2, cy = 80, pull = val('.sm-pull'), turn = pull * 2 * 2 * Math.PI;
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(cx, cy, R * sc, 0, 7); ctx.stroke();
+    ctx.fillStyle = pal.grid; ctx.beginPath(); ctx.arc(cx, cy, r * sc, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.lineWidth = 1.5; for (let k = 0; k < 4; k++) { const a = turn + (k * Math.PI) / 2; ctx.beginPath(); ctx.moveTo(cx + r * sc * Math.cos(a), cy + r * sc * Math.sin(a)); ctx.lineTo(cx + R * sc * Math.cos(a), cy + R * sc * Math.sin(a)); ctx.stroke(); }
+    // load rope from the axle (left side), effort rope from the wheel (right side)
+    const yLoad = H - 20 - pull * 40;
+    ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx - r * sc, cy); ctx.lineTo(cx - r * sc, yLoad - 34); ctx.stroke();
+    box(ctx, pal, cx - r * sc, yLoad, `${val('.sm-load')} kg`);
+    const ey = Math.min(H - 50, cy + 40 + pull * 60);
+    ctx.beginPath(); ctx.moveTo(cx + R * sc, cy); ctx.lineTo(cx + R * sc, ey); ctx.stroke();
+    arrow(ctx, cx + R * sc, ey, 0, 40, pal.accent, `${f(c.m.effort, 0)} N`);
+    ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(`wheel ${R} cm, axle ${f(r)} cm`, cx, 14);
+  }
+
+  function fact(k: string, v: string, sm = '') {
+    const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd');
+    dt.textContent = k; dd.textContent = v;
+    if (sm) { const e = document.createElement('small'); e.textContent = sm; dd.append(e); }
+    d.append(dt, dd); return d;
+  }
+  function para(parts: (string | [string])[]) { const el = document.createElement('p'); for (const x of parts) { if (typeof x === 'string') el.append(x); else { const b = document.createElement('b'); b.textContent = x[0]; el.append(b); } } return el; }
+
+  function draw() {
+    const c = calc(), pal = pagePalette(), cv = q<HTMLCanvasElement>('.sm-c'), { ctx, w } = setup(cv, H);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, H);
+    if (mode === 'lever') drawLever(ctx, pal, w, c); else if (mode === 'pulley') drawPulley(ctx, pal, w, c); else if (mode === 'ramp') drawRamp(ctx, pal, w, c); else drawWheel(ctx, pal, w, c);
+    cv.setAttribute('aria-label', `${mode}: effort ${f(c.m.effort, 0)} N lifts ${f(c.load, 0)} N`);
+    // labels
+    q('.sm-pullv').textContent = `${f(c.effDist)} m (load up ${f(c.loadDist, 3)} m)`; q('.sm-loadv').textContent = `${val('.sm-load')} kg (${f(c.load, 1)} N)`;
+    q('.sm-posl').textContent = cls === 1 ? 'Fulcrum position (from the load end)' : cls === 2 ? 'Load position (from the fulcrum)' : 'Effort position (from the fulcrum)';
+    q('.sm-posv').textContent = `${f(val('.sm-pos'))} m of ${BEAM} m`; q('.sm-leffv').textContent = `${f(val('.sm-leff') * 100, 0)} %`;
+    q('.sm-bmv').textContent = `${f(val('.sm-bm'))} kg`; q('.sm-pfv').textContent = `${f(val('.sm-pf') * 100, 0)} % of the effort lost`;
+    q('.sm-rlv').textContent = `${f(val('.sm-rl'))} m`; q('.sm-rhv').textContent = `${f(Math.min(val('.sm-rh'), val('.sm-rl') * 0.9))} m`; q('.sm-rmuv').textContent = f(val('.sm-rmu'));
+    q('.sm-wrv').textContent = `${val('.sm-wr')} cm`; q('.sm-arv').textContent = `${f(val('.sm-ar'))} cm`; q('.sm-weffv').textContent = `${f(val('.sm-weff') * 100, 0)} %`;
+    const m = c.m, win = m.effort * c.effDist, wout = c.load * c.loadDist;
+    q('.sm-facts').replaceChildren(
+      fact('Effort needed', `${f(m.effort, 1)} N`, `ideal (no friction) ${f(m.idealEffort, 1)} N`),
+      fact('Mechanical advantage', f(m.ma, 2), 'load ÷ effort'),
+      fact('Velocity ratio', f(m.vr, 2), 'effort distance ÷ load distance'),
+      fact('Efficiency', `${f(m.eff * 100, 1)} %`, 'MA ÷ VR'),
+      fact('Work in', `${f(win, 1)} J`, `${f(m.effort, 1)} N × ${f(c.effDist)} m`),
+      fact('Work out', `${f(wout, 1)} J`, `${f(c.load, 1)} N × ${f(c.loadDist, 3)} m`),
+    );
+    const eq: HTMLElement[] = [];
+    if (mode === 'lever') eq.push(para([['Moments: '], `effort × effort arm = load × load arm. ${c.extra[0]}, so the ideal effort is ${f(c.load, 1)} × ${c.extra[0].match(/load arm ([\d.]+)/)![1]} ÷ ${c.extra[0].match(/effort arm ([\d.]+)/)![1]} = ${f(m.idealEffort, 1)} N.`]),
+      para([[`Class ${cls}: `], cls === 1 ? 'the fulcrum is between the load and the effort (a seesaw, scissors, a crowbar).' : cls === 2 ? 'the load is between the fulcrum and the effort (a wheelbarrow, a nutcracker, a bottle opener). MA is always above 1.' : 'the effort is between the fulcrum and the load (tweezers, a fishing rod, your forearm). MA is always below 1, but the load end moves further and faster.']));
+    if (mode === 'pulley') eq.push(para([['Strands: '], strands === 1 ? 'a single fixed pulley only changes the direction of the pull: MA 1 at best, but pulling down is easier than lifting.' : `the load and the moving pulleys (${f(val('.sm-bm') * G, 1)} N) hang on ${strands} strands, each with the same tension. Effort = (${f(c.load, 1)} + ${f(val('.sm-bm') * G, 1)}) ÷ ${strands}${val('.sm-pf') > 0 ? `, plus ${f(val('.sm-pf') * 100, 0)} % for friction` : ''} = ${f(m.effort, 1)} N.`]));
+    if (mode === 'ramp') eq.push(para([['Ramp: '], `pushing along the slope needs W sin θ + μ W cos θ = ${f(m.effort, 1)} N instead of lifting ${f(c.load, 1)} N straight up. VR = length ÷ height = ${f(m.vr, 2)}.`]));
+    if (mode === 'wheel') eq.push(para([['Wheel and axle: '], `turning the handle once moves your hand 2π × ${val('.sm-wr')} cm but winds up only 2π × ${f(val('.sm-ar'))} cm of rope, so VR = R ÷ r = ${f(m.vr, 2)} (a well winch, a screwdriver, a steering wheel).`]));
+    eq.push(para([['Efficiency'], ` = MA ÷ VR × 100 = ${f(m.ma, 2)} ÷ ${f(m.vr, 2)} × 100 = ${f(m.eff * 100, 1)} %. Work out ${f(wout, 1)} J ≤ work in ${f(win, 1)} J: no machine gives you more work than you put in.`]));
+    q('.sm-eq').replaceChildren(...eq);
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.sm-mode button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m as typeof mode;
+    root.querySelectorAll('.sm-mode button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    for (const m of ['lever', 'pulley', 'ramp', 'wheel']) q(`.sm-p-${m}`).hidden = m !== mode;
+    draw();
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.sm-class button').forEach((b) => b.addEventListener('click', () => {
+    cls = Number(b.dataset.c) as 1 | 2 | 3;
+    root.querySelectorAll('.sm-class button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    inp('.sm-pos').value = cls === 1 ? '0.5' : cls === 2 ? '0.5' : '0.5';
+    draw();
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.sm-n button').forEach((b) => b.addEventListener('click', () => {
+    strands = Number(b.dataset.n);
+    root.querySelectorAll('.sm-n button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    draw();
+  }));
+  root.querySelectorAll('input').forEach((i) => i.addEventListener('input', draw));
+  // drag on the picture to pull
+  const cv = q<HTMLCanvasElement>('.sm-c');
+  let y0 = -1, p0 = 0;
+  cv.addEventListener('pointerdown', (e) => { y0 = e.clientX; p0 = val('.sm-pull'); cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointermove', (e) => { if (y0 < 0) return; inp('.sm-pull').value = String(Math.max(0, Math.min(1, p0 + (e.clientX - y0) / 200))); draw(); });
+  const up = () => { y0 = -1; }; cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+
+  mountQuiz(q('.sm-quiz'), () => questions());
+  draw();
+  document.addEventListener('fibub:theme', draw);
+  let rw = 0; new ResizeObserver(() => { const w = cv.clientWidth; if (w !== rw) { rw = w; draw(); } }).observe(cv);
+</script>
+
+<style is:inline>
+  .sm .sm-mode { margin-bottom: 12px; }
+  .sm .ax-seg button { min-height: 44px; }
+  .sm canvas { display: block; width: 100%; touch-action: pan-y; margin-bottom: 8px; }
+  .sm > .ax-card:first-child > label { display: grid; margin-top: 8px; }
+  .sm .sm-p { display: grid; gap: 10px; margin-top: 12px; }
+  .sm .sm-p[hidden] { display: none; }
+  .sm input[type=range] { width: 100%; height: 32px; accent-color: var(--ink); }
+  .sm label b { color: var(--ink); }
+  .sm .sm-eq p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .sm .sm-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>
