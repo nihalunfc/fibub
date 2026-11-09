@@ -1,0 +1,209 @@
+---
+// Beverton-Holt yield per recruit (F0.1, Fmax, age at first capture) and surplus production models (Schaefer, Fox)
+// from parameters or fitted to catch and CPUE. All example values are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const series = 'year,catch (t),CPUE (t/day)\n2005,200,5.095\n2006,300,4.65\n2007,450,4.595\n2008,600,3.639\n2009,800,5.36\n2010,1000,4.781\n2011,1100,3.887\n2012,1200,4.086\n2013,1250,3.651\n2014,1200,3.157\n2015,1150,3.508\n2016,1000,2.975\n2017,900,2.944\n2018,800,2.836\n2019,700,3.29\n2020,650,3.228\n2021,600,3.579\n2022,600,3.318\n2023,550,3.688\n2024,550,3.441';
+---
+<div class="ax ypr">
+  <div class="ax-card">
+    <h2>Yield per recruit (Beverton-Holt)</h2>
+    <div class="ax-grid">
+      <label>Natural mortality M (per year) <input class="yp-M" inputmode="decimal" value="0.3" /></label>
+      <label>Growth K (per year) <input class="yp-K" inputmode="decimal" value="0.25" /></label>
+      <label>t₀ (years) <input class="yp-t0" inputmode="decimal" value="-0.5" /></label>
+      <label>W∞, asymptotic weight <input class="yp-W" inputmode="decimal" value="2500" /></label>
+      <label>Age at recruitment tr (years) <input class="yp-tr" inputmode="decimal" value="1" /></label>
+      <label>Age at first capture tc (years) <input class="yp-tc" inputmode="decimal" value="3" /></label>
+      <label>Maximum age tλ (blank = none) <input class="yp-tl" inputmode="decimal" value="15" /></label>
+      <label>Current fishing mortality F <input class="yp-F" inputmode="decimal" value="0.5" /></label>
+    </div>
+    <p class="ax-help">K, t₀ and W∞ are von Bertalanffy growth parameters, with weight growing as the cube of length. Recruits enter at age tr, are first caught at tc (knife-edge selection) and are all gone by tλ. Yield per recruit comes out in the unit of W∞ (for example grams per recruit). The defaults are made up.</p>
+    <p class="ax-err yp-err" hidden></p>
+    <div class="yp-out">
+      <p class="ax-big yp-big"></p>
+      <dl class="ax-facts yp-facts"></dl>
+      <canvas class="ax-fig yp-fig1"></canvas>
+      <canvas class="ax-fig yp-fig2"></canvas>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small yp-csv">Yield per recruit against F (CSV)</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Surplus production and MSY</h2>
+    <div class="ax-grid">
+      <label>Model <select class="yp-m">
+        <option value="schaefer" selected>Schaefer: rB(1 − B/K)</option>
+        <option value="fox">Fox: rB ln(K/B)</option>
+      </select></label>
+      <label>From <select class="yp-src">
+        <option value="fit" selected>Fit to catch and CPUE</option>
+        <option value="par">My r and K</option>
+      </select></label>
+    </div>
+    <div class="ax-grid yp-par" hidden style="margin-top:10px">
+      <label>Growth rate r (per year) <input class="yp-r" inputmode="decimal" value="0.4" /></label>
+      <label>Carrying capacity K (biomass) <input class="yp-Kc" inputmode="decimal" value="10000" /></label>
+    </div>
+    <div class="yp-fit">
+      <label style="margin-top:10px;display:block"><span>One row per year: year, catch, and CPUE (an index of abundance; leave blank for years without one)</span> <textarea class="yp-data" rows="8" spellcheck="false">{series}</textarea></label>
+      <DataFile target=".yp-data" maxCols={10} maxRows={500} />
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Biomass in the first year, as a share of K <input class="yp-b1" inputmode="decimal" value="1" /></label>
+      </div>
+    </div>
+    <p class="ax-help yp-mhelp"></p>
+    <p class="ax-err yp-perr" hidden></p>
+    <div class="yp-pout">
+      <p class="ax-big yp-pbig"></p>
+      <dl class="ax-facts yp-pfacts"></dl>
+      <canvas class="ax-fig yp-fig3"></canvas>
+      <canvas class="ax-fig yp-fig4"></canvas>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small yp-pcsv">Download the table (CSV)</button></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { ypr, refPoints, msy, surplus, fitProduction, type YprPar, type Model } from '../../lib/sci/ypr';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (!Number.isFinite(x)) return '–'; if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const root = document.querySelector<HTMLElement>('.ypr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factsOf = (sel: string) => [...q(sel).children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  let figs: (Figure | null)[] = [null, null, null, null], ySec: Section[] = [], pSec: Section[] = [], csvY: string[][] = [], csvP: string[][] = [];
+
+  function yieldPart() {
+    const fail = (m: string) => { q('.yp-err').textContent = m; q('.yp-err').hidden = false; q('.yp-out').hidden = true; figs[0] = figs[1] = null; ySec = []; csvY = []; };
+    q('.yp-err').hidden = true;
+    const tlS = q<HTMLInputElement>('.yp-tl').value.trim();
+    const p: YprPar = { M: v('.yp-M'), K: v('.yp-K'), t0: v('.yp-t0'), Winf: v('.yp-W'), tr: v('.yp-tr'), tc: v('.yp-tc'), tl: tlS === '' ? Infinity : num(tlS) };
+    const F = v('.yp-F');
+    if (!(p.M > 0 && p.M <= 5)) return fail('Give the natural mortality M (above 0, up to 5 per year).');
+    if (!(p.K > 0 && p.K <= 5)) return fail('Give the growth coefficient K (above 0, up to 5 per year).');
+    if (!(Number.isFinite(p.t0) && Math.abs(p.t0) <= 10)) return fail('Give t₀ in years (between −10 and 10).');
+    if (!(p.Winf > 0)) return fail('Give the asymptotic weight W∞ (above 0).');
+    if (!(p.tr >= 0 && p.tr >= p.t0)) return fail('Give the age at recruitment tr (0 or more, not below t₀).');
+    if (!(p.tc >= p.tr)) return fail('The age at first capture tc must be at least the age at recruitment tr.');
+    if (!(p.tl > p.tc)) return fail('The maximum age tλ must be above tc, or blank.');
+    if (!(F >= 0 && F <= 5)) return fail('Give the current fishing mortality F (0 to 5 per year).');
+    const rp = refPoints(p), yF = ypr(F, p);
+    q('.yp-out').hidden = false;
+    q('.yp-big').textContent = `F0.1 ${sg(rp.F01, 3)}, Fmax ${Number.isFinite(rp.Fmax) ? sg(rp.Fmax, 3) : 'above 5'} per year`;
+    // Best age at first capture for the current F.
+    const tTop = Number.isFinite(p.tl) ? p.tl : p.tr + Math.max(20, 6 / p.M);
+    const tcs = Array.from({ length: 121 }, (_, k) => p.tr + ((tTop - p.tr) * k) / 120 * 0.98), yc = tcs.map((t) => (F > 0 ? ypr(F, { ...p, tc: t }) : 0));
+    const ib = yc.indexOf(Math.max(...yc));
+    q('.yp-facts').replaceChildren(
+      fact('At current F', `${sg(yF, 4)} per recruit`, `F = ${sg(F, 3)}, tc = ${sg(p.tc, 3)} years${Number.isFinite(rp.F01) ? `; ${sg(F / rp.F01, 3)} × F0.1` : ''}`),
+      fact('F0.1', Number.isFinite(rp.F01) ? `${sg(rp.F01, 4)} per year` : 'not found up to F = 5', Number.isFinite(rp.F01) ? `${sg(rp.y01, 4)} per recruit; the F where an extra unit of F adds only 10 % of what it added at the start` : ''),
+      fact('Fmax', Number.isFinite(rp.Fmax) ? `${sg(rp.Fmax, 4)} per year` : 'no maximum up to F = 5', Number.isFinite(rp.Fmax) ? `${sg(rp.yMax, 4)} per recruit, the most yield per recruit` : 'yield per recruit keeps rising: a later age at first capture protects the fish'),
+      fact('Best age at first capture', F > 0 ? `${sg(tcs[ib], 3)} years` : '–', F > 0 ? `${sg(yc[ib], 4)} per recruit at the current F` : 'needs a current F above 0'),
+    );
+    const fHi = Math.max(2, F * 1.5, Number.isFinite(rp.Fmax) ? rp.Fmax * 1.5 : 0), Fs = Array.from({ length: 201 }, (_, k) => (fHi * k) / 200);
+    const marks: NonNullable<Parameters<typeof chartFigure>[0]['marks']> = [];
+    if (Number.isFinite(rp.F01)) marks.push({ kind: 'vline', at: rp.F01, dash: [5, 4], label: 'F0.1' });
+    if (Number.isFinite(rp.Fmax)) marks.push({ kind: 'vline', at: rp.Fmax, dash: [2, 3], label: 'Fmax' });
+    marks.push({ kind: 'vline', at: F, label: 'F now' });
+    figs[0] = chartFigure({ h: 300, xLabel: 'Fishing mortality F (per year)', yLabel: 'Yield per recruit', xMin: 0, yMin: 0, legend: 'below', series: [
+      { name: `tc = ${sg(p.tc, 3)}`, x: Fs, y: Fs.map((f) => ypr(f, p)), mode: 'line', width: 2 },
+      ...(p.tc - 1 >= p.tr ? [{ name: `tc = ${sg(p.tc - 1, 3)}`, x: Fs, y: Fs.map((f) => ypr(f, { ...p, tc: p.tc - 1 })), mode: 'line' as const, width: 1.5, dash: [6, 4] }] : []),
+      ...(p.tc + 1 < p.tl ? [{ name: `tc = ${sg(p.tc + 1, 3)}`, x: Fs, y: Fs.map((f) => ypr(f, { ...p, tc: p.tc + 1 })), mode: 'line' as const, width: 1.5, dash: [2, 3] }] : []),
+    ], marks }, 'Yield per recruit against fishing mortality for three ages at first capture, with F0.1, Fmax and the current F');
+    figs[1] = chartFigure({ h: 260, xLabel: 'Age at first capture tc (years)', yLabel: 'Yield per recruit', yMin: 0, legend: 'none', series: [{ name: `F = ${sg(F, 3)}`, x: tcs, y: yc, mode: 'line', width: 2 }], marks: [{ kind: 'vline', at: p.tc, dash: [5, 4], label: 'tc now' }] }, `Yield per recruit against age at first capture at F = ${sg(F, 3)}`);
+    paint(q<HTMLCanvasElement>('.yp-fig1'), figs[0]); paint(q<HTMLCanvasElement>('.yp-fig2'), figs[1]);
+    csvY = [['F', 'yield_per_recruit'], ...Fs.map((f) => [sg(f, 6), sg(ypr(f, p), 8)])];
+    ySec = [{ title: `Yield per recruit: ${q('.yp-big').textContent}`, facts: factsOf('.yp-facts'), figure: figs[0] }, { title: 'Yield per recruit against age at first capture', figure: figs[1] }];
+  }
+
+  function productionPart() {
+    const fail = (m: string) => { q('.yp-perr').textContent = m; q('.yp-perr').hidden = false; q('.yp-pout').hidden = true; figs[2] = figs[3] = null; pSec = []; csvP = []; };
+    q('.yp-perr').hidden = true;
+    const m = q<HTMLSelectElement>('.yp-m').value as Model, src = q<HTMLSelectElement>('.yp-src').value;
+    q('.yp-par').hidden = src !== 'par'; q('.yp-fit').hidden = src !== 'fit';
+    q('.yp-mhelp').textContent = (m === 'schaefer' ? 'Schaefer: surplus production rB(1 − B/K) is largest at half of K, so MSY = rK/4, BMSY = K/2 and FMSY = r/2.' : 'Fox (Gompertz form): surplus production rB ln(K/B) is largest at K/e, about 37 % of K, so MSY = rK/e, BMSY = K/e and FMSY = r.')
+      + (src === 'fit' ? ' The fit runs the biomass forward from the first year, B(t+1) = B(t) + surplus − catch, and finds r, K and the catchability q (CPUE = qB) that best match the CPUE on a log scale (observation error). Catch and biomass share a unit. The example series is made up.' : '');
+    let r: number, K: number, rows: { year: number; C: number; I: number | null }[] = [], fit: ReturnType<typeof fitProduction> | null = null;
+    if (src === 'par') {
+      r = v('.yp-r'); K = v('.yp-Kc');
+      if (!(r > 0 && r <= 5)) return fail('Give the intrinsic growth rate r (above 0, up to 5 per year).');
+      if (!(K > 0)) return fail('Give the carrying capacity K (above 0).');
+    } else {
+      const all = parseTable(q<HTMLTextAreaElement>('.yp-data').value).filter((x) => x.some((c) => c.trim() !== ''));
+      const body = all.length && !Number.isFinite(num(all[0][0])) ? all.slice(1) : all;
+      if (body.length < 5) return fail('Give at least 5 years: year, catch and CPUE.');
+      if (body.length > 500) return fail('Up to 500 years, please.');
+      for (let i = 0; i < body.length; i++) {
+        const y = num(body[i][0]), C = num(body[i][1]), s = (body[i][2] ?? '').trim(), I = s === '' ? null : num(s), row = i + 1 + (all.length - body.length);
+        if (!Number.isFinite(y)) return fail(`Row ${row}: give the year.`);
+        if (i && y !== rows[i - 1].year + 1) return fail(`Row ${row}: years must follow each other with none missing.`);
+        if (!(C >= 0)) return fail(`Row ${row}: give the catch (0 or more).`);
+        if (I !== null && !(I > 0)) return fail(`Row ${row}: the CPUE must be above 0, or blank.`);
+        rows.push({ year: y, C, I });
+      }
+      const b1 = v('.yp-b1');
+      if (!(b1 > 0 && b1 <= 1.5)) return fail('Give the first-year biomass as a share of K (above 0, up to 1.5).');
+      try { fit = fitProduction(m, rows.map((x) => x.C), rows.map((x) => x.I), b1); } catch (e) { return fail((e as Error).message); }
+      r = fit.r; K = fit.K;
+    }
+    const ref = msy(m, r, K);
+    q('.yp-pout').hidden = false;
+    q('.yp-pbig').textContent = `MSY ${sg(ref.MSY, 3)}, BMSY ${sg(ref.BMSY, 3)}, FMSY ${sg(ref.FMSY, 3)} per year`;
+    const facts = [
+      fact('MSY', sg(ref.MSY, 4), m === 'schaefer' ? 'rK / 4: the largest catch the stock can sustain' : 'rK / e: the largest catch the stock can sustain'),
+      fact('BMSY', sg(ref.BMSY, 4), m === 'schaefer' ? 'K / 2: the biomass that gives MSY' : 'K / e: the biomass that gives MSY'),
+      fact('FMSY', `${sg(ref.FMSY, 4)} per year`, m === 'schaefer' ? 'r / 2: the harvest rate (catch ÷ biomass) at MSY' : 'r: the harvest rate (catch ÷ biomass) at MSY'),
+    ];
+    if (fit) {
+      const n = rows.length, Bl = fit.B[n], Fl = rows[n - 1].C / fit.B[n - 1];
+      facts.push(
+        fact('Fitted parameters', `r ${sg(r, 3)}, K ${sg(K, 4)}`, `q ${sg(fit.q, 3)}; log-scale residual SD ${sg(fit.sigma, 3)} from ${fit.n} CPUE values`),
+        fact(`Biomass at the start of ${rows[n - 1].year + 1}`, `${sg(Bl, 4)}`, `${sg(Bl / ref.BMSY, 3)} × BMSY, ${sg((100 * Bl) / K, 3)} % of K`),
+        fact(`Harvest rate in ${rows[n - 1].year}`, `${sg(Fl, 3)}`, `${sg(Fl / ref.FMSY, 3)} × FMSY (catch ÷ biomass at the start of the year)`),
+      );
+    } else facts.push(fact('Parameters', `r ${sg(r, 3)}, K ${sg(K, 4)}`));
+    q('.yp-pfacts').replaceChildren(...facts);
+    const Bs = Array.from({ length: 101 }, (_, k) => (K * k) / 100);
+    figs[2] = chartFigure({ h: 280, xLabel: 'Biomass', yLabel: 'Surplus production per year', xMin: 0, yMin: 0, legend: 'below', series: [
+      { name: m === 'schaefer' ? 'Schaefer' : 'Fox', x: Bs, y: Bs.map((b) => surplus(m, b, r, K)), mode: 'line', width: 2 },
+      ...(fit ? [{ name: 'Catches (at start-of-year biomass)', x: rows.map((_, i) => fit!.B[i]), y: rows.map((x) => x.C), mode: 'points' as const, size: 3 }] : []),
+    ], marks: [{ kind: 'vline', at: ref.BMSY, dash: [5, 4], label: 'BMSY' }] }, `Surplus production against biomass, ${m === 'schaefer' ? 'Schaefer' : 'Fox'} model`);
+    paint(q<HTMLCanvasElement>('.yp-fig3'), figs[2]);
+    if (fit) {
+      const yrs = rows.map((x) => x.year), ob = rows.filter((x) => x.I !== null);
+      figs[3] = chartFigure({ h: 300, xLabel: 'Year', yLabel: 'CPUE', yMin: 0, legend: 'below', series: [
+        { name: 'Observed CPUE', x: ob.map((x) => x.year), y: ob.map((x) => x.I!), mode: 'points', size: 4 },
+        { name: 'Fitted (q × biomass)', x: yrs, y: fit.fitted, mode: 'line', width: 2 },
+      ], marks: [{ kind: 'hline', at: fit.q * ref.BMSY, dash: [5, 4], label: 'q × BMSY' }] }, 'Observed and fitted CPUE by year');
+      paint(q<HTMLCanvasElement>('.yp-fig4'), figs[3]);
+      csvP = [['year', 'catch', 'cpue', 'biomass_start', 'fitted_cpue', 'b_over_bmsy', 'harvest_rate'], ...rows.map((x, i) => [String(x.year), String(x.C), x.I === null ? '' : String(x.I), sg(fit!.B[i], 8), sg(fit!.fitted[i], 6), sg(fit!.B[i] / ref.BMSY, 6), sg(x.C / fit!.B[i], 6)])];
+    } else {
+      figs[3] = null;
+      csvP = [['biomass', 'surplus_production'], ...Bs.map((b) => [sg(b, 8), sg(surplus(m, b, r, K), 8)])];
+    }
+    q('.yp-fig4').hidden = !fit;
+    pSec = [{ title: `Surplus production: ${q('.yp-pbig').textContent}`, facts: factsOf('.yp-pfacts'), figure: figs[2] }, ...(figs[3] ? [{ title: 'CPUE fit', figure: figs[3] }] : [])];
+  }
+
+  const redraw = () => { (['.yp-fig1', '.yp-fig2', '.yp-fig3', '.yp-fig4'] as const).forEach((c, i) => { if (figs[i]) paint(q<HTMLCanvasElement>(c), figs[i]!); }); };
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(() => { yieldPart(); productionPart(); }, 250); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.yp-csv').addEventListener('click', () => { if (csvY.length) save(new TextEncoder().encode(toCsv(csvY)), 'yield-per-recruit.csv', 'text/csv'); });
+  q('.yp-pcsv').addEventListener('click', () => { if (csvP.length) save(new TextEncoder().encode(toCsv(csvP)), 'surplus-production.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', redraw);
+  yieldPart(); productionPart();
+  wireDownloads(q('.dl'), () => ({ title: 'Yield per recruit and MSY', subtitle: [q('.yp-big').textContent, q('.yp-pbig').textContent].filter(Boolean).join('; '), file: 'yield-per-recruit-msy', sections: [...ySec, ...pSec] }));
+</script>
+
+<style is:global>
+  .ypr select { max-width: 100%; }
+  .ypr textarea { width: 100%; }
+</style>
