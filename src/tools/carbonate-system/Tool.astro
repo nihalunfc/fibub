@@ -1,0 +1,185 @@
+---
+// Seawater carbonate system (CO2SYS style) from any two of TA, DIC, pH and pCO2 (lib/sci/carbonate.ts).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const opts = '<option value="TA">Total alkalinity (µmol/kg)</option><option value="DIC">DIC (µmol/kg)</option><option value="pH">pH (total scale)</option><option value="pCO2">pCO2 (µatm)</option>';
+---
+<div class="ax csy">
+  <div class="ax-card">
+    <h2>The water</h2>
+    <div class="ax-grid">
+      <label>Salinity (practical) <input class="csy-s" inputmode="decimal" value="35" /></label>
+      <label>Temperature (°C) <input class="csy-t" inputmode="decimal" value="20" /></label>
+      <label>Pressure (dbar, 0 at the surface) <input class="csy-p" inputmode="decimal" value="0" /></label>
+      <label>Total borate from salinity <select class="csy-bor"><option value="U74">Uppström (1974)</option><option value="LKB10">Lee et al. (2010)</option></select></label>
+    </div>
+    <h2 style="margin-top:14px">Two things you measured</h2>
+    <div class="ax-grid">
+      <label>First <select class="csy-k1" set:html={opts}></select></label>
+      <label class="csy-l1">Value <input class="csy-v1" inputmode="decimal" value="2300" /></label>
+      <label>Second <select class="csy-k2" set:html={opts}></select></label>
+      <label class="csy-l2">Value <input class="csy-v2" inputmode="decimal" value="2000" /></label>
+    </div>
+    <p class="ax-help">The example water (TA 2300, DIC 2000 µmol/kg at 20 °C) is made up. Constants: K1 and K2 of Lueker et al. (2000), the CO2SYS default for seawater; pH is on the total scale. Phosphate and silicate alkalinity are left out (a few µmol/kg at most in surface water).</p>
+    <p class="ax-err csy-err" hidden></p>
+  </div>
+
+  <div class="ax-card csy-out">
+    <h2>Results</h2>
+    <p class="csy-big"></p>
+    <div class="ax-grid">
+      <label>Also at temperature (°C) <input class="csy-t2" inputmode="decimal" value="" placeholder="optional" /></label>
+      <label>and pressure (dbar) <input class="csy-p2" inputmode="decimal" value="0" /></label>
+    </div>
+    <p class="ax-help">The same water (TA and DIC unchanged) at other conditions, such as the lab temperature where pH was measured, or in situ at depth.</p>
+    <p class="ax-err csy-err2" hidden></p>
+    <div class="ax-scroll"><table class="csy-tab"><thead><tr><th>Quantity</th><th class="csy-h1">Input conditions</th><th class="csy-h2" hidden>Other conditions</th><th>Unit</th></tr></thead><tbody></tbody></table></div>
+    <h3>Speciation against pH</h3>
+    <canvas class="ax-fig csy-fig"></canvas>
+    <p class="ax-help">The share of DIC as dissolved CO2, bicarbonate and carbonate at every pH for this water's constants; the dashed line is its pH.</p>
+    <h3>Alkalinity, part by part</h3>
+    <div class="ax-scroll"><table class="csy-alk"><thead><tr><th>Part</th><th>µmol/kg</th></tr></thead><tbody></tbody></table></div>
+    <h3>Constants</h3>
+    <div class="ax-scroll"><table class="csy-k"><thead><tr><th>Constant</th><th>pK</th><th>Source</th></tr></thead><tbody></tbody></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small csy-csv">Download the results (CSV)</button></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Many samples at once</h2>
+    <p class="ax-help">One sample per line: salinity, temperature (°C), pressure (dbar), then the two measured values in the order chosen above. A header line is fine. The result is a CSV with every quantity for each sample.</p>
+    <label class="csy-lab">Samples <textarea class="csy-batch" rows="5" spellcheck="false">S	T	P	first	second
+35	20	0	2300	2000
+34	12	0	2280	2050
+34.7	2	3000	2350	2250</textarea></label>
+    <DataFile target=".csy-batch" maxCols={5} label="Open a file (S, T, P, two values)" />
+    <p class="ax-help csy-bstat"></p>
+    <div class="ax-row"><button type="button" class="btn secondary small csy-bcsv">Download all samples (CSV)</button></div>
+  </div>
+</div>
+
+<script>
+  import { solve, recalc, type Key, type Result, type Borate } from '../../lib/sci/carbonate';
+  import { num, sig, csv, numericColumns } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.csy')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  q<HTMLSelectElement>('.csy-k2').value = 'DIC';
+  let res: Result | null = null, res2: Result | null = null, fig: Figure | null = null;
+  const NAME: Record<Key, string> = { TA: 'TA', DIC: 'DIC', pH: 'pH', pCO2: 'pCO2' };
+
+  type Row = [string, (r: Result) => string, string];
+  const f1 = (x: number) => x.toFixed(1), f2 = (x: number) => x.toFixed(2), f4 = (x: number) => x.toFixed(4);
+  const ROWS: Row[] = [
+    ['Total alkalinity (TA)', (r) => f1(r.TA), 'µmol/kg'],
+    ['Dissolved inorganic carbon (DIC)', (r) => f1(r.DIC), 'µmol/kg'],
+    ['pH, total scale', (r) => f4(r.pH), ''],
+    ['pH, free scale', (r) => f4(r.pHfree), ''],
+    ['pH, seawater scale', (r) => f4(r.pHsws), ''],
+    ['pCO2', (r) => f1(r.pCO2), 'µatm'],
+    ['fCO2 (fugacity)', (r) => f1(r.fCO2), 'µatm'],
+    ['xCO2 (dry air, 1 atm)', (r) => f1(r.xCO2), 'ppm'],
+    ['CO2 (aq)', (r) => f2(r.CO2), 'µmol/kg'],
+    ['Bicarbonate HCO3⁻', (r) => f1(r.HCO3), 'µmol/kg'],
+    ['Carbonate CO3²⁻', (r) => f1(r.CO3), 'µmol/kg'],
+    ['Borate B(OH)4⁻', (r) => f1(r.BOH4), 'µmol/kg'],
+    ['Hydroxide OH⁻', (r) => f2(r.OH), 'µmol/kg'],
+    ['Ω calcite', (r) => f2(r.OmegaCa), ''],
+    ['Ω aragonite', (r) => f2(r.OmegaAr), ''],
+    ['Revelle factor', (r) => f2(r.Revelle), ''],
+  ];
+
+  function show(m: string) { q('.csy-err').textContent = m; q('.csy-err').hidden = !m; q('.csy-out').hidden = !!m; }
+
+  function run() {
+    res = res2 = null;
+    const S = v('.csy-s'), T = v('.csy-t'), P = v('.csy-p'), k1 = sel('.csy-k1') as Key, k2 = sel('.csy-k2') as Key;
+    if (k1 === k2) return show('Choose two different quantities.');
+    try { res = solve({ [k1]: v('.csy-v1'), [k2]: v('.csy-v2') }, T, S, P, sel('.csy-bor') as Borate); } catch (e) { return show((e as Error).message.replace(/^(\w+) must/, (m, k) => `${NAME[k as Key] ?? k} must`)); }
+    show('');
+    const r = res;
+    q('.csy-big').textContent = `pH ${r.pH.toFixed(3)} · pCO2 ${r.pCO2.toFixed(0)} µatm · Ω aragonite ${r.OmegaAr.toFixed(2)}`;
+    const T2 = q<HTMLInputElement>('.csy-t2').value.trim() === '' ? NaN : v('.csy-t2'), P2 = v('.csy-p2');
+    let e2 = '';
+    if (Number.isFinite(T2)) { if (!(P2 >= 0 && P2 <= 12000)) e2 = 'Pressure for the other conditions: 0 to 12000 dbar.'; else try { res2 = recalc(r, T2, P2, sel('.csy-bor') as Borate); } catch (e) { e2 = (e as Error).message; } }
+    else if (q<HTMLInputElement>('.csy-t2').value.trim()) e2 = 'Give the other temperature in °C.';
+    q('.csy-err2').textContent = e2; q('.csy-err2').hidden = !e2;
+    q('.csy-h2').hidden = !res2;
+    if (res2) q('.csy-h2').textContent = `${sig(T2, 4)} °C, ${sig(P2, 5)} dbar`;
+    q('.csy-h1').textContent = `${sig(T, 4)} °C, ${sig(P, 5)} dbar`;
+    q('.csy-tab tbody').replaceChildren(...ROWS.map(([name, f, unit]) => { const tr = document.createElement('tr'); [name, f(r), ...(res2 ? [f(res2)] : []), unit].forEach((s) => { const td = document.createElement('td'); td.textContent = s; tr.append(td); }); return tr; }));
+    const p = r.parts;
+    q('.csy-alk tbody').replaceChildren(...([['HCO3⁻', p.HCO3], ['2 × CO3²⁻', p.CO3x2], ['B(OH)4⁻', p.BOH4], ['OH⁻', p.OH], ['− H⁺ (free)', -p.Hfree], ['− HSO4⁻', -p.HSO4], ['− HF', -p.HF], ['Total', r.TA]] as [string, number][]).map(([a, b]) => { const tr = document.createElement('tr'); [a, b.toFixed(3)].forEach((s) => { const td = document.createElement('td'); td.textContent = s; tr.append(td); }); return tr; }));
+    const k = r.k, pk = (x: number) => (-Math.log10(x)).toFixed(4);
+    q('.csy-k tbody').replaceChildren(...([['K0 (CO2 solubility)', pk(k.K0), 'Weiss 1974'], ['K1*', pk(k.K1), 'Lueker et al. 2000, total scale'], ['K2*', pk(k.K2), 'Lueker et al. 2000'], ['KB', pk(k.KB), 'Dickson 1990'], ['KW', pk(k.KW), 'Millero 1995'], ['KHSO4 (free scale)', pk(k.KS), 'Dickson 1990'], ['KHF (free scale)', pk(k.KF), 'Dickson and Riley 1979'], ['Ksp calcite', pk(k.KCa), 'Mucci 1983'], ['Ksp aragonite', pk(k.KAr), 'Mucci 1983'], ['Total borate (µmol/kg)', (k.TB * 1e6).toFixed(1), sel('.csy-bor') === 'U74' ? 'Uppström 1974' : 'Lee et al. 2010'], ['Calcium (mmol/kg)', (k.Ca * 1e3).toFixed(3), 'Riley and Tongudai 1967']]).map((row) => { const tr = document.createElement('tr'); row.forEach((s) => { const td = document.createElement('td'); td.textContent = s; tr.append(td); }); return tr; }));
+    draw();
+  }
+
+  function draw() {
+    const r = res!, k = r.k, W = Math.round(Math.min(760, Math.max(320, q('.csy-out').clientWidth || 640))), narrow = W < 500;
+    const ph: number[] = [], a0: number[] = [], a1: number[] = [], a2: number[] = [];
+    for (let x = 2; x <= 12.0001; x += 0.05) { const H = 10 ** -x, D = H * H + k.K1 * H + k.K1 * k.K2; ph.push(+x.toFixed(2)); a0.push((100 * H * H) / D); a1.push((100 * k.K1 * H) / D); a2.push((100 * k.K1 * k.K2) / D); }
+    fig = chartFigure({ w: W, h: narrow ? 280 : 330, xLabel: 'pH (total scale)', yLabel: 'Share of DIC (%)', yMin: 0, yMax: 100, series: [
+      { name: 'CO2 (aq)', x: ph, y: a0, mode: 'line' }, { name: 'HCO3⁻', x: ph, y: a1, mode: 'line' }, { name: 'CO3²⁻', x: ph, y: a2, mode: 'line' },
+    ], marks: [{ kind: 'vline', at: r.pH, label: `pH ${r.pH.toFixed(2)}` }], legend: 'below' }, 'Carbonate speciation against pH with the sample pH marked');
+    paint(q<HTMLCanvasElement>('.csy-fig'), fig);
+  }
+
+  function batch(): (string | number)[][] | string {
+    const k1 = sel('.csy-k1') as Key, k2 = sel('.csy-k2') as Key;
+    if (k1 === k2) return 'Choose two different quantities above.';
+    const t = numericColumns(q<HTMLTextAreaElement>('.csy-batch').value);
+    if (t.cols.length < 5 || t.rows < 1) return 'Each line needs five numbers: salinity, temperature, pressure and the two values.';
+    const head = ['salinity', 'temperature_C', 'pressure_dbar', 'TA_umol_kg', 'DIC_umol_kg', 'pH_total', 'pH_free', 'pCO2_uatm', 'fCO2_uatm', 'xCO2_ppm', 'CO2_umol_kg', 'HCO3_umol_kg', 'CO3_umol_kg', 'BOH4_umol_kg', 'OH_umol_kg', 'omega_calcite', 'omega_aragonite', 'revelle_factor', 'note'];
+    const out: (string | number)[][] = [head];
+    for (let i = 0; i < t.rows; i++) {
+      const [S, T, P, a, b] = t.cols.map((c) => c[i]);
+      try { const r = solve({ [k1]: a, [k2]: b }, T, S, P, sel('.csy-bor') as Borate); out.push([S, T, P, +r.TA.toFixed(2), +r.DIC.toFixed(2), +r.pH.toFixed(5), +r.pHfree.toFixed(5), +r.pCO2.toFixed(2), +r.fCO2.toFixed(2), +r.xCO2.toFixed(2), +r.CO2.toFixed(3), +r.HCO3.toFixed(2), +r.CO3.toFixed(2), +r.BOH4.toFixed(2), +r.OH.toFixed(3), +r.OmegaCa.toFixed(4), +r.OmegaAr.toFixed(4), +r.Revelle.toFixed(4), '']); }
+      catch (e) { out.push([S, T, P, ...Array(15).fill(''), (e as Error).message]); }
+    }
+    return out;
+  }
+  function batchStatus() {
+    const b = batch();
+    q('.csy-bstat').textContent = typeof b === 'string' ? b : `${b.length - 1} samples read; ${b.slice(1).filter((r) => r[18]).length} could not be worked out. Inputs: ${NAME[sel('.csy-k1') as Key]} and ${NAME[sel('.csy-k2') as Key]}.`;
+  }
+
+  root.querySelectorAll('.csy-s, .csy-t, .csy-p, .csy-bor, .csy-k1, .csy-k2, .csy-v1, .csy-v2, .csy-t2, .csy-p2').forEach((i) => { i.addEventListener('input', () => { run(); batchStatus(); }); i.addEventListener('change', () => { run(); batchStatus(); }); });
+  q('.csy-batch').addEventListener('input', batchStatus); q('.csy-batch').addEventListener('change', batchStatus);
+  q('.csy-csv').addEventListener('click', () => {
+    if (!res) return;
+    const rows: (string | number)[][] = [['quantity', 'input_conditions', ...(res2 ? ['other_conditions'] : []), 'unit']];
+    rows.push(['temperature', String(v('.csy-t')), ...(res2 ? [String(v('.csy-t2'))] : []), '°C'], ['pressure', String(v('.csy-p')), ...(res2 ? [String(v('.csy-p2'))] : []), 'dbar'], ['salinity', String(v('.csy-s')), ...(res2 ? [String(v('.csy-s'))] : []), '']);
+    for (const [name, f, unit] of ROWS) rows.push([name, f(res), ...(res2 ? [f(res2)] : []), unit]);
+    save(new TextEncoder().encode(csv(rows)), 'carbonate-system.csv', 'text/csv');
+  });
+  q('.csy-bcsv').addEventListener('click', () => { const b = batch(); if (typeof b === 'string') { q('.csy-bstat').textContent = b; return; } save(new TextEncoder().encode(csv(b)), 'carbonate-system-samples.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.csy-fig'), fig); });
+  let lastW = 0;
+  window.addEventListener('resize', () => { const w = q('.csy-out').clientWidth; if (w && Math.abs(w - lastW) > 40) { lastW = w; if (res) draw(); } });
+  run(); batchStatus(); lastW = q('.csy-out').clientWidth;
+  const rowsOf = (s: string) => [...root.querySelectorAll(`${s} tbody tr`)].map((tr) => [...tr.querySelectorAll('td')].map((td) => td.textContent!));
+  wireDownloads(q('.dl'), () => ({
+    title: 'Seawater carbonate system', subtitle: q('.csy-big').textContent!, file: 'carbonate-system',
+    sections: !res || !fig ? [] : [
+      { title: 'Results', table: { head: [...[...root.querySelectorAll('.csy-tab thead th')].filter((t) => !(t as HTMLElement).hidden).map((t) => t.textContent!)], rows: rowsOf('.csy-tab') } },
+      { title: 'Speciation against pH', figure: fig },
+      { title: 'Alkalinity, part by part', table: { head: ['Part', 'µmol/kg'], rows: rowsOf('.csy-alk') } },
+      { title: 'Constants', table: { head: ['Constant', 'pK', 'Source'], rows: rowsOf('.csy-k') } },
+    ],
+  }));
+</script>
+
+<style is:global>
+  .csy select { max-width: 100%; }
+  .csy .csy-lab { display: block; }
+  .csy textarea { width: 100%; font: inherit; font-size: 14px; }
+  .csy [hidden] { display: none !important; }
+  .csy .csy-big { font-weight: 650; font-size: 18px; margin: 0 0 10px; }
+  .csy h3 { font-size: 16px; margin: 16px 0 6px; }
+</style>

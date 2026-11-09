@@ -1,0 +1,283 @@
+---
+// Low-cost sensor cleaner and calibration against a co-located reference: range, stuck and Hampel spike checks,
+// averaging to common intervals, OLS (with RH and T terms) or Deming fits, hold-out test, and applying the
+// calibration to new data. Everything runs in the browser; the example data are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax scx">
+  <div class="ax-card">
+    <h2>Data</h2>
+    <div class="ax-row"><button type="button" class="btn secondary small sc-demo">Use the example</button></div>
+    <h3 style="margin:12px 0 6px">Low-cost sensor</h3>
+    <textarea class="sc-s" rows="6" spellcheck="false" placeholder="time,pm25,rh,temp&#10;2026-03-01 00:00,14.2,71,6.5"></textarea>
+    <DataFile target=".sc-s" maxMB={20} maxCols={20} maxRows={200000} />
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Time column <select class="sc-st"></select></label>
+      <label>Sensor reading <select class="sc-sv"></select></label>
+      <label>Relative humidity (%) <select class="sc-srh"></select></label>
+      <label>Temperature <select class="sc-stp"></select></label>
+    </div>
+    <h3 style="margin:14px 0 6px">Reference instrument</h3>
+    <textarea class="sc-r" rows="5" spellcheck="false" placeholder="time,pm25_ref&#10;2026-03-01 00:00,9.8"></textarea>
+    <DataFile target=".sc-r" maxMB={20} maxCols={20} maxRows={200000} />
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Time column <select class="sc-rt"></select></label>
+      <label>Reference reading <select class="sc-rv"></select></label>
+      <label>Dates written <select class="sc-df"><option value="d" selected>Day first (31/12/2026)</option><option value="m">Month first (12/31/2026)</option></select></label>
+    </div>
+    <p class="ax-help">One row per reading, with a header row. Times like 2026-03-01 13:05 (ISO, with or without a zone such as Z or +05:30), 01/03/2026 13:05, or Unix seconds. Both files must use the same clock and time zone, and each time should mark the start of its averaging period. Data stay in your browser.</p>
+    <p class="ax-err sc-derr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Cleaning and alignment</h2>
+    <div class="ax-grid">
+      <label>Lowest valid reading <input class="sc-min" type="text" inputmode="decimal" value="0" /></label>
+      <label>Highest valid reading <input class="sc-max" type="text" inputmode="decimal" value="1000" /></label>
+      <label>Stuck: identical readings in a row <input class="sc-stk" type="text" inputmode="numeric" value="10" /></label>
+      <label>Spike filter: window ± readings <input class="sc-hw" type="text" inputmode="numeric" value="6" /></label>
+      <label>Spike filter: threshold (× MAD) <input class="sc-hn" type="text" inputmode="decimal" value="3" /></label>
+      <label>Average over (minutes) <input class="sc-int" type="text" inputmode="decimal" value="60" /></label>
+      <label>Fewest sensor readings per period <input class="sc-minc" type="text" inputmode="numeric" value="9" /></label>
+    </div>
+    <p class="ax-help">Readings outside the valid range (such as −999 error codes), runs of identical readings (a frozen sensor; 0 turns this off) and spikes are removed from the sensor data. The spike filter (Hampel) compares each reading with the median of its neighbours and removes it when it is further away than the threshold times the scaled median absolute deviation (0 turns it off). Then both series are averaged over the same periods, and periods with fewer sensor readings than asked are left out.</p>
+    <dl class="ax-facts sc-cfacts" style="margin-top:10px"></dl>
+  </div>
+
+  <div class="ax-card sc-out">
+    <h2>Calibration</h2>
+    <div class="ax-grid">
+      <label>Model <select class="sc-model">
+        <option value="lin">Linear: reference = a + b × sensor</option>
+        <option value="rh" selected>Linear with humidity (RH)</option>
+        <option value="rhT">Linear with RH and temperature</option>
+        <option value="T">Linear with temperature</option>
+        <option value="dem">Deming (errors in both)</option>
+      </select></label>
+      <label class="sc-lbox" hidden>Error variance ratio λ (reference ÷ sensor) <input class="sc-lam" type="text" inputmode="decimal" value="1" /></label>
+      <label>Test on the last (% of periods) <input class="sc-hold" type="text" inputmode="decimal" value="30" /></label>
+    </div>
+    <p class="ax-help sc-mhelp"></p>
+    <p class="ax-err sc-err" hidden></p>
+    <div class="sc-res">
+      <p class="ax-big sc-big"></p>
+      <div class="ax-scroll"><table class="sc-coef"></table></div>
+      <div class="ax-scroll" style="margin-top:10px"><table class="sc-met"></table></div>
+      <p class="ax-help">R² is 1 − (sum of squared errors ÷ total sum of squares) against the reference, so it also counts bias. RMSE and MAE are in the units of the readings; bias is the mean of (value − reference). The fit uses the earlier periods; the test periods were not used to fit, so they show how well the calibration carries forward.</p>
+      <canvas class="ax-fig sc-sc" style="margin-top:10px"></canvas>
+      <canvas class="ax-fig sc-ts" style="margin-top:10px"></canvas>
+      <div class="ax-row" style="margin:10px 0">
+        <button type="button" class="btn secondary small sc-acsv">Matched periods (CSV)</button>
+        <button type="button" class="btn secondary small sc-fcsv">Sensor readings with flags (CSV)</button>
+      </div>
+      <Downloads />
+    </div>
+  </div>
+
+  <div class="ax-card sc-new">
+    <h2>Apply to new data</h2>
+    <textarea class="sc-n" rows="5" spellcheck="false" placeholder="Sensor readings in the same columns as above"></textarea>
+    <DataFile target=".sc-n" maxMB={20} maxCols={20} maxRows={200000} />
+    <label class="ax-check" style="margin-top:8px"><input type="checkbox" class="sc-nclean" checked /> Clean first (valid range, stuck readings, spikes)</label>
+    <p class="ax-help">Uses the same column names as the sensor data above (or the same positions), the calibration above, and the readings as they are (not averaged). Readings removed by cleaning, or with a missing RH or temperature the model needs, get no calibrated value.</p>
+    <p class="ax-err sc-nerr" hidden></p>
+    <p class="ax-big sc-nbig"></p>
+    <div class="ax-scroll"><table class="sc-ntab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sc-ncsv">Calibrated data (CSV)</button></div>
+  </div>
+</div>
+
+<script>
+  import { parseTime, fmtTime, clean, align, ols, deming, metrics, applyModel, exampleData, type Model } from '../../lib/sci/sensorcal';
+  import { parseTable, num } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.scx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const g4 = (v: number) => (Number.isFinite(v) ? (Math.abs(v) < 1e-9 ? '0' : String(+v.toPrecision(4))) : '—');
+  const fx = (v: number, d = 3) => (Number.isFinite(v) ? v.toFixed(d) : '—');
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const table = (el: HTMLElement, head: string[], rows: string[][]) => { el.replaceChildren(); const tr = (c: string[], th = false) => { const r = document.createElement('tr'); c.forEach((t, k) => { const e = document.createElement(th ? 'th' : 'td'); e.textContent = t; if (k) e.className = 'r'; r.append(e); }); return r; }; el.append(tr(head, true), ...rows.map((r) => tr(r))); };
+
+  type Tab = { head: string[]; rows: string[][]; hasHead: boolean };
+  function readTab(text: string): Tab {
+    const rows = parseTable(text); if (!rows.length) return { head: [], rows: [], hasHead: false };
+    const w = Math.max(...rows.map((r) => r.length));
+    const hasHead = rows[0].every((c) => c === '' || (Number.isNaN(num(c)) && Number.isNaN(parseTime(c))));
+    return { head: Array.from({ length: w }, (_, i) => (hasHead ? rows[0][i] || `Column ${i + 1}` : `Column ${i + 1}`)), rows: hasHead ? rows.slice(1) : rows, hasHead };
+  }
+  function fillCols(s: HTMLSelectElement, head: string[], guess: RegExp | null, fallback: number, none = false) {
+    const was = s.dataset.head === head.join('|') ? s.value : null;
+    s.replaceChildren(); s.dataset.head = head.join('|');
+    if (none) { const o = document.createElement('option'); o.value = ''; o.textContent = '— none —'; s.append(o); }
+    head.forEach((h, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = h; s.append(o); });
+    if (was !== null) { s.value = was; return; }
+    const g = guess ? head.findIndex((h) => guess.test(h)) : -1;
+    s.value = g >= 0 ? String(g) : fallback >= 0 && fallback < head.length ? String(fallback) : none ? '' : '0';
+  }
+  const dayFirst = () => sel('.sc-df') === 'd';
+  function series(tab: Tab, tc: string, vc: string, rc = '', pc = '') {
+    const t: number[] = [], v: number[] = [], rh: number[] = [], temp: number[] = [];
+    let badT = 0;
+    for (const r of tab.rows) {
+      const tt = parseTime(r[+tc] ?? '', dayFirst()); if (!Number.isFinite(tt)) { badT++; continue; }
+      t.push(tt); v.push(num(r[+vc])); rh.push(rc === '' ? NaN : num(r[+rc])); temp.push(pc === '' ? NaN : num(r[+pc]));
+    }
+    // Sort by time (stable).
+    const o = t.map((_, i) => i).sort((a, b) => t[a] - t[b] || a - b);
+    return { t: o.map((i) => t[i]), v: o.map((i) => v[i]), rh: o.map((i) => rh[i]), temp: o.map((i) => temp[i]), badT, order: o };
+  }
+
+  let figs: Record<string, Figure> = {}, report: Section[] = [], model: Model | null = null, aligned: ReturnType<typeof align> | null = null, flags: { t: number[]; raw: number[]; flag: string[] } | null = null, nfit = 0, cal: number[] = [];
+  const cleanOpts = () => ({ min: val('.sc-min'), max: val('.sc-max'), stuckRun: Math.round(val('.sc-stk')) || 0, hampelHalf: Math.round(val('.sc-hw')) || 0, hampelN: val('.sc-hn') });
+
+  function calc() {
+    const derr = q('.sc-derr'), err = q('.sc-err'), res = q('.sc-res');
+    const fail = (box: HTMLElement, m: string) => { box.textContent = m; box.hidden = false; res.hidden = true; report = []; model = null; applyNew(); };
+    derr.hidden = true; err.hidden = true;
+    const S = readTab(q<HTMLTextAreaElement>('.sc-s').value), Rt = readTab(q<HTMLTextAreaElement>('.sc-r').value);
+    fillCols(q<HTMLSelectElement>('.sc-st'), S.head, /time|date/i, 0); fillCols(q<HTMLSelectElement>('.sc-sv'), S.head, /pm|sensor|value|conc|no2|o3|co2|ppb|µg|ug/i, 1);
+    fillCols(q<HTMLSelectElement>('.sc-srh'), S.head, /\brh\b|humid/i, -1, true); fillCols(q<HTMLSelectElement>('.sc-stp'), S.head, /^t$|temp/i, -1, true);
+    fillCols(q<HTMLSelectElement>('.sc-rt'), Rt.head, /time|date/i, 0); fillCols(q<HTMLSelectElement>('.sc-rv'), Rt.head, /ref|pm|value|conc|no2|o3|co2/i, 1);
+    if (!S.rows.length || !Rt.rows.length) { q('.sc-cfacts').replaceChildren(); return fail(derr, 'Paste or open the sensor data and the reference data, or use the example.'); }
+    const s = series(S, sel('.sc-st'), sel('.sc-sv'), sel('.sc-srh'), sel('.sc-stp')), r = series(Rt, sel('.sc-rt'), sel('.sc-rv'));
+    if (s.t.length < 3 || r.t.length < 3) return fail(derr, `Too few readings with a time that can be read (sensor ${s.t.length}, reference ${r.t.length}). Check the time column and the date order.`);
+    const o = cleanOpts(), iv = val('.sc-int'), minc = Math.round(val('.sc-minc'));
+    if (Number.isFinite(o.min) && Number.isFinite(o.max) && !(o.max > o.min)) return fail(derr, 'The highest valid reading must be above the lowest.');
+    if (o.stuckRun === 1 || o.stuckRun < 0) return fail(derr, 'Stuck readings: give 2 or more identical readings in a row, or 0 to turn it off.');
+    if (o.hampelHalf < 0 || (o.hampelHalf > 0 && !(o.hampelN > 0))) return fail(derr, 'Spike filter: the window is 0 or more readings and the threshold above 0.');
+    if (!(iv > 0 && iv <= 7 * 1440)) return fail(derr, 'Average over a period from a fraction of a minute up to 10080 minutes (a week).');
+    if (!(minc >= 1)) return fail(derr, 'Fewest sensor readings per period is 1 or more.');
+    const c = clean(s, o);
+    flags = { t: s.t, raw: s.v, flag: c.flag };
+    aligned = align({ t: s.t, v: c.v, rh: s.rh, temp: s.temp }, { t: r.t, v: r.v }, iv, minc);
+    const kept = c.v.filter(Number.isFinite).length;
+    q('.sc-cfacts').replaceChildren(
+      fact('Sensor readings', s.t.length.toLocaleString('en'), `${kept.toLocaleString('en')} kept; removed: ${c.range} out of range, ${c.stuck} stuck, ${c.spikes} spikes; ${c.missing} missing${s.badT ? `; ${s.badT} rows without a readable time` : ''}`),
+      fact('Reference readings', r.t.length.toLocaleString('en'), `${r.v.filter(Number.isFinite).length.toLocaleString('en')} with a value${r.badT ? `; ${r.badT} rows without a readable time` : ''}`),
+      fact('Matched periods', aligned.t.length.toLocaleString('en'), aligned.t.length ? `${iv} min, ${fmtTime(aligned.t[0])} to ${fmtTime(aligned.t[aligned.t.length - 1])}` : 'no period has both sensor and reference data'),
+    );
+    // Fit.
+    const kind = sel('.sc-model'); q('.sc-lbox').hidden = kind !== 'dem';
+    q('.sc-mhelp').textContent = ({ lin: 'Ordinary least squares of the reference on the sensor. The usual first step.', rh: 'Adds relative humidity: many particle sensors read high in humid air.', rhT: 'Adds relative humidity and temperature, for sensors that drift with both.', T: 'Adds temperature, for gas sensors whose baseline moves with temperature.', dem: 'Deming regression allows for error in both the sensor and the reference. With λ = 1 it is orthogonal regression (the line nearest the points at right angles). Uses the sensor only.' } as Record<string, string>)[kind];
+    const terms: ('rh' | 'temp')[] = kind === 'rh' ? ['rh'] : kind === 'rhT' ? ['rh', 'temp'] : kind === 'T' ? ['temp'] : [];
+    if (terms.includes('rh') && sel('.sc-srh') === '') return fail(err, 'Choose the relative humidity column, or pick a model without RH.');
+    if (terms.includes('temp') && sel('.sc-stp') === '') return fail(err, 'Choose the temperature column, or pick a model without temperature.');
+    const ok = aligned.t.map((_, i) => terms.every((tm) => Number.isFinite(tm === 'rh' ? aligned!.rh[i] : aligned!.temp[i])));
+    const idx = aligned.t.map((_, i) => i).filter((i) => ok[i]);
+    const hold = val('.sc-hold');
+    if (!(hold >= 0 && hold <= 80)) return fail(err, 'Test on 0 % to 80 % of the periods.');
+    nfit = Math.round(idx.length * (1 - hold / 100));
+    const fitI = idx.slice(0, nfit), testI = idx.slice(nfit), need = 3 + terms.length;
+    if (fitI.length < need) return fail(err, `Only ${fitI.length} matched periods to fit with; at least ${need} are needed. Use a shorter averaging period, fewer test periods, or more data.`);
+    const lam = val('.sc-lam');
+    if (kind === 'dem' && !(lam > 0)) return fail(err, 'λ is above 0 (1 = the same error in both).');
+    const A = aligned, X = [fitI.map((i) => A.x[i]), ...terms.map((tm) => fitI.map((i) => (tm === 'rh' ? A.rh[i] : A.temp[i])))], Y = fitI.map((i) => A.y[i]);
+    let coefRows: string[][];
+    if (kind === 'dem') {
+      const d = deming(X[0], Y, lam);
+      if (!Number.isFinite(d.slope)) return fail(err, 'The sensor and reference do not vary together, so no line can be fitted.');
+      model = { kind: 'deming', terms: [], coef: [d.intercept, d.slope] };
+      coefRows = [['Intercept a', g4(d.intercept), '—'], ['Slope b', g4(d.slope), '—']];
+    } else {
+      const f = ols(Y, X, ['Sensor', ...terms.map((tm) => (tm === 'rh' ? 'RH' : 'Temperature'))]);
+      if (!f) return fail(err, 'The fit failed: two of the inputs move together exactly, or there are too few periods.');
+      model = { kind: 'ols', terms, coef: f.coef };
+      coefRows = f.names.map((n, k) => [n, g4(f.coef[k]), g4(f.se[k])]);
+    }
+    res.hidden = false;
+    const m = model;
+    cal = A.t.map((_, i) => (ok[i] ? applyModel(m, A.x[i], A.rh[i], A.temp[i]) : NaN));
+    const sign = (v: number) => (v < 0 ? ` − ${g4(-v)}` : ` + ${g4(v)}`);
+    const eq = m.kind === 'deming' ? `Calibrated = ${g4(m.coef[0])}${sign(m.coef[1])} × sensor` : `Calibrated = ${g4(m.coef[0])}${sign(m.coef[1])} × sensor${m.terms.map((tm, k) => `${sign(m.coef[2 + k])} × ${tm === 'rh' ? 'RH' : 'T'}`).join('')}`;
+    q('.sc-big').textContent = eq;
+    table(q('.sc-coef'), ['Term', 'Estimate', 'Standard error'], coefRows);
+    const met = (I: number[], pred: (i: number) => number) => metrics(I.map(pred), I.map((i) => A.y[i]));
+    const rows: string[][] = [], add = (name: string, I: number[]) => { if (!I.length) return; const raw = met(I, (i) => A.x[i]), cc = met(I, (i) => cal[i]); rows.push([`${name}: raw sensor`, fx(raw.r2), g4(raw.rmse), g4(raw.mae), g4(raw.bias), String(raw.n)], [`${name}: calibrated`, fx(cc.r2), g4(cc.rmse), g4(cc.mae), g4(cc.bias), String(cc.n)]); };
+    add('Fit', fitI); add('Test', testI);
+    table(q('.sc-met'), ['Periods', 'R²', 'RMSE', 'MAE', 'Bias', 'n'], rows);
+    // Charts.
+    const r6 = (v: number) => +v.toPrecision(6);
+    const all = [...idx.map((i) => A.x[i]), ...idx.map((i) => A.y[i]), ...idx.map((i) => cal[i])].filter(Number.isFinite), lo = Math.min(0, ...all), hi = Math.max(...all);
+    const xs = [lo, hi].map(r6);
+    figs.sc = chartFigure({ w: 380, h: 300, xLabel: 'Sensor (raw)', yLabel: 'Reference', xMin: r6(lo), xMax: r6(hi > lo ? hi : lo + 1), yMin: r6(lo), yMax: r6(hi > lo ? hi : lo + 1), legend: 'below', series: [
+      { name: 'Fit periods', x: fitI.map((i) => r6(A.x[i])), y: fitI.map((i) => r6(A.y[i])), mode: 'points', size: 3 },
+      ...(testI.length ? [{ name: 'Test periods', x: testI.map((i) => r6(A.x[i])), y: testI.map((i) => r6(A.y[i])), mode: 'points' as const, size: 3, marker: 'open-circle' as const }] : []),
+      ...(m.terms.length ? [] : [{ name: 'Calibration line', x: xs, y: xs.map((x) => r6(applyModel(m, x))), mode: 'line' as const, width: 2 }]),
+      { name: '1 : 1', x: xs, y: xs, mode: 'line', dash: [4, 3], width: 1, color: '#888888' },
+    ] }, 'Reference against raw sensor with the calibration line and the 1:1 line');
+    paint(q<HTMLCanvasElement>('.sc-sc'), figs.sc);
+    const step = Math.max(1, Math.ceil(idx.length / 1500)), ti = idx.filter((_, k) => k % step === 0), days = (t: number) => r6((t - A.t[0]) / 864e5);
+    figs.ts = chartFigure({ w: 380, h: 240, xLabel: `Days from ${fmtTime(A.t[0]).slice(0, 10)}`, yLabel: 'Reading', legend: 'below', series: [
+      { name: 'Reference', x: ti.map((i) => days(A.t[i])), y: ti.map((i) => r6(A.y[i])), mode: 'line', width: 1.5 },
+      { name: 'Raw sensor', x: ti.map((i) => days(A.t[i])), y: ti.map((i) => r6(A.x[i])), mode: 'line', width: 1 },
+      { name: 'Calibrated', x: ti.map((i) => days(A.t[i])), y: ti.map((i) => r6(cal[i])), mode: 'line', width: 1 },
+    ], marks: testI.length ? [{ kind: 'vline', at: days(A.t[testI[0]]), dash: [4, 3], label: 'test' }] : [] }, 'Reference, raw sensor and calibrated sensor over time');
+    paint(q<HTMLCanvasElement>('.sc-ts'), figs.ts);
+    report = [
+      { title: eq, facts: Array.from(q('.sc-cfacts').children).map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), table: { head: ['Term', 'Estimate', 'Standard error'], rows: coefRows, align: ['l', 'r', 'r'] } },
+      { title: 'Agreement with the reference', table: { head: ['Periods', 'R²', 'RMSE', 'MAE', 'Bias', 'n'], rows, align: ['l', 'r', 'r', 'r', 'r', 'r'] }, figure: figs.sc },
+      { title: 'Over time', figure: figs.ts },
+    ];
+    applyNew();
+  }
+
+  let newOut: string[] = [];
+  function applyNew() {
+    const err = q('.sc-nerr'), text = q<HTMLTextAreaElement>('.sc-n').value;
+    newOut = []; q('.sc-ntab').replaceChildren(); q('.sc-nbig').textContent = ''; err.hidden = true;
+    if (!text.trim()) return;
+    if (!model) { err.textContent = 'Fit a calibration above first.'; err.hidden = false; return; }
+    const S = readTab(q<HTMLTextAreaElement>('.sc-s').value), N = readTab(text);
+    const pick = (c: string) => { if (c === '') return ''; const name = S.head[+c], k = N.head.indexOf(name); return k >= 0 ? String(k) : +c < N.head.length ? c : ''; };
+    const tc = pick(sel('.sc-st')), vc = pick(sel('.sc-sv')), rc = pick(sel('.sc-srh')), pc = pick(sel('.sc-stp'));
+    if (tc === '' || vc === '') { err.textContent = 'The new data need the same time and sensor columns as the sensor data above.'; err.hidden = false; return; }
+    const s = series(N, tc, vc, rc, pc), cv = q<HTMLInputElement>('.sc-nclean').checked ? clean(s, cleanOpts()) : { v: s.v, flag: s.v.map(() => '') };
+    const m = model;
+    const outv = s.t.map((_, i) => (Number.isFinite(cv.v[i]) ? applyModel(m, cv.v[i], s.rh[i], s.temp[i]) : NaN));
+    const n = outv.filter(Number.isFinite).length;
+    q('.sc-nbig').textContent = `${n.toLocaleString('en')} of ${s.t.length.toLocaleString('en')} readings calibrated`;
+    newOut = ['time,sensor,calibrated,flag', ...s.t.map((t, i) => `${fmtTime(t)},${Number.isFinite(s.v[i]) ? s.v[i] : ''},${Number.isFinite(outv[i]) ? +outv[i].toPrecision(6) : ''},${cv.flag[i] || (Number.isFinite(outv[i]) || !Number.isFinite(cv.v[i]) ? '' : 'missing RH or T')}`)];
+    table(q('.sc-ntab'), ['Time', 'Sensor', 'Calibrated', 'Flag'], newOut.slice(1, 9).map((l) => l.split(',')));
+  }
+
+  function demo() {
+    const e = exampleData();
+    q<HTMLTextAreaElement>('.sc-s').value = ['time,pm25_sensor,rh,temp', ...e.sensor.t.map((t, i) => `${fmtTime(t)},${e.sensor.v[i]},${e.sensor.rh[i]},${e.sensor.temp[i]}`)].join('\n');
+    q<HTMLTextAreaElement>('.sc-r').value = ['time,pm25_reference', ...e.ref.t.map((t, i) => `${fmtTime(t)},${e.ref.v[i]}`)].join('\n');
+    // New data: the last day's readings again, as if from a new week.
+    q<HTMLTextAreaElement>('.sc-n').value = ['time,pm25_sensor,rh,temp', ...e.sensor.t.slice(-288).map((t, i) => { const k = e.sensor.t.length - 288 + i; return `${fmtTime(t + 7 * 864e5)},${e.sensor.v[k]},${e.sensor.rh[k]},${e.sensor.temp[k]}`; })].join('\n');
+    for (const c of ['.sc-st', '.sc-sv', '.sc-srh', '.sc-stp', '.sc-rt', '.sc-rv']) delete q(c).dataset.head;
+    calc();
+  }
+
+  q('.sc-acsv').addEventListener('click', () => {
+    if (!aligned) return; const A = aligned;
+    const lines = ['period_start,sensor_mean,rh_mean,temp_mean,reference_mean,calibrated,set', ...A.t.map((t, i) => [fmtTime(t), +A.x[i].toPrecision(6), Number.isFinite(A.rh[i]) ? +A.rh[i].toPrecision(5) : '', Number.isFinite(A.temp[i]) ? +A.temp[i].toPrecision(5) : '', +A.y[i].toPrecision(6), Number.isFinite(cal[i]) ? +cal[i].toPrecision(6) : '', ''].join(','))];
+    // Mark fit and test periods (same order as the fit).
+    let k = 0; for (let i = 0; i < A.t.length; i++) if (Number.isFinite(cal[i])) { lines[i + 1] = lines[i + 1].replace(/,$/, k < nfit ? ',fit' : ',test'); k++; }
+    save(new TextEncoder().encode(lines.join('\n') + '\n'), 'sensor-matched-periods.csv', 'text/csv');
+  });
+  q('.sc-fcsv').addEventListener('click', () => { if (!flags) return; const f = flags; save(new TextEncoder().encode(['time,sensor,flag', ...f.t.map((t, i) => `${fmtTime(t)},${Number.isFinite(f.raw[i]) ? f.raw[i] : ''},${f.flag[i]}`)].join('\n') + '\n'), 'sensor-readings-flagged.csv', 'text/csv'); });
+  q('.sc-ncsv').addEventListener('click', () => { if (newOut.length) save(new TextEncoder().encode(newOut.join('\n') + '\n'), 'sensor-calibrated.csv', 'text/csv'); });
+  q('.sc-demo').addEventListener('click', demo);
+  let timer = 0; const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('.sc-s, .sc-r').forEach((i) => i.addEventListener('input', later));
+  root.querySelectorAll('.sc-min, .sc-max, .sc-stk, .sc-hw, .sc-hn, .sc-int, .sc-minc, .sc-lam, .sc-hold').forEach((i) => i.addEventListener('input', later));
+  root.querySelectorAll('select').forEach((i) => i.addEventListener('change', calc));
+  q('.sc-n').addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(applyNew, 250); });
+  q('.sc-nclean').addEventListener('change', applyNew);
+  document.addEventListener('fibub:theme', () => { if (!q('.sc-res').hidden && figs.sc) { paint(q<HTMLCanvasElement>('.sc-sc'), figs.sc); paint(q<HTMLCanvasElement>('.sc-ts'), figs.ts); } });
+  wireDownloads(q('.sc-out .dl'), () => ({ title: 'Sensor calibration', subtitle: q('.sc-big').textContent ?? '', file: 'sensor-calibration', sections: report }));
+  demo();
+</script>
+
+<style is:global>
+  .scx select, .scx input[type=text] { max-width: 100%; }
+  .scx textarea { width: 100%; }
+</style>

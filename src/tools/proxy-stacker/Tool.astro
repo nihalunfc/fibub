@@ -1,0 +1,249 @@
+---
+// Proxy record stacker: several (age, value) records on one age grid, z-scores over a window, sign flips, a mean or
+// median stack with a ±1 SD or bootstrap envelope, correlations with the Bretherton effective sample size and a lag
+// scan. Everything runs in the browser. The example records are made up by the page.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { exampleRecords, toLong } from '../../lib/sci/proxystack';
+const demo = toLong(exampleRecords(), 'age (years BP)', 'value');
+---
+<div class="ax pxs">
+  <div class="ax-card">
+    <h2>Proxy records</h2>
+    <label>Record name, age and value, one sample per row <textarea class="ps-data" rows="8" spellcheck="false">{demo}</textarea></label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small ps-open">Open files</button>
+      <input type="file" class="ps-file" multiple hidden />
+      <button type="button" class="btn secondary small ps-ex">Use the example</button>
+      <span class="ax-help ps-limit" style="margin:0"></span>
+    </div>
+    <p class="ax-help">Three columns (record name, age, value), or age and value columns in pairs side by side with the value headers as names. Open one file per record (the file name becomes the record name; its first two number columns are age and value), or one table with several records. Opening files replaces the box. Up to 20 records. The example is four made-up records of one shared climate signal.</p>
+    <p class="ax-help ps-note" hidden></p>
+    <p class="ax-err ps-ferr" hidden></p>
+    <div class="ax-scroll" style="margin-top:10px"><table class="ps-recs"></table></div>
+    <p class="ax-help">Tick <b>Flip</b> for a proxy that goes down when the others go up (for example δ¹⁸O of ice or calcite against temperature).</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Grid, scaling and stack</h2>
+    <div class="ax-grid">
+      <label>Age unit (for labels) <input class="ps-unit" type="text" value="years BP" /></label>
+      <label>Age grid from <input class="ps-g0" type="text" inputmode="decimal" placeholder="auto" /></label>
+      <label>to <input class="ps-g1" type="text" inputmode="decimal" placeholder="auto" /></label>
+      <label>step <input class="ps-gs" type="text" inputmode="decimal" placeholder="auto" /></label>
+      <label>Don't bridge gaps longer than <input class="ps-gap" type="text" inputmode="decimal" placeholder="no limit" /></label>
+      <label>z-score window from <input class="ps-w0" type="text" inputmode="decimal" placeholder="grid start" /></label>
+      <label>to <input class="ps-w1" type="text" inputmode="decimal" placeholder="grid end" /></label>
+      <label>Stack <select class="ps-meth"><option value="mean" selected>Mean</option><option value="median">Median</option></select></label>
+      <label>Envelope <select class="ps-env"><option value="sd" selected>±1 SD of the records</option><option value="boot">Bootstrap 95 % (resample records)</option></select></label>
+      <label>Records needed at an age <input class="ps-minn" type="number" min="1" max="20" step="1" value="2" inputmode="numeric" /></label>
+      <label>Lag scan up to (± grid steps) <input class="ps-lag" type="number" min="1" max="500" step="1" value="6" inputmode="numeric" /></label>
+      <label>Older ages <select class="ps-dir"><option value="right" selected>To the right</option><option value="left">To the left</option></select></label>
+    </div>
+    <p class="ax-help">Auto picks the ages every record covers, with a step close to the coarsest record's typical spacing; a finer grid than the data only adds made-up points. Each record is turned into z-scores (minus its mean, divided by its standard deviation) over the window, so records in different units can be stacked. The bootstrap resamples whole records 1,000 times.</p>
+    <p class="ax-err ps-err" hidden></p>
+  </div>
+
+  <div class="ax-card ps-out" hidden>
+    <h2>Stack</h2>
+    <p class="ax-big ps-big"></p>
+    <dl class="ax-facts ps-facts"></dl>
+    <canvas class="ax-fig ps-fig1"></canvas>
+    <canvas class="ax-fig ps-fig2" style="margin-top:10px"></canvas>
+    <h2 style="margin-top:16px">Correlations between records</h2>
+    <p class="ax-help" style="margin-bottom:8px">r over the ages both records cover (after flips). n_eff allows for autocorrelation (Bretherton et al. 1999): n_eff = n (1 − r₁r₁′) / (1 + r₁r₁′), with r₁ and r₁′ the lag-1 autocorrelations. Interpolation makes neighbouring ages alike, so the plain p-value is too small; read p with n_eff.</p>
+    <div class="ax-scroll"><table class="ps-cor"></table></div>
+    <h2 style="margin-top:16px">Lag scan</h2>
+    <div class="ax-grid">
+      <label>Record A <select class="ps-a"></select></label>
+      <label>Record B <select class="ps-b"></select></label>
+    </div>
+    <p class="ax-big ps-lagbig" style="font-size:20px;margin-top:10px"></p>
+    <canvas class="ax-fig ps-fig3"></canvas>
+    <p class="ax-help">The lag scan correlates A at each age with B at that age plus the lag. A peak at +100 means a feature at age t in A shows up at t + 100 in B: B's ages read 100 older, which may be an age-model offset, not a real lead or lag.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small ps-csv">Download the stack (CSV)</button>
+      <button type="button" class="btn secondary small ps-ccsv">Download correlations (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseRecords, autoGrid, gridAges, interpolate, zscore, stack, bootIndex, bootstrap, correlate, lagScan, medianSpacing, exampleRecords, toLong, type ProxyRecord } from '../../lib/sci/proxystack';
+  import { readDataFile, limitText } from '../../lib/datafile';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, fileSafe, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.pxs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const txt = (c: string) => q<HTMLInputElement>(c).value.trim();
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const LIMITS = { maxBytes: 5e6, maxCols: 40, maxRows: 50000 };
+  q('.ps-limit').textContent = limitText(LIMITS);
+  const fmtP = (p: number) => (!Number.isFinite(p) ? '–' : p >= 0.001 ? p.toFixed(3) : p.toExponential(1));
+  const fa = (x: number) => (Number.isFinite(x) ? +x.toPrecision(10) + '' : '');
+
+  let recs: ProxyRecord[] = [], flips = new Map<string, boolean>(), off = new Set<string>();
+  let figs: Figure[] = [], sections: Section[] = [], stackRows: (string | number)[][] = [], corRows: (string | number)[][] = [];
+
+  function table(t: HTMLTableElement, head: string[], rows: (string | Node)[][]) {
+    t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i > 1) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); if (typeof c === 'string') td.textContent = c; else td.append(c); if (i > 1) td.className = 'r'; }); });
+  }
+  const box = (cls: string, on: boolean, name: string) => { const l = document.createElement('label'); l.className = 'ax-check'; const i = document.createElement('input'); i.type = 'checkbox'; i.className = cls; i.checked = on; i.dataset.n = name; i.setAttribute('aria-label', `${cls === 'ps-use' ? 'Use' : 'Flip'} ${name}`); l.append(i); return l; };
+
+  function run() {
+    const err = q('.ps-err'), out = q('.ps-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sections = []; };
+    err.hidden = true;
+    const p = parseRecords(q<HTMLTextAreaElement>('.ps-data').value);
+    recs = p.records.filter((r) => r.age.length > 0);
+    const unit = txt('.ps-unit') || 'age units', lagU = unit.replace(/\s*(BP|b2k|BCE|CE|AD|BC)$/i, '') || unit;
+    // Record table with Use and Flip boxes.
+    table(q<HTMLTableElement>('.ps-recs'), ['Use', 'Flip', 'Record', 'Samples', `Ages (${unit})`, 'Typical spacing'], recs.map((r) => [box('ps-use', !off.has(r.name), r.name), box('ps-flip', !!flips.get(r.name), r.name), r.name, String(r.age.length), `${fa(r.age[0])} to ${fa(r.age[r.age.length - 1])}`, sig(medianSpacing(r.age), 3)]));
+    if (p.error) return fail(p.error);
+    if (recs.length > 20) return fail(`Up to 20 records, please (this table has ${recs.length}).`);
+    const short = recs.find((r) => r.age.length < 3);
+    if (short) return fail(`${short.name} has fewer than 3 samples with an age and a value.`);
+    const use = recs.filter((r) => !off.has(r.name));
+    if (use.length < 2) return fail('Tick at least two records to stack.');
+    // Grid.
+    const auto = autoGrid(use);
+    const g0 = txt('.ps-g0') ? num(txt('.ps-g0')) : auto.start, g1 = txt('.ps-g1') ? num(txt('.ps-g1')) : auto.end, gs = txt('.ps-gs') ? num(txt('.ps-gs')) : auto.step;
+    if (![g0, g1, gs].every(Number.isFinite) || !(gs > 0) || !(g1 > g0)) return fail('The age grid needs a start below its end and a step above 0.');
+    const g = { start: g0, end: g1, step: gs }, ages = gridAges(g);
+    if (ages.length < 5) return fail('The age grid has fewer than 5 ages. Use a smaller step.');
+    if (ages.length > 5000) return fail(`The age grid has ${ages.length.toLocaleString('en')} ages; up to 5,000, please. Use a larger step.`);
+    const gapTxt = txt('.ps-gap'), maxGap = gapTxt ? num(gapTxt) : Infinity;
+    if (!(maxGap > 0)) return fail('The gap limit must be a positive age span, or empty for no limit.');
+    const w0 = txt('.ps-w0') ? num(txt('.ps-w0')) : g0, w1 = txt('.ps-w1') ? num(txt('.ps-w1')) : g1;
+    if (!Number.isFinite(w0) || !Number.isFinite(w1) || w1 <= w0) return fail('The z-score window needs a start below its end.');
+    const raw = use.map((r) => interpolate(r, ages, maxGap));
+    const zs = raw.map((x) => zscore(x, ages, w0, w1));
+    const weak = use.findIndex((_, i) => !(zs[i].n >= 3) || !(zs[i].sd > 0));
+    if (weak >= 0) return fail(`${use[weak].name} has fewer than 3 grid ages (or no variation) inside the z-score window ${fa(w0)} to ${fa(w1)}. Widen the window or check its ages.`);
+    const z = zs.map((s, i) => s.z.map((v) => (flips.get(use[i].name) ? -v : v)));
+    const minN = Math.max(1, Math.min(use.length, Math.round(Number(q<HTMLInputElement>('.ps-minn').value) || 1)));
+    const meth = sel('.ps-meth') as 'mean' | 'median';
+    const st = stack(z, meth, minN);
+    let lo: number[], hi: number[], envName: string, B = 0;
+    if (sel('.ps-env') === 'boot') {
+      B = Math.max(200, Math.min(1000, Math.floor(2e7 / (ages.length * use.length))));
+      const bb = bootstrap(z, meth, bootIndex(B, use.length, 1), 0.95, minN); lo = bb.lo; hi = bb.hi; envName = `bootstrap 95 % (${B} resamples)`;
+    } else { lo = st.center.map((c, i) => c - st.sd[i]); hi = st.center.map((c, i) => c + st.sd[i]); envName = '±1 SD of the records'; }
+    const have = st.center.filter(Number.isFinite).length;
+    if (!have) return fail(`No age on the grid has ${minN} records. Lower "Records needed at an age" or change the grid.`);
+
+    // Correlations.
+    const pairs: { a: number; b: number; c: ReturnType<typeof correlate>; best: { lag: number; r: number } }[] = [];
+    const maxLag = Math.max(1, Math.min(Math.floor(ages.length / 3), Math.round(Number(q<HTMLInputElement>('.ps-lag').value) || 6)));
+    for (let a = 0; a < use.length; a++) for (let b = a + 1; b < use.length; b++) {
+      const c = correlate(z[a], z[b]);
+      const sc = lagScan(z[a], z[b], maxLag).filter((x) => Number.isFinite(x.r) && x.n >= 3);
+      const best = sc.reduce((m, x) => (x.r > m.r ? x : m), { lag: 0, r: -Infinity });
+      pairs.push({ a, b, c, best });
+    }
+    const corHead = ['A', 'B', 'n', 'r', 'r₁ A', 'r₁ B', 'n_eff', 'p (n_eff)', 'p (plain n)', `Best lag (${lagU})`];
+    const corTable = pairs.map(({ a, b, c, best }) => [use[a].name, use[b].name, String(c.n), Number.isFinite(c.r) ? c.r.toFixed(3) : '–', Number.isFinite(c.r1a) ? c.r1a.toFixed(2) : '–', Number.isFinite(c.r1b) ? c.r1b.toFixed(2) : '–', Number.isFinite(c.neff) ? c.neff.toFixed(1) : '–', fmtP(c.p), fmtP(c.pNaive), best.r > -Infinity ? `${best.lag > 0 ? '+' : ''}${fa(best.lag * gs)} (r ${best.r.toFixed(2)})` : '–']);
+    table(q<HTMLTableElement>('.ps-cor'), corHead, corTable);
+    corRows = [['record_a', 'record_b', 'n', 'r', 'lag1_a', 'lag1_b', 'n_eff', 'p_neff', 'p_plain', 'best_lag', 'r_best_lag'], ...pairs.map(({ a, b, c, best }) => [use[a].name, use[b].name, c.n, fa(c.r), fa(c.r1a), fa(c.r1b), fa(c.neff), fa(c.p), fa(c.pNaive), fa(best.lag * gs), fa(best.r)])];
+
+    // Lag scan for the chosen pair.
+    const sa = q<HTMLSelectElement>('.ps-a'), sb = q<HTMLSelectElement>('.ps-b');
+    const ka = use.findIndex((r) => r.name === sa.value), kb = use.findIndex((r) => r.name === sb.value);
+    const ia = ka >= 0 ? ka : 0, ib = kb >= 0 && kb !== ia ? kb : ia === 0 ? 1 : 0;
+    sa.replaceChildren(...use.map((r, i) => new Option(r.name, r.name, false, i === ia))); sb.replaceChildren(...use.map((r, i) => new Option(r.name, r.name, false, i === ib)));
+    const scan = lagScan(z[ia], z[ib], maxLag).filter((x) => Number.isFinite(x.r));
+    const top = scan.reduce((m, x) => (x.r > m.r ? x : m), scan[0]);
+    q('.ps-lagbig').textContent = top ? `${use[ia].name} vs ${use[ib].name}: highest r ${top.r.toFixed(2)} at lag ${top.lag > 0 ? '+' : ''}${fa(top.lag * gs)} ${lagU}` : 'Too little overlap for a lag scan.';
+
+    // Figures.
+    const rev = sel('.ps-dir') === 'left';
+    const okA = ages.map((_, i) => Number.isFinite(st.center[i]));
+    const keep = (y: number[]) => ({ x: ages.filter((_, i) => Number.isFinite(y[i])), y: y.filter(Number.isFinite) });
+    const xLabel = `Age (${unit})`;
+    const f1 = chartFigure({ title: 'Records (z-scores)', xLabel, yLabel: 'z-score', xReverse: rev, legend: 'below', series: use.map((r, i) => ({ name: (flips.get(r.name) ? '−' : '') + r.name, ...keep(z[i]), mode: 'line' as const, width: 1.4 })) }, `Line chart of ${use.length} records as z-scores against age`);
+    const sx = ages.filter((_, i) => okA[i]);
+    const f2 = chartFigure({ title: `Stack (${meth}) with ${envName}`, xLabel, yLabel: 'z-score', xReverse: rev, legend: 'below', colors: ['#0a0a0a', '#0072B2', '#0072B2'], series: [
+      { name: `${meth[0].toUpperCase() + meth.slice(1)} stack`, x: sx, y: st.center.filter((_, i) => okA[i]), mode: 'line', width: 2.2, color: '#000000' },
+      { name: envName, x: sx.filter((_, k) => Number.isFinite(lo[ages.indexOf(sx[k])])), y: sx.map((a) => lo[ages.indexOf(a)]).filter(Number.isFinite), mode: 'line', dash: [5, 4], width: 1.2, color: '#0072B2' },
+      { name: '', x: sx.filter((_, k) => Number.isFinite(hi[ages.indexOf(sx[k])])), y: sx.map((a) => hi[ages.indexOf(a)]).filter(Number.isFinite), mode: 'line', dash: [5, 4], width: 1.2, color: '#0072B2' },
+    ] }, `Line chart of the ${meth} stack with its envelope`);
+    const f3 = chartFigure({ title: `Lag scan: ${use[ia].name} vs ${use[ib].name}`, xLabel: `Lag (${lagU}, B's age minus A's age)`, yLabel: 'r', yMin: -1, yMax: 1, legend: 'none', series: [{ name: 'r', x: scan.map((s) => s.lag * gs), y: scan.map((s) => s.r), mode: 'both', marker: 'circle', size: 3 }], marks: [{ kind: 'vline', at: 0, dash: [3, 3] }, { kind: 'hline', at: 0 }] }, 'Cross-correlation against lag');
+    figs = [f1, f2, f3];
+    paint(q<HTMLCanvasElement>('.ps-fig1'), f1); paint(q<HTMLCanvasElement>('.ps-fig2'), f2); paint(q<HTMLCanvasElement>('.ps-fig3'), f3);
+
+    const span = `${fa(sx[0])} to ${fa(sx[sx.length - 1])} ${unit}`;
+    q('.ps-big').textContent = `${meth === 'mean' ? 'Mean' : 'Median'} stack of ${use.length} records, ${span}`;
+    const meanR = pairs.reduce((s, p) => s + p.c.r, 0) / pairs.length;
+    const facts: [string, string, string][] = [
+      ['Age grid', `${ages.length} ages`, `${fa(g0)} to ${fa(g1)}, step ${fa(gs)}${auto.overlap || txt('.ps-g0') ? '' : ' (records do not all overlap)'}`],
+      ['Stacked ages', `${have}`, `with at least ${minN} record${minN === 1 ? '' : 's'}`],
+      ['z-score window', `${fa(w0)} to ${fa(w1)}`, unit],
+      ['Mean r between records', Number.isFinite(meanR) ? meanR.toFixed(2) : '–', `${pairs.length} pair${pairs.length === 1 ? '' : 's'}`],
+      ['Flipped', use.filter((r) => flips.get(r.name)).map((r) => r.name).join(', ') || 'none', ''],
+    ];
+    q('.ps-facts').replaceChildren(...facts.map(([k, v, s]) => fact(k, v, s)));
+    stackRows = [['age', ...use.map((r) => `${r.name}_z`), `stack_${meth}`, 'envelope_low', 'envelope_high', 'n_records'], ...ages.map((a, i) => [fa(a), ...z.map((x) => fa(x[i])), fa(st.center[i]), fa(lo[i]), fa(hi[i]), st.n[i]])];
+    const recTable = use.map((r, i) => [r.name, String(r.age.length), `${fa(r.age[0])} to ${fa(r.age[r.age.length - 1])}`, sig(zs[i].mean, 4), sig(zs[i].sd, 3), flips.get(r.name) ? 'yes' : 'no']);
+    sections = [
+      { title: 'Stack', text: [q('.ps-big').textContent!, `Records interpolated linearly to the grid${Number.isFinite(maxGap) ? `, not across gaps longer than ${fa(maxGap)}` : ''}; z-scores over ${fa(w0)} to ${fa(w1)} ${unit}; envelope: ${envName}.`], facts: facts.map(([k, v, s]) => [k, s ? `${v} (${s})` : v] as [string, string]) },
+      { title: 'Records', table: { head: ['Record', 'Samples', `Ages (${unit})`, 'Window mean', 'Window SD', 'Flipped'], rows: recTable, align: ['l', 'r', 'r', 'r', 'r', 'r'] } },
+      { title: 'Records as z-scores', figure: f1 },
+      { title: 'Stack and envelope', figure: f2 },
+      { title: 'Correlations', table: { head: corHead, rows: corTable, align: ['l', 'l', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r'] }, note: 'n_eff from Bretherton et al. (1999): n (1 − r₁r₁′) / (1 + r₁r₁′).' },
+      { title: 'Lag scan', text: [q('.ps-lagbig').textContent!], figure: f3 },
+    ];
+    out.hidden = false;
+  }
+
+  q('.ps-recs').addEventListener('change', (e) => {
+    const i = e.target as HTMLInputElement, n = i.dataset.n!;
+    if (i.classList.contains('ps-use')) { if (i.checked) off.delete(n); else off.add(n); }
+    if (i.classList.contains('ps-flip')) flips.set(n, i.checked);
+    run();
+  });
+  let tm = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).closest('.ps-recs')) return; clearTimeout(tm); tm = window.setTimeout(run, 250); });
+  root.addEventListener('change', (e) => { const t = e.target as HTMLElement; if (t.closest('.ps-recs') || t.classList.contains('ps-file')) return; if (t.tagName === 'SELECT') run(); });
+  q('.ps-ex').addEventListener('click', () => { q<HTMLTextAreaElement>('.ps-data').value = toLong(exampleRecords(), 'age (years BP)', 'value'); flips = new Map([['Lake d18O', true]]); off = new Set(); for (const c of ['.ps-g0', '.ps-g1', '.ps-gs', '.ps-gap', '.ps-w0', '.ps-w1']) q<HTMLInputElement>(c).value = ''; q('.ps-note').hidden = true; q('.ps-ferr').hidden = true; run(); });
+  q('.ps-open').addEventListener('click', () => q<HTMLInputElement>('.ps-file').click());
+  q<HTMLInputElement>('.ps-file').addEventListener('change', async () => {
+    const inp = q<HTMLInputElement>('.ps-file'), files = [...(inp.files ?? [])]; inp.value = '';
+    if (!files.length) return;
+    const all: ProxyRecord[] = [], notes: string[] = [];
+    try {
+      if (files.length > 20) throw new Error('Up to 20 files at a time, please.');
+      for (const f of files) {
+        const r = await readDataFile(f, LIMITS);
+        let p = parseRecords(r.text);
+        // One file, one record: age and value from the first two number columns.
+        if (p.error || (files.length > 1 && p.records.length !== 1)) {
+          const rows = r.text.split('\n').map((l) => l.split('\t'));
+          const cols = (rows[0] ?? []).map((_, i) => i).filter((i) => rows.filter((row) => Number.isFinite(num(row[i]))).length > rows.length / 2);
+          if (cols.length < 2) throw new Error(`${f.name}: no age and value columns found.`);
+          p = parseRecords(rows.map((row) => `${row[cols[0]]}\t${row[cols[1]]}`).join('\n'));
+          if (p.error) throw new Error(`${f.name}: ${p.error}`);
+        }
+        const base = f.name.replace(/\.[^.]+$/, '');
+        p.records.forEach((rec) => { if (/^Record \d+$/.test(rec.name) || files.length > 1 && p.records.length === 1) rec.name = base; while (all.some((x) => x.name === rec.name)) rec.name += ' (2)'; all.push(rec); });
+        notes.push(`${f.name}: ${p.records.length} record${p.records.length === 1 ? '' : 's'}${r.notes.length ? ` (${r.notes.join(' ')})` : ''}`);
+      }
+      q<HTMLTextAreaElement>('.ps-data').value = toLong(all);
+      flips = new Map(); off = new Set();
+      for (const c of ['.ps-g0', '.ps-g1', '.ps-gs', '.ps-w0', '.ps-w1']) q<HTMLInputElement>(c).value = '';
+      q('.ps-note').textContent = `Opened ${notes.join('; ')}.`; q('.ps-note').hidden = false; q('.ps-ferr').hidden = true;
+      run();
+    } catch (e) { q('.ps-ferr').textContent = (e as Error).message; q('.ps-ferr').hidden = false; q('.ps-note').hidden = true; }
+  });
+  q('.ps-csv').addEventListener('click', () => save(new Blob([csv(stackRows)], { type: 'text/csv' }), `${fileSafe('proxy stack')}.csv`, 'text/csv'));
+  q('.ps-ccsv').addEventListener('click', () => save(new Blob([csv(corRows)], { type: 'text/csv' }), `${fileSafe('proxy correlations')}.csv`, 'text/csv'));
+  wireDownloads(q('.ps-out'), () => ({ title: 'Proxy record stack', subtitle: 'fibub.com proxy stacker', sections, file: 'proxy-stack' }));
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.ps-out').hidden) ['.ps-fig1', '.ps-fig2', '.ps-fig3'].forEach((c, i) => paint(q<HTMLCanvasElement>(c), figs[i])); });
+  flips.set('Lake d18O', true);
+  run();
+</script>

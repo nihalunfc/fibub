@@ -1,0 +1,344 @@
+---
+// Band combiner: RGB composites (true and false colour) from the user's own satellite or drone bands, with a
+// stretch per band (min-max, percentile clip, standard deviation, equalisation, typed limits) and gamma, a pixel
+// inspector and a full-size PNG. Files are read on the device only; the example scene is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax bcx">
+  <div class="ax-card">
+    <h2>Bands</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small bc-open">Open band files</button>
+      <input type="file" class="bc-in" accept=".tif,.tiff,image/tiff,image/png,image/jpeg,.png,.jpg,.jpeg" multiple hidden />
+      <button type="button" class="btn secondary small bc-demo">Use the example scene</button>
+    </div>
+    <p class="ax-help">One multiband GeoTIFF, or several single-band files of the same size (GeoTIFF, TIFF, PNG or JPEG). Up to 300 MB per file and 80 million values in all. TIFF: 8, 16 or 32-bit, uncompressed, LZW, Deflate or PackBits. <strong>Your files stay on this device</strong>: they are read in your browser and never uploaded.</p>
+    <p class="ax-help bc-note"></p>
+    <label style="margin-top:10px">Band numbers in file names <select class="bc-sensor"><option value="">Do not guess from numbers</option><option value="s2">Sentinel-2 (B02 blue … B12 SWIR2)</option><option value="l89">Landsat 8 and 9 (B2 blue … B7 SWIR2)</option></select></label>
+    <p class="ax-help">Used by the ready-made combinations below to find the blue, green, red, NIR and SWIR bands. Band names in the file (such as "Red" or "NIR") are always tried first.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Combination and stretch</h2>
+    <div class="ax-grid">
+      <label>Combination <select class="bc-preset"></select></label>
+      <label>Red shows <select class="bc-r bc-ch"></select></label>
+      <label>Green shows <select class="bc-g bc-ch"></select></label>
+      <label>Blue shows <select class="bc-b bc-ch"></select></label>
+    </div>
+    <p class="ax-help bc-pnote"></p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Stretch <select class="bc-method">
+        <option value="minmax">Minimum to maximum</option>
+        <option value="pct" selected>Percentile clip</option>
+        <option value="sd">Mean ± standard deviations</option>
+        <option value="eq">Histogram equalisation</option>
+        <option value="manual">Limits I type</option>
+      </select></label>
+      <label class="bc-o-pct">Low percentile (%) <input class="bc-lp" type="text" inputmode="decimal" value="2" /></label>
+      <label class="bc-o-pct">High percentile (%) <input class="bc-hp" type="text" inputmode="decimal" value="98" /></label>
+      <label class="bc-o-sd" hidden>Standard deviations (k) <input class="bc-k" type="text" inputmode="decimal" value="2" /></label>
+      <label class="bc-o-eq" hidden>Histogram bins <input class="bc-nb" type="text" inputmode="numeric" value="256" /></label>
+      <label>Gamma <input class="bc-gamma" type="text" inputmode="decimal" value="1" /></label>
+    </div>
+    <p class="ax-help bc-mhelp"></p>
+    <div class="bc-o-man" hidden>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Red: low <input class="bc-lo0" type="text" inputmode="decimal" /></label><label>Red: high <input class="bc-hi0" type="text" inputmode="decimal" /></label>
+        <label>Green: low <input class="bc-lo1" type="text" inputmode="decimal" /></label><label>Green: high <input class="bc-hi1" type="text" inputmode="decimal" /></label>
+        <label>Blue: low <input class="bc-lo2" type="text" inputmode="decimal" /></label><label>Blue: high <input class="bc-hi2" type="text" inputmode="decimal" /></label>
+      </div>
+      <p class="ax-help">Values at or below low show black in that colour; at or above high, full colour. They start from the last automatic stretch.</p>
+    </div>
+    <p class="ax-help">Each band is stretched from its own values (on bands over 4 million pixels, percentiles come from up to 4 million pixels evenly spread through the band). Gamma above 1 brightens the mid-tones, below 1 darkens them (shown = stretched<sup>1/gamma</sup>).</p>
+    <p class="ax-err bc-err" hidden></p>
+  </div>
+
+  <div class="ax-card bc-out">
+    <h2>Composite</h2>
+    <p class="ax-big bc-big"></p>
+    <canvas class="ax-fig bc-fig" tabindex="0"></canvas>
+    <p class="ax-help">Tap the image to read a pixel, or type its row and column.</p>
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Row (from 0 at the top) <input class="bc-row" type="text" inputmode="numeric" /></label>
+      <label>Column (from 0 at the left) <input class="bc-col" type="text" inputmode="numeric" /></label>
+    </div>
+    <dl class="ax-facts bc-px" style="margin-top:10px"></dl>
+    <div class="ax-scroll" style="margin-top:10px"><table class="bc-tab"></table></div>
+    <canvas class="ax-fig bc-hist" style="margin-top:10px"></canvas>
+    <div class="ax-row" style="margin:10px 0">
+      <button type="button" class="btn secondary small bc-png">Composite as PNG (full size)</button>
+      <button type="button" class="btn secondary small bc-csv">Band statistics (CSV)</button>
+    </div>
+    <p class="ax-help">The PNG has one image pixel per band pixel (images over 40 million pixels are halved until they fit) and no georeferencing; no-data pixels are transparent.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { readTiff, type Raster, type GeoInfo } from '../../lib/sci/tiff';
+  import { bandStats, makeStretch, stretchValue, applyGamma, toByte, composite, histogram, percentile, guessRoles, pixelToMap, exampleScene, PRESETS, type BandStats, type Stretch, type Method } from '../../lib/sci/bandcomb';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, fileSafe, type Figure, type Palette, type Section } from '../../lib/report';
+  import { num } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.bcx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fx = (v: number) => (Number.isFinite(v) ? String(+v.toPrecision(5)) : '—');
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const mapNum = (v: number) => String(+v.toFixed(Math.abs(v) >= 1000 ? 2 : 7));
+  const MAX_FILE = 300e6, MAX_VALUES = 80e6, MAX_PNG = 40e6;
+  const CH = ['Red', 'Green', 'Blue'];
+  type Scene = { width: number; height: number; bands: Float32Array[]; labels: string[]; geo: GeoInfo; info: string; name: string };
+  let scene: Scene | null = null, stats: (BandStats | null)[] = [], cur: { idx: number[]; s: Stretch[]; gamma: number } | null = null;
+  let pick: { row: number; col: number } | null = null, figs: Record<string, Figure> = {}, report: Section[] = [], geom = { x0: 0, y0: 0, iw: 1, ih: 1 };
+  const cache = new Map<string, HTMLCanvasElement>();
+
+  const statsOf = (i: number) => (stats[i] ??= bandStats(scene!.bands[i]));
+
+  function fillSelects() {
+    for (const c of ['.bc-r', '.bc-g', '.bc-b']) {
+      const s = q<HTMLSelectElement>(c); s.replaceChildren();
+      scene!.labels.forEach((l, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = `${i + 1}: ${l}`; s.append(o); });
+    }
+    const n = scene!.labels.length;
+    q<HTMLSelectElement>('.bc-r').value = '0'; q<HTMLSelectElement>('.bc-g').value = String(Math.min(1, n - 1)); q<HTMLSelectElement>('.bc-b').value = String(Math.min(2, n - 1));
+  }
+  // Ready-made combinations.
+  const ps = q<HTMLSelectElement>('.bc-preset');
+  { const o = document.createElement('option'); o.value = ''; o.textContent = 'My own choice'; ps.append(o); }
+  PRESETS.forEach((p) => { const o = document.createElement('option'); o.value = p.id; o.textContent = p.name; ps.append(o); });
+  function applyPreset() {
+    const id = sel('.bc-preset'), pn = q('.bc-pnote');
+    if (!scene || !id) { pn.textContent = ''; return; }
+    const p = PRESETS.find((x) => x.id === id)!, roles = guessRoles(scene.labels, sel('.bc-sensor'));
+    const miss = p.rgb.filter((r) => roles[r] === undefined);
+    if (miss.length) { pn.textContent = `Could not find the ${miss.map((m) => (m === 'nir' ? 'NIR' : m.startsWith('swir') ? m.toUpperCase() : m)).join(', ')} band${miss.length > 1 ? 's' : ''} by name. Choose the sensor above, or pick the bands yourself.`; return; }
+    ['.bc-r', '.bc-g', '.bc-b'].forEach((c, k) => (q<HTMLSelectElement>(c).value = String(roles[p.rgb[k]])));
+    pn.textContent = p.note;
+  }
+
+  function stretches(): Stretch[] | string {
+    const m = sel('.bc-method') as Method, idx = ['.bc-r', '.bc-g', '.bc-b'].map((c) => +sel(c));
+    const lp = val('.bc-lp'), hp = val('.bc-hp'), k = val('.bc-k'), nb = val('.bc-nb');
+    if (m === 'pct' && !(lp >= 0 && hp <= 100 && lp < hp)) return 'Percentiles go from 0 to 100, with the low one below the high one.';
+    if (m === 'sd' && !(k > 0)) return 'Give a number of standard deviations above 0 (2 is common).';
+    if (m === 'eq' && !(Number.isInteger(nb) && nb >= 2 && nb <= 65536)) return 'Histogram bins is a whole number from 2 to 65536 (256 is usual).';
+    const out: Stretch[] = [];
+    for (let c = 0; c < 3; c++) {
+      const st = statsOf(idx[c]);
+      if (!st.n) return `Band ${idx[c] + 1} has no valid values.`;
+      if (m === 'manual') {
+        const lo = val(`.bc-lo${c}`), hi = val(`.bc-hi${c}`);
+        if (!Number.isFinite(lo) || !Number.isFinite(hi) || !(hi > lo)) return `${CH[c]}: give a low and a high limit, high above low.`;
+        out.push(makeStretch(scene!.bands[idx[c]], st, 'manual', { lo, hi }));
+      } else out.push(makeStretch(scene!.bands[idx[c]], st, m, { lowPct: lp, highPct: hp, k, nbins: nb }));
+    }
+    return out;
+  }
+
+  function showOptions() {
+    const m = sel('.bc-method');
+    root.querySelectorAll<HTMLElement>('.bc-o-pct').forEach((e) => (e.hidden = m !== 'pct'));
+    q('.bc-o-sd').hidden = m !== 'sd'; q('.bc-o-eq').hidden = m !== 'eq'; q('.bc-o-man').hidden = m !== 'manual';
+    q('.bc-mhelp').textContent = ({
+      minmax: 'The lowest value of each band shows black and the highest full colour. One very bright or dark pixel can flatten the picture.',
+      pct: 'Values below the low percentile show black and above the high one full colour, so a few extreme pixels are ignored (2 % and 98 % is a common start).',
+      sd: 'Shows the band from its mean minus k standard deviations to its mean plus k. Suits bands whose values gather around one level.',
+      eq: 'Spreads the values so each display level holds about the same number of pixels. Brings out detail but shifts colours; good for looking, not for comparing scenes.',
+      manual: 'Type the band values that should show black and full colour in each channel. Useful to keep the same stretch across several scenes.',
+    } as Record<string, string>)[m];
+  }
+
+  function calc() {
+    const err = q('.bc-err'), out = q('.bc-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; cur = null; };
+    showOptions();
+    if (!scene) return fail('Open your band files, or use the example scene.');
+    const s = stretches();
+    if (typeof s === 'string') return fail(s);
+    const gamma = val('.bc-gamma');
+    if (!(gamma >= 0.1 && gamma <= 10)) return fail('Gamma is between 0.1 and 10 (1 leaves the stretch as it is).');
+    err.hidden = true; out.hidden = false;
+    const idx = ['.bc-r', '.bc-g', '.bc-b'].map((c) => +sel(c));
+    cur = { idx, s, gamma };
+    if (sel('.bc-method') !== 'manual') s.forEach((x, c) => { q<HTMLInputElement>(`.bc-lo${c}`).value = fx(x.lo); q<HTMLInputElement>(`.bc-hi${c}`).value = fx(x.hi); });
+    const { width: W, height: H } = scene;
+    const names = idx.map((i) => scene!.labels[i]);
+    q('.bc-big').textContent = `R ${idx[0] + 1}, G ${idx[1] + 1}, B ${idx[2] + 1}: ${names.map((n) => n.replace(/\.(tiff?|png|jpe?g)$/i, '')).join(' / ')}`;
+    // Composite image for the screen: at most about 1200 pixels across.
+    const step = Math.max(1, Math.ceil(Math.max(W / 1200, H / 1200)));
+    const img = composite([scene.bands[idx[0]], scene.bands[idx[1]], scene.bands[idx[2]]], W, H, s as [Stretch, Stretch, Stretch], gamma, step);
+    cache.clear();
+    const picture = (pal: Palette) => {
+      const key = pal.red ? 'red' : 'rgb';
+      if (cache.has(key)) return cache.get(key)!;
+      const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+      const ctx = c.getContext('2d')!, id = ctx.createImageData(img.width, img.height);
+      id.data.set(img.data);
+      // Red light: brightness only, in red.
+      if (pal.red) for (let o = 0; o < id.data.length; o += 4) { id.data[o] = Math.round(0.299 * id.data[o] + 0.587 * id.data[o + 1] + 0.114 * id.data[o + 2]); id.data[o + 1] = id.data[o + 2] = 0; }
+      ctx.putImageData(id, 0, 0); cache.set(key, c); return c;
+    };
+    const fw = 380, fh = Math.min(520, Math.round((fw - 12) * (H / W))) + 12;
+    figs.map = { w: fw, h: fh, alt: `Composite of bands ${idx.map((i) => i + 1).join(', ')} as red, green and blue, ${W} × ${H} pixels`, draw: (ctx, Wc, Hc, pal) => {
+      const iw = Math.min(Wc - 12, ((Hc - 12) * W) / H), ih = (iw * H) / W, x0 = (Wc - iw) / 2, y0 = 6;
+      geom = { x0, y0, iw, ih };
+      ctx.fillStyle = pal.red ? '#000' : pal.bg === '#ffffff' ? '#e8e8e8' : '#1a1a1a'; ctx.fillRect(x0, y0, iw, ih);
+      ctx.imageSmoothingEnabled = step === 1 && iw < W; ctx.drawImage(picture(pal), x0, y0, iw, ih);
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(x0, y0, iw, ih);
+      if (pick) {
+        const px = x0 + ((pick.col + 0.5) / W) * iw, py = y0 + ((pick.row + 0.5) / H) * ih;
+        for (const [col, lw] of [[pal.red ? '#000' : '#ffffff', 4], [pal.red ? '#c00000' : '#000000', 1.5]] as [string, number][]) {
+          ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath();
+          ctx.moveTo(px - 12, py); ctx.lineTo(px - 4, py); ctx.moveTo(px + 4, py); ctx.lineTo(px + 12, py);
+          ctx.moveTo(px, py - 12); ctx.lineTo(px, py - 4); ctx.moveTo(px, py + 4); ctx.lineTo(px, py + 12); ctx.stroke();
+        }
+      }
+    } };
+    paint(q<HTMLCanvasElement>('.bc-fig'), figs.map);
+    // Table of the three channels.
+    const st3 = idx.map((i) => statsOf(i));
+    const head = ['Channel', 'Band', 'Black at', 'Full at', 'Min', 'Max', 'Mean', 'SD'];
+    const rows = idx.map((i, c) => [CH[c], `${i + 1}: ${scene!.labels[i]}`, s[c].method === 'eq' ? 'equalised' : fx(s[c].lo), s[c].method === 'eq' ? 'equalised' : fx(s[c].hi), fx(st3[c].min), fx(st3[c].max), fx(st3[c].mean), fx(st3[c].sd)]);
+    const tab = q('.bc-tab'); tab.replaceChildren();
+    const tr = (cells: string[], th = false) => { const r = document.createElement('tr'); cells.forEach((t, k) => { const e = document.createElement(th ? 'th' : 'td'); e.textContent = t; if (k > 1) e.className = 'r'; r.append(e); }); return r; };
+    tab.append(tr(head, true), ...rows.map((r) => tr(r)));
+    // Histograms of the three bands with the stretch limits.
+    const lo = Math.min(...st3.map((x) => percentile(x.sorted, 0.5))), hi = Math.max(...st3.map((x) => percentile(x.sorted, 99.5)));
+    const a = hi > lo ? lo : lo - 1, b = hi > lo ? hi : hi + 1;
+    const ser = idx.map((i, c) => { const h = histogram(scene!.bands[i], a, b, 80), tot = h.counts.reduce((x, y) => x + y, 0) || 1; return { name: `${CH[c]}: band ${i + 1}`, x: Array.from(h.centers, (v) => +v.toPrecision(6)), y: Array.from(h.counts, (v) => +((100 * v) / tot).toPrecision(6)), mode: 'line' as const, width: 2 }; });
+    const marks = s.flatMap((x, c) => (x.method === 'eq' ? [] : [x.lo, x.hi].filter((v) => v >= a && v <= b).map((v) => ({ kind: 'vline' as const, at: +v.toPrecision(6), dash: [4, 3], color: ['#b3261e', '#146c34', '#1f5fae'][c] }))));
+    const chart = (pal: Palette) => chartFigure({ w: 380, h: 220, xMin: +a.toPrecision(6), xMax: +b.toPrecision(6), yMin: 0, xLabel: 'Band value', yLabel: '% of pixels', series: ser, colors: pal.red ? undefined : pal.bg === '#ffffff' ? ['#b3261e', '#146c34', '#1f5fae'] : ['#f28b82', '#74d391', '#7fb2f0'], marks: pal.red ? marks.map((m) => ({ ...m, color: undefined })) : marks, legend: 'below' }, '');
+    figs.hist = { w: 380, h: 220, alt: `Histograms of the three bands from ${fx(a)} to ${fx(b)}, dashed lines at each stretch's limits`, draw: (ctx, Wc, Hc, pal) => chart(pal).draw(ctx, Wc, Hc, pal) };
+    paint(q<HTMLCanvasElement>('.bc-hist'), figs.hist);
+    showPixel();
+    report = [
+      { title: q('.bc-big').textContent!, facts: [['Image', `${W} × ${H} pixels, ${scene.bands.length} band${scene.bands.length > 1 ? 's' : ''}`], ['Stretch', q<HTMLSelectElement>('.bc-method').selectedOptions[0].text + (gamma !== 1 ? `, gamma ${fx(gamma)}` : '')], ['Source', scene.info]], figure: figs.map },
+      { title: 'Channels', table: { head, rows, align: ['l', 'l', 'r', 'r', 'r', 'r', 'r', 'r'] } },
+      { title: 'Histograms', figure: figs.hist },
+    ];
+  }
+
+  function showPixel() {
+    const box = q('.bc-px');
+    if (!scene || !cur || !pick) { box.replaceChildren(); return; }
+    const { row, col } = pick, i = row * scene.width + col;
+    const m = pixelToMap(col, row, scene.geo.scale, scene.geo.tie);
+    const lv = cur.idx.map((b, c) => applyGamma(stretchValue(scene!.bands[b][i], cur!.s[c]), cur!.gamma));
+    const f = [
+      fact('Pixel', `row ${row}, column ${col}`, m ? `map x ${mapNum(m.x)}, y ${mapNum(m.y)}${scene.geo.epsg ? ` (EPSG:${scene.geo.epsg})` : ''}` : 'no map coordinates in the file'),
+      fact('Shown as', lv.every(Number.isFinite) ? `R ${toByte(lv[0])}, G ${toByte(lv[1])}, B ${toByte(lv[2])}` : 'no data', 'display levels 0 to 255'),
+      ...cur.idx.map((b, c) => fact(`${CH[c]}: band ${b + 1}`, fx(scene!.bands[b][i]), scene!.labels[b])),
+    ];
+    const others = scene.bands.map((bd, k) => `${k + 1}: ${fx(bd[i])}`).join(', ');
+    if (scene.bands.length > 3) f.push(fact('All bands', `${scene.bands.length} values`, others));
+    box.replaceChildren(...f);
+  }
+  function setPick(row: number, col: number) {
+    if (!scene) return;
+    pick = { row: Math.max(0, Math.min(scene.height - 1, Math.round(row))), col: Math.max(0, Math.min(scene.width - 1, Math.round(col))) };
+    q<HTMLInputElement>('.bc-row').value = String(pick.row); q<HTMLInputElement>('.bc-col').value = String(pick.col);
+    if (figs.map) paint(q<HTMLCanvasElement>('.bc-fig'), figs.map);
+    showPixel();
+  }
+  q('.bc-fig').addEventListener('click', (e) => {
+    if (!scene) return;
+    const c = q<HTMLCanvasElement>('.bc-fig'), r = c.getBoundingClientRect(), k = figs.map.w / r.width;
+    const fxp = ((e as MouseEvent).clientX - r.left) * k, fyp = ((e as MouseEvent).clientY - r.top) * k;
+    const col = Math.floor(((fxp - geom.x0) / geom.iw) * scene.width), row = Math.floor(((fyp - geom.y0) / geom.ih) * scene.height);
+    if (col < 0 || row < 0 || col >= scene.width || row >= scene.height) return;
+    setPick(row, col);
+  });
+  for (const c of ['.bc-row', '.bc-col']) q(c).addEventListener('input', () => { const r = val('.bc-row'), cc = val('.bc-col'); if (Number.isFinite(r) && Number.isFinite(cc)) setPick(r, cc); });
+
+  function setScene(s: Scene, note: string, preset = '') {
+    scene = s; stats = []; pick = null;
+    fillSelects(); q('.bc-note').textContent = note;
+    q<HTMLSelectElement>('.bc-preset').value = preset; applyPreset();
+    calc();
+    setPick(Math.floor(s.height / 2), Math.floor(s.width / 2));
+  }
+  function demo() {
+    const e = exampleScene();
+    setScene({ width: e.width, height: e.height, bands: e.bands, labels: e.labels, geo: { scale: [10, 10], tie: [0, 0, 500000, 5200000], model: 1, epsg: 32633 }, info: 'Example scene (made up): 240 × 180 pixels of 10 m, six bands of reflectance', name: 'example' }, 'Showing the example scene (made up): blue, green, red, NIR, SWIR1 and SWIR2 reflectance.', 'cir');
+  }
+
+  // Reading PNG or JPEG: its red, green and blue as bands (one band when they are all the same). Transparent = no data.
+  async function readPicture(f: File) {
+    const bmp = await createImageBitmap(f);
+    const W = bmp.width, H = bmp.height, c = document.createElement('canvas'); c.width = W; c.height = H;
+    const ctx = c.getContext('2d')!; ctx.drawImage(bmp, 0, 0); bmp.close?.();
+    const d = ctx.getImageData(0, 0, W, H).data, n = W * H, b = [new Float32Array(n), new Float32Array(n), new Float32Array(n)];
+    let grey = true;
+    for (let i = 0; i < n; i++) { const a = d[i * 4 + 3] === 0; for (let k = 0; k < 3; k++) b[k][i] = a ? NaN : d[i * 4 + k]; if (grey && (d[i * 4] !== d[i * 4 + 1] || d[i * 4] !== d[i * 4 + 2])) grey = false; }
+    return { width: W, height: H, bands: grey ? [b[0]] : b, geo: {} as GeoInfo, kind: 'picture' };
+  }
+
+  const input = q<HTMLInputElement>('.bc-in');
+  q('.bc-open').addEventListener('click', () => input.click());
+  q('.bc-demo').addEventListener('click', demo);
+  input.addEventListener('change', async () => {
+    const files = Array.from(input.files ?? []); input.value = '';
+    if (!files.length) return;
+    const note = q('.bc-note');
+    try {
+      const big = files.find((f) => f.size > MAX_FILE);
+      if (big) throw new Error(`${big.name} is ${(big.size / 1e6).toFixed(0)} MB; the limit is 300 MB per file.`);
+      note.textContent = 'Reading on this device…';
+      const got: { r: { width: number; height: number; bands: Float32Array[]; geo: GeoInfo }; name: string; info: string }[] = [];
+      let total = 0;
+      for (const f of files) {
+        const head = new Uint8Array(await f.slice(0, 4).arrayBuffer());
+        const isTiff = (head[0] === 0x49 && head[1] === 0x49) || (head[0] === 0x4d && head[1] === 0x4d);
+        let r: { width: number; height: number; bands: Float32Array[]; geo: GeoInfo }, info: string;
+        if (isTiff) { const t: Raster = readTiff(await f.arrayBuffer(), MAX_VALUES - total); r = t; info = `${t.bits}-bit ${t.format === 3 ? 'float' : 'integer'} TIFF`; }
+        else if (/^image\/(png|jpeg)$/.test(f.type) || /\.(png|jpe?g)$/i.test(f.name)) { r = await readPicture(f); info = '8-bit picture'; if (total + r.width * r.height * r.bands.length > MAX_VALUES) throw new Error(`${f.name} would pass the limit of 80 million values in all.`); }
+        else throw new Error(`${f.name} is not a TIFF, PNG or JPEG file.`);
+        total += r.width * r.height * r.bands.length;
+        got.push({ r, name: f.name, info });
+      }
+      const { width, height } = got[0].r;
+      const odd = got.find((x) => x.r.width !== width || x.r.height !== height);
+      if (odd) throw new Error(`${odd.name} is ${odd.r.width} × ${odd.r.height} pixels but ${got[0].name} is ${width} × ${height}. Band files must be the same size.`);
+      const bands: Float32Array[] = [], labels: string[] = [];
+      for (const { r, name } of got) r.bands.forEach((b, i) => { bands.push(b); labels.push(r.bands.length > 1 ? `band ${i + 1} of ${name}` : name); });
+      const geo = got.find((x) => x.r.geo.scale)?.r.geo ?? {};
+      const nb = bands.length;
+      setScene({ width, height, bands, labels, geo, info: `${files.length > 1 ? `${files.length} files` : files[0].name}: ${got[0].info}`, name: files[0].name.replace(/\.[^.]+$/, '') }, `Opened ${files.map((f) => f.name).join(', ')} on this device: ${width} × ${height} pixels, ${nb} band${nb > 1 ? 's' : ''}.${nb < 3 ? ' With fewer than three bands, a channel repeats a band (one band gives a grey picture).' : ''}`, nb >= 3 ? 'true' : '');
+      if (sel('.bc-preset') === 'true' && q('.bc-pnote').textContent!.startsWith('Could not')) { q<HTMLSelectElement>('.bc-preset').value = ''; q('.bc-pnote').textContent = 'Bands 1, 2 and 3 are shown as red, green and blue. Pick a combination or choose the bands.'; }
+    } catch (e) { note.textContent = (e as Error).message; }
+  });
+
+  q('.bc-png').addEventListener('click', () => {
+    if (!scene || !cur) return;
+    const { width: W, height: H } = scene;
+    let step = 1; while ((W / step) * (H / step) > MAX_PNG) step *= 2;
+    const img = composite([scene.bands[cur.idx[0]], scene.bands[cur.idx[1]], scene.bands[cur.idx[2]]], W, H, cur.s as [Stretch, Stretch, Stretch], cur.gamma, step);
+    const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+    const ctx = c.getContext('2d')!, id = ctx.createImageData(img.width, img.height); id.data.set(img.data); ctx.putImageData(id, 0, 0);
+    c.toBlob((b) => b && save(b, `${fileSafe(scene!.name)}-${cur!.idx.map((i) => i + 1).join('')}.png`, 'image/png'), 'image/png');
+  });
+  q('.bc-csv').addEventListener('click', () => {
+    if (!scene) return;
+    const lines = ['band,label,valid_pixels,min,max,mean,sd,p2,p98'];
+    scene.bands.forEach((_, i) => { const st = statsOf(i); lines.push([i + 1, `"${scene!.labels[i].replace(/"/g, '""')}"`, st.n, st.min, st.max, st.mean, st.sd, percentile(st.sorted, 2), percentile(st.sorted, 98)].map((v) => (typeof v === 'number' ? (Number.isFinite(v) ? String(+v.toPrecision(8)) : '') : v)).join(',')); });
+    save(new TextEncoder().encode(lines.join('\n') + '\n'), `${fileSafe(scene.name)}-band-statistics.csv`, 'text/csv');
+  });
+  q('.bc-preset').addEventListener('change', () => { applyPreset(); calc(); });
+  q('.bc-sensor').addEventListener('change', () => { applyPreset(); calc(); });
+  root.querySelectorAll('.bc-ch').forEach((s) => s.addEventListener('change', () => { q<HTMLSelectElement>('.bc-preset').value = ''; q('.bc-pnote').textContent = ''; calc(); }));
+  root.querySelectorAll('.bc-method, .bc-lp, .bc-hp, .bc-k, .bc-nb, .bc-gamma, [class*=bc-lo], [class*=bc-hi]').forEach((i) => { i.addEventListener('change', calc); i.addEventListener('input', calc); });
+  document.addEventListener('fibub:theme', () => { if (q('.bc-out').hidden) return; paint(q<HTMLCanvasElement>('.bc-fig'), figs.map); paint(q<HTMLCanvasElement>('.bc-hist'), figs.hist); });
+  demo();
+  wireDownloads(q('.dl'), () => ({ title: 'Band combination', subtitle: q('.bc-big').textContent ?? '', file: 'band-combination', sections: report }));
+</script>
+
+<style is:global>
+  .bcx select, .bcx input[type=text] { max-width: 100%; }
+  .bcx .bc-note:empty, .bcx .bc-pnote:empty { display: none; }
+  .bcx .bc-fig { cursor: crosshair; }
+</style>

@@ -1,0 +1,192 @@
+---
+// UV index estimator: the Sun's zenith angle from place, date and time, then Madronich's clear-sky formula with
+// editable factors for ozone, height, ground reflection and cloud. Daily curve, peak, and minutes to a chosen
+// erythemal dose as general information. Nothing is stored or sent.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax uvx">
+  <p class="uv-warn"><b>An estimate: check your local UV forecast.</b> Real UV depends on clouds, haze, pollution and the day's ozone, which this page cannot see. Forecast services measure or model these. Nothing here is medical advice.</p>
+
+  <div class="ax-card">
+    <h2>Place and time</h2>
+    <div class="ax-grid">
+      <label>Latitude (°, north +) <input class="uv-lat" type="number" min="-90" max="90" step="any" value="43.65" inputmode="decimal" /></label>
+      <label>Longitude (°, east +) <input class="uv-lon" type="number" min="-180" max="180" step="any" value="-79.38" inputmode="decimal" /></label>
+      <label>Height above sea level (m) <input class="uv-alt" type="number" min="-500" max="9000" step="any" value="0" inputmode="decimal" /></label>
+      <label>Date <input class="uv-date" type="date" value="2026-06-21" /></label>
+      <label>Clock time <input class="uv-time" type="time" value="13:00" /></label>
+      <label>Clock is UTC + (hours) <input class="uv-off" type="number" min="-14" max="14" step="0.25" value="-4" inputmode="decimal" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small uv-now">Now, on this device's clock</button></div>
+    <p class="ax-help">The example is Toronto on 21 June with summer time (UTC−4). South and west are negative. "Now" fills in today's date, the time and this device's UTC offset; the place stays as typed.</p>
+    <p class="ax-err uv-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Air and ground</h2>
+    <div class="ax-grid">
+      <label>Total ozone (Dobson units) <input class="uv-oz" type="number" min="100" max="600" step="any" value="300" inputmode="decimal" /></label>
+      <label>Ground <select class="uv-gsel">
+        <option value="0" selected>Not counted (formula as published)</option>
+        <option value="0.03">Grass or soil (about 0.03)</option>
+        <option value="0.07">Open water (about 0.07)</option>
+        <option value="0.15">Dry sand (about 0.15)</option>
+        <option value="0.5">Old or patchy snow (about 0.5)</option>
+        <option value="0.85">Fresh snow (about 0.85)</option>
+        <option value="custom">Type my own</option>
+      </select></label>
+      <label>Ground UV albedo (0–1) <input class="uv-alb" type="number" min="0" max="1" step="any" value="0" inputmode="decimal" /></label>
+      <label>Cloud factor (1 = clear) <input class="uv-cmf" type="number" min="0" max="1.5" step="any" value="1" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help"><b>Ozone</b> absorbs UV-B; 300 DU is a typical value, and the real column ranges from under 220 (ozone hole) to over 450. Satellite services publish the day's figure. <b>Ground albedo</b> is the share of UV the surface reflects; the rounded values are typical, not measured for your spot. <b>Cloud factor</b> multiplies the clear-sky value: 1 for a clear sky, lower for cloud (thick overcast can be 0.2 or less), and broken cloud near the Sun can briefly give more than 1.</p>
+    <details class="uv-adv">
+      <summary>Formula settings</summary>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>a <input class="uv-a" type="number" step="any" value="12.5" inputmode="decimal" /></label>
+        <label>b (power of cos zenith) <input class="uv-b" type="number" step="any" value="2.42" inputmode="decimal" /></label>
+        <label>c (power of ozone/300) <input class="uv-c" type="number" step="any" value="-1.23" inputmode="decimal" /></label>
+        <label>Rise per km of height (%) <input class="uv-pk" type="number" min="0" max="30" step="any" value="7" inputmode="decimal" /></label>
+        <label>Sky reflectance back down <input class="uv-sky" type="number" min="0" max="0.6" step="any" value="0.3" inputmode="decimal" /></label>
+      </div>
+      <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="uv-dist" checked /> Allow for the Earth–Sun distance (about ±3 % through the year)</label>
+      <p class="ax-help">UVI = a · μ<sup>b</sup> · (Ω/300)<sup>c</sup> × (1 + rise × height) × 1/(1 − albedo × sky) × cloud × (1/r²), where μ is the cosine of the solar zenith angle, Ω the ozone in DU and r the Earth–Sun distance in AU. a, b and c are Madronich's (2007) fit. The height rise is often measured at about 5 to 10 % per km; 7 % is a middle value. The ground term counts light bounced from the ground back down by the sky.</p>
+    </details>
+  </div>
+
+  <div class="ax-card uv-out" hidden>
+    <h2>Estimate</h2>
+    <p class="ax-big uv-big"></p>
+    <p class="uv-band"></p>
+    <dl class="ax-facts uv-facts"></dl>
+    <canvas class="ax-fig uv-fig"></canvas>
+    <Downloads label="Report" />
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small uv-csv">Day curve (.csv)</button></div>
+  </div>
+
+  <div class="ax-card uv-dcard" hidden>
+    <h2>Time to an erythemal dose</h2>
+    <div class="ax-grid">
+      <label>Dose (SED) <input class="uv-sed" type="number" min="0.1" max="50" step="any" value="1" inputmode="decimal" /></label>
+      <label>Starting at <input class="uv-start" type="time" value="13:00" /></label>
+    </div>
+    <p class="uv-dose"></p>
+    <p class="ax-help">General information, not advice for any person. 1 standard erythemal dose (SED) is 100 J/m² of sunlight weighted by the CIE skin-reddening curve, and UV index 1 is 0.025 W/m² of it, so 1 SED takes 100 ÷ (0.025 × 60 × UVI) minutes at a steady UV index. The dose that reddens skin differs a lot between people (often quoted from about 2 SED for very fair skin to well over 5 for dark skin) and shade, clothing and sunscreen change what reaches the skin.</p>
+  </div>
+</div>
+
+<style is:global>
+  .uvx .uv-warn { border-left: 4px solid var(--warn); background: var(--warn-soft); padding: 10px 12px; border-radius: 8px; margin: 0 0 14px; font-size: 15px; }
+  .uvx .uv-band { font-weight: 600; margin: 0 0 12px; }
+  .uvx .uv-band .ax-pill { margin: 0 6px 4px 0; font-size: 13px; }
+  .uvx .uv-adv { margin-top: 12px; }
+  .uvx .uv-adv summary { cursor: pointer; font-weight: 600; }
+  .uvx .uv-dose { font-weight: 600; margin: 10px 0 0; }
+</style>
+
+<script>
+  import { dayCurve, sunPosition, uvIndex, jdLocal, minutesToDose, minutesToDoseFrom, band, clock, type UvModel } from '../../lib/sci/uvindex';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.uvx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => { const s = q<HTMLInputElement>(c).value.trim(); return s === '' ? NaN : Number(s); };
+  const f1 = (x: number) => (Number.isFinite(x) ? (Math.round(x * 10) / 10).toFixed(1) : '–');
+  const f2 = (x: number) => String(Number(x.toPrecision(3)));
+  const hm = (min: number) => { if (!Number.isFinite(min)) return 'not reached today'; const h = Math.floor(min / 60), m = Math.round(min - h * 60); return h ? `${h} h ${m} min` : `${Math.max(1, m)} min`; };
+  const hhmm = (s: string) => { const [h, m] = s.split(':').map(Number); return Number.isFinite(h) && Number.isFinite(m) ? h + m / 60 : NaN; };
+  const fact = (k: string, v: string) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; };
+  const pill = (t: string, cls: string) => { const s = document.createElement('span'); s.className = 'ax-pill ' + cls; s.textContent = t; return s; };
+  const CLS = ['good', 'warn', 'warn', 'bad', 'bad'];
+  let fig: Figure | null = null, sections: Section[] = [], curveRows: (string | number)[][] = [];
+
+  function run() {
+    const lat = val('.uv-lat'), lon = val('.uv-lon'), altM = val('.uv-alt'), off = val('.uv-off');
+    const date = q<HTMLInputElement>('.uv-date').value, tH = hhmm(q<HTMLInputElement>('.uv-time').value);
+    const model: UvModel = {
+      a: val('.uv-a'), b: val('.uv-b'), c: val('.uv-c'), ozone: val('.uv-oz'), altKm: (Number.isFinite(altM) ? altM : 0) / 1000,
+      perKm: val('.uv-pk') / 100, albedo: val('.uv-alb'), skyRefl: val('.uv-sky'), cmf: val('.uv-cmf'), distance: q<HTMLInputElement>('.uv-dist').checked,
+    };
+    const errs: string[] = [];
+    if (!(Math.abs(lat) <= 90)) errs.push('Latitude is between −90 and 90.');
+    if (!(Math.abs(lon) <= 180)) errs.push('Longitude is between −180 and 180.');
+    if (!(Math.abs(off) <= 14)) errs.push('The UTC offset is between −14 and +14 hours.');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) errs.push('Choose a date.');
+    if (!Number.isFinite(tH)) errs.push('Choose a clock time.');
+    if (!(model.ozone >= 100 && model.ozone <= 600)) errs.push('Ozone is between 100 and 600 DU.');
+    if (!(model.albedo >= 0 && model.albedo <= 1)) errs.push('Ground albedo is between 0 and 1.');
+    if (!(model.cmf >= 0 && model.cmf <= 1.5)) errs.push('The cloud factor is between 0 and 1.5.');
+    if (![model.a, model.b, model.c, model.perKm, model.skyRefl].every(Number.isFinite) || model.a <= 0 || model.b <= 0 || model.skyRefl < 0 || model.skyRefl > 0.6 || model.perKm < 0) errs.push('Check the formula settings: a and b above 0, sky reflectance 0 to 0.6, height rise 0 or more.');
+    const e = q('.uv-err'); e.textContent = errs.join(' '); e.hidden = !errs.length;
+    if (errs.length) { q('.uv-out').hidden = true; q('.uv-dcard').hidden = true; sections = []; return; }
+    q('.uv-out').hidden = false; q('.uv-dcard').hidden = false;
+
+    const [y, m, d] = date.split('-').map(Number);
+    const place = { lat, lon, utcOffset: off };
+    const sp = sunPosition(jdLocal(y, m, d, tH, off), lat, lon);
+    const u = uvIndex(sp.mu, sp.r, model), b = band(u.total);
+    const c = dayCurve(y, m, d, place, model), pb = band(c.peak.uvi);
+    const t = q<HTMLInputElement>('.uv-time').value;
+
+    q('.uv-big').textContent = sp.mu > 0 ? `UV index at ${t}: ${f1(u.total)} (${b.name})` : `UV index at ${t}: 0 (the Sun is below the horizon)`;
+    const bd = q('.uv-band'); bd.replaceChildren(pill(`At ${t}: ${b.name}`, CLS[b.level]), pill(`Peak ${f1(c.peak.uvi)} at ${clock(c.peak.t)}: ${pb.name}`, CLS[pb.level]));
+    const above = c.above.map((a) => [`UV index ${a.level} or more`, a.hours > 0 ? `${clock(a.from)} to ${clock(a.to)} (${hm(a.hours * 60)})` : 'not today'] as [string, string]);
+    const facts: [string, string][] = [
+      ['Solar zenith angle', `${f2(sp.zenith)}° (Sun ${f2(90 - sp.zenith)}° above the horizon)`],
+      ['Clear-sky formula alone', f1(u.clear)],
+      ['Factors', `height × ${u.alt.toFixed(3)}, ground × ${u.ground.toFixed(3)}, cloud × ${u.cloud.toFixed(2)}, distance × ${u.dist.toFixed(3)}`],
+      ['Solar noon and peak', `${clock(c.noon)}, UV index ${f1(c.peak.uvi)} at ${f2(c.peak.zenith)}° zenith`],
+      ...above,
+      ['Whole-day dose', `${f2(c.doseJ / 100)} SED (${Math.round(c.doseJ).toLocaleString('en')} J/m²) on a horizontal surface`],
+    ];
+    q('.uv-facts').replaceChildren(...facts.map(([k, v]) => fact(k, v)));
+
+    // Dose card.
+    const sed = val('.uv-sed'), sH = hhmm(q<HTMLInputElement>('.uv-start').value);
+    let doseTxt: string;
+    if (!(sed > 0 && sed <= 50) || !Number.isFinite(sH)) doseTxt = 'Type a dose between 0.1 and 50 SED and a start time.';
+    else {
+      const along = minutesToDoseFrom(c, sH, sed), us = uvIndex(sunPosition(jdLocal(y, m, d, sH, off), lat, lon).mu, sp.r, model).total;
+      doseTxt = `${f2(sed)} SED from ${q<HTMLInputElement>('.uv-start').value}: ${hm(along)} following the day's curve` + (us > 0 ? `; ${hm(minutesToDose(us, sed))} at a steady UV index ${f1(us)}; ${hm(minutesToDose(c.peak.uvi, sed))} at the peak.` : '; the Sun is down at that time.');
+    }
+    q('.uv-dose').textContent = doseTxt;
+
+    // Curve every 10 min for the chart and CSV.
+    const xs: number[] = [], ys: number[] = [];
+    curveRows = [];
+    for (let i = 0; i < c.t.length; i += 10) { xs.push(c.t[i]); ys.push(c.uvi[i]); curveRows.push([clock(c.t[i]).replace('00:00', i ? '24:00' : '00:00'), c.zen[i].toFixed(2), c.uvi[i].toFixed(2)]); }
+    const lit = ys.map((v, i) => (v > 0.005 ? xs[i] : NaN)).filter(Number.isFinite);
+    const x0 = lit.length ? Math.max(0, Math.floor(lit[0] - 1)) : 0, x1 = lit.length ? Math.min(24, Math.ceil(lit[lit.length - 1] + 1)) : 24;
+    const marks: NonNullable<Parameters<typeof chartFigure>[0]['marks']> = [3, 6, 8, 11].filter((l) => l <= Math.max(12, c.peak.uvi * 1.1)).map((l) => ({ kind: 'hline' as const, at: l, dash: [2, 3], label: String(l) }));
+    marks.push({ kind: 'vline', at: tH, dash: [6, 4], label: t });
+    fig = chartFigure({ w: 520, h: 340, xLabel: `Clock time (UTC${off >= 0 ? '+' : '−'}${Math.abs(off)})`, yLabel: 'UV index', xMin: x0, xMax: x1, yMin: 0, yMax: Math.max(12, Math.ceil(c.peak.uvi * 1.1)), legend: 'none', series: [{ name: 'UV index', x: xs, y: ys, mode: 'line', width: 2 }], marks },
+      `Estimated UV index through ${date}: peak ${f1(c.peak.uvi)} at ${clock(c.peak.t)}`);
+    paint(q<HTMLCanvasElement>('.uv-fig'), fig);
+
+    sections = [
+      { title: 'Estimate', text: [q('.uv-big').textContent ?? '', `${lat}°, ${lon}°, ${Number.isFinite(altM) ? altM : 0} m, ${date}, clock UTC${off >= 0 ? '+' : '−'}${Math.abs(off)}. Ozone ${model.ozone} DU, ground albedo ${model.albedo}, cloud factor ${model.cmf}.`], facts },
+      { title: 'UV index through the day', figure: fig },
+      { title: 'Time to an erythemal dose', text: [doseTxt] },
+      { title: 'Notes', text: ['An estimate: check your local UV forecast. Not medical advice.', `UVI = ${model.a} · μ^${model.b} · (Ω/300)^${model.c} (Madronich 2007) × height, ground, cloud and Earth–Sun distance factors. Sun position from the NOAA solar equations.`] },
+    ];
+  }
+
+  q('.uv-gsel').addEventListener('change', () => { const v = q<HTMLSelectElement>('.uv-gsel').value; if (v !== 'custom') q<HTMLInputElement>('.uv-alb').value = v; else q<HTMLInputElement>('.uv-alb').focus(); run(); });
+  q('.uv-alb').addEventListener('input', () => { const v = q<HTMLInputElement>('.uv-alb').value, s = q<HTMLSelectElement>('.uv-gsel'); s.value = [...s.options].some((o) => o.value === v) ? v : 'custom'; });
+  q('.uv-time').addEventListener('change', () => { q<HTMLInputElement>('.uv-start').value = q<HTMLInputElement>('.uv-time').value; });
+  for (const el of root.querySelectorAll('input')) el.addEventListener('input', run);
+  q('.uv-dist').addEventListener('change', run);
+  q('.uv-now').addEventListener('click', () => {
+    const n = new Date(), p = (x: number) => String(x).padStart(2, '0');
+    q<HTMLInputElement>('.uv-date').value = `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())}`;
+    q<HTMLInputElement>('.uv-time').value = q<HTMLInputElement>('.uv-start').value = `${p(n.getHours())}:${p(n.getMinutes())}`;
+    q<HTMLInputElement>('.uv-off').value = String(-n.getTimezoneOffset() / 60);
+    run();
+  });
+  q('.uv-csv').addEventListener('click', () => { if (curveRows.length) save(new Blob([csv([['clock_time', 'solar_zenith_deg', 'uv_index'], ...curveRows])], { type: 'text/csv' }), `uv-index-${q<HTMLInputElement>('.uv-date').value}.csv`, 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.uv-fig'), fig); });
+  wireDownloads(q('.uv-out .dl'), () => ({ title: 'UV index estimate', subtitle: 'An estimate: check your local UV forecast.', file: 'uv-index-estimate', sections }));
+  run();
+</script>

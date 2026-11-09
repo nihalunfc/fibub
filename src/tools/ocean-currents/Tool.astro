@@ -1,0 +1,236 @@
+---
+// Ocean currents: Ekman transport, depth, surface current and spiral from the wind; coastal upwelling and Ekman
+// pumping; geostrophic current from a sea-surface slope; thermal wind across a two-station section; Coriolis
+// parameter and Rossby radii. Nothing is stored or sent.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax ocx">
+  <div class="ax-card">
+    <h2>Place and sea water</h2>
+    <div class="ax-grid">
+      <label>Latitude (°, north +) <input class="oc-lat" type="number" min="-90" max="90" step="any" value="40" inputmode="decimal" /></label>
+      <label>Sea water density ρ₀ (kg/m³) <input class="oc-rw" type="number" min="990" max="1060" step="any" value="1025" inputmode="decimal" /></label>
+    </div>
+    <p class="oc-f"></p>
+    <p class="ax-err oc-err" hidden></p>
+    <p class="ax-help">The Coriolis parameter f = 2Ω sin(latitude) sets how strongly the Earth's spin turns moving water: to the right in the northern hemisphere, to the left in the southern. These formulas need f, so they do not work within about 2° of the equator.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Wind and the Ekman layer</h2>
+    <div class="ax-grid">
+      <label>Wind speed at 10 m (m/s) <input class="oc-u" type="number" min="0" max="80" step="any" value="10" inputmode="decimal" /></label>
+      <label>Wind from (°, compass) <input class="oc-from" type="number" min="0" max="360" step="any" value="0" inputmode="decimal" /></label>
+      <label>Air density (kg/m³) <input class="oc-ra" type="number" min="0.9" max="1.5" step="any" value="1.22" inputmode="decimal" /></label>
+      <label><span>Drag coefficient C<sub>d</sub></span> <input class="oc-cd" type="number" min="0.0001" max="0.01" step="any" value="0.0013" inputmode="decimal" /></label>
+      <label><span>Eddy viscosity A<sub>z</sub> (m²/s)</span> <input class="oc-az" type="number" min="0.0001" max="1" step="any" value="0.01" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">Wind direction is where it blows from, as in weather reports (0 = a north wind blowing south). Stress τ = ρ<sub>air</sub> C<sub>d</sub> U²; C<sub>d</sub> is often between 0.001 and 0.0025 and grows with wind speed, so 0.0013 is only an example. A<sub>z</sub> is the vertical eddy viscosity, which is not well known and varies a lot; 0.01 m²/s is an example.</p>
+    <dl class="ax-facts oc-ek"></dl>
+    <canvas class="ax-fig oc-sfig" style="margin-top:12px"></canvas>
+    <p class="ax-help">The Ekman spiral seen from above: the arrow tips of the current at depth, with east to the right and north up. Each step down turns the current further and makes it weaker; at the Ekman depth it is 4 % of the surface speed and runs the opposite way.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Coastal upwelling</h2>
+    <div class="ax-grid">
+      <label>Sea is on this side of the coast (°) <input class="oc-off" type="number" min="0" max="360" step="any" value="270" inputmode="decimal" /></label>
+      <label>Width of the upwelling zone (km) <input class="oc-w" type="number" min="0.1" step="any" value="20" inputmode="decimal" /></label>
+      <label>Wind speed offshore (m/s) <input class="oc-uo" type="number" min="0" max="80" step="any" value="12" inputmode="decimal" /></label>
+      <label>That far offshore (km) <input class="oc-d" type="number" min="0.1" step="any" value="50" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">The bearing points from the coast out to sea (270 for a coast facing west, like California or Portugal). Coastal upwelling speed = Ekman transport away from the coast ÷ the width of the zone it comes up in, often taken as about one baroclinic Rossby radius. The offshore wind gives the wind stress curl (same direction, different speed), and Ekman pumping w = curl τ ÷ (ρ₀ f); the change of f with latitude (β) is left out.</p>
+    <dl class="ax-facts oc-coast"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Geostrophic current from sea level</h2>
+    <div class="ax-grid">
+      <label>Sea level rises eastward by (cm) <input class="oc-de" type="number" step="any" value="50" inputmode="decimal" /></label>
+      <label>over (km) <input class="oc-dx" type="number" min="0.1" step="any" value="100" inputmode="decimal" /></label>
+      <label>Sea level rises northward by (cm) <input class="oc-dn" type="number" step="any" value="0" inputmode="decimal" /></label>
+      <label>over (km) <input class="oc-dy" type="number" min="0.1" step="any" value="100" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">Use negative numbers for a fall. In geostrophic balance the pressure gradient is balanced by the Coriolis force: u = −(g/f) ∂η/∂y, v = (g/f) ∂η/∂x. The flow runs along the slope with high sea level on its right in the north (left in the south). Satellite altimetry maps η this way.</p>
+    <dl class="ax-facts oc-geo"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Section between two stations (thermal wind)</h2>
+    <textarea class="oc-sec" rows="8" aria-label="Section: depth, station A, station B"></textarea>
+    <DataFile target=".oc-sec" maxMB={1} maxCols={3} maxRows={2000} />
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small oc-sex">Use the example</button></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Columns hold <select class="oc-mode"><option value="density" selected>Density (kg/m³)</option><option value="dynamic">Dynamic height (dyn m)</option></select></label>
+      <label>Distance A to B (km) <input class="oc-L" type="number" min="0.1" step="any" value="50" inputmode="decimal" /></label>
+      <label>Bearing from A to B (°) <input class="oc-ab" type="number" min="0" max="360" step="any" value="90" inputmode="decimal" /></label>
+      <label>Level of no motion (m) <input class="oc-ref" type="number" min="0" step="any" inputmode="decimal" placeholder="deepest" /></label>
+      <label>Current at that level (m/s) <input class="oc-vref" type="number" step="any" value="0" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">Rows of depth (m, positive down), station A, station B. Thermal wind: f ∂v/∂z = −(g/ρ₀) ∂ρ/∂x, so v(z) = v<sub>ref</sub> − g/(ρ₀ f L) ∫ (ρ<sub>B</sub> − ρ<sub>A</sub>) dz from z down to the reference level (trapezoid rule). With dynamic heights (relative to one deep level), v = 10 (D<sub>B</sub> − D<sub>A</sub>)/(f L). The current is across the section; positive means to the left of the direction A → B. Only the shear is known: the level of no motion is an assumption. The example numbers are made up.</p>
+    <p class="ax-err oc-serr" hidden></p>
+    <div class="oc-sout" hidden>
+      <p class="oc-sbig"></p>
+      <canvas class="ax-fig oc-vfig"></canvas>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small oc-csv">Profile (.csv)</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Rossby radius</h2>
+    <div class="ax-grid">
+      <label>Water depth H (m) <input class="oc-H" type="number" min="1" step="any" value="4000" inputmode="decimal" /></label>
+      <label>Upper layer h₁ (m) <input class="oc-h1" type="number" min="1" step="any" value="500" inputmode="decimal" /></label>
+      <label>Density step Δρ (kg/m³) <input class="oc-dr" type="number" min="0" step="any" value="2" inputmode="decimal" /></label>
+      <label>Buoyancy frequency N (1/s, optional) <input class="oc-N" type="number" min="0" step="any" value="0.005" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">The Rossby radius is the distance over which rotation starts to matter as much as gravity waves: the size of eddies, fronts and coastal upwelling zones. Barotropic: √(gH)/|f|. Two-layer baroclinic: √(g′ h₁h₂/H)/|f| with reduced gravity g′ = gΔρ/ρ₀. From the stratification: NH/(π|f|) for the first mode.</p>
+    <dl class="ax-facts oc-ros"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Report</h2>
+    <p class="ax-help" style="margin-top:0">All the results above in one file.</p>
+    <Downloads label="Report" />
+  </div>
+</div>
+
+<style is:global>
+  .ocx .oc-f { font-weight: 600; margin: 10px 0 0; }
+  .ocx .oc-sbig { font-weight: 600; margin: 12px 0; }
+  .ocx .ax-facts { margin-top: 12px; }
+</style>
+
+<script>
+  import { coriolis, ekman, spiralAt, coastal, ekmanPumping, geostrophicSSH, thermalWind, rossby, readSection, vecTo, windStress, SECTION_EXAMPLE } from '../../lib/sci/oceancurrents';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ocx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => { const s = q<HTMLInputElement>(c).value.trim(); return s === '' ? NaN : Number(s); };
+  const s3 = (x: number) => (!Number.isFinite(x) ? '–' : x === 0 ? '0' : Math.abs(x) >= 1e5 || Math.abs(x) < 1e-3 ? x.toExponential(2).replace('e', ' × 10^').replace(/\^\+?(-?\d+)/, (_, p) => '^' + p) : String(Number(x.toPrecision(3))));
+  const sup = (s: string) => s.replace(/\^(-?\d+)/, (_, p: string) => p.split('').map((c) => '⁰¹²³⁴⁵⁶⁷⁸⁹'['0123456789'.indexOf(c)] ?? '⁻').join(''));
+  const fmt = (x: number) => sup(s3(x));
+  const POINTS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+  const brg = (b0: number) => { const b = ((Math.round(b0) % 360) + 360) % 360; return `${b}° (${POINTS[Math.round(b / 22.5) % 16]})`; };
+  const facts = (sel: string, list: [string, string][]) => q(sel).replaceChildren(...list.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+  let sfig: Figure | null = null, vfig: Figure | null = null, prof: { depth: number; v: number }[] = [];
+  const S: Record<string, [string, string][]> = {};
+
+  function run() {
+    const lat = val('.oc-lat'), rw = val('.oc-rw');
+    const err = q('.oc-err'), errs: string[] = [];
+    if (!(Math.abs(lat) <= 90)) errs.push('Latitude is between −90 and 90.');
+    else if (Math.abs(lat) < 2) errs.push('Within 2° of the equator f is close to zero and these formulas do not apply.');
+    if (!(rw >= 990 && rw <= 1060)) errs.push('Sea water density is between 990 and 1060 kg/m³.');
+    err.textContent = errs.join(' '); err.hidden = !errs.length;
+    if (errs.length) { for (const c of ['.oc-ek', '.oc-coast', '.oc-geo', '.oc-ros']) q(c).replaceChildren(); q('.oc-f').textContent = ''; q('.oc-sout').hidden = true; sfig = vfig = null; return; }
+    const f = coriolis(lat);
+    q('.oc-f').textContent = `f = ${fmt(f)} s⁻¹ (${lat >= 0 ? 'northern' : 'southern'} hemisphere: water is turned to the ${lat >= 0 ? 'right' : 'left'})`;
+
+    // Ekman
+    const U = val('.oc-u'), from = val('.oc-from'), ra = val('.oc-ra'), cd = val('.oc-cd'), Az = val('.oc-az');
+    if ([U, from, ra, cd, Az].every(Number.isFinite) && U >= 0 && ra > 0 && cd > 0 && Az > 0) {
+      const e = ekman(lat, U, from, ra, cd, rw, Az), to = (from + 180) % 360;
+      S.ek = [
+        ['Wind stress τ', `${fmt(e.tau)} N/m², towards ${brg(to)}`],
+        ['Ekman transport', `${fmt(e.M)} m²/s per metre of width, towards ${brg(e.Mbearing)} (90° ${e.side > 0 ? 'right' : 'left'} of the wind); ${fmt(e.M)} Sv per 1000 km`],
+        ['Ekman depth π√(2A_z/|f|)', `${fmt(e.depth)} m`],
+        ['Surface current', `${fmt(e.V0)} m/s towards ${brg(e.V0bearing)} (45° ${e.side > 0 ? 'right' : 'left'} of the wind)`],
+        ['Empirical (Ekman 1905)', `surface ${fmt(e.V0emp)} m/s, depth ${fmt(e.depthEmp)} m${Math.abs(lat) < 10 ? ' (meant for latitudes above 10°)' : ''}`],
+      ];
+      facts('.oc-ek', S.ek);
+      const zs = Array.from({ length: 21 }, (_, i) => (i * e.depth) / 10);
+      const pts = zs.map((z) => { const s = spiralAt(e, to, z); return vecTo(s.speed, s.bearing); });
+      const lim = e.V0 * 1.15 || 1;
+      const labels = zs.map((z, i) => (i === 0 || i === 5 ? `${Math.round(z)} m` : ''));
+      sfig = chartFigure({ w: 420, h: 420, xLabel: 'East (m/s)', yLabel: 'North (m/s)', xMin: -lim, xMax: lim, yMin: -lim, yMax: lim, legend: 'none',
+        series: [{ name: 'Current at depth', x: pts.map((p) => p.x), y: pts.map((p) => p.y), mode: 'both', marker: 'circle', size: 3, labels }],
+        marks: [{ kind: 'hline', at: 0, dash: [2, 3] }, { kind: 'vline', at: 0, dash: [2, 3] }] }, `Ekman spiral: surface current ${fmt(e.V0)} m/s towards ${Math.round(e.V0bearing)}°, turning ${e.side > 0 ? 'clockwise' : 'anticlockwise'} with depth to ${fmt(2 * e.depth)} m`);
+      paint(q<HTMLCanvasElement>('.oc-sfig'), sfig);
+
+      // Coast
+      const off = val('.oc-off'), W = val('.oc-w') * 1000, Uo = val('.oc-uo'), d = val('.oc-d') * 1000;
+      if ([off, W, Uo, d].every(Number.isFinite) && W > 0 && d > 0 && Uo >= 0) {
+        const c0 = coastal(e, off, W), tiny = (x: number) => (Math.abs(x) < 1e-9 * (e.M || 1) ? 0 : x);
+        const c = { ...c0, offshore: tiny(c0.offshore), w: tiny(c0.offshore) / W, alongshore: Math.abs(c0.alongshore) < 1e-9 * (e.tau || 1) ? 0 : c0.alongshore };
+        const p = ekmanPumping(lat, vecTo(windStress(U, ra, cd), to), vecTo(windStress(Uo, ra, cd), to), off, d, rw);
+        S.coast = [
+          ['Along-coast wind stress', `${fmt(Math.abs(c.alongshore))} N/m², towards ${brg(c.alongshore >= 0 ? off - 90 : off + 90)}`],
+          ['Ekman transport across the coast', c.offshore === 0 ? '0 m²/s (the transport runs along the coast)' : `${fmt(Math.abs(c.offshore))} m²/s ${c.offshore > 0 ? 'away from the coast' : 'towards the coast'}`],
+          [c.offshore > 0 ? 'Coastal upwelling' : c.offshore < 0 ? 'Coastal downwelling' : 'No coastal upwelling', `${fmt(Math.abs(c.w))} m/s = ${fmt(Math.abs(c.w) * 86400)} m/day over ${val('.oc-w')} km`],
+          ['Wind stress curl', `${fmt(p.curl)} N/m³`],
+          [p.w >= 0 ? 'Ekman pumping (upwelling)' : 'Ekman pumping (downwelling)', `${fmt(Math.abs(p.w))} m/s = ${fmt(Math.abs(p.w) * 86400)} m/day`],
+        ];
+        facts('.oc-coast', S.coast);
+      } else { q('.oc-coast').replaceChildren(); delete S.coast; }
+    } else { q('.oc-ek').replaceChildren(); q('.oc-coast').replaceChildren(); sfig = null; delete S.ek; delete S.coast; }
+
+    // Geostrophic from SSH
+    const de = val('.oc-de') / 100, dx = val('.oc-dx') * 1000, dn = val('.oc-dn') / 100, dy = val('.oc-dy') * 1000;
+    if ([de, dx, dn, dy].every(Number.isFinite) && dx > 0 && dy > 0) {
+      const g = geostrophicSSH(lat, de, dx, dn, dy);
+      S.geo = [['Eastward u', `${fmt(g.u)} m/s`], ['Northward v', `${fmt(g.v)} m/s`], ['Current', g.speed > 0 ? `${fmt(g.speed)} m/s towards ${brg(g.bearing)}` : 'none (flat sea surface)'], ['Slope', `${fmt(Math.hypot(de / dx, dn / dy))} (m per m)`]];
+      facts('.oc-geo', S.geo);
+    } else { q('.oc-geo').replaceChildren(); delete S.geo; }
+
+    // Rossby
+    const H = val('.oc-H'), h1 = val('.oc-h1'), dr = val('.oc-dr'), N = val('.oc-N');
+    if (H > 0) {
+      const r = rossby(lat, H, h1, dr, rw, Number.isFinite(N) ? N : 0);
+      S.ros = [['Barotropic √(gH)/|f|', `${fmt(r.barotropic / 1000)} km (wave speed ${fmt(Math.sqrt(9.81 * H))} m/s)`],
+        ['Two-layer baroclinic', Number.isFinite(r.twoLayer) ? `${fmt(r.twoLayer / 1000)} km (g′ = ${fmt(r.gPrime)} m/s², wave speed ${fmt(r.cBaroclinic)} m/s)` : 'needs an upper layer thinner than the depth and a density step'],
+        ['First mode NH/(π|f|)', Number.isFinite(r.fromN) ? `${fmt(r.fromN / 1000)} km` : 'type N to see it']];
+      facts('.oc-ros', S.ros);
+    } else { q('.oc-ros').replaceChildren(); delete S.ros; }
+
+    section(lat, rw);
+  }
+
+  function section(lat: number, rw: number) {
+    const { rows, errors } = readSection(q<HTMLTextAreaElement>('.oc-sec').value);
+    const mode = q<HTMLSelectElement>('.oc-mode').value as 'density' | 'dynamic';
+    const L = val('.oc-L') * 1000, ab = val('.oc-ab'), vr = Number.isFinite(val('.oc-vref')) ? val('.oc-vref') : 0;
+    const errs = [...errors];
+    if (rows.length && rows.length < 2) errs.push('Type at least two depths.');
+    if (!(L > 0)) errs.push('Type the distance between the stations.');
+    if (!Number.isFinite(ab)) errs.push('Type the bearing from A to B.');
+    const deepest = rows.length ? Math.max(...rows.map((r) => r.depth)) : NaN, shallowest = rows.length ? Math.min(...rows.map((r) => r.depth)) : NaN;
+    const refIn = val('.oc-ref'), ref = Number.isFinite(refIn) ? refIn : deepest;
+    if (rows.length && !(ref >= shallowest && ref <= deepest)) errs.push(`The level of no motion must be between ${shallowest} and ${deepest} m.`);
+    const e = q('.oc-serr'); e.textContent = errs.join(' '); e.hidden = !errs.length;
+    if (errs.length || rows.length < 2) { q('.oc-sout').hidden = true; vfig = null; prof = []; delete S.sec; return; }
+    q('.oc-sout').hidden = false;
+    prof = thermalWind(rows, lat, L, mode, ref, vr, rw);
+    const top = prof[0], left = (ab - 90 + 360) % 360;
+    const dir = (v: number) => (v === 0 ? '' : ` towards ${brg(v > 0 ? left : (ab + 90) % 360)}`);
+    q('.oc-sbig').textContent = `Current at ${top.depth} m: ${fmt(Math.abs(top.v))} m/s${dir(top.v)}, relative to ${fmt(vr)} m/s at ${ref} m.`;
+    const vs = prof.map((p) => p.v), lo = Math.min(0, ...vs), hi = Math.max(0, ...vs), pad = (hi - lo) * 0.1 || 0.1;
+    vfig = chartFigure({ w: 420, h: 380, xLabel: `Current across the section (m/s, + towards ${Math.round(left)}°)`, yLabel: 'Depth (m)', yReverse: true, xMin: lo - pad, xMax: hi + pad, yMin: 0, legend: 'none',
+      series: [{ name: 'Current', x: vs, y: prof.map((p) => p.depth), mode: 'both', marker: 'circle', size: 3 }], marks: [{ kind: 'vline', at: 0, dash: [2, 3] }, { kind: 'hline', at: ref, dash: [6, 4], label: 'no motion' }] },
+      `Current across the section against depth: ${fmt(top.v)} m/s at ${top.depth} m`);
+    paint(q<HTMLCanvasElement>('.oc-vfig'), vfig);
+    S.sec = prof.map((p) => [`${p.depth} m`, `${fmt(p.v)} m/s`]);
+  }
+
+  for (const el of root.querySelectorAll('input:not(.dfb-in), textarea')) el.addEventListener('input', run);
+  q('.oc-mode').addEventListener('change', run);
+  q('.oc-sex').addEventListener('click', () => { q<HTMLTextAreaElement>('.oc-sec').value = SECTION_EXAMPLE; q<HTMLSelectElement>('.oc-mode').value = 'density'; run(); });
+  q('.oc-csv').addEventListener('click', () => { if (prof.length) save(new Blob([csv([['depth_m', 'current_m_s'], ...prof.map((p) => [p.depth, Number(p.v.toPrecision(6))])])], { type: 'text/csv' }), 'thermal-wind-profile.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (sfig) paint(q<HTMLCanvasElement>('.oc-sfig'), sfig); if (vfig) paint(q<HTMLCanvasElement>('.oc-vfig'), vfig); });
+  wireDownloads(q('.ocx .dl'), () => {
+    const sec: Section[] = [{ title: 'Place', text: [q('.oc-f').textContent ?? '', `Latitude ${val('.oc-lat')}°, ρ₀ = ${val('.oc-rw')} kg/m³.`] }];
+    if (S.ek) sec.push({ title: 'Ekman layer', text: [`Wind ${val('.oc-u')} m/s from ${val('.oc-from')}°, ρ_air ${val('.oc-ra')}, C_d ${val('.oc-cd')}, A_z ${val('.oc-az')} m²/s.`], facts: S.ek, figure: sfig ?? undefined });
+    if (S.coast) sec.push({ title: 'Coastal upwelling', facts: S.coast });
+    if (S.geo) sec.push({ title: 'Geostrophic current from sea level', facts: S.geo });
+    if (S.sec) sec.push({ title: 'Thermal wind across the section', text: [q('.oc-sbig').textContent ?? ''], facts: S.sec, figure: vfig ?? undefined });
+    if (S.ros) sec.push({ title: 'Rossby radius', facts: S.ros });
+    return { title: 'Ocean currents', subtitle: 'Textbook estimates from the inputs shown.', file: 'ocean-currents', sections: sec };
+  });
+  q<HTMLTextAreaElement>('.oc-sec').value = SECTION_EXAMPLE;
+  run();
+</script>

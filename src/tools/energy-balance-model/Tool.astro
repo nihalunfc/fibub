@@ -1,0 +1,235 @@
+---
+// Energy balance climate model: zero-dimensional radiative balance with CO₂ forcing, a linear-feedback model,
+// time evolution with an ocean mixed layer, ice-albedo feedback with multiple equilibria and hysteresis, and the
+// one-layer greenhouse model. Everything is worked out in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+type C = { k: string; label: string; min: number; max: number; step: number; value: number; help?: string };
+const planet: C[] = [
+  { k: 'S', label: 'Solar constant S (W/m²)', min: 900, max: 1800, step: 1, value: 1361 },
+  { k: 'alpha', label: 'Albedo α (ice-free)', min: 0, max: 0.9, step: 0.01, value: 0.3 },
+  { k: 'eps', label: 'Effective emissivity ε', min: 0.3, max: 1, step: 0.001, value: 0.612 },
+];
+const co2: C[] = [
+  { k: 'c0', label: 'Starting CO₂ C₀ (ppm)', min: 100, max: 1000, step: 1, value: 280 },
+  { k: 'c', label: 'New CO₂ C (ppm)', min: 100, max: 2000, step: 1, value: 560 },
+  { k: 'lam', label: 'Feedback parameter λ (W/m²/K)', min: 0.3, max: 4, step: 0.05, value: 1.2 },
+  { k: 'h', label: 'Ocean mixed layer (m of water)', min: 1, max: 1000, step: 1, value: 100 },
+  { k: 'years', label: 'Years to run', min: 10, max: 1000, step: 1, value: 200 },
+];
+const ice: C[] = [
+  { k: 'ai', label: 'Albedo when ice-covered', min: 0, max: 0.9, step: 0.01, value: 0.6 },
+  { k: 'Tm', label: 'Middle of the ice change (K)', min: 220, max: 300, step: 0.5, value: 265 },
+  { k: 'w', label: 'Width of the change (K)', min: 1, max: 40, step: 0.5, value: 10 },
+];
+---
+<div class="ax ebm">
+  <div class="ax-card">
+    <h2>Planet</h2>
+    <div class="ax-grid eb-ctrls">
+      {planet.map((c) => <label class="eb-ctl">{c.label}<span class="eb-pair"><input type="range" class={`eb-r-${c.k}`} min={c.min} max={c.max} step={c.step} value={c.value} aria-label={c.label} /><input class={`eb-${c.k}`} inputmode="decimal" value={c.value} /></span></label>)}
+    </div>
+    <p class="ax-help">Sunlight absorbed per square metre is S(1 − α)/4 (the 4 spreads it over the whole sphere). The planet loses ε σ T⁴. An effective emissivity below 1 stands in for the greenhouse effect: about 0.61 gives today's average surface temperature near 15 °C.</p>
+    <h2 style="margin-top:16px">CO₂ change and the ocean</h2>
+    <div class="ax-grid eb-ctrls">
+      {co2.map((c) => <label class="eb-ctl">{c.label}<span class="eb-pair"><input type="range" class={`eb-r-${c.k}`} min={c.min} max={c.max} step={c.step} value={c.value} aria-label={c.label} /><input class={`eb-${c.k}`} inputmode="decimal" value={c.value} /></span></label>)}
+      <label>CO₂ changes <select class="eb-kind"><option value="step">All at once (year 0)</option><option value="ramp">Up 1 % a year, then held</option></select></label>
+      <label>Start temperature (K) <input class="eb-T0" inputmode="decimal" placeholder="warm equilibrium" /></label>
+    </div>
+    <p class="ax-help">Forcing F = 5.35 ln(C/C₀) W/m², the standard simplified formula (Myhre and others, 1998). λ is how many W/m² more the planet loses for each kelvin it warms, with all feedbacks: smaller λ, more warming. It drives the second (linear) model only; the first works its own λ out from σT⁴ and the ice. The mixed layer sets how slowly the planet warms (heat capacity = 4.18 MJ/m³/K × depth). Leave the start temperature blank to start from the warm equilibrium before the change; type a low one (such as 230) to start from a frozen planet.</p>
+    <h2 style="margin-top:16px">Ice-albedo feedback</h2>
+    <label class="ax-check"><input type="checkbox" class="eb-ice" checked /> Ice makes the planet whiter as it cools</label>
+    <div class="ax-grid eb-ctrls eb-icew" style="margin-top:8px">
+      {ice.map((c) => <label class="eb-ctl">{c.label}<span class="eb-pair"><input type="range" class={`eb-r-${c.k}`} min={c.min} max={c.max} step={c.step} value={c.value} aria-label={c.label} /><input class={`eb-${c.k}`} inputmode="decimal" value={c.value} /></span></label>)}
+    </div>
+    <p class="ax-help">The albedo slides smoothly from the ice-covered value (cold) to the ice-free one (warm), centred on the middle temperature. This can give two stable climates, warm and frozen, for the same sunshine. The starting values are rounded, illustrative choices, not measurements.</p>
+    <p class="ax-err eb-err" hidden></p>
+  </div>
+
+  <div class="eb-out">
+    <div class="ax-card" style="margin-top:14px">
+      <h2>Equilibrium</h2>
+      <dl class="ax-facts eb-facts"></dl>
+      <p class="ax-help eb-eqs"></p>
+    </div>
+    <div class="ax-card" style="margin-top:14px">
+      <h2>Warming over time</h2>
+      <canvas class="ax-fig eb-tfig"></canvas>
+      <p class="ax-help">Both models start in balance and then get the CO₂ forcing. Radiative: the σT⁴ model above (with ice if ticked), whose only feedbacks are the Planck response and the ice. Linear: C dΔT/dt = F − λΔT with your λ. Dashed: the linear model's equilibrium warming F/λ.</p>
+      <dl class="ax-facts eb-tfacts" style="margin-top:10px"></dl>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small eb-tcsv">Download time series CSV</button></div>
+    </div>
+    <div class="ax-card" style="margin-top:14px">
+      <h2>Energy in and out</h2>
+      <canvas class="ax-fig eb-efig"></canvas>
+      <p class="ax-help">Where the absorbed sunlight plus forcing meets the outgoing heat, the planet is in balance. A crossing where outgoing rises faster than incoming is stable; the other kind is a tipping point.</p>
+    </div>
+    <div class="ax-card eb-hyw" style="margin-top:14px">
+      <h2>Multiple equilibria and hysteresis</h2>
+      <canvas class="ax-fig eb-hfig"></canvas>
+      <p class="ax-help eb-hnote"></p>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small eb-hcsv">Download equilibrium curve CSV</button></div>
+    </div>
+    <div class="ax-card" style="margin-top:14px">
+      <h2>One-layer greenhouse model</h2>
+      <label class="eb-ctl">Atmosphere long-wave emissivity εₐ<span class="eb-pair"><input type="range" class="eb-r-ea" min="0" max="1" step="0.01" value="0.78" aria-label="Atmosphere emissivity" /><input class="eb-ea" inputmode="decimal" value="0.78" /></span></label>
+      <p class="ax-help">One atmospheric layer lets sunlight through but absorbs a share εₐ of the surface's infrared and radiates half of what it emits back down. Uses S and the ice-free albedo above.</p>
+      <p class="ax-err eb-lerr" hidden></p>
+      <dl class="ax-facts eb-lfacts" style="margin-top:10px"></dl>
+      <div class="ax-scroll" style="margin-top:10px"><table class="eb-ltab"></table></div>
+    </div>
+    <div class="ax-card" style="margin-top:14px"><h2>Report</h2><Downloads /></div>
+  </div>
+</div>
+
+<style is:global>
+  .ebm .eb-ctl { min-width: 0; }
+  .ebm .eb-pair { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+  .ebm .eb-pair input[type=range] { flex: 1 1 auto; min-width: 0; accent-color: var(--accent); }
+  .ebm .eb-pair input:not([type=range]) { flex: 0 0 5.5em; width: 5.5em; }
+  .ebm .eb-ctrls { grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); }
+  .ebm table td, .ebm table th { white-space: nowrap; padding: 6px 7px; }
+  .ebm table td:not(:first-child), .ebm table th:not(:first-child) { text-align: right; }
+</style>
+
+<script>
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { co2Forcing, heatCap, equilibria, eqTemp, feedbackAt, runRadiative, runLinear, efold, hysteresis, oneLayer, absorbed, olr, albedo, K0, type Params, type Scenario, type Run, type Eq } from '../../lib/sci/ebm';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ebm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (k: string) => num(q<HTMLInputElement>(`.eb-${k}`).value);
+  const mm = (s: string) => s.replace(/-/g, '−');
+  const fK = (T: number) => `${T.toFixed(2)} K`, fC = (T: number) => `${mm((T - K0).toFixed(2))} °C`;
+  const fact = (k: string, val: string, s?: string) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; };
+  const factsOf = (sel: string) => [...q(sel).children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent! + (d.querySelector('small') ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string]);
+
+  // Sliders and boxes move together.
+  for (const r of root.querySelectorAll<HTMLInputElement>('input[type=range]')) {
+    const k = [...r.classList].find((c) => c.startsWith('eb-r-'))!.slice(5), box = q<HTMLInputElement>(`.eb-${k}`);
+    r.addEventListener('input', () => { box.value = r.value; later(); });
+    box.addEventListener('input', () => { const x = num(box.value); if (Number.isFinite(x)) r.value = String(x); later(); });
+  }
+
+  let figs: Record<string, Figure> = {}, sections: Section[] = [], run: Run | null = null, lin: Run | null = null, curve: ReturnType<typeof hysteresis> | null = null;
+
+  function fail(msg: string) { const e = q('.eb-err'); e.textContent = msg; e.hidden = false; q('.eb-out').hidden = true; sections = []; }
+  function calc() {
+    q<HTMLElement>('.eb-icew').hidden = !q<HTMLInputElement>('.eb-ice').checked;
+    const S = v('S'), alpha = v('alpha'), eps = v('eps'), c0 = v('c0'), c = v('c'), lam = v('lam'), h = v('h'), years = v('years');
+    const iceOn = q<HTMLInputElement>('.eb-ice').checked, ai = v('ai'), Tm = v('Tm'), w = v('w');
+    if (!(S > 0)) return fail('The solar constant must be more than 0.');
+    if (!(alpha >= 0 && alpha < 1)) return fail('Albedo must be from 0 to just under 1.');
+    if (!(eps > 0 && eps <= 1)) return fail('Emissivity must be more than 0 and at most 1.');
+    if (!(c0 > 0 && c > 0)) return fail('CO₂ amounts must be more than 0.');
+    if (!(lam > 0)) return fail('The feedback parameter λ must be more than 0.');
+    if (!(h > 0)) return fail('The mixed layer depth must be more than 0.');
+    if (!(years > 0 && years <= 5000)) return fail('Run for more than 0 and at most 5,000 years.');
+    if (iceOn && !(ai >= 0 && ai < 1 && Tm > 0 && w > 0)) return fail('Check the ice values: albedo 0 to under 1, temperatures above 0.');
+    q('.eb-err').hidden = true; q('.eb-out').hidden = false;
+    const F = co2Forcing(c, c0), C = heatCap(h);
+    const base: Params = { S, alpha, eps, F: 0, ice: { on: iceOn, ai, Tm, w } }, now: Params = { ...base, F };
+    const eq0 = equilibria(base), eq1 = equilibria(now);
+    const warm = (e: Eq[]) => e.filter((x) => x.stable).pop();
+    const t0In = q<HTMLInputElement>('.eb-T0').value.trim(), t0Typed = num(t0In);
+    if (t0In && !(t0Typed > 50 && t0Typed < 600)) return fail('Type a start temperature between 50 and 600 K, or leave it blank.');
+    const T0 = t0In ? t0Typed : warm(eq0)?.T;
+    if (T0 == null) return fail('This planet has no stable equilibrium between 100 and 450 K; change the values.');
+    // Where the radiative run ends up: the stable equilibrium it settles towards.
+    const kind = q<HTMLSelectElement>('.eb-kind').value as 'step' | 'ramp';
+    const sc: Scenario = { years, kind, Ffinal: F, rampYears: kind === 'ramp' ? Math.abs(Math.log(c / c0)) / Math.log(1.01) : 0 };
+    run = runRadiative(base, C, T0, sc, 400); lin = runLinear(lam, C, sc, 400);
+    const Tend = run.T[run.T.length - 1], eqEnd = eq1.filter((e) => e.stable).sort((a, b) => Math.abs(a.T - Tend) - Math.abs(b.T - Tend))[0];
+    const T1 = eqEnd?.T ?? eqTemp(now);
+    const lamR = feedbackAt(now, T1);
+    const f: [string, string, string?][] = [
+      ['CO₂ forcing F', `${mm(F.toFixed(2))} W/m²`, `5.35 ln(${sig(c, 4)}/${sig(c0, 4)})`],
+      ['Equilibrium after the change', fC(T1), `${fK(T1)}; radiative model`],
+      ['Equilibrium before', fC(T0), t0In ? 'start temperature as typed' : fK(T0)],
+      ['Warming (radiative)', `${mm((T1 - T0).toFixed(2))} K`, `its own feedback λ = ${lamR.toFixed(2)} W/m²/K at the new equilibrium`],
+      ['Warming (linear, F/λ)', `${mm((F / lam).toFixed(2))} K`, `with your λ = ${lam}`],
+      ['Climate sensitivity (2 × CO₂)', `${(co2Forcing(2, 1) / lam).toFixed(2)} K`, `5.35 ln 2 / λ = ${co2Forcing(2, 1).toFixed(2)} / ${lam}`],
+      ['Albedo at equilibrium', albedo(now, T1).toFixed(3), iceOn ? 'with ice-albedo feedback' : 'fixed'],
+      ['Absorbed sunlight', `${absorbed(now, T1).toFixed(1)} W/m²`, `outgoing ${olr(now, T1).toFixed(1)} W/m², which is absorbed + F`],
+    ];
+    q('.eb-facts').replaceChildren(...f.map(([k, x, s]) => fact(k, x, s)));
+    const list = (e: Eq[]) => e.map((x) => `${fC(x.T)} (${x.stable ? 'stable' : 'unstable'})`).join(', ');
+    q('.eb-eqs').textContent = `Equilibria with the new CO₂: ${list(eq1) || 'none'}. Before: ${list(eq0) || 'none'}.${eq1.filter((e) => e.stable).length > 1 ? ' Which one the planet takes depends on where it starts.' : ''}`;
+    // Time chart: change from the start.
+    const dR = run.T.map((T) => T - T0), dL = lin.T;
+    const tau = efold(lam, C);
+    q('.eb-tfacts').replaceChildren(
+      fact(`Radiative after ${sig(years, 4)} years`, `${mm((Tend - T0).toFixed(2))} K`, fC(Tend)),
+      fact(`Linear after ${sig(years, 4)} years`, `${mm(dL[dL.length - 1].toFixed(2))} K`, `of ${mm((F / lam).toFixed(2))} K at equilibrium`),
+      fact('Response time (linear)', `${sig(tau, 3)} years`, 'C/λ, time to reach 63 % after a step'),
+      fact('Heat capacity', `${sig(C / 1e6, 4)} MJ/m²/K`, `${sig(h, 4)} m of water`),
+    );
+    figs.t = chartFigure({ w: 640, h: 360, xLabel: 'Years', yLabel: 'Warming since year 0 (K)', legend: 'inside', xMin: 0, xMax: years, series: [{ name: 'Radiative (σT⁴)', x: run.t, y: dR, mode: 'line', width: 2 }, { name: `Linear (λ = ${lam})`, x: lin.t, y: dL, mode: 'line', width: 2 }], marks: [{ kind: 'hline', at: F / lam, dash: [6, 4], label: `F/λ ${(F / lam).toFixed(2)} K` }] }, `Warming over ${years} years: radiative ${(Tend - T0).toFixed(2)} K, linear ${dL[dL.length - 1].toFixed(2)} K`);
+    // Energy chart.
+    const Ts = Array.from({ length: 141 }, (_, i) => 200 + i);
+    figs.e = chartFigure({ w: 640, h: 360, xLabel: 'Temperature (K)', yLabel: 'W/m²', legend: 'inside', series: [{ name: 'Absorbed sunlight + F', x: Ts, y: Ts.map((T) => absorbed(now, T) + F), mode: 'line', width: 2 }, { name: 'Outgoing ε σ T⁴', x: Ts, y: Ts.map((T) => olr(now, T)), mode: 'line', width: 2 }, { name: 'Equilibria', x: eq1.map((e) => e.T), y: eq1.map((e) => olr(now, e.T)), mode: 'points', marker: 'circle', size: 5, color: undefined }] }, `Energy in and out against temperature; ${eq1.length} equilibri${eq1.length === 1 ? 'um' : 'a'}`);
+    // Hysteresis.
+    q('.eb-hyw').hidden = !iceOn;
+    curve = null;
+    if (iceOn) {
+      curve = hysteresis(now, 200, 340, 1400);
+      const segs: { name: string; x: number[]; y: number[]; mode: 'line'; width: number; dash?: number[]; color?: string }[] = [];
+      let cur: (typeof segs)[number] | null = null, firstS = true, firstU = true;
+      for (const p of curve.pts) {
+        if (!cur || (cur.dash == null) !== p.stable) {
+          const name = p.stable ? (firstS ? 'Stable' : '') : (firstU ? 'Unstable' : '');
+          if (p.stable) firstS = false; else firstU = false;
+          const prev = cur; cur = { name, x: prev ? [prev.x[prev.x.length - 1]] : [], y: prev ? [prev.y[prev.y.length - 1]] : [], mode: 'line', width: p.stable ? 2.2 : 1.4, dash: p.stable ? undefined : [5, 4] };
+          segs.push(cur);
+        }
+        cur.x.push(p.S); cur.y.push(p.T);
+      }
+      const melt = curve.tips.find((t) => t.kind === 'melt'), freeze = curve.tips.find((t) => t.kind === 'freeze');
+      const lo = Math.min(S, freeze?.S ?? S) * 0.85, hi = Math.max(S, melt?.S ?? S) * 1.12;
+      figs.h = { w: 640, h: 380, alt: `Equilibrium temperature against solar constant${melt && freeze ? `; two stable climates from ${Math.round(freeze.S)} to ${Math.round(melt.S)} W/m²` : ''}`, draw: (ctx, W, H, pal) => {
+        const col = pal.red ? '#a30000' : pal.bg === '#ffffff' ? '#0072B2' : '#56B4E9';
+        chartFigure({ w: W, h: H, xLabel: 'Solar constant S (W/m²)', yLabel: 'Equilibrium temperature (K)', legend: 'inside', xMin: lo, xMax: hi, yMin: 200, yMax: 340, series: [...segs.map((s) => ({ ...s, color: col })), { name: 'Now', x: eq1.map(() => S), y: eq1.map((e) => e.T), mode: 'points' as const, marker: 'circle' as const, size: 5, color: pal.red ? '#c00000' : '#D55E00' }], marks: [{ kind: 'vline', at: S, dash: [2, 3] }] }, '').draw(ctx, W, H, pal);
+      } };
+      q('.eb-hnote').textContent = melt && freeze
+        ? `Two stable climates exist for a solar constant from ${sig(freeze.S, 4)} to ${sig(melt.S, 4)} W/m². Turn the sun down below ${sig(freeze.S, 4)} and the warm planet freezes over (its branch ends at ${fC(freeze.T)}); a frozen planet only thaws once the sun passes ${sig(melt.S, 4)} W/m² (at ${fC(melt.T)}). Going down and coming back up follow different paths: hysteresis.`
+        : 'With these values the curve has no turning points: one equilibrium for each solar constant, so no hysteresis.';
+    }
+    // One-layer greenhouse.
+    const ea = v('ea'), le = q('.eb-lerr');
+    let one: ReturnType<typeof oneLayer> | null = null;
+    try { one = oneLayer(S, alpha, ea); le.hidden = true; } catch (e) { le.textContent = (e as Error).message; le.hidden = false; }
+    q('.eb-lfacts').hidden = q('.eb-ltab').hidden = !one;
+    if (one) {
+      q('.eb-lfacts').replaceChildren(fact('Surface temperature', fC(one.Ts), fK(one.Ts)), fact('Atmosphere temperature', fC(one.Ta), fK(one.Ta)), fact('No-atmosphere temperature', fC(one.Te), `${fK(one.Te)}, the emission temperature`), fact('Greenhouse warming', `${one.greenhouse.toFixed(2)} K`, 'surface minus emission temperature'));
+      const rows = [['Sunlight absorbed at the surface', one.absorbed], ['Surface emits (σTs⁴)', one.surface], ['Atmosphere emits up', one.atmUp], ['Atmosphere emits down', one.atmDown], ['Surface heat passing through', one.through], ['Leaves the planet', one.olr]];
+      const t = q('.eb-ltab'); t.innerHTML = '<thead><tr><th>Flux</th><th>W/m²</th></tr></thead><tbody></tbody>';
+      for (const [k, x] of rows) { const tr = document.createElement('tr'); tr.innerHTML = '<td></td><td></td>'; tr.children[0].textContent = k as string; tr.children[1].textContent = (x as number).toFixed(1); t.querySelector('tbody')!.append(tr); }
+    }
+    repaint();
+    sections = [
+      { title: 'Equilibrium', facts: factsOf('.eb-facts'), text: [q('.eb-eqs').textContent!] },
+      { title: 'Settings', facts: [['Solar constant', `${S} W/m²`], ['Albedo, emissivity', `${alpha}, ${eps}`], ['CO₂', `${c0} → ${c} ppm (${kind === 'step' ? 'all at once' : '1 % a year'})`], ['Feedback λ', `${lam} W/m²/K`], ['Mixed layer', `${h} m`], ['Ice-albedo feedback', iceOn ? `on: ice albedo ${ai}, middle ${Tm} K, width ${w} K` : 'off']] },
+      { title: 'Warming over time', figure: figs.t, facts: factsOf('.eb-tfacts') },
+      { title: 'Energy in and out', figure: figs.e },
+      ...(iceOn && figs.h ? [{ title: 'Multiple equilibria and hysteresis', figure: figs.h, text: [q('.eb-hnote').textContent!] }] : []),
+      ...(one ? [{ title: `One-layer greenhouse (εₐ = ${ea})`, facts: factsOf('.eb-lfacts') }] : []),
+    ];
+  }
+  function repaint() {
+    if (figs.t) paint(q<HTMLCanvasElement>('.eb-tfig'), figs.t);
+    if (figs.e) paint(q<HTMLCanvasElement>('.eb-efig'), figs.e);
+    if (figs.h && !q('.eb-hyw').hidden) paint(q<HTMLCanvasElement>('.eb-hfig'), figs.h);
+  }
+  let tm = 0;
+  function later() { clearTimeout(tm); tm = window.setTimeout(calc, 150); }
+  for (const c of ['.eb-kind', '.eb-ice']) q(c).addEventListener('change', calc);
+  q('.eb-T0').addEventListener('input', later);
+  const dl = (text: string, name: string) => save(new Blob(['﻿' + text], { type: 'text/csv' }), name, 'text/csv');
+  q('.eb-tcsv').addEventListener('click', () => { if (!run || !lin) return; const T0 = run.T[0]; dl(csv([['Year', 'Forcing (W/m2)', 'Radiative T (K)', 'Radiative warming (K)', 'Linear warming (K)'], ...run.t.map((t, i) => [+t.toFixed(4), +run!.F[i].toFixed(4), +run!.T[i].toFixed(4), +(run!.T[i] - T0).toFixed(4), +(lin!.T[i] ?? NaN).toFixed(4)])]), 'energy-balance-run.csv'); });
+  q('.eb-hcsv').addEventListener('click', () => { if (!curve) return; dl(csv([['Temperature (K)', 'Solar constant for balance (W/m2)', 'Stable'], ...curve.pts.map((p) => [+p.T.toFixed(3), +p.S.toFixed(3), p.stable ? 'yes' : 'no'])]), 'energy-balance-equilibria.csv'); });
+  document.addEventListener('fibub:theme', repaint);
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Energy balance climate model', subtitle: 'Zero-dimensional model', file: 'energy-balance-model', sections }));
+</script>

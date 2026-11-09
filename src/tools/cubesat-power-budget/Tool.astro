@@ -1,0 +1,195 @@
+---
+// CubeSat power budget: eclipse fraction from altitude and beta angle, solar array power by attitude, loads by
+// operating mode with duty cycles, and a battery simulation over a few orbits. All values are typed by the user;
+// the example numbers are rounded and made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { EXAMPLE_PANELS, EXAMPLE_LOADS } from '../../lib/sci/cubesatpower';
+---
+<div class="ax csp">
+  <div class="ax-card">
+    <h2>Orbit</h2>
+    <div class="ax-grid">
+      <label>Altitude (km) <input class="cp-h" type="text" inputmode="decimal" value="500" /></label>
+      <label>Beta angle (°) <input class="cp-b" type="text" inputmode="decimal" value="20" /></label>
+      <label>Orbits to simulate <input class="cp-n" type="number" min="1" max="20" step="1" value="3" inputmode="numeric" /></label>
+    </div>
+    <p class="ax-help">A circular orbit. The beta angle is the Sun's angle above the orbit plane; it changes over the year, so check the smallest (longest shadow) and largest values your orbit sees. The shadow is a cylinder the width of the Earth.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Solar array</h2>
+    <label>Panels: name, face, panel area (cm²) <textarea class="cp-pan" rows="6" spellcheck="false">{EXAMPLE_PANELS}</textarea></label>
+    <DataFile target=".cp-pan" maxCols={5} maxRows={50} />
+    <p class="ax-help">Faces in the body frame: +X, −X, +Y, −Y, +Z or −Z. For nadir pointing, +X points along the velocity, +Z at the Earth and −Z at the sky; deployed wings usually face −Z. One row per panel.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Attitude <select class="cp-att">
+        <option value="nadir" selected>Nadir pointing (+Z at the Earth)</option>
+        <option value="sun">Sun pointing (one face at the Sun)</option>
+        <option value="tumble">Tumbling (random)</option>
+      </select></label>
+      <label>Face at the Sun <select class="cp-face"><option>+X</option><option>-X</option><option>+Y</option><option>-Y</option><option>+Z</option><option selected>-Z</option></select></label>
+      <label>Cell efficiency (%) <input class="cp-eff" type="text" inputmode="decimal" value="28" /></label>
+      <label>Packing (% of panel area that is cells) <input class="cp-pf" type="text" inputmode="decimal" value="85" /></label>
+      <label>Temperature coefficient (%/°C) <input class="cp-tc" type="text" inputmode="decimal" value="-0.25" /></label>
+      <label>Panel temperature (°C) <input class="cp-t" type="text" inputmode="decimal" value="50" /></label>
+      <label>Efficiency measured at (°C) <input class="cp-tr" type="text" inputmode="decimal" value="28" /></label>
+      <label>Degradation per year (%) <input class="cp-dg" type="text" inputmode="decimal" value="2.5" /></label>
+      <label>Years in orbit <input class="cp-yr" type="text" inputmode="decimal" value="2" /></label>
+      <label>Power kept after converters and wiring (%) <input class="cp-ot" type="text" inputmode="decimal" value="90" /></label>
+    </div>
+    <p class="ax-help">Each panel gives 1361 W/m² × area × packing × efficiency × derating × cos(Sun angle). Derating = (1 + coefficient × (temperature − reference)) × (1 − degradation)^years × power kept. Earth albedo and infrared are left out (a small extra on the Earth-facing side). The example numbers are rounded and made up; use your cell and converter datasheets.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Loads</h2>
+    <label>Name, power (W), then the duty cycle (%) in each operating mode <textarea class="cp-ld" rows="8" spellcheck="false">{EXAMPLE_LOADS}</textarea></label>
+    <DataFile target=".cp-ld" maxCols={12} maxRows={100} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Operating mode to simulate <select class="cp-mode"></select></label>
+    </div>
+    <p class="ax-help">The header row names the modes. A duty cycle is the share of the orbit the load is on (an empty cell means 100 %). The simulation draws each mode's orbit-average power all the time, which is right for the battery's energy but not for brief peaks.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Battery</h2>
+    <div class="ax-grid">
+      <label>Capacity (Wh) <input class="cp-cap" type="text" inputmode="decimal" value="20" /></label>
+      <label>Charge efficiency (%) <input class="cp-ce" type="text" inputmode="decimal" value="95" /></label>
+      <label>Discharge efficiency (%) <input class="cp-de" type="text" inputmode="decimal" value="95" /></label>
+      <label>Depth of discharge limit (%) <input class="cp-dl" type="text" inputmode="decimal" value="20" /></label>
+      <label>Charge at the start (%) <input class="cp-s0" type="text" inputmode="decimal" value="100" /></label>
+    </div>
+    <p class="ax-help">The depth of discharge (DoD) is how far the battery falls below full in an orbit. Lithium-ion cells last many more cycles at a shallow DoD, so missions set a limit; use your battery's own figure.</p>
+    <p class="ax-err cp-err" hidden></p>
+  </div>
+
+  <div class="ax-card cp-out" hidden>
+    <h2>Power budget</h2>
+    <p class="ax-big cp-big"></p>
+    <dl class="ax-facts cp-facts"></dl>
+    <canvas class="ax-fig cp-fig1" style="margin-top:10px"></canvas>
+    <canvas class="ax-fig cp-fig2" style="margin-top:10px"></canvas>
+    <h2 style="margin-top:16px">Every operating mode</h2>
+    <div class="ax-scroll"><table class="cp-modes"></table></div>
+    <h2 style="margin-top:16px">Panels</h2>
+    <div class="ax-scroll"><table class="cp-pans"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small cp-csv">Download the simulation (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { period, betaStar, eclipseFraction, panelPeak, derate, parseLoads, loadAverage, simulate, FACES, type Face, type Panel, type SolarArray, type Attitude, type Battery, type SimResult } from '../../lib/sci/cubesatpower';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.csp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const f1 = (x: number) => x.toFixed(1), f2 = (x: number) => x.toFixed(2);
+  let figs: Figure[] = [], sections: Section[] = [], sim: SimResult | null = null;
+
+  function table(t: HTMLTableElement, head: string[], rows: string[][]) {
+    t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; td.style.whiteSpace = 'nowrap'; if (i) td.className = 'r'; }); });
+  }
+  function readPanels(): Panel[] | string {
+    const rows = parseTable(q<HTMLTextAreaElement>('.cp-pan').value);
+    const out: Panel[] = [];
+    if (rows.length && !Number.isFinite(num(rows[0][2]))) rows[0] = []; // header row
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i]; if (!r.length) continue;
+      const face = (r[1] ?? '').replace(/[−–]/g, '-').toUpperCase().replace(/^([XYZ])$/, '+$1') as Face, a = num(r[2]);
+      if (!FACES.includes(face)) return `Panel row ${i + 1} (${r[0]}): the face must be +X, −X, +Y, −Y, +Z or −Z.`;
+      if (!(a > 0)) return `Panel row ${i + 1} (${r[0]}): give the panel area in cm².`;
+      out.push({ name: r[0] || `Panel ${i + 1}`, face, areaCm2: a });
+    }
+    if (!out.length) return 'Add at least one solar panel: name, face and area in cm².';
+    return out;
+  }
+
+  function run() {
+    const err = q('.cp-err'), out = q('.cp-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sections = []; };
+    err.hidden = true;
+    const h = v('.cp-h'), beta = v('.cp-b'), nOrb = Math.round(v('.cp-n'));
+    if (!(h >= 150 && h <= 40000)) return fail('Give an altitude from 150 to 40,000 km.');
+    if (!(beta >= -90 && beta <= 90)) return fail('The beta angle is between −90 and 90°.');
+    if (!(nOrb >= 1 && nOrb <= 20)) return fail('Simulate 1 to 20 orbits.');
+    const panels = readPanels();
+    if (typeof panels === 'string') return fail(panels);
+    const arr: SolarArray = { panels, eff: v('.cp-eff') / 100, packing: v('.cp-pf') / 100, tempCoef: v('.cp-tc'), tempC: v('.cp-t'), refC: v('.cp-tr'), degPerYear: v('.cp-dg'), years: v('.cp-yr'), other: v('.cp-ot') / 100 };
+    if (!(arr.eff > 0 && arr.eff <= 1)) return fail('Cell efficiency is between 0 and 100 %.');
+    if (!(arr.packing > 0 && arr.packing <= 1)) return fail('Packing is between 0 and 100 %.');
+    if (![arr.tempCoef, arr.tempC, arr.refC].every(Number.isFinite)) return fail('Give the temperature coefficient, the panel temperature and the reference temperature.');
+    if (!(arr.degPerYear >= 0 && arr.degPerYear < 100) || !(arr.years >= 0 && arr.years <= 50)) return fail('Degradation is 0 to 100 % a year, over 0 to 50 years.');
+    if (!(arr.other > 0 && arr.other <= 1)) return fail('Power kept after converters is between 0 and 100 %.');
+    const L = parseLoads(parseTable(q<HTMLTextAreaElement>('.cp-ld').value), num);
+    if (typeof L === 'string') return fail(L);
+    const ms = q<HTMLSelectElement>('.cp-mode'), was = ms.value;
+    ms.replaceChildren(...L.modes.map((m) => new Option(m, m, false, m === was)));
+    const mk = Math.max(0, L.modes.indexOf(ms.value));
+    const bat: Battery = { capacityWh: v('.cp-cap'), chargeEff: v('.cp-ce') / 100, dischargeEff: v('.cp-de') / 100, startSoc: v('.cp-s0') };
+    if (!(bat.capacityWh > 0)) return fail('Give the battery capacity in Wh.');
+    if (!(bat.chargeEff > 0 && bat.chargeEff <= 1 && bat.dischargeEff > 0 && bat.dischargeEff <= 1)) return fail('Battery efficiencies are between 0 and 100 %.');
+    if (!(bat.startSoc >= 0 && bat.startSoc <= 100)) return fail('The starting charge is 0 to 100 %.');
+    const dl = v('.cp-dl');
+    if (!(dl > 0 && dl <= 100)) return fail('The depth of discharge limit is 1 to 100 %.');
+    const att: Attitude = { mode: q<HTMLSelectElement>('.cp-att').value as Attitude['mode'], sunFace: q<HTMLSelectElement>('.cp-face').value as Face };
+    q('.cp-face').closest('label')!.hidden = att.mode !== 'sun';
+
+    const T = period(h), ecl = eclipseFraction(h, beta);
+    const verdict = (r: SimResult) => r.empty ? 'Battery runs flat' : r.maxDod > dl + 1e-9 ? 'DoD over the limit' : r.endSoc < r.startLastSoc - 0.05 ? 'Battery drains' : 'OK';
+    const runs = L.modes.map((_, k) => simulate(h, beta, arr, att, loadAverage(L.loads, k), bat, nOrb));
+    const r = runs[mk]; sim = r;
+    const net = r.eGen - r.eLoad;
+    q('.cp-big').textContent = `${L.modes[mk]}: ${verdict(r) === 'OK' ? 'power positive' : verdict(r).toLowerCase()}, ${net >= 0 ? '+' : '−'}${f2(Math.abs(net))} Wh per orbit, deepest DoD ${f1(r.maxDod)} %`;
+    const facts: [string, string, string][] = [
+      ['Orbit period', `${f1(T / 60)} min`, `${sig(h, 5)} km circular`],
+      ['Eclipse', `${f1(ecl * T / 60)} min`, ecl > 0 ? `${f1(ecl * 100)} % of the orbit; none above β ${f1(betaStar(h))}°` : `none: |β| is above ${f1(betaStar(h))}°`],
+      ['Generation, orbit average', `${f2(r.genAvg)} W`, `${f2(r.sunAvg)} W average in sunlight`],
+      ['Load, orbit average', `${f2(r.load)} W`, L.modes[mk]],
+      ['Energy per orbit', `${f2(r.eGen)} Wh in`, `${f2(r.eLoad)} Wh used`],
+      ['Deepest discharge', `${f1(r.maxDod)} %`, `limit ${sig(dl, 3)} % (last orbit)`],
+      ['Battery after the last orbit', `${f1(r.endSoc)} %`, `${f1(r.startLastSoc)} % at its start${r.shunted > 0 ? `; ${f2(r.shunted)} Wh not needed` : ''}`],
+      ['Array derating', `${(derate(arr) * 100).toFixed(1)} %`, 'temperature × age × converters'],
+    ];
+    q('.cp-facts').replaceChildren(...facts.map(([k, val, s]) => fact(k, val, s)));
+    const modeRows = runs.map((x, k) => [L.modes[k], f2(x.load), f2(x.eLoad), `${x.eGen - x.eLoad >= 0 ? '+' : '−'}${f2(Math.abs(x.eGen - x.eLoad))}`, f1(x.maxDod), f1(x.endSoc), verdict(x)]);
+    const modeHead = ['Mode', 'Load (W)', 'Used (Wh/orbit)', 'Gen − used (Wh)', 'Deepest DoD (%)', 'Battery at end (%)', 'Verdict'];
+    table(q<HTMLTableElement>('.cp-modes'), modeHead, modeRows);
+    const panRows = panels.map((p) => [p.name, p.face, sig(p.areaCm2, 4), f2(panelPeak(arr, p))]);
+    table(q<HTMLTableElement>('.cp-pans'), ['Panel', 'Face', 'Area (cm²)', 'Power facing the Sun (W)'], panRows);
+    // Charts (time in minutes; generation and load; state of charge).
+    const tm = r.t.map((x) => x / 60), tg = tm.slice(1).map((x) => x - r.dt / 120);
+    const f1g = chartFigure({ title: `Power over ${nOrb} orbit${nOrb === 1 ? '' : 's'} (${L.modes[mk]})`, xLabel: 'Time (min)', yLabel: 'Power (W)', yMin: 0, legend: 'below', series: [{ name: 'Solar array', x: tg, y: r.gen, mode: 'line', width: 1.6 }, { name: 'Load (orbit average)', x: [0, tm[tm.length - 1]], y: [r.load, r.load], mode: 'line', width: 1.6, dash: [6, 4] }] }, 'Solar array power and load against time');
+    const f2g = chartFigure({ title: 'Battery state of charge', xLabel: 'Time (min)', yLabel: 'Charge (%)', yMin: Math.max(0, Math.min(100 - dl - 5, Math.floor(Math.min(...r.soc) / 5) * 5 - 5)), yMax: 100, legend: 'none', series: [{ name: 'Charge', x: tm, y: r.soc, mode: 'line', width: 1.8 }], marks: [{ kind: 'hline', at: 100 - dl, dash: [5, 4], label: `DoD limit ${sig(dl, 3)} %` }] }, 'Battery state of charge against time');
+    figs = [f1g, f2g]; paint(q<HTMLCanvasElement>('.cp-fig1'), f1g); paint(q<HTMLCanvasElement>('.cp-fig2'), f2g);
+    sections = [
+      { title: 'Power budget', text: [q('.cp-big').textContent!, `Attitude: ${q<HTMLSelectElement>('.cp-att').selectedOptions[0].text}${att.mode === 'sun' ? `, ${att.sunFace} at the Sun` : ''}. Beta ${sig(beta, 4)}°.`], facts: facts.map(([k, val, s]) => [k, s ? `${val} (${s})` : val] as [string, string]) },
+      { title: 'Power', figure: f1g }, { title: 'Battery', figure: f2g },
+      { title: 'Every operating mode', table: { head: modeHead, rows: modeRows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'l'] } },
+      { title: 'Panels', table: { head: ['Panel', 'Face', 'Area (cm²)', 'Power facing the Sun (W)'], rows: panRows, align: ['l', 'l', 'r', 'r'] }, note: 'Solar constant 1361 W/m². Cylindrical Earth shadow; no albedo or Earth infrared.' },
+    ];
+    out.hidden = false;
+  }
+  let tmo = 0;
+  root.addEventListener('input', () => { clearTimeout(tmo); tmo = window.setTimeout(run, 250); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).tagName === 'SELECT') run(); });
+  q('.cp-csv').addEventListener('click', () => {
+    if (!sim) return;
+    const rows: (string | number)[][] = [['time_min', 'generation_W', 'load_W', 'battery_pct']];
+    sim.t.forEach((t, i) => rows.push([+(t / 60).toFixed(4), i ? +sim!.gen[i - 1].toFixed(4) : '', +sim!.load.toFixed(4), +sim!.soc[i].toFixed(4)]));
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'cubesat-power-simulation.csv', 'text/csv');
+  });
+  wireDownloads(q('.cp-out'), () => ({ title: 'CubeSat power budget', subtitle: 'fibub.com', sections, file: 'cubesat-power-budget' }));
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.cp-out').hidden) { paint(q<HTMLCanvasElement>('.cp-fig1'), figs[0]); paint(q<HTMLCanvasElement>('.cp-fig2'), figs[1]); } });
+  run();
+</script>

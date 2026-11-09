@@ -1,0 +1,295 @@
+---
+// GPR radargram viewer: opens SEG-Y (rev 0/1, IBM/IEEE floats, integers, both byte orders) and simple GSSI DZT
+// files in the page, with time zero, dewow, background removal, gains, a depth axis from a velocity, a hyperbola
+// fit for velocity, a trace view and PNG export. Nothing is uploaded. The example is made up by fibub.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax gpr">
+  <div class="ax-card">
+    <h2>GPR data</h2>
+    <div class="ax-row">
+      <button type="button" class="btn gp-open">Open a GPR file</button>
+      <input type="file" class="gp-file" accept=".sgy,.segy,.sg,.dzt,.SGY,.SEGY,.DZT" hidden />
+      <button type="button" class="btn secondary gp-ex">Use the made-up example</button>
+    </div>
+    <p class="ax-help">SEG-Y (.sgy, .segy; rev 0 or 1, IBM or IEEE floats or 8/16/32-bit integers, either byte order) or GSSI DZT (.dzt; 8, 16 or 32-bit), up to 200 MB. The file is read in this page and never uploaded.</p>
+    <p class="ax-err gp-err" hidden></p>
+    <p class="gp-name"></p>
+    <dl class="ax-facts gp-info"></dl>
+    <details class="gp-txt" hidden><summary>SEG-Y text header</summary><pre class="gp-pre"></pre></details>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Time step (ns per sample) <input class="gp-dt" inputmode="decimal" /></label>
+      <label>Trace spacing (m, empty for trace numbers) <input class="gp-dx" inputmode="decimal" /></label>
+      <label class="gp-chw" hidden>Channel <select class="gp-ch"></select></label>
+    </div>
+    <label class="ax-check gp-blkw" hidden><input type="checkbox" class="gp-blk" checked /> Blank the first 2 samples of each scan (GSSI marker words)</label>
+    <p class="ax-help gp-dtnote"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Processing</h2>
+    <div class="ax-grid">
+      <label>Time zero (ns) <input class="gp-t0" inputmode="decimal" value="0" /></label>
+      <div class="gp-btnw"><button type="button" class="btn secondary small gp-find">Find time zero</button></div>
+    </div>
+    <p class="ax-help">Time zero cuts the samples before the direct wave, so times and depths start at the ground surface. "Find" puts it at the peak of the first big swing of the mean trace (half its largest swing or more); adjust it by eye.</p>
+    <label class="ax-check"><input type="checkbox" class="gp-dw" checked /> Dewow over <input class="gp-dww" inputmode="decimal" value="10" style="width:5em" /> ns</label>
+    <p class="ax-help">Dewow subtracts a running mean along each trace to remove the slow "wow" drift that follows the direct wave.</p>
+    <label class="ax-check"><input type="checkbox" class="gp-bg" checked /> Background removal over <input class="gp-bgw" inputmode="decimal" value="0" style="width:5em" /> traces (0 = all)</label>
+    <p class="ax-help">Subtracts the mean trace, which removes flat bands such as the direct wave and antenna ringing. It also weakens flat layers, so switch it off to see them.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Gain <select class="gp-gain"><option value="none">None</option><option value="linear">Linear in time</option><option value="exp" selected>Exponential in time</option><option value="agc">AGC (automatic)</option></select></label>
+      <label><span class="gp-gpl">dB per ns</span> <input class="gp-gp" inputmode="decimal" value="0.4" /></label>
+      <label>Contrast: clip at percentile <input class="gp-clip" inputmode="decimal" value="99" /></label>
+      <label>Colours <select class="gp-cmap"><option value="grey">Grey</option><option value="bwr">Blue, white, red</option></select></label>
+    </div>
+    <p class="ax-help gp-ghelp"></p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Wave speed v (m/ns) <input class="gp-v" inputmode="decimal" value="0.1" /></label>
+      <label>Depth axis <select class="gp-dax"><option value="1">Show depth on the right</option><option value="0">Time only</option></select></label>
+    </div>
+    <p class="ax-help gp-vhelp"></p>
+  </div>
+
+  <div class="ax-card gp-out">
+    <h2>Radargram</h2>
+    <canvas class="ax-fig gp-fig"></canvas>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small gp-pick" aria-pressed="false">Pick a hyperbola</button>
+      <button type="button" class="btn secondary small gp-clr">Clear points</button>
+      <button type="button" class="btn secondary small gp-use" disabled>Use this speed</button>
+    </div>
+    <p class="ax-help gp-phelp">Tap the radargram to choose the trace shown below. To measure the wave speed, press <strong>Pick a hyperbola</strong> and tap 3 or more points along one hyperbola (its top and both arms), after setting time zero.</p>
+    <dl class="ax-facts gp-fit"></dl>
+    <h3>Trace <input class="gp-tr" inputmode="numeric" value="1" style="width:5em" /> <span class="gp-trx"></span></h3>
+    <input type="range" class="gp-trs" min="1" max="1" value="1" aria-label="Trace" style="width:100%" />
+    <canvas class="ax-fig gp-tfig"></canvas>
+    <div class="dl gp-dl2"><span class="dl-l">Data</span><button type="button" class="btn secondary gp-png">Radargram (PNG)</button><button type="button" class="btn secondary gp-csv">Trace (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { readSegy, readDzt, blankFirst, example, autoZero, timeZero, dewow, background, applyGain, clipLevel, fitHyperbola, epsOf, type Radargram, type Gain } from '../../lib/sci/gpr';
+  import { mulberry32 } from '../../lib/sci/pointcount';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure, niceTicks } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, fileSafe, LIGHT, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.gpr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const factsOf = (el: HTMLElement) => [...el.querySelectorAll(':scope > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]);
+  const MAXB = 200e6, MAXS = 30e6;
+
+  let raw: Radargram | null = null, name = '', buf: ArrayBuffer | null = null, kind: 'segy' | 'dzt' | 'ex' = 'ex';
+  let sec: { nt: number; ns: number; data: Float32Array } | null = null, dt = 0, dx = NaN, v = 0.1, k0 = 0, clip = 1;
+  let img: HTMLCanvasElement | null = null, fig: Figure | null = null, tfig: Figure | null = null, trace = 0;
+  let picks: { x: number; t: number }[] = [], fit: ReturnType<typeof fitHyperbola> = null, picking = false, report: Section[] = [];
+  let W = 600; const H = 420, M = { l: 58, r: 56, t: 14, b: 46 };
+
+  const err = (m: string) => { const e = q('.gp-err'); e.textContent = m; e.hidden = !m; };
+
+  function load(r: Radargram, n: string, k: typeof kind) {
+    if (k === 'dzt' && inp('.gp-blk').checked) blankFirst(r);
+    raw = r; name = n; kind = k; picks = []; fit = null; trace = Math.floor(r.nt / 2);
+    q('.gp-name').textContent = n;
+    q('.gp-info').replaceChildren(...r.info.map(([a, b]) => fact(a, b)));
+    q('.gp-txt').hidden = !r.text?.trim(); q('.gp-pre').textContent = r.text ?? '';
+    inp('.gp-dt').value = String(+r.dt.toPrecision(6));
+    inp('.gp-dx').value = Number.isFinite(r.dx) ? String(+r.dx.toPrecision(6)) : '';
+    q('.gp-dtnote').textContent = k === 'segy' ? `SEG-Y stores the sample interval as a whole number meant in microseconds; GPR programs often put picoseconds or nanoseconds there. ${r.dtNote ?? ''}, giving a ${sig(r.dt * r.ns, 4)} ns window. Change the time step if that is wrong.` : k === 'dzt' ? 'Time step = the header’s time range ÷ samples per scan; trace spacing = 1 ÷ scans per metre (empty when the file was collected by time).' : 'Made-up example: a 12 m line over two pipes, a flat layer at 1.2 m and a dipping layer, wave speed 0.1 m/ns.';
+    q('.gp-blkw').hidden = k !== 'dzt';
+    const nch = (r as Radargram & { nchan?: number }).nchan ?? 1;
+    q('.gp-chw').hidden = nch < 2;
+    if (k === 'ex') { inp('.gp-t0').value = String(+(autoZero(r) * r.dt).toPrecision(4)); }
+    else inp('.gp-t0').value = '0';
+    const s = q<HTMLInputElement>('.gp-trs'); s.max = String(r.nt);
+    run();
+  }
+
+  async function openFile(f: File) {
+    err('');
+    if (f.size > MAXB) { err(`This file is ${(f.size / 1e6).toFixed(0)} MB; the limit is 200 MB.`); return; }
+    try {
+      buf = await f.arrayBuffer();
+      const dzt = /\.dzt$/i.test(f.name) || (buf.byteLength >= 2 && new DataView(buf).getUint16(0, true) === 0x00ff && !/\.se?gy$/i.test(f.name));
+      const r = dzt ? readDzt(buf, 0) : readSegy(buf);
+      if (r.nt * r.ns > MAXS) throw new Error(`This file has ${(r.nt * r.ns / 1e6).toFixed(1)} million samples; the limit is 30 million.`);
+      if (dzt) { const nch = (r as { nchan: number }).nchan, sel = q<HTMLSelectElement>('.gp-ch'); sel.replaceChildren(...Array.from({ length: nch }, (_, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = `Channel ${i + 1}`; return o; })); }
+      load(r, f.name, dzt ? 'dzt' : 'segy');
+    } catch (e) { err(`Could not read ${f.name}: ${(e as Error).message}`); }
+  }
+
+  function gainOf(): Gain {
+    const g = q<HTMLSelectElement>('.gp-gain').value, p = num(inp('.gp-gp').value);
+    return g === 'linear' ? { kind: 'linear', a: p } : g === 'exp' ? { kind: 'exp', db: p } : g === 'agc' ? { kind: 'agc', w: Math.max(3, Math.round(p / dt)) } : { kind: 'none' };
+  }
+
+  function colour(val: number, cmap: string, red: boolean): [number, number, number] {
+    const u = Math.max(-1, Math.min(1, val / clip));
+    if (red) { const g = Math.round(127.5 + 127.5 * u); return [Math.round(g * 0.75), 0, 0]; }
+    if (cmap === 'bwr') { return u >= 0 ? [255, Math.round(255 * (1 - u)), Math.round(255 * (1 - u))] : [Math.round(255 * (1 + u)), Math.round(255 * (1 + u)), 255]; }
+    const g = Math.round(127.5 + 127.5 * u); return [g, g, g];
+  }
+  function makeImage(red: boolean) {
+    // at most 4096 × 4096 pixels (browsers cap canvas sizes); long lines are thinned to every n-th trace
+    const s = sec!, cw = Math.min(s.nt, 4096), ch = Math.min(s.ns, 4096), c = document.createElement('canvas'); c.width = cw; c.height = ch;
+    const ctx = c.getContext('2d')!, id = ctx.createImageData(cw, ch), cm = q<HTMLSelectElement>('.gp-cmap').value;
+    for (let x = 0; x < cw; x++) { const i = Math.floor((x * s.nt) / cw); for (let y = 0; y < ch; y++) { const j = Math.floor((y * s.ns) / ch), [r, g, b] = colour(s.data[i * s.ns + j], cm, red), o = (y * cw + x) * 4; id.data[o] = r; id.data[o + 1] = g; id.data[o + 2] = b; id.data[o + 3] = 255; } }
+    ctx.putImageData(id, 0, 0); return c;
+  }
+  const xOf = (i: number) => (Number.isFinite(dx) ? i * dx : i + 1);
+
+  function radarFig(): Figure {
+    const cw = q('.gp-fig').clientWidth; W = cw && cw < 520 ? 400 : 600; // larger labels on phones
+    const s = sec!, depth = q<HTMLSelectElement>('.gp-dax').value === '1' && v > 0, tMax = (s.ns - 1) * dt, xMax = xOf(s.nt - 1), xMin = xOf(0);
+    const L = M.l, R = depth ? M.r : 16, pw = W - L - R, ph = H - M.t - M.b;
+    const c = q<HTMLCanvasElement>('.gp-fig'); Object.assign(c.dataset, { l: L, t: M.t, pw, ph, w: W, h: H });
+    let imgs: Record<string, HTMLCanvasElement> = {};
+    return { w: W, h: H, alt: `Radargram, ${s.nt} traces over ${sig(tMax, 3)} ns`, draw: (ctx, w, h, p: Palette) => {
+      const key = p.red ? 'r' : 'n'; imgs[key] ??= key === 'r' ? makeImage(true) : img!;
+      ctx.fillStyle = p.bg; ctx.fillRect(0, 0, w, h);
+      ctx.imageSmoothingEnabled = s.nt < pw; ctx.drawImage(imgs[key], L, M.t, pw, ph); ctx.imageSmoothingEnabled = true;
+      ctx.strokeStyle = p.ink; ctx.lineWidth = 1; ctx.strokeRect(L + 0.5, M.t + 0.5, pw - 1, ph - 1);
+      ctx.fillStyle = p.ink; ctx.font = '14px system-ui, sans-serif';
+      const X = (x: number) => L + ((x - xMin) / ((xMax - xMin) || 1)) * pw, Y = (t: number) => M.t + (t / (tMax || 1)) * ph;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (const x of niceTicks(xMin, xMax, 5)) if (x >= xMin - 1e-9 && x <= xMax + 1e-9) { ctx.beginPath(); ctx.moveTo(X(x), M.t + ph); ctx.lineTo(X(x), M.t + ph + 5); ctx.stroke(); ctx.fillText(String(x), X(x), M.t + ph + 7); }
+      ctx.fillText(Number.isFinite(dx) ? 'Distance (m)' : 'Trace', L + pw / 2, h - 18);
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      for (const t of niceTicks(0, tMax, 6)) if (t <= tMax + 1e-9) { ctx.beginPath(); ctx.moveTo(L - 5, Y(t)); ctx.lineTo(L, Y(t)); ctx.stroke(); ctx.fillText(String(t), L - 7, Y(t)); }
+      ctx.save(); ctx.translate(14, M.t + ph / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.fillText('Two-way time (ns)', 0, 0); ctx.restore();
+      if (depth) {
+        ctx.textAlign = 'left';
+        for (const z of niceTicks(0, (v * tMax) / 2, 6)) { const t = (2 * z) / v; if (t > tMax + 1e-9) continue; ctx.beginPath(); ctx.moveTo(L + pw, Y(t)); ctx.lineTo(L + pw + 5, Y(t)); ctx.stroke(); ctx.fillText(String(z), L + pw + 7, Y(t)); }
+        ctx.save(); ctx.translate(w - 10, M.t + ph / 2); ctx.rotate(Math.PI / 2); ctx.textAlign = 'center'; ctx.fillText(`Depth (m) at ${v} m/ns`, 0, 0); ctx.restore();
+      }
+      // chosen trace
+      ctx.strokeStyle = p.accent2; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(X(xOf(trace)), M.t); ctx.lineTo(X(xOf(trace)), M.t + ph); ctx.stroke(); ctx.setLineDash([]);
+      // hyperbola picks and fit
+      if (fit?.ok) { ctx.strokeStyle = p.accent; ctx.lineWidth = 2; ctx.beginPath(); let on = false; for (let k = 0; k <= 200; k++) { const x = xMin + ((xMax - xMin) * k) / 200, t = Math.sqrt(Math.max(0, fit.a * x * x + fit.b * x + fit.c)); if (t > tMax) { on = false; continue; } on ? ctx.lineTo(X(x), Y(t)) : ctx.moveTo(X(x), Y(t)); on = true; } ctx.stroke(); }
+      for (const pt of picks) { ctx.fillStyle = p.bad; ctx.beginPath(); ctx.arc(X(pt.x), Y(pt.t), 5, 0, 2 * Math.PI); ctx.fill(); ctx.strokeStyle = p.bg; ctx.lineWidth = 1.5; ctx.stroke(); }
+    } };
+  }
+
+  function showTrace() {
+    if (!sec) return;
+    trace = Math.max(0, Math.min(sec.nt - 1, trace));
+    inp('.gp-tr').value = String(trace + 1); inp('.gp-trs').value = String(trace + 1);
+    q('.gp-trx').textContent = Number.isFinite(dx) ? `at ${+(trace * dx).toPrecision(6)} m` : '';
+    const t = Array.from({ length: sec.ns }, (_, j) => j * dt), a = Array.from(sec.data.subarray(trace * sec.ns, (trace + 1) * sec.ns));
+    tfig = chartFigure({ h: 260, xLabel: 'Two-way time (ns)', yLabel: 'Amplitude (processed)', xMin: 0, xMax: t[t.length - 1], legend: 'none', series: [{ name: 'trace', x: t, y: a, mode: 'line', width: 1.5 }] }, `Trace ${trace + 1}, processed amplitude against time`);
+    paint(q<HTMLCanvasElement>('.gp-tfig'), tfig);
+  }
+  function redraw() { if (!sec) return; fig = radarFig(); paint(q<HTMLCanvasElement>('.gp-fig'), fig); showTrace(); }
+
+  function showFit() {
+    fit = Number.isFinite(dx) ? fitHyperbola(picks) : null;
+    const box = q('.gp-fit'), use = q<HTMLButtonElement>('.gp-use');
+    use.disabled = !fit?.ok;
+    if (!picks.length) { box.replaceChildren(); return; }
+    if (!fit) { box.replaceChildren(fact('Points', String(picks.length), picks.length < 3 ? 'tap at least 3 points on one hyperbola' : '')); return; }
+    if (!fit.ok) { box.replaceChildren(fact('Points', String(picks.length)), fact('No hyperbola', 'these points do not open downward', 'pick points on the arms of one hyperbola')); return; }
+    box.replaceChildren(
+      fact('Wave speed from the hyperbola', `${fit.v.toFixed(4)} m/ns`, `relative permittivity ε ≈ ${sig(fit.eps, 3)}`),
+      fact('Apex', `${sig(fit.x0, 4)} m, ${sig(fit.t0, 4)} ns`, `target depth ${sig(fit.depth, 3)} m (point target, centre of a small pipe)`),
+      fact('Fit', `${picks.length} points, RMS misfit ${sig(fit.rms, 2)} ns`, 't² = a x² + b x + c, least squares'),
+    );
+  }
+
+  let timer = 0;
+  function run() { clearTimeout(timer); timer = window.setTimeout(process, 30); }
+  function process() {
+    if (!raw) return;
+    const e: string[] = [];
+    dt = num(inp('.gp-dt').value); const dxs = inp('.gp-dx').value.trim(); dx = dxs ? num(dxs) : NaN; v = num(inp('.gp-v').value);
+    const t0 = num(inp('.gp-t0').value), dww = num(inp('.gp-dww').value), bgw = num(inp('.gp-bgw').value), clipP = num(inp('.gp-clip').value), gp = num(inp('.gp-gp').value);
+    if (!(dt > 0)) e.push('Type a time step above 0 ns.');
+    if (dxs && !(dx > 0)) e.push('Trace spacing is above 0 m, or empty.');
+    if (!(v > 0 && v <= 0.3)) e.push('Wave speed is above 0 and at most 0.3 m/ns (the speed of light).');
+    if (!(t0 >= 0)) e.push('Time zero is 0 ns or more.');
+    if (inp('.gp-dw').checked && !(dww > 0)) e.push('Type a dewow window above 0 ns.');
+    if (inp('.gp-bg').checked && !(bgw >= 0)) e.push('Background window is 0 (all traces) or more.');
+    if (!(clipP > 50 && clipP <= 100)) e.push('Clip percentile is between 50 and 100.');
+    const g = q<HTMLSelectElement>('.gp-gain').value;
+    if (g !== 'none' && !(Number.isFinite(gp) && (g === 'agc' ? gp > 0 : gp >= 0))) e.push(g === 'agc' ? 'Type an AGC window above 0 ns.' : 'Type a gain of 0 or more.');
+    const vh = q('.gp-vhelp'); vh.textContent = v > 0 ? `Depth = v × time ÷ 2. ${v} m/ns is a relative permittivity of ${sig(epsOf(v), 3)}. Typical speeds: air 0.3, dry sand about 0.15, wet soils and clay 0.06 to 0.1, water 0.033 m/ns.` : '';
+    err(e.join(' ')); q('.gp-out').hidden = !!e.length;
+    if (e.length) { sec = null; report = []; return; }
+    k0 = Math.round(t0 / dt);
+    if (k0 >= raw.ns - 2) { err('Time zero is past the end of the traces.'); q('.gp-out').hidden = true; sec = null; return; }
+    let s = timeZero(raw, k0);
+    if (inp('.gp-dw').checked) s = dewow(s, Math.max(3, Math.round(dww / dt)));
+    if (inp('.gp-bg').checked) s = background(s, Math.round(bgw));
+    s = applyGain(s, gainOf(), dt);
+    sec = s; clip = clipLevel(s.data, clipP); img = makeImage(false);
+    steps = [`time zero ${sig(k0 * dt, 4)} ns (${k0} samples cut)`, inp('.gp-dw').checked ? `dewow ${dww} ns` : '', inp('.gp-bg').checked ? `background removal (${bgw ? `${bgw} traces` : 'all traces'})` : '', g === 'none' ? 'no gain' : g === 'linear' ? `linear gain 1 + ${gp} t` : g === 'exp' ? `exponential gain ${gp} dB/ns` : `AGC ${gp} ns`, `clip at the ${clipP}th percentile`].filter(Boolean);
+    finish();
+  }
+  let steps: string[] = [];
+  /** Redraw and rebuild the report after a new trace, pick or processing run. */
+  function finish() {
+    if (!sec || !raw) return;
+    showFit(); redraw();
+    report = [
+      { title: name, facts: [...(raw.info as [string, string][]), ['Time step', `${dt} ns`], ['Trace spacing', Number.isFinite(dx) ? `${dx} m` : 'not set (trace numbers)'], ['Processing', steps.join('; ')], ['Wave speed', `${v} m/ns`]] },
+      { title: 'Radargram', figure: fig! },
+      ...(fit?.ok ? [{ title: 'Velocity from a hyperbola', facts: factsOf(q('.gp-fit')) }] : []),
+      { title: `Trace ${trace + 1}`, figure: tfig! },
+    ];
+  }
+
+  // events
+  q('.gp-open').addEventListener('click', () => inp('.gp-file').click());
+  inp('.gp-file').addEventListener('change', () => { const f = inp('.gp-file').files?.[0]; if (f) openFile(f); inp('.gp-file').value = ''; });
+  root.addEventListener('dragover', (e) => e.preventDefault());
+  root.addEventListener('drop', (e) => { e.preventDefault(); const f = e.dataTransfer?.files?.[0]; if (f) openFile(f); });
+  q('.gp-ex').addEventListener('click', () => { err(''); buf = null; load(example(mulberry32(513)), 'Made-up example profile', 'ex'); });
+  q<HTMLSelectElement>('.gp-ch').addEventListener('change', () => { if (buf) { try { load(readDzt(buf, Number(q<HTMLSelectElement>('.gp-ch').value)), name, 'dzt'); } catch (e) { err((e as Error).message); } } });
+  inp('.gp-blk').addEventListener('change', () => { if (buf && kind === 'dzt') load(readDzt(buf, Number(q<HTMLSelectElement>('.gp-ch').value)), name, 'dzt'); });
+  q('.gp-find').addEventListener('click', () => { if (raw) { inp('.gp-t0').value = String(+(autoZero(raw) * num(inp('.gp-dt').value)).toPrecision(4)); picks = []; run(); } });
+  const gHelp = () => { const g = q<HTMLSelectElement>('.gp-gain').value; q('.gp-gpl').textContent = g === 'linear' ? 'Gain slope a (per ns)' : g === 'exp' ? 'dB per ns' : g === 'agc' ? 'AGC window (ns)' : 'No setting'; inp('.gp-gp').disabled = g === 'none';
+    q('.gp-ghelp').textContent = g === 'linear' ? 'Each sample is multiplied by 1 + a × time, to make up for weaker late echoes.' : g === 'exp' ? 'Each sample is multiplied by 10^(dB × time ÷ 20): a steady number of decibels per nanosecond, matching exponential losses in the ground.' : g === 'agc' ? 'Automatic gain control divides each sample by the RMS amplitude in a window around it, so weak and strong parts look alike (true amplitudes are lost).' : 'Amplitudes as processed above.'; };
+  q('.gp-gain').addEventListener('change', () => { const g = q<HTMLSelectElement>('.gp-gain').value; inp('.gp-gp').value = g === 'linear' ? '0.1' : g === 'exp' ? '0.4' : g === 'agc' ? '8' : ''; gHelp(); });
+  root.querySelectorAll('.ax-card:nth-child(2) input, .ax-card:nth-child(2) select, .gp-dt, .gp-dx').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+  q('.gp-pick').addEventListener('click', () => { picking = !picking; q('.gp-pick').setAttribute('aria-pressed', String(picking)); q('.gp-pick').textContent = picking ? 'Picking: tap points' : 'Pick a hyperbola'; if (picking && !Number.isFinite(dx)) { q('.gp-fit').replaceChildren(fact('Trace spacing needed', 'type the trace spacing in metres above to measure a speed')); } });
+  q('.gp-clr').addEventListener('click', () => { picks = []; finish(); });
+  q('.gp-use').addEventListener('click', () => { if (fit?.ok) { inp('.gp-v').value = fit.v.toFixed(4); run(); } });
+  q('.gp-fig').addEventListener('click', (e) => {
+    if (!sec) return;
+    const c = q<HTMLCanvasElement>('.gp-fig'), r = c.getBoundingClientRect(), f = W / r.width, d = c.dataset;
+    const fx = (e.clientX - r.left) * f - Number(d.l), fy = (e.clientY - r.top) * f - Number(d.t), pw = Number(d.pw), ph = Number(d.ph);
+    if (fx < 0 || fy < 0 || fx > pw || fy > ph) return;
+    const i = Math.round((fx / pw) * (sec.nt - 1)), t = (fy / ph) * (sec.ns - 1) * dt;
+    if (picking && Number.isFinite(dx)) { picks.push({ x: xOf(0) + (fx / pw) * (xOf(sec.nt - 1) - xOf(0)), t }); finish(); }
+    else { trace = i; finish(); }
+  });
+  const setTrace = (x: number) => { if (sec && Number.isFinite(x)) { trace = Math.round(x) - 1; finish(); } };
+  inp('.gp-tr').addEventListener('change', () => setTrace(num(inp('.gp-tr').value)));
+  inp('.gp-trs').addEventListener('input', () => setTrace(num(inp('.gp-trs').value)));
+  q('.gp-png').addEventListener('click', () => {
+    if (!fig) return;
+    const sc = 3, c = document.createElement('canvas'); c.width = fig.w * sc; c.height = fig.h * sc;
+    const ctx = c.getContext('2d')!; ctx.scale(sc, sc); fig.draw(ctx, fig.w, fig.h, LIGHT);
+    c.toBlob((b) => b && save(b, `${fileSafe(name.replace(/\.\w+$/, ''))}-radargram.png`, 'image/png'), 'image/png');
+  });
+  q('.gp-csv').addEventListener('click', () => { if (!sec) return; const a = sec.data.subarray(trace * sec.ns, (trace + 1) * sec.ns); save(new TextEncoder().encode(csv([['time_ns', 'amplitude'], ...Array.from(a, (x, j) => [+(j * dt).toPrecision(8), +x.toPrecision(7)])])), `${fileSafe(name.replace(/\.\w+$/, ''))}-trace-${trace + 1}.csv`, 'text/csv'); });
+  document.addEventListener('fibub:theme', () => finish());
+  gHelp();
+  load(example(mulberry32(513)), 'Made-up example profile', 'ex');
+  wireDownloads(q('.gp-out > .dl:last-child'), () => ({ title: 'GPR radargram', subtitle: name, file: `${fileSafe(name.replace(/\.\w+$/, ''))}-gpr`, sections: report }));
+</script>
+
+<style is:global>
+  .gpr h3 { margin: 16px 0 6px; font-size: 1rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .gpr h3 input { padding: 4px 6px; }
+  .gpr .gp-btnw { display: flex; align-items: flex-end; }
+  .gpr .gp-name { font-weight: 600; margin: 8px 0 0; overflow-wrap: anywhere; }
+  .gpr .gp-pre { font-size: 12px; overflow-x: auto; max-width: 100%; white-space: pre; }
+  .gpr .gp-pick[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); }
+  .gpr .gp-fig { cursor: crosshair; touch-action: manipulation; }
+  .gpr .ax-check input[inputmode] { display: inline-block; margin: 0 4px; padding: 4px 6px; }
+</style>

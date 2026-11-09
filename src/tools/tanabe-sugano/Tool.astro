@@ -1,0 +1,213 @@
+---
+// Tanabe–Sugano diagrams for d2 to d8 octahedral ions, worked out from the Slater determinants (lib/sci/tanabe.ts).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax tsd">
+  <div class="ax-card">
+    <h2>Ion and parameters</h2>
+    <div class="ax-grid">
+      <label>d electrons <select class="tsd-n">
+        <option value="2">d² (V³⁺, Ti²⁺)</option>
+        <option value="3" selected>d³ (Cr³⁺, V²⁺)</option>
+        <option value="4">d⁴ (Mn³⁺, Cr²⁺)</option>
+        <option value="5">d⁵ (Mn²⁺, Fe³⁺)</option>
+        <option value="6">d⁶ (Fe²⁺, Co³⁺)</option>
+        <option value="7">d⁷ (Co²⁺)</option>
+        <option value="8">d⁸ (Ni²⁺)</option>
+      </select></label>
+      <label>C/B <input class="tsd-g" inputmode="decimal" value="4.5" /></label>
+      <label>Δ/B up to <input class="tsd-xmax" inputmode="decimal" value="40" /></label>
+      <label>E/B up to <input class="tsd-ymax" inputmode="decimal" value="80" /></label>
+      <label>Show <select class="tsd-show"><option value="all">every state</option><option value="allowed">spin-allowed only</option></select></label>
+    </div>
+    <p class="ax-help">C/B is the ratio of the two Racah parameters; about 4 to 5 for first-row ions, 4.5 is the usual textbook choice. Spin-allowed states have the same spin as the ground state; they give the strong bands.</p>
+    <p class="ax-err tsd-err" hidden></p>
+  </div>
+
+  <div class="ax-card tsd-out">
+    <h2 class="tsd-h">Diagram</h2>
+    <p class="tsd-big"></p>
+    <canvas class="ax-fig tsd-fig" style="cursor:crosshair"></canvas>
+    <p class="ax-help">Tap or click the diagram to read the energies at that Δ/B. Coloured lines: same spin as the ground state; grey: other spins. Each state is named by its octahedral symmetry with its free-ion parent term in brackets.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Read at Δ/B <input class="tsd-x" inputmode="decimal" value="20" /></label>
+      <label>B (cm⁻¹, to convert) <input class="tsd-b" inputmode="decimal" value="700" /></label>
+    </div>
+    <p class="ax-help tsd-conv"></p>
+    <div class="ax-scroll" style="margin-top:8px"><table class="tsd-read"><thead><tr><th>State</th><th>E/B</th><th>cm⁻¹</th><th>nm</th></tr></thead><tbody></tbody></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small tsd-more">Show all states</button><button type="button" class="btn secondary small tsd-csv">Download the diagram (CSV)</button></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card tsd-fitcard">
+    <h2>Δ and B from a spectrum</h2>
+    <p class="ax-help">For d³ (such as Cr³⁺) and d⁸ (such as Ni²⁺): the lowest spin-allowed band ν1 is Δ itself, and the second band ν2 fixes B. The example bands are made up.</p>
+    <div class="ax-grid">
+      <label>ν1, lowest band (cm⁻¹) <input class="tsd-n1" inputmode="decimal" value="17000" /></label>
+      <label>ν2, second band (cm⁻¹) <input class="tsd-n2" inputmode="decimal" value="24000" /></label>
+      <label>Free-ion B (cm⁻¹, optional) <input class="tsd-bf" inputmode="decimal" value="" /></label>
+    </div>
+    <p class="ax-err tsd-ferr" hidden></p>
+    <div class="tsd-fout">
+      <dl class="ax-facts tsd-ffacts"></dl>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small tsd-use">Read the diagram at this fit</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Free-ion terms</h2>
+    <p class="ax-help">The terms of the free ion (Δ = 0), from the same calculation, relative to the lowest. Racah A shifts them all equally and is left out.</p>
+    <div class="ax-scroll"><table class="tsd-terms"><thead><tr><th>Term</th><th>E/B</th><th>cm⁻¹</th></tr></thead><tbody></tbody></table></div>
+  </div>
+</div>
+
+<script>
+  import { diagram, readAt, freeIonTerms, fitTwoBands, LETTER, type Diagram } from '../../lib/sci/tanabe';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { drawChart, canvasPainter, type Series } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.tsd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const SUP = ['⁰', '¹', '²', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹'];
+  let D: Diagram | null = null, fig: Figure | null = null, map: { px0: number; px1: number; xa: number; xb: number } | null = null;
+  let fit: ReturnType<typeof fitTwoBands> | null = null, showAll = false, cache = '';
+
+  function err(m: string) { q('.tsd-err').textContent = m; q('.tsd-err').hidden = !m; q('.tsd-out').hidden = !!m; }
+
+  function run() {
+    const n = Number(q<HTMLSelectElement>('.tsd-n').value), g = v('.tsd-g'), xMax = v('.tsd-xmax'), yMax = v('.tsd-ymax');
+    if (!(g >= 1 && g <= 10)) return err('C/B should be a number between 1 and 10; about 4.5 suits most first-row ions.');
+    if (!(xMax >= 5 && xMax <= 100)) return err('Δ/B up to: give a number between 5 and 100.');
+    if (!(yMax >= 5 && yMax <= 300)) return err('E/B up to: give a number between 5 and 300.');
+    err('');
+    const key = `${n}|${g}|${xMax}`;
+    if (key !== cache) { D = diagram(n, g, xMax, 200); cache = key; }
+    const d = D!;
+    q('.tsd-h').textContent = `Tanabe–Sugano diagram for d${SUP[n]}, C/B = ${+g.toPrecision(4)}`;
+    const gr = (k: string) => { const [t, i] = k.split('#'); return `${SUP[Number(t[0])]}${t.slice(1).replace(/(\d)/, (m) => '₀₁₂₃₄₅₆₇₈₉'[Number(m)])}g`; };
+    q('.tsd-big').textContent = d.crossings.length ? `Ground state ${gr(d.ground[0])} changes to ${gr(d.ground[1])} at Δ/B = ${d.crossings[0].toFixed(2)}` : `Ground state ${gr(d.ground[0])} at every Δ/B up to ${sig(xMax, 3)}`;
+    draw();
+    read();
+    terms();
+    fitBands();
+  }
+
+  function draw() {
+    const d = D!, yMax = v('.tsd-ymax'), xMax = v('.tsd-xmax');
+    const W = Math.round(Math.min(760, Math.max(320, q('.tsd-out').clientWidth || 640))), narrow = W < 500, H = narrow ? 460 : 540;
+    const only = q<HTMLSelectElement>('.tsd-show').value === 'allowed';
+    const xr = v('.tsd-x'), xf = fit ? fit.x : NaN;
+    const curves = d.curves.filter((c) => !only || c.mult === d.groundMult[c.seg]);
+    // Labels at the right edge for the curves that reach it and have the ground-state spin there.
+    const last = d.crossings.length;
+    fig = {
+      w: W, h: H, alt: `Tanabe–Sugano diagram: energy over B against Δ over B for d${d.n}`,
+      draw: (ctx, w, h, pal) => {
+        const series: Series[] = curves.map((c) => { const allowed = c.mult === d.groundMult[c.seg]; return { name: '', x: c.x, y: c.y, mode: 'line', width: allowed ? 1.8 : 0.8, color: allowed ? pal.accent : pal.muted, ...(allowed ? {} : { dash: [3, 2] }) }; });
+        const marks = [...d.crossings.map((x) => ({ kind: 'vline' as const, at: x, color: pal.muted, dash: [2, 3] })), ...(Number.isFinite(xr) && xr >= 0 && xr <= xMax ? [{ kind: 'vline' as const, at: xr, color: pal.accent2, dash: [6, 3], label: 'read' }] : []), ...(Number.isFinite(xf) && xf <= xMax ? [{ kind: 'vline' as const, at: xf, color: pal.good, dash: [1, 0], label: 'fit' }] : [])];
+        const P = canvasPainter(ctx);
+        const m = drawChart(P, { w, h, xLabel: 'Δ/B', yLabel: 'E/B', xMin: 0, xMax: xMax * (w < 500 ? 1.3 : 1.22), yMin: 0, yMax, series, marks, legend: 'none', ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: null, font: w < 500 ? 11 : 13 });
+        if (w === W) map = m;
+        // Right-hand labels, pushed apart so they do not overlap.
+        const lab = curves.filter((c) => c.seg === last && c.x[c.x.length - 1] >= xMax - 1e-9 && c.mult === d.groundMult[last] && c.y[c.y.length - 1] <= yMax).map((c) => ({ t: c.label, y: m.Y(c.y[c.y.length - 1]) })).sort((a, b) => a.y - b.y);
+        const fs = w < 500 ? 10 : 11.5, gap = fs + 1;
+        for (let i = 1; i < lab.length; i++) if (lab[i].y - lab[i - 1].y < gap) lab[i].y = lab[i - 1].y + gap;
+        for (let i = lab.length - 2; i >= 0; i--) if (lab[i + 1].y > m.py1 && lab[i].y > lab[i + 1].y - gap) lab[i].y = lab[i + 1].y - gap;
+        const x0 = m.X(xMax) + 4;
+        for (const l of lab) P.text(x0, l.y, l.t, fs, pal.accent, 'start', 'middle');
+      },
+    };
+    paint(q<HTMLCanvasElement>('.tsd-fig'), fig);
+  }
+
+  function read() {
+    const d = D!, x = v('.tsd-x'), B = v('.tsd-b'), g = v('.tsd-g');
+    const rows: HTMLTableRowElement[] = [];
+    if (!(x >= 0 && x <= 200)) { q('.tsd-conv').textContent = 'Read at: give Δ/B between 0 and 200.'; q('.tsd-read tbody').replaceChildren(); return; }
+    const hasB = B > 0 && B < 5000;
+    q('.tsd-conv').textContent = hasB ? `With B = ${sig(B, 4)} cm⁻¹: Δ = ${sig(x * B, 5)} cm⁻¹ (${sig(x * B * 0.0119627, 4)} kJ/mol). The B of 700 cm⁻¹ is only an example: type the B of your complex.` : 'Type B in cm⁻¹ to see the energies in cm⁻¹ and nm.';
+    const L = readAt(d.n, x, g), gm = L[0].mult;
+    const shown = showAll ? L : L.filter((l, i) => i === 0 || l.mult === gm || l.E <= L.filter((m) => m.mult === gm)[Math.min(3, L.filter((m) => m.mult === gm).length - 1)].E);
+    for (const l of shown) {
+      const tr = document.createElement('tr');
+      if (l.mult === gm) tr.className = 'tsd-allowed';
+      const cm = l.E * B;
+      [l.label + (l.mult === gm && l !== L[0] ? ' ✓' : ''), l.E.toFixed(2), hasB ? (l.E > 0 ? Math.round(cm).toString() : '0') : '–', hasB && l.E > 1e-9 ? (1e7 / cm).toFixed(0) : '–'].forEach((t) => { const td = document.createElement('td'); td.textContent = t; tr.append(td); });
+      rows.push(tr);
+    }
+    q('.tsd-read tbody').replaceChildren(...rows);
+    q('.tsd-more').textContent = showAll ? 'Show fewer states' : `Show all ${L.length} states`;
+  }
+
+  function terms() {
+    const d = D!, B = v('.tsd-b'), hasB = B > 0 && B < 5000;
+    q('.tsd-terms tbody').replaceChildren(...freeIonTerms(d.n, d.gamma).map((t) => { const tr = document.createElement('tr'); [`${SUP[t.mult]}${LETTER[t.L]}`, t.E.toFixed(2), hasB ? Math.round(t.E * B).toString() : '–'].forEach((s) => { const td = document.createElement('td'); td.textContent = s; tr.append(td); }); return tr; }));
+  }
+
+  function fitBands() {
+    const n = D!.n, card = q('.tsd-fitcard');
+    fit = null;
+    card.hidden = n !== 3 && n !== 8;
+    if (card.hidden) return;
+    const n1 = v('.tsd-n1'), n2 = v('.tsd-n2'), bf = v('.tsd-bf');
+    const ferr = (m: string) => { q('.tsd-ferr').textContent = m; q('.tsd-ferr').hidden = !m; q('.tsd-fout').hidden = !!m; };
+    if (!(n1 > 1000 && n1 < 60000 && n2 > 1000 && n2 < 80000)) return ferr('Give both bands in cm⁻¹ (wavenumbers), such as 17000 and 24000. For nm, divide 10 000 000 by the wavelength.');
+    if (!(n2 > n1)) return ferr('ν2 must be higher than ν1.');
+    try { fit = fitTwoBands(n as 3 | 8, n1, n2, D!.gamma); } catch (e) { return ferr((e as Error).message); }
+    ferr('');
+    const T = n === 3 ? '⁴' : '³';
+    const f = fit;
+    const facts = [
+      fact('Δ (= 10Dq)', `${Math.round(f.Delta)} cm⁻¹`, `${sig(f.Delta * 0.0119627, 4)} kJ/mol; equal to ν1 (${T}A₂g → ${T}T₂g)`),
+      fact('Racah B', `${sig(f.B, 4)} cm⁻¹`, `from ν2 (${T}A₂g → ${T}T₁g(F))`),
+      fact('Δ/B', f.x.toFixed(2)),
+      fact('Predicted ν3', `${Math.round(f.nu3)} cm⁻¹`, `${(1e7 / f.nu3).toFixed(0)} nm (${T}A₂g → ${T}T₁g(P)); often hidden under charge-transfer bands`),
+    ];
+    if (bf > 0) facts.push(fact('Nephelauxetic ratio β', (f.B / bf).toFixed(3), 'B in the complex over the free-ion B; below 1 means a more covalent bond'));
+    q('.tsd-ffacts').replaceChildren(...facts);
+  }
+
+  root.querySelectorAll('input, select').forEach((i) => i.addEventListener('input', () => { if (i.classList.contains('tsd-x') || i.classList.contains('tsd-b')) { if (D) { read(); terms(); draw(); } } else run(); }));
+  root.querySelectorAll('select').forEach((i) => i.addEventListener('change', run));
+  q('.tsd-fig').addEventListener('click', (e) => {
+    if (!map || !fig) return;
+    const r = q('.tsd-fig').getBoundingClientRect(), px = ((e as MouseEvent).clientX - r.left) * (fig.w / r.width);
+    const x = map.xa + ((px - map.px0) / (map.px1 - map.px0)) * (map.xb - map.xa);
+    const xm = v('.tsd-xmax');
+    if (!(x >= 0) || x > xm * 1.0001) return;
+    q<HTMLInputElement>('.tsd-x').value = x.toFixed(2);
+    read(); draw();
+  });
+  q('.tsd-more').addEventListener('click', () => { showAll = !showAll; read(); });
+  q('.tsd-use').addEventListener('click', () => { if (!fit) return; q<HTMLInputElement>('.tsd-x').value = fit.x.toFixed(2); q<HTMLInputElement>('.tsd-b').value = sig(fit.B, 4); read(); terms(); draw(); q('.tsd-fig').scrollIntoView({ block: 'center' }); });
+  q('.tsd-csv').addEventListener('click', () => {
+    if (!D) return;
+    const rows: (string | number)[][] = [['state', 'spin_multiplicity', 'ground_state_side', 'delta_over_B', 'E_over_B']];
+    for (const c of D.curves) c.x.forEach((x, i) => rows.push([c.label, c.mult, c.seg === 0 ? 'weak field' : 'strong field', +x.toFixed(4), +c.y[i].toFixed(5)]));
+    save(new TextEncoder().encode(csv(rows)), `tanabe-sugano-d${D.n}.csv`, 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.tsd-fig'), fig); });
+  let lastW = 0;
+  window.addEventListener('resize', () => { const w = q('.tsd-out').clientWidth; if (w && Math.abs(w - lastW) > 40) { lastW = w; if (D) draw(); } });
+  run(); lastW = q('.tsd-out').clientWidth;
+  const rowsOf = (sel: string) => [...root.querySelectorAll(`${sel} tbody tr`)].map((tr) => [...tr.querySelectorAll('td')].map((td) => td.textContent!));
+  wireDownloads(q('.dl'), () => ({
+    title: 'Tanabe–Sugano diagram', subtitle: q('.tsd-h').textContent!, file: `tanabe-sugano-d${D?.n ?? ''}`,
+    sections: !D || !fig ? [] : [
+      { title: q('.tsd-big').textContent!, facts: [['Read at Δ/B', q<HTMLInputElement>('.tsd-x').value], ['B (cm⁻¹)', q<HTMLInputElement>('.tsd-b').value]], figure: fig, table: { head: ['State', 'E/B', 'cm⁻¹', 'nm'], rows: rowsOf('.tsd-read') } },
+      ...(fit && !q('.tsd-fitcard').hidden ? [{ title: 'Δ and B from the spectrum', facts: [...root.querySelectorAll('.tsd-ffacts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]) }] : []),
+      { title: 'Free-ion terms', table: { head: ['Term', 'E/B', 'cm⁻¹'], rows: rowsOf('.tsd-terms') } },
+    ],
+  }));
+</script>
+
+<style is:global>
+  .tsd select { max-width: 100%; }
+  .tsd [hidden] { display: none !important; }
+  .tsd .tsd-allowed td:first-child { font-weight: 600; }
+  .tsd .tsd-big { font-weight: 650; margin: 0 0 8px; }
+</style>

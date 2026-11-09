@@ -1,0 +1,280 @@
+---
+// Concentration converter: one value in one unit to every other common unit (liquid solution or ideal gas
+// mixture), with the working shown, and a batch mode for a pasted column. Maths in src/lib/sci/concconv.ts.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax concconv">
+  <div class="ax-card">
+    <h2>Solute and mixture</h2>
+    <div class="ax-grid">
+      <label>Example <select class="cc-ex">
+        <option value="nacl">Salt (NaCl) in water</option>
+        <option value="etoh">Ethanol in water (% v/v)</option>
+        <option value="h2so4">Sulfuric acid (normality)</option>
+        <option value="co2">CO₂ in air (gas)</option>
+        <option value="own">Your own values</option>
+      </select></label>
+      <label>Mixture <select class="cc-phase"><option value="liquid">Liquid solution</option><option value="gas">Gas mixture (ideal gas)</option></select></label>
+      <label>Solute: formula or g/mol <input class="cc-m" spellcheck="false" autocapitalize="off" /></label>
+    </div>
+    <p class="ax-help cc-mnote"></p>
+    <div class="ax-grid cc-liq" style="margin-top:10px">
+      <label>Solution density (g/mL) <input class="cc-rho" inputmode="decimal" /></label>
+      <label>Solvent: formula or g/mol <input class="cc-ms" spellcheck="false" autocapitalize="off" /></label>
+      <label>Pure solute density (g/mL) <input class="cc-rhos" inputmode="decimal" placeholder="for % v/v" /></label>
+      <label>Equivalents per mole, z <input class="cc-z" inputmode="decimal" placeholder="for normality" /></label>
+    </div>
+    <p class="ax-help cc-liq">The density is of the <b>solution</b> at this concentration, not of the pure solvent; it links volume units (mol/L, g/L, % w/v) to mass units (% w/w, mol/kg, ppm). The solvent's molar mass is only needed for the mole fraction, the pure solute's density only for % v/v, and z only for normality (H⁺ or OH⁻ per formula unit for acids and bases, electrons for redox). Leave any of them empty and only the units that need it are left out.</p>
+    <div class="ax-grid cc-gas" style="margin-top:10px" hidden>
+      <label>Temperature (°C) <input class="cc-t" inputmode="decimal" /></label>
+      <label>Pressure (kPa) <input class="cc-p" inputmode="decimal" /></label>
+      <label>Other gas: formula, g/mol or "air" <input class="cc-mg" spellcheck="false" autocapitalize="off" /></label>
+    </div>
+    <p class="ax-help cc-gas" hidden>For gases, ppmv, % v/v and mol % are all the mole fraction (true for ideal gases). Temperature and pressure turn it into mol/L and mg/m³ (1 atm = 101.325 kPa). The other gas (the rest of the mixture) is needed only for mass-based units such as ppm by mass; "air" is dry air, 28.9647 g/mol.</p>
+    <p class="ax-err cc-perr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Convert one value</h2>
+    <div class="ax-grid">
+      <label>Value <input class="cc-v" inputmode="decimal" /></label>
+      <label>Unit <select class="cc-u"></select></label>
+    </div>
+    <p class="ax-err cc-err" hidden></p>
+    <div class="cc-out" hidden>
+      <p class="ax-big cc-big"></p>
+      <div class="ax-scroll"><table class="cc-tab"><thead><tr><th>Unit</th><th class="r">Value</th></tr></thead><tbody></tbody></table></div>
+      <h3>Show the working</h3>
+      <label>Steps from the value you typed to <select class="cc-to"></select></label>
+      <ol class="cc-chain"></ol>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small cc-csv1">Download this table (CSV)</button></div>
+      <Downloads />
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Convert a column</h2>
+    <label>Values, one per line (a second column, if any, is each row's solution density in g/mL)
+      <textarea class="cc-batch" rows="6" spellcheck="false">0.01
+0.05
+0.1
+0.5
+1</textarea></label>
+    <DataFile target=".cc-batch" maxCols={2} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Values are in <select class="cc-bu"></select></label>
+      <label>Show as <select class="cc-bt"></select></label>
+    </div>
+    <p class="ax-help">Uses the solute and mixture above. A first line of words is read as headings. The CSV has every unit for every row.</p>
+    <p class="ax-err cc-berr" hidden></p>
+    <p class="ax-help cc-bnote" hidden></p>
+    <div class="ax-scroll cc-bwrap" hidden><table class="cc-btab"><thead></thead><tbody></tbody></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small cc-csvb">Download all units (CSV)</button></div>
+  </div>
+</div>
+
+<script>
+  import { units, convertAll, toBase, fromBase, missing, readMolarMass, NEED_TEXT, ConcError, f, type Phase, type Params, type Row } from '../../lib/sci/concconv';
+  import { num, parseTable } from '../../lib/sci/num';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.concconv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const sel = (c: string) => q<HTMLSelectElement>(c);
+
+  const NAMES: Record<string, string> = {
+    molL: 'mol/L (M, molarity)', mmolL: 'mmol/L (mM)', umolL: 'µmol/L (µM)', nmolL: 'nmol/L (nM)',
+    molkg: 'mol/kg (molality)', mmolkg: 'mmol/kg', gL: 'g/L', mgL: 'mg/L', ugL: 'µg/L', mgkg: 'mg/kg',
+    pww: '% w/w', pwv: '% w/v (g/100 mL)', pvv: '% v/v', ppm: 'ppm by mass', ppb: 'ppb by mass', ppt: 'ppt by mass',
+    x: 'Mole fraction', molpct: 'mol %', N: 'Normality (eq/L)', w: 'Mass fraction',
+    ppmv: 'ppmv (by volume)', ppbv: 'ppbv (by volume)', pptv: 'pptv (by volume)', mgm3: 'mg/m³', ugm3: 'µg/m³',
+  };
+  const name = (id: string) => NAMES[id] ?? id;
+
+  // Example values are rounded and made up for the demonstration; the page says to type your own.
+  const EX: Record<string, { phase: Phase; m: string; rho?: string; ms?: string; rhos?: string; z?: string; t?: string; p?: string; mg?: string; v: string; u: string; to: string }> = {
+    nacl: { phase: 'liquid', m: 'NaCl', rho: '1.02', ms: 'H2O', rhos: '', z: '1', v: '0.5', u: 'molL', to: 'molkg' },
+    etoh: { phase: 'liquid', m: 'C2H5OH', rho: '0.95', ms: 'H2O', rhos: '0.789', z: '', v: '40', u: 'pvv', to: 'pww' },
+    h2so4: { phase: 'liquid', m: 'H2SO4', rho: '1.06', ms: 'H2O', rhos: '', z: '2', v: '1', u: 'N', to: 'pww' },
+    co2: { phase: 'gas', m: 'CO2', t: '25', p: '101.325', mg: 'air', v: '400', u: 'ppmv', to: 'mgm3' },
+  };
+
+  const phase = () => sel('.cc-phase').value as Phase;
+  const fill = (s: HTMLSelectElement, ids: string[], keep?: string) => { const old = keep ?? s.value; s.replaceChildren(...ids.map((id) => new Option(name(id), id))); if (ids.includes(old)) s.value = old; };
+  function setPhase(keep = true) {
+    const ph = phase(), ids = units(ph).map((u) => u.id);
+    root.querySelectorAll<HTMLElement>('.cc-liq').forEach((e) => (e.hidden = ph !== 'liquid'));
+    root.querySelectorAll<HTMLElement>('.cc-gas').forEach((e) => (e.hidden = ph !== 'gas'));
+    for (const c of ['.cc-u', '.cc-to', '.cc-bu', '.cc-bt']) fill(sel(c), ids, keep ? undefined : '');
+  }
+  function setExample(id: string) {
+    const e = EX[id]; if (!e) return;
+    sel('.cc-phase').value = e.phase; setPhase(false);
+    inp('.cc-m').value = e.m;
+    if (e.phase === 'liquid') { inp('.cc-rho').value = e.rho!; inp('.cc-ms').value = e.ms!; inp('.cc-rhos').value = e.rhos!; inp('.cc-z').value = e.z!; }
+    else { inp('.cc-t').value = e.t!; inp('.cc-p').value = e.p!; inp('.cc-mg').value = e.mg!; }
+    inp('.cc-v').value = e.v; sel('.cc-u').value = e.u; sel('.cc-to').value = e.to; sel('.cc-bu').value = e.u; sel('.cc-bt').value = e.to;
+  }
+
+  /** Reads the solute and mixture boxes; returns the parameters or a message. Empty optional boxes stay undefined. */
+  function params(): { p: Params; note: string } | string {
+    const ph = phase(), p: Params = {}, notes: string[] = [];
+    const mm = (cls: string, what: string): number | undefined | string => {
+      const r = readMolarMass(inp(cls).value);
+      if (r === 'empty') return undefined;
+      if (typeof r === 'string') return `${what}: ${r}`;
+      if (r.formula) notes.push(`${what} ${inp(cls).value.trim()}: ${f(r.M)} g/mol`);
+      return r.M;
+    };
+    const opt = (cls: string, what: string, lo = 0): number | undefined | string => {
+      const t = inp(cls).value.trim(); if (!t) return undefined;
+      const v = num(t); return v > lo && Number.isFinite(v) ? v : `${what} is a positive number.`;
+    };
+    const take = (k: keyof Params, v: number | undefined | string) => { if (typeof v === 'string') throw new ConcError(v); p[k] = v; };
+    try {
+      take('M', mm('.cc-m', 'Solute'));
+      if (ph === 'liquid') {
+        take('rho', opt('.cc-rho', 'The solution density'));
+        take('Ms', mm('.cc-ms', 'Solvent'));
+        take('rhoS', opt('.cc-rhos', 'The pure solute density'));
+        take('z', opt('.cc-z', 'The equivalents per mole'));
+      } else {
+        const t = num(inp('.cc-t').value), P = opt('.cc-p', 'The pressure');
+        if (inp('.cc-t').value.trim()) { if (!(t > -273.15) || !Number.isFinite(t)) return 'The temperature is above −273.15 °C.'; p.T = t + 273.15; }
+        take('P', P);
+        take('Mg', mm('.cc-mg', 'Other gas'));
+        if (p.T && p.P) notes.push(`molar volume RT/P = ${f(8.31446261815324 * p.T / p.P)} L/mol`);
+      }
+    } catch (e) { if (e instanceof ConcError) return e.message; throw e; }
+    return { p, note: notes.join('; ') };
+  }
+
+  let rows: Row[] = [], intoText = '', sections: Section[] = [], cur: { v: number; u: string; p: Params } | null = null;
+  const valueText = (r: Row) => (r.value === null ? `needs ${r.missing.map((m) => NEED_TEXT[m]).join(' and ')}` : f(r.value));
+
+  function run() {
+    const err = q('.cc-err'), perr = q('.cc-perr'), out = q('.cc-out');
+    err.hidden = perr.hidden = true;
+    const fail = (box: HTMLElement, msg: string) => { box.textContent = msg; box.hidden = false; out.hidden = true; sections = []; rows = []; cur = null; };
+    const pr = params();
+    if (typeof pr === 'string') { q('.cc-mnote').textContent = ''; fail(perr, pr); runBatch(); return; }
+    q('.cc-mnote').textContent = pr.note;
+    const ph = phase(), u = sel('.cc-u').value, v = num(inp('.cc-v').value);
+    try {
+      if (Number.isNaN(v)) throw new ConcError('Type a number for the value.');
+      const r = convertAll(ph, u, v, pr.p);
+      rows = r.rows; intoText = r.into; cur = { v, u, p: pr.p };
+    } catch (e) { if (e instanceof ConcError) { fail(err, e.message); runBatch(); return; } throw e; }
+    out.hidden = false;
+    const to = sel('.cc-to').value;
+    const tr = rows.find((r) => r.id === to)!;
+    q('.cc-big').textContent = tr.value === null ? `${f(v)} ${name(u)}` : `${f(v)} ${name(u)} = ${f(tr.value)} ${name(to)}`;
+    q('.cc-tab tbody').replaceChildren(...rows.map((r) => {
+      const row = document.createElement('tr'); if (r.value === null) row.className = 'dim'; if (r.id === u) row.className = 'cc-in';
+      const a = document.createElement('td'), b = document.createElement('td'); b.className = 'r';
+      a.textContent = name(r.id); b.textContent = valueText(r); row.append(a, b); return row;
+    }));
+    showChain();
+    sections = [{ title: `${f(v)} ${name(u)} in every unit`, facts: [['Mixture', ph === 'liquid' ? 'Liquid solution' : 'Ideal gas mixture'], ...(q('.cc-mnote').textContent ? [['Molar masses', q('.cc-mnote').textContent!] as [string, string]] : [])], table: { head: ['Unit', 'Value'], rows: rows.map((r) => [name(r.id), valueText(r)]), align: ['l', 'r'] }, note: `Working to ${name(to)}: ${[...q('.cc-chain').children].map((li) => li.textContent).join(' ')}` }];
+    runBatch();
+  }
+
+  function showChain() {
+    const r = rows.find((x) => x.id === sel('.cc-to').value);
+    const ol = q('.cc-chain');
+    if (!r || !cur) { ol.replaceChildren(); return; }
+    const lines = r.value === null ? [`This unit needs ${r.missing.map((m) => NEED_TEXT[m]).join(' and ')}.`] : r.chain;
+    ol.replaceChildren(...lines.map((t) => { const li = document.createElement('li'); li.textContent = t; return li; }));
+    if (r.value !== null && cur) q('.cc-big').textContent = `${f(cur.v)} ${name(cur.u)} = ${f(r.value)} ${name(r.id)}`;
+  }
+
+  // ---- Batch ----
+  type BRow = { label: string; v: number; rho?: number; vals: (number | null)[]; err?: string };
+  let bRows: BRow[] = [], bIds: string[] = [], bRho: number | undefined;
+  function runBatch() {
+    const berr = q('.cc-berr'), bnote = q('.cc-bnote'), wrap = q('.cc-bwrap');
+    berr.hidden = bnote.hidden = true; bRows = [];
+    const pr = params();
+    if (typeof pr === 'string') { wrap.hidden = true; return; }
+    const ph = phase(), bu = sel('.cc-bu').value, bt = sel('.cc-bt').value;
+    bIds = units(ph).map((u) => u.id); bRho = pr.p.rho;
+    let table = parseTable(q<HTMLTextAreaElement>('.cc-batch').value);
+    let head: string[] | null = null;
+    if (table.length && table[0].some((c) => c && Number.isNaN(num(c)))) { head = table[0]; table = table.slice(1); }
+    if (!table.length) { berr.textContent = 'Paste or type some values, one per line.'; berr.hidden = false; wrap.hidden = true; return; }
+    if (table.length > 50000) { berr.textContent = 'Up to 50,000 rows at a time.'; berr.hidden = false; wrap.hidden = true; return; }
+    let bad = 0, rhoCol = false;
+    for (const cells of table) {
+      const v = num(cells[0]), rhoT = cells[1]?.trim();
+      const p: Params = { ...pr.p };
+      const row: BRow = { label: cells[0], v, vals: [] };
+      if (ph === 'liquid' && rhoT) { const r = num(rhoT); rhoCol = true; if (r > 0) { p.rho = r; row.rho = r; } else row.err = 'density is not a positive number'; }
+      if (!row.err) {
+        try { const b = toBase(ph, bu, v, p).value; row.vals = bIds.map((id) => fromBase(ph, id, b, p)?.value ?? null); }
+        catch (e) { if (!(e instanceof ConcError)) throw e; row.err = Number.isNaN(v) ? 'not a number' : e.message; }
+      }
+      if (row.err) bad++;
+      bRows.push(row);
+    }
+    const ti = bIds.indexOf(bt);
+    const shown = bRows.slice(0, 200);
+    const th = (t: string, r = false) => { const e = document.createElement('th'); e.textContent = t; if (r) e.className = 'r'; return e; };
+    const hr = document.createElement('tr'); hr.append(th(head?.[0] || name(bu), true), ...(rhoCol ? [th(head?.[1] || 'ρ (g/mL)', true)] : []), th(name(bt), true));
+    q('.cc-btab thead').replaceChildren(hr);
+    q('.cc-btab tbody').replaceChildren(...shown.map((r) => {
+      const tr = document.createElement('tr'); if (r.err) tr.className = 'dim';
+      const td = (t: string) => { const e = document.createElement('td'); e.className = 'r'; e.textContent = t; return e; };
+      const val = r.err ? r.err : r.vals[ti] === null ? `needs ${missing(ph, bt, { ...pr.p, ...(r.rho ? { rho: r.rho } : {}) }).map((m) => NEED_TEXT[m]).join(' and ')}` : f(r.vals[ti]!);
+      tr.append(td(r.label), ...(rhoCol ? [td(r.rho ? f(r.rho) : '')] : []), td(val));
+      return tr;
+    }));
+    wrap.hidden = false;
+    const notes = [`${bRows.length - bad} of ${bRows.length} rows converted.`];
+    if (bad) notes.push(`${bad} could not be (shown greyed).`);
+    if (bRows.length > shown.length) notes.push(`The first ${shown.length} are shown; the CSV has them all.`);
+    if (rhoCol) notes.push('Each row uses its own density from the second column.');
+    bnote.textContent = notes.join(' '); bnote.hidden = false;
+  }
+
+  const csvCell = (s: string) => (/[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
+  const full = (x: number | null) => (x === null ? '' : String(+x.toPrecision(12)));
+  q('.cc-csv1').addEventListener('click', () => {
+    if (!cur) return;
+    const lines = [['unit', 'value', 'working'], ...rows.map((r) => [name(r.id), full(r.value), r.value === null ? `needs ${r.missing.map((m) => NEED_TEXT[m]).join(' and ')}` : r.chain.join(' | ')])];
+    save(new Blob([lines.map((l) => l.map(csvCell).join(',')).join('\n') + '\n'], { type: 'text/csv' }), 'concentration.csv', 'text/csv');
+  });
+  q('.cc-csvb').addEventListener('click', () => {
+    if (!bRows.length) return;
+    const head = ['input', ...(phase() === 'liquid' ? ['density_g_per_mL'] : []), ...bIds.map(name), 'note'];
+    const body = bRows.map((r) => [r.label, ...(phase() === 'liquid' ? [r.rho ? String(r.rho) : (bRho !== undefined ? String(bRho) : '')] : []), ...(r.err ? bIds.map(() => '') : r.vals.map(full)), r.err ?? '']);
+    save(new Blob([[head, ...body].map((l) => l.map(csvCell).join(',')).join('\n') + '\n'], { type: 'text/csv' }), 'concentrations.csv', 'text/csv');
+  });
+
+  const timers = new Map<() => void, number>();
+  const later = (fn: () => void) => { clearTimeout(timers.get(fn)); timers.set(fn, window.setTimeout(fn, 250)); };
+  sel('.cc-ex').addEventListener('change', () => { setExample(sel('.cc-ex').value); run(); });
+  sel('.cc-phase').addEventListener('change', () => { sel('.cc-ex').value = 'own'; setPhase(); if (phase() === 'gas' && !inp('.cc-mg').value) { inp('.cc-t').value = '25'; inp('.cc-p').value = '101.325'; inp('.cc-mg').value = 'air'; } run(); });
+  ['.cc-m', '.cc-rho', '.cc-ms', '.cc-rhos', '.cc-z', '.cc-t', '.cc-p', '.cc-mg'].forEach((c) => inp(c).addEventListener('input', () => { sel('.cc-ex').value = 'own'; later(run); }));
+  inp('.cc-v').addEventListener('input', () => later(run));
+  sel('.cc-u').addEventListener('change', run);
+  sel('.cc-to').addEventListener('change', () => { showChain(); run(); });
+  q('.cc-batch').addEventListener('input', () => later(runBatch));
+  sel('.cc-bu').addEventListener('change', runBatch);
+  sel('.cc-bt').addEventListener('change', runBatch);
+  setExample('nacl');
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Concentration converter', subtitle: q('.cc-big').textContent ?? '', file: 'concentration', sections }));
+</script>
+
+<style is:global>
+  .concconv h3 { margin: 18px 0 8px; font-size: 15px; }
+  .concconv select { max-width: 100%; }
+  .concconv .cc-big { font-size: clamp(19px, 4.6vw, 26px); overflow-wrap: anywhere; }
+  .concconv tr.cc-in td { font-weight: 700; }
+  .concconv .cc-chain { margin: 10px 0 0; padding-left: 22px; font-size: 14px; overflow-wrap: anywhere; }
+  .concconv .cc-chain li + li { margin-top: 6px; }
+  .concconv .cc-batch { min-height: 120px; }
+</style>

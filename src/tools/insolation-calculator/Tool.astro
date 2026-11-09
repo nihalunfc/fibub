@@ -1,0 +1,352 @@
+---
+// Top-of-atmosphere insolation for orbits the user types: point values, seasonal cycle, latitude profile, heatmap,
+// caloric half-years, and a comparison of two orbits.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax isl">
+  <div class="ax-card">
+    <h2>Orbits</h2>
+    <div class="isl-sets">
+      <fieldset class="isl-set" data-set="a">
+        <legend>Orbit A</legend>
+        <div class="ax-grid">
+          <label>Name <input class="isl-name" value="Today" maxlength="40" /></label>
+          <label>Eccentricity e <input class="isl-e" inputmode="decimal" value="0.016708" /></label>
+          <label>Obliquity ε (°) <input class="isl-obl" inputmode="decimal" value="23.439" /></label>
+          <label>Longitude of perihelion ϖ (°) <input class="isl-peri" inputmode="decimal" value="102.937" /></label>
+          <label>Solar constant S₀ (W/m²) <input class="isl-s0" inputmode="decimal" value="1361" /></label>
+        </div>
+        <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small isl-today">Today's orbit</button></div>
+      </fieldset>
+      <fieldset class="isl-set" data-set="b">
+        <legend><label class="ax-check"><input type="checkbox" class="isl-useb" checked /> Orbit B (compare)</label></legend>
+        <div class="ax-grid">
+          <label>Name <input class="isl-name" value="Example B" maxlength="40" /></label>
+          <label>Eccentricity e <input class="isl-e" inputmode="decimal" value="0.04" /></label>
+          <label>Obliquity ε (°) <input class="isl-obl" inputmode="decimal" value="22.5" /></label>
+          <label>Longitude of perihelion ϖ (°) <input class="isl-peri" inputmode="decimal" value="100" /></label>
+          <label>Solar constant S₀ (W/m²) <input class="isl-s0" inputmode="decimal" value="1361" /></label>
+        </div>
+      </fieldset>
+    </div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>ϖ is measured as <select class="isl-conv">
+        <option value="helio">Berger / Laskar tables (today 102.9°)</option>
+        <option value="sun">Sun's longitude at perihelion (today 282.9°)</option>
+      </select></label>
+    </div>
+    <p class="ax-help">No orbital tables are built in: type e, ε and ϖ for the age you want from an orbital solution you trust (such as Berger and Loutre 1991 or Laskar et al. 2004). Orbit B's starting values are made up and rounded, a more eccentric, less tilted orbit with perihelion in northern winter, as today, which gives cooler northern summers. In the tables' convention ϖ is the longitude of perihelion seen from the Sun; the Sun reaches perihelion at λ = ϖ + 180°.</p>
+    <p class="ax-err isl-oerr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Place and time</h2>
+    <div class="ax-grid">
+      <label>Latitude (°, south negative) <input class="isl-lat" inputmode="decimal" value="65" /></label>
+      <label>Time of year by <select class="isl-mode">
+        <option value="day">Calendar day (equinox on 21 Mar)</option>
+        <option value="lam">True solar longitude λ</option>
+      </select></label>
+      <label><span class="isl-tlab">Day of year (1 to 365)</span> <input class="isl-t" inputmode="decimal" value="172" /></label>
+      <label>Local solar time (h) <input class="isl-hr" inputmode="decimal" value="12" /></label>
+      <label>Summer energy threshold (W/m²) <input class="isl-thr" inputmode="decimal" value="275" /></label>
+    </div>
+    <p class="ax-help">Calendar day keeps the March equinox on day 80 and counts one tropical year (365.2422 days), as climate models do. True solar longitude λ is the Sun's position on its path: 0° March equinox, 90° June solstice, 180° September, 270° December. With two orbits, the same calendar day can fall at different λ, and the same λ on different days.</p>
+    <p class="ax-err isl-terr" hidden></p>
+  </div>
+
+  <div class="ax-card isl-out">
+    <h2>Insolation at the top of the atmosphere</h2>
+    <p class="ax-big isl-big"></p>
+    <div class="ax-scroll"><table class="isl-tab"></table></div>
+
+    <h3 style="margin:18px 0 6px">Through the year</h3>
+    <canvas class="ax-fig isl-f1"></canvas>
+
+    <h3 style="margin:18px 0 6px">By latitude</h3>
+    <label style="max-width:320px">Show <select class="isl-prof">
+      <option value="day">The chosen day</option>
+      <option value="annual">Annual mean</option>
+      <option value="summer">Caloric summer mean</option>
+      <option value="winter">Caloric winter mean</option>
+      <option value="above">Summer energy above threshold</option>
+    </select></label>
+    <canvas class="ax-fig isl-f2" style="margin-top:8px"></canvas>
+
+    <h3 style="margin:18px 0 6px">Latitude and season</h3>
+    <div class="ax-seg isl-hm" role="group" aria-label="Heatmap">
+      <button type="button" data-k="a" aria-pressed="true">Orbit A</button>
+      <button type="button" data-k="b" aria-pressed="false">Orbit B</button>
+      <button type="button" data-k="d" aria-pressed="false">B − A</button>
+    </div>
+    <canvas class="ax-fig isl-f3" style="margin-top:8px"></canvas>
+    <p class="ax-help">Daily-mean insolation in W/m² (2° by 1 day). The cross marks your latitude and day.</p>
+
+    <div class="ax-row" style="margin-top:14px">
+      <button type="button" class="btn small isl-csvg">Map grid as CSV</button>
+      <button type="button" class="btn secondary small isl-csvl">Latitude table as CSV</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style>
+  .isl-sets { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+  .isl-set { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px 12px; margin: 0; min-width: 0; }
+  .isl-set legend { font-weight: 650; padding: 0 4px; font-size: 15px; }
+  .isl-set.off .ax-grid { opacity: 0.45; }
+</style>
+
+<script>
+  import * as I from '../../lib/sci/insolation';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure, drawChart, canvasPainter, type Painter } from '../../lib/sci/plot';
+  import { paint, save, fileSafe, wireDownloads, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.isl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string, el: ParentNode = root) => el.querySelector(c) as T;
+  const sets = [...root.querySelectorAll<HTMLElement>('.isl-set')];
+  type Named = I.Orbit & { name: string };
+  let figs: (Figure | null)[] = [null, null, null], report: Section[] = [], hm = 'a';
+  let state: { orbits: Named[]; lat: number; mode: string; t: number; thr: number } | null = null;
+
+  // Figures as wide as the card (so labels stay readable on phones), between 420 and 720 px.
+  const fw = () => Math.round(Math.min(720, Math.max(420, (q(".isl-out").clientWidth || 720) - 34)));
+  const f1 = (v: number, d = 1) => (Number.isFinite(v) ? v.toFixed(d) : '–');
+  const latTxt = (v: number) => (v === 0 ? '0°' : `${sig(Math.abs(v), 6)}° ${v > 0 ? 'N' : 'S'}`);
+
+  function readOrbit(el: HTMLElement): Named | string {
+    const v = (c: string) => num(q<HTMLInputElement>(c, el).value);
+    let peri = v('.isl-peri');
+    if (q<HTMLSelectElement>('.isl-conv').value === 'sun') peri -= 180;
+    const o = { e: v('.isl-e'), obl: v('.isl-obl'), peri: ((peri % 360) + 360) % 360, S0: v('.isl-s0') };
+    const name = q<HTMLInputElement>('.isl-name', el).value.trim() || (el.dataset.set === 'a' ? 'Orbit A' : 'Orbit B');
+    const bad = I.checkOrbit(o);
+    return bad ? `${name}: ${bad}` : { ...o, name };
+  }
+
+  function read() {
+    const oe = q('.isl-oerr'), te = q('.isl-terr');
+    const useB = q<HTMLInputElement>('.isl-useb').checked;
+    sets[1].classList.toggle('off', !useB);
+    const orbits: Named[] = [], msgs: string[] = [];
+    for (const el of useB ? sets : sets.slice(0, 1)) { const r = readOrbit(el); if (typeof r === 'string') msgs.push(r); else orbits.push(r); }
+    oe.textContent = msgs.join(' '); oe.hidden = !msgs.length;
+    const mode = q<HTMLSelectElement>('.isl-mode').value;
+    const lat = num(q<HTMLInputElement>('.isl-lat').value), t = num(q<HTMLInputElement>('.isl-t').value);
+    const hr = num(q<HTMLInputElement>('.isl-hr').value), thr = num(q<HTMLInputElement>('.isl-thr').value);
+    const tm: string[] = [];
+    if (!(lat >= -90 && lat <= 90)) tm.push('Latitude must be from -90 to 90.');
+    if (mode === 'day' && !(t >= 0 && t <= 366)) tm.push('Day of year must be from 0 to 366.');
+    if (mode === 'lam' && !(t >= 0 && t <= 360)) tm.push('True solar longitude must be from 0° to 360°.');
+    if (!(hr >= 0 && hr <= 24)) tm.push('Local solar time must be from 0 to 24 hours.');
+    if (!(thr >= 0)) tm.push('The threshold must be 0 or more W/m².');
+    te.textContent = tm.join(' '); te.hidden = !tm.length;
+    if (msgs.length || tm.length) return null;
+    return { orbits, lat, mode, t, hr, thr };
+  }
+
+  // ---------- Heatmap figure ----------
+  const SEQ = ['#440154', '#3b528b', '#21918c', '#5ec962', '#fde725'];
+  const DIV = ['#2166ac', '#92c5de', '#f7f7f7', '#f4a582', '#b2182b'];
+  const REDS = ['#000000', '#3a0000', '#6e0000', '#a30000', '#d00000'];
+  const hex = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  function ramp(stops: string[], f: number) {
+    const x = Math.min(1, Math.max(0, f)) * (stops.length - 1), i = Math.min(stops.length - 2, Math.floor(x)), u = x - i;
+    const a = hex(stops[i]), b = hex(stops[i + 1]);
+    return a.map((v, k) => Math.round(v + (b[k] - v) * u));
+  }
+  function heatFigure(z: number[][], xs: number[], lats: number[], div: boolean, xLabel: string, mark: [number, number], unit: string, alt: string): Figure {
+    let lo = Infinity, hi = -Infinity; for (const r of z) for (const v of r) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+    if (div) { const m = Math.max(Math.abs(lo), Math.abs(hi)) || 1; lo = -m; hi = m; } else if (!(hi > lo)) hi = lo + 1;
+    return {
+      w: fw(), h: Math.max(280, Math.round(fw() * 0.56)), alt,
+      draw: (ctx, W, H, pal: Palette) => {
+        const CB = 74, cw = W - CB;
+        const xMin = xs[0], xMax = xs[xs.length - 1];
+        const chart = { w: cw, h: H, xLabel, yLabel: 'Latitude (°)', xMin, xMax, yMin: -90, yMax: 90, grid: false, legend: 'none' as const,
+          series: [{ name: '', x: [xMin, xMax], y: [-90, 90], mode: 'line' as const, color: 'rgba(0,0,0,0)' }],
+          marks: [{ kind: 'vline' as const, at: mark[0], color: pal.bg === '#ffffff' ? '#ffffff' : pal.ink, dash: [4, 3] }, { kind: 'hline' as const, at: mark[1], color: pal.bg === '#ffffff' ? '#ffffff' : pal.ink, dash: [4, 3] }],
+          ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: null };
+        const real = canvasPainter(ctx);
+        const noop: Painter = { line() {}, poly() {}, circle() {}, text() {}, measure: real.measure, clip() {}, unclip() {} };
+        const g = drawChart(noop, chart);
+        const stops = pal.red ? REDS : div ? DIV : SEQ;
+        const img = document.createElement('canvas'); img.width = xs.length; img.height = lats.length;
+        const ic = img.getContext('2d')!, id = ic.createImageData(xs.length, lats.length);
+        for (let r = 0; r < lats.length; r++) for (let c = 0; c < xs.length; c++) {
+          const [R, G, B] = ramp(stops, (z[lats.length - 1 - r][c] - lo) / (hi - lo)), k = (r * xs.length + c) * 4;
+          id.data[k] = R; id.data[k + 1] = G; id.data[k + 2] = B; id.data[k + 3] = 255;
+        }
+        ic.putImageData(id, 0, 0);
+        ctx.save(); ctx.imageSmoothingEnabled = true; ctx.drawImage(img, g.px0, g.py0, g.px1 - g.px0, g.py1 - g.py0); ctx.restore();
+        drawChart(real, chart);
+        // Colour bar
+        const bx = cw + 14, by = g.py0, bh = g.py1 - g.py0, bw = 14;
+        for (let i = 0; i < bh; i++) { const [R, G, B] = ramp(stops, 1 - i / bh); ctx.fillStyle = `rgb(${R},${G},${B})`; ctx.fillRect(bx, by + i, bw, 1.5); }
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.strokeRect(bx, by, bw, bh);
+        ctx.fillStyle = pal.ink; ctx.font = '12px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+        const n = 5; for (let i = 0; i <= n; i++) { const v = hi - (i / n) * (hi - lo); ctx.fillText(String(Math.round(v)), bx + bw + 4, by + (i / n) * bh); }
+        ctx.textBaseline = 'top'; ctx.fillText(unit, bx - 2, by + bh + 10);
+      },
+    };
+  }
+
+  // ---------- Main ----------
+  function calc() {
+    const s = read();
+    q('.isl-out').hidden = !s;
+    if (!s) { report = []; state = null; return; }
+    const { orbits, lat, mode, t, hr, thr } = s;
+    state = { orbits, lat, mode, t, thr };
+    const two = orbits.length === 2;
+    const lamOf = (o: I.Orbit) => (mode === 'day' ? I.lambdaOfDay(o, t) : t);
+    const dayOf = (o: I.Orbit) => (mode === 'day' ? t : I.dayOfLambda(o, t));
+    const lams = orbits.map((o) => I.yearLambdas(o));
+    const hy = orbits.map((o, i) => I.halfYears(o, lat, thr, 1460, lams[i]));
+    const per = orbits.map((o, i) => {
+      const L = lamOf(o), d = dayOf(o);
+      return { L, d, dec: I.declination(o, L), r: I.distance(o, L), len: I.dayLength(o, lat, L), q: I.dailyMean(o, lat, L), inst: I.instant(o, lat, L, hr), h: hy[i] };
+    });
+    const hh = Math.floor(hr), mm = Math.round((hr - hh) * 60);
+    const clock = `${String(mm === 60 ? hh + 1 : hh).padStart(2, '0')}:${String(mm === 60 ? 0 : mm).padStart(2, '0')}`;
+    const date = (d: number) => `${f1(d, 1)} (${I.dateOf(d)})`;
+    const rows: [string, (p: (typeof per)[number], o: I.Orbit) => string, ((p: (typeof per)[number]) => number) | null][] = [
+      ['Daily mean (W/m²)', (p) => f1(p.q, 1), (p) => p.q],
+      [`At ${clock} local solar time (W/m²)`, (p) => f1(p.inst, 1), (p) => p.inst],
+      ['True solar longitude λ', (p) => `${f1(p.L, 2)}°`, null],
+      ['Calendar day', (p) => date(p.d), null],
+      ['Solar declination', (p) => `${f1(p.dec, 2)}°`, (p) => p.dec],
+      ['Earth–Sun distance (× a)', (p) => p.r.toFixed(5), (p) => p.r],
+      ['Day length (h)', (p) => f1(p.len, 2), (p) => p.len],
+      ['Annual mean here (W/m²)', (p) => f1(p.h.annualMean, 1), (p) => p.h.annualMean],
+      ['Caloric summer mean (W/m²)', (p) => f1(p.h.summerMean, 1), (p) => p.h.summerMean],
+      ['Caloric winter mean (W/m²)', (p) => f1(p.h.winterMean, 1), (p) => p.h.winterMean],
+      ['Caloric summer total (GJ/m²)', (p) => p.h.summerGJ.toFixed(3), (p) => p.h.summerGJ],
+      ['Caloric summer runs', (p) => `${I.dateOf(p.h.summerStart)} to ${I.dateOf(p.h.summerEnd)}`, null],
+      [`Days ≥ ${sig(thr, 4)} W/m²`, (p) => f1(p.h.aboveDays, 1), (p) => p.h.aboveDays],
+      [`Energy on those days (GJ/m²)`, (p) => p.h.aboveGJ.toFixed(3), (p) => p.h.aboveGJ],
+      ['Precession index e sin ϖ', (_p, o) => I.precessionIndex(o).toFixed(5), null],
+      ['Global annual mean (W/m²)', (_p, o) => f1(I.globalMean(o), 2), null],
+    ];
+    const head = ['', ...orbits.map((o) => o.name), ...(two ? ['B − A'] : [])];
+    const body = rows.map(([label, fmt, val]) => {
+      const r = [label, ...per.map((p, i) => fmt(p, orbits[i]))];
+      if (two) {
+        if (val) { const d = val(per[1]) - val(per[0]); r.push(label.startsWith('Earth') ? (d >= 0 ? '+' : '') + d.toFixed(5) : (d >= 0 ? '+' : '') + (Math.abs(d) < 10 && /GJ/.test(label) ? d.toFixed(3) : d.toFixed(2))); }
+        else if (label.startsWith('Precession')) r.push((I.precessionIndex(orbits[1]) - I.precessionIndex(orbits[0]) >= 0 ? '+' : '') + (I.precessionIndex(orbits[1]) - I.precessionIndex(orbits[0])).toFixed(5));
+        else if (label.startsWith('Global')) r.push((I.globalMean(orbits[1]) - I.globalMean(orbits[0]) >= 0 ? '+' : '') + (I.globalMean(orbits[1]) - I.globalMean(orbits[0])).toFixed(2));
+        else r.push('');
+      }
+      return r;
+    });
+    const tb = q<HTMLTableElement>('.isl-tab'); tb.innerHTML = '';
+    const hr0 = tb.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr0.append(th); });
+    const tbody = tb.createTBody(); body.forEach((r) => { const tr = tbody.insertRow(); r.forEach((v, i) => { const td = tr.insertCell(); td.textContent = v; if (i) td.className = 'r'; }); });
+    const when = mode === 'day' ? `day ${sig(t, 6)} (${I.dateOf(t)})` : `λ = ${sig(t, 6)}°`;
+    q('.isl-big').textContent = `${latTxt(lat)}, ${when}: ${per.map((p, i) => `${orbits[i].name} ${f1(p.q, 1)} W/m²`).join(', ')}`;
+
+    // Seasonal cycle
+    const xs: number[] = []; for (let x = mode === 'day' ? 1 : 0; x <= (mode === 'day' ? 365 : 360); x += mode === 'day' ? 1 : 1) xs.push(x);
+    const series = orbits.map((o) => ({ name: o.name, x: xs, y: xs.map((x) => I.dailyMean(o, lat, mode === 'day' ? I.lambdaOfDay(o, x) : x)), mode: 'line' as const }));
+    const xLabel = mode === 'day' ? 'Day of year (equinox on day 80)' : 'True solar longitude λ (°)';
+    figs[0] = chartFigure({ w: fw(), h: Math.round(fw() * 0.45) + 40, xLabel, yLabel: 'Daily mean (W/m²)', series, yMin: 0, xMin: xs[0], xMax: xs[xs.length - 1], marks: [{ kind: 'vline', at: t }] }, `Daily-mean insolation through the year at ${latTxt(lat)}`);
+
+    // Latitude profile
+    const prof = q<HTMLSelectElement>('.isl-prof').value;
+    const latsP: number[] = []; for (let la = -90; la <= 90; la += 1) latsP.push(la);
+    const pv = orbits.map((o, i) => latsP.map((la) => {
+      if (prof === 'day') return I.dailyMean(o, la, lamOf(o));
+      const h = I.halfYears(o, la, thr, 1460, lams[i]);
+      return prof === 'annual' ? h.annualMean : prof === 'summer' ? h.summerMean : prof === 'winter' ? h.winterMean : h.aboveGJ;
+    }));
+    const pLab = { day: `Daily mean, ${when} (W/m²)`, annual: 'Annual mean (W/m²)', summer: 'Caloric summer mean (W/m²)', winter: 'Caloric winter mean (W/m²)', above: `Energy on days ≥ ${sig(thr, 4)} W/m² (GJ/m²)` }[prof]!;
+    figs[1] = chartFigure({ w: fw(), h: Math.round(fw() * 0.45) + 40, xLabel: 'Latitude (°)', yLabel: pLab.replace(/, .*\(/, ' ('), xMin: -90, xMax: 90, yMin: 0, series: orbits.map((o, i) => ({ name: o.name, x: latsP, y: pv[i], mode: 'line' as const })), marks: [{ kind: 'vline', at: lat }] }, `${pLab} by latitude`);
+
+    // Heatmap
+    if (!two && hm !== 'a') setHm('a');
+    root.querySelectorAll<HTMLButtonElement>('.isl-hm button:not([data-k=a])').forEach((b) => (b.disabled = !two));
+    const latsH: number[] = []; for (let la = -90; la <= 90; la += 2) latsH.push(la);
+    const gridOf = (o: I.Orbit) => (mode === 'day' ? I.grid(o, latsH, xs) : latsH.map((la) => xs.map((x) => I.dailyMean(o, la, x))));
+    let z: number[][];
+    if (hm === 'd') { const a = gridOf(orbits[0]), b = gridOf(orbits[1]); z = a.map((r, i) => r.map((v, j) => b[i][j] - v)); }
+    else z = gridOf(orbits[hm === 'b' ? 1 : 0]);
+    const hmName = hm === 'd' ? `${orbits[1].name} − ${orbits[0].name}` : orbits[hm === 'b' ? 1 : 0].name;
+    figs[2] = heatFigure(z, xs, latsH, hm === 'd', xLabel, [t, lat], 'W/m²', `Daily-mean insolation by latitude and season, ${hmName}`);
+    draw();
+
+    const facts: [string, string][] = orbits.map((o) => [o.name, `e = ${o.e}, ε = ${o.obl}°, ϖ = ${sig(o.peri, 8)}° (Sun at perihelion λ = ${sig((o.peri + 180) % 360, 8)}°), S₀ = ${o.S0} W/m²`]);
+    report = [
+      { title: 'Orbits', facts, text: ['Berger (1978) formulas with Kepler’s equation solved exactly; March equinox on day 80; tropical year 365.2422 days. Top of the atmosphere, no atmosphere.'] },
+      { title: `${latTxt(lat)}, ${when}`, table: { head, rows: body, align: head.map((_, i) => (i ? 'r' : 'l')) } },
+      { title: 'Through the year', figure: figs[0]! },
+      { title: 'By latitude', figure: figs[1]! },
+      { title: `Latitude and season: ${hmName}`, figure: figs[2]! },
+    ];
+  }
+  function draw() {
+    (['.isl-f1', '.isl-f2', '.isl-f3'] as const).forEach((c, i) => figs[i] && paint(q<HTMLCanvasElement>(c), figs[i]!));
+    q('.isl-f3').dataset.drawn = String(Date.now());
+  }
+  function setHm(k: string) { hm = k; root.querySelectorAll<HTMLButtonElement>('.isl-hm button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.k === k))); }
+
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(calc, 250); };
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('input')) later(); });
+  q('.isl-useb').addEventListener('change', calc);
+  q('.isl-prof').addEventListener('change', calc);
+  q('.isl-conv').addEventListener('change', () => {
+    // Keep the same orbits: shift both ϖ boxes by 180°.
+    for (const el of sets) { const i = q<HTMLInputElement>('.isl-peri', el), v = num(i.value); if (Number.isFinite(v)) i.value = String(+((((v + 180) % 360) + 360) % 360).toFixed(6)); }
+    calc();
+  });
+  q('.isl-mode').addEventListener('change', () => {
+    const m = q<HTMLSelectElement>('.isl-mode').value, inp = q<HTMLInputElement>('.isl-t'), s = state;
+    // Convert the current time to the other scale for orbit A, so the view stays at the same moment.
+    const v = num(inp.value);
+    if (s && Number.isFinite(v)) inp.value = String(+(m === 'lam' ? I.lambdaOfDay(s.orbits[0], v) : I.dayOfLambda(s.orbits[0], v)).toFixed(2));
+    q('.isl-tlab').textContent = m === 'lam' ? 'True solar longitude λ (°)' : 'Day of year (1 to 365)';
+    calc();
+  });
+  q('.isl-today').addEventListener('click', () => {
+    const el = sets[0], P = I.PRESENT, sun = q<HTMLSelectElement>('.isl-conv').value === 'sun';
+    q<HTMLInputElement>('.isl-e', el).value = String(P.e); q<HTMLInputElement>('.isl-obl', el).value = String(P.obl);
+    q<HTMLInputElement>('.isl-peri', el).value = String(sun ? +(P.peri + 180).toFixed(3) : P.peri); q<HTMLInputElement>('.isl-s0', el).value = String(P.S0);
+    q<HTMLInputElement>('.isl-name', el).value = 'Today'; calc();
+  });
+  root.querySelectorAll<HTMLButtonElement>('.isl-hm button').forEach((b) => b.addEventListener('click', () => { setHm(b.dataset.k!); calc(); }));
+  document.addEventListener('fibub:theme', draw);
+  let lastW = 0; window.addEventListener('resize', () => { const w = fw(); if (state && Math.abs(w - lastW) > 40) { lastW = w; later(); } });
+
+  q('.isl-csvg').addEventListener('click', () => {
+    if (!state) return;
+    const { orbits, mode } = state, k = hm === 'b' && orbits[1] ? 1 : 0;
+    const xs: number[] = []; for (let x = mode === 'day' ? 1 : 0; x <= (mode === 'day' ? 365 : 359); x++) xs.push(x);
+    const lats: number[] = []; for (let la = 90; la >= -90; la--) lats.push(la);
+    const g = (o: I.Orbit) => (mode === 'day' ? I.grid(o, lats, xs) : lats.map((la) => xs.map((x) => I.dailyMean(o, la, x))));
+    let z = g(orbits[k]), name = orbits[k].name;
+    if (hm === 'd' && orbits[1]) { const b = g(orbits[1]); z = z.map((r, i) => r.map((v, j) => b[i][j] - v)); name = `${orbits[1].name} minus ${orbits[0].name}`; }
+    const rows: (string | number)[][] = [[mode === 'day' ? 'latitude \\ day' : 'latitude \\ lambda', ...xs], ...lats.map((la, i) => [la, ...z[i].map((v) => +v.toFixed(3))])];
+    save(new TextEncoder().encode(csv(rows)), `insolation-${fileSafe(name)}-${mode === 'day' ? 'by-day' : 'by-longitude'}.csv`, 'text/csv');
+  });
+  q('.isl-csvl').addEventListener('click', () => {
+    if (!state) return;
+    const { orbits, mode, t, thr } = state;
+    const head: string[] = ['latitude'];
+    for (const o of orbits) head.push(...['daily_mean_chosen_time', 'annual_mean', 'caloric_summer_mean', 'caloric_winter_mean', 'caloric_summer_GJ', 'caloric_winter_GJ', 'caloric_summer_start_day', `days_ge_${thr}`, `energy_ge_${thr}_GJ`].map((h) => `${fileSafe(o.name)}_${h}`));
+    const L = orbits.map((o) => I.yearLambdas(o));
+    const rows: (string | number)[][] = [head];
+    for (let la = 90; la >= -90; la--) {
+      const r: (string | number)[] = [la];
+      orbits.forEach((o, i) => {
+        const h = I.halfYears(o, la, thr, 1460, L[i]), lam = mode === 'day' ? I.lambdaOfDay(o, t) : t;
+        r.push(+I.dailyMean(o, la, lam).toFixed(3), +h.annualMean.toFixed(3), +h.summerMean.toFixed(3), +h.winterMean.toFixed(3), +h.summerGJ.toFixed(4), +h.winterGJ.toFixed(4), +h.summerStart.toFixed(2), +h.aboveDays.toFixed(2), +h.aboveGJ.toFixed(4));
+      });
+      rows.push(r);
+    }
+    save(new TextEncoder().encode(csv(rows)), 'insolation-by-latitude.csv', 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => ({ title: 'Insolation', subtitle: 'Top of the atmosphere', file: 'insolation', sections: report }));
+  calc();
+</script>
