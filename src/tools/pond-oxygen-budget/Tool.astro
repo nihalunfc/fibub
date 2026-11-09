@@ -1,0 +1,143 @@
+---
+// Pond oxygen budget: DO saturation (Benson and Krause) and a dusk-to-dawn oxygen mass balance with the aeration
+// needed to stay above a chosen minimum. Nothing is uploaded. Example rates are made up and editable.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax pob">
+  <div class="ax-card">
+    <h2>Pond and water</h2>
+    <div class="ax-row"><button type="button" class="btn secondary small po-ex">Use the example</button></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Water temperature (°C) <input class="po-temp" type="text" inputmode="decimal" /></label>
+      <label>Salinity (g/kg; 0 for fresh) <input class="po-sal" type="text" inputmode="decimal" value="0" /></label>
+      <label>Altitude (m) <input class="po-alt" type="text" inputmode="decimal" value="0" /></label>
+      <label>Water surface area (m²) <input class="po-area" type="text" inputmode="decimal" /></label>
+      <label>Mean depth (m) <input class="po-depth" type="text" inputmode="decimal" /></label>
+    </div>
+    <dl class="ax-facts po-sat" style="margin-top:12px" hidden></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>The night</h2>
+    <div class="ax-grid">
+      <label>DO at dusk (mg/L) <input class="po-c0" type="text" inputmode="decimal" /></label>
+      <label>Hours from dusk to dawn <input class="po-hours" type="text" inputmode="decimal" /></label>
+      <label>Lowest DO you accept (mg/L) <input class="po-cmin" type="text" inputmode="decimal" /></label>
+    </div>
+    <h3>Oxygen use (your rates)</h3>
+    <div class="ax-grid">
+      <label>Fish biomass (kg) <input class="po-fish" type="text" inputmode="decimal" /></label>
+      <label>Fish use (mg O₂ per kg per hour) <input class="po-frate" type="text" inputmode="decimal" /></label>
+      <label>Water column, plankton (mg/L per hour) <input class="po-water" type="text" inputmode="decimal" /></label>
+      <label>Sediment (g O₂ per m² per day) <input class="po-sod" type="text" inputmode="decimal" /></label>
+    </div>
+    <h3>Oxygen supply</h3>
+    <div class="ax-grid">
+      <label>Surface transfer K<sub>L</sub> (m per hour) <input class="po-kl" type="text" inputmode="decimal" /></label>
+      <label>Aeration already running (kg O₂ per hour) <input class="po-aer" type="text" inputmode="decimal" value="0" /></label>
+      <label>Aerator field transfer (kg O₂ per kWh, optional) <input class="po-sae" type="text" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">Rates change with temperature, plankton, fish size and feeding: measure them in your pond (for example from DO readings at dusk and dawn) or ask your extension service. K<sub>L</sub> is higher on windy nights. Aeration means oxygen actually delivered to the water at night, not the rated figure.</p>
+    <p class="ax-err po-err" hidden></p>
+  </div>
+
+  <div class="ax-card po-out" hidden>
+    <h2>Oxygen through the night</h2>
+    <p class="ax-big po-big" aria-live="polite"></p>
+    <dl class="ax-facts po-facts"></dl>
+    <canvas class="ax-fig po-fig" style="margin-top:12px"></canvas>
+    <div class="ax-scroll po-tw"><table class="po-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small po-csv">Download the night (CSV)</button></div>
+    <Downloads />
+    <p class="ax-help">An estimate for planning: it assumes steady rates all night. Always measure DO before dawn.</p>
+  </div>
+</div>
+
+<style is:global>
+  .pob h3 { margin: 16px 0 8px; font-size: 15px; }
+  .pob .po-tw { max-height: 380px; overflow-y: auto; margin-top: 10px; }
+  .pob .po-big.bad { color: var(--bad); }
+  .pob .po-big.good { color: var(--good); }
+</style>
+
+<script>
+  import { doSat, pressureAtm, budget, curve, doAt, EXAMPLE, type Night, type Budget } from '../../lib/sci/pondo2';
+  import { num, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { wireDownloads, save, paint, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pob')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => { const t = q<HTMLInputElement>(c).value.trim(); return t ? num(t) : NaN; };
+  const s = (x: number, n = 3) => String(+x.toPrecision(n));
+  const f2 = (x: number) => x.toFixed(2);
+  const hm = (h: number) => `${Math.floor(h)} h ${String(Math.round((h % 1) * 60)).padStart(2, '0')} min`;
+  let n: Night | null = null, b: Budget | null = null, fig: Figure | null = null;
+  const facts = (dl: HTMLElement, list: [string, string, string?][]) => {
+    dl.replaceChildren(...list.map(([t, val, sm]) => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = t; const dd = document.createElement('dd'); dd.textContent = val; if (sm) { const x = document.createElement('small'); x.textContent = sm; dd.append(x); } d.append(dt, dd); return d; }));
+    dl.hidden = !list.length;
+  };
+
+  function run() {
+    const err = q('.po-err'); err.hidden = true;
+    const temp = v('.po-temp'), sal = v('.po-sal') || 0, alt = v('.po-alt') || 0;
+    const satOk = Number.isFinite(temp) && temp >= 0 && temp <= 40 && sal >= 0 && sal <= 45 && alt >= -400 && alt <= 5000;
+    if (satOk) { const P = pressureAtm(alt), cs = doSat(temp, sal, P); facts(q('.po-sat'), [['DO at saturation', `${f2(cs)} mg/L`, `${temp} °C, salinity ${sal} g/kg`], ['Air pressure', `${(P * 101.325).toFixed(1)} kPa`, `${s(P, 4)} atm at ${alt} m`]]); }
+    else { q('.po-sat').hidden = true; if (q<HTMLInputElement>('.po-temp').value.trim()) { err.textContent = 'Temperature 0 to 40 °C, salinity 0 to 45 g/kg and altitude up to 5000 m.'; err.hidden = false; } }
+    const x: Night = { area: v('.po-area'), depth: v('.po-depth'), temp, sal, alt, c0: v('.po-c0'), hours: v('.po-hours'), cmin: v('.po-cmin'), fishKg: v('.po-fish') || 0, fishRate: v('.po-frate') || 0, water: v('.po-water') || 0, sod: v('.po-sod') || 0, kl: v('.po-kl') || 0, aer: v('.po-aer') || 0 };
+    const out = q('.po-out');
+    const need = [x.area > 0, x.depth > 0, x.c0 >= 0, x.hours > 0 && x.hours <= 24, x.cmin >= 0];
+    if (!satOk || need.some((k) => !k)) {
+      out.hidden = true; n = b = null;
+      if (satOk && [x.area, x.depth, x.c0, x.hours, x.cmin].some((y) => !Number.isNaN(y))) { err.textContent = 'Give the area, depth, DO at dusk, hours (up to 24) and the lowest DO you accept.'; err.hidden = false; }
+      return;
+    }
+    if ([x.fishKg, x.fishRate, x.water, x.sod, x.kl, x.aer].some((y) => !(y >= 0))) { err.textContent = 'Rates cannot be negative.'; err.hidden = false; out.hidden = true; return; }
+    n = x; b = budget(x); out.hidden = false;
+    const sae = v('.po-sae');
+    const big = q('.po-big');
+    big.classList.toggle('bad', b.already || b.extraKgH > 0); big.classList.toggle('good', !b.already && b.extraKgH === 0);
+    big.textContent = b.already ? `DO is already below ${s(x.cmin)} mg/L at dusk` : b.extraKgH > 0 ? `Add about ${s(b.extraKgH)} kg O₂ per hour to stay above ${s(x.cmin)} mg/L` : `DO stays above ${s(x.cmin)} mg/L until dawn`;
+    facts(q('.po-facts'), [
+      ['DO at dawn', `${f2(b.dawn)} mg/L`, b.hitZero <= x.hours ? `oxygen runs out after ${hm(b.hitZero)}` : 'without extra aeration'],
+      ['Falls to your minimum', b.hitMin === Infinity || b.hitMin > x.hours ? 'not before dawn' : b.hitMin === 0 ? 'already below' : `after ${hm(b.hitMin)}`],
+      ['Oxygen used', `${s(b.demand)} mg/L per hour`, `fish ${s(b.fish)}, water ${s(b.water)}, sediment ${s(b.sed)}`],
+      ['Dusk DO', `${(b.satPct).toFixed(0)} % of saturation`, `saturation ${f2(b.cs)} mg/L`],
+      ['Extra aeration needed', b.extraKgH > 0 ? `${s(b.extraKgH)} kg O₂/h` : 'none', b.extraKgH > 0 ? `${s(b.extraMgLH)} mg/L per hour in ${s(b.V, 4)} m³${sae > 0 ? `; about ${s(b.extraKgH / sae)} kW at ${s(sae)} kg O₂/kWh` : ''}` : undefined],
+    ]);
+    const c1 = curve(x, b), c2 = b.extraMgLH > 0 && !b.already ? curve(x, b, b.extraMgLH) : null;
+    fig = chartFigure({ w: 640, h: 340, xLabel: 'Hours after dusk', yLabel: 'Dissolved oxygen (mg/L)', yMin: 0, series: [{ name: 'Without extra aeration', x: c1.t, y: c1.c, mode: 'line', marker: 'none', width: 2 }, ...(c2 ? [{ name: 'With the extra aeration', x: c2.t, y: c2.c, mode: 'line' as const, marker: 'none' as const, width: 2, dash: [6, 4] }] : [])], marks: [{ kind: 'hline', at: x.cmin, dash: [3, 3], label: 'your minimum' }], legend: c2 ? 'below' : 'none' }, `Dissolved oxygen from dusk to dawn, ${f2(c1.c[0])} to ${f2(b.dawn)} mg/L`);
+    paint(q<HTMLCanvasElement>('.po-fig'), fig);
+    const t = q<HTMLTableElement>('.po-tab'); t.replaceChildren();
+    const h = t.insertRow(); ['Hour', 'DO (mg/L)', ...(c2 ? ['With aeration'] : [])].forEach((y, k) => { const th = document.createElement('th'); th.textContent = y; if (k) th.className = 'r'; h.append(th); });
+    for (const r of rows()) { const tr = t.insertRow(); r.forEach((y, k) => { const td = tr.insertCell(); td.textContent = y; if (k) td.className = 'r'; }); }
+  }
+  const rows = () => {
+    if (!n || !b) return [];
+    const out: string[][] = [], R = b.demand - b.aer, extra = b.extraMgLH > 0 && !b.already;
+    for (let k = 0; k <= Math.ceil(n.hours); k++) { const t = Math.min(k, n.hours); out.push([String(+t.toFixed(2)), f2(doAt(t, n.c0, b.cs, b.a, R)), ...(extra ? [f2(doAt(t, n.c0, b.cs, b.a, R - b.extraMgLH))] : [])]); }
+    return out;
+  };
+
+  let tm = 0;
+  root.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(run, 200); });
+  q('.po-ex').addEventListener('click', () => {
+    const e = EXAMPLE, set = (c: string, y: number | string) => (q<HTMLInputElement>(c).value = String(y));
+    set('.po-temp', e.temp); set('.po-sal', e.sal); set('.po-alt', e.alt); set('.po-area', e.area); set('.po-depth', e.depth); set('.po-c0', e.c0); set('.po-hours', e.hours); set('.po-cmin', e.cmin);
+    set('.po-fish', e.fishKg); set('.po-frate', e.fishRate); set('.po-water', e.water); set('.po-sod', e.sod); set('.po-kl', e.kl); set('.po-aer', e.aer); set('.po-sae', 1);
+    run();
+  });
+  q('.po-csv').addEventListener('click', () => { const r = rows(); save(new Blob([csv([['hours_after_dusk', 'do_mg_l', ...(r[0]?.length === 3 ? ['do_with_extra_aeration_mg_l'] : [])], ...r])], { type: 'text/csv' }), 'pond-oxygen-night.csv', 'text/csv'); });
+  const dlFacts = (c: string): [string, string][] => [...q(c).querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent ?? '', [...d.querySelector('dd')!.childNodes].map((y) => y.textContent).join(' · ')]);
+  wireDownloads(q('.dl'), () => ({
+    title: 'Pond oxygen budget', subtitle: q('.po-big').textContent ?? '', file: 'pond-oxygen-budget',
+    sections: n && b ? [
+      { title: 'Saturation', facts: dlFacts('.po-sat') },
+      { title: 'The night', text: [q('.po-big').textContent ?? ''], facts: dlFacts('.po-facts'), figure: fig ?? undefined },
+      { title: 'Inputs', facts: [['Area', `${n.area} m²`], ['Mean depth', `${n.depth} m`], ['DO at dusk', `${n.c0} mg/L`], ['Hours', String(n.hours)], ['Minimum', `${n.cmin} mg/L`], ['Fish', `${n.fishKg} kg at ${n.fishRate} mg/kg/h`], ['Water column', `${n.water} mg/L/h`], ['Sediment', `${n.sod} g/m²/day`], ['KL', `${n.kl} m/h`], ['Aeration running', `${n.aer} kg O₂/h`]] },
+      { title: 'Hour by hour', table: { head: rows()[0]?.length === 3 ? ['Hours', 'DO mg/L', 'With extra aeration'] : ['Hours', 'DO mg/L'], rows: rows(), align: ['r', 'r', 'r'] } },
+    ] as Section[] : [],
+  }));
+  document.addEventListener('fibub:theme', () => { if (fig && b) paint(q<HTMLCanvasElement>('.po-fig'), fig); });
+</script>
