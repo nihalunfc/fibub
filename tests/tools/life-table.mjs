@@ -23,7 +23,7 @@ export default async ({ page, check, BASE, readFileSync, writeFileSync, OUT }) =
   await page.fill('.lt-radix', '100000');
   // Charts.
   for (const b of ['mx', 'ex', 'lx']) { await page.click(`.lt-ch button[data-c="${b}"]`); await page.waitForTimeout(150); }
-  check(await page.$eval('.lt-fig', (cv) => cv.width > 0 && /Survivors/.test(cv.getAttribute('aria-label'))), 'lifetable: chart switches');
+  check(await page.waitForFunction(() => { const cv = document.querySelector('.lt-fig'); return cv && cv.width > 0 && /Survivors/.test(cv.getAttribute('aria-label') || ''); }, null, { timeout: 10000 }).then(() => true, () => false), 'lifetable: chart switches');
   // Rates per 1,000 in an Mx column, complete table.
   const lines = ['Age\tMx'];
   for (let a = 0; a <= 100; a++) lines.push(`${a === 100 ? '100+' : a}\t${((a === 0 ? 0.004 : 0.0004 + 0.00003 * Math.exp(0.1 * a)) * 1000).toFixed(12)}`);

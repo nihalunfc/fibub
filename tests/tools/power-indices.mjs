@@ -11,7 +11,7 @@ export default async ({ page, check, BASE, readFileSync }) => {
   const facts = await page.textContent('.pw-facts');
   check(/Lake/.test(facts) && /32 of 64/.test(facts) && /\[51; 34, 27, 18, 12, 6, 3\]/.test(facts), 'power: dummy, winning count and game shown');
   check((await page.locator('.pw-mwt tbody tr').count()) === 5, 'power: five minimal winning coalitions');
-  check(await page.$eval('.pw-fig', (cv) => cv.width > 0), 'power: chart drawn');
+  check(await page.waitForFunction(() => { const c = document.querySelector('.pw-fig'); return c && c.width > 0 && /Share of power/.test(c.getAttribute('aria-label') || ''); }, null, { timeout: 10000 }).then(() => true, () => false), 'power: chart drawn');
   // Quota as a percentage converts the number.
   await page.selectOption('.pw-qt', 'pct'); await page.waitForTimeout(300);
   check((await page.inputValue('.pw-q')) === '51' && /Harbour: 40\.0 %/.test(await big()), 'power: % quota keeps the game');

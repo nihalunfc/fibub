@@ -8,7 +8,7 @@ export default async ({ page, check, BASE, readFileSync, writeFileSync, OUT }) =
   const rows = await page.$$eval('.pa-polls tbody tr', (rs) => rs.map((r) => [...r.cells].map((c) => c.textContent)));
   check(rows.length === 12 && rows[11][3] === '± 3.0' && rows[11][8] === '+5.0' && rows[11][9] === '± 5.0', `polls: last poll MoE and lead MoE (${rows[11].join(' ')})`);
   check((await page.locator('.pa-polls td.pa-sig').count()) === 2 && /2 of 12 polls/.test(await page.textContent('.pa-note')), 'polls: leads outside MoE marked');
-  check(await page.$eval('.pa-fig', (c) => c.width > 0), 'polls: chart drawn');
+  check(await page.waitForFunction(() => { const c = document.querySelector('.pa-fig'); return c && c.width > 0 && /sampling bands/.test(c.getAttribute('aria-label') || ''); }, null, { timeout: 10000 }).then(() => true, () => false), 'polls: chart drawn');
   // Options.
   await page.selectOption('.pa-cl', '99'); await page.waitForTimeout(300);
   check(/\(± 2\.7\)/.test(await big()), `polls: 99 % widens the lead margin (${await big()})`);
