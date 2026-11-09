@@ -1,0 +1,218 @@
+---
+// Wavelet transform viewer: Morlet CWT scalogram and Haar/Daubechies multilevel DWT. Example signal made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { rng, gauss } from '../../lib/sci/eng-fft';
+// Made-up example: 2 s at 200 samples per second. 8 Hz for the first second, 25 Hz for the second, a short click at
+// 0.5 s and a little noise (fixed seed so the page always shows the same numbers).
+const g = gauss(rng(631));
+const demo = 'time (s)\tsignal\n' + Array.from({ length: 400 }, (_, i) => { const t = i / 200; const v = (t < 1 ? Math.sin(2 * Math.PI * 8 * t) : 0.8 * Math.sin(2 * Math.PI * 25 * t)) + 1.5 * Math.exp(-(((t - 0.5) / 0.01) ** 2)) + 0.1 * g(); return `${t.toFixed(3)}\t${v.toFixed(4)}`; }).join('\n');
+---
+<div class="ax wvv">
+  <div class="ax-card">
+    <h2>Signal</h2>
+    <label>Time and value, or values only <textarea class="wv-data" rows="8" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".wv-data" maxCols={20} maxRows={8192} label="Open a file" />
+    <p class="ax-help">Two columns (time in seconds, value) or one column of values with the sample rate. Samples must be evenly spaced. The example is made up: 8 Hz, then 25 Hz, with a click at 0.5 s. Up to 8,192 values.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Columns <select class="wv-mode"><option value="auto" selected>Work it out</option><option value="time">First column is time</option><option value="values">Values only (give the sample rate)</option></select></label>
+      <label>Sample rate (Hz), for values only <input class="wv-fs" type="text" inputmode="decimal" value="200" /></label>
+    </div>
+    <p class="ax-err wv-err" hidden></p>
+  </div>
+
+  <div class="ax-card wv-out">
+    <h2>Continuous wavelet transform (scalogram)</h2>
+    <div class="ax-grid">
+      <label>Wavelet <select class="wv-cw"><option value="cmor1.5" selected>Complex Morlet, B = 1.5</option><option value="cmor4">Complex Morlet, B = 4 (finer in frequency)</option><option value="cmor0.5">Complex Morlet, B = 0.5 (finer in time)</option><option value="morl">Real Morlet (pywt "morl")</option></select></label>
+      <label>Lowest frequency (Hz) <input class="wv-f0" type="text" inputmode="decimal" value="2" /></label>
+      <label>Highest frequency (Hz) <input class="wv-f1" type="text" inputmode="decimal" value="80" /></label>
+      <label>Frequencies <select class="wv-nf"><option>32</option><option selected>64</option><option>96</option></select></label>
+      <label>Colour shows <select class="wv-col"><option value="mag" selected>Magnitude |W|</option><option value="pow">Power |W|²</option></select></label>
+    </div>
+    <p class="ax-help">Each row is the signal compared with a Morlet wavelet (a short wave packet) stretched to one frequency; bright means that frequency is strong at that time. A larger bandwidth B gives sharper frequencies but blurrier times. Frequencies are spaced evenly on a log scale. The shaded edges are the cone of influence, where the wavelet runs off the end of the record and the values are less trustworthy.</p>
+    <p class="ax-big wv-big"></p>
+    <canvas class="ax-fig wv-sfig" style="margin-top:8px"></canvas>
+    <dl class="ax-facts wv-facts" style="margin-top:10px"></dl>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small wv-ccsv">Download scalogram (CSV)</button></div>
+  </div>
+
+  <div class="ax-card wv-out">
+    <h2>Discrete wavelet decomposition</h2>
+    <div class="ax-grid">
+      <label>Wavelet <select class="wv-dw"><option value="haar">Haar</option><option value="db2">Daubechies D4 (db2, 4 taps)</option><option value="db4" selected>Daubechies db4 (8 taps)</option></select></label>
+      <label>Edges <select class="wv-dm"><option value="symmetric" selected>Symmetric (mirror)</option><option value="periodization">Periodic (wrap round)</option></select></label>
+      <label>Levels <select class="wv-lv"></select></label>
+    </div>
+    <p class="ax-help">Each level splits the signal into a smooth half (approximation) and a detail half with a pair of filters, then splits the smooth half again. D1 holds the fastest changes (fs/4 to fs/2), each next level an octave lower; the last approximation holds the slow trend. Daubechies D4 is the 4-tap filter often called "Daubechies-4"; PyWavelets calls it db2. Its db4 has 8 taps.</p>
+    <canvas class="ax-fig wv-dfig" style="margin-top:10px"></canvas>
+    <div class="ax-scroll" style="margin-top:10px"><table class="wv-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small wv-dcsv">Download coefficients (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseSignal, envelope } from '../../lib/sci/eng-fft';
+  import { cwt, centralFrequency, wavedec, maxLevel, DWT_FILTERS, type CwtWavelet, type DwtMode } from '../../lib/sci/eng-wavelet';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+  import { num, parseTable, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.wvv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factPairs = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent! + (d.querySelector('small') ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string]);
+  // A perceptually even dark-to-light colour scale (stops of the matplotlib "viridis" map, CC0).
+  const STOPS = [[68, 1, 84], [59, 82, 139], [33, 145, 140], [94, 201, 98], [253, 231, 37]];
+  const colour = (v: number, pal: Palette) => { v = Math.max(0, Math.min(1, v)); if (pal.red) return `rgb(${Math.round(20 + 170 * v)},0,0)`; const p = v * (STOPS.length - 1), i = Math.min(STOPS.length - 2, Math.floor(p)), f = p - i; const c = STOPS[i].map((a, k) => Math.round(a + (STOPS[i + 1][k] - a) * f)); return `rgb(${c[0]},${c[1]},${c[2]})`; };
+  let figs: Figure[] = [], report: Section[] = [], cwtRows: (string | number)[][] = [], dwtRows: (string | number)[][] = [];
+  let sig0: { t: number[]; x: number[]; fs: number } | null = null;
+
+  function load() {
+    const err = q('.wv-err'), outs = root.querySelectorAll<HTMLElement>('.wv-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; outs.forEach((o) => (o.hidden = true)); report = []; sig0 = null; };
+    const mode = sel('.wv-mode') as 'auto' | 'time' | 'values', fsIn = val('.wv-fs');
+    if (mode === 'values' && !(fsIn > 0)) return fail('Give the sample rate in Hz (samples per second).');
+    const s = parseSignal(parseTable(q<HTMLTextAreaElement>('.wv-data').value), num, mode, fsIn > 0 ? fsIn : 1);
+    if (s.x.length > 8192) return fail(`The signal has ${s.x.length.toLocaleString('en')} values; the limit is 8,192.`);
+    if (s.x.length < 16) return fail('Give at least 16 values.');
+    if (!(s.fs > 0) || !Number.isFinite(s.fs)) return fail('The times must increase from one row to the next.');
+    if (s.fromTime && s.jitter > 0.01) return fail(`The time steps are uneven (one differs from the usual step by ${sg(s.jitter * 100, 3)} %). Wavelet transforms here need evenly spaced samples.`);
+    if (s.x.every((v) => v === s.x[0])) return fail('All the values are the same, so there is nothing to analyse.');
+    err.hidden = true; outs.forEach((o) => (o.hidden = false));
+    sig0 = s;
+    // Levels list.
+    const lvSel = q<HTMLSelectElement>('.wv-lv'), L = DWT_FILTERS[sel('.wv-dw')].lo.length, ml = Math.max(1, maxLevel(s.x.length, L)), cur = +lvSel.value || Math.min(5, ml);
+    lvSel.replaceChildren(...Array.from({ length: ml }, (_, i) => { const o = document.createElement('option'); o.value = o.textContent = String(i + 1); return o; }));
+    lvSel.value = String(Math.min(cur, ml));
+    doCwt(); doDwt();
+  }
+
+  function doCwt() {
+    if (!sig0) return;
+    const s = sig0, N = s.x.length, dt = 1 / s.fs, nyq = s.fs / 2;
+    const ws = sel('.wv-cw'), w: CwtWavelet = ws === 'morl' ? { kind: 'morl' } : { kind: 'cmor', B: +ws.slice(4), C: 1 };
+    let f0 = val('.wv-f0'), f1 = val('.wv-f1');
+    const note: string[] = [];
+    if (!(f0 > 0)) f0 = s.fs / N * 2;
+    if (!(f1 > f0)) f1 = nyq;
+    if (f1 > nyq) { f1 = nyq; note.push(`highest frequency limited to the Nyquist frequency, ${sg(nyq, 5)} Hz`); }
+    const fc = centralFrequency(w), nf = +sel('.wv-nf');
+    const freqs = Array.from({ length: nf }, (_, i) => f1 * (f0 / f1) ** (i / (nf - 1)));
+    const scales = freqs.map((f) => fc / (f * dt));
+    if (scales[scales.length - 1] * 16 > 40 * N) note.push('the lowest frequencies have wavelets much longer than the record; their rows are mostly edge effect');
+    const C = cwt(s.x, scales, w);
+    const pw = sel('.wv-col') === 'pow';
+    const mag = C.re.map((r, i) => Float64Array.from(r, (v, t) => { const m = Math.hypot(v, C.im[i][t]); return pw ? m * m : m; }));
+    let mx = 0, at = [0, 0];
+    mag.forEach((row, i) => row.forEach((v, t) => { if (v > mx) { mx = v; at = [i, t]; } }));
+    // Cone of influence: within one e-folding width of the wavelet's envelope from either end.
+    const efold = w.kind === 'morl' ? Math.SQRT2 : Math.sqrt(w.B);
+    const wname = w.kind === 'morl' ? 'real Morlet' : `complex Morlet (B = ${w.B}, C = 1)`;
+    q('.wv-big').textContent = `Strongest at ${sg(freqs[at[0]], 3)} Hz, ${sg(s.t[at[1]], 4)} s`;
+    const facts = [
+      fact('Wavelet', wname, `centre frequency ${sg(fc, 4)} cycles per unit; scale = centre frequency ÷ (frequency × time step)`),
+      fact('Frequencies', `${sg(freqs[nf - 1], 4)} to ${sg(freqs[0], 4)} Hz`, `${nf} rows, log spaced; scales ${sg(scales[0], 4)} to ${sg(scales[nf - 1], 4)} samples${note.length ? '; ' + note.join('; ') : ''}`),
+      fact('Signal', `${N.toLocaleString('en')} values at ${sg(s.fs, 6)} Hz`, `${sg(N / s.fs, 4)} s long`),
+    ];
+    q('.wv-facts').replaceChildren(...facts);
+    const cols = Math.min(N, 360), bin = N / cols;
+    const grid = mag.map((row) => Array.from({ length: cols }, (_, c) => { let m = 0; for (let t = Math.floor(c * bin); t < Math.min(N, Math.floor((c + 1) * bin) || 1); t++) m = Math.max(m, row[t]); return m; }));
+    const tEnd = s.t[N - 1] + dt;
+    const fig: Figure = { w: 380, h: 280, alt: `Scalogram: ${q('.wv-big').textContent}`, draw: (ctx, W, H, pal) => {
+      const l = 46, r = 50, top = 8, b = 34, pw2 = W - l - r, ph = H - top - b, rh = ph / nf, cw = pw2 / cols;
+      for (let i = 0; i < nf; i++) for (let c = 0; c < cols; c++) { ctx.fillStyle = colour(grid[i][c] / (mx || 1), pal); ctx.fillRect(l + c * cw, top + i * rh, cw + 0.6, rh + 0.6); }
+      // Cone of influence shading.
+      ctx.fillStyle = pal.red ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.45)';
+      for (let i = 0; i < nf; i++) { const e = Math.min(N / 2, efold * scales[i]) / N * pw2; ctx.fillRect(l, top + i * rh, e, rh); ctx.fillRect(l + pw2 - e, top + i * rh, e, rh); }
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(l, top, pw2, ph);
+      ctx.fillStyle = pal.muted; ctx.font = '10px system-ui, sans-serif';
+      // Frequency ticks (log).
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      const lf = (f: number) => top + (Math.log(f1 / f) / Math.log(f1 / f0)) * (ph - rh) + rh / 2;
+      for (let e = Math.floor(Math.log10(f0)); e <= Math.ceil(Math.log10(f1)); e++) for (const m of [1, 2, 5]) { const f = m * 10 ** e; if (f >= f0 * 0.999 && f <= f1 * 1.001) { ctx.fillText(sg(f, 3), l - 4, lf(f)); ctx.fillRect(l - 2, lf(f), 2, 0.8); } }
+      ctx.save(); ctx.translate(11, top + ph / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.fillText('Frequency (Hz)', 0, 0); ctx.restore();
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      const span = tEnd - s.t[0], st = (() => { const d = 10 ** Math.floor(Math.log10(span / 4)); return [1, 2, 5, 10].map((m) => m * d).find((m) => span / m <= 6)!; })();
+      for (let v = Math.ceil(s.t[0] / st) * st; v <= tEnd + 1e-9; v += st) ctx.fillText(String(+v.toPrecision(6)), l + ((v - s.t[0]) / span) * pw2, top + ph + 4);
+      ctx.fillText('Time (s)', l + pw2 / 2, top + ph + 18);
+      // Colour bar.
+      const bx = l + pw2 + 10;
+      for (let k = 0; k < 50; k++) { ctx.fillStyle = colour(1 - k / 49, pal); ctx.fillRect(bx, top + (k / 50) * ph, 10, ph / 50 + 0.6); }
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText(sg(mx, 2), bx + 12, top + 4); ctx.fillText('0', bx + 12, top + ph - 4);
+      ctx.save(); ctx.translate(bx + 30, top + ph / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.fillText(pw ? '|W|²' : '|W|', 0, 0); ctx.restore();
+    } };
+    paint(q<HTMLCanvasElement>('.wv-sfig'), fig);
+    figs[0] = fig;
+    cwtRows = [['frequency_Hz', ...s.t.map((t) => +t.toPrecision(10))], ...freqs.map((f, i) => [+f.toPrecision(8), ...Array.from(mag[i], (v) => +v.toPrecision(6))])];
+    report[0] = { title: q('.wv-big').textContent!, facts: factPairs(facts), figure: fig };
+  }
+
+  function doDwt() {
+    if (!sig0) return;
+    const s = sig0, N = s.x.length, wv = sel('.wv-dw'), lo = DWT_FILTERS[wv].lo, mode = sel('.wv-dm') as DwtMode, lv = +sel('.wv-lv');
+    const cs = wavedec(s.x, lo, lv, mode);
+    const parts = [{ name: 'Signal', c: s.x }, ...cs.slice(1).reverse().map((c, i) => ({ name: `D${i + 1}`, c })), { name: `A${lv}`, c: cs[0] }];
+    const energy = (a: ArrayLike<number>) => { let e = 0; for (let i = 0; i < a.length; i++) e += a[i] * a[i]; return e; };
+    const etot = cs.reduce((t, c) => t + energy(c), 0);
+    const t0 = s.t[0], span = N / s.fs;
+    const H = 46 * parts.length + 30;
+    const fig: Figure = { w: 380, h: H, alt: `${DWT_FILTERS[wv].name} decomposition, ${lv} levels`, draw: (ctx, W, Hh, pal) => {
+      const l = 34, r = 6, sh = 46;
+      ctx.font = '10px system-ui, sans-serif';
+      parts.forEach((p, k) => {
+        const top = 4 + k * sh, ph = sh - 8, n = p.c.length;
+        let lo2 = Infinity, hi2 = -Infinity; for (let i = 0; i < n; i++) { lo2 = Math.min(lo2, p.c[i]); hi2 = Math.max(hi2, p.c[i]); }
+        if (hi2 === lo2) { hi2 += 1; lo2 -= 1; }
+        const X = (i: number) => l + ((i + 0.5) / n) * (W - l - r), Y = (v: number) => top + ph - ((v - lo2) / (hi2 - lo2)) * ph;
+        ctx.strokeStyle = pal.grid; ctx.lineWidth = 0.8; ctx.strokeRect(l, top, W - l - r, ph);
+        if (lo2 < 0 && hi2 > 0) { ctx.beginPath(); ctx.moveTo(l, Y(0)); ctx.lineTo(W - r, Y(0)); ctx.stroke(); }
+        const e = envelope(Array.from({ length: n }, (_, i) => i), p.c, 400);
+        ctx.strokeStyle = k === 0 ? pal.ink : k === parts.length - 1 ? pal.accent2 : pal.accent; ctx.lineWidth = 1.1; ctx.beginPath();
+        e.x.forEach((i, j) => (j ? ctx.lineTo(X(i), Y(e.y[j])) : ctx.moveTo(X(i), Y(e.y[j]))));
+        ctx.stroke();
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(p.name, l - 5, top + ph / 2);
+      });
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      const st = (() => { const d = 10 ** Math.floor(Math.log10(span / 4)); return [1, 2, 5, 10].map((m) => m * d).find((m) => span / m <= 6)!; })();
+      const yb = 4 + parts.length * sh - 4;
+      for (let v = Math.ceil(t0 / st) * st; v <= t0 + span + 1e-9; v += st) ctx.fillText(String(+v.toPrecision(6)), l + ((v - t0) / span) * (W - l - r), yb + 2);
+      ctx.fillText('Time (s)', l + (W - l - r) / 2, yb + 14);
+    } };
+    paint(q<HTMLCanvasElement>('.wv-dfig'), fig);
+    figs[1] = fig;
+    const head = ['Part', 'Band (Hz)', 'Coefficients', 'Energy %'];
+    const rows = parts.slice(1).map((p, i) => {
+      const isA = i === parts.length - 2, lev = isA ? lv : i + 1;
+      const band = isA ? `0 to ${sg(s.fs / 2 ** (lv + 1), 4)}` : `${sg(s.fs / 2 ** (lev + 1), 4)} to ${sg(s.fs / 2 ** lev, 4)}`;
+      return [p.name, band, String(p.c.length), (100 * energy(p.c) / etot).toFixed(1)];
+    });
+    const tab = q<HTMLTableElement>('.wv-tab'); tab.replaceChildren();
+    const tr = (cells: string[], th = false) => { const r = document.createElement('tr'); cells.forEach((c, j) => { const e = document.createElement(th ? 'th' : 'td'); e.textContent = c; if (j > 1) e.className = 'r'; r.append(e); }); return r; };
+    tab.append(tr(head, true), ...rows.map((r) => tr(r)));
+    dwtRows = [['part', 'index', 'coefficient'], ...parts.slice(1).flatMap((p) => Array.from(p.c, (v, i) => [p.name, i, +v.toPrecision(12)]))];
+    report[1] = { title: `${DWT_FILTERS[wv].name}, ${lv} levels, ${mode === 'symmetric' ? 'symmetric' : 'periodic'} edges`, figure: fig, table: { head, rows, align: ['l', 'l', 'r', 'r'] }, note: 'Bands are the nominal octaves of each level; real filters overlap at the edges.' };
+  }
+
+  q('.wv-data').addEventListener('input', load); q('.wv-data').addEventListener('change', load);
+  root.querySelectorAll('.wv-mode, .wv-fs').forEach((i) => { i.addEventListener('input', load); i.addEventListener('change', load); });
+  root.querySelectorAll('.wv-cw, .wv-f0, .wv-f1, .wv-nf, .wv-col').forEach((i) => { i.addEventListener('input', doCwt); i.addEventListener('change', doCwt); });
+  q('.wv-dw').addEventListener('change', load);
+  root.querySelectorAll('.wv-dm, .wv-lv').forEach((i) => i.addEventListener('change', doDwt));
+  document.addEventListener('fibub:theme', () => { if (sig0) { paint(q<HTMLCanvasElement>('.wv-sfig'), figs[0]); paint(q<HTMLCanvasElement>('.wv-dfig'), figs[1]); } });
+  q('.wv-ccsv').addEventListener('click', () => save(new Blob([csv(cwtRows)], { type: 'text/csv' }), 'wavelet-scalogram.csv', 'text/csv'));
+  q('.wv-dcsv').addEventListener('click', () => save(new Blob([csv(dwtRows)], { type: 'text/csv' }), 'wavelet-coefficients.csv', 'text/csv'));
+  load();
+  wireDownloads(q('.dl'), () => ({ title: 'Wavelet transform', subtitle: q('.wv-big').textContent ?? '', file: 'wavelet', sections: report.filter(Boolean) }));
+</script>
+
+<style is:global>
+  .wvv select, .wvv input { max-width: 100%; }
+  .wvv textarea { width: 100%; }
+</style>
