@@ -1,0 +1,248 @@
+---
+// Linkage map calculator: mapping functions, ordering loci from pairwise recombination frequencies, and three-point
+// testcross analysis. All example data are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const pairs = 'locus 1\tlocus 2\tRF\nA\tD\t0.12\nA\tB\t0.20\nA\tE\t0.31\nA\tC\t0.34\nD\tB\t0.08\nD\tE\t0.20\nD\tC\t0.26\nB\tE\t0.13\nB\tC\t0.20\nE\tC\t0.08';
+const tp = '+ + +\t366\na b c\t356\na + +\t68\n+ b c\t72\n+ b +\t61\na + c\t57\n+ + c\t9\na b +\t11';
+---
+<div class="ax lkm">
+  <div class="ax-card">
+    <h2>1. Recombination frequency and map distance</h2>
+    <div class="ax-grid">
+      <label>Convert <select class="lk-dir"><option value="rf" selected>Recombination frequency → cM</option><option value="cm">cM → recombination frequency</option></select></label>
+      <label><span class="lk-vl">Recombination frequency (0 to 0.5)</span> <input class="lk-v" inputmode="decimal" value="0.2" /></label>
+    </div>
+    <p class="ax-help">You can type a frequency as a fraction (0.2) or a percentage (20 %); a number above 0.5 is read as a percentage. Haldane assumes crossovers happen independently (no interference); Kosambi allows for interference, as in most real chromosomes. Without a mapping function, 1 % recombination = 1 cM, which only holds for short distances.</p>
+    <p class="ax-err lk-cerr" hidden></p>
+    <div class="lk-cout">
+      <div class="ax-scroll"><table class="lk-ctab"></table></div>
+      <canvas class="ax-fig lk-cfig"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>2. Map from pairwise recombination frequencies</h2>
+    <label>One row per pair of loci: locus, locus, recombination frequency. Pairs you did not measure can be left out.
+      <textarea class="lk-pairs" rows="8" spellcheck="false" wrap="off">{pairs}</textarea></label>
+    <DataFile target=".lk-pairs" maxCols={3} maxRows={500} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Frequencies given as <select class="lk-unit"><option value="frac" selected>Fractions (0 to 0.5)</option><option value="pct">Percentages (0 to 50)</option></select></label>
+      <label>Mapping function <select class="lk-fn"><option value="kosambi" selected>Kosambi</option><option value="haldane">Haldane</option><option value="none">None (1 % = 1 cM)</option></select></label>
+      <label>Best order has the smallest <select class="lk-crit"><option value="sarf" selected>Sum of adjacent RFs (SARF)</option><option value="sad">Sum of adjacent map distances</option></select></label>
+    </div>
+    <p class="ax-help">Every possible order is compared for up to 9 loci; above that (up to 20) a nearest-neighbour start with 2-opt improvements is used, which is usually but not always the best order. Missing pairs count as unlinked (0.5) when ordering. The example is made up.</p>
+    <p class="ax-err lk-merr" hidden></p>
+    <div class="lk-mout" hidden>
+      <p class="ax-big lk-mbig"></p>
+      <dl class="ax-facts lk-mfacts"></dl>
+      <p class="ax-err lk-mwarn" hidden></p>
+      <canvas class="ax-fig lk-mfig"></canvas>
+      <div class="ax-scroll"><table class="lk-mtab"></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small lk-mcsv">Map (CSV)</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>3. Three-point testcross</h2>
+    <label>The 8 progeny classes, one per line: the three alleles (genes in the same order on every line, wild type as +), then the count.
+      <textarea class="lk-tp" rows="8" spellcheck="false" wrap="off">{tp}</textarea></label>
+    <p class="ax-help">From a cross of a triple heterozygote with a triple recessive tester. The two biggest classes are the parental types and the two smallest are usually the double crossovers; the gene whose alleles swap between them is in the middle. The example is made up.</p>
+    <p class="ax-err lk-terr" hidden></p>
+    <div class="lk-tout" hidden>
+      <p class="ax-big lk-tbig"></p>
+      <dl class="ax-facts lk-tfacts"></dl>
+      <p class="ax-err lk-twarn" hidden></p>
+      <canvas class="ax-fig lk-tfig"></canvas>
+      <div class="ax-scroll"><table class="lk-ttab"></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small lk-tcsv">Classes (CSV)</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <Downloads label="Download all three" />
+  </div>
+</div>
+
+<script>
+  import { rfToCm, cmToRf, orderLoci, threePoint, type MapFn, type Pair, type Tp } from '../../lib/sci/linkmap';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+  import { num, parseTable, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.lkm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const FN: Record<MapFn, string> = { haldane: 'Haldane', kosambi: 'Kosambi', none: 'no mapping function' };
+  const cm = (x: number) => (Number.isFinite(x) ? x.toFixed(2) : '–');
+  const figs: Record<string, Figure | null> = { c: null, m: null, t: null };
+  const secs: Record<string, Section[]> = { c: [], m: [], t: [] };
+  let mapCsv: string[][] = [], tpCsv: string[][] = [];
+
+  function table(sel: string, head: string[], rows: string[][], right: number[] = []) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+  const factsOf = (sel: string) => [...q(sel).children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+
+  /** A chromosome map: a bar with each locus at its position, names and positions alternating above and below. */
+  function mapFigure(names: string[], pos: number[], alt: string): Figure {
+    const w = Math.round(Math.min(640, Math.max(320, root.clientWidth - 40))), h = 150;
+    return { w, h, alt, draw: (ctx: CanvasRenderingContext2D, W: number, _H: number, pal: Palette) => {
+      const x0 = 40, x1 = W - 40, span = Math.max(1e-9, pos[pos.length - 1] - pos[0]), X = (v: number) => x0 + ((v - pos[0]) / span) * (x1 - x0), y = 75;
+      ctx.fillStyle = pal.grid; ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.roundRect?.(x0 - 8, y - 7, x1 - x0 + 16, 14, 7); ctx.fill(); ctx.stroke();
+      ctx.font = '600 14px system-ui, sans-serif'; ctx.textAlign = 'center';
+      names.forEach((nm, k) => {
+        const x = X(pos[k]), up = k % 2 === 0;
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, y - 12); ctx.lineTo(x, y + 12); ctx.stroke();
+        ctx.fillStyle = pal.ink; ctx.font = '600 14px system-ui, sans-serif'; ctx.textBaseline = up ? 'bottom' : 'top';
+        ctx.fillText(nm, x, up ? y - 30 : y + 30);
+        ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif';
+        ctx.fillText(`${pos[k].toFixed(1)} cM`, x, up ? y - 15 : y + 15);
+      });
+    } };
+  }
+
+  // ---------- 1. Convert ----------
+  function convert() {
+    const err = (m: string) => { q('.lk-cerr').textContent = m; q('.lk-cerr').hidden = false; q('.lk-cout').hidden = true; figs.c = null; secs.c = []; };
+    q('.lk-cerr').hidden = true;
+    const dir = q<HTMLSelectElement>('.lk-dir').value, raw = q<HTMLInputElement>('.lk-v').value;
+    q('.lk-vl').textContent = dir === 'rf' ? 'Recombination frequency (0 to 0.5)' : 'Map distance (cM)';
+    let v = num(raw.replace('%', ''));
+    if (!Number.isFinite(v)) return err('Type a number.');
+    let rows: string[][], mark: number;
+    if (dir === 'rf') {
+      if (raw.includes('%') || v > 0.5) v /= 100;
+      if (!(v >= 0 && v < 0.5)) return err('A recombination frequency runs from 0 up to (but not including) 0.5, or 0 to 50 %. At 0.5 the loci are unlinked and have no map distance.');
+      rows = (['haldane', 'kosambi', 'none'] as MapFn[]).map((f) => [FN[f][0].toUpperCase() + FN[f].slice(1), `${cm(rfToCm(v, f))} cM`]);
+      table('.lk-ctab', [`RF ${v} (${(100 * v).toFixed(2).replace(/\.?0+$/, '')} %)`, 'Map distance'], rows, [1]);
+      mark = rfToCm(v, 'haldane');
+    } else {
+      if (!(v >= 0)) return err('A map distance cannot be negative.');
+      rows = (['haldane', 'kosambi', 'none'] as MapFn[]).map((f) => { const r = cmToRf(v, f); return [FN[f][0].toUpperCase() + FN[f].slice(1), Number.isFinite(r) ? `${r.toFixed(4)} (${(100 * r).toFixed(2)} %)` : 'over 0.5: not defined']; });
+      table('.lk-ctab', [`${v} cM`, 'Recombination frequency'], rows, [1]);
+      mark = v;
+    }
+    const xs = Array.from({ length: 151 }, (_, i) => i);
+    figs.c = chartFigure({ w: 560, h: 320, xMin: 0, xMax: 150, yMin: 0, yMax: 0.55, xLabel: 'Map distance (cM)', yLabel: 'Recombination frequency', legend: 'below', series: [
+      { name: 'Haldane', x: xs, y: xs.map((d) => cmToRf(d, 'haldane')), mode: 'line' },
+      { name: 'Kosambi', x: xs, y: xs.map((d) => cmToRf(d, 'kosambi')), mode: 'line', dash: [6, 3] },
+      { name: '1 % = 1 cM', x: [0, 50], y: [0, 0.5], mode: 'line', dash: [2, 3] },
+    ], marks: [{ kind: 'hline', at: 0.5, dash: [3, 3], label: 'unlinked' }, ...(dir === 'rf' ? [{ kind: 'hline' as const, at: v, label: `RF ${v}` }] : [{ kind: 'vline' as const, at: Math.min(150, mark), label: `${v} cM` }])] }, 'Mapping functions');
+    paint(q<HTMLCanvasElement>('.lk-cfig'), figs.c);
+    q('.lk-cout').hidden = false;
+    secs.c = [{ title: 'Mapping functions', table: { head: [...q('.lk-ctab').querySelectorAll('th')].map((t) => t.textContent!), rows, align: ['l', 'r'] }, figure: figs.c }];
+  }
+
+  // ---------- 2. Map ----------
+  function map() {
+    const err = (m: string) => { q('.lk-merr').textContent = m; q('.lk-merr').hidden = false; q('.lk-mout').hidden = true; figs.m = null; secs.m = []; mapCsv = []; };
+    q('.lk-merr').hidden = true;
+    const pct = q<HTMLSelectElement>('.lk-unit').value === 'pct', fn = q<HTMLSelectElement>('.lk-fn').value as MapFn, crit = q<HTMLSelectElement>('.lk-crit').value as 'sarf' | 'sad';
+    const rows = parseTable(q<HTMLTextAreaElement>('.lk-pairs').value).filter((r) => r.length >= 3 && r[2].trim() !== '' && Number.isFinite(num(r[2].replace('%', ''))));
+    if (!rows.length) return err('Give one row per pair: locus, locus, recombination frequency.');
+    const pairs: Pair[] = [], seen = new Set<string>();
+    for (const r of rows) {
+      const a = r[0].trim(), b = r[1].trim(); let v = num(r[2].replace('%', ''));
+      if (!a || !b) return err('Each row needs two locus names.');
+      if (a === b) return err(`A locus cannot be paired with itself (${a}).`);
+      if (pct) v /= 100;
+      if (!(v >= 0 && v <= 0.5)) return err(`The frequency for ${a} and ${b} is ${r[2].trim()}${pct ? ' %' : ''}; it must be from 0 to ${pct ? '50 %' : '0.5'}.${!pct && v > 0.5 && v <= 50 ? ' If these are percentages, switch "Frequencies given as" to percentages.' : ''}`);
+      const key = [a, b].sort().join('\u0000');
+      if (seen.has(key)) return err(`The pair ${a} and ${b} is given twice.`);
+      seen.add(key); pairs.push({ a, b, r: v });
+    }
+    const loci = new Set(pairs.flatMap((p) => [p.a, p.b]));
+    if (loci.size < 3) return err('Give pairs for at least three loci to order them.');
+    if (loci.size > 20) return err(`Up to 20 loci, please (found ${loci.size}).`);
+    const o = orderLoci(pairs, crit, fn);
+    if (o.missing.length) return err(`In the best order, ${o.missing.map(([a, b]) => `${a} and ${b}`).join('; ')} sit side by side, but no frequency is given for ${o.missing.length > 1 ? 'those pairs' : 'that pair'}. Add ${o.missing.length > 1 ? 'them' : 'it'} to place the loci on one map.`);
+    const R = (a: string, b: string) => pairs.find((p) => (p.a === a && p.b === b) || (p.a === b && p.b === a))!.r;
+    const adj = o.order.slice(1).map((b, k) => R(o.order[k], b));
+    if (adj.some((r) => r >= 0.5)) return err('Some neighbours in the best order are unlinked (RF 0.5), so the loci fall into more than one linkage group. Map each group separately.');
+    const total = o.positions[o.positions.length - 1];
+    q('.lk-mbig').textContent = `${o.order.join(' – ')}: ${total.toFixed(1)} cM`;
+    q('.lk-mfacts').replaceChildren(fact('Loci', String(o.order.length), `${pairs.length} pairs given`), fact('Search', o.exact ? `all ${o.tried.toLocaleString('en')} orders` : 'nearest neighbour + 2-opt', o.exact ? (o.ties > 1 ? `${o.ties} orders tie for best` : 'one best order') : 'may not be the very best'), fact(crit === 'sarf' ? 'SARF' : 'Sum of adjacent distances', crit === 'sarf' ? o.score.toFixed(3) : `${o.score.toFixed(2)} cM`), fact('Map length', `${total.toFixed(2)} cM`, FN[fn]));
+    const warn: string[] = [];
+    if (o.exact && o.ties > 1) warn.push(`${o.ties} orders fit equally well; the first is shown. More data are needed to tell them apart.`);
+    for (let k = 0; k + 2 < o.order.length; k++) {
+      const a = o.order[k], c = o.order[k + 2], rac = pairs.find((p) => (p.a === a && p.b === c) || (p.a === c && p.b === a))?.r;
+      if (rac !== undefined && rac < Math.max(adj[k], adj[k + 1]) - 1e-12) warn.push(`${a}–${c} (${rac}) is closer than one of the steps between them, which does not fit this order well.`);
+    }
+    q('.lk-mwarn').textContent = warn.join(' '); q('.lk-mwarn').hidden = !warn.length;
+    figs.m = mapFigure(o.order, o.positions, `Linkage map: ${q('.lk-mbig').textContent}`);
+    paint(q<HTMLCanvasElement>('.lk-mfig'), figs.m);
+    const head = ['Locus', 'Position (cM)', 'RF to next', 'Distance to next (cM)'];
+    const trows = o.order.map((n, k) => [n, cm(o.positions[k]), k < adj.length ? String(adj[k]) : '', k < adj.length ? cm(o.gaps[k]) : '']);
+    table('.lk-mtab', head, trows, [1, 2, 3]);
+    mapCsv = [['locus', 'position_cM', 'rf_to_next', 'cM_to_next'], ...trows];
+    secs.m = [{ title: `Linkage map: ${q('.lk-mbig').textContent}`, text: [`Order with the smallest ${crit === 'sarf' ? 'sum of adjacent recombination frequencies (SARF)' : 'sum of adjacent map distances'}; distances by ${FN[fn]}.`, ...warn], facts: factsOf('.lk-mfacts'), figure: figs.m, table: { head, rows: trows, align: ['l', 'r', 'r', 'r'] } }];
+    q('.lk-mout').hidden = false;
+  }
+
+  // ---------- 3. Three-point ----------
+  function three() {
+    const err = (m: string) => { q('.lk-terr').textContent = m; q('.lk-terr').hidden = false; q('.lk-tout').hidden = true; figs.t = null; secs.t = []; tpCsv = []; };
+    q('.lk-terr').hidden = true;
+    const lines = q<HTMLTextAreaElement>('.lk-tp').value.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const cls: { alleles: string[]; n: number }[] = [];
+    for (const l of lines) {
+      const tk = l.split(/[\s,;]+/).filter(Boolean), n = num(tk[tk.length - 1]);
+      if (!Number.isFinite(n)) continue; // header line
+      if (tk.length !== 4) return err(`"${l}" should be three alleles and a count, such as "a + c 57".`);
+      if (!(Number.isInteger(n) && n >= 0)) return err(`Counts must be whole numbers, 0 or more ("${l}").`);
+      cls.push({ alleles: tk.slice(0, 3), n });
+    }
+    let t: Tp;
+    try { t = threePoint(cls); } catch (e) { return err((e as Error).message); }
+    const [A, B, C] = t.order, g = t.genes, type = (al: string[]) => {
+      const p1 = t.parental[0], r1 = (al[A] === p1[A]) !== (al[B] === p1[B]), r2 = (al[B] === p1[B]) !== (al[C] === p1[C]);
+      return r1 && r2 ? 'Double crossover' : r1 ? `Single crossover, ${g[A]}–${g[B]}` : r2 ? `Single crossover, ${g[B]}–${g[C]}` : 'Parental';
+    };
+    q('.lk-tbig').textContent = `Gene order: ${g[A]} – ${g[B]} – ${g[C]}`;
+    const pc = (x: number) => `${(100 * x).toFixed(1)} %`;
+    q('.lk-tfacts').replaceChildren(
+      fact('Progeny', t.total.toLocaleString('en')),
+      fact('Parental classes', t.parental.map((x) => x.join(' ')).join(' and '), 'the two largest'),
+      fact('Double crossovers', t.dco.map((x) => x.join(' ')).join(' and '), `${t.counts.dco} progeny; ${g[B]} is the gene that swaps, so it is in the middle`),
+      fact(`RF ${g[A]}–${g[B]}`, t.rf.ab.toFixed(4), `${t.counts.region1} single + ${t.counts.dco} double crossovers = ${t.cm.ab.toFixed(1)} cM`),
+      fact(`RF ${g[B]}–${g[C]}`, t.rf.bc.toFixed(4), `${t.counts.region2} single + ${t.counts.dco} double crossovers = ${t.cm.bc.toFixed(1)} cM`),
+      fact(`${g[A]}–${g[C]} map distance`, `${t.cm.ac.toFixed(1)} cM`, `sum of the two intervals; the direct RF is ${t.rf.ac.toFixed(4)}, which misses the double crossovers`),
+      fact('Expected double crossovers', t.expectedDco.toFixed(2), `${t.rf.ab.toFixed(4)} × ${t.rf.bc.toFixed(4)} × ${t.total}`),
+      fact('Coefficient of coincidence', Number.isFinite(t.coc) ? t.coc.toFixed(3) : '–', 'observed ÷ expected double crossovers'),
+      fact('Interference', Number.isFinite(t.interference) ? t.interference.toFixed(3) : '–', '1 − coincidence'),
+    );
+    const warn: string[] = [];
+    const dcoN = cls.filter((c) => type(c.alleles) === 'Double crossover').map((c) => c.n), parN = cls.filter((c) => type(c.alleles) === 'Parental').map((c) => c.n);
+    if (Math.max(...dcoN) > Math.min(...cls.filter((c) => type(c.alleles).startsWith('Single')).map((c) => c.n))) warn.push('Some double-crossover class is bigger than a single-crossover class, which is unusual: check the counts and the allele order on each line.');
+    if (Math.min(...parN) < Math.max(...cls.filter((c) => type(c.alleles) !== 'Parental').map((c) => c.n))) warn.push('The two parental classes are not the two largest, so the genes may be unlinked or the data mixed up.');
+    if (t.rf.ab >= 0.5 || t.rf.bc >= 0.5) warn.push('An RF of 0.5 or more means those genes are not linked.');
+    q('.lk-twarn').textContent = warn.join(' '); q('.lk-twarn').hidden = !warn.length;
+    figs.t = mapFigure([g[A], g[B], g[C]], [0, t.cm.ab, t.cm.ac], `Three-point map: ${g[A]} – ${g[B]} – ${g[C]}`);
+    paint(q<HTMLCanvasElement>('.lk-tfig'), figs.t);
+    const head = ['Class', 'Count', 'Share', 'Type'];
+    const rows = cls.slice().sort((x, y) => y.n - x.n).map((c) => [c.alleles.join(' '), String(c.n), pc(c.n / t.total), type(c.alleles)]);
+    table('.lk-ttab', head, rows, [1, 2]);
+    tpCsv = [['class', 'count', 'type'], ...rows.map((r) => [r[0], r[1], r[3]])];
+    secs.t = [{ title: `Three-point testcross: ${q('.lk-tbig').textContent}`, text: warn, facts: factsOf('.lk-tfacts'), figure: figs.t, table: { head, rows, align: ['l', 'r', 'r', 'l'] } }];
+    q('.lk-tout').hidden = false;
+  }
+
+  const wire = (sel: string, fn: () => void) => { let tm = 0; root.querySelectorAll(sel).forEach((i) => { const go = () => { clearTimeout(tm); tm = window.setTimeout(fn, 200); }; i.addEventListener('input', go); i.addEventListener('change', go); }); };
+  wire('.lk-dir, .lk-v', convert); wire('.lk-pairs, .lk-unit, .lk-fn, .lk-crit', map); wire('.lk-tp', three);
+  q('.lk-mcsv').addEventListener('click', () => { if (mapCsv.length) save(new TextEncoder().encode(toCsv(mapCsv)), 'linkage-map.csv', 'text/csv'); });
+  q('.lk-tcsv').addEventListener('click', () => { if (tpCsv.length) save(new TextEncoder().encode(toCsv(tpCsv)), 'three-point-classes.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (figs.c) paint(q<HTMLCanvasElement>('.lk-cfig'), figs.c); if (figs.m) paint(q<HTMLCanvasElement>('.lk-mfig'), figs.m); if (figs.t) paint(q<HTMLCanvasElement>('.lk-tfig'), figs.t); });
+  convert(); map(); three();
+  wireDownloads(q('.dl'), () => ({ title: 'Linkage map calculator', subtitle: q('.lk-mbig').textContent ?? '', file: 'linkage-map', sections: [...secs.c, ...secs.m, ...secs.t] }));
+</script>
+
+<style is:global>
+  .lkm select { max-width: 100%; }
+  .lkm .lk-ttab td:nth-child(-n+3) { white-space: nowrap; }
+  .lkm .lk-tp, .lkm .lk-pairs { font-family: ui-monospace, Menlo, Consolas, monospace; }
+</style>
