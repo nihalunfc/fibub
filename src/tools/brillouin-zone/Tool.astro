@@ -1,0 +1,233 @@
+---
+// Brillouin zone and reciprocal lattice viewer for 2D and 3D lattices. Example lattice constants are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax bzv">
+  <div class="ax-card">
+    <h2>Lattice</h2>
+    <div class="ax-grid">
+      <label>Lattice <select class="bz-kind">
+        <optgroup label="2D">
+          <option value="square">Square</option>
+          <option value="rect">Rectangular</option>
+          <option value="crect">Centred rectangular</option>
+          <option value="hex2">Hexagonal (triangular)</option>
+          <option value="oblique">Oblique</option>
+        </optgroup>
+        <optgroup label="3D">
+          <option value="sc">Simple cubic</option>
+          <option value="fcc" selected>Face-centred cubic (fcc)</option>
+          <option value="bcc">Body-centred cubic (bcc)</option>
+          <option value="hex">Hexagonal</option>
+          <option value="tet">Tetragonal</option>
+          <option value="orth">Orthorhombic</option>
+          <option value="tric">Triclinic (any cell)</option>
+        </optgroup>
+      </select></label>
+      <label><span>a (Å)</span> <input class="bz-a" type="text" inputmode="decimal" value="4" /></label>
+      <label class="bz-pb" hidden><span>b (Å)</span> <input class="bz-b" type="text" inputmode="decimal" value="5" /></label>
+      <label class="bz-pc" hidden><span>c (Å)</span> <input class="bz-c" type="text" inputmode="decimal" value="6" /></label>
+      <label class="bz-pal" hidden><span>α (°), between b and c</span> <input class="bz-al" type="text" inputmode="decimal" value="80" /></label>
+      <label class="bz-pbe" hidden><span>β (°), between a and c</span> <input class="bz-be" type="text" inputmode="decimal" value="95" /></label>
+      <label class="bz-pga" hidden><span>γ (°), between a and b</span> <input class="bz-ga" type="text" inputmode="decimal" value="105" /></label>
+      <label>Reciprocal convention <select class="bz-conv">
+        <option value="phys" selected>Physics: aᵢ·bⱼ = 2π δᵢⱼ</option>
+        <option value="cryst">Crystallography: aᵢ·bⱼ = δᵢⱼ</option>
+      </select></label>
+    </div>
+    <div class="bz-view">
+      <div class="ax-grid" style="margin-top:10px">
+        <label><span>Turn around (°): <b class="bz-azv">30</b></span> <input class="bz-az" type="range" min="0" max="360" step="1" value="30" /></label>
+        <label><span>Tilt (°): <b class="bz-elv">20</b></span> <input class="bz-el" type="range" min="-90" max="90" step="1" value="20" /></label>
+      </div>
+    </div>
+    <p class="ax-help">For fcc, bcc and the centred rectangular lattice, a (and b) are the conventional cell edges; the tool uses the primitive cell inside. Lengths in ångström (1 Å = 0.1 nm). The example values are made up.</p>
+    <p class="ax-err bz-err" hidden></p>
+  </div>
+
+  <div class="ax-card bz-out">
+    <h2>First Brillouin zone</h2>
+    <p class="ax-big bz-big"></p>
+    <dl class="ax-facts bz-facts"></dl>
+    <canvas class="ax-fig bz-fig"></canvas>
+    <canvas class="ax-fig bz-fig2"></canvas>
+    <h3 style="margin:14px 0 6px;font-size:16px">High-symmetry points</h3>
+    <div class="ax-scroll"><table class="bz-pts"></table></div>
+    <h3 style="margin:14px 0 6px;font-size:16px">Primitive and reciprocal vectors</h3>
+    <div class="ax-scroll"><table class="bz-vecs"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small bz-csv">Zone corners (CSV)</button>
+      <button type="button" class="btn secondary small bz-pcsv">Points and vectors (CSV)</button>
+    </div>
+    <p class="ax-help">The first Brillouin zone is the set of wavevectors closer to Γ (k = 0) than to any other reciprocal lattice point: the Wigner-Seitz cell of the reciprocal lattice. Its faces are the Bragg planes, halfway to the nearest reciprocal lattice points. Point names follow the usual textbook (Setyawan-Curtarolo style) settings.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { primitive, reciprocal, wsCell2, wsCell3, relevant, highSym, toCart, tricValid, norm, dot, IS2D, type LatticeKind, type V3 } from '../../lib/sci/phbz';
+  import { paint, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.bzv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const sg = (x: number, d = 4) => { if (Math.abs(x) < 1e-10) return '0'; const t = sig(x, d); return t.includes('×') || !t.includes('.') ? t : t.replace(/0+$/, '').replace(/\.$/, ''); };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const fr = (x: number) => { const m: Record<string, string> = { '0': '0', '0.5': '½', '-0.5': '−½', '0.25': '¼', '0.75': '¾', '0.375': '⅜', '0.625': '⅝' }; const k = String(+x.toFixed(6)); if (m[k]) return m[k]; if (Math.abs(x - 1 / 3) < 1e-9) return '⅓'; if (Math.abs(x - 2 / 3) < 1e-9) return '⅔'; return sg(x, 3); };
+  const angle = (u: V3, v: V3) => (Math.acos(Math.max(-1, Math.min(1, dot(u, v) / (norm(u) * norm(v))))) * 180) / Math.PI;
+  const NAMES: Record<string, string> = { sc: 'Cube', tet: 'Square prism', orth: 'Rectangular box', fcc: 'Truncated octahedron', bcc: 'Rhombic dodecahedron', hex: 'Hexagonal prism', square: 'Square', rect: 'Rectangle', hex2: 'Regular hexagon' };
+  let figs: [string, Figure][] = [], report: Section[] = [], cornerRows: (string | number)[][] = [], pointRows: (string | number)[][] = [];
+
+  function show(kind: LatticeKind) {
+    const need: Record<string, string[]> = { rect: ['b'], crect: ['b'], oblique: ['b', 'ga'], hex: ['c'], tet: ['c'], orth: ['b', 'c'], tric: ['b', 'c', 'al', 'be', 'ga'] };
+    const n = need[kind] ?? [];
+    for (const p of ['b', 'c', 'al', 'be', 'ga']) q(`.bz-p${p}`).hidden = !n.includes(p);
+    q('.bz-view').hidden = IS2D(kind);
+    q('.bz-azv').textContent = q<HTMLInputElement>('.bz-az').value; q('.bz-elv').textContent = q<HTMLInputElement>('.bz-el').value;
+  }
+
+  const arrow = (ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, color: string) => {
+    ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 1.6; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    const a = Math.atan2(y1 - y0, x1 - x0), h = 7;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - h * Math.cos(a - 0.4), y1 - h * Math.sin(a - 0.4)); ctx.lineTo(x1 - h * Math.cos(a + 0.4), y1 - h * Math.sin(a + 0.4)); ctx.closePath(); ctx.fill();
+  };
+  const label = (ctx: CanvasRenderingContext2D, s: string, x: number, y: number, pal: Palette, color = pal.ink) => {
+    ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+    ctx.lineWidth = 3; ctx.strokeStyle = pal.bg; ctx.strokeText(s, x + 4, y - 2); ctx.fillStyle = color; ctx.fillText(s, x + 4, y - 2);
+  };
+
+  function fig2(title: string, b1: V3, b2: V3, pts: [string, V3][], unit: string, vec: string): Figure {
+    const C = wsCell2(b1, b2), G = relevant([b1, b2], 4);
+    return { w: 380, h: 330, alt: title, draw: (ctx, W, H, pal) => {
+      const R = Math.max(norm(b1), norm(b2), ...C.vertices.map((v) => Math.hypot(v[0], v[1]))) * 1.25, S = Math.min(W, H - 24) / (2 * R), cx = W / 2, cy = (H - 24) / 2 + 4;
+      const X = (x: number) => cx + x * S, Y = (y: number) => cy - y * S;
+      // Bragg lines: perpendicular bisectors of the relevant vectors.
+      ctx.strokeStyle = pal.grid; ctx.lineWidth = 1;
+      for (const g of G) { const m = [g[0] / 2, g[1] / 2], d = [-g[1], g[0]], l = (3 * R) / Math.hypot(d[0], d[1]); ctx.beginPath(); ctx.moveTo(X(m[0] - d[0] * l), Y(m[1] - d[1] * l)); ctx.lineTo(X(m[0] + d[0] * l), Y(m[1] + d[1] * l)); ctx.stroke(); }
+      ctx.beginPath(); C.vertices.forEach((v, i) => (i ? ctx.lineTo(X(v[0]), Y(v[1])) : ctx.moveTo(X(v[0]), Y(v[1])))); ctx.closePath();
+      ctx.globalAlpha = 0.12; ctx.fillStyle = pal.accent; ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = pal.muted;
+      for (let i = -6; i <= 6; i++) for (let j = -6; j <= 6; j++) { const x = i * b1[0] + j * b2[0], y = i * b1[1] + j * b2[1]; if (Math.abs(x) < R && Math.abs(y) < R * 0.95) { ctx.beginPath(); ctx.arc(X(x), Y(y), 3, 0, 7); ctx.fill(); } }
+      arrow(ctx, X(0), Y(0), X(b1[0]), Y(b1[1]), pal.accent2); label(ctx, `${vec}₁`, X(b1[0]), Y(b1[1]), pal, pal.accent2);
+      arrow(ctx, X(0), Y(0), X(b2[0]), Y(b2[1]), pal.accent2); label(ctx, `${vec}₂`, X(b2[0]), Y(b2[1]), pal, pal.accent2);
+      for (const [n, k] of pts) { ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(X(k[0]), Y(k[1]), 4, 0, 7); ctx.fill(); label(ctx, n, X(k[0]), Y(k[1]), pal, pal.accent); }
+      ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+      ctx.fillText(`${title} (${unit}); scale: ${sg(R, 2)} ${unit} to the edge`, 6, H - 4);
+    } };
+  }
+
+  function fig3(B: [V3, V3, V3], pts: [string, V3][], unit: string): Figure {
+    const C = wsCell3(B);
+    return { w: 380, h: 360, alt: 'The first Brillouin zone in 3D, with the reciprocal vectors and high-symmetry points', draw: (ctx, W, H, pal) => {
+      const az = (val('.bz-az') * Math.PI) / 180, el = (val('.bz-el') * Math.PI) / 180;
+      const view = (p: V3): V3 => { const x = p[0] * Math.cos(az) + p[1] * Math.sin(az), y = -p[0] * Math.sin(az) + p[1] * Math.cos(az); return [x, p[2] * Math.cos(el) + y * Math.sin(el), -y * Math.cos(el) + p[2] * Math.sin(el)]; };
+      const R = Math.max(...B.map(norm), ...C.vertices.map(norm)) * 1.1, S = Math.min(W, H - 20) / (2 * R), cx = W / 2, cy = (H - 20) / 2;
+      const P = (p: V3) => { const v = view(p); return [cx + v[0] * S, cy - v[1] * S] as [number, number]; };
+      const front = C.faces.map((f) => view(f.g)[2] > 1e-12);
+      // Faces, back to front.
+      C.faces.map((f, i) => ({ f, i, z: view(f.g)[2] })).sort((a, b) => a.z - b.z).forEach(({ f, i }) => {
+        if (!front[i]) return;
+        ctx.beginPath(); f.idx.forEach((k, j) => { const [x, y] = P(C.vertices[k]); if (j) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); ctx.closePath();
+        ctx.globalAlpha = 0.1; ctx.fillStyle = pal.accent; ctx.fill(); ctx.globalAlpha = 1;
+      });
+      const faceOf = (a: number, b: number) => C.faces.map((f, i) => [f, i] as const).filter(([f]) => f.idx.includes(a) && f.idx.includes(b)).map(([, i]) => i);
+      for (const [a, b] of C.edges) {
+        const vis = faceOf(a, b).some((i) => front[i]);
+        const [x0, y0] = P(C.vertices[a]), [x1, y1] = P(C.vertices[b]);
+        ctx.strokeStyle = vis ? pal.ink : pal.muted; ctx.lineWidth = vis ? 1.8 : 1; ctx.setLineDash(vis ? [] : [3, 3]);
+        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      const o = P([0, 0, 0]);
+      B.forEach((b, i) => { const [x, y] = P(b); arrow(ctx, o[0], o[1], x, y, pal.accent2); label(ctx, `b${'₁₂₃'[i]}`, x, y, pal, pal.accent2); });
+      for (const [n, k] of pts) { const [x, y] = P(k); ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(x, y, 3.5, 0, 7); ctx.fill(); label(ctx, n, x, y, pal, pal.accent); }
+      ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+      ctx.fillText(`Hidden edges dashed. Units ${unit}.`, 6, H - 4);
+    } };
+  }
+
+  function calc() {
+    const kind = sel('.bz-kind') as LatticeKind; show(kind);
+    const err = q('.bz-err'), out = q('.bz-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; figs = []; report = []; cornerRows = []; pointRows = []; };
+    const a = val('.bz-a'), b = val('.bz-b'), c = val('.bz-c'), al = val('.bz-al'), be = val('.bz-be'), ga = val('.bz-ga');
+    const two = IS2D(kind);
+    const lens = [a, ...(!q('.bz-pb').hidden ? [b] : []), ...(!q('.bz-pc').hidden ? [c] : [])];
+    if (!lens.every((x) => x > 0 && x <= 1000)) return fail('Give each cell length in Å, greater than 0 (up to 1000).');
+    if (Math.max(...lens) / Math.min(...lens) > 4) return fail('Keep the cell lengths within a factor of 4 of each other, so the zone can be built reliably.');
+    if (kind === 'oblique' && !(ga >= 30 && ga <= 150)) return fail('Give γ between 30° and 150°.');
+    if (kind === 'tric') {
+      if (![al, be, ga].every((x) => x >= 50 && x <= 130)) return fail('Give the angles between 50° and 130°.');
+      if (!tricValid(al, be, ga)) return fail('These three angles cannot close a cell: one angle is larger than the other two together. Change one of them.');
+    }
+    err.hidden = true; out.hidden = false;
+    const f = sel('.bz-conv') === 'phys' ? 2 * Math.PI : 1, unit = 'Å⁻¹';
+    const A = primitive(kind, { a, b, c, alpha: al, beta: be, gamma: ga }), { B, vol } = reciprocal(A, f);
+    const hs = highSym(kind).map(([n, fc]) => [n, fc, toCart(B, fc)] as [string, number[], V3]);
+    const facts: HTMLElement[] = [];
+    const vecRows: string[][] = [];
+    const dim = two ? 2 : 3, sub = '₁₂₃';
+    for (let i = 0; i < dim; i++) vecRows.push([`a${sub[i]} (Å)`, ...A[i].slice(0, dim).map((x) => sg(x, 5)), sg(norm(A[i]), 5)]);
+    for (let i = 0; i < dim; i++) vecRows.push([`b${sub[i]} (${unit})`, ...B[i].slice(0, dim).map((x) => sg(x, 5)), sg(norm(B[i]), 5)]);
+    if (two) {
+      const C = wsCell2(B[0], B[1]), G = relevant([B[0], B[1]], 4), Gmin = Math.min(...G.map(norm));
+      const name = NAMES[kind] ?? (C.vertices.length === 4 ? 'Rectangle' : 'Hexagon');
+      q('.bz-big').textContent = `${name}: ${C.vertices.length} sides, area ${sg(C.area, 4)} ${unit.replace('⁻¹', '⁻²')}`;
+      facts.push(fact('Real-space cell area', `${sg(vol, 5)} Å²`, 'primitive cell'));
+      facts.push(fact('Zone area', `${sg(C.area, 5)} Å⁻²`, `(${f === 1 ? '1' : '2π'})² ÷ cell area`));
+      facts.push(fact('Reciprocal vectors', `|b₁| = ${sg(norm(B[0]))}, |b₂| = ${sg(norm(B[1]))} ${unit}`, `angle between them ${sg(angle(B[0], B[1]), 4)}° (between a₁ and a₂: ${sg(angle(A[0], A[1]), 4)}°)`));
+      facts.push(fact('Nearest reciprocal points', `${G.length} at up to ${sg(Math.max(...G.map(norm)))} ${unit}`, `the shortest is ${sg(Gmin)} ${unit}; the zone edges sit halfway to them`));
+      const fz = fig2('Reciprocal lattice and first Brillouin zone', B[0], B[1], hs.map(([n, , k]) => [n, k]), unit, 'b');
+      const real = fig2('Real-space lattice and Wigner-Seitz cell', A[0], A[1], [], 'Å', 'a');
+      figs = [['.bz-fig', fz], ['.bz-fig2', real]];
+      q('.bz-fig2').hidden = false;
+      cornerRows = [['corner', `kx (${unit})`, `ky (${unit})`], ...C.vertices.map((v, i) => [i + 1, +v[0].toFixed(8), +v[1].toFixed(8)])];
+    } else {
+      const C = wsCell3(B as [V3, V3, V3]);
+      const nf = C.faces.length, name = NAMES[kind] ?? (nf === 6 ? 'Parallelepiped' : nf === 8 ? 'Hexagonal prism shape' : nf === 12 ? 'Rhombic dodecahedron shape' : 'Truncated octahedron shape');
+      q('.bz-big').textContent = `${name}: ${nf} faces, ${C.vertices.length} corners, ${C.edges.length} edges`;
+      facts.push(fact('Real-space cell volume', `${sg(vol, 5)} Å³`, kind === 'fcc' ? 'primitive cell, a³/4' : kind === 'bcc' ? 'primitive cell, a³/2' : 'primitive cell'));
+      facts.push(fact('Zone volume', `${sg(C.volume, 5)} Å⁻³`, `(${f === 1 ? '1' : '2π'})³ ÷ cell volume = ${sg((f ** 3) / vol, 5)}`));
+      facts.push(fact('Reciprocal vector lengths', `${B.map((x) => sg(norm(x))).join(', ')} ${unit}`, `angles ${sg(angle(B[1], B[2]), 4)}°, ${sg(angle(B[0], B[2]), 4)}°, ${sg(angle(B[0], B[1]), 4)}°`));
+      const Gs = C.faces.map((x) => norm(x.g)), Gmin = Math.min(...Gs);
+      facts.push(fact('Faces (Bragg planes)', `${nf}`, `${Gs.filter((x) => x < Gmin * (1 + 1e-6)).length} at ${sg(Gmin / 2)} ${unit} from Γ${Gs.some((x) => x > Gmin * (1 + 1e-6)) ? `, the rest up to ${sg(Math.max(...Gs) / 2)} ${unit}` : ''}`));
+      facts.push(fact('Reciprocal lattice', kind === 'fcc' ? 'body-centred cubic' : kind === 'bcc' ? 'face-centred cubic' : kind === 'sc' ? 'simple cubic' : kind === 'hex' ? 'hexagonal (rotated 30°)' : kind === 'tric' ? 'triclinic' : kind === 'tet' ? 'tetragonal' : 'orthorhombic', kind === 'fcc' || kind === 'bcc' ? `cube edge ${sg((2 * f) / a)} ${unit}` : ''));
+      figs = [['.bz-fig', fig3(B as [V3, V3, V3], hs.map(([n, , k]) => [n, k]), unit)]];
+      q('.bz-fig2').hidden = true;
+      cornerRows = [['corner', `kx (${unit})`, `ky (${unit})`, `kz (${unit})`], ...C.vertices.map((v, i) => [i + 1, ...v.map((x) => +x.toFixed(8))])];
+    }
+    q('.bz-facts').replaceChildren(...facts);
+    // Tables.
+    const tr = (cells: string[], th: boolean) => { const r = document.createElement('tr'); cells.forEach((x, j) => { const e = document.createElement(th ? 'th' : 'td'); e.textContent = x; if (j) e.className = 'r'; r.append(e); }); return r; };
+    const ax = two ? ['x', 'y'] : ['x', 'y', 'z'];
+    const ph = ['Point', 'Fractional', ...ax.map((x) => `k${x} (${unit})`), `|k| (${unit})`];
+    const pr = hs.map(([n, fc, k]) => [n, `(${fc.map(fr).join(', ')})`, ...k.slice(0, dim).map((x) => sg(x, 5)), sg(norm(k), 5)]);
+    q('.bz-pts').replaceChildren(tr(ph, true), ...pr.map((r) => tr(r, false)));
+    const vh = ['Vector', ...ax, 'Length'];
+    q('.bz-vecs').replaceChildren(tr(vh, true), ...vecRows.map((r) => tr(r, false)));
+    pointRows = [['name', 'fractional', ...ax.map((x) => `k${x}`), '|k|'], ...hs.map(([n, fc, k]) => [n, fc.map((x) => +x.toFixed(6)).join(' '), ...k.slice(0, dim).map((x) => +x.toFixed(8)), +norm(k).toFixed(8)]), ['vector', '', ...ax, 'length'], ...vecRows];
+    for (const [s, fg] of figs) paint(q<HTMLCanvasElement>(s), fg);
+    report = [{ title: q('.bz-big').textContent!, facts: [...q('.bz-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: figs[0][1] },
+      ...(figs[1] ? [{ title: 'Real-space lattice', figure: figs[1][1] }] : []),
+      { title: 'High-symmetry points', table: { head: ph, rows: pr, align: ph.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] } },
+      { title: 'Primitive and reciprocal vectors', table: { head: vh, rows: vecRows, align: vh.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 80); };
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  document.addEventListener('fibub:theme', () => { for (const [s, fg] of figs) paint(q<HTMLCanvasElement>(s), fg); });
+  q('.bz-csv').addEventListener('click', () => cornerRows.length && save(new Blob([csv(cornerRows)], { type: 'text/csv' }), `brillouin-zone-${sel('.bz-kind')}-corners.csv`, 'text/csv'));
+  q('.bz-pcsv').addEventListener('click', () => pointRows.length && save(new Blob([csv(pointRows)], { type: 'text/csv' }), `brillouin-zone-${sel('.bz-kind')}-points.csv`, 'text/csv'));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Brillouin zone', subtitle: q<HTMLSelectElement>('.bz-kind').selectedOptions[0].textContent ?? '', file: `brillouin-zone-${sel('.bz-kind')}`, sections: report }));
+</script>
+
+<style is:global>
+  .bzv select, .bzv input { max-width: 100%; }
+  .bzv input[type=range] { width: 100%; }
+</style>
