@@ -1,0 +1,192 @@
+---
+// Sound wave visualiser (Learn): air particles bunch and spread as a sound wave passes; frequency, amplitude and
+// medium sliders; wavelength = v/f; hear it with Web Audio only after a button press; echoes and SONAR depth.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn swv">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Watch the air</h2>
+      <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="9" aria-pressed="true">Class 9</button><button type="button" data-level="11" aria-pressed="false">Class 11</button></div>
+    </div>
+    <canvas class="lrn-cv sv-cv" style="margin-top:10px" aria-label="Rows of air particles bunching into compressions and spreading into rarefactions as the sound wave moves right, with the pressure graph below"></canvas>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small sv-play">Pause</button>
+      <button type="button" class="btn small sv-sound">Play the sound</button>
+      <span class="ax-help sv-slow" style="margin:0"></span>
+    </div>
+    <p class="ax-help">The orange dot is one air particle: it only moves back and forth about its own place, while the bunches (compressions, C) and gaps (rarefactions, R) travel to the right. The line below the particles is the extra air pressure: high at each C, low at each R. The motion is slowed down and the particle movement is hugely enlarged so you can see it. Sound plays only when you press the button; keep the volume low.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Frequency <b class="sv-fv"></b><input type="range" class="sv-f" min="100" max="1000" step="10" value="500" aria-label="Frequency in hertz" /></label>
+      <label class="lrn-sl">Amplitude <b class="sv-av"></b><input type="range" class="sv-a" min="0.1" max="1" step="0.1" value="0.5" aria-label="Amplitude in micrometres" /></label>
+      <label>Sound travels through <select class="sv-med"><option value="air" selected>Air</option><option value="water">Water (about 1,480 m/s)</option><option value="steel">Steel (about 5,900 m/s)</option></select></label>
+      <label class="lrn-sl sv-tl">Air temperature <b class="sv-tv"></b><input type="range" class="sv-t" min="-20" max="50" step="1" value="20" aria-label="Air temperature in degrees Celsius" /></label>
+    </div>
+    <p class="lrn-eq sv-eq"></p>
+    <dl class="ax-facts sv-facts" style="margin-top:10px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Echoes and SONAR</h2>
+    <canvas class="lrn-cv sv-ecv" aria-label="A ship sends a sound pulse down to the sea bed and hears it come back"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Distance to a wall (in air) <b class="sv-dv"></b><input type="range" class="sv-d" min="5" max="100" step="1" value="34" aria-label="Distance to the wall in metres" /></label>
+      <label class="lrn-sl">SONAR: time for the echo <b class="sv-sv"></b><input type="range" class="sv-s" min="0.2" max="8" step="0.1" value="2" aria-label="Echo time in seconds" /></label>
+      <label>Speed of sound in sea water (m/s) <input class="sv-vw" inputmode="decimal" value="1500" /></label>
+    </div>
+    <p class="ax-err sv-err" hidden></p>
+    <p class="lrn-eq sv-eeq"></p>
+    <p class="ax-help">Your ear keeps a sound for about 0.1 s, so a separate echo needs the sound to take at least 0.1 s there and back. Sea water speeds vary with temperature and saltiness (roughly 1,450 to 1,550 m/s), so 1,500 m/s is a round school value.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Double the frequency: the compressions get closer, so the wavelength halves. The speed stays the same.</li>
+      <li>Change only the amplitude: the bunches get tighter (louder) but the wavelength does not change.</li>
+      <li>Switch to water or steel at the same frequency: sound is faster there, so each wave is longer.</li>
+      <li>Warm the air from 0 °C to 40 °C and watch the speed rise by about 0.6 m/s per degree.</li>
+      <li>Move the wall closer than 17 m: the echo comes back too soon to hear it as a separate sound.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card sv-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { airSpeed, airDensity, wavelength, period, pressureShape, pressureAmp, intensity, decibels, echoTime, echoDistance, minEchoDistance } from '../../lib/sci/learnsound';
+  import { mountQuiz, pick, r, fitCanvas, wireLevel, loop } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.swv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v_ = (c: string) => +q<HTMLInputElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const SPEED: Record<string, number> = { water: 1480, steel: 5900 };
+  const WINDOW = 3.5; // metres of air shown across the picture
+  const SLOW = 250; // the animation runs this many times slower than real life
+  let level = '9', tAnim = 0, pulse = 0;
+  const state = () => {
+    const f = v_('.sv-f'), A = v_('.sv-a'), med = q<HTMLSelectElement>('.sv-med').value, tC = v_('.sv-t');
+    const v = med === 'air' ? airSpeed(tC) : SPEED[med];
+    return { f, A, med, tC, v, lam: wavelength(v, f) };
+  };
+
+  function draw(dt: number) {
+    const s = state(); tAnim += dt / SLOW;
+    const { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.sv-cv'), 230), pal = pagePalette();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const top = 14, rows = 7, rowH = 15, cols = 110, gap = W / cols, lamPx = (s.lam / WINDOW) * W;
+    const visA = Math.min((0.8 * lamPx) / (2 * Math.PI), 0.8 * gap * 3) * (s.A / 1);
+    const hi = pal.red ? pal.ink : pal.accent2;
+    ctx.fillStyle = pal.ink;
+    for (let row = 0; row < rows; row++) for (let i = 0; i < cols; i++) {
+      const x0 = (i + 0.5 + (row % 2) * 0.5) * gap, xm = (x0 / W) * WINDOW;
+      const x = x0 + visA * Math.sin((2 * Math.PI * xm) / s.lam - 2 * Math.PI * s.f * tAnim);
+      ctx.beginPath(); ctx.arc(x, top + row * rowH, 1.7, 0, 7); ctx.fill();
+    }
+    // Tracked particle in the middle row
+    const iT = Math.floor(cols / 2), x0T = (iT + 0.5 + 0.5) * gap, xmT = (x0T / W) * WINDOW, yT = top + 3 * rowH;
+    const xT = x0T + visA * Math.sin((2 * Math.PI * xmT) / s.lam - 2 * Math.PI * s.f * tAnim);
+    ctx.strokeStyle = hi; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x0T, yT - 12); ctx.lineTo(x0T, yT + 12); ctx.stroke();
+    ctx.fillStyle = hi; ctx.beginPath(); ctx.arc(xT, yT, 4.5, 0, 7); ctx.fill();
+    // Pressure graph
+    const gy = top + rows * rowH + 50, gA = 32;
+    ctx.strokeStyle = pal.line; ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+    ctx.strokeStyle = pal.red ? pal.ink : pal.accent; ctx.lineWidth = 2; ctx.beginPath();
+    for (let px = 0; px <= W; px += 2) { const y = gy - gA * pressureShape((px / W) * WINDOW, tAnim, s.lam, s.f); if (px) ctx.lineTo(px, y); else ctx.moveTo(px, y); }
+    ctx.stroke();
+    ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = pal.ink;
+    // Label compressions and rarefactions where the pressure peaks and dips
+    const ph = (2 * Math.PI * s.f * tAnim) % (2 * Math.PI);
+    for (let m = -1; m < WINDOW / s.lam + 1; m++) {
+      const xc = ((m + 0.5) * s.lam + (ph / (2 * Math.PI)) * s.lam) / WINDOW * W, xr = xc - lamPx / 2;
+      if (xc > 8 && xc < W - 8) ctx.fillText('C', xc, gy - gA - 6);
+      if (xr > 8 && xr < W - 8) ctx.fillText('R', xr, gy + gA + 14);
+    }
+    // Wavelength bar
+    const by = H - 10, bx = 8, bw = Math.min(lamPx, W - 16);
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + bw, by); ctx.moveTo(bx, by - 5); ctx.lineTo(bx, by + 5); ctx.moveTo(bx + bw, by - 5); ctx.lineTo(bx + bw, by + 5); ctx.stroke();
+    ctx.fillStyle = pal.ink; ctx.textAlign = lamPx > W - 16 ? 'right' : 'left';
+    const lt = lamPx > W - 16 ? `λ = ${sig(s.lam, 3)} m (longer than the picture, ${WINDOW} m wide)` : `λ = ${sig(s.lam, 3)} m`;
+    ctx.fillText(lt, lamPx > W - 16 ? W - 8 : Math.min(bx + bw + 6, W - 90), by - 6);
+    drawSonar(dt);
+  }
+
+  function drawSonar(dt: number) {
+    const { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.sv-ecv'), 170), pal = pagePalette();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const t = v_('.sv-s'); pulse = (pulse + dt / Math.max(1, t)) % 1;
+    const sea = 34, bed = H - 18, sx = W * 0.3;
+    ctx.strokeStyle = pal.line; ctx.beginPath(); ctx.moveTo(0, sea); ctx.lineTo(W, sea); ctx.stroke();
+    ctx.fillStyle = pal.grid; ctx.fillRect(0, bed, W, H - bed);
+    ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.moveTo(sx - 34, sea - 12); ctx.lineTo(sx + 34, sea - 12); ctx.lineTo(sx + 24, sea); ctx.lineTo(sx - 24, sea); ctx.closePath(); ctx.fill();
+    ctx.fillRect(sx - 8, sea - 22, 16, 10);
+    const y = pulse < 0.5 ? sea + (bed - sea) * pulse * 2 : bed - (bed - sea) * (pulse - 0.5) * 2;
+    ctx.strokeStyle = pal.red ? pal.ink : pal.accent; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(sx, y, 10, pulse < 0.5 ? 0.2 : Math.PI + 0.2, pulse < 0.5 ? Math.PI - 0.2 : 2 * Math.PI - 0.2); ctx.stroke();
+    ctx.setLineDash([3, 4]); ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(sx + 50, sea); ctx.lineTo(sx + 50, bed); ctx.stroke(); ctx.setLineDash([]);
+    const vw = num(q<HTMLInputElement>('.sv-vw').value), d = vw > 0 ? echoDistance(vw, t) : NaN;
+    ctx.fillStyle = pal.ink; ctx.font = '13px system-ui, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(Number.isFinite(d) ? `depth ${r(d, 4)} m` : 'depth ?', sx + 58, (sea + bed) / 2);
+    ctx.fillStyle = pal.muted; ctx.fillText(pulse < 0.5 ? 'pulse going down' : 'echo coming back', sx + 58, (sea + bed) / 2 + 18);
+  }
+
+  function update() {
+    const s = state();
+    q('.sv-fv').textContent = `${s.f} Hz`; q('.sv-av').textContent = `${s.A.toFixed(1)} µm`; q('.sv-tv').textContent = `${v_('.sv-t')} °C`;
+    q('.sv-tl').hidden = s.med !== 'air';
+    q('.sv-slow').textContent = `Slowed ${SLOW} times`;
+    const T = period(s.f);
+    const vtxt = s.med === 'air' ? (level === '11' ? `v = √(γRT/M) = √(1.4 × 8.314 × ${(s.tC + 273.15).toFixed(2)} / 0.02896) = ${s.v.toFixed(1)} m/s` : `v = ${s.v.toFixed(1)} m/s in air at ${s.tC} °C`) : `v ≈ ${s.v.toLocaleString('en')} m/s in ${s.med}`;
+    q('.sv-eq').textContent = `${vtxt}.  λ = v / f = ${s.med === 'air' ? s.v.toFixed(1) : s.v} / ${s.f} = ${sig(s.lam, 4)} m.  T = 1 / f = ${sig(T * 1000, 3)} ms.`;
+    const facts = [fact('Wavelength λ', `${sig(s.lam, 4)} m`, `${sig(s.lam * 100, 4)} cm`), fact('Frequency f', `${s.f} Hz`, s.f < 20 ? 'too low to hear' : 'humans hear about 20 Hz to 20,000 Hz'), fact('Time period T', `${sig(T * 1000, 3)} ms`, 'one full squeeze and stretch'), fact('Speed v', `${sig(s.v, 4)} m/s`, s.med === 'air' ? 'faster in warm air' : 'rounded value')];
+    if (level === '11') {
+      const rho = s.med === 'air' ? airDensity(s.tC) : s.med === 'water' ? 1000 : 7850;
+      const dp = pressureAmp(rho, s.v, s.f, s.A * 1e-6), I = intensity(dp, rho, s.v);
+      facts.push(fact('k = 2π/λ', `${sig((2 * Math.PI) / s.lam, 4)} rad/m`), fact('ω = 2πf', `${sig(2 * Math.PI * s.f, 4)} rad/s`),
+        fact('Pressure amplitude', `${sig(dp, 3)} Pa`, `Δp₀ = ρvωs₀, ρ = ${sig(rho, 4)} kg/m³`), fact('Intensity', `${sig(I, 3)} W/m²`, `I = Δp₀²/(2ρv); ${decibels(I).toFixed(1)} dB`));
+    }
+    q('.sv-facts').replaceChildren(...facts);
+    // Echoes
+    const va = airSpeed(20), d = v_('.sv-d'), te = echoTime(va, d), dmin = minEchoDistance(va);
+    q('.sv-dv').textContent = `${d} m`; q('.sv-sv').textContent = `${v_('.sv-s').toFixed(1)} s`;
+    const vw = num(q<HTMLInputElement>('.sv-vw').value), err = q('.sv-err');
+    const okW = vw >= 100 && vw <= 10000; err.hidden = okW; err.textContent = okW ? '' : 'Give the speed in sea water in m/s (100 to 10,000).';
+    const ts = v_('.sv-s');
+    q('.sv-eeq').textContent = `Echo: t = 2d / v = 2 × ${d} / ${va.toFixed(1)} = ${te.toFixed(3)} s, ${te >= 0.1 ? 'a separate echo you can hear' : `too soon to hear separately (needs d ≥ ${dmin.toFixed(1)} m)`}.` + (okW ? `  SONAR: depth = v t / 2 = ${vw} × ${ts.toFixed(1)} / 2 = ${r(echoDistance(vw, ts), 4)} m.` : '');
+    if (osc && ctxA) { osc.frequency.setTargetAtTime(s.f, ctxA.currentTime, 0.02); gain!.gain.setTargetAtTime(0.04 + 0.12 * s.A, ctxA.currentTime, 0.05); }
+    anim.redraw();
+  }
+
+  // Sound: only after a press, never on load.
+  let ctxA: AudioContext | null = null, osc: OscillatorNode | null = null, gain: GainNode | null = null;
+  q('.sv-sound').addEventListener('click', () => {
+    const b = q<HTMLButtonElement>('.sv-sound');
+    if (osc) { gain!.gain.setTargetAtTime(0, ctxA!.currentTime, 0.03); const o = osc; setTimeout(() => o.stop(), 150); osc = null; b.textContent = 'Play the sound'; return; }
+    ctxA = ctxA ?? new AudioContext(); void ctxA.resume();
+    const s = state(); osc = ctxA.createOscillator(); gain = ctxA.createGain();
+    osc.type = 'sine'; osc.frequency.value = s.f; gain.gain.value = 0; osc.connect(gain).connect(ctxA.destination); osc.start();
+    gain.gain.setTargetAtTime(0.04 + 0.12 * s.A, ctxA.currentTime, 0.05); b.textContent = 'Stop the sound';
+  });
+
+  const anim = loop(draw, q<HTMLButtonElement>('.sv-play'));
+  root.querySelectorAll('input, select').forEach((e) => e.addEventListener('input', update));
+  wireLevel(root, (l) => { level = l; update(); });
+  addEventListener('resize', () => anim.redraw());
+
+  mountQuiz(q('.sv-quiz'), () => {
+    const f1 = pick(200, 1000, 50), lam2 = pick(20, 200, 5) / 100, f3 = pick(100, 1000, 50), t4 = pick(4, 30) / 10, t5 = pick(2, 12) / 2;
+    return [
+      { q: `A sound of ${f1} Hz travels through air at 340 m/s. What is its wavelength?`, ans: 340 / f1, unit: 'm', work: `λ = v / f = 340 / ${f1} = ${r(340 / f1)} m` },
+      { q: `A sound wave in air (340 m/s) has a wavelength of ${lam2} m. What is its frequency?`, ans: 340 / lam2, unit: 'Hz', work: `f = v / λ = 340 / ${lam2} = ${r(340 / lam2)} Hz` },
+      { q: `What is the time period of a ${f3} Hz sound, in milliseconds?`, ans: 1000 / f3, unit: 'ms', work: `T = 1 / f = 1 / ${f3} s = ${r(1000 / f3)} ms` },
+      { q: `You clap and hear the echo from a cliff ${t4} s later. Sound travels at 340 m/s. How far away is the cliff?`, ans: (340 * t4) / 2, unit: 'm', work: `The sound goes there and back, so d = v t / 2 = 340 × ${t4} / 2 = ${r((340 * t4) / 2)} m` },
+      { q: `A ship's SONAR hears the echo from the sea bed ${t5} s after sending the pulse. Sound travels at 1,500 m/s in sea water. How deep is the sea?`, ans: echoDistance(1500, t5), unit: 'm', work: `depth = v t / 2 = 1500 × ${t5} / 2 = ${r(echoDistance(1500, t5), 4)} m` },
+    ];
+  });
+</script>
