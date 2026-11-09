@@ -1,0 +1,40 @@
+// #726 IRT item analysis: the simulated example, both models, CSVs, report, bad input.
+export const path = '/science/irt-item-analysis/';
+export default async ({ page, check, BASE, OUT, readFileSync }) => {
+  await page.goto(BASE + path);
+  await page.waitForSelector('.ir-out:not([hidden])');
+  const TXT = (sel) => [...document.querySelectorAll(sel + ' tr')].map((r) => [...r.cells].map((c) => c.textContent).join(' ')).join(' | ');
+  let it = await page.evaluate(TXT, '.ir-items');
+  check(/Q1 72\.0 % 0\.495 0\.177 −2\.012 0\.703 300/.test(it) && /Q2 72\.3 % 1\.580 0\.339 −0\.872 0\.151/.test(it), `irt: 2PL items (${it.slice(0, 160)})`);
+  check((await page.locator('.ir-items td.ir-flag').count()) === 1, 'irt: weak item marked');
+  const f = await page.textContent('.ir-facts');
+  check(/χ²\(7\) = 21\.56, p = 0\.003/.test(f) && /2775\.6, 2834\.8/.test(f) && /2PL \/ 1PL/.test(f), `irt: model comparison (${f})`);
+  const pe = await page.evaluate(TXT, '.ir-people');
+  check(/Row 1 0 8 −1\.562 0\.667/.test(pe) && /Row 5 6 8 0\.600 0\.579/.test(pe), `irt: EAP scores (${pe.slice(0, 120)})`);
+  check(await page.evaluate(() => document.querySelector('.ir-icc').width > 100 && document.querySelector('.ir-info').width > 100), 'irt: curves drawn');
+  check(/measures best around θ = /.test(await page.textContent('.ir-note')), 'irt: information peak');
+  await page.click('.ir-mode button[data-m="1pl"]');
+  await page.waitForFunction(() => /1PL/.test(document.querySelector('.ir-h').textContent));
+  it = await page.evaluate(TXT, '.ir-items');
+  check(/Common slope a1\.108 \(SE 0\.087\)/.test(await page.textContent('.ir-facts')) && /Q1 72\.0 % −1\.058 0\.155 300/.test(it), `irt: 1PL (${it.slice(0, 100)})`);
+  const [d] = await Promise.all([page.waitForEvent('download'), page.click('.ir-csv-i')]);
+  const fi = OUT + 'irt-i.csv'; await d.saveAs(fi);
+  const ci = readFileSync(fi, 'utf8').trim().split('\n');
+  check(ci[0] === 'Item,Proportion correct,a,SE a,b,SE b,Answered' && /^Q1,0\.72,1\.10775/.test(ci[1]) && ci.length === 9, `irt: items CSV (${ci[1]})`);
+  const [d2] = await Promise.all([page.waitForEvent('download'), page.click('.ir-csv-p')]);
+  const fp = OUT + 'irt-p.csv'; await d2.saveAs(fp);
+  const cp = readFileSync(fp, 'utf8').trim().split('\n');
+  check(cp.length === 301 && /^Row 1,0,8,-1\.62/.test(cp[1]), `irt: scores CSV (${cp[1]})`);
+  const [w] = await Promise.all([page.waitForEvent('download'), page.click('.ir .dl button[data-f=png]')]);
+  check(/\.png$/.test(w.suggestedFilename()), 'irt: image report');
+  // Missing answers and IDs.
+  await page.fill('.ir-in', 'ID\tA\tB\tC\n' + Array.from({ length: 40 }, (_, i) => `S${i + 1}\t${i % 2}\t${i % 3 ? 1 : 0}\t${i % 5 ? '' : 1}${i % 4 === 0 ? '' : ''}`).join('\n').replace(/\t$/gm, '\t0'));
+  await page.waitForFunction(() => /S1 /.test([...document.querySelectorAll('.ir-people tr')].map((r) => [...r.cells].map((c) => c.textContent).join(' ')).join('|')) || !document.querySelector('.ir-err').hidden);
+  check(await page.isVisible('.ir-out'), `irt: IDs and a small test (${await page.textContent('.ir-err')})`);
+  await page.fill('.ir-in', 'A\tB\n1\t0\n1\t1\n1\t0\n1\t1\n1\t0\n1\t1\n1\t0\n1\t1\n1\t0\n1\t1');
+  await page.waitForFunction(() => /A was answered correctly by everyone/.test(document.querySelector('.ir-err').textContent));
+  check(true, 'irt: item everyone got right is named');
+  await page.fill('.ir-in', 'A\tB\n1\t2');
+  await page.waitForFunction(() => /"2" for Row 1 \(B\) is not 0 or 1/.test(document.querySelector('.ir-err').textContent));
+  check(true, 'irt: non 0/1 answer refused');
+};

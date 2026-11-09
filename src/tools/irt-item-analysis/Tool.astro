@@ -1,0 +1,471 @@
+---
+// IRT item analysis: 1PL and 2PL by marginal maximum likelihood (EM, Gauss-Hermite), curves and EAP scores.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax ir">
+  <div class="ax-card">
+    <h2>Answers</h2>
+    <label>One row per person, one column per item: 1 for right, 0 for wrong, blank for not answered. A header row and a first column of IDs are optional.
+      <textarea class="ir-in" rows="9" spellcheck="false" wrap="off">Q1	Q2	Q3	Q4	Q5	Q6	Q7	Q8
+0	0	0	0	0	0	0	0
+0	0	0	0	0	0	0	0
+0	0	0	0	0	0	0	0
+1	1	1	1	0	1	0	0
+1	1	0	1	0	1	1	1
+1	1	1	1	0	1	0	0
+1	1	0	0	0	0	0	0
+0	1	1	0	0	1	0	0
+1	1	1	0	0	0	0	0
+0	0	1	1	0	1	0	0
+1	1	1	0	0	1	0	0
+1	1	1	0	1	0	1	0
+0	1	1	1	1	0	0	0
+1	1	1	1	1	1	0	1
+1	1	1	1	1	1	1	0
+1	1	0	0	0	0	1	0
+1	1	0	0	1	0	0	0
+1	1	1	0	1	0	1	0
+0	1	1	0	0	0	0	0
+1	1	1	0	0	0	0	0
+1	1	1	1	0	1	0	1
+1	0	0	0	0	0	0	0
+1	1	1	0	1	0	1	0
+0	0	0	0	0	0	0	0
+0	1	1	0	0	1	0	0
+1	1	1	1	1	0	1	0
+1	1	1	0	0	0	0	0
+1	1	1	0	0	0	0	0
+1	1	0	0	0	0	0	0
+1	1	1	1	1	0	0	0
+0	0	0	0	0	1	0	0
+0	1	1	1	1	0	0	0
+0	0	0	0	0	0	0	0
+1	1	1	0	1	0	0	0
+1	1	1	1	1	1	0	1
+1	0	0	0	0	0	0	0
+1	1	1	1	1	1	0	0
+1	1	1	1	1	0	0	0
+0	0	1	1	0	0	0	1
+1	1	0	0	0	0	0	0
+1	1	1	1	1	0	1	0
+1	1	1	0	1	0	1	0
+0	0	1	0	0	0	0	0
+1	1	1	1	1	1	1	0
+0	1	1	1	1	0	0	0
+1	1	1	1	1	1	0	1
+1	1	1	1	0	0	1	1
+0	1	1	0	1	1	0	0
+1	0	0	0	0	1	0	1
+0	0	1	0	0	0	0	0
+1	1	1	1	1	0	0	1
+1	1	0	1	1	1	0	0
+1	1	0	1	1	0	0	0
+1	1	0	1	1	0	1	0
+1	0	0	0	1	1	1	0
+1	0	1	1	1	0	0	0
+1	0	1	1	1	0	0	1
+1	1	1	1	0	0	0	0
+1	1	1	1	1	0	0	0
+1	0	0	0	0	0	0	1
+1	1	0	0	0	0	0	0
+1	1	1	1	1	1	0	1
+1	0	0	0	0	0	0	0
+0	1	0	1	0	1	0	0
+1	1	0	1	1	0	0	0
+1	1	1	1	1	1	1	0
+1	1	1	1	1	1	1	0
+0	1	1	1	0	0	1	0
+1	0	0	1	0	0	0	0
+1	0	0	0	0	0	0	0
+0	1	1	1	0	0	0	0
+1	1	1	0	0	0	1	0
+1	1	0	1	0	1	1	0
+1	1	1	1	0	1	1	1
+1	1	1	0	1	1	1	1
+1	1	1	0	0	1	0	0
+1	0	0	0	0	0	0	0
+0	0	1	1	0	1	0	1
+0	1	1	0	0	1	0	0
+1	1	1	1	1	0	0	1
+0	0	1	0	0	1	0	0
+1	0	1	0	0	0	0	0
+0	1	1	1	0	0	1	0
+1	1	1	0	0	0	0	0
+1	1	1	1	1	1	1	1
+1	1	0	0	0	1	0	1
+0	1	1	0	1	0	0	0
+1	1	1	1	1	0	0	0
+1	0	1	0	1	1	0	0
+0	1	1	0	0	0	0	0
+1	0	0	0	1	1	0	0
+0	0	0	0	0	0	0	0
+1	1	1	1	1	1	0	1
+1	1	1	0	1	1	0	0
+0	1	1	0	1	0	0	0
+1	1	1	1	0	1	0	0
+1	1	0	0	0	0	1	0
+1	1	1	1	0	0	0	1
+1	1	1	1	1	0	1	0
+0	1	1	0	0	1	1	0
+0	0	0	0	0	0	0	0
+1	1	1	0	0	1	0	0
+1	1	1	1	1	1	0	1
+1	1	1	0	1	0	0	0
+1	1	1	0	1	0	0	0
+1	1	0	0	1	1	0	0
+1	1	1	1	1	1	0	0
+0	0	0	0	0	1	0	0
+0	1	0	1	0	1	0	0
+0	0	1	0	0	0	0	0
+1	1	1	1	0	1	1	0
+0	1	1	0	1	0	1	0
+0	1	0	1	1	1	0	0
+1	1	1	0	1	1	0	1
+0	1	1	1	0	0	0	0
+1	1	1	1	1	0	0	1
+1	0	0	0	0	0	0	0
+1	1	0	1	1	0	0	0
+1	1	0	0	0	0	0	0
+1	1	1	1	1	1	1	0
+1	0	0	0	0	0	0	0
+1	1	1	1	0	0	1	0
+1	1	1	0	0	1	0	0
+1	0	0	0	0	0	0	0
+1	1	1	1	0	0	0	0
+1	0	1	0	0	1	0	0
+1	0	1	1	1	0	0	0
+1	1	1	1	1	0	1	1
+1	0	1	0	0	0	0	0
+1	0	0	0	0	0	0	0
+0	1	1	0	1	0	1	0
+1	1	1	1	1	0	0	0
+1	1	1	0	0	0	0	0
+0	1	0	1	1	0	0	0
+1	1	1	1	0	0	1	0
+1	1	0	1	1	1	1	0
+1	1	1	0	0	1	1	1
+0	1	0	1	0	0	0	0
+0	0	0	0	0	0	0	0
+1	1	0	1	1	0	0	0
+1	0	0	0	0	0	0	0
+0	0	1	0	1	0	0	0
+0	0	0	0	1	0	0	0
+1	1	1	1	1	0	0	1
+1	0	0	0	0	0	0	0
+0	1	1	1	0	1	0	0
+1	1	0	1	0	0	0	1
+1	1	1	1	1	0	0	1
+1	0	0	0	0	0	0	0
+1	1	1	1	0	0	0	0
+0	1	1	0	1	1	0	0
+1	1	1	1	1	1	1	1
+1	1	1	0	0	0	0	0
+1	1	1	1	0	0	1	1
+1	1	1	0	1	0	1	1
+1	1	0	0	0	0	0	0
+1	1	1	1	1	1	1	1
+1	1	0	0	0	0	0	0
+1	0	0	0	1	0	0	0
+1	1	1	1	1	1	0	0
+0	0	1	0	0	0	0	0
+0	0	0	0	0	0	0	0
+1	1	0	0	0	0	0	0
+0	1	0	1	0	1	1	0
+1	0	0	1	0	0	1	0
+1	1	1	1	1	1	1	0
+1	1	0	1	0	0	0	0
+1	0	1	0	0	0	0	0
+1	1	1	1	1	1	1	0
+1	1	0	0	0	1	0	0
+1	1	1	1	1	1	0	1
+1	1	1	1	1	0	0	0
+1	1	0	1	0	0	0	0
+1	1	1	0	1	1	1	1
+0	0	0	1	0	1	0	0
+0	1	1	0	1	1	1	1
+0	1	1	1	0	1	0	0
+1	0	0	1	0	0	0	0
+1	1	1	1	0	1	1	0
+0	1	0	0	0	0	0	0
+0	0	0	0	0	0	0	0
+0	0	1	0	0	0	0	0
+1	1	0	0	0	1	0	0
+1	0	1	0	0	0	0	0
+1	0	0	0	0	1	0	1
+1	1	0	1	0	0	0	0
+1	0	1	0	1	1	0	0
+1	1	1	1	1	1	0	0
+1	1	0	0	0	0	0	0
+0	1	0	0	0	1	0	0
+1	1	1	1	0	1	1	0
+1	1	1	0	0	0	0	0
+1	0	0	0	0	0	0	0
+1	1	1	1	1	1	0	0
+1	1	0	0	0	0	0	0
+1	0	1	0	0	0	0	0
+1	1	1	1	0	0	1	0
+1	1	0	0	0	1	0	0
+1	1	1	1	0	0	0	1
+1	1	0	0	0	0	0	0
+0	1	0	0	0	1	1	0
+0	1	1	1	0	0	0	0
+1	1	1	1	0	1	1	0
+1	1	1	1	1	1	0	0
+1	0	1	0	0	0	0	0
+0	1	1	0	0	0	0	0
+1	1	1	1	1	0	0	0
+1	1	1	1	0	1	0	0
+0	1	1	1	1	0	1	0
+0	1	1	1	1	1	0	0
+1	1	1	1	1	1	0	1
+0	0	0	0	0	1	0	0
+1	1	1	1	1	0	0	0
+1	1	1	0	1	1	1	1
+0	1	1	0	0	0	0	0
+1	0	1	0	0	0	0	0
+1	1	1	1	1	1	1	0
+1	0	1	1	0	0	0	0
+1	1	0	1	0	1	0	0
+1	1	1	1	1	1	0	0
+1	1	0	0	1	0	0	0
+1	1	1	1	1	0	0	0
+1	0	1	0	1	1	0	0
+1	1	1	1	1	1	1	1
+0	1	0	0	0	1	0	0
+1	1	1	0	1	0	0	0
+1	1	0	1	1	0	0	0
+1	0	1	1	1	1	0	0
+1	0	1	1	0	0	0	0
+0	1	1	0	0	1	0	0
+0	0	0	1	0	0	0	1
+1	1	1	0	0	0	0	0
+1	1	1	1	1	0	1	0
+1	0	0	0	0	0	0	0
+1	1	1	1	1	1	1	1
+1	1	1	1	1	1	0	0
+1	0	1	1	1	0	1	1
+1	1	0	0	1	0	0	0
+1	1	0	0	1	0	0	0
+1	1	0	0	0	1	0	1
+1	1	0	1	1	1	0	1
+1	1	1	1	0	0	1	0
+0	1	1	1	0	0	0	0
+0	0	1	1	0	0	0	1
+1	1	0	1	0	1	1	0
+1	0	1	1	0	0	0	1
+0	0	0	0	1	0	0	0
+1	0	0	0	0	0	0	0
+1	1	1	1	0	0	0	0
+1	1	1	1	1	1	0	0
+0	1	0	0	0	0	0	0
+0	1	1	1	0	0	0	0
+1	1	0	0	0	0	0	0
+1	1	1	0	0	1	0	1
+0	1	1	1	1	0	1	0
+1	0	1	1	0	1	0	1
+1	0	1	0	1	1	0	0
+1	1	0	0	1	1	1	0
+0	1	0	0	0	0	0	0
+0	1	1	1	1	1	1	0
+1	1	1	1	0	0	0	1
+1	1	1	1	0	0	0	0
+1	1	1	1	1	0	0	0
+1	1	1	1	0	0	0	0
+0	1	1	1	0	0	0	0
+1	1	1	1	1	1	1	0
+1	1	1	0	1	0	0	0
+0	1	1	1	1	1	0	0
+1	1	1	0	0	1	1	0
+1	1	1	1	1	0	0	0
+0	1	1	1	0	0	0	0
+1	0	1	1	0	1	0	0
+0	1	1	0	1	0	1	1
+1	1	0	1	0	1	0	0
+1	0	0	0	0	1	0	0
+1	1	0	0	0	0	0	1
+1	0	1	1	0	0	0	0
+1	1	0	0	0	0	0	0
+1	1	0	1	0	0	0	0
+0	1	1	1	0	0	0	0
+1	1	1	0	1	0	0	0
+0	0	1	0	1	0	0	0
+0	1	1	1	1	0	1	0
+1	1	1	0	0	0	0	0
+1	0	0	0	0	0	0	0
+1	1	1	1	1	1	0	0
+1	1	0	0	0	1	0	0
+1	1	1	0	1	1	0	0
+1	1	1	1	1	0	1	0
+0	1	0	0	0	0	0	0
+0	0	1	1	0	0	0	0
+1	0	0	0	0	0	0	0
+0	0	0	1	0	1	0	0
+1	1	1	1	1	1	0	0
+0	0	1	1	1	1	0	0
+1	0	0	0	0	0	1	0
+1	1	0	0	0	0	0	1
+1	1	0	0	1	0	0	0
+1	1	0	0	0	0	0	0
+0	1	1	0	0	1	1	0</textarea></label>
+    <DataFile target=".ir-in" maxCols={100} maxRows={20000} />
+    <p class="ax-help">Made-up example: 300 simulated test takers answering 8 items.</p>
+    <h2 style="margin-top:14px">Model</h2>
+    <div class="ax-seg ir-mode" role="group" aria-label="Model">
+      <button type="button" data-m="2pl" aria-pressed="true">2PL</button><button type="button" data-m="1pl" aria-pressed="false">1PL (Rasch)</button>
+    </div>
+    <p class="ax-help ir-what"></p>
+    <p class="ax-err ir-err" hidden></p>
+  </div>
+
+  <div class="ax-card ir-out" hidden>
+    <h2 class="ir-h"></h2>
+    <dl class="ax-facts ir-facts"></dl>
+    <h3 class="ir-h3">Items</h3>
+    <div class="ax-scroll"><table class="ir-items"></table></div>
+    <h3 class="ir-h3">Item characteristic curves</h3>
+    <canvas class="ax-fig ir-icc"></canvas>
+    <h3 class="ir-h3">Information</h3>
+    <canvas class="ax-fig ir-info"></canvas>
+    <h3 class="ir-h3">People (EAP ability scores)</h3>
+    <div class="ax-scroll ir-pw"><table class="ir-people"></table></div>
+    <p class="ax-help ir-more" hidden></p>
+    <p class="ax-help ir-note"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ir-csv-i">Items (CSV)</button><button type="button" class="btn secondary small ir-csv-p">Scores (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .ir .ir-h3 { margin: 16px 0 6px; font-size: 16px; }
+  .ir .ir-pw { max-height: 360px; overflow-y: auto; }
+  .ir td.ir-flag { color: var(--bad); font-weight: 600; }
+  .ir .ir-items td, .ir .ir-people td { white-space: nowrap; }
+</style>
+
+<script>
+  import { parseTable, num, sig, csv } from '../../lib/sci/num';
+  import { fitIrt, compareModels, icc, info, type IrtFit } from '../../lib/sci/irt';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { wireDownloads, save, paint, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ir')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let mode: '1pl' | '2pl' = '2pl', report: Section[] = [], itemCsv: (string | number)[][] = [], personCsv: (string | number)[][] = [], figs: Figure[] = [];
+  let cache: { key: string; fits: Record<string, IrtFit>; ids: string[]; names: string[]; dropped: number } | null = null;
+  const f3 = (x: number) => (Number.isFinite(x) ? x.toFixed(3).replace(/^-/, '−') : '–');
+  const pTxt = (p: number) => (p < 0.001 ? '< 0.001' : '= ' + p.toFixed(3));
+  const WHAT = {
+    '2pl': '2PL: each item has its own difficulty b and discrimination a (how sharply it separates weaker from stronger test takers).',
+    '1pl': '1PL: every item shares one discrimination, so items differ only in difficulty. This is the Rasch model, with the spread of ability estimated as the common slope.',
+  };
+
+  function table(t: HTMLTableElement, head: string[], rows: string[][], cls?: (r: number, c: number) => string) {
+    t.innerHTML = '';
+    const hr = t.createTHead().insertRow();
+    head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody();
+    rows.forEach((r, ri) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; td.className = [i ? 'r' : '', cls?.(ri, i) ?? ''].join(' ').trim(); }); });
+  }
+  function facts(list: [string, string][]) {
+    const dl = q('.ir-facts'); dl.innerHTML = '';
+    for (const [k, v] of list) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d); }
+  }
+
+  function fit() {
+    const text = q<HTMLTextAreaElement>('.ir-in').value;
+    if (cache?.key === text) return cache;
+    const rows = parseTable(text);
+    if (!rows.length) throw new Error('Paste the answers first.');
+    const isCell = (c: string) => c.trim() === '' || Number.isFinite(num(c));
+    const hasHead = !rows[0].every(isCell) && rows.length > 1;
+    let body = hasHead ? rows.slice(1) : rows;
+    const hasId = body.every((r) => r[0]?.trim() !== '' && !Number.isFinite(num(r[0])));
+    const ids = body.map((r, i) => (hasId ? r[0].trim() : `Row ${i + 1}`));
+    if (hasId) body = body.map((r) => r.slice(1));
+    const k = Math.max(...body.map((r) => r.length));
+    const names = Array.from({ length: k }, (_, j) => (hasHead ? rows[0][j + (hasId ? 1 : 0)]?.trim() : '') || `Item ${j + 1}`);
+    const U = body.map((r, i) => Array.from({ length: k }, (_, j) => {
+      const c = (r[j] ?? '').trim(); if (c === '') return NaN;
+      const v = num(c); if (v !== 0 && v !== 1) throw new Error(`"${c}" for ${ids[i]} (${names[j]}) is not 0 or 1. Score the answers as right (1) or wrong (0) first.`); return v;
+    }));
+    const keep = U.map((r) => r.some((v) => v === 0 || v === 1));
+    let f1: IrtFit, f2: IrtFit;
+    try { f2 = fitIrt(U, '2pl'); f1 = fitIrt(U, '1pl'); } catch (e) { throw new Error((e as Error).message.replace(/Item (\d+)/, (_, n) => names[Number(n) - 1])); }
+    cache = { key: text, fits: { '1pl': f1, '2pl': f2 }, ids: ids.filter((_, i) => keep[i]), names, dropped: U.length - keep.filter(Boolean).length };
+    return cache;
+  }
+
+  function calc() {
+    const err = q('.ir-err');
+    try {
+      const { fits, ids, names, dropped } = fit(), f = fits[mode], lr = compareModels(fits['1pl'], fits['2pl']);
+      q('.ir-h').textContent = mode === '2pl' ? '2PL model' : '1PL (Rasch) model';
+      const better = fits['2pl'].aic < fits['1pl'].aic ? '2PL' : '1PL', betterB = fits['2pl'].bic < fits['1pl'].bic ? '2PL' : '1PL';
+      const ff: [string, string][] = [
+        ['People, items', `${ids.length}, ${names.length}${dropped ? ` (${dropped} empty row${dropped > 1 ? 's' : ''} left out)` : ''}`],
+        ['Log-likelihood', sig(f.logLik, 6)],
+        ['AIC, BIC', `${f.aic.toFixed(1)}, ${f.bic.toFixed(1)}`],
+        ['2PL against 1PL', `χ²(${lr.df}) = ${lr.chi2.toFixed(2)}, p ${pTxt(lr.p)}`],
+        ['Lower AIC / BIC', `${better} / ${betterB}`],
+      ];
+      if (mode === '1pl') ff.splice(1, 0, ['Common slope a', `${f3(f.items[0].a)} (SE ${f3(f.items[0].seA)})`]);
+      facts(ff);
+      const head = mode === '2pl' ? ['Item', 'Correct', 'a', 'SE(a)', 'b', 'SE(b)', 'Answered'] : ['Item', 'Correct', 'b', 'SE(b)', 'Answered'];
+      const rows = f.items.map((it, j) => mode === '2pl'
+        ? [names[j], `${(100 * it.p).toFixed(1)} %`, f3(it.a), f3(it.seA), f3(it.b), f3(it.seB), String(it.n)]
+        : [names[j], `${(100 * it.p).toFixed(1)} %`, f3(it.b), f3(it.seB), String(it.n)]);
+      table(q<HTMLTableElement>('.ir-items'), head, rows, (r, c) => (mode === '2pl' && c === 2 && f.items[r].a < 0.5) || (head[c] === 'b' && Math.abs(f.items[r].b) > 3) ? 'ir-flag' : '');
+      itemCsv = [['Item', 'Proportion correct', 'a', 'SE a', 'b', 'SE b', 'Answered'], ...f.items.map((it, j) => [names[j], +it.p.toFixed(6), +it.a.toFixed(6), +it.seA.toFixed(6), +it.b.toFixed(6), +it.seB.toFixed(6), it.n])];
+
+      const T = Array.from({ length: 161 }, (_, i) => -4 + i * 0.05);
+      const iccFig = chartFigure({ h: 320, xLabel: 'Ability θ', yLabel: 'P(correct)', xMin: -4, xMax: 4, yMin: 0, yMax: 1, legend: names.length <= 10 ? 'below' : 'none', series: f.items.map((it, j) => ({ name: names[j], x: T, y: T.map((t) => icc(it, t)), mode: 'line' as const, width: 1.6 })) }, 'Item characteristic curves');
+      const tInfo = T.map((t) => f.items.reduce((s, it) => s + info(it, t), 0));
+      const infoFig = chartFigure({ h: 300, xLabel: 'Ability θ', yLabel: 'Information', xMin: -4, xMax: 4, yMin: 0, legend: 'below', series: [
+        { name: 'Test information', x: T, y: tInfo, mode: 'line', width: 2.6, color: undefined },
+        ...f.items.map((it, j) => ({ name: names[j], x: T, y: T.map((t) => info(it, t)), mode: 'line' as const, width: 1, dash: [4, 3] })),
+      ].slice(0, names.length <= 10 ? undefined : 1) }, 'Test and item information');
+      figs = [iccFig, infoFig];
+      paint(q<HTMLCanvasElement>('.ir-icc'), iccFig); paint(q<HTMLCanvasElement>('.ir-info'), infoFig);
+      const peak = T[tInfo.indexOf(Math.max(...tInfo))];
+
+      const pHead = ['ID', 'Raw score', 'Answered', 'θ (EAP)', 'SE'];
+      const pRows = ids.map((id, i) => [id, String(f.raw[i]), String(f.answered[i]), f3(f.theta[i]), f3(f.thetaSE[i])]);
+      const SHOW = 300;
+      table(q<HTMLTableElement>('.ir-people'), pHead, pRows.slice(0, SHOW));
+      q('.ir-more').hidden = ids.length <= SHOW; q('.ir-more').textContent = `Showing the first ${SHOW} of ${ids.length} people. The CSV has them all.`;
+      personCsv = [['ID', 'Raw score', 'Answered', 'Theta EAP', 'SE'], ...ids.map((id, i) => [id, f.raw[i], f.answered[i], +f.theta[i].toFixed(6), +f.thetaSE[i].toFixed(6)])];
+
+      const notes: string[] = [];
+      if (!f.converged) notes.push('The fit did not fully converge; treat the numbers with care.');
+      const weak = f.items.filter((it) => mode === '2pl' && it.a < 0.5).map((it) => names[f.items.indexOf(it)]);
+      if (weak.length) notes.push(`Low discrimination (a below 0.5): ${weak.join(', ')}. These items say little about ability.`);
+      notes.push(`The test measures best around θ = ${peak.toFixed(2)}, where its information peaks. `);
+      notes.push(`The likelihood-ratio test asks whether separate slopes (2PL) fit better than one (1PL)${lr.p < 0.05 ? ': here they do' : ': here they do not'}. AIC and BIC weigh fit against the number of parameters. Ability is on a scale with mean 0 and SD 1 in this group. Fitted by marginal maximum likelihood (EM, ${f.nodes.x.length} quadrature points, ${f.iterations} iterations).`);
+      q('.ir-note').textContent = notes.join(' ');
+      report = [
+        { title: q('.ir-h').textContent!, facts: ff },
+        { title: 'Items', table: { head, rows, align: ['l', ...head.slice(1).map(() => 'r' as const)] } },
+        { title: 'Item characteristic curves', figure: iccFig },
+        { title: 'Information', figure: infoFig, note: notes.join(' ') },
+        { title: 'People (EAP)', table: { head: pHead, rows: pRows.slice(0, SHOW), align: ['l', 'r', 'r', 'r', 'r'] }, note: ids.length > SHOW ? `First ${SHOW} of ${ids.length} people; the CSV has them all.` : undefined },
+      ];
+      err.hidden = true; q('.ir-out').hidden = false;
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.ir-out').hidden = true; report = []; itemCsv = []; personCsv = []; cache = null; }
+  }
+  function setMode(m: '1pl' | '2pl') {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.ir-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    q('.ir-what').textContent = WHAT[m];
+    calc();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.ir-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m as '1pl' | '2pl')));
+  let t = 0;
+  root.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(calc, 400); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.ir-out').hidden) { paint(q<HTMLCanvasElement>('.ir-icc'), figs[0]); paint(q<HTMLCanvasElement>('.ir-info'), figs[1]); } });
+  q('.ir-csv-i').addEventListener('click', () => { if (itemCsv.length > 1) save(new TextEncoder().encode(csv(itemCsv)), 'irt-items.csv', 'text/csv'); });
+  q('.ir-csv-p').addEventListener('click', () => { if (personCsv.length > 1) save(new TextEncoder().encode(csv(personCsv)), 'irt-scores.csv', 'text/csv'); });
+  setMode('2pl');
+  wireDownloads(q('.dl'), () => ({ title: 'IRT item analysis', file: 'irt-item-analysis', sections: report }));
+</script>
