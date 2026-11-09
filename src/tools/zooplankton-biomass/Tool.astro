@@ -1,0 +1,150 @@
+---
+// Zooplankton density and biomass from a net tow: volume filtered, subsample, counts and length-weight equations.
+// Example sample and equations are made up (illustrative).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const taxa = 'taxon\tcount\ta\tb\nCalanoid copepods\t212\t-15.8\t2.6\nCladocerans\t57\t-15.4\t2.5\nRotifers\t340\t-13.0\t2.0\nNauplii\t96\t-14.0\t2.2';
+const lens = 'taxon\tlength\nCalanoid copepods\t820\nCalanoid copepods\t760\nCalanoid copepods\t910\nCalanoid copepods\t700\nCalanoid copepods\t880\nCalanoid copepods\t790\nCladocerans\t1150\nCladocerans\t1320\nCladocerans\t980\nCladocerans\t1240\nCladocerans\t1100\nRotifers\t150\nRotifers\t170\nRotifers\t140\nRotifers\t160';
+---
+<div class="ax zpb">
+  <div class="ax-card">
+    <h2>Sample</h2>
+    <div class="ax-grid">
+      <label>Water filtered from <select class="zp-vmode"><option value="net" selected>Net and tow distance</option><option value="flow">Flowmeter</option><option value="direct">Volume I know (m³)</option></select></label>
+      <label class="zp-v zp-net zp-flow">Net mouth diameter (m) <input class="zp-d" inputmode="decimal" value="0.5" /></label>
+      <label class="zp-v zp-net">Tow distance (m) <input class="zp-dist" inputmode="decimal" value="10" /></label>
+      <label class="zp-v zp-net">Filtration efficiency (%) <input class="zp-eff" inputmode="decimal" value="90" /></label>
+      <label class="zp-v zp-flow" hidden>Flowmeter revolutions <input class="zp-rev" inputmode="decimal" value="3500" /></label>
+      <label class="zp-v zp-flow" hidden>Metres per revolution <input class="zp-mpr" inputmode="decimal" value="0.0027" /></label>
+      <label class="zp-v zp-direct" hidden>Volume filtered (m³) <input class="zp-vol" inputmode="decimal" value="1.77" /></label>
+      <label>Share of the sample counted <input class="zp-frac" value="1/8" /></label>
+    </div>
+    <p class="ax-help">Volume = π × (diameter ÷ 2)² × distance × efficiency. For a vertical tow the distance is the depth hauled. Efficiency allows for water pushed aside by a clogging net; use 100 % if unknown. With a flowmeter, distance = revolutions × metres per revolution (from its calibration) and no efficiency is applied. The share counted can be a fraction such as 1/8 (a Folsom split), a decimal or a percentage; for an aliquot, give its volume over the whole sample volume, such as 5/250.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Counts and length-weight equations</h2>
+    <label>One row per taxon: name, count in the part counted, and the a and b of its length-weight equation
+      <textarea class="zp-taxa" rows="6" spellcheck="false">{taxa}</textarea></label>
+    <DataFile target=".zp-taxa" maxCols={10} maxRows={500} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Equation form <select class="zp-form"><option value="ln" selected>ln W = a + b ln L</option><option value="log10">log₁₀ W = a + b log₁₀ L</option><option value="power">W = a × L^b</option></select></label>
+      <label>Length unit <select class="zp-lu"><option value="µm" selected>µm</option><option value="mm">mm</option></select></label>
+      <label>Mass unit <select class="zp-mu"><option value="µg" selected>µg</option><option value="mg">mg</option><option value="ng">ng</option></select></label>
+    </div>
+    <p class="ax-help">Use equations for your taxa and region from the literature, in the units they were made for (often µm and µg dry mass). The example a and b values are made up and only illustrative; replace them. Up to 500 taxa.</p>
+    <label style="display:block;margin-top:12px">Lengths measured: one row per animal, taxon name and length
+      <textarea class="zp-lens" rows="6" spellcheck="false">{lens}</textarea></label>
+    <DataFile target=".zp-lens" maxCols={10} maxRows={20000} />
+    <p class="ax-help">Each animal's mass is worked out from its own length, then averaged per taxon; this is better than the mass at the mean length, because the curve bends. Names are matched ignoring capitals. Up to 20,000 lengths. The example sample is made up.</p>
+    <p class="ax-err zp-err" hidden></p>
+  </div>
+
+  <div class="ax-card zp-out">
+    <h2>Result</h2>
+    <p class="ax-big zp-big"></p>
+    <dl class="ax-facts zp-facts"></dl>
+    <p class="ax-help zp-warn" hidden></p>
+    <canvas class="ax-fig zp-fig"></canvas>
+    <div class="ax-scroll"><table class="zp-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small zp-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { analyse, netVolume, readFraction, type Form, type Taxon } from '../../lib/sci/zooplankton';
+  import { OKABE_ITO } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => (Number.isFinite(x) ? sig(x, d) : '–');
+  const big3 = (x: number) => (Number.isFinite(x) ? (x >= 1000 ? Math.round(x).toLocaleString('en') : sig(x, 3)) : '–');
+  const root = document.querySelector<HTMLElement>('.zpb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function calc() {
+    const fail = (m: string) => { q('.zp-err').textContent = m; q('.zp-err').hidden = false; q('.zp-out').hidden = true; fig = null; sections = []; csvRows = []; };
+    q('.zp-err').hidden = true;
+    const vm = q<HTMLSelectElement>('.zp-vmode').value;
+    root.querySelectorAll<HTMLElement>('.zp-v').forEach((e) => (e.hidden = !e.classList.contains(`zp-${vm}`)));
+    let V = NaN, vNote = '';
+    if (vm === 'net') { const d = val('.zp-d'), L = val('.zp-dist'), e = val('.zp-eff'); if (!(d > 0 && L > 0 && e > 0 && e <= 100)) return fail('Give the net diameter and tow distance (above zero) and an efficiency from 1 to 100 %.'); V = netVolume(d, L, e / 100); vNote = `${d} m net × ${L} m × ${e} %`; }
+    else if (vm === 'flow') { const d = val('.zp-d'), r = val('.zp-rev'), m = val('.zp-mpr'); if (!(d > 0 && r > 0 && m > 0)) return fail('Give the net diameter, the flowmeter revolutions and the metres per revolution, all above zero.'); V = netVolume(d, r * m); vNote = `${d} m net × ${+(r * m).toPrecision(6)} m from the flowmeter`; }
+    else { V = val('.zp-vol'); if (!(V > 0)) return fail('Give the volume filtered in m³, above zero.'); vNote = 'as given'; }
+    const frac = readFraction(q<HTMLInputElement>('.zp-frac').value);
+    if (!(frac > 0 && frac <= 1)) return fail('Give the share of the sample counted as a fraction from above 0 to 1, such as 1/8, 0.125 or 12.5 %.');
+    const form = q<HTMLSelectElement>('.zp-form').value as Form, lu = q<HTMLSelectElement>('.zp-lu').value, mu = q<HTMLSelectElement>('.zp-mu').value;
+    const tRows = parseTable(q<HTMLTextAreaElement>('.zp-taxa').value).filter((r) => Number.isFinite(num(r[1])));
+    if (tRows.length > 500) return fail('Up to 500 taxa, please.');
+    if (!tRows.length) return fail('Add at least one taxon: name, count, a, b.');
+    const taxa: Taxon[] = [];
+    for (const r of tRows) {
+      const t = { taxon: (r[0] ?? '').trim(), count: num(r[1]), a: num(r[2]), b: num(r[3]) };
+      if (!t.taxon) return fail('Each taxon row needs a name first.');
+      if (!(t.count >= 0)) return fail(`${t.taxon}: the count must be zero or more.`);
+      if (!Number.isFinite(t.a) || !Number.isFinite(t.b)) return fail(`${t.taxon}: give the a and b of its length-weight equation after the count.`);
+      if (form === 'power' && !(t.a > 0)) return fail(`${t.taxon}: with W = a × L^b, a must be above zero.`);
+      taxa.push(t);
+    }
+    if (new Set(taxa.map((t) => t.taxon.toLowerCase())).size !== taxa.length) return fail('Each taxon may appear only once in the counts.');
+    const lRows = parseTable(q<HTMLTextAreaElement>('.zp-lens').value).filter((r) => Number.isFinite(num(r[1])));
+    if (lRows.length > 20000) return fail('Up to 20,000 lengths, please.');
+    const lens = lRows.map((r) => ({ taxon: r[0] ?? '', length: num(r[1]) }));
+    if (lens.some((l) => !(l.length > 0))) return fail('Every length must be above zero.');
+    const res = analyse(taxa, lens, V, frac, form);
+    q('.zp-out').hidden = false;
+    const mg = mu === 'µg' ? 1e-3 : mu === 'ng' ? 1e-6 : 1;
+    q('.zp-big').textContent = `${big3(res.totalDensity)} ind/m³; biomass ${big3(res.totalBiomass)} ${mu}/m³`;
+    q('.zp-facts').replaceChildren(
+      fact('Water filtered', `${sg(V, 4)} m³`, vNote),
+      fact('Share counted', sg(frac, 4), `counts are multiplied by ${sg(1 / frac, 4)}`),
+      fact('Total density', `${big3(res.totalDensity)} ind/m³`, `${big3(res.totalDensity / 1000)} ind/L`),
+      fact('Total biomass', `${big3(res.totalBiomass)} ${mu}/m³`, mu === 'mg' ? `${sg(res.totalBiomass, 3)} mg/m³` : `${sg(res.totalBiomass * mg, 3)} mg/m³${res.missingMass.length ? '; taxa with no lengths left out' : ''}`),
+    );
+    const warn = [...(res.missingMass.length ? [`No lengths for ${res.missingMass.join(', ')}, so no biomass for ${res.missingMass.length > 1 ? 'them' : 'it'}.`] : []), ...(res.orphans.length ? [`Lengths for ${res.orphans.join(', ')} have no row in the counts and are not used.`] : [])];
+    q('.zp-warn').textContent = warn.join(' '); q('.zp-warn').hidden = !warn.length;
+    const head = ['Taxon', 'Count', 'Density (ind/m³)', 'Measured', `Mean length (${lu})`, `Mean mass (${mu})`, `Biomass (${mu}/m³)`, 'Share of biomass'];
+    const rows = res.rows.map((r) => [r.taxon, String(r.count), big3(r.density), String(r.nMeasured), sg(r.meanLength, 4), sg(r.meanMass, 3), big3(r.biomass), Number.isFinite(r.biomass) && res.totalBiomass > 0 ? `${sg((100 * r.biomass) / res.totalBiomass, 3)} %` : '–']);
+    const tab = q<HTMLTableElement>('.zp-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.style.textAlign = 'right'; hr.append(th); });
+    const tb = tab.createTBody(); rows.forEach((r) => { const tr = tb.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.style.textAlign = 'right'; }); });
+    // Bars: share of density and of biomass per taxon.
+    const shown = res.rows.slice(0, 12), tb2 = res.totalBiomass, td2 = res.totalDensity;
+    fig = { w: 360, h: 50 + shown.length * 34, alt: 'Share of density and biomass by taxon', draw: (ctx, W, H, pal) => {
+      const left = 116, right = 40, bw = W - left - right, cols = pal.red ? [pal.ink, pal.muted] : [OKABE_ITO[0], OKABE_ITO[1]];
+      ctx.font = '11px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+      shown.forEach((r, i) => {
+        const y = 14 + i * 34; ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.fillText(r.taxon.length > 18 ? r.taxon.slice(0, 17) + '…' : r.taxon, left - 8, y + 12);
+        [[r.density / td2, 0], [Number.isFinite(r.biomass) && tb2 > 0 ? r.biomass / tb2 : NaN, 1]].forEach(([v, k]) => {
+          const yy = y + k * 13; ctx.fillStyle = cols[k];
+          if (Number.isFinite(v)) { ctx.fillRect(left, yy + 1, Math.max(1, v * bw), 10); ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText(`${Math.round(v * 100)} %`, left + v * bw + 4, yy + 6); }
+          else { ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText('no lengths', left + 2, yy + 6); }
+        });
+      });
+      const ly = H - 16; ctx.textAlign = 'left';
+      [['Share of density', 0], ['Share of biomass', 1]].forEach(([t, k], j) => { const x = left + j * 130; ctx.fillStyle = cols[k as number]; ctx.fillRect(x, ly - 5, 10, 10); ctx.fillStyle = pal.ink; ctx.fillText(t as string, x + 14, ly); });
+    } };
+    paint(q<HTMLCanvasElement>('.zp-fig'), fig);
+    csvRows = [head, ...res.rows.map((r) => [r.taxon, String(r.count), String(r.density), String(r.nMeasured), String(r.meanLength), String(r.meanMass), String(r.biomass), res.totalBiomass > 0 ? String(r.biomass / res.totalBiomass) : '']), [], ['Volume filtered (m3)', String(V)], ['Share counted', String(frac)], ['Total density (ind/m3)', String(res.totalDensity)], [`Total biomass (${mu}/m3)`, String(res.totalBiomass)]];
+    sections = [{ title: q('.zp-big').textContent!, text: [`Density = count ÷ share counted ÷ volume filtered. Mass of each measured animal from ${form === 'power' ? 'W = a·L^b' : form === 'ln' ? 'ln W = a + b ln L' : 'log₁₀ W = a + b log₁₀ L'} (L in ${lu}, W in ${mu}); biomass = density × mean individual mass.`, ...warn], facts: [...q('.zp-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig, table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'r'] } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.zp-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'zooplankton-biomass.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.zp-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Zooplankton density and biomass', subtitle: q('.zp-big').textContent ?? '', file: 'zooplankton-biomass', sections }));
+</script>
+
+<style is:global>
+  .zpb select { max-width: 100%; }
+  .zpb textarea { width: 100%; }
+  .zpb td { white-space: nowrap; }
+</style>
