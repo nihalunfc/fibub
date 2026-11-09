@@ -1,0 +1,322 @@
+---
+// Numerical methods teacher: root finding with iteration tables, numerical integration with error plots, and
+// interpolation (Lagrange, Newton divided differences, natural cubic spline). Worked out in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax nmc">
+  <div class="ax-card">
+    <div class="ax-seg nm-tabs" role="group" aria-label="Topic">
+      <button type="button" data-t="root" aria-pressed="true">Roots</button>
+      <button type="button" data-t="quad" aria-pressed="false">Integrals</button>
+      <button type="button" data-t="interp" aria-pressed="false">Interpolation</button>
+    </div>
+
+    <div class="nm-p nm-root" style="margin-top:12px">
+      <label>Solve f(x) = 0 with f(x) = <input class="nm-f" value="x^3 - 2x - 5" spellcheck="false" autocomplete="off" autocapitalize="off" /></label>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Method <select class="nm-meth"><option value="bisection">Bisection</option><option value="false">False position (regula falsi)</option><option value="newton" selected>Newton-Raphson</option><option value="secant">Secant</option></select></label>
+        <label><span class="nm-al">Start x₀</span> <input class="nm-a" value="2" inputmode="decimal" /></label>
+        <label><span class="nm-bl">Second point x₁</span> <input class="nm-b" value="3" inputmode="decimal" /></label>
+        <label>Stop when the change is below <select class="nm-tol"><option value="1e-4">10⁻⁴</option><option value="1e-6">10⁻⁶</option><option value="1e-8">10⁻⁸</option><option value="1e-10" selected>10⁻¹⁰</option><option value="1e-12">10⁻¹²</option></select></label>
+      </div>
+      <p class="ax-help nm-rhelp"></p>
+    </div>
+
+    <div class="nm-p nm-quad" style="margin-top:12px" hidden>
+      <label>Integrate f(x) = <input class="nm-if" value="e^x" spellcheck="false" autocomplete="off" autocapitalize="off" /></label>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>From a <input class="nm-ia" value="0" inputmode="decimal" /></label>
+        <label>To b <input class="nm-ib" value="1" inputmode="decimal" /></label>
+        <label>Intervals n <input class="nm-n" type="number" min="2" max="10000" step="2" value="8" inputmode="numeric" /></label>
+        <label>Gauss points <select class="nm-gn"><option>2</option><option selected>3</option><option>4</option><option>5</option><option>8</option><option>10</option><option>20</option></select></label>
+      </div>
+      <p class="ax-help">a and b may be expressions such as pi/2. Simpson's rule needs an even n.</p>
+    </div>
+
+    <div class="nm-p nm-interp" style="margin-top:12px" hidden>
+      <label>Data <select class="nm-src"><option value="pts" selected>Points I type or paste</option><option value="fn">Sample a function</option></select></label>
+      <div class="nm-ptsw">
+        <label style="margin-top:10px">Points, one per line: x then y <textarea class="nm-pts" rows="5" spellcheck="false">0 1
+1 3
+2 2
+4 5
+5 4</textarea></label>
+        <DataFile target=".nm-pts" maxMB={1} maxCols={2} maxRows={40} />
+      </div>
+      <div class="nm-fnw" hidden>
+        <label style="margin-top:10px">f(x) = <input class="nm-pf" value="1/(1 + 25x^2)" spellcheck="false" autocomplete="off" autocapitalize="off" /></label>
+        <div class="ax-grid" style="margin-top:10px">
+          <label>From <input class="nm-pa" value="-1" inputmode="decimal" /></label>
+          <label>To <input class="nm-pb" value="1" inputmode="decimal" /></label>
+          <label>Points <input class="nm-pn" type="number" min="2" max="40" value="11" inputmode="numeric" /></label>
+          <label>Spacing <select class="nm-sp"><option value="equal" selected>Equal</option><option value="cheb">Chebyshev</option></select></label>
+        </div>
+      </div>
+      <label style="margin-top:10px">Estimate at x = <input class="nm-at" value="3" inputmode="decimal" /></label>
+    </div>
+
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small nm-ex" data-ex="root|cos(x) - x|bisection|0|1">Example: cos x = x</button>
+      <button type="button" class="btn secondary small nm-ex" data-ex="root|atan(x)|newton|1.5|2">Example: Newton fails</button>
+      <button type="button" class="btn secondary small nm-ex" data-ex="interp|fn">Example: Runge</button>
+    </div>
+    <p class="ax-help">Functions use x, ^ for powers, sqrt, sin, cos, tan, exp or e^x, ln, abs, pi. Angles are in radians.</p>
+    <p class="ax-err nm-err" hidden></p>
+  </div>
+
+  <div class="ax-card nm-out" hidden>
+    <h2 class="nm-title">Result</h2>
+    <p class="ax-big nm-big" aria-live="polite"></p>
+    <p class="nm-note"></p>
+    <dl class="ax-facts nm-facts"></dl>
+    <h3 class="nm-t1h"></h3>
+    <div class="ax-scroll"><table class="nm-t1"></table></div>
+    <canvas class="ax-fig nm-fig1" style="margin-top:14px"></canvas>
+    <canvas class="ax-fig nm-fig2" style="margin-top:14px"></canvas>
+    <h3 class="nm-t2h"></h3>
+    <div class="ax-scroll"><table class="nm-t2"></table></div>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small nm-csv">Download table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .nmc h3 { margin: 22px 0 8px; font-size: 15px; }
+  .nmc h3:empty { display: none; }
+  .nmc .nm-note { margin: 6px 0 0; font-size: 14.5px; }
+  .nmc .nm-note:empty { display: none; }
+  .nmc .nm-out td { white-space: nowrap; }
+  .nmc tr.nm-on td { font-weight: 650; }
+</style>
+
+<script>
+  import { parse, diff, simplify, show, evaluate, symbols, definite, CasError, type Ex } from '../../lib/sci/cas';
+  import { bisection, falsePosition, newton, secant, convergenceOrder, trapezoid, simpson, midpoint, gauss, romberg, reference, dividedDifferences, newtonEval, polyCoefficients, lagrange, naturalSpline, splineEval, equalNodes, chebyshevNodes, checkPoints, type RootResult } from '../../lib/sci/numerics';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { num, sig, csv, parseTable } from '../../lib/sci/num';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.nmc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement>(c).value;
+  let tab = 'root', figs: (Figure | null)[] = [null, null], report: Section[] = [], csvRows: (string | number)[][] = [], csvName = 'table';
+  const s10 = (v: number) => { if (!Number.isFinite(v)) return '–'; const a = Math.abs(v); return a !== 0 && (a < 1e-4 || a >= 1e10) ? sig(v, 10) : String(Number(v.toPrecision(10))).replace('-', '−'); };
+  const s6 = (v: number) => { if (!Number.isFinite(v)) return '–'; const a = Math.abs(v); return a !== 0 && (a < 1e-4 || a >= 1e10) ? sig(v, 6) : String(Number(v.toPrecision(6))).replace('-', '−'); };
+  const s4 = (v: number) => (Number.isFinite(v) ? sig(v, 4) : '–');
+  const RHELP: Record<string, string> = {
+    bisection: 'Halve an interval [a, b] where f changes sign, keeping the half that still has the sign change. Slow but sure: the error halves every step (linear convergence).',
+    false: 'Like bisection, but the new point is where the straight line through (a, f(a)) and (b, f(b)) crosses zero. Usually faster, though one end can get stuck.',
+    newton: 'From x₀, follow the tangent to the axis: x ← x − f(x)/f′(x). The derivative is worked out for you. Very fast near a simple root (quadratic: the correct digits roughly double each step), but it can fail far from one.',
+    secant: 'Newton without the derivative: the tangent is replaced by the line through the last two points. Convergence of order about 1.618.',
+  };
+
+  function fnOf(src: string, label: string): { ex: Ex; f: (x: number) => number } {
+    let ex: Ex;
+    try { ex = parse(src); } catch (e) { throw new Error(`${label}: ${(e as Error).message}`); }
+    const other = [...symbols(ex)].filter((s) => s !== 'x');
+    if (other.length) throw new Error(`${label}: use x as the only letter (found ${other.join(', ')}).`);
+    return { ex, f: (x: number) => evaluate(ex, { x }) };
+  }
+  function numOf(src: string, label: string): number {
+    const n = num(src);
+    if (Number.isFinite(n)) return n;
+    try { const ex = parse(src); if (!symbols(ex).size) { const v = evaluate(ex, {}); if (Number.isFinite(v)) return v; } } catch { /* fall through */ }
+    throw new Error(`${label} must be a number (pi/2 and similar are fine).`);
+  }
+  function table(sel: string, head: string[], rows: string[][], on = -1) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    if (!rows.length) return;
+    const hr = t.createTHead().insertRow();
+    head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const tb = t.createTBody();
+    rows.forEach((r, ri) => { const tr = tb.insertRow(); if (ri === on) tr.className = 'nm-on'; r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); });
+  }
+  const facts = (fs: [string, string][]) => q('.nm-facts').replaceChildren(...fs.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+
+  function calcRoot() {
+    const meth = q<HTMLSelectElement>('.nm-meth').value, bracket = meth === 'bisection' || meth === 'false';
+    q('.nm-al').textContent = bracket ? 'Left end a' : 'Start x₀';
+    q('.nm-bl').textContent = bracket ? 'Right end b' : meth === 'secant' ? 'Second point x₁' : 'Second point (for the other methods)';
+    q('.nm-rhelp').textContent = RHELP[meth];
+    const { ex, f } = fnOf(val('.nm-f'), 'f(x)');
+    const a = numOf(val('.nm-a'), bracket ? 'a' : 'x₀'), b = numOf(val('.nm-b'), bracket ? 'b' : 'x₁');
+    if (bracket && !(b > a)) throw new Error('The right end b must be larger than a.');
+    const tol = Number(q<HTMLSelectElement>('.nm-tol').value);
+    const dEx = simplify(diff(ex, 'x')), df = (x: number) => evaluate(dEx, { x });
+    const lo = Math.min(a, b), hi = Math.max(a, b);
+    const all: RootResult[] = [bisection(f, lo, hi, tol), falsePosition(f, lo, hi, tol), newton(f, df, a, tol), secant(f, a, b, tol)];
+    const keys = ['bisection', 'false', 'newton', 'secant'];
+    const r = all[keys.indexOf(meth)];
+    const best = all.filter((x) => x.converged).map((x) => x.root);
+    const xStar = r.converged ? r.root : best.length ? best[0] : NaN;
+    q('.nm-title').textContent = `${r.method}${r.method === 'Newton' ? '-Raphson' : ''}`;
+    q('.nm-big').textContent = r.converged ? `x ≈ ${s10(r.root)} after ${r.rows.length} iteration${r.rows.length === 1 ? '' : 's'}` : 'No root found';
+    q('.nm-note').textContent = r.converged ? '' : r.reason;
+    const order = r.converged ? convergenceOrder(r.rows, r.root) : NaN;
+    facts([
+      ['f(x) read as', show(ex)],
+      ...(meth === 'newton' ? [['f′(x)', show(dEx)] as [string, string]] : []),
+      ...(r.converged ? [['f at the root', sig(f(r.root), 3)], ['Why it stopped', r.reason]] as [string, string][] : []),
+      ...(Number.isFinite(order) ? [['Estimated order of convergence', `${order.toFixed(2)} (${meth === 'newton' ? 'theory: 2' : meth === 'secant' ? 'theory: 1.618' : 'theory: 1'})`]] as [string, string][] : []),
+    ]);
+    const isB = bracket;
+    const head = isB ? ['n', 'a', 'b', 'x (new point)', 'f(x)', meth === 'bisection' ? 'Error bound (b − a)/2' : '|change in x|'] : meth === 'newton' ? ['n', 'x', 'f(x)', 'f′ at the previous x', '|change in x|'] : ['n', 'x', 'f(x)', '|change in x|'];
+    const rows = r.rows.map((w) => (isB ? [String(w.n), s10(w.a!), s10(w.b!), s10(w.x), s4(w.fx), s4(w.err)] : meth === 'newton' ? [String(w.n), s10(w.x), s4(w.fx), s4(w.dfx!), s4(w.err)] : [String(w.n), s10(w.x), s4(w.fx), s4(w.err)]));
+    q('.nm-t1h').textContent = 'Iterations';
+    table('.nm-t1', head, rows);
+    csvRows = [head, ...r.rows.map((w) => (isB ? [w.n, w.a!, w.b!, w.x, w.fx, w.err] : meth === 'newton' ? [w.n, w.x, w.fx, w.dfx!, w.err] : [w.n, w.x, w.fx, w.err]))]; csvName = `iterations-${meth}`;
+    q('.nm-t2h').textContent = 'All four methods on this problem';
+    const cmpRows = all.map((x) => [x.method, x.converged ? String(x.rows.length) : '–', x.converged ? s10(x.root) : 'failed', x.converged ? 'yes' : x.reason.split('.')[0]]);
+    table('.nm-t2', ['Method', 'Iterations', 'Root', 'Converged'], cmpRows, keys.indexOf(meth));
+    // Figures: f with the iterates; error against iteration (log scale) for every method.
+    const xs = [lo, hi, ...r.rows.map((w) => w.x)].filter((v) => Number.isFinite(v) && Math.abs(v) < 1e6);
+    let x0 = Math.min(...xs), x1 = Math.max(...xs); const pad = (x1 - x0) * 0.1 || 1; x0 -= pad; x1 += pad;
+    const gx = Array.from({ length: 301 }, (_, i) => x0 + ((x1 - x0) * i) / 300), gy = gx.map(f);
+    const fin = gy.filter(Number.isFinite).sort((p, q2) => p - q2), yl = fin[Math.floor(fin.length * 0.02)] ?? -1, yh = fin[Math.floor(fin.length * 0.98)] ?? 1, yp = (yh - yl) * 0.15 || 1;
+    const it = r.rows.filter((w) => w.x >= x0 && w.x <= x1);
+    figs[0] = chartFigure({ h: 320, xLabel: 'x', yLabel: 'f(x)', xMin: x0, xMax: x1, yMin: Math.min(yl, 0) - yp, yMax: Math.max(yh, 0) + yp, series: [{ name: 'f(x)', x: gx, y: gy, mode: 'line' }, { name: 'iterates', x: it.map((w) => w.x), y: it.map((w) => w.fx), mode: 'points', labels: it.map((w) => (w.n <= 6 ? String(w.n) : '')) }], marks: [{ kind: 'hline', at: 0 }] }, 'f(x) with the iterates numbered');
+    figs[1] = Number.isFinite(xStar) ? chartFigure({ h: 300, xLabel: 'Iteration n', yLabel: '|xₙ − root|', yLog: true, series: all.filter((x) => x.rows.length).map((x) => ({ name: x.method, x: x.rows.map((w) => w.n), y: x.rows.map((w) => Math.abs(w.x - xStar)), mode: 'both' as const })) }, 'Error against iteration for each method, log scale') : null;
+    report = [{ title: `${r.method}: f(x) = ${show(ex)}`, text: [q('.nm-big').textContent!, ...(r.converged ? [] : [r.reason])], table: { head, rows }, figure: figs[0]! }, { title: 'All four methods', table: { head: ['Method', 'Iterations', 'Root', 'Converged'], rows: cmpRows }, ...(figs[1] ? { figure: figs[1] } : {}) }];
+  }
+
+  function calcQuad() {
+    const { ex, f } = fnOf(val('.nm-if'), 'f(x)');
+    const a = numOf(val('.nm-ia'), 'a'), b = numOf(val('.nm-ib'), 'b');
+    if (!(b > a)) throw new Error('b must be larger than a.');
+    const n = Math.round(Number(val('.nm-n')));
+    if (!(n >= 2 && n <= 10000)) throw new Error('Intervals n must be a whole number from 2 to 10,000.');
+    const gn = Number(q<HTMLSelectElement>('.nm-gn').value);
+    // Undefined points inside [a, b]?
+    for (let i = 0; i <= 200; i++) { const x = a + ((b - a) * i) / 200; if (!Number.isFinite(f(x))) throw new Error(`f is undefined at x ≈ ${sig(x, 4)}, inside [a, b]; the rules need a value at every point they use.`); }
+    // Reference: exact from the symbolic integral when possible, else high-order Gauss.
+    let refV = reference(f, a, b), refText = `${s10(refV)} (20-point Gauss on 64 panels)`;
+    try { const aEx = parse(val('.nm-ia')), bEx = parse(val('.nm-ib')); const d = definite(ex, 'x', aEx, bEx); if (d.ok) { refV = d.value; refText = `${show(d.exact)} = ${s10(d.value)} (exact)`; } } catch { /* numeric reference */ }
+    const sOK = n % 2 === 0;
+    const R = romberg(f, a, b, 6), rb = R[5][5];
+    const res: [string, string, number][] = [['Midpoint', `${n} intervals`, midpoint(f, a, b, n)], ['Trapezoid', `${n} intervals`, trapezoid(f, a, b, n)], ...(sOK ? [["Simpson's 1/3", `${n} intervals`, simpson(f, a, b, n)]] as [string, string, number][] : []), [`Gauss-Legendre`, `${gn} points`, gauss(f, a, b, gn)], ['Romberg R(5,5)', '33 points', rb]];
+    q('.nm-title').textContent = `∫ from ${s6(a)} to ${s6(b)} of ${show(ex)} dx`;
+    q('.nm-big').textContent = `≈ ${s10(sOK ? res[2][2] : res[1][2])} (${sOK ? 'Simpson' : 'trapezoid'}, n = ${n})`;
+    q('.nm-note').textContent = sOK ? '' : `Simpson's rule needs an even number of intervals, so it is left out for n = ${n}.`;
+    facts([['Reference value', refText], ['Step h = (b − a)/n', s6((b - a) / n)]]);
+    const head = ['Rule', 'Uses', 'Value', 'Error (value − reference)'];
+    const rows = res.map(([m, u, v]) => [m, u, s10(v), sig(v - refV, 3)]);
+    q('.nm-t1h').textContent = 'Each rule';
+    table('.nm-t1', head, rows);
+    q('.nm-t2h').textContent = 'Romberg table: trapezoid with 1, 2, 4 … 32 intervals, then Richardson extrapolation';
+    const rh = ['i (2ⁱ intervals)', ...R.map((_, j) => `R(i, ${j})`)];
+    const rrows = R.map((row, i) => [String(i), ...row.map(s10), ...Array(R.length - row.length).fill('')]);
+    table('.nm-t2', rh, rrows);
+    csvRows = [head, ...res.map(([m, u, v]) => [m, u, v, v - refV]), [], ['Romberg', ...R.map((_, j) => `R(i ${j})`)], ...R.map((row, i) => [i, ...row])]; csvName = 'integration';
+    // Error against the number of function values used, log-log.
+    const ns = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024];
+    const e = (v: number) => Math.max(Math.abs(v - refV), 1e-17);
+    const series = [
+      { name: 'Trapezoid (error ∝ h²)', x: ns.map((k) => k + 1), y: ns.map((k) => e(trapezoid(f, a, b, k))), mode: 'both' as const },
+      { name: 'Simpson (∝ h⁴)', x: ns.map((k) => k + 1), y: ns.map((k) => e(simpson(f, a, b, k))), mode: 'both' as const },
+      { name: 'Gauss-Legendre', x: [1, 2, 3, 4, 5, 6, 8, 10, 14, 20], y: [1, 2, 3, 4, 5, 6, 8, 10, 14, 20].map((k) => e(gauss(f, a, b, k))), mode: 'both' as const },
+      { name: 'Romberg', x: R.map((_, i) => 2 ** i + 1), y: R.map((row) => e(row[row.length - 1])), mode: 'both' as const },
+    ];
+    figs[0] = chartFigure({ h: 340, xLabel: 'Function values used', yLabel: '|error|', xLog: true, yLog: true, series }, 'Error of each rule against the number of function values, log-log');
+    const gx = Array.from({ length: 201 }, (_, i) => a + ((b - a) * i) / 200);
+    const nx = Array.from({ length: Math.min(n, 64) + 1 }, (_, i) => a + ((b - a) * i) / Math.min(n, 64));
+    figs[1] = chartFigure({ h: 280, xLabel: 'x', yLabel: 'f(x)', series: [{ name: 'f(x)', x: gx, y: gx.map(f), mode: 'line' }, { name: n <= 64 ? 'trapezoid panels' : 'trapezoid panels (first 64 shown)', x: nx, y: nx.map(f), mode: 'both', dash: [5, 4] }], marks: [{ kind: 'hline', at: 0 }] }, 'The function and the straight-line panels of the trapezoid rule');
+    report = [{ title: q('.nm-title').textContent!, text: [q('.nm-big').textContent!, `Reference: ${refText}`], table: { head, rows }, figure: figs[0] }, { title: 'Romberg table', table: { head: rh, rows: rrows }, figure: figs[1] }];
+  }
+
+  function calcInterp() {
+    const src = q<HTMLSelectElement>('.nm-src').value;
+    q('.nm-ptsw').hidden = src !== 'pts'; q('.nm-fnw').hidden = src !== 'fn';
+    let xs: number[], ys: number[], f: ((x: number) => number) | null = null, fEx: Ex | null = null;
+    if (src === 'pts') {
+      let nums = parseTable(val('.nm-pts')).filter((r) => r.some((c) => c !== ''));
+      if (nums.length && !Number.isFinite(num(nums[0][0]))) nums = nums.slice(1); // a header row
+      const badRow = nums.findIndex((r) => !(Number.isFinite(num(r[0])) && Number.isFinite(num(r[1]))));
+      if (badRow >= 0) throw new Error(`Line ${badRow + 1} needs two numbers: x then y.`);
+      if (nums.length > 40) throw new Error('Up to 40 points, please.');
+      ({ xs, ys } = checkPoints(nums.map((r) => num(r[0])), nums.map((r) => num(r[1]))));
+    } else {
+      const g = fnOf(val('.nm-pf'), 'f(x)'); f = g.f; fEx = g.ex;
+      const a = numOf(val('.nm-pa'), 'From'), b = numOf(val('.nm-pb'), 'To'), n = Math.round(Number(val('.nm-pn')));
+      if (!(b > a)) throw new Error('"To" must be larger than "From".');
+      if (!(n >= 2 && n <= 40)) throw new Error('Points must be from 2 to 40.');
+      xs = q<HTMLSelectElement>('.nm-sp').value === 'cheb' ? chebyshevNodes(a, b, n) : equalNodes(a, b, n);
+      ys = xs.map(f);
+      if (ys.some((v) => !Number.isFinite(v))) throw new Error('f is undefined at one of the points.');
+    }
+    const at = numOf(val('.nm-at'), 'x');
+    const L = lagrange(xs, ys), dd = dividedDifferences(xs, ys), c = dd.map((r) => r[0]), coef = polyCoefficients(xs, ys);
+    const spl = xs.length >= 3 ? naturalSpline(xs, ys) : null;
+    const pAt = L(at), sAt = spl ? splineEval(spl, at) : NaN;
+    q('.nm-title').textContent = `Interpolating ${xs.length} points`;
+    q('.nm-big').textContent = `At x = ${s6(at)}: polynomial ${s10(pAt)}${spl ? `, spline ${s10(sAt)}` : ''}`;
+    const outside = at < xs[0] || at > xs[xs.length - 1];
+    q('.nm-note').textContent = outside ? `x = ${s6(at)} is outside the data (${s6(xs[0])} to ${s6(xs[xs.length - 1])}): this is extrapolation and may be far off.` : '';
+    const polyText = coef.map((v, k) => [v, k] as const).reverse().filter(([v]) => Math.abs(v) > 1e-13 * Math.max(...coef.map(Math.abs))).map(([v, k], i) => `${i ? (v < 0 ? ' − ' : ' + ') : v < 0 ? '−' : ''}${s6(Math.abs(v))}${k ? (k === 1 ? 'x' : `x^${k}`) : ''}`).join('') || '0';
+    const newtonText = c.map((v, k) => `${k ? (v < 0 ? ' − ' : ' + ') : v < 0 ? '−' : ''}${s6(Math.abs(v))}${xs.slice(0, k).map((x) => `(x ${x < 0 ? '+' : '−'} ${s6(Math.abs(x))})`).join('')}`).join('');
+    const fs: [string, string][] = [['Polynomial degree', String(xs.length - 1)], ['Newton form', newtonText], ['Expanded', polyText]];
+    if (f) { fs.unshift(['f(x)', show(fEx!)]); fs.push(['True f there', s10(f(at))]); }
+    facts(fs);
+    // Divided differences table.
+    const n = xs.length, dHead = ['i', 'xᵢ', 'f[xᵢ]', ...Array.from({ length: n - 1 }, (_, k) => `order ${k + 1}`)];
+    const dRows = xs.map((x, i) => [String(i), s6(x), ...dd.map((col) => (i < col.length ? s6(col[i]) : ''))].slice(0, 3 + n - 1));
+    q('.nm-t1h').textContent = 'Newton divided differences (the top of each column is a coefficient)';
+    table('.nm-t1', dHead, dRows);
+    q('.nm-t2h').textContent = spl ? 'Natural cubic spline pieces: S(x) = a + b·t + c·t² + d·t³ with t = x − xᵢ' : '';
+    const sHead = ['Interval', 'a', 'b', 'c', 'd'];
+    const sRows = spl ? spl.a.map((_, i) => [`[${sig(xs[i], 5)}, ${sig(xs[i + 1], 5)}]`, s6(spl.a[i]), s6(spl.b[i]), s6(spl.c[i]), s6(spl.d[i])]) : [];
+    table('.nm-t2', sHead, sRows);
+    csvRows = [['x', 'y'], ...xs.map((x, i) => [x, ys[i]]), [], ['power', 'polynomial coefficient'], ...coef.map((v, k) => [k, v]), ...(spl ? [[], ['x_i', 'x_i+1', 'a', 'b', 'c', 'd'], ...spl.a.map((_, i) => [xs[i], xs[i + 1], spl.a[i], spl.b[i], spl.c[i], spl.d[i]])] : [])]; csvName = 'interpolation';
+    const lo = xs[0], hi = xs[n - 1], span = hi - lo, g0 = Math.min(lo, at) - span * 0.02, g1 = Math.max(hi, at) + span * 0.02;
+    const gx = Array.from({ length: 401 }, (_, i) => g0 + ((g1 - g0) * i) / 400);
+    const series: any[] = [{ name: 'data', x: xs, y: ys, mode: 'points' }, { name: `polynomial (degree ${n - 1})`, x: gx, y: gx.map(L), mode: 'line' }];
+    if (spl) series.push({ name: 'natural spline', x: gx, y: gx.map((x) => splineEval(spl, x)), mode: 'line', dash: [6, 4] });
+    if (f) series.push({ name: 'f(x)', x: gx, y: gx.map(f), mode: 'line', dash: [2, 3] });
+    const allY = [...ys, ...(f ? gx.map(f) : [])].filter(Number.isFinite), ymin = Math.min(...allY), ymax = Math.max(...allY), yr = (ymax - ymin) || 1;
+    figs[0] = chartFigure({ h: 340, xLabel: 'x', yLabel: 'y', yMin: ymin - yr * 0.6, yMax: ymax + yr * 0.6, series }, 'Data points with the interpolating polynomial and the natural cubic spline');
+    if (f) {
+      const ex = Array.from({ length: 401 }, (_, i) => lo + (span * i) / 400);
+      figs[1] = chartFigure({ h: 300, xLabel: 'x', yLabel: '|error|', yLog: true, series: [{ name: 'polynomial', x: ex, y: ex.map((x) => Math.abs(L(x) - f!(x))), mode: 'line' }, ...(spl ? [{ name: 'spline', x: ex, y: ex.map((x) => Math.abs(splineEval(spl, x) - f!(x))), mode: 'line' as const, dash: [6, 4] }] : [])] }, 'Interpolation error against x, log scale');
+      const maxP = Math.max(...ex.map((x) => Math.abs(L(x) - f!(x)))), maxS = spl ? Math.max(...ex.map((x) => Math.abs(splineEval(spl, x) - f!(x)))) : NaN;
+      fs.push(['Largest error, polynomial', sig(maxP, 4)], ...(spl ? [['Largest error, spline', sig(maxS, 4)] as [string, string]] : []));
+      facts(fs);
+    } else figs[1] = null;
+    report = [{ title: q('.nm-title').textContent!, text: [q('.nm-big').textContent!], facts: fs, table: { head: dHead, rows: dRows }, figure: figs[0] }, ...(spl ? [{ title: 'Natural cubic spline', table: { head: sHead, rows: sRows }, ...(figs[1] ? { figure: figs[1] } : {}) }] : [])];
+  }
+
+  function calc() {
+    for (const b of root.querySelectorAll<HTMLButtonElement>('.nm-tabs button')) b.setAttribute('aria-pressed', String(b.dataset.t === tab));
+    for (const p of ['root', 'quad', 'interp']) q(`.nm-${p}`).hidden = p !== tab;
+    const err = q('.nm-err');
+    try {
+      figs = [null, null];
+      if (tab === 'root') calcRoot(); else if (tab === 'quad') calcQuad(); else calcInterp();
+      err.hidden = true; q('.nm-out').hidden = false;
+      ['.nm-fig1', '.nm-fig2'].forEach((c, i) => { q(c).hidden = !figs[i]; if (figs[i]) paint(q<HTMLCanvasElement>(c), figs[i]!); });
+    } catch (e) {
+      err.textContent = e instanceof CasError || e instanceof Error ? (e as Error).message : String(e);
+      err.hidden = false; q('.nm-out').hidden = true; report = []; csvRows = [];
+    }
+  }
+  let t = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('textarea, input')) { clearTimeout(t); t = window.setTimeout(calc, 300); } });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select')) calc(); });
+  root.addEventListener('click', (e) => {
+    const el = e.target as HTMLElement;
+    const tb = el.closest<HTMLButtonElement>('.nm-tabs button');
+    if (tb) { tab = tb.dataset.t!; calc(); return; }
+    const ex = el.closest<HTMLButtonElement>('.nm-ex');
+    if (ex) {
+      const [tt, ...rest] = ex.dataset.ex!.split('|');
+      tab = tt;
+      if (tt === 'root') { q<HTMLInputElement>('.nm-f').value = rest[0]; q<HTMLSelectElement>('.nm-meth').value = rest[1]; q<HTMLInputElement>('.nm-a').value = rest[2]; q<HTMLInputElement>('.nm-b').value = rest[3]; }
+      else { q<HTMLSelectElement>('.nm-src').value = 'fn'; q<HTMLInputElement>('.nm-pf').value = '1/(1 + 25x^2)'; q<HTMLInputElement>('.nm-pa').value = '-1'; q<HTMLInputElement>('.nm-pb').value = '1'; q<HTMLInputElement>('.nm-pn').value = '11'; q<HTMLSelectElement>('.nm-sp').value = 'equal'; q<HTMLInputElement>('.nm-at').value = '0.95'; }
+      calc();
+    }
+  });
+  q('.nm-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(csv(csvRows)), `${csvName}.csv`, 'text/csv'); });
+  document.addEventListener('fibub:theme', () => ['.nm-fig1', '.nm-fig2'].forEach((c, i) => figs[i] && paint(q<HTMLCanvasElement>(c), figs[i]!)));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Numerical methods', subtitle: q('.nm-big').textContent ?? '', file: `numerical-${tab}`, sections: report }));
+</script>
