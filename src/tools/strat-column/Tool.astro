@@ -1,0 +1,171 @@
+---
+// Stratigraphic column from a bed table: lithology patterns (fibub's own SVG designs), grain-size profile, contacts,
+// notes, scale bar and legend, at a true paper scale. Exports SVG, PNG, PDF and CSV. The example section is made up.
+import '../../styles/astro.css';
+import DataFile from '../../components/DataFile.astro';
+const demo = [
+  'thickness\tlithology\tgrain\tcontact\tnotes',
+  '1.5\tconglomerate\tpb-gr\terosive\tClast-supported, imbricated pebbles',
+  '3.0\tsandstone\tc-m\terosive\tTrough cross-bedding; plant fragments',
+  '1.2\tsiltstone\tsi\tsharp\tRipple lamination',
+  '0.4\tcoal\tcl\tsharp\tBright coal',
+  '2.5\tmudstone\tcl\tsharp\tGrey, bioturbated',
+  '4.0\tsandstone\tf-vf\terosive\tFining up; mud-clast lag at base',
+  '0.3\ttuff\tvf\tsharp\tPale altered ash',
+  '3.5\tshale\tcl\tgradational\tDark, fissile; ammonite fragments',
+  '2.0\tmarl\tsi\tgradational\t',
+  '5.0\tlimestone\tf\tsharp\tBioclastic; crinoids and brachiopods',
+  '1.0\tcovered\t\tsharp\tNo exposure',
+  '2.2\tdolostone\tm\tsharp\tVuggy',
+].join('\n');
+---
+<div class="ax stc">
+  <div class="ax-card">
+    <h2>Beds</h2>
+    <label>One bed per line: thickness, lithology, grain size, base contact, notes <textarea class="sc-in" rows="10" spellcheck="false" wrap="off">{demo}</textarea></label>
+    <DataFile target=".sc-in" maxCols={8} maxRows={2000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Beds are listed <select class="sc-order"><option value="up">oldest (bottom) first</option><option value="down">youngest (top) first</option></select></label>
+      <label>Thickness in <select class="sc-unit"><option value="1">m</option><option value="0.01">cm</option><option value="0.3048">ft</option></select></label>
+      <label>Vertical scale <select class="sc-scale"><option value="auto">Fit about 22 cm</option><option>10</option><option>20</option><option>50</option><option>100</option><option>200</option><option>500</option><option>1000</option><option>2000</option><option>5000</option><option>10000</option><option>50000</option></select></label>
+      <label>Title <input class="sc-title" value="Example section (made up)" maxlength="80" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="sc-colour" /> Colour fills under the patterns</label>
+    <p class="ax-help"><b>Grain size</b> sets the column's width: cl, si, vf, f, m, c, vc, gr (granule), pb (pebble), cb (cobble), bd (boulder), or the words. Write <b>c-f</b> for a bed that fines up from coarse at its base to fine at its top. Leave it blank to use a usual width for the rock. <b>Contact</b> is the bed's base: sharp, erosive or gradational (blank is sharp).</p>
+    <details class="ax-help"><summary>Lithologies with a pattern</summary><p class="sc-lith"></p></details>
+    <p class="ax-err sc-err" hidden></p>
+  </div>
+
+  <div class="ax-card sc-out">
+    <h2>Column</h2>
+    <dl class="ax-facts sc-facts"></dl>
+    <ul class="ax-help sc-warn" hidden></ul>
+    <div class="sc-view" role="img" aria-label="Stratigraphic column"></div>
+    <div class="dl" style="margin-top:12px"><span class="dl-l">Download</span><button type="button" class="btn secondary sc-svg">SVG</button><button type="button" class="btn secondary sc-png">PNG</button><button type="button" class="btn secondary sc-pdf">PDF</button><button type="button" class="btn secondary sc-csv">Beds (CSV)</button></div>
+    <p class="ax-help">SVG is vector and prints at the scale shown. PNG and PDF are a 300 dpi picture of the same page at true size (smaller dpi for very tall columns).</p>
+    <div class="ax-scroll" style="margin-top:10px"><table class="sc-tab"></table></div>
+  </div>
+</div>
+
+<script>
+  import { LITHOS, GRAINS, findLitho, parseGrain, parseContact, columnSvg, layout, stack, toRows, type Bed } from '../../lib/sci/stratcol';
+  import { num, sig, parseTable, csv } from '../../lib/sci/num';
+  import { save, fileSafe } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.stc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const SCALES = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 50000];
+  let svg = '', beds: Bed[] = [], dims = { w: 0, h: 0 }, unitName = 'm';
+  q('.sc-lith').textContent = LITHOS.map((l) => `${l.name} (${l.words.slice(0, 3).join(', ')})`).join('; ') + '.';
+
+  const fact = (k: string, v: string) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; };
+
+  function run() {
+    const fail = (m: string) => { q('.sc-err').textContent = m; q('.sc-err').hidden = !m; q('.sc-out').hidden = !!m; if (m) svg = ''; };
+    const text = q<HTMLTextAreaElement>('.sc-in').value;
+    // Tab-separated text keeps its empty leading cells (parseTable trims lines, which would shift the columns).
+    let rows = text.includes('\t') ? text.replace(/\r\n?/g, '\n').split('\n').filter((l) => l.trim() && !l.trim().startsWith('#')).map((l) => l.split('\t').map((c) => c.trim().replace(/^"(.*)"$/, '$1'))) : parseTable(text);
+    // A header row names the columns (any order); without one: thickness, lithology, grain, contact, notes.
+    let col = [0, 1, 2, 3, 4], rest = true;
+    if (rows.length && Number.isNaN(num(rows[0][0]))) {
+      const h = rows[0].map((x) => x.trim().toLowerCase());
+      const find = (re: RegExp) => h.findIndex((x) => re.test(x));
+      const got = [find(/^(thick|thk)/), find(/^(lith|rock)/), find(/^(grain|size)/), find(/^contact/), find(/^(note|fossil|desc|comment)/)];
+      if (got[0] >= 0 && got[1] >= 0) { col = got; rest = false; }
+      rows = rows.slice(1);
+    }
+    const cell = (r: string[], k: number) => (col[k] >= 0 ? r[col[k]] ?? '' : '');
+    rows = rows.map((r) => [cell(r, 0), cell(r, 1), cell(r, 2), cell(r, 3), rest ? r.slice(4).filter(Boolean).join(', ') : cell(r, 4)]);
+    if (!rows.length) return fail('Type at least one bed: thickness, then lithology.');
+    const warns: string[] = [], out: Bed[] = [];
+    for (const [i, r] of rows.entries()) {
+      const line = `Bed ${i + 1}`;
+      const t = num(r[0]);
+      if (!(t > 0)) return fail(`${line}: "${r[0] ?? ''}" is not a thickness above zero.`);
+      let litho = findLitho(r[1] ?? '');
+      if (!litho) { warns.push(`${line}: no pattern for "${r[1] ?? ''}", drawn as covered.`); litho = LITHOS.find((l) => l.id === 'covered')!; }
+      let grain = parseGrain(r[2] ?? '');
+      if (!grain) { if ((r[2] ?? '').trim()) warns.push(`${line}: grain size "${r[2]}" not read, the usual width for ${litho.name.toLowerCase()} is used.`); grain = [litho.grain, litho.grain]; }
+      let contact = parseContact(r[3] ?? '');
+      if (!contact) { warns.push(`${line}: contact "${r[3]}" not read, drawn as sharp.`); contact = 'sharp'; }
+      out.push({ thick: t, litho, grain, contact, note: r[4].trim() });
+    }
+    if (q<HTMLSelectElement>('.sc-order').value === 'down') {
+      // Listed top first: reverse. Each bed's contact stays with its own base.
+      out.reverse();
+    }
+    fail('');
+    beds = out;
+    const unitM = Number(q<HTMLSelectElement>('.sc-unit').value); unitName = q<HTMLSelectElement>('.sc-unit').selectedOptions[0].textContent!;
+    const total = out.reduce((a, b) => a + b.thick, 0);
+    const sv = q<HTMLSelectElement>('.sc-scale').value;
+    const ratio = sv === 'auto' ? (SCALES.find((n) => (total * unitM * 1000) / n <= 220) ?? 100000) : Number(sv);
+    const mmPer = (unitM * 1000) / ratio;
+    if (total * mmPer > 5000) warns.push(`At 1:${ratio.toLocaleString('en')} the column is ${sig(total * mmPer / 1000, 3)} m tall on paper; pick a smaller scale.`);
+    if (total * mmPer > 20000) return fail(`At 1:${ratio.toLocaleString('en')} the column would be over 20 m tall on paper. Choose a smaller scale.`);
+    const opts = { mmPerM: mmPer, colour: q<HTMLInputElement>('.sc-colour').checked, title: q<HTMLInputElement>('.sc-title').value.trim(), ratio };
+    const L = layout(out, opts);
+    dims = { w: L.widthMm, h: L.heightMm };
+    svg = columnSvg(out, opts, unitName);
+    // Only the browser's own parser touches the SVG text; it has no scripts or links.
+    const doc = new DOMParser().parseFromString(svg, 'image/svg+xml').documentElement;
+    doc.removeAttribute('width'); doc.removeAttribute('height'); doc.setAttribute('width', '100%'); doc.setAttribute('style', `min-width:${Math.round(L.widthMm * 3.4)}px`);
+    q('.sc-view').replaceChildren(document.importNode(doc, true));
+    q('.sc-facts').replaceChildren(
+      fact('Total thickness', `${+total.toPrecision(6)} ${unitName}`),
+      fact('Beds', String(out.length)),
+      fact('Vertical scale', `1:${ratio.toLocaleString('en')}`),
+      fact('Page size', `${Math.round(L.widthMm)} × ${Math.round(L.heightMm)} mm`),
+    );
+    q('.sc-warn').replaceChildren(...warns.map((w) => { const li = document.createElement('li'); li.textContent = w; return li; }));
+    q('.sc-warn').hidden = !warns.length;
+    const tab = q<HTMLTableElement>('.sc-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow();
+    ['#', `Base (${unitName})`, `Top (${unitName})`, 'Lithology', 'Grain', 'Contact'].forEach((h, j) => { const th = document.createElement('th'); th.textContent = h; if (j < 3) th.className = 'r'; hr.append(th); });
+    const bd = tab.createTBody();
+    stack(out).map((b, i) => [String(i + 1), String(+b.base.toPrecision(6)), String(+b.top.toPrecision(6)), b.litho.name, b.grain[0] === b.grain[1] ? GRAINS[b.grain[0]].code : `${GRAINS[b.grain[0]].code} → ${GRAINS[b.grain[1]].code}`, b.contact]).reverse()
+      .forEach((r) => { const tr = bd.insertRow(); r.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j < 3) td.className = 'r'; }); });
+  }
+
+  const name = () => fileSafe(q<HTMLInputElement>('.sc-title').value || 'strat-column');
+  async function png(): Promise<{ bytes: Uint8Array; px: [number, number]; dpi: number }> {
+    let dpi = 300;
+    const px = (mm: number) => Math.round((mm / 25.4) * dpi);
+    while ((px(dims.w) > 16000 || px(dims.h) > 16000 || px(dims.w) * px(dims.h) > 120e6) && dpi > 30) dpi = Math.floor(dpi * 0.8);
+    const img = new Image(), url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
+    const c = document.createElement('canvas'); c.width = px(dims.w); c.height = px(dims.h);
+    const ctx = c.getContext('2d')!; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(img, 0, 0, c.width, c.height);
+    URL.revokeObjectURL(url);
+    const blob: Blob = await new Promise((res) => c.toBlob((b) => res(b!), 'image/png'));
+    return { bytes: new Uint8Array(await blob.arrayBuffer()), px: [c.width, c.height], dpi };
+  }
+  q('.sc-svg').addEventListener('click', () => svg && save(new Blob([svg], { type: 'image/svg+xml' }), `${name()}.svg`, 'image/svg+xml'));
+  q('.sc-png').addEventListener('click', async () => { if (!svg) return; const p = await png(); save(p.bytes, `${name()}.png`, 'image/png'); });
+  q('.sc-pdf').addEventListener('click', async () => {
+    if (!svg) return;
+    const p = await png();
+    const { PDFDocument } = await import('pdf-lib');
+    const pdf = await PDFDocument.create(), im = await pdf.embedPng(p.bytes);
+    const W = (dims.w / 25.4) * 72, H = (dims.h / 25.4) * 72, page = pdf.addPage([W, H]);
+    page.drawImage(im, { x: 0, y: 0, width: W, height: H });
+    pdf.setTitle(q<HTMLInputElement>('.sc-title').value || 'Stratigraphic column'); pdf.setProducer('fibub.com');
+    save(await pdf.save(), `${name()}.pdf`, 'application/pdf');
+  });
+  q('.sc-csv').addEventListener('click', () => beds.length && save(new TextEncoder().encode(csv(toRows(beds).map((r, i) => (i ? r : r.map((h) => (h === 'base' || h === 'top' || h === 'thickness' ? `${h}_${unitName}` : h)))))), `${name()}.csv`, 'text/csv'));
+  let tm = 0;
+  q('.sc-in').addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(run, 250); });
+  q('.sc-title').addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(run, 250); });
+  root.querySelectorAll('select, input[type=checkbox]').forEach((i) => i.addEventListener('change', run));
+  run();
+</script>
+
+<style is:global>
+  .stc textarea { width: 100%; }
+  .stc .sc-view { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 6px; margin-top: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .stc .sc-view svg { display: block; height: auto; }
+  html.red-mode .stc .sc-view { filter: url(#red-night); }
+  .stc .sc-warn { padding-left: 18px; color: var(--warn); }
+  .stc details summary { cursor: pointer; }
+  .stc .sc-tab td { white-space: nowrap; }
+</style>
