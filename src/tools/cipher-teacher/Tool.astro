@@ -1,0 +1,251 @@
+---
+// Classical ciphers (Caesar, Vigenère, affine, Atbash, rail fence) with their working and a letter-frequency chart
+// of the text, and SHA-256 worked step by step (padding, message schedule, 64 rounds) with an avalanche demo.
+// Teaching only: nothing here breaks ciphers. Everything runs in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cpt">
+  <div class="ax-card">
+    <div class="ax-seg cp-mode" role="group" aria-label="What to explore">
+      <button type="button" data-m="classic" aria-pressed="true">Classical ciphers</button>
+      <button type="button" data-m="sha" aria-pressed="false">SHA-256 step by step</button>
+    </div>
+
+    <div class="cp-p" data-p="classic">
+      <div class="ax-grid" style="margin-top:12px">
+        <label>Cipher <select class="cp-ci">
+          <option value="caesar">Caesar (shift)</option>
+          <option value="vigenere">Vigenère (keyword)</option>
+          <option value="affine">Affine (a·x + b)</option>
+          <option value="atbash">Atbash (A↔Z)</option>
+          <option value="rail">Rail fence (zigzag)</option>
+        </select></label>
+        <label>Direction <select class="cp-dir"><option value="enc">Encrypt</option><option value="dec">Decrypt</option></select></label>
+        <label class="cp-k" data-for="caesar">Shift <input class="cp-shift" type="number" min="-25" max="25" step="1" value="3" inputmode="numeric" /></label>
+        <label class="cp-k" data-for="vigenere" hidden>Keyword <input class="cp-key" spellcheck="false" autocomplete="off" value="LEMON" /></label>
+        <label class="cp-k" data-for="affine" hidden>a (no factor in common with 26) <select class="cp-a">{[1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25].map((v) => <option selected={v === 5}>{v}</option>)}</select></label>
+        <label class="cp-k" data-for="affine" hidden>b <input class="cp-b" type="number" min="0" max="25" step="1" value="8" inputmode="numeric" /></label>
+        <label class="cp-k" data-for="rail" hidden>Rails <input class="cp-rails" type="number" min="2" max="20" step="1" value="3" inputmode="numeric" /></label>
+      </div>
+      <label style="margin-top:10px">Text <textarea class="cp-in" rows="3" spellcheck="false">Meet me at the old oak tree at noon</textarea></label>
+      <p class="ax-help cp-chelp"></p>
+    </div>
+
+    <div class="cp-p" data-p="sha" hidden>
+      <div class="ax-grid" style="margin-top:12px">
+        <label>Input is <select class="cp-sin"><option value="text">text (UTF-8)</option><option value="hex">hex bytes</option></select></label>
+      </div>
+      <label style="margin-top:10px">Message (up to 1 MB) <textarea class="cp-smsg" rows="2" spellcheck="false">abc</textarea></label>
+    </div>
+    <p class="ax-err cp-err" hidden></p>
+  </div>
+
+  <div class="ax-card cp-out" data-o="classic">
+    <h2 class="cp-oh">Result</h2>
+    <label>Output <textarea class="cp-res" rows="3" readonly spellcheck="false"></textarea></label>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small cp-swap">Use the output as input, and reverse</button></div>
+    <h3>Working</h3>
+    <div class="ax-scroll"><table class="cp-work"></table></div>
+    <pre class="cp-zig" hidden aria-label="Zigzag"></pre>
+    <h3>Letter frequencies of this text</h3>
+    <canvas class="ax-fig cp-fig"></canvas>
+    <dl class="ax-facts cp-facts" style="margin-top:10px"></dl>
+    <p class="ax-help">These ciphers are for learning. They hide nothing from anyone who tries, so never use them to protect real secrets.</p>
+  </div>
+
+  <div class="ax-card cp-out" data-o="sha" hidden>
+    <h2>SHA-256</h2>
+    <p class="ax-big cp-hash"></p>
+    <dl class="ax-facts cp-sfacts"></dl>
+    <h3>1. Padding</h3>
+    <p class="ax-help">The message, then the byte 80 in hex (a single 1 bit), then zeros, then the message length in bits as 8 bytes, to fill whole 64-byte blocks.</p>
+    <pre class="cp-pad"></pre>
+    <div class="ax-grid cp-blkw" style="margin-top:8px"><label>Show the working of block <select class="cp-blk"></select></label></div>
+    <h3>2. Message schedule</h3>
+    <p class="ax-help">W₀ to W₁₅ are the block's 16 words. Each later word mixes four earlier ones: Wₜ = σ₁(Wₜ₋₂) + Wₜ₋₇ + σ₀(Wₜ₋₁₅) + Wₜ₋₁₆, where σ₀ and σ₁ rotate and shift the bits. Sums are mod 2³².</p>
+    <div class="ax-scroll cp-tw"><table class="cp-wt"></table></div>
+    <h3>3. The 64 rounds</h3>
+    <p class="ax-help">Each round: T₁ = h + Σ₁(e) + Ch(e, f, g) + Kₜ + Wₜ and T₂ = Σ₀(a) + Maj(a, b, c). Then every register moves down one place, e becomes d + T₁ and a becomes T₁ + T₂.</p>
+    <div class="ax-scroll cp-tw"><table class="cp-rt"></table></div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small cp-rcsv">Download the rounds (CSV)</button></div>
+    <h3>4. Add to the running hash</h3>
+    <div class="ax-scroll"><table class="cp-fin"></table></div>
+    <h3>Avalanche: flip one bit</h3>
+    <div class="ax-grid"><label>Bit to flip (0 is the first bit of the message) <input class="cp-bit" type="number" min="0" step="1" value="0" inputmode="numeric" /></label></div>
+    <p class="ax-help cp-flipped"></p>
+    <p class="cp-hash2"></p>
+    <p class="ax-big cp-aval"></p>
+    <canvas class="ax-fig cp-afig" style="max-width:420px"></canvas>
+    <p class="ax-help">Each square is one of the 256 bits of the hash; dark squares changed. About half change, at random, for any change to the message: that is what makes a good hash.</p>
+  </div>
+  <div class="ax-card"><Downloads /></div>
+</div>
+
+<style is:global>
+  .cpt h3 { margin: 22px 0 8px; font-size: 15px; }
+  .cpt .cp-tw { max-height: 380px; overflow-y: auto; }
+  .cpt table.mono td, .cpt .cp-hash, .cpt .cp-hash2 { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .cpt .cp-hash, .cpt .cp-hash2 { word-break: break-all; }
+  .cpt .cp-hash { font-size: clamp(15px, 3.6vw, 22px); }
+  .cpt .cp-hash2 { font-size: 14px; margin: 6px 0; }
+  .cpt pre { font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-x: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; max-height: 300px; margin: 6px 0; }
+  .cpt .cp-work td, .cpt .cp-work th { text-align: center; padding: 4px 3px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .cpt .cp-work th:first-child, .cpt .cp-work td:first-child { text-align: left; font-family: inherit; white-space: nowrap; }
+</style>
+
+<script>
+  import { caesar, atbash, vigenere, affine, railFence, railPattern, letterCounts, indexOfCoincidence, keyShifts, inverse26, sha256, flipBit, bitDiff, hex32, K256 } from '../../lib/sci/cipher';
+  import { readHex } from '../../lib/sci/ecc';
+  import { barsFigure } from '../../lib/sci/infobars';
+  import { csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cpt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const figW = () => Math.round(Math.max(340, Math.min(720, (root.clientWidth || 720) - 34)));
+  const ABC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let mode = 'classic', fig: Figure | null = null, afig: Figure | null = null, sections: Section[] = [], roundRows: (string | number)[][] = [], shaToken = 0;
+  const facts = (el: HTMLElement, f: [string, string][]) => el.replaceChildren(...f.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+  const table = (t: HTMLElement, head: string[] | null, rows: (string | number)[][], firstIsHead = false) => {
+    t.replaceChildren();
+    if (head) { const hr = t.insertRow(); for (const x of head) { const th = document.createElement('th'); th.textContent = x; hr.append(th); } }
+    for (const r of rows) { const tr = t.insertRow(); r.forEach((x, k) => { if (k === 0 && firstIsHead) { const th = document.createElement('th'); th.textContent = String(x); tr.append(th); } else tr.insertCell().textContent = String(x); }); }
+  };
+  const int = (sel: string) => { const v = Number(q<HTMLInputElement>(sel).value); if (!Number.isInteger(v)) throw new Error('Type a whole number.'); return v; };
+  const HELP: Record<string, string> = {
+    caesar: 'Every letter moves the same number of places along the alphabet, wrapping from Z to A. Julius Caesar used a shift of 3. There are only 25 possible keys.',
+    vigenere: 'Each letter is shifted by the matching letter of the keyword (A = 0, B = 1 …), repeated along the text. Only letters use up the keyword; spaces and punctuation are kept as they are.',
+    affine: 'Each letter number x (A = 0) becomes a·x + b, counted round the alphabet (mod 26). a must share no factor with 26, or two letters would turn into the same one and the message could not be read back.',
+    atbash: 'The alphabet is reversed: A↔Z, B↔Y and so on. Encrypting and decrypting are the same step. It comes from the Hebrew alphabet.',
+    rail: 'The text is written in a zigzag down and up the rails, then read off one rail at a time. Letters keep their identity but change places (a transposition cipher). Spaces count as characters here.',
+  };
+
+  function classic() {
+    const ci = q<HTMLSelectElement>('.cp-ci').value, dec = q<HTMLSelectElement>('.cp-dir').value === 'dec', text = q<HTMLTextAreaElement>('.cp-in').value;
+    for (const el of root.querySelectorAll<HTMLElement>('.cp-k')) el.hidden = el.dataset.for !== ci;
+    q('.cp-chelp').textContent = HELP[ci];
+    if (!text) throw new Error('Type some text.');
+    if (text.length > 100000) throw new Error('Up to 100,000 characters, please.');
+    let out = '', work: { head: string[] | null; rows: (string | number)[][]; firstIsHead: boolean } = { head: null, rows: [], firstIsHead: true }, zig = '', key = '';
+    const mapRows = (f: (x: number) => number) => [['Plain', ...ABC.split('')], ['Cipher', ...ABC.split('').map((_, i) => ABC[f(i)])]];
+    if (ci === 'caesar') {
+      const s = int('.cp-shift'); if (Math.abs(s) > 25) throw new Error('Use a shift from −25 to 25.');
+      out = caesar(text, s, dec); key = `shift ${s}`;
+      work.rows = mapRows((i) => (((i + s) % 26) + 26) % 26);
+    } else if (ci === 'vigenere') {
+      const kw = q<HTMLInputElement>('.cp-key').value, k = keyShifts(kw);
+      out = vigenere(text, kw, dec); key = `keyword ${kw.toUpperCase()}`;
+      const letters = [...text].filter((c) => /[A-Za-z]/.test(c)).slice(0, 30), res = [...out].filter((c) => /[A-Za-z]/.test(c)).slice(0, 30);
+      work.rows = [['Text', ...letters.map((c) => c.toUpperCase())], ['Key', ...letters.map((_, i) => ABC[k[i % k.length]])], ['Shift', ...letters.map((_, i) => (dec ? '−' : '+') + k[i % k.length])], ['Result', ...res.map((c) => c.toUpperCase())]];
+    } else if (ci === 'affine') {
+      const a = Number(q<HTMLSelectElement>('.cp-a').value), b = int('.cp-b');
+      out = affine(text, a, b, dec); key = `a = ${a}, b = ${b}${dec ? `, a⁻¹ = ${inverse26(a)}` : ''}`;
+      work.rows = mapRows((i) => (((a * i + b) % 26) + 26) % 26);
+    } else if (ci === 'atbash') {
+      out = atbash(text); key = 'none';
+      work.rows = mapRows((i) => 25 - i);
+    } else {
+      const r = int('.cp-rails'); if (r < 2 || r > 20) throw new Error('Use 2 to 20 rails.');
+      out = railFence(text, r, dec); key = `${r} rails`;
+      const plain = [...(dec ? out : text)].slice(0, 80), pat = railPattern(plain.length, r);
+      zig = Array.from({ length: r }, (_, row) => plain.map((c, i) => (pat[i] === row ? (c === ' ' ? '␣' : c) : '·')).join('')).join('\n');
+      if ([...(dec ? out : text)].length > 80) zig += '\n(first 80 characters)';
+    }
+    q('.cp-oh').textContent = `${dec ? 'Decrypted' : 'Encrypted'} (${key})`;
+    q<HTMLTextAreaElement>('.cp-res').value = out;
+    q('.cp-work').hidden = ci === 'rail'; q('.cp-zig').hidden = ci !== 'rail';
+    if (ci === 'rail') { q('.cp-work').replaceChildren(); q('.cp-zig').textContent = zig; } else table(q('.cp-work'), work.head, work.rows, true);
+    const ci1 = letterCounts(text), co = letterCounts(out), n1 = ci1.reduce((s, x) => s + x, 0), n2 = co.reduce((s, x) => s + x, 0);
+    fig = barsFigure({ w: figW(), labels: ABC.split(''), values: ci1.map((x) => (n1 ? x / n1 : 0)), values2: co.map((x) => (n2 ? x / n2 : 0)), names: ['Input', 'Output'], yLabel: 'Share of letters', percent: true }, 'Letter frequencies of the input and the output');
+    paint(q<HTMLCanvasElement>('.cp-fig'), fig);
+    const ic = (c: number[]) => { const v = indexOfCoincidence(c); return Number.isFinite(v) ? v.toFixed(4) : '–'; };
+    const top = (c: number[]) => c.map((x, i) => [x, i]).filter((p) => p[0] > 0).sort((x, y) => y[0] - x[0] || x[1] - y[1]).slice(0, 3).map((p) => ABC[p[1]]).join(', ') || '–';
+    const f: [string, string][] = [['Letters', n1.toLocaleString('en')], ['Most common in the input', top(ci1)], ['Most common in the output', top(co)], ['Index of coincidence, input', ic(ci1)], ['Index of coincidence, output', ic(co)]];
+    facts(q('.cp-facts'), f);
+    sections = [{ title: q('.cp-oh').textContent!, text: [`Input: ${text.slice(0, 2000)}`, `Output: ${out.slice(0, 2000)}`], facts: f, figure: fig, table: ci === 'rail' ? undefined : { head: work.rows[0].map(String), rows: work.rows.slice(1).map((r) => r.map(String)) } }];
+  }
+
+  function shaBytes(): Uint8Array {
+    const t = q<HTMLTextAreaElement>('.cp-smsg').value;
+    const b = q<HTMLSelectElement>('.cp-sin').value === 'hex' ? Uint8Array.from(readHex(t)) : new TextEncoder().encode(t);
+    if (b.length > 1e6) throw new Error('Up to 1 MB, please.');
+    return b;
+  }
+  function sha() {
+    const msg = shaBytes();
+    const blkSel = q<HTMLSelectElement>('.cp-blk');
+    const nb = Math.ceil((msg.length + 9) / 64);
+    const want = Math.min(nb - 1, Math.max(0, Number(blkSel.value) || 0));
+    if (blkSel.options.length !== nb) blkSel.replaceChildren(...Array.from({ length: Math.min(nb, 2000) }, (_, i) => new Option(`${i + 1} of ${nb}`, String(i))));
+    blkSel.value = String(want);
+    q('.cp-blkw').hidden = nb < 2;
+    const r = sha256(msg, want), tr = r.trace!;
+    q('.cp-hash').textContent = r.hex;
+    const f: [string, string][] = [['Message', `${msg.length.toLocaleString('en')} bytes = ${(msg.length * 8).toLocaleString('en')} bits`], ['Padded', `${r.padded.length.toLocaleString('en')} bytes`], ['Blocks of 512 bits', r.blocks.toLocaleString('en')], ['Browser\'s own SHA-256', 'checking…']];
+    facts(q('.cp-sfacts'), f);
+    const tok = ++shaToken;
+    if (globalThis.crypto?.subtle) crypto.subtle.digest('SHA-256', msg).then((d) => { if (tok !== shaToken) return; const h = [...new Uint8Array(d)].map((x) => x.toString(16).padStart(2, '0')).join(''); f[3][1] = h === r.hex ? 'agrees' : 'DIFFERS'; facts(q('.cp-sfacts'), f); }).catch(() => { f[3][1] = 'not available'; facts(q('.cp-sfacts'), f); });
+    else { f[3][1] = 'not available here'; facts(q('.cp-sfacts'), f); }
+    // Padding, block by block (first 4 blocks).
+    const show = Math.min(r.blocks, 4), lines: string[] = [];
+    for (let b = 0; b < show; b++) { lines.push(`block ${b + 1}`); for (let row = 0; row < 4; row++) lines.push('  ' + [...r.padded.slice(b * 64 + row * 16, b * 64 + row * 16 + 16)].map((x) => x.toString(16).padStart(2, '0')).join(' ')); }
+    if (r.blocks > show) lines.push(`… ${r.blocks - show} more blocks`);
+    q('.cp-pad').textContent = lines.join('\n');
+    const wRows = tr.W.map((w, t) => [t, hex32(w), t < 16 ? `bytes ${want * 64 + t * 4}–${want * 64 + t * 4 + 3} of the padded message` : `σ₁(W${t - 2}) + W${t - 7} + σ₀(W${t - 15}) + W${t - 16}`]);
+    table(q('.cp-wt'), ['t', 'Wₜ', 'Made from'], wRows); q('.cp-wt').classList.add('mono');
+    const L = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    const rr = tr.rounds.map((x) => [x.t, hex32(K256[x.t]), hex32(tr.W[x.t]), ...x.regs.map(hex32)]);
+    table(q('.cp-rt'), ['t', 'Kₜ', 'Wₜ', ...L], [['start', '', '', ...tr.start.map(hex32)], ...rr]); q('.cp-rt').classList.add('mono');
+    roundRows = [['t', 'K', 'W', ...L], ['start', '', '', ...tr.start.map(hex32)], ...rr];
+    table(q('.cp-fin'), ['Word', 'Before', '+ register', '= after'], tr.end.map((v, i) => [`H${i}`, hex32(tr.start[i]), hex32(tr.rounds[63].regs[i]), hex32(v)])); q('.cp-fin').classList.add('mono');
+    // Avalanche
+    let ah = '', count = 0;
+    if (msg.length) {
+      const bit = Number(q<HTMLInputElement>('.cp-bit').value);
+      if (!Number.isInteger(bit) || bit < 0 || bit >= msg.length * 8) { q('.cp-flipped').textContent = `Choose a bit from 0 to ${msg.length * 8 - 1}.`; q('.cp-hash2').textContent = ''; q('.cp-aval').textContent = ''; q('.cp-afig').hidden = true; afig = null; }
+      else {
+        const m2 = flipBit(msg, bit), r2 = sha256(m2), dd = bitDiff(r.digest, r2.digest); count = dd.count; ah = r2.hex;
+        let shown: string; try { shown = `"${new TextDecoder('utf-8', { fatal: true }).decode(m2.slice(0, 200))}"`; } catch { shown = [...m2.slice(0, 64)].map((x) => x.toString(16).padStart(2, '0')).join(' '); }
+        q('.cp-flipped').textContent = `Byte ${bit >> 3}, bit ${bit & 7} flipped: ${q<HTMLSelectElement>('.cp-sin').value === 'hex' ? [...m2.slice(0, 64)].map((x) => x.toString(16).padStart(2, '0')).join(' ') : shown}`;
+        q('.cp-hash2').textContent = r2.hex;
+        q('.cp-aval').textContent = `${count} of 256 hash bits changed (${((100 * count) / 256).toFixed(1)} %)`;
+        afig = gridFigure(dd.bits); q('.cp-afig').hidden = false; paint(q<HTMLCanvasElement>('.cp-afig'), afig);
+      }
+    } else { q('.cp-flipped').textContent = 'The message is empty, so there is no bit to flip.'; q('.cp-hash2').textContent = ''; q('.cp-aval').textContent = ''; q('.cp-afig').hidden = true; afig = null; }
+    sections = [{ title: 'SHA-256', facts: [['Hash', r.hex], ...f.slice(0, 3)], table: { head: ['Word', 'Before', '+ register', '= after'], rows: tr.end.map((v, i) => [`H${i}`, hex32(tr.start[i]), hex32(tr.rounds[63].regs[i]), hex32(v)]) } },
+      { title: `Rounds of block ${want + 1}`, table: { head: ['t', 'a', 'e'], rows: tr.rounds.map((x) => [String(x.t), hex32(x.regs[0]), hex32(x.regs[4])]) } },
+      ...(ah ? [{ title: 'Avalanche', facts: [['Flipped-bit hash', ah], ['Bits changed', `${count} of 256`]] as [string, string][], figure: afig ?? undefined }] : [])];
+  }
+  function gridFigure(bits: number[]): Figure {
+    return { w: 340, h: 340, alt: 'Which of the 256 hash bits changed', draw: (ctx, w, h, pal) => {
+      const s = (w - 20) / 16;
+      bits.forEach((b, i) => { const x = 10 + (i % 16) * s, y = 10 + Math.floor(i / 16) * s; ctx.fillStyle = b ? (pal.red ? pal.ink : pal.accent) : pal.grid; ctx.fillRect(x + 1, y + 1, s - 2, s - 2); });
+    } };
+  }
+
+  function run() {
+    q('.cp-err').hidden = true;
+    for (const o of root.querySelectorAll<HTMLElement>('.cp-out')) o.hidden = o.dataset.o !== mode;
+    try { if (mode === 'classic') classic(); else sha(); }
+    catch (e) { const er = q('.cp-err'); er.textContent = (e as Error).message; er.hidden = false; for (const o of root.querySelectorAll<HTMLElement>('.cp-out')) o.hidden = true; sections = []; }
+  }
+  q('.cp-mode').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button'); if (!b) return;
+    mode = b.dataset.m!;
+    for (const x of q('.cp-mode').querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b));
+    for (const p of root.querySelectorAll<HTMLElement>('.cp-p')) p.hidden = p.dataset.p !== mode;
+    run();
+  });
+  q('.cp-swap').addEventListener('click', () => {
+    q<HTMLTextAreaElement>('.cp-in').value = q<HTMLTextAreaElement>('.cp-res').value;
+    const d = q<HTMLSelectElement>('.cp-dir'); d.value = d.value === 'enc' ? 'dec' : 'enc'; run();
+  });
+  q('.cp-rcsv').addEventListener('click', () => save(new Blob([csv(roundRows)], { type: 'text/csv' }), 'sha256-rounds.csv', 'text/csv'));
+  let t = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).classList.contains('cp-smsg')) q<HTMLSelectElement>('.cp-blk').value = '0'; clearTimeout(t); t = window.setTimeout(run, 250); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select')) run(); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.cp-fig'), fig); if (afig) paint(q<HTMLCanvasElement>('.cp-afig'), afig); });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: mode === 'classic' ? 'Classical cipher' : 'SHA-256 step by step', subtitle: mode === 'classic' ? q('.cp-oh').textContent ?? '' : q('.cp-hash').textContent ?? '', file: mode === 'classic' ? 'cipher' : 'sha256', sections }));
+</script>

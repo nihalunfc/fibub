@@ -1,0 +1,204 @@
+---
+// Network metrics: open or paste an edge list and get the degree distribution, clustering, density, components,
+// diameter, assortativity, PageRank and Louvain communities, with a drawing for small networks. All in the browser;
+// the maths is in src/lib/sci/network.ts and graph.ts. The example network is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax nmx">
+  <div class="ax-card">
+    <h2>Network</h2>
+    <label>Edge list: one link per line as <i>from to</i> or <i>from to weight</i> <textarea class="nm-in" rows="7" spellcheck="false" autocomplete="off"></textarea></label>
+    <DataFile target=".nm-in" maxMB={5} maxCols={3} maxRows={50000} label="Open an edge list file" />
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small nm-ex">Use the example</button></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>PageRank damping <input class="nm-alpha" type="number" min="0.01" max="0.99" step="0.01" value="0.85" inputmode="decimal" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="nm-dir" /> Directed (links go one way: from → to)</label>
+    <label class="ax-check"><input type="checkbox" class="nm-w" checked /> Use weights for PageRank and communities</label>
+    <p class="ax-help">Spaces, tabs or commas between columns; a line with one name adds a node with no links; a header row such as "source,target" is skipped. Up to 5,000 nodes and 50,000 links; the drawing shows up to 300 nodes.</p>
+    <p class="ax-err nm-err" hidden></p>
+    <p class="ax-help nm-note" hidden></p>
+  </div>
+
+  <div class="ax-card nm-out" hidden>
+    <h2>Summary</h2>
+    <p class="ax-big nm-big" aria-live="polite"></p>
+    <dl class="ax-facts nm-facts"></dl>
+    <p class="ax-help nm-fnote"></p>
+
+    <h3>Drawing</h3>
+    <canvas class="ax-fig nm-net"></canvas>
+    <p class="ax-help nm-netnote"></p>
+
+    <h3>Degree distribution</h3>
+    <div class="ax-grid"><label>Plot <select class="nm-dd">
+      <option value="p">Share of nodes with degree k, P(k)</option>
+      <option value="c">Share with degree k or more, P(K ≥ k)</option>
+    </select></label></div>
+    <canvas class="ax-fig nm-deg" style="margin-top:8px"></canvas>
+    <p class="ax-help">Both axes are logarithmic: a roughly straight falling line hints at a heavy-tailed (scale-free-like) network. Nodes with degree 0 are left off the plot.</p>
+
+    <h3>Communities</h3>
+    <div class="ax-scroll"><table class="nm-ctab"></table></div>
+
+    <h3>Nodes</h3>
+    <div class="ax-scroll nm-tw"><table class="nm-tab"></table></div>
+    <p class="ax-help nm-tnote"></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small nm-csv">Download nodes (CSV)</button>
+      <button type="button" class="btn secondary small nm-dcsv">Download degree distribution (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .nmx h3 { margin: 22px 0 8px; font-size: 15px; }
+  .nmx .nm-tw { max-height: 460px; overflow-y: auto; }
+</style>
+
+<script>
+  import * as G from '../../lib/sci/graph';
+  import * as N from '../../lib/sci/network';
+  import { sig, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { wireDownloads, save, paint, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.nmx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.nm-in');
+  const MAX_DRAW = 300, MAX_ROWS = 500;
+  const COLS_LIGHT = ['#0072B2', '#D55E00', '#009E73', '#CC79A7', '#E69F00', '#56B4E9', '#000000', '#F0E442'];
+  const COLS_DARK = ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4', '#f0e442', '#9ecae1', '#ffffff', '#d55e00'];
+
+  type Out = {
+    g: G.Graph; dd: ReturnType<typeof N.degreeDistribution>; cl: ReturnType<typeof N.clustering>; comp: ReturnType<typeof N.components>;
+    scc: ReturnType<typeof N.strongComponents> | null; dist: ReturnType<typeof N.distances>; assort: number; pr: number[]; alpha: number;
+    lv: ReturnType<typeof N.louvain>; dens: number; weights: boolean; pos: [number, number][] | null;
+  };
+  let out: Out | null = null, netFig: Figure | null = null, degFig: Figure | null = null, layoutKey = '', layoutPos: [number, number][] | null = null;
+
+  const facts = (): [string, string][] => {
+    if (!out) return [];
+    const { g, dd, cl, comp, scc, dist, assort, lv, dens } = out;
+    return [
+      ['Nodes', g.names.length.toLocaleString('en')], ['Links', g.edges.length.toLocaleString('en')],
+      ['Density', sig(dens, 4)], ['Average degree', sig(dd.mean, 4)],
+      [g.directed ? 'Weak components' : 'Components', `${comp.sizes.length} (largest ${comp.sizes[0]})`],
+      ...(scc ? [['Strong components', `${scc.sizes.length} (largest ${scc.sizes[0]})`] as [string, string]] : []),
+      ['Diameter', String(dist.diameter)], ['Average path length', sig(dist.avgPath, 4)],
+      ['Average clustering', sig(cl.average, 4)], ['Transitivity', sig(cl.transitivity, 4)],
+      ['Degree assortativity', Number.isFinite(assort) ? sig(assort, 3) : 'undefined'],
+      ['Communities', String(lv.count)], ['Modularity', sig(lv.modularity, 4)],
+    ];
+  };
+
+  function run() {
+    const err = q('.nm-err'), note = q('.nm-note'); err.hidden = true; note.hidden = true;
+    let g: G.Graph;
+    try { g = G.parseGraph(box.value, q<HTMLInputElement>('.nm-dir').checked, 5000, 50000); }
+    catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.nm-out').hidden = true; out = null; return; }
+    if (g.notes.length) { note.textContent = g.notes.join(' '); note.hidden = false; }
+    if (g.names.length < 2 || !g.edges.length) { q('.nm-out').hidden = true; out = null; if (box.value.trim()) { err.textContent = 'Give at least one link between two nodes.'; err.hidden = false; } return; }
+    const alpha = Number(q<HTMLInputElement>('.nm-alpha').value);
+    if (!(alpha > 0 && alpha < 1)) { err.textContent = 'The damping factor must be between 0 and 1 (0.85 is usual).'; err.hidden = false; q('.nm-out').hidden = true; out = null; return; }
+    const weights = q<HTMLInputElement>('.nm-w').checked && g.weighted;
+    if (weights && g.edges.some((e) => e.w < 0)) { err.textContent = 'Weights must be 0 or more for PageRank and communities. Untick "Use weights" or fix them.'; err.hidden = false; q('.nm-out').hidden = true; out = null; return; }
+    let pos: [number, number][] | null = null;
+    if (g.names.length <= MAX_DRAW) {
+      const key = g.names.join('\u0001') + '|' + g.edges.map((e) => `${e.u},${e.v}`).join(';');
+      if (key !== layoutKey) { layoutKey = key; layoutPos = G.layout(g.names.length, g.edges); }
+      pos = layoutPos;
+    }
+    out = {
+      g, dd: N.degreeDistribution(g), cl: N.clustering(g), comp: N.components(g), scc: g.directed ? N.strongComponents(g) : null,
+      dist: N.distances(g), assort: N.assortativity(g), pr: N.pagerank(g, alpha, 1e-13, 1000, weights).rank, alpha,
+      lv: N.louvain(g, weights), dens: N.density(g), weights, pos,
+    };
+    show();
+  }
+
+  function show() {
+    if (!out) return;
+    const { g, dd, cl, comp, pr, lv, scc } = out, n = g.names.length;
+    q('.nm-out').hidden = false;
+    q('.nm-big').textContent = `${n.toLocaleString('en')} nodes, ${g.edges.length.toLocaleString('en')} links: ${lv.count} communit${lv.count === 1 ? 'y' : 'ies'} (modularity ${sig(lv.modularity, 3)})`;
+    const dl = q('.nm-facts'); dl.replaceChildren();
+    for (const [k, v] of facts()) { const d = document.createElement('div'), dt = document.createElement('dt'), dd2 = document.createElement('dd'); dt.textContent = k; dd2.textContent = v; d.append(dt, dd2); dl.append(d); }
+    q('.nm-fnote').textContent = `Diameter and average path length are for the largest component (${out.dist.size} nodes), in steps. ${g.directed ? 'Clustering, distances and communities treat links as two-way; PageRank and assortativity (out-degree to in-degree) use the direction. ' : ''}${out.weights ? 'Weights are used for PageRank and communities only.' : g.weighted ? 'Weights are ignored (Use weights is off).' : 'No weights given: every link counts 1.'} PageRank damping ${out.alpha}.`;
+
+    // Network drawing.
+    const cv = q<HTMLCanvasElement>('.nm-net');
+    if (out.pos) {
+      const pos = out.pos, mx = Math.max(...pr);
+      const mk = (w: number, h: number): Figure => ({
+        w, h, alt: `Network drawing of ${n} nodes coloured by community`,
+        draw: (ctx, W, H, p) => {
+          const cols = p.red ? ['#a30000', '#7a0000', '#c00000', '#5a0000'] : p.bg === '#ffffff' ? COLS_LIGHT : COLS_DARK, pad = 24;
+          const X = (i: number) => pad + pos[i][0] * (W - 2 * pad), Y = (i: number) => pad + pos[i][1] * (H - 2 * pad);
+          ctx.strokeStyle = p.line; ctx.lineWidth = 1;
+          for (const e of g.edges) { ctx.beginPath(); ctx.moveTo(X(e.u), Y(e.u)); ctx.lineTo(X(e.v), Y(e.v)); ctx.stroke(); }
+          const small = n > 80;
+          g.names.forEach((s, i) => {
+            const r = ((small ? 3 : 5) + (small ? 6 : 10) * Math.sqrt(pr[i] / mx)) * Math.max(0.55, Math.min(1, W / 720));
+            ctx.beginPath(); ctx.arc(X(i), Y(i), r, 0, 2 * Math.PI); ctx.fillStyle = lv.comm[i] < 8 ? cols[lv.comm[i]] : p.muted; ctx.fill();
+            ctx.strokeStyle = p.bg; ctx.lineWidth = 1.5; ctx.stroke();
+            if (!small) { ctx.fillStyle = p.ink; ctx.font = '11px system-ui, -apple-system, "Segoe UI", sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(s, X(i) + r + 2, Y(i)); }
+          });
+        },
+      });
+      netFig = mk(720, 520);
+      cv.hidden = false;
+      const W = Math.max(300, Math.min(720, q('.nm-out').clientWidth - 34 || 720));
+      paint(cv, mk(W, Math.round(Math.max(260, W * 0.72))));
+      q('.nm-netnote').textContent = `Colour = community (${lv.count > 8 ? 'the 8 largest; the rest grey' : 'as in the table below'}); size = PageRank. Force-directed layout.`;
+    } else { netFig = null; cv.hidden = true; q('.nm-netnote').textContent = `${n.toLocaleString('en')} nodes: too many to draw clearly (the drawing shows up to ${MAX_DRAW}).`; }
+
+    // Degree distribution.
+    const cum = q<HTMLSelectElement>('.nm-dd').value === 'c', rows = dd.rows.filter((r) => r.k > 0);
+    degFig = chartFigure({ w: 640, h: 380, xLabel: 'Degree k', yLabel: cum ? 'P(K ≥ k)' : 'P(k)', xLog: true, yLog: true, legend: 'none', series: [{ name: 'Degree', x: rows.map((r) => r.k), y: rows.map((r) => (cum ? r.ccdf : r.p)), mode: cum ? 'both' : 'points', size: 5 }] }, `Degree distribution on log-log axes, degrees 1 to ${dd.max}`);
+    paint(q<HTMLCanvasElement>('.nm-deg'), degFig);
+
+    // Tables.
+    const table = (t: HTMLElement, head: string[], body: string[][]) => {
+      t.replaceChildren(); const h = t.insertRow(); for (const x of head) { const th = document.createElement('th'); th.textContent = x; h.append(th); }
+      for (const r of body) { const tr = t.insertRow(); r.forEach((x) => (tr.insertCell().textContent = x)); }
+    };
+    const members = Array.from({ length: lv.count }, () => [] as number[]); lv.comm.forEach((c, i) => members[c].push(i));
+    const u = G.undirected(g), inner = new Array(lv.count).fill(0); for (const e of u.edges) if (lv.comm[e.u] === lv.comm[e.v]) inner[lv.comm[e.u]]++;
+    table(q('.nm-ctab'), ['Community', 'Nodes', 'Links inside', 'Members'], members.slice(0, 100).map((m, c) => [String(c + 1), String(m.length), String(inner[c]), m.slice(0, 12).map((i) => g.names[i]).join(', ') + (m.length > 12 ? ` … (+${m.length - 12})` : '')]));
+    table(q('.nm-tab'), nodeHead(), nodeRows().slice(0, MAX_ROWS));
+    q('.nm-tnote').textContent = `Sorted by PageRank.${n > MAX_ROWS ? ` The top ${MAX_ROWS} of ${n.toLocaleString('en')} nodes are shown; the CSV has them all.` : ''}${scc ? '' : ''} Clustering is the share of a node’s pairs of neighbours that are linked to each other.`;
+    void cl; void comp;
+  }
+
+  const nodeHead = () => (out!.g.directed ? ['Node', 'In', 'Out', 'Clustering', 'PageRank', 'Community', 'Component'] : ['Node', 'Degree', 'Clustering', 'PageRank', 'Community', 'Component']);
+  function nodeRows(): string[][] {
+    const { g, cl, pr, lv, comp } = out!;
+    return g.names.map((_, i) => i).sort((a, b) => pr[b] - pr[a] || a - b).map((i) => [g.names[i], ...(g.directed ? [String(g.radj[i].length), String(g.adj[i].length)] : [String(g.adj[i].length)]), sig(cl.local[i], 4), sig(pr[i], 5), String(lv.comm[i] + 1), String(comp.comp[i] + 1)]);
+  }
+
+  let tm = 0;
+  const later = (f: () => void) => { clearTimeout(tm); tm = window.setTimeout(f, 350); };
+  box.addEventListener('input', () => later(run));
+  q('.nm-alpha').addEventListener('input', () => later(run));
+  for (const c of ['.nm-dir', '.nm-w']) q(c).addEventListener('change', run);
+  q('.nm-dd').addEventListener('change', show);
+  q('.nm-ex').addEventListener('click', () => { box.value = N.exampleNetwork(); q<HTMLInputElement>('.nm-dir').checked = false; run(); });
+  q('.nm-csv').addEventListener('click', () => { if (out) save(new Blob([csv([nodeHead(), ...nodeRows()])], { type: 'text/csv' }), 'network-nodes.csv', 'text/csv'); });
+  q('.nm-dcsv').addEventListener('click', () => { if (out) save(new Blob([csv([['degree', 'nodes', 'share', 'share_with_degree_or_more'], ...out.dd.rows.map((r) => [r.k, r.count, sig(r.p, 6), sig(r.ccdf, 6)])])], { type: 'text/csv' }), 'degree-distribution.csv', 'text/csv'); });
+  wireDownloads(q('.dl'), () => {
+    const sections: Section[] = out ? [
+      { title: 'Summary', text: [q('.nm-big').textContent ?? ''], facts: facts(), note: q('.nm-fnote').textContent ?? '' },
+      ...(netFig ? [{ title: 'Network', figure: netFig, note: q('.nm-netnote').textContent ?? '' }] : []),
+      ...(degFig ? [{ title: 'Degree distribution', figure: degFig }] : []),
+      { title: 'Nodes by PageRank', table: { head: nodeHead(), rows: nodeRows().slice(0, 200) }, note: out.g.names.length > 200 ? `Top 200 of ${out.g.names.length}.` : undefined },
+    ] : [];
+    return { title: 'Network metrics', subtitle: q('.nm-big').textContent ?? '', file: 'network-metrics', sections };
+  });
+  document.addEventListener('fibub:theme', () => { if (out) show(); });
+  if ('ResizeObserver' in window) { let lastW = 0; new ResizeObserver(() => { const w = q('.nm-out').clientWidth; if (w && w !== lastW) { const first = !lastW; lastW = w; if (!first && out) show(); } }).observe(q('.nm-out')); }
+  box.value = N.exampleNetwork(); run();
+</script>

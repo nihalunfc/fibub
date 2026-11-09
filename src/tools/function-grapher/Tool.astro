@@ -1,0 +1,583 @@
+---
+// Graphing calculator: y = f(x), equations in x and y, polar and parametric curves, and z = f(x, y) surfaces.
+import '../../styles/astro.css';
+---
+<div class="ax fg">
+  <div class="ax-card">
+    <div class="ax-row fg-top">
+      <div class="ax-seg fg-mode" role="group" aria-label="What to draw">
+        <button type="button" data-m="2d" aria-pressed="true">Curves</button>
+        <button type="button" data-m="3d" aria-pressed="false">3D surface</button>
+      </div>
+      <label class="fg-exl">Example <select class="fg-ex">
+        <optgroup label="Curves">
+          <option value="cubic">Cubic and circle</option>
+          <option value="slider">Sine wave with sliders</option>
+          <option value="asym">Asymptotes: tan x and 1/(x − 2)</option>
+          <option value="rose">Polar rose</option>
+          <option value="cardioid">Cardioid</option>
+          <option value="liss">Lissajous figure</option>
+          <option value="folium">Folium of Descartes</option>
+          <option value="heart">Heart curve</option>
+        </optgroup>
+        <optgroup label="3D surfaces">
+          <option value="s-wave">Egg box: sin x cos y</option>
+          <option value="s-saddle">Saddle: x² − y²</option>
+          <option value="s-bump">Bell: e^−(x² + y²)</option>
+          <option value="s-ripple">Ripple: sin √(x² + y²)</option>
+        </optgroup>
+      </select></label>
+    </div>
+
+    <div class="fg-2d">
+      <div class="fg-list"></div>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small fg-add">Add a curve</button></div>
+      <p class="ax-help">Type <b>y = …</b> (a function of x), an <b>equation in x and y</b> such as x^2 + y^2 = 16, <b>r = …</b> with θ (type theta) for a polar curve, or a pair <b>(x(t), y(t))</b>. Any other single letter, such as a or k, gets a slider. Use * or a space between letters: a*x or a x.</p>
+      <details class="fg-more">
+        <summary>Ranges for t and θ</summary>
+        <div class="ax-grid">
+          <label>t from <input class="fg-t0" value="0" spellcheck="false" /></label>
+          <label>t to <input class="fg-t1" value="2pi" spellcheck="false" /></label>
+          <label>θ from <input class="fg-th0" value="0" spellcheck="false" /></label>
+          <label>θ to <input class="fg-th1" value="2pi" spellcheck="false" /></label>
+        </div>
+        <p class="ax-help">Numbers or simple sums such as 2pi or 6*pi. A rose like r = cos(5θ/2) needs θ up to 4pi to close.</p>
+      </details>
+    </div>
+
+    <div class="fg-3d" hidden>
+      <label>z = <input class="fg-z" value="sin(x) cos(y)" spellcheck="false" autocapitalize="off" autocomplete="off" /></label>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>x from <input class="fg-sx0" value="-pi" spellcheck="false" /></label>
+        <label>x to <input class="fg-sx1" value="pi" spellcheck="false" /></label>
+        <label>y from <input class="fg-sy0" value="-pi" spellcheck="false" /></label>
+        <label>y to <input class="fg-sy1" value="pi" spellcheck="false" /></label>
+        <label>Grid <select class="fg-n"><option value="20">20 × 20</option><option value="30" selected>30 × 30</option><option value="45">45 × 45</option><option value="60">60 × 60</option></select></label>
+        <label class="ax-check"><input type="checkbox" class="fg-col" checked /> Colour by height</label>
+      </div>
+    </div>
+
+    <div class="fg-params"></div>
+    <p class="ax-err fg-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <canvas class="fg-cv" role="img" aria-label="Graph"></canvas>
+    <div class="ax-row fg-nav" style="margin-top:10px">
+      <div class="ax-seg"><button type="button" class="fg-zin" aria-label="Zoom in">+</button><button type="button" class="fg-zout" aria-label="Zoom out">−</button></div>
+      <button type="button" class="btn secondary small fg-reset">Reset view</button>
+      <label class="ax-check fg-eql"><input type="checkbox" class="fg-eq" checked /> Equal scale</label>
+    </div>
+    <div class="ax-grid fg-turn" style="margin-top:10px" hidden>
+      <label>Turn <input type="range" class="fg-az" min="-180" max="180" step="1" value="-35" /></label>
+      <label>Tilt <input type="range" class="fg-el" min="-90" max="90" step="1" value="30" /></label>
+    </div>
+    <p class="ax-help fg-hint">Drag to move. Pinch, scroll or use + and − to zoom. Tap a curve to read its values.</p>
+    <p class="fg-trace" aria-live="polite"></p>
+    <details class="fg-win">
+      <summary>Window</summary>
+      <div class="ax-grid">
+        <label>x from <input class="fg-w" data-k="xa" inputmode="decimal" /></label>
+        <label>x to <input class="fg-w" data-k="xb" inputmode="decimal" /></label>
+        <label>y from <input class="fg-w" data-k="ya" inputmode="decimal" /></label>
+        <label>y to <input class="fg-w" data-k="yb" inputmode="decimal" /></label>
+      </div>
+    </details>
+    <div class="dl">
+      <span class="dl-l">Download</span>
+      <button type="button" class="btn secondary fg-png">PNG</button>
+      <button type="button" class="btn secondary fg-svg">SVG</button>
+      <button type="button" class="btn secondary fg-csv">CSV</button>
+    </div>
+  </div>
+
+  <div class="ax-card fg-kp">
+    <h2>Key points in the window</h2>
+    <p class="ax-help fg-kn" style="margin:0 0 8px"></p>
+    <div class="ax-scroll"><table class="fg-kt"></table></div>
+    <div class="ax-grid" style="margin-top:14px"><label>Value at x = <input class="fg-at" inputmode="decimal" spellcheck="false" placeholder="for example 1.5" /></label></div>
+    <div class="ax-scroll"><table class="fg-att"></table></div>
+  </div>
+
+  <div class="ax-card fg-sf" hidden>
+    <h2>Surface</h2>
+    <dl class="ax-facts fg-facts"></dl>
+  </div>
+</div>
+
+<style is:global>
+  .fg-top { justify-content: space-between; }
+  .fg-exl { flex: 1 1 200px; max-width: 320px; }
+  .fg-list { display: grid; gap: 8px; margin-top: 12px; }
+  .fg-row { display: grid; grid-template-columns: 14px minmax(0, 1fr) 40px; gap: 4px 8px; align-items: center; }
+  .fg-sw { width: 14px; height: 14px; border-radius: 50%; display: block; }
+  .fg-row input { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important; }
+  .fg-del { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 8px; height: 38px; font-size: 18px; cursor: pointer; }
+  .fg-kind { grid-column: 2 / 4; font-size: 12.5px; color: var(--muted); }
+  .fg-kind.bad { color: var(--bad); }
+  .fg-more { margin-top: 10px; }
+  .fg-more summary, .fg-win summary { cursor: pointer; font-weight: 600; font-size: 15px; }
+  .fg-more .ax-grid, .fg-win .ax-grid { margin-top: 8px; }
+  .fg-params { display: grid; gap: 8px; margin-top: 12px; }
+  .fg-params:empty { display: none; }
+  .fg-par { display: grid; grid-template-columns: 2.2em minmax(0, 1fr) 6em; gap: 10px; align-items: center; font-size: 15px; color: var(--ink); }
+  .fg-par b { font-family: ui-monospace, Menlo, Consolas, monospace; }
+  .fg-par input[type=range] { width: 100%; accent-color: var(--accent); }
+  .fg-cv { display: block; width: 100%; max-width: 760px; margin: 0 auto; height: auto; border: 1px solid var(--line); border-radius: 8px; touch-action: none; cursor: crosshair; background: var(--bg); }
+  .fg-nav .ax-seg button { min-width: 44px; font-size: 18px; padding: 4px 12px; }
+  .fg-trace { margin: 8px 0 0; font-size: 15px; font-variant-numeric: tabular-nums; min-height: 1.4em; overflow-wrap: anywhere; }
+  .fg-win { margin-top: 10px; }
+  .fg-turn input[type=range] { width: 100%; accent-color: var(--accent); }
+  .fg-kt td:first-child, .fg-att td:first-child { white-space: nowrap; }
+  .fg-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+</style>
+
+<script>
+  import { readCurve, readSurface, constant, sampleExplicit, sampleParametric, samplePolar, contour, keyPoints, crossings, crossingsImplicit, rootsOf, surfaceGrid, project, KIND_LABEL, type CurveSpec, type Fns, type Piece, type Grid, type KeyPoint } from '../../lib/sci/grapher';
+  import { niceTicks, tickLabel, canvasPainter, svgPainter, OKABE_ITO, type Painter } from '../../lib/sci/plot';
+  import { sig, num } from '../../lib/sci/num';
+  import { pagePalette, LIGHT, save, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.fg')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const cv = q<HTMLCanvasElement>('.fg-cv');
+  const MAX = 8, ASPECT = 0.75;
+  const fmt = (v: number) => { const t = sig(v, 6); return /e|×/i.test(t) ? t : t.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, ''); };
+
+  type Row = { src: string; spec: CurveSpec | null; err: string };
+  type Drawn = { row: number; spec: CurveSpec; fns: Fns; pieces: Piece[] };
+  type View = { xa: number; xb: number; ya: number; yb: number };
+  const EX: Record<string, { rows?: string[]; params?: Record<string, number>; view?: View; z?: string; box?: string[]; t?: [string, string]; th?: [string, string] }> = {
+    cubic: { rows: ['y = x^3 - 2x - 1', 'x^2 + y^2 = 16'], view: { xa: -6, xb: 6, ya: -4.5, yb: 4.5 } },
+    slider: { rows: ['y = a sin(b x)', 'y = a'], params: { a: 2, b: 1 }, view: { xa: -8, xb: 8, ya: -6, yb: 6 } },
+    asym: { rows: ['y = tan(x)', 'y = 1/(x - 2)'], view: { xa: -6, xb: 6, ya: -4.5, yb: 4.5 } },
+    rose: { rows: ['r = 4cos(3θ)'], view: { xa: -6, xb: 6, ya: -4.5, yb: 4.5 }, th: ['0', 'pi'] },
+    cardioid: { rows: ['r = 2 + 2cos(θ)', 'r = 2'], view: { xa: -4, xb: 6, ya: -3.75, yb: 3.75 } },
+    liss: { rows: ['(4sin(3t), 3sin(2t))'], view: { xa: -6, xb: 6, ya: -4.5, yb: 4.5 } },
+    folium: { rows: ['x^3 + y^3 = 6x y', 'y = -x - 2'], view: { xa: -6, xb: 6, ya: -4.5, yb: 4.5 } },
+    heart: { rows: ['(x^2 + y^2 - 1)^3 = x^2 y^3'], view: { xa: -2, xb: 2, ya: -1.5, yb: 1.5 } },
+    's-wave': { z: 'sin(x) cos(y)', box: ['-pi', 'pi', '-pi', 'pi'] },
+    's-saddle': { z: 'x^2 - y^2', box: ['-2', '2', '-2', '2'] },
+    's-bump': { z: 'exp(-(x^2 + y^2))', box: ['-2', '2', '-2', '2'] },
+    's-ripple': { z: 'sin(sqrt(x^2 + y^2))', box: ['-10', '10', '-10', '10'] },
+  };
+
+  let mode: '2d' | '3d' = '2d';
+  let rows: Row[] = [];
+  let params: Record<string, number> = {};
+  let view: View = { xa: -6, xb: 6, ya: -4.5, yb: 4.5 }, home: View = { ...view };
+  let drawn: Drawn[] = [], trace: { row: number; x: number; y: number } | null = null;
+  let grid: Grid | null = null, gridErr = '';
+  let az = -35, el = 30;
+  let W = 600, H = 450;
+
+  // ---------- Curve list ----------
+  function colors(pal: Palette) { return pal.red ? ['#a30000', '#7a0000', '#c00000', '#5a0000', '#a30000', '#7a0000', '#c00000', '#5a0000'] : pal.bg === '#ffffff' ? OKABE_ITO : ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4', '#f0e442', '#9ecae1', '#ffffff', '#d55e00']; }
+  function readRow(r: Row) { try { r.spec = readCurve(r.src); r.err = ''; } catch (e) { r.spec = null; r.err = r.src.trim() ? (e as Error).message : ''; } }
+  function renderList() {
+    const pal = pagePalette(), col = colors(pal);
+    const list = q('.fg-list');
+    list.replaceChildren(...rows.map((r, i) => {
+      const d = document.createElement('div'); d.className = 'fg-row';
+      d.innerHTML = '<i class="fg-sw"></i><input class="fg-in" spellcheck="false" autocapitalize="off" autocomplete="off" /><button type="button" class="fg-del">×</button><small class="fg-kind"></small>';
+      (d.querySelector('.fg-sw') as HTMLElement).style.background = col[i % col.length];
+      const inp = d.querySelector('input')!; inp.value = r.src; inp.dataset.i = String(i); inp.setAttribute('aria-label', `Curve ${i + 1}`);
+      const del = d.querySelector('button')!; del.dataset.i = String(i); del.setAttribute('aria-label', `Remove curve ${i + 1}`);
+      return d;
+    }));
+    rowStatus();
+    q<HTMLButtonElement>('.fg-add').disabled = rows.length >= MAX;
+  }
+  function rowStatus() {
+    root.querySelectorAll<HTMLElement>('.fg-row').forEach((d, i) => {
+      const r = rows[i], k = d.querySelector('.fg-kind') as HTMLElement;
+      k.textContent = r.err ? r.err : r.spec ? KIND_LABEL[r.spec.kind] : 'Empty';
+      k.classList.toggle('bad', !!r.err);
+    });
+  }
+  function renderParams() {
+    const names: string[] = [];
+    if (mode === '2d') for (const r of rows) for (const p of r.spec?.params ?? []) { if (!names.includes(p)) names.push(p); }
+    if (mode === '3d') { try { for (const p of readSurface(q<HTMLInputElement>('.fg-z').value).params) names.push(p); } catch { /* shown elsewhere */ } }
+    const box = q('.fg-params');
+    const have = [...box.querySelectorAll<HTMLElement>('.fg-par')].map((e) => e.dataset.p);
+    if (have.join() === names.join()) return;
+    box.replaceChildren(...names.map((p) => {
+      if (!(p in params)) params[p] = 1;
+      const d = document.createElement('label'); d.className = 'fg-par'; d.dataset.p = p;
+      d.innerHTML = '<b></b><input type="range" min="-10" max="10" step="0.1" /><input class="fg-pv" inputmode="decimal" />';
+      d.querySelector('b')!.textContent = `${p} =`;
+      const [rg, nb] = d.querySelectorAll('input');
+      rg.value = String(params[p]); nb.value = String(params[p]); rg.dataset.p = p; nb.dataset.p = p;
+      rg.setAttribute('aria-label', `Slider for ${p}`); nb.setAttribute('aria-label', `Value of ${p}`);
+      return d;
+    }));
+  }
+
+  // ---------- Sampling ----------
+  const pval = () => params;
+  const rangeOf = (a: string, b: string, def: [number, number]): [number, number] => {
+    const x = constant(q<HTMLInputElement>(a).value), y = constant(q<HTMLInputElement>(b).value);
+    return Number.isFinite(x) && Number.isFinite(y) && y > x && y - x <= 2000 ? [x, y] : def;
+  };
+  function sample() {
+    drawn = [];
+    const span = Math.max(view.xb - view.xa, view.yb - view.ya);
+    const [t0, t1] = rangeOf('.fg-t0', '.fg-t1', [0, 2 * Math.PI]), [h0, h1] = rangeOf('.fg-th0', '.fg-th1', [0, 2 * Math.PI]);
+    const n = Math.min(2400, Math.max(600, Math.round(W * 2)));
+    rows.forEach((r, i) => {
+      if (!r.spec) return;
+      const fns = r.spec.make(pval());
+      let pieces: Piece[] = [];
+      if (fns.f) pieces = sampleExplicit(fns.f, view.xa, view.xb, view.yb - view.ya, n);
+      else if (fns.F) { const nx = Math.min(320, Math.max(80, Math.round(W / 3))); pieces = contour(fns.F, view.xa, view.xb, view.ya, view.yb, nx, Math.round(nx * (H / W))); }
+      else if (fns.r) pieces = samplePolar(fns.r, h0, h1, span, 3000);
+      else if (fns.px && fns.py) pieces = sampleParametric(fns.px, fns.py, t0, t1, span, 3000);
+      drawn.push({ row: i, spec: r.spec, fns, pieces });
+    });
+  }
+
+  // ---------- Drawing ----------
+  const sx = (x: number, w: number) => ((x - view.xa) / (view.xb - view.xa)) * w;
+  const sy = (y: number, h: number) => h - ((y - view.ya) / (view.yb - view.ya)) * h;
+  const clampS = (v: number, lo: number, hi: number) => Math.max(lo - 4000, Math.min(hi + 4000, v));
+  let keys: { row: number; other?: number; p: KeyPoint }[] = [];
+  function draw2d(P: Painter, w: number, h: number, pal: Palette) {
+    const col = colors(pal);
+    P.poly([[0, 0], [w, 0], [w, h], [0, h]], pal.bg, null);
+    const xt = niceTicks(view.xa, view.xb, Math.max(4, Math.round(w / 80))), yt = niceTicks(view.ya, view.yb, Math.max(4, Math.round(h / 70)));
+    const xs = xt.length > 1 ? xt[1] - xt[0] : 1, ys = yt.length > 1 ? yt[1] - yt[0] : 1;
+    for (const v of xt) P.line([[sx(v, w), 0], [sx(v, w), h]], pal.grid, 1);
+    for (const v of yt) P.line([[0, sy(v, h)], [w, sy(v, h)]], pal.grid, 1);
+    const ax = Math.min(w - 1, Math.max(0, sx(0, w))), ay = Math.min(h - 1, Math.max(0, sy(0, h)));
+    if (view.xa <= 0 && view.xb >= 0) P.line([[ax, 0], [ax, h]], pal.muted, 1.2);
+    if (view.ya <= 0 && view.yb >= 0) P.line([[0, ay], [w, ay]], pal.muted, 1.2);
+    const fs = 11.5;
+    const ly = Math.min(h - fs - 3, Math.max(3, ay + 4));
+    for (const v of xt) { if (Math.abs(v) < xs * 1e-6) continue; const x = sx(v, w); if (x < 12 || x > w - 12) continue; P.text(x, ly, tickLabel(v, xs), fs, pal.muted, 'middle', 'top'); }
+    for (const v of yt) {
+      if (Math.abs(v) < ys * 1e-6) continue; const y = sy(v, h); if (y < 10 || y > h - 10) continue;
+      const t = tickLabel(v, ys), tw = P.measure(t, fs), right = ax - 5 >= tw + 3;
+      P.text(right ? ax - 5 : Math.min(w - 3, ax + 5 + tw), y, t, fs, pal.muted, 'end', 'middle');
+    }
+    if (view.xa <= 0 && view.xb >= 0 && view.ya <= 0 && view.yb >= 0) P.text(ax - 4, ay + 4, '0', fs, pal.muted, 'end', 'top');
+    P.clip(0, 0, w, h);
+    for (const d of drawn) {
+      const c = col[d.row % col.length];
+      for (const pc of d.pieces) P.line(pc.map(([x, y]) => [clampS(sx(x, w), 0, w), clampS(sy(y, h), 0, h)]), c, 2.2);
+    }
+    for (const k of keys) { const x = sx(k.p.x, w), y = sy(k.p.y, h); P.circle(x, y, 3.5, pal.bg, k.other != null ? pal.ink : col[k.row % col.length], 1.8); }
+    if (trace) {
+      const x = sx(trace.x, w), y = sy(trace.y, h), c = col[trace.row % col.length];
+      P.line([[x, 0], [x, h]], c, 1, [4, 4]);
+      P.circle(x, y, 5.5, c, pal.bg, 2);
+      const t = `(${fmt(trace.x)}, ${fmt(trace.y)})`, tw = P.measure(t, 13, true);
+      const tx = x + 10 + tw > w - 4 ? x - 10 - tw : x + 10, ty = y - 24 < 4 ? y + 10 : y - 24;
+      P.poly([[tx - 4, ty - 2], [tx + tw + 4, ty - 2], [tx + tw + 4, ty + 17], [tx - 4, ty + 17]], pal.bg, pal.line, 1);
+      P.text(tx, ty, t, 13, pal.ink, 'start', 'top', 0, true);
+    }
+    P.unclip();
+  }
+
+  function heat(t: number, pal: Palette) {
+    const [a, b] = pal.red ? [[16, 0, 0], [163, 0, 0]] : pal.bg === '#ffffff' ? [[222, 235, 247], [8, 81, 156]] : [[27, 42, 58], [127, 178, 240]];
+    const m = (i: number) => Math.round(a[i] + (b[i] - a[i]) * Math.max(0, Math.min(1, t)));
+    return `rgb(${m(0)},${m(1)},${m(2)})`;
+  }
+  function draw3d(P: Painter, w: number, h: number, pal: Palette) {
+    P.poly([[0, 0], [w, 0], [w, h], [0, h]], pal.bg, null);
+    if (!grid) return;
+    const g = grid, n = g.xs.length - 1;
+    const x0 = g.xs[0], x1 = g.xs[n], y0 = g.ys[0], y1 = g.ys[n];
+    const zlo = Number.isFinite(g.zmin) ? g.zmin : 0, zhi = Number.isFinite(g.zmax) ? g.zmax : 1, zs = zhi - zlo || 1, zm = (zhi + zlo) / 2;
+    const A = (az * Math.PI) / 180, E = (el * Math.PI) / 180, s = Math.min(w, h) * 0.34, ZH = 0.7;
+    const P3 = (u: number, v: number, wv: number) => { const [X, Y, D] = project(u, v, wv, A, E); return [w / 2 + X * s, h / 2 + 8 - Y * s, D] as [number, number, number]; };
+    const nu = (x: number) => (2 * (x - x0)) / (x1 - x0) - 1, nv = (y: number) => (2 * (y - y0)) / (y1 - y0) - 1, nz = (z: number) => ((z - zm) / zs) * 2 * ZH;
+    const pts = g.z.map((row, j) => row.map((z, i) => (Number.isFinite(z) ? P3(nu(g.xs[i]), nv(g.ys[j]), nz(z)) : null)));
+    // Floor and axes, behind the surface.
+    const floor = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([u, v]) => P3(u, v, -ZH));
+    P.poly(floor.map(([a, b]) => [a, b]), null, pal.line, 1);
+    for (const [u, v, t] of [[1.2, -1, 'x'], [-1, 1.2, 'y']] as [number, number, string][]) { const [a, b] = P3(u, v, -ZH); P.text(a, b, t, 13, pal.muted, 'middle', 'middle', 0, true); }
+    const coloured = q<HTMLInputElement>('.fg-col').checked;
+    const quads: { d: number; p: [number, number][]; z: number }[] = [];
+    for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+      const a = pts[j][i], b = pts[j][i + 1], c = pts[j + 1][i + 1], d = pts[j + 1][i];
+      if (!a || !b || !c || !d) continue;
+      quads.push({ d: (a[2] + b[2] + c[2] + d[2]) / 4, p: [[a[0], a[1]], [b[0], b[1]], [c[0], c[1]], [d[0], d[1]]], z: (g.z[j][i] + g.z[j][i + 1] + g.z[j + 1][i + 1] + g.z[j + 1][i]) / 4 });
+    }
+    quads.sort((p, q2) => p.d - q2.d);
+    for (const qd of quads) P.poly(qd.p, coloured ? heat((qd.z - zlo) / zs, pal) : pal.bg, coloured ? pal.ink : pal.muted, coloured ? 0.45 : 0.7);
+    const fs = 12;
+    const lab = (u: number, v: number, wv: number, t: string, anchor: 'start' | 'middle' | 'end' = 'middle') => { const [a, b] = P3(u, v, wv); P.text(a, b, t, fs, pal.muted, anchor, 'middle'); };
+    lab(-1, -1, ZH + 0.2, 'z');
+    P.text(8, 8, `x: ${fmt(x0)} to ${fmt(x1)}   y: ${fmt(y0)} to ${fmt(y1)}   z: ${fmt(zlo)} to ${fmt(zhi)}`, fs, pal.muted, 'start', 'top');
+    const zA = P3(-1, -1, -ZH), zB = P3(-1, -1, ZH);
+    P.line([[zA[0], zA[1]], [zB[0], zB[1]]], pal.muted, 1);
+    P.text(zA[0] - 6, zA[1], fmt(zlo), fs, pal.muted, 'end', 'middle'); P.text(zB[0] - 6, zB[1], fmt(zhi), fs, pal.muted, 'end', 'middle');
+  }
+  function paintAll() {
+    W = Math.max(240, Math.round(cv.clientWidth || cv.parentElement!.clientWidth || 600)); H = Math.round(W * ASPECT);
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.aspectRatio = `${W} / ${H}`;
+    const ctx = cv.getContext('2d')!; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const P = canvasPainter(ctx), pal = pagePalette();
+    if (mode === '2d') draw2d(P, W, H, pal); else draw3d(P, W, H, pal);
+    cv.setAttribute('aria-label', mode === '2d' ? `Graph of ${rows.map((r) => r.src).filter(Boolean).join('; ')} for x from ${fmt(view.xa)} to ${fmt(view.xb)}` : `Surface z = ${q<HTMLInputElement>('.fg-z').value}`);
+  }
+
+  // ---------- Results ----------
+  function keyTable() {
+    keys = [];
+    const ex = drawn.filter((d) => d.fns.f), im = drawn.filter((d) => d.fns.F);
+    for (const d of ex) for (const p of keyPoints(d.fns.f!, view.xa, view.xb)) keys.push({ row: d.row, p });
+    for (let a = 0; a < ex.length; a++) {
+      for (let b = a + 1; b < ex.length; b++) for (const p of crossings(ex[a].fns.f!, ex[b].fns.f!, view.xa, view.xb)) keys.push({ row: ex[a].row, other: ex[b].row, p });
+      for (const d of im) for (const p of crossingsImplicit(ex[a].fns.f!, d.fns.F!, view.xa, view.xb)) keys.push({ row: ex[a].row, other: d.row, p });
+    }
+    keys = keys.filter((k) => k.p.y >= view.ya && k.p.y <= view.yb);
+    const col = colors(pagePalette()), WHAT = { root: 'Root (y = 0)', max: 'Local maximum', min: 'Local minimum', 'y-intercept': 'Crosses the y axis', crossing: 'Crossing' };
+    const shown = keys.slice(0, 60);
+    const t = q<HTMLTableElement>('.fg-kt');
+    t.innerHTML = '<thead><tr><th>Curve</th><th>Point</th><th class="r">x</th><th class="r">y</th></tr></thead><tbody></tbody>';
+    t.tBodies[0].replaceChildren(...shown.map((k) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td><i class="fg-dot"></i></td><td></td><td class="r"></td><td class="r"></td>';
+      const td = tr.querySelectorAll('td');
+      (td[0].querySelector('i') as HTMLElement).style.background = col[k.row % col.length];
+      td[0].append(k.other != null ? `${Math.min(k.row, k.other) + 1} and ${Math.max(k.row, k.other) + 1}` : String(k.row + 1));
+      td[1].textContent = WHAT[k.p.what]; td[2].textContent = fmt(k.p.x); td[3].textContent = fmt(k.p.y);
+      return tr;
+    }));
+    q('.fg-kn').textContent = !ex.length ? 'Roots, turning points and crossings are found for y = f(x) curves (and where they cross equations in x and y). Add one to see them.'
+      : keys.length ? `${keys.length} point${keys.length > 1 ? 's' : ''} for x from ${fmt(view.xa)} to ${fmt(view.xb)}${keys.length > shown.length ? ` (first ${shown.length} listed)` : ''}. Zoom out to find more.` : 'None in this window. Zoom out to look further.';
+    q<HTMLTableElement>('.fg-kt').hidden = !keys.length;
+    valueAt();
+  }
+  function valueAt() {
+    const t = q<HTMLTableElement>('.fg-att'), s = q<HTMLInputElement>('.fg-at').value.trim(), x = constant(s);
+    if (!s) { t.replaceChildren(); return; }
+    if (!Number.isFinite(x)) { t.innerHTML = '<tbody><tr><td>Type a number for x.</td></tr></tbody>'; return; }
+    const out: [string, string][] = [];
+    for (const d of drawn) {
+      const name = `Curve ${d.row + 1}`;
+      if (d.fns.f) { const y = d.fns.f(x); out.push([name, Number.isFinite(y) ? `y = ${fmt(y)}` : 'not defined here']); }
+      else if (d.fns.F) {
+        const F = d.fns.F, n = 4000, ys: number[] = [], vs: number[] = [];
+        for (let i = 0; i <= n; i++) { const y = view.ya + ((view.yb - view.ya) * i) / n; ys.push(y); vs.push(F(x, y)); }
+        const r = rootsOf((y) => F(x, y), ys, vs);
+        out.push([name, r.length ? `y = ${r.slice(0, 8).map(fmt).join(', ')}${r.length > 8 ? ', …' : ''} (in the window)` : 'no point in the window']);
+      } else out.push([name, 'tap the curve to read it']);
+    }
+    t.innerHTML = '<tbody></tbody>';
+    t.tBodies[0].replaceChildren(...out.map(([a, b]) => { const tr = document.createElement('tr'); tr.innerHTML = '<td></td><td></td>'; tr.cells[0].textContent = a; tr.cells[1].textContent = b; return tr; }));
+  }
+  function traceText() {
+    const el2 = q('.fg-trace');
+    if (!trace) { el2.textContent = ''; return; }
+    const r = rows[trace.row];
+    el2.textContent = `Curve ${trace.row + 1} (${r.src.trim()}): x = ${fmt(trace.x)}, y = ${fmt(trace.y)}`;
+  }
+  function surfaceFacts() {
+    const box = q('.fg-facts');
+    if (!grid) { box.replaceChildren(); return; }
+    const g = grid; let lo: [number, number, number] | null = null, hi: [number, number, number] | null = null;
+    g.z.forEach((row, j) => row.forEach((z, i) => { if (!Number.isFinite(z)) return; if (!lo || z < lo[2]) lo = [g.xs[i], g.ys[j], z]; if (!hi || z > hi[2]) hi = [g.xs[i], g.ys[j], z]; }));
+    const L = lo as [number, number, number] | null, Hh = hi as [number, number, number] | null;
+    const n = g.xs.length;
+    const facts: [string, string][] = [
+      ['Lowest z on the grid', L ? `${fmt(L[2])} at (${fmt(L[0])}, ${fmt(L[1])})` : '–'],
+      ['Highest z on the grid', Hh ? `${fmt(Hh[2])} at (${fmt(Hh[0])}, ${fmt(Hh[1])})` : '–'],
+      ['Grid points', `${n} × ${n} = ${(n * n).toLocaleString('en')}`],
+      ['Not defined at', g.bad ? `${g.bad.toLocaleString('en')} grid points (left as gaps)` : 'none'],
+    ];
+    box.replaceChildren(...facts.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+  }
+
+  // ---------- Update ----------
+  let raf = 0, kt = 0;
+  function showErr(msg: string) { const e = q('.fg-err'); e.textContent = msg; e.hidden = !msg; }
+  function windowBoxes() { root.querySelectorAll<HTMLInputElement>('.fg-w').forEach((i) => { if (document.activeElement !== i) i.value = String(+(view as any)[i.dataset.k!].toPrecision(6)); }); }
+  function redraw(full = false) {
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(() => {
+      if (mode === '2d') {
+        sample();
+        if (full) { clearTimeout(kt); keyTable(); } else { clearTimeout(kt); kt = window.setTimeout(() => { keyTable(); paintAll(); }, 160); }
+        windowBoxes();
+      }
+      paintAll();
+    });
+  }
+  function update() {
+    if (mode === '2d') {
+      rows.forEach(readRow); rowStatus(); renderParams();
+      const bad = rows.filter((r) => r.err).length;
+      showErr(bad ? `${bad === 1 ? 'One curve' : `${bad} curves`} could not be read: see the note under ${bad === 1 ? 'it' : 'each'}.` : !rows.some((r) => r.spec) ? 'Type a curve to draw.' : '');
+      if (trace && !rows[trace.row]?.spec) trace = null;
+      if (trace) { const d = rows[trace.row].spec!.make(pval()); if (d.f) trace.y = d.f(trace.x); }
+      traceText();
+      redraw(true);
+    } else {
+      renderParams();
+      try {
+        const s = readSurface(q<HTMLInputElement>('.fg-z').value);
+        const box = ['.fg-sx0', '.fg-sx1', '.fg-sy0', '.fg-sy1'].map((c) => constant(q<HTMLInputElement>(c).value));
+        if (!box.every(Number.isFinite)) throw new Error('Type a number (or something like 2pi) in each box.');
+        if (!(box[1] > box[0] && box[3] > box[2])) throw new Error('Each "to" must be larger than its "from".');
+        grid = surfaceGrid(s.make(pval()), box[0], box[1], box[2], box[3], Number(q<HTMLSelectElement>('.fg-n').value));
+        if (!Number.isFinite(grid.zmin)) throw new Error('The surface is not defined anywhere in that range.');
+        showErr('');
+      } catch (e) { grid = null; showErr((e as Error).message); }
+      surfaceFacts();
+      redraw();
+    }
+  }
+  function setMode(m: '2d' | '3d') {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.fg-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    q('.fg-2d').hidden = m !== '2d'; q('.fg-3d').hidden = m !== '3d';
+    q('.fg-kp').hidden = m !== '2d'; q('.fg-sf').hidden = m !== '3d';
+    q('.fg-turn').hidden = m !== '3d'; q('.fg-win').hidden = m !== '2d';
+    root.querySelectorAll<HTMLElement>('.fg-nav').forEach((e) => (e.hidden = m !== '2d'));
+    q('.fg-hint').textContent = m === '2d' ? 'Drag to move. Pinch, scroll or use + and − to zoom. Tap a curve to read its values.' : 'Drag the surface, or use the sliders, to turn and tilt it.';
+    q('.fg-trace').textContent = '';
+    q('.fg-params').replaceChildren();
+    update();
+  }
+  function equalise(v: View): View { const cy = (v.ya + v.yb) / 2, hs = ((v.xb - v.xa) * ASPECT) / 2; return { ...v, ya: cy - hs, yb: cy + hs }; }
+  function load(id: string) {
+    const e = EX[id]; if (!e) return;
+    trace = null;
+    if (e.z) {
+      q<HTMLInputElement>('.fg-z').value = e.z;
+      ['.fg-sx0', '.fg-sx1', '.fg-sy0', '.fg-sy1'].forEach((c, i) => (q<HTMLInputElement>(c).value = e.box![i]));
+      setMode('3d');
+    } else {
+      rows = e.rows!.map((src) => ({ src, spec: null, err: '' }));
+      params = { ...(e.params ?? {}) };
+      q<HTMLInputElement>('.fg-th0').value = e.th?.[0] ?? '0'; q<HTMLInputElement>('.fg-th1').value = e.th?.[1] ?? '2pi';
+      q<HTMLInputElement>('.fg-t0').value = e.t?.[0] ?? '0'; q<HTMLInputElement>('.fg-t1').value = e.t?.[1] ?? '2pi';
+      view = { ...e.view! }; home = { ...view };
+      q<HTMLInputElement>('.fg-eq').checked = Math.abs((view.yb - view.ya) - (view.xb - view.xa) * ASPECT) < 1e-9;
+      renderList(); q('.fg-params').replaceChildren();
+      if (mode !== '2d') setMode('2d'); else update();
+    }
+  }
+
+  // ---------- Pan, zoom, trace ----------
+  function zoom(f: number, px = W / 2, py = H / 2) {
+    const cx = view.xa + (px / W) * (view.xb - view.xa), cy = view.yb - (py / H) * (view.yb - view.ya);
+    const nv = { xa: cx - (cx - view.xa) * f, xb: cx + (view.xb - cx) * f, ya: cy - (cy - view.ya) * f, yb: cy + (view.yb - cy) * f };
+    if (!(nv.xb - nv.xa > 1e-9 * Math.max(1, Math.abs(cx)) && nv.xb - nv.xa < 1e9)) return;
+    view = nv; redraw();
+  }
+  function doTrace(px: number, py: number) {
+    let best: { row: number; x: number; y: number; d: number } | null = null;
+    for (const d of drawn) {
+      if (d.fns.f) {
+        const x = view.xa + (px / W) * (view.xb - view.xa), y = d.fns.f(x);
+        if (Number.isFinite(y)) { const dd = Math.abs(sy(y, H) - py); if (!best || dd < best.d) best = { row: d.row, x, y, d: dd }; }
+      } else for (const pc of d.pieces) for (const [x, y] of pc) {
+        const dd = Math.hypot(sx(x, W) - px, sy(y, H) - py); if (!best || dd < best.d) best = { row: d.row, x, y, d: dd };
+      }
+    }
+    trace = best && best.d < 40 ? { row: best.row, x: best.x, y: best.y } : null;
+    traceText();
+    if (!trace) q('.fg-trace').textContent = 'No curve near there. Tap closer to a line.';
+    paintAll();
+  }
+  const pts = new Map<number, { x: number; y: number }>();
+  let moved = false, pinch = 0;
+  const local = (e: PointerEvent) => { const r = cv.getBoundingClientRect(); return { x: ((e.clientX - r.left) / r.width) * W, y: ((e.clientY - r.top) / r.height) * H }; };
+  cv.addEventListener('pointerdown', (e) => { cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, local(e)); moved = false; if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = Math.hypot(a.x - b.x, a.y - b.y); } });
+  cv.addEventListener('pointermove', (e) => {
+    const old = pts.get(e.pointerId); if (!old) return;
+    const p = local(e);
+    if (pts.size === 1) {
+      const dx = p.x - old.x, dy = p.y - old.y;
+      if (!moved && Math.hypot(dx, dy) < 4) return;
+      moved = true; pts.set(e.pointerId, p);
+      if (mode === '2d') {
+        const kx = (view.xb - view.xa) / W, ky = (view.yb - view.ya) / H;
+        view = { xa: view.xa - dx * kx, xb: view.xb - dx * kx, ya: view.ya + dy * ky, yb: view.yb + dy * ky }; redraw();
+      } else {
+        az = ((az + dx * 0.5 + 540) % 360) - 180; el = Math.max(-90, Math.min(90, el + dy * 0.4));
+        q<HTMLInputElement>('.fg-az').value = String(Math.round(az)); q<HTMLInputElement>('.fg-el').value = String(Math.round(el)); paintAll();
+      }
+    } else if (pts.size === 2 && mode === '2d') {
+      moved = true; pts.set(e.pointerId, p);
+      const [a, b] = [...pts.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinch > 0 && d > 0) zoom(pinch / d, (a.x + b.x) / 2, (a.y + b.y) / 2);
+      pinch = d;
+    }
+  });
+  const up = (e: PointerEvent) => {
+    const had = pts.get(e.pointerId); pts.delete(e.pointerId);
+    if (had && !moved && pts.size === 0 && mode === '2d') doTrace(had.x, had.y);
+    if (pts.size < 2) pinch = 0;
+  };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', (e) => { pts.delete(e.pointerId); pinch = 0; });
+  cv.addEventListener('wheel', (e) => { if (mode !== '2d') return; e.preventDefault(); const p = { x: (e.offsetX / cv.clientWidth) * W, y: (e.offsetY / cv.clientHeight) * H }; zoom(Math.exp(Math.max(-1, Math.min(1, e.deltaY * 0.002))), p.x, p.y); }, { passive: false });
+
+  // ---------- Downloads ----------
+  const fname = () => (mode === '2d' ? 'graph' : 'surface');
+  function svgText() { const P = svgPainter(W, H, 'Helvetica, Arial, sans-serif'); (mode === '2d' ? draw2d : draw3d)(P, W, H, LIGHT); return P.toString(); }
+  q('.fg-svg').addEventListener('click', () => save(new Blob([svgText()], { type: 'image/svg+xml' }), `${fname()}.svg`, 'image/svg+xml'));
+  q('.fg-png').addEventListener('click', () => {
+    const c = document.createElement('canvas'), k = 2; c.width = W * k; c.height = H * k;
+    const ctx = c.getContext('2d')!; ctx.scale(k, k);
+    (mode === '2d' ? draw2d : draw3d)(canvasPainter(ctx), W, H, LIGHT);
+    c.toBlob((b) => b && save(b, `${fname()}.png`, 'image/png'), 'image/png');
+  });
+  q('.fg-csv').addEventListener('click', () => {
+    const lines: string[] = [];
+    const cell = (s: string) => (/[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
+    const g = (v: number) => (Number.isFinite(v) ? String(+v.toPrecision(12)) : '');
+    if (mode === '2d') {
+      lines.push('curve,formula,kind,piece,x,y');
+      for (const d of drawn) d.pieces.forEach((pc, k) => { for (const [x, y] of pc) lines.push([d.row + 1, cell(rows[d.row].src.trim()), d.spec.kind, k + 1, g(x), g(y)].join(',')); });
+    } else if (grid) {
+      lines.push('x,y,z');
+      grid.z.forEach((row, j) => row.forEach((z, i) => lines.push([g(grid!.xs[i]), g(grid!.ys[j]), g(z)].join(','))));
+    }
+    save(new Blob([lines.join('\n') + '\n'], { type: 'text/csv' }), `${fname()}.csv`, 'text/csv');
+  });
+
+  // ---------- Wiring ----------
+  root.addEventListener('input', (e) => {
+    const t = e.target as HTMLInputElement;
+    if (t.classList.contains('fg-in')) { rows[Number(t.dataset.i)].src = t.value; update(); }
+    else if (t.dataset.p) {
+      const v = num(t.value); if (!Number.isFinite(v)) return;
+      params[t.dataset.p] = v;
+      const lab = t.closest('.fg-par')!; lab.querySelectorAll('input').forEach((o) => { if (o !== t) { if (o.type === 'range') { o.min = String(Math.min(-10, Math.floor(v))); o.max = String(Math.max(10, Math.ceil(v))); } o.value = String(v); } });
+      update();
+    }
+    else if (t.classList.contains('fg-az') || t.classList.contains('fg-el')) { az = Number(q<HTMLInputElement>('.fg-az').value); el = Number(q<HTMLInputElement>('.fg-el').value); paintAll(); }
+    else if (t.classList.contains('fg-at')) valueAt();
+    else if (t.closest('.fg-3d') || t.closest('.fg-more')) update();
+  });
+  root.addEventListener('change', (e) => {
+    const t = e.target as HTMLInputElement;
+    if (t.classList.contains('fg-ex')) load(t.value);
+    else if (t.classList.contains('fg-eq')) { if (t.checked) { view = equalise(view); redraw(true); } }
+    else if (t.classList.contains('fg-w')) {
+      const v = { ...view }; root.querySelectorAll<HTMLInputElement>('.fg-w').forEach((i) => { const x = constant(i.value); if (Number.isFinite(x)) (v as any)[i.dataset.k!] = x; });
+      if (v.xb > v.xa && v.yb > v.ya) { view = v; q<HTMLInputElement>('.fg-eq').checked = Math.abs((v.yb - v.ya) - (v.xb - v.xa) * ASPECT) < 1e-9 * (v.xb - v.xa); showErr(''); redraw(true); }
+      else showErr('In the window, each "to" must be larger than its "from".');
+    }
+    else if (t.closest('.fg-3d')) update();
+  });
+  root.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button'); if (!b) return;
+    if (b.dataset.m) setMode(b.dataset.m as '2d' | '3d');
+    else if (b.classList.contains('fg-add') && rows.length < MAX) { rows.push({ src: '', spec: null, err: '' }); renderList(); update(); (root.querySelectorAll<HTMLInputElement>('.fg-in')[rows.length - 1]).focus(); }
+    else if (b.classList.contains('fg-del')) { const i = Number(b.dataset.i); rows.splice(i, 1); trace = null; if (!rows.length) rows.push({ src: '', spec: null, err: '' }); renderList(); update(); }
+    else if (b.classList.contains('fg-zin')) zoom(1 / 1.5);
+    else if (b.classList.contains('fg-zout')) zoom(1.5);
+    else if (b.classList.contains('fg-reset')) { view = q<HTMLInputElement>('.fg-eq').checked ? equalise(home) : { ...home }; trace = null; traceText(); redraw(true); }
+  });
+  new ResizeObserver(() => { const w = Math.round(cv.clientWidth); if (w && w !== W) redraw(true); }).observe(cv);
+  new MutationObserver(() => { renderList(); paintAll(); keyTable(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+  load('cubic');
+</script>

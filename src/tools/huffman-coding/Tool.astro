@@ -1,0 +1,295 @@
+---
+// Huffman coding (tree, code table, average length against entropy, encode and decode) and exact arithmetic coding
+// of short messages, step by step. Everything runs in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax hfc">
+  <div class="ax-card">
+    <h2>Source</h2>
+    <div class="ax-seg hf-mode" role="group" aria-label="Build the code from">
+      <button type="button" data-m="msg" aria-pressed="true">A message</button>
+      <button type="button" data-m="prob" aria-pressed="false">Symbols and probabilities</button>
+    </div>
+    <div class="hf-p" data-p="msg">
+      <label style="margin-top:12px">Message (each character is a symbol; the code is built from their counts)
+        <textarea class="hf-msg" rows="3" spellcheck="false"></textarea></label>
+    </div>
+    <div class="hf-p" data-p="prob" hidden>
+      <label style="margin-top:12px">One symbol and its probability or count per line (1/3 is fine)
+        <textarea class="hf-probs" rows="5" spellcheck="false"></textarea></label>
+      <DataFile target=".hf-probs" maxMB={1} maxCols={2} maxRows={256} />
+      <label style="margin-top:10px">Message to code with these symbols (optional; words if a symbol is longer than one character)
+        <input class="hf-pmsg" spellcheck="false" autocomplete="off" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:12px"><input type="checkbox" class="hf-canon" /> Canonical codes (same lengths, codes given out in order, as in DEFLATE and JPEG)</label>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small hf-ex">Use the example</button><button type="button" class="btn secondary small hf-ex2">A longer example</button></div>
+    <p class="ax-err hf-err" hidden></p>
+  </div>
+
+  <div class="ax-card hf-out" hidden>
+    <h2>Huffman code</h2>
+    <p class="ax-big hf-big"></p>
+    <dl class="ax-facts hf-facts"></dl>
+    <canvas class="ax-fig hf-tree" style="margin-top:14px"></canvas>
+    <p class="ax-help hf-tnote"></p>
+    <div class="ax-scroll hf-tw"><table class="hf-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small hf-csv">Download the code table (CSV)</button></div>
+
+    <div class="hf-encw">
+      <h3>Encoded message</h3>
+      <p class="hf-bits" aria-label="Encoded bits"></p>
+    </div>
+    <h3>Decode bits</h3>
+    <label>Bits to decode with this code (spaces are ignored) <input class="hf-dec" spellcheck="false" autocomplete="off" inputmode="numeric" /></label>
+    <p class="ax-help hf-decout" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card hf-ar" hidden>
+    <h2>Arithmetic coding</h2>
+    <p class="ax-big hf-abig"></p>
+    <dl class="ax-facts hf-afacts"></dl>
+    <canvas class="ax-fig hf-afig" style="margin-top:14px"></canvas>
+    <p class="ax-help">Each row is the current interval stretched to full width and split in proportion to the probabilities. The shaded part, for the next symbol, becomes the next row. All the sums are exact fractions.</p>
+    <div class="ax-scroll hf-tw"><table class="hf-atab"></table></div>
+    <p class="ax-help hf-anote"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small hf-acsv">Download the steps (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .hfc h3 { margin: 22px 0 8px; font-size: 15px; }
+  .hfc .hf-tw { max-height: 420px; overflow-y: auto; }
+  .hfc td.m, .hfc .hf-bits { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .hfc .hf-bits { font-size: 13px; word-break: break-all; line-height: 1.6; margin: 0; }
+</style>
+
+<script>
+  import { huffman, encode, decode, tokens, countMessage, toIntegerCounts, arithEncode, arithDecode, decimal, fraction, EXAMPLE_MESSAGE, EXAMPLE_LONG, type HNode, type HuffResult } from '../../lib/sci/huffman';
+  import { showSymbol } from '../../lib/sci/infobars';
+  import { csv, num } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.hfc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const g = (x: number, n = 4) => (Number.isFinite(x) ? String(+x.toPrecision(n)) : '–');
+  const figW = () => Math.round(Math.max(340, Math.min(720, (root.clientWidth || 720) - 34)));
+  const MAX_ARITH = 1000, MAX_TREE = 48;
+  let mode = 'msg', h: HuffResult | null = null, treeFig: Figure | null = null, arFig: Figure | null = null;
+  let codeRows: (string | number)[][] = [], stepRows: (string | number)[][] = [], sections: Section[] = [];
+  q<HTMLTextAreaElement>('.hf-msg').value = EXAMPLE_MESSAGE;
+  q<HTMLTextAreaElement>('.hf-probs').value = 'a 0.4\nb 0.2\nc 0.2\nd 0.1\ne 0.1';
+  q<HTMLInputElement>('.hf-pmsg').value = 'abacabad';
+  q<HTMLInputElement>('.hf-dec').value = '';
+
+  const facts = (el: HTMLElement, f: [string, string][]) => el.replaceChildren(...f.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+  const table = (t: HTMLElement, head: string[], rows: (string | number)[][], cls: string[] = []) => {
+    t.replaceChildren();
+    const hr = t.insertRow(); head.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (cls[k] === 'r') th.className = 'r'; hr.append(th); });
+    for (const r of rows) { const tr = t.insertRow(); r.forEach((x, k) => { const td = tr.insertCell(); td.textContent = String(x); if (cls[k]) td.className = cls[k]; }); }
+  };
+  const sym = (s: string) => showSymbol(s);
+
+  /** Read "symbol weight" lines (or symbol,weight from a CSV with an optional header). */
+  function readProbs(text: string): { syms: string[]; raw: string[] } {
+    const syms: string[] = [], raw: string[] = [];
+    const lines = text.replace(/\r\n?/g, '\n').split('\n').filter((l) => l.trim());
+    lines.forEach((l, i) => {
+      const m = /^\s*(.+?)\s*[,;\t ]\s*([\d./]+)\s*$/.exec(l);
+      if (!m) { if (i === 0 && /[a-z]/i.test(l) && !/\d/.test(l)) return; throw new Error(`Line ${i + 1}: write a symbol, then its probability or count, such as "a 0.25".`); }
+      let s = m[1];
+      if (/^(space|␣)$/i.test(s)) s = ' ';
+      if (syms.includes(s)) throw new Error(`"${s}" is listed twice.`);
+      syms.push(s); raw.push(m[2]);
+    });
+    if (!syms.length) throw new Error('List at least one symbol and its probability.');
+    if (syms.length > 256) throw new Error('Up to 256 symbols, please.');
+    return { syms, raw };
+  }
+
+  function treeFigure(r: HuffResult, isCount: boolean): Figure {
+    const leaves: HNode[] = []; let depth = 0;
+    const walk = (n: HNode) => { depth = Math.max(depth, n.depth ?? 0); if (n.sym != null) leaves.push(n); else { if (n.left) walk(n.left); if (n.right) walk(n.right); } };
+    walk(r.root);
+    const W = Math.max(figW(), leaves.length * 34), H = 70 + depth * 56;
+    return {
+      w: W, h: H, alt: `Huffman tree with ${leaves.length} leaves`,
+      draw: (ctx, w, hh, pal) => {
+        const font = (s: number, b = false) => `${b ? 700 : 400} ${s}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
+        const pos = new Map<HNode, [number, number]>(); let k = 0;
+        const step = (w - 30) / Math.max(1, leaves.length);
+        const place = (n: HNode): number => {
+          const y = 22 + (n.depth ?? 0) * 56;
+          let x: number;
+          if (n.sym != null) x = 15 + step * (k++ + 0.5);
+          else { const xs = [n.left, n.right].filter(Boolean).map((c) => place(c!)); x = xs.reduce((a, b) => a + b, 0) / xs.length; }
+          pos.set(n, [x, y]); return x;
+        };
+        place(r.root);
+        const ink = pal.ink, acc = pal.red ? pal.ink : pal.accent;
+        const lab = (w0: number) => (isCount ? String(+w0.toPrecision(6)) : g(w0, 2));
+        ctx.lineWidth = 1.4;
+        for (const [n, [x, y]] of pos) for (const [c, bit] of [[n.left, '0'], [n.right, '1']] as [HNode | undefined, string][]) {
+          if (!c) continue; const [cx, cy] = pos.get(c)!;
+          ctx.strokeStyle = pal.muted; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(cx, cy); ctx.stroke();
+          ctx.fillStyle = acc; ctx.font = font(12, true); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          const mx = (x + cx) / 2 + (bit === '0' ? -7 : 7), my = (y + cy) / 2 - 4; ctx.fillText(bit, mx, my);
+        }
+        for (const [n, [x, y]] of pos) {
+          const leaf = n.sym != null;
+          ctx.beginPath(); ctx.arc(x, y, 13, 0, Math.PI * 2);
+          ctx.fillStyle = leaf ? acc : pal.bg; ctx.fill(); ctx.strokeStyle = leaf ? acc : ink; ctx.stroke();
+          ctx.fillStyle = leaf ? (pal.red ? '#000' : pal.bg) : ink; ctx.font = font(10, true); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(lab(n.w), x, y);
+          if (leaf) { ctx.fillStyle = ink; ctx.font = font(13, true); ctx.fillText(sym(n.sym!), x, y + 24); }
+        }
+      },
+    };
+  }
+
+  function arithFigure(syms: string[], counts: bigint[], steps: { sym: string; lowN: bigint; highN: bigint; den: bigint }[]): Figure {
+    const rows = Math.min(steps.length, 6), W = figW(), H = 30 + rows * 62 + 10;
+    const T = Number(counts.reduce((a, b) => a + b, 0n)), cum = [0]; for (const c of counts) cum.push(cum[cum.length - 1] + Number(c) / T);
+    const ends = (k: number): [string, string] => (k === 0 ? ['0', '1'] : [decimal(steps[k - 1].lowN, steps[k - 1].den, 8).replace(/0+$/, '').replace(/\.$/, ''), decimal(steps[k - 1].highN, steps[k - 1].den, 8).replace(/0+$/, '').replace(/\.$/, '')]);
+    return {
+      w: W, h: H, alt: 'Arithmetic coding intervals, step by step',
+      draw: (ctx, w, _h, pal) => {
+        const L = 10, R = w - 10, X = (f: number) => L + (R - L) * f;
+        const font = (s: number, b = false) => `${b ? 700 : 400} ${s}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
+        const acc = pal.red ? pal.ink : pal.accent;
+        for (let k = 0; k < rows; k++) {
+          const y = 22 + k * 62, i = syms.indexOf(steps[k].sym);
+          ctx.fillStyle = pal.grid; ctx.fillRect(L, y, R - L, 22);
+          ctx.fillStyle = acc; ctx.globalAlpha = 0.85; ctx.fillRect(X(cum[i]), y, Math.max(1, X(cum[i + 1]) - X(cum[i])), 22); ctx.globalAlpha = 1;
+          ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.strokeRect(L + 0.5, y + 0.5, R - L - 1, 21);
+          ctx.font = font(12, true); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          for (let j = 0; j < syms.length; j++) {
+            if (j) { ctx.strokeStyle = pal.muted; ctx.beginPath(); ctx.moveTo(X(cum[j]) + 0.5, y); ctx.lineTo(X(cum[j]) + 0.5, y + 22); ctx.stroke(); }
+            if (X(cum[j + 1]) - X(cum[j]) > 12) { ctx.fillStyle = j === i ? (pal.red ? '#000' : pal.bg) : pal.ink; ctx.fillText(sym(syms[j]), (X(cum[j]) + X(cum[j + 1])) / 2, y + 11); }
+          }
+          const [lo, hi] = ends(k);
+          ctx.fillStyle = pal.muted; ctx.font = font(11); ctx.textBaseline = 'bottom';
+          ctx.textAlign = 'left'; ctx.fillText(lo, L, y - 2); ctx.textAlign = 'right'; ctx.fillText(hi, R, y - 2);
+          ctx.textAlign = 'center'; ctx.fillStyle = pal.ink; ctx.font = font(11, true); ctx.fillText(`step ${k + 1}: ${sym(steps[k].sym)}`, w / 2, y - 2);
+          if (k < rows - 1) {
+            ctx.strokeStyle = acc; ctx.setLineDash([3, 3]); ctx.beginPath();
+            ctx.moveTo(X(cum[i]), y + 22); ctx.lineTo(L, y + 62 - 14); ctx.moveTo(X(cum[i + 1]), y + 22); ctx.lineTo(R, y + 62 - 14); ctx.stroke(); ctx.setLineDash([]);
+          }
+        }
+      },
+    };
+  }
+
+  function run() {
+    const err = q('.hf-err'); err.hidden = true;
+    try {
+      let syms: string[], weights: number[], counts: bigint[], toks: string[] | null, isCount: boolean;
+      const canon = q<HTMLInputElement>('.hf-canon').checked;
+      if (mode === 'msg') {
+        const m = q<HTMLTextAreaElement>('.hf-msg').value;
+        if (!m) throw new Error('Type a message to code.');
+        toks = tokens(m);
+        if (toks.length > 200000) throw new Error('Up to 200,000 characters, please.');
+        const c = countMessage(toks); syms = c.syms; weights = c.counts; counts = c.counts.map(BigInt); isCount = true;
+        if (syms.length > 256) throw new Error(`The message has ${syms.length} different characters; up to 256, please.`);
+      } else {
+        const r = readProbs(q<HTMLTextAreaElement>('.hf-probs').value);
+        syms = r.syms; counts = toIntegerCounts(r.raw); weights = r.raw.map((x) => { const f = x.split('/'); return f.length === 2 ? num(f[0]) / num(f[1]) : num(x); });
+        isCount = r.raw.every((x) => /^\d+$/.test(x));
+        if (!weights.some((w) => w > 0)) throw new Error('At least one probability must be above zero.');
+        const pm = q<HTMLInputElement>('.hf-pmsg').value;
+        toks = pm.trim() ? tokens(pm, syms) : null;
+        if (toks) { const bad = toks.find((t) => !syms.includes(t)); if (bad != null) throw new Error(`The message has "${bad}", which is not in your list of symbols.`); const z = toks.find((t) => weights[syms.indexOf(t)] === 0); if (z != null) throw new Error(`"${z}" has probability zero, so it has no code.`); }
+      }
+      h = huffman(syms, weights, canon);
+            q('.hf-out').hidden = false;
+      q('.hf-big').textContent = `${g(h.avg, 5)} bits per symbol (entropy ${g(h.H, 5)})`;
+      const f: [string, string][] = [['Symbols', String(h.codes.length)], ['Average length L', `${g(h.avg, 6)} bits`], ['Entropy H', `${g(h.H, 6)} bits`], ['Efficiency H / L', `${g((100 * h.H) / h.avg, 4)} %`], ['Fixed-length code', `${h.fixed} bits per symbol`], ['Longest code', `${h.maxLen} bits`], ['Kraft sum Σ 2^−length', g(h.kraft, 6)]];
+      let encBits = '';
+      if (toks) {
+        encBits = encode(toks, h.codes);
+        f.push(['Message', `${toks.length.toLocaleString('en')} symbols`], ['Huffman bits', encBits.length.toLocaleString('en')], ['Fixed-length bits', (toks.length * h.fixed).toLocaleString('en')]);
+        if (mode === 'msg') f.push(['As UTF-8 text', `${(new TextEncoder().encode(toks.join('')).length * 8).toLocaleString('en')} bits`]);
+      }
+      facts(q('.hf-facts'), f);
+      if (h.codes.length <= MAX_TREE) { treeFig = treeFigure(h, isCount); paint(q<HTMLCanvasElement>('.hf-tree'), treeFig); q('.hf-tree').hidden = false; q('.hf-tnote').textContent = `Each circle shows its ${isCount ? 'count' : 'probability'}; the two lightest are joined first. Going left adds a 0, right a 1. ${canon ? 'The tree is the plain Huffman tree; the canonical codes in the table keep its lengths.' : ''}`.trim(); }
+      else { treeFig = null; q('.hf-tree').hidden = true; q('.hf-tnote').textContent = `The tree has ${h.codes.length} leaves, too many to draw clearly (up to ${MAX_TREE}). The table has every code.`; }
+      const order = h.codes.map((_, i) => i).sort((a, b) => h!.codes[a].code.length - h!.codes[b].code.length || h!.codes[b].w - h!.codes[a].w || a - b);
+      codeRows = order.map((i) => { const c = h!.codes[i]; return [sym(c.sym), isCount ? c.w : g(c.w, 6), g(c.p, 5), c.code, c.code.length, g(c.p * c.code.length, 5)]; });
+      const head = ['Symbol', isCount ? 'Count' : 'Weight', 'Probability', 'Code', 'Length', 'p × length'];
+      table(q('.hf-tab'), head, codeRows, ['m', 'r', 'r', 'm', 'r', 'r']);
+      codeRows = [head, ...codeRows];
+      q('.hf-encw').hidden = !toks;
+      q('.hf-bits').textContent = encBits.length > 4000 ? `${encBits.slice(0, 4000)}… (${encBits.length.toLocaleString('en')} bits; the first 4,000 shown)` : encBits;
+      if (!q<HTMLInputElement>('.hf-dec').value.trim() || q<HTMLInputElement>('.hf-dec').dataset.auto === '1') { q<HTMLInputElement>('.hf-dec').value = encBits.slice(0, 400); q<HTMLInputElement>('.hf-dec').dataset.auto = '1'; }
+      dec();
+
+      // Arithmetic coding
+      const sec: Section[] = [{ title: 'Huffman code', facts: [['Result', q('.hf-big').textContent!], ...f], figure: treeFig ?? undefined, table: { head, rows: codeRows.slice(1).map((r) => r.map(String)) } }];
+      const arEmpty = (msg: string) => { q('.hf-abig').textContent = msg; facts(q('.hf-afacts'), []); q('.hf-atab').replaceChildren(); q('.hf-afig').hidden = true; q('.hf-anote').textContent = ''; arFig = null; stepRows = []; };
+      q('.hf-ar').hidden = false;
+      if (!toks) arEmpty('Type a message above to see it arithmetic coded.');
+      else if (toks.length > MAX_ARITH) arEmpty(`Arithmetic coding is shown for messages up to ${MAX_ARITH.toLocaleString('en')} symbols.`);
+      else {
+        const a = arithEncode(toks, syms, counts);
+        const back = arithDecode(a.bits, toks.length, syms, counts);
+        const ok = back.join('\u0000') === toks.join('\u0000');
+        q('.hf-afig').hidden = false;
+        q('.hf-abig').textContent = `${a.bits.length} bits (Huffman ${encBits.length}, information ${g(a.info, 5)})`;
+        const af: [string, string][] = [['Final interval from', decimal(a.lowN, a.den, 20)], ['to', decimal(a.highN, a.den, 20)], ['Width = P(message)', `2^−${g(a.info, 6)}`], ['Code bits', a.bits.length ? a.bits : '(none)'], ['Bound ⌈−log₂ P⌉ + 1', `${a.bound} bits`], ['Decoded again', ok ? 'matches the message' : 'MISMATCH']];
+        if (a.den < 10n ** 15n) af.splice(2, 0, ['Exact', `[${fraction(a.lowN, a.den)}, ${fraction(a.highN, a.den)})`]);
+        facts(q('.hf-afacts'), af);
+        arFig = arithFigure(syms, counts, a.steps); paint(q<HTMLCanvasElement>('.hf-afig'), arFig);
+        const shown = a.steps.slice(0, 100);
+        // Width of the interval after each step, as −log₂: the bits of information so far.
+        let acc = 0; const T = Number(counts.reduce((x, y) => x + y, 0n));
+        const rowsA = shown.map((s, k) => { acc += -Math.log2(Number(counts[syms.indexOf(s.sym)]) / T); const dg = Math.min(80, Math.ceil(acc * Math.LOG10E * Math.LN2) + 4); return [k + 1, sym(s.sym), decimal(s.lowN, s.den, dg), decimal(s.highN, s.den, dg), g(acc, 6)]; });
+        const headA = ['Step', 'Symbol', 'Low', 'High', 'Width as −log₂ (bits so far)'];
+        table(q('.hf-atab'), headA, rowsA, ['r', 'm', 'r', 'r', 'r']);
+        stepRows = [headA, ...rowsA];
+        q('.hf-anote').textContent = `${a.steps.length > 100 ? `The first 100 of ${a.steps.length} steps are shown. ` : ''}Low and high are shown to a few more decimal places than it takes to tell them apart (at most 80); the coder keeps them exact. The code is the shortest bit string 0.b whose whole range [0.b, 0.b + 2^−length) fits inside the final interval, so the decoder needs no more bits.`;
+        sec.push({ title: 'Arithmetic coding', facts: [['Result', q('.hf-abig').textContent!], ...af], figure: arFig, table: { head: headA, rows: rowsA.slice(0, 40).map((r) => r.map(String)) } });
+      }
+      sections = sec;
+    } catch (e) {
+      err.textContent = (e as Error).message; err.hidden = false; q('.hf-out').hidden = true; q('.hf-ar').hidden = true; sections = []; h = null;
+    }
+  }
+
+  function dec() {
+    const out = q('.hf-decout'), v = q<HTMLInputElement>('.hf-dec').value;
+    if (!h) return;
+    if (!v.trim()) { out.textContent = 'Type 0s and 1s to decode them.'; return; }
+    if (/[^01\s]/.test(v)) { out.textContent = 'Only 0s, 1s and spaces, please.'; return; }
+    try {
+      const d = decode(v, h.codes), multi = h.codes.some((c) => [...c.sym].length !== 1);
+      out.textContent = `Decoded: ${d.toks.join(multi ? ' ' : '') || '(nothing yet)'}${d.leftover ? ` (then ${d.leftover}, the start of an unfinished code word)` : ''}`;
+    } catch (e) { out.textContent = (e as Error).message; }
+  }
+
+  q('.hf-mode').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button'); if (!b) return;
+    mode = b.dataset.m!;
+    for (const x of q('.hf-mode').querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b));
+    for (const p of root.querySelectorAll<HTMLElement>('.hf-p')) p.hidden = p.dataset.p !== mode;
+    q<HTMLInputElement>('.hf-dec').dataset.auto = '1'; run();
+  });
+  q('.hf-ex').addEventListener('click', () => { if (mode === 'msg') q<HTMLTextAreaElement>('.hf-msg').value = EXAMPLE_MESSAGE; else { q<HTMLTextAreaElement>('.hf-probs').value = 'a 0.4\nb 0.2\nc 0.2\nd 0.1\ne 0.1'; q<HTMLInputElement>('.hf-pmsg').value = 'abacabad'; } q<HTMLInputElement>('.hf-dec').dataset.auto = '1'; run(); });
+  q('.hf-ex2').addEventListener('click', () => { if (mode === 'msg') q<HTMLTextAreaElement>('.hf-msg').value = EXAMPLE_LONG; else { q<HTMLTextAreaElement>('.hf-probs').value = 'the 1/4\ncat 1/8\nsat 1/8\non 1/8\nmat 1/8\na 1/4'; q<HTMLInputElement>('.hf-pmsg').value = 'the cat sat on a mat'; } q<HTMLInputElement>('.hf-dec').dataset.auto = '1'; run(); });
+  q('.hf-csv').addEventListener('click', () => save(new Blob([csv(codeRows)], { type: 'text/csv' }), 'huffman-code.csv', 'text/csv'));
+  q('.hf-acsv').addEventListener('click', () => save(new Blob([csv(stepRows)], { type: 'text/csv' }), 'arithmetic-coding-steps.csv', 'text/csv'));
+  let t = 0;
+  root.addEventListener('input', (e) => {
+    const el = e.target as HTMLElement;
+    if (el.classList.contains('hf-dec')) { (el as HTMLInputElement).dataset.auto = '0'; dec(); return; }
+    q<HTMLInputElement>('.hf-dec').dataset.auto = '1';
+    clearTimeout(t); t = window.setTimeout(run, 250);
+  });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('input[type=checkbox]')) { q<HTMLInputElement>('.hf-dec').dataset.auto = '1'; run(); } });
+  document.addEventListener('fibub:theme', () => { if (treeFig) paint(q<HTMLCanvasElement>('.hf-tree'), treeFig); if (arFig) paint(q<HTMLCanvasElement>('.hf-afig'), arFig); });
+  q<HTMLInputElement>('.hf-dec').dataset.auto = '1';
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Huffman and arithmetic coding', subtitle: q('.hf-big').textContent ?? '', file: 'huffman-coding', sections }));
+</script>

@@ -1,0 +1,249 @@
+---
+// Symbolic algebra (a lite CAS): simplify, expand, factor, differentiate, integrate, substitute. Exact fractions, worked
+// out in the browser with no eval. The answers can be copied as text, SymPy/Python or LaTeX.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax sac">
+  <div class="ax-card">
+    <h2>Expression</h2>
+    <label>Type an expression in x (or other letters) <textarea class="sa-in" rows="2" spellcheck="false" autocomplete="off" autocapitalize="off">x^2 e^(-x)</textarea></label>
+    <div class="ax-seg sa-ops" role="group" aria-label="What to do" style="margin-top:10px">
+      <button type="button" data-op="simplify">Simplify</button>
+      <button type="button" data-op="expand">Expand</button>
+      <button type="button" data-op="factor">Factor</button>
+      <button type="button" data-op="diff">Differentiate</button>
+      <button type="button" data-op="int" aria-pressed="true">Integrate</button>
+      <button type="button" data-op="subs">Substitute</button>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="sa-varw">With respect to <select class="sa-var"><option>x</option></select></label>
+      <label class="sa-nw" hidden>How many times <select class="sa-n"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+      <label class="sa-aw">From (optional) <input class="sa-a" inputmode="text" placeholder="e.g. 0" autocomplete="off" /></label>
+      <label class="sa-bw">To (optional) <input class="sa-b" inputmode="text" placeholder="e.g. pi" autocomplete="off" /></label>
+    </div>
+    <label class="sa-subw" style="margin-top:10px" hidden>Values, separated by commas <input class="sa-sub" value="x = 2" autocomplete="off" spellcheck="false" /></label>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small sa-ex" data-ex="(x^3+1)/(x^2-3x+2)|int">Example: partial fractions</button>
+      <button type="button" class="btn secondary small sa-ex" data-ex="x^6 - 1|factor">Example: factor</button>
+      <button type="button" class="btn secondary small sa-ex" data-ex="x^2 sin(x)|diff">Example: product rule</button>
+      <button type="button" class="btn secondary small sa-ex" data-ex="(x^3-8)/(x^2-4)|simplify">Example: cancel</button>
+    </div>
+    <p class="ax-help">Use <code>^</code> for powers, <code>*</code> or a space for times (2x and x y work), <code>sqrt()</code>, <code>sin cos tan asin acos atan sinh cosh tanh ln exp abs</code> or <code>|x|</code>, <code>pi</code> and <code>e</code> (Euler's number). <code>log</code> means ln. Letters written together are multiplied: <code>xy</code> is x·y.</p>
+    <p class="ax-help sa-help"></p>
+    <p class="ax-err sa-err" hidden></p>
+  </div>
+
+  <div class="ax-card sa-out" hidden>
+    <h2 class="sa-title">Result</h2>
+    <p class="sa-read"></p>
+    <p class="ax-big sa-big" aria-live="polite"></p>
+    <p class="sa-note"></p>
+    <dl class="ax-facts sa-facts"></dl>
+    <div class="sa-code">
+      <label>SymPy / Python <span class="sa-cl"><input class="sa-py" readonly /><button type="button" class="btn secondary small sa-copy" data-t=".sa-py">Copy</button></span></label>
+      <label>LaTeX <span class="sa-cl"><input class="sa-tex" readonly /><button type="button" class="btn secondary small sa-copy" data-t=".sa-tex">Copy</button></span></label>
+    </div>
+    <canvas class="ax-fig sa-fig" style="margin-top:14px"></canvas>
+    <div class="ax-legend sa-leg"></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .sac code { font-size: 13px; }
+  .sac .sa-read { margin: 0 0 6px; color: var(--muted); font-size: 14.5px; overflow-wrap: anywhere; }
+  .sac .sa-big { overflow-wrap: anywhere; }
+  .sac .sa-note { margin: 6px 0 0; font-size: 14.5px; }
+  .sac .sa-code { display: grid; gap: 10px; margin-top: 14px; }
+  .sac .sa-cl { display: flex; gap: 8px; margin-top: 4px; }
+  .sac .sa-cl input { flex: 1; min-width: 0; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13.5px; }
+  .sac .sa-leg i.c0 { background: #0072B2; }
+  .sac .sa-leg i.c1 { background: #D55E00; }
+  html[data-theme=dark] .sac .sa-leg i.c0 { background: #56B4E9; }
+  html[data-theme=dark] .sac .sa-leg i.c1 { background: #E69F00; }
+  html.red-mode .sac .sa-leg i.c0 { background: #a30000; }
+  html.red-mode .sac .sa-leg i.c1 { background: #7a0000; }
+</style>
+
+<script>
+  import { parse, show, simplify, expand, factor, diff, integrate, definite, evaluate, subst, symbols, CasError, type Ex } from '../../lib/sci/cas';
+  import { drawChart, canvasPainter, OKABE_ITO } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.sac')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let op = 'int', fig: Figure | null = null, report: Section[] = [];
+  const HELP: Record<string, string> = {
+    simplify: 'Tidies the expression: collects like terms, cancels common factors of a fraction in one variable, uses sin² + cos² = 1, and keeps the shortest form.',
+    expand: 'Multiplies out every bracket and power of a sum, then collects like terms.',
+    factor: 'Factors a polynomial in one variable completely over the whole numbers (and the top and bottom of a fraction). With several letters, only the common factor is taken out.',
+    diff: 'The derivative, by the sum, product, quotient and chain rules, then simplified.',
+    int: 'An antiderivative (add your own + C), checked by differentiating it back. Give From and To for a definite integral, checked numerically too.',
+    subs: 'Replace letters with numbers or expressions, like x = 2, y = t + 1. If every letter gets a number you also get a decimal value.',
+  };
+  const TITLES: Record<string, string> = { simplify: 'Simplified', expand: 'Expanded', factor: 'Factored', diff: 'Derivative', int: 'Integral', subs: 'Substituted' };
+
+  function setOp(o: string) {
+    op = o;
+    for (const b of root.querySelectorAll<HTMLButtonElement>('.sa-ops button')) b.setAttribute('aria-pressed', String(b.dataset.op === o));
+  }
+  function updateVars(ex: Ex | null) {
+    const sel = q<HTMLSelectElement>('.sa-var'), cur = sel.value;
+    const vs = ex ? [...symbols(ex)].sort((a, b) => (a === 'x' ? -1 : b === 'x' ? 1 : a.localeCompare(b))) : [];
+    if (!vs.length) vs.push('x');
+    if (vs.join() !== [...sel.options].map((o) => o.value).join()) sel.replaceChildren(...vs.map((v) => { const o = document.createElement('option'); o.textContent = v; return o; }));
+    sel.value = vs.includes(cur) ? cur : vs[0];
+  }
+  const sigf = (v: number) => (Math.abs(v) < 1e-12 ? '0' : Number(v.toPrecision(10)).toString().replace('-', '−'));
+
+  function graph(f: Ex, g: Ex | null, v: string, gName: string, lo = -5, hi = 5): Figure | null {
+    if ([...symbols(f)].some((s) => s !== v) || (g && [...symbols(g)].some((s) => s !== v))) return null;
+    const n = 400, xs = Array.from({ length: n + 1 }, (_, i) => lo + ((hi - lo) * i) / n);
+    const curves = [f, ...(g ? [g] : [])].map((ex) => xs.map((x) => { const y = evaluate(ex, { [v]: x }); return Number.isFinite(y) ? y : NaN; }));
+    const all = curves.flat().filter(Number.isFinite).sort((a, b) => a - b);
+    if (all.length < 10) return null;
+    const p = (t: number) => all[Math.floor(t * (all.length - 1))];
+    let y0 = p(0.03), y1 = p(0.97);
+    const pad = (y1 - y0) * 0.25 || 1; y0 -= pad; y1 += pad;
+    // Split each curve where it is undefined or jumps off the chart (as at x = 0 for 1/x).
+    const series: { group: number; x: number[]; y: number[] }[] = [];
+    curves.forEach((ys, group) => {
+      let cur: { group: number; x: number[]; y: number[] } | null = null;
+      ys.forEach((y, i) => {
+        const prev = i ? ys[i - 1] : NaN;
+        const jump = Number.isFinite(prev) && Number.isFinite(y) && Math.abs(y - prev) > 2 * (y1 - y0);
+        if (!Number.isFinite(y) || jump) { cur = null; if (!Number.isFinite(y)) return; }
+        if (!cur) { cur = { group, x: [], y: [] }; series.push(cur); }
+        cur.x.push(xs[i]); cur.y.push(y);
+      });
+    });
+    return {
+      w: 720, h: 360, alt: `Graph of the expression${g ? ` and its ${gName}` : ''} for ${v} from ${lo} to ${hi}`,
+      draw: (ctx, W, H, pal) => {
+        const cols = pal.red ? ['#a30000', '#7a0000'] : pal.bg === '#ffffff' ? OKABE_ITO : ['#56B4E9', '#E69F00'];
+        drawChart(canvasPainter(ctx), { w: W, h: H, xLabel: v, yLabel: '', yMin: y0, yMax: y1, xMin: lo, xMax: hi, legend: 'none', ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: null, colors: cols, series: series.map((s) => ({ name: '', x: s.x, y: s.y, mode: 'line', color: cols[s.group], width: s.group ? 2 : 2.2, dash: s.group ? [6, 4] : undefined })), marks: [{ kind: 'hline', at: 0 }] });
+      },
+    };
+  }
+
+  function calc() {
+    const err = q('.sa-err');
+    q('.sa-help').textContent = HELP[op];
+    q('.sa-varw').hidden = !(op === 'diff' || op === 'int');
+    q('.sa-nw').hidden = op !== 'diff';
+    q('.sa-aw').hidden = q('.sa-bw').hidden = op !== 'int';
+    q('.sa-subw').hidden = op !== 'subs';
+    let ex: Ex;
+    try {
+      ex = parse(q<HTMLTextAreaElement>('.sa-in').value);
+      updateVars(ex);
+      const v = q<HTMLSelectElement>('.sa-var').value;
+      let res: Ex | null = null, big = '', note = '', py = '', tex = '', facts: [string, string][] = [], g: Ex | null = null, gName = '';
+      const vars = [...symbols(ex)];
+      switch (op) {
+        case 'simplify': res = simplify(ex); break;
+        case 'expand': res = expand(ex); break;
+        case 'factor': {
+          const f = factor(ex);
+          big = f.text.pretty; py = f.text.python; tex = f.text.latex;
+          if (f.multivariate) note = 'Several letters: only the common factor is taken out. Full factoring works for one letter.';
+          else if (!f.complete) note = 'The search for factors hit its limit, so some factors may split further.';
+          else if (f.list && f.list.factors.length === 1 && f.list.factors[0].m === 1 && !f.den) note = 'This cannot be factored over the whole numbers (it is irreducible).';
+          if (f.list && !f.multivariate) {
+            const roots = f.list.factors.filter((x) => x.p.length === 2).map((x) => `${x.p[0].neg().div(x.p[1]).toString()}${x.m > 1 ? ` (×${x.m})` : ''}`);
+            if (roots.length) facts.push(['Roots that are fractions', roots.join(', ')]);
+          }
+          break;
+        }
+        case 'diff': {
+          const n = Number(q<HTMLSelectElement>('.sa-n').value);
+          let d = ex;
+          for (let i = 0; i < n; i++) d = simplify(diff(d, v));
+          res = d; g = d; gName = 'derivative';
+          if (n > 1) facts.push(['Derivative taken', `${n} times`]);
+          break;
+        }
+        case 'int': {
+          const as = q<HTMLInputElement>('.sa-a').value.trim(), bs = q<HTMLInputElement>('.sa-b').value.trim();
+          if (as || bs) {
+            if (!as || !bs) throw new CasError('Give both From and To for a definite integral, or leave both empty.');
+            const a = parse(as), b = parse(bs);
+            if (symbols(a).size || symbols(b).size) throw new CasError('From and To must be numbers (fractions, pi and e are fine).');
+            if (vars.some((s) => s !== v)) throw new CasError(`A definite integral needs ${v} to be the only letter.`);
+            const r = definite(ex, v, a, b);
+            if (!r.ok) { big = 'Not worked out'; note = r.reason; break; }
+            res = r.exact; g = r.F; gName = 'antiderivative';
+            facts.push(['Decimal value', sigf(r.value)], ['Antiderivative used', show(r.F)], ['Check', 'matches a numerical integral (adaptive Simpson)']);
+            break;
+          }
+          const r = integrate(ex, v);
+          if (!r.ok) { big = 'Could not integrate'; note = r.reason; break; }
+          res = r.F; g = r.F; gName = 'antiderivative';
+          note = '+ C (any constant can be added).';
+          facts.push(['Method', r.method], ['Check', `d/d${v} of the answer gives back the expression`]);
+          break;
+        }
+        case 'subs': {
+          const txt = q<HTMLInputElement>('.sa-sub').value.trim();
+          if (!txt) throw new CasError('Type values like x = 2, y = t + 1.');
+          let r = ex;
+          const pairs = txt.split(/[,;]\s*(?=[A-Za-zα-ω]+\s*=)/);
+          const done: string[] = [];
+          for (const pr of pairs) {
+            const m = /^\s*([A-Za-zα-ω]+)\s*=\s*(.+)$/.exec(pr);
+            if (!m) throw new CasError(`"${pr}" should look like x = 2.`);
+            const name = parse(m[1]);
+            if (name.k !== 'sym') throw new CasError(`"${m[1]}" is not a single letter.`);
+            r = subst(r, name.name, parse(m[2]));
+            done.push(`${name.name} = ${show(parse(m[2]))}`);
+          }
+          res = simplify(r);
+          if (!symbols(res).size) { const val = evaluate(res, {}); facts.push(['Decimal value', Number.isFinite(val) ? sigf(val) : 'undefined (not a real number)']); }
+          facts.push(['Substituted', done.join(', ')]);
+          break;
+        }
+      }
+      if (res) { big = show(res); py = show(res, 'python'); tex = show(res, 'latex'); }
+      err.hidden = true; q('.sa-out').hidden = false;
+      q('.sa-title').textContent = TITLES[op];
+      q('.sa-read').textContent = `Read as: ${show(ex)}`;
+      q('.sa-big').textContent = big;
+      q('.sa-note').textContent = note; q('.sa-note').hidden = !note;
+      q('.sa-facts').replaceChildren(...facts.map(([k, val]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; return d; }));
+      q<HTMLInputElement>('.sa-py').value = py; q<HTMLInputElement>('.sa-tex').value = tex;
+      q('.sa-code').hidden = !py;
+      const gv = op === 'diff' || op === 'int' ? v : vars[0] ?? 'x';
+      fig = vars.length === 1 ? graph(ex, g, gv, gName) : null;
+      q('.sa-fig').hidden = !fig;
+      if (fig) paint(q<HTMLCanvasElement>('.sa-fig'), fig);
+      const leg = q('.sa-leg'); leg.hidden = !fig;
+      leg.replaceChildren();
+      if (fig) for (const [i, t] of [[0, 'the expression'], ...(g ? [[1, `its ${gName} (dashed)`]] : [])] as [number, string][]) { const s = document.createElement('span'); const ic = document.createElement('i'); ic.className = `c${i}`; s.append(ic, t); leg.append(s); }
+      report = [{ title: TITLES[op], text: [`Expression: ${show(ex)}`, `Result: ${big}`, ...(note ? [note] : [])], facts: [...facts, ...(py ? [['SymPy / Python', py], ['LaTeX', tex]] as [string, string][] : [])], ...(fig ? { figure: fig } : {}) }];
+    } catch (e) {
+      if (!(e instanceof CasError)) console.warn(e);
+      err.textContent = e instanceof CasError ? e.message : 'That could not be worked out. Check the expression.';
+      err.hidden = false; q('.sa-out').hidden = true; report = [];
+    }
+  }
+  let t = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('textarea, input:not([readonly])')) { clearTimeout(t); t = window.setTimeout(calc, 300); } });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select')) calc(); });
+  root.addEventListener('click', async (e) => {
+    const el = e.target as HTMLElement;
+    const b = el.closest<HTMLButtonElement>('.sa-ops button');
+    if (b) { setOp(b.dataset.op!); calc(); return; }
+    const ex = el.closest<HTMLButtonElement>('.sa-ex');
+    if (ex) { const [s, o] = ex.dataset.ex!.split('|'); q<HTMLTextAreaElement>('.sa-in').value = s; q<HTMLInputElement>('.sa-a').value = ''; q<HTMLInputElement>('.sa-b').value = ''; setOp(o); calc(); return; }
+    const c = el.closest<HTMLButtonElement>('.sa-copy');
+    if (c) {
+      const inp = q<HTMLInputElement>(c.dataset.t!);
+      try { await navigator.clipboard.writeText(inp.value); c.textContent = 'Copied'; } catch { inp.select(); c.textContent = 'Press Ctrl+C'; }
+      setTimeout(() => { c.textContent = 'Copy'; }, 1500);
+    }
+  });
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.sa-fig'), fig));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: `Symbolic algebra: ${TITLES[op].toLowerCase()}`, subtitle: q('.sa-big').textContent ?? '', file: `symbolic-${op}`, sections: report }));
+</script>

@@ -1,0 +1,303 @@
+---
+// Number theory toolkit: primes and factors, gcd and Euclid, modular arithmetic, CRT and continued fractions, exact with BigInt.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ntk">
+  <div class="ax-card">
+    <div class="ax-seg ntk-modes" role="group" aria-label="What to work out">
+      <button type="button" data-m="n" aria-pressed="true">Primes and factors</button>
+      <button type="button" data-m="g" aria-pressed="false">GCD and LCM</button>
+      <button type="button" data-m="m" aria-pressed="false">Modular</button>
+      <button type="button" data-m="c" aria-pressed="false">Chinese remainder</button>
+      <button type="button" data-m="f" aria-pressed="false">Continued fraction</button>
+    </div>
+
+    <div class="ntk-p" data-p="n" style="margin-top:12px">
+      <label>Whole number <input class="ntk-n" value="2^32 + 1" autocomplete="off" spellcheck="false" /></label>
+      <p class="ax-help">Digits, or a sum such as 2^127 − 1, 10! + 1 or 3 × 5^4 (+ − × ÷ ^ ! and brackets). Up to about 4000 digits.</p>
+    </div>
+    <div class="ntk-p" data-p="g" style="margin-top:12px" hidden>
+      <label>Numbers, separated by commas or new lines <textarea class="ntk-g" rows="2" spellcheck="false">240, 46</textarea></label>
+      <p class="ax-help">With exactly two numbers you also get the extended Euclid table and Bézout's identity a·x + b·y = gcd.</p>
+    </div>
+    <div class="ntk-p" data-p="m" style="margin-top:12px" hidden>
+      <div class="ax-grid">
+        <label>a <input class="ntk-a" value="7" autocomplete="off" /></label>
+        <label>Power e <input class="ntk-e" value="560" autocomplete="off" /></label>
+        <label>Right side b <input class="ntk-b" value="3" autocomplete="off" /></label>
+        <label>Modulus m <input class="ntk-m" value="561" autocomplete="off" /></label>
+      </div>
+      <p class="ax-help">Works out a^e mod m (a negative e uses the inverse), the inverse of a mod m, the order of a, and solves a·x ≡ b (mod m).</p>
+    </div>
+    <div class="ntk-p" data-p="c" style="margin-top:12px" hidden>
+      <label>One congruence per line: remainder, modulus <textarea class="ntk-c" rows="4" spellcheck="false">2, 3
+3, 5
+2, 7</textarea></label>
+      <p class="ax-help">"2, 3" means x ≡ 2 (mod 3). You can also write "x = 2 mod 3". The moduli do not need to be coprime.</p>
+    </div>
+    <div class="ntk-p" data-p="f" style="margin-top:12px" hidden>
+      <label>Number <input class="ntk-f" value="pi" autocomplete="off" spellcheck="false" /></label>
+      <div class="ax-row" style="margin-top:8px">
+        <span class="ax-help" style="margin:0">Try</span>
+        <button type="button" class="btn secondary small ntk-try" data-v="415/93">415/93</button>
+        <button type="button" class="btn secondary small ntk-try" data-v="sqrt(61)">√61</button>
+        <button type="button" class="btn secondary small ntk-try" data-v="pi">π</button>
+        <button type="button" class="btn secondary small ntk-try" data-v="e">e</button>
+        <button type="button" class="btn secondary small ntk-try" data-v="1.41421356">1.41421356</button>
+      </div>
+      <p class="ax-help">A fraction p/q, an exact decimal, sqrt(n) or √n, pi or e. Fractions and decimals are taken as exact; for π and e only the terms that are certain from 100 decimal places are shown.</p>
+    </div>
+    <p class="ax-err ntk-err" hidden></p>
+  </div>
+
+  <div class="ax-card ntk-out">
+    <h2 class="ntk-h">Result</h2>
+    <p class="ax-big ntk-big"></p>
+    <dl class="ax-facts ntk-facts"></dl>
+    <div class="ntk-tw" hidden>
+      <h3 class="ntk-th" style="margin:16px 0 6px;font-size:16px"></h3>
+      <div class="ax-scroll"><table class="ntk-tab"></table></div>
+      <p class="ax-help ntk-tnote"></p>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small ntk-csv">Table as CSV</button></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .ntk .ntk-big { overflow-wrap: anywhere; font-size: clamp(20px, 4.4vw, 28px); }
+  .ntk .ntk-facts dd { font-size: 16px; font-variant-numeric: tabular-nums; }
+  .ntk .ntk-tab td { overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+  .ntk .ntk-tab td.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+  .ntk .ntk-modes button { padding: 7px 10px; }
+</style>
+
+<script>
+  import * as T from '../../lib/sci/numtheory';
+  import { save, wireDownloads, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ntk')!;
+  const q = <E extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as E;
+  const v = (c: string) => q<HTMLInputElement>(c).value;
+  let mode = 'n', report: Section[] = [], table: { head: string[]; rows: string[][]; align?: ('l' | 'r')[] } | null = null, big = '';
+  const MAXSHOW = 400;
+  const short = (x: bigint): string => { if (x < 0n) return '−' + short(-x); const s = x.toString(); return s.length > 60 ? `${s.slice(0, 25)}…${s.slice(-25)} (${s.length} digits)` : s; };
+  const num = (x: bigint) => (x < 0n ? '−' + (-x).toString() : x.toString());
+
+  function numberMode() {
+    const n = T.parseInteger(v('.ntk-n'));
+    const facts: [string, string][] = [], a = T.abs(n);
+    if (a.toString().length > 4000) throw new Error('That number is too long (4000 digits at most).');
+    facts.push(['Digits', String(a.toString().length)]);
+    const pr = T.primality(a);
+    if (n === 0n) {
+      big = '0 is not prime and has no factorisation';
+      facts.push(['Prime?', 'No'], ['Divisors', 'every whole number divides 0']);
+      table = null;
+      return { title: '0', facts };
+    }
+    const f = T.factorise(n, 2500);
+    const text = T.factorText(f.factors, f.unfactored, n < 0n ? -1n : 1n);
+    big = pr.prime ? `${short(n)} is ${pr.proven ? '' : 'probably '}prime` : `${short(n)} = ${text}`;
+    facts.push(['Prime?', `${pr.prime ? (pr.proven ? 'Yes' : 'Probably (see method)') : 'No'}`], ['Method', pr.method]);
+    if (n < 0n) facts.push(['Note', 'Negative: worked out for |n|.']);
+    if (!f.complete) {
+      facts.push(['Not split', `${f.unfactored.map(short).join(', ')}: composite, but Pollard rho found no factor in 2.5 seconds. Its factors are probably all over 15 digits.`]);
+      table = null;
+      return { title: `n = ${short(n)}`, facts };
+    }
+    if (f.probable) facts.push(['Probable prime factor', 'A factor above 3.3 × 10^24 is only a probable prime (Baillie-PSW).']);
+    const fs = f.factors;
+    facts.push(['Distinct primes ω', String(fs.length)], ['Prime factors with repeats Ω', String(fs.reduce((s, [, k]) => s + k, 0))]);
+    facts.push(['Euler phi φ(n)', short(a === 1n ? 1n : T.phiOf(fs))], ['Carmichael λ(n)', short(a === 1n ? 1n : T.lambdaOf(fs))], ['Möbius μ(n)', String(T.muOf(fs))]);
+    facts.push(['Number of divisors τ(n)', short(T.tauOf(fs))], ['Sum of divisors σ(n)', short(T.sigmaOf(fs))]);
+    const sig = T.sigmaOf(fs) - a;
+    facts.push(['Kind', a === 1n ? 'Unit' : sig === a ? 'Perfect (σ(n) = 2n)' : sig > a ? 'Abundant (σ(n) > 2n)' : 'Deficient (σ(n) < 2n)']);
+    if (a.toString().length <= 300) {
+      const np = T.nextPrime(a), pp = T.prevPrime(a);
+      facts.push(['Next prime', short(np)], ['Previous prime', pp === null ? 'none' : short(pp)]);
+    }
+    const ds = T.divisorsOf(fs, 100000);
+    if (ds) {
+      table = { head: ['#', 'Divisor', 'Paired with n ÷ d'], rows: ds.slice(0, MAXSHOW).map((d, i) => [String(i + 1), d.toString(), (a / d).toString()]), align: ['r', 'r', 'r'] };
+      (table as any).all = ds.map((d, i) => [String(i + 1), d.toString(), (a / d).toString()]);
+      (table as any).title = `Divisors of ${short(a)}`;
+      (table as any).note = ds.length > MAXSHOW ? `Showing the first ${MAXSHOW} of ${ds.length}; the CSV has them all.` : `${ds.length} divisors.`;
+    } else table = null;
+    return { title: `n = ${short(n)}`, facts };
+  }
+
+  function gcdMode() {
+    const xs = T.parseList(v('.ntk-g'));
+    if (!xs.length) throw new Error('Type two or more whole numbers, separated by commas.');
+    if (xs.length > 1000) throw new Error('1000 numbers at most.');
+    const g = T.gcdAll(xs), l = xs.includes(0n) ? 0n : T.lcmAll(xs);
+    big = `gcd = ${short(g)}, lcm = ${short(l)}`;
+    const facts: [string, string][] = [['Numbers', String(xs.length)], ['Greatest common divisor', short(g)], ['Least common multiple', short(l)]];
+    facts.push(['Coprime?', g === 1n ? 'Yes, gcd = 1' : 'No']);
+    table = null;
+    if (xs.length === 2) {
+      const [a, b] = xs, r = T.egcd(a, b);
+      facts.push(['Bézout', `${num(a)} × ${r.x < 0n ? '(' + num(r.x) + ')' : num(r.x)} + ${num(b)} × ${r.y < 0n ? '(' + num(r.y) + ')' : num(r.y)} = ${num(r.g)}`]);
+      if (b !== 0n && a !== 0n) facts.push(['Fraction in lowest terms', `${num(a)}/${num(b)} = ${num((b < 0n ? -a : a) / g)}/${num(T.abs(b) / g)}`]);
+      const rows = r.steps.map((s, i) => [String(i), i < 2 ? '' : num(s.q), num(s.r), num(s.s), num(s.t)]);
+      table = { head: ['Step', 'Quotient q', 'Remainder r', 's', 't'], rows: rows.slice(0, MAXSHOW), align: ['r', 'r', 'r', 'r', 'r'] };
+      Object.assign(table, { all: rows, title: 'Extended Euclid', note: `Each row: r = ${num(a)}·s + ${num(b)}·t. The last non-zero remainder is the gcd; its s and t are x and y.` });
+    }
+    return { title: 'GCD and LCM', facts };
+  }
+
+  function modMode() {
+    const a = T.parseInteger(v('.ntk-a')), m = T.parseInteger(v('.ntk-m'));
+    if (m < 1n) throw new Error('The modulus m must be 1 or more.');
+    const facts: [string, string][] = [];
+    const es = v('.ntk-e').trim(), bs = v('.ntk-b').trim();
+    let line = '';
+    if (es) {
+      const e = T.parseInteger(es);
+      const p = T.modPow(a, e, m);
+      line = p === null ? `${num(a)}^${num(e)} mod ${m}: no inverse` : `${num(a)}^${num(e)} ≡ ${short(p)} (mod ${short(m)})`;
+      facts.push([`a^e mod m`, p === null ? `none: ${num(a)} has no inverse mod ${m}` : short(p)]);
+    }
+    const inv = T.modInv(a, m);
+    facts.push(['Inverse of a', inv === null ? `none, gcd(a, m) = ${T.gcd(a, m)}` : short(inv)]);
+    facts.push(['a mod m', short(T.mod(a, m))], ['gcd(a, m)', short(T.gcd(a, m))]);
+    if (m.toString().length <= 40) {
+      const fm = T.factorise(m, 1500);
+      if (fm.complete) {
+        const o = T.orderOf(a, m, fm.factors);
+        facts.push(['Order of a', o === null ? 'none (a and m share a factor)' : short(o)]);
+        if (m > 1n) facts.push(['φ(m)', short(T.phiOf(fm.factors))], ['λ(m)', short(T.lambdaOf(fm.factors))]);
+        if (o !== null && m > 2n) facts.push(['Primitive root?', o === T.phiOf(fm.factors) ? 'Yes' : 'No']);
+      }
+    }
+    if (bs) {
+      const b = T.parseInteger(bs), s = T.linearCongruence(a, b, m);
+      const txt = s === null ? 'no solution' : s.count === 1n ? `x ≡ ${short(s.x0)} (mod ${short(s.step)})` : `x ≡ ${short(s.x0)} (mod ${short(s.step)}): ${short(s.count)} solutions below ${short(m)}`;
+      facts.push([`Solve ${num(a)}·x ≡ ${num(b)} (mod ${short(m)})`, txt]);
+    }
+    big = line || (inv === null ? `${num(a)} has no inverse mod ${short(m)}` : `${num(a)}⁻¹ ≡ ${short(inv)} (mod ${short(m)})`);
+    table = null;
+    return { title: 'Modular arithmetic', facts };
+  }
+
+  function crtMode() {
+    const lines = v('.ntk-c').split('\n').map((l) => l.trim()).filter(Boolean);
+    if (!lines.length) throw new Error('Type one congruence per line, such as 2, 3.');
+    if (lines.length > 200) throw new Error('200 congruences at most.');
+    const rs: bigint[] = [], ms: bigint[] = [];
+    for (const l of lines) {
+      const m = /^(?:x\s*[=≡]\s*)?(.+?)\s*(?:,|;|\bmod\b|\(mod)\s*(.+?)\)?$/i.exec(l);
+      if (!m) throw new Error(`Could not read "${l}". Write a remainder and a modulus, such as 2, 3.`);
+      const r = T.parseInteger(m[1]), mm = T.parseInteger(m[2]);
+      if (mm < 1n) throw new Error(`In "${l}" the modulus must be 1 or more.`);
+      rs.push(r); ms.push(mm);
+    }
+    const s = T.crt(rs, ms);
+    const coprime = ms.every((a, i) => ms.every((b, j) => i >= j || T.gcd(a, b) === 1n));
+    const facts: [string, string][] = [['Congruences', String(rs.length)], ['Moduli coprime?', coprime ? 'Yes' : 'No: a solution exists only if they agree where moduli share factors']];
+    if (s === null) {
+      big = 'No solution: the congruences contradict each other';
+      const bad: string[] = [];
+      for (let i = 0; i < rs.length; i++) for (let j = i + 1; j < rs.length; j++) { const g = T.gcd(ms[i], ms[j]); if (T.mod(rs[i] - rs[j], g) !== 0n) bad.push(`lines ${i + 1} and ${j + 1} (gcd of moduli ${g})`); }
+      if (bad.length) facts.push(['Clash', bad.slice(0, 5).join('; ')]);
+      table = null;
+    } else {
+      big = `x ≡ ${short(s.x)} (mod ${short(s.m)})`;
+      facts.push(['Smallest x ≥ 0', short(s.x)], ['Repeats every', short(s.m)], ['All solutions', `x = ${short(s.x)} + ${short(s.m)}·k`]);
+      const rows = rs.map((r, i) => [String(i + 1), num(r), num(ms[i]), T.mod(s.x, ms[i]).toString(), T.mod(s.x - r, ms[i]) === 0n ? 'yes' : 'no']);
+      table = { head: ['Line', 'Remainder', 'Modulus', 'x mod m', 'Matches'], rows, align: ['r', 'r', 'r', 'r', 'l'] };
+      Object.assign(table, { all: rows, title: 'Check', note: 'x divided by each modulus leaves the remainder asked for.' });
+    }
+    return { title: 'Chinese remainder theorem', facts };
+  }
+
+  function cfMode() {
+    const raw = v('.ntk-f').trim().replace(/[−–]/g, '-');
+    if (!raw) throw new Error('Type a fraction, a decimal, sqrt(n), pi or e.');
+    let terms: bigint[], label = raw, exact: [bigint, bigint] | null = null, note = '';
+    const facts: [string, string][] = [];
+    const sq = /^(?:sqrt\s*\(\s*(.+?)\s*\)|√\s*\(?\s*(.+?)\s*\)?)$/i.exec(raw);
+    if (sq) {
+      const n = T.parseInteger(sq[1] ?? sq[2]);
+      if (n < 0n) throw new Error('Square roots of negative numbers are not real.');
+      const r = T.cfSqrt(n, 5000);
+      label = `√${n}`;
+      if (!r.period.length) { terms = [r.a0]; note = `${n} is a perfect square, so √${n} = ${r.a0}.`; }
+      else {
+        terms = [r.a0]; while (terms.length < 40) terms.push(...r.period); terms = terms.slice(0, Math.max(40, r.period.length + 1));
+        facts.push(['Periodic form', `[${r.a0}; (${r.period.length > 40 ? r.period.slice(0, 40).join(', ') + ', …' : r.period.join(', ')})]`], ['Period length', r.truncated ? 'over 5000' : String(r.period.length)]);
+        const p = r.truncated || r.period.length > 2000 ? null : T.pell(n);
+        if (p) facts.push(['Pell equation x² − ' + n + 'y² = 1', `x = ${short(p.x)}, y = ${short(p.y)}`]);
+        note = 'The bracketed part repeats for ever. The table shows the first terms.';
+      }
+    } else if (/^pi$|^π$/i.test(raw)) { terms = T.cfConstant(T.PI_100); label = 'π'; note = `π from 100 decimal places: these ${terms.length} terms are certain; later ones would need more digits.`; }
+    else if (/^e$/i.test(raw)) { terms = T.cfConstant(T.E_100); label = 'e'; note = `e from 100 decimal places: these ${terms.length} terms are certain. The pattern is [2; 1, 2, 1, 1, 4, 1, 1, 6, …].`; }
+    else {
+      const fr = /^(.+?)\s*\/\s*(.+)$/.exec(raw);
+      if (fr) {
+        const p = T.parseInteger(fr[1]), qq = T.parseInteger(fr[2]);
+        if (qq === 0n) throw new Error('The denominator cannot be 0.');
+        exact = [p, qq];
+      } else exact = T.decimalToFraction(raw);
+      const g = T.gcd(exact[0], exact[1]) || 1n, sgn = exact[1] < 0n ? -1n : 1n;
+      exact = [sgn * exact[0] / g, sgn * exact[1] / g];
+      terms = T.cfRational(exact[0], exact[1]);
+      facts.push(['As a fraction', `${num(exact[0])}/${exact[1]}`]);
+      note = 'A fraction has a finite continued fraction; the last convergent is the number itself.';
+    }
+    const shown = terms.slice(0, 200);
+    big = `${label} = [${shown[0]}${shown.length > 1 ? '; ' + shown.slice(1, 30).join(', ') + (shown.length > 30 ? ', …' : '') : ''}]`;
+    facts.unshift(['Terms', String(terms.length)]);
+    const cv = T.convergents(shown);
+    const rows = cv.map(([h, k], i) => [String(i), shown[i].toString(), `${num(h)}/${k}`, T.fracDecimal(h, k, 20)]);
+    table = { head: ['k', 'Term a_k', 'Convergent p/q', 'Value'], rows: rows.slice(0, MAXSHOW), align: ['r', 'r', 'r', 'l'] };
+    Object.assign(table, { all: rows, title: 'Convergents', note: note + ' Each convergent is the best approximation with a denominator that small.' });
+    if (cv.length > 1 && !exact) facts.push(['Good approximation', `${num(cv[Math.min(3, cv.length - 1)][0])}/${cv[Math.min(3, cv.length - 1)][1]}`]);
+    return { title: `Continued fraction of ${label}`, facts };
+  }
+
+  function render() {
+    const err = q('.ntk-err');
+    try {
+      const r = mode === 'n' ? numberMode() : mode === 'g' ? gcdMode() : mode === 'm' ? modMode() : mode === 'c' ? crtMode() : cfMode();
+      err.hidden = true; q('.ntk-out').hidden = false;
+      q('.ntk-h').textContent = r.title.length > 80 ? r.title.slice(0, 80) + '…' : r.title;
+      q('.ntk-big').textContent = big;
+      q('.ntk-facts').replaceChildren(...r.facts.map(([k, val]) => { const d = document.createElement('div'); const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = val; d.append(dt, dd); return d; }));
+      q('.ntk-tw').hidden = !table;
+      if (table) {
+        q('.ntk-th').textContent = (table as any).title;
+        q('.ntk-tnote').textContent = (table as any).note;
+        const t = q<HTMLTableElement>('.ntk-tab'); t.replaceChildren();
+        const hr = t.createTHead().insertRow();
+        table.head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (table!.align?.[i] === 'r') th.className = 'r'; hr.append(th); });
+        const tb = t.createTBody();
+        for (const row of table.rows) { const tr = tb.insertRow(); row.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; td.className = (table!.align?.[i] === 'r' ? 'r ' : '') + (c.length > 12 ? 'mono' : ''); }); }
+      }
+      report = [{ title: r.title, text: [big], facts: r.facts }];
+      if (table) report.push({ title: (table as any).title, table: { head: table.head, rows: table.rows.slice(0, 200), align: table.align }, note: (table as any).note });
+    } catch (e) {
+      err.textContent = (e as Error).message; err.hidden = false; q('.ntk-out').hidden = true; report = [];
+    }
+  }
+  const setMode = (m: string) => {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.ntk-modes button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.ntk-p').forEach((p) => (p.hidden = p.dataset.p !== m));
+    render();
+  };
+  root.querySelectorAll<HTMLButtonElement>('.ntk-modes button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  root.querySelectorAll<HTMLButtonElement>('.ntk-try').forEach((b) => b.addEventListener('click', () => { q<HTMLInputElement>('.ntk-f').value = b.dataset.v!; render(); }));
+  let t = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).closest('.ntk-p')) { clearTimeout(t); t = window.setTimeout(render, 250); } });
+  q('.ntk-csv').addEventListener('click', () => {
+    if (!table) return;
+    const esc = (c: string) => (/[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c);
+    const rows = [table.head, ...((table as any).all as string[][])].map((r) => r.map((c) => esc(c.replace(/−/g, '-').replace(/…$/, ''))).join(','));
+    save(new Blob([rows.join('\n') + '\n'], { type: 'text/csv' }), `number-theory-${mode}.csv`, 'text/csv');
+  });
+  render();
+  wireDownloads(q('.dl'), () => ({ title: 'Number theory', subtitle: big, file: 'number-theory', sections: report }));
+</script>
