@@ -3440,7 +3440,26 @@ try {
   }
   check(pageErrors.length === 0, `no page or CSP errors ${pageErrors.join(' | ')}`);
   // Per-tool checks from tests/tools/.
-  for (const t of TOOL_TESTS) await t.default({ page, check, BASE, OUT, readFileSync, writeFileSync });
+  // 40 tools to a fresh browser: one browser for 500+ tools ran out of memory and closed part-way (2026-11-09).
+  for (let i = 0; i < TOOL_TESTS.length; i += 40) {
+    const tb = await chromium.launch();
+    try {
+      const tc = await tb.newContext({ acceptDownloads: true });
+      await tc.route(BASE + '/api/**', (route) => route.fulfill({ json: { site: 1, v: 1, u: 1 } }));
+      await tc.route(BASE + '/**', async (route) => {
+        if (new URL(route.request().url()).pathname.startsWith('/api/')) return route.fallback();
+        const res = await route.fetch();
+        const headers = { ...res.headers() };
+        if ((headers['content-type'] || '').includes('text/html')) headers['content-security-policy'] = CSP.replace('upgrade-insecure-requests', '');
+        await route.fulfill({ response: res, headers });
+      });
+      const tp = await tc.newPage();
+      tp.on('request', (r) => { if (!isNote(r)) requests.push({ url: r.url(), method: r.method() }); });
+      tp.on('pageerror', (e) => pageErrors.push(String(e)));
+      tp.on('console', (m) => { if (m.type() === 'error' && /Content Security Policy|Refused/.test(m.text())) pageErrors.push('CSP: ' + m.text()); });
+      for (const t of TOOL_TESTS.slice(i, i + 40)) await t.default({ page: tp, check, BASE, OUT, readFileSync, writeFileSync });
+    } finally { await tb.close(); }
+  }
   check(pageErrors.length === 0, `no page or CSP errors in the per-tool checks ${pageErrors.join(' | ')}`);
 
   // Public counters: site total on the home page, each page's own views under its title; a use counts once.

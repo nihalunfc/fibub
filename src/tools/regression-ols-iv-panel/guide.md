@@ -3,6 +3,7 @@ name: Regression (OLS, IV and panel)
 num: 744
 shelf: science
 section: econometrics
+seoTitle: "Econometrics regression: robust SEs, IV and panel FE"
 title: "Regression calculator: OLS with robust and clustered SEs, IV/2SLS and panel fixed effects (free)"
 summary: "Run OLS with classical, robust (HC0 to HC3) or clustered standard errors, two-stage least squares with the first-stage F, or panel fixed effects with entity and time effects, from a CSV. Coefficients, t, p, confidence intervals and R², matching statsmodels and linearmodels."
 status: live
