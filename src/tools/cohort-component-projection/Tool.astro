@@ -1,0 +1,189 @@
+---
+// Cohort-component population projection in 5-year steps: survival, fertility, sex ratio at birth and net migration by age.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax cc">
+  <div class="ax-card">
+    <h2>Base population and rates</h2>
+    <label>One row per 5-year age group from 0-4, the last one open (85+). Columns: Age, Female, Male, Female survival, Male survival, ASFR (births per woman per year), Female migrants, Male migrants (net, per 5 years). Made-up example.
+      <textarea class="cc-in" rows="9" spellcheck="false" wrap="off">Age	Female	Male	Female survival	Male survival	ASFR	Female migrants	Male migrants
+0-4	2290	2410	0.99834	0.99733	0	40	40
+5-9	2440	2560	0.99825	0.99724	0	30	30
+10-14	2570	2690	0.99811	0.99709	0	20	20
+15-19	2620	2750	0.99789	0.99685	0.010	60	70
+20-24	2810	2900	0.99754	0.99648	0.045	150	170
+25-29	3050	3120	0.99699	0.99590	0.090	200	210
+30-34	3190	3260	0.99613	0.99500	0.095	120	130
+35-39	3150	3180	0.99479	0.99358	0.055	60	60
+40-44	3000	3010	0.99269	0.99135	0.015	30	30
+45-49	2900	2890	0.98941	0.98787	0.002	10	10
+50-54	2840	2800	0.98428	0.98245	0	0	0
+55-59	2730	2640	0.97629	0.97400	0	0	0
+60-64	2520	2380	0.96390	0.96091	0	-10	-10
+65-69	2250	2050	0.94482	0.94076	0	-20	-20
+70-74	1900	1660	0.91570	0.91007	0	-10	-10
+75-79	1460	1190	0.87196	0.86408	0	0	0
+80-84	1030	760	0.65993	0.65063	0	0	0
+85+	840	470	0.65993	0.65063	0	0	0</textarea></label>
+    <DataFile target=".cc-in" maxMB={2} maxCols={12} maxRows={40} />
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Survival columns hold <select class="cc-sv"><option value="ratio" selected>Survival ratios</option><option value="L">Life-table nLx</option></select></label>
+      <label class="cc-r">Births surviving to 0-4, female <input class="cc-sbf" type="number" min="0" max="1" step="0.0001" value="0.99919" inputmode="decimal" /></label>
+      <label class="cc-r">Births surviving to 0-4, male <input class="cc-sbm" type="number" min="0" max="1" step="0.0001" value="0.99869" inputmode="decimal" /></label>
+      <label class="cc-l" hidden>Life-table radix l0 <input class="cc-radix" type="number" min="1" step="1" value="100000" inputmode="numeric" /></label>
+      <label>Sex ratio at birth (boys per girl) <input class="cc-srb" type="number" min="0.5" max="2" step="0.01" value="1.05" inputmode="decimal" /></label>
+      <label>Base year <input class="cc-y0" type="number" step="1" value="2025" inputmode="numeric" /></label>
+      <label>Steps of 5 years <input class="cc-n" type="number" min="1" max="40" step="1" value="10" inputmode="numeric" /></label>
+      <label>Migration <select class="cc-mig"><option value="on" selected>Include</option><option value="off">Leave out (closed)</option></select></label>
+    </div>
+    <p class="ax-help">Survival ratio: the share of a 5-year age group still alive 5 years later, in the next group (5Lx+5 ÷ 5Lx); the 85+ row is the share of the open group staying alive. With nLx, the ratios are worked out for you and the 85+ row holds T85. Births surviving: 5L0 ÷ (5 × l0). Migrants are added at the end of each step.</p>
+    <p class="ax-err cc-err" hidden></p>
+  </div>
+
+  <div class="ax-card cc-out" hidden>
+    <h2>Projection</h2>
+    <p class="ax-big cc-big"></p>
+    <dl class="ax-facts cc-facts"></dl>
+    <canvas class="ax-fig cc-tot" style="margin-top:12px"></canvas>
+    <h3 class="cc-h3">Totals by year</h3>
+    <div class="ax-scroll"><table class="cc-sum"></table></div>
+    <div class="ax-grid" style="margin-top:14px"><label>Pyramid for <select class="cc-pick"></select></label></div>
+    <canvas class="ax-fig cc-pyr" style="margin-top:10px"></canvas>
+    <h3 class="cc-h3 cc-agh"></h3>
+    <div class="ax-scroll"><table class="cc-age"></table></div>
+    <p class="ax-help cc-note"></p>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small cc-csv">All years by age (CSV)</button></div>
+    <Downloads label="Report" />
+  </div>
+</div>
+
+<style is:global>
+  .cc .cc-h3 { font-size: 15px; margin: 16px 0 6px; }
+  .cc table th, .cc table td { white-space: nowrap; }
+</style>
+
+<script>
+  import { parseTable, num, csv } from '../../lib/sci/num';
+  import { project, ratiosFromL, type CCInput, type CCStep } from '../../lib/sci/ccproj';
+  import { drawPyramid, groupedMedian, type Pyr } from '../../lib/sci/pyramid';
+  import { chartFigure, canvasPainter } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Section, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let report: Section[] = [], steps: CCStep[] = [], labels: string[] = [], totFig: Figure | null = null, pyrFig: Figure | null = null, lastN = -1, sumHead: string[] = [], sumRows: string[][] = [], note = '';
+  const n0 = (x: number) => Math.round(x).toLocaleString('en');
+  const numIn = (c: string, name: string, lo: number, hi: number) => { const v = Number(q<HTMLInputElement>(c).value); if (!Number.isFinite(v) || v < lo || v > hi || q<HTMLInputElement>(c).value === '') throw new Error(`${name} must be a number from ${lo} to ${hi}`); return v; };
+  function table(t: HTMLTableElement, head: string[], rows: string[][]) {
+    t.innerHTML = '';
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+  }
+
+  function read(): CCInput {
+    const t = parseTable(q<HTMLTextAreaElement>('.cc-in').value);
+    if (t.length < 4) throw new Error('Paste a header row and at least three age groups');
+    const h = t[0].map((c) => c.trim().toLowerCase());
+    const find = (re: RegExp, name: string, need = true) => { const i = h.findIndex((c) => re.test(c)); if (i < 0 && need) throw new Error(`Add a column headed "${name}"`); return i; };
+    const ai = Math.max(0, h.findIndex((c) => /^age/.test(c)));
+    const fi = find(/^(female|women)s?$/, 'Female'), mi = find(/^(male|men)s?$/, 'Male');
+    const sfi = find(/^(female|women)s?\s.*(surv|ratio|nlx|\blx?\b)/, "Female survival"), smi = find(/^(male|men)s?\s.*(surv|ratio|nlx|\blx?\b)/, "Male survival");
+    const ai2 = find(/asfr|fertility/, 'ASFR');
+    const mfi = find(/^(female|women).*migr/, 'Female migrants', false), mmi = find(/^(male|men).*migr/, 'Male migrants', false);
+    const rows = t.slice(1).filter((r) => r.some((c) => c.trim()));
+    const col = (i: number, name: string) => rows.map((r, k) => { if (i < 0) return 0; const c = (r[i] ?? '').trim(); const v = c === '' ? 0 : num(c); if (!Number.isFinite(v)) throw new Error(`Row ${k + 2}: ${name} "${c}" is not a number`); return v; });
+    const ages = rows.map((r, k) => { const m = (r[ai] ?? '').match(/\d+/); if (!m) throw new Error(`Row ${k + 2}: "${r[ai] ?? ''}" is not an age group`); return Number(m[0]); });
+    labels = rows.map((r) => (r[ai] ?? '').trim());
+    let sf = col(sfi, 'female survival'), sm = col(smi, 'male survival');
+    let sbf: number, sbm: number;
+    if (q<HTMLSelectElement>('.cc-sv').value === 'L') {
+      const radix = numIn('.cc-radix', 'The radix', 1, 1e9);
+      const a = ratiosFromL(sf, radix), b = ratiosFromL(sm, radix);
+      sf = a.S; sm = b.S; sbf = a.sb; sbm = b.sb;
+      if (sbf > 1 || sbm > 1) throw new Error('5L0 ÷ (5 × radix) is over 1: check the radix');
+    } else { sbf = numIn('.cc-sbf', 'Female births surviving', 0.0001, 1); sbm = numIn('.cc-sbm', 'Male births surviving', 0.0001, 1); }
+    const off = q<HTMLSelectElement>('.cc-mig').value === 'off';
+    const migF = off ? ages.map(() => 0) : col(mfi, 'female migrants'), migM = off ? ages.map(() => 0) : col(mmi, 'male migrants');
+    return { ages, female: col(fi, 'female count'), male: col(mi, 'male count'), sf, sm, sbf, sbm, asfr: col(ai2, 'ASFR'), srb: numIn('.cc-srb', 'The sex ratio at birth', 0.5, 2), migF, migM };
+  }
+
+  const pyr = (s: CCStep, name: string): Pyr => ({ labels, ages: steps[0] ? labels.map((_, i) => 5 * i) : [], widths: labels.map((_, i) => (i < labels.length - 1 ? 5 : Infinity)), male: s.male, female: s.female, name });
+  const colours = (pal: Palette) => (pal.red ? { male: '#a30000', female: '#5a0000', over: pal.ink } : pal.bg === '#ffffff' ? { male: '#0072B2', female: '#D55E00', over: '#000000' } : { male: '#56B4E9', female: '#E69F00', over: '#ffffff' });
+
+  function showPick() {
+    const i = Number(q<HTMLSelectElement>('.cc-pick').value) || 0, s = steps[i], b = steps[0];
+    if (!s) return;
+    const A = pyr(s, String(s.year)), B = i ? pyr(b, String(b.year)) : null;
+    pyrFig = { w: 600, h: 520, alt: `Projected pyramid for ${s.year}${B ? ` with ${b.year} as an outline` : ''}.`, draw: (ctx, w, h, pal) => drawPyramid(canvasPainter(ctx), A, B, { w, h, pct: false, ink: pal.ink, muted: pal.muted, grid: pal.grid, bg: null, ...colours(pal), title: B ? `${s.year} (bars) and ${b.year} (outline)` : String(s.year) }) };
+    paint(q<HTMLCanvasElement>('.cc-pyr'), pyrFig);
+    q('.cc-agh').textContent = `Population by age, ${s.year}`;
+    const head = ['Age', 'Female', 'Male', 'Total', ...(i ? [`Change since ${b.year}`] : [])];
+    const rows = labels.map((l, k) => { const t = s.female[k] + s.male[k]; return [l, n0(s.female[k]), n0(s.male[k]), n0(t), ...(i ? [`${t >= b.female[k] + b.male[k] ? '+' : '−'}${n0(Math.abs(t - b.female[k] - b.male[k]))}`] : [])]; });
+    table(q('.cc-age'), head, rows);
+    report = [
+      { title: 'Projection', facts: [['Result', q('.cc-big').textContent!], ...[...q('.cc-facts').querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string])] },
+      { title: 'Total population', figure: totFig! },
+      { title: 'Totals by year', table: { head: sumHead, rows: sumRows, align: sumHead.map((_, k) => (k ? 'r' : 'l')) as ('l' | 'r')[] } },
+      { title: `Pyramid, ${s.year}`, figure: pyrFig },
+      { title: `Population by age, ${s.year}`, table: { head, rows, align: head.map((_, k) => (k ? 'r' : 'l')) as ('l' | 'r')[] }, note },
+    ];
+  }
+
+  function calc() {
+    const err = q('.cc-err');
+    const L = q<HTMLSelectElement>('.cc-sv').value === 'L';
+    root.querySelectorAll<HTMLElement>('.cc-r').forEach((e) => (e.hidden = L)); q('.cc-l').hidden = !L;
+    try {
+      const inp = read();
+      const n = numIn('.cc-n', 'Steps', 1, 40);
+      if (!Number.isInteger(n)) throw new Error('Steps must be a whole number');
+      const y0 = numIn('.cc-y0', 'The base year', -10000, 10000);
+      const r = project(inp, n, Math.round(y0));
+      steps = r.steps;
+      const k = inp.ages.length, first = steps[0], last = steps[steps.length - 1];
+      const share = (s: CCStep, a: number, b: number) => { let x = 0; for (let i = a; i < b; i++) x += s.female[i] + s.male[i]; return (x / s.total) * 100; };
+      const i15 = 3, i65 = 13 < k ? 13 : k - 1;
+      const medAge = (s: CCStep) => { const m = groupedMedian(inp.ages, inp.ages.map((_, i) => (i < k - 1 ? 5 : Infinity)), s.female.map((f, i) => f + s.male[i])); return m.open ? `${m.value}+` : m.value.toFixed(1); };
+      const ch = (last.total / first.total - 1) * 100;
+      q('.cc-big').textContent = `${last.year}: ${n0(last.total)} people (${ch >= 0 ? '+' : '−'}${Math.abs(ch).toFixed(1)} % on ${first.year})`;
+      const fl: [string, string][] = [
+        ['Total fertility rate', r.tfr.toFixed(2)],
+        ['Births in the first step', n0(steps[1].births)],
+        ['Median age', `${medAge(first)} → ${medAge(last)}`],
+        ['Aged 65+', `${share(first, i65, k).toFixed(1)} % → ${share(last, i65, k).toFixed(1)} %`],
+        ['Growth in the last step', `${(last.growth * 100).toFixed(2)} % a year`],
+      ];
+      if (r.clipped > 0) fl.push(['Emigration capped', `${n0(r.clipped)} people (groups cannot go below 0)`]);
+      const dl = q('.cc-facts'); dl.innerHTML = '';
+      for (const [a, b] of fl) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = a; dd.textContent = b; d.append(dt, dd); dl.append(d); }
+      sumHead = ['Year', 'Total', 'Female', 'Male', 'Births in the 5 years before', 'Growth % a year', '0–14 %', '65+ %', 'Median age'];
+      sumRows = steps.map((s) => [String(s.year), n0(s.total), n0(s.female.reduce((a, b) => a + b, 0)), n0(s.male.reduce((a, b) => a + b, 0)), Number.isFinite(s.births) ? n0(s.births) : '–', Number.isFinite(s.growth) ? (s.growth * 100).toFixed(2) : '–', share(s, 0, i15).toFixed(1), share(s, i65, k).toFixed(1), medAge(s)]);
+      table(q('.cc-sum'), sumHead, sumRows);
+      totFig = chartFigure({ w: 600, h: 320, xLabel: 'Year', yLabel: 'Population', series: [{ name: 'Total', x: steps.map((s) => s.year), y: steps.map((s) => s.total), mode: 'both', marker: 'circle', size: 3 }] }, 'Projected total population by year.');
+      paint(q<HTMLCanvasElement>('.cc-tot'), totFig);
+      const pick = q<HTMLSelectElement>('.cc-pick'), keep = pick.value;
+      if (lastN !== steps.length || pick.options[0]?.textContent !== String(first.year)) {
+        pick.innerHTML = ''; steps.forEach((s, i) => pick.add(new Option(String(s.year), String(i))));
+        pick.value = keep && Number(keep) < steps.length ? keep : String(steps.length - 1); lastN = steps.length;
+      }
+      note = `Each step: everyone in an age group moves up one group, times its survival ratio (the 85+ group keeps its own survivors and gains the 80-84 survivors). Births = 5 × Σ ASFR × (women at the start + women at the end) ÷ 2, split ${inp.srb} boys per girl, times the births' survival. ${q<HTMLSelectElement>('.cc-mig').value === 'off' ? 'Migration left out.' : 'Net migrants are added at the end of each step (they count among the women at the end for births).'} Rates stay the same in every step: this is a projection of "what if", not a forecast.`;
+      q('.cc-note').textContent = note;
+      showPick();
+      err.hidden = true; q('.cc-out').hidden = false;
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.cc-out').hidden = true; report = []; steps = []; }
+  }
+  let t = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('.cc-pick')) return; clearTimeout(t); t = window.setTimeout(calc, 250); });
+  root.addEventListener('change', (e) => { const el = e.target as HTMLElement; if (el.matches('.cc-pick')) showPick(); else if (el.matches('select')) calc(); });
+  q('.cc-csv').addEventListener('click', () => {
+    if (!steps.length) return;
+    const rows: (string | number)[][] = [['Year', 'Age', 'Female', 'Male', 'Total']];
+    for (const s of steps) labels.forEach((l, i) => rows.push([s.year, l, s.female[i].toFixed(2), s.male[i].toFixed(2), (s.female[i] + s.male[i]).toFixed(2)]));
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'cohort-component-projection.csv', 'text/csv');
+  });
+  new MutationObserver(() => { if (totFig) paint(q<HTMLCanvasElement>('.cc-tot'), totFig); if (pyrFig) paint(q<HTMLCanvasElement>('.cc-pyr'), pyrFig); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Cohort-component projection', file: 'cohort-component-projection', sections: report }));
+</script>
