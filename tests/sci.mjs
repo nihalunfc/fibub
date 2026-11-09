@@ -137,6 +137,7 @@ import * as THS from '../src/lib/sci/thiessen.ts';
 import * as PRB from '../src/lib/sci/probit.ts';
 import * as SSD from '../src/lib/sci/ssd.ts';
 import * as NDS from '../src/lib/sci/censored.ts';
+import * as LFG from '../src/lib/sci/lfg.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2743,6 +2744,17 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('cen MLE mean 2', NDS.mleLognormal(b).mean, 2.314573952100603, 1e-7);
   near('cen half-DL mean', NDS.substitute(a, 0.5).mean, (1.2 + 1.5 + 2.3 + 3.1 + 0.8 + 4.6 + 2 + 6.2 + 1.1 + 9.8 + 2.7 + 0.5 * 3 + 1 * 2) / 16, 1e-12);
   near('cen percentile', NDS.percentile([1, 2, 3, 4], 0.5), 2.5, 1e-12);
+}
+// #154 Landfill gas first-order decay (NumPy brute-force integration over 1000 placement slices per year)
+{
+  const yrs = Array.from({ length: 20 }, (_, i) => 2005 + i), M = yrs.map((y) => 50000 * 1.03 ** (y - 2005));
+  const g = LFG.generation(yrs, M, 0.05, 100, 2005, 2600), at = (n) => g.find((r) => r.year === n).ch4;
+  [[2005, 122942.45057942776], [2010, 1291407.2976990691], [2024, 4342686.1141046835], [2025, 4342907.97858614], [2026, 4131101.8571300535], [2050, 1244263.9681873207], [2100, 102135.40611642308]].forEach(([n, v]) => near(`lfg ${n}`, at(n), v, v * 1e-8));
+  near('lfg mass conserved', g.reduce((s, r) => s + r.ch4, 0), M.reduce((a, b) => a + b) * 100, 1e-3);
+  near('lfg share sum', [0, 1, 2, 3].reduce((s, a) => s + LFG.yearShare(0.3, a), 0) + LFG.yearShare(0.3, 4) / (1 - Math.exp(-0.3)), 1, 1e-12);
+  check('lfg before placement', LFG.yearShare(0.05, -1) === 0);
+  near('lfg CH4 density 0 C', LFG.ch4Density(0), 0.7157589809371521, 1e-12); near('lfg half-life', LFG.halfLife(0.05), 13.862943611198906, 1e-12);
+  const f = LFG.fate(100, 0.6, 0.1); near('lfg fate emitted', f.emitted, 36, 1e-12); near('lfg fate oxidised', f.oxidised, 4, 1e-12);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
