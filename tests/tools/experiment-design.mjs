@@ -1,6 +1,7 @@
 // #567 Design of experiments generator
 export const path = '/science/experiment-design/';
 export default async ({ page, check, BASE, OUT, readFileSync }) => {
+  const vp0 = page.viewportSize();
   const txt = (s) => page.textContent(`.de ${s}`);
   const wait = (ms = 700) => page.waitForTimeout(ms);
   const fake = async () => { await page.click('.de .de-fake'); await wait(400); };
@@ -103,7 +104,7 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   await page.locator('.de .de-flv').nth(1).fill('30, 60'); await page.locator('.de .de-fn').nth(1).fill('Temperature'); await wait();
   check((await txt('.de-err')).includes('different name'), 'doe: duplicate names refused');
   await page.locator('.de .de-fn').nth(1).fill('Time'); await wait();
-  await page.setViewportSize({ width: 375, height: 900 }); await wait(); await page.screenshot({ path: OUT + 'experiment-design-375.png', fullPage: true }); await page.setViewportSize({ width: 1280, height: 900 });
+  await page.setViewportSize({ width: 375, height: 900 }); await wait(); await page.screenshot({ path: OUT + 'experiment-design-375.png', fullPage: true }); await page.setViewportSize(vp0);
 
   // Downloads.
   for (const f of ['png', 'pdf', 'docx']) { await page.locator(`.de .dl button[data-f="${f}"]`).scrollIntoViewIfNeeded(); const [dl] = await Promise.all([page.waitForEvent('download'), page.click(`.de .dl button[data-f="${f}"]`)]); check(dl.suggestedFilename() === `experiment-design.${f}`, `doe: ${f} download`); }

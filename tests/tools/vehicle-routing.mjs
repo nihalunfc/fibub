@@ -1,6 +1,7 @@
 // #586 vehicle routing for small instances
 export const path = '/science/vehicle-routing/';
 export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) => {
+  const vp0 = page.viewportSize();
   await page.goto(`${BASE}/science/vehicle-routing/`); await page.waitForTimeout(700);
   const big = () => page.textContent('.vrx .vr-big'), facts = () => page.textContent('.vrx .vr-facts'), tab = () => page.textContent('.vrx .vr-tab');
   check((await big()) === 'Shortest possible: 3 routes, total distance 404.12', 'vrp: example optimum 404.12 (scipy MILP)');
@@ -37,5 +38,5 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   await page.click('.vrx .vr-kind button[data-k=xy]'); await page.click('.vrx .vr-ex'); await page.waitForTimeout(600);
   await page.setViewportSize({ width: 375, height: 800 }); await page.waitForTimeout(400);
   await page.locator('.vrx .vr-map').scrollIntoViewIfNeeded(); await page.screenshot({ path: OUT + 'vrp-375.png' });
-  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.setViewportSize(vp0);
 };

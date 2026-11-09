@@ -1,6 +1,7 @@
 // #553 Interactive geometry construction
 export const path = '/science/geometry-construction/';
 export default async ({ page, check, BASE, OUT, readFileSync }) => {
+  const vp0 = page.viewportSize();
   await page.setViewportSize({ width: 1000, height: 900 });
   await page.goto(`${BASE}/science/geometry-construction/`); await page.waitForTimeout(600);
   const R = '.gc ';
@@ -66,5 +67,5 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   await page.setViewportSize({ width: 375, height: 800 }); await page.reload(); await page.waitForTimeout(500);
   await page.locator(R + '.gc-tools').evaluate((e) => e.scrollIntoView({ block: 'start' })); await page.screenshot({ path: OUT + 'geometry-construction-375.png' });
   check(await page.evaluate(() => document.documentElement.scrollWidth) <= 375, 'construct: fits 375 px');
-  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.setViewportSize(vp0);
 };

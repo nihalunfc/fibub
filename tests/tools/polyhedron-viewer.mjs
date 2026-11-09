@@ -1,6 +1,7 @@
 // #554 Polyhedron and tiling viewer
 export const path = '/science/polyhedron-viewer/';
 export default async ({ page, check, BASE, OUT, readFileSync }) => {
+  const vp0 = page.viewportSize();
   await page.setViewportSize({ width: 1000, height: 900 });
   await page.goto(`${BASE}/science/polyhedron-viewer/`); await page.waitForTimeout(600);
   const R = '.pv ';
@@ -51,5 +52,5 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   await page.setViewportSize({ width: 375, height: 800 }); await page.reload(); await page.waitForTimeout(500);
   await cv.evaluate((e) => e.scrollIntoView({ block: 'center' })); await page.screenshot({ path: OUT + 'polyhedron-viewer-375.png' });
   check(await page.evaluate(() => document.documentElement.scrollWidth) <= 375, 'polyhedra: fits 375 px');
-  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.setViewportSize(vp0);
 };

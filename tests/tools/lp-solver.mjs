@@ -1,6 +1,7 @@
 // #582 linear and integer programming solver
 export const path = '/science/lp-solver/';
 export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) => {
+  const vp0 = page.viewportSize();
   await page.goto(`${BASE}/science/lp-solver/`); await page.waitForTimeout(600);
   const big = () => page.textContent('.lps .lp-big');
   check((await big()) === 'Maximum profit = 720' && (await page.textContent('.lps .lp-pill')) === 'Optimal', 'lp: workshop example optimum');
@@ -33,6 +34,6 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   await page.fill('.lps .lp-in', 'x + y <= 3'); await page.waitForTimeout(600);
   check((await page.textContent('.lps .lp-err')).includes('objective'), 'lp: missing objective message');
   await page.selectOption('.lps .lp-ex', 'workshop'); await page.waitForTimeout(300);
-  await page.setViewportSize({ width: 375, height: 800 }); await page.locator('.lps .lp-fig').scrollIntoViewIfNeeded(); await page.screenshot({ path: OUT + 'lp-375.png', fullPage: false }); await page.setViewportSize({ width: 1280, height: 800 });
+  await page.setViewportSize({ width: 375, height: 800 }); await page.locator('.lps .lp-fig').scrollIntoViewIfNeeded(); await page.screenshot({ path: OUT + 'lp-375.png', fullPage: false }); await page.setViewportSize(vp0);
   { const [d] = await Promise.all([page.waitForEvent('download'), page.click('.lps .dl [data-f=pdf]')]); check((await d.suggestedFilename()).endsWith('.pdf'), 'lp: PDF report'); }
 };
