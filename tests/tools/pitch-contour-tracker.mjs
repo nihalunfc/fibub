@@ -1,0 +1,54 @@
+import { synthVoice } from '../../src/lib/sci/pitch.ts';
+import { writeWav } from '../../src/lib/sci/formant-audio.ts';
+
+export const path = '/science/pitch-contour-tracker/';
+export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) => {
+  const dl = async (sel) => { const [d] = await Promise.all([page.waitForEvent('download'), page.click(sel)]); const p = OUT + d.suggestedFilename(); await d.saveAs(p); return p; };
+  const big = () => page.textContent('.pc-big'), facts = () => page.textContent('.pc-facts');
+  await page.goto(BASE + path);
+  check(await page.isHidden('.pc-out'), 'pitch: nothing shown before a recording');
+  await page.click('.pc-ex');
+  await page.waitForFunction(() => /Median pitch/.test(document.querySelector('.pc-big')?.textContent || ''));
+  check((await big()) === 'Median pitch 155 Hz, range 10.1 semitones', `pitch: example (${await big()})`);
+  check(/121 to 217 Hz/.test(await facts()) && /79 %168 of 213 frames/.test(await facts()), `pitch: example facts (${await facts()})`);
+  const c = readFileSync(await dl('.pc-csv'), 'utf8').trim().split(/\r?\n/);
+  check(c[0] === 'time_s,f0_Hz,f0_unsmoothed_Hz,semitones_re_100Hz,strength,rms' && c.length === 214, `pitch: CSV (${c.length} lines)`);
+  const voiced = c.slice(1).map((l) => l.split(',')).filter((r) => r[1] !== '');
+  check(voiced.every((r) => Math.abs(+r[3] - 12 * Math.log2(+r[1] / 100)) < 0.002), 'pitch: CSV semitones agree with Hz');
+  check(c.slice(1).map((l) => l.split(',')).filter((r) => +r[0] > 1.08 && +r[0] < 1.17).every((r) => r[1] === ''), 'pitch: the pause is unvoiced');
+  // Options.
+  await page.selectOption('.pc-sm', '1');
+  check(/range 10\.\d semitones/.test(await big()), `pitch: no smoothing (${await big()})`);
+  await page.selectOption('.pc-ref', 'median');
+  check(/re 155\.4 Hz \(median\)/.test(await facts()) && /Mean in semitones0\.\d\d st/.test(await facts()), 'pitch: semitones relative to the median');
+  const c2 = readFileSync(await dl('.pc-csv'), 'utf8').split(/\r?\n/)[0];
+  check(/semitones_re_155\.\d+Hz/.test(c2), 'pitch: CSV header names the reference');
+  await page.selectOption('.pc-m', 'acf');
+  check((await page.inputValue('.pc-th')) === '0.5' && /correlation/.test(await page.textContent('.pc-thl')), 'pitch: threshold switches with the method');
+  check(/MethodAutocorrelationthreshold 0\.5, 75 to 500 Hz/.test(await facts()) && /Median pitch 15\d Hz/.test(await big()), `pitch: autocorrelation (${await big()})`);
+  await page.selectOption('.pc-m', 'yin');
+  await page.fill('.pc-lo', '200'); await page.dispatchEvent('.pc-lo', 'change');
+  check(/Median pitch 2\d\d Hz/.test(await big()), `pitch: range 200 to 500 Hz keeps only the question (${await big()})`);
+  await page.fill('.pc-lo', '600'); await page.dispatchEvent('.pc-lo', 'change');
+  check(/pitch range between 20 and 2000/.test(await page.textContent('.pc-err')) && await page.isHidden('.pc-out'), 'pitch: impossible range explained');
+  await page.fill('.pc-lo', '75'); await page.dispatchEvent('.pc-lo', 'change');
+  await page.fill('.pc-th', '1.5'); await page.dispatchEvent('.pc-th', 'change');
+  check(/between 0 and 1/.test(await page.textContent('.pc-err')), 'pitch: bad threshold explained');
+  await page.fill('.pc-th', '0.15'); await page.dispatchEvent('.pc-th', 'change');
+  await page.fill('.pc-sil', '99'); await page.dispatchEvent('.pc-sil', 'change');
+  check(/Voiced\d+ %/.test(await facts()) && +(await facts()).match(/Voiced(\d+) %/)[1] < 60, 'pitch: silence gate drops quieter frames');
+  await page.fill('.pc-sil', '5'); await page.dispatchEvent('.pc-sil', 'change');
+  check(await page.isHidden('.pc-err') && /Median pitch/.test(await big()), 'pitch: back to normal');
+  const png = readFileSync(await dl('.pc .dl button[data-f=png]'));
+  check(png.length > 5000 && png[1] === 0x50, 'pitch: PNG report');
+  // A 44.1 kHz WAV with a steady 200 Hz voice.
+  const wav = OUT + 'steady-200.wav';
+  writeFileSync(wav, writeWav(synthVoice(() => 200, 0.6, 44100), 44100));
+  await page.setInputFiles('.pc-file', wav);
+  await page.waitForFunction(() => /steady-200/.test(document.querySelector('.pc-info')?.textContent || ''));
+  check(/0\.60 s, 44,100 Hz, mono, PCM/.test(await page.textContent('.pc-info')) && /^Median pitch 200 Hz, range 0\.\d semitones$/.test(await big()), `pitch: WAV file (${await big()})`);
+  const bad = OUT + 'not-sound.wav'; writeFileSync(bad, 'just some text');
+  await page.setInputFiles('.pc-file', bad);
+  await page.waitForFunction(() => !document.querySelector('.pc-err')?.hidden);
+  check(/could not be read as sound/.test(await page.textContent('.pc-err')), 'pitch: not a sound file explained');
+};
