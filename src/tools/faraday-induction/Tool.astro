@@ -1,0 +1,248 @@
+---
+// Faraday's magnet and coil: push a bar magnet in and out of a coil, watch the galvanometer and the emf graph, see
+// Lenz's law at work; then an AC generator coil with its flux and emf curves. Everything runs in the browser.
+import '../../styles/astro.css';
+---
+<div class="ax fdi">
+  <div class="ax-card">
+    <h2>Magnet and coil</h2>
+    <div class="ax-row">
+      <span class="ax-seg fdi-level" role="group" aria-label="Level"><button type="button" data-v="10" aria-pressed="true">Class 10</button><button type="button" data-v="12" aria-pressed="false">Class 12</button></span>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small fdi-in">Push in</button>
+      <button type="button" class="btn small fdi-out">Pull out</button>
+      <button type="button" class="btn secondary small fdi-flip">Flip the magnet</button>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Speed <select class="fdi-v"><option value="0.1">Slow (0.1 m/s)</option><option value="0.2" selected>Medium (0.2 m/s)</option><option value="0.5">Fast (0.5 m/s)</option></select></label>
+      <label>Turns on the coil <select class="fdi-n"><option>50</option><option selected>100</option><option>200</option><option>500</option></select></label>
+    </div>
+    <canvas class="ax-fig fdi-fig" style="margin-top:10px"></canvas>
+    <p class="ax-help">Drag the magnet left and right, or use the buttons. The coil is 4 cm across; the galvanometer shows the induced emf.</p>
+    <p class="ax-big fdi-big" aria-live="polite"></p>
+    <dl class="ax-facts fdi-facts" style="margin-top:8px"></dl>
+    <p class="fdi-lenz"></p>
+    <canvas class="ax-fig fdi-graph" style="margin-top:8px"></canvas>
+    <div class="ax-legend"><span><i class="fdi-ke"></i>emf</span><span><i class="fdi-kf"></i>flux through the coil (scaled)</span><span>last 4 seconds</span></div>
+    <p class="fdi-f12" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>AC generator</h2>
+    <div class="ax-row"><button type="button" class="btn small fdi-play">Pause</button></div>
+    <canvas class="ax-fig fdi-gen" style="margin-top:10px"></canvas>
+    <label class="fdi-sl">Coil angle: <b class="fdi-av">0°</b><input type="range" class="fdi-a" min="0" max="359" step="1" value="0" aria-label="Coil angle" /></label>
+    <label class="fdi-sl">Field B: <b class="fdi-gbv">0.20 T</b><input type="range" class="fdi-gb" min="0.05" max="1" step="0.05" value="0.2" aria-label="Field" /></label>
+    <label class="fdi-sl">Turning speed: <b class="fdi-rv">1500 rpm (25 Hz)</b><input type="range" class="fdi-r" min="60" max="3000" step="60" value="1500" aria-label="Turning speed in revolutions per minute" /></label>
+    <label>Turns <select class="fdi-gn" style="width:auto"><option>10</option><option>50</option><option selected>100</option><option>200</option></select></label>
+    <p class="fdi-gtext" aria-live="polite"></p>
+    <p class="ax-help">The coil's area is 100 cm². The picture turns slowly so you can follow it; the numbers are for the real speed.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="fdi-try">
+      <li>Hold the magnet still inside the coil: no emf, even though the flux is large. Only a change of flux counts.</li>
+      <li>Push in slowly, then fast. Faster means a bigger emf for a shorter time.</li>
+      <li>Pull out instead of pushing in, or flip the magnet: the galvanometer swings the other way.</li>
+      <li>Read Lenz's law under the picture: the coil always pushes back against the motion.</li>
+      <li>In the generator, double the speed: the peak emf and the frequency both double.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="fdi-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .fdi .fdi-sl { display: grid; gap: 6px; margin-top: 10px; color: var(--ink); font-size: 15px; }
+  .fdi input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .fdi .ax-seg button { min-height: 40px; padding: 8px 14px; }
+  .fdi-fig { max-width: 520px; margin-left: auto; margin-right: auto; touch-action: none; cursor: grab; }
+  .fdi-graph, .fdi-gen { max-width: 520px; margin-left: auto; margin-right: auto; }
+  .fdi-ke { background: var(--bad); }
+  .fdi-kf { background: var(--accent); }
+  .fdi-big { font-size: clamp(18px, 4.6vw, 24px); margin: 10px 0 0; }
+  .fdi-lenz, .fdi-f12, .fdi-gtext { margin: 8px 0 0; font-size: 16px; overflow-wrap: anywhere; }
+  .fdi-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .fdi .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .fdi .eq-q p { margin: 0 0 6px; }
+  .fdi .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .fdi .eq-ok { color: var(--good); font-weight: 600; }
+  .fdi .eq-no { color: var(--bad); }
+  .fdi .eq-work { margin-top: 4px; font-size: 14px; }
+  .fdi .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .fdi .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { flux1, emf, maxEmf, dflux1, generator, questions } from '../../lib/sci/faraday-induction';
+  import { pagePalette } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+  import { quiz } from '../../lib/elec-quiz-ui';
+
+  const root = document.querySelector<HTMLElement>('.fdi')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fig = q<HTMLCanvasElement>('.fdi-fig'), graph = q<HTMLCanvasElement>('.fdi-graph'), gen = q<HTMLCanvasElement>('.fdi-gen');
+  const sg = (x: number, n = 3) => sig(x, n);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const M = 1, A = 0.02, ZMIN = -0.2, ZMAX = 0.12; // magnet moment (A m², a teaching value), coil radius (m), track (m)
+  const fmtV = (v: number) => (Math.abs(v) >= 1 ? `${sg(v)} V` : `${sg(v * 1000)} mV`);
+  let level = 10, mSign = 1, z = -0.15, v = 0, target: number | null = null, dragging = false, lastZ = z;
+  let lastMove: { z0: number; z1: number; v: number } | null = null, lastSign = 0;
+  const hist: { t: number; e: number; f: number }[] = [];
+  const turns = () => +q<HTMLSelectElement>('.fdi-n').value, speed = () => +q<HTMLSelectElement>('.fdi-v').value;
+
+  function setup(c: HTMLCanvasElement, w: number, h: number) {
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    if (c.width !== Math.round(w * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c.style.aspectRatio = `${w} / ${h}`; }
+    const x = c.getContext('2d')!; x.setTransform(dpr, 0, 0, dpr, 0, 0); return x;
+  }
+  const W = 360, H = 210, S = 900, CX = 240, CY = 140; // px per metre, coil centre on screen
+  const PX = (zz: number) => CX + zz * S;
+
+  function draw(e: number) {
+    const pal = pagePalette(), c = setup(fig, W, H), N = turns();
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    // Coil: a row of loops seen from the side, back halves first.
+    const nDraw = 7, half = 0.012;
+    c.lineWidth = 2;
+    for (let k = 0; k < nDraw; k++) { const x = PX(-half + (2 * half * k) / (nDraw - 1)); c.strokeStyle = pal.line; c.beginPath(); c.ellipse(x, CY, 6, A * S, 0, Math.PI / 2, (3 * Math.PI) / 2); c.stroke(); }
+    // Magnet: N half and S half.
+    const mx = PX(z), L = 0.06 * S, hh = 11;
+    const nRight = mSign > 0;
+    c.globalAlpha = 0.85;
+    c.fillStyle = nRight ? pal.accent : pal.bad; c.fillRect(mx - L / 2, CY - hh, L / 2, 2 * hh);
+    c.fillStyle = nRight ? pal.bad : pal.accent; c.fillRect(mx, CY - hh, L / 2, 2 * hh);
+    c.globalAlpha = 1; c.strokeStyle = pal.ink; c.lineWidth = 1.5; c.strokeRect(mx - L / 2, CY - hh, L, 2 * hh);
+    c.fillStyle = pal.bg; c.font = '700 13px system-ui, sans-serif'; c.textAlign = 'center';
+    c.fillText(nRight ? 'S' : 'N', mx - L / 4, CY + 5); c.fillText(nRight ? 'N' : 'S', mx + L / 4, CY + 5);
+    // Front halves of the coil over the magnet.
+    c.lineWidth = 2;
+    for (let k = 0; k < nDraw; k++) { const x = PX(-half + (2 * half * k) / (nDraw - 1)); c.strokeStyle = pal.warn; c.beginPath(); c.ellipse(x, CY, 6, A * S, 0, -Math.PI / 2, Math.PI / 2); c.stroke(); }
+    // Wires up to the galvanometer.
+    c.strokeStyle = pal.ink; c.lineWidth = 1.5; c.beginPath(); c.moveTo(PX(-half), CY - A * S); c.lineTo(PX(-half), 60); c.lineTo(205, 60); c.moveTo(275, 60); c.lineTo(PX(half), 60); c.lineTo(PX(half), CY - A * S); c.stroke();
+    // Galvanometer: centre-zero dial.
+    const full = N * 1.35e-3 * 0.5, gx = 240, gy = 60;
+    c.fillStyle = pal.bg; c.strokeStyle = pal.ink; c.lineWidth = 2; c.beginPath(); c.arc(gx, gy, 34, Math.PI, 0); c.closePath(); c.fill(); c.stroke();
+    for (let k = -4; k <= 4; k++) { const an = -Math.PI / 2 + (k / 4) * 1.1; c.strokeStyle = pal.muted; c.lineWidth = 1; c.beginPath(); c.moveTo(gx + 26 * Math.cos(an), gy + 26 * Math.sin(an)); c.lineTo(gx + 31 * Math.cos(an), gy + 31 * Math.sin(an)); c.stroke(); }
+    const an = -Math.PI / 2 + Math.max(-1, Math.min(1, e / full)) * 1.1;
+    c.strokeStyle = pal.bad; c.lineWidth = 2.5; c.beginPath(); c.moveTo(gx, gy - 2); c.lineTo(gx + 30 * Math.cos(an), gy - 2 + 30 * Math.sin(an)); c.stroke();
+    c.fillStyle = pal.ink; c.font = '700 12px system-ui, sans-serif'; c.fillText('G', gx, gy - 8);
+    c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'left'; c.fillText(`full scale ±${fmtV(full)}`, 12, 20);
+    fig.setAttribute('aria-label', `Magnet ${sg(z * 100, 2)} cm from the coil centre; emf ${fmtV(e)}`);
+  }
+  function drawGraph(now: number) {
+    const pal = pagePalette(), c = setup(graph, 360, 160);
+    c.fillStyle = pal.bg; c.fillRect(0, 0, 360, 160);
+    const ML = 8, top = 8, h = 140, w = 344, Y0 = top + h / 2;
+    c.strokeStyle = pal.line; c.lineWidth = 1; c.beginPath(); c.moveTo(ML, Y0); c.lineTo(ML + w, Y0); c.stroke();
+    const full = turns() * 1.35e-3 * 0.5, fmax = turns() * flux1(M, A, 0);
+    const X = (t: number) => ML + w - ((now - t) / 4000) * w;
+    const plot = (get: (p: { e: number; f: number }) => number, col: string, dash: number[]) => { c.strokeStyle = col; c.lineWidth = 2; c.setLineDash(dash); c.beginPath(); let first = true; for (const p of hist) { if (now - p.t > 4000) continue; const y = Y0 - get(p) * (h / 2 - 4); first ? c.moveTo(X(p.t), y) : c.lineTo(X(p.t), y); first = false; } c.stroke(); c.setLineDash([]); };
+    plot((p) => p.f / fmax, pal.accent, [5, 4]);
+    plot((p) => Math.max(-1, Math.min(1, p.e / full)), pal.bad, []);
+  }
+
+  function texts(e: number) {
+    const N = turns(), Phi = mSign * N * flux1(M, A, z);
+    q('.fdi-big').textContent = Math.abs(e) < 1e-9 ? 'emf = 0: no change of flux, no current' : `emf = ${fmtV(e)}`;
+    const facts = [fact('Magnet from the coil centre', `${sg(z * 100, 2)} cm`), fact('Flux linkage NΦ', `${sg(Phi * 1000)} mWb`, 'through all the turns')];
+    if (lastMove) facts.push(fact('Largest emf in the last move', fmtV(maxEmf(N, M, A, lastMove.z0, lastMove.z1, lastMove.v)), `at ${lastMove.v} m/s`));
+    q('.fdi-facts').replaceChildren(...facts);
+    const lenz = q('.fdi-lenz');
+    if (Math.abs(e) < 1e-9) lenz.textContent = lastSign ? 'The magnet has stopped, so the flux is steady and the current stops.' : 'Move the magnet: a current flows only while the flux through the coil is changing (Faraday).';
+    else {
+      const left = z < 0, near = left ? 'left' : 'right';
+      // ε > 0 drives a current whose own field points along +x, so the coil's right end acts as N.
+      const nearPole = (e > 0) === !left ? 'north' : 'south';
+      const magnetFace = left ? (mSign > 0 ? 'north' : 'south') : mSign > 0 ? 'south' : 'north';
+      const repel = nearPole === magnetFace;
+      const seen = (e > 0) === left ? 'clockwise' : 'anticlockwise';
+      lenz.textContent = `Lenz's law: the current flows ${seen} as seen from the magnet, so the coil's ${near} face becomes a ${nearPole} pole. Facing the magnet's ${magnetFace} pole, it ${repel ? 'pushes the magnet away' : 'pulls the magnet back'}: the induced current always opposes the motion that makes it.`;
+    }
+    const f12 = q('.fdi-f12'); f12.hidden = level !== 12;
+    f12.textContent = `ε = −N dΦ/dt = −N (dΦ/dx) v. Right now dΦ/dx = ${sg(dflux1(M, A, z) * mSign * 1000)} mWb/m per turn and v = ${sg(v)} m/s. The minus sign is Lenz's law.`;
+  }
+
+  // Generator.
+  let gAngle = 0, gPlay = !reduce;
+  const GW = 360, GH = 250;
+  function drawGen() {
+    const pal = pagePalette(), c = setup(gen, GW, GH), B = +q<HTMLInputElement>('.fdi-gb').value, rpm = +q<HTMLInputElement>('.fdi-r').value, N = +q<HTMLSelectElement>('.fdi-gn').value;
+    const g = generator(N, B, 0.01, rpm / 60), th = (gAngle * Math.PI) / 180;
+    c.fillStyle = pal.bg; c.fillRect(0, 0, GW, GH);
+    // Poles and coil, end-on (top part).
+    c.globalAlpha = 0.3; c.fillStyle = pal.bad; c.fillRect(10, 10, 26, 90); c.fillStyle = pal.accent; c.fillRect(144, 10, 26, 90); c.globalAlpha = 1;
+    c.fillStyle = pal.ink; c.font = '700 13px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText('N', 23, 60); c.fillText('S', 157, 60);
+    const cx = 90, cy = 55, r = 38;
+    // Coil seen end-on: its plane is at th + 90° from the field, so the flux is largest at 0°.
+    const px = r * Math.cos(th + Math.PI / 2), py = r * Math.sin(th + Math.PI / 2);
+    c.strokeStyle = pal.warn; c.lineWidth = 3; c.beginPath(); c.moveTo(cx - px, cy + py); c.lineTo(cx + px, cy - py); c.stroke();
+    c.fillStyle = pal.warn; for (const s of [1, -1]) { c.beginPath(); c.arc(cx + s * px, cy - s * py, 5, 0, Math.PI * 2); c.fill(); }
+    c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.fillText('coil seen end-on', cx, 115);
+    // Graph of flux and emf over two turns, with the marker at the angle now.
+    const X0 = 190, X1 = 350, Yc = 55, hh = 42, X = (deg: number) => X0 + (deg / 720) * (X1 - X0);
+    c.strokeStyle = pal.line; c.lineWidth = 1; c.beginPath(); c.moveTo(X0, Yc); c.lineTo(X1, Yc); c.stroke();
+    const curve = (f: (d: number) => number, col: string, dash: number[]) => { c.strokeStyle = col; c.lineWidth = 2; c.setLineDash(dash); c.beginPath(); for (let d = 0; d <= 720; d += 6) { const y = Yc - f(d) * hh; d ? c.lineTo(X(d), y) : c.moveTo(X(d), y); } c.stroke(); c.setLineDash([]); };
+    curve((d) => Math.cos((d * Math.PI) / 180), pal.accent, [5, 4]);
+    curve((d) => Math.sin((d * Math.PI) / 180), pal.bad, []);
+    c.fillStyle = pal.ink; c.beginPath(); c.arc(X(gAngle), Yc - Math.sin(th) * hh, 4, 0, Math.PI * 2); c.fill();
+    c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'left'; c.fillText('flux (dashed), emf', X0, 112);
+    // Sizes in words below.
+    c.textAlign = 'left'; c.fillStyle = pal.ink; c.font = '13px system-ui, sans-serif';
+    c.fillText(`At ${Math.round(gAngle)}°: flux linkage ${sg(g.flux(th / g.w) * 1000)} mWb`, 10, 150);
+    c.fillText(`emf ${sg(g.emf(th / g.w))} V (peak ${sg(g.peak)} V)`, 10, 172);
+    c.fillStyle = pal.muted; c.fillText(`One turn takes ${sg(g.T * 1000)} ms; the emf changes`, 10, 196); c.fillText('direction twice a turn. Flux is largest when the coil', 10, 214);
+    c.fillText('faces the field; the emf is largest when it lies along it.', 10, 232);
+    gen.setAttribute('aria-label', `Generator coil at ${Math.round(gAngle)} degrees`);
+  }
+  function genText() {
+    const B = +q<HTMLInputElement>('.fdi-gb').value, rpm = +q<HTMLInputElement>('.fdi-r').value, N = +q<HTMLSelectElement>('.fdi-gn').value;
+    const g = generator(N, B, 0.01, rpm / 60);
+    q('.fdi-gbv').textContent = `${B.toFixed(2)} T`; q('.fdi-rv').textContent = `${rpm} rpm (${sg(rpm / 60)} Hz)`; q('.fdi-av').textContent = `${Math.round(gAngle)}°`;
+    q('.fdi-gtext').textContent = `Peak emf ε₀ = N B A ω = ${N} × ${B.toFixed(2)} × 0.01 × ${sg(g.w)} = ${sg(g.peak)} V, at ${sg(rpm / 60)} Hz.` + (level === 12 ? ` RMS value ε₀/√2 = ${sg(g.rms)} V. Φ = N B A cos ωt and ε = N B A ω sin ωt.` : '');
+  }
+
+  // Animation loop.
+  let last = 0;
+  function tick(t: number) {
+    const dt = last ? Math.min(0.05, (t - last) / 1000) : 0; last = t;
+    if (target !== null && !dragging) {
+      const s = speed(), d = target - z, step = s * dt;
+      if (Math.abs(d) <= step) { z = target; target = null; v = 0; } else { v = Math.sign(d) * s; z += v * dt; }
+    } else if (dragging) { v = dt > 0 ? 0.6 * v + 0.4 * ((z - lastZ) / dt) : v; }
+    else v = 0;
+    lastZ = z;
+    const e = mSign * emf(turns(), M, A, z, v);
+    if (Math.abs(e) > 1e-9) lastSign = Math.sign(e);
+    hist.push({ t, e, f: turns() * flux1(M, A, z) * mSign }); while (hist.length && t - hist[0].t > 4200) hist.shift();
+    draw(e); drawGraph(t); texts(e);
+    if (gPlay) { gAngle = (gAngle + dt * 90) % 360; q<HTMLInputElement>('.fdi-a').value = String(Math.floor(gAngle)); drawGen(); genText(); }
+    requestAnimationFrame(tick);
+  }
+  const move = (to: number) => { target = to; lastMove = { z0: z, z1: to, v: speed() }; };
+  q('.fdi-in').addEventListener('click', () => move(0));
+  q('.fdi-out').addEventListener('click', () => move(-0.15));
+  q('.fdi-flip').addEventListener('click', () => { mSign = -mSign; });
+  const toZ = (e: PointerEvent) => { const b = fig.getBoundingClientRect(); return Math.max(ZMIN, Math.min(ZMAX, ((((e.clientX - b.left) / b.width) * W - CX) / S))); };
+  let grab = 0;
+  fig.addEventListener('pointerdown', (e) => { const zz = toZ(e); if (Math.abs(zz - z) > 0.04) return; dragging = true; target = null; grab = zz - z; fig.setPointerCapture(e.pointerId); e.preventDefault(); });
+  fig.addEventListener('pointermove', (e) => { if (!dragging) return; z = Math.max(ZMIN, Math.min(ZMAX, toZ(e) - grab)); });
+  const end = () => { dragging = false; };
+  fig.addEventListener('pointerup', end); fig.addEventListener('pointercancel', end);
+  q('.fdi-level').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (!b) return; for (const x of q('.fdi-level').querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b)); level = +b.dataset.v!; texts(0); genText(); });
+  q('.fdi-play').addEventListener('click', () => { gPlay = !gPlay; q('.fdi-play').textContent = gPlay ? 'Pause' : 'Play'; });
+  q('.fdi-a').addEventListener('input', () => { gPlay = false; q('.fdi-play').textContent = 'Play'; gAngle = +q<HTMLInputElement>('.fdi-a').value; drawGen(); genText(); });
+  for (const c of ['.fdi-gb', '.fdi-r']) q(c).addEventListener('input', () => { drawGen(); genText(); });
+  q('.fdi-gn').addEventListener('change', () => { drawGen(); genText(); });
+
+  if (!gPlay) q('.fdi-play').textContent = 'Play';
+  draw(0); texts(0); drawGen(); genText();
+  quiz(q('.fdi-quiz'), () => questions());
+  requestAnimationFrame(tick);
+</script>
