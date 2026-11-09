@@ -11,7 +11,7 @@ order: 721
 icon: target
 works: offline
 updated: 2026-11-09
-related: [reliability-analysis, sample-size, plot-maker, uncertainty-calculator]
+related: [reliability-analysis, sample-size, plot-maker, uncertainty-calculator, reaction-time-experiments, staircase-threshold-fitter]
 sources:
   - "Formulas: Green and Swets (1966); Macmillan and Creelman, Detection Theory: A User's Guide; Grier (1971) for A′ and B″; Hautus (1995) and Macmillan and Kaplan (1985) for corrections; Gourevitch and Galanter (1967) for the variance of d′; Dorfman and Alf (1969) for the maximum likelihood ROC fit."
   - "All example numbers are made up."

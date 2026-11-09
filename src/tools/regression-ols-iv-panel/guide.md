@@ -11,7 +11,7 @@ order: 744
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [data-cleaner, plot-maker, trend-analyser, sample-size]
+related: [data-cleaner, plot-maker, trend-analyser, sample-size, difference-in-differences, unit-root-cointegration, gravity-model]
 sources:
   - "Formulas: White (1980) and MacKinnon and White (1985) for HC0 to HC3; Liang and Zeger (1986) for clustered errors; two-stage least squares and the within estimator as in Wooldridge, Econometric Analysis of Cross Section and Panel Data. Example data made up."
 flow:

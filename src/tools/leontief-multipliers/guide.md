@@ -11,7 +11,7 @@ order: 741
 icon: table
 works: offline
 updated: 2026-11-09
-related: [sql-playground, data-cleaner, plot-maker]
+related: [sql-playground, data-cleaner, plot-maker, location-quotient-shift-share]
 sources:
   - "Method: Wassily Leontief's input-output model, as set out in Miller and Blair, Input-Output Analysis: Foundations and Extensions (2nd ed., 2009): A = Z x̂⁻¹, L = (I − A)⁻¹, simple and Type I multipliers; Rasmussen (1956) linkages. No tables copied."
   - "Written by fibub. Checked in the tests against NumPy (numpy.linalg.inv and matrix products) on the example and a random 5-sector table."

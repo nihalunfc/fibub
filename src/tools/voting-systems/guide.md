@@ -11,7 +11,7 @@ order: 751
 icon: check
 works: offline
 updated: 2026-11-09
-related: [sample-size, plot-maker, data-cleaner]
+related: [sample-size, plot-maker, data-cleaner, power-indices, polling-average]
 sources:
   - "Formulas and counting rules only: Borda (1781), Condorcet (1785), Droop (1881), Gregory transfer method, Schulze (2011), D'Hondt (1878), Sainte-Laguë (1910), Gallagher (1991). Example ballots and vote counts are made up."
 flow:

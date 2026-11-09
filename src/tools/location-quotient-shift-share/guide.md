@@ -11,7 +11,7 @@ order: 758
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [trend-analyser, plot-maker, data-cleaner]
+related: [trend-analyser, plot-maker, data-cleaner, gravity-model, catchment-buffer]
 sources:
   - "Formulas: location quotient and the economic base (LQ method) as in standard regional economics textbooks; classic shift-share decomposition (Dunn 1960)."
   - "Example data: made up."

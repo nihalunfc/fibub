@@ -11,7 +11,7 @@ order: 731
 icon: table
 works: offline
 updated: 2026-11-09
-related: [data-cleaner]
+related: [data-cleaner, ipa-keyboard]
 sources:
   - "Feature values are derived on this page by rule from each symbol's standard IPA description (place, manner and voicing; vowel height, backness and rounding), in the tradition of Chomsky and Halle (1968, The Sound Pattern of English) with place features as in modern textbooks (e.g. Hayes 2009, Introductory Phonology). No published feature chart is copied; frameworks differ on details."
 flow:

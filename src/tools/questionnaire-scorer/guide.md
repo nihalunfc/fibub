@@ -11,7 +11,7 @@ order: 723
 icon: table
 works: offline
 updated: 2026-11-09
-related: [reliability-analysis, data-cleaner, sample-size, plot-maker]
+related: [reliability-analysis, data-cleaner, sample-size, plot-maker, factor-analysis, irt-item-analysis, item-analysis, likert-chart]
 sources:
   - "Formulas: reverse keying as (lowest + highest) − answer; prorated sums as the mean of answered items × number of items; Cronbach (1951) alpha with Feldt (1965) interval."
   - "Example data: made up for this page."

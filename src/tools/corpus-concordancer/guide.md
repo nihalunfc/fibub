@@ -11,7 +11,7 @@ order: 733
 icon: search
 works: offline
 updated: 2026-11-09
-related: [kmer-counter, plot-maker, data-cleaner]
+related: [kmer-counter, plot-maker, data-cleaner, lexical-diversity-readability, interlinear-gloss, qualitative-coding]
 sources:
   - "Formulas: Church and Hanks (1990) for mutual information; Dunning (1993) for log-likelihood G²; t-score as in Church et al. (1991); window counts as described by Evert (2008). Example text written for this tool."
 flow:

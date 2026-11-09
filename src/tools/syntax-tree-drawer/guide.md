@@ -11,7 +11,7 @@ order: 734
 icon: pencil
 works: offline
 updated: 2026-11-09
-related: [plot-maker, plasmid-map]
+related: [plot-maker, plasmid-map, interlinear-gloss]
 sources:
   - "Notation: the labelled bracketing used across syntax textbooks; LaTeX output follows the documented syntax of the forest and qtree packages. Example sentences written for this tool."
 flow:

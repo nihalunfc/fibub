@@ -11,7 +11,7 @@ order: 722
 icon: clock
 works: offline
 updated: 2026-11-09
-related: [reliability-analysis, sample-size, plot-maker, data-cleaner]
+related: [reliability-analysis, sample-size, plot-maker, data-cleaner, staircase-threshold-fitter, eye-tracking-heatmap]
 sources:
   - "Task designs: Stroop (1935), Eriksen and Eriksen (1974) flanker task, Kirchner (1958) n-back. Trial lists are generated at random in the page."
   - "Summary formulas: standard descriptive statistics; n-back d′ with the log-linear correction (Hautus 1995)."

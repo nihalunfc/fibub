@@ -11,7 +11,7 @@ order: 764
 icon: check
 works: offline
 updated: 2026-11-09
-related: [reliability-analysis, data-cleaner, plot-maker, sample-size]
+related: [reliability-analysis, data-cleaner, plot-maker, sample-size, irt-item-analysis, effect-size-learning-gain]
 sources:
   - "Methods: classical test theory; Kelley (1939) 27 % groups; Kuder and Richardson (1937) KR-20 and KR-21; Ebel and Frisbie's guide for the discrimination index."
   - "Example data: made up for this page."

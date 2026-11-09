@@ -11,7 +11,7 @@ order: 760
 icon: compass
 works: offline
 updated: 2026-11-09
-related: [gps-track-analyser, plot-maker, data-cleaner]
+related: [gps-track-analyser, plot-maker, data-cleaner, hotspot-density]
 sources:
   - "Great-circle distance by the haversine formula on a sphere of mean Earth radius 6,371,008.8 m; polygon centroids by the shoelace formula on a local flat projection. Methods only; no data or tables are copied."
   - "Written by fibub and checked in the tests against an independent Python implementation (own haversine and a brute-force NumPy distance matrix)."

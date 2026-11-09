@@ -11,7 +11,7 @@ order: 729
 icon: pointer
 works: offline
 updated: 2026-11-09
-related: [plot-maker, sample-size]
+related: [plot-maker, sample-size, factor-analysis]
 sources:
   - "Perceptron learning rule: Rosenblatt (1958); limits on XOR: Minsky and Papert (1969). Hopfield network with Hebbian weights and energy: Hopfield (1982); storage limit about 0.138 N: Amit, Gutfreund and Sompolinsky (1985). Methods only; no data or tables are copied."
   - "Written by fibub and checked in the tests against an independent NumPy implementation with the same update order and the same seeded random numbers."

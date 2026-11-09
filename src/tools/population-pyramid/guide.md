@@ -11,7 +11,7 @@ order: 755
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [plot-maker, data-cleaner, sample-size]
+related: [plot-maker, data-cleaner, sample-size, cohort-component-projection]
 sources:
   - "Formulas only: standard demographic measures (dependency ratios, sex ratio, grouped median by interpolation), as in Preston, Heuveline and Guillot (2001). Example counts are made up."
 flow:

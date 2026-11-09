@@ -11,7 +11,7 @@ order: 724
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [reliability-analysis, sample-size, data-cleaner, plot-maker]
+related: [reliability-analysis, sample-size, data-cleaner, plot-maker, irt-item-analysis]
 sources:
   - "Methods: Kaiser (1970, 1974) KMO; Bartlett (1950); Horn (1965) parallel analysis; iterated principal axis factoring; maximum likelihood with the objective of R's factanal (Joreskog 1967); varimax (Kaiser 1958) and promax (Hendrickson and White 1964) with Kaiser normalisation."
   - "Example data: made up for this page."

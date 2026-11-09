@@ -11,7 +11,7 @@ order: 750
 icon: pencil
 works: offline
 updated: 2026-11-09
-related: [reliability-analysis, data-cleaner, plot-maker]
+related: [reliability-analysis, data-cleaner, plot-maker, field-note-organiser]
 sources:
   - "Methods: thematic coding as described in qualitative research textbooks; the c-coefficient n12/(n1 + n2 − n12) as used in qualitative analysis software. Example interviews made up for this tool."
 flow:

@@ -11,7 +11,7 @@ order: 730
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [plot-maker, data-cleaner, trend-analyser]
+related: [plot-maker, data-cleaner, trend-analyser, pitch-contour-tracker, ipa-feature-matrix, ipa-keyboard]
 sources:
   - "Method: linear prediction by the autocorrelation method with the Levinson-Durbin recursion (Makhoul 1975, Proc. IEEE 63, 561); formant settings follow Praat's documented defaults (Boersma and Weenink). Normalisation: Lobanov (1971), J. Acoust. Soc. Am. 49, 606."
   - "Example sound and example table: made up for this page (synthetic vowels and invented speakers A and B)."

@@ -11,7 +11,7 @@ order: 767
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [sample-size, uncertainty-calculator, trend-analyser]
+related: [sample-size, uncertainty-calculator, trend-analyser, hotspot-density]
 sources:
   - "Exact (Garwood 1936) Poisson interval and Byar's approximation (as given by Breslow and Day 1987); exact conditional rate ratio test; direct standardisation with the gamma interval of Fay and Feuer (1997). Methods only; no data or tables are copied."
   - "Written by fibub and checked in the tests against SciPy (chi2.ppf, beta.ppf, binomtest with exact Clopper–Pearson intervals) and NumPy."

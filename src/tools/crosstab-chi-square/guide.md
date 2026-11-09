@@ -11,7 +11,7 @@ order: 747
 icon: table
 works: offline
 updated: 2026-11-09
-related: [sample-size, reliability-analysis, data-cleaner, sql-playground]
+related: [sample-size, reliability-analysis, data-cleaner, sql-playground, likert-chart]
 sources:
   - "Formulas: Pearson (1900), the likelihood-ratio G² test, Cramér (1946), Haberman (1973) adjusted residuals, Fisher (1922) exact test, Yates (1934) correction, Kish (1965) design effect for weights, and the first-order idea of Rao and Scott (1981). Example data made up."
 flow:

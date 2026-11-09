@@ -11,7 +11,7 @@ order: 738
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [uncertainty-calculator, plot-maker, trend-analyser]
+related: [uncertainty-calculator, plot-maker, trend-analyser, inflation-calculator, nash-equilibrium-solver]
 sources:
   - "Standard microeconomics formulas (Marshallian surplus, point and midpoint elasticity, tax incidence); no tables copied."
   - "Written by fibub. Checked in the tests against an independent SciPy calculation (brentq for prices, numerical integration of the inverse curves for surplus and deadweight loss) and the textbook closed forms."

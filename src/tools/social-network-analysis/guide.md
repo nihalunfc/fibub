@@ -11,7 +11,7 @@ order: 749
 icon: link
 works: offline
 updated: 2026-11-09
-related: [data-cleaner, plot-maker, sample-size, reliability-analysis]
+related: [data-cleaner, plot-maker, sample-size, reliability-analysis, kinship-diagram]
 sources:
   - "Methods: Freeman (1977, 1978) degree and betweenness, Brandes (2001) algorithm, Wasserman and Faust (1994) closeness, Bonacich (1972) eigenvector centrality, Blondel et al. (2008) Louvain communities, Fruchterman and Reingold (1991) layout. Example data made up."
 flow:

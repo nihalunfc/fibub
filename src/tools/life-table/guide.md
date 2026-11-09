@@ -11,7 +11,7 @@ order: 754
 icon: table
 works: offline
 updated: 2026-11-09
-related: [sample-size, plot-maker, data-cleaner]
+related: [sample-size, plot-maker, data-cleaner, population-pyramid, cohort-component-projection]
 sources:
   - "Formulas only: Preston, Heuveline and Guillot (2001) Demography, chapter 3; Coale and Demeny (1983) a0 and 4a1 equations; Andreev and Kingkade (2015) a0 equations. Example deaths and population are made up."
 flow:

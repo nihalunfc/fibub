@@ -11,7 +11,7 @@ order: 765
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [sample-size, reliability-analysis, uncertainty-calculator, plot-maker]
+related: [sample-size, reliability-analysis, uncertainty-calculator, plot-maker, rubric-grade-calculator]
 sources:
   - "Formulas: Cohen (1988); Hedges (1981) small-sample correction and Hedges and Olkin (1985); Glass (1976); Lakens (2013) dz and dav; Borenstein et al. (2009) repeated-measures variance; noncentral t intervals (Steiger and Fouladi 1997) with Lenth's (1989) algorithm; Hake (1998) normalised gain."
   - "Example numbers: made up for this page."
