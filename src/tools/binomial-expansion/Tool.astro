@@ -1,0 +1,164 @@
+---
+// Binomial expansion with Pascal's triangle: expand (ax + b)ⁿ, read coefficients off the triangle, find the
+// general term and the middle term(s), and drop balls through a Galton board to see the binomial
+// distribution appear. Class 11 maths (binomial theorem), linking to Class 12 probability.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax bnx">
+  <div class="ax-card">
+    <h2>Expand (ax + b)ⁿ</h2>
+    <div class="ax-grid">
+      <label>a <input class="bn-a" type="text" inputmode="numeric" value="2" /></label>
+      <label>b <input class="bn-b" type="text" inputmode="numeric" value="-3" /></label>
+      <label>n <input class="bn-n" type="range" min="0" max="12" value="5" /></label>
+    </div>
+    <p class="ax-err bn-err" hidden></p>
+    <p class="bn-head"></p>
+    <p class="bn-exp"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Pascal's triangle</h2>
+    <canvas class="ax-fig bn-tri" role="img"></canvas>
+    <p class="ax-help">Each number is the sum of the two above it. Row n (blue) gives the coefficients C(n, r) of (x + y)ⁿ.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The general term</h2>
+    <label class="bn-sl">r = <b class="bn-rv"></b><input class="bn-r" type="range" min="0" max="5" value="2" /></label>
+    <p class="bn-gen"></p>
+    <dl class="ax-facts bn-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Galton board</h2>
+    <p class="ax-help">Each ball bounces left or right at every row of pegs, with even chances. The number of rights is the slot it lands in, so the slots fill in the proportions C(n, k)/2ⁿ: a binomial distribution.</p>
+    <canvas class="ax-fig bn-gal" role="img"></canvas>
+    <div class="ax-row"><button type="button" class="btn small bn-d100">Drop 100 balls</button><button type="button" class="btn small secondary bn-d1000">Drop 1000</button><button type="button" class="btn small secondary bn-clear">Empty</button></div>
+    <p class="bn-gnote"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="bn-try">
+      <li>Set a = 1 and b = 1: the coefficients are exactly the blue row of the triangle.</li>
+      <li>Make b negative: the signs alternate.</li>
+      <li>Try n odd and n even: an even n has one middle term, an odd n has two.</li>
+      <li>Drop 1000 balls: the pile takes the shape of the blue row, the bell shape of the binomial distribution.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="bn-quiz" />
+</div>
+
+<script>
+  import { pascal, C, expand, term, middle, galton } from '../../lib/sci/school-binomial';
+  import { paint, type Palette } from '../../lib/report';
+  import { FONT, fmt } from '../../lib/sm-graph';
+  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.bnx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380;
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+  const sup = (k: number) => String(k).split('').map((d) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+d]).join('');
+  const sub = (k: number) => String(k).split('').map((d) => '₀₁₂₃₄₅₆₇₈₉'[+d]).join('');
+  let bins: number[] = [], timer = 0;
+
+  function read() {
+    const a = Number(q<HTMLInputElement>('.bn-a').value.replace('−', '-')), b = Number(q<HTMLInputElement>('.bn-b').value.replace('−', '-')), n = +q<HTMLInputElement>('.bn-n').value;
+    return { a, b, n, ok: Number.isInteger(a) && Number.isInteger(b) && Math.abs(a) <= 20 && Math.abs(b) <= 20 };
+  }
+
+  const mn = (s: string) => s.replace(/-/g, '−');
+  function run() {
+    const { a, b, n, ok } = read(), err = q('.bn-err');
+    if (!ok) { err.textContent = 'Use whole numbers from −20 to 20 for a and b.'; err.hidden = false; return; }
+    err.hidden = true;
+    const rIn = q<HTMLInputElement>('.bn-r'); rIn.max = String(n); if (+rIn.value > n) rIn.value = String(n);
+    const r = +rIn.value; q('.bn-rv').textContent = String(r);
+    const sb = b < 0 ? `− ${-b}` : `+ ${b}`, base = `(${a === 1 ? '' : a === -1 ? '−' : a}x ${sb})`;
+    q('.bn-head').textContent = `${base}${sup(n)} =`;
+    q('.bn-exp').textContent = expand(a, b, n).text;
+    // Triangle.
+    const rows = Math.max(n + 1, 7), tri = pascal(rows), rh = 26, H = rows * rh + 12;
+    paint(q<HTMLCanvasElement>('.bn-tri'), { w: W, h: H, alt: `Pascal's triangle to row ${rows - 1}; row ${n}: ${tri[n].join(' ')}`, draw: (ctx, w, h, pl: Palette) => {
+      const cw = (w - 10) / rows;
+      tri.forEach((row, i) => row.forEach((v, j) => {
+        const x = w / 2 + (j - i / 2) * cw, y = 16 + i * rh, on = i === n;
+        const s = v.toString(); ctx.font = `${on ? '700 ' : ''}${Math.min(13, cw * (s.length > 3 ? 0.42 : 0.6))}px system-ui, sans-serif`;
+        ctx.fillStyle = on ? (j === r ? pl.accent2 : pl.accent) : pl.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(s, x, y);
+      }));
+    } });
+    // General term.
+    const T = term(a, b, n, r), mid = middle(n).map((k) => term(a, b, n, k));
+    q('.bn-gen').textContent = mn(`T${sub(r + 1)} = C(${n}, ${r}) (${a === 1 ? '' : a}x)${sup(n - r)} (${b})${sup(r)} = ${C(n, r)} × ${BigInt(a) ** BigInt(n - r)}${n - r ? `x${n - r === 1 ? '' : sup(n - r)}` : ''} × ${BigInt(b) ** BigInt(r)} = ${T.text}`);
+    q('.bn-facts').replaceChildren(
+      fact('Number of terms', String(n + 1), 'always n + 1'),
+      fact(n % 2 ? 'Middle terms' : 'Middle term', mid.map((m) => `T${sub(m.r + 1)} = ${m.text}`).join(' and '), n % 2 ? 'n is odd: two middle terms' : 'n is even: one middle term'),
+      fact('Sum of the coefficients', expand(a, b, n).terms.reduce((s, t) => s + t.coef, 0n).toString().replace('-', '−'), `put x = 1: (${a} ${sb})${sup(n)}`),
+      fact('Term with no x', T.power === 0 ? T.text : term(a, b, n, n).text, `T${sub(n + 1)}, the last term`),
+    );
+    galtonDraw();
+  }
+
+  function galtonDraw() {
+    const n = Math.max(1, +q<HTMLInputElement>('.bn-n').value);
+    if (bins.length !== n + 1) bins = Array(n + 1).fill(0);
+    const total = bins.reduce((s, v) => s + v, 0), H = 260;
+    paint(q<HTMLCanvasElement>('.bn-gal'), { w: W, h: H, alt: `Galton board with ${n} rows; ${total} balls dropped`, draw: (ctx, w, h, pl: Palette) => {
+      const pegTop = 14, pegH = 90, sw = (w - 20) / (n + 1);
+      for (let i = 0; i < n; i++) for (let j = 0; j <= i; j++) { const x = w / 2 + (j - i / 2) * sw, y = pegTop + (i * pegH) / Math.max(1, n - 1); ctx.beginPath(); ctx.arc(x, y, 2.5, 0, 2 * Math.PI); ctx.fillStyle = pl.muted; ctx.fill(); }
+      const baseY = h - 18, maxH = baseY - pegTop - pegH - 16;
+      const exp = bins.map((_, k) => galton(n, k)), top = Math.max(...exp, ...bins.map((v) => (total ? v / total : 0)));
+      bins.forEach((v, k) => {
+        const x = 10 + k * sw, frac = total ? v / total : 0, hh = (frac / top) * maxH;
+        ctx.fillStyle = pl.accent; ctx.globalAlpha = 0.6; ctx.fillRect(x + 2, baseY - hh, sw - 4, hh); ctx.globalAlpha = 1;
+        const he = (exp[k] / top) * maxH; ctx.strokeStyle = pl.accent2; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x + 2, baseY - he); ctx.lineTo(x + sw - 2, baseY - he); ctx.stroke();
+        ctx.font = FONT; ctx.fillStyle = pl.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(String(k), x + sw / 2, baseY + 3);
+      });
+    } });
+    q('.bn-gnote').textContent = total ? `${total} balls. Blue bars: where they landed. Orange lines: the expected share C(${n}, k)/2${sup(n)}. Middle slot: ${fmt((bins[Math.floor(n / 2)] / total) * 100, 1)} % landed, ${fmt(galton(n, Math.floor(n / 2)) * 100, 1)} % expected.` : `${n} rows of pegs and ${n + 1} slots. Orange lines show the expected share C(${n}, k)/2${sup(n)}. Drop some balls.`;
+  }
+
+  function drop(count: number) {
+    clearInterval(timer);
+    const n = Math.max(1, +q<HTMLInputElement>('.bn-n').value);
+    let left = count;
+    timer = window.setInterval(() => {
+      const step = Math.min(left, Math.max(5, Math.ceil(count / 30)));
+      for (let i = 0; i < step; i++) { let k = 0; for (let j = 0; j < n; j++) if (Math.random() < 0.5) k++; bins[k]++; }
+      left -= step; galtonDraw();
+      if (left <= 0) clearInterval(timer);
+    }, 30);
+  }
+  q('.bn-d100').addEventListener('click', () => drop(100));
+  q('.bn-d1000').addEventListener('click', () => drop(1000));
+  q('.bn-clear').addEventListener('click', () => { clearInterval(timer); bins = []; galtonDraw(); });
+  q('.bn-n').addEventListener('input', () => { clearInterval(timer); bins = []; run(); });
+  root.querySelectorAll('.bn-a, .bn-b, .bn-r').forEach((e) => e.addEventListener('input', run));
+  document.addEventListener('fibub:theme', run);
+  run();
+
+  quiz(q('.bn-quiz'), (): Question[] => {
+    const n = rint(4, 8), r = rint(1, n - 1), n2 = rint(4, 7), k = rint(1, n2 - 1), b = pick([2, 3, -2, -1]), m = 2 * rint(2, 4), a3 = pick([1, 2]), b3 = pick([1, -1, 2]);
+    return [
+      { text: `What is C(${n}, ${r})?`, answer: Number(C(n, r)), worked: `C(${n}, ${r}) = ${n}! / (${r}! ${n - r}!) = ${C(n, r)}. It is entry ${r} (counting from 0) in row ${n} of Pascal's triangle.` },
+      { text: `What is the coefficient of x${sup(n2 - k)} in (x ${b < 0 ? '−' : '+'} ${Math.abs(b)})${sup(n2)}?`, answer: Number(C(n2, k) * BigInt(b) ** BigInt(k)), worked: `x${sup(n2 - k)} comes from T${sub(k + 1)} = C(${n2}, ${k}) x${sup(n2 - k)} (${b})${sup(k)}, so the coefficient is ${C(n2, k)} × ${BigInt(b) ** BigInt(k)} = ${C(n2, k) * BigInt(b) ** BigInt(k)}.` },
+      { text: `How many terms does the expansion of (x + 1)${sup(m)} have, and which is the middle one? Type the number of the middle term (T₁ is the first).`, answer: m / 2 + 1, worked: `${m + 1} terms; n = ${m} is even, so there is one middle term, T${sub(m / 2 + 1)}.` },
+      { text: `What is the sum of the coefficients of (${a3}x ${b3 < 0 ? '−' : '+'} ${Math.abs(b3)})⁴?`, answer: (a3 + b3) ** 4, worked: `Put x = 1: (${a3} ${b3 < 0 ? '−' : '+'} ${Math.abs(b3)})⁴ = ${a3 + b3}⁴ = ${(a3 + b3) ** 4}.` },
+      { text: 'A Galton board has 4 rows. What is the chance a ball lands in the middle slot (k = 2)?', answer: 6 / 16, tol: 1e-6, worked: 'C(4, 2)/2⁴ = 6/16 = 0.375: six of the sixteen equally likely left-right paths end there.' },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .bnx .bn-sl, .bnx label:has(.bn-n) { color: var(--ink); }
+  .bnx input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .bnx .bn-head { margin: 12px 0 0; color: var(--muted); }
+  .bnx .bn-exp { font-size: 20px; font-weight: 650; overflow-wrap: anywhere; margin: 4px 0 0; font-variant-numeric: tabular-nums; }
+  .bnx .bn-gen { overflow-wrap: anywhere; }
+  .bnx .ax-row { margin-top: 8px; }
+  .bnx .bn-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+</style>
