@@ -11,7 +11,7 @@ order: 541
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [plot-maker, calibration-curve]
+related: [fractal-explorer, numerical-methods, symbolic-algebra, plot-maker, calibration-curve]
 sources:
   - "Standard numerical methods (bisection, golden-section search, marching squares, orthographic projection); no outside data."
   - "Checked against Python numpy and scipy: polynomial roots and crossings (numpy.roots), curve lengths (scipy quad and ellipe), crossings (brentq) and maxima (minimize_scalar)."

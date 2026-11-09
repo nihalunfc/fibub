@@ -11,7 +11,7 @@ order: 556
 icon: link
 works: offline
 updated: 2026-11-09
-related: [sql-playground, plot-maker]
+related: [network-metrics, transportation-assignment, combinatorics-calculator, sql-playground, plot-maker]
 sources:
   - "Standard textbook algorithms (Dijkstra, Bellman-Ford, BFS, DFS, Kruskal, Prim, Edmonds-Karp, greedy and DSatur colouring, Brandes betweenness, Kahn's topological sort, Fruchterman-Reingold layout), written by fibub."
   - "Checked against networkx 3.7 (BSD licence) on the examples and on 100 random graphs, directed and undirected: distances, search orders, spanning tree weights, flow values, colourings, centralities and topological orders all equal."

@@ -11,7 +11,7 @@ order: 547
 icon: search
 works: offline
 updated: 2026-11-09
-related: [function-grapher]
+related: [function-grapher, chaos-explorer]
 sources:
   - "Escape-time algorithm with smooth colouring, the cardioid and bulb test, the chaos game and Moran's equation are standard mathematics; the Barnsley fern's four maps are the well-known ones from Michael Barnsley's 1988 book Fractals Everywhere (mathematical constants)."
   - "Checked against a plain Python loop over complex numbers (escape counts and smooth values) and scipy brentq (similarity dimensions)."

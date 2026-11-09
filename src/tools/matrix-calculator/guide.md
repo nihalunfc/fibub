@@ -11,7 +11,7 @@ order: 543
 icon: table
 works: offline
 updated: 2026-11-09
-related: [uncertainty-calculator, plot-maker]
+related: [numerical-methods, symbolic-algebra, uncertainty-calculator, plot-maker]
 sources:
   - "Methods: Gauss-Jordan elimination and LU in exact fractions, the Faddeev-LeVerrier characteristic polynomial, Householder QR, shifted QR iteration for eigenvalues, one-sided Jacobi SVD (standard textbook linear algebra)."
   - "Checked against numpy, scipy and sympy on 11 matrices (square, singular, rectangular, complex eigenvalues, a Jordan block) and a random 10 × 10."

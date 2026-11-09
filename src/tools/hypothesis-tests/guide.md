@@ -11,7 +11,7 @@ order: 560
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [sample-size, plot-maker, data-cleaner, reliability-analysis, uncertainty-calculator]
+related: [sample-size, effect-size-converter, bootstrap-permutation, distribution-explorer, regression-workbench, plot-maker, data-cleaner, reliability-analysis, uncertainty-calculator]
 sources:
   - "Methods as in scipy.stats and statsmodels; Shapiro-Wilk by Royston (1995); Tukey HSD with the studentized range distribution. Example data made up."
 flow:

@@ -11,7 +11,7 @@ order: 570
 icon: target
 works: offline
 updated: 2026-11-09
-related: [csv-profiler, reliability-analysis, sample-size]
+related: [small-model-trainer, train-test-splitter, csv-profiler, reliability-analysis, sample-size]
 sources:
   - "Metric definitions as in scikit-learn (precision_recall_fscore_support, balanced_accuracy_score, matthews_corrcoef, cohen_kappa_score); Wilson score intervals; kappa's large-sample standard error from Fleiss, Cohen and Everitt (1969). Checked against scikit-learn 1.9 and statsmodels 0.14."
   - "The example counts, matrix and spam/ham table are made up for this tool."

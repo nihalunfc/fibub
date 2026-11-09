@@ -11,7 +11,7 @@ order: 578
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, link-budget-calculator, compress-file]
+related: [huffman-coding, error-correcting-codes, cipher-teacher, biodiversity-indices, link-budget-calculator, compress-file]
 sources:
   - "Formulas: Shannon (1948); Cover and Thomas, Elements of Information Theory (general textbook definitions). Blahut-Arimoto as in Blahut (1972) and Arimoto (1972), with Blahut's upper and lower bounds."
   - "Checked against scipy.stats.entropy, scipy's Jensen-Shannon distance, scikit-learn's mutual_info_score and, for channel capacity, a separate scipy.optimize maximisation of I(X;Y) plus the closed forms for the binary symmetric, erasure and Z channels."
