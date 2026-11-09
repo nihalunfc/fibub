@@ -1,0 +1,124 @@
+---
+// NACA 4-digit airfoil lift and moment by thin airfoil theory and a vortex panel method, with a rough drag estimate.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax afc">
+  <div class="ax-card">
+    <h2>Airfoil and flow</h2>
+    <div class="ax-grid">
+      <label>NACA 4-digit code <input class="af-code" type="text" value="2412" autocomplete="off" spellcheck="false" /></label>
+      <label>Angle of attack α (°) <input class="af-a" type="text" inputmode="decimal" value="4" /></label>
+      <label>Panels <select class="af-n"><option value="60">60 (fast)</option><option value="100">100</option><option value="160" selected>160</option><option value="240">240 (fine)</option></select></label>
+      <label>Chord (m) <input class="af-c" type="text" inputmode="decimal" value="1" /></label>
+      <label>Air speed (m/s) <input class="af-v" type="text" inputmode="decimal" value="30" /></label>
+      <label>Air density (kg/m³) <input class="af-rho" type="text" inputmode="decimal" value="1.225" /></label>
+      <label>Air viscosity (Pa·s) <input class="af-mu" type="text" inputmode="decimal" value="1.81e-5" /></label>
+      <label>Boundary layer for the drag estimate <select class="af-bl"><option value="auto" selected>Automatic (laminar below Re 5 × 10⁵)</option><option value="laminar">Laminar</option><option value="turbulent">Turbulent</option></select></label>
+      <label>Wing aspect ratio (optional) <input class="af-ar" type="text" inputmode="decimal" value="8" /></label>
+      <label>Span efficiency e <input class="af-e" type="text" inputmode="decimal" value="0.9" /></label>
+    </div>
+    <p class="ax-help">The code's digits are maximum camber (% of chord), its position (tenths of chord) and thickness (%): 2412 has 2 % camber at 40 % chord and is 12 % thick. Density 1.225 and viscosity 1.81 × 10⁻⁵ are rounded sea-level air. Leave the aspect ratio blank for a 2D section only.</p>
+    <p class="ax-err af-err" hidden></p>
+  </div>
+
+  <div class="ax-card af-out">
+    <h2>Lift, moment and drag</h2>
+    <p class="ax-big af-big"></p>
+    <canvas class="ax-fig af-shape"></canvas>
+    <dl class="ax-facts af-facts"></dl>
+    <canvas class="ax-fig af-cp"></canvas>
+    <canvas class="ax-fig af-pol"></canvas>
+    <p class="ax-help">Both methods are inviscid: they do not know about stall, so lift keeps rising with angle, and real lift is a few per cent lower because of the boundary layer. The drag is only a rough zero-lift skin-friction estimate with a thickness form factor. For study and planning, not a substitute for professional judgement, wind-tunnel data or a viscous code.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small af-csv">Pressure coefficients (CSV)</button><button type="button" class="btn secondary small af-pcsv">Lift against angle (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseNaca, nacaPoints, vortexPanel, thinAirfoil, profileDrag, finiteWing, camber } from '../../lib/sci/phairfoil';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.afc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => { const t = q<HTMLInputElement>(c).value.trim(); return t ? num(t) : NaN; };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const rad = Math.PI / 180;
+  let polKey = '', polCache: number[] = [], figs: Figure[] = [], report: Section[] = [], cpRows: (string | number)[][] = [], polRows: (string | number)[][] = [];
+  const force = (n: number) => (Math.abs(n) >= 1e4 ? `${sig(n / 1e3, 3)} kN` : `${sig(n, 3)} N`);
+
+  function calc() {
+    const err = q('.af-err'), out = q('.af-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; cpRows = []; polRows = []; };
+    const code = q<HTMLInputElement>('.af-code').value.replace(/^\s*naca\s*/i, '').trim(), a = parseNaca(code);
+    const al = val('.af-a'), N = +q<HTMLSelectElement>('.af-n').value, c = val('.af-c'), V = val('.af-v'), rho = val('.af-rho'), mu = val('.af-mu'), AR = val('.af-ar'), e = val('.af-e');
+    const arTxt = q<HTMLInputElement>('.af-ar').value.trim();
+    if (!a) return fail('Type a NACA 4-digit code such as 0012 or 2412 (thickness above 0; a cambered section needs a camber position from 1 to 9).');
+    if (a.t > 0.4) return fail('Sections thicker than 40 % are outside what these methods handle.');
+    if (!(Math.abs(al) <= 25)) return fail('Give an angle of attack between −25° and 25° (real airfoils stall well before that).');
+    if (!(c > 0) || !(V > 0) || !(rho > 0) || !(mu > 0)) return fail('Chord, speed, density and viscosity must all be greater than 0.');
+    if (arTxt && !(AR >= 1 && AR <= 100)) return fail('The aspect ratio should be between 1 and 100, or blank for a 2D section.');
+    if (arTxt && !(e > 0 && e <= 1)) return fail('Span efficiency e is between 0 and 1 (1 for an elliptical wing).');
+    err.hidden = true; out.hidden = false;
+    const { X, Y } = nacaPoints(a, N), r = vortexPanel(X, Y, al * rad), th = thinAirfoil(a);
+    // Round-off below 1e-10 is shown as 0.
+    const z = (x: number) => (Math.abs(x) < 1e-10 ? 0 : x); r.cl = z(r.cl); r.clPressure = z(r.clPressure); r.cm = z(r.cm);
+    const q0 = 0.5 * rho * V * V, Re = (rho * V * c) / mu, dr = profileDrag(a.t, Re, q<HTMLSelectElement>('.af-bl').value as 'auto');
+    // Panel lift slope and zero-lift angle from two nearby angles.
+    const r1 = vortexPanel(X, Y, (al + 1) * rad), slope = (r1.cl - r.cl) / rad, aL0p = al * rad - r.cl / slope;
+    q('.af-big').textContent = `Cl = ${sig(r.cl, 3)} at ${sig(al, 3)}° (panel method); thin airfoil theory ${sig(th.cl(al * rad), 3)}`;
+    const f = [
+      fact('Lift coefficient, panel method', sig(r.cl, 4), `${N} linear vortex panels; from the pressures ${sig(r.clPressure, 4)}`),
+      fact('Lift coefficient, thin airfoil theory', sig(th.cl(al * rad), 4), '2π (α − α₀): ignores thickness, so a little lower'),
+      fact('Zero-lift angle α₀', `${sig(aL0p / rad, 3)}° (panel), ${sig(th.aL0 / rad, 3)}° (thin)`, a.m ? 'camber gives lift at zero angle' : 'symmetric section'),
+      fact('Lift slope', `${sig(slope * rad, 3)} per degree`, `thin airfoil theory: 2π per radian = ${sig(2 * Math.PI * rad, 3)} per degree`),
+      fact('Moment about the quarter chord', `${sig(r.cm, 3)} (panel), ${sig(th.cmc4, 3)} (thin)`, 'negative is nose-down; nearly constant with angle'),
+      fact('Reynolds number', sig(Re, 3), 'ρVc/μ'),
+      fact('Lift per metre of span', force(r.cl * q0 * c), `Cl × ½ρV² × chord, dynamic pressure ${sig(q0, 4)} Pa`),
+      fact('Profile drag (rough estimate)', sig(dr.cd, 3), `2 Cf × form factor ${sig(dr.ff, 3)}, ${dr.laminar ? 'laminar' : 'turbulent'} skin friction Cf = ${sig(dr.cf, 3)}; ${force(dr.cd * q0 * c)} per metre`),
+      fact('Lift ÷ drag (2D, rough)', sig(r.cl / dr.cd, 3), 'real sections reach less: drag grows with lift'),
+    ];
+    if (arTxt) {
+      const w = finiteWing(slope, aL0p, al * rad, AR, e);
+      f.push(fact(`Wing lift CL (aspect ratio ${sig(AR, 3)})`, sig(w.CL, 3), `lifting-line slope ${sig(w.a * rad, 3)} per degree, e = ${e}`));
+      f.push(fact('Induced drag CDi', sig(w.CDi, 3), `CL² / (π e AR); total about ${sig(w.CDi + dr.cd, 3)}, L/D about ${sig(w.CL / (w.CDi + dr.cd), 3)}`));
+    }
+    q('.af-facts').replaceChildren(...f);
+    // Figures: shape with camber line, pressure distribution, lift against angle.
+    const xs = Array.from({ length: 101 }, (_, i) => 0.5 * (1 - Math.cos((Math.PI * i) / 100)));
+    const ext = Math.max(...Y.map(Math.abs)) * 1.3 + 0.02;
+    const shape = chartFigure({ w: 380, h: Math.max(90, Math.round(380 * 2 * ext / 1.1) + 50), xLabel: 'x / c', yMin: -ext, yMax: ext, xMin: -0.05, xMax: 1.05, legend: 'none', series: [
+      { name: 'Section', x: X, y: Y, mode: 'line', width: 2 }, { name: 'Camber line', x: xs, y: xs.map((x) => camber(a, x).z), mode: 'line', width: 1, dash: [4, 3] },
+    ] }, `NACA ${code} section with its camber line`);
+    const h = N / 2, low = r.cp.slice(0, h), up = r.cp.slice(h);
+    const cpF = chartFigure({ w: 380, h: 250, xLabel: 'x / c', yLabel: 'Pressure coefficient Cp', yReverse: true, legend: 'below', series: [
+      { name: 'Upper surface', x: r.xc.slice(h), y: up, mode: 'line', width: 2 }, { name: 'Lower surface', x: r.xc.slice(0, h), y: low, mode: 'line', width: 2, dash: [6, 3] },
+    ] }, `Pressure coefficient on NACA ${code} at ${al}°, suction drawn upwards`);
+    const angs = Array.from({ length: 23 }, (_, i) => -8 + i), key = `${code}|${N}`;
+    if (polKey !== key) { polCache = angs.map((d) => vortexPanel(X, Y, d * rad).cl); polKey = key; }
+    const pan = polCache;
+    const pol = chartFigure({ w: 380, h: 230, xLabel: 'Angle of attack (°)', yLabel: 'Lift coefficient Cl', legend: 'below', series: [
+      { name: 'Panel method', x: angs, y: pan, mode: 'line', width: 2 }, { name: 'Thin airfoil theory', x: angs, y: angs.map((d) => th.cl(d * rad)), mode: 'line', width: 1.5, dash: [6, 3] },
+      { name: 'This angle', x: [al], y: [r.cl], mode: 'points', marker: 'diamond', size: 6 },
+    ] }, `Lift coefficient against angle for NACA ${code} (inviscid: no stall)`);
+    figs = [shape, cpF, pol];
+    paint(q<HTMLCanvasElement>('.af-shape'), shape); paint(q<HTMLCanvasElement>('.af-cp'), cpF); paint(q<HTMLCanvasElement>('.af-pol'), pol);
+    cpRows = [['surface', 'x_c', 'y_c', 'Cp'], ...r.xc.map((x, i) => [i < h ? 'lower' : 'upper', +x.toFixed(6), +r.yc[i].toFixed(6), +r.cp[i].toFixed(6)])];
+    polRows = [['alpha_deg', 'Cl_panel', 'Cl_thin'], ...angs.map((d, i) => [d, +pan[i].toFixed(5), +th.cl(d * rad).toFixed(5)])];
+    report = [{ title: q('.af-big').textContent!, text: [`NACA ${code}, chord ${sig(c, 3)} m, ${sig(V, 3)} m/s, ρ = ${rho} kg/m³.`], facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: shape }, { title: 'Pressure distribution', figure: cpF }, { title: 'Lift against angle', figure: pol }];
+  }
+
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.af-out').hidden) ['.af-shape', '.af-cp', '.af-pol'].forEach((c, i) => paint(q<HTMLCanvasElement>(c), figs[i])); });
+  q('.af-csv').addEventListener('click', () => { if (cpRows.length) save(new Blob([csv(cpRows)], { type: 'text/csv' }), `naca-${fileCode()}-cp.csv`, 'text/csv'); });
+  q('.af-pcsv').addEventListener('click', () => { if (polRows.length) save(new Blob([csv(polRows)], { type: 'text/csv' }), `naca-${fileCode()}-lift.csv`, 'text/csv'); });
+  const fileCode = () => q<HTMLInputElement>('.af-code').value.replace(/\D/g, '');
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Airfoil calculator', subtitle: q('.af-big').textContent ?? '', file: 'airfoil', sections: report }));
+</script>
+
+<style is:global>
+  .afc canvas.ax-fig { margin-top: 12px; }
+</style>
