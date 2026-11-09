@@ -1,0 +1,175 @@
+---
+// Counting statistics for radiation measurements: background subtraction, Currie decision threshold and detection
+// limit, minimum detectable activity, exact Poisson limits, dead-time correction and counting-time planning.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cst">
+  <div class="ax-card">
+    <h2>1. Net counts and detection limit</h2>
+    <div class="ax-grid">
+      <label>Gross counts (sample) <input class="cs-G" type="text" inputmode="numeric" value="1500" /></label>
+      <label>Gross counting time <input class="cs-tg" type="text" inputmode="decimal" value="600" /></label>
+      <label>Background counts <input class="cs-B" type="text" inputmode="numeric" value="900" /></label>
+      <label>Background counting time <input class="cs-tb" type="text" inputmode="decimal" value="1800" /></label>
+      <label>Time unit <select class="cs-tu"><option value="1" selected>s</option><option value="60">min</option><option value="3600">h</option></select></label>
+      <label>Counting efficiency (%, optional) <input class="cs-eff" type="text" inputmode="decimal" value="25" /></label>
+      <label>Emission yield (%, per decay) <input class="cs-y" type="text" inputmode="decimal" value="100" /></label>
+      <label>False-positive rate α <select class="cs-a"><option value="0.01">1 %</option><option value="0.05" selected>5 %</option><option value="0.1">10 %</option></select></label>
+      <label>False-negative rate β <select class="cs-b"><option value="0.01">1 %</option><option value="0.05" selected>5 %</option><option value="0.1">10 %</option></select></label>
+      <label>Confidence for intervals <select class="cs-cf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+    </div>
+    <p class="ax-help">Efficiency: counts recorded per particle emitted (from a calibration source); yield: particles of that kind per decay. Leave it blank to work in counts only. The example numbers are made up.</p>
+    <p class="ax-err cs-err1" hidden></p>
+    <div class="cs-out1">
+      <p class="ax-big cs-big1"></p>
+      <p class="cs-pill"><span class="ax-pill cs-dec"></span></p>
+      <dl class="ax-facts cs-facts1"></dl>
+      <canvas class="ax-fig cs-fig1" style="margin-top:12px"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>2. Dead-time correction</h2>
+    <div class="ax-grid">
+      <label>Measured count rate (per second) <input class="cs-m" type="text" inputmode="decimal" value="20000" /></label>
+      <label>Dead time τ (µs) <input class="cs-tau" type="text" inputmode="decimal" value="5" /></label>
+    </div>
+    <p class="ax-help">Non-paralysable: the detector ignores events while it is busy. Paralysable: every event, even one it misses, restarts the busy time (so very high rates can read low). Real detectors sit between the two.</p>
+    <p class="ax-err cs-err2" hidden></p>
+    <div class="cs-out2">
+      <p class="ax-big cs-big2"></p>
+      <dl class="ax-facts cs-facts2"></dl>
+      <canvas class="ax-fig cs-fig2" style="margin-top:12px"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>3. Plan the counting time</h2>
+    <div class="ax-grid">
+      <label>Expected gross rate (per time unit above) <input class="cs-Rg" type="text" inputmode="decimal" value="2.5" /></label>
+      <label>Expected background rate <input class="cs-Rb" type="text" inputmode="decimal" value="0.5" /></label>
+      <label>Total time available <input class="cs-T" type="text" inputmode="decimal" value="2400" /></label>
+      <label>Wanted uncertainty of the net rate (%, 1σ) <input class="cs-rel" type="text" inputmode="decimal" value="1" /></label>
+    </div>
+    <p class="ax-err cs-err3" hidden></p>
+    <div class="cs-out3">
+      <p class="ax-big cs-big3"></p>
+      <dl class="ax-facts cs-facts3"></dl>
+    </div>
+    <p class="ax-help">Poisson counting statistics only: add calibration, geometry and other uncertainties yourself. For study and planning, not a substitute for professional judgement or your laboratory's validated procedures.</p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .cst .cs-pill { margin: 6px 0 10px; }
+  .cst select, .cst input { max-width: 100%; }
+</style>
+
+<script>
+  import { netRate, currie, mda, trueNonPar, truePar, measNonPar, measPar, bestSplit, timeForPrecision, poissonCI } from '../../lib/sci/phcount';
+  import { num, fmtExp } from '../../lib/sci/num';
+  import { normInv } from '../../lib/sci/stats';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cst')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const sig = (x: number, n = 4) => { const a = Math.abs(x); return !Number.isFinite(x) ? '–' : a && (a >= 1e6 || a < 1e-4) ? fmtExp(x, n) : String(+x.toPrecision(n)).replace('-', '−'); };
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const e = document.createElement('small'); e.textContent = s; d.querySelector('dd')!.append(e); } return d; };
+  const rows = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  const tuName = () => q<HTMLSelectElement>('.cs-tu').selectedOptions[0].text;
+  const figs: (Figure | null)[] = [null, null];
+  const report: (Section | null)[] = [null, null, null];
+  function part(i: number, ok: boolean, msg = '') { const e = q(`.cs-err${i}`), o = q(`.cs-out${i}`); e.textContent = msg; e.hidden = ok; o.hidden = !ok; if (!ok) report[i - 1] = null; }
+  const gauss = (x: number, m: number, s: number) => Math.exp(-0.5 * ((x - m) / s) ** 2) / (s * Math.sqrt(2 * Math.PI));
+
+  function first() {
+    const G = v('.cs-G'), B = v('.cs-B'), tg = v('.cs-tg'), tb = v('.cs-tb'), sec = +sel('.cs-tu'), tu = tuName();
+    if (!(G >= 0 && Number.isInteger(G)) || !(B >= 0 && Number.isInteger(B))) return part(1, false, 'Counts are whole numbers, zero or more.');
+    if (!(tg > 0) || !(tb > 0)) return part(1, false, 'Give both counting times, above zero.');
+    const effS = q<HTMLInputElement>('.cs-eff').value.trim(), eff = num(effS) / 100, yl = v('.cs-y') / 100;
+    if (effS && !(eff > 0 && eff <= 1)) return part(1, false, 'The efficiency is a percentage above 0 and up to 100, or leave it blank.');
+    if (!(yl > 0 && yl <= 10)) return part(1, false, 'The emission yield is a percentage above 0 (it can exceed 100 % for several emissions per decay).');
+    part(1, true);
+    const n = netRate(G, tg, B, tb), c = currie(B, tb, tg, +sel('.cs-a'), +sel('.cs-b')), cf = +sel('.cs-cf'), z = 1 - (1 - cf) / 2;
+    const netCounts = n.net * tg, det = netCounts > c.LC;
+    q('.cs-big1').textContent = `Net rate ${sig(n.net)} ± ${sig(n.sd, 2)} per ${tu} (1σ)`;
+    const pill = q('.cs-dec'); pill.textContent = det ? 'Detected: net counts above the decision threshold L_C' : 'Not detected: net counts at or below the decision threshold L_C'; pill.className = `ax-pill cs-dec ${det ? 'good' : 'warn'}`;
+    const gci = poissonCI(G, cf), bci = poissonCI(B, cf);
+    const f = [
+      fact('Net counts in the gross time', `${sig(netCounts)}`, `relative uncertainty ${n.net ? sig(100 * n.rel, 3) + ' %' : '–'}`),
+      fact('Gross rate', `${sig(n.rg)} ± ${sig(n.sdG, 2)} per ${tu}`, `${G} counts; exact ${sig(cf * 100, 2)} % limits ${sig(gci.lo / tg)} to ${sig(gci.hi / tg)}`),
+      fact('Background rate', `${sig(n.rb)} ± ${sig(n.sdB, 2)} per ${tu}`, `${B} counts; exact ${sig(cf * 100, 2)} % limits ${sig(bci.lo / tb)} to ${sig(bci.hi / tb)}`),
+      fact('Decision threshold L_C', `${sig(c.LC)} net counts`, `${sig(c.za, 4)} × σ₀; σ₀ = ${sig(c.sigma0)} counts with no activity`),
+      fact('Detection limit L_D', `${sig(c.LD)} net counts`, `${sig(c.LD / tg)} per ${tu}; detected ${sig((1 - +sel('.cs-b')) * 100, 2)} % of the time`),
+      fact(`${sig(cf * 100, 2)} % interval of the net rate`, `${sig(n.net - n.sd * normInv(z))} to ${sig(n.net + n.sd * normInv(z))} per ${tu}`, 'normal approximation'),
+    ];
+    if (effS) {
+      const ts = tg * sec, A = n.net / sec / (eff * yl), sA = n.sd / sec / (eff * yl), M = mda(c.LD, eff, ts, yl);
+      f.push(fact('Activity', `${sig(A)} ± ${sig(sA, 2)} Bq`, `net rate per second ÷ (efficiency × yield); ${sig(A / 37, 3)} nCi`));
+      f.push(fact('Minimum detectable activity', `${sig(M)} Bq`, `L_D ÷ (efficiency × yield × time in s); ${sig(M * 60, 4)} dpm`));
+    }
+    q('.cs-facts1').replaceChildren(...f);
+    // Currie picture: net counts with no activity (σ₀) and at L_D.
+    const sD = Math.sqrt(c.LD + c.sigma0 * c.sigma0), lo = -4 * c.sigma0, show = netCounts > lo && netCounts < 2 * (c.LD + 4 * sD), hi = Math.max(c.LD + 4 * sD, show ? netCounts * 1.1 : 0), xs: number[] = [];
+    for (let i = 0; i <= 200; i++) xs.push(lo + ((hi - lo) * i) / 200);
+    const fig = chartFigure({ w: 380, h: 230, xLabel: 'Net counts in the gross time', yLabel: 'Probability density', yMin: 0, legend: 'below', series: [
+      { name: 'No activity (blank)', x: xs, y: xs.map((x) => gauss(x, 0, c.sigma0)), mode: 'line', width: 2 },
+      { name: 'Activity at L_D', x: xs, y: xs.map((x) => gauss(x, c.LD, sD)), mode: 'line', width: 2, dash: [6, 3] },
+    ], marks: [{ kind: 'vline', at: c.LC, dash: [3, 3], label: 'L_C' }, ...(show ? [{ kind: 'vline' as const, at: netCounts, label: 'measured' }] : [])] }, `Currie decision threshold and detection limit${show ? '' : ` (the measured ${sig(netCounts)} net counts are off the right of the chart)`}`);
+    paint(q<HTMLCanvasElement>('.cs-fig1'), fig); figs[0] = fig;
+    report[0] = { title: q('.cs-big1').textContent!, text: [pill.textContent!], facts: rows(f), figure: fig };
+  }
+
+  function second() {
+    const m = v('.cs-m'), tau = v('.cs-tau') * 1e-6;
+    if (!(m > 0)) return part(2, false, 'Give the measured count rate, above zero.');
+    if (!(tau > 0)) return part(2, false, 'Give the dead time in microseconds, above zero.');
+    if (!(m * tau < 1)) return part(2, false, 'Measured rate × dead time must be below 1: the detector cannot record more than one event per dead time.');
+    part(2, true);
+    const nn = trueNonPar(m, tau), np = truePar(m, tau);
+    q('.cs-big2').textContent = `True rate ${sig(nn, 5)} per s (non-paralysable)`;
+    const f = [
+      fact('Non-paralysable', `${sig(nn, 5)} per s`, `n = m / (1 − mτ); ${sig(100 * (1 - m / nn), 3)} % of events lost`),
+      fact('Paralysable', Number.isFinite(np) ? `${sig(np, 5)} per s` : 'no solution', Number.isFinite(np) ? `m = n e^(−nτ), low-rate branch; ${sig(100 * (1 - m / np), 3)} % lost` : `above the largest measurable rate 1/(eτ) = ${sig(1 / (Math.E * tau))} per s`),
+      fact('Busy fraction', `${sig(100 * m * tau, 3)} %`, 'mτ: keep below about 10 % for a reliable correction'),
+    ];
+    q('.cs-facts2').replaceChildren(...f);
+    const top = Math.max(nn * 2, 1 / tau * 1.5), xs: number[] = []; for (let i = 0; i <= 200; i++) xs.push((top * i) / 200);
+    const fig = chartFigure({ w: 380, h: 230, xLabel: 'True rate (per s)', yLabel: 'Measured rate (per s)', xMin: 0, yMin: 0, legend: 'below', series: [
+      { name: 'No dead time', x: xs, y: xs, mode: 'line', width: 1, dash: [2, 3] },
+      { name: 'Non-paralysable', x: xs, y: xs.map((x) => measNonPar(x, tau)), mode: 'line', width: 2 },
+      { name: 'Paralysable', x: xs, y: xs.map((x) => measPar(x, tau)), mode: 'line', width: 2, dash: [6, 3] },
+    ], marks: [{ kind: 'hline', at: m, dash: [3, 3], label: 'measured' }] }, `Measured against true count rate for τ = ${sig(tau * 1e6)} µs`);
+    paint(q<HTMLCanvasElement>('.cs-fig2'), fig); figs[1] = fig;
+    report[1] = { title: q('.cs-big2').textContent!, facts: rows(f), figure: fig };
+  }
+
+  function third() {
+    const Rg = v('.cs-Rg'), Rb = v('.cs-Rb'), T = v('.cs-T'), rel = v('.cs-rel') / 100, tu = tuName();
+    if (!(Rg > 0) || !(Rb >= 0)) return part(3, false, 'Give the expected gross rate (above zero) and background rate.');
+    if (!(Rg > Rb)) return part(3, false, 'The gross rate must be higher than the background rate.');
+    if (!(T > 0)) return part(3, false, 'Give the total time available, above zero.');
+    if (!(rel > 0 && rel < 1)) return part(3, false, 'The wanted uncertainty is a percentage between 0 and 100.');
+    part(3, true);
+    const s = bestSplit(Rg, Rb, T), achieved = Math.sqrt(Rg / s.tg + (s.tb > 0 ? Rb / s.tb : 0)) / (Rg - Rb), need = timeForPrecision(Rg, Rb, rel), sp = bestSplit(Rg, Rb, need);
+    q('.cs-big3').textContent = `Count the sample for ${sig(s.tg)} ${tu} and the background for ${sig(s.tb)} ${tu}`;
+    const f = [
+      fact('Uncertainty reached', `${sig(100 * achieved, 3)} %`, 'of the net rate, 1σ, with that split'),
+      fact(`Time for ${sig(rel * 100, 3)} %`, `${sig(need)} ${tu} in all`, `${sig(sp.tg)} ${tu} sample + ${sig(sp.tb)} ${tu} background`),
+      fact('Best split', `t_sample / t_background = ${sig(Math.sqrt(Rg / (Rb || 1e-300)), 3)}`, '√(gross rate ÷ background rate)'),
+    ];
+    q('.cs-facts3').replaceChildren(...f);
+    report[2] = { title: q('.cs-big3').textContent!, facts: rows(f) };
+  }
+
+  const calc = () => { first(); second(); third(); };
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (figs[0] && !q('.cs-out1').hidden) paint(q<HTMLCanvasElement>('.cs-fig1'), figs[0]); if (figs[1] && !q('.cs-out2').hidden) paint(q<HTMLCanvasElement>('.cs-fig2'), figs[1]); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Counting statistics', subtitle: 'Poisson counting, Currie limits, dead time', file: 'counting-statistics', sections: report.filter((s): s is Section => !!s) }));
+</script>
