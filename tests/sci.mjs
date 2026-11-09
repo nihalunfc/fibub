@@ -153,6 +153,8 @@ import * as LG from '../src/lib/sci/ligation.ts';
 import * as PR from '../src/lib/sci/primer.ts';
 import * as DG from '../src/lib/sci/digest.ts';
 import * as GS from '../src/lib/sci/gelsize.ts';
+import * as GB from '../src/lib/sci/genbank.ts';
+import * as PM from '../src/lib/sci/plasmidmap.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -3023,6 +3025,91 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   const e = GS.sizeAt(lin, 31); near('gs spread', e.hi / e.size, 10 ** 0.036113942715523144, 1e-12);
   check('gs outside', !GS.sizeAt(lin, 60).inside && GS.sizeAt(lin, 30).inside);
   check('gs interp no spread', Number.isNaN(GS.sizeAt(itp, 30).hi));
+}
+// #170 plasmid map: GenBank reader checked against Biopython 1.88 SeqIO (positions, strands, part order, qualifiers,
+// feature sequences), writer round trip, and origin rotation keeping every feature's own sequence.
+{
+  const T = `LOCUS       pTest1                   200 bp    DNA     circular SYN 09-NOV-2026
+DEFINITION  made-up test plasmid with
+            a two line definition.
+FEATURES             Location/Qualifiers
+     promoter        10..40
+                     /label="pX"
+                     /note="a note that goes on and on across
+                     two lines with ""quotes"" inside"
+     CDS             complement(join(50..80,
+                     90..120))
+                     /gene="abc"
+                     /codon_start=2
+                     /translation="MKLV
+                     AAAR"
+                     /pseudo
+     misc_feature    join(190..200,1..5)
+                     /label="wrap"
+     primer_bind     <130..>140
+     misc_feature    complement(<150..160)
+     variation       170
+     misc_feature    175^176
+     misc_feature    join(complement(60..65),70..75)
+     gene            order(5..8,12..15)
+                     /note="has /slash = inside"
+ORIGIN
+        1 acgtacgtac gtacgtacgt acgtacgtac gtacgtacgt acgtacgtac gtacgtacgt
+       61 acgtacgtac gtacgtacgt acgtacgtac gtacgtacgt acgtacgtac gtacgtacgt
+      121 acgtacgtac gtacgtacgt acgtacgtac gtacgtacgt acgtacgtac gtacgtacgt
+      181 acgtacgtac gtacgtacgt
+//
+`;
+  const r = GB.parseGenBank(T);
+  check('gb: name, length, topology', r.name === 'pTest1' && r.seq.length === 200 && r.circular && r.records === 1);
+  check('gb: two-line definition', r.definition === 'made-up test plasmid with a two line definition');
+  check('gb: 9 features', r.features.length === 9 && r.skipped === 0);
+  const P = (i) => JSON.stringify(r.features[i].parts.map((p) => [p.start, p.end, p.strand]));
+  check('gb: simple location', P(0) === '[[9,40,1]]');
+  check('gb: complement(join) in Biopython part order', P(1) === '[[89,120,-1],[49,80,-1]]');
+  check('gb: join across the origin', P(2) === '[[189,200,1],[0,5,1]]');
+  check('gb: partial ends', P(3) === '[[129,140,1]]' && r.features[3].parts[0].lt && r.features[3].parts[0].gt);
+  check('gb: complement of a partial', P(4) === '[[149,160,-1]]' && r.features[4].parts[0].gt && !r.features[4].parts[0].lt);
+  check('gb: single base and between bases', P(5) === '[[169,170,1]]' && P(6) === '[[175,175,1]]');
+  check('gb: mixed strands', P(7) === '[[59,65,-1],[69,75,1]]' && GB.strandOf(r.features[7]) === 0);
+  check('gb: multi-line quoted note with ""', GB.qual(r.features[0], 'note') === 'a note that goes on and on across two lines with "quotes" inside');
+  check('gb: translation joined without spaces', GB.qual(r.features[1], 'translation') === 'MKLVAAAR' && GB.qual(r.features[1], 'codon_start') === '2');
+  check('gb: flag qualifier', r.features[1].quals.some(([k, v]) => k === 'pseudo' && v === null));
+  check('gb: slash inside a value', GB.qual(r.features[8], 'note') === 'has /slash = inside');
+  const bio = ["CGTACGTACGTACGTACGTACGTACGTACGT","ACGTACGTACGTACGTACGTACGTACGTACGACGTACGTACGTACGTACGTACGTACGTACG","CGTACGTACGTACGTA","CGTACGTACGT","ACGTACGTACG","C","","TACGTACGTACG","ACGTTACG"];
+  check('gb: feature sequences match Biopython extract', JSON.stringify(r.features.map((f) => GB.extract(r.seq, f))) === JSON.stringify(bio));
+  check('gb: label falls back gene, type', GB.labelOf(r.features[0]) === 'pX' && GB.labelOf(r.features[1]) === 'abc' && GB.labelOf(r.features[3]) === 'primer_bind');
+  check('gb: location text', GB.formatLocation(r.features[1]) === 'complement(join(50..80,90..120))' && GB.formatLocation(r.features[4]) === 'complement(<150..160)' && GB.formatLocation(r.features[7]) === 'join(complement(60..65),70..75)');
+  const w = GB.writeGenBank(r, '09-NOV-2026');
+  check('gb: LOCUS line', w.startsWith('LOCUS       pTest1                   200 bp    DNA     circular SYN 09-NOV-2026\n'));
+  check('gb: ORIGIN lines', w.includes('\n      181 acgtacgtac gtacgtacgt\n//'));
+  const r2 = GB.parseGenBank(w);
+  check('gb: writer round trip', JSON.stringify(r2.features.map((f) => [f.type, f.parts, f.quals])) === JSON.stringify(r.features.map((f) => [f.type, f.parts.map((p) => ({ ...p })), f.quals])) && r2.seq === r.seq);
+  for (const p of [1, 37, 150, 199]) {
+    const t = GB.rotate(r, p);
+    check(`gb: rotate ${p} keeps feature sequences`, t.features.every((f, i) => GB.extract(t.seq, f) === bio[i]) && t.seq === r.seq.slice(p) + r.seq.slice(0, p));
+  }
+  check('gb: rotation splits and re-joins across the origin', JSON.stringify(GB.rotate(r, 1).features[2].parts.map((p) => [p.start, p.end])) === '[[188,200],[0,4]]' && GB.rotate(r, 189).features[2].parts.length === 1 && GB.rotate(r, 189).features[2].parts[0].end === 16);
+  check('gb: rotate a minus-strand wrap', JSON.stringify(GB.rotate(GB.rotate(r, 100), 100).features.map((f) => f.parts.length)) === JSON.stringify(r.features.map((f) => f.parts.length)));
+  check('gb: bad location skipped', GB.parseGenBank('LOCUS       x 10 bp DNA linear\nFEATURES             Location/Qualifiers\n     gene            AB000001.1:1..5\nORIGIN\n        1 acgtacgtac\n//').skipped === 1);
+  check('gb: not GenBank', (() => { try { GB.parseGenBank('>fasta\nACGT'); return false; } catch { return true; } })());
+}
+// #170 plasmid map layout helpers.
+{
+  check('pm: nice steps', PM.niceStep(375) === 500 && PM.niceStep(120) === 200 && PM.niceStep(0.3) === 0.5 && PM.niceStep(1000) === 1000);
+  check('pm: tracks for overlaps', JSON.stringify(PM.assignTracks([{ a: 0, b: 100 }, { a: 50, b: 150 }, { a: 120, b: 200 }, { a: 10, b: 20 }], 1000, false)) === '[0,1,0,1]');
+  check('pm: wrapped interval overlaps the start', JSON.stringify(PM.assignTracks([{ a: 950, b: 1050 }, { a: 20, b: 60 }, { a: 60, b: 90 }], 1000, true)) === '[0,1,0]');
+  const sp = PM.spread([10, 11, 12, 50], 5, 0, 100);
+  check('pm: labels spread apart', JSON.stringify(sp) === '[10,15,20,50]');
+  check('pm: labels pushed back inside', JSON.stringify(PM.spread([95, 96, 97], 5, 0, 100)) === '[90,95,100]');
+  const f = [{ label: 'a<b', parts: [{ start: 0, end: 500 }], strand: 1, color: '#0072B2' }, { label: 'wrap', parts: [{ start: 900, end: 1000 }, { start: 0, end: 50 }], strand: -1, color: '#999999' }];
+  const c = PM.circularMap('p', 1000, f, [{ pos: 300, label: 'EcoRI' }], 640);
+  check('pm: circular map size and labels', c.w === 960 && c.h === 640 && c.prims.some((p) => p.k === 'text' && p.s === 'EcoRI (300)') && c.prims.some((p) => p.k === 'text' && p.s === '1,000 bp'));
+  check('pm: shapes stay on the canvas', c.prims.every((p) => p.k === 'text' ? p.x >= 0 && p.x <= c.w && p.y >= 0 && p.y <= c.h : p.pts.every((v, i) => v >= -1 && v <= (i % 2 ? c.h : c.w) + 1)));
+  const l = PM.linearMap('p', 1000, f, [], 640);
+  check('pm: linear map stacks overlapping features', l.prims.filter((p) => p.k === 'text' && (p.s === 'a<b' || p.s === 'wrap')).map((p) => p.y).reduce((a, b) => a !== b));
+  const svg = PM.toSvg(c, { bg: '#fff', ink: '#000', muted: '#555', line: '#ccc' });
+  check('pm: SVG escapes text', svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640"') && svg.includes('>a&lt;b</text>') && !svg.includes('a<b'));
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
