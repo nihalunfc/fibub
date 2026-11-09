@@ -1,0 +1,169 @@
+---
+// Arps decline curve analysis. The example well is made up (lib exampleWell: hyperbolic with noise).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { exampleWell } from '../../lib/sci/eng-decline';
+const demo = 'month\toil rate (bbl/d)\n' + exampleWell().map((r) => `${r.month}\t${r.rate}`).join('\n');
+---
+<div class="ax dca">
+  <div class="ax-card">
+    <h2>Production data</h2>
+    <label>Time and rate <textarea class="dc-data" rows="9" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".dc-data" maxCols={20} maxRows={20000} label="Open a file" />
+    <p class="ax-help">Two columns: time (a number, or a date such as 2024-03-01 or 2024-03) and rate. Only the first two columns are read; a header row is skipped. Zero rates (shut-in months) and empty rows are left out. The example is a made-up oil well.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Time column is in <select class="dc-tu"><option value="1">days</option><option value="30.4375" selected>months</option><option value="365.25">years</option></select></label>
+      <label>Rate unit (volume) <input class="dc-vu" type="text" value="bbl" /></label>
+      <label>Rate is per <select class="dc-ru"><option value="1" selected>day</option><option value="30.4375">month</option><option value="365.25">year</option></select></label>
+      <label>Model for the forecast <select class="dc-model"><option value="hyperbolic" selected>Hyperbolic (0 &lt; b)</option><option value="exponential">Exponential (b = 0)</option><option value="harmonic">Harmonic (b = 1)</option></select></label>
+      <label>Fit to <select class="dc-space"><option value="rate" selected>rates (least squares)</option><option value="log">log of rates</option></select></label>
+      <label>Largest b allowed <select class="dc-bmax"><option value="1">1 (boundary-dominated flow)</option><option value="2" selected>2 (tight and shale wells)</option></select></label>
+      <label>Use points from time <input class="dc-from" type="text" inputmode="decimal" placeholder="all" /></label>
+      <label>Economic limit (rate) <input class="dc-qel" type="text" inputmode="decimal" value="20" /></label>
+      <label>Longest forecast (years) <input class="dc-tmax" type="text" inputmode="decimal" value="30" /></label>
+      <label>Terminal decline (% per year) <input class="dc-dmin" type="text" inputmode="decimal" placeholder="off" /></label>
+    </div>
+    <p class="ax-help">Fit to rates weights the early, high rates most; fit to log of rates gives late-time points more say. "Use points from" leaves out early points (clean-up, ramp-up) before that time, in the same form as the time column. The terminal decline switches a hyperbolic forecast to exponential once its decline falls to that effective yearly rate (often 5 to 10 % per year for shale wells).</p>
+    <p class="ax-err dc-err" hidden></p>
+  </div>
+
+  <div class="ax-card dc-out">
+    <h2>Forecast</h2>
+    <p class="ax-big dc-big"></p>
+    <dl class="ax-facts dc-facts"></dl>
+    <canvas class="ax-fig dc-fig"></canvas>
+    <canvas class="ax-fig dc-lfig" style="margin-top:10px"></canvas>
+    <h2 style="margin-top:14px">All three models</h2>
+    <div class="ax-scroll"><table class="dc-tab"></table></div>
+    <p class="ax-help">qi is the fitted rate at the first point used in the fit. Di is the nominal decline at that time, also shown as the effective decline over the first year (1 − q at one year ÷ qi). EUR (estimated ultimate recovery) = produced so far (from your data, trapezoid rule) + the forecast from the last data point to the economic limit or the longest forecast. Decline curves assume the well keeps producing as it did; they do not see workovers, new wells or changes in operation.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small dc-csv">Download forecast (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { fitArps, forecast, rate, cumulative, trapezoid, parseTime, effectiveDecline, switchTime, type Model, type FitResult, type Terminal } from '../../lib/sci/eng-decline';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.dca')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const NAMES: Record<Model, string> = { exponential: 'Exponential', hyperbolic: 'Hyperbolic', harmonic: 'Harmonic' };
+  const big = (x: number) => (Math.abs(x) >= 1e5 ? Math.round(x).toLocaleString('en') : sig(x, 4));
+  let figs: Figure[] = [], report: Section[] = [], csvRows: (string | number)[][] = [];
+
+  function calc() {
+    const err = q('.dc-err'), out = q('.dc-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; csvRows = []; };
+    const tu = +val('.dc-tu'), ru = +val('.dc-ru'), vu = val('.dc-vu').trim() || 'units';
+    const rows = parseTable(val('.dc-data'));
+    let dated = false, skipped = 0, zero = 0;
+    const pts: { t: number; q: number }[] = [];
+    rows.forEach((r, i) => {
+      if (r.length < 2) { skipped++; return; }
+      const tt = parseTime(r[0], num), v = num(r[1]);
+      if (!Number.isFinite(tt.v) || !Number.isFinite(v)) { if (i > 0) skipped++; return; }
+      if (tt.date) dated = true;
+      if (!(v > 0)) { zero++; return; }
+      pts.push({ t: tt.date ? tt.v : tt.v * tu, q: v / ru });
+    });
+    pts.sort((a, b) => a.t - b.t);
+    if (pts.length > 5000) return fail(`There are ${pts.length.toLocaleString('en')} rows; the limit is 5,000.`);
+    if (pts.length < 4) return fail('Give at least 4 rows with a time and a rate above zero (8 or more for a useful fit).');
+    if (new Set(pts.map((p) => p.t)).size < 3) return fail('The times need at least 3 different values.');
+    const fromS = val('.dc-from').trim();
+    let tFrom = -Infinity;
+    if (fromS) { const ft = parseTime(fromS, num); if (!Number.isFinite(ft.v)) return fail('"Use points from" must be a time like those in the first column, or empty.'); tFrom = ft.date ? ft.v : ft.v * tu; }
+    const use = pts.filter((p) => p.t >= tFrom - 1e-9);
+    if (use.length < 4) return fail(`Only ${use.length} points are at or after "Use points from"; the fit needs at least 4.`);
+    const qel = num(val('.dc-qel')), tmaxY = num(val('.dc-tmax')), dminS = val('.dc-dmin').trim(), dminP = dminS ? num(dminS) : 0;
+    if (!(qel >= 0)) return fail('The economic limit must be a rate of 0 or more (0 forecasts to the longest forecast).');
+    if (!(tmaxY > 0 && tmaxY <= 200)) return fail('The longest forecast must be between 0 and 200 years.');
+    if (!(dminP >= 0 && dminP < 100)) return fail('The terminal decline must be between 0 and 100 % per year, or empty for none.');
+    const term: Terminal = { dMin: dminP > 0 ? -Math.log(1 - dminP / 100) / 365.25 : 0 };
+    const t0 = use[0].t, tt = use.map((p) => p.t - t0), qq = use.map((p) => p.q);
+    const space = val('.dc-space') as 'rate' | 'log', bmax = +val('.dc-bmax'), chosen = val('.dc-model') as Model;
+    const fits: Partial<Record<Model, FitResult>> = {};
+    for (const m of ['exponential', 'hyperbolic', 'harmonic'] as Model[]) { try { fits[m] = fitArps(tt, qq, m, space, bmax); } catch { /* shown as failed */ } }
+    const f = fits[chosen];
+    if (!f) return fail('The fit did not work with these data. Check that the rates fall over time.');
+    err.hidden = true; out.hidden = false;
+    const qlim = qel / ru, tLast = pts[pts.length - 1].t - t0, tMax = tmaxY * 365.25 + Math.max(0, tLast);
+    const npData = trapezoid(pts.map((p) => p.t), pts.map((p) => p.q));
+    const fc = (r: FitResult) => forecast(r.p, tLast, qlim, tMax, r.model === 'exponential' ? { dMin: 0 } : term, npData);
+    const fr = fc(f), tm = chosen === 'exponential' ? { dMin: 0 } : term;
+    // Time labels: dates as calendar dates, numbers in the user's unit.
+    const tuName = tu === 1 ? 'days' : tu === 30.4375 ? 'months' : 'years';
+    const tuOne = tuName.slice(0, -1);
+    const tLabel = (days: number) => (dated ? new Date((days + t0) * 86400000).toISOString().slice(0, 10) : `${tuOne} ${sig((days + t0) / tu, 5)}`);
+    const xOf = (days: number) => (dated ? 1970 + (days + t0) / 365.25 : (days + t0) / tu);
+    const rateU = `${vu}/${ru === 1 ? 'd' : ru === 30.4375 ? 'month' : 'yr'}`;
+    const rq = (x: number) => sig(x * ru, 4);
+    const declY = (r: FitResult) => `${sig(r.p.Di * 365.25, 3)} per year nominal`;
+    const effY = (r: FitResult) => `${(100 * effectiveDecline(r.p, 365.25)).toFixed(1)} %`;
+    const life = fr.tEnd - tLast;
+    q('.dc-big').textContent = `EUR ${big(fr.eur)} ${vu}: ${big(fr.npToDate)} produced + ${big(fr.remaining)} ${vu} remaining (${NAMES[chosen]}${chosen === 'hyperbolic' ? `, b = ${f.p.b.toFixed(2)}` : ''})`;
+    const sw = switchTime(f.p, tm);
+    const facts = [
+      fact('Points used', `${use.length} of ${pts.length}`, `${zero ? `${zero} zero rate${zero === 1 ? '' : 's'} left out; ` : ''}${skipped ? `${skipped} row${skipped === 1 ? '' : 's'} not read; ` : ''}from ${tLabel(0)}`),
+      fact('qi (initial rate)', `${rq(f.p.qi)} ${rateU}`, `± ${rq(f.se.qi)} (1 standard error)`),
+      fact('Di (initial decline)', declY(f), `± ${sig(f.se.Di * 365.25, 2)}; ${sig(f.p.Di * 30.4375, 3)} per month; effective first-year decline ${effY(f)}`),
+      fact('b (Arps exponent)', chosen === 'hyperbolic' ? `${f.p.b.toFixed(3)}` : String(f.p.b), chosen === 'hyperbolic' ? `± ${sig(f.se.b, 2)}${f.p.b > bmax - 0.02 ? '; at the largest b allowed' : ''}${f.p.b > 1 ? '; above 1, EUR depends heavily on the economic limit or terminal decline' : ''}` : 'fixed by the model'),
+      fact('Fit quality', `R² = ${f.r2.toFixed(4)}`, `RMSE ${rq(f.rmse)} ${rateU} (both on the rates)${f.converged ? '' : '; did not fully converge'}`),
+      fact(fr.reachedLimit ? 'Economic limit reached' : 'Forecast stops', tLabel(fr.tEnd), fr.reachedLimit ? `${sig(life / 365.25, 3)} years after the last data point` : `at the longest forecast; rate then ${rq(fr.qEnd)} ${rateU}`),
+      fact('Produced to date', `${big(fr.npToDate)} ${vu}`, `trapezoid rule over your data to ${tLabel(tLast)}; the fit gives ${big(cumulative(f.p, tLast, tm))} from the first point used`),
+      fact('Remaining reserves', `${big(fr.remaining)} ${vu}`, `forecast from the last data point to the end`),
+      fact('EUR', `${big(fr.eur)} ${vu}`, 'produced to date + remaining'),
+    ];
+    if (term.dMin > 0 && chosen !== 'exponential') facts.push(fact('Terminal decline', Number.isFinite(sw) && sw < fr.tEnd ? `from ${tLabel(sw)}` : 'not reached', `${dminP} % per year effective = ${sig(term.dMin * 365.25, 3)} per year nominal`));
+    q('.dc-facts').replaceChildren(...facts);
+    // Charts: data, the chosen fit, the forecast and the economic limit, on linear and log rate axes.
+    const nC = 240, tEndPlot = Math.max(fr.tEnd, tLast), tc = Array.from({ length: nC + 1 }, (_, i) => (tEndPlot * i) / nC);
+    const tFit = tc.filter((x) => x <= tLast), tFc = tc.filter((x) => x >= tLast);
+    if (tFit[tFit.length - 1] !== tLast) tFit.push(tLast); if (tFc[0] !== tLast) tFc.unshift(tLast);
+    const xLab = dated ? 'Year' : `Time (${tuName})`, yLab = `Rate (${rateU})`;
+    const ser = (log: boolean) => [
+      { name: 'Data used', x: use.map((p) => xOf(p.t - t0)), y: use.map((p) => p.q * ru), mode: 'points' as const, size: 2.6 },
+      ...(use.length < pts.length ? [{ name: 'Left out', x: pts.filter((p) => p.t < tFrom).map((p) => xOf(p.t - t0)), y: pts.filter((p) => p.t < tFrom).map((p) => p.q * ru), mode: 'points' as const, marker: 'open-circle' as const, size: 2.6 }] : []),
+      { name: `${NAMES[chosen]} fit`, x: tFit.map(xOf), y: tFit.map((x) => rate(f.p, x, tm) * ru), mode: 'line' as const, width: 2 },
+      { name: 'Forecast', x: tFc.map(xOf), y: tFc.map((x) => rate(f.p, x, tm) * ru), mode: 'line' as const, width: 2, dash: [5, 4] },
+    ].filter((s) => !log || s.y.length);
+    const marks = qel > 0 ? [{ kind: 'hline' as const, at: qel, dash: [2, 3], label: 'economic limit' }] : [];
+    const f1 = chartFigure({ w: 380, h: 250, xLabel: xLab, yLabel: yLab, legend: 'below', yMin: 0, series: ser(false), marks }, `Rate against time with the ${NAMES[chosen]} fit and forecast`);
+    const yLo = Math.max(Math.min(...use.map((p) => p.q * ru), rate(f.p, tEndPlot, tm) * ru, qel > 0 ? qel : Infinity) * 0.7, 1e-12);
+    const f2 = chartFigure({ w: 380, h: 250, xLabel: xLab, yLabel: yLab, legend: 'none', yLog: true, yMin: yLo, series: ser(true), marks }, 'The same on a log rate axis, where exponential decline is a straight line');
+    paint(q<HTMLCanvasElement>('.dc-fig'), f1); paint(q<HTMLCanvasElement>('.dc-lfig'), f2);
+    figs = [f1, f2];
+    // Comparison table.
+    const head = ['Model', `qi (${rateU})`, 'Di (per year)', 'b', 'R²', `RMSE (${rateU})`, `EUR (${vu})`];
+    const trows = (['exponential', 'hyperbolic', 'harmonic'] as Model[]).map((m) => {
+      const r = fits[m]; if (!r) return [NAMES[m], 'fit failed', '', '', '', '', ''];
+      return [NAMES[m] + (m === chosen ? ' (chosen)' : ''), rq(r.p.qi), sig(r.p.Di * 365.25, 3), m === 'hyperbolic' ? r.p.b.toFixed(3) : String(r.p.b), r.r2.toFixed(4), rq(r.rmse), big(fc(r).eur)];
+    });
+    const tab = q<HTMLTableElement>('.dc-tab'); tab.replaceChildren();
+    const hr = tab.insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    trows.forEach((r) => { const tr = tab.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); });
+    // Forecast CSV: monthly steps from the first point used to the end.
+    const step = 30.4375, nSteps = Math.min(2400, Math.ceil(fr.tEnd / step));
+    csvRows = [[dated ? 'date' : `time (${tuName})`, `rate (${rateU})`, `cumulative from first point used (${vu})`, 'part']];
+    for (let i = 0; i <= nSteps; i++) { const x = Math.min(i * step, fr.tEnd); csvRows.push([dated ? tLabel(x) : +((x + t0) / tu).toPrecision(8), +(rate(f.p, x, tm) * ru).toPrecision(6), +cumulative(f.p, x, tm).toPrecision(8), x <= tLast ? 'fit' : 'forecast']); if (x >= fr.tEnd) break; }
+    report = [
+      { title: q('.dc-big').textContent!, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent! + (d.querySelector('small') ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string]), figure: f1 },
+      { title: 'Log rate axis', figure: f2, table: { head, rows: trows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r'] } },
+    ];
+  }
+
+  root.querySelectorAll('input, textarea, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.dc-out').hidden) { paint(q<HTMLCanvasElement>('.dc-fig'), figs[0]); paint(q<HTMLCanvasElement>('.dc-lfig'), figs[1]); } });
+  q('.dc-csv').addEventListener('click', () => csvRows.length > 1 && save(new TextEncoder().encode(csv(csvRows)), 'decline-forecast.csv', 'text/csv'));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Decline curve analysis', subtitle: q('.dc-big').textContent ?? '', file: 'decline-curve', sections: report }));
+</script>
+
+<style is:global>
+  .dca textarea { width: 100%; }
+</style>
