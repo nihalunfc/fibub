@@ -133,6 +133,7 @@ import * as AHE from '../src/lib/sci/ahe.ts';
 import * as SSC from '../src/lib/sci/sscond.ts';
 import * as AMG from '../src/lib/sci/amagnon.ts';
 import * as UH from '../src/lib/sci/uh.ts';
+import * as THS from '../src/lib/sci/thiessen.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2658,6 +2659,25 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   { const d = UH.deriveUH([5, 12, 3], [0, 7.5, 38, 67.5, 58, 38, 20.5, 10, 3.9, 0.6], 8); check('uh: deconvolution recovers the unit hydrograph', d.U.every((v, i) => Math.abs(v - [0, 1.5, 4, 3, 2, 1, 0.5, 0.2][i]) < 1e-9) && Math.abs(d.nse - 1) < 1e-12); }
   { const r = UH.phiIndex([2, 10, 6, 1], 9); near('uh: φ-index leaves the runoff depth', r.excess.reduce((s, x) => s + x, 0), 9, 1e-9); near('uh: φ-index value', r.phi, 3.5, 1e-9); }
   check('uh: straight-line baseflow', UH.baseflow([2, 9, 7, 4], 'line').every((v, i) => Math.abs(v - [2, 2 + 2 / 3, 2 + 4 / 3, 4][i]) < 1e-12));
+}
+
+// #150 Thiessen rain gauge average: cell areas checked against shapely 2.2 (voronoi_diagram ∩ catchment)
+{
+  const P = [[0, 0], [9, 1], [14, 5], [12, 11], [7, 9], [5, 13], [-1, 10], [1, 5]], G = [[2, 2], [7, 3], [12, 5], [10, 9], [4, 7], [1, 10], [11, -1]], R = [32, 41, 28, 19, 36, 24, 30];
+  const r = THS.arealMean(P, G, R);
+  near('thiessen: catchment area', r.total, 125, 1e-12);
+  [0.141397515528, 0.194642857143, 0.134683497537, 0.15325, 0.22984057971, 0.144761904762, 0.00142364532].forEach((w, i) => near(`thiessen: weight of gauge ${i + 1} vs shapely`, r.weights[i], w, 1e-11));
+  near('thiessen: areal mean vs shapely', r.mean, 30.979221514242877, 1e-10);
+  near('thiessen: weights sum to 1', r.weights.reduce((a, b) => a + b, 0), 1, 1e-12);
+  near('thiessen: arithmetic mean of gauges inside', r.arithIn, 30, 1e-12);
+  near('thiessen: missing reading redraws cells (vs shapely)', THS.arealMean(P, G, [32, NaN, 28, 19, 36, 24, 30]).mean, 29.108106452531132, 1e-10);
+  check('thiessen: concave catchment is not self-crossing', !THS.selfCrossing(P));
+  check('thiessen: bow-tie is self-crossing', THS.selfCrossing([[0, 0], [2, 2], [2, 0], [0, 2]]));
+  near('thiessen: one gauge takes the whole catchment', THS.arealMean(P, [[3, 3]], [10]).mean, 10, 1e-12);
+  { const c = THS.centroid([[0, 0], [4, 0], [4, 2], [0, 2]]); check('thiessen: centroid of a rectangle', c[0] === 2 && c[1] === 1); }
+  check('parseTable: whole-number CSV rows stay comma-separated', JSON.stringify(parseTable('x,y\n0,0\n9,1\n14,5')) === JSON.stringify([['x', 'y'], ['0', '0'], ['9', '1'], ['14', '5']]));
+  check('parseTable: decimal commas with spaces still split on spaces', JSON.stringify(parseTable('1,5 2,25\n3,0 4,5')) === JSON.stringify([['1,5', '2,25'], ['3,0', '4,5']]));
+  { const k = THS.lonLatToKm([[-79, 43], [-78, 43], [-79, 44]]); near('thiessen: 1° of longitude at 43.33° N', k.pts[1][0] - k.pts[0][0], 111.32 * Math.cos((43 + 1 / 3) * Math.PI / 180), 1e-9); near('thiessen: 1° of latitude', k.pts[2][1] - k.pts[0][1], 110.574, 1e-9); }
 }
 
 console.log(`sci: ${pass} passed, ${fail} failed`);
