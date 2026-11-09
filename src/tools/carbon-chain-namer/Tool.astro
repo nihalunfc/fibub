@@ -1,0 +1,305 @@
+---
+// Carbon chain builder and namer: build a chain up to C10, tap carbons to add branches, add a double or triple
+// bond and one functional group; IUPAC name with steps, molecular formula, homologous series; Check yourself.
+import '../../styles/astro.css';
+---
+<div class="ax ccn">
+  <div class="ax-card">
+    <h2>Build a molecule</h2>
+    <span class="ax-seg cc-level" role="group" aria-label="Level"><button type="button" data-l="10" aria-pressed="false">Class 10</button><button type="button" data-l="11" aria-pressed="true">Class 11</button></span>
+    <div class="cc-ctl">
+      <div class="cc-step"><span>Carbons in the chain</span><div class="cc-pm"><button type="button" class="cc-ndn" aria-label="One carbon fewer">−</button><output class="cc-n">5</output><button type="button" class="cc-nup" aria-label="One carbon more">+</button></div></div>
+      <label>Multiple bond <select class="cc-bond"><option value="single">None (all single)</option><option value="double">Double bond C=C</option><option value="triple">Triple bond C≡C</option></select></label>
+      <label class="cc-batw">Between carbons <select class="cc-bat"></select></label>
+      <label>Functional group <select class="cc-group"><option value="none">None</option><option value="OH">Alcohol –OH</option><option value="CHO">Aldehyde –CHO</option><option value="CO">Ketone C=O</option><option value="COOH">Carboxylic acid –COOH</option><option value="Cl">Chloro –Cl</option><option value="Br">Bromo –Br</option></select></label>
+      <label class="cc-gatw">On carbon <select class="cc-gat"></select></label>
+    </div>
+    <p class="ax-help cc-taphelp">Tap a carbon in the drawing to add a branch: methyl → ethyl → two methyls → none.</p>
+    <p class="ax-err cc-err" hidden></p>
+    <svg class="cc-svg" role="img" aria-label="Structure"></svg>
+    <p class="ax-help cc-legend">Blue numbers and thick bonds: the chain used for the name, numbered the IUPAC way.</p>
+    <p class="ax-big cc-name"></p>
+    <dl class="ax-facts cc-facts"></dl>
+    <h3 class="cc-h3">How the name is built</h3>
+    <ol class="cc-steps"></ol>
+    <button type="button" class="btn secondary small cc-reset">Start again</button>
+  </div>
+
+  <div class="ax-card">
+    <h2>Homologous series</h2>
+    <p class="ax-help cc-shelp" style="margin-top:0"></p>
+    <div class="ax-scroll"><table class="cc-series"><thead><tr><th>Carbons</th><th>Name</th><th>Formula</th></tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="cc-try">
+      <li>Make a 4-carbon chain and tap carbon 2 for a methyl: 2-methylbutane. Now move the methyl to carbon 1. Is it still a branch, or just a longer chain?</li>
+      <li>Make pentane and put an ethyl on carbon 2. The longest chain now runs through the branch: the name changes to 3-methylhexane.</li>
+      <li>Put –OH on carbon 4 of a 5-carbon chain. Why is it pentan-2-ol and not pentan-4-ol?</li>
+      <li>Add a double bond and an –OH: which one decides the numbering?</li>
+      <li>Change the chain length with the series group fixed: each member differs by CH₂.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cc-quiz">
+    <h2>Check yourself</h2>
+    <p class="ax-help" style="margin-top:0">Pick the right IUPAC name for each structure. New questions every time; nothing is saved.</p>
+    <div class="cc-qs"></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn small cc-check">Check</button><button type="button" class="btn secondary small cc-new">New questions</button><span class="cc-score" aria-live="polite"></span></div>
+  </div>
+</div>
+
+<style is:inline>
+  .cc-level { margin-bottom: 10px; }
+  .cc-ctl { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 10px 12px; align-items: end; }
+  .cc-step { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .cc-pm { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; width: max-content; }
+  .cc-pm button { width: 48px; height: 44px; border: 0; background: var(--surface); color: var(--ink); font: inherit; font-size: 24px; cursor: pointer; }
+  .cc-pm output { min-width: 40px; text-align: center; font-size: 20px; font-weight: 700; color: var(--ink); }
+  .cc-svg { display: block; width: 100%; height: auto; margin: 10px auto 0; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); touch-action: manipulation; }
+  .cc-svg .b { stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; }
+  .cc-svg .b.main { stroke-width: 3.2; }
+  .cc-svg .lab { fill: var(--ink); font: 600 14px system-ui, sans-serif; text-anchor: middle; dominant-baseline: central; }
+  .cc-svg .lbg { fill: var(--bg); }
+  .cc-svg .num { fill: var(--accent); font: 700 11px system-ui, sans-serif; text-anchor: middle; dominant-baseline: central; }
+  .cc-svg .hit { fill: transparent; cursor: pointer; }
+  .cc-svg .hit:focus { outline: none; stroke: var(--accent); stroke-width: 1.5; }
+  .cc-name { margin: 12px 0 8px; overflow-wrap: anywhere; }
+  .cc-h3 { font-size: 15px; margin: 14px 0 4px; }
+  .cc-steps, .cc-try { margin: 0 0 10px; padding-left: 20px; display: grid; gap: 6px; }
+  .cc-qs { display: grid; gap: 14px; }
+  .cc-q1 { display: grid; gap: 6px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+  .cc-q1 svg { max-width: 360px; }
+  .cc-q1 .cc-opts { display: grid; gap: 6px; }
+  .cc-q1 .cc-opts label { display: flex; flex-direction: row; gap: 8px; align-items: center; color: var(--ink); font-size: 15px; min-height: 36px; cursor: pointer; }
+  .cc-ans { font-size: 14px; margin: 0; }
+  .cc-ans.ok { color: var(--good); } .cc-ans.no { color: var(--bad); }
+  .cc-score { font-weight: 700; }
+</style>
+
+<script>
+  import { nameOf, blank, check, toGraph, type Build, type NameResult, type Group } from '../../lib/sci/chainname';
+
+  const root = document.querySelector<HTMLElement>('.ccn')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const NS = 'http://www.w3.org/2000/svg';
+  const mk = (tag: string, attrs: Record<string, string | number>, text?: string) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, String(attrs[k])); if (text !== undefined) e.textContent = text; return e; };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const li = (t: string) => { const e = document.createElement('li'); e.textContent = t; return e; };
+  const sub = (k: number) => (k === 1 ? '' : String(k).replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈₉'[+d]));
+
+  let level = 11;
+  let b: Build = blank(5);
+  const CYCLE = [[], [1], [2], [1, 1]];
+
+  /** Draw a build as a condensed zig-zag structure into an svg. `main` lists the chain carbons used for the name. */
+  function drawBuild(svg: SVGSVGElement, bd: Build, res: NameResult | null, interactive: boolean) {
+    const G = toGraph(bd), step = 46, dy = 16, top = 90;
+    const pos: { x: number; y: number }[] = [];
+    for (let i = 0; i < bd.n; i++) pos[i] = { x: 40 + i * step, y: top + (i % 2 ? dy : -dy) };
+    // Branch carbons: follow the order toGraph adds them.
+    let next = bd.n;
+    const branchSide: number[] = new Array(bd.n).fill(0);
+    bd.branches.forEach((list, i) => {
+      (list || []).forEach((len, k) => {
+        const up = (i % 2 === 0) !== (k === 1);
+        let px = pos[i].x, py = pos[i].y;
+        for (let j = 0; j < len; j++) { const c = next++; py += up ? -40 : 40; px += j === 0 ? 0 : 14; pos[c] = { x: px, y: py }; }
+        branchSide[i] += up ? 1 : 2;
+      });
+    });
+    // Chain ends for single carbon.
+    const H = (c: number) => 4 - G.adj[c].reduce((s, j) => s + (G.order.get(c < j ? `${c}-${j}` : `${j}-${c}`) || 1), 0) - G.oh[c] - 2 * G.oxo[c] - (G.hal[c] ? 1 : 0);
+    const deg = G.adj.map((a) => a.length);
+    const label = (c: number) => {
+      if (G.oxo[c] && G.oh[c]) return 'COOH';
+      if (G.oxo[c] && deg[c] <= 1) return c === 0 && bd.n > 1 ? 'OHC' : 'CHO';
+      const h = Math.max(0, H(c));
+      if (c === 0 && bd.n > 1 && h > 0 && G.adj[c].length) return `H${sub(h)}C`;
+      return h ? `CH${sub(h)}` : 'C';
+    };
+    const xs = pos.map((p) => p.x), ys = pos.map((p) => p.y);
+    const minX = Math.min(...xs) - 40, maxX = Math.max(...xs) + 40, minY = Math.min(...ys, top - 70) - 20, maxY = Math.max(...ys, top + 70) + 20;
+    svg.setAttribute('viewBox', `${minX} ${minY} ${maxX - minX} ${maxY - minY}`);
+    svg.replaceChildren();
+    const main = new Set<string>();
+    if (res) for (let k = 0; k + 1 < res.chain.length; k++) { const a = res.chain[k], c = res.chain[k + 1]; main.add(a < c ? `${a}-${c}` : `${c}-${a}`); }
+    // Bonds.
+    for (const [kk, o] of G.order) {
+      const [a, c] = kk.split('-').map(Number), p = pos[a], r = pos[c];
+      const L = Math.hypot(r.x - p.x, r.y - p.y), ux = (r.x - p.x) / L, uy = (r.y - p.y) / L, nx = -uy, ny = ux, cut = 15;
+      for (let j = 0; j < o; j++) { const off = (j - (o - 1) / 2) * 5; svg.append(mk('line', { class: 'b' + (main.has(kk) ? ' main' : ''), x1: p.x + ux * cut + nx * off, y1: p.y + uy * cut + ny * off, x2: r.x - ux * cut + nx * off, y2: r.y - uy * cut + ny * off })); }
+    }
+    // Hetero atoms (OH, =O on a ketone, halogens) on the side away from branches.
+    for (let c = 0; c < bd.n; c++) {
+      const isEnd = c === 0 || c === bd.n - 1;
+      const acidOrAld = G.oxo[c] && deg[c] <= 1;
+      if (acidOrAld) continue;
+      const het = G.hal[c] || (G.oh[c] ? 'OH' : G.oxo[c] ? 'O' : '');
+      if (!het) continue;
+      const up = branchSide[c] === 2 || (branchSide[c] === 0 && c % 2 === 0);
+      let hx = pos[c].x, hy = pos[c].y + (up ? -42 : 42);
+      if (isEnd && bd.n > 1 && !branchSide[c]) { hx = pos[c].x + (c === 0 ? -42 : 42); hy = pos[c].y; }
+      if (bd.n === 1) { hx = pos[c].x + 46; hy = pos[c].y; }
+      const L = Math.hypot(hx - pos[c].x, hy - pos[c].y), ux = (hx - pos[c].x) / L, uy = (hy - pos[c].y) / L;
+      const o = G.oxo[c] ? 2 : 1;
+      for (let j = 0; j < o; j++) { const off = (j - (o - 1) / 2) * 5; svg.append(mk('line', { class: 'b', x1: pos[c].x + ux * 15 - uy * off, y1: pos[c].y + uy * 15 + ux * off, x2: hx - ux * 13 - uy * off, y2: hy - uy * 13 + ux * off })); }
+      svg.append(mk('text', { class: 'lab', x: hx, y: hy }, het));
+    }
+    // Carbon labels.
+    pos.forEach((p, c) => {
+      const t = label(c);
+      svg.append(mk('rect', { class: 'lbg', x: p.x - t.length * 4.6, y: p.y - 9, width: t.length * 9.2, height: 18, rx: 3 }));
+      svg.append(mk('text', { class: 'lab', x: p.x, y: p.y }, t.replace(/([₀-₉])/g, '$1')));
+    });
+    // IUPAC numbers on the naming chain.
+    if (res && res.length > 1) res.chain.forEach((c, k) => { const p = pos[c]; const off = c < bd.n ? (c % 2 ? 22 : -22) : -0; svg.append(mk('text', { class: 'num', x: p.x + (c < bd.n ? 0 : 20), y: p.y + (c < bd.n ? off : 0) }, String(k + 1))); });
+    // Tap targets.
+    if (interactive) for (let c = 0; c < bd.n; c++) {
+      const h = mk('circle', { class: 'hit', cx: pos[c].x, cy: pos[c].y, r: 20, 'data-c': c, role: 'button', tabindex: 0, 'aria-label': `Carbon ${c + 1}: tap to change its branches` });
+      svg.append(h);
+    }
+  }
+
+  function fillSelects() {
+    const bat = q<HTMLSelectElement>('.cc-bat'), gat = q<HTMLSelectElement>('.cc-gat');
+    bat.replaceChildren(...Array.from({ length: Math.max(0, b.n - 1) }, (_, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = `${i + 1} and ${i + 2}`; return o; }));
+    gat.replaceChildren(...Array.from({ length: b.n }, (_, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = String(i + 1); return o; }));
+    bat.value = String(Math.min(b.bond.at, Math.max(0, b.n - 2))); gat.value = String(Math.min(b.group.at, b.n - 1));
+  }
+
+  function seriesTable(res: NameResult) {
+    const rows: HTMLTableRowElement[] = [];
+    for (let n = 1; n <= 6; n++) {
+      const s = blank(n); s.bond = { kind: b.bond.kind, at: 0 }; s.group = { kind: b.group.kind, at: b.group.kind === 'CO' ? 1 : 0 };
+      if (s.group.kind === 'CO' && n < 3) continue;
+      const r = nameOf(s); if (typeof r === 'string') continue;
+      const tr = document.createElement('tr'); for (const c of [String(n), r.name, r.formula]) { const td = document.createElement('td'); td.textContent = c; tr.append(td); } rows.push(tr);
+    }
+    q('.cc-series tbody').replaceChildren(...rows);
+    q('.cc-shelp').textContent = `${res.series[0].toUpperCase() + res.series.slice(1)}s, general formula ${res.general}. Each member has one more CH₂ than the one before; the group (and any multiple bond) is kept at the start of the chain.`;
+  }
+
+  function update() {
+    q('.cc-n').textContent = String(b.n);
+    q('.cc-batw').hidden = b.bond.kind === 'single'; q('.cc-gatw').hidden = b.group.kind === 'none';
+    const err = q('.cc-err'), probs = check(b);
+    const svg = q('.cc-svg') as unknown as SVGSVGElement;
+    if (probs.length) {
+      err.textContent = probs.join(' '); err.hidden = false;
+      drawBuild(svg, b, null, level === 11);
+      q('.cc-name').textContent = 'Not a possible molecule'; q('.cc-facts').replaceChildren(); q('.cc-steps').replaceChildren();
+      return;
+    }
+    err.hidden = true;
+    const res = nameOf(b) as NameResult;
+    drawBuild(svg, b, res, level === 11);
+    svg.setAttribute('aria-label', `Structure of ${res.name}`);
+    q('.cc-name').textContent = res.name;
+    q('.cc-facts').replaceChildren(
+      fact('Molecular formula', res.formula),
+      fact('Family (homologous series)', res.series, `general formula ${res.general}`),
+      fact('Carbons in the named chain', String(res.length), res.length !== b.n ? `you drew ${b.n}: the longest chain is different` : 'same as the chain you drew'),
+    );
+    q('.cc-steps').replaceChildren(...res.steps.map(li));
+    seriesTable(res);
+  }
+
+  const setN = (n: number) => {
+    n = Math.max(1, Math.min(10, n));
+    const old = b; b = blank(n);
+    for (let i = 0; i < n; i++) b.branches[i] = (old.branches[i] || []).slice();
+    b.bond = { kind: old.bond.kind, at: Math.min(old.bond.at, Math.max(0, n - 2)) };
+    b.group = { kind: old.group.kind, at: old.group.at >= n || (old.group.at === old.n - 1 && old.group.at > 0 && (old.group.kind === 'CHO' || old.group.kind === 'COOH')) ? n - 1 : old.group.at };
+    if (n === 1) b.bond.kind = 'single';
+    q<HTMLSelectElement>('.cc-bond').value = b.bond.kind;
+    fillSelects(); update();
+  };
+  q('.cc-ndn').addEventListener('click', () => setN(b.n - 1));
+  q('.cc-nup').addEventListener('click', () => setN(b.n + 1));
+  q('.cc-bond').addEventListener('change', () => { b.bond.kind = q<HTMLSelectElement>('.cc-bond').value as Build['bond']['kind']; update(); });
+  q('.cc-bat').addEventListener('change', () => { b.bond.at = Number(q<HTMLSelectElement>('.cc-bat').value); update(); });
+  q('.cc-group').addEventListener('change', () => {
+    b.group.kind = q<HTMLSelectElement>('.cc-group').value as Group;
+    // Put end-only groups at the end and ketones inside the chain, to start with.
+    if (b.group.kind === 'CHO' || b.group.kind === 'COOH') b.group.at = b.bond.kind !== 'single' && b.bond.at === 0 && b.n > 1 ? b.n - 1 : b.group.at === b.n - 1 && !(b.bond.kind !== 'single' && b.bond.at === b.n - 2) ? b.n - 1 : 0;
+    if (b.group.kind === 'CO' && (b.group.at === 0 || b.group.at === b.n - 1) && b.n > 2) b.group.at = 1;
+    fillSelects(); update();
+  });
+  q('.cc-gat').addEventListener('change', () => { b.group.at = Number(q<HTMLSelectElement>('.cc-gat').value); update(); });
+  const tap = (c: number) => {
+    if (level !== 11) return;
+    const cur = JSON.stringify(b.branches[c] || []), k = CYCLE.findIndex((x) => JSON.stringify(x) === cur);
+    b.branches[c] = CYCLE[(k + 1) % CYCLE.length].slice(); update();
+  };
+  q('.cc-svg').addEventListener('click', (e) => { const t = (e.target as Element).closest('.hit'); if (t) tap(Number(t.getAttribute('data-c'))); });
+  q('.cc-svg').addEventListener('keydown', (e) => { const t = e.target as Element; if ((e.key === 'Enter' || e.key === ' ') && t.classList.contains('hit')) { e.preventDefault(); tap(Number(t.getAttribute('data-c'))); } });
+  q('.cc-reset').addEventListener('click', () => { b = blank(5); q<HTMLSelectElement>('.cc-bond').value = 'single'; q<HTMLSelectElement>('.cc-group').value = 'none'; fillSelects(); update(); });
+  for (const btn of root.querySelectorAll<HTMLButtonElement>('.cc-level button')) btn.addEventListener('click', () => {
+    level = Number(btn.dataset.l);
+    for (const x of root.querySelectorAll('.cc-level button')) x.setAttribute('aria-pressed', String(x === btn));
+    if (level === 10) b.branches = b.branches.map(() => []);
+    q('.cc-taphelp').textContent = level === 11 ? 'Tap a carbon in the drawing to add a branch: methyl → ethyl → two methyls → none.' : 'Class 10: straight chains only. Switch to Class 11 to add branches.';
+    update(); newQuiz();
+  });
+
+  // Check yourself: pick the right name from four.
+  type Q = { build: Build; answer: string; options: string[]; why: string };
+  let quiz: Q[] = [];
+  function randomBuild(): Build {
+    for (;;) {
+      const n = 3 + Math.floor(Math.random() * 4), s = blank(n);
+      const kinds: Group[] = ['none', 'OH', 'CHO', 'CO', 'COOH', 'Cl', 'Br', 'none'];
+      s.group.kind = kinds[Math.floor(Math.random() * kinds.length)];
+      s.group.at = s.group.kind === 'CHO' || s.group.kind === 'COOH' ? (Math.random() < 0.5 ? 0 : n - 1) : Math.floor(Math.random() * n);
+      if (Math.random() < 0.4) { s.bond = { kind: Math.random() < 0.7 ? 'double' : 'triple', at: Math.floor(Math.random() * (n - 1)) }; }
+      if (level === 11 && Math.random() < 0.7) { const c = 1 + Math.floor(Math.random() * (n - 2)); s.branches[c] = Math.random() < 0.7 ? [1] : [2]; }
+      if (check(s).length) continue;
+      const r = nameOf(s); if (typeof r === 'string') continue;
+      return s;
+    }
+  }
+  function variants(s: Build, right: string) {
+    const set = new Set<string>([right]);
+    for (const o of [{ reverse: true }, { drawnChain: true }, { drawnChain: true, reverse: true }]) { const r = nameOf(s, o); if (typeof r !== 'string') set.add(r.name); }
+    const roots = ['meth', 'eth', 'prop', 'but', 'pent', 'hex', 'hept', 'oct', 'non', 'dec'];
+    for (let k = 0; k < roots.length && set.size < 4; k++) { if (right.includes(roots[k]) && k + 1 < roots.length) set.add(right.replace(roots[k], roots[k + 1])); }
+    const swaps: [RegExp, string][] = [[/ol$/, 'al'], [/one$/, 'ol'], [/ene$/, 'yne'], [/yne$/, 'ene'], [/ane$/, 'ene'], [/al$/, 'ol'], [/oic acid$/, 'al'], [/chloro/, 'bromo'], [/bromo/, 'chloro']];
+    for (const [re, to] of swaps) if (set.size < 4 && re.test(right)) set.add(right.replace(re, to));
+    return [...set].slice(0, 4).sort(() => Math.random() - 0.5);
+  }
+  function newQuiz() {
+    quiz = [];
+    const seen = new Set<string>();
+    while (quiz.length < 3) {
+      const s = randomBuild(), r = nameOf(s) as NameResult;
+      if (seen.has(r.name)) continue; seen.add(r.name);
+      quiz.push({ build: s, answer: r.name, options: variants(s, r.name), why: r.steps.join(' ') });
+    }
+    q('.cc-qs').replaceChildren(...quiz.map((x, i) => {
+      const d = document.createElement('div'); d.className = 'cc-q1';
+      const p = document.createElement('p'); p.style.margin = '0'; p.textContent = `${i + 1}. What is the IUPAC name?`;
+      const svg = document.createElementNS(NS, 'svg') as SVGSVGElement; svg.setAttribute('class', 'cc-svg'); svg.setAttribute('role', 'img');
+      drawBuild(svg, x.build, null, false); svg.setAttribute('aria-label', `Question ${i + 1} structure`);
+      const opts = document.createElement('div'); opts.className = 'cc-opts';
+      x.options.forEach((o) => { const lab = document.createElement('label'); const r = document.createElement('input'); r.type = 'radio'; r.name = `cc-q${i}`; r.value = o; lab.append(r, document.createTextNode(o)); opts.append(lab); });
+      const a = document.createElement('p'); a.className = 'cc-ans'; a.hidden = true;
+      d.append(p, svg, opts, a); return d;
+    }));
+    q('.cc-score').textContent = '';
+  }
+  q('.cc-check').addEventListener('click', () => {
+    let right = 0;
+    root.querySelectorAll<HTMLElement>('.cc-q1').forEach((d, i) => {
+      const v = d.querySelector<HTMLInputElement>('input:checked')?.value || '', a = d.querySelector<HTMLElement>('.cc-ans')!, x = quiz[i];
+      const ok = v === x.answer; if (ok) right++;
+      a.hidden = false; a.className = 'cc-ans ' + (ok ? 'ok' : 'no');
+      a.textContent = `${ok ? '✓ Right.' : v ? `✗ It is ${x.answer}.` : '✗ No answer yet.'} ${x.why}`;
+    });
+    q('.cc-score').textContent = `${right} of ${quiz.length} right`;
+  });
+  q('.cc-new').addEventListener('click', newQuiz);
+
+  fillSelects(); update(); newQuiz();
+</script>

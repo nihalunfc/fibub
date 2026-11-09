@@ -1,0 +1,294 @@
+---
+// Lewis structure tool: count valence electrons, tap bonds to change them, lone pairs placed for you, formal
+// charges and octet check, best structure and resonance forms; Class 10 / Class 11 level; Check yourself.
+import '../../styles/astro.css';
+import { EXAMPLES } from '../../lib/sci/lewis';
+const CENTRES = ['Be', 'B', 'Al', 'C', 'Si', 'N', 'P', 'O', 'S', 'Cl', 'Br', 'I', 'Xe'];
+---
+<div class="ax lws">
+  <div class="ax-card">
+    <h2>Draw the Lewis structure</h2>
+    <div class="ax-row lw-top">
+      <span class="ax-seg lw-level" role="group" aria-label="Level"><button type="button" data-l="10" aria-pressed="false">Class 10</button><button type="button" data-l="11" aria-pressed="true">Class 11</button></span>
+    </div>
+    <label style="margin-top:10px">Molecule or ion <select class="lw-ex">{EXAMPLES.map((e) => <option value={e.id} selected={e.id === 'no3'}>{e.name}</option>)}<option value="own">Build your own (one central atom)</option></select></label>
+    <div class="ax-grid lw-own" hidden>
+      <label>Central atom <select class="lw-c">{CENTRES.map((c) => <option selected={c === 'C'}>{c}</option>)}</select></label>
+      <label>Outer atoms <input class="lw-o" value="Cl Cl Cl Cl" spellcheck="false" autocomplete="off" /></label>
+      <label>Charge <select class="lw-q"><option value="-3">3−</option><option value="-2">2−</option><option value="-1">1−</option><option value="0" selected>0</option><option value="1">1+</option><option value="2">2+</option></select></label>
+    </div>
+    <p class="ax-help lw-ownhelp" hidden>Outer atoms: element symbols with spaces, e.g. <b>O O O</b> or <b>H H H O</b> (up to 6). Allowed: H, B, C, N, O, F, P, S, Cl, Br, I.</p>
+    <p class="ax-err lw-err" hidden></p>
+    <p class="lw-count"></p>
+    <svg class="lw-svg" role="img" aria-label="Lewis structure"></svg>
+    <p class="ax-help lw-tap">Tap a bond to change it: single → double → triple → single. Lone pairs move to match.</p>
+    <div class="ax-row">
+      <button type="button" class="btn small lw-best">Best structure</button>
+      <button type="button" class="btn secondary small lw-next">Next resonance form</button>
+      <button type="button" class="btn secondary small lw-single">All single bonds</button>
+    </div>
+    <label class="ax-check lw-expw" style="margin-top:10px"><input type="checkbox" class="lw-exp" /> Allow expanded octets (P, S, Cl … with more than 8)</label>
+    <p class="ax-big lw-status"></p>
+    <p class="lw-used"></p>
+    <ul class="lw-probs"></ul>
+    <dl class="ax-facts lw-facts"></dl>
+    <p class="ax-help lw-note"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>How to draw one, step by step</h2>
+    <ol class="lw-how"></ol>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lw-try">
+      <li>Pick CO₂ and press <b>All single bonds</b>. Carbon is short of electrons. Tap bonds until every atom has 8.</li>
+      <li>In nitrate, NO₃⁻, press <b>Next resonance form</b>: the double bond moves, nothing else changes. The real ion is an average of all three.</li>
+      <li>Try carbon monoxide: the best structure has a triple bond, and carbon carries the minus charge even though oxygen is more electronegative.</li>
+      <li>Pick SO₄²⁻ and tick <b>Allow expanded octets</b>. Which version has smaller formal charges?</li>
+      <li>Build your own: N with H H H H and charge 1+. Where is the plus charge?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card lw-quiz">
+    <h2>Check yourself</h2>
+    <p class="ax-help" style="margin-top:0">Type a whole number for each, then press Check. New questions every time; nothing is saved.</p>
+    <div class="lw-qs"></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn small lw-check">Check</button><button type="button" class="btn secondary small lw-new">New questions</button><span class="lw-score" aria-live="polite"></span></div>
+  </div>
+</div>
+
+<style is:inline>
+  .lw-count, .lw-used { font-size: 15px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; overflow-wrap: anywhere; margin: 10px 0; }
+  .lw-used { background: none; border: 0; padding: 0; }
+  .lw-svg { display: block; width: 100%; max-width: 460px; height: auto; margin: 0 auto; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); touch-action: manipulation; }
+  .lw-svg .hit { stroke: transparent; stroke-width: 26; cursor: pointer; }
+  .lw-svg .bond { stroke: var(--ink); stroke-width: 2.6; stroke-linecap: round; pointer-events: none; }
+  .lw-svg .el { fill: var(--ink); font: 700 22px system-ui, sans-serif; text-anchor: middle; dominant-baseline: central; }
+  .lw-svg .el.bad { fill: var(--bad); }
+  .lw-svg .dot { fill: var(--ink); }
+  .lw-svg .fc { fill: var(--accent2, var(--ink)); font: 700 14px system-ui, sans-serif; text-anchor: middle; dominant-baseline: central; }
+  .lw-svg .fcc { fill: var(--bg); stroke: var(--ink); stroke-width: 1.2; }
+  .lw-svg .ring { fill: none; stroke: var(--bad); stroke-width: 1.5; stroke-dasharray: 4 3; }
+  .lw-svg .br { fill: none; stroke: var(--ink); stroke-width: 2; }
+  .lw-svg .chg { fill: var(--ink); font: 700 16px system-ui, sans-serif; }
+  .lw-probs { margin: 6px 0; padding-left: 20px; color: var(--bad); font-size: 14px; }
+  .lw-how, .lw-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .lw-status { margin: 10px 0 0; font-size: 20px; }
+  .lw-status.good { color: var(--good); } .lw-status.bad { color: var(--bad); }
+  .lw-qs { display: grid; gap: 12px; }
+  .lw-q1 { display: grid; gap: 6px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+  .lw-q1 input { max-width: 120px; }
+  .lw-ans { font-size: 14px; margin: 0; }
+  .lw-ans.ok { color: var(--good); } .lw-ans.no { color: var(--bad); }
+  .lw-score { font-weight: 700; }
+</style>
+
+<script>
+  import { EXAMPLES, VALENCE, solve, evaluate, averageOrders, star, totalValence, fcText, type Mol, type Eval, type Solution } from '../../lib/sci/lewis';
+
+  const root = document.querySelector<HTMLElement>('.lws')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const svg = q<SVGSVGElement>('.lw-svg' as string) as unknown as SVGSVGElement;
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (tag: string, attrs: Record<string, string | number>, text?: string) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, String(attrs[k])); if (text !== undefined) e.textContent = text; return e; };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const li = (t: string) => { const e = document.createElement('li'); e.textContent = t; return e; };
+
+  let level = 11, mol: Mol = EXAMPLES.find((e) => e.id === 'no3')!, sol: Solution = solve(mol), orders: number[] = [], formIdx = 0;
+  const OUTER_OK = new Set(['H', 'B', 'C', 'N', 'O', 'F', 'P', 'S', 'Cl', 'Br', 'I']);
+  const expand = () => level === 11 && q<HTMLInputElement>('.lw-exp').checked;
+
+  function valenceLine(m: Mol) {
+    const counts = new Map<string, number>(); for (const a of m.atoms) counts.set(a.el, (counts.get(a.el) || 0) + 1);
+    const parts = [...counts].map(([e, n]) => (n === 1 ? `${e} ${VALENCE[e]}` : `${e} ${VALENCE[e]} × ${n}`));
+    const ch = m.charge < 0 ? ` + ${-m.charge} (charge ${-m.charge}−)` : m.charge > 0 ? ` − ${m.charge} (charge ${m.charge}+)` : '';
+    return `Valence electrons in ${m.name}: ${parts.join(' + ')}${ch} = ${totalValence(m)}`;
+  }
+
+  // Where lone pairs go round an atom: the directions furthest from its bonds.
+  function lonePlaces(i: number, count: number) {
+    const a = mol.atoms[i];
+    const used: number[] = [];
+    mol.bonds.forEach(([x, y]) => { if (x === i || y === i) { const b = mol.atoms[x === i ? y : x]; used.push(Math.atan2(b.y - a.y, b.x - a.x)); } });
+    const cands = [0, 90, 180, 270, 45, 135, 225, 315].map((d) => (d * Math.PI) / 180);
+    const out: number[] = [];
+    const gap = (t: number, s: number) => { const d = Math.abs(((t - s + Math.PI * 3) % (Math.PI * 2)) - Math.PI); return d; };
+    for (let k = 0; k < count; k++) {
+      let best = cands[0], bs = -1;
+      for (const c of cands) { if (out.some((o) => gap(o, c) < 0.01)) continue; const s = Math.min(9, ...used.map((u) => gap(u, c)), ...out.map((o) => gap(o, c))); if (s > bs + 1e-9) { bs = s; best = c; } }
+      out.push(best);
+    }
+    return out;
+  }
+
+  function draw(e: Eval) {
+    const S = 74, pad = 52;
+    const xs = mol.atoms.map((a) => a.x * S), ys = mol.atoms.map((a) => a.y * S);
+    const minX = Math.min(...xs) - pad, maxX = Math.max(...xs) + pad, minY = Math.min(...ys) - pad, maxY = Math.max(...ys) + pad;
+    const w = Math.max(220, maxX - minX + (mol.charge ? 40 : 0)), h = Math.max(150, maxY - minY);
+    const ox = minX - (w - (maxX - minX + (mol.charge ? 40 : 0))) / 2, oy = minY - (h - (maxY - minY)) / 2;
+    svg.setAttribute('viewBox', `${ox} ${oy} ${w} ${h}`);
+    svg.replaceChildren();
+    const bad = new Set<number>();
+    for (const p of e.problems) { const m = p.match(/atom (\d+)/); if (m) bad.add(+m[1] - 1); }
+    mol.bonds.forEach(([a, b], k) => {
+      const x1 = xs[a], y1 = ys[a], x2 = xs[b], y2 = ys[b], L = Math.hypot(x2 - x1, y2 - y1), ux = (x2 - x1) / L, uy = (y2 - y1) / L, nx = -uy, ny = ux, r = 16;
+      const o = e.orders[k];
+      for (let j = 0; j < o; j++) { const off = (j - (o - 1) / 2) * 6.5; svg.append(el('line', { class: 'bond', x1: x1 + ux * r + nx * off, y1: y1 + uy * r + ny * off, x2: x2 - ux * r + nx * off, y2: y2 - uy * r + ny * off })); }
+      const hit = el('line', { class: 'hit', x1, y1, x2, y2, 'data-k': k, role: 'button', tabindex: 0, 'aria-label': `Bond ${k + 1}: ${mol.atoms[a].el}–${mol.atoms[b].el}, order ${o}. Tap to change.` });
+      svg.append(hit);
+    });
+    mol.atoms.forEach((a, i) => {
+      const x = xs[i], y = ys[i];
+      if (bad.has(i)) svg.append(el('circle', { class: 'ring', cx: x, cy: y, r: 19 }));
+      svg.append(el('text', { class: 'el' + (bad.has(i) ? ' bad' : ''), x, y }, a.el));
+      const pairs = Math.floor(e.lone[i] / 2), single = e.lone[i] % 2;
+      const places = lonePlaces(i, pairs + single);
+      places.forEach((t, k) => {
+        const cx = x + Math.cos(t) * 21, cy = y + Math.sin(t) * 21, px = -Math.sin(t) * 4.5, py = Math.cos(t) * 4.5;
+        if (k < pairs) { svg.append(el('circle', { class: 'dot', cx: cx + px, cy: cy + py, r: 2.6 })); svg.append(el('circle', { class: 'dot', cx: cx - px, cy: cy - py, r: 2.6 })); }
+        else svg.append(el('circle', { class: 'dot', cx, cy, r: 2.6 }));
+      });
+      if (level === 11 && e.fc[i] !== 0) {
+        // Formal charge in a small circle, in the free direction furthest from bonds and lone pairs.
+        const used = [...places];
+        const [t] = (() => { const cand = [315, 45, 225, 135].map((d) => (d * Math.PI) / 180); const bonds = mol.bonds.filter(([p, r]) => p === i || r === i).map(([p, r]) => { const b = mol.atoms[p === i ? r : p]; return Math.atan2(b.y - a.y, b.x - a.x); }); let best = cand[0], bs = -1; for (const c of cand) { const s = Math.min(9, ...[...bonds, ...used].map((u) => Math.abs(((c - u + Math.PI * 3) % (Math.PI * 2)) - Math.PI))); if (s > bs) { bs = s; best = c; } } return [best]; })();
+        const fx = x + Math.cos(t) * 27, fy = y + Math.sin(t) * 27;
+        svg.append(el('circle', { class: 'fcc', cx: fx, cy: fy, r: 10 }));
+        svg.append(el('text', { class: 'fc', x: fx, y: fy }, e.fc[i] > 0 ? (e.fc[i] > 1 ? `${e.fc[i]}+` : '+') : e.fc[i] < -1 ? `${-e.fc[i]}−` : '−'));
+      }
+    });
+    if (mol.charge !== 0) {
+      const x0 = ox + 8, x1 = ox + w - 30, y0 = oy + 10, y1 = oy + h - 10;
+      svg.append(el('path', { class: 'br', d: `M${x0 + 8},${y0} h-8 v${y1 - y0} h8` }));
+      svg.append(el('path', { class: 'br', d: `M${x1 - 8},${y0} h8 v${y1 - y0} h-8` }));
+      svg.append(el('text', { class: 'chg', x: x1 + 4, y: y0 + 12 }, `${Math.abs(mol.charge) > 1 ? Math.abs(mol.charge) : ''}${mol.charge > 0 ? '+' : '−'}`));
+    }
+    svg.setAttribute('aria-label', `Lewis structure of ${mol.name}`);
+  }
+
+  function render() {
+    const e = evaluate(mol, orders);
+    draw(e);
+    q('.lw-count').textContent = valenceLine(mol);
+    const bondE = orders.reduce((s, o) => s + 2 * o, 0), loneE = e.lone.reduce((s, x) => s + x, 0);
+    q('.lw-used').textContent = `Placed: ${bondE} in bonds + ${loneE} in lone pairs = ${bondE + loneE} of ${e.valence} electrons.`;
+    const isForm = sol.forms.findIndex((f) => f.orders.join() === orders.join());
+    const st = q('.lw-status');
+    if (!e.ok) { st.textContent = 'Not a valid structure yet'; st.className = 'ax-big lw-status bad'; }
+    else if (isForm >= 0) { st.textContent = sol.forms.length > 1 ? `Best structure (resonance form ${isForm + 1} of ${sol.forms.length})` : 'Best structure'; st.className = 'ax-big lw-status good'; }
+    else { st.textContent = level === 11 ? 'Valid, but the formal charges are not the smallest' : 'Valid: every atom has its octet'; st.className = 'ax-big lw-status ' + (level === 11 ? '' : 'good'); }
+    q('.lw-probs').replaceChildren(...e.problems.map(li));
+    const facts = [fact('Valence electrons', String(e.valence)), fact('Bonds', `${orders.length} (${orders.filter((o) => o === 2).length} double, ${orders.filter((o) => o === 3).length} triple)`)];
+    const centre = mol.atoms.map((_, i) => mol.bonds.filter(([a, b]) => a === i || b === i).length).reduce((bi, d, i, arr) => (d > arr[bi] ? i : bi), 0);
+    facts.push(fact(`Electrons round ${mol.atoms[centre].el}${mol.atoms.filter((a) => a.el === mol.atoms[centre].el).length > 1 ? ` (atom ${centre + 1})` : ''}`, String(e.shell[centre]), e.shell[centre] > 8 ? 'expanded octet' : e.shell[centre] < 8 && mol.atoms[centre].el !== 'H' ? 'fewer than 8' : 'octet'));
+    if (level === 11) {
+      facts.push(fact('Formal charges', mol.atoms.map((a, i) => `${a.el}${fcText(e.fc[i]).replace(/^0$/, ' 0')}`.replace(/(\D)([+−])/, '$1 $2')).join(', '), 'formal charge = valence − lone electrons − bonds'));
+      if (sol.forms.length > 1) { const av = averageOrders(sol.forms); const k = av.findIndex((v) => Math.abs(v - Math.round(v)) > 1e-9); if (k >= 0) { const [a, b] = mol.bonds[k]; facts.push(fact('Resonance', `${sol.forms.length} forms`, `average ${mol.atoms[a].el}–${mol.atoms[b].el} bond order ${Math.round(av[k] * 100) / 100}; in the real ${mol.name} these bonds are all the same`)); } }
+    }
+    q('.lw-facts').replaceChildren(...facts);
+    const minor = level === 11 && sol.others.length ? ` Other forms keep the octet but have larger or worse-placed formal charges, so they matter less${mol.id === 'n2o' ? ' (for N₂O, N=N=O is a minor resonance form)' : ''}.` : '';
+    q('.lw-note').textContent = (mol.note || '') + minor;
+    q<HTMLButtonElement>('.lw-next').disabled = sol.forms.length < 2;
+    steps();
+  }
+
+  function steps() {
+    const V = totalValence(mol), b = sol.forms[0];
+    const how = [valenceLine(mol) + '.'];
+    how.push(`Join the atoms with single bonds: ${mol.bonds.length} bonds use ${2 * mol.bonds.length} electrons, leaving ${V - 2 * mol.bonds.length}.`);
+    how.push('Give the outer atoms lone pairs until each has 8 (hydrogen needs only 2), then put any left on the central atom.');
+    if (b) {
+      const dbl = b.orders.some((o) => o > 1);
+      how.push(dbl ? 'If an atom is still short of 8, turn a lone pair from a neighbour into a second (or third) bond.' : 'Every atom now has its octet (or, for B, Be and Al, fewer is fine), so no double bonds are needed.');
+      if (level === 11) how.push('Work out each formal charge = valence electrons − lone electrons − number of bonds. The best structure has the smallest charges, with any minus on the more electronegative atom.');
+      if (level === 11 && sol.forms.length > 1) how.push(`The double bond can sit in ${sol.forms.length} equal places: these are resonance forms. The real ${mol.name} is a blend of them.`);
+    } else how.push('No arrangement gives every atom a full shell: check the formula.');
+    q('.lw-how').replaceChildren(...how.map(li));
+  }
+
+  function load(m: Mol) {
+    mol = m; sol = solve(mol, expand()); formIdx = 0;
+    orders = sol.forms[0] ? sol.forms[0].orders.slice() : mol.bonds.map(() => 1);
+    render();
+  }
+  function own() {
+    const c = q<HTMLSelectElement>('.lw-c').value, txt = q<HTMLInputElement>('.lw-o').value.trim(), ch = Number(q<HTMLSelectElement>('.lw-q').value), err = q('.lw-err');
+    const outer = txt.split(/[\s,]+/).filter(Boolean).map((s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase());
+    const bad = !outer.length ? 'Type at least one outer atom, e.g. H H H.' : outer.length > 6 ? 'Up to 6 outer atoms.' : outer.find((o) => !OUTER_OK.has(o)) ? `"${outer.find((o) => !OUTER_OK.has(o))}" is not in the list of outer atoms.` : '';
+    if (bad) { err.textContent = bad; err.hidden = false; return; }
+    const counts = new Map<string, number>(); for (const o of outer) counts.set(o, (counts.get(o) || 0) + 1);
+    const sub = (n: number) => (n === 1 ? '' : String(n).replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈₉'[+d]));
+    const name = `${c}${[...counts].map(([e, n]) => e + sub(n)).join('')}${ch ? `${Math.abs(ch) > 1 ? '⁰¹²³⁴⁵⁶⁷⁸⁹'[Math.abs(ch)] : ''}${ch > 0 ? '⁺' : '⁻'}` : ''}`;
+    const m = star('own', name, c, outer, ch);
+    const s = solve(m, expand());
+    if (!s.forms.length) { err.textContent = `No Lewis structure fits ${name}: ${totalValence(m) % 2 && totalValence(m) < 2 * outer.length ? 'too few electrons' : `with ${totalValence(m)} electrons no arrangement gives every atom a full shell`}. Check the formula and charge.`; err.hidden = false; mol = m; sol = s; orders = m.bonds.map(() => 1); render(); return; }
+    err.hidden = true; load(m);
+  }
+
+  q('.lw-ex').addEventListener('change', () => {
+    const v = q<HTMLSelectElement>('.lw-ex').value, isOwn = v === 'own';
+    q('.lw-own').hidden = !isOwn; q('.lw-ownhelp').hidden = !isOwn; q('.lw-err').hidden = true;
+    if (isOwn) own(); else load(EXAMPLES.find((e) => e.id === v)!);
+  });
+  for (const c of ['.lw-c', '.lw-q']) q(c).addEventListener('change', own);
+  q('.lw-o').addEventListener('input', own);
+  svg.addEventListener('click', (ev) => {
+    const t = (ev.target as Element).closest('.hit'); if (!t) return;
+    const k = Number(t.getAttribute('data-k')), [a, b] = mol.bonds[k];
+    const max = mol.atoms[a].el === 'H' || mol.atoms[b].el === 'H' ? 1 : 3;
+    orders[k] = orders[k] >= max ? 1 : orders[k] + 1;
+    render();
+  });
+  svg.addEventListener('keydown', (ev) => { if ((ev.key === 'Enter' || ev.key === ' ') && (ev.target as Element).classList.contains('hit')) { ev.preventDefault(); (ev.target as Element).dispatchEvent(new MouseEvent('click', { bubbles: true })); } });
+  q('.lw-best').addEventListener('click', () => { formIdx = 0; if (sol.forms[0]) orders = sol.forms[0].orders.slice(); render(); });
+  q('.lw-next').addEventListener('click', () => { if (sol.forms.length < 2) return; formIdx = (formIdx + 1) % sol.forms.length; orders = sol.forms[formIdx].orders.slice(); render(); });
+  q('.lw-single').addEventListener('click', () => { orders = mol.bonds.map(() => 1); render(); });
+  q('.lw-exp').addEventListener('change', () => { sol = solve(mol, expand()); formIdx = 0; if (sol.forms[0]) orders = sol.forms[0].orders.slice(); render(); });
+  for (const b of root.querySelectorAll<HTMLButtonElement>('.lw-level button')) b.addEventListener('click', () => {
+    level = Number(b.dataset.l);
+    for (const x of root.querySelectorAll('.lw-level button')) x.setAttribute('aria-pressed', String(x === b));
+    q('.lw-expw').hidden = level !== 11; q('.lw-next').hidden = level !== 11;
+    sol = solve(mol, expand()); render(); newQuiz();
+  });
+
+  // Check yourself: numbers to work out for random molecules.
+  type Q = { text: string; answer: number; why: string };
+  const POOL = EXAMPLES.filter((m) => m.bonds.every(([a]) => a === 0) && m.atoms.length > 2);
+  function makeQ(kind: number, m: Mol): Q {
+    const s = solve(m), f = s.forms[0], V = totalValence(m), c = m.atoms[0].el;
+    if (kind === 0) return { text: `How many valence electrons does ${m.name} have in total?`, answer: V, why: valenceLine(m) + '.' };
+    if (kind === 1) return { text: `How many lone pairs are on the central ${c} atom in ${m.name}?`, answer: f.lone[0] / 2, why: `In the best structure ${c} makes ${f.orders.reduce((x, o) => x + o, 0)} bonds and keeps ${f.lone[0]} lone electrons = ${f.lone[0] / 2} pair${f.lone[0] === 2 ? '' : 's'}.` };
+    if (kind === 2) { const nb = f.orders.reduce((x, o) => x + o, 0); return { text: `What is the formal charge on the central ${c} atom in the best structure of ${m.name}? (type −1 as -1)`, answer: f.fc[0], why: `${c}: ${VALENCE[c]} valence − ${f.lone[0]} lone electrons − ${nb} bonds = ${f.fc[0]}.` }; }
+    return { text: `How many bonds (count a double bond as 2) does the central ${c} atom make in ${m.name}?`, answer: f.orders.reduce((x, o) => x + o, 0), why: `Best structure: ${f.orders.map((o) => ['', 'single', 'double', 'triple'][o]).join(', ')} = ${f.orders.reduce((x, o) => x + o, 0)}.` };
+  }
+  let quiz: Q[] = [];
+  function newQuiz() {
+    const kinds = level === 11 ? [0, 1, 2, 3] : [0, 1, 3];
+    const pool = POOL.slice().filter((m) => totalValence(m) % 2 === 0 && solve(m).forms.length);
+    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+    quiz = pool.slice(0, 4).map((m, i) => makeQ(kinds[(i + Math.floor(Math.random() * kinds.length)) % kinds.length], m));
+    q('.lw-qs').replaceChildren(...quiz.map((x, i) => {
+      const d = document.createElement('div'); d.className = 'lw-q1';
+      const lab = document.createElement('label'); lab.textContent = `${i + 1}. ${x.text}`;
+      const inp = document.createElement('input'); inp.className = 'lw-qa'; inp.inputMode = 'numeric'; inp.autocomplete = 'off';
+      lab.append(inp); const p = document.createElement('p'); p.className = 'lw-ans'; p.hidden = true; d.append(lab, p); return d;
+    }));
+    q('.lw-score').textContent = '';
+  }
+  q('.lw-check').addEventListener('click', () => {
+    let right = 0;
+    root.querySelectorAll<HTMLElement>('.lw-q1').forEach((d, i) => {
+      const raw = d.querySelector<HTMLInputElement>('input')!.value.trim().replace('−', '-').replace(/^\+/, ''), p = d.querySelector<HTMLElement>('.lw-ans')!, x = quiz[i];
+      const ok = raw !== '' && /^-?\d+$/.test(raw) && Number(raw) === x.answer; if (ok) right++;
+      p.hidden = false; p.className = 'lw-ans ' + (ok ? 'ok' : 'no');
+      p.textContent = `${ok ? '✓ Right.' : raw === '' ? '✗ No answer yet.' : `✗ The answer is ${x.answer}.`} ${x.why}`;
+    });
+    q('.lw-score').textContent = `${right} of ${quiz.length} right`;
+  });
+  q('.lw-new').addEventListener('click', newQuiz);
+
+  load(mol); newQuiz();
+</script>

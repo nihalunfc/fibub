@@ -1,0 +1,228 @@
+---
+// Force and friction ramp: a block on a slope with a push, friction and free-body arrows; does it move?
+// Maths in src/lib/sci/incline.ts.
+import '../../styles/astro.css';
+---
+<div class="ax fr">
+  <div class="ax-card">
+    <div class="ax-row fr-top">
+      <span class="fr-lab">Level</span>
+      <div class="ax-seg fr-level" role="group" aria-label="Level">
+        <button type="button" data-l="8" aria-pressed="true">Class 8</button>
+        <button type="button" data-l="11" aria-pressed="false">Class 11</button>
+      </div>
+    </div>
+    <canvas class="fr-c" aria-label="A block on a ramp with its forces"></canvas>
+    <p class="fr-state"><span class="ax-pill fr-pill"></span></p>
+    <div class="ax-row"><button type="button" class="btn small fr-go">Let go</button><button type="button" class="btn secondary small fr-reset">Reset</button><span class="ax-help">Drag the ramp up or down to tilt it.</span></div>
+    <div class="fr-ctl">
+      <label>Slope angle θ: <b class="fr-angv"></b><input class="fr-ang" type="range" min="0" max="60" step="1" value="20" /></label>
+      <label>Mass of the block: <b class="fr-mv"></b><input class="fr-m" type="range" min="1" max="20" step="1" value="10" /></label>
+      <label>Your push along the slope: <b class="fr-pv"></b><input class="fr-p" type="range" min="-100" max="200" step="5" value="0" /></label>
+      <label>Surfaces <select class="fr-surf">
+        <option value="wood" selected>Wood on wood</option>
+        <option value="rubber">Rubber on concrete</option>
+        <option value="ice">Ice on ice</option>
+        <option value="sand">Sandpaper</option>
+        <option value="custom">Your own μ values</option>
+      </select></label>
+      <div class="fr-mu" hidden>
+        <label>Static μs (holding still): <b class="fr-musv"></b><input class="fr-mus" type="range" min="0" max="1.2" step="0.05" value="0.5" /></label>
+        <label>Kinetic μk (sliding): <b class="fr-mukv"></b><input class="fr-muk" type="range" min="0" max="1.2" step="0.05" value="0.3" /></label>
+      </div>
+      <p class="ax-help fr-help"></p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>The forces</h2>
+    <dl class="ax-facts fr-facts"></dl>
+    <div class="fr-eq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="fr-try">
+      <li>With no push, tilt the ramp slowly. Find the angle where the block starts to slide. Change the mass: the angle stays the same.</li>
+      <li>Switch to ice. It slides at a much smaller angle: less friction.</li>
+      <li>Set the angle to 30° and push up the slope. How big a push stops it sliding? How big a push starts it moving up?</li>
+      <li>At Class 11, make μk smaller than μs. Once it starts sliding, it speeds up, because sliding friction is weaker than the grip at rest.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="fr-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { ramp, questions, type RampResult } from '../../lib/sci/incline';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { pagePalette, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.fr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => Number(inp(c).value);
+  const f = (x: number, d = 2) => { const r = Math.round(x * 10 ** d) / 10 ** d; return (Object.is(r, -0) ? 0 : r).toFixed(d).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '').replace('-', '−'); };
+  // Made-up, rounded teaching values: [static, kinetic, name].
+  const SURF: Record<string, [number, number, string]> = { wood: [0.5, 0.3, 'wood on wood'], rubber: [0.9, 0.7, 'rubber on concrete'], ice: [0.1, 0.05, 'ice on ice'], sand: [1.0, 0.8, 'sandpaper'] };
+  const H = 260, LEN = 4; // ramp length in metres
+
+  let level: 8 | 11 = 8, pos = LEN / 2, moving = false, raf = 0, t0 = 0, s0 = 0, slideA = 0, ended = '';
+
+  function mus() { const k = q<HTMLSelectElement>('.fr-surf').value; return k === 'custom' ? [val('.fr-mus'), Math.min(val('.fr-muk'), val('.fr-mus'))] : SURF[k].slice(0, 2) as number[]; }
+  const params = () => { const [s, k] = mus(); return { m: val('.fr-m'), angle: val('.fr-ang'), mus: s, muk: k, push: val('.fr-p') }; };
+
+  function setup(c: HTMLCanvasElement, h: number) {
+    const w = Math.max(260, Math.round(c.clientWidth || c.parentElement!.clientWidth || 320)), dpr = Math.min(3, window.devicePixelRatio || 1);
+    c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c.style.height = `${h}px`;
+    const ctx = c.getContext('2d')!; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w };
+  }
+  function arrow(ctx: CanvasRenderingContext2D, x: number, y: number, dx: number, dy: number, col: string, label: string, dash = false) {
+    const len = Math.hypot(dx, dy); if (len < 3) return;
+    const ux = dx / len, uy = dy / len;
+    ctx.save(); ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = dash ? 1.8 : 3; if (dash) ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + dx - ux * 8, y + dy - uy * 8); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(x + dx, y + dy); ctx.lineTo(x + dx - ux * 10 - uy * 5, y + dy - uy * 10 + ux * 5); ctx.lineTo(x + dx - ux * 10 + uy * 5, y + dy - uy * 10 - ux * 5); ctx.closePath(); ctx.fill();
+    ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = ux > 0.3 ? 'left' : ux < -0.3 ? 'right' : 'center';
+    ctx.fillText(label, x + dx + ux * 6, y + dy + uy * 6 + (uy > 0.3 ? 10 : uy < -0.3 ? -2 : 4)); ctx.restore();
+  }
+
+  let geo = { x0: 0, yB: 0, ppm: 0, th: 0 };
+  function drawScene(pal: Palette, r: RampResult) {
+    const c = q<HTMLCanvasElement>('.fr-c'), { ctx, w } = setup(c, H);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, H);
+    const p = params(), th = (p.angle * Math.PI) / 180, x0 = 30, yB = H - 30;
+    const ppm = Math.min((w - 70) / (LEN * Math.cos(th)), th > 0 ? (H - 70) / (LEN * Math.sin(th)) : Infinity);
+    geo = { x0, yB, ppm, th };
+    const xT = x0 + LEN * ppm * Math.cos(th), yT = yB - LEN * ppm * Math.sin(th);
+    // ramp
+    ctx.fillStyle = pal.grid; ctx.strokeStyle = pal.ink; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x0, yB); ctx.lineTo(xT, yT); ctx.lineTo(xT, yB); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, yB); ctx.lineTo(w, yB); ctx.stroke();
+    if (p.angle > 0) { ctx.lineWidth = 1; ctx.strokeStyle = pal.muted; ctx.beginPath(); ctx.arc(x0, yB, 34, -th, 0); ctx.stroke(); ctx.fillStyle = pal.ink; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(`${p.angle}°`, x0 + 40, yB - 6); }
+    // block
+    const bw = 44, bh = 30, ux = Math.cos(th), uy = -Math.sin(th), nx = -Math.sin(th), ny = -Math.cos(th);
+    const bx = x0 + pos * ppm * Math.cos(th), by = yB - pos * ppm * Math.sin(th);
+    const cx = bx + nx * (bh / 2) * 1, cy = by + ny * (bh / 2);
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(-th); ctx.fillStyle = pal.bg; ctx.strokeStyle = pal.ink; ctx.lineWidth = 2.5; ctx.fillRect(-bw / 2, -bh / 2, bw, bh); ctx.strokeRect(-bw / 2, -bh / 2, bw, bh);
+    ctx.fillStyle = pal.ink; ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(`${p.m} kg`, 0, 4); ctx.restore();
+    // arrows (scaled so the largest is 80 px)
+    const big = Math.max(r.weight, Math.abs(p.push), 1), k = 80 / big, num = level === 11;
+    arrow(ctx, cx, cy, 0, r.weight * k, pal.ink, num ? `mg ${f(r.weight, 1)} N` : 'gravity');
+    arrow(ctx, cx, cy, nx * r.normal * k, ny * r.normal * k, pal.muted, num ? `N ${f(r.normal, 1)} N` : 'support');
+    if (Math.abs(r.friction) > 0.01) arrow(ctx, bx, by, ux * r.friction * k, uy * r.friction * k, pal.accent2, num ? `friction ${f(Math.abs(r.friction), 1)} N` : 'friction');
+    if (Math.abs(p.push) > 0.01) { const L = Math.abs(p.push) * k, d = Math.sign(p.push), off = bw / 2 + 4 + L;
+      arrow(ctx, cx - d * ux * off, cy - d * uy * off, d * ux * L, d * uy * L, pal.accent, num ? `push ${f(Math.abs(p.push))} N` : 'push'); }
+    if (num && p.angle > 0) {
+      arrow(ctx, cx, cy, -ux * r.along * k, -uy * r.along * k, pal.ink, `mg sinθ ${f(r.along, 1)} N`, true);
+    }
+    c.setAttribute('aria-label', `Block of ${p.m} kg on a ${p.angle}° ramp: ${r.state === 'still' ? 'it stays still' : r.state === 'down' ? 'it slides down' : 'it moves up'}`);
+  }
+
+  function fact(kk: string, v: string, sm = '') {
+    const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd');
+    dt.textContent = kk; dd.textContent = v;
+    if (sm) { const e = document.createElement('small'); e.textContent = sm; dd.append(e); }
+    d.append(dt, dd); return d;
+  }
+  function para(parts: (string | [string])[]) { const el = document.createElement('p'); for (const x of parts) { if (typeof x === 'string') el.append(x); else { const b = document.createElement('b'); b.textContent = x[0]; el.append(b); } } return el; }
+
+  function draw() {
+    const p = params(), r = ramp(p), k = q<HTMLSelectElement>('.fr-surf').value;
+    q('.fr-mu').hidden = k !== 'custom';
+    q('.fr-angv').textContent = `${p.angle}°`; q('.fr-mv').textContent = `${p.m} kg`;
+    q('.fr-pv').textContent = p.push === 0 ? 'none' : `${f(Math.abs(p.push))} N ${p.push > 0 ? 'up the slope' : 'down the slope'}`;
+    q('.fr-musv').textContent = f(val('.fr-mus')); q('.fr-mukv').textContent = f(Math.min(val('.fr-muk'), val('.fr-mus')));
+    q('.fr-help').textContent = k === 'custom' ? 'Your own values: kinetic μk is kept no bigger than static μs.' : `Made-up, rounded values for ${SURF[k][2]}: μs = ${f(p.mus)} (grip at rest), μk = ${f(p.muk)} (while sliding). g = 9.8 m/s².`;
+    const pill = q('.fr-pill');
+    const word = r.state === 'still' ? 'Stays still: friction holds it' : r.state === 'down' ? `Slides down the slope${level === 11 ? ` at ${f(-r.a)} m/s²` : ''}` : `Moves up the slope${level === 11 ? ` at ${f(r.a)} m/s²` : ''}`;
+    pill.textContent = ended || word; pill.className = `ax-pill ${r.state === 'still' ? 'good' : 'warn'} fr-pill`;
+    drawScene(pagePalette(), r);
+    const facts = [
+      fact('Weight', `${f(r.weight, 1)} N`, 'mass × g'),
+      fact('Pull down the slope', `${f(r.along, 1)} N`, 'mg sin θ'),
+      fact('Friction can hold up to', `${f(r.maxStatic, 1)} N`, 'μs × normal force'),
+      fact('Friction now', `${f(Math.abs(r.friction), 1)} N`, r.friction > 0.005 ? 'up the slope' : r.friction < -0.005 ? 'down the slope' : 'none needed'),
+      fact('Slides on its own above', `${f(r.repose, 1)}°`, 'tan θ = μs, whatever the mass'),
+      fact('Push to start it up the slope', `${f(r.pushToStartUp, 1)} N`, r.pushToHold > 0 ? `push of ${f(r.pushToHold, 1)} N holds it` : 'it stays put with no push'),
+    ];
+    if (level === 11) facts.splice(2, 0, fact('Normal force N', `${f(r.normal, 1)} N`, 'mg cos θ'), fact('Net force', `${f(r.net, 2)} N`, 'along the slope, + up'), fact('Acceleration', `${f(r.a, 2)} m/s²`, '+ up the slope'));
+    q('.fr-facts').replaceChildren(...facts);
+    const eq: HTMLElement[] = [];
+    if (level === 8) {
+      eq.push(para([['Does it move? '], r.state === 'still' ? `Gravity pulls it down the slope with ${f(r.along, 1)} N${p.push ? ` and your push is ${f(p.push)} N` : ''}. Friction can hold back up to ${f(r.maxStatic, 1)} N, which is enough, so the forces balance and it stays still.` : `The forces along the slope do not balance: friction can only hold ${f(r.maxStatic, 1)} N, so the block moves ${r.state === 'down' ? 'down' : 'up'} the slope.`]));
+      eq.push(para([['Why: '], 'a steeper slope makes the pull down the slope bigger and presses the block less firmly onto the ramp, so there is less friction. Rough surfaces grip more than smooth ones.']));
+    } else {
+      eq.push(para([['Along the slope: '], `F = P − mg sin θ = ${f(p.push)} − ${f(r.along, 2)} = ${f(r.drive, 2)} N before friction. Static friction can balance up to μs N = ${f(p.mus)} × ${f(r.normal, 2)} = ${f(r.maxStatic, 2)} N.`]));
+      if (r.state === 'still') eq.push(para([['Result: '], `|${f(r.drive, 2)}| ≤ ${f(r.maxStatic, 2)}, so friction is ${f(Math.abs(r.friction), 2)} N and a = 0.`]));
+      else eq.push(para([['Result: '], `it slides, so friction is μk N = ${f(p.muk)} × ${f(r.normal, 2)} = ${f(r.kinetic, 2)} N against the motion. a = (${f(r.drive, 2)} ${r.friction < 0 ? '−' : '+'} ${f(r.kinetic, 2)}) ÷ ${p.m} = ${f(r.a, 2)} m/s².`]));
+      eq.push(para([['Across the slope: '], `N = mg cos θ = ${f(r.normal, 2)} N, so there is no motion into or off the ramp.`]));
+    }
+    q('.fr-eq').replaceChildren(...eq);
+  }
+
+  function stop() { cancelAnimationFrame(raf); raf = 0; moving = false; q<HTMLButtonElement>('.fr-go').disabled = false; }
+  q('.fr-go').addEventListener('click', () => {
+    const r = ramp(params()); ended = '';
+    if (r.state === 'still') { draw(); return; }
+    slideA = r.a; s0 = pos; t0 = performance.now(); moving = true; q<HTMLButtonElement>('.fr-go').disabled = true;
+    const tick = (now: number) => {
+      const t = (now - t0) / 1000; pos = s0 + 0.5 * slideA * t * t;
+      if (pos <= 0 || pos >= LEN) { pos = Math.max(0, Math.min(LEN, pos)); ended = `${pos <= 0 ? 'Reached the bottom' : 'Reached the top'} after ${f(Math.sqrt((2 * Math.abs(pos - s0)) / Math.abs(slideA)), 2)} s (${f(Math.abs(pos - s0))} m)`; stop(); draw(); return; }
+      draw(); raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+  });
+  q('.fr-reset').addEventListener('click', () => { stop(); pos = LEN / 2; ended = ''; draw(); });
+
+  const cv = q<HTMLCanvasElement>('.fr-c');
+  let dragging = false;
+  const setAngle = (e: PointerEvent) => { const r = cv.getBoundingClientRect(), x = e.clientX - r.left - geo.x0, y = geo.yB - (e.clientY - r.top); if (x < 10) return; inp('.fr-ang').value = String(Math.max(0, Math.min(60, Math.round((Math.atan2(Math.max(0, y), x) * 180) / Math.PI)))); stop(); pos = LEN / 2; ended = ''; draw(); };
+  cv.addEventListener('pointerdown', (e) => { dragging = true; cv.setPointerCapture(e.pointerId); setAngle(e); });
+  cv.addEventListener('pointermove', (e) => { if (dragging) setAngle(e); });
+  cv.addEventListener('pointerup', () => { dragging = false; }); cv.addEventListener('pointercancel', () => { dragging = false; });
+
+  root.querySelectorAll<HTMLButtonElement>('.fr-level button').forEach((b) => b.addEventListener('click', () => {
+    level = Number(b.dataset.l) as 8 | 11;
+    root.querySelectorAll('.fr-level button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    renderQuiz(); draw();
+  }));
+  root.querySelectorAll('.fr-ctl input, .fr-ctl select').forEach((i) => { const h = () => { stop(); pos = LEN / 2; ended = ''; draw(); }; i.addEventListener('input', h); i.addEventListener('change', h); });
+
+  let renderQuiz = () => {};
+  renderQuiz = mountQuiz(q('.fr-quiz'), () => questions(level));
+  draw();
+  document.addEventListener('fibub:theme', draw);
+  let rw = 0; new ResizeObserver(() => { const w = cv.clientWidth; if (w !== rw) { rw = w; draw(); } }).observe(cv);
+</script>
+
+<style is:inline>
+  .fr .fr-top { margin-bottom: 10px; }
+  .fr .fr-lab { font-size: 14px; color: var(--muted); }
+  .fr .ax-seg button { min-height: 44px; }
+  .fr canvas { display: block; width: 100%; touch-action: pan-y; }
+  .fr .fr-state { margin: 8px 0; }
+  .fr .fr-pill { font-size: 14px; white-space: normal; }
+  .fr .fr-ctl { display: grid; gap: 10px; margin-top: 12px; }
+  .fr .fr-mu { display: grid; gap: 10px; }
+  .fr .fr-mu[hidden] { display: none; }
+  .fr input[type=range] { width: 100%; height: 32px; accent-color: var(--ink); }
+  .fr label b { color: var(--ink); }
+  .fr .btn.small { min-height: 44px; }
+  .fr .fr-eq p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .fr .fr-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>

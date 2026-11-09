@@ -1,0 +1,194 @@
+---
+// Relation checker: build a relation on A = {1, ..., n} by tapping a table or typing pairs, see it as an arrow
+// diagram, and check reflexive, symmetric, antisymmetric and transitive with a counterexample for each "no";
+// equivalence classes, closures, and whether the relation is a function (one-one, onto). Class 11 and 12 maths.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax rlc">
+  <div class="ax-card">
+    <h2>Build a relation R on A</h2>
+    <div class="ax-grid">
+      <label>Size of A <input class="rl-n" type="range" min="2" max="6" value="4" /> <b class="rl-nv"></b></label>
+      <label>Start from <select class="rl-pre">
+        <option value="eq">a = b</option>
+        <option value="le">a ≤ b</option>
+        <option value="div">a divides b</option>
+        <option value="mod" selected>a − b is even</option>
+        <option value="next">b = a + 1</option>
+        <option value="lt">a &lt; b</option>
+        <option value="all">every pair (A × A)</option>
+        <option value="none">empty (tap to add)</option>
+      </select></label>
+    </div>
+    <p class="ax-help">Tap a square to add or remove the pair (a, b): row a, column b.</p>
+    <div class="rl-grid" role="group" aria-label="Relation table"></div>
+    <label class="rl-pl">Pairs in R <input class="rl-pairs" type="text" autocomplete="off" spellcheck="false" /></label>
+    <p class="ax-help">Or type pairs, such as (1, 2), (2, 3). Press Enter or leave the box to use them.</p>
+    <p class="ax-err rl-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Arrow diagram</h2>
+    <canvas class="ax-fig rl-fig" role="img"></canvas>
+    <p class="ax-help">An arrow a → b means a R b. A small loop means a R a.</p>
+    <dl class="ax-facts rl-facts"></dl>
+    <p class="rl-sum"></p>
+    <h3>Make it …</h3>
+    <div class="ax-row"><button type="button" class="btn small secondary rl-cr">reflexive</button><button type="button" class="btn small secondary rl-cs">symmetric</button><button type="button" class="btn small secondary rl-ct">transitive</button><button type="button" class="btn small rl-ce">an equivalence</button></div>
+    <p class="ax-help">Each button adds the fewest pairs needed (the closure). New pairs show in orange.</p>
+    <p class="rl-count"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="rl-try">
+      <li>Start from <b>a − b is even</b>: an equivalence relation. Its classes are the odd and the even numbers.</li>
+      <li>Start from <b>a ≤ b</b>: reflexive and transitive but not symmetric. That makes it a partial order.</li>
+      <li>Start from <b>b = a + 1</b> and press <b>transitive</b>: you get a &lt; b.</li>
+      <li>Make a relation that is symmetric and transitive but not reflexive. (Hint: leave one number out completely.)</li>
+      <li>Build a function: exactly one square in every row. Then make it one-one: no two in the same column.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="rl-quiz" />
+</div>
+
+<script>
+  import { empty, copy, fromRule, pairs, parsePairs, props, classes, reflexiveClosure, symmetricClosure, transitiveClosure, equivalenceClosure, asFunction, countAll, type Rel } from '../../lib/sci/school-relations';
+  import { paint, type Palette } from '../../lib/report';
+  import { FONT } from '../../lib/sm-graph';
+  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.rlc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380, H = 300;
+  const RULES: Record<string, (a: number, b: number) => boolean> = {
+    eq: (a, b) => a === b, le: (a, b) => a <= b, div: (a, b) => b % a === 0, mod: (a, b) => (a - b) % 2 === 0,
+    next: (a, b) => b === a + 1, lt: (a, b) => a < b, all: () => true, none: () => false,
+  };
+  let n = 4, R: Rel = fromRule(4, RULES.mod), added: Rel = empty(4);
+  const fact = (k: string, v: string, sm = '', ok?: boolean) => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; const dd = el.querySelector('dd')!; const b = document.createElement('b'); b.textContent = v; if (ok !== undefined) b.className = ok ? 'rl-ok' : 'rl-no'; dd.append(b); if (sm) { const s = document.createElement('small'); s.textContent = sm; dd.append(s); } return el; };
+  const set = (xs: number[]) => `{${xs.join(', ')}}`;
+  const pr = (a: number, b: number) => `(${a}, ${b})`;
+  const showPairs = (r: Rel) => pairs(r).map(([a, b]) => pr(a, b)).join(', ');
+
+  function grid() {
+    const g = q('.rl-grid'); g.style.gridTemplateColumns = `repeat(${n + 1}, minmax(0, 44px))`;
+    const cells: HTMLElement[] = [document.createElement('span')];
+    for (let j = 1; j <= n; j++) { const h = document.createElement('span'); h.className = 'rl-h'; h.textContent = String(j); cells.push(h); }
+    for (let i = 1; i <= n; i++) {
+      const h = document.createElement('span'); h.className = 'rl-h'; h.textContent = String(i); cells.push(h);
+      for (let j = 1; j <= n; j++) {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'rl-c' + (added[i - 1][j - 1] ? ' rl-new' : '');
+        b.dataset.a = String(i); b.dataset.b = String(j); b.setAttribute('aria-pressed', String(R[i - 1][j - 1])); b.setAttribute('aria-label', `pair (${i}, ${j})`);
+        b.textContent = R[i - 1][j - 1] ? '●' : '';
+        cells.push(b);
+      }
+    }
+    g.replaceChildren(...cells);
+  }
+
+  function draw() {
+    const pts = Array.from({ length: n }, (_, i) => { const t = -Math.PI / 2 + (2 * Math.PI * i) / n; return [W / 2 + 105 * Math.cos(t), H / 2 + 105 * Math.sin(t)] as [number, number]; });
+    paint(q<HTMLCanvasElement>('.rl-fig'), { w: W, h: H, alt: `Arrow diagram of R on {1, ..., ${n}}: ${showPairs(R) || 'no pairs'}`, draw: (ctx, w, h, pl: Palette) => {
+      const arrow = (x1: number, y1: number, x2: number, y2: number, col: string, bend: number) => {
+        const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L;
+        const sx = x1 + ux * 16, sy = y1 + uy * 16, ex = x2 - ux * 16, ey = y2 - uy * 16;
+        const cx = (sx + ex) / 2 - uy * bend, cy = (sy + ey) / 2 + ux * bend;
+        ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo(cx, cy, ex, ey); ctx.stroke();
+        const ax = ex - cx, ay = ey - cy, al = Math.hypot(ax, ay), vx = ax / al, vy = ay / al;
+        ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex - 9 * vx + 4.5 * vy, ey - 9 * vy - 4.5 * vx); ctx.lineTo(ex - 9 * vx - 4.5 * vy, ey - 9 * vy + 4.5 * vx); ctx.closePath(); ctx.fill();
+      };
+      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+        if (!R[i][j]) continue;
+        const col = added[i][j] ? pl.accent2 : pl.accent;
+        if (i === j) {
+          const [x, y] = pts[i], ox = (x - w / 2) / 105, oy = (y - h / 2) / 105, cx = x + ox * 21, cy = y + oy * 21;
+          ctx.strokeStyle = col; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.arc(cx, cy, 11, 0, 2 * Math.PI); ctx.stroke();
+        } else arrow(pts[i][0], pts[i][1], pts[j][0], pts[j][1], col, R[j][i] ? 14 : 0);
+      }
+      pts.forEach(([x, y], i) => {
+        ctx.beginPath(); ctx.arc(x, y, 14, 0, 2 * Math.PI); ctx.fillStyle = pl.bg; ctx.fill(); ctx.strokeStyle = pl.ink; ctx.lineWidth = 1.6; ctx.stroke();
+        ctx.font = '600 15px system-ui, sans-serif'; ctx.fillStyle = pl.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(i + 1), x, y + 1);
+      });
+      ctx.font = FONT; ctx.fillStyle = pl.muted; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(`${pairs(R).length} pairs`, 6, 6);
+    } });
+  }
+
+  function run() {
+    q('.rl-nv').textContent = String(n);
+    grid(); draw();
+    const inp = q<HTMLInputElement>('.rl-pairs'); if (document.activeElement !== inp) inp.value = showPairs(R);
+    const p = props(R), f = asFunction(R);
+    const items = [
+      fact('Reflexive', p.reflexive ? 'Yes' : 'No', p.reflexive ? 'every a has a R a' : `${pr(p.noLoop!, p.noLoop!)} is missing`, p.reflexive),
+      fact('Symmetric', p.symmetric ? 'Yes' : 'No', p.symmetric ? 'every a R b comes with b R a' : `${pr(...p.notSym!)} is in R but ${pr(p.notSym![1], p.notSym![0])} is not`, p.symmetric),
+      fact('Transitive', p.transitive ? 'Yes' : 'No', p.transitive ? 'a R b and b R c always give a R c' : `${pr(p.notTrans![0], p.notTrans![1])} and ${pr(p.notTrans![1], p.notTrans![2])} are in R but ${pr(p.notTrans![0], p.notTrans![2])} is not`, p.transitive),
+      fact('Antisymmetric', p.antisymmetric ? 'Yes' : 'No', p.antisymmetric ? 'no two different a, b with both a R b and b R a' : `both ${pr(...p.notAnti!)} and ${pr(p.notAnti![1], p.notAnti![0])} are in R`, p.antisymmetric),
+      fact('Equivalence relation', p.equivalence ? 'Yes' : 'No', p.equivalence ? `classes: ${classes(R).map(set).join(' ')}` : 'needs reflexive, symmetric and transitive', p.equivalence),
+      fact('Partial order', p.partialOrder ? 'Yes' : 'No', 'reflexive, antisymmetric and transitive', p.partialOrder),
+      fact('Function A → A', f.isFn ? 'Yes' : 'No', f.isFn ? `${f.oneOne ? 'one-one and onto (a bijection)' : 'not one-one, so not onto'}: ${f.img.map((v, i) => `${i + 1}→${v}`).join(', ')}` : f.noImage ? `${f.noImage} has no partner` : `${f.twoImages} has more than one partner`, f.isFn),
+    ];
+    q('.rl-facts').replaceChildren(...items);
+    const k = [p.reflexive && 'reflexive', p.symmetric && 'symmetric', p.transitive && 'transitive'].filter(Boolean) as string[];
+    q('.rl-sum').textContent = `R = {${showPairs(R)}} is ${k.length ? k.join(', ') : 'none of reflexive, symmetric or transitive'}${p.equivalence ? ', so it is an equivalence relation.' : '.'}`;
+    const c = countAll(n);
+    q('.rl-count').textContent = `On a set of ${n} elements there are 2${sup(n * n)} = ${c.all.toLocaleString('en')} relations: ${c.reflexive.toLocaleString('en')} reflexive, ${c.symmetric.toLocaleString('en')} symmetric, ${c.equivalence} equivalence relations and ${c.functions.toLocaleString('en')} functions.`;
+  }
+  const sup = (k: number) => String(k).split('').map((d) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+d]).join('');
+
+  function closeWith(fn: (r: Rel) => Rel) {
+    const T = fn(R); added = T.map((r, i) => r.map((v, j) => v && !R[i][j])); R = T; run();
+  }
+  q('.rl-grid').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('.rl-c'); if (!b) return;
+    const i = +b.dataset.a! - 1, j = +b.dataset.b! - 1; R[i][j] = !R[i][j]; added = empty(n); run();
+  });
+  q('.rl-pre').addEventListener('change', () => { R = fromRule(n, RULES[q<HTMLSelectElement>('.rl-pre').value]); added = empty(n); q('.rl-err').hidden = true; run(); });
+  q('.rl-n').addEventListener('input', () => { n = +q<HTMLInputElement>('.rl-n').value; R = fromRule(n, RULES[q<HTMLSelectElement>('.rl-pre').value]); added = empty(n); run(); });
+  const typed = () => {
+    const err = q('.rl-err');
+    try { R = parsePairs(q<HTMLInputElement>('.rl-pairs').value, n); added = empty(n); err.hidden = true; run(); }
+    catch (e) { err.textContent = (e as Error).message; err.hidden = false; }
+  };
+  q('.rl-pairs').addEventListener('change', typed);
+  q('.rl-pairs').addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter') typed(); });
+  q('.rl-cr').addEventListener('click', () => closeWith(reflexiveClosure));
+  q('.rl-cs').addEventListener('click', () => closeWith(symmetricClosure));
+  q('.rl-ct').addEventListener('click', () => closeWith(transitiveClosure));
+  q('.rl-ce').addEventListener('click', () => closeWith(equivalenceClosure));
+  document.addEventListener('fibub:theme', run);
+  run();
+
+  quiz(q('.rl-quiz'), (): Question[] => {
+    const m = pick([3, 4]), a = rint(1, 3), b = a + 1, c = b + 1;
+    const r1 = `{(1, 1), (2, 2), (3, 3), (${a}, ${b})}`;
+    const nn = rint(3, 5), k = rint(2, 3);
+    const cls = Array.from({ length: k }, (_, i) => i);
+    const sizeN = rint(2, 4);
+    return [
+      { text: `On A = {1, 2, 3, 4}, is R = ${r1.replace('(3, 3)', '(3, 3), (4, 4)')} symmetric?`, choices: ['Yes', 'No'], correct: 1, worked: `(${a}, ${b}) is in R but (${b}, ${a}) is not, so R is not symmetric. (It is reflexive and transitive.)` },
+      { text: `R = {(${a}, ${b}), (${b}, ${c})} on {1, ..., 5}. Which pair must be added to make R transitive?`, choices: [`(${a}, ${c})`, `(${c}, ${a})`, `(${b}, ${a})`, `(${a}, ${a})`], correct: 0, worked: `${a} R ${b} and ${b} R ${c} need ${a} R ${c}. Nothing else is needed: (${a}, ${c}) adds no new chain.` },
+      { text: `On the whole numbers 1 to ${nn * k}, a R b when a − b is divisible by ${k}. How many equivalence classes are there?`, answer: k, worked: `a and b are related when they leave the same remainder on division by ${k}. The remainders ${cls.join(', ')} give ${k} classes, each with ${nn} numbers.` },
+      { text: `How many relations are there on a set with ${sizeN} elements?`, answer: 2 ** (sizeN * sizeN), worked: `A × A has ${sizeN} × ${sizeN} = ${sizeN * sizeN} pairs, and each pair is either in R or not: 2${sup(sizeN * sizeN)} = ${2 ** (sizeN * sizeN)}.` },
+      { text: `How many one-one functions are there from {1, ..., ${m}} to itself?`, answer: m === 3 ? 6 : 24, worked: `1 has ${m} choices, 2 has ${m - 1}, and so on: ${m}! = ${m === 3 ? 6 : 24}. One-one functions from a finite set to itself are also onto.` },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .rlc .rl-grid { display: grid; gap: 4px; margin: 10px 0; justify-content: start; }
+  .rlc .rl-h { display: flex; align-items: center; justify-content: center; color: var(--muted); font-weight: 600; min-height: 28px; }
+  .rlc .rl-c { aspect-ratio: 1; min-width: 36px; min-height: 36px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--accent); font-size: 18px; cursor: pointer; }
+  .rlc .rl-c[aria-pressed="true"] { border-color: var(--accent); }
+  .rlc .rl-c.rl-new { color: var(--warn); border-color: var(--warn); border-width: 2px; }
+  .rlc .rl-pl { display: block; margin-top: 6px; }
+  .rlc .rl-pairs { width: 100%; }
+  .rlc .rl-ok { color: var(--good); }
+  .rlc .rl-no { color: var(--bad); }
+  .rlc .ax-facts small { display: block; }
+  .rlc .rl-facts dd b { font-size: 17px; }
+  .rlc h3 { margin: 14px 0 6px; font-size: 16px; }
+  .rlc .rl-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+</style>

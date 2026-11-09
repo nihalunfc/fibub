@@ -1,0 +1,191 @@
+---
+// Conic explorer: circles, ellipses, parabolas and hyperbolas from their equations with sliders, showing
+// foci, directrices, eccentricity and the latus rectum, a point P with its focus distances, and a plane
+// slicing a double cone. Class 11 maths, conic sections.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax cnx">
+  <div class="ax-card">
+    <div class="ax-seg cn-k" role="group" aria-label="Which conic">
+      <button type="button" data-k="circle" aria-pressed="false">Circle</button><button type="button" data-k="ellipse" aria-pressed="true">Ellipse</button><button type="button" data-k="parabola" aria-pressed="false">Parabola</button><button type="button" data-k="hyperbola" aria-pressed="false">Hyperbola</button><button type="button" data-k="slice" aria-pressed="false">Slice a cone</button>
+    </div>
+  </div>
+
+  <div class="ax-card cn-main">
+    <h2 class="cn-eq"></h2>
+    <canvas class="ax-fig cn-fig" role="img"></canvas>
+    <div class="cn-sls">
+      <label class="cn-sl cn-for-circle">Centre h = <b class="cn-hv"></b><input class="cn-h" type="range" min="-3" max="3" step="0.5" value="1" /></label>
+      <label class="cn-sl cn-for-circle">Centre k = <b class="cn-kv"></b><input class="cn-kk" type="range" min="-3" max="3" step="0.5" value="0" /></label>
+      <label class="cn-sl cn-for-circle">Radius r = <b class="cn-rv"></b><input class="cn-r" type="range" min="0.5" max="4" step="0.5" value="3" /></label>
+      <label class="cn-sl cn-for-ellipse cn-for-hyperbola">a = <b class="cn-av"></b><input class="cn-a" type="range" min="0.5" max="6" step="0.5" value="5" /></label>
+      <label class="cn-sl cn-for-ellipse cn-for-hyperbola">b = <b class="cn-bv"></b><input class="cn-b" type="range" min="0.5" max="6" step="0.5" value="3" /></label>
+      <label class="cn-sl cn-for-parabola">Focus distance a = <b class="cn-pv"></b><input class="cn-p" type="range" min="0.25" max="3" step="0.25" value="1.5" /></label>
+      <label class="cn-for-parabola">Opens <select class="cn-dir"><option value="right" selected>to the right (y² = 4ax)</option><option value="left">to the left (y² = −4ax)</option><option value="up">upwards (x² = 4ay)</option><option value="down">downwards (x² = −4ay)</option></select></label>
+      <label class="ax-check cn-for-hyperbola"><input type="checkbox" class="cn-vert" /> Opens up and down (y²/a² − x²/b² = 1)</label>
+      <label class="cn-sl">Move P along the curve <input class="cn-t" type="range" min="0" max="1000" value="150" /></label>
+    </div>
+    <p class="cn-pnote"></p>
+    <dl class="ax-facts cn-facts"></dl>
+  </div>
+
+  <div class="ax-card cn-slice" hidden>
+    <h2 class="cn-stitle"></h2>
+    <canvas class="ax-fig cn-cone" role="img"></canvas>
+    <label class="cn-sl">Cone half-angle α = <b class="cn-alv"></b><input class="cn-al" type="range" min="15" max="60" step="1" value="30" /></label>
+    <label class="cn-sl">Plane angle to the axis β = <b class="cn-bev"></b><input class="cn-be" type="range" min="0" max="90" step="1" value="60" /></label>
+    <canvas class="ax-fig cn-cut" role="img"></canvas>
+    <p class="cn-snote"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="cn-try">
+      <li>Ellipse: move P all the way round. PF₁ + PF₂ never changes: it is always 2a. That is how a gardener draws an ellipse with two pegs and a loop of string.</li>
+      <li>Make a and b equal: the foci meet in the middle, e = 0, and the ellipse is a circle.</li>
+      <li>Parabola: PF and the distance to the directrix stay equal, so e = 1.</li>
+      <li>Hyperbola: PF₁ − PF₂ stays at ±2a. Make b large and the arms open wide (e grows).</li>
+      <li>Slice a cone: tilt the plane until it is parallel to the side of the cone (β = α). The ellipse stretches into a parabola, then breaks into a hyperbola.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="cn-quiz" />
+</div>
+
+<script>
+  import { circle, ellipse, parabola, hyperbola, dist, toLine, slice, type Conic, type Pt } from '../../lib/sci/school-conics';
+  import { paint, type Figure, type Palette } from '../../lib/report';
+  import { view, axes, line, dot, label, px, py, fmt, type View } from '../../lib/sm-graph';
+  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.cnx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380, H = 320;
+  let kind = 'ellipse';
+  const val = (c: string) => +q<HTMLInputElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+  const P = (p: Pt) => `(${fmt(p[0], 2)}, ${fmt(p[1], 2)})`;
+
+  /** Draw a conic's curve (both branches for a hyperbola). */
+  function drawConic(ctx: CanvasRenderingContext2D, v: View, C: Conic, col: string, w = 2.4) {
+    const seg = (f: (t: number) => Pt, t0: number, t1: number) => { ctx.beginPath(); for (let i = 0; i <= 400; i++) { const [x, y] = f(t0 + ((t1 - t0) * i) / 400); const X = px(v, x), Y = py(v, y); if (i) ctx.lineTo(X, Y); else ctx.moveTo(X, Y); } ctx.stroke(); };
+    ctx.save(); ctx.beginPath(); ctx.rect(v.l, v.t, v.W - v.l - v.r, v.H - v.t - v.b); ctx.clip(); ctx.strokeStyle = col; ctx.lineWidth = w;
+    if (C.kind === 'hyperbola') { seg(C.point, -3, 3); seg((t) => { const p = C.point(t); return [C.vertical ? p[0] : -p[0], C.vertical ? -p[1] : p[1]]; }, -3, 3); }
+    else if (C.kind === 'parabola') seg(C.point, -6, 6);
+    else seg(C.point, 0, 2 * Math.PI);
+    ctx.restore();
+  }
+  const tOf = (C: Conic) => { const u = val('.cn-t') / 1000; return C.kind === 'hyperbola' ? -2 + 4 * u : C.kind === 'parabola' ? -3 + 6 * u : 2 * Math.PI * u; };
+
+  function make(): Conic {
+    if (kind === 'circle') return circle(val('.cn-h'), val('.cn-kk'), val('.cn-r'));
+    if (kind === 'ellipse') return ellipse(val('.cn-a'), val('.cn-b'));
+    if (kind === 'parabola') return parabola(val('.cn-p'), q<HTMLSelectElement>('.cn-dir').value as 'right');
+    return hyperbola(val('.cn-a'), val('.cn-b'), q<HTMLInputElement>('.cn-vert').checked);
+  }
+
+  function main() {
+    root.querySelectorAll<HTMLElement>('[class*="cn-for-"]').forEach((e) => { e.hidden = !e.classList.contains(`cn-for-${kind}`); });
+    q('.cn-hv').textContent = fmt(val('.cn-h')); q('.cn-kv').textContent = fmt(val('.cn-kk')); q('.cn-rv').textContent = fmt(val('.cn-r'));
+    q('.cn-av').textContent = fmt(val('.cn-a')); q('.cn-bv').textContent = fmt(val('.cn-b')); q('.cn-pv').textContent = fmt(val('.cn-p'));
+    const C = make(), p = C.point(tOf(C));
+    q('.cn-eq').textContent = C.equation;
+    const span = Math.max(7, ...C.foci.map((f) => Math.abs(f[0]) + 1.5), ...C.foci.map((f) => Math.abs(f[1]) + 1.5));
+    const ext = Math.min(14, span), v = view(-ext, ext, (-ext * (H - 34)) / (W - 44), (ext * (H - 34)) / (W - 44), W, H);
+    const fig: Figure = { w: W, h: H, alt: `${C.equation}: foci ${C.foci.map(P).join(' and ')}, eccentricity ${fmt(C.e, 3)}`, draw: (ctx, w, h, pl: Palette) => {
+      axes(ctx, v, pl, { xName: 'x', yName: 'y' });
+      if (C.kind === 'hyperbola' && C.b) { const s = C.vertical ? C.a / C.b : C.b / C.a; line(ctx, v, -ext, -s * ext, ext, s * ext, pl.line, 1, [5, 4]); line(ctx, v, -ext, s * ext, ext, -s * ext, pl.line, 1, [5, 4]); }
+      for (const d of C.directrices) d.x !== undefined ? line(ctx, v, d.x, v.y0, d.x, v.y1, pl.accent2, 1.4, [6, 4]) : line(ctx, v, v.x0, d.y!, v.x1, d.y!, pl.accent2, 1.4, [6, 4]);
+      // Latus rectum through the first focus.
+      const f = C.foci[0], L = C.latus / 2;
+      if (C.kind !== 'circle') { if (C.vertical) line(ctx, v, f[0] - L, f[1], f[0] + L, f[1], pl.good, 2.2); else line(ctx, v, f[0], f[1] - L, f[0], f[1] + L, pl.good, 2.2); }
+      drawConic(ctx, v, C, pl.ink);
+      // P and its distances.
+      if (C.kind === 'circle') line(ctx, v, f[0], f[1], p[0], p[1], pl.accent, 1.8);
+      else {
+        C.foci.forEach((ff, i) => { if (C.kind === 'parabola' && i) return; line(ctx, v, p[0], p[1], ff[0], ff[1], i ? pl.accent2 : pl.accent, 1.8); });
+        if (C.kind === 'parabola') { const d = C.directrices[0]; const q2: Pt = d.x !== undefined ? [d.x, p[1]] : [p[0], d.y!]; line(ctx, v, p[0], p[1], q2[0], q2[1], pl.accent2, 1.8); }
+      }
+      C.foci.forEach((ff, i) => { dot(ctx, v, ff[0], ff[1], pl.bad, 4.5); label(ctx, v, ff[0], ff[1], C.kind === 'circle' ? 'centre' : C.foci.length > 1 ? `F${'₁₂'[i]}` : 'F', pl.bad, 6, 16); });
+      C.vertices.forEach((vv) => dot(ctx, v, vv[0], vv[1], pl.ink, 3));
+      dot(ctx, v, p[0], p[1], pl.ink, 6, false, pl.bg); label(ctx, v, p[0], p[1], 'P', pl.ink, 8, -6);
+    } };
+    paint(q<HTMLCanvasElement>('.cn-fig'), fig);
+    const facts: HTMLElement[] = [];
+    if (C.kind === 'circle') {
+      q('.cn-pnote').textContent = `P ${P(p)} is ${fmt(dist(p, C.foci[0]), 3)} from the centre: every point is r = ${fmt(C.a)} away.`;
+      facts.push(fact('Centre', P(C.foci[0])), fact('Radius', fmt(C.a)), fact('Eccentricity e', '0', 'a circle is an ellipse with e = 0'));
+    } else {
+      const d1 = dist(p, C.foci[0]), pd = C.directrices[0] ? toLine(p, C.directrices[0]) : NaN;
+      if (C.kind === 'ellipse') q('.cn-pnote').textContent = C.e === 0 ? `a = b, so this ellipse is a circle of radius ${fmt(C.a)}: both foci sit at the centre.` : `P ${P(p)}: PF₁ = ${fmt(d1, 3)}, PF₂ = ${fmt(dist(p, C.foci[1]), 3)}, sum = ${fmt(d1 + dist(p, C.foci[1]), 3)} = 2a. Also PF₁ / (distance to the nearer directrix) = ${fmt(d1 / pd, 3)} = e.`;
+      else if (C.kind === 'hyperbola') q('.cn-pnote').textContent = `P ${P(p)}: PF₁ = ${fmt(d1, 3)}, PF₂ = ${fmt(dist(p, C.foci[1]), 3)}, difference = ${fmt(d1 - dist(p, C.foci[1]), 3)} = ±2a. PF₁ / PD = ${fmt(d1 / pd, 3)} = e.`;
+      else q('.cn-pnote').textContent = `P ${P(p)}: distance to the focus PF = ${fmt(d1, 3)} and to the directrix PD = ${fmt(pd, 3)}. Always equal, so e = PF / PD = 1.`;
+      const dl = C.directrices.map((d) => (d.x !== undefined ? `x = ${fmt(d.x, 3)}` : `y = ${fmt(d.y!, 3)}`)).join(', ');
+      if (C.kind !== 'parabola') facts.push(fact(C.kind === 'ellipse' ? 'Semi-major a, semi-minor b' : 'a, b', `${fmt(C.a)}, ${fmt(C.b)}`, C.kind === 'ellipse' ? `c = √(a² − b²) = ${fmt(C.c, 4)}` : `c = √(a² + b²) = ${fmt(C.c, 4)}`));
+      facts.push(fact('Eccentricity e', fmt(C.e, 4), C.kind === 'parabola' ? 'always 1' : `c / a = ${fmt(C.c, 3)} / ${fmt(C.a)}${C.kind === 'ellipse' ? ' (less than 1)' : ' (more than 1)'}`));
+      facts.push(fact(C.foci.length > 1 ? 'Foci' : 'Focus', C.foci.map(P).join(' and ')));
+      if (dl) facts.push(fact(C.directrices.length > 1 ? 'Directrices' : 'Directrix', dl, C.kind === 'parabola' ? '' : 'a / e from the centre'));
+      facts.push(fact('Latus rectum', fmt(C.latus, 4), C.kind === 'parabola' ? '4a (green)' : '2b² / a (green)'));
+      if (C.vertices.length) facts.push(fact(C.vertices.length > 1 ? 'Vertices' : 'Vertex', C.vertices.map(P).join(' and ')));
+    }
+    q('.cn-facts').replaceChildren(...facts);
+  }
+
+  function cone() {
+    const al = val('.cn-al'), be = val('.cn-be'), s = slice(al, be), D = Math.PI / 180;
+    q('.cn-alv').textContent = `${al}°`; q('.cn-bev').textContent = `${be}°`;
+    const name = { circle: 'a circle', ellipse: 'an ellipse', parabola: 'a parabola', hyperbola: 'a hyperbola' }[s.kind];
+    q('.cn-stitle').textContent = `The plane cuts ${name}`;
+    const v = view(-4, 4, -3.6, 3.6, W, 260, { l: 10, r: 10, t: 10, b: 10 });
+    const fig: Figure = { w: W, h: 260, alt: `Side view: a double cone of half-angle ${al}° and a plane at ${be}° to its axis, giving ${name}`, draw: (ctx, w, h, pl) => {
+      const t = Math.tan(al * D);
+      ctx.save(); ctx.beginPath();
+      ctx.moveTo(px(v, -3.6 * t), py(v, 3.6)); ctx.lineTo(px(v, 3.6 * t), py(v, 3.6)); ctx.lineTo(px(v, -3.6 * t), py(v, -3.6)); ctx.lineTo(px(v, 3.6 * t), py(v, -3.6)); ctx.closePath();
+      ctx.fillStyle = pl.accent; ctx.globalAlpha = 0.12; ctx.fill(); ctx.restore();
+      line(ctx, v, -3.6 * t, 3.6, 3.6 * t, -3.6, pl.ink, 1.8); line(ctx, v, 3.6 * t, 3.6, -3.6 * t, -3.6, pl.ink, 1.8);
+      line(ctx, v, 0, -3.6, 0, 3.6, pl.muted, 1, [3, 3]); label(ctx, v, 0, 3.4, 'axis', pl.muted, 4, 10);
+      // Plane through (0, 1.4) at angle beta to the axis.
+      const dx = Math.sin(be * D), dy = Math.cos(be * D), k = 10;
+      line(ctx, v, -k * dx, 1.4 - k * dy, k * dx, 1.4 + k * dy, pl.accent2, 3);
+      label(ctx, v, 2.6 * dx + 0.2, 1.4 + 2.6 * dy, 'plane', pl.accent2, 6, 0);
+    } };
+    paint(q<HTMLCanvasElement>('.cn-cone'), fig);
+    const C = s.kind === 'circle' ? circle(0, 0, 2.5) : s.kind === 'ellipse' ? ellipse(3, 3 * Math.sqrt(1 - s.e * s.e)) : s.kind === 'parabola' ? parabola(0.8, 'right') : hyperbola(1.5, 1.5 * Math.sqrt(s.e * s.e - 1));
+    const cv = view(-5, 5, -3.2, 3.2, W, 200, { l: 10, r: 10, t: 10, b: 10 });
+    paint(q<HTMLCanvasElement>('.cn-cut'), { w: W, h: 200, alt: `The cut: ${name}, e = ${fmt(s.e, 3)}`, draw: (ctx, w, h, pl) => { line(ctx, cv, -5, 0, 5, 0, pl.grid, 1); line(ctx, cv, 0, -3.2, 0, 3.2, pl.grid, 1); drawConic(ctx, cv, C, pl.accent, 2.6); C.foci.forEach((f) => dot(ctx, cv, f[0], f[1], pl.bad, 4)); } });
+    q('.cn-snote').textContent = s.kind === 'circle' ? 'The plane is square to the axis (β = 90°): every point of the cut is the same distance from the axis, a circle, e = 0.'
+      : `β ${s.kind === 'ellipse' ? '>' : s.kind === 'parabola' ? '=' : '<'} α, so the cut is ${name}. Eccentricity e = cos β / cos α = ${fmt(Math.cos(be * D), 4)} / ${fmt(Math.cos(al * D), 4)} = ${fmt(s.e, 4)}.${s.kind === 'hyperbola' ? ' The plane cuts both halves of the cone: two branches.' : s.kind === 'parabola' ? ' The plane is parallel to a side of the cone, so the curve never closes.' : ''}`;
+  }
+
+  const run = () => { q('.cn-main').hidden = kind === 'slice'; q('.cn-slice').hidden = kind !== 'slice'; if (kind === 'slice') cone(); else main(); };
+  root.querySelectorAll<HTMLButtonElement>('.cn-k button').forEach((b) => b.addEventListener('click', () => { kind = b.dataset.k!; root.querySelectorAll('.cn-k button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); run(); }));
+  root.querySelectorAll('input, select').forEach((e) => { e.addEventListener('input', run); e.addEventListener('change', run); });
+  document.addEventListener('fibub:theme', run);
+  run();
+
+  quiz(q('.cn-quiz'), (): Question[] => {
+    const [a, b, c] = pick([[5, 3, 4], [5, 4, 3], [13, 12, 5], [10, 6, 8], [10, 8, 6]]);
+    const N = pick([4, 8, 12, 16, 20, 6, 10]);
+    const [ha, hb] = pick([[2, 3], [3, 4], [4, 2], [1, 2], [6, 3]]);
+    const g = rint(-4, 4), f = rint(-4, 4), r = rint(1, 5), cc = g * g + f * f - r * r;
+    return [
+      { text: `What is the eccentricity of x²/${a * a} + y²/${b * b} = 1?`, answer: c / a, worked: `c = √(a² − b²) = √(${a * a} − ${b * b}) = ${c}, so e = c/a = ${c}/${a} = ${fmt(c / a, 4)}.` },
+      { text: `The parabola y² = ${N}x has its focus at (p, 0). What is p?`, answer: N / 4, worked: `Compare with y² = 4ax: 4a = ${N}, so a = ${fmt(N / 4)} and the focus is (${fmt(N / 4)}, 0). The directrix is x = −${fmt(N / 4)}.` },
+      { text: `What is the length of the latus rectum of x²/${ha * ha} − y²/${hb * hb} = 1?`, answer: (2 * hb * hb) / ha, worked: `Latus rectum = 2b²/a = 2 × ${hb * hb} / ${ha} = ${fmt((2 * hb * hb) / ha, 4)}.` },
+      { text: `What is the radius of x² + y² ${2 * g < 0 ? '−' : '+'} ${Math.abs(2 * g)}x ${2 * f < 0 ? '−' : '+'} ${Math.abs(2 * f)}y ${cc < 0 ? '−' : '+'} ${Math.abs(cc)} = 0?`, answer: r, worked: `Complete the squares: (x ${g < 0 ? '−' : '+'} ${Math.abs(g)})² + (y ${f < 0 ? '−' : '+'} ${Math.abs(f)})² = ${g * g} + ${f * f} ${cc < 0 ? '+' : '−'} ${Math.abs(cc)} = ${r * r}, so r = ${r}.` },
+      { text: 'A plane parallel to a side of a cone (and not through its tip) cuts which curve?', choices: ['Ellipse', 'Parabola', 'Hyperbola'], correct: 1, worked: 'Parallel to a side means β = α, so e = cos β / cos α = 1: a parabola.' },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .cnx .cn-sl { display: grid; gap: 4px; color: var(--ink); font-size: 15px; margin-top: 8px; }
+  .cnx .cn-sl input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .cnx .ax-seg button { min-height: 44px; }
+  .cnx .cn-sls { display: grid; gap: 4px; }
+  .cnx .cn-sls select { max-width: 320px; }
+  .cnx .cn-pnote, .cnx .cn-snote { overflow-wrap: anywhere; margin: 10px 0; }
+  .cnx .cn-eq { font-size: 20px; }
+  .cnx .cn-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+</style>

@@ -1,0 +1,191 @@
+---
+// Chirality checker: one carbon with four groups in 3D; CIP priorities step by step, chiral or not, R or S with a
+// "lowest priority to the back" view and a curved arrow, mirror image and swap; Check yourself.
+import '../../styles/astro.css';
+import { PRESETS, GROUPS } from '../../lib/sci/chirality';
+---
+<div class="ax chk">
+  <div class="ax-card">
+    <h2>Look at the carbon</h2>
+    <label>Molecule <select class="ch-pre">{PRESETS.map((p) => <option value={p.id} selected={p.id === 'butan2ol'}>{p.name}</option>)}<option value="own">Build your own</option></select></label>
+    <div class="ax-grid ch-own" hidden>
+      {[0, 1, 2, 3].map((k) => <label>{['Group at the top', 'Group 2', 'Group 3', 'Group 4'][k]} <select class={`ch-g ch-g${k}`}>{GROUPS.map((g) => <option value={g.id}>{g.label}</option>)}</select></label>)}
+    </div>
+    <p class="ax-big ch-big"></p>
+    <canvas class="ax-fig ch-fig" tabindex="0"></canvas>
+    <p class="ax-help ch-help">Drag to turn. Thick, larger groups are towards you; thin, smaller ones are behind.</p>
+    <div class="ax-row">
+      <button type="button" class="btn small ch-back">Put 4 at the back</button>
+      <button type="button" class="btn secondary small ch-mirror" aria-pressed="false">Mirror image</button>
+      <button type="button" class="btn secondary small ch-swap">Swap two groups</button>
+      <label class="ax-check"><input type="checkbox" class="ch-pri" checked /> Show priorities</label>
+    </div>
+    <p class="ch-rule"></p>
+    <ol class="ch-steps"></ol>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="ch-try">
+      <li>Press <b>Put 4 at the back</b>, follow the arrow 1 → 2 → 3: clockwise is R, anticlockwise is S.</li>
+      <li>Press <b>Mirror image</b>. The letter flips: the two are enantiomers, like left and right hands.</li>
+      <li>Press <b>Swap two groups</b>: swapping any two groups also flips R and S.</li>
+      <li>Pick propan-2-ol: two CH₃ groups make the carbon not chiral. Its mirror image is the same molecule.</li>
+      <li>In glyceraldehyde, why does CHO beat CH₂OH? Look at the atoms one step out.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card ch-quiz">
+    <h2>Check yourself</h2>
+    <p class="ax-help" style="margin-top:0">Is the middle carbon R, S or not chiral? Larger, bolder groups point towards you. New questions every time; nothing is saved.</p>
+    <div class="ch-qs"></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn small ch-check">Check</button><button type="button" class="btn secondary small ch-new">New questions</button><span class="ch-score" aria-live="polite"></span></div>
+  </div>
+</div>
+
+<style is:inline>
+  .ch-fig { max-width: 400px; margin: 10px auto 0; touch-action: none; cursor: grab; border: 1px solid var(--line); }
+  .ch-rule { font-size: 15px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; overflow-wrap: anywhere; }
+  .ch-steps, .ch-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .ch-qs { display: grid; gap: 12px; }
+  .ch-q1 { display: grid; gap: 6px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+  .ch-q1 canvas { max-width: 240px; }
+  .ch-q1 select { max-width: 220px; }
+  .ch-ans { font-size: 14px; margin: 0; }
+  .ch-ans.ok { color: var(--good); } .ch-ans.no { color: var(--bad); }
+  .ch-score { font-weight: 700; }
+</style>
+
+<script>
+  import { PRESETS, groupById, rank, descriptor, mirror, SITES, type V } from '../../lib/sci/chirality';
+  import { mul, rotX, rotY, apply, project, type M3, type V3 } from '../../lib/sci/mol3d';
+  import { paint, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.chk')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const li = (t: string) => { const e = document.createElement('li'); e.textContent = t; return e; };
+  const cv = q<HTMLCanvasElement>('.ch-fig');
+  const START: M3 = mul(rotX(0.25), rotY(-0.5));
+  let ids = PRESETS.find((p) => p.id === 'butan2ol')!.groups.slice(), name = 'Butan-2-ol', R: M3 = START, mirrored = false, arrow = false;
+  const positions = (m: boolean): V[] => (m ? mirror(SITES) : SITES);
+
+  /** Rotation that sends v to the back (0, 0, −1) with `up` pointing up the screen. */
+  function toBack(v: V, up: V): M3 {
+    const n = Math.hypot(...v), e3: V = [-v[0] / n, -v[1] / n, -v[2] / n];
+    const d = up[0] * e3[0] + up[1] * e3[1] + up[2] * e3[2];
+    let e2: V = [up[0] - d * e3[0], up[1] - d * e3[1], up[2] - d * e3[2]]; const m = Math.hypot(...e2); e2 = [e2[0] / m, e2[1] / m, e2[2] / m];
+    const e1: V = [e2[1] * e3[2] - e2[2] * e3[1], e2[2] * e3[0] - e2[0] * e3[2], e2[0] * e3[1] - e2[1] * e3[0]];
+    return [...e1, ...e2, ...e3];
+  }
+
+  function figure(gids: string[], pos: V[], view: M3, opts: { pri: boolean; arrow: boolean; size: number }): Figure {
+    const rk = rank(gids);
+    return { w: opts.size, h: opts.size * 0.85, alt: 'A carbon with four groups drawn in 3D', draw: (ctx, W, H, pal) => {
+      const cx = W / 2, cy = H / 2, L = Math.min(W, H) * 0.34, sc = W / 400;
+      const pts = pos.map((p, i) => { const v = apply(view, p as V3); return { i, v, s: project(v, cx, cy, L, 0.3) }; });
+      const c0 = { x: cx, y: cy };
+      const items: { z: number; draw: () => void }[] = [];
+      for (const p of pts) {
+        items.push({ z: p.v[2] / 2, draw: () => {
+          ctx.strokeStyle = pal.ink; ctx.lineCap = 'round'; ctx.lineWidth = (p.v[2] > 0.2 ? 7 : p.v[2] < -0.2 ? 2 : 4) * sc;
+          if (p.v[2] < -0.2) ctx.setLineDash([5 * sc, 4 * sc]);
+          ctx.beginPath(); ctx.moveTo(c0.x, c0.y); ctx.lineTo(p.s.x, p.s.y); ctx.stroke(); ctx.setLineDash([]);
+        } });
+        items.push({ z: p.v[2], draw: () => {
+          const g = groupById(gids[p.i]), t = g.label, k = p.s.k;
+          ctx.font = `${p.v[2] > 0.2 ? 700 : 600} ${Math.round(16 * sc * k)}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          const w = ctx.measureText(t).width + 14 * sc, h = 26 * sc * k;
+          ctx.fillStyle = pal.bg; ctx.strokeStyle = p.v[2] < -0.2 ? pal.muted : pal.ink; ctx.lineWidth = 1.5 * sc;
+          ctx.beginPath(); ctx.roundRect(p.s.x - w / 2, p.s.y - h / 2, w, h, 6 * sc); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = p.v[2] < -0.2 ? pal.muted : pal.ink; ctx.fillText(t, p.s.x, p.s.y + 0.5);
+          if (opts.pri && rk.chiral) {
+            const pr = rk.order.indexOf(p.i) + 1, bx = p.s.x + w / 2 + 2 * sc, by = p.s.y - h / 2;
+            ctx.beginPath(); ctx.arc(bx, by, 10 * sc, 0, Math.PI * 2); ctx.fillStyle = pal.accent; ctx.fill();
+            ctx.fillStyle = pal.red ? '#000' : '#fff'; ctx.font = `700 ${Math.round(12 * sc)}px system-ui, sans-serif`; ctx.fillText(String(pr), bx, by + 0.5);
+          }
+        } });
+      }
+      items.push({ z: 0, draw: () => { ctx.beginPath(); ctx.arc(cx, cy, 13 * sc, 0, Math.PI * 2); ctx.fillStyle = pal.bg; ctx.fill(); ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5 * sc; ctx.stroke(); ctx.fillStyle = pal.ink; ctx.font = `700 ${Math.round(14 * sc)}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('C', cx, cy + 0.5); } });
+      items.sort((a, b) => a.z - b.z).forEach((it) => it.draw());
+      if (opts.arrow && rk.chiral) {
+        const ang = rk.order.slice(0, 3).map((i) => Math.atan2(pts[i].s.y - cy, pts[i].s.x - cx));
+        const norm = (a: number) => ((a % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+        const cw = norm(ang[1] - ang[0]) < Math.PI; // canvas y points down: increasing angle is clockwise on screen
+        const r = L * 0.62;
+        ctx.strokeStyle = pal.accent2; ctx.lineWidth = 3 * sc; ctx.beginPath(); ctx.arc(cx, cy, r, ang[0] + (cw ? 0.25 : -0.25), ang[2] + (cw ? -0.25 : 0.25), !cw); ctx.stroke();
+        const e = ang[2] + (cw ? -0.25 : 0.25), ex = cx + r * Math.cos(e), ey = cy + r * Math.sin(e), tx = (cw ? 1 : -1) * -Math.sin(e), ty = (cw ? 1 : -1) * Math.cos(e), nx = Math.cos(e), ny = Math.sin(e);
+        ctx.fillStyle = pal.accent2; ctx.beginPath(); ctx.moveTo(ex + tx * 11 * sc, ey + ty * 11 * sc); ctx.lineTo(ex + nx * 7 * sc, ey + ny * 7 * sc); ctx.lineTo(ex - nx * 7 * sc, ey - ny * 7 * sc); ctx.fill();
+        ctx.fillStyle = pal.accent2; ctx.beginPath(); ctx.moveTo(ex - tx * 10 * sc * -1, ey - ty * 10 * sc * -1); ctx.lineTo(ex - tx * 2 * sc + ty * 7 * sc, ey - ty * 2 * sc - tx * 7 * sc); ctx.lineTo(ex - tx * 2 * sc - ty * 7 * sc, ey - ty * 2 * sc + tx * 7 * sc); ctx.fill();
+      }
+    } };
+  }
+
+  function update() {
+    const rk = rank(ids), pos = positions(mirrored);
+    paint(cv, figure(ids, pos, R, { pri: q<HTMLInputElement>('.ch-pri').checked, arrow, size: 400 }));
+    const nm = mirrored ? `${name} (mirror image)` : name;
+    if (!rk.chiral) {
+      q('.ch-big').textContent = `${nm}: not chiral`;
+      q('.ch-rule').textContent = 'Two of the groups are the same, so the molecule and its mirror image can be turned to match: no R or S.';
+    } else {
+      const d = descriptor(pos, rk.order);
+      q('.ch-big').textContent = `${nm}: chiral carbon, (${d})`;
+      q('.ch-rule').textContent = arrow ? `With 4 (${groupById(ids[rk.order[3]]).label}) at the back, 1 → 2 → 3 goes ${d === 'R' ? 'clockwise → R (rectus, right)' : 'anticlockwise → S (sinister, left)'}.` : 'Press "Put 4 at the back" to read R or S: clockwise 1 → 2 → 3 is R, anticlockwise is S.';
+    }
+    q('.ch-steps').replaceChildren(...rk.steps.map(li));
+    q<HTMLButtonElement>('.ch-back').disabled = !rk.chiral;
+  }
+  const load = () => {
+    const v = q<HTMLSelectElement>('.ch-pre').value, own = v === 'own';
+    q('.ch-own').hidden = !own;
+    if (own) { ids = [0, 1, 2, 3].map((k) => q<HTMLSelectElement>(`.ch-g${k}`).value); name = `C(${ids.map((i) => groupById(i).label).join(')(')})`; }
+    else { const p = PRESETS.find((x) => x.id === v)!; ids = p.groups.slice(); name = p.name.replace(/ \(not chiral\)$/, ''); [0, 1, 2, 3].forEach((k) => { q<HTMLSelectElement>(`.ch-g${k}`).value = ids[k]; }); }
+    mirrored = false; arrow = false; R = START; q('.ch-mirror').setAttribute('aria-pressed', 'false'); update();
+  };
+  q('.ch-pre').addEventListener('change', load);
+  for (let k = 0; k < 4; k++) q(`.ch-g${k}`).addEventListener('change', load);
+  q('.ch-back').addEventListener('click', () => { const rk = rank(ids); if (!rk.chiral) return; const pos = positions(mirrored); R = toBack(pos[rk.order[3]], pos[rk.order[0]]); arrow = true; update(); });
+  q('.ch-mirror').addEventListener('click', () => { mirrored = !mirrored; q('.ch-mirror').setAttribute('aria-pressed', String(mirrored)); if (arrow) { const rk = rank(ids); if (rk.chiral) { const pos = positions(mirrored); R = toBack(pos[rk.order[3]], pos[rk.order[0]]); } } update(); });
+  q('.ch-swap').addEventListener('click', () => { [ids[1], ids[2]] = [ids[2], ids[1]]; if (q<HTMLSelectElement>('.ch-pre').value === 'own') { q<HTMLSelectElement>('.ch-g1').value = ids[1]; q<HTMLSelectElement>('.ch-g2').value = ids[2]; } if (arrow) { const rk = rank(ids); if (rk.chiral) { const pos = positions(mirrored); R = toBack(pos[rk.order[3]], pos[rk.order[0]]); } } update(); });
+  q('.ch-pri').addEventListener('change', update);
+  let last: { x: number; y: number } | null = null;
+  cv.addEventListener('pointerdown', (e) => { cv.setPointerCapture(e.pointerId); last = { x: e.clientX, y: e.clientY }; });
+  cv.addEventListener('pointermove', (e) => { if (!last) return; const dx = e.clientX - last.x, dy = e.clientY - last.y; last = { x: e.clientX, y: e.clientY }; R = mul(mul(rotY(dx * 0.012), rotX(dy * 0.012)), R); arrow = false; update(); });
+  const stop = () => { last = null; }; cv.addEventListener('pointerup', stop); cv.addEventListener('pointercancel', stop);
+  cv.addEventListener('keydown', (e) => { const m: Record<string, M3> = { ArrowLeft: rotY(-0.15), ArrowRight: rotY(0.15), ArrowUp: rotX(-0.15), ArrowDown: rotX(0.15) }; if (m[e.key]) { e.preventDefault(); R = mul(m[e.key], R); arrow = false; update(); } });
+  new MutationObserver(update).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+
+  // Check yourself: random molecule, random arrangement and view.
+  let quiz: { ids: string[]; answer: string; why: string }[] = [];
+  function newQuiz() {
+    quiz = [];
+    const pool = PRESETS.map((p) => p.groups);
+    const box = q('.ch-qs'); box.replaceChildren();
+    for (let n = 0; n < 4; n++) {
+      const g = pool[Math.floor(Math.random() * pool.length)].slice().sort(() => Math.random() - 0.5);
+      const rk = rank(g), pos = SITES;
+      const answer = rk.chiral ? descriptor(pos, rk.order) : 'not chiral';
+      // View: a random group pointing back, so the reader has to work it out.
+      const back = Math.floor(Math.random() * 4), view = toBack(pos[back], pos[(back + 1) % 4]);
+      quiz.push({ ids: g, answer, why: rk.steps.join(' ') + (rk.chiral ? ` Turn it so ${groupById(g[rk.order[3]]).label} is at the back: 1 → 2 → 3 is ${answer === 'R' ? 'clockwise, so R' : 'anticlockwise, so S'}.` : '') });
+      const d = document.createElement('div'); d.className = 'ch-q1';
+      const p = document.createElement('p'); p.style.margin = '0'; p.textContent = `${n + 1}. R, S or not chiral?`;
+      const c = document.createElement('canvas'); c.className = 'ax-fig'; paint(c, figure(g, pos, view, { pri: false, arrow: false, size: 260 }));
+      const s = document.createElement('select'); s.className = 'ch-qa'; s.innerHTML = '<option value="">Choose</option><option>R</option><option>S</option><option>not chiral</option>';
+      const a = document.createElement('p'); a.className = 'ch-ans'; a.hidden = true; d.append(p, c, s, a); box.append(d);
+    }
+    q('.ch-score').textContent = '';
+  }
+  q('.ch-check').addEventListener('click', () => {
+    let right = 0;
+    root.querySelectorAll<HTMLElement>('.ch-q1').forEach((d, i) => {
+      const v = d.querySelector('select')!.value, a = d.querySelector<HTMLElement>('.ch-ans')!, x = quiz[i], ok = v === x.answer; if (ok) right++;
+      a.hidden = false; a.className = 'ch-ans ' + (ok ? 'ok' : 'no');
+      a.textContent = `${ok ? '✓ Right.' : v ? `✗ It is ${x.answer}.` : '✗ No answer yet.'} ${x.why}`;
+    });
+    q('.ch-score').textContent = `${right} of ${quiz.length} right`;
+  });
+  q('.ch-new').addEventListener('click', newQuiz);
+
+  load(); newQuiz();
+</script>

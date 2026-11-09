@@ -1,0 +1,64 @@
+// #1104 Carbon chain builder and IUPAC namer
+export const path = '/learn/carbon-chain-namer/';
+export default async ({ page, check, BASE }) => {
+  await page.goto(`${BASE}/learn/carbon-chain-namer/`); await page.waitForTimeout(1200);
+  const t = (s) => page.textContent('.ccn ' + s);
+  check((await t('.cc-name')) === 'pentane' && (await t('.cc-facts')).includes('C₅H₁₂') && (await t('.cc-facts')).includes('alkane'), 'chain: pentane to start');
+  check((await page.$$eval('.ccn .cc-series tbody tr', (r) => r.map((x) => x.children[1].textContent))).join() === 'methane,ethane,propane,butane,pentane,hexane', 'chain: alkane series table');
+  const tapC = async (c) => { await page.$eval('.ccn > .ax-card .cc-svg', (s) => s.scrollIntoView({ block: 'center' })); await page.click(`.ccn > .ax-card:first-child .cc-svg .hit[data-c="${c}"]`, { force: true }); await page.waitForTimeout(120); };
+  await tapC(1); await tapC(1);
+  check((await t('.cc-name')) === '3-methylhexane' && (await t('.cc-facts')).includes('C₇H₁₆') && (await t('.cc-steps')).includes('turns into a branch'), 'chain: ethyl on C2 gives 3-methylhexane');
+  check((await page.$$('.ccn > .ax-card:first-child .cc-svg .b.main')).length === 5 && (await page.$$('.ccn > .ax-card:first-child .cc-svg .num')).length === 6, 'chain: named chain drawn thick and numbered');
+  await tapC(1);
+  check((await t('.cc-name')) === '2,2-dimethylpentane', 'chain: two methyls');
+  await tapC(1);
+  check((await t('.cc-name')) === 'pentane', 'chain: tap cycles back to none');
+  // Example 2: OH on carbon 4, methyl on carbon 2.
+  await page.selectOption('.ccn .cc-group', 'OH'); await page.selectOption('.ccn .cc-gat', { value: '3' }); await tapC(1);
+  check((await t('.cc-name')) === '4-methylpentan-2-ol' && (await t('.cc-facts')).includes('C₆H₁₄O') && (await t('.cc-steps')).includes('lowest number (2)'), 'chain: 4-methylpentan-2-ol');
+  await tapC(1); await tapC(1); await tapC(1);
+  await page.selectOption('.ccn .cc-bond', 'double'); await page.selectOption('.ccn .cc-bat', { value: '0' }); await page.waitForTimeout(100);
+  check((await t('.cc-name')) === 'pent-4-en-2-ol', 'chain: alcohol beats double bond for numbering');
+  await page.selectOption('.ccn .cc-group', 'CHO'); await page.waitForTimeout(100);
+  check(await page.isVisible('.ccn .cc-err') === false && (await t('.cc-name')) === 'pent-4-enal', 'chain: aldehyde moves to an end');
+  await page.selectOption('.ccn .cc-gat', { value: '2' }); await page.waitForTimeout(100);
+  check((await t('.cc-err')).includes('only be at the end') && (await t('.cc-name')) === 'Not a possible molecule', 'chain: aldehyde in the middle refused');
+  await page.selectOption('.ccn .cc-group', 'COOH'); await page.selectOption('.ccn .cc-gat', { value: '4' }); await page.waitForTimeout(100);
+  check((await t('.cc-name')) === 'pent-4-enoic acid', 'chain: pent-4-enoic acid');
+  await page.selectOption('.ccn .cc-gat', { value: '0' }); await page.waitForTimeout(100);
+  check((await t('.cc-err')).includes('Carbon 1 would have 5 bonds'), 'chain: acid on the double bond carbon is too many bonds');
+  await page.selectOption('.ccn .cc-bond', 'single'); await page.waitForTimeout(100);
+  check((await t('.cc-name')) === 'pentanoic acid' && (await t('.cc-facts')).includes('carboxylic acid') && (await page.$$eval('.ccn .cc-series tbody tr', (r) => r[1].children[1].textContent)) === 'ethanoic acid', 'chain: pentanoic acid and acid series');
+  await page.selectOption('.ccn .cc-group', 'CO'); await page.waitForTimeout(100);
+  check((await t('.cc-name')) === 'pentan-2-one', 'chain: ketone');
+  await page.selectOption('.ccn .cc-group', 'Cl'); await page.waitForTimeout(100);
+  check((await t('.cc-name')) === '2-chloropentane' && (await t('.cc-facts')).includes('C₅H₁₁Cl'), 'chain: chloro');
+  await page.selectOption('.ccn .cc-group', 'none'); await page.selectOption('.ccn .cc-bond', 'triple'); await page.selectOption('.ccn .cc-bat', { value: '1' }); await page.waitForTimeout(100);
+  check((await t('.cc-name')) === 'pent-2-yne' && (await t('.cc-facts')).includes('alkyne'), 'chain: alkyne');
+  for (let i = 0; i < 4; i++) await page.click('.ccn .cc-ndn');
+  await page.waitForTimeout(100);
+  check((await t('.cc-name')) === 'methane' && (await t('.cc-n')) === '1', 'chain: down to methane');
+  await page.click('.ccn .cc-nup'); await page.selectOption('.ccn .cc-bond', 'double'); await page.waitForTimeout(100);
+  check((await t('.cc-name')) === 'ethene', 'chain: ethene');
+  await page.click('.ccn .cc-reset'); await page.waitForTimeout(100);
+  check((await t('.cc-name')) === 'pentane', 'chain: start again');
+  // Class 10: no branches.
+  await tapC(2);
+  await page.click('.ccn .cc-level button[data-l="10"]'); await page.waitForTimeout(150);
+  check((await t('.cc-name')) === 'pentane' && (await t('.cc-taphelp')).includes('straight chains only') && (await page.$$('.ccn > .ax-card:first-child .cc-svg .hit')).length === 0, 'chain: Class 10 removes branches');
+  await page.click('.ccn .cc-level button[data-l="11"]'); await page.waitForTimeout(150);
+  // Check yourself: the right option is the one the page says is right; pick by reading the answers after a blank check.
+  check((await page.$$('.ccn .cc-q1')).length === 3 && (await page.$$('.ccn .cc-q1 input[type=radio]')).length >= 9, 'chain: 3 questions with choices');
+  await page.click('.ccn .cc-check');
+  const answers = await page.$$eval('.ccn .cc-ans', (a) => a.map((x) => x.textContent.match(/^✗ It is (.+?)\.\s/)?.[1] || ''));
+  check((await t('.cc-score')) === '0 of 3 right' && answers.every((a) => a === ''), 'chain: blank answers');
+  const right = await page.$$eval('.ccn .cc-q1', (qs) => qs.map((d) => d.querySelector('.cc-ans').textContent.split('Put it together: ')[1]?.replace(/\.$/, '')));
+  for (let i = 0; i < 3; i++) await page.check(`.ccn .cc-q1:nth-child(${i + 1}) input[value="${right[i]}"]`);
+  await page.click('.ccn .cc-check');
+  check((await t('.cc-score')) === '3 of 3 right', `chain: quiz all right (${await t('.cc-score')})`);
+  const wrong = await page.$eval('.ccn .cc-q1:nth-child(1)', (d) => [...d.querySelectorAll('input')].map((x) => x.value).find((v) => v !== d.querySelector('.cc-ans').textContent.split('Put it together: ')[1]?.replace(/\.$/, '')));
+  await page.check(`.ccn .cc-q1:nth-child(1) input[value="${wrong}"]`); await page.click('.ccn .cc-check');
+  check((await t('.cc-score')) === '2 of 3 right' && (await t('.cc-qs')).includes('✗ It is'), 'chain: wrong answer gets the steps');
+  await page.click('.ccn .cc-new');
+  check((await t('.cc-score')) === '', 'chain: new questions');
+};
