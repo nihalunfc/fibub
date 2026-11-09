@@ -1,0 +1,45 @@
+// #675 home battery sizing. The simulation is checked against a separate Python re-implementation (written for this check)
+// on a made-up 14-day profile, for five batteries (including half-hour and quarter-hour steps), plus energy-balance identities.
+import { simulate, sweep, recommend, backupHours, template, parseProfile, sizeSteps, LOAD_SHAPE } from '../../src/lib/sci/eng-homebattery.ts';
+
+const LOAD = '0.343 0.418 0.701 0.591 0.347 0.517 0.54 0.38 0.667 0.357 0.496 0.558 0.515 0.593 0.669 0.778 0.442 1.424 1.448 1.246 1.101 1.587 0.449 0.457 0.746 0.593 0.536 0.687 0.315 0.653 0.487 0.345 0.63 0.766 0.404 0.615 0.449 0.671 0.661 0.409 0.715 1.429 1.441 1.51 1.314 1.479 0.739 0.351 0.725 0.497 0.54 0.373 0.649 0.446 0.736 0.438 0.581 0.5 0.606 0.398 0.39 0.673 0.676 0.583 0.761 1.203 1.525 1.184 1.582 1.412 0.603 0.785 0.694 0.695 0.327 0.485 0.342 0.397 0.407 0.729 0.363 0.448 0.546 0.725 0.783 0.654 0.407 0.572 0.653 1.126 1.44 1.284 1.395 1.435 0.635 0.562 0.577 0.399 0.548 0.363 0.54 0.568 0.687 0.497 0.31 0.564 0.403 0.671 0.494 0.49 0.755 0.496 0.474 1.274 1.34 1.147 1.373 1.561 0.581 0.672 0.774 0.721 0.672 0.707 0.71 0.427 0.541 0.471 0.431 0.586 0.459 0.609 0.591 0.352 0.521 0.495 0.653 1.144 1.184 1.356 1.302 1.433 0.466 0.399 0.766 0.422 0.374 0.44 0.47 0.413 0.568 0.768 0.363 0.508 0.634 0.742 0.8 0.372 0.569 0.741 0.327 1.394 1.187 1.484 1.569 1.369 0.304 0.332 0.508 0.724 0.418 0.635 0.503 0.433 0.652 0.454 0.486 0.683 0.548 0.692 0.558 0.38 0.522 0.736 0.582 1.582 1.101 1.27 1.485 1.443 0.58 0.632 0.738 0.642 0.574 0.581 0.633 0.462 0.635 0.608 0.693 0.54 0.314 0.568 0.729 0.62 0.622 0.495 0.478 1.459 1.139 1.533 1.538 1.581 0.368 0.358 0.747 0.501 0.435 0.491 0.63 0.381 0.544 0.63 0.66 0.306 0.705 0.517 0.518 0.581 0.44 0.743 0.406 1.371 1.184 1.408 1.551 1.541 0.367 0.612 0.746 0.4 0.507 0.657 0.669 0.526 0.619 0.634 0.477 0.626 0.589 0.649 0.556 0.468 0.517 0.761 0.394 1.174 1.106 1.526 1.594 1.218 0.433 0.399 0.6 0.543 0.71 0.405 0.739 0.532 0.704 0.701 0.755 0.549 0.605 0.581 0.395 0.551 0.763 0.754 0.311 1.432 1.263 1.168 1.17 1.497 0.78 0.56 0.492 0.555 0.715 0.673 0.332 0.406 0.734 0.547 0.629 0.689 0.618 0.667 0.573 0.415 0.394 0.797 0.305 1.445 1.54 1.216 1.124 1.3 0.465 0.531 0.514 0.771 0.36 0.772 0.323 0.769 0.467 0.664 0.302 0.524 0.639 0.614 0.703 0.377 0.501 0.607 0.314 1.518 1.308 1.223 1.211 1.425 0.324 0.422'.split(' ').map(Number);
+const SOLAR = '0 0 0 0 0 0 0 0.616 0.948 1.543 2.642 3.24 2.31 2.343 3.054 2.758 0.902 0.458 0 0 0 0 0 0 0 0 0 0 0 0 0 0.746 1.885 1.99 3.105 1.961 3.72 1.831 1.828 2.354 1.162 0.488 0 0 0 0 0 0 0 0 0 0 0 0 0 1.022 1.427 1.274 1.541 2.926 3.358 3.002 2.93 1.631 1.245 0.579 0 0 0 0 0 0 0 0 0 0 0 0 0 0.771 1.216 2.135 2.795 3.434 2.181 3.041 1.506 1.241 0.866 0.486 0 0 0 0 0 0 0 0 0 0 0 0 0 0.653 1.408 1.803 2.577 2.922 2.986 3.636 3.361 1.219 1.256 0.439 0 0 0 0 0 0 0 0 0 0 0 0 0 0.496 1.402 2.336 2.61 1.631 2.26 3.183 2.11 1.461 0.803 0.577 0 0 0 0 0 0 0 0 0 0 0 0 0 0.647 1.756 2.794 2.154 2.763 1.99 1.797 2.882 1.234 1.522 0.485 0 0 0 0 0 0 0 0 0 0 0 0 0 0.996 1.976 1.247 2.221 3.568 2.811 2.356 3.012 2.598 0.975 0.735 0 0 0 0 0 0 0 0 0 0 0 0 0 0.713 0.805 2.471 1.542 1.637 3.918 2.743 3.316 2.654 1.681 0.433 0 0 0 0 0 0 0 0 0 0 0 0 0 0.779 1.408 1.861 2.728 1.999 2.654 3.046 2.024 1.499 0.928 0.914 0 0 0 0 0 0 0 0 0 0 0 0 0 0.744 1.584 1.521 2.423 1.745 2.271 2.207 1.729 1.838 0.876 0.43 0 0 0 0 0 0 0 0 0 0 0 0 0 0.62 1.36 1.403 2.601 1.644 2.727 1.925 2.379 1.439 0.802 0.676 0 0 0 0 0 0 0 0 0 0 0 0 0 0.59 1.511 1.958 2.566 1.717 2.289 1.918 2.936 2.291 1.166 0.958 0 0 0 0 0 0 0 0 0 0 0 0 0 0.929 1.888 1.445 3.46 3.54 2.391 1.664 1.7 1.872 1.047 0.527 0 0 0 0 0 0'.split(' ').map(Number);
+const RUNS = [{"cap": 10, "pw": 5, "rte": 0.9, "res": 0.2, "dt": 1, "imp": 50.522937003, "exp": 79.07663402, "ch": 118.05836598, "dis": 105.567062997, "minSoc": 2.0, "end": 2.722545011}, {"cap": 5, "pw": 2, "rte": 0.85, "res": 0, "dt": 1, "imp": 91.553188799, "exp": 121.209339763, "ch": 75.925660237, "dis": 64.536811201, "minSoc": 0, "end": 0.0}, {"cap": 0, "pw": 0, "rte": 0.9, "res": 0, "dt": 1, "imp": 156.09, "exp": 197.135, "ch": 0.0, "dis": 0.0, "minSoc": 0, "end": 0.0}, {"cap": 20, "pw": 3, "rte": 0.95, "res": 0.3, "dt": 0.5, "imp": 1.7285, "exp": 7.504329387, "ch": 91.063170613, "dis": 76.3165, "minSoc": 6.0, "end": 16.458322729}, {"cap": 13.5, "pw": 5, "rte": 0.9, "res": 0.1, "dt": 0.25, "imp": 0.86425, "exp": 0.0, "ch": 49.28375, "dis": 38.15825, "minSoc": 1.35, "end": 7.882343315}];
+
+export default async (check) => {
+  const near = (a, b, t) => Math.abs(a - b) <= t;
+  check('battery: test profile is 14 days of hours', LOAD.length === 336 && SOLAR.length === 336);
+  for (const R of RUNS) {
+    const r = simulate(LOAD, SOLAR, { cap: R.cap, power: R.pw, rte: R.rte, reserve: R.res }, R.dt);
+    check(`battery ${R.cap} kWh / ${R.pw} kW, ${R.rte * 100} %, reserve ${R.res * 100} %, step ${R.dt} h: matches Python`, ['imp', 'exp', 'ch', 'dis', 'minSoc', 'end'].every((k) => near({ imp: r.imp, exp: r.exp, ch: r.charged, dis: r.discharged, minSoc: r.minSoc, end: r.endSoc }[k], R[k], 1e-6)));
+    // Energy balance: load = solar − export − charged + discharged + import; losses = charged − discharged − change in store.
+    check(`battery ${R.cap} kWh: energy balance closes`, near(r.load, r.solar - r.exp - r.charged + r.discharged + r.imp, 1e-9) && near(r.lost, r.charged * (1 - Math.sqrt(R.rte)) + r.discharged * (1 / Math.sqrt(R.rte) - 1), 1e-9));
+  }
+  { const r = simulate(LOAD, SOLAR, { cap: 0, power: 0, rte: 0.9, reserve: 0 }); const direct = LOAD.reduce((s, l, i) => s + Math.min(l, SOLAR[i]), 0);
+    check('battery: no battery = solar used directly', near(r.solar - r.exp, direct, 1e-9) && near(r.selfConsumption, direct / r.solar, 1e-12)); }
+  const b = { cap: 10, power: 5, rte: 0.9, reserve: 0.2 };
+  const rows = sweep(LOAD, SOLAR, b, sizeSteps(30));
+  check('battery: sizes 0 to 30 kWh in 2 kWh steps', rows.length === 16 && rows[1].cap === 2 && rows[15].cap === 30 && near(rows[5].power, 5, 1e-12));
+  check('battery: import never rises with a bigger battery', rows.every((r, i) => i === 0 || r.r.imp <= rows[i - 1].r.imp + 1e-9));
+  const rec = recommend(rows, 0.9);
+  check(`battery: recommended size is the first to reach 90 % of the best saving (${rec?.cap} kWh)`, rec && rec.saved >= 0.9 * Math.max(...rows.map((r) => r.saved)) - 1e-9 && rows[rows.indexOf(rec) - 1].saved < 0.9 * Math.max(...rows.map((r) => r.saved)));
+  check('battery: no solar surplus means no recommendation', recommend(sweep(LOAD, LOAD.map(() => 0), b, [0, 5, 10])) === null);
+  { const h = backupHours({ cap: 10, power: 5, rte: 0.81, reserve: 0.3 }, 0.6, 4);
+    check('battery: backup hours (full 15 h, reserve 4.5 h, worst 6 h at 90 % discharge efficiency)', near(h.full, 15, 1e-9) && near(h.reserve, 4.5, 1e-9) && near(h.worst, 6, 1e-9) && h.powerOk); }
+  check('battery: critical load above the battery power is flagged', !backupHours(b, 6, 2).powerOk);
+  check('battery: load shape sums to 1', near(LOAD_SHAPE.reduce((s, x) => s + x, 0), 1, 1e-12) && LOAD_SHAPE.length === 24);
+  { const t = template({ days: 365, dailyLoad: 12, kwp: 5, yieldPerKwp: 3.5, swing: 0.4 }); const S = t.solar.reduce((s, x) => s + x, 0), L = t.load.reduce((s, x) => s + x, 0);
+    const jun = t.solar.slice(171 * 24, 178 * 24).reduce((s, x) => s + x, 0), dec = t.solar.slice(352 * 24, 359 * 24).reduce((s, x) => s + x, 0);
+    check(`battery: template year gives 5 kWp × 3.5 kWh/kWp/day (${S.toFixed(1)} kWh)`, near(S, 5 * 3.5 * 365, 1e-6) && t.solar.length === 8760);
+    check(`battery: template load about 12 kWh a day (${(L / 365).toFixed(2)})`, near(L / 365, 12, 0.6));
+    check('battery: template solar is zero at midnight and bigger in June than December (north)', t.solar[0] === 0 && t.solar[100 * 24 + 23] === 0 && jun > 1.5 * dec);
+    const s = template({ days: 365, dailyLoad: 12, kwp: 5, yieldPerKwp: 3.5, swing: 0.4, south: true });
+    check('battery: southern template peaks in December', s.solar.slice(352 * 24, 359 * 24).reduce((a, x) => a + x, 0) > 1.5 * s.solar.slice(171 * 24, 178 * 24).reduce((a, x) => a + x, 0)); }
+  { const p = parseProfile('hour,load_kW,solar_kW\n' + Array.from({ length: 24 }, (_, i) => `${i},${0.5 + i / 100},${i > 6 && i < 18 ? 2 : 0}`).join('\n'));
+    check('battery: pasted columns found by name', p.load.length === 24 && p.load[3] === 0.53 && p.solar[10] === 2 && /load_kW/.test(p.note)); }
+  { const p = parseProfile(Array.from({ length: 24 }, (_, i) => `${i}\t${1}\t${i}`).join('\n'));
+    check('battery: no header uses the last two columns', p.load[5] === 1 && p.solar[5] === 5); }
+  const err = (f) => { try { f(); return ''; } catch (e) { return e.message; } };
+  check('battery: too few rows refused', /at least 24/.test(err(() => parseProfile('1,2\n3,4'))));
+  check('battery: negative value refused', /negative/.test(err(() => parseProfile(Array.from({ length: 24 }, (_, i) => `${i === 4 ? -1 : 1},0`).join('\n')))));
+};

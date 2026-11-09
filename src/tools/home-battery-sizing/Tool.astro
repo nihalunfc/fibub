@@ -1,0 +1,211 @@
+---
+// Home battery sizing: an energy balance of load, solar and a battery, swept over sizes. Template profiles and
+// prices are made up and editable. Nothing is uploaded.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax hbs">
+  <div class="ax-card">
+    <h2>Load and solar</h2>
+    <label>Profile <select class="hb-src"><option value="tpl" selected>Made-up year from a template</option><option value="data">My own data (paste or open a file)</option></select></label>
+    <div class="hb-tpl">
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Home use per day (kWh) <input class="hb-daily" type="text" inputmode="decimal" value="12" /></label>
+        <label>Solar array size (kWp) <input class="hb-kwp" type="text" inputmode="decimal" value="5" /></label>
+        <label>Solar yield (kWh per kWp per day, yearly average) <input class="hb-yield" type="text" inputmode="decimal" value="3.5" /></label>
+        <label>Summer–winter swing (%) <input class="hb-swing" type="text" inputmode="decimal" value="40" /></label>
+        <label>Hemisphere <select class="hb-hemi"><option value="n" selected>Northern (summer in June)</option><option value="s">Southern (summer in December)</option></select></label>
+      </div>
+      <p class="ax-help">The template makes a whole year of hours: a household day with morning and evening peaks, and sunny and cloudy days whose solar follows the season. The numbers are made up for a quick look; your own meter and inverter data gives a far better answer. Solar yield is roughly 2.5 to 5 kWh per kWp per day depending on where you live (check a solar map for your area).</p>
+    </div>
+    <div class="hb-data" hidden>
+      <label style="margin-top:10px">Load and solar in kW, one row per time step (columns named load and solar, or the last two columns)
+        <textarea class="hb-in" rows="6" spellcheck="false" placeholder="hour, load_kW, solar_kW&#10;0, 0.42, 0&#10;1, 0.38, 0"></textarea></label>
+      <DataFile target=".hb-in" maxMB={5} maxCols={10} maxRows={40000} />
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Time step <select class="hb-dt"><option value="1" selected>1 hour</option><option value="0.5">30 minutes</option><option value="0.25">15 minutes</option></select></label>
+      </div>
+      <p class="ax-help hb-note">Average power over each step, in kW (for hourly data this equals the kWh in that hour). A full year gives the fairest answer.</p>
+    </div>
+    <p class="ax-err hb-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Battery</h2>
+    <div class="ax-grid">
+      <label>Usable capacity (kWh) <input class="hb-cap" type="text" inputmode="decimal" value="10" /></label>
+      <label>Most charge or discharge power (kW) <input class="hb-pw" type="text" inputmode="decimal" value="5" /></label>
+      <label>Round-trip efficiency (%) <input class="hb-rte" type="text" inputmode="decimal" value="90" /></label>
+      <label>Kept for backup (% of capacity) <input class="hb-res" type="text" inputmode="decimal" value="20" /></label>
+      <label>Critical load in a power cut (kW) <input class="hb-crit" type="text" inputmode="decimal" value="0.5" /></label>
+      <label>Largest size to try (kWh) <input class="hb-max" type="text" inputmode="decimal" value="30" /></label>
+      <label>Recommend the smallest size giving (% of the best saving) <input class="hb-share" type="text" inputmode="decimal" value="90" /></label>
+    </div>
+    <p class="ax-help">Round-trip efficiency: how much of the energy put in comes back out (about 85 to 95 % for home lithium batteries). The backup share is never used day to day, so it is there when the grid fails. Bigger sizes in the sweep keep the same power per kWh as your battery.</p>
+    <h3>Prices (optional, any currency)</h3>
+    <div class="ax-grid">
+      <label>Grid electricity (per kWh) <input class="hb-pimp" type="text" inputmode="decimal" value="0.30" /></label>
+      <label>Paid for export (per kWh) <input class="hb-pexp" type="text" inputmode="decimal" value="0.08" /></label>
+      <label>Battery installed cost (per kWh) <input class="hb-pbat" type="text" inputmode="decimal" value="600" /></label>
+    </div>
+    <p class="ax-help">The prices are made-up examples; use your own tariff and quotes. Leave a box empty to skip the money sums.</p>
+  </div>
+
+  <div class="ax-card hb-out" hidden>
+    <h2>Results</h2>
+    <p class="ax-big hb-big"></p>
+    <p class="ax-help hb-why" style="margin-bottom:14px"></p>
+    <dl class="ax-facts hb-facts"></dl>
+    <h3>Battery size sweep</h3>
+    <canvas class="ax-fig hb-swfig"></canvas>
+    <div class="ax-scroll"><table class="hb-swtab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small hb-swcsv">Download sweep (CSV)</button></div>
+    <h3>Efficiency</h3>
+    <div class="ax-scroll"><table class="hb-eff"></table></div>
+    <h3>One week, hour by hour</h3>
+    <label>Week starting on day <input class="hb-day" type="number" min="1" step="1" value="1" inputmode="numeric" /></label>
+    <canvas class="ax-fig hb-wk"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small hb-csv">Download every time step (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .hbs h3 { margin: 22px 0 8px; font-size: 15px; }
+  .hbs .hb-day { max-width: 120px; }
+  .hbs .hb-swtab tr.on td { background: var(--accent-soft); font-weight: 600; }
+</style>
+
+<script>
+  import { simulate, sweep, recommend, backupHours, template, parseProfile, sizeSteps, type Battery, type SimResult, type SweepRow } from '../../lib/sci/eng-homebattery';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.hbs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const k0 = (x: number) => Math.round(x).toLocaleString('en');
+  const pc = (x: number) => `${(100 * x).toFixed(1)} %`;
+  const hrs = (h: number) => (!Number.isFinite(h) ? '–' : h >= 100 ? `${Math.round(h)} h` : `${sig(h, 3)} h`);
+  const money = (x: number) => x.toLocaleString('en', { maximumFractionDigits: 0 });
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const table = (t: HTMLElement, head: string[], rows: (string | number)[][], firstLeft = true) => {
+    t.replaceChildren();
+    const h = t.insertRow(); head.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (k || !firstLeft) th.className = 'r'; h.append(th); });
+    for (const r of rows) { const tr = t.insertRow(); r.forEach((x, k) => { const td = tr.insertCell(); td.textContent = String(x); if (k || !firstLeft) td.className = 'r'; }); }
+  };
+
+  type State = { load: ArrayLike<number>; solar: ArrayLike<number>; dt: number; b: Battery; r: SimResult; base: SimResult; rows: SweepRow[]; rec: SweepRow | null; days: number; pr: { imp: number; exp: number; bat: number } | null };
+  let st: State | null = null, figs: Figure[] = [], tplCache = '', tpl: { load: Float64Array; solar: Float64Array } | null = null;
+  const SWH = ['Size (kWh)', 'Power (kW)', 'Import (kWh)', 'Export (kWh)', 'Self-consumption', 'Self-sufficiency', 'Cycles a year', 'kWh saved per extra kWh'];
+
+  function profile(): { load: ArrayLike<number>; solar: ArrayLike<number>; dt: number; note?: string } {
+    if (sel('.hb-src') === 'tpl') {
+      const daily = val('.hb-daily'), kwp = val('.hb-kwp'), y = val('.hb-yield'), sw = val('.hb-swing');
+      if (!(daily > 0 && daily < 1000)) throw new Error('Give the home use per day in kWh (for example 12).');
+      if (!(kwp >= 0 && kwp < 1000)) throw new Error('Give the solar array size in kWp (0 for none).');
+      if (!(y > 0 && y < 10)) throw new Error('Give the solar yield in kWh per kWp per day (about 2.5 to 5).');
+      if (!(sw >= 0 && sw <= 90)) throw new Error('Give the summer–winter swing from 0 to 90 %.');
+      const key = [daily, kwp, y, sw, sel('.hb-hemi')].join();
+      if (key !== tplCache || !tpl) { tpl = template({ days: 365, dailyLoad: daily, kwp, yieldPerKwp: y, swing: sw / 100, south: sel('.hb-hemi') === 's' }); tplCache = key; }
+      return { ...tpl, dt: 1 };
+    }
+    const p = parseProfile(q<HTMLTextAreaElement>('.hb-in').value);
+    return { load: p.load, solar: p.solar, dt: Number(sel('.hb-dt')), note: p.note };
+  }
+
+  function run() {
+    const err = q('.hb-err'), out = q('.hb-out');
+    q('.hb-tpl').hidden = sel('.hb-src') !== 'tpl'; q('.hb-data').hidden = sel('.hb-src') === 'tpl';
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; st = null; };
+    if (sel('.hb-src') === 'data' && !q<HTMLTextAreaElement>('.hb-in').value.trim()) { err.hidden = true; out.hidden = true; st = null; return; }
+    let p: ReturnType<typeof profile>;
+    try { p = profile(); } catch (e) { return fail((e as Error).message); }
+    if (p.note) q('.hb-note').textContent = `${p.note} ${p.load.length.toLocaleString('en')} rows = ${sig((p.load.length * p.dt) / 24, 4)} days.`;
+    const cap = val('.hb-cap'), power = val('.hb-pw'), rte = val('.hb-rte') / 100, reserve = val('.hb-res') / 100, crit = val('.hb-crit'), max = val('.hb-max'), share = val('.hb-share') / 100;
+    if (!(cap > 0)) return fail('Give the battery capacity in kWh.');
+    if (!(power > 0)) return fail('Give the battery power in kW.');
+    if (!(rte > 0.3 && rte <= 1)) return fail('Give a round-trip efficiency between 30 and 100 %.');
+    if (!(reserve >= 0 && reserve < 1)) return fail('Give the backup share from 0 to 99 %.');
+    if (!(crit >= 0)) return fail('Give the critical load in kW (0 if you do not need backup).');
+    if (!(max > 0 && max <= 1000)) return fail('Give the largest size to try, up to 1,000 kWh.');
+    if (!(share > 0 && share <= 1)) return fail('Give the share of the best saving, from 1 to 100 %.');
+    const pImp = val('.hb-pimp'), pExp = val('.hb-pexp'), pBat = val('.hb-pbat');
+    const pr = pImp >= 0 && pExp >= 0 && pBat >= 0 ? { imp: pImp, exp: pExp, bat: pBat } : null;
+    err.hidden = true; out.hidden = false;
+    const b: Battery = { cap, power, rte, reserve }, days = (p.load.length * p.dt) / 24, yr = 365 / days;
+    const r = simulate(p.load, p.solar, b, p.dt, true), base = simulate(p.load, p.solar, { ...b, cap: 0, power: 0 }, p.dt);
+    const caps = sizeSteps(max); if (!caps.some((c) => Math.abs(c - cap) < 1e-9)) { caps.push(cap); caps.sort((a, c) => a - c); }
+    const rows = sweep(p.load, p.solar, b, caps, p.dt), rec = recommend(rows, share);
+    st = { load: p.load, solar: p.solar, dt: p.dt, b, r, base, rows, rec, days, pr };
+    const saving = (x: SimResult) => (pr ? ((base.imp - x.imp) * pr.imp - (base.exp - x.exp) * pr.exp) * yr : NaN);
+    q('.hb-big').textContent = rec ? `Recommended size: ${sig(rec.cap, 3)} kWh (${sig(rec.power, 3)} kW)` : 'No battery needed: there is no solar surplus to store';
+    q('.hb-why').textContent = rec ? `The smallest size in the sweep that gives at least ${sig(share * 100, 3)} % of the largest cut in grid import (${k0(Math.max(...rows.map((x) => x.saved)) * yr)} kWh a year at ${sig(rows[rows.length - 1].cap, 3)} kWh). Beyond it, each extra kWh of battery saves little.` : 'Solar never exceeds the load, so a battery charged from solar would never fill.';
+    const bh = backupHours(b, crit, r.minSoc);
+    const per = days > 364 && days < 367 ? 'a year' : `over ${sig(days, 4)} days`;
+    const facts = [
+      fact('Self-consumption', `${pc(base.selfConsumption)} → ${pc(r.selfConsumption)}`, 'share of the solar used at home, without → with this battery'),
+      fact('Self-sufficiency', `${pc(base.selfSufficiency)} → ${pc(r.selfSufficiency)}`, 'share of the home use met by solar and battery'),
+      fact('Grid import', `${k0(base.imp)} → ${k0(r.imp)} kWh`, per),
+      fact('Grid export', `${k0(base.exp)} → ${k0(r.exp)} kWh`, per),
+      fact('Battery use', `${k0(r.cycles * yr)} cycles a year`, `${k0(r.discharged)} kWh delivered, ${k0(r.lost)} kWh lost to efficiency, ${per}`),
+      fact('Backup', crit > 0 ? `${hrs(bh.full)} from full` : 'no critical load given', crit > 0 ? `${hrs(bh.reserve)} from the backup share alone; at least ${hrs(bh.worst)} at any moment in the data${bh.powerOk ? '' : `. The critical load is more than the battery's ${sig(power, 3)} kW`}` : ''),
+    ];
+    if (pr) {
+      const s = saving(r), cost = pr.bat * cap;
+      facts.push(fact('Bill saving', `${money(s)} a year`, `less import at ${pr.imp}, minus lost export at ${pr.exp} per kWh${days < 360 ? ` (scaled from ${sig(days, 3)} days to a year)` : ''}`));
+      facts.push(fact('Simple payback', s > 0 ? `${sig(cost / s, 3)} years` : 'never', `battery cost ${money(cost)}; no interest, ageing or tariff changes`));
+    }
+    q('.hb-facts').replaceChildren(...facts);
+    // Sweep table and chart.
+    const swRows = rows.map((x) => [sig(x.cap, 3), sig(x.power, 3), k0(x.r.imp), k0(x.r.exp), pc(x.r.selfConsumption), pc(x.r.selfSufficiency), k0(x.r.cycles * yr), x.cap ? sig(x.perKwh * yr, 3) : '–', ...(pr ? [money(saving(x.r)), x.cap && saving(x.r) > 0 ? sig((pr.bat * x.cap) / saving(x.r), 3) : '–'] : [])]);
+    table(q('.hb-swtab'), [...SWH.map((h) => h.replace('(kWh)', /Import|Export/.test(h) ? `(kWh ${per === 'a year' ? 'a year' : 'in data'})` : '(kWh)')), ...(pr ? ['Saving a year', 'Payback (years)'] : [])], swRows);
+    [...q('.hb-swtab').querySelectorAll('tr')].slice(1).forEach((tr, i) => tr.classList.toggle('on', rows[i] === rec));
+    const W = root.clientWidth < 520 ? 380 : 560;
+    const swFig = chartFigure({ w: W, h: 280, xLabel: 'Battery size (kWh)', yLabel: `kWh ${per === 'a year' ? 'a year' : 'in the data'}`, yMin: 0, legend: 'below',
+      marks: rec ? [{ kind: 'vline', at: rec.cap, label: 'recommended' }] : [],
+      series: [{ name: 'Grid import', x: rows.map((x) => x.cap), y: rows.map((x) => x.r.imp), mode: 'both', size: 2.5 }, { name: 'Grid export', x: rows.map((x) => x.cap), y: rows.map((x) => x.r.exp), mode: 'both', size: 2.5, marker: 'square' }] },
+      `Grid import and export against battery size, 0 to ${sig(max, 3)} kWh`);
+    paint(q<HTMLCanvasElement>('.hb-swfig'), swFig);
+    table(q('.hb-eff'), ['Round-trip efficiency', 'Import (kWh)', 'Self-sufficiency', 'Lost (kWh)'], [0.8, 0.85, 0.9, 0.95].concat(rte).filter((v, i, a) => a.indexOf(v) === i).sort((a, c) => a - c).map((e) => { const x = simulate(p.load, p.solar, { ...b, rte: e }, p.dt); return [`${sig(e * 100, 3)} %${e === rte ? ' (yours)' : ''}`, k0(x.imp), pc(x.selfSufficiency), k0(x.lost)]; }));
+    figs = [swFig];
+    week();
+  }
+
+  function week() {
+    if (!st) return;
+    const per = Math.round(24 / st.dt), nd = Math.floor(st.load.length / per);
+    const inp = q<HTMLInputElement>('.hb-day'); inp.max = String(Math.max(1, nd - 6));
+    const d0 = Math.min(Math.max(1, Math.round(Number(inp.value)) || 1), Math.max(1, nd - 6)) - 1, i0 = d0 * per, i1 = Math.min(st.load.length, i0 + 7 * per);
+    const xs: number[] = [], L: number[] = [], S: number[] = [], C: number[] = [];
+    for (let i = i0; i < i1; i++) { xs.push(((i - i0) * st.dt) / 24 + d0 + 1); L.push(st.load[i]); S.push(st.solar[i]); C.push(st.r.soc![i]); }
+    const wk = chartFigure({ w: root.clientWidth < 520 ? 380 : 560, h: 320, xLabel: 'Day', yLabel: 'kW, or kWh stored', yMin: 0, legend: 'below',
+      series: [{ name: 'Load (kW)', x: xs, y: L, mode: 'line', width: 1.4 }, { name: 'Solar (kW)', x: xs, y: S, mode: 'line', width: 1.4 }, { name: 'Battery charge (kWh)', x: xs, y: C, mode: 'line', width: 2 }] },
+      `Load, solar and battery charge for days ${d0 + 1} to ${d0 + Math.ceil((i1 - i0) / per)}`);
+    paint(q<HTMLCanvasElement>('.hb-wk'), wk);
+    figs = [figs[0], wk];
+  }
+
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(run, 300); };
+  root.querySelectorAll('input:not(.hb-day), textarea').forEach((i) => i.addEventListener('input', later));
+  root.querySelectorAll('select').forEach((i) => i.addEventListener('change', run));
+  q('.hb-day').addEventListener('input', week);
+  q('.hb-swcsv').addEventListener('click', () => { if (!st) return; const yr = 365 / st.days;
+    save(new Blob([csv([['capacity_kWh', 'power_kW', 'import_kWh', 'export_kWh', 'self_consumption', 'self_sufficiency', 'cycles_per_year', 'discharged_kWh', 'lost_kWh', 'recommended'], ...st.rows.map((x) => [x.cap, +x.power.toFixed(4), x.r.imp.toFixed(3), x.r.exp.toFixed(3), x.r.selfConsumption.toFixed(5), x.r.selfSufficiency.toFixed(5), (x.r.cycles * yr).toFixed(2), x.r.discharged.toFixed(3), x.r.lost.toFixed(3), x === st!.rec ? 'yes' : ''])])], { type: 'text/csv' }), 'battery-size-sweep.csv', 'text/csv'); });
+  q('.hb-csv').addEventListener('click', () => { if (!st) return; const s = st;
+    save(new Blob([csv([['step', 'hours', 'load_kW', 'solar_kW', 'battery_kWh', 'import_kW', 'export_kW'], ...Array.from({ length: s.load.length }, (_, i) => [i + 1, +(i * s.dt).toFixed(2), +(+s.load[i]).toFixed(4), +(+s.solar[i]).toFixed(4), s.r.soc![i].toFixed(4), s.r.gridImp![i].toFixed(4), s.r.gridExp![i].toFixed(4)])])], { type: 'text/csv' }), 'battery-time-steps.csv', 'text/csv'); });
+  wireDownloads(q('.dl'), () => {
+    const sections: Section[] = [
+      { title: q('.hb-big').textContent ?? '', text: [q('.hb-why').textContent ?? ''], facts: [...q('.hb-facts').querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]) },
+      { title: 'Battery size sweep', figure: figs[0], table: { head: [...q('.hb-swtab').querySelectorAll('th')].map((t) => t.textContent!), rows: [...q('.hb-swtab').querySelectorAll('tr')].slice(1).map((tr) => [...tr.cells].map((c) => c.textContent!)) } },
+      { title: 'One week', figure: figs[1], note: sel('.hb-src') === 'tpl' ? 'Load and solar from fibub\'s made-up template, not measured data.' : undefined },
+    ];
+    return { title: 'Home battery sizing', subtitle: `${sig(st!.b.cap, 3)} kWh, ${sig(st!.b.power, 3)} kW, ${sig(st!.b.rte * 100, 3)} % round trip`, file: 'home-battery-sizing', sections };
+  });
+  document.addEventListener('fibub:theme', () => { if (st) { paint(q<HTMLCanvasElement>('.hb-swfig'), figs[0]); paint(q<HTMLCanvasElement>('.hb-wk'), figs[1]); } });
+  run();
+</script>
