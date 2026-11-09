@@ -1,0 +1,223 @@
+---
+// Grain-size statistics from sieve data, one or several samples: cumulative curve, percentiles, Folk and Ward
+// graphic measures, moments (arithmetic, geometric, logarithmic), Udden-Wentworth class %. The example is synthetic.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const demo = [
+  'sieve (mm)\tBeach\tRiver bar\tEstuary',
+  '4\t0\t6.2\t0', '2.8\t0\t8.9\t0', '2\t0\t11.4\t0', '1.4\t0.1\t13.0\t0', '1\t0.4\t14.8\t0.2', '0.71\t1.8\t15.1\t0.5',
+  '0.5\t9.6\t16.3\t1.1', '0.355\t28.4\t14.2\t2.3', '0.25\t41.2\t10.9\t4.8', '0.18\t22.5\t7.7\t8.9', '0.125\t6.3\t4.6\t14.6',
+  '0.09\t1.1\t2.8\t18.2', '0.063\t0.3\t1.6\t16.9', 'pan\t0.1\t2.4\t31.7',
+].join('\n');
+---
+<div class="ax grs">
+  <div class="ax-card">
+    <h2>Sieve data</h2>
+    <label>Sieve size, then the mass retained on it for each sample (one column per sample) <textarea class="gs-in" rows="10" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".gs-in" maxCols={13} maxRows={200} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Sieve sizes in <select class="gs-unit"><option value="mm">mm</option><option value="um">µm</option><option value="phi">φ (phi)</option></select></label>
+      <label>Coarsest class reaches (φ above top sieve) <input class="gs-top" inputmode="decimal" value="1" /></label>
+      <label>Pan class reaches (φ below finest sieve) <input class="gs-pan" inputmode="decimal" value="1" /></label>
+    </div>
+    <p class="ax-help">Write <b>pan</b> in the sieve column for what passed the finest sieve. Any mass unit works (g is usual); blank cells count as 0. A first row of names is used for the samples. Grains on the top sieve are taken to reach the set width coarser, and the pan to reach the set width finer; mass is spread evenly across each open class. The example is made up.</p>
+    <p class="ax-err gs-err" hidden></p>
+  </div>
+
+  <div class="ax-card gs-out">
+    <h2>Results</h2>
+    <p class="ax-big gs-big"></p>
+    <ul class="ax-help gs-warn" hidden></ul>
+    <div class="ax-scroll"><table class="gs-sum"></table></div>
+    <p class="ax-help">Folk and Ward (1957) graphic measures in φ, with their verbal classes. D10 is the size that 10 % of the sample is finer than. Moments use the mid-point of each class (Blott and Pye 2001); kurtosis by moments is 3 for a normal distribution, by Folk and Ward it is 1.</p>
+    <h3 style="margin:16px 0 6px;font-size:16px">Cumulative curve</h3>
+    <canvas class="ax-fig gs-cum"></canvas>
+    <h3 style="margin:16px 0 6px;font-size:16px">Frequency</h3>
+    <canvas class="ax-fig gs-freq"></canvas>
+    <div class="ax-grid" style="margin-top:14px"><label>Details for <select class="gs-pick"></select></label></div>
+    <div class="ax-scroll" style="margin-top:10px"><table class="gs-pct"></table></div>
+    <div class="ax-scroll" style="margin-top:10px"><table class="gs-went"></table></div>
+    <div class="dl gs-dl2" style="margin-top:12px"><span class="dl-l">Data</span><button type="button" class="btn secondary gs-csv">Statistics (CSV)</button><button type="button" class="btn secondary gs-ccsv">Curves and classes (CSV)</button><button type="button" class="btn secondary gs-svg">Plots (SVG)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { analyse, sieveCell, wentworth, sortingClass, skewClass, kurtClass, sizeName, mmOf, WENTWORTH, type Analysis, type Sieve } from '../../lib/sci/sievestats';
+  import { num, sig, parseTable, csv } from '../../lib/sci/num';
+  import { chartFigure, drawChart, svgPainter, type Chart } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.grs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f3 = (x: number) => (Number.isFinite(x) ? x.toFixed(3).replace('-', '−') : '–');
+  const f2 = (x: number) => (Number.isFinite(x) ? x.toFixed(2).replace('-', '−') : '–');
+  const um = (mm: number) => (mm >= 1 ? `${sig(mm, 3)} mm` : `${sig(mm * 1000, 3)} µm`);
+  type S = { name: string; a: Analysis; w: ReturnType<typeof wentworth> };
+  let samples: S[] = [], figs: Figure[] = [], charts: Chart[] = [], report: Section[] = [];
+
+  function table(el: HTMLTableElement, head: string[], rows: string[][], alignRight = (j: number) => j > 0) {
+    el.replaceChildren();
+    const hr = el.createTHead().insertRow(); head.forEach((h, j) => { const th = document.createElement('th'); th.textContent = h; if (alignRight(j)) th.className = 'r'; hr.append(th); });
+    const bd = el.createTBody(); rows.forEach((r) => { const tr = bd.insertRow(); r.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (alignRight(j)) td.className = 'r'; }); });
+  }
+
+  function parse(): { samples: { name: string; sieves: Sieve[]; pan: number }[] } | { error: string } {
+    const unit = q<HTMLSelectElement>('.gs-unit').value as 'mm' | 'um' | 'phi';
+    const rows = parseTable(q<HTMLTextAreaElement>('.gs-in').value);
+    if (!rows.length) return { error: 'Paste sieve sizes and masses: one sieve per line.' };
+    const head = rows[0].slice(1).some((c) => c !== '' && Number.isNaN(num(c))) || Number.isNaN(sieveCell(rows[0][0], unit, num));
+    const body = head ? rows.slice(1) : rows;
+    const n = Math.max(...body.map((r) => r.length)) - 1;
+    if (n < 1) return { error: 'Each line needs a sieve size and at least one mass.' };
+    if (n > 12) return { error: 'Up to 12 samples at a time.' };
+    const names = Array.from({ length: n }, (_, i) => (head && rows[0][i + 1]) || `Sample ${i + 1}`);
+    const out = names.map((name) => ({ name, sieves: [] as Sieve[], pan: 0 }));
+    for (const [k, r] of body.entries()) {
+      const phi = sieveCell(r[0], unit, num);
+      if (Number.isNaN(phi)) return { error: `Line ${k + 1 + (head ? 1 : 0)}: "${r[0]}" is not a sieve size${unit === 'phi' ? '' : ' above zero'} or "pan".` };
+      for (let i = 0; i < n; i++) {
+        const c = (r[i + 1] ?? '').trim(), m = c === '' ? 0 : num(c);
+        if (!(m >= 0)) return { error: `Line ${k + 1 + (head ? 1 : 0)}: "${c}" is not a mass of zero or more.` };
+        if (phi === Infinity) out[i].pan += m; else out[i].sieves.push({ phi, mass: m });
+      }
+    }
+    return { samples: out };
+  }
+
+  function run() {
+    const fail = (m: string) => { q('.gs-err').textContent = m; q('.gs-err').hidden = !m; q('.gs-out').hidden = !!m; if (m) report = []; };
+    const topW = num(q<HTMLInputElement>('.gs-top').value), panW = num(q<HTMLInputElement>('.gs-pan').value);
+    if (!(topW > 0 && panW > 0)) return fail('The open-class widths must be above zero (in φ).');
+    const p = parse();
+    if ('error' in p) return fail(p.error);
+    const res: S[] = [];
+    for (const s of p.samples) {
+      const a = analyse(s.sieves, s.pan, topW, panW);
+      if ('error' in a) return fail(`${s.name}: ${a.error}`);
+      res.push({ name: s.name, a, w: wentworth(a.curve) });
+    }
+    fail('');
+    samples = res;
+    const one = res.length === 1 ? res[0] : null;
+    q('.gs-big').textContent = one
+      ? `${one.name}: ${f2(one.a.fw.mean)} φ (${um(mmOf(one.a.fw.mean))}), ${sizeName(one.a.fw.mean)}, ${sortingClass(one.a.fw.sorting)}`
+      : `${res.length} samples: mean size ${res.map((s) => `${s.name} ${f2(s.a.fw.mean)} φ`).join(', ')}`;
+    // Warnings about the open ends of the curve.
+    const warns: string[] = [];
+    for (const s of res) {
+      const lastSieve = s.a.classes.filter((k) => !k.pan).at(-1)!.to;
+      if (s.a.openPan > 5) warns.push(`${s.name}: ${sig(s.a.openPan, 3)} % passed the finest sieve, so φ95${s.a.openPan > 16 ? ', φ84' : ''}${s.a.openPan > 50 ? ' and φ50' : ''} fall in the pan class and depend on how far you let it reach (now to ${f2(lastSieve + panW)} φ). Laser or pipette analysis of the fines would pin them down.`);
+      if (s.a.openTop > 5) warns.push(`${s.name}: ${sig(s.a.openTop, 3)} % stayed on the top sieve, so the coarse percentiles depend on the coarsest-class width.`);
+    }
+    q('.gs-warn').replaceChildren(...warns.map((t) => { const li = document.createElement('li'); li.textContent = t; return li; }));
+    q('.gs-warn').hidden = !warns.length;
+    // Summary: one row per statistic, one column per sample.
+    const P = (s: S, x: number) => s.a.pctl(x);
+    const D = (s: S, finer: number) => mmOf(P(s, 100 - finer));
+    const rowsDef: [string, (s: S) => string][] = [
+      ['Mean, Folk & Ward (φ)', (s) => f3(s.a.fw.mean)],
+      ['Mean size', (s) => `${um(mmOf(s.a.fw.mean))}\n${sizeName(s.a.fw.mean)}`],
+      ['Sorting σI (φ)', (s) => `${f3(s.a.fw.sorting)}\n${sortingClass(s.a.fw.sorting)}`],
+      ['Skewness SkI', (s) => `${f3(s.a.fw.skew)}\n${skewClass(s.a.fw.skew)}`],
+      ['Kurtosis KG', (s) => `${f3(s.a.fw.kurt)}\n${kurtClass(s.a.fw.kurt)}`],
+      ['Median φ50', (s) => `${f3(s.a.P[50])} φ\n${um(mmOf(s.a.P[50]))}`],
+      ['D10, D50, D90', (s) => `${um(D(s, 10))}\n${um(D(s, 50))}\n${um(D(s, 90))}`],
+      ['Uniformity D60/D10', (s) => sig(D(s, 60) / D(s, 10), 3)],
+      ['Gravel, sand, mud %', (s) => `${f2(s.w.gravel)}\n${f2(s.w.sand)}\n${f2(s.w.mud)}`],
+      ['Moments, logarithmic: mean, sorting (φ)', (s) => `${f3(s.a.mom.log.mean)}\n${f3(s.a.mom.log.sd)}`],
+      ['Moments, logarithmic: skewness, kurtosis', (s) => `${f3(s.a.mom.log.skew)}\n${f3(s.a.mom.log.kurt)}`],
+      ['Moments, geometric: mean, sorting', (s) => `${um(s.a.mom.geo.mean)}\n${f3(s.a.mom.geo.sd)}`],
+      ['Moments, geometric: skewness, kurtosis', (s) => `${f3(s.a.mom.geo.skew)}\n${f3(s.a.mom.geo.kurt)}`],
+      ['Moments, arithmetic: mean, sorting', (s) => `${um(s.a.mom.arith.mean)}\n${um(s.a.mom.arith.sd)}`],
+      ['Moments, arithmetic: skewness, kurtosis', (s) => `${f3(s.a.mom.arith.skew)}\n${f3(s.a.mom.arith.kurt)}`],
+      ['Total mass', (s) => sig(s.a.total, 5)],
+    ];
+    const sumHead = ['Statistic', ...res.map((s) => s.name)], sumRows = rowsDef.map(([k, f]) => [k, ...res.map(f)]);
+    table(q<HTMLTableElement>('.gs-sum'), sumHead, sumRows);
+    // Plots.
+    const cumChart: Omit<Chart, 'w' | 'h'> = { xLabel: 'Grain size (φ)', yLabel: 'Cumulative % coarser', yMin: 0, yMax: 100, legend: res.length > 1 ? 'below' : 'none',
+      series: res.map((s) => ({ name: s.name, x: s.a.curve.phi, y: s.a.curve.cum, mode: 'both' as const, size: 4, width: 1.8 })),
+      marks: [{ kind: 'hline', at: 16, dash: [3, 3] }, { kind: 'hline', at: 50, dash: [3, 3] }, { kind: 'hline', at: 84, dash: [3, 3] }] };
+    const freqChart: Omit<Chart, 'w' | 'h'> = { xLabel: 'Grain size (φ, class mid-point)', yLabel: 'Weight % per φ', yMin: 0, legend: res.length > 1 ? 'below' : 'none',
+      series: res.map((s) => ({ name: s.name, x: s.a.classes.map((k) => k.mid), y: s.a.classes.map((k) => k.pct / (k.to - k.from)), mode: 'both' as const, size: 4, width: 1.8 })),
+      marks: [{ kind: 'vline', at: -1, dash: [2, 3], label: 'gravel | sand' }, { kind: 'vline', at: 4, dash: [2, 3], label: 'sand | mud' }] };
+    charts = [{ ...cumChart, w: 720, h: 360 } as Chart, { ...freqChart, w: 720, h: 360 } as Chart];
+    figs = [chartFigure({ ...cumChart, h: 340 }, 'Cumulative weight per cent coarser against grain size in phi'), chartFigure({ ...freqChart, h: 340 }, 'Weight per cent per phi against class mid-point')];
+    paint(q<HTMLCanvasElement>('.gs-cum'), figs[0]); paint(q<HTMLCanvasElement>('.gs-freq'), figs[1]);
+    // Detail picker.
+    const pick = q<HTMLSelectElement>('.gs-pick'), keep = pick.value;
+    pick.replaceChildren(...res.map((s, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = s.name; return o; }));
+    pick.value = keep && Number(keep) < res.length ? keep : '0';
+    detail();
+  }
+
+  function detail() {
+    const s = samples[Number(q<HTMLSelectElement>('.gs-pick').value) || 0];
+    if (!s) return;
+    const pr = [5, 10, 16, 25, 50, 75, 84, 90, 95].map((p) => [`φ${p}`, f3(s.a.P[p as 50]), um(mmOf(s.a.P[p as 50]))]);
+    table(q<HTMLTableElement>('.gs-pct'), ['Percentile (% coarser)', 'φ', 'Size'], pr);
+    const wr = s.w.cls.filter((c) => c.pct > 0.005 || ['Very coarse sand', 'Medium sand', 'Coarse silt', 'Clay'].includes(c.name)).map((c) => {
+      const w = WENTWORTH.find((x) => x.name === c.name)!;
+      const lim = `${Number.isFinite(w.from) ? um(mmOf(w.from)) : '…'} to ${Number.isFinite(w.to) ? um(mmOf(w.to)) : '0'}`;
+      return [c.name, lim, f2(c.pct)];
+    });
+    table(q<HTMLTableElement>('.gs-went'), ['Udden-Wentworth class', 'Size range', 'Weight %'], wr);
+    const sum = q<HTMLTableElement>('.gs-sum');
+    const head = [...sum.tHead!.rows[0].cells].map((c) => c.textContent!), rows = [...sum.tBodies[0].rows].map((r) => [...r.cells].map((c) => c.textContent!.replace(/\n/g, ', ')));
+    report = [
+      { title: q('.gs-big').textContent!, text: [...q('.gs-warn').querySelectorAll('li')].map((l) => l.textContent!), table: { head, rows, align: head.map((_, j) => (j ? 'r' : 'l')) } },
+      { title: 'Cumulative curve', figure: figs[0] },
+      { title: 'Frequency', figure: figs[1] },
+      ...samples.map((x) => ({ title: `${x.name}: percentiles and classes`, table: { head: ['Percentile', 'φ', 'Size'], rows: [5, 10, 16, 25, 50, 75, 84, 90, 95].map((p) => [`φ${p}`, f3(x.a.P[p as 50]), um(mmOf(x.a.P[p as 50]))]), align: ['l', 'r', 'r'] as ('l' | 'r')[] }, facts: x.w.cls.filter((c) => c.pct > 0.005).map((c) => [c.name, `${f2(c.pct)} %`] as [string, string]) })),
+    ];
+  }
+
+  q('.gs-pick').addEventListener('change', detail);
+  q('.gs-csv').addEventListener('click', () => {
+    if (!samples.length) return;
+    const head = ['sample', 'total_mass', 'fw_mean_phi', 'fw_mean_mm', 'fw_sorting_phi', 'fw_sorting_class', 'fw_skewness', 'fw_skewness_class', 'fw_kurtosis', 'fw_kurtosis_class', 'mean_size_class',
+      ...[5, 10, 16, 25, 50, 75, 84, 90, 95].map((p) => `phi${p}`), 'D10_mm', 'D50_mm', 'D90_mm', 'D60_over_D10',
+      'mom_log_mean_phi', 'mom_log_sd_phi', 'mom_log_skew', 'mom_log_kurt', 'mom_geo_mean_mm', 'mom_geo_sd', 'mom_geo_skew', 'mom_geo_kurt', 'mom_arith_mean_mm', 'mom_arith_sd_mm', 'mom_arith_skew', 'mom_arith_kurt',
+      'gravel_pct', 'sand_pct', 'mud_pct', 'silt_pct', 'clay_pct', ...WENTWORTH.map((w) => w.name.toLowerCase().replace(/ /g, '_') + '_pct'), 'pan_pct'];
+    const r6 = (x: number) => (Number.isFinite(x) ? +x.toPrecision(6) : '');
+    const rows = samples.map((s) => {
+      const D = (f: number) => mmOf(s.a.pctl(100 - f)), m = s.a.mom;
+      return [s.name, r6(s.a.total), r6(s.a.fw.mean), r6(mmOf(s.a.fw.mean)), r6(s.a.fw.sorting), sortingClass(s.a.fw.sorting), r6(s.a.fw.skew), skewClass(s.a.fw.skew), r6(s.a.fw.kurt), kurtClass(s.a.fw.kurt), sizeName(s.a.fw.mean),
+        ...[5, 10, 16, 25, 50, 75, 84, 90, 95].map((p) => r6(s.a.P[p as 50])), r6(D(10)), r6(D(50)), r6(D(90)), r6(D(60) / D(10)),
+        r6(m.log.mean), r6(m.log.sd), r6(m.log.skew), r6(m.log.kurt), r6(m.geo.mean), r6(m.geo.sd), r6(m.geo.skew), r6(m.geo.kurt), r6(m.arith.mean), r6(m.arith.sd), r6(m.arith.skew), r6(m.arith.kurt),
+        r6(s.w.gravel), r6(s.w.sand), r6(s.w.mud), r6(s.w.silt), r6(s.w.clay), ...s.w.cls.map((c) => r6(c.pct)), r6(s.a.openPan)];
+    });
+    save(new TextEncoder().encode(csv([head, ...rows])), 'grain-size-statistics.csv', 'text/csv');
+  });
+  q('.gs-ccsv').addEventListener('click', () => {
+    if (!samples.length) return;
+    const rows: (string | number)[][] = [['sample', 'class_from_phi', 'class_to_phi', 'mid_phi', 'from_mm', 'to_mm', 'weight_pct', 'cum_pct_coarser_at_to', 'pan']];
+    for (const s of samples) { let c = 0; for (const k of s.a.classes) { c += k.pct; rows.push([s.name, +k.from.toPrecision(6), +k.to.toPrecision(6), +k.mid.toPrecision(6), +mmOf(k.from).toPrecision(6), +mmOf(k.to).toPrecision(6), +k.pct.toPrecision(6), +Math.min(100, c).toPrecision(6), k.pan ? 'yes' : '']); } }
+    save(new TextEncoder().encode(csv(rows)), 'grain-size-curves.csv', 'text/csv');
+  });
+  q('.gs-svg').addEventListener('click', () => {
+    if (!charts.length) return;
+    const W = 720, H = 360, P = svgPainter(W, H * 2 + 20);
+    P.poly([[0, 0], [W, 0], [W, H * 2 + 20], [0, H * 2 + 20]], '#ffffff', null);
+    drawChart(P, { ...charts[0], ink: '#000', muted: '#555', bg: null });
+    const P2 = svgPainter(W, H); drawChart(P2, { ...charts[1], ink: '#000', muted: '#555', bg: null });
+    const inner = P2.toString().replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
+    const out = P.toString().replace(/<\/svg>\s*$/, `<g transform="translate(0 ${H + 20})">${inner}</g>\n</svg>\n`);
+    save(new Blob([out], { type: 'image/svg+xml' }), 'grain-size-plots.svg', 'image/svg+xml');
+  });
+  let tm = 0;
+  q('.gs-in').addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(run, 250); });
+  root.querySelectorAll('.gs-unit, .gs-top, .gs-pan').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+  document.addEventListener('fibub:theme', () => { if (!q('.gs-out').hidden && figs.length) { paint(q<HTMLCanvasElement>('.gs-cum'), figs[0]); paint(q<HTMLCanvasElement>('.gs-freq'), figs[1]); } });
+  run();
+  wireDownloads(q('.gs-out > .dl:last-child'), () => ({ title: 'Grain-size statistics', subtitle: q('.gs-big').textContent ?? '', file: 'grain-size-statistics', sections: report }));
+</script>
+
+<style is:global>
+  .grs .gs-sum td:first-child { min-width: 130px; }
+  .grs .gs-sum td.r, .grs .gs-sum th.r { white-space: pre-line; min-width: 104px; }
+  .grs .gs-went td:first-child { white-space: nowrap; }
+  .grs .gs-warn { padding-left: 18px; color: var(--warn); }
+</style>

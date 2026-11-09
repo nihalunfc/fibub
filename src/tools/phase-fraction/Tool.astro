@@ -1,0 +1,245 @@
+---
+// Phase (area) fraction and porosity from a micrograph: grey thresholds (typed or Otsu / multi-level Otsu) or picked
+// colours split the area into up to 4 phases; area fractions with a point-count standard error and a field-to-field
+// interval; an overlay to check the split. The image never leaves the browser; the example is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax phf">
+  <div class="ax-card">
+    <h2>Micrograph</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small mg-open">Open a micrograph</button>
+      <input type="file" class="mg-file" accept="image/png,image/jpeg,image/tiff,image/bmp,image/webp,.tif,.tiff" hidden />
+      <button type="button" class="btn secondary small pf-ex">Use the example</button>
+    </div>
+    <canvas class="mg-canvas" hidden></canvas>
+    <p class="ax-help mg-note">PNG, JPEG or TIFF (8 or 16-bit) of a polished section, an optical, SEM or false-colour image. The image is read on this page only and is never uploaded.</p>
+    <p class="ax-err mg-err" hidden></p>
+    <div class="mg-cal" hidden>
+      <h3>Scale and area</h3>
+      <div class="ax-row">
+        <button type="button" class="btn secondary small mg-draw">Draw on the scale bar</button>
+        <button type="button" class="btn secondary small mg-area">Set the area to analyse</button>
+        <button type="button" class="btn secondary small mg-full">Whole image</button>
+      </div>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Scale bar length (pixels) <input class="mg-bpx" type="number" min="0" step="any" inputmode="decimal" /></label>
+        <label>The bar stands for <input class="mg-blen" type="number" min="0" step="any" inputmode="decimal" /></label>
+        <label>Unit <select class="mg-unit"><option>nm</option><option selected>µm</option><option>mm</option></select></label>
+        <label>Or pixel size (original image) <input class="mg-pix" type="number" min="0" step="any" inputmode="decimal" placeholder="from the microscope" /></label>
+      </div>
+      <p class="ax-help mg-calout"></p>
+      <p class="ax-help">Tap both ends of the scale bar (or drag along it), then type the length written on it. The scale gives each phase's area; the fractions do not need it. Leave the scale bar and any data strip out of the area.</p>
+    </div>
+  </div>
+
+  <div class="ax-card pf-set" hidden>
+    <h2>Phases</h2>
+    <div class="ax-grid">
+      <label>Split by <select class="pf-method"><option value="grey" selected>Grey level</option><option value="colour">Colours picked on the image</option></select></label>
+      <label>Number of phases <select class="pf-k"><option>2</option><option selected>3</option><option>4</option></select></label>
+      <label class="pf-grey">Thresholds (grey 0–255) <input class="pf-t" type="text" placeholder="automatic" inputmode="decimal" /></label>
+      <label class="pf-col" hidden>Colour tolerance (ΔE) <input class="pf-tol" type="number" min="1" max="200" step="1" placeholder="none" inputmode="numeric" /></label>
+    </div>
+    <p class="ax-help pf-thelp"></p>
+    <div class="pf-col" hidden>
+      <div class="ax-row pf-picks"></div>
+      <p class="ax-help">Tap a phase button, then tap a typical spot of that phase on the image (the 5 × 5 pixels around it are averaged). Every pixel goes to the nearest picked colour; with a tolerance, pixels further than that are left out and counted as unassigned.</p>
+    </div>
+    <label style="margin-top:10px">Phase names, darkest first, comma separated <input class="pf-names" type="text" /></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Pores are <select class="pf-pore"></select></label>
+      <label>Point grid (points across) <input class="pf-nx" type="number" min="2" max="100" step="1" value="10" inputmode="numeric" /></label>
+      <label>Fields (tiles across) <input class="pf-fx" type="number" min="1" max="20" step="1" value="4" inputmode="numeric" /></label>
+      <label>Confidence <select class="pf-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="pf-ov" checked /> Show the phases over the image</label>
+      <label class="ax-check"><input type="checkbox" class="pf-grid" /> Show the point grid</label>
+    </div>
+    <div class="ax-legend pf-legend"></div>
+  </div>
+
+  <div class="ax-card pf-out" hidden>
+    <h2>Area fractions</h2>
+    <p class="ax-big pf-big"></p>
+    <dl class="ax-facts pf-facts"></dl>
+    <div class="ax-scroll"><table class="pf-tab"></table></div>
+    <canvas class="ax-fig pf-fig"></canvas>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small pf-csv">Download fractions (CSV)</button>
+      <button type="button" class="btn secondary small pf-png">Download the overlay (PNG)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { segmentGrey, segmentColour, fractions, pointCount, fieldStats, examplePhases, NONE, OUT } from '../../lib/sci/phasefrac';
+  import { hist256, multiOtsu, fmtLen } from '../../lib/sci/micro';
+  import { Micro } from '../../lib/micrograph';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, fileSafe, type Figure, type Section } from '../../lib/report';
+  import { sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.phf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const qa = (c: string) => [...root.querySelectorAll<HTMLElement>(c)];
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const COL = ['#0072B2', '#D55E00', '#009E73', '#CC79A7'], RGB = [[0, 114, 178], [213, 94, 0], [0, 158, 115], [204, 121, 167]];
+  const pct = (x: number) => (Number.isFinite(x) ? `${(100 * x).toFixed(x < 0.1 ? 2 : 1)} %` : '–');
+
+  let cls: Uint8Array | null = null, K = 3, ts: number[] = [], picks: ([number, number, number] | null)[] = [null, null, null, null], arm = -1;
+  let ov: HTMLCanvasElement | null = null, pts: [number, number, number][] = [], names: string[] = [];
+  let fig: Figure | null = null, sections: Section[] = [], rowsCsv: (string | number)[][] = [];
+
+  const M = new Micro(root, {
+    change: () => run(),
+    overlay: (ctx, lw) => {
+      if (ov && q<HTMLInputElement>('.pf-ov').checked) ctx.drawImage(ov, 0, 0);
+      if (q<HTMLInputElement>('.pf-grid').checked) {
+        ctx.lineWidth = lw; const r = lw * 3;
+        for (const [x, y, v] of pts) { ctx.strokeStyle = v < K ? '#000' : '#888'; ctx.beginPath(); ctx.moveTo(x - r, y); ctx.lineTo(x + r, y); ctx.moveTo(x, y - r); ctx.lineTo(x, y + r); ctx.stroke(); ctx.strokeStyle = '#fff'; ctx.lineWidth = lw / 2; ctx.stroke(); ctx.lineWidth = lw; }
+      }
+    },
+    tap: (x, y) => {
+      if (arm < 0 || !M.img) return;
+      const { w, h, rgba } = M.img, s = [0, 0, 0]; let n = 0;
+      for (let j = Math.max(0, Math.round(y) - 2); j <= Math.min(h - 1, Math.round(y) + 2); j++) for (let i = Math.max(0, Math.round(x) - 2); i <= Math.min(w - 1, Math.round(x) + 2); i++) { const p = 4 * (j * w + i); s[0] += rgba[p]; s[1] += rgba[p + 1]; s[2] += rgba[p + 2]; n++; }
+      picks[arm] = [Math.round(s[0] / n), Math.round(s[1] / n), Math.round(s[2] / n)]; arm = -1; pickButtons(); run();
+    },
+  });
+
+  function pickButtons() {
+    const box = q('.pf-picks'); box.replaceChildren();
+    for (let k = 0; k < K; k++) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary small pf-pick';
+      const sw = document.createElement('i'); sw.className = 'pf-sw'; sw.style.background = picks[k] ? `rgb(${picks[k]!.join(',')})` : 'transparent';
+      b.append(sw, arm === k ? ` Tap phase ${k + 1} on the image…` : ` ${names[k] || `Phase ${k + 1}`}`);
+      b.addEventListener('click', () => { arm = arm === k ? -1 : k; pickButtons(); });
+      box.append(b);
+    }
+  }
+
+  function fail(m: string) { M.err(m); q('.pf-out').hidden = true; sections = []; cls = null; ov = null; M.draw(); }
+
+  function run() {
+    if (!M.img || !M.grey) return;
+    const { w, h } = M.img, R = M.rect, method = q<HTMLSelectElement>('.pf-method').value;
+    K = Number(q<HTMLSelectElement>('.pf-k').value);
+    q('.pf-set').hidden = false;
+    qa('.pf-grey').forEach((e) => (e.hidden = method !== 'grey')); qa('.pf-col').forEach((e) => (e.hidden = method !== 'colour'));
+    names = q<HTMLInputElement>('.pf-names').value.split(',').map((s) => s.trim());
+    names = Array.from({ length: K }, (_, k) => names[k] || `Phase ${k + 1}`);
+    const pore = q<HTMLSelectElement>('.pf-pore'), was = pore.value;
+    pore.replaceChildren(new Option('Not in this image', '-1'), ...names.map((n, k) => new Option(n, String(k))));
+    pore.value = Number(was) < K ? was : '-1';
+    M.err('');
+    const hs = hist256(M.grey, w, R);
+    if (method === 'grey') {
+      const auto = multiOtsu(hs, K), txt = q<HTMLInputElement>('.pf-t').value.trim();
+      q('.pf-thelp').textContent = `Automatic (Otsu${K > 2 ? ', multi-level' : ''}): ${auto.join(', ')}. A pixel above the first threshold goes to the second phase, above the second to the third, and so on. Type your own to change the split.`;
+      if (txt) {
+        const v = txt.split(/[,;\s]+/).filter(Boolean).map(Number);
+        if (v.length !== K - 1 || v.some((x) => !(x >= 0 && x <= 255))) return fail(`Type ${K - 1} threshold${K > 2 ? 's' : ''} from 0 to 255 for ${K} phases, or leave the box empty for automatic.`);
+        ts = [...v].sort((a, b) => a - b);
+      } else ts = auto;
+      cls = segmentGrey(M.grey, w, h, R, ts);
+    } else {
+      pickButtons();
+      const need = picks.slice(0, K);
+      if (need.some((p) => !p)) { q('.pf-out').hidden = true; sections = []; cls = null; ov = null; M.draw(); q('.pf-thelp').textContent = `Pick a colour for each of the ${K} phases: tap a phase button, then tap that phase on the image.`; return; }
+      q('.pf-thelp').textContent = 'Each pixel goes to the nearest picked colour (CIELAB colour difference ΔE).';
+      const tolS = q<HTMLInputElement>('.pf-tol').value.trim(), tol = tolS ? Number(tolS) : Infinity;
+      if (!(tol > 0)) return fail('The colour tolerance is a ΔE above 0, or leave it empty for none.');
+      cls = segmentColour(M.img.rgba, w, h, R, need as [number, number, number][], tol);
+      ts = [];
+    }
+    // Overlay image.
+    ov = document.createElement('canvas'); ov.width = w; ov.height = h;
+    { const id = new ImageData(w, h), d = id.data; for (let i = 0; i < w * h; i++) { const c = cls[i]; if (c < K) { d[4 * i] = RGB[c][0]; d[4 * i + 1] = RGB[c][1]; d[4 * i + 2] = RGB[c][2]; d[4 * i + 3] = 115; } else if (c === NONE) { d[4 * i] = d[4 * i + 1] = d[4 * i + 2] = 255; d[4 * i + 3] = 150; } } ov.getContext('2d')!.putImageData(id, 0, 0); }
+    q('.pf-legend').replaceChildren(...names.map((n, k) => { const s = document.createElement('span'), i = document.createElement('i'); i.style.background = COL[k]; s.append(i, n); return s; }));
+
+    const f = fractions(cls, K);
+    if (!f.total) return fail('No pixels were given a phase. Check the area, or raise the colour tolerance.');
+    const nx = Math.round(Number(q<HTMLInputElement>('.pf-nx').value)), fx = Math.round(Number(q<HTMLInputElement>('.pf-fx').value));
+    if (!(nx >= 2 && nx <= 100)) return fail('The point grid is 2 to 100 points across.');
+    if (!(fx >= 1 && fx <= 20)) return fail('Fields are 1 to 20 tiles across.');
+    const RW = R.x1 - R.x0, RH = R.y1 - R.y0, ny = Math.max(2, Math.round((nx * RH) / RW)), fy = Math.max(1, Math.round((fx * RH) / RW));
+    if (nx > RW || ny > RH) return fail('The point grid has more points than the area has pixels; use fewer points.');
+    const conf = Number(q<HTMLSelectElement>('.pf-conf').value), P = pointCount(cls, w, R, K, nx, ny), F = fieldStats(cls, w, R, K, fx, fy, conf);
+    pts = P.pts;
+    M.draw();
+    const um = M.umpp(), cal = Number.isFinite(um), area = (n: number) => (cal ? n * um * um : n), aU = cal ? 'µm²' : 'px²', cp = Math.round(conf * 100);
+    const pr = Number(pore.value);
+    q('.pf-out').hidden = false;
+    q('.pf-big').textContent = pr >= 0 ? `Porosity ${pct(f.f[pr])}` : names.map((n, k) => `${n} ${pct(f.f[k])}`).join(', ');
+    const nF = F[0].fields;
+    q('.pf-facts').replaceChildren(
+      ...(pr >= 0 ? [fact('Porosity', pct(f.f[pr]), `point count ${pct(P.p[pr])} ± ${pct(P.se[pr])} (1 SE)`)] : []),
+      fact('Area analysed', cal ? `${sig(area(f.total + f.none), 4)} µm²` : `${f.total + f.none} px`, `${RW} × ${RH} px${cal ? `, 1 px = ${fmtLen(um, 4)}` : '; calibrate for areas in µm²'}`),
+      fact('Split', q<HTMLSelectElement>('.pf-method').value === 'grey' ? `grey ${ts.join(', ')}` : `${K} picked colours`, q<HTMLInputElement>('.pf-t').value.trim() || q<HTMLSelectElement>('.pf-method').value === 'colour' ? '' : 'automatic (Otsu)'),
+      ...(f.none ? [fact('Unassigned', pct(f.none / (f.total + f.none)), 'pixels further than the tolerance from every picked colour, left out of the fractions')] : []),
+      fact('Point count', `${P.N} points`, `${nx} × ${ny} grid; SE = √(P(1 − P) / N)`),
+      fact('Fields', `${nF} fields`, `${fx} × ${fy} tiles; ${cp} % interval = t s / √n`),
+    );
+    const head = ['Phase', 'Area fraction', `Area (${aU})`, 'Point count', '± SE', `Field mean ± ${cp} % CI`, '%RA'];
+    const rows = names.map((n, k) => [n, pct(f.f[k]), sig(area(f.n[k]), 4), pct(P.p[k]), pct(P.se[k]), Number.isFinite(F[k].ci) ? `${pct(F[k].mean)} ± ${pct(F[k].ci)}` : pct(F[k].mean), Number.isFinite(F[k].ra) ? F[k].ra.toFixed(0) : '–']);
+    const t = q<HTMLTableElement>('.pf-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((x, i) => { const th = document.createElement('th'); th.textContent = x; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r, k) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); if (!i) { const sw = document.createElement('i'); sw.className = 'pf-sw'; sw.style.background = COL[k]; td.append(sw, ' ' + c); } else { td.textContent = c; td.className = 'r'; } }); });
+    rowsCsv = [['phase', 'pixels', 'area_fraction', `area_${cal ? 'um2' : 'px2'}`, 'point_hits', 'points', 'point_fraction', 'point_se', 'fields', 'field_mean', 'field_sd', `field_ci_${cp}`, 'relative_accuracy_percent'],
+      ...names.map((n, k) => [n, f.n[k], f.f[k], area(f.n[k]), P.hits[k], P.N, P.p[k], P.se[k], F[k].fields, F[k].mean, F[k].sd, F[k].ci, F[k].ra].map((v) => (typeof v === 'number' && Number.isFinite(v) ? +v.toPrecision(10) : v))),
+      ...(f.none ? [['unassigned', f.none, '', +area(f.none).toPrecision(10)]] : []),
+      [], ['split', q<HTMLSelectElement>('.pf-method').value === 'grey' ? `grey thresholds ${ts.join(' ')}` : `colours ${picks.slice(0, K).map((p) => `rgb(${p!.join(' ')})`).join(' ')}`], ['scale um per px', cal ? um : 'not calibrated']];
+    // Histogram of the area's grey levels with the thresholds.
+    const xs = Array.from({ length: 256 }, (_, i) => i), ys = Array.from(hs);
+    fig = chartFigure({
+      w: 520, h: 280, xLabel: 'Grey level', yLabel: 'Pixels', legend: 'none', xMin: 0, xMax: 255, yMin: 0,
+      series: [{ name: 'Pixels', x: xs, y: ys, mode: 'line', width: 1.4 }],
+      marks: ts.map((v, i) => ({ kind: 'vline' as const, at: v, dash: [4, 3], label: `${v}`, color: COL[i + 1] })),
+    }, 'Histogram of grey levels in the area, with the thresholds');
+    paint(q<HTMLCanvasElement>('.pf-fig'), fig);
+    const cv = q<HTMLCanvasElement>('.mg-canvas');
+    const imgFig: Figure = { w: cv.width, h: cv.height, alt: 'Micrograph with the phases coloured', draw: (ctx, w2, h2) => ctx.drawImage(cv, 0, 0, w2, h2) };
+    sections = [
+      { title: q('.pf-big').textContent!, facts: [...q('.pf-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: imgFig, table: { head, rows, align: head.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] } },
+      { title: 'Grey levels', figure: fig, note: 'Area fraction: share of the classified pixels. Point count: share of the grid points, with the binomial standard error. Fields: the area cut into tiles; mean, Student-t interval and relative accuracy (interval ÷ mean).' },
+    ];
+  }
+
+  q('.pf-method').addEventListener('change', () => { arm = -1; run(); });
+  q('.pf-k').addEventListener('change', () => { q<HTMLInputElement>('.pf-t').value = ''; run(); });
+  ['.pf-pore', '.pf-conf'].forEach((c) => q(c).addEventListener('change', run));
+  ['.pf-ov', '.pf-grid'].forEach((c) => q(c).addEventListener('change', () => M.draw()));
+  let tm = 0;
+  ['.pf-t', '.pf-tol', '.pf-names', '.pf-nx', '.pf-fx'].forEach((c) => q(c).addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(run, 300); }));
+  function loadExample() {
+    const e = examplePhases(720, 540, 110, 0.35, 70, 855, { px: 100, label: '20 µm' });
+    q<HTMLInputElement>('.mg-bpx').value = '100'; q<HTMLInputElement>('.mg-blen').value = '20'; q<HTMLSelectElement>('.mg-unit').value = 'µm'; q<HTMLInputElement>('.mg-pix').value = '';
+    q<HTMLSelectElement>('.pf-method').value = 'grey'; q<HTMLSelectElement>('.pf-k').value = '3'; q<HTMLInputElement>('.pf-t').value = '';
+    q<HTMLInputElement>('.pf-names').value = 'Pores, Dark phase, Light phase'; picks = [null, null, null, null];
+    q<HTMLSelectElement>('.pf-pore').replaceChildren(new Option('', '0')); q<HTMLSelectElement>('.pf-pore').value = '0';
+    M.load({ rgba: e.px, w: e.w, h: e.h }, 'example-phases', 1, 'Made-up two-phase structure with pores, 0.2 µm per pixel.', { x0: 0, y0: 0, x1: e.w, y1: e.h - 32 });
+    M.line = [e.w - 112, e.h - 21.5, e.w - 12, e.h - 21.5]; M.draw();
+  }
+  q('.pf-ex').addEventListener('click', loadExample);
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.pf-out').hidden) paint(q<HTMLCanvasElement>('.pf-fig'), fig); });
+  q('.pf-csv').addEventListener('click', () => save(new Blob([csv(rowsCsv)], { type: 'text/csv' }), `${fileSafe(M.name)}-phase-fractions.csv`, 'text/csv'));
+  q('.pf-png').addEventListener('click', () => q<HTMLCanvasElement>('.mg-canvas').toBlob((b) => { if (b) save(b, `${fileSafe(M.name)}-phases.png`, 'image/png'); }, 'image/png'));
+  loadExample();
+  wireDownloads(q('.dl'), () => ({ title: 'Phase fractions', subtitle: q('.pf-big').textContent ?? '', file: `${fileSafe(M.name)}-phase-fractions`, sections }));
+</script>
+
+<style is:global>
+  .phf .mg-canvas { display: block; width: 100%; height: auto; margin-top: 10px; border: 1px solid var(--line); cursor: crosshair; }
+  .phf .mg-cal { margin-top: 14px; }
+  .phf .mg-cal h3 { margin: 0 0 8px; font-size: 15px; }
+  .phf .mg-warn { color: var(--warn); }
+  .phf select { max-width: 100%; }
+  .phf .ax-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 132px), 1fr)); }
+  .phf .pf-sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--line); vertical-align: -1px; }
+  .phf .pf-picks { margin-top: 8px; }
+  .phf .pf-tab td:first-child { white-space: nowrap; }
+</style>

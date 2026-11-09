@@ -1,0 +1,230 @@
+---
+// Phone clinometer: strike and dip of a plane (phone laid flat on it) or trend and plunge of a line (phone's long
+// edge along it) from DeviceOrientation, averaged over a second, with user-entered magnetic declination, notes and an
+// optional position. The log stays in this browser; CSV out, in the stereonet plotter's input format too.
+// Maths in src/lib/sci/clino.ts. Nothing leaves the device.
+import '../../styles/astro.css';
+---
+<div class="ax pcl">
+  <div class="ax-card">
+    <h2>Measure</h2>
+    <div class="ax-grid">
+      <label>Measure a <select class="pc-kind"><option value="plane" selected>plane: lay the phone on it</option><option value="line">line: phone's long edge along it</option></select></label>
+      <label>Write planes as <select class="pc-fmt"><option value="rhr" selected>strike / dip (right-hand rule)</option><option value="dd">dip direction / dip</option></select></label>
+      <label>Magnetic declination (°, east +) <input class="pc-decl" type="text" inputmode="decimal" value="0" /></label>
+    </div>
+    <p class="ax-help">Phones measure direction from magnetic north. Type the declination for your place and date (east positive, west negative; from your map or a magnetic-model calculator) to get directions from true north. This page has no built-in magnetic model.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small pc-on">Turn on the sensor</button>
+      <button type="button" class="btn secondary small pc-take" disabled>Take a reading (1 s)</button>
+    </div>
+    <p class="ax-err pc-err" hidden></p>
+    <p class="ax-big pc-live" aria-live="polite">—</p>
+    <p class="ax-help pc-hint"></p>
+    <details class="pc-demo">
+      <summary>Demo for computers: set the phone's angles by hand</summary>
+      <p class="ax-help">Without a sensor, the reading uses these angles, as the phone would report them: alpha (turn about the screen's normal, anticlockwise from north), beta (top edge raised) and gamma (left edge raised).</p>
+      <div class="ax-grid">
+        <label>alpha (°) <input class="pc-a" type="range" min="0" max="360" step="0.5" value="300" /><output class="pc-ao">300</output></label>
+        <label>beta (°) <input class="pc-b" type="range" min="-180" max="180" step="0.5" value="40" /><output class="pc-bo">40</output></label>
+        <label>gamma (°) <input class="pc-g" type="range" min="-90" max="90" step="0.5" value="0" /><output class="pc-go">0</output></label>
+      </div>
+      <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="pc-use" /> Use these angles instead of the sensor</label>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Or lay it on: dip direction (°) <input class="pc-ldd" type="text" inputmode="decimal" value="120" /></label>
+        <label>dip (°) <input class="pc-ldip" type="text" inputmode="decimal" value="35" /></label>
+      </div>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small pc-lay">Set the angles for this plane</button></div>
+    </details>
+  </div>
+
+  <div class="ax-card">
+    <h2>Field log</h2>
+    <div class="ax-grid">
+      <label>Note for the next reading <input class="pc-note" type="text" maxlength="120" placeholder="e.g. bedding, site 4" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small pc-gps">Add my position to the next reading</button>
+    </div>
+    <p class="ax-help pc-pos" aria-live="polite">Position is only read when you press the button, once.</p>
+    <p class="ax-help">The log is kept only in this browser on this device (its local storage) so it is here when you come back; it is never sent anywhere. Delete readings below, or all of them.</p>
+    <div class="ax-scroll"><table class="pc-log"></table></div>
+    <canvas class="ax-fig pc-net" style="margin-top:12px;max-width:420px"></canvas>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small pc-csv">Download the log (CSV)</button>
+      <button type="button" class="btn secondary small pc-splanes">Planes for the stereonet</button>
+      <button type="button" class="btn secondary small pc-slines">Lines for the stereonet</button>
+      <button type="button" class="btn secondary small pc-clear">Delete all readings</button>
+    </div>
+    <p class="ax-help">The stereonet files hold one reading per line (planes as strike dip, right-hand rule; lines as plunge trend), ready to open or paste into the <a href="/science/stereonet/">Stereonet plotter</a>.</p>
+  </div>
+</div>
+
+<script>
+  import { rotation, axis, planeOf, lineOf, meanAxis, alphaFromHeading, anglesForPlane, pad3, type V3 } from '../../lib/sci/clino';
+  import { project, greatCircle, pole } from '../../lib/sci/stereonet';
+  import { paint, save, type Figure } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.pcl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement | HTMLSelectElement>(c).value;
+  const err = (m: string) => { const e = q('.pc-err'); e.textContent = m; e.hidden = !m; };
+  const KEY = 'fibub-clinometer-v1';
+
+  type Entry = { id: number; time: string; kind: 'plane' | 'line'; strike?: number; dip?: number; dipdir?: number; trend?: number; plunge?: number; decl: number; rms: number; n: number; lat?: number; lon?: number; acc?: number; note: string; src: 'sensor' | 'demo' };
+  let log: Entry[] = [];
+  try { const v = JSON.parse(localStorage.getItem(KEY) || '[]'); if (Array.isArray(v)) log = v; } catch {}
+  const store = () => { try { log.length ? localStorage.setItem(KEY, JSON.stringify(log)) : localStorage.removeItem(KEY); } catch { err('This browser blocks storage, so the log will be lost when you leave: download the CSV.'); } };
+
+  // ---------- sensor ----------
+  let latest: { a: number; b: number; g: number; abs: boolean } | null = null, on = false, events = 0, collect: V3[] | null = null, lastShow = 0;
+  type OE = DeviceOrientationEvent & { webkitCompassHeading?: number };
+  function onOrient(e: OE, absEvent: boolean) {
+    if (e.beta == null || e.gamma == null) return;
+    let a = e.alpha ?? 0, abs = absEvent || e.absolute === true;
+    if (typeof e.webkitCompassHeading === 'number' && e.webkitCompassHeading >= 0) { a = alphaFromHeading(e.webkitCompassHeading); abs = true; }
+    latest = { a, b: e.beta, g: e.gamma, abs }; events++;
+    if (collect) collect.push(vecOf(a, e.beta, e.gamma));
+    const now = performance.now(); if (now - lastShow > 150) { lastShow = now; show(); }
+  }
+  const vecOf = (a: number, b: number, g: number): V3 => axis(rotation(a, b, g), val('.pc-kind') === 'plane' ? 2 : 1);
+  const absHandler = (e: Event) => onOrient(e as OE, true), relHandler = (e: Event) => onOrient(e as OE, false);
+
+  async function turnOn() {
+    err('');
+    const DO = (window as unknown as { DeviceOrientationEvent?: { requestPermission?: () => Promise<string> } }).DeviceOrientationEvent;
+    if (!DO) { err('This browser does not report orientation. Use the demo below.'); return; }
+    if (typeof DO.requestPermission === 'function') {
+      try { if ((await DO.requestPermission()) !== 'granted') { err('Motion and orientation access was not allowed. Allow it in your browser settings and reload the page.'); return; } }
+      catch { err('Orientation access could not be asked for. Press the button again.'); return; }
+    }
+    if ('ondeviceorientationabsolute' in window) window.addEventListener('deviceorientationabsolute', absHandler);
+    else window.addEventListener('deviceorientation', relHandler);
+    on = true; q<HTMLButtonElement>('.pc-on').disabled = true; q<HTMLButtonElement>('.pc-take').disabled = false;
+    q('.pc-hint').textContent = 'Waiting for the sensor…';
+    window.setTimeout(() => { if (on && !events) { err('No orientation readings are coming from this device (computers usually have none). Use the demo below.'); q('.pc-hint').textContent = ''; } }, 2500);
+  }
+
+  function demoOn() { return q<HTMLInputElement>('.pc-use').checked; }
+  function current() {
+    if (demoOn()) return { a: num(val('.pc-a')), b: num(val('.pc-b')), g: num(val('.pc-g')), abs: true };
+    return latest;
+  }
+  const fmtPlane = (p: { strike: number; dip: number; dipdir: number }) => (val('.pc-fmt') === 'dd' ? `${pad3(p.dipdir)}/${p.dip.toFixed(1)}` : `${pad3(p.strike)}/${p.dip.toFixed(1)}`);
+  const fmtLine = (l: { trend: number; plunge: number }) => `${l.plunge.toFixed(1)} → ${pad3(l.trend)}`;
+
+  function show() {
+    for (const k of ['a', 'b', 'g'] as const) q(`.pc-${k}o`).textContent = val(`.pc-${k}`);
+    const c = current(), decl = num(val('.pc-decl')) || 0;
+    if (!c) { q('.pc-live').textContent = '—'; if (!on) q('.pc-hint').textContent = 'Turn on the sensor (on a phone), or use the demo below.'; return; }
+    const v = vecOf(c.a, c.b, c.g);
+    if (val('.pc-kind') === 'plane') { const p = planeOf(v, decl); q('.pc-live').textContent = `${val('.pc-fmt') === 'dd' ? 'Dip direction/dip' : 'Strike/dip'} ${fmtPlane(p)}`; }
+    else { const l = lineOf(v, decl); q('.pc-live').textContent = `Plunge → trend ${fmtLine(l)}`; }
+    q('.pc-hint').textContent = demoOn() ? 'Demo angles (no sensor).' : c.abs ? 'Live. Hold the phone still on the surface and take a reading.' : 'This device gives no compass direction: dips and plunges are right but directions are not from north.';
+  }
+
+  // ---------- readings ----------
+  let pendingPos: { lat: number; lon: number; acc: number } | null = null;
+  async function take() {
+    err('');
+    const decl = num(val('.pc-decl'));
+    if (!Number.isFinite(decl) || Math.abs(decl) > 90) { err('Type the declination in degrees, between −90 and 90 (east positive).'); return; }
+    let vs: V3[], src: Entry['src'];
+    if (demoOn()) { const c = current()!; vs = [vecOf(c.a, c.b, c.g)]; src = 'demo'; }
+    else {
+      if (!on) { err('Turn on the sensor first, or use the demo angles.'); return; }
+      const btn = q<HTMLButtonElement>('.pc-take'); btn.disabled = true; btn.textContent = 'Hold still…';
+      collect = []; await new Promise((r) => setTimeout(r, 1000)); vs = collect; collect = null;
+      btn.disabled = false; btn.textContent = 'Take a reading (1 s)';
+      if (vs.length < 3) { err(`Only ${vs.length} sensor reading${vs.length === 1 ? '' : 's'} in that second: the sensor is not reporting. Try again.`); return; }
+      src = 'sensor';
+    }
+    const m = meanAxis(vs), kind = val('.pc-kind') as Entry['kind'];
+    const e: Entry = { id: (log.at(-1)?.id ?? 0) + 1, time: new Date().toISOString().slice(0, 19) + 'Z', kind, decl, rms: +m.rms.toFixed(2), n: m.n, note: val('.pc-note').trim(), src };
+    if (kind === 'plane') { const p = planeOf(m.mean, decl); Object.assign(e, { strike: +p.strike.toFixed(1) % 360, dip: +p.dip.toFixed(1), dipdir: +p.dipdir.toFixed(1) % 360 }); }
+    else { const l = lineOf(m.mean, decl); Object.assign(e, { trend: +l.trend.toFixed(1) % 360, plunge: +l.plunge.toFixed(1) }); }
+    if (pendingPos) { Object.assign(e, pendingPos); pendingPos = null; q('.pc-pos').textContent = 'Position added to that reading.'; }
+    log.push(e); store(); render();
+    if (m.rms > 2) err(`The phone moved during the reading (spread ${sig(m.rms, 2)}°). Kept, but consider taking it again.`);
+  }
+
+  // ---------- log table and net ----------
+  function render() {
+    const tbl = q('.pc-log');
+    const tr = (cells: (string | Node)[], th = false) => { const r = document.createElement('tr'); cells.forEach((c, j) => { const d = document.createElement(th ? 'th' : 'td'); if (typeof c === 'string') d.textContent = c; else d.append(c); if (j && j < 4) d.className = 'r'; r.append(d); }); return r; };
+    tbl.replaceChildren(...(log.length ? [tr(['#', val('.pc-fmt') === 'dd' ? 'Plane dd/dip · line pl → tr' : 'Plane strike/dip · line pl → tr', 'Spread (°)', 'Decl.', 'Position', 'Note', ''], true)] : []), ...log.map((e) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary small'; b.textContent = 'Delete'; b.setAttribute('aria-label', `Delete reading ${e.id}`);
+      b.addEventListener('click', () => { log = log.filter((x) => x !== e); store(); render(); });
+      const r = e.kind === 'plane' ? fmtPlane({ strike: e.strike!, dip: e.dip!, dipdir: e.dipdir! }) : fmtLine({ trend: e.trend!, plunge: e.plunge! });
+      return tr([String(e.id), `${e.kind === 'plane' ? 'Plane' : 'Line'} ${r}`, e.src === 'demo' ? 'demo' : sig(e.rms, 2), `${e.decl}`, e.lat != null ? `${e.lat.toFixed(5)}, ${e.lon!.toFixed(5)}` : '', e.note, b]);
+    }));
+    q<HTMLElement>('.pc-log').parentElement!.hidden = !log.length;
+    for (const c of ['.pc-csv', '.pc-splanes', '.pc-slines', '.pc-clear']) q<HTMLButtonElement>(c).disabled = !log.length;
+    q<HTMLButtonElement>('.pc-splanes').disabled = !log.some((e) => e.kind === 'plane');
+    q<HTMLButtonElement>('.pc-slines').disabled = !log.some((e) => e.kind === 'line');
+    drawNet();
+  }
+
+  function drawNet() {
+    const c = q<HTMLCanvasElement>('.pc-net');
+    c.hidden = !log.length; if (!log.length) return;
+    const fig: Figure = { w: 360, h: 360, alt: `Equal-area net of ${log.length} readings: great circles and poles of planes, and lines`, draw: (ctx, W, H, pal) => {
+      const C = W / 2, Rr = W / 2 - 26, xy = (p: [number, number]): [number, number] => [C + p[0] * Rr, C - p[1] * Rr];
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(C, C, Rr, 0, 2 * Math.PI); ctx.stroke();
+      ctx.fillStyle = pal.ink; ctx.font = '13px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText('N', C, C - Rr - 4);
+      ctx.beginPath(); ctx.moveTo(C - 5, C); ctx.lineTo(C + 5, C); ctx.moveTo(C, C - 5); ctx.lineTo(C, C + 5); ctx.stroke();
+      for (const e of log) {
+        if (e.kind === 'plane') {
+          ctx.strokeStyle = pal.accent; ctx.lineWidth = 1; ctx.beginPath();
+          greatCircle({ strike: e.strike!, dip: e.dip! }, 'equal-area', 60).forEach((p, i) => { const [x, y] = xy(p); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
+          const [x, y] = xy(project(pole({ strike: e.strike!, dip: e.dip! }), 'equal-area')); ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(x, y, 4, 0, 2 * Math.PI); ctx.fill();
+        } else {
+          const [x, y] = xy(project({ trend: e.trend!, plunge: e.plunge! }, 'equal-area')); ctx.fillStyle = pal.bad; ctx.beginPath(); ctx.moveTo(x, y - 6); ctx.lineTo(x + 5.5, y + 4); ctx.lineTo(x - 5.5, y + 4); ctx.closePath(); ctx.fill();
+        }
+      }
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.font = '12px system-ui, sans-serif';
+      ctx.fillText('Equal area, lower hemisphere. Dots: poles; ▲: lines', 4, H - 16);
+    } };
+    paint(c, fig);
+  }
+
+  // ---------- downloads ----------
+  const rhr = (e: Entry) => `${pad3(e.strike!)} ${e.dip}`;
+  q('.pc-csv').addEventListener('click', () => save(new Blob([csv([['id', 'time_utc', 'type', 'strike_rhr', 'dip', 'dip_direction', 'trend', 'plunge', 'declination_deg', 'spread_rms_deg', 'samples', 'latitude', 'longitude', 'accuracy_m', 'note', 'source'],
+    ...log.map((e) => [e.id, e.time, e.kind, e.strike ?? '', e.dip ?? '', e.dipdir ?? '', e.trend ?? '', e.plunge ?? '', e.decl, e.rms, e.n, e.lat ?? '', e.lon ?? '', e.acc ?? '', e.note, e.src])])], { type: 'text/csv' }), 'clinometer-log.csv', 'text/csv'));
+  q('.pc-splanes').addEventListener('click', () => save(new Blob(['# strike dip (right-hand rule), true north; from the fibub phone clinometer\n' + log.filter((e) => e.kind === 'plane').map((e) => `${rhr(e)}${e.note ? ` # ${e.note.replace(/[\r\n]+/g, ' ')}` : ''}`).join('\n') + '\n'], { type: 'text/csv' }), 'clinometer-planes.csv', 'text/csv'));
+  q('.pc-slines').addEventListener('click', () => save(new Blob(['# plunge trend, true north; from the fibub phone clinometer\n' + log.filter((e) => e.kind === 'line').map((e) => `${e.plunge} ${pad3(e.trend!)}${e.note ? ` # ${e.note.replace(/[\r\n]+/g, ' ')}` : ''}`).join('\n') + '\n'], { type: 'text/csv' }), 'clinometer-lines.csv', 'text/csv'));
+  q('.pc-clear').addEventListener('click', () => { if (!confirm('Delete all readings from this browser?')) return; log = []; store(); render(); });
+
+  q('.pc-gps').addEventListener('click', () => {
+    if (!('geolocation' in navigator)) { q('.pc-pos').textContent = 'This browser cannot give a position.'; return; }
+    q('.pc-pos').textContent = 'Finding your position…';
+    navigator.geolocation.getCurrentPosition((p) => { pendingPos = { lat: +p.coords.latitude.toFixed(6), lon: +p.coords.longitude.toFixed(6), acc: Math.round(p.coords.accuracy) }; q('.pc-pos').textContent = `Position ${pendingPos.lat.toFixed(5)}, ${pendingPos.lon.toFixed(5)} (±${pendingPos.acc} m) will be added to the next reading.`; },
+      (e) => { q('.pc-pos').textContent = e.code === 1 ? 'Position access was not allowed.' : 'No position found. Try again outdoors.'; }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+  });
+  q('.pc-lay').addEventListener('click', () => {
+    const dd = num(val('.pc-ldd')), dip = num(val('.pc-ldip'));
+    if (!(dip >= 0 && dip <= 90) || !Number.isFinite(dd)) { err('Type a dip direction and a dip from 0 to 90°.'); return; }
+    err('');
+    const a = anglesForPlane(dd, dip);
+    q<HTMLInputElement>('.pc-a').value = String(+a.alpha.toFixed(1)); q<HTMLInputElement>('.pc-b').value = String(+a.beta.toFixed(1)); q<HTMLInputElement>('.pc-g').value = String(+a.gamma.toFixed(1));
+    q<HTMLInputElement>('.pc-use').checked = true; q<HTMLButtonElement>('.pc-take').disabled = false; show();
+  });
+  q('.pc-on').addEventListener('click', turnOn);
+  q('.pc-take').addEventListener('click', take);
+  q('.pc-use').addEventListener('change', () => { q<HTMLButtonElement>('.pc-take').disabled = !demoOn() && !on; show(); });
+  for (const c of ['.pc-a', '.pc-b', '.pc-g', '.pc-decl']) q(c).addEventListener('input', show);
+  for (const c of ['.pc-kind', '.pc-fmt']) q(c).addEventListener('change', () => { show(); render(); });
+  document.addEventListener('fibub:theme', drawNet);
+  render(); show();
+</script>
+
+<style is:global>
+  .pcl select, .pcl input[type='text'] { max-width: 100%; }
+  .pcl input[type='range'] { width: 100%; }
+  .pcl td { white-space: nowrap; }
+  .pcl .pc-demo { margin-top: 14px; }
+  .pcl .pc-demo summary { cursor: pointer; font-weight: 600; }
+  .pcl output { font-variant-numeric: tabular-nums; }
+</style>

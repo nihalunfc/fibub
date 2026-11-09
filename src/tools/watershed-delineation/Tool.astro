@@ -1,0 +1,285 @@
+---
+// Watershed delineation on a small DEM: fill, D8, accumulation, streams, pour point, catchment and outline
+// (src/lib/sci/watershed.ts with dem.ts). Example grid made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax wsd">
+  <div class="ax-card">
+    <h2>Elevation grid (DEM)</h2>
+    <div class="ax-row">
+      <button type="button" class="btn small wsd-open">Open a DEM</button>
+      <input type="file" class="wsd-in" accept=".tif,.tiff,.asc,.txt,image/tiff" hidden />
+      <button type="button" class="btn secondary small wsd-ex">Use the example</button>
+    </div>
+    <p class="ax-help">A GeoTIFF (first band) or ESRI ASCII grid of up to 1 million cells (for example 1000 × 1000), so the work stays quick in a browser. Crop a larger DEM to the area around your stream first. <strong>Your file stays on this device</strong>: it is read in your browser and never uploaded.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Cell size unit <select class="wsd-hu"><option value="auto" selected>From the file</option><option value="m">metres</option><option value="ft">feet</option><option value="usft">US survey feet</option><option value="deg">degrees (latitude, longitude)</option></select></label>
+      <label>Stream threshold (cells draining in) <input class="wsd-thr" type="text" inputmode="numeric" value="" /></label>
+      <label>Snap distance (cells) <input class="wsd-snap" type="text" inputmode="numeric" value="5" /></label>
+    </div>
+    <p class="ax-help wsd-thrhelp"></p>
+    <p class="ax-err wsd-err" hidden></p>
+  </div>
+
+  <div class="ax-card wsd-res" hidden>
+    <h2>Map</h2>
+    <p class="ax-help" style="margin:0 0 8px"><strong>Tap the map</strong> on or near a stream to put the outlet (pour point) there. It moves to the cell with the most water flowing through it within the snap distance, then the area draining to it is shaded.</p>
+    <canvas class="wsd-map" aria-label="Map of the DEM, streams and watershed"></canvas>
+    <div class="ax-legend"><span><i style="background:#1f6fd1"></i>Streams (thicker = higher order)</span><span><i style="background:rgba(230,140,20,.55)"></i>Watershed</span><span><i style="background:#c0261c;border-radius:50%"></i>Outlet</span></div>
+    <div class="ax-row" style="margin-top:8px">
+      <label class="ax-check"><input type="checkbox" class="wsd-showfill" /> Show filled depressions</label>
+      <button type="button" class="btn secondary small wsd-big1">Largest watershed</button>
+    </div>
+  </div>
+
+  <div class="ax-card wsd-res" hidden>
+    <h2>Watershed</h2>
+    <p class="ax-big wsd-big"></p>
+    <dl class="ax-facts wsd-facts"></dl>
+    <p class="ax-help wsd-note"></p>
+    <h3 style="margin:16px 0 6px;font-size:16px">Whole grid</h3>
+    <dl class="ax-facts wsd-gfacts"></dl>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn small wsd-geo">Outline and streams (GeoJSON)</button>
+      <button type="button" class="btn secondary small wsd-acc">Flow accumulation (GeoTIFF)</button>
+      <button type="button" class="btn secondary small wsd-dir">Flow direction (GeoTIFF)</button>
+    </div>
+    <p class="ax-help wsd-geohelp"></p>
+    <Downloads label="Report" />
+  </div>
+</div>
+
+<style is:global>
+  .wsd canvas.wsd-map { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 8px; cursor: crosshair; touch-action: manipulation; }
+</style>
+
+<script>
+  import { readAsc, gridFromTiff, derive, stats, rowSizes, geoTagsFor, exampleGrid, type Grid } from '../../lib/sci/dem';
+  import { fill, d8, accumulate, strahler, streamLines, snap, catchment, outline, longestFlowPath, maskArea, ESRI, MAX_CELLS } from '../../lib/sci/watershed';
+  import { ringsToPolygons, measure, type Pos } from '../../lib/sci/vecmap';
+  import { fromUtm } from '../../lib/sci/utm';
+  import { writeTiff } from '../../lib/sci/tiff';
+  import { num } from '../../lib/sci/num';
+  import { save, fileSafe, pagePalette, wireDownloads, type Figure, type Palette, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.wsd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const canvas = q<HTMLCanvasElement>('.wsd-map');
+  let G: Grid | null = null, name = 'dem';
+  let filled: ReturnType<typeof fill> | null = null, dir: Int8Array | null = null, acc: Float64Array | null = null, shade: Float32Array | null = null, slope: Float32Array | null = null;
+  let stream: Uint8Array | null = null, order: Uint8Array | null = null, lines: { cells: number[]; order: number }[] = [];
+  let outlet = -1, mask: Uint8Array | null = null, rings: number[][][] = [], base: HTMLCanvasElement | null = null;
+  const show = (c: string, m: string) => { const e = q(c); e.textContent = m; e.hidden = !m; };
+  const f = (x: number, d = 2) => (Number.isFinite(x) ? Number(x.toFixed(d)).toLocaleString('en', { maximumFractionDigits: d }) : '–');
+  const fact = (dl: HTMLElement, k: string, v: string) => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; d.append(dt, dd); dl.append(d); };
+  const grid = (): Grid => { const u = q<HTMLSelectElement>('.wsd-hu').value; return u === 'auto' ? G! : { ...G!, unit: u as Grid['unit'] }; };
+  const areaTxt = (m2: number) => (m2 >= 1e6 ? `${f(m2 / 1e6, 3)} km²` : `${f(m2 / 1e4, 2)} ha`);
+  const lenTxt = (m: number) => (m >= 1000 ? `${f(m / 1000, 3)} km` : `${f(m, 1)} m`);
+
+  // ---------- load ----------
+  async function open(file: File) {
+    show('.wsd-err', '');
+    try {
+      const buf = await file.arrayBuffer(), b = new Uint8Array(buf, 0, Math.min(2, buf.byteLength));
+      const g = (b[0] === 0x49 && b[1] === 0x49) || (b[0] === 0x4d && b[1] === 0x4d) ? gridFromTiff(buf) : readAsc(new TextDecoder().decode(buf));
+      setGrid(g, file.name.replace(/\.[^.]+$/, ''));
+    } catch (e) { show('.wsd-err', (e as Error).message); }
+  }
+  function setGrid(g: Grid, n: string) {
+    if (g.w * g.h > MAX_CELLS) return show('.wsd-err', `This DEM has ${(g.w * g.h).toLocaleString('en')} cells (${g.w} × ${g.h}); the limit here is 1,000,000. Crop it to the area you need, or resample it to larger cells.`);
+    if (g.w < 3 || g.h < 3) return show('.wsd-err', 'The grid needs at least 3 × 3 cells.');
+    G = g; name = n;
+    q<HTMLSelectElement>('.wsd-hu').value = g.unit === 'unknown' ? 'm' : 'auto';
+    q<HTMLInputElement>('.wsd-thr').value = String(Math.max(20, Math.round((g.w * g.h) / 250)));
+    root.querySelectorAll<HTMLElement>('.wsd-res').forEach((e) => (e.hidden = false));
+    // The example starts at a point on the main valley (row 80, column 66); your own DEM at its largest watershed.
+    analyse(); outlet = -1; setOutlet(n === 'example-valley' ? snap(acc!, g.w, g.h, 79, 65, 5) : maxCell());
+  }
+  function analyse() {
+    const g = grid();
+    filled = fill(g, true); dir = d8(filled.z, g); acc = accumulate(dir, g.w);
+    shade = derive(g, 'hillshade'); slope = derive(g, 'slope');
+    base = document.createElement('canvas'); base.width = g.w; base.height = g.h;
+    paintBase(pagePalette());
+    network();
+  }
+  function network() {
+    const g = grid(), thr = num(q<HTMLInputElement>('.wsd-thr').value);
+    show('.wsd-err', '');
+    if (!(thr >= 2)) { show('.wsd-err', 'The stream threshold must be a number of cells, 2 or more.'); return false; }
+    stream = Uint8Array.from(acc!, (a) => (a >= thr ? 1 : 0)); order = strahler(dir!, g.w, stream); lines = streamLines(dir!, g.w, stream, order);
+    const { dxm, dym } = rowSizes(g), mid = Math.floor(g.h / 2);
+    q('.wsd-thrhelp').textContent = `A cell is part of a stream when at least ${f(thr, 0)} cells (${areaTxt(thr * dxm[mid] * dym[mid])}) drain through it. Lower it for more, smaller streams.`;
+    return true;
+  }
+  const maxCell = () => { let m = 0; for (let i = 1; i < acc!.length; i++) if (acc![i] > acc![m]) m = i; return m; };
+
+  // ---------- watershed ----------
+  function setOutlet(i: number) {
+    const g = grid();
+    outlet = i; mask = catchment(dir!, g.w, g.h, i); rings = outline(mask, g.w, g.h);
+    results(); draw();
+  }
+  const mapXY = (col: number, row: number): Pos => [G!.x0 + col * G!.dx, G!.y0 - row * G!.dy];
+  function lonlat(): ((p: Pos) => Pos) | null {
+    const g = grid();
+    if (g.unit === 'deg') return (p) => p;
+    const e = G!.epsg;
+    if (e && ((e > 32600 && e <= 32660) || (e > 32700 && e <= 32760))) { const zone = e % 100, hemi = e > 32700 ? 'S' : 'N'; return (p) => { const r = fromUtm(zone, hemi, p[0], p[1]); return [r.lon, r.lat]; }; }
+    return null;
+  }
+  function polygons(): Pos[][][] {
+    // Outer rings are clockwise on the map, as ringsToPolygons (shapefile order) expects.
+    return ringsToPolygons(rings.map((r) => r.map(([c, rr]) => mapXY(c, rr))));
+  }
+  function results() {
+    const g = grid(), m = mask!, { dxm, dym } = rowSizes(g);
+    const area = maskArea(g, m), cells = m.reduce((s, x) => s + x, 0);
+    const r = Math.floor(outlet / g.w), c = outlet - r * g.w;
+    const zs: number[] = [], sl: number[] = [];
+    let slen = 0, maxOrd = 0;
+    for (let i = 0; i < m.length; i++) if (m[i]) { zs.push(g.z[i]); sl.push(slope![i]); }
+    for (const L of lines) {
+      for (let k = 1; k < L.cells.length; k++) {
+        const a = L.cells[k - 1], b = L.cells[k];
+        if (!m[a] || !m[b]) continue;
+        const ra = Math.floor(a / g.w), rb = Math.floor(b / g.w), ca = a - ra * g.w, cb = b - rb * g.w;
+        slen += ra !== rb && ca !== cb ? Math.hypot(dxm[ra], dym[ra]) : ra !== rb ? dym[ra] : dxm[ra];
+        if (L.order > maxOrd) maxOrd = L.order;
+      }
+    }
+    const es = stats(Float32Array.from(zs)), ss = stats(Float32Array.from(sl));
+    const ll = lonlat();
+    let per: number;
+    const polys = polygons();
+    if (ll) per = measure({ type: 'MultiPolygon', coordinates: polys.map((p) => p.map((ring) => ring.map(ll))) }).perimeter;
+    else { const k = g.unit === 'ft' ? 0.3048 : g.unit === 'usft' ? 1200 / 3937 : 1; per = 0; for (const p of polys) for (const ring of p) for (let i = 1; i < ring.length; i++) per += Math.hypot(ring[i][0] - ring[i - 1][0], ring[i][1] - ring[i - 1][1]) * k; }
+    const lfp = longestFlowPath(dir!, g, m, outlet);
+    q('.wsd-big').textContent = `${areaTxt(area)} drain to the outlet`;
+    const dl = q('.wsd-facts'); dl.replaceChildren();
+    const [ox, oy] = mapXY(c + 0.5, r + 0.5);
+    fact(dl, 'Outlet cell', `row ${r + 1}, column ${c + 1}`);
+    fact(dl, g.unit === 'deg' ? 'Outlet (lat, lon)' : 'Outlet (x, y)', g.unit === 'deg' ? `${oy.toFixed(5)}, ${ox.toFixed(5)}` : `${f(ox, 1)}, ${f(oy, 1)}`);
+    fact(dl, 'Cells draining in', cells.toLocaleString('en'));
+    fact(dl, 'Perimeter', lenTxt(per));
+    fact(dl, 'Longest flow path', lenTxt(lfp));
+    fact(dl, 'Height range', `${f(es.min, 1)} to ${f(es.max, 1)} (relief ${f(es.max - es.min, 1)})`);
+    fact(dl, 'Mean height', f(es.mean, 1));
+    fact(dl, 'Mean slope', `${f(ss.mean, 1)}°`);
+    fact(dl, 'Stream length', lenTxt(slen));
+    fact(dl, 'Drainage density', `${f(slen / 1000 / (area / 1e6), 2)} km per km²`);
+    fact(dl, 'Highest Strahler order', maxOrd ? String(maxOrd) : 'no stream');
+    const notes: string[] = [];
+    const onEdge = r === 0 || c === 0 || r === g.h - 1 || c === g.w - 1;
+    if (rings.length > 1) notes.push(`The outline has ${rings.length} rings (cells joined only at a corner, or holes).`);
+    if (mask!.some((x, i) => x && (i < g.w || i >= g.w * (g.h - 1) || i % g.w === 0 || i % g.w === g.w - 1)) && !onEdge) notes.push('The watershed reaches the edge of the grid, so part of it may lie outside your DEM: use a larger DEM to be sure.');
+    q('.wsd-note').textContent = notes.join(' ');
+    // whole grid
+    const gl = q('.wsd-gfacts'); gl.replaceChildren();
+    fact(gl, 'Grid', `${g.w} × ${g.h} cells`);
+    fact(gl, 'Cells raised by filling', filled!.filled.toLocaleString('en'));
+    fact(gl, 'Deepest depression filled', f(filled!.maxDepth, 2));
+    fact(gl, 'Volume filled', g.unit === 'deg' || ['m', 'unknown'].includes(g.unit) ? `${f(filled!.volume, 0)} m³ (with heights in metres)` : `${f(filled!.volume, 0)} (cell area × height units)`);
+    fact(gl, 'Stream cells', stream!.reduce((s, x) => s + x, 0).toLocaleString('en'));
+    q('.wsd-geohelp').textContent = ll ? 'The GeoJSON is in WGS 84 longitude and latitude: the watershed outline, the stream lines with their Strahler order and the outlet point.' : `The GeoJSON holds the watershed outline, the stream lines with their Strahler order and the outlet, in the DEM's own coordinates${G!.epsg ? ` (EPSG:${G!.epsg}, named in the file)` : ' (no coordinate system is known, so set it in your GIS)'}.`;
+  }
+
+  // ---------- drawing ----------
+  function paintBase(pal: Palette) {
+    const g = grid(), ctx = base!.getContext('2d')!, id = ctx.createImageData(g.w, g.h), px = id.data;
+    const fillOn = q<HTMLInputElement>('.wsd-showfill').checked;
+    for (let i = 0; i < g.w * g.h; i++) {
+      if (Number.isNaN(g.z[i])) { px[i * 4 + 3] = 0; continue; }
+      const v = 70 + 0.65 * shade![i];
+      let rgb = pal.red ? [v * 0.5, 0, 0] : [v, v, v];
+      if (fillOn && filled!.z[i] - g.z[i] > 1e-6) rgb = pal.red ? [120, 0, 0] : [110, 170, 230];
+      px[i * 4] = rgb[0]; px[i * 4 + 1] = rgb[1]; px[i * 4 + 2] = rgb[2]; px[i * 4 + 3] = 255;
+    }
+    ctx.putImageData(id, 0, 0);
+  }
+  function drawAll(ctx: CanvasRenderingContext2D, W: number, H: number, pal: Palette) {
+    const g = grid(), sx = W / g.w, sy = H / g.h;
+    ctx.imageSmoothingEnabled = false; ctx.drawImage(base!, 0, 0, W, H);
+    // watershed
+    if (rings.length) {
+      ctx.beginPath();
+      for (const r of rings) r.forEach(([c, rr], k) => (k ? ctx.lineTo(c * sx, rr * sy) : ctx.moveTo(c * sx, rr * sy)));
+      ctx.fillStyle = pal.red ? 'rgba(160,0,0,0.35)' : 'rgba(230,140,20,0.35)'; ctx.fill('evenodd');
+      ctx.strokeStyle = pal.red ? '#c00000' : '#b35c00'; ctx.lineWidth = 2; ctx.stroke();
+    }
+    // streams
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = pal.red ? '#a30000' : '#1f6fd1';
+    for (const L of lines) {
+      ctx.lineWidth = Math.min(4, 0.6 + 0.6 * L.order) * Math.max(1, Math.min(sx, 2));
+      ctx.beginPath();
+      L.cells.forEach((i, k) => { const r = Math.floor(i / g.w), c = i - r * g.w; const X = (c + 0.5) * sx, Y = (r + 0.5) * sy; if (k) ctx.lineTo(X, Y); else ctx.moveTo(X, Y); });
+      ctx.stroke();
+    }
+    if (outlet >= 0) { const r = Math.floor(outlet / g.w), c = outlet - r * g.w; ctx.beginPath(); ctx.arc((c + 0.5) * sx, (r + 0.5) * sy, 6, 0, 2 * Math.PI); ctx.fillStyle = pal.red ? '#ff0000' : '#c0261c'; ctx.fill(); ctx.strokeStyle = pal.bg; ctx.lineWidth = 2; ctx.stroke(); }
+  }
+  function draw() {
+    if (!G || !base) return;
+    const W = canvas.getBoundingClientRect().width || 600, H = (W * G.h) / G.w, d = Math.min(3, devicePixelRatio || 1);
+    canvas.width = Math.round(W * d); canvas.height = Math.round(H * d);
+    const ctx = canvas.getContext('2d')!; ctx.setTransform(d, 0, 0, d, 0, 0);
+    drawAll(ctx, W, H, pagePalette());
+    canvas.dataset.drawn = String(Date.now());
+  }
+  canvas.addEventListener('click', (e) => {
+    if (!G || !acc) return;
+    const b = canvas.getBoundingClientRect(), c = Math.min(G.w - 1, Math.floor(((e.clientX - b.left) / b.width) * G.w)), r = Math.min(G.h - 1, Math.floor(((e.clientY - b.top) / b.height) * G.h));
+    const rad = Math.max(0, Math.min(50, Math.round(num(q<HTMLInputElement>('.wsd-snap').value) || 0)));
+    const i = snap(acc, G.w, G.h, r, c, rad);
+    if (Number.isNaN(G.z[i])) return;
+    setOutlet(i);
+  });
+
+  // ---------- downloads ----------
+  function geojson() {
+    const g = grid(), ll = lonlat() ?? ((p: Pos) => p), cc = (p: Pos) => ll(p).map((v) => +v.toFixed(g.unit === 'deg' || lonlat() ? 8 : 3));
+    const polys = polygons().map((p) => p.map((ring) => ring.map(cc).reverse()));
+    const r = Math.floor(outlet / g.w), c = outlet - r * g.w;
+    const feats: object[] = [
+      { type: 'Feature', properties: { kind: 'watershed', area_m2: Math.round(maskArea(g, mask!)), outlet_row: r + 1, outlet_col: c + 1 }, geometry: polys.length === 1 ? { type: 'Polygon', coordinates: polys[0] } : { type: 'MultiPolygon', coordinates: polys } },
+      { type: 'Feature', properties: { kind: 'outlet', cells_draining: mask!.reduce((s, x) => s + x, 0) }, geometry: { type: 'Point', coordinates: cc(mapXY(c + 0.5, r + 0.5)) } },
+    ];
+    for (const L of lines) {
+      const last = L.cells[L.cells.length - 1];
+      feats.push({ type: 'Feature', properties: { kind: 'stream', strahler: L.order, cells_draining: acc![last], in_watershed: !!mask![L.cells[0]] }, geometry: { type: 'LineString', coordinates: L.cells.map((i) => { const rr = Math.floor(i / g.w); return cc(mapXY(i - rr * g.w + 0.5, rr + 0.5)); }) } });
+    }
+    const fc: Record<string, unknown> = { type: 'FeatureCollection', features: feats };
+    if (!lonlat() && G!.epsg) fc.crs = { type: 'name', properties: { name: `urn:ogc:def:crs:EPSG::${G!.epsg}` } };
+    return JSON.stringify(fc);
+  }
+  q('.wsd-geo').addEventListener('click', () => save(new TextEncoder().encode(geojson()), `${fileSafe(name)}-watershed.geojson`, 'application/geo+json'));
+  q('.wsd-acc').addEventListener('click', () => save(writeTiff(G!.w, G!.h, [Float32Array.from(acc!, (a, i) => (Number.isNaN(G!.z[i]) ? NaN : a))], geoTagsFor(G!), true), `${fileSafe(name)}-accumulation.tif`, 'image/tiff'));
+  q('.wsd-dir').addEventListener('click', () => save(writeTiff(G!.w, G!.h, [Float32Array.from(dir!, (k) => (k >= 0 ? ESRI[k] : k === -1 ? 0 : NaN))], geoTagsFor(G!), true), `${fileSafe(name)}-flow-direction.tif`, 'image/tiff'));
+  wireDownloads(root, () => {
+    if (!G || !mask) return { title: '', sections: [], file: 'watershed' };
+    const fw = 900, fh = Math.round((fw * G.h) / G.w);
+    const fig: Figure = { w: fw, h: fh, alt: 'Watershed map', draw: (ctx, w, h, pal) => drawAll(ctx, w, h, pal) };
+    const facts = (s: string) => [...root.querySelectorAll(`${s} > div`)].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]);
+    const sections: Section[] = [
+      { title: q('.wsd-big').textContent ?? 'Watershed', facts: facts('.wsd-facts'), note: q('.wsd-note').textContent || undefined },
+      { title: 'Map', figure: fig, text: [q('.wsd-thrhelp').textContent ?? ''] },
+      { title: 'Whole grid', facts: facts('.wsd-gfacts') },
+    ];
+    return { title: `Watershed: ${name}`, subtitle: 'Priority-Flood filling, D8 flow directions. Made with fibub.com', sections, file: `${fileSafe(name)}-watershed` };
+  });
+
+  // ---------- wiring ----------
+  const input = q<HTMLInputElement>('.wsd-in');
+  q('.wsd-open').addEventListener('click', () => input.click());
+  input.addEventListener('change', () => { if (input.files?.[0]) open(input.files[0]); input.value = ''; });
+  root.addEventListener('dragover', (e) => e.preventDefault());
+  root.addEventListener('drop', (e) => { e.preventDefault(); const fl = e.dataTransfer?.files[0]; if (fl) open(fl); });
+  q('.wsd-ex').addEventListener('click', () => { show('.wsd-err', ''); setGrid(exampleGrid(), 'example-valley'); });
+  q('.wsd-hu').addEventListener('change', () => { if (!G) return; const o = outlet; analyse(); setOutlet(o); });
+  q('.wsd-thr').addEventListener('change', () => { if (G && network()) { results(); draw(); } });
+  q('.wsd-showfill').addEventListener('change', () => { if (G) { paintBase(pagePalette()); draw(); } });
+  q('.wsd-big1').addEventListener('click', () => { if (G) setOutlet(maxCell()); });
+  new ResizeObserver(() => draw()).observe(canvas);
+  new MutationObserver(() => { if (G) { paintBase(pagePalette()); draw(); } }).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+  setGrid(exampleGrid(), 'example-valley');
+</script>

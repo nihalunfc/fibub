@@ -1,0 +1,274 @@
+---
+// Terrain from a DEM: slope, aspect, hillshade and curvature from a GeoTIFF or ASCII grid, read on the device
+// (src/lib/sci/dem.ts). Example grid made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax dmt">
+  <div class="ax-card">
+    <h2>Elevation grid (DEM)</h2>
+    <div class="ax-row">
+      <button type="button" class="btn small dmt-open">Open a DEM</button>
+      <input type="file" class="dmt-in" accept=".tif,.tiff,.asc,.txt,image/tiff" hidden />
+      <button type="button" class="btn secondary small dmt-ex">Use the example</button>
+    </div>
+    <p class="ax-help">A GeoTIFF (first band; uncompressed, LZW, Deflate or PackBits) or an ESRI ASCII grid (.asc), up to 300 MB and 16 million cells (4000 × 4000). <strong>Your file stays on this device</strong>: it is read in your browser and never uploaded.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Cell size unit <select class="dmt-hu"><option value="auto" selected>From the file</option><option value="m">metres</option><option value="ft">feet</option><option value="usft">US survey feet</option><option value="deg">degrees (latitude, longitude)</option></select></label>
+      <label>Elevation unit <select class="dmt-vu"><option value="m" selected>metres</option><option value="ft">feet</option><option value="usft">US survey feet</option></select></label>
+    </div>
+    <p class="ax-help">Slope needs the cell size and the heights in the same unit. Grids in degrees (such as SRTM or Copernicus tiles) are turned into metres row by row, because a degree of longitude shrinks towards the poles.</p>
+    <p class="ax-err dmt-err" hidden></p>
+    <dl class="ax-facts dmt-info" style="margin-top:12px"></dl>
+    <p class="ax-help dmt-notes"></p>
+  </div>
+
+  <div class="ax-card dmt-res" hidden>
+    <h2>Map</h2>
+    <div class="ax-seg dmt-kind" role="group" aria-label="Layer">
+      <button type="button" data-k="elev" aria-pressed="true">Elevation</button>
+      <button type="button" data-k="hillshade" aria-pressed="false">Hillshade</button>
+      <button type="button" data-k="slope" aria-pressed="false">Slope</button>
+      <button type="button" data-k="aspect" aria-pressed="false">Aspect</button>
+      <button type="button" data-k="curv" aria-pressed="false">Curvature</button>
+    </div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label class="dmt-o dmt-o-slope">Slope as <select class="dmt-su"><option value="slope" selected>degrees</option><option value="slopepct">percent</option></select></label>
+      <label class="dmt-o dmt-o-curv">Curvature <select class="dmt-ct"><option value="curv" selected>General (total)</option><option value="profile">Profile (down the slope)</option><option value="plan">Plan (across the slope)</option></select></label>
+      <label class="dmt-o dmt-o-elev">Colours <select class="dmt-ramp"><option value="terrain" selected>Green to brown to white</option><option value="grey">Grey</option></select></label>
+      <label>Sun direction (° from north) <input class="dmt-az" type="text" inputmode="decimal" value="315" /></label>
+      <label>Sun height (° above horizon) <input class="dmt-alt" type="text" inputmode="decimal" value="45" /></label>
+      <label>Vertical exaggeration for shading <input class="dmt-vx" type="text" inputmode="decimal" value="1" /></label>
+      <label class="ax-check dmt-o dmt-o-blend"><input type="checkbox" class="dmt-blend" checked /> Shade the relief under the colours</label>
+    </div>
+    <p class="ax-err dmt-oerr" hidden></p>
+    <canvas class="dmt-img" aria-label="Map of the grid"></canvas>
+    <canvas class="dmt-leg" aria-hidden="true"></canvas>
+    <p class="dmt-read ax-help" aria-live="polite">Tap the map to read the values at a cell.</p>
+    <p class="ax-help dmt-khelp"></p>
+  </div>
+
+  <div class="ax-card dmt-res" hidden>
+    <h2>Numbers</h2>
+    <p class="ax-big dmt-big"></p>
+    <dl class="ax-facts dmt-facts"></dl>
+    <h3 style="margin:16px 0 6px;font-size:16px">Slope classes</h3>
+    <div class="ax-scroll"><table class="dmt-slopes"><thead><tr><th>Slope</th><th class="r">Area</th><th class="r">Share</th></tr></thead><tbody></tbody></table></div>
+    <h3 style="margin:16px 0 6px;font-size:16px">Which way the slopes face</h3>
+    <div class="ax-scroll"><table class="dmt-aspects"><thead><tr><th>Facing</th><th class="r">Share of area</th></tr></thead><tbody></tbody></table></div>
+    <p class="ax-help">Areas are the flat (map) area of the cells; for degree grids each row has its own cell area.</p>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn small dmt-png">Map as PNG</button>
+      <button type="button" class="btn secondary small dmt-tif">Layer as GeoTIFF</button>
+      <button type="button" class="btn secondary small dmt-asc">Layer as ASCII grid</button>
+    </div>
+    <p class="ax-help">The PNG has one pixel per cell. The GeoTIFF (32-bit float) and ASCII grid hold the layer's values with the same position and cell size as your DEM, ready for GIS software.</p>
+    <Downloads label="Report" />
+  </div>
+</div>
+
+<style is:global>
+  .dmt canvas.dmt-img { display: block; width: 100%; height: auto; margin-top: 12px; border: 1px solid var(--line); border-radius: 8px; image-rendering: pixelated; cursor: crosshair; touch-action: manipulation; }
+  .dmt canvas.dmt-leg { display: block; width: 100%; height: 44px; margin-top: 8px; }
+  .dmt .dmt-read { font-size: 14px; color: var(--ink); min-height: 2.8em; }
+  .dmt .ax-seg button { padding: 7px 10px; }
+</style>
+
+<script>
+  import { readAsc, gridFromTiff, derive, stats, classShares, aspectShares, groundArea, rowSizes, toAsc, geoTagsFor, exampleGrid, UNIT_M, type Grid, type Kind } from '../../lib/sci/dem';
+  import { writeTiff } from '../../lib/sci/tiff';
+  import { num } from '../../lib/sci/num';
+  import { save, fileSafe, pagePalette, wireDownloads, type Figure, type Palette, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.dmt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  let grid: Grid | null = null, name = 'dem', kind = 'elev', layer: Float32Array | null = null, shade: Float32Array | null = null, slopeDeg: Float32Array | null = null, aspect: Float32Array | null = null;
+  let range: [number, number] = [0, 1], unitLabel = '';
+  const img = q<HTMLCanvasElement>('.dmt-img'), leg = q<HTMLCanvasElement>('.dmt-leg');
+  const show = (c: string, m: string) => { const e = q(c); e.textContent = m; e.hidden = !m; };
+  const f = (x: number, d = 2) => (Number.isFinite(x) ? Number(x.toFixed(d)).toLocaleString('en', { maximumFractionDigits: d }) : '–');
+  const fact = (dl: HTMLElement, k: string, v: string) => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; d.append(dt, dd); dl.append(d); };
+  const hUnit = () => (sel('.dmt-hu') === 'auto' ? grid!.unit : (sel('.dmt-hu') as Grid['unit']));
+  const zf = () => UNIT_M[sel('.dmt-vu')];
+  const zName = () => ({ m: 'm', ft: 'ft', usft: 'US ft' } as Record<string, string>)[sel('.dmt-vu')];
+  const DIRS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  const dirOf = (a: number) => (Number.isNaN(a) ? 'flat' : DIRS[Math.floor(((a + 22.5) % 360) / 45)]);
+
+  // ---------- load ----------
+  async function open(file: File) {
+    show('.dmt-err', '');
+    if (file.size > 300e6) return show('.dmt-err', `This file is ${(file.size / 1e6).toFixed(0)} MB; the limit here is 300 MB.`);
+    try {
+      const buf = await file.arrayBuffer(), head = new Uint8Array(buf, 0, Math.min(4, buf.byteLength));
+      const isTiff = (head[0] === 0x49 && head[1] === 0x49) || (head[0] === 0x4d && head[1] === 0x4d);
+      const g = isTiff ? gridFromTiff(buf) : readAsc(new TextDecoder().decode(buf));
+      if (g.w < 3 || g.h < 3) throw new Error('The grid needs at least 3 × 3 cells.');
+      setGrid(g, file.name.replace(/\.[^.]+$/, ''));
+    } catch (e) { show('.dmt-err', (e as Error).message); }
+  }
+  function setGrid(g: Grid, n: string) {
+    grid = g; name = n; slopeDeg = aspect = shade = null;
+    q<HTMLSelectElement>('.dmt-hu').value = 'auto';
+    if (g.unit === 'unknown') q<HTMLSelectElement>('.dmt-hu').value = 'm';
+    root.querySelectorAll<HTMLElement>('.dmt-res').forEach((e) => (e.hidden = false));
+    recompute();
+  }
+
+  // ---------- compute ----------
+  function recompute() {
+    if (!grid) return;
+    show('.dmt-oerr', '');
+    const az = num(q<HTMLInputElement>('.dmt-az').value), alt = num(q<HTMLInputElement>('.dmt-alt').value), vx = num(q<HTMLInputElement>('.dmt-vx').value);
+    if (!(az >= 0 && az <= 360) || !(alt > 0 && alt <= 90) || !(vx > 0 && vx <= 100)) { show('.dmt-oerr', 'Sun direction must be 0 to 360°, sun height above 0 up to 90°, and exaggeration above 0 (up to 100).'); return; }
+    const u = hUnit(), z = zf();
+    slopeDeg = derive(grid, 'slope', { zf: z, unit: u });
+    aspect = derive(grid, 'aspect', { zf: z, unit: u });
+    shade = derive(grid, 'hillshade', { zf: z * vx, unit: u, az, alt });
+    if (kind === 'elev') { layer = grid.z; unitLabel = zName(); }
+    else if (kind === 'hillshade') { layer = shade; unitLabel = '(0 to 255)'; }
+    else if (kind === 'slope') { const pct = sel('.dmt-su') === 'slopepct'; layer = pct ? derive(grid, 'slopepct', { zf: z, unit: u }) : slopeDeg; unitLabel = pct ? '%' : '°'; }
+    else if (kind === 'aspect') { layer = aspect; unitLabel = '° from north'; }
+    else { layer = derive(grid, sel('.dmt-ct') as Kind, { zf: z, unit: u }); unitLabel = '1/100 m'; }
+    root.querySelectorAll<HTMLElement>('.dmt-o').forEach((e) => (e.hidden = true));
+    for (const c of kind === 'elev' ? ['elev', 'blend'] : kind === 'slope' ? ['slope', 'blend'] : kind === 'curv' ? ['curv', 'blend'] : kind === 'aspect' ? ['blend'] : []) root.querySelectorAll<HTMLElement>(`.dmt-o-${c}`).forEach((e) => (e.hidden = false));
+    q('.dmt-khelp').textContent = ({
+      elev: 'Height of the ground. Colours run from the lowest 2 % to the highest 2 % of the heights.',
+      hillshade: 'The relief lit by a sun at the direction and height you set: 0 is in full shadow, 255 faces the sun. The usual map setting is a sun in the north-west (315°) at 45°.',
+      slope: 'Steepness by Horn\'s method (the 3 × 3 cells around each cell, the nearer ones weighted twice). 45° is the same as 100 %.',
+      aspect: 'The compass direction each slope faces (downhill): 0° north, 90° east, 180° south, 270° west. Flat cells have no aspect and are grey.',
+      curv: 'Curvature as in ArcGIS (Zevenbergen and Thorne): general curvature is positive on convex ground (ridges, hilltops) and negative in hollows. Profile curvature is along the slope (affects flow speed), plan curvature across it (flow spreading or converging). Units are 1/100 per metre; values between −0.5 and 0.5 are usual for gentle terrain.',
+    } as Record<string, string>)[kind];
+    render(); numbers(); info();
+  }
+
+  // ---------- colours ----------
+  const RAMPS: Record<string, string[]> = {
+    terrain: ['#2e6b3a', '#6fa257', '#cfd58a', '#c9a66b', '#8c6845', '#f2f0ea'], grey: ['#111111', '#f5f5f5'],
+    slope: ['#f7f7f7', '#f3d9a4', '#e9a35b', '#c8553d', '#6d1f1f'], curv: ['#2b5c9e', '#f5f5f5', '#a8322d'],
+  };
+  const hex = (h: string) => [1, 3, 5].map((k) => parseInt(h.slice(k, k + 2), 16));
+  const rampFn = (stops: string[]) => { const s = stops.map(hex); return (t: number) => { const u = Math.max(0, Math.min(1, t)) * (s.length - 1), i = Math.min(s.length - 2, Math.floor(u)), fr = u - i; return s[i].map((c, k) => c + fr * (s[i + 1][k] - c)); }; };
+  const hsl = (h: number, s: number, l: number) => { const a = s * Math.min(l, 1 - l), fn = (n: number) => { const k = (n + h / 30) % 12; return 255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))); }; return [fn(0), fn(8), fn(4)]; };
+  function colourFor(pal: Palette): (v: number) => number[] {
+    const red = pal.red;
+    if (kind === 'hillshade') return (v) => (red ? [v * 0.7, 0, 0] : [v, v, v]);
+    if (kind === 'aspect') return (v) => (Number.isNaN(v) ? (red ? [40, 0, 0] : [200, 200, 200]) : red ? [60 + (v / 360) * 150, 0, 0] : hsl(v, 0.55, 0.55));
+    const fn = rampFn(red ? ['#000000', '#b00000'] : RAMPS[kind === 'elev' ? sel('.dmt-ramp') : kind === 'slope' ? 'slope' : 'curv']);
+    return (v) => fn((v - range[0]) / (range[1] - range[0] || 1));
+  }
+  function setRange() {
+    const s = stats(layer!);
+    if (kind === 'elev') range = [s.p2, s.p98 > s.p2 ? s.p98 : s.max];
+    else if (kind === 'slope') range = [0, Math.max(s.p98, 1e-6)];
+    else if (kind === 'curv') { const m = Math.max(Math.abs(s.p2), Math.abs(s.p98), 1e-6); range = [-m, m]; }
+    else if (kind === 'aspect') range = [0, 360]; else range = [0, 255];
+  }
+  function render() {
+    if (!grid || !layer) return;
+    setRange();
+    const pal = pagePalette(), col = colourFor(pal), blend = q<HTMLInputElement>('.dmt-blend').checked && kind !== 'hillshade';
+    img.width = grid.w; img.height = grid.h;
+    const ctx = img.getContext('2d')!, id = ctx.createImageData(grid.w, grid.h), px = id.data;
+    for (let i = 0; i < layer.length; i++) {
+      const v = layer[i];
+      if (Number.isNaN(grid.z[i])) { px[i * 4 + 3] = 0; continue; }
+      let c = col(v);
+      if (blend && shade) { const k = 0.35 + 0.65 * (shade[i] / 255); c = c.map((x) => x * k); }
+      px[i * 4] = c[0]; px[i * 4 + 1] = c[1]; px[i * 4 + 2] = c[2]; px[i * 4 + 3] = 255;
+    }
+    ctx.putImageData(id, 0, 0);
+    img.dataset.drawn = String(Date.now());
+    legend(leg, pal, true);
+  }
+  function legend(cv: HTMLCanvasElement, pal: Palette, onPage: boolean, w0 = 0, ctxIn?: CanvasRenderingContext2D, y0 = 0) {
+    const W = w0 || cv.getBoundingClientRect().width || 300, H = 44, d = onPage ? Math.min(3, devicePixelRatio || 1) : 1;
+    let ctx = ctxIn!;
+    if (onPage) { cv.width = Math.round(W * d); cv.height = Math.round(H * d); ctx = cv.getContext('2d')!; ctx.setTransform(d, 0, 0, d, 0, 0); ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H); }
+    const col = colourFor(pal), x0 = 8, bw = W - 16;
+    for (let x = 0; x < bw; x++) { const v = range[0] + ((range[1] - range[0]) * x) / (bw - 1); const c = col(v); ctx.fillStyle = `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})`; ctx.fillRect(x0 + x, y0 + 4, 1.5, 14); }
+    ctx.fillStyle = pal.ink; ctx.font = '12px system-ui, sans-serif'; ctx.textBaseline = 'top';
+    const lab = (v: number) => (kind === 'aspect' ? `${v}° ${dirOf(v % 360)}` : `${f(v, Math.abs(range[1] - range[0]) < 5 ? 3 : 1)}`);
+    ctx.textAlign = 'left'; ctx.fillText(lab(range[0]), x0, y0 + 22);
+    ctx.textAlign = 'center'; ctx.fillText(kind === 'aspect' ? '180° S' : `${lab((range[0] + range[1]) / 2)} ${unitLabel}`, x0 + bw / 2, y0 + 22);
+    ctx.textAlign = 'right'; ctx.fillText(lab(range[1]), x0 + bw, y0 + 22);
+  }
+
+  // ---------- numbers ----------
+  function info() {
+    const g = grid!, u = hUnit(), dl = q('.dmt-info'); dl.replaceChildren();
+    const { dxm, dym } = rowSizes(g, u), mid = Math.floor(g.h / 2);
+    fact(dl, 'Size', `${g.w.toLocaleString('en')} × ${g.h.toLocaleString('en')} cells`);
+    fact(dl, 'Cell size', u === 'deg' ? `${+g.dx.toPrecision(6)}° × ${+g.dy.toPrecision(6)}° (about ${f(dxm[mid], 1)} × ${f(dym[mid], 1)} m)` : `${+g.dx.toPrecision(6)} × ${+g.dy.toPrecision(6)} ${u === 'm' ? 'm' : u === 'ft' ? 'ft' : u === 'usft' ? 'US ft' : ''}`);
+    { const ga = groundArea(g, u); fact(dl, 'Ground covered', ga >= 1e6 ? `${f(ga / 1e6, 3)} km²` : ga >= 1e4 ? `${f(ga / 1e4, 2)} ha` : `${f(ga, 1)} m²`); }
+    if (g.epsg) fact(dl, 'Coordinate system', `EPSG:${g.epsg}`);
+    q('.dmt-notes').textContent = g.notes.join(' ');
+  }
+  function numbers() {
+    const g = grid!, u = hUnit(), es = stats(g.z), dl = q('.dmt-facts'); dl.replaceChildren();
+    const sd = stats(slopeDeg!);
+    q('.dmt-big').textContent = `Mean slope ${f(sd.mean, 1)}°, relief ${f(es.max - es.min, 1)} ${zName()}`;
+    fact(dl, 'Lowest, highest', `${f(es.min)} to ${f(es.max)} ${zName()}`);
+    fact(dl, 'Mean height ± SD', `${f(es.mean)} ± ${f(es.sd)} ${zName()}`);
+    fact(dl, 'Median slope', `${f(sd.median, 1)}°`);
+    fact(dl, 'Steepest cell', `${f(sd.max, 1)}°`);
+    if (es.nodata) fact(dl, 'Cells without data', es.nodata.toLocaleString('en'));
+    if (kind === 'hillshade' || kind === 'curv') { const ls = stats(layer!); fact(dl, `This layer: mean (${unitLabel})`, f(ls.mean, 3)); fact(dl, 'This layer: min to max', `${f(ls.min, 3)} to ${f(ls.max, 3)}`); }
+    const edges = [0, 2, 5, 10, 15, 30, 45, 90.0001];
+    const tb = q('.dmt-slopes tbody'); tb.replaceChildren();
+    for (const c of classShares(slopeDeg!, g, edges, u)) { const tr = document.createElement('tr'); for (const [t, r] of [[c.hi > 90 ? `${c.lo}° and steeper` : `${c.lo}° to ${c.hi}°`, false], [`${f(c.area / 1e4, 2)} ha`, true], [c.share > 0 && c.share < 0.0005 ? '< 0.1 %' : `${f(c.share * 100, 1)} %`, true]] as [string, boolean][]) { const td = document.createElement('td'); td.textContent = t; if (r) td.className = 'r'; tr.append(td); } tb.append(tr); }
+    const ab = q('.dmt-aspects tbody'); ab.replaceChildren();
+    aspectShares(aspect!, g, u).forEach((s, k) => { const tr = document.createElement('tr'); const a = document.createElement('td'); a.textContent = k < 8 ? `${DIRS[k]} (${k * 45}°)` : 'Flat'; const b = document.createElement('td'); b.className = 'r'; b.textContent = s > 0 && s < 0.0005 ? '< 0.1 %' : `${f(s * 100, 1)} %`; tr.append(a, b); ab.append(tr); });
+  }
+
+  // ---------- reading a cell ----------
+  img.addEventListener('click', (e) => {
+    if (!grid || !layer) return;
+    const r0 = img.getBoundingClientRect();
+    const c = Math.min(grid.w - 1, Math.floor(((e.clientX - r0.left) / r0.width) * grid.w)), r = Math.min(grid.h - 1, Math.floor(((e.clientY - r0.top) / r0.height) * grid.h)), i = r * grid.w + c;
+    const z = grid.z[i];
+    const x = grid.x0 + (c + 0.5) * grid.dx, y = grid.y0 - (r + 0.5) * grid.dy, deg = hUnit() === 'deg';
+    const where = deg ? `${y.toFixed(5)}°, ${x.toFixed(5)}°` : `x ${f(x, 1)}, y ${f(y, 1)}`;
+    if (Number.isNaN(z)) { q('.dmt-read').textContent = `Row ${r + 1}, column ${c + 1} (${where}): no data.`; return; }
+    // Curvature for this cell only, from its 3 × 3 window (cells outside the grid count as missing).
+    const win = new Float32Array(9);
+    for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { const rr = r + a, cc = c + b; win[(a + 1) * 3 + b + 1] = rr < 0 || rr >= grid.h || cc < 0 || cc >= grid.w ? NaN : grid.z[rr * grid.w + cc]; }
+    const curv = derive({ ...grid, w: 3, h: 3, z: win, y0: grid.y0 - (r - 1) * grid.dy }, sel('.dmt-ct') as Kind, { zf: zf(), unit: hUnit() })[4];
+    q('.dmt-read').textContent = `Row ${r + 1}, column ${c + 1} (${where}): height ${f(z)} ${zName()}, slope ${f(slopeDeg![i], 1)}°, facing ${Number.isNaN(aspect![i]) ? 'flat' : `${f(aspect![i], 0)}° (${dirOf(aspect![i])})`}, hillshade ${f(shade![i], 0)}, ${sel('.dmt-ct') === 'curv' ? 'general' : sel('.dmt-ct')} curvature ${f(curv, 3)}.`;
+  });
+
+  // ---------- downloads ----------
+  const layerName = () => (kind === 'elev' ? 'elevation' : kind === 'slope' ? (sel('.dmt-su') === 'slopepct' ? 'slope-percent' : 'slope-degrees') : kind === 'curv' ? `${sel('.dmt-ct')}-curvature` : kind);
+  q('.dmt-png').addEventListener('click', () => img.toBlob((b) => b && save(b, `${fileSafe(name)}-${layerName()}.png`, 'image/png'), 'image/png'));
+  q('.dmt-tif').addEventListener('click', () => { if (grid && layer) save(writeTiff(grid.w, grid.h, [layer], geoTagsFor(grid), true), `${fileSafe(name)}-${layerName()}.tif`, 'image/tiff'); });
+  q('.dmt-asc').addEventListener('click', () => { if (grid && layer) save(new TextEncoder().encode(toAsc(grid, layer)), `${fileSafe(name)}-${layerName()}.asc`, 'text/plain'); });
+  wireDownloads(root, () => {
+    if (!grid || !layer) return { title: '', sections: [], file: 'dem' };
+    const fw = 900, fh = Math.round((fw * grid.h) / grid.w) + 50;
+    const fig: Figure = { w: fw, h: fh, alt: `${layerName()} map`, draw: (ctx, w, h, pal) => { ctx.imageSmoothingEnabled = false; ctx.drawImage(img, 0, 0, w, h - 50); legend(leg, pal, false, w, ctx, h - 46); } };
+    const facts = (sel2: string) => [...root.querySelectorAll(`${sel2} > div`)].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]);
+    const rows = (s: string) => [...root.querySelectorAll(`${s} tbody tr`)].map((tr) => [...tr.querySelectorAll('td')].map((td) => td.textContent ?? ''));
+    const sections: Section[] = [
+      { title: 'Grid', facts: facts('.dmt-info') },
+      { title: `Map: ${layerName().replace(/-/g, ' ')}`, figure: fig, note: q('.dmt-khelp').textContent ?? '' },
+      { title: q('.dmt-big').textContent ?? 'Numbers', facts: facts('.dmt-facts') },
+      { title: 'Slope classes', table: { head: ['Slope', 'Area', 'Share'], rows: rows('.dmt-slopes'), align: ['l', 'r', 'r'] } },
+      { title: 'Aspect', table: { head: ['Facing', 'Share of area'], rows: rows('.dmt-aspects'), align: ['l', 'r'] } },
+    ];
+    return { title: `Terrain: ${name}`, subtitle: 'Slope and aspect by Horn\'s method; curvature as Zevenbergen and Thorne. Made with fibub.com', sections, file: `${fileSafe(name)}-terrain` };
+  });
+
+  // ---------- wiring ----------
+  const input = q<HTMLInputElement>('.dmt-in');
+  q('.dmt-open').addEventListener('click', () => input.click());
+  input.addEventListener('change', () => { if (input.files?.[0]) open(input.files[0]); input.value = ''; });
+  root.addEventListener('dragover', (e) => e.preventDefault());
+  root.addEventListener('drop', (e) => { e.preventDefault(); const fl = e.dataTransfer?.files[0]; if (fl) open(fl); });
+  q('.dmt-ex').addEventListener('click', () => { show('.dmt-err', ''); setGrid(exampleGrid(), 'example-valley'); });
+  q('.dmt-kind').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-k]'); if (!b) return; kind = b.dataset.k!; root.querySelectorAll('.dmt-kind button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); recompute(); });
+  for (const c of ['.dmt-hu', '.dmt-vu', '.dmt-su', '.dmt-ct', '.dmt-ramp', '.dmt-blend']) q(c).addEventListener('change', recompute);
+  for (const c of ['.dmt-az', '.dmt-alt', '.dmt-vx']) q(c).addEventListener('change', recompute);
+  new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+  new ResizeObserver(() => { if (grid && layer) legend(leg, pagePalette(), true); }).observe(leg);
+  setGrid(exampleGrid(), 'example-valley');
+</script>

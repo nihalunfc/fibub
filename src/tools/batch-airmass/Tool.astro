@@ -1,0 +1,192 @@
+---
+// Batch airmass: a pasted target list, a site and a night; altitude and airmass through the night, transit,
+// best time, hours below an airmass limit and the Moon's distance per target, in a sortable table with CSVs
+// and one altitude chart.
+import '../../styles/astro.css';
+import SkyPlace from '../../components/SkyPlace.astro';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax bam">
+  <SkyPlace />
+  <div class="ax-card">
+    <h2>Targets</h2>
+    <label>One target a line: name, RA, Dec (J2000) <textarea class="bm-data" rows="7" spellcheck="false"></textarea></label>
+    <DataFile target=".bm-data" maxCols={10} maxRows={2000} label="Open a target list" />
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small bm-ex">Load the example list</button>
+      <label class="ax-check"><input type="checkbox" class="bm-rah" /> Decimal RA is in hours</label>
+    </div>
+    <p class="ax-help">RA as <code>05 35 17.3</code>, <code>05:35:17.3</code>, <code>5h35m17s</code> or decimal degrees (<code>83.82</code>); Dec as <code>-05 23 28</code>, <code>-05:23:28</code> or decimal degrees. Separate the fields with commas, tabs or semicolons, or spaces when the name has none. A header line with RA and Dec is skipped. Up to 2000 targets. The example uses rounded positions of a few well-known objects.</p>
+    <p class="ax-help bm-bad" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Night and limits</h2>
+    <div class="ax-grid">
+      <label>Plan from <select class="bm-span"><option value="dark" selected>Dark (astronomical twilight)</option><option value="naut">Nautical twilight</option><option value="civil">Civil twilight</option><option value="sun">Sunset to sunrise</option><option value="own">Times I choose</option></select></label>
+      <label class="bm-own" hidden>Start (shown time zone) <input type="time" class="bm-t0" value="20:00" /></label>
+      <label class="bm-own" hidden>End <input type="time" class="bm-t1" value="05:00" /></label>
+      <label>Table step (minutes) <input class="bm-step" inputmode="numeric" value="60" /></label>
+      <label>Airmass formula <select class="bm-f"><option value="secz">sec z (plane-parallel)</option><option value="hardie">Hardie (1962)</option><option value="ky" selected>Kasten and Young (1989)</option><option value="pickering">Pickering (2002)</option></select></label>
+      <label>Airmass limit <input class="bm-lim" inputmode="decimal" value="2" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="bm-ref" checked /> Use the apparent altitude (with standard refraction)</label>
+    <p class="ax-help bm-cite"></p>
+    <p class="ax-err bm-err" hidden></p>
+  </div>
+
+  <div class="ax-card bm-out" hidden>
+    <h2>Tonight's targets</h2>
+    <p class="ax-big bm-big"></p>
+    <p class="ax-help bm-night"></p>
+    <canvas class="ax-fig bm-fig"></canvas>
+    <p class="ax-help bm-figleg"></p>
+    <h3>Summary <small class="bm-sorthelp">(tap a column to sort)</small></h3>
+    <div class="ax-scroll"><table class="bm-tab"></table></div>
+    <details style="margin-top:10px"><summary>Step by step: altitude and airmass</summary><div class="ax-scroll"><table class="bm-steps"></table></div></details>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small bm-csv">Summary (CSV)</button>
+      <button type="button" class="btn secondary small bm-csv2">Step by step (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { getSky, onSky } from '../../lib/astro/state';
+  import { night, type Night } from '../../lib/astro/sky';
+  import { fmtTime, localDate, zoned, sexa, tzLabel } from '../../lib/astro/place';
+  import { altitudeFigure } from '../../lib/astro/charts';
+  import { parseTargets, plan, airmass, altitudeFor, FORMULAS, type Formula, type Plan } from '../../lib/sci/airmass';
+  import { num, csv } from '../../lib/sci/num';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.bam')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c);
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const data = q<HTMLTextAreaElement>('.bm-data');
+  const EXAMPLE = 'name, RA, Dec\nOrion Nebula, 05 35 17, -05 23 28\nPleiades, 03 47 24, +24 07 00\nAndromeda Galaxy, 00 42 44, +41 16 09\nRing Nebula, 18 53 35, +33 01 45\nWhirlpool Galaxy, 13 29 53, +47 11 43\nOmega Centauri, 13 26 47, -47 28 46\nCrab Nebula, 05 34 32, +22 00 52\nBetelgeuse, 05 55 10, +07 24 25\n';
+  let plans: Plan[] = [], sortKey = -1, sortDir = 1, fig: Figure | null = null, sections: Section[] = [], tz = 'UTC', span: [Date, Date] | null = null, nightInfo: Night | null = null;
+  const CHART_MAX = 10;
+  const deg = (x: number, d = 1) => `${x.toFixed(d)}°`;
+  const hm = (h: number) => `${Math.floor(h + 1e-9)} h ${String(Math.round((h - Math.floor(h + 1e-9)) * 60)).padStart(2, '0')} min`;
+
+  const head = ['Target', 'RA (J2000)', 'Dec', 'Transit', 'Transit alt.', 'Best time', 'Max alt.', 'Min airmass', 'Time ≤ limit', 'First–last ≤ limit', 'Moon at best', 'Moon closest'];
+  // Values used for sorting each column (numbers sort numerically, nulls last).
+  const sortVal = (p: Plan, k: number): number | string => [p.target.name.toLowerCase(), p.target.ra, p.target.dec, p.transit.getTime(), p.transitAlt, p.best.getTime(), p.bestAlt, p.neverUp ? Infinity : p.bestX, p.hoursBelow, p.firstBelow ? p.firstBelow.getTime() : Infinity, p.moonAtBest, p.moonMin][k];
+  const rowOf = (p: Plan) => [p.target.name, sexa(p.target.ra / 15, 'h', 1), sexa(p.target.dec, 'd', 0), fmtTime(p.transit, tz), deg(p.transitAlt), p.neverUp ? '–' : fmtTime(p.best, tz), deg(p.bestAlt), p.neverUp ? 'not up' : p.bestX.toFixed(3), p.hoursBelow > 0 ? hm(p.hoursBelow) : '–', p.firstBelow && p.lastBelow ? `${fmtTime(p.firstBelow, tz)}–${fmtTime(p.lastBelow, tz)}` : '–', deg(p.moonAtBest, 0), deg(p.moonMin, 0)];
+
+  function spanFor(n: Night, date: string): [Date, Date] | string {
+    const k = sel('.bm-span').value;
+    if (k === 'dark') return n.dark ?? 'It never gets fully dark at this place on this night. Choose nautical or civil twilight, or your own times.';
+    if (k === 'naut') return n.nautDusk && n.nautDawn ? [n.nautDusk, n.nautDawn] : 'There is no nautical twilight to plan from tonight here. Choose another span.';
+    if (k === 'civil') return n.civilDusk && n.civilDawn ? [n.civilDusk, n.civilDawn] : 'There is no civil twilight to plan from tonight here. Choose another span.';
+    if (k === 'sun') return n.sunset && n.sunrise ? [n.sunset, n.sunrise] : 'The Sun does not set and rise tonight here. Choose your own times.';
+    const [y, m, d] = date.split('-').map(Number), a = inp('.bm-t0').value, b = inp('.bm-t1').value;
+    if (!/^\d\d:\d\d$/.test(a) || !/^\d\d:\d\d$/.test(b)) return 'Give the start and end times.';
+    const t0 = zoned(y, m, d, +a.slice(0, 2), +a.slice(3), tz);
+    let t1 = zoned(y, m, d, +b.slice(0, 2), +b.slice(3), tz);
+    if (t1 <= t0) t1 = new Date(t1.getTime() + 864e5);
+    return [t0, t1];
+  }
+
+  function run() {
+    const err = q('.bm-err'), out = q('.bm-out'), badEl = q('.bm-bad');
+    err.hidden = true; badEl.hidden = true;
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; plans = []; sections = []; };
+    const f = sel('.bm-f').value as Formula;
+    q('.bm-cite').textContent = FORMULAS.find((x) => x.id === f)!.cite;
+    const { targets, bad } = parseTargets(data.value, inp('.bm-rah').checked);
+    if (bad.length) { badEl.textContent = `Could not read ${bad.length} line${bad.length > 1 ? 's' : ''}: ${bad.slice(0, 4).map((b) => `line ${b.line} ("${b.text.slice(0, 30)}")`).join(', ')}${bad.length > 4 ? ', …' : ''}.`; badEl.hidden = false; }
+    if (!targets.length) return fail('Paste a target list (name, RA, Dec), open a file, or load the example list.');
+    if (targets.length > 2000) return fail('Up to 2000 targets at a time.');
+    const step = num(inp('.bm-step').value), lim = num(inp('.bm-lim').value);
+    if (!(step >= 1 && step <= 240)) return fail('The table step is 1 to 240 minutes.');
+    if (!(lim >= 1 && lim <= 40)) return fail('The airmass limit is between 1 and 40 (2 means 30° up).');
+    const { place, date } = getSky(); tz = place.tz;
+    const n = night(place, date); nightInfo = n;
+    const sp = spanFor(n, date);
+    if (typeof sp === 'string') return fail(sp);
+    span = sp;
+    if ((sp[1].getTime() - sp[0].getTime()) / 60e3 / step > 1500) return fail('That is too many steps; use a longer table step.');
+    const o = { formula: f, refraction: inp('.bm-ref').checked, limit: lim, stepMin: step };
+    plans = targets.map((t) => plan(t, { lat: place.lat, lon: place.lon, elev: place.elev }, sp[0], sp[1], o));
+    out.hidden = false;
+    const hLim = altitudeFor(lim, f), good = plans.filter((p) => p.hoursBelow > 0).length;
+    const lenH = (sp[1].getTime() - sp[0].getTime()) / 3600e3;
+    q('.bm-big').textContent = `${good} of ${plans.length} target${plans.length > 1 ? 's' : ''} reach airmass ${lim} or better between ${fmtTime(sp[0], tz)} and ${fmtTime(sp[1], tz)} (${hm(lenH)})`;
+    q('.bm-night').textContent = `${place.name || 'Your place'} (${place.lat.toFixed(3)}°, ${place.lon.toFixed(3)}°), night of ${date}; times in ${tz.replace(/_/g, ' ')} (${tzLabel(tz, sp[0])}). Airmass ${lim} is ${hLim.toFixed(2)}° up by ${FORMULAS.find((x) => x.id === f)!.name}. Moon ${Math.round(n.moonIllum * 100)} % lit (${n.moonName}).`;
+    draw(); table(); steps();
+  }
+
+  function draw() {
+    if (!span || !nightInfo) return;
+    const { place } = getSky(), lim = num(inp('.bm-lim').value), f = sel('.bm-f').value as Formula;
+    const shown = sorted().slice(0, CHART_MAX);
+    const pad = 45 * 60e3, from = new Date(span[0].getTime() - pad), to = new Date(span[1].getTime() + pad);
+    fig = altitudeFigure({ w: 700, h: 400, place, night: nightInfo, from, to, minAlt: altitudeFor(lim, f), lines: shown.map((p) => ({ label: p.target.name, pts: p.samples })) });
+    paint(q<HTMLCanvasElement>('.bm-fig'), fig);
+    q('.bm-figleg').textContent = `Altitude of ${shown.length === plans.length ? 'every target' : `the first ${shown.length} targets in the table's order`} through the night; dashed line: airmass ${lim}. The table step sets how often each line is sampled.`;
+  }
+  function sorted() {
+    if (sortKey < 0) return plans;
+    return [...plans].sort((a, b) => { const x = sortVal(a, sortKey), y = sortVal(b, sortKey); return (typeof x === 'string' ? x.localeCompare(y as string) : (x as number) - (y as number)) * sortDir; });
+  }
+  function table() {
+    const el = q<HTMLTableElement>('.bm-tab');
+    el.innerHTML = '';
+    const hr = el.createTHead().insertRow();
+    head.forEach((h, i) => { const th = document.createElement('th'); const b = document.createElement('button'); b.type = 'button'; b.className = 'bm-sort'; b.dataset.k = String(i); b.textContent = h + (sortKey === i ? (sortDir > 0 ? ' ▲' : ' ▼') : ''); th.append(b); if (sortKey === i) th.setAttribute('aria-sort', sortDir > 0 ? 'ascending' : 'descending'); hr.append(th); });
+    const body = el.createTBody();
+    for (const p of sorted()) { const tr = body.insertRow(); rowOf(p).forEach((v, i) => { const c = tr.insertCell(); c.textContent = v; if (i) c.className = 'r'; }); }
+    const lim = num(inp('.bm-lim').value);
+    sections = [{ title: q('.bm-big').textContent!, text: [q('.bm-night').textContent!], figure: fig ?? undefined }, { title: 'Summary', table: { head, rows: sorted().map(rowOf), align: head.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] }, note: `Time ≤ limit: hours with airmass ${lim} or less inside the span. Moon: angular distance from the target.` }];
+  }
+  function steps() {
+    if (!plans.length) return;
+    const el = q<HTMLTableElement>('.bm-steps'); el.innerHTML = '';
+    const list = sorted().slice(0, 40);
+    const hr = el.createTHead().insertRow();
+    ['Time', ...list.flatMap((p) => [p.target.name, 'X'])].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const body = el.createTBody();
+    list[0].samples.forEach((s, j) => { const tr = body.insertRow(); tr.insertCell().textContent = fmtTime(s.time, tz); for (const p of list) { const x = p.samples[j]; tr.insertCell().textContent = `${x.alt.toFixed(1)}°`; tr.insertCell().textContent = Number.isFinite(x.X) ? x.X.toFixed(3) : '–'; } });
+  }
+
+  q('.bm-tab').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLElement>('.bm-sort'); if (!b) return; const k = +b.dataset.k!; if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = 1; } table(); draw(); steps(); });
+  const timers = new Map<() => void, number>();
+  const later = (f: () => void) => { clearTimeout(timers.get(f)); timers.set(f, window.setTimeout(f, 350)); };
+  data.addEventListener('input', () => later(run));
+  ['.bm-step', '.bm-lim', '.bm-t0', '.bm-t1'].forEach((c) => inp(c).addEventListener('input', () => later(run)));
+  ['.bm-f', '.bm-span'].forEach((c) => sel(c).addEventListener('change', () => { root.querySelectorAll<HTMLElement>('.bm-own').forEach((x) => (x.hidden = sel('.bm-span').value !== 'own')); run(); }));
+  ['.bm-ref', '.bm-rah'].forEach((c) => inp(c).addEventListener('change', run));
+  q('.bm-ex').addEventListener('click', () => { data.value = EXAMPLE; run(); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.bm-out').hidden) paint(q<HTMLCanvasElement>('.bm-fig'), fig); });
+  const iso = (d: Date | null) => (d ? d.toISOString().replace(/\.\d+Z$/, 'Z') : '');
+  q('.bm-csv').addEventListener('click', () => {
+    if (!plans.length) return;
+    const r = (x: number, p = 6) => (Number.isFinite(x) ? String(+x.toFixed(p)) : '');
+    save(new Blob([csv([['name', 'ra_deg', 'dec_deg', 'transit_utc', 'transit_alt_deg', 'best_utc', 'max_alt_deg', 'min_airmass', 'hours_at_or_below_limit', 'first_at_or_below_limit_utc', 'last_at_or_below_limit_utc', 'moon_sep_at_best_deg', 'moon_sep_min_deg'], ...sorted().map((p) => [p.target.name, r(p.target.ra), r(p.target.dec), iso(p.transit), r(p.transitAlt, 4), p.neverUp ? '' : iso(p.best), r(p.bestAlt, 4), p.neverUp ? '' : r(p.bestX, 4), r(p.hoursBelow, 4), iso(p.firstBelow), iso(p.lastBelow), r(p.moonAtBest, 3), r(p.moonMin, 3)])])], { type: 'text/csv' }), `airmass-summary-${getSky().date}.csv`, 'text/csv');
+  });
+  q('.bm-csv2').addEventListener('click', () => {
+    if (!plans.length) return;
+    const list = sorted();
+    const rows = [['time_utc', `time_${tz.replace(/[^A-Za-z0-9]+/g, '_')}`, ...list.flatMap((p) => [`${p.target.name} alt_deg`, `${p.target.name} az_deg`, `${p.target.name} airmass`])],
+      ...list[0].samples.map((s, j) => [iso(s.time), `${localDate(s.time, tz)} ${fmtTime(s.time, tz)}`, ...list.flatMap((p) => { const x = p.samples[j]; return [x.alt.toFixed(4), x.az.toFixed(4), Number.isFinite(x.X) ? x.X.toFixed(4) : '']; })])];
+    save(new Blob([csv(rows)], { type: 'text/csv' }), `airmass-steps-${getSky().date}.csv`, 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => ({ title: 'Batch airmass', subtitle: q('.bm-big').textContent ?? '', file: 'batch-airmass', sections }));
+  data.value = EXAMPLE;
+  onSky(() => run());
+</script>
+
+<style is:global>
+  .bam h3 { margin: 20px 0 8px; font-size: 15px; }
+  .bam h3 small { font-weight: normal; color: var(--muted); font-size: 13px; }
+  .bam select { max-width: 100%; }
+  .bam textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 13px; }
+  .bam .bm-tab td, .bam .bm-tab th, .bam .bm-steps td, .bam .bm-steps th { white-space: nowrap; }
+  .bam .bm-sort { border: 0; background: none; font: inherit; font-weight: 600; color: var(--ink); padding: 0; cursor: pointer; text-align: left; }
+  .bam td.r { text-align: right; }
+</style>

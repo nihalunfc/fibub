@@ -1,0 +1,181 @@
+---
+// Concordia plot: U-Pb analyses with error ellipses on Wetherill or Tera-Wasserburg concordia, concordia age
+// (Ludwig 1998), discordia intercepts by York regression, weighted mean 206Pb/238U age. Maths in
+// src/lib/sci/concordia.ts. The example zircon data are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+// Made-up zircons: mixtures between 1850 Ma and 300 Ma (Pb loss), and a concordant group near 420 Ma.
+const DIS = 'Label\t207Pb/235U\t2σ\t206Pb/238U\t2σ\trho\nZ1\t4.9091\t0.0589\t0.31627\t0.00316\t0.85\nZ2\t4.6256\t0.0555\t0.29956\t0.003\t0.85\nZ3\t4.2168\t0.0506\t0.27515\t0.00275\t0.85\nZ4\t3.7662\t0.0452\t0.24911\t0.00249\t0.85\nZ5\t3.3327\t0.04\t0.22353\t0.00224\t0.85\nZ6\t2.7521\t0.033\t0.18904\t0.00189\t0.85\nZ7\t2.34\t0.0281\t0.16473\t0.00165\t0.85\nZ8\t1.8013\t0.0216\t0.13407\t0.00134\t0.85';
+const CON = 'Label\t207Pb/235U\t2σ\t206Pb/238U\t2σ\trho\nA1\t0.50651\t0.0122\t0.066275\t0.00106\t0.6\nA2\t0.50833\t0.0122\t0.067051\t0.00107\t0.6\nA3\t0.51222\t0.0123\t0.067488\t0.00108\t0.6\nA4\t0.50889\t0.0122\t0.066637\t0.00107\t0.6\nA5\t0.50149\t0.012\t0.066425\t0.00106\t0.6\nA6\t0.51934\t0.0125\t0.067789\t0.00108\t0.6\nA7\t0.50978\t0.0122\t0.067345\t0.00108\t0.6';
+---
+<div class="ax cnc" data-dis={DIS} data-con={CON}>
+  <div class="ax-card">
+    <h2>Analyses</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small cc-exd">Example: discordant zircons</button>
+      <button type="button" class="btn secondary small cc-exc">Example: concordant zircons</button>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Ratios are <select class="cc-in"><option value="w" selected>Wetherill: 207Pb/235U, 206Pb/238U</option><option value="tw">Tera-Wasserburg: 238U/206Pb, 207Pb/206Pb</option></select></label>
+      <label>Errors are <select class="cc-err"><option value="2a" selected>2σ absolute</option><option value="2p">2σ %</option><option value="1a">1σ absolute</option><option value="1p">1σ %</option></select></label>
+      <label>²³⁸U/²³⁵U <select class="cc-u"><option value="137.818" selected>137.818 (Hiess et al. 2012)</option><option value="137.88">137.88 (Steiger and Jäger 1977)</option></select></label>
+    </div>
+    <p class="ax-help cc-colh"></p>
+    <textarea class="cc-data" rows="9" spellcheck="false">{DIS}</textarea>
+    <DataFile target=".cc-data" maxCols={8} maxRows={2000} label="Open a file" />
+    <p class="ax-help">Use radiogenic (common-Pb corrected) ratios. Decay constants λ238 = 1.55125 × 10⁻¹⁰ and λ235 = 9.8485 × 10⁻¹⁰ per year (Jaffey et al. 1971). The examples are made up.</p>
+    <p class="ax-err cc-perr" hidden></p>
+  </div>
+
+  <div class="ax-card cc-out">
+    <h2>Concordia diagram</h2>
+    <div class="ax-grid">
+      <label>Diagram <select class="cc-dia"><option value="w" selected>Wetherill</option><option value="tw">Tera-Wasserburg</option></select></label>
+      <label>Ellipses <select class="cc-k"><option value="2" selected>2σ</option><option value="2.4477">95 % confidence</option></select></label>
+      <label>Main result <select class="cc-main"><option value="dis" selected>Discordia intercepts</option><option value="conc">Concordia age</option><option value="wm">Weighted mean ²⁰⁶Pb/²³⁸U age</option></select></label>
+    </div>
+    <p class="ax-big cc-big"></p>
+    <p class="ax-err cc-rerr" hidden></p>
+    <dl class="ax-facts cc-facts"></dl>
+    <canvas class="ax-fig cc-fig" style="margin-top:12px"></canvas>
+    <p class="ax-help">Errors are 2σ from the analytical errors; decay-constant errors are not included. When the MSWD is above 1, the error also multiplied by √MSWD is given, for scatter beyond the stated errors. Untick an analysis below to leave it out of every calculation (it stays on the plot, grey).</p>
+    <h3>Analyses and their ages</h3>
+    <div class="ax-scroll"><table class="cc-tab"></table></div>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small cc-csv">Download analyses and ages (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { toTW, fromTW, cW, cTW, ellipse, ages, concordiaAge, discordia, weightedMean68, parseAnalyses, type An } from '../../lib/sci/concordia';
+  import { groupFigure } from '../../lib/sci/geomap';
+  import { niceTicks } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.cnc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement | HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const Ma = (t: number) => t / 1e6;
+  /** Age ± 2σ in Ma, rounded to the error. */
+  const pm = (t: number, s: number) => { const e = 2 * s / 1e6, dec = Math.max(0, Math.min(4, 1 - Math.floor(Math.log10(e)))); return `${Ma(t).toFixed(dec)} ± ${e.toFixed(dec)}`.replace(/-/g, '−'); };
+  const over = (s: number, mswd: number) => (mswd > 1 ? `; ±${+(2 * s * Math.sqrt(mswd) / 1e6).toPrecision(2)} Ma with √MSWD` : '');
+  let use: boolean[] = [], lastText = '', figs: Figure[] = [], report: Section[] = [], csvRows: (string | number)[][] = [];
+
+  const HELP: Record<string, string> = {
+    w: 'One analysis per line: optional label, 207Pb/235U, its error, 206Pb/238U, its error, and the error correlation rho (0 if left out).',
+    tw: 'One analysis per line: optional label, 238U/206Pb, its error, 207Pb/206Pb, its error, and the error correlation rho (0 if left out).',
+  };
+
+  function calc() {
+    const perr = q('.cc-perr'), rerr = q('.cc-rerr'), U = Number(val('.cc-u')), inTW = val('.cc-in') === 'tw', em = val('.cc-err');
+    q('.cc-colh').textContent = HELP[val('.cc-in')];
+    perr.hidden = true; rerr.hidden = true;
+    const text = q<HTMLTextAreaElement>('.cc-data').value, p = parseAnalyses(text);
+    const fail = (m: string) => { perr.textContent = m; perr.hidden = false; q('.cc-out').hidden = true; report = []; };
+    if (!p.rows.length) return fail('Enter at least one analysis. ' + HELP[val('.cc-in')]);
+    const list: An[] = [];
+    for (const [i, r] of p.rows.entries()) {
+      const [x, ex, y, ey, rho = 0] = r.v;
+      const f = em[0] === '2' ? 2 : 1, pc = em[1] === 'p';
+      const sx = pc ? (ex / 100) * x / f : ex / f, sy = pc ? (ey / 100) * y / f : ey / f;
+      if (!(x > 0 && y > 0)) return fail(`${r.label}: both ratios must be above zero.`);
+      if (!(sx > 0 && sy > 0)) return fail(`${r.label}: both errors must be above zero.`);
+      if (!(rho > -1 && rho < 1)) return fail(`${r.label}: the error correlation must be between −1 and 1.`);
+      const a: An = { x, sx, y, sy, rho, label: r.label };
+      list.push(inTW ? fromTW(a, U) : a);
+      void i;
+    }
+    if (text !== lastText || use.length !== list.length) { use = list.map(() => true); lastText = text; }
+    q('.cc-out').hidden = false;
+    if (p.bad.length) { perr.textContent = `Skipped line${p.bad.length > 1 ? 's' : ''} ${p.bad.join(', ')}: not four or five numbers.`; perr.hidden = false; }
+    const on = list.filter((_, i) => use[i]);
+    const per = list.map((a) => ages(a, U));
+    // Results.
+    const facts: HTMLElement[] = [], main = val('.cc-main');
+    let big = '', dis: ReturnType<typeof discordia> | null = null, conc: ReturnType<typeof concordiaAge> | null = null, wm: ReturnType<typeof weightedMean68> | null = null;
+    try { if (on.length >= 3) dis = discordia(on); } catch { dis = null; }
+    try { if (on.length) conc = concordiaAge(on); } catch { conc = null; }
+    try { if (on.length) wm = weightedMean68(on); } catch { wm = null; }
+    if (dis) {
+      const { lower, upper, fit } = dis;
+      facts.push(fact('Upper intercept', upper ? `${pm(upper.t, upper.s)} Ma` : 'none', upper ? `2σ${over(upper.s, fit.mswd)}` : 'the line does not cross concordia above'));
+      facts.push(fact('Lower intercept', lower ? `${pm(lower.t, lower.s)} Ma` : 'none', lower ? `2σ${over(lower.s, fit.mswd)}` : 'the line does not cross concordia below'));
+      facts.push(fact('Discordia fit', `MSWD ${sig(fit.mswd, 3)}`, `York regression, n = ${on.length}, probability of fit ${sig(fit.p, 2)}`));
+      if (main === 'dis') big = upper && lower ? `Intercepts at ${pm(upper.t, upper.s)} and ${pm(lower.t, lower.s)} Ma` : upper ? `Upper intercept ${pm(upper.t, upper.s)} Ma` : 'The discordia line does not cross concordia';
+    } else if (main === 'dis') big = 'Discordia needs at least three analyses';
+    if (conc) {
+      facts.push(fact('Concordia age', `${pm(conc.t, conc.st)} Ma`, `2σ${over(conc.st, conc.mswd)}; MSWD (concordance + equivalence) ${sig(conc.mswd, 3)}, probability ${sig(conc.p, 2)}`));
+      facts.push(fact('Concordance', `MSWD ${sig(conc.mswdConc, 3)}`, `probability ${sig(conc.pConc, 2)}; equivalence MSWD ${conc.n > 1 ? sig(conc.mswdEq, 3) : '—'}`));
+      if (main === 'conc') big = `Concordia age ${pm(conc.t, conc.st)} Ma (n = ${conc.n})`;
+    }
+    if (wm) {
+      facts.push(fact('Weighted mean ²⁰⁶Pb/²³⁸U age', `${pm(wm.t, wm.s)} Ma`, `2σ${over(wm.s, wm.mswd)}; MSWD ${wm.n > 1 ? sig(wm.mswd, 3) : '—'}, probability ${wm.n > 1 ? sig(wm.p, 2) : '—'}, n = ${wm.n}`));
+      if (main === 'wm') big = `Weighted mean ²⁰⁶Pb/²³⁸U age ${pm(wm.t, wm.s)} Ma`;
+    }
+    if (!on.length) { rerr.textContent = 'Tick at least one analysis.'; rerr.hidden = false; big = ''; }
+    q('.cc-big').textContent = big;
+    q('.cc-facts').replaceChildren(...facts);
+    // Table.
+    const head = ['Use', 'Analysis', '²⁰⁶Pb/²³⁸U age', '²⁰⁷Pb/²³⁵U age', '²⁰⁷Pb/²⁰⁶Pb age', 'Discordance %'];
+    const tbl = q('.cc-tab'), mk = (cells: (string | Node)[], th = false) => { const e = document.createElement('tr'); cells.forEach((c, j) => { const d = document.createElement(th ? 'th' : 'td'); typeof c === 'string' ? (d.textContent = c) : d.append(c); if (j > 1) d.className = 'r'; e.append(d); }); return e; };
+    tbl.replaceChildren(mk(head, true), ...list.map((a, i) => {
+      const c = document.createElement('input'); c.type = 'checkbox'; c.checked = use[i]; c.setAttribute('aria-label', `Use ${a.label}`);
+      c.addEventListener('change', () => { use[i] = c.checked; calc(); });
+      const g = per[i];
+      return mk([c, a.label ?? `#${i + 1}`, pm(g.t68, g.s68), pm(g.t75, g.s75), Number.isFinite(g.t76) ? pm(g.t76, g.s76) : '—', Number.isFinite(g.disc) ? g.disc.toFixed(1).replace('-', '−') : '—']);
+    }));
+    csvRows = [['label', 'used', 'pb207_u235', 'sigma1', 'pb206_u238', 'sigma1', 'rho', 'u238_pb206', 'sigma1', 'pb207_pb206', 'sigma1', 'rho_tw', 'age68_ma', 'sigma1_ma', 'age75_ma', 'sigma1_ma', 'age76_ma', 'sigma1_ma', 'discordance_pct'],
+      ...list.map((a, i) => { const t = toTW(a, U), g = per[i], r = (v: number) => +v.toPrecision(8); return [a.label ?? '', use[i] ? 'yes' : 'no', r(a.x), r(a.sx), r(a.y), r(a.sy), r(a.rho), r(t.x), r(t.sx), r(t.y), r(t.sy), r(t.rho), r(Ma(g.t68)), r(Ma(g.s68)), r(Ma(g.t75)), r(Ma(g.s75)), Number.isFinite(g.t76) ? r(Ma(g.t76)) : '', Number.isFinite(g.t76) ? r(Ma(g.s76)) : '', Number.isFinite(g.disc) ? +g.disc.toFixed(3) : '']; })];
+    // Diagram.
+    const TW = val('.cc-dia') === 'tw', k = Number(val('.cc-k')), conv = (pts: [number, number][]) => (TW ? pts.map(([x, y]) => [1 / y, x / (y * U)] as [number, number]) : pts);
+    const t68s = per.map((g) => g.t68), t76s = per.map((g) => g.t76).filter(Number.isFinite);
+    let tA = Math.min(...t68s) * 0.85, tB = Math.max(...t68s, ...t76s, conc?.t ?? 0) * 1.08;
+    if (dis?.lower && dis.lower.t > 1e6 && val('.cc-main') === 'dis') tA = Math.min(tA, dis.lower.t * 0.9);
+    if (dis?.upper && dis.upper.t < 5e9 && val('.cc-main') === 'dis') tB = Math.max(tB, dis.upper.t * 1.04);
+    tA = Math.max(TW ? 5e6 : 1e6, tA);
+    const curveT = Array.from({ length: 241 }, (_, i) => tA + ((tB - tA) * i) / 240), curve = curveT.map((t) => (TW ? cTW(t, U) : cW(t)));
+    const ticks = niceTicks(Ma(tA), Ma(tB), 6).filter((v) => v * 1e6 >= tA && v * 1e6 <= tB && v > 0);
+    const tickPts = ticks.map((v) => (TW ? cTW(v * 1e6, U) : cW(v * 1e6)));
+    const series: Parameters<typeof groupFigure>[0]['series'] = [], group: number[] = [];
+    series.push({ name: 'Concordia', x: curve.map((p) => p[0]), y: curve.map((p) => p[1]), mode: 'line', width: 1.4 }); group.push(6);
+    series.push({ name: '', x: tickPts.map((p) => p[0]), y: tickPts.map((p) => p[1]), mode: 'points', marker: 'circle', size: 2.6, labels: ticks.map((v) => `${v} Ma`) }); group.push(6);
+    if (dis && val('.cc-main') !== 'wm') {
+      const ts = [dis.lower?.t, dis.upper?.t].filter((v): v is number => v !== undefined);
+      const xs = on.map((a) => a.x), x0 = Math.max(0, Math.min(...xs, ...ts.map((t) => cW(t)[0]))), x1 = Math.max(...xs, ...ts.map((t) => cW(t)[0]));
+      const line = Array.from({ length: 121 }, (_, i) => { const x = x0 + ((x1 - x0) * i) / 120; return [x, dis!.fit.a + dis!.fit.b * x] as [number, number]; }).filter(([, y]) => y > 0);
+      const L = conv(line);
+      series.push({ name: 'Discordia', x: L.map((p) => p[0]), y: L.map((p) => p[1]), mode: 'line', width: 1.4, dash: [6, 4] }); group.push(1);
+    }
+    list.forEach((a, i) => {
+      const e = ellipse(TW ? toTW(a, U) : a, k, 72);
+      series.push({ name: i === 0 ? 'Analyses' : '', x: e.map((p) => p[0]), y: e.map((p) => p[1]), mode: 'line', width: use[i] ? 1.3 : 0.8, dash: use[i] ? undefined : [3, 3] }); group.push(use[i] ? 0 : 5);
+    });
+    if (conc && val('.cc-main') === 'conc') { const e = ellipse(TW ? toTW(conc.mean, U) : conc.mean, k, 72); series.push({ name: 'Weighted mean point', x: e.map((p) => p[0]), y: e.map((p) => p[1]), mode: 'line', width: 2.2 }); group.push(2); }
+    const xl = TW ? '²³⁸U/²⁰⁶Pb' : '²⁰⁷Pb/²³⁵U', yl = TW ? '²⁰⁷Pb/²⁰⁶Pb' : '²⁰⁶Pb/²³⁸U';
+    const cw = Math.max(340, Math.min(720, Math.round(q<HTMLCanvasElement>('.cc-fig').clientWidth || 640)));
+    figs = [groupFigure({ w: cw, h: Math.round(cw * 0.85), xLabel: xl, yLabel: yl, legend: 'below', series }, group, `${TW ? 'Tera-Wasserburg' : 'Wetherill'} concordia diagram with ${list.length} analyses as ${k === 2 ? '2σ' : '95 %'} ellipses`)];
+    paint(q<HTMLCanvasElement>('.cc-fig'), figs[0]);
+    report = [{ title: big || 'Concordia diagram', facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: figs[0], note: `λ238 = 1.55125e-10/yr, λ235 = 9.8485e-10/yr (Jaffey et al. 1971); 238U/235U = ${U}. Errors 2σ, decay-constant errors not included.` },
+      { title: 'Analyses', table: { head: head.slice(1), rows: list.map((a, i) => [`${a.label}${use[i] ? '' : ' (not used)'}`, pm(per[i].t68, per[i].s68), pm(per[i].t75, per[i].s75), Number.isFinite(per[i].t76) ? pm(per[i].t76, per[i].s76) : '—', Number.isFinite(per[i].disc) ? per[i].disc.toFixed(1) : '—']), align: ['l', 'r', 'r', 'r', 'r'] } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  q('.cc-data').addEventListener('input', later);
+  for (const c of ['.cc-in', '.cc-err', '.cc-u', '.cc-dia', '.cc-k', '.cc-main']) q(c).addEventListener('change', calc);
+  q('.cc-exd').addEventListener('click', () => { q<HTMLTextAreaElement>('.cc-data').value = root.dataset.dis!; q<HTMLSelectElement>('.cc-in').value = 'w'; q<HTMLSelectElement>('.cc-err').value = '2a'; q<HTMLSelectElement>('.cc-main').value = 'dis'; calc(); });
+  q('.cc-exc').addEventListener('click', () => { q<HTMLTextAreaElement>('.cc-data').value = root.dataset.con!; q<HTMLSelectElement>('.cc-in').value = 'w'; q<HTMLSelectElement>('.cc-err').value = '2a'; q<HTMLSelectElement>('.cc-main').value = 'conc'; calc(); });
+  q('.cc-csv').addEventListener('click', () => save(new Blob([csv(csvRows)], { type: 'text/csv' }), 'concordia-analyses.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (figs[0]) paint(q<HTMLCanvasElement>('.cc-fig'), figs[0]); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Concordia plot', subtitle: q('.cc-big').textContent ?? '', file: 'concordia', sections: report }));
+</script>
+
+<style is:global>
+  .cnc select { max-width: 100%; }
+  .cnc textarea { width: 100%; }
+  .cnc td { white-space: nowrap; }
+</style>

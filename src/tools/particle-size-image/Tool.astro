@@ -1,0 +1,226 @@
+---
+// Particle size from a micrograph: threshold, fill holes, label, optional watershed split of touching particles,
+// per-particle area, equivalent diameter, Feret diameters, circularity and aspect ratio; edge particles left out;
+// histogram and D10/D50/D90; CSV. The image never leaves the browser; the example is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax psi">
+  <div class="ax-card">
+    <h2>Micrograph</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small mg-open">Open a micrograph</button>
+      <input type="file" class="mg-file" accept="image/png,image/jpeg,image/tiff,image/bmp,image/webp,.tif,.tiff" hidden />
+      <button type="button" class="btn secondary small ps-ex">Use the example</button>
+    </div>
+    <canvas class="mg-canvas" hidden></canvas>
+    <p class="ax-help ps-tapnote"></p>
+    <p class="ax-help mg-note">PNG, JPEG or TIFF (8 or 16-bit) of particles, powder, precipitates or pores: SEM, TEM or optical. The image is read on this page only and is never uploaded.</p>
+    <p class="ax-err mg-err" hidden></p>
+    <div class="mg-cal" hidden>
+      <h3>Scale and area</h3>
+      <div class="ax-row">
+        <button type="button" class="btn secondary small mg-draw">Draw on the scale bar</button>
+        <button type="button" class="btn secondary small mg-area">Set the area to analyse</button>
+        <button type="button" class="btn secondary small mg-full">Whole image</button>
+      </div>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Scale bar length (pixels) <input class="mg-bpx" type="number" min="0" step="any" inputmode="decimal" /></label>
+        <label>The bar stands for <input class="mg-blen" type="number" min="0" step="any" inputmode="decimal" /></label>
+        <label>Unit <select class="mg-unit"><option>nm</option><option selected>µm</option><option>mm</option></select></label>
+        <label>Or pixel size (original image) <input class="mg-pix" type="number" min="0" step="any" inputmode="decimal" placeholder="from the microscope" /></label>
+      </div>
+      <p class="ax-help mg-calout"></p>
+      <p class="ax-help">Tap both ends of the scale bar (or drag along it), then type the length written on it. Leave the scale bar and any data strip out of the area to analyse.</p>
+    </div>
+  </div>
+
+  <div class="ax-card ps-set" hidden>
+    <h2>Finding the particles</h2>
+    <div class="ax-grid">
+      <label>Particles are <select class="ps-pol"><option value="bright" selected>Bright on a dark background</option><option value="dark">Dark on a light background</option></select></label>
+      <label>Threshold <input class="ps-t" type="number" min="0" max="255" step="1" placeholder="automatic" inputmode="numeric" /></label>
+      <label>Ignore specks under (pixels) <input class="ps-min" type="number" min="0" max="100000" step="1" value="10" inputmode="numeric" /></label>
+      <label>Split strength (pixels) <input class="ps-h" type="number" min="0.5" max="50" step="0.5" value="2" inputmode="decimal" /></label>
+      <label>D values <select class="ps-wt"><option value="n" selected>By number</option><option value="a">By area</option></select></label>
+    </div>
+    <p class="ax-help ps-thelp"></p>
+    <div class="ax-row" style="margin-top:8px">
+      <label class="ax-check"><input type="checkbox" class="ps-fill" checked /> Fill holes</label>
+      <label class="ax-check"><input type="checkbox" class="ps-split" checked /> Split touching particles</label>
+      <label class="ax-check"><input type="checkbox" class="ps-edge" checked /> Leave out particles cut by the edge</label>
+    </div>
+    <p class="ax-help">Split: a watershed on the distance from the background cuts particles where they narrow; a larger strength splits less. <b>Tap a particle</b> to leave it out (dust, a cluster) or put it back.</p>
+    <div class="ax-legend"><span><i style="background:#0072B2"></i>measured (colours only tell neighbours apart)</span><span><i style="background:#888"></i>left out</span></div>
+  </div>
+
+  <div class="ax-card ps-out" hidden>
+    <h2>Particle sizes</h2>
+    <p class="ax-big ps-big"></p>
+    <dl class="ax-facts ps-facts"></dl>
+    <canvas class="ax-fig ps-fig"></canvas>
+    <div class="ax-scroll ps-scroll"><table class="ps-tab"></table></div>
+    <p class="ax-help ps-more"></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small ps-csv">Download particles (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { particleMask, particleLabels, measure, dValues, bins, exampleParticles, type Particle } from '../../lib/sci/particles';
+  import { hist256, otsu, fmtLen } from '../../lib/sci/micro';
+  import { Micro } from '../../lib/micrograph';
+  import { niceTicks } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, fileSafe, type Figure, type Section } from '../../lib/report';
+  import { csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.psi')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const PAL = [[0, 114, 178], [213, 94, 0], [0, 158, 115], [204, 121, 167], [230, 159, 0], [86, 180, 233]];
+
+  let lab: Int32Array | null = null, parts: Particle[] = [], dropped = new Set<number>(), ov: HTMLCanvasElement | null = null;
+  let fig: Figure | null = null, sections: Section[] = [], keptIds = new Set<number>();
+
+  const M = new Micro(root, {
+    change: () => find(),
+    cal: () => report(),
+    overlay: (ctx, lw) => {
+      if (!ov) return; ctx.drawImage(ov, 0, 0);
+      if (parts.length <= 200) { ctx.font = `${Math.max(10, Math.round(lw * 6))}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = lw; parts.forEach((p, i) => { if (!keptIds.has(p.id)) return; ctx.strokeStyle = '#000'; ctx.strokeText(String(i + 1), p.cx, p.cy); ctx.fillStyle = '#fff'; ctx.fillText(String(i + 1), p.cx, p.cy); }); }
+    },
+    tap: (x, y) => {
+      if (!lab || !M.img) return;
+      const l = lab[Math.min(M.img.h - 1, Math.floor(y)) * M.img.w + Math.min(M.img.w - 1, Math.floor(x))]; if (!l) return;
+      if (dropped.has(l)) dropped.delete(l); else dropped.add(l);
+      const i = parts.findIndex((p) => p.id === l);
+      q('.ps-tapnote').textContent = `Particle ${i + 1} ${dropped.has(l) ? 'left out' : 'put back'}. Tap it again to undo.`;
+      report();
+    },
+  });
+
+  function fail(m: string) { M.err(m); q('.ps-out').hidden = true; sections = []; lab = null; ov = null; parts = []; M.draw(); }
+
+  /** Thresholds, labels and measures the particles from scratch. */
+  function find() {
+    if (!M.img || !M.grey) return;
+    const { w, h } = M.img, R = M.rect, dark = q<HTMLSelectElement>('.ps-pol').value === 'dark';
+    q('.ps-set').hidden = false; M.err(''); dropped = new Set(); q('.ps-tapnote').textContent = '';
+    const auto = otsu(hist256(M.grey, w, R)), tS = q<HTMLInputElement>('.ps-t').value.trim(), t = tS ? Number(tS) : auto;
+    q('.ps-thelp').textContent = `A particle is ${dark ? 'at or below' : 'above'} the threshold. Automatic: ${auto} (Otsu's method on the area's grey levels).`;
+    if (!(t >= 0 && t <= 255)) return fail('The threshold is a grey level from 0 to 255 (leave it empty for automatic).');
+    const minA = Number(q<HTMLInputElement>('.ps-min').value || 0), hs = Number(q<HTMLInputElement>('.ps-h').value);
+    if (!(minA >= 0)) return fail('Specks to ignore: a number of pixels, 0 or more.');
+    const split = q<HTMLInputElement>('.ps-split').checked;
+    if (split && !(hs >= 0.5 && hs <= 50)) return fail('The split strength is 0.5 to 50 pixels.');
+    const m = particleMask(M.grey, w, h, R, t, dark, q<HTMLInputElement>('.ps-fill').checked, Math.round(minA));
+    const L = particleLabels(m, w, h, split ? hs : 0);
+    if (L.n > 20000) return fail(`${L.n} particles: far too many. Check that the particles are ${dark ? 'dark' : 'bright'}, raise "Ignore specks" or set the threshold.`);
+    lab = L.lab; parts = measure(L.lab, L.n, w, h, R).sort((a, b) => a.cy - b.cy || a.cx - b.cx);
+    report();
+  }
+
+  function report() {
+    if (!M.img || !lab) return;
+    const { w, h } = M.img, edgeOut = q<HTMLInputElement>('.ps-edge').checked;
+    const kept = parts.filter((p) => !(edgeOut && p.edge) && !dropped.has(p.id)); keptIds = new Set(kept.map((p) => p.id));
+    // Overlay.
+    ov = document.createElement('canvas'); ov.width = w; ov.height = h;
+    { const id = new ImageData(w, h), d = id.data, col = new Map<number, number[]>(); parts.forEach((p, i) => col.set(p.id, keptIds.has(p.id) ? [...PAL[i % PAL.length], 120] : [140, 140, 140, 170]));
+      for (let i = 0; i < w * h; i++) { const l = lab[i]; if (!l) continue; const c = col.get(l); if (!c) continue; d[4 * i] = c[0]; d[4 * i + 1] = c[1]; d[4 * i + 2] = c[2]; d[4 * i + 3] = c[3]; }
+      ov.getContext('2d')!.putImageData(id, 0, 0); }
+    M.draw();
+    if (!kept.length) { q('.ps-out').hidden = true; sections = []; M.err(parts.length ? 'Every particle is left out (cut by the edge or tapped). Untick "Leave out particles cut by the edge" or tap particles to put them back.' : `No particles found. Check whether they are bright or dark, or set the threshold.`); return; }
+    M.err('');
+    const um = M.umpp(), cal = Number.isFinite(um), k = cal ? um : 1;
+    // One unit for the whole report, chosen from the median size.
+    const med = [...kept].sort((a, b) => a.d - b.d)[Math.floor(kept.length / 2)].d * k, uf = !cal ? 1 : med < 1 ? 1e3 : med >= 1e3 ? 1e-3 : 1, uL = !cal ? 'px' : med < 1 ? 'nm' : med >= 1e3 ? 'mm' : 'µm';
+    const Lf = (x: number) => `${+(x * k * uf).toPrecision(3)} ${uL}`;
+    const byArea = q<HTMLSelectElement>('.ps-wt').value === 'a';
+    const ds = kept.map((p) => p.d), [d10, d50, d90] = dValues(ds, [0.1, 0.5, 0.9], byArea ? kept.map((p) => p.area) : undefined);
+    const n = kept.length, mean = ds.reduce((s, x) => s + x, 0) / n, sd = n > 1 ? Math.sqrt(ds.reduce((s, x) => s + (x - mean) ** 2, 0) / (n - 1)) : NaN;
+    const avg = (f: (p: Particle) => number) => { const v = kept.map(f).filter(Number.isFinite); return v.reduce((s, x) => s + x, 0) / v.length; };
+    const nEdge = parts.filter((p) => p.edge).length, R = M.rect, areaFrac = kept.reduce((s, p) => s + p.area, 0) / ((R.x1 - R.x0) * (R.y1 - R.y0));
+    q('.ps-out').hidden = false;
+    q('.ps-big').textContent = `D50 = ${Lf(d50)} (n = ${n})`;
+    q('.ps-facts').replaceChildren(
+      fact('Particles measured', String(n), `${parts.length} found${edgeOut && nEdge ? `, ${nEdge} cut by the edge left out` : ''}${dropped.size ? `, ${dropped.size} left out by tapping` : ''}`),
+      fact(`D10 / D50 / D90 (${byArea ? 'by area' : 'by number'})`, `${Lf(d10)} / ${Lf(d50)} / ${Lf(d90)}`, `span (D90 − D10) / D50 = ${((d90 - d10) / d50).toFixed(2)}`),
+      fact('Mean diameter', Lf(mean), Number.isFinite(sd) ? `standard deviation ${Lf(sd)}; diameter of the circle with the same area` : 'one particle'),
+      fact('Mean circularity', avg((p) => p.circ).toFixed(3), '4πA / P²: about 1 for a circle, less for rough or long shapes'),
+      fact('Mean aspect ratio', avg((p) => p.ar).toFixed(2), 'major ÷ minor axis of the matching ellipse'),
+      fact('Area covered', `${(100 * areaFrac).toFixed(1)} %`, 'measured particles as a share of the area'),
+    );
+    // Histogram of diameters.
+    const U = uL, U2 = `${uL}²`, kk = k * uf;
+    const lo = 0, mx = Math.max(...ds) * kk, ticks = niceTicks(0, mx, 6), hi = ticks[ticks.length - 1] >= mx ? ticks[ticks.length - 1] : mx;
+    const nb = Math.max(5, Math.min(30, Math.round(Math.sqrt(n) * 1.5))), cnt = bins(ds.map((x) => x * kk), lo, hi, nb), top = Math.max(...cnt);
+    fig = {
+      w: 520, h: 280, alt: `Histogram of particle diameters, ${n} particles`,
+      draw: (ctx, W, H, pal) => {
+        const Lm = 50, Rm = 14, T = 30, B = 44, pw = W - Lm - Rm, ph = H - T - B, yt = niceTicks(0, top, 5), yTop = yt[yt.length - 1] || 1;
+        ctx.font = '13px system-ui, sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'right';
+        for (const t of yt) { const y = T + ph - (t / yTop) * ph; ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(Lm, y); ctx.lineTo(Lm + pw, y); ctx.stroke(); ctx.fillStyle = pal.muted; ctx.fillText(String(t), Lm - 6, y); }
+        const bw = pw / nb; ctx.fillStyle = pal.accent;
+        cnt.forEach((c, i) => { const bh = (c / yTop) * ph; ctx.fillRect(Lm + i * bw + 0.5, T + ph - bh, bw - 1, bh); });
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillStyle = pal.ink;
+        for (const t of niceTicks(lo, hi, 6)) { if (t > hi) continue; const x = Lm + ((t - lo) / (hi - lo)) * pw; ctx.fillText(String(t), x, T + ph + 5); }
+        ctx.fillText(`Equivalent diameter (${U})`, Lm + pw / 2, T + ph + 24);
+        for (const [v, nm] of [[d10, 'D10'], [d50, 'D50'], [d90, 'D90']] as [number, string][]) { const x = Lm + ((v * kk - lo) / (hi - lo)) * pw; ctx.strokeStyle = pal.ink; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(x, T); ctx.lineTo(x, T + ph); ctx.stroke(); ctx.setLineDash([]); ctx.textBaseline = 'bottom'; ctx.fillText(nm, x, T - 4); }
+        ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(Lm, T); ctx.lineTo(Lm, T + ph); ctx.lineTo(Lm + pw, T + ph); ctx.stroke();
+        ctx.save(); ctx.translate(13, T + ph / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText('Particles', 0, 0); ctx.restore();
+      },
+    };
+    paint(q<HTMLCanvasElement>('.ps-fig'), fig);
+    const head = ['#', `Area (${U2})`, `Diameter (${U})`, `Feret max (${U})`, `Feret min (${U})`, 'Circularity', 'Aspect ratio'];
+    const f4 = (x: number) => (Math.abs(x) >= 1e4 ? String(Math.round(x)) : x.toPrecision(4));
+    const row = (p: Particle) => [String(parts.indexOf(p) + 1), f4(p.area * kk * kk), f4(p.d * kk), f4(p.feretMax * kk), f4(p.feretMin * kk), p.circ.toFixed(3), p.ar.toFixed(2)];
+    const rows = kept.map(row), show = rows.slice(0, 150);
+    const t = q<HTMLTableElement>('.ps-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((x, i) => { const th = document.createElement('th'); th.textContent = x; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); show.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); });
+    q('.ps-more').textContent = rows.length > show.length ? `Showing the first ${show.length} of ${rows.length} particles; the CSV has them all.` : '';
+    const cv = q<HTMLCanvasElement>('.mg-canvas');
+    const imgFig: Figure = { w: cv.width, h: cv.height, alt: 'Micrograph with the measured particles coloured and numbered', draw: (ctx, w2, h2) => ctx.drawImage(cv, 0, 0, w2, h2) };
+    sections = [
+      { title: q('.ps-big').textContent!, facts: [...q('.ps-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: imgFig },
+      { title: 'Size distribution', figure: fig, table: { head, rows: show, align: head.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] }, note: `Scale: ${cal ? `1 pixel = ${fmtLen(um, 4)}` : 'not calibrated (pixels)'}. Diameter: circle of the same area. Feret: largest and smallest caliper width of the outline. Circularity 4πA/P². Aspect ratio: ellipse axes from the second moments.` },
+    ];
+  }
+
+  ['.ps-pol', '.ps-fill', '.ps-split'].forEach((c) => q(c).addEventListener('change', () => { if (c === '.ps-pol') q<HTMLInputElement>('.ps-t').value = ''; find(); }));
+  ['.ps-edge', '.ps-wt'].forEach((c) => q(c).addEventListener('change', report));
+  let tm = 0;
+  ['.ps-t', '.ps-min', '.ps-h'].forEach((c) => q(c).addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(find, 300); }));
+  function loadExample() {
+    const e = exampleParticles(720, 540, 90, 34, 0.3, 854, { px: 100, label: '10 µm' });
+    q<HTMLInputElement>('.mg-bpx').value = '100'; q<HTMLInputElement>('.mg-blen').value = '10'; q<HTMLSelectElement>('.mg-unit').value = 'µm'; q<HTMLInputElement>('.mg-pix').value = '';
+    q<HTMLSelectElement>('.ps-pol').value = 'bright'; q<HTMLInputElement>('.ps-t').value = ''; q<HTMLInputElement>('.ps-min').value = '10'; q<HTMLInputElement>('.ps-h').value = '2';
+    q<HTMLInputElement>('.ps-fill').checked = true; q<HTMLInputElement>('.ps-split').checked = true; q<HTMLInputElement>('.ps-edge').checked = true; q<HTMLSelectElement>('.ps-wt').value = 'n';
+    M.load({ rgba: e.px, w: e.w, h: e.h }, 'example-particles', 1, 'Made-up round particles, 0.1 µm per pixel.', { x0: 0, y0: 0, x1: e.w, y1: e.h - 32 });
+    M.line = [e.w - 112, e.h - 21.5, e.w - 12, e.h - 21.5]; M.draw();
+  }
+  q('.ps-ex').addEventListener('click', loadExample);
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.ps-out').hidden) paint(q<HTMLCanvasElement>('.ps-fig'), fig); });
+  q('.ps-csv').addEventListener('click', () => {
+    const um = M.umpp(), cal = Number.isFinite(um), k = cal ? um : 1, u = cal ? 'um' : 'px', edgeOut = q<HTMLInputElement>('.ps-edge').checked;
+    const r6 = (x: number) => (Number.isFinite(x) ? +x.toPrecision(8) : '');
+    const out: (string | number)[][] = [['number', 'x_px', 'y_px', `area_${u}2`, `diameter_${u}`, `feret_max_${u}`, `feret_min_${u}`, 'feret_max_angle_deg', `perimeter_${u}`, 'circularity', `major_axis_${u}`, `minor_axis_${u}`, 'aspect_ratio', 'touches_edge', 'measured'],
+      ...parts.map((p, i) => [i + 1, r6(p.cx), r6(p.cy), r6(p.area * k * k), r6(p.d * k), r6(p.feretMax * k), r6(p.feretMin * k), r6(p.feretAngle), r6(p.perim * k), r6(p.circ), r6(p.major * k), r6(p.minor * k), r6(p.ar), p.edge ? 'yes' : 'no', keptIds.has(p.id) ? 'yes' : (edgeOut && p.edge ? 'no (edge)' : 'no (tapped)')])];
+    save(new Blob([csv(out)], { type: 'text/csv' }), `${fileSafe(M.name)}-particles.csv`, 'text/csv');
+  });
+  loadExample();
+  wireDownloads(q('.dl'), () => ({ title: 'Particle size', subtitle: q('.ps-big').textContent ?? '', file: `${fileSafe(M.name)}-particles`, sections }));
+</script>
+
+<style is:global>
+  .psi .mg-canvas { display: block; width: 100%; height: auto; margin-top: 10px; border: 1px solid var(--line); cursor: crosshair; }
+  .psi .mg-cal { margin-top: 14px; }
+  .psi .mg-cal h3 { margin: 0 0 8px; font-size: 15px; }
+  .psi .mg-warn { color: var(--warn); }
+  .psi select { max-width: 100%; }
+  .psi .ax-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 132px), 1fr)); }
+  .psi .ps-scroll { max-height: 520px; overflow-y: auto; }
+</style>

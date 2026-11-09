@@ -1,0 +1,440 @@
+---
+// Seismogram viewer: open SAC and miniSEED files, show several traces with zoom and pan, demean or detrend, taper,
+// Butterworth filters (one pass or zero phase), amplitude spectrum and spectrogram, tap to pick P and S, CSV out.
+// Readers in src/lib/sci/seisio.ts, signal processing in src/lib/sci/dsp.ts. Files never leave the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax sgv">
+  <div class="ax-card">
+    <h2>Seismograms</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small sv-open">Open SAC or miniSEED files</button>
+      <input type="file" class="sv-file" hidden multiple />
+      <button type="button" class="btn secondary small sv-ex">Use the example</button>
+    </div>
+    <p class="ax-help">SAC binary (either byte order) and miniSEED 2 with blockette 1000 (Steim-1, Steim-2, 16- and 32-bit integers, 32- and 64-bit floats). Pick several files at once, up to 50 MB each and 12 traces in all. Files are read on this page only and never uploaded.</p>
+    <p class="ax-help sv-status" aria-live="polite"></p>
+    <p class="ax-err sv-err" hidden></p>
+    <div class="ax-scroll"><table class="sv-list"></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Processing</h2>
+    <div class="ax-grid">
+      <label>Trend <select class="sv-trend"><option value="none">Leave as is</option><option value="mean">Remove the mean</option><option value="linear" selected>Remove a straight line</option></select></label>
+      <label>Taper <select class="sv-taper"><option value="0">None</option><option value="0.02">2 % each end</option><option value="0.05" selected>5 % each end</option><option value="0.1">10 % each end</option></select></label>
+      <label>Filter <select class="sv-ft"><option value="none">None</option><option value="bandpass" selected>Bandpass</option><option value="highpass">Highpass</option><option value="lowpass">Lowpass</option></select></label>
+      <label class="sv-flw">Low corner (Hz) <input class="sv-fl" type="text" inputmode="decimal" value="1" /></label>
+      <label class="sv-fhw">High corner (Hz) <input class="sv-fh" type="text" inputmode="decimal" value="15" /></label>
+      <label class="sv-ordw">Order (poles per corner) <select class="sv-ord"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>6</option><option>8</option></select></label>
+    </div>
+    <label class="ax-check sv-zpw" style="margin-top:10px"><input type="checkbox" class="sv-zp" checked /> Zero phase (run forwards and backwards: no time shift, twice the steepness)</label>
+    <p class="ax-help">In this order: trend, taper, filter, on each whole trace. Remove the trend and taper before filtering, or the filter rings at the ends. A one-pass (causal) filter delays waves and keeps first motions honest; zero phase keeps arrival times in place but can put a little energy before an arrival.</p>
+    <p class="ax-err sv-perr" hidden></p>
+  </div>
+
+  <div class="ax-card sv-out" hidden>
+    <h2>Traces</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small sv-zin" aria-label="Zoom in">Zoom in</button>
+      <button type="button" class="btn secondary small sv-zout" aria-label="Zoom out">Zoom out</button>
+      <button type="button" class="btn secondary small sv-left" aria-label="Move earlier">◀</button>
+      <button type="button" class="btn secondary small sv-right" aria-label="Move later">▶</button>
+      <button type="button" class="btn secondary small sv-full">Whole record</button>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>From (s) <input class="sv-t0" type="text" inputmode="decimal" /></label>
+      <label>To (s) <input class="sv-t1" type="text" inputmode="decimal" /></label>
+      <label>A tap on a trace <select class="sv-tap"><option value="P" selected>picks P</option><option value="S">picks S</option><option value="none">does nothing</option></select></label>
+      <label>Amplitude <select class="sv-scale"><option value="each" selected>Each trace fills its row</option><option value="common">Same scale for all</option></select></label>
+    </div>
+    <canvas class="ax-fig sv-fig" style="margin-top:12px;touch-action:pan-y"></canvas>
+    <p class="ax-help sv-axis"></p>
+    <p class="ax-help">Drag sideways to move along the record. Times are seconds after the first sample of the earliest trace.</p>
+
+    <h3>Picks</h3>
+    <div class="ax-grid">
+      <label>P speed Vp (km/s) <input class="sv-vp" type="text" inputmode="decimal" value="6" /></label>
+      <label>S speed Vs (km/s) <input class="sv-vs" type="text" inputmode="decimal" value="3.5" /></label>
+    </div>
+    <dl class="ax-facts sv-pfacts" style="margin-top:10px"></dl>
+    <div class="ax-scroll" style="margin-top:10px"><table class="sv-picks"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small sv-clear">Clear picks</button>
+      <button type="button" class="btn secondary small sv-pcsv">Download picks (CSV)</button>
+      <button type="button" class="btn secondary small sv-csv">Download traces in view (CSV)</button>
+    </div>
+  </div>
+
+  <div class="ax-card sv-sout" hidden>
+    <h2>Spectrum</h2>
+    <div class="ax-grid">
+      <label>Trace <select class="sv-str"></select></label>
+      <label>Spectrogram window <select class="sv-nper"><option>64</option><option>128</option><option selected>256</option><option>512</option><option>1024</option></select></label>
+    </div>
+    <p class="ax-help">Both use the processed trace inside the time window shown above. The amplitude spectrum is 2|X|/n (a sine of amplitude A reads A), padded to a power of two. The spectrogram uses a Hann window with 50 % overlap; colours are power in decibels.</p>
+    <p class="ax-err sv-serr" hidden></p>
+    <dl class="ax-facts sv-sfacts"></dl>
+    <canvas class="ax-fig sv-spec" style="margin-top:12px"></canvas>
+    <canvas class="ax-fig sv-sgram" style="margin-top:12px"></canvas>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { readSac, readMseed, sniffSac, sniffMseed, isoTime, traceId, type Trace } from '../../lib/sci/seisio';
+  import { butter, sosfilt, sosfiltfilt, detrend, demean, taper, amplitudeSpectrum, dominant, spectrogram, nextPow2, type Band } from '../../lib/sci/dsp';
+  import { chartFigure, niceTicks } from '../../lib/sci/plot';
+  import { paint, pagePalette, wireDownloads, save, type Figure, type Palette, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.sgv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement | HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const tr = (cells: (string | Node)[], th = false) => { const e = document.createElement('tr'); cells.forEach((c, j) => { const d = document.createElement(th ? 'th' : 'td'); if (typeof c === 'string') d.textContent = c; else d.append(c); if (j) d.className = 'r'; e.append(d); }); return e; };
+  const MAXB = 50e6, MAXT = 12;
+
+  type T = Trace & { show: boolean; proc: Float64Array; off: number };
+  let traces: T[] = [], T0 = 0, Tend = 1, w0 = 0, w1 = 1, picks: { id: string; phase: string; t: number }[] = [], report: Section[] = [], figs: Figure[] = [];
+
+  // ---------- example: a made-up local earthquake on three components ----------
+  function example(): Trace[] {
+    let s = 20261109; const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296 - 0.5; };
+    const fs = 100, n = 6000, start = Date.UTC(2026, 10, 9, 3, 14, 7, 250), tp = 12.4, ts = 19.6;
+    const comp = (cha: string, pa: number, sa: number, ph: number) => {
+      const d = new Float64Array(n);
+      for (let i = 0; i < n; i++) {
+        const t = i / fs;
+        let v = 300 * Math.sin(2 * Math.PI * 0.2 * t + ph) + 40 * rnd() + 25 * Math.sin(2 * Math.PI * 1.1 * t + 3 * ph);
+        if (t > tp) { const u = t - tp; v += pa * Math.exp(-u / 2.2) * (1 - Math.exp(-u * 30)) * Math.sin(2 * Math.PI * 6 * u + ph) + 0.4 * pa * Math.exp(-u / 3) * rnd() * (1 - Math.exp(-u * 30)); }
+        if (t > ts) { const u = t - ts; v += sa * Math.exp(-u / 4) * (1 - Math.exp(-u * 15)) * Math.sin(2 * Math.PI * 2.5 * u + 2 * ph) + 0.35 * sa * Math.exp(-u / 6) * rnd() * (1 - Math.exp(-u * 15)); }
+        d[i] = Math.round(v + 1500 + 0.02 * i);
+      }
+      return { net: 'XX', sta: 'DEMO', loc: '', cha, start, fs, data: d, notes: ['Made-up example (not a real recording)'] } as Trace;
+    };
+    return [comp('HHZ', 2400, 1500, 0.3), comp('HHN', 900, 4200, 1.2), comp('HHE', 700, 3600, 2.1)];
+  }
+
+  // ---------- loading ----------
+  function setTraces(list: Trace[], status: string) {
+    if (list.length > MAXT) { status += ` Only the first ${MAXT} traces are shown.`; list = list.slice(0, MAXT); }
+    traces = list.map((t) => ({ ...t, show: true, proc: t.data, off: 0 }));
+    T0 = Math.min(...traces.map((t) => t.start));
+    for (const t of traces) t.off = (t.start - T0) / 1000;
+    Tend = Math.max(...traces.map((t) => t.off + (t.data.length - 1) / t.fs));
+    w0 = 0; w1 = Tend; picks = [];
+    q('.sv-status').textContent = status;
+    q('.sv-err').hidden = true;
+    listTable(); process();
+  }
+
+  function listTable() {
+    const head = ['Show', 'Trace', 'Start (UTC)', 'Rate (Hz)', 'Samples', 'Length (s)'];
+    q('.sv-list').replaceChildren(tr(head, true), ...traces.map((t) => {
+      const c = document.createElement('input'); c.type = 'checkbox'; c.checked = t.show; c.setAttribute('aria-label', `Show ${traceId(t)}`);
+      c.addEventListener('change', () => { t.show = c.checked; draw(); spectrum(); });
+      return tr([c, traceId(t), isoTime(t.start).replace('T', ' '), sig(t.fs, 6), t.data.length.toLocaleString('en'), sig((t.data.length - 1) / t.fs, 5)]);
+    }));
+    const sel = q<HTMLSelectElement>('.sv-str'), prev = sel.value;
+    sel.replaceChildren(...traces.map((t, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = traceId(t); return o; }));
+    if (prev && Number(prev) < traces.length) sel.value = prev;
+  }
+
+  async function openFiles(files: FileList) {
+    const err = q('.sv-err'), out: Trace[] = [], notes: string[] = [];
+    err.hidden = true;
+    try {
+      for (const f of Array.from(files)) {
+        if (f.size > MAXB) throw new Error(`${f.name} is ${(f.size / 1e6).toFixed(1)} MB; this page takes files up to 50 MB.`);
+        const b = new Uint8Array(await f.arrayBuffer());
+        let got: Trace[];
+        if (sniffSac(b)) got = [readSac(b)];
+        else if (sniffMseed(b)) got = readMseed(b);
+        else throw new Error(`${f.name} is neither SAC binary nor miniSEED. SAC text files, SEG-Y, GSE and full SEED volumes with headers are not read.`);
+        for (const t of got) { out.push(t); notes.push(`${f.name}: ${t.notes[0]}`); }
+        const warn = got.flatMap((t) => t.notes.slice(1)); if (warn.length) notes.push(...new Set(warn));
+      }
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; return; }
+    if (!out.length) return;
+    setTraces(out, `Opened ${out.length} trace${out.length > 1 ? 's' : ''}. ${[...new Set(notes)].slice(0, 6).join('. ')}.`);
+  }
+
+  // ---------- processing ----------
+  function process() {
+    const perr = q('.sv-perr'); perr.hidden = true;
+    const ft = val('.sv-ft') as Band | 'none';
+    q('.sv-flw').hidden = ft === 'lowpass' || ft === 'none'; q('.sv-fhw').hidden = ft === 'highpass' || ft === 'none';
+    q('.sv-ordw').hidden = ft === 'none'; q('.sv-zpw').hidden = ft === 'none';
+    const fl = num(val('.sv-fl')), fh = num(val('.sv-fh')), N = Number(val('.sv-ord')), zp = q<HTMLInputElement>('.sv-zp').checked;
+    const trend = val('.sv-trend'), tp = Number(val('.sv-taper'));
+    for (const t of traces) {
+      let x: Float64Array = trend === 'linear' ? detrend(t.data) : trend === 'mean' ? demean(t.data) : Float64Array.from(t.data);
+      if (tp > 0) x = taper(x, tp);
+      if (ft !== 'none') {
+        try {
+          const sos = butter(N, ft === 'bandpass' ? [fl, fh] : ft === 'lowpass' ? fh : fl, ft, t.fs);
+          x = zp ? sosfiltfilt(sos, x) : sosfilt(sos, x);
+        } catch (e) { perr.textContent = `${traceId(t)}: ${(e as Error).message}. Showing it unfiltered.`; perr.hidden = false; }
+      }
+      t.proc = x;
+    }
+    q('.sv-out').hidden = !traces.length; q('.sv-sout').hidden = !traces.length;
+    draw(); spectrum();
+  }
+
+  // ---------- trace plot ----------
+  const ROW = 104, AX = 34, PADL = 8, PADR = 10;
+  const colors = (pal: Palette) => (pal.red ? [pal.ink] : pal.bg === '#ffffff' ? ['#0a0a0a', '#0b4f8a', '#7a3b00', '#14532d'] : ['#f5f5f5', '#9ecae1', '#f0b45a', '#74d391']);
+  const shown = () => traces.filter((t) => t.show);
+  const fmtT = (v: number) => v.toFixed(Math.max(1, Math.min(4, 3 - Math.floor(Math.log10(Math.max(1e-6, w1 - w0)))))).replace('-', '−');
+
+  function traceFigure(width: number): Figure {
+    const list = shown(), H = Math.max(1, list.length) * ROW + AX;
+    return {
+      w: width, h: H, alt: `Seismograms ${list.map(traceId).join(', ')} from ${fmtT(w0)} to ${fmtT(w1)} s`,
+      draw: (ctx, W, Hh, pal) => {
+        const x0 = PADL, x1 = W - PADR, X = (t: number) => x0 + ((t - w0) / (w1 - w0)) * (x1 - x0);
+        const cols = colors(pal);
+        ctx.font = '12px system-ui, sans-serif';
+        // Grid and time axis.
+        const ticks = niceTicks(w0, w1, Math.max(3, Math.round(W / 110))).filter((v) => v >= w0 && v <= w1);
+        ctx.strokeStyle = pal.grid; ctx.lineWidth = 1;
+        for (const v of ticks) { ctx.beginPath(); ctx.moveTo(X(v), 0); ctx.lineTo(X(v), Hh - AX); ctx.stroke(); }
+        ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(x0, Hh - AX); ctx.lineTo(x1, Hh - AX); ctx.stroke();
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        const step = ticks.length > 1 ? ticks[1] - ticks[0] : 1, dec = Math.max(0, -Math.floor(Math.log10(step) + 1e-9));
+        for (const v of ticks) { ctx.beginPath(); ctx.moveTo(X(v), Hh - AX); ctx.lineTo(X(v), Hh - AX + 5); ctx.stroke(); ctx.fillText(v.toFixed(dec).replace('-', '−'), X(v), Hh - AX + 8); }
+        let common = 0;
+        const peaks = list.map((t) => { let m = 0; const a = Math.max(0, Math.floor((w0 - t.off) * t.fs)), b = Math.min(t.proc.length - 1, Math.ceil((w1 - t.off) * t.fs)); for (let i = a; i <= b; i++) m = Math.max(m, Math.abs(t.proc[i])); return m; });
+        common = Math.max(...peaks, 0);
+        list.forEach((t, r) => {
+          const mid = r * ROW + ROW / 2, half = ROW / 2 - 8, peak = val('.sv-scale') === 'common' ? common : peaks[r];
+          const Y = (v: number) => mid - (peak > 0 ? (v / peak) * half : 0);
+          if (r) { ctx.strokeStyle = pal.line; ctx.beginPath(); ctx.moveTo(x0, r * ROW); ctx.lineTo(x1, r * ROW); ctx.stroke(); }
+          ctx.strokeStyle = cols[r % cols.length]; ctx.lineWidth = 1; ctx.beginPath();
+          const a = Math.max(0, Math.floor((w0 - t.off) * t.fs)), b = Math.min(t.proc.length - 1, Math.ceil((w1 - t.off) * t.fs));
+          const perPx = (b - a) / Math.max(1, x1 - x0);
+          if (perPx > 3) {
+            // Min and max per pixel column, so peaks are never lost.
+            for (let px = Math.floor(X(t.off + a / t.fs)); px <= Math.ceil(X(t.off + b / t.fs)); px++) {
+              const i0 = Math.max(a, Math.floor((w0 + ((px - x0) / (x1 - x0)) * (w1 - w0) - t.off) * t.fs)), i1 = Math.min(b, Math.floor((w0 + ((px + 1 - x0) / (x1 - x0)) * (w1 - w0) - t.off) * t.fs));
+              if (i1 < i0) continue;
+              let lo = Infinity, hi = -Infinity; for (let i = i0; i <= i1; i++) { lo = Math.min(lo, t.proc[i]); hi = Math.max(hi, t.proc[i]); }
+              ctx.moveTo(px + 0.5, Y(hi)); ctx.lineTo(px + 0.5, Y(lo) + 0.5);
+            }
+          } else for (let i = a; i <= b; i++) { const xx = X(t.off + i / t.fs), yy = Y(t.proc[i]); i === a ? ctx.moveTo(xx, yy) : ctx.lineTo(xx, yy); }
+          ctx.stroke();
+          ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillStyle = pal.ink; ctx.font = 'bold 12px system-ui, sans-serif';
+          ctx.fillText(traceId(t), x0 + 4, r * ROW + 4);
+          ctx.font = '12px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textAlign = 'right';
+          ctx.fillText(`peak ${sig(peaks[r], 3)}`, x1 - 4, r * ROW + 4);
+          for (const p of picks.filter((p) => p.id === traceId(t) && p.t >= w0 && p.t <= w1)) {
+            ctx.strokeStyle = p.phase === 'P' ? pal.accent : pal.bad; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(p.t), r * ROW + 2); ctx.lineTo(X(p.t), (r + 1) * ROW - 2); ctx.stroke();
+            ctx.fillStyle = ctx.strokeStyle; ctx.textAlign = 'left'; ctx.font = 'bold 13px system-ui, sans-serif'; ctx.fillText(p.phase, X(p.t) + 4, (r + 1) * ROW - 20);
+          }
+        });
+        ctx.lineWidth = 1;
+      },
+    };
+  }
+
+  function draw() {
+    if (!traces.length) return;
+    const c = q<HTMLCanvasElement>('.sv-fig');
+    w0 = Math.max(Math.min(w0, Tend), 0 - Tend * 0.05); w1 = Math.max(w1, w0 + 1e-3);
+    for (const [c, v] of [['.sv-t0', w0], ['.sv-t1', w1]] as const) { const el = q<HTMLInputElement>(c); if (document.activeElement !== el) el.value = fmtT(v).replace('−', '-'); }
+    figs[0] = traceFigure(Math.max(300, Math.min(1100, Math.round(c.clientWidth || root.clientWidth || 600))));
+    paint(c, figs[0]);
+    q('.sv-axis').textContent = `0 s = ${isoTime(T0).replace('T', ' ')}. Window ${fmtT(w0)} to ${fmtT(w1)} s (${sig(w1 - w0, 4)} s).`;
+    pickTable(); buildReport();
+  }
+
+  function zoom(f: number, centre = (w0 + w1) / 2) { const h = ((w1 - w0) * f) / 2; w0 = centre - h; w1 = centre + h; if (w0 < 0) { w1 -= w0; w0 = 0; } if (w1 > Tend) { w0 = Math.max(0, w0 - (w1 - Tend)); w1 = Tend; } draw(); spectrum(); }
+  function pan(dt: number) { const d = Math.max(-w0, Math.min(Tend - w1, dt)); w0 += d; w1 += d; draw(); }
+
+  // Tap to pick, drag to pan.
+  let drag: { x: number; a: number; b: number; moved: boolean } | null = null;
+  const cv = q<HTMLCanvasElement>('.sv-fig');
+  cv.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, a: w0, b: w1, moved: false }; });
+  cv.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x, rect = cv.getBoundingClientRect();
+    if (Math.abs(dx) > 8) drag.moved = true;
+    if (drag.moved) { const scale = figs[0].w / rect.width, dt = (-dx * scale / (figs[0].w - PADL - PADR)) * (drag.b - drag.a); const d = Math.max(-drag.a, Math.min(Tend - drag.b, dt)); w0 = drag.a + d; w1 = drag.b + d; draw(); }
+  });
+  const endDrag = (e: PointerEvent) => {
+    if (!drag) return;
+    const moved = drag.moved; drag = null;
+    if (moved) { spectrum(); return; }
+    const mode = val('.sv-tap'); if (mode === 'none') return;
+    const rect = cv.getBoundingClientRect(), s = figs[0].w / rect.width, x = (e.clientX - rect.left) * s, y = (e.clientY - rect.top) * s;
+    const list = shown(), r = Math.floor(y / ROW);
+    if (r < 0 || r >= list.length || x < PADL || x > figs[0].w - PADR) return;
+    const t = w0 + ((x - PADL) / (figs[0].w - PADL - PADR)) * (w1 - w0), id = traceId(list[r]);
+    picks = picks.filter((p) => !(p.id === id && p.phase === mode));
+    picks.push({ id, phase: mode, t: +t.toFixed(4) });
+    picks.sort((a, b) => a.t - b.t);
+    if (mode === 'P') q<HTMLSelectElement>('.sv-tap').value = 'S';
+    draw();
+  };
+  cv.addEventListener('pointerup', endDrag);
+  cv.addEventListener('pointercancel', () => { drag = null; });
+
+  function pickTable() {
+    const head = ['Trace', 'Phase', 'Time (s)', 'Time (UTC)', ''];
+    q('.sv-picks').replaceChildren(tr(head, true), ...picks.map((p) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary small'; b.textContent = 'Remove'; b.setAttribute('aria-label', `Remove ${p.phase} on ${p.id}`);
+      b.addEventListener('click', () => { picks = picks.filter((x) => x !== p); draw(); });
+      return tr([p.id, p.phase, p.t.toFixed(3), isoTime(T0 + p.t * 1000).replace('T', ' '), b]);
+    }));
+    q('.sv-picks').parentElement!.hidden = !picks.length;
+    const vp = num(val('.sv-vp')), vs = num(val('.sv-vs')), fs: HTMLElement[] = [];
+    const P = picks.filter((p) => p.phase === 'P'), S = picks.filter((p) => p.phase === 'S');
+    if (P.length && S.length) {
+      const tp = Math.min(...P.map((p) => p.t)), ts = Math.min(...S.map((p) => p.t)), d = ts - tp;
+      fs.push(fact('S − P time', `${d.toFixed(2)} s`, 'earliest S minus earliest P'));
+      if (vp > vs && vs > 0 && d > 0) fs.push(fact('Distance from S − P', `${sig((d * vp * vs) / (vp - vs), 3)} km`, `d = (tS − tP)·Vp·Vs/(Vp − Vs), straight path, Vp ${sig(vp, 3)}, Vs ${sig(vs, 3)} km/s`));
+      else if (d <= 0) fs.push(fact('Distance from S − P', '—', 'the S pick is not after the P pick'));
+      else fs.push(fact('Distance from S − P', '—', 'Vp must be larger than Vs, both above zero'));
+    } else fs.push(fact('Picks', picks.length ? `${picks.length}` : 'none yet', 'tap a trace to pick P, then S'));
+    q('.sv-pfacts').replaceChildren(...fs);
+  }
+
+  // ---------- spectrum ----------
+  function windowOf(t: T) {
+    const a = Math.max(0, Math.round((w0 - t.off) * t.fs)), b = Math.min(t.proc.length, Math.round((w1 - t.off) * t.fs) + 1);
+    return t.proc.subarray(a, Math.max(a, b));
+  }
+  function spectrum() {
+    if (!traces.length) return;
+    const err = q('.sv-serr'); err.hidden = true;
+    const t = traces[Number(val('.sv-str'))] ?? traces[0];
+    const x = demean(windowOf(t));
+    if (x.length < 16) { err.textContent = 'The time window holds fewer than 16 samples of this trace: zoom out.'; err.hidden = false; return; }
+    if (nextPow2(x.length) > 2 ** 21) { err.textContent = 'The time window is too long for a spectrum here (over 2 million samples): zoom in.'; err.hidden = false; return; }
+    const sp = amplitudeSpectrum(x, t.fs), dom = dominant(sp, 2 * t.fs / x.length);
+    q('.sv-sfacts').replaceChildren(fact('Dominant frequency', `${sig(dom.f, 3)} Hz`, `largest amplitude above ${sig(2 * t.fs / x.length, 2)} Hz; period ${sig(1 / dom.f, 3)} s`), fact('Samples in window', x.length.toLocaleString('en'), `${sig(x.length / t.fs, 4)} s at ${sig(t.fs, 5)} Hz; Nyquist ${sig(t.fs / 2, 4)} Hz`));
+    const fx: number[] = [], ay: number[] = [];
+    for (let k = 1; k < sp.f.length; k++) if (sp.a[k] > 0) { fx.push(sp.f[k]); ay.push(sp.a[k]); }
+    figs[1] = chartFigure({ w: 640, h: 340, xLog: true, yLog: true, xLabel: 'Frequency (Hz)', yLabel: 'Amplitude (counts or units)', legend: 'none', series: [{ name: traceId(t), x: fx, y: ay, mode: 'line', width: 1.2 }], marks: [{ kind: 'vline', at: dom.f, label: `${sig(dom.f, 3)} Hz` }] }, `Amplitude spectrum of ${traceId(t)}`);
+    paint(q<HTMLCanvasElement>('.sv-spec'), figs[1]);
+    // Spectrogram.
+    let nper = Number(val('.sv-nper'));
+    while (nper > 16 && nper > x.length / 4) nper /= 2;
+    let step = nper / 2;
+    while ((x.length - nper) / step > 1500) step *= 2;
+    const sg = spectrogram(x, t.fs, nper, nper - step);
+    figs[2] = sgramFigure(sg, t, nper);
+    paint(q<HTMLCanvasElement>('.sv-sgram'), figs[2]);
+    buildReport();
+  }
+
+  function heat(u: number, pal: Palette) {
+    u = Math.max(0, Math.min(1, u));
+    if (pal.red) return `rgb(${Math.round(20 + 200 * u)},0,0)`;
+    // Dark blue to yellow through teal and green (perceptually even enough, colour-blind safe).
+    const stops = [[22, 22, 70], [33, 102, 172], [35, 160, 140], [140, 200, 70], [250, 230, 60]];
+    const s = u * (stops.length - 1), i = Math.min(stops.length - 2, Math.floor(s)), f = s - i;
+    const c = stops[i].map((v, k) => Math.round(v + (stops[i + 1][k] - v) * f));
+    return `rgb(${c[0]},${c[1]},${c[2]})`;
+  }
+
+  function sgramFigure(sg: ReturnType<typeof spectrogram>, t: T, nper: number): Figure {
+    return {
+      w: 640, h: 330, alt: `Spectrogram of ${traceId(t)}, window ${nper} samples`,
+      draw: (ctx, W, H, pal) => {
+        const L = 54, R = 14, Tp = 10, B = 74, x0 = L, x1 = W - R, y0 = Tp, y1 = H - B;
+        let mx = -Infinity; for (const row of sg.S) for (let k = 1; k < row.length; k++) if (row[k] > 0) mx = Math.max(mx, row[k]);
+        const top = 10 * Math.log10(mx), range = 60;
+        const tA = Math.max(0, w0), tB = w1, X = (v: number) => x0 + ((v - tA) / (tB - tA)) * (x1 - x0), fN = t.fs / 2, Yf = (f: number) => y1 - (f / fN) * (y1 - y0);
+        const dt = sg.t.length > 1 ? sg.t[1] - sg.t[0] : (nper / t.fs);
+        const off = Math.max(0, Math.round((w0 - t.off) * t.fs)) / t.fs + t.off;
+        sg.S.forEach((row, j) => {
+          const xa = X(off + sg.t[j] - dt / 2), xb = X(off + sg.t[j] + dt / 2);
+          for (let k = 0; k < row.length; k++) {
+            const db = row[k] > 0 ? 10 * Math.log10(row[k]) : -Infinity;
+            ctx.fillStyle = heat((db - (top - range)) / range, pal);
+            const fa = Math.max(0, (k - 0.5) * (t.fs / nper)), fb = Math.min(fN, (k + 0.5) * (t.fs / nper));
+            ctx.fillRect(Math.floor(Math.max(x0, xa)), Math.floor(Yf(fb)), Math.ceil(Math.min(x1, xb) - Math.max(x0, xa)) + 1, Math.ceil(Yf(fa) - Yf(fb)) + 1);
+          }
+        });
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+        ctx.fillStyle = pal.ink; ctx.font = '12px system-ui, sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        const xt = niceTicks(tA, tB, 6).filter((v) => v >= tA && v <= tB), st = xt.length > 1 ? xt[1] - xt[0] : 1, dec = Math.max(0, -Math.floor(Math.log10(st) + 1e-9));
+        for (const v of xt) { ctx.beginPath(); ctx.moveTo(X(v), y1); ctx.lineTo(X(v), y1 + 4); ctx.stroke(); ctx.fillText(v.toFixed(dec), X(v), y1 + 6); }
+        ctx.fillText('Time (s)', (x0 + x1) / 2, y1 + 22);
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        for (const v of niceTicks(0, fN, 5).filter((v) => v <= fN)) { ctx.beginPath(); ctx.moveTo(x0 - 4, Yf(v)); ctx.lineTo(x0, Yf(v)); ctx.stroke(); ctx.fillText(sig(v, 3), x0 - 6, Yf(v)); }
+        ctx.save(); ctx.translate(12, (y0 + y1) / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.fillText('Frequency (Hz)', 0, 0); ctx.restore();
+        // Colour bar.
+        const by = H - 30;
+        for (let k = 0; k < 60; k++) { ctx.fillStyle = heat((k + 0.5) / 60, pal); ctx.fillRect(x0 + ((x1 - x0) * k) / 60, by, (x1 - x0) / 60 + 0.6, 10); }
+        ctx.fillStyle = pal.muted; ctx.textBaseline = 'top';
+        ctx.textAlign = 'left'; ctx.fillText(`${(top - range).toFixed(0).replace('-', '−')} dB`, x0, by + 13);
+        ctx.textAlign = 'center'; ctx.fillText('power (dB, units²/Hz)', (x0 + x1) / 2, by + 13);
+        ctx.textAlign = 'right'; ctx.fillText(`${top.toFixed(0).replace('-', '−')} dB`, x1, by + 13);
+      },
+    };
+  }
+
+  function buildReport() {
+    if (!traces.length || !figs[0]) return;
+    report = [{ title: `Seismograms: ${shown().map(traceId).join(', ')}`, facts: [['Start of 0 s', isoTime(T0)], ['Window', `${fmtT(w0)} to ${fmtT(w1)} s`], ['Processing', procText()]], figure: traceFigure(900) },
+      ...(picks.length ? [{ title: 'Picks', table: { head: ['Trace', 'Phase', 'Time (s)', 'Time (UTC)'], rows: picks.map((p) => [p.id, p.phase, p.t.toFixed(3), isoTime(T0 + p.t * 1000)]) } }] : []),
+      ...(figs[1] ? [{ title: 'Amplitude spectrum', figure: figs[1] }, { title: 'Spectrogram', figure: figs[2] }] : [])];
+  }
+  function procText() {
+    const ft = val('.sv-ft'), parts = [q<HTMLSelectElement>('.sv-trend').selectedOptions[0].text, `taper ${q<HTMLSelectElement>('.sv-taper').selectedOptions[0].text}`];
+    if (ft !== 'none') parts.push(`Butterworth ${ft} ${ft === 'bandpass' ? `${val('.sv-fl')}–${val('.sv-fh')}` : ft === 'lowpass' ? val('.sv-fh') : val('.sv-fl')} Hz, order ${val('.sv-ord')}, ${q<HTMLInputElement>('.sv-zp').checked ? 'zero phase' : 'one pass'}`);
+    return parts.join('; ');
+  }
+
+  // ---------- downloads ----------
+  function tracesCsv() {
+    const list = shown();
+    const same = list.every((t) => t.fs === list[0].fs && Math.abs(t.off - list[0].off) * t.fs < 0.01);
+    if (same) {
+      const w = list.map(windowOf), a = Math.max(0, Math.round((w0 - list[0].off) * list[0].fs)), n = Math.min(...w.map((x) => x.length));
+      return csv([['time_s', 'time_utc', ...list.map(traceId)], ...Array.from({ length: n }, (_, i) => { const tt = list[0].off + (a + i) / list[0].fs; return [+tt.toFixed(6), isoTime(T0 + tt * 1000), ...w.map((x) => +x[i].toPrecision(9))]; })]);
+    }
+    const rows: (string | number)[][] = [['trace', 'time_s', 'time_utc', 'value']];
+    for (const t of list) { const x = windowOf(t), a = Math.max(0, Math.round((w0 - t.off) * t.fs)); x.forEach((v, i) => { const tt = t.off + (a + i) / t.fs; rows.push([traceId(t), +tt.toFixed(6), isoTime(T0 + tt * 1000), +v.toPrecision(9)]); }); }
+    return csv(rows);
+  }
+
+  q('.sv-open').addEventListener('click', () => q<HTMLInputElement>('.sv-file').click());
+  q<HTMLInputElement>('.sv-file').addEventListener('change', (e) => { const f = (e.target as HTMLInputElement).files; if (f?.length) openFiles(f); (e.target as HTMLInputElement).value = ''; });
+  q('.sv-ex').addEventListener('click', () => setTraces(example(), 'Showing the made-up example: a small local earthquake on three components (vertical, north, east), 100 samples per second.'));
+  root.addEventListener('dragover', (e) => e.preventDefault());
+  root.addEventListener('drop', (e) => { e.preventDefault(); if (e.dataTransfer?.files.length) openFiles(e.dataTransfer.files); });
+  for (const c of ['.sv-trend', '.sv-taper', '.sv-ft', '.sv-ord', '.sv-zp']) q(c).addEventListener('change', process);
+  let timer = 0;
+  for (const c of ['.sv-fl', '.sv-fh']) q(c).addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(process, 300); });
+  for (const c of ['.sv-vp', '.sv-vs']) q(c).addEventListener('input', pickTable);
+  q('.sv-scale').addEventListener('change', draw);
+  for (const c of ['.sv-str', '.sv-nper']) q(c).addEventListener('change', spectrum);
+  const setWin = () => { const a = num(val('.sv-t0')), b = num(val('.sv-t1')); if (Number.isFinite(a) && Number.isFinite(b) && b > a) { w0 = Math.max(0, a); w1 = Math.min(Tend, b); if (w1 <= w0) w1 = Math.min(Tend, w0 + 1); draw(); spectrum(); } };
+  for (const c of ['.sv-t0', '.sv-t1']) q(c).addEventListener('change', setWin);
+  q('.sv-zin').addEventListener('click', () => zoom(0.5));
+  q('.sv-zout').addEventListener('click', () => zoom(2));
+  q('.sv-left').addEventListener('click', () => pan(-(w1 - w0) * 0.5));
+  q('.sv-right').addEventListener('click', () => pan((w1 - w0) * 0.5));
+  q('.sv-full').addEventListener('click', () => { w0 = 0; w1 = Tend; draw(); spectrum(); });
+  q('.sv-clear').addEventListener('click', () => { picks = []; q<HTMLSelectElement>('.sv-tap').value = 'P'; draw(); });
+  q('.sv-pcsv').addEventListener('click', () => save(new Blob([csv([['trace', 'phase', 'time_s', 'time_utc'], ...picks.map((p) => [p.id, p.phase, p.t, isoTime(T0 + p.t * 1000)])])], { type: 'text/csv' }), 'seismogram-picks.csv', 'text/csv'));
+  q('.sv-csv').addEventListener('click', () => save(new Blob([tracesCsv()], { type: 'text/csv' }), 'seismogram-window.csv', 'text/csv'));
+  const repaint = () => { draw(); if (figs[1]) paint(q<HTMLCanvasElement>('.sv-spec'), figs[1]); if (figs[2]) paint(q<HTMLCanvasElement>('.sv-sgram'), figs[2]); };
+  document.addEventListener('fibub:theme', repaint);
+  let rz = 0; window.addEventListener('resize', () => { clearTimeout(rz); rz = window.setTimeout(draw, 200); });
+  wireDownloads(q('.dl'), () => ({ title: 'Seismograms', subtitle: procText(), file: 'seismograms', sections: report }));
+  setTraces(example(), 'Showing the made-up example: a small local earthquake on three components (vertical, north, east), 100 samples per second.');
+</script>
+
+<style is:global>
+  .sgv select, .sgv input[type='text'] { max-width: 100%; }
+  .sgv td { white-space: nowrap; }
+  .sgv .sv-fig { cursor: crosshair; user-select: none; -webkit-user-select: none; }
+</style>

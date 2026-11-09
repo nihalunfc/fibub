@@ -1,0 +1,295 @@
+---
+// Interactive periodic table: tap an element for its atomic weight, place, ground-state electron configuration
+// (Aufbau with the known exceptions), noble-gas notation, ion configurations, oxidation states, electronegativity and
+// ionisation energy; colour the table by a property and chart it against atomic number. Nothing is stored or sent.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ptab">
+  <div class="ax-card">
+    <h2>Periodic table</h2>
+    <div class="ax-grid">
+      <label>Colour by <select class="pt-prop"></select></label>
+      <label>Find an element <input class="pt-find" type="search" placeholder="Fe, iron or 26" autocomplete="off" spellcheck="false" /></label>
+    </div>
+    <p class="ax-err pt-ferr" hidden></p>
+    <div class="ax-scroll pt-wrap" tabindex="0" aria-label="Periodic table, scroll sideways on a phone">
+      <div class="pt-grid" role="grid" aria-label="Periodic table"></div>
+    </div>
+    <p class="ax-help pt-swipe">On a phone, swipe the table sideways to see all 18 groups, or type an element in the box above.</p>
+    <div class="ax-legend pt-legend"></div>
+  </div>
+
+  <div class="ax-card pt-card">
+    <div class="pt-head">
+      <div class="pt-tile"><span class="pt-tz"></span><b class="pt-ts"></b><span class="pt-tw"></span></div>
+      <div>
+        <p class="ax-big pt-name"></p>
+        <p class="pt-sub"></p>
+      </div>
+    </div>
+    <div class="ax-row" style="margin:10px 0 12px">
+      <button type="button" class="btn secondary small pt-prev">‹ Previous</button>
+      <button type="button" class="btn secondary small pt-next">Next ›</button>
+    </div>
+    <dl class="ax-facts pt-facts"></dl>
+
+    <h3 class="pt-h3">Electron configuration</h3>
+    <div class="ax-row">
+      <span class="ax-seg pt-order" role="group" aria-label="Order of subshells">
+        <button type="button" data-o="shell" aria-pressed="true">By shell</button>
+        <button type="button" data-o="fill" aria-pressed="false">Filling order</button>
+      </span>
+    </div>
+    <dl class="pt-cfg"></dl>
+    <p class="pt-exc"></p>
+
+    <h3 class="pt-h3">Ion</h3>
+    <div class="ax-grid">
+      <label>Charge <input class="pt-q" type="number" step="1" value="2" min="-4" max="8" inputmode="numeric" /></label>
+    </div>
+    <p class="pt-ion"></p>
+    <p class="ax-help">Electrons leave the outermost shell first (4s before 3d, 6s before 4f), and added electrons go into the next empty places. This is the usual rule; a few ions in real compounds differ.</p>
+
+    <h3 class="pt-h3">Natural isotopes</h3>
+    <p class="pt-iso"></p>
+
+    <Downloads label="Element card" />
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pt-csv">All 118 elements (.csv)</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Trend across the table</h2>
+    <div class="ax-grid"><label>Property <select class="pt-chartp"></select></label></div>
+    <canvas class="ax-fig pt-fig" style="margin-top:10px"></canvas>
+    <p class="ax-help pt-chelp"></p>
+  </div>
+</div>
+
+<style is:global>
+  .ptab .pt-wrap { margin-top: 12px; padding-bottom: 4px; }
+  .ptab .pt-grid { display: grid; grid-template-columns: repeat(18, minmax(32px, 1fr)); grid-auto-rows: auto; gap: 3px; min-width: 640px; }
+  .ptab .pt-gap { grid-column: 1 / -1; height: 8px; }
+  .ptab .pt-el { all: unset; box-sizing: border-box; display: grid; align-content: center; justify-items: center; aspect-ratio: 1 / 1.08; min-width: 0; border-radius: 5px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; line-height: 1.05; padding: 1px; font-variant-numeric: tabular-nums; }
+  .ptab .pt-el small { font-size: 9px; opacity: 0.85; }
+  .ptab .pt-el b { font-size: clamp(12px, 1.6vw, 17px); }
+  .ptab .pt-el:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+  .ptab .pt-el[aria-selected=true] { outline: 3px solid var(--ink); outline-offset: 1px; position: relative; z-index: 1; }
+  .ptab .pt-el.dim { opacity: 0.3; }
+  .ptab .pt-ph { display: grid; place-items: center; font-size: 9px; color: var(--muted); border: 1px dashed var(--line); border-radius: 5px; text-align: center; line-height: 1.1; }
+  .ptab .pt-legend .pt-bar { display: inline-block; width: 120px; height: 12px; border-radius: 3px; vertical-align: -2px; margin: 0 6px; border: 1px solid var(--line); }
+  .ptab .pt-head { display: flex; gap: 14px; align-items: center; }
+  .ptab .pt-tile { flex: 0 0 auto; width: 84px; height: 92px; border: 2px solid var(--ink); border-radius: 10px; display: grid; justify-items: center; align-content: center; gap: 2px; font-variant-numeric: tabular-nums; }
+  .ptab .pt-tile b { font-size: 30px; line-height: 1; }
+  .ptab .pt-tz, .ptab .pt-tw { font-size: 13px; }
+  .ptab .pt-name { margin: 0; }
+  .ptab .pt-sub { margin: 2px 0 0; color: var(--muted); }
+  .ptab .pt-h3 { font-size: 16px; margin: 18px 0 8px; }
+  .ptab .pt-cfg { margin: 10px 0 0; display: grid; gap: 8px; }
+  .ptab .pt-cfg dt { font-size: 13px; color: var(--muted); }
+  .ptab .pt-cfg dd { margin: 0; font-size: 17px; font-weight: 600; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+  .ptab .pt-exc { font-size: 14px; margin: 10px 0 0; }
+  .ptab .pt-exc:empty { display: none; }
+  .ptab .pt-ion { font-size: 17px; font-weight: 600; margin: 8px 0 0; overflow-wrap: anywhere; }
+  .ptab .pt-iso { margin: 0; font-size: 15px; }
+  .ptab .pt-facts { grid-template-columns: repeat(auto-fill, minmax(min(100%, 128px), 1fr)); }
+  .ptab .pt-facts dd { font-size: 16px; }
+</style>
+
+<script>
+  import { TABLE, PROPERTIES, cellOf, configText, nobleGas, aufbau, ionConfiguration, findElement, oxText, weightText, csvRows, CATEGORIES, type ElementInfo, type Property } from '../../lib/sci/ptable';
+  import { ELEMENTS } from '../../lib/sci/chem';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, pagePalette, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ptab')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; };
+  const nf = (x: number, unit = '') => (Number.isFinite(x) ? `${x}${unit ? ' ' + unit : ''}` : 'no value');
+  const sign = (n: number) => (n > 0 ? `${n === 1 ? '' : n}+` : n < 0 ? `${n === -1 ? '' : -n}−` : '');
+  const supn = (n: number) => String(n).replace(/\d/g, (d) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+d]);
+  const supq = (n: number) => sign(n).replace(/\d/g, (d) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+d]).replace('+', '⁺').replace('−', '⁻');
+
+  let sel = 26, order: 'shell' | 'fill' = 'shell', fig: Figure | null = null;
+
+  // Colours: a one-hue ramp for numbers, soft tints for categories; light, dark and red-light versions.
+  const hex = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const mix = (a: string, b: string, t: number) => { const A = hex(a), B = hex(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
+  const lum = (h: string) => { const [r, g, b] = hex(h).map((v) => v / 255); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+  const CAT_COLORS = ['#d55e00', '#e69f00', '#0072b2', '#cc79a7', '#9467bd', '#009e73', '#56b4e9', '#2ca02c', '#f0e442', '#7f7f7f', '#8c564b'];
+  const BLOCK_COLORS: Record<string, string> = { s: '#d55e00', p: '#0072b2', d: '#009e73', f: '#cc79a7' };
+  function ramp(t: number) {
+    const p = pagePalette();
+    if (p.red) return mix('#120000', '#a30000', t);
+    return document.documentElement.dataset.theme === 'dark' ? mix('#1b2433', '#a9cdf7', t) : mix('#eaf1fb', '#0d3b82', t);
+  }
+  function tint(c: string) {
+    const p = pagePalette();
+    if (p.red) return mix('#000000', '#a30000', 0.25 + 0.05 * (CAT_COLORS.indexOf(c) % 6));
+    return document.documentElement.dataset.theme === 'dark' ? mix('#0a0a0a', c, 0.45) : mix('#ffffff', c, 0.35);
+  }
+  const prop = () => PROPERTIES.find((p) => p.id === q<HTMLSelectElement>('.pt-prop').value)!;
+  function colourOf(p: Property, e: ElementInfo, lo: number, hi: number): string | null {
+    const v = p.get(e);
+    if (p.kind === 'category') return tint(p.id === 'block' ? BLOCK_COLORS[v as string] : CAT_COLORS[CATEGORIES.indexOf(v as never)]);
+    if (!Number.isFinite(v as number)) return null;
+    return ramp(hi > lo ? ((v as number) - lo) / (hi - lo) : 0.5);
+  }
+
+  // Build the grid once.
+  const grid = q('.pt-grid');
+  const cells = new Map<number, HTMLButtonElement>();
+  for (const e of TABLE) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'pt-el'; b.dataset.z = String(e.z);
+    b.setAttribute('role', 'gridcell');
+    b.setAttribute('aria-label', `${e.z} ${e.name}`);
+    b.innerHTML = '<small></small><b></b>';
+    b.querySelector('small')!.textContent = String(e.z); b.querySelector('b')!.textContent = e.symbol;
+    const c = cellOf(e.z);
+    b.style.gridRow = String(c.row); b.style.gridColumn = String(c.col);
+    b.addEventListener('click', () => select(e.z));
+    cells.set(e.z, b); grid.append(b);
+  }
+  const gap = document.createElement('div'); gap.className = 'pt-gap'; gap.style.gridRow = '8'; grid.append(gap);
+  for (const [r, t] of [[9, 'Lanthanoids'], [10, 'Actinoids']] as const) {
+    const ph = document.createElement('div'); ph.className = 'pt-ph'; ph.textContent = t; ph.style.gridRow = String(r); ph.style.gridColumn = '1 / 3'; grid.append(ph);
+  }
+
+  function paintTable() {
+    const p = prop();
+    const vals = TABLE.map((e) => p.get(e)).filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+    const lo = Math.min(...vals), hi = Math.max(...vals);
+    for (const e of TABLE) {
+      const b = cells.get(e.z)!, c = colourOf(p, e, lo, hi);
+      b.style.background = c ?? ''; b.style.color = c ? (lum(c) < 0.42 ? '#ffffff' : '#0a0a0a') : '';
+      if (pagePalette().red && c) b.style.color = lum(c) < 0.1 ? '#a30000' : '#000000';
+      b.classList.toggle('dim', !c);
+      const v = p.get(e);
+      b.title = `${e.name}: ${p.kind === 'number' ? nf(v as number, p.unit) : v}`;
+    }
+    const lg = q('.pt-legend'); lg.replaceChildren();
+    if (p.kind === 'category') {
+      const keys = p.id === 'block' ? ['s', 'p', 'd', 'f'] : CATEGORIES;
+      for (const k of keys) { const s = document.createElement('span'); const i = document.createElement('i'); i.style.background = tint(p.id === 'block' ? BLOCK_COLORS[k] : CAT_COLORS[CATEGORIES.indexOf(k as never)]); s.append(i, p.id === 'block' ? `${k} block` : k); lg.append(s); }
+    } else {
+      const s = document.createElement('span'); const bar = document.createElement('span'); bar.className = 'pt-bar';
+      bar.style.background = `linear-gradient(90deg, ${ramp(0)}, ${ramp(0.5)}, ${ramp(1)})`;
+      s.append(`${+lo.toFixed(2)}`, bar, `${+hi.toFixed(2)}${p.unit ? ' ' + p.unit : ''}`); lg.append(s);
+      const n = TABLE.length - vals.length;
+      if (n) { const m = document.createElement('span'); m.textContent = `Faded: no value (${n} elements)`; lg.append(m); }
+    }
+  }
+
+  function select(z: number, scroll = false) {
+    sel = Math.min(118, Math.max(1, z));
+    for (const [k, b] of cells) b.setAttribute('aria-selected', String(k === sel));
+    if (scroll) cells.get(sel)!.scrollIntoView({ block: 'nearest', inline: 'center' });
+    show();
+  }
+
+  function show() {
+    const e = TABLE[sel - 1];
+    q('.pt-tz').textContent = String(e.z); q('.pt-ts').textContent = e.symbol; q('.pt-tw').textContent = weightText(e);
+    q('.pt-name').textContent = e.name;
+    q('.pt-sub').textContent = `${e.category[0].toUpperCase() + e.category.slice(1)}, ${e.block} block${e.radioactive ? ', radioactive (no stable isotope)' : ''}`;
+    const facts: [string, string][] = [
+      ['Atomic number', String(e.z)],
+      ['Standard atomic weight', e.radioactive ? `${weightText(e)} (mass number of the longest-lived isotope)` : `${e.weight} g/mol`],
+      ['Group', e.group ? String(e.group) : `none (f block, ${e.period === 6 ? 'lanthanoid' : 'actinoid'})`],
+      ['Period', String(e.period)],
+      ['Block', e.block + (e.z === 2 ? ' (placed in group 18)' : '')],
+      ['Electronegativity (Pauling)', nf(e.en)],
+      ['First ionisation energy', Number.isFinite(e.ie) ? `${e.ie} eV (${Math.round(e.ie * 96.485)} kJ/mol)` : 'no measured value'],
+      ['Common oxidation states', oxText(e.oxidation)],
+      ['Unpaired electrons (atom)', String(e.unpaired)],
+    ];
+    q('.pt-facts').replaceChildren(...facts.map(([k, v]) => fact(k, v)));
+    const o = { sup: true, order };
+    const full = configText(e.config, o), ng = nobleGas(e.config, o);
+    const cfg: [string, string][] = [['Full', full], ['Noble-gas notation', ng]];
+    q('.pt-cfg').replaceChildren(...cfg.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+    const exc = q('.pt-exc');
+    if (e.exception) exc.textContent = `An exception to the Aufbau rule: the rule alone would give ${nobleGas(aufbau(e.z), o)}. The measured ground state is the one above.`;
+    else if (e.predicted) exc.textContent = 'Predicted from the Aufbau rule. Atoms this heavy have never been measured; calculations disagree for some of them.';
+    else exc.textContent = '';
+    showIon();
+    const el = ELEMENTS[e.z - 1];
+    q('.pt-iso').textContent = e.radioactive ? `None stable. Longest-lived: ${supn(el.isotopes[0].a)}${e.symbol}.` : el.isotopes.filter((i) => i.abundance > 0).map((i) => `${supn(i.a)}${e.symbol} ${+(i.abundance * 100).toFixed(4)} %`).join(', ');
+    q<HTMLButtonElement>('.pt-prev').disabled = sel === 1; q<HTMLButtonElement>('.pt-next').disabled = sel === 118;
+    drawChart();
+  }
+
+  function showIon() {
+    const e = TABLE[sel - 1], out = q('.pt-ion');
+    const n = Number(q<HTMLInputElement>('.pt-q').value);
+    if (!Number.isInteger(n)) { out.textContent = 'Type a whole-number charge, such as 2 or −1.'; return ''; }
+    if (n === 0) { out.textContent = 'Charge 0 is the neutral atom above.'; return ''; }
+    if (n >= e.z) { out.textContent = `${e.symbol} has only ${e.z} electron${e.z > 1 ? 's' : ''}.`; return ''; }
+    if (n < -4) { out.textContent = 'Anions with more than four extra electrons do not exist.'; return ''; }
+    const r = ionConfiguration(e.z, n);
+    const t = `${e.symbol}${supq(n)}: ${nobleGas(r.config, { sup: true, order, ion: true })} (${e.z - n} electrons)`;
+    out.textContent = t + (r.intoCore ? '. This takes electrons from the noble-gas core; such ions are not found in ordinary chemistry.' : '');
+    return t;
+  }
+
+  function drawChart() {
+    const p = PROPERTIES.find((x) => x.id === q<HTMLSelectElement>('.pt-chartp').value)!;
+    const e = TABLE[sel - 1], pal = pagePalette();
+    // Split into runs so gaps (no value) are not joined by a line.
+    const runs: { x: number[]; y: number[] }[] = [];
+    let cur: { x: number[]; y: number[] } | null = null;
+    for (const t of TABLE) { const v = p.get(t) as number; if (Number.isFinite(v)) { if (!cur) runs.push(cur = { x: [], y: [] }); cur.x.push(t.z); cur.y.push(v); } else cur = null; }
+    const v = p.get(e) as number;
+    const series = runs.map((r, i) => ({ name: i ? `${p.name} ${i}` : p.name, x: r.x, y: r.y, mode: 'both' as const, marker: 'circle' as const, size: 3, width: 1.5, color: pal.accent }));
+    if (Number.isFinite(v)) series.push({ name: e.symbol, x: [e.z], y: [v], mode: 'points' as const, marker: 'circle' as const, size: 7, width: 1, color: pal.bad, labels: [` ${e.symbol} ${v}`] } as never);
+    const marks = [2, 10, 18, 36, 54, 86].map((z) => ({ kind: 'vline' as const, at: z, dash: [2, 3] }));
+    fig = chartFigure({ w: 560, h: 360, xLabel: 'Atomic number', yLabel: p.name + (p.unit ? ` (${p.unit})` : ''), xMin: 0, xMax: 120, legend: 'none', series, marks },
+      `${p.name} against atomic number, ${e.name} marked${Number.isFinite(v) ? ` at ${v}` : ' (no value)'}`);
+    paint(q<HTMLCanvasElement>('.pt-fig'), fig);
+    q('.pt-chelp').textContent = `Dotted lines mark the noble gases, where each period ends. ${Number.isFinite(v) ? `${e.name} (red point): ${v}${p.unit ? ' ' + p.unit : ''}.` : `${e.name} has no value for this.`}`;
+  }
+
+  // Controls
+  for (const p of PROPERTIES) {
+    const o = document.createElement('option'); o.value = p.id; o.textContent = p.name; q('.pt-prop').append(o);
+    if (p.kind === 'number') { const c = o.cloneNode(true) as HTMLOptionElement; q('.pt-chartp').append(c); }
+  }
+  q<HTMLSelectElement>('.pt-chartp').value = 'ie';
+  q('.pt-prop').addEventListener('change', () => { paintTable(); const p = prop(); if (p.kind === 'number') { q<HTMLSelectElement>('.pt-chartp').value = p.id; drawChart(); } });
+  q('.pt-chartp').addEventListener('change', drawChart);
+  q('.pt-find').addEventListener('input', () => {
+    const v = q<HTMLInputElement>('.pt-find').value, e = findElement(v), err = q('.pt-ferr');
+    err.hidden = !v.trim() || !!e;
+    err.textContent = `No element "${v.trim()}". Type a symbol (Fe), a name (iron) or an atomic number from 1 to 118.`;
+    if (e) select(e.z, true);
+  });
+  q('.pt-prev').addEventListener('click', () => select(sel - 1, true));
+  q('.pt-next').addEventListener('click', () => select(sel + 1, true));
+  q('.pt-q').addEventListener('input', showIon);
+  for (const b of root.querySelectorAll<HTMLButtonElement>('.pt-order button')) b.addEventListener('click', () => {
+    order = b.dataset.o as 'shell' | 'fill';
+    for (const x of root.querySelectorAll('.pt-order button')) x.setAttribute('aria-pressed', String(x === b));
+    show();
+  });
+  grid.addEventListener('keydown', (ev) => {
+    const k = (ev as KeyboardEvent).key, d = k === 'ArrowRight' ? 1 : k === 'ArrowLeft' ? -1 : 0;
+    if (d) { ev.preventDefault(); select(sel + d, true); cells.get(sel)!.focus(); }
+  });
+  q('.pt-csv').addEventListener('click', () => save(new Blob([csv(csvRows())], { type: 'text/csv' }), 'periodic-table.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { paintTable(); if (fig) paint(q<HTMLCanvasElement>('.pt-fig'), fig); });
+  wireDownloads(q('.pt-card .dl'), () => {
+    const e = TABLE[sel - 1];
+    const sections: Section[] = [
+      { title: `${e.z} ${e.symbol} ${e.name}`, facts: [...q('.pt-facts').children].map((d) => [d.querySelector('dt')!.textContent ?? '', d.querySelector('dd')!.textContent ?? '']) as [string, string][] },
+      { title: 'Electron configuration', text: [`Full: ${configText(e.config, { sup: true, order })}`, `Noble-gas notation: ${nobleGas(e.config, { sup: true, order })}`, q('.pt-exc').textContent ?? '', q('.pt-ion').textContent ?? ''].filter(Boolean) },
+      { title: 'Natural isotopes', text: [q('.pt-iso').textContent ?? ''] },
+    ];
+    if (fig) sections.push({ title: 'Trend across the table', figure: fig });
+    sections.push({ title: 'Sources', text: ['Standard atomic weights: IUPAC/CIAAW. Ground-state configurations: Aufbau rule with the measured exceptions (NIST Atomic Spectra Database). Ionisation energies: NIST, rounded. Electronegativity: Pauling scale as revised by Allred (1961).'] });
+    return { title: `${e.name} (${e.symbol})`, subtitle: 'Periodic table element card, fibub.com', file: `element-${e.z}-${e.symbol}`, sections };
+  });
+
+  paintTable(); select(26);
+</script>

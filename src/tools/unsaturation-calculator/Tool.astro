@@ -1,0 +1,172 @@
+---
+// Degree of unsaturation (rings plus double bonds) from a molecular formula or a SMILES string, with the electron
+// parity check, nitrogen rule, exact and nominal masses and the ring/π-bond combinations. Nothing is stored or sent.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax dbec">
+  <div class="ax-card">
+    <div class="ax-row" style="margin-bottom:10px">
+      <span class="ax-seg dbe-mode" role="group" aria-label="Input">
+        <button type="button" data-m="formula" aria-pressed="true">Formula</button>
+        <button type="button" data-m="smiles" aria-pressed="false">SMILES</button>
+      </span>
+    </div>
+    <label><span class="dbe-lab">Molecular formula</span> <input class="dbe-in" value="C8H10N4O2" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
+    <div class="ax-row dbe-ex" style="margin-top:8px"><span class="ax-help" style="margin:0">Try</span></div>
+    <p class="ax-help dbe-help"></p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Count sulfur as <select class="dbe-S"><option value="2" selected>2 bonds (sulfide, thiol)</option><option value="4">4 bonds (sulfoxide)</option><option value="6">6 bonds (sulfone, sulfate)</option></select></label>
+      <label>Count phosphorus as <select class="dbe-P"><option value="3" selected>3 bonds (phosphine)</option><option value="5">5 bonds (phosphate, P=O)</option></select></label>
+    </div>
+    <p class="ax-help">The formula assumes each atom makes its usual number of bonds: C and Si 4, N and P 3, O and S 2, H and halogens 1. With sulfur counted as 2, the S=O bonds of a sulfone or sulfate are not counted as double bonds; choose 6 to count them.</p>
+    <p class="ax-err dbe-err" hidden></p>
+  </div>
+
+  <div class="ax-card dbe-out" hidden>
+    <h2>Result</h2>
+    <p class="ax-big dbe-big"></p>
+    <p class="dbe-status"></p>
+    <dl class="ax-facts dbe-facts"></dl>
+    <ul class="dbe-notes"></ul>
+    <Downloads label="Report" />
+  </div>
+
+  <div class="ax-card dbe-out dbe-combo-card" hidden>
+    <h2>Rings and π bonds that fit</h2>
+    <p class="ax-help dbe-chelp" style="margin:0 0 10px"></p>
+    <div class="ax-scroll"><table class="dbe-tab"><thead><tr><th class="r">Rings</th><th class="r">Double</th><th class="r">Triple</th><th>For example</th></tr></thead><tbody></tbody></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small dbe-csv">Combinations (.csv)</button></div>
+  </div>
+</div>
+
+<style is:global>
+  .dbec .dbe-status { margin: 0 0 12px; }
+  .dbec .dbe-status .ax-pill { margin: 0 6px 4px 0; font-size: 13px; }
+  .dbec .dbe-notes { margin: 12px 0 0; padding-left: 20px; font-size: 14px; }
+  .dbec .dbe-notes:empty { display: none; }
+  .dbec .dbe-notes li + li { margin-top: 4px; }
+  .dbec .dbe-tab td.r { font-variant-numeric: tabular-nums; width: 3.5em; }
+  .dbec .dbe-tab td:last-child { min-width: 11em; }
+  .dbec .dbe-facts { grid-template-columns: repeat(auto-fill, minmax(min(100%, 128px), 1fr)); }
+  .dbec .dbe-facts dd { font-size: 16px; }
+  .dbec .dbe-tab tr.best td { font-weight: 600; }
+</style>
+
+<script>
+  import { dbeOf, parseSmiles, smilesSummary, combinations, EXAMPLES, type DbeResult, type Combo } from '../../lib/sci/dbe';
+  import { parseFormula, hill } from '../../lib/sci/chem';
+  import { csv } from '../../lib/sci/num';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.dbec')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; };
+  const pill = (t: string, cls: string) => { const s = document.createElement('span'); s.className = 'ax-pill ' + cls; s.textContent = t; return s; };
+  const n = (x: number) => String(+x.toFixed(2)).replace('-', '−');
+  let mode: 'formula' | 'smiles' = 'formula';
+  let sections: Section[] = [], combos: Combo[] = [], lastD = NaN;
+  const typed: Record<string, string> = { formula: 'C8H10N4O2', smiles: 'Cn1cnc2c1c(=O)n(C)c(=O)n2C' };
+
+  const HELP = {
+    formula: 'Type a formula such as C6H12O6, C5H6N+ or SO4^2-. Brackets and isotope labels ([13C], D) work. Capitals matter: Cl is chlorine, CL is not a formula.',
+    smiles: 'Paste a SMILES string, such as c1ccccc1 for benzene. Lower-case letters are aromatic atoms; hydrogens are added to plain atoms; bracket atoms ([NH4+], [O-], [13CH3], [nH]) carry their own hydrogens and charge. Stereo marks (@, /, \\) are read and ignored.',
+  };
+
+  function setMode(m: 'formula' | 'smiles') {
+    typed[mode] = q<HTMLInputElement>('.dbe-in').value;
+    mode = m;
+    for (const b of root.querySelectorAll('.dbe-mode button')) b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.m === m));
+    q('.dbe-lab').textContent = m === 'formula' ? 'Molecular formula' : 'SMILES string';
+    q<HTMLInputElement>('.dbe-in').value = typed[m];
+    q('.dbe-help').textContent = HELP[m];
+    const ex = q('.dbe-ex'); ex.querySelectorAll('button').forEach((b) => b.remove());
+    for (const e of EXAMPLES) { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary small'; b.textContent = e.name; b.dataset.v = m === 'formula' ? e.formula : e.smiles; b.addEventListener('click', () => { q<HTMLInputElement>('.dbe-in').value = b.dataset.v!; run(); }); ex.append(b); }
+    run();
+  }
+
+  /** A short reading of a combination; benzene-type rings (1 ring + 3 C=C) are named when the atoms allow. */
+  function example(c: Combo, heavy: number) {
+    const bz = heavy >= 6 ? Math.min(c.rings, Math.floor(c.double / 3), Math.floor(heavy / 6)) : 0;
+    const r = c.rings - bz, d = c.double - 3 * bz, bits: string[] = [];
+    if (bz) bits.push(bz === 1 ? 'a benzene ring' : `${bz} benzene rings`);
+    if (r) bits.push(`${r} ${bz ? 'other ' : ''}ring${r > 1 ? 's' : ''}`);
+    if (d) bits.push(`${d} C=C or C=O`);
+    if (c.triple) bits.push(`${c.triple} C≡C or C≡N`);
+    return bits.length ? bits.join(' + ') : 'saturated, no rings';
+  }
+
+  function run() {
+    const s = q<HTMLInputElement>('.dbe-in').value, err = q('.dbe-err');
+    const val = { S: Number(q<HTMLSelectElement>('.dbe-S').value), P: Number(q<HTMLSelectElement>('.dbe-P').value) };
+    let r: DbeResult, sm: ReturnType<typeof smilesSummary> | null = null;
+    try {
+      if (mode === 'smiles') { sm = smilesSummary(parseSmiles(s)); r = dbeOf(sm.formula, val); }
+      else r = dbeOf(parseFormula(s), val);
+    } catch (e) {
+      err.textContent = (e as Error).message; err.hidden = false;
+      for (const o of root.querySelectorAll<HTMLElement>('.dbe-out')) o.hidden = true;
+      sections = []; combos = []; return;
+    }
+    err.hidden = true;
+    for (const o of root.querySelectorAll<HTMLElement>('.dbe-out')) o.hidden = false;
+    const ion = r.charge !== 0;
+    const d = ion ? NaN : r.rdbe;
+    q('.dbe-big').textContent = `Rings + double bonds: ${n(r.rdbe)}`;
+    const st = q('.dbe-status'); st.replaceChildren();
+    if (r.problems.length) st.append(pill('Not a stable neutral molecule as written', 'bad'));
+    else st.append(pill(ion ? (r.evenElectron ? 'Even-electron ion' : 'Radical ion') : 'Valid formula: even number of electrons', ion && !r.evenElectron ? 'warn' : 'good'));
+    if (r.evenElectron || !ion) st.append(pill(r.nitrogenRule.text.startsWith('Nominal') ? 'Isotope-labelled' : `Nitrogen rule: nominal mass ${r.nominal % 2 ? 'odd' : 'even'}`, 'good'));
+    const facts: [string, string][] = [
+      ['Formula (Hill order)', hill(r.formula, true)],
+      ['Rings + double bonds (formula)', n(r.rdbe)],
+    ];
+    if (ion) facts.push(['If the charge is on N, O, S or P', `${n(r.ionOnium)} rings + π bonds`], ['If the charge is on carbon', `${n(r.ionCarbon)} rings + π bonds`]);
+    if (sm) {
+      const pi = r.rdbe - sm.rings;
+      facts.push(['Rings (from the SMILES)', String(sm.rings)], ['Bonds written', `${sm.double} double, ${sm.triple} triple, ${sm.aromaticBonds} aromatic`]);
+      if (!ion && sm.components === 1) facts.push(['π bonds (value − rings)', n(pi)]);
+      if (sm.components > 1) facts.push(['Separate parts', `${sm.components} (the formula value counts them as one molecule)`]);
+      facts.push(['Atoms', `${sm.atoms} (${sm.heavy} not hydrogen)`]);
+    }
+    facts.push(
+      ['Valence electrons', `${r.valenceElectrons} (${r.evenElectron ? 'even' : 'odd'})`],
+      ['Monoisotopic mass', `${r.mono.toFixed(5)} u`],
+      ['Nominal mass', String(r.nominal)],
+      ['Average molar mass', `${r.average.toFixed(3)} g/mol`],
+    );
+    q('.dbe-facts').replaceChildren(...facts.map(([k, v]) => fact(k, v)));
+    const notes = [...r.problems, r.nitrogenRule.text, ...r.notes];
+    if (sm && sm.components > 1) notes.push(`The SMILES has ${sm.components} separate parts. The formula value treats them as one molecule, so it is ${sm.components - 1} less than the rings and π bonds of the parts added up.`);
+    if (val.S !== 2 || val.P !== 3) notes.push(`Counted with ${val.S !== 2 ? `S as ${val.S}` : ''}${val.S !== 2 && val.P !== 3 ? ' and ' : ''}${val.P !== 3 ? `P as ${val.P}` : ''} bonds.`);
+    q('.dbe-notes').replaceChildren(...notes.map((t) => { const li = document.createElement('li'); li.textContent = t; return li; }));
+
+    // Combinations: whole, non-negative values only (an ion uses the value for its likely charge site).
+    const target = ion ? (Number.isInteger(r.ionOnium) && r.ionOnium >= 0 ? r.ionOnium : r.ionCarbon) : d;
+    const heavy = [...r.counts].reduce((a, [k, c]) => a + (k === 'H' ? 0 : c), 0);
+    combos = Number.isInteger(target) && target >= 0 ? combinations(target, heavy) : [];
+    lastD = target;
+    const card = q('.dbe-combo-card'); card.hidden = !combos.length;
+    q('.dbe-chelp').textContent = `Every way to make ${n(target)} from rings, double bonds (C=C, C=O, C=N, each counts 1) and triple bonds (each counts 2), for ${heavy} atoms other than hydrogen.${ion ? ` For this ion, ${n(target)} assumes the charge sits on ${target === r.ionOnium ? 'a heteroatom' : 'carbon'}.` : ''}${combos.length >= 200 ? ' The first 200 are shown.' : ''}`;
+    const best = sm && !ion && sm.components === 1 ? sm.rings : -1;
+    q('.dbe-tab tbody').replaceChildren(...combos.map((c) => {
+      const tr = document.createElement('tr'); if (c.rings === best) tr.className = 'best';
+      for (const [v, cls] of [[c.rings, 'r'], [c.double, 'r'], [c.triple, 'r'], [example(c, heavy), '']] as const) { const td = document.createElement('td'); td.textContent = String(v); if (cls) td.className = cls; tr.append(td); }
+      return tr;
+    }));
+
+    sections = [
+      { title: 'Result', text: [q('.dbe-big').textContent ?? '', `Input (${mode}): ${s.trim()}`], facts },
+      { title: 'Notes', text: notes },
+    ];
+    if (combos.length) sections.push({ title: 'Rings and π bonds that fit', table: { head: ['Rings', 'Double bonds', 'Triple bonds', 'For example'], rows: combos.slice(0, 60).map((c) => [String(c.rings), String(c.double), String(c.triple), example(c, heavy)]), align: ['r', 'r', 'r', 'l'] } });
+    sections.push({ title: 'Method', text: ['Rings + double bonds = 1 + ½ Σ nᵢ(vᵢ − 2), with vᵢ the usual number of bonds of each element (C 4, N 3, O 2, H and halogens 1). Equivalent to C − H/2 − X/2 + N/2 + 1 for C, H, N, O and halogens.'] });
+  }
+
+  q('.dbe-in').addEventListener('input', run);
+  q('.dbe-S').addEventListener('change', run); q('.dbe-P').addEventListener('change', run);
+  for (const b of root.querySelectorAll<HTMLButtonElement>('.dbe-mode button')) b.addEventListener('click', () => setMode(b.dataset.m as 'formula' | 'smiles'));
+  q('.dbe-csv').addEventListener('click', () => { if (!combos.length) return; save(new Blob([csv([['rings', 'double_bonds', 'triple_bonds', 'rings_plus_pi'], ...combos.map((c) => [c.rings, c.double, c.triple, lastD])])], { type: 'text/csv' }), 'unsaturation-combinations.csv', 'text/csv'); });
+  wireDownloads(q('.dbe-out .dl'), () => ({ title: 'Degree of unsaturation', subtitle: q<HTMLInputElement>('.dbe-in').value.trim(), file: 'unsaturation', sections }));
+  setMode('formula');
+</script>
