@@ -1,0 +1,205 @@
+---
+// Venn diagram calculator: type a set expression such as (A ∪ B)′ ∩ C and see it shaded on a 2- or 3-set
+// diagram, compare two expressions (De Morgan's laws), and use real lists of elements for counting
+// problems with n(A ∪ B) = n(A) + n(B) − n(A ∩ B). Class 11 maths, sets.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax vnd">
+  <div class="ax-card">
+    <h2>Type a set expression</h2>
+    <div class="ax-row"><div class="ax-seg vn-n" role="group" aria-label="How many sets"><button type="button" data-n="2" aria-pressed="false">2 sets</button><button type="button" data-n="3" aria-pressed="true">3 sets</button></div>
+      <label class="vn-exl">Examples <select class="vn-ex">
+        <option value="">Pick one…</option><option>(A ∪ B)′ ∩ C</option><option>A ∩ B</option><option>A ∪ B</option><option>A − B</option><option>A Δ B</option><option>A′</option><option>A ∩ B ∩ C</option><option>(A ∩ B) ∪ C</option><option>A ∩ (B ∪ C)</option><option>A ∪ B ∪ C</option><option>(A ∪ B ∪ C)′</option>
+      </select></label></div>
+    <label class="vn-el">Expression <input class="vn-e" type="text" value="(A ∪ B)′ ∩ C" autocomplete="off" spellcheck="false" /></label>
+    <div class="vn-keys" aria-label="Insert a symbol">
+      <button type="button">A</button><button type="button">B</button><button type="button" class="vn-kc">C</button><button type="button">U</button><button type="button">∪</button><button type="button">∩</button><button type="button">′</button><button type="button">−</button><button type="button">(</button><button type="button">)</button><button type="button" class="vn-del" aria-label="Delete the last character">⌫</button>
+    </div>
+    <p class="ax-help">You can also type u or | for ∪, n or &amp; for ∩, ' for ′, and - for −. ′ is done first, then ∩, then ∪ and −; use brackets when in doubt.</p>
+    <p class="ax-err vn-err" hidden></p>
+  </div>
+
+  <div class="ax-card vn-out">
+    <h2 class="vn-title"></h2>
+    <canvas class="ax-fig vn-fig" role="img"></canvas>
+    <p class="vn-regions"></p>
+    <h3>Compare with another expression</h3>
+    <div class="ax-row"><label class="vn-cl">Second expression <input class="vn-c" type="text" value="A′ ∩ B′ ∩ C" autocomplete="off" spellcheck="false" /></label></div>
+    <div class="ax-row"><button type="button" class="btn small secondary vn-dm1">De Morgan: (A ∪ B)′</button><button type="button" class="btn small secondary vn-dm2">De Morgan: (A ∩ B)′</button><button type="button" class="btn small secondary vn-dist">A ∩ (B ∪ C)</button></div>
+    <p class="vn-cmp"></p>
+    <canvas class="ax-fig vn-fig2" role="img"></canvas>
+  </div>
+
+  <div class="ax-card">
+    <h2>Use my own elements</h2>
+    <label class="ax-check"><input type="checkbox" class="vn-own" /> Put real elements in the sets</label>
+    <div class="vn-ownbox" hidden>
+      <div class="ax-grid">
+        <label>Universal set U <input class="vn-U" type="text" value="1-12" /></label>
+        <label>A <input class="vn-A" type="text" value="1-6" /></label>
+        <label>B <input class="vn-B" type="text" value="2, 4, 6, 8, 10, 12" /></label>
+        <label class="vn-Cl">C <input class="vn-C" type="text" value="3, 6, 9, 12" /></label>
+      </div>
+      <p class="ax-help">Separate elements with commas; 1-12 means 1 to 12. Words work too.</p>
+      <p class="vn-res"></p>
+      <dl class="ax-facts vn-count"></dl>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="vn-try">
+      <li>Shade (A ∪ B)′ and compare it with A′ ∩ B′: the same region. That is De Morgan's law.</li>
+      <li>Try A ∪ B ∩ C and (A ∪ B) ∩ C. Brackets matter.</li>
+      <li>Tick <b>Put real elements in the sets</b> and check that n(A ∪ B) = n(A) + n(B) − n(A ∩ B).</li>
+      <li>Switch to 2 sets and shade A − B, B − A and A Δ B (in exactly one of them).</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="vn-quiz" />
+</div>
+
+<script>
+  import { parseSet, regions, sameRegions, regionName, inRegion, parseList, applySets, union2, union3, show, type SetNode } from '../../lib/sci/school-sets';
+  import { paint, pagePalette, type Figure, type Palette } from '../../lib/report';
+  import { FONT } from '../../lib/sm-graph';
+  import { quiz, rint, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.vnd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380, H = 270;
+  let n: 2 | 3 = 3;
+  const CIRC: Record<2 | 3, [number, number][]> = { 2: [[150, 140], [230, 140]], 3: [[160, 110], [220, 110], [190, 165]] };
+  const RAD: Record<2 | 3, number> = { 2: 88, 3: 72 };
+  const SPOT: Record<2 | 3, [number, number][]> = {
+    2: [[40, 30], [108, 140], [272, 140], [190, 140]],
+    3: [[40, 26], [128, 88], [252, 88], [190, 72], [190, 222], [148, 150], [232, 150], [190, 128]],
+  };
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+
+  function venn(node: SetNode, title: string, labels: string[][] | null, h = H): Figure {
+    const shaded = regions(node, n);
+    return { w: W, h, alt: `Venn diagram of ${title}: ${shaded.length ? shaded.map((r) => regionName(r, n)).join('; ') : 'nothing'} shaded`, draw: (ctx, w, hh, pl: Palette) => {
+      const sc = hh / H; ctx.save(); ctx.scale(1, 1);
+      const C = CIRC[n].map(([x, y]) => [x, y * sc] as [number, number]), R = RAD[n] * sc;
+      const box = [6, 6, w - 12, hh - 12];
+      for (const r of shaded) {
+        ctx.save();
+        ctx.beginPath(); ctx.rect(box[0], box[1], box[2], box[3]); ctx.clip();
+        C.forEach(([x, y], i) => {
+          ctx.beginPath();
+          if ((r >> i) & 1) ctx.arc(x, y, R, 0, 2 * Math.PI);
+          else { ctx.rect(0, 0, w, hh); ctx.moveTo(x + R, y); ctx.arc(x, y, R, 0, 2 * Math.PI, true); }
+          ctx.clip('evenodd');
+        });
+        ctx.fillStyle = pl.accent; ctx.globalAlpha = 0.45; ctx.fillRect(0, 0, w, hh); ctx.restore();
+      }
+      ctx.strokeStyle = pl.ink; ctx.lineWidth = 1.6; ctx.strokeRect(box[0], box[1], box[2], box[3]);
+      C.forEach(([x, y]) => { ctx.beginPath(); ctx.arc(x, y, R, 0, 2 * Math.PI); ctx.stroke(); });
+      ctx.font = '600 15px system-ui, sans-serif'; ctx.fillStyle = pl.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const lab: [number, number][] = n === 2 ? [[92, 42], [288, 42]] : [[92, 40], [288, 40], [190, 254]];
+      lab.forEach(([x, y], i) => ctx.fillText('ABC'[i], x, y * sc));
+      ctx.textAlign = 'right'; ctx.fillText('U', w - 14, 20);
+      if (labels) {
+        ctx.font = FONT; ctx.textAlign = 'center';
+        SPOT[n].forEach(([x, y], r) => {
+          const items = labels[r]; if (!items.length) return;
+          const text = items.length > 6 ? `${items.length} items` : items.join(' ');
+          ctx.fillStyle = inRegion(node, r) ? pl.ink : pl.muted;
+          ctx.fillText(text.length > 14 ? `${items.length} items` : text, r === 0 ? x + 10 : x, y * sc);
+        });
+      }
+      ctx.restore();
+    } };
+  }
+
+  function run() {
+    const err = q('.vn-err'), out = q('.vn-out'); err.hidden = true;
+    root.querySelectorAll<HTMLElement>('.vn-kc, .vn-Cl').forEach((e) => { e.hidden = n === 2; });
+    let node: SetNode;
+    try { node = parseSet(q<HTMLInputElement>('.vn-e').value, n); } catch (e) { err.textContent = (e as Error).message; err.hidden = false; out.hidden = true; return; }
+    out.hidden = false;
+    // Own elements.
+    const own = q<HTMLInputElement>('.vn-own').checked; q('.vn-ownbox').hidden = !own;
+    let labels: string[][] | null = null;
+    if (own) {
+      try {
+        const U = parseList(q<HTMLInputElement>('.vn-U').value), sets = ['.vn-A', '.vn-B', '.vn-C'].slice(0, n).map((s) => parseList(q<HTMLInputElement>(s).value));
+        const r = applySets(node, U, sets); labels = r.byRegion;
+        q('.vn-res').textContent = (r.notInU.length ? `Not in U, so left out: ${r.notInU.join(', ')}. ` : '') + `${show(node)} = {${r.result.join(', ')}}, so n = ${r.result.length}.`;
+        const N = (s: string) => applySets(parseSet(s, n), U, sets).result.length;
+        const facts = [fact('n(U)', String(U.length)), fact('n(A)', String(N('A'))), fact('n(B)', String(N('B'))), fact('n(A ∩ B)', String(N('A∩B'))),
+          fact('n(A ∪ B)', String(N('A∪B')), `= ${N('A')} + ${N('B')} − ${N('A∩B')} = ${union2(N('A'), N('B'), N('A∩B'))}`),
+          fact("n(A′ ∩ B′)", String(N("A'∩B'")), `= n(U) − n(A ∪ B) = ${U.length} − ${N('A∪B')}`)];
+        if (n === 3) facts.push(fact('n(A ∪ B ∪ C)', String(N('A∪B∪C')), `= ${N('A')} + ${N('B')} + ${N('C')} − ${N('A∩B')} − ${N('B∩C')} − ${N('A∩C')} + ${N('A∩B∩C')} = ${union3(N('A'), N('B'), N('C'), N('A∩B'), N('B∩C'), N('A∩C'), N('A∩B∩C'))}`));
+        q('.vn-count').replaceChildren(...facts);
+      } catch (e) { q('.vn-res').textContent = (e as Error).message; q('.vn-count').replaceChildren(); }
+    }
+    const title = show(node);
+    q('.vn-title').textContent = title;
+    paint(q<HTMLCanvasElement>('.vn-fig'), venn(node, title, labels));
+    const rs = regions(node, n);
+    q('.vn-regions').textContent = rs.length ? `Shaded: ${rs.map((r) => regionName(r, n)).join('; ')}.` : 'Nothing is shaded: this is the empty set ∅.';
+    // Compare.
+    const cmp = q('.vn-cmp'), f2 = q<HTMLCanvasElement>('.vn-fig2');
+    let n2: SetNode;
+    try { n2 = parseSet(q<HTMLInputElement>('.vn-c').value, n); } catch (e) { cmp.textContent = 'Second expression: ' + (e as Error).message; cmp.className = 'vn-cmp vn-no'; f2.hidden = true; return; }
+    f2.hidden = false;
+    const same = sameRegions(node, n2, n), diff = Array.from({ length: 1 << n }, (_, r) => r).filter((r) => inRegion(node, r) !== inRegion(n2, r));
+    cmp.textContent = same ? `Equal: ${title} and ${show(n2)} shade exactly the same regions, so they are the same set.` : `Not equal: they differ in ${diff.map((r) => regionName(r, n)).join('; ')}.`;
+    cmp.className = `vn-cmp ${same ? 'vn-ok' : 'vn-no'}`;
+    paint(f2, venn(n2, show(n2), null));
+  }
+
+  const inp = q<HTMLInputElement>('.vn-e');
+  root.querySelectorAll<HTMLButtonElement>('.vn-keys button').forEach((b) => b.addEventListener('click', () => {
+    if (b.classList.contains('vn-del')) inp.value = inp.value.trimEnd().slice(0, -1);
+    else inp.value = (inp.value + ' ' + b.textContent).replace(/\s+/g, ' ').replace(/^ /, '');
+    run();
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.vn-n button').forEach((b) => b.addEventListener('click', () => {
+    n = +b.dataset.n! as 2 | 3; root.querySelectorAll('.vn-n button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    if (n === 2 && /c/i.test(inp.value)) inp.value = '(A ∪ B)′';
+    if (n === 2 && /c/i.test(q<HTMLInputElement>('.vn-c').value)) q<HTMLInputElement>('.vn-c').value = 'A′ ∩ B′';
+    run();
+  }));
+  q('.vn-ex').addEventListener('change', () => { const v = q<HTMLSelectElement>('.vn-ex').value; if (v) { if (/C/.test(v) && n === 2) (root.querySelector('.vn-n button[data-n="3"]') as HTMLButtonElement).click(); inp.value = v; run(); } });
+  const pair = (a: string, b: string) => { inp.value = a; q<HTMLInputElement>('.vn-c').value = b; run(); };
+  q('.vn-dm1').addEventListener('click', () => pair('(A ∪ B)′', 'A′ ∩ B′'));
+  q('.vn-dm2').addEventListener('click', () => pair('(A ∩ B)′', 'A′ ∪ B′'));
+  q('.vn-dist').addEventListener('click', () => { if (n === 2) (root.querySelector('.vn-n button[data-n="3"]') as HTMLButtonElement).click(); pair('A ∩ (B ∪ C)', '(A ∩ B) ∪ (A ∩ C)'); });
+  root.querySelectorAll('.vn-e, .vn-c, .vn-U, .vn-A, .vn-B, .vn-C').forEach((e) => e.addEventListener('input', run));
+  q('.vn-own').addEventListener('change', run);
+  document.addEventListener('fibub:theme', run);
+  run();
+
+  quiz(q('.vn-quiz'), (): Question[] => {
+    const ab = rint(2, 8), a = ab + rint(3, 12), b = ab + rint(3, 12), U = a + b - ab + rint(2, 10);
+    const t = rint(1, 4), x = t + rint(2, 4), y = t + rint(2, 4), z = t + rint(2, 4), A = x + y + rint(3, 8), B = x + z + rint(3, 8), C = y + z + rint(3, 8);
+    return [
+      { text: `n(A) = ${a}, n(B) = ${b} and n(A ∩ B) = ${ab}. What is n(A ∪ B)?`, answer: a + b - ab, worked: `n(A ∪ B) = n(A) + n(B) − n(A ∩ B) = ${a} + ${b} − ${ab} = ${a + b - ab}. The ${ab} in both would otherwise be counted twice.` },
+      { text: `In a class of ${U}, ${a} like tea, ${b} like coffee and ${ab} like both. How many like neither?`, answer: U - (a + b - ab), worked: `n(tea ∪ coffee) = ${a} + ${b} − ${ab} = ${a + b - ab}. Neither = n(U) − n(A ∪ B) = ${U} − ${a + b - ab} = ${U - (a + b - ab)}. This is n(A′ ∩ B′) = n((A ∪ B)′), De Morgan.` },
+      { text: 'Which set is the same as (A ∪ B)′?', choices: ['A′ ∩ B′', 'A′ ∪ B′', 'A ∩ B'], correct: 0, worked: "De Morgan's law: the complement of a union is the intersection of the complements. Shade both and compare above." },
+      { text: `n(A) = ${A}, n(B) = ${B}, n(C) = ${C}, n(A ∩ B) = ${x + t}, n(B ∩ C) = ${z + t}, n(A ∩ C) = ${y + t}, n(A ∩ B ∩ C) = ${t}. Find n(A ∪ B ∪ C).`, answer: union3(A, B, C, x + t, z + t, y + t, t), worked: `${A} + ${B} + ${C} − ${x + t} − ${z + t} − ${y + t} + ${t} = ${union3(A, B, C, x + t, z + t, y + t, t)}. Add the singles, take away the pairs, add back the triple.` },
+      { text: `n(A) = ${a} and n(A ∩ B) = ${ab}. What is n(A − B)?`, answer: a - ab, worked: `A − B is the part of A outside B: ${a} − ${ab} = ${a - ab}.` },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .vnd .vn-el { margin-top: 10px; }
+  .vnd .vn-e, .vnd .vn-c { font-size: 18px !important; }
+  .vnd .vn-keys { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .vnd .vn-keys button { min-width: 44px; min-height: 44px; font: inherit; font-size: 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); cursor: pointer; }
+  .vnd .ax-seg button { min-height: 40px; }
+  .vnd .vn-exl { max-width: 220px; }
+  .vnd h3 { margin: 16px 0 6px; font-size: 16px; }
+  .vnd .ax-row { margin-top: 8px; }
+  .vnd .vn-cl { flex: 1 1 220px; }
+  .vnd .vn-ok { color: var(--good); font-weight: 600; }
+  .vnd .vn-no { color: var(--bad); font-weight: 600; }
+  .vnd canvas.vn-fig2 { max-width: 320px; margin-top: 8px; }
+  .vnd .vn-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+  .vnd .vn-ownbox { margin-top: 10px; }
+</style>
