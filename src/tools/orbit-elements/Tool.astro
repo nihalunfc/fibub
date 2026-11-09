@@ -1,0 +1,351 @@
+---
+// Orbit elements: Keplerian elements ↔ state vectors for any central body, the anomalies, period, apsides and
+// energy, two-body propagation by Kepler's equation, TLE fields, and a rotatable 3D drawing with plane views.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax orbel">
+  <div class="ax-card">
+    <h2>Central body</h2>
+    <div class="ax-grid">
+      <label>Body <select class="oe-body"></select></label>
+      <label>μ = GM (km³/s²) <input class="oe-mu" inputmode="decimal" /></label>
+      <label>Radius (km) <input class="oe-rad" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">μ is the body's gravitational parameter. The presets are general constants (Earth's is the WGS 84 value used with TLEs); type any μ for another body. The radius only sets the altitudes and the drawing.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Start from</h2>
+    <div class="ax-row"><div class="ax-seg oe-mode" role="group" aria-label="Start from">
+      <button type="button" data-m="el" aria-pressed="true">Elements</button><button type="button" data-m="sv" aria-pressed="false">State vectors</button><button type="button" data-m="tle" aria-pressed="false">TLE</button>
+    </div>
+    <label style="flex:1 1 180px">Example <select class="oe-ex"><option value="">Choose…</option><option value="molniya">Molniya-like orbit (made up)</option><option value="geo">Geostationary orbit</option><option value="flyby">Hyperbolic flyby (made up)</option><option value="vallado">State vector, Vallado's example</option><option value="iss">ISS TLE from 2008</option></select></label></div>
+
+    <div class="oe-p-el">
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Size given as <select class="oe-size"><option value="a">Semi-major axis a (km)</option><option value="q">Periapsis distance q (km)</option><option value="p">Semi-latus rectum p (km)</option></select></label>
+        <label>Size (km) <input class="oe-sz" inputmode="decimal" value="26600" /></label>
+        <label>Eccentricity e <input class="oe-e" inputmode="decimal" value="0.74" /></label>
+        <label>Inclination i (°) <input class="oe-i" inputmode="decimal" value="63.4" /></label>
+        <label>Ascending node Ω (°) <input class="oe-raan" inputmode="decimal" value="40" /></label>
+        <label>Argument of periapsis ω (°) <input class="oe-argp" inputmode="decimal" value="270" /></label>
+        <label>Position given as <select class="oe-ak"><option value="nu">True anomaly ν (°)</option><option value="M">Mean anomaly M (°)</option><option value="E">Eccentric / hyperbolic anomaly (°)</option><option value="t">Time since periapsis (s)</option></select></label>
+        <label>Position <input class="oe-av" inputmode="decimal" value="30" /></label>
+      </div>
+      <p class="ax-help">For a hyperbola (e &gt; 1) a is negative; give q or p instead if that is easier. A parabola (e = 1) needs q or p. Angles in degrees; the eccentric anomaly becomes the hyperbolic anomaly H for e &gt; 1 and Barker's D = tan(ν/2) for e = 1 (type D itself then).</p>
+    </div>
+    <div class="oe-p-sv" hidden>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>x (km) <input class="oe-rx" inputmode="decimal" /></label><label>y (km) <input class="oe-ry" inputmode="decimal" /></label><label>z (km) <input class="oe-rz" inputmode="decimal" /></label>
+        <label>vx (km/s) <input class="oe-vx" inputmode="decimal" /></label><label>vy (km/s) <input class="oe-vy" inputmode="decimal" /></label><label>vz (km/s) <input class="oe-vz" inputmode="decimal" /></label>
+      </div>
+      <p class="ax-help">Position and velocity in an inertial frame centred on the body (for Earth, usually the equator and equinox of a date, such as GCRF or TEME).</p>
+    </div>
+    <div class="oe-p-tle" hidden>
+      <label style="margin-top:10px">Two-line element set (a name line above is fine) <textarea class="oe-tle" rows="3" spellcheck="false"></textarea></label>
+      <p class="ax-help">TLEs are for Earth orbits, so the body is set to Earth. They hold SGP4 mean elements: the a here comes from the mean motion by Kepler's third law and the drawing is a pure two-body orbit, a few km from where SGP4 would put the satellite. For tracking use the satellite tracker.</p>
+    </div>
+    <p class="ax-err oe-err" hidden></p>
+  </div>
+
+  <div class="ax-card oe-out" hidden>
+    <h2>Orbit</h2>
+    <p class="ax-big oe-big"></p>
+    <dl class="ax-facts oe-facts"></dl>
+    <p class="ax-help oe-note"></p>
+    <div class="oe-tlebox" hidden><h3>TLE fields</h3><dl class="ax-facts oe-tlef"></dl></div>
+    <h3>State vectors</h3>
+    <div class="ax-scroll"><table class="oe-sv"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small oe-toel">Edit as elements</button><button type="button" class="btn secondary small oe-tosv">Edit as state vectors</button></div>
+
+    <h3>Drawing</h3>
+    <div class="ax-grid">
+      <label>View <select class="oe-view"><option value="3d">3D (drag to turn)</option><option value="xy">x-y plane (from above)</option><option value="xz">x-z plane</option><option value="yz">y-z plane</option><option value="pf">Orbit plane (periapsis to the right)</option></select></label>
+      <label class="oe-3d">Turn (°) <input type="range" class="oe-yaw" min="-180" max="180" step="1" value="-35" /></label>
+      <label class="oe-3d">Tilt (°) <input type="range" class="oe-pitch" min="-90" max="90" step="1" value="25" /></label>
+    </div>
+    <canvas class="ax-fig oe-fig"></canvas>
+    <p class="ax-help">The body is drawn to scale. P marks periapsis, A apoapsis, ☊ the ascending node; the dot is the starting position and small dots the propagated positions. Parts behind the body are drawn faint.</p>
+
+    <h3>Propagate</h3>
+    <div class="ax-grid">
+      <label>Over (hours) <input class="oe-span" inputmode="decimal" value="12" /></label>
+      <label>Step (minutes) <input class="oe-step" inputmode="decimal" value="30" /></label>
+    </div>
+    <p class="ax-help">Two-body motion: the mean anomaly grows by n·Δt and Kepler's equation gives the new position. No J2, drag or other bodies.</p>
+    <p class="ax-err oe-perr" hidden></p>
+    <div class="ax-scroll"><table class="oe-ptab"></table></div>
+    <p class="ax-help oe-pmore" hidden></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small oe-csv">Download the propagation (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { BODIES } from '../../lib/sci/orbit';
+  import { toState, fromState, info, propagate, track, parseTle, tleToElements, pFromA, pFromQ, aOf, kindOf, nuToAnomaly, anomalyToNu, anomalyToMean, meanToAnomaly, meanMotion, type Elements, type V3, type TLE } from '../../lib/sci/orbitel';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.orbel')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const v = (c: string) => num(inp(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c);
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const D2R = Math.PI / 180, R2D = 180 / Math.PI;
+  const SHOWN = ['earth', 'moon', 'mars', 'sun', 'venus', 'jupiter'];
+  sel('.oe-body').replaceChildren(...SHOWN.map((id) => { const b = BODIES.find((x) => x.id === id)!; return new Option(b.name, b.id); }), new Option('Your own body', 'own'));
+  const setBody = (id: string) => { const b = BODIES.find((x) => x.id === id); if (!b) return; sel('.oe-body').value = id; inp('.oe-mu').value = String(b.mu); inp('.oe-rad').value = String(b.radius); };
+
+  let mode = 'el', el: Elements | null = null, mu = 0, rad = 0, tle: TLE | null = null, rows: { t: number; el: Elements; r: V3; v: V3 }[] = [], sections: Section[] = [], fig: Figure | null = null;
+  const setMode = (m: string) => { mode = m; root.querySelectorAll<HTMLButtonElement>('.oe-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m))); q('.oe-p-el').hidden = m !== 'el'; q('.oe-p-sv').hidden = m !== 'sv'; q('.oe-p-tle').hidden = m !== 'tle'; };
+  const fx = (x: number, d = 3) => (Number.isFinite(x) ? x.toFixed(d) : '–');
+  const km = (x: number) => (Number.isFinite(x) ? `${sig(x, 7)} km` : '∞');
+  const dur = (s: number) => { if (!Number.isFinite(s)) return '∞'; const a = Math.abs(s), sg = s < 0 ? '−' : ''; if (a < 120) return `${sg}${a.toFixed(1)} s`; if (a < 7200) return `${sg}${(a / 60).toFixed(2)} min`; if (a < 172800) return `${sg}${(a / 3600).toFixed(3)} h`; return `${sg}${(a / 86400).toFixed(3)} days`; };
+
+  function readElements(): Elements | string {
+    const e = v('.oe-e'), sz = v('.oe-sz'), kind = sel('.oe-size').value;
+    if (!(e >= 0 && e < 100)) return 'The eccentricity is 0 or more (below 1 for an ellipse, 1 for a parabola, above 1 for a hyperbola).';
+    if (!Number.isFinite(sz) || sz === 0) return 'Give the size of the orbit in km.';
+    let p: number;
+    if (kind === 'a') {
+      if (Math.abs(e - 1) < 1e-12) return 'A parabola has no finite semi-major axis: give q or p instead.';
+      if (e < 1 && !(sz > 0)) return 'An ellipse has a positive semi-major axis.';
+      if (e > 1 && !(sz < 0)) return 'A hyperbola has a negative semi-major axis (or give q or p).';
+      p = pFromA(sz, e);
+    } else if (kind === 'q') { if (!(sz > 0)) return 'The periapsis distance is positive.'; p = pFromQ(sz, e); }
+    else { if (!(sz > 0)) return 'The semi-latus rectum is positive.'; p = sz; }
+    const i = v('.oe-i'), raan = v('.oe-raan'), argp = v('.oe-argp'), av = v('.oe-av'), ak = sel('.oe-ak').value;
+    if (!(i >= 0 && i <= 180)) return 'The inclination is between 0° and 180°.';
+    if (![raan, argp, av].every(Number.isFinite)) return 'Ω, ω and the position must be numbers.';
+    let nu: number;
+    if (ak === 'nu') nu = av;
+    else {
+      let x: number;
+      if (ak === 'E') x = Math.abs(e - 1) < 1e-12 ? av : av * D2R;
+      else { const M = ak === 'M' ? av * D2R : av * meanMotion(p, e, mu); x = meanToAnomaly(M, e); }
+      if (!Number.isFinite(x)) return 'That position could not be turned into a true anomaly.';
+      nu = anomalyToNu(x, e) * R2D;
+    }
+    return { p, e, i, raan: ((raan % 360) + 360) % 360, argp: ((argp % 360) + 360) % 360, nu };
+  }
+
+  function run() {
+    const err = q('.oe-err'), out = q('.oe-out');
+    err.hidden = true; q('.oe-tlebox').hidden = true; tle = null;
+    const fail = (msg: string) => { err.textContent = msg; err.hidden = false; out.hidden = true; el = null; sections = []; };
+    mu = v('.oe-mu'); rad = v('.oe-rad');
+    if (!(mu > 0)) return fail('μ must be a positive number of km³/s².');
+    if (!(rad >= 0)) return fail('The radius is 0 or a positive number of km.');
+    let extra: string[] = [], st: { r: V3; v: V3 };
+    try {
+      if (mode === 'el') { const r = readElements(); if (typeof r === 'string') return fail(r); el = r; st = toState(el, mu); }
+      else if (mode === 'sv') {
+        const r: V3 = [v('.oe-rx'), v('.oe-ry'), v('.oe-rz')], vv: V3 = [v('.oe-vx'), v('.oe-vy'), v('.oe-vz')];
+        if (![...r, ...vv].every(Number.isFinite)) return fail('Type all six numbers: x, y, z in km and vx, vy, vz in km/s.');
+        const f = fromState(r, vv, mu); el = { p: f.p, e: f.e, i: f.i, raan: f.raan, argp: f.argp, nu: f.nu }; st = { r, v: vv };
+        if (f.circular && f.equatorial) extra.push('The orbit is circular and equatorial: it has no periapsis or node, so Ω = ω = 0 and ν is the true longitude (from the x axis).');
+        else if (f.circular) extra.push(`The orbit is circular: it has no periapsis, so ω = 0 and ν is the argument of latitude u (from the ascending node).`);
+        else if (f.equatorial) extra.push(`The orbit is equatorial: it has no ascending node, so Ω = 0 and ω is the longitude of periapsis (${fx(f.lonPeri, 4)}°).`);
+      } else {
+        tle = parseTle(q<HTMLTextAreaElement>('.oe-tle').value);
+        const t = tleToElements(tle, mu); el = { p: t.p, e: t.e, i: t.i, raan: t.raan, argp: t.argp, nu: t.nu }; st = toState(el, mu);
+      }
+    } catch (e) { return fail((e as Error).message); }
+    out.hidden = false;
+    const I = info(el!, mu), kind = I.kind;
+    const kn = { circular: 'Circular', elliptic: 'Elliptic', parabolic: 'Parabolic', hyperbolic: 'Hyperbolic' }[kind];
+    q('.oe-big').textContent = kind === 'elliptic' || kind === 'circular'
+      ? `${kn} orbit: a = ${sig(I.a, 7)} km, e = ${fx(el!.e, 6)}, period ${dur(I.period)}`
+      : `${kn} orbit: periapsis ${sig(I.rp, 7)} km, e = ${fx(el!.e, 6)}${kind === 'hyperbolic' ? `, v∞ = ${fx(I.vinf, 4)} km/s` : ''}`;
+    const anomName = el!.e < 1 - 1e-12 ? 'Eccentric anomaly E' : el!.e > 1 + 1e-12 ? 'Hyperbolic anomaly H' : 'Parabolic anomaly D = tan(ν/2)';
+    const rn = Math.hypot(...st.r), vn = Math.hypot(...st.v);
+    const facts = [
+      fact('Semi-major axis a', Number.isFinite(I.a) ? `${sig(I.a, 9)} km` : '∞ (parabola)', `p = ${sig(I.p, 9)} km`),
+      fact('Eccentricity e', fx(el!.e, 8)),
+      fact('Inclination i', `${fx(el!.i, 4)}°`, el!.i > 90 ? 'retrograde' : 'prograde'),
+      fact('Ascending node Ω, argument of periapsis ω', `${fx(el!.raan, 4)}°, ${fx(el!.argp, 4)}°`),
+      fact('True anomaly ν', `${fx(el!.nu, 4)}°`, kind === 'hyperbolic' ? `the asymptotes are at ±${fx(I.nuMax, 3)}°` : ''),
+      fact(anomName, el!.e === 1 ? fx(I.E, 6) : `${fx(I.E * R2D, 4)}°`, `mean anomaly M = ${fx(I.M * R2D, 4)}°${el!.e === 1 ? ' (Barker: D + D³/3)' : ''}`),
+      fact('Periapsis', km(I.rp), `altitude ${km(I.rp - rad)}, speed ${fx(I.vp, 4)} km/s`),
+      ...(I.e < 1 ? [fact('Apoapsis', km(I.ra), `altitude ${km(I.ra - rad)}, speed ${fx(I.va, 4)} km/s`)] : []),
+      fact('Period, mean motion', I.e < 1 ? dur(I.period) : 'none (open orbit)', `n = ${sig(I.n * R2D * 86400, 7)}°/day${I.e < 1 ? ` = ${sig(86400 / I.period, 9)} rev/day` : ''}`),
+      fact('Time since periapsis', dur(I.e < 1 ? ((I.tp % I.period) + I.period) % I.period : I.tp), I.e < 1 ? `next periapsis in ${dur(I.period - (((I.tp % I.period) + I.period) % I.period))}` : I.tp < 0 ? 'still approaching' : 'leaving'),
+      fact('Specific energy ε', `${fx(I.energy, 6)} km²/s²`, '−μ/2a'),
+      fact('Specific angular momentum h', `${sig(I.h, 8)} km²/s`),
+      fact('Radius and speed now', `${km(rn)}, ${fx(vn, 5)} km/s`, `altitude ${km(rn - rad)}, flight-path angle ${fx(I.fpa, 3)}°`),
+      ...(kind === 'hyperbolic' ? [fact('Hyperbolic excess speed v∞', `${fx(I.vinf, 5)} km/s`, `turn angle ${fx(I.turn, 3)}°, C3 = ${fx(I.vinf ** 2, 4)} km²/s²`)] : []),
+    ];
+    q('.oe-facts').replaceChildren(...facts);
+    const notes = [...extra];
+    if (I.rp < rad) notes.push(`The periapsis (${sig(I.rp, 5)} km) is inside the body (radius ${rad} km): this orbit would hit the surface.`);
+    if (mode === 'tle') notes.push('From a TLE: the elements are SGP4 mean elements read as if they were two-body (osculating) ones.');
+    q('.oe-note').textContent = notes.join(' ');
+    if (tle) {
+      const t = tle;
+      q('.oe-tlef').replaceChildren(
+        fact('Name, catalogue number', `${t.name || '(none)'}, ${t.satnum}${t.classification}`, `international designator ${t.intl || '–'}`),
+        fact('Epoch', `${t.epoch.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC')}`, `year ${t.epochYear}, day ${t.epochDay}`),
+        fact('ṅ/2, n̈/6', `${t.ndot2} rev/day², ${t.nddot6} rev/day³`),
+        fact('B* drag term', `${t.bstar} /earth radii`, `ephemeris type ${t.ephType}, element set ${t.elsetNum}`),
+        fact('i, Ω, e, ω, M', `${t.inc}°, ${t.raan}°, ${t.ecc}, ${t.argp}°, ${t.M}°`),
+        fact('Mean motion, revolution', `${t.n} rev/day`, `revolution number at epoch ${t.revNum}`),
+        fact('Checksums', `line 1: ${t.check1.found} ✓, line 2: ${t.check2.found} ✓`, 'digits add their value, minus signs count 1, modulo 10'),
+      );
+      q('.oe-tlebox').hidden = false;
+    }
+    const svt = q<HTMLTableElement>('.oe-sv');
+    const tr = (cells: string[], th = false) => { const r = document.createElement('tr'); r.append(...cells.map((c) => { const e = document.createElement(th ? 'th' : 'td'); e.textContent = c; return e; })); return r; };
+    svt.replaceChildren(tr(['', 'x', 'y', 'z', '|·|'], true), tr(['r (km)', ...st.r.map((x) => x.toFixed(4)), rn.toFixed(4)]), tr(['v (km/s)', ...st.v.map((x) => x.toFixed(7)), vn.toFixed(7)]));
+    propagateTable();
+  }
+
+  function propagateTable() {
+    if (!el) return;
+    const perr = q('.oe-perr'); perr.hidden = true;
+    const span = v('.oe-span'), step = v('.oe-step');
+    rows = [];
+    if (!(span > 0 && span <= 24 * 3650) || !(step > 0) || span * 60 / step > 20000) { perr.textContent = 'Give a positive span (hours) and step (minutes), with at most 20000 steps.'; perr.hidden = false; }
+    else for (let k = 0; k * step <= span * 60 + 1e-9; k++) { const t = k * step * 60, e2 = propagate(el, mu, t), s = toState(e2, mu); rows.push({ t, el: e2, r: s.r, v: s.v }); }
+    const tab = q<HTMLTableElement>('.oe-ptab');
+    const tr = (cells: string[], th = false) => { const r = document.createElement('tr'); r.append(...cells.map((c) => { const e = document.createElement(th ? 'th' : 'td'); e.textContent = c; return e; })); return r; };
+    const LIST = 25;
+    tab.replaceChildren(tr([tle ? 'UTC' : 't (h)', 'ν (°)', 'r (km)', 'x (km)', 'y (km)', 'z (km)', 'speed (km/s)'], true), ...rows.slice(0, LIST).map((p) => tr([tle ? new Date(tle.epoch.getTime() + p.t * 1000).toISOString().slice(0, 16).replace('T', ' ') : (p.t / 3600).toFixed(3), p.el.nu.toFixed(3), Math.hypot(...p.r).toFixed(2), ...p.r.map((x) => x.toFixed(2)), Math.hypot(...p.v).toFixed(4)])));
+    q('.oe-pmore').hidden = rows.length <= LIST; q('.oe-pmore').textContent = `The first ${LIST} of ${rows.length} steps are listed; the CSV has them all.`;
+    draw();
+  }
+
+  // ---- Drawing ----
+  function project(view: string, yaw: number, pitch: number) {
+    if (view === 'xy') return (p: V3): V3 => [p[0], p[1], p[2]];
+    if (view === 'xz') return (p: V3): V3 => [p[0], p[2], -p[1]];
+    if (view === 'yz') return (p: V3): V3 => [p[1], p[2], p[0]];
+    const cy = Math.cos(yaw * D2R), sy = Math.sin(yaw * D2R), cp = Math.cos(pitch * D2R), sp = Math.sin(pitch * D2R);
+    // Turn about z, then tilt so that the z axis leans toward the viewer: screen (X, Y up), depth toward the viewer.
+    return (p: V3): V3 => { const x = cy * p[0] - sy * p[1], y = sy * p[0] + cy * p[1], z = p[2]; return [x, cp * z + sp * y, sp * z - cp * y]; };
+  }
+  function makeFigure(): Figure | null {
+    if (!el) return null;
+    const view = sel('.oe-view').value, yaw = v('.oe-yaw'), pitch = v('.oe-pitch'), E = el, I = info(E, mu), body = rad;
+    const rnow = Math.hypot(...toState(E, mu).r), rProp = Math.max(0, ...rows.map((p) => Math.hypot(...p.r)));
+    const rMax = E.e < 1 ? I.ra : Math.max(4 * I.rp, 1.2 * rnow, rProp * 1.05, 2 * body);
+    const pf = view === 'pf';
+    const toPf = (p: V3): V3 => { // reference frame → perifocal (orbit plane, periapsis on +x)
+      const O = E.raan * D2R, i = E.i * D2R, w = E.argp * D2R, cO = Math.cos(O), sO = Math.sin(O), ci = Math.cos(i), si = Math.sin(i), cw = Math.cos(w), sw = Math.sin(w);
+      const P: V3 = [cO * cw - sO * sw * ci, sO * cw + cO * sw * ci, sw * si], Q: V3 = [-cO * sw - sO * cw * ci, -sO * sw + cO * cw * ci, cw * si], W: V3 = [sO * si, -cO * si, ci];
+      const d = (a: V3) => a[0] * p[0] + a[1] * p[1] + a[2] * p[2]; return [d(P), d(Q), d(W)];
+    };
+    const prj0 = project(pf ? 'xy' : view, yaw, pitch), prj = (p: V3) => prj0(pf ? toPf(p) : p);
+    const path = track(E, mu, rMax, 721).map(prj);
+    const now = prj(toState(E, mu).r), props = rows.map((p) => prj(p.r));
+    const peri = prj(toState({ ...E, nu: 0 }, mu).r), apo = E.e < 1 ? prj(toState({ ...E, nu: 180 }, mu).r) : null;
+    const nodeDir: V3 = [Math.cos(E.raan * D2R), Math.sin(E.raan * D2R), 0];
+    const rNode = E.p / (1 + E.e * Math.cos(-E.argp * D2R)), node = E.i > 1e-9 && E.i < 180 - 1e-9 && rNode > 0 && rNode < rMax * 1.5 ? prj([nodeDir[0] * rNode, nodeDir[1] * rNode, 0]) : null;
+    const ext = Math.max(rMax, body) * 1.08;
+    const kindName = { circular: 'circular', elliptic: 'elliptic', parabolic: 'parabolic', hyperbolic: 'hyperbolic' }[kindOf(E.e)];
+    return {
+      w: 600, h: 520, alt: `${view === '3d' ? '3D drawing' : 'Plane view'} of a ${kindName} orbit around the central body`,
+      draw: (ctx: CanvasRenderingContext2D, w: number, h: number, pal: Palette) => {
+        const s = (Math.min(w, h - 30) / 2) / ext, cx = w / 2, cy = (h + 10) / 2;
+        const X = (p: V3) => cx + p[0] * s, Y = (p: V3) => cy - p[1] * s;
+        const behind = (p: V3) => p[2] < 0 && Math.hypot(p[0], p[1]) < body;
+        ctx.font = '17px system-ui, sans-serif'; ctx.lineCap = 'round';
+        // Axes (and the equator, in 3D).
+        const L = ext * 0.92;
+        const axes: [V3, string][] = pf ? [[[L, 0, 0], 'to P'], [[0, L, 0], '']] : [[[L, 0, 0], 'x'], [[0, L, 0], 'y'], [[0, 0, L], 'z']];
+        ctx.lineWidth = 1; ctx.strokeStyle = pal.grid; ctx.fillStyle = pal.muted;
+        for (const [a, lab] of axes) { const p = pf ? prj0(a) : prj0(a); const o = prj0([0, 0, 0]); if (Math.hypot(p[0] - o[0], p[1] - o[1]) < ext * 0.05) continue; ctx.beginPath(); ctx.moveTo(X(o), Y(o)); ctx.lineTo(X(p), Y(p)); ctx.stroke(); if (lab) ctx.fillText(lab, X(p) + 4, Y(p) - 4); }
+        if (view === '3d') { ctx.setLineDash([3, 4]); ctx.beginPath(); for (let k = 0; k <= 120; k++) { const a = (k / 120) * 2 * Math.PI, p = prj0([Math.cos(a) * L * 0.8, Math.sin(a) * L * 0.8, 0]); k ? ctx.lineTo(X(p), Y(p)) : ctx.moveTo(X(p), Y(p)); } ctx.stroke(); ctx.setLineDash([]); }
+        // Body.
+        ctx.beginPath(); ctx.arc(cx, cy, Math.max(2, body * s), 0, 2 * Math.PI); ctx.fillStyle = pal.day; ctx.fill(); ctx.strokeStyle = pal.muted; ctx.stroke();
+        // Line of nodes.
+        if (node && !pf) { const o = prj0([0, 0, 0]); ctx.setLineDash([5, 4]); ctx.strokeStyle = pal.muted; ctx.beginPath(); ctx.moveTo(X(o), Y(o)); ctx.lineTo(X(node), Y(node)); ctx.stroke(); ctx.setLineDash([]); }
+        // Orbit, faint where hidden behind the body.
+        ctx.lineWidth = 2;
+        for (let k = 1; k < path.length; k++) { const a = path[k - 1], b = path[k]; ctx.strokeStyle = behind(a) && behind(b) ? pal.line : pal.accent; ctx.beginPath(); ctx.moveTo(X(a), Y(a)); ctx.lineTo(X(b), Y(b)); ctx.stroke(); }
+        ctx.fillStyle = pal.accent2; for (const p of props) { ctx.beginPath(); ctx.arc(X(p), Y(p), 2.2, 0, 2 * Math.PI); ctx.fill(); }
+        const mark = (p: V3 | null, lab: string, col: string) => { if (!p || Math.abs(p[0]) > ext * 1.5 || Math.abs(p[1]) > ext * 1.5) return; ctx.fillStyle = col; ctx.beginPath(); ctx.arc(X(p), Y(p), 3.5, 0, 2 * Math.PI); ctx.fill(); ctx.fillStyle = pal.ink; ctx.fillText(lab, X(p) + 6, Y(p) - 6); };
+        mark(peri, 'P', pal.ink); mark(apo, 'A', pal.ink); if (!pf) mark(node, '☊', pal.muted);
+        ctx.fillStyle = pal.bad; ctx.beginPath(); ctx.arc(X(now), Y(now), 6, 0, 2 * Math.PI); ctx.fill();
+        // Scale bar.
+        const bar = Math.pow(10, Math.floor(Math.log10(ext * 0.5))), bl = bar * s;
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(14, h - 14); ctx.lineTo(14 + bl, h - 14); ctx.stroke();
+        ctx.fillStyle = pal.ink; ctx.fillText(`${bar.toLocaleString('en')} km`, 18 + bl, h - 10);
+        ctx.fillStyle = pal.muted; ctx.fillText({ '3d': '3D view', xy: 'x-y plane', xz: 'x-z plane', yz: 'y-z plane', pf: 'orbit plane' }[view] ?? '', 12, 18);
+      },
+    };
+  }
+  function draw() {
+    fig = makeFigure(); if (!fig) return;
+    root.querySelectorAll<HTMLElement>('.oe-3d').forEach((e) => (e.hidden = sel('.oe-view').value !== '3d'));
+    paint(q<HTMLCanvasElement>('.oe-fig'), fig);
+    sections = [
+      { title: q('.oe-big').textContent!, facts: [...q('.oe-facts').children].map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), note: q('.oe-note').textContent || undefined, figure: fig },
+      { title: 'Propagation', table: { head: ['t (h)', 'ν (°)', 'r (km)', 'x (km)', 'y (km)', 'z (km)'], rows: rows.slice(0, 60).map((p) => [(p.t / 3600).toFixed(3), p.el.nu.toFixed(3), Math.hypot(...p.r).toFixed(2), ...p.r.map((x) => x.toFixed(2))]), align: ['r', 'r', 'r', 'r', 'r', 'r'] } },
+    ];
+  }
+
+  // ---- Examples and wiring ----
+  const setEl = (o: { size: string; sz: number; e: number; i: number; raan: number; argp: number; ak?: string; av: number }) => { sel('.oe-size').value = o.size; inp('.oe-sz').value = String(o.sz); inp('.oe-e').value = String(o.e); inp('.oe-i').value = String(o.i); inp('.oe-raan').value = String(o.raan); inp('.oe-argp').value = String(o.argp); sel('.oe-ak').value = o.ak ?? 'nu'; inp('.oe-av').value = String(o.av); };
+  const setSv = (r: number[], vv: number[]) => { ['.oe-rx', '.oe-ry', '.oe-rz'].forEach((c, k) => (inp(c).value = String(r[k]))); ['.oe-vx', '.oe-vy', '.oe-vz'].forEach((c, k) => (inp(c).value = String(vv[k]))); };
+  const ISS = 'ISS (ZARYA)\n1 25544U 98067A   08264.51782528 -.00002182  00000-0 -11606-4 0  2927\n2 25544  51.6416 247.4627 0006703 130.5360 325.0288 15.72125391563537';
+  sel('.oe-ex').addEventListener('change', () => {
+    const x = sel('.oe-ex').value;
+    if (x === 'molniya') { setBody('earth'); setEl({ size: 'a', sz: 26600, e: 0.74, i: 63.4, raan: 40, argp: 270, av: 30 }); setMode('el'); inp('.oe-span').value = '12'; inp('.oe-step').value = '30'; }
+    if (x === 'geo') { setBody('earth'); setEl({ size: 'a', sz: 42164.17, e: 0, i: 0, raan: 0, argp: 0, av: 75 }); setMode('el'); inp('.oe-span').value = '24'; inp('.oe-step').value = '60'; }
+    if (x === 'flyby') { setBody('mars'); setEl({ size: 'q', sz: 3800, e: 1.4, i: 30, raan: 120, argp: 60, ak: 't', av: -7200 }); setMode('el'); inp('.oe-span').value = '4'; inp('.oe-step').value = '10'; }
+    if (x === 'vallado') { setBody('earth'); setSv([6524.834, 6862.875, 6448.296], [4.901327, 5.533756, -1.976341]); setMode('sv'); inp('.oe-span').value = '12'; inp('.oe-step').value = '30'; }
+    if (x === 'iss') { setBody('earth'); q<HTMLTextAreaElement>('.oe-tle').value = ISS; setMode('tle'); inp('.oe-span').value = '3'; inp('.oe-step').value = '10'; }
+    run();
+  });
+  root.querySelectorAll<HTMLButtonElement>('.oe-mode button').forEach((b) => b.addEventListener('click', () => { setMode(b.dataset.m!); if (mode === 'tle') setBody('earth'); sel('.oe-ex').value = ''; run(); }));
+  q('.oe-toel').addEventListener('click', () => {
+    if (!el) return; const a = aOf(el.p, el.e);
+    setEl({ size: Number.isFinite(a) ? 'a' : 'q', sz: +(Number.isFinite(a) ? a : el.p / (1 + el.e)).toPrecision(12), e: +el.e.toPrecision(10), i: +el.i.toFixed(8), raan: +el.raan.toFixed(8), argp: +el.argp.toFixed(8), av: +el.nu.toFixed(8) });
+    setMode('el'); sel('.oe-ex').value = ''; run();
+  });
+  q('.oe-tosv').addEventListener('click', () => { if (!el) return; const s = toState(el, mu); setSv(s.r.map((x) => +x.toPrecision(15)), s.v.map((x) => +x.toPrecision(15))); setMode('sv'); sel('.oe-ex').value = ''; run(); });
+  const timers = new Map<() => void, number>();
+  const later = (f: () => void) => { clearTimeout(timers.get(f)); timers.set(f, window.setTimeout(f, 250)); };
+  sel('.oe-body').addEventListener('change', () => { setBody(sel('.oe-body').value); run(); });
+  ['.oe-mu', '.oe-rad'].forEach((c) => inp(c).addEventListener('input', () => { sel('.oe-body').value = 'own'; later(run); }));
+  ['.oe-sz', '.oe-e', '.oe-i', '.oe-raan', '.oe-argp', '.oe-av', '.oe-rx', '.oe-ry', '.oe-rz', '.oe-vx', '.oe-vy', '.oe-vz'].forEach((c) => inp(c).addEventListener('input', () => later(run)));
+  q('.oe-tle').addEventListener('input', () => later(run));
+  ['.oe-size', '.oe-ak'].forEach((c) => sel(c).addEventListener('change', run));
+  ['.oe-span', '.oe-step'].forEach((c) => inp(c).addEventListener('input', () => later(propagateTable)));
+  sel('.oe-view').addEventListener('change', draw);
+  ['.oe-yaw', '.oe-pitch'].forEach((c) => inp(c).addEventListener('input', draw));
+  // Drag to turn the 3D view.
+  const cv = q<HTMLCanvasElement>('.oe-fig');
+  let drag: { x: number; y: number; yaw: number; pitch: number } | null = null;
+  cv.addEventListener('pointerdown', (e) => { if (sel('.oe-view').value !== '3d') return; drag = { x: e.clientX, y: e.clientY, yaw: v('.oe-yaw'), pitch: v('.oe-pitch') }; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const yaw = ((drag.yaw + (e.clientX - drag.x) * 0.6 + 540) % 360) - 180, pitch = Math.max(-90, Math.min(90, drag.pitch + (e.clientY - drag.y) * 0.6));
+    inp('.oe-yaw').value = String(Math.round(yaw)); inp('.oe-pitch').value = String(Math.round(pitch)); draw();
+  });
+  const end = () => { drag = null; };
+  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.oe-out').hidden) paint(cv, fig); });
+  q('.oe-csv').addEventListener('click', () => {
+    if (!rows.length) return;
+    const f = (x: number, p = 12) => String(+x.toPrecision(p));
+    const head = ['t_s', ...(tle ? ['utc'] : []), 'true_anomaly_deg', 'mean_anomaly_deg', 'r_km', 'x_km', 'y_km', 'z_km', 'vx_km_s', 'vy_km_s', 'vz_km_s'];
+    save(new Blob([csv([head, ...rows.map((p) => [f(p.t), ...(tle ? [new Date(tle.epoch.getTime() + p.t * 1000).toISOString()] : []), f(p.el.nu), f(anomalyToMean(nuToAnomaly(p.el.nu * D2R, p.el.e), p.el.e) * R2D), f(Math.hypot(...p.r)), ...p.r.map((x) => f(x)), ...p.v.map((x) => f(x))])])], { type: 'text/csv' }), 'orbit-propagation.csv', 'text/csv');
+  });
+  setBody('earth'); q<HTMLTextAreaElement>('.oe-tle').value = ISS;
+  sel('.oe-ex').value = 'molniya';
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Orbit elements', subtitle: q('.oe-big').textContent ?? '', file: 'orbit-elements', sections }));
+</script>
+
+<style is:global>
+  .orbel h3 { margin: 20px 0 8px; font-size: 15px; }
+  .orbel select { max-width: 100%; }
+  .orbel textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 12px; }
+  .orbel .oe-fig { touch-action: pan-y; cursor: grab; }
+  .orbel .oe-sv td, .orbel .oe-sv th, .orbel .oe-ptab td, .orbel .oe-ptab th { white-space: nowrap; }
+  .orbel input[type=range] { width: 100%; }
+</style>
