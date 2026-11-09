@@ -1,0 +1,152 @@
+---
+// Creatinine clearance (Cockcroft-Gault) and eGFR (CKD-EPI 2021, cystatin C, MDRD) with the KDIGO G stage.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax kfn">
+  <p class="kfn-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
+  <div class="ax-card">
+    <h2>Person and blood tests</h2>
+    <div class="ax-grid">
+      <label>Age (years) <input class="kfn-age" inputmode="decimal" value="70" /></label>
+      <label>Sex <select class="kfn-sex"><option value="male">Male</option><option value="female">Female</option></select></label>
+      <label>Serum creatinine <input class="kfn-scr" inputmode="decimal" value="1.4" /></label>
+      <label>Creatinine unit <select class="kfn-u"><option value="mgdl">mg/dL</option><option value="umol">µmol/L</option></select></label>
+      <label>Cystatin C (mg/L, optional) <input class="kfn-cys" inputmode="decimal" value="1.3" /></label>
+    </div>
+    <h3 class="kfn-h3">For Cockcroft-Gault (optional)</h3>
+    <div class="ax-grid">
+      <label>Weight <input class="kfn-kg" inputmode="decimal" value="95" /></label>
+      <label>Weight unit <select class="kfn-wu"><option value="kg">kg</option><option value="lb">lb</option></select></label>
+      <label>Height <input class="kfn-cm" inputmode="decimal" value="175" /></label>
+      <label>Height unit <select class="kfn-hu"><option value="cm">cm</option><option value="in">in</option></select></label>
+      <label>Adjusted-weight factor <input class="kfn-f" inputmode="decimal" value="0.4" /></label>
+    </div>
+    <p class="ax-help">eGFR needs only age, sex and creatinine. Add cystatin C for the combined equation. Weight gives the Cockcroft-Gault clearance; height adds the ideal (Devine) and adjusted weight versions.</p>
+    <p class="ax-err kfn-err" hidden></p>
+  </div>
+
+  <div class="ax-card kfn-out">
+    <h2>Estimated GFR</h2>
+    <p class="ax-big kfn-big"></p>
+    <p class="kfn-st"><span class="ax-pill kfn-pill"></span> <span class="ax-help kfn-sn"></span></p>
+    <div class="ax-scroll" style="margin-top:10px"><table class="kfn-eg"></table></div>
+    <canvas class="ax-fig kfn-fig" style="margin-top:14px"></canvas>
+  </div>
+
+  <div class="ax-card kfn-out kfn-cgc">
+    <h2>Creatinine clearance (Cockcroft-Gault)</h2>
+    <div class="ax-scroll"><table class="kfn-cg"></table></div>
+    <p class="ax-help">Cockcroft-Gault gives mL/min for this body, not per 1.73 m², and was built on an older creatinine method, so it runs a little higher than eGFR.</p>
+  </div>
+
+  <div class="ax-card kfn-out">
+    <h2>Notes</h2>
+    <ul class="kfn-notes"></ul>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .kfn [hidden] { display: none !important; }
+  .kfn-med { font-size: 14px; border-left: 3px solid var(--warn); padding: 6px 10px; margin: 0 0 12px; background: var(--warn-soft); }
+  .kfn-h3 { font-size: 15px; margin: 16px 0 8px; }
+  .kfn-st { margin: 4px 0 0; }
+  .kfn table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  .kfn th, .kfn td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .kfn th.r, .kfn td.r { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .kfn td small { display: block; color: var(--muted); font-size: 12px; }
+  .kfn-notes { margin: 0; padding-left: 20px; font-size: 14px; color: var(--muted); }
+</style>
+
+<script>
+  import { num } from '../../lib/sci/num';
+  import { kidney, ckdEpi2021Cr, G_STAGES, UMOL_PER_MGDL, type KidneyResult, type KidneyRow } from '../../lib/sci/kidney';
+  import { CM_PER_IN, KG_PER_LB, type Sex } from '../../lib/sci/body';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.kfn')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const raw = (c: string) => q<HTMLInputElement>(c).value.trim();
+  const opt = (c: string) => (raw(c) === '' ? undefined : num(raw(c)));
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const err = q('.kfn-err');
+  let fig: Figure | null = null, report: Section[] = [], res: KidneyResult | null = null;
+
+  function table(s: string, rows: KidneyRow[]) {
+    const tb = q<HTMLTableElement>(s); tb.innerHTML = '';
+    const hr = tb.createTHead().insertRow();
+    ['Equation', 'Result'].forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const body = tb.createTBody();
+    for (const r of rows) {
+      const tr = body.insertRow(), a = tr.insertCell(), b = tr.insertCell();
+      a.textContent = r.name; const sm = document.createElement('small'); sm.textContent = r.note; a.append(sm);
+      b.className = 'r'; b.textContent = `${Math.round(r.value)}`; const su = document.createElement('small'); su.textContent = r.unit; b.append(su);
+    }
+  }
+
+  function calc() {
+    err.hidden = true;
+    const sex = sel('.kfn-sex') as Sex, unit = sel('.kfn-u') as 'mgdl' | 'umol';
+    try {
+      const age = num(raw('.kfn-age')), scr = num(raw('.kfn-scr')), scys = opt('.kfn-cys');
+      let kg = opt('.kfn-kg'), cm = opt('.kfn-cm');
+      const f = opt('.kfn-f') ?? 0.4;
+      if (!Number.isFinite(age)) throw new Error('Enter the age in years.');
+      if (!Number.isFinite(scr)) throw new Error('Enter the serum creatinine as a number.');
+      for (const v of [scys, kg, cm, f]) if (v !== undefined && !Number.isFinite(v)) throw new Error('Optional boxes must be numbers or left empty.');
+      if (!(f >= 0 && f <= 1)) throw new Error('The adjusted-weight factor should be between 0 and 1.');
+      if (kg !== undefined && sel('.kfn-wu') === 'lb') kg *= KG_PER_LB;
+      if (cm !== undefined && sel('.kfn-hu') === 'in') cm *= CM_PER_IN;
+      res = kidney({ age, sex, scr, unit, scys, kg, cm: kg !== undefined ? cm : undefined, abwFactor: f });
+    } catch (e) {
+      res = null; report = []; err.textContent = (e as Error).message; err.hidden = false;
+      root.querySelectorAll<HTMLElement>('.kfn-out').forEach((o) => (o.hidden = true));
+      return;
+    }
+    root.querySelectorAll<HTMLElement>('.kfn-out').forEach((o) => (o.hidden = false));
+    const r = res, age = num(raw('.kfn-age'));
+    q('.kfn-big').textContent = `eGFR ${Math.round(r.best.value)} mL/min/1.73 m²`;
+    const pill = q('.kfn-pill'); pill.textContent = `${r.stage.g}: ${r.stage.name}`;
+    pill.className = `ax-pill kfn-pill ${r.best.value >= 60 ? 'good' : r.best.value >= 30 ? 'warn' : 'bad'}`;
+    q('.kfn-sn').textContent = `KDIGO 2012 GFR category, from ${r.best.name}.`;
+    table('.kfn-eg', r.egfr);
+    q('.kfn-cgc').hidden = !r.cg.length;
+    if (r.cg.length) table('.kfn-cg', r.cg);
+    q('.kfn-notes').replaceChildren(...r.notes.map((n) => { const li = document.createElement('li'); li.textContent = n; return li; }));
+
+    // CKD-EPI 2021 (creatinine) across creatinine levels for this age and sex, with the G-stage lines.
+    const um = unit === 'umol', xs: number[] = [];
+    for (let s = 0.4; s <= 6.001; s += 0.05) xs.push(s);
+    const xv = (s: number) => (um ? s * UMOL_PER_MGDL : s);
+    fig = chartFigure({ h: 320, xLabel: um ? 'Serum creatinine (µmol/L)' : 'Serum creatinine (mg/dL)', yLabel: 'eGFR (mL/min/1.73 m²)', yMin: 0, legend: 'below', series: [
+      { name: `CKD-EPI 2021, ${sex}, ${age} y`, x: xs.map(xv), y: xs.map((s) => ckdEpi2021Cr(s, age, sex)), mode: 'line' },
+      { name: 'This result (creatinine)', x: [xv(r.scrMg)], y: [r.egfr[0].value], marker: 'diamond', size: 9 },
+    ], marks: G_STAGES.slice(0, 5).map((s) => ({ kind: 'hline' as const, at: s.min, dash: [4, 4], label: `${s.g} ≥ ${s.min}` })) }, `eGFR against creatinine for a ${age}-year-old ${sex}; this result ${Math.round(r.egfr[0].value)}`);
+    paint(q<HTMLCanvasElement>('.kfn-fig'), fig);
+
+    const rows = (rs: KidneyRow[]) => rs.map((x) => [`${x.name} (${x.note})`, `${Math.round(x.value)} ${x.unit}`]);
+    report = [
+      { title: 'Inputs', facts: [['Age', `${age} years`], ['Sex', sex], ['Creatinine', `${raw('.kfn-scr')} ${um ? 'µmol/L' : 'mg/dL'} (${r.scrMg.toFixed(2)} mg/dL)`], ...(raw('.kfn-cys') ? [['Cystatin C', `${raw('.kfn-cys')} mg/L`] as [string, string]] : [])] },
+      { title: 'Estimated GFR', facts: [['eGFR', `${Math.round(r.best.value)} mL/min/1.73 m²`], ['KDIGO category', `${r.stage.g}: ${r.stage.name}`]], table: { head: ['Equation', 'Result'], rows: rows(r.egfr), align: ['l', 'r'] }, figure: fig },
+      ...(r.cg.length ? [{ title: 'Creatinine clearance (Cockcroft-Gault)', table: { head: ['Weight used', 'Result'], rows: rows(r.cg), align: ['l', 'r'] as ('l' | 'r')[] } }] : []),
+      { title: 'Notes', text: r.notes, note: 'For study and teaching, not medical advice. Check with a qualified professional.' },
+    ];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  root.querySelectorAll('input').forEach((el) => el.addEventListener('input', later));
+  root.querySelectorAll('select').forEach((el) => el.addEventListener('change', calc));
+  // Switching the creatinine unit converts the number in the box.
+  let lastU = sel('.kfn-u');
+  q('.kfn-u').addEventListener('change', () => {
+    const v = num(raw('.kfn-scr')), u = sel('.kfn-u');
+    if (Number.isFinite(v) && u !== lastU) q<HTMLInputElement>('.kfn-scr').value = u === 'umol' ? String(Math.round(v * UMOL_PER_MGDL)) : (v / UMOL_PER_MGDL).toFixed(2);
+    lastU = u; calc();
+  }, { capture: true });
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.kfn-fig'), fig));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Kidney function estimates', subtitle: q('.kfn-big').textContent ?? '', file: 'kidney-function', sections: report }));
+</script>

@@ -1,0 +1,216 @@
+---
+// Bland-Altman agreement plot with limits of agreement, their confidence intervals, proportional bias and Lin's CCC.
+import DataFile from '../../components/DataFile.astro';
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax bla">
+  <div class="ax-card">
+    <p class="bla-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
+    <h2>Paired results</h2>
+    <label>One subject or sample per line: the result by method A, then by method B (paste two columns from a spreadsheet; an ID column first is fine)
+      <textarea class="bla-data" rows="9" spellcheck="false">Meter A	Lab analyser B
+9.5	10.3
+4.2	4.4
+5.7	6.0
+17.8	16.9
+13.8	14.3
+8.4	7.9
+14.0	13.9
+16.2	15.3
+13.9	12.7
+9.3	8.3
+16.0	15.1
+16.4	16.9
+10.6	10.2
+13.5	12.1
+13.3	12.6
+6.8	6.0
+15.2	14.5
+6.2	5.7
+13.2	12.3
+8.3	8.4
+12.5	13.1
+12.0	11.3
+18.3	16.7
+8.2	8.1
+8.2	8.8
+18.0	16.9
+6.3	5.7
+15.6	15.0
+18.0	17.5
+17.7	16.9</textarea></label>
+    <DataFile target=".bla-data" maxCols={10} maxRows={20000} />
+    <p class="ax-help">The sample is made-up data (30 pairs, mmol/L) for practice, not real patients.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Unit <input class="bla-unit" value="mmol/L" /></label>
+      <label>Scale <select class="bla-scale">
+        <option value="diff">Difference (A − B)</option>
+        <option value="percent">Percentage difference</option>
+        <option value="ratio">Ratio A ÷ B (log)</option>
+      </select></label>
+      <label>Plot against <select class="bla-x">
+        <option value="mean">Mean of A and B</option>
+        <option value="b">Method B (reference)</option>
+      </select></label>
+      <label>Limits of agreement <select class="bla-loa">
+        <option value="0.95" selected>95 % (± 1.96 SD)</option>
+        <option value="0.9">90 % (± 1.645 SD)</option>
+        <option value="0.99">99 % (± 2.576 SD)</option>
+      </select></label>
+      <label>Confidence intervals <select class="bla-conf">
+        <option value="0.9">90 %</option>
+        <option value="0.95" selected>95 %</option>
+        <option value="0.99">99 %</option>
+      </select></label>
+      <label>Interval method <select class="bla-ci">
+        <option value="exact">Exact (noncentral t)</option>
+        <option value="approx">Approximate (Bland-Altman 1999)</option>
+      </select></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="bla-reg" checked /> Show the proportional bias line</label>
+    <p class="ax-help bla-help"></p>
+    <p class="ax-err bla-err" hidden></p>
+  </div>
+
+  <div class="ax-card bla-out" hidden>
+    <h2>Agreement</h2>
+    <p class="ax-big bla-big"></p>
+    <p class="bla-read"></p>
+    <dl class="ax-facts bla-facts"></dl>
+    <canvas class="ax-fig bla-fig" style="margin-top:14px"></canvas>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small bla-png">Plot (PNG)</button>
+      <button type="button" class="btn secondary small bla-csv">Results (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style>
+  .bla-med { margin: 0 0 12px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; }
+  .bla-read { margin: 4px 0 14px; font-size: 15px; }
+</style>
+
+<script>
+  import { numericColumns, sig, csv } from '../../lib/sci/num';
+  import { blandAltman, lin, type BlandAltman, type BaScale, type BaCi, type BaX } from '../../lib/sci/blandaltman';
+  import { chartFigure, type Series } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, LIGHT, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.bla')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  let fig: Figure | null = null, report: Section[] = [], csvRows: (string | number)[][] = [];
+  const HELP: Record<BaScale, string> = {
+    diff: 'Plain differences, in the units of the results. Use this when the scatter of the differences is about the same at low and high values.',
+    percent: 'Each difference as a percentage of the mean of the pair. Use this when the differences grow in proportion to the size of the result.',
+    ratio: 'The analysis is done on the logarithm of A ÷ B, and the bias and limits are shown as ratios (1 means no difference). Needs all results above zero.',
+  };
+  const pct = (c: number) => `${Math.round(c * 100)} %`;
+
+  function calc() {
+    const err = q('.bla-err'), scale = sel('.bla-scale') as BaScale;
+    q('.bla-help').textContent = HELP[scale];
+    try {
+      const { headers, cols } = numericColumns(q<HTMLTextAreaElement>('.bla-data').value);
+      // The first two columns that are mostly numbers (an ID or name column is skipped).
+      const use = cols.map((c, i) => [i, c.filter(Number.isFinite).length] as const).filter(([, k]) => k > 0).filter(([i]) => cols[i].filter(Number.isFinite).length >= cols[i].length / 2).map(([i]) => i);
+      if (use.length < 2) throw new Error('Paste two columns of numbers: method A, then method B.');
+      const [ia, ib] = use;
+      const nameA = headers[ia] && !/^Column \d+$/.test(headers[ia]) ? headers[ia] : 'Method A';
+      const nameB = headers[ib] && !/^Column \d+$/.test(headers[ib]) ? headers[ib] : 'Method B';
+      const a: number[] = [], b: number[] = [];
+      let skipped = 0;
+      cols[ia].forEach((v, i) => { const w = cols[ib][i]; if (Number.isFinite(v) && Number.isFinite(w)) { a.push(v); b.push(w); } else skipped++; });
+      const conf = Number(sel('.bla-conf')), loa = Number(sel('.bla-loa'));
+      const r = blandAltman(a, b, { scale, ci: sel('.bla-ci') as BaCi, conf, loa, x: sel('.bla-x') as BaX });
+      const c = lin(a, b, conf);
+      err.hidden = true; q('.bla-out').hidden = false;
+      show(r, c, a, b, nameA, nameB, skipped);
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.bla-out').hidden = true; report = []; csvRows = []; }
+  }
+
+  function show(r: BlandAltman, c: ReturnType<typeof lin>, a: number[], b: number[], nameA: string, nameB: string, skipped: number) {
+    const unit = q<HTMLInputElement>('.bla-unit').value.trim();
+    const u = r.scale === 'diff' && unit ? ` ${unit}` : r.scale === 'percent' ? ' %' : '';
+    const g = (v: number) => sig(r.back(v), 4), f = (v: number) => g(v) + u;
+    const ci = (p: [number, number]) => `${pct(r.conf)} CI ${g(p[0])} to ${f(p[1])}`;
+    const what = r.scale === 'ratio' ? 'Mean ratio' : 'Bias';
+    q('.bla-big').textContent = `${what} ${f(r.bias)}, limits ${g(r.lower)} to ${f(r.upper)}`;
+    // A plain reading.
+    const sideA = r.bias > 0 ? 'higher' : 'lower';
+    const sigBias = r.biasCi[0] > 0 || r.biasCi[1] < 0;
+    const size = r.scale === 'ratio' ? `${sig(Math.abs(Math.exp(r.bias) - 1) * 100, 3)} %` : r.scale === 'percent' ? `${sig(Math.abs(r.bias), 3)} %` : `${sig(Math.abs(r.bias), 3)}${u}`;
+    const span = r.scale === 'ratio' ? `${nameA} should be between ${sig(Math.exp(r.lower), 3)} and ${sig(Math.exp(r.upper), 3)} times ${nameB}` : `the difference (${nameA} − ${nameB}) should lie between ${g(r.lower)} and ${f(r.upper)}`;
+    let read = `On average ${nameA} reads ${size} ${sideA} than ${nameB}${sigBias ? '' : ', but the interval of the bias includes zero'}. For ${pct(r.loaLevel)} of subjects, ${span}. Whether that is close enough is a clinical judgement: compare the limits with the largest difference that would not matter.`;
+    if (r.slopeP < 0.05) read += ` The differences change with the size of the result (proportional bias, p = ${sig(r.slopeP, 2)})${r.scale === 'diff' ? ': try the percentage or ratio scale' : ''}.`;
+    q('.bla-read').textContent = read;
+    const facts: [string, string][] = [
+      ['Pairs', `${r.n}${skipped ? ` (${skipped} incomplete line${skipped === 1 ? '' : 's'} left out)` : ''}`],
+      [what, `${f(r.bias)} (${ci(r.biasCi)})`],
+      [r.scale === 'ratio' ? 'SD of ln(A ÷ B)' : 'SD of the differences', `${sig(r.sd, 4)}${u}`],
+      [`Lower limit (${pct(r.loaLevel)})`, `${f(r.lower)} (${ci(r.lowerCi)})`],
+      [`Upper limit (${pct(r.loaLevel)})`, `${f(r.upper)} (${ci(r.upperCi)})`],
+      ['Outside the limits', `${r.outside} of ${r.n} (${sig((100 * r.outside) / r.n, 2)} %)`],
+      ['Proportional bias', `slope ${sig(r.slope, 3)}, p = ${sig(r.slopeP, 3)} (${pct(r.conf)} CI of the slope ${sig(r.slopeCi[0], 3)} to ${sig(r.slopeCi[1], 3)})`],
+      ["Lin's CCC", `${c.ccc.toFixed(4)} (${pct(r.conf)} CI ${c.ci[0].toFixed(4)} to ${c.ci[1].toFixed(4)})`],
+      ['Pearson r, bias factor Cb', `r = ${c.r.toFixed(4)}, Cb = ${c.cb.toFixed(4)}`],
+    ];
+    // The value in bold, its interval or detail (in brackets) in small type below.
+    q('.bla-facts').replaceChildren(...facts.map(([k, v]) => {
+      const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd><span></span><small></small></dd>';
+      const i = v.indexOf(' ('), main = i > 0 ? v.slice(0, i) : v, sub = i > 0 ? v.slice(i + 2, -1) : '';
+      d.querySelector('dt')!.textContent = k; d.querySelector('span')!.textContent = main; d.querySelector('small')!.textContent = sub;
+      return d;
+    }));
+
+    // Plot: differences against the mean (or B), bias and limits, CIs as bars at the right, optional regression.
+    const Y = (v: number) => r.back(v);
+    const xMin = Math.min(...r.x), xMax = Math.max(...r.x), xr = xMin - (xMax - xMin || 1) * 0.04;
+    const series: Series[] = [{ name: 'Pairs', x: r.x, y: r.d.map(Y), mode: 'points', color: '#0072B2' }];
+    if (q<HTMLInputElement>('.bla-reg').checked && Number.isFinite(r.slope)) series.push({ name: `Regression (p = ${sig(r.slopeP, 2)})`, x: [xMin, xMax], y: [Y(r.intercept + r.slope * xMin), Y(r.intercept + r.slope * xMax)], mode: 'line', color: '#009E73', dash: [7, 4] });
+    [r.biasCi, r.lowerCi, r.upperCi].forEach((p, i) => series.push({ name: i === 0 ? `${pct(r.conf)} CIs` : '', x: [xr, xr], y: [Y(p[0]), Y(p[1])], mode: 'line', color: '#D55E00', width: 3 }));
+    const zero = r.scale === 'ratio' ? 1 : 0;
+    const xLabel = sel('.bla-x') === 'b' ? `${nameB}${unit ? ` (${unit})` : ''}` : `Mean of the two${unit ? ` (${unit})` : ''}`;
+    const yLabel = r.scale === 'diff' ? `A − B${unit ? ` (${unit})` : ''}` : r.scale === 'percent' ? '(A − B) ÷ mean (%)' : 'A ÷ B';
+    const W = Math.max(340, Math.min(720, q('.bla-fig').clientWidth || 720));
+    fig = chartFigure({
+      w: W, h: Math.round(W * 0.6), xLabel, yLabel, series, legend: 'below',
+      marks: [
+        { kind: 'hline', at: zero, dash: [2, 3] },
+        { kind: 'hline', at: Y(r.bias), color: '#0072B2', dash: [], label: `${r.scale === 'ratio' ? 'mean ratio' : 'bias'} ${sig(Y(r.bias), 3)}` },
+        { kind: 'hline', at: Y(r.upper), color: '#D55E00', dash: [6, 4], label: `+limit ${sig(Y(r.upper), 3)}` },
+        { kind: 'hline', at: Y(r.lower), color: '#D55E00', dash: [6, 4], label: `−limit ${sig(Y(r.lower), 3)}` },
+      ],
+    }, `Bland-Altman plot of ${r.n} pairs: ${what.toLowerCase()} ${f(r.bias)}, limits of agreement ${f(r.lower)} to ${f(r.upper)}`);
+    paint(q<HTMLCanvasElement>('.bla-fig'), fig);
+
+    const head = ['pair', nameA, nameB, sel('.bla-x') === 'b' ? 'x (B)' : 'mean', r.scale === 'diff' ? 'A-B' : r.scale === 'percent' ? 'percent difference' : 'A/B', 'outside limits'];
+    csvRows = [head, ...a.map((v, i) => [i + 1, v, b[i], +r.x[i].toPrecision(10), +Y(r.d[i]).toPrecision(10), r.d[i] < r.lower || r.d[i] > r.upper ? 'yes' : 'no'])];
+    const stat = (n: string, v: number, p?: [number, number]) => [n, +Y(v).toPrecision(8), p ? +Y(p[0]).toPrecision(8) : '', p ? +Y(p[1]).toPrecision(8) : ''];
+    csvRows.push([], ['statistic', 'value', `CI low (${pct(r.conf)})`, `CI high (${pct(r.conf)})`], stat(what.toLowerCase(), r.bias, r.biasCi), stat('lower limit', r.lower, r.lowerCi), stat('upper limit', r.upper, r.upperCi),
+      ['SD of differences' + (r.scale === 'ratio' ? ' (log scale)' : ''), +r.sd.toPrecision(8), '', ''], ['proportional bias slope' + (r.scale === 'ratio' ? ' (log scale)' : ''), +r.slope.toPrecision(8), +r.slopeCi[0].toPrecision(8), +r.slopeCi[1].toPrecision(8)],
+      ['proportional bias p', +r.slopeP.toPrecision(6), '', ''], ["Lin's CCC", +c.ccc.toPrecision(8), +c.ci[0].toPrecision(8), +c.ci[1].toPrecision(8)], ['interval method', r.ciMethod === 'exact' ? 'exact (noncentral t)' : 'approximate (Bland-Altman 1999)', '', '']);
+    report = [
+      { title: `${nameA} against ${nameB}`, text: [read], facts },
+      { title: 'Bland-Altman plot', figure: fig, note: 'Made with fibub.com. For study and teaching, not medical advice.' },
+    ];
+  }
+
+  let t = 0;
+  root.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(calc, 250); });
+  root.addEventListener('change', calc);
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.bla-fig'), fig));
+  q('.bla-csv').addEventListener('click', () => { if (csvRows.length) save(new Blob([csv(csvRows)], { type: 'text/csv' }), 'bland-altman.csv', 'text/csv'); });
+  q('.bla-png').addEventListener('click', () => {
+    if (!fig) return;
+    const cv = document.createElement('canvas'), s = 2;
+    cv.width = fig.w * s; cv.height = fig.h * s;
+    const ctx = cv.getContext('2d')!; ctx.scale(s, s); ctx.fillStyle = LIGHT.bg; ctx.fillRect(0, 0, fig.w, fig.h);
+    fig.draw(ctx, fig.w, fig.h, LIGHT);
+    cv.toBlob((bl) => bl && save(bl, 'bland-altman-plot.png', 'image/png'), 'image/png');
+  });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Bland-Altman agreement', subtitle: q('.bla-big').textContent ?? '', file: 'bland-altman', sections: report }));
+</script>

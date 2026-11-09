@@ -1,0 +1,141 @@
+---
+// Lab unit converter: conventional (mg/dL) and SI (mmol/L, µmol/L) units, with the molar mass and factor shown.
+import DataFile from '../../components/DataFile.astro';
+import '../../styles/astro.css';
+---
+<div class="ax luc">
+  <p class="note warn luc-warn">For study and teaching, not medical advice. Check with a qualified professional.</p>
+  <div class="ax-card">
+    <h2>Convert a value</h2>
+    <div class="ax-grid">
+      <label>Test <select class="luc-a"></select></label>
+      <label>Value <input class="luc-x" inputmode="decimal" value="100" /></label>
+      <label>From <select class="luc-from"></select></label>
+      <label>To <select class="luc-to"></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small luc-swap">Swap units</button>
+      <label class="luc-dl">Round to <select class="luc-d"><option value="">4 significant figures</option><option value="0">0 decimals</option><option value="1">1 decimal</option><option value="2">2 decimals</option><option value="3">3 decimals</option></select></label>
+    </div>
+    <p class="ax-big luc-out" aria-live="polite"></p>
+    <p class="ax-err luc-err" hidden></p>
+    <dl class="ax-facts luc-facts"></dl>
+    <p class="ax-help luc-note"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Convert a list</h2>
+    <label>One value per line, in the From unit above. A unit or note after the number is ignored; a leading &lt; or &gt; is kept.
+      <textarea class="luc-list" rows="7" spellcheck="false">72
+95
+110
+126
+<40
+183</textarea></label>
+    <DataFile target=".luc-list" maxCols={20} />
+    <p class="ax-help luc-lsum"></p>
+    <div class="ax-scroll"><table class="luc-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small luc-csv">Download CSV</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Every factor</h2>
+    <p class="ax-help" style="margin-top:0">Worked out on this page from each formula and the standard atomic weights (IUPAC). Multiply the conventional value by the factor to get SI; divide to go back.</p>
+    <div class="ax-scroll"><table class="luc-all"></table></div>
+  </div>
+</div>
+
+<style is:global>
+  .luc-warn { margin: 0 0 12px; }
+  .luc .luc-dl { display: flex; align-items: center; gap: 6px; flex-direction: row; }
+  .luc .luc-dl select { width: auto; }
+  .luc .luc-tab td.bad { color: var(--bad, #b3261e); }
+  .luc .luc-all td small { display: block; color: var(--muted); font-size: 12px; white-space: normal; }
+  .luc .luc-all td { vertical-align: top; }
+  .luc .luc-all td.r { white-space: nowrap; }
+</style>
+
+<script>
+  import { ANALYTES, byId, molar, factor, convert, convertList, fmt, type Row } from '../../lib/sci/labunits';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { save } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.luc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = { a: q<HTMLSelectElement>('.luc-a'), from: q<HTMLSelectElement>('.luc-from'), to: q<HTMLSelectElement>('.luc-to'), d: q<HTMLSelectElement>('.luc-d') };
+  for (const a of ANALYTES) sel.a.append(new Option(a.name, a.id));
+  let rows: Row[] = [];
+
+  function fillUnits() {
+    const a = byId(sel.a.value);
+    for (const [s, i] of [[sel.from, 0], [sel.to, 1]] as const) { s.innerHTML = ''; for (const u of a.units) s.append(new Option(u, u)); s.value = a.units[i]; }
+  }
+  const dec = () => (sel.d.value === '' ? null : Number(sel.d.value));
+
+  function one() {
+    const a = byId(sel.a.value), from = sel.from.value, to = sel.to.value, x = num(q<HTMLInputElement>('.luc-x').value);
+    const err = q('.luc-err'), out = q('.luc-out'), facts = q('.luc-facts');
+    facts.innerHTML = '';
+    const fact = (k: string, v: string) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.children[0].textContent = k; d.children[1].textContent = v; facts.append(d); };
+    if (a.id === 'hba1c') {
+      fact('Equation', 'NGSP % = 0.09148 × IFCC mmol/mol + 2.152');
+      fact('Rearranged', 'IFCC mmol/mol = (NGSP % − 2.152) ÷ 0.09148');
+    } else {
+      const M = molar(a), f = factor(a, from, to);
+      fact('Weighed as', a.basis);
+      fact('Molar mass', `${M.toFixed(3)} g/mol`);
+      fact('Factor', `1 ${from} = ${sig(f, 5)} ${to}`);
+      if (from === 'mg/dL' && to !== 'mg/dL') fact('Why', `1 mg/dL = 10 mg/L; 10 ÷ ${M.toFixed(3)} = ${sig(10 / M, 5)} mmol/L${to === 'µmol/L' ? ` = ${sig(1e4 / M, 5)} µmol/L` : to === 'mEq/L' ? `, × charge ${a.charge}` : ''}`);
+    }
+    q('.luc-note').textContent = a.note ?? '';
+    if (!Number.isFinite(x) || x < 0) { err.textContent = 'Type a value of zero or more, such as 5.4 or 126.'; err.hidden = false; out.textContent = ''; }
+    else { err.hidden = true; out.textContent = `${x} ${from} = ${fmt(convert(a, x, from, to), dec())} ${to}`; }
+    list();
+  }
+
+  function list() {
+    const a = byId(sel.a.value), from = sel.from.value, to = sel.to.value;
+    rows = convertList(q<HTMLTextAreaElement>('.luc-list').value, a, from, to);
+    const t = q<HTMLTableElement>('.luc-tab'); t.innerHTML = '';
+    const ok = rows.filter((r) => !r.error).length, bad = rows.length - ok;
+    q('.luc-lsum').textContent = rows.length ? `${a.name}: ${ok} value${ok === 1 ? '' : 's'} converted from ${from} to ${to}${bad ? `; ${bad} line${bad === 1 ? '' : 's'} could not be read (marked below)` : ''}.` : 'Paste or type values above.';
+    if (!rows.length) return;
+    const h = t.createTHead().insertRow();
+    for (const [x, r] of [['Line', 0], [from, 1], [to, 1]] as const) { const th = document.createElement('th'); th.textContent = x; if (r) th.className = 'r'; h.append(th); }
+    const b = t.createTBody();
+    rows.slice(0, 500).forEach((r) => {
+      const tr = b.insertRow();
+      [r.input, r.error ? '' : r.prefix + String(r.value), r.error ? r.error : r.prefix + fmt(r.out, dec())].forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; if (i === 2 && r.error) td.classList.add('bad'); });
+    });
+  }
+
+  function all() {
+    const t = q<HTMLTableElement>('.luc-all'); t.innerHTML = '';
+    const h = t.createTHead().insertRow();
+    ['Test', 'g/mol', 'Factor'].forEach((x, i) => { const th = document.createElement('th'); th.textContent = x; if (i) th.className = 'r'; h.append(th); });
+    const b = t.createTBody();
+    for (const a of ANALYTES) {
+      const tr = b.insertRow(), c0 = tr.insertCell(), c1 = tr.insertCell(), c2 = tr.insertCell();
+      c0.textContent = a.name; c1.className = c2.className = 'r';
+      if (a.id === 'hba1c') { c1.textContent = '–'; c2.textContent = 'equation'; continue; }
+      const sm = document.createElement('small'); sm.textContent = a.basis; c0.append(sm);
+      c1.textContent = molar(a).toFixed(3);
+      c2.textContent = `× ${sig(factor(a, a.units[0], a.units[1]), 4)}`; const u = document.createElement('small'); u.textContent = `${a.units[0]} → ${a.units[1]}`; c2.append(u);
+    }
+  }
+
+  sel.a.addEventListener('change', () => { fillUnits(); one(); });
+  for (const s of [sel.from, sel.to, sel.d]) s.addEventListener('change', one);
+  q('.luc-x').addEventListener('input', one);
+  q('.luc-swap').addEventListener('click', () => { const f = sel.from.value; sel.from.value = sel.to.value; sel.to.value = f; one(); });
+  q('.luc-list').addEventListener('input', list);
+  q('.luc-csv').addEventListener('click', () => {
+    if (!rows.length) return;
+    const a = byId(sel.a.value);
+    const head = ['input', `value (${sel.from.value})`, `result (${sel.to.value})`, 'note'];
+    const body = rows.map((r) => [r.input, r.error ? '' : r.prefix + String(r.value), r.error ? '' : r.prefix + fmt(r.out, dec()), r.error ?? '']);
+    const basis = a.id === 'hba1c' ? 'IFCC-NGSP master equation' : `molar mass ${molar(a).toFixed(3)} g/mol, factor ${sig(factor(a, sel.from.value, sel.to.value), 6)}`;
+    save(new TextEncoder().encode(csv([[`# ${a.name}: ${basis}`], head, ...body])), `lab-units-${a.id}.csv`, 'text/csv');
+  });
+  fillUnits(); all(); one();
+</script>

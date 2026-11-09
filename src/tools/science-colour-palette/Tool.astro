@@ -1,0 +1,251 @@
+---
+// Science colour palette: sequential, diverging and qualitative palettes built in OKLCH, checked for colour-blind
+// safety and contrast, previewed as bars and a heatmap, and exported for CSS, matplotlib, R and JSON. Nothing leaves
+// the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax scp">
+  <div class="ax-card">
+    <h2>Palette</h2>
+    <div class="ax-seg sp-kind" role="group" aria-label="Kind of palette">
+      <button type="button" data-k="sequential" aria-pressed="true">Sequential</button>
+      <button type="button" data-k="diverging" aria-pressed="false">Diverging</button>
+      <button type="button" data-k="qualitative" aria-pressed="false">Qualitative</button>
+      <button type="button" data-k="custom" aria-pressed="false">Check my colours</button>
+    </div>
+    <p class="ax-help sp-kh"></p>
+    <div class="ax-grid" style="margin-top:8px">
+      <label class="sp-nl">Number of colours <input class="sp-n" type="number" min="2" max="12" step="1" value="6" inputmode="numeric" /></label>
+      <label data-for="sequential">Hue (0 to 360°) <input class="sp-hue" type="number" min="0" max="360" step="1" value="250" inputmode="numeric" /></label>
+      <label data-for="sequential">Hue turn from light to dark (°) <input class="sp-shift" type="number" min="-180" max="180" step="1" value="-40" inputmode="numeric" /></label>
+      <label data-for="sequential">Lightest (0 to 100) <input class="sp-l1" type="number" min="0" max="100" step="1" value="96" inputmode="numeric" /></label>
+      <label data-for="sequential">Darkest (0 to 100) <input class="sp-l2" type="number" min="0" max="100" step="1" value="26" inputmode="numeric" /></label>
+      <label data-for="diverging">Low-end hue (°) <input class="sp-ha" type="number" min="0" max="360" step="1" value="250" inputmode="numeric" /></label>
+      <label data-for="diverging">High-end hue (°) <input class="sp-hb" type="number" min="0" max="360" step="1" value="40" inputmode="numeric" /></label>
+      <label data-for="diverging">Ends lightness (0 to 100) <input class="sp-le" type="number" min="0" max="100" step="1" value="42" inputmode="numeric" /></label>
+      <label data-for="diverging">Middle lightness (0 to 100) <input class="sp-lm" type="number" min="0" max="100" step="1" value="96" inputmode="numeric" /></label>
+      <label data-for="qualitative">Lightness (0 to 100) <input class="sp-ql" type="number" min="20" max="90" step="1" value="62" inputmode="numeric" /></label>
+      <label data-for="qualitative">Lightness spread (±) <input class="sp-qs" type="number" min="0" max="30" step="1" value="14" inputmode="numeric" /></label>
+      <label data-for="qualitative">First hue (° or blank for best) <input class="sp-qh" type="number" min="0" max="360" step="1" placeholder="best" inputmode="numeric" /></label>
+      <label data-for="qualitative">Colourfulness (chroma, 0 to 0.3) <input class="sp-qc" type="number" min="0" max="0.37" step="0.01" value="0.16" inputmode="decimal" /></label>
+      <label data-for="sequential diverging">Colourfulness (chroma, 0 to 0.3) <input class="sp-c" type="number" min="0" max="0.37" step="0.01" value="0.13" inputmode="decimal" /></label>
+    </div>
+    <label data-for="custom" style="margin-top:10px">Your colours as hex codes, separated by spaces, commas or new lines <textarea class="sp-hex" rows="3" spellcheck="false">#cc3333 #3366cc #33aa44 #9955aa #ee8822</textarea></label>
+    <label data-for="custom" class="ax-check" style="margin-top:8px"><input type="checkbox" class="sp-ord" /> These colours are in order (a colour scale): compare only neighbours</label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Background <span class="sp-bgw"><input class="sp-bgc" type="color" value="#ffffff" aria-label="Background colour picker" /><input class="sp-bg" type="text" value="#ffffff" spellcheck="false" /></span></label>
+      <label>Warn when two colours differ by less than (ΔE) <input class="sp-warn" type="number" min="1" max="50" step="1" value="10" inputmode="numeric" /></label>
+    </div>
+    <p class="ax-help">Lightness, hue and colourfulness are in OKLCH, a colour space where equal steps look about equally different. Colours outside what screens can show are brought in by lowering colourfulness. ΔE is the CIEDE2000 colour difference; about 10 is a rule of thumb for marks in a chart, small dots need more.</p>
+    <p class="ax-err sp-err" hidden></p>
+  </div>
+
+  <div class="ax-card sp-out">
+    <h2>Check</h2>
+    <p class="ax-big sp-big"></p>
+    <dl class="ax-facts sp-facts"></dl>
+    <canvas class="ax-fig sp-sw"></canvas>
+    <div class="ax-scroll"><table class="sp-tab"></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Preview</h2>
+    <label>See it as <select class="sp-vis">
+      <option value="normal">Normal vision</option><option value="deutan">Deuteranopia (no green cones)</option><option value="protan">Protanopia (no red cones)</option><option value="tritan">Tritanopia (no blue cones)</option><option value="grey">Greyscale print</option>
+    </select></label>
+    <canvas class="ax-fig sp-bars"></canvas>
+    <canvas class="ax-fig sp-heat"></canvas>
+    <p class="ax-help">The bars and the heatmap use made-up numbers to show the palette in use.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Export</h2>
+    <div class="ax-grid">
+      <label>Name <input class="sp-name" type="text" value="My palette" /></label>
+      <label>Format <select class="sp-fmt"><option value="hex">Hex list</option><option value="css">CSS variables</option><option value="matplotlib">Python (matplotlib)</option><option value="r">R (and ggplot2)</option><option value="json">JSON</option></select></label>
+    </div>
+    <textarea class="sp-code" rows="7" readonly spellcheck="false" aria-label="Exported palette"></textarea>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small sp-copy">Copy</button>
+      <button type="button" class="btn secondary small sp-dl">Download file</button>
+      <span class="ax-help sp-copied" style="margin:0" hidden>Copied.</span>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { sequential, diverging, qualitative, closestPairs, contrast, oklch, rgbToHex, hexToRgb, parseHexList, seen, exportPalette, VISIONS, VISION_NAMES, type RGB, type Vision, type Fmt } from '../../lib/sci/palette';
+  import { paint, wireDownloads, save, fileSafe, type Figure, type Section } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.scp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => Number(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const HELP: Record<string, string> = {
+    sequential: 'For values that go from low to high, such as concentration or density: light to dark in even steps.',
+    diverging: 'For values either side of a meaningful middle, such as change from control or correlation: two hues meeting at a light middle.',
+    qualitative: 'For groups with no order, such as treatments or species: different hues, with a little lightness change too.',
+    custom: 'Paste colours you already use (from a journal style, a lab template or a plot) to check them.',
+  };
+  let kind = 'sequential', cols: RGB[] = [], bg: RGB = [1, 1, 1], sections: Section[] = [], figs: Figure[] = [];
+
+  function setKind(k: string) {
+    kind = k;
+    root.querySelectorAll<HTMLButtonElement>('.sp-kind button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.k === k)));
+    root.querySelectorAll<HTMLElement>('[data-for]').forEach((el) => { el.hidden = !el.dataset.for!.split(' ').includes(k); });
+    q('.sp-nl').hidden = k === 'custom';
+    q('.sp-kh').textContent = HELP[k];
+    if (k === 'diverging' && v('.sp-n') % 2 === 0) q<HTMLInputElement>('.sp-n').value = String(Math.min(11, v('.sp-n') + 1));
+    if (k === 'qualitative' && v('.sp-n') > 6) q<HTMLInputElement>('.sp-n').value = '6';
+    run();
+  }
+
+  function build(): RGB[] | string {
+    if (kind === 'custom') {
+      const p = parseHexList(q<HTMLTextAreaElement>('.sp-hex').value);
+      if (typeof p === 'string') return `"${p.slice(0, 20)}" is not a hex colour. Use codes like #0072b2 or 0072b2.`;
+      if (p.length < 2 || p.length > 20) return 'Give between 2 and 20 colours.';
+      return p;
+    }
+    const n = Math.round(v('.sp-n')), C = v(kind === 'qualitative' ? '.sp-qc' : '.sp-c');
+    if (!(n >= 2 && n <= 12)) return 'Choose between 2 and 12 colours.';
+    if (!(C >= 0 && C <= 0.37)) return 'Colourfulness (chroma) runs from 0 to 0.37.';
+    const pct = (c: string, lo = 0, hi = 100) => { const x = v(c); return x >= lo && x <= hi ? x / 100 : NaN; };
+    if (kind === 'sequential') {
+      const h = v('.sp-hue'), sh = v('.sp-shift'), a = pct('.sp-l1'), b = pct('.sp-l2');
+      if (!(h >= 0 && h <= 360) || !(Math.abs(sh) <= 180)) return 'Hue is 0 to 360° and the turn is −180 to 180°.';
+      if (!(a > b)) return 'Lightest must be above darkest (both 0 to 100).';
+      return sequential({ n, hue: h, hueShift: sh, lLight: a, lDark: b, chroma: C });
+    }
+    if (kind === 'diverging') {
+      const ha = v('.sp-ha'), hb = v('.sp-hb'), le = pct('.sp-le'), lm = pct('.sp-lm');
+      if (!(ha >= 0 && ha <= 360 && hb >= 0 && hb <= 360)) return 'Hues run from 0 to 360°.';
+      if (!(lm > le)) return 'The middle should be lighter than the ends (both 0 to 100).';
+      return diverging({ n, hueA: ha, hueB: hb, lEnd: le, lMid: lm, chroma: C });
+    }
+    const l = pct('.sp-ql', 20, 90), s = v('.sp-qs') / 100, hs = q<HTMLInputElement>('.sp-qh').value.trim();
+    if (!(l > 0) || !(s >= 0 && s <= 0.3)) return 'Lightness is 20 to 90 and the spread 0 to 30.';
+    if (hs && !(Number(hs) >= 0 && Number(hs) <= 360)) return 'The first hue is 0 to 360°, or blank to let the page pick.';
+    const r = qualitative({ n, l, chroma: C, spread: s, ...(hs ? { start: Number(hs) } : {}) });
+    q<HTMLInputElement>('.sp-qh').placeholder = `best: ${r.start}`;
+    return r.cols;
+  }
+
+  function run() {
+    const b = build(), err = q('.sp-err');
+    if (typeof b === 'string') { err.textContent = b; err.hidden = false; return; }
+    err.hidden = true; cols = b;
+    const bgc = hexToRgb(q<HTMLInputElement>('.sp-bg').value);
+    if (!bgc) { err.textContent = 'The background must be a hex colour such as #ffffff.'; err.hidden = false; return; }
+    bg = bgc;
+    const warn = v('.sp-warn') || 10, ordered = kind === 'sequential' || kind === 'diverging' || (kind === 'custom' && q<HTMLInputElement>('.sp-ord').checked);
+    const pairs = closestPairs(cols, ordered), hx = cols.map(rgbToHex);
+    const cvd = pairs.filter((p) => p.vision !== 'normal' && p.vision !== 'grey'), worst = cvd.reduce((a, p) => (p.min < a.min ? p : a));
+    const normal = pairs[0], greyP = pairs[4];
+    const ok = worst.min >= warn && normal.min >= warn;
+    q('.sp-big').textContent = ok ? `Colour-blind safe at ΔE ${Math.round(warn)}: closest ${ordered ? 'neighbours' : 'pair'} ${sig(worst.min, 3)} (${VISION_NAMES[worst.vision]})` : `Hard to tell apart: ${hx[worst.i]} and ${hx[worst.j]} differ by ΔE ${sig(worst.min, 3)} with ${VISION_NAMES[worst.vision].toLowerCase()}`;
+    const cons = cols.map((c) => contrast(c, bg)), low = cons.filter((x) => x < 3).length;
+    q('.sp-facts').replaceChildren(
+      ...pairs.map((p) => fact(VISION_NAMES[p.vision], `ΔE ${sig(p.min, 3)}`, `closest ${ordered ? 'neighbours' : 'pair'}: ${p.i + 1} and ${p.j + 1}${p.min < warn ? (p.vision === 'grey' ? ', alike in black and white' : ', too close') : ''}`)),
+      fact('Contrast with the background', `${low ? low + ' of ' + cols.length + ' below 3:1' : 'all at least 3:1'}`, 'WCAG asks 3:1 for chart marks and lines against their background'),
+    );
+    // Swatch strip: one row per kind of vision.
+    const rowH = 34, labW = 112, cw = Math.max(26, Math.min(64, 520 / cols.length));
+    const figS: Figure = {
+      w: labW + cw * cols.length + 12, h: 22 + rowH * VISIONS.length, alt: `${cols.length} colour swatches as seen with normal vision, three kinds of colour blindness and in greyscale`,
+      draw: (ctx, w, h, pal) => {
+        ctx.font = '12px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+        cols.forEach((_, i) => { ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.fillText(String(i + 1), labW + cw * (i + 0.5), 10); });
+        VISIONS.forEach((vi, r) => {
+          const y = 22 + r * rowH;
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.fillText(VISION_NAMES[vi], 0, y + rowH / 2 - 2);
+          ctx.fillStyle = rgbToHex(seen(bg, vi)); ctx.fillRect(labW - 4, y - 2, cw * cols.length + 8, rowH);
+          cols.forEach((c, i) => { ctx.fillStyle = pal.red ? pal.accent : rgbToHex(seen(c, vi)); ctx.fillRect(labW + cw * i + 1, y + 2, cw - 2, rowH - 8); });
+        });
+      },
+    };
+    paint(q<HTMLCanvasElement>('.sp-sw'), figS);
+    const head = ['#', 'Hex', 'OKLCH (L, C, h)', 'Contrast', ''];
+    const rows = cols.map((c, i) => { const l = oklch(c); return [String(i + 1), hx[i], `${Math.round(100 * l[0])}, ${l[1].toFixed(3)}, ${l[1] < 0.005 ? '–' : Math.round(l[2]) + '°'}`, `${cons[i].toFixed(2)}:1`, cons[i] >= 3 ? 'OK' : 'Low']; });
+    const tab = q<HTMLTableElement>('.sp-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const tb = tab.createTBody();
+    rows.forEach((r, i) => { const tr = tb.insertRow(); r.forEach((cell, k) => { const td = tr.insertCell(); if (k === 1) { const s = document.createElement('span'); s.className = 'sp-chip'; s.style.background = hx[i]; td.append(s, cell); } else if (k === 4) { const s = document.createElement('span'); s.className = 'ax-pill ' + (cell === 'OK' ? 'good' : 'warn'); s.textContent = cell; td.append(s); } else td.textContent = cell; }); });
+    figs = previews();
+    exportText();
+    sections = [
+      { title: q('.sp-big').textContent!, text: [HELP[kind]], facts: [...q('.sp-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: figS, table: { head: head.slice(0, 4), rows: rows.map((r) => r.slice(0, 4)) } },
+      { title: `Preview (${VISION_NAMES[q<HTMLSelectElement>('.sp-vis').value as Vision].toLowerCase()})`, figure: figs[0] },
+      { title: 'Heatmap preview', figure: figs[1], note: 'Previews use made-up numbers. Colour-blind views follow Viénot, Brettel and Mollon (1999) at full strength.' },
+    ];
+  }
+
+  function previews(): Figure[] {
+    const vis = q<HTMLSelectElement>('.sp-vis').value as Vision;
+    const cs = cols.map((c) => rgbToHex(seen(c, vis))), bgS = rgbToHex(seen(bg, vis)), n = cols.length;
+    // Bars: groups of made-up values, one bar per colour.
+    const vals = Array.from({ length: 3 }, (_, g) => cols.map((_, i) => 30 + 50 * Math.abs(Math.sin(1.7 * i + 2.3 * g + 1))));
+    const bars: Figure = {
+      w: 640, h: 260, alt: `Bar chart preview of the palette, ${VISION_NAMES[vis]}`,
+      draw: (ctx, w, h, pal) => {
+        ctx.fillStyle = bgS; ctx.fillRect(0, 0, w, h);
+        const L = 20, B = h - 28, gw = (w - 2 * L) / 3, bw = Math.min(40, (gw * 0.85) / n);
+        vals.forEach((g, gi) => g.forEach((val, i) => { ctx.fillStyle = pal.red ? pal.accent : cs[i]; const bh = ((B - 14) * val) / 85; ctx.fillRect(L + gi * gw + (gw - bw * n) / 2 + i * bw, B - bh, bw - 2, bh); }));
+        ctx.strokeStyle = rgbToHex(seen(contrast([0, 0, 0], bg) > contrast([1, 1, 1], bg) ? [0, 0, 0] : [1, 1, 1], vis)); ctx.beginPath(); ctx.moveTo(L, B + 0.5); ctx.lineTo(w - L, B + 0.5); ctx.stroke();
+        ctx.fillStyle = ctx.strokeStyle; ctx.font = '13px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ['Group A', 'Group B', 'Group C'].forEach((t, gi) => ctx.fillText(t, L + gw * (gi + 0.5), B + 8));
+      },
+    };
+    // Heatmap: a smooth made-up field cut into the palette's steps (two bumps; diverging uses a dip and a bump).
+    const div = kind === 'diverging';
+    const heat: Figure = {
+      w: 640, h: 240, alt: `Heatmap preview of the palette, ${VISION_NAMES[vis]}`,
+      draw: (ctx, w, h, pal) => {
+        const nx = 64, ny = 24, cw = w / nx, ch = h / ny;
+        for (let y = 0; y < ny; y++) for (let x = 0; x < nx; x++) {
+          const u = x / (nx - 1), t = y / (ny - 1);
+          const a = Math.exp(-((u - 0.3) ** 2 + (t - 0.4) ** 2) / 0.04), b = Math.exp(-((u - 0.72) ** 2 + (t - 0.6) ** 2) / 0.06);
+          const f = div ? 0.5 + 0.5 * (b - a) : Math.min(1, 0.85 * a + 0.7 * b + 0.15 * u);
+          const k = Math.max(0, Math.min(n - 1, Math.floor(f * n)));
+          ctx.fillStyle = pal.red ? pal.accent : cs[k]; ctx.fillRect(Math.floor(x * cw), Math.floor(y * ch), Math.ceil(cw) + 1, Math.ceil(ch) + 1);
+        }
+      },
+    };
+    paint(q<HTMLCanvasElement>('.sp-bars'), bars); paint(q<HTMLCanvasElement>('.sp-heat'), heat);
+    return [bars, heat];
+  }
+
+  const ext: Record<Fmt, string> = { hex: 'txt', css: 'css', matplotlib: 'py', r: 'R', json: 'json' };
+  function exportText() { q<HTMLTextAreaElement>('.sp-code').value = exportPalette(cols, q<HTMLInputElement>('.sp-name').value || 'palette', kind === 'custom' ? (q<HTMLInputElement>('.sp-ord').checked ? 'sequential' : 'qualitative') : kind, q<HTMLSelectElement>('.sp-fmt').value as Fmt); }
+
+  root.querySelectorAll<HTMLButtonElement>('.sp-kind button').forEach((b) => b.addEventListener('click', () => setKind(b.dataset.k!)));
+  let timer = 0;
+  const later = (f: () => void) => { clearTimeout(timer); timer = window.setTimeout(f, 200); };
+  root.querySelectorAll<HTMLInputElement>('.ax-card:first-child input[type=number], .sp-hex').forEach((el) => el.addEventListener('input', () => later(run)));
+  q('.sp-ord').addEventListener('change', run);
+  q('.sp-bgc').addEventListener('input', () => { q<HTMLInputElement>('.sp-bg').value = q<HTMLInputElement>('.sp-bgc').value; run(); });
+  q('.sp-bg').addEventListener('input', () => { const c = hexToRgb(q<HTMLInputElement>('.sp-bg').value); if (c) q<HTMLInputElement>('.sp-bgc').value = rgbToHex(c); later(run); });
+  q('.sp-vis').addEventListener('change', run);
+  q('.sp-fmt').addEventListener('change', exportText);
+  q('.sp-name').addEventListener('input', exportText);
+  q('.sp-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(q<HTMLTextAreaElement>('.sp-code').value); } catch { q<HTMLTextAreaElement>('.sp-code').select(); document.execCommand('copy'); } q('.sp-copied').hidden = false; setTimeout(() => (q('.sp-copied').hidden = true), 1500); });
+  q('.sp-dl').addEventListener('click', () => { const f = q<HTMLSelectElement>('.sp-fmt').value as Fmt; save(new Blob([q<HTMLTextAreaElement>('.sp-code').value], { type: 'text/plain' }), `${fileSafe(q<HTMLInputElement>('.sp-name').value)}.${ext[f]}`, 'text/plain'); });
+  document.addEventListener('fibub:theme', run);
+  wireDownloads(q('.dl'), () => ({ title: 'Science colour palette', subtitle: q('.sp-big').textContent ?? '', file: `${fileSafe(q<HTMLInputElement>('.sp-name').value)}-palette`, sections }));
+  setKind('sequential');
+</script>
+
+<style is:global>
+  .scp .sp-chip { display: inline-block; width: 14px; height: 14px; border-radius: 3px; margin-right: 6px; vertical-align: -2px; border: 1px solid var(--line, #ccc); }
+  .scp .sp-bgw { display: flex; gap: 6px; align-items: center; }
+  .scp .sp-bgw { max-width: 100%; }
+  .scp .sp-bgw input[type=color] { width: 44px !important; min-width: 44px; height: 38px; padding: 2px; flex: none; }
+  .scp .sp-bgw input[type=text] { flex: 1 1 auto; width: auto !important; min-width: 0; }
+  .scp .sp-tab td { white-space: nowrap; }
+  .scp .sp-code { width: 100%; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; margin-top: 10px; }
+  .scp select { max-width: 100%; }
+  html.red-mode .scp .sp-chip { filter: url(#red-night); }
+</style>

@@ -1,0 +1,461 @@
+---
+// Reference interval from local data: CLSI nonparametric and parametric (raw, log, Box-Cox) limits with CIs,
+// outlier screens and Harris-Boyd partitioning.
+import DataFile from '../../components/DataFile.astro';
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ri">
+  <div class="ax-card">
+    <p class="ri-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
+    <h2>Results from healthy reference people</h2>
+    <label>One result per line; a second column with a subgroup (such as sex) is optional
+      <textarea class="ri-data" rows="8" spellcheck="false">Result (U/L)	Sex
+20	F
+18	F
+18	M
+16	M
+31	M
+38	M
+30	F
+26	F
+48	M
+37	M
+36	M
+28	F
+13	F
+27	M
+32	F
+15	M
+25	M
+19	F
+20	M
+23	M
+30	M
+14	F
+26	M
+30	M
+21	M
+24	M
+27	M
+16	F
+24	M
+42	M
+38	F
+28	M
+36	M
+26	F
+17	M
+35	M
+18	F
+19	F
+29	F
+27	M
+20	M
+22	F
+41	M
+27	F
+44	F
+17	F
+26	M
+28	M
+26	M
+27	F
+22	F
+15	F
+23	M
+20	M
+16	F
+18	F
+31	M
+30	M
+13	F
+24	F
+25	M
+32	M
+34	F
+20	M
+15	F
+27	F
+21	F
+50	M
+13	M
+20	F
+46	F
+13	F
+32	F
+16	F
+32	M
+38	F
+15	F
+32	M
+18	M
+17	M
+20	F
+29	M
+45	M
+22	F
+35	M
+18	F
+20	F
+18	F
+16	F
+27	F
+34	M
+14	F
+20	F
+23	F
+16	F
+23	F
+28	M
+29	F
+15	M
+27	F
+27	M
+18	F
+38	M
+32	M
+24	M
+31	F
+25	M
+34	F
+27	M
+21	F
+22	M
+22	M
+29	M
+38	M
+14	F
+23	F
+20	F
+20	M
+18	F
+27	M
+38	F
+37	M
+19	M
+17	M
+28	M
+26	F
+28	F
+40	M
+25	F
+22	M
+22	F
+27	M
+41	M
+23	M
+31	M
+26	M
+21	F
+34	M
+13	F
+11	F
+19	M
+32	M
+25	F
+32	F
+24	F
+15	F
+21	F
+19	F
+25	M
+23	M
+21	F
+22	F
+27	M
+22	F
+10	F
+19	F
+20	M
+140	F
+25	M
+11	F
+38	M
+28	M
+28	M
+29	M
+23	M
+25	M
+17	F
+32	M
+21	F
+25	M
+18	M
+27	F
+19	M
+27	F
+15	F
+28	M
+19	F
+22	F
+21	M
+36	M
+22	F
+30	F
+28	F
+36	M
+11	F
+21	F
+31	F
+20	F
+26	M
+21	F
+31	M
+39	M
+30	F
+25	F
+18	F
+21	M
+22	F
+15	F
+34	M
+24	M
+29	M
+43	M
+21	M
+33	F
+32	M
+24	M
+11	F
+23	M
+22	M
+24	M
+13	F
+19	F
+25	M
+31	F
+18	M
+27	F
+25	F
+14	F
+19	F
+23	F
+33	F
+26	F
+26	M
+21	F
+28	M
+14	F
+31	F
+13	F
+31	M
+24	M
+28	M
+26	F
+22	F
+25	M
+17	M
+18	F
+31	M
+27	M
+30	F
+118	M</textarea></label>
+    <DataFile target=".ri-data" maxCols={10} maxRows={50000} />
+    <p class="ax-help">The sample is 240 made-up results (with two planted outliers) for practice, not real reference data.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Unit <input class="ri-unit" value="U/L" /></label>
+      <label>Interval <select class="ri-cov">
+        <option value="0.95" selected>Central 95 %</option>
+        <option value="0.9">Central 90 %</option>
+        <option value="0.99">Central 99 %</option>
+      </select></label>
+      <label>CIs of the limits <select class="ri-conf">
+        <option value="0.9" selected>90 % (CLSI)</option>
+        <option value="0.95">95 %</option>
+      </select></label>
+      <label>Parametric scale <select class="ri-tr">
+        <option value="none">Raw (Gaussian)</option>
+        <option value="log" selected>Log</option>
+        <option value="boxcox">Box-Cox (λ estimated)</option>
+      </select></label>
+      <label>Outlier screen <select class="ri-out">
+        <option value="tukey" selected>Tukey fences</option>
+        <option value="dixon">Dixon 1/3 rule</option>
+        <option value="none">None</option>
+      </select></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="ri-drop" /> Leave out flagged results</label>
+    <p class="ax-help">Outliers are screened on the parametric scale (so on the transformed values with log or Box-Cox, as Horn and colleagues advise). Only leave out a result when you can also explain it, such as a sample error or an unwell donor.</p>
+    <p class="ax-err ri-err" hidden></p>
+  </div>
+
+  <div class="ax-card ri-res" hidden>
+    <h2>Reference interval</h2>
+    <p class="ax-big ri-big"></p>
+    <div class="ax-scroll"><table class="ri-tab"></table></div>
+    <p class="ax-help ri-note"></p>
+    <dl class="ax-facts ri-facts" style="margin-top:12px"></dl>
+    <canvas class="ax-fig ri-fig" style="margin-top:14px"></canvas>
+    <p class="ax-help ri-figNote"></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small ri-csv">Results (CSV)</button>
+    </div>
+  </div>
+
+  <div class="ax-card ri-hb" hidden>
+    <h2>Subgroups (Harris-Boyd)</h2>
+    <p class="ri-hbread"></p>
+    <dl class="ax-facts ri-hbfacts"></dl>
+    <div class="ax-scroll" style="margin-top:12px"><table class="ri-gtab"></table></div>
+  </div>
+  <Downloads />
+</div>
+
+<style>
+  .ri-med { margin: 0 0 12px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; }
+  .ri-hbread { margin: 0 0 12px; font-size: 15px; }
+</style>
+<style is:global>
+  .ri-tab td:first-child, .ri-gtab td:first-child { min-width: 7em; }
+  .ri-tab td { white-space: pre-line; }
+  .ri-tab th { white-space: normal; }
+</style>
+
+<script>
+  import { parseTable, num, sig, csv } from '../../lib/sci/num';
+  import { referenceInterval, rankCi, tukey, dixon, harrisBoyd, bc, type Transform, type RefInterval } from '../../lib/sci/refint';
+  import { chartFigure, type Series } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ri')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  let fig: Figure | null = null, report: Section[] = [], csvRows: (string | number)[][] = [];
+  const pct = (c: number) => `${Math.round(c * 100)} %`;
+
+  function read() {
+    const rows = parseTable(q<HTMLTextAreaElement>('.ri-data').value);
+    const vals: number[] = [], groups: string[] = [];
+    let skipped = 0;
+    rows.forEach((r, i) => {
+      const k = r.findIndex((c) => Number.isFinite(num(c)));
+      if (k < 0) { if (i > 0) skipped++; return; }
+      vals.push(num(r[k]));
+      groups.push((r.find((c, j) => j !== k && c !== '' && Number.isNaN(num(c))) ?? '').trim());
+    });
+    return { vals, groups, skipped };
+  }
+
+  function calc() {
+    const err = q('.ri-err');
+    try {
+      const { vals, groups, skipped } = read();
+      const tr = sel('.ri-tr') as Transform, cov = Number(sel('.ri-cov')), conf = Number(sel('.ri-conf'));
+      if (vals.length < 10) throw new Error('Paste at least 10 results, one per line (CLSI asks for 120 or more).');
+      if (tr !== 'none' && vals.some((v) => !(v > 0))) throw new Error('The log and Box-Cox scales need every result above zero. Choose the raw scale, or check for zeros and negative values.');
+      // Outlier screen on the parametric scale.
+      const pre = referenceInterval(vals, { transform: tr, coverage: cov, ciConf: conf });
+      const scaleV = vals.map((v) => (tr === 'none' ? v : bc(v, pre.par.lambda)));
+      const how = sel('.ri-out');
+      const flagged = how === 'tukey' ? tukey(scaleV).flagged : how === 'dixon' ? dixon(scaleV) : [];
+      const drop = q<HTMLInputElement>('.ri-drop').checked && flagged.length > 0;
+      const keep = vals.map((_, i) => i).filter((i) => !(drop && flagged.includes(i)));
+      const v = keep.map((i) => vals[i]), g = keep.map((i) => groups[i]);
+      const r = drop ? referenceInterval(v, { transform: tr, coverage: cov, ciConf: conf }) : pre;
+      err.hidden = true; q('.ri-res').hidden = false;
+      show(r, vals, flagged, drop, v, g, skipped, tr, cov, conf);
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.ri-res').hidden = true; q('.ri-hb').hidden = true; report = []; csvRows = []; }
+  }
+
+  function show(r: RefInterval, all: number[], flagged: number[], drop: boolean, v: number[], g: string[], skipped: number, tr: Transform, cov: number, conf: number) {
+    const unit = q<HTMLInputElement>('.ri-unit').value.trim(), u = unit ? ` ${unit}` : '';
+    const f = (x: number) => sig(x, 4);
+    const trName = tr === 'none' ? 'raw' : tr === 'log' ? 'log' : `Box-Cox, λ = ${sig(r.par.lambda, 3)}`;
+    const np = r.nonpar;
+    q('.ri-big').textContent = np ? `${f(np.lower)} to ${f(np.upper)}${u}` : `${f(r.par.lower)} to ${f(r.par.upper)}${u}`;
+    const ciTxt = (c: [number, number] | null) => (c ? `${f(c[0])} to ${f(c[1])}` : 'needs more results');
+    const head = ['Method', 'Lower limit', `${pct(conf)} CI`, 'Upper limit', `${pct(conf)} CI`];
+    const rows = [
+      np ? ['Nonparametric (CLSI rank)', f(np.lower), ciTxt(np.lowerCi), f(np.upper), ciTxt(np.upperCi)] : ['Nonparametric (CLSI rank)', 'needs more results', '', '', ''],
+      [`Parametric (${trName})`, f(r.par.lower), `${f(r.par.lowerCi[0])} to ${f(r.par.lowerCi[1])}`, f(r.par.upper), `${f(r.par.upperCi[0])} to ${f(r.par.upperCi[1])}`],
+    ];
+    const tab = q<HTMLTableElement>('.ri-tab'); tab.replaceChildren();
+    const tr_ = (cells: string[], th = false) => { const e = document.createElement('tr'); cells.forEach((c, i) => { const d = document.createElement(th ? 'th' : 'td'); d.textContent = c; if (i) d.className = 'r'; e.append(d); }); return e; };
+    // On the page: the CI under each limit, so the table fits a phone.
+    const two = (a: string, b: string) => (b ? `${a}\n${b}` : a);
+    tab.append(tr_(['Method', `Lower limit (${pct(conf)} CI)`, `Upper limit (${pct(conf)} CI)`], true), ...rows.map((x) => tr_([x[0], two(x[1], x[2]), two(x[3], x[4])])));
+    const pl = (1 - cov) / 2, minN = Math.ceil(1 / pl - 1);
+    const notes = [`${np ? `The ${pct(cov)} interval is read from ranks ${+(pl * (r.n + 1)).toFixed(4)} and ${+((1 - pl) * (r.n + 1)).toFixed(4)} of the sorted results (rank = p × (n + 1)).` : `The nonparametric limits need at least ${minN} results for a ${pct(cov)} interval.`}`];
+    if (np && !np.ranks) { let k = r.n; while (k < 5000 && !rankCi(k, pl, conf)) k++; notes.push(`A ${pct(conf)} CI of a nonparametric limit needs at least ${k} results.`); }
+    else if (np?.ranks) notes.push(`CIs use order statistics ${np.ranks[0]} and ${np.ranks[1]} from each end (binomial).`);
+    if (r.n < 120) notes.push('CLSI EP28 asks for at least 120 reference people per group for the nonparametric method.');
+    notes.push('Use the nonparametric limits unless the data fit the parametric scale well (skewness near 0).');
+    q('.ri-note').textContent = notes.join(' ');
+    const fl = flagged.map((i) => all[i]).sort((a, b) => a - b);
+    const facts: [string, string][] = [
+      ['Results used', `${r.n}${drop ? ` (${flagged.length} left out)` : ''}${skipped ? `, ${skipped} line${skipped === 1 ? '' : 's'} without a number skipped` : ''}`],
+      ['Flagged as outliers', fl.length ? `${fl.length}: ${fl.slice(0, 12).map(f).join(', ')}${fl.length > 12 ? ', …' : ''}` : 'none'],
+      [`Skewness on the ${tr === 'none' ? 'raw' : 'parametric'} scale`, `${sig(r.skew, 3)} (excess kurtosis ${sig(r.kurt, 3)})`],
+      ['Mean and SD on that scale', `${sig(r.par.mean, 4)} and ${sig(r.par.sd, 4)}`],
+    ];
+    if (tr === 'boxcox') facts.push(['Box-Cox λ', `${sig(r.par.lambda, 4)} (1 = no change, 0 = log)`]);
+    q('.ri-facts').replaceChildren(...facts.map(([k, x]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = x; return d; }));
+
+    // Histogram (outline) with both sets of limits.
+    // Bins cover the results that are not flagged, so one far outlier does not squash the picture.
+    const flagSet = new Set(flagged.map((i) => all[i]));
+    const core = v.filter((x) => !flagSet.has(x));
+    const s = [...(core.length >= 10 ? core : v)].sort((a, b) => a - b), lo = s[0], hi = s[s.length - 1];
+    const outside = fl.filter((x) => x < lo || x > hi);
+    const nb0 = Math.max(8, Math.min(40, Math.ceil(Math.sqrt(s.length))));
+    // Whole-number results get whole-number bins, so the bars do not alternate between one and two values.
+    const ints = s.every((x) => Number.isInteger(x)), w = ints ? Math.max(1, Math.ceil((hi - lo + 1) / nb0)) : (hi - lo) / nb0 || 1;
+    const nb = ints ? Math.ceil((hi - lo + 1) / w) : nb0;
+    const counts = Array(nb).fill(0); for (const x of s) counts[Math.min(nb - 1, Math.floor((x - lo) / w))]++;
+    const hx: number[] = [], hy: number[] = [];
+    counts.forEach((c, i) => { hx.push(lo + i * w, lo + (i + 1) * w); hy.push(c, c); });
+    hx.unshift(lo); hy.unshift(0); hx.push(lo + nb * w); hy.push(0);
+    const series: Series[] = [{ name: 'Results', x: hx, y: hy, mode: 'line', color: '#0072B2', width: 1.6 }];
+    const shownFl = fl.filter((x) => x >= lo && x <= hi);
+    if (shownFl.length && !drop) series.push({ name: 'Flagged', x: shownFl, y: shownFl.map(() => 0), mode: 'points', marker: 'cross', size: 5, color: '#D55E00' });
+    const marks: { kind: 'vline'; at: number; color?: string; dash?: number[]; label?: string }[] = [];
+    if (np) marks.push({ kind: 'vline', at: np.lower, color: '#009E73', dash: [], label: f(np.lower) }, { kind: 'vline', at: np.upper, color: '#009E73', dash: [], label: f(np.upper) });
+    marks.push({ kind: 'vline', at: r.par.lower, color: '#CC79A7', dash: [6, 4] }, { kind: 'vline', at: r.par.upper, color: '#CC79A7', dash: [6, 4] });
+    const W = Math.max(340, Math.min(720, q('.ri-fig').clientWidth || 720));
+    const span = hi - lo || 1;
+    fig = chartFigure({ w: W, h: Math.round(W * 0.58), xLabel: `Result${u ? ` (${unit})` : ''}`, yLabel: 'Count', series, marks, yMin: 0, xMin: Math.min(lo, ...marks.map((m) => m.at)) - span * 0.03, xMax: Math.max(hi, ...marks.map((m) => m.at)) + span * 0.03, legend: 'none' },
+      `Histogram of ${r.n} results with the nonparametric limits (solid) and parametric limits (dashed)`);
+    paint(q<HTMLCanvasElement>('.ri-fig'), fig);
+    q('.ri-figNote').textContent = `Green solid lines: nonparametric limits. Pink dashed lines: parametric limits.${outside.length && !drop ? ` Flagged results beyond the plot: ${outside.map(f).join(', ')}.` : ''}`;
+
+    // Subgroups.
+    const names = [...new Set(g.filter(Boolean))];
+    const sections: Section[] = [];
+    if (names.length === 2) {
+      const T = (x: number) => (tr === 'none' ? x : bc(x, r.par.lambda));
+      const a = v.filter((_, i) => g[i] === names[0]), b = v.filter((_, i) => g[i] === names[1]);
+      if (a.length >= 10 && b.length >= 10) {
+        const h = harrisBoyd(a.map(T), b.map(T));
+        q('.ri-hb').hidden = false;
+        q('.ri-hbread').textContent = h.partition
+          ? `${names[0]} and ${names[1]} differ enough to need separate reference intervals (${h.z > h.zStar ? `z = ${sig(h.z, 3)} is above z* = ${sig(h.zStar, 3)}` : `the SD ratio ${sig(h.sdRatio, 3)} is above 1.5`}).`
+          : `One shared interval is fine: z = ${sig(h.z, 3)} is below z* = ${sig(h.zStar, 3)} and the SD ratio ${sig(h.sdRatio, 3)} is not above 1.5.`;
+        const hf: [string, string][] = [['z between the means', sig(h.z, 4)], ['Critical z* = 3 √(n̄ ÷ 120)', sig(h.zStar, 4)], ['Larger SD ÷ smaller SD', sig(h.sdRatio, 4)], ['Scale', trName]];
+        q('.ri-hbfacts').replaceChildren(...hf.map(([k, x]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = x; return d; }));
+        const gh = ['Group', 'n', 'Nonparametric', 'Parametric'];
+        const gr = [names[0], names[1]].map((nm, k) => {
+          const x = k ? b : a, ri = referenceInterval(x, { transform: tr, coverage: cov, ciConf: conf });
+          return [nm, String(x.length), ri.nonpar ? `${f(ri.nonpar.lower)} to ${f(ri.nonpar.upper)}` : 'needs more results', `${f(ri.par.lower)} to ${f(ri.par.upper)}`];
+        });
+        const gt = q<HTMLTableElement>('.ri-gtab'); gt.replaceChildren(tr_(gh, true), ...gr.map((x) => tr_(x)));
+        sections.push({ title: 'Subgroups (Harris-Boyd)', text: [q('.ri-hbread').textContent!], facts: hf, table: { head: gh, rows: gr } });
+      } else q('.ri-hb').hidden = true;
+    } else q('.ri-hb').hidden = true;
+
+    csvRows = [['result', 'group', 'flagged', 'used'], ...all.map((x, i) => [x, '', flagged.includes(i) ? 'yes' : 'no', drop && flagged.includes(i) ? 'no' : 'yes'])];
+    const grp = read().groups; csvRows.forEach((row, i) => { if (i) row[1] = grp[i - 1] ?? ''; });
+    csvRows.push([], ['method', 'lower', 'lower CI low', 'lower CI high', 'upper', 'upper CI low', 'upper CI high']);
+    if (np) csvRows.push(['nonparametric', np.lower, np.lowerCi?.[0] ?? '', np.lowerCi?.[1] ?? '', np.upper, np.upperCi?.[0] ?? '', np.upperCi?.[1] ?? '']);
+    csvRows.push([`parametric (${trName})`, +r.par.lower.toPrecision(8), +r.par.lowerCi[0].toPrecision(8), +r.par.lowerCi[1].toPrecision(8), +r.par.upper.toPrecision(8), +r.par.upperCi[0].toPrecision(8), +r.par.upperCi[1].toPrecision(8)]);
+    report = [{ title: `Central ${pct(cov)} reference interval`, text: [q('.ri-big').textContent!, q('.ri-note').textContent!], table: { head, rows }, facts }, { title: 'Histogram', figure: fig, note: 'Green solid lines: nonparametric limits. Pink dashed lines: parametric limits. Made with fibub.com; for study and teaching, not medical advice.' }, ...sections];
+  }
+
+  let t = 0;
+  root.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(calc, 300); });
+  root.addEventListener('change', calc);
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.ri-fig'), fig));
+  q('.ri-csv').addEventListener('click', () => { if (csvRows.length) save(new Blob([csv(csvRows)], { type: 'text/csv' }), 'reference-interval.csv', 'text/csv'); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Reference interval', subtitle: q('.ri-big').textContent ?? '', file: 'reference-interval', sections: report }));
+</script>

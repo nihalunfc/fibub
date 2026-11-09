@@ -1,0 +1,257 @@
+---
+// Electron diffraction pattern indexer: the relativistic wavelength and camera constant from the voltage and camera
+// length (or from rings of a known standard), d-spacings from ring radii or spot distances, ring-ratio indexing of
+// cubic lattices, and the zone axis of a two-spot pattern. Nothing is uploaded. The example rings are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax edi">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Microscope</h2>
+      <button type="button" class="btn secondary small ed-ex">Use the example</button>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Accelerating voltage (kV) <input class="ed-kv" inputmode="decimal" value="200" /></label>
+      <label>Camera length L (mm) <input class="ed-L" inputmode="decimal" value="1000" /></label>
+      <label>Distances are in <select class="ed-unit"><option value="mm" selected>mm</option><option value="px">pixels</option><option value="inv">1/nm (calibrated image)</option></select></label>
+      <label class="ed-pxl" hidden>Pixel size on the detector (µm) <input class="ed-px" inputmode="decimal" placeholder="only for the nominal λL" /></label>
+      <label>Each value is a <select class="ed-rd"><option value="r" selected>radius (centre to ring)</option><option value="d">diameter (across the pattern)</option></select></label>
+      <label>Camera constant from <select class="ed-src"><option value="nom">voltage and camera length</option><option value="cal" selected>the standard below</option></select></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="ed-exact" /> Exact geometry (tan 2θ = R/L) instead of Rd = λL</label>
+    <dl class="ax-facts ed-mfacts" style="margin-top:12px"></dl>
+    <p class="ax-help">Rd = λL holds for the small angles of electron diffraction (2θ is a degree or two). The nominal camera length on the microscope is often a few per cent off, so calibrating with a standard of known lattice parameter, under the same lens settings, is more accurate. With distances in 1/nm, d = 1/R and no camera constant is needed.</p>
+    <p class="ax-err ed-merr" hidden></p>
+  </div>
+
+  <div class="ax-card ed-calcard">
+    <h2>Calibrate with a standard</h2>
+    <div class="ax-grid">
+      <label>Standard's lattice <select class="ed-slat"><option value="fcc" selected>Face-centred cubic</option><option value="bcc">Body-centred cubic</option><option value="sc">Simple cubic</option><option value="diamond">Diamond cubic</option></select></label>
+      <label>Standard's a (Å) <input class="ed-sa" inputmode="decimal" value="4.08" /></label>
+    </div>
+    <label style="margin-top:10px">Ring radii (or diameters) of the standard, one per line <textarea class="ed-std" rows="4" spellcheck="false"></textarea></label>
+    <DataFile target=".ed-std" maxCols={4} maxRows={200} label="Open a list" />
+    <p class="ax-help">Use the lattice parameter from your standard's certificate. The example standard is a made-up face-centred cubic film with a = 4.08 Å, about what a gold film gives.</p>
+    <p class="ax-err ed-cerr" hidden></p>
+    <div class="ed-cout" hidden>
+      <p class="ax-big ed-cbig"></p>
+      <div class="ax-scroll"><table class="ed-ctab"></table></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Rings of your sample</h2>
+    <label>Ring radii (or diameters), one per line; a second column (intensity or a note) is ignored <textarea class="ed-smp" rows="5" spellcheck="false"></textarea></label>
+    <DataFile target=".ed-smp" maxCols={4} maxRows={200} label="Open a list" />
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Indexing tolerance (% of d) <input class="ed-tol" inputmode="decimal" value="2" /></label>
+    </div>
+    <p class="ax-err ed-err" hidden></p>
+  </div>
+
+  <div class="ax-card ed-out" hidden>
+    <h2>Results</h2>
+    <p class="ax-big ed-big"></p>
+    <div class="ax-scroll"><table class="ed-tab"></table></div>
+    <h3>Cubic lattices</h3>
+    <div class="ax-scroll"><table class="ed-ltab"></table></div>
+    <p class="ax-help">Ring ratios R²ₙ/R²₁ = Nₙ/N₁ with N = h² + k² + l². The lattice that indexes every ring with no allowed ring missing is listed first; simple cubic and body-centred cubic look alike until the seventh ring. "Not seen" lists allowed rings inside the measured range that are not in your list.</p>
+    <canvas class="ax-fig ed-fig"></canvas>
+
+    <h3>Spot pattern (single crystal)</h3>
+    <p class="ax-help" style="margin-top:0">Measure two spots from the centre spot, the shortest you can see that are not in line, and the angle between them.</p>
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Spot 1 distance <input class="ed-r1" inputmode="decimal" /></label>
+      <label>Spot 2 distance <input class="ed-r2" inputmode="decimal" /></label>
+      <label>Angle between (°) <input class="ed-phi" inputmode="decimal" /></label>
+      <label>Lattice <select class="ed-plat"><option value="auto" selected>Best ring fit</option><option value="fcc">Face-centred cubic</option><option value="bcc">Body-centred cubic</option><option value="sc">Simple cubic</option><option value="diamond">Diamond cubic</option></select></label>
+      <label>a (Å) <input class="ed-pa" inputmode="decimal" placeholder="from the rings" /></label>
+      <label>Angle tolerance (°) <input class="ed-atol" inputmode="decimal" value="2" /></label>
+    </div>
+    <p class="ax-help ed-snote" aria-live="polite"></p>
+    <div class="ax-scroll"><table class="ed-stab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ed-csv">Download rings (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { electronWavelength, beta, dFromR, dFromRExact, calibrate, indexRings, indexSpots, exampleRings, type Calibration, type SpotSolution } from '../../lib/sci/ediff';
+  import { CUBIC_NAMES, cubicLines, type Cubic, type CubicFit } from '../../lib/sci/xrd';
+  import { fmtIdx } from '../../lib/sci/miller';
+  import { num, sig, parseTable } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.edi')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const v = (c: string) => num(inp(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const SHORT: Record<Cubic, string> = { sc: 'SC', bcc: 'BCC', fcc: 'FCC', diamond: 'Diamond' };
+  function table(t: HTMLTableElement, head: string[], body: string[][], left: number[] = [0]) {
+    t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (!left.includes(i)) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); body.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (!left.includes(i)) td.className = 'r'; }); });
+  }
+  const unitName = () => ({ mm: 'mm', px: 'px', inv: '1/nm' }[sel('.ed-unit')]!);
+
+  /** Values from a box: first number on each line, halved for diameters. */
+  function readList(c: string, label: string): number[] | string {
+    const rows = parseTable(q<HTMLTextAreaElement>(c).value), out: number[] = [];
+    for (let i = 0; i < rows.length; i++) {
+      const x = num(rows[i][0]);
+      if (!Number.isFinite(x)) { if (i === 0) continue; return `${label}, line ${i + 1}: start each line with a distance.`; }
+      if (!(x > 0)) return `${label}, line ${i + 1}: distances are positive.`;
+      out.push(sel('.ed-rd') === 'd' ? x / 2 : x);
+    }
+    if (out.length > 60) return `${label}: up to 60 rings, please.`;
+    return out.sort((a, b) => a - b);
+  }
+
+  let lamL = NaN, cal: Calibration | null = null, fits: CubicFit[] = [], rows: { R: number; d: number }[] = [], spots: SpotSolution[] = [];
+  let fig: Figure | null = null, sections: Section[] = [];
+
+  function run() {
+    const merr = q('.ed-merr'), cerr = q('.ed-cerr'), err = q('.ed-err'), out = q('.ed-out');
+    merr.hidden = cerr.hidden = err.hidden = true;
+    const stop = (el: HTMLElement, m: string) => { el.textContent = m; el.hidden = false; out.hidden = true; sections = []; };
+    const kV = v('.ed-kv'), L = v('.ed-L'), unit = sel('.ed-unit'), exact = inp('.ed-exact').checked;
+    q('.ed-pxl').hidden = unit !== 'px';
+    const inv = unit === 'inv';
+    q('.ed-calcard').hidden = inv; q<HTMLSelectElement>('.ed-src').disabled = inv;
+    if (!(kV > 0 && kV <= 5000)) return stop(merr, 'The voltage is in kV, such as 200 or 300.');
+    const lam = electronWavelength(kV);
+    const pxmm = unit === 'px' ? v('.ed-px') / 1000 : 1;
+    const nominal = L > 0 && (unit === 'mm' || pxmm > 0) ? (lam * L) / pxmm : NaN;
+    const mf = [fact('Wavelength λ', `${sig(lam * 100, 5)} pm`, `${sig(lam, 5)} Å; electrons at ${sig(beta(kV), 4)} c`)];
+    if (!inv) mf.push(fact('Nominal camera constant λL', Number.isFinite(nominal) ? `${sig(nominal, 5)} Å·${unitName()}` : '–', Number.isFinite(nominal) ? `from λ and L = ${L} mm${unit === 'px' ? `, ${v('.ed-px')} µm pixels` : ''}` : unit === 'px' ? 'give the pixel size, or calibrate' : 'give the camera length'));
+    // Calibration.
+    cal = null; q('.ed-cout').hidden = true;
+    if (!inv) {
+      const std = readList('.ed-std', 'Standard');
+      if (typeof std === 'string') return stop(cerr, std);
+      const sa = v('.ed-sa');
+      if (std.length) {
+        if (!(sa > 0)) return stop(cerr, "Give the standard's lattice parameter a in Å.");
+        cal = calibrate(std, sel('.ed-slat') as Cubic, sa, 0.02);
+        if (!cal || cal.fit.unindexed > 1 || cal.n < 2) return stop(cerr, "These rings do not fit the standard's lattice. Check the lattice type, and that the list starts with the first ring.");
+        q('.ed-cout').hidden = false;
+        q('.ed-cbig').textContent = `λL = ${sig(cal.lamL, 5)}${Number.isFinite(cal.sd) ? ` ± ${sig(cal.sd, 2)}` : ''} Å·${unitName()}`;
+        table(q<HTMLTableElement>('.ed-ctab'), ['Ring', `R (${unitName()})`, 'hkl', 'd (Å)', `λL (Å·${unitName()})`], cal.per.map((p, i) => [String(i + 1), sig(p.R, 4), p.N ? p.hkl : 'not indexed', Number.isFinite(p.d) ? p.d.toFixed(4) : '–', Number.isFinite(p.lamL) ? sig(p.lamL, 5) : '–']));
+        const off = Number.isFinite(nominal) ? Math.abs(cal.lamL / nominal - 1) : 0;
+        if (cal.fit.unindexed || off > 0.1) { cerr.textContent = [cal.fit.unindexed ? 'One ring does not fit the standard and is left out.' : '', off > 0.1 ? `The calibrated camera constant is ${sig(off * 100, 2)} % from the nominal one: check the standard's lattice type and a, the units, and radius or diameter.` : ''].join(' ').trim(); cerr.hidden = false; }
+        mf.push(fact('Calibrated λL', `${sig(cal.lamL, 5)} Å·${unitName()}`, `± ${sig(cal.sd, 2)} (SD of ${cal.n} rings)${Number.isFinite(nominal) ? `; ${sig((cal.lamL / nominal - 1) * 100, 2)} % from the nominal, so the true camera length is about ${sig((L * cal.lamL) / nominal, 4)} mm` : ''}`));
+      }
+    }
+    const useCal = sel('.ed-src') === 'cal';
+    lamL = inv ? NaN : useCal ? (cal ? cal.lamL : NaN) : nominal;
+    if (!inv && !Number.isFinite(lamL)) mf.push(fact('Camera constant used', 'none yet', useCal ? 'enter the standard\'s rings, or switch to voltage and camera length' : 'give the camera length (and pixel size)'));
+    else if (!inv) mf.push(fact('Camera constant used', `${sig(lamL, 5)} Å·${unitName()}`, useCal ? 'calibrated' : 'nominal'));
+    q('.ed-mfacts').replaceChildren(...mf);
+    if (exact && !inv && unit !== 'mm') return stop(merr, 'Exact geometry needs distances in mm on the same scale as the camera length.');
+    if (exact && useCal && !inv) return stop(merr, 'Exact geometry uses the camera length itself; switch the camera constant to voltage and camera length.');
+
+    // Sample rings.
+    const smp = readList('.ed-smp', 'Sample');
+    if (typeof smp === 'string') return stop(err, smp);
+    if (!smp.length) { out.hidden = true; sections = []; return; }
+    const tol = v('.ed-tol') / 100;
+    if (!(tol > 0 && tol <= 0.1)) return stop(err, 'The indexing tolerance is between 0 and 10 %.');
+    const known = inv || Number.isFinite(lamL);
+    rows = smp.map((R) => ({ R, d: inv ? 10 / R : exact ? dFromRExact(R, lam, L) : known ? dFromR(R, lamL) : NaN }));
+    // Without a camera constant the ratios still index, with a in arbitrary units.
+    fits = known ? indexRings(rows.map((r) => r.d), tol) : indexRings(rows.map((r) => 1 / r.R), tol);
+    out.hidden = false;
+    const best = fits[0];
+    const full = best && best.unindexed === 0;
+    q('.ed-big').textContent = full ? `${CUBIC_NAMES[best.lattice]}${known ? `, a = ${best.a.toFixed(3)} Å` : ' (no camera constant, so no a)'}` : 'No cubic lattice indexes every ring';
+    table(q<HTMLTableElement>('.ed-tab'), ['Ring', `R (${unitName()})`, 'R²/R₁²', 'd (Å)', 'hkl', 'a (Å)'], rows.map((r, i) => {
+      const Ln = best?.lines[i];
+      return [String(i + 1), sig(r.R, 4), ((r.R / rows[0].R) ** 2).toFixed(3), Number.isFinite(r.d) ? r.d.toFixed(4) : '–', Ln && Ln.N ? Ln.hkl : 'not indexed', Ln && Ln.N && Number.isFinite(r.d) ? (r.d * Math.sqrt(Ln.N)).toFixed(4) : '–'];
+    }), [0, 4]);
+    table(q<HTMLTableElement>('.ed-ltab'), ['Lattice', 'a (Å)', 'Indexed', 'Not seen'], fits.map((f) => [SHORT[f.lattice], known && f.unindexed < f.lines.length ? `${f.a.toFixed(3)}${Number.isFinite(f.aSd) ? ` ± ${f.aSd.toFixed(3)}` : ''}` : '–', `${f.lines.length - f.unindexed} of ${f.lines.length}`, f.missing.length ? f.missing.slice(0, 5).map((N) => cubicLines(f.lattice, N).at(-1)!.hkl[0]).join(', ') + (f.missing.length > 5 ? '…' : '') : 'none']), [0, 3]);
+
+    // Figure: measured rings against the ideal √N positions of the best lattice.
+    fig = null;
+    if (full) {
+      const xs = rows.map((_, i) => best.lines[i].N!), ys = rows.map((r) => r.R / rows[0].R);
+      const n0 = best.lines[0].N!, top = Math.max(...xs) * 1.05;
+      const lineX = Array.from({ length: 50 }, (_, i) => (top * i) / 49);
+      fig = chartFigure({
+        h: 300, xLabel: 'N = h² + k² + l²', yLabel: 'R / R₁', legend: 'below', xMin: 0, yMin: 0,
+        series: [
+          { name: 'Rings', x: xs, y: ys, mode: 'points', marker: 'circle', size: 5, labels: rows.map((_, i) => best.lines[i].hkl.split(',')[0]) },
+          { name: `√(N / ${n0})`, x: lineX, y: lineX.map((x) => Math.sqrt(x / n0)), mode: 'line' },
+        ],
+      }, `Ring radius ratios against N for the ${CUBIC_NAMES[best.lattice]} indexing`);
+      paint(q<HTMLCanvasElement>('.ed-fig'), fig);
+    }
+    q('.ed-fig').hidden = !fig;
+    spotsRun();
+    const ft = (sel: string) => [...q(sel).children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    const tab = (t: string) => { const el = q<HTMLTableElement>(t); return { head: [...el.tHead!.rows[0].cells].map((c) => c.textContent!), rows: [...el.tBodies[0].rows].map((r) => [...r.cells].map((c) => c.textContent!)) }; };
+    sections = [
+      { title: q('.ed-big').textContent!, facts: ft('.ed-mfacts'), table: tab('.ed-tab'), ...(fig ? { figure: fig } : {}) },
+      { title: 'Cubic lattices', table: tab('.ed-ltab') },
+      ...(cal ? [{ title: `Calibration: ${q('.ed-cbig').textContent}`, table: tab('.ed-ctab') }] : []),
+      ...(spots.length ? [{ title: 'Spot pattern', text: [q('.ed-snote').textContent!], table: tab('.ed-stab') }] : []),
+    ];
+  }
+
+  function spotsRun() {
+    spots = [];
+    const note = q('.ed-snote'), t = q<HTMLTableElement>('.ed-stab'); t.replaceChildren();
+    const r1 = v('.ed-r1'), r2 = v('.ed-r2'), phi = v('.ed-phi'), at = v('.ed-atol');
+    if ([inp('.ed-r1'), inp('.ed-r2'), inp('.ed-phi')].every((e) => !e.value.trim())) { note.textContent = 'Optional: fill these in to find the zone axis.'; return; }
+    if (!(r1 > 0 && r2 > 0)) { note.textContent = 'Give both spot distances (same units as the rings, from the centre spot).'; return; }
+    if (!(phi > 0 && phi < 180)) { note.textContent = 'The angle between the spots is between 0 and 180°.'; return; }
+    if (!(at > 0 && at <= 10)) { note.textContent = 'The angle tolerance is between 0 and 10°.'; return; }
+    const inv = sel('.ed-unit') === 'inv';
+    if (!inv && !Number.isFinite(lamL)) { note.textContent = 'A camera constant is needed to turn the spot distances into d.'; return; }
+    const d1 = inv ? 10 / r1 : dFromR(r1, lamL), d2 = inv ? 10 / r2 : dFromR(r2, lamL);
+    const lat = (sel('.ed-plat') === 'auto' ? fits[0]?.lattice : sel('.ed-plat')) as Cubic | undefined;
+    const a = inp('.ed-pa').value.trim() ? v('.ed-pa') : fits[0] && fits[0].unindexed === 0 ? fits[0].a : NaN;
+    if (!lat || !(a > 0)) { note.textContent = 'Give the lattice and a, or enter rings that index.'; return; }
+    spots = indexSpots(d1, d2, phi, lat, a, v('.ed-tol') / 100 || 0.02, at);
+    if (!spots.length) { note.textContent = `d₁ = ${d1.toFixed(4)} Å and d₂ = ${d2.toFixed(4)} Å at ${phi}° do not fit a ${CUBIC_NAMES[lat].toLowerCase()} lattice with a = ${a.toFixed(3)} Å. Check the measurements, or widen the tolerances.`; return; }
+    note.textContent = `d₁ = ${d1.toFixed(4)} Å, d₂ = ${d2.toFixed(4)} Å on ${CUBIC_NAMES[lat].toLowerCase()}, a = ${a.toFixed(3)} Å. Best zone axis: [${fmtIdx(spots[0].zone)}]${spots.length > 1 ? `; ${spots.length - 1} other fit${spots.length > 2 ? 's' : ''} within the tolerances` : ''}.`;
+    table(t, ['Zone axis', 'Spot 1', 'Spot 2', 'd₁, d₂ (Å)', 'Angle (°)'], spots.slice(0, 8).map((s) => [`[${fmtIdx(s.zone)}]`, fmtIdx(s.h1), fmtIdx(s.h2), `${s.d1.toFixed(4)}, ${s.d2.toFixed(4)}`, s.angle.toFixed(2)]), [0, 1, 2]);
+  }
+
+  function loadExample() {
+    const e = exampleRings();
+    inp('.ed-kv').value = String(e.kV); inp('.ed-L').value = String(e.L);
+    q<HTMLSelectElement>('.ed-unit').value = 'mm'; q<HTMLSelectElement>('.ed-rd').value = 'r'; q<HTMLSelectElement>('.ed-src').value = 'cal'; inp('.ed-exact').checked = false;
+    q<HTMLSelectElement>('.ed-slat').value = 'fcc'; inp('.ed-sa').value = String(e.stdA);
+    q<HTMLTextAreaElement>('.ed-std').value = e.std.join('\n'); q<HTMLTextAreaElement>('.ed-smp').value = e.smp.join('\n');
+    inp('.ed-r1').value = String(e.spot.r1); inp('.ed-r2').value = String(e.spot.r2); inp('.ed-phi').value = String(e.spot.phi);
+    q<HTMLSelectElement>('.ed-plat').value = 'auto'; inp('.ed-pa').value = ''; inp('.ed-tol').value = '2'; inp('.ed-atol').value = '2';
+    run();
+  }
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(run, 250); };
+  root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input:not([type=checkbox]), textarea').forEach((e) => e.addEventListener('input', later));
+  root.querySelectorAll<HTMLElement>('select, input[type=checkbox]').forEach((e) => e.addEventListener('change', run));
+  q('.ed-ex').addEventListener('click', loadExample);
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.ed-out').hidden) paint(q<HTMLCanvasElement>('.ed-fig'), fig); });
+  const csv = (r: string[][]) => r.map((x) => x.map((c) => (/[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c)).join(',')).join('\n') + '\n';
+  q('.ed-csv').addEventListener('click', () => {
+    const best = fits[0];
+    const body = rows.map((r, i) => { const L = best?.lines[i]; return [String(r.R), Number.isFinite(r.d) ? String(r.d) : '', L && L.N ? L.hkl.split(',')[0] : '', L && L.N ? String(L.N) : '', L && L.N && Number.isFinite(r.d) ? String(r.d * Math.sqrt(L.N)) : '']; });
+    save(new Blob([csv([[`radius_${unitName().replace('/', 'per')}`, 'd_angstrom', 'hkl', 'N', 'a_angstrom'], ...body])], { type: 'text/csv' }), 'electron-diffraction-rings.csv', 'text/csv');
+  });
+  loadExample();
+  wireDownloads(q('.dl'), () => ({ title: 'Electron diffraction indexer', subtitle: q('.ed-big').textContent ?? '', file: 'electron-diffraction', sections }));
+</script>
+
+<style is:global>
+  .edi h3 { margin: 20px 0 8px; font-size: 15px; }
+  .edi select { max-width: 100%; }
+  .edi label[hidden], .edi .ax-card[hidden] { display: none; }
+  .edi .ed-fig { margin-top: 12px; }
+</style>

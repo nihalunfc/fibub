@@ -1,0 +1,238 @@
+---
+// ROC curve and AUC for a diagnostic marker: DeLong interval, paired comparison of two markers, Youden cut-off.
+import DataFile from '../../components/DataFile.astro';
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax rc">
+  <div class="ax-card">
+    <p class="rc-med-note">For study and teaching, not medical advice. Check with a qualified professional.</p>
+    <h2>Data</h2>
+    <label>One row per subject: the true outcome (for example 1 = has the condition, 0 = does not), then one or two marker values measured on the same subjects. A header row is optional.
+      <textarea class="rc-data" rows="10" spellcheck="false" wrap="off">
+Disease	Marker A	Marker B
+1	53	8.6
+0	43	3.3
+0	30	6.3
+0	40	5.1
+1	36	3.9
+0	24	4.9
+0	8	5.9
+0	44	9.8
+0	44	4
+0	22	5.7
+0	28	6.3
+0	25	6.3
+0	57	5.4
+1	44	8.5
+1	67	5.2
+0	40	5.3
+0	26	6.4
+1	78	5.1
+1	66	6.1
+1	52	8.4
+0	29	5.7
+1	63	1.1
+1	58	7.3
+0	35	3.3
+0	25	3
+0	41	3.6
+0	17	3.9
+0	24	4.7
+1	60	6.5
+1	56	8.1
+0	26	5.3
+1	51	4
+0	44	8.5
+1	56	7
+1	44	5
+1	42	5
+1	57	7.7
+1	53	5.1
+0	24	3
+1	45	7.7
+0	42	4.2
+0	36	0.8
+0	38	4.6
+0	45	7.8
+0	36	5.9
+0	23	4.3
+0	37	2.9
+1	26	6.1
+1	45	7.1
+0	37	5.2
+0	15	5.7
+0	38	2.7
+0	27	4.7
+0	28	6
+1	51	6.1
+0	31	4.3
+1	45	7.6
+1	56	3.1
+1	27	4.2
+1	44	6.1</textarea></label>
+    <DataFile target=".rc-data" maxRows={20000} maxCols={3} />
+    <p class="ax-help">The example is made up: 60 people, 25 with the condition, and two blood markers.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Has the condition <select class="rc-pos"></select></label>
+      <label>The condition goes with <select class="rc-dir"><option value="higher" selected>Higher values</option><option value="lower">Lower values</option></select></label>
+      <label>Level <select class="rc-lvl"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+    </div>
+    <p class="ax-help">With higher values, a test is called positive when the marker is at or above the cut-off; with lower values, at or below it.</p>
+    <p class="ax-err rc-err" hidden></p>
+    <p class="ax-help rc-skip" hidden></p>
+  </div>
+
+  <div class="ax-card rc-out" hidden>
+    <h2>ROC curve</h2>
+    <p class="ax-big rc-big"></p>
+    <dl class="ax-facts rc-facts"></dl>
+    <canvas class="ax-fig rc-fig" style="margin-top:14px"></canvas>
+    <p class="ax-help">Each point is one cut-off: sensitivity against 1 − specificity. The dashed diagonal is a useless test (AUC 0.5); dots mark the Youden cut-off.</p>
+    <h3>Summary</h3>
+    <div class="ax-scroll"><table class="rc-sum"></table></div>
+    <div class="rc-cmpw">
+      <h3>Comparing the two markers (DeLong test)</h3>
+      <dl class="ax-facts rc-cmp"></dl>
+    </div>
+    <p class="ax-help rc-note"></p>
+  </div>
+
+  <div class="ax-card rc-out" hidden>
+    <h2>Sensitivity and specificity by cut-off</h2>
+    <div class="ax-grid rc-whichw"><label>Marker <select class="rc-which"></select></label></div>
+    <p class="ax-help">PPV and NPV use the share with the condition in your data; they change with prevalence. The Youden cut-off row is in bold.</p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small rc-csv">Download table (CSV)</button></div>
+    <div class="ax-scroll rc-tw" style="margin-top:10px"><table class="rc-tab"></table></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .rc .rc-med-note { margin: 0 0 12px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; font-weight: 600; }
+  .rc h3 { font-size: 15px; margin: 18px 0 6px; }
+  .rc .rc-tw { max-height: 420px; overflow-y: auto; }
+  .rc .rc-tab td, .rc .rc-sum td { white-space: nowrap; }
+  .rc .rc-tab tr.rc-best td { font-weight: 700; }
+  .rc canvas.rc-fig { max-width: 520px; }
+</style>
+
+<script>
+  import { csv } from '../../lib/sci/num';
+  import { parseRoc, roc, compareRoc, type RocResult } from '../../lib/sci/roc';
+  import { drawChart, canvasPainter, OKABE_ITO, type Series } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.rc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string, el: ParentNode = root) => el.querySelector(c) as T;
+  let fig: Figure | null = null, report: Section[] = [], tabCsv: (string | number)[][] = [];
+  const f3 = (x: number) => (Number.isFinite(x) ? x.toFixed(3) : x === Infinity ? '∞' : '–');
+  const pTxt = (p: number) => (!Number.isFinite(p) ? '–' : p < 0.001 ? '< 0.001' : p.toFixed(3));
+  const num6 = (t: number) => String(Number(t.toPrecision(6))).replace('-', '−');
+
+  function table(sel: string, head: string[], rows: string[][], rowCls?: (i: number) => string) {
+    const t = q<HTMLTableElement>(sel); t.innerHTML = '';
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r, ri) => { const tr = b.insertRow(); if (rowCls) tr.className = rowCls(ri); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+  }
+  function facts(sel: string, list: [string, string][]) {
+    const dl = q(sel); dl.innerHTML = '';
+    for (const [k, v] of list) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d); }
+  }
+  function rocFigure(res: [string, RocResult][]): Figure {
+    const narrow = (q('.rc-fig').clientWidth || 520) < 420;
+    const w = narrow ? 360 : 520;
+    return {
+      w, h: w, alt: `ROC curves: ${res.map(([n, r]) => `${n} AUC ${f3(r.auc)}`).join(', ')}`,
+      draw: (ctx, W, H, pal) => {
+        const cols = pal.red ? ['#a30000', '#7a0000'] : pal.bg === '#ffffff' ? OKABE_ITO : ['#56B4E9', '#E69F00'];
+        const series: Series[] = [{ name: '', x: [0, 1], y: [0, 1], mode: 'line', color: pal.muted, width: 1, dash: [5, 4] }];
+        res.forEach(([n, r], i) => {
+          series.push({ name: `${n} (AUC ${f3(r.auc)})`, x: r.points.map((p) => p.fpr), y: r.points.map((p) => p.sens), mode: 'line', color: cols[i], width: 2, dash: i ? [7, 3] : undefined });
+          series.push({ name: '', x: [r.best.fpr], y: [r.best.sens], mode: 'points', marker: 'circle', size: 5, color: cols[i] });
+        });
+        drawChart(canvasPainter(ctx), { w: W, h: H, xLabel: '1 − specificity (false positive rate)', yLabel: 'Sensitivity', xMin: 0, xMax: 1, yMin: 0, yMax: 1, series, legend: 'inside', ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: null });
+      },
+    };
+  }
+
+  let results: [string, RocResult][] = [], higher = true;
+  function calc() {
+    const err = q('.rc-err'), outs = root.querySelectorAll<HTMLElement>('.rc-out');
+    try {
+      const d = parseRoc(q<HTMLTextAreaElement>('.rc-data').value);
+      const sel = q<HTMLSelectElement>('.rc-pos'), keep = sel.value;
+      if ([...sel.options].map((o) => o.value).join('\u0001') !== d.labels.join('\u0001')) {
+        sel.innerHTML = ''; for (const l of d.labels) sel.add(new Option(l, l));
+        const likely = d.labels.find((l) => /^(1|yes|y|true|pos|positive|case|cases|disease|diseased|sick|ill|abnormal|dead|event)$/i.test(l));
+        sel.value = d.labels.includes(keep) ? keep : likely ?? d.labels[1];
+      }
+      const pos = sel.value, lvl = Number(q<HTMLSelectElement>('.rc-lvl').value), pct = `${Math.round(lvl * 100)} %`;
+      higher = q<HTMLSelectElement>('.rc-dir').value === 'higher';
+      const P = d.rows.filter((r) => r.y === pos), N = d.rows.filter((r) => r.y !== pos);
+      const neg = d.labels.find((l) => l !== pos)!;
+      results = d.markers.map((m, j) => [m, roc(P.map((r) => r.v[j]), N.map((r) => r.v[j]), higher, lvl)]);
+      const sk = q('.rc-skip'); sk.hidden = !d.skipped; sk.textContent = d.skipped ? `${d.skipped} row${d.skipped > 1 ? 's' : ''} with a blank or non-numeric value left out.` : '';
+      outs.forEach((o) => (o.hidden = false));
+      const [m0, r0] = results[0];
+      q('.rc-big').textContent = `AUC ${results.length > 1 ? `(${m0}) ` : ''}= ${f3(r0.auc)} (${pct} CI ${f3(r0.lo)} to ${f3(r0.hi)})`;
+      const op = higher ? '≥' : '≤';
+      facts('.rc-facts', [
+        [`With condition (${pos})`, String(r0.nPos)], [`Without (${neg})`, String(r0.nNeg)],
+        ['Youden cut-off', `${op} ${num6(r0.best.threshold)}`], ['Sensitivity, specificity', `${f3(r0.best.sens)}, ${f3(r0.best.spec)}`],
+      ]);
+      fig = rocFigure(results); paint(q<HTMLCanvasElement>('.rc-fig'), fig);
+      const sumHead = ['Marker', 'AUC', `${pct} CI`, 'SE', 'p (AUC = 0.5)', 'Youden cut-off', 'Sensitivity', 'Specificity', 'J'];
+      const sumRows = results.map(([m, r]) => [m, f3(r.auc), `${f3(r.lo)} to ${f3(r.hi)}`, f3(r.se), pTxt(r.p), `${op} ${num6(r.best.threshold)}`, f3(r.best.sens), f3(r.best.spec), f3(r.best.j)]);
+      table('.rc-sum', sumHead, sumRows);
+      let cmpSec: Section | null = null;
+      q('.rc-cmpw').hidden = results.length < 2;
+      if (results.length > 1) {
+        const c = compareRoc(P.map((r) => r.v[0]), N.map((r) => r.v[0]), P.map((r) => r.v[1]), N.map((r) => r.v[1]), higher, higher, lvl);
+        const cf: [string, string][] = [[`Difference (${d.markers[0]} − ${d.markers[1]})`, f3(c.diff)], [`${pct} CI`, `${f3(c.lo)} to ${f3(c.hi)}`], ['z', f3(c.z)], ['p value', pTxt(c.p)], ['Correlation of the AUCs', f3(c.corr)]];
+        facts('.rc-cmp', cf);
+        cmpSec = { title: 'DeLong test of two correlated AUCs', facts: cf };
+      }
+      const a = r0.auc;
+      q('.rc-note').textContent = `${a >= 0.9 ? 'An AUC of 0.9 or more is usually called excellent' : a >= 0.8 ? 'An AUC of 0.8 to 0.9 is usually called good' : a >= 0.7 ? 'An AUC of 0.7 to 0.8 is usually called fair' : a > 0.5 ? 'An AUC below 0.7 is usually called poor' : 'An AUC at or below 0.5 means the marker does no better than chance in this direction; try the other direction'}. The AUC is the chance that a random person with the condition has a ${higher ? 'higher' : 'lower'} value than a random person without it (ties count half). The best cut-off for practice also depends on the costs of missed cases and false alarms, not only on Youden's J.`;
+      // Marker picker and threshold table.
+      const which = q<HTMLSelectElement>('.rc-which'), wk = which.value;
+      if ([...which.options].map((o) => o.value).join('\u0001') !== d.markers.join('\u0001')) { which.innerHTML = ''; d.markers.forEach((m) => which.add(new Option(m, m))); if (d.markers.includes(wk)) which.value = wk; }
+      q('.rc-whichw').hidden = d.markers.length < 2;
+      const tabSec = thresholds();
+      err.hidden = true;
+      report = [
+        { title: 'ROC analysis', text: [`${r0.nPos} with the condition (${pos}), ${r0.nNeg} without (${neg}). ${higher ? 'Higher' : 'Lower'} values point to the condition. DeLong ${pct} intervals.`], facts: [['AUC', q('.rc-big').textContent!.replace(/^AUC (\(.*?\) )?= /, '')]], figure: fig },
+        { title: 'Summary', table: { head: sumHead, rows: sumRows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r'] } },
+        ...(cmpSec ? [cmpSec] : []),
+        tabSec,
+      ];
+    } catch (e) {
+      err.textContent = (e as Error).message; err.hidden = false; report = []; fig = null;
+      outs.forEach((o) => (o.hidden = true));
+    }
+  }
+  function thresholds(): Section {
+    const name = q<HTMLSelectElement>('.rc-which').value || results[0][0];
+    const r = (results.find(([m]) => m === name) ?? results[0])[1], op = higher ? '≥' : '≤';
+    const pts = r.points.filter((p) => Number.isFinite(p.threshold));
+    const head = ['Cut-off', 'TP', 'FP', 'TN', 'FN', 'Sensitivity', 'Specificity', 'PPV', 'NPV', 'LR+', 'LR−', 'J'];
+    const rows = pts.map((p) => [`${op} ${num6(p.threshold)}`, String(p.tp), String(p.fp), String(p.tn), String(p.fn), f3(p.sens), f3(p.spec), f3(p.ppv), f3(p.npv), f3(p.lrPos), f3(p.lrNeg), f3(p.j)]);
+    table('.rc-tab', head, rows, (i) => (pts[i] === r.best ? 'rc-best' : ''));
+    tabCsv = [['positive_if', 'cutoff', 'tp', 'fp', 'tn', 'fn', 'sensitivity', 'specificity', 'ppv', 'npv', 'lr_pos', 'lr_neg', 'youden_j'],
+      ...pts.map((p) => [higher ? '>=' : '<=', p.threshold, p.tp, p.fp, p.tn, p.fn, p.sens, p.spec, Number.isFinite(p.ppv) ? p.ppv : '', Number.isFinite(p.npv) ? p.npv : '', Number.isFinite(p.lrPos) ? p.lrPos : '', Number.isFinite(p.lrNeg) ? p.lrNeg : '', p.j])];
+    return { title: `Cut-offs for ${name}`, table: { head, rows, align: head.map((_, i) => (i ? 'r' : 'l')) }, note: 'For study and teaching, not medical advice.' };
+  }
+
+  let t = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('textarea')) { clearTimeout(t); t = window.setTimeout(calc, 250); } });
+  root.addEventListener('change', (e) => {
+    const el = e.target as HTMLElement;
+    if (el.matches('.rc-which')) { const s = thresholds(); report = [...report.slice(0, -1), s]; }
+    else if (el.matches('select')) calc();
+  });
+  q('.rc-csv').addEventListener('click', () => tabCsv.length > 1 && save(new TextEncoder().encode(csv(tabCsv)), 'roc-cutoffs.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.rc-fig'), fig));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'ROC curve analysis', subtitle: q('.rc-big').textContent ?? '', file: 'roc-curve', sections: report }));
+</script>

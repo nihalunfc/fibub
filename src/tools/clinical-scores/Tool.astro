@@ -1,0 +1,114 @@
+---
+// APGAR score and Glasgow Coma Scale (adult and paediatric wording) with plain pickers.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { APGAR, GCS_EYE, GCS_VERBAL_ADULT, GCS_VERBAL_CHILD, GCS_MOTOR_ADULT, GCS_MOTOR_CHILD } from '../../lib/sci/clinscores';
+const apgarStart: Record<string, number> = { A: 1, P: 2, G: 1, Ac: 2, R: 2 };
+const gcsSets = [
+  { id: 'e', name: 'Eyes (E)', hint: 'Best eye opening', choices: GCS_EYE, start: 3, cls: '' },
+  { id: 'va', name: 'Verbal (V)', hint: 'Best spoken response', choices: GCS_VERBAL_ADULT, start: 4, cls: 'cs-adult' },
+  { id: 'vc', name: 'Verbal (V), young child', hint: 'Best sound or cry', choices: GCS_VERBAL_CHILD, start: 4, cls: 'cs-child' },
+  { id: 'ma', name: 'Motor (M)', hint: 'Best movement, better side', choices: GCS_MOTOR_ADULT, start: 5, cls: 'cs-adult' },
+  { id: 'mc', name: 'Motor (M), young child', hint: 'Best movement, better side', choices: GCS_MOTOR_CHILD, start: 5, cls: 'cs-child' },
+];
+---
+<div class="ax cs">
+  <p class="note warn cs-warn">For study and teaching, not medical advice. Check with a qualified professional.</p>
+
+  <div class="ax-card cs-ap">
+    <h2>APGAR score (newborn)</h2>
+    <label class="cs-inline">Minutes after birth <select class="cs-min"><option>1</option><option>5</option><option>10</option></select></label>
+    {APGAR.map((it) => (
+      <fieldset class="cs-set">
+        <legend><b>{it.name}</b> <span>{it.what}</span></legend>
+        {it.choices.map((c) => (
+          <label class="cs-opt"><input type="radio" name={`cs-ap-${it.key}`} value={c.v} checked={c.v === apgarStart[it.key]} /><span class="cs-v">{c.v}</span><span>{c.text}</span></label>
+        ))}
+      </fieldset>
+    ))}
+    <p class="ax-big cs-apout" aria-live="polite"></p>
+    <p class="cs-apband"></p>
+    <p class="ax-help">After Apgar (1953). Each sign scores 0, 1 or 2; the total is 0 to 10, usually taken at 1 and 5 minutes. The score describes the baby at that moment; it is not used on its own to decide on resuscitation or to predict the future.</p>
+  </div>
+
+  <div class="ax-card cs-gc">
+    <h2>Glasgow Coma Scale</h2>
+    <div class="ax-seg cs-ver" role="group" aria-label="Wording">
+      <button type="button" data-v="adult" aria-pressed="true">Adult and older child</button>
+      <button type="button" data-v="child" aria-pressed="false">Young child</button>
+    </div>
+    <p class="ax-help cs-verhelp">Adult wording, for anyone old enough to talk and follow a command.</p>
+    {gcsSets.map((s) => (
+      <fieldset class:list={['cs-set', s.cls]} data-set={s.id} hidden={s.cls === 'cs-child'}>
+        <legend><b>{s.name}</b> <span>{s.hint}</span></legend>
+        {s.choices.map((c) => (
+          <label class="cs-opt"><input type="radio" name={`cs-g-${s.id}`} value={c.v} checked={c.v === s.start} /><span class="cs-v">{c.v < 0 ? 'NT' : c.v}</span><span>{c.text}</span></label>
+        ))}
+      </fieldset>
+    ))}
+    <p class="ax-big cs-gout" aria-live="polite"></p>
+    <p class="cs-gband"></p>
+    <p class="ax-help">After Teasdale and Jennett (1974); 15-point form. Always report the three parts, not just the total: E3V4M5 says much more than 12. NT means not testable, and then no total is given.</p>
+  </div>
+  <div class="ax-card"><Downloads label="Save both scores" /></div>
+</div>
+
+<style>
+  .cs-warn { margin: 0 0 12px; }
+  .cs .cs-inline { display: flex; flex-direction: row; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .cs .cs-inline select { width: auto; }
+  .cs-set { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px 6px; margin: 10px 0 0; min-width: 0; }
+  .cs-set legend { padding: 0 4px; font-size: 15px; }
+  .cs-set legend span { color: var(--muted); font-size: 14px; }
+  .cs .cs-opt { display: grid; grid-template-columns: auto 2.2em 1fr; align-items: start; gap: 8px; padding: 6px 2px; font-size: 15px; color: var(--ink); cursor: pointer; border-top: 1px solid var(--line); }
+  .cs .cs-opt:first-of-type { border-top: 0; }
+  .cs .cs-opt input { margin-top: 3px; }
+  .cs-v { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+  .cs-ver { margin-bottom: 4px; }
+  .cs-apband, .cs-gband { margin: 4px 0 0; font-size: 15px; }
+</style>
+
+<script>
+  import { APGAR, apgar, gcs } from '../../lib/sci/clinscores';
+  import { wireDownloads, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const pick = (name: string) => Number(root.querySelector<HTMLInputElement>(`input[name="${name}"]:checked`)!.value);
+  let ver: 'adult' | 'child' = 'adult';
+  let report: Section[] = [];
+
+  function show() {
+    const s = APGAR.map((it) => pick(`cs-ap-${it.key}`)), a = apgar(s), min = q<HTMLSelectElement>('.cs-min').value;
+    const parts = APGAR.map((it, i) => `${it.name} ${s[i]}`).join(', ');
+    q('.cs-apout').textContent = `APGAR at ${min} minute${min === '1' ? '' : 's'}: ${a.total} / 10`;
+    q('.cs-apband').innerHTML = '';
+    const pill = document.createElement('span'); pill.className = `ax-pill ${a.band === 'reassuring' ? 'good' : a.band === 'moderate' ? 'warn' : 'bad'}`; pill.textContent = a.label;
+    q('.cs-apband').append(pill, ` ${parts}`);
+
+    const v = pick(ver === 'adult' ? 'cs-g-va' : 'cs-g-vc'), m = pick(ver === 'adult' ? 'cs-g-ma' : 'cs-g-mc'), g = gcs(pick('cs-g-e'), v, m);
+    q('.cs-gout').textContent = g.total == null ? g.notation : `${g.notation} = ${g.total}`;
+    q('.cs-gband').innerHTML = '';
+    if (g.total == null) q('.cs-gband').textContent = g.label;
+    else { const p = document.createElement('span'); p.className = `ax-pill ${g.band === 'mild' ? 'good' : g.band === 'moderate' ? 'warn' : 'bad'}`; p.textContent = g.label; q('.cs-gband').append(p, ' in the bands often used after head injury.'); }
+
+    report = [
+      { title: `APGAR at ${min} min`, facts: [['Total', `${a.total} / 10 (${a.label})`], ...APGAR.map((it, i) => [`${it.name} (${it.what.split(' (')[0].toLowerCase()})`, String(s[i])] as [string, string])] },
+      { title: `Glasgow Coma Scale (${ver === 'adult' ? 'adult' : 'young child'} wording)`, facts: [['Result', q('.cs-gout').textContent!], ['Band', g.label]] },
+      { title: 'Note', text: ['For study and teaching, not medical advice. Check with a qualified professional.', 'APGAR after Apgar (1953); GCS after Teasdale and Jennett (1974).'] },
+    ];
+  }
+
+  root.addEventListener('change', show);
+  q('.cs-ver').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-v]'); if (!b) return;
+    ver = b.dataset.v as 'adult' | 'child';
+    root.querySelectorAll<HTMLButtonElement>('.cs-ver button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    root.querySelectorAll<HTMLElement>('.cs-adult').forEach((f) => (f.hidden = ver !== 'adult'));
+    root.querySelectorAll<HTMLElement>('.cs-child').forEach((f) => (f.hidden = ver !== 'child'));
+    q('.cs-verhelp').textContent = ver === 'adult' ? 'Adult wording, for anyone old enough to talk and follow a command.' : 'Wording for babies and children too young to talk (paediatric GCS). Eye opening is the same.';
+    show();
+  });
+  show();
+  wireDownloads(q('.dl'), () => ({ title: 'APGAR and Glasgow Coma Scale', file: 'clinical-scores', sections: report }));
+</script>

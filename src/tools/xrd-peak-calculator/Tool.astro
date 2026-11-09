@@ -1,0 +1,305 @@
+---
+// XRD peak calculator: Bragg's law for common anode lines, Scherrer crystallite size with the instrument's width
+// taken away, a Williamson-Hall plot from several peaks, and cubic indexing (SC, BCC, FCC, diamond) with the lattice
+// parameter. Peaks are typed, pasted, or picked from a 2θ/intensity scan. Nothing is uploaded. The example is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax xrd">
+  <div class="ax-card">
+    <h2>Wavelength and settings</h2>
+    <div class="ax-grid">
+      <label>X-ray source <select class="xr-anode"></select></label>
+      <label>Wavelength λ (Å) <input class="xr-lam" inputmode="decimal" value="1.5406" /></label>
+      <label>Scherrer constant K <input class="xr-k" inputmode="decimal" value="0.9" /></label>
+      <label>Instrument width (° 2θ) <input class="xr-inst" inputmode="decimal" value="0.06" /></label>
+      <label>Peak shape <select class="xr-shape"><option value="gauss" selected>Gaussian</option><option value="lorentz">Lorentzian</option></select></label>
+      <label>Indexing tolerance (% of d) <input class="xr-tol" inputmode="decimal" value="0.5" /></label>
+    </div>
+    <p class="ax-help">The wavelengths are rounded standard values; type your own if your instrument's report gives one. K is about 0.9 for round crystallites (0.94 for cubes; use 1 with integral breadths). The instrument width is the FWHM a strain-free, large-grain standard gives on your machine. Gaussian peaks lose it in quadrature (β² = B² − b²), Lorentzian ones straight (β = B − b).</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Bragg's law</h2>
+    <div class="ax-grid">
+      <label>2θ (°) <input class="xr-btt" inputmode="decimal" value="38.97" /></label>
+      <label>d (Å) <input class="xr-bd" inputmode="decimal" /></label>
+      <label>Order n <input class="xr-bn" type="number" min="1" max="10" step="1" value="1" inputmode="numeric" /></label>
+    </div>
+    <p class="ax-help xr-bout" aria-live="polite"></p>
+    <p class="ax-help">nλ = 2d sin θ. Type 2θ to get d, or d to get 2θ.</p>
+  </div>
+
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Scan (optional)</h2>
+      <button type="button" class="btn secondary small xr-ex">Use the example scan</button>
+    </div>
+    <label style="margin-top:10px">2θ (°) and intensity, one point per line <textarea class="xr-scan" rows="4" spellcheck="false" wrap="off" placeholder="20.00&#9;152&#10;20.02&#9;149"></textarea></label>
+    <DataFile target=".xr-scan" maxCols={6} maxRows={100000} label="Open a scan" />
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Background window (° 2θ) <input class="xr-bgw" inputmode="decimal" value="3" /></label>
+      <label>Smallest peak (% of tallest) <input class="xr-min" inputmode="decimal" value="3" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small xr-find">Find peaks</button></div>
+    <p class="ax-help">Two columns: 2θ in degrees, then counts (XY, CSV or text exports; a header row is fine). Find peaks fits each peak with the shape above plus a straight line and puts the positions and widths into the peak list, where you can delete or change rows. Strip Kα2 first, or fit with a Kα1-only source, for the best widths.</p>
+    <p class="ax-err xr-serr" hidden></p>
+    <canvas class="ax-fig xr-sfig" hidden></canvas>
+  </div>
+
+  <div class="ax-card">
+    <h2>Peak list</h2>
+    <label>2θ (°), then FWHM (° 2θ) if you have it, then intensity, one peak per line <textarea class="xr-pk" rows="6" spellcheck="false" placeholder="38.97, 0.51&#10;45.31, 0.54"></textarea></label>
+    <DataFile target=".xr-pk" maxCols={6} maxRows={500} label="Open a peak list" />
+    <p class="ax-err xr-err" hidden></p>
+  </div>
+
+  <div class="ax-card xr-out" hidden>
+    <h2>Results</h2>
+    <p class="ax-big xr-big"></p>
+    <dl class="ax-facts xr-facts"></dl>
+    <h3>Peaks</h3>
+    <div class="ax-scroll"><table class="xr-tab"></table></div>
+    <h3>Cubic indexing</h3>
+    <div class="ax-scroll"><table class="xr-ctab"></table></div>
+    <p class="ax-help xr-cnote"></p>
+    <h3 class="xr-whh">Williamson-Hall plot</h3>
+    <canvas class="ax-fig xr-wh"></canvas>
+    <p class="ax-help xr-whn"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small xr-csv">Download peaks (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { ANODES, dFromTwoTheta, twoThetaFromD, sampleBreadth, scherrer, williamsonHall, rankCubic, findPeaks, examplePattern, CUBIC_NAMES, cubicLines, EXAMPLE, type Shape, type CubicFit, type WHResult } from '../../lib/sci/xrd';
+  import { num, sig, parseTable } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, fileSafe, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.xrd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const v = (c: string) => num(inp(c).value);
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const RAD = Math.PI / 180;
+
+  const an = q<HTMLSelectElement>('.xr-anode');
+  an.replaceChildren(...ANODES.map((a) => new Option(`${a.name}, ${a.l} Å`, a.id)), new Option('Other (type λ)', 'other'));
+  an.addEventListener('change', () => { const a = ANODES.find((x) => x.id === an.value); if (a) inp('.xr-lam').value = String(a.l); bragg('tt'); run(); });
+  inp('.xr-lam').addEventListener('input', () => { const a = ANODES.find((x) => Math.abs(x.l - v('.xr-lam')) < 1e-9); an.value = a ? a.id : 'other'; bragg('tt'); later(run); });
+
+  // ---- Bragg box ----
+  function bragg(from: 'tt' | 'd') {
+    const lam = v('.xr-lam'), n = Math.round(v('.xr-bn')) || 1, out = q('.xr-bout');
+    if (!(lam > 0)) { out.textContent = 'Give the wavelength first.'; return; }
+    if (from === 'tt') {
+      const tt = v('.xr-btt');
+      if (!(tt > 0 && tt < 180)) { out.textContent = '2θ is between 0 and 180°.'; return; }
+      const d = dFromTwoTheta(tt, lam, n); inp('.xr-bd').value = sig(d, 6);
+      out.textContent = `d = ${sig(d, 6)} Å (${sig(d / 10, 5)} nm), 1/d² = ${sig(1 / (d * d), 5)} Å⁻², sin²θ = ${sig(Math.sin((tt / 2) * RAD) ** 2, 5)}.`;
+    } else {
+      const d = v('.xr-bd');
+      if (!(d > 0)) { out.textContent = 'd is a positive spacing in Å.'; return; }
+      const tt = twoThetaFromD(d, lam, n);
+      if (!Number.isFinite(tt)) { out.textContent = `Not reachable: nλ = ${sig(n * lam, 5)} Å is more than 2d = ${sig(2 * d, 5)} Å. Use a shorter wavelength.`; return; }
+      inp('.xr-btt').value = sig(tt, 6);
+      out.textContent = `2θ = ${sig(tt, 6)}°, θ = ${sig(tt / 2, 6)}°.`;
+    }
+  }
+  inp('.xr-btt').addEventListener('input', () => bragg('tt'));
+  inp('.xr-bd').addEventListener('input', () => bragg('d'));
+  inp('.xr-bn').addEventListener('input', () => bragg('tt'));
+
+  // ---- Scan ----
+  let scan: { x: number[]; y: number[] } | null = null, bgLine: number[] = [], scanFig: Figure | null = null, scanName = 'xrd';
+  function readScan(): { x: number[]; y: number[] } | string {
+    const rows = parseTable(q<HTMLTextAreaElement>('.xr-scan').value);
+    const pts = rows.map((r) => [num(r[0]), num(r[1])]).filter(([a, b]) => Number.isFinite(a) && Number.isFinite(b));
+    if (!rows.length) return '';
+    if (pts.length < 20) return 'The scan needs at least 20 points with a 2θ and an intensity on each line.';
+    pts.sort((a, b) => a[0] - b[0]);
+    if (pts[0][0] <= 0 || pts[pts.length - 1][0] >= 180) return '2θ values must be between 0 and 180°.';
+    return { x: pts.map((p) => p[0]), y: pts.map((p) => p[1]) };
+  }
+  function find() {
+    const err = q('.xr-serr'); err.hidden = true;
+    const s = readScan();
+    if (typeof s === 'string') { if (s) { err.textContent = s; err.hidden = false; } scan = null; q('.xr-sfig').hidden = true; return; }
+    scan = s;
+    const bgw = v('.xr-bgw'), mf = v('.xr-min');
+    if (!(bgw > 0)) { err.textContent = 'The background window is a positive width in degrees.'; err.hidden = false; return; }
+    if (!(mf > 0 && mf < 100)) { err.textContent = 'The smallest peak is between 0 and 100 % of the tallest.'; err.hidden = false; return; }
+    const r = findPeaks(s.x, s.y, { bgWidth: bgw, minFrac: mf / 100, shape: q<HTMLSelectElement>('.xr-shape').value as Shape });
+    bgLine = r.bg;
+    if (!r.peaks.length) { err.textContent = 'No peaks found. Lower the smallest peak or widen the background window.'; err.hidden = false; }
+    q<HTMLTextAreaElement>('.xr-pk').value = r.peaks.map((p) => `${p.tt.toFixed(4)}, ${p.fwhm.toFixed(4)}, ${Math.round(p.height)}`).join('\n');
+    run();
+  }
+
+  // ---- Peaks and results ----
+  type Row = { tt: number; fwhm: number; I: number; d: number; beta: number; D: number };
+  let rows: Row[] = [], best: CubicFit | null = null, wh: WHResult | null = null, sections: Section[] = [], whFig: Figure | null = null;
+
+  function readPeaks(): Row[] | string {
+    const lam = v('.xr-lam');
+    const lines = parseTable(q<HTMLTextAreaElement>('.xr-pk').value);
+    const out: Row[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      const c = lines[i].map((x) => num(x));
+      if (!Number.isFinite(c[0])) { if (i === 0) continue; return `Line ${i + 1}: start with 2θ in degrees.`; }
+      if (!(c[0] > 0 && c[0] < 180)) return `Line ${i + 1}: 2θ = ${lines[i][0]} is not between 0 and 180°.`;
+      const fw = lines[i].length > 1 && lines[i][1] !== '' ? c[1] : NaN;
+      if (lines[i].length > 1 && lines[i][1] !== '' && !(fw > 0)) return `Line ${i + 1}: the FWHM must be a positive width in degrees (or leave it out).`;
+      out.push({ tt: c[0], fwhm: fw, I: c[2], d: dFromTwoTheta(c[0], lam), beta: NaN, D: NaN });
+    }
+    if (out.length > 200) return 'Up to 200 peaks, please.';
+    return out.sort((a, b) => a.tt - b.tt);
+  }
+
+  function run() {
+    const err = q('.xr-err'), out = q('.xr-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sections = []; drawScan(); };
+    err.hidden = true;
+    const lam = v('.xr-lam'), K = v('.xr-k'), inst = q<HTMLInputElement>('.xr-inst').value.trim() === '' ? 0 : v('.xr-inst'), tol = v('.xr-tol') / 100;
+    const shape = q<HTMLSelectElement>('.xr-shape').value as Shape;
+    if (!(lam > 0 && lam < 10)) return fail('The wavelength is in ångström, between 0 and 10 Å (Cu Kα1 is 1.5406 Å).');
+    if (!(K > 0 && K <= 2)) return fail('K is a positive number near 0.9.');
+    if (!(inst >= 0)) return fail('The instrument width is 0 or a positive width in degrees.');
+    if (!(tol > 0 && tol <= 0.05)) return fail('The indexing tolerance is between 0 and 5 %.');
+    const p = readPeaks();
+    if (typeof p === 'string') return fail(p);
+    if (!p.length) { out.hidden = true; sections = []; drawScan(); return; }
+    rows = p;
+    for (const r of rows) { r.beta = sampleBreadth(r.fwhm, inst, shape); r.D = Number.isFinite(r.beta) ? scherrer(r.tt, r.beta, lam, K) : NaN; }
+    const sMin = scan ? 1 / dFromTwoTheta(scan.x[0], lam) ** 2 : 0;
+    const fits = rankCubic(rows.map((r) => 1 / (r.d * r.d)), tol, sMin);
+    best = fits[0] ?? null;
+    const withW = rows.filter((r) => Number.isFinite(r.beta));
+    wh = williamsonHall(withW.map((r) => ({ tt: r.tt, beta: r.beta })), lam, K);
+    const narrow = rows.filter((r) => Number.isFinite(r.fwhm) && !Number.isFinite(r.beta)).length;
+    out.hidden = false;
+
+    // Headline.
+    const fullFit = best && best.unindexed === 0;
+    const sizes = withW.map((r) => r.D);
+    const meanD = sizes.length ? sizes.reduce((a, b) => a + b, 0) / sizes.length : NaN;
+    const parts: string[] = [];
+    parts.push(fullFit ? `${CUBIC_NAMES[best!.lattice]}, a = ${best!.a.toFixed(4)} Å` : `${rows.length} peak${rows.length > 1 ? 's' : ''}: no cubic lattice indexes them all`);
+    if (wh && Number.isFinite(wh.size) && wh.n >= 3) parts.push(`Williamson-Hall size ${sig(wh.size / 10, 3)} nm, strain ${sig(wh.strain * 100, 2)} %`);
+    else if (sizes.length) parts.push(`Scherrer size ${sig(meanD / 10, 3)} nm`);
+    q('.xr-big').textContent = parts.join('; ');
+
+    const facts = [fact('Wavelength', `${lam} Å`, an.value === 'other' ? 'typed' : ANODES.find((a) => a.id === an.value)!.name)];
+    if (sizes.length) facts.push(fact('Scherrer size (mean)', `${sig(meanD / 10, 3)} nm`, `${sizes.length} peak${sizes.length > 1 ? 's' : ''}, from ${sig(Math.min(...sizes) / 10, 3)} to ${sig(Math.max(...sizes) / 10, 3)} nm; K = ${K}`));
+    if (wh) {
+      if (wh.n >= 3) {
+        const seD = Number.isFinite(wh.size) ? (wh.size * wh.seIntercept) / wh.intercept : NaN;
+        facts.push(fact('Williamson-Hall size', Number.isFinite(wh.size) ? `${sig(wh.size / 10, 3)} nm` : 'too large to see', Number.isFinite(wh.size) ? `± ${sig(seD / 10, 2)} nm (1 SE), from the intercept Kλ/D` : 'the line meets the axis at or below zero: the broadening is all strain or instrument'));
+        facts.push(fact('Microstrain ε', `${sig(wh.strain * 100, 3)} %`, `± ${sig(wh.seSlope * 100, 2)} % (1 SE), the slope; R² = ${wh.r2.toFixed(3)}`));
+      } else facts.push(fact('Williamson-Hall', 'needs 3 peaks', 'give widths for at least three peaks to fit size and strain together'));
+    }
+    if (narrow) facts.push(fact('Too narrow', `${narrow} peak${narrow > 1 ? 's' : ''}`, 'no wider than the instrument width, so no size from them'));
+    if (best) facts.push(fact('Best cubic fit', CUBIC_NAMES[best.lattice], `${best.lines.length - best.unindexed} of ${best.lines.length} lines indexed, ${best.missing.length} allowed line${best.missing.length === 1 ? '' : 's'} not seen`));
+    q('.xr-facts').replaceChildren(...facts);
+
+    // Peaks table.
+    const head = ['#', '2θ (°)', 'd (Å)', 'FWHM (°)', 'β sample (°)', 'Scherrer D (nm)', 'hkl', 'a (Å)'];
+    const trows = rows.map((r, i) => {
+      const L = best?.lines[i];
+      const a = L && L.N !== null ? r.d * Math.sqrt(L.N) : NaN;
+      return [String(i + 1), r.tt.toFixed(3), r.d.toFixed(4), Number.isFinite(r.fwhm) ? r.fwhm.toFixed(3) : '–', Number.isFinite(r.beta) ? r.beta.toFixed(3) : '–', Number.isFinite(r.D) ? sig(r.D / 10, 3) : '–', L ? (L.N !== null ? L.hkl : 'not indexed') : '–', Number.isFinite(a) ? a.toFixed(4) : '–'];
+    });
+    table(q<HTMLTableElement>('.xr-tab'), head, trows, [6]);
+
+    // Cubic table.
+    const chead = ['Lattice', 'a (Å)', 'Indexed', 'Allowed lines not seen', 'RMS Δd/d'];
+    const SHORT = { sc: 'SC', bcc: 'BCC', fcc: 'FCC', diamond: 'Diamond' } as const;
+    const crows = fits.map((f) => [SHORT[f.lattice], f.unindexed < f.lines.length ? `${f.a.toFixed(4)}${Number.isFinite(f.aSd) ? ` ± ${f.aSd < 5e-5 ? '<0.0001' : f.aSd.toFixed(4)}` : ''}` : '–', `${f.lines.length - f.unindexed} of ${f.lines.length}`, f.missing.length ? f.missing.slice(0, 6).map((N) => cubicLines(f.lattice, N).at(-1)!.hkl[0]).join(', ') + (f.missing.length > 6 ? '…' : '') : 'none', Number.isFinite(f.rms) ? `${sig(f.rms * 100, 2)} %` : '–']);
+    table(q<HTMLTableElement>('.xr-ctab'), chead, crows, [0, 3]);
+    const notes: string[] = [];
+    if (best && fits[1] && fits[1].unindexed === best.unindexed && fits[1].missing.length === best.missing.length) notes.push(`${CUBIC_NAMES[best.lattice]} and ${CUBIC_NAMES[fits[1].lattice].toLowerCase()} fit equally well; the more restrictive one is listed first.${(best.lattice === 'bcc' && fits[1].lattice === 'sc') ? ' A 7th line at seven times the first 1/d² would rule out simple cubic.' : ''}`);
+    notes.push('SC simple cubic, BCC body-centred, FCC face-centred. Lines are indexed from 1/d² ratios. Allowed lines not seen are reflections the lattice permits within the measured range that are not in the list; a few may be too weak to see. The ± is the spread of a from the separate lines.');
+    q('.xr-cnote').textContent = notes.join(' ');
+
+    // Williamson-Hall plot.
+    const showWh = !!wh && wh.n >= 2;
+    q('.xr-whh').hidden = q('.xr-wh').hidden = q('.xr-whn').hidden = !showWh;
+    whFig = null;
+    if (showWh && wh) {
+      const xs = wh.x, lo = 0, hi = Math.max(...xs) * 1.05;
+      whFig = chartFigure({
+        h: 340, xLabel: '4 sin θ', yLabel: 'β cos θ (10⁻³ rad)', legend: 'below', xMin: 0, yMin: 0,
+        series: [
+          { name: 'Peaks', x: xs, y: wh.y.map((y) => y * 1000), mode: 'points', marker: 'circle', size: 5 },
+          { name: 'Fit: Kλ/D + ε · 4 sin θ', x: [lo, hi], y: [wh.intercept * 1000, (wh.intercept + wh.slope * hi) * 1000], mode: 'line' },
+        ],
+      }, `Williamson-Hall plot of ${wh.n} peaks with the fitted line`);
+      paint(q<HTMLCanvasElement>('.xr-wh'), whFig);
+      q('.xr-whn').textContent = `Each peak's sample breadth β (radians) times cos θ, against 4 sin θ. The intercept is Kλ/D (${sig(wh.intercept * 1000, 4)} × 10⁻³) and the slope is the strain ε. A flat line means size broadening only; a line through the origin means strain only.`;
+    }
+    drawScan();
+
+    sections = [
+      { title: q('.xr-big').textContent!, facts: [...q('.xr-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), ...(scanFig ? { figure: scanFig } : {}), table: { head, rows: trows, align: head.map((_, i) => (i === 6 ? 'l' : 'r')) as ('l' | 'r')[] } },
+      { title: 'Cubic indexing', table: { head: chead, rows: crows, align: ['l', 'r', 'r', 'l', 'r'] }, note: q('.xr-cnote').textContent! },
+      ...(whFig ? [{ title: 'Williamson-Hall plot', figure: whFig, note: q('.xr-whn').textContent! }] : []),
+    ];
+  }
+
+  function drawScan() {
+    const c = q<HTMLCanvasElement>('.xr-sfig');
+    if (!scan) { c.hidden = true; scanFig = null; return; }
+    c.hidden = false;
+    const lab = rows.map((r, i) => (best && best.lines[i]?.N !== null && best.unindexed === 0 ? best.lines[i].hkl.split(',')[0] : ''));
+    const ys = rows.map((r) => { let k = 0; for (let j = 0; j < scan!.x.length; j++) if (Math.abs(scan!.x[j] - r.tt) < Math.abs(scan!.x[k] - r.tt)) k = j; return scan!.y[k]; });
+    scanFig = chartFigure({
+      h: 320, xLabel: '2θ (°)', yLabel: 'Intensity (counts)', legend: 'below',
+      series: [
+        { name: 'Scan', x: scan.x, y: scan.y, mode: 'line', width: 1.2 },
+        ...(bgLine.length === scan.x.length ? [{ name: 'Background', x: scan.x, y: bgLine, mode: 'line' as const, dash: [4, 3], width: 1 }] : []),
+        ...(rows.length ? [{ name: 'Peaks in the list', x: rows.map((r) => r.tt), y: ys, mode: 'points' as const, marker: 'triangle' as const, size: 5, labels: lab }] : []),
+      ],
+    }, `XRD scan from ${scan.x[0]} to ${scan.x[scan.x.length - 1]}° 2θ with ${rows.length} peaks marked`);
+    paint(c, scanFig);
+  }
+
+  function table(t: HTMLTableElement, head: string[], body: string[][], left: number[] = [0]) {
+    t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (!left.includes(i)) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); body.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (!left.includes(i)) td.className = 'r'; }); });
+  }
+
+  const timers = new Map<() => void, number>();
+  const later = (f: () => void) => { clearTimeout(timers.get(f)); timers.set(f, window.setTimeout(f, 250)); };
+  ['.xr-k', '.xr-inst', '.xr-tol'].forEach((c) => inp(c).addEventListener('input', () => later(run)));
+  q('.xr-shape').addEventListener('change', () => (scan ? find() : run()));
+  q('.xr-pk').addEventListener('input', () => later(run));
+  q('.xr-scan').addEventListener('input', () => { scanName = 'xrd'; later(find); });
+  q('.xr-find').addEventListener('click', find);
+  ['.xr-bgw', '.xr-min'].forEach((c) => inp(c).addEventListener('input', () => later(find)));
+  q('.xr-ex').addEventListener('click', loadExample);
+  function loadExample() {
+    const e = examplePattern();
+    an.value = 'cu1'; inp('.xr-lam').value = String(EXAMPLE.lambda); inp('.xr-k').value = String(EXAMPLE.K); inp('.xr-inst').value = String(EXAMPLE.inst);
+    q<HTMLSelectElement>('.xr-shape').value = 'gauss'; inp('.xr-bgw').value = '3'; inp('.xr-min').value = '3';
+    q<HTMLTextAreaElement>('.xr-scan').value = e.x.map((x, i) => `${x.toFixed(2)}\t${e.y[i]}`).join('\n');
+    scanName = 'example-fcc'; find(); bragg('tt');
+  }
+  document.addEventListener('fibub:theme', () => { if (whFig && !q('.xr-wh').hidden) paint(q<HTMLCanvasElement>('.xr-wh'), whFig); if (scanFig) paint(q<HTMLCanvasElement>('.xr-sfig'), scanFig); });
+  const csv = (r: string[][]) => r.map((x) => x.map((c) => (/[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c)).join(',')).join('\n') + '\n';
+  q('.xr-csv').addEventListener('click', () => {
+    const head = ['two_theta_deg', 'd_angstrom', 'fwhm_deg', 'intensity', 'sample_breadth_deg', 'scherrer_size_nm', 'hkl', 'N', 'a_angstrom'];
+    const body = rows.map((r, i) => { const L = best?.lines[i]; const N = L && L.N !== null ? L.N : NaN; return [r.tt, r.d, r.fwhm, r.I, r.beta, r.D / 10].map((x) => (Number.isFinite(x) ? String(x) : '')).concat([L && L.N !== null ? L.hkl.split(',')[0] : '', Number.isFinite(N) ? String(N) : '', Number.isFinite(N) ? String(r.d * Math.sqrt(N)) : '']); });
+    save(new Blob([csv([head, ...body])], { type: 'text/csv' }), `${fileSafe(scanName)}-peaks.csv`, 'text/csv');
+  });
+  loadExample();
+  wireDownloads(q('.dl'), () => ({ title: 'XRD peak calculator', subtitle: q('.xr-big').textContent ?? '', file: `${fileSafe(scanName)}-xrd`, sections }));
+</script>
+
+<style is:global>
+  .xrd h3 { margin: 20px 0 8px; font-size: 15px; }
+  .xrd select { max-width: 100%; }
+  .xrd .xr-sfig { margin-top: 12px; }
+</style>

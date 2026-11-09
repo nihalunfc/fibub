@@ -1,0 +1,237 @@
+---
+// Westgard multirule QC checker with Levey-Jennings charts, CV and sigma metric.
+import DataFile from '../../components/DataFile.astro';
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { RULES, CLASSIC } from '../../lib/sci/westgard';
+---
+<div class="ax wq">
+  <div class="ax-card">
+    <p class="wq-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
+    <h2>Control results</h2>
+    <label>One run per line, one column per control level, oldest first (a first column named Run, Date or Day is used as the label)
+      <textarea class="wq-data" rows="8" spellcheck="false">Run	Level 1	Level 2
+1	5.10	14.80
+2	4.84	15.10
+3	5.06	14.70
+4	4.96	15.40
+5	5.22	14.85
+6	5.46	15.20
+7	5.12	14.40
+8	4.90	15.05
+9	5.68	15.30
+10	5.04	14.80
+11	4.80	15.45
+12	5.44	16.20
+13	4.94	15.10
+14	5.08	14.60
+15	5.46	13.90
+16	4.88	15.15
+17	5.26	15.60
+18	5.30	15.70
+19	4.92	14.75
+20	5.14	14.55
+21	4.94	15.30
+22	5.10	15.40
+23	4.86	15.25
+24	5.04	15.50
+25	4.98	15.35
+26	5.12	15.45
+27	4.92	15.30
+28	5.06	15.40
+29	4.90	15.25
+30	5.02	15.35</textarea></label>
+    <DataFile target=".wq-data" maxCols={8} maxRows={5000} />
+    <p class="ax-help">The sample is made-up control data with planted errors, for practice.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Unit <input class="wq-unit" value="mmol/L" /></label>
+      <label>Target mean and SD <select class="wq-src">
+        <option value="typed" selected>Typed below</option>
+        <option value="all">From these results</option>
+        <option value="first">From the first runs</option>
+      </select></label>
+      <label class="wq-firstl" hidden>Number of first runs <input class="wq-first" inputmode="numeric" value="20" /></label>
+      <label class="wq-typed">Target means, one per level <input class="wq-mean" value="5.00, 15.00" /></label>
+      <label class="wq-typed">Target SDs, one per level <input class="wq-sd" value="0.20, 0.50" /></label>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Rules</h2>
+    <div class="wq-rules">
+      {RULES.map((r) => (
+        <label class="ax-check"><input type="checkbox" value={r.id} checked={CLASSIC.includes(r.id)} /> <b>{r.id}</b> <span>{r.text}</span></label>
+      ))}
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small wq-classic">Classic set</button>
+      <button type="button" class="btn secondary small wq-all">All rules</button>
+    </div>
+    <label class="ax-check" style="margin-top:12px"><input type="checkbox" class="wq-gate" /> Check the other rules only after a 1-2s warning (the 1981 flowchart)</label>
+    <label class="ax-check" style="margin-top:6px"><input type="checkbox" class="wq-12rej" /> Treat 1-2s as a rejection rule (raises false rejections)</label>
+    <h3 style="margin:16px 0 8px">Sigma metric</h3>
+    <div class="ax-grid">
+      <label>Allowable total error, TEa (%) <input class="wq-tea" inputmode="decimal" value="10" /></label>
+      <label>Bias (%), blank = from target <input class="wq-bias" inputmode="decimal" placeholder="observed vs target" /></label>
+    </div>
+    <p class="ax-help">TEa is a quality goal for the test (from a regulator, a proficiency scheme or biological variation). Sigma = (TEa − |bias|) ÷ CV; 6 or more is world class, under 3 is poor. The TEa shown is only an example: check the official source for your test.</p>
+    <p class="ax-err wq-err" hidden></p>
+  </div>
+
+  <div class="ax-card wq-out" hidden>
+    <h2>QC result</h2>
+    <p class="ax-big wq-big"></p>
+    <div class="ax-scroll"><table class="wq-flags"></table></div>
+    <h3 style="margin:16px 0 8px">Levels</h3>
+    <div class="ax-scroll"><table class="wq-stats"></table></div>
+    <p class="ax-help wq-note"></p>
+    <h3 style="margin:16px 0 8px">Levey-Jennings charts</h3>
+    <div class="wq-charts"></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small wq-csv">Runs (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style>
+  .wq-med { margin: 0 0 12px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; }
+  .wq-rules { display: grid; gap: 6px; }
+  .wq-rules .ax-check { align-items: baseline; font-size: 14px; }
+  .wq-rules b { min-width: 4.2em; flex: none; }
+  .wq-rules span { color: var(--muted); }
+  .wq-firstl[hidden], .wq-typed[hidden] { display: none; }
+</style>
+<style is:global>
+  .wq-charts canvas { display: block; width: 100%; height: auto; margin-bottom: 12px; }
+  .wq-flags td.wq-rej { color: var(--bad); font-weight: 600; }
+  .wq-flags td.wq-warn { color: var(--warn); font-weight: 600; }
+  .wq-flags td.wq-rules-c { min-width: 11em; }
+  .wq-stats td:first-child { white-space: nowrap; }
+</style>
+
+<script>
+  import { parseTable, num, sig, csv } from '../../lib/sci/num';
+  import { westgard, levelStats, sigmaMetric, CLASSIC, RULES, type RuleId, type RunResult } from '../../lib/sci/westgard';
+  import { chartFigure, type Series } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.wq')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement>(c).value;
+  let figs: Figure[] = [], report: Section[] = [], csvRows: (string | number)[][] = [];
+  const list = (s: string) => s.split(/[,;\s]+/).filter(Boolean).map(num);
+
+  function read() {
+    const t = parseTable(q<HTMLTextAreaElement>('.wq-data').value);
+    if (!t.length) throw new Error('Paste control results: one run per line, one column per level.');
+    const head = t[0].some((c) => c !== '' && Number.isNaN(num(c)));
+    const body = head ? t.slice(1) : t, width = Math.max(...t.map((r) => r.length));
+    const isText = (i: number) => body.some((r) => (r[i] ?? '') !== '' && Number.isNaN(num(r[i])));
+    // A first column called Run, Date, Day... or holding text is the run label.
+    const labelCol = (head && /^(run|date|day|batch|time|id|label|no\.?|#)/i.test(t[0][0] ?? '')) || isText(0) ? 0 : -1;
+    const lev = Array.from({ length: width }, (_, i) => i).filter((i) => i !== labelCol && body.some((r) => Number.isFinite(num(r[i]))));
+    if (!lev.length || !body.length) throw new Error('No columns of numbers found. Paste one column per control level.');
+    return {
+      names: lev.map((i, k) => (head && t[0][i] ? t[0][i] : `Level ${k + 1}`)),
+      x: body.map((r) => lev.map((i) => { const v = num(r[i]); return Number.isFinite(v) ? v : null; })),
+      labels: body.map((r, k) => (labelCol >= 0 ? r[labelCol] || String(k + 1) : String(k + 1))),
+    };
+  }
+
+  function calc() {
+    const err = q('.wq-err'), src = q<HTMLSelectElement>('.wq-src').value;
+    q('.wq-firstl').hidden = src !== 'first';
+    root.querySelectorAll<HTMLElement>('.wq-typed').forEach((e) => (e.hidden = src !== 'typed'));
+    try {
+      const { names, x, labels } = read();
+      const L = names.length;
+      if (x.length < 2) throw new Error('Paste at least 2 runs.');
+      let means: number[], sds: number[];
+      if (src === 'typed') {
+        means = list(val('.wq-mean')); sds = list(val('.wq-sd'));
+        if (means.length !== L || sds.length !== L) throw new Error(`Type ${L} target mean${L === 1 ? '' : 's'} and ${L} SD${L === 1 ? '' : 's'}, one per level, separated by commas.`);
+        if (means.some((v) => !Number.isFinite(v)) || sds.some((v) => !(v > 0))) throw new Error('Target means must be numbers and target SDs above zero.');
+      } else {
+        const k = src === 'first' ? num(val('.wq-first')) : x.length;
+        if (!(Number.isInteger(k) && k >= 2 && k <= x.length)) throw new Error(`The number of first runs must be a whole number from 2 to ${x.length}.`);
+        const st = names.map((_, l) => levelStats(x.slice(0, k).map((r) => r[l]).filter((v): v is number => v != null)));
+        if (st.some((s) => !(s.n >= 2 && s.sd > 0))) throw new Error('Each level needs at least 2 different results to work out its SD.');
+        means = st.map((s) => s.mean); sds = st.map((s) => s.sd);
+      }
+      const rules = [...root.querySelectorAll<HTMLInputElement>('.wq-rules input:checked')].map((i) => i.value as RuleId);
+      const z = x.map((r) => r.map((v, l) => (v == null ? null : (v - means[l]) / sds[l])));
+      const res = westgard(z, rules, { x, labels, gate: q<HTMLInputElement>('.wq-gate').checked, warnOnly12s: !q<HTMLInputElement>('.wq-12rej').checked });
+      err.hidden = true; q('.wq-out').hidden = false;
+      show(res, names, x, z, means, sds, src);
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.wq-out').hidden = true; report = []; csvRows = []; }
+  }
+
+  const tr = (cells: string[], th = false, cls: string[] = []) => { const e = document.createElement('tr'); cells.forEach((c, i) => { const d = document.createElement(th ? 'th' : 'td'); d.textContent = c; if (cls[i]) d.className = cls[i]; e.append(d); }); return e; };
+
+  function show(res: RunResult[], names: string[], x: (number | null)[][], z: (number | null)[][], means: number[], sds: number[], src: string) {
+    const unit = val('.wq-unit').trim(), u = unit ? ` ${unit}` : '';
+    const nRej = res.filter((r) => r.status === 'reject').length, nWarn = res.filter((r) => r.status === 'warning').length;
+    q('.wq-big').textContent = `${nRej} run${nRej === 1 ? '' : 's'} rejected, ${nWarn} warning${nWarn === 1 ? '' : 's'}, ${res.length - nRej - nWarn} in control (of ${res.length})`;
+    // One entry per rule and place, with the levels involved joined: "1-2s (Level 1, Level 2); R-4s (Level 1 + Level 2)".
+    const rulesTxt = (r: RunResult) => {
+      const g = new Map<string, { rule: string; where: string; levels: Set<number> }>();
+      for (const v of r.violations) {
+        const where = v.where === 'this run' || v.where === 'within the run' ? '' : v.where, k = `${v.rule}|${where}|${v.rule === '1-2s' || v.rule === '1-3s' ? '' : v.levels.join()}`;
+        if (!g.has(k)) g.set(k, { rule: v.rule, where, levels: new Set() });
+        v.levels.forEach((l) => g.get(k)!.levels.add(l));
+      }
+      return [...g.values()].map((e) => `${e.rule}${names.length > 1 ? ` (${e.where ? `${e.where}, ` : ''}${[...e.levels].sort().map((l) => names[l]).join(e.rule === '1-2s' || e.rule === '1-3s' ? ', ' : ' + ')})` : ''}`).join('; ');
+    };
+    const fl = res.filter((r) => r.status !== 'ok');
+    const ft = q<HTMLTableElement>('.wq-flags');
+    const zTxt = (r: RunResult) => r.z.map((v) => (v == null ? '–' : (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(2))).join(' / ');
+    ft.replaceChildren(tr(['Run', 'Status', 'Rules', `z (${names.join(' / ')})`], true),
+      ...fl.map((r) => tr([r.label, r.status === 'reject' ? 'Reject' : 'Warning', rulesTxt(r), zTxt(r)], false, ['', r.status === 'reject' ? 'wq-rej' : 'wq-warn', 'wq-rules-c'])));
+    if (!fl.length) ft.replaceChildren(tr(['No run broke a chosen rule.']));
+    // Level statistics and sigma.
+    const tea = num(val('.wq-tea')), biasTyped = val('.wq-bias').trim() ? num(val('.wq-bias')) : NaN;
+    const statRows = names.map((n, l) => {
+      const s = levelStats(x.map((r) => r[l]).filter((v): v is number => v != null));
+      const bias = Number.isFinite(biasTyped) ? biasTyped : (100 * (s.mean - means[l])) / means[l];
+      const sg = tea > 0 ? sigmaMetric(tea, bias, s.cv) : NaN;
+      return [n, String(s.n), sig(means[l], 4), sig(sds[l], 3), sig(s.mean, 4), sig(s.sd, 3), sig(s.cv, 3), sig(bias, 3), Number.isFinite(sg) ? sig(sg, 3) : '–'];
+    });
+    const sh = ['Level', 'n', 'Target mean', 'Target SD', 'Mean', 'SD', 'CV %', 'Bias %', 'Sigma'];
+    q<HTMLTableElement>('.wq-stats').replaceChildren(tr(sh, true), ...statRows.map((r) => tr(r, false, r.map((_, i) => (i ? 'r' : '')))));
+    q('.wq-note').textContent = `${src === 'typed' ? 'Targets as typed.' : src === 'all' ? 'Targets worked out from all these results, so the bias is zero unless you type one.' : `Targets worked out from the first ${val('.wq-first')} runs.`} CV, bias and sigma use all results of each level${Number.isFinite(biasTyped) ? ` and the typed bias of ${sig(biasTyped, 3)} %` : ', with bias = (mean − target mean) ÷ target mean'}.${tea > 0 ? '' : ' Type a TEa to get the sigma metric.'}`;
+    // Levey-Jennings charts.
+    const box = q('.wq-charts'); box.replaceChildren(); figs = [];
+    const W = Math.max(340, Math.min(720, box.clientWidth || 720));
+    names.forEach((n, l) => {
+      const runs = x.map((r, i) => [i + 1, r[l]] as const).filter(([, v]) => v != null) as [number, number][];
+      const rejRule = (v: { rule: RuleId }) => v.rule !== '1-2s' || q<HTMLInputElement>('.wq-12rej').checked;
+      const bad = (i: number) => res[i].violations.some((v) => rejRule(v) && v.levels.includes(l));
+      const rej = runs.filter(([i]) => bad(i - 1)), warn = runs.filter(([i, v]) => !bad(i - 1) && Math.abs((v - means[l]) / sds[l]) > 2);
+      const series: Series[] = [{ name: 'Results', x: runs.map((p) => p[0]), y: runs.map((p) => p[1]), mode: 'both', size: 3, width: 1.2, color: '#0072B2' }];
+      if (warn.length) series.push({ name: 'Warning (beyond 2 SD)', x: warn.map((p) => p[0]), y: warn.map((p) => p[1]), mode: 'points', marker: 'open-square', size: 6, color: '#E69F00' });
+      if (rej.length) series.push({ name: 'In a rejected run', x: rej.map((p) => p[0]), y: rej.map((p) => p[1]), mode: 'points', marker: 'cross', size: 6, color: '#D55E00' });
+      const marks = [-3, -2, -1, 0, 1, 2, 3].map((k) => ({ kind: 'hline' as const, at: means[l] + k * sds[l], dash: k === 0 ? [] : Math.abs(k) === 1 ? [2, 4] : Math.abs(k) === 2 ? [6, 4] : [10, 3], color: Math.abs(k) === 3 ? '#D55E00' : undefined, label: k === 0 ? 'mean' : Math.abs(k) === 1 ? undefined : `${k > 0 ? '+' : '−'}${Math.abs(k)} SD` }));
+      const fig = chartFigure({ w: W, h: Math.round(Math.max(270, W * 0.5)), title: `${n}${u ? ` (${unit})` : ''}`, xLabel: 'Run', yLabel: n, series, marks, legend: 'below', xMin: 0.5, xMax: x.length + 0.5,
+        yMin: Math.min(means[l] - 3.5 * sds[l], ...runs.map((p) => p[1])), yMax: Math.max(means[l] + 3.5 * sds[l], ...runs.map((p) => p[1])) }, `Levey-Jennings chart for ${n}: ${runs.length} results, mean ${sig(means[l], 4)}, SD ${sig(sds[l], 3)}`);
+      const cv = document.createElement('canvas'); cv.className = 'wq-lj'; box.append(cv); paint(cv, fig); figs.push(fig);
+    });
+    csvRows = [['run', ...names.flatMap((n) => [n, `z ${n}`]), 'status', 'rules'], ...res.map((r, i) => [r.label, ...names.flatMap((_, l) => [x[i][l] ?? '', z[i][l] == null ? '' : +z[i][l]!.toFixed(4)]), r.status, rulesTxt(r)])];
+    report = [
+      { title: 'Summary', text: [q('.wq-big').textContent!, `Rules: ${[...root.querySelectorAll<HTMLInputElement>('.wq-rules input:checked')].map((i) => i.value).join(', ') || 'none'}.`], table: fl.length ? { head: ['Run', 'Status', 'Rules', ...names.map((n) => `z ${n}`)], rows: fl.map((r) => [r.label, r.status, rulesTxt(r), ...r.z.map((v) => (v == null ? '–' : v.toFixed(2)))]) } : undefined },
+      { title: 'Levels', table: { head: sh, rows: statRows, align: sh.map((_, i) => (i ? 'r' : 'l')) }, note: q('.wq-note').textContent! },
+      ...figs.map((f, i) => ({ title: `Levey-Jennings: ${names[i]}`, figure: f })),
+    ];
+  }
+
+  let t = 0;
+  root.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(calc, 250); });
+  root.addEventListener('change', calc);
+  const setRules = (ids: string[]) => { root.querySelectorAll<HTMLInputElement>('.wq-rules input').forEach((i) => (i.checked = ids.includes(i.value))); calc(); };
+  q('.wq-classic').addEventListener('click', () => setRules(CLASSIC));
+  q('.wq-all').addEventListener('click', () => setRules(RULES.map((r) => r.id)));
+  document.addEventListener('fibub:theme', () => root.querySelectorAll<HTMLCanvasElement>('.wq-lj').forEach((c, i) => figs[i] && paint(c, figs[i])));
+  q('.wq-csv').addEventListener('click', () => { if (csvRows.length) save(new Blob([csv(csvRows)], { type: 'text/csv' }), 'westgard-qc.csv', 'text/csv'); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Westgard QC', subtitle: q('.wq-big').textContent ?? '', file: 'westgard-qc', sections: report }));
+</script>
