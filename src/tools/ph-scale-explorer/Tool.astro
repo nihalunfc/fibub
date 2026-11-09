@@ -1,0 +1,172 @@
+---
+// pH scale explorer: drag along the pH scale or tap a household substance; [H⁺], [OH⁻], pOH, the colours of five
+// school indicators and what dilution with water does. Level switch for Class 10 / Class 11. "Check yourself" block.
+import '../../styles/astro.css';
+import '../../styles/chemquiz.css';
+import { SUBSTANCES, UNIVERSAL } from '../../lib/sci/phscale';
+---
+<div class="ax phx">
+  <div class="ax-card">
+    <div class="ax-seg phx-lvl" role="group" aria-label="Level"><button type="button" data-l="10" aria-pressed="true">Class 10</button><button type="button" data-l="11" aria-pressed="false">Class 11</button></div>
+    <svg class="phx-svg" viewBox="0 0 340 112" role="slider" tabindex="0" aria-label="pH scale: drag to set the pH" aria-valuemin="0" aria-valuemax="14" aria-valuenow="7">
+      {UNIVERSAL.map((c, i) => <rect x={10 + i * 320 / 15} y="44" width={320 / 15 + 0.5} height="30" fill={c} />)}
+      {Array.from({ length: 15 }, (_, i) => <text x={10 + (i + 0.5) * 320 / 15} y="90" class="phx-tk">{i}</text>)}
+      <text x="12" y="106" class="phx-end">acidic</text><text x="170" y="106" class="phx-end" text-anchor="middle">neutral</text><text x="328" y="106" class="phx-end" text-anchor="end">basic</text>
+      <g class="phx-ptr"><path d="M0 40 L-8 26 L8 26 Z" class="phx-tri" /><line x1="0" y1="40" x2="0" y2="78" class="phx-ln" /><text x="0" y="18" class="phx-pv" text-anchor="middle">7</text></g>
+    </svg>
+    <label class="phx-rl">pH <input type="range" class="phx-range" min="0" max="14" step="0.1" value="7" aria-label="pH" /></label>
+    <p class="ax-help" style="margin-top:0">Drag along the coloured scale, use the slider, or tap a substance.</p>
+    <div class="phx-chips" role="group" aria-label="Household substances">
+      {SUBSTANCES.map((s) => <button type="button" class="phx-chip" data-id={s.id} data-ph={s.pH}>{s.name}</button>)}
+    </div>
+    <p class="ax-big phx-big" style="margin:14px 0 2px"></p>
+    <p class="phx-desc" style="margin:0 0 10px"></p>
+    <dl class="ax-facts phx-facts"></dl>
+    <p class="lx-eq phx-eq"></p>
+    <p class="ax-help">Substance values are rounded, typical ones: real lemons, soaps and soils vary. pH here is at 25 °C, where pure water is pH 7.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Indicator colours</h2>
+    <div class="phx-ind"></div>
+    <p class="ax-help">Colour-change ranges are the usual textbook ones and shift a little with temperature and concentration. Colours on a screen are only a guide.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Add water</h2>
+    <label>Dilute the solution <select class="phx-dil">
+      <option value="1">not diluted</option><option value="10">10 times</option><option value="100">100 times</option><option value="1000">1 000 times</option><option value="100000">100 000 times</option><option value="10000000">10 million times</option>
+    </select></label>
+    <p class="ax-big phx-dbig" style="margin:10px 0 2px"></p>
+    <p class="lx-eq phx-deq"></p>
+    <p class="ax-help">Treats the solution as a strong acid or strong base in water. Diluting brings the pH closer to 7 but never past it: water's own H⁺ and OH⁻ take over.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lx-try">
+      <li>Tap lemon juice, then milk of magnesia. Which indicator changes colour between them, and which stays the same?</li>
+      <li>Find the pH where phenolphthalein starts turning pink. Is that on the acid side or the base side?</li>
+      <li>Set pH 3, then pH 4. How many times less H⁺ is there? (Switch to Class 11 to see the numbers.)</li>
+      <li>Take vinegar and dilute it 10 times, then 1 000 times, then 10 million times. Does it ever become basic?</li>
+      <li>Blood is pH 7.4. Is it acidic or basic? What colour would turmeric turn?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cq">
+    <h2>Check yourself</h2>
+    <ol class="cq-list"></ol>
+    <button type="button" class="btn secondary small cq-new">New questions</button>
+  </div>
+</div>
+
+<style is:inline>
+  .phx-svg { display: block; width: 100%; margin: 12px 0 0; touch-action: none; cursor: pointer; user-select: none; }
+  .phx-svg:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .phx-tk { fill: var(--ink); font: 600 12px system-ui, sans-serif; text-anchor: middle; }
+  .phx-end { fill: var(--muted); font: 11px system-ui, sans-serif; }
+  .phx-tri { fill: var(--ink); }
+  .phx-ln { stroke: var(--ink); stroke-width: 3; }
+  .phx-pv { fill: var(--ink); font: 750 15px system-ui, sans-serif; }
+  .phx-rl { display: flex !important; grid-template-columns: none; align-items: center; gap: 10px !important; margin-top: 6px; }
+  .phx-range { flex: 1; height: 32px; accent-color: var(--accent); }
+  .phx-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .phx-chip { font: inherit; font-size: 14px; padding: 8px 11px; min-height: 40px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+  .phx-chip[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .phx-ind { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 10px; }
+  .phx-ind .phx-sw { display: grid; grid-template-columns: 34px 1fr; gap: 8px; align-items: center; }
+  .phx-ind .phx-sw i { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); display: block; }
+  .phx-ind .phx-sw b { display: block; font-size: 14px; }
+  .phx-ind .phx-sw span { font-size: 13px; color: var(--muted); }
+</style>
+
+<script>
+  import { hFromPH, ohFromPH, pOH, kind, dilute, INDICATORS, SUBSTANCES, sci } from '../../lib/sci/phscale';
+  import { mountQuiz, near, same, rint, pickOne, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.phx')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let pH = 7, level = 10, picked: string | null = 'water';
+  const X0 = 10, W = 320;
+  const xOf = (p: number) => X0 + ((p + 0.5) / 15) * W;
+  const fix1 = (x: number) => (Math.round(x * 100) / 100).toString();
+  const fact = (k: string, v: string, s = '') => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; dd.append(sm); } d.append(dt, dd); return d; };
+
+  function update() {
+    root.querySelectorAll<HTMLButtonElement>('.phx-lvl button').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.l) === level)));
+    const svg = q<SVGSVGElement>('.phx-svg');
+    q('.phx-ptr').setAttribute('transform', `translate(${xOf(pH).toFixed(1)} 0)`);
+    q('.phx-pv').textContent = fix1(pH);
+    svg.setAttribute('aria-valuenow', fix1(pH));
+    q<HTMLInputElement>('.phx-range').value = String(pH);
+    root.querySelectorAll<HTMLButtonElement>('.phx-chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === picked)));
+    const sub = SUBSTANCES.find((s) => s.id === picked);
+    const k = kind(pH);
+    q('.phx-big').textContent = `pH ${fix1(pH)}: ${k.text}`;
+    q('.phx-desc').textContent = (sub ? `${sub.name} (typical pH ${sub.pH}). ` : '') + (k.id === 'acid' ? 'More H⁺ ions than OH⁻ ions.' : k.id === 'base' ? 'More OH⁻ ions than H⁺ ions.' : 'H⁺ and OH⁻ ions balance.');
+    const h = hFromPH(pH), oh = ohFromPH(pH);
+    const f = q('.phx-facts'); f.replaceChildren();
+    const times = 10 ** (7 - pH);
+    f.append(fact('[H⁺]', `${sci(h)} mol/L`, 'hydrogen ion concentration'));
+    f.append(fact('Compared with pure water', times >= 1.005 ? `${sci(times)} × more H⁺` : times <= 0.995 ? `${sci(1 / times)} × less H⁺` : 'the same', 'each pH step is 10 times'));
+    if (level === 11) {
+      f.append(fact('[OH⁻]', `${sci(oh)} mol/L`, 'Kw / [H⁺]'), fact('pOH', fix1(pOH(pH)), 'pH + pOH = 14 at 25 °C'));
+    }
+    const eq = q('.phx-eq'); eq.replaceChildren();
+    const line = (t: string) => { if (eq.childNodes.length) eq.append(document.createElement('br')); eq.append(t); };
+    line(`pH = −log[H⁺] = −log(${sci(h)}) = ${fix1(pH)}`);
+    if (level === 11) { line(`[H⁺][OH⁻] = Kw = 1.0 × 10⁻¹⁴ at 25 °C`); line(`pOH = 14 − pH = 14 − ${fix1(pH)} = ${fix1(pOH(pH))}`); }
+    const ind = q('.phx-ind'); ind.replaceChildren();
+    for (const I of INDICATORS) {
+      const c = I.colour(pH);
+      const d = document.createElement('div'); d.className = 'phx-sw'; d.dataset.id = I.id;
+      const sw = document.createElement('i'); sw.style.background = c.hex; sw.setAttribute('aria-hidden', 'true');
+      const t = document.createElement('div'); const b = document.createElement('b'); b.textContent = I.name; const s = document.createElement('span'); s.className = 'phx-cn'; s.textContent = c.name;
+      const r = document.createElement('span'); r.textContent = ` (${I.range})`; if (level !== 11) r.hidden = true;
+      t.append(b, s, r); d.append(sw, t); ind.append(d);
+    }
+    // dilution
+    const D = Number(q<HTMLSelectElement>('.phx-dil').value), p2 = dilute(pH, D);
+    const f2 = (x: number) => (Math.abs(x - 7) < 0.05 && Math.abs(x - 7) > 1e-9 ? x.toFixed(3) : fix1(x));
+    q('.phx-dbig').textContent = D === 1 ? `pH ${fix1(pH)}` : `pH ${fix1(pH)} → ${f2(p2)}`;
+    const de = q('.phx-deq'); de.replaceChildren();
+    const dl = (t: string) => { if (de.childNodes.length) de.append(document.createElement('br')); de.append(t); };
+    if (D === 1) dl('Choose how many times to dilute.');
+    else if (k.id === 'neutral') dl('Pure water stays at pH 7 however much water you add.');
+    else {
+      dl(`${k.id === 'acid' ? '[H⁺]' : '[OH⁻]'} goes down about ${sci(D)} times, so the pH moves ${fix1(Math.log10(D))} unit${Math.log10(D) === 1 ? '' : 's'} towards 7`);
+      const naive = k.id === 'acid' ? pH + Math.log10(D) : pH - Math.log10(D);
+      if (Math.abs(naive - p2) > 0.02) dl(`but it stops near 7: water itself gives 1.0 × 10⁻⁷ mol/L of H⁺ and OH⁻. New pH ${f2(p2)}.`);
+      else dl(`New pH = ${fix1(pH)} ${k.id === 'acid' ? '+' : '−'} log(${sci(D)}) = ${f2(p2)}`);
+    }
+  }
+
+  const setPH = (v: number, keepPick = false) => { pH = Math.round(Math.max(0, Math.min(14, v)) * 10) / 10; if (!keepPick) picked = null; update(); };
+  const svg = q<SVGSVGElement>('.phx-svg');
+  const fromEvent = (ev: PointerEvent) => { const r = svg.getBoundingClientRect(); const x = ((ev.clientX - r.left) / r.width) * 340; return ((x - X0) / W) * 15 - 0.5; };
+  svg.addEventListener('pointerdown', (ev) => { svg.setPointerCapture(ev.pointerId); setPH(fromEvent(ev)); });
+  svg.addEventListener('pointermove', (ev) => { if (svg.hasPointerCapture(ev.pointerId)) setPH(fromEvent(ev)); });
+  svg.addEventListener('keydown', (ev) => { const d = ev.key === 'ArrowRight' || ev.key === 'ArrowUp' ? 0.1 : ev.key === 'ArrowLeft' || ev.key === 'ArrowDown' ? -0.1 : 0; if (d) { ev.preventDefault(); setPH(pH + d); } });
+  q<HTMLInputElement>('.phx-range').addEventListener('input', (ev) => setPH(Number((ev.target as HTMLInputElement).value)));
+  root.querySelectorAll<HTMLButtonElement>('.phx-chip').forEach((b) => b.addEventListener('click', () => { picked = b.dataset.id!; setPH(Number(b.dataset.ph), true); }));
+  root.querySelectorAll<HTMLButtonElement>('.phx-lvl button').forEach((b) => b.addEventListener('click', () => { level = Number(b.dataset.l); update(); }));
+  q('.phx-dil').addEventListener('change', update);
+  update();
+
+  // Check yourself
+  const supN = (n: number) => String(n).replace(/\d/g, (d) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+d]);
+  mountQuiz(q('.cq'), (): Question[] => {
+    const b1 = rint(1, 13), h1 = `1 × 10^-${b1}`;
+    const p2 = rint(1, 13);
+    const pp = pickOne([2, 4, 9, 11, 12, 13]), ph4 = INDICATORS.find((i) => i.id === 'phenolphthalein')!.colour(pp).name;
+    const a5 = rint(1, 4), d5 = pickOne([10, 100, 1000]), r5 = Math.round(dilute(a5, d5) * 100) / 100;
+    const mant = rint(2, 9), e6 = rint(2, 5), p6 = Math.round(-Math.log10(mant * 10 ** -e6) * 100) / 100;
+    return [
+      { q: `A solution has [H⁺] = 1 × 10⁻${supN(b1)} mol/L. What is its pH?`, hint: 'a number', answer: String(b1), ok: near(b1, 0.001), worked: `pH = −log[H⁺] = −log(${h1}) = ${b1}.` },
+      { q: `A solution has pH ${p2}. Is it acidic, basic or neutral?`, hint: 'acidic, basic or neutral', answer: kind(p2).id === 'acid' ? 'acidic' : kind(p2).id === 'base' ? 'basic' : 'neutral', ok: same(...(kind(p2).id === 'acid' ? ['acidic', 'acid'] : kind(p2).id === 'base' ? ['basic', 'base', 'alkaline'] : ['neutral'])), worked: `Below 7 is acidic, 7 is neutral, above 7 is basic. pH ${p2} is ${kind(p2).id === 'acid' ? 'below' : kind(p2).id === 'base' ? 'above' : 'equal to'} 7.` },
+      { q: `What colour is phenolphthalein in a solution of pH ${pp}?`, hint: 'a colour', answer: ph4, ok: same(ph4, ...(ph4 === 'colourless' ? ['colorless', 'no colour', 'no color'] : ['pink', 'magenta'])), worked: `Phenolphthalein is colourless in acids and neutral solutions and turns pink above about pH 8.2 (fully pink near 10).` },
+      { q: `A strong acid solution of pH ${a5} is diluted ${d5} times with water. What is the new pH? (2 decimal places)`, hint: 'a number', answer: String(r5), ok: near(r5, 0.005), worked: `[H⁺] falls ${d5} times, so the pH goes up by log ${d5} = ${Math.log10(d5)}: ${a5} + ${Math.log10(d5)} = ${a5 + Math.log10(d5)}${Math.abs(r5 - (a5 + Math.log10(d5))) > 0.005 ? `, but close to 7 water's own H⁺ counts too, giving ${r5}` : ''}.` },
+      { q: `[H⁺] = ${mant} × 10⁻${supN(e6)} mol/L. What is the pH? (2 decimal places)`, hint: 'a number', answer: p6.toFixed(2), ok: near(p6, 0.003), worked: `pH = −log(${mant} × 10^−${e6}) = ${e6} − log ${mant} = ${e6} − ${Math.log10(mant).toFixed(2)} = ${p6.toFixed(2)}.` },
+    ];
+  });
+</script>
