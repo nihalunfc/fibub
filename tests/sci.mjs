@@ -141,6 +141,7 @@ import * as LFG from '../src/lib/sci/lfg.ts';
 import * as POND from '../src/lib/sci/pond.ts';
 import * as WQI from '../src/lib/sci/wqi.ts';
 import * as ASL from '../src/lib/sci/asludge.ts';
+import * as SMP from '../src/lib/sci/sampling.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2799,6 +2800,26 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('as washout', ASL.effluentS({ ...p, srt: 0.2 }) === Infinity);
   // Mass balance: biomass in the tank equals production times SRT.
   near('as tank solids', (r.V * p.mlss) / 1000, r.pxTSS * p.srt, 1e-6);
+}
+{
+  // Field sampling: hot-spot hit chance against Shapely (union of 4096-segment discs over one lattice period).
+  const ref = [[10, 25, 'square', 0.5026548122535792], [10, 15, 'square', 0.9933196175521842], [10, 30, 'tri', 0.4030665155056459], [10, 18, 'tri', 0.9940536106215377], [5, 40, 'square', 0.0490873840091386], [10, 14.5, 'square', 0.9987712873090376]];
+  for (const [r, G, g, want] of ref) near(`hotspot ${g} r${r} G${G}`, SMP.hotspotP(r, G, g), want, 1e-7);
+  check('hotspot full cover', SMP.hotspotP(10, 14, 'square') === 1 && SMP.hotspotP(10, 17, 'tri') === 1);
+  near('hotspot spacing inverse', SMP.hotspotP(10, SMP.spacingFor(10, 0.9, 'square'), 'square'), 0.9, 1e-9);
+  near('hotspot spacing inverse tri', SMP.hotspotP(10, SMP.spacingFor(10, 0.75, 'tri'), 'tri'), 0.75, 1e-9);
+  // Sample sizes against SciPy (t iteration) and the normal formula.
+  check('n for mean', SMP.nForMean(0.5, 0.2, 0.95) === 27 && SMP.nForMean(1.2, 0.1, 0.9) === 392);
+  check('n for action level', SMP.nForAction(10, 5, 0.05, 0.2) === 27);
+  // Point layouts: all inside, and about A / cell area of them.
+  const poly = [[0, 0], [200, 0], [260, 120], [120, 180], [-20, 100]], A = SMP.area(poly);
+  let cnt = 0, allIn = true;
+  for (let sd = 1; sd <= 200; sd++) { const pts = SMP.stratifiedPoints(poly, 30, sd); cnt += pts.length; allIn &&= pts.every((q) => SMP.inside(poly, q)); }
+  near('stratified mean count', cnt / 200, A / 900, 0.5);
+  let g2 = 0; for (let sd = 1; sd <= 200; sd++) g2 += SMP.gridPoints(poly, 30, 'tri', sd).length;
+  near('tri grid mean count', g2 / 200, A / SMP.cellArea(30, 'tri'), 0.5);
+  const rp = SMP.randomPoints(poly, 50, 7);
+  check('random points', rp.length === 50 && rp.every((q) => SMP.inside(poly, q)) && allIn);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
