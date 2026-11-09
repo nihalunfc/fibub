@@ -1,0 +1,192 @@
+---
+// HR diagram: a star list (colour, apparent magnitude, parallax or distance, optional extinction) becomes a
+// colour-magnitude diagram, or a Teff-luminosity diagram from an anchored black-body colour relation.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax hrd">
+  <div class="ax-card">
+    <h2>Star list</h2>
+    <label>One star per line, with a header row <textarea class="hr-data" rows="8" spellcheck="false"></textarea></label>
+    <DataFile target=".hr-data" maxCols={40} maxRows={200000} label="Open a star list" />
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small hr-demo">Load the made-up cluster</button>
+      <button type="button" class="btn secondary small hr-clear">Clear</button>
+    </div>
+    <p class="ax-help">Columns are found by their names: a colour (<code>B-V</code>, <code>bp_rp</code>, <code>g-r</code>, <code>colour</code>) or two magnitudes (<code>B</code> and <code>V</code>, or Gaia's <code>phot_bp_mean_mag</code> and <code>phot_rp_mean_mag</code>), an apparent magnitude (<code>V</code>, <code>G</code>, <code>mag</code>), and <code>parallax</code> (mas) or <code>distance</code> (pc). Optional: <code>name</code>, <code>parallax_error</code>, <code>A</code> (extinction in the magnitude band), <code>E</code> (colour excess). Without a header the columns are colour, magnitude, parallax. The example is a made-up cluster, not real stars.</p>
+    <p class="ax-help hr-cols" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Photometric system</h2>
+    <div class="ax-grid">
+      <label>System <select class="hr-sys"></select></label>
+      <label>Blue band λ (nm) <input class="hr-l1" inputmode="decimal" /></label>
+      <label>Red band λ (nm) <input class="hr-l2" inputmode="decimal" /></label>
+      <label>Magnitude band λ (nm) <input class="hr-lm" inputmode="decimal" /></label>
+      <label>Sun's colour <input class="hr-sc" inputmode="decimal" /></label>
+      <label>Sun's absolute magnitude <input class="hr-sm" inputmode="decimal" /></label>
+      <label>Colour 0 at (K) <input class="hr-zt" inputmode="decimal" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="hr-two" checked /> Two anchors: stretch the black body to pass through the Sun and colour 0</label>
+    <p class="ax-help">Temperatures come from a black body seen at the bands' effective wavelengths, tied to the Sun (5772 K) and, with two anchors, to a star of colour 0. Real stars are not black bodies, so treat Teff and L as rough (often within 10 %, worse for hot and very cool stars). The wavelengths and Sun values are rounded; type your own.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Distance and extinction</h2>
+    <div class="ax-grid">
+      <label>Distances <select class="hr-dm"><option value="each">Each star's parallax or distance</option><option value="one">One distance for every star</option></select></label>
+      <label class="hr-one-l" hidden>Distance (pc) <input class="hr-one" inputmode="decimal" value="250" /></label>
+      <label>Parallax offset (mas) <input class="hr-off" inputmode="decimal" value="0" /></label>
+      <label>Flag stars with σϖ/ϖ above (%) <input class="hr-flag" inputmode="decimal" value="20" /></label>
+      <label>Reddening E(colour) <input class="hr-e" inputmode="decimal" value="0" /></label>
+      <label>A = R × E, with R <input class="hr-r" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">M = m − 5 log₁₀(d/10 pc) − A, with d = 1000/ϖ (ϖ in mas, plus the offset). The colour is dereddened: (colour)₀ = colour − E. The reddening here is used for stars without their own <code>E</code> or <code>A</code> column. The parallax offset corrects a catalogue's zero point (type the value your catalogue recommends). Simple 1/ϖ distances are fine for good parallaxes; flagged stars are drawn open.</p>
+    <p class="ax-err hr-err" hidden></p>
+  </div>
+
+  <div class="ax-card hr-out" hidden>
+    <h2>Diagram</h2>
+    <p class="ax-big hr-big"></p>
+    <div class="ax-grid">
+      <label>Plot <select class="hr-plot"><option value="cmd">Colour-magnitude (colour₀, M)</option><option value="hr">HR diagram (Teff, L/L☉)</option><option value="obs">As observed (colour, m)</option></select></label>
+      <label class="ax-check"><input type="checkbox" class="hr-eb" /> Error bars from parallax errors</label>
+      <label class="ax-check"><input type="checkbox" class="hr-sun" checked /> Mark the Sun</label>
+    </div>
+    <canvas class="ax-fig hr-fig"></canvas>
+    <dl class="ax-facts hr-facts"></dl>
+    <p class="ax-help hr-note"></p>
+    <h3>Stars</h3>
+    <div class="ax-scroll"><table class="hr-tab"></table></div>
+    <div class="ax-row hr-more" style="margin-top:8px" hidden><span class="ax-help hr-more-t" style="margin:0"></span><button type="button" class="btn secondary small hr-all">Show all</button></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small hr-csv">Download the table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { SYSTEMS, parseStars, analyse, relation, syntheticCluster, T_SUN, type Scale, type Result, type Columns } from '../../lib/sci/hrd';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.hrd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const v = (c: string) => num(inp(c).value);
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const data = q<HTMLTextAreaElement>('.hr-data'), sys = q<HTMLSelectElement>('.hr-sys');
+  sys.replaceChildren(...SYSTEMS.map((s) => new Option(s.name, s.id)), new Option('Your own bands', 'own'));
+  const setSys = (id: string) => { const s = SYSTEMS.find((x) => x.id === id); if (!s) return; inp('.hr-l1').value = String(s.l1); inp('.hr-l2').value = String(s.l2); inp('.hr-lm').value = String(s.lm); inp('.hr-sc').value = String(s.sunColour); inp('.hr-sm').value = String(s.sunMag); inp('.hr-zt').value = String(s.zeroT); inp('.hr-r').value = String(s.R); };
+  const names = () => { const s = SYSTEMS.find((x) => x.id === sys.value); return s ? { colour: s.colour, mag: s.mag } : { colour: 'colour', mag: 'm' }; };
+
+  let rows: Result[] = [], sections: Section[] = [], fig: Figure | null = null, sc: Scale | null = null;
+  let showAll = false;
+  const LIST = 25, MAXLIST = 2000;
+  const colName = (c: Columns, h: string[]) => [['colour', c.colour], ['blue', c.blue], ['red', c.red], ['magnitude', c.mag], ['parallax', c.plx], ['parallax error', c.plxErr], ['distance', c.dist], ['A', c.A], ['E', c.E], ['name', c.name]].filter(([, i]) => i != null).map(([k, i]) => `${k} = "${h[i as number]}"`).join(', ');
+
+  function draw() {
+    if (!rows.length || !sc) return;
+    const mode = q<HTMLSelectElement>('.hr-plot').value, eb = inp('.hr-eb').checked, n = names();
+    const ok = rows.filter((r) => !r.flagged), bad = rows.filter((r) => r.flagged);
+    const X = (r: Result) => (mode === 'hr' ? r.T : mode === 'cmd' ? r.c0 : r.colour), Y = (r: Result) => (mode === 'hr' ? 10 ** r.lL : mode === 'cmd' ? r.M : r.mag);
+    const keep = (r: Result) => Number.isFinite(X(r)) && Number.isFinite(Y(r));
+    const err = (set: Result[]) => (eb && mode === 'cmd' ? set.filter(keep).map((r) => (Number.isFinite(r.sigM) ? r.sigM : undefined)) : undefined);
+    const series: any[] = [{ name: 'Stars', x: ok.filter(keep).map(X), y: ok.filter(keep).map(Y), yErr: err(ok), mode: 'points', marker: 'circle', size: 2.6 }];
+    if (bad.length) series.push({ name: `σϖ/ϖ > ${v('.hr-flag')} %`, x: bad.filter(keep).map(X), y: bad.filter(keep).map(Y), yErr: err(bad), mode: 'points', marker: 'open-circle', size: 3 });
+    if (inp('.hr-sun').checked && mode !== 'obs') series.push({ name: 'Sun', x: [mode === 'hr' ? T_SUN : sc.sunColour], y: [mode === 'hr' ? 1 : sc.sunMag], mode: 'points', marker: 'diamond', size: 6 });
+    const labels = mode === 'hr' ? ['Effective temperature (K)', 'Luminosity (L☉)'] : mode === 'cmd' ? [`(${n.colour})₀`, `M(${n.mag})`] : [n.colour, n.mag];
+    fig = chartFigure({ h: 420, xLabel: labels[0], yLabel: labels[1], series, legend: series.length > 1 ? 'below' : 'none', yReverse: mode !== 'hr', xReverse: mode === 'hr', xLog: mode === 'hr', yLog: mode === 'hr' },
+      mode === 'hr' ? `HR diagram of ${rows.length} stars: luminosity against effective temperature` : `Colour-magnitude diagram of ${rows.length} stars`);
+    paint(q<HTMLCanvasElement>('.hr-fig'), fig);
+    sections = [{ title: q('.hr-big').textContent!, facts: [...q('.hr-facts').children].map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), note: q('.hr-note').textContent!, figure: fig },
+      { title: 'Stars', table: { head: tableHead(), rows: rows.slice(0, 200).map(tableRow), align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r'] } }];
+  }
+  const tableHead = () => { const n = names(); return ['Star', `${n.colour}`, n.mag, 'd (pc)', `(${n.colour})₀`, `M(${n.mag})`, 'Teff (K)', 'L/L☉', 'R/R☉']; };
+  const tableRow = (r: Result) => [r.name + (r.flagged ? ' *' : ''), r.colour.toFixed(3), r.mag.toFixed(3), sig(r.d, 4), r.c0.toFixed(3), r.M.toFixed(2) + (Number.isFinite(r.sigM) ? ` ± ${r.sigM.toFixed(2)}` : ''), Number.isFinite(r.T) ? Math.round(r.T).toString() : '–', Number.isFinite(r.lL) ? sig(10 ** r.lL, 3) : '–', Number.isFinite(r.Rs) ? sig(r.Rs, 3) : '–'];
+
+  function run() {
+    const err = q('.hr-err'), out = q('.hr-out'), cols = q('.hr-cols');
+    err.hidden = true; cols.hidden = true;
+    const fail = (msg: string) => { err.textContent = msg; err.hidden = false; out.hidden = true; rows = []; sections = []; };
+    if (!data.value.trim()) return fail('Paste a star list, open a file, or load the made-up cluster.');
+    const p = parseStars(data.value);
+    if (p.header) { cols.textContent = `Columns used: ${colName(p.cols, p.headers) || 'none recognised'}.`; cols.hidden = false; }
+    if (p.header && p.cols.colour == null && p.cols.blue == null) return fail('No colour column found. Name it B-V, bp_rp, g-r or colour, or give two magnitude columns such as B and V.');
+    if (p.header && p.cols.mag == null) return fail('No magnitude column found. Name it V, G, r or mag.');
+    if (!p.stars.length) return fail('No star has both a colour and a magnitude.');
+    const dm = q<HTMLSelectElement>('.hr-dm').value as 'each' | 'one';
+    sc = { l1: v('.hr-l1'), l2: v('.hr-l2'), lm: v('.hr-lm'), sunColour: v('.hr-sc'), sunMag: v('.hr-sm'), zeroT: inp('.hr-two').checked ? v('.hr-zt') : null };
+    if (!(sc.l1 >= 100 && sc.l2 > sc.l1 && sc.l2 <= 30000 && sc.lm >= 100 && sc.lm <= 30000)) return fail('Band wavelengths are in nm (100 to 30000), with the blue band shorter than the red one.');
+    if (!Number.isFinite(sc.sunColour) || !Number.isFinite(sc.sunMag)) return fail("Type the Sun's colour and absolute magnitude in this system.");
+    if (sc.zeroT != null && !(sc.zeroT > 6500 && sc.zeroT < 60000)) return fail('The colour-0 temperature must be well above the Sun\'s (6500 to 60000 K).');
+    if (!(relation(sc).s > 0)) return fail('These anchors make colour rise with temperature; check the Sun\'s colour and the colour-0 temperature.');
+    const E = v('.hr-e'), R = v('.hr-r'), off = v('.hr-off'), flag = v('.hr-flag'), one = v('.hr-one');
+    if (!Number.isFinite(E) || !(R >= 0 && R < 20)) return fail('The reddening E is a number and R is between 0 and 20.');
+    if (!Number.isFinite(off) || Math.abs(off) > 5) return fail('The parallax offset is a small number of mas (within ±5).');
+    if (!(flag > 0)) return fail('The flag limit is a positive percentage.');
+    if (dm === 'one' && !(one > 0)) return fail('The distance for every star is a positive number of parsecs.');
+    const a = analyse(p.stars, { distance: dm, onePc: one, plxOffset: off, E, R, maxRelErr: flag / 100, sc });
+    rows = a.rows;
+    if (!rows.length) return fail(`None of the stars could be placed: ${a.skipped[0]?.why ?? 'no distances'}. ${dm === 'each' ? 'Add a parallax (mas) or distance (pc) column, or choose one distance for every star.' : ''}`);
+    out.hidden = false;
+    const ds = rows.map((r) => r.d).sort((x, y) => x - y), med = ds[ds.length >> 1];
+    const nT = rows.filter((r) => Number.isFinite(r.T)).length, nf = rows.filter((r) => r.flagged).length, n = names();
+    q('.hr-big').textContent = `${rows.length} star${rows.length === 1 ? '' : 's'} placed, median distance ${sig(med, 3)} pc (modulus ${(5 * Math.log10(med) - 5).toFixed(2)})`;
+    const Ms = rows.map((r) => r.M), lls = rows.map((r) => r.lL).filter(Number.isFinite);
+    const rl = relation(sc);
+    q('.hr-facts').replaceChildren(
+      fact('Stars read', `${p.stars.length + p.skipped.length}`, `${rows.length} placed${a.skipped.length + p.skipped.length ? `, ${a.skipped.length + p.skipped.length} skipped` : ''}${nf ? `, ${nf} flagged` : ''}`),
+      fact(`Absolute magnitude M(${n.mag})`, `${Math.min(...Ms).toFixed(2)} to ${Math.max(...Ms).toFixed(2)}`),
+      fact('Temperatures found', `${nT} of ${rows.length}`, nT ? `${Math.round(Math.min(...rows.filter((r) => Number.isFinite(r.T)).map((r) => r.T)))} to ${Math.round(Math.max(...rows.filter((r) => Number.isFinite(r.T)).map((r) => r.T)))} K` : ''),
+      ...(lls.length ? [fact('Luminosity', `${sig(10 ** Math.min(...lls), 3)} to ${sig(10 ** Math.max(...lls), 3)} L☉`)] : []),
+      fact('Colour-temperature relation', `colour = ${rl.s.toFixed(4)} × black body + ${rl.z.toFixed(4)}`, sc.zeroT != null ? `through the Sun (${sc.sunColour} at 5772 K) and 0 at ${sc.zeroT} K` : `pure black body through the Sun (${sc.sunColour} at 5772 K)`),
+    );
+    const notes: string[] = [];
+    const skip = [...p.skipped.map((s) => `line ${s.line} (${s.why})`), ...a.skipped.map((s) => `${s.name} (${s.why})`)];
+    if (skip.length) notes.push(`Skipped: ${skip.slice(0, 6).join('; ')}${skip.length > 6 ? `; and ${skip.length - 6} more` : ''}.`);
+    if (nT < rows.length) notes.push(`${rows.length - nT} star${rows.length - nT === 1 ? ' has a colour' : 's have colours'} outside the 2000 to 60000 K range of the relation, so no temperature or luminosity (they still appear in the colour-magnitude diagram).`);
+    if (nf) notes.push(`${nf} star${nf === 1 ? ' has' : 's have'} a parallax error above ${flag} %: 1/ϖ is then a biased distance, so read their M with care.`);
+    q('.hr-note').textContent = notes.join(' ');
+    const tab = q<HTMLTableElement>('.hr-tab');
+    const th = document.createElement('tr'); th.append(...tableHead().map((h) => { const e = document.createElement('th'); e.textContent = h; return e; }));
+    const lim = showAll ? MAXLIST : LIST;
+    tab.replaceChildren(th, ...rows.slice(0, lim).map((r) => { const tr = document.createElement('tr'); tr.append(...tableRow(r).map((c) => { const e = document.createElement('td'); e.textContent = c; return e; })); return tr; }));
+    q('.hr-more').hidden = rows.length <= lim; q('.hr-more-t').textContent = `The first ${lim} of ${rows.length} stars are listed; the CSV has them all.`;
+    q('.hr-all').hidden = showAll;
+    draw();
+  }
+
+  const timers = new Map<() => void, number>();
+  const later = (f: () => void) => { clearTimeout(timers.get(f)); timers.set(f, window.setTimeout(f, 300)); };
+  data.addEventListener('input', () => { showAll = false; later(run); });
+  sys.addEventListener('change', () => { setSys(sys.value); run(); });
+  ['.hr-l1', '.hr-l2', '.hr-lm', '.hr-sc', '.hr-sm', '.hr-zt', '.hr-r'].forEach((c) => inp(c).addEventListener('input', () => { if (c !== '.hr-r') sys.value = 'own'; later(run); }));
+  ['.hr-off', '.hr-flag', '.hr-e', '.hr-one'].forEach((c) => inp(c).addEventListener('input', () => later(run)));
+  q('.hr-two').addEventListener('change', run);
+  q('.hr-dm').addEventListener('change', () => { q('.hr-one-l').hidden = q<HTMLSelectElement>('.hr-dm').value !== 'one'; run(); });
+  ['.hr-plot', '.hr-eb', '.hr-sun'].forEach((c) => q(c).addEventListener('change', draw));
+  q('.hr-demo').addEventListener('click', () => { data.value = syntheticCluster(); sys.value = 'bv'; setSys('bv'); inp('.hr-e').value = '0.05'; q<HTMLSelectElement>('.hr-dm').value = 'each'; q('.hr-one-l').hidden = true; inp('.hr-off').value = '0'; run(); });
+  q('.hr-all').addEventListener('click', () => { showAll = true; run(); });
+  q('.hr-clear').addEventListener('click', () => { data.value = ''; run(); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.hr-out').hidden) paint(q<HTMLCanvasElement>('.hr-fig'), fig); });
+  q('.hr-csv').addEventListener('click', () => {
+    if (!rows.length) return;
+    const n = names();
+    const head = ['name', n.colour.replace(/ /g, '').replace('−', '-'), n.mag, 'parallax_mas', 'parallax_error_mas', 'distance_pc', 'modulus', 'A', 'E', 'colour0', 'M', 'sigma_M', 'flagged', 'Teff_K', 'log_L_Lsun', 'R_Rsun'];
+    const f = (x: number, p = 6) => (Number.isFinite(x) ? String(+x.toPrecision(p)) : '');
+    save(new Blob([csv([head, ...rows.map((r) => [r.name, f(r.colour), f(r.mag), f(r.plx), f(r.plxErr), f(r.d), f(r.mu), f(r.Ause), f(r.Euse), f(r.c0), f(r.M), f(r.sigM), r.flagged ? 'yes' : 'no', f(r.T, 5), f(r.lL), f(r.Rs)])])], { type: 'text/csv' }), 'hr-diagram.csv', 'text/csv');
+  });
+  setSys('bv'); sys.value = 'bv';
+  q('.hr-demo').click();
+  wireDownloads(q('.dl'), () => ({ title: 'HR diagram', subtitle: q('.hr-big').textContent ?? '', file: 'hr-diagram', sections }));
+</script>
+
+<style is:global>
+  .hrd h3 { margin: 20px 0 8px; font-size: 15px; }
+  .hrd select { max-width: 100%; }
+  .hrd textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 13px; }
+  .hrd .hr-tab td, .hrd .hr-tab th { white-space: nowrap; }
+</style>
