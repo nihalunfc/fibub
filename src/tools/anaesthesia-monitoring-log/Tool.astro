@@ -1,0 +1,229 @@
+---
+// Anaesthesia monitoring log (teaching record sheet): vitals every few minutes, the user's own alert ranges, a
+// chart, CSV and PDF. No drug or dose fields of any kind. Nothing is uploaded or stored.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax aml">
+  <p class="ax-help aml-warn">For study and planning, not a substitute for professional judgement. Nothing is saved: download the CSV before you close the page.</p>
+  <div class="ax-card">
+    <h2>Patient and sheet</h2>
+    <div class="ax-grid">
+      <label>Patient name (optional) <input class="am-name" type="text" maxlength="40" autocomplete="off" /></label>
+      <label>Species <input class="am-sp" type="text" maxlength="30" /></label>
+      <label>Procedure <input class="am-proc" type="text" maxlength="60" /></label>
+      <label>Date <input class="am-date" type="date" /></label>
+      <label>Start time <input class="am-start" type="time" value="09:00" /></label>
+      <label>Every (minutes) <select class="am-step"><option>1</option><option>2</option><option selected>5</option><option>10</option><option>15</option></select></label>
+      <label>Rows <input class="am-n" type="number" min="1" max="200" step="1" value="12" inputmode="numeric" /></label>
+      <label>Temperature in <select class="am-tu"><option value="°C">°C</option><option value="°F">°F</option></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small am-ex">Use the example</button>
+      <button type="button" class="btn secondary small am-blank">Download a blank sheet (PDF)</button>
+      <button type="button" class="btn secondary small am-open">Open a saved log (CSV)</button>
+      <input type="file" class="am-file" accept=".csv,.txt,text/csv,text/plain" hidden />
+    </div>
+    <p class="ax-err am-ferr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Your alert ranges</h2>
+    <p class="ax-help" style="margin:0 0 10px">Blank means no alert. Set the ranges your supervisor or protocol gives for this patient; readings outside them are marked.</p>
+    <div class="am-ranges"></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small am-prac">Fill made-up practice ranges</button>
+      <button type="button" class="btn secondary small am-clear">Clear the ranges</button>
+    </div>
+    <p class="ax-help am-pnote" hidden>Practice ranges are round made-up numbers to show how alerts work. They are not clinical targets for any patient.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Monitoring record</h2>
+    <div class="ax-scroll"><table class="am-log"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small am-add">Add a row</button>
+      <button type="button" class="btn secondary small am-del">Remove the last row</button>
+    </div>
+    <p class="ax-err am-err" hidden></p>
+    <p class="am-alerts" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card am-out" hidden>
+    <h2>Chart and summary</h2>
+    <label style="max-width:320px">Show <select class="am-g"></select></label>
+    <canvas class="ax-fig am-fig" style="margin-top:10px"></canvas>
+    <div class="ax-scroll" style="margin-top:10px"><table class="am-sum"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small am-csv">Download the log (CSV)</button></div>
+    <Downloads label="Download the record" />
+  </div>
+</div>
+
+<style is:global>
+  .aml .aml-warn { margin: 0; font-size: 14px; color: var(--ink); }
+  .aml .am-ranges { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr); gap: 6px 8px; align-items: center; font-size: 14px; max-width: 520px; }
+  .aml .am-ranges .h { font-size: 13px; color: var(--muted); }
+  .aml .am-log { min-width: 860px; }
+  .aml .am-log th, .aml .am-log td { padding: 3px 3px; }
+  .aml .am-log input { padding: 6px 5px !important; font-size: 14px !important; }
+  .aml .am-log input.v { width: 62px !important; text-align: right; }
+  .aml .am-log input.t { width: 70px !important; }
+  .aml .am-log input.d { min-width: 200px; }
+  .aml .am-log input.out { border-color: var(--bad) !important; background: var(--bad-soft) !important; color: var(--bad) !important; font-weight: 700; }
+  .aml .am-alerts { margin: 10px 0 0; font-size: 14px; }
+  .aml .am-alerts.bad { color: var(--bad); }
+</style>
+
+<script>
+  import { VITALS, times, hhmm, minutes, elapsed, emptyRow, noRanges, alerts, problems, summary, toRows, fromRows, parseCsv, EXAMPLE, PRACTICE_RANGES, type LogRow, type Ranges, type VKey } from '../../lib/sci/anaesmon';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure, type Series } from '../../lib/sci/plot';
+  import { wireDownloads, save, paint, fileSafe, toPdf, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.aml')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const GROUPS: { label: string; keys: VKey[] }[] = [
+    { label: 'Heart and breathing rates', keys: ['hr', 'rr'] }, { label: 'Blood pressure', keys: ['sap', 'map', 'dap'] },
+    { label: 'SpO₂', keys: ['spo2'] }, { label: 'EtCO₂', keys: ['etco2'] }, { label: 'Temperature', keys: ['temp'] },
+  ];
+  q<HTMLSelectElement>('.am-g').replaceChildren(...GROUPS.map((g, i) => new Option(g.label, String(i))));
+  const unit = (k: VKey) => (k === 'temp' ? q<HTMLSelectElement>('.am-tu').value : VITALS.find((v) => v.key === k)!.unit);
+  const vname = (k: VKey) => VITALS.find((v) => v.key === k)!.name;
+  const fmt = (x: number) => String(+x.toPrecision(6)).replace('-', '−');
+  let rows: LogRow[] = [], ranges: Ranges = noRanges(), fig: Figure | null = null;
+
+  // Alert range inputs.
+  const rg = q('.am-ranges');
+  rg.append(...['', 'Low', 'High'].map((t) => { const s = document.createElement('span'); s.className = 'h'; s.textContent = t; return s; }));
+  for (const v of VITALS) {
+    const s = document.createElement('span'); s.className = 'am-rl'; s.dataset.k = v.key; rg.append(s);
+    for (const side of ['min', 'max']) { const i = document.createElement('input'); i.type = 'text'; i.inputMode = 'decimal'; i.className = `am-r-${v.key}-${side}`; i.setAttribute('aria-label', `${v.name} ${side === 'min' ? 'low' : 'high'} limit`); rg.append(i); }
+  }
+  const rangeLabels = () => rg.querySelectorAll<HTMLElement>('.am-rl').forEach((s) => (s.textContent = `${vname(s.dataset.k as VKey)} (${unit(s.dataset.k as VKey)})`));
+  function readRanges() {
+    ranges = noRanges();
+    for (const v of VITALS) for (const side of ['min', 'max'] as const) { const t = inp(`.am-r-${v.key}-${side}`).value.trim(); ranges[v.key][side] = t ? num(t) : NaN; }
+  }
+
+  // The log table.
+  function draw() {
+    const t = q<HTMLTableElement>('.am-log'); t.replaceChildren();
+    const h = t.insertRow(); ['Time', ...VITALS.map((v) => `${v.short} (${unit(v.key)})`), 'Depth and notes'].forEach((x) => { const th = document.createElement('th'); th.textContent = x; h.append(th); });
+    rows.forEach((r, i) => {
+      const tr = t.insertRow();
+      const cell = (cls: string, val: string, label: string, mode = 'text') => { const td = tr.insertCell(); const e = document.createElement('input'); e.type = 'text'; e.className = cls; e.value = val; e.dataset.i = String(i); e.setAttribute('aria-label', `${label}, row ${i + 1}`); if (mode !== 'text') e.inputMode = mode as 'decimal'; td.append(e); };
+      cell('t', r.time, 'Time');
+      for (const v of VITALS) { cell(`v v-${v.key}`, Number.isFinite(r.v[v.key]) ? String(r.v[v.key]) : '', v.name, 'decimal'); (tr.lastElementChild!.firstElementChild as HTMLElement).dataset.k = v.key; }
+      cell('d', r.depth, 'Depth and notes');
+    });
+  }
+  function readLog() {
+    q('.am-log').querySelectorAll<HTMLInputElement>('input').forEach((e) => {
+      const r = rows[Number(e.dataset.i)];
+      if (e.classList.contains('t')) r.time = e.value.trim();
+      else if (e.classList.contains('d')) r.depth = e.value;
+      else { const t = e.value.trim(); r.v[e.dataset.k as VKey] = t ? num(t) : NaN; }
+    });
+  }
+
+  function update() {
+    readRanges(); readLog();
+    const err = q('.am-err'), msgs: string[] = [];
+    rows.forEach((r) => { if (Number.isNaN(minutes(r.time))) msgs.push(`"${r.time}" is not a time like 09:05.`); });
+    q('.am-log').querySelectorAll<HTMLInputElement>('input.v').forEach((e) => { if (e.value.trim() && Number.isNaN(num(e.value))) msgs.push(`"${e.value.trim()}" is not a number.`); });
+    msgs.push(...problems(rows));
+    err.textContent = [...new Set(msgs)].slice(0, 6).join(' '); err.hidden = !msgs.length;
+    const al = alerts(rows, ranges);
+    q('.am-log').querySelectorAll<HTMLInputElement>('input.v').forEach((e) => e.classList.toggle('out', al.some((a) => a.row === Number(e.dataset.i) && a.key === e.dataset.k)));
+    const box = q('.am-alerts');
+    box.classList.toggle('bad', al.length > 0);
+    box.textContent = al.length ? `${al.length} reading${al.length === 1 ? '' : 's'} outside your ranges: ${al.map((a) => `${a.time} ${vname(a.key)} ${fmt(a.value)} (${a.side === 'low' ? 'below' : 'above'} ${fmt(a.limit)})`).join('; ')}.` : Object.values(ranges).some((g) => Number.isFinite(g.min) || Number.isFinite(g.max)) ? 'All readings are inside your ranges.' : 'No alert ranges set.';
+    const filled = rows.some((r) => VITALS.some((v) => Number.isFinite(r.v[v.key])));
+    q('.am-out').hidden = !filled;
+    if (!filled) return;
+    chart();
+    const st = summary(rows);
+    const t = q<HTMLTableElement>('.am-sum'); t.replaceChildren();
+    const h = t.insertRow(); ['Vital sign', 'Readings', 'Lowest', 'Highest', 'Mean', 'First', 'Last'].forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (k) th.className = 'r'; h.append(th); });
+    for (const s of st.filter((s) => s.n)) { const tr = t.insertRow(); [`${vname(s.key)} (${unit(s.key)})`, s.n, fmt(s.min), fmt(s.max), sig(s.mean, 4), fmt(s.first), fmt(s.last)].forEach((x, k) => { const td = tr.insertCell(); td.textContent = String(x); if (k) td.className = 'r'; }); }
+  }
+
+  const groupFig = (g: { label: string; keys: VKey[] }): Figure | null => {
+    const ok = rows.every((r) => !Number.isNaN(minutes(r.time)));
+    const x = ok ? elapsed(rows) : rows.map((_, i) => i);
+    const series: Series[] = g.keys.filter((k) => rows.some((r) => Number.isFinite(r.v[k]))).map((k) => { const i = rows.map((r, j) => (Number.isFinite(r.v[k]) ? j : -1)).filter((j) => j >= 0); return { name: `${vname(k)} (${unit(k)})`, x: i.map((j) => x[j]), y: i.map((j) => rows[j].v[k]), mode: 'both' }; });
+    if (!series.length) return null;
+    const marks = g.keys.length === 1 ? (['min', 'max'] as const).filter((s) => Number.isFinite(ranges[g.keys[0]][s])).map((s) => ({ kind: 'hline' as const, at: ranges[g.keys[0]][s], dash: [5, 4], label: s === 'min' ? 'low limit' : 'high limit' })) : [];
+    return chartFigure({ w: 640, h: 320, xLabel: ok ? `Minutes from ${rows[0].time}` : 'Row', yLabel: g.keys.length === 1 ? `${vname(g.keys[0])} (${unit(g.keys[0])})` : g.label, series, marks, legend: series.length > 1 ? 'below' : 'none' }, `${g.label} over time`);
+  };
+  function chart() {
+    fig = groupFig(GROUPS[Number(q<HTMLSelectElement>('.am-g').value)]);
+    const c = q<HTMLCanvasElement>('.am-fig'); c.hidden = !fig; if (fig) paint(c, fig);
+  }
+
+  function makeRows(keep = true) {
+    const n = Math.min(200, Math.max(1, Math.round(Number(inp('.am-n').value) || 1)));
+    const step = Number(q<HTMLSelectElement>('.am-step').value), start = inp('.am-start').value || '09:00';
+    const ts = times(start, step, n);
+    rows = ts.map((t, i) => (keep && rows[i] ? { ...rows[i], time: t } : emptyRow(t)));
+    draw(); update();
+  }
+
+  const meta = (): [string, string][] => [['Patient', inp('.am-name').value.trim() || '–'], ['Species', inp('.am-sp').value.trim() || '–'], ['Procedure', inp('.am-proc').value.trim() || '–'], ['Date', inp('.am-date').value || '–'], ['Start', rows[0]?.time ?? '–'], ['Every', `${q<HTMLSelectElement>('.am-step').value} min`]];
+  const rangeText = () => VITALS.filter((v) => Number.isFinite(ranges[v.key].min) || Number.isFinite(ranges[v.key].max)).map((v) => `${vname(v.key)} ${Number.isFinite(ranges[v.key].min) ? fmt(ranges[v.key].min) : '…'} to ${Number.isFinite(ranges[v.key].max) ? fmt(ranges[v.key].max) : '…'} ${unit(v.key)}`);
+  const NOTE = 'Teaching record made with fibub. For study and planning, not a substitute for professional judgement.';
+  const sections = (): Section[] => {
+    update();
+    const figs = GROUPS.map((g) => ({ g, f: groupFig(g) })).filter((x) => x.f);
+    return [
+      { title: 'Patient', facts: meta(), note: NOTE },
+      { title: 'Monitoring record', table: { head: ['Time', ...VITALS.map((v) => v.short), 'Depth and notes'], rows: toRows(rows).slice(1), align: ['l', ...VITALS.map(() => 'r' as const), 'l'] }, note: `Units: ${VITALS.map((v) => `${v.short} ${unit(v.key)}`).join(', ')}.` },
+      { title: 'Alert ranges and alerts', text: [rangeText().length ? `Ranges set by the user: ${rangeText().join('; ')}.` : 'No alert ranges set.', q('.am-alerts').textContent ?? ''] },
+      ...figs.map(({ g, f }) => ({ title: g.label, figure: f! })),
+    ];
+  };
+
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(update, 200); };
+  q('.am-log').addEventListener('input', later);
+  rg.addEventListener('input', later);
+  for (const c of ['.am-start', '.am-step', '.am-n']) q(c).addEventListener('change', () => makeRows());
+  q('.am-tu').addEventListener('change', () => { readLog(); rangeLabels(); draw(); update(); });
+  q('.am-g').addEventListener('change', chart);
+  q('.am-add').addEventListener('click', () => { readLog(); const last = rows.at(-1); const t = last && !Number.isNaN(minutes(last.time)) ? hhmm(minutes(last.time) + Number(q<HTMLSelectElement>('.am-step').value)) : '09:00'; rows.push(emptyRow(t)); inp('.am-n').value = String(rows.length); draw(); update(); });
+  q('.am-del').addEventListener('click', () => { readLog(); if (rows.length > 1) rows.pop(); inp('.am-n').value = String(rows.length); draw(); update(); });
+  const setRanges = (r: Partial<Record<VKey, [number, number]>>) => { for (const v of VITALS) { inp(`.am-r-${v.key}-min`).value = r[v.key] ? String(r[v.key]![0]) : ''; inp(`.am-r-${v.key}-max`).value = r[v.key] ? String(r[v.key]![1]) : ''; } q('.am-pnote').hidden = !Object.keys(r).length; update(); };
+  q('.am-prac').addEventListener('click', () => { q<HTMLSelectElement>('.am-tu').value = '°C'; rangeLabels(); setRanges(PRACTICE_RANGES); });
+  q('.am-clear').addEventListener('click', () => setRanges({}));
+  q('.am-ex').addEventListener('click', () => {
+    inp('.am-name').value = ''; inp('.am-sp').value = EXAMPLE.species; inp('.am-proc').value = EXAMPLE.procedure; inp('.am-start').value = EXAMPLE.start;
+    q<HTMLSelectElement>('.am-step').value = String(EXAMPLE.step); q<HTMLSelectElement>('.am-tu').value = '°C'; rangeLabels();
+    rows = EXAMPLE.rows.map((r) => { const x = emptyRow(String(r[0])); VITALS.forEach((v, k) => (x.v[v.key] = Number(r[k + 1]))); x.depth = String(r[9]); return x; });
+    inp('.am-n').value = String(rows.length); draw(); update();
+  });
+  q('.am-csv').addEventListener('click', () => { readLog(); save(new Blob([csv(toRows(rows))], { type: 'text/csv' }), `${fileSafe(['anaesthesia-log', inp('.am-date').value].filter(Boolean).join('-'))}.csv`, 'text/csv'); });
+  q('.am-open').addEventListener('click', () => inp('.am-file').click());
+  q('.am-file').addEventListener('change', async () => {
+    const f = inp('.am-file').files?.[0]; inp('.am-file').value = ''; if (!f) return;
+    const e = q('.am-ferr');
+    if (f.size > 2e6) { e.textContent = 'That file is over 2 MB.'; e.hidden = false; return; }
+    const r = fromRows(parseCsv(await f.text()), num);
+    if (!r.rows.length) { e.textContent = r.errors[0] ?? 'No rows found.'; e.hidden = false; return; }
+    e.textContent = r.errors.slice(0, 3).join(' '); e.hidden = !r.errors.length;
+    rows = r.rows.slice(0, 200); inp('.am-n').value = String(rows.length); inp('.am-start').value = rows[0].time; draw(); update();
+  });
+  q('.am-blank').addEventListener('click', async () => {
+    const step = Number(q<HTMLSelectElement>('.am-step').value), n = Math.min(200, Math.max(1, Math.round(Number(inp('.am-n').value) || 12)));
+    const start = inp('.am-start').value;
+    const ts = start ? times(start, step, n) : Array.from({ length: n }, () => '');
+    const secs: Section[] = [
+      { title: 'Patient', facts: [['Patient', inp('.am-name').value.trim()], ['Species', inp('.am-sp').value.trim()], ['Procedure', inp('.am-proc').value.trim()], ['Date', inp('.am-date').value], ['Every', `${step} min`]].map(([a, b]) => [a, b || '____________']) as [string, string][], note: NOTE },
+      { title: 'Monitoring record', table: { head: ['Time', ...VITALS.map((v) => `${v.short} ${v.key === 'temp' ? unit('temp') : ''}`.trim()), 'Depth and notes'], rows: ts.map((t) => [t, ...VITALS.map(() => ''), '']), align: ['l', ...VITALS.map(() => 'r' as const), 'l'] }, note: rangeText().length ? `Alert ranges: ${rangeText().join('; ')}.` : 'Alert ranges: ______________________________' },
+    ];
+    save((await toPdf('Anaesthesia monitoring sheet', secs)).bytes, 'anaesthesia-monitoring-sheet.pdf', 'application/pdf');
+  });
+  wireDownloads(q('.dl'), () => ({ title: 'Anaesthesia monitoring record', subtitle: meta().map(([a, b]) => `${a}: ${b}`).join(' · '), file: fileSafe(['anaesthesia-record', inp('.am-date').value].filter(Boolean).join('-')), sections: sections() }));
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.am-out').hidden) paint(q<HTMLCanvasElement>('.am-fig'), fig); });
+  rangeLabels(); makeRows(false);
+</script>
