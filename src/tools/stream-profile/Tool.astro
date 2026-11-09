@@ -1,0 +1,287 @@
+---
+// River long profile analysis: trace a channel on a DEM (GeoTIFF or ASCII grid) by D8 steepest descent, or paste a
+// profile; slope-area fit, chi analysis with the best concavity, knickpoint hints. The examples are made up by fibub.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { chi as chiOf } from '../../lib/sci/streamprof';
+import { mulberry32 } from '../../lib/sci/pointcount';
+// Made-up profile: Hack's law A = 0.6 (30 500 − x)^1.8 m², θ = 0.45, ksn 16 below 15 km and 10 above, ±0.3 m noise.
+const n = 151, L = 30500, xs = Array.from({ length: n }, (_, i) => i * 200), A = xs.map((x) => 0.6 * (L - x) ** 1.8);
+const c = chiOf({ x: xs, z: [], A }, 0.45, 1), k = xs.indexOf(15000), r = mulberry32(890);
+const z = c.map((v, i) => 120 + (i <= k ? 16 * v : 16 * c[k] + 10 * (v - c[k])) + (i ? (r() - 0.5) * 0.6 : 0));
+const demo = 'distance (m)\televation (m)\tdrainage area (m²)\n' + xs.map((x, i) => `${x}\t${z[i].toFixed(1)}\t${Math.round(A[i])}`).join('\n');
+---
+<div class="ax spf">
+  <div class="ax-card">
+    <h2>Channel</h2>
+    <div class="ax-seg sp-src" role="group" aria-label="Data source"><button type="button" data-v="paste" aria-pressed="true">Paste a profile</button><button type="button" data-v="dem" aria-pressed="false">Trace on a DEM</button></div>
+    <div class="sp-paste" style="margin-top:12px">
+      <label>Distance along the channel, elevation and drainage area, one point per line <textarea class="sp-in" rows="8" spellcheck="false">{demo}</textarea></label>
+      <DataFile target=".sp-in" maxCols={3} maxRows={50000} />
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Distance in <select class="sp-du"><option value="1">m</option><option value="1000">km</option></select></label>
+        <label>Area in <select class="sp-au"><option value="1">m²</option><option value="1e6">km²</option></select></label>
+      </div>
+      <p class="ax-help">Distance can run from the outlet upstream or from the source down: the end with the larger drainage area is taken as the outlet. A header row is skipped. The example is made up: a steady-state river whose lower half has been steepened.</p>
+    </div>
+    <div class="sp-dem" hidden style="margin-top:12px">
+      <div class="ax-row">
+        <button type="button" class="btn secondary small sp-open">Open a DEM</button>
+        <input type="file" class="sp-file" accept=".tif,.tiff,.asc,.txt,image/tiff" hidden />
+        <button type="button" class="btn secondary small sp-demdemo">Use a made-up DEM</button>
+      </div>
+      <p class="ax-help sp-deminfo">GeoTIFF (one band of elevations; uncompressed, LZW or Deflate) or ESRI ASCII grid (.asc), up to 4 million cells. It is read on this device and never uploaded.</p>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Cell width (m) <input class="sp-dx" inputmode="decimal" /></label>
+        <label>Cell height (m) <input class="sp-dy" inputmode="decimal" /></label>
+        <label>Snap the start to the biggest area within (cells) <input class="sp-snap" inputmode="numeric" value="2" /></label>
+      </div>
+      <p class="ax-help">Pits are filled first (priority flood), then water follows the steepest of the 8 neighbours (D8) to the edge of the grid. Tap the map where the channel should start.</p>
+      <div class="sp-mapwrap" hidden><canvas class="sp-map"></canvas></div>
+    </div>
+    <p class="ax-err sp-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Settings</h2>
+    <div class="ax-grid">
+      <label>Reference concavity θref <input class="sp-tref" inputmode="decimal" value="0.45" /></label>
+      <label>Reference area A₀ (m²) <input class="sp-a0" inputmode="decimal" value="1" /></label>
+      <label>Channel starts at area (m²) <input class="sp-acrit" inputmode="decimal" value="0" /></label>
+      <label>Slope-area bins per tenfold area <input class="sp-bins" inputmode="numeric" value="10" /></label>
+      <label>Knickpoint hints <select class="sp-kmax"><option value="2">Up to 2</option><option value="1">Up to 1</option><option value="0">None</option></select></label>
+    </div>
+    <p class="ax-help">θ<sub>ref</sub> = 0.45 is a common choice so that steepness ksn can be compared between rivers. A₀ = 1 m² makes the slope of the χ plot equal to ksn. Nodes with less area than "channel starts at" (hillslope, colluvial channel) are left out of every fit.</p>
+  </div>
+
+  <div class="ax-card sp-out">
+    <h2>Results</h2>
+    <p class="ax-big sp-big"></p>
+    <dl class="ax-facts sp-facts"></dl>
+    <div class="ax-scroll sp-ktab-wrap" style="margin-top:12px"><table class="sp-ktab"></table></div>
+    <h3 class="sp-h">Long profile</h3><canvas class="ax-fig sp-f1"></canvas>
+    <h3 class="sp-h">χ plot</h3><canvas class="ax-fig sp-f2"></canvas>
+    <h3 class="sp-h">Slope and drainage area</h3><canvas class="ax-fig sp-f3"></canvas>
+    <h3 class="sp-h">Linearity against θ</h3><canvas class="ax-fig sp-f4"></canvas>
+    <p class="ax-help">Knickpoints are hinted where z against χ (at θ<sub>ref</sub>) is best fitted by separate straight lines (2 or 3 segments, chosen by BIC). A real knickpoint should also show as a step in the long profile and the slope-area plot; lithology, tributaries and DEM errors make knicks too.</p>
+    <div class="dl" style="margin-top:12px"><span class="dl-l">Data</span><button type="button" class="btn secondary sp-csv">Profile (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseAsciiGrid, fillPits, d8, drainageArea, trace, pathProfile, orient, chi, bestTheta, slopeArea, segments, lsq, type Grid, type Profile } from '../../lib/sci/streamprof';
+  import { readTiff } from '../../lib/sci/tiff';
+  import { num, sig, parseTable, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.spf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const MAX_CELLS = 4e6;
+  let mode: 'paste' | 'dem' = 'paste';
+  let dem: { g: Grid; name: string; zf?: Float64Array; rcv?: Int32Array; acc?: Float64Array; path?: number[]; deg?: boolean } | null = null;
+  let figs: Figure[] = [], report: Section[] = [], csvRows: (string | number)[][] = [];
+
+  const fact = (k: string, v: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const fail = (m: string) => { q('.sp-err').textContent = m; q('.sp-err').hidden = !m; if (m) { q('.sp-out').hidden = true; report = []; } };
+  const km = (m: number) => (m >= 1000 ? `${sig(m / 1000, 4)} km` : `${sig(m, 4)} m`);
+  const area = (a: number) => (a >= 1e6 ? `${sig(a / 1e6, 4)} km²` : `${sig(a, 4)} m²`);
+
+  // ---------- Profile from the paste box ----------
+  function pasted(): Profile | string {
+    const du = Number(q<HTMLSelectElement>('.sp-du').value), au = Number(q<HTMLSelectElement>('.sp-au').value);
+    const rows = parseTable(q<HTMLTextAreaElement>('.sp-in').value).map((r) => r.map(num)).filter((r) => r.length >= 3 && r.slice(0, 3).every(Number.isFinite));
+    if (rows.length < 5) return 'Paste at least 5 points: distance, elevation and drainage area on each line.';
+    if (rows.some((r) => !(r[2] > 0))) return 'Every drainage area must be above zero.';
+    const p = orient({ x: rows.map((r) => r[0] * du), z: rows.map((r) => r[1]), A: rows.map((r) => r[2] * au) });
+    for (let i = 1; i < p.x.length; i++) if (!(p.x[i] > p.x[i - 1])) return 'Two points have the same distance.';
+    return p;
+  }
+
+  // ---------- DEM ----------
+  function prepareDem() {
+    if (!dem) return;
+    const g = dem.g;
+    g.dx = num(q<HTMLInputElement>('.sp-dx').value); g.dy = num(q<HTMLInputElement>('.sp-dy').value);
+    if (!(g.dx > 0 && g.dy > 0)) { fail('Cell width and height must be above zero (in metres).'); return; }
+    dem.zf = fillPits(g); dem.rcv = d8(g, dem.zf); dem.acc = drainageArea(g, dem.rcv, dem.zf);
+    drawMap();
+  }
+    function drawMap() {
+    if (!dem || !dem.zf) return;
+    const g = dem.g, wrap = q('.sp-mapwrap'); wrap.hidden = false;
+    const W = Math.min(g.w, 900), s = W / g.w, H = Math.max(1, Math.round(g.h * s));
+    const cv = q<HTMLCanvasElement>('.sp-map'); cv.width = W; cv.height = H; cv.style.aspectRatio = `${W} / ${H}`;
+    const ctx = cv.getContext('2d')!, im = ctx.createImageData(W, H);
+    let lo = Infinity, hi = -Infinity; for (const v of g.z) if (!Number.isNaN(v)) { if (v < lo) lo = v; if (v > hi) hi = v; }
+    const at = (r: number, c: number) => g.z[Math.min(g.h - 1, Math.max(0, r)) * g.w + Math.min(g.w - 1, Math.max(0, c))];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const r = Math.min(g.h - 1, Math.floor(y / s)), c = Math.min(g.w - 1, Math.floor(x / s)), v = g.z[r * g.w + c], o = (y * W + x) * 4;
+      if (Number.isNaN(v)) { im.data[o] = 255; im.data[o + 1] = 255; im.data[o + 2] = 255; im.data[o + 3] = 255; continue; }
+      // Hillshade, light from the north-west, mixed with elevation.
+      let zx = (at(r, c + 1) - at(r, c - 1)) / (2 * g.dx), zy = (at(r + 1, c) - at(r - 1, c)) / (2 * g.dy);
+      if (!Number.isFinite(zx)) zx = 0; if (!Number.isFinite(zy)) zy = 0;
+      zx *= 4; zy *= 4; // vertical exaggeration so gentle valleys still show
+      const nrm = Math.hypot(zx, zy, 1), hs = Math.max(0, (zx * 0.5 + zy * 0.5 + 0.707) / nrm);
+      const t = hi > lo ? (v - lo) / (hi - lo) : 0.5, gr = Math.round(255 * Math.min(1, 0.2 + 0.5 * hs + 0.3 * t));
+      im.data[o] = gr; im.data[o + 1] = gr; im.data[o + 2] = gr; im.data[o + 3] = 255;
+    }
+    ctx.putImageData(im, 0, 0);
+    if (dem.path && dem.path.length) {
+      ctx.strokeStyle = '#d55e00'; ctx.lineWidth = Math.max(2, W / 300); ctx.lineJoin = 'round'; ctx.beginPath();
+      dem.path.forEach((i, k) => { const x = ((i % g.w) + 0.5) * s, y = (Math.floor(i / g.w) + 0.5) * s; if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y); });
+      ctx.stroke();
+      const i0 = dem.path[0]; ctx.fillStyle = '#0072b2'; ctx.beginPath(); ctx.arc(((i0 % g.w) + 0.5) * s, (Math.floor(i0 / g.w) + 0.5) * s, Math.max(4, W / 120), 0, 7); ctx.fill();
+    }
+    cv.dataset.drawn = String(dem.path?.length ?? 0);
+  }
+  function loadGrid(g: Grid, name: string, deg: boolean, info: string) {
+    dem = { g, name, deg };
+    q<HTMLInputElement>('.sp-dx').value = String(+g.dx.toPrecision(6)); q<HTMLInputElement>('.sp-dy').value = String(+g.dy.toPrecision(6));
+    q('.sp-deminfo').textContent = `${name}: ${g.w} × ${g.h} cells. ${info} Tap the map where the channel should start.`;
+    fail(''); prepareDem(); q('.sp-out').hidden = true;
+  }
+  function startAt(cell: number) {
+    if (!dem || !dem.rcv || !dem.acc) return;
+    const g = dem.g, rad = Math.max(0, Math.min(50, Math.round(num(q<HTMLInputElement>('.sp-snap').value) || 0)));
+    let best = cell; const r0 = Math.floor(cell / g.w), c0 = cell % g.w;
+    for (let r = r0 - rad; r <= r0 + rad; r++) for (let c = c0 - rad; c <= c0 + rad; c++) { if (r < 0 || c < 0 || r >= g.h || c >= g.w) continue; const j = r * g.w + c; if (dem.acc[j] > dem.acc[best]) best = j; }
+    if (Number.isNaN(dem.zf![best])) return fail('That spot has no data.');
+    dem.path = trace(dem.rcv, best);
+    if (dem.path.length < 5) { drawMap(); return fail('The channel from there reaches the edge within 5 cells. Start further upstream.'); }
+    fail(''); drawMap(); run();
+  }
+  function demoDem() {
+    // A made-up valley 160 × 120 cells of 30 m: the channel winds west to the edge; side slopes rise to the ridges.
+    const w = 160, h = 120, dx = 30, z = new Float64Array(w * h);
+    let s = 890; const rnd = () => { s = (s * 1103515245 + 12345) % 2147483648; return s / 2147483648; };
+    const L = (w + 4) * dx;
+    for (let c = 0; c < w; c++) {
+      const x = c * dx, yc = h / 2 + 12 * Math.sin(c / 18);
+      // χ for A ≈ (valley width) × (L − x), θ = 0.45, integrated in closed form; ksn 30 m^0.9.
+      const Ac = h * dx, th = 0.45, chiX = (L ** (1 - th) - (L - x) ** (1 - th)) / ((1 - th) * Ac ** th);
+      for (let r = 0; r < h; r++) z[r * w + c] = 100 + 30 * chiX + 0.12 * Math.abs(r - yc) * dx + (rnd() - 0.5) * 0.4;
+    }
+    loadGrid({ w, h, z, dx, dy: dx }, 'Made-up DEM', false, '30 m cells (made up by fibub).');
+  }
+
+  // ---------- Analysis ----------
+  function run() {
+    let p: Profile;
+    if (mode === 'paste') { const r = pasted(); if (typeof r === 'string') return fail(r); p = r; }
+    else { if (!dem || !dem.path || !dem.zf || !dem.acc) { q('.sp-out').hidden = true; return; } p = pathProfile(dem.g, dem.path, dem.zf, dem.acc); }
+    const tref = num(q<HTMLInputElement>('.sp-tref').value), A0 = num(q<HTMLInputElement>('.sp-a0').value), acrit = num(q<HTMLInputElement>('.sp-acrit').value) || 0, nb = Math.round(num(q<HTMLInputElement>('.sp-bins').value)), kmax = Number(q<HTMLSelectElement>('.sp-kmax').value);
+    if (!(tref > 0 && tref < 3)) return fail('θref must be between 0 and 3.');
+    if (!(A0 > 0)) return fail('A₀ must be above zero.');
+    if (!(nb >= 1 && nb <= 100)) return fail('Bins per tenfold area: 1 to 100.');
+    // Keep the channel: from the outlet up to the last node with enough area.
+    let keep = p.A.length; while (keep > 0 && p.A[keep - 1] < acrit) keep--;
+    if (keep < 5) return fail('Fewer than 5 points have more drainage area than "channel starts at".');
+    const ch: Profile = { x: p.x.slice(0, keep), z: p.z.slice(0, keep), A: p.A.slice(0, keep) };
+    fail('');
+    q('.sp-out').hidden = false;
+    const cRef = chi(ch, tref, A0), fRef = lsq(cRef, ch.z), bt = bestTheta(ch, A0), cBest = chi(ch, bt.theta, A0), fBest = lsq(cBest, ch.z);
+    const sa = slopeArea(ch, nb);
+    // Segments: on at most 2000 evenly spaced nodes so the search stays quick.
+    const step = Math.max(1, Math.ceil(ch.x.length / 2000)), idx = ch.x.map((_, i) => i).filter((i) => i % step === 0 || i === ch.x.length - 1);
+    const minPts = Math.max(5, Math.round(idx.length / 20));
+    const seg = kmax > 0 && idx.length >= 2 * minPts ? segments(idx.map((i) => cRef[i]), idx.map((i) => ch.z[i]), minPts, kmax) : null;
+    const ksnScale = A0 ** tref; // z = z_b + (ks / A0^θ) χ
+    q('.sp-big').textContent = `ksn ${sig(fRef.slope * ksnScale, 3)} at θref ${tref}; best θ ${bt.theta.toFixed(2)}`;
+    const L = ch.x[ch.x.length - 1], relief = ch.z[ch.z.length - 1] - ch.z[0];
+    const unit = `m^${+(2 * tref).toFixed(3)}`;
+    const facts = [
+      fact('Channel length', km(L), `${ch.x.length} points${keep < p.x.length ? `, ${p.x.length - keep} upstream points left out` : ''}`),
+      fact('Relief', `${relief.toFixed(1)} m`, `from ${ch.z[0].toFixed(1)} to ${ch.z[ch.z.length - 1].toFixed(1)} m`),
+      fact('Drainage area', `${area(ch.A[ch.A.length - 1])} to ${area(ch.A[0])}`),
+      fact('ksn from χ at θref', `${sig(fRef.slope * ksnScale, 4)} ${unit}`, `slope of z against χ, R² ${fRef.r2.toFixed(4)}`),
+      fact('Best θ (straightest χ plot)', bt.theta.toFixed(2), `R² ${bt.r2.toFixed(4)}; ks ${sig(fBest.slope * A0 ** bt.theta, 4)} m^${+(2 * bt.theta).toFixed(3)}`),
+      sa.fit ? fact('Slope-area fit', `θ ${sa.fit.theta.toFixed(3)}, ks ${sig(sa.fit.ks, 4)}`, `${sa.bins.length} log bins, R² ${sa.fit.r2.toFixed(3)}`) : fact('Slope-area fit', 'not enough rising points'),
+    ];
+    q('.sp-facts').replaceChildren(...facts);
+    // Knickpoint table.
+    const kt = q<HTMLTableElement>('.sp-ktab'); kt.replaceChildren();
+    const kRows: string[][] = [];
+    if (seg && seg.breaks.length) {
+      seg.breaks.forEach((b, k) => { const i = idx[b], below = seg.fits[k].slope * ksnScale, above = seg.fits[k + 1].slope * ksnScale; kRows.push([String(k + 1), km(ch.x[i]), ch.z[i].toFixed(1), area(ch.A[i]), sig(cRef[i], 4), sig(below, 3), sig(above, 3)]); });
+      const hr = kt.createTHead().insertRow(); ['Knickpoint', 'Upstream of outlet', 'Elevation (m)', 'Area', 'χ (m)', 'ksn below', 'ksn above'].forEach((h, j) => { const th = document.createElement('th'); th.textContent = h; if (j) th.className = 'r'; hr.append(th); });
+      const bd = kt.createTBody(); kRows.forEach((r) => { const tr = bd.insertRow(); r.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j) td.className = 'r'; }); });
+    } else if (kmax > 0) { const cap = kt.createCaption(); cap.textContent = 'No knickpoint hint: one straight line fits z against χ best.'; }
+    // Figures.
+    const kX = seg ? seg.breaks.map((b) => ch.x[idx[b]] / 1000) : [], kZ = seg ? seg.breaks.map((b) => ch.z[idx[b]]) : [];
+    const knick = kX.length ? [{ name: 'Knickpoint hints', x: kX, y: kZ, mode: 'points' as const, marker: 'triangle' as const, size: 9 }] : [];
+    figs = [
+      chartFigure({ h: 300, xLabel: 'Distance upstream of the outlet (km)', yLabel: 'Elevation (m)', series: [{ name: 'Profile', x: ch.x.map((v) => v / 1000), y: ch.z, mode: 'line', width: 1.8 }, ...knick], legend: knick.length ? 'inside' : 'none' }, 'Long profile: elevation against distance upstream'),
+      chartFigure({ h: 300, xLabel: `χ at θref ${tref} (m)`, yLabel: 'Elevation (m)', series: [{ name: 'Profile', x: cRef, y: ch.z, mode: 'points', size: 3, marker: 'circle' }, { name: `Line, ksn ${sig(fRef.slope * ksnScale, 3)}`, x: [0, cRef[cRef.length - 1]], y: [fRef.icpt, fRef.icpt + fRef.slope * cRef[cRef.length - 1]], mode: 'line', width: 1.2, dash: [5, 4] }, ...(seg && seg.breaks.length ? seg.fits.map((f, k) => ({ name: k ? '' : 'Segments', x: [cRef[idx[f.from]], cRef[idx[f.to - 1]]], y: [f.icpt + f.slope * cRef[idx[f.from]], f.icpt + f.slope * cRef[idx[f.to - 1]]], mode: 'line' as const, width: 2.2 })) : [])], legend: 'inside' }, 'Chi plot: elevation against chi'),
+      chartFigure({ h: 300, xLog: true, yLog: true, xLabel: 'Drainage area (m²)', yLabel: 'Channel slope', series: [{ name: 'Points', x: ch.A.filter((_, i) => sa.S[i] > 0), y: sa.S.filter((s) => s > 0), mode: 'points', size: 2.5, marker: 'circle', color: '#9a9a9a' }, { name: 'Log-bin means', x: sa.bins.map((b) => b.A), y: sa.bins.map((b) => b.S), mode: 'points', size: 6, marker: 'square' }, ...(sa.fit ? [{ name: `S = ${sig(sa.fit.ks, 3)} A^−${sa.fit.theta.toFixed(2)}`, x: [ch.A[ch.A.length - 1], ch.A[0]], y: [sa.fit.ks * ch.A[ch.A.length - 1] ** -sa.fit.theta, sa.fit.ks * ch.A[0] ** -sa.fit.theta], mode: 'line' as const, width: 1.5 }] : [])], legend: 'inside' }, 'Slope against drainage area, log scales'),
+      chartFigure({ h: 260, xLabel: 'θ', yLabel: 'R² of z against χ', series: [{ name: 'R²', x: bt.scan.map((s) => s.theta), y: bt.scan.map((s) => s.r2), mode: 'line', width: 1.8 }], marks: [{ kind: 'vline', at: bt.theta, dash: [4, 3], label: `best ${bt.theta.toFixed(2)}` }], legend: 'none', yMax: 1 }, 'R squared of the chi plot against theta'),
+    ];
+    (['.sp-f1', '.sp-f2', '.sp-f3', '.sp-f4'] as const).forEach((c, i) => paint(q<HTMLCanvasElement>(c), figs[i]));
+    csvRows = [['distance_upstream_m', 'elevation_m', 'drainage_area_m2', 'slope', `chi_theta_${tref}`, `chi_theta_${bt.theta.toFixed(2)}`], ...ch.x.map((x, i) => [+x.toPrecision(10), +ch.z[i].toPrecision(10), +ch.A[i].toPrecision(10), +sa.S[i].toPrecision(6), +cRef[i].toPrecision(8), +cBest[i].toPrecision(8)])];
+    report = [
+      { title: q('.sp-big').textContent!, text: [mode === 'dem' && dem ? `Traced on ${dem.name} (${dem.g.w} × ${dem.g.h} cells of ${sig(dem.g.dx, 4)} × ${sig(dem.g.dy, 4)} m).` : 'Pasted profile.'], facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]), ...(kRows.length ? { table: { head: ['Knickpoint', 'Upstream of outlet', 'Elevation (m)', 'Area', 'χ (m)', 'ksn below', 'ksn above'], rows: kRows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r'] as ('l' | 'r')[] } } : {}) },
+      { title: 'Long profile', figure: figs[0] }, { title: 'χ plot', figure: figs[1] }, { title: 'Slope and drainage area', figure: figs[2] }, { title: 'Linearity against θ', figure: figs[3] },
+    ];
+  }
+
+  // ---------- Wiring ----------
+  root.querySelectorAll<HTMLButtonElement>('.sp-src button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.v as 'paste' | 'dem';
+    root.querySelectorAll('.sp-src button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.sp-paste').hidden = mode !== 'paste'; q('.sp-dem').hidden = mode !== 'dem';
+    fail(''); if (mode === 'dem') drawMap(); run();
+  }));
+  q('.sp-open').addEventListener('click', () => q<HTMLInputElement>('.sp-file').click());
+  q('.sp-file').addEventListener('change', async () => {
+    const f = q<HTMLInputElement>('.sp-file').files?.[0]; q<HTMLInputElement>('.sp-file').value = '';
+    if (!f) return;
+    q('.sp-deminfo').textContent = `Reading ${f.name}…`;
+    await new Promise((r) => setTimeout(r, 30));
+    try {
+      if (/\.(tif|tiff)$/i.test(f.name)) {
+        const t = readTiff(await f.arrayBuffer(), MAX_CELLS);
+        const nd = t.geo.nodata, z = Float64Array.from(t.bands[0], (v) => (v === nd || !Number.isFinite(v) || v < -1e30 ? NaN : v));
+        const sc = t.geo.scale, deg = t.geo.model === 2 || (!!sc && sc[0] < 0.01 && !!t.geo.tie && Math.abs(t.geo.tie[3]) <= 90);
+        let dx = sc?.[0] ?? 1, dy = sc?.[1] ?? 1, info = sc ? `${sig(dx, 4)} × ${sig(dy, 4)} cells` : 'No cell size in the file: set it below.';
+        if (deg && sc && t.geo.tie) { const lat = t.geo.tie[3] - (t.height / 2) * sc[1]; dx = sc[0] * 111320 * Math.cos((lat * Math.PI) / 180); dy = sc[1] * 110574; info = `Cells in degrees, turned into metres at latitude ${sig(lat, 4)}°.`; }
+        else if (sc) info += t.geo.linearUnit === 9002 ? ' in feet: set them in metres below.' : ' (taken as metres).';
+        loadGrid({ w: t.width, h: t.height, z, dx, dy }, f.name, deg, info);
+      } else {
+        const a = parseAsciiGrid(await f.text());
+        if (a.w * a.h > MAX_CELLS) throw new Error(`The grid has ${a.w} × ${a.h} cells; the limit here is 4 million.`);
+        const deg = a.cell < 0.01 && Math.abs(a.y0) <= 90;
+        let dx = a.cell, dy = a.cell, info = `${sig(a.cell, 4)} m cells.`;
+        if (deg) { const lat = a.y0 + (a.h / 2) * a.cell; dx = a.cell * 111320 * Math.cos((lat * Math.PI) / 180); dy = a.cell * 110574; info = `Cells in degrees, turned into metres at latitude ${sig(lat, 4)}°.`; }
+        loadGrid({ w: a.w, h: a.h, z: a.z, dx, dy }, f.name, deg, info);
+      }
+    } catch (e) { q('.sp-deminfo').textContent = 'GeoTIFF or ESRI ASCII grid, up to 4 million cells.'; fail(`${f.name}: ${(e as Error).message}`); }
+  });
+  q('.sp-demdemo').addEventListener('click', demoDem);
+  q('.sp-map').addEventListener('click', (e) => {
+    if (!dem) return;
+    const cv = q<HTMLCanvasElement>('.sp-map'), b = cv.getBoundingClientRect();
+    const c = Math.min(dem.g.w - 1, Math.floor(((e.clientX - b.left) / b.width) * dem.g.w)), r = Math.min(dem.g.h - 1, Math.floor(((e.clientY - b.top) / b.height) * dem.g.h));
+    startAt(r * dem.g.w + c);
+  });
+  ['.sp-dx', '.sp-dy'].forEach((c) => q(c).addEventListener('change', () => { if (!dem) return; const start = dem.path?.[0]; prepareDem(); if (start != null) { dem.path = trace(dem.rcv!, start); drawMap(); run(); } }));
+  let tm = 0;
+  q('.sp-in').addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(run, 300); });
+  root.querySelectorAll('.sp-du, .sp-au, .sp-kmax').forEach((i) => i.addEventListener('change', run));
+  root.querySelectorAll('.sp-tref, .sp-a0, .sp-acrit, .sp-bins').forEach((i) => i.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(run, 250); }));
+  q('.sp-csv').addEventListener('click', () => csvRows.length && save(new TextEncoder().encode(csv(csvRows)), 'stream-profile.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (!q('.sp-out').hidden && figs.length) (['.sp-f1', '.sp-f2', '.sp-f3', '.sp-f4'] as const).forEach((c, i) => paint(q<HTMLCanvasElement>(c), figs[i])); });
+  run();
+  wireDownloads(q('.sp-out > .dl:last-child'), () => ({ title: 'Stream profile', subtitle: q('.sp-big').textContent ?? '', file: 'stream-profile', sections: report }));
+</script>
+
+<style is:global>
+  .spf textarea { width: 100%; }
+  .spf .sp-h { margin: 16px 0 6px; font-size: 16px; }
+  .spf .sp-mapwrap { margin-top: 12px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .spf .sp-map { display: block; width: 100%; height: auto; cursor: crosshair; image-rendering: pixelated; }
+  .spf .sp-ktab td { white-space: nowrap; }
+  .spf .sp-ktab caption { text-align: left; font-size: 14px; color: var(--muted); }
+  html.red-mode .spf .sp-map { filter: url(#red-night); }
+</style>
