@@ -1,0 +1,224 @@
+---
+// Thin lens ray diagram for school: convex or concave, drag the object, see the principal rays, the image, the lens
+// formula with signs and the power in dioptres; Class 12 adds two lenses in contact. Maths in
+// src/lib/sci/school-optics.ts, drawing in src/lib/school-optics-draw.ts.
+import '../../styles/astro.css';
+---
+<div class="ax lrd">
+  <div class="ax-card">
+    <div class="ax-row lrd-top">
+      <div class="ax-seg lrd-level" role="group" aria-label="Level">
+        <button type="button" data-l="10" aria-pressed="true">Class 10</button><button type="button" data-l="12" aria-pressed="false">Class 12</button>
+      </div>
+      <div class="ax-seg lrd-kind" role="group" aria-label="Lens">
+        <button type="button" data-k="convex" aria-pressed="true">Convex</button><button type="button" data-k="concave" aria-pressed="false">Concave</button>
+      </div>
+    </div>
+    <p class="ax-help">Put the object at a standard position:</p>
+    <div class="lrd-pos"></div>
+    <canvas class="ax-fig lrd-fig" aria-label="Ray diagram"></canvas>
+    <p class="ax-help">Drag the object along the axis (or tap where you want it), or use the sliders. Coloured lines are the rays; a dashed line is where a ray only <em>seems</em> to come from.</p>
+    <div class="ax-grid">
+      <label>Object distance: <b class="lrd-uv"></b><input class="lrd-u" type="range" min="1" max="36" step="0.5" value="20" /></label>
+      <label>Focal length: <b class="lrd-fv"></b><input class="lrd-f" type="range" min="5" max="40" step="1" value="10" /></label>
+    </div>
+    <div class="ax-grid lrd-type">
+      <label>Object distance (cm) <input class="lrd-ut" type="text" inputmode="decimal" value="20" /></label>
+      <label>Focal length (cm) <input class="lrd-ft" type="text" inputmode="decimal" value="10" /></label>
+      <label class="lrd-12" hidden>Object height (cm) <input class="lrd-ht" type="text" inputmode="decimal" value="2" /></label>
+    </div>
+    <p class="ax-err lrd-err" hidden></p>
+  </div>
+
+  <div class="ax-card lrd-out">
+    <h2>The image</h2>
+    <p class="ax-big lrd-big"></p>
+    <dl class="ax-facts lrd-facts"></dl>
+    <h3>Lens formula, with signs</h3>
+    <pre class="lrd-formula"></pre>
+    <p class="ax-help">Sign convention: distances are measured from the optical centre O. Light comes from the left, so the object is at a negative u. Distances to the right of the lens are positive, to the left negative; heights up are positive. A convex lens's f is positive, a concave lens's negative. Power P = 1/f with f in metres, in dioptres (D).</p>
+  </div>
+
+  <div class="ax-card lrd-12" hidden>
+    <h2>Two lenses in contact</h2>
+    <p class="ax-help">Thin lenses touching each other act as one lens whose power is the sum: P = P₁ + P₂. Give the second lens's focal length with its sign (negative for a concave lens).</p>
+    <div class="ax-grid"><label>Second lens f₂ (cm) <input class="lrd-f2" type="text" inputmode="decimal" value="-20" /></label></div>
+    <p class="ax-err lrd-err2" hidden></p>
+    <pre class="lrd-formula lrd-combo"></pre>
+  </div>
+
+  <div class="ax-card">
+    <h2>Where is the image?</h2>
+    <div class="ax-scroll"><table class="lrd-table"><thead><tr><th>Object</th><th>Image</th><th>Size</th><th>Nature</th></tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrd-try">
+      <li>Start far from a convex lens and slide the object in. The real image moves away from the lens and grows; at 2F₁ it is exactly the same size.</li>
+      <li>Put the object at F₁: the rays leave the lens parallel, so the image is at infinity. A projector puts its slide just outside F₁ to get a big image far away.</li>
+      <li>Move the object inside F₁. The image jumps to the same side as the object, upright and bigger: a magnifying glass.</li>
+      <li>Switch to a concave lens. The image is always upright, smaller and between F₁ and O, wherever the object is.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh numbers each time. Give distances in cm and powers in dioptres, with their sign (for example −30). Nothing is saved.</p>
+    <div class="lrd-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .lrd input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; }
+  .lrd-top { justify-content: space-between; margin-bottom: 6px; }
+  .lrd-pos { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
+  .lrd-pos button { font: inherit; font-size: 14px; padding: 8px 10px; min-height: 40px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); cursor: pointer; }
+  .lrd-pos button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .lrd-fig { touch-action: pan-y; cursor: ew-resize; margin: 4px auto; border: 1px solid var(--line); max-width: 720px; }
+  .lrd-formula { font: 15px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; padding: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
+  .lrd-combo { margin-top: 10px; }
+  .lrd h3 { font-size: 15px; margin: 14px 0 6px; }
+  .lrd-table tr.on td { background: var(--bg); font-weight: 700; }
+  .lrd-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .lrd .ax-seg button { min-height: 40px; }
+</style>
+
+<script>
+  import { lensImage, position, imageTable, power, inContact, type LensKind, type Position } from '../../lib/sci/school-optics';
+  import { benchFigure, worldX, type BenchOpts } from '../../lib/school-optics-draw';
+  import { paint } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+  import { mountQuiz, pick, show, r2, type Question } from '../../lib/school-quiz';
+
+  const root = document.querySelector<HTMLElement>('.lrd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const canvas = q<HTMLCanvasElement>('.lrd-fig');
+  const st = { kind: 'convex' as LensKind, F: 10, U: 20 as number, level: '10', h: 2 };
+  const POS: Record<LensKind, [string, number][]> = {
+    convex: [['At infinity', Infinity], ['Beyond 2F₁', 3], ['At 2F₁', 2], ['Between F₁ and 2F₁', 1.5], ['At F₁', 1], ['Between F₁ and O', 0.5]],
+    concave: [['At infinity', Infinity], ['Anywhere in front', 1.5]],
+  };
+  const s4 = (x: number) => sig(x, 4).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+  const cm = (x: number) => `${show(x)} cm`;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const paren = (x: number) => (x < 0 ? `(${show(x)})` : show(x));
+  let opts: BenchOpts;
+
+  function posButtons() {
+    q('.lrd-pos').replaceChildren(...POS[st.kind].map(([t, k]) => {
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.dataset.k = String(k);
+      b.addEventListener('click', () => { st.U = k * st.F; sync(); draw(); });
+      return b;
+    }));
+  }
+  function sync() {
+    q<HTMLInputElement>('.lrd-u').max = String(Math.round(3.6 * st.F));
+    if (Number.isFinite(st.U)) q<HTMLInputElement>('.lrd-u').value = String(st.U);
+    q<HTMLInputElement>('.lrd-f').value = String(st.F);
+    q<HTMLInputElement>('.lrd-ut').value = Number.isFinite(st.U) ? String(r2(st.U)) : 'infinity';
+    q<HTMLInputElement>('.lrd-ft').value = String(r2(st.F));
+  }
+  function combo(fS: number) {
+    const f2 = num(q<HTMLInputElement>('.lrd-f2').value), err = q('.lrd-err2'), out = q('.lrd-combo');
+    if (!(Number.isFinite(f2) && Math.abs(f2) >= 1 && Math.abs(f2) <= 10000)) { err.textContent = 'Give the second focal length in cm, with its sign (at least 1 cm either way).'; err.hidden = false; out.hidden = true; return; }
+    err.hidden = true; out.hidden = false;
+    const c = inContact(fS, f2);
+    out.textContent = [`P₁ = 100/f₁ = 100/${paren(fS)} = ${s4(power(fS))} D`, `P₂ = 100/f₂ = 100/${paren(f2)} = ${s4(power(f2))} D`, `P = P₁ + P₂ = ${s4(c.P)} D`, Number.isFinite(c.f) ? `f = 100/P = ${s4(c.f)} cm: ${c.P > 0 ? 'converging, like a convex lens' : 'diverging, like a concave lens'}` : 'P = 0: the pair acts like flat glass'].join('\n');
+  }
+  function draw() {
+    q('.lrd-err').hidden = true;
+    const { kind, F, U } = st;
+    const im = lensImage(kind, F, U), pos: Position = position(kind, 'lens', F, U);
+    q('.lrd-uv').textContent = Number.isFinite(U) ? `${show(U)} cm` : 'infinity';
+    q('.lrd-fv').textContent = `${show(F)} cm`;
+    const W = Math.round(Math.max(300, Math.min(720, canvas.clientWidth || 400)));
+    opts = { W, H: Math.round(Math.max(240, W * 0.6)), element: 'lens', kind, f: F, u: U };
+    paint(canvas, benchFigure(opts, `Ray diagram: ${kind} lens, object ${Number.isFinite(U) ? `${show(U)} cm` : 'at infinity'}`));
+    root.querySelectorAll<HTMLButtonElement>('.lrd-pos button').forEach((b) => b.setAttribute('aria-pressed', String(position(kind, 'lens', F, Number(b.dataset.k) * F) === pos)));
+    const rows = imageTable('lens', kind), row = rows.find((r) => r.pos === pos)!;
+    q('.lrd-table tbody').replaceChildren(...rows.map((r) => { const tr = document.createElement('tr'); if (r === row) tr.className = 'on'; for (const c of [r.object, r.image, r.size, r.nature]) { const td = document.createElement('td'); td.textContent = c; tr.append(td); } return tr; }));
+    q('.lrd-big').textContent = `${row.nature}, ${row.size.toLowerCase()}, ${row.image.charAt(0).toLowerCase() + row.image.slice(1)}`;
+    const f: HTMLElement[] = [], L: string[] = ['1/v − 1/u = 1/f'];
+    const P = fact('Power P = 1/f', `${s4(power(im.f))} D`, `f = ${show(im.f / 100)} m`);
+    if (!Number.isFinite(U)) {
+      f.push(fact('u', '−∞', 'object very far away'), fact('f', cm(im.f)), fact('v', cm(im.v), kind === 'convex' ? 'the image forms at F₂' : 'the image is at F₁'), P);
+      L.push(`u = −∞, so 1/u = 0 and v = f = ${cm(im.f)}`);
+    } else if (!Number.isFinite(im.v)) {
+      f.push(fact('u', cm(im.u)), fact('f', cm(im.f)), fact('v', '∞', 'rays leave parallel'), P);
+      L.push(`1/v = 1/f + 1/u = 1/${paren(im.f)} + 1/${paren(im.u)} = 0`, 'v = ∞ (the image is at infinity)');
+    } else {
+      f.push(fact('u', cm(im.u), 'object distance'), fact('f', cm(im.f), kind === 'convex' ? 'positive: convex' : 'negative: concave'), fact('v', cm(im.v), im.v > 0 ? 'other side: real' : 'same side: virtual'), fact('m', show(im.m), im.m < 0 ? 'negative: inverted' : 'positive: erect'), P);
+      L.push(`1/v = 1/f + 1/u = 1/${paren(im.f)} + 1/${paren(im.u)}`, `1/v = ${s4(1 / im.v)}`, `v = ${cm(im.v)}`, `m = v/u = ${paren(im.v)}/${paren(im.u)} = ${show(im.m)}`);
+    }
+    L.push(`P = 1/f = 1/(${show(im.f / 100)} m) = ${s4(power(im.f))} D`);
+    if (st.level === '12' && Number.isFinite(im.m) && Number.isFinite(U)) { f.push(fact('Image height h′ = m h', cm(im.m * st.h), `object ${cm(st.h)} tall`)); L.push(`h′ = m × h = ${show(im.m)} × ${show(st.h)} = ${cm(im.m * st.h)}`); }
+    q('.lrd-facts').replaceChildren(...f);
+    q('.lrd-formula').textContent = L.join('\n');
+    combo(im.f);
+  }
+
+  function setLevel(l: string) {
+    st.level = l;
+    root.querySelectorAll<HTMLButtonElement>('.lrd-level button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.l === l)));
+    root.querySelectorAll<HTMLElement>('.lrd-12').forEach((e) => (e.hidden = l !== '12'));
+    draw();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.lrd-level button').forEach((b) => b.addEventListener('click', () => setLevel(b.dataset.l!)));
+  root.querySelectorAll<HTMLButtonElement>('.lrd-kind button').forEach((b) => b.addEventListener('click', () => {
+    st.kind = b.dataset.k as LensKind;
+    root.querySelectorAll<HTMLButtonElement>('.lrd-kind button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    posButtons(); draw();
+  }));
+  const snap = (u: number) => (Math.abs(u - 2 * st.F) < 0.04 * st.F ? 2 * st.F : Math.abs(u - st.F) < 0.04 * st.F ? st.F : u);
+  q<HTMLInputElement>('.lrd-u').addEventListener('input', (e) => { st.U = Number((e.target as HTMLInputElement).value); sync(); draw(); });
+  q<HTMLInputElement>('.lrd-f').addEventListener('input', (e) => { const nf = Number((e.target as HTMLInputElement).value); if (Number.isFinite(st.U)) st.U = r2((st.U / st.F) * nf); st.F = nf; sync(); draw(); });
+  const typed = () => {
+    const ut = q<HTMLInputElement>('.lrd-ut').value.trim(), u = /^inf/i.test(ut) || ut === '∞' ? Infinity : Math.abs(num(ut)), fv = Math.abs(num(q<HTMLInputElement>('.lrd-ft').value)), h = num(q<HTMLInputElement>('.lrd-ht').value);
+    const err = q('.lrd-err');
+    const bad = !(fv >= 1 && fv <= 500) ? 'Give a focal length from 1 to 500 cm.' : !(u > 0 && u <= 5000) ? 'Give the object distance as a size in cm, from 0 to 5000 (or type "infinity").' : !(Number.isFinite(h) && h > 0 && h <= 1000) ? 'Give the object height in cm (more than 0).' : '';
+    if (bad) { err.textContent = bad; err.hidden = false; return; }
+    st.U = u; st.F = fv; st.h = h;
+    q<HTMLInputElement>('.lrd-u').max = String(Math.round(3.6 * st.F));
+    if (Number.isFinite(u)) q<HTMLInputElement>('.lrd-u').value = String(u);
+    q<HTMLInputElement>('.lrd-f').value = String(fv);
+    draw();
+  };
+  root.querySelectorAll<HTMLInputElement>('.lrd-type input').forEach((i) => i.addEventListener('input', typed));
+  q('.lrd-f2').addEventListener('input', () => combo(lensImage(st.kind, st.F, st.U).f));
+  let dragging = false;
+  const move = (e: PointerEvent) => {
+    const r = canvas.getBoundingClientRect(), x = worldX(opts, e.clientX - r.left, r.width);
+    if (x >= -0.1 * st.F) return;
+    st.U = snap(Math.min(Math.round(-x * 2) / 2, 5000)); sync(); draw();
+  };
+  canvas.addEventListener('pointerdown', (e) => { dragging = true; canvas.setPointerCapture(e.pointerId); move(e); });
+  canvas.addEventListener('pointermove', (e) => { if (dragging) move(e); });
+  const end = () => { dragging = false; };
+  canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
+  document.addEventListener('fibub:theme', draw);
+  let lastW = 0; window.addEventListener('resize', () => { if (Math.abs(canvas.clientWidth - lastW) > 20) { lastW = canvas.clientWidth; draw(); } });
+
+  // Check yourself.
+  const NICE: [number, number][] = [[10, 15], [10, 30], [12, 18], [12, 36], [15, 20], [20, 30], [20, 60], [10, 20], [15, 30], [15, 10], [20, 10], [12, 4], [30, 20], [24, 8]];
+  const DIV: [number, number][] = [[15, 30], [20, 20], [30, 15], [12, 24], [10, 40], [18, 9], [20, 30], [15, 10]];
+  const make = (): Question => {
+    const t = pick(['v', 'v', 'cv', 'm', 'P', 'f']);
+    if (t === 'cv') {
+      const [F, U] = pick(DIV), im = lensImage('concave', F, U);
+      return { text: `A concave lens has a focal length of ${F} cm. An object is ${U} cm in front of it. Find the image distance v.`, unit: 'cm', answer: r2(im.v), tol: 0.06, work: [`Signs: u = −${U} cm, f = −${F} cm (concave).`, `1/v = 1/f + 1/u = 1/(−${F}) + 1/(−${U}) = ${s4(1 / im.v)}`, `v = ${cm(im.v)}: negative, so the image is on the same side as the object (virtual and erect).`] };
+    }
+    if (t === 'P') {
+      const F = pick([20, 25, 40, 50, 80, 100, 200]), s = pick([1, -1]);
+      return { text: `A ${s > 0 ? 'convex' : 'concave'} lens has a focal length of ${F} cm. Find its power in dioptres.`, unit: 'D', answer: r2(power(s * F)), tol: 0.011, work: [`f = ${s > 0 ? '+' : '−'}${F} cm = ${show((s * F) / 100)} m.`, `P = 1/f = 1/(${show((s * F) / 100)}) = ${show(power(s * F))} D`] };
+    }
+    const [F, U] = pick(NICE), im = lensImage('convex', F, U);
+    const work = [`Signs: u = −${U} cm, f = +${F} cm (convex).`, `1/v = 1/f + 1/u = 1/${F} + 1/(−${U}) = ${s4(1 / im.v)}`, `v = ${cm(im.v)}: ${im.v > 0 ? 'positive, so the image is on the other side of the lens (real)' : 'negative, so the image is on the same side as the object (virtual)'}.`];
+    if (t === 'v') return { text: `A convex lens has a focal length of ${F} cm. An object is ${U} cm in front of it. Find the image distance v.`, unit: 'cm', answer: r2(im.v), tol: 0.06, work };
+    if (t === 'm') return { text: `An object ${U} cm in front of a convex lens gives an image at v = ${show(im.v)} cm. Find the magnification m.`, unit: '', answer: r2(im.m), tol: 0.011, work: [`m = v/u = ${paren(im.v)}/(−${U}) = ${show(im.m)}`, im.m < 0 ? 'Negative: the image is real and inverted.' : 'Positive: the image is virtual and erect.'] };
+    return { text: `An object ${U} cm in front of a lens gives an image at v = ${show(im.v)} cm. Find the focal length f (with its sign).`, unit: 'cm', answer: F, tol: 0.06, work: [`1/f = 1/v − 1/u = 1/${paren(im.v)} − 1/(−${U}) = ${s4(1 / F)}`, `f = ${F} cm: positive, so it is a convex lens.`] };
+  };
+  mountQuiz(q('.lrd-quiz'), make, 4);
+
+  posButtons(); sync(); draw();
+</script>
