@@ -1,0 +1,276 @@
+---
+// Cardiac cycle: a four-chamber heart whose chambers and valves move in time with a teaching ECG-like trace
+// and the left ventricle volume. Heart rate, stroke volume and cardiac output. Teaching model, not medical.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ccy">
+  <p class="ax-help ccy-note">A teaching model, not a medical tool: the trace is a smooth made-up ECG-like shape and the volumes are typical round resting values.</p>
+  <div class="ax-card">
+    <div class="ax-row"><span class="ccy-lab">Level</span>
+      <div class="ax-seg ccy-level" role="group" aria-label="Level"><button type="button" data-v="10" aria-pressed="true">Class 10</button><button type="button" data-v="11" aria-pressed="false">Class 11</button></div></div>
+    <label class="ccy-gap">Heart rate: <b class="ccy-hv"></b>
+      <input type="range" class="ccy-hr" min="40" max="180" step="1" value="75" aria-label="Heart rate, beats per minute" /></label>
+    <label class="ccy-gap">Blood in the ventricle when full (end-diastolic volume): <b class="ccy-ev"></b>
+      <input type="range" class="ccy-edv" min="80" max="180" step="5" value="120" aria-label="End-diastolic volume, millilitres" /></label>
+    <label class="ccy-gap ccy-l11">Blood left after a beat (end-systolic volume): <b class="ccy-sv"></b>
+      <input type="range" class="ccy-esv" min="20" max="100" step="5" value="50" aria-label="End-systolic volume, millilitres" /></label>
+    <div class="ax-row ccy-gap"><span class="ccy-lab">Speed</span>
+      <div class="ax-seg ccy-speed" role="group" aria-label="Speed"><button type="button" data-v="0.25" aria-pressed="true">Slow motion</button><button type="button" data-v="1" aria-pressed="false">Real time</button></div>
+      <button type="button" class="btn secondary small ccy-pause">Pause</button></div>
+  </div>
+
+  <div class="ax-card">
+    <canvas class="ax-fig ccy-fig"></canvas>
+    <p class="ccy-phase" aria-live="off"></p>
+    <p class="ax-big ccy-big"></p>
+    <dl class="ax-facts ccy-facts"></dl>
+    <p class="ccy-formula"></p>
+    <p class="ax-help ccy-path"></p>
+  </div>
+
+  <div class="ax-card ccy-l11">
+    <h2>One beat, step by step</h2>
+    <div class="ax-scroll"><table class="ccy-tab"></table></div>
+    <div class="ax-row ccy-gap"><button type="button" class="btn secondary small ccy-csv">Download one beat (CSV)</button></div>
+  </div>
+  <div class="ax-card"><Downloads /></div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="ccy-try">
+      <li>Watch in slow motion: which valves are shut when the ECG spike (R) appears?</li>
+      <li>Raise the heart rate from 75 to 150. Which part of the beat gets much shorter: systole or diastole?</li>
+      <li>Find the heart rate that gives a cardiac output of 5 L/min with 70 mL per beat.</li>
+      <li>Class 11: make the heart fill more (larger end-diastolic volume). What happens to the stroke volume and the output?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <ol class="ccy-qs"></ol>
+    <div class="ax-row"><button type="button" class="btn small ccy-check">Check answers</button><button type="button" class="btn secondary small ccy-new">New questions</button></div>
+    <p class="ccy-score" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+  import { timing, phaseAt, valves, lvVolume, ecg, sounds, strokeVolume, cardiacOutput, ejectionFraction, PHASE_NAMES, type Phase } from '../../lib/sci/heartcycle';
+  import { csv } from '../../lib/sci/num';
+  import { paint, pagePalette, wireDownloads, save, type Figure, type Palette, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ccy')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => Number(q<HTMLInputElement>(c).value);
+  let level = 10, speed = 0.25, paused = false, tSim = 0.3, last = 0;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const fx = (x: number, d = 2) => x.toFixed(d);
+  const hr = () => v('.ccy-hr'), edv = () => v('.ccy-edv'), esv = () => Math.min(v('.ccy-esv'), edv() - 10);
+
+  const COL = (pal: Palette) => pal.red ? { o: '#a30000', d: '#5a0000' } : pal.bg === '#ffffff' ? { o: '#c0392b', d: '#2f6fb3' } : { o: '#f28b82', d: '#7fb2f0' };
+
+  function drawHeart(ctx: CanvasRenderingContext2D, pal: Palette, t: number) {
+    const H = hr(), p = phaseAt(H, t), va = valves(p), d = timing(H), x = ((t % d.T) + d.T) % d.T;
+    const vol = lvVolume(H, t, edv(), esv()), vs = 0.72 + 0.28 * (vol / edv());
+    const as = p === 'atrial-systole' ? 0.86 : p === 'filling' ? 1 : 0.96, c = COL(pal);
+    const cx = 240, top = 30;
+    ctx.lineWidth = 2.5; ctx.strokeStyle = pal.ink; ctx.lineJoin = 'round';
+    // vessels: vena cava into right atrium, pulmonary artery and aorta out of the ventricles
+    ctx.fillStyle = c.d; ctx.fillRect(cx - 150, top - 22, 22, 50);
+    ctx.fillStyle = c.d; ctx.fillRect(cx - 40, top - 22, 22, 46);
+    ctx.fillStyle = c.o; ctx.fillRect(cx + 18, top - 22, 22, 46);
+    ctx.fillStyle = c.o; ctx.fillRect(cx + 128, top - 22, 22, 50);
+    // atria
+    const aw = 95 * as, ah = 58 * as;
+    ctx.fillStyle = c.d; ctx.beginPath(); ctx.roundRect(cx - 12 - aw, top + 30 + (58 - ah), aw, ah, 16); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = c.o; ctx.beginPath(); ctx.roundRect(cx + 12, top + 30 + (58 - ah), aw, ah, 16); ctx.fill(); ctx.stroke();
+    // ventricles
+    const vw = 100 * vs, vh = 96 * vs, vy = top + 102;
+    ctx.fillStyle = c.d; ctx.beginPath(); ctx.moveTo(cx - 8, vy); ctx.lineTo(cx - 8 - vw, vy); ctx.quadraticCurveTo(cx - 8 - vw, vy + vh, cx - 8, vy + vh + 10); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = c.o; ctx.beginPath(); ctx.moveTo(cx + 8, vy); ctx.lineTo(cx + 8 + vw, vy); ctx.quadraticCurveTo(cx + 8 + vw, vy + vh, cx + 8, vy + vh + 10); ctx.closePath(); ctx.fill(); ctx.stroke();
+    // AV valves (tricuspid on the right side of the heart, bicuspid/mitral on the left)
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 4;
+    for (const side of [-1, 1]) {
+      const vx = cx + side * 60, vyv = top + 96;
+      ctx.beginPath();
+      if (va.av) { ctx.moveTo(vx - 26, vyv - 2); ctx.lineTo(vx - 18, vyv + 18); ctx.moveTo(vx + 26, vyv - 2); ctx.lineTo(vx + 18, vyv + 18); }
+      else { ctx.moveTo(vx - 26, vyv); ctx.lineTo(vx, vyv + 6); ctx.lineTo(vx + 26, vyv); }
+      ctx.stroke();
+    }
+    // semilunar valves at the exits (pulmonary, aortic)
+    for (const sx of [cx - 29, cx + 29]) {
+      ctx.beginPath();
+      if (va.semilunar) { ctx.moveTo(sx - 11, top + 18); ctx.lineTo(sx - 9, top + 2); ctx.moveTo(sx + 11, top + 18); ctx.lineTo(sx + 9, top + 2); }
+      else { ctx.moveTo(sx - 11, top + 14); ctx.lineTo(sx, top + 20); ctx.lineTo(sx + 11, top + 14); }
+      ctx.stroke();
+    }
+    ctx.font = '12px system-ui, sans-serif'; ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('Right atrium', cx - 70, top + 62); ctx.fillText('Left atrium', cx + 70, top + 62);
+    ctx.fillText('Right', cx - 60, vy + 40); ctx.fillText('ventricle', cx - 60, vy + 55); ctx.fillText('Left', cx + 60, vy + 40); ctx.fillText('ventricle', cx + 60, vy + 55);
+    ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText('to lungs', cx - 64, top - 14 + 0); ctx.textAlign = 'right'; ctx.fillText('to body', cx + 64, top - 14);
+    ctx.textAlign = 'left'; ctx.fillText('from body', 8, top - 14); ctx.textAlign = 'right'; ctx.fillText('from lungs', 472, top - 14);
+    // sound labels
+    const s = sounds(H), near = (a: number) => Math.abs(x - a) < 0.05;
+    ctx.font = '700 18px system-ui, sans-serif'; ctx.fillStyle = pal.ink; ctx.textAlign = 'center';
+    if (near(s.lub)) ctx.fillText('LUB', 420, top + 160); if (near(s.dub)) ctx.fillText('DUB', 420, top + 160);
+  }
+
+  function drawTraces(ctx: CanvasRenderingContext2D, pal: Palette, t: number, y0: number, W: number) {
+    const H = hr(), d = timing(H), span = 2 * d.T, left = 40, w = W - left - 10;
+    const t0 = Math.floor(t / d.T) * d.T;
+    const xOf = (tt: number) => left + ((tt - t0) / span) * w;
+    ctx.strokeStyle = pal.grid; ctx.lineWidth = 1;
+    for (let k = 0; k <= 8; k++) { const xx = left + (k / 8) * w; ctx.beginPath(); ctx.moveTo(xx, y0); ctx.lineTo(xx, y0 + 170); ctx.stroke(); }
+    ctx.font = '12px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText('ECG', 2, y0 + 30); ctx.fillText('LV mL', 2, y0 + 120);
+    // ECG
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath();
+    for (let i = 0; i <= 400; i++) { const tt = t0 + (i / 400) * span, yy = y0 + 50 - 40 * ecg(H, tt); i ? ctx.lineTo(xOf(tt), yy) : ctx.moveTo(xOf(tt), yy); }
+    ctx.stroke();
+    // wave letters on the first beat
+    ctx.fillStyle = pal.muted; ctx.textAlign = 'center';
+    ctx.fillText('P', xOf(t0 + 0.04 * d.k), y0 + 34); ctx.fillText('R', xOf(t0 + d.atrial + 0.005), y0 + 0); ctx.fillText('T', xOf(t0 + d.atrial + d.vSys - 0.05 * d.k), y0 + 26);
+    // volume
+    const lo = esv(), hi = edv(), vy = (vv: number) => y0 + 160 - ((vv - lo) / Math.max(1, hi - lo)) * 70;
+    ctx.strokeStyle = COL(pal).o; ctx.lineWidth = 2.5; ctx.beginPath();
+    for (let i = 0; i <= 400; i++) { const tt = t0 + (i / 400) * span, yy = vy(lvVolume(H, tt, hi, lo)); i ? ctx.lineTo(xOf(tt), yy) : ctx.moveTo(xOf(tt), yy); }
+    ctx.stroke();
+    ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.fillText(String(hi), left - 4, vy(hi)); ctx.fillText(String(lo), left - 4, vy(lo));
+    // cursor
+    const cx2 = xOf(t);
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx2, y0); ctx.lineTo(cx2, y0 + 170); ctx.stroke();
+    ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.fillText(`two beats, ${fx(span, 2)} s`, left + w / 2, y0 + 182);
+  }
+
+  const W = 480, Hc = 470;
+  const picture: Figure = { w: W, h: Hc, alt: 'Four-chamber heart with valves, an ECG-like trace and left ventricle volume', draw: (ctx, w, h, pal) => { drawHeart(ctx, pal, tSim); drawTraces(ctx, pal, tSim, 270, w); } };
+
+  function phaseText() {
+    const p: Phase = phaseAt(hr(), tSim), va = valves(p);
+    q('.ccy-phase').textContent = `${PHASE_NAMES[p]}. AV valves ${va.av ? 'open' : 'shut'}, semilunar valves ${va.semilunar ? 'open' : 'shut'}.`;
+  }
+  function frame(now: number) {
+    const dt = last ? Math.min(0.1, (now - last) / 1000) : 0; last = now;
+    if (!paused) tSim += dt * speed;
+    paint(q<HTMLCanvasElement>('.ccy-fig'), picture, pagePalette()); phaseText();
+    if (!reduce) requestAnimationFrame(frame);
+  }
+
+  let factList: [string, string, string?][] = [], beatRows: string[][] = [];
+  function update() {
+    const H = hr(), d = timing(H), E = edv(), S = esv(), sv = strokeVolume(E, S), co = cardiacOutput(sv, H);
+    q('.ccy-hv').textContent = `${H} beats a minute`;
+    q('.ccy-ev').textContent = `${E} mL`;
+    q('.ccy-sv').textContent = `${S} mL`;
+    q('.ccy-big').textContent = `Cardiac output ${fx(co, 2)} L a minute`;
+    factList = [
+      ['One beat takes', `${fx(d.T)} s`, `60 ÷ ${H}`],
+      ['Stroke volume', `${sv} mL`, level === 11 ? `${E} − ${S} mL` : 'blood pushed out per beat'],
+      ['Ventricles contract (systole)', `${fx(d.vSys)} s`, `${Math.round((100 * d.vSys) / d.T)} % of the beat`],
+      ['Joint diastole (heart fills)', `${fx(d.diastole)} s`, `${Math.round((100 * d.diastole) / d.T)} % of the beat`],
+    ];
+    if (level === 11) factList.push(['Ejection fraction', `${Math.round(100 * ejectionFraction(E, S))} %`, 'stroke volume ÷ end-diastolic volume'], ['Atrial systole', `${fx(d.atrial)} s`, 'the P wave comes just before']);
+    q('.ccy-facts').replaceChildren(...factList.map(([k, val, s]) => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = val; if (s) { const m = document.createElement('small'); m.textContent = s; el.querySelector('dd')!.append(m); } return el; }));
+    q('.ccy-formula').textContent = `Cardiac output = stroke volume × heart rate = ${sv} mL × ${H} /min = ${sv * H} mL/min = ${fx(co, 2)} L/min`;
+    q('.ccy-path').textContent = level === 10
+      ? 'Double circulation: the right side (blue, low in oxygen) pumps blood to the lungs; the left side (red, rich in oxygen) pumps it to the body. Blood passes through the heart twice on each trip round the body.'
+      : 'AV valves: tricuspid (right) and bicuspid or mitral (left). Semilunar valves: pulmonary and aortic. "Lub" is the AV valves shutting as the ventricles start to contract; "dub" is the semilunar valves shutting as they relax.';
+    root.querySelectorAll<HTMLElement>('.ccy-l11').forEach((el) => (el.hidden = level !== 11));
+    // one-beat table
+    const ph: [string, number, string, string, string][] = [
+      ['Atrial systole', d.atrial, 'open', 'shut', 'P wave'],
+      ['Isovolumetric contraction', d.iso, 'shut (lub)', 'shut', 'QRS'],
+      ['Ventricular ejection', d.eject, 'shut', 'open', 'ST, T wave'],
+      ['Isovolumetric relaxation', d.relax, 'shut', 'shut (dub)', 'end of T'],
+      ['Filling (joint diastole)', d.T - d.atrial - d.vSys - d.relax, 'open', 'shut', 'flat'],
+    ];
+    beatRows = ph.map(([n, dur, a, s, e]) => [n, fx(dur, 3), a, s, e]);
+    const tb = q<HTMLTableElement>('.ccy-tab'); tb.innerHTML = '';
+    const hrow = tb.createTHead().insertRow(); ['Phase', 'Time (s)', 'AV valves', 'Semilunar', 'ECG'].forEach((h, j) => { const th = document.createElement('th'); th.textContent = h; if (j === 1) th.className = 'r'; hrow.append(th); });
+    const b = tb.createTBody(); beatRows.forEach((r) => { const tr = b.insertRow(); r.forEach((x, j) => { const td = tr.insertCell(); td.textContent = x; if (j === 1) td.className = 'r'; }); });
+    if (reduce || paused) { paint(q<HTMLCanvasElement>('.ccy-fig'), picture); phaseText(); }
+  }
+
+  // ---------- Check yourself ----------
+  type Qn = { text: string; options?: string[]; answer: string | number; tol?: number; worked: string };
+  let qs: Qn[] = [];
+  const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
+  function makeQuiz() {
+    const sv = pick([60, 65, 70, 75, 80]), H = pick([60, 70, 72, 80, 90]);
+    const rr = pick([0.5, 0.6, 0.75, 0.8, 1.0, 1.2]);
+    const E = pick([110, 120, 130, 140]), S = pick([40, 45, 50, 55, 60]);
+    qs = [
+      { text: `The heart pumps ${sv} mL per beat at ${H} beats a minute. What is the cardiac output in L/min?`, answer: (sv * H) / 1000, tol: 0.01, worked: `${sv} × ${H} = ${sv * H} mL/min = ${(sv * H) / 1000} L/min` },
+      { text: `Two R peaks on an ECG are ${rr} s apart. What is the heart rate in beats a minute?`, answer: 60 / rr, tol: 0.5, worked: `60 ÷ ${rr} = ${fx(60 / rr, 0)} beats a minute` },
+      { text: 'Which side of the heart pumps blood to the lungs?', options: ['right side', 'left side'], answer: 'right side', worked: 'The right ventricle sends blood low in oxygen to the lungs; the left sends oxygen-rich blood to the body.' },
+    ];
+    if (level === 10) qs.push({ text: 'Why do the walls of the ventricles have more muscle than the atria?', options: ['they pump blood out of the heart, far away', 'they hold more blood', 'they make the heart sounds'], answer: 'they pump blood out of the heart, far away', worked: 'Atria only push blood into the ventricles next to them; ventricles push it to the lungs or the whole body.' });
+    else {
+      qs.push({ text: `End-diastolic volume ${E} mL, end-systolic volume ${S} mL. What is the stroke volume in mL?`, answer: E - S, tol: 0.5, worked: `${E} − ${S} = ${E - S} mL` });
+      qs.push({ text: 'The first heart sound, "lub", is made when…', options: ['the AV valves shut', 'the semilunar valves shut', 'the atria contract'], answer: 'the AV valves shut', worked: 'As the ventricles start to contract, pressure shuts the tricuspid and bicuspid valves: lub.' });
+    }
+    const ol = q('.ccy-qs'); ol.innerHTML = '';
+    qs.forEach((x, j) => {
+      const li = document.createElement('li'); li.dataset.a = String(x.answer);
+      const p = document.createElement('p'); p.textContent = x.text; li.append(p);
+      if (x.options) { const sel = document.createElement('select'); sel.className = 'ccy-ans'; sel.setAttribute('aria-label', `Answer ${j + 1}`); sel.append(new Option('Choose…', ''), ...x.options.map((o) => new Option(o, o))); li.append(sel); }
+      else { const inp = document.createElement('input'); inp.className = 'ccy-ans'; inp.inputMode = 'decimal'; inp.setAttribute('aria-label', `Answer ${j + 1}`); li.append(inp); }
+      const w = document.createElement('p'); w.className = 'ccy-worked'; w.hidden = true; li.append(w);
+      ol.append(li);
+    });
+    q('.ccy-score').textContent = '';
+  }
+  function checkQuiz() {
+    let right = 0;
+    root.querySelectorAll<HTMLLIElement>('.ccy-qs li').forEach((li, j) => {
+      const x = qs[j], val = (li.querySelector('.ccy-ans') as HTMLInputElement).value.trim().replace(',', '.');
+      const ok = x.options ? (li.querySelector('.ccy-ans') as HTMLSelectElement).value === x.answer : val !== '' && Math.abs(Number(val) - Number(x.answer)) <= (x.tol ?? 0.01);
+      if (ok) right++;
+      const w = li.querySelector<HTMLElement>('.ccy-worked')!; w.hidden = false; w.className = `ccy-worked ${ok ? 'ok' : 'no'}`;
+      w.textContent = `${ok ? '✓ Right.' : '✗ Not quite.'} ${x.worked}`;
+    });
+    q('.ccy-score').textContent = `${right} of ${qs.length} right.`;
+  }
+
+  // ---------- wiring ----------
+  const press = (sel: string, val: string) => root.querySelectorAll<HTMLButtonElement>(`${sel} button`).forEach((o) => o.setAttribute('aria-pressed', String(o.dataset.v === val)));
+  root.querySelectorAll<HTMLButtonElement>('.ccy-level button').forEach((b) => b.addEventListener('click', () => { level = Number(b.dataset.v); press('.ccy-level', b.dataset.v!); update(); makeQuiz(); }));
+  root.querySelectorAll<HTMLButtonElement>('.ccy-speed button').forEach((b) => b.addEventListener('click', () => { speed = Number(b.dataset.v); press('.ccy-speed', b.dataset.v!); }));
+  q('.ccy-pause').addEventListener('click', () => { paused = !paused; q('.ccy-pause').textContent = paused ? 'Play' : 'Pause'; update(); });
+  root.querySelectorAll('input[type=range]').forEach((el) => el.addEventListener('input', update));
+  q('.ccy-csv').addEventListener('click', () => save(new TextEncoder().encode(csv([['phase', 'seconds', 'av_valves', 'semilunar_valves', 'ecg'], ...beatRows])), 'cardiac-cycle.csv', 'text/csv'));
+  q('.ccy-check').addEventListener('click', checkQuiz);
+  q('.ccy-new').addEventListener('click', makeQuiz);
+  document.addEventListener('fibub:theme', update);
+  if (reduce) { paused = true; q('.ccy-pause').textContent = 'Play'; }
+  update(); makeQuiz();
+  if (!reduce) requestAnimationFrame(frame);
+  else q('.ccy-pause').addEventListener('click', () => { if (!paused) { const step = (now: number) => { frame(now); if (!paused) requestAnimationFrame(step); }; requestAnimationFrame(step); } });
+  wireDownloads(q('.dl'), () => ({ title: 'Cardiac cycle', subtitle: q('.ccy-big').textContent ?? '', file: 'cardiac-cycle',
+    sections: [
+      { title: `Heart at ${hr()} beats a minute`, text: [q('.ccy-formula').textContent ?? '', 'Teaching model: the trace is a smooth ECG-like shape, not a medical recording.'], facts: factList.map(([k, val, s]) => [k, s ? `${val} (${s})` : val] as [string, string]), figure: picture },
+      ...(level === 11 ? [{ title: 'One beat, step by step', table: { head: ['Phase', 'Time (s)', 'AV valves', 'Semilunar', 'ECG'], rows: beatRows } }] : []),
+    ] as Section[] }));
+</script>
+
+<style is:inline>
+  .ccy .ccy-note { margin: 0; }
+  .ccy .ccy-lab { font-size: 14px; color: var(--muted); min-width: 52px; }
+  .ccy .ccy-gap { margin-top: 12px; }
+  .ccy .ax-seg button { min-height: 44px; padding: 8px 12px; }
+  .ccy input[type=range] { width: 100%; height: 36px; accent-color: var(--accent); }
+  .ccy label b { color: var(--ink); }
+  .ccy label[hidden], .ccy .ax-card[hidden] { display: none; }
+  .ccy .btn.small { min-height: 44px; }
+  .ccy .ccy-phase { font-weight: 600; min-height: 3em; margin: 8px 0 0; }
+  .ccy .ccy-formula { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; background: var(--accent-soft); padding: 8px 10px; border-radius: 8px; overflow-wrap: anywhere; margin: 12px 0 0; }
+  .ccy .ccy-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .ccy .ccy-qs { padding-left: 20px; display: grid; gap: 14px; margin: 10px 0; }
+  .ccy .ccy-qs p { margin: 0 0 6px; }
+  .ccy .ccy-qs select { width: 100%; min-height: 44px; }
+  .ccy .ccy-qs input { max-width: 220px; min-height: 44px; }
+  .ccy .ccy-worked.ok { color: var(--good); }
+  .ccy .ccy-worked.no { color: var(--bad); }
+  .ccy .ccy-score { font-weight: 700; }
+</style>
