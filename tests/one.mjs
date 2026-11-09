@@ -16,9 +16,12 @@ mkdirSync(OUT, { recursive: true });
 let failures = 0;
 const check = (ok, msg) => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${msg}`); if (!ok) failures++; };
 const CSP = readFileSync(new URL('../public/_headers', import.meta.url), 'utf8').match(/Content-Security-Policy: (.+)/)[1];
-const server = spawn('npx', ['astro', 'preview', '--port', String(PORT)], { stdio: 'ignore' });
+const server = spawn('npx', ['astro', 'preview', '--port', String(PORT)], { stdio: 'ignore', detached: true });
+const stop = () => { try { process.kill(-server.pid); } catch { server.kill(); } };
 try {
   for (let i = 0; i < 100; i++) { try { await fetch(BASE); break; } catch { await new Promise((r) => setTimeout(r, 200)); } }
+  // A busy port makes astro pick another one, so make sure the page answering is this build.
+  if (!(await fetch(BASE + '/tools.json').then((r) => r.ok).catch(() => false))) throw new Error(`Nothing from this build on port ${PORT}; pick a free PORT`);
   const browser = await chromium.launch();
   const setup = async (ctx) => {
     await ctx.route(BASE + '/api/**', (route) => route.fulfill({ json: { site: 1, v: 1, u: 1 } }));
@@ -60,6 +63,6 @@ try {
     check(rows === 1 && sw <= 320, `${path} step picture: one row at 320 px (rows ${rows}, scrollWidth ${sw})`);
   }
   await browser.close();
-} finally { server.kill(); }
+} finally { stop(); }
 console.log(failures ? `${failures} FAILED` : 'All checks passed');
 process.exit(failures ? 1 : 0);

@@ -1,0 +1,250 @@
+---
+// Ramachandran plot from a PDB or mmCIF file: backbone phi, psi and omega for every residue, plotted over fibub's
+// rough guide regions, with glycine and proline marked and the residues outside the guides listed. The file is read
+// in the browser and never uploaded. The example structure is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax rama">
+  <div class="ax-card">
+    <h2>Structure</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small ra-open">Open a PDB or mmCIF file</button>
+      <input type="file" class="ra-file" accept=".pdb,.ent,.cif,.mmcif,.txt,chemical/x-pdb,text/plain" hidden />
+      <button type="button" class="btn secondary small ra-ex">Use the example</button>
+    </div>
+    <label style="margin-top:10px">Or paste the text of a PDB file <textarea class="ra-in" rows="5" spellcheck="false" placeholder="ATOM      1  N   MET A   1  ..."></textarea></label>
+    <p class="ax-help ra-file-note">Reads ATOM and HETATM lines from the first model (PDB or mmCIF, up to 50 MB). Waters are skipped; where an atom has alternative locations, the first one (usually A) is used. The file stays on your device and is never uploaded.</p>
+    <p class="ax-err ra-err" hidden></p>
+  </div>
+
+  <div class="ax-card ra-out" hidden>
+    <h2>Ramachandran plot</h2>
+    <p class="ax-big ra-big"></p>
+    <dl class="ax-facts ra-facts"></dl>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Chain <select class="ra-chain"></select></label>
+      <label>Longest C–N peptide bond (Å) <input class="ra-bond" type="number" min="1.2" max="5" step="0.1" value="2.0" inputmode="decimal" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="ra-guides" checked /> Draw the guide regions</label>
+    <label class="ax-check"><input type="checkbox" class="ra-labels" checked /> Name the residues outside the guides</label>
+    <canvas class="ax-fig ra-fig" style="margin-top:10px"></canvas>
+    <p class="ax-help ra-pick" aria-live="polite">Tap a point to see which residue it is.</p>
+    <p class="ax-help">The shaded areas are broad guides that fibub drew by hand as simple ovals around the usual helix, β-sheet and left-handed helix areas. They are not the published contour maps used by structure-validation programs, so treat a point just outside them as worth a look, not as an error.</p>
+
+    <h3>Residues outside the guides</h3>
+    <ul class="ra-outl"></ul>
+
+    <h3>All residues</h3>
+    <div class="ax-scroll ra-tw"><table class="ra-tab"></table></div>
+    <p class="ax-help">φ (phi) is the twist about the N–CA bond, ψ (psi) about CA–C, and ω (omega) about the peptide bond to the next residue (near 180° for trans, near 0° for cis). The first residue of a chain has no φ and the last has no ψ; a C–N gap longer than the limit above counts as a chain break. Region gives the short label of the guide region (see the plot's key); residues outside the guides are in red.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ra-csv">Download angles (CSV)</button></div>
+
+    <details class="ra-reg">
+      <summary>Guide regions (change them if you like)</summary>
+      <label style="margin-top:8px">One per line: name, short label, φ centre, ψ centre, φ half-width, ψ half-width (degrees) <textarea class="ra-regs" rows="4" spellcheck="false"></textarea></label>
+      <p class="ax-help">Each region is an oval around its centre that wraps around the edges of the plot. A point inside two ovals goes to the one whose centre is closer. These are rounded, made-up guides; change them to match the guide you use.</p>
+      <p class="ax-err ra-rerr" hidden></p>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small ra-reset">Put the guides back</button></div>
+    </details>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .rama h3 { margin: 22px 0 8px; font-size: 15px; }
+  .rama .ra-tw { max-height: 460px; overflow-y: auto; }
+  .rama .ra-tab td, .rama .ra-tab th { white-space: nowrap; }
+  .rama .ra-tab td:last-child { white-space: normal; min-width: 180px; }
+  .rama .ra-tab td.r { text-align: right; font-variant-numeric: tabular-nums; }
+  .rama .ra-tab tr.out td { color: var(--bad); }
+  .rama .ra-outl { margin: 0; padding-left: 20px; font-size: 15px; }
+  .rama .ra-outl li { margin: 3px 0; overflow-wrap: anywhere; }
+  .rama .ra-fig { cursor: pointer; max-width: 560px; }
+  .rama .ra-reg { margin-top: 18px; }
+  .rama .ra-reg > summary { cursor: pointer; font-weight: 600; font-size: 15px; }
+</style>
+
+<script>
+  import { parseStructure, backbone, summarise, anglesCsv, parseRegions, regionsText, exampleStructure, GUIDE_REGIONS, wrap, type Structure, type Angles, type Region } from '../../lib/sci/ramachandran';
+  import { wireDownloads, save, fileSafe, paint, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.rama')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f1 = (x: number | null) => (x === null ? '–' : x.toFixed(1));
+  const pct = (n: number, d: number) => (d ? `${((100 * n) / d).toFixed(1)} %` : '–');
+  const regsBox = q<HTMLTextAreaElement>('.ra-regs');
+  regsBox.value = regionsText(GUIDE_REGIONS);
+
+  let struct: Structure | null = null, name = 'structure', regions: Region[] = GUIDE_REGIONS, all: Angles[] = [], rows: Angles[] = [], fig: Figure | null = null, sections: Section[] = [];
+  let pts: { x: number; y: number; r: Angles }[] = [];
+
+  const W = 480, L = 52, R = 14, T = 14, P = W - L - R;
+  const X = (phi: number) => L + ((phi + 180) / 360) * P, Y = (psi: number) => T + ((180 - psi) / 360) * P;
+  const regColour = (pal: Palette, i: number) => [pal.accent, pal.accent2, pal.good, pal.warn, pal.muted][i % 5];
+
+  function marker(ctx: CanvasRenderingContext2D, kind: Angles['kind'], x: number, y: number, s: number) {
+    ctx.beginPath();
+    if (kind === 'gly') { ctx.moveTo(x, y - s * 1.2); ctx.lineTo(x + s * 1.1, y + s * 0.8); ctx.lineTo(x - s * 1.1, y + s * 0.8); ctx.closePath(); }
+    else if (kind === 'pro') ctx.rect(x - s * 0.85, y - s * 0.85, s * 1.7, s * 1.7);
+    else ctx.arc(x, y, s * 0.8, 0, 2 * Math.PI);
+    ctx.fill();
+  }
+
+  function makeFigure(): Figure {
+    const plot = rows.filter((r) => r.phi !== null && r.psi !== null);
+    const guides = q<HTMLInputElement>('.ra-guides').checked, labels = q<HTMLInputElement>('.ra-labels').checked;
+    pts = plot.map((r) => ({ x: X(r.phi!), y: Y(r.psi!), r }));
+    const H = T + P + 74 + (guides ? 22 * regions.length : 0);
+    return {
+      w: W, h: H, alt: `Ramachandran plot of ${plot.length} residues: phi across, psi up, both from -180 to 180 degrees`,
+      draw: (ctx, w, h, pal) => {
+        ctx.save(); ctx.beginPath(); ctx.rect(L, T, P, P); ctx.clip();
+        if (guides) regions.forEach((rg, i) => {
+          ctx.fillStyle = regColour(pal, i); ctx.strokeStyle = regColour(pal, i);
+          for (const dx of [-360, 0, 360]) for (const dy of [-360, 0, 360]) {
+            ctx.beginPath(); ctx.ellipse(X(rg.phi + dx), Y(rg.psi + dy), (rg.rphi / 360) * P, (rg.rpsi / 360) * P, 0, 0, 2 * Math.PI);
+            ctx.globalAlpha = pal.red ? 0.25 : 0.14; ctx.fill(); ctx.globalAlpha = 0.7; ctx.lineWidth = 1; ctx.stroke(); ctx.globalAlpha = 1;
+          }
+        });
+        ctx.strokeStyle = pal.grid; ctx.lineWidth = 1;
+        for (let a = -120; a <= 120; a += 60) { ctx.beginPath(); ctx.moveTo(X(a), T); ctx.lineTo(X(a), T + P); ctx.moveTo(L, Y(a)); ctx.lineTo(L + P, Y(a)); ctx.stroke(); }
+        ctx.strokeStyle = pal.line; ctx.beginPath(); ctx.moveTo(X(0), T); ctx.lineTo(X(0), T + P); ctx.moveTo(L, Y(0)); ctx.lineTo(L + P, Y(0)); ctx.stroke();
+        if (guides) {
+          ctx.font = 'bold 15px Arial, Helvetica, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          regions.forEach((rg, i) => { ctx.fillStyle = regColour(pal, i); ctx.fillText(rg.short, X(rg.phi) + (rg.rphi / 360) * P * 0.6, Y(rg.psi) + (rg.rpsi / 360) * P * 0.6); });
+        }
+        for (const p of pts) { ctx.fillStyle = p.r.region ? pal.ink : pal.bad; marker(ctx, p.r.kind, p.x, p.y, 4.2); }
+        if (labels) {
+          ctx.font = '12px Arial, Helvetica, sans-serif'; ctx.fillStyle = pal.bad; ctx.textBaseline = 'middle';
+          for (const p of pts) if (!p.r.region) { const right = p.x < L + P - 90; ctx.textAlign = right ? 'left' : 'right'; ctx.fillText(p.r.label, p.x + (right ? 8 : -8), p.y); }
+        }
+        ctx.restore();
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.strokeRect(L + 0.5, T + 0.5, P - 1, P - 1);
+        ctx.fillStyle = pal.muted; ctx.font = '14px Arial, Helvetica, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        for (let a = -180; a <= 180; a += 60) ctx.fillText(String(a), X(a), T + P + 5);
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        for (let a = -180; a <= 180; a += 60) ctx.fillText(String(a), L - 6, Y(a));
+        ctx.fillStyle = pal.ink; ctx.font = '15px Arial, Helvetica, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText('φ (phi), degrees', L + P / 2, T + P + 24);
+        ctx.save(); ctx.translate(12, T + P / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText('ψ (psi), degrees', 0, 0); ctx.restore();
+        // Legend.
+        const ly = T + P + 58;
+        ctx.font = '14px Arial, Helvetica, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        let lx = L;
+        for (const [k, t] of [['other', 'other'], ['gly', 'glycine'], ['pro', 'proline']] as [Angles['kind'], string][]) {
+          ctx.fillStyle = pal.ink; marker(ctx, k, lx + 5, ly, 4.2); ctx.fillText(t, lx + 14, ly); lx += 22 + ctx.measureText(t).width;
+        }
+        ctx.fillStyle = pal.bad; marker(ctx, 'other', lx + 5, ly, 4.2); ctx.fillText('outside the guides', lx + 14, ly);
+        if (guides) {
+          regions.forEach((rg, i) => {
+            const ly2 = ly + 22 * (i + 1);
+            ctx.fillStyle = regColour(pal, i); ctx.globalAlpha = 0.5; ctx.fillRect(L, ly2 - 6, 12, 12); ctx.globalAlpha = 1;
+            ctx.fillStyle = pal.ink; ctx.fillText(rg.name.includes(rg.short) ? rg.name : `${rg.short}: ${rg.name}`, L + 18, ly2);
+          });
+        }
+      },
+    };
+  }
+
+  const table = (t: HTMLElement, head: string[], body: { cells: string[]; cls?: string }[], right: number[]) => {
+    t.replaceChildren();
+    const h = t.insertRow(); for (const x of head) { const th = document.createElement('th'); th.textContent = x; h.append(th); }
+    for (const b of body) { const tr = t.insertRow(); if (b.cls) tr.className = b.cls; b.cells.forEach((x, k) => { const td = tr.insertCell(); td.textContent = x; if (right.includes(k)) td.className = 'r'; }); }
+  };
+  const regionName = (r: Angles) => (r.phi === null || r.psi === null ? '–' : r.region ? r.region.name : 'outside the guides');
+  const regionShort = (r: Angles) => (r.phi === null || r.psi === null ? '–' : r.region ? r.region.short : 'outside');
+  const kindName = (r: Angles) => (r.kind === 'gly' ? ' (Gly)' : r.kind === 'pro' ? ' (Pro)' : '');
+
+  function showError(msg: string) { const e = q('.ra-err'); e.textContent = msg; e.hidden = !msg; if (msg) q('.ra-out').hidden = true; }
+
+  function load(text: string, fname: string) {
+    showError('');
+    if (!text.trim()) { q('.ra-out').hidden = true; return; }
+    struct = parseStructure(text); name = fname;
+    const bb = struct.residues.filter((r) => r.atoms.has('N') && r.atoms.has('CA') && r.atoms.has('C'));
+    if (!struct.atoms) { showError(struct.format === 'mmcif' ? 'No atoms found. The mmCIF file needs an _atom_site loop with coordinates.' : 'No atoms found. A PDB file has lines that start with ATOM or HETATM followed by the coordinates in fixed columns.'); return; }
+    if (bb.length < 2) { showError(`Found ${struct.atoms} atoms but ${bb.length ? 'only one residue' : 'no residues'} with backbone N, CA and C atoms, so there are no angles to plot. Is this a protein structure?`); return; }
+    const chains = [...new Set(bb.map((r) => r.chain))];
+    const sel = q<HTMLSelectElement>('.ra-chain');
+    sel.replaceChildren(new Option(`All chains (${chains.length})`, '*'), ...chains.map((c) => new Option(c ? `Chain ${c}` : 'Chain (no name)', c)));
+    sel.disabled = chains.length < 2;
+    run();
+  }
+
+  function run() {
+    if (!struct) return;
+    const bond = Number(q<HTMLInputElement>('.ra-bond').value);
+    all = backbone(struct, regions, Number.isFinite(bond) && bond > 0 ? bond : 2.0);
+    const ch = q<HTMLSelectElement>('.ra-chain').value;
+    rows = ch === '*' ? all : all.filter((r) => r.chain === ch);
+    const S = summarise(rows, regions);
+    q('.ra-out').hidden = false;
+    q('.ra-big').textContent = `${S.plotted} residues plotted: ${S.byRegion.map((b) => `${pct(b.n, S.plotted)} ${b.region.short}`).join(', ')}, ${pct(S.outside, S.plotted)} outside the guides`;
+    const facts: [string, string, string?][] = [
+      ['Structure', struct.title || name, `${struct.format === 'pdb' ? 'PDB' : 'mmCIF'}${struct.models > 1 ? `, model 1 of ${struct.models}` : ''}`],
+      ['Chains', S.chains.join(', ') || '(no name)'],
+      ['Residues', String(S.residues), `${S.plotted} with both φ and ψ`],
+      ['Outside the guides', String(S.outside), pct(S.outside, S.plotted)],
+      ['Glycine, proline', `${S.gly}, ${S.pro}`, 'plotted'],
+      ['cis peptides', String(S.cis), 'ω within 30° of 0'],
+    ];
+    const dl = q('.ra-facts'); dl.replaceChildren();
+    for (const [k, v, s] of facts) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; dd.append(sm); } d.append(dt, dd); dl.append(d); }
+    fig = makeFigure(); paint(q<HTMLCanvasElement>('.ra-fig'), fig);
+    q('.ra-pick').textContent = 'Tap a point to see which residue it is.';
+    const outl = rows.filter((r) => r.phi !== null && r.psi !== null && !r.region);
+    const ul = q('.ra-outl'); ul.replaceChildren();
+    if (!outl.length) { const li = document.createElement('li'); li.textContent = 'None: every plotted residue is inside a guide region.'; ul.append(li); }
+    for (const r of outl) { const li = document.createElement('li'); li.textContent = `${r.label}${kindName(r)}: φ ${f1(r.phi)}°, ψ ${f1(r.psi)}°${r.kind === 'gly' ? '. Glycine has no side chain and often sits outside the usual areas.' : ''}`; ul.append(li); }
+    const cisRows = rows.filter((r) => r.cis);
+    for (const r of cisRows) { const li = document.createElement('li'); li.textContent = `${r.label}: cis peptide to the next residue (ω ${f1(r.omega)}°). Common before proline, rare elsewhere.`; ul.append(li); }
+    table(q('.ra-tab'), ['Residue', 'φ', 'ψ', 'ω', 'Region', 'Note'], rows.map((r) => ({ cells: [r.label + kindName(r), f1(r.phi), f1(r.psi), f1(r.omega), regionShort(r), r.note], cls: r.phi !== null && r.psi !== null && !r.region ? 'out' : undefined })), [1, 2, 3]);
+    sections = [
+      { title: 'Structure', facts: facts.map(([k, v, s]) => [k, s ? `${v} (${s})` : v]) },
+      { title: 'Ramachandran plot', text: [q('.ra-big').textContent ?? ''], figure: fig, note: 'Shaded areas are broad guide regions drawn by fibub as simple ovals, not published contour data.' },
+      { title: 'Residues outside the guides', text: outl.length ? outl.map((r) => `${r.label}${kindName(r)}: phi ${f1(r.phi)}, psi ${f1(r.psi)}`) : ['None.'] },
+      { title: 'Backbone angles (degrees)', table: { head: ['Residue', 'phi', 'psi', 'omega', 'Region', 'Note'], rows: rows.map((r) => [r.label + kindName(r), f1(r.phi), f1(r.psi), f1(r.omega), regionName(r), r.note]), align: ['l', 'r', 'r', 'r', 'l', 'l'] } },
+      { title: 'Guide regions', table: { head: ['Region', 'Label', 'phi centre', 'psi centre', 'phi half-width', 'psi half-width'], rows: regions.map((g) => [g.name, g.short, String(g.phi), String(g.psi), String(g.rphi), String(g.rpsi)]), align: ['l', 'l', 'r', 'r', 'r', 'r'] } },
+    ];
+  }
+
+  function readRegions() {
+    const p = parseRegions(regsBox.value), e = q('.ra-rerr');
+    e.textContent = p.errors.join(' '); e.hidden = !p.errors.length;
+    regions = p.regions;
+    run();
+  }
+
+  let tm = 0;
+  const later = (f: () => void) => { clearTimeout(tm); tm = window.setTimeout(f, 300); };
+  q('.ra-ex').addEventListener('click', () => { const t = exampleStructure(); q<HTMLTextAreaElement>('.ra-in').value = t; load(t, 'example'); });
+  q('.ra-open').addEventListener('click', () => q<HTMLInputElement>('.ra-file').click());
+  q('.ra-file').addEventListener('change', async () => {
+    const inp = q<HTMLInputElement>('.ra-file'), f = inp.files?.[0]; inp.value = ''; if (!f) return;
+    if (f.size > 50e6) { showError('That file is over 50 MB. Save just the chains you need, or the first model, and try again.'); return; }
+    if (/\.gz$/i.test(f.name)) { showError('That file is compressed (.gz). Unzip it first, then open the .pdb or .cif file.'); return; }
+    const text = await f.text();
+    q<HTMLTextAreaElement>('.ra-in').value = text.length > 400000 ? '' : text;
+    load(text, f.name.replace(/\.[^.]+$/, ''));
+  });
+  q('.ra-in').addEventListener('input', () => later(() => load(q<HTMLTextAreaElement>('.ra-in').value, 'pasted')));
+  q('.ra-chain').addEventListener('change', run);
+  q('.ra-bond').addEventListener('input', () => later(run));
+  q('.ra-guides').addEventListener('change', run);
+  q('.ra-labels').addEventListener('change', run);
+  regsBox.addEventListener('input', () => later(readRegions));
+  q('.ra-reset').addEventListener('click', () => { regsBox.value = regionsText(GUIDE_REGIONS); readRegions(); });
+  q('.ra-fig').addEventListener('click', (ev) => {
+    const c = q<HTMLCanvasElement>('.ra-fig'), b = c.getBoundingClientRect();
+    const x = ((ev.clientX - b.left) / b.width) * W, y = ((ev.clientY - b.top) / b.height) * (fig?.h ?? W);
+    let best: (typeof pts)[number] | null = null, bd = 12;
+    for (const p of pts) { const d = Math.hypot(p.x - x, p.y - y); if (d < bd) { bd = d; best = p; } }
+    q('.ra-pick').textContent = best ? `${best.r.label}${kindName(best.r)}: φ ${f1(best.r.phi)}°, ψ ${f1(best.r.psi)}°, ${regionName(best.r)}` : `No residue there (φ ${wrap(((x - L) / P) * 360 - 180).toFixed(0)}°, ψ ${(180 - ((y - T) / P) * 360).toFixed(0)}°).`;
+  });
+  q('.ra-csv').addEventListener('click', () => save(new Blob([anglesCsv(rows)], { type: 'text/csv' }), `${fileSafe(name)}-phi-psi.csv`, 'text/csv'));
+  wireDownloads(q('.dl'), () => ({ title: 'Ramachandran plot', subtitle: q('.ra-big').textContent ?? '', file: `${fileSafe(name)}-ramachandran`, sections }));
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.ra-out').hidden) paint(q<HTMLCanvasElement>('.ra-fig'), fig); });
+  q<HTMLTextAreaElement>('.ra-in').value = exampleStructure();
+  load(exampleStructure(), 'example');
+</script>

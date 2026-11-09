@@ -1,0 +1,203 @@
+---
+// Stock solution and media recipe scaler: a recipe table scaled to any final volume and to N-times stocks, with
+// weigh-out masses from molarity and molar mass and stock volumes from C1V1 = C2V2. Both examples are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax mrs">
+  <div class="ax-card">
+    <h2>Recipe</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small mr-ex" data-ex="buffer">Example buffer</button>
+      <button type="button" class="btn secondary small mr-ex" data-ex="broth">Bacterial broth</button>
+      <button type="button" class="btn secondary small mr-clear">Start empty</button>
+    </div>
+    <label class="mr-namel">Recipe name <input class="mr-name" value="Example wash buffer" /></label>
+    <div class="mr-rows"></div>
+    <div class="ax-row mr-tools">
+      <button type="button" class="btn secondary small mr-add">Add a component</button>
+      <button type="button" class="btn secondary small mr-open">Open a recipe CSV</button>
+      <input type="file" class="mr-file" accept=".csv,.tsv,.txt,text/csv,text/plain" hidden />
+    </div>
+    <p class="ax-help">Give each component its final strength in the finished solution (such as 20 mM, 10 g/L or 0.05 % v/v), and say how it goes in: weighed as a solid, measured as a neat liquid, or added from a stock you already have. For a molarity, type the molar mass from the bottle or a formula such as NaCl or MgCl2·6H2O. The two examples use made-up, rounded amounts; check them against your own protocol.</p>
+    <p class="ax-err mr-ferr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Make</h2>
+    <div class="ax-grid">
+      <label>Final volume <input class="mr-v" inputmode="decimal" value="500" /></label>
+      <label>Volume unit <select class="mr-vu"><option>L</option><option selected>mL</option><option>µL</option></select></label>
+      <label>Strength (N× concentrated) <input class="mr-n" inputmode="decimal" value="1" /></label>
+    </div>
+    <p class="ax-help">Strength 1 makes the solution ready to use. Strength 10 makes a 10× stock: every component ten times stronger, which you dilute 1 in 10 on the day.</p>
+    <p class="ax-err mr-err" hidden></p>
+    <div class="mr-out">
+      <p class="ax-big mr-big"></p>
+      <ol class="mr-steps"></ol>
+      <dl class="ax-facts mr-facts"></dl>
+      <ul class="mr-warn"></ul>
+      <h3>Components</h3>
+      <div class="ax-scroll"><table class="mr-tab"></table></div>
+    </div>
+    <div class="ax-row mr-dlrow"><button type="button" class="btn secondary small mr-csv">Download CSV</button></div>
+    <Downloads label="Recipe card" />
+  </div>
+</div>
+
+<script>
+  import { UNITS, EXAMPLES, scaleRecipe, parseMolarMass, parseRecipe, fmtMass, fmtVol, litres, sig4, toCsv, CSV_HEAD, type Row, type Source, type UnitId, type Line } from '../../lib/sci/recipe';
+  import { num } from '../../lib/sci/num';
+  import { save, fileSafe, wireDownloads } from '../../lib/report';
+
+  type Edit = { name: string; amount: string; unit: UnitId; source: Source; stock: string; stockUnit: UnitId; mw: string };
+  const root = document.querySelector<HTMLElement>('.mrs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const rowsEl = q('.mr-rows');
+  const SOURCES: [Source, string][] = [['weigh', 'Weigh'], ['neat', 'Neat'], ['stock', 'Stock']];
+  let steps: string[] = [], head: string[] = [], body: string[][] = [], warns: string[] = [], csvRows: string[][] = [], title = '';
+
+  const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', text = '') => { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; };
+  const select = (cls: string, opts: [string, string][], value: string) => { const s = el('select', cls); for (const [v, t] of opts) { const o = el('option', '', t); o.value = v; s.append(o); } s.value = value; return s; };
+  const labelled = (text: string, ctl: HTMLElement, cls = '') => { const l = el('label', cls); l.append(text + ' ', ctl); return l; };
+  const unitOpts = UNITS.map((u) => [u.id, u.id] as [string, string]);
+  const mol = (m: number) => (m >= 1 ? `${sig4(m)} mol` : m >= 1e-3 ? `${sig4(m * 1e3)} mmol` : `${sig4(m * 1e6)} µmol`);
+
+  function addRow(r: Edit) {
+    const d = el('div', 'mr-row');
+    const name = el('input', 'mr-c-name'); name.value = r.name; name.placeholder = 'Component';
+    const amt = el('input', 'mr-c-amt'); amt.value = r.amount; amt.inputMode = 'decimal';
+    const st = el('input', 'mr-c-st'); st.value = r.stock; st.inputMode = 'decimal';
+    const mw = el('input', 'mr-c-mw'); mw.value = r.mw; mw.placeholder = 'e.g. 58.44 or NaCl';
+    const del = el('button', 'btn secondary small mr-del', 'Remove'); del.type = 'button';
+    const top = el('div', 'mr-top'); top.append(labelled('Component', name), del);
+    d.append(
+      top,
+      labelled('Amount', amt), labelled('Unit', select('mr-c-unit', unitOpts, r.unit)),
+      labelled('Added as', select('mr-c-src', SOURCES, r.source)),
+      labelled('Stock', st, 'mr-stl'), labelled('Stock unit', select('mr-c-su', unitOpts, r.stockUnit), 'mr-stl'),
+      labelled('Molar mass (g/mol) or formula', mw, 'mr-wide'),
+      el('p', 'ax-help mr-msg'),
+    );
+    rowsEl.append(d);
+  }
+  const readRows = (): Edit[] => [...rowsEl.querySelectorAll<HTMLElement>('.mr-row')].map((d) => {
+    const v = (c: string) => (d.querySelector(c) as HTMLInputElement).value;
+    return { name: v('.mr-c-name').trim(), amount: v('.mr-c-amt'), unit: v('.mr-c-unit') as UnitId, source: v('.mr-c-src') as Source, stock: v('.mr-c-st'), stockUnit: v('.mr-c-su') as UnitId, mw: v('.mr-c-mw') };
+  });
+  function load(name: string, rows: Edit[]) { q<HTMLInputElement>('.mr-name').value = name; rowsEl.replaceChildren(); rows.forEach(addRow); calc(); }
+
+  function calc() {
+    const err = (m: string) => { q('.mr-err').textContent = m; q('.mr-err').hidden = !m; q('.mr-out').hidden = !!m; q('.mr-dlrow').hidden = !!m; if (m) { steps = []; body = []; } };
+    const edits = readRows(), divs = [...rowsEl.querySelectorAll<HTMLElement>('.mr-row')];
+    const vRaw = num(q<HTMLInputElement>('.mr-v').value), vu = q<HTMLSelectElement>('.mr-vu').value as 'L' | 'mL' | 'µL', N = num(q<HTMLInputElement>('.mr-n').value);
+    const rows: Row[] = edits.map((e) => ({ name: e.name || 'Unnamed component', amount: num(e.amount), unit: e.unit, source: e.source, stock: num(e.stock), stockUnit: e.stockUnit, mw: parseMolarMass(e.mw).mw }));
+    // Row hints: stock fields only for stocks, molar mass from a formula, and each row's own problem.
+    const res = Number.isFinite(vRaw) && vRaw > 0 && N > 0 ? scaleRecipe(rows, litres(vRaw, vu), N) : null;
+    divs.forEach((d, i) => {
+      d.querySelectorAll<HTMLElement>('.mr-stl').forEach((x) => (x.hidden = edits[i].source !== 'stock'));
+      const m = parseMolarMass(edits[i].mw), msg = d.querySelector<HTMLElement>('.mr-msg')!, line = res?.lines[i];
+      const bad = m.error ?? line?.error ?? '';
+      msg.textContent = bad || (m.formula ? `Molar mass ${sig4(m.mw!)} g/mol from the formula.` : '');
+      msg.classList.toggle('mr-bad', !!bad);
+      (d.querySelector('.mr-del') as HTMLElement).setAttribute('aria-label', `Remove ${edits[i].name || 'this component'}`);
+    });
+    if (!(vRaw > 0)) return err('Type the final volume you want to make.');
+    if (!(N > 0)) return err('Type a strength above 0: 1 for ready to use, 10 for a 10× stock.');
+    if (!rows.length) return err('Add a component, or pick an example.');
+    err('');
+    const V = litres(vRaw, vu), r = res!;
+    const recipe = q<HTMLInputElement>('.mr-name').value.trim() || 'Recipe';
+    const strength = N === 1 ? '' : `${sig4(N)}× `;
+    title = `${fmtVol(V)} of ${strength}${recipe}`;
+    q('.mr-big').textContent = title;
+    const ok = r.lines.filter((l) => !l.error);
+    const weigh = ok.filter((l) => l.row.source === 'weigh'), liq = ok.filter((l) => l.row.source !== 'weigh');
+    steps = [];
+    for (const l of weigh) steps.push(`Weigh ${fmtMass(l.grams!)} of ${l.row.name}${l.mol ? ` (${mol(l.mol)})` : ''}.`);
+    if (weigh.length) steps.push(`Dissolve ${weigh.length > 1 ? 'them' : 'it'} in about ${fmtVol(Math.max(0, r.water) * 0.8)} of water.`);
+    for (const l of liq) steps.push(l.row.source === 'neat' ? `Add ${fmtVol(l.litres!)} of ${l.row.name} (neat liquid).` : `Add ${fmtVol(l.litres!)} of ${l.row.name} stock (${sig4(l.row.stock!)} ${l.row.stockUnit}).`);
+    steps.push(`Make up to ${fmtVol(V)} with water and mix.`);
+    if (N > 1) { const part = V / N; steps.push(`To use: mix 1 part of this ${sig4(N)}× stock with ${sig4(N - 1)} parts water (for example ${fmtVol(part)} + ${fmtVol(V - part)}).`); }
+    q('.mr-steps').replaceChildren(...steps.map((s) => el('li', '', s)));
+
+    const fact = (k: string, v: string, sm = '') => { const d = el('div'); d.append(el('dt', '', k), el('dd', '', v)); if (sm) d.lastElementChild!.append(el('small', '', sm)); return d; };
+    q('.mr-facts').replaceChildren(
+      fact('Solids to weigh', fmtMass(r.grams), `${weigh.length} component${weigh.length === 1 ? '' : 's'}`),
+      fact('Liquids to add', fmtVol(r.liquid), `${liq.length} stock${liq.length === 1 ? '' : 's'} or neat liquid${liq.length === 1 ? '' : 's'}`),
+      fact('Water, about', fmtVol(Math.max(0, r.water)), 'make up to the mark; solids take a little room'),
+      fact('Strength', N === 1 ? '1× (ready to use)' : `${sig4(N)}× stock`, N === 1 ? '' : `dilute 1 in ${sig4(N)} to use`),
+    );
+    warns = [...r.lines.flatMap((l) => (l.error ? [`${l.row.name}: ${l.error}`] : l.warn.map((w) => `${l.row.name}: ${w}`))), ...r.warn];
+    q('.mr-warn').replaceChildren(...warns.map((w) => el('li', '', w)));
+
+    const how = (l: Line) => (l.error ? 'Fix the row above' : l.row.source === 'weigh' ? (l.row.mw ? `weigh (${sig4(l.row.mw)} g/mol)` : 'weigh') : l.row.source === 'neat' ? 'neat liquid' : `from ${sig4(l.row.stock!)} ${l.row.stockUnit} stock, 1 in ${sig4(l.fold!)}`);
+    const add = (l: Line) => (l.error ? '–' : l.row.source === 'weigh' ? fmtMass(l.grams!) : fmtVol(l.litres!));
+    head = ['Component', N === 1 ? 'Final' : `Final at ${sig4(N)}×`, 'Add', 'How'];
+    body = r.lines.map((l) => [l.row.name, Number.isFinite(l.row.amount) ? `${sig4(l.row.amount * N)} ${l.row.unit}` : '–', add(l), how(l)]);
+    const tab = q<HTMLTableElement>('.mr-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); head.forEach((h, j) => { const th = el('th', j === 2 ? 'r' : '', h); hr.append(th); });
+    const tb = tab.createTBody();
+    body.forEach((row, i) => { const tr = tb.insertRow(); if (r.lines[i].error) tr.className = 'mr-badrow'; row.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j === 2) { td.className = 'r'; td.style.whiteSpace = 'nowrap'; } }); });
+
+    csvRows = [[...CSV_HEAD, 'final_amount', 'final_unit', 'grams_to_weigh', 'mL_to_add', 'note'],
+      ...r.lines.map((l, i) => { const e = edits[i]; return [e.name, e.amount, e.unit, e.source, e.source === 'stock' ? e.stock : '', e.source === 'stock' ? e.stockUnit : '', e.mw, Number.isFinite(l.row.amount) ? String(l.row.amount * N) : '', e.unit,
+        !l.error && l.row.source === 'weigh' ? String(+l.grams!.toPrecision(6)) : '', !l.error && l.litres !== undefined ? String(+(l.litres * 1000).toPrecision(6)) : '', l.error ?? l.warn.join(' ')]; })];
+  }
+
+  rowsEl.addEventListener('input', calc);
+  rowsEl.addEventListener('change', (e) => {
+    const t = e.target as HTMLElement;
+    // Switching to "From a stock" starts the stock unit at the row's own unit.
+    if (t.classList.contains('mr-c-src')) { const d = t.closest('.mr-row')!; const st = d.querySelector<HTMLInputElement>('.mr-c-st')!; if (!st.value) (d.querySelector('.mr-c-su') as HTMLSelectElement).value = (d.querySelector('.mr-c-unit') as HTMLSelectElement).value; }
+    calc();
+  });
+  rowsEl.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('.mr-del'); if (b) { b.closest('.mr-row')!.remove(); calc(); } });
+  root.querySelectorAll<HTMLElement>('.mr-ex').forEach((b) => b.addEventListener('click', () => {
+    const ex = EXAMPLES.find((x) => x.id === b.dataset.ex)!;
+    q<HTMLInputElement>('.mr-v').value = String(ex.volume); q<HTMLSelectElement>('.mr-vu').value = ex.volUnit; q<HTMLInputElement>('.mr-n').value = '1';
+    q('.mr-ferr').hidden = true; load(ex.name, ex.rows.map((r) => ({ ...r })));
+  }));
+  q('.mr-clear').addEventListener('click', () => { q('.mr-ferr').hidden = true; load('', [{ name: '', amount: '', unit: 'mM', source: 'weigh', stock: '', stockUnit: 'M', mw: '' }]); q<HTMLInputElement>('.mr-name').focus(); });
+  q('.mr-add').addEventListener('click', () => { addRow({ name: '', amount: '', unit: 'mM', source: 'weigh', stock: '', stockUnit: 'M', mw: '' }); calc(); rowsEl.querySelector<HTMLInputElement>('.mr-row:last-child .mr-c-name')!.focus(); });
+  ['.mr-v', '.mr-n', '.mr-name'].forEach((c) => q(c).addEventListener('input', calc));
+  q('.mr-vu').addEventListener('change', calc);
+  q('.mr-open').addEventListener('click', () => q<HTMLInputElement>('.mr-file').click());
+  q('.mr-file').addEventListener('change', async () => {
+    const inp = q<HTMLInputElement>('.mr-file'), f = inp.files?.[0]; if (!f) return; inp.value = '';
+    const p = parseRecipe(await f.text());
+    q('.mr-ferr').textContent = p.errors.join(' '); q('.mr-ferr').hidden = !p.errors.length;
+    if (p.rows.length) load(f.name.replace(/\.[^.]+$/, ''), p.rows);
+  });
+  q('.mr-csv').addEventListener('click', () => save(new Blob([toCsv(csvRows)], { type: 'text/csv' }), `${fileSafe(title)}.csv`, 'text/csv'));
+  wireDownloads(q('.dl'), () => ({
+    title: q<HTMLInputElement>('.mr-name').value.trim() || 'Recipe', subtitle: title, file: fileSafe(title),
+    sections: q('.mr-out').hidden ? [] : [
+      { title, facts: steps.map((s, i) => [`Step ${i + 1}`, s] as [string, string]) },
+      { title: 'Components', table: { head, rows: body, align: ['l', 'l', 'r', 'l'] as ('l' | 'r')[] }, ...(warns.length ? { text: warns.map((w) => 'Check: ' + w) } : {}), note: 'Worked out on fibub.com. Make up close to the final volume, check the pH if it matters, then make up to the mark.' },
+    ],
+  }));
+  const ex0 = EXAMPLES[0]; load(ex0.name, ex0.rows.map((r) => ({ ...r })));
+</script>
+
+<style is:global>
+  .mrs .mr-namel { margin-top: 12px; }
+  .mrs .mr-rows { display: grid; gap: 10px; margin: 12px 0; }
+  .mrs .mr-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 84px), 1fr)); gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); align-items: end; }
+  .mrs .mr-wide { grid-column: 1 / -1; }
+  .mrs .mr-row .mr-msg { grid-column: 1 / -1; margin: 0; }
+  .mrs .mr-row .mr-msg:empty { display: none; }
+  .mrs .mr-row .mr-msg.mr-bad { color: var(--bad); }
+  .mrs .mr-top { grid-column: 1 / -1; display: flex; gap: 8px; align-items: end; }
+  .mrs .mr-top label { flex: 1; }
+  .mrs .mr-row input, .mrs .mr-row select { padding: 7px 8px; }
+  .mrs [hidden] { display: none !important; }
+  .mrs select { max-width: 100%; }
+  .mrs h3 { font-size: 15px; margin: 14px 0 6px; }
+  .mrs .mr-steps { margin: 6px 0 12px; padding-left: 22px; }
+  .mrs .mr-steps li { margin: 4px 0; }
+  .mrs .mr-warn { margin: 10px 0 0; padding-left: 20px; color: var(--bad); font-size: 14px; }
+  .mrs .mr-warn:empty { display: none; }
+  .mrs .mr-badrow td { color: var(--bad); }
+  .mrs .mr-dlrow { margin-top: 14px; }
+</style>

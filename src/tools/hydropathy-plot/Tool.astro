@@ -1,0 +1,226 @@
+---
+// Hydropathy plot: a sliding-window average of a hydropathy scale along a protein, GRAVY and likely transmembrane
+// segments, worked out in the browser. Nothing is uploaded. The scale is fibub's own rounded values (editable, or
+// paste a whole scale); the example protein is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax hyd">
+  <div class="ax-card">
+    <h2>Protein</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small hy-open">Open a FASTA file</button>
+      <input type="file" class="hy-file" accept=".fa,.fasta,.faa,.txt,text/plain" hidden />
+      <button type="button" class="btn secondary small hy-ex">Use the example</button>
+    </div>
+    <label style="margin-top:10px">Protein sequence (one-letter codes, FASTA is fine) <textarea class="hy-in" rows="4" spellcheck="false"></textarea></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Plot window (residues) <input class="hy-w" type="number" min="1" step="2" value="9" inputmode="numeric" /></label>
+      <label>Membrane window <input class="hy-tw" type="number" min="1" step="2" value="19" inputmode="numeric" /></label>
+      <label>Membrane threshold <input class="hy-th" type="number" step="0.1" value="1.6" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">The plot window smooths the curve: 7 to 11 shows surface and buried stretches. A membrane-crossing helix is about 19 to 21 residues long, so the membrane window looks for long stretches whose average is above the threshold. Only the first protein in a file is used.</p>
+    <p class="ax-err hy-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Hydropathy scale</h2>
+    <p class="ax-help">Positive values repel water (hydrophobic), negative values like water. These are <strong>fibub's own values</strong>: the widely taught Kyte–Doolittle numbers rounded to the nearest 0.5, so results differ a little from tools that use the published decimals. Change any value, or paste a whole scale below.</p>
+    <p class="hy-sname" aria-live="polite"></p>
+    <div class="hy-scale"></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small hy-reset">Reset to fibub's values</button></div>
+    <label style="margin-top:12px">Paste your own scale: one amino acid and a number per line (such as "A 1.8" or "Arg, -4.5"), or 20 numbers in the order A C D E F G H I K L M N P Q R S T V W Y <textarea class="hy-paste" rows="3" spellcheck="false" placeholder="A 1.8&#10;R -4.5&#10;N -3.5"></textarea></label>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small hy-use">Use this scale</button></div>
+    <p class="ax-err hy-perr" hidden></p>
+  </div>
+
+  <div class="ax-card hy-out" hidden>
+    <h2>Hydropathy plot</h2>
+    <p class="ax-big hy-big"></p>
+    <dl class="ax-facts hy-facts"></dl>
+    <canvas class="ax-fig hy-fig" style="margin-top:14px"></canvas>
+    <p class="ax-help hy-note"></p>
+    <h3>Likely transmembrane segments</h3>
+    <div class="ax-scroll"><table class="hy-tab"></table></div>
+    <p class="ax-help hy-tnote"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small hy-csv">Download values (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .hyd h3 { margin: 22px 0 8px; font-size: 15px; }
+  .hyd .hy-scale { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
+  .hyd .hy-scale label { font-size: 13px; }
+  .hyd .hy-scale input { width: 100%; min-width: 0; }
+  .hyd .hy-scale input.off { border-color: var(--warn, #8a5300); }
+  .hyd .hy-sname { margin: 6px 0 10px; font-weight: 600; }
+  .hyd table td.seq { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; word-break: break-all; }
+</style>
+
+<script>
+  import { SCALE_FIBUB, AA, parseScale, windowAverages, gravy, tmSegments, missing, values, EXAMPLE_PROTEIN, type Scale, type Segment } from '../../lib/sci/hydropathy';
+  import { readProtein, RESIDUES } from '../../lib/sci/protparam';
+  import { drawChart, canvasPainter, OKABE_ITO, type Series } from '../../lib/sci/plot';
+  import { wireDownloads, save, fileSafe, paint, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.hyd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fmt = (x: number, d = 2) => x.toFixed(d).replace('-', '−');
+  const table = (t: HTMLElement, head: string[], rows: (string | number)[][], cls: string[] = []) => {
+    t.replaceChildren();
+    const h = t.insertRow(); for (const x of head) { const th = document.createElement('th'); th.textContent = x; h.append(th); }
+    for (const r of rows) { const tr = t.insertRow(); r.forEach((x, k) => { const td = tr.insertCell(); td.textContent = String(x); if (cls[k]) td.className = cls[k]; }); }
+  };
+
+  // The scale boxes, most water-repelling first.
+  const ORDER = Object.keys(SCALE_FIBUB);
+  q('.hy-scale').replaceChildren(...ORDER.map((a) => {
+    const l = document.createElement('label'), i = document.createElement('input');
+    l.textContent = `${RESIDUES[a].three} (${a}) `; i.type = 'number'; i.step = '0.1'; i.inputMode = 'decimal'; i.dataset.aa = a; i.value = String(SCALE_FIBUB[a]);
+    l.append(i); return l;
+  }));
+  const inputs = [...root.querySelectorAll<HTMLInputElement>('.hy-scale input')];
+  const readScale = (): Scale => { const s: Scale = {}; for (const i of inputs) { const v = i.value.trim() === '' ? NaN : Number(i.value); if (Number.isFinite(v)) s[i.dataset.aa!] = v; } return s; };
+  const setScale = (s: Scale) => { for (const i of inputs) i.value = Number.isFinite(s[i.dataset.aa!]) ? String(s[i.dataset.aa!]) : ''; };
+
+  type Result = { seq: string; name: string; scale: Scale; w: number; tw: number; th: number; w1: ReturnType<typeof windowAverages>; w2: ReturnType<typeof windowAverages>; segs: Segment[]; g: number; own: boolean };
+  let res: Result | null = null;
+
+  function scaleName(scale: Scale) {
+    const changed = AA.filter((a) => scale[a] !== SCALE_FIBUB[a]);
+    for (const i of inputs) i.classList.toggle('off', scale[i.dataset.aa!] !== SCALE_FIBUB[i.dataset.aa!]);
+    q('.hy-sname').textContent = changed.length ? `Your own scale (${changed.length} of 20 values changed from fibub's)` : "fibub's rounded scale (all 20 values as shipped)";
+    return changed.length > 0;
+  }
+
+  function oddWhole(v: string) { const n = Number(v); return Number.isInteger(n) && n >= 1 && n % 2 === 1 ? n : NaN; }
+
+  function run() {
+    const err = q('.hy-err'), out = q('.hy-out');
+    err.hidden = true;
+    const scale = readScale(), own = scaleName(scale);
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; res = null; };
+    const text = q<HTMLTextAreaElement>('.hy-in').value;
+    const r = readProtein(text)[0];
+    if (!r || !r.seq) { out.hidden = true; res = null; if (text.trim()) fail('No amino acids found. Paste a protein sequence in one-letter codes.'); return; }
+    const w = oddWhole(q<HTMLInputElement>('.hy-w').value), tw = oddWhole(q<HTMLInputElement>('.hy-tw').value);
+    if (!w || !tw) return fail('Each window must be an odd whole number (such as 7, 9, 11 or 19), so every window has a middle residue.');
+    const th = Number(q<HTMLInputElement>('.hy-th').value);
+    if (q<HTMLInputElement>('.hy-th').value.trim() === '' || !Number.isFinite(th)) return fail('Type a number for the membrane threshold (1.6 is the usual value).');
+    if (w > r.seq.length) return fail(`This protein has ${r.seq.length} amino acids, fewer than the plot window of ${w}. Use a smaller window.`);
+    const seq = r.seq;
+    const w1 = windowAverages(seq, scale, w), w2 = windowAverages(seq, scale, tw), segs = tmSegments(seq, scale, tw, th), g = gravy(seq, scale);
+    res = { seq, name: r.name, scale, w, tw, th, w1, w2, segs, g, own };
+    out.hidden = false;
+    q('.hy-big').textContent = `GRAVY ${fmt(g, 3)} · ${segs.length ? `${segs.length} likely transmembrane segment${segs.length > 1 ? 's' : ''}` : 'no likely transmembrane segments'}`;
+    const hi = w1.avg.indexOf(Math.max(...w1.avg)), lo = w1.avg.indexOf(Math.min(...w1.avg));
+    const facts: [string, string, string?][] = [
+      ['Length', `${seq.length}`, 'amino acids'],
+      ['GRAVY', fmt(g, 3), g > 0 ? 'water-repelling overall' : 'water-loving overall'],
+      [`Highest ${w}-window mean`, fmt(w1.avg[hi]), `around residue ${w1.pos[hi]}`],
+      [`Lowest ${w}-window mean`, fmt(w1.avg[lo]), `around residue ${w1.pos[lo]}`],
+      ['Transmembrane segments', String(segs.length), `${tw}-residue windows above ${fmt(th, 1)}`],
+    ];
+    q('.hy-facts').replaceChildren(...facts.map(([t, v, s]) => { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = t; dd.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; dd.append(sm); } d.append(dt, dd); return d; }));
+    const miss = missing(seq, scale), notes: string[] = [];
+    if (Object.keys(miss).length) notes.push(`No scale value for ${Object.entries(miss).map(([a, n]) => `${a} (${n}×)`).join(', ')}: counted as 0 in the windows and left out of GRAVY. Give ${Object.keys(miss).length > 1 ? 'them values' : 'it a value'} in the scale to change that.`);
+    const amb = Object.entries(r.ambiguous).map(([a, n]) => `${a} (${n}×)`), skip = Object.keys(r.skipped);
+    if (amb.length) notes.push(`Left out as ambiguous: ${amb.join(', ')}.`);
+    if (skip.length) notes.push(`Ignored characters: ${skip.join(' ')}.`);
+    if (tw > seq.length) notes.push(`The protein is shorter than the membrane window of ${tw}, so no segments were looked for.`);
+    notes.push(`Each point is the mean of ${w} residues, drawn at the middle one${tw !== w ? `; the dashed curve uses ${tw}` : ''}. The flat dashed line is the membrane threshold (${fmt(th, 1)}); shaded bands are the likely transmembrane segments.`);
+    q('.hy-note').textContent = notes.join(' ');
+    table(q('.hy-tab'), ['#', 'From', 'To', 'Length', 'Highest mean', 'Sequence'], segs.map((s, i) => [i + 1, s.start, s.end, s.length, fmt(s.peak), s.seq]), ['r', 'r', 'r', 'r', 'r', 'seq']);
+    q('.hy-tab').hidden = !segs.length;
+    q('.hy-tnote').textContent = segs.length
+      ? `A segment covers every residue of each ${tw}-residue window whose mean is above ${fmt(th, 1)}. Signal peptides and buried stretches of soluble proteins can score high too, so treat these as likely, not certain.`
+      : `No ${tw}-residue window has a mean above ${fmt(th, 1)}, so no membrane-crossing helix is likely. Soluble proteins usually look like this.`;
+    draw();
+  }
+
+  function figure(W: number, H: number): Figure {
+    const r = res!;
+    return {
+      w: W, h: H, alt: `Hydropathy plot of ${r.name}: ${r.w}-residue window means along ${r.seq.length} residues, GRAVY ${fmt(r.g, 3)}, ${r.segs.length} likely transmembrane segments`,
+      draw: (ctx, w, h, pal) => {
+        const colors = pal.red ? ['#a30000', '#7a0000'] : pal.bg === '#ffffff' ? OKABE_ITO : ['#56B4E9', '#E69F00'];
+        const series: Series[] = [{ name: `Window ${r.w}`, x: r.w1.pos, y: r.w1.avg, mode: 'line', color: colors[0], width: 1.8 }];
+        if (r.tw !== r.w && r.w2.avg.length) series.push({ name: `Window ${r.tw} (membrane)`, x: r.w2.pos, y: r.w2.avg, mode: 'line', color: colors[1], width: 1.6, dash: [6, 4] });
+        const fs = w < 480 ? 11 : 13;
+        const m = drawChart(canvasPainter(ctx), {
+          w, h, xLabel: 'Residue number', yLabel: 'Hydropathy (window mean)', series, font: fs, legend: series.length > 1 ? 'below' : 'none',
+          xMin: 0, xMax: r.seq.length, ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: null,
+          marks: [{ kind: 'hline', at: 0, color: pal.muted, dash: [2, 3] }, { kind: 'hline', at: r.th, color: colors[1], dash: [5, 4] }],
+        });
+        ctx.save();
+        r.segs.forEach((s, i) => {
+          const x0 = Math.max(m.px0, m.X(s.start - 0.5)), x1 = Math.min(m.px1, m.X(s.end + 0.5));
+          ctx.globalAlpha = pal.red ? 0.25 : 0.14; ctx.fillStyle = pal.accent; ctx.fillRect(x0, m.py0, x1 - x0, m.py1 - m.py0);
+          ctx.globalAlpha = 1; ctx.fillStyle = pal.ink; ctx.font = `600 ${fs * 0.9}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+          ctx.fillText(`TM${i + 1}`, (x0 + x1) / 2, m.py0 + 3);
+        });
+        ctx.restore();
+      },
+    };
+  }
+
+  let fig: Figure | null = null;
+  function draw() {
+    if (!res) return;
+    const c = q<HTMLCanvasElement>('.hy-fig'), W = Math.max(300, Math.min(760, Math.round(c.parentElement!.clientWidth || 640)));
+    fig = figure(W, W < 480 ? 300 : 380);
+    paint(c, fig);
+  }
+
+  const sections = (): Section[] => {
+    const r = res!;
+    return [
+      { title: 'Summary', facts: [['Protein', r.name], ['Length', `${r.seq.length} amino acids`], ['GRAVY', fmt(r.g, 3)], ['Plot window', `${r.w} residues`], ['Membrane window', `${r.tw} residues, threshold ${fmt(r.th, 1)}`], ['Scale', r.own ? 'own values' : "fibub's rounded scale"]] },
+      { title: 'Hydropathy plot', figure: figure(720, 380) },
+      { title: 'Likely transmembrane segments', ...(r.segs.length ? { table: { head: ['#', 'From', 'To', 'Length', 'Highest mean', 'Sequence'], rows: r.segs.map((s, i) => [String(i + 1), String(s.start), String(s.end), String(s.length), fmt(s.peak), s.seq]), align: ['r', 'r', 'r', 'r', 'r', 'l'] as ('l' | 'r')[] } } : { text: ['None found.'] }), note: 'A rough guide from hydropathy alone; signal peptides and buried stretches can also score high.' },
+      { title: 'Scale used', table: { head: ['Amino acid', 'Value'], rows: ORDER.map((a) => [`${RESIDUES[a].three} (${a})`, Number.isFinite(r.scale[a]) ? String(r.scale[a]) : 'none']), align: ['l', 'r'] }, note: r.own ? 'Values typed or pasted by the user.' : "fibub's own scale: widely taught Kyte-Doolittle values rounded to the nearest 0.5." },
+    ];
+  };
+
+  let tm = 0;
+  const later = (f: () => void) => { clearTimeout(tm); tm = window.setTimeout(f, 250); };
+  q('.hy-in').addEventListener('input', () => later(run));
+  for (const c of ['.hy-w', '.hy-tw', '.hy-th']) q(c).addEventListener('input', () => later(run));
+  q('.hy-scale').addEventListener('input', () => later(run));
+  q('.hy-reset').addEventListener('click', () => { setScale(SCALE_FIBUB); q('.hy-perr').hidden = true; run(); });
+  q('.hy-use').addEventListener('click', () => {
+    const e = q('.hy-perr'), text = q<HTMLTextAreaElement>('.hy-paste').value;
+    const p = parseScale(text);
+    if (!text.trim()) { e.textContent = 'Paste a scale first.'; e.hidden = false; return; }
+    if (p.errors.length) { e.textContent = `Not used: ${p.errors.slice(0, 3).join(' ')}${p.errors.length > 3 ? ` (and ${p.errors.length - 3} more)` : ''}`; e.hidden = false; return; }
+    const gaps = AA.filter((a) => !Number.isFinite(p.scale[a]));
+    setScale(p.scale);
+    e.textContent = gaps.length ? `Used. No value for ${gaps.join(', ')}: those boxes are empty and count as 0.` : ''; e.hidden = !gaps.length;
+    run();
+  });
+  q('.hy-ex').addEventListener('click', () => {
+    q<HTMLTextAreaElement>('.hy-in').value = EXAMPLE_PROTEIN;
+    q<HTMLInputElement>('.hy-w').value = '9'; q<HTMLInputElement>('.hy-tw').value = '19'; q<HTMLInputElement>('.hy-th').value = '1.6';
+    setScale(SCALE_FIBUB); q('.hy-perr').hidden = true; run();
+  });
+  q('.hy-open').addEventListener('click', () => q<HTMLInputElement>('.hy-file').click());
+  q('.hy-file').addEventListener('change', async () => {
+    const f = q<HTMLInputElement>('.hy-file').files?.[0]; if (!f) return;
+    if (f.size > 5e6) { q('.hy-err').textContent = 'That file is over 5 MB.'; q('.hy-err').hidden = false; return; }
+    q<HTMLTextAreaElement>('.hy-in').value = await f.text(); run(); q<HTMLInputElement>('.hy-file').value = '';
+  });
+  q('.hy-csv').addEventListener('click', () => {
+    const r = res; if (!r) return;
+    const v = values(r.seq, r.scale), a1 = new Map(r.w1.pos.map((p, i) => [p, r.w1.avg[i]])), a2 = new Map(r.w2.pos.map((p, i) => [p, r.w2.avg[i]]));
+    const inSeg = (p: number) => r.segs.findIndex((s) => p >= s.start && p <= s.end) + 1;
+    const n4 = (x: number | undefined) => (x == null || !Number.isFinite(x) ? '' : String(+x.toFixed(4)));
+    const lines = [`position,residue,value,window_${r.w}_mean,window_${r.tw}_mean,tm_segment`, ...[...r.seq].map((aa, i) => [i + 1, aa, n4(v[i]), n4(a1.get(i + 1)), n4(a2.get(i + 1)), inSeg(i + 1) || ''].join(','))];
+    save(new Blob([lines.join('\n') + '\n'], { type: 'text/csv' }), `${fileSafe(r.name)}-hydropathy.csv`, 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => (res ? { title: 'Hydropathy plot', subtitle: q('.hy-big').textContent ?? '', file: `${fileSafe(res.name)}-hydropathy`, sections: sections() } : { title: '', file: '', sections: [] }));
+  document.addEventListener('fibub:theme', draw);
+  let rw = 0;
+  window.addEventListener('resize', () => { clearTimeout(rw); rw = window.setTimeout(draw, 150); });
+  scaleName(readScale());
+</script>
