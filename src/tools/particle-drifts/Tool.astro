@@ -1,0 +1,163 @@
+---
+// Charged particle drifts: Boris pusher animation compared with guiding-centre theory (E x B, grad-B, curvature, gravity).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax pdr">
+  <div class="ax-card">
+    <h2>Fields and particle</h2>
+    <label>Drift <select class="pd-sc">
+      <option value="exb" selected>E × B drift (uniform E across uniform B)</option>
+      <option value="gradb">Grad-B drift (B grows across the field)</option>
+      <option value="curv">Curvature and grad-B drift (curved field, as in a torus)</option>
+      <option value="grav">Gravity or force drift (steady force across B)</option>
+    </select></label>
+    <p class="ax-help pd-what"></p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Particle <select class="pd-p"><option value="p" selected>Proton</option><option value="e">Electron</option><option value="a">Alpha (He²⁺)</option><option value="o">O⁺ ion</option><option value="c">Other…</option></select></label>
+      <label class="pd-cz">Charge (multiples of e, sign included) <input class="pd-z" type="text" inputmode="decimal" value="1" /></label>
+      <label class="pd-cm">Mass (u) <input class="pd-m" type="text" inputmode="decimal" value="1.00728" /></label>
+      <label>Magnetic field B (mT) <input class="pd-b" type="text" inputmode="decimal" value="1" /></label>
+      <label class="pd-fe">Electric field E (V/m) <input class="pd-e" type="text" inputmode="decimal" value="20" /></label>
+      <label class="pd-fl">Gradient length L (m), B = B₀(1 + x/L) <input class="pd-l" type="text" inputmode="decimal" value="20" /></label>
+      <label class="pd-fr">Radius of curvature R (m) <input class="pd-r" type="text" inputmode="decimal" value="20" /></label>
+      <label class="pd-fg">Acceleration from the force (m/s²) <input class="pd-g" type="text" inputmode="decimal" value="1e9" /></label>
+      <label>Energy across B, W⊥ (eV) <input class="pd-wp" type="text" inputmode="decimal" value="100" /></label>
+      <label>Energy along B, W∥ (eV) <input class="pd-wl" type="text" inputmode="decimal" value="100" /></label>
+      <label>Gyrations to follow <input class="pd-n" type="text" inputmode="numeric" value="10" /></label>
+      <label>Time steps per gyration <select class="pd-s"><option>16</option><option>32</option><option selected>64</option><option>128</option><option>256</option></select></label>
+    </div>
+    <p class="ax-help">Field values are made up and editable. The particle starts with its guiding centre at the origin. Fewer steps per gyration run faster but less accurately; the Boris method still keeps the speed exact in a pure magnetic field.</p>
+    <p class="ax-err pd-err" hidden></p>
+  </div>
+
+  <div class="ax-card pd-out">
+    <h2>Path and drift</h2>
+    <p class="ax-big pd-big"></p>
+    <div class="ax-row"><button type="button" class="btn small pd-play">Pause</button><button type="button" class="btn secondary small pd-again">Play again</button>
+      <label class="pd-spd">Speed <select class="pd-v"><option value="0.5">slow</option><option value="1" selected>normal</option><option value="3">fast</option></select></label></div>
+    <canvas class="ax-fig pd-fig"></canvas>
+    <dl class="ax-facts pd-facts"></dl>
+    <p class="ax-help">Non-relativistic Boris pusher in the given fields, compared with first-order guiding-centre theory. The two agree when the gyroradius is small compared with the gradient length or radius of curvature. For study and teaching.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pd-csv">Download the path (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { simulate, E_CH, AMU, ME, type DriftIn, type Scenario } from '../../lib/sci/phdrift';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.pdr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const WHAT: Record<Scenario, string> = {
+    exb: 'B points out of the screen (z) and E points right (x). Every charge, positive or negative, drifts at E/B in the direction of E × B (down the screen).',
+    gradb: 'B points out of the screen and gets stronger to the right. The orbit is tighter where B is strong, so positive and negative charges drift opposite ways along y.',
+    curv: 'B runs around a circle of radius R (like the field in a tokamak, falling as 1/R). The view is a cut through it: radius across, height up. Charges drift up or down by sign.',
+    grav: 'B points out of the screen and a steady force (gravity, or any force per unit mass) pulls right. The drift is F × B / qB², opposite ways for opposite charges.',
+  };
+  const PART: Record<string, [number, number]> = { p: [1, 1.007276], e: [-1, ME / AMU], a: [2, 4.001506], o: [1, 15.9944] };
+  let run: ReturnType<typeof simulate> | null = null, pts: [number, number][] = [], box = { x0: 0, x1: 1, y0: 0, y1: 1 }, unit = { f: 1, s: 'm' };
+  let frame = 0, playing = false, raf = 0, report: Section[] = [], last: Figure | null = null, inp: DriftIn | null = null;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function figure(upto: number): Figure {
+    const sc = q<HTMLSelectElement>('.pd-sc').value, k = Math.max(1, upto), shown = pts.slice(0, k + 1), u = unit.f;
+    const r = run!, T = r.n * r.dt, g0 = r.gc0, th = r.theory;
+    const xl = sc === 'curv' ? `R (${unit.s})` : `x (${unit.s})`, yl = sc === 'curv' ? `z (${unit.s})` : `y (${unit.s})`;
+    return chartFigure({ w: 380, h: 340, xLabel: xl, yLabel: yl, xMin: box.x0, xMax: box.x1, yMin: box.y0, yMax: box.y1, legend: 'below', series: [
+      { name: 'Particle path (Boris)', x: shown.map((p) => p[0] / u), y: shown.map((p) => p[1] / u), mode: 'line', width: 1.4 },
+      { name: 'Guiding centre, theory', x: [g0[0] / u, (g0[0] + th[0] * T) / u], y: [g0[1] / u, (g0[1] + th[1] * T) / u], mode: 'line', width: 2, dash: [6, 4] },
+      { name: 'Particle now', x: [shown[shown.length - 1][0] / u], y: [shown[shown.length - 1][1] / u], mode: 'points', marker: 'circle', size: 5 },
+    ] }, `Particle path across the field for ${q<HTMLSelectElement>('.pd-sc').selectedOptions[0].text}`);
+  }
+  const draw = (i: number) => { last = figure(i); paint(q<HTMLCanvasElement>('.pd-fig'), last); };
+  function tick() {
+    if (!playing || !run) return;
+    const per = Math.max(1, Math.round((pts.length / 360) * +q<HTMLSelectElement>('.pd-v').value));
+    frame = Math.min(pts.length - 1, frame + per); draw(frame);
+    if (frame >= pts.length - 1) { playing = false; q('.pd-play').textContent = 'Play'; return; }
+    raf = requestAnimationFrame(tick);
+  }
+  const play = (from?: number) => { cancelAnimationFrame(raf); if (from !== undefined) frame = from; if (frame >= pts.length - 1) frame = 0; playing = true; q('.pd-play').textContent = 'Pause'; raf = requestAnimationFrame(tick); };
+  const pause = () => { playing = false; cancelAnimationFrame(raf); q('.pd-play').textContent = 'Play'; };
+
+  function calc() {
+    const sc = q<HTMLSelectElement>('.pd-sc').value as Scenario, pk = q<HTMLSelectElement>('.pd-p').value;
+    q('.pd-what').textContent = WHAT[sc];
+    for (const [c, s] of [['.pd-fe', 'exb'], ['.pd-fl', 'gradb'], ['.pd-fr', 'curv'], ['.pd-fg', 'grav']]) q(c).hidden = sc !== s;
+    q('.pd-cz').hidden = q('.pd-cm').hidden = pk !== 'c';
+    const err = q('.pd-err'), out = q('.pd-out');
+    const fail = (m: string) => { pause(); err.textContent = m; err.hidden = false; out.hidden = true; report = []; run = null; };
+    const [Z, A] = pk === 'c' ? [val('.pd-z'), val('.pd-m')] : PART[pk];
+    const B0 = val('.pd-b') * 1e-3, E = val('.pd-e'), L = val('.pd-l'), R0 = val('.pd-r'), g = val('.pd-g');
+    const Wperp = val('.pd-wp'), Wpar = val('.pd-wl'), N = val('.pd-n'), steps = +q<HTMLSelectElement>('.pd-s').value;
+    if (!(Number.isFinite(Z) && Z !== 0 && Math.abs(Z) <= 100)) return fail('Give the charge as a non-zero multiple of e, for example 1 or −1.');
+    if (!(A > 0 && A < 1e6)) return fail('Give the mass in atomic mass units (an electron is 0.000549).');
+    if (!(B0 > 0)) return fail('Give a magnetic field greater than 0.');
+    if (sc === 'exb' && !Number.isFinite(E)) return fail('Give the electric field in V/m.');
+    if (sc === 'gradb' && !(L > 0)) return fail('Give a gradient length greater than 0.');
+    if (sc === 'curv' && !(R0 > 0)) return fail('Give a radius of curvature greater than 0.');
+    if (sc === 'grav' && !Number.isFinite(g)) return fail('Give the acceleration from the force in m/s².');
+    if (!(Wperp > 0)) return fail('Give an energy across the field greater than 0, so the particle gyrates.');
+    if (!(Wpar >= 0)) return fail('The energy along the field cannot be negative.');
+    if (!(N >= 2 && N <= 60 && Number.isInteger(N))) return fail('Follow between 2 and 60 whole gyrations.');
+    err.hidden = true; out.hidden = false;
+    inp = { scenario: sc, q: Z * E_CH, m: A * AMU, B0, E, L, R0, g, Wperp, Wpar, periods: N, steps };
+    const r = simulate(inp); run = r;
+    const ratio = sc === 'gradb' ? r.rL / L : sc === 'curv' ? r.rL / R0 : 0;
+    if (sc === 'gradb' && r.rL * 4 > L) return fail(`The gyroradius (${sig(r.rL, 3)} m) is too big for this gradient length: B would change sign across the orbit. Make L at least 4 × the gyroradius.`);
+    if (sc === 'curv' && r.rL * 4 > R0) return fail(`The gyroradius (${sig(r.rL, 3)} m) is too big for this radius of curvature. Make R at least 4 × the gyroradius.`);
+    // Display units and an equal-aspect box around the path.
+    const stride = Math.max(1, Math.ceil(r.pts.length / 3000));
+    pts = r.pts.filter((_, i) => i % stride === 0 || i === r.pts.length - 1);
+    const T = r.n * r.dt, ends = [...pts, [r.gc0[0] + r.theory[0] * T, r.gc0[1] + r.theory[1] * T] as [number, number]];
+    const xs = ends.map((p) => p[0]), ys = ends.map((p) => p[1]);
+    const span = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+    unit = span < 1e-3 ? { f: 1e-6, s: 'µm' } : span < 1 ? { f: 1e-3, s: 'mm' } : span > 5e3 ? { f: 1e3, s: 'km' } : { f: 1, s: 'm' };
+    const cx = (Math.max(...xs) + Math.min(...xs)) / 2, cy = (Math.max(...ys) + Math.min(...ys)) / 2, half = span * 0.55;
+    box = { x0: (cx - half * 1.1) / unit.f, x1: (cx + half * 1.1) / unit.f, y0: (cy - half) / unit.f, y1: (cy + half) / unit.f };
+    const th = Math.hypot(...r.theory), me = Math.hypot(...r.measured), dirOk = r.theory[0] * r.measured[0] + r.theory[1] * r.measured[1] >= 0;
+    const dirTxt = (v: [number, number]) => { const a = sc === 'curv' ? ['+R', '−R', 'up (+z)', 'down (−z)'] : ['+x', '−x', '+y', '−y']; return Math.abs(v[0]) > Math.abs(v[1]) ? (v[0] > 0 ? a[0] : a[1]) : (v[1] > 0 ? a[2] : a[3]); };
+    const pct = th > 0 ? (100 * (me - th)) / th : 0;
+    q('.pd-big').textContent = th > 0 ? `Drift ${sig(me, 4)} m/s ${dirTxt(r.measured)}; theory ${sig(th, 4)} m/s (${pct >= 0 ? '+' : '−'}${Math.abs(pct).toFixed(2)} %)` : `No drift: the guiding centre stays put (${sig(me, 2)} m/s)`;
+    const f = [
+      fact('Gyroradius', `${sig(r.rL, 4)} m`, 'r = m v⊥ / |q| B, at the start'),
+      fact('Gyro-frequency', `${sig(r.wc / (2 * Math.PI), 4)} Hz`, `ω = |q|B/m = ${sig(r.wc, 4)} rad/s; one turn takes ${sig(r.Tc, 4)} s`),
+      fact('Speeds', `v⊥ ${sig(r.vperp, 4)} m/s, v∥ ${sig(r.vpar, 4)} m/s`, 'from the two energies'),
+      fact('Drift, theory', th > 0 ? `${sig(th, 4)} m/s ${dirTxt(r.theory)}` : '0', sc === 'exb' ? 'E/B, the same for every charge and mass' : sc === 'gradb' ? '(m v⊥² / 2qB) / L' : sc === 'curv' ? '(m / qBR)(v∥² + v⊥²/2), curvature plus grad-B' : 'm g / qB'),
+      fact('Drift, simulated', `${sig(me, 4)} m/s ${me > 0 ? dirTxt(r.measured) : ''}`.trim(), `guiding centre averaged over the first and last gyration${dirOk ? '' : '; opposite to theory'}`),
+      fact('Drift per gyration', `${sig((me * r.Tc) / r.rL, 3)} gyroradii`, 'small means the guiding-centre picture holds'),
+      ...(ratio ? [fact('Gyroradius ÷ scale length', sig(ratio, 3), ratio < 0.1 ? 'small: first-order theory should be close' : 'not small: expect differences from the theory')] : []),
+      fact('Kinetic energy change', `${sig((r.ke1 / r.ke0 - 1) * 100, 2)} %`, sc === 'exb' || sc === 'grav' ? 'swaps with potential energy as the particle gyrates' : 'a magnetic field does no work: should be about 0'),
+    ];
+    q('.pd-facts').replaceChildren(...f);
+    last = figure(pts.length - 1);
+    report = [{ title: q('.pd-big').textContent!, text: [WHAT[sc], `Particle charge ${Z} e, mass ${sig(A, 5)} u; B = ${sig(B0 * 1e3, 4)} mT; W⊥ = ${sig(Wperp, 4)} eV, W∥ = ${sig(Wpar, 4)} eV; ${N} gyrations, ${steps} steps each.`], facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: last }];
+    if (reduce) { frame = pts.length - 1; draw(frame); pause(); } else play(0);
+  }
+
+  root.querySelectorAll('.ax-card:first-child input, .ax-card:first-child select').forEach((i) => { i.addEventListener('change', calc); if (i.tagName === 'INPUT') i.addEventListener('input', calc); });
+  q('.pd-play').addEventListener('click', () => (playing ? pause() : play()));
+  q('.pd-again').addEventListener('click', () => play(0));
+  document.addEventListener('fibub:theme', () => { if (run) draw(frame); });
+  q('.pd-csv').addEventListener('click', () => {
+    if (!run) return;
+    const rows: (string | number)[][] = [[q<HTMLSelectElement>('.pd-sc').value === 'curv' ? 'R_m' : 'x_m', q<HTMLSelectElement>('.pd-sc').value === 'curv' ? 'z_m' : 'y_m', 't_s']];
+    run.pts.forEach((p, i) => rows.push([+p[0].toPrecision(8), +p[1].toPrecision(8), +(i * run!.dt).toPrecision(8)]));
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'particle-path.csv', 'text/csv');
+  });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Particle drift', subtitle: q<HTMLSelectElement>('.pd-sc').selectedOptions[0].text, file: 'particle-drift', sections: report.map((s) => ({ ...s, figure: run ? figure(pts.length - 1) : s.figure })) }));
+</script>
+
+<style is:global>
+  .pdr .pd-spd { display: inline-flex; flex-direction: row; align-items: center; gap: 6px; }
+  .pdr .pd-spd select { width: auto; }
+  .pdr canvas.ax-fig { margin-top: 10px; }
+  .pdr [hidden] { display: none !important; }
+</style>
