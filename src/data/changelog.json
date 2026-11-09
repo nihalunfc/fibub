@@ -1,5 +1,14 @@
 [
  {
+  "sha": "101e107ea921",
+  "date": "2026-11-09T04:45:33+00:00",
+  "title": "Add #168 restriction digest simulator: sites on both strands, fragments, map and virtual gel",
+  "tools": [
+   "restriction-digest"
+  ],
+  "site": false
+ },
+ {
   "sha": "471930612754",
   "date": "2026-11-09T04:30:23+00:00",
   "title": "Add #167 primer checker: Tm, GC clamp, runs, hairpins, dimers and template products",
