@@ -77,8 +77,9 @@ export class Counter extends DurableObject<Env> {
     this.flush();
   }
 
-  // Before pages were counted, tool pages were counted by tool id ("v:<id>"). Move those all-time
-  // totals onto the tool page's address, once.
+  // Before pages were counted, tool pages were counted by tool id ("v:<id>"). Copy those all-time
+  // totals onto the tool page's address, once. The old rows stay, so a preview build that shares
+  // this storage cannot blank the counts shown by the live site before the change is merged.
   async migrate(toolPaths: Record<string, string>) {
     if (this.sql.exec('SELECT 1 FROM meta WHERE k = ?', 'pages-v2').toArray().length) return;
     this.ctx.storage.transactionSync(() => {
@@ -86,7 +87,6 @@ export class Counter extends DurableObject<Env> {
         const path = toolPaths[k.slice(2)];
         if (!path) continue;
         this.sql.exec('INSERT INTO counts (k, n) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET n = n + excluded.n', `p:${path}`, n);
-        this.sql.exec('DELETE FROM counts WHERE k = ?', k);
       }
       this.sql.exec('INSERT INTO meta (k, v) VALUES (?, ?)', 'pages-v2', today());
     });
