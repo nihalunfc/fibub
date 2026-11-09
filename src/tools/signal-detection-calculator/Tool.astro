@@ -1,0 +1,273 @@
+---
+// Signal detection theory: d′, c, β, A′ and B″ from yes/no counts (one table or many people), and ROC
+// curves from confidence ratings (z-ROC line and maximum likelihood fit). Maths in src/lib/sci/sdt.ts.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax sd">
+  <div class="ax-card">
+    <h2>What data do you have?</h2>
+    <div class="ax-seg sd-mode" role="group" aria-label="Data">
+      <button type="button" data-m="one" aria-pressed="true">One table</button><button type="button" data-m="many" aria-pressed="false">Many people</button><button type="button" data-m="roc" aria-pressed="false">Ratings (ROC)</button>
+    </div>
+    <p class="ax-help sd-what"></p>
+
+    <div class="sd-p" data-m="one">
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Hits <input class="sd-h" inputmode="numeric" value="42" /></label>
+        <label>Misses <input class="sd-m" inputmode="numeric" value="8" /></label>
+        <label>False alarms <input class="sd-f" inputmode="numeric" value="12" /></label>
+        <label>Correct rejections <input class="sd-c" inputmode="numeric" value="38" /></label>
+      </div>
+      <p class="ax-help">Hits and misses are the signal trials (the thing was there); false alarms and correct rejections are the noise trials (it was not). Made-up example.</p>
+    </div>
+
+    <div class="sd-p" data-m="many" hidden>
+      <label>One row per person: name, hits, misses, false alarms, correct rejections. A header row is optional.
+        <textarea class="sd-in sd-many" rows="7" spellcheck="false" wrap="off">Person	Hits	Misses	FA	CR
+P01	42	8	12	38
+P02	35	15	6	44
+P03	48	2	20	30
+P04	50	0	9	41
+P05	28	22	14	36</textarea></label>
+      <DataFile target=".sd-many" maxCols={10} />
+      <p class="ax-help">Made-up example. Each row is worked out on its own, with the correction you choose below.</p>
+    </div>
+
+    <div class="sd-p" data-m="roc" hidden>
+      <label>One row per rating category: rating, number of signal trials, number of noise trials.
+        <textarea class="sd-in sd-roc" rows="8" spellcheck="false" wrap="off">Rating	Signal	Noise
+6 sure yes	38	4
+5	22	9
+4	14	14
+3	12	18
+2	8	25
+1 sure no	6	30</textarea></label>
+      <DataFile target=".sd-roc" maxCols={5} />
+      <div class="ax-grid" style="margin-top:10px">
+        <label>The first row is <select class="sd-order"><option value="signal" selected>Surest "signal"</option><option value="noise">Surest "noise"</option></select></label>
+      </div>
+      <p class="ax-help">Made-up example from a 6-point confidence scale. Each cut between two ratings gives one point on the ROC curve.</p>
+    </div>
+
+    <div class="ax-grid sd-corrw" style="margin-top:12px">
+      <label>Rates of 0 or 1 <select class="sd-corr">
+        <option value="half" selected>Fix only when needed (1/2N)</option>
+        <option value="loglinear">Log-linear (add 0.5 to all)</option>
+        <option value="none">No correction</option>
+      </select></label>
+    </div>
+    <p class="ax-help sd-corrhelp">A hit rate of 1 or a false-alarm rate of 0 gives an infinite d′. "1/2N" moves only those rates half a trial in; "log-linear" adds 0.5 to every count, which is less biased but changes every result a little.</p>
+    <p class="ax-err sd-err" hidden></p>
+  </div>
+
+  <div class="ax-card sd-out" hidden>
+    <h2 class="sd-hd"></h2>
+    <p class="ax-big sd-big"></p>
+    <dl class="ax-facts sd-facts"></dl>
+    <canvas class="ax-fig sd-fig" style="margin-top:14px"></canvas>
+    <canvas class="ax-fig sd-fig2" style="margin-top:14px" hidden></canvas>
+    <div class="sd-tw" hidden><h3 class="sd-th"></h3><div class="ax-scroll"><table class="sd-tab"></table></div></div>
+    <p class="ax-help sd-note"></p>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small sd-csv">Download CSV</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .sd .sd-tab td.sd-warn { color: var(--warn); }
+  .sd .sd-tab td.r { white-space: nowrap; }
+</style>
+
+<script>
+  import { parseTable, num, csv } from '../../lib/sci/num';
+  import { yesNo, roc, rocCurve, type Correction, type SdtResult } from '../../lib/sci/sdt';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.sd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string, el: ParentNode = root) => el.querySelector(c) as T;
+  let mode = 'one', report: Section[] = [], figs: (Figure | null)[] = [null, null], csvRows: (string | number)[][] = [];
+  const WHAT: Record<string, string> = {
+    one: 'Sensitivity (d′) and response bias (c, β) from one table of yes/no answers.',
+    many: 'd′, c and β for each person in a study, ready to analyse further.',
+    roc: 'An ROC curve from confidence ratings: area under the curve (Az) and the slope of the z-ROC, which tests whether signal and noise spread equally.',
+  };
+  const f3 = (x: number) => (Number.isFinite(x) ? x.toFixed(3).replace(/^-/, '−') : x === Infinity ? '∞' : x === -Infinity ? '−∞' : '–');
+  const pct = (x: number) => `${(x * 100).toFixed(1)} %`;
+  const corr = () => q<HTMLSelectElement>('.sd-corr').value as Correction;
+  const CORR: Record<Correction, string> = { half: '1/2N, only where needed', loglinear: 'log-linear (+0.5 to every cell)', none: 'none' };
+  const count = (s: string, what: string) => {
+    const v = num(s.trim());
+    if (s.trim() === '' || !Number.isFinite(v)) throw new Error(`Enter a number for ${what}.`);
+    if (v < 0) throw new Error(`${what[0].toUpperCase() + what.slice(1)} cannot be negative.`);
+    return v;
+  };
+
+  function facts(list: [string, string][]) {
+    const dl = q('.sd-facts'); dl.innerHTML = '';
+    for (const [k, v] of list) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d); }
+  }
+  function table(title: string, head: string[], rows: string[][], cls?: (r: number, c: number) => string) {
+    q('.sd-tw').hidden = !rows.length; q('.sd-th').textContent = title;
+    const t = q<HTMLTableElement>('.sd-tab'); t.innerHTML = '';
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r, ri) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; td.className = [i ? 'r' : '', cls?.(ri, i) ?? ''].join(' ').trim(); }); });
+  }
+  const biasWord = (c: number) => (Math.abs(c) < 0.1 ? 'about neutral' : c > 0 ? 'cautious (says "no" more often)' : 'liberal (says "yes" more often)');
+
+  function distFigure(r: SdtResult): Figure {
+    const d = Number.isFinite(r.dprime) ? r.dprime : 0, k = -r.zF;
+    const lo = Math.min(-3.5, d - 3.5), hi = Math.max(3.5, d + 3.5), xs: number[] = [];
+    for (let i = 0; i <= 160; i++) xs.push(lo + ((hi - lo) * i) / 160);
+    const pdf = (x: number, m: number) => Math.exp(-0.5 * (x - m) ** 2) / Math.sqrt(2 * Math.PI);
+    return chartFigure({ h: 320, xLabel: 'Evidence (in noise standard deviations)', yLabel: 'Density', yMin: 0, legend: 'inside', series: [
+      { name: 'Noise trials', x: xs, y: xs.map((x) => pdf(x, 0)), mode: 'line', width: 2 },
+      { name: 'Signal trials', x: xs, y: xs.map((x) => pdf(x, d)), mode: 'line', width: 2 },
+    ], marks: [{ kind: 'vline', at: k, dash: [5, 4], label: 'criterion' }] }, `Noise and signal distributions ${f3(d)} apart, with the criterion at ${f3(k)}.`);
+  }
+
+  function runOne(): Section[] {
+    const t = { hits: count(q<HTMLInputElement>('.sd-h').value, 'hits'), misses: count(q<HTMLInputElement>('.sd-m').value, 'misses'), fas: count(q<HTMLInputElement>('.sd-f').value, 'false alarms'), crs: count(q<HTMLInputElement>('.sd-c').value, 'correct rejections') };
+    const r = yesNo(t, corr());
+    q('.sd-hd').textContent = 'Signal detection measures';
+    if (!Number.isFinite(r.dprime)) throw new Error(`The ${r.H === 1 || r.H === 0 ? 'hit' : 'false-alarm'} rate is ${r.H === 1 || r.H === 0 ? pct(r.H) : pct(r.F)}, so d′ is infinite without a correction. Choose "1/2N" or "log-linear" above.`);
+    q('.sd-big').textContent = `d′ = ${f3(r.dprime)}`;
+    const fl: [string, string][] = [
+      ['95 % interval for d′', `${f3(r.ci[0])} to ${f3(r.ci[1])}`],
+      ['Criterion c', `${f3(r.c)} (${biasWord(r.c)})`],
+      ['β (likelihood ratio)', f3(r.beta)],
+      ['ln β', f3(r.lnBeta)],
+      ["Relative criterion c′ = c/d′", f3(r.cRel)],
+      ['Hit rate', `${pct(r.H)}${r.H !== r.rawH ? ` (raw ${pct(r.rawH)})` : ''}`],
+      ['False-alarm rate', `${pct(r.F)}${r.F !== r.rawF ? ` (raw ${pct(r.rawF)})` : ''}`],
+      ["A′ (non-parametric)", f3(r.aPrime)],
+      ['B″ (non-parametric bias)', f3(r.bDoublePrime)],
+      ['Az if variances are equal', f3(r.azEqual)],
+      ['Percent correct', pct(r.pc)],
+      ['Correction', r.corrected ? CORR[corr()] : 'none needed'],
+    ];
+    facts(fl);
+    figs = [distFigure(r), null];
+    q('.sd-tw').hidden = true;
+    csvRows = [['measure', 'value'], ['hits', t.hits], ['misses', t.misses], ['false_alarms', t.fas], ['correct_rejections', t.crs], ['hit_rate', r.H], ['fa_rate', r.F], ['z_hit', r.zH], ['z_fa', r.zF], ['d_prime', r.dprime], ['d_prime_se', r.se], ['c', r.c], ['beta', r.beta], ['ln_beta', r.lnBeta], ['A_prime', r.aPrime], ['B_double_prime', r.bDoublePrime], ['correction', corr()]];
+    q('.sd-note').textContent = `z(H) = ${f3(r.zH)}, z(F) = ${f3(r.zF)}. d′ = z(H) − z(F); c = −(z(H) + z(F)) / 2; ln β = d′ × c. c = 0 is neutral, positive c means a cautious observer. The interval uses the large-sample variance of d′ (Gourevitch and Galanter), so it is rough with few trials. A′ and B″ make no normal-distribution assumption (Grier's formulas).`;
+    return [{ title: 'Signal detection measures', facts: [['d′', f3(r.dprime)], ...fl], figure: figs[0]! }];
+  }
+
+  function runMany(): Section[] {
+    const rows = parseTable(q<HTMLTextAreaElement>('.sd-many').value).filter((r) => r.some((c) => c.trim() !== ''));
+    if (!rows.length) throw new Error('Paste one row per person first.');
+    const isNum = (c: string) => Number.isFinite(num(c));
+    const body = rows[0].slice(-4).some(isNum) ? rows : rows.slice(1);
+    if (!body.length) throw new Error('Paste one row per person under the header.');
+    const out: string[][] = [], warn = new Set<string>();
+    csvRows = [['person', 'hits', 'misses', 'false_alarms', 'correct_rejections', 'hit_rate', 'fa_rate', 'd_prime', 'c', 'beta', 'A_prime', 'B_double_prime']];
+    const ds: number[] = [], cs: number[] = [], who: string[] = [];
+    body.forEach((r, i) => {
+      const cells = r.map((c) => c.trim());
+      const nums = cells.slice(-4), name = cells.length > 4 ? cells.slice(0, cells.length - 4).join(' ') : `Row ${i + 1}`;
+      if (cells.length < 4) throw new Error(`Row ${i + 1} needs four counts: hits, misses, false alarms, correct rejections.`);
+      const [h, m, f, c] = nums.map((s, j) => { const v = num(s); if (!Number.isFinite(v) || v < 0) throw new Error(`"${s}" in row ${i + 1} is not a count.`); return v; });
+      const x = yesNo({ hits: h, misses: m, fas: f, crs: c }, corr());
+      if (corr() === 'half') { if (x.H !== x.rawH) warn.add(`${i},1`); if (x.F !== x.rawF) warn.add(`${i},2`); }
+      if (Number.isFinite(x.dprime)) { ds.push(x.dprime); cs.push(x.c); who.push(name); }
+      out.push([name, pct(x.H), pct(x.F), f3(x.dprime), f3(x.c), f3(x.beta), f3(x.aPrime)]);
+      csvRows.push([name, h, m, f, c, x.H, x.F, x.dprime, x.c, x.beta, x.aPrime, x.bDoublePrime]);
+    });
+    const mean = (a: number[]) => a.reduce((s, v) => s + v, 0) / a.length;
+    const sdv = (a: number[]) => { const m = mean(a); return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / (a.length - 1)); };
+    q('.sd-hd').textContent = 'Signal detection for each person';
+    q('.sd-big').textContent = ds.length ? `mean d′ = ${f3(mean(ds))}` : 'd′ not finite';
+    const fl: [string, string][] = [['People', String(body.length)], ['Mean c', cs.length ? f3(mean(cs)) : '–'], ['SD of d′', ds.length > 1 ? f3(sdv(ds)) : '–'], ['Correction', CORR[corr()]]];
+    const infinite = body.length - ds.length;
+    if (infinite) fl.push(['Infinite d′', `${infinite} ${infinite > 1 ? 'people' : 'person'}: choose a correction`]);
+    facts(fl);
+    const head = ['Person', 'Hit rate', 'FA rate', 'd′', 'c', 'β', 'A′'];
+    table('Each person', head, out, (r, c) => (warn.has(`${r},${c}`) ? 'sd-warn' : ''));
+    figs = [ds.length ? chartFigure({ h: 300, xLabel: 'd′ (sensitivity)', yLabel: 'c (bias)', legend: 'none', series: [{ name: 'People', x: ds, y: cs, mode: 'points', labels: who }], marks: [{ kind: 'hline', at: 0, dash: [4, 4] }] }, 'Each person’s sensitivity against bias.') : null, null];
+    q('.sd-note').textContent = (warn.size ? 'Rates in amber were 0 % or 100 % and were moved half a trial in (1/2N rule). ' : '') + 'Report d′ and c together: d′ is how well a person tells signal from noise, c is how willing they are to say "yes". Log-linear correction applied to everyone is the fairest choice when some people have perfect scores (Hautus 1995).';
+    return [{ title: 'Signal detection for each person', facts: fl, ...(figs[0] ? { figure: figs[0] } : {}) }, { title: 'Each person', table: { head, rows: out, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r'] } }];
+  }
+
+  function runRoc(): Section[] {
+    const rows = parseTable(q<HTMLTextAreaElement>('.sd-roc').value).filter((r) => r.some((c) => c.trim() !== ''));
+    const isNum = (c: string) => Number.isFinite(num(c));
+    const body = rows.length && rows[0].slice(-2).every(isNum) ? rows : rows.slice(1);
+    if (body.length < 2) throw new Error('Paste at least two rating rows: rating, signal count, noise count.');
+    let labels: string[] = [], s: number[] = [], n: number[] = [];
+    body.forEach((r, i) => {
+      const c = r.map((x) => x.trim());
+      if (c.length < 2) throw new Error(`Row ${i + 1} needs a signal count and a noise count.`);
+      const [a, b] = c.slice(-2).map((x) => { const v = num(x); if (!Number.isFinite(v) || v < 0) throw new Error(`"${x}" in row ${i + 1} is not a count.`); return v; });
+      labels.push(c.length > 2 ? c.slice(0, -2).join(' ') : `Rating ${i + 1}`); s.push(a); n.push(b);
+    });
+    if (q<HTMLSelectElement>('.sd-order').value === 'noise') { labels = labels.reverse(); s = s.reverse(); n = n.reverse(); }
+    const R = roc(s, n);
+    const best = R.ml ?? null;
+    q('.sd-hd').textContent = 'ROC curve';
+    q('.sd-big').textContent = best ? `Az = ${f3(best.az)}` : R.ls ? `Az = ${f3(R.ls.az)}` : `Area = ${f3(R.areaTrap)}`;
+    const fl: [string, string][] = [];
+    if (best) {
+      fl.push(['Az (maximum likelihood)', `${f3(best.az)} ± ${f3(best.seAz)}`], ['z-ROC slope (σnoise/σsignal)', `${f3(best.b)} ± ${f3(best.seB)}`], ['z-ROC intercept', `${f3(best.a)} ± ${f3(best.seA)}`], ['da', f3(best.da)], ['Signal mean, SD', `${f3(best.mu)}, ${f3(best.sigma)}`]);
+      fl.push(['Fit (G²)', best.df > 0 ? `${f3(best.g2)} on ${best.df} df, p = ${best.p < 0.001 ? '< 0.001' : best.p.toFixed(3)}` : 'exact (3 ratings)']);
+    }
+    if (R.ls) fl.push(['Least squares z-ROC', `slope ${f3(R.ls.b)}, intercept ${f3(R.ls.a)}, Az ${f3(R.ls.az)}`]);
+    fl.push(['Area under the points', f3(R.areaTrap)], ['Signal, noise trials', `${R.S}, ${R.N}`]);
+    facts(fl);
+    const head = ['Cut after', 'Hit rate', 'FA rate', 'z(H)', 'z(F)'];
+    const out = R.points.map((p, i) => [labels[i], pct(p.H), pct(p.F), f3(p.zH), f3(p.zF)]);
+    table('ROC points (cumulative, surest "signal" first)', head, out);
+    csvRows = [['cut_after', 'hit_rate', 'fa_rate', 'z_hit', 'z_fa'], ...R.points.map((p, i) => [labels[i], p.H, p.F, p.zH, p.zF])];
+    if (best) csvRows.push([], ['ml_Az', best.az], ['ml_Az_se', best.seAz], ['ml_slope', best.b], ['ml_intercept', best.a], ['da', best.da], ['G2', best.g2], ['df', best.df]);
+    const a = best?.a ?? R.ls?.a, b = best?.b ?? R.ls?.b;
+    const curve = a !== undefined && b !== undefined ? rocCurve(a, b) : null;
+    figs[0] = chartFigure({ h: 340, xLabel: 'False-alarm rate', yLabel: 'Hit rate', xMin: 0, xMax: 1, yMin: 0, yMax: 1, legend: 'inside', series: [
+      ...(curve ? [{ name: best ? 'Fitted (ML)' : 'Fitted (LS)', x: curve.F, y: curve.H, mode: 'line' as const, width: 2 }] : []),
+      { name: 'Observed', x: R.points.map((p) => p.F), y: R.points.map((p) => p.H), mode: 'points' },
+      { name: 'Chance', x: [0, 1], y: [0, 1], mode: 'line', dash: [4, 4], width: 1 },
+    ] }, 'ROC curve: hit rate against false-alarm rate.');
+    const inner = R.points.filter((p) => Number.isFinite(p.zH) && Number.isFinite(p.zF));
+    figs[1] = inner.length >= 2 && a !== undefined && b !== undefined ? chartFigure({ h: 300, xLabel: 'z(false-alarm rate)', yLabel: 'z(hit rate)', legend: 'inside', series: [
+      { name: 'Fitted line', x: [Math.min(...inner.map((p) => p.zF)) - 0.3, Math.max(...inner.map((p) => p.zF)) + 0.3], y: [Math.min(...inner.map((p) => p.zF)) - 0.3, Math.max(...inner.map((p) => p.zF)) + 0.3].map((z) => a + b * z), mode: 'line', width: 2 },
+      { name: 'Observed', x: inner.map((p) => p.zF), y: inner.map((p) => p.zH), mode: 'points' },
+    ] }, 'z-ROC: z of hit rate against z of false-alarm rate, with the fitted line.') : null;
+    q('.sd-note').textContent = 'Az is the area under the fitted ROC curve: 0.5 is chance, 1 is perfect. A z-ROC slope below 1 means the signal spreads more than the noise, so d′ from a single yes/no table depends on where the criterion sits; da and Az do not. The maximum likelihood fit (Dorfman and Alf) uses the counts themselves and is preferred; the least squares line is shown for comparison. ' + (R.points.length > inner.length ? 'Points with a rate of 0 % or 100 % have infinite z and are left out of the least squares line. ' : '') + 'A large G² (small p) means the normal model does not describe your ratings well.';
+    const sec: Section[] = [{ title: 'ROC curve', facts: fl, figure: figs[0] }];
+    if (figs[1]) sec.push({ title: 'z-ROC', figure: figs[1] });
+    sec.push({ title: 'ROC points', table: { head, rows: out, align: ['l', 'r', 'r', 'r', 'r'] } });
+    return sec;
+  }
+
+  function draw() {
+    const c1 = q<HTMLCanvasElement>('.sd-fig'), c2 = q<HTMLCanvasElement>('.sd-fig2');
+    c1.hidden = !figs[0]; c2.hidden = !figs[1];
+    if (figs[0]) paint(c1, figs[0]);
+    if (figs[1]) paint(c2, figs[1]);
+  }
+  function calc() {
+    const err = q('.sd-err');
+    try {
+      figs = [null, null];
+      report = mode === 'one' ? runOne() : mode === 'many' ? runMany() : runRoc();
+      err.hidden = true; q('.sd-out').hidden = false; draw();
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.sd-out').hidden = true; report = []; }
+  }
+  function setMode(m: string) {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.sd-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.sd-p').forEach((p) => (p.hidden = p.dataset.m !== m));
+    q('.sd-corrw').hidden = q('.sd-corrhelp').hidden = m === 'roc';
+    q('.sd-what').textContent = WHAT[m];
+    calc();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.sd-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  let t = 0;
+  root.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(calc, 250); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select')) calc(); });
+  q('.sd-csv').addEventListener('click', () => save(new Blob([csv(csvRows)], { type: 'text/csv' }), `signal-detection-${mode}.csv`, 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (report.length) draw(); });
+  setMode('one');
+  wireDownloads(q('.dl'), () => ({ title: 'Signal detection', file: 'signal-detection', sections: report }));
+</script>
