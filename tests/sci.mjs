@@ -164,6 +164,7 @@ import * as KM from '../src/lib/sci/kmer.ts';
 import * as RX from '../src/lib/rosterExport.ts';
 import * as NW from '../src/lib/sci/newick.ts';
 import * as PP from '../src/lib/sci/protparam.ts';
+import * as PE from '../src/lib/sci/peptide.ts';
 import { unzipSync, strFromU8 } from 'fflate';
 
 let pass = 0, fail = 0;
@@ -3431,6 +3432,29 @@ ORIGIN
   check('protein: selenocysteine counted', PP.analyse('U').formula === 'C3H7NO2Se');
   const c = PP.chargeCurve('KDE');
   check('protein: charge curve from pH 0 to 14', c.x.length === 281 && c.x[0] === 0 && c.x[280] === 14 && c.y[0] > c.y[280]);
+}
+
+// ---- #179 Peptide masses: digest, masses and fragments checked against pyteomics ----
+{
+  const seq = PP.readProtein(PE.EXAMPLE_PROTEIN)[0].seq;
+  const d = PE.digest(seq, 'trypsin', { missed: 1, mods: ['carbamidomethyl'], minLen: 4, maxLen: 40 });
+  check('peptide: example digest has 27 peptides, 14 with no missed cleavage', seq.length === 136 && d.length === 27 && d.filter((p) => p.missed === 0).length === 14);
+  check('peptide: trypsin does not cut before P (HKP, RP)', !PE.sites(seq, 'trypsin').includes(seq.indexOf('KPT') + 1) && PE.sites(seq, 'trypsin-p').includes(seq.indexOf('KPT') + 1));
+  const p = d.find((x) => x.seq === 'DFSLQGECK');
+  check('peptide: DFSLQGECK mono 1082.4703, [M+H]+ 1083.4775, [M+2H]2+ 542.2424 (pyteomics)', p.start === 16 && p.end === 24 && Math.abs(p.mono - 1082.47026) < 1e-4 && Math.abs(PE.mz(p.mono, 1) - 1083.47754) < 1e-4 && Math.abs(PE.mz(p.mono, 2) - 542.24241) < 1e-4);
+  check('peptide: PEPTIDE is 799.3600 (pyteomics)', Math.abs(PE.peptideMass('PEPTIDE').mono - 799.35996) < 1e-4);
+  const fr = PE.fragments('PEPTIDE');
+  check('peptide: PEPTIDE b2 227.1026, y1 148.0604, a2 199.1077', Math.abs(fr[1].b - 227.10263) < 1e-4 && Math.abs(fr[6].y - 148.06043) < 1e-4 && Math.abs(fr[1].a - 199.10772) < 1e-4);
+  const f2 = PE.fragments('PEPTIDE', { charge: 2 });
+  check('peptide: 2+ fragments are (M + 2 protons) / 2', Math.abs(f2[1].b - (fr[1].b + PE.PROTON) / 2) < 1e-9);
+  check('peptide: b(n-1) + y1 = [M+H]+ + proton', Math.abs(fr[5].b + fr[6].y - (PE.mz(PE.peptideMass('PEPTIDE').mono, 1) + PE.PROTON)) < 1e-9);
+  const fp = PE.fingerprint(seq, d, PE.EXAMPLE_PEAKS.split('\n').map(Number), { ppm: 10 });
+  check('peptide: fingerprint matches 10 of 13 peaks, coverage 71.3 %', fp.matched === 10 && Math.abs(fp.coverage - 97 / 136) < 1e-9 && fp.hits.find((h) => h.obs === 1083.4749).matches[0].err.toFixed(1) === '-2.4');
+  check('peptide: missed-cleavage peptide matched', fp.hits.some((h) => h.matches.some((m) => m.pep.seq === 'DEYGKNHQVTSLPMCFR' && m.pep.missed === 1)));
+  check('peptide: 2+ charge finds the 2+ peak', PE.fingerprint(seq, d, [PE.mz(p.mono, 2)], { ppm: 5, charges: [1, 2] }).hits[0].matches[0].z === 2);
+  check('peptide: Asp-N cuts before D; CNBr after M', PE.digest('AADBBDCC'.replace(/B/g, 'K'), 'aspn').map((x) => x.seq).join() === 'AA,DKK,DCC' && PE.digest('AMKMGG', 'cnbr').map((x) => x.seq).join() === 'AM,KM,GG');
+  check('peptide: missed cleavages join neighbours', PE.digest('AKBKCK'.replace('B', 'G'), 'trypsin', { missed: 2 }).length === 6);
+  check('peptide: oxidised Met adds 15.9949', Math.abs(PE.peptideMass('M', ['oxidation']).mono - PE.peptideMass('M').mono - 15.99491) < 1e-4);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
