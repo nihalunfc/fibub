@@ -1,0 +1,323 @@
+---
+// Transfection and plate layout planner: conditions with replicates on a 6 to 384-well plate (auto layout or tap to
+// place), then DNA, reagent, diluent and medium for every tube from amounts per well, with a spare margin.
+// Starting amounts are rounded values made up by fibub, not a kit insert. Nothing leaves the page.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax tfp">
+  <div class="ax-card">
+    <h2>Plate and amounts per well</h2>
+    <div class="ax-grid">
+      <label>Plate <select class="tf-size"><option value="6">6 wells</option><option value="12">12 wells</option><option value="24" selected>24 wells</option><option value="48">48 wells</option><option value="96">96 wells</option><option value="384">384 wells</option></select></label>
+      <label>DNA per well (ng) <input class="tf-dna" type="text" inputmode="decimal" value="500" /></label>
+      <label>Reagent per µg DNA (µL) <input class="tf-ratio" type="text" inputmode="decimal" value="3" /></label>
+      <label>Diluent per well (µL) <input class="tf-dil" type="text" inputmode="decimal" value="50" /></label>
+      <label>Diluent in the DNA tube (%) <input class="tf-share" type="text" inputmode="decimal" value="50" /></label>
+      <label>Medium per well (µL) <input class="tf-med" type="text" inputmode="decimal" value="500" /></label>
+      <label>Spare (%) <input class="tf-spare" type="text" inputmode="decimal" value="10" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small tf-reset">Starting amounts for this plate</button></div>
+    <p class="ax-help">The starting amounts are rounded values made up by fibub that grow with the well size. They are not from any kit: type the amounts your reagent's instructions give. <b>Reagent per µg DNA</b> sets the reagent : DNA ratio. The <b>diluent</b> (often serum-free medium) is split between the DNA tube and the reagent tube. <b>Spare</b> makes a little extra of every mix so the last well is not short.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Conditions</h2>
+    <div class="tf-conds"></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small tf-add">Add a condition</button>
+      <button type="button" class="btn secondary small tf-ex">Use the example</button>
+    </div>
+    <p class="ax-help">A <b>construct</b> or <b>control plasmid</b> gets DNA and reagent. <b>Mock</b> gets reagent and diluent but no DNA, to show what the reagent alone does. <b>Untransfected</b> wells only get medium. The DNA stock is used to work out how many µL of DNA to pipette.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Plate map</h2>
+    <div class="ax-grid tf-mapgrid">
+      <label>Fill <select class="tf-dir"><option value="row">Across rows (A1, A2, …)</option><option value="col">Down columns (A1, B1, …)</option></select></label>
+      <label>Tapping a well puts <select class="tf-brush"></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="tf-edge" /> Keep the edge wells empty</label>
+      <button type="button" class="btn secondary small tf-auto">Auto layout</button>
+    </div>
+    <p class="tf-lay"></p>
+    <p class="ax-err tf-lerr" hidden></p>
+    <div class="ax-scroll tf-wrap"><div class="tf-plate" role="grid" aria-label="Plate map"></div></div>
+    <div class="ax-legend tf-leg"></div>
+    <p class="ax-help">Auto layout puts each condition's replicates next to each other in fill order. Tap a well to put the chosen condition there; tap it again to empty it. Once you change the map by hand, the replicates come from the map, until you press Auto layout.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Pipetting plan</h2>
+    <p class="ax-big tf-big"></p>
+    <p class="ax-err tf-err" hidden></p>
+    <ul class="tf-warn" hidden></ul>
+    <dl class="ax-facts tf-facts"></dl>
+    <ol class="tf-steps"></ol>
+    <div class="ax-scroll"><table class="tf-tab"></table></div>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn secondary small tf-csv">Download pipetting table (CSV)</button>
+      <button type="button" class="btn secondary small tf-wcsv">Download well list (CSV)</button>
+    </div>
+    <Downloads label="Plate map and plan" />
+  </div>
+</div>
+
+<style is:global>
+  .tfp .tf-mapgrid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
+  .tfp .tf-conds { display: grid; gap: 8px; }
+  .tfp .tf-c { display: grid; grid-template-columns: 30px minmax(0, 2fr) minmax(0, 1.7fr) minmax(0, 1fr) minmax(0, 0.8fr) 40px; grid-template-areas: "sw nm kd st rp x"; gap: 6px 8px; align-items: end; padding: 8px; border: 1px solid var(--line); border-radius: 10px; }
+  .tfp .tf-c > .tf-sw { grid-area: sw; }
+  .tfp .tf-c > .tf-l-nm { grid-area: nm; }
+  .tfp .tf-c > .tf-l-kd { grid-area: kd; }
+  .tfp .tf-c > .tf-l-st { grid-area: st; }
+  .tfp .tf-c > .tf-l-rp { grid-area: rp; }
+  .tfp .tf-c > .tf-cx { grid-area: x; }
+  @media (max-width: 700px) {
+    .tfp .tf-c { grid-template-columns: 30px minmax(0, 1fr) minmax(0, 1fr) 40px; grid-template-areas: "sw nm nm x" "kd kd kd kd" "st st rp rp"; }
+  }
+  .tfp .tf-c input, .tfp .tf-c select { width: 100%; min-width: 0; }
+  .tfp .tf-sw { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; border: 1px solid var(--line); margin-bottom: 6px; }
+  .tfp .tf-cx { height: 40px; width: 40px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font-size: 18px; cursor: pointer; }
+  .tfp .tf-lay { margin: 10px 0 6px; font-weight: 600; }
+  .tfp .tf-plate { display: grid; gap: 3px; width: max-content; padding: 2px; }
+  .tfp .tf-h { font-size: 11px; color: var(--muted); text-align: center; align-self: center; }
+  .tfp .tf-w { width: var(--d); height: var(--d); border-radius: 50%; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font-size: calc(var(--d) * 0.42); font-weight: 700; line-height: 1; padding: 0; overflow: hidden; cursor: pointer; display: grid; place-items: center; }
+  .tfp .tf-w:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+  .tfp .tf-warn { margin: 8px 0 0; padding: 8px 12px 8px 28px; background: var(--warn-soft); border-left: 3px solid var(--warn); border-radius: 6px; font-size: 14px; }
+  .tfp .tf-steps { margin: 14px 0; padding-left: 22px; display: grid; gap: 6px; font-size: 15px; }
+  .tfp .tf-tab td, .tfp .tf-tab th { white-space: nowrap; }
+  html.red-mode .tfp .tf-w.on, html.red-mode .tfp .tf-sw.on, html.red-mode .tfp .tf-leg i { background: #2a0000 !important; color: #c00000 !important; }
+</style>
+
+<script>
+  import { autoLayout, countWells, plan, fmtUL, fmtNg, sigs, hasDna, hasReagent, STARTS, EXAMPLE, PLATES, KIND_LABEL, wellName, type Cond, type Kind, type Plan, type PerWell } from '../../lib/sci/transfection';
+  import { num, csv } from '../../lib/sci/num';
+  import { save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.tfp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const COLS = ['#56B4E9', '#E69F00', '#009E73', '#F0E442', '#0072B2', '#D55E00', '#CC79A7', '#A6D854', '#8DA0CB', '#FC8D62', '#66C2A5', '#E78AC3', '#FFD92F', '#B3B3B3', '#1B9E77', '#9E7BB5'];
+  const MAXC = 16;
+  const SHORT: Record<Kind, string> = { construct: 'Construct', control: 'Control plasmid', mock: 'Mock (reagent only)', none: 'Untransfected' };
+  const ink = (hex: string) => { const n = parseInt(hex.slice(1), 16), l = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255; return l > 0.5 ? '#000' : '#fff'; };
+  let conds: Cond[] = [], nextId = 1, map: number[] = [], edited = false, placedMsg = '';
+  let last: Plan | null = null, sections: Section[] = [];
+  const size = () => Number(q<HTMLSelectElement>('.tf-size').value);
+  const pos = (id: number) => conds.findIndex((c) => c.id === id);
+  const colour = (i: number) => COLS[i % COLS.length];
+
+  function perWell(): PerWell {
+    return { dna: num(q<HTMLInputElement>('.tf-dna').value), ratio: num(q<HTMLInputElement>('.tf-ratio').value), diluent: num(q<HTMLInputElement>('.tf-dil').value), share: num(q<HTMLInputElement>('.tf-share').value) / 100, medium: num(q<HTMLInputElement>('.tf-med').value) };
+  }
+  function setStarts() {
+    const s = STARTS[size()];
+    q<HTMLInputElement>('.tf-dna').value = String(s.dna); q<HTMLInputElement>('.tf-ratio').value = String(s.ratio);
+    q<HTMLInputElement>('.tf-dil').value = String(s.diluent); q<HTMLInputElement>('.tf-share').value = String(s.share * 100);
+    q<HTMLInputElement>('.tf-med').value = String(s.medium);
+  }
+
+  // ---------- Conditions ----------
+  function condRow(c: Cond, i: number) {
+    const d = document.createElement('div');
+    d.className = 'tf-c'; d.dataset.id = String(c.id);
+    const opts = (Object.keys(SHORT) as Kind[]).map((k) => `<option value="${k}">${SHORT[k]}</option>`).join('');
+    d.innerHTML = `<span class="tf-sw on"></span><label class="tf-l-nm">Name <input class="tf-cn" type="text" maxlength="40" /></label><label class="tf-l-kd">Type <select class="tf-ck">${opts}</select></label><label class="tf-l-st">Stock ng/µL <input class="tf-cs" type="text" inputmode="decimal" /></label><label class="tf-l-rp">Replicates <input class="tf-cr" type="text" inputmode="numeric" /></label><button type="button" class="tf-cx" aria-label="Remove this condition">×</button>`;
+    const sw = d.querySelector<HTMLElement>('.tf-sw')!;
+    sw.textContent = String(i + 1); sw.style.background = colour(i); sw.style.color = ink(colour(i));
+    d.querySelector<HTMLInputElement>('.tf-cn')!.value = c.name;
+    d.querySelector<HTMLSelectElement>('.tf-ck')!.value = c.kind;
+    const st = d.querySelector<HTMLInputElement>('.tf-cs')!;
+    st.value = hasDna(c.kind) && c.stock > 0 ? String(c.stock) : ''; st.disabled = !hasDna(c.kind); st.placeholder = hasDna(c.kind) ? 'ng/µL' : 'no DNA';
+    d.querySelector<HTMLInputElement>('.tf-cr')!.value = String(c.reps);
+    return d;
+  }
+  function drawConds() {
+    q('.tf-conds').replaceChildren(...conds.map(condRow));
+    q<HTMLButtonElement>('.tf-add').disabled = conds.length >= MAXC;
+  }
+  function readConds() {
+    for (const el of root.querySelectorAll<HTMLElement>('.tf-c')) {
+      const c = conds.find((x) => x.id === Number(el.dataset.id)); if (!c) continue;
+      c.name = el.querySelector<HTMLInputElement>('.tf-cn')!.value.trim() || `Condition ${pos(c.id) + 1}`;
+      c.kind = el.querySelector<HTMLSelectElement>('.tf-ck')!.value as Kind;
+      c.stock = num(el.querySelector<HTMLInputElement>('.tf-cs')!.value);
+      const r = Math.round(num(el.querySelector<HTMLInputElement>('.tf-cr')!.value));
+      c.reps = Number.isFinite(r) ? Math.min(384, Math.max(0, r)) : 0;
+    }
+  }
+  function brush() {
+    const b = q<HTMLSelectElement>('.tf-brush'), was = b.value;
+    b.replaceChildren(...conds.map((c, i) => new Option(`${i + 1}. ${c.name}`, String(c.id))), new Option('Empty (nothing)', '0'));
+    b.value = [...b.options].some((o) => o.value === was) ? was : conds.length ? String(conds[0].id) : '0';
+  }
+
+  // ---------- Layout ----------
+  function relayout() {
+    const res = autoLayout(size(), conds, q<HTMLSelectElement>('.tf-dir').value === 'col', q<HTMLInputElement>('.tf-edge').checked);
+    map = res.map; edited = false;
+    placedMsg = res.placed < res.needed ? `${res.needed - res.placed} of the ${res.needed} wells did not fit. Use a bigger plate, fewer replicates${q<HTMLInputElement>('.tf-edge').checked ? ', or use the edge wells' : ''}.` : '';
+  }
+  function drawPlate() {
+    const [R, C] = PLATES[size()], plate = q('.tf-plate');
+    const avail = Math.max(240, q('.tf-wrap').clientWidth - 8);
+    const d = Math.max(14, Math.min(48, Math.floor((avail - 20 - 3 * C) / C)));
+    plate.style.setProperty('--d', `${d}px`);
+    plate.style.gridTemplateColumns = `16px repeat(${C}, var(--d))`;
+    const out: HTMLElement[] = [Object.assign(document.createElement('span'), { className: 'tf-h' })];
+    for (let c = 0; c < C; c++) out.push(Object.assign(document.createElement('span'), { className: 'tf-h', textContent: String(c + 1) }));
+    for (let r = 0; r < R; r++) {
+      out.push(Object.assign(document.createElement('span'), { className: 'tf-h', textContent: String.fromCharCode(65 + r) }));
+      for (let c = 0; c < C; c++) {
+        const i = r * C + c, id = map[i], p = id ? pos(id) : -1, b = document.createElement('button');
+        b.type = 'button'; b.className = `tf-w${p >= 0 ? ' on' : ''}`; b.dataset.i = String(i); b.dataset.w = wellName(r, c);
+        if (p >= 0) { b.style.background = colour(p); b.style.color = ink(colour(p)); if (d >= 20) b.textContent = String(p + 1); }
+        b.title = `${wellName(r, c)}: ${p >= 0 ? conds[p].name : 'empty'}`; b.setAttribute('aria-label', b.title);
+        out.push(b);
+      }
+    }
+    plate.replaceChildren(...out);
+    q('.tf-leg').replaceChildren(...conds.map((c, i) => { const s = document.createElement('span'), k = document.createElement('i'); k.style.background = colour(i); s.append(k, `${i + 1} ${c.name}`); return s; }));
+  }
+
+  // ---------- Plan ----------
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; dd.append(e); } d.append(dt, dd); return d; };
+  const dash = (v: number, show: boolean) => (show ? fmtUL(v) : '–');
+  function tableRows(p: Plan): string[][] {
+    return p.rows.filter((r) => r.wells > 0).map((r) => [String(pos(r.id) + 1), r.name, KIND_LABEL[r.kind], String(r.wells), sigs(r.makeFor, 3), hasDna(r.kind) ? fmtNg(r.dnaNg) : '–', hasDna(r.kind) ? fmtUL(r.dnaUL) : '–', dash(r.tubeDiluent, hasReagent(r.kind)), dash(r.reagentMix, hasReagent(r.kind)), dash(r.complexPerWell, hasReagent(r.kind))]);
+  }
+  const HEAD = ['#', 'Condition', 'Type', 'Wells', 'Make for', 'DNA', 'DNA volume', 'Diluent', 'Reagent mix', 'Complex per well'];
+
+  function run() {
+    readConds();
+    const counts = countWells(map), pw = perWell(), spare = num(q<HTMLInputElement>('.tf-spare').value);
+    const p = plan(pw, conds, counts, spare); last = p;
+    const free = PLATES[size()][0] * PLATES[size()][1];
+    q('.tf-lay').textContent = `${p.wellsUsed} of ${free} wells used${edited ? ' (changed by hand)' : ''}`;
+    q('.tf-lerr').textContent = edited ? '' : placedMsg; q('.tf-lerr').hidden = edited || !placedMsg;
+    drawPlate();
+    const err = q('.tf-err'), warn = q('.tf-warn');
+    const errs = [...p.errors]; if (!conds.length) errs.push('Add a condition.'); else if (!p.wellsUsed) errs.push('No wells on the map yet. Give replicates or tap wells.');
+    err.textContent = errs.join(' '); err.hidden = !errs.length;
+    warn.replaceChildren(...p.warns.map((w) => Object.assign(document.createElement('li'), { textContent: w }))); warn.hidden = !p.warns.length || !!errs.length;
+    const ok = !errs.length;
+    for (const c of ['.tf-facts', '.tf-steps', '.tf-tab', '.tf-big']) q(c).hidden = !ok;
+    for (const c of ['.tf-csv', '.tf-wcsv']) q<HTMLButtonElement>(c).disabled = !ok;
+    if (!ok) { sections = []; return; }
+    const tubes = p.rows.filter((r) => r.wells && hasReagent(r.kind)), mixed = p.mix.wells > 0;
+    q('.tf-big').textContent = mixed ? `Reagent mix ${fmtUL(p.mix.total)}, medium ${fmtUL(p.medium)}` : `Medium ${fmtUL(p.medium)}`;
+    const s = Number.isFinite(spare) ? spare : 0;
+    q('.tf-facts').replaceChildren(
+      fact('Wells used', `${p.wellsUsed} of ${free}`, `${tubes.length} transfection tube${tubes.length === 1 ? '' : 's'}, ${s} % spare`),
+      fact('Per well', `${fmtNg(pw.dna)} DNA`, `${fmtUL(p.reagentPerWell)} reagent, ${fmtUL(pw.medium)} medium`),
+      fact('Complex per well', fmtUL(p.complexPerWell), `DNA tube ${fmtUL(p.dnaTubePerWell)} + reagent tube ${fmtUL(p.reagentTubePerWell)}`),
+      fact('Reagent in all', fmtUL(p.mix.reagent), `for ${p.mix.wells} wells with reagent`),
+      fact('Diluent in all', fmtUL(p.diluentTotal), 'tubes and reagent mix'),
+      fact('Medium in all', fmtUL(p.medium), `for ${p.wellsUsed} wells`),
+    );
+    const steps: string[] = [];
+    if (mixed) steps.push(p.mix.diluent > 1e-9 ? `Reagent mix: ${fmtUL(p.mix.diluent)} of diluent + ${fmtUL(p.mix.reagent)} of reagent (enough for ${tubes.length} tube${tubes.length === 1 ? '' : 's'} plus spare). Mix gently and leave it as long as your reagent's instructions say.` : `Reagent: ${fmtUL(p.mix.reagent)}, used neat (no diluent in the reagent tube).`);
+    if (tubes.length) steps.push(`DNA tubes: one tube per condition, with the diluent and the DNA from the table (the mock tube gets diluent only).`);
+    if (mixed) steps.push(`Add the reagent mix from the table to each tube, mix gently and leave the complexes to form as your reagent's instructions say.`);
+    if (mixed) steps.push(`Add ${fmtUL(p.complexPerWell)} of complex to each well, which already has ${fmtUL(pw.medium)} of medium. Untransfected wells get nothing extra.`);
+    else steps.push(`No condition gets reagent: put ${fmtUL(pw.medium)} of medium in each well.`);
+    q('.tf-steps').replaceChildren(...steps.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+    const rows = tableRows(p), t = q<HTMLTableElement>('.tf-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); HEAD.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i > 2) th.style.textAlign = 'right'; hr.append(th); });
+    const tb = t.createTBody(); rows.forEach((r) => { const tr = tb.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i > 2) td.style.textAlign = 'right'; }); });
+    sections = [
+      { title: `${size()}-well plate map`, facts: [['Wells used', `${p.wellsUsed} of ${free}`], ['Conditions', String(conds.length)], ['Fill', q<HTMLSelectElement>('.tf-dir').value === 'col' ? 'down columns' : 'across rows']], figure: plateFigure() },
+      { title: 'Amounts per well', facts: [['DNA', fmtNg(pw.dna)], ['Reagent', `${fmtUL(p.reagentPerWell)} (${sigs(pw.ratio, 3)} µL per µg)`], ['Diluent', `${fmtUL(pw.diluent)} (${sigs(pw.share * 100, 3)} % in the DNA tube)`], ['Complex', fmtUL(p.complexPerWell)], ['Medium', fmtUL(pw.medium)], ['Spare', `${s} %`]] },
+      { title: 'Steps', text: steps.map((x, i) => `${i + 1}. ${x}`), note: p.warns.join(' ') || undefined },
+      { title: 'Pipetting table', table: { head: HEAD, rows, align: ['l', 'l', 'l', 'r', 'r', 'r', 'r', 'r', 'r', 'r'] }, note: `Totals: reagent ${fmtUL(p.mix.reagent)}, diluent ${fmtUL(p.diluentTotal)}, medium ${fmtUL(p.medium)}. Starting amounts are made up by fibub; follow your reagent's instructions.` },
+    ];
+  }
+
+  function plateFigure(): Figure {
+    const [R, C] = PLATES[size()], cell = Math.max(24, Math.min(64, Math.floor(900 / (C + 1)))), cols = 2;
+    const lrows = Math.ceil(conds.length / cols), w = Math.max(640, (C + 1) * cell + 20), h = (R + 1) * cell + 24 + lrows * 26 + 10;
+    const snap = [...map], names = conds.map((c) => c.name);
+    return { w, h, alt: 'Plate map', draw: (ctx, W, H, pal) => {
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const x0 = (w - (C + 1) * cell) / 2;
+      ctx.font = `${Math.round(cell * 0.32)}px system-ui, sans-serif`;
+      for (let c = 0; c < C; c++) { ctx.fillStyle = pal.muted; ctx.fillText(String(c + 1), x0 + cell * (c + 1.5), cell * 0.5); }
+      for (let r = 0; r < R; r++) {
+        ctx.fillStyle = pal.muted; ctx.font = `${Math.round(cell * 0.32)}px system-ui, sans-serif`; ctx.fillText(String.fromCharCode(65 + r), x0 + cell * 0.5, cell * (r + 1.5));
+        for (let c = 0; c < C; c++) {
+          const id = snap[r * C + c], p = id ? pos(id) : -1, x = x0 + cell * (c + 1.5), y = cell * (r + 1.5);
+          ctx.beginPath(); ctx.arc(x, y, cell * 0.43, 0, Math.PI * 2);
+          ctx.fillStyle = p >= 0 ? (pal.red ? '#2a0000' : colour(p)) : pal.bg; ctx.fill();
+          ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.stroke();
+          if (p >= 0) { ctx.fillStyle = pal.red ? '#c00000' : ink(colour(p)); ctx.font = `700 ${Math.round(cell * 0.4)}px system-ui, sans-serif`; ctx.fillText(String(p + 1), x, y + 1); }
+        }
+      }
+      ctx.textAlign = 'left'; ctx.font = '15px system-ui, sans-serif';
+      const ly = (R + 1) * cell + 24, colW = (w - 40) / cols;
+      names.forEach((n, i) => {
+        const x = 20 + (i % cols) * colW, y = ly + Math.floor(i / cols) * 26;
+        ctx.beginPath(); ctx.arc(x + 9, y, 9, 0, Math.PI * 2); ctx.fillStyle = pal.red ? '#2a0000' : colour(i); ctx.fill();
+        ctx.fillStyle = pal.ink; ctx.fillText(`${i + 1}  ${n}`.slice(0, 44), x + 26, y);
+      });
+    } };
+  }
+
+  // ---------- Events ----------
+  const full = () => { brush(); if (!edited) relayout(); else map = map.map((id) => (pos(id) >= 0 ? id : 0)); run(); };
+  function load(list: Cond[]) { conds = list.map((c) => ({ ...c })); nextId = Math.max(0, ...conds.map((c) => c.id)) + 1; edited = false; drawConds(); full(); }
+  let tmr = 0;
+  q('.tf-conds').addEventListener('input', () => { clearTimeout(tmr); tmr = window.setTimeout(() => { readConds(); full(); }, 150); });
+  q('.tf-conds').addEventListener('change', (e) => {
+    const el = e.target as HTMLElement;
+    if (el.classList.contains('tf-ck')) { readConds(); const c = conds.find((x) => x.id === Number(el.closest<HTMLElement>('.tf-c')!.dataset.id))!; const st = el.closest('.tf-c')!.querySelector<HTMLInputElement>('.tf-cs')!; st.disabled = !hasDna(c.kind); st.placeholder = hasDna(c.kind) ? 'ng/µL' : 'no DNA'; if (!hasDna(c.kind)) st.value = ''; full(); }
+  });
+  q('.tf-conds').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('.tf-cx'); if (!b) return;
+    readConds(); const id = Number(b.closest<HTMLElement>('.tf-c')!.dataset.id);
+    conds = conds.filter((c) => c.id !== id); drawConds(); full();
+  });
+  q('.tf-add').addEventListener('click', () => {
+    if (conds.length >= MAXC) return;
+    readConds(); conds.push({ id: nextId++, name: `Condition ${conds.length + 1}`, kind: 'construct', stock: 500, reps: 3 });
+    drawConds(); full();
+    root.querySelector<HTMLInputElement>('.tf-c:last-child .tf-cn')?.focus();
+  });
+  q('.tf-ex').addEventListener('click', () => { q<HTMLSelectElement>('.tf-size').value = '24'; setStarts(); q<HTMLInputElement>('.tf-spare').value = '10'; q<HTMLSelectElement>('.tf-dir').value = 'row'; q<HTMLInputElement>('.tf-edge').checked = false; load(EXAMPLE); });
+  q('.tf-size').addEventListener('change', () => { setStarts(); edited = false; full(); });
+  q('.tf-reset').addEventListener('click', () => { setStarts(); run(); });
+  for (const c of ['.tf-dir', '.tf-edge']) q(c).addEventListener('change', () => { relayout(); run(); });
+  q('.tf-auto').addEventListener('click', () => { relayout(); run(); });
+  for (const c of ['.tf-dna', '.tf-ratio', '.tf-dil', '.tf-share', '.tf-med', '.tf-spare']) q(c).addEventListener('input', () => { clearTimeout(tmr); tmr = window.setTimeout(run, 150); });
+  q('.tf-plate').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('.tf-w'); if (!b) return;
+    const i = Number(b.dataset.i), id = Number(q<HTMLSelectElement>('.tf-brush').value);
+    map[i] = map[i] === id ? 0 : id; edited = true; run();
+    q<HTMLButtonElement>(`.tf-w[data-i="${i}"]`).focus();
+  });
+  let rw = 0;
+  window.addEventListener('resize', () => { if (q('.tf-wrap').clientWidth !== rw) { rw = q('.tf-wrap').clientWidth; drawPlate(); } });
+
+  q('.tf-csv').addEventListener('click', () => {
+    if (!last) return;
+    const head = ['condition', 'type', 'wells', 'make_for', 'dna_stock_ng_per_uL', 'dna_ng', 'dna_uL', 'diluent_uL', 'reagent_mix_uL', 'complex_per_well_uL'];
+    const f = (x: number) => (Number.isFinite(x) ? String(Math.round(x * 1000) / 1000) : '');
+    const rows = last.rows.filter((r) => r.wells > 0).map((r) => { const c = conds[pos(r.id)]; return [r.name, KIND_LABEL[r.kind], r.wells, f(r.makeFor), hasDna(r.kind) ? f(c.stock) : '', hasDna(r.kind) ? f(r.dnaNg) : '', hasDna(r.kind) ? f(r.dnaUL) : '', hasReagent(r.kind) ? f(r.tubeDiluent) : '', hasReagent(r.kind) ? f(r.reagentMix) : '', hasReagent(r.kind) ? f(r.complexPerWell) : '']; });
+    if (last.mix.wells) rows.push(['Reagent mix', 'reagent + diluent', last.mix.wells, '', '', '', '', f(last.mix.diluent), f(last.mix.total), ''], ['Reagent (in the mix)', '', '', '', '', '', '', '', f(last.mix.reagent), '']);
+    rows.push(['Medium', '', last.wellsUsed, '', '', '', '', '', '', ''], ['Medium total uL', '', '', '', '', '', '', '', '', f(last.medium)]);
+    save(new TextEncoder().encode(csv([head, ...rows])), `transfection-plan-${size()}.csv`, 'text/csv');
+  });
+  q('.tf-wcsv').addEventListener('click', () => {
+    if (!last) return;
+    const [R, C] = PLATES[size()], pw = perWell(), f = (x: number) => String(Math.round(x * 1000) / 1000);
+    const rows: (string | number)[][] = [['well', 'row', 'column', 'condition', 'type', 'dna_ng', 'reagent_uL', 'complex_uL', 'medium_uL']];
+    for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) {
+      const id = map[r * C + c], p = id ? pos(id) : -1, k = p >= 0 ? conds[p] : null;
+      rows.push([wellName(r, c), String.fromCharCode(65 + r), c + 1, k?.name ?? '', k ? KIND_LABEL[k.kind] : 'Empty', k && hasDna(k.kind) ? f(pw.dna) : '', k && hasReagent(k.kind) ? f(last.reagentPerWell) : '', k && hasReagent(k.kind) ? f(last.complexPerWell) : '', k ? f(pw.medium) : '']);
+    }
+    save(new TextEncoder().encode(csv(rows)), `transfection-wells-${size()}.csv`, 'text/csv');
+  });
+
+  load(EXAMPLE);
+  wireDownloads(q('.dl'), () => ({ title: 'Transfection plan', subtitle: `${size()}-well plate, ${last?.wellsUsed ?? 0} wells. Amounts made up by fibub unless you changed them; follow your reagent's instructions.`, file: 'transfection-plan', sections }));
+</script>

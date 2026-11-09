@@ -1,0 +1,726 @@
+---
+// Cryovial inventory and freezing helper: freezers, racks and 9 × 9 or 10 × 10 boxes of frozen vials (line,
+// passage, date frozen, cells per vial, medium, who), a box map, search and filters, marking vials thawed with a
+// thaw log, CSV and JSON import/export, a printable box map, and a freezing helper (cells and freezing medium
+// for N vials, DMSO % editable, with dates). Kept in this browser only when the user ticks the box.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cvi">
+  <div class="ax-card">
+    <h2>Your boxes</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small cv-ex">Use the example</button>
+      <button type="button" class="btn secondary small cv-empty">Start empty</button>
+    </div>
+    <p class="ax-help cv-exnote">This is a made-up example. Press <strong>Start empty</strong> to begin your own, or open a file you saved before (at the bottom of the page).</p>
+    <div class="ax-grid cv-boxpick">
+      <label>Box <select class="cv-box"></select></label>
+    </div>
+    <p class="cv-boxinfo" aria-live="polite"></p>
+    <div class="cv-mapwrap">
+      <div class="cv-map" role="group" aria-label="Box map"></div>
+    </div>
+    <div class="ax-legend cv-legend"></div>
+    <p class="ax-help cv-maphelp">Tap a vial to see it, edit it or mark it thawed. Tap an empty place to add vials from there. Numbers are passages.</p>
+    <details class="cv-addbox">
+      <summary>Add a box</summary>
+      <div class="ax-grid">
+        <label>Freezer or tank <input class="cv-nb-f" list="cv-freezers" placeholder="LN2 tank 1" autocomplete="off" /></label>
+        <label>Rack, tower or shelf <input class="cv-nb-r" placeholder="Rack 3" autocomplete="off" /></label>
+        <label>Box name <input class="cv-nb-n" placeholder="Box 2" autocomplete="off" /></label>
+        <label>Size <select class="cv-nb-s"><option value="9">9 × 9 (81 places)</option><option value="10">10 × 10 (100 places)</option></select></label>
+      </div>
+      <datalist id="cv-freezers"></datalist>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn small cv-nb-add">Add box</button></div>
+      <p class="ax-err cv-nb-err" hidden></p>
+    </details>
+    <details class="cv-editbox">
+      <summary>Rename or remove this box</summary>
+      <div class="ax-grid">
+        <label>Freezer or tank <input class="cv-eb-f" list="cv-freezers" autocomplete="off" /></label>
+        <label>Rack, tower or shelf <input class="cv-eb-r" autocomplete="off" /></label>
+        <label>Box name <input class="cv-eb-n" autocomplete="off" /></label>
+      </div>
+      <div class="ax-row" style="margin-top:10px">
+        <button type="button" class="btn small cv-eb-save">Save names</button>
+        <button type="button" class="btn secondary small cv-eb-del">Remove this box</button>
+      </div>
+      <p class="ax-help">Removing a box also removes the vials still in it. Vials already thawed stay in the thaw log.</p>
+      <p class="ax-err cv-eb-err" hidden></p>
+    </details>
+  </div>
+
+  <div class="ax-card cv-vialcard" hidden>
+    <h2 class="cv-vh"></h2>
+    <dl class="ax-facts cv-vfacts"></dl>
+    <h3>Mark it thawed</h3>
+    <div class="ax-grid">
+      <label>Thawed on <input class="cv-t-date" type="date" /></label>
+      <label>By <input class="cv-t-by" autocomplete="off" /></label>
+      <label class="cv-wide">Note (optional) <input class="cv-t-note" placeholder="How the cells looked" autocomplete="off" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn small cv-t-go">Mark thawed</button></div>
+    <p class="ax-err cv-t-err" hidden></p>
+    <details class="cv-edit">
+      <summary>Edit or move this vial</summary>
+      <div class="ax-grid">
+        <label>Cell line or sample <input class="cv-e-line" list="cv-lines" autocomplete="off" /></label>
+        <label>Passage <input class="cv-e-pass" inputmode="numeric" /></label>
+        <label>Date frozen <input class="cv-e-date" type="date" /></label>
+        <label>Cells per vial <input class="cv-e-cells" inputmode="decimal" /></label>
+        <label>Freezing medium <input class="cv-e-med" autocomplete="off" /></label>
+        <label>Frozen by <input class="cv-e-who" autocomplete="off" /></label>
+        <label class="cv-wide">Notes <input class="cv-e-note" autocomplete="off" /></label>
+        <label>Box <select class="cv-e-box"></select></label>
+        <label>Place <input class="cv-e-pos" autocomplete="off" /></label>
+      </div>
+      <div class="ax-row" style="margin-top:10px">
+        <button type="button" class="btn small cv-e-save">Save changes</button>
+        <button type="button" class="btn secondary small cv-e-del">Remove (entered by mistake)</button>
+      </div>
+      <p class="ax-err cv-e-err" hidden></p>
+    </details>
+  </div>
+
+  <div class="ax-card cv-addcard">
+    <h2>Add vials</h2>
+    <p class="ax-help" style="margin:0 0 10px">Vials go into the free places of the box shown above, row by row (A1, A2 … then B1), starting at the place you give. Full places are skipped.</p>
+    <div class="ax-grid">
+      <label>Cell line or sample <input class="cv-a-line" list="cv-lines" autocomplete="off" /></label>
+      <label>Passage <input class="cv-a-pass" inputmode="numeric" placeholder="optional" /></label>
+      <label>Date frozen <input class="cv-a-date" type="date" /></label>
+      <label>Cells per vial <input class="cv-a-cells" inputmode="decimal" placeholder="1e6" /></label>
+      <label>Freezing medium <input class="cv-a-med" autocomplete="off" placeholder="90 % serum, 10 % DMSO" /></label>
+      <label>Frozen by <input class="cv-a-who" autocomplete="off" placeholder="initials" /></label>
+      <label class="cv-wide">Notes <input class="cv-a-note" autocomplete="off" placeholder="optional" /></label>
+      <label>How many vials <input class="cv-a-n" inputmode="numeric" value="1" /></label>
+      <label>Start at <input class="cv-a-start" autocomplete="off" value="A1" /></label>
+    </div>
+    <datalist id="cv-lines"></datalist>
+    <p class="ax-help cv-a-where"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn small cv-a-go">Add vials</button></div>
+    <p class="ax-err cv-a-err" hidden></p>
+    <p class="ax-help cv-a-ok" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Find vials</h2>
+    <div class="ax-grid">
+      <label class="cv-wide">Search <input class="cv-q" type="search" placeholder="line, P12, initials, note, box…" autocomplete="off" /></label>
+      <label>Freezer <select class="cv-ff"></select></label>
+      <label>Line <select class="cv-fl"></select></label>
+    </div>
+    <div class="ax-seg cv-fs" role="group" aria-label="Which vials">
+      <button type="button" data-s="in" aria-pressed="true">In the freezer</button>
+      <button type="button" data-s="thawed" aria-pressed="false">Thawed</button>
+      <button type="button" data-s="all" aria-pressed="false">All</button>
+    </div>
+    <p class="cv-count" aria-live="polite"></p>
+    <div class="ax-scroll"><table class="cv-res"></table></div>
+    <div class="cv-bulk">
+      <h3>Mark the ticked vials thawed</h3>
+      <div class="ax-grid">
+        <label>Thawed on <input class="cv-b-date" type="date" /></label>
+        <label>By <input class="cv-b-by" autocomplete="off" /></label>
+        <label class="cv-wide">Note (optional) <input class="cv-b-note" autocomplete="off" /></label>
+      </div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn small cv-b-go">Mark ticked thawed</button><span class="ax-help cv-b-n" style="margin:0"></span></div>
+      <p class="ax-err cv-b-err" hidden></p>
+    </div>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small cv-res-csv">Download these as CSV</button></div>
+    <h3>Lines</h3>
+    <div class="ax-grid"><label>Warn when a line is down to <input class="cv-low" inputmode="numeric" value="2" /></label></div>
+    <div class="ax-scroll"><table class="cv-lines"></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Thaw log</h2>
+    <p class="ax-help" style="margin:0 0 8px">Every vial marked thawed, newest first, with the place it came from. Undo puts a vial back if its place is still free.</p>
+    <p class="cv-lognone">No vials thawed yet.</p>
+    <div class="ax-scroll"><table class="cv-log"></table></div>
+    <p class="ax-err cv-log-err" hidden></p>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small cv-log-csv">Download thaw log CSV</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Freezing helper</h2>
+    <p class="ax-help" style="margin:0 0 10px">How many cells to spin down and how much freezing medium to make for a batch of vials. The starting values are round numbers chosen by fibub, not a protocol: use your lab's own.</p>
+    <div class="ax-grid">
+      <label>Vials <input class="cv-f-n" inputmode="numeric" value="10" /></label>
+      <label>Cells per vial <input class="cv-f-cpv" inputmode="decimal" value="1e6" /></label>
+      <label>mL per vial <input class="cv-f-ml" inputmode="decimal" value="1" /></label>
+      <label>DMSO (%) <input class="cv-f-d" inputmode="decimal" value="10" /></label>
+      <label>Serum (%) <input class="cv-f-s" inputmode="decimal" value="20" /></label>
+      <label>Extra for pipetting (%) <input class="cv-f-x" inputmode="decimal" value="10" /></label>
+    </div>
+    <p class="ax-help">DMSO protects the cells from ice; extra serum is optional (0 % if your mix is only medium and DMSO); the rest of the mix is medium. "Extra for pipetting" makes a little more so the last vial is full.</p>
+    <h3>Your cells now (optional)</h3>
+    <div class="ax-grid">
+      <label>Live cells per mL <input class="cv-f-cpm" inputmode="decimal" value="8e5" /></label>
+      <label>Volume of suspension (mL) <input class="cv-f-vol" inputmode="decimal" value="20" /></label>
+    </div>
+    <h3>Cooling and dates</h3>
+    <div class="ax-grid">
+      <label>Freezing on <input class="cv-f-date" type="date" /></label>
+      <label>Start (°C) <input class="cv-f-t0" inputmode="decimal" value="20" /></label>
+      <label>Cooling rate (°C per min) <input class="cv-f-rate" inputmode="decimal" value="1" /></label>
+      <label>Move to storage after (h) <input class="cv-f-move" inputmode="decimal" value="24" /></label>
+      <label>Test thaw after (days) <input class="cv-f-test" inputmode="decimal" value="7" /></label>
+    </div>
+    <p class="ax-help">The cooling time is how long the vials take to reach −80 °C at a steady rate; slow-cooling containers aim for about 1 °C per minute. Check your own container's instructions.</p>
+    <p class="ax-err cv-f-err" hidden></p>
+    <div class="cv-f-out">
+      <p class="ax-big cv-f-big" aria-live="polite"></p>
+      <p class="ax-help cv-f-sub"></p>
+      <dl class="ax-facts cv-f-facts"></dl>
+      <ol class="cv-f-steps"></ol>
+      <ul class="cv-f-warn"></ul>
+      <h3>Dates</h3>
+      <div class="ax-scroll"><table class="cv-f-sched"></table></div>
+      <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small cv-f-use">Add these vials to the box above</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Save, open and print</h2>
+    <div class="ax-row">
+      <button type="button" class="btn small cv-csv">Save as CSV</button>
+      <button type="button" class="btn secondary small cv-json">Save as JSON</button>
+      <button type="button" class="btn secondary small cv-open">Open a file</button>
+      <input type="file" class="cv-in" accept=".csv,.tsv,.txt,.json,text/csv,application/json,text/plain" hidden />
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>When opening a file <select class="cv-mode"><option value="add">add to this inventory</option><option value="replace">replace this inventory</option></select></label>
+    </div>
+    <p class="ax-help">CSV opens in any spreadsheet; JSON keeps everything, including empty boxes. Both open here again. A CSV of your own needs at least "line", "position" and "date_frozen" columns; freezer, rack, box, box_size (9x9 or 10x10), passage, cells_per_vial, medium, frozen_by and notes are read too.</p>
+    <p class="ax-help cv-io-ok" aria-live="polite"></p>
+    <p class="ax-err cv-io-err" hidden></p>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn secondary small cv-print-go">Print this box map</button>
+    </div>
+    <div class="ax-row" style="margin-top:14px">
+      <label class="ax-check"><input type="checkbox" class="cv-keep" /> Keep my inventory in this browser</label>
+      <button type="button" class="btn secondary small cv-clear">Clear all</button>
+    </div>
+    <p class="ax-help">Off by default. When it is ticked, your boxes, vials and thaw log are saved only in this browser on this device, so they are here next time. They are never sent anywhere. Clear all empties the page and deletes the saved copy. Browsers can wipe saved data, so save a file now and then as a backup.</p>
+    <p class="ax-help cv-cleared" aria-live="polite"></p>
+    <Downloads label="Box map" />
+  </div>
+  <div class="cv-print" aria-hidden="true"></div>
+</div>
+
+<script>
+  import * as C from '../../lib/sci/cryovial';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { save, wireDownloads, fileSafe, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cvi')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => inp(c).value.trim();
+  const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', text = '') => { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; };
+  const showErr = (c: string, m: string) => { const e = q(c); e.textContent = m; e.hidden = !m; };
+  const KEY = 'fibub-cryovials-v1';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const now = new Date(), TODAY = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const cells = (x: number | null) => (x == null || !Number.isFinite(x) ? '–' : x >= 1e10 ? sig(x, 3) : Number(x.toPrecision(4)).toLocaleString('en-US'));
+  const vol = (ml: number) => (ml === 0 ? '0 mL' : ml >= 1 ? `${Number(ml.toPrecision(4))} mL` : `${Number((ml * 1000).toPrecision(3))} µL`);
+  const passage = (p: number | null) => (p == null ? '–' : `P${p}`);
+  const optNum = (s: string) => (s.trim() ? num(s) : null);
+
+  let inv: C.Inventory = C.newInventory();
+  let boxId = '', selPos = '', status: 'in' | 'thawed' | 'all' = 'in', isExample = false;
+  const ticked = new Set<string>();
+  const curBox = () => inv.boxes.find((b) => b.id === boxId);
+
+  // ---------- Storage (only when ticked) ----------
+  const keeping = () => inp('.cv-keep').checked;
+  const store = () => { try { if (keeping()) localStorage.setItem(KEY, C.toJson(inv)); } catch {} };
+  function loadSaved(): boolean {
+    try {
+      const s = localStorage.getItem(KEY);
+      if (!s) return false;
+      const x = C.newInventory();
+      C.importJson(x, s);
+      inv = x; inp('.cv-keep').checked = true;
+      return true;
+    } catch { return false; }
+  }
+
+  // ---------- Colours per line ----------
+  const lineColour = new Map<string, number>();
+  const colourOf = (line: string) => {
+    if (!lineColour.has(line)) lineColour.set(line, [...new Set(C.lineSummary(inv).map((s) => s.line))].indexOf(line) % 8);
+    return lineColour.get(line)!;
+  };
+  const FILL_LIGHT = ['#cfe3f7', '#fde2b8', '#c9ecd9', '#f6d0e4', '#e2d8f3', '#f9f1b0', '#d5e7ec', '#f3d2c8'];
+  const FILL_DARK = ['#1e3a5c', '#5a3d0f', '#17452f', '#57213e', '#3a2d5c', '#4f4810', '#1e4650', '#5a2a1e'];
+
+  // ---------- Rendering ----------
+  function changed() { lineColour.clear(); store(); render(); }
+  function render() {
+    renderBoxes(); renderMap(); renderVial(); renderAddHint(); renderFind(); renderLog(); lists();
+  }
+  function lists() {
+    const lines = [...new Set(inv.vials.map((v) => v.line))].sort((a, b) => a.localeCompare(b, 'en', { numeric: true }));
+    const freezers = [...new Set(inv.boxes.map((b) => b.freezer))].sort((a, b) => a.localeCompare(b, 'en', { numeric: true }));
+    q('#cv-lines').replaceChildren(...lines.map((l) => { const o = el('option'); o.value = l; return o; }));
+    q('#cv-freezers').replaceChildren(...freezers.map((l) => { const o = el('option'); o.value = l; return o; }));
+  }
+  function renderBoxes() {
+    const s = q<HTMLSelectElement>('.cv-box'), boxes = C.sortedBoxes(inv);
+    if (!boxes.some((b) => b.id === boxId)) { boxId = boxes[0]?.id ?? ''; selPos = ''; }
+    s.replaceChildren(...boxes.map((b) => { const u = C.boxUse(inv, b), o = el('option', '', `${C.boxLabel(b)} (${u.used}/${u.places})`); o.value = b.id; return o; }));
+    if (!boxes.length) { const o = el('option', '', 'No boxes yet: add one below'); o.value = ''; s.append(o); }
+    s.value = boxId; s.disabled = !boxes.length;
+    const eb = q<HTMLSelectElement>('.cv-e-box');
+    eb.replaceChildren(...boxes.map((b) => { const o = el('option', '', C.boxLabel(b)); o.value = b.id; return o; }));
+    q('.cv-exnote').hidden = !isExample;
+    q('.cv-editbox').hidden = !boxes.length;
+    const b = curBox();
+    if (b) { inp('.cv-eb-f').value = b.freezer; inp('.cv-eb-r').value = b.rack; inp('.cv-eb-n').value = b.name; }
+    resetDel();
+  }
+  function renderMap() {
+    const b = curBox(), map = q('.cv-map');
+    q('.cv-mapwrap').hidden = !b; q('.cv-maphelp').hidden = !b;
+    if (!b) { q('.cv-boxinfo').textContent = 'No boxes yet. Add a box (below) to start, or open a file you saved.'; map.replaceChildren(); q('.cv-legend').replaceChildren(); (q('.cv-addbox') as HTMLDetailsElement).open = true; return; }
+    const occ = C.occupancy(inv, b.id), u = C.boxUse(inv, b);
+    const filtering = !!(val('.cv-q') || q<HTMLSelectElement>('.cv-ff').value || q<HTMLSelectElement>('.cv-fl').value);
+    const hits = new Set(filtering ? C.filterVials(inv, readFilter()).map((v) => v.id) : []);
+    q('.cv-boxinfo').textContent = `${C.boxLabel(b)}: ${u.used} of ${u.places} places used, ${u.places - u.used} free.${filtering ? ` ${[...occ.values()].filter((v) => hits.has(v.id)).length} match the search.` : ''}`;
+    map.style.setProperty('--cols', String(b.cols));
+    const kids: HTMLElement[] = [el('span', 'cv-corner')];
+    for (let c = 0; c < b.cols; c++) kids.push(el('span', 'cv-hd', String(c + 1)));
+    for (let r = 0; r < b.rows; r++) {
+      kids.push(el('span', 'cv-hd', C.rowLetter(r)));
+      for (let c = 0; c < b.cols; c++) {
+        const pos = C.posName(r, c), v = occ.get(pos), btn = el('button', 'cv-cell');
+        btn.type = 'button'; btn.dataset.pos = pos;
+        if (v) {
+          btn.classList.add('cv-full', 'cv-lc', `cv-c${colourOf(v.line)}`);
+          btn.append(el('span', 'cv-l', v.line), el('span', 'cv-p', v.passage == null ? '' : String(v.passage)));
+          btn.setAttribute('aria-label', `${pos}: ${v.line}, ${passage(v.passage)}, frozen ${v.frozen}`);
+          btn.title = `${pos}: ${v.line} ${passage(v.passage)}, frozen ${v.frozen}${v.cells ? `, ${cells(v.cells)} cells` : ''}`;
+          if (filtering && !hits.has(v.id)) btn.classList.add('cv-dim');
+          if (filtering && hits.has(v.id)) btn.classList.add('cv-hit');
+        } else { btn.setAttribute('aria-label', `${pos}: empty`); btn.title = `${pos}: empty`; }
+        if (pos === selPos) { btn.classList.add('cv-sel'); btn.setAttribute('aria-pressed', 'true'); }
+        kids.push(btn);
+      }
+    }
+    map.replaceChildren(...kids);
+    const inBox = C.lineSummary({ ...inv, vials: [...occ.values()] });
+    q('.cv-legend').replaceChildren(...inBox.map((s) => { const sp = el('span'); const i = el('i', `cv-lc cv-c${colourOf(s.line)}`); sp.append(i, `${s.line} (${s.inStock})`); return sp; }));
+  }
+  function selected(): C.Vial | undefined { const b = curBox(); return b && selPos ? C.occupancy(inv, b.id).get(selPos) : undefined; }
+  function renderVial() {
+    const v = selected(), card = q('.cv-vialcard');
+    card.hidden = !v;
+    if (!v) return;
+    const b = curBox()!;
+    q('.cv-vh').textContent = `${v.pos} · ${v.line}`;
+    const fact = (k: string, x: string) => { const d = el('div'); d.append(el('dt', '', k), el('dd', '', x || '–')); return d; };
+    q('.cv-vfacts').replaceChildren(
+      fact('Place', `${C.boxLabel(b)} › ${v.pos}`), fact('Passage', passage(v.passage)), fact('Frozen on', v.frozen),
+      fact('Cells per vial', cells(v.cells)), fact('Medium', v.medium), fact('Frozen by', v.who), fact('Notes', v.note),
+    );
+    if (q('.cv-vialcard').dataset.vid !== v.id) {
+      q('.cv-vialcard').dataset.vid = v.id;
+      inp('.cv-e-line').value = v.line; inp('.cv-e-pass').value = v.passage == null ? '' : String(v.passage);
+      inp('.cv-e-date').value = v.frozen; inp('.cv-e-cells').value = v.cells == null ? '' : String(v.cells);
+      inp('.cv-e-med').value = v.medium; inp('.cv-e-who').value = v.who; inp('.cv-e-note').value = v.note;
+      q<HTMLSelectElement>('.cv-e-box').value = v.box; inp('.cv-e-pos').value = v.pos;
+      inp('.cv-t-note').value = ''; showErr('.cv-t-err', ''); showErr('.cv-e-err', ''); resetVialDel();
+    }
+  }
+  function renderAddHint() {
+    const b = curBox();
+    q<HTMLButtonElement>('.cv-a-go').disabled = !b;
+    if (!b) { q('.cv-a-where').textContent = 'Add a box first.'; return; }
+    const n = Math.round(num(val('.cv-a-n'))), start = val('.cv-a-start') || 'A1';
+    const free = C.freePositions(inv, b, start);
+    q('.cv-a-where').textContent = !C.parsePos(start, b) ? `Start at a place from A1 to ${C.posName(b.rows - 1, b.cols - 1)}.`
+      : n >= 1 && free.length >= n ? `Into ${b.name}: ${n === 1 ? free[0] : `${free[0]} to ${free[n - 1]}`} (${free.length} free from ${start.toUpperCase()}).`
+      : `${free.length} free place${free.length === 1 ? '' : 's'} in ${b.name} from ${start.toUpperCase()}.`;
+  }
+
+  // ---------- Find ----------
+  const readFilter = (): C.Filter => ({ text: val('.cv-q'), freezer: q<HTMLSelectElement>('.cv-ff').value, line: q<HTMLSelectElement>('.cv-fl').value, status });
+  function fillSelect(s: HTMLSelectElement, first: string, items: string[]) {
+    const cur = s.value;
+    s.replaceChildren(el('option', '', first), ...items.map((x) => { const o = el('option', '', x); o.value = x; return o; }));
+    (s.firstElementChild as HTMLOptionElement).value = '';
+    s.value = items.includes(cur) ? cur : '';
+  }
+  let shown: C.Vial[] = [];
+  function renderFind() {
+    fillSelect(q<HTMLSelectElement>('.cv-ff'), 'All freezers', [...new Set(inv.boxes.map((b) => b.freezer))].sort((a, b) => a.localeCompare(b, 'en', { numeric: true })));
+    fillSelect(q<HTMLSelectElement>('.cv-fl'), 'All lines', C.lineSummary(inv).map((s) => s.line));
+    shown = C.filterVials(inv, readFilter());
+    for (const id of [...ticked]) if (!shown.some((v) => v.id === id && C.inStock(v))) ticked.delete(id);
+    const all = status === 'in' ? inv.vials.filter(C.inStock).length : status === 'thawed' ? inv.vials.length - inv.vials.filter(C.inStock).length : inv.vials.length;
+    q('.cv-count').textContent = `${shown.length} of ${all} vial${all === 1 ? '' : 's'} ${status === 'in' ? 'in the freezer' : status === 'thawed' ? 'thawed' : 'in all'}.`;
+    const t = q<HTMLTableElement>('.cv-res'); t.replaceChildren();
+    const hr = t.createTHead().insertRow();
+    ['', 'Place', 'Line', 'Passage', 'Frozen', 'Cells', 'Medium', 'By', 'Notes', ...(status === 'in' ? [] : ['Thawed']), 'Freezer › rack'].forEach((h, j) => hr.append(el('th', j === 5 ? 'r' : '', h)));
+    const tb = t.createTBody();
+    for (const v of shown.slice(0, 500)) {
+      const tr = tb.insertRow(), c0 = tr.insertCell();
+      if (C.inStock(v)) { const cb = el('input', 'cv-tick'); cb.type = 'checkbox'; cb.dataset.id = v.id; cb.checked = ticked.has(v.id); cb.setAttribute('aria-label', `Tick ${v.line} at ${v.pos}`); c0.append(cb); }
+      const c1 = tr.insertCell();
+      const vb = inv.boxes.find((x) => x.id === v.box), parts = (v.place ?? '').split(' › ');
+      const short = vb ? `${vb.name} › ${v.pos}` : `${parts[2] ?? ''} › ${v.pos}`, fr = vb ? `${vb.freezer} › ${vb.rack}` : parts.slice(0, 2).join(' › ');
+      if (C.inStock(v)) { const a = el('button', 'cv-go', short); a.type = 'button'; a.dataset.id = v.id; a.title = C.placeOf(inv, v); c1.append(a); } else c1.textContent = short;
+      [v.line, passage(v.passage), v.frozen, cells(v.cells), v.medium, v.who, v.note, ...(status === 'in' ? [] : [v.thawed ?? '']), fr].forEach((x, j) => { const td = tr.insertCell(); td.textContent = x; if (j === 3) td.className = 'r'; });
+    }
+    if (shown.length > 500) { const tr = tb.insertRow(), td = tr.insertCell(); td.colSpan = 11; td.textContent = `Showing the first 500 of ${shown.length}; search to narrow the list.`; }
+    q('.cv-bulk').hidden = status === 'thawed' || !shown.some(C.inStock);
+    q('.cv-b-n').textContent = `${ticked.size} ticked`;
+    q<HTMLButtonElement>('.cv-b-go').disabled = !ticked.size;
+    // Lines
+    const low = Math.round(num(val('.cv-low')));
+    const lt = q<HTMLTableElement>('.cv-lines'); lt.replaceChildren();
+    const lh = lt.createTHead().insertRow();
+    ['Line', 'In the freezer', 'Thawed', 'Passages', 'Frozen', 'Cells in stock'].forEach((h, j) => lh.append(el('th', j && j !== 3 && j !== 4 ? 'r' : '', h)));
+    const lb = lt.createTBody();
+    for (const s of C.lineSummary(inv)) {
+      const tr = lb.insertRow(), name = tr.insertCell();
+      name.textContent = s.line;
+      if (Number.isFinite(low) && s.inStock <= low) { name.append(' '); name.append(el('span', `ax-pill ${s.inStock ? 'warn' : 'bad'}`, s.inStock ? 'running low' : 'none left')); }
+      [String(s.inStock), String(s.thawed), s.passages ? (s.passages[0] === s.passages[1] ? `P${s.passages[0]}` : `P${s.passages[0]}–P${s.passages[1]}`) : '–', s.oldest ? (s.oldest === s.newest ? s.oldest : `${s.oldest} to ${s.newest}`) : '–', s.cells ? cells(s.cells) : '–'].forEach((x, j) => { const td = tr.insertCell(); td.textContent = x; if (j < 2 || j === 4) td.className = 'r'; });
+    }
+  }
+  function renderLog() {
+    const log = C.thawLog(inv), t = q<HTMLTableElement>('.cv-log'); t.replaceChildren();
+    q('.cv-lognone').hidden = !!log.length; t.hidden = !log.length;
+    if (!log.length) return;
+    const hr = t.createTHead().insertRow();
+    ['Thawed', 'Line', 'Passage', 'From', 'Frozen', 'By', 'Note', ''].forEach((h) => hr.append(el('th', '', h)));
+    const tb = t.createTBody();
+    for (const v of log) {
+      const tr = tb.insertRow();
+      [v.thawed!, v.line, passage(v.passage), v.place ?? C.placeOf(inv, v), v.frozen, v.thawBy ?? '', v.thawNote ?? ''].forEach((x) => { tr.insertCell().textContent = x; });
+      const u = el('button', 'btn secondary small cv-undo', 'Undo'); u.type = 'button'; u.dataset.id = v.id; u.setAttribute('aria-label', `Undo the thaw of ${v.line} from ${v.pos}`);
+      tr.insertCell().append(u);
+    }
+  }
+
+  // ---------- Actions ----------
+  q('.cv-box').addEventListener('change', () => { boxId = q<HTMLSelectElement>('.cv-box').value; selPos = ''; inp('.cv-a-start').value = 'A1'; render(); });
+  q('.cv-map').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('.cv-cell'); if (!b) return;
+    const pos = b.dataset.pos!, v = C.occupancy(inv, boxId).get(pos);
+    selPos = pos === selPos ? '' : pos;
+    if (!v && selPos) { inp('.cv-a-start').value = pos; renderMap(); renderVial(); renderAddHint(); q('.cv-addcard').scrollIntoView({ behavior: 'smooth', block: 'start' }); inp('.cv-a-line').focus({ preventScroll: true }); return; }
+    renderMap(); renderVial();
+    if (v && selPos) q('.cv-vialcard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+  q('.cv-nb-add').addEventListener('click', () => {
+    try {
+      const b = C.addBox(inv, { freezer: val('.cv-nb-f'), rack: val('.cv-nb-r'), name: val('.cv-nb-n'), rows: Number(q<HTMLSelectElement>('.cv-nb-s').value) });
+      boxId = b.id; selPos = ''; showErr('.cv-nb-err', ''); inp('.cv-nb-n').value = ''; inp('.cv-a-start').value = 'A1'; changed();
+    } catch (x) { showErr('.cv-nb-err', (x as Error).message); }
+  });
+  q('.cv-eb-save').addEventListener('click', () => {
+    try { C.renameBox(inv, boxId, { freezer: val('.cv-eb-f'), rack: val('.cv-eb-r'), name: val('.cv-eb-n') }); showErr('.cv-eb-err', ''); changed(); } catch (x) { showErr('.cv-eb-err', (x as Error).message); }
+  });
+  let delArmed = false;
+  const resetDel = () => { delArmed = false; const b = curBox(); q('.cv-eb-del').textContent = b ? `Remove this box${C.boxUse(inv, b).used ? ` and its ${C.boxUse(inv, b).used} vials` : ''}` : 'Remove this box'; };
+  q('.cv-eb-del').addEventListener('click', () => {
+    if (!delArmed) { delArmed = true; q('.cv-eb-del').textContent = 'Press again to remove it'; return; }
+    C.removeBox(inv, boxId); boxId = ''; selPos = ''; changed();
+  });
+  // Selected vial
+  q('.cv-t-go').addEventListener('click', () => {
+    const v = selected(); if (!v) return;
+    try { C.thaw(inv, [v.id], val('.cv-t-date'), val('.cv-t-by'), val('.cv-t-note')); showErr('.cv-t-err', ''); selPos = ''; changed(); } catch (x) { showErr('.cv-t-err', (x as Error).message); }
+  });
+  q('.cv-e-save').addEventListener('click', () => {
+    const v = selected(); if (!v) return;
+    const p = optNum(val('.cv-e-pass')), c = optNum(val('.cv-e-cells'));
+    try {
+      if (p !== null && Number.isNaN(p)) throw new Error('The passage is a whole number, 0 or more (or leave it empty).');
+      if (c !== null && Number.isNaN(c)) throw new Error('Cells per vial must be a number above 0 (or leave it empty).');
+      C.updateVial(inv, v.id, { line: val('.cv-e-line'), passage: p, frozen: val('.cv-e-date'), cells: c, medium: val('.cv-e-med'), who: val('.cv-e-who'), note: val('.cv-e-note'), box: q<HTMLSelectElement>('.cv-e-box').value, pos: val('.cv-e-pos') });
+      showErr('.cv-e-err', ''); boxId = v.box; selPos = v.pos; q('.cv-vialcard').dataset.vid = ''; changed();
+    } catch (x) { showErr('.cv-e-err', (x as Error).message); }
+  });
+  let vdelArmed = false;
+  const resetVialDel = () => { vdelArmed = false; q('.cv-e-del').textContent = 'Remove (entered by mistake)'; };
+  q('.cv-e-del').addEventListener('click', () => {
+    const v = selected(); if (!v) return;
+    if (!vdelArmed) { vdelArmed = true; q('.cv-e-del').textContent = 'Press again to remove it'; return; }
+    C.removeVial(inv, v.id); selPos = ''; changed();
+  });
+  // Add vials
+  q('.cv-a-go').addEventListener('click', () => {
+    const p = optNum(val('.cv-a-pass').replace(/^p/i, '')), c = optNum(val('.cv-a-cells')), n = num(val('.cv-a-n'));
+    try {
+      if (p !== null && Number.isNaN(p)) throw new Error('The passage is a whole number, 0 or more (or leave it empty).');
+      if (c !== null && Number.isNaN(c)) throw new Error('Cells per vial must be a number above 0 (or leave it empty).');
+      const added = C.addVials(inv, boxId, val('.cv-a-start') || 'A1', n, { line: val('.cv-a-line'), passage: p, frozen: val('.cv-a-date'), cells: c, medium: val('.cv-a-med'), who: val('.cv-a-who'), note: val('.cv-a-note') });
+      showErr('.cv-a-err', '');
+      q('.cv-a-ok').textContent = `Added ${added.length} vial${added.length === 1 ? '' : 's'} of ${added[0].line}: ${added.length === 1 ? added[0].pos : `${added[0].pos} to ${added[added.length - 1].pos}`}.`;
+      const next = C.freePositions(inv, curBox()!, added[added.length - 1].pos)[0];
+      inp('.cv-a-start').value = next ?? 'A1'; selPos = '';
+      isExample = false; changed();
+    } catch (x) { showErr('.cv-a-err', (x as Error).message); q('.cv-a-ok').textContent = ''; }
+  });
+  for (const c of ['.cv-a-n', '.cv-a-start']) inp(c).addEventListener('input', renderAddHint);
+  // Find
+  inp('.cv-q').addEventListener('input', () => { renderFind(); renderMap(); });
+  for (const c of ['.cv-ff', '.cv-fl']) q(c).addEventListener('change', () => { renderFind(); renderMap(); });
+  inp('.cv-low').addEventListener('input', renderFind);
+  q('.cv-fs').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-s]'); if (!b) return;
+    status = b.dataset.s as typeof status;
+    q('.cv-fs').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    renderFind();
+  });
+  q('.cv-res').addEventListener('change', (e) => {
+    const cb = (e.target as HTMLElement).closest<HTMLInputElement>('.cv-tick'); if (!cb) return;
+    if (cb.checked) ticked.add(cb.dataset.id!); else ticked.delete(cb.dataset.id!);
+    q('.cv-b-n').textContent = `${ticked.size} ticked`; q<HTMLButtonElement>('.cv-b-go').disabled = !ticked.size;
+  });
+  q('.cv-res').addEventListener('click', (e) => {
+    const a = (e.target as HTMLElement).closest<HTMLButtonElement>('.cv-go'); if (!a) return;
+    const v = inv.vials.find((x) => x.id === a.dataset.id); if (!v) return;
+    boxId = v.box; selPos = v.pos; render();
+    q('.cv-vialcard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  q('.cv-b-go').addEventListener('click', () => {
+    try { const n = C.thaw(inv, [...ticked], val('.cv-b-date'), val('.cv-b-by'), val('.cv-b-note')).length; ticked.clear(); showErr('.cv-b-err', ''); selPos = ''; changed(); q('.cv-b-n').textContent = `${n} marked thawed`; } catch (x) { showErr('.cv-b-err', (x as Error).message); }
+  });
+  q('.cv-log').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('.cv-undo'); if (!b) return;
+    try { C.unthaw(inv, b.dataset.id!); showErr('.cv-log-err', ''); changed(); } catch (x) { showErr('.cv-log-err', (x as Error).message); }
+  });
+  const rowsCsv = (vs: C.Vial[]) => { const x = C.newInventory(); x.boxes = inv.boxes; x.vials = vs; return C.toCsv(x).split('\n').filter((l) => !/,empty box,/.test(l)).join('\n'); };
+  q('.cv-res-csv').addEventListener('click', () => save(new Blob([rowsCsv(shown)], { type: 'text/csv' }), 'cryovials-found.csv', 'text/csv'));
+  q('.cv-log-csv').addEventListener('click', () => {
+    const rows: (string | number)[][] = [['date_thawed', 'line', 'passage', 'from', 'date_frozen', 'cells_per_vial', 'thawed_by', 'thaw_notes']];
+    for (const v of C.thawLog(inv)) rows.push([v.thawed!, v.line, v.passage ?? '', v.place ?? C.placeOf(inv, v), v.frozen, v.cells ?? '', v.thawBy ?? '', v.thawNote ?? '']);
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'cryovial-thaw-log.csv', 'text/csv');
+  });
+
+  // ---------- Freezing helper ----------
+  let fp: C.FreezeOut | null = null;
+  const mins = (m: number) => { const h = Math.floor(m / 60), r = Math.round(m - h * 60); return h ? `${h} h${r ? ` ${r} min` : ''}` : `${sig(m, 3)} min`; };
+  function freezer() {
+    const opt = (c: string) => { const s = val(c); return s ? num(s) : undefined; };
+    const cpm = opt('.cv-f-cpm'), sv = opt('.cv-f-vol');
+    try {
+      if (cpm !== undefined && Number.isNaN(cpm)) throw new Error('Type the live cells per mL as a number, or leave it empty.');
+      if (sv !== undefined && Number.isNaN(sv)) throw new Error('Type the volume of suspension in mL, or leave it empty.');
+      fp = C.freezePlan({ vials: num(val('.cv-f-n')), cellsPerVial: num(val('.cv-f-cpv')), mlPerVial: num(val('.cv-f-ml')), dmsoPct: num(val('.cv-f-d')), serumPct: val('.cv-f-s') ? num(val('.cv-f-s')) : 0, extraPct: val('.cv-f-x') ? num(val('.cv-f-x')) : 0, countPerMl: cpm, suspMl: sv, startC: num(val('.cv-f-t0')), rateCPerMin: num(val('.cv-f-rate')) });
+      const sch = C.freezeSchedule(val('.cv-f-date'), num(val('.cv-f-move')), num(val('.cv-f-test')));
+      showErr('.cv-f-err', ''); q('.cv-f-out').hidden = false;
+      const n = num(val('.cv-f-n')), ml = num(val('.cv-f-ml')), x = val('.cv-f-x') ? num(val('.cv-f-x')) : 0;
+      q('.cv-f-big').textContent = `${vol(fp.totalMl)} of freezing medium for ${n} vial${n === 1 ? '' : 's'}`;
+      q('.cv-f-sub').textContent = `${fp.mix}. Cells resuspended at ${cells(fp.conc)} cells/mL, ${vol(ml)} per vial${x ? `, with ${sig(x, 3)} % extra` : ''}.`;
+      const fact = (k: string, v: string, sm = '') => { const d = el('div'); d.append(el('dt', '', k), el('dd', '', v)); if (sm) d.lastElementChild!.append(el('small', '', sm)); return d; };
+      const facts = [
+        fact('Cells to spin down', cells(fp.cellsNeeded), `${cells(fp.cellsInVials)} go into the vials`),
+        fact('DMSO', vol(fp.dmsoMl), `${sig(num(val('.cv-f-d')), 3)} % of the mix`),
+        fact('Serum', vol(fp.serumMl)), fact('Medium', vol(fp.mediumMl)),
+      ];
+      if (Number.isFinite(fp.spinMl)) facts.push(fact('Suspension to spin down', vol(fp.spinMl), `at ${cells(cpm!)} cells/mL`));
+      if (Number.isFinite(fp.maxVials)) facts.push(fact('You could freeze', `${fp.maxVials} vial${fp.maxVials === 1 ? '' : 's'}`, `from ${cells(fp.haveCells)} cells`));
+      facts.push(fact('Cooling to −80 °C', mins(fp.coolMin), `at ${sig(num(val('.cv-f-rate')), 3)} °C per minute`));
+      q('.cv-f-facts').replaceChildren(...facts);
+      const parts = [fp.mediumMl > 0 ? `${vol(fp.mediumMl)} of medium` : '', fp.serumMl > 0 ? `${vol(fp.serumMl)} of serum` : '', fp.dmsoMl > 0 ? `${vol(fp.dmsoMl)} of DMSO` : ''].filter(Boolean);
+      q('.cv-f-steps').replaceChildren(...[
+        `Make the freezing medium: ${parts.join(', ')}, mixed well.`,
+        Number.isFinite(fp.spinMl) ? `Spin down ${vol(fp.spinMl)} of your cell suspension (${cells(fp.cellsNeeded)} cells) and take off the liquid.` : `Spin down ${cells(fp.cellsNeeded)} cells and take off the liquid.`,
+        `Resuspend the cells gently in ${vol(fp.totalMl)} of freezing medium (${cells(fp.conc)} cells/mL).`,
+        `Put ${vol(ml)} into each of ${n} labelled vials and start cooling them straight away.`,
+      ].map((s) => el('li', '', s)));
+      q('.cv-f-warn').replaceChildren(...fp.warn.map((w) => el('li', '', w)));
+      const t = q<HTMLTableElement>('.cv-f-sched'); t.replaceChildren();
+      const hr = t.createTHead().insertRow(); ['Date', 'What'].forEach((h) => hr.append(el('th', '', h)));
+      const tb = t.createTBody();
+      for (const s of sch) { const tr = tb.insertRow(); tr.insertCell().textContent = s.date; tr.insertCell().textContent = s.what; }
+    } catch (e) { fp = null; showErr('.cv-f-err', (e as Error).message); q('.cv-f-out').hidden = true; }
+  }
+  for (const c of ['.cv-f-n', '.cv-f-cpv', '.cv-f-ml', '.cv-f-d', '.cv-f-s', '.cv-f-x', '.cv-f-cpm', '.cv-f-vol', '.cv-f-date', '.cv-f-t0', '.cv-f-rate', '.cv-f-move', '.cv-f-test']) inp(c).addEventListener('input', freezer);
+  q('.cv-f-use').addEventListener('click', () => {
+    if (!fp) return;
+    inp('.cv-a-n').value = val('.cv-f-n'); inp('.cv-a-cells').value = val('.cv-f-cpv'); inp('.cv-a-med').value = fp.mix; inp('.cv-a-date').value = val('.cv-f-date');
+    const b = curBox(); if (b) inp('.cv-a-start').value = C.freePositions(inv, b)[0] ?? 'A1';
+    renderAddHint();
+    q('.cv-addcard').scrollIntoView({ behavior: 'smooth', block: 'start' }); inp('.cv-a-line').focus({ preventScroll: true });
+  });
+
+  // ---------- Files ----------
+  q('.cv-csv').addEventListener('click', () => save(new Blob([C.toCsv(inv)], { type: 'text/csv' }), 'cryovial-inventory.csv', 'text/csv'));
+  q('.cv-json').addEventListener('click', () => save(new Blob([C.toJson(inv)], { type: 'application/json' }), 'cryovial-inventory.json', 'application/json'));
+  q('.cv-open').addEventListener('click', () => inp('.cv-in').click());
+  inp('.cv-in').addEventListener('change', async () => {
+    const f = inp('.cv-in').files?.[0]; inp('.cv-in').value = '';
+    if (!f) return;
+    if (f.size > 20e6) { showErr('.cv-io-err', 'That file is over 20 MB; an inventory file is much smaller.'); return; }
+    const text = await f.text();
+    const replace = q<HTMLSelectElement>('.cv-mode').value === 'replace';
+    const target = replace ? C.newInventory() : structuredClone(inv);
+    const isJson = /\.json$/i.test(f.name) || /^\s*\{/.test(text);
+    const r = isJson ? C.importJson(target, text) : C.importCsv(target, text);
+    if (!r.added && !r.boxes) { showErr('.cv-io-err', r.errors.slice(0, 4).join(' ') || 'Nothing to read in that file.'); q('.cv-io-ok').textContent = ''; return; }
+    inv = target; isExample = false; selPos = '';
+    if (replace || !inv.boxes.some((b) => b.id === boxId)) boxId = '';
+    q('.cv-io-ok').textContent = `Opened ${f.name}: ${r.added} vial${r.added === 1 ? '' : 's'}${r.thawed ? ` (${r.thawed} thawed)` : ''}${r.boxes ? `, ${r.boxes} new box${r.boxes === 1 ? '' : 'es'}` : ''}.`;
+    showErr('.cv-io-err', r.errors.length ? `Left out ${r.errors.length} row${r.errors.length === 1 ? '' : 's'}: ${r.errors.slice(0, 4).join(' ')}${r.errors.length > 4 ? ' …' : ''}` : '');
+    changed();
+  });
+  inp('.cv-keep').addEventListener('change', () => { try { if (!keeping()) localStorage.removeItem(KEY); } catch {} store(); q('.cv-cleared').textContent = keeping() ? 'Saved in this browser. Changes are kept as you make them.' : 'Not kept: the saved copy in this browser was deleted.'; });
+  let clearArmed = false;
+  q('.cv-clear').addEventListener('click', () => {
+    if (!clearArmed) { clearArmed = true; q('.cv-clear').textContent = 'Press again to clear all'; return; }
+    clearArmed = false; q('.cv-clear').textContent = 'Clear all';
+    try { localStorage.removeItem(KEY); } catch {}
+    inp('.cv-keep').checked = false;
+    inv = C.newInventory(); boxId = ''; selPos = ''; isExample = false; ticked.clear();
+    q('.cv-cleared').textContent = 'Cleared: the page is empty and nothing is saved in this browser.';
+    changed();
+  });
+  q('.cv-ex').addEventListener('click', () => { inv = C.example(); boxId = exampleBox(); selPos = ''; isExample = true; ticked.clear(); inp('.cv-a-start').value = 'A1'; changed(); });
+  q('.cv-empty').addEventListener('click', () => { inv = C.newInventory(); boxId = ''; selPos = ''; isExample = false; ticked.clear(); changed(); inp('.cv-nb-f').focus(); });
+
+  // ---------- Printing and the box-map report ----------
+  function fillPrint() {
+    const b = curBox(), p = q('.cv-print');
+    if (!b) return false;
+    const occ = C.occupancy(inv, b.id), u = C.boxUse(inv, b);
+    const t = el('table', 'cv-pgrid'), hr = t.createTHead().insertRow();
+    hr.append(el('th'));
+    for (let c = 0; c < b.cols; c++) hr.append(el('th', '', String(c + 1)));
+    const tb = t.createTBody();
+    for (let r = 0; r < b.rows; r++) {
+      const tr = tb.insertRow(); tr.append(el('th', '', C.rowLetter(r)));
+      for (let c = 0; c < b.cols; c++) {
+        const v = occ.get(C.posName(r, c)), td = tr.insertCell();
+        if (v) td.append(el('b', '', v.line), el('span', '', `${passage(v.passage)} ${v.frozen.slice(2)}`));
+      }
+    }
+    const list = el('table', 'cv-plist'), lh = list.createTHead().insertRow();
+    ['Place', 'Line', 'Passage', 'Frozen', 'Cells', 'Medium', 'By', 'Notes'].forEach((h) => lh.append(el('th', '', h)));
+    const lb = list.createTBody();
+    for (const v of [...occ.values()].sort((x, y) => C.posIndex(b, x.pos) - C.posIndex(b, y.pos))) { const tr = lb.insertRow(); [v.pos, v.line, passage(v.passage), v.frozen, cells(v.cells), v.medium, v.who, v.note].forEach((x) => { tr.insertCell().textContent = x; }); }
+    p.replaceChildren(el('h1', '', C.boxLabel(b)), el('p', '', `${u.used} of ${u.places} places used. Printed ${TODAY} from fibub.com.`), t, list);
+    return true;
+  }
+  q('.cv-print-go').addEventListener('click', () => {
+    if (!fillPrint()) return;
+    const p = q('.cv-print');
+    document.body.append(p);
+    document.documentElement.classList.add('cv-printing');
+    const done = () => { document.documentElement.classList.remove('cv-printing'); root.append(p); };
+    window.addEventListener('afterprint', done, { once: true });
+    window.print();
+    setTimeout(done, 0);
+  });
+  function mapFigure(b: C.Box): Figure {
+    const occ = C.occupancy(inv, b.id), cell = 64, head = 22;
+    const W = head + b.cols * cell + 2, H = head + b.rows * cell + 2;
+    return {
+      w: W, h: H, alt: `Box map of ${C.boxLabel(b)}: ${occ.size} of ${b.rows * b.cols} places used`,
+      draw: (ctx, w, h, pal: Palette) => {
+        const fills = pal.red ? Array(8).fill('#140000') : pal.bg === '#ffffff' ? FILL_LIGHT : FILL_DARK;
+        ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, h);
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = pal.muted; ctx.font = '600 12px system-ui, sans-serif';
+        for (let c = 0; c < b.cols; c++) ctx.fillText(String(c + 1), head + c * cell + cell / 2, head / 2);
+        for (let r = 0; r < b.rows; r++) ctx.fillText(C.rowLetter(r), head / 2, head + r * cell + cell / 2);
+        for (let r = 0; r < b.rows; r++) for (let c = 0; c < b.cols; c++) {
+          const x = head + c * cell + 1, y = head + r * cell + 1, v = occ.get(C.posName(r, c));
+          ctx.fillStyle = v ? fills[colourOf(v.line)] : pal.bg; ctx.fillRect(x, y, cell - 2, cell - 2);
+          ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, cell - 3, cell - 3);
+          if (!v) continue;
+          ctx.fillStyle = pal.ink; ctx.font = '600 11px system-ui, sans-serif';
+          let name = v.line; while (name.length > 1 && ctx.measureText(name).width > cell - 8) name = name.slice(0, -1);
+          ctx.fillText(name === v.line ? name : name.slice(0, -1) + '…', x + cell / 2 - 1, y + cell / 2 - 14);
+          ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = pal.muted;
+          ctx.fillText(passage(v.passage), x + cell / 2 - 1, y + cell / 2 + 1);
+          ctx.fillText(v.frozen.slice(2), x + cell / 2 - 1, y + cell / 2 + 15);
+        }
+      },
+    };
+  }
+  wireDownloads(q('.dl'), () => {
+    const b = curBox();
+    if (!b) return { title: '', sections: [], file: 'cryovial-box' };
+    const occ = [...C.occupancy(inv, b.id).values()].sort((x, y) => C.posIndex(b, x.pos) - C.posIndex(b, y.pos));
+    const u = C.boxUse(inv, b);
+    const sections: Section[] = [
+      { title: C.boxLabel(b), facts: [['Places used', `${u.used} of ${u.places}`], ['Free', String(u.places - u.used)], ['Lines', String(new Set(occ.map((v) => v.line)).size)]], figure: mapFigure(b) },
+      { title: 'Vials in this box', table: { head: ['Place', 'Line', 'Passage', 'Frozen', 'Cells', 'Medium', 'By', 'Notes'], rows: occ.map((v) => [v.pos, v.line, passage(v.passage), v.frozen, cells(v.cells), v.medium, v.who, v.note]), align: ['l', 'l', 'l', 'l', 'r', 'l', 'l', 'l'] }, note: `Made on fibub.com on ${TODAY}. Nothing was uploaded.` },
+    ];
+    return { title: `Box map: ${b.name}`, subtitle: `${b.freezer} › ${b.rack}`, file: `cryovial-box-${fileSafe(b.name)}`, sections };
+  });
+
+  function exampleBox() { return C.findBox(inv, 'LN2 tank 1', 'Rack 3', 'Box 1')?.id ?? ''; }
+  // ---------- Start ----------
+  for (const c of ['.cv-a-date', '.cv-t-date', '.cv-b-date', '.cv-f-date']) inp(c).value = TODAY;
+  if (!loadSaved()) { inv = C.example(); isExample = true; boxId = exampleBox(); }
+  render(); freezer();
+</script>
+
+<style is:global>
+  .cvi [hidden] { display: none !important; }
+  .cvi h3 { font-size: 15px; margin: 16px 0 6px; }
+  .cvi .cv-wide { grid-column: span 2; }
+  @media (max-width: 420px) { .cvi .cv-wide { grid-column: 1 / -1; } }
+  .cvi details { margin-top: 12px; }
+  .cvi details summary { cursor: pointer; font-weight: 600; font-size: 15px; margin-bottom: 8px; }
+  .cvi .cv-boxpick { margin-top: 12px; grid-template-columns: minmax(0, 520px); }
+  .cvi .cv-boxinfo { margin: 10px 0 8px; font-size: 15px; }
+  .cvi .cv-mapwrap { container-type: inline-size; max-width: 620px; }
+  .cvi .cv-map { display: grid; grid-template-columns: 18px repeat(var(--cols, 9), minmax(0, 1fr)); gap: 2px; }
+  .cvi .cv-hd, .cvi .cv-corner { font-size: 11px; color: var(--muted); text-align: center; align-self: center; font-variant-numeric: tabular-nums; }
+  .cvi .cv-cell { aspect-ratio: 1; min-width: 0; padding: 0 1px; border: 1px dashed var(--line); border-radius: 50%; background: var(--bg); color: var(--ink); font: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; line-height: 1.05; }
+  .cvi .cv-cell.cv-full { border-style: solid; border-color: transparent; }
+  .cvi .cv-cell .cv-l { display: none; font-size: clamp(8px, 1.9cqi, 11px); font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cvi .cv-cell .cv-p { font-size: clamp(9px, 2.6cqi, 12px); font-variant-numeric: tabular-nums; }
+  @container (min-width: 520px) { .cvi .cv-cell .cv-l { display: block; } .cvi .cv-cell { border-radius: 10px; } }
+  .cvi .cv-cell.cv-sel { outline: 3px solid var(--accent); outline-offset: 1px; }
+  .cvi .cv-cell.cv-dim { opacity: 0.3; }
+  .cvi .cv-cell.cv-hit { box-shadow: inset 0 0 0 2px var(--ink); }
+  .cvi .cv-cell:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+  .cvi .cv-legend i { border: 1px solid var(--line); }
+  .cvi .cv-c0 { background: #cfe3f7; } .cvi .cv-c1 { background: #fde2b8; } .cvi .cv-c2 { background: #c9ecd9; } .cvi .cv-c3 { background: #f6d0e4; }
+  .cvi .cv-c4 { background: #e2d8f3; } .cvi .cv-c5 { background: #f9f1b0; } .cvi .cv-c6 { background: #d5e7ec; } .cvi .cv-c7 { background: #f3d2c8; }
+  html[data-theme=dark] .cvi .cv-c0 { background: #1e3a5c; } html[data-theme=dark] .cvi .cv-c1 { background: #5a3d0f; } html[data-theme=dark] .cvi .cv-c2 { background: #17452f; } html[data-theme=dark] .cvi .cv-c3 { background: #57213e; }
+  html[data-theme=dark] .cvi .cv-c4 { background: #3a2d5c; } html[data-theme=dark] .cvi .cv-c5 { background: #4f4810; } html[data-theme=dark] .cvi .cv-c6 { background: #1e4650; } html[data-theme=dark] .cvi .cv-c7 { background: #5a2a1e; }
+  html.red-mode .cvi .cv-lc { background: #140000 !important; }
+  html.red-mode .cvi .cv-cell.cv-full { border-color: #6e0000; }
+  .cvi .cv-count { margin: 10px 0 6px; font-size: 15px; }
+  .cvi .cv-res td, .cvi .cv-res th, .cvi .cv-lines td, .cvi .cv-lines th, .cvi .cv-log td, .cvi .cv-log th, .cvi .cv-f-sched td:first-child { white-space: nowrap; }
+  .cvi .cv-res td:nth-child(9), .cvi .cv-log td:nth-child(7) { white-space: normal; min-width: 140px; }
+  .cvi .cv-go { border: 0; background: none; padding: 0; font: inherit; color: var(--accent); text-decoration: underline; cursor: pointer; text-align: left; }
+  .cvi .cv-tick { width: 20px; height: 20px; }
+  .cvi .cv-undo { padding: 4px 10px; font-size: 14px; }
+  .cvi .cv-fs { margin-top: 10px; }
+  .cvi .cv-f-sub { margin: 2px 0 12px; }
+  .cvi .cv-f-steps { margin: 12px 0 6px; padding-left: 22px; }
+  .cvi .cv-f-steps li { margin: 4px 0; }
+  .cvi .cv-f-warn { margin: 10px 0 0; padding-left: 20px; color: var(--bad); font-size: 14px; }
+  .cvi .cv-f-warn:empty { display: none; }
+  .cvi .cv-f-sched td:last-child { white-space: normal; }
+  .cvi .cv-a-ok:empty, .cvi .cv-io-ok:empty, .cvi .cv-cleared:empty { display: none; }
+  .cvi select { max-width: 100%; }
+  .cv-print { display: none; }
+  @media print {
+    html.cv-printing body > :not(.cv-print) { display: none !important; }
+    html.cv-printing body { padding: 0 !important; background: #fff !important; }
+    html.cv-printing .cv-print { display: block; color: #000; font: 10pt/1.3 system-ui, sans-serif; }
+    .cv-print h1 { font-size: 16pt; margin: 0 0 4pt; }
+    .cv-print p { margin: 0 0 8pt; }
+    .cv-print table { border-collapse: collapse; width: 100%; margin-bottom: 12pt; }
+    .cv-print .cv-pgrid { table-layout: fixed; page-break-after: always; }
+    .cv-print .cv-pgrid th { font-size: 9pt; width: 14pt; }
+    .cv-print .cv-pgrid td { border: 1px solid #000; height: 52pt; vertical-align: middle; text-align: center; font-size: 7pt; overflow: hidden; word-break: break-word; }
+    .cv-print .cv-pgrid td b { display: block; font-size: 8pt; }
+    .cv-print .cv-pgrid td span { display: block; }
+    .cv-print .cv-plist th, .cv-print .cv-plist td { border-bottom: 1px solid #999; text-align: left; padding: 2pt 4pt; font-size: 9pt; }
+  }
+</style>

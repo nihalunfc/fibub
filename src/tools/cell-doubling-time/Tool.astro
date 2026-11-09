@@ -1,0 +1,430 @@
+---
+// Cell doubling time and passage planner: a log-linear fit of two or more counts (doubling time, growth rate,
+// generations, 95 % interval) and a passage plan (seeding density for a target confluence on a target day,
+// split ratio, cells and volume per vessel, the next passages). Vessel areas are typical rounded values and
+// editable; the example counts are made up. Nothing is uploaded or stored.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cdt">
+  <div class="ax-card">
+    <h2>Counts</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small cd-ex">Use the example</button>
+      <button type="button" class="btn secondary small cd-clear">Start empty</button>
+    </div>
+    <div class="ax-grid cd-units">
+      <label>Times in <select class="cd-tu"><option value="h" selected>hours</option><option value="d">days</option></select></label>
+      <label>Counts are <input class="cd-cu" value="cells/mL" /></label>
+    </div>
+    <div class="cd-rows" role="list"></div>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small cd-add">Add a count</button>
+    </div>
+    <details class="cd-pastebox">
+      <summary>Paste a table</summary>
+      <label>Two columns, time and count, one count per line (from a spreadsheet is fine). A third column saying "no" leaves that count out of the fit.
+        <textarea class="cd-paste" rows="5" spellcheck="false" placeholder="0	100000&#10;24	180000&#10;48	410000"></textarea></label>
+      <button type="button" class="btn secondary small cd-usepaste">Use pasted table</button>
+      <p class="ax-err cd-perr" hidden></p>
+    </details>
+    <p class="ax-help">Type the time of each count and the count itself: cells per mL, cells per well, total cells or confluence, as long as every count is measured the same way. Untick a count's box to leave it out: untick counts from the slow start (lag) or after growth levels off, so only steady growth is fitted. The example counts are made up.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Doubling time</h2>
+    <p class="ax-err cd-err" hidden></p>
+    <div class="cd-out">
+      <p class="ax-big cd-big" aria-live="polite"></p>
+      <p class="ax-help cd-sub"></p>
+      <dl class="ax-facts cd-facts"></dl>
+      <ul class="cd-warn"></ul>
+      <canvas class="ax-fig cd-fig" style="margin-top:14px"></canvas>
+      <div class="ax-legend cd-legend"><span><i class="cd-k1"></i>Fitted counts</span><span><i class="cd-k2"></i>Left out</span><span><i class="cd-k3"></i>Fitted line</span></div>
+      <h3>Between each pair of counts</h3>
+      <div class="ax-scroll"><table class="cd-steps"></table></div>
+      <p class="ax-help">A doubling time that jumps up between two counts shows where growth slowed down.</p>
+      <div class="ax-row cd-dlrow"><button type="button" class="btn secondary small cd-csv">Download counts CSV</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Plan the next passage</h2>
+    <h3>Growth</h3>
+    <div class="ax-grid">
+      <label>Doubling time (hours) <input class="cd-td" inputmode="decimal" /></label>
+      <label>Lag after seeding (hours) <input class="cd-lag" inputmode="decimal" value="0" /></label>
+      <label>Cells per cm² at 100 % <input class="cd-full" inputmode="decimal" value="1e5" /></label>
+    </div>
+    <div class="ax-row cd-tdrow"><button type="button" class="btn secondary small cd-usefit">Use the fitted doubling time</button><span class="ax-help cd-tdnote"></span></div>
+    <p class="ax-help">The lag is the time cells take to settle and start dividing after a split; 0 assumes they grow straight away. How many cells make a full layer differs a lot between cell types: 1 × 10⁵ per cm² is only a round starting value, so count a confluent flask of your own cells once and type that.</p>
+
+    <h3>The cells now</h3>
+    <div class="ax-grid">
+      <label>Vessel <select class="cd-v0"></select></label>
+      <label>Area each (cm²) <input class="cd-a0" inputmode="decimal" /></label>
+      <label>How many <input class="cd-n0" inputmode="numeric" value="1" /></label>
+    </div>
+    <div class="ax-seg cd-mode" role="group" aria-label="What you know about the cells now">
+      <button type="button" data-m="conf" aria-pressed="true">Confluence</button>
+      <button type="button" data-m="count" aria-pressed="false">Cell count</button>
+    </div>
+    <div class="ax-grid cd-now">
+      <label class="cd-confl">Confluence now (%) <input class="cd-c0" inputmode="decimal" value="80" /></label>
+      <label class="cd-countl" hidden>Live cells per mL <input class="cd-cpm" inputmode="decimal" value="1.2e6" /></label>
+      <label>Resuspended in (mL) <input class="cd-rv" inputmode="decimal" value="5" /></label>
+    </div>
+    <p class="ax-help cd-nowhelp"></p>
+
+    <h3>The new vessels</h3>
+    <div class="ax-grid">
+      <label>Vessel <select class="cd-v1"></select></label>
+      <label>Area each (cm²) <input class="cd-a1" inputmode="decimal" /></label>
+      <label>Medium each (mL) <input class="cd-m1" inputmode="decimal" /></label>
+      <label>How many <input class="cd-n1" inputmode="numeric" value="2" /></label>
+      <label>Target confluence (%) <input class="cd-tp" inputmode="decimal" value="80" /></label>
+      <label>Ready in (days) <input class="cd-days" inputmode="decimal" value="3" /></label>
+      <label>Passage number now <input class="cd-pn" inputmode="numeric" value="12" /></label>
+      <label>Split date <input class="cd-date" type="date" /></label>
+    </div>
+    <p class="ax-help">Areas and medium volumes are typical rounded values; makers differ, so check the label on your own vessels and change them here.</p>
+    <p class="ax-err cd-perr2" hidden></p>
+    <div class="cd-pout">
+      <p class="ax-big cd-pbig" aria-live="polite"></p>
+      <p class="ax-help cd-psub"></p>
+      <dl class="ax-facts cd-pfacts"></dl>
+      <ol class="cd-psteps"></ol>
+      <ul class="cd-pwarn"></ul>
+      <h3>The next passages</h3>
+      <p class="ax-help">If every passage is seeded the same way and left for the same time. "Cells if all kept" is what you would have by expanding every cell instead of discarding the spare ones.</p>
+      <div class="ax-scroll"><table class="cd-sched"></table></div>
+      <canvas class="ax-fig cd-fig2" style="margin-top:14px"></canvas>
+      <div class="ax-row cd-dlrow"><button type="button" class="btn secondary small cd-scsv">Download schedule CSV</button></div>
+    </div>
+    <Downloads label="Report" />
+  </div>
+</div>
+
+<script>
+  import { fitGrowth, predict, planPassage, schedule, confluenceCurve, parseCounts, toHours, EXAMPLE, VESSELS, type Point, type Growth, type Plan, type PlanIn } from '../../lib/sci/doubling';
+  import { num, sig, parseTable, csv } from '../../lib/sci/num';
+  import { drawChart, canvasPainter, niceRange, OKABE_ITO, type Series } from '../../lib/sci/plot';
+  import { save, wireDownloads, paint, pagePalette, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cdt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => num(inp(c).value);
+  const rowsEl = q('.cd-rows');
+  const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', text = '') => { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; };
+
+  /** Cells as a plain number with 4 significant figures and thousands commas. */
+  const cells = (x: number) => (!Number.isFinite(x) ? '–' : x >= 1e9 ? sig(x, 3) : Number(x.toPrecision(4)).toLocaleString('en-US'));
+  const f3 = (x: number) => sig(x, 4);
+  const vol = (ml: number) => (ml >= 1 ? `${sig(ml, 3)} mL` : `${sig(ml * 1000, 3)} µL`);
+  const hrs = (h: number) => `${f3(h)} h`;
+  const DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const fmtDate = (d: Date) => `${DAY[d.getUTCDay()]} ${d.getUTCDate()} ${MON[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+
+  // ---------- Counts editor ----------
+  function addRow(p: Partial<Point> = {}) {
+    const d = el('div', 'cd-row'); d.setAttribute('role', 'listitem');
+    const use = el('input', 'cd-use'); use.type = 'checkbox'; use.checked = p.use !== false;
+    const ul = el('label', 'ax-check cd-usel'); ul.append(use); ul.title = 'Use this count in the fit';
+    const t = el('input', 'cd-t'); t.inputMode = 'decimal'; t.value = p.t === undefined ? '' : String(p.t); t.setAttribute('aria-label', 'Time');
+    const n = el('input', 'cd-n'); n.inputMode = 'decimal'; n.value = p.n === undefined ? '' : String(p.n); n.setAttribute('aria-label', 'Count');
+    const tl = el('label', 'cd-tl'); tl.append('Time ', t);
+    const nl = el('label', 'cd-nl'); nl.append('Count ', n);
+    const del = el('button', 'btn secondary small cd-del', '✕'); del.type = 'button'; del.title = 'Remove this count';
+    d.append(ul, tl, nl, del);
+    rowsEl.append(d);
+    labelRows();
+  }
+  const labelRows = () => rowsEl.querySelectorAll<HTMLElement>('.cd-row').forEach((d, i) => { d.querySelector('.cd-del')!.setAttribute('aria-label', `Remove count ${i + 1}`); d.querySelector('.cd-use')!.setAttribute('aria-label', `Use count ${i + 1} in the fit`); });
+  const readPoints = (): Point[] => {
+    const u = q<HTMLSelectElement>('.cd-tu').value as 'h' | 'd';
+    return [...rowsEl.querySelectorAll<HTMLElement>('.cd-row')].map((d) => ({
+      t: toHours(num((d.querySelector('.cd-t') as HTMLInputElement).value), u),
+      n: num((d.querySelector('.cd-n') as HTMLInputElement).value),
+      use: (d.querySelector('.cd-use') as HTMLInputElement).checked,
+    })).filter((p) => !(Number.isNaN(p.t) && Number.isNaN(p.n)));
+  };
+  function loadPoints(pts: Point[], unit: 'h' | 'd' = 'h') {
+    q<HTMLSelectElement>('.cd-tu').value = unit;
+    rowsEl.replaceChildren(); pts.forEach((p) => addRow(p)); run();
+  }
+
+  // ---------- Fit ----------
+  let g: Growth | null = null, all: Point[] = [], tdTyped = false;
+  const unitName = () => inp('.cd-cu').value.trim() || 'count';
+  const tUnit = () => q<HTMLSelectElement>('.cd-tu').value as 'h' | 'd';
+  const showT = (h: number) => (tUnit() === 'd' ? h / 24 : h);
+
+  function fitFigure(W: number, H: number): Figure {
+    const r = g!, pts = all;
+    const d = tUnit() === 'd';
+    return {
+      w: W, h: H, alt: `Counts on a log scale against time with the fitted line: doubling time ${hrs(r.td)}`,
+      draw: (ctx, w, h, pal) => {
+        const c = colours(pal);
+        const used = pts.filter((p) => p.use !== false), out = pts.filter((p) => p.use === false);
+        const x0 = r.tStart, x1 = r.tEnd;
+        const series: Series[] = [
+          { name: 'Fitted line', x: [showT(x0), showT(x1)], y: [predict(r, x0), predict(r, x1)], mode: 'line', color: c[1], width: 2 },
+          { name: 'Fitted counts', x: used.map((p) => showT(p.t)), y: used.map((p) => p.n), mode: 'points', color: c[0], marker: 'circle', size: 5 },
+        ];
+        if (out.length) series.push({ name: 'Left out', x: out.map((p) => showT(p.t)), y: out.map((p) => p.n), mode: 'points', color: pal.muted, marker: 'open-circle', size: 5 });
+        const ts = pts.map((p) => showT(p.t)), lo = Math.min(...ts), hi = Math.max(...ts), [xa, xb] = niceRange(lo, hi + 0.05 * (hi - lo));
+        drawChart(canvasPainter(ctx), { w, h, xMin: Math.min(xa, lo), xMax: xb, xLabel: d ? 'Time (days)' : 'Time (hours)', yLabel: `${unitName()} (log scale)`, yLog: true, series, font: w < 480 ? 11 : 13, legend: 'none', ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: null });
+      },
+    };
+  }
+  const colours = (pal: Palette) => (pal.red ? ['#a30000', '#7a0000', '#c00000'] : pal.bg === '#ffffff' ? OKABE_ITO : ['#56B4E9', '#E69F00', '#5fd3a8']);
+
+  function run() {
+    all = readPoints();
+    const err = q('.cd-err');
+    const fail = (m: string) => { g = null; err.textContent = m; err.hidden = false; q('.cd-out').hidden = true; syncTd(); plan(); };
+    const badRow = [...rowsEl.querySelectorAll<HTMLElement>('.cd-row')].findIndex((d) => {
+      const t = (d.querySelector('.cd-t') as HTMLInputElement).value.trim(), n = (d.querySelector('.cd-n') as HTMLInputElement).value.trim();
+      return (t || n) && (!Number.isFinite(num(t)) || !Number.isFinite(num(n)));
+    });
+    rowsEl.querySelectorAll('.cd-row').forEach((d, i) => d.classList.toggle('cd-badrow', i === badRow));
+    if (badRow >= 0) return fail(`Count ${badRow + 1}: type a number for both the time and the count.`);
+    if (all.length < 2) return fail('Type at least two counts, each with its time, to work out a doubling time.');
+    try { g = fitGrowth(all); } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; q('.cd-out').hidden = false;
+    const r = g, u = unitName();
+    q('.cd-big').textContent = `Doubling time ${hrs(r.td)} (${f3(r.td / 24)} days)`;
+    q('.cd-sub').textContent = r.method === 'two'
+      ? `From two counts: Td = (t₂ − t₁) × ln 2 / ln(N₂ / N₁).`
+      : `From a straight-line fit of ln(count) against time through ${r.used.length} counts.`;
+    const fact = (k: string, v: string, sm = '') => { const d = el('div'); d.append(el('dt', '', k), el('dd', '', v)); if (sm) d.lastElementChild!.append(el('small', '', sm)); return d; };
+    const span = r.tEnd - r.tStart;
+    q('.cd-facts').replaceChildren(
+      fact('Growth rate', `${sig(r.r, 4)} per hour`, `${sig(r.r * 24, 4)} per day (ln 2 ÷ doubling time)`),
+      fact('95 % interval', r.method === 'two' ? 'needs 3+ counts' : `${f3(r.tdLo)} to ${Number.isFinite(r.tdHi) ? f3(r.tdHi) : 'no upper limit'} h`, r.method === 'two' ? 'two counts fit exactly' : `from the slope's standard error, ${r.df} degrees of freedom`),
+      fact('Generations', f3(r.generations), `in ${f3(showT(span))} ${tUnit() === 'd' ? 'days' : 'hours'} (${f3(r.fold)}-fold)`),
+      fact('Per day', `×${f3(Math.exp(r.r * 24))}`, `${u} multiply by this each day`),
+      fact('Fit quality', r.method === 'two' ? '–' : `R² = ${r.r2.toFixed(4)}`, `${r.used.length} of ${all.length} counts used`),
+    );
+    q('.cd-warn').replaceChildren(...r.warn.map((w) => el('li', '', w)));
+    const tab = q<HTMLTableElement>('.cd-steps'); tab.replaceChildren();
+    const tu = tUnit() === 'd' ? 'days' : 'h';
+    const hr = tab.createTHead().insertRow();
+    [`Time (${tu})`, 'Counts', 'Doubling time'].forEach((h, j) => hr.append(el('th', j ? 'r' : '', h)));
+    const tb = tab.createTBody();
+    r.steps.forEach((s) => {
+      const tr = tb.insertRow();
+      [`${f3(showT(s.t0))} → ${f3(showT(s.t1))}`, `${cells(s.n0)} → ${cells(s.n1)}`, !Number.isFinite(s.td) ? 'same time' : s.td > 0 ? hrs(s.td) : 'no growth'].forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j) td.className = 'r'; });
+    });
+    drawFit();
+    syncTd(); plan();
+  }
+  let fig1: Figure | null = null;
+  function drawFit() {
+    if (!g) return;
+    const c = q<HTMLCanvasElement>('.cd-fig'), W = Math.max(300, Math.min(760, Math.round(c.parentElement!.clientWidth || 640)));
+    fig1 = fitFigure(W, W < 480 ? 280 : 360); paint(c, fig1);
+    const cs = colours(pagePalette());
+    q('.cd-k1').style.background = cs[0]; q('.cd-k3').style.background = cs[1]; q('.cd-k2').style.border = '2px solid currentColor';
+    q('.cd-legend').querySelectorAll('span')[1].hidden = !all.some((p) => p.use === false);
+  }
+
+  // ---------- Planner ----------
+  const fillVessels = (s: HTMLSelectElement, pick: string) => {
+    for (const v of VESSELS) { const o = el('option', '', `${v.name}, ${v.area} cm²`); o.value = v.id; s.append(o); }
+    const o = el('option', '', 'Other (type the area)'); o.value = 'other'; s.append(o);
+    s.value = pick;
+  };
+  fillVessels(q<HTMLSelectElement>('.cd-v0'), 't75'); fillVessels(q<HTMLSelectElement>('.cd-v1'), 't75');
+  const setVessel = (which: 0 | 1) => {
+    const v = VESSELS.find((x) => x.id === q<HTMLSelectElement>(`.cd-v${which}`).value);
+    if (!v) return;
+    inp(`.cd-a${which}`).value = String(v.area);
+    if (which === 1) inp('.cd-m1').value = String(v.medium);
+  };
+  setVessel(0); setVessel(1);
+  let mode: 'conf' | 'count' = 'conf';
+  const vesselName = (which: 0 | 1, n: number) => {
+    const id = q<HTMLSelectElement>(`.cd-v${which}`).value, v = VESSELS.find((x) => x.id === id);
+    const base = v ? (v.id.startsWith('w') ? 'well' : v.name.replace(/ \(.*\)/, '')) : 'vessel';
+    return n === 1 ? base : base === 'well' ? 'wells' : base.replace(/ flask$/, ' flasks').replace(/ dish$/, ' dishes').replace(/^vessel$/, 'vessels');
+  };
+
+  function syncTd() {
+    if (g && !tdTyped) inp('.cd-td').value = String(+g.td.toFixed(2));
+    q('.cd-usefit').hidden = !g || !tdTyped;
+    q('.cd-tdnote').textContent = g ? (tdTyped ? `The fit says ${hrs(g.td)}.` : 'From the fit above.') : '';
+  }
+
+  let pin: PlanIn | null = null, pl: Plan | null = null, startDate = new Date();
+  function plan() {
+    const e = q('.cd-perr2');
+    const fail = (m: string) => { pl = null; e.textContent = m; e.hidden = false; q('.cd-pout').hidden = true; };
+    const a0 = val('.cd-a0'), n0 = Math.round(val('.cd-n0')), rv = val('.cd-rv'), full = val('.cd-full');
+    if (!(n0 >= 1)) return fail('Type how many vessels the cells are in now (1 or more).');
+    const haveArea = a0 * n0;
+    const haveCells = mode === 'conf' ? (val('.cd-c0') / 100) * full * haveArea : val('.cd-cpm') * rv;
+    if (mode === 'conf' && !(val('.cd-c0') > 0)) return fail('Type how confluent the cells are now (%).');
+    if (mode === 'count' && !(val('.cd-cpm') > 0)) return fail('Type the live cells per mL from your count.');
+    q('.cd-nowhelp').textContent = Number.isFinite(haveCells) && haveCells > 0
+      ? (mode === 'conf' ? `That is about ${cells(haveCells)} cells (${val('.cd-c0')} % of ${cells(full * haveArea)} for a full layer), or ${cells(haveCells / rv)} cells/mL once resuspended.` : `That is ${cells(haveCells)} cells in all, about ${f3((100 * haveCells) / (full * haveArea))} % of a full layer.`)
+      : '';
+    pin = { td: val('.cd-td'), lag: inp('.cd-lag').value.trim() === '' ? 0 : val('.cd-lag'), full, haveCells, haveArea, resuspendMl: rv, targetPct: val('.cd-tp'), hours: val('.cd-days') * 24, area: val('.cd-a1'), medium: val('.cd-m1'), vessels: val('.cd-n1') };
+    try { pl = planPassage(pin); } catch (x) { return fail((x as Error).message); }
+    e.hidden = true; q('.cd-pout').hidden = false;
+    const p = pin, r = pl, nv = p.vessels, one = vesselName(1, 1), many = vesselName(1, nv);
+    q('.cd-pbig').textContent = `Seed ${cells(r.seedCells)} cells per ${one}`;
+    q('.cd-psub').textContent = `${cells(r.seedDensity)} cells/cm², about ${f3(r.seedPct)} % confluent. After ${f3(p.hours / 24)} days (${f3(r.doublings)} doublings) that grows to ${cells(r.targetCells)} cells, ${f3(p.targetPct)} % confluent.`;
+    const fact = (k: string, v: string, sm = '') => { const d = el('div'); d.append(el('dt', '', k), el('dd', '', v)); if (sm) d.lastElementChild!.append(el('small', '', sm)); return d; };
+    q('.cd-pfacts').replaceChildren(
+      fact('Split ratio', `1 : ${f3(r.split)}`, `by area: ${f3(r.havePct)} % now, ${f3(r.seedPct)} % after the split`),
+      fact('Suspension per vessel', vol(r.suspMl), `at ${cells(r.conc)} cells/mL`),
+      fact('Medium to add', r.topUpMl >= 0 ? vol(r.topUpMl) : '–', `to make ${vol(p.medium)} per ${one}`),
+      fact(`For ${nv} ${many}`, `${cells(r.needCells)} cells`, `${vol(r.needMl)} of suspension`),
+      fact('You could seed', `${r.maxVessels} ${vesselName(1, r.maxVessels)}`, `from ${cells(p.haveCells)} cells`),
+    );
+    const steps = [
+      `Resuspend the cells in ${vol(p.resuspendMl)} (${cells(r.conc)} cells/mL) and mix well.`,
+      `Put ${vol(p.medium)} of medium in each of ${nv} ${many}${r.topUpMl >= 0 ? `, or ${vol(r.topUpMl)} if you add the cells last` : ''}.`,
+      `Add ${vol(r.suspMl)} of cell suspension to each ${one} (${cells(r.seedCells)} cells). Mix the tube between vessels, because cells settle.`,
+      `Rock gently to spread the cells; they should be about ${f3(p.targetPct)} % confluent on ${fmtDate(dateAt(p.hours))}.`,
+    ];
+    q('.cd-psteps').replaceChildren(...steps.map((s) => el('li', '', s)));
+    q('.cd-pwarn').replaceChildren(...r.warn.map((w) => el('li', '', w)));
+    // Schedule
+    const pn = Math.round(val('.cd-pn')), rows = schedule(p, r, Number.isFinite(pn) ? pn : 0, 6);
+    const t = q<HTMLTableElement>('.cd-sched'); t.replaceChildren();
+    const hr = t.createTHead().insertRow();
+    schedHead().forEach((h, j) => hr.append(el('th', j > 1 ? 'r' : '', h)));
+    const tb = t.createTBody();
+    schedBody(rows).forEach((row) => { const tr = tb.insertRow(); row.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j > 1) td.className = 'r'; }); });
+    drawPlan();
+  }
+  const dateAt = (h: number) => new Date(startDate.getTime() + h * 3600e3);
+  const schedHead = () => ['Passage', 'Date', 'Day', 'Confluence before split', 'Split', 'Seed per vessel', 'Doublings', 'Cells if all kept'];
+  const schedBody = (rows: ReturnType<typeof schedule>) => rows.map((s) => [`P${s.passage} → P${s.passage + 1}`, fmtDate(dateAt(s.hours)), f3(s.hours / 24), `${f3(s.harvestPct)} %`, `1 : ${f3(s.split)}`, cells(s.seedCells), f3(s.doublings), cells(s.totalIfKept)]);
+
+  function planFigure(W: number, H: number): Figure {
+    const p = pin!, r = pl!, cyc = 4, cur = confluenceCurve(p, r, cyc);
+    return {
+      w: W, h: H, alt: `Predicted confluence over ${cyc} passages: seeded at ${f3(r.seedPct)} % and split at ${f3(p.targetPct)} % every ${f3(p.hours / 24)} days`,
+      draw: (ctx, w, h, pal) => {
+        const c = colours(pal);
+        drawChart(canvasPainter(ctx), {
+          w, h, xLabel: 'Days from the split', yLabel: 'Confluence (%)', yMin: 0, yMax: Math.max(100, ...cur.y),
+          series: [{ name: 'Predicted confluence', x: cur.x.map((x) => x / 24), y: cur.y, mode: 'line', color: c[0], width: 2 }],
+          marks: [{ kind: 'hline', at: p.targetPct, color: c[1], dash: [5, 4], label: `target ${f3(p.targetPct)} %` }],
+          font: w < 480 ? 11 : 13, legend: 'none', ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: null,
+        });
+      },
+    };
+  }
+  let fig2: Figure | null = null;
+  function drawPlan() {
+    if (!pl) return;
+    const c = q<HTMLCanvasElement>('.cd-fig2'), W = Math.max(300, Math.min(760, Math.round(c.parentElement!.clientWidth || 640)));
+    fig2 = planFigure(W, W < 480 ? 240 : 300); paint(c, fig2);
+  }
+
+  // ---------- Wiring ----------
+  rowsEl.addEventListener('input', run);
+  rowsEl.addEventListener('change', run);
+  rowsEl.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('.cd-del'); if (b) { b.closest('.cd-row')!.remove(); labelRows(); run(); } });
+  q('.cd-add').addEventListener('click', () => { addRow(); rowsEl.querySelector<HTMLInputElement>('.cd-row:last-child .cd-t')!.focus(); });
+  q('.cd-ex').addEventListener('click', () => { inp('.cd-cu').value = 'cells/mL'; tdTyped = false; q('.cd-perr').hidden = true; loadPoints(EXAMPLE.map((p) => ({ ...p }))); });
+  q('.cd-clear').addEventListener('click', () => { tdTyped = false; loadPoints([{}, {}] as Point[]); rowsEl.querySelector<HTMLInputElement>('.cd-t')!.focus(); });
+  q('.cd-tu').addEventListener('change', run);
+  inp('.cd-cu').addEventListener('input', run);
+  q('.cd-usepaste').addEventListener('click', () => {
+    const e = q('.cd-perr'), text = q<HTMLTextAreaElement>('.cd-paste').value;
+    if (!text.trim()) { e.textContent = 'Paste a table first.'; e.hidden = false; return; }
+    const r = parseCounts(parseTable(text), num);
+    if (!r.points.length) { e.textContent = 'No counts found: each line needs a time and a count.'; e.hidden = false; return; }
+    e.textContent = r.errors.length ? `Left out: ${r.errors.slice(0, 3).join(' ')}` : ''; e.hidden = !r.errors.length;
+    const u = tUnit();
+    loadPoints(r.points, u);
+  });
+  inp('.cd-td').addEventListener('input', () => { tdTyped = true; syncTd(); plan(); });
+  q('.cd-usefit').addEventListener('click', () => { tdTyped = false; syncTd(); plan(); });
+  for (const w of [0, 1] as const) {
+    q(`.cd-v${w}`).addEventListener('change', () => { setVessel(w); plan(); });
+    inp(`.cd-a${w}`).addEventListener('input', () => { const v = VESSELS.find((x) => x.id === q<HTMLSelectElement>(`.cd-v${w}`).value); if (v && val(`.cd-a${w}`) !== v.area) q<HTMLSelectElement>(`.cd-v${w}`).value = 'other'; plan(); });
+  }
+  for (const c of ['.cd-lag', '.cd-full', '.cd-n0', '.cd-c0', '.cd-cpm', '.cd-rv', '.cd-m1', '.cd-n1', '.cd-tp', '.cd-days', '.cd-pn']) inp(c).addEventListener('input', plan);
+  const dateIn = inp('.cd-date');
+  const today = new Date(); dateIn.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const readDate = () => { const m = /^(\d{4})-(\d\d)-(\d\d)$/.exec(dateIn.value); startDate = m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])) : new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())); };
+  readDate();
+  dateIn.addEventListener('input', () => { readDate(); plan(); });
+  q('.cd-mode').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-m]'); if (!b) return;
+    mode = b.dataset.m as 'conf' | 'count';
+    q('.cd-mode').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.cd-confl').hidden = mode !== 'conf'; q('.cd-countl').hidden = mode !== 'count';
+    plan();
+  });
+
+  const fitCsv = () => {
+    const u = tUnit();
+    const rows: (string | number)[][] = [[`time_${u === 'd' ? 'days' : 'hours'}`, `count_${unitName().replace(/[^\w/%]+/g, '_')}`, 'used', 'fitted_count']];
+    for (const p of all) rows.push([+showT(p.t).toPrecision(8), p.n, p.use === false ? 'no' : 'yes', g ? +predict(g, p.t).toPrecision(6) : '']);
+    if (g) { rows.push([]); rows.push(['doubling_time_h', +g.td.toPrecision(6)], ['growth_rate_per_h', +g.r.toPrecision(6)], ['td_95_low_h', Number.isFinite(g.tdLo) ? +g.tdLo.toPrecision(6) : ''], ['td_95_high_h', Number.isFinite(g.tdHi) ? +g.tdHi.toPrecision(6) : ''], ['r_squared', g.method === 'two' ? '' : +g.r2.toPrecision(6)], ['generations', +g.generations.toPrecision(6)]); }
+    return csv(rows);
+  };
+  q('.cd-csv').addEventListener('click', () => save(new Blob([fitCsv()], { type: 'text/csv' }), 'doubling-time-counts.csv', 'text/csv'));
+  q('.cd-scsv').addEventListener('click', () => {
+    if (!pin || !pl) return;
+    const rows = schedule(pin, pl, Math.round(val('.cd-pn')) || 0, 6);
+    const head = ['passage_from', 'passage_to', 'date', 'day', 'confluence_before_split_pct', 'split_1_to', 'seed_cells_per_vessel', 'seed_cells_per_cm2', 'doublings_since_today', 'cells_if_all_kept'];
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    const body = rows.map((s) => [s.passage, s.passage + 1, iso(dateAt(s.hours)), +(s.hours / 24).toPrecision(6), +s.harvestPct.toPrecision(6), +s.split.toPrecision(6), Math.round(s.seedCells), Math.round(pl!.seedDensity), +s.doublings.toPrecision(6), Math.round(s.totalIfKept)]);
+    save(new Blob([csv([head, ...body])], { type: 'text/csv' }), 'passage-schedule.csv', 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => {
+    const sections: Section[] = [];
+    if (g) {
+      sections.push({ title: 'Doubling time', facts: [...q('.cd-facts').querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]), ...(g.warn.length ? { text: g.warn } : {}) });
+      sections.push({ title: 'Growth curve', figure: fitFigure(720, 380), table: { head: [`Time (${tUnit() === 'd' ? 'days' : 'h'})`, unitName(), 'Used'], rows: all.map((p) => [f3(showT(p.t)), cells(p.n), p.use === false ? 'no' : 'yes']), align: ['r', 'r', 'l'] } });
+    }
+    if (pin && pl) {
+      sections.push({ title: q('.cd-pbig').textContent!, text: [q('.cd-psub').textContent!, ...[...q('.cd-psteps').querySelectorAll('li')].map((li, i) => `${i + 1}. ${li.textContent}`), ...pl.warn.map((w) => 'Check: ' + w)] });
+      sections.push({ title: 'The next passages', table: { head: schedHead(), rows: schedBody(schedule(pin, pl, Math.round(val('.cd-pn')) || 0, 6)), align: ['l', 'l', 'r', 'r', 'r', 'r', 'r', 'r'] }, figure: planFigure(720, 300), note: 'Worked out on fibub.com from an exponential growth model. Real cultures slow down near confluence; check the flasks.' });
+    }
+    return { title: 'Cell doubling time and passage plan', subtitle: g ? q('.cd-big').textContent! : '', file: 'cell-doubling-time', sections };
+  });
+  document.addEventListener('fibub:theme', () => { drawFit(); drawPlan(); });
+  let rw = 0;
+  window.addEventListener('resize', () => { clearTimeout(rw); rw = window.setTimeout(() => { drawFit(); drawPlan(); }, 150); });
+  loadPoints(EXAMPLE.map((p) => ({ ...p })));
+</script>
+
+<style is:global>
+  .cdt [hidden] { display: none !important; }
+  .cdt h3 { font-size: 15px; margin: 16px 0 6px; }
+  .cdt .cd-units { margin-top: 12px; }
+  .cdt .cd-rows { display: grid; gap: 6px; margin: 12px 0; }
+  .cdt .cd-row { display: grid; grid-template-columns: auto minmax(0, 0.8fr) minmax(0, 1.5fr) auto; gap: 8px; align-items: end; padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+  .cdt .cd-row .cd-del { padding: 7px 11px; min-width: 38px; }
+  .cdt .cd-row input:not([type=checkbox]) { padding: 7px 8px; min-width: 0; width: 100%; }
+  .cdt .cd-usel { align-self: center; padding-top: 18px; }
+  .cdt .cd-row.cd-badrow { border-color: var(--bad); }
+  .cdt .cd-pastebox { margin: 10px 0 4px; }
+  .cdt .cd-pastebox summary { cursor: pointer; font-weight: 600; font-size: 15px; }
+  .cdt .cd-pastebox textarea { margin-top: 6px; font-family: ui-monospace, monospace; }
+  .cdt .cd-pastebox .btn { margin-top: 8px; }
+  .cdt .cd-sub, .cdt .cd-psub { margin: 2px 0 12px; }
+  .cdt .cd-warn, .cdt .cd-pwarn { margin: 10px 0 0; padding-left: 20px; color: var(--bad); font-size: 14px; }
+  .cdt .cd-warn:empty, .cdt .cd-pwarn:empty { display: none; }
+  .cdt .cd-psteps { margin: 12px 0 6px; padding-left: 22px; }
+  .cdt .cd-psteps li { margin: 4px 0; }
+  .cdt .cd-mode { margin: 10px 0; }
+  .cdt .cd-tdrow { margin-top: 8px; }
+  .cdt .cd-tdrow .ax-help { margin: 0; }
+  .cdt .cd-dlrow { margin-top: 14px; }
+  .cdt .cd-legend i.cd-k2 { background: transparent; border-radius: 50%; }
+  .cdt select { max-width: 100%; }
+  .cdt .cd-steps th, .cdt .cd-steps td, .cdt .cd-sched th, .cdt .cd-sched td { white-space: nowrap; }
+  .cdt .cd-usel input { width: 20px; height: 20px; }
+</style>
