@@ -1,0 +1,358 @@
+---
+// Time series decomposition (classical and STL), ACF/PACF, differencing and ARIMA with forecasts.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { EXAMPLES } from '../../lib/sci/timeseries';
+---
+<div class="ax ts">
+  <div class="ax-card">
+    <h2>Series</h2>
+    <div class="ax-grid">
+      <label class="ts-wide">Example <select class="ts-ex">
+        {EXAMPLES.map((e, i) => <option value={e.id} selected={i === 0}>{e.name}</option>)}
+        <option value="">My own data</option>
+      </select></label>
+    </div>
+    <label style="margin-top:10px">Values in time order: one per line, or two columns (time, value)
+      <textarea class="ts-data" rows="7" spellcheck="false"></textarea>
+    </label>
+    <DataFile target=".ts-data" maxMB={2} maxCols={2} maxRows={5000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Season length (values per cycle) <input class="ts-m" inputmode="numeric" value="12" /></label>
+    </div>
+    <p class="ax-help">12 for monthly data with a yearly pattern, 4 for quarterly, 7 for daily data with a weekly pattern, 24 for hourly. Use 0 if there is no season. The values must be evenly spaced with no gaps. For a trend test (Mann–Kendall, Sen's slope) use the <a href="/science/trend-analyser/">trend analyser</a>.</p>
+    <p class="ax-err ts-err" hidden></p>
+  </div>
+
+  <div class="ax-card ts-dec-card">
+    <h2>Decomposition</h2>
+    <div class="ax-grid">
+      <label>Method <select class="ts-meth">
+        <option value="stl">STL (LOESS)</option>
+        <option value="stl-robust">STL, robust to outliers</option>
+        <option value="additive">Classical, additive</option>
+        <option value="multiplicative">Classical, multiplicative</option>
+      </select></label>
+      <label class="ts-sw-l">Seasonal window (odd) <input class="ts-sw" inputmode="numeric" value="7" /></label>
+    </div>
+    <p class="ax-help ts-meth-help"></p>
+    <p class="ax-err ts-dec-err" hidden></p>
+    <div class="ts-dec-out">
+      <dl class="ax-facts ts-dec-facts" style="margin-top:10px"></dl>
+      <canvas class="ax-fig ts-c-obs" style="margin-top:12px"></canvas>
+      <canvas class="ax-fig ts-c-trend"></canvas>
+      <canvas class="ax-fig ts-c-seas"></canvas>
+      <canvas class="ax-fig ts-c-res"></canvas>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ts-dcsv">Components CSV</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Autocorrelation and differencing</h2>
+    <div class="ax-grid">
+      <label>Differences d <select class="ts-d"><option>0</option><option>1</option><option>2</option></select></label>
+      <label>Seasonal differences D <select class="ts-D"><option>0</option><option>1</option></select></label>
+      <label>Lags <input class="ts-lags" inputmode="numeric" placeholder="auto" /></label>
+    </div>
+    <p class="ax-help">A trend shows as an ACF that dies away slowly: difference once (d = 1). A season shows as spikes at the season length: try D = 1. The shaded band is the 95 % range for pure noise (Bartlett's formula for the ACF, ±1.96/√n for the PACF).</p>
+    <p class="ax-err ts-acf-err" hidden></p>
+    <div class="ts-acf-out">
+      <dl class="ax-facts ts-acf-facts" style="margin-top:10px"></dl>
+      <canvas class="ax-fig ts-c-diff" style="margin-top:12px"></canvas>
+      <canvas class="ax-fig ts-c-acf" style="margin-top:10px"></canvas>
+      <canvas class="ax-fig ts-c-pacf" style="margin-top:10px"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>ARIMA model and forecast</h2>
+    <div class="ax-grid">
+      <label>AR order p <select class="ts-p"><option>0</option><option selected>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+      <label>Differences d <select class="ts-ad"><option>0</option><option selected>1</option><option>2</option></select></label>
+      <label>MA order q <select class="ts-q"><option>0</option><option selected>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+      <label>Forecast steps <input class="ts-h" inputmode="numeric" value="12" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="ts-mean" checked /> Include a mean (for d = 0)</label>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small ts-auto">Find the best p and q (AICc)</button>
+    </div>
+    <p class="ax-help">This fits non-seasonal ARIMA by exact maximum likelihood. For a strong season, take it out first (fit the STL residual plus trend), or difference at the season length and check the ACF. Up to 1,000 values.</p>
+    <p class="ax-err ts-ar-err" hidden></p>
+    <div class="ts-ar-out">
+      <p class="ax-big ts-big"></p>
+      <p class="ax-err ts-ar-warn" hidden></p>
+      <div class="ax-scroll"><table class="ts-autot" hidden></table></div>
+      <dl class="ax-facts ts-ar-facts" style="margin-top:10px"></dl>
+      <div class="ax-scroll" style="margin-top:10px"><table class="ts-coef"></table></div>
+      <canvas class="ax-fig ts-c-fc" style="margin-top:12px"></canvas>
+      <canvas class="ax-fig ts-c-racf" style="margin-top:10px"></canvas>
+      <h3 class="ts-h3">Forecasts</h3>
+      <div class="ax-scroll"><table class="ts-fct"></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ts-fcsv">Forecast CSV</button></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style>
+  .ts .ts-wide { grid-column: 1 / -1; }
+  .ts .ts-h3 { margin: 16px 0 6px; font-size: 15px; }
+</style>
+
+<script>
+  import { num, csv, fmtExp } from '../../lib/sci/num';
+  import * as TS from '../../lib/sci/timeseries';
+  import { normPpf } from '../../lib/sci/distributions';
+  import { drawChart, canvasPainter, OKABE_ITO, type Chart } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ts')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c);
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  let S: TS.Series | null = null, dec: TS.Decomp | null = null, fit: TS.ArimaFit | null = null, fc: { mean: number[]; se: number[] } | null = null, fcLabels: string[] = [];
+  const figs: Record<string, Figure | null> = {};
+  let secDec: Section[] = [], secAcf: Section[] = [], secAr: Section[] = [];
+
+  const g = (v: number, n = 5) => (!Number.isFinite(v) ? '–' : v === 0 ? '0' : Math.abs(v) >= 1e6 || Math.abs(v) < 1e-4 ? fmtExp(v, n) : String(Number(v.toPrecision(n))).replace('-', '−'));
+  const fp = (p: number) => (!Number.isFinite(p) ? '–' : p < 1e-4 ? fmtExp(p, 3) : String(Number(p.toPrecision(3))));
+  const colorsFor = (pal: Palette) => (pal.red ? ['#a30000', '#7a0000', '#c00000', '#5a0000'] : pal.bg === '#ffffff' ? OKABE_ITO : ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4']);
+  const figW = () => Math.round(Math.min(720, Math.max(380, q('.ts-dec-card').clientWidth - 34 || 720)));
+  function fig(alt: string, ratio: number, build: (cols: string[], pal: Palette) => Omit<Chart, 'w' | 'h'>, extra?: (ctx: CanvasRenderingContext2D, m: ReturnType<typeof drawChart>, cols: string[], pal: Palette) => void): Figure {
+    const w = figW(), h = Math.round(w * ratio);
+    return { w, h, alt, draw: (ctx, W, H, pal) => { const cols = colorsFor(pal); const m = drawChart(canvasPainter(ctx), { ...build(cols, pal), w: W, h: H, ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: null, colors: cols }); extra?.(ctx, m, cols, pal); } };
+  }
+  const show = (cls: string, f: Figure | null) => { figs[cls] = f; const c = q<HTMLCanvasElement>(`.${cls}`); c.hidden = !f; if (f) paint(c, f); };
+  const setFacts = (el: string, rows: [string, string][]) => q(el).replaceChildren(...rows.map(([k, v]) => { const x = document.createElement('div'); x.innerHTML = '<dt></dt><dd></dd>'; x.querySelector('dt')!.textContent = k; x.querySelector('dd')!.textContent = v; return x; }));
+  function fillTable(el: HTMLElement, head: string[], rows: string[][]) {
+    el.innerHTML = '<thead><tr></tr></thead><tbody></tbody>';
+    el.querySelector('thead tr')!.replaceChildren(...head.map((t, i) => { const th = document.createElement('th'); th.textContent = t; if (i) th.className = 'r'; return th; }));
+    el.querySelector('tbody')!.replaceChildren(...rows.map((r) => { const tr = document.createElement('tr'); r.forEach((c, i) => { const td = document.createElement('td'); td.textContent = c; if (i) td.className = 'r'; tr.append(td); }); return tr; }));
+  }
+  const idx = (n: number, from = 1) => Array.from({ length: n }, (_, i) => i + from);
+  const yName = () => S?.header ?? 'value';
+
+  // ---------- Reading ----------
+  function readAll() {
+    const err = q('.ts-err');
+    try {
+      S = TS.readSeries(q<HTMLTextAreaElement>('.ts-data').value);
+      if (S.x.length < 8) throw new Error(`There are ${S.x.length} values; at least 8 are needed.`);
+      if (S.x.length > 5000) throw new Error('Up to 5,000 values.');
+      const m = num(inp('.ts-m').value);
+      if (!(Number.isInteger(m) && m >= 0 && m <= S.x.length)) throw new Error('The season length must be a whole number: 0 for none, or the number of values in one cycle.');
+      err.hidden = true;
+    } catch (e) { S = null; err.textContent = (e as Error).message; err.hidden = false; }
+    decompose(); autocorr(); runArima();
+  }
+
+  // ---------- Decomposition ----------
+  const METH_HELP: Record<string, string> = {
+    stl: 'STL (Cleveland et al. 1990) smooths each month (or weekday) separately with LOESS, so the seasonal pattern can change slowly over the years. The seasonal window sets how fast: larger is steadier.',
+    'stl-robust': 'The same, but outliers are found and given less weight, so a few odd values do not bend the trend or the season.',
+    additive: 'Trend by a centred moving average over one cycle; the season is the average of each position; the same size every year.',
+    multiplicative: 'As additive, but the season is a factor (for example 1.2 = 20 % above trend). Use it when the swings grow with the level.',
+  };
+  function decompose() {
+    const meth = sel('.ts-meth').value, err = q('.ts-dec-err');
+    q('.ts-meth-help').textContent = METH_HELP[meth];
+    q('.ts-sw-l').hidden = !meth.startsWith('stl');
+    dec = null; secDec = [];
+    if (!S) { q('.ts-dec-out').hidden = true; err.hidden = true; return; }
+    const m = num(inp('.ts-m').value);
+    try {
+      if (m < 2) throw new Error('Set a season length of 2 or more to split the series into trend, season and remainder.');
+      const x = S.x;
+      if (meth.startsWith('stl')) {
+        const sw = num(inp('.ts-sw').value);
+        dec = TS.stl(x, m, { seasonal: sw, robust: meth === 'stl-robust' });
+      } else dec = TS.classical(x, m, meth as 'additive' | 'multiplicative');
+      err.hidden = true; q('.ts-dec-out').hidden = false;
+      const st = TS.strength(dec), d = dec, t = idx(x.length), mult = d.type === 'multiplicative';
+      const si = d.seasonalIndex, hi = si.indexOf(Math.max(...si)), lo = si.indexOf(Math.min(...si));
+      const posName = (i: number) => `position ${i + 1}${S!.labels[i] && S!.labels[i] !== String(i + 1) ? ` (as ${S!.labels[i]})` : ''}`;
+      const facts: [string, string][] = [
+        ['Strength of trend', g(st.trend, 3)], ['Strength of season', g(st.seasonal, 3)],
+        ['Seasonal peak', `${posName(hi)}: ${mult ? '×' + g(si[hi], 4) : (si[hi] >= 0 ? '+' : '') + g(si[hi], 4)}`],
+        ['Seasonal low', `${posName(lo)}: ${mult ? '×' + g(si[lo], 4) : g(si[lo], 4)}`],
+      ];
+      setFacts('.ts-dec-facts', facts);
+      const panel = (cls: string, name: string, y: number[], kind: 'line' | 'points' = 'line', marks?: Chart['marks']) => show(cls, fig(`${name} of ${yName()}`, cls === 'ts-c-obs' ? 0.36 : 0.28, (c) => ({ xLabel: cls === 'ts-c-res' ? 'Time step' : undefined, yLabel: name, legend: 'none', font: 12, series: [{ name: '', x: t, y, mode: kind, color: c[cls === 'ts-c-obs' ? 0 : cls === 'ts-c-trend' ? 1 : cls === 'ts-c-seas' ? 2 : 0], size: 2.4 }], marks })));
+      panel('ts-c-obs', 'Observed', x);
+      panel('ts-c-trend', 'Trend', d.trend);
+      panel('ts-c-seas', mult ? 'Season (factor)' : 'Season', d.seasonal);
+      panel('ts-c-res', mult ? 'Remainder (factor)' : 'Remainder', d.resid, 'points', [{ kind: 'hline', at: mult ? 1 : 0 }]);
+      secDec = [{ title: `Decomposition: ${sel('.ts-meth').selectedOptions[0].text}, season length ${m}`, facts, figure: figs['ts-c-obs']! }, { title: 'Trend', figure: figs['ts-c-trend']! }, { title: 'Season', figure: figs['ts-c-seas']! }, { title: 'Remainder', figure: figs['ts-c-res']! }];
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.ts-dec-out').hidden = true; }
+  }
+
+  // ---------- ACF and PACF ----------
+  function stemFig(alt: string, r: number[], band: number[], label: string): Figure {
+    const lags = idx(r.length - 1);
+    const vals = r.slice(1), top = Math.max(0.25, ...vals.map(Math.abs), ...band.slice(1)) * 1.1;
+    return fig(alt, 0.42, (c) => ({ xLabel: 'Lag', yLabel: label, legend: 'none', font: 12, yMin: -top, yMax: top, xMin: 0, xMax: lags.length + 1, series: [{ name: '', x: lags, y: vals, mode: 'points', color: c[0], size: 3 }], marks: [{ kind: 'hline', at: 0, dash: [] }] }), (ctx, m, cols, pal) => {
+      const P = canvasPainter(ctx);
+      P.clip(m.px0, m.py0, m.px1 - m.px0, m.py1 - m.py0);
+      ctx.save(); ctx.globalAlpha = pal.red ? 0.35 : 0.18;
+      const up: [number, number][] = lags.map((k) => [m.X(k), m.Y(band[k])]), dn: [number, number][] = lags.map((k) => [m.X(k), m.Y(-band[k])]).reverse();
+      P.poly([[m.X(0.5), m.Y(band[1])], ...up, [m.X(lags.length + 0.5), m.Y(band[lags.length])], [m.X(lags.length + 0.5), m.Y(-band[lags.length])], ...dn, [m.X(0.5), m.Y(-band[1])]], cols[0], null);
+      ctx.restore();
+      lags.forEach((k, i) => P.line([[m.X(k), m.Y(0)], [m.X(k), m.Y(vals[i])]], cols[0], 2));
+      P.unclip();
+    });
+  }
+  function autocorr() {
+    const err = q('.ts-acf-err'); secAcf = [];
+    if (!S) { q('.ts-acf-out').hidden = true; return; }
+    try {
+      const d = Number(sel('.ts-d').value), D = Number(sel('.ts-D').value), m = num(inp('.ts-m').value);
+      if (D && !(m >= 2)) throw new Error('A seasonal difference needs a season length of 2 or more.');
+      const w = TS.difference(S.x, d, D, m), n = w.length;
+      if (n < 8) throw new Error(`After differencing only ${n} values are left.`);
+      const lagsTyped = inp('.ts-lags').value.trim(), auto = Math.min(n - 1, Math.max(10, Math.min(40, m >= 2 ? 3 * m : 20, Math.floor(n / 2))));
+      const L = lagsTyped ? num(lagsTyped) : auto;
+      if (!(Number.isInteger(L) && L >= 1 && L < n)) throw new Error(`Lags must be a whole number from 1 to ${n - 1}.`);
+      const r = TS.acf(w, L), pr = TS.pacf(w, L), band = TS.bartlett(r, n), pb = r.map((_, k) => (k ? 1.959963984540054 / Math.sqrt(n) : 0));
+      const h = Math.min(L, m >= 2 ? 2 * m : 10, Math.floor(n / 5)) || 1, lb = TS.ljungBox(w, h);
+      const outside = r.slice(1).filter((v, i) => Math.abs(v) > band[i + 1]).length;
+      const facts: [string, string][] = [
+        ['Series used', `${n} values${d || D ? ` after ${[d ? `${d} difference${d > 1 ? 's' : ''}` : '', D ? `a seasonal difference (lag ${m})` : ''].filter(Boolean).join(' and ')}` : ''}`],
+        [`Ljung–Box (lag ${h})`, `Q = ${g(lb.q, 4)}, p = ${fp(lb.p)}`],
+        ['Reading', lb.p < 0.05 ? 'Values are related to earlier ones (not white noise).' : 'No clear autocorrelation: it looks like white noise.'],
+        ['ACF outside the band', `${outside} of ${L} lags`],
+      ];
+      setFacts('.ts-acf-facts', facts);
+      err.hidden = true; q('.ts-acf-out').hidden = false;
+      show('ts-c-diff', d || D ? fig('The differenced series', 0.3, (c) => ({ xLabel: 'Time step', yLabel: 'Differenced', legend: 'none', font: 12, series: [{ name: '', x: idx(n, S!.x.length - n + 1), y: w, mode: 'line', color: c[0], width: 1.4 }], marks: [{ kind: 'hline', at: 0 }] })) : null);
+      show('ts-c-acf', stemFig('Autocorrelation function (ACF) with the 95 % band for white noise', r, band, 'ACF'));
+      show('ts-c-pacf', stemFig('Partial autocorrelation function (PACF) with ±1.96/√n', pr, pb, 'PACF'));
+      secAcf = [{ title: 'Autocorrelation', facts, figure: figs['ts-c-acf']! }, { title: 'Partial autocorrelation', figure: figs['ts-c-pacf']! }];
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.ts-acf-out').hidden = true; }
+  }
+
+  // ---------- ARIMA ----------
+  /** Labels for future steps: continues YYYY-MM, YYYY-MM-DD, whole numbers or years, otherwise +1, +2, … */
+  function nextLabels(labels: string[], h: number, m: number): string[] {
+    const last = labels[labels.length - 1] ?? '';
+    let mm = /^(\d{4})-(\d{1,2})$/.exec(last);
+    if (mm) { let y = +mm[1], mo = +mm[2]; return Array.from({ length: h }, () => { mo++; if (mo > 12) { mo = 1; y++; } return `${y}-${String(mo).padStart(2, '0')}`; }); }
+    const dd = /^(\d{4})-(\d{2})-(\d{2})$/.exec(last);
+    if (dd && labels.length > 1) {
+      const t1 = Date.UTC(+dd[1], +dd[2] - 1, +dd[3]), p0 = /^(\d{4})-(\d{2})-(\d{2})$/.exec(labels[labels.length - 2]);
+      const step = p0 ? t1 - Date.UTC(+p0[1], +p0[2] - 1, +p0[3]) : 864e5;
+      return Array.from({ length: h }, (_, i) => new Date(t1 + step * (i + 1)).toISOString().slice(0, 10));
+    }
+    const a = Number(last), b = Number(labels[labels.length - 2]);
+    if (/^-?\d+$/.test(last) && Number.isFinite(b)) return Array.from({ length: h }, (_, i) => String(a + (a - b) * (i + 1)));
+    void m; return Array.from({ length: h }, (_, i) => `+${i + 1}`);
+  }
+  function runArima(auto = false) {
+    const err = q('.ts-ar-err'), warnEl = q('.ts-ar-warn'); secAr = []; fit = null; fc = null;
+    const d = Number(sel('.ts-ad').value);
+    inp('.ts-mean').disabled = d > 0;
+    if (!S) { q('.ts-ar-out').hidden = true; return; }
+    try {
+      if (S.x.length > 1000) throw new Error('ARIMA here takes up to 1,000 values; use the last part of the series.');
+      const h = num(inp('.ts-h').value);
+      if (!(Number.isInteger(h) && h >= 1 && h <= 500)) throw new Error('Forecast steps must be a whole number from 1 to 500.');
+      const withMean = d === 0 && q<HTMLInputElement>('.ts-mean').checked;
+      let f: TS.ArimaFit;
+      const autoT = q('.ts-autot');
+      if (auto) {
+        const a = TS.autoArima(S.x, d, 3, withMean);
+        f = a.best; sel('.ts-p').value = String(f.p); sel('.ts-q').value = String(f.q);
+        fillTable(autoT, ['Model', 'AICc', 'AIC', 'ΔAICc'], a.table.slice(0, 8).map((r) => [`ARIMA(${r.p},${d},${r.q})`, g(r.aicc, 6), g(r.aic, 6), g(r.aicc - a.table[0].aicc, 3)]));
+        autoT.hidden = false;
+      } else { f = TS.arima(S.x, Number(sel('.ts-p').value), d, Number(sel('.ts-q').value), withMean); autoT.hidden = true; }
+      fit = f; fc = TS.forecast(f, h); fcLabels = nextLabels(S.labels, h, num(inp('.ts-m').value));
+      err.hidden = true; q('.ts-ar-out').hidden = false;
+      const model = `ARIMA(${f.p},${f.d},${f.q})${f.mean ? ' with mean' : ''}`;
+      q('.ts-big').textContent = `${model}: AICc = ${g(f.aicc, 6)}`;
+      const lbh = Math.min(10, Math.floor(f.nEff / 5)), lb = lbh > f.p + f.q ? TS.ljungBox(f.resid, lbh, f.p + f.q) : null;
+      const facts: [string, string][] = [
+        ['Innovation variance σ²', g(f.sigma2)], ['Log-likelihood', g(f.llf, 7)], ['AIC', g(f.aic, 6)], ['BIC', g(f.bic, 6)],
+        ['Residual Ljung–Box', lb ? `Q(${lbh}) = ${g(lb.q, 4)}, df ${lb.df}, p = ${fp(lb.p)}` : 'too few values'],
+        ['Residuals', lb ? (lb.p < 0.05 ? 'Still autocorrelated: try other orders.' : 'Look like white noise: the model has caught the pattern.') : '–'],
+      ];
+      setFacts('.ts-ar-facts', facts);
+      warnEl.textContent = f.warnings.join(' '); warnEl.hidden = !f.warnings.length;
+      const coefRows = f.names.map((nm, i) => [nm, g(f.est[i]), g(f.se[i], 4), g(f.z[i], 4), nm === 'sigma2' ? '' : fp(f.pv[i])]);
+      fillTable(q('.ts-coef'), ['Parameter', 'Estimate', 'SE', 'z', 'p'], coefRows);
+      // Forecast chart: the last part of the data, the forecast and its 80 % and 95 % intervals.
+      const n = S.x.length, z80 = normPpf(0.9), z95 = normPpf(0.975), keep = Math.min(n, Math.max(3 * h, 48));
+      const tx = idx(keep, n - keep + 1), fx = idx(h, n + 1);
+      const fitted = S.x.map((v, t) => (t >= f.d ? v - f.resid[t - f.d] : NaN)).slice(n - keep);
+      const lo95 = fc.mean.map((v, i) => v - z95 * fc!.se[i]), hi95 = fc.mean.map((v, i) => v + z95 * fc!.se[i]);
+      const lo80 = fc.mean.map((v, i) => v - z80 * fc!.se[i]), hi80 = fc.mean.map((v, i) => v + z80 * fc!.se[i]);
+      // The y range includes the intervals.
+      const all = [...S.x.slice(n - keep), ...lo95, ...hi95].filter(Number.isFinite), yl = Math.min(...all), yh = Math.max(...all), pad = (yh - yl) * 0.05;
+      show('ts-c-fc', fig(`${yName()} with the ${model} forecast and its 80 % and 95 % intervals`, 0.5, (c) => ({
+        xLabel: 'Time step', yLabel: yName(), legend: 'auto', font: 12, yMin: yl - pad, yMax: yh + pad,
+        series: [{ name: 'Data', x: tx, y: S!.x.slice(n - keep), mode: 'line', color: c[0], width: 1.5 }, { name: 'One-step fit', x: tx, y: fitted, mode: 'line', color: c[2], width: 1, dash: [3, 3] }, { name: 'Forecast', x: [n, ...fx], y: [S!.x[n - 1], ...fc!.mean], mode: 'line', color: c[1] }],
+      }), (ctx, m, cols, pal) => {
+        const P = canvasPainter(ctx);
+        P.clip(m.px0, m.py0, m.px1 - m.px0, m.py1 - m.py0);
+        ctx.save();
+        for (const [lo, hi, a] of [[lo95, hi95, 0.14], [lo80, hi80, 0.22]] as [number[], number[], number][]) {
+          ctx.globalAlpha = pal.red ? a * 2 : a;
+          P.poly([...fx.map((t, i) => [m.X(t), m.Y(hi[i])] as [number, number]), ...fx.map((t, i) => [m.X(t), m.Y(lo[i])] as [number, number]).reverse()], cols[1], null);
+        }
+        ctx.restore(); P.unclip();
+      }));
+      const L = Math.min(f.nEff - 1, 24), rr = TS.acf(f.resid, L);
+      show('ts-c-racf', stemFig('ACF of the model residuals (should stay inside the band)', rr, TS.bartlett(rr, f.nEff), 'Residual ACF'));
+      const fRows = fc.mean.map((v, i) => [fcLabels[i], g(v), g(lo80[i]), g(hi80[i]), g(lo95[i]), g(hi95[i])]);
+      fillTable(q('.ts-fct'), ['Time', 'Forecast', '80 % low', '80 % high', '95 % low', '95 % high'], fRows);
+      secAr = [
+        { title: `${model} fitted to ${yName()}`, facts: [['Fit', q('.ts-big').textContent!], ...facts], table: { head: ['Parameter', 'Estimate', 'SE', 'z', 'p'], rows: coefRows, align: ['l', 'r', 'r', 'r', 'r'] }, note: f.warnings.join(' ') || undefined },
+        { title: 'Forecast', figure: figs['ts-c-fc']!, table: { head: ['Time', 'Forecast', '80 % low', '80 % high', '95 % low', '95 % high'], rows: fRows, align: ['l', 'r', 'r', 'r', 'r', 'r'] } },
+        { title: 'Residual autocorrelation', figure: figs['ts-c-racf']! },
+      ];
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.ts-ar-out').hidden = true; }
+  }
+
+  // ---------- Wiring ----------
+  function loadExample() {
+    const e = TS.EXAMPLES.find((x) => x.id === sel('.ts-ex').value);
+    if (!e) return;
+    q<HTMLTextAreaElement>('.ts-data').value = e.text;
+    inp('.ts-m').value = String(e.period);
+    if (e.id === 'sensor') { sel('.ts-ad').value = '0'; sel('.ts-p').value = '2'; sel('.ts-q').value = '1'; sel('.ts-d').value = '0'; sel('.ts-D').value = '0'; }
+    else if (e.id === 'monthly') { sel('.ts-ad').value = '1'; sel('.ts-p').value = '1'; sel('.ts-q').value = '1'; sel('.ts-d').value = '1'; sel('.ts-D').value = '0'; }
+    else { sel('.ts-ad').value = '1'; sel('.ts-p').value = '1'; sel('.ts-q').value = '1'; sel('.ts-d').value = '0'; sel('.ts-D').value = '1'; sel('.ts-meth').value = 'multiplicative'; }
+    if (e.id !== 'daily' && sel('.ts-meth').value === 'multiplicative') sel('.ts-meth').value = 'stl';
+    inp('.ts-h').value = String(e.period >= 2 ? e.period : 12);
+    readAll();
+  }
+  const debounce = (fn: () => void, ms = 300) => { let t = 0; return () => { clearTimeout(t); t = window.setTimeout(fn, ms); }; };
+  sel('.ts-ex').addEventListener('change', loadExample);
+  q('.ts-data').addEventListener('input', debounce(() => { sel('.ts-ex').value = ''; readAll(); }, 400));
+  inp('.ts-m').addEventListener('input', debounce(readAll));
+  sel('.ts-meth').addEventListener('change', decompose);
+  inp('.ts-sw').addEventListener('input', debounce(decompose));
+  for (const c of ['.ts-d', '.ts-D']) sel(c).addEventListener('change', autocorr);
+  inp('.ts-lags').addEventListener('input', debounce(autocorr));
+  for (const c of ['.ts-p', '.ts-ad', '.ts-q']) sel(c).addEventListener('change', () => runArima());
+  q('.ts-mean').addEventListener('change', () => runArima());
+  inp('.ts-h').addEventListener('input', debounce(() => runArima()));
+  q('.ts-auto').addEventListener('click', () => {
+    const b = q<HTMLButtonElement>('.ts-auto'), old = b.textContent; b.disabled = true; b.textContent = 'Fitting 16 models…';
+    setTimeout(() => { try { runArima(true); } finally { b.disabled = false; b.textContent = old; } }, 30);
+  });
+  q('.ts-dcsv').addEventListener('click', () => {
+    if (!S || !dec) return;
+    const rows: (string | number)[][] = [['time', 'observed', 'trend', 'seasonal', 'remainder']];
+    S.x.forEach((v, i) => rows.push([S!.labels[i], v, Number.isFinite(dec!.trend[i]) ? dec!.trend[i] : '', dec!.seasonal[i], Number.isFinite(dec!.resid[i]) ? dec!.resid[i] : '']));
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'decomposition.csv', 'text/csv');
+  });
+  q('.ts-fcsv').addEventListener('click', () => {
+    if (!fc) return;
+    const z80 = normPpf(0.9), z95 = normPpf(0.975), rows: (string | number)[][] = [['time', 'forecast', 'se', 'lo80', 'hi80', 'lo95', 'hi95']];
+    fc.mean.forEach((v, i) => rows.push([fcLabels[i], v, fc!.se[i], v - z80 * fc!.se[i], v + z80 * fc!.se[i], v - z95 * fc!.se[i], v + z95 * fc!.se[i]]));
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'forecast.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { for (const [k, f] of Object.entries(figs)) if (f) paint(q<HTMLCanvasElement>(`.${k}`), f); });
+  loadExample();
+  wireDownloads(q('.dl'), () => ({ title: 'Time series analysis', subtitle: q('.ts-big').textContent ?? '', file: 'time-series', sections: [...secDec, ...secAcf, ...secAr] }));
+</script>
