@@ -1,5 +1,14 @@
 [
  {
+  "sha": "357702345b2d",
+  "date": "2026-11-09T07:20:05+00:00",
+  "title": "Add BED, GFF and GTF interval tools (#175): merge, intersect, overlap filters, subtract",
+  "tools": [
+   "interval-tools"
+  ],
+  "site": false
+ },
+ {
   "sha": "9b11799943b8",
   "date": "2026-11-09T07:00:06+00:00",
   "title": "Add shift scheduler (#174): weekly or monthly rota for small, medium and large teams, with image, PDF, Excel and Word downloads",
