@@ -1,0 +1,183 @@
+---
+// VCF viewer and filter: reads a VCF (gzip too) piece by piece in the browser, summarises variants and genotypes,
+// filters them and writes a filtered VCF. Nothing is uploaded. The example VCF is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { exampleVcf, TYPES } from '../../lib/sci/vcf';
+const example = exampleVcf(300, 5);
+---
+<div class="ax vcv">
+  <div class="ax-card">
+    <h2>VCF file</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small vc-open">Open a VCF file</button>
+      <input type="file" class="vc-file" accept=".vcf,.gz,.txt,text/plain,application/gzip" hidden />
+      <button type="button" class="btn secondary small vc-stop" hidden>Stop</button>
+    </div>
+    <p class="ax-help vc-prog" aria-live="polite"></p>
+    <label style="margin-top:10px">Or paste VCF text (up to 5 MB) <textarea class="vc-in" rows="6" spellcheck="false">{example}</textarea></label>
+    <p class="ax-help">VCF or .vcf.gz files of any size are read piece by piece on your device; nothing is uploaded, and genomes stay private. The example is 300 made-up variants on three made-up contigs for three made-up samples.</p>
+    <p class="ax-err vc-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Filters</h2>
+    <div class="ax-grid">
+      <label>Chromosome <select class="vc-chrom"><option value="">All</option></select></label>
+      <label>From position <input class="vc-start" type="number" min="1" step="1" inputmode="numeric" /></label>
+      <label>To position <input class="vc-end" type="number" min="1" step="1" inputmode="numeric" /></label>
+      <label>Lowest QUAL <input class="vc-qual" type="number" step="any" inputmode="decimal" /></label>
+      <label>Lowest depth (INFO DP) <input class="vc-dp" type="number" step="1" min="0" inputmode="numeric" /></label>
+    </div>
+    <label class="vc-chk" style="margin-top:10px"><input type="checkbox" class="vc-pass" /> PASS only</label>
+    <div class="vc-types">{TYPES.map((t) => <label class="vc-chk"><input type="checkbox" value={t} checked /> {t}</label>)}</div>
+    <p class="ax-help">Leave a box empty to skip that filter. A record is kept when any of its alternate alleles is of a ticked type. Records without QUAL or DP are dropped when those filters are set.</p>
+  </div>
+
+  <div class="ax-card vc-out">
+    <h2>Summary</h2>
+    <p class="ax-big vc-big"></p>
+    <dl class="ax-facts vc-facts"></dl>
+    <h3>By chromosome</h3>
+    <div class="ax-scroll"><table class="vc-ctab"></table></div>
+    <h3 class="vc-sh">Genotypes per sample</h3>
+    <div class="ax-scroll"><table class="vc-stab"></table></div>
+    <h3>QUAL</h3>
+    <canvas class="ax-fig vc-qfig"></canvas>
+    <h3 class="vc-afh">Allele frequency</h3>
+    <canvas class="ax-fig vc-affig"></canvas>
+    <h3>Records</h3>
+    <p class="ax-help vc-rh"></p>
+    <div class="ax-scroll vc-rbox"><table class="vc-rtab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small vc-dl">Download filtered VCF</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { VcfStats, varType, TYPES, QBIN, QBINS, type Filter, type Result, type VarType } from '../../lib/sci/vcf';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.vcv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const tn = (x: number) => Math.round(x).toLocaleString('en');
+  const pc = (x: number, d = 1) => `${(100 * x).toFixed(d)} %`;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  function table(sel: string, head: string[], rows: string[][], right: number[] = []) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+  let source: { file?: File; text?: string } = {}, last: Result | null = null, figs: { sel: string; fig: Figure }[] = [], sections: Section[] = [], stopFlag = false, busy = false, pending = false, name = 'variants';
+  const err = (m: string) => { q('.vc-err').textContent = m; q('.vc-err').hidden = !m; };
+  const prog = (m: string) => (q('.vc-prog').textContent = m);
+  const num = (c: string) => { const v = q<HTMLInputElement>(c).value.trim(); return v === '' ? undefined : Number(v); };
+
+  function filter(): Filter | string {
+    const f: Filter = {};
+    const chrom = q<HTMLSelectElement>('.vc-chrom').value; if (chrom) f.chrom = chrom;
+    for (const [k, c] of [['start', '.vc-start'], ['end', '.vc-end'], ['minQual', '.vc-qual'], ['minDP', '.vc-dp']] as const) { const v = num(c); if (v !== undefined) { if (!Number.isFinite(v)) return 'Filters need numbers.'; f[k] = v; } }
+    if (f.start !== undefined && f.end !== undefined && f.start > f.end) return 'The "from" position is after the "to" position.';
+    if (q<HTMLInputElement>('.vc-pass').checked) f.passOnly = true;
+    const types = [...root.querySelectorAll<HTMLInputElement>('.vc-types input:checked')].map((i) => i.value as VarType);
+    if (!types.length) return 'Tick at least one variant type.';
+    if (types.length < TYPES.length) f.types = types;
+    return f;
+  }
+
+  async function run() {
+    if (busy) { pending = true; stopFlag = true; return; }
+    const f = filter(); if (typeof f === 'string') return err(f);
+    err(''); busy = true; stopFlag = false;
+    const st = new VcfStats(f);
+    let partial = false;
+    try {
+      if (source.file) {
+        const file = source.file; q('.vc-stop').hidden = false;
+        const head = new Uint8Array(await file.slice(0, 2).arrayBuffer()), gz = head[0] === 0x1f && head[1] === 0x8b;
+        if (gz && typeof DecompressionStream === 'undefined') throw new Error('This browser cannot unzip .gz files. Unzip it first, or try another browser.');
+        let done = 0;
+        let stream: ReadableStream<Uint8Array> = file.stream().pipeThrough(new TransformStream<Uint8Array, Uint8Array>({ transform(c, ctl) { done += c.byteLength; ctl.enqueue(c); } }));
+        if (gz) stream = stream.pipeThrough(new DecompressionStream('gzip') as unknown as TransformStream<Uint8Array, Uint8Array>);
+        const reader = stream.pipeThrough(new TextDecoderStream() as unknown as TransformStream<Uint8Array, string>).getReader();
+        let t0 = 0;
+        for (;;) {
+          const { value, done: end } = await reader.read(); if (end) break;
+          st.push(value);
+          if (stopFlag) { partial = true; await reader.cancel(); break; }
+          const now = performance.now(); if (now - t0 > 200) { t0 = now; prog(`Reading ${file.name}: ${(100 * done / Math.max(1, file.size)).toFixed(0)} % (${tn(st.records)} records so far)`); await new Promise((r) => setTimeout(r, 0)); }
+        }
+        st.end();
+        if (!pending) prog(`${partial ? 'Stopped' : 'Finished'}: ${file.name}, ${(file.size / 1e6).toFixed(1)} MB${gz ? ' compressed' : ''}.`);
+      } else { st.push(source.text ?? ''); st.end(); }
+      const r = st.result();
+      if (!r.records && !pending) throw new Error(r.errors[0] ?? 'No variant records found. A VCF has a #CHROM header line and tab-separated records.');
+      if (!pending) show(r, partial);
+    } catch (e) { err((e as Error).message); q('.vc-out').hidden = true; sections = []; }
+    finally { busy = false; q('.vc-stop').hidden = true; if (pending) { pending = false; run(); } }
+  }
+
+  function chromOptions(r: Result) {
+    const sel = q<HTMLSelectElement>('.vc-chrom'), cur = sel.value;
+    const list = [...new Set([...r.contigs, ...r.byChrom.map((c) => c[0])])];
+    if (sel.options.length - 1 === list.length && list.every((c, i) => sel.options[i + 1].value === c)) return;
+    sel.replaceChildren(new Option('All', '')); list.slice(0, 2000).forEach((c) => sel.append(new Option(c, c)));
+    sel.value = list.includes(cur) ? cur : '';
+  }
+
+  function show(r: Result, partial: boolean) {
+    last = r; chromOptions(r);
+    q('.vc-out').hidden = false;
+    const filtered = r.kept !== r.records;
+    q('.vc-big').textContent = `${filtered ? `${tn(r.kept)} of ${tn(r.records)}` : tn(r.records)} records${r.tv ? `, Ti/Tv ${(r.ti / r.tv).toFixed(2)}` : ''}${partial ? ' (stopped early)' : ''}`;
+    const types = (Object.entries(r.byType) as [VarType, number][]).filter((x) => x[1]);
+    q('.vc-facts').replaceChildren(
+      fact('Variant types', types.length ? types.map(([t, n]) => `${t} ${tn(n)}`).join(', ') : 'none', `counted per alternate allele: ${tn(r.alleles)} in all`),
+      fact('Transitions / transversions', r.ti + r.tv ? `${tn(r.ti)} / ${tn(r.tv)} = ${r.tv ? (r.ti / r.tv).toFixed(2) : '–'}` : '–', 'SNVs only; A↔G and C↔T are transitions'),
+      fact('Multi-allelic sites', tn(r.multiallelic), r.kept ? pc(r.multiallelic / r.kept) : ''),
+      fact('FILTER', `PASS ${tn(r.pass)}, failed ${tn(r.failed)}${r.noFilter ? `, not set ${tn(r.noFilter)}` : ''}`, r.failedBy.length ? r.failedBy.slice(0, 5).map(([k, n]) => `${k} ${tn(n)}`).join(', ') : ''),
+      ...(r.samples.length ? [] : [fact('Samples', 'none', 'sites-only VCF: no genotype columns')]),
+      ...(r.errors.length ? [fact('Problems', r.errors[0], r.errors.length > 1 ? `and ${r.errors.length - 1} more` : '')] : []),
+    );
+    table('.vc-ctab', ['Chromosome', 'Records', 'Share'], r.byChrom.slice(0, 200).map(([c, n]) => [c, tn(n), pc(n / Math.max(1, r.kept))]), [1, 2]);
+    const sRows = r.samples.map((s) => { const called = s.homRef + s.het + s.homAlt; return [s.name, tn(s.homRef), tn(s.het), tn(s.homAlt), tn(s.missing), s.homAlt ? (s.het / s.homAlt).toFixed(2) : '–', called ? pc(s.het / called) : '–']; });
+    q('.vc-sh').hidden = !r.samples.length; q('.vc-stab').hidden = !r.samples.length;
+    table('.vc-stab', ['Sample', 'Hom ref', 'Het', 'Hom alt', 'Missing', 'Het/hom alt', 'Het share'], sRows.slice(0, 500), [1, 2, 3, 4, 5, 6]);
+    // Charts.
+    figs = [];
+    const top = Math.min(QBINS - 1, Math.floor(r.qualMax / QBIN)), xs = Array.from({ length: top + 1 }, (_, i) => i * QBIN + QBIN / 2);
+    figs.push({ sel: '.vc-qfig', fig: chartFigure({ w: 560, h: 320, xLabel: `QUAL (bins of ${QBIN}${top === QBINS - 1 ? `; last bin ${(QBINS - 1) * QBIN} and up` : ''})`, yLabel: 'Records', legend: 'none', yMin: 0, xMin: 0, series: [{ name: 'Records', x: xs, y: r.qualHist.slice(0, top + 1), mode: 'both', width: 1.8, size: 2.6 }] }, `Records by QUAL${r.qualMissing ? `; ${r.qualMissing} without QUAL` : ''}`) });
+    const afOn = r.afFrom !== 'none';
+    q('.vc-afh').hidden = !afOn; q('.vc-affig').hidden = !afOn;
+    if (afOn) { const ax = Array.from({ length: 20 }, (_, i) => i * 0.05 + 0.025); figs.push({ sel: '.vc-affig', fig: chartFigure({ w: 560, h: 320, xLabel: `Allele frequency (${r.afFrom === 'info' ? 'INFO AF' : 'from genotypes'})`, yLabel: 'Alleles', legend: 'none', yMin: 0, xMin: 0, xMax: 1, series: [{ name: 'Alleles', x: ax, y: r.afHist, mode: 'both', width: 1.8, size: 2.6 }] }, 'Alternate alleles by allele frequency, in bins of 0.05') }); }
+    for (const f of figs) paint(q<HTMLCanvasElement>(f.sel), f.fig);
+    // Records.
+    const shown = r.lines.slice(0, 500).map((l) => { const c = l.split('\t'); const alt = c[4].length > 30 ? c[4].slice(0, 28) + '…' : c[4], ref = c[3].length > 20 ? c[3].slice(0, 18) + '…' : c[3]; return [c[0], tn(Number(c[1])), ref, alt, c[5], c[6], c[4].split(',').map((a) => varType(c[3], a)).join(',')]; });
+    q('.vc-rh').textContent = r.kept ? `${r.kept > 500 ? `First 500 of ${tn(r.kept)} matching records.` : `${tn(r.kept)} matching record${r.kept === 1 ? '' : 's'}.`}${r.linesCapped ? ` The filtered VCF holds the first ${tn(r.lines.length)}; narrow the filters for the rest.` : ''}` : 'No records match these filters.';
+    table('.vc-rtab', ['Chrom', 'Pos', 'Ref', 'Alt', 'Qual', 'Filter', 'Type'], shown, [1, 4]);
+    sections = [{ title: q('.vc-big').textContent!, facts: [...q('.vc-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), table: { head: ['Chromosome', 'Records', 'Share'], rows: r.byChrom.slice(0, 60).map(([c, n]) => [c, tn(n), pc(n / Math.max(1, r.kept))]), align: ['l', 'r', 'r'] } },
+      ...(sRows.length ? [{ title: 'Genotypes per sample', table: { head: ['Sample', 'Hom ref', 'Het', 'Hom alt', 'Missing', 'Het/hom alt', 'Het share'], rows: sRows.slice(0, 100), align: ['l', 'r', 'r', 'r', 'r', 'r', 'r'] as ('l' | 'r')[] } }] : []),
+      ...figs.map((f) => ({ title: f.fig.alt, figure: f.fig }))];
+  }
+
+  q('.vc-open').addEventListener('click', () => q<HTMLInputElement>('.vc-file').click());
+  q('.vc-file').addEventListener('change', () => { const f = q<HTMLInputElement>('.vc-file').files?.[0]; q<HTMLInputElement>('.vc-file').value = ''; if (!f) return; source = { file: f }; name = f.name.replace(/\.gz$/i, '').replace(/\.vcf$/i, '') || 'variants'; q<HTMLSelectElement>('.vc-chrom').value = ''; run(); });
+  q('.vc-stop').addEventListener('click', () => { stopFlag = true; });
+  let timer = 0;
+  q('.vc-in').addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(() => { const t = q<HTMLTextAreaElement>('.vc-in').value; if (t.length > 5e6) return err('Pasted text is limited to 5 MB. Open bigger files with the button instead.'); source = { text: t }; name = 'pasted'; prog(''); run(); }, 400); });
+  let ftimer = 0;
+  root.querySelectorAll('.vc-chrom, .vc-start, .vc-end, .vc-qual, .vc-dp, .vc-pass, .vc-types input').forEach((el) => { const go = () => { clearTimeout(ftimer); ftimer = window.setTimeout(run, source.file ? 700 : 300); }; el.addEventListener('input', go); el.addEventListener('change', go); });
+  q('.vc-dl').addEventListener('click', () => { if (last) save(new Blob([[...last.header, ...last.lines].join('\n') + '\n'], { type: 'text/plain' }), `${name}-filtered.vcf`, 'text/plain'); });
+  document.addEventListener('fibub:theme', () => { for (const f of figs) paint(q<HTMLCanvasElement>(f.sel), f.fig); });
+  source = { text: q<HTMLTextAreaElement>('.vc-in').value }; run();
+  wireDownloads(q('.dl'), () => ({ title: 'VCF summary', subtitle: q('.vc-big').textContent ?? '', file: `${name}-summary`, sections }));
+</script>
+
+<style is:global>
+  .vcv h3 { margin: 18px 0 4px; font-size: 1rem; }
+  .vcv .vc-chk { display: inline-flex; gap: 6px; align-items: center; margin: 4px 14px 4px 0; }
+  .vcv .vc-types { margin-top: 6px; }
+  .vcv .vc-rbox { max-height: 480px; overflow-y: auto; }
+  .vcv textarea { font-family: ui-monospace, monospace; }
+</style>

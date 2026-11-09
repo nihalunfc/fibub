@@ -157,6 +157,7 @@ import * as GB from '../src/lib/sci/genbank.ts';
 import * as PM from '../src/lib/sci/plasmidmap.ts';
 import * as FQ from '../src/lib/sci/fastq.ts';
 import * as AL from '../src/lib/sci/align.ts';
+import * as VC from '../src/lib/sci/vcf.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -3178,6 +3179,39 @@ ORIGIN
   check('align: dot plot words', JSON.stringify(dp.fwd) === '[[0,0],[4,0]]' && dp.rev.length === 2);
   check('align: type guess', AL.guessType('ACGTNACGT') === 'dna' && AL.guessType('MKVLAAGIV') === 'protein');
   check('align: size limit', (() => { try { AL.align('A'.repeat(6000), 'A'.repeat(6000), d, 'global'); return false; } catch { return true; } })());
+}
+// #173 VCF viewer: the made-up example read in chunks, checked against an independent plain-Python reader (counts
+// by type and chromosome, Ti/Tv, filters, QUAL bins, allele frequency from genotypes, genotypes per sample) with
+// and without filters.
+{
+  const t = VC.exampleVcf(300, 5);
+  check('vcf: example is the same every time', t === VC.exampleVcf(300, 5) && t.startsWith('##fileformat=VCFv4.2\n'));
+  const run = (f, step = 777) => { const st = new VC.VcfStats(f); for (let i = 0; i < t.length; i += step) st.push(t.slice(i, i + step)); st.end(); return st.result(); };
+  const r = run({});
+  check('vcf: records, alleles, samples, contigs', r.records === 300 && r.kept === 300 && r.alleles === 310 && r.samples.map((x) => x.name).join() === 'sample1,sample2,sample3' && r.contigs.join() === 'chrA,chrB,chrC');
+  check('vcf: by type', JSON.stringify(r.byType) === '{"SNV":257,"insertion":21,"deletion":21,"MNV":11,"complex":0,"other":0}');
+  check('vcf: by chromosome', JSON.stringify(r.byChrom) === '[["chrA",136],["chrB",101],["chrC",63]]');
+  check('vcf: Ti/Tv 175/82', r.ti === 175 && r.tv === 82);
+  check('vcf: multi-allelic and filters', r.multiallelic === 10 && r.pass === 256 && r.failed === 44 && r.noFilter === 0 && r.failedBy.length === 2);
+  check('vcf: QUAL bins', r.qualMissing === 8 && r.qualHist[0] === 5 && r.qualHist[11] === 17 && r.qualHist[30] === 2 && r.qualHist.reduce((a, b) => a + b, 0) === 292);
+  check('vcf: allele frequency from genotypes', r.afFrom === 'genotypes' && JSON.stringify(r.afHist) === '[7,0,0,21,0,11,59,0,0,0,94,0,0,70,0,8,32,0,0,7]');
+  check('vcf: genotypes per sample', JSON.stringify(r.samples[0]) === '{"name":"sample1","homRef":73,"het":144,"homAlt":68,"missing":15}' && r.samples[2].homAlt === 90);
+  const b = run({ chrom: 'chrB' }, 101);
+  check('vcf: chromosome filter', b.kept === 101 && b.ti === 59 && b.tv === 24 && b.lines.every((l) => l.startsWith('chrB\t')));
+  const p = run({ passOnly: true, minQual: 50 });
+  check('vcf: PASS and QUAL filter', p.kept === 230 && p.ti === 133 && p.tv === 63 && p.failed === 0);
+  const ind = run({ types: ['insertion', 'deletion'] });
+  check('vcf: type filter', ind.kept === 42 && ind.ti === 0 && ind.byType.SNV === 0);
+  const reg = run({ chrom: 'chrA', start: 10000, end: 30000, minDP: 30 }, 5);
+  check('vcf: region and depth filter', reg.kept === 32 && reg.ti === 16 && reg.tv === 10);
+  check('vcf: variant types', VC.varType('A', 'G') === 'SNV' && VC.varType('A', 'ATG') === 'insertion' && VC.varType('ATG', 'A') === 'deletion' && VC.varType('AT', 'GC') === 'MNV' && VC.varType('AT', 'GCC') === 'complex' && VC.varType('A', '<DEL>') === 'other' && VC.varType('A', '*') === 'other' && VC.varType('A', 'A[2:100[') === 'other');
+  check('vcf: transitions', VC.isTransition('A', 'G') && VC.isTransition('t', 'c') && !VC.isTransition('A', 'C') && !VC.isTransition('G', 'T'));
+  check('vcf: genotypes', VC.gtKind(VC.parseGT('0/0')) === 'homRef' && VC.gtKind(VC.parseGT('0|1')) === 'het' && VC.gtKind(VC.parseGT('2/2')) === 'homAlt' && VC.gtKind(VC.parseGT('1/2')) === 'het' && VC.gtKind(VC.parseGT('./.')) === 'missing' && VC.gtKind(VC.parseGT('1')) === 'homAlt' && VC.gtKind(VC.parseGT('0/.')) === 'missing');
+  const st = new VC.VcfStats(); st.push('##fileformat=VCFv4.2\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\nx\t5\t.\tA\tG,T\t.\t.\tAF=0.25,0.5\nbad line\n'); st.end();
+  const q = st.result();
+  check('vcf: INFO AF, no samples, bad line', q.records === 1 && q.afFrom === 'info' && q.afHist[5] === 1 && q.afHist[10] === 1 && q.noFilter === 1 && q.errors[0].includes('at least 8'));
+  const cap = new VC.VcfStats({}, 10); cap.push(t); cap.end();
+  check('vcf: kept lines capped', cap.result().lines.length === 10 && cap.result().linesCapped && cap.result().kept === 300);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
