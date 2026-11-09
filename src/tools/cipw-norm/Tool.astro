@@ -1,0 +1,161 @@
+---
+// CIPW norm: major-oxide wt% (one or many rocks) in; normative minerals in wt%, differentiation index,
+// plagioclase An, colour index, silica saturation and the mass-balance check out.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { EXAMPLE } from '../../lib/sci/cipw';
+---
+<div class="ax cpw">
+  <div class="ax-card">
+    <h2>Your rock analyses (oxide wt%)</h2>
+    <label class="cpw-lab">One rock per row with oxide names on top (or one per column with oxides down the side): SiO2, TiO2, Al2O3, Fe2O3, FeO, MnO, MgO, CaO, Na2O, K2O, P2O5. FeOt or Fe2O3t mean total iron. <textarea class="cpw-data" rows="5" spellcheck="false">{EXAMPLE}</textarea></label>
+    <DataFile target=".cpw-data" maxCols={40} maxRows={5000} label="Open a file of analyses" />
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small cpw-ex">Use the example</button></div>
+    <p class="ax-help">The examples are made-up, rounded compositions. LOI, H2O, CO2 and trace oxides are left out of the norm.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Options</h2>
+    <div class="ax-grid">
+      <label>Iron <select class="cpw-fe"><option value="none">FeO and Fe2O3 as analysed</option><option value="volcanic" selected>Le Maitre (1976), volcanic</option><option value="plutonic">Le Maitre (1976), plutonic</option><option value="ratio">fixed Fe2O3/FeO ratio</option></select></label>
+      <label class="cpw-ratio-l" hidden>Fe2O3/FeO by weight <input class="cpw-ratio" inputmode="decimal" value="0.2" /></label>
+      <label class="ax-check" style="display:flex; gap:8px; align-items:center; align-self:end"><input type="checkbox" class="cpw-close" checked /> Recalculate to 100 % (volatile-free)</label>
+    </div>
+    <p class="ax-help">Most analyses give total iron only, but the norm needs Fe2O3 for magnetite. Le Maitre's formulas set FeO/(FeO + Fe2O3) from SiO2 and alkalis (volcanic: 0.93 − 0.0042 SiO2 − 0.022 (Na2O + K2O)). A fixed ratio, such as 0.2 for basalt, is another common choice. Total iron is kept either way.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Norm</h2>
+    <p class="ax-err cpw-err" hidden></p>
+    <div class="cpw-out">
+      <p class="ax-big cpw-big"></p>
+      <p class="ax-help cpw-notes"></p>
+      <div class="ax-scroll"><table class="cpw-table"><thead></thead><tbody></tbody></table></div>
+      <p class="ax-help">Minerals in wt%. Differentiation index = Q + Or + Ab + Ne + Lc + Kp. An in plagioclase = 100 An/(An + Ab) by weight. Colour index = Di + Hy + Ol + Mt + Il + Hm.</p>
+      <label style="display:block; margin-top:12px">Chart for <select class="cpw-pick"></select></label>
+      <canvas class="ax-fig cpw-fig" style="margin-top:8px"></canvas>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small cpw-csv">Download the norms (CSV)</button></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { cipw, MAJORS, MINERALS, NAMES, type Norm, type FeAdjust, type Mineral } from '../../lib/sci/cipw';
+  import { readAnalyses } from '../../lib/sci/mineral';
+  import { EXAMPLE } from '../../lib/sci/cipw';
+  import { num, parseTable, csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cpw')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const box = q<HTMLTextAreaElement>('.cpw-data');
+  let res: { names: string[]; n: Norm[] } | null = null, fig: Figure | null = null, head: string[] = [], rows: string[][] = [];
+  const f2 = (x: number) => (Math.abs(x) < 5e-4 ? '0' : x.toFixed(2));
+
+  function run() {
+    const err = (m: string) => { q('.cpw-err').textContent = m; q('.cpw-err').hidden = !m; q('.cpw-out').hidden = !!m; if (m) { res = null; fig = null; } };
+    const mode = sel('.cpw-fe');
+    q('.cpw-ratio-l').hidden = mode !== 'ratio';
+    let fe: FeAdjust = { mode: 'none' };
+    if (mode === 'volcanic' || mode === 'plutonic') fe = { mode: 'lemaitre', rock: mode };
+    else if (mode === 'ratio') { const r = num(q<HTMLInputElement>('.cpw-ratio').value); if (!(r >= 0 && r <= 100)) return err('The Fe2O3/FeO ratio is a number of zero or more, such as 0.2.'); fe = { mode: 'ratio', ratio: r }; }
+    let a: ReturnType<typeof readAnalyses>;
+    try { a = readAnalyses(parseTable(box.value), num); } catch (e) { return err((e as Error).message); }
+    const out: Norm[] = [];
+    for (let i = 0; i < a.wt.length; i++) {
+      if (!(a.wt[i].SiO2 > 0)) return err(`${a.names[i]}: no SiO2. The norm needs at least SiO2 and Al2O3.`);
+      try { out.push(cipw(a.wt[i], fe, q<HTMLInputElement>('.cpw-close').checked)); } catch (e) { return err(`${a.names[i]}: ${(e as Error).message}`); }
+    }
+    err('');
+    res = { names: a.names, n: out };
+    const used = MINERALS.filter((m) => out.some((r) => r.wt[m] > 5e-4));
+    head = ['', ...a.names];
+    rows = used.map((m) => [`${NAMES[m]}`, ...out.map((r) => f2(r.wt[m]))]);
+    rows.push(['Total', ...out.map((r) => f2(r.total))]);
+    if (out.some((r) => r.silicaDeficit > 0)) rows.push(['Silica still missing (SiO2)', ...out.map((r) => f2(r.silicaDeficit))]);
+    rows.push(['Differentiation index', ...out.map((r) => r.DI.toFixed(1))]);
+    rows.push(['An in plagioclase', ...out.map((r) => (r.anPlag === null ? '–' : r.anPlag.toFixed(1)))]);
+    rows.push(['Colour index', ...out.map((r) => r.mafic.toFixed(1))]);
+    rows.push(['Mg/(Mg + Fe + Mn) in mafics', ...out.map((r) => r.mgRatio.toFixed(3))]);
+    rows.push(['FeO used (wt%)', ...out.map((r) => r.input.FeO.toFixed(2))], ['Fe2O3 used (wt%)', ...out.map((r) => r.input.Fe2O3.toFixed(2))]);
+    rows.push(['Oxide sum as given', ...out.map((r) => r.sumIn.toFixed(2))]);
+    const th = document.createElement('tr'); head.forEach((h) => { const c = document.createElement('th'); c.textContent = h; th.append(c); });
+    q('.cpw-table thead').replaceChildren(th);
+    q('.cpw-table tbody').replaceChildren(...rows.map((r) => { const tr = document.createElement('tr'); r.forEach((v, j) => { const c = document.createElement(j ? 'td' : 'th'); c.textContent = v; if (!j) c.setAttribute('scope', 'row'); tr.append(c); }); return tr; }));
+    const r0 = out[0];
+    q('.cpw-big').textContent = `${a.names.length} rock${a.names.length === 1 ? '' : 's'} · ${a.names[0]}: ${r0.saturation.split(' (')[0]}, DI ${r0.DI.toFixed(1)}`;
+    const notes: string[] = [];
+    if (a.feTotal.length) notes.push(`${a.feTotal.join(', ')} read as total iron.`);
+    const notUsed = a.ignored.concat(['Cr2O3', 'NiO', 'BaO', 'SrO', 'ZrO2', 'V2O3', 'ZnO'].filter((k) => a.wt.some((w) => w[k] > 0)));
+    if (notUsed.length) notes.push(`Left out of the norm: ${notUsed.join(', ')}.`);
+    if (mode === 'none' && a.wt.some((w) => !(w.Fe2O3 > 0) && w.FeO > 0)) notes.push('Some rocks have no Fe2O3, so all iron goes into silicates and ilmenite and there is no magnetite. Choose an iron option if the FeO is total iron.');
+    const off = a.names.filter((_, i) => out[i].sumIn < 95 || out[i].sumIn > 101.5);
+    if (off.length) notes.push(`${off.join(', ')}: the oxides add up to less than 95 or more than 101.5 wt%; check the analysis.`);
+    const def = a.names.filter((_, i) => out[i].silicaDeficit > 0);
+    if (def.length) notes.push(`${def.join(', ')}: too little silica even for the most silica-poor norm minerals; the total includes the silica that is missing.`);
+    q('.cpw-notes').textContent = notes.join(' ');
+    q('.cpw-notes').hidden = !notes.length;
+    const pick = q<HTMLSelectElement>('.cpw-pick'), keep = Math.min(Number(pick.value) || 0, a.names.length - 1);
+    pick.replaceChildren(...a.names.map((n, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = n; return o; }));
+    pick.value = String(keep);
+    drawBars();
+  }
+
+  function drawBars() {
+    if (!res) return;
+    const i = Number(sel('.cpw-pick')) || 0, r = res.n[i], name = res.names[i];
+    const items = MINERALS.filter((m) => r.wt[m] > 5e-4).map((m) => [m, r.wt[m]] as [Mineral, number]);
+    const W = Math.round(Math.min(640, Math.max(300, q('.cpw-out').clientWidth || 500))), rowH = 24, top = 26, left = 40, right = 56;
+    const H = top + items.length * rowH + 30, max = Math.max(10, ...items.map(([, v]) => v));
+    const step = max > 50 ? 20 : max > 20 ? 10 : 5, xmax = Math.ceil(max / step) * step;
+    fig = { w: W, h: H, alt: `Normative minerals of ${name} in wt%`, draw: (ctx: CanvasRenderingContext2D, w: number, h: number, pal: Palette) => {
+      void w; void h;
+      const pw = W - left - right, X = (v: number) => left + (v / xmax) * pw;
+      ctx.font = 'bold 13px system-ui, sans-serif'; ctx.fillStyle = pal.ink; ctx.textBaseline = 'top'; ctx.textAlign = 'left'; ctx.fillText(`${name}: CIPW norm (wt%)`, left, 4);
+      ctx.font = '12px system-ui, sans-serif'; ctx.strokeStyle = pal.grid; ctx.lineWidth = 1;
+      for (let t = 0; t <= xmax + 1e-9; t += step) { const x = X(t); ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, top + items.length * rowH); ctx.stroke(); ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(String(t), x, top + items.length * rowH + 6); }
+      items.forEach(([m, v], k) => {
+        const y = top + k * rowH;
+        ctx.fillStyle = pal.accent; ctx.fillRect(X(0), y + 4, Math.max(1, X(v) - X(0)), rowH - 8);
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(m, left - 6, y + rowH / 2);
+        ctx.textAlign = 'left'; ctx.fillText(v.toFixed(1), X(v) + 4, y + rowH / 2);
+      });
+    } };
+    paint(q<HTMLCanvasElement>('.cpw-fig'), fig);
+  }
+
+  root.querySelectorAll('.cpw-fe, .cpw-ratio, .cpw-close, .cpw-data').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+  q('.cpw-pick').addEventListener('change', drawBars);
+  q('.cpw-ex').addEventListener('click', () => { box.value = EXAMPLE; run(); });
+  q('.cpw-csv').addEventListener('click', () => {
+    if (!res) return;
+    const r = res, parts = ['DiWo', 'DiEn', 'DiFs', 'HyEn', 'HyFs', 'OlFo', 'OlFa'] as const;
+    const h = ['sample', ...MAJORS.map((k) => `${k}_used_wt`), ...MINERALS.map((m) => `${m}_wt`), ...parts.map((p) => `${p}_wt`), 'total', 'silica_missing', 'DI', 'An_in_plag', 'colour_index'];
+    const body = r.names.map((n, i) => { const x = r.n[i]; return [n, ...MAJORS.map((k) => +x.input[k].toFixed(4)), ...MINERALS.map((m) => +x.wt[m].toFixed(4)), ...parts.map((p) => +x.parts[p].toFixed(4)), +x.total.toFixed(4), +x.silicaDeficit.toFixed(4), +x.DI.toFixed(3), x.anPlag === null ? '' : +x.anPlag.toFixed(3), +x.mafic.toFixed(3)]; });
+    save(new TextEncoder().encode(csv([h, ...body])), 'cipw-norm.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.cpw-fig'), fig); });
+  let lastW = 0;
+  window.addEventListener('resize', () => { const w = q('.cpw-out').clientWidth; if (w && Math.abs(w - lastW) > 40) { lastW = w; drawBars(); } });
+  run(); lastW = q('.cpw-out').clientWidth;
+  wireDownloads(q('.dl'), () => ({
+    title: 'CIPW norm', subtitle: q<HTMLSelectElement>('.cpw-fe').selectedOptions[0].text, file: 'cipw-norm',
+    sections: !res ? [] : [
+      { title: q('.cpw-big').textContent!, table: { head, rows, align: head.map((_, j) => (j ? 'r' : 'l')) }, ...(q('.cpw-notes').textContent ? { note: q('.cpw-notes').textContent! } : {}) },
+      ...(fig ? [{ title: 'Norm chart', figure: fig }] : []),
+    ],
+  }));
+</script>
+
+<style is:global>
+  .cpw select { max-width: 100%; }
+  .cpw .cpw-lab { display: block; }
+  .cpw textarea { width: 100%; font: inherit; font-size: 14px; }
+  .cpw [hidden] { display: none !important; }
+  .cpw table th[scope=row] { text-align: left; font-weight: 600; min-width: 110px; white-space: normal; }
+  .cpw table td, .cpw table thead th { padding-left: 6px; padding-right: 6px; }
+  .cpw table td { text-align: right; }
+</style>
