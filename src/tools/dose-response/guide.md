@@ -11,7 +11,7 @@ order: 10
 icon: curve
 works: offline
 updated: 2026-11-08
-related: [calibration-curve, plot-maker, uncertainty-calculator]
+related: [calibration-curve, plot-maker, uncertainty-calculator, lc50-probit]
 sources:
   - "Model: the four-parameter logistic curve, as in standard pharmacology software."
 flow:

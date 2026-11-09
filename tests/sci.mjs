@@ -134,6 +134,7 @@ import * as SSC from '../src/lib/sci/sscond.ts';
 import * as AMG from '../src/lib/sci/amagnon.ts';
 import * as UH from '../src/lib/sci/uh.ts';
 import * as THS from '../src/lib/sci/thiessen.ts';
+import * as PRB from '../src/lib/sci/probit.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2680,5 +2681,27 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   { const k = THS.lonLatToKm([[-79, 43], [-78, 43], [-79, 44]]); near('thiessen: 1° of longitude at 43.33° N', k.pts[1][0] - k.pts[0][0], 111.32 * Math.cos((43 + 1 / 3) * Math.PI / 180), 1e-9); near('thiessen: 1° of latitude', k.pts[2][1] - k.pts[0][1], 110.574, 1e-9); }
 }
 
+// #151 LC50 probit/logit (statsmodels GLM Binomial 0.15, SciPy minimise for fixed natural response)
+{
+  const conc = [1, 1.8, 3.2, 5.6, 10, 18], g = conc.map((c, i) => ({ conc: c, n: 20, r: [1, 3, 7, 12, 17, 19][i] }));
+  const fp = PRB.fitQuantal(g, 'probit');
+  near('probit a', fp.a, -1.7155910785833728, 1e-7); near('probit b', fp.b, 2.6843455880975906, 1e-7);
+  near('probit v11', fp.cov[0][0], 0.08553099565434798, 1e-7); near('probit v12', fp.cov[0][1], -0.10350482843580822, 1e-7); near('probit v22', fp.cov[1][1], 0.16296633349972064, 1e-7);
+  near('probit chi2', fp.chi2, 0.08951499514548839, 1e-8); check('probit not hetero', !fp.hetero && fp.converged);
+  const fl = PRB.fitQuantal(g, 'logit');
+  near('logit a', fl.a, -2.969842939780918, 1e-7); near('logit b', fl.b, 4.638265859372683, 1e-7); near('logit v22', fl.cov[1][1], 0.6179653051304821, 1e-7);
+  const fc = PRB.fitQuantal(g, 'probit', 0.1);
+  near('abbott-fixed a', fc.a, -2.28819243, 1e-6); near('abbott-fixed b', fc.b, 3.21307004, 1e-6); near('abbott-fixed loglik', fc.logLik, -51.8029301283888, 1e-8);
+  const fh = PRB.fitQuantal(conc.map((c, i) => ({ conc: c, n: 20, r: [0, 6, 4, 14, 13, 20][i] })), 'probit');
+  near('hetero chi2', fh.chi2, 11.811882776923222, 1e-6); check('hetero flagged', fh.hetero);
+  const L = PRB.lcp(fh, 0.5);
+  near('hetero LC50', L.conc, 4.621034433801545, 1e-6); near('hetero lo', L.lo, 1.9951916692740383, 1e-5); near('hetero hi', L.hi, 11.496793286286605, 1e-5);
+  const fx = PRB.fitQuantal([{ conc: 0, n: 20, r: 1 }, ...conc.map((c, i) => ({ conc: c, n: 20, r: [2, 4, 8, 13, 17, 20][i] }))], 'probit', 0.05);
+  [[0.1, 1.513505034796803, 0.798000494227113, 2.154671843861912], [0.5, 4.107523412143543, 3.116623737702744, 5.254160418674822], [0.9, 11.147467760867054, 8.17676784757237, 19.072579800257216]].forEach(([p, m, lo, hi]) => {
+    const L2 = PRB.lcp(fx, p); near(`fixed-c LC${p * 100}`, L2.conc, m, 1e-6); near(`fixed-c LC${p * 100} lo`, L2.lo, lo, 1e-6); near(`fixed-c LC${p * 100} hi`, L2.hi, hi, 1e-6);
+  });
+  check('control row ignored by fit', fx.groups.length === 6);
+  near('abbott', PRB.abbott(0.55, 0.1), 0.5, 1e-12); near('predict at LC50', PRB.predict(fp, PRB.lcp(fp, 0.5).conc), 0.5, 1e-12);
+}
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
