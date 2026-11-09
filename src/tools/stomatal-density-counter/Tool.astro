@@ -1,0 +1,270 @@
+---
+// Stomatal density and stomatal index: tap stomata (and epidermal cells) on a microscope photo, with an optional
+// automatic suggestion of dark or light blobs, and a field of view from a scale line, from the microscope's field
+// number and objective, or typed. The photo never leaves the browser. The example epidermis is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax sdc">
+  <div class="ax-card">
+    <h2>Microscope photo</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small sd-open">Open a photo</button>
+      <input type="file" class="sd-file" accept="image/*" hidden />
+      <button type="button" class="btn secondary small sd-ex">Use the example</button>
+    </div>
+    <div class="sd-tools" hidden>
+      <div class="ax-row" style="margin-top:12px">
+        <span class="sd-lab">A tap adds</span>
+        <div class="ax-seg sd-kind" role="group" aria-label="A tap adds">
+          <button type="button" data-k="s" aria-pressed="true">Stoma</button>
+          <button type="button" data-k="e" aria-pressed="false">Epidermal cell</button>
+          <button type="button" data-k="x" aria-pressed="false">Remove</button>
+        </div>
+      </div>
+      <canvas class="sd-photo"></canvas>
+      <p class="ax-legend"><span><i class="sd-ks"></i>Stomata: <b class="sd-ns">0</b></span><span><i class="sd-ke"></i>Epidermal cells: <b class="sd-ne">0</b></span></p>
+      <div class="ax-row" style="margin-top:8px">
+        <button type="button" class="btn secondary small sd-undo">Undo</button>
+        <button type="button" class="btn secondary small sd-clear">Clear all marks</button>
+      </div>
+    </div>
+    <p class="ax-help sd-ph"></p>
+    <p class="ax-err sd-err" hidden></p>
+  </div>
+
+  <div class="ax-card sd-set" hidden>
+    <h2>Automatic suggestion (optional)</h2>
+    <div class="ax-grid">
+      <label>Stomata look <select class="sd-dark"><option value="1" selected>Darker than the cells around them</option><option value="0">Lighter than the cells around them</option></select></label>
+      <label>Threshold (0 to 255, blank for automatic) <input class="sd-t" type="number" min="0" max="255" step="1" placeholder="auto (Otsu)" inputmode="numeric" /></label>
+      <label>Smallest stoma (px) <input class="sd-amin" type="number" min="1" step="1" value="100" inputmode="numeric" /></label>
+      <label>Largest stoma (px) <input class="sd-amax" type="number" min="1" step="1" value="2000" inputmode="numeric" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sd-auto">Suggest stomata</button></div>
+    <p class="ax-help">Marks every dark (or light) patch of the given size as a stoma, leaving out patches cut by the photo's edge. It replaces the stomata marks; check them and tap to add or remove any it got wrong.</p>
+
+    <h2 style="margin-top:18px">Field of view</h2>
+    <div class="ax-grid">
+      <label>Area counted <select class="sd-fov">
+        <option value="photo" selected>The whole photo (scale line)</option>
+        <option value="fn">Round field (field number and objective)</option>
+        <option value="typed">I type the area</option>
+      </select></label>
+      <label class="sd-o-photo">Length of the scale line (µm) <input class="sd-len" type="number" min="0" step="any" value="100" inputmode="decimal" /></label>
+      <label class="sd-o-fn" hidden>Field number (mm) <input class="sd-fn" type="number" min="0" step="any" value="22" inputmode="decimal" /></label>
+      <label class="sd-o-fn" hidden>Objective (×) <input class="sd-obj" type="number" min="0" step="any" value="40" inputmode="decimal" /></label>
+      <label class="sd-o-fn" hidden>Extra magnification (×) <input class="sd-xm" type="number" min="0" step="any" value="1" inputmode="decimal" /></label>
+      <label class="sd-o-typed" hidden>Area (mm²) <input class="sd-area" type="number" min="0" step="any" value="0.1" inputmode="decimal" /></label>
+    </div>
+    <div class="ax-row sd-o-photo" style="margin-top:8px"><button type="button" class="btn secondary small sd-line">Draw the scale line</button></div>
+    <p class="ax-help sd-fovhelp"></p>
+  </div>
+
+  <div class="ax-card sd-out" hidden>
+    <h2>Stomatal density</h2>
+    <p class="ax-big sd-big"></p>
+    <dl class="ax-facts sd-facts"></dl>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn small sd-add">Add this field to the list</button></div>
+    <div class="sd-list" hidden>
+      <h3 class="sd-h3">Fields counted</h3>
+      <p class="sd-mean"></p>
+      <div class="ax-scroll"><table class="sd-tab"></table></div>
+      <div class="ax-row" style="margin-top:10px">
+        <button type="button" class="btn secondary small sd-csv">Download fields (CSV)</button>
+        <button type="button" class="btn secondary small sd-reset">Empty the list</button>
+      </div>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sd-mcsv">Download this photo's marks (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { exampleStomata, luminance, histogram, otsu, threshold, blobs, fovDiameter, circleArea, stomatalIndex, dist, type Pt } from '../../lib/sci/plantimg';
+  import { mean, sd } from '../../lib/sci/stats';
+  import { readPhoto, photoCanvas, tapAt, fact, factPairs, fillTable, canvasFigure } from '../../lib/plantphoto';
+  import { wireDownloads, save, fileSafe, type Section } from '../../lib/report';
+  import { sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.sdc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const PH = 'Open a photo of a leaf peel or nail-varnish impression under the microscope. Tap each stoma (and, for the stomatal index, each epidermal cell). The photo stays on your device and is never uploaded.';
+  type Mark = { k: 's' | 'e'; p: Pt };
+  type Field = { name: string; s: number; e: number; area: number; dens: number; si: number };
+
+  let px: Uint8ClampedArray | null = null, W = 0, H = 0, name = 'photo', base: HTMLCanvasElement | null = null;
+  let marks: Mark[] = [], history: Mark[][] = [], kind: 's' | 'e' | 'x' = 's';
+  let line: Pt[] = [], taps: Pt[] = [], arming = false, fields: Field[] = [], cur: Field | null = null, sections: Section[] = [];
+  const ns = () => marks.filter((m) => m.k === 's').length, ne = () => marks.filter((m) => m.k === 'e').length;
+  const fmtD = (x: number) => (x >= 100 ? Math.round(x).toLocaleString('en') : sig(x, 3));
+
+  function load(p: Uint8ClampedArray, w: number, h: number, nm: string) {
+    px = p; W = w; H = h; name = nm; base = photoCanvas(p, w, h);
+    marks = []; history = []; line = []; taps = []; arming = false; lineLabel();
+    q('.sd-tools').hidden = false; q('.sd-set').hidden = false; q('.sd-err').hidden = true;
+    run();
+  }
+  const push = () => { history.push(marks.map((m) => ({ k: m.k, p: [m.p[0], m.p[1]] as Pt }))); if (history.length > 200) history.shift(); };
+  function lineLabel() { q('.sd-line').textContent = arming ? (taps.length ? 'Tap the other end…' : 'Tap one end of the scale bar…') : 'Draw the scale line'; }
+  function fovMode() {
+    const m = q<HTMLSelectElement>('.sd-fov').value;
+    root.querySelectorAll<HTMLElement>('.sd-o-photo').forEach((e) => (e.hidden = m !== 'photo'));
+    root.querySelectorAll<HTMLElement>('.sd-o-fn').forEach((e) => (e.hidden = m !== 'fn'));
+    root.querySelectorAll<HTMLElement>('.sd-o-typed').forEach((e) => (e.hidden = m !== 'typed'));
+    q('.sd-fovhelp').textContent = m === 'photo' ? 'Tap both ends of the scale bar in the photo (or of a stage micrometer photographed at the same settings) and give its length. The area counted is the whole photo, so count every stoma in it.'
+      : m === 'fn' ? 'The diameter of the round field you see is the eyepiece field number (printed on the eyepiece, often 18 to 26 mm) divided by the objective and any extra magnification. Count only the stomata inside that circle.'
+      : 'Type the area of the field you counted, for example from a stage micrometer.';
+  }
+
+  /** Field area in mm², or a message. */
+  function fieldArea(): number | string {
+    const m = q<HTMLSelectElement>('.sd-fov').value;
+    if (m === 'photo') {
+      const len = Number(inp('.sd-len').value);
+      if (!(len > 0)) return 'Give the length of the scale line in µm.';
+      if (line.length < 2) return 'Tap "Draw the scale line", then tap both ends of the scale bar.';
+      const ppu = dist(line[0], line[1]) / len;
+      return ((W / ppu) * (H / ppu)) / 1e6;
+    }
+    if (m === 'fn') {
+      const fn = Number(inp('.sd-fn').value), ob = Number(inp('.sd-obj').value), xm = Number(inp('.sd-xm').value);
+      if (!(fn > 0 && ob > 0 && xm > 0)) return 'Give the field number, the objective and the extra magnification (1 if none), all above 0.';
+      return circleArea(fovDiameter(fn, ob, xm));
+    }
+    const a = Number(inp('.sd-area').value);
+    return a > 0 ? a : 'Give the field area in mm², above 0.';
+  }
+
+  function run() {
+    if (!px) return;
+    draw();
+    q('.sd-ns').textContent = String(ns()); q('.sd-ne').textContent = String(ne());
+    const a = fieldArea();
+    if (typeof a === 'string') { q('.sd-err').textContent = a; q('.sd-err').hidden = false; q('.sd-out').hidden = true; cur = null; sections = []; return; }
+    q('.sd-err').hidden = true;
+    const s = ns(), e = ne(), dens = s / a, si = stomatalIndex(s, e);
+    cur = { name, s, e, area: a, dens, si };
+    q('.sd-out').hidden = false;
+    q('.sd-big').textContent = `Stomatal density: ${fmtD(dens)} per mm²`;
+    const m = q<HTMLSelectElement>('.sd-fov').value;
+    q('.sd-facts').replaceChildren(
+      fact('Stomata', String(s)),
+      fact('Field area', `${sig(a, 3)} mm²`, m === 'photo' ? `${W} × ${H} px at ${sig(dist(line[0], line[1]) / Number(inp('.sd-len').value), 4)} px per µm` : m === 'fn' ? `round field ${sig(fovDiameter(Number(inp('.sd-fn').value), Number(inp('.sd-obj').value), Number(inp('.sd-xm').value)) * 1000, 4)} µm across` : 'typed by you'),
+      fact('Epidermal cells', String(e), 'not counting the stomata'),
+      fact('Stomatal index', e > 0 ? `${sig(si, 3)} %` : '–', e > 0 ? 'stomata ÷ (stomata + epidermal cells) × 100' : 'tap the epidermal cells to get it'),
+    );
+    sections = [{ title: q('.sd-big').textContent!, facts: factPairs(q('.sd-facts')), figure: canvasFigure(q<HTMLCanvasElement>('.sd-photo'), 'The photo with each stoma and epidermal cell marked') }, ...listSection()];
+  }
+
+  function listSection(): Section[] {
+    if (!fields.length) return [];
+    const head = ['Field', 'Stomata', 'Cells', 'Area (mm²)', 'Density (/mm²)', 'Index (%)'];
+    const rows = fields.map((f, i) => [`${i + 1}. ${f.name}`, String(f.s), String(f.e), sig(f.area, 4), fmtD(f.dens), f.e > 0 ? sig(f.si, 3) : '–']);
+    return [{ title: q('.sd-mean').textContent!, table: { head, rows } }];
+  }
+  function showList() {
+    q('.sd-list').hidden = !fields.length;
+    if (!fields.length) { run(); return; }
+    const d = fields.map((f) => f.dens), si = fields.filter((f) => f.e > 0).map((f) => f.si);
+    q('.sd-mean').textContent = `Mean of ${fields.length} field${fields.length > 1 ? 's' : ''}: ${fmtD(mean(d))}${fields.length > 1 ? ` ± ${fmtD(sd(d))} (SD)` : ''} per mm²${si.length ? `; stomatal index ${sig(mean(si), 3)}${si.length > 1 ? ` ± ${sig(sd(si), 2)}` : ''} %` : ''}`;
+    fillTable(q<HTMLTableElement>('.sd-tab'), ['Field', 'Stomata', 'Cells', 'Area (mm²)', 'Density (/mm²)', 'Index (%)'], fields.map((f, i) => [`${i + 1}. ${f.name}`, String(f.s), String(f.e), sig(f.area, 4), fmtD(f.dens), f.e > 0 ? sig(f.si, 3) : '–']));
+    run();
+  }
+
+  function draw() {
+    if (!base) return;
+    const c = q<HTMLCanvasElement>('.sd-photo'); c.width = W; c.height = H;
+    const ctx = c.getContext('2d')!; ctx.drawImage(base, 0, 0);
+    const r = Math.max(5, Math.min(W, H) / 60), lw = Math.max(2, r / 3);
+    ctx.lineWidth = lw;
+    for (const m of marks) {
+      ctx.beginPath(); ctx.arc(m.p[0], m.p[1], m.k === 's' ? r * 1.4 : r * 0.6, 0, 2 * Math.PI);
+      if (m.k === 's') { ctx.strokeStyle = '#d55e00'; ctx.stroke(); } else { ctx.fillStyle = '#0072b2'; ctx.fill(); }
+    }
+    ctx.strokeStyle = '#cc79a7'; ctx.fillStyle = '#cc79a7';
+    if (line.length === 2 && q<HTMLSelectElement>('.sd-fov').value === 'photo') { ctx.beginPath(); ctx.moveTo(...line[0]); ctx.lineTo(...line[1]); ctx.stroke(); }
+    taps.forEach((p) => { ctx.beginPath(); ctx.arc(p[0], p[1], lw * 2, 0, 2 * Math.PI); ctx.fill(); });
+  }
+
+  function suggest() {
+    if (!px) return;
+    const n = W * H, v = luminance(px, n), dark = q<HTMLSelectElement>('.sd-dark').value === '1';
+    const tStr = inp('.sd-t').value.trim(), amin = Number(inp('.sd-amin').value), amax = Number(inp('.sd-amax').value);
+    const err = (m: string) => { q('.sd-err').textContent = m; q('.sd-err').hidden = false; };
+    if (!(amin >= 1 && amax >= amin)) return err('The largest stoma must be at least the smallest, and both above 0 px.');
+    const t = tStr ? Number(tStr) : otsu(histogram(v));
+    if (!(t >= 0 && t <= 255)) return err(tStr ? 'The threshold runs from 0 to 255.' : 'The photo is one flat colour, so there is nothing to find.');
+    const b = blobs(threshold(v, t, dark), W, H, amin, amax);
+    push();
+    marks = [...marks.filter((m) => m.k !== 's'), ...b.map((r) => ({ k: 's' as const, p: [r.cx, r.cy] as Pt }))];
+    run();
+    if (!b.length) err('Nothing of that size found. Change the size limits, the threshold, or whether stomata are darker or lighter.');
+  }
+
+  q('.sd-open').addEventListener('click', () => inp('.sd-file').click());
+  q('.sd-file').addEventListener('change', async () => {
+    const f = inp('.sd-file').files?.[0]; if (!f) return; inp('.sd-file').value = '';
+    try {
+      const p = await readPhoto(f);
+      load(p.px, p.w, p.h, p.name);
+      q('.sd-ph').textContent = p.scaled ? `The photo was scaled down from ${p.ow} × ${p.oh} to ${p.w} × ${p.h} px to keep the page quick; the scale is read on the same picture. It stays on your device and is never uploaded.` : PH;
+    } catch (e) { q('.sd-err').textContent = (e as Error).message; q('.sd-err').hidden = false; }
+  });
+  function loadExample() {
+    const e = exampleStomata();
+    q<HTMLSelectElement>('.sd-fov').value = 'photo'; inp('.sd-len').value = '100'; q<HTMLSelectElement>('.sd-dark').value = '1'; inp('.sd-t').value = ''; inp('.sd-amin').value = '100'; inp('.sd-amax').value = '2000'; fovMode();
+    load(e.px, e.w, e.h, 'example-epidermis');
+    line = [[20, 300], [20 + 100 * e.pxPerUm, 300]];
+    marks = e.cells.map((p) => ({ k: 'e' as const, p }));
+    suggest(); history = [];
+    q('.sd-ph').textContent = 'Made-up example: an epidermis photographed at 2 px per µm (the pink scale line is 100 µm), with the stomata suggested automatically and the epidermal cells already tapped. ' + PH;
+  }
+  q('.sd-ex').addEventListener('click', loadExample);
+  q('.sd-kind').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-k]'); if (!b) return; kind = b.dataset.k as 's' | 'e' | 'x'; root.querySelectorAll('.sd-kind button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); });
+  q('.sd-photo').addEventListener('click', (ev) => {
+    if (!base) return;
+    const p = tapAt(ev, q<HTMLCanvasElement>('.sd-photo'), W, H);
+    if (arming) {
+      taps.push(p);
+      if (taps.length === 2) {
+        if (dist(taps[0], taps[1]) < 5) { taps = []; lineLabel(); q('.sd-err').textContent = 'The two ends are too close together; tap the ends of the scale bar again.'; q('.sd-err').hidden = false; draw(); return; }
+        line = taps; taps = []; arming = false;
+      }
+      lineLabel(); run(); return;
+    }
+    if (kind === 'x') {
+      const r = Math.max(10, Math.min(W, H) / 25);
+      let best = -1, bd = Infinity;
+      marks.forEach((m, i) => { const d = dist(m.p, p); if (d < bd) { bd = d; best = i; } });
+      if (best >= 0 && bd <= r) { push(); marks.splice(best, 1); }
+    } else { push(); marks.push({ k: kind, p }); }
+    run();
+  });
+  q('.sd-undo').addEventListener('click', () => { const h = history.pop(); if (h) { marks = h; run(); } });
+  q('.sd-clear').addEventListener('click', () => { if (!marks.length) return; push(); marks = []; run(); });
+  q('.sd-auto').addEventListener('click', suggest);
+  q('.sd-line').addEventListener('click', () => { arming = !arming; taps = []; lineLabel(); draw(); });
+  q('.sd-fov').addEventListener('change', () => { fovMode(); run(); });
+  let timer = 0;
+  const later = (f: () => void) => { clearTimeout(timer); timer = window.setTimeout(f, 250); };
+  ['.sd-len', '.sd-fn', '.sd-obj', '.sd-xm', '.sd-area'].forEach((c) => q(c).addEventListener('input', () => later(run)));
+  q('.sd-add').addEventListener('click', () => { if (!cur) return; fields.push({ ...cur }); showList(); });
+  q('.sd-reset').addEventListener('click', () => { fields = []; showList(); });
+  q('.sd-csv').addEventListener('click', () => save(new Blob([csv([['field', 'photo', 'stomata', 'epidermal_cells', 'area_mm2', 'density_per_mm2', 'stomatal_index_percent'], ...fields.map((f, i) => [i + 1, f.name, f.s, f.e, f.area, f.dens, f.e > 0 ? f.si : ''])])], { type: 'text/csv' }), 'stomatal-density-fields.csv', 'text/csv'));
+  q('.sd-mcsv').addEventListener('click', () => save(new Blob([csv([['type', 'x_px', 'y_px'], ...marks.map((m) => [m.k === 's' ? 'stoma' : 'epidermal cell', m.p[0].toFixed(1), m.p[1].toFixed(1)])])], { type: 'text/csv' }), `${fileSafe(name)}-stomata-marks.csv`, 'text/csv'));
+  fovMode();
+  loadExample();
+  wireDownloads(q('.dl'), () => ({ title: 'Stomatal density', subtitle: q('.sd-big').textContent ?? '', file: `${fileSafe(name)}-stomatal-density`, sections }));
+</script>
+
+<style is:global>
+  .sdc .sd-photo { display: block; width: 100%; height: auto; margin-top: 10px; border: 1px solid var(--line, #ddd); cursor: crosshair; touch-action: manipulation; }
+  .sdc .sd-lab { font-size: 15px; }
+  .sdc .sd-ks { border: 2px solid #d55e00; background: transparent; border-radius: 50% !important; }
+  .sdc .sd-ke { background: #0072b2; border-radius: 50% !important; }
+  .sdc .sd-h3 { font-size: 16px; margin: 16px 0 6px; }
+  .sdc .sd-mean { font-weight: 600; margin: 0 0 8px; }
+  .sdc select { max-width: 100%; }
+</style>
