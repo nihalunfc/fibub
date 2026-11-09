@@ -1,0 +1,157 @@
+---
+// PIV lite: two particle images in, cross-correlation vector field out. Images never leave the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax pvl">
+  <div class="ax-card">
+    <h2>Image pair</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small pv-oa">Open frame A</button><input type="file" class="pv-fa" accept="image/png,image/jpeg,image/webp,image/bmp,image/gif" hidden />
+      <button type="button" class="btn secondary small pv-ob">Open frame B</button><input type="file" class="pv-fb" accept="image/png,image/jpeg,image/webp,image/bmp,image/gif" hidden />
+    </div>
+    <p class="ax-help pv-files">No images opened: showing a made-up example pair.</p>
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Made-up example <select class="pv-ex"><option value="vortex" selected>Vortex</option><option value="shift">Uniform shift</option><option value="shear">Shear layer</option></select></label>
+      <label>Window size <select class="pv-n"><option value="16">16 px</option><option value="32" selected>32 px</option><option value="64">64 px</option></select></label>
+      <label>Window overlap <select class="pv-ov"><option value="0">none</option><option value="0.5" selected>50 %</option><option value="0.75">75 %</option></select></label>
+      <label>Passes <select class="pv-p"><option value="1">1 (plain)</option><option value="2" selected>2 (window shifted by the first result)</option><option value="3">3</option></select></label>
+      <label>Pixel size (µm per pixel, optional) <input class="pv-px" type="text" inputmode="decimal" value="" placeholder="for speeds in m/s" /></label>
+      <label>Time between frames (ms, optional) <input class="pv-dt" type="text" inputmode="decimal" value="" placeholder="for speeds in m/s" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:8px"><input type="checkbox" class="pv-med" checked /> Find outliers with the normalised median test and replace them</label>
+    <p class="ax-help">Two frames of the same size, a short time apart, with the flow seeded by small particles. Images up to 2048 × 2048 pixels and 25 MB each; colour images are turned to grey. Your images stay on this device: nothing is uploaded. The example images are made up (random particles moved by a known flow).</p>
+    <p class="ax-err pv-err" hidden></p>
+  </div>
+
+  <div class="ax-card pv-out" hidden>
+    <h2>Vector field</h2>
+    <p class="ax-big pv-big"></p>
+    <canvas class="ax-fig pv-fig"></canvas>
+    <label style="margin-top:8px">Arrow length <select class="pv-sc"><option value="auto" selected>automatic</option><option value="1">× 1 (true displacement)</option><option value="2">× 2</option><option value="5">× 5</option></select></label>
+    <dl class="ax-facts pv-facts"></dl>
+    <p class="ax-help">FFT cross-correlation of interrogation windows with a three-point Gaussian sub-pixel fit. Displacements are in pixels from frame A to frame B, with x to the right and y downwards (image rows). Basic PIV: no image deformation, no masking, no stereo. For study and planning, not a substitute for professional judgement or a validated PIV package.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pv-csv">Download vectors (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { piv, medianTest, synthPair, type Gray, type Vec, type Field } from '../../lib/sci/phpiv';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.pvl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const MAXPX = 2048, MAXB = 25e6;
+  let imgA: Gray | null = null, imgB: Gray | null = null, nameA = '', nameB = '', ex: { A: Gray; B: Gray } | null = null;
+  let res: { vecs: Vec[]; nx: number; ny: number } | null = null, fig: Figure | null = null, report: Section[] = [], scale = 1, frame: Gray | null = null, busy = 0;
+
+  async function readGray(f: File): Promise<Gray> {
+    if (f.size > MAXB) throw new Error(`${f.name} is ${(f.size / 1e6).toFixed(1)} MB; the limit is 25 MB.`);
+    let bmp: ImageBitmap;
+    try { bmp = await createImageBitmap(f); } catch { throw new Error(`${f.name} could not be read as an image (PNG, JPEG, WebP, BMP or GIF).`); }
+    if (bmp.width > MAXPX || bmp.height > MAXPX) throw new Error(`${f.name} is ${bmp.width} × ${bmp.height} pixels; crop it to at most ${MAXPX} × ${MAXPX} first (scaling would change the displacements).`);
+    const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+    const x = c.getContext('2d', { willReadFrequently: true })!; x.drawImage(bmp, 0, 0);
+    const p = x.getImageData(0, 0, c.width, c.height).data, d = new Float32Array(c.width * c.height);
+    for (let i = 0; i < d.length; i++) d[i] = 0.299 * p[4 * i] + 0.587 * p[4 * i + 1] + 0.114 * p[4 * i + 2];
+    return { w: c.width, h: c.height, d };
+  }
+  const err = (m: string) => { const e = q('.pv-err'); e.textContent = m; e.hidden = false; q('.pv-out').hidden = true; res = null; report = []; };
+
+  function run() {
+    const my = ++busy;
+    q('.pv-big').textContent = 'Working…';
+    setTimeout(() => { if (my === busy) compute(); }, 20);
+  }
+  function compute() {
+    let A: Gray, B: Gray;
+    if (imgA || imgB) {
+      if (!imgA || !imgB) { q('.pv-files').textContent = `${imgA ? `Frame A: ${nameA}. ` : ''}${imgB ? `Frame B: ${nameB}. ` : ''}Open the other frame too.`; return err('Open both frames to compare them.'); }
+      A = imgA; B = imgB;
+      q('.pv-files').textContent = `Frame A: ${nameA} (${A.w} × ${A.h}). Frame B: ${nameB} (${B.w} × ${B.h}).`;
+    } else {
+      const f = q<HTMLSelectElement>('.pv-ex').value as Field;
+      ex = synthPair(320, 240, f, f === 'vortex' ? 2.5 : 3.3); A = ex.A; B = ex.B;
+      q('.pv-files').textContent = 'No images opened: showing a made-up example pair (320 × 240).';
+    }
+    const n = +q<HTMLSelectElement>('.pv-n').value, step = Math.max(1, Math.round(n * (1 - +q<HTMLSelectElement>('.pv-ov').value))), passes = +q<HTMLSelectElement>('.pv-p').value;
+    const pxT = q<HTMLInputElement>('.pv-px').value.trim(), dtT = q<HTMLInputElement>('.pv-dt').value.trim(), px = num(pxT), dt = num(dtT);
+    if (pxT && !(px > 0)) return err('The pixel size must be greater than 0, or left blank.');
+    if (dtT && !(dt > 0)) return err('The time between frames must be greater than 0, or left blank.');
+    if (A.w !== B.w || A.h !== B.h) return err(`The frames differ in size (${A.w} × ${A.h} and ${B.w} × ${B.h}); they must match.`);
+    if (A.w < n || A.h < n) return err(`The images are smaller than one ${n} × ${n} window; choose a smaller window.`);
+    let r;
+    try { r = piv(A, B, n, step, passes); } catch (e) { return err((e as Error).message); }
+    const flagged = q<HTMLInputElement>('.pv-med').checked ? medianTest(r.vecs, r.nx, r.ny) : 0;
+    res = r; frame = A; q('.pv-err').hidden = true; q('.pv-out').hidden = false;
+    const V = r.vecs, mu = V.reduce((a, v) => a + v.u, 0) / V.length, mv = V.reduce((a, v) => a + v.v, 0) / V.length;
+    const mags = V.map((v) => Math.hypot(v.u, v.v)), mmax = Math.max(...mags), prs = V.map((v) => v.pr).filter(Number.isFinite).sort((a, b) => a - b), prMed = prs.length ? prs[prs.length >> 1] : Infinity, low = V.filter((v) => v.pr < 1.3).length;
+    const ms = pxT && dtT ? (px * 1e-6) / (dt * 1e-3) : NaN; // m/s per px/frame
+    const spd = (d: number) => (Number.isFinite(ms) ? `${sig(d * ms, 3)} m/s` : `${sig(d, 3)} px`);
+    q('.pv-big').textContent = `${V.length} vectors; mean displacement (${sig(mu, 3)}, ${sig(mv, 3)}) px${Number.isFinite(ms) ? `, mean speed ${sig(Math.hypot(mu, mv) * ms, 3)} m/s` : ''}`;
+    const f = [
+      fact('Vectors', `${r.nx} × ${r.ny} = ${V.length}`, `${n} px windows every ${step} px, ${passes} pass${passes > 1 ? 'es' : ''}`),
+      fact('Outliers', q<HTMLInputElement>('.pv-med').checked ? `${flagged} replaced (${sig((100 * flagged) / V.length, 2)} %)` : 'not tested', 'normalised median test, threshold 2, noise 0.1 px; drawn in orange'),
+      fact('Largest displacement', `${sig(mmax, 3)} px${Number.isFinite(ms) ? ` = ${spd(mmax)}` : ''}`, mmax > n / 4 ? `more than a quarter of the window (${n / 4} px): use a bigger window or a shorter time between frames` : `within a quarter of the window (${n / 4} px): good`),
+      fact('Correlation peak ratio', `median ${sig(prMed, 3)}`, `${low} vector${low === 1 ? '' : 's'} below 1.3 (weak peaks: too few particles, out-of-plane motion or blur)`),
+      ...(Number.isFinite(ms) ? [fact('Scale', `1 px per frame = ${+ms.toPrecision(3)} m/s`, `${px} µm per pixel ÷ ${dt} ms`)] : [fact('Speeds', 'give the pixel size and time between frames', 'to turn pixels per frame into m/s')]),
+    ];
+    q('.pv-facts').replaceChildren(...f);
+    draw();
+    report = [{ title: q('.pv-big').textContent!, text: [q('.pv-files').textContent!], facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig! }];
+  }
+
+  function draw() {
+    if (!res || !frame) return;
+    const A = frame, V = res.vecs, sc = q<HTMLSelectElement>('.pv-sc').value, spacing = V.length > 1 ? Math.max(1, Math.abs(V[1].x - V[0].x) || 16) : 16;
+    const mmax = Math.max(1e-9, ...V.map((v) => Math.hypot(v.u, v.v)));
+    scale = sc === 'auto' ? (0.9 * spacing) / mmax : +sc;
+    const W = 380, H = Math.round((380 * A.h) / A.w), k = W / A.w;
+    // Small grey preview of frame A, made once per draw.
+    const c = document.createElement('canvas'); c.width = A.w; c.height = A.h; const cx = c.getContext('2d')!, im = cx.createImageData(A.w, A.h);
+    let mx = 1; for (let i = 0; i < A.d.length; i += 7) mx = Math.max(mx, A.d[i]);
+    for (let i = 0; i < A.d.length; i++) { const g = Math.min(255, (A.d[i] / mx) * 255); im.data[4 * i] = im.data[4 * i + 1] = im.data[4 * i + 2] = g; im.data[4 * i + 3] = 255; }
+    cx.putImageData(im, 0, 0);
+    fig = { w: W, h: H, alt: `${V.length} PIV vectors over frame A, arrows ${sc === 'auto' ? 'scaled to fit' : `× ${sc}`}`, draw: (ctx, w, h, pal) => {
+      ctx.globalAlpha = pal.red ? 0.35 : 0.55; ctx.drawImage(c, 0, 0, w, h); ctx.globalAlpha = 1;
+      for (const v of V) {
+        const x0 = v.x * k, y0 = v.y * k, x1 = (v.x + v.u * scale) * k, y1 = (v.y + v.v * scale) * k, a = Math.atan2(y1 - y0, x1 - x0), L = Math.hypot(x1 - x0, y1 - y0), hd = Math.min(5, L * 0.4);
+        ctx.strokeStyle = v.replaced || !v.valid ? pal.warn : pal.red ? pal.ink : '#ffd23f'; ctx.fillStyle = ctx.strokeStyle; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+        if (L > 1) { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - hd * Math.cos(a - 0.45), y1 - hd * Math.sin(a - 0.45)); ctx.lineTo(x1 - hd * Math.cos(a + 0.45), y1 - hd * Math.sin(a + 0.45)); ctx.closePath(); ctx.fill(); }
+      }
+    } };
+    paint(q<HTMLCanvasElement>('.pv-fig'), fig);
+    if (report.length) report[0].figure = fig;
+  }
+
+  for (const [b, i, which] of [['.pv-oa', '.pv-fa', 'A'], ['.pv-ob', '.pv-fb', 'B']] as const) {
+    q(b).addEventListener('click', () => q<HTMLInputElement>(i).click());
+    q<HTMLInputElement>(i).addEventListener('change', async () => {
+      const f = q<HTMLInputElement>(i).files?.[0]; q<HTMLInputElement>(i).value = ''; if (!f) return;
+      try { const g = await readGray(f); if (which === 'A') { imgA = g; nameA = f.name; } else { imgB = g; nameB = f.name; } run(); }
+      catch (e) { err((e as Error).message); }
+    });
+  }
+  q('.pv-ex').addEventListener('change', () => { imgA = imgB = null; run(); });
+  for (const c of ['.pv-n', '.pv-ov', '.pv-p', '.pv-med']) q(c).addEventListener('change', run);
+  for (const c of ['.pv-px', '.pv-dt']) q(c).addEventListener('input', run);
+  q('.pv-sc').addEventListener('change', draw);
+  document.addEventListener('fibub:theme', () => { if (fig && res) paint(q<HTMLCanvasElement>('.pv-fig'), fig); });
+  q('.pv-csv').addEventListener('click', () => {
+    if (!res) return;
+    const px = num(q<HTMLInputElement>('.pv-px').value), dt = num(q<HTMLInputElement>('.pv-dt').value), ms = px > 0 && dt > 0 ? (px * 1e-6) / (dt * 1e-3) : NaN;
+    const rows: (string | number)[][] = [['x_px', 'y_px', 'u_px', 'v_px', ...(Number.isFinite(ms) ? ['u_m_s', 'v_m_s'] : []), 'peak_ratio', 'status']];
+    for (const v of res.vecs) rows.push([v.x, v.y, +v.u.toFixed(4), +v.v.toFixed(4), ...(Number.isFinite(ms) ? [+(v.u * ms).toPrecision(5), +(v.v * ms).toPrecision(5)] : []), Number.isFinite(v.pr) ? +v.pr.toFixed(3) : '', v.replaced ? 'replaced' : v.valid ? 'ok' : 'invalid']);
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'piv-vectors.csv', 'text/csv');
+  });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'PIV vector field', subtitle: q('.pv-big').textContent ?? '', file: 'piv', sections: report }));
+</script>
+
+<style is:global>
+  .pvl canvas.ax-fig { margin-top: 10px; background: #000; }
+</style>
