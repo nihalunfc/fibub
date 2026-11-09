@@ -1,0 +1,168 @@
+---
+// Salt sums for brines, vegetable ferments, dry cures and curing salt (nitrite). Plain arithmetic by weight;
+// no nitrite level is suggested. Nothing is uploaded.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax brin">
+  <div class="ax-card">
+    <h2>Make a brine</h2>
+    <div class="ax-row"><button type="button" class="btn secondary small br-ex">Use the example</button></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Water (g) <input class="br-w" type="number" min="0" step="any" value="1000" inputmode="decimal" /></label>
+      <label>Salt strength (%) <input class="br-p" type="number" min="0" step="any" value="5" inputmode="decimal" /></label>
+      <label>Percentage of <select class="br-basis"><option value="total">salt + water (by weight)</option><option value="water">the water only</option></select></label>
+    </div>
+    <p class="ax-help">"Salt + water" is the usual brine % (salt ÷ whole brine). "The water only" is salt ÷ water, as in many recipes; it gives a slightly weaker brine. 1 ml of water weighs about 1 g.</p>
+    <p class="ax-err br-err1" hidden></p>
+    <p class="ax-big br-big1"></p>
+    <p class="ax-help br-n1"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check a brine</h2>
+    <div class="ax-grid">
+      <label>Salt (g) <input class="br-cs" type="number" min="0" step="any" value="" placeholder="e.g. 60" inputmode="decimal" /></label>
+      <label>Water (g) <input class="br-cw" type="number" min="0" step="any" value="" placeholder="e.g. 940" inputmode="decimal" /></label>
+      <label>Or salinometer reading (°SAL) <input class="br-sal" type="number" min="0" max="100" step="any" value="" placeholder="e.g. 40" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">A salinometer reads 0° in plain water and 100° in saturated brine, about 26.4 % salt by weight at 15.6 °C (60 °F). Each degree is about 0.264 % salt.</p>
+    <p class="ax-err br-err2" hidden></p>
+    <p class="ax-big br-big2"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Vegetable ferment (equilibrium brine)</h2>
+    <div class="ax-grid">
+      <label>Vegetables (g) <input class="br-veg" type="number" min="0" step="any" value="" placeholder="e.g. 1000" inputmode="decimal" /></label>
+      <label>Water added (g) <input class="br-vw" type="number" min="0" step="any" value="" placeholder="0 for dry-salted" inputmode="decimal" /></label>
+      <label>Salt (% of vegetables + water) <input class="br-vp" type="number" min="0" step="any" value="" placeholder="your recipe's %" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">The salt spreads through the vegetables and the water until both hold the same strength, so the salt is worked out from their total weight. Use your recipe's percentage.</p>
+    <p class="ax-err br-err3" hidden></p>
+    <p class="ax-big br-big3"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Dry cure</h2>
+    <div class="ax-grid">
+      <label>Meat (g) <input class="br-m" type="number" min="0" step="any" value="" placeholder="e.g. 2000" inputmode="decimal" /></label>
+      <label>Salt (% of meat) <input class="br-ms" type="number" min="0" step="any" value="" placeholder="your recipe's %" inputmode="decimal" /></label>
+      <label>Sugar (% of meat, optional) <input class="br-mg" type="number" min="0" step="any" value="" placeholder="optional" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">Weigh the trimmed meat; salt and sugar are percentages of that weight (an equilibrium cure).</p>
+    <p class="ax-err br-err4" hidden></p>
+    <p class="ax-big br-big4"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Curing salt (nitrite)</h2>
+    <div class="ax-grid">
+      <label>Meat (g) <input class="br-nm" type="number" min="0" step="any" value="" placeholder="weight of meat" inputmode="decimal" /></label>
+      <label>Sodium nitrite in your cure (%) <input class="br-np" type="number" min="0" max="100" step="any" value="" placeholder="from its label" inputmode="decimal" /></label>
+      <label>Your target (ppm nitrite) <input class="br-nt" type="number" min="0" step="any" value="" placeholder="from your recipe or rules" inputmode="decimal" /></label>
+      <label>Or cure you plan to use (g) <input class="br-nc" type="number" min="0" step="any" value="" placeholder="to check its ppm" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">ppm here is milligrams of sodium nitrite per kilogram of meat. Cure (g) = target ppm × meat (kg) ÷ 1000 ÷ (nitrite % ÷ 100). This is for cure mixed into or rubbed onto the meat; in a wet cure the level depends on how much brine the meat takes up.</p>
+    <p class="br-safe"><strong>Safety:</strong> sodium nitrite is poisonous in excess. This page does not suggest an amount: take the target from a tested recipe and the rules where you live, check the official source, weigh cure on a scale that reads to 0.1 g or better, and keep curing salt away from table salt.</p>
+    <p class="ax-err br-err5" hidden></p>
+    <p class="ax-big br-big5"></p>
+  </div>
+
+  <div class="ax-card">
+    <div class="ax-row"><button type="button" class="btn secondary small br-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .brin .br-safe { font-size: 14px; margin: 10px 0 0; padding: 10px 12px; border-left: 3px solid var(--warn); background: var(--warn-soft); border-radius: 6px; }
+  .brin .ax-big { font-size: clamp(19px, 4.5vw, 26px); }
+</style>
+
+<script>
+  import { saltForBrine, brineStrength, pctFromSal, equilibrium, dryCure, cureForPpm, ppmFromCure, type Basis } from '../../lib/sci/brine';
+  import { num, csv } from '../../lib/sci/num';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.brin')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const g = (x: number) => (x < 10 ? x.toFixed(2) : x < 100 ? x.toFixed(1) : Math.round(x).toLocaleString('en'));
+  const p2 = (x: number) => x.toFixed(2);
+  const results: Record<string, [string, string][]> = {};
+  /** Shows a result or an error for one card; returns nothing. */
+  const show = (k: number, title: string, f: () => { big: string; note?: string; rows: [string, string][] } | null) => {
+    const e = q(`.br-err${k}`), b = q(`.br-big${k}`);
+    e.hidden = true; b.textContent = ''; delete results[title];
+    const n = q(`.br-n${k}`); if (n) n.textContent = '';
+    try { const r = f(); if (!r) return; b.textContent = r.big; if (n && r.note) n.textContent = r.note; results[title] = r.rows; }
+    catch (x) { e.textContent = (x as Error).message; e.hidden = false; }
+  };
+  const blank = (...c: string[]) => c.every((x) => q<HTMLInputElement>(x).value.trim() === '');
+
+  function run() {
+    show(1, 'Brine to make', () => {
+      const w = v('.br-w'), p = v('.br-p'), basis = q<HTMLSelectElement>('.br-basis').value as Basis;
+      if (blank('.br-w', '.br-p')) return null;
+      if (!Number.isFinite(w) || !Number.isFinite(p)) throw new Error('Give the water and the salt strength as numbers.');
+      const s = saltForBrine(w, p, basis), st = brineStrength(s, w);
+      if (st.saturated) throw new Error(`That is ${p2(st.pctTotal)} % salt by weight, stronger than saturated brine (about 26.4 %). The extra salt will not dissolve.`);
+      return { big: `${g(s)} g salt in ${g(w)} g water`, note: `Brine weight ${g(s + w)} g. Strength ${p2(st.pctTotal)} % of the brine, ${p2(st.pctWater)} % of the water, ${st.sal.toFixed(1)} °SAL.`,
+        rows: [['Water (g)', g(w)], ['Salt (g)', g(s)], ['Basis', basis === 'total' ? '% of salt + water' : '% of water'], ['Salt % of brine', p2(st.pctTotal)], ['Salt % of water', p2(st.pctWater)], ['Salinometer (°SAL)', st.sal.toFixed(1)]] };
+    });
+    show(2, 'Brine check', () => {
+      if (!blank('.br-cs', '.br-cw')) {
+        const st = brineStrength(v('.br-cs'), v('.br-cw'));
+        return { big: `${p2(st.pctTotal)} % of the brine, ${p2(st.pctWater)} % of the water, ${st.sal.toFixed(1)} °SAL${st.saturated ? ' (more than saturated: some salt will stay undissolved)' : ''}`,
+          rows: [['Salt (g)', g(v('.br-cs'))], ['Water (g)', g(v('.br-cw'))], ['Salt % of brine', p2(st.pctTotal)], ['Salt % of water', p2(st.pctWater)], ['Salinometer (°SAL)', st.sal.toFixed(1)]] };
+      }
+      if (!blank('.br-sal')) {
+        const sal = v('.br-sal');
+        if (!(sal >= 0 && sal <= 100)) throw new Error('A salinometer reads from 0 to 100°.');
+        const pct = pctFromSal(sal);
+        return { big: `${sal}° SAL = ${p2(pct)} % salt by weight (${g(saltForBrine(1000, pct, 'total'))} g salt per kg of water)`, rows: [['Salinometer (°SAL)', String(sal)], ['Salt % of brine', p2(pct)], ['Salt per kg water (g)', g(saltForBrine(1000, pct, 'total'))]] };
+      }
+      return null;
+    });
+    show(3, 'Vegetable ferment', () => {
+      if (blank('.br-veg', '.br-vp')) return null;
+      const veg = v('.br-veg'), w = v('.br-vw') || 0, p = v('.br-vp');
+      if (!Number.isFinite(veg) || !Number.isFinite(p)) throw new Error('Give the vegetables and the salt % as numbers.');
+      const e = equilibrium(veg, w, p);
+      return { big: `${g(e.salt)} g salt for ${g(veg + w)} g of vegetables and water`, rows: [['Vegetables (g)', g(veg)], ['Water (g)', g(w)], ['Salt % of veg + water', String(p)], ['Salt (g)', g(e.salt)], ['Salt % of everything', p2(e.ofAll)]] };
+    });
+    show(4, 'Dry cure', () => {
+      if (blank('.br-m', '.br-ms')) return null;
+      const m = v('.br-m'), s = v('.br-ms'), su = v('.br-mg') || 0;
+      if (!Number.isFinite(m) || !Number.isFinite(s)) throw new Error('Give the meat weight and the salt % as numbers.');
+      const d = dryCure(m, s, su);
+      return { big: `${g(d.salt)} g salt${su ? ` and ${g(d.sugar)} g sugar` : ''} for ${g(m)} g meat`, rows: [['Meat (g)', g(m)], ['Salt % of meat', String(s)], ['Salt (g)', g(d.salt)], ...(su ? [['Sugar % of meat', String(su)], ['Sugar (g)', g(d.sugar)]] as [string, string][] : [])] };
+    });
+    show(5, 'Curing salt', () => {
+      if (blank('.br-nm', '.br-np', '.br-nt', '.br-nc')) return null;
+      const m = v('.br-nm'), np = v('.br-np'), t = v('.br-nt'), c = v('.br-nc');
+      const out: string[] = [], rows: [string, string][] = [['Meat (g)', g(m)], ['Nitrite in cure (%)', String(np)]];
+      if (Number.isFinite(t)) { const r = cureForPpm(m, np, t); out.push(`${r.cure.toFixed(2)} g cure for ${t} ppm (${r.nitriteMg.toFixed(1)} mg sodium nitrite)`); rows.push(['Target (ppm)', String(t)], ['Cure needed (g)', r.cure.toFixed(2)], ['Sodium nitrite (mg)', r.nitriteMg.toFixed(1)]); }
+      if (Number.isFinite(c)) { const ppm = ppmFromCure(m, np, c); out.push(`${c} g cure gives ${ppm.toFixed(0)} ppm`); rows.push(['Cure planned (g)', String(c)], ['Gives (ppm)', ppm.toFixed(1)]); }
+      if (!out.length) throw new Error('Give a target in ppm or the grams of cure as a number.');
+      return { big: out.join('; '), rows };
+    });
+  }
+
+  const sections = (): Section[] => Object.entries(results).map(([title, facts]) => ({ title, facts }));
+  for (const el of root.querySelectorAll('input')) el.addEventListener('input', run);
+  q('.br-basis').addEventListener('change', run);
+  q('.br-ex').addEventListener('click', () => {
+    const set: [string, string][] = [['.br-w', '1000'], ['.br-p', '5'], ['.br-cs', '60'], ['.br-cw', '940'], ['.br-sal', ''], ['.br-veg', '1000'], ['.br-vw', '500'], ['.br-vp', '2'], ['.br-m', '2000'], ['.br-ms', '2.5'], ['.br-mg', '1']];
+    for (const [c, x] of set) q<HTMLInputElement>(c).value = x;
+    q<HTMLSelectElement>('.br-basis').value = 'total'; run();
+  });
+  q('.br-csv').addEventListener('click', () => {
+    const rows: (string | number)[][] = [['section', 'item', 'value']];
+    for (const [t, f] of Object.entries(results)) for (const [k, x] of f) rows.push([t, k, x.replace(/,/g, '')]);
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'brine-and-cure.csv', 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => ({ title: 'Brine and cure', subtitle: 'Salt sums by weight. Nitrite targets are the user\'s own; check the official source.', file: 'brine-and-cure', sections: sections() }));
+  run();
+</script>
