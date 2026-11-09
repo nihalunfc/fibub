@@ -90,7 +90,7 @@ export const CLASSES: SchoolClass[] = [
         c(2, 'Acids, Bases and Salts', 'Indicators, pH, neutralisation, salts', ['ph-scale-explorer', 'titration-curve']),
         c(3, 'Metals and Non-metals', 'Properties, reactivity series, ionic compounds, extraction', ['reactivity-series', 'electroplating-calculator']),
         c(4, 'Carbon and its Compounds', 'Covalent bonds, homologous series, naming, reactions, soaps', ['carbon-chain-namer', 'lewis-structures', 'molecule-viewer']),
-        c(5, 'Life Processes', 'Nutrition, photosynthesis, respiration, transport, excretion', ['photosynthesis-lab', 'cardiac-cycle']),
+        c(5, 'Life Processes', 'Nutrition, photosynthesis, respiration, transport, excretion', ['photosynthesis-lab', 'cardiac-cycle', 'transpiration-lab']),
         c(6, 'Control and Coordination', 'Nervous system, reflexes, plant responses, hormones', ['action-potential', 'reaction-time-experiments']),
         c(7, 'How do Organisms Reproduce?', 'Asexual and sexual reproduction, variation', ['cell-division']),
         c(8, 'Heredity', 'Mendel\'s rules, inherited traits, sex determination', ['mendel-peas', 'punnett-square']),
