@@ -165,6 +165,7 @@ import * as RX from '../src/lib/rosterExport.ts';
 import * as NW from '../src/lib/sci/newick.ts';
 import * as PP from '../src/lib/sci/protparam.ts';
 import * as PE from '../src/lib/sci/peptide.ts';
+import * as DN from '../src/lib/sci/densitometry.ts';
 import { unzipSync, strFromU8 } from 'fflate';
 
 let pass = 0, fail = 0;
@@ -3456,5 +3457,32 @@ ORIGIN
   check('peptide: missed cleavages join neighbours', PE.digest('AKBKCK'.replace('B', 'G'), 'trypsin', { missed: 2 }).length === 6);
   check('peptide: oxidised Met adds 15.9949', Math.abs(PE.peptideMass('M', ['oxidation']).mono - PE.peptideMass('M').mono - 15.99491) < 1e-4);
 }
+// #180 gel and blot densitometry: profiles, rolling background and volumes checked against NumPy on a random image;
+// the made-up blot's known amounts come back.
+{
+  let seed = 7; const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+  const w = 97, h = 83, px = new Uint8Array(w * h * 4); for (let i = 0; i < w * h * 4; i++) px[i] = Math.floor(rnd() * 256);
+  const s = DN.toSignal(px, w, h, false), lanes = DN.makeLanes({ x0: 3.5, y0: 5, x1: 94, y1: 80 }, 5, 0.55);
+  const profs = lanes.map((l) => DN.profile(s, l, 5, 80)), subs = profs.map((p) => DN.subtract(p, DN.rollingBackground(p, 4)));
+  const bands = [{ top: 3, bottom: 20 }, { top: 30, bottom: 31 }, { top: 50, bottom: 74 }];
+  check('densitometry: lane columns 8-17 of 97 px', lanes[0].c0 === 8 && lanes[0].c1 === 18 && lanes.length === 5 && profs[0].length === 75);
+  const vs = DN.volumes(subs, lanes, bands), vl = DN.volumes(profs, lanes, bands, true);
+  check('densitometry: rolling-background volumes match NumPy', Math.abs(vs[0][0] - 10.04669806) < 1e-5 && Math.abs(vs[0][1] - 1.42469792) < 1e-5 && Math.abs(vs[0][2] - 15.30809738) < 1e-5);
+  check('densitometry: straight-line volumes match NumPy', Math.abs(vl[0][0] - 2.75630461) < 1e-5 && Math.abs(vl[0][1] - 0.64526533) < 1e-5 && Math.abs(vl[1][0] - 7.38230402) < 1e-5 && vl[1][1] === 0);
+  check('densitometry: rolling background follows a ramp away from the ends and drops a narrow peak', DN.rollingBackground([1, 2, 3, 4, 5, 6, 7], 2).slice(2, 5).join() === '3,4,5' && DN.rollingBackground([0, 0, 0, 5, 0, 0, 0], 2).every((v) => v === 0));
+  const ex = DN.exampleBlot(), es = DN.toSignal(ex.px, ex.w, ex.h, true), el = DN.makeLanes(ex.rect, ex.lanes, 0.6);
+  const ep = el.map((l) => DN.profile(es, l, 0, ex.h)), eb = DN.findBands(ep.map((p) => DN.subtract(p, DN.rollingBackground(p, 25))));
+  check('densitometry: example blot has two band rows near 95 and 205', eb.length === 2 && Math.abs(eb[0].peak - 95) <= 1 && Math.abs(eb[1].peak - 205) <= 1);
+  const er = DN.relative(DN.volumes(ep, el, eb, true), 0, 1);
+  const truth = DN.EXAMPLE_TARGET.map((t, i) => (100 * t) / DN.EXAMPLE_CONTROL[i] / (DN.EXAMPLE_TARGET[0] / DN.EXAMPLE_CONTROL[0]));
+  check('densitometry: target amounts within 1.5 % of the truth (100, 200, 400, 600, 300, 150)', er.rel.every((r, i) => Math.abs(r[0] / (100 * DN.EXAMPLE_TARGET[i]) - 1) < 0.015));
+  check('densitometry: normalised to the loading control within 2 %', er.norm.every((r, i) => Math.abs(r[0] / truth[i] - 1) < 0.02) && er.norm.every((r) => Math.abs(r[1] - 100) < 1e-9));
+  check('densitometry: shares of each lane add to 100 %', er.share.every((r) => Math.abs(r[0] + r[1] - 100) < 1e-9));
+  check('densitometry: example has no saturated pixels; a black box is saturated', DN.saturation(es, el, eb, 0).flat().every((v) => v === 0) && DN.saturation(DN.toSignal(new Uint8Array(16).fill(0).map((v, i) => (i % 4 === 3 ? 255 : 0)), 2, 2, true), [{ cx: 1, c0: 0, c1: 2 }], [{ top: 0, bottom: 1 }], 0)[0][0] === 1);
+  check('densitometry: findBands of a flat profile finds none', DN.findBands([[0, 0, 0, 0]]).length === 0 && DN.findBands([]).length === 0);
+  check('densitometry: two touching peaks get separate rows', (() => { const p = Array.from({ length: 100 }, (_, i) => Math.exp(-(((i - 40) / 4) ** 2)) + 0.6 * Math.exp(-(((i - 55) / 4) ** 2))); const b = DN.findBands([p]); return b.length === 2 && b[0].bottom < b[1].top; })());
+}
+// Per-tool maths checks live in tests/sci-tools/<id>.mjs: `export default async (check) => {}`.
+for (const f of (await import('node:fs')).readdirSync(new URL('./sci-tools/', import.meta.url)).filter((f) => f.endsWith('.mjs')).sort()) await (await import(new URL('./sci-tools/' + f, import.meta.url))).default(check);
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
