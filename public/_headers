@@ -9,3 +9,7 @@
 
 /_astro/*
   Cache-Control: public, max-age=31536000, immutable
+
+/science/audio-spectrum-analyser/*
+  ! Permissions-Policy
+  Permissions-Policy: camera=(), microphone=(self), geolocation=(self), payment=(), usb=()
