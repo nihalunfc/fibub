@@ -1,0 +1,128 @@
+---
+// Clear-sky solar PV yield: sun position, Haurwitz clear sky, Erbs split, isotropic transposition, hourly year,
+// monthly energy and a best-tilt search, scaled by a cloudiness factor. The example place and system are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax spv">
+  <div class="ax-card">
+    <h2>Place and panels</h2>
+    <div class="ax-grid">
+      <label>Latitude (°, north +) <input class="sp-lat" type="text" inputmode="decimal" value="43.7" /></label>
+      <label>Longitude (°, east +) <input class="sp-lon" type="text" inputmode="decimal" value="-79.4" /></label>
+      <label>Panel tilt (° from flat) <input class="sp-tilt" type="text" inputmode="decimal" value="35" /></label>
+      <label>Panel azimuth (° from north) <input class="sp-az" type="text" inputmode="decimal" value="180" /></label>
+      <label>Ground reflectance (albedo) <input class="sp-alb" type="text" inputmode="decimal" value="0.2" /></label>
+      <label>System size (kWp) <input class="sp-kwp" type="text" inputmode="decimal" value="5" /></label>
+      <label>System losses (%) <input class="sp-loss" type="text" inputmode="decimal" value="14" /></label>
+      <label>Sunshine compared with clear sky (%) <input class="sp-cloud" type="text" inputmode="decimal" value="65" /></label>
+    </div>
+    <label style="margin-top:10px">Monthly sunshine (%), optional: 12 numbers, January first <input class="sp-mcloud" type="text" inputmode="decimal" placeholder="e.g. 45, 50, 55, 60, 65, 70, 72, 70, 65, 55, 45, 40" /></label>
+    <p class="ax-help">Azimuth is the direction the panels face: 180 is south (best in the northern hemisphere), 0 north (best in the southern), 90 east, 270 west. Albedo is about 0.2 for grass, 0.3 for concrete and up to 0.8 for fresh snow. System losses cover the inverter, wiring, dirt, heat and mismatch; 10 to 20 % is common. The sunshine figure scales the clear-sky result for clouds: it is your own estimate (from local weather records, for example), and the 65 % here is only an example. The example place and system are made up.</p>
+    <p class="ax-err sp-err" hidden></p>
+  </div>
+
+  <div class="ax-card sp-out">
+    <h2>Yearly energy</h2>
+    <p class="ax-big sp-big"></p>
+    <dl class="ax-facts sp-facts"></dl>
+    <div class="ax-scroll"><table class="sp-tab"></table></div>
+    <canvas class="ax-fig sp-f1"></canvas>
+    <canvas class="ax-fig sp-f2"></canvas>
+    <p class="ax-help">Clear sky is an upper bound: it is the most sunlight the place gets on cloudless days with average clear air. The Haurwitz model ignores altitude, haze and dust, so real clear days can be a little brighter in the mountains and dimmer in hazy cities. Shading, snow and panel temperature are not modelled. For study and planning; ask a qualified installer and use measured weather data before buying.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small sp-csv">Download months (CSV)</button>
+      <button type="button" class="btn secondary small sp-hcsv">Download every hour (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .spv select, .spv input { max-width: 100%; }
+  .spv .sp-tab { margin: 12px 0; }
+  .spv .sp-tab th, .spv .sp-tab td { white-space: nowrap; }
+  .spv .sp-f2 { margin-top: 10px; }
+</style>
+
+<script>
+  import { clearSkyYear, yieldOf, bestTilt, poaIsotropic, MONTHS, type Hour } from '../../lib/sci/eng-pv';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const grp = (x: number) => Math.round(x).toLocaleString('en');
+  const root = document.querySelector<HTMLElement>('.spv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let figs: Figure[] = [], sections: Section[] = [], hours: Hour[] = [], key = '', monthRows: string[][] = [], sys: { tilt: number; az: number; albedo: number; kWp: number; losses: number; cloud: number[] } | null = null;
+
+  function run() {
+    const err = q('.sp-err'), out = q('.sp-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sections = []; sys = null; };
+    const lat = val('.sp-lat'), lon = val('.sp-lon'), tilt = val('.sp-tilt'), az = val('.sp-az'), alb = val('.sp-alb'), kWp = val('.sp-kwp'), loss = val('.sp-loss') / 100, cl = val('.sp-cloud') / 100;
+    if (!(lat >= -66 && lat <= 66)) return fail('Give a latitude between −66° and 66° (north positive). Polar days and nights are outside what this model handles well.');
+    if (!(lon >= -180 && lon <= 180)) return fail('Give a longitude between −180° and 180° (east positive).');
+    if (!(tilt >= 0 && tilt <= 90)) return fail('Give a tilt from 0° (flat) to 90° (upright).');
+    if (!(az >= 0 && az <= 360)) return fail('Give the azimuth in degrees from north, 0 to 360 (180 is south).');
+    if (!(alb >= 0 && alb <= 1)) return fail('Give a ground reflectance from 0 to 1 (about 0.2).');
+    if (!(kWp > 0 && kWp < 1e6)) return fail('Give the system size in kWp (peak kilowatts).');
+    if (!(loss >= 0 && loss < 1)) return fail('Give the system losses in % (0 to 99).');
+    let cloud = Array(12).fill(cl);
+    const mtxt = q<HTMLInputElement>('.sp-mcloud').value.trim();
+    if (mtxt) {
+      const m = mtxt.split(/[\s,;]+/).filter(Boolean).map(Number);
+      if (m.length !== 12 || m.some((x) => !(x >= 0 && x <= 100))) return fail('Give 12 monthly sunshine numbers from 0 to 100, January first, or leave the box empty.');
+      cloud = m.map((x) => x / 100);
+    } else if (!(cl > 0 && cl <= 1)) return fail('Give the sunshine compared with clear sky in % (100 for a cloudless year).');
+    err.hidden = true; out.hidden = false;
+    const k = `${lat},${lon}`; if (k !== key) { hours = clearSkyYear(lat, lon); key = k; }
+    sys = { tilt, az, albedo: alb, kWp, losses: loss, cloud };
+    const y = yieldOf(hours, sys), clear = yieldOf(hours, { ...sys, cloud: Array(12).fill(1) }), bt = bestTilt(hours, { az, albedo: alb, kWp, losses: loss, cloud });
+    const bestE = yieldOf(hours, { ...sys, tilt: bt.best.tilt }).year.energy;
+    q('.sp-big').textContent = `${grp(y.year.energy)} kWh a year (${grp(y.specific)} kWh per kWp)`;
+    const eqAz = lat >= 0 ? 180 : 0, off = Math.abs(((az - eqAz + 540) % 360) - 180);
+    const f = [
+      fact('Clear-sky upper bound', `${grp(clear.year.energy)} kWh`, `${grp(clear.year.poa)} kWh/m² on the panels in a cloudless year`),
+      fact('Sunlight on the panels', `${grp(y.year.poa)} kWh/m²`, `after the sunshine factor; ${grp(y.year.ghi)} kWh/m² on flat ground`),
+      fact('Capacity factor', `${sg(y.capacityFactor * 100, 3)} %`, 'average output ÷ peak power'),
+      fact('Best tilt facing this way', `${bt.best.tilt}°`, `${grp(bestE)} kWh a year, ${sg((bestE / y.year.energy - 1) * 100, 2)} % more than at ${sg(tilt, 3)}°`),
+      ...(off > 90 ? [fact('Facing away from the equator', `${sg(off, 3)}° off ${lat >= 0 ? 'south' : 'north'}`, `panels at ${eqAz}° would catch more sun`)] : []),
+      fact('Best month', MONTHS[y.months.reduce((b, m, i, a) => (m.energy > a[b].energy ? i : b), 0)], `worst ${MONTHS[y.months.reduce((b, m, i, a) => (m.energy < a[b].energy ? i : b), 0)]}`),
+    ];
+    q('.sp-facts').replaceChildren(...f);
+    monthRows = y.months.map((m, i) => [MONTHS[i], sg(cloud[i] * 100, 3), grp(m.ghi), grp(m.poa), grp(m.energy)]);
+    const t = q<HTMLTableElement>('.sp-tab'); t.replaceChildren();
+    const head = ['Month', 'Sun %', 'Flat kWh/m²', 'Panel kWh/m²', 'kWh'];
+    const hr = t.insertRow(); for (const h of head) { const th = document.createElement('th'); th.textContent = h; hr.append(th); }
+    for (const r of [...monthRows, ['Year', '', grp(y.year.ghi), grp(y.year.poa), grp(y.year.energy)]]) { const tr = t.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); }
+    const mx = MONTHS.map((_, i) => i + 1);
+    const f1 = chartFigure({ w: 380, h: 240, xLabel: 'Month', yLabel: 'Energy (kWh)', yMin: 0, xMin: 0.5, xMax: 12.5, legend: 'below', series: [
+      { name: 'Clear sky (upper bound)', x: mx, y: clear.months.map((m) => m.energy), mode: 'both', width: 1.5, dash: [5, 4], marker: 'open-circle' },
+      { name: 'With your sunshine', x: mx, y: y.months.map((m) => m.energy), mode: 'both', width: 2 },
+    ] }, 'Monthly energy, clear sky and with the sunshine factor');
+    const f2 = chartFigure({ w: 380, h: 220, xLabel: 'Tilt (°)', yLabel: 'Yearly energy (kWh)', xMin: 0, xMax: 90, legend: 'none', marks: [{ kind: 'vline', at: bt.best.tilt, dash: [4, 3] }], series: [
+      { name: 'Yearly energy', x: bt.curve.map((c) => c.tilt), y: bt.curve.map((c) => c.poa * kWp * (1 - loss)), mode: 'line', width: 2 },
+      { name: 'Your tilt', x: [tilt], y: [y.year.energy], mode: 'points', size: 4 },
+    ] }, `Yearly energy against tilt; best ${bt.best.tilt}°`);
+    figs = [f1, f2]; paint(q<HTMLCanvasElement>('.sp-f1'), f1); paint(q<HTMLCanvasElement>('.sp-f2'), f2);
+    sections = [
+      { title: q('.sp-big').textContent!, text: [`${sg(Math.abs(lat), 4)}° ${lat >= 0 ? 'N' : 'S'}, ${sg(Math.abs(lon), 5)}° ${lon >= 0 ? 'E' : 'W'}; ${sg(kWp, 4)} kWp at ${sg(tilt, 3)}° tilt facing ${sg(az, 3)}°, ${sg(loss * 100, 3)} % losses.`], facts: f.map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: f1 },
+      { title: 'Months', table: { head, rows: monthRows, align: ['l', 'r', 'r', 'r', 'r'] } },
+      { title: 'Tilt', figure: f2, note: 'Clear sky (Haurwitz) scaled by your sunshine estimate is an upper-bound style estimate, not a bankable forecast.' },
+    ];
+  }
+
+  let tm = 0;
+  root.querySelectorAll('input').forEach((i) => i.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(run, 200); }));
+  q('.sp-csv').addEventListener('click', () => save(new Blob([csv([['month', 'sunshine_percent', 'horizontal_kWh_m2', 'panel_kWh_m2', 'energy_kWh'], ...monthRows.map((r) => r.map((x) => x.replace(/,/g, '')))])], { type: 'text/csv' }), 'pv-months.csv', 'text/csv'));
+  q('.sp-hcsv').addEventListener('click', () => {
+    if (!sys) return; const s = sys, k = s.kWp * (1 - s.losses);
+    save(new Blob([csv([['utc_time', 'month', 'sun_zenith_deg', 'sun_azimuth_deg', 'clear_ghi_W_m2', 'clear_dni_W_m2', 'clear_dhi_W_m2', 'panel_W_m2_with_sunshine', 'ac_power_kW'], ...hours.map((h) => { const p = h.ghi > 0 ? poaIsotropic(s.tilt, s.az, h.zen, h.az, h.dni, h.dhi, h.ghi, s.albedo).poa * s.cloud[h.month] : 0; return [new Date(h.ms).toISOString().slice(0, 16), MONTHS[h.month], h.zen.toFixed(3), h.az.toFixed(3), h.ghi.toFixed(2), h.dni.toFixed(2), h.dhi.toFixed(2), p.toFixed(2), ((k * p) / 1000).toFixed(4)]; })])], { type: 'text/csv' }), 'pv-hours.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.sp-out').hidden) { paint(q<HTMLCanvasElement>('.sp-f1'), figs[0]); paint(q<HTMLCanvasElement>('.sp-f2'), figs[1]); } });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Solar PV yield', subtitle: q('.sp-big').textContent ?? '', file: 'solar-pv-yield', sections }));
+</script>
