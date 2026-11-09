@@ -1,5 +1,14 @@
 [
  {
+  "sha": "0b4b3c53ee14",
+  "date": "2026-11-09T06:15:16+00:00",
+  "title": "Add #172 pairwise sequence alignment (global, local, semi-global, affine gaps, dot plot)",
+  "tools": [
+   "sequence-alignment"
+  ],
+  "site": false
+ },
+ {
   "sha": "b03bbfef2762",
   "date": "2026-11-09T05:43:55+00:00",
   "title": "Add #171 FASTQ and FASTA quality inspector (streaming, gzip, quality boxes, GC, repeats)",
