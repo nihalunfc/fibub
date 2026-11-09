@@ -1,0 +1,149 @@
+---
+// Grouped data: class intervals and frequencies in, mean by three methods, median and mode with the formulas filled
+// in, and a histogram with both ogives. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm gd">
+  <div class="ax-card">
+    <h2>Your table</h2>
+    <label>One class per line: lower-upper frequency <textarea class="gd-in" rows="6" spellcheck="false" aria-label="Classes and frequencies"></textarea></label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small gd-ex">Use the example</button>
+      <label style="display:flex;align-items:center;gap:6px">Assumed mean a <input type="number" class="gd-a" step="any" inputmode="decimal" placeholder="auto" style="width:6em" /></label>
+    </div>
+    <p class="ax-help">The example is made up: minutes 50 students spent on homework one evening. Classes must follow on (0-20, 20-40, ...).</p>
+    <p class="ax-err gd-err" hidden></p>
+  </div>
+
+  <div class="ax-card gd-out">
+    <h2>Working table</h2>
+    <div class="ax-scroll"><table class="gd-tab"></table></div>
+    <h3>Mean, three ways</h3>
+    <ul class="sm-steps gd-mean"></ul>
+    <h3>Median</h3>
+    <ul class="sm-steps gd-med"></ul>
+    <h3>Mode</h3>
+    <ul class="sm-steps gd-mode"></ul>
+    <p class="ax-big gd-big"></p>
+  </div>
+
+  <div class="ax-card gd-out">
+    <h2>Histogram and ogives</h2>
+    <div class="ax-row">
+      <label class="ax-check"><input type="checkbox" class="gd-o1" checked /> Less-than ogive</label>
+      <label class="ax-check"><input type="checkbox" class="gd-o2" /> More-than ogive</label>
+    </div>
+    <svg class="sm-fig gd-fig" viewBox="0 0 340 260" role="img" aria-label="Histogram of the classes with cumulative frequency curves"></svg>
+    <p class="ax-help gd-ogn"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Change the assumed mean to any class mark. The final mean does not change, only the size of the numbers in the working.</li>
+      <li>Add 10 to the frequency of the last class. Which moves most: the mean, the median or the mode?</li>
+      <li>Turn on both ogives. Where do they cross? Compare with the median.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Give answers to 2 decimal places. Nothing is saved.</p>
+    <div class="gd-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .gd h3 { font-size: 15px; margin: 14px 0 4px; }
+  .gd svg .gd-bar { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1; }
+  .gd svg .gd-l1 { fill: none; stroke: var(--ink); stroke-width: 2.2; }
+  .gd svg .gd-l2 { fill: none; stroke: var(--good); stroke-width: 2.2; }
+  .gd .gd-tab tr.hl td { background: var(--accent-soft); }
+</style>
+
+<script>
+  import { parseClasses, stats, EXAMPLE, type Row } from '../../lib/sci/grouped-school';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.gd')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const inp = q<HTMLTextAreaElement>('.gd-in');
+  inp.value = EXAMPLE;
+  const f2 = (x: number) => fmt(x, 2);
+  const li = (el: Element, lines: string[]) => el.replaceChildren(...lines.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+
+  function run() {
+    const err = q('.gd-err'), { rows, error } = parseClasses(inp.value);
+    root.querySelectorAll<HTMLElement>('.gd-out').forEach((e) => (e.hidden = !!error));
+    if (error) { err.textContent = error; err.hidden = false; return; }
+    err.hidden = true;
+    const aIn = q<HTMLInputElement>('.gd-a').value.trim(), s = stats(rows, aIn === '' || !Number.isFinite(Number(aIn)) ? undefined : Number(aIn));
+    const tab = q<HTMLTableElement>('.gd-tab'); tab.replaceChildren();
+    const head = ['Class', 'f', 'x (mark)', 'f·x', 'd = x − a', 'f·d', ...(s.equal ? ['u = d/h', 'f·u'] : []), 'cf'];
+    const h = tab.insertRow(); for (const x of head) { const th = document.createElement('th'); th.textContent = x; h.append(th); }
+    rows.forEach((r, i) => {
+      const tr = tab.insertRow(); if (i === s.medianClass || i === s.modalClass) tr.className = 'hl';
+      for (const v of [`${fmt(r.lo)}–${fmt(r.hi)}`, fmt(r.f), f2(s.x[i]), f2(s.f[i] * s.x[i]), f2(s.d[i]), f2(s.f[i] * s.d[i]), ...(s.equal ? [f2(s.u[i]), f2(s.f[i] * s.u[i])] : []), fmt(s.cf[i])]) { const c = tr.insertCell(); c.textContent = v; c.className = 'r'; }
+    });
+    const tot = tab.insertRow();
+    for (const v of ['Total', fmt(s.n), '', f2(s.sfx), '', f2(s.sfd), ...(s.equal ? ['', f2(s.sfu)] : []), '']) { const c = tot.insertCell(); c.textContent = v; c.className = 'r'; c.style.fontWeight = '700'; }
+    li(q('.gd-mean'), [
+      `Direct: x̄ = Σfx / Σf = ${f2(s.sfx)} / ${fmt(s.n)} = ${f2(s.meanDirect)}`,
+      `Assumed mean (a = ${f2(s.a)}): x̄ = a + Σfd / Σf = ${f2(s.a)} + ${f2(s.sfd)} / ${fmt(s.n)} = ${f2(s.meanAssumed)}`,
+      s.equal ? `Step deviation (h = ${fmt(s.h)}): x̄ = a + (Σfu / Σf) × h = ${f2(s.a)} + (${f2(s.sfu)} / ${fmt(s.n)}) × ${fmt(s.h)} = ${f2(s.meanStep)}` : 'Step deviation needs classes of equal width, so it is skipped for this table.',
+    ]);
+    const m = rows[s.medianClass];
+    li(q('.gd-med'), [
+      `n/2 = ${fmt(s.n / 2)}. The first cumulative frequency to reach it is in class ${fmt(m.lo)}–${fmt(m.hi)} (the median class).`,
+      `Median = l + ((n/2 − cf) / f) × h = ${fmt(m.lo)} + ((${fmt(s.n / 2)} − ${fmt(s.cfBefore)}) / ${fmt(s.f[s.medianClass])}) × ${fmt(m.hi - m.lo)} = ${f2(s.median)}`,
+    ]);
+    const k = rows[s.modalClass];
+    li(q('.gd-mode'), Number.isNaN(s.mode) ? ['The formula divides by 2f₁ − f₀ − f₂ = 0 here, so the mode cannot be found this way.'] : [
+      `The highest frequency is ${fmt(s.f1)}, in class ${fmt(k.lo)}–${fmt(k.hi)} (the modal class). f₀ = ${fmt(s.f0)} before it, f₂ = ${fmt(s.f2)} after it.`,
+      `Mode = l + ((f₁ − f₀) / (2f₁ − f₀ − f₂)) × h = ${fmt(k.lo)} + ((${fmt(s.f1)} − ${fmt(s.f0)}) / (${fmt(2 * s.f1)} − ${fmt(s.f0)} − ${fmt(s.f2)})) × ${fmt(k.hi - k.lo)} = ${f2(s.mode)}`,
+    ]);
+    q('.gd-big').textContent = `Mean ${f2(s.meanDirect)} · Median ${f2(s.median)} · Mode ${Number.isNaN(s.mode) ? '—' : f2(s.mode)}`;
+    chart(rows, s);
+  }
+
+  function chart(rows: Row[], s: ReturnType<typeof stats>) {
+    const svg = q<SVGSVGElement>('.gd-fig'); svg.replaceChildren();
+    const x0 = rows[0].lo, x1 = rows.at(-1)!.hi, L = 40, R = 330, T = 12, B = 230;
+    const o1 = q<HTMLInputElement>('.gd-o1').checked, o2 = q<HTMLInputElement>('.gd-o2').checked;
+    const ymax = o1 || o2 ? s.n : Math.max(...s.f) / Math.min(...rows.map((r) => r.hi - r.lo)) * s.h;
+    const X = (v: number) => L + ((v - x0) / (x1 - x0)) * (R - L), Y = (v: number) => B - (v / ymax) * (B - T);
+    S('line', { x1: L, x2: R, y1: B, y2: B, class: 'sm-axis' }, svg); S('line', { x1: L, x2: L, y1: T, y2: B, class: 'sm-axis' }, svg);
+    for (let i = 0; i <= 4; i++) { const v = (ymax * i) / 4; S('text', { x: L - 4, y: Y(v) + 4, 'text-anchor': 'end', class: 'sm-tick' }, svg, fmt(v, 1)); }
+    rows.forEach((r) => { const ht = (r.f / (r.hi - r.lo)) * s.h; S('rect', { x: X(r.lo), y: Y(ht), width: X(r.hi) - X(r.lo), height: B - Y(ht), class: 'gd-bar' }, svg); });
+    for (const v of [x0, ...rows.map((r) => r.hi)]) S('text', { x: X(v), y: B + 14, 'text-anchor': 'middle', class: 'sm-tick' }, svg, fmt(v));
+    if (o1) S('polyline', { points: [[x0, 0], ...s.lessThan].map(([a, b]) => `${X(a)},${Y(b)}`).join(' '), class: 'gd-l1 gd-less' }, svg);
+    if (o2) S('polyline', { points: [...s.moreThan, [x1, 0]].map(([a, b]) => `${X(a)},${Y(b)}`).join(' '), class: 'gd-l2 gd-more' }, svg);
+    if (o1 || o2) {
+      S('line', { x1: L, x2: X(s.median), y1: Y(s.n / 2), y2: Y(s.n / 2), class: 'sm-dash' }, svg);
+      S('line', { x1: X(s.median), x2: X(s.median), y1: Y(s.n / 2), y2: B, class: 'sm-dash' }, svg);
+    }
+    q('.gd-ogn').textContent = o1 || o2 ? `Bars show the frequencies (on the same scale as the cumulative frequency). The dashed line at n/2 = ${fmt(s.n / 2)} meets the ogive above the median, ${f2(s.median)}${o1 && o2 ? ', which is also where the two ogives cross' : ''}.` : 'Bars show the frequency of each class.';
+  }
+
+  inp.addEventListener('input', run);
+  q('.gd-a').addEventListener('input', run);
+  for (const c of ['.gd-o1', '.gd-o2']) q(c).addEventListener('change', run);
+  q('.gd-ex').addEventListener('click', () => { inp.value = EXAMPLE; q<HTMLInputElement>('.gd-a').value = ''; run(); });
+  run();
+
+  quiz(q('.gd-quiz'), () => {
+    const make = () => { const h = [5, 10, 20][randInt(0, 2)], lo = randInt(0, 4) * h; return Array.from({ length: 4 }, (_, j) => ({ lo: lo + j * h, hi: lo + (j + 1) * h, f: randInt(2, 12) })); };
+    const txt = (R: Row[]) => R.map((r) => `${r.lo}–${r.hi}: ${r.f}`).join(', ');
+    const out: Question[] = [];
+    const A = make(), sa = stats(A);
+    out.push({ q: `Find the mean of this grouped data (class: frequency): ${txt(A)}.`, want: [Math.round(sa.meanDirect * 100) / 100], tol: 0.002, work: `Class marks ${sa.x.map((x) => fmt(x)).join(', ')}; Σfx = ${fmt(sa.sfx)}, Σf = ${sa.n}, so the mean is ${fmt(sa.sfx)} / ${sa.n} ≈ ${f2(sa.meanDirect)}.` });
+    const Bt = make(), sb = stats(Bt), mb = Bt[sb.medianClass];
+    out.push({ q: `Find the median of: ${txt(Bt)}.`, want: [Math.round(sb.median * 100) / 100], tol: 0.002, work: `n/2 = ${fmt(sb.n / 2)}; median class ${mb.lo}–${mb.hi}; ${mb.lo} + ((${fmt(sb.n / 2)} − ${sb.cfBefore}) / ${mb.f}) × ${mb.hi - mb.lo} ≈ ${f2(sb.median)}.` });
+    let C = make(), sc = stats(C); while (Number.isNaN(sc.mode) || C.filter((r) => r.f === sc.f1).length > 1) { C = make(); sc = stats(C); }
+    const mc = C[sc.modalClass];
+    out.push({ q: `Find the mode of: ${txt(C)}.`, want: [Math.round(sc.mode * 100) / 100], tol: 0.002, work: `Modal class ${mc.lo}–${mc.hi} (f₁ = ${sc.f1}, f₀ = ${sc.f0}, f₂ = ${sc.f2}); ${mc.lo} + ((${sc.f1} − ${sc.f0}) / (${2 * sc.f1} − ${sc.f0} − ${sc.f2})) × ${mc.hi - mc.lo} ≈ ${f2(sc.mode)}.` });
+    return out;
+  });
+</script>
