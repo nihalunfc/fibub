@@ -1,5 +1,14 @@
 [
  {
+  "sha": "4eed7f76da37",
+  "date": "2026-11-09T08:39:38+00:00",
+  "title": "Add #177 phylogenetic tree viewer (Newick and NEXUS)",
+  "tools": [
+   "tree-viewer"
+  ],
+  "site": false
+ },
+ {
   "sha": "dd18115fc51c",
   "date": "2026-11-09T08:10:31+00:00",
   "title": "Count views per page by day, publish counts to the repo daily",
