@@ -34,6 +34,8 @@ Finds photographed with a scale bar can be measured later, at the desk, without 
 
 The photo is opened inside your browser. It is never uploaded, and nothing is kept when you close the page.
 
+To take measurements from a printed drawing or graph instead, use the [[graph-digitizer|graph digitiser]]; to put an error on what you measure, the [[uncertainty-calculator]].
+
 ## How to use it
 
 1. **Open a photo** (or drop it on the button). Photograph the object square-on, with the scale bar lying on the same level as the surface you want to measure.

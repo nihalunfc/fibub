@@ -33,6 +33,8 @@ A **ration** is the daily mix of feeds an animal eats. Balancing it means choosi
 
 No feed tables are built in. Use your own forage and feed analyses, and requirements from your nutritionist, a feeding standard you have access to, or your own records.
 
+Follow the animals' weight on the ration with the [[growth-curve-tracker|growth curve tracker]], and plan matings with the [[breeding-calendar]].
+
 ## How to use it
 
 1. Type or paste your feeds, one per line: name, DM % (dry matter), CP % (crude protein, of the dry matter), energy per kg of DM (in any unit, such as MJ ME or Mcal NEL), Ca % and P % (of the DM), and the price per kg **as fed**. You can add a minimum and a maximum in kg of DM per day for any feed, for example to keep some hay in the diet or limit a by-product. **Open a file** reads a CSV or Excel sheet.

@@ -35,6 +35,8 @@ Paste a protein sequence in one-letter codes (or open a FASTA file) and the calc
 - **Concentration from A280**: type your blank-corrected reading and path length to get mg/mL and µM.
 - **Composition**: how many of each amino acid, and their share.
 
+To digest the protein into peptides, use the [[peptide-mass-calculator]]; to find its transmembrane helices, the [[hydropathy-plot]].
+
 ## Options
 
 - **pH for the charge**: the pH of your buffer.

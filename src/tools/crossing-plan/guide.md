@@ -33,6 +33,8 @@ Breeders keep track of which plant came from which cross, because crossing relat
 - **Rates planned crosses**: list the crosses you are thinking of, and see the expected inbreeding of each, sorted from least to most related.
 - **Draws the pedigree**, generation by generation, with female parents as solid lines and male parents as dashed lines. Inbred plants have an orange edge.
 
+Predict the gain from selection with the [[breeders-equation|breeder's equation calculator]], and lay out the offspring in a [[field-trial-designer|field trial]].
+
 ## How to use it
 
 1. Enter one plant per line: its name, the female (seed) parent and the male (pollen) parent. Use - or leave blank for an unknown parent. A selfed plant has the same parent twice. Paste from a spreadsheet, or press **Open a file**.

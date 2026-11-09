@@ -29,6 +29,9 @@ const Content = tool ? (await render(tool)).Content : null;
 const updated = tool?.data.updated.toISOString().slice(0, 10);
 const changes = tool ? changesFor(tool.id) : [];
 const everyTool = tool ? await allTools() : [];
+// Hub tools (the plot maker, sample size) relate to dozens of others. Every one stays linked, but past
+// the first CARDS as plain links, so the page stays light.
+const CARDS = 12;
 ---
 {subjectPage ? <SubjectPage shelf={subjectPage.shelf} subject={subjectPage.subject} /> : (
 <Base title={tool.data.title} docTitle={toolSeoTitle(tool)} description={toolDescription(tool)} ld={toolLd(tool)} shelf={shelf.id} tool={tool.id} image={`/og/${tool.id}.png`}>
@@ -84,7 +87,10 @@ const everyTool = tool ? await allTools() : [];
   {related.all.length > 0 && (
     <section>
       <h2>Related tools</h2>
-      <div class="grid">{related.all.map((t) => <ToolCard tool={t} />)}</div>
+      <div class="grid">{related.all.slice(0, CARDS).map((t) => <ToolCard tool={t} />)}</div>
+      {related.all.length > CARDS && (
+        <p class="more-rel">Also related: {related.all.slice(CARDS).map((t, i) => <>{i > 0 && ', '}<a href={toolUrl(t)}>{t.data.name}</a></>)}</p>
+      )}
     </section>
   )}
 </Base>
@@ -93,6 +99,7 @@ const everyTool = tool ? await allTools() : [];
 <style>
   .tool-ui { display: contents; }
   .more-log { font-size: 14px; color: var(--muted); }
+  .more-rel { margin-top: 16px; font-size: 15px; color: var(--muted); }
   .suggest { display: grid; gap: 6px; justify-items: start; margin: 32px 0 8px; max-width: 720px; }
   .suggest span { color: var(--muted); font-size: 15px; }
   .suggest .btn { margin-top: 6px; }

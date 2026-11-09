@@ -285,7 +285,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Gel densitometry', subtitle: q('.dn-big').textContent ?? '', file: `${fileSafe(name)}-densitometry`, sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .dns .dn-photo { display: block; width: 100%; height: auto; margin-top: 10px; border: 1px solid var(--line, #ddd); cursor: crosshair; }
   .dns select { max-width: 100%; }
   .dns .dn-arow { margin-top: 8px; }

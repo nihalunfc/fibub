@@ -26,6 +26,8 @@ flow:
 
 The **margin of exposure (MOE)** compares the dose at which a substance starts to cause an effect in a study with the dose people actually take in. It is the **point of departure** (a NOAEL, LOAEL or benchmark dose lower limit such as the BMDL10) divided by the **estimated exposure**, both in mg per kg of body weight per day. A larger MOE means a wider safety margin. This page works out the exposure and the MOE for as many scenarios as you like (average and high consumers, adults and children), compares each with a **target MOE** built from uncertainty factors you list yourself, and draws them on a bar chart. It is for study and teaching, not medical advice or a regulatory assessment.
 
+Get the point of departure from your own data with the [[dose-response|dose-response fitter]], and work out a worker's dose with the [[exposure-twa|exposure TWA calculator]].
+
 ## How to use it
 
 1. Enter the **point of departure**: its type, value and unit. Name the substance if you like; it appears in the report.

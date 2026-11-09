@@ -34,6 +34,8 @@ Densitometry turns the darkness of a band into a number, so you can say that a p
 - **Amounts.** Each band's volume (signal added up over the band's rows and the lane's width) is shown as a percentage of a reference lane. Pick a loading control, such as actin, tubulin or GAPDH on a western blot, and each lane's band is divided by that lane's control first.
 - **Saturation check.** A band whose pixels hit the top of the photo's range reads too low. The page warns you when more than 1 % of a band's pixels are saturated.
 
+Size the bands with the [[gel-band-sizer|gel band size estimator]], and check the protein's expected mass with the [[protein-calculator|protein parameter calculator]].
+
 ## How to use it
 
 1. **Photo.** Open the original image from the scanner or imager. A phone photo of a gel works for rough numbers, but a flat, evenly lit scan is better. Do not adjust contrast or brightness first.

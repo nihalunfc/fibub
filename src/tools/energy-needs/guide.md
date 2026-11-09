@@ -37,6 +37,8 @@ This calculator works out resting energy with four well-known equations side by 
 - **Harris-Benedict, Roza-Shizgal (1984):** the same form re-fitted to newer data.
 - **Katch-McArdle:** 370 + 21.6 × lean body mass (kg). It ignores sex and age but needs the body fat percentage, from which lean mass = weight × (1 − fat % ÷ 100).
 
+Plan meals to meet the target with the [[nutrient-planner]], and check how fast their carbohydrates act with the [[glycaemic-load|glycaemic load calculator]].
+
 ## How to use it
 
 1. Choose the **sex used by the equations**, then type **age**, **weight** (kg or lb) and **height** (cm or inches).

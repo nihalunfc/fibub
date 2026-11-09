@@ -31,6 +31,8 @@ Two of the best-known scores in medicine are simple sums, but students and new s
 
 The descriptions on this page are written in our own words. They are not the official charts, which come with training on how to give the stimulus and judge the response.
 
+For blood gas results in the same patient, use the [[acid-base-interpreter]]; to compare two people's scores, [[reliability-analysis|reliability and agreement]].
+
 ## How to use it
 
 1. **APGAR:** choose the minute (1, 5 or 10) and tap one line for each of the five signs. The total appears with the band commonly used: 7 to 10 reassuring, 4 to 6 moderately abnormal, 0 to 3 low.

@@ -27,6 +27,8 @@ flow:
 
 Workplace air limits are usually written as an **8-hour time-weighted average (TWA)**, often with a **15-minute short-term exposure limit (STEL)**. Air sampling gives a series of periods, each with its own measured concentration. This page adds up concentration × time for each period, works out the 8-hour TWA, the average over the whole shift and the highest 15-minute average, checks the **excursion rule**, and for shifts longer than 8 hours reduces the limit by the **Brief and Scala** model or the **OSHA model**. It compares everything with limits you type in, and shows the working so you can check every sum. It is for study and teaching, not medical advice or a compliance report.
 
+Convert readings between ppm and mg/m³ with the [[air-quality-calculator]], and compare the dose with a safe level using the [[margin-of-exposure|margin of exposure calculator]].
+
 ## How to use it
 
 1. Paste the **sampled periods**, one per line, either as clock times and a concentration (07:00 09:30 12) or as minutes and a concentration (150 12). A task name at the end of the line is optional. You can also open a CSV or Excel file. Periods that cross midnight work.

@@ -39,6 +39,8 @@ Every notation is a simple function of the **minimum angle of resolution** (MAR)
 
 For study and teaching, not medical advice. Check with a qualified professional.
 
+For hearing, use the [[audiogram|audiogram plotter]]; to compare two examiners' readings, [[reliability-analysis|reliability and agreement]].
+
 ## How to use it
 
 1. Type or paste values, one per line. A name before the value (Right eye, Visit 2) is kept. You can also open a CSV, TSV, text or Excel file.

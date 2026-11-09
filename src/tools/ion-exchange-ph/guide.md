@@ -37,6 +37,8 @@ Ion exchange chromatography and isoelectric focusing (IEF) both sort proteins by
 
 Everything runs in your browser. Your sequences are never uploaded or stored.
 
+Make up the running buffer with the [[buffer-recipe-calculator]], and get the full protein parameters from the [[protein-calculator|protein parameter calculator]].
+
 ## How to use it
 
 1. Paste sequences in one-letter codes, with a FASTA header line (starting with `>`) before each protein, or open a FASTA file. Press **Use the example** to try three made-up proteins.

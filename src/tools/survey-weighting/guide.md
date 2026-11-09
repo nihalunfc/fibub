@@ -36,6 +36,8 @@ Surveys rarely reach people in the same mix as the population: more women than m
 
 Everything runs in your browser: your respondents never leave your device.
 
+Plan how many people to ask with the [[sample-size|sample size calculator]], and check a questionnaire scale with [[reliability-analysis|reliability and agreement]].
+
 ## How to use it
 
 1. Paste the respondent table with a header row, or open a CSV or Excel file. One row per respondent.

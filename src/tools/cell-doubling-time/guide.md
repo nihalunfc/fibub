@@ -33,6 +33,8 @@ Cells in steady growth double at a constant pace, so the number of cells rises a
 - **Generations** are the doublings over the fitted span: r × time ÷ ln 2.
 - **Between each pair of counts** the table shows a doubling time for every interval, so you can see a slow start (lag) or growth levelling off (plateau) and untick those counts.
 
+Count the cells for each point with the [[hemocytometer]], and keep the frozen stocks in order with the [[cryovial-inventory]].
+
 ## Plan the next passage
 
 The planner runs the same law backwards. To have a target confluence on a given day, seed the target number of cells divided by 2^((hours − lag) / Td). It tells you:

@@ -33,6 +33,8 @@ During an anaesthetic, someone records the patient's vital signs every few minut
 
 It has no drug, dose or fluid-rate fields and calculates no doses. It is for study and planning, not a substitute for professional judgement: the anaesthetist in charge decides what is normal for each patient.
 
+To track an animal's weight and condition between procedures, use the [[growth-curve-tracker|growth curve tracker]]; to make a figure from the readings, the [[plot-maker]].
+
 ## How to use it
 
 1. Fill in the patient details. Only the species is needed; a name is optional and there are no owner fields.

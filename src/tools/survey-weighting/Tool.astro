@@ -188,7 +188,7 @@ import DataFile from '../../components/DataFile.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Survey weights', subtitle: q('.sw-big').textContent ?? '', file: 'survey-weights', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .svw .sw-warn { margin: 0; font-size: 14px; color: var(--ink); }
   .svw .sw-vars { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; margin-top: 12px; }
   .svw .sw-var { display: grid; gap: 8px; align-content: start; }

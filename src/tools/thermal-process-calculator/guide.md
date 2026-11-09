@@ -32,6 +32,8 @@ Heat kills microbes at a steady rate on a log scale: each minute at a fixed temp
 - **F needed**: the minutes at the reference temperature needed to go from a starting count N₀ to a target N: F = D × (log₁₀ N₀ − log₁₀ N).
 - **F from a profile (general method)**: paste a time-temperature record from the slowest-heating point of the product. Each reading becomes a lethal rate, L = 10^((T − Tref)/z), and the page adds them up over time with the trapezoid rule. With Tref 121.1 °C and z 10 °C the result is F₀.
 
+For storage after processing, use the [[shelf-life-estimator|shelf-life estimator]]; to record the critical limits, the [[haccp-plan-builder]].
+
 ## How to use it
 
 1. Set the reference temperature and z at the top. They apply to the profile and to D at Tref.

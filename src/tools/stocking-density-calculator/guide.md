@@ -31,6 +31,8 @@ Fish farmers, hatchery staff and aquaculture students keep checking the same few
 2. **Growth and feed over a period**: from a start and end count and mean weight, the days and the feed given, it works out the **FCR** (feed conversion ratio, kg of feed per kg of fish gained), the **SGR** (specific growth rate, % per day) and the daily gain per fish. You can add the weight of fish that died so the FCR counts the growth they made.
 3. **Feeding and harvest projection**: grows today's fish at a steady SGR, with a feeding rate in % of body weight per day and an optional loss rate, and shows the days to harvest weight, the biomass, density and feed day by day, and when the density passes your target.
 
+Check the oxygen the fish need with the [[pond-oxygen-budget|pond oxygen budget estimator]], and follow their growth with the [[growth-curve-tracker|growth curve tracker]].
+
 ## How to use it
 
 Fill in the boxes you need; each works on its own. Use the **water** depth or volume, not the depth of the tank. The projection takes its SGR from the growth box unless you type one. Choose how often the table shows a row, and download the projection as CSV or the whole report as an image, PDF or Word file.

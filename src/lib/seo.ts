@@ -21,8 +21,11 @@ export function toolSeoTitle(t: Tool) {
   const free = /\bfree\b/i.test(head);
   const options = [free ? '' : `${head}: free online tool | ${SITE.name}`, `${head} | ${SITE.name}`, `${d.name}: free online tool | ${SITE.name}`, `${d.name} | ${SITE.name}`];
   const pick = options.find((o) => o && fits(o));
-  if (!pick) throw new Error(`Tool "${t.id}": no search title fits ${TITLE_MAX} characters. Add a shorter seoTitle to its guide.md`);
-  return pick;
+  if (pick) return pick;
+  // Still too long: cut the name at a word so the build never stops on a title (set seoTitle to choose).
+  const room = TITLE_MAX - ` | ${SITE.name}`.length;
+  const cut = d.name.slice(0, room + 1);
+  return `${cut.slice(0, cut.lastIndexOf(' ')).replace(/[\s,;:(–-]+$/, '')} | ${SITE.name}`;
 }
 
 /** Up to 160 characters: whole sentences where possible, else cut at a word with an ellipsis. */

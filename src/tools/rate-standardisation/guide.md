@@ -31,6 +31,8 @@ Comparing death or disease rates between places or years is misleading when thei
 
 For study and teaching, not medical advice. Check with a qualified professional.
 
+Compare two groups with the [[odds-risk-ratio|odds ratio and risk ratio calculator]], and draw an outbreak with the [[epi-curve|epidemic curve]] tool.
+
 ## How to use it
 
 1. Choose **Crude rate**, **Direct** or **Indirect (SMR)**, and the unit (per 100 to per 100 000) and confidence level.

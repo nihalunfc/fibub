@@ -31,6 +31,8 @@ This tool converts between the three and gives you a chart (odontogram) to mark 
 
 For study and teaching, not medical advice. Check with a qualified professional.
 
+Hearing and eyesight have their own charts: the [[audiogram|audiogram plotter]] and the [[visual-acuity-converter]].
+
 ## How to use it
 
 1. Choose **Permanent** or **Primary** teeth and how to **label** them (FDI, Universal or Palmer). The chart is drawn as you face the patient: the patient's right is on your left.

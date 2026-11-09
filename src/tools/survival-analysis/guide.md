@@ -26,6 +26,8 @@ flow:
 
 Survival analysis studies how long it takes until something happens: death, relapse, a machine breaking, a student dropping out. The difficulty is **censoring**: some people leave the study or are still well at the end, so we know only that their time is *at least* so long. This tool handles that properly. Paste one row per subject and it draws the **Kaplan-Meier curve** for each group, gives the **median survival** with its confidence interval, a **number-at-risk** table, the **log-rank test** of whether the groups differ, and a **Cox proportional hazards model** with hazard ratios. It all runs in your browser; nothing is uploaded.
 
+To pool hazard ratios from several studies, use the [[meta-analysis]] tool; to plan the trial size, the [[sample-size|sample size calculator]].
+
 ## How to use it
 
 1. Paste or open a file with one row per subject: **time**, **event** (1 = the event happened, 0 = censored; yes/no and dead/alive work too), then the **group** and any numeric **covariates** such as age. A header row is optional and names the covariates.

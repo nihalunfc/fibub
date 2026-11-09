@@ -28,6 +28,8 @@ A transfection is easy to describe and fiddly to set up: six constructs in tripl
 
 It works for lipid and polymer reagents that are mixed with DNA in a diluent (often serum-free medium) and then added to cells. It does not hold any kit's numbers: the starting amounts are rounded values made up by fibub, so type in what your reagent's instructions say.
 
+For a plain plate layout of standards and samples, use the [[plate-layout|plate layout designer]]; to count the cells you seed, the [[hemocytometer]].
+
 ## How to use it
 
 1. **Plate and amounts per well.** Choose 6, 12, 24, 48, 96 or 384 wells. The amounts change to rounded starting values for that size. Then set:

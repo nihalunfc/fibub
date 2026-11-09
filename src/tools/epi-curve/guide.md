@@ -32,6 +32,8 @@ The epidemic curve is the first picture drawn in any outbreak investigation: the
 
 For study and teaching, not medical advice. Check with a qualified professional.
 
+Compare exposed and unexposed groups with the [[odds-risk-ratio|odds ratio and risk ratio calculator]], and model how the outbreak could grow with the [[epidemic-model|epidemic model simulator]].
+
 ## How to use it
 
 1. Paste one onset per line as YYYY-MM-DD (add a time such as 2026-06-10 14:30 if you have one), or a date, a comma and a number of cases. Or open a CSV or Excel file.

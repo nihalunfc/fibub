@@ -35,6 +35,8 @@ HACCP (Hazard Analysis and Critical Control Points) is the usual way food busine
 
 The summary lists what is still missing (for example a CCP without a corrective action, or a hazard on a step you have since removed), and shows the hazard analysis and the HACCP plan as tables. Download it as a PDF or Word file to print, an image, or a CSV to open in a spreadsheet.
 
+Work out the critical limits with the [[thermal-process-calculator|thermal processing F-value calculator]] and the [[shelf-life-estimator|shelf-life estimator]].
+
 ## How to use it
 
 - Write the steps first; each hazard then picks its step from a list.

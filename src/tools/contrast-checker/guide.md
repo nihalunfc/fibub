@@ -28,6 +28,8 @@ flow:
 
 Text is hard to read when it is too close in lightness to its background, especially for people with low vision, older eyes, colour vision deficiency, or anyone reading a phone in sunlight. The Web Content Accessibility Guidelines (WCAG) measure this with a **contrast ratio** from 1:1 (no contrast) to 21:1 (black on white). This page works out the ratio for your colours, tells you which WCAG levels they pass, suggests the nearest colours that do pass, shows them as people with each colour vision deficiency would roughly see them, and scores how easy your text is to read.
 
+To see how the same colours look with colour blindness, use the [[colour-vision-simulator]].
+
 ## How to use it
 
 1. Enter the **text colour** and the **background** as a hex code (#1a2b3c or the short #abc) or rgb(26, 43, 60), or use the colour pickers. **Swap** exchanges them.

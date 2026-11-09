@@ -29,6 +29,8 @@ This simulator runs the classic compartmental models of an infectious disease ou
 
 It is a **teaching model, not a forecast**. Real outbreaks depend on age, contact patterns, place, testing and behaviour, which these simple models leave out. Use it to learn how the ideas fit together, not to predict a real epidemic.
 
+For the vaccine coverage that stops spread, use the [[herd-immunity|herd immunity calculator]]; to draw a real outbreak from onset dates, the [[epi-curve|epidemic curve]] tool.
+
 ## How to use it
 
 1. Choose the **model**. SIR has no latent stage. SEIR adds one, which slows the outbreak. SEIRS lets immunity wear off, so the disease can come back in waves and settle at a steady level.

@@ -28,6 +28,8 @@ Lab results come in two systems. The United States and some other countries repo
 
 This converter does it for glucose, total, HDL and LDL cholesterol, triglycerides, creatinine, urea, urea nitrogen (BUN), uric acid, calcium, magnesium, phosphate, bilirubin and HbA1c. It does not use a list of factors copied from somewhere: it works each factor out from the chemical formula and the standard atomic weights, and shows you the molar mass and the factor it used, so you can check it by hand.
 
+For a blood gas, use the [[acid-base-interpreter]]; for kidney function from creatinine, the [[kidney-function|kidney function calculator]].
+
 ## How to use it
 
 1. Choose the **test**. The usual conventional unit is picked as From and the usual SI unit as To.

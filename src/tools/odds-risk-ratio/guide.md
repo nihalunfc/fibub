@@ -35,6 +35,8 @@ For several strata it gives the **Mantel-Haenszel OR** (and RR for cohorts) with
 
 For study and teaching, not medical advice. Check with a qualified professional.
 
+Turn the risk difference into a number needed to treat with the [[nnt-calculator]], and pool several studies with the [[meta-analysis]] tool.
+
 ## How to use it
 
 1. Choose **One table** or **Strata**.

@@ -27,6 +27,8 @@ flow:
 
 Kidney function is usually described by the **glomerular filtration rate (GFR)**: how much blood plasma the kidneys filter each minute. It is rarely measured directly. Instead it is estimated from blood tests, mainly **serum creatinine** and sometimes **cystatin C**, with equations fitted on people whose GFR was measured. This page works out the main teaching equations side by side, shows the **KDIGO G stage**, and draws how eGFR falls as creatinine rises for the person's age and sex. It is for study and teaching, not medical advice.
 
+Body surface area for the indexed result comes from the [[body-measures|body measures calculator]]; to convert creatinine between units, use the [[lab-unit-converter]].
+
 ## How to use it
 
 1. Type the **age** (18 or over: these are adult equations) and choose the **sex**.

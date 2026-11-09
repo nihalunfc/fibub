@@ -35,6 +35,8 @@ Most lab solutions are written once as a recipe (20 mM Tris, 150 mM salt, 10 % g
 
 Units: g/L, mg/L, µg/L, mg/mL, µg/mL, % w/v, M, mM, µM, % v/v, mL/L, µL/mL and X (as in a 10X buffer).
 
+For single stocks and dilutions, use the [[solution-calculator]]; for a buffer at a set pH, the [[buffer-recipe-calculator]].
+
 ## How to use it
 
 1. **Recipe.** Start from an example or *Start empty*. For each component, type its name, its final amount and unit, and how it is added: *Weigh* (a solid, or anything you weigh), *Neat* (a liquid measured by volume, such as glycerol) or *Stock* (a solution you already have; then give its strength and unit).

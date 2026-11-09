@@ -34,6 +34,8 @@ A structure file lists where every atom of a protein (or DNA, RNA and any bound 
 - **Distances**: tap two atoms in the view, tap two letters in a sequence, or pick two residues from the lists.
 - **Contacts**: every pair of residues with any atoms closer than a cutoff, with the closest pair of atoms, as a table and a CSV.
 
+Check the backbone angles with the [[ramachandran-plot]], and the sequence's mass and pI with the [[protein-calculator|protein parameter calculator]].
+
 ## How to use it
 
 1. Press **Open a PDB or mmCIF file** (or drop the file on the view, or paste its text). Files ending .pdb, .ent, .cif and gzipped .gz all work.

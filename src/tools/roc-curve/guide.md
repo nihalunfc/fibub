@@ -26,6 +26,8 @@ flow:
 
 A blood test, a score or a scan measurement is only useful if it separates people who have a condition from those who do not. The **ROC curve** (receiver operating characteristic) shows how well it does this at every possible cut-off: each point is the **sensitivity** (share of true cases the test catches) against **1 − specificity** (share of people without the condition who are wrongly flagged). The **area under the curve (AUC)** sums this up in one number from 0.5 (no better than a coin toss) to 1 (perfect). This tool draws the curve, gives the AUC with a **DeLong confidence interval**, finds the **Youden cut-off**, lists sensitivity, specificity, PPV, NPV and likelihood ratios at every cut-off, and compares two markers measured on the same people with **DeLong's test**. Everything runs in your browser.
 
+Read the predictive values at your chosen cut-off with the [[diagnostic-test-calculator]], and plan the study size with the [[sample-size|sample size calculator]].
+
 ## How to use it
 
 1. Paste or open a file with one row per subject: the **true outcome** (1/0, or two words such as *case* and *control*), then one or two **marker** columns. A header row names the markers.

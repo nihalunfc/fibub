@@ -29,6 +29,8 @@ DICOM is the file format of medical imaging: CT, MRI, X-ray, ultrasound and nucl
 
 It is a study and teaching tool, not a diagnostic workstation. It is not certified for diagnosis, and a screen in a browser is not a reading room.
 
+Before you send scans to anyone, remove the names with the [[dicom-anonymiser]]; for astronomy images in FITS, use the [[fits-viewer]].
+
 ## How to use it
 
 1. **Choose DICOM files** or drop them on the box. One file opens as an image. To see a whole series, choose all its slices at once (on a computer, select every file in the folder). The viewer sorts the slices by their position in the body, not by file name, so the order is right even when the files are numbered oddly. If the files hold more than one series, the largest is shown and the page says so.

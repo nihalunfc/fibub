@@ -36,6 +36,8 @@ Excavation records place every find, sample and level on the site grid. This pag
 
 Nothing is stored or sent. Points live only in this page, so download the CSV or the PDF sheet before you close it.
 
+Reduce the levels with the [[level-book-reducer]], and order the contexts with the [[harris-matrix-builder]].
+
 ## Worked example
 
 Press **Use the example**. It sets a made-up grid with origin E 1000, N 5000 and 5 m squares, Trench 1 of 4 × 2 m with its south-west corner at E 1012, N 5021, a datum of 100 m with a backsight of 1.42 m (height of instrument 101.420 m), and the origin at 45.5° N, 73.6° W. Six points are added:

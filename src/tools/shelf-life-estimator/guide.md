@@ -31,6 +31,8 @@ Food spoils faster when it is warm. This page does three related sums for planni
 - **Fit Q10 and the activation energy** from accelerated tests: store the product at two or more raised temperatures, find when it fails at each, and paste the results. The page fits two models to ln(shelf life): a straight line against temperature (the Q10 model) and a straight line against 1/T in kelvin (the Arrhenius model, which gives the activation energy Ea). It then predicts the shelf life at the temperature you choose with both.
 - **Water activity** (a<sub>w</sub>), the part of a food's water that is free for microbes and reactions. It equals the equilibrium relative humidity (ERH) divided by 100. For a sugar or salt solution you can also estimate it with a Norrish-type equation, a<sub>w</sub> = x<sub>w</sub>·exp(−K·x<sub>s</sub>²), where x are mole fractions and K is a constant for the solute that you enter from your own reference. With K = 0 it is Raoult's law.
 
+For heat treatment of the same product, use the [[thermal-process-calculator|thermal processing F-value calculator]]; to write it into a food safety plan, the [[haccp-plan-builder]].
+
 ## How to use it
 
 1. Type a known shelf life, its temperature, a Q10 and the new temperature. The time unit is only a label.

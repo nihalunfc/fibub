@@ -32,6 +32,8 @@ Weighing animals regularly tells you whether they are growing as planned. This t
 - **Growth curves**: the Gompertz, logistic and von Bertalanffy curves, fitted by nonlinear least squares. Each gives a **mature weight** A (the weight the curve levels off at), a growth **rate k** per day, and the **inflection point**, the day and weight at which the animal grows fastest.
 - **Body condition score (BCS) trend**: if you give scores, a straight line through them shows whether condition is rising or falling, in points per 30 days.
 
+Set the feed behind the growth with the [[feed-ration-balancer]], and the next matings with the [[breeding-calendar]].
+
 ## How to use it
 
 1. Paste your weigh records, one weighing per line: the animal's name or tag, the date (2026-03-14) or the age in days, the weight, and if you have it, the body condition score on whatever scale you use. **Open a file** reads a CSV or Excel sheet with those columns.

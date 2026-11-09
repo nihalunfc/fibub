@@ -31,6 +31,8 @@ Mass spectrometry identifies proteins from the masses of their pieces. This calc
 - **Peptide mass fingerprint**: paste the m/z values you measured (for example from MALDI-TOF) and see which peaks match a peptide within your tolerance in ppm, and how much of the protein those peptides cover.
 - **Fragment ions**: the b, y and a ions of any peptide at charge 1+ to 3+, with water and ammonia losses if you want them, as a table and a stick picture. Use it to read an MS/MS spectrum by hand.
 
+For the whole protein's parameters, use the [[protein-calculator|protein parameter calculator]]; for isotope peaks of a small molecule, the [[isotope-pattern-calculator]].
+
 ## Options
 
 - **Enzyme**: trypsin (cuts after K and R, but not before P), trypsin ignoring the P rule, Lys-C, Arg-C, Glu-C, Asp-N, chymotrypsin (after F, Y and W) and cyanogen bromide (after M).

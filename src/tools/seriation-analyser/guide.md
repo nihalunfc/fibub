@@ -32,6 +32,8 @@ Seriation puts assemblages in a relative order when you have no dates: if potter
 - **Battleship plot**: each site's percentage of each type as a bar, in the seriated order. A good sequence looks like a row of ship hulls.
 - **Brainerd-Robinson similarity** between every pair of sites (200 = identical percentages, 0 = no types in common), shown in the seriated order, with a count of places where the order breaks the expected pattern of similarity falling away from the diagonal.
 
+Order the layers on site with the [[harris-matrix-builder]], and date them with [[radiocarbon-calibration]].
+
 ## How to use it
 
 Paste from a spreadsheet: a header row with type names, then one row per site with its name and counts. You can also open a CSV, TSV or Excel file. Blank cells count as 0. Sites or types with no finds at all are left out, with a note. You need at least three sites and three types.

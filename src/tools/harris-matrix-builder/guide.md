@@ -32,6 +32,8 @@ A Harris matrix shows the order in which the layers, cuts, fills and walls of a 
 - **Contemporary with**: two units formed at the same time are drawn on one level, joined by a dashed double line. If the rest of the sequence puts one above the other, the pair is flagged.
 - **Redundant relations**: if 5 is above 6 and 6 is above 7, then "5 above 7" is true but adds nothing. Harris's rule is to draw only direct relations, so these are removed (a transitive reduction) and listed, with the chain that implies each.
 
+Date the contexts with [[radiocarbon-calibration]], and order the finds by type with [[seriation-analyser|seriation]].
+
 ## How to use it
 
 Write one relation per line, in plain words: **above**, **over**, **overlies**, **covers**, **cuts**, **fills**, **seals** or **later than** all mean the first context is later; **below**, **under**, **cut by**, **filled by**, **covered by** or **earlier than** mean it is earlier. Use **same as** (or =) and **contemporary with** (or ~). You can also open a CSV or Excel sheet with three columns: context, relation, context. A line with a single number adds a context that has no relations yet.

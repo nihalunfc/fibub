@@ -33,6 +33,8 @@ A protein assay turns protein into colour. In a Bradford assay Coomassie dye shi
 - **Range checks.** Samples above the top standard, below the lowest standard, past the top of a quadratic, or at the blank are flagged in the table.
 - **Loading volumes.** Type an amount (20 µg for an SDS-PAGE lane, say) and an optional final volume, and the page gives the µL of each sample and of buffer to add.
 
+For a straight-line fit with LOD and LOQ, use the [[calibration-curve|calibration curve]] tool; for a reading at 280 nm instead, [[nucleic-acid-concentration|DNA, RNA and protein concentration]].
+
 ## How to use it
 
 1. **Standards.** One line per standard: the concentration, then each absorbance. Paste straight from a plate reader export or spreadsheet. A header line is fine.

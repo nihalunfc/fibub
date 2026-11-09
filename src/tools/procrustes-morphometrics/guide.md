@@ -35,6 +35,8 @@ What is left is shape. The tool then shows the **Procrustes distance** of each s
 
 Mirror images are never used to improve a fit: a left and a right side count as different shapes, so digitise one side, or mirror them yourself first.
 
+To estimate body mass from the same specimens, use the [[body-mass-estimator|allometric body mass estimator]]; to measure from a photo with a scale bar, the [[artefact-scale-tool|artefact measurement scale tool]].
+
 ## How to use it
 
 - **Paste or open landmarks.** TPS files (from tpsDig and many other programs) work as they are: `LM=` with the number of landmarks, one `x y` line per landmark, then `ID=` or `IMAGE=`. `SCALE=` is applied, so centroid sizes come out in real units. Curve points are left out. You can also paste a table with one specimen per row: a name, then x1, y1, x2, y2 and so on.

@@ -36,6 +36,8 @@ This page reads a structure file in your browser and:
 - shades three broad **guide regions** (right-handed helix α, β-sheet and extended, left-handed helix αL) and lists every residue that falls outside them, plus any **cis peptides** (ω near 0°);
 - gives a table of all residues, a CSV of the angles, and an image, PDF or Word report.
 
+To turn the structure in 3D, use the [[pdb-viewer]]; for the sequence's parameters, the [[protein-calculator|protein parameter calculator]].
+
 ## How to use it
 
 1. **Open a file.** Tap *Open a PDB or mmCIF file*, or paste the text of a PDB file. Both the old fixed-column PDB format and the newer mmCIF format work. Unzip `.gz` files first.

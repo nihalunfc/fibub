@@ -33,6 +33,8 @@ A fair field trial needs two things: replication (each treatment on several plot
 
 Each layout is checked after it is made: the page shows a green **Checked** label once it has confirmed that every treatment is in every block once (RCBD), in every row and column once (Latin square), or has the right number of plots (CRD).
 
+Decide how many replicates you need with the [[sample-size|sample size calculator]], and analyse the harvest with the [[yield-trial-anova|yield trial ANOVA]].
+
 ## How to use it
 
 1. Type your treatments, one per line. Names can be varieties, fertiliser rates, sowing dates or spray programmes.
