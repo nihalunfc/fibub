@@ -1,0 +1,117 @@
+---
+// GPS relativity explainer: gravitational and velocity clock-rate shifts of a navigation satellite against a ground
+// clock, the factory frequency offset, the eccentricity correction and the error without them. Orbit radii are rounded.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax gpr">
+  <div class="ax-card">
+    <h2>Satellite and receiver</h2>
+    <div class="ax-grid">
+      <label>Orbit <select class="gp-pre">
+        <option value="26560" selected>GPS (about 26,560 km)</option>
+        <option value="29600">Galileo (about 29,600 km)</option>
+        <option value="25510">GLONASS (about 25,510 km)</option>
+        <option value="42164">Geostationary (about 42,164 km)</option>
+        <option value="6780">Low orbit like a space station (about 6,780 km)</option>
+        <option value="">Custom</option>
+      </select></label>
+      <label><span>Orbit radius from Earth's centre (km)</span> <input class="gp-a" type="text" inputmode="decimal" value="26560" /></label>
+      <label><span>Orbit eccentricity e</span> <input class="gp-e" type="text" inputmode="decimal" value="0.01" /></label>
+      <label><span>Receiver latitude (°)</span> <input class="gp-lat" type="text" inputmode="decimal" value="0" /></label>
+      <label><span>Receiver height (m)</span> <input class="gp-h" type="text" inputmode="decimal" value="0" /></label>
+      <label><span>Satellite clock frequency (MHz)</span> <input class="gp-f" type="text" inputmode="decimal" value="10.23" /></label>
+    </div>
+    <p class="ax-help">The orbit radius is the semi-major axis (Earth's radius, about 6,371 km, plus the height). The preset radii are rounded. e describes how far the orbit is from a circle (navigation satellites have e below about 0.02). 10.23 MHz is the GPS clock's nominal frequency.</p>
+    <p class="ax-err gp-err" hidden></p>
+  </div>
+
+  <div class="ax-card gp-out">
+    <h2>Relativity, in numbers</h2>
+    <p class="ax-big gp-big"></p>
+    <dl class="ax-facts gp-facts"></dl>
+    <canvas class="ax-fig gp-fig"></canvas>
+    <canvas class="ax-fig gp-efig"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small gp-csv">Rates against orbit radius (CSV)</button></div>
+    <p class="ax-help">First-order (1/c²) weak-field formulas with Earth as a round point mass and a circular orbit for the steady rate. The real system also accounts for Earth's flattening, the exact geoid and the Sagnac effect of Earth's rotation during the signal's flight, which change these numbers by well under 1 %. For learning, not for navigation software.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { shift, satellite, eccAmp, balanceRadius, C } from '../../lib/sci/phgps';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, fmtExp, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.gpr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sg = (x: number, d = 3) => { if (Math.abs(x) < 1e-300) return '0'; const t = sig(x, d); return t.includes('×') || !t.includes('.') ? t : t.replace(/0+$/, '').replace(/\.$/, ''); };
+  const signed = (x: number, d = 3) => `${x >= 0 ? '+' : '−'}${sg(Math.abs(x), d)}`;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let figs: [string, Figure][] = [], report: Section[] = [], rows: (string | number)[][] = [];
+
+  function calc() {
+    const err = q('.gp-err'), out = q('.gp-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; figs = []; report = []; rows = []; };
+    const a = val('.gp-a') * 1000, e = val('.gp-e'), lat = val('.gp-lat'), h = val('.gp-h'), f0 = val('.gp-f') * 1e6;
+    if (!(a >= 6.5e6 && a <= 1e9)) return fail('Give the orbit radius from Earth\'s centre in km: at least 6,500 km (above the atmosphere).');
+    if (!(e >= 0 && e < 0.9)) return fail('Give an eccentricity from 0 (circle) to below 0.9.');
+    if (a * (1 - e) < 6.5e6) return fail('With this eccentricity the orbit dips into the atmosphere; lower e or raise the radius.');
+    if (!(Math.abs(lat) <= 90)) return fail('Give the receiver latitude between −90° and 90°.');
+    if (!(h >= -500 && h <= 1e5)) return fail('Give the receiver height in metres (−500 to 100,000).');
+    if (!(f0 > 0 && f0 < 1e12)) return fail('Give the clock frequency in MHz (above 0).');
+    err.hidden = true; out.hidden = false;
+    const s = shift(a, lat, h, f0), sat = satellite(a), amp = eccAmp(a, e), rb = balanceRadius(lat, h);
+    q('.gp-big').textContent = `Satellite clock ${s.net >= 0 ? 'gains' : 'loses'} ${sg(Math.abs(s.usPerDay.net), 3)} µs per day`;
+    const ff = s.fFactory / 1e6, dff = (s.fFactory - f0);
+    const f = [
+      fact('Gravity (general relativity)', `${signed(s.usPerDay.grav, 4)} µs/day`, 'weaker gravity up there: the satellite clock runs fast'),
+      fact('Speed (special relativity)', `${signed(s.usPerDay.vel, 3)} µs/day`, `orbiting at ${sg(sat.v / 1000, 4)} km/s, the clock runs slow (the receiver's own rotation is included)`),
+      fact('Net rate difference', `${signed(s.usPerDay.net, 4)} µs/day`, `fraction ${fmtExp(s.net, 4)}`),
+      fact('Set the clock on the ground to', `${ff.toFixed(Math.max(3, Math.min(14, Math.ceil(-Math.log10(ff * 1e-12)))))} MHz`, `${signed(dff, 3)} Hz from ${sg(f0 / 1e6, 6)} MHz, so it ticks at exactly ${sg(f0 / 1e6, 6)} MHz in orbit`),
+      fact('Error if ignored', `${sg(Math.abs(s.kmPerDay), 3)} km per day`, `the clock offset × the speed of light; about ${sg(Math.abs(s.kmPerDay) / 24 * 1000, 3)} m per hour`),
+      fact('Eccentricity correction', e > 0 ? `±${sg(amp * 1e9, 3)} ns` : 'none (circular)', e > 0 ? `(2/c²)√(GMa) e sin E, varying over each orbit: ±${sg(amp * C, 3)} m of range; receivers correct it` : 'it appears only for non-circular orbits'),
+      fact('Orbit', `period ${sg(sat.period / 3600, 4)} h`, `${sg((a / 1000 - 6371), 5)} km above the mean surface`),
+      fact('Break-even orbit', `${sg(rb / 1000, 4)} km radius`, 'below this the speed effect wins and orbiting clocks run slow'),
+    ];
+    q('.gp-facts').replaceChildren(...f);
+    const rs: number[] = []; for (let i = 0; i <= 200; i++) rs.push(6.5e6 * Math.pow(5e7 / 6.5e6, i / 200));
+    const sh = rs.map((r) => shift(r, lat, h, f0));
+    const c1 = chartFigure({ w: 380, h: 240, xLabel: 'Orbit radius (thousand km)', yLabel: 'Clock rate vs ground (µs/day)', legend: 'below', series: [
+      { name: 'Gravity', x: rs.map((r) => r / 1e6), y: sh.map((x) => x.usPerDay.grav), mode: 'line', width: 1.4, dash: [5, 3] },
+      { name: 'Speed', x: rs.map((r) => r / 1e6), y: sh.map((x) => x.usPerDay.vel), mode: 'line', width: 1.4, dash: [2, 2] },
+      { name: 'Net', x: rs.map((r) => r / 1e6), y: sh.map((x) => x.usPerDay.net), mode: 'line', width: 2.2 },
+    ], marks: [{ kind: 'hline', at: 0 }, { kind: 'vline', at: a / 1e6, dash: [3, 3], label: 'this orbit' }] }, 'Satellite clock rate against orbit radius');
+    figs = [['.gp-fig', c1]];
+    if (e > 0) {
+      const tt: number[] = [], dt: number[] = [];
+      for (let i = 0; i <= 240; i++) {
+        const M = (4 * Math.PI * i) / 240; let E = M;
+        for (let k = 0; k < 30; k++) E -= (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
+        tt.push((sat.period * i) / 240 / 3600 * 2); dt.push(amp * Math.sin(E) * 1e9);
+      }
+      const c2 = chartFigure({ w: 380, h: 200, xLabel: 'Time (hours), two orbits', yLabel: 'Eccentricity term (ns)', legend: 'none', series: [{ name: 'Δt', x: tt, y: dt, mode: 'line', width: 2 }], marks: [{ kind: 'hline', at: 0 }] }, 'Periodic eccentricity correction over two orbits');
+      figs.push(['.gp-efig', c2]); q('.gp-efig').hidden = false;
+    } else q('.gp-efig').hidden = true;
+    for (const [sl, fg] of figs) paint(q<HTMLCanvasElement>(sl), fg);
+    rows = [['orbit radius (km)', 'gravity (us/day)', 'speed (us/day)', 'net (us/day)'], ...rs.map((r, i) => [+(r / 1000).toFixed(3), +sh[i].usPerDay.grav.toPrecision(8), +sh[i].usPerDay.vel.toPrecision(8), +sh[i].usPerDay.net.toPrecision(8)])];
+    const fr = (d: Element) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string];
+    report = [{ title: q('.gp-big').textContent!, facts: [...q('.gp-facts').children].map(fr), figure: c1 }, ...(figs[1] ? [{ title: 'Eccentricity correction', figure: figs[1][1] }] : [])];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 100); };
+  q('.gp-pre').addEventListener('change', () => { const v = q<HTMLSelectElement>('.gp-pre').value; if (v) q<HTMLInputElement>('.gp-a').value = v; calc(); });
+  q('.gp-a').addEventListener('input', () => { const v = q<HTMLInputElement>('.gp-a').value.trim(); const s = q<HTMLSelectElement>('.gp-pre'); s.value = [...s.options].some((o) => o.value === v) ? v : ''; });
+  root.querySelectorAll('input').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  document.addEventListener('fibub:theme', () => { for (const [s, f] of figs) paint(q<HTMLCanvasElement>(s), f); });
+  q('.gp-csv').addEventListener('click', () => rows.length && save(new Blob([csv(rows)], { type: 'text/csv' }), 'gps-relativity.csv', 'text/csv'));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'GPS relativity', subtitle: `Orbit radius ${q<HTMLInputElement>('.gp-a').value} km`, file: 'gps-relativity', sections: report }));
+</script>
+
+<style is:global>
+  .gpr select, .gpr input { max-width: 100%; }
+</style>
