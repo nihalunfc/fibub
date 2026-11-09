@@ -1,0 +1,153 @@
+---
+// Ligation and assembly calculator: molar insert:vector ratios and pipetting volumes. The example fragments are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const frags = 'name,length (bp),conc (ng/µL),ratio\nVector,5400,62.5,1\nInsert A,1200,40,3\nInsert B,850,25,3\nLinker C,400,18,5';
+---
+<div class="ax lgc">
+  <div class="ax-card">
+    <h2>Reaction</h2>
+    <div class="ax-grid">
+      <label>Kind <select class="lg-kind">
+        <option value="lig" selected>Ligation (10× buffer + ligase)</option>
+        <option value="asm">Assembly (2× master mix, Gibson or HiFi style)</option>
+        <option value="own">My own set-up</option>
+      </select></label>
+      <label>Total volume (µL) <input class="lg-tot" inputmode="decimal" value="20" /></label>
+      <label>Buffer or master mix strength (×) <input class="lg-x" inputmode="decimal" value="10" /></label>
+      <label>Enzyme volume (µL) <input class="lg-enz" inputmode="decimal" value="1" /></label>
+      <label>Vector amount (ng) <input class="lg-vng" inputmode="decimal" value="50" /></label>
+    </div>
+    <p class="ax-help">The buffer takes total ÷ strength (2 µL of a 10× buffer in 20 µL; 10 µL of a 2× master mix). Enzyme is the separate ligase volume (0 when it is in the master mix). Follow your kit's amounts where they differ.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Fragments</h2>
+    <label>Name, length (bp), concentration (ng/µL) and molar ratio to the vector; the first row is the vector <textarea class="lg-data" rows="5" spellcheck="false">{frags}</textarea></label>
+    <DataFile target=".lg-data" maxCols={6} maxRows={50} />
+    <p class="ax-help">A ratio of 3 means three insert molecules per vector molecule (3:1). Molar amounts use the mass of linear double-stranded DNA of that length. Up to 50 fragments. The example is made up.</p>
+    <p class="ax-err lg-err" hidden></p>
+  </div>
+
+  <div class="ax-card lg-out">
+    <h2>What to pipette</h2>
+    <p class="ax-big lg-big"></p>
+    <dl class="ax-facts lg-facts"></dl>
+    <div class="ax-scroll"><table class="lg-tab"></table></div>
+    <canvas class="ax-fig lg-fig"></canvas>
+    <details class="lg-sd">
+      <summary>First insert at other ratios</summary>
+      <div class="ax-scroll"><table class="lg-rtab"></table></div>
+    </details>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small lg-csv">Download pipetting list (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { reaction, ngOf, type Frag } from '../../lib/sci/ligation';
+  import { OKABE_ITO } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (!Number.isFinite(x)) return '–'; if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const ul = (v: number) => (Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2));
+  const root = document.querySelector<HTMLElement>('.lgc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const isNum = (s: string | undefined) => s !== undefined && s.trim() !== '' && Number.isFinite(num(s));
+  const PRESET: Record<string, [string, string, string]> = { lig: ['20', '10', '1'], asm: ['20', '2', '0'] };
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function table(sel: string, head: string[], rows: string[][], right: number[] = []) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+
+  // One stacked bar of the reaction volume.
+  function barFigure(parts: { name: string; v: number }[], total: number): Figure {
+    return {
+      w: 720, h: 200, alt: `Reaction volume of ${sg(total, 3)} µL split into ${parts.map((p) => `${p.name} ${ul(p.v)} µL`).join(', ')}`,
+      draw(ctx, W, H, pal) {
+        const fs = 20 * (W / 640), cols = pal.red ? ['#a30000', '#7a0000', '#c00000', '#5a0000'] : pal.bg === '#ffffff' ? OKABE_ITO : ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4', '#f0e442', '#9ecae1'];
+        ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+        const L = fs * 0.5, R = W - fs * 0.5, T = fs * 0.6, B = T + fs * 2.4, X = (v: number) => L + ((R - L) * v) / total;
+        let x = 0;
+        parts.forEach((p, i) => { if (p.v <= 0) return; ctx.fillStyle = p.name === 'Water' ? pal.grid : cols[i % cols.length]; ctx.fillRect(X(x), T, X(x + p.v) - X(x), B - T); ctx.strokeStyle = pal.bg; ctx.lineWidth = 2; ctx.strokeRect(X(x), T, X(x + p.v) - X(x), B - T); x += p.v; });
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.strokeRect(L, T, R - L, B - T);
+        ctx.font = `${fs * 0.8}px system-ui, sans-serif`; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+        let lx = L, ly = B + fs * 1.1;
+        parts.forEach((p, i) => { if (p.v <= 0) return; const t = `${p.name} ${ul(p.v)}`, w = fs + ctx.measureText(t).width + fs * 0.8; if (lx + w > R) { lx = L; ly += fs * 1.2; } ctx.fillStyle = p.name === 'Water' ? pal.grid : cols[i % cols.length]; ctx.fillRect(lx, ly - fs * 0.35, fs * 0.7, fs * 0.7); ctx.fillStyle = pal.ink; ctx.fillText(t, lx + fs, ly); lx += w; });
+      },
+    };
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.lg-err').textContent = m; q('.lg-err').hidden = false; q('.lg-out').hidden = true; fig = null; sections = []; csvRows = []; };
+    q('.lg-err').hidden = true;
+    const total = val('.lg-tot'), x = val('.lg-x'), enz = val('.lg-enz'), vng = val('.lg-vng');
+    if (!(total > 0 && total <= 1000)) return fail('Give the total volume in µL (above 0, up to 1,000).');
+    if (!(x >= 1 && x <= 100)) return fail('Give the buffer strength as a number such as 10 (for 10×) or 2 (for 2×); 1 means no separate buffer volume.');
+    if (!(enz >= 0 && enz < total)) return fail('Give the enzyme volume in µL (0 or more, less than the total).');
+    if (!(vng > 0 && vng <= 1e5)) return fail('Give the vector amount in ng (above 0).');
+    const rows = parseTable(q<HTMLTextAreaElement>('.lg-data').value).filter((r) => r.some((c) => c.trim() !== '')).filter((r) => r.slice(1).some((c) => isNum(c)) || r.every((c) => isNum(c)));
+    if (rows.length < 2) return fail('Give the vector and at least one insert: name, length (bp), concentration (ng/µL), ratio.');
+    if (rows.length > 50) return fail('Up to 50 fragments, please.');
+    const named = rows.some((r) => !isNum(r[0])), o = named ? 1 : 0;
+    const frags: Frag[] = [];
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i], bp = num(r[o]), c = num(r[o + 1]), ra = isNum(r[o + 2]) ? num(r[o + 2]) : i === 0 ? 1 : NaN, nm = named ? (r[0] ?? '').trim() || `Fragment ${i + 1}` : i === 0 ? 'Vector' : `Insert ${i}`;
+      if (!(bp >= 10 && bp <= 1e6)) return fail(`${nm}: give the length in bp (10 or more).`);
+      if (!(c > 0 && c <= 1e5)) return fail(`${nm}: give the concentration in ng/µL (above 0).`);
+      if (i > 0 && !(ra > 0 && ra <= 100)) return fail(`${nm}: give the molar ratio to the vector (above 0, such as 3 for 3:1).`);
+      frags.push({ name: nm, bp, conc: c, ratio: ra });
+    }
+    const bufFrac = x === 1 ? 0 : 1 / x, rr = reaction(frags, vng, { total, bufferFraction: bufFrac, enzyme: enz });
+    if (rr.room <= 0) return fail('The buffer and enzyme already fill the reaction. Raise the total volume.');
+    q('.lg-out').hidden = false;
+    q('.lg-big').textContent = rr.fits ? `${ul(rr.dna)} µL DNA + ${ul(rr.water)} µL water in ${sg(total, 4)} µL` : `Too much DNA: ${ul(rr.dna)} µL, but only ${ul(rr.room)} µL free`;
+    const tiny = rr.rows.filter((r) => r.vol < 0.5);
+    q('.lg-facts').replaceChildren(
+      fact('Vector', `${sg(vng, 4)} ng = ${sg(rr.rows[0].pmol * 1000, 3)} fmol`, `${sg(frags[0].bp, 6)} bp`),
+      fact('All DNA', `${sg(rr.totalNg, 3)} ng, ${sg(rr.totalPmol, 3)} pmol`, `${rr.rows.length} fragments`),
+      ...(!rr.fits ? [fact('To fit', `use at most ${sg(rr.maxVectorNg, 3)} ng of vector`, 'or concentrate the DNA, or raise the total volume')] : [fact('Room', `up to ${sg(rr.maxVectorNg, 3)} ng of vector would fit`, 'at these ratios and concentrations')]),
+      ...(tiny.length ? [fact('Small volumes', `${tiny.map((r) => r.name).join(', ')} under 0.5 µL`, `dilute ${tiny.length > 1 ? 'them' : 'it'} first, e.g. ${tiny.map((r) => `${r.name} ${Math.ceil(1 / r.vol)}-fold`).join(', ')}, for at least 1 µL`)] : []),
+    );
+    const head = ['Add', 'µL', 'ng', 'fmol', 'Ratio', 'Length (bp)'];
+    const trs: string[][] = [
+      ...(bufFrac ? [[`Buffer (${sg(x, 3)}×)`, ul(rr.buffer), '', '', '', '']] : []),
+      ['Water', rr.fits ? ul(rr.water) : '–', '', '', '', ''],
+      ...rr.rows.map((r, i) => [r.name, ul(r.vol), sg(r.ng, 3), sg(r.pmol * 1000, 3), i === 0 ? 'vector' : `${sg(r.ratio, 3)}:1`, String(r.bp)]),
+      ...(enz > 0 ? [['Enzyme', ul(enz), '', '', '', '']] : []),
+      ['Total', sg(total, 4), '', '', '', ''],
+    ];
+    table('.lg-tab', head, trs, [1, 2, 3, 4, 5]);
+    const parts = [...(bufFrac ? [{ name: 'Buffer', v: rr.buffer }] : []), ...rr.rows.map((r) => ({ name: r.name, v: r.vol })), ...(enz > 0 ? [{ name: 'Enzyme', v: enz }] : []), ...(rr.fits ? [{ name: 'Water', v: rr.water }] : [])];
+    fig = barFigure(parts, Math.max(total, parts.reduce((a, p) => a + p.v, 0)));
+    paint(q<HTMLCanvasElement>('.lg-fig'), fig);
+    const ins = rr.rows[1];
+    table('.lg-rtab', ['Ratio', 'ng', 'µL'], [1, 2, 3, 5, 7, 10].map((k) => { const ng = ngOf(rr.rows[0].pmol * k, ins.bp); return [`${k}:1`, sg(ng, 3), ul(ng / ins.conc)]; }), [1, 2]);
+    q('.lgc .lg-sd summary').textContent = `${ins.name} at other ratios`;
+    csvRows = [['add', 'ul', 'ng', 'fmol', 'ratio', 'length_bp'], ...trs.map((r) => r.map((c) => c.replace('–', '')))];
+    sections = [{ title: q('.lg-big').textContent!, facts: [...q('.lg-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig, table: { head, rows: trs, align: ['l', 'r', 'r', 'r', 'r', 'r'] } }];
+  }
+
+  q('.lg-kind').addEventListener('change', () => { const p = PRESET[q<HTMLSelectElement>('.lg-kind').value]; if (p) { q<HTMLInputElement>('.lg-tot').value = p[0]; q<HTMLInputElement>('.lg-x').value = p[1]; q<HTMLInputElement>('.lg-enz').value = p[2]; } });
+  ['.lg-tot', '.lg-x', '.lg-enz'].forEach((c) => q(c).addEventListener('input', () => { q<HTMLSelectElement>('.lg-kind').value = 'own'; }));
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.lg-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'reaction-setup.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.lg-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Ligation and assembly set-up', subtitle: q('.lg-big').textContent ?? '', file: 'reaction-setup', sections }));
+</script>
+
+<style is:global>
+  .lgc select { max-width: 100%; }
+  .lgc .lg-sd { margin-top: 14px; }
+  .lgc .lg-sd summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+</style>

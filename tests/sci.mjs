@@ -149,6 +149,7 @@ import * as LCA from '../src/lib/sci/lca.ts';
 import * as SQ from '../src/lib/sci/seqtools.ts';
 import * as NC from '../src/lib/sci/nucconc.ts';
 import * as QP from '../src/lib/sci/qpcr.ts';
+import * as LG from '../src/lib/sci/ligation.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2950,6 +2951,20 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   const two = QP.relative(W, ['REF', 'REF2'], 'Ctrl').rows.find((r) => r.sample === 'Drug');
   near('qp two refs', two.nrq, 4.48984819323749, 1e-12); near('qp two refs sd', two.sdLog2, 0.1683250823060347, 1e-12);
   check('qp missing ref skipped', QP.relative(W.filter((w) => w.gene !== 'REF2' && !(w.sample === 'Drug' && w.gene === 'REF')), ['REF'], 'Ctrl').rows.length === 1);
+}
+// #166 ligation / assembly: checked against an independent Python calculation from the same residue masses.
+{
+  near('lg vector pmol', LG.pmol(50, 5400), 0.014984907366134812, 1e-15);
+  near('lg ng round trip', LG.ngOf(LG.pmol(33, 1200), 1200), 33, 1e-12);
+  near('lg simple', LG.insertNgSimple(50, 5400, 1200, 3), 33.333333333333336, 1e-12);
+  const frags = [{ name: 'V', bp: 5400, conc: 62.5, ratio: 1 }, { name: 'A', bp: 1200, conc: 40, ratio: 3 }, { name: 'B', bp: 850, conc: 25, ratio: 3 }, { name: 'C', bp: 400, conc: 18, ratio: 5 }];
+  const r = LG.reaction(frags, 50, { total: 20, bufferFraction: 0.1, enzyme: 1 });
+  near('lg insert A ng', r.rows[1].ng, 33.33459311449561, 1e-10); near('lg insert B vol', r.rows[2].vol, 0.9444990349614764, 1e-12);
+  near('lg insert C pmol', r.rows[3].pmol, 0.07492453683067406, 1e-15); near('lg dna vol', r.dna, 3.6068093119525715, 1e-12);
+  near('lg water', r.water, 13.39319068804743, 1e-12); near('lg max vector', r.maxVectorNg, 235.66535585432615, 1e-9); check('lg fits', r.fits);
+  const a = LG.reaction(frags, 50, { total: 20, bufferFraction: 0.5, enzyme: 0 });
+  near('lg assembly water', a.water, 6.3931906880474285, 1e-12);
+  check('lg does not fit', !LG.reaction(frags, 400, { total: 20, bufferFraction: 0.5, enzyme: 0 }).fits);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
