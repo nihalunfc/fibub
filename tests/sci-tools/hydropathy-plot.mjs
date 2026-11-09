@@ -1,0 +1,33 @@
+// #182 Hydropathy plot: window means, GRAVY and transmembrane segments checked against Biopython
+// (ProteinAnalysis.protein_scale with fibub's rounded scale, edge 1.0) and a NumPy convolution, on the example
+// protein and four random proteins (two with planted water-repelling stretches).
+import { SCALE_FIBUB, parseScale, windowAverages, gravy, tmSegments, missing, values, EXAMPLE_PROTEIN, AA } from '../../src/lib/sci/hydropathy.ts';
+import { readProtein } from '../../src/lib/sci/protparam.ts';
+
+const REF = [{"seq": "MSDNKTPEQRGSDEKPNTSQDRKGEFTPSNWLAVLIGFAVLLSVIAFGLRKDNSEPQTGKRDYESGKTWAAFVLLIGSMVAVLCFIAPRNEDKTSGQEPHRDNYKPSELFVGLAIVLAWLIFSAVVGLTMKDREQSNPKTEGHDSRKE", "gravy": -0.47297297297297297, "sum9": -51.22222222222222, "sq19": 370.52423822714684, "w9": [[0, -2.111111111111111], [46, -1.5], [139, -2.6666666666666665]], "w19": [[0, -2.236842105263158], [65, 1.8157894736842106], [129, -2.6842105263157894]], "segs": [[26, 52, 2.6315789473684212], [65, 90, 2.5789473684210527], [105, 132, 2.6315789473684204]]}, {"seq": "FPCDVENWCTHCDQQDIDVQCWEIWCWWPCICVFLQFVEWLVGEWWHNEVDWCYHSVQMRWRNLIGIDWLTSMRLYDETQGMFSQCDVWMMNYSWRDDKSDCLWRLPNARNGYESCHLFIPPSDGRPVKFQVKQNPIFDGFIIASWGKLAFQVNYWMFTYCRVPPPPESPCHDHRGEMYCEAWFVENYADHYPFKNYNSEESRSS", "gravy": -0.5097560975609756, "sum9": -96.88888888888889, "sq19": 132.15304709141273, "w9": [[0, -0.1111111111111111], [65, -0.05555555555555555], [196, -2.2777777777777777]], "w19": [[0, -0.5789473684210527], [93, -1.5], [186, -1.9736842105263157]], "segs": []}, {"seq": "DFEMKSGTAHTNFVATLDKTNGNIVVTMIYHIPIHTSNAAKSKHYNRNNDIEISHMHSYYASNDEPHSGQMDPRPDGGFAFWRFYYSNFVVFAAETFQHHAKHLTIWMKVQFCNRWTQTFVFTTARGYAFGFSYEVCMTTVSEVCIHKCETRVADRMYTYTHKRTVSTITKVHRFQEPRMDIQDHLEFNFKFRIEPSGI", "gravy": -0.45979899497487436, "sum9": -88.61111111111111, "sq19": 140.48614958448752, "w9": [[0, -0.6666666666666666], [63, -2.0], [190, -0.3333333333333333]], "w19": [[0, -0.42105263157894735], [90, 0.02631578947368421], [180, -0.47368421052631576]], "segs": []}, {"seq": "QTPMQHNMDNAMVRRAPMTYLTDEIEDKKCLIVAFLLVIAGLFVMLAVIWGKFQKPFVTWSMDKCGQDKADKDYIDKERAMVQKYFCTIEGKCGHLLTHLRTGKNAKCAAAVLLIFGAVLIVLAFTVHTSIREQSVPTLHIMHFPNCFADKQGCDPT", "gravy": 0.16560509554140126, "sum9": 37.72222222222222, "sq19": 238.43628808864267, "w9": [[0, -1.6666666666666667], [49, -0.5], [148, -1.3888888888888888]], "w19": [[0, -0.9210526315789473], [69, -0.9210526315789473], [138, -0.23684210526315788]], "segs": [[25, 55, 3.31578947368421], [103, 132, 2.947368421052632]]}, {"seq": "YILCRGGKRAKNMVMICLHNGAMPDSKTHILIVAFLLVIAGLFVMLAVIWTADKDFPWCPALLIDWTFYPMSFLYFCTQTFTTWAWIDACFNEPRVCAVISKARDTVDTDAVLLIFGAVLIVLAFSKDKIHIRSPDSLCYHDYFMKLYWFASCSKEHSLTLRRREVHLDSALRDTRKPHHDWDFTKNFYTKENISSPAGASRPLFQNPMEMAMMPEHAL", "gravy": 0.18949771689497716, "sum9": 36.166666666666664, "sq19": 263.0450138504155, "w9": [[0, -0.5], [70, 0.8888888888888888], [210, 0.6666666666666666]], "w19": [[0, 0.3157894736842105], [100, 0.631578947368421], [200, -0.21052631578947367]], "segs": [[22, 55, 3.3157894736842106], [105, 132, 2.368421052631579]]}];
+
+export default async (check) => {
+  const near = (a, b, tol = 1e-9) => Math.abs(a - b) <= tol;
+  check('hydropathy: scale has 20 values, all multiples of 0.5', AA.every((a) => Number.isFinite(SCALE_FIBUB[a]) && Number.isInteger(SCALE_FIBUB[a] * 2)) && Object.keys(SCALE_FIBUB).length === 20);
+  check('hydropathy: example reads as the first reference protein', readProtein(EXAMPLE_PROTEIN)[0].seq === REF[0].seq);
+  REF.forEach((r, k) => {
+    const s = r.seq, w9 = windowAverages(s, SCALE_FIBUB, 9), w19 = windowAverages(s, SCALE_FIBUB, 19);
+    check(`hydropathy: protein ${k} GRAVY matches Biopython/NumPy`, near(gravy(s, SCALE_FIBUB), r.gravy, 1e-12));
+    check(`hydropathy: protein ${k} window counts`, w9.avg.length === s.length - 8 && w19.avg.length === s.length - 18 && w9.pos[0] === 5 && w19.pos[0] === 10 && w19.pos.at(-1) === s.length - 9);
+    check(`hydropathy: protein ${k} window-9 means match Biopython`, near(w9.avg.reduce((a, b) => a + b, 0), r.sum9, 1e-9) && r.w9.every(([i, v]) => near(w9.avg[i], v, 1e-12)));
+    check(`hydropathy: protein ${k} window-19 means match Biopython`, near(w19.avg.reduce((a, b) => a + b * b, 0), r.sq19, 1e-9) && r.w19.every(([i, v]) => near(w19.avg[i], v, 1e-12)));
+    const segs = tmSegments(s, SCALE_FIBUB, 19, 1.6);
+    check(`hydropathy: protein ${k} transmembrane segments match NumPy (${segs.map((x) => `${x.start}-${x.end}`).join(', ') || 'none'})`, segs.length === r.segs.length && segs.every((x, i) => x.start === r.segs[i][0] && x.end === r.segs[i][1] && near(x.peak, r.segs[i][2], 1e-12) && x.length === x.end - x.start + 1 && x.seq.length === x.length));
+  });
+  // Worked by hand: window 3 over "IVK" -> (4.5 + 4 - 4) / 3 = 1.5 drawn at residue 2.
+  { const w = windowAverages('IVKR', SCALE_FIBUB, 3); check('hydropathy: hand example IVKR window 3', near(w.avg[0], 1.5) && near(w.avg[1], (4 - 4 - 4.5) / 3) && w.pos.join() === '2,3'); }
+  check('hydropathy: window 1 is the scale itself', windowAverages('AR', SCALE_FIBUB, 1).avg.join() === '2,-4.5');
+  check('hydropathy: window longer than the protein gives nothing', windowAverages('AILV', SCALE_FIBUB, 9).avg.length === 0 && tmSegments('AILV', SCALE_FIBUB).length === 0);
+  check('hydropathy: threshold is strictly above', tmSegments('L'.repeat(19), SCALE_FIBUB, 19, 4).length === 0 && tmSegments('L'.repeat(19), SCALE_FIBUB, 19, 3.99).length === 1);
+  check('hydropathy: two runs a residue apart join', tmSegments('I'.repeat(19) + 'R'.repeat(19) + 'I'.repeat(19), SCALE_FIBUB, 19, 1.6).length === 2 && tmSegments('I'.repeat(25), SCALE_FIBUB, 19, 1.6)[0].end === 25);
+  { const m = missing('AUUO', SCALE_FIBUB); check('hydropathy: letters with no value are listed and count as 0 in windows', m.U === 2 && m.O === 1 && Number.isNaN(values('U', SCALE_FIBUB)[0]) && near(windowAverages('AUA', SCALE_FIBUB, 3).avg[0], 4 / 3) && near(gravy('AUA', SCALE_FIBUB), 2)); }
+  check('hydropathy: GRAVY of nothing is NaN', Number.isNaN(gravy('', SCALE_FIBUB)));
+  { const p = parseScale('A 1.8\nArg, -4.5\n# note\nL:3.8\nv=4.2\nC\t−2.5'); check('hydropathy: pasted scale, one- and three-letter codes, many separators, minus sign', p.errors.length === 0 && p.scale.A === 1.8 && p.scale.R === -4.5 && p.scale.L === 3.8 && p.scale.V === 4.2 && p.scale.C === -2.5); }
+  { const p = parseScale(AA.map((_, i) => i).join(' ')); check('hydropathy: 20 numbers on one line in A C D ... Y order', p.scale.A === 0 && p.scale.Y === 19 && p.scale.K === 8 && p.errors.length === 0); }
+  { const p = parseScale('Xyz 1\nA\nB 2\nAl 3'); check('hydropathy: bad pasted lines are reported', p.errors.length === 4 && Object.keys(p.scale).length === 0); }
+};
