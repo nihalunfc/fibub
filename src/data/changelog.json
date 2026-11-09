@@ -1,5 +1,14 @@
 [
  {
+  "sha": "9b11799943b8",
+  "date": "2026-11-09T07:00:06+00:00",
+  "title": "Add shift scheduler (#174): weekly or monthly rota for small, medium and large teams, with image, PDF, Excel and Word downloads",
+  "tools": [
+   "shift-scheduler"
+  ],
+  "site": false
+ },
+ {
   "sha": "5417eeb39f45",
   "date": "2026-11-09T06:37:36+00:00",
   "title": "Add VCF viewer (#173): variant counts, Ti/Tv, quality and depth charts, filters",
