@@ -1,0 +1,185 @@
+---
+// 2D Ising model playground: Metropolis Monte Carlo on a square lattice, live view, and a temperature scan of
+// magnetisation, energy, heat capacity and susceptibility compared with Onsager's exact solution. All in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax isg">
+  <div class="ax-card">
+    <h2>Live lattice</h2>
+    <div class="ax-grid">
+      <label>Lattice size <select class="is-L"><option value="16">16 × 16</option><option value="32">32 × 32</option><option value="64" selected>64 × 64</option><option value="128">128 × 128</option></select></label>
+      <label>Temperature T (J/k<sub>B</sub>) <input class="is-T" type="text" inputmode="decimal" value="2" /></label>
+      <label>Magnetic field h (J) <input class="is-h" type="text" inputmode="decimal" value="0" /></label>
+      <label>Speed <select class="is-sp"><option value="1">1 sweep per frame</option><option value="5" selected>5 sweeps per frame</option><option value="20">20 sweeps per frame</option></select></label>
+      <label>Start from <select class="is-start"><option value="random" selected>random spins (hot)</option><option value="up">all spins up (cold)</option></select></label>
+    </div>
+    <input class="is-Ts" type="range" min="0.5" max="5" step="0.01" value="2" aria-label="Temperature slider" style="width:100%;margin-top:10px" />
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn small is-run">Run</button>
+      <button type="button" class="btn secondary small is-step">10 sweeps</button>
+      <button type="button" class="btn secondary small is-reset">Reset</button>
+    </div>
+    <p class="ax-err is-err" hidden></p>
+    <canvas class="is-lat" width="64" height="64" aria-label="Spins: dark up, light down"></canvas>
+    <dl class="ax-facts is-live" style="margin-top:10px"></dl>
+    <p class="ax-help">Each square is a spin, dark for up and light for down. Every sweep tries to flip each spin once on average (Metropolis rule: always if it lowers the energy, otherwise with probability e^(−ΔE/T)). Below Tc ≈ 2.269 domains grow and one direction wins; above it the spins stay mixed. Edges wrap around.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Temperature scan</h2>
+    <div class="ax-grid">
+      <label>Lattice size <select class="is-sL"><option value="8">8 × 8</option><option value="16" selected>16 × 16</option><option value="32">32 × 32</option><option value="48">48 × 48</option></select></label>
+      <label>Lowest T <input class="is-t0" type="text" inputmode="decimal" value="1.5" /></label>
+      <label>Highest T <input class="is-t1" type="text" inputmode="decimal" value="3.5" /></label>
+      <label>Temperatures <input class="is-nt" type="text" inputmode="numeric" value="41" /></label>
+      <label>Settling sweeps per T <input class="is-eq" type="text" inputmode="numeric" value="300" /></label>
+      <label>Measured sweeps per T <input class="is-ms" type="text" inputmode="numeric" value="5000" /></label>
+      <label>Field h <input class="is-sh" type="text" inputmode="decimal" value="0" /></label>
+      <label>Random seed <input class="is-seed" type="text" inputmode="numeric" value="1" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn small is-scan">Run the scan</button><span class="ax-help is-prog" style="margin:0"></span></div>
+    <p class="ax-help">The scan starts with all spins up at the lowest temperature and warms the same lattice step by step. Error bars are standard errors from 10 blocks of the measured sweeps. Bigger lattices and more sweeps give sharper peaks but take longer.</p>
+    <p class="ax-err is-serr" hidden></p>
+  </div>
+
+  <div class="ax-card is-out" hidden>
+    <h2>Scan results</h2>
+    <p class="ax-big is-big"></p>
+    <dl class="ax-facts is-facts"></dl>
+    <canvas class="ax-fig is-fm"></canvas>
+    <canvas class="ax-fig is-fc"></canvas>
+    <canvas class="ax-fig is-fe"></canvas>
+    <canvas class="ax-fig is-fx"></canvas>
+    <div class="ax-scroll"><table class="is-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small is-csv">Scan (CSV)</button></div>
+    <p class="ax-help">The lines are Onsager's exact results for an infinite lattice with no field. A finite lattice rounds off the sharp transition: its magnetisation never quite reaches zero, and the heat capacity peak is finite and sits a little above Tc.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { Lattice, rng, measure, onsager, TC, type Stats } from '../../lib/sci/phising';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, pagePalette, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.isg')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => num(inp(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+
+  // ---- Live lattice
+  let rand = rng(1), lat = new Lattice(64, 'random', rand), running = false, T = 2, h = 0;
+  const cv = q<HTMLCanvasElement>('.is-lat');
+  function draw() {
+    const L = lat.L; if (cv.width !== L) { cv.width = L; cv.height = L; }
+    const pal = pagePalette(), hex = (c: string) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
+    const up = hex(pal.ink), dn = hex(pal.bg === '#ffffff' ? '#dfe3ea' : pal.grid);
+    const ctx = cv.getContext('2d')!, img = ctx.createImageData(L, L);
+    for (let i = 0; i < lat.N; i++) { const c = lat.s[i] > 0 ? up : dn; img.data.set([c[0], c[1], c[2], 255], i * 4); }
+    ctx.putImageData(img, 0, 0);
+    const N = lat.N, om = onsager.m(T);
+    q('.is-live').replaceChildren(
+      fact('Sweeps', String(lat.sweeps)),
+      fact('Magnetisation m', sig(lat.M / N, 3), `Onsager |m| at this T: ${sig(om, 3)}${h ? ' (no field)' : ''}`),
+      fact('Energy per spin', sig(lat.E / N, 4), h ? 'including the field term' : `Onsager: ${sig(onsager.u(T), 4)}`),
+      fact('T / Tc', sig(T / TC, 3), T < TC ? 'ordered phase' : 'disordered phase'),
+    );
+  }
+  function readLive() {
+    const t = val('.is-T'), hh = val('.is-h'), err = q('.is-err');
+    if (!(t > 0 && t <= 100)) { err.textContent = 'Give a temperature greater than 0 (in units of J/kB; Tc ≈ 2.269).'; err.hidden = false; return false; }
+    if (!(Math.abs(hh) <= 10)) { err.textContent = 'Give a field h between −10 and 10.'; err.hidden = false; return false; }
+    err.hidden = true;
+    if (hh !== h) { h = hh; lat.recount(h); }
+    T = t; return true;
+  }
+  function reset() { running = false; q('.is-run').textContent = 'Run'; rand = rng(1); lat = new Lattice(+q<HTMLSelectElement>('.is-L').value, q<HTMLSelectElement>('.is-start').value as 'random' | 'up', rand); lat.recount(h); draw(); }
+  function frame() { if (!running) return; if (readLive()) { lat.sweep(T, h, rand, +q<HTMLSelectElement>('.is-sp').value); draw(); } requestAnimationFrame(frame); }
+  q('.is-run').addEventListener('click', () => { if (!readLive()) return; running = !running; q('.is-run').textContent = running ? 'Pause' : 'Run'; if (running) requestAnimationFrame(frame); });
+  q('.is-step').addEventListener('click', () => { if (readLive()) { lat.sweep(T, h, rand, 10); draw(); } });
+  q('.is-reset').addEventListener('click', () => { readLive(); reset(); });
+  q('.is-L').addEventListener('change', reset); q('.is-start').addEventListener('change', reset);
+  inp('.is-Ts').addEventListener('input', () => { inp('.is-T').value = inp('.is-Ts').value; if (readLive()) draw(); });
+  inp('.is-T').addEventListener('input', () => { if (readLive()) { inp('.is-Ts').value = String(T); draw(); } });
+  inp('.is-h').addEventListener('input', () => { if (readLive()) draw(); });
+  readLive(); draw();
+
+  // ---- Temperature scan
+  let figs: Figure[] = [], report: Section[] = [], res: Stats[] = [], scanL = 16, scanH = 0, busy = false;
+  const ints = (c: string) => { const v = val(c); return Number.isInteger(v) ? v : NaN; };
+  function scan() {
+    if (busy) return;
+    const serr = q('.is-serr'), fail = (m: string) => { serr.textContent = m; serr.hidden = false; };
+    const L = +q<HTMLSelectElement>('.is-sL').value, t0 = val('.is-t0'), t1 = val('.is-t1'), nt = ints('.is-nt'), eq = ints('.is-eq'), ms = ints('.is-ms'), hh = val('.is-sh'), seed = ints('.is-seed');
+    if (!(t0 > 0 && t1 > t0)) return fail('Give a lowest temperature above 0 and a highest temperature above it.');
+    if (!(nt >= 2 && nt <= 200)) return fail('Use between 2 and 200 temperatures.');
+    if (!(eq >= 0 && eq <= 1e5)) return fail('Settling sweeps must be a whole number from 0 to 100,000.');
+    if (!(ms >= 10 && ms <= 1e6)) return fail('Measured sweeps must be a whole number from 10 to 1,000,000.');
+    if (L * L * (eq + ms) * nt > 4e9) return fail('That scan is too long for a browser tab (over 4 billion spin flips). Use fewer sweeps or a smaller lattice.');
+    if (!(Math.abs(hh) <= 10)) return fail('Give a field h between −10 and 10.');
+    if (!(seed >= 0)) return fail('The random seed must be a whole number, 0 or more.');
+    serr.hidden = true; busy = true; q<HTMLButtonElement>('.is-scan').disabled = true;
+    const r = rng(seed), lt = new Lattice(L, 'up', r); lt.recount(hh);
+    const Ts = Array.from({ length: nt }, (_, i) => t0 + ((t1 - t0) * i) / (nt - 1)), out: Stats[] = [];
+    let i = 0;
+    const step = () => {
+      const t = Ts[i]; lt.sweep(t, hh, r, eq); out.push(measure(lt, t, hh, ms, r)); i++;
+      q('.is-prog').textContent = `T = ${sig(t, 3)} done (${i} of ${nt})`;
+      if (i < nt) setTimeout(step, 0);
+      else { busy = false; q<HTMLButtonElement>('.is-scan').disabled = false; q('.is-prog').textContent = `Done: ${nt} temperatures, ${L} × ${L}`; res = out; scanL = L; scanH = hh; show(); }
+    };
+    setTimeout(step, 0);
+  }
+  function show() {
+    q('.is-out').hidden = false;
+    const Ts = res.map((s) => s.T), fine: number[] = [];
+    for (let i = 0; i <= 200; i++) fine.push(Ts[0] + ((Ts[Ts.length - 1] - Ts[0]) * i) / 200);
+    const pc = res.reduce((a, b) => (b.c > a.c ? b : a)), px = res.reduce((a, b) => (b.chi > a.chi ? b : a));
+    q('.is-big').textContent = `Heat capacity peaks at T ≈ ${sig(pc.T, 3)} (Onsager Tc = 2.269)`;
+    const ex = !scanH;
+    const exact = (f: (t: number) => number, nm: string) => (ex ? [{ name: nm, x: fine, y: fine.map(f), mode: 'line' as const, width: 1.6 }] : []);
+    const cs = (y: (s: Stats) => number, e?: (s: Stats) => number) => ({ name: `Monte Carlo ${scanL} × ${scanL}`, x: Ts, y: res.map(y), yErr: e ? res.map(e) : undefined, mode: 'points' as const, marker: 'circle' as const, size: 3.5 });
+    const mk = [{ kind: 'vline' as const, at: TC, dash: [3, 3], label: 'Tc' }];
+    const c1 = chartFigure({ w: 380, h: 230, xLabel: 'Temperature T', yLabel: 'Magnetisation |m|', yMin: 0, yMax: 1.05, legend: 'below', series: [cs((s) => s.m, (s) => s.mErr), ...exact(onsager.m, 'Onsager (infinite lattice)')], marks: mk }, 'Magnetisation per spin against temperature');
+    const c2 = chartFigure({ w: 380, h: 230, xLabel: 'Temperature T', yLabel: 'Heat capacity per spin', yMin: 0, legend: 'below', series: [cs((s) => s.c, (s) => s.cErr), ...exact((t) => Math.min(onsager.c(t), 4), 'Onsager (infinite lattice)')], marks: mk }, 'Heat capacity per spin against temperature');
+    const c3 = chartFigure({ w: 380, h: 230, xLabel: 'Temperature T', yLabel: 'Energy per spin', legend: 'below', series: [cs((s) => s.e), ...exact(onsager.u, 'Onsager (infinite lattice)')], marks: mk }, 'Energy per spin against temperature');
+    const c4 = chartFigure({ w: 380, h: 230, xLabel: 'Temperature T', yLabel: 'Susceptibility χ per spin', yMin: 0, legend: 'below', series: [cs((s) => s.chi)], marks: mk }, 'Magnetic susceptibility against temperature');
+    figs = [c1, c2, c3, c4];
+    paintAll();
+    const below = res.filter((s) => s.T < TC * 0.9 && ex), dev = below.length ? Math.max(...below.map((s) => Math.abs(s.m - onsager.m(s.T)))) : NaN;
+    const f = [
+      fact('Heat capacity peak', `T = ${sig(pc.T, 3)}`, `C = ${sig(pc.c, 3)} ± ${sig(pc.cErr, 2)} per spin`),
+      fact('Susceptibility peak', `T = ${sig(px.T, 3)}`, `χ = ${sig(px.chi, 3)} per spin`),
+      fact('Onsager Tc', '2.269', '2 / ln(1 + √2), infinite lattice, h = 0'),
+      fact('Lattice', `${scanL} × ${scanL}`, `${res[0].n} measured sweeps per temperature`),
+    ];
+    if (ex && below.length) f.push(fact('Largest |m| gap below 0.9 Tc', sig(dev, 2), 'Monte Carlo against Onsager, deep in the ordered phase'));
+    if (!ex) f.push(fact('Field', `h = ${scanH}`, 'with a field there is no sharp transition and no exact curve'));
+    q('.is-facts').replaceChildren(...f);
+    const head = ['T', '|m|', '± |m|', 'Energy', 'Heat cap.', '± C', 'χ', 'Binder U4'], rows = res.map((s) => [sig(s.T, 4), sig(s.m, 4), sig(s.mErr, 2), sig(s.e, 4), sig(s.c, 4), sig(s.cErr, 2), sig(s.chi, 4), sig(s.binder, 3)]);
+    const tab = q('.is-tab'); tab.replaceChildren();
+    const tr = (cells: string[], th = false) => { const r = document.createElement('tr'); cells.forEach((c) => { const d = document.createElement(th ? 'th' : 'td'); d.textContent = c; d.className = 'r'; r.append(d); }); return r; };
+    tab.append(tr(head, true), ...rows.map((r) => tr(r)));
+    const snap = lat, snapFig: Figure = { w: 300, h: 300, alt: `Live lattice, ${snap.L} × ${snap.L}`, draw: (ctx, w, hh, pal) => { const s = w / snap.L; ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, hh); ctx.fillStyle = pal.ink; for (let i = 0; i < snap.N; i++) if (snap.s[i] > 0) ctx.fillRect((i % snap.L) * s, Math.floor(i / snap.L) * s, s + 0.5, s + 0.5); } };
+    const rowsOf = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    report = [
+      { title: q('.is-big').textContent!, facts: rowsOf(f), figure: c1 }, { title: 'Heat capacity', figure: c2 }, { title: 'Energy', figure: c3 }, { title: 'Susceptibility', figure: c4 },
+      { title: 'Scan table', table: { head, rows, align: head.map(() => 'r') } },
+      { title: `Live lattice at T = ${sig(T, 3)}, ${snap.sweeps} sweeps`, figure: snapFig, note: 'Metropolis Monte Carlo, J = kB = 1. Exact curves: Onsager (1944) and Yang (1952).' },
+    ];
+  }
+  function paintAll() { ['.is-fm', '.is-fc', '.is-fe', '.is-fx'].forEach((c, i) => figs[i] && paint(q<HTMLCanvasElement>(c), figs[i])); }
+  q('.is-scan').addEventListener('click', scan);
+  q('.is-csv').addEventListener('click', () => { if (res.length) save(new Blob([csv([['T', 'abs_m', 'abs_m_err', 'energy', 'heat_capacity', 'heat_capacity_err', 'susceptibility', 'binder', 'onsager_m', 'onsager_energy', 'onsager_heat_capacity'], ...res.map((s) => [s.T, s.m, s.mErr, s.e, s.c, s.cErr, s.chi, s.binder, scanH ? '' : onsager.m(s.T), scanH ? '' : onsager.u(s.T), scanH ? '' : onsager.c(s.T)].map((v) => (typeof v === 'number' ? +v.toPrecision(6) : v)))])], { type: 'text/csv' }), `ising-scan-${scanL}.csv`, 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { draw(); if (figs.length) paintAll(); });
+  scan();
+  wireDownloads(q('.dl'), () => ({ title: 'Ising model', subtitle: `${scanL} × ${scanL} lattice, Metropolis Monte Carlo`, file: 'ising-model', sections: report }));
+</script>
+
+<style is:global>
+  .isg select, .isg input { max-width: 100%; }
+  .isg .is-lat { display: block; width: min(100%, 420px); aspect-ratio: 1; height: auto; margin-top: 12px; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 6px; }
+</style>
