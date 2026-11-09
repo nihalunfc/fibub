@@ -144,6 +144,7 @@ import * as ASL from '../src/lib/sci/asludge.ts';
 import * as SMP from '../src/lib/sci/sampling.ts';
 import * as BIO from '../src/lib/sci/bioacc.ts';
 import * as NB from '../src/lib/sci/barrier.ts';
+import * as TC from '../src/lib/sci/treecarbon.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2860,6 +2861,17 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   const clear = NB.pathDiff({ hs: 0.5, ds: 10, hb: 1, dr: 30, hr: 3 });
   check('barrier line of sight clear', !clear.blocked && clear.delta < 0);
   check('barrier cap', NB.barrier({ ...g, hb: 15 }, L, { c, cap: 25, method: 'ka' }).bands.every((b) => b.il <= 25));
+}
+{
+  // Tree carbon: against an independent NumPy sum (made-up trees, illustrative coefficients).
+  const trees = [['Oak 1', 42, 18, 38, 17], ['Oak 2', 35, 16, 32, 15.5], ['Maple', 28, 14, 25, 13], ['Birch', 19, 13, 17, 12], ['Pine 1', 51, 22, 47, 21], ['Pine 2', 46, 21, 43, 20], ['Ash', 23, 12, 20, 11], ['Cherry', 14, 8, 12, 7]].map(([id, D, H, D0, H0]) => ({ id, D, H, D0, H0 }));
+  const m1 = { form: 'd', a: 0.1, b: 2.4, rho: 0.55 }, m2 = { form: 'rdh', a: 0.06, b: 1, rho: 0.55 };
+  const r1 = TC.forest(trees, m1, 0.25, 0.47, { years: 5 }), r2 = TC.forest(trees, m2, 0.25, 0.47, { years: 5 });
+  near('tree agb D', r1.agb, 4183.073550174934, 1e-8); near('tree total D', r1.total, 5228.841937718667, 1e-8); near('tree co2 D', r1.co2, 9004.728836173006, 1e-8); near('tree per year D', r1.perYear, 346.22522487541244, 1e-9);
+  near('tree agb rdh', r2.agb, 5827.635, 1e-8); near('tree co2 rdh', r2.co2, 12544.908020801246, 1e-8); near('tree per year rdh', r2.perYear, 508.7011882383857, 1e-9);
+  near('tree growth D', TC.forest(trees, m1, 0.25, 0.47, { g: 0.6 }).perYear, 338.79289863239137, 1e-9);
+  near('tree growth rdh', TC.forest(trees, m2, 0.25, 0.47, { g: 0.6 }).perYear, 380.8929449998768, 1e-9);
+  near('CO2 per C', TC.CO2_PER_C, 3.664, 1e-3);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

@@ -1,0 +1,145 @@
+---
+// Tree carbon: biomass from a user-supplied allometric equation, roots, carbon, CO₂e and yearly uptake. The default
+// coefficients and the example trees are made up for illustration.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const trees = 'tree,DBH now (cm),height now (m),DBH before (cm),height before (m)\nOak 1,42,18,38,17\nOak 2,35,16,32,15.5\nMaple,28,14,25,13\nBirch,19,13,17,12\nPine 1,51,22,47,21\nPine 2,46,21,43,20\nAsh,23,12,20,11\nCherry,14,8,12,7';
+---
+<div class="ax tkc">
+  <div class="ax-card">
+    <h2>Trees</h2>
+    <label>Tree name (optional), DBH and height now, and optionally DBH and height at an earlier measurement <textarea class="tk-data" rows="9" spellcheck="false">{trees}</textarea></label>
+    <DataFile target=".tk-data" maxCols={10} maxRows={20000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Years between measurements <input class="tk-yrs" inputmode="decimal" value="5" /></label>
+      <label>Or DBH growth if no earlier measurement (cm/year) <input class="tk-g" inputmode="decimal" value="0.5" /></label>
+    </div>
+    <p class="ax-help">DBH is the trunk diameter at breast height (1.3 m above the ground). Height is needed only for the equation that uses it. With an earlier measurement the yearly uptake is the change divided by the years; without one, the tool grows each trunk by the DBH growth rate for one year (height kept the same). Up to 20,000 trees. The example trees are made up.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Allometric equation</h2>
+    <div class="ax-grid">
+      <label>Equation <select class="tk-form">
+        <option value="d" selected>Biomass = a × DBH^b</option>
+        <option value="rdh">Biomass = a × (ρ × DBH² × H)^b</option>
+      </select></label>
+      <label>a <input class="tk-a" inputmode="decimal" value="0.1" /></label>
+      <label>b <input class="tk-b" inputmode="decimal" value="2.4" /></label>
+      <label class="tk-rhol">Wood density ρ (g/cm³) <input class="tk-rho" inputmode="decimal" value="0.55" /></label>
+      <label>Root-to-shoot ratio <input class="tk-rs" inputmode="decimal" value="0.25" /></label>
+      <label>Carbon fraction of dry biomass <input class="tk-cf" inputmode="decimal" value="0.47" /></label>
+    </div>
+    <p class="ax-help">The equation gives the dry above-ground biomass in kg, with DBH in cm and height in m. <strong>The default coefficients are made-up illustrations</strong>, not for any real species or forest: enter the a and b of an equation published for your species and region. The root-to-shoot ratio adds roots as a share of the above-ground biomass, and the carbon fraction turns dry biomass into carbon (wood is roughly half carbon). Carbon × 44/12 gives CO₂.</p>
+    <p class="ax-err tk-err" hidden></p>
+  </div>
+
+  <div class="ax-card tk-out">
+    <h2>Carbon stored</h2>
+    <p class="ax-big tk-big"></p>
+    <dl class="ax-facts tk-facts"></dl>
+    <canvas class="ax-fig tk-fig"></canvas>
+    <details class="tk-sd">
+      <summary>Every tree (table)</summary>
+      <div class="ax-scroll"><table class="tk-tab"></table></div>
+    </details>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small tk-csv">Download every tree (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { forest, agb, stock, type Allo, type Tree } from '../../lib/sci/treecarbon';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (!Number.isFinite(x)) return '–'; if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const tn = (x: number) => (Math.abs(x) >= 1000 ? Math.round(x).toLocaleString('en') : sg(x, 3));
+  const mass = (kg: number) => (Math.abs(kg) >= 1000 ? `${sg(kg / 1000, 3)} t` : `${sg(kg, 3)} kg`);
+  const root = document.querySelector<HTMLElement>('.tkc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const isNum = (s: string | undefined) => s !== undefined && s.trim() !== '' && Number.isFinite(num(s));
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function table(sel: string, head: string[], rows: string[][], right: number[] = []) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.tk-err').textContent = m; q('.tk-err').hidden = false; q('.tk-out').hidden = true; fig = null; sections = []; csvRows = []; };
+    q('.tk-err').hidden = true;
+    const m: Allo = { form: q<HTMLSelectElement>('.tk-form').value as 'd' | 'rdh', a: val('.tk-a'), b: val('.tk-b'), rho: val('.tk-rho') };
+    q('.tk-rhol').hidden = m.form !== 'rdh';
+    const rs = val('.tk-rs'), cf = val('.tk-cf');
+    if (!(m.a > 0) || !(m.b > 0 && m.b <= 5)) return fail('Give the coefficients a (above 0) and b (above 0, up to 5).');
+    if (m.form === 'rdh' && !(m.rho > 0 && m.rho <= 1.5)) return fail('Give the wood density in g/cm³ (above 0, up to 1.5).');
+    if (!(rs >= 0 && rs <= 2)) return fail('Give a root-to-shoot ratio from 0 to 2.');
+    if (!(cf > 0 && cf <= 1)) return fail('Give a carbon fraction above 0 and up to 1 (about 0.47 to 0.5 for wood).');
+    // Rows: optional name, then DBH, H, DBH before, H before.
+    const all = parseTable(q<HTMLTextAreaElement>('.tk-data').value).filter((r) => r.some((x) => x.trim() !== ''));
+    const dataRows = all.filter((r) => isNum(r[0]) || isNum(r[1]));
+    if (!dataRows.length) return fail('Give at least one tree: name (optional), DBH in cm and height in m.');
+    if (dataRows.length > 20000) return fail('Up to 20,000 trees, please.');
+    const named = dataRows.some((r) => !isNum(r[0])), x0 = named ? 1 : 0;
+    const trees: Tree[] = [];
+    for (let i = 0; i < dataRows.length; i++) {
+      const r = dataRows[i], D = num(r[x0]), H = isNum(r[x0 + 1]) ? num(r[x0 + 1]) : NaN;
+      if (!(D > 0 && D <= 1000)) return fail(`Tree ${i + 1}: give a DBH in cm (above 0).`);
+      if (m.form === 'rdh' && !(H > 0 && H <= 150)) return fail(`Tree ${i + 1}: this equation needs a height in m (above 0).`);
+      const D0 = isNum(r[x0 + 2]) ? num(r[x0 + 2]) : undefined, H0 = isNum(r[x0 + 3]) ? num(r[x0 + 3]) : undefined;
+      if (D0 !== undefined && !(D0 > 0)) return fail(`Tree ${i + 1}: the earlier DBH must be above 0.`);
+      trees.push({ id: named ? r[0].trim() || `Tree ${i + 1}` : `Tree ${i + 1}`, D, H, D0, H0 });
+    }
+    const yrs = val('.tk-yrs'), gStr = q<HTMLInputElement>('.tk-g').value.trim(), g = gStr === '' ? NaN : num(gStr);
+    const hasEarlier = trees.some((t) => t.D0 !== undefined);
+    if (hasEarlier && !(yrs > 0 && yrs <= 200)) return fail('Give the years between the two measurements (above 0).');
+    if (gStr !== '' && !(g >= 0 && g <= 10)) return fail('Give a DBH growth rate from 0 to 10 cm per year, or leave it blank.');
+    // Trees with an earlier DBH use it; the rest use the growth rate.
+    const withPast = trees.filter((t) => t.D0 !== undefined), without = trees.filter((t) => t.D0 === undefined);
+    const rows = trees.map((t) => forest([t], m, rs, cf, t.D0 !== undefined ? { years: yrs } : { g: Number.isFinite(g) ? g : undefined }).rows[0]);
+    const sum = (k: 'agb' | 'bgb' | 'total' | 'c' | 'co2') => rows.reduce((s, r) => s + r[k], 0);
+    const tot = { agb: sum('agb'), bgb: sum('bgb'), total: sum('total'), c: sum('c'), co2: sum('co2') };
+    const yearly = rows.filter((r) => Number.isFinite(r.perYear)), perYear = yearly.reduce((s, r) => s + r.perYear, 0);
+    q('.tk-out').hidden = false;
+    q('.tk-big').textContent = `${mass(tot.co2)} CO₂e stored in ${trees.length} tree${trees.length > 1 ? 's' : ''}`;
+    const shrink = yearly.filter((r) => r.perYear < 0).map((r) => r.id);
+    q('.tk-facts').replaceChildren(
+      fact('Yearly uptake', yearly.length ? `${mass(perYear)} CO₂e per year` : 'not worked out', yearly.length ? `${withPast.length ? `from the change since the earlier measurement over ${sg(yrs, 3)} years` : ''}${withPast.length && without.length && Number.isFinite(g) ? '; ' : ''}${without.length && Number.isFinite(g) ? `growing DBH by ${sg(g, 3)} cm in a year` : ''}${yearly.length < rows.length ? ` (${yearly.length} of ${rows.length} trees)` : ''}` : 'give an earlier measurement or a DBH growth rate'),
+      fact('Carbon', mass(tot.c), `${sg(cf, 3)} of the dry biomass`),
+      fact('Dry biomass', mass(tot.total), `${mass(tot.agb)} above ground and ${mass(tot.bgb)} in roots`),
+      fact('Biggest store', (() => { const r = rows.reduce((a, b) => (b.co2 > a.co2 ? b : a)); return `${r.id}, ${mass(r.co2)} CO₂e`; })(), `${sg((100 * Math.max(...rows.map((r) => r.co2))) / tot.co2, 3)} % of the total`),
+      ...(shrink.length ? [fact('Check', `${shrink.length} tree${shrink.length > 1 ? 's' : ''} got smaller`, `${shrink.slice(0, 5).join(', ')}${shrink.length > 5 ? '…' : ''}: check the earlier measurements`)] : []),
+      fact('Coefficients', m.form === 'd' ? `${sg(m.a, 4)} × DBH^${sg(m.b, 4)}` : `${sg(m.a, 4)} × (${sg(m.rho, 3)} × DBH² × H)^${sg(m.b, 4)}`, 'the defaults are made-up illustrations; use an equation for your species and region'),
+    );
+    const Dmax = Math.max(...rows.map((r) => r.D)) * 1.1;
+    const series: Parameters<typeof chartFigure>[0]['series'] = [{ name: 'Trees', x: rows.map((r) => r.D), y: rows.map((r) => r.co2), mode: 'points', labels: rows.length <= 15 ? rows.map((r) => r.id) : undefined }];
+    if (m.form === 'd') { const xs = Array.from({ length: 81 }, (_, k) => (Dmax * k) / 80); series.push({ name: 'Equation', x: xs, y: xs.map((d) => stock(agb(m, d, 0), rs, cf).co2), mode: 'line', width: 2 }); }
+    fig = chartFigure({ h: 320, xLabel: 'DBH (cm)', yLabel: 'CO₂e stored (kg)', yMin: 0, xMin: 0, legend: 'below', series }, `CO₂e stored against trunk diameter, ${trees.length} trees`);
+    paint(q<HTMLCanvasElement>('.tk-fig'), fig);
+    const head = ['Tree', 'DBH (cm)', 'Biomass (kg)', 'Carbon (kg)', 'CO₂e (kg)', 'CO₂e per year (kg)'];
+    const trs = rows.map((r) => [r.id, sg(r.D, 4), tn(r.total), tn(r.c), tn(r.co2), Number.isFinite(r.perYear) ? sg(r.perYear, 3) : '–']);
+    table('.tk-tab', head, trs, [1, 2, 3, 4, 5]);
+    csvRows = [['tree', 'dbh_cm', 'height_m', 'agb_kg', 'bgb_kg', 'biomass_kg', 'carbon_kg', 'co2e_kg', 'co2e_per_year_kg'], ...rows.map((r) => [r.id, String(r.D), Number.isFinite(r.H) ? String(r.H) : '', sg(r.agb, 6), sg(r.bgb, 6), sg(r.total, 6), sg(r.c, 6), sg(r.co2, 6), Number.isFinite(r.perYear) ? sg(r.perYear, 6) : ''])];
+    sections = [{ title: q('.tk-big').textContent!, facts: [...q('.tk-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig, table: { head, rows: trs, align: ['l', 'r', 'r', 'r', 'r', 'r'] } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.tk-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'tree-carbon.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.tk-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Tree carbon', subtitle: q('.tk-big').textContent ?? '', file: 'tree-carbon', sections }));
+</script>
+
+<style is:global>
+  .tkc select { max-width: 100%; }
+  .tkc .tk-sd { margin-top: 14px; }
+  .tkc .tk-sd summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+</style>
