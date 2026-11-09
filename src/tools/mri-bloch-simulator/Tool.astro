@@ -1,0 +1,222 @@
+---
+// MRI physics simulator: Bloch equations stepped through spin echo, spoiled gradient echo and inversion recovery,
+// T1 and T2 curves, image contrast, and a k-space demonstration with a 2D FFT. Tissue values are rounded and
+// illustrative; nothing is uploaded.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+const tissues = [
+  ['Fat-like', 260, 80, 0.9],
+  ['Grey-matter-like', 920, 100, 0.8],
+  ['White-matter-like', 780, 90, 0.7],
+  ['Fluid-like', 4000, 2000, 1],
+];
+---
+<div class="ax mrb">
+  <div class="ax-card">
+    <h2>Pulse sequence</h2>
+    <div class="ax-grid">
+      <label>Preset <select class="mb-pre">
+        <option value="t1" selected>T1-weighted spin echo (TR 500, TE 15)</option>
+        <option value="t2">T2-weighted spin echo (TR 4000, TE 100)</option>
+        <option value="pd">Proton density spin echo (TR 4000, TE 15)</option>
+        <option value="gre">Spoiled gradient echo (TR 30, TE 5, 30°)</option>
+        <option value="flair">Fluid-nulled inversion recovery (TR 9000, TI 2500, TE 100)</option>
+        <option value="stir">Fat-nulled inversion recovery (TR 3000, TI 175, TE 30)</option>
+        <option value="own">My own settings</option>
+      </select></label>
+      <label>Sequence <select class="mb-kind"><option value="se" selected>Spin echo</option><option value="gre">Spoiled gradient echo</option><option value="ir">Inversion recovery</option></select></label>
+      <label>Repetition time TR (ms) <input class="mb-tr" type="text" inputmode="decimal" value="500" /></label>
+      <label>Echo time TE (ms) <input class="mb-te" type="text" inputmode="decimal" value="15" /></label>
+      <label class="mb-flipw" hidden>Flip angle (°) <input class="mb-flip" type="text" inputmode="decimal" value="30" /></label>
+      <label class="mb-tiw" hidden>Inversion time TI (ms) <input class="mb-ti" type="text" inputmode="decimal" value="700" /></label>
+    </div>
+    <p class="ax-help">TR: time between excitations; short TR gives T1 contrast. TE: time from excitation to the echo; long TE gives T2 contrast. Flip angle: how far the gradient-echo pulse tips the magnetisation. TI: time from the 180° inversion to the 90° readout pulse.</p>
+    <h3>Tissues</h3>
+    <div class="ax-scroll">
+      <table class="mb-tis">
+        <thead><tr><th>Tissue</th><th class="r">T1 (ms)</th><th class="r">T2 (ms)</th><th class="r">PD (0–1)</th></tr></thead>
+        <tbody>
+          {tissues.map(([n, t1, t2, pd]) => (
+            <tr><td><input class="mb-n" type="text" value={n} /></td><td><input class="mb-t1" type="text" inputmode="decimal" value={t1} /></td><td><input class="mb-t2" type="text" inputmode="decimal" value={t2} /></td><td><input class="mb-pd" type="text" inputmode="decimal" value={pd} /></td></tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <p class="ax-help">Rounded, illustrative values of the kind quoted for 1.5 tesla (they change with field strength and from source to source); edit them freely. PD is the relative proton density, 0 to 1.</p>
+    <p class="ax-err mb-err" hidden></p>
+  </div>
+
+  <div class="ax-card mb-out">
+    <h2>Signal and contrast</h2>
+    <p class="ax-big mb-big"></p>
+    <div class="ax-scroll"><table class="mb-tab"></table></div>
+    <p class="ax-help mb-note"></p>
+    <canvas class="ax-fig mb-fig1"></canvas>
+    <canvas class="ax-fig mb-fig2"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small mb-csv">Download signals (CSV)</button></div>
+
+    <h3>Bloch simulation, first repetitions</h3>
+    <div class="ax-grid">
+      <label>Tissue <select class="mb-sim"></select></label>
+      <label>Repetitions shown <select class="mb-reps"><option>2</option><option selected>4</option><option>8</option></select></label>
+    </div>
+    <canvas class="ax-fig mb-fig3"></canvas>
+    <p class="ax-help mb-simnote"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small mb-scsv">Download the simulation (CSV)</button></div>
+
+    <h3>From k-space to image</h3>
+    <div class="ax-grid">
+      <label>k-space kept <select class="mb-mask"><option value="full" selected>All of it</option><option value="centre">Only the centre (low frequencies)</option><option value="edges">Only the edges (high frequencies)</option><option value="skip">Every other line (faster scan)</option></select></label>
+      <label class="mb-fracw" hidden><span class="mb-fracl">Radius (share of the edge)</span> <input class="mb-frac" type="text" inputmode="decimal" value="0.15" /></label>
+    </div>
+    <canvas class="ax-fig mb-fig4"></canvas>
+    <p class="ax-help mb-knote"></p>
+    <p class="ax-help">A teaching model: hard pulses on resonance, perfect spoiling at the end of each TR, no diffusion, flow or field inhomogeneity (the gradient echo uses T2 in place of T2*). The head-like phantom is made up. For study, not for scan planning or diagnosis.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { signalFormula, steadyBloch, simulate, ernst, nullTI, seqProblem, phantom, kspaceDemo, type Seq, type KMask } from '../../lib/sci/phmri';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.mrb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const PRE: Record<string, [string, number, number, number, number]> = {
+    t1: ['se', 500, 15, 90, 700], t2: ['se', 4000, 100, 90, 700], pd: ['se', 4000, 15, 90, 700], gre: ['gre', 30, 5, 30, 700],
+    flair: ['ir', 9000, 100, 90, 2500], stir: ['ir', 3000, 30, 90, 175],
+  };
+  const N = 64, lab = phantom(N);
+  let figs: (Figure | null)[] = [], report: Section[] = [], rows: string[][] = [], simRows: (string | number)[][] = [];
+  type T = { name: string; T1: number; T2: number; pd: number };
+
+  function readTissues(): T[] | string {
+    const out: T[] = [];
+    for (const [i, tr] of [...root.querySelectorAll('.mb-tis tbody tr')].entries()) {
+      const g = (c: string) => num(tr.querySelector<HTMLInputElement>(c)!.value);
+      const name = tr.querySelector<HTMLInputElement>('.mb-n')!.value.trim() || `Tissue ${i + 1}`;
+      const t = { name, T1: g('.mb-t1'), T2: g('.mb-t2'), pd: g('.mb-pd') };
+      if (!(t.T1 > 0 && t.T2 > 0)) return `${name}: give T1 and T2 in ms, both greater than 0.`;
+      if (t.T2 > t.T1) return `${name}: T2 cannot be longer than T1.`;
+      if (!(t.pd >= 0 && t.pd <= 1)) return `${name}: proton density must be between 0 and 1.`;
+      out.push(t);
+    }
+    return out;
+  }
+
+  function imgFigure(panels: { title: string; data: Float64Array; max: number }[], alt: string): Figure {
+    const W = 380, P = 116, gap = (W - 3 * P) / 2;
+    return { w: W, h: P + 22, alt, draw: (ctx, _w, _h, pal) => {
+      panels.forEach((p, k) => {
+        const x0 = k * (P + gap), c = P / N;
+        ctx.fillStyle = '#000'; ctx.fillRect(x0, 0, P, P);
+        for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+          const v = Math.max(0, Math.min(1, p.data[y * N + x] / (p.max || 1))), g = Math.round(v * 255);
+          if (!g) continue;
+          ctx.fillStyle = pal.red ? `rgb(${Math.round(g * 0.64)},0,0)` : `rgb(${g},${g},${g})`;
+          ctx.fillRect(x0 + x * c, y * c, c + 0.3, c + 0.3);
+        }
+        ctx.fillStyle = pal.ink; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText(p.title, x0 + P / 2, P + 5);
+      });
+      ctx.textAlign = 'left';
+    } };
+  }
+
+  function calc() {
+    const err = q('.mb-err'), out = q('.mb-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const kind = q<HTMLSelectElement>('.mb-kind').value as Seq['kind'];
+    q('.mb-flipw').hidden = kind !== 'gre'; q('.mb-tiw').hidden = kind !== 'ir';
+    const s: Seq = { kind, TR: num(inp('.mb-tr').value), TE: num(inp('.mb-te').value), flip: num(inp('.mb-flip').value), TI: num(inp('.mb-ti').value) };
+    const tis = readTissues();
+    if (typeof tis === 'string') return fail(tis);
+    const p = seqProblem(s);
+    if (p) return fail(p);
+    err.hidden = true; out.hidden = false;
+    const sigs = tis.map((t) => t.pd * signalFormula(s, t.T1, t.T2)), bl = tis.map((t) => t.pd * steadyBloch(s, t.T1, t.T2));
+    const mag = sigs.map(Math.abs), top = Math.max(...mag), order = mag.map((v, i) => i).sort((a, b) => mag[b] - mag[a]);
+    const kname = { se: 'Spin echo', gre: 'Spoiled gradient echo', ir: 'Inversion recovery' }[kind];
+    const desc = `${kname}, TR ${sig(s.TR, 4)} ms, TE ${sig(s.TE, 4)} ms${kind === 'gre' ? `, flip ${sig(s.flip, 3)}°` : ''}${kind === 'ir' ? `, TI ${sig(s.TI, 4)} ms` : ''}`;
+    q('.mb-big').textContent = `Brightest: ${tis[order[0]].name}; darkest: ${tis[order[order.length - 1]].name}`;
+    const head = ['Tissue', 'Signal (formula)', 'Signal (Bloch steps)', 'Brightness', kind === 'gre' ? 'Ernst angle' : kind === 'ir' ? 'Null TI' : 'TE ÷ T2'];
+    rows = tis.map((t, i) => [t.name, sig(sigs[i], 4), sig(bl[i], 4), `${Math.round((100 * mag[i]) / (top || 1))} %`,
+      kind === 'gre' ? `${sig(ernst(s.TR, t.T1), 3)}°` : kind === 'ir' ? `${sig(nullTI(s.TR, t.T1), 4)} ms` : sig(s.TE / t.T2, 3)]);
+    const tab = q<HTMLTableElement>('.mb-tab');
+    tab.innerHTML = '<thead><tr></tr></thead><tbody></tbody>';
+    head.forEach((h, j) => { const th = document.createElement('th'); th.textContent = h; if (j) th.className = 'r'; tab.tHead!.rows[0].append(th); });
+    rows.forEach((r) => { const tr = tab.tBodies[0].insertRow(); r.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j) td.className = 'r'; }); });
+    const pairs = order.slice(0, 2), cr = mag[pairs[1]] > 0 ? mag[pairs[0]] / mag[pairs[1]] : Infinity;
+    q('.mb-note').textContent = `Signal is a fraction of the fully relaxed magnetisation times proton density. ${kind === 'ir' ? 'Inversion recovery is shown signed (phase-sensitive); a magnitude image shows its size only. ' : ''}Contrast between the two brightest: ${sig(cr, 3)} : 1. The formula and the Bloch stepping agree to rounding.`;
+    // T1 recovery and T2 decay curves.
+    const tmax1 = Math.max(s.TR * 1.5, Math.min(5 * Math.max(...tis.map((t) => t.T1)), 12000)), tmax2 = Math.max(s.TE * 3, 300);
+    const ts1 = Array.from({ length: 161 }, (_, i) => (i * tmax1) / 160), ts2 = Array.from({ length: 161 }, (_, i) => (i * tmax2) / 160);
+    const inv = kind === 'ir';
+    const c1 = chartFigure({ w: 380, h: 230, xLabel: 'Time after the pulse (ms)', yLabel: inv ? 'Mz after inversion' : 'Mz (T1 recovery)', legend: 'below', yMin: inv ? -1 : 0, yMax: 1,
+      series: tis.map((t) => ({ name: t.name, x: ts1, y: ts1.map((x) => t.pd * (inv ? 1 - 2 * Math.exp(-x / t.T1) : 1 - Math.exp(-x / t.T1))), mode: 'line' as const, width: 2 })),
+      marks: [{ kind: 'vline', at: inv ? s.TI : s.TR, dash: [3, 3], label: inv ? 'TI' : 'TR' }] }, `T1 recovery of each tissue, with ${inv ? 'TI' : 'TR'} marked`);
+    const c2 = chartFigure({ w: 380, h: 230, xLabel: 'Time after excitation (ms)', yLabel: 'Mxy (T2 decay)', legend: 'below', yMin: 0, yMax: 1,
+      series: tis.map((t) => ({ name: t.name, x: ts2, y: ts2.map((x) => t.pd * Math.exp(-x / t.T2)), mode: 'line' as const, width: 2 })),
+      marks: [{ kind: 'vline', at: s.TE, dash: [3, 3], label: 'TE' }] }, 'T2 decay of each tissue, with TE marked');
+    // Bloch run for one tissue.
+    const simSel = q<HTMLSelectElement>('.mb-sim'), keep = simSel.value;
+    simSel.replaceChildren(...tis.map((t, i) => new Option(t.name, String(i))));
+    simSel.value = keep && +keep < tis.length ? keep : '2';
+    const ti = tis[+simSel.value], reps = +q<HTMLSelectElement>('.mb-reps').value;
+    const run = simulate(s, ti.T1, ti.T2, reps, s.TR / 300);
+    const c3 = chartFigure({ w: 380, h: 230, xLabel: 'Time (ms)', yLabel: 'Magnetisation (fraction of M0)', legend: 'below', yMin: -1, yMax: 1,
+      series: [{ name: 'Mz', x: run.t, y: run.mz, mode: 'line', width: 1.8 }, { name: '|Mxy|', x: run.t, y: run.mxy, mode: 'line', width: 1.8 },
+        { name: 'Echo', x: run.echoT, y: run.echoes.map(Math.abs), mode: 'points', marker: 'circle', size: 4 }] }, `Bloch simulation of ${ti.name} over ${reps} repetitions`);
+    q('.mb-simnote').textContent = `${ti.name}: echoes ${run.echoes.map((e) => sig(e, 3)).join(', ')} (fractions of M0). The first is larger because the magnetisation starts fully relaxed; it settles to the steady state ${sig(steadyBloch(s, ti.T1, ti.T2), 4)} by the second repetition, once spoiling removes the leftover transverse part.`;
+    simRows = [['time_ms', 'Mz', 'Mxy'], ...run.t.map((t, i) => [+t.toFixed(4), +run.mz[i].toFixed(6), +run.mxy[i].toFixed(6)])];
+    // k-space.
+    const mk = q<HTMLSelectElement>('.mb-mask').value as KMask;
+    q('.mb-fracw').hidden = mk !== 'centre' && mk !== 'edges';
+    q('.mb-fracl').textContent = mk === 'edges' ? 'Radius removed from the centre (share of the edge)' : 'Radius kept (share of the edge)';
+    const frac = num(inp('.mb-frac').value);
+    let c4: Figure | null = null;
+    if ((mk === 'centre' || mk === 'edges') && !(frac > 0 && frac < 1)) q('.mb-knote').textContent = 'Give a radius between 0 and 1 (for example 0.15).';
+    else {
+      const img = new Float64Array(N * N); lab.forEach((l, i) => { img[i] = l ? mag[l - 1] : 0; });
+      const k = kspaceDemo(img, N, mk, frac), kshow = k.kmag.map((v, i) => (k.kmask[i] ? v : 0)), mx = Math.max(...img);
+      c4 = imgFigure([{ title: 'Image', data: img, max: mx }, { title: 'k-space (log)', data: kshow, max: Math.max(...k.kmag) }, { title: 'From kept k-space', data: k.rec, max: mx }], 'Phantom image, its k-space and the image rebuilt from the kept part');
+      q('.mb-knote').textContent = `${N} × ${N} phantom with the signals above. ${Math.round(k.kept * 1000) / 10} % of k-space kept. ${{ full: 'All of k-space gives the image back exactly.', centre: 'The centre holds the contrast: the image keeps its brightness but blurs.', edges: 'The edges hold the fine detail: only outlines remain.', skip: 'Skipping every other line halves the field of view, so the top and bottom halves fold over each other (aliasing).' }[mk]}`;
+    }
+    paint(q<HTMLCanvasElement>('.mb-fig1'), c1); paint(q<HTMLCanvasElement>('.mb-fig2'), c2); paint(q<HTMLCanvasElement>('.mb-fig3'), c3);
+    q('.mb-fig4').hidden = !c4; if (c4) paint(q<HTMLCanvasElement>('.mb-fig4'), c4);
+    figs = [c1, c2, c3, c4];
+    report = [
+      { title: q('.mb-big').textContent!, text: [desc, q('.mb-note').textContent!], table: { head, rows, align: ['l', 'r', 'r', 'r', 'r'] }, figure: c1 },
+      { title: 'T2 decay', figure: c2 },
+      { title: `Bloch simulation: ${ti.name}`, text: [q('.mb-simnote').textContent!], figure: c3 },
+      ...(c4 ? [{ title: 'k-space and image', text: [q('.mb-knote').textContent!], figure: c4 }] : []),
+    ];
+  }
+
+  q('.mb-pre').addEventListener('change', () => {
+    const p = PRE[q<HTMLSelectElement>('.mb-pre').value];
+    if (!p) return;
+    q<HTMLSelectElement>('.mb-kind').value = p[0]; inp('.mb-tr').value = String(p[1]); inp('.mb-te').value = String(p[2]); inp('.mb-flip').value = String(p[3] === 90 ? 30 : p[3]); inp('.mb-ti').value = String(p[4]);
+    calc();
+  });
+  root.querySelectorAll('input, select').forEach((i) => {
+    if (i.classList.contains('mb-pre')) return;
+    const own = () => { if (['mb-kind', 'mb-tr', 'mb-te', 'mb-flip', 'mb-ti'].some((c) => i.classList.contains(c))) q<HTMLSelectElement>('.mb-pre').value = 'own'; calc(); };
+    i.addEventListener('input', own); i.addEventListener('change', own);
+  });
+  q('.mb-csv').addEventListener('click', () => save(new Blob([csv([['tissue', 'signal_formula', 'signal_bloch', 'brightness', 'extra'], ...rows])], { type: 'text/csv' }), 'mri-signals.csv', 'text/csv'));
+  q('.mb-scsv').addEventListener('click', () => save(new Blob([csv(simRows)], { type: 'text/csv' }), 'bloch-simulation.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (!q('.mb-out').hidden) ['.mb-fig1', '.mb-fig2', '.mb-fig3', '.mb-fig4'].forEach((c, i) => { if (figs[i]) paint(q<HTMLCanvasElement>(c), figs[i]!); }); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'MRI signal and contrast', subtitle: q('.mb-big').textContent ?? '', file: 'mri-contrast', sections: report }));
+</script>
+
+<style is:global>
+  .mrb h3 { margin: 22px 0 8px; font-size: 15px; }
+  .ax.mrb .mb-tis td input { width: 62px; min-width: 62px; padding: 7px 6px; }
+  .ax.mrb .mb-tis td input.mb-n { width: 100%; min-width: 100px; }
+  .ax.mrb .mb-tis td, .ax.mrb .mb-tis th { padding: 3px; }
+</style>

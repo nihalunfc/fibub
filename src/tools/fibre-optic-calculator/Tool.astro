@@ -1,0 +1,182 @@
+---
+// Optical fibre calculator: NA, V-number, LP modes, mode-field diameter, pulse spreading and a link loss budget.
+// The example fibres and link are made up with rounded, typical-looking values.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax foc">
+  <div class="ax-card">
+    <h2>Fibre</h2>
+    <label>Start from <select class="fo-pre">
+      <option value="sm" selected>Single-mode fibre, 1550 nm long link</option>
+      <option value="mms">Multimode step-index, 850 nm LED</option>
+      <option value="mmg">Multimode graded-index, 850 nm laser</option>
+      <option value="custom">My own values</option>
+    </select></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Core index n₁ <input class="fo-n1" type="text" inputmode="decimal" /></label>
+      <label>Cladding index n₂ <input class="fo-n2" type="text" inputmode="decimal" /></label>
+      <label>Core diameter (µm) <input class="fo-d" type="text" inputmode="decimal" /></label>
+      <label>Wavelength (nm) <input class="fo-l" type="text" inputmode="decimal" /></label>
+      <label>Index profile <select class="fo-p"><option value="step">Step index</option><option value="graded">Graded (parabolic)</option></select></label>
+      <label>Outside medium index <input class="fo-n0" type="text" inputmode="decimal" value="1" /></label>
+    </div>
+    <h3>Pulse spreading</h3>
+    <div class="ax-grid">
+      <label>Link length (km) <input class="fo-L" type="text" inputmode="decimal" /></label>
+      <label>Chromatic dispersion D (ps/(nm·km)) <input class="fo-D" type="text" inputmode="decimal" /></label>
+      <label>Source spectral width (nm) <input class="fo-dl" type="text" inputmode="decimal" /></label>
+    </div>
+    <h3>Power budget</h3>
+    <div class="ax-grid">
+      <label>Transmitter power (dBm) <input class="fo-tx" type="text" inputmode="decimal" /></label>
+      <label>Receiver sensitivity (dBm) <input class="fo-rx" type="text" inputmode="decimal" /></label>
+      <label>Fibre loss (dB/km) <input class="fo-att" type="text" inputmode="decimal" /></label>
+      <label>Connectors (pairs) <input class="fo-nc" type="text" inputmode="numeric" /></label>
+      <label>Loss per connector (dB) <input class="fo-lc" type="text" inputmode="decimal" /></label>
+      <label>Splices <input class="fo-ns" type="text" inputmode="numeric" /></label>
+      <label>Loss per splice (dB) <input class="fo-ls" type="text" inputmode="decimal" /></label>
+      <label>Safety margin (dB) <input class="fo-m" type="text" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">D: how much the fibre delays one wavelength against another; use your fibre's data sheet value at your wavelength. Spectral width: the source's linewidth (wide for an LED, narrow for a laser). Receiver sensitivity: the weakest signal the receiver can use. The margin covers ageing, repairs and temperature. The examples use rounded, made-up values: replace them with your own.</p>
+    <p class="ax-err fo-err" hidden></p>
+  </div>
+
+  <div class="ax-card fo-out">
+    <h2>Result</h2>
+    <p class="ax-big fo-big"></p>
+    <dl class="ax-facts fo-facts"></dl>
+    <h3>Pulse spreading</h3>
+    <dl class="ax-facts fo-facts2"></dl>
+    <h3>Power budget</h3>
+    <p class="fo-verdict"></p>
+    <dl class="ax-facts fo-facts3"></dl>
+    <canvas class="ax-fig fo-fig"></canvas>
+    <h3 class="fo-mh">Guided modes</h3>
+    <div class="ax-scroll"><table class="fo-tab"></table></div>
+    <p class="ax-help fo-mnote"></p>
+    <p class="ax-help">Weakly guiding step-index theory (LP modes), a ray model for modal spreading, and simple dB sums for the budget. For study and planning, not a substitute for professional judgement or a measured link (OTDR and power meter).</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { basics, lpModes, bLP01, nEff, marcuse, spreading, linkBudget, type Fibre } from '../../lib/sci/phfibre';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const PRE: Record<string, Record<string, string>> = {
+    sm: { n1: '1.45', n2: '1.445', d: '8', l: '1550', p: 'step', L: '80', D: '17', dl: '0.1', tx: '0', rx: '-28', att: '0.25', nc: '2', lc: '0.5', ns: '8', ls: '0.1', m: '3' },
+    mms: { n1: '1.48', n2: '1.46', d: '50', l: '850', p: 'step', L: '1', D: '100', dl: '30', tx: '-15', rx: '-30', att: '3', nc: '2', lc: '0.5', ns: '0', ls: '0.1', m: '3' },
+    mmg: { n1: '1.48', n2: '1.46', d: '50', l: '850', p: 'graded', L: '2', D: '100', dl: '1', tx: '-3', rx: '-17', att: '3', nc: '2', lc: '0.5', ns: '2', ls: '0.1', m: '3' },
+  };
+  const root = document.querySelector<HTMLElement>('.foc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => num(inp(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const time = (s: number) => (s === 0 ? '0' : s < 1e-9 ? `${sig(s * 1e12, 3)} ps` : s < 1e-6 ? `${sig(s * 1e9, 3)} ns` : `${sig(s * 1e6, 3)} µs`);
+  const rate = (hz: number) => (!Number.isFinite(hz) ? 'not limited by spreading' : hz >= 1e9 ? `${sig(hz / 1e9, 3)} GHz` : `${sig(hz / 1e6, 3)} MHz`);
+  const db = (x: number) => `${sig(x, 3)} dB`;
+  let fig: Figure | null = null, report: Section[] = [];
+
+  function preset() {
+    const p = PRE[q<HTMLSelectElement>('.fo-pre').value];
+    if (!p) return;
+    for (const [k, v] of Object.entries(p)) { const e = q<HTMLInputElement>('.fo-' + k); e.value = v; }
+    calc();
+  }
+
+  function calc() {
+    const err = q('.fo-err'), out = q('.fo-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const n1 = val('.fo-n1'), n2 = val('.fo-n2'), dUm = val('.fo-d'), lam = val('.fo-l'), prof = q<HTMLSelectElement>('.fo-p').value as 'step' | 'graded', n0 = val('.fo-n0');
+    const L = val('.fo-L'), D = val('.fo-D'), dl = val('.fo-dl');
+    const B = { txDbm: val('.fo-tx'), rxDbm: val('.fo-rx'), attDbPerKm: val('.fo-att'), Lkm: L, nConn: val('.fo-nc'), connDb: val('.fo-lc'), nSplice: val('.fo-ns'), spliceDb: val('.fo-ls'), marginDb: val('.fo-m') };
+    if (!(n1 > 1 && n1 < 4)) return fail('Give the core refractive index (about 1.45 for silica).');
+    if (!(n2 >= 1 && n2 < n1)) return fail('The cladding index must be lower than the core index, or light is not guided.');
+    if (!(dUm > 0 && dUm <= 3000)) return fail('Give the core diameter in µm (for example 8 to 10 for single-mode, 50 or 62.5 for multimode).');
+    if (!(lam >= 200 && lam <= 20000)) return fail('Give the wavelength in nm (850, 1310 and 1550 are common).');
+    if (!(n0 >= 1 && n0 < 4)) return fail('The outside medium index must be 1 (air) or more.');
+    if (!(L >= 0 && L <= 1e5)) return fail('Give the link length in km (0 or more).');
+    if (!Number.isFinite(D) || !(dl >= 0)) return fail('Give the chromatic dispersion D (any sign) and the source spectral width (0 or more).');
+    if (![B.txDbm, B.rxDbm, B.marginDb].every(Number.isFinite) || !(B.attDbPerKm >= 0 && B.connDb >= 0 && B.spliceDb >= 0)) return fail('Give the transmitter power and receiver sensitivity in dBm, and losses of 0 dB or more.');
+    if (!(Number.isInteger(B.nConn) && B.nConn >= 0 && Number.isInteger(B.nSplice) && B.nSplice >= 0)) return fail('The numbers of connectors and splices must be whole numbers, 0 or more.');
+    err.hidden = true; out.hidden = false;
+    const f: Fibre = { n1, n2, aUm: dUm / 2, lamNm: lam }, b = basics(f, n0);
+    const sm = prof === 'step' ? b.singleMode : b.V < 2.405 * Math.SQRT2;
+    const approxModes = prof === 'step' ? (b.V * b.V) / 2 : (b.V * b.V) / 4;
+    q('.fo-big').textContent = `${sm ? 'Single-mode' : 'Multimode'} at ${sig(lam, 4)} nm: V = ${sig(b.V, 4)}, NA ${sig(b.NA, 3)}`;
+    const f1 = [
+      fact('Numerical aperture', sig(b.NA, 4), `√(n₁² − n₂²); index difference Δ = ${sig(b.delta * 100, 3)} %`),
+      fact('Acceptance angle', b.accept >= 90 ? 'all angles' : `±${sig(b.accept, 3)}°`, `half-angle of the light cone the fibre accepts (full cone ${b.accept >= 90 ? '180' : sig(2 * b.accept, 3)}°)`),
+      fact('V-number', sig(b.V, 4), `2πa·NA/λ; single-mode below ${prof === 'step' ? '2.405' : '3.40 for a parabolic profile'}`),
+      fact('Single-mode cut-off', `${sig(prof === 'step' ? b.cutoffNm : b.cutoffNm * Math.SQRT2, 4)} nm`, 'single-mode at longer wavelengths than this'),
+    ];
+    if (sm && prof === 'step') {
+      const bb = bLP01(b.V), w = marcuse(b.V) * f.aUm;
+      f1.push(fact('LP01 effective index', sig(nEff(f, bb), 6), `normalised propagation constant b = ${sig(bb, 4)} (exact, weak guidance)`));
+      f1.push(fact('Mode-field diameter', `${sig(2 * w, 3)} µm`, `Marcuse's Gaussian fit, w/a = ${sig(marcuse(b.V), 3)}${b.V < 1.2 ? '; rough below V = 1.2' : ''}`));
+    } else f1.push(fact('Number of modes', `about ${sig(Math.max(1, approxModes), 3)}`, prof === 'step' ? 'V²/2 for a step index, counting both polarisations' : 'V²/4 for a parabolic graded index'));
+    q('.fo-facts').replaceChildren(...f1);
+    // Spreading.
+    const sp = spreading(f, prof, sm, L * 1000, D, dl);
+    const f2 = [
+      fact('Modal spreading', time(sp.modal), sm ? 'none: only one mode' : prof === 'step' ? 'ray model, L·n₁(n₁ − n₂)/(c·n₂)' : 'optimum parabolic profile, L·n₁Δ²/(8c)'),
+      fact('Chromatic spreading', time(sp.chrom), '|D| × length × spectral width'),
+      fact('Total spread', time(sp.total), 'root sum of squares'),
+      fact('Bandwidth (approximate)', rate(sp.bandwidth), sp.total > 0 ? `0.44 ÷ spread; a rough bit-rate limit is 1 ÷ (2 × spread) = ${rate(1 / (2 * sp.total)).replace('Hz', 'bit/s')}` : ''),
+    ];
+    q('.fo-facts2').replaceChildren(...f2);
+    // Budget.
+    const lb = linkBudget(B);
+    const v = q('.fo-verdict');
+    v.textContent = lb.ok ? `Works: ${db(lb.spare)} to spare after the ${db(B.marginDb)} margin.` : `Does not work: ${db(-lb.spare)} short (including the ${db(B.marginDb)} margin).`;
+    v.className = `fo-verdict ax-pill ${lb.ok ? 'good' : 'bad'}`;
+    const f3 = [
+      fact('Total loss', db(lb.loss), `fibre ${db(lb.fibre)} + connectors ${db(lb.conn)} + splices ${db(lb.splice)}`),
+      fact('Power at the receiver', `${sig(lb.rx, 3)} dBm`, `${sig(10 ** (lb.rx / 10) * 1000, 3)} µW; sensitivity ${sig(B.rxDbm, 3)} dBm`),
+      fact('Power budget', db(lb.available), 'transmitter − sensitivity'),
+      fact('Longest link', B.attDbPerKm > 0 ? (lb.maxKm > 0 ? `${sig(lb.maxKm, 3)} km` : 'none') : 'no fibre loss given', 'by power, with the same connectors, splices and margin'),
+    ];
+    q('.fo-facts3').replaceChildren(...f3);
+    // Power along the link.
+    const xs = [0, 0], ys = [B.txDbm, B.txDbm - (B.nConn > 0 ? B.connDb : 0)];
+    const steps = 40;
+    for (let i = 1; i <= steps; i++) { const x = (L * i) / steps; xs.push(x); ys.push(B.txDbm - (B.nConn > 0 ? B.connDb : 0) - B.attDbPerKm * x - (B.nSplice * B.spliceDb * i) / steps); }
+    xs.push(L); ys.push(lb.rx);
+    fig = chartFigure({ w: 400, h: 220, xLabel: 'Distance along the link (km)', yLabel: 'Power (dBm)', legend: 'below', series: [{ name: 'Signal power (splices spread out)', x: xs, y: ys, mode: 'line', width: 2 }], marks: [{ kind: 'hline', at: B.rxDbm, dash: [5, 4], label: 'sensitivity' }, { kind: 'hline', at: B.rxDbm + B.marginDb, dash: [2, 3], label: 'with margin' }] }, `Power along a ${L} km link`);
+    paint(q<HTMLCanvasElement>('.fo-fig'), fig);
+    // Modes.
+    const t = q<HTMLTableElement>('.fo-tab');
+    t.replaceChildren();
+    let rows: string[][] = [];
+    if (prof === 'step' && b.V <= 60) {
+      const ms = lpModes(b.V), total = ms.reduce((s, m) => s + m.degeneracy, 0);
+      rows = ms.slice(0, 25).map((m) => [`LP${m.l}${m.m}`, sig(m.vc, 4), m.vc > 0 ? `${sig((2 * Math.PI * f.aUm * b.NA * 1000) / m.vc, 4)} nm` : 'none', String(m.degeneracy)]);
+      const tr = (cells: string[], th: boolean) => { const r = document.createElement('tr'); cells.forEach((c, j) => { const e = document.createElement(th ? 'th' : 'td'); e.textContent = c; if (j) e.className = 'r'; r.append(e); }); return r; };
+      t.append(tr(['Mode', 'Cut-off V', 'Cut-off wavelength', 'Field patterns'], true), ...rows.map((r) => tr(r, false)));
+      q('.fo-mnote').textContent = `${ms.length} LP mode group${ms.length === 1 ? '' : 's'}, ${total} modes counting polarisations and orientations${ms.length > 25 ? ' (first 25 shown)' : ''}; V²/2 estimates ${sig(approxModes, 3)}. A mode is guided at wavelengths shorter than its cut-off.`;
+    } else q('.fo-mnote').textContent = prof === 'step' ? `V = ${sig(b.V, 4)} is large: about ${sig(approxModes, 3)} modes (V²/2).` : `Graded-index fibres guide about V²/4 = ${sig(approxModes, 3)} modes; exact LP cut-offs here are for step-index fibres only.`;
+    q('.fo-mh').hidden = t.childElementCount === 0;
+    const plain = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    report = [
+      { title: q('.fo-big').textContent!, facts: plain(f1) },
+      { title: 'Pulse spreading', facts: plain(f2) },
+      { title: 'Power budget', text: [v.textContent!], facts: plain(f3), figure: fig },
+      ...(rows.length ? [{ title: 'Guided modes', table: { head: ['Mode', 'Cut-off V', 'Cut-off wavelength', 'Field patterns'], rows, align: ['l', 'r', 'r', 'r'] as ('l' | 'r')[] }, note: q('.fo-mnote').textContent! }] : []),
+    ];
+  }
+
+  q('.fo-pre').addEventListener('change', preset);
+  root.querySelectorAll('input, select:not(.fo-pre)').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); i.addEventListener('input', () => { q<HTMLSelectElement>('.fo-pre').value = 'custom'; }); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.fo-out').hidden) paint(q<HTMLCanvasElement>('.fo-fig'), fig); });
+  preset();
+  wireDownloads(q('.dl'), () => ({ title: 'Optical fibre', subtitle: q('.fo-big').textContent ?? '', file: 'fibre', sections: report }));
+</script>
+
+<style is:global>
+  .foc h3 { margin: 16px 0 8px; font-size: 15px; }
+  .foc .fo-verdict { font-size: 14px; padding: 4px 10px; margin: 0 0 10px; display: inline-block; }
+</style>

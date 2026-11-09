@@ -1,0 +1,118 @@
+---
+// Dimensional analysis checker: does an equation balance in SI base units? Runs in the browser; nothing is sent.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax dac">
+  <div class="ax-card">
+    <h2>Equation</h2>
+    <div class="ax-grid">
+      <label>Example <select class="da-ex">
+        <option value="ke" selected>Kinetic energy</option>
+        <option value="gas">Ideal gas law</option>
+        <option value="pend">Pendulum period</option>
+        <option value="drag">Drag force (with a mistake)</option>
+        <option value="osc">Damped oscillation</option>
+        <option value="own">My own</option>
+      </select></label>
+    </div>
+    <label style="margin-top:8px">Equation (use = between the sides; * for times, / for divide, ^ for powers) <input class="da-eq" type="text" spellcheck="false" autocomplete="off" /></label>
+    <label style="margin-top:8px">Units of each symbol, one per line: name = unit <textarea class="da-decl" rows="5" spellcheck="false"></textarea></label>
+    <label class="ax-check" style="margin-top:8px"><input type="checkbox" class="da-const" checked /> Know common constants (c, g, G, h, hbar, k_B, e, epsilon_0, mu_0, N_A, R, sigma) unless I give them a unit</label>
+    <p class="ax-help">Units can be written like kg m/s^2, kg·m·s⁻², J/(mol K), kWh, µF or 1 (dimensionless); prefixes do not change dimensions. Functions: sqrt, exp, ln, log, sin, cos, tan and more; their arguments must be dimensionless. Numbers and pi are dimensionless.</p>
+    <p class="ax-err da-err" hidden></p>
+  </div>
+
+  <div class="ax-card da-out">
+    <h2>Result</h2>
+    <p class="ax-big da-big"></p>
+    <ul class="da-probs"></ul>
+    <div class="da-sides"></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>What is this unit in SI base units?</h2>
+    <label>Unit <input class="da-u" type="text" spellcheck="false" autocomplete="off" value="V/m" /></label>
+    <p class="ax-big da-ubig"></p>
+    <p class="ax-help da-unote"></p>
+  </div>
+</div>
+
+<script>
+  import { check, declarations, format, named, parseUnit, CONSTS, DIM_NAMES, type Dim } from '../../lib/sci/phdim';
+  import { wireDownloads, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.dac')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const EX: Record<string, [string, string]> = {
+    ke: ['E = 1/2*m*v^2', 'E = J\nm = kg\nv = m/s'],
+    gas: ['p*V = n*R*T', 'p = Pa\nV = m^3\nn = mol\nT = K'],
+    pend: ['T = 2*pi*sqrt(L/g)', 'T = s\nL = m'],
+    drag: ['F = 1/2*rho*v*C_d*A', 'F = N\nrho = kg/m^3\nv = m/s\nC_d = 1\nA = m^2'],
+    osc: ['x = x0*exp(-b*t/(2*m))*cos(omega*t)', 'x = m\nx0 = m\nb = kg/s\nt = s\nm = kg\nomega = rad/s'],
+  };
+  let report: Section[] = [];
+  const both = (d: Dim) => { const n = named(d); return n && n !== 'dimensionless' ? `${format(d)} (${n})` : format(d); };
+
+  function run() {
+    const err = q('.da-err'), out = q('.da-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const eq = q<HTMLInputElement>('.da-eq').value.trim();
+    if (!eq) return fail('Type an equation, for example F = m*a.');
+    const decl = declarations(q<HTMLTextAreaElement>('.da-decl').value);
+    if (decl.problems.length) return fail(`Units: ${decl.problems.map((p) => `${p.where}: ${p.msg}`).join('; ')}.`);
+    let r;
+    try { r = check(eq, decl.dims, q<HTMLInputElement>('.da-const').checked); } catch (e) { return fail(`Equation: ${(e as Error).message}.`); }
+    err.hidden = true; out.hidden = false;
+    const big = q('.da-big');
+    if (r.undeclared.length) big.textContent = `Give a unit for ${r.undeclared.join(', ')}`;
+    else if (r.balanced === null) big.textContent = r.problems.length ? `Not consistent: ${both(r.sides[0].dim)}` : `Dimensions: ${both(r.sides[0].dim)}`;
+    else if (r.balanced) big.textContent = `Balances: every side is ${both(r.sides[0].dim)}`;
+    else big.textContent = r.sides.every((s) => s.dim.every((v, i) => Math.abs(v - r.sides[0].dim[i]) < 1e-9)) ? 'Does not balance: a term inside does not fit' : `Does not balance: ${r.sides.map((s) => format(s.dim)).join(' ≠ ')}`;
+    big.className = `ax-big da-big ${r.balanced ? 'da-good' : r.balanced === false ? 'da-bad' : ''}`;
+    const probs = [...r.problems.map((p) => `In ${p.where}: ${p.msg}.`), ...r.undeclared.map((u) => `${u} has no unit: add a line such as "${u} = m" (or "${u} = 1" if it is a pure number).`)];
+    if (r.usedConstants.length) probs.push(`Used as constants: ${r.usedConstants.map((c) => `${c} (${CONSTS[c].name}, ${CONSTS[c].unit})`).join(', ')}.`);
+    q('.da-probs').replaceChildren(...probs.map((p) => { const li = document.createElement('li'); li.textContent = p; return li; }));
+    const sides = q('.da-sides'); sides.replaceChildren();
+    r.sides.forEach((s, k) => {
+      const box = document.createElement('div'); box.className = 'da-side';
+      const h = document.createElement('h3'); h.textContent = `${r.sides.length === 1 ? 'Expression' : k === 0 ? 'Left side' : r.sides.length === 2 ? 'Right side' : `Side ${k + 1}`}: ${s.text}`;
+      const p = document.createElement('p'); p.className = 'da-dim'; p.textContent = both(s.dim);
+      box.append(h, p);
+      if (s.terms.length > 1) {
+        const ul = document.createElement('ul');
+        s.terms.forEach((t) => { const li = document.createElement('li'); li.textContent = `${t.text}: ${format(t.dim)}`; ul.append(li); });
+        box.append(ul);
+      }
+      sides.append(box);
+    });
+    report = [{ title: big.textContent!, text: [eq, ...probs], facts: r.sides.map((s, k) => [r.sides.length === 1 ? 'Expression' : `Side ${k + 1}: ${s.text}`, format(s.dim)] as [string, string]) }];
+  }
+  function unit() {
+    const u = q<HTMLInputElement>('.da-u').value;
+    try {
+      const d = parseUnit(u), n = named(d);
+      q('.da-ubig').textContent = `${u.trim() || '1'} = ${format(d)}`;
+      const parts = d.map((v, i) => (Math.abs(v) > 1e-9 ? `${DIM_NAMES[i]} ${+v.toFixed(4)}` : '')).filter(Boolean);
+      q('.da-unote').textContent = `${parts.length ? `Powers of ${parts.join(', ')}.` : 'A pure number.'}${n && n !== u.trim() && n !== 'dimensionless' ? ` Same dimensions as ${n}.` : ''}`;
+    } catch (e) { q('.da-ubig').textContent = ''; q('.da-unote').textContent = (e as Error).message + '.'; }
+  }
+  q('.da-ex').addEventListener('change', () => { const v = EX[q<HTMLSelectElement>('.da-ex').value]; if (v) { q<HTMLInputElement>('.da-eq').value = v[0]; q<HTMLTextAreaElement>('.da-decl').value = v[1]; } run(); });
+  [q('.da-eq'), q('.da-decl')].forEach((i) => i.addEventListener('input', () => { q<HTMLSelectElement>('.da-ex').value = 'own'; run(); }));
+  q('.da-const').addEventListener('change', run);
+  q('.da-u').addEventListener('input', unit);
+  q<HTMLInputElement>('.da-eq').value = EX.ke[0]; q<HTMLTextAreaElement>('.da-decl').value = EX.ke[1];
+  run(); unit();
+  wireDownloads(q('.dl'), () => ({ title: 'Dimensional analysis', subtitle: q<HTMLInputElement>('.da-eq').value, file: 'dimensional-analysis', sections: report }));
+</script>
+
+<style is:global>
+  .dac .da-good { color: var(--good); }
+  .dac .da-bad { color: var(--bad); }
+  .dac .da-probs { margin: 4px 0 10px; padding-left: 20px; font-size: 14px; }
+  .dac .da-side { border-top: 1px solid var(--line); padding: 10px 0; }
+  .dac .da-side h3 { margin: 0 0 4px; font-size: 15px; overflow-wrap: anywhere; }
+  .dac .da-dim { margin: 0; font-size: 18px; font-weight: 700; }
+  .dac .da-side ul { margin: 6px 0 0; padding-left: 20px; font-size: 14px; color: var(--muted); }
+</style>

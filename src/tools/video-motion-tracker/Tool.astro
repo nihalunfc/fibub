@@ -1,0 +1,231 @@
+---
+// Video motion tracker: step through a local video, click the object, get x(t), y(t), v(t), a(t). The video never leaves the device.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax vmt">
+  <div class="ax-card">
+    <h2>Your video</h2>
+    <div class="ax-row">
+      <button type="button" class="btn vm-open">Open a video</button>
+      <input class="vm-file" type="file" accept="video/*" hidden />
+      <span class="ax-help vm-name" style="margin:0">MP4 or WebM from a phone or camera. It is played here, in your browser; nothing is uploaded.</span>
+    </div>
+    <p class="ax-err vm-verr" hidden></p>
+    <div class="vm-stage" hidden>
+      <div class="vm-wrap"><video class="vm-video" muted playsinline preload="auto"></video><canvas class="vm-over" aria-label="Click the object to record its position"></canvas></div>
+      <div class="ax-row" style="margin-top:8px">
+        <button type="button" class="btn secondary small vm-prev">◀ Frame</button>
+        <button type="button" class="btn secondary small vm-next">Frame ▶</button>
+        <span class="ax-help vm-pos" style="margin:0"></span>
+      </div>
+      <input class="vm-slider" type="range" min="0" max="0" step="1" value="0" aria-label="Frame" />
+      <div class="ax-seg vm-mode" role="group" aria-label="What a click does" style="margin-top:8px">
+        <button type="button" data-m="track" aria-pressed="true">Click the object</button>
+        <button type="button" data-m="scale" aria-pressed="false">Set the scale</button>
+        <button type="button" data-m="origin" aria-pressed="false">Set the origin</button>
+      </div>
+      <p class="ax-help vm-hint"></p>
+      <div class="ax-row"><button type="button" class="btn secondary small vm-undo">Undo last point</button><button type="button" class="btn secondary small vm-clear">Clear points</button></div>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Frames per second of the video <input class="vm-fps" type="text" inputmode="decimal" value="30" /></label>
+      <label>Move on by this many frames after each click <input class="vm-step" type="text" inputmode="numeric" value="1" /></label>
+    </div>
+    <p class="ax-help">Most phones film at 30 or 60 frames per second (slow motion at 120 or 240: type the rate it was filmed at, and times come out in real seconds). Film side-on with the phone still, and put a ruler or object of known length in the plane of the motion for the scale.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Points and scale</h2>
+    <label>Time (s), x and y (pixels from the top-left of the frame), one point per line
+      <textarea class="vm-pts" rows="6" spellcheck="false"></textarea></label>
+    <DataFile target=".vm-pts" maxCols={3} maxRows={20000} label="Open a points file (3 columns)" />
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small vm-ex">Try a made-up example</button></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Scale point 1, x and y (px) <input class="vm-s1" type="text" value="" placeholder="e.g. 20, 227" /></label>
+      <label>Scale point 2, x and y (px) <input class="vm-s2" type="text" value="" placeholder="e.g. 220, 227" /></label>
+      <label>Real distance between them (m) <input class="vm-sd" type="text" inputmode="decimal" value="1" /></label>
+      <label>Origin, x and y (px; empty = first point) <input class="vm-o" type="text" value="" /></label>
+    </div>
+    <p class="ax-help">You can also paste points from another tracker. Without a scale, distances stay in pixels. y counts upwards from the origin.</p>
+    <p class="ax-err vm-err" hidden></p>
+  </div>
+
+  <div class="ax-card vm-out" hidden>
+    <h2>Motion</h2>
+    <p class="ax-big vm-big"></p>
+    <dl class="ax-facts vm-facts"></dl>
+    <canvas class="ax-fig vm-fig"></canvas>
+    <canvas class="ax-fig vm-fig2"></canvas>
+    <canvas class="ax-fig vm-fig3"></canvas>
+    <div class="ax-scroll"><table class="vm-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small vm-csv">Download table (CSV)</button></div>
+    <p class="ax-help">Velocity and acceleration come from differences between neighbouring points, so they amplify click jitter: accelerations from single frames are noisy. The fitted straight line and parabola use every point and are much steadier. For study and planning, not a substitute for professional judgement.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { metresPerPixel, toWorld, analyse, type Pt } from '../../lib/sci/phmotion';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, pagePalette, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, numericColumns, pm } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.vmt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const video = q<HTMLVideoElement>('.vm-video'), over = q<HTMLCanvasElement>('.vm-over');
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const pair = (s: string): [number, number] | null => { const v = s.split(/[\s,;]+/).filter(Boolean).map(num); return v.length === 2 && v.every(Number.isFinite) ? [v[0], v[1]] : null; };
+  let url = '', frame = 0, frames = 0, mode = 'track', scaleClicks: [number, number][] = [];
+  let figs: Figure[] = [], report: Section[] = [], csv = '';
+  const HINT: Record<string, string> = {
+    track: 'Click the centre of the object. The video then moves on to the next frame for the next click.',
+    scale: 'Click the two ends of something of known length, then type that length in metres below.',
+    origin: 'Click the point that should be (0, 0). If you skip this, the first tracked point is the origin.',
+  };
+
+  const fps = () => { const f = num(inp('.vm-fps').value); return f > 0 && f <= 10000 ? f : 30; };
+  const step = () => { const s = Math.round(num(inp('.vm-step').value)); return s >= 1 ? s : 1; };
+  function seek(k: number) {
+    if (!url) return;
+    frame = Math.max(0, Math.min(frames - 1, k));
+    video.currentTime = (frame + 0.5) / fps(); // the middle of the frame, so the browser shows exactly this frame
+    inp('.vm-slider').value = String(frame);
+    q('.vm-pos').textContent = `Frame ${frame + 1} of ${frames}, t = ${(frame / fps()).toFixed(3)} s`;
+    drawOver();
+  }
+  function setMode(m: string) { mode = m; scaleClicks = []; root.querySelectorAll<HTMLButtonElement>('.vm-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m))); q('.vm-hint').textContent = HINT[m]; }
+
+  function readPts(): Pt[] {
+    const { cols, rows } = numericColumns(q<HTMLTextAreaElement>('.vm-pts').value);
+    const out: Pt[] = [];
+    for (let i = 0; i < rows; i++) if (cols.length >= 3 && [cols[0][i], cols[1][i], cols[2][i]].every(Number.isFinite)) out.push({ t: cols[0][i], x: cols[1][i], y: cols[2][i] });
+    return out;
+  }
+  function drawOver() {
+    if (!url || !video.videoWidth) return;
+    const W = over.clientWidth, H = over.clientHeight, dpr = window.devicePixelRatio || 1;
+    over.width = Math.round(W * dpr); over.height = Math.round(H * dpr);
+    const ctx = over.getContext('2d')!; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    const sx = W / video.videoWidth, sy = H / video.videoHeight, red = pagePalette().red;
+    const pts = readPts(), tNow = frame / fps();
+    ctx.strokeStyle = red ? '#a30000' : '#ff3b30'; ctx.fillStyle = ctx.strokeStyle; ctx.lineWidth = 1.5;
+    ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(p.x * sx, p.y * sy) : ctx.moveTo(p.x * sx, p.y * sy))); ctx.stroke();
+    for (const p of pts) { ctx.beginPath(); ctx.arc(p.x * sx, p.y * sy, Math.abs(p.t - tNow) < 0.5 / fps() ? 5 : 3, 0, 2 * Math.PI); ctx.fill(); }
+    const s1 = pair(inp('.vm-s1').value), s2 = pair(inp('.vm-s2').value), o = pair(inp('.vm-o').value);
+    ctx.strokeStyle = red ? '#a30000' : '#ffd60a'; ctx.lineWidth = 2;
+    const sc = scaleClicks.length === 1 ? [scaleClicks[0]] : s1 && s2 ? [s1, s2] : [];
+    if (sc.length) { ctx.beginPath(); ctx.moveTo(sc[0][0] * sx, sc[0][1] * sy); if (sc[1]) ctx.lineTo(sc[1][0] * sx, sc[1][1] * sy); ctx.stroke(); sc.forEach((p) => { ctx.beginPath(); ctx.arc(p[0] * sx, p[1] * sy, 3, 0, 2 * Math.PI); ctx.stroke(); }); }
+    if (o) { ctx.strokeStyle = red ? '#a30000' : '#30d158'; ctx.beginPath(); ctx.moveTo(o[0] * sx - 8, o[1] * sy); ctx.lineTo(o[0] * sx + 8, o[1] * sy); ctx.moveTo(o[0] * sx, o[1] * sy - 8); ctx.lineTo(o[0] * sx, o[1] * sy + 8); ctx.stroke(); }
+  }
+
+  function calc() {
+    const err = q('.vm-err'), out = q('.vm-out');
+    drawOver();
+    const fail = (s: string) => { err.textContent = s; err.hidden = !s; out.hidden = true; report = []; csv = ''; };
+    const raw = readPts();
+    if (!raw.length) return fail(q<HTMLTextAreaElement>('.vm-pts').value.trim() ? 'Each line needs three numbers: time in seconds, x and y in pixels.' : '');
+    if (raw.length < 3) return fail(`Click at least 3 points (you have ${raw.length}); 6 or more give steadier speeds.`);
+    const ts = raw.map((p) => p.t).sort((a, b) => a - b);
+    if (ts.some((t, i) => i && t === ts[i - 1])) return fail('Two points have the same time. Each frame should be clicked once (use Undo, or delete the extra line).');
+    const s1 = pair(inp('.vm-s1').value), s2 = pair(inp('.vm-s2').value), dist = num(inp('.vm-sd').value), o = pair(inp('.vm-o').value);
+    let s = 1, unit = 'px';
+    if (s1 && s2) {
+      if (!(dist > 0)) return fail('Give the real distance between the two scale points in metres.');
+      if (Math.hypot(s2[0] - s1[0], s2[1] - s1[1]) < 1) return fail('The two scale points are in the same place: click both ends of the ruler.');
+      s = metresPerPixel(s1[0], s1[1], s2[0], s2[1], dist); unit = 'm';
+    } else if (inp('.vm-s1').value.trim() || inp('.vm-s2').value.trim()) return fail('Give each scale point as two numbers, x and y in pixels (for example 20, 227).');
+    if (inp('.vm-o').value.trim() && !o) return fail('Give the origin as two numbers, x and y in pixels, or leave it empty.');
+    const first = [...raw].sort((a, b) => a.t - b.t)[0], origin = o ?? [first.x, first.y];
+    err.hidden = true; out.hidden = false;
+    const a = analyse(toWorld(raw, origin[0], origin[1], s)), n = a.t.length;
+    const U = (v: number, d = 4) => `${sig(v, d)} ${unit}`, V = (v: number) => `${sig(v, 3)} ${unit}/s`, A = (v: number) => `${sig(v, 3)} ${unit}/s²`;
+    const fx = a.fx, fy = a.fy;
+    const ayFit = fy.quad ? 2 * fy.quad.c[2] : NaN, uay = fy.quad ? 2 * fy.quad.se[2] : NaN, axFit = fx.quad ? 2 * fx.quad.c[2] : NaN, uax = fx.quad ? 2 * fx.quad.se[2] : NaN;
+    q('.vm-big').textContent = fy.quad ? `Vertical acceleration ${pm(ayFit, uay)} ${unit}/s²` : `${n} points over ${sig(a.t[n - 1] - a.t[0], 3)} s`;
+    const f = [
+      fact('Points', `${n} over ${sig(a.t[n - 1] - a.t[0], 4)} s`, unit === 'm' ? `scale ${sig(s * 1000, 4)} mm per pixel` : 'no scale set: distances in pixels'),
+      fact('Distance moved', `${U(a.x[n - 1] - a.x[0], 3)} across, ${U(a.y[n - 1] - a.y[0], 3)} up`, `from the first point to the last`),
+      ...(fx.lin ? [fact('Horizontal speed (straight-line fit)', `${pm(fx.lin.c[1], fx.lin.se[1])} ${unit}/s`, `x = x₀ + v t; rms scatter ${U(fx.lin.rms, 2)}`)] : []),
+      ...(fy.quad ? [fact('Vertical acceleration (parabola fit)', `${pm(ayFit, uay)} ${unit}/s²`, unit === 'm' ? `free fall would be −9.81 m/s²; starting vertical speed ${V(fy.quad.c[1])}` : 'set a scale to get m/s²')] : []),
+      ...(fx.quad ? [fact('Horizontal acceleration (parabola fit)', `${pm(axFit, uax)} ${unit}/s²`, 'near 0 for a thrown ball (drag makes it slightly negative)')] : []),
+      fact('Top speed between points', V(Math.max(...a.speed)), 'from neighbouring-point differences'),
+    ];
+    q('.vm-facts').replaceChildren(...f);
+    const c1 = chartFigure({ w: 380, h: 230, xLabel: 'Time (s)', yLabel: `Position (${unit})`, legend: 'below', series: [
+      { name: 'x', x: a.t, y: a.x, mode: 'points', marker: 'circle', size: 3.5 }, { name: 'y', x: a.t, y: a.y, mode: 'points', marker: 'square', size: 3.5 },
+      ...(fy.quad ? [{ name: 'Parabola fit to y', x: a.t, y: a.t.map((t) => fy.quad!.c[0] + fy.quad!.c[1] * (t - a.t[0]) + fy.quad!.c[2] * (t - a.t[0]) ** 2), mode: 'line' as const, width: 1.2 }] : []),
+    ] }, 'Position against time');
+    const c2 = chartFigure({ w: 380, h: 200, xLabel: 'Time (s)', yLabel: `Velocity (${unit}/s)`, legend: 'below', series: [{ name: 'vx', x: a.t, y: a.vx, mode: 'both', marker: 'circle', size: 3 }, { name: 'vy', x: a.t, y: a.vy, mode: 'both', marker: 'square', size: 3 }] }, 'Velocity against time');
+    const c3 = chartFigure({ w: 380, h: 200, xLabel: 'Time (s)', yLabel: `Acceleration (${unit}/s²)`, legend: 'below', series: [{ name: 'ax', x: a.t, y: a.ax, mode: 'both', marker: 'circle', size: 3 }, { name: 'ay', x: a.t, y: a.ay, mode: 'both', marker: 'square', size: 3 }], marks: Number.isFinite(ayFit) ? [{ kind: 'hline', at: ayFit, dash: [4, 3], label: 'fit' }] : [] }, 'Acceleration against time');
+    paint(q<HTMLCanvasElement>('.vm-fig'), c1); paint(q<HTMLCanvasElement>('.vm-fig2'), c2); paint(q<HTMLCanvasElement>('.vm-fig3'), c3);
+    figs = [c1, c2, c3];
+    const head = ['t (s)', `x (${unit})`, `y (${unit})`, `vx (${unit}/s)`, `vy (${unit}/s)`, `ax (${unit}/s²)`, `ay (${unit}/s²)`];
+    const rows = a.t.map((t, i) => [sig(t, 4), sig(a.x[i], 4), sig(a.y[i], 4), sig(a.vx[i], 3), sig(a.vy[i], 3), sig(a.ax[i], 3), sig(a.ay[i], 3)]);
+    const tr = (cells: string[], th = false) => { const r = document.createElement('tr'); for (const x of cells) { const e = document.createElement(th ? 'th' : 'td'); e.textContent = x; r.append(e); } return r; };
+    q('.vm-tab').replaceChildren(tr(head, true), ...rows.map((r) => tr(r)));
+    const u = unit === 'm' ? 'm' : 'px';
+    csv = `t_s,x_${u},y_${u},vx_${u}_s,vy_${u}_s,ax_${u}_s2,ay_${u}_s2\n` + a.t.map((t, i) => [t, a.x[i], a.y[i], a.vx[i], a.vy[i], a.ax[i], a.ay[i]].map((v) => +v.toPrecision(8)).join(',')).join('\n') + '\n';
+    report = [{ title: q('.vm-big').textContent!, facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: c1 }, { title: 'Velocity and acceleration', figure: c2 }, { title: 'Table', table: { head, rows }, figure: c3 }];
+  }
+
+  // Video loading: a local object URL only.
+  q('.vm-open').addEventListener('click', () => inp('.vm-file').click());
+  inp('.vm-file').addEventListener('change', () => {
+    const file = inp('.vm-file').files?.[0]; inp('.vm-file').value = ''; if (!file) return;
+    if (url) URL.revokeObjectURL(url);
+    url = URL.createObjectURL(file); q('.vm-verr').hidden = true;
+    q('.vm-name').textContent = `${file.name}: stays on this device.`;
+    video.src = url;
+  });
+  video.addEventListener('loadedmetadata', () => {
+    frames = Math.max(1, Math.round(video.duration * fps()));
+    inp('.vm-slider').max = String(frames - 1);
+    q('.vm-stage').hidden = false; setMode('track'); seek(0);
+  });
+  video.addEventListener('error', () => { q('.vm-verr').textContent = 'This browser cannot play that video. Try MP4 (H.264) or WebM, or convert it first.'; q('.vm-verr').hidden = false; q('.vm-stage').hidden = true; });
+  video.addEventListener('seeked', drawOver);
+  q('.vm-prev').addEventListener('click', () => seek(frame - step()));
+  q('.vm-next').addEventListener('click', () => seek(frame + step()));
+  inp('.vm-slider').addEventListener('input', () => seek(+inp('.vm-slider').value));
+  root.querySelectorAll<HTMLButtonElement>('.vm-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  over.addEventListener('click', (e) => {
+    if (!video.videoWidth) return;
+    const r = over.getBoundingClientRect(), x = +(((e.clientX - r.left) * video.videoWidth) / r.width).toFixed(1), y = +(((e.clientY - r.top) * video.videoHeight) / r.height).toFixed(1);
+    if (mode === 'track') {
+      const ta = q<HTMLTextAreaElement>('.vm-pts'), t = +(frame / fps()).toFixed(6);
+      const lines = ta.value.split('\n').filter((l) => l.trim() && Math.abs(num(l.split(/[\s,;]+/)[0]) - t) > 1e-9); // re-clicking a frame replaces its point
+      lines.push(`${t}, ${x}, ${y}`); lines.sort((a, b) => num(a.split(/[\s,;]+/)[0]) - num(b.split(/[\s,;]+/)[0]));
+      ta.value = lines.join('\n'); calc();
+      if (frame + step() < frames) seek(frame + step());
+    } else if (mode === 'scale') {
+      scaleClicks.push([x, y]);
+      if (scaleClicks.length === 2) { inp('.vm-s1').value = `${scaleClicks[0][0]}, ${scaleClicks[0][1]}`; inp('.vm-s2').value = `${x}, ${y}`; scaleClicks = []; setMode('track'); calc(); }
+      else drawOver();
+    } else { inp('.vm-o').value = `${x}, ${y}`; setMode('track'); calc(); }
+  });
+  q('.vm-undo').addEventListener('click', () => { const ta = q<HTMLTextAreaElement>('.vm-pts'), lines = ta.value.split('\n').filter((l) => l.trim()); const last = lines.pop(); ta.value = lines.join('\n'); calc(); if (last) seek(Math.round(num(last.split(/[\s,;]+/)[0]) * fps())); });
+  q('.vm-clear').addEventListener('click', () => { q<HTMLTextAreaElement>('.vm-pts').value = ''; calc(); seek(0); });
+  root.querySelectorAll('.vm-pts, .vm-s1, .vm-s2, .vm-sd, .vm-o').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  inp('.vm-fps').addEventListener('input', () => { if (url && video.duration) { frames = Math.max(1, Math.round(video.duration * fps())); inp('.vm-slider').max = String(frames - 1); seek(Math.min(frame, frames - 1)); } });
+  q('.vm-csv').addEventListener('click', () => { if (csv) save(new Blob([csv], { type: 'text/csv' }), 'motion.csv', 'text/csv'); });
+  window.addEventListener('resize', drawOver);
+  document.addEventListener('fibub:theme', () => { drawOver(); if (figs.length && !q('.vm-out').hidden) { paint(q<HTMLCanvasElement>('.vm-fig'), figs[0]); paint(q<HTMLCanvasElement>('.vm-fig2'), figs[1]); paint(q<HTMLCanvasElement>('.vm-fig3'), figs[2]); } });
+  const EX = '0, 40, 40\n0.0333, 50.2, 41\n0.0667, 59.8, 44.4\n0.1, 70.4, 49.6\n0.1667, 89.8, 67\n0.2, 100.4, 78.8\n0.2333, 109.6, 93\n0.2667, 120.2, 109.4';
+  q('.vm-ex').addEventListener('click', () => { q<HTMLTextAreaElement>('.vm-pts').value = EX; inp('.vm-s1').value = '20, 227'; inp('.vm-s2').value = '220, 227'; inp('.vm-sd').value = '1'; inp('.vm-o').value = ''; calc(); });
+  setMode('track'); calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Video motion tracking', subtitle: q('.vm-big').textContent || '', file: 'motion', sections: report }));
+</script>
+
+<style is:global>
+  .vmt select, .vmt input[type=text], .vmt textarea { max-width: 100%; }
+  .vmt textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 14px; }
+  .vmt .vm-wrap { position: relative; margin-top: 10px; line-height: 0; max-width: 100%; display: inline-block; }
+  .vmt .vm-video { max-width: 100%; max-height: 60vh; width: auto; height: auto; display: block; background: #000; border-radius: 8px; }
+  .vmt .vm-over { position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; touch-action: manipulation; }
+  .vmt .vm-slider { width: 100%; margin-top: 8px; }
+  .vmt .vm-stage[hidden], .vmt .vm-out[hidden] { display: none; }
+  html.red-mode .vmt .vm-video { filter: url(#red-night); }
+</style>

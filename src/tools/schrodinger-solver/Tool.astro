@@ -1,0 +1,202 @@
+---
+// 1D Schrödinger equation solver: finite-difference matrix method between hard walls, any potential (presets,
+// a formula or a drawing), with analytic levels for comparison. Everything runs in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax sch">
+  <div class="ax-card">
+    <h2>Potential</h2>
+    <div class="ax-grid">
+      <label>Units <select class="sc-u"><option value="natural" selected>Natural (ħ = m = 1)</option><option value="electron">Electron (nm and eV)</option></select></label>
+      <label><span class="sc-ml">Mass (m = 1)</span> <input class="sc-m" type="text" inputmode="decimal" value="1" /></label>
+      <label>Potential <select class="sc-pre"></select></label>
+      <label class="sc-l1"><span class="sc-t1"></span> <input class="sc-p1" type="text" inputmode="decimal" /></label>
+      <label class="sc-l2"><span class="sc-t2"></span> <input class="sc-p2" type="text" inputmode="decimal" /></label>
+      <label class="sc-l3"><span class="sc-t3"></span> <input class="sc-p3" type="text" inputmode="decimal" /></label>
+    </div>
+    <label class="sc-lf" style="margin-top:10px">V(x) = <input class="sc-f" type="text" spellcheck="false" autocomplete="off" value="0.5*x^2 + 0.05*x^4" /></label>
+    <div class="sc-draw" hidden>
+      <canvas class="sc-pad" width="600" height="220" aria-label="Drawing area for the potential: drag to draw"></canvas>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small sc-clear">Flat line</button><button type="button" class="btn secondary small sc-start">Start again from the example</button></div>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label><span>Left wall x₀ (<span class="sc-xu">x</span>)</span> <input class="sc-x0" type="text" inputmode="decimal" /></label>
+      <label><span>Right wall x₁ (<span class="sc-xu">x</span>)</span> <input class="sc-x1" type="text" inputmode="decimal" /></label>
+      <label>Grid points <select class="sc-n"><option>250</option><option>500</option><option selected>1000</option><option>2000</option><option>4000</option></select></label>
+      <label>Levels to find <input class="sc-k" type="text" inputmode="numeric" value="6" /></label>
+      <label>Draw <select class="sc-show"><option value="psi" selected>Wavefunctions ψ</option><option value="prob">Probability |ψ|²</option></select></label>
+    </div>
+    <p class="ax-help sc-help"></p>
+    <p class="ax-help">The particle is kept between two hard walls (ψ = 0 at x₀ and x₁), so make the window wide enough that the states you want have died away before the walls. Natural units: lengths and energies are pure numbers with ħ = m = 1. Electron units: x in nm, V and E in eV, mass in electron masses (use an effective mass for a semiconductor). Example values are made up.</p>
+    <p class="ax-err sc-err" hidden></p>
+  </div>
+
+  <div class="ax-card sc-out">
+    <h2>Energy levels</h2>
+    <p class="ax-big sc-big"></p>
+    <dl class="ax-facts sc-facts"></dl>
+    <canvas class="ax-fig sc-fig" style="margin-top:12px"></canvas>
+    <div class="ax-scroll" style="margin-top:12px"><table class="sc-tab"></table></div>
+    <p class="ax-help sc-note"></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small sc-csv">Download levels (CSV)</button>
+      <button type="button" class="btn secondary small sc-wcsv">Download wavefunctions (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .sch .sc-pad { display: block; width: 100%; height: auto; margin-top: 10px; border: 1px solid var(--line); border-radius: 8px; touch-action: none; cursor: crosshair; background: var(--bg); }
+  .sch label[hidden] { display: none; }
+</style>
+
+<script>
+  import { PRESETS, potential, solve, energies, cOf, forbidden, type PresetId, type Solution } from '../../lib/sci/phschro';
+  import { chartFigure, OKABE_ITO, type Series } from '../../lib/sci/plot';
+  import { paint, pagePalette, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.sch')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const pre = q<HTMLSelectElement>('.sc-pre');
+  pre.replaceChildren(...PRESETS.map((p) => new Option(p.name, p.id)));
+  const NPTS = 41;
+  const EXAMPLE_DRAW = (top: number) => Array.from({ length: NPTS }, (_, i) => { const t = (i / (NPTS - 1)) * 2 - 1; return Math.min(top, top * (0.55 * (t * t * 4 - 1) ** 2 * 0.5 + 0.08 * (t + 1))); });
+  let drawn = EXAMPLE_DRAW(20);
+  let fig: Figure | null = null, report: Section[] = [], sol: Solution | null = null, levelRows: string[][] = [];
+
+  function setDefaults() {
+    const p = PRESETS.find((x) => x.id === pre.value)!, u = q<HTMLSelectElement>('.sc-u').value as 'natural' | 'electron', d = p.def[u];
+    [1, 2, 3].forEach((i) => { const lab = p.p[i - 1]; q(`.sc-l${i}`).hidden = !lab; inp(`.sc-p${i}`).value = String(d[i - 1]); });
+    inp('.sc-x0').value = String(d[3]); inp('.sc-x1').value = String(d[4]);
+    q('.sc-lf').hidden = p.id !== 'formula'; q('.sc-draw').hidden = p.id !== 'draw';
+    if (p.id === 'formula') inp('.sc-f').value = u === 'natural' ? '0.5*x^2 + 0.05*x^4' : '-0.4*exp(-x^2/0.25)';
+    if (p.id === 'draw') drawn = EXAMPLE_DRAW(d[0]);
+    q('.sc-help').textContent = p.help;
+  }
+
+  function unitLabels() {
+    const u = q<HTMLSelectElement>('.sc-u').value;
+    root.querySelectorAll('.sc-xu').forEach((e) => { e.textContent = u === 'natural' ? 'x' : 'nm'; });
+    q('.sc-ml').textContent = u === 'natural' ? 'Mass (m = 1)' : 'Mass (electron masses)';
+    const p = PRESETS.find((x) => x.id === pre.value)!, eu = u === 'natural' ? '' : ' (eV)', lu = u === 'natural' ? '' : ' (nm)', iu = u === 'natural' ? '' : ' (1/nm)';
+    const unitFor = (lab: string) => /Range|Width a$/.test(lab) && p.id === 'morse' ? iu : /Width|Centre|separation|Minimum/.test(lab) ? lu : /Slope/.test(lab) ? (u === 'natural' ? '' : ' (eV/nm)') : eu;
+    [1, 2, 3].forEach((i) => { const lab = p.p[i - 1]; q(`.sc-t${i}`).textContent = lab ? lab + unitFor(lab) : ''; });
+  }
+
+  function drawPad() {
+    const cv = q<HTMLCanvasElement>('.sc-pad'), ctx = cv.getContext('2d')!, pal = pagePalette(), W = cv.width, H = cv.height, top = num(inp('.sc-p1').value) || 1;
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = pal.grid; ctx.lineWidth = 1;
+    for (let i = 0; i <= 10; i++) { ctx.beginPath(); ctx.moveTo((i * W) / 10, 0); ctx.lineTo((i * W) / 10, H); ctx.stroke(); }
+    for (let j = 0; j <= 4; j++) { ctx.beginPath(); ctx.moveTo(0, (j * H) / 4); ctx.lineTo(W, (j * H) / 4); ctx.stroke(); }
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = 3; ctx.beginPath();
+    drawn.forEach((v, i) => { const x = (i / (NPTS - 1)) * W, y = H - (v / top) * (H - 10) - 5; if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); });
+    ctx.stroke();
+    ctx.fillStyle = pal.muted; ctx.font = '22px system-ui, sans-serif'; ctx.fillText(`V = ${sig(top, 3)}`, 8, 24); ctx.fillText('V = 0', 8, H - 10);
+  }
+  { // Drawing with mouse, pen or finger.
+    const cv = q<HTMLCanvasElement>('.sc-pad'); let down = false, lastI = -1;
+    const at = (e: PointerEvent) => {
+      const r = cv.getBoundingClientRect(), top = num(inp('.sc-p1').value) || 1;
+      const i = Math.round(Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * (NPTS - 1));
+      const yy = (e.clientY - r.top) / r.height * cv.height, v = Math.min(top, Math.max(0, ((cv.height - 5 - yy) / (cv.height - 10)) * top));
+      if (lastI >= 0 && Math.abs(i - lastI) > 1) { const a = Math.min(i, lastI), b = Math.max(i, lastI), va = drawn[lastI]; for (let k = a; k <= b; k++) drawn[k] = va + ((v - va) * (k - lastI)) / (i - lastI); }
+      drawn[i] = v; lastI = i; drawPad();
+    };
+    cv.addEventListener('pointerdown', (e) => { down = true; lastI = -1; cv.setPointerCapture(e.pointerId); at(e); });
+    cv.addEventListener('pointermove', (e) => { if (down) at(e); });
+    const up = () => { if (down) { down = false; calc(); } };
+    cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  }
+
+  function calc() {
+    const err = q('.sc-err'), out = q('.sc-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; sol = null; };
+    unitLabels();
+    const u = q<HTMLSelectElement>('.sc-u').value as 'natural' | 'electron', id = pre.value as PresetId, P = PRESETS.find((x) => x.id === id)!;
+    if (id === 'draw') drawPad();
+    const m = num(inp('.sc-m').value), x0 = num(inp('.sc-x0').value), x1 = num(inp('.sc-x1').value), N = +q<HTMLSelectElement>('.sc-n').value, k = Math.round(num(inp('.sc-k').value));
+    const p = [1, 2, 3].map((i) => num(inp(`.sc-p${i}`).value));
+    if (!(m > 0)) return fail('Give a mass greater than 0.');
+    if (!(Number.isFinite(x0) && Number.isFinite(x1) && x1 > x0)) return fail('The right wall x₁ must be to the right of the left wall x₀.');
+    if (!(k >= 1 && k <= 30)) return fail('Find between 1 and 30 levels.');
+    for (let i = 0; i < 3; i++) if (P.p[i] && !Number.isFinite(p[i])) return fail(`Give a number for "${P.p[i]}".`);
+    if (['harmonic', 'finite', 'double', 'morse', 'linear', 'poschl', 'draw'].includes(id) && !(p[0] > 0)) return fail(`${P.p[0]} must be greater than 0.`);
+    if (['finite', 'double', 'morse', 'poschl'].includes(id) && !(p[1] > 0)) return fail(`${P.p[1]} must be greater than 0.`);
+    const c = cOf(u, m);
+    let pot;
+    try { pot = potential(id, { p1: p[0], p2: p[1], p3: p[2] }, c, x0, x1, inp('.sc-f').value, drawn, k); }
+    catch (e) { return fail(id === 'formula' ? `The formula could not be read: ${(e as Error).message}.` : (e as Error).message); }
+    try { sol = solve(pot.V, x0, x1, N, k, c); } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; out.hidden = false;
+    const coarse = energies(pot.V, x0, x1, Math.floor(N / 2), k, c);
+    const eu = u === 'natural' ? '' : ' eV', xu = u === 'natural' ? '' : ' nm';
+    const E = sol.states.map((s) => s.E), exact = pot.exact;
+    const edge = Math.min(sol.V[0], sol.V[sol.V.length - 1]);
+    const boxed = id !== 'box' && id !== 'linear' && id !== 'harmonic';
+    q('.sc-big').textContent = `E₀ = ${sig(E[0], 6)}${eu}${E.length > 1 ? `, E₁ = ${sig(E[1], 6)}${eu}` : ''}`;
+    const nb = exact && ['finite', 'morse', 'poschl'].includes(id) ? exact.length : null;
+    const facts = [
+      fact('Levels found', String(E.length), `lowest ${E.length} of the ${N}-point matrix`),
+      ...(E.length > 1 ? [fact('Gap E₁ − E₀', `${sig(E[1] - E[0], 5)}${eu}`, u === 'electron' ? `photon wavelength ${sig(1239.84198 / (E[1] - E[0]), 4)} nm` : 'the lowest excitation energy')] : []),
+      fact('Grid step', `${sig(sol.h, 3)}${xu}`, `${N} points from ${sig(x0, 4)} to ${sig(x1, 4)}${xu}`),
+      fact('Largest grid error (estimate)', `${sig(Math.max(...E.map((e, i) => Math.abs(e - coarse[i]) / 3)), 2)}${eu}`, 'one third of the change from a grid half as fine'),
+      ...(nb !== null ? [fact('Bound states (exact)', String(nb), 'levels below the top of the well')] : []),
+    ];
+    q('.sc-facts').replaceChildren(...facts);
+    // Table.
+    const head = ['n', `E${eu ? ' (eV)' : ''}`, ...(exact ? ['Exact', 'Difference'] : []), 'Grid error ±', `⟨x⟩${xu ? ' (nm)' : ''}`, `Δx${xu ? ' (nm)' : ''}`, 'Nodes', 'P(E < V)'];
+    levelRows = sol.states.map((s, i) => {
+      const ex = exact && i < exact.length ? exact[i] : NaN;
+      const unbound = boxed && s.E > edge;
+      return [String(i), sig(s.E, 7) + (unbound ? ' *' : ''), ...(exact ? [Number.isFinite(ex) ? sig(ex, 7) : '–', Number.isFinite(ex) ? sig(s.E - ex, 2) : '–'] : []), sig(Math.abs(s.E - coarse[i]) / 3, 2), sig(Math.abs(s.mean) < 1e-9 * (x1 - x0) ? 0 : s.mean, 4), sig(s.spread, 4), String(s.nodes), sig(forbidden(sol!, i), 3)];
+    });
+    const t = q<HTMLTableElement>('.sc-tab'); t.replaceChildren();
+    const hr = t.insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    levelRows.forEach((r) => { const tr = t.insertRow(); r.forEach((x, j) => { const td = tr.insertCell(); td.textContent = x; if (j) td.className = 'r'; }); });
+    const anyUnbound = boxed && E.some((e) => e > edge);
+    q('.sc-note').textContent = `${anyUnbound ? '* Above the potential at the window edge: this level is a state of the box formed by the walls, and moves if you move them. ' : ''}P(E < V) is the chance of finding the particle where its energy is below the potential (classically forbidden: tunnelling). Nodes count where ψ crosses zero; state n has n nodes.`;
+    // Picture: V(x) and each state drawn at its own energy.
+    const show = q<HTMLSelectElement>('.sc-show').value;
+    const vmin = Math.min(...sol.V), eTop = E[E.length - 1], spacing = E.length > 1 ? (eTop - E[0]) / (E.length - 1) : Math.max(1e-9, Math.abs(E[0] - vmin));
+    const yMin = Math.min(vmin, E[0] - 0.6 * spacing), yMax = eTop + 0.9 * spacing;
+    const step = Math.max(1, Math.floor(sol.x.length / 400)), xs: number[] = [];
+    for (let i = 0; i < sol.x.length; i += step) xs.push(sol.x[i]);
+    const series: Series[] = [{ name: 'V(x)', x: xs, y: xs.map((_, j) => Math.min(yMax + spacing, sol!.V[j * step])), mode: 'line', width: 2.2, color: pagePalette().ink }];
+    sol.states.forEach((s, n) => {
+      const vals = Array.from(s.psi, (v) => (show === 'prob' ? v * v : v)), mx = Math.max(...vals.map(Math.abs)) || 1, amp = (show === 'prob' ? 0.8 : 0.42) * spacing / mx;
+      const col = OKABE_ITO[n % 6];
+      series.push({ name: `E${n}`, x: [sol!.x[0], sol!.x[sol!.x.length - 1]], y: [s.E, s.E], mode: 'line', width: 0.8, color: col, dash: [3, 3] });
+      series.push({ name: `ψ${n}`, x: xs, y: xs.map((_, j) => s.E + vals[j * step] * amp), mode: 'line', width: 1.6, color: col });
+    });
+    fig = chartFigure({ w: 520, h: 380, xLabel: u === 'natural' ? 'x' : 'x (nm)', yLabel: u === 'natural' ? 'Energy' : 'Energy (eV)', yMin, yMax, xMin: x0, xMax: x1, legend: 'none', series }, `Potential and the lowest ${E.length} ${show === 'prob' ? 'probability densities' : 'wavefunctions'}, each drawn at its own energy`);
+    paint(q<HTMLCanvasElement>('.sc-fig'), fig);
+    report = [
+      { title: `${P.name}: ${q('.sc-big').textContent}`, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig },
+      { title: 'Levels', table: { head, rows: levelRows, align: head.map((_, j) => (j ? 'r' : 'l')) }, note: q('.sc-note').textContent! },
+    ];
+  }
+
+  pre.addEventListener('change', () => { setDefaults(); calc(); });
+  q('.sc-u').addEventListener('change', () => { inp('.sc-m').value = '1'; setDefaults(); calc(); });
+  let tm = 0;
+  root.querySelectorAll('input:not(.sc-p1), select:not(.sc-pre):not(.sc-u)').forEach((i) => i.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(calc, 200); }));
+  inp('.sc-p1').addEventListener('input', () => { if (pre.value === 'draw') drawPad(); clearTimeout(tm); tm = window.setTimeout(calc, 200); });
+  q('.sc-clear').addEventListener('click', () => { drawn = drawn.map(() => 0); calc(); });
+  q('.sc-start').addEventListener('click', () => { drawn = EXAMPLE_DRAW(num(inp('.sc-p1').value) || 1); calc(); });
+  q('.sc-csv').addEventListener('click', () => { const t = q<HTMLTableElement>('.sc-tab'); const rows = [...t.rows].map((r) => [...r.cells].map((c) => c.textContent!.replace(/−/g, '-').replace(' *', ''))); save(new Blob([csv(rows)], { type: 'text/csv' }), 'schrodinger-levels.csv', 'text/csv'); });
+  q('.sc-wcsv').addEventListener('click', () => {
+    if (!sol) return;
+    const rows: (string | number)[][] = [['x', 'V', ...sol.states.map((_, n) => `psi_${n}`)]];
+    for (let i = 0; i < sol.x.length; i++) rows.push([+sol.x[i].toPrecision(8), +sol.V[i].toPrecision(8), ...sol.states.map((s) => +s.psi[i].toPrecision(8))]);
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'schrodinger-wavefunctions.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (pre.value === 'draw') drawPad(); if (fig && !q('.sc-out').hidden) calc(); });
+  setDefaults(); calc();
+  wireDownloads(q('.dl'), () => ({ title: '1D Schrödinger solver', subtitle: PRESETS.find((x) => x.id === pre.value)!.name, file: 'schrodinger', sections: report }));
+</script>

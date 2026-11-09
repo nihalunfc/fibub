@@ -1,0 +1,156 @@
+---
+// Oscilloscope CSV viewer: plot the channels of a scope export and measure frequency, rise and fall time, levels,
+// duty cycle and the phase between channels. Runs in the browser; nothing is uploaded. The example is simulated.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax osc">
+  <div class="ax-card">
+    <h2>Scope capture</h2>
+    <div class="ax-row"><button type="button" class="btn secondary small os-ex">Use the example</button></div>
+    <label style="margin-top:8px">CSV from the scope: a time column, then one column per channel (header and settings lines are skipped) <textarea class="os-in" rows="6" spellcheck="false"></textarea></label>
+    <DataFile target=".os-in" maxMB={50} maxCols={8} maxRows={2000000} />
+    <p class="ax-help os-parse"></p>
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Sample interval if there is no time column (s) <input class="os-dt" type="text" inputmode="decimal" value="" placeholder="e.g. 1e-6" /></label>
+      <label>Measure channel <select class="os-a"></select></label>
+      <label>Phase against <select class="os-b"></select></label>
+      <label>Rise and fall levels <select class="os-lv"><option value="10" selected>10 % to 90 %</option><option value="20">20 % to 80 %</option></select></label>
+      <label>Noise hysteresis (% of amplitude) <input class="os-h" type="text" inputmode="decimal" value="5" /></label>
+      <label>From time (s, blank = start) <input class="os-t1" type="text" inputmode="decimal" value="" /></label>
+      <label>To time (s, blank = end) <input class="os-t2" type="text" inputmode="decimal" value="" /></label>
+    </div>
+    <p class="ax-help">Levels follow IEEE 181: top and base are the most common high and low values (for a sine, the peaks), and edges are timed between the chosen percentages of the amplitude. Hysteresis stops noise from counting as extra edges; raise it for noisy traces. The example is a simulated 1 kHz logic signal through an RC filter (time constant 10 µs) on CH1 and a 1 V sine 45° behind it on CH2.</p>
+    <p class="ax-err os-err" hidden></p>
+  </div>
+
+  <div class="ax-card os-out">
+    <h2>Measurements</h2>
+    <p class="ax-big os-big"></p>
+    <p class="os-phase"></p>
+    <div class="ax-scroll"><table class="os-tab"></table></div>
+    <canvas class="ax-fig os-fig1"></canvas>
+    <canvas class="ax-fig os-fig2"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small os-csv">Download the measurements (CSV)</button></div>
+    <p class="ax-help">Accuracy is limited by the sample interval and the scope's own bandwidth: a measured rise time close to the scope's is mostly the scope (the usual estimate is √(measured² − scope²)).</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseScope, measure, phase, exampleCapture, type Scope } from '../../lib/sci/phscope';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.osc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c);
+  let scope: Scope | null = null, parseErr = '', figs: Figure[] = [], report: Section[] = [], rows: string[][] = [];
+
+  /** Time with an engineering prefix. */
+  const tu = (s: number) => { const a = Math.abs(s) * 1.0005; return a >= 1 ? [1, 's'] : a >= 1e-3 ? [1e-3, 'ms'] : a >= 1e-6 ? [1e-6, 'µs'] : [1e-9, 'ns']; };
+  const T = (s: number, d = 4) => { if (!Number.isFinite(s)) return '—'; const [k, u] = tu(s); return `${sig(s / (k as number), d)} ${u}`; };
+  const Fq = (f: number) => (!Number.isFinite(f) ? '—' : f >= 1e6 ? `${sig(f / 1e6, 5)} MHz` : f >= 1e3 ? `${sig(f / 1e3, 5)} kHz` : `${sig(f, 5)} Hz`);
+  const V = (v: number) => (Math.abs(v) < 1 && v !== 0 ? `${sig(v * 1000, 4)} mV` : `${sig(v, 4)} V`);
+
+  function load() {
+    const text = q<HTMLTextAreaElement>('.os-in').value, dt = num(q<HTMLInputElement>('.os-dt').value);
+    scope = null; parseErr = '';
+    try { scope = parseScope(text, dt); } catch (e) { parseErr = (e as Error).message + '.'; }
+    const keepA = sel('.os-a').value, keepB = sel('.os-b').value;
+    const chans = scope?.channels ?? [];
+    sel('.os-a').replaceChildren(...chans.map((c, i) => new Option(c.name, String(i))));
+    sel('.os-b').replaceChildren(new Option('None', '-1'), ...chans.map((c, i) => new Option(c.name, String(i))));
+    sel('.os-a').value = keepA && +keepA < chans.length ? keepA : '0';
+    sel('.os-b').value = keepB && +keepB < chans.length ? keepB : chans.length > 1 ? '1' : '-1';
+    q('.os-parse').textContent = scope ? `${scope.t.length.toLocaleString('en')} samples, ${scope.channels.length} channel${scope.channels.length === 1 ? '' : 's'}, every ${T(scope.dt)} (${scope.timeFromColumn ? 'from the time column' : 'from the sample interval'})${scope.skipped ? `; ${scope.skipped} header or setting line${scope.skipped === 1 ? '' : 's'} skipped` : ''}.` : '';
+  }
+
+  function calc() {
+    const err = q('.os-err'), out = q('.os-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    if (!scope) return fail(parseErr || 'Paste or open a scope CSV, or use the example.');
+    const t1s = q<HTMLInputElement>('.os-t1').value.trim(), t2s = q<HTMLInputElement>('.os-t2').value.trim();
+    const t1 = t1s ? num(t1s) : -Infinity, t2 = t2s ? num(t2s) : Infinity, hy = num(q<HTMLInputElement>('.os-h').value), lv = +sel('.os-lv').value;
+    if (Number.isNaN(t1) || Number.isNaN(t2) || !(t2 > t1)) return fail('Give the time window as two numbers in seconds, "to" after "from".');
+    if (!(hy >= 0 && hy < 50)) return fail('Give the hysteresis as a percentage from 0 to 50.');
+    const idx = scope.t.map((x, i) => (x >= t1 && x <= t2 ? i : -1)).filter((i) => i >= 0);
+    if (idx.length < 8) return fail('Fewer than 8 samples in that time window.');
+    const t = idx.map((i) => scope!.t[i]), ys = scope.channels.map((c) => idx.map((i) => c.y[i]));
+    if (ys.some((y) => y.some((v) => !Number.isFinite(v)))) return fail('Some values in the channels are not numbers.');
+    err.hidden = true; out.hidden = false;
+    const ms = ys.map((y) => measure(t, y, lv, 100 - lv, hy)), ia = +sel('.os-a').value, ib = +sel('.os-b').value, A = ms[ia], names = scope.channels.map((c) => c.name);
+    const span = t[t.length - 1] - t[0];
+    q('.os-big').textContent = Number.isFinite(A.freq) ? `${names[ia]}: ${Fq(A.freq)}, rise ${T(A.rise, 3)}, ${V(A.pp)} peak to peak` : `${names[ia]}: fewer than two full cycles in view, ${V(A.pp)} peak to peak`;
+    let phaseText = '';
+    if (ib >= 0 && ib !== ia && Number.isFinite(A.freq)) {
+      const p = phase(t, ys[ia], ys[ib], A.freq, A.up, ms[ib].up);
+      const lag = (d: number) => (d >= 0 ? `lags ${names[ia]} by ${sig(d, 4)}°` : `leads ${names[ia]} by ${sig(-d, 4)}°`);
+      phaseText = Number.isFinite(p.dft) ? `${names[ib]} ${lag(p.dft)} at the fundamental (over ${p.periods} whole period${p.periods === 1 ? '' : 's'}); between 50 % rising edges the delay is ${T(p.delay, 4)}, that is ${Number.isFinite(p.edge) ? `${sig(p.edge, 4)}°` : '—'}.` : 'Needs at least one whole period in view to measure the phase.';
+    }
+    if (ib === ia && scope.channels.length > 1) phaseText = 'Choose another channel under "Phase against" to compare two channels.';
+    q('.os-phase').textContent = phaseText;
+    const pct = `${lv} to ${100 - lv} %`;
+    const head = ['Measurement', ...names];
+    const line = (k: string, f: (m: ReturnType<typeof measure>) => string) => [k, ...ms.map(f)];
+    rows = [
+      line('Frequency', (m) => Fq(m.freq)), line('Period', (m) => T(m.period)), line(`Rise time (${pct})`, (m) => T(m.rise, 3)), line(`Fall time (${pct})`, (m) => T(m.fall, 3)),
+      line('Duty cycle', (m) => (Number.isFinite(m.duty) ? `${sig(100 * m.duty, 3)} %` : '—')), line('Peak to peak', (m) => V(m.pp)), line('Amplitude (top − base)', (m) => V(m.amplitude)),
+      line('Top', (m) => V(m.top)), line('Base', (m) => V(m.base)), line('Maximum', (m) => V(m.max)), line('Minimum', (m) => V(m.min)), line('Mean', (m) => V(m.mean)), line('RMS', (m) => V(m.rms)), line('AC RMS', (m) => V(m.acRms)),
+      line('Edges used (rise / fall)', (m) => `${m.nRise} / ${m.nFall}`),
+    ];
+    const tab = q<HTMLTableElement>('.os-tab');
+    tab.innerHTML = '<thead><tr></tr></thead><tbody></tbody>';
+    head.forEach((h, j) => { const th = document.createElement('th'); th.textContent = h; if (j) th.className = 'r'; tab.tHead!.rows[0].append(th); });
+    rows.forEach((r) => { const tr = tab.tBodies[0].insertRow(); r.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j) td.className = 'r'; }); });
+    // Plot, thinned to at most about 3000 points per channel (keeping each bucket's min and max).
+    const [k, u] = tu(span / 4) as [number, string];
+    const thin = (y: number[]) => {
+      if (t.length <= 3000) return { x: t.map((v) => v / k), y };
+      const B = 1500, step = t.length / B, X: number[] = [], Y: number[] = [];
+      for (let b = 0; b < B; b++) { const s = Math.floor(b * step), e = Math.floor((b + 1) * step); let lo = s, hi = s; for (let i = s; i < e; i++) { if (y[i] < y[lo]) lo = i; if (y[i] > y[hi]) hi = i; } for (const i of lo < hi ? [lo, hi] : [hi, lo]) { X.push(t[i] / k); Y.push(y[i]); } }
+      return { x: X, y: Y };
+    };
+    const c1 = chartFigure({ w: 380, h: 240, xLabel: `Time (${u})`, yLabel: 'Volts', legend: 'below', series: ys.map((y, i) => ({ name: names[i], ...thin(y), mode: 'line' as const, width: i === ia ? 1.8 : 1.2 })),
+      marks: [{ kind: 'hline', at: A.lo, dash: [3, 3] }, { kind: 'hline', at: A.mid, dash: [6, 3], label: '50 %' }, { kind: 'hline', at: A.hi, dash: [3, 3] }] }, `Scope traces with the ${pct} levels of ${names[ia]}`);
+    figs = [c1];
+    // Zoom on the first rising edge of the measured channel.
+    let c2: Figure | null = null;
+    if (A.up.length && Number.isFinite(A.rise)) {
+      const m0 = A.up[0], w = Math.max(3 * A.rise, 20 * (t[1] - t[0]));
+      const zi = t.map((x, i) => (x >= m0 - w && x <= m0 + w ? i : -1)).filter((i) => i >= 0);
+      const [kz, uz] = tu(w) as [number, string];
+      c2 = chartFigure({ w: 380, h: 200, xLabel: `Time (${uz})`, yLabel: 'Volts', legend: 'none', series: [{ name: names[ia], x: zi.map((i) => t[i] / kz), y: zi.map((i) => ys[ia][i]), mode: 'both', marker: 'circle', size: 1.8, width: 1.4 }],
+        marks: [{ kind: 'hline', at: A.lo, dash: [3, 3], label: `${lv} %` }, { kind: 'hline', at: A.hi, dash: [3, 3], label: `${100 - lv} %` }] }, `First rising edge of ${names[ia]}, rise time ${T(A.rise, 3)}`);
+      figs.push(c2);
+    }
+    paint(q<HTMLCanvasElement>('.os-fig1'), c1);
+    q('.os-fig2').hidden = !c2; if (c2) paint(q<HTMLCanvasElement>('.os-fig2'), c2);
+    report = [{ title: q('.os-big').textContent!, text: [phaseText, `${t.length.toLocaleString('en')} samples from ${T(t[0])} to ${T(t[t.length - 1])}.`].filter(Boolean), table: { head, rows, align: ['l', ...names.map(() => 'r' as const)] }, figure: c1 }, ...(c2 ? [{ title: 'First rising edge', figure: c2 }] : [])];
+  }
+
+  let timer = 0;
+  q('.os-in').addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(() => { load(); calc(); }, 250); });
+  q('.os-dt').addEventListener('input', () => { load(); calc(); });
+  root.querySelectorAll('.os-a, .os-b, .os-lv').forEach((i) => i.addEventListener('change', calc));
+  root.querySelectorAll('.os-h, .os-t1, .os-t2').forEach((i) => i.addEventListener('input', calc));
+  const example = () => {
+    const e = exampleCapture();
+    q<HTMLTextAreaElement>('.os-in').value = 'Model,Example scope (simulated)\nSample interval,1e-6\n\nTime,CH1,CH2\n' + e.t.map((x, i) => `${+x.toFixed(9)},${e.c1[i].toFixed(4)},${e.c2[i].toFixed(4)}`).join('\n');
+    q<HTMLInputElement>('.os-t1').value = ''; q<HTMLInputElement>('.os-t2').value = ''; q<HTMLInputElement>('.os-h').value = '5'; sel('.os-lv').value = '10';
+    sel('.os-a').value = ''; sel('.os-b').value = '';
+    load(); calc();
+  };
+  q('.os-ex').addEventListener('click', example);
+  q('.os-csv').addEventListener('click', () => save(new Blob([csv([['measurement', ...(scope?.channels.map((c) => c.name) ?? [])], ...rows])], { type: 'text/csv' }), 'scope-measurements.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.os-out').hidden) { paint(q<HTMLCanvasElement>('.os-fig1'), figs[0]); if (figs[1]) paint(q<HTMLCanvasElement>('.os-fig2'), figs[1]); } });
+  example();
+  wireDownloads(q('.dl'), () => ({ title: 'Oscilloscope measurements', subtitle: q('.os-big').textContent ?? '', file: 'scope-measurements', sections: report }));
+</script>
+
+<style is:global>
+  .osc .os-phase { margin: 4px 0 10px; font-weight: 600; }
+  .osc .os-tab td.r { white-space: nowrap; }
+</style>

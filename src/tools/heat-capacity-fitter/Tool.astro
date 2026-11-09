@@ -1,0 +1,177 @@
+---
+// Debye and Einstein heat capacity fitter for measured C(T). The example data are made up (generated from a Debye
+// model with θ = 340 K plus a small electronic term and 1 % noise).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const EXAMPLE = `T (K)	C (J/(mol·K))
+4	0.00597
+6	0.01493
+8	0.03084
+10	0.05595
+12	0.09343
+15	0.17565
+20	0.40982
+25	0.79907
+30	1.3348
+40	2.9571
+50	5.1442
+60	7.4652
+80	11.707
+100	14.818
+125	17.778
+150	19.791
+175	20.645
+200	21.721
+250	22.519
+300	23.318`;
+---
+<div class="ax hcf">
+  <div class="ax-card">
+    <h2>Measured heat capacity</h2>
+    <label>Temperature and heat capacity, two columns (paste from a spreadsheet)
+      <textarea class="hc-data" rows="8" spellcheck="false">{EXAMPLE}</textarea>
+    </label>
+    <DataFile target=".hc-data" maxCols={2} label="Open a file (2 columns)" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Heat capacity units <select class="hc-u">
+        <option value="1" selected>J/(mol·K)</option>
+        <option value="0.001">mJ/(mol·K)</option>
+        <option value="4.184">cal/(mol·K)</option>
+        <option value="g">J/(g·K)</option>
+      </select></label>
+      <label class="hc-mmw" hidden><span>Molar mass (g/mol)</span> <input class="hc-mm" type="text" inputmode="decimal" value="63.55" /></label>
+      <label><span>Atoms per formula unit n</span> <input class="hc-n" type="text" inputmode="decimal" value="1" /></label>
+      <label>Main model <select class="hc-model">
+        <option value="debye" selected>Debye (acoustic phonons)</option>
+        <option value="einstein">Einstein (one frequency)</option>
+      </select></label>
+      <label>Electronic term γT <select class="hc-g">
+        <option value="1" selected>Include (metals)</option>
+        <option value="0">Leave out (insulators)</option>
+      </select></label>
+      <label>Weighting <select class="hc-w">
+        <option value="rel" selected>Relative (each point ±same %)</option>
+        <option value="abs">Equal (each point ±same J/(mol·K))</option>
+      </select></label>
+      <label><span>Fit from T (K, blank = all)</span> <input class="hc-t0" type="text" inputmode="decimal" value="" /></label>
+      <label><span>Fit up to T (K, blank = all)</span> <input class="hc-t1" type="text" inputmode="decimal" value="" /></label>
+      <label><span>Low-T line up to (K)</span> <input class="hc-tl" type="text" inputmode="decimal" value="15" /></label>
+    </div>
+    <p class="ax-help">The fit keeps the high-temperature limit at 3nR (Dulong-Petit), so give n, the atoms per formula unit (2 for NaCl, 1 for copper). Relative weighting suits data that span several decades, as heat capacities do at low temperature. Measured Cp is fitted as if it were Cv; above about room temperature Cp is a few per cent higher. The example data are made up.</p>
+    <p class="ax-err hc-err" hidden></p>
+  </div>
+
+  <div class="ax-card hc-out">
+    <h2>Fit</h2>
+    <p class="ax-big hc-big"></p>
+    <dl class="ax-facts hc-facts"></dl>
+    <h3 style="margin:14px 0 6px;font-size:16px">All four models</h3>
+    <div class="ax-scroll"><table class="hc-tab"></table></div>
+    <canvas class="ax-fig hc-fig"></canvas>
+    <canvas class="ax-fig hc-rfig"></canvas>
+    <canvas class="ax-fig hc-lfig"></canvas>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small hc-csv">Fit and residuals (CSV)</button>
+    </div>
+    <p class="ax-help">θ is fitted by least squares with γ solved exactly at each θ; the ± values are one standard error from the fit's curvature, scaled by the scatter of the residuals. The Debye model is usually much better at low temperature, where only long-wavelength phonons are excited (C ∝ T³); the Einstein model falls off too fast there.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { fitHeat, lowT, R, type HeatFit } from '../../lib/sci/phheat';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv, parseTable } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.hcf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const sg = (x: number, d = 4) => { if (Math.abs(x) < 1e-14) return '0'; const t = sig(x, d); return t.includes('×') || !t.includes('.') ? t : t.replace(/0+$/, '').replace(/\.$/, ''); };
+  const pmv = (x: number, e: number, d = 2) => { if (!Number.isFinite(e) || e <= 0) return sg(x, 4); const p = Math.floor(Math.log10(e)) - (d - 1), f = Math.max(0, -p); return `${(Math.round(x / 10 ** p) * 10 ** p).toFixed(f).replace('-', '−')} ± ${(Math.round(e / 10 ** p) * 10 ** p).toFixed(f)}`; };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let figs: [string, Figure][] = [], report: Section[] = [], rows: (string | number)[][] = [];
+
+  function calc() {
+    q('.hc-mmw').hidden = sel('.hc-u') !== 'g';
+    const err = q('.hc-err'), out = q('.hc-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; figs = []; report = []; rows = []; };
+    const n = val('.hc-n'), mm = val('.hc-mm'), u = sel('.hc-u'), weight = sel('.hc-w') as 'rel' | 'abs', withG = sel('.hc-g') === '1', main = sel('.hc-model') as 'debye' | 'einstein';
+    if (!(n > 0 && n <= 1000)) return fail('Give the number of atoms per formula unit (1 or more, for example 2 for NaCl).');
+    if (u === 'g' && !(mm > 0 && mm < 1e6)) return fail('Give the molar mass in g/mol to convert J/(g·K) to J/(mol·K).');
+    const factor = u === 'g' ? mm : +u;
+    const T: number[] = [], C: number[] = []; let skipped = 0;
+    for (const [ri, r] of parseTable(q<HTMLTextAreaElement>('.hc-data').value).entries()) {
+      const t = num(r[0]), c = num(r[1]);
+      if (Number.isFinite(t) && Number.isFinite(c)) { T.push(t); C.push(c * factor); } else if (ri) skipped++;
+    }
+    if (T.length < 4) return fail('Paste at least 4 rows of temperature (K) and heat capacity, one pair per row.');
+    if (T.some((t) => !(t > 0))) return fail('Every temperature must be above 0 K (in kelvin, not °C).');
+    if (C.some((c) => !(c > 0))) return fail('Every heat capacity must be above 0. Remove empty or negative rows.');
+    const t0 = q<HTMLInputElement>('.hc-t0').value.trim() ? val('.hc-t0') : 0, t1 = q<HTMLInputElement>('.hc-t1').value.trim() ? val('.hc-t1') : Infinity, tl = val('.hc-tl');
+    if (!(t0 >= 0) || !(t1 > t0)) return fail('The fit range needs a lower temperature below the upper one.');
+    const use = T.map((t) => t >= t0 && t <= t1), Tf = T.filter((_, i) => use[i]), Cf = C.filter((_, i) => use[i]);
+    if (Tf.length < (withG ? 4 : 3)) return fail(`Only ${Tf.length} points are inside the fit range; widen it.`);
+    if (C.some((c) => c > 3 * n * R * 1.3)) return fail(`Some values are well above 3nR = ${sg(3 * n * R, 4)} J/(mol·K). Check the units and the atoms per formula unit n.`);
+    err.hidden = true; out.hidden = false;
+    const fits: Record<string, HeatFit> = {};
+    for (const m of ['debye', 'einstein'] as const) for (const g of [false, true]) fits[`${m}${g ? '+g' : ''}`] = fitHeat(Tf, Cf, { model: m, gamma: g, weight, n });
+    const key = `${main}${withG ? '+g' : ''}`, F = fits[key], nameOf = (m: string) => (m.startsWith('debye') ? 'Debye' : 'Einstein');
+    q('.hc-big').textContent = `${nameOf(main)} θ = ${pmv(F.theta, F.seTheta)} K${withG ? `, γ = ${pmv(F.gamma * 1000, F.seGamma * 1000)} mJ/(mol·K²)` : ''}`;
+    const L = tl > 0 ? lowT(T, C, tl, n) : null;
+    const facts = [
+      fact(`${nameOf(main)} temperature θ`, `${pmv(F.theta, F.seTheta)} K`, main === 'debye' ? 'the highest phonon frequency as a temperature, ħω_D / k_B' : 'the single vibration frequency as a temperature, ħω_E / k_B'),
+      ...(withG ? [fact('Electronic coefficient γ', `${pmv(F.gamma * 1000, F.seGamma * 1000)} mJ/(mol·K²)`, F.gamma < 0 ? 'negative: the data do not support an electronic term; try leaving it out' : 'C_el = γT, from the electrons at the Fermi level')] : []),
+      fact('Fit quality', `${sg(F.rmsRel * 100, 3)} % rms`, `${sg(F.rms, 3)} J/(mol·K) rms over ${Tf.length} points${skipped ? `; ${skipped} non-numeric row${skipped > 1 ? 's' : ''} skipped` : ''}`),
+      fact('High-temperature limit 3nR', `${sg(3 * n * R, 4)} J/(mol·K)`, 'Dulong-Petit'),
+    ];
+    if (L) facts.push(fact(`Low-T line (T ≤ ${sg(tl, 3)} K)`, Number.isFinite(L.theta) ? `θ_D = ${pmv(L.theta, L.seTheta)} K` : 'β ≤ 0: no Debye θ', `C/T = γ + βT² on ${L.n} points: γ = ${pmv(L.gamma * 1000, L.seGamma * 1000)} mJ/(mol·K²), β = ${sg(L.beta * 1000, 4)} mJ/(mol·K⁴)`));
+    else facts.push(fact('Low-T line', 'needs 3 points', `fewer than 3 points at or below ${sg(tl, 3)} K`));
+    q('.hc-facts').replaceChildren(...facts);
+    const tab = q<HTMLTableElement>('.hc-tab');
+    const tr = (cells: string[], th: boolean) => { const r = document.createElement('tr'); cells.forEach((x, j) => { const e = document.createElement(th ? 'th' : 'td'); e.textContent = x; if (j) e.className = 'r'; r.append(e); }); return r; };
+    const head = ['Model', 'θ (K)', 'γ (mJ/(mol·K²))', 'rms (%)'];
+    const trows = Object.entries(fits).map(([k, f]) => [`${nameOf(k)}${k.endsWith('+g') ? ' + γT' : ''}`, pmv(f.theta, f.seTheta), k.endsWith('+g') ? pmv(f.gamma * 1000, f.seGamma * 1000) : '–', sg(f.rmsRel * 100, 3)]);
+    tab.replaceChildren(tr(head, true), ...trows.map((r) => tr(r, false)));
+    // Charts.
+    const tmax = Math.max(...T) * 1.05, tmin = Math.min(...T), xs: number[] = [];
+    for (let i = 0; i <= 200; i++) xs.push(tmin * 0.8 + ((tmax - tmin * 0.8) * i) / 200);
+    const other = fits[`${main === 'debye' ? 'einstein' : 'debye'}${withG ? '+g' : ''}`];
+    const c1 = chartFigure({ w: 380, h: 250, xLabel: 'Temperature (K)', yLabel: 'C (J/(mol·K))', yMin: 0, legend: 'below', series: [
+      { name: 'Measured', x: T, y: C, mode: 'points', marker: 'circle', size: 3.5 },
+      { name: `${nameOf(main)} fit`, x: xs, y: xs.map(F.model), mode: 'line', width: 2 },
+      { name: `${nameOf(main === 'debye' ? 'einstein' : 'debye')} fit`, x: xs, y: xs.map(other.model), mode: 'line', width: 1.2, dash: [5, 3] },
+    ], marks: [{ kind: 'hline', at: 3 * n * R, dash: [2, 3], label: '3nR' }] }, 'Measured heat capacity with the Debye and Einstein fits');
+    const c2 = chartFigure({ w: 380, h: 200, xLabel: 'Temperature (K)', yLabel: 'Residual (%)', xLog: true, legend: 'below', series: [
+      { name: `${nameOf(main)}`, x: Tf, y: Tf.map((t, i) => (100 * (Cf[i] - F.model(t))) / Cf[i]), mode: 'points', marker: 'circle', size: 3.5 },
+      { name: `${nameOf(main === 'debye' ? 'einstein' : 'debye')}`, x: Tf, y: Tf.map((t, i) => (100 * (Cf[i] - other.model(t))) / Cf[i]), mode: 'points', marker: 'open-square', size: 3.5 },
+    ], marks: [{ kind: 'hline', at: 0 }] }, 'Residuals of both fits in per cent, on a log temperature axis');
+    figs = [['.hc-fig', c1], ['.hc-rfig', c2]];
+    if (L) {
+      const lx = [0, Math.max(...L.x) * 1.05];
+      const c3 = chartFigure({ w: 380, h: 220, xLabel: 'T² (K²)', yLabel: 'C/T (J/(mol·K²))', legend: 'below', xMin: 0, series: [
+        { name: 'Measured', x: L.x, y: L.y, mode: 'points', marker: 'circle', size: 3.5 },
+        { name: 'C/T = γ + βT²', x: lx, y: lx.map((x) => L.gamma + L.beta * x), mode: 'line', width: 1.6 },
+      ] }, 'Low-temperature plot of C/T against T²');
+      figs.push(['.hc-lfig', c3]); q('.hc-lfig').hidden = false;
+    } else q('.hc-lfig').hidden = true;
+    for (const [s, f] of figs) paint(q<HTMLCanvasElement>(s), f);
+    rows = [['T (K)', 'C measured (J/(mol K))', 'in fit', `C ${nameOf(main)}${withG ? ' + gT' : ''} (J/(mol K))`, 'residual (%)'], ...T.map((t, i) => [t, +C[i].toPrecision(8), use[i] ? 'yes' : 'no', +F.model(t).toPrecision(8), +((100 * (C[i] - F.model(t))) / C[i]).toFixed(4)])];
+    const fr = (d: Element) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string];
+    report = [{ title: q('.hc-big').textContent!, facts: [...q('.hc-facts').children].map(fr), figure: c1 }, { title: 'All four models', table: { head, rows: trows, align: ['l', 'r', 'r', 'r'] }, figure: c2 }, ...(L ? [{ title: 'Low-temperature line', figure: figs[2][1] }] : [])];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 150); };
+  root.querySelectorAll('input, select, textarea').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  document.addEventListener('fibub:theme', () => { for (const [s, f] of figs) paint(q<HTMLCanvasElement>(s), f); });
+  q('.hc-csv').addEventListener('click', () => rows.length && save(new Blob([csv(rows)], { type: 'text/csv' }), 'heat-capacity-fit.csv', 'text/csv'));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Heat capacity fit', subtitle: q('.hc-big').textContent ?? '', file: 'heat-capacity-fit', sections: report }));
+</script>
+
+<style is:global>
+  .hcf select, .hcf input { max-width: 100%; }
+</style>

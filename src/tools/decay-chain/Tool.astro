@@ -1,0 +1,168 @@
+---
+// Radioactive decay chains: Bateman equations for a parent and up to seven daughters, with branching, any starting
+// activities, peak (ingrowth) times and equilibrium. Half-lives in the examples are rounded and editable.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { CHAINS, TIME_UNITS } from '../../lib/sci/phchain';
+import { ACT_UNITS } from '../../lib/sci/decay';
+const tu = Object.keys(TIME_UNITS);
+---
+<div class="ax dch">
+  <div class="ax-card">
+    <h2>Chain</h2>
+    <div class="ax-grid">
+      <label class="dch-wide">Example chain <select class="dch-ex">{Object.entries(CHAINS).map(([k, c]) => <option value={k} selected={k === 'moly'}>{c.label}</option>)}<option value="custom">Your own (edit the members below)</option></select></label>
+      <label>Activity unit <select class="dch-au">{Object.keys(ACT_UNITS).map((u) => <option value={u} selected={u === 'MBq'}>{u}</option>)}</select></label>
+    </div>
+    <div class="dch-members"></div>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small dch-add">Add a daughter</button>
+      <button type="button" class="btn secondary small dch-del">Remove the last</button>
+    </div>
+    <p class="ax-help">Branching: the share of this member's decays that make the next one (for Mo-99, about 88 % go to Tc-99m). Starting activity: what each member has at time zero (daughters usually 0, just after a separation). Example half-lives are rounded; check current nuclear data for real work.</p>
+    <h2 style="margin-top:14px">Time</h2>
+    <div class="ax-grid">
+      <label>Time unit <select class="dch-tu">{tu.map((u) => <option value={u} selected={u === 'h'}>{u}</option>)}</select></label>
+      <label>Activities at time <input class="dch-t" type="text" inputmode="decimal" value="24" /></label>
+      <label>Plot up to (blank: automatic) <input class="dch-tmax" type="text" inputmode="decimal" value="" placeholder="auto" /></label>
+      <label>Activity axis <select class="dch-scale"><option value="log" selected>logarithmic</option><option value="lin">linear</option></select></label>
+      <label>Equilibrium within (%) <input class="dch-tol" type="text" inputmode="decimal" value="1" /></label>
+    </div>
+    <p class="ax-err dch-err" hidden></p>
+  </div>
+
+  <div class="ax-card dch-out">
+    <h2>Result</h2>
+    <p class="ax-big dch-big"></p>
+    <div class="ax-scroll"><table class="dch-tab"></table></div>
+    <dl class="ax-facts dch-facts" style="margin-top:12px"></dl>
+    <canvas class="ax-fig dch-fig" style="margin-top:12px"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small dch-csv">Download activities over time (CSV)</button></div>
+    <p class="ax-help">Bateman equations for a linear chain, solved exactly (equal or nearly equal half-lives are handled). For study and planning, not a substitute for professional judgement, a calibrated instrument or your radiation safety rules. It does not work out doses.</p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .dch .dch-wide { grid-column: 1 / -1; }
+  .dch .dch-m { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 120px), 1fr)); gap: 8px 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .dch .dch-m h3 { grid-column: 1 / -1; margin: 0; font-size: 14px; }
+</style>
+
+<script>
+  import { activities, eqRatios, eqKind, peakTime, eqTime, lambdaOf, CHAINS, TIME_UNITS, type Member } from '../../lib/sci/phchain';
+  import { ACT_UNITS } from '../../lib/sci/decay';
+  import { num, sig, fmtExp, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.dch')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const e = document.createElement('small'); e.textContent = s; d.querySelector('dd')!.append(e); } return d; };
+  const n4 = (x: number) => (x !== 0 && (Math.abs(x) >= 1e6 || Math.abs(x) < 1e-3) ? fmtExp(x, 4) : sig(x, 4));
+  const TU = Object.keys(TIME_UNITS);
+  const best = (s: number) => { for (const u of ['y', 'd', 'h', 'min', 's', 'ms']) if (s >= TIME_UNITS[u] * (u === 'd' ? 3 : u === 'h' || u === 'min' ? 2 : 1)) return u; return 'µs'; };
+  const dur = (s: number) => { const u = best(s); return `${sig(s / TIME_UNITS[u], 4)} ${u}`; };
+  let fig: Figure | null = null, report: Section[] = [], curve: (string | number)[][] = [];
+
+  function row(i: number, m: Member, a0: number) {
+    const u = best(m.half), d = document.createElement('div');
+    d.className = 'dch-m';
+    d.innerHTML = `<h3></h3><label>Name <input class="dch-name" type="text" /></label><label>Half-life <input class="dch-h" type="text" inputmode="decimal" /></label><label>Unit <select class="dch-hu">${TU.map((x) => `<option>${x}</option>`).join('')}</select></label><label>Starting activity <input class="dch-a0" type="text" inputmode="decimal" /></label><label class="dch-bw">Branching to next (%) <input class="dch-b" type="text" inputmode="decimal" /></label>`;
+    d.querySelector('h3')!.textContent = i ? `Daughter ${i}` : 'Parent';
+    (d.querySelector('.dch-name') as HTMLInputElement).value = m.name;
+    (d.querySelector('.dch-h') as HTMLInputElement).value = String(+(m.half / TIME_UNITS[u]).toPrecision(6));
+    (d.querySelector('.dch-hu') as HTMLSelectElement).value = u;
+    (d.querySelector('.dch-a0') as HTMLInputElement).value = String(a0);
+    (d.querySelector('.dch-b') as HTMLInputElement).value = String(+((m.branch ?? 1) * 100).toPrecision(6));
+    return d;
+  }
+  function load(key: string) {
+    const c = CHAINS[key]; if (!c) return;
+    q('.dch-members').replaceChildren(...c.members.map((m, i) => row(i, m, i ? 0 : 1000)));
+    q<HTMLSelectElement>('.dch-tu').value = c.unit;
+    q<HTMLInputElement>('.dch-t').value = key === 'moly' ? '24' : key === 'ra226' ? '30' : key === 'rn222' ? '60' : key === 'sr90' ? '10' : key === 'noeq' ? '5' : '7';
+    q<HTMLInputElement>('.dch-tmax').value = '';
+    branchVis();
+  }
+  const branchVis = () => { const ms = [...root.querySelectorAll<HTMLElement>('.dch-m')]; ms.forEach((m, i) => { (m.querySelector('.dch-bw') as HTMLElement).hidden = i === ms.length - 1; }); };
+
+  function calc() {
+    const err = q('.dch-err'), out = q('.dch-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; fig = null; };
+    const au = sel('.dch-au'), AU = ACT_UNITS[au], tu = sel('.dch-tu'), T = TIME_UNITS[tu];
+    const ms = [...root.querySelectorAll<HTMLElement>('.dch-m')];
+    const names: string[] = [], halves: number[] = [], b: number[] = [], A0: number[] = [];
+    for (let i = 0; i < ms.length; i++) {
+      const g = (c: string) => (ms[i].querySelector(c) as HTMLInputElement).value;
+      const nm = g('.dch-name').trim() || (i ? `Daughter ${i}` : 'Parent');
+      const h = num(g('.dch-h')) * TIME_UNITS[(ms[i].querySelector('.dch-hu') as HTMLSelectElement).value];
+      const a = g('.dch-a0').trim() === '' ? 0 : num(g('.dch-a0'));
+      const br = num(g('.dch-b'));
+      if (!(h > 0 && Number.isFinite(h))) return fail(`Give ${nm} a half-life above zero.`);
+      if (!(a >= 0)) return fail(`The starting activity of ${nm} must be zero or more.`);
+      if (i < ms.length - 1 && !(br >= 0 && br <= 100)) return fail(`The branching of ${nm} must be between 0 and 100 %.`);
+      names.push(nm); halves.push(h); b.push(br / 100); A0.push(a * AU);
+    }
+    if (!A0.some((a) => a > 0)) return fail('Give at least one member a starting activity above zero.');
+    const t = num(q<HTMLInputElement>('.dch-t').value) * T;
+    if (!(t >= 0)) return fail('The time must be zero or more.');
+    const tol = num(q<HTMLInputElement>('.dch-tol').value) / 100;
+    if (!(tol > 0 && tol < 0.5)) return fail('Equilibrium tolerance: a percentage between 0 and 50.');
+    const lam = halves.map(lambdaOf), n = lam.length;
+    const R = eqRatios(lam, b), search = 200 * Math.max(...halves.slice(1), halves[0] / 1e3);
+    const eqT = names.map((_, k) => (k && R[k] != null ? eqTime(lam, b, A0, k, tol, search) : null));
+    let tMax = num(q<HTMLInputElement>('.dch-tmax').value) * T;
+    if (q<HTMLInputElement>('.dch-tmax').value.trim() && !(tMax > 0)) return fail('Plot up to: a time above zero, or leave it blank.');
+    if (!(tMax > 0)) {
+      const e = eqT.filter((x): x is number => x != null && x > 0);
+      tMax = n === 1 ? 5 * halves[0] : e.length === n - 1 ? 1.5 * Math.max(...e) : 10 * Math.max(...halves.slice(1));
+      tMax = Math.max(tMax, t * 1.2);
+    }
+    err.hidden = true; out.hidden = false;
+    const A = activities(lam, b, A0, t);
+    const unit = (x: number) => `${n4(x / AU)} ${au}`;
+    q('.dch-big').textContent = `At ${sig(t / T, 4)} ${tu}: ${names.map((nm, i) => `${nm} ${unit(A[i])}`).join(', ')}`;
+    const head = ['Member', 'Half-life', `Activity (${au})`, 'Atoms', 'Activity ÷ parent', 'Equilibrium ratio'];
+    const rows = names.map((nm, i) => [nm, dur(halves[i]), n4(A[i] / AU), n4(A[i] / lam[i]), A[0] > 0 ? sig(A[i] / A[0], 4) : '–', i === 0 ? '1' : R[i] != null ? sig(R[i]!, 4) : 'none']);
+    const tab = q<HTMLTableElement>('.dch-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); head.forEach((h, j) => { const th = document.createElement('th'); th.textContent = h; if (j > 1) th.className = 'r'; hr.append(th); });
+    const bd = tab.createTBody(); rows.forEach((r) => { const tr = bd.insertRow(); r.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j > 1) td.className = 'r'; }); });
+    const facts: HTMLElement[] = [];
+    for (let k = 1; k < n; k++) {
+      const pk = peakTime(lam, b, A0, k, Math.max(tMax, 1000 * halves[k]));
+      const kind = eqKind(halves[0], halves[k]);
+      facts.push(fact(`${names[k]} peaks at`, pk == null ? 'only falls' : `${sig(pk / T, 4)} ${tu}`, pk == null ? 'it starts at its highest' : `activity ${unit(activities(lam, b, A0, pk)[k])}${n === 2 && A0[1] === 0 ? '; parent and daughter activities cross here' : ''}`));
+      facts.push(fact(`${names[0]} and ${names[k]}`, kind === 'secular' ? 'secular equilibrium' : kind === 'transient' ? 'transient equilibrium' : 'no equilibrium',
+        kind === 'none' ? `${names[k]} lives longer than ${names[0]}, so it ends up decaying with its own half-life` : R[k] == null ? 'a member in between lives longer than the parent' : `${names[k]} ends up at ${sig(R[k]!, 4)} × the parent's activity${eqT[k] != null ? `, within ${sig(tol * 100, 3)} % after ${sig(eqT[k]! / T, 4)} ${tu}` : ''}`));
+    }
+    q('.dch-facts').replaceChildren(...facts);
+    // Curve.
+    const N = 240, xs: number[] = []; for (let i = 0; i <= N; i++) xs.push((tMax * i) / N);
+    const ys = xs.map((x) => activities(lam, b, A0, x));
+    const log = sel('.dch-scale') === 'log', top = Math.max(...ys.flat()) / AU, floor = top * 1e-4;
+    const series = names.map((nm, i) => {
+      const pts = xs.map((x, j) => [x / T, ys[j][i] / AU]).filter(([, y]) => !log || y >= floor * 0.999);
+      return { name: nm, x: pts.map((p) => p[0]), y: pts.map((p) => p[1]), mode: 'line' as const, width: 2, dash: i % 2 ? [6, 3] : undefined };
+    });
+    fig = chartFigure({ w: 380, h: 250, xLabel: `Time (${tu})`, yLabel: `Activity (${au})`, yLog: log, yMin: log ? floor : 0, xMin: 0, xMax: tMax / T, legend: 'below', series, marks: [{ kind: 'vline', at: t / T, dash: [3, 3], label: 'now' }] }, `Activities of the chain over ${sig(tMax / T, 3)} ${tu}`);
+    paint(q<HTMLCanvasElement>('.dch-fig'), fig);
+    curve = [[`time (${tu})`, ...names.map((nm) => `${nm} (${au})`)], ...xs.map((x, j) => [+(x / T).toPrecision(8), ...ys[j].map((y) => +(y / AU).toPrecision(8))])];
+    report = [{ title: q('.dch-big').textContent!, table: { head, rows, align: ['l', 'l', 'r', 'r', 'r', 'r'] }, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig }];
+  }
+
+  q<HTMLSelectElement>('.dch-ex').addEventListener('change', () => { load(sel('.dch-ex')); calc(); });
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).closest('.dch-m') && sel('.dch-ex') !== 'custom') q<HTMLSelectElement>('.dch-ex').value = 'custom'; calc(); });
+  root.addEventListener('change', (e) => { if (!(e.target as HTMLElement).matches('.dch-ex')) calc(); });
+  q('.dch-add').addEventListener('click', () => {
+    const ms = root.querySelectorAll('.dch-m'); if (ms.length >= 8) return;
+    q('.dch-members').append(row(ms.length, { name: `Daughter ${ms.length}`, half: 3600, branch: 1 }, 0));
+    q<HTMLSelectElement>('.dch-ex').value = 'custom'; branchVis(); calc();
+  });
+  q('.dch-del').addEventListener('click', () => { const ms = root.querySelectorAll('.dch-m'); if (ms.length > 1) { ms[ms.length - 1].remove(); q<HTMLSelectElement>('.dch-ex').value = 'custom'; branchVis(); calc(); } });
+  q('.dch-csv').addEventListener('click', () => { if (curve.length) save(new TextEncoder().encode(csv(curve)), 'decay-chain.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.dch-out').hidden) paint(q<HTMLCanvasElement>('.dch-fig'), fig); });
+  load('moly'); calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Radioactive decay chain', subtitle: [...root.querySelectorAll<HTMLInputElement>('.dch-name')].map((i) => i.value).join(' → '), file: 'decay-chain', sections: report }));
+</script>

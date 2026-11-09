@@ -1,0 +1,207 @@
+---
+// Relativistic kinematics in natural units (c = 1): invariant mass, two-body decays, Lorentz boosts and reaction
+// thresholds. Particle names can be typed instead of masses (rounded general values).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax rkn">
+  <div class="ax-card">
+    <h2>Units</h2>
+    <div class="ax-grid">
+      <label>Energy, momentum and mass unit (c = 1) <select class="rk-u"><option value="1">MeV (MeV/c, MeV/c²)</option><option value="1000" selected>GeV (GeV/c, GeV/c²)</option></select></label>
+    </div>
+    <p class="ax-help">Wherever a mass is asked for you can type a particle name instead: e, mu, tau, pi+, pi0, K+, K0, eta, p, n, d, alpha, Lambda, J/psi, W, Z, H, top, or gamma and nu for massless ones. Their masses are rounded general values.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>1. Invariant mass of a set of particles</h2>
+    <label>One particle per line: mass (or name), px, py, pz <textarea class="rk-parts" rows="4" spellcheck="false">mu 30 10 20
+mu -25 -5 -15</textarea></label>
+    <p class="ax-err rk-err1" hidden></p>
+    <div class="rk-out1">
+      <p class="ax-big rk-big1"></p>
+      <dl class="ax-facts rk-facts1"></dl>
+      <div class="ax-scroll" style="margin-top:10px"><table class="rk-tab1"></table></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>2. Two-body decay</h2>
+    <div class="ax-grid">
+      <label>Parent mass M <input class="rk-M" type="text" value="K+" /></label>
+      <label>Daughter 1 mass m₁ <input class="rk-m1" type="text" value="pi+" /></label>
+      <label>Daughter 2 mass m₂ <input class="rk-m2" type="text" value="pi0" /></label>
+      <label>Parent momentum in the lab <input class="rk-P" type="text" inputmode="decimal" value="1" /></label>
+    </div>
+    <p class="ax-err rk-err2" hidden></p>
+    <div class="rk-out2">
+      <p class="ax-big rk-big2"></p>
+      <dl class="ax-facts rk-facts2"></dl>
+      <canvas class="ax-fig rk-fig" style="margin-top:10px"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>3. Lorentz boost</h2>
+    <div class="ax-grid">
+      <label>Particle mass (or name) <input class="rk-bm" type="text" value="p" /></label>
+      <label>px <input class="rk-bpx" type="text" inputmode="decimal" value="0" /></label>
+      <label>py <input class="rk-bpy" type="text" inputmode="decimal" value="0" /></label>
+      <label>pz <input class="rk-bpz" type="text" inputmode="decimal" value="1" /></label>
+      <label>Frame velocity βx <input class="rk-bx" type="text" inputmode="decimal" value="0" /></label>
+      <label>βy <input class="rk-by" type="text" inputmode="decimal" value="0" /></label>
+      <label>βz <input class="rk-bz" type="text" inputmode="decimal" value="0.5" /></label>
+    </div>
+    <p class="ax-help">The new frame moves with velocity β (in units of c) as seen from the old one; |β| must be below 1.</p>
+    <p class="ax-err rk-err3" hidden></p>
+    <div class="rk-out3">
+      <p class="ax-big rk-big3"></p>
+      <dl class="ax-facts rk-facts3"></dl>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>4. Reaction threshold</h2>
+    <div class="ax-grid">
+      <label>Beam particle <input class="rk-ta" type="text" value="p" /></label>
+      <label>Target particle (at rest) <input class="rk-tb" type="text" value="p" /></label>
+      <label class="rk-wide">Products, separated by spaces or + <input class="rk-tp" type="text" value="p + p + p + pbar" /></label>
+    </div>
+    <p class="ax-err rk-err4" hidden></p>
+    <div class="rk-out4">
+      <p class="ax-big rk-big4"></p>
+      <dl class="ax-facts rk-facts4"></dl>
+    </div>
+    <p class="ax-help">Special relativity only: it checks energy and momentum, not whether charges, baryon number and the other conservation laws allow the reaction.</p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .rkn .rk-wide { grid-column: 1 / -1; }
+  .rkn select, .rkn input { max-width: 100%; }
+</style>
+
+<script>
+  import { mass, fourFrom, add, describe, boost, restBeta, twoBody, twoBodyLab, threshold, massOf, MASSES, type Four } from '../../lib/sci/phrel';
+  import { num, fmtExp, parseTable } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.rkn')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => q<HTMLInputElement>(c).value;
+  const sig = (x: number, n = 5) => { const a = Math.abs(x); return !Number.isFinite(x) ? (x > 0 ? '∞' : '–') : a && (a >= 1e7 || a < 1e-4) ? fmtExp(x, n) : String(+x.toPrecision(n)).replace('-', '−'); };
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const e = document.createElement('small'); e.textContent = s; d.querySelector('dd')!.append(e); } return d; };
+  const rows = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  let fig: Figure | null = null;
+  const report: (Section | null)[] = [null, null, null, null];
+
+  const unitScale = () => +q<HTMLSelectElement>('.rk-u').value;
+  const U = () => (unitScale() === 1 ? 'MeV' : 'GeV');
+  /** A mass in the page unit from a number or a particle name. */
+  const m = (s: string) => { const t = s.trim(); const isName = Object.keys(MASSES).some((k) => k.toLowerCase() === t.toLowerCase().replace(/\s+/g, '')); const x = isName ? massOf(t) / unitScale() : num(t); return x; };
+
+  function part(i: number, ok: boolean, msg = '') {
+    const e = q(`.rk-err${i}`), o = q(`.rk-out${i}`);
+    e.textContent = msg; e.hidden = ok; o.hidden = !ok; if (!ok) report[i - 1] = null;
+  }
+
+  function inv() {
+    const lines = parseTable(v('.rk-parts'));
+    if (!lines.length) return part(1, false, 'Type at least one particle: mass (or name), px, py, pz.');
+    const vs: Four[] = [];
+    for (const [i, r] of lines.entries()) {
+      const mm = m(r[0] ?? ''), px = num(r[1]), py = num(r[2]), pz = num(r[3]);
+      if (!(mm >= 0) || ![px, py, pz].every(Number.isFinite)) return part(1, false, `Line ${i + 1}: give a mass (or a particle name) and three momentum components.`);
+      vs.push(fourFrom(mm, px, py, pz));
+    }
+    part(1, true);
+    const t = add(vs), d = describe(t), u = U();
+    q('.rk-big1').textContent = `Invariant mass ${sig(d.M)} ${u}`;
+    const f = [
+      fact('Total energy E', `${sig(d.E)} ${u}`), fact('Total momentum |p|', `${sig(d.p)} ${u}`, `(${sig(t.px)}, ${sig(t.py)}, ${sig(t.pz)})`),
+      fact('Transverse momentum pT', `${sig(d.pT)} ${u}`, 'in the x-y plane'),
+      fact('System velocity β', sig(d.beta), `γ = ${sig(d.gamma)}`),
+      fact('Rapidity y', sig(d.y, 4), 'along z: ½ ln((E + pz)/(E − pz))'),
+    ];
+    q('.rk-facts1').replaceChildren(...f);
+    const [bx, by, bz] = restBeta(t), head = ['#', `E (${u})`, `|p| (${u})`, `pT (${u})`, 'η', `p* in rest frame (${u})`];
+    const body = vs.map((p, i) => { const dd = describe(p), r = boost(p, bx, by, bz); return [String(i + 1), sig(dd.E), sig(dd.p), sig(dd.pT), sig(dd.eta, 4), sig(Math.hypot(r.px, r.py, r.pz))]; });
+    const tab = q<HTMLTableElement>('.rk-tab1'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); head.forEach((h, j) => { const th = document.createElement('th'); th.textContent = h; if (j) th.className = 'r'; hr.append(th); });
+    const bd = tab.createTBody(); body.forEach((r) => { const tr = bd.insertRow(); r.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j) td.className = 'r'; }); });
+    report[0] = { title: q('.rk-big1').textContent!, facts: rows(f), table: { head, rows: body, align: ['l', 'r', 'r', 'r', 'r', 'r'] } };
+  }
+
+  function decay() {
+    const M = m(v('.rk-M')), m1 = m(v('.rk-m1')), m2 = m(v('.rk-m2')), P = num(v('.rk-P'));
+    if (!(M > 0) || !(m1 >= 0) || !(m2 >= 0)) return part(2, false, 'Give the three masses (numbers or particle names).');
+    if (!(P >= 0)) return part(2, false, 'The parent momentum must be zero or more.');
+    const d = twoBody(M, m1, m2);
+    if (!d) return part(2, false, `This decay is not allowed: the daughters weigh ${sig(m1 + m2)} ${U()}, more than the parent's ${sig(M)} ${U()}.`);
+    part(2, true);
+    const u = U(), lab = twoBodyLab(M, m1, m2, P)!;
+    q('.rk-big2').textContent = `Each daughter has momentum ${sig(d.p)} ${u} in the parent's rest frame`;
+    const f = [
+      fact('Energy released Q', `${sig(d.Q)} ${u}`, 'M − m₁ − m₂'),
+      fact('Daughter 1 energy', `${sig(d.E1)} ${u}`, `kinetic ${sig(d.T1)} ${u}, β = ${sig(d.beta1, 4)}`),
+      fact('Daughter 2 energy', `${sig(d.E2)} ${u}`, `kinetic ${sig(d.T2)} ${u}, β = ${sig(d.beta2, 4)}`),
+      fact('Parent in the lab', `γ = ${sig(lab.gamma)}`, `β = ${sig(lab.beta, 4)}`),
+      fact('Daughter 1 lab energy', `${sig(lab.d1.min)} to ${sig(lab.d1.max)} ${u}`, lab.d1.thetaMax != null ? `never more than ${sig(lab.d1.thetaMax, 4)}° from the parent's direction` : 'can go in any direction'),
+      fact('Daughter 2 lab energy', `${sig(lab.d2.min)} to ${sig(lab.d2.max)} ${u}`, lab.d2.thetaMax != null ? `never more than ${sig(lab.d2.thetaMax, 4)}° from the parent's direction` : 'can go in any direction'),
+    ];
+    q('.rk-facts2').replaceChildren(...f);
+    // Lab angle against the rest-frame angle for both daughters.
+    const th: number[] = []; for (let i = 0; i <= 180; i++) th.push(i);
+    const labAng = (E: number, flip: boolean) => th.map((t) => { const a = ((flip ? 180 - t : t) * Math.PI) / 180, pl = d.p * Math.cos(a); const along = lab.gamma * (pl + lab.beta * E), across = d.p * Math.sin(a); return (Math.atan2(across, along) * 180) / Math.PI; });
+    fig = chartFigure({ w: 380, h: 240, xLabel: 'Angle of daughter 1 in the rest frame (°)', yLabel: 'Angle in the lab (°)', xMin: 0, xMax: 180, yMin: 0, legend: 'below', series: [
+      { name: 'Daughter 1', x: th, y: labAng(d.E1, false), mode: 'line', width: 2 },
+      { name: 'Daughter 2 (opposite)', x: th, y: labAng(d.E2, true), mode: 'line', width: 2, dash: [6, 3] },
+    ] }, 'Lab angle of each daughter against the rest-frame angle of daughter 1');
+    paint(q<HTMLCanvasElement>('.rk-fig'), fig);
+    report[1] = { title: q('.rk-big2').textContent!, facts: rows(f), figure: fig };
+  }
+
+  function boosted() {
+    const mm = m(v('.rk-bm')), p = [v('.rk-bpx'), v('.rk-bpy'), v('.rk-bpz')].map(num), b = [v('.rk-bx'), v('.rk-by'), v('.rk-bz')].map(num);
+    if (!(mm >= 0) || !p.every(Number.isFinite)) return part(3, false, 'Give the particle mass (or name) and its three momentum components.');
+    if (!b.every(Number.isFinite) || !(Math.hypot(...b) < 1)) return part(3, false, 'The frame speed |β| must be below 1 (the speed of light).');
+    part(3, true);
+    const u = U(), a = fourFrom(mm, p[0], p[1], p[2]), r = boost(a, b[0], b[1], b[2]), da = describe(a), dr = describe(r), g = 1 / Math.sqrt(1 - Math.hypot(...b) ** 2);
+    q('.rk-big3').textContent = `In the new frame: E = ${sig(r.E)} ${u}, p = (${sig(r.px)}, ${sig(r.py)}, ${sig(r.pz)}) ${u}`;
+    const f = [
+      fact('Before', `E = ${sig(a.E)} ${u}`, `|p| = ${sig(da.p)} ${u}, β = ${sig(da.beta, 4)}`),
+      fact('After', `|p| = ${sig(dr.p)} ${u}`, `β = ${sig(dr.beta, 4)}, kinetic ${sig(dr.T)} ${u}`),
+      fact('Frame', `γ = ${sig(g)}`, `|β| = ${sig(Math.hypot(...b), 4)}`),
+      fact('Mass (unchanged)', `${sig(mass(r))} ${u}`, 'E² − p² is the same in every frame'),
+    ];
+    q('.rk-facts3').replaceChildren(...f);
+    report[2] = { title: q('.rk-big3').textContent!, facts: rows(f) };
+  }
+
+  function thresh() {
+    const ma = m(v('.rk-ta')), mb = m(v('.rk-tb'));
+    const prods = v('.rk-tp').split(/[\s+,]+/).filter(Boolean).map(m);
+    if (!(ma >= 0) || !(mb > 0)) return part(4, false, 'Give the beam and target particles (the target must have mass).');
+    if (!prods.length || !prods.every((x) => x >= 0)) return part(4, false, 'List the products as masses or particle names, separated by spaces or +.');
+    part(4, true);
+    const u = U(), Ms = prods.reduce((s, x) => s + x, 0), t = threshold(ma, mb, Ms)!;
+    q('.rk-big4').textContent = t.below ? 'No threshold: the products are no heavier than the beam and target' : `Threshold beam kinetic energy ${sig(t.T)} ${u}`;
+    const f = [
+      fact('Products total mass', `${sig(Ms)} ${u}`, `${prods.length} particle${prods.length === 1 ? '' : 's'}`),
+      fact('Beam total energy', `${sig(t.E)} ${u}`, '(ΣM² − m_beam² − m_target²) / (2 m_target)'),
+      fact('Beam momentum', `${sig(t.p)} ${u}`),
+      fact('√s at threshold', `${sig(t.sqrtS)} ${u}`, 'the products are made at rest in the centre-of-mass frame'),
+    ];
+    if (Math.abs(ma - mb) < 1e-9 * mb) f.push(fact('Colliding beams instead', `${sig(t.collider)} ${u} each`, `kinetic ${sig(t.collider - ma)} ${u} each, head-on`));
+    q('.rk-facts4').replaceChildren(...f);
+    report[3] = { title: q('.rk-big4').textContent!, facts: rows(f) };
+  }
+
+  const calc = () => { inv(); decay(); boosted(); thresh(); };
+  root.querySelectorAll('input, select, textarea').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.rk-out2').hidden) paint(q<HTMLCanvasElement>('.rk-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Relativistic kinematics', subtitle: `Units: ${U()} (c = 1)`, file: 'relativistic-kinematics', sections: report.filter((s): s is Section => !!s) }));
+</script>

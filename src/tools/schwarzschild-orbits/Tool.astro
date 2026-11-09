@@ -1,0 +1,171 @@
+---
+// Schwarzschild geodesics: key radii (horizon, photon sphere, ISCO), bound orbits with periapsis advance, and light
+// bending or capture. G = c = 1, lengths in M = GM/c². Example values are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax swo">
+  <div class="ax-card">
+    <h2>Black hole and orbit</h2>
+    <div class="ax-grid">
+      <label><span>Mass (solar masses)</span> <input class="sw-m" type="text" inputmode="decimal" value="10" /></label>
+      <label>Follow <select class="sw-mode">
+        <option value="mass" selected>A massive particle (orbit)</option>
+        <option value="light">A light ray</option>
+      </select></label>
+      <label class="sw-ms"><span>Closest distance r_p (in M)</span> <input class="sw-rp" type="text" inputmode="decimal" value="10" /></label>
+      <label class="sw-ms"><span>Farthest distance r_a (in M)</span> <input class="sw-ra" type="text" inputmode="decimal" value="30" /></label>
+      <label class="sw-ms"><span>Turns to draw (1 to 10)</span> <input class="sw-n" type="text" inputmode="decimal" value="4" /></label>
+      <label class="sw-li" hidden><span>Impact parameter b (in M)</span> <input class="sw-b" type="text" inputmode="decimal" value="6" /></label>
+    </div>
+    <p class="ax-help">Distances are in units of M = GM/c², half the Schwarzschild radius (1.477 km per solar mass). r_p and r_a are the closest and farthest Schwarzschild radial coordinates of the orbit; set them equal for a circular orbit. b is how far off-centre a light ray would pass if it went straight. The example values are made up.</p>
+    <p class="ax-err sw-err" hidden></p>
+  </div>
+
+  <div class="ax-card sw-out">
+    <h2>Results</h2>
+    <p class="ax-big sw-big"></p>
+    <dl class="ax-facts sw-facts"></dl>
+    <canvas class="ax-fig sw-fig"></canvas>
+    <canvas class="ax-fig sw-vfig"></canvas>
+    <h3 style="margin:14px 0 6px;font-size:16px">Key radii for this mass</h3>
+    <div class="ax-scroll"><table class="sw-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sw-csv">Path (CSV)</button></div>
+    <p class="ax-help">Exact geodesics of the Schwarzschild metric: a non-spinning black hole, or the space outside any round, non-spinning mass. Spin (Kerr), gas and radiation are left out. The orbit is drawn in the plane of motion, in Schwarzschild coordinates. For study.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { bound, circular, trace, lightRay, veff2, M_SUN_M, M_SUN_S } from '../../lib/sci/phgr';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv, fmtExp } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.swo')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const sg = (x: number, d = 4) => { if (Math.abs(x) < 1e-300) return '0'; const t = sig(x, d); return t.includes('×') || !t.includes('.') ? t : t.replace(/0+$/, '').replace(/\.$/, ''); };
+  const deg = (r: number) => (r * 180) / Math.PI;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let figs: [string, Figure][] = [], report: Section[] = [], rows: (string | number)[][] = [];
+
+  function orbitFig(alt: string, paths: { pts: [number, number][]; main: boolean }[], R: number, note: string): Figure {
+    return { w: 360, h: 380, alt, draw: (ctx, W, H, pal) => {
+      const S = Math.min(W - 20, H - 40), cx = W / 2, cy = 10 + S / 2, k = S / (2 * R);
+      const X = (x: number) => cx + x * k, Y = (y: number) => cy - y * k;
+      ctx.save(); ctx.beginPath(); ctx.rect(cx - S / 2, cy - S / 2, S, S); ctx.clip();
+      ctx.strokeStyle = pal.grid; ctx.lineWidth = 1; ctx.strokeRect(cx - S / 2, cy - S / 2, S, S);
+      const ring = (r: number, color: string, dash: number[]) => { ctx.strokeStyle = color; ctx.setLineDash(dash); ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(cx, cy, r * k, 0, 7); ctx.stroke(); ctx.setLineDash([]); };
+      ring(6, pal.good, [2, 3]); ring(3, pal.warn, [5, 3]);
+      ctx.fillStyle = pal.red ? '#300000' : pal.bg === '#ffffff' ? '#000000' : '#444444'; ctx.beginPath(); ctx.arc(cx, cy, 2 * k, 0, 7); ctx.fill();
+      for (const p of paths) {
+        ctx.strokeStyle = p.main ? pal.accent : pal.muted; ctx.lineWidth = p.main ? 1.8 : 0.8; ctx.beginPath();
+        p.pts.forEach(([x, y], i) => (i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)))); ctx.stroke();
+      }
+      ctx.restore();
+      ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillStyle = pal.muted;
+      ctx.fillText(note, 6, H - 18);
+      ctx.fillStyle = pal.warn; ctx.fillText('photon sphere 3M', 6, H - 4); ctx.fillStyle = pal.good; ctx.fillText('ISCO 6M', 120, H - 4); ctx.fillStyle = pal.ink; ctx.fillText('● horizon 2M', 190, H - 4);
+    } };
+  }
+
+  function calc() {
+    const mode = sel('.sw-mode');
+    root.querySelectorAll<HTMLElement>('.sw-ms').forEach((e) => { e.hidden = mode !== 'mass'; });
+    q('.sw-li').hidden = mode !== 'light';
+    const err = q('.sw-err'), out = q('.sw-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; figs = []; report = []; rows = []; };
+    const Ms = val('.sw-m');
+    if (!(Ms > 0 && Ms <= 1e11)) return fail('Give the mass in solar masses (above 0, up to 10¹¹).');
+    const Lm = Ms * M_SUN_M, Ts = Ms * M_SUN_S;
+    const km = (r: number) => { const m = r * Lm; return m >= 1e9 ? `${sg(m / 1.495978707e11, 4)} au` : `${sg(m / 1000, 4)} km`; };
+    const time = (t: number) => { const s = t * Ts; return s < 1 ? `${sg(s * 1000, 4)} ms` : s < 3600 ? `${sg(s, 4)} s` : s < 86400 * 2 ? `${sg(s / 3600, 4)} h` : `${sg(s / 86400, 4)} days`; };
+    // Key radii table.
+    const isco = circular(6)!;
+    const radii = [
+      ['Event horizon', '2M', km(2), 'nothing gets out from inside'],
+      ['Photon sphere', '3M', km(3), 'light can circle here (unstably)'],
+      ['Marginally bound orbit', '4M', km(4), 'innermost circular orbit with E < 1'],
+      ['ISCO', '6M', km(6), `innermost stable circular orbit; period ${time(isco.Tcoord)}`],
+      ['Shadow radius', `${sg(3 * Math.sqrt(3), 4)}M`, km(3 * Math.sqrt(3)), 'critical impact parameter 3√3 M'],
+    ];
+    const tr = (cells: string[], th: boolean) => { const r = document.createElement('tr'); cells.forEach((c, j) => { const e = document.createElement(th ? 'th' : 'td'); e.textContent = c; if (j === 1 || j === 2) e.className = 'r'; r.append(e); }); return r; };
+    const rh = ['Radius', 'In M', 'Distance', 'Meaning'];
+    q('.sw-tab').replaceChildren(tr(rh, true), ...radii.map((r) => tr(r, false)));
+    const f: HTMLElement[] = [];
+    if (mode === 'mass') {
+      const rp = val('.sw-rp'), ra = val('.sw-ra'), n = val('.sw-n');
+      if (!(rp > 2 && rp <= 1e6)) return fail('Give r_p in units of M, above the horizon at 2M.');
+      if (!(ra >= rp && ra <= 1e6)) return fail('Give r_a at least as large as r_p (equal for a circular orbit).');
+      if (!(Number.isInteger(n) && n >= 1 && n <= 10)) return fail('Give a whole number of turns from 1 to 10.');
+      const o = bound(rp, ra);
+      if (!o) return fail(rp === ra && rp < 6 ? `A circular orbit at ${sg(rp)}M is unstable (inside the ISCO at 6M): the smallest nudge sends it in or out.` : 'No stable bound orbit with these distances: a particle this close would plunge into the black hole. Move r_p out, or bring r_a closer to r_p.');
+      err.hidden = true; out.hidden = false;
+      const circ = ra - rp < 1e-9;
+      q('.sw-big').textContent = `Periapsis advances ${sg(deg(o.precession), 4)}° per orbit`;
+      const c = circular(rp)!;
+      f.push(
+        fact('Advance per orbit', `${sg(deg(o.precession), 4)}°`, `from one periapsis to the next is ${sg(deg(o.dphi), 5)}°; the weak-field formula 6πM/(a(1 − e²)) gives ${sg(deg(o.weak), 4)}°`),
+        fact('Energy per unit mass E', sg(o.E, 6), `binding energy ${sg((1 - o.E) * 100, 3)} % of rest mass`),
+        fact('Angular momentum per unit mass L', `${sg(o.L, 5)} M c`, `= ${fmtExp(o.L * Lm * 299792458, 4)} m²/s`),
+        fact('Shape', `e = ${sg(o.e, 4)}`, `(r_a − r_p)/(r_a + r_p); semi-latus rectum ${sg(o.p, 4)}M`),
+        fact('Closest and farthest', `${km(rp)} and ${km(ra)}`, `${sg(rp)}M and ${sg(ra)}M`),
+      );
+      if (circ) f.push(fact('Circular orbit period', time(c.Tcoord), `as seen from far away; ${time(c.Tproper)} on the orbiting clock; speed ${sg(c.v, 3)}c`));
+      q('.sw-facts').replaceChildren(...f);
+      const pts = trace(o.u2, 0, 1 / (o.L * o.L), n * o.dphi, 0.003);
+      const xy = pts.map(([p, u]) => [Math.cos(p) / u, Math.sin(p) / u] as [number, number]);
+      const R = Math.max(ra * 1.08, 8);
+      const fig = orbitFig(`Orbit between ${sg(rp)}M and ${sg(ra)}M around the black hole, ${n} turns`, [{ pts: xy, main: true }], R, `Box ±${sg(R, 3)}M. Orbit starts at periapsis on the right.`);
+      const rr: number[] = []; for (let i = 0; i <= 300; i++) rr.push(2.05 * Math.pow((ra * 2.2) / 2.05, i / 300));
+      const V = rr.map((r) => Math.sqrt(veff2(r, o.L)));
+      const vfig = chartFigure({ w: 380, h: 220, xLabel: 'r (in M)', yLabel: 'Effective potential', xLog: true, yMin: Math.min(...V.filter((v) => v > 0)) * 0.98, yMax: Math.max(Math.max(...V), o.E) * 1.01, legend: 'below', series: [
+        { name: `V(r) for L = ${sg(o.L, 4)}`, x: rr, y: V, mode: 'line', width: 2 },
+        { name: `Energy E = ${sg(o.E, 5)}`, x: [rp, ra], y: [o.E, o.E], mode: 'line', width: 2, dash: [5, 3] },
+      ], marks: [{ kind: 'vline', at: rp, dash: [2, 3], label: 'r_p' }, { kind: 'vline', at: ra, dash: [2, 3], label: 'r_a' }] }, 'Effective potential: the particle moves where the energy line is above the curve');
+      figs = [['.sw-fig', fig], ['.sw-vfig', vfig]]; q('.sw-vfig').hidden = false;
+      rows = [['phi (rad)', 'r (M)', 'x (M)', 'y (M)'], ...pts.filter((_, i) => i % 5 === 0).map(([p, u], i) => [+p.toFixed(5), +(1 / u).toPrecision(8), +xy[i * 5][0].toPrecision(8), +xy[i * 5][1].toPrecision(8)])];
+    } else {
+      const b = val('.sw-b');
+      if (!(b > 0 && b <= 1e5)) return fail('Give the impact parameter b in units of M (above 0).');
+      err.hidden = true; out.hidden = false;
+      const L = lightRay(b);
+      q('.sw-big').textContent = L.captured ? `Captured: b = ${sg(b)}M is inside 3√3 M = 5.196M` : `Bent by ${sg(deg(L.deflection), 4)}°, closest approach ${sg(L.rmin, 4)}M`;
+      f.push(fact('Critical impact parameter', `${sg(L.bc, 5)}M = ${km(L.bc)}`, 'rays aimed closer than this fall in: the radius of the black hole’s shadow'));
+      if (!L.captured) f.push(
+        fact('Deflection', `${sg(deg(L.deflection), 5)}°`, `weak-field estimate 4M/b = ${sg(deg(L.weak), 4)}°${L.deflection > 2 * Math.PI ? `; the ray loops the hole ${Math.floor(L.deflection / (2 * Math.PI))} time(s)` : ''}`),
+        fact('Closest approach', `${sg(L.rmin, 5)}M = ${km(L.rmin)}`, 'the turning point of the ray'),
+      );
+      else f.push(fact('Fate', 'falls through the horizon', 'it crosses the photon sphere and cannot turn back'));
+      q('.sw-facts').replaceChildren(...f);
+      const R = Math.max(12, Math.min(3 * b, 60));
+      const ray = (bb: number): [number, number][] => {
+        const r0 = R * 1.5, u0 = 1 / r0, g0 = 1 / (bb * bb) - u0 * u0 + 2 * u0 ** 3, phi0 = Math.PI - Math.asin(Math.min(1, bb / r0));
+        let turned = false;
+        const pts = trace(u0, Math.sqrt(Math.max(0, g0)), 0, 40, 0.002, (u) => { if (u > 0.5) return true; if (u > u0 * 1.01) turned = true; return turned && u < u0; });
+        return pts.map(([p, u]) => { const r = Math.min(1 / Math.max(u, 1e-9), r0 * 2); return [r * Math.cos(phi0 - p), r * Math.sin(phi0 - p)] as [number, number]; });
+      };
+      const fan = [3, 4, 5, 5.5, 6.5, 8, 10, 13].map((bb) => ({ pts: ray(bb), main: false }));
+      const fig = orbitFig(`Light ray with impact parameter ${sg(b)}M, among other rays`, [...fan, { pts: ray(b), main: true }], R, `Box ±${sg(R, 3)}M. Rays come in from the left; grey: b = 3 to 13M.`);
+      figs = [['.sw-fig', fig]]; q('.sw-vfig').hidden = true;
+      const main = ray(b);
+      rows = [['x (M)', 'y (M)'], ...main.filter((_, i) => i % 5 === 0).map(([x, y]) => [+x.toPrecision(8), +y.toPrecision(8)])];
+    }
+    for (const [s, fg] of figs) paint(q<HTMLCanvasElement>(s), fg);
+    report = [{ title: q('.sw-big').textContent!, facts: [...q('.sw-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: figs[0][1] }, ...(figs[1] ? [{ title: 'Effective potential', figure: figs[1][1] }] : []), { title: 'Key radii', table: { head: rh, rows: radii } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 120); };
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  document.addEventListener('fibub:theme', () => { for (const [s, f] of figs) paint(q<HTMLCanvasElement>(s), f); });
+  q('.sw-csv').addEventListener('click', () => rows.length && save(new Blob([csv(rows)], { type: 'text/csv' }), `schwarzschild-${sel('.sw-mode')}.csv`, 'text/csv'));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Schwarzschild orbit', subtitle: `${q<HTMLInputElement>('.sw-m').value} solar masses`, file: `schwarzschild-${sel('.sw-mode')}`, sections: report }));
+</script>
+
+<style is:global>
+  .swo select, .swo input { max-width: 100%; }
+</style>

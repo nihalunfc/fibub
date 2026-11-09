@@ -1,0 +1,153 @@
+---
+// Stochastic simulation (Gillespie's direct method) of small reaction networks: many runs, their mean and spread
+// against the ODE, and the distribution of counts at the end against a Poisson distribution with the same mean.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+const example = `# Birth and death of a molecule X (made-up rates)
+-> X : k0
+X -> : kd
+k0 = 10
+kd = 1
+X = 0`;
+---
+<div class="ax gsp">
+  <div class="ax-card">
+    <h2>Model</h2>
+    <label>Start from <select class="gs-ex">
+      <option value="bd" selected>Birth and death</option>
+      <option value="ge">Gene expression (mRNA and protein)</option>
+      <option value="dim">Dimerisation (2 A → B)</option>
+      <option value="sw">Toggle with positive feedback (Hill)</option>
+    </select></label>
+    <label>Reactions and values, one per line <textarea class="gs-model" rows="8" spellcheck="false" wrap="off">{example}</textarea></label>
+    <p class="ax-help">The same reaction language as the pathway ODE builder: <code>A + B -> C : k</code>, <code>A &lt;-> B : kf, kr</code>, <code>-> A : k0</code>, <code>A -> : kd</code>, <code>MM(Vmax, Km)</code>, <code>Hill(Vmax, K, n)</code>. Amounts are numbers of molecules (whole numbers); species not given start at 0.</p>
+    <div class="ax-grid">
+      <label>Simulate until time <input class="gs-end" inputmode="decimal" value="10" /></label>
+      <label>Runs <input class="gs-runs" inputmode="numeric" value="200" /></label>
+      <label>Show species <select class="gs-sp"></select></label>
+      <label>Single runs drawn <input class="gs-tr" inputmode="numeric" value="5" /></label>
+      <label>Random seed <input class="gs-seed" inputmode="numeric" value="1" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="gs-ode" checked /> Show the ODE (deterministic) curve</label>
+    </div>
+    <p class="ax-help">Each run is exact: the time to the next reaction and which reaction fires are drawn at random from the current propensities. The same seed gives the same runs. Up to 2,000 runs and 5 million reactions in all.</p>
+    <p class="ax-err gs-err" hidden></p>
+  </div>
+
+  <div class="ax-card gs-out">
+    <h2>Result</h2>
+    <p class="ax-big gs-big"></p>
+    <dl class="ax-facts gs-facts"></dl>
+    <canvas class="ax-fig gs-fig" style="margin-top:12px"></canvas>
+    <h3>Counts at the end</h3>
+    <canvas class="ax-fig gs-hist"></canvas>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small gs-csv">Mean and spread (CSV)</button>
+      <button type="button" class="btn secondary small gs-fcsv">Final counts (CSV)</button>
+    </div>
+    <p class="ax-help">The band is the mean ± 1 standard deviation across runs. The Fano factor (variance ÷ mean) is 1 for a Poisson distribution, as for a molecule made and destroyed at constant rates; above 1 means bursty, noisier production. For study and planning, not a substitute for professional judgement.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseModel, simulate, type Model } from '../../lib/sci/sbode';
+  import { ensemble, moments, poisson, type Ensemble } from '../../lib/sci/sbssa';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const EX: Record<string, string> = {
+    bd: '# Birth and death of a molecule X (made-up rates)\n-> X : k0\nX -> : kd\nk0 = 10\nkd = 1\nX = 0',
+    ge: '# mRNA M made and lost; each M makes protein P (made-up rates)\n-> M : km\nM -> : dm\nM -> M + P : kp\nP -> : dp\nkm = 1\ndm = 0.2\nkp = 2\ndp = 0.1',
+    dim: '# Two A molecules join (made-up rate)\n2 A -> B : k\nk = 0.01\nA = 50',
+    sw: '# X switches on its own production (made-up rates)\n-> X : k0\nX -> X + X : Hill(V, K, n)\nX -> : kd\nk0 = 1\nV = 20\nK = 6\nn = 4\nkd = 1',
+  };
+  const END: Record<string, string> = { bd: '10', ge: '80', dim: '20', sw: '30' };
+
+  const root = document.querySelector<HTMLElement>('.gsp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const g = (x: number) => String(+x.toPrecision(3));
+  let figs: Figure[] = [], sections: Section[] = [], sumCsv: string[][] = [], finCsv: string[][] = [], spKey = '';
+
+  function calc() {
+    const err = q('.gs-err'), out = q('.gs-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; figs = []; sections = []; sumCsv = []; finCsv = []; };
+    let m: Model;
+    try { m = parseModel(q<HTMLTextAreaElement>('.gs-model').value); } catch (e) { return fail((e as Error).message); }
+    const end = num(q<HTMLInputElement>('.gs-end').value), runs = num(q<HTMLInputElement>('.gs-runs').value), ntr = num(q<HTMLInputElement>('.gs-tr').value), seed = num(q<HTMLInputElement>('.gs-seed').value);
+    if (!(end > 0 && end < 1e7)) return fail('Give a simulation end time above 0, such as 10.');
+    if (!(Number.isInteger(runs) && runs >= 1 && runs <= 2000)) return fail('Give a whole number of runs from 1 to 2,000.');
+    if (!(Number.isInteger(ntr) && ntr >= 0 && ntr <= 20)) return fail('Draw from 0 to 20 single runs.');
+    if (!Number.isInteger(seed)) return fail('The random seed must be a whole number, such as 1.');
+    const key = m.species.join('\u0001'), spSel = q<HTMLSelectElement>('.gs-sp');
+    if (key !== spKey) { const was = spSel.value; spKey = key; spSel.replaceChildren(...m.species.map((s) => { const o = document.createElement('option'); o.value = o.textContent = s; return o; })); spSel.value = m.species.includes(was) ? was : m.species[m.species.length > 1 && m.species[0] === 'M' ? 1 : 0]; }
+    const sp = spSel.value, j = m.species.indexOf(sp);
+    const N = 100, times = Array.from({ length: N + 1 }, (_, i) => (end * i) / N);
+    let E: Ensemble;
+    try { E = ensemble(m, m.params, times, runs, seed, ntr, 5e6); } catch (e) { return fail((e as Error).message); }
+    let ode: number[][] | null = null;
+    if (q<HTMLInputElement>('.gs-ode').checked) { try { ode = simulate(m, m.params, times); } catch { ode = null; } }
+    err.hidden = true; out.hidden = false;
+    const fin = E.final.map((r) => r[j]), mo = moments(fin), sdv = Math.sqrt(mo.variance);
+    q('.gs-big').textContent = `${sp} at t = ${g(end)}: mean ${g(mo.mean)}, SD ${g(sdv)}`;
+    const sorted = [...fin].sort((a, b) => a - b);
+    const facts = [
+      fact('Runs', `${runs}`, `${E.events.toLocaleString('en')} reactions fired in all`),
+      fact('Fano factor', Number.isFinite(mo.fano) ? sig(mo.fano, 3) : '–', 'variance ÷ mean; 1 for a Poisson distribution'),
+      fact('Range of runs', `${sorted[Math.floor(0.05 * (runs - 1))]} to ${sorted[Math.ceil(0.95 * (runs - 1))]}`, `5 to 95 % of runs; lowest ${sorted[0]}, highest ${sorted[runs - 1]}`),
+      ...(ode ? [fact('ODE value', g(ode[N][j]), `mean of the runs differs by ${g(mo.mean - ode[N][j]).replace('-', '−')}`)] : []),
+    ];
+    q('.gs-facts').replaceChildren(...facts);
+    const col = E.mean.map((r) => r[j]), sd = E.sd.map((r) => r[j]);
+    // Each series sits at a position whose palette colour it should get (mean and its SD band share colour 0, the
+    // ODE gets 1, single runs 2), with empty series filling the gaps, so the colours follow the page theme.
+    type S = { name: string; x: number[]; y: number[]; mode?: 'line'; dash?: number[]; width?: number };
+    const slots: S[] = [];
+    const put = (s: S, ci: number) => { let p = ci; while (slots[p]) p += 8; slots[p] = s; };
+    put({ name: 'Mean of runs', x: times, y: col, mode: 'line', width: 2.2 }, 0);
+    if (ode) put({ name: 'ODE', x: times, y: ode.map((r) => r[j]), mode: 'line', dash: [8, 4], width: 1.6 }, 1);
+    E.traces.forEach((tr, k) => put({ name: k === 0 ? 'Single runs' : '', x: times, y: tr.map((r) => r[j]), mode: 'line', width: 0.8 }, 2));
+    put({ name: '± 1 SD', x: times, y: col.map((v, i) => v + sd[i]), mode: 'line', dash: [3, 3], width: 1.2 }, 0);
+    put({ name: '', x: times, y: col.map((v, i) => Math.max(0, v - sd[i])), mode: 'line', dash: [3, 3], width: 1.2 }, 0);
+    { let p = slots.length; while (p % 8) p++; slots[p] = { name: '', x: times, y: col, mode: 'line', width: 2.2 }; } // the mean again, on top of the runs
+    const series = Array.from(slots, (s) => s ?? { name: '', x: [], y: [] });
+    const fig = chartFigure({ w: 380, h: 300, xLabel: 'Time', yLabel: `Molecules of ${sp}`, yMin: 0, legend: 'below', series }, `${sp} over time: ${runs} runs, mean and spread${ode ? ' with the ODE' : ''}`);
+    // Histogram of the final counts against a Poisson distribution with the same mean.
+    const lo = sorted[0], hi = sorted[runs - 1], span = hi - lo + 1, w = Math.max(1, Math.ceil(span / 40));
+    const bx: number[] = [], by: number[] = [], px: number[] = [], py: number[] = [];
+    for (let b = lo; b <= hi; b += w) { const c = fin.filter((v) => v >= b && v < b + w).length; bx.push(b + (w - 1) / 2); by.push(c / runs / w); }
+    for (let n = Math.max(0, Math.floor(mo.mean - 5 * Math.sqrt(mo.mean + 1) - 2)); n <= Math.ceil(mo.mean + 5 * Math.sqrt(mo.mean + 1) + 2); n++) { px.push(n); py.push(poisson(n, mo.mean)); }
+    const hist = chartFigure({ w: 380, h: 260, xLabel: `${sp} at t = ${g(end)}`, yLabel: 'Share of runs', yMin: 0, legend: 'below', series: [
+      { name: 'Runs', x: bx, y: by, mode: 'both', marker: 'square', size: 3 },
+      { name: 'Poisson, same mean', x: px, y: py, mode: 'line', dash: [5, 3] },
+    ] }, `Distribution of ${sp} at the end of ${runs} runs with a Poisson distribution of the same mean`);
+    paint(q<HTMLCanvasElement>('.gs-fig'), fig); paint(q<HTMLCanvasElement>('.gs-hist'), hist);
+    figs = [fig, hist];
+    sumCsv = [['t', ...m.species.flatMap((s) => [`mean_${s}`, `sd_${s}`, `p5_${s}`, `p95_${s}`, ...(ode ? [`ode_${s}`] : [])])], ...times.map((t, k) => [String(t), ...m.species.flatMap((_, c) => [String(E.mean[k][c]), String(E.sd[k][c]), String(E.lo[k][c]), String(E.hi[k][c]), ...(ode ? [String(ode[k][c])] : [])])])];
+    finCsv = [['run', ...m.species], ...E.final.map((r, k) => [String(k + 1), ...r.map(String)])];
+    sections = [
+      { title: q('.gs-big').textContent!, text: ['Reactions: ' + m.reactions.map((r) => r.text).join('; '), `Gillespie direct method, ${runs} runs, seed ${seed}.`], facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig },
+      { title: 'Counts at the end', figure: hist },
+    ];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 400); };
+  for (const c of ['.gs-model', '.gs-end', '.gs-runs', '.gs-tr', '.gs-seed']) q(c).addEventListener('input', later);
+  for (const c of ['.gs-sp', '.gs-ode']) q(c).addEventListener('change', calc);
+  q('.gs-ex').addEventListener('change', () => { const v = q<HTMLSelectElement>('.gs-ex').value; q<HTMLTextAreaElement>('.gs-model').value = EX[v]; q<HTMLInputElement>('.gs-end').value = END[v]; spKey = ''; q<HTMLSelectElement>('.gs-sp').value = ''; calc(); });
+  q('.gs-csv').addEventListener('click', () => { if (sumCsv.length) save(new TextEncoder().encode(toCsv(sumCsv)), 'gillespie-summary.csv', 'text/csv'); });
+  q('.gs-fcsv').addEventListener('click', () => { if (finCsv.length) save(new TextEncoder().encode(toCsv(finCsv)), 'gillespie-final-counts.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (figs.length) { paint(q<HTMLCanvasElement>('.gs-fig'), figs[0]); paint(q<HTMLCanvasElement>('.gs-hist'), figs[1]); } });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Gillespie stochastic simulation', subtitle: q('.gs-big').textContent ?? '', file: 'gillespie', sections }));
+</script>
+
+<style is:global>
+  .gsp select { max-width: 100%; }
+  .gsp h3 { margin: 16px 0 6px; font-size: 1rem; }
+  .gsp code { font-size: 0.9em; }
+</style>

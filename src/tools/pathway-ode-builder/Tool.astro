@@ -1,0 +1,221 @@
+---
+// Pathway ODE builder: reactions in a small text language become ODEs (mass action, reversible, Michaelis-Menten,
+// Hill), simulated with an adaptive Dormand-Prince integrator, and rate constants fitted to pasted time courses.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const model = `# A made-up three-step pathway
+S -> I : MM(Vmax1, Km1)
+I -> P : k2
+P -> : k3
+Vmax1 = 1
+Km1 = 2
+k2 = 0.5
+k3 = 0.1
+S = 10`;
+const data = `t	I	P
+1	0.883	0.17
+2	1.21	0.566
+4	1.919	1.663
+6	1.991	2.743
+8	1.931	3.61
+12	1.347	4.679
+16	0.493	4.458
+20	0.139	3.281
+25	0.021	2.183
+30	0.003	1.279`;
+---
+<div class="ax pob">
+  <div class="ax-card">
+    <h2>Model</h2>
+    <label>Reactions and values, one per line <textarea class="po-model" rows="10" spellcheck="false" wrap="off">{model}</textarea></label>
+    <p class="ax-help">Write reactions as <code>A + B -> C : k1</code> (mass action), <code>A &lt;-> B : kf, kr</code> (reversible), <code>S -> P : MM(Vmax, Km)</code> (Michaelis–Menten), <code>X -> Y : Hill(Vmax, K, n)</code>, <code>-> A : k0</code> (made from nothing) or <code>A -> : kd</code> (removed). A number in front of a species is its stoichiometry (<code>2 B -> C</code>). Then give every rate constant and any starting amount (<code>S = 10</code>); species not given start at 0. Text after # is a comment.</p>
+    <div class="ax-grid">
+      <label>Simulate until time <input class="po-end" inputmode="decimal" value="30" /></label>
+    </div>
+    <p class="ax-err po-err" hidden></p>
+  </div>
+
+  <div class="ax-card po-out">
+    <h2>Simulation</h2>
+    <p class="ax-big po-big"></p>
+    <ol class="po-eq"></ol>
+    <dl class="ax-facts po-facts"></dl>
+    <canvas class="ax-fig po-sim" style="margin-top:12px"></canvas>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small po-csv">Time course (CSV)</button>
+    </div>
+    <p class="ax-help">Solved with the Dormand–Prince 5(4) method (the one behind SciPy's RK45) with adaptive steps, relative tolerance 10⁻⁸. Use the same time unit everywhere: a rate constant of 0.5 per minute means time in minutes.</p>
+  </div>
+
+  <div class="ax-card po-fitcard">
+    <h2>Fit to data</h2>
+    <label>Measured time courses: first column time, then one column per species (names as in the model) <textarea class="po-data" rows="8" spellcheck="false" wrap="off">{data}</textarea></label>
+    <DataFile target=".po-data" maxMB={5} maxCols={50} maxRows={5000} />
+    <fieldset class="po-pick"><legend>Parameters to fit (the model values are the starting guesses)</legend><div class="po-boxes"></div></fieldset>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn po-fit">Fit</button></div>
+    <p class="ax-help">The fit finds the values that make the simulated curves pass closest to your points (least squares, Levenberg–Marquardt; parameters stay above 0). Leave cells empty or NA where a species was not measured. The example data are made up.</p>
+    <p class="ax-err po-ferr" hidden></p>
+    <div class="po-fout" hidden>
+      <p class="ax-big po-fbig"></p>
+      <div class="ax-scroll"><table class="po-ftab"></table></div>
+      <dl class="ax-facts po-ffacts"></dl>
+      <canvas class="ax-fig po-fig" style="margin-top:12px"></canvas>
+      <div class="ax-row" style="margin-top:10px">
+        <button type="button" class="btn secondary small po-use">Put the fitted values into the model</button>
+        <button type="button" class="btn secondary small po-fcsv">Fit (CSV)</button>
+      </div>
+      <p class="ax-help">Standard errors come from the curvature of the sum of squares at the best fit, as in SciPy's curve_fit; large ones mean the data cannot pin that value down (try fitting fewer parameters). Lines are the fitted model, dots your data.</p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <p class="ax-help">A model is only as good as its rate laws and numbers; check fits against new data before relying on them. For study and planning, not a substitute for professional judgement.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseModel, simulate, fitModel, odeText, type Model } from '../../lib/sci/sbode';
+  import { parseTable, num, sig, csv as toCsv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pob')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const g = (x: number) => String(+x.toPrecision(4));
+  let model: Model | null = null, simFig: Figure | null = null, fitFig: Figure | null = null, simCsv: string[][] = [], fitCsv: string[][] = [];
+  let simSection: Section | null = null, fitSection: Section | null = null, fitted: Record<string, number> = {}, boxKey = '';
+
+  function table(sel: string, head: string[], rows: string[][], right: number[]) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.className = 'r'; }); });
+  }
+
+  function clearFit() { q('.po-fout').hidden = true; q('.po-ferr').hidden = true; fitFig = null; fitSection = null; fitCsv = []; fitted = {}; }
+
+  function boxes(m: Model) {
+    const key = m.paramNames.join('\u0001');
+    if (key === boxKey) return;
+    const was = new Set([...root.querySelectorAll<HTMLInputElement>('.po-boxes input:checked')].map((i) => i.value));
+    const first = !boxKey; boxKey = key;
+    q('.po-boxes').replaceChildren(...m.paramNames.map((p) => {
+      const l = document.createElement('label'); l.className = 'ax-check';
+      const i = document.createElement('input'); i.type = 'checkbox'; i.value = p; i.checked = first ? p === 'Vmax1' || p === 'k2' : was.has(p);
+      l.append(i, ' ' + p); return l;
+    }));
+  }
+
+  function calc() {
+    const err = q('.po-err'), out = q('.po-out');
+    const fail = (msg: string) => { err.textContent = msg; err.hidden = false; out.hidden = true; q('.po-fitcard').hidden = true; model = null; simFig = null; simSection = null; simCsv = []; clearFit(); };
+    let m: Model;
+    try { m = parseModel(q<HTMLTextAreaElement>('.po-model').value); } catch (e) { return fail((e as Error).message); }
+    const end = num(q<HTMLInputElement>('.po-end').value);
+    if (!(end > 0 && end < 1e9)) return fail('Give a simulation end time above 0, such as 30.');
+    const N = 300, times = Array.from({ length: N + 1 }, (_, i) => (end * i) / N);
+    let Y: number[][];
+    try { Y = simulate(m, m.params, times); } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; out.hidden = false; q('.po-fitcard').hidden = false; model = m;
+    boxes(m); clearFit();
+    const eqs = odeText(m);
+    q('.po-eq').replaceChildren(...eqs.map((s) => { const li = document.createElement('li'); li.textContent = s; return li; }));
+    q('.po-big').textContent = `${m.species.length} species, ${m.reactions.length} reaction${m.reactions.length > 1 ? 's' : ''}, ${m.paramNames.length} parameter${m.paramNames.length === 1 ? '' : 's'}`;
+    const facts = m.species.map((s, j) => {
+      let k = 0; Y.forEach((y, i) => { if (y[j] > Y[k][j]) k = i; });
+      const last = Y[N][j], peakInside = k > 0 && k < N;
+      return fact(s, `${g(Y[0][j])} → ${g(last)}`, peakInside ? `peaks at ${g(Y[k][j])} near t = ${g(times[k])}` : `at t = ${g(end)}`);
+    });
+    q('.po-facts').replaceChildren(...facts);
+    simFig = chartFigure({ w: 380, h: 320, xLabel: 'Time', yLabel: 'Amount', legend: m.species.length > 1 ? 'auto' : 'none', yMin: 0, series: m.species.map((s, j) => ({ name: s, x: times, y: Y.map((y) => y[j]), mode: 'line' as const })) }, `Time course of ${m.species.join(', ')} to t = ${g(end)}`);
+    paint(q<HTMLCanvasElement>('.po-sim'), simFig);
+    simCsv = [['t', ...m.species], ...times.map((t, i) => [String(t), ...Y[i].map(String)])];
+    simSection = { title: q('.po-big').textContent!, text: ['Reactions: ' + m.reactions.map((r) => r.text).join('; '), 'Equations: ' + eqs.join('; ')], facts: facts.map((d) => [d.querySelector('dt')!.textContent!, `${d.querySelector('dd')!.childNodes[0].textContent!} (${d.querySelector('small')!.textContent})`] as [string, string]), figure: simFig };
+  }
+
+  function runFit() {
+    const ferr = q('.po-ferr');
+    clearFit();
+    const fail = (msg: string) => { ferr.textContent = msg; ferr.hidden = false; };
+    const m = model; if (!m) return;
+    const rows = parseTable(q<HTMLTextAreaElement>('.po-data').value).filter((r) => r.some((c) => c.trim() !== ''));
+    if (rows.length < 2) return fail('Paste the data with a header row (time, then species names) and at least one row of numbers.');
+    const head = rows[0].map((s) => s.trim()), cols = head.slice(1);
+    if (!cols.length) return fail('Add at least one species column after the time column.');
+    for (const c of cols) if (!m.species.includes(c)) return fail(`"${c}" in the header is not a species of the model (${m.species.join(', ')}).`);
+    const t: number[] = [], ys: number[][] = cols.map(() => []);
+    for (const r of rows.slice(1)) {
+      const tv = num(r[0]);
+      if (!(tv >= 0)) return fail(`"${r[0] ?? ''}" is not a time of 0 or more.`);
+      t.push(tv);
+      for (let j = 0; j < cols.length; j++) {
+        const s = (r[j + 1] ?? '').trim();
+        if (s === '' || /^(na|nan|n\/a|-)$/i.test(s)) { ys[j].push(NaN); continue; }
+        const v = num(s); if (!Number.isFinite(v)) return fail(`"${s}" in the ${cols[j]} column is not a number.`);
+        ys[j].push(v);
+      }
+    }
+    if (new Set(t).size !== t.length) return fail('Each time may appear only once; put repeats in the same row or average them.');
+    const names = [...root.querySelectorAll<HTMLInputElement>('.po-boxes input:checked')].map((i) => i.value);
+    if (!names.length) return fail('Tick at least one parameter to fit.');
+    for (const n of names) if (!(m.params[n] > 0)) return fail(`Give ${n} a starting value above 0 to fit it.`);
+    const nObs = ys.reduce((s, c) => s + c.filter(Number.isFinite).length, 0);
+    if (nObs <= names.length) return fail(`There are ${nObs} data points for ${names.length} parameters; you need more points than parameters.`);
+    let f: ReturnType<typeof fitModel>;
+    try { f = fitModel(m, { t, cols: cols.map((c, j) => ({ species: c, y: ys[j] })) }, names); } catch (e) { return fail((e as Error).message); }
+    fitted = Object.fromEntries(names.map((n, i) => [n, f.values[i]]));
+    q('.po-fbig').textContent = names.map((n, i) => `${n} = ${g(f.values[i])}`).join(', ');
+    const head2 = ['Parameter', 'Start', 'Fitted', 'Std error'];
+    const trows = names.map((n, i) => [n, g(m.params[n]), g(f.values[i]), Number.isFinite(f.se[i]) ? g(f.se[i]) : '–']);
+    table('.po-ftab', head2, trows, [1, 2, 3]);
+    const ff = [
+      fact('Sum of squares', sig(f.sse, 4), `${f.n} data points, ${names.length} fitted`),
+      fact('R²', f.r2.toFixed(4), 'share of the spread in the data the model explains'),
+      fact('Iterations', String(f.iterations), f.converged ? 'converged' : 'stopped before converging; try other starting values'),
+    ];
+    q('.po-ffacts').replaceChildren(...ff);
+    const tEnd = Math.max(...t), N = 200, times = Array.from({ length: N + 1 }, (_, i) => (tEnd * i) / N), Y = simulate(m, f.params, times);
+    const lines = cols.map((c) => ({ name: c, x: times, y: Y.map((y) => y[m.species.indexOf(c)]), mode: 'line' as const }));
+    const pad = Array.from({ length: Math.max(0, 8 - lines.length) }, () => ({ name: '', x: [] as number[], y: [] as number[] }));
+    const pts = cols.map((_, j) => ({ name: '', x: t, y: ys[j], mode: 'points' as const, size: 3.5 }));
+    fitFig = chartFigure({ w: 380, h: 320, xLabel: 'Time', yLabel: 'Amount', yMin: 0, legend: cols.length > 1 ? 'auto' : 'none', series: [...lines, ...pad, ...pts] }, `Fitted model (lines) and data (dots) for ${cols.join(', ')}`);
+    paint(q<HTMLCanvasElement>('.po-fig'), fitFig);
+    q('.po-fout').hidden = false;
+    fitCsv = [['parameter', 'start', 'fitted', 'std_error'], ...names.map((n, i) => [n, String(m.params[n]), String(f.values[i]), String(f.se[i])]), [], ['sse', String(f.sse)], ['r2', String(f.r2)], ['n', String(f.n)]];
+    fitSection = { title: 'Fit: ' + q('.po-fbig').textContent, text: [`Least squares (Levenberg–Marquardt) on ${f.n} points of ${cols.join(', ')}.`], facts: ff.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fitFig, table: { head: head2, rows: trows, align: ['l', 'r', 'r', 'r'] } };
+  }
+
+  function useFitted() {
+    const ta = q<HTMLTextAreaElement>('.po-model');
+    let text = ta.value;
+    for (const [n, v] of Object.entries(fitted)) {
+      const re = new RegExp(`^([ \\t]*${n}[ \\t]*=)[^\\n#]*`, 'm');
+      text = re.test(text) ? text.replace(re, `$1 ${+v.toPrecision(6)}`) : `${text}\n${n} = ${+v.toPrecision(6)}`;
+    }
+    ta.value = text; calc();
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 300); };
+  // Only typing re-runs the model: a change event on leaving the box must not wipe a fit just made.
+  for (const c of ['.po-model', '.po-end']) q(c).addEventListener('input', later);
+  q('.po-data').addEventListener('input', clearFit);
+  q('.po-boxes').addEventListener('change', clearFit);
+  q('.po-fit').addEventListener('click', runFit);
+  q('.po-use').addEventListener('click', useFitted);
+  q('.po-csv').addEventListener('click', () => { if (simCsv.length) save(new TextEncoder().encode(toCsv(simCsv)), 'pathway-simulation.csv', 'text/csv'); });
+  q('.po-fcsv').addEventListener('click', () => { if (fitCsv.length) save(new TextEncoder().encode(toCsv(fitCsv)), 'pathway-fit.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (simFig) paint(q<HTMLCanvasElement>('.po-sim'), simFig); if (fitFig) paint(q<HTMLCanvasElement>('.po-fig'), fitFig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Pathway ODE model', subtitle: q('.po-big').textContent ?? '', file: 'pathway-model', sections: [simSection, fitSection].filter(Boolean) as Section[] }));
+</script>
+
+<style is:global>
+  .pob .po-eq { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.88rem; padding-left: 1.4em; overflow-wrap: anywhere; }
+  .pob .po-eq li { margin: 2px 0; }
+  .pob fieldset { border: 1px solid var(--line, #ccc); border-radius: 8px; margin: 10px 0 0; padding: 6px 10px 8px; }
+  .pob .po-boxes { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+  .pob code { font-size: 0.9em; }
+</style>

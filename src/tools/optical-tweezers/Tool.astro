@@ -1,0 +1,173 @@
+---
+// Optical tweezers calibration: trap stiffness from the power spectrum of a trapped bead's position (Lorentzian
+// or aliased Lorentzian fit) and from equipartition. Data stays in the browser; the example record is simulated.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax otc">
+  <div class="ax-card">
+    <h2>Bead position record</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small ot-ex">Use the example</button>
+    </div>
+    <label style="margin-top:8px">Positions, one per line (or columns: time, then one or more position columns) <textarea class="ot-in" rows="6" spellcheck="false"></textarea></label>
+    <DataFile target=".ot-in" maxMB={20} maxCols={8} maxRows={1100000} />
+    <p class="ax-help ot-parse"></p>
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Position column <select class="ot-col"></select></label>
+      <label>Units of the positions <select class="ot-u"><option value="nm" selected>nm</option><option value="um">µm</option><option value="V">volts (uncalibrated detector)</option></select></label>
+      <label>Sample rate (Hz) <input class="ot-fs" type="text" inputmode="decimal" value="10000" /></label>
+    </div>
+    <h3>Bead and liquid</h3>
+    <div class="ax-grid">
+      <label>Bead diameter (µm) <input class="ot-d" type="text" inputmode="decimal" value="1" /></label>
+      <label>Temperature (°C) <input class="ot-t" type="text" inputmode="decimal" value="25" /></label>
+      <label>Viscosity (mPa·s) <input class="ot-eta" type="text" inputmode="decimal" value="0.89" /></label>
+      <label>Height of the bead centre above the surface (µm, blank if far) <input class="ot-h" type="text" inputmode="decimal" value="" /></label>
+    </div>
+    <h3>Spectrum and fit</h3>
+    <div class="ax-grid">
+      <label>Segment length <select class="ot-L"><option>256</option><option>512</option><option selected>1024</option><option>2048</option><option>4096</option><option>8192</option></select></label>
+      <label>Average neighbouring bins <select class="ot-b"><option>1</option><option>2</option><option selected>4</option><option>8</option></select></label>
+      <label>Fit from (Hz) <input class="ot-f1" type="text" inputmode="decimal" value="10" /></label>
+      <label>Fit to (Hz) <input class="ot-f2" type="text" inputmode="decimal" value="4000" /></label>
+      <label>Model <select class="ot-m"><option value="aliased" selected>Lorentzian with sampling (aliasing) correction</option><option value="plain">Plain Lorentzian</option></select></label>
+    </div>
+    <p class="ax-help">The record is cut into segments; their spectra are averaged, then neighbouring frequency bins are averaged too, so each point is an average of segments × bins spectra. Water is about 0.89 mPa·s at 25 °C (rounded). The height adds Faxén's correction for the extra drag near a glass surface. The example is a simulated 1 µm bead in a 0.02 pN/nm trap, sampled at 10 kHz.</p>
+    <p class="ax-err ot-err" hidden></p>
+  </div>
+
+  <div class="ax-card ot-out">
+    <h2>Trap calibration</h2>
+    <p class="ax-big ot-big"></p>
+    <dl class="ax-facts ot-facts"></dl>
+    <canvas class="ax-fig ot-fig1"></canvas>
+    <canvas class="ax-fig ot-fig2"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ot-csv">Download the spectrum and fit (CSV)</button></div>
+    <p class="ax-help">Assumes a harmonic trap, a sphere far smaller than the chamber, and white thermal noise; low-frequency drift and detector filtering show up as departures from the fitted curve. Check the fit range covers the corner frequency and stays below the detector's own roll-off.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { drag, psd, block, fitPsd, lorentz, lorentzAliased, equipartition, simulateBead, KB } from '../../lib/sci/phtweezers';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv, numericColumns } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.otc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let figs: Figure[] = [], report: Section[] = [], specRows: (string | number)[][] = [];
+  let data: { headers: string[]; cols: number[][]; time: number } | null = null; // time: index of a time column or −1
+
+  function parse() {
+    const t = q<HTMLTextAreaElement>('.ot-in').value, c = numericColumns(t), sel = q<HTMLSelectElement>('.ot-col');
+    data = null; sel.replaceChildren();
+    if (!c.rows) { q('.ot-parse').textContent = ''; return; }
+    let time = -1;
+    if (c.cols.length > 1) {
+      const t0 = c.cols[0], st = t0[1] - t0[0];
+      const even = st > 0 && t0.every((v, i) => i === 0 || Math.abs(v - t0[i - 1] - st) <= Math.abs(st) * 1e-3);
+      if (even || /^(t|time)\b/i.test(c.headers[0])) time = 0;
+    }
+    c.cols.forEach((_, i) => { if (i !== time) sel.add(new Option(c.headers[i], String(i))); });
+    data = { headers: c.headers, cols: c.cols, time };
+    if (time === 0) { const t0 = c.cols[0], dt = (t0[t0.length - 1] - t0[0]) / (t0.length - 1); if (dt > 0) q<HTMLInputElement>('.ot-fs').value = String(+(1 / dt).toPrecision(6)); }
+    q('.ot-parse').textContent = `${c.rows.toLocaleString('en')} samples${time === 0 ? `; the first column looks like time in seconds, so the sample rate was set from it` : ''}.`;
+  }
+
+  function calc() {
+    const err = q('.ot-err'), out = q('.ot-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    if (!data) return fail('Paste or open a position record, or use the example.');
+    const col = +q<HTMLSelectElement>('.ot-col').value, raw = data.cols[col];
+    if (!raw || raw.some((v) => !Number.isFinite(v))) return fail(`Row ${raw ? raw.findIndex((v) => !Number.isFinite(v)) + 1 : 1} of that column is not a number.`);
+    const fs = val('.ot-fs'), d = val('.ot-d'), Tc = val('.ot-t'), eta = val('.ot-eta'), hTxt = q<HTMLInputElement>('.ot-h').value.trim(), h = hTxt ? num(hTxt) : 0;
+    const L = +q<HTMLSelectElement>('.ot-L').value, nb = +q<HTMLSelectElement>('.ot-b').value, f1 = val('.ot-f1'), f2 = val('.ot-f2'), aliased = q<HTMLSelectElement>('.ot-m').value === 'aliased', u = q<HTMLSelectElement>('.ot-u').value;
+    if (!(fs > 0)) return fail('Give the sample rate in Hz.');
+    if (!(d > 0)) return fail('Give the bead diameter in µm.');
+    if (!(Tc > -273.15)) return fail('Give the temperature in °C.');
+    if (!(eta > 0)) return fail('Give the viscosity in mPa·s (water is about 0.89 at 25 °C).');
+    if (hTxt && !(h > d / 2)) return fail('The height of the bead centre must be more than its radius.');
+    if (raw.length < 2 * L) return fail(`The record has ${raw.length} samples; it needs at least two segments of ${L}. Choose a shorter segment.`);
+    if (!(f1 >= 0 && f2 > f1)) return fail('Give a fit range with "to" above "from".');
+    if (f2 > fs / 2) return fail(`The fit cannot go above half the sample rate (${sig(fs / 2, 4)} Hz).`);
+    const T = Tc + 273.15, r = (d / 2) * 1e-6, g = drag(eta * 1e-3, r, h ? h * 1e-6 : undefined);
+    const scale = u === 'um' ? 1000 : 1, x = scale === 1 ? raw : raw.map((v) => v * scale); // nm, or volts
+    const s = psd(x, fs, L), b = block(s.f, s.P, nb), nAvg = s.segments * nb;
+    let fit;
+    try { fit = fitPsd(b.f, b.P, { fmin: f1, fmax: f2, aliased, fs, nAvg }); } catch (e) { return fail(`${(e as Error).message}. Widen the fit range or use shorter segments.`); }
+    if (!(fit.fc > 0 && fit.D > 0)) return fail('The fit did not find a corner frequency. Check the units and the fit range.');
+    err.hidden = true; out.hidden = false;
+    const k = 2 * Math.PI * g * fit.fc, sek = 2 * Math.PI * g * fit.seFc, Dth = ((KB * T) / g) * 1e18; // nm²/s
+    const volts = u === 'V', pn = (v: number) => v * 1000; // N/m to pN/nm
+    q('.ot-big').textContent = `Trap stiffness ${sig(pn(k), 3)} ± ${sig(pn(sek), 2)} pN/nm (corner frequency ${sig(fit.fc, 4)} Hz)`;
+    const facts = [
+      fact('Corner frequency fc', `${sig(fit.fc, 4)} ± ${sig(fit.seFc, 2)} Hz`, aliased ? 'with the sampling (aliasing) correction' : 'plain Lorentzian'),
+      fact('Stiffness from the spectrum', `${sig(pn(k), 4)} pN/nm`, `k = 2π γ fc, ± ${sig(pn(sek), 2)}`),
+      fact('Drag coefficient γ', `${sig(g, 4)} N·s/m`, h ? "Stokes with Faxén's surface correction" : 'Stokes, 6πηr'),
+    ];
+    let eqK = NaN;
+    if (volts) {
+      const beta = Math.sqrt(Dth / fit.D), seBeta = (beta * fit.seD) / (2 * fit.D), e = equipartition(raw, T);
+      eqK = (KB * T) / (e.variance * beta * beta * 1e-18);
+      facts.push(fact('Detector sensitivity β', `${sig(beta, 4)} ± ${sig(seBeta, 2)} nm/V`, `√(D expected ÷ D fitted); D fitted ${sig(fit.D, 4)} V²/s`));
+      facts.push(fact('Stiffness by equipartition', `${sig(pn(eqK), 4)} pN/nm`, `kT / (β² × variance), variance ${sig(e.variance, 4)} V²`));
+    } else {
+      const e = equipartition(x.map((v) => v * 1e-9), T); eqK = e.k;
+      facts.push(fact('Diffusion D fitted', `${sig(fit.D / 1e6, 4)} µm²/s`, `expected kT/γ = ${sig(Dth / 1e6, 4)} µm²/s (ratio ${(fit.D / Dth).toFixed(3)}; near 1 if the positions are calibrated)`));
+      facts.push(fact('Stiffness by equipartition', `${sig(pn(eqK), 4)} pN/nm`, `kT / ⟨x²⟩, ⟨x²⟩ = ${sig(e.variance * 1e18, 4)} nm², rms ${sig(Math.sqrt(e.variance) * 1e9, 3)} nm`));
+    }
+    facts.push(fact('Agreement', `${sig((100 * (eqK - k)) / k, 3)} %`, 'equipartition minus spectrum, as a share of the spectrum value'));
+    facts.push(fact('Fit quality χ²/dof', `${sig(fit.chi2 / fit.dof, 3)}`, `${fit.used} points, each an average of ${nAvg} spectra; about 1 is a good fit`));
+    facts.push(fact('Record', `${raw.length.toLocaleString('en')} samples, ${sig(raw.length / fs, 3)} s`, `${s.segments} segments of ${L}, resolution ${sig(fs / L, 3)} Hz`));
+    q('.ot-facts').replaceChildren(...facts);
+    const model = (f: number) => (aliased ? lorentzAliased(f, fit.fc, fit.D, fs) : lorentz(f, fit.fc, fit.D));
+    const inR = b.f.map((f) => f >= f1 && f <= f2), pu = volts ? 'V²/Hz' : 'nm²/Hz';
+    const c1 = chartFigure({ w: 380, h: 250, xLabel: 'Frequency (Hz)', yLabel: `Power spectral density (${pu})`, xLog: true, yLog: true, legend: 'below', series: [
+      { name: 'Measured (in the fit)', x: b.f.filter((_, i) => inR[i]), y: b.P.filter((_, i) => inR[i]), mode: 'points', marker: 'circle', size: 2.5 },
+      { name: 'Measured (left out)', x: b.f.filter((_, i) => !inR[i]), y: b.P.filter((_, i) => !inR[i]), mode: 'points', marker: 'open-circle', size: 2.5 },
+      { name: aliased ? 'Fit (Lorentzian with aliasing)' : 'Fit (Lorentzian)', x: b.f, y: b.f.map(model), mode: 'line', width: 2 },
+    ], marks: [{ kind: 'vline', at: fit.fc, dash: [3, 3], label: 'fc' }] }, `Power spectrum of the bead position with the fitted curve, corner frequency ${sig(fit.fc, 4)} Hz`);
+    // Histogram of positions with the Boltzmann (Gaussian) curve.
+    let m = 0; for (const v of x) m += v; m /= x.length;
+    let vv = 0; for (const v of x) vv += (v - m) ** 2; vv /= x.length - 1;
+    const sd = Math.sqrt(vv), nbins = 41, lo = m - 4 * sd, w = (8 * sd) / nbins, hist = new Array(nbins).fill(0);
+    for (const v of x) { const i = Math.floor((v - lo) / w); if (i >= 0 && i < nbins) hist[i]++; }
+    const cx = hist.map((_, i) => lo + (i + 0.5) * w), dens = hist.map((c) => c / (x.length * w));
+    const gx = Array.from({ length: 121 }, (_, i) => lo + (i * 8 * sd) / 120);
+    const c2 = chartFigure({ w: 380, h: 220, xLabel: `Position (${volts ? 'V' : 'nm'})`, yLabel: 'Probability density', legend: 'below', yMin: 0, series: [
+      { name: 'Measured', x: cx, y: dens, mode: 'points', marker: 'square', size: 2.5 },
+      { name: 'Gaussian with the same variance', x: gx, y: gx.map((v) => Math.exp(-((v - m) ** 2) / (2 * vv)) / Math.sqrt(2 * Math.PI * vv)), mode: 'line', width: 2 },
+    ] }, 'Histogram of positions with the Gaussian expected in a harmonic trap');
+    paint(q<HTMLCanvasElement>('.ot-fig1'), c1); paint(q<HTMLCanvasElement>('.ot-fig2'), c2);
+    figs = [c1, c2];
+    specRows = [['frequency_Hz', `psd_${volts ? 'V2' : 'nm2'}_per_Hz`, 'fit', 'in_fit'], ...b.f.map((f, i) => [+f.toPrecision(8), +b.P[i].toPrecision(6), +model(f).toPrecision(6), inR[i] ? 1 : 0])];
+    const rows = facts.map((dd) => [dd.querySelector('dt')!.textContent!, dd.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    report = [{ title: q('.ot-big').textContent!, text: [`Bead ${sig(d, 3)} µm, ${sig(Tc, 3)} °C, η ${sig(eta, 3)} mPa·s${h ? `, ${sig(h, 3)} µm above the surface` : ''}; fs ${sig(fs, 5)} Hz; fit ${sig(f1, 4)} to ${sig(f2, 4)} Hz.`], facts: rows, figure: c1 }, { title: 'Position histogram', figure: c2 }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(() => { parse(); calc(); }, 250); };
+  q('.ot-in').addEventListener('input', later);
+  root.querySelectorAll('input:not(.dfb-in), select').forEach((i) => { i.addEventListener('change', calc); if (i.tagName === 'INPUT') i.addEventListener('input', calc); });
+  const example = () => {
+    const g = drag(0.89e-3, 0.5e-6), xs = simulateBead(2e-5, g, 298.15, 10000, 32768);
+    q<HTMLTextAreaElement>('.ot-in').value = 'x_nm\n' + xs.map((v) => v.toFixed(3)).join('\n');
+    Object.entries({ '.ot-fs': '10000', '.ot-d': '1', '.ot-t': '25', '.ot-eta': '0.89', '.ot-h': '', '.ot-f1': '10', '.ot-f2': '4000' }).forEach(([c, v]) => { q<HTMLInputElement>(c).value = v; });
+    q<HTMLSelectElement>('.ot-u').value = 'nm'; q<HTMLSelectElement>('.ot-L').value = '1024'; q<HTMLSelectElement>('.ot-b').value = '4'; q<HTMLSelectElement>('.ot-m').value = 'aliased';
+    parse(); calc();
+  };
+  q('.ot-ex').addEventListener('click', example);
+  q('.ot-csv').addEventListener('click', () => save(new Blob([csv(specRows)], { type: 'text/csv' }), 'tweezers-spectrum.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.ot-out').hidden) { paint(q<HTMLCanvasElement>('.ot-fig1'), figs[0]); paint(q<HTMLCanvasElement>('.ot-fig2'), figs[1]); } });
+  example();
+  wireDownloads(q('.dl'), () => ({ title: 'Optical tweezers calibration', subtitle: q('.ot-big').textContent ?? '', file: 'tweezers-calibration', sections: report }));
+</script>
+
+<style is:global>
+  .otc h3 { margin: 18px 0 8px; font-size: 15px; }
+</style>

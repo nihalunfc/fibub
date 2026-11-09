@@ -1,0 +1,129 @@
+---
+// Dimensionless numbers of flow and heat transfer with regime notes. Fluid properties are rounded and editable.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax dnc">
+  <div class="ax-card">
+    <h2>Flow</h2>
+    <div class="ax-grid">
+      <label>Fluid <select class="dn-fl"></select></label>
+      <label>Shape <select class="dn-geo"><option value="pipe" selected>Flow in a pipe</option><option value="plate">Along a flat plate</option><option value="cylinder">Across a cylinder</option><option value="sphere">Past a sphere or drop</option><option value="channel">Open channel</option><option value="other">Anything else</option></select></label>
+      <label>Speed U <input class="dn-u" type="text" inputmode="decimal" value="1" /></label>
+      <label>Speed unit <select class="dn-uu"><option value="1" selected>m/s</option><option value="0.277777778">km/h</option><option value="0.514444444">knots</option><option value="0.3048">ft/s</option></select></label>
+      <label><span class="dn-ll">Pipe inside diameter</span> L <input class="dn-l" type="text" inputmode="decimal" value="5" /></label>
+      <label>Length unit <select class="dn-lu"><option value="1">m</option><option value="0.01" selected>cm</option><option value="0.001">mm</option><option value="1e-6">µm</option><option value="0.3048">ft</option></select></label>
+      <label>Temperature difference ΔT (K, optional) <input class="dn-dt" type="text" inputmode="decimal" value="10" /></label>
+      <label>Frequency f (Hz, optional) <input class="dn-f" type="text" inputmode="decimal" value="4" /></label>
+    </div>
+    <details class="dn-props" style="margin-top:10px"><summary>Fluid properties (rounded, editable)</summary>
+      <div class="ax-grid" style="margin-top:8px">
+        <label>Density ρ (kg/m³) <input class="dn-rho" type="text" inputmode="decimal" /></label>
+        <label>Viscosity μ (Pa·s) <input class="dn-mu" type="text" inputmode="decimal" /></label>
+        <label>Speed of sound c (m/s) <input class="dn-c" type="text" inputmode="decimal" /></label>
+        <label>Surface tension σ (N/m, blank for a gas) <input class="dn-sig" type="text" inputmode="decimal" /></label>
+        <label>Heat capacity cₚ (J/kg·K) <input class="dn-cp" type="text" inputmode="decimal" /></label>
+        <label>Thermal conductivity k (W/m·K) <input class="dn-k" type="text" inputmode="decimal" /></label>
+        <label>Expansion coefficient β (1/K) <input class="dn-b" type="text" inputmode="decimal" /></label>
+        <label>Molar mass (kg/mol, gases only) <input class="dn-m" type="text" inputmode="decimal" /></label>
+        <label class="dn-gas">Gas pressure (kPa) <input class="dn-p" type="text" inputmode="decimal" value="101.325" /></label>
+        <label class="dn-gas">Gas temperature (°C) <input class="dn-t" type="text" inputmode="decimal" value="20" /></label>
+      </div>
+    </details>
+    <p class="ax-help">L is the length that sets the flow: a pipe's inside diameter, the distance from a plate's leading edge, a cylinder's or sphere's diameter, or a channel's depth (in a wide channel the depth is close to the hydraulic radius used for Re). Properties are rounded values near 20 °C; edit them for other conditions. ΔT drives natural convection (Grashof, Rayleigh); f gives the Strouhal number.</p>
+    <p class="ax-err dn-err" hidden></p>
+  </div>
+
+  <div class="ax-card dn-out">
+    <h2>Numbers</h2>
+    <p class="ax-big dn-big"></p>
+    <dl class="ax-facts dn-tab"></dl>
+    <canvas class="ax-fig dn-fig"></canvas>
+    <p class="ax-help">Regime limits are rough textbook guides; real transitions depend on disturbances, roughness and geometry. For study and planning, not a substitute for professional judgement.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small dn-csv">Download the table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { dimensionless, FLUIDS, type Geometry, type Num } from '../../lib/sci/phdimless';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv, sup } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.dnc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => { const t = q<HTMLInputElement>(c).value.trim(); return t ? num(t) : NaN; };
+  const fl = q<HTMLSelectElement>('.dn-fl');
+  for (const f of FLUIDS) fl.append(new Option(f.name, f.id));
+  fl.append(new Option('My own fluid', 'own'));
+  const PROPS: [string, keyof (typeof FLUIDS)[0]][] = [['.dn-rho', 'rho'], ['.dn-mu', 'mu'], ['.dn-c', 'c'], ['.dn-sig', 'sigma'], ['.dn-cp', 'cp'], ['.dn-k', 'k'], ['.dn-b', 'beta'], ['.dn-m', 'M']];
+  const fill = () => { const f = FLUIDS.find((x) => x.id === fl.value); if (!f) return; for (const [c, k] of PROPS) { const v = f[k] as number | undefined; q<HTMLInputElement>(c).value = v === undefined || Number.isNaN(v) ? '' : String(+(+v).toPrecision(4)); } };
+  fill();
+  const LL: Record<Geometry, string> = { pipe: 'Pipe inside diameter', plate: 'Distance from the leading edge', cylinder: 'Cylinder diameter', sphere: 'Sphere diameter', channel: 'Water depth', other: 'Length scale' };
+  let nums: Num[] = [], fig: Figure | null = null, report: Section[] = [];
+  const show = (v: number) => (Math.abs(v) >= 1e5 || Math.abs(v) < 1e-3 ? sig(v, 3) : sig(v, 4));
+
+  function zones(geo: Geometry): [number, number, string][] {
+    switch (geo) {
+      case 'pipe': return [[1e-2, 2300, 'laminar'], [2300, 4000, 'trans.'], [4000, 1e9, 'turbulent']];
+      case 'plate': return [[1e-2, 5e5, 'laminar boundary layer'], [5e5, 1e9, 'turbulent']];
+      case 'cylinder': return [[1e-2, 1, 'creeping'], [1, 47, 'steady'], [47, 2e5, 'vortex street'], [2e5, 1e9, 'crisis+']];
+      case 'sphere': return [[1e-2, 1, 'Stokes'], [1, 1000, 'separating'], [1000, 3e5, 'Newton'], [3e5, 1e9, 'crisis+']];
+      case 'channel': return [[1e-2, 500, 'laminar'], [500, 2000, 'trans.'], [2000, 1e9, 'turbulent']];
+      default: return [[1e-2, 1, 'viscous'], [1, 1000, 'mixed'], [1000, 1e9, 'inertial']];
+    }
+  }
+  function strip(re: number, geo: Geometry): Figure {
+    const lo = -2, hi = 9, zs = zones(geo);
+    return { w: 380, h: 110, alt: `Reynolds number ${sig(re, 3)} on the regime scale for ${LL[geo].toLowerCase()}`, draw: (ctx, W, H, pal) => {
+      const L = 12, R = 12, X = (v: number) => L + ((Math.log10(Math.min(Math.max(v, 10 ** lo), 10 ** hi)) - lo) / (hi - lo)) * (W - L - R), y0 = 36, h = 26;
+      ctx.font = 'bold 12px Arial, Helvetica, sans-serif'; ctx.fillStyle = pal.ink; ctx.textBaseline = 'top'; ctx.textAlign = 'left'; ctx.fillText('Reynolds number and regime', L, 6);
+      const cols = [pal.day, pal.grid, pal.line, pal.grid];
+      zs.forEach(([a, b, name], i) => { const xa = X(a), xb = X(b); ctx.fillStyle = cols[i % cols.length]; ctx.fillRect(xa, y0, xb - xa, h); ctx.fillStyle = pal.ink; ctx.font = '10px Arial, Helvetica, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; if (xb - xa > ctx.measureText(name).width + 4) ctx.fillText(name, (xa + xb) / 2, y0 + h / 2); });
+      ctx.strokeStyle = pal.line; ctx.strokeRect(L, y0, W - L - R, h);
+      ctx.fillStyle = pal.muted; ctx.font = '10px Arial, Helvetica, sans-serif'; ctx.textBaseline = 'top';
+      for (let e = lo; e <= hi; e += 1) { const x = X(10 ** e); ctx.beginPath(); ctx.moveTo(x, y0 + h); ctx.lineTo(x, y0 + h + 4); ctx.strokeStyle = pal.muted; ctx.stroke(); if ((e - lo) % 2 === 0) { ctx.textAlign = 'center'; ctx.fillText(`10${sup(e)}`, x, y0 + h + 6); } }
+      const xr = X(re); ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.moveTo(xr, y0 - 2); ctx.lineTo(xr - 6, y0 - 12); ctx.lineTo(xr + 6, y0 - 12); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = pal.accent; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(xr, y0); ctx.lineTo(xr, y0 + h); ctx.stroke(); ctx.lineWidth = 1;
+      ctx.fillStyle = pal.accent; ctx.textAlign = xr > W - 80 ? 'right' : xr < 80 ? 'left' : 'center'; ctx.textBaseline = 'bottom'; ctx.font = 'bold 11px Arial, Helvetica, sans-serif'; ctx.fillText(`Re = ${sig(re, 3)}`, xr, y0 + h + 34);
+    } };
+  }
+
+  function calc() {
+    const geo = q<HTMLSelectElement>('.dn-geo').value as Geometry;
+    q('.dn-ll').textContent = LL[geo];
+    const M = val('.dn-m');
+    root.querySelectorAll<HTMLElement>('.dn-gas').forEach((e) => { e.hidden = !(M > 0); });
+    const err = q('.dn-err'), out = q('.dn-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; nums = []; };
+    const U = val('.dn-u') * +q<HTMLSelectElement>('.dn-uu').value, L = val('.dn-l') * +q<HTMLSelectElement>('.dn-lu').value;
+    const rho = val('.dn-rho'), mu = val('.dn-mu'), c = val('.dn-c'), sigma = val('.dn-sig'), cp = val('.dn-cp'), k = val('.dn-k'), beta = val('.dn-b');
+    const dT = val('.dn-dt'), f = val('.dn-f'), p = val('.dn-p') * 1000, T = val('.dn-t') + 273.15;
+    if (!(U > 0)) return fail('Give a flow speed greater than 0.');
+    if (!(L > 0)) return fail('Give a length greater than 0.');
+    if (!(rho > 0) || !(mu > 0)) return fail('The fluid needs a density and a viscosity greater than 0 (open "Fluid properties").');
+    if (q<HTMLInputElement>('.dn-dt').value.trim() && !Number.isFinite(dT)) return fail('The temperature difference must be a number, or left blank.');
+    if (q<HTMLInputElement>('.dn-f').value.trim() && !(f > 0)) return fail('The frequency must be greater than 0, or left blank.');
+    if (M > 0 && !(T > 0)) return fail('The gas temperature must be above absolute zero.');
+    err.hidden = true; out.hidden = false;
+    nums = dimensionless({ rho, mu, c, sigma, cp, k, beta, M: M > 0 ? M : undefined, U, L, geometry: geo, dT: Number.isFinite(dT) ? dT : undefined, f: f > 0 ? f : undefined, p: M > 0 ? p : undefined, T: M > 0 ? T : undefined });
+    const re = nums[0];
+    q('.dn-big').textContent = `Re = ${show(re.value)}: ${re.note}`;
+    q('.dn-tab').replaceChildren(...nums.map((n) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = `${n.name} = ${n.formula}`; d.querySelector('dd')!.textContent = show(n.value); const sm = document.createElement('small'); sm.textContent = n.note; d.querySelector('dd')!.append(sm); return d; }));
+    fig = strip(re.value, geo); paint(q<HTMLCanvasElement>('.dn-fig'), fig);
+    report = [{ title: q('.dn-big').textContent!, text: [`${fl.selectedOptions[0].text}; U = ${sig(U, 4)} m/s; ${LL[geo]} L = ${sig(L, 4)} m.`], table: { head: ['Number', 'Value', 'Formula', 'What it says'], rows: nums.map((n) => [n.name, show(n.value), n.formula, n.note]), align: ['l', 'r', 'l', 'l'] }, figure: fig }];
+  }
+
+  fl.addEventListener('change', () => { fill(); calc(); });
+  PROPS.forEach(([c]) => q(c).addEventListener('input', () => { fl.value = 'own'; }));
+  root.querySelectorAll('input, select:not(.dn-fl)').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.dn-out').hidden) paint(q<HTMLCanvasElement>('.dn-fig'), fig); });
+  q('.dn-csv').addEventListener('click', () => { if (nums.length) save(new Blob([csv([['number', 'value', 'formula', 'note'], ...nums.map((n) => [n.name, +n.value.toPrecision(6), n.formula, n.note])])], { type: 'text/csv' }), 'dimensionless-numbers.csv', 'text/csv'); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Dimensionless numbers', subtitle: q('.dn-big').textContent ?? '', file: 'dimensionless-numbers', sections: report }));
+</script>
+
+<style is:global>
+  .dnc .dn-props summary { cursor: pointer; font-weight: 600; }
+  .dnc canvas.ax-fig { margin-top: 12px; }
+</style>

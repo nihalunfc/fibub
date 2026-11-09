@@ -1,0 +1,191 @@
+---
+// Sequential ray tracer for lens systems: paraxial focal lengths, exact 3-D rays, spot diagram and aberrations. Example lenses made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax lrt">
+  <div class="ax-card">
+    <h2>Lens system</h2>
+    <label>Start from <select class="lr-pre">
+      <option value="pc" selected>Plano-convex, curved side to the light</option>
+      <option value="cp">Plano-convex, flat side to the light</option>
+      <option value="bc">Thick biconvex lens</option>
+      <option value="two">Two separated lenses</option>
+      <option value="custom">My own surfaces</option>
+    </select></label>
+    <label style="margin-top:10px"><span>Surfaces, in the order the light meets them, one per line: <code>radius thickness index semi-diameter</code> (mm). Radius positive when its centre is to the right, <code>inf</code> for flat; thickness to the next surface (ignored on the last line); index of the glass or air after the surface; semi-diameter optional.</span> <textarea class="lr-s" rows="4" spellcheck="false"></textarea></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Object <select class="lr-obj"><option value="inf" selected>At infinity (a star)</option><option value="fin">At a distance</option></select></label>
+      <label>Object distance (mm) <input class="lr-od" type="text" inputmode="decimal" value="300" disabled /></label>
+      <label>Entrance pupil diameter (mm) <input class="lr-epd" type="text" inputmode="decimal" value="20" /></label>
+      <label>Field angle (°) <input class="lr-fa" type="text" inputmode="decimal" value="5" /></label>
+      <label>Wavelength (nm, for the Airy disc) <input class="lr-wl" type="text" inputmode="decimal" value="587.6" /></label>
+      <label>Image plane <select class="lr-ip"><option value="par" selected>Paraxial focus</option><option value="best">Best focus (smallest spot)</option></select></label>
+      <label>Extra focus shift (mm) <input class="lr-sh" type="text" inputmode="decimal" value="0" /></label>
+    </div>
+    <p class="ax-help">The aperture stop is the first surface, so the entrance pupil is there. Light travels left to right. One wavelength at a time: type the glass index for the colour you care about (a crown glass is about 1.517 for yellow light, rounded). The example lenses are made up.</p>
+    <p class="ax-err lr-err" hidden></p>
+  </div>
+
+  <div class="ax-card lr-out">
+    <h2>Result</h2>
+    <p class="ax-big lr-big"></p>
+    <canvas class="ax-fig lr-lay"></canvas>
+    <dl class="ax-facts lr-facts"></dl>
+    <canvas class="ax-fig lr-spot"></canvas>
+    <canvas class="ax-fig lr-lsa"></canvas>
+    <canvas class="ax-fig lr-fan"></canvas>
+    <p class="ax-help">Exact (real) rays through spherical surfaces, one wavelength, no diffraction in the spot diagram (the circle is the Airy disc for comparison: a spot much smaller than it means the lens is diffraction-limited). For study and planning, not a substitute for professional optical design software.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small lr-csv">Download the spot (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseSurfaces, paraxial, traceRay, rayFor, spot, lsa, chiefHeight, bestFocus, lastVertex, type System, type Surface } from '../../lib/sci/phrays';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const PRE: Record<string, string> = {
+    pc: '51.7 5 1.517 12.5\ninf 95 1 12.5',
+    cp: 'inf 5 1.517 12.5\n-51.7 95 1 12.5',
+    bc: '60 8 1.6 15\n-80 50 1 15',
+    two: '100 4 1.517 12.5\ninf 30 1 12.5\n100 4 1.517 12.5\ninf 50 1 12.5',
+  };
+  const root = document.querySelector<HTMLElement>('.lrt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => num(inp(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const mm = (x: number, n = 4) => `${sig(x, n)} mm`;
+  const um = (x: number) => (Math.abs(x) < 1 ? `${sig(x * 1000, 3)} µm` : mm(x));
+  let figs: [string, Figure][] = [], report: Section[] = [], spotRows: (string | number)[][] = [];
+
+  function layoutFigure(sys: System, objDist: number, field: number, a: number, zImg: number): Figure {
+    const S = sys.surfaces, zs: number[] = [];
+    let z = 0; S.forEach((s, k) => { zs.push(z); if (k < S.length - 1) z += s.t; });
+    const rays: { pts: [number, number][]; f: number }[] = [];
+    for (const f of field ? [0, field] : [0]) for (const h of [-1, -0.5, 0, 0.5, 1]) {
+      const r = rayFor(objDist, f, 0, h * a), t = traceRay(sys, r.start, r.dir, zImg);
+      const pts = t.pts.map((p) => [p[2], p[1]] as [number, number]);
+      if (pts.length) { const p0 = pts[0]; if (p0[0] < -Math.max(10, zImg * 0.15)) { const k = (-Math.max(10, zImg * 0.15) - p0[0]); const d = r.dir; pts[0] = [p0[0] + k, p0[1] + (k * d[1]) / d[2]]; } }
+      rays.push({ pts, f });
+    }
+    const allY = rays.flatMap((r) => r.pts.map((p) => Math.abs(p[1])));
+    const ymax = Math.max(a * 1.15, ...allY.filter(Number.isFinite)) * 1.05;
+    const z0 = Math.min(-Math.max(10, zImg * 0.15), ...rays.map((r) => r.pts[0]?.[0] ?? 0)), z1 = Math.max(zImg, zs[zs.length - 1] ?? 0) * 1.04 + 1;
+    return {
+      w: 400, h: 200, alt: 'Lens layout with traced rays',
+      draw: (ctx, W, H, pal) => {
+        const sx = (W - 20) / (z1 - z0), sy = Math.min((H - 20) / (2 * ymax), sx * 20);
+        const X = (zz: number) => 10 + (zz - z0) * sx, Y = (yy: number) => H / 2 - yy * sy;
+        ctx.strokeStyle = pal.line; ctx.setLineDash([4, 4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(4, H / 2); ctx.lineTo(W - 4, H / 2); ctx.stroke(); ctx.setLineDash([]);
+        // Surfaces.
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.6;
+        S.forEach((sf: Surface, k) => {
+          const lim = Math.min(Number.isFinite(sf.sd) ? sf.sd : ymax / 1.05, sf.c ? 0.999 / Math.abs(sf.c) : Infinity, ymax / 1.05);
+          ctx.beginPath();
+          for (let i = 0; i <= 40; i++) { const y = -lim + (2 * lim * i) / 40, sag = sf.c ? (sf.c * y * y) / (1 + Math.sqrt(1 - sf.c * sf.c * y * y)) : 0; const px = X(zs[k] + sag), py = Y(y); i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+          ctx.stroke();
+        });
+        // Image plane.
+        ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(zImg), 6); ctx.lineTo(X(zImg), H - 6); ctx.stroke();
+        for (const r of rays) {
+          ctx.strokeStyle = r.f ? pal.accent2 : pal.accent; ctx.lineWidth = 1; ctx.beginPath();
+          r.pts.forEach((p, i) => (i ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1])))); ctx.stroke();
+        }
+        ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; if (sy / sx > 1.05) ctx.fillText(`heights stretched × ${sig(sy / sx, 2)}`, 8, H - 6);
+      },
+    };
+  }
+
+  function preset() { const p = PRE[q<HTMLSelectElement>('.lr-pre').value]; if (p) { q<HTMLTextAreaElement>('.lr-s').value = p; calc(); } }
+
+  function calc() {
+    const err = q('.lr-err'), out = q('.lr-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; spotRows = []; };
+    const fin = q<HTMLSelectElement>('.lr-obj').value === 'fin';
+    inp('.lr-od').disabled = !fin;
+    const od = fin ? val('.lr-od') : Infinity, epd = val('.lr-epd'), fa = val('.lr-fa'), wl = val('.lr-wl'), shift = val('.lr-sh') || 0, ip = q<HTMLSelectElement>('.lr-ip').value;
+    let surfaces: Surface[];
+    try { surfaces = parseSurfaces(q<HTMLTextAreaElement>('.lr-s').value); } catch (e) { return fail((e as Error).message); }
+    if (!surfaces.length) return fail('Give at least one surface.');
+    if (fin && !(od > 0)) return fail('Give the object distance in mm in front of the first surface.');
+    if (!(epd > 0)) return fail('Give the entrance pupil diameter in mm (the beam width at the first surface).');
+    if (!(fa >= 0 && fa < 60)) return fail('Give a field angle from 0° to 60°.');
+    if (!(wl >= 100 && wl <= 20000)) return fail('Give a wavelength between 100 and 20,000 nm.');
+    const sys: System = { n0: 1, surfaces }, a = epd / 2;
+    const P = paraxial(sys, od, a, fa);
+    if (!Number.isFinite(P.efl) || Math.abs(P.efl) > 1e7) return fail('This system has no focusing power (afocal): its effective focal length is infinite.');
+    if (!(P.imageDist > 0)) return fail('The image is virtual (it forms before the last surface), so there is no real image plane to trace to. Try a longer object distance or a stronger lens.');
+    err.hidden = true; out.hidden = false;
+    const zv = lastVertex(sys), zPar = zv + P.imageDist;
+    const bf = bestFocus(sys, od, fa, a, zPar, Math.max(1, Math.abs(P.efl) * 0.05));
+    const zImg = (ip === 'best' ? zPar + bf.dz : zPar) + shift;
+    const sp = spot(sys, od, fa, a, zImg, 10), sp0 = spot(sys, od, 0, a, zImg, 10);
+    if (!sp.xs.length) return fail('No rays reach the image at this field angle: they all miss or are clipped by a surface. Try a smaller field angle or larger semi-diameters.');
+    const fno = Math.abs(P.efl) / epd, workingN = fin ? Math.abs(P.imageDist) / epd : fno;
+    const airy = fin ? (0.61 * wl * 1e-6) / Math.sin(Math.atan(a / P.imageDist)) : 1.22 * wl * 1e-6 * fno;
+    const realH = chiefHeight(sys, od, fa, zImg), parH = P.chiefH;
+    const dist = fa > 0 ? ((chiefHeight(sys, od, fa, zPar) - P.chiefH) / P.chiefH) * 100 : 0;
+    const L = lsa(sys, od, a, zPar), L70 = lsa(sys, od, a * 0.7071, zPar);
+    q('.lr-big').textContent = `f = ${mm(P.efl)}, f/${sig(fno, 3)}; RMS spot ${um(sp.rms)} at ${sig(fa, 3)}°`;
+    const f = [
+      fact('Effective focal length', mm(P.efl), `back focal length ${mm(P.bfl)} from the last surface`),
+      fact(fin ? 'Image distance' : 'Paraxial focus', `${mm(P.imageDist)} after the last surface`, fin ? `magnification ${sig(P.mag, 4)}×` : 'where near-axis rays meet'),
+      fact('f-number', `f/${sig(fno, 3)}`, fin ? `working f-number about ${sig(workingN, 3)}` : 'focal length ÷ pupil diameter'),
+      fact(`RMS spot radius, ${sig(fa, 3)}°`, um(sp.rms), `geometric radius ${um(sp.geo)}; on axis ${um(sp0.rms)} RMS`),
+      fact('Airy disc radius', um(airy), sp.rms < airy / 2 ? 'the spot is smaller: close to diffraction-limited' : 'the geometric spot is larger: aberrations dominate'),
+      fact('Spherical aberration (LSA)', L === L ? `${mm(L, 3)} at the rim` : 'rim ray lost', `${L70 === L70 ? mm(L70, 3) : '–'} at 0.71 of the pupil; negative: the rim focuses short (undercorrected)`),
+      fact('Best focus', `${mm(bf.dz, 3)} from paraxial`, `RMS ${um(bf.rms)} there, at ${sig(fa, 3)}°`),
+      fact('Image height', fa > 0 ? `${mm(realH, 4)} real` : '0 (on axis)', fa > 0 ? `paraxial ${mm(parH, 4)}; distortion ${sig(dist, 2)} %` : 'set a field angle to see distortion'),
+      fact('Petzval field curvature', P.petzval ? `radius ${mm(-1 / (surfaces[surfaces.length - 1].n * P.petzval), 4)}` : 'flat', 'the curved surface a lens images onto without astigmatism'),
+    ];
+    if (sp.lost) f.push(fact('Rays lost', `${sp.lost} of ${sp.total}`, 'missed or clipped by a surface (vignetting) at this field'));
+    q('.lr-facts').replaceChildren(...f);
+    // Figures.
+    const lay = layoutFigure(sys, od, fa, a, zImg);
+    const ux = Math.max(sp.geo, airy) < 0.5 ? 1000 : 1, uu = ux === 1000 ? 'µm' : 'mm';
+    const half = Math.max(sp.geo, airy) * 1.15 * ux;
+    const circ = Array.from({ length: 73 }, (_, i) => (2 * Math.PI * i) / 72);
+    const spF = chartFigure({ w: 340, h: 310, xLabel: `x (${uu}) from the centroid`, yLabel: `y (${uu})`, xMin: -half, xMax: half, yMin: -half, yMax: half, legend: 'below', series: [
+      { name: `${sig(fa, 3)}° field`, x: sp.xs.map((v) => (v - sp.cx) * ux), y: sp.ys.map((v) => (v - sp.cy) * ux), mode: 'points', size: 1.8 },
+      { name: 'Airy disc', x: circ.map((t) => airy * ux * Math.cos(t)), y: circ.map((t) => airy * ux * Math.sin(t)), mode: 'line', width: 1, dash: [3, 3] },
+    ] }, `Spot diagram at ${fa}°: RMS radius ${um(sp.rms)}`);
+    const hs: number[] = [], ls: number[] = [];
+    for (let i = 1; i <= 50; i++) { const h = (a * i) / 50, v = lsa(sys, od, h, zPar); if (v === v) { hs.push(h); ls.push(v); } }
+    const lsF = chartFigure({ w: 360, h: 220, xLabel: 'Focus shift from paraxial (mm)', yLabel: 'Pupil height (mm)', yMin: 0, yMax: a, legend: 'none', series: [{ name: 'LSA', x: ls, y: hs, mode: 'line', width: 2 }], marks: [{ kind: 'vline', at: 0, dash: [3, 3] }] }, 'Longitudinal spherical aberration against pupil height');
+    const py: number[] = [], ey: number[] = [], px: number[] = [], ex: number[] = [];
+    const rc = rayFor(od, fa, 0, 0), ch = traceRay(sys, rc.start, rc.dir, zImg);
+    for (let i = -40; i <= 40; i++) {
+      const p = (a * i) / 40;
+      const r1 = rayFor(od, fa, 0, p), t1 = traceRay(sys, r1.start, r1.dir, zImg); if (t1.ok && ch.ok) { py.push(p / a); ey.push((t1.end[1] - ch.end[1]) * ux); }
+      const r2 = rayFor(od, fa, p, 0), t2 = traceRay(sys, r2.start, r2.dir, zImg); if (t2.ok && ch.ok) { px.push(p / a); ex.push((t2.end[0] - ch.end[0]) * ux); }
+    }
+    const fanF = chartFigure({ w: 360, h: 220, xLabel: 'Relative pupil coordinate', yLabel: `Ray error (${uu})`, xMin: -1, xMax: 1, legend: 'below', series: [{ name: 'Tangential (y)', x: py, y: ey, mode: 'line', width: 2 }, { name: 'Sagittal (x)', x: px, y: ex, mode: 'line', width: 2, dash: [5, 3] }], marks: [{ kind: 'hline', at: 0, dash: [3, 3] }] }, `Ray fan at ${fa}°`);
+    figs = [['.lr-lay', lay], ['.lr-spot', spF], ['.lr-lsa', lsF], ['.lr-fan', fanF]];
+    for (const [c, fg] of figs) paint(q<HTMLCanvasElement>(c), fg);
+    spotRows = [['x_mm', 'y_mm'], ...sp.xs.map((x, i) => [+x.toPrecision(8), +sp.ys[i].toPrecision(8)])];
+    const plain = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    report = [
+      { title: q('.lr-big').textContent!, facts: plain(f), figure: lay },
+      { title: 'Spot diagram', figure: spF },
+      { title: 'Spherical aberration', figure: lsF },
+      { title: 'Ray fan', figure: fanF, note: `Surfaces: ${q<HTMLTextAreaElement>('.lr-s').value.split('\n').join(' | ')}. Pupil ${epd} mm, ${fin ? `object at ${od} mm` : 'object at infinity'}, image plane ${mm(zImg - zv)} after the last surface.` },
+    ];
+  }
+
+  q('.lr-pre').addEventListener('change', preset);
+  root.querySelectorAll('input, textarea, select:not(.lr-pre)').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  q('.lr-s').addEventListener('input', () => { q<HTMLSelectElement>('.lr-pre').value = 'custom'; });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.lr-out').hidden) for (const [c, fg] of figs) paint(q<HTMLCanvasElement>(c), fg); });
+  q('.lr-csv').addEventListener('click', () => { if (spotRows.length) save(new TextEncoder().encode(csv(spotRows)), 'spot-diagram.csv', 'text/csv'); });
+  preset();
+  wireDownloads(q('.dl'), () => ({ title: 'Lens ray trace', subtitle: q('.lr-big').textContent ?? '', file: 'ray-trace', sections: report }));
+</script>
+
+<style is:global>
+  .lrt code { font-size: 13px; }
+  .lrt .lr-spot { max-width: 360px; margin: 10px auto 0; }
+</style>

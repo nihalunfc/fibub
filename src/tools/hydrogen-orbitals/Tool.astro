@@ -1,0 +1,194 @@
+---
+// Hydrogen orbital viewer: |ψ|² slices, a dot cloud sampled from |ψ|², and radial plots for any n, l, m.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax hyo">
+  <div class="ax-card">
+    <h2>Orbital</h2>
+    <div class="ax-grid">
+      <label>n (shell) <select class="hy-n"></select></label>
+      <label>l (subshell) <select class="hy-l"></select></label>
+      <label>Orbitals <select class="hy-kind"><option value="real" selected>Real (chemistry: pₓ, d_z², ...)</option><option value="complex">Complex (definite m)</option></select></label>
+      <label>m <select class="hy-m"></select></label>
+      <label>Nuclear charge Z <input class="hy-z" type="text" inputmode="numeric" value="1" /></label>
+      <label>Slice plane <select class="hy-plane"><option value="xz" selected>xz (y = 0)</option><option value="xy">xy (z = 0)</option><option value="yz">yz (x = 0)</option></select></label>
+      <label><span>Picture half-width (a₀, blank: automatic)</span> <input class="hy-L" type="text" inputmode="decimal" /></label>
+      <label>Dots in the cloud <select class="hy-dots"><option>1000</option><option selected>4000</option><option>10000</option></select></label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Turn the cloud (°) <input class="hy-az" type="range" min="-180" max="180" value="30" /></label>
+      <label>Tilt the cloud (°) <input class="hy-el" type="range" min="-90" max="90" value="20" /></label>
+    </div>
+    <p class="ax-help">One electron round a nucleus of charge Z (Z = 1 hydrogen, 2 He⁺, 3 Li²⁺ ...), with the nucleus treated as infinitely heavy. Real orbitals are the combinations chemists draw (pₓ, p_y, d_xy ...); complex ones have a definite m, and their |ψ|² is the same all the way round the z axis. Lengths are in Bohr radii a₀ = 52.92 pm.</p>
+    <p class="ax-err hy-err" hidden></p>
+  </div>
+
+  <div class="ax-card hy-out">
+    <h2 class="hy-name"></h2>
+    <p class="ax-big hy-big"></p>
+    <dl class="ax-facts hy-facts"></dl>
+    <div class="hy-pics">
+      <canvas class="ax-fig hy-slice"></canvas>
+      <canvas class="ax-fig hy-cloud"></canvas>
+    </div>
+    <div class="ax-legend hy-leg"></div>
+    <canvas class="ax-fig hy-rad" style="margin-top:12px"></canvas>
+    <p class="ax-help hy-note"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small hy-csv">Download radial functions (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .hyo .hy-pics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px; margin-top: 12px; }
+  .hyo input[type=range] { width: 100%; accent-color: var(--accent); }
+</style>
+
+<script>
+  import { radial, psi, properties, radiusHolding, sample, orbitalName, BOHR_PM } from '../../lib/sci/phhydro';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, pagePalette, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.hyo')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const L_NAMES = 'spdfghi';
+  const g = (x: number, d = 5) => String(+x.toPrecision(d)).replace('-', '−');
+  sel('.hy-n').replaceChildren(...[1, 2, 3, 4, 5, 6, 7].map((n) => new Option(String(n), String(n))));
+  sel('.hy-n').value = '3';
+  function fillL(keep = true) {
+    const n = +sel('.hy-n').value, old = sel('.hy-l').value;
+    sel('.hy-l').replaceChildren(...Array.from({ length: n }, (_, l) => new Option(`${l} (${L_NAMES[l]})`, String(l))));
+    sel('.hy-l').value = keep && +old < n ? old : String(Math.min(n - 1, 2));
+  }
+  function fillM() {
+    const n = +sel('.hy-n').value, l = +sel('.hy-l').value, real = sel('.hy-kind').value === 'real', old = sel('.hy-m').value;
+    const ms = []; for (let m = -l; m <= l; m++) ms.push(m);
+    sel('.hy-m').replaceChildren(...ms.map((m) => new Option(real ? `${m} (${orbitalName(n, l, m, true)})` : String(m), String(m))));
+    sel('.hy-m').value = ms.includes(+old) && old !== '' ? old : '0';
+  }
+  const hex = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+
+  type Slice = { N: number; vals: Float64Array; max: number; L: number; plane: string; real: boolean };
+  let slice: Slice | null = null, pts: { x: number; y: number; z: number; s: number }[] = [], cur = { n: 3, l: 2, m: 0, Z: 1, real: true, L: 20 };
+  let figS: Figure | null = null, figC: Figure | null = null, figR: Figure | null = null, report: Section[] = [], radRows: (string | number)[][] = [];
+
+  function sliceFig(s: Slice, title: string): Figure {
+    return {
+      w: 360, h: 380, alt: title,
+      draw: (ctx, W, H, pal: Palette) => {
+        const pad = 34, size = Math.min(W - pad - 10, H - pad - 30), x0 = pad, y0 = 22;
+        const img = document.createElement('canvas'); img.width = s.N; img.height = s.N;
+        const ic = img.getContext('2d')!, id = ic.createImageData(s.N, s.N), bg = hex(pal.bg), c1 = hex(pal.accent), c2 = hex(pal.accent2);
+        for (let j = 0; j < s.N; j++) for (let i = 0; i < s.N; i++) {
+          const v = s.vals[j * s.N + i], t = Math.min(1, Math.abs(v) / s.max), c = v >= 0 ? c1 : c2, k = 4 * ((s.N - 1 - j) * s.N + i);
+          for (let ch = 0; ch < 3; ch++) id.data[k + ch] = Math.round(bg[ch] * (1 - t) + c[ch] * t);
+          id.data[k + 3] = 255;
+        }
+        ic.putImageData(id, 0, 0);
+        ctx.imageSmoothingEnabled = true; ctx.drawImage(img, x0, y0, size, size);
+        ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(x0, y0, size, size);
+        ctx.fillStyle = pal.ink; ctx.font = '600 13px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(title, 0, 14);
+        ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textAlign = 'center';
+        const [hx, vy] = s.plane === 'xz' ? ['x', 'z'] : s.plane === 'xy' ? ['x', 'y'] : ['y', 'z'];
+        ctx.fillText(`−${sig(s.L, 3)}`, x0, y0 + size + 14); ctx.fillText(`${hx} (a₀)`, x0 + size / 2, y0 + size + 14); ctx.fillText(sig(s.L, 3), x0 + size, y0 + size + 14);
+        ctx.save(); ctx.translate(12, y0 + size / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(`${vy} (a₀)`, 0, 0); ctx.restore();
+        ctx.textAlign = 'right'; ctx.fillText(sig(s.L, 3), x0 - 3, y0 + 10); ctx.fillText(`−${sig(s.L, 3)}`, x0 - 3, y0 + size);
+      },
+    };
+  }
+  function cloudFig(title: string): Figure {
+    const az = (+q<HTMLInputElement>('.hy-az').value * Math.PI) / 180, el = (+q<HTMLInputElement>('.hy-el').value * Math.PI) / 180, L = cur.L;
+    const ca = Math.cos(az), sa = Math.sin(az), ce = Math.cos(el), se = Math.sin(el);
+    // Screen: X to the right, Y up. Turn about z, then tilt towards the viewer.
+    const proj = (x: number, y: number, z: number) => { const x1 = ca * x - sa * y, y1 = sa * x + ca * y; return [x1, ce * z - se * y1, se * z + ce * y1]; };
+    return {
+      w: 360, h: 380, alt: title,
+      draw: (ctx, W, H, pal) => {
+        const size = Math.min(W - 20, H - 40), cx = W / 2, cy = 22 + size / 2, sc = size / (2 * L);
+        ctx.fillStyle = pal.ink; ctx.font = '600 13px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(title, 0, 14);
+        const ax: [string, number, number, number][] = [['x', L * 0.9, 0, 0], ['y', 0, L * 0.9, 0], ['z', 0, 0, L * 0.9]];
+        ctx.strokeStyle = pal.line; ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center';
+        for (const [nm, x, y, z] of ax) { const [px, py] = proj(x, y, z); ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + px * sc, cy - py * sc); ctx.stroke(); ctx.fillText(nm, cx + px * sc * 1.07, cy - py * sc * 1.07 + 4); }
+        const sorted = pts.map((p) => { const [a, b, d] = proj(p.x, p.y, p.z); return { a, b, d, s: p.s }; }).sort((u, v) => u.d - v.d);
+        ctx.globalAlpha = 0.55;
+        for (const p of sorted) { if (Math.abs(p.a) > L || Math.abs(p.b) > L) continue; ctx.fillStyle = p.s >= 0 ? pal.accent : pal.accent2; ctx.fillRect(cx + p.a * sc - 1, cy - p.b * sc - 1, 2, 2); }
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.fillText(`box ±${sig(L, 3)} a₀`, W - 4, H - 6);
+      },
+    };
+  }
+
+  function calc() {
+    const err = q('.hy-err'), out = q('.hy-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const n = +sel('.hy-n').value, l = +sel('.hy-l').value, m = +sel('.hy-m').value, real = sel('.hy-kind').value === 'real', Z = num(q<HTMLInputElement>('.hy-z').value);
+    if (!(Number.isInteger(Z) && Z >= 1 && Z <= 20)) return fail('Give a whole-number nuclear charge Z from 1 to 20.');
+    const Lin = q<HTMLInputElement>('.hy-L').value.trim(), Lv = Lin ? num(Lin) : NaN;
+    if (Lin && !(Lv > 0)) return fail('Give a picture half-width greater than 0, or leave it blank.');
+    err.hidden = true; out.hidden = false;
+    const L = Lin ? Lv : Math.ceil(radiusHolding(n, l, 0.97, Z) * 1.05 * 10) / 10;
+    cur = { n, l, m, Z, real, L };
+    const name = orbitalName(n, l, m, real), P = properties(n, l, Z);
+    q('.hy-name').textContent = `${name}${Z > 1 ? ` (Z = ${Z})` : ''}`;
+    q('.hy-big').textContent = `E = ${sig(P.E, 6)} eV`;
+    const pm = (a: number) => `${g(a * BOHR_PM, 4)} pm`;
+    const facts = [
+      fact('Energy', `${sig(P.E, 6)} eV`, `−13.6057 Z²/n² eV; ${g(-P.E, 5)} eV to ionise from here`),
+      fact('Mean radius ⟨r⟩', `${g(P.rMean, 5)} a₀`, `${pm(P.rMean)}; (3n² − l(l+1)) a₀ / 2Z`),
+      fact('Most probable radius', `${g(P.rPeak, 5)} a₀`, `${pm(P.rPeak)}; the highest peak of r²R²`),
+      fact('90 % of the electron within', `${g(P.r90, 5)} a₀`, pm(P.r90)),
+      fact('Radial nodes', String(P.radialNodes), P.nodeRadii.length ? `spheres at r = ${P.nodeRadii.map((r) => sig(r, 4)).join(', ')} a₀` : 'n − l − 1'),
+      fact('Angular nodes', String(P.angularNodes), real ? 'planes or cones through the nucleus (l of them)' : 'cones and the z axis (l of them)'),
+      fact('⟨r²⟩ and ⟨1/r⟩', `${g(P.r2Mean, 5)} a₀², ${g(P.invR, 5)} /a₀`, `⟨1/r⟩ = Z/n²a₀ gives the virial theorem: ⟨V⟩ = 2E`),
+    ];
+    q('.hy-facts').replaceChildren(...facts);
+    // Slice.
+    const N = 160, plane = sel('.hy-plane').value, vals = new Float64Array(N * N);
+    let max = 0;
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+      const a = -L + ((i + 0.5) * 2 * L) / N, b = -L + ((j + 0.5) * 2 * L) / N;
+      const [x, y, z] = plane === 'xz' ? [a, 0, b] : plane === 'xy' ? [a, b, 0] : [0, a, b];
+      const p = psi(n, l, m, x, y, z, real, Z), v = real ? p.v : Math.abs(p.v);
+      vals[j * N + i] = v; max = Math.max(max, Math.abs(v));
+    }
+    slice = { N, vals, max: max || 1, L, plane, real };
+    pts = sample(n, l, m, real, +sel('.hy-dots').value, 1 + n * 100 + l * 10 + m + 50, Z);
+    figS = sliceFig(slice, `Slice through the ${plane} plane`);
+    figC = cloudFig(`${pts.length.toLocaleString('en')} dots drawn from |ψ|²`);
+    paint(q<HTMLCanvasElement>('.hy-slice'), figS); paint(q<HTMLCanvasElement>('.hy-cloud'), figC);
+    const pal = pagePalette();
+    q('.hy-leg').innerHTML = '';
+    for (const [c, t] of real ? [[pal.accent, 'ψ positive'], [pal.accent2, 'ψ negative']] : [[pal.accent, '|ψ| (one colour: complex ψ)']]) { const s = document.createElement('span'); const i = document.createElement('i'); i.style.background = c; s.append(i, t); q('.hy-leg').append(s); }
+    const sp = document.createElement('span'); let refR = 0; for (let i = 1; i <= 200; i++) refR = Math.max(refR, Math.abs(radial(n, l, (L * i) / 200, Z)));
+    sp.textContent = max < 1e-9 * refR ? `this plane is a node: ψ = 0 everywhere on it` : 'Brightness: |ψ| (slice); dot density: |ψ|²'; q('.hy-leg').append(sp);
+    // Radial plot.
+    const rMax = L * 1.2, rs: number[] = [], Rv: number[] = [], Pv: number[] = [];
+    radRows = [['r_a0', 'R', 'r2R2']];
+    for (let i = 0; i <= 400; i++) { const r = (rMax * i) / 400, R = radial(n, l, r, Z); rs.push(r); Rv.push(R); Pv.push(r * r * R * R); radRows.push([+r.toPrecision(6), +R.toPrecision(8), +(r * r * R * R).toPrecision(8)]); }
+    const mR = Math.max(...Rv.map(Math.abs)), mP = Math.max(...Pv);
+    figR = chartFigure({ w: 520, h: 260, xLabel: 'r (a₀)', yLabel: 'scaled to the same height', xMin: 0, xMax: rMax, legend: 'below', series: [
+      { name: `R(r) (peak |R| ${sig(mR, 3)} a₀^−3/2)`, x: rs, y: Rv.map((v) => v / mR), mode: 'line', width: 1.6, dash: [5, 3] },
+      { name: `r²R² radial probability (peak ${sig(mP, 3)} per a₀)`, x: rs, y: Pv.map((v) => v / mP), mode: 'line', width: 2.2 },
+    ], marks: [{ kind: 'hline', at: 0 }, { kind: 'vline', at: P.rMean, dash: [2, 3], label: '⟨r⟩' }] }, `Radial function and radial probability of ${name}`);
+    paint(q<HTMLCanvasElement>('.hy-rad'), figR);
+    q('.hy-note').textContent = `The slice shows ψ itself in a plane through the nucleus; the dots are ${pts.length.toLocaleString('en')} random positions where the electron could be found, drawn from |ψ|² in 3D (the same dots every time). ${real && m !== 0 ? 'Real orbitals with m ≠ 0 are equal mixtures of +|m| and −|m|. ' : ''}`;
+    const rows = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    report = [{ title: `${q('.hy-name').textContent}: ${q('.hy-big').textContent}`, facts: rows(facts), figure: figS }, { title: 'Probability cloud', figure: figC }, { title: 'Radial functions', figure: figR, note: q('.hy-note').textContent! }];
+  }
+
+  sel('.hy-n').addEventListener('change', () => { fillL(); fillM(); calc(); });
+  sel('.hy-l').addEventListener('change', () => { fillM(); calc(); });
+  sel('.hy-kind').addEventListener('change', () => { fillM(); calc(); });
+  for (const c of ['.hy-m', '.hy-plane', '.hy-dots']) sel(c).addEventListener('change', calc);
+  let tm = 0;
+  for (const c of ['.hy-z', '.hy-L']) q(c).addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(calc, 300); });
+  for (const c of ['.hy-az', '.hy-el']) q(c).addEventListener('input', () => { if (!pts.length) return; figC = cloudFig(`${pts.length.toLocaleString('en')} dots drawn from |ψ|²`); paint(q<HTMLCanvasElement>('.hy-cloud'), figC); if (report[1]) report[1].figure = figC; });
+  q('.hy-csv').addEventListener('click', () => save(new Blob([csv(radRows)], { type: 'text/csv' }), `hydrogen-${cur.n}${L_NAMES[cur.l]}-radial.csv`, 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (!q('.hy-out').hidden) calc(); });
+  fillL(false); fillM(); calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Hydrogen orbital', subtitle: q('.hy-name').textContent ?? '', file: `hydrogen-${cur.n}${L_NAMES[cur.l]}`, sections: report }));
+</script>

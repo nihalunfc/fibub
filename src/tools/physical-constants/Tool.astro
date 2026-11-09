@@ -1,0 +1,110 @@
+---
+// Physical constants: CODATA 2022 and 2018 recommended values (NIST, public domain) with search, units,
+// uncertainties and copy buttons. Everything is in the page; nothing is fetched.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { GROUPS } from '../../lib/sci/phconstants';
+---
+<div class="ax pcc">
+  <div class="ax-card">
+    <h2>Find a constant</h2>
+    <div class="ax-grid">
+      <label>Search <input class="pc-q" type="search" placeholder="e.g. planck, m_e, boltzmann eV" autocomplete="off" /></label>
+      <label>Group <select class="pc-g"><option value="">All groups</option>{GROUPS.map((g) => <option>{g}</option>)}</select></label>
+      <label>Values <select class="pc-ed"><option value="2022" selected>CODATA 2022 (current)</option><option value="2018">CODATA 2018</option></select></label>
+      <label>Copy button copies <select class="pc-cp"><option value="num" selected>The number (6.62607015e-34)</option><option value="full">Number, uncertainty and unit</option></select></label>
+    </div>
+    <p class="ax-help">Values marked exact are fixed by the SI definitions of 2019; a … means an exact value that goes on for ever, shown to the published digits. The figures in brackets are the standard uncertainty in the last digits: 6.674 30(15) means 6.674 30 ± 0.000 15.</p>
+    <p class="ax-big pc-big" aria-live="polite"></p>
+    <p class="ax-help pc-status" role="status"></p>
+  </div>
+  <div class="pc-list"></div>
+  <div class="ax-card pc-foot">
+    <div class="ax-row"><button type="button" class="btn secondary small pc-csv">Download the shown constants (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { GROUPS, search, show, concise, plain, relU, changed, uncertainty, type Edition, type Constant } from '../../lib/sci/phconstants';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+  import { csv, fmtExp } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.pcc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  let shown: Constant[] = [];
+  const ed = () => sel('.pc-ed') as Edition;
+
+  function copyText(c: Constant) {
+    const e = ed(), [, u] = c.e[e];
+    if (sel('.pc-cp') === 'num') return plain(c, e);
+    return `${plain(c, e)}${u ? ` ± ${u}` : ' (exact)'}${c.unit ? ` ${c.unit}` : ''}`;
+  }
+  async function copy(t: string, label: string) {
+    let ok = false;
+    // Some browsers leave the clipboard promise waiting for a permission prompt: fall back after a moment.
+    try { await Promise.race([navigator.clipboard.writeText(t), new Promise((_, no) => setTimeout(() => no(new Error('slow')), 400))]); ok = true; } catch {
+      const ta = document.createElement('textarea'); ta.value = t; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.append(ta); ta.select(); try { ok = document.execCommand('copy'); } catch { ok = false; } ta.remove();
+    }
+    q('.pc-status').textContent = ok ? `Copied ${label}: ${t}` : `Could not reach the clipboard; select and copy this: ${t}`;
+  }
+  const relTxt = (c: Constant) => { const r = relU(c, ed()); return r ? `relative uncertainty ${fmtExp(r, 2)}` : 'exact'; };
+
+  function render() {
+    const e = ed(), g = sel('.pc-g');
+    shown = search(q<HTMLInputElement>('.pc-q').value, g);
+    q('.pc-big').textContent = shown.length ? `${shown.length} constant${shown.length === 1 ? '' : 's'}, CODATA ${e}` : 'No constant matches';
+    const list = q('.pc-list'); list.replaceChildren();
+    for (const grp of GROUPS) {
+      const items = shown.filter((c) => c.group === grp);
+      if (!items.length) continue;
+      const card = document.createElement('section'); card.className = 'ax-card';
+      const h = document.createElement('h2'); h.textContent = grp; card.append(h);
+      for (const c of items) {
+        const row = document.createElement('div'); row.className = 'pc-row'; row.dataset.name = c.name;
+        const top = document.createElement('div'); top.className = 'pc-top';
+        const nm = document.createElement('span'); nm.className = 'pc-name'; nm.textContent = c.name;
+        const sy = document.createElement('span'); sy.className = 'pc-sym'; sy.textContent = c.sym;
+        top.append(nm, sy);
+        if (e === '2022' && changed(c)) { const p = document.createElement('span'); p.className = 'ax-pill'; p.textContent = 'updated since 2018'; top.append(p); }
+        const val = document.createElement('div'); val.className = 'pc-val';
+        const v = document.createElement('span'); v.className = 'pc-num'; v.textContent = concise(c, e);
+        const un = document.createElement('span'); un.className = 'pc-unit'; un.textContent = c.unit;
+        val.append(v, un);
+        const meta = document.createElement('div'); meta.className = 'pc-meta';
+        const m = document.createElement('span'); m.textContent = relTxt(c);
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary small pc-copy'; b.textContent = 'Copy';
+        b.setAttribute('aria-label', `Copy ${c.name}`);
+        b.addEventListener('click', () => copy(copyText(c), c.name));
+        meta.append(m, b);
+        row.append(top, val, meta); card.append(row);
+      }
+      list.append(card);
+    }
+  }
+  const rowsFor = () => shown.map((c) => [c.name, c.sym, plain(c, ed()), c.e[ed()][1] ?? 'exact', c.unit, c.group]);
+  // Search re-renders as you type; selects on change. (Not on the search box's change event, which fires when it loses focus, as a Copy button is pressed, and would replace the button mid-click.)
+  q('.pc-q').addEventListener('input', render);
+  root.querySelectorAll('select').forEach((i) => i.addEventListener('change', render));
+  q('.pc-csv').addEventListener('click', () => save(new Blob([csv([['quantity', 'symbol', 'value', 'standard_uncertainty', 'unit', 'group'], ...rowsFor()])], { type: 'text/csv' }), `codata-${ed()}-constants.csv`, 'text/csv'));
+  render();
+  wireDownloads(q('.dl'), (): { title: string; subtitle: string; file: string; sections: Section[] } => ({
+    title: `Physical constants (CODATA ${ed()})`, subtitle: 'Recommended values of the fundamental physical constants, NIST (public domain)', file: `codata-${ed()}-constants`,
+    sections: GROUPS.map((g) => ({ title: g, table: { head: ['Quantity', 'Symbol', 'Value', 'Unit'], rows: shown.filter((c) => c.group === g).map((c) => [c.name, c.sym, `${show(c, ed())}${c.e[ed()][1] ? ` (u ${fmtExp(uncertainty(c, ed()), 2)})` : ' exact'}`, c.unit]) } })).filter((s) => s.table.rows.length),
+  }));
+</script>
+
+<style is:global>
+  .pcc .pc-list { display: grid; gap: 14px; }
+  .pcc .pc-row { padding: 10px 0; border-top: 1px solid var(--line); display: grid; gap: 4px; }
+  .pcc .pc-row:first-of-type { border-top: 0; padding-top: 0; }
+  .pcc .pc-top { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+  .pcc .pc-name { font-weight: 600; }
+  .pcc .pc-sym { color: var(--muted); font-style: italic; }
+  .pcc .pc-val { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; font: 17px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: anywhere; }
+  .pcc .pc-unit { font: 15px system-ui, sans-serif; color: var(--muted); }
+  .pcc .pc-meta { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; justify-content: space-between; font-size: 13px; color: var(--muted); }
+  .pcc .pc-copy { padding: 4px 12px !important; font-size: 14px !important; }
+</style>

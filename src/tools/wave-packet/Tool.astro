@@ -1,0 +1,189 @@
+---
+// Wave packet animator: a Gaussian packet hits a barrier, step or well; split-step Fourier time evolution in the
+// browser, reflection and transmission compared with the stationary (transfer-matrix) result.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax wpk">
+  <div class="ax-card">
+    <h2>Barrier and packet</h2>
+    <div class="ax-grid">
+      <label>Units <select class="wp-u"><option value="natural" selected>Natural (ħ = m = 1)</option><option value="electron">Electron (nm, eV, fs)</option></select></label>
+      <label>Potential <select class="wp-b">
+        <option value="rect" selected>Rectangular barrier</option><option value="double">Double barrier (resonant tunnelling)</option><option value="step">Potential step</option><option value="well">Square well</option><option value="gauss">Smooth (Gaussian) barrier</option>
+      </select></label>
+      <label><span class="wp-v0l">Height V₀</span> <input class="wp-v0" type="text" inputmode="decimal" /></label>
+      <label class="wp-al"><span>Width a<span class="wp-lu"></span></span> <input class="wp-a" type="text" inputmode="decimal" /></label>
+      <label class="wp-dl"><span>Gap between barriers<span class="wp-lu"></span></span> <input class="wp-d" type="text" inputmode="decimal" /></label>
+      <label><span>Packet energy E₀<span class="wp-eu"></span></span> <input class="wp-e" type="text" inputmode="decimal" /></label>
+      <label><span>Packet width σ<span class="wp-lu"></span></span> <input class="wp-s" type="text" inputmode="decimal" /></label>
+      <label><span>Start position<span class="wp-lu"></span></span> <input class="wp-x" type="text" inputmode="decimal" /></label>
+      <label><span>Window half-width<span class="wp-lu"></span></span> <input class="wp-w" type="text" inputmode="decimal" /></label>
+      <label>Grid points <select class="wp-n"><option>1024</option><option selected>2048</option><option>4096</option></select></label>
+      <label><span>Run time<span class="wp-tu"></span> (blank: automatic)</span> <input class="wp-t" type="text" inputmode="decimal" /></label>
+      <label>Draw <select class="wp-show"><option value="prob" selected>Probability |ψ|²</option><option value="re">|ψ|² and Re ψ</option></select></label>
+    </div>
+    <p class="ax-help">The barrier sits at x = 0 and the packet starts on the left moving right. E₀ is the packet's mean kinetic energy; σ is the spread of |ψ|² in position (a wider packet has a sharper energy). The outer 12 % of the window on each side soaks the wave up, so nothing wraps round. Natural units: ħ = m = 1. Electron units: x in nm, energies in eV, time in fs. Example values are made up.</p>
+    <p class="ax-err wp-err" hidden></p>
+  </div>
+
+  <div class="ax-card wp-out">
+    <h2>Reflection and transmission</h2>
+    <p class="ax-big wp-big"></p>
+    <canvas class="ax-fig wp-anim" aria-label="Wave packet animation"></canvas>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small wp-play">Play</button>
+      <label style="flex:1 1 160px">Time <input class="wp-time" type="range" min="0" max="100" value="0" /></label>
+      <span class="ax-help wp-tl" style="margin:0"></span>
+    </div>
+    <dl class="ax-facts wp-facts" style="margin-top:12px"></dl>
+    <canvas class="ax-fig wp-fig" style="margin-top:12px"></canvas>
+    <p class="ax-help wp-note"></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small wp-csv">Download T(E) (CSV)</button>
+      <button type="button" class="btn secondary small wp-pcsv">Download |ψ|² now (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .wpk label[hidden] { display: none; }
+  .wpk input[type=range] { width: 100%; accent-color: var(--accent); }
+</style>
+
+<script>
+  import { barrierV, transmission, staircase, packetT, simulate, HBAR_EV_FS, type BarrierId, type SimOut, type Seg } from '../../lib/sci/phpacket';
+  import { C_ELECTRON } from '../../lib/sci/phschro';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.wpk')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  // V0, a, d, E0, sigma, start, half-width
+  const DEF = { natural: [1.25, 1.5, 3, 1.125, 4, -20, 100], electron: [0.3, 1, 2, 0.2, 5, -30, 100] };
+  let sim: SimOut | null = null, figT: Figure | null = null, animFig: Figure | null = null, report: Section[] = [], tRows: (string | number)[][] = [];
+  let frame = 0, playing = false, raf = 0, info = { yTop: 1, yBot: 0, scale: 1, E0: 1, eu: '', xu: '', tu: '' };
+
+  function setDefaults() {
+    const u = q<HTMLSelectElement>('.wp-u').value as 'natural' | 'electron', d = DEF[u];
+    ['.wp-v0', '.wp-a', '.wp-d', '.wp-e', '.wp-s', '.wp-x', '.wp-w'].forEach((c, i) => { inp(c).value = String(d[i]); });
+    inp('.wp-t').value = '';
+  }
+  function labels() {
+    const u = q<HTMLSelectElement>('.wp-u').value, b = q<HTMLSelectElement>('.wp-b').value;
+    root.querySelectorAll('.wp-lu').forEach((e) => { e.textContent = u === 'natural' ? '' : ' (nm)'; });
+    q('.wp-eu').textContent = u === 'natural' ? '' : ' (eV)'; q('.wp-tu').textContent = u === 'natural' ? '' : ' (fs)';
+    q('.wp-v0l').textContent = (b === 'well' ? 'Depth V₀' : 'Height V₀') + (u === 'natural' ? '' : ' (eV)');
+    q('.wp-al').hidden = b === 'step'; q('.wp-dl').hidden = b !== 'double';
+    q('.wp-al').querySelector('span')!.firstChild!.textContent = b === 'gauss' ? 'Width a (standard deviation)' : 'Width a';
+  }
+
+  function drawFrame() {
+    if (!sim) return;
+    const f = sim.frames[frame], show = q<HTMLSelectElement>('.wp-show').value, s = sim;
+    const step = Math.max(1, Math.floor(s.x.length / 600)), xs: number[] = [], ps: number[] = [], vs: number[] = [], rs: number[] = [];
+    for (let i = 0; i < s.x.length; i += step) { xs.push(s.x[i]); ps.push(f.prob[i] * info.scale); vs.push(Math.min(info.yTop, Math.max(info.yBot, s.Vx[i]))); rs.push(info.E0 + f.re[i] * Math.sqrt(info.scale * info.yTop) * 0.5); }
+    animFig = chartFigure({ w: 520, h: 300, xLabel: `x${info.xu}`, yLabel: `Energy${info.eu}`, yMin: info.yBot, yMax: info.yTop, xMin: s.x[0], xMax: s.x[s.x.length - 1], legend: 'below', series: [
+      { name: 'V(x)', x: xs, y: vs, mode: 'line', width: 2, color: '#555555' },
+      { name: '|ψ|² (scaled)', x: xs, y: ps, mode: 'line', width: 2, color: '#0072B2' },
+      ...(show === 're' ? [{ name: 'Re ψ (around E₀)', x: xs, y: rs, mode: 'line' as const, width: 1, color: '#D55E00' }] : []),
+    ], marks: [{ kind: 'hline', at: info.E0, dash: [4, 4], label: 'E₀' }] }, `Wave packet at t = ${sig(f.t, 4)}${info.tu}`);
+    paint(q<HTMLCanvasElement>('.wp-anim'), animFig);
+    inp('.wp-time').value = String(frame); q('.wp-tl').textContent = `t = ${sig(f.t, 4)}${info.tu}`;
+  }
+  function stop() { playing = false; cancelAnimationFrame(raf); q('.wp-play').textContent = 'Play'; }
+  function play() {
+    if (!sim) return;
+    if (frame >= sim.frames.length - 1) frame = 0;
+    playing = true; q('.wp-play').textContent = 'Pause';
+    let last = 0;
+    const tick = (ts: number) => { if (!playing || !sim) return; if (ts - last > 40) { last = ts; drawFrame(); frame++; if (frame >= sim.frames.length) { frame = sim.frames.length - 1; drawFrame(); stop(); return; } } raf = requestAnimationFrame(tick); };
+    raf = requestAnimationFrame(tick);
+  }
+
+  function calc() {
+    stop();
+    const err = q('.wp-err'), out = q('.wp-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sim = null; report = []; };
+    labels();
+    const u = q<HTMLSelectElement>('.wp-u').value as 'natural' | 'electron', id = q<HTMLSelectElement>('.wp-b').value as BarrierId;
+    const c = u === 'natural' ? 0.5 : C_ELECTRON, hbar = u === 'natural' ? 1 : HBAR_EV_FS;
+    const V0 = num(inp('.wp-v0').value), a = num(inp('.wp-a').value), d = num(inp('.wp-d').value), E0 = num(inp('.wp-e').value), sg = num(inp('.wp-s').value), xc = num(inp('.wp-x').value), X = num(inp('.wp-w').value), N = +q<HTMLSelectElement>('.wp-n').value;
+    if (!Number.isFinite(V0) || (id === 'well' && !(V0 > 0))) return fail(id === 'well' ? 'Give the well depth V₀ as a positive number.' : 'Give the barrier height V₀.');
+    if (id !== 'step' && !(a > 0)) return fail('Give a width a greater than 0.');
+    if (id === 'double' && !(d >= 0)) return fail('Give the gap between the barriers (0 or more).');
+    if (!(E0 > 0)) return fail('Give a packet energy E₀ greater than 0.');
+    if (!(sg > 0)) return fail('Give a packet width σ greater than 0.');
+    if (!(X > 0)) return fail('Give a window half-width greater than 0.');
+    const bar = barrierV({ id, V0, a: id === 'step' ? 0 : a, d: id === 'double' ? d : 0 });
+    if (!(xc - 4 * sg > -0.85 * X)) return fail('The packet starts too close to the left edge: move it right, make it narrower or widen the window.');
+    if (!(xc + 3 * sg < bar.lo)) return fail('The packet starts on top of the barrier: move it further left or make it narrower.');
+    if (bar.hi > 0.8 * X) return fail('The barrier does not fit in the window: widen the window.');
+    const k0 = Math.sqrt(E0 / c), dx = (2 * X) / N, kmax = Math.PI / dx;
+    if (sg < 4 * dx) return fail('The packet is too narrow for this grid: make σ wider or use more grid points.');
+    if (k0 + 6 / (2 * sg) > 0.7 * kmax) return fail('The grid is too coarse for this energy: use more grid points, a smaller window or a lower energy.');
+    const v0 = (2 * c * k0) / hbar, auto = (1.15 * (0.88 * X - xc)) / v0;
+    const tIn = inp('.wp-t').value.trim(), tEnd = tIn ? num(tIn) : auto;
+    if (!(tEnd > 0)) return fail('Give a run time greater than 0, or leave it blank.');
+    const dt = (0.03 * hbar) / Math.max(E0, Math.abs(V0));
+    if (tEnd / dt > 40000) return fail('That run would take too many time steps: shorten the run time or lower the barrier.');
+    err.hidden = true; out.hidden = false;
+    const eu = u === 'natural' ? '' : ' eV', xu = u === 'natural' ? '' : ' (nm)', tu = u === 'natural' ? '' : ' fs';
+    sim = simulate({ x0: -X, x1: X, N, c, hbar, V: bar.V, xc, sigma: sg, k0, tEnd, dt, frames: 150, split: 0 });
+    const segs: Seg[] = bar.segs ?? staircase(bar.V, -6 * a, 6 * a, 3000);
+    const Tp = packetT(segs, c, k0, sg), T0 = transmission(E0, segs, c);
+    q('.wp-big').textContent = `R = ${(100 * sim.R).toFixed(1)} %, T = ${(100 * sim.T).toFixed(1)} %`;
+    const dk = 1 / (2 * sg), dE = 2 * c * k0 * dk;
+    const facts = [
+      fact('Transmitted T (simulation)', `${sig(sim.T, 4)}`, `${sig(sim.absR, 3)} already absorbed at the right edge`),
+      fact('Reflected R (simulation)', `${sig(sim.R, 4)}`, `R + T = ${sig(sim.R + sim.T, 6)}`),
+      fact('Stationary T averaged over the packet', sig(Tp, 4), `transfer matrix, weighted by the packet's momentum spread; difference ${sig(sim.T - Tp, 2)}`),
+      fact('Plane-wave T at E₀', sig(T0, 4), 'a single energy, no spread'),
+      fact('Energy spread', `± ${sig(dE, 3)}${eu}`, `momentum spread ħ/2σ; group speed ${sig(v0, 3)}${u === 'natural' ? '' : ' nm/fs'}`),
+      fact('Time steps', `${sim.steps.toLocaleString('en')} × ${sig(tEnd / sim.steps, 3)}${tu}`, `run time ${sig(tEnd, 4)}${tu}, ${N} grid points`),
+    ];
+    q('.wp-facts').replaceChildren(...facts);
+    let resid = 0; { const f = sim.frames[sim.frames.length - 1]; for (let i = 0; i < sim.x.length; i++) if (Math.abs(sim.x[i]) < Math.max(5 * sg, bar.hi + 2 * sg) && Math.abs(sim.x[i]) < 0.5 * X) resid += f.prob[i] * dx; }
+    q('.wp-note').textContent = `${resid > 0.02 ? `About ${(100 * resid).toFixed(0)} % of the packet is still near the barrier at the end (for example trapped between double barriers): a longer run time sorts it into R and T. ` : ''}R and T count everything left and right of x = 0 at the end, including what the absorbing edges have taken. The simulation and the stationary result should agree to a few parts in a thousand; a bigger gap means the grid, run time or window needs changing.`;
+    // Scales for the animation.
+    const Vmax = Math.max(...sim.Vx), Vmin = Math.min(...sim.Vx), p0 = Math.max(...sim.frames[0].prob);
+    const yTop = Math.max(E0 + 3 * dE, Vmax) * 1.35, yBot = Math.min(0, Vmin * 1.1) - 0.05 * yTop;
+    info = { yTop, yBot, scale: (0.6 * yTop) / p0, E0, eu: eu ? ' (eV)' : '', xu, tu };
+    const rg = q<HTMLInputElement>('.wp-time'); rg.max = String(sim.frames.length - 1);
+    frame = sim.frames.length - 1; drawFrame();
+    // T(E) curve with the packet's energy distribution.
+    const Emax = Math.max(3 * E0, 2 * Math.abs(V0), E0 + 5 * dE), es: number[] = [], ts: number[] = [], ws: number[] = [];
+    tRows = [['E', 'T', 'R']];
+    for (let i = 1; i <= 300; i++) { const E = (Emax * i) / 300, t = transmission(E, segs, c); es.push(E); ts.push(t); tRows.push([+E.toPrecision(6), +t.toPrecision(8), +(1 - t).toPrecision(8)]); const k = Math.sqrt(E / c); ws.push(Math.exp(-((k - k0) ** 2) / (2 * dk * dk))); }
+    figT = chartFigure({ w: 520, h: 260, xLabel: `Energy E${info.eu}`, yLabel: 'Transmission T(E)', yMin: 0, yMax: 1.05, xMin: 0, xMax: Emax, legend: 'below', series: [
+      { name: 'T(E), stationary', x: es, y: ts, mode: 'line', width: 2 },
+      { name: "packet's energy spread (relative)", x: es, y: ws, mode: 'line', width: 1.2, dash: [5, 3] },
+    ], marks: [{ kind: 'vline', at: E0, dash: [3, 3], label: 'E₀' }, ...(id !== 'well' && V0 > 0 && V0 < Emax ? [{ kind: 'vline' as const, at: V0, dash: [1, 3], label: 'V₀' }] : [])] }, 'Stationary transmission against energy, with the packet’s energy spread');
+    paint(q<HTMLCanvasElement>('.wp-fig'), figT);
+    const rows = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    report = [{ title: q('.wp-big').textContent!, facts: rows(facts), figure: animFig! }, { title: 'Transmission against energy', figure: figT, note: q('.wp-note').textContent! }];
+  }
+
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(calc, 350); };
+  q('.wp-u').addEventListener('change', () => { setDefaults(); calc(); });
+  q('.wp-b').addEventListener('change', calc);
+  q('.wp-n').addEventListener('change', calc);
+  q('.wp-show').addEventListener('change', drawFrame);
+  root.querySelectorAll('.ax-grid input').forEach((i) => i.addEventListener('input', later));
+  inp('.wp-time').addEventListener('input', () => { stop(); frame = +inp('.wp-time').value; drawFrame(); });
+  q('.wp-play').addEventListener('click', () => (playing ? stop() : play()));
+  q('.wp-csv').addEventListener('click', () => save(new Blob([csv(tRows)], { type: 'text/csv' }), 'transmission.csv', 'text/csv'));
+  q('.wp-pcsv').addEventListener('click', () => {
+    if (!sim) return; const f = sim.frames[frame], rows: (string | number)[][] = [['x', 'V', 'prob_density', 're_psi']];
+    for (let i = 0; i < sim.x.length; i++) rows.push([+sim.x[i].toPrecision(8), +sim.Vx[i].toPrecision(8), +f.prob[i].toPrecision(8), +f.re[i].toPrecision(8)]);
+    save(new Blob([csv(rows)], { type: 'text/csv' }), `packet-t${sig(f.t, 4)}.csv`, 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (sim) { drawFrame(); if (figT) paint(q<HTMLCanvasElement>('.wp-fig'), figT); } });
+  setDefaults(); calc(); frame = 0; drawFrame();
+  wireDownloads(q('.dl'), () => ({ title: 'Wave packet and barrier', subtitle: q<HTMLSelectElement>('.wp-b').selectedOptions[0].text, file: 'wave-packet', sections: report }));
+</script>

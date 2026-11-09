@@ -1,0 +1,140 @@
+---
+// Bethe-Bloch stopping power and CSDA range for protons, alphas and other ions (and muons, pions) in materials, with
+// a Bragg curve and the energy left after a thickness. Material constants are rounded and editable.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { PROJECTILES, MATERIALS } from '../../lib/sci/phstop';
+---
+<div class="ax stp">
+  <div class="ax-card">
+    <h2>Particle and material</h2>
+    <div class="ax-grid">
+      <label>Particle <select class="st-p">{Object.entries(PROJECTILES).map(([k, p]) => <option value={k} selected={k === 'proton'}>{p.name}</option>)}<option value="custom">Your own ion…</option></select></label>
+      <label class="st-cw" hidden>Charge number z <input class="st-z" type="text" inputmode="decimal" value="3" /></label>
+      <label class="st-cw" hidden>Mass (u) <input class="st-mu" type="text" inputmode="decimal" value="7.016" /></label>
+      <label>Kinetic energy <input class="st-T" type="text" inputmode="decimal" value="100" /></label>
+      <label>Energy unit <select class="st-Tu"><option value="tot" selected>MeV (total)</option><option value="u">MeV per nucleon (MeV/u)</option></select></label>
+      <label>Material <select class="st-m">{Object.entries(MATERIALS).map(([k, m]) => <option value={k} selected={k === 'water'}>{m.name}</option>)}</select></label>
+      <label>Z/A (electrons per nucleon) <input class="st-za" type="text" inputmode="decimal" /></label>
+      <label>Mean excitation energy I (eV) <input class="st-I" type="text" inputmode="decimal" /></label>
+      <label>Density (g/cm³) <input class="st-rho" type="text" inputmode="decimal" /></label>
+      <label>Thickness to cross (optional) <input class="st-x" type="text" inputmode="decimal" value="" placeholder="e.g. 5" /></label>
+      <label>Bragg curve <select class="st-bs"><option value="1" selected>with range straggling (rough)</option><option value="0">pristine (one particle)</option></select></label>
+      <label>Thickness unit <select class="st-xu"><option value="um">µm</option><option value="mm">mm</option><option value="cm" selected>cm</option><option value="g">g/cm²</option></select></label>
+    </div>
+    <p class="ax-help">Z/A, I and density fill in from rounded, commonly quoted values when you pick a material; type your own for another material or compound (for an element, I ≈ 10 eV × Z is a rough guide).</p>
+    <p class="ax-err st-err" hidden></p>
+  </div>
+
+  <div class="ax-card st-out">
+    <h2>Result</h2>
+    <p class="ax-big st-big"></p>
+    <p class="ax-pill warn st-warn" hidden></p>
+    <dl class="ax-facts st-facts" style="margin-top:10px"></dl>
+    <canvas class="ax-fig st-fig1" style="margin-top:12px"></canvas>
+    <canvas class="ax-fig st-fig2" style="margin-top:12px"></canvas>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small st-csv">Download range-energy table (CSV)</button>
+      <button type="button" class="btn secondary small st-bcsv">Download Bragg curve (CSV)</button>
+    </div>
+    <p class="ax-help">Bethe-Bloch without shell, density-effect, Barkas or effective-charge corrections, and the continuous-slowing-down (CSDA) range, which ignores straggling and nuclear reactions. Good to a few percent from about 2 MeV per nucleon to a few GeV per nucleon. For study and planning, not a substitute for professional judgement or validated treatment-planning or shielding software.</p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .stp select, .stp input { max-width: 100%; }
+</style>
+
+<script>
+  import { stopping, range, residual, braggCurve, straggled, straggleSigma, kin, cutEnergy, PROJECTILES, MATERIALS, U, type Projectile, type Material } from '../../lib/sci/phstop';
+  import { num, fmtExp, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.stp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const sig = (x: number, n = 4) => { const a = Math.abs(x); return !Number.isFinite(x) ? '–' : a && (a >= 1e6 || a < 1e-4) ? fmtExp(x, n) : String(+x.toPrecision(n)).replace('-', '−'); };
+  const fact = (k: string, v: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const e = document.createElement('small'); e.textContent = s; d.querySelector('dd')!.append(e); } return d; };
+  const len = (cm: number) => (cm >= 100 ? `${sig(cm / 100)} m` : cm >= 1 ? `${sig(cm)} cm` : cm >= 0.1 ? `${sig(cm * 10)} mm` : `${sig(cm * 1e4)} µm`);
+  let figs: Figure[] = [], report: Section[] = [], table: (string | number)[][] = [], bragg: (string | number)[][] = [];
+
+  function fill() {
+    const m = MATERIALS[sel('.st-m')];
+    inp('.st-za').value = String(m.ZA); inp('.st-I').value = String(m.I); inp('.st-rho').value = String(m.rho);
+  }
+
+  function calc() {
+    const err = q('.st-err'), out = q('.st-out');
+    const fail = (msg: string) => { err.textContent = msg; err.hidden = false; out.hidden = true; report = []; figs = []; };
+    root.querySelectorAll<HTMLElement>('.st-cw').forEach((e) => { e.hidden = sel('.st-p') !== 'custom'; });
+    let p: Projectile;
+    if (sel('.st-p') === 'custom') {
+      const z = num(inp('.st-z').value), mu = num(inp('.st-mu').value);
+      if (!(z >= 1 && z <= 100)) return fail('Give the ion charge number z, from 1 to 100.');
+      if (!(mu > 0.05)) return fail('Give the ion mass in atomic mass units (u), for example 7.016 for Li-7.');
+      p = { name: `Ion (z = ${z}, ${mu} u)`, z, M: mu * U };
+    } else p = PROJECTILES[sel('.st-p')];
+    const mat: Material = { name: MATERIALS[sel('.st-m')].name, ZA: num(inp('.st-za').value), I: num(inp('.st-I').value), rho: num(inp('.st-rho').value) };
+    if (!(mat.ZA > 0.3 && mat.ZA <= 1)) return fail('Z/A must be between 0.3 and 1 (hydrogen is 0.99, most materials 0.4 to 0.56).');
+    if (!(mat.I > 10 && mat.I < 2000)) return fail('The mean excitation energy I is between about 19 eV (hydrogen) and 1,000 eV.');
+    if (!(mat.rho > 0)) return fail('Give a density above zero.');
+    const nuc = p.M / U, Tin = num(inp('.st-T').value), T = sel('.st-Tu') === 'u' ? Tin * nuc : Tin;
+    if (!(T > 0)) return fail('Give a kinetic energy above zero.');
+    if (T / nuc > 1e5) return fail('Up to 100 GeV per nucleon, please (radiative losses matter above that, especially for muons).');
+    const S = stopping(T, p, mat);
+    if (!(S > 0)) return fail('The energy is too low for the Bethe formula with these values.');
+    const xs = inp('.st-x').value.trim(), xv = num(xs);
+    if (xs && !(xv >= 0)) return fail('The thickness must be zero or more, or leave it blank.');
+    err.hidden = true; out.hidden = false;
+    const k = kin(T, p.M), R = range(T, p, mat), Rcm = R / mat.rho, low = T / nuc < 2;
+    q('.st-big').textContent = `Range ${len(Rcm)} of ${mat.name.toLowerCase().replace(/ \(.*\)$/, '')} (${sig(R)} g/cm²)`;
+    q('.st-warn').hidden = !low; q('.st-warn').textContent = 'Below 2 MeV per nucleon: rough, the missing corrections matter here';
+    const f = [
+      fact('Mass stopping power', `${sig(S)} MeV cm²/g`, `at ${sig(T)} MeV (${sig(T / nuc)} MeV/u)`),
+      fact('Linear stopping power', `${sig(S * mat.rho)} MeV/cm`, `${sig(S * mat.rho / 10)} keV/µm (LET in this material)`),
+      fact('Speed', `β = ${sig(k.beta)}`, `γ = ${sig(k.gamma, 5)}, βγ = ${sig(Math.sqrt(k.bg2))}`),
+      fact('Largest energy to one electron', `${sig(k.Tmax * 1000)} keV`, 'Tmax: the hardest knock-on (delta ray)'),
+    ];
+    let left = '';
+    if (xs) {
+      const xg = sel('.st-xu') === 'g' ? xv : xv * ({ um: 1e-4, mm: 0.1, cm: 1 } as Record<string, number>)[sel('.st-xu')] * mat.rho;
+      const r = residual(T, xg, p, mat);
+      left = r > 0 ? `${sig(r)} MeV` : 'stops inside';
+      f.push(fact(`After ${sig(xv)} ${q<HTMLSelectElement>('.st-xu').selectedOptions[0].text}`, left, r > 0 ? `lost ${sig(T - r)} MeV; stopping power there ${sig(stopping(r, p, mat))} MeV cm²/g` : `the range is ${sig(R)} g/cm², less than ${sig(xg)} g/cm²`));
+    }
+    q('.st-facts').replaceChildren(...f);
+    // Stopping power against energy, and the Bragg curve.
+    const Tc = cutEnergy(p), Tt = Math.max(T * 10, Tc * 100), es: number[] = [];
+    for (let i = 0; i <= 120; i++) es.push(Tc * Math.pow(Tt / Tc, i / 120));
+    const c1 = chartFigure({ w: 380, h: 230, xLabel: 'Kinetic energy (MeV)', yLabel: 'Stopping power (MeV cm²/g)', xLog: true, yLog: true, legend: 'none', series: [
+      { name: 'Bethe-Bloch', x: es, y: es.map((e) => stopping(e, p, mat)), mode: 'line', width: 2 },
+      { name: 'here', x: [T], y: [S], mode: 'points' },
+    ] }, `Stopping power of ${p.name.toLowerCase()} in ${mat.name.toLowerCase()} against energy`);
+    const bc = braggCurve(T, p, mat), sg = sel('.st-bs') === '1' ? straggleSigma(R, p) : 0, zs: number[] = [];
+    for (let i = 0; i <= 300; i++) zs.push((R * (sg ? 1.08 : 1) * i) / 300);
+    const ys = sg ? straggled(bc, R, sg, zs) : [];
+    const bx = sg ? zs : bc.map((b) => b.depth), by = sg ? ys : bc.map((b) => b.S);
+    const unit = Rcm >= 1 ? 1 : Rcm >= 0.1 ? 0.1 : 1e-4, ul = unit === 1 ? 'cm' : unit === 0.1 ? 'mm' : 'µm';
+    const c2 = chartFigure({ w: 380, h: 230, xLabel: `Depth (${ul})`, yLabel: 'Energy loss (MeV/cm)', xMin: 0, yMin: 0, legend: 'none', series: [
+      { name: 'Bragg curve', x: bx.map((d) => d / mat.rho / unit), y: by.map((v) => v * mat.rho), mode: 'line', width: 2 },
+    ], marks: [{ kind: 'vline', at: Rcm / unit, dash: [3, 3], label: 'range' }] }, `Energy loss along the track (Bragg curve) of a ${sig(T)} MeV ${p.name.toLowerCase()}${sg ? `, range straggling σ ≈ ${len(sg / mat.rho)}` : ' (pristine)'}`);
+    paint(q<HTMLCanvasElement>('.st-fig1'), c1); paint(q<HTMLCanvasElement>('.st-fig2'), c2); figs = [c1, c2];
+    // CSV tables.
+    const grid: number[] = []; for (let i = 0; i <= 60; i++) grid.push(Tc * Math.pow(Math.max(T, Tc * 1.01) / Tc, i / 60));
+    table = [['kinetic energy (MeV)', 'MeV per nucleon', 'stopping power (MeV cm2/g)', 'linear (MeV/cm)', 'CSDA range (g/cm2)', 'range (cm)'], ...grid.map((e) => { const s = stopping(e, p, mat), r = range(e, p, mat); return [+e.toPrecision(6), +(e / nuc).toPrecision(6), +s.toPrecision(6), +(s * mat.rho).toPrecision(6), +r.toPrecision(6), +(r / mat.rho).toPrecision(6)]; })];
+    bragg = sg ? [['depth (cm)', 'mean energy loss with straggling (MeV/cm)'], ...zs.map((z, i) => [+(z / mat.rho).toPrecision(6), +(ys[i] * mat.rho).toPrecision(6)])]
+      : [['depth (cm)', 'energy (MeV)', 'energy loss (MeV/cm)'], ...bc.map((b) => [+(b.depth / mat.rho).toPrecision(6), +b.T.toPrecision(6), +(b.S * mat.rho).toPrecision(6)])];
+    report = [{ title: q('.st-big').textContent!, text: [`${p.name} at ${sig(T)} MeV in ${mat.name} (Z/A ${mat.ZA}, I ${mat.I} eV, ${mat.rho} g/cm³).`], facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: c2 }, { title: 'Stopping power against energy', figure: c1, note: 'Bethe-Bloch without shell, density-effect, Barkas or effective-charge corrections; CSDA range.' }];
+  }
+
+  q('.st-m').addEventListener('change', () => { fill(); calc(); });
+  root.querySelectorAll('input, select').forEach((i) => { if (!i.matches('.st-m')) { i.addEventListener('input', calc); i.addEventListener('change', calc); } });
+  q('.st-csv').addEventListener('click', () => { if (table.length) save(new TextEncoder().encode(csv(table)), 'range-energy.csv', 'text/csv'); });
+  q('.st-bcsv').addEventListener('click', () => { if (bragg.length) save(new TextEncoder().encode(csv(bragg)), 'bragg-curve.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.st-out').hidden) { paint(q<HTMLCanvasElement>('.st-fig1'), figs[0]); paint(q<HTMLCanvasElement>('.st-fig2'), figs[1]); } });
+  fill(); calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Stopping power and range', subtitle: q('.st-big').textContent ?? '', file: 'stopping-power', sections: report }));
+</script>

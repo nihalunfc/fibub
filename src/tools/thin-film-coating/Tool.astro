@@ -1,0 +1,146 @@
+---
+// Thin-film interference and coatings: reflectance and transmittance of a layer stack by the transfer-matrix method.
+// Indices are rounded, constant (non-dispersive) values; the example designs are textbook types with made-up numbers.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax tfc">
+  <div class="ax-card">
+    <h2>Coating</h2>
+    <label>Start from <select class="tf-pre">
+      <option value="mgf2">One quarter-wave of MgF₂ (simple AR)</option>
+      <option value="qhq" selected>Quarter-half-quarter broadband AR</option>
+      <option value="bragg">Bragg mirror, 8 pairs TiO₂/SiO₂</option>
+      <option value="soap">Soap film, 300 nm (in air)</option>
+      <option value="metal">Thin metal-like layer (n 0.2, k 3)</option>
+      <option value="custom">My own layers</option>
+    </select></label>
+    <label style="margin-top:10px"><span>Layers, from the light's side to the substrate, one per line: <code>index thickness-nm</code>, <code>n k thickness</code>, or quarter waves (<code>1.38 QW</code>, <code>2.1 2QW</code>). A material name works for the index (MgF2 1.38, SiO2 1.46, Al2O3 1.63, Ta2O5 2.1, TiO2 2.35, ZnS 2.35, rounded). <code>2.35 QW; 1.46 QW x 8</code> repeats a group.</span> <textarea class="tf-lay" rows="4" spellcheck="false"></textarea></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Design wavelength for QW (nm) <input class="tf-l0" type="text" inputmode="decimal" value="550" /></label>
+      <label>Incident medium index <input class="tf-n0" type="text" inputmode="decimal" value="1" /></label>
+      <label>Substrate index n <input class="tf-ns" type="text" inputmode="decimal" value="1.52" /></label>
+      <label>Substrate k (0 = clear) <input class="tf-ks" type="text" inputmode="decimal" value="0" /></label>
+      <label>Angle of incidence (°) <input class="tf-a" type="text" inputmode="decimal" value="0" /></label>
+      <label>Light <select class="tf-pol"><option value="u" selected>Unpolarised</option><option value="s">s-polarised (TE)</option><option value="p">p-polarised (TM)</option></select></label>
+      <label>Spectrum from (nm) <input class="tf-a1" type="text" inputmode="decimal" value="400" /></label>
+      <label>to (nm) <input class="tf-a2" type="text" inputmode="decimal" value="800" /></label>
+    </div>
+    <p class="ax-help">QW: a quarter-wave layer, whose optical thickness n × d is a quarter of the design wavelength (it reflects most strongly or weakly there). Indices are treated as constant across the spectrum, which is a fair first approximation for clear dielectrics in visible light. The substrate is taken as infinitely thick, so only the front surface counts; a real glass plate also reflects about 4 % from its back.</p>
+    <p class="ax-err tf-err" hidden></p>
+  </div>
+
+  <div class="ax-card tf-out">
+    <h2>Result</h2>
+    <p class="ax-big tf-big"></p>
+    <dl class="ax-facts tf-facts"></dl>
+    <canvas class="ax-fig tf-fig"></canvas>
+    <canvas class="ax-fig tf-fig2"></canvas>
+    <h3>Layers</h3>
+    <div class="ax-scroll"><table class="tf-tab"></table></div>
+    <p class="ax-help">Transfer (characteristic) matrix method with perfectly flat, uniform layers and sharp interfaces; no scattering, no roughness. For study and planning; real coatings need measured, wavelength-dependent indices.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small tf-csv">Download the spectrum (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseLayers, rt, rtAvg, bareR, type Layer, type Stack } from '../../lib/sci/phfilm';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const PRE: Record<string, { lay: string; n0?: string; ns?: string; ks?: string }> = {
+    mgf2: { lay: 'MgF2 QW' },
+    qhq: { lay: 'MgF2 QW\nTa2O5 2QW\nAl2O3 QW' },
+    bragg: { lay: 'TiO2 QW; SiO2 QW x 8' },
+    soap: { lay: '1.33 300', ns: '1' },
+    metal: { lay: '0.2 3 30' },
+  };
+  const root = document.querySelector<HTMLElement>('.tfc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => num(inp(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const pc = (x: number) => `${x < 0.001 ? sig(x * 100, 2) : x > 0.99 ? sig(x * 100, 4) : sig(x * 100, 3)} %`;
+  let figs: Figure[] = [], report: Section[] = [], spec: (string | number)[][] = [];
+
+  function preset() {
+    const p = PRE[q<HTMLSelectElement>('.tf-pre').value];
+    if (!p) return;
+    q<HTMLTextAreaElement>('.tf-lay').value = p.lay;
+    inp('.tf-n0').value = p.n0 ?? '1'; inp('.tf-ns').value = p.ns ?? '1.52'; inp('.tf-ks').value = p.ks ?? '0';
+    calc();
+  }
+
+  function calc() {
+    const err = q('.tf-err'), out = q('.tf-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; spec = []; };
+    const l0 = val('.tf-l0'), n0 = val('.tf-n0'), ns = val('.tf-ns'), ks = val('.tf-ks'), a = val('.tf-a'), a1 = val('.tf-a1'), a2 = val('.tf-a2'), pol = q<HTMLSelectElement>('.tf-pol').value;
+    if (!(l0 >= 100 && l0 <= 20000)) return fail('Give a design wavelength between 100 and 20,000 nm.');
+    if (!(n0 >= 1 && n0 < 10)) return fail('The incident medium index must be 1 (air) or more, e.g. 1.33 for water.');
+    if (!(ns > 0 && ns < 20)) return fail('Give the substrate refractive index, e.g. 1.52 for crown glass.');
+    if (!(ks >= 0 && ks < 20)) return fail('The substrate k must be 0 (clear) or more.');
+    if (!(a >= 0 && a < 90)) return fail('The angle of incidence must be from 0° up to (not including) 90°.');
+    if (!(a1 >= 100 && a2 > a1 && a2 <= 50000)) return fail('Give a spectrum range in nm, the second number larger than the first (from 100 nm).');
+    let layers: Layer[];
+    try { layers = parseLayers(q<HTMLTextAreaElement>('.tf-lay').value, l0); } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; out.hidden = false;
+    const st: Stack = { n0, ns, ks, layers }, bare: Stack = { n0, ns, ks, layers: [] };
+    const at = (s: Stack, l: number, ang: number) => (pol === 'u' ? rtAvg(s, l, ang) : rt(s, l, ang, pol as 's' | 'p'));
+    const here = at(st, l0, a), b = at(bare, l0, a);
+    const pname = pol === 'u' ? 'unpolarised' : `${pol}-polarised`;
+    q('.tf-big').textContent = `R ${pc(here.R)}, T ${pc(here.T)} at ${sig(l0, 4)} nm, ${sig(a, 3)}°, ${pname}`;
+    // Spectrum.
+    const N = 400, ls: number[] = [], Ru: number[] = [], Rs: number[] = [], Rp: number[] = [], Tu: number[] = [];
+    spec = [['wavelength_nm', 'R_s', 'R_p', 'R_unpolarised', 'T_s', 'T_p', 'T_unpolarised']];
+    for (let i = 0; i <= N; i++) { const l = a1 + ((a2 - a1) * i) / N, r = rtAvg(st, l, a); ls.push(l); Ru.push(r.R * 100); Rs.push(r.Rs * 100); Rp.push(r.Rp * 100); Tu.push(r.T * 100); spec.push([+l.toFixed(3), +r.Rs.toPrecision(6), +r.Rp.toPrecision(6), +r.R.toPrecision(6), +r.Ts.toPrecision(6), +r.Tp.toPrecision(6), +r.T.toPrecision(6)]); }
+    const Rsel = pol === 's' ? Rs : pol === 'p' ? Rp : Ru;
+    const mean = Rsel.reduce((x, y) => x + y, 0) / Rsel.length, iMin = Rsel.indexOf(Math.min(...Rsel)), iMax = Rsel.indexOf(Math.max(...Rsel));
+    const tot = layers.reduce((x, L) => x + L.d, 0);
+    const f = [
+      fact('Reflectance R', pc(here.R), `bare substrate ${pc(b.R)}${ks === 0 && n0 <= ns && a === 0 ? ` (((n₀ − n)/(n₀ + n))² = ${pc(bareR(n0, ns))})` : ''}`),
+      fact('Transmittance T', pc(here.T), 'into the substrate'),
+      fact('Absorbed A', here.A < 1e-9 ? '0 %' : pc(here.A), layers.some((L) => L.k > 0) ? 'in the absorbing layers' : 'none: all layers are clear (k = 0)'),
+      fact(`Mean R, ${sig(a1, 4)}–${sig(a2, 4)} nm`, pc(mean / 100), 'plain average over the range'),
+      fact('Lowest R', `${pc(Rsel[iMin] / 100)} at ${sig(ls[iMin], 4)} nm`, `highest ${pc(Rsel[iMax] / 100)} at ${sig(ls[iMax], 4)} nm`),
+      fact('Stack', `${layers.length} layer${layers.length === 1 ? '' : 's'}, ${sig(tot, 4)} nm`, 'total physical thickness'),
+    ];
+    if (a > 0 && pol === 'u') f.splice(3, 0, fact('s and p', `R_s ${pc((here as ReturnType<typeof rtAvg>).Rs)}, R_p ${pc((here as ReturnType<typeof rtAvg>).Rp)}`, 'at an angle the two polarisations differ'));
+    q('.tf-facts').replaceChildren(...f);
+    const series = a > 0
+      ? [{ name: 'R unpolarised', x: ls, y: Ru, mode: 'line' as const, width: 2.2 }, { name: 'R s', x: ls, y: Rs, mode: 'line' as const, width: 1.3, dash: [5, 3] }, { name: 'R p', x: ls, y: Rp, mode: 'line' as const, width: 1.3, dash: [2, 2] }]
+      : [{ name: 'Reflectance R', x: ls, y: Ru, mode: 'line' as const, width: 2.2 }];
+    const yMax = Math.max(...Ru, ...Rs, ...Rp);
+    const c1 = chartFigure({ w: 400, h: 240, xLabel: 'Wavelength (nm)', yLabel: 'Reflectance (%)', xMin: a1, xMax: a2, yMin: 0, yMax: yMax > 50 ? 100 : undefined, legend: a > 0 ? 'below' : 'none', series, marks: [{ kind: 'vline', at: l0, dash: [3, 3], label: `${sig(l0, 4)} nm` }, { kind: 'hline', at: b.R * 100, dash: [5, 4], label: 'bare' }] }, `Reflectance from ${a1} to ${a2} nm at ${a}°`);
+    const angs: number[] = [], As: number[] = [], Ap: number[] = [], Au: number[] = [];
+    for (let i = 0; i <= 178; i++) { const t = i / 2, r = rtAvg(st, l0, t); angs.push(t); As.push(r.Rs * 100); Ap.push(r.Rp * 100); Au.push(r.R * 100); }
+    const c2 = chartFigure({ w: 400, h: 230, xLabel: 'Angle of incidence (°)', yLabel: 'Reflectance (%)', xMin: 0, xMax: 90, yMin: 0, yMax: 100, legend: 'below', series: [
+      { name: 's', x: angs, y: As, mode: 'line', width: 1.6, dash: [5, 3] }, { name: 'p', x: angs, y: Ap, mode: 'line', width: 1.6, dash: [2, 2] }, { name: 'unpolarised', x: angs, y: Au, mode: 'line', width: 2.2 },
+    ], marks: [{ kind: 'vline', at: a, dash: [3, 3] }] }, `Reflectance against angle at ${l0} nm`);
+    paint(q<HTMLCanvasElement>('.tf-fig'), c1); paint(q<HTMLCanvasElement>('.tf-fig2'), c2);
+    figs = [c1, c2];
+    // Layer table.
+    const head = ['#', 'Layer', 'n', 'k', 'Thickness (nm)', `Optical thickness (waves at ${sig(l0, 4)} nm)`];
+    const rows = layers.map((L, i) => [String(i + 1), L.name, sig(L.n, 4), sig(L.k, 3), sig(L.d, 4), sig((L.n * L.d) / l0, 3)]);
+    const show = rows.length > 40 ? [...rows.slice(0, 40), ['…', `${rows.length - 40} more`, '', '', '', '']] : rows;
+    const t = q<HTMLTableElement>('.tf-tab');
+    const tr = (cells: string[], th: boolean) => { const r = document.createElement('tr'); cells.forEach((c, j) => { const e = document.createElement(th ? 'th' : 'td'); e.textContent = c; if (j > 1) e.className = 'r'; r.append(e); }); return r; };
+    t.replaceChildren(tr(head, true), ...(show.length ? show.map((r) => tr(r, false)) : [tr(['', 'No layers: bare substrate', '', '', '', ''], false)]));
+    const plain = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    report = [{ title: q('.tf-big').textContent!, facts: plain(f), figure: c1 }, { title: 'Reflectance against angle', figure: c2 }, { title: 'Layers', table: { head, rows, align: ['l', 'l', 'r', 'r', 'r', 'r'] }, note: `Incident medium n = ${n0}, substrate n = ${ns}${ks ? `, k = ${ks}` : ''}. Constant indices; transfer-matrix method.` }];
+  }
+
+  q('.tf-pre').addEventListener('change', preset);
+  root.querySelectorAll('input, textarea, .tf-pol').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  q('.tf-lay').addEventListener('input', () => { q<HTMLSelectElement>('.tf-pre').value = 'custom'; });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.tf-out').hidden) { paint(q<HTMLCanvasElement>('.tf-fig'), figs[0]); paint(q<HTMLCanvasElement>('.tf-fig2'), figs[1]); } });
+  q('.tf-csv').addEventListener('click', () => { if (spec.length) save(new TextEncoder().encode(csv(spec)), 'thin-film-spectrum.csv', 'text/csv'); });
+  preset();
+  wireDownloads(q('.dl'), () => ({ title: 'Thin-film coating', subtitle: q<HTMLTextAreaElement>('.tf-lay').value.split('\n').join(' | ').slice(0, 120), file: 'thin-film', sections: report }));
+</script>
+
+<style is:global>
+  .tfc h3 { margin: 18px 0 8px; font-size: 15px; }
+  .tfc code { font-size: 13px; }
+</style>

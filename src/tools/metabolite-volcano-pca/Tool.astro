@@ -1,0 +1,170 @@
+---
+// Volcano plot and PCA for a metabolite (or any feature) table: two-group fold change, Welch's t-test, Benjamini-
+// Hochberg FDR, log transforms, missing values, and PCA scores and loadings. Opens files; nothing leaves the device.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const example = `Metabolite	Ctrl_1	Ctrl_2	Ctrl_3	Ctrl_4	Treated_1	Treated_2	Treated_3	Treated_4
+Lactate	1200.2	1255.0	1151.7	1049.9	2914.3	2688.8	3148.3	3814.7
+Citrate	315.8	309.8	365.9	358.7	276.3	236.6	270.8	301.9
+Succinate	69.5	79.4	63.9	70.1	199.9	254.4	217.9	274.4
+Glutamine	972.6	923.7	651.3	876.3	424.4	434.8	339.8	397.9
+Glutamate	354.0	363.2	480.7	363.2	448.8	515.0	413.2	443.5
+Alanine	630.4	626.0	515.9	627.1	760.2	491.6	705.3	631.2
+Glycine	708.4	1053.0	874.5	651.6	749.3	808.0	720.3	820.9
+Serine	257.4	287.4	322.6	234.9	321.7	291.1	318.0	261.1
+Taurine	137.5	145.6	171.6	178.1	123.0	133.1	165.3	111.2
+Creatine	494.4	522.3	640.0	587.7	454.2	451.3	459.4	599.5
+Hypoxanthine	39.4	40.1	44.3	41.2	89.7	78.2	92.2	86.5
+Kynurenine	21.4		17.9	19.9	68.4	84.3	71.9	78.6`;
+---
+<div class="ax mvp">
+  <div class="ax-card">
+    <h2>Data</h2>
+    <label>Paste a table: a header row of sample names, then one row per metabolite <textarea class="mv-data" rows="8" spellcheck="false" wrap="off">{example}</textarea></label>
+    <DataFile target=".mv-data" maxMB={20} maxCols={1000} maxRows={50000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Layout <select class="mv-lay"><option value="rows" selected>Metabolites in rows</option><option value="cols">Samples in rows</option></select></label>
+      <label>Compare group <select class="mv-gb"></select></label>
+      <label>against (reference) <select class="mv-ga"></select></label>
+    </div>
+    <p class="ax-help">Peak areas or concentrations, from Excel, a CSV file or your software's export. Groups come from a row or column called Group (or Class), or else from the sample names without their numbers (Ctrl_1, Ctrl_2 → Ctrl). Empty cells or NA are missing values. The table stays on this device. The example data are made up.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Settings</h2>
+    <div class="ax-grid">
+      <label>Transform for the tests and PCA <select class="mv-tr"><option value="log2" selected>log2</option><option value="log10">log10</option><option value="none">None</option></select></label>
+      <label>Missing values <select class="mv-miss"><option value="half-min" selected>Half the smallest value of that metabolite</option><option value="drop">Leave the metabolite out</option></select></label>
+      <label>Significant when <select class="mv-by"><option value="q" selected>FDR q (Benjamini–Hochberg)</option><option value="p">raw p</option></select></label>
+      <label>is below <input class="mv-alpha" inputmode="decimal" value="0.05" /></label>
+      <label>and fold change at least (×) <input class="mv-fc" inputmode="decimal" value="2" /></label>
+      <label>PCA scaling <select class="mv-sc"><option value="auto" selected>Unit variance (autoscaling)</option><option value="pareto">Pareto (√ of the SD)</option><option value="none">Centring only</option></select></label>
+    </div>
+    <p class="ax-help">The fold change is the ratio of the group means on the original scale; the t-test (Welch's, which does not assume equal variances) uses the transformed values, because concentrations are usually skewed. FDR q controls the share of false discoveries among the metabolites called significant. A fold change of 2 means up 2× or down to ½.</p>
+    <p class="ax-err mv-err" hidden></p>
+  </div>
+
+  <div class="ax-card mv-out">
+    <h2>Volcano plot</h2>
+    <p class="ax-big mv-big"></p>
+    <dl class="ax-facts mv-facts"></dl>
+    <canvas class="ax-fig mv-vol" style="margin-top:12px"></canvas>
+    <div class="ax-scroll mv-tw"><table class="mv-tab"></table></div>
+    <h2 style="margin-top:16px">PCA</h2>
+    <p class="mv-psum"></p>
+    <canvas class="ax-fig mv-pca"></canvas>
+    <div class="ax-scroll"><table class="mv-ltab"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small mv-csv">Results (CSV)</button>
+      <button type="button" class="btn secondary small mv-pcsv">PCA scores (CSV)</button>
+    </div>
+    <p class="ax-help">With few samples, p-values are rough and PCA can separate groups by chance; confirm findings with more samples and targeted measurement. For study and planning, not a substitute for professional judgement.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { readTable, handleMissing, compare, pca, transform, type Transform, type Scaling, type Result } from '../../lib/sci/mbvolcano';
+  import { parseTable, num, sig, csv as toCsv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.mvp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const pf = (p: number) => (!Number.isFinite(p) ? '–' : p < 1e-4 ? p.toExponential(1).replace('e-', ' × 10⁻').replace(/⁻(\d+)/, (_, d) => '⁻' + d.split('').map((c: string) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+c]).join('')) : sig(p, 2));
+  let figs: Figure[] = [], sections: Section[] = [], resCsv: string[][] = [], pcaCsv: string[][] = [], lastGroups = '';
+
+  function table(sel2: string, head: string[], rows: string[][], right: number[]) {
+    const t = q<HTMLTableElement>(sel2); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.className = 'r'; }); });
+  }
+
+  function calc() {
+    const err = q('.mv-err'), out = q('.mv-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; figs = []; sections = []; resCsv = []; pcaCsv = []; };
+    const t0 = readTable(parseTable(q<HTMLTextAreaElement>('.mv-data').value), sel('.mv-lay') === 'cols');
+    if (typeof t0 === 'string') return fail(t0);
+    const groups = [...new Set(t0.groups)];
+    if (groups.length < 2) return fail(`All samples are in one group (${groups[0]}). Name the samples by group (Ctrl_1, Treated_1 …) or add a row called Group.`);
+    const key = groups.join('\u0001');
+    if (key !== lastGroups) {
+      lastGroups = key;
+      for (const [c, i] of [['.mv-ga', 0], ['.mv-gb', 1]] as const) { const s = q<HTMLSelectElement>(c); s.replaceChildren(...groups.map((g) => { const o = document.createElement('option'); o.value = o.textContent = g; return o; })); s.value = groups[i]; }
+    }
+    const gA = sel('.mv-ga'), gB = sel('.mv-gb');
+    if (gA === gB) return fail('Choose two different groups to compare.');
+    const nA = t0.groups.filter((g) => g === gA).length, nB = t0.groups.filter((g) => g === gB).length;
+    if (nA < 2 || nB < 2) return fail(`Each group needs at least two samples for a t-test (${gA}: ${nA}, ${gB}: ${nB}).`);
+    const tr = sel('.mv-tr') as Transform, { t, filled, dropped } = handleMissing(t0, sel('.mv-miss') as 'half-min' | 'drop');
+    if (!t.features.length) return fail('No metabolites are left after removing those with missing values.');
+    if (tr !== 'none' && t.x.some((r) => r.some((v) => !(v > 0)))) return fail('A log transform needs every value above 0. Choose "None" or replace zeros and negative values.');
+    const alpha = num(q<HTMLInputElement>('.mv-alpha').value), fcT = num(q<HTMLInputElement>('.mv-fc').value), by = sel('.mv-by') as 'p' | 'q';
+    if (!(alpha > 0 && alpha < 1)) return fail('Give a significance level between 0 and 1, such as 0.05.');
+    if (!(fcT >= 1 && fcT < 1e6)) return fail('Give a fold change threshold of 1 or more, such as 2.');
+    err.hidden = true; out.hidden = false;
+    const res = compare(t, gA, gB, tr), lfc = Math.log2(fcT);
+    const sigOf = (r: Result) => (r[by] < alpha && Math.abs(r.log2fc) >= lfc ? (r.log2fc > 0 ? 'up' : 'down') : '');
+    const up = res.filter((r) => sigOf(r) === 'up'), down = res.filter((r) => sigOf(r) === 'down');
+    q('.mv-big').textContent = `${up.length} up, ${down.length} down of ${res.length} metabolites`;
+    const minQ = Math.min(...res.map((r) => r.q).filter(Number.isFinite));
+    const facts = [
+      fact('Comparison', `${gB} vs ${gA}`, `${nB} and ${nA} samples; up means higher in ${gB}`),
+      fact('Significant', `${up.length + down.length}`, `${by === 'q' ? 'FDR q' : 'raw p'} < ${+alpha.toPrecision(3)} and fold change ≥ ${+fcT.toPrecision(3)}× or ≤ ${+(1 / fcT).toPrecision(3)}×`),
+      fact('Lowest FDR q', pf(minQ), `${res.filter((r) => r.p < alpha).length} metabolites have raw p < ${+alpha.toPrecision(3)}`),
+      fact('Missing values', filled ? `${filled} filled` : dropped ? `${dropped} metabolite${dropped > 1 ? 's' : ''} left out` : 'none', filled ? 'with half the smallest value of that metabolite' : ''),
+    ];
+    q('.mv-facts').replaceChildren(...facts);
+    const yv = (r: Result) => -Math.log10(Math.max(r[by], 1e-300));
+    const part = (f: (r: Result) => boolean) => res.filter((r) => f(r) && Number.isFinite(r.log2fc) && Number.isFinite(yv(r)));
+    const lab = res.length <= 60;
+    const vol = chartFigure({ w: 380, h: 300, xLabel: `log₂ fold change (${gB} ÷ ${gA})`, yLabel: `−log₁₀ ${by === 'q' ? 'q' : 'p'}`, legend: 'below', series: [
+      { name: 'Not significant', x: part((r) => !sigOf(r)).map((r) => r.log2fc), y: part((r) => !sigOf(r)).map(yv), mode: 'points', color: '#999999', size: 3 },
+      { name: `Up in ${gB}`, x: up.map((r) => r.log2fc), y: up.map(yv), mode: 'points', marker: 'triangle', labels: lab ? up.map((r) => r.feature) : undefined },
+      { name: `Down in ${gB}`, x: down.map((r) => r.log2fc), y: down.map(yv), mode: 'points', marker: 'square', labels: lab ? down.map((r) => r.feature) : undefined },
+    ], marks: [{ kind: 'vline', at: lfc, dash: [4, 3] }, { kind: 'vline', at: -lfc, dash: [4, 3] }, { kind: 'hline', at: -Math.log10(alpha), dash: [4, 3], label: `${by} = ${+alpha.toPrecision(3)}` }] }, `Volcano plot: ${q('.mv-big').textContent}`);
+    paint(q<HTMLCanvasElement>('.mv-vol'), vol);
+    const sorted = [...res].sort((a, b) => a.p - b.p);
+    const head = ['Metabolite', `Mean ${gA}`, `Mean ${gB}`, 'Fold change', 'p', 'q', ''];
+    const rows = sorted.slice(0, 100).map((r) => [r.feature, sig(r.meanA, 4), sig(r.meanB, 4), `${sig(r.fc, 3)}×`, pf(r.p), pf(r.q), sigOf(r) === 'up' ? '▲ up' : sigOf(r) === 'down' ? '▼ down' : '']);
+    table('.mv-tab', head, rows, [1, 2, 3, 4, 5]);
+    resCsv = [['metabolite', `mean_${gA}`, `mean_${gB}`, 'fold_change', 'log2_fold_change', 't', 'df', 'p', 'q_bh', 'significant'], ...sorted.map((r) => [r.feature, String(r.meanA), String(r.meanB), String(r.fc), String(r.log2fc), String(r.t), String(r.df), String(r.p), String(r.q), sigOf(r)])];
+    // PCA on all samples.
+    const L = t.x.map((row) => row.map((v) => transform(v, tr)));
+    const P = pca(L, sel('.mv-sc') as Scaling);
+    q('.mv-psum').textContent = `${t.samples.length} samples, ${P.kept} metabolites that vary. PC1 explains ${sig(P.explained[0] * 100, 3)} % of the variance${P.explained[1] != null ? `, PC2 ${sig(P.explained[1] * 100, 3)} %` : ''}${P.explained[2] != null ? `, PC3 ${sig(P.explained[2] * 100, 3)} %` : ''}.`;
+    const pc2 = P.explained.length > 1;
+    const sc = chartFigure({ w: 380, h: 300, xLabel: `PC1 (${sig(P.explained[0] * 100, 3)} %)`, yLabel: pc2 ? `PC2 (${sig(P.explained[1] * 100, 3)} %)` : 'PC2', legend: 'below', series: groups.map((g, k) => {
+      const js = t.groups.map((x, j) => (x === g ? j : -1)).filter((j) => j >= 0);
+      return { name: g, x: js.map((j) => P.scores[j][0]), y: js.map((j) => (pc2 ? P.scores[j][1] : 0)), mode: 'points' as const, marker: (['circle', 'square', 'triangle', 'diamond', 'open-circle', 'open-square'] as const)[k % 6], size: 4.5 };
+    }) }, `PCA scores of ${t.samples.length} samples coloured by group`);
+    paint(q<HTMLCanvasElement>('.mv-pca'), sc);
+    const top = t.features.map((f, i) => ({ f, l: P.loadings[i] })).sort((a, b) => Math.abs(b.l[0]) - Math.abs(a.l[0])).slice(0, 10);
+    const lHead = ['Top loadings on PC1', 'PC1', ...(pc2 ? ['PC2'] : [])], lRows = top.map((x) => [x.f, x.l[0].toFixed(3), ...(pc2 ? [x.l[1].toFixed(3)] : [])]);
+    table('.mv-ltab', lHead, lRows, [1, 2]);
+    pcaCsv = [['sample', 'group', ...P.explained.map((_, c) => `PC${c + 1}`)], ...t.samples.map((s, j) => [s, t.groups[j], ...P.explained.map((_, c) => String(P.scores[j][c]))])];
+    figs = [vol, sc];
+    sections = [
+      { title: q('.mv-big').textContent!, text: [`${gB} against ${gA}; ${tr === 'none' ? 'no transform' : tr} for the tests; Welch's t-test with Benjamini–Hochberg FDR.`], facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: vol, table: { head, rows: rows.slice(0, 40), align: ['l', 'r', 'r', 'r', 'r', 'r', 'l'] } },
+      { title: 'PCA', text: [q('.mv-psum').textContent!], figure: sc, table: { head: lHead, rows: lRows, align: ['l', 'r', 'r'] } },
+    ];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('input, select, textarea').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.mv-csv').addEventListener('click', () => { if (resCsv.length) save(new TextEncoder().encode(toCsv(resCsv)), 'volcano-results.csv', 'text/csv'); });
+  q('.mv-pcsv').addEventListener('click', () => { if (pcaCsv.length) save(new TextEncoder().encode(toCsv(pcaCsv)), 'pca-scores.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (figs.length) { paint(q<HTMLCanvasElement>('.mv-vol'), figs[0]); paint(q<HTMLCanvasElement>('.mv-pca'), figs[1]); } });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Volcano plot and PCA', subtitle: q('.mv-big').textContent ?? '', file: 'volcano-pca', sections }));
+</script>
+
+<style is:global>
+  .mvp select { max-width: 100%; }
+  .mvp td { white-space: nowrap; }
+  .mvp .mv-tw { max-height: 420px; overflow-y: auto; }
+</style>

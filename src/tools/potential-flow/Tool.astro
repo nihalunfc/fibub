@@ -1,0 +1,171 @@
+---
+// Potential flow builder: uniform flow plus sources, sinks, vortices and doublets; streamlines, stagnation points, forces.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax pfb">
+  <div class="ax-card">
+    <h2>Flow elements</h2>
+    <div class="ax-grid">
+      <label>Start from <select class="pf-pre"></select></label>
+      <label>Uniform flow speed U (m/s) <input class="pf-u" type="text" inputmode="decimal" value="1" /></label>
+      <label>Uniform flow direction (°) <input class="pf-al" type="text" inputmode="decimal" value="0" /></label>
+      <label>View half-width (m) <input class="pf-w" type="text" inputmode="decimal" value="3" /></label>
+      <label>Density for forces (kg/m³) <input class="pf-rho" type="text" inputmode="decimal" value="1.225" /></label>
+      <label>Tapping the picture <select class="pf-tap"><option value="probe" selected>measures the flow there</option><option value="source">adds a source</option><option value="sink">adds a sink</option><option value="ccw">adds a vortex ↺</option><option value="cw">adds a vortex ↻</option><option value="doublet">adds a doublet</option></select></label>
+    </div>
+    <div class="pf-list"></div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small pf-add">Add a source</button><button type="button" class="btn secondary small pf-clear">Remove all</button></div>
+    <p class="ax-help">Strength: a source's Q (m²/s, negative for a sink) is the volume it pours out per second per metre of depth; a vortex's Γ (m²/s) is its circulation, positive anticlockwise; a doublet's κ (m³/s) points along its angle (κ = 2πUa² makes a cylinder of radius a in a stream U). Direction 0° means flow from left to right. The presets use made-up round numbers.</p>
+    <p class="ax-err pf-err" hidden></p>
+  </div>
+
+  <div class="ax-card pf-out">
+    <h2>Streamlines</h2>
+    <p class="ax-big pf-big"></p>
+    <canvas class="ax-fig pf-fig"></canvas>
+    <label class="ax-check" style="margin-top:8px"><input type="checkbox" class="pf-shade" checked /> Shade by speed</label>
+    <dl class="ax-facts pf-facts"></dl>
+    <p class="ax-help">Ideal flow: no viscosity, incompressible, steady and two-dimensional. Streamlines are contours of the stream function ψ; dots mark stagnation points. The force comes from Blasius's theorem round a circle enclosing every element: a closed body feels no drag (d'Alembert's paradox), and circulation gives lift ρUΓ. For study and planning, not a substitute for professional judgement.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pf-csv">Velocity field (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { PRESETS, potential, velocity, stagnation, blasius, contours, type Flow, type Element } from '../../lib/sci/phpotential';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.pfb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const pre = q<HTMLSelectElement>('.pf-pre');
+  for (const p of PRESETS) pre.append(new Option(p.name, p.id));
+  pre.append(new Option('My own arrangement', 'own'));
+  let els: Element[] = [], probe: [number, number] | null = null, fig: Figure | null = null, report: Section[] = [], flow: Flow | null = null, box = { x0: -3, x1: 3, y0: -2, y1: 2 };
+  const NAME = (e: Element) => (e.kind === 'source' ? (e.s >= 0 ? 'Source Q' : 'Sink Q') : e.kind === 'vortex' ? `Vortex Γ ${e.s >= 0 ? '↺' : '↻'}` : 'Doublet κ');
+  const r4 = (x: number) => +x.toPrecision(4);
+  const c3 = (x: number) => (Math.abs(x) < 1e-9 ? '0' : String(+x.toPrecision(3)).replace('-', '−'));
+
+  function list() {
+    const L = q('.pf-list'); L.replaceChildren();
+    els.forEach((e, k) => {
+      const row = document.createElement('div'); row.className = 'pf-row';
+      const lab = document.createElement('span'); lab.className = 'pf-name'; lab.textContent = `${k + 1}. ${NAME(e)}`; row.append(lab);
+      const field = (name: string, v: number, set: (x: number) => void) => { const l = document.createElement('label'); l.textContent = name; const i = document.createElement('input'); i.type = 'text'; i.inputMode = 'decimal'; i.value = String(r4(v)); i.addEventListener('input', () => { const x = num(i.value); if (Number.isFinite(x)) { set(x); pre.value = 'own'; lab.textContent = `${k + 1}. ${NAME(e)}`; draw(); } else showErr(`Element ${k + 1}: "${i.value}" is not a number.`); }); l.append(i); row.append(l); };
+      field('strength', e.s, (x) => { e.s = x; }); field('x', e.x, (x) => { e.x = x; }); field('y', e.y, (x) => { e.y = x; });
+      if (e.kind === 'doublet') field('angle °', e.angle ?? 0, (x) => { e.angle = x; });
+      const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'btn secondary small pf-rm'; rm.textContent = 'Remove'; rm.setAttribute('aria-label', `Remove element ${k + 1}`);
+      rm.addEventListener('click', () => { els.splice(k, 1); pre.value = 'own'; list(); draw(); }); row.append(rm);
+      L.append(row);
+    });
+  }
+  const showErr = (m: string) => { const e = q('.pf-err'); e.textContent = m; e.hidden = false; q('.pf-out').hidden = true; report = []; };
+
+  function draw() {
+    const U = val('.pf-u'), al = val('.pf-al'), W = val('.pf-w'), rho = val('.pf-rho');
+    if (!Number.isFinite(U) || U < 0) return showErr('Give a uniform flow speed of 0 or more.');
+    if (!Number.isFinite(al)) return showErr('Give the flow direction in degrees.');
+    if (!(W > 0)) return showErr('Give a view half-width greater than 0.');
+    if (!(rho > 0)) return showErr('Give a density greater than 0.');
+    if (!els.length && U === 0) return showErr('Add at least one element or a uniform flow.');
+    if (els.some((e) => ![e.s, e.x, e.y, e.angle ?? 0].every(Number.isFinite))) return showErr('Every element needs numbers for its strength and position.');
+    q('.pf-err').hidden = true; q('.pf-out').hidden = false;
+    flow = { U, alpha: al, els: els.map((e) => ({ ...e })) };
+    const H = (W * 2) / 3; box = { x0: -W, x1: W, y0: -H, y1: H };
+    const nx = 181, ny = 121, g = new Float64Array(nx * ny), sp = new Float64Array(nx * ny);
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const x = box.x0 + ((box.x1 - box.x0) * i) / (nx - 1), y = box.y0 + ((box.y1 - box.y0) * j) / (ny - 1); g[j * nx + i] = potential(flow, x, y)[1]; const v = velocity(flow, x, y); sp[j * nx + i] = Math.hypot(v[0], v[1]); }
+    const sorted = [...g].filter(Number.isFinite).sort((a, b) => a - b), lo = sorted[Math.floor(sorted.length * 0.02)], hi = sorted[Math.floor(sorted.length * 0.98)];
+    const step = (hi - lo) / 26 || 1, levels: number[] = []; for (let k = Math.ceil(lo / step); k <= Math.floor(hi / step); k++) levels.push(k * step);
+    const qmax = Math.max(0, ...els.filter((e) => e.kind === 'source').map((e) => Math.abs(e.s)));
+    const segs0 = contours(g, nx, ny, levels, qmax > 0 ? qmax / 2 : Infinity);
+    const st = stagnation(flow, box.x0, box.x1, box.y0, box.y1);
+    const ref = U > 0 ? U : Math.max(...sp.filter(Number.isFinite).sort((a, b) => a - b).slice(Math.floor(nx * ny * 0.5), Math.floor(nx * ny * 0.5) + 1));
+    // Leave out the tangle of lines right next to a singularity (speed above 5 × the reference).
+    const segs = segs0.filter((t) => { const i = Math.round((t.seg[0] + t.seg[2]) / 2), j = Math.round((t.seg[1] + t.seg[3]) / 2); return !(sp[j * nx + i] > 5 * ref); });
+    const shade = q<HTMLInputElement>('.pf-shade').checked;
+    const w = 380, h = Math.round((380 * 2) / 3) + 22;
+    fig = { w, h, alt: `Streamlines of ${pre.selectedOptions[0].text.toLowerCase()} with ${st.length} stagnation point${st.length === 1 ? '' : 's'}`, draw: (ctx, Wd, Hd, pal) => {
+      const ph = Hd - 22, X = (x: number) => ((x - box.x0) / (box.x1 - box.x0)) * Wd, Y = (y: number) => ph - ((y - box.y0) / (box.y1 - box.y0)) * ph;
+      if (shade) {
+        const c = document.createElement('canvas'); c.width = nx; c.height = ny; const cx = c.getContext('2d')!, im = cx.createImageData(nx, ny);
+        const tint = pal.red ? [120, 0, 0] : pal.bg === '#ffffff' ? [31, 95, 174] : [127, 178, 240];
+        for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const s = Math.min(1, sp[j * nx + i] / (2 * ref)), o = ((ny - 1 - j) * nx + i) * 4; im.data[o] = tint[0]; im.data[o + 1] = tint[1]; im.data[o + 2] = tint[2]; im.data[o + 3] = Number.isFinite(s) ? Math.round(s * 110) : 110; }
+        cx.putImageData(im, 0, 0); ctx.imageSmoothingEnabled = true; ctx.drawImage(c, 0, 0, Wd, ph);
+      }
+      ctx.lineWidth = 1; ctx.strokeStyle = pal.ink; ctx.beginPath();
+      const sx = Wd / (nx - 1), sy = ph / (ny - 1);
+      for (const s of segs) { const lw = Math.abs(s.lv) < step * 0.01; if (lw) continue; ctx.moveTo(s.seg[0] * sx, ph - s.seg[1] * sy); ctx.lineTo(s.seg[2] * sx, ph - s.seg[3] * sy); }
+      ctx.stroke();
+      // The dividing streamline ψ = 0 drawn heavier (the body surface in the presets).
+      ctx.lineWidth = 2.2; ctx.strokeStyle = pal.accent; ctx.beginPath();
+      for (const s of segs) if (Math.abs(s.lv) < step * 0.01) { ctx.moveTo(s.seg[0] * sx, ph - s.seg[1] * sy); ctx.lineTo(s.seg[2] * sx, ph - s.seg[3] * sy); }
+      ctx.stroke(); ctx.lineWidth = 1;
+      ctx.strokeStyle = pal.line; ctx.strokeRect(0.5, 0.5, Wd - 1, ph - 1);
+      for (const e of els) {
+        const x = X(e.x), y = Y(e.y); if (x < 0 || x > Wd || y < 0 || y > ph) continue;
+        ctx.fillStyle = pal.bg; ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.arc(x, y, 7, 0, 7); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = pal.ink; ctx.font = 'bold 11px Arial, Helvetica, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(e.kind === 'source' ? (e.s >= 0 ? '+' : '−') : e.kind === 'vortex' ? (e.s >= 0 ? '↺' : '↻') : 'D', x, y + 0.5);
+      }
+      for (const p of st) { ctx.fillStyle = pal.bad; ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), 4, 0, 7); ctx.fill(); }
+      if (probe) { ctx.strokeStyle = pal.accent2; ctx.lineWidth = 2; const x = X(probe[0]), y = Y(probe[1]); ctx.beginPath(); ctx.moveTo(x - 6, y); ctx.lineTo(x + 6, y); ctx.moveTo(x, y - 6); ctx.lineTo(x, y + 6); ctx.stroke(); ctx.lineWidth = 1; }
+      ctx.fillStyle = pal.muted; ctx.font = '11px Arial, Helvetica, sans-serif'; ctx.textBaseline = 'top'; ctx.textAlign = 'left';
+      ctx.fillText(`x from ${sig(box.x0, 3)} to ${sig(box.x1, 3)} m, y from ${sig(box.y0, 3)} to ${sig(box.y1, 3)} m`, 2, ph + 6);
+    } };
+    paint(q<HTMLCanvasElement>('.pf-fig'), fig);
+    // Facts.
+    const cx0 = els.length ? els.reduce((a, e) => a + e.x, 0) / els.length : 0, cy0 = els.length ? els.reduce((a, e) => a + e.y, 0) / els.length : 0;
+    const R = els.length ? Math.max(...els.map((e) => Math.hypot(e.x - cx0, e.y - cy0))) + 0.5 * W / 3 + 0.1 : 1;
+    const F0 = blasius(flow, cx0, cy0, R, rho), tiny = 1e-9 * rho * (U * U + 1) * (1 + Math.max(0, ...els.map((e) => Math.abs(e.s)))), F = { Fx: Math.abs(F0.Fx) < tiny ? 0 : F0.Fx, Fy: Math.abs(F0.Fy) < tiny ? 0 : F0.Fy }, totQ = els.filter((e) => e.kind === 'source').reduce((a, e) => a + e.s, 0), totG = els.filter((e) => e.kind === 'vortex').reduce((a, e) => a + e.s, 0);
+    q('.pf-big').textContent = `${st.length} stagnation point${st.length === 1 ? '' : 's'}${st.length ? `: ${st.slice(0, 4).map((p) => `(${c3(p[0])}, ${c3(p[1])})`).join(', ')}${st.length > 4 ? ', …' : ''}` : ' in view'}`;
+    const f = [
+      fact('Elements', `${els.length} plus a uniform flow of ${sig(U, 3)} m/s at ${sig(al, 3)}°`, `net source strength ${sig(totQ, 3)} m²/s, net circulation ${sig(totG, 3)} m²/s`),
+      fact('Force on the elements', `${c3(F.Fx)} N/m along x, ${c3(F.Fy)} N/m along y`, `Blasius's theorem round a circle of radius ${sig(R, 3)} m; ${U > 0 && totG ? `Kutta-Joukowski lift ρUΓ = ${c3(rho * U * Math.abs(totG))} N/m` : totQ && U > 0 ? `a net source in a stream feels −ρUQ = ${sig(-rho * U * totQ, 3)} N/m (a half-body is not closed)` : 'a closed body in steady ideal flow feels no drag'}`),
+    ];
+    if (probe) {
+      const v = velocity(flow, probe[0], probe[1]), s = Math.hypot(v[0], v[1]), ps = potential(flow, probe[0], probe[1]);
+      f.push(fact(`Flow at (${sig(probe[0], 3)}, ${sig(probe[1], 3)})`, `${sig(s, 3)} m/s towards ${sig((Math.atan2(v[1], v[0]) * 180) / Math.PI, 3)}°`, `u = ${sig(v[0], 3)}, v = ${sig(v[1], 3)} m/s; ψ = ${sig(ps[1], 3)}, φ = ${sig(ps[0], 3)}${U > 0 ? `; pressure coefficient Cp = 1 − (V/U)² = ${sig(1 - (s / U) ** 2, 3)}` : ''}`));
+    } else f.push(fact('Probe', 'tap the picture', 'with "measures the flow there" chosen, to read the velocity and pressure at a point'));
+    q('.pf-facts').replaceChildren(...f);
+    report = [{ title: q('.pf-big').textContent!, text: [pre.selectedOptions[0].text], table: { head: ['Element', 'Strength', 'x (m)', 'y (m)', 'Angle'], rows: els.map((e, k) => [`${k + 1}. ${NAME(e)}`, sig(e.s, 4), sig(e.x, 4), sig(e.y, 4), e.kind === 'doublet' ? `${sig(e.angle ?? 0, 3)}°` : '']) }, facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig }];
+  }
+
+  function load(id: string) {
+    const p = PRESETS.find((x) => x.id === id); if (!p) return;
+    els = p.flow.els.map((e) => ({ ...e })); q<HTMLInputElement>('.pf-u').value = String(p.flow.U); q<HTMLInputElement>('.pf-al').value = String(p.flow.alpha); probe = null;
+    list(); draw();
+  }
+  pre.addEventListener('change', () => load(pre.value));
+  for (const c of ['.pf-u', '.pf-al', '.pf-w', '.pf-rho']) q(c).addEventListener('input', draw);
+  q('.pf-shade').addEventListener('change', draw);
+  q('.pf-add').addEventListener('click', () => { els.push({ kind: 'source', s: 2, x: 0, y: 0 }); pre.value = 'own'; list(); draw(); });
+  q('.pf-clear').addEventListener('click', () => { els = []; pre.value = 'own'; probe = null; list(); draw(); });
+  q('.pf-fig').addEventListener('click', (ev) => {
+    const e = ev as MouseEvent, cv = q<HTMLCanvasElement>('.pf-fig'), r = cv.getBoundingClientRect(), ph = (r.height * (380 * 2 / 3)) / (380 * 2 / 3 + 22);
+    const fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / ph; if (fy > 1) return;
+    const x = +(box.x0 + fx * (box.x1 - box.x0)).toFixed(3), y = +(box.y1 - fy * (box.y1 - box.y0)).toFixed(3), t = q<HTMLSelectElement>('.pf-tap').value;
+    if (t === 'probe') probe = [x, y];
+    else { els.push(t === 'doublet' ? { kind: 'doublet', s: 2, x, y, angle: 0 } : t === 'ccw' || t === 'cw' ? { kind: 'vortex', s: t === 'ccw' ? 3 : -3, x, y } : { kind: 'source', s: t === 'source' ? 2 : -2, x, y }); pre.value = 'own'; list(); }
+    draw();
+  });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.pf-out').hidden) paint(q<HTMLCanvasElement>('.pf-fig'), fig); });
+  q('.pf-csv').addEventListener('click', () => {
+    if (!flow) return; const rows: (string | number)[][] = [['x_m', 'y_m', 'u_m_s', 'v_m_s', 'psi', 'phi', ...(flow.U > 0 ? ['Cp'] : [])]];
+    for (let j = 0; j <= 20; j++) for (let i = 0; i <= 30; i++) { const x = box.x0 + ((box.x1 - box.x0) * i) / 30, y = box.y0 + ((box.y1 - box.y0) * j) / 20, v = velocity(flow, x, y), p = potential(flow, x, y); rows.push([r4(x), r4(y), ...[v[0], v[1], p[1], p[0]].map((z) => (Number.isFinite(z) ? +z.toPrecision(6) : '')), ...(flow.U > 0 ? [Number.isFinite(v[0]) ? +(1 - (v[0] ** 2 + v[1] ** 2) / flow.U ** 2).toPrecision(6) : ''] : [])]); }
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'potential-flow.csv', 'text/csv');
+  });
+  load('cyl');
+  wireDownloads(q('.dl'), () => ({ title: 'Potential flow', subtitle: pre.selectedOptions[0].text, file: 'potential-flow', sections: report }));
+</script>
+
+<style is:global>
+  .pfb .pf-list { display: grid; gap: 8px; margin-top: 12px; }
+  .pfb .pf-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px 8px; padding: 8px; border: 1px solid var(--line); border-radius: 10px; }
+  .pfb .pf-name { flex: 1 0 100%; font-weight: 600; font-size: 14px; }
+  .pfb .pf-row label { flex: 1 1 70px; min-width: 64px; font-size: 13px; }
+  .pfb .pf-row input { width: 100%; }
+  .pfb .pf-fig { cursor: crosshair; }
+</style>
