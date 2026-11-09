@@ -1,0 +1,118 @@
+---
+// Herd immunity threshold, vaccine coverage needed and effective R, with a chart against R0.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax hit">
+  <p class="ax-help hi-warn">For study and teaching, not medical advice. Check with a qualified professional.</p>
+  <div class="ax-card">
+    <h2>Disease and vaccine</h2>
+    <div class="ax-grid">
+      <label>R0 (basic reproduction number) <input class="hi-r0" inputmode="decimal" value="3" /></label>
+      <label>Vaccine effectiveness (%) <input class="hi-e" inputmode="decimal" value="90" /></label>
+      <label>Vaccine coverage (%) <input class="hi-c" inputmode="decimal" value="80" /></label>
+    </div>
+    <p class="ax-help">R0 is how many people one case infects when nobody is immune. Effectiveness is the share of vaccinated people who are fully protected from catching and passing on the infection. Coverage is the share of the whole population vaccinated.</p>
+    <p class="ax-err hi-err" hidden></p>
+  </div>
+
+  <div class="ax-card hi-out" hidden>
+    <h2>Result</h2>
+    <p class="ax-big hi-big"></p>
+    <dl class="ax-facts hi-facts"></dl>
+  </div>
+
+  <div class="ax-card hi-out" hidden>
+    <h2>Compare diseases</h2>
+    <label><span>One per line: a name, then R0. <strong>The examples are made-up round numbers</strong>, not real diseases: type your own.</span>
+      <textarea class="hi-rows" rows="5" spellcheck="false">Example A, 1.5
+Example B, 3
+Example C, 6
+Example D, 12
+Example E, 18</textarea></label>
+    <p class="ax-err hi-rerr" hidden></p>
+    <div class="ax-scroll" style="margin-top:12px"><table class="hi-tab"></table></div>
+    <p class="ax-help">Coverage needed above 100 % means this vaccine alone cannot reach the threshold. The last column uses your coverage and effectiveness above.</p>
+    <canvas class="ax-fig hi-fig" style="margin-top:14px"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small hi-csv">Download table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { num, csv } from '../../lib/sci/num';
+  import { threshold, coverageNeeded, effectiveR, maxR0, table, parseRows, type HerdRow } from '../../lib/sci/herd';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.hit')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sig = (x: number, n: number) => String(+x.toPrecision(n));
+  const pct = (x: number) => (Number.isFinite(x) ? `${sig(100 * x, 3)} %` : '–');
+  let fig: Figure | null = null, report: Section[] = [], rows: (string | number)[][] = [];
+
+  function fail(el: string, msg: string) { const e = q(el); e.textContent = msg; e.hidden = false; }
+  function facts(list: [string, string, string?][]) {
+    return list.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; });
+  }
+
+  function calc() {
+    q('.hi-err').hidden = true; q('.hi-rerr').hidden = true;
+    const R0 = val('.hi-r0'), E = val('.hi-e') / 100, c = val('.hi-c') / 100;
+    const outs = root.querySelectorAll<HTMLElement>('.hi-out');
+    const bad = !(R0 > 0 && R0 <= 100) ? 'R0 must be above 0 and at most 100.' : !(E > 0 && E <= 1) ? 'Effectiveness must be above 0 and at most 100 %.' : !(c >= 0 && c <= 1) ? 'Coverage must be from 0 to 100 %.' : '';
+    if (bad) { fail('.hi-err', bad); outs.forEach((o) => (o.hidden = true)); report = []; rows = []; return; }
+    outs.forEach((o) => (o.hidden = false));
+    const hit = threshold(R0), need = coverageNeeded(R0, E), Re = effectiveR(R0, c, E), top = maxR0(c, E);
+    q('.hi-big').textContent = R0 <= 1 ? `R0 ${sig(R0, 3)} is not above 1: no epidemic to stop` : `Herd immunity threshold ${pct(hit)}; vaccinate ${need <= 1 ? pct(need) : 'over 100 %'}`;
+    const list: [string, string, string?][] = [
+      ['Herd immunity threshold', pct(hit), '1 − 1/R0: share that must be immune'],
+      ['Coverage needed', need <= 1 ? pct(need) : `${pct(need)} (not reachable)`, need <= 1 ? `(1 − 1/R0) ÷ ${pct(E)} effectiveness` : 'more than everyone: needs a better vaccine or other measures'],
+      ['Effective R at your coverage', sig(Re, 3), Re < 1 ? 'below 1: outbreaks shrink' : 'at or above 1: outbreaks can grow'],
+      ['Immune from the vaccine', pct(c * E), 'coverage × effectiveness'],
+      ['Highest R0 this holds below 1', Number.isFinite(top) ? sig(top, 3) : 'any', '1 ÷ (1 − coverage × effectiveness)'],
+    ];
+    q('.hi-facts').replaceChildren(...facts(list));
+
+    const pr = parseRows(q<HTMLTextAreaElement>('.hi-rows').value);
+    let t: HerdRow[] = [];
+    if (pr.error) fail('.hi-rerr', pr.error); else t = table(pr.rows, E, c);
+    const head = ['Name', 'R0', 'Threshold', 'Vaccinate', `R at ${pct(c)}`];
+    const body = t.map((r) => [r.name, sig(r.R0, 4), pct(r.hit), r.reachable ? pct(r.need) : `${pct(r.need)} ✗`, `${sig(r.Re, 3)}${r.below ? '' : ' ▲'}`]);
+    const tb = q<HTMLTableElement>('.hi-tab'); tb.innerHTML = '';
+    if (body.length) {
+      const hr = tb.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+      const b = tb.createTBody(); body.forEach((r, j) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); if (!t[j].reachable) tr.className = 'dim'; });
+    }
+    rows = [['name', 'R0', 'threshold_percent', 'coverage_needed_percent', 'reachable', 'effective_R', 'vaccine_effectiveness_percent', 'coverage_percent'],
+      ...t.map((r) => [r.name, r.R0, +(100 * r.hit).toFixed(4), +(100 * r.need).toFixed(4), r.reachable ? 'yes' : 'no', +r.Re.toFixed(4), +(100 * E).toFixed(4), +(100 * c).toFixed(4)])];
+
+    const xMax = Math.max(20, R0, ...t.map((r) => r.R0));
+    const xs: number[] = []; for (let i = 0; i <= 400; i++) xs.push(1 + (xMax - 1) * i / 400);
+    const needX = xs.filter((x) => coverageNeeded(x, E) <= 1);
+    fig = chartFigure({ h: 360, xLabel: 'R0', yLabel: 'Per cent of population', xMin: 0, xMax, yMin: 0, yMax: 100, legend: 'below', series: [
+      { name: 'Threshold 1 − 1/R0', x: xs, y: xs.map((x) => 100 * threshold(x)), mode: 'line', width: 2.5 },
+      { name: `Coverage needed (${pct(E)} effective)`, x: needX, y: needX.map((x) => 100 * coverageNeeded(x, E)), mode: 'line', width: 2, dash: [6, 3] },
+      ...(t.length ? [{ name: 'Your rows', x: t.map((r) => r.R0), y: t.map((r) => 100 * r.hit), marker: 'circle' as const, labels: t.map((r) => r.name) }] : []),
+    ], marks: [{ kind: 'hline', at: 100 * c, dash: [3, 3], label: `Your coverage ${pct(c)}` }] }, `Herd immunity threshold and coverage needed against R0 up to ${sig(xMax, 3)}`);
+    paint(q<HTMLCanvasElement>('.hi-fig'), fig);
+    report = [
+      { title: 'Herd immunity', text: [`R0 ${sig(R0, 4)}, vaccine effectiveness ${pct(E)}, coverage ${pct(c)}. Simple well-mixed model: real populations mix unevenly, and immunity can wane.`], facts: list.map(([k, v, s]) => [k, s ? `${v} (${s})` : v] as [string, string]) },
+      ...(body.length ? [{ title: 'Compared (made-up example values unless you typed your own)', table: { head, rows: body, align: ['l', 'r', 'r', 'r', 'r'] as ('l' | 'r')[] }, figure: fig }] : [{ title: 'Chart', figure: fig }]),
+    ];
+  }
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input').forEach((el) => el.addEventListener('input', later));
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.hi-fig'), fig));
+  q('.hi-csv').addEventListener('click', () => rows.length > 1 && save(new TextEncoder().encode(csv(rows)), 'herd-immunity.csv', 'text/csv'));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Herd immunity', subtitle: q('.hi-big').textContent ?? '', file: 'herd-immunity', sections: report }));
+</script>
+
+<style is:global>
+  .hit .hi-warn { margin: 0; font-size: 14px; color: var(--ink); }
+  .hit .hi-tab th, .hit .hi-tab td { padding: 7px 4px; }
+  .hit .hi-tab td.r { white-space: nowrap; }
+</style>

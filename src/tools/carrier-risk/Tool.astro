@@ -1,0 +1,198 @@
+---
+// Bayesian carrier risk (autosomal recessive and X-linked recessive) in exact fractions, with the table shown step by step.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cr">
+  <p class="cr-warn">For study and teaching, not medical advice. Check with a qualified professional such as a genetic counsellor.</p>
+  <div class="ax-card">
+    <h2>Inheritance</h2>
+    <div class="ax-grid">
+      <label>Pattern <select class="cr-mode"><option value="xl">X-linked recessive</option><option value="ar">Autosomal recessive</option></select></label>
+      <label class="cr-xlonly">Who is in the calculation <select class="cr-gen"><option value="1">One woman (the consultand)</option><option value="2">Her mother and her (two generations)</option></select></label>
+    </div>
+  </div>
+
+  <div class="ax-card cr-gen2" hidden>
+    <h2>Her mother</h2>
+    <div class="ax-grid">
+      <label>Mother's position <select class="cr-mpos"></select></label>
+      <label>Mother's prior <input class="cr-mprior" inputmode="decimal" /></label>
+      <label>Mother's other unaffected sons <input class="cr-msons" inputmode="numeric" value="0" /></label>
+    </div>
+    <p class="ax-help cr-mwhy"></p>
+    <div class="ax-row" style="margin-top:8px">
+      <label class="ax-check"><input type="checkbox" class="cr-mtest" /> Mother had a negative carrier test</label>
+      <label class="cr-mdrl" style="max-width:200px">Detection rate <input class="cr-mdr" inputmode="decimal" value="90 %" /></label>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="cr-ctitle">The consultand</h2>
+    <div class="ax-grid">
+      <label class="cr-pos1">Position in the family <select class="cr-pos"></select></label>
+      <label class="cr-pos1">Prior carrier probability <input class="cr-prior" inputmode="decimal" /></label>
+      <label class="cr-xlonly">Unaffected sons <input class="cr-sons" inputmode="numeric" value="3" /></label>
+    </div>
+    <p class="ax-help cr-why cr-pos1"></p>
+    <div class="ax-row" style="margin-top:8px">
+      <label class="ax-check"><input type="checkbox" class="cr-test" /> Had a negative carrier test</label>
+      <label class="cr-drl" style="max-width:200px">Detection rate <input class="cr-dr" inputmode="decimal" value="90 %" /></label>
+    </div>
+    <p class="ax-help">Probabilities as 1/25, 0.04 or 4 %. The detection rate (test sensitivity) is the share of carriers the test finds; 90 % is a made-up example, so use the figure for the actual test. A negative test is assumed never to be wrong for non-carriers.</p>
+  </div>
+
+  <div class="ax-card cr-partner" hidden>
+    <h2>Partner (for the children's risk)</h2>
+    <div class="ax-grid">
+      <label>Partner <select class="cr-ppos"><option value="pop">No family history: population carrier frequency</option><option value="carrier">Known carrier</option><option value="custom">My own prior</option></select></label>
+      <label>Partner's prior <input class="cr-pprior" inputmode="decimal" value="1/25" /></label>
+    </div>
+    <p class="ax-help cr-pwhy">1/25 is a rounded example. Population carrier frequencies differ by condition and ancestry: type the figure from a reliable source.</p>
+    <div class="ax-row" style="margin-top:8px">
+      <label class="ax-check"><input type="checkbox" class="cr-ptest" /> Partner had a negative carrier test</label>
+      <label class="cr-pdrl" style="max-width:200px">Detection rate <input class="cr-pdr" inputmode="decimal" value="90 %" /></label>
+    </div>
+  </div>
+  <p class="ax-err cr-err" hidden></p>
+
+  <div class="ax-card cr-out">
+    <h2>Result</h2>
+    <p class="ax-big cr-big"></p>
+    <dl class="ax-facts cr-facts"></dl>
+    <h3 class="cr-h3">Bayesian table</h3>
+    <div class="ax-scroll"><table class="cr-tab"></table></div>
+    <div class="cr-ptab-w" hidden><h3 class="cr-h3">Partner</h3><div class="ax-scroll"><table class="cr-ptab"></table></div></div>
+    <ol class="cr-steps"></ol>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .cr-warn { margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; background: var(--surface); }
+  .cr-h3 { font-size: 15px; margin: 16px 0 6px; }
+  .cr td small { display: block; color: var(--muted); font-size: 12px; }
+  .cr tr.cr-sum td { font-weight: 700; }
+  .cr-steps { margin: 14px 0 0; padding-left: 22px; font-size: 15px; }
+  .cr-steps li + li { margin-top: 6px; }
+</style>
+
+<script>
+  import { parseProb, onePerson, motherDaughter, offspringXL, offspringAR, pct, oneIn, AR_POSITIONS, XL_POSITIONS, ONE, type Q, type Table, type Evidence } from '../../lib/sci/carrier';
+  import { wireDownloads, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cr')!;
+  const qs = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => qs<HTMLInputElement>(c).value;
+  const on = (c: string) => qs<HTMLInputElement>(c).checked;
+  let report: Section[] = [];
+
+  const fill = (sel: HTMLSelectElement, list: { id: string; label: string }[], pick?: string) => { sel.replaceChildren(...list.map((p) => { const o = document.createElement('option'); o.value = p.id; o.textContent = p.label; return o; })); if (pick) sel.value = pick; };
+  const mode = () => qs<HTMLSelectElement>('.cr-mode').value as 'xl' | 'ar';
+  const gen2 = () => mode() === 'xl' && qs<HTMLSelectElement>('.cr-gen').value === '2';
+  const MOTHER = XL_POSITIONS.filter((p) => p.id !== 'granddaughter');
+
+  function setPos(selC: string, priorC: string, whyC: string, list: typeof AR_POSITIONS) {
+    const p = list.find((x) => x.id === qs<HTMLSelectElement>(selC).value)!;
+    if (p.id !== 'custom') qs<HTMLInputElement>(priorC).value = p.prior;
+    qs(whyC).textContent = p.why;
+  }
+  function setMode() {
+    const xl = mode() === 'xl';
+    fill(qs('.cr-pos'), xl ? XL_POSITIONS : AR_POSITIONS, xl ? 'daughter-carrier' : 'sib');
+    setPos('.cr-pos', '.cr-prior', '.cr-why', xl ? XL_POSITIONS : AR_POSITIONS);
+    root.querySelectorAll<HTMLElement>('.cr-xlonly').forEach((e) => (e.hidden = !xl));
+    qs('.cr-partner').hidden = xl;
+    setGen();
+  }
+  function setGen() {
+    const g = gen2();
+    qs('.cr-gen2').hidden = !g;
+    root.querySelectorAll<HTMLElement>('.cr-pos1').forEach((e) => (e.hidden = g));
+    qs('.cr-ctitle').textContent = g ? 'Her daughter (the consultand)' : 'The consultand';
+  }
+
+  const frac = (x: Q) => (x.d < 10n ** 12n ? x.toString() : '');
+  const show = (x: Q) => { const f = frac(x); return f && f.includes('/') ? `${f} (${pct(x)})` : f === '1' || f === '0' ? f : pct(x); };
+  function count(c: string, what: string) { const v = val(c).trim(); if (!v) return 0; const n = Number(v); if (!Number.isInteger(n) || n < 0 || n > 30) throw new Error(`${what}: type a whole number from 0 to 30.`); return n; }
+  function evidence(sonsC: string | null, testC: string, drC: string, who: string): Evidence {
+    const ev: Evidence = { sons: sonsC ? count(sonsC, `${who} unaffected sons`) : 0, testNegative: on(testC) };
+    if (ev.testNegative) ev.detection = parseProb(val(drC), `${who} detection rate`);
+    return ev;
+  }
+
+  function tableEl(el: HTMLTableElement, t: Table) {
+    el.innerHTML = '';
+    const hr = el.createTHead().insertRow(); ['', ...t.columns].forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = el.createTBody();
+    const row = (label: string, vals: Q[], cls = '') => { const tr = b.insertRow(); if (cls) tr.className = cls; tr.insertCell().textContent = label; vals.forEach((v) => { const td = tr.insertCell(); td.className = 'r'; const f = frac(v); td.textContent = f || pct(v); if (f.includes('/')) { const s = document.createElement('small'); s.textContent = pct(v); td.append(s); } }); };
+    t.rows.forEach((r) => row(r.label, r.values));
+    row('Joint (multiply down)', t.joint, 'cr-sum');
+    row('Posterior (joint ÷ sum of joints)', t.posterior, 'cr-sum');
+  }
+  const asRows = (t: Table): string[][] => [...t.rows.map((r) => [r.label, ...r.values.map(show)]), ['Joint', ...t.joint.map(show)], ['Posterior', ...t.posterior.map(show)]];
+
+  function calc() {
+    const err = qs('.cr-err'), out = qs('.cr-out'); err.hidden = true;
+    try {
+      const xl = mode() === 'xl';
+      let t: Table, risk: Q, motherRisk: Q | null = null;
+      const steps: string[] = [];
+      if (gen2()) {
+        const mp = parseProb(val('.cr-mprior'), "Mother's prior");
+        const r = motherDaughter(mp, evidence('.cr-msons', '.cr-mtest', '.cr-mdr', "Mother's"), evidence('.cr-sons', '.cr-test', '.cr-dr', "Daughter's"));
+        t = r; risk = r.daughter; motherRisk = r.mother;
+        steps.push(`Three possibilities: mother and daughter both carriers, only the mother, or neither (a new variant arising in the daughter is too rare to count).`);
+        steps.push(`The mother's prior is ${show(mp)}. A carrier mother passes the variant to a daughter with probability 1/2.`);
+      } else {
+        const prior = parseProb(val('.cr-prior'), 'Prior');
+        t = onePerson(prior, evidence(xl ? '.cr-sons' : null, '.cr-test', '.cr-dr', ''), xl); risk = t.posterior[0];
+        steps.push(`Prior: ${show(prior)}, from the family position: ${qs<HTMLSelectElement>('.cr-pos').selectedOptions[0].textContent?.toLowerCase()}.`);
+      }
+      for (const r of t.rows.slice(gen2() ? 2 : 1)) steps.push(`${r.label}: probability ${r.values.map(show).join(' / ')} under ${t.columns.map((c) => c.toLowerCase()).join(' / ')}. ${/son/.test(r.label) ? 'Each son of a carrier is unaffected with probability 1/2; a non-carrier\'s sons are all unaffected.' : 'A carrier tests negative only if the test misses her variant (1 − detection rate).'}`);
+      steps.push(`Joint = prior × conditionals in each column; the posterior is each joint divided by their sum, ${show(t.total)}.`);
+      const facts: [string, string, string?][] = [['Carrier risk', show(risk), oneIn(risk)]];
+      if (motherRisk) facts.push(["Mother's carrier risk", show(motherRisk), oneIn(motherRisk)]);
+      let ptab: Table | null = null;
+      if (xl) {
+        const o = offspringXL(risk);
+        facts.push(['A son is affected', show(o.sonAffected), 'carrier risk × 1/2'], ['A daughter is a carrier', show(o.daughterCarrier), 'carrier risk × 1/2'], ['A child (sex unknown) is affected', show(o.childAffected), 'carrier risk × 1/4']);
+      } else {
+        const pp = qs<HTMLSelectElement>('.cr-ppos').value;
+        const pprior = pp === 'carrier' ? ONE : parseProb(val('.cr-pprior'), "Partner's prior");
+        ptab = onePerson(pprior, evidence(null, '.cr-ptest', '.cr-pdr', "Partner's"), false);
+        const o = offspringAR(risk, ptab.posterior[0]);
+        facts.push(["Partner's carrier risk", show(ptab.posterior[0]), oneIn(ptab.posterior[0])], ['A child is affected', show(o.childAffected), `${oneIn(o.childAffected)}: both carriers × 1/4`], ['A child is a carrier', show(o.childCarrier)]);
+        steps.push(`For each child: P(affected) = consultand's risk × partner's risk × 1/4 = ${show(risk)} × ${show(ptab.posterior[0])} × 1/4.`);
+      }
+      out.hidden = false;
+      qs('.cr-big').textContent = `Carrier risk: ${show(risk)}`;
+      qs('.cr-facts').replaceChildren(...facts.map(([k, v, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; }));
+      tableEl(qs('.cr-tab'), t);
+      qs('.cr-ptab-w').hidden = !ptab; if (ptab) tableEl(qs('.cr-ptab'), ptab);
+      qs('.cr-steps').replaceChildren(...steps.map((s) => { const li = document.createElement('li'); li.textContent = s; return li; }));
+      report = [
+        { title: xl ? 'X-linked recessive carrier risk' : 'Autosomal recessive carrier risk', facts: facts.map(([k, v, s]) => [k, s ? `${v} (${s})` : v] as [string, string]), table: { head: ['', ...t.columns], rows: asRows(t), align: ['l', ...t.columns.map(() => 'r' as const)] } },
+        ...(ptab ? [{ title: 'Partner', table: { head: ['', ...ptab.columns], rows: asRows(ptab), align: ['l', 'r', 'r'] as ('l' | 'r')[] } }] : []),
+        { title: 'Steps', text: steps, note: 'For study and teaching, not medical advice.' },
+      ];
+    } catch (e) {
+      err.textContent = (e as Error).message; err.hidden = false; out.hidden = true; report = [];
+    }
+  }
+
+  fill(qs('.cr-mpos'), MOTHER, 'isolated-mother');
+  setPos('.cr-mpos', '.cr-mprior', '.cr-mwhy', MOTHER);
+  setMode();
+  qs('.cr-mode').addEventListener('change', () => { setMode(); calc(); });
+  qs('.cr-gen').addEventListener('change', () => { setGen(); calc(); });
+  qs('.cr-pos').addEventListener('change', () => { setPos('.cr-pos', '.cr-prior', '.cr-why', mode() === 'xl' ? XL_POSITIONS : AR_POSITIONS); calc(); });
+  qs('.cr-mpos').addEventListener('change', () => { setPos('.cr-mpos', '.cr-mprior', '.cr-mwhy', MOTHER); calc(); });
+  qs('.cr-ppos').addEventListener('change', () => { const v = qs<HTMLSelectElement>('.cr-ppos').value; qs('.cr-pprior').closest('label')!.hidden = v === 'carrier'; if (v === 'pop') qs<HTMLInputElement>('.cr-pprior').value = '1/25'; calc(); });
+  qs('.cr-prior').addEventListener('input', () => { const s = qs<HTMLSelectElement>('.cr-pos'); const list = mode() === 'xl' ? XL_POSITIONS : AR_POSITIONS; if (list.find((p) => p.id === s.value)!.prior !== val('.cr-prior').trim()) { s.value = 'custom'; qs('.cr-why').textContent = 'Your own prior.'; } });
+  qs('.cr-mprior').addEventListener('input', () => { const s = qs<HTMLSelectElement>('.cr-mpos'); if (MOTHER.find((p) => p.id === s.value)!.prior !== val('.cr-mprior').trim()) { s.value = 'custom'; qs('.cr-mwhy').textContent = 'Your own prior.'; } });
+  let timer = 0;
+  root.querySelectorAll('input').forEach((el) => el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); }));
+  calc();
+  wireDownloads(qs('.dl'), () => ({ title: 'Carrier risk (Bayesian)', subtitle: qs('.cr-big').textContent ?? '', file: 'carrier-risk', sections: report }));
+</script>

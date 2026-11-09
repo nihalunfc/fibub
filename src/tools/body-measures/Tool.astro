@@ -1,0 +1,163 @@
+---
+// BMI (WHO adult classes), body surface area by four formulas, ideal, adjusted and lean body weight.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax bdm">
+  <p class="bdm-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
+  <div class="ax-card">
+    <h2>Person</h2>
+    <div class="ax-row" style="margin-bottom:10px">
+      <div class="ax-seg bdm-units" role="group" aria-label="Units">
+        <button type="button" data-u="metric" aria-pressed="true">Metric (cm, kg)</button>
+        <button type="button" data-u="us" aria-pressed="false">US (ft, in, lb)</button>
+      </div>
+    </div>
+    <div class="ax-grid">
+      <label>Sex <select class="bdm-sex"><option value="male">Male</option><option value="female">Female</option></select></label>
+      <label class="bdm-m">Height (cm) <input class="bdm-cm" inputmode="decimal" value="180" /></label>
+      <label class="bdm-m">Weight (kg) <input class="bdm-kg" inputmode="decimal" value="100" /></label>
+      <label class="bdm-u" hidden>Height, feet <input class="bdm-ft" inputmode="decimal" value="5" /></label>
+      <label class="bdm-u" hidden>and inches <input class="bdm-in" inputmode="decimal" value="10.87" /></label>
+      <label class="bdm-u" hidden>Weight (lb) <input class="bdm-lb" inputmode="decimal" value="220.46" /></label>
+      <label>Adjusted-weight factor <input class="bdm-f" inputmode="decimal" value="0.4" /></label>
+    </div>
+    <p class="ax-help">Sex is used by the ideal and lean weight formulas, which were fitted separately for men and women. The adjusted-weight factor is the share of the weight above ideal that is counted: 0.4 is the usual value.</p>
+    <p class="ax-err bdm-err" hidden></p>
+  </div>
+
+  <div class="ax-card bdm-out">
+    <h2>Body mass index</h2>
+    <p class="ax-big bdm-big"></p>
+    <p class="bdm-cls"><span class="ax-pill bdm-pill"></span> <span class="ax-help bdm-who">WHO adult class (WHO 2000). Not for children, and some groups use other cut points.</span></p>
+    <canvas class="ax-fig bdm-fig" style="margin-top:12px"></canvas>
+  </div>
+
+  <div class="ax-card bdm-out">
+    <h2>Body surface area</h2>
+    <div class="ax-scroll"><table class="bdm-bsa"></table></div>
+  </div>
+
+  <div class="ax-card bdm-out">
+    <h2>Body weights</h2>
+    <div class="ax-scroll"><table class="bdm-w"></table></div>
+    <ul class="bdm-notes"></ul>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .bdm [hidden] { display: none !important; }
+  .bdm-med { font-size: 14px; border-left: 3px solid var(--warn); padding: 6px 10px; margin: 0 0 12px; background: var(--warn-soft); }
+  .bdm-cls { margin: 4px 0 0; }
+  .bdm table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  .bdm th, .bdm td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .bdm th.r, .bdm td.r { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .bdm td small { display: block; color: var(--muted); font-size: 12px; }
+  .bdm-notes { margin: 10px 0 0; padding-left: 20px; font-size: 14px; color: var(--muted); }
+</style>
+
+<script>
+  import { num, sig } from '../../lib/sci/num';
+  import { bodyMeasures, BSA_NAMES, IBW_NAMES, CM_PER_IN, KG_PER_LB, type Sex, type BodyResult } from '../../lib/sci/body';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.bdm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const err = q('.bdm-err');
+  let units: 'metric' | 'us' = 'metric', fig: Figure | null = null, report: Section[] = [], res: BodyResult | null = null;
+
+  const BSA_SRC: Record<string, string> = { mosteller: '√(height cm × weight kg / 3600)', dubois: '0.007184 × W^0.425 × H^0.725', haycock: '0.024265 × W^0.5378 × H^0.3964', gehanGeorge: '0.0235 × W^0.51456 × H^0.42246' };
+  const IBW_SRC: Record<string, Record<Sex, string>> = {
+    devine: { male: '50 + 2.3 kg per inch over 5 ft', female: '45.5 + 2.3 kg per inch over 5 ft' },
+    robinson: { male: '52 + 1.9 kg per inch over 5 ft', female: '49 + 1.7 kg per inch over 5 ft' },
+    miller: { male: '56.2 + 1.41 kg per inch over 5 ft', female: '53.1 + 1.36 kg per inch over 5 ft' },
+  };
+  const wt = (kg: number) => (units === 'us' ? `${(kg / KG_PER_LB).toFixed(1)} lb (${kg.toFixed(1)} kg)` : `${kg.toFixed(1)} kg`);
+
+  function table(sel: string, head: string[], rows: string[][], right: number[]) {
+    const tb = q<HTMLTableElement>(sel); tb.innerHTML = '';
+    const hr = tb.createTHead().insertRow();
+    head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.className = 'r'; hr.append(th); });
+    const body = tb.createTBody();
+    rows.forEach((r) => { const tr = body.insertRow(); r.forEach((t, i) => { const td = tr.insertCell(); const [main, sub] = t.split('\n'); td.textContent = main; if (sub) { const s = document.createElement('small'); s.textContent = sub; td.append(s); } if (right.includes(i)) td.className = 'r'; }); });
+  }
+
+  function read() {
+    if (units === 'metric') return { cm: val('.bdm-cm'), kg: val('.bdm-kg') };
+    const ft = val('.bdm-ft'), inch = q<HTMLInputElement>('.bdm-in').value.trim() === '' ? 0 : val('.bdm-in');
+    return { cm: (ft * 12 + inch) * CM_PER_IN, kg: val('.bdm-lb') * KG_PER_LB };
+  }
+
+  function calc() {
+    err.hidden = true;
+    const { cm, kg } = read(), sex = q<HTMLSelectElement>('.bdm-sex').value as Sex;
+    try {
+      if (!Number.isFinite(cm) || !Number.isFinite(kg)) throw new Error('Enter the height and weight as numbers.');
+      const f = q<HTMLInputElement>('.bdm-f').value.trim() === '' ? 0.4 : val('.bdm-f');
+      res = bodyMeasures(kg, cm, sex, f);
+    } catch (e) {
+      res = null; report = []; err.textContent = (e as Error).message; err.hidden = false;
+      root.querySelectorAll<HTMLElement>('.bdm-out').forEach((o) => (o.hidden = true));
+      return;
+    }
+    root.querySelectorAll<HTMLElement>('.bdm-out').forEach((o) => (o.hidden = false));
+    const r = res;
+    q('.bdm-big').textContent = `BMI ${r.bmi.toFixed(1)} kg/m²`;
+    const pill = q('.bdm-pill'); pill.textContent = r.cls.name; pill.className = `ax-pill bdm-pill ${r.cls.tone}`;
+
+    const bsaRows = (Object.keys(r.bsa) as (keyof typeof r.bsa)[]).map((k) => [`${BSA_NAMES[k]}\n${BSA_SRC[k]}`, `${r.bsa[k].toFixed(2)} m²`]);
+    table('.bdm-bsa', ['Formula', 'BSA'], bsaRows, [1]);
+    const wRows = [
+      ...(['devine', 'robinson', 'miller'] as const).map((k) => [`Ideal body weight, ${IBW_NAMES[k]}\n${IBW_SRC[k][sex]}`, wt(r.ibw[k])]),
+      [`Adjusted body weight\nDevine IBW + ${String(r.abwFactor)} × (actual − IBW)`, wt(r.abw)],
+      [`Lean body weight, Janmahasatian\n${sex === 'male' ? '9270 × W / (6680 + 216 × BMI)' : '9270 × W / (8780 + 244 × BMI)'}`, wt(r.lbw)],
+      ['Actual weight\nas a share of the Devine ideal weight', `${wt(r.kg)}\n${r.pctIbw.toFixed(0)} % of IBW`],
+    ];
+    table('.bdm-w', ['Measure', 'Weight'], wRows, [1]);
+    q('.bdm-notes').replaceChildren(...r.notes.map((n) => { const li = document.createElement('li'); li.textContent = n; return li; }));
+
+    // Weight against height with the WHO cut points as lines, and this person as a point.
+    const us = units === 'us', hs: number[] = [];
+    for (let h = 140; h <= 210; h += 2) hs.push(h);
+    const hx = (h: number) => (us ? h / CM_PER_IN : h), wy = (w: number) => (us ? w / KG_PER_LB : w);
+    fig = chartFigure({ h: 340, xLabel: us ? 'Height (in)' : 'Height (cm)', yLabel: us ? 'Weight (lb)' : 'Weight (kg)', legend: 'below', series: [
+      ...[18.5, 25, 30, 35, 40].map((b) => ({ name: `BMI ${b}`, x: hs.map(hx), y: hs.map((h) => wy(b * (h / 100) ** 2)), mode: 'line' as const })),
+      { name: 'This person', x: [hx(r.cm)], y: [wy(r.kg)], marker: 'diamond' as const, size: 9 },
+    ] }, `Weight against height with BMI lines 18.5 to 40; this person at BMI ${r.bmi.toFixed(1)}`);
+    paint(q<HTMLCanvasElement>('.bdm-fig'), fig);
+
+    const hTxt = us ? `${Math.floor(r.cm / CM_PER_IN / 12)} ft ${sig(r.cm / CM_PER_IN - 12 * Math.floor(r.cm / CM_PER_IN / 12), 3)} in (${sig(r.cm, 4)} cm)` : `${sig(r.cm, 4)} cm`;
+    report = [
+      { title: 'Person', facts: [['Sex', sex], ['Height', hTxt], ['Weight', wt(r.kg)]] },
+      { title: 'Body mass index', facts: [['BMI', `${r.bmi.toFixed(1)} kg/m²`], ['WHO adult class', r.cls.name]], figure: fig },
+      { title: 'Body surface area', table: { head: ['Formula', 'BSA (m²)'], rows: (Object.keys(r.bsa) as (keyof typeof r.bsa)[]).map((k) => [`${BSA_NAMES[k]}: ${BSA_SRC[k]}`, r.bsa[k].toFixed(2)]), align: ['l', 'r'] } },
+      { title: 'Body weights', table: { head: ['Measure', 'Weight'], rows: wRows.map(([a, b]) => [a.replace('\n', ': '), b.replace('\n', ', ')]), align: ['l', 'r'] }, note: [...r.notes, 'For study and teaching, not medical advice. Check with a qualified professional.'].join(' ') },
+    ];
+  }
+
+  q('.bdm-units').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button'); if (!b) return;
+    const next = b.dataset.u as 'metric' | 'us'; if (next === units) return;
+    const { cm, kg } = read();
+    units = next;
+    q('.bdm-units').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    root.querySelectorAll<HTMLElement>('.bdm-m').forEach((x) => (x.hidden = units !== 'metric'));
+    root.querySelectorAll<HTMLElement>('.bdm-u').forEach((x) => (x.hidden = units !== 'us'));
+    // Carry the numbers across so switching units does not lose them.
+    if (Number.isFinite(cm) && Number.isFinite(kg)) {
+      if (units === 'us') { const ti = cm / CM_PER_IN, ft = Math.floor(ti / 12); q<HTMLInputElement>('.bdm-ft').value = String(ft); q<HTMLInputElement>('.bdm-in').value = sig(ti - 12 * ft, 4); q<HTMLInputElement>('.bdm-lb').value = sig(kg / KG_PER_LB, 5); }
+      else { q<HTMLInputElement>('.bdm-cm').value = sig(cm, 4); q<HTMLInputElement>('.bdm-kg').value = sig(kg, 4); }
+    }
+    calc();
+  });
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  root.querySelectorAll('input').forEach((el) => el.addEventListener('input', later));
+  root.querySelectorAll('select').forEach((el) => el.addEventListener('change', calc));
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.bdm-fig'), fig));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Body measures', subtitle: q('.bdm-big').textContent ?? '', file: 'body-measures', sections: report }));
+</script>

@@ -1,0 +1,204 @@
+---
+// Diagnostic test accuracy: sensitivity, specificity, predictive values and likelihood ratios with exact or
+// Wilson intervals, Bayes from pre-test to post-test probability, and Fagan's nomogram.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax dxt">
+  <div class="ax-card">
+    <h2>Your test</h2>
+    <p class="dxt-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
+    <div class="ax-seg dxt-mode" role="group" aria-label="Start from">
+      <button type="button" data-m="table" aria-pressed="true">2 × 2 table</button><button type="button" data-m="rates" aria-pressed="false">Sensitivity and specificity</button>
+    </div>
+
+    <div class="dxt-p" data-m="table">
+      <p class="ax-help">Count the people in each box: the test result against the reference standard (the best available way of knowing who really has the condition). Example numbers are made up.</p>
+      <div class="ax-scroll">
+        <table class="dxt-grid">
+          <thead><tr><th></th><th>Condition present</th><th>Condition absent</th></tr></thead>
+          <tbody>
+            <tr><th>Test positive</th><td><label>True positives <input class="dxt-a" inputmode="numeric" value="84" /></label></td><td><label>False positives <input class="dxt-b" inputmode="numeric" value="30" /></label></td></tr>
+            <tr><th>Test negative</th><td><label>False negatives <input class="dxt-c" inputmode="numeric" value="16" /></label></td><td><label>True negatives <input class="dxt-d" inputmode="numeric" value="270" /></label></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Intervals <select class="dxt-meth"><option value="exact" selected>Exact (Clopper-Pearson)</option><option value="wilson">Wilson score</option></select></label>
+        <label>Confidence <select class="dxt-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+      </div>
+      <p class="ax-help">Exact intervals never fall below the true coverage and suit small counts; Wilson intervals are a little narrower and closer to the stated level on average. Ratios use the log method.</p>
+    </div>
+
+    <div class="dxt-p" data-m="rates" hidden>
+      <p class="ax-help">Use the published sensitivity and specificity of a test and the prevalence in the group you are testing.</p>
+      <div class="ax-grid">
+        <label>Sensitivity (%) <input class="dxt-se" inputmode="decimal" value="90" /></label>
+        <label>Specificity (%) <input class="dxt-sp" inputmode="decimal" value="95" /></label>
+        <label>Prevalence (%) <input class="dxt-pv" inputmode="decimal" value="1" /></label>
+      </div>
+    </div>
+    <p class="ax-err dxt-err" hidden></p>
+  </div>
+
+  <div class="ax-card dxt-out" hidden>
+    <h2>Accuracy</h2>
+    <p class="ax-big dxt-big"></p>
+    <dl class="ax-facts dxt-facts"></dl>
+    <div class="ax-scroll" style="margin-top:12px"><table class="dxt-tab"></table></div>
+    <p class="ax-help dxt-note"></p>
+  </div>
+
+  <div class="ax-card dxt-out" hidden>
+    <h2>Pre-test to post-test probability</h2>
+    <div class="ax-grid">
+      <label>Pre-test probability (%) <input class="dxt-pre" inputmode="decimal" placeholder="the prevalence" /></label>
+    </div>
+    <p class="ax-help">How likely the condition is before the test, for this person or setting. Leave it blank to use the prevalence above.</p>
+    <dl class="ax-facts dxt-post" style="margin-top:12px"></dl>
+    <canvas class="ax-fig dxt-fig" style="margin-top:14px"></canvas>
+    <div class="ax-legend"><span><i class="dxt-k1"></i>Positive result</span><span><i class="dxt-k2"></i>Negative result</span></div>
+    <p class="ax-help">Fagan's nomogram: a straight line from the pre-test probability through the likelihood ratio meets the post-test probability.</p>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn secondary small dxt-csv">Table (CSV)</button>
+      <button type="button" class="btn secondary small dxt-png">Nomogram (PNG)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .dxt .dxt-med { margin: 0 0 12px; font-size: 14px; font-weight: 600; }
+  .dxt .dxt-p { margin-top: 12px; }
+  .dxt .dxt-grid th { white-space: normal; font-size: 13px; }
+  .dxt .dxt-grid td, .dxt .dxt-grid th { padding: 6px 4px; border: 0; }
+  .dxt .dxt-grid label { font-size: 12.5px; }
+  .dxt .dxt-grid input { max-width: 120px; }
+  .dxt .dxt-tab td:first-child { white-space: normal; }
+  .dxt .dxt-tab td:nth-child(2) { white-space: nowrap; }
+</style>
+
+<script>
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { fromTable, fromRates, postTest, fagan, type Measure } from '../../lib/sci/diagtest';
+  import { counts } from '../../lib/sci/epistat';
+  import { paint, save, wireDownloads, pagePalette, LIGHT, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.dxt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  let mode = 'table', report: Section[] = [], rows: string[][] = [], fig: Figure | null = null;
+  const pct = (x: number, d = 1) => (Number.isFinite(x) ? `${(x * 100).toFixed(d)} %` : '–');
+  const rat = (x: number) => (Number.isFinite(x) ? sig(x, 3) : x > 0 ? '∞' : '–');
+  const show = (m: Measure, x: number) => (m.kind === 'prop' ? pct(x) : m.kind === 'diff' ? (Number.isFinite(x) ? x.toFixed(3).replace(/^-/, '−') : '–') : rat(x));
+  const ciTxt = (m: Measure) => (m.ci.every(Number.isFinite) ? `${show(m, m.ci[0])} to ${show(m, m.ci[1])}` : '–');
+
+  function facts(sel: string, list: [string, string][]) {
+    const dl = q(sel); dl.innerHTML = '';
+    for (const [k, v] of list) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d); }
+  }
+  function table(head: string[], body: string[][]) {
+    const t = q<HTMLTableElement>('.dxt-tab'); t.innerHTML = '';
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); body.forEach((r) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+  }
+
+  /** Fagan's nomogram with a line for a positive and a negative result. */
+  function nomogram(pre: number, lrp: number, lrn: number): Figure {
+    const W = 440, H = 520;
+    return {
+      w: W, h: H, alt: `Fagan nomogram: pre-test ${pct(pre)}, LR+ ${rat(lrp)}, LR− ${rat(lrn)}`,
+      draw: (ctx, w, h, pal) => {
+        const top = 58, bot = h - 18, U = Math.log(999), y = (u: number) => top + ((U - u) / (2 * U)) * (bot - top);
+        const xs = [w * 0.2, w * 0.5, w * 0.8];
+        ctx.font = '600 13px system-ui, sans-serif'; ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+        [['Pre-test', 'probability %'], ['Likelihood', 'ratio'], ['Post-test', 'probability %']].forEach(([a, b], i) => { ctx.fillText(a, xs[i], 22); ctx.fillText(b, xs[i], 38); });
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.2;
+        const axis = (x: number, u0: number, u1: number) => { ctx.beginPath(); ctx.moveTo(x, y(u0)); ctx.lineTo(x, y(u1)); ctx.stroke(); };
+        axis(xs[0], U, -U); axis(xs[2], U, -U); axis(xs[1], fagan.mid(1000), fagan.mid(0.001));
+        ctx.font = '12px system-ui, sans-serif'; ctx.textBaseline = 'middle'; ctx.fillStyle = pal.ink;
+        const P = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 30, 50, 70, 80, 90, 95, 98, 99, 99.5, 99.9];
+        const tick = (x: number, yy: number, dir: number, label: string) => { ctx.beginPath(); ctx.moveTo(x, yy); ctx.lineTo(x + dir * 5, yy); ctx.stroke(); ctx.textAlign = dir < 0 ? 'right' : 'left'; ctx.fillText(label, x + dir * 8, yy); };
+        for (const p of P) { tick(xs[0], y(fagan.left(p / 100)), -1, String(p)); tick(xs[2], y(fagan.right(p / 100)), 1, String(p)); }
+        for (const lr of [0.001, 0.01, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 100, 1000]) tick(xs[1], y(fagan.mid(lr)), 1, String(lr));
+        const clampP = (p: number) => Math.min(0.999, Math.max(0.001, p)), clampL = (l: number) => Math.min(1000, Math.max(0.001, l));
+        const line = (lr: number, color: string) => {
+          if (!(lr >= 0) || !Number.isFinite(pre)) return;
+          const L = clampL(lr || 0.001), p0 = clampP(pre), uL = fagan.left(p0), uM = fagan.mid(L), uR = 2 * uM - uL;
+          ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+          ctx.save(); ctx.beginPath(); ctx.rect(0, y(U) - 2, w, y(-U) - y(U) + 4); ctx.clip();
+          ctx.beginPath(); ctx.moveTo(xs[0], y(uL)); ctx.lineTo(xs[2], y(uR)); ctx.stroke(); ctx.restore();
+          ctx.fillStyle = color; for (const [x, u] of [[xs[0], uL], [xs[1], uM]]) { ctx.beginPath(); ctx.arc(x, y(u), 4, 0, 7); ctx.fill(); }
+          if (Math.abs(uR) <= U) { ctx.beginPath(); ctx.arc(xs[2], y(uR), 4, 0, 7); ctx.fill(); }
+        };
+        line(lrp, pal.accent); line(lrn, pal.accent2);
+      },
+    };
+  }
+
+  function runTable() {
+    const ids = ['.dxt-a', '.dxt-b', '.dxt-c', '.dxt-d'], v = ids.map(val);
+    if (!counts(...v)) throw new Error('Each box needs a whole number of people, zero or more.');
+    const [a, b, c, d] = v;
+    if (a + c === 0) throw new Error('No one has the condition (true positives and false negatives are both 0), so sensitivity cannot be worked out.');
+    if (b + d === 0) throw new Error('No one is free of the condition (false positives and true negatives are both 0), so specificity cannot be worked out.');
+    const conf = Number(q<HTMLSelectElement>('.dxt-conf').value), meth = q<HTMLSelectElement>('.dxt-meth').value as 'exact' | 'wilson';
+    const r = fromTable(a, b, c, d, meth, conf), g = r.get;
+    q('.dxt-big').textContent = `Sensitivity ${pct(g('sens').est)}, specificity ${pct(g('spec').est)}`;
+    const cl = `${Math.round(conf * 100)} % interval`;
+    facts('.dxt-facts', [['People', r.n.toLocaleString('en')], ['With the condition', (a + c).toLocaleString('en')], ['Without it', (b + d).toLocaleString('en')], ['Intervals', meth === 'exact' ? 'Exact (Clopper-Pearson)' : 'Wilson score']]);
+    rows = r.list.map((m) => [m.name, show(m, m.est), ciTxt(m)]);
+    table(['Measure', 'Value', cl], rows);
+    const zero = [a, b, c, d].some((x) => x === 0);
+    q('.dxt-note').textContent = 'Predictive values and accuracy depend on the prevalence in this sample. For another setting, put its prevalence in the pre-test box below.' + (zero ? ' A box with 0 makes some ratios 0 or infinite, so their log intervals cannot be given.' : '');
+    return { prev: g('prev').est, lrp: g('lrp').est, lrn: g('lrn').est, head: ['Measure', 'Value', cl] };
+  }
+  function runRates() {
+    const se = val('.dxt-se') / 100, sp = val('.dxt-sp') / 100, pv = val('.dxt-pv') / 100;
+    for (const [x, n] of [[se, 'Sensitivity'], [sp, 'Specificity'], [pv, 'Prevalence']] as [number, string][]) if (!(x >= 0 && x <= 1)) throw new Error(`${n} must be a percentage from 0 to 100.`);
+    const r = fromRates(se, sp, pv);
+    q('.dxt-big').textContent = `PPV ${pct(r.ppv)}, NPV ${pct(r.npv, 2)}`;
+    facts('.dxt-facts', [['Positive likelihood ratio', rat(r.lrp)], ['Negative likelihood ratio', rat(r.lrn)], ["Youden's index", r.youden.toFixed(3)]]);
+    const f = (x: number) => sig(x, 4);
+    rows = [['Test positive', f(r.tp), f(r.fp), f(r.tp + r.fp)], ['Test negative', f(r.fn), f(r.tn), f(r.fn + r.tn)], ['Total', f(r.tp + r.fn), f(r.fp + r.tn), '1000']];
+    table(['Out of 1000 people', 'Condition present', 'Condition absent', 'Total'], rows);
+    q('.dxt-note').textContent = `Of ${f(r.tp + r.fp)} people who test positive, ${f(r.tp)} have the condition: that is the positive predictive value. When a condition is rare, most positives are false even for a good test.`;
+    return { prev: pv, lrp: r.lrp, lrn: r.lrn, head: ['Out of 1000 people', 'Condition present', 'Condition absent', 'Total'] };
+  }
+
+  let head: string[] = [];
+  function calc() {
+    const err = q('.dxt-err');
+    try {
+      const r = mode === 'table' ? runTable() : runRates();
+      head = r.head;
+      const preTxt = q<HTMLInputElement>('.dxt-pre').value.trim(), pre = preTxt ? num(preTxt) / 100 : r.prev;
+      if (!(pre >= 0 && pre <= 1)) throw new Error('Pre-test probability must be a percentage from 0 to 100.');
+      const pp = postTest(pre, r.lrp), pn = postTest(pre, r.lrn);
+      const post: [string, string][] = [['Pre-test probability', pct(pre)], ['After a positive result', pct(pp)], ['After a negative result', pct(pn)]];
+      facts('.dxt-post', post);
+      fig = nomogram(pre, r.lrp, r.lrn); draw();
+      report = [
+        { title: q('.dxt-big').textContent!, table: { head, rows, align: head.map((_, i) => (i ? 'r' : 'l')) }, note: q('.dxt-note').textContent! },
+        { title: 'Pre-test to post-test probability', facts: post, figure: fig, note: 'For study and teaching, not medical advice. Check with a qualified professional.' },
+      ];
+      err.hidden = true; root.querySelectorAll<HTMLElement>('.dxt-out').forEach((e) => (e.hidden = false));
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; root.querySelectorAll<HTMLElement>('.dxt-out').forEach((x) => (x.hidden = true)); report = []; }
+  }
+  function setMode(m: string) {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.dxt-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.dxt-p').forEach((p) => (p.hidden = p.dataset.m !== m));
+    calc();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.dxt-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  let t = 0;
+  root.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(calc, 200); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select')) calc(); });
+  q('.dxt-csv').addEventListener('click', () => save(new TextEncoder().encode(csv([head, ...rows])), 'diagnostic-test.csv', 'text/csv'));
+  q('.dxt-png').addEventListener('click', () => { if (!fig) return; const c = document.createElement('canvas'); paint(c, fig, LIGHT); c.toBlob((b) => b && save(b, 'fagan-nomogram.png', 'image/png')); });
+  function draw() { if (!fig) return; const pal = pagePalette(); paint(q<HTMLCanvasElement>('.dxt-fig'), fig, pal); q('.dxt-k1').style.background = pal.accent; q('.dxt-k2').style.background = pal.accent2; }
+  document.addEventListener('fibub:theme', draw);
+  setMode('table');
+  wireDownloads(q('.dl'), () => ({ title: 'Diagnostic test accuracy', file: 'diagnostic-test', sections: report }));
+</script>
