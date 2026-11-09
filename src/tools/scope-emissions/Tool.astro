@@ -1,0 +1,236 @@
+---
+// Scope 1, 2 and 3 emissions for a small organisation, in the GHG Protocol's structure: activity rows × the
+// user's factors, totals by scope and category per year, location- and market-based Scope 2, intensity and
+// year-on-year change, CSV in and out, and a report. Nothing is stored or sent.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { TYPES } from '../../lib/sci/ghgscopes';
+---
+<div class="ax ghg">
+  <p class="gh-warn"><b>Example factors: replace them with official ones.</b> Every factor in the example is a rounded made-up value. Use your country's published factors, your energy supplier's, and the global warming potentials (GWP) your reporting rules name. This page follows the GHG Protocol's structure for learning and internal planning; a formal inventory has more rules (boundaries, base-year recalculation, data quality) and may need verification.</p>
+
+  <div class="ax-card">
+    <h2>Activity data</h2>
+    <textarea class="gh-in" rows="9" aria-label="Activity rows: year, type, description, amount, unit, factor, market factor"></textarea>
+    <DataFile target=".gh-in" maxMB={2} maxCols={7} maxRows={2000} />
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small gh-ex">Use the example</button><button type="button" class="btn secondary small gh-clear">Clear</button></div>
+    <p class="ax-help">One row per activity: <b>year, type, description, amount, unit, factor, market factor</b>. The factor is kg CO₂e per unit (for refrigerants, the gas's GWP). The market factor is only for Scope 2 rows: your supplier's or contract's factor, or the residual-mix factor; left empty, the location factor is used and the page says so. Commas, semicolons or tabs; quote text that contains commas. A header row is skipped.</p>
+    <p class="ax-err gh-perr" hidden></p>
+    <details class="gh-addbox">
+      <summary>Add a row with a form</summary>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Year <input class="gh-ay" type="number" min="1900" max="2200" step="1" value="2025" inputmode="numeric" /></label>
+        <label>Type <select class="gh-at">{TYPES.map((t) => <option value={t.id}>{`Scope ${t.scope}: ${t.category}`}</option>)}</select></label>
+        <label>Description <input class="gh-ad" maxlength="80" /></label>
+        <label>Amount <input class="gh-aa" type="number" min="0" step="any" inputmode="decimal" /></label>
+        <label>Unit <input class="gh-au" maxlength="16" value="kWh" /></label>
+        <label class="gh-afl">kg CO₂e per unit <input class="gh-af" type="number" min="0" step="any" inputmode="decimal" /></label>
+        <label class="gh-aml">Market factor (optional) <input class="gh-am" type="number" min="0" step="any" inputmode="decimal" /></label>
+      </div>
+      <p class="ax-help gh-ah"></p>
+      <div class="ax-row"><button type="button" class="btn small gh-add">Add this row</button></div>
+      <p class="ax-err gh-aerr" hidden></p>
+    </details>
+    <details class="gh-types">
+      <summary>Types, scopes and categories</summary>
+      <div class="ax-scroll"><table class="gh-tab"><thead><tr><th>Type</th><th>Scope</th><th>Category</th><th>Factor</th></tr></thead>
+        <tbody>{TYPES.map((t) => <tr><td>{t.id}</td><td>{t.scope}</td><td>{t.category}</td><td>{t.factorHelp}</td></tr>)}</tbody></table></div>
+      <p class="ax-help"><b>Scope 1</b>: direct emissions from sources the organisation owns or controls (burning fuel, company vehicles, refrigerant leaks). <b>Scope 2</b>: emissions from making the electricity, heat, steam and cooling it buys, reported both location-based (grid average) and market-based (what was contracted). <b>Scope 3</b>: other indirect emissions in the value chain; the number is the GHG Protocol's Scope 3 category.</p>
+    </details>
+  </div>
+
+  <div class="ax-card gh-org" hidden>
+    <h2>Organisation</h2>
+    <div class="ax-grid">
+      <label>Headline total uses <select class="gh-meth"><option value="mkt" selected>Market-based Scope 2</option><option value="loc">Location-based Scope 2</option></select></label>
+    </div>
+    <div class="gh-years"></div>
+    <p class="ax-help">For intensity: people employed (full-time equivalents) and revenue in any currency, per year. Intensity is tonnes CO₂e per employee and per million of revenue. The example numbers are made up.</p>
+  </div>
+
+  <div class="ax-card gh-out" hidden>
+    <h2>Inventory</h2>
+    <p class="ax-big gh-big"></p>
+    <p class="gh-sub"></p>
+    <div class="ax-scroll"><table class="gh-tab gh-sum"><thead></thead><tbody></tbody></table></div>
+    <canvas class="ax-fig gh-fig" style="margin-top:12px"></canvas>
+    <h3 class="gh-cath"></h3>
+    <div class="ax-scroll"><table class="gh-tab gh-cat"><thead><tr><th>Scope</th><th>Category</th><th>t CO₂e</th><th>Share</th></tr></thead><tbody></tbody></table></div>
+    <p class="ax-help gh-note"></p>
+    <Downloads label="Report" />
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small gh-csv">Rows with results (.csv)</button><button type="button" class="btn secondary small gh-scsv">Summary (.csv)</button></div>
+  </div>
+</div>
+
+<style is:global>
+  .ghg .gh-warn { border-left: 4px solid var(--warn); background: var(--warn-soft); padding: 10px 12px; border-radius: 8px; margin: 0 0 14px; font-size: 15px; }
+  .ghg details { margin-top: 12px; }
+  .ghg details summary { cursor: pointer; font-weight: 600; }
+  .ghg .gh-sub { font-weight: 600; margin: 0 0 12px; }
+  .ghg .gh-tab { border-collapse: collapse; font-size: 14px; width: 100%; margin-top: 8px; }
+  .ghg .gh-tab th, .ghg .gh-tab td { border-bottom: 1px solid var(--line); padding: 6px 10px 6px 0; text-align: right; white-space: nowrap; }
+  .ghg .gh-tab th:first-child, .ghg .gh-tab td:first-child { text-align: left; }
+  .ghg .gh-types .gh-tab td, .ghg .gh-types .gh-tab th, .ghg .gh-cat td:nth-child(2), .ghg .gh-cat th:nth-child(2) { text-align: left; }
+  .ghg .gh-types .gh-tab td:last-child { white-space: normal; min-width: 200px; }
+  .ghg .gh-tab tr.tot td { font-weight: 700; }
+  .ghg .gh-cat td:nth-child(2), .ghg .gh-sum td:first-child { white-space: normal; min-width: 110px; }
+  .ghg .gh-sum td, .ghg .gh-sum th { padding-right: 8px; }
+  .ghg .gh-tab td.up { color: var(--bad); }
+  .ghg .gh-tab td.down { color: var(--good); }
+  .ghg .gh-yr { display: grid; grid-template-columns: 60px minmax(0, 1fr) minmax(0, 1fr); gap: 8px; align-items: end; margin-top: 10px; }
+  .ghg .gh-yr b { padding-bottom: 9px; }
+  .ghg .gh-yr label { display: grid; gap: 3px; font-size: 13px; color: var(--muted); min-width: 0; }
+  .ghg .gh-yr input { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; min-width: 0; width: 100%; }
+</style>
+
+<script>
+  import { readRows, totals, intensity, change, exportRows, TYPES, EXAMPLE, type YearTotals, type Row } from '../../lib/sci/ghgscopes';
+  import { OKABE_ITO } from '../../lib/sci/plot';
+  import { csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ghg')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const el = <K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLElementTagNameMap[K]> = {}, ...kids: (Node | string)[]) => { const e = Object.assign(document.createElement(tag), props); e.append(...kids); return e; };
+  const t2 = (kg: number) => (Number.isFinite(kg) ? (kg / 1000).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '–');
+  const n2 = (x: number) => (Number.isFinite(x) ? x.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '–');
+  const pct = (x: number) => (Number.isFinite(x) ? `${x > 0 ? '+' : x < 0 ? '−' : ''}${Math.round(Math.abs(x) * 1000) / 10} %` : '–');
+  const EX_ORG: Record<number, [string, string]> = { 2024: ['12', '2000000'], 2025: ['13', '2300000'] };
+  const org = new Map<number, [string, string]>();
+  let rows: Row[] = [], T: YearTotals[] = [], fig: Figure | null = null, sections: Section[] = [], summary: (string | number)[][] = [];
+
+  function yearInputs(years: number[]) {
+    const box = q('.gh-years');
+    const have = [...box.querySelectorAll<HTMLElement>('.gh-yr')].map((d) => Number(d.dataset.year));
+    if (have.join() === years.join()) return;
+    box.replaceChildren(...years.map((y) => {
+      const v = org.get(y) ?? ['', ''];
+      const mk = (lab: string, k: 0 | 1) => { const i = el('input', { type: 'number', min: '0', step: 'any', value: v[k], inputMode: 'decimal', className: k ? 'gh-rev' : 'gh-emp' }); i.addEventListener('input', () => { const cur = org.get(y) ?? ['', '']; cur[k] = i.value; org.set(y, cur); calc(); }); return el('label', {}, lab, i); };
+      const d = el('div', { className: 'gh-yr' }, el('b', { textContent: String(y) }), mk('Employees', 0), mk('Revenue', 1));
+      d.dataset.year = String(y);
+      return d;
+    }));
+  }
+
+  /** Stacked bars, one per year, by scope. */
+  function barFigure(meth: 'loc' | 'mkt'): Figure {
+    const names = ['Scope 1', `Scope 2 (${meth === 'mkt' ? 'market' : 'location'})`, 'Scope 3'];
+    const h = 40 + T.length * 34 + 50;
+    return { w: 400, h, alt: `Emissions by scope and year: ${T.map((t) => `${t.year} ${t2(meth === 'mkt' ? t.totalMkt : t.totalLoc)} t`).join(', ')}`, draw: (ctx, W, _H, pal) => {
+      const font = (s: number, b = false) => `${b ? 600 : 400} ${s}px system-ui, sans-serif`;
+      const max = Math.max(1, ...T.map((t) => (meth === 'mkt' ? t.totalMkt : t.totalLoc)));
+      const x0 = 56, x1 = W - 70, sc = (x1 - x0) / max;
+      T.forEach((t, i) => {
+        const y = 16 + i * 34, parts = [t.s1, meth === 'mkt' ? t.s2mkt : t.s2loc, t.s3];
+        ctx.fillStyle = pal.ink; ctx.font = font(14); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(String(t.year), x0 - 8, y + 12);
+        let x = x0;
+        parts.forEach((v, k) => { const w = v * sc; ctx.fillStyle = pal.red ? pal.accent : OKABE_ITO[k]; ctx.fillRect(x, y, w, 24); x += w; });
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.font = font(13, true); ctx.fillText(`${t2(parts[0] + parts[1] + parts[2])} t`, x + 6, y + 12);
+      });
+      const ly = 16 + T.length * 34 + 12;
+      ctx.fillStyle = pal.muted; ctx.font = font(12); ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillText('t CO₂e', (x0 + x1) / 2, ly + 4);
+      names.forEach((nm, k) => {
+        const lx = 10 + k * (W / 3), yy = ly + 16;
+        ctx.fillStyle = pal.red ? pal.accent : OKABE_ITO[k]; ctx.fillRect(lx, yy, 12, 12);
+        ctx.fillStyle = pal.ink; ctx.font = font(12); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(nm, lx + 16, yy + 6);
+      });
+    } };
+  }
+
+  function calc() {
+    const out = q('.gh-out');
+    if (!T.length) { out.hidden = true; q('.gh-org').hidden = true; sections = []; return; }
+    out.hidden = false; q('.gh-org').hidden = false;
+    const meth = q<HTMLSelectElement>('.gh-meth').value as 'loc' | 'mkt';
+    const tot = (t: YearTotals) => (meth === 'mkt' ? t.totalMkt : t.totalLoc);
+    const last = T[T.length - 1], prev = T.length > 1 ? T[T.length - 2] : null;
+    const ints = T.map((t) => { const o = org.get(t.year) ?? ['', '']; return intensity(tot(t), Number(o[0]), Number(o[1])); });
+    q('.gh-big').textContent = `${last.year}: ${t2(tot(last))} t CO₂e (${meth === 'mkt' ? 'market' : 'location'}-based)`;
+    q('.gh-sub').textContent = prev ? `${pct(change(tot(prev), tot(last)).rel)} on ${prev.year} (${change(tot(prev), tot(last)).abs <= 0 ? '−' : '+'}${t2(Math.abs(change(tot(prev), tot(last)).abs))} t).` : 'Add a second year to see the change.';
+    // Summary table: lines × years (+ change).
+    const lines: [string, (t: YearTotals, i: number) => number, boolean][] = [
+      ['Scope 1', (t) => t.s1 / 1000, true],
+      ['Scope 2, location-based', (t) => t.s2loc / 1000, true],
+      ['Scope 2, market-based', (t) => t.s2mkt / 1000, true],
+      ['Scope 3', (t) => t.s3 / 1000, true],
+      ['Total, location-based', (t) => t.totalLoc / 1000, true],
+      ['Total, market-based', (t) => t.totalMkt / 1000, true],
+      ['t per employee', (_t, i) => ints[i].perEmployee, false],
+      ['t per million revenue', (_t, i) => ints[i].perMillion, false],
+    ];
+    const head = ['t CO₂e', ...T.map((t) => String(t.year)), ...(prev ? ['Change'] : [])];
+    const body = lines.map(([name, f]) => {
+      const vals = T.map((t, i) => f(t, i));
+      const chg = prev ? change(vals[vals.length - 2], vals[vals.length - 1]).rel : NaN;
+      return { name, vals, chg };
+    });
+    q('.gh-sum thead').replaceChildren(el('tr', {}, ...head.map((h) => el('th', { textContent: h }))));
+    q('.gh-sum tbody').replaceChildren(...body.map((b) => {
+      const tr = el('tr', { className: b.name.startsWith('Total') && b.name.includes(meth === 'mkt' ? 'market' : 'location') ? 'tot' : '' }, el('td', { textContent: b.name }), ...b.vals.map((v) => el('td', { textContent: n2(v) })));
+      if (prev) tr.append(el('td', { textContent: pct(b.chg), className: b.chg > 0 ? 'up' : b.chg < 0 ? 'down' : '' }));
+      return tr;
+    }));
+    summary = [['line', ...T.map((t) => `t_co2e_${t.year}`), ...(prev ? ['change_percent'] : [])], ...body.map((b) => [b.name, ...b.vals.map((v) => (Number.isFinite(v) ? Math.round(v * 1000) / 1000 : '')), ...(prev ? [Number.isFinite(b.chg) ? Math.round(b.chg * 10000) / 100 : ''] : [])])];
+    // Categories for the latest year.
+    q('.gh-cath').textContent = `By category, ${last.year}`;
+    const catRows = TYPES.filter((ty) => last.byCat.has(ty.category)).map((ty) => {
+      const kg = ty.scope === 2 && meth === 'mkt' ? rows.filter((r) => r.year === last.year && r.type === ty).reduce((a, r) => a + r.amount * (r.market ?? r.factor), 0) : last.byCat.get(ty.category)!;
+      return [String(ty.scope), ty.category, t2(kg), tot(last) > 0 ? `${Math.round((kg / tot(last)) * 100)} %` : '–'];
+    });
+    q('.gh-cat tbody').replaceChildren(...catRows.map((r) => el('tr', {}, ...r.map((c) => el('td', { textContent: c })))));
+    const notes: string[] = [];
+    const miss = T.filter((t) => t.s2NoMarket > 0).map((t) => `${t.year} (${t.s2NoMarket} row${t.s2NoMarket > 1 ? 's' : ''})`);
+    if (miss.length) notes.push(`Scope 2 rows without a market factor used the location factor in the market-based total: ${miss.join(', ')}. The GHG Protocol asks for a residual-mix factor where no contract applies.`);
+    notes.push('Scope 3 covers only the categories you entered; the GHG Protocol asks you to screen all 15 and explain any left out.');
+    q('.gh-note').textContent = notes.join(' ');
+    fig = barFigure(meth); paint(q<HTMLCanvasElement>('.gh-fig'), fig);
+    sections = [
+      { title: 'Inventory', text: [q('.gh-big').textContent!, q('.gh-sub').textContent!, 'Example factors: replace them with official ones.'], table: { head, rows: body.map((b) => [b.name, ...b.vals.map(n2), ...(prev ? [pct(b.chg)] : [])]), align: ['l', ...head.slice(1).map(() => 'r' as const)] } },
+      { title: 'By scope', figure: fig },
+      { title: q('.gh-cath').textContent!, table: { head: ['Scope', 'Category', 't CO₂e', 'Share'], rows: catRows, align: ['l', 'l', 'r', 'r'] } },
+      { title: 'Notes', text: [...notes, 'Structure after the GHG Protocol Corporate Standard (2004), Scope 2 Guidance (2015) and Scope 3 Standard (2011). Factors are the user\'s.'] },
+    ];
+  }
+
+  function run() {
+    const { rows: r, errors } = readRows(q<HTMLTextAreaElement>('.gh-in').value);
+    const pe = q('.gh-perr'); pe.textContent = errors.slice(0, 6).join(' ') + (errors.length > 6 ? ` …and ${errors.length - 6} more.` : ''); pe.hidden = !errors.length;
+    rows = r; T = totals(rows);
+    yearInputs(T.map((t) => t.year));
+    calc();
+  }
+
+  // Add-a-row form.
+  const ahelp = () => {
+    const ty = TYPES.find((t) => t.id === q<HTMLSelectElement>('.gh-at').value)!;
+    q('.gh-ah').textContent = `Scope ${ty.scope}, ${ty.category}. Factor: ${ty.factorHelp}.`;
+    q('.gh-aml').hidden = ty.scope !== 2;
+    q('.gh-afl').firstChild!.textContent = ty.id === 'refrigerant' ? 'GWP of the gas ' : 'kg CO₂e per unit ';
+  };
+  q('.gh-at').addEventListener('change', () => { q<HTMLInputElement>('.gh-au').value = TYPES.find((t) => t.id === q<HTMLSelectElement>('.gh-at').value)!.unit; ahelp(); });
+  q('.gh-add').addEventListener('click', () => {
+    const v = (c: string) => q<HTMLInputElement>(c).value.trim();
+    const err = q('.gh-aerr');
+    if (!v('.gh-aa') || !v('.gh-af')) { err.textContent = 'Type an amount and a factor.'; err.hidden = false; return; }
+    err.hidden = true;
+    const ty = q<HTMLSelectElement>('.gh-at').value;
+    const line = csv([[v('.gh-ay'), ty, v('.gh-ad') || ty, v('.gh-aa'), v('.gh-au'), v('.gh-af'), ty === 'electricity' || ty === 'heat' ? v('.gh-am') : '']]).trim();
+    const ta = q<HTMLTextAreaElement>('.gh-in');
+    ta.value = (ta.value.trim() ? ta.value.trim() + '\n' : 'year,type,description,amount,unit,factor,market factor\n') + line;
+    for (const c of ['.gh-ad', '.gh-aa', '.gh-af', '.gh-am']) q<HTMLInputElement>(c).value = '';
+    run();
+  });
+
+  q('.gh-in').addEventListener('input', run);
+  q('.gh-meth').addEventListener('change', calc);
+  q('.gh-ex').addEventListener('click', () => { q<HTMLTextAreaElement>('.gh-in').value = EXAMPLE; for (const [y, v] of Object.entries(EX_ORG)) org.set(Number(y), [...v]); q('.gh-years').replaceChildren(); run(); });
+  q('.gh-clear').addEventListener('click', () => { q<HTMLTextAreaElement>('.gh-in').value = ''; org.clear(); run(); });
+  q('.gh-csv').addEventListener('click', () => { if (rows.length) save(new Blob([csv(exportRows(rows))], { type: 'text/csv' }), 'scope-emissions-rows.csv', 'text/csv'); });
+  q('.gh-scsv').addEventListener('click', () => { if (summary.length) save(new Blob([csv(summary)], { type: 'text/csv' }), 'scope-emissions-summary.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.gh-fig'), fig); });
+  wireDownloads(q('.gh-out .dl'), () => ({ title: 'Scope 1, 2 and 3 emissions', subtitle: 'Example factors: replace them with official ones.', file: 'scope-emissions', sections }));
+
+  ahelp();
+  q<HTMLTextAreaElement>('.gh-in').value = EXAMPLE; for (const [y, v] of Object.entries(EX_ORG)) org.set(Number(y), [...v]); run();
+</script>
