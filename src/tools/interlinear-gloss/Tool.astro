@@ -1,0 +1,148 @@
+---
+// Interlinear gloss: Leipzig-style examples, checked word by word and morpheme by morpheme, exported as
+// plain text, HTML and LaTeX (gb4e, expex).
+import '../../styles/astro.css';
+---
+<div class="ax ig">
+  <div class="ax-card">
+    <h2>Your examples</h2>
+    <label>One example per block, with a blank line between examples. Lines in order: original, morphemes, glosses, translation. A first line starting with # is a title.
+      <textarea class="ig-in" rows="12" spellcheck="false"># Turkish
+Çocuklar okula gitti.
+Çocuk-lar okul-a git-ti.
+child-PL school-DAT go-PST
+"The children went to school."
+
+# Spanish
+Dámelo.
+Da=me=lo.
+give.IMP=1SG.DAT=3SG.M.ACC
+'Give it to me.'</textarea></label>
+    <p class="ax-help">The examples are simple sentences made up for this tool. Separate morphemes with - (affixes), = (clitics) or ~ (reduplication), and put infixes in &lt; &gt;. Glosses that need several words join them with dots (go.out). Category labels in capitals (PL, 1SG, PST) are shown in small capitals.</p>
+    <div class="ax-row" style="margin-top:10px"><label class="ax-check"><input type="checkbox" class="ig-src" checked /> Each example starts with the original, unsegmented line</label></div>
+    <details style="margin-top:12px"><summary>Your own abbreviations</summary>
+      <label style="margin-top:8px">One per line, as ABBR = meaning. These are added to the short built-in list.
+        <textarea class="ig-abbr" rows="3" spellcheck="false" placeholder="AV = actor voice"></textarea></label>
+    </details>
+    <p class="ax-err ig-err" hidden></p>
+  </div>
+
+  <div class="ax-card ig-out" hidden>
+    <h2>Check</h2>
+    <p class="ig-ok"></p>
+    <ul class="ig-probs"></ul>
+    <h3 style="margin:16px 0 6px">Preview</h3>
+    <div class="ig-view"></div>
+    <h3 style="margin:16px 0 6px">Abbreviations</h3>
+    <div class="ax-scroll"><table class="ig-ab"></table></div>
+    <p class="ax-help ig-abnote"></p>
+  </div>
+
+  <div class="ax-card ig-exp" hidden>
+    <h2>Export</h2>
+    <div class="ax-seg ig-fmt" role="group" aria-label="Format">
+      <button type="button" data-f="plain" aria-pressed="true">Plain text</button><button type="button" data-f="html" aria-pressed="false">HTML</button><button type="button" data-f="gb4e" aria-pressed="false">LaTeX gb4e</button><button type="button" data-f="expex" aria-pressed="false">LaTeX expex</button>
+    </div>
+    <textarea class="ig-code" rows="10" readonly spellcheck="false" wrap="off" aria-label="Export" style="margin-top:8px"></textarea>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small ig-copy">Copy</button>
+      <button type="button" class="btn secondary small ig-dl">Download file</button>
+      <span class="ax-help ig-copied" style="margin:0" hidden>Copied.</span>
+    </div>
+    <p class="ax-help ig-fnote"></p>
+  </div>
+</div>
+
+<style is:global>
+  .ig summary { cursor: pointer; font-size: 14px; }
+  .ig .ig-probs { margin: 6px 0 0; padding-left: 20px; color: var(--bad); font-size: 14px; }
+  .ig .ig-probs li + li { margin-top: 4px; }
+  .ig .ig-ex { display: flex; gap: 12px; margin: 0 0 16px; font-size: 16px; line-height: 1.45; }
+  .ig .ig-ex > .n { flex: none; }
+  .ig .ig-ex > div:last-child { min-width: 0; }
+  .ig .ig-orig { font-style: italic; }
+  .ig .ig-w { display: inline-block; vertical-align: top; margin: 0 14px 6px 0; }
+  .ig .ig-w .s { font-style: italic; }
+  .ig .ig-w.bad { outline: 2px solid var(--bad); outline-offset: 2px; border-radius: 3px; }
+  .ig .sc { font-variant: small-caps; text-transform: lowercase; letter-spacing: 0.02em; }
+  .ig .ig-code { font-size: 13px; }
+  .ig td.unk { color: var(--warn); }
+</style>
+
+<script>
+  import { parseExamples, glossRuns, abbreviationsUsed, COMMON, toPlain, toHtml, toGb4e, toExpex, type Example } from '../../lib/sci/igt';
+  import { save } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ig')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let ex: Example[] = [], fmt = 'plain';
+  const EXT: Record<string, [string, string]> = { plain: ['txt', 'text/plain'], html: ['html', 'text/html'], gb4e: ['tex', 'text/x-tex'], expex: ['tex', 'text/x-tex'] };
+  const NOTE: Record<string, string> = {
+    plain: 'Spaces line the words up; paste into a fixed-width font such as Courier.',
+    html: 'A snippet with its styles built in: paste it into a web page or a blog editor that accepts HTML.',
+    gb4e: 'Needs \\usepackage{gb4e}. Category labels become \\textsc{…}. The original line is aligned with \\glll when it has the same number of words.',
+    expex: 'Needs \\usepackage{expex}. The original line goes in \\glpreamble and the translation in \\glft.',
+  };
+
+  function el(tag: string, cls = '', text = '') { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; }
+  function gloss(g: string) { const span = el('span'); for (const r of glossRuns(g)) span.append(r.abbr ? el('span', 'sc', r.t) : document.createTextNode(r.t)); return span; }
+  function userAbbr(): Record<string, string> {
+    const m: Record<string, string> = {};
+    for (const line of q<HTMLTextAreaElement>('.ig-abbr').value.split('\n')) { const x = line.match(/^\s*([0-9A-Za-z]+)\s*[=:]\s*(.+)$/); if (x) m[x[1].toUpperCase()] = x[2].trim(); }
+    return m;
+  }
+
+  function calc() {
+    const err = q('.ig-err');
+    const r = parseExamples(q<HTMLTextAreaElement>('.ig-in').value, q<HTMLInputElement>('.ig-src').checked);
+    if (r.errors.length) { err.textContent = r.errors.join(' '); err.hidden = false; } else err.hidden = true;
+    ex = r.examples;
+    q('.ig-out').hidden = q('.ig-exp').hidden = !ex.length;
+    if (!ex.length) return;
+    const probs = ex.flatMap((e, i) => e.problems.map((p) => `Example ${i + 1}: ${p}`));
+    const real = probs.filter((p) => !/: Note: /.test(p));
+    q('.ig-ok').innerHTML = '';
+    q('.ig-ok').append(el('span', 'ax-pill ' + (real.length ? 'bad' : 'good'), real.length ? `${real.length} problem${real.length === 1 ? '' : 's'}` : 'All words and morphemes line up'), document.createTextNode(` ${ex.length} example${ex.length === 1 ? '' : 's'}, ${ex.reduce((s, e) => s + e.words.length, 0)} words.`));
+    const ul = q('.ig-probs'); ul.innerHTML = ''; for (const p of probs) ul.append(el('li', '', p));
+    const view = q('.ig-view'); view.innerHTML = '';
+    ex.forEach((e, i) => {
+      const box = el('div', 'ig-ex'), body = el('div');
+      box.append(el('div', 'n', `(${i + 1})`), body);
+      if (e.title) body.append(el('div', '', e.title));
+      if (e.source) body.append(el('div', 'ig-orig', e.source));
+      const line = el('div');
+      for (const w of e.words) { const d = el('div', 'ig-w' + (w.problem ? ' bad' : '')); if (w.problem) d.title = w.problem; d.append(el('div', 's', w.seg || '?'), (() => { const g = el('div'); g.append(w.gloss ? gloss(w.gloss) : document.createTextNode('?')); return g; })()); line.append(d); }
+      body.append(line);
+      if (e.translation) body.append(el('div', '', `‘${e.translation}’`));
+      view.append(box);
+    });
+    const mine = userAbbr(), used = abbreviationsUsed(ex);
+    const t = q<HTMLTableElement>('.ig-ab'); t.innerHTML = '';
+    const hr = t.createTHead().insertRow(); for (const h of ['Label', 'Meaning']) { const th = el('th', '', h); hr.append(th); }
+    const b = t.createTBody(); let unknown = 0;
+    for (const a of used) {
+      const tr = b.insertRow(), c1 = tr.insertCell(), c2 = tr.insertCell(); c1.append(el('span', 'sc', a));
+      const m = mine[a] ?? COMMON[a]; if (m) c2.textContent = m; else { c2.textContent = 'not in the list: add it under "Your own abbreviations"'; c2.className = 'unk'; unknown++; }
+    }
+    q('.ig-abnote').textContent = used.length ? 'Put this list with your examples (the Leipzig rules ask for one). ' + (unknown ? `${unknown} label${unknown === 1 ? ' is' : 's are'} not in the built-in list.` : '') : 'No category labels found.';
+    code();
+  }
+  function code() {
+    q<HTMLTextAreaElement>('.ig-code').value = fmt === 'plain' ? toPlain(ex) : fmt === 'html' ? toHtml(ex) : fmt === 'gb4e' ? toGb4e(ex) : toExpex(ex);
+    q('.ig-fnote').textContent = NOTE[fmt];
+  }
+
+  let tm = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('textarea:not([readonly])')) { clearTimeout(tm); tm = window.setTimeout(calc, 250); } });
+  q('.ig-src').addEventListener('change', calc);
+  root.querySelectorAll<HTMLButtonElement>('.ig-fmt button').forEach((btn) => btn.addEventListener('click', () => {
+    fmt = btn.dataset.f!; root.querySelectorAll<HTMLButtonElement>('.ig-fmt button').forEach((x) => x.setAttribute('aria-pressed', String(x === btn))); code();
+  }));
+  q('.ig-copy').addEventListener('click', async () => {
+    const ta = q<HTMLTextAreaElement>('.ig-code');
+    try { await navigator.clipboard.writeText(ta.value); } catch { ta.select(); document.execCommand('copy'); }
+    q('.ig-copied').hidden = false; setTimeout(() => (q('.ig-copied').hidden = true), 1500);
+  });
+  q('.ig-dl').addEventListener('click', () => { if (!ex.length) return; const [ext, type] = EXT[fmt]; save(new Blob([q<HTMLTextAreaElement>('.ig-code').value + '\n'], { type }), `glosses${fmt === 'expex' ? '-expex' : fmt === 'gb4e' ? '-gb4e' : ''}.${ext}`, type); });
+  calc();
+</script>
