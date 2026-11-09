@@ -1,0 +1,149 @@
+---
+// Mann-Kendall trend test, Sen slope, Pettitt change point and anomalies for a time series. Example series made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+// Made-up annual mean temperatures 1975-2024 (a slow trend plus year-to-year persistence), written by fibub.
+const vals = [14.0, 14.02, 14.12, 14.02, 13.78, 13.77, 13.61, 13.83, 14.36, 14.13, 13.96, 14.2, 14.31, 14.3, 14.0, 14.09, 14.37, 13.93, 13.94, 13.51, 13.45, 13.25, 13.62, 13.54, 13.96, 14.18, 14.22, 13.55, 13.74, 14.01, 14.23, 13.87, 13.98, 13.9, 13.91, 14.48, 14.27, 14.39, 14.73, 14.51, 14.52, 14.6, 14.64, 14.28, 14.47, 14.97, 14.4, 14.79, 14.81, 14.59];
+const demo = 'year\tmean temperature (°C)\n' + vals.map((v, i) => `${1975 + i}\t${v.toFixed(2)}`).join('\n');
+---
+<div class="ax trn">
+  <div class="ax-card">
+    <h2>Time series</h2>
+    <label>Time and value <textarea class="tr-data" rows="9" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".tr-data" maxCols={20} maxRows={20000} label="Open a file" />
+    <p class="ax-help">Two columns: the time (a year, a decimal year, or a date such as 2024-07 or 2024-07-15) and the value. Only the first two columns are read. One column of values also works (then times are 1, 2, 3 …). Empty or non-numeric values are skipped. The example is made up. Up to 5,000 values.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Test <select class="tr-test">
+        <option value="mk" selected>Mann-Kendall</option>
+        <option value="hr">Mann-Kendall, corrected for autocorrelation (Hamed-Rao, all lags)</option>
+        <option value="hr3">Mann-Kendall, corrected for autocorrelation (Hamed-Rao, first 3 lags)</option>
+        <option value="seasonal">Seasonal Mann-Kendall by calendar month (needs dates)</option>
+      </select></label>
+      <label>Significance level <select class="tr-alpha"><option value="0.05" selected>5 % (95 % confidence)</option><option value="0.01">1 % (99 %)</option><option value="0.1">10 % (90 %)</option></select></label>
+      <label>Value unit (for labels) <input class="tr-unit" type="text" value="°C" /></label>
+      <label>Report the slope per <select class="tr-per"><option value="1">1 time unit (year)</option><option value="10" selected>10 time units (decade)</option><option value="100">100 time units (century)</option></select></label>
+      <label>Baseline for anomalies, from <input class="tr-b0" type="text" inputmode="decimal" value="1981" /></label>
+      <label>to (inclusive) <input class="tr-b1" type="text" inputmode="decimal" value="2010" /></label>
+    </div>
+    <p class="ax-err tr-err" hidden></p>
+  </div>
+
+  <div class="ax-card tr-out">
+    <h2>Trend</h2>
+    <p class="ax-big tr-big"></p>
+    <dl class="ax-facts tr-facts"></dl>
+    <canvas class="ax-fig tr-fig"></canvas>
+    <h2 style="margin-top:14px">Anomalies</h2>
+    <canvas class="ax-fig tr-afig"></canvas>
+    <p class="ax-help">A trend test answers whether values tend to rise or fall over time, not why. Mann-Kendall assumes the values are independent; climate and river series often carry over from one step to the next, which makes trends look more certain than they are. The Hamed-Rao correction allows for that. Monthly data with a yearly cycle need the seasonal test.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { mannKendall, hamedRao, seasonalMK, senSlope, senCI, pettitt, anomalies, parseSeries, median } from '../../lib/sci/trend';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.trn')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let figs: Figure[] = [], report: Section[] = [];
+  const SUP: Record<string, string> = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+  const pfmt = (p: number) => { if (!Number.isFinite(p)) return '–'; if (p >= 0.001) return p.toFixed(3); if (p >= 0.0001) return p.toFixed(4); const [m, e] = p.toExponential(1).split('e'); return `${m} × 10${e.replace('+', '').split('').map((c) => SUP[c] ?? c).join('')}`; };
+  const tfmt = (t: number) => (Math.abs(t - Math.round(t)) < 1e-9 ? String(Math.round(t)) : t.toFixed(2));
+
+  function calc() {
+    const err = q('.tr-err'), out = q('.tr-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const s = parseSeries(parseTable(q<HTMLTextAreaElement>('.tr-data').value), num);
+    if (s.x.length > 5000) return fail(`The series has ${s.x.length.toLocaleString('en')} values; the limit is 5,000 (the tests compare every pair).`);
+    if (s.x.length < 4) return fail('Give at least 4 values (10 or more for a meaningful test).');
+    const test = sel('.tr-test'), alpha = +sel('.tr-alpha'), conf = 1 - alpha, per = +sel('.tr-per'), unit = q<HTMLInputElement>('.tr-unit').value.trim();
+    const u = unit ? ` ${unit}` : '', perTxt = per === 1 ? 'per time unit' : per === 10 ? 'per decade' : 'per century';
+    const perLabel = s.kind === 'values' ? (per === 1 ? 'per step' : `per ${per} steps`) : per === 1 ? 'per year' : perTxt;
+    let r: { S: number; varS: number; Z: number; p: number; tau: number; n: number };
+    let slope: number, intercept: number, ci: { lo: number; hi: number }, extra: HTMLElement[] = [], name = 'Mann-Kendall';
+    if (test === 'seasonal') {
+      if (!s.month) return fail('The seasonal test needs dates (such as 2024-07) in the first column, so each value has a calendar month.');
+      const groups = Array.from({ length: 12 }, () => ({ t: [] as number[], x: [] as number[] }));
+      s.month.forEach((m, i) => { groups[m - 1].t.push(s.t[i]); groups[m - 1].x.push(s.x[i]); });
+      const sm = seasonalMK(groups);
+      r = sm; slope = sm.slope; intercept = median(s.x) - slope * median(s.t); ci = senCI(sm.slopes, sm.varS, conf); name = 'Seasonal Mann-Kendall';
+      extra.push(fact('Seasons', `${groups.filter((g) => g.x.length >= 2).length} calendar months with 2 or more values`, 'S and Var(S) are summed over the months; the slope is the median of the within-month slopes'));
+    } else {
+      if (test === 'mk') r = mannKendall(s.x);
+      else {
+        const h = hamedRao(s.x, alpha, test === 'hr3' ? 3 : undefined); r = h; name = 'Mann-Kendall with the Hamed-Rao correction';
+        if (!Number.isFinite(h.varS)) return fail('The autocorrelation correction gives a negative variance for this series (strong alternating pattern). Use the first-3-lags option or the plain test.');
+        extra.push(fact('Autocorrelation correction', `Var(S) × ${h.factor.toFixed(3)}`, h.lags.length ? `significant rank autocorrelation at lag${h.lags.length > 1 ? 's' : ''} ${h.lags.slice(0, 8).join(', ')}${h.lags.length > 8 ? ' …' : ''}` : 'no significant autocorrelation, so no change'));
+      }
+      const ss = senSlope(s.t, s.x); slope = ss.slope; intercept = ss.intercept; ci = senCI(ss.slopes, r.varS, conf);
+    }
+    err.hidden = true; out.hidden = false;
+    const sigf = r.p < alpha, dir = r.Z > 0 ? 'increasing' : r.Z < 0 ? 'decreasing' : 'no';
+    const sl = (v: number) => (Number.isFinite(v) ? `${v * per >= 0 ? '+' : '−'}${String(parseFloat(sig(Math.abs(v * per), 3)))}` : '–');
+    q('.tr-big').textContent = `${sigf ? `Significant ${dir} trend` : 'No significant trend'}: ${sl(slope)}${u} ${perLabel} (${Math.round(conf * 100)} % CI ${sl(ci.lo)} to ${sl(ci.hi)}), p = ${pfmt(r.p)}`;
+    const span = s.t[s.t.length - 1] - s.t[0];
+    const pt = pettitt(s.x), cpT = (s.t[pt.at] + s.t[pt.at + 1]) / 2;
+    const before = s.x.slice(0, pt.at + 1), after = s.x.slice(pt.at + 1);
+    const mean = (a: number[]) => a.reduce((x, y) => x + y, 0) / a.length;
+    const b0 = num(q<HTMLInputElement>('.tr-b0').value), b1 = num(q<HTMLInputElement>('.tr-b1').value);
+    const useBase = Number.isFinite(b0) && Number.isFinite(b1) && b1 >= b0;
+    const an = anomalies(s.t, s.x, useBase ? b0 : -Infinity, useBase ? b1 : Infinity), baseOk = an.count > 0;
+    const facts = [
+      fact('Values', `${r.n.toLocaleString('en')}${s.skipped ? ` (${s.skipped} row${s.skipped === 1 ? '' : 's'} skipped)` : ''}`, `${tfmt(s.t[0])} to ${tfmt(s.t[s.t.length - 1])}`),
+      fact('Test', name, `S = ${r.S}, Var(S) = ${sig(r.varS, 6)}, Z = ${r.Z.toFixed(3)}, two-sided p = ${pfmt(r.p)}`),
+      fact("Kendall's tau", r.tau.toFixed(3), 'from −1 (always falling) to +1 (always rising)'),
+      fact('Sen slope', `${sl(slope)}${u} ${perLabel}`, `${Math.round(conf * 100)} % confidence interval ${sl(ci.lo)} to ${sl(ci.hi)} (Gilbert's method)${Number.isFinite(ci.lo) ? '' : '; too few values for the full interval'}`),
+      fact('Change over the record', `${sl(slope * span / per)}${u}`, `Sen slope × ${sig(span, 4)} time units; line value = ${sig(intercept, 5)} + slope × time`),
+      ...extra,
+      fact('Change point (Pettitt)', `between ${tfmt(s.t[pt.at])} and ${tfmt(s.t[pt.at + 1])}`, `K = ${pt.K}, p ≈ ${pfmt(pt.p)}${pt.p < alpha ? ' (significant)' : ' (not significant)'}; mean ${sig(mean(before), 4)}${u} before, ${sig(mean(after), 4)}${u} after`),
+      fact('Baseline mean', baseOk ? `${sig(an.mean, 5)}${u}` : 'no values in the baseline', baseOk ? `${an.count} values from ${useBase ? `${tfmt(b0)} to ${tfmt(b1)}` : 'the whole record'}; last value ${an.a[an.a.length - 1] >= 0 ? '+' : '−'}${sig(Math.abs(an.a[an.a.length - 1]), 3)}${u} from it` : 'change the baseline years'),
+    ];
+    q('.tr-facts').replaceChildren(...facts);
+    // Series with the Sen line and the change point.
+    const t0 = s.t[0], t1 = s.t[s.t.length - 1];
+    const f1 = chartFigure({ w: 380, h: 240, xLabel: s.kind === 'values' ? 'Step' : 'Time', yLabel: unit ? `Value (${unit})` : 'Value', legend: 'below', series: [
+      { name: 'Values', x: s.t, y: s.x, mode: s.x.length > 300 ? 'line' : 'both', size: 2.5, width: 1 },
+      { name: `Sen slope ${sl(slope)} ${perLabel}`, x: [t0, t1], y: [intercept + slope * t0, intercept + slope * t1], mode: 'line', width: 2.2 },
+    ], marks: pt.p < alpha ? [{ kind: 'vline', at: cpT, dash: [4, 3], label: 'change point' }] : [] }, `Time series with the Sen slope line; ${q('.tr-big').textContent}`);
+    paint(q<HTMLCanvasElement>('.tr-fig'), f1);
+    const a = an.a;
+    const f2: Figure = { w: 380, h: 200, alt: `Anomalies from the baseline mean ${sig(an.mean, 5)}${u}`, draw: (ctx, W, H, pal) => {
+      const l = 44, rr = 8, t = 8, b = 30, pw = W - l - rr, ph = H - t - b;
+      if (!baseOk) { ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.fillText('No values in the baseline period.', l, t + 20); return; }
+      const lo = Math.min(0, ...a), hi = Math.max(0, ...a), pad = (hi - lo) * 0.08 || 1;
+      const X = (tt: number) => l + ((tt - t0) / (t1 - t0 || 1)) * pw, Y = (v: number) => t + ph * (1 - (v - (lo - pad)) / (hi - lo + 2 * pad));
+      const bw = Math.max(1, Math.min(10, (pw / a.length) * 0.8));
+      ctx.font = '9px system-ui, sans-serif';
+      const step = (() => { const sp = hi - lo + 2 * pad, d = 10 ** Math.floor(Math.log10(sp / 4)); return [1, 2, 5, 10].map((m) => m * d).find((m) => sp / m <= 6)!; })();
+      for (let v = Math.ceil((lo - pad) / step) * step; v <= hi + pad; v += step) { ctx.strokeStyle = pal.grid; ctx.lineWidth = 0.7; ctx.beginPath(); ctx.moveTo(l, Y(v)); ctx.lineTo(l + pw, Y(v)); ctx.stroke(); ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(String(parseFloat(v.toPrecision(6))), l - 4, Y(v)); }
+      a.forEach((v, i) => { ctx.fillStyle = v >= 0 ? pal.bad : pal.red ? pal.muted : pal.accent; const y0 = Y(0), y1 = Y(v); ctx.fillRect(X(s.t[i]) - bw / 2, Math.min(y0, y1), bw, Math.max(0.8, Math.abs(y1 - y0))); });
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(l, Y(0)); ctx.lineTo(l + pw, Y(0)); ctx.stroke();
+      ctx.strokeStyle = pal.line; ctx.strokeRect(l, t, pw, ph);
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      const xs = (() => { const sp = t1 - t0 || 1, d = 10 ** Math.floor(Math.log10(sp / 4)); return [1, 2, 5, 10].map((m) => m * d).find((m) => sp / m <= 6)!; })();
+      for (let x = Math.ceil(t0 / xs) * xs; x <= t1 + 1e-9; x += xs) ctx.fillText(String(+x.toPrecision(6)), X(x), t + ph + 4);
+      ctx.fillText(`Anomaly from the baseline mean${unit ? ` (${unit})` : ''}`, l + pw / 2, t + ph + 17);
+    } };
+    paint(q<HTMLCanvasElement>('.tr-afig'), f2);
+    figs = [f1, f2];
+    const head = ['Time', 'Value', 'Anomaly', 'Sen line'];
+    const rows = s.t.map((tt, i) => [tfmt(tt), String(s.x[i]), baseOk ? sig(a[i], 4) : '', sig(intercept + slope * tt, 5)]);
+    report = [{ title: q('.tr-big').textContent!, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent! + ' (' + (d.querySelector('small')?.textContent ?? '') + ')'] as [string, string]), figure: f1 }, { title: 'Anomalies', figure: f2, table: { head, rows, align: ['l', 'r', 'r', 'r'] } }];
+  }
+
+  root.querySelectorAll('input, textarea, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.tr-out').hidden) { paint(q<HTMLCanvasElement>('.tr-fig'), figs[0]); paint(q<HTMLCanvasElement>('.tr-afig'), figs[1]); } });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Trend analysis', subtitle: q('.tr-big').textContent ?? '', file: 'trend', sections: report }));
+</script>
+
+<style is:global>
+  .trn select, .trn input { max-width: 100%; }
+  .trn textarea { width: 100%; }
+</style>

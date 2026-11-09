@@ -1,0 +1,203 @@
+---
+// Skew-T log-P sounding plot with parcel lifting, CAPE, CIN, LCL, LFC, EL and stability indices. Example sounding made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+// Made-up warm-season sounding written by fibub for the example (not a real station or date).
+const demo = 'pressure (hPa)\ttemperature (C)\tdew point (C)\twind direction (deg)\twind speed (kt)\n985\t30.0\t20.0\t170\t10\n950\t26.6\t18.8\t180\t18\n925\t24.2\t18.0\t190\t22\n900\t22.0\t16.6\t200\t25\n850\t18.6\t13.4\t210\t28\n800\t15.0\t9.0\t220\t30\n750\t11.2\t3.5\t230\t32\n700\t7.4\t-2.6\t235\t35\n650\t3.4\t-9.0\t240\t38\n600\t-0.8\t-14.5\t245\t42\n550\t-5.4\t-19.0\t250\t46\n500\t-10.4\t-24.0\t250\t50\n450\t-15.9\t-30.5\t255\t55\n400\t-22.1\t-36.0\t255\t60\n350\t-29.2\t-42.0\t260\t66\n300\t-37.4\t-49.0\t260\t72\n250\t-46.8\t-57.0\t265\t78\n200\t-55.6\t-65.0\t265\t80\n150\t-60.5\t-73.0\t270\t65\n100\t-63.0\t-80.0\t270\t45';
+---
+<div class="ax skt">
+  <div class="ax-card">
+    <h2>Sounding</h2>
+    <label>Pressure, temperature, dew point, and wind if you have it <textarea class="sk-data" rows="9" spellcheck="false">{demo}</textarea></label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small sk-open">Open a file</button>
+      <input type="file" class="sk-in" accept=".txt,.csv,.tsv,.dat,text/plain,text/csv" hidden />
+      <span class="ax-help" style="margin:0">TXT, CSV or TSV, up to 2 MB and 5,000 levels.</span>
+    </div>
+    <p class="ax-help sk-note" hidden></p>
+    <p class="ax-help">Paste a table with a header row (pressure in hPa, height in m if you have it, temperature and dew point in °C, wind direction in degrees and speed in knots, or m/s if the header says so), or the text list from the University of Wyoming sounding archive as it is. The example is made up. <strong>Your data stays on this device.</strong></p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Lift which parcel <select class="sk-parcel"><option value="sb" selected>Surface-based</option><option value="ml">Mixed layer (lowest 100 hPa)</option><option value="mu">Most unstable (lowest 300 hPa)</option></select></label>
+      <label>Buoyancy from <select class="sk-virt"><option value="1" selected>Virtual temperature (standard)</option><option value="0">Plain temperature</option></select></label>
+      <label>Station height above sea level (m) <input class="sk-z0" type="text" inputmode="decimal" value="250" /></label>
+      <label>Wind speed shown in <select class="sk-wu"><option value="kt" selected>knots</option><option value="ms">m/s</option></select></label>
+    </div>
+    <p class="ax-err sk-err" hidden></p>
+  </div>
+
+  <div class="ax-card sk-out">
+    <h2>Skew-T log-P</h2>
+    <p class="ax-big sk-big"></p>
+    <canvas class="ax-fig sk-fig"></canvas>
+    <p class="ax-help sk-key">Red: temperature. Green: dew point. Black dashed: the lifted parcel. Shaded red: CAPE (parcel warmer); shaded grey: CIN (parcel cooler). Thin lines: isotherms (sloping), dry adiabats (solid curves), moist adiabats (dashed curves) and mixing ratio lines (dotted, g/kg).</p>
+    <dl class="ax-facts sk-facts"></dl>
+    <p class="ax-help">Indices are rough guides to the air mass, not a forecast. Storms also need something to lift the air, and forecasters weigh many more things. For warnings, follow your national weather service.</p>
+    <div class="ax-scroll sk-scroll"><table class="sk-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sk-csv">Download the table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { analyse, parseSounding, heights, theta, thetaE, moist, tdFromW, KAPPA, T0, type Level, type ParcelKind } from '../../lib/sci/sounding';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.skt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const comma = (x: number) => Math.round(x).toLocaleString('en');
+  let fig: Figure | null = null, report: Section[] = [], csv: string[] = [];
+
+  // Background lines are the same for every sounding, so they are computed once.
+  const PB = 1050, PT = 100, TMIN = -40, TMAX = 50, SKEW = 80;
+  const steps: number[] = []; for (let p = PB; p >= PT; p -= 10) steps.push(p);
+  const dryLines = Array.from({ length: 23 }, (_, i) => 240 + i * 10).map((th) => steps.map((p) => [p, th * (p / 1000) ** KAPPA - T0]));
+  const moistLines = Array.from({ length: 10 }, (_, i) => -10 + i * 5).map((t0) => { let t = t0, last = 1000; const out: number[][] = [[PB, moist(1000, t0, PB)], [1000, t0]]; for (let p = 975; p >= 200; p -= 25) { t = moist(last, t, p); last = p; out.push([p, t]); } return out; });
+  const wLines = [1, 2, 4, 8, 12, 16, 20].map((w) => ({ w, pts: steps.filter((p) => p >= 600).map((p) => [p, tdFromW(p, w / 1000)]) }));
+
+  function calc() {
+    const err = q('.sk-err'), out = q('.sk-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const parsed = parseSounding(q<HTMLTextAreaElement>('.sk-data').value), lv = parsed.levels;
+    if (lv.length > 5000) return fail(`This sounding has ${lv.length.toLocaleString('en')} levels; the limit is 5,000. Thin it first.`);
+    if (lv.length < 3) return fail(parsed.note || 'Paste at least three levels with pressure (hPa) and temperature (°C), and a dew point at the lowest level.');
+    const kind = sel('.sk-parcel') as ParcelKind, virtual = sel('.sk-virt') === '1', z0 = num(q<HTMLInputElement>('.sk-z0').value);
+    let r: ReturnType<typeof analyse>;
+    try { r = analyse(lv, kind, { virtual, z0: Number.isFinite(z0) ? z0 : 0 }); } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; out.hidden = false;
+    const ms = sel('.sk-wu') === 'ms', wu = ms ? 'm/s' : 'kt', wk = (kt: number) => (ms ? kt * 0.514444 : kt);
+    const z = r.z, hasWind = lv.some((l) => Number.isFinite(l.dir) && Number.isFinite(l.spd));
+    const pname = kind === 'sb' ? 'Surface-based' : kind === 'ml' ? 'Mixed-layer' : 'Most unstable';
+    const tag = kind === 'sb' ? 'SB' : kind === 'ml' ? 'ML' : 'MU';
+    const lvlTxt = (o: { p: number; z: number } | null) => (o ? `${o.p.toFixed(0)} hPa, ${comma(o.z)} m` : 'none');
+    q('.sk-big').textContent = `${tag}CAPE ${comma(r.cape)} J/kg, CIN ${comma(r.cin)} J/kg; LCL ${r.lcl.p.toFixed(0)} hPa (${comma(r.lcl.z)} m above the ground)`;
+    const f1 = (x: number, u = '') => (Number.isFinite(x) ? `${x.toFixed(1)}${u}` : 'not available');
+    const facts: HTMLElement[] = [
+      fact('Parcel', `${pname}: ${r.start.p.toFixed(0)} hPa, ${r.start.t.toFixed(1)} °C, dew point ${r.start.td.toFixed(1)} °C`, kind === 'ml' ? 'mean potential temperature and mixing ratio of the lowest 100 hPa, starting at the surface' : kind === 'mu' ? `the level with the highest equivalent potential temperature, ${comma(r.start.z)} m above the ground` : 'the lowest level of the sounding'),
+      fact('LCL (cloud base)', lvlTxt(r.lcl), `parcel ${r.lcl.t.toFixed(1)} °C; where lifted air becomes saturated`),
+      fact('LFC', r.lfc ? lvlTxt(r.lfc) : 'none: the parcel never becomes warmer than the air around it', r.lfc ? 'level of free convection: from here the parcel rises on its own' : ''),
+      fact('EL', r.el ? lvlTxt(r.el) : r.elAboveTop ? 'above the top of the sounding' : 'none', r.el ? `equilibrium level, parcel ${r.el.t.toFixed(1)} °C: about where storm tops spread out` : r.elAboveTop ? 'CAPE is counted up to the top level' : ''),
+      fact(`${tag}CAPE`, `${comma(r.cape)} J/kg`, `energy for rising air; the updraft could reach about √(2 × CAPE) = ${comma(Math.sqrt(2 * r.cape))} m/s at most`),
+      fact(`${tag}CIN`, `${comma(r.cin)} J/kg`, 'energy needed to lift the parcel to its LFC'),
+      fact('Lifted index', f1(r.li, ' °C'), 'air at 500 hPa minus the parcel there; below 0 means unstable'),
+      fact('Showalter index', f1(r.showalter, ' °C'), 'the same with a parcel lifted from 850 hPa'),
+      fact('K index', f1(r.k, ''), 'T850 − T500 + Td850 − (T700 − Td700)'),
+      fact('Total totals', f1(r.tt, ''), 'T850 + Td850 − 2 × T500'),
+      fact('Precipitable water', `${r.pw.toFixed(1)} mm`, 'all the water vapour in the column, as a depth of liquid'),
+      fact('Freezing level', Number.isFinite(r.freezing) ? `${comma(r.freezing)} m above the ground` : 'not reached', 'where the temperature first falls to 0 °C'),
+    ];
+    if (hasWind) facts.push(fact('Bulk wind shear', `0–1 km ${f1(wk(r.shear01), ' ' + wu)}; 0–6 km ${f1(wk(r.shear06), ' ' + wu)}`, 'difference between the lowest wind and the wind at that height'));
+    q('.sk-facts').replaceChildren(...facts);
+    // Chart.
+    const g = r.grid, pTopData = Math.max(PT, lv[lv.length - 1].p);
+    fig = { w: 380, h: 470, alt: `Skew-T log-P diagram of the sounding with the ${pname.toLowerCase()} parcel path; CAPE ${comma(r.cape)} J/kg`, draw: (ctx, W, H, pal) => {
+      const l = 34, rr = hasWind ? 30 : 8, t = 8, b = 30, pw = W - l - rr, ph = H - t - b;
+      const Y = (p: number) => t + ph * (1 - Math.log(PB / p) / Math.log(PB / PT));
+      // Skew: isotherms lean right so that the bottom-to-top shift is SKEW °C of the bottom scale.
+      const X = (T: number, p: number) => l + ((T - TMIN + (SKEW * (t + ph - Y(p))) / ph) / (TMAX - TMIN)) * pw;
+      const line = (pts: number[][], close = false) => { ctx.beginPath(); pts.forEach(([p, T], i) => (i ? ctx.lineTo(X(T, p), Y(p)) : ctx.moveTo(X(T, p), Y(p)))); if (close) ctx.closePath(); };
+      ctx.save(); ctx.beginPath(); ctx.rect(l, t, pw, ph); ctx.clip();
+      // Isotherms.
+      for (let T = -120; T <= TMAX; T += 10) { ctx.strokeStyle = T === 0 ? pal.muted : pal.grid; ctx.lineWidth = T === 0 ? 1 : 0.8; ctx.setLineDash([]); line([[PB, T], [PT, T]]); ctx.stroke(); }
+      // Isobars.
+      ctx.strokeStyle = pal.grid; ctx.lineWidth = 0.8; for (const p of [1000, 900, 800, 700, 600, 500, 400, 300, 250, 200, 150]) { ctx.beginPath(); ctx.moveTo(l, Y(p)); ctx.lineTo(l + pw, Y(p)); ctx.stroke(); }
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 0.7; for (const d of dryLines) { line(d); ctx.stroke(); }
+      ctx.setLineDash([5, 4]); for (const m of moistLines) { line(m); ctx.stroke(); }
+      ctx.setLineDash([1.5, 3]); ctx.font = '8px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      for (const w of wLines) { line(w.pts); ctx.stroke(); const e = w.pts[w.pts.length - 1]; ctx.fillText(String(w.w), X(e[1], e[0]), Y(e[0]) - 1); }
+      ctx.setLineDash([]);
+      // CAPE and CIN shading between the parcel and the environment temperature.
+      const envT = (p: number) => { for (let i = 0; i < lv.length - 1; i++) if (p <= lv[i].p && p >= lv[i + 1].p) { const f = Math.log(lv[i].p / p) / Math.log(lv[i].p / lv[i + 1].p); return lv[i].t + f * (lv[i + 1].t - lv[i].t); } return NaN; };
+      const shade = (i0: number, i1: number, sign: number, colour: string) => {
+        for (let i = i0; i < i1; i++) {
+          const a = g.buoy[i], c = g.buoy[i + 1];
+          if (!(Number.isFinite(a) && Number.isFinite(c)) || a * sign < 0 || c * sign < 0 || (a === 0 && c === 0)) continue;
+          const p0 = g.p[i], p1 = g.p[i + 1];
+          ctx.beginPath(); ctx.moveTo(X(g.tp[i], p0), Y(p0)); ctx.lineTo(X(g.tp[i + 1], p1), Y(p1)); ctx.lineTo(X(envT(p1), p1), Y(p1)); ctx.lineTo(X(envT(p0), p0), Y(p0)); ctx.closePath();
+          ctx.fillStyle = colour; ctx.globalAlpha = 0.28; ctx.fill(); ctx.globalAlpha = 1;
+        }
+      };
+      const iLfc = r.lfc ? g.p.indexOf(r.lfc.p) : -1, iEl = r.el ? g.p.indexOf(r.el.p) : r.elAboveTop ? g.p.length - 1 : -1;
+      if (iLfc >= 0 && iEl > iLfc) { shade(iLfc, iEl, 1, pal.bad); shade(0, iLfc, -1, pal.muted); }
+      // Profiles.
+      const seg = (key: 't' | 'td', colour: string) => { ctx.strokeStyle = colour; ctx.lineWidth = 2.2; ctx.beginPath(); let on = false; lv.forEach((v) => { const T = v[key]; if (T === undefined || !Number.isFinite(T)) { on = false; return; } if (on) ctx.lineTo(X(T, v.p), Y(v.p)); else { ctx.moveTo(X(T, v.p), Y(v.p)); on = true; } }); ctx.stroke(); };
+      seg('td', pal.red ? pal.muted : pal.good); seg('t', pal.bad);
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.6; ctx.setLineDash([6, 3]); line(g.p.map((p, i) => [p, g.tp[i]]).filter(([p]) => p >= pTopData)); ctx.stroke(); ctx.setLineDash([]);
+      // LCL, LFC, EL ticks.
+      ctx.font = '9px system-ui, sans-serif'; ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      let prevY = -99;
+      for (const [name, o] of [['LCL', r.lcl], ['LFC', r.lfc], ['EL', r.el]] as const) {
+        if (!o) continue; const y = Y(o.p), x = X(o.t, o.p) + 6 + (Math.abs(y - prevY) < 11 ? 30 : 0); prevY = y;
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x - 2, y); ctx.lineTo(x + 8, y); ctx.stroke(); ctx.fillText(name, x + 10, y);
+      }
+      ctx.restore();
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(l, t, pw, ph);
+      ctx.fillStyle = pal.muted; ctx.font = '9px system-ui, sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      for (const p of [1000, 850, 700, 500, 400, 300, 250, 200, 150, 100]) ctx.fillText(String(p), l - 3, Y(p));
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (let T = TMIN; T <= TMAX; T += 10) ctx.fillText(String(T), X(T, PB), t + ph + 3);
+      ctx.font = '10px system-ui, sans-serif'; ctx.fillText('Temperature at 1050 hPa (°C), isotherms slope to the right', l + pw / 2, t + ph + 16);
+      ctx.save(); ctx.translate(9, t + ph / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText('Pressure (hPa)', 0, 0); ctx.restore();
+      // Wind barbs (half barb 5 kt, full 10 kt, flag 50 kt), thinned so they don't overlap.
+      if (hasWind) {
+        const bx = l + pw + rr / 2 + 1; let lastY = -99;
+        ctx.strokeStyle = pal.ink; ctx.fillStyle = pal.ink; ctx.lineWidth = 1;
+        for (const v of lv) {
+          if (!(Number.isFinite(v.dir) && Number.isFinite(v.spd)) || v.p < PT) continue;
+          const y = Y(v.p); if (Math.abs(y - lastY) < 16) continue; lastY = y;
+          const s = Math.round(v.spd! / 5) * 5, a = (v.dir! * Math.PI) / 180, ux = Math.sin(a), uy = -Math.cos(a), L = 14;
+          if (s === 0) { ctx.beginPath(); ctx.arc(bx, y, 3, 0, 7); ctx.stroke(); continue; }
+          const tipX = bx + ux * L, tipY = y + uy * L, nx = -uy, ny = ux; // barbs on the left of the staff (north hemisphere convention: clockwise side)
+          ctx.beginPath(); ctx.moveTo(bx, y); ctx.lineTo(tipX, tipY); ctx.stroke();
+          let k = 0, rem = s;
+          const at = (d: number) => [bx + ux * (L - d), y + uy * (L - d)];
+          while (rem >= 50) { const [x0, y0] = at(k), [x1, y1] = at(k + 4); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0 + nx * 7 - ux * 2, y0 + ny * 7 - uy * 2); ctx.lineTo(x1, y1); ctx.closePath(); ctx.fill(); k += 5; rem -= 50; }
+          while (rem >= 10) { const [x0, y0] = at(k); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0 + nx * 7 + ux * 2, y0 + ny * 7 + uy * 2); ctx.stroke(); k += 3; rem -= 10; }
+          if (rem >= 5) { if (k === 0) k = 3; const [x0, y0] = at(k); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0 + nx * 3.5 + ux, y0 + ny * 3.5 + uy); ctx.stroke(); }
+        }
+      }
+    } };
+    paint(q<HTMLCanvasElement>('.sk-fig'), fig);
+    // Table.
+    const zz = heights(lv, Number.isFinite(z0) ? z0 : 0);
+    const ptAt = (p: number) => { const i = g.p.indexOf(p); return i >= 0 ? g.tp[i] : NaN; };
+    const bAt = (p: number) => { const i = g.p.indexOf(p); return i >= 0 ? g.buoy[i] : NaN; };
+    const n1 = (x: number | undefined) => (x === undefined || !Number.isFinite(x) ? '' : x.toFixed(1));
+    const head = ['p (hPa)', 'Height (m)', 'T (°C)', 'Td (°C)', 'Parcel (°C)', 'Buoyancy (K)', 'θ (K)', 'θe (K)'].concat(hasWind ? ['Wind (°)', `Speed (${wu})`] : []);
+    const rows = lv.map((v, i) => [v.p.toFixed(1), comma(zz[i]), n1(v.t), n1(v.td), n1(ptAt(v.p)), Number.isFinite(bAt(v.p)) ? bAt(v.p).toFixed(2) : '', theta(v.p, v.t).toFixed(1), v.td !== undefined && Number.isFinite(v.td) ? thetaE(v.p, v.t, v.td).toFixed(1) : ''].concat(hasWind ? [Number.isFinite(v.dir) ? String(Math.round(v.dir!)) : '', Number.isFinite(v.spd) ? wk(v.spd!).toFixed(0) : ''] : []));
+    const tab = q<HTMLTableElement>('.sk-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tab.createTBody(); rows.forEach((rw) => { const tr = bd.insertRow(); rw.forEach((v) => { tr.insertCell().textContent = v; }); });
+    csv = [head.join(','), ...rows.map((rw) => rw.map((v) => v.replace(/,/g, '')).join(','))];
+    const note = q('.sk-note');
+    note.textContent = `Read ${lv.length} levels (${parsed.format}), ${lv[0].p.toFixed(0)} to ${lv[lv.length - 1].p.toFixed(0)} hPa. ${parsed.note}${lv.some((l) => l.z !== undefined) ? '' : ' Heights worked out from the temperatures (hypsometric equation).'}`.trim();
+    note.hidden = false;
+    report = [{ title: q('.sk-big').textContent!, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig, table: { head, rows, align: head.map(() => 'r') } }];
+  }
+
+  const input = q<HTMLInputElement>('.sk-in');
+  q('.sk-open').addEventListener('click', () => input.click());
+  input.addEventListener('change', async () => {
+    const f = input.files?.[0]; input.value = '';
+    if (!f) return;
+    if (f.size > 2e6) { q('.sk-err').textContent = `${f.name} is ${(f.size / 1e6).toFixed(1)} MB; this tool takes files up to 2 MB.`; q('.sk-err').hidden = false; return; }
+    const text = await f.text();
+    if (/\u0000/.test(text.slice(0, 2000))) { q('.sk-err').textContent = `${f.name} is not a text file.`; q('.sk-err').hidden = false; return; }
+    q<HTMLTextAreaElement>('.sk-data').value = text.replace(/^﻿/, '');
+    calc();
+  });
+  q('.sk-csv').addEventListener('click', () => { if (csv.length) save(new TextEncoder().encode(csv.join('\n')), 'sounding.csv', 'text/csv'); });
+  root.querySelectorAll('input:not([type=file]), textarea, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => fig && !q('.sk-out').hidden && paint(q<HTMLCanvasElement>('.sk-fig'), fig));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Sounding', subtitle: q('.sk-big').textContent ?? '', file: 'sounding', sections: report }));
+</script>
+
+<style is:global>
+  .skt select, .skt input { max-width: 100%; }
+  .skt textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 0.85rem; }
+  .skt .sk-tab td { white-space: nowrap; }
+  .skt .sk-scroll { max-height: 420px; overflow-y: auto; }
+</style>

@@ -1,0 +1,140 @@
+---
+// Level book reduction by height of collimation and rise-and-fall, with checks, closure and adjustment. Example made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+// Made-up example: a road centre-line profile from BM A to BM B with two change points, written by fibub.
+const demo = 'station\tBS\tIS\tFS\tdistance (m)\tremarks\nBM A\t1.432\t\t\t0\tRL 85.210\n0+000\t\t1.875\t\t0\troad centre\n0+020\t\t2.310\t\t20\t\n0+040\t\t2.745\t\t20\t\nCP1\t2.904\t\t3.118\t15\tchange point\n0+060\t\t1.642\t\t5\t\n0+080\t\t0.987\t\t20\t\n0+100\t\t0.512\t\t20\t\nCP2\t1.756\t\t0.338\t12\tchange point\n0+120\t\t1.204\t\t8\t\n0+140\t\t1.588\t\t20\t\nBM B\t\t\t2.021\t25\tRL 85.821';
+---
+<div class="ax lvb">
+  <div class="ax-card">
+    <h2>Level book</h2>
+    <label>Station, BS, IS, FS, distance (optional), remarks (optional) <textarea class="lv-data" rows="9" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".lv-data" maxCols={6} maxRows={20000} label="Open a file" />
+    <p class="ax-help">One row per staff reading, columns separated by tabs or commas, empty cells left blank. Give every row a station name. A change point has a fore sight and a back sight on the same row.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Reduced level of the first point <input class="lv-rl0" type="text" inputmode="decimal" value="85.210" /></label>
+      <label>The distance column is <select class="lv-dm"><option value="step" selected>Distance from the previous point</option><option value="chainage">Chainage (running distance)</option></select></label>
+      <label>The run closes on <select class="lv-close"><option value="bm" selected>A known benchmark</option><option value="loop">The starting point (loop)</option><option value="none">Nothing (no check)</option></select></label>
+      <label class="lv-knownbox">Known level of the last point <input class="lv-known" type="text" inputmode="decimal" value="85.821" /></label>
+      <label>Allowed misclosure k (mm) <input class="lv-k" type="text" inputmode="decimal" value="12" /></label>
+      <label>k is per <select class="lv-kb"><option value="km" selected>√km of route</option><option value="setup">√number of setups</option></select></label>
+      <label>Share the error <select class="lv-by"><option value="setup" selected>Equally per setup</option><option value="distance">In proportion to distance</option></select></label>
+      <label>Decimals <select class="lv-dp"><option>3</option><option>4</option><option>2</option></select></label>
+    </div>
+    <p class="ax-err lv-err" hidden></p>
+  </div>
+
+  <div class="ax-card lv-out">
+    <h2>Reduced levels</h2>
+    <p class="ax-big lv-big"></p>
+    <dl class="ax-facts lv-facts"></dl>
+    <canvas class="ax-fig lv-fig"></canvas>
+    <div class="ax-scroll lv-scroll"><table class="lv-tab"></table></div>
+    <p class="ax-help">The value of k comes from the specification for your job; this tool has no built-in standards. Lengths, staff readings and levels share one unit (metres or feet); k is in millimetres when the unit is metres.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { bookErrors, reduce, checks, adjust, allowable, type Reading } from '../../lib/sci/levelling';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.lvb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let fig: Figure | null = null, report: Section[] = [];
+
+  function calc() {
+    const err = q('.lv-err'), out = q('.lv-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const dp = +sel('.lv-dp'), F = (x: number | undefined) => (x === undefined || !Number.isFinite(x) ? '' : x.toFixed(dp));
+    const mm = (x: number) => `${x >= 0 ? '+' : '−'}${Math.abs(x * 1000).toFixed(Math.abs(x) < 0.0995 ? 1 : 0)} mm`;
+    const closeMode = sel('.lv-close');
+    q('.lv-knownbox').hidden = closeMode !== 'bm';
+    const raw = parseTable(q<HTMLTextAreaElement>('.lv-data').value);
+    const rows: Reading[] = raw.filter((r) => r.length >= 2 && [1, 2, 3].some((k) => Number.isFinite(num(r[k])))).map((r) => {
+      const v = (k: number) => { const x = num(r[k]); return Number.isFinite(x) ? x : undefined; };
+      return { name: r[0] || '?', bs: v(1), is: v(2), fs: v(3), dist: v(4), note: r.slice(5).join(' ').trim() || undefined };
+    });
+    if (rows.length < 2) return fail('Paste at least two rows: station, BS, IS, FS (leave empty cells blank, separated by tabs or commas).');
+    const be = bookErrors(rows);
+    if (be.length) return fail(be.slice(0, 4).map((e) => (e.row ? `Row ${e.row} (${rows[e.row - 1]?.name ?? ''}) ${e.msg.replace(/^The /, 'the ')}` : e.msg)).join('. ') + '.');
+    const rl0 = val('.lv-rl0');
+    if (!Number.isFinite(rl0)) return fail('Give the reduced level of the first point.');
+    const distMode = sel('.lv-dm') as 'step';
+    const red = reduce(rows, rl0, distMode), c = checks(red), last = red[red.length - 1];
+    const known = closeMode === 'bm' ? val('.lv-known') : closeMode === 'loop' ? rl0 : NaN;
+    if (closeMode === 'bm' && !Number.isFinite(known)) return fail('Give the known level of the last point, or choose another closing option.');
+    const by = sel('.lv-by') as 'setup', kb = sel('.lv-kb'), k = val('.lv-k');
+    const hasDist = rows.some((r, i) => i > 0 && (r.dist ?? 0) > 0);
+    if (closeMode !== 'none' && by === 'distance' && !hasDist) return fail('Sharing the error by distance needs the distance column.');
+    if (closeMode !== 'none' && kb === 'km' && !hasDist) return fail('k per √km needs the distance column; or choose k per √number of setups.');
+    err.hidden = true; out.hidden = false;
+    const ok = (x: number) => (Math.abs(x) < 5e-7 ? 'agrees' : `off by ${x.toFixed(dp + 1)}`);
+    const f: HTMLElement[] = [];
+    let adj: ReturnType<typeof adjust> | null = null, big = '';
+    if (closeMode !== 'none') {
+      adj = adjust(red, known, by);
+      const lenKm = adj.length / 1000, allow = k > 0 ? allowable(k, kb === 'km' ? lenKm : adj.setups) / 1000 : NaN;
+      const within = Number.isFinite(allow) ? Math.abs(adj.error) <= allow + 1e-12 : null;
+      big = `Closing error ${mm(adj.error)}` + (within === null ? '' : ` (allowed ${(allow * 1000).toFixed(1)} mm): ${within ? 'within the limit' : 'too large, re-level'}`);
+      f.push(fact('Closing error', mm(adj.error), `computed ${F(last.rlHoc)} against known ${F(known)}${closeMode === 'loop' ? ' (back at the start)' : ''}`));
+      if (Number.isFinite(allow)) f.push(fact('Allowed', `${(allow * 1000).toFixed(1)} mm`, kb === 'km' ? `${sig(k, 3)} mm × √${sig(lenKm, 3)} km` : `${sig(k, 3)} mm × √${adj.setups} setups`));
+      f.push(fact('Adjustment', by === 'setup' ? `${mm(-adj.error / adj.setups)} per setup` : `${mm(-adj.error / (lenKm || 1))} per km`, by === 'setup' ? `${adj.setups} setups; readings in setup s get s shares` : `in proportion to distance along the ${sig(adj.length, 4)} m route`));
+    } else big = `Last point ${F(last.rlHoc)} (no closing check)`;
+    q('.lv-big').textContent = big;
+    f.push(
+      fact('ΣBS − ΣFS = last RL − first RL', `${F(c.bsFs)} = ${F(last.rlHoc - rl0)}`, `height of collimation ${ok(c.hocDiff)}; ΣBS ${F(c.sBS)}, ΣFS ${F(c.sFS)}`),
+      fact('ΣRise − ΣFall = ΣBS − ΣFS', `${F(c.sRise - c.sFall)} = ${F(c.bsFs)}`, `rise and fall ${ok(c.rfDiff)}; ΣRise ${F(c.sRise)}, ΣFall ${F(c.sFall)}`),
+      fact('Full collimation check', ok(c.fullHoc), 'Σ(RLs after the first) = Σ(HI × readings from it) − ΣIS − ΣFS; this also checks the intermediate sights'),
+    );
+    const finals = adj ? adj.adj : red.map((r) => r.rlHoc);
+    const hiI = finals.indexOf(Math.max(...finals)), loI = finals.indexOf(Math.min(...finals));
+    f.push(fact('Highest and lowest', `${F(finals[hiI])} at ${red[hiI].name}; ${F(finals[loI])} at ${red[loI].name}`, `${rows.length} readings, ${c.setups} setups${hasDist ? `, ${sig(last.chain - red[0].chain, 4)} m` : ''}`));
+    q('.lv-facts').replaceChildren(...f);
+    // Profile.
+    const xs = red.map((r, i) => (hasDist ? r.chain : i)), xMin = Math.min(...xs), xMax = Math.max(...xs);
+    const yMin = Math.min(...finals), yMax = Math.max(...finals), yPad = (yMax - yMin) * 0.12 || 0.5;
+    fig = { w: 380, h: 260, alt: `Profile of reduced levels against ${hasDist ? 'distance' : 'point number'}`, draw: (ctx, W, H, pal) => {
+      const l = 52, r = 10, t = 12, b = 40, pw = W - l - r, ph = H - t - b;
+      const X = (x: number) => l + ((x - xMin) / (xMax - xMin || 1)) * pw, Y = (y: number) => t + ph * (1 - (y - (yMin - yPad)) / (yMax - yMin + 2 * yPad));
+      ctx.font = '9px system-ui, sans-serif'; ctx.strokeStyle = pal.grid; ctx.lineWidth = 0.7;
+      const nice = (span: number) => { const d = Math.pow(10, Math.floor(Math.log10(span / 4 || 1))); return [1, 2, 5, 10].map((m) => m * d).find((m) => span / m <= 6) ?? 10 * d; };
+      const ys = nice(yMax - yMin + 2 * yPad), ydp = Math.max(0, -Math.floor(Math.log10(ys) + 1e-9));
+      for (let y = Math.ceil((yMin - yPad) / ys) * ys; y <= yMax + yPad + 1e-9; y += ys) { ctx.beginPath(); ctx.moveTo(l, Y(y)); ctx.lineTo(l + pw, Y(y)); ctx.stroke(); ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(y.toFixed(ydp), l - 4, Y(y)); }
+      const xsStep = nice(xMax - xMin || 1);
+      for (let x = Math.ceil(xMin / xsStep) * xsStep; x <= xMax + 1e-9; x += xsStep) { ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(hasDist ? String(+x.toPrecision(6)) : String(Math.round(x) + 1), X(x), t + ph + 4); }
+      ctx.strokeStyle = pal.line; ctx.strokeRect(l, t, pw, ph);
+      ctx.strokeStyle = pal.accent; ctx.lineWidth = 2; ctx.beginPath(); red.forEach((_, i) => (i ? ctx.lineTo(X(xs[i]), Y(finals[i])) : ctx.moveTo(X(xs[i]), Y(finals[i])))); ctx.stroke();
+      red.forEach((rr, i) => { const cp = rr.bs !== undefined || i === red.length - 1; ctx.fillStyle = cp ? pal.ink : pal.accent; ctx.beginPath(); if (cp) ctx.rect(X(xs[i]) - 3, Y(finals[i]) - 3, 6, 6); else ctx.arc(X(xs[i]), Y(finals[i]), 2.5, 0, 7); ctx.fill(); });
+      ctx.fillStyle = pal.ink; ctx.font = '9px system-ui, sans-serif'; ctx.textBaseline = 'bottom';
+      [0, red.length - 1].forEach((i) => { ctx.textAlign = i ? 'right' : 'left'; ctx.fillText(red[i].name, X(xs[i]) + (i ? -4 : 4), Y(finals[i]) - 4); });
+      ctx.fillStyle = pal.muted; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(hasDist ? 'Distance along the route' : 'Point number', l + pw / 2, t + ph + 18);
+      ctx.save(); ctx.translate(10, t + ph / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(adj ? 'Adjusted reduced level' : 'Reduced level', 0, 0); ctx.restore();
+    } };
+    paint(q<HTMLCanvasElement>('.lv-fig'), fig);
+    const head = ['Station', 'BS', 'IS', 'FS', 'Rise', 'Fall', 'HI', 'RL'].concat(adj ? ['Corr.', 'Adjusted RL'] : []).concat(hasDist ? ['Distance'] : []).concat(['Remarks']);
+    const rowsT = red.map((r, i) => [r.name, F(r.bs), F(r.is), F(r.fs), F(r.rise), F(r.fall), F(r.hi), F(r.rlHoc)].concat(adj ? [F(adj.corr[i]), F(adj.adj[i])] : []).concat(hasDist ? [sig(r.chain, 6)] : []).concat([r.note ?? '']));
+    rowsT.push(['Totals', F(c.sBS), F(c.sIS), F(c.sFS), F(c.sRise), F(c.sFall), '', ''].concat(adj ? ['', ''] : []).concat(hasDist ? [''] : []).concat(['']));
+    const tab = q<HTMLTableElement>('.lv-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tab.createTBody(); rowsT.forEach((r) => { const tr = bd.insertRow(); r.forEach((v) => { tr.insertCell().textContent = v; }); });
+    report = [{ title: q('.lv-big').textContent!, facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig, table: { head, rows: rowsT, align: head.map((h) => (h === 'Station' || h === 'Remarks' ? 'l' : 'r')) } }];
+  }
+
+  root.querySelectorAll('input, textarea, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => fig && !q('.lv-out').hidden && paint(q<HTMLCanvasElement>('.lv-fig'), fig));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Level book', subtitle: q('.lv-big').textContent ?? '', file: 'level-book', sections: report }));
+</script>
+
+<style is:global>
+  .lvb select, .lvb input { max-width: 100%; }
+  .lvb textarea { width: 100%; }
+  .lvb .lv-tab td { white-space: nowrap; }
+  .lvb .lv-scroll { max-height: 460px; overflow-y: auto; }
+</style>

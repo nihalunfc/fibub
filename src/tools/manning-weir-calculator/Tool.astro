@@ -1,0 +1,204 @@
+---
+// Manning open-channel flow (rectangle, trapezoid, triangle, part-full pipe) and weir discharge. Example values made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax mwc">
+  <div class="ax-card">
+    <h2>Channel (Manning)</h2>
+    <div class="ax-grid">
+      <label>Units <select class="mw-u"><option value="si" selected>SI (m, m³/s)</option><option value="us">US (ft, ft³/s)</option></select></label>
+      <label>Shape <select class="mw-shape"><option value="trap" selected>Trapezoid</option><option value="rect">Rectangle</option><option value="tri">Triangle (V ditch)</option><option value="circ">Circular pipe, part full</option></select></label>
+      <label class="mw-bbox"><span>Bottom width b (<span class="mw-lu">m</span>)</span> <input class="mw-b" type="text" inputmode="decimal" value="2" /></label>
+      <label class="mw-zbox">Side slope z left (horizontal per 1 vertical) <input class="mw-z1" type="text" inputmode="decimal" value="2" /></label>
+      <label class="mw-zbox">Side slope z right <input class="mw-z2" type="text" inputmode="decimal" value="2" /></label>
+      <label class="mw-dbox" hidden><span>Pipe diameter D (<span class="mw-lu">m</span>)</span> <input class="mw-D" type="text" inputmode="decimal" value="1" /></label>
+      <label>Bed slope S (m per m, e.g. 0.001 = 1 in 1000) <input class="mw-S" type="text" inputmode="decimal" value="0.0005" /></label>
+      <label>Manning's n <input class="mw-n" type="text" inputmode="decimal" value="0.025" /></label>
+      <label>Typical n (approximate) <select class="mw-npick">
+        <option value="">Pick to fill in n…</option>
+        <option value="0.010">0.010 plastic (PVC) pipe</option>
+        <option value="0.013">0.013 concrete</option>
+        <option value="0.015">0.015 brickwork</option>
+        <option value="0.022">0.022 clean earth channel</option>
+        <option value="0.030">0.030 earth channel with some weeds</option>
+        <option value="0.035">0.035 clean natural stream</option>
+        <option value="0.045">0.045 stream with stones and pools</option>
+        <option value="0.070">0.070 floodplain with brush</option>
+      </select></label>
+      <label>Find <select class="mw-mode"><option value="q" selected>Discharge from the depth</option><option value="y">Normal depth from the discharge</option></select></label>
+      <label class="mw-ybox"><span>Flow depth y (<span class="mw-lu">m</span>)</span> <input class="mw-y" type="text" inputmode="decimal" value="1.2" /></label>
+      <label class="mw-qbox" hidden><span>Discharge Q (<span class="mw-qu">m³/s</span>)</span> <input class="mw-Q" type="text" inputmode="decimal" value="5" /></label>
+    </div>
+    <p class="ax-help">Manning's n describes the roughness of the channel. The typical values are rounded figures for a first estimate; look up your channel type, vegetation and condition in a hydraulics reference. Uniform, steady flow is assumed. The example values are made up.</p>
+    <p class="ax-err mw-err" hidden></p>
+  </div>
+
+  <div class="ax-card mw-out">
+    <h2>Flow</h2>
+    <p class="ax-big mw-big"></p>
+    <dl class="ax-facts mw-facts"></dl>
+    <canvas class="ax-fig mw-sec"></canvas>
+    <canvas class="ax-fig mw-fig"></canvas>
+  </div>
+
+  <div class="ax-card">
+    <h2>Weir</h2>
+    <div class="ax-grid">
+      <label>Weir type <select class="mw-wt"><option value="rect" selected>Sharp-crested rectangular</option><option value="v">V-notch (triangular)</option><option value="broad">Broad-crested</option><option value="cip">Cipolletti (trapezoidal)</option></select></label>
+      <label class="mw-wlbox"><span>Crest length L (<span class="mw-lu">m</span>)</span> <input class="mw-wl" type="text" inputmode="decimal" value="2" /></label>
+      <label class="mw-wcbox">End contractions <select class="mw-wc"><option value="0">0 (full width, suppressed)</option><option value="1">1</option><option value="2" selected>2</option></select></label>
+      <label class="mw-wabox" hidden>Notch angle (°) <input class="mw-wa" type="text" inputmode="decimal" value="90" /></label>
+      <label>Discharge coefficient Cd <input class="mw-wcd" type="text" inputmode="decimal" value="0.62" /></label>
+      <label>Find <select class="mw-wm"><option value="q" selected>Discharge from the head</option><option value="h">Head from the discharge</option></select></label>
+      <label class="mw-whbox"><span>Head H above the crest (<span class="mw-lu">m</span>)</span> <input class="mw-wh" type="text" inputmode="decimal" value="0.4" /></label>
+      <label class="mw-wqbox" hidden><span>Discharge Q (<span class="mw-qu">m³/s</span>)</span> <input class="mw-wq" type="text" inputmode="decimal" value="0.5" /></label>
+    </div>
+    <p class="ax-help">Measure the head upstream, at least 4 × H from the crest, where the water surface is still level. Usual Cd: about 0.62 for a sharp rectangular weir, 0.58 for a V-notch, 0.85 to 1.0 for a broad crest, 0.63 for a Cipolletti; a weir rated in a laboratory or by the maker is best. Choosing a type fills in its usual Cd.</p>
+    <p class="ax-big mw-wbig"></p>
+    <dl class="ax-facts mw-wfacts"></dl>
+    <p class="ax-err mw-werr" hidden></p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { section, manningQ, normalDepth, criticalDepth, flowAt, peakDepth, rectWeir, vNotch, broadWeir, cipolletti, headFor, type Shape } from '../../lib/sci/openchannel';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const root = document.querySelector<HTMLElement>('.mwc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let figs: Figure[] = [], report: Section[] = [], weirReport: Section | null = null;
+
+  function units() {
+    const us = sel('.mw-u') === 'us';
+    return { us, k: us ? 1.486 : 1, g: us ? 32.174 : 9.80665, rhoG: us ? 62.43 : 9806.65, lu: us ? 'ft' : 'm', qu: us ? 'ft³/s' : 'm³/s', vu: us ? 'ft/s' : 'm/s', au: us ? 'ft²' : 'm²', tu: us ? 'lb/ft²' : 'Pa' };
+  }
+
+  function channel() {
+    const U = units(), err = q('.mw-err'), out = q('.mw-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const kind = sel('.mw-shape');
+    q('.mw-bbox').hidden = !(kind === 'rect' || kind === 'trap');
+    root.querySelectorAll<HTMLElement>('.mw-zbox').forEach((e) => { e.hidden = !(kind === 'trap' || kind === 'tri'); });
+    q('.mw-dbox').hidden = kind !== 'circ';
+    const mode = sel('.mw-mode'); q('.mw-ybox').hidden = mode !== 'q'; q('.mw-qbox').hidden = mode !== 'y';
+    const b = val('.mw-b'), z1 = val('.mw-z1'), z2 = val('.mw-z2'), D = val('.mw-D'), S = val('.mw-S'), n = val('.mw-n');
+    let s: Shape;
+    if (kind === 'rect') { if (!(b > 0)) return fail('Give the bottom width.'); s = { kind, b }; }
+    else if (kind === 'trap') { if (!(b >= 0 && z1 >= 0 && z2 >= 0) || (b === 0 && z1 + z2 === 0)) return fail('Give the bottom width and side slopes (0 or more).'); s = { kind, b, z1, z2 }; }
+    else if (kind === 'tri') { if (!(z1 >= 0 && z2 >= 0 && z1 + z2 > 0)) return fail('Give the side slopes (z, horizontal per 1 vertical).'); s = { kind, z1, z2 }; }
+    else { if (!(D > 0)) return fail('Give the pipe diameter.'); s = { kind: 'circ', D }; }
+    if (!(S > 0 && S < 1)) return fail('Give the bed slope as a fraction, for example 0.001 for 1 in 1,000.');
+    if (!(n > 0 && n < 1)) return fail("Give Manning's n (usually between 0.01 and 0.1).");
+    let y: number, Q: number;
+    if (mode === 'q') {
+      y = val('.mw-y'); if (!(y > 0)) return fail('Give the flow depth.');
+      if (s.kind === 'circ' && y > s.D) return fail('The depth cannot be more than the pipe diameter.');
+      Q = manningQ(s, y, n, S, U.k);
+    } else {
+      Q = val('.mw-Q'); if (!(Q > 0)) return fail('Give the discharge.');
+      y = normalDepth(s, Q, n, S, U.k);
+      if (!Number.isFinite(y)) { const pk = peakDepth(s as Shape & { kind: 'circ' }, n, S, U.k); return fail(`This pipe cannot carry ${sg(Q, 3)} ${U.qu} at this slope; its most is ${sg(manningQ(s, pk, n, S, U.k), 3)} ${U.qu} (at ${sg(pk / (s as { D: number }).D * 100, 3)} % full).`); }
+    }
+    err.hidden = true; out.hidden = false;
+    const f = flowAt(s, y, Q, S, U.g, U.rhoG), yc = criticalDepth(s, Q, U.g);
+    const regime = !Number.isFinite(f.Fr) ? 'pipe full' : f.Fr < 0.98 ? 'subcritical (tranquil)' : f.Fr > 1.02 ? 'supercritical (rapid)' : 'near critical (unstable surface)';
+    q('.mw-big').textContent = mode === 'q' ? `Discharge ${sg(Q, 4)} ${U.qu} at ${sg(y, 4)} ${U.lu} deep` : `Normal depth ${sg(y, 4)} ${U.lu} for ${sg(Q, 4)} ${U.qu}`;
+    const facts = [
+      fact('Velocity', `${sg(f.V, 3)} ${U.vu}`, 'mean velocity Q / A'),
+      fact('Flow area and wetted perimeter', `${sg(f.A, 4)} ${U.au}, ${sg(f.P, 4)} ${U.lu}`, `hydraulic radius R = A/P = ${sg(f.R, 4)} ${U.lu}; top width ${sg(f.T, 4)} ${U.lu}`),
+      fact('Froude number', Number.isFinite(f.Fr) ? sg(f.Fr, 3) : '–', regime),
+      fact('Critical depth', Number.isFinite(yc) ? `${sg(yc, 4)} ${U.lu}` : 'not reached in this pipe', Number.isFinite(yc) ? (y > yc ? 'normal depth is above it: a mild slope' : 'normal depth is below it: a steep slope') : ''),
+      fact('Specific energy', `${sg(f.E, 4)} ${U.lu}`, 'depth + velocity head V²/2g'),
+      fact('Bed shear stress', `${sg(f.tau, 3)} ${U.tu}`, 'average ρgRS, for checking scour and lining'),
+    ];
+    if (s.kind === 'circ') {
+      const full = manningQ(s, s.D, n, S, U.k), pk = peakDepth(s, n, S, U.k);
+      facts.push(fact('Pipe', `${sg((y / s.D) * 100, 3)} % full, carrying ${sg((Q / full) * 100, 3)} % of the full-bore flow`, `full-bore ${sg(full, 4)} ${U.qu}; the most it can carry is ${sg(manningQ(s, pk, n, S, U.k), 4)} ${U.qu} at ${sg((pk / s.D) * 100, 3)} % full`));
+    }
+    q('.mw-facts').replaceChildren(...facts);
+    // Cross-section drawing.
+    const sec: Figure = { w: 380, h: 170, alt: `Cross-section with water ${sg(y, 3)} ${U.lu} deep`, draw: (ctx, W, H, pal) => {
+      const top = s.kind === 'circ' ? s.D : Math.max(y * 1.4, yc * 1.1 || 0);
+      const halfW = s.kind === 'circ' ? s.D / 2 : ((s.kind === 'tri' ? 0 : (s as { b: number }).b) + ((s as { z1: number }).z1 + (s as { z2: number }).z2) * top) / 2;
+      const scale = Math.min((W - 40) / (2 * halfW), (H - 30) / top), cx = W / 2, by = H - 14;
+      const X = (x: number) => cx + x * scale, Y = (v: number) => by - v * scale;
+      ctx.lineWidth = 2; ctx.strokeStyle = pal.ink;
+      if (s.kind === 'circ') {
+        const r = s.D / 2, a = Math.acos(1 - y / r);
+        ctx.fillStyle = pal.red ? pal.muted : pal.accent; ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.arc(X(0), Y(r), r * scale, Math.PI / 2 - a, Math.PI / 2 + a); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+        ctx.beginPath(); ctx.arc(X(0), Y(r), r * scale, 0, 7); ctx.stroke();
+      } else {
+        const b0 = s.kind === 'tri' ? 0 : s.b, z1v = s.z1 ?? 0, z2v = s.z2 ?? 0, xl = -b0 / 2, xr = b0 / 2;
+        const bed = [[xl - z1v * top, top], [xl, 0], [xr, 0], [xr + z2v * top, top]];
+        ctx.fillStyle = pal.red ? pal.muted : pal.accent; ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.moveTo(X(xl - z1v * y), Y(y)); ctx.lineTo(X(xl), Y(0)); ctx.lineTo(X(xr), Y(0)); ctx.lineTo(X(xr + z2v * y), Y(y)); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+        ctx.beginPath(); bed.forEach(([x, v], i) => (i ? ctx.lineTo(X(x), Y(v)) : ctx.moveTo(X(x), Y(v)))); ctx.stroke();
+        if (Number.isFinite(yc) && yc < top) { ctx.strokeStyle = pal.bad; ctx.lineWidth = 1; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(X(xl - z1v * yc), Y(yc)); ctx.lineTo(X(xr + z2v * yc), Y(yc)); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = pal.bad; ctx.font = '9px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText('critical depth', X(xr + z2v * yc) + 4, Y(yc)); }
+      }
+      ctx.fillStyle = pal.ink; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillText(`y = ${sg(y, 3)} ${U.lu}`, X(0), Y(y) - 3);
+    } };
+    paint(q<HTMLCanvasElement>('.mw-sec'), sec);
+    // Rating curve.
+    const ymax = s.kind === 'circ' ? s.D : Math.max(y, yc || 0) * 1.8, ys: number[] = [];
+    for (let i = 1; i <= 80; i++) ys.push((ymax * i) / 80);
+    const rating = chartFigure({ w: 380, h: 220, xLabel: `Discharge (${U.qu})`, yLabel: `Depth (${U.lu})`, xMin: 0, yMin: 0, legend: 'below', series: [
+      { name: 'Normal depth (Manning)', x: ys.map((d) => manningQ(s, d, n, S, U.k)), y: ys, mode: 'line', width: 2 },
+      { name: 'This flow', x: [Q], y: [y], mode: 'points', size: 4 },
+    ] }, `Rating curve of depth against discharge`);
+    paint(q<HTMLCanvasElement>('.mw-fig'), rating);
+    figs = [sec, rating];
+    report = [{ title: q('.mw-big').textContent!, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: sec }, { title: 'Rating curve', figure: rating }];
+  }
+
+  let lastWt = 'rect';
+  function weir() {
+    const U = units(), err = q('.mw-werr');
+    const wt = sel('.mw-wt');
+    if (wt !== lastWt) { q<HTMLInputElement>('.mw-wcd').value = { rect: '0.62', v: '0.58', broad: '0.95', cip: '0.63' }[wt]!; lastWt = wt; }
+    q('.mw-wlbox').hidden = wt === 'v'; q('.mw-wabox').hidden = wt !== 'v'; q('.mw-wcbox').hidden = wt !== 'rect';
+    const wm = sel('.mw-wm'); q('.mw-whbox').hidden = wm !== 'q'; q('.mw-wqbox').hidden = wm !== 'h';
+    const L = val('.mw-wl'), ang = val('.mw-wa'), Cd = val('.mw-wcd'), nc = +sel('.mw-wc');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; q('.mw-wbig').textContent = ''; q('.mw-wfacts').replaceChildren(); weirReport = null; };
+    if (!(Cd > 0 && Cd < 2)) return fail('Give a discharge coefficient Cd (about 0.5 to 1).');
+    if (wt === 'v' ? !(ang > 0 && ang < 180) : !(L > 0)) return fail(wt === 'v' ? 'Give the notch angle (90° is common).' : 'Give the crest length.');
+    const f = (H: number) => (wt === 'rect' ? rectWeir(L, H, Cd, nc, U.g) : wt === 'v' ? vNotch(ang, H, Cd, U.g) : wt === 'broad' ? broadWeir(L, H, Cd, U.g) : cipolletti(L, H, Cd, U.g));
+    let H: number, Q: number;
+    if (wm === 'q') { H = val('.mw-wh'); if (!(H > 0)) return fail('Give the head above the crest.'); Q = f(H); }
+    else { Q = val('.mw-wq'); if (!(Q > 0)) return fail('Give the discharge.'); H = headFor(f, Q); }
+    err.hidden = true;
+    const name = { rect: 'sharp-crested rectangular', v: `${sg(ang, 3)}° V-notch`, broad: 'broad-crested', cip: 'Cipolletti' }[wt]!;
+    q('.mw-wbig').textContent = wm === 'q' ? `${sg(Q, 4)} ${U.qu} over the ${name} weir at ${sg(H, 3)} ${U.lu} head` : `Head ${sg(H, 4)} ${U.lu} for ${sg(Q, 4)} ${U.qu} over the ${name} weir`;
+    const formula = wt === 'rect' ? `Q = Cd × ⅔ × √(2g) × (L − 0.1 × ${nc} × H) × H^1.5` : wt === 'v' ? 'Q = Cd × 8/15 × √(2g) × tan(θ/2) × H^2.5' : wt === 'broad' ? 'Q = Cd × L × √g × (⅔H)^1.5' : 'Q = Cd × ⅔ × √(2g) × L × H^1.5';
+    const wf = [fact('Formula', formula, `g = ${U.g} ${U.lu}/s²`)];
+    if (wt === 'rect' && nc) wf.push(fact('Effective length', `${sg(L - 0.1 * nc * H, 4)} ${U.lu}`, `Francis end contractions shorten the crest by 0.1 H each`));
+    if (wt === 'rect' || wt === 'cip') { if (L && H / L > 1 / 3) wf.push(fact('Check', 'head is large for the crest length', 'the formula is meant for H less than about L/3')); }
+    const heads = [0.25, 0.5, 0.75, 1, 1.5, 2].map((m) => m * H);
+    wf.push(fact('Rating', heads.map((h) => `${sg(h, 3)} ${U.lu} → ${sg(f(h), 3)}`).join('; '), `${U.qu} at other heads`));
+    q('.mw-wfacts').replaceChildren(...wf);
+    weirReport = { title: q('.mw-wbig').textContent!, facts: wf.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]) };
+  }
+
+  function all() {
+    const U = units();
+    root.querySelectorAll('.mw-lu').forEach((e) => { e.textContent = U.lu; });
+    root.querySelectorAll('.mw-qu').forEach((e) => { e.textContent = U.qu; });
+    channel(); weir();
+  }
+  q('.mw-npick').addEventListener('change', () => { const v = sel('.mw-npick'); if (v) q<HTMLInputElement>('.mw-n').value = v; q<HTMLSelectElement>('.mw-npick').value = ''; });
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.mw-out').hidden) { paint(q<HTMLCanvasElement>('.mw-sec'), figs[0]); paint(q<HTMLCanvasElement>('.mw-fig'), figs[1]); } });
+  all();
+  wireDownloads(q('.dl'), () => ({ title: 'Open-channel flow', subtitle: q('.mw-big').textContent ?? '', file: 'channel-flow', sections: weirReport ? [...report, weirReport] : report }));
+</script>
+
+<style is:global>
+  .mwc select, .mwc input { max-width: 100%; }
+</style>

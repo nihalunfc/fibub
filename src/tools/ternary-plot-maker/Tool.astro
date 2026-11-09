@@ -1,0 +1,204 @@
+---
+// Ternary diagrams for three-part compositions, and normalised multi-element (spider) diagrams. All data made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const terDemo = 'sample\tQuartz\tFeldspar\tRock fragments\tsite\nA1\t72\t18\t10\tRiver A\nA2\t65\t22\t13\tRiver A\nA3\t78\t12\t10\tRiver A\nA4\t70\t15\t15\tRiver A\nB1\t40\t35\t25\tRiver B\nB2\t35\t40\t25\tRiver B\nB3\t45\t30\t25\tRiver B\nB4\t38\t32\t30\tRiver B';
+const spiDemo = 'sample\tLa\tCe\tPr\tNd\tSm\tEu\tGd\tTb\tDy\tHo\tEr\tTm\tYb\tLu\nGranite (made up)\t30\t58.6\t7.02\t29.4\t9.85\t1.73\t8.64\t1.45\t7.27\t1.42\t3.4\t0.428\t2.39\t0.3\nBasalt (made up)\t6\t14.2\t2.04\t10\t3.94\t1.37\t4.97\t1.01\t6.12\t1.41\t3.96\t0.588\t3.96\t0.605\nReference (made up)\t0.3\t0.7\t0.1\t0.5\t0.2\t0.07\t0.25\t0.05\t0.3\t0.07\t0.2\t0.03\t0.2\t0.03';
+---
+<div class="ax ter">
+  <div class="ax-card">
+    <h2>Ternary diagram</h2>
+    <label>Data with a header row: a name column, three or more number columns, and an optional group column <textarea class="tr-data" rows="8" spellcheck="false">{terDemo}</textarea></label>
+    <DataFile target=".tr-data" maxCols={20} maxRows={20000} label="Open a file" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Top corner <select class="tr-a"></select></label>
+      <label>Bottom left <select class="tr-b"></select></label>
+      <label>Bottom right <select class="tr-c"></select></label>
+      <label>Colour by <select class="tr-g"></select></label>
+      <label>Grid every <select class="tr-step"><option value="10" selected>10 %</option><option value="20">20 %</option><option value="25">25 %</option></select></label>
+      <label>Point labels <select class="tr-lab"><option value="auto">If 20 points or fewer</option><option value="on">Always</option><option value="off">Never</option></select></label>
+    </div>
+    <p class="ax-help">The three columns can be in any unit (counts, percent, ppm, moles); each row is scaled so its three values add up to 100 %. The example data are made up. No classification fields are drawn; add your own from your reference if you need them.</p>
+    <p class="ax-err tr-err" hidden></p>
+    <div class="tr-out">
+      <p class="ax-big tr-big"></p>
+      <canvas class="ax-fig tr-fig"></canvas>
+      <div class="ax-scroll"><table class="tr-tab"></table></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Spider diagram (normalised elements)</h2>
+    <label>A header row of elements in the order to plot, then one row per sample <textarea class="sp-data" rows="5" spellcheck="false">{spiDemo}</textarea></label>
+    <DataFile target=".sp-data" maxCols={60} maxRows={500} label="Open a file" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Normalise by the row <select class="sp-ref"></select></label>
+    </div>
+    <p class="ax-help">Add the reference you normalise to (such as chondrite or primitive mantle) as one more row, taken from the source you cite, and pick it here. The "Reference (made up)" row is invented for the example. Values are plotted on a log scale; gaps show missing or zero values.</p>
+    <p class="ax-err sp-err" hidden></p>
+    <div class="sp-out">
+      <p class="ax-big sp-big"></p>
+      <canvas class="ax-fig sp-fig"></canvas>
+      <dl class="ax-facts sp-facts"></dl>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { closure, toXY, centres, normalise, anomaly } from '../../lib/sci/ternary';
+  import { paint, wireDownloads, type Figure, type Palette, type Section } from '../../lib/report';
+  import { OKABE_ITO } from '../../lib/sci/plot';
+  import { num, parseTable } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.ter')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const SHAPES = ['circle', 'square', 'triangle', 'diamond', 'cross'] as const;
+  const colours = (pal: Palette) => (pal.red ? [pal.accent] : OKABE_ITO.filter((c) => c !== '#000000' && c !== '#F0E442'));
+  function marker(ctx: CanvasRenderingContext2D, x: number, y: number, k: number, col: string, r = 4.2) {
+    const s = SHAPES[k % SHAPES.length]; ctx.fillStyle = col; ctx.strokeStyle = col; ctx.lineWidth = 1.6; ctx.beginPath();
+    if (s === 'circle') ctx.arc(x, y, r, 0, 2 * Math.PI);
+    else if (s === 'square') ctx.rect(x - r * 0.85, y - r * 0.85, r * 1.7, r * 1.7);
+    else if (s === 'triangle') { ctx.moveTo(x, y - r * 1.1); ctx.lineTo(x + r, y + r * 0.75); ctx.lineTo(x - r, y + r * 0.75); ctx.closePath(); }
+    else if (s === 'diamond') { ctx.moveTo(x, y - r * 1.2); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r * 1.2); ctx.lineTo(x - r, y); ctx.closePath(); }
+    else { ctx.moveTo(x - r, y - r); ctx.lineTo(x + r, y + r); ctx.moveTo(x + r, y - r); ctx.lineTo(x - r, y + r); ctx.stroke(); return; }
+    ctx.fill();
+  }
+  function fill(s: HTMLSelectElement, opts: [string, string][], want: string) {
+    const keep = s.value; s.replaceChildren(...opts.map(([v, t]) => { const o = document.createElement('option'); o.value = v; o.textContent = t; return o; }));
+    s.value = opts.some((o) => o[0] === keep) ? keep : opts.some((o) => o[0] === want) ? want : opts[0]?.[0] ?? '';
+  }
+  let tfig: Figure | null = null, sfig: Figure | null = null, lastT = '', lastS = '', tReport: Section | null = null, sReport: Section | null = null;
+
+  function ternary() {
+    const err = q('.tr-err'), out = q('.tr-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; tReport = null; };
+    const t = parseTable(q<HTMLTextAreaElement>('.tr-data').value);
+    if (t.length < 2) return fail('Paste a header row and at least one data row.');
+    const head = t[0].map((h, i) => h.trim() || `Column ${i + 1}`), body = t.slice(1);
+    const numeric = head.map((_, j) => body.filter((r) => r[j] !== undefined && r[j].trim() !== '').every((r) => Number.isFinite(num(r[j]))));
+    const numCols = head.map((h, j) => [String(j), h] as [string, string]).filter((_, j) => numeric[j] && j > 0 || (numeric[j] && !numeric[0]));
+    if (numCols.length < 3) return fail('Give at least three number columns.');
+    const key = head.join('|');
+    if (key !== lastT) {
+      fill(sel('.tr-a'), numCols, numCols[0][0]); fill(sel('.tr-b'), numCols, numCols[1][0]); fill(sel('.tr-c'), numCols, numCols[2][0]);
+      sel('.tr-a').value = numCols[0][0]; sel('.tr-b').value = numCols[1][0]; sel('.tr-c').value = numCols[2][0];
+      const text = head.map((h, j) => [String(j), h] as [string, string]).filter((_, j) => !numeric[j] && j > 0);
+      fill(sel('.tr-g'), [['none', 'Nothing (one colour)'], ...text], text[0]?.[0] ?? 'none'); lastT = key;
+    }
+    const ia = +sel('.tr-a').value, ib = +sel('.tr-b').value, ic = +sel('.tr-c').value, ig = sel('.tr-g').value === 'none' ? -1 : +sel('.tr-g').value;
+    if (new Set([ia, ib, ic]).size < 3) return fail('Pick three different columns for the corners.');
+    const nameCol = numeric[0] ? -1 : 0;
+    const pts: { name: string; g: string; f: [number, number, number]; raw: number[] }[] = []; let skipped = 0;
+    body.forEach((r, i) => { const v = [num(r[ia]), num(r[ib]), num(r[ic])], f = closure(v[0], v[1], v[2]); if (!f) { skipped++; return; } pts.push({ name: nameCol >= 0 ? r[0].trim() : `Row ${i + 1}`, g: ig >= 0 ? (r[ig] ?? '').trim() || '(none)' : '', f, raw: v }); });
+    if (!pts.length) return fail('No row has three numbers of zero or more with a total above zero.');
+    err.hidden = true; out.hidden = false;
+    const groups = [...new Set(pts.map((p) => p.g))];
+    const [A, B, C] = [head[ia], head[ib], head[ic]], step = +sel('.tr-step').value, lm = sel('.tr-lab').value, showLab = lm === 'on' || (lm === 'auto' && pts.length <= 20);
+    const ctr = centres(pts.map((p) => p.f));
+    q('.tr-big').textContent = `${pts.length} point${pts.length > 1 ? 's' : ''}${groups.length > 1 ? ` in ${groups.length} groups` : ''}${skipped ? `; ${skipped} row${skipped > 1 ? 's' : ''} skipped (missing or negative values)` : ''}`;
+    tfig = { w: 360, h: 360, alt: `Ternary diagram of ${A}, ${B} and ${C}`, draw: (ctx, W, H, pal) => {
+      const legendH = groups.length > 1 ? 16 * Math.ceil(groups.length / 2) + 6 : 0;
+      const side = Math.min(W - 70, (H - 60 - legendH) / (Math.sqrt(3) / 2)), ox = (W - side) / 2, oy = 30 + side * (Math.sqrt(3) / 2);
+      const P = (f: [number, number, number]): [number, number] => { const [x, y] = toXY(f[0], f[1], f[2]); return [ox + x * side, oy - y * side]; };
+      ctx.lineWidth = 0.7; ctx.strokeStyle = pal.grid; ctx.font = '9px system-ui, sans-serif'; ctx.fillStyle = pal.muted;
+      for (let p = step; p < 100; p += step) {
+        const v = p / 100, lines: [[number, number, number], [number, number, number]][] = [[[v, 1 - v, 0], [v, 0, 1 - v]], [[0, v, 1 - v], [1 - v, v, 0]], [[1 - v, 0, v], [0, 1 - v, v]]];
+        for (const [a, b] of lines) { const [x1, y1] = P(a), [x2, y2] = P(b); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
+        // Tick labels: A on the right edge, B on the left edge, C along the bottom.
+        let [x, y] = P([v, 0, 1 - v]); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(String(p), x + 4, y);
+        [x, y] = P([1 - v, v, 0]); ctx.textAlign = 'right'; ctx.fillText(String(p), x - 4, y);
+        [x, y] = P([0, 1 - v, v]); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(String(p), x, y + 4);
+      }
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.3; ctx.beginPath(); const c0 = P([1, 0, 0]), c1 = P([0, 1, 0]), c2 = P([0, 0, 1]);
+      ctx.moveTo(...c0); ctx.lineTo(...c1); ctx.lineTo(...c2); ctx.closePath(); ctx.stroke();
+      ctx.fillStyle = pal.ink; ctx.font = 'bold 12px system-ui, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(A, c0[0], c0[1] - 6);
+      ctx.textBaseline = 'top'; ctx.textAlign = 'left'; ctx.fillText(B, Math.max(2, c1[0] - 24), c1[1] + 16); ctx.textAlign = 'right'; ctx.fillText(C, Math.min(W - 2, c2[0] + 24), c2[1] + 16);
+      const cols = colours(pal);
+      pts.forEach((p) => { const k = groups.indexOf(p.g), [x, y] = P(p.f); marker(ctx, x, y, k, cols[k % cols.length]); });
+      if (showLab) { ctx.font = '9px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; pts.forEach((p) => { const [x, y] = P(p.f); ctx.fillText(p.name, x + 6, y); }); }
+      if (groups.length > 1) groups.forEach((g, k) => { const x = 20 + (k % 2) * (W / 2), y = H - legendH + 8 + 16 * Math.floor(k / 2); marker(ctx, x, y, k, cols[k % cols.length], 4); ctx.fillStyle = pal.ink; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(g.length > 22 ? g.slice(0, 21) + '…' : g, x + 10, y); });
+    } };
+    paint(q<HTMLCanvasElement>('.tr-fig'), tfig);
+    const thead = ['Group', 'Points', `${A} (%)`, `${B} (%)`, `${C} (%)`];
+    const rows = groups.map((g) => { const ps = pts.filter((p) => p.g === g), c = centres(ps.map((p) => p.f)).geometric ?? centres(ps.map((p) => p.f)).arithmetic!; return [g || 'All', String(ps.length), ...c.map((v) => (v * 100).toFixed(1))]; });
+    if (groups.length > 1 && ctr.geometric) rows.push(['All', String(pts.length), ...ctr.geometric.map((v) => (v * 100).toFixed(1))]);
+    const tab = q<HTMLTableElement>('.tr-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); thead.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const cap = tab.createCaption(); cap.textContent = 'Centre of each group (geometric mean, closed to 100 %)'; cap.style.textAlign = 'left';
+    const bd = tab.createTBody(); rows.forEach((r) => { const tr = bd.insertRow(); r.forEach((c) => { tr.insertCell().textContent = c; }); });
+    tReport = { title: `Ternary diagram: ${A}, ${B}, ${C}`, figure: tfig, table: { head: thead, rows, align: ['l', 'r', 'r', 'r', 'r'] } };
+  }
+
+  function spider() {
+    const err = q('.sp-err'), out = q('.sp-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sReport = null; };
+    const t = parseTable(q<HTMLTextAreaElement>('.sp-data').value);
+    if (t.length < 2 || t[0].length < 3) return fail('Paste a header row of element names and at least one sample row.');
+    const els = t[0].slice(1).map((s) => s.trim()), rows = t.slice(1).map((r) => ({ name: r[0].trim(), v: els.map((_, j) => num(r[j + 1])) }));
+    const key = rows.map((r) => r.name).join('|');
+    if (key !== lastS) {
+      const guess = rows.find((r) => /reference|chondrite|mantle|norm|crust|MORB/i.test(r.name))?.name ?? 'none';
+      fill(sel('.sp-ref'), [['none', 'None: plot the values as they are'], ...rows.map((r) => [r.name, r.name] as [string, string])], guess); lastS = key;
+    }
+    const refName = sel('.sp-ref').value, ref = rows.find((r) => r.name === refName);
+    const samples = rows.filter((r) => r !== ref);
+    if (!samples.length) return fail('Add at least one sample row besides the reference.');
+    const ys = samples.map((s) => (ref ? normalise(s.v, ref.v) : s.v.map((v) => (v > 0 ? v : NaN))));
+    const all = ys.flat().filter((v) => v > 0);
+    if (!all.length) return fail('No values above zero to plot.');
+    err.hidden = true; out.hidden = false;
+    q('.sp-big').textContent = `${samples.length} sample${samples.length > 1 ? 's' : ''}, ${els.length} elements${ref ? `, normalised to ${ref.name}` : ''}`;
+    const lo = 10 ** Math.floor(Math.log10(Math.min(...all))), hi = 10 ** Math.ceil(Math.log10(Math.max(...all)) + 1e-9);
+    const yLab = ref ? `Sample / ${ref.name}` : 'Value';
+    sfig = { w: 380, h: 300, alt: `Spider diagram of ${els.length} elements`, draw: (ctx, W, H, pal) => {
+      const legendH = samples.length > 1 ? 16 * Math.ceil(samples.length / 2) + 4 : 0;
+      const l = 52, r = 10, tp = 10, b = 30 + legendH, pw = W - l - r, ph = H - tp - b;
+      const X = (i: number) => l + (els.length === 1 ? pw / 2 : (i * pw) / (els.length - 1)), Y = (v: number) => tp + ph * (1 - (Math.log10(v) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo)));
+      ctx.font = '9px system-ui, sans-serif'; ctx.lineWidth = 0.7;
+      for (let d = lo; d <= hi * 1.0001; d *= 10) { ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(l, Y(d)); ctx.lineTo(l + pw, Y(d)); ctx.stroke(); ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(d >= 1e4 || d < 1e-2 ? d.toExponential(0) : String(+d.toPrecision(1)), l - 4, Y(d)); }
+      const every = Math.ceil(els.length / (pw / 22));
+      els.forEach((e, i) => { if (i % every) return; ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(e, X(i), tp + ph + 4); });
+      ctx.strokeStyle = pal.line; ctx.strokeRect(l, tp, pw, ph);
+      ctx.save(); ctx.translate(12, tp + ph / 2); ctx.rotate(-Math.PI / 2); ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(yLab.length > 40 ? yLab.slice(0, 39) + '…' : yLab, 0, 0); ctx.restore();
+      const cols = colours(pal);
+      ys.forEach((yv, k) => {
+        const col = cols[k % cols.length]; ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.setLineDash(pal.red ? [[], [5, 3], [2, 2], [8, 3, 2, 3]][k % 4] : []);
+        let pen = false; ctx.beginPath();
+        yv.forEach((v, i) => { if (!(v > 0)) { pen = false; return; } if (pen) ctx.lineTo(X(i), Y(v)); else ctx.moveTo(X(i), Y(v)); pen = true; });
+        ctx.stroke(); ctx.setLineDash([]);
+        yv.forEach((v, i) => { if (v > 0) marker(ctx, X(i), Y(v), k, col, 3.2); });
+      });
+      samples.forEach((s, k) => { const x = l + (k % 2) * (pw / 2), y = H - legendH + 6 + 16 * Math.floor(k / 2); marker(ctx, x + 4, y, k, cols[k % cols.length], 3.5); ctx.fillStyle = pal.ink; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(s.name.length > 24 ? s.name.slice(0, 23) + '…' : s.name, x + 12, y); });
+    } };
+    paint(q<HTMLCanvasElement>('.sp-fig'), sfig);
+    const f: HTMLElement[] = [];
+    const ix = (e: string) => els.findIndex((x) => x.toLowerCase() === e.toLowerCase());
+    const [iEu, iSm, iGd, iLa, iYb] = ['Eu', 'Sm', 'Gd', 'La', 'Yb'].map(ix);
+    if (ref) samples.forEach((s, k) => {
+      const y = ys[k], parts: string[] = [];
+      if (iEu >= 0 && iSm >= 0 && iGd >= 0) { const a = anomaly(y[iEu], y[iSm], y[iGd]); if (Number.isFinite(a)) parts.push(`Eu/Eu* ${a.toFixed(2)}`); }
+      if (iLa >= 0 && iYb >= 0 && y[iLa] > 0 && y[iYb] > 0) parts.push(`(La/Yb)N ${(y[iLa] / y[iYb]).toFixed(1)}`);
+      if (parts.length) f.push(fact(s.name, parts.join(', ')));
+    });
+    if (f.length) f.push(fact('How to read these', 'Eu/Eu* below 1 is a negative europium anomaly; (La/Yb)N above 1 means light elements are enriched over heavy ones', 'Eu/Eu* = Eu_N ÷ √(Sm_N × Gd_N)'));
+    q('.sp-facts').replaceChildren(...f);
+    sReport = { title: q('.sp-big').textContent!, figure: sfig, facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]) };
+  }
+
+  root.querySelectorAll('.tr-data, .tr-a, .tr-b, .tr-c, .tr-g, .tr-step, .tr-lab').forEach((i) => { i.addEventListener('input', ternary); i.addEventListener('change', ternary); });
+  root.querySelectorAll('.sp-data, .sp-ref').forEach((i) => { i.addEventListener('input', spider); i.addEventListener('change', spider); });
+  document.addEventListener('fibub:theme', () => { if (tfig) paint(q<HTMLCanvasElement>('.tr-fig'), tfig); if (sfig) paint(q<HTMLCanvasElement>('.sp-fig'), sfig); });
+  ternary(); spider();
+  wireDownloads(q('.dl'), () => ({ title: 'Ternary and spider diagrams', subtitle: q('.tr-big').textContent ?? '', file: 'ternary-spider', sections: [tReport, sReport].filter(Boolean) as Section[] }));
+</script>
+
+<style is:global>
+  .ter select { max-width: 100%; }
+  .ter textarea { width: 100%; }
+  .ter .tr-tab caption { font-size: 13px; color: var(--muted, #666); padding-bottom: 4px; }
+</style>

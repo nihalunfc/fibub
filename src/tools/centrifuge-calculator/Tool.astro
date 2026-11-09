@@ -1,0 +1,150 @@
+---
+// Centrifuge: rpm ↔ × g at a radius, rotor k-factor and pelleting time, and moving a protocol to another rotor.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { PARTICLES } from '../../lib/sci/centrifuge';
+---
+<div class="ax cen">
+  <div class="ax-card">
+    <h2>rpm and × g</h2>
+    <div class="ax-grid">
+      <label>Radius <input class="cen-r" inputmode="decimal" value="9.5" /></label>
+      <label>Radius unit <select class="cen-ru"><option value="cm">cm</option><option value="mm">mm</option><option value="in">inches</option></select></label>
+      <label>Speed (rpm) <input class="cen-rpm" inputmode="decimal" value="13000" /></label>
+      <label>Or force (× g) <input class="cen-g" inputmode="decimal" value="" /></label>
+    </div>
+    <p class="ax-help">RCF = ω²r / g, which is 1.118 × 10⁻⁵ × r (cm) × rpm². Use the radius to the bottom of the tube (the maximum radius) unless a protocol says otherwise. Type a speed to get the force, or a force to get the speed.</p>
+    <p class="ax-err cen-err" hidden></p>
+    <p class="ax-big cen-big"></p>
+    <dl class="ax-facts cen-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Rotor k-factor and pelleting time</h2>
+    <div class="ax-grid">
+      <label>Minimum radius (same unit) <input class="cen-rmin" inputmode="decimal" value="4.0" /></label>
+      <label>Maximum radius <input class="cen-rmax" inputmode="decimal" value="8.5" /></label>
+      <label>Speed (rpm) <input class="cen-krpm" inputmode="decimal" value="40000" /></label>
+      <label class="cen-wide">Particle <select class="cen-part"><option value="">Type a sedimentation coefficient</option>{PARTICLES.map((p) => <option value={p.S}>{p.name}</option>)}</select></label>
+      <label>Sedimentation coefficient (S) <input class="cen-s" inputmode="decimal" value="70" /></label>
+    </div>
+    <p class="ax-help">The k-factor says how fast a rotor pellets at a speed: the time in hours is k / S, for particles that start spread through the tube and travel from the minimum to the maximum radius in water at 20 °C. A lower k pellets faster. Sedimentation coefficients here are rough and only for orientation.</p>
+    <p class="ax-err cen-kerr" hidden></p>
+    <p class="ax-big cen-kbig"></p>
+    <dl class="ax-facts cen-kfacts"></dl>
+    <canvas class="ax-fig cen-fig" style="margin-top:10px"></canvas>
+  </div>
+
+  <div class="ax-card">
+    <h2>Same run in another rotor</h2>
+    <div class="ax-grid">
+      <label>Protocol time (min) <input class="cen-t1" inputmode="decimal" value="60" /></label>
+      <label>Protocol rotor k-factor <input class="cen-k1" inputmode="decimal" value="" placeholder="from the card above" /></label>
+      <label>Your rotor: minimum radius <input class="cen-rmin2" inputmode="decimal" value="3.5" /></label>
+      <label>Your rotor: maximum radius <input class="cen-rmax2" inputmode="decimal" value="7.5" /></label>
+      <label>Your rotor: speed (rpm) <input class="cen-rpm2" inputmode="decimal" value="45000" /></label>
+    </div>
+    <p class="ax-help">t₂ = t₁ × k₂ / k₁. The protocol's k-factor is filled in from the card above until you type your own (rotor makers print it for the top speed). The radii use the unit chosen at the top.</p>
+    <p class="ax-err cen-cerr" hidden></p>
+    <p class="ax-big cen-cbig"></p>
+    <dl class="ax-facts cen-cfacts"></dl>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { rcf, rpmFor, kFactor, pelletHours, convertTime, hms } from '../../lib/sci/centrifuge';
+  import { num } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cen')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const show = (sel: string, m: string) => { q(sel).textContent = m; q(sel).hidden = !m; };
+  const g0 = (x: number) => (x >= 100 ? Math.round(x).toLocaleString('en') : x.toPrecision(3));
+  const rp = (x: number) => Math.round(x).toLocaleString('en');
+  const toCm = () => ({ cm: 1, mm: 0.1, in: 2.54 })[q<HTMLSelectElement>('.cen-ru').value as 'cm'];
+  let lastFrom: 'rpm' | 'g' = 'rpm', k1Touched = false, figs: Figure[] = [];
+
+  function speed() {
+    const r = val('.cen-r') * toCm();
+    const fail = (m: string) => { show('.cen-err', m); q('.cen-big').textContent = ''; q('.cen-facts').replaceChildren(); };
+    if (!(r > 0)) return fail('Enter the rotor radius.');
+    let rpm: number, g: number;
+    if (lastFrom === 'g') { g = val('.cen-g'); if (!(g > 0)) return fail('Enter a force above zero.'); rpm = rpmFor(g, r); q<HTMLInputElement>('.cen-rpm').value = String(Math.round(rpm)); }
+    else { rpm = val('.cen-rpm'); if (!(rpm > 0)) return fail('Enter a speed above zero.'); g = rcf(rpm, r); q<HTMLInputElement>('.cen-g').value = g >= 100 ? String(Math.round(g)) : g.toPrecision(3); }
+    show('.cen-err', '');
+    q('.cen-big').textContent = `${rp(rpm)} rpm = ${g0(g)} × g at ${+(r).toPrecision(4)} cm`;
+    q('.cen-facts').replaceChildren(
+      fact('Same force on a 7 cm rotor', `${rp(rpmFor(g, 7))} rpm`, 'microcentrifuges are often about 7 to 9 cm'),
+      fact('Same force on a 15 cm rotor', `${rp(rpmFor(g, 15))} rpm`, 'benchtop swing-out rotors are often about 15 to 20 cm'),
+      fact('Tip speed', `${((2 * Math.PI * rpm) / 60 * r / 100).toFixed(1)} m/s`, 'how fast the tube bottom moves'),
+    );
+  }
+
+  function rotor() {
+    const c = toCm(), rmin = val('.cen-rmin') * c, rmax = val('.cen-rmax') * c, rpm = val('.cen-krpm'), S = val('.cen-s');
+    let k: number;
+    try { if (!(rpm > 0)) throw new Error('Enter the rotor speed.'); k = kFactor(rpm, rmin, rmax); } catch (e) { show('.cen-kerr', (e as Error).message); q('.cen-kbig').textContent = ''; q('.cen-kfacts').replaceChildren(); figs = []; return NaN; }
+    show('.cen-kerr', '');
+    const facts = [
+      fact('RCF at minimum, average and maximum radius', `${g0(rcf(rpm, rmin))}, ${g0(rcf(rpm, (rmin + rmax) / 2))} and ${g0(rcf(rpm, rmax))} × g`),
+      fact('k-factor at half this speed', (k * 4).toFixed(1), 'k grows with 1/rpm², so halving the speed makes runs four times longer'),
+    ];
+    q('.cen-kbig').textContent = S > 0 ? `k-factor ${k.toFixed(1)}: ${S} S particles pellet in about ${hms(pelletHours(k, S))}` : `k-factor ${k.toFixed(1)}`;
+    q('.cen-kfacts').replaceChildren(...facts);
+    // Pelleting time against speed for this rotor and particle.
+    if (S > 0) {
+      const top = rpm * 1.3, xs = Array.from({ length: 60 }, (_, i) => top * (0.25 + (0.75 * i) / 59));
+      figs = [chartFigure({ h: 220, xLabel: 'speed (rpm)', yLabel: 'time to pellet (min)', yLog: true, legend: 'none', series: [{ name: `${S} S`, x: xs, y: xs.map((v) => 60 * pelletHours(kFactor(v, rmin, rmax), S)), mode: 'line', width: 2 }], marks: [{ kind: 'vline', at: rpm, dash: [4, 3], label: `${rp(rpm)} rpm` }] }, `Time to pellet ${S} S particles against rotor speed`)];
+      paint(q<HTMLCanvasElement>('.cen-fig'), figs[0]);
+    } else figs = [];
+    q('.cen-fig').hidden = !figs.length;
+    return k;
+  }
+
+  function convert(kA: number) {
+    if (!k1Touched && Number.isFinite(kA)) q<HTMLInputElement>('.cen-k1').value = kA.toFixed(1);
+    const c = toCm(), t1 = val('.cen-t1'), k1 = val('.cen-k1'), rmin = val('.cen-rmin2') * c, rmax = val('.cen-rmax2') * c, rpm = val('.cen-rpm2');
+    if (!(t1 > 0) || !(k1 > 0)) { show('.cen-cerr', 'Enter the protocol time and its rotor k-factor.'); q('.cen-cbig').textContent = ''; q('.cen-cfacts').replaceChildren(); return; }
+    let k2: number;
+    try { if (!(rpm > 0)) throw new Error('Enter your rotor speed.'); k2 = kFactor(rpm, rmin, rmax); } catch (e) { show('.cen-cerr', (e as Error).message); q('.cen-cbig').textContent = ''; q('.cen-cfacts').replaceChildren(); return; }
+    show('.cen-cerr', '');
+    const t2 = convertTime(t1 / 60, k1, k2);
+    q('.cen-cbig').textContent = `Run your rotor for about ${hms(t2)} at ${rp(rpm)} rpm`;
+    q('.cen-cfacts').replaceChildren(
+      fact('Your rotor k-factor', k2.toFixed(1), `protocol ${k1.toFixed(1)}`),
+      fact('Force at your maximum radius', `${g0(rcf(rpm, rmax))} × g`, 'check it is within the rotor and tube ratings'),
+    );
+  }
+
+  const all = () => { speed(); convert(rotor()); };
+  q('.cen-rpm').addEventListener('input', () => { lastFrom = 'rpm'; speed(); });
+  q('.cen-g').addEventListener('input', () => { lastFrom = 'g'; speed(); });
+  q('.cen-r').addEventListener('input', speed);
+  q('.cen-ru').addEventListener('change', all);
+  root.querySelectorAll('.cen-rmin, .cen-rmax, .cen-krpm, .cen-s').forEach((i) => i.addEventListener('input', () => convert(rotor())));
+  q('.cen-part').addEventListener('change', () => { const v = q<HTMLSelectElement>('.cen-part').value; if (v) q<HTMLInputElement>('.cen-s').value = v; convert(rotor()); });
+  q('.cen-s').addEventListener('input', () => { q<HTMLSelectElement>('.cen-part').value = ''; });
+  q('.cen-k1').addEventListener('input', () => { k1Touched = true; convert(NaN); });
+  root.querySelectorAll('.cen-t1, .cen-rmin2, .cen-rmax2, .cen-rpm2').forEach((i) => i.addEventListener('input', () => convert(NaN)));
+  document.addEventListener('fibub:theme', () => { if (figs.length) paint(q<HTMLCanvasElement>('.cen-fig'), figs[0]); });
+  q<HTMLSelectElement>('.cen-part').value = '70';
+  all();
+  const factsOf = (sel: string) => [...root.querySelectorAll(`${sel} > div`)].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  wireDownloads(q('.dl'), () => ({
+    title: 'Centrifuge calculator', subtitle: q('.cen-big').textContent ?? '', file: 'centrifuge',
+    sections: [
+      { title: q('.cen-big').textContent || 'rpm and × g', facts: factsOf('.cen-facts') },
+      { title: q('.cen-kbig').textContent || 'Rotor k-factor', facts: factsOf('.cen-kfacts'), figure: figs[0] },
+      { title: q('.cen-cbig').textContent || 'Another rotor', facts: factsOf('.cen-cfacts') },
+    ],
+  }));
+</script>
+
+<style is:global>
+  .cen .cen-wide { grid-column: 1 / -1; }
+  .cen select { max-width: 100%; }
+</style>

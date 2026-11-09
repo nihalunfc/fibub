@@ -1,0 +1,166 @@
+---
+// Gas units (ppm, ppb, µg/m³, mg/m³) at any temperature and pressure; US AQI, India National AQI and Canada AQHI.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { GASES } from '../../lib/sci/aqi';
+const ROWS = [
+  { key: 'PM2.5', label: 'PM2.5', gas: '', units: ['ug'], value: '35.9', help: '24-hour average' },
+  { key: 'PM10', label: 'PM10', gas: '', units: ['ug'], value: '60', help: '24-hour average' },
+  { key: 'O3_8h', label: 'Ozone, 8-hour', gas: 'O3', units: ['ppb', 'ppm', 'ug'], value: '60', help: '8-hour average' },
+  { key: 'O3_1h', label: 'Ozone, 1-hour', gas: 'O3', units: ['ppb', 'ppm', 'ug'], value: '', help: 'US only, for high ozone' },
+  { key: 'NO2', label: 'Nitrogen dioxide', gas: 'NO2', units: ['ppb', 'ppm', 'ug'], value: '40', help: 'US 1-hour, India 24-hour' },
+  { key: 'SO2', label: 'Sulfur dioxide', gas: 'SO2', units: ['ppb', 'ppm', 'ug'], value: '', help: 'US 1-hour, India 24-hour' },
+  { key: 'CO', label: 'Carbon monoxide', gas: 'CO', units: ['ppm', 'mg', 'ppb'], value: '1.2', help: '8-hour average' },
+  { key: 'NH3', label: 'Ammonia', gas: 'NH3', units: ['ug', 'ppb', 'ppm'], value: '', help: 'India only, 24-hour' },
+];
+const U: Record<string, string> = { ppm: 'ppm', ppb: 'ppb', ug: 'µg/m³', mg: 'mg/m³' };
+---
+<div class="ax aq">
+  <div class="ax-card">
+    <h2>ppm, ppb, µg/m³ and mg/m³</h2>
+    <div class="ax-grid">
+      <label>Gas <select class="aq-gas">{GASES.map((g) => <option value={g.formula} selected={g.id === 'NO2'}>{g.name} ({g.formula})</option>)}<option value="">Other: type a formula</option></select></label>
+      <label class="aq-fl" hidden>Formula <input class="aq-f" value="C3H6O" spellcheck="false" /></label>
+      <label>Value <input class="aq-v" inputmode="decimal" value="100" /></label>
+      <label>Unit <select class="aq-u"><option value="ug">µg/m³</option><option value="mg">mg/m³</option><option value="ppb">ppb</option><option value="ppm">ppm</option></select></label>
+      <label>Temperature (°C) <input class="aq-t" inputmode="decimal" value="25" /></label>
+      <label>Pressure (kPa) <input class="aq-p" inputmode="decimal" value="101.325" /></label>
+    </div>
+    <p class="ax-help">ppm and ppb count molecules; µg/m³ weighs them, so the conversion needs the molar mass and the volume a mole of gas fills (24.47 L at 25 °C and 1 atm). Most air quality rules use 25 °C; some workplace limits use 20 °C.</p>
+    <p class="ax-err aq-err" hidden></p>
+    <p class="ax-big aq-big"></p>
+    <dl class="ax-facts aq-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Air quality index: US and India</h2>
+    <div class="aq-rows">
+      {ROWS.map((r) => (
+        <div class="aq-row" data-key={r.key} data-gas={r.gas}>
+          <label>{r.label} <small>{r.help}</small><input class="aq-in" inputmode="decimal" value={r.value} placeholder="leave blank if not measured" /></label>
+          <select class="aq-iu" aria-label={`${r.label} unit`}>{r.units.map((u) => <option value={u}>{U[u]}</option>)}</select>
+        </div>
+      ))}
+    </div>
+    <p class="ax-help">Enter the averages you have; leave the rest blank. Gas values are converted at 25 °C and 1 atm. The index is the highest sub-index, and the pollutant behind it is named.</p>
+    <p class="ax-big aq-us"></p>
+    <p class="ax-big aq-in-big"></p>
+    <div class="ax-scroll"><table class="aq-tab"></table></div>
+    <dl class="ax-facts aq-ifacts"></dl>
+    <p class="ax-help">Breakpoints from US 40 CFR Part 58 Appendix G (PM2.5 revised 2024) and India's CPCB National Air Quality Index (2014), checked 2026-11-08. Check the official source before relying on a value.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Canada: Air Quality Health Index (AQHI)</h2>
+    <div class="ax-grid">
+      <label>NO₂, 3-hour average (ppb) <input class="aq-hn" inputmode="decimal" value="20" /></label>
+      <label>O₃, 3-hour average (ppb) <input class="aq-ho" inputmode="decimal" value="30" /></label>
+      <label>PM2.5, 3-hour average (µg/m³) <input class="aq-hp" inputmode="decimal" value="10" /></label>
+      <label>PM2.5, last hour (µg/m³, optional) <input class="aq-hp1" inputmode="decimal" value="" placeholder="for wildfire smoke" /></label>
+    </div>
+    <p class="ax-help">AQHI = (1000 / 10.4) × [(e^(0.000871·NO₂) − 1) + (e^(0.000537·O₃) − 1) + (e^(0.000487·PM2.5) − 1)], rounded. In wildfire smoke, AQHI+ = the 1-hour PM2.5 divided by 10, rounded up, and the higher of the two is published.</p>
+    <p class="ax-big aq-hbig"></p>
+    <dl class="ax-facts aq-hfacts"></dl>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { convertGas, gasMass, molarVolume, usSub, inSub, aqhi, aqhiText, US, IN, US_CATS, IN_CATS, AQHI_CATS, UNIT_NAMES, type Unit, type Sub } from '../../lib/sci/aqi';
+  import { num } from '../../lib/sci/num';
+  import { wireDownloads } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.aq')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const s4 = (x: number) => (Math.abs(x) >= 1e5 || (Math.abs(x) < 1e-3 && x !== 0) ? x.toExponential(3) : +x.toPrecision(4) + '');
+  const MASS: Record<string, number> = { O3: gasMass('O3'), NO2: gasMass('NO2'), SO2: gasMass('SO2'), CO: gasMass('CO'), NH3: gasMass('NH3') };
+  let tabRows: string[][] = [];
+
+  function conv() {
+    const sel = q<HTMLSelectElement>('.aq-gas').value; q('.aq-fl').hidden = sel !== '';
+    const formula = sel || q<HTMLInputElement>('.aq-f').value.trim();
+    const err = (m: string) => { q('.aq-err').textContent = m; q('.aq-err').hidden = !m; if (m) { q('.aq-big').textContent = ''; q('.aq-facts').replaceChildren(); } };
+    let M: number;
+    try { M = gasMass(formula); } catch (e) { return err((e as Error).message); }
+    const v = num(q<HTMLInputElement>('.aq-v').value), u = q<HTMLSelectElement>('.aq-u').value as Unit, t = num(q<HTMLInputElement>('.aq-t').value), p = num(q<HTMLInputElement>('.aq-p').value);
+    if (!(v >= 0)) return err('Enter a concentration of zero or more.');
+    if (!(t > -273.15) || !(p > 0)) return err('Enter a temperature above absolute zero and a pressure above zero.');
+    err('');
+    const others = (['ppb', 'ppm', 'ug', 'mg'] as Unit[]).filter((x) => x !== u);
+    const main: Unit = u === 'ug' || u === 'mg' ? 'ppb' : 'ug';
+    q('.aq-big').textContent = `${s4(v)} ${UNIT_NAMES[u]} ${formula} = ${s4(convertGas(v, u, main, M, t, p))} ${UNIT_NAMES[main]}`;
+    q('.aq-facts').replaceChildren(
+      ...others.map((x) => fact(UNIT_NAMES[x], s4(convertGas(v, u, x, M, t, p)))),
+      fact('Molar mass', `${M.toFixed(3)} g/mol`, 'from the formula and standard atomic weights'),
+      fact('Molar volume', `${molarVolume(t, p).toFixed(3)} L/mol`, `ideal gas at ${t} °C and ${p} kPa`),
+    );
+  }
+
+  const cell = (s: Sub, cats: { name: string }[]) => (!s ? '–' : Number.isFinite(s.index) ? `${s.text} ${cats[s.cat].name}` : s.text);
+  function index() {
+    const rows = [...root.querySelectorAll<HTMLElement>('.aq-row')];
+    tabRows = []; const usAll: { key: string; label: string; s: Sub }[] = [], inAll: typeof usAll = [];
+    const notes: HTMLElement[] = [];
+    for (const r of rows) {
+      const key = r.dataset.key!, gas = r.dataset.gas!, raw = r.querySelector<HTMLInputElement>('.aq-in')!.value.trim(), u = r.querySelector<HTMLSelectElement>('.aq-iu')!.value as Unit;
+      const label = r.querySelector('label')!.firstChild!.textContent!.trim();
+      if (!raw) continue;
+      const v = num(raw);
+      if (!(v >= 0)) { tabRows.push([label, raw, 'not a number', '']); continue; }
+      const to = (unit: string) => (gas ? convertGas(v, u, unit === 'ppm' ? 'ppm' : unit === 'ppb' ? 'ppb' : unit === 'mg/m³' ? 'mg' : 'ug', MASS[gas]) : v);
+      const us = US[key] ? usSub(key, to(US[key].unit)) : null, ins = IN[key] ? inSub(key, to(IN[key].unit)) : null;
+      if (us) usAll.push({ key, label, s: us }); if (ins) inAll.push({ key, label, s: ins });
+      tabRows.push([label, `${raw} ${UNIT_NAMES[u]}`, US[key] ? cell(us, US_CATS) : 'not in US AQI', IN[key] ? cell(ins, IN_CATS) : 'not in India AQI']);
+      if (us?.note) notes.push(fact(`${label} (US)`, us.note));
+    }
+    const tab = q<HTMLTableElement>('.aq-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); ['Pollutant', 'Your value', 'US AQI', 'India AQI'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tab.createTBody(); for (const r of tabRows) { const tr = bd.insertRow(); r.forEach((c) => { tr.insertCell().textContent = c; }); }
+    const top = (list: typeof usAll) => list.filter((x) => Number.isFinite(x.s!.index)).sort((a, b) => b.s!.index - a.s!.index)[0];
+    const tu = top(usAll), ti = top(inAll);
+    q('.aq-us').textContent = tu ? `US AQI ${tu.s!.text}: ${US_CATS[tu.s!.cat].name} (from ${tu.label})` : 'US AQI: enter at least one pollutant';
+    const nIn = inAll.length, hasPM = inAll.some((x) => x.key === 'PM2.5' || x.key === 'PM10');
+    q('.aq-in-big').textContent = ti ? `India AQI ${ti.s!.text}: ${IN_CATS[ti.s!.cat].name} (from ${ti.label})` : 'India AQI: enter at least one pollutant';
+    if (ti && (nIn < 3 || !hasPM)) notes.unshift(fact('India AQI', 'needs at least three pollutants, one of them PM2.5 or PM10', 'so this is only a guide'));
+    q('.aq-ifacts').replaceChildren(...notes);
+  }
+
+  function health() {
+    const n = num(q<HTMLInputElement>('.aq-hn').value), o = num(q<HTMLInputElement>('.aq-ho').value), p = num(q<HTMLInputElement>('.aq-hp').value), p1raw = q<HTMLInputElement>('.aq-hp1').value.trim();
+    if (!(n >= 0 && o >= 0 && p >= 0)) { q('.aq-hbig').textContent = 'Enter the three 3-hour averages (zero or more).'; q('.aq-hfacts').replaceChildren(); return; }
+    const r = aqhi(n, o, p, p1raw ? num(p1raw) : undefined);
+    q('.aq-hbig').textContent = `AQHI ${aqhiText(r.value)}: ${AQHI_CATS[r.cat].name}`;
+    const parts = [Math.expm1(0.000871 * n), Math.expm1(0.000537 * o), Math.expm1(0.000487 * p)], tot = parts.reduce((a, b) => a + b, 0) || 1, pc = parts.map((x) => Math.round((100 * x) / tot));
+    const f = [fact('Three-pollutant AQHI', `${r.base} (unrounded ${r.raw.toFixed(2)})`), fact('Share of the index', `NO₂ ${pc[0]} %, O₃ ${pc[1]} %, PM2.5 ${pc[2]} %`)];
+    if (Number.isFinite(r.plus)) f.push(fact('AQHI+ (1-hour PM2.5)', String(r.plus), r.plus > r.base ? 'higher, so it is the one published' : 'lower than the three-pollutant value'));
+    f.push(fact('Scale', '1–3 low, 4–6 moderate, 7–10 high, above 10 very high', 'Environment and Climate Change Canada; check the official source'));
+    q('.aq-hfacts').replaceChildren(...f);
+  }
+
+  q('.aq-gas').addEventListener('change', conv);
+  root.querySelectorAll('.aq-f, .aq-v, .aq-t, .aq-p').forEach((i) => i.addEventListener('input', conv));
+  q('.aq-u').addEventListener('change', conv);
+  root.querySelectorAll('.aq-in').forEach((i) => i.addEventListener('input', index));
+  root.querySelectorAll('.aq-iu').forEach((i) => i.addEventListener('change', index));
+  root.querySelectorAll('.aq-hn, .aq-ho, .aq-hp, .aq-hp1').forEach((i) => i.addEventListener('input', health));
+  conv(); index(); health();
+  const factsOf = (sel: string) => [...root.querySelectorAll(`${sel} > div`)].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  wireDownloads(q('.dl'), () => ({
+    title: 'Air quality', subtitle: q('.aq-us').textContent ?? '', file: 'air-quality',
+    sections: [
+      { title: q('.aq-big').textContent || 'Unit conversion', facts: factsOf('.aq-facts') },
+      { title: `${q('.aq-us').textContent}; ${q('.aq-in-big').textContent}`, table: { head: ['Pollutant', 'Your value', 'US AQI', 'India AQI'], rows: tabRows, align: ['l', 'l', 'l', 'l'] as ('l' | 'r')[] }, facts: factsOf('.aq-ifacts') },
+      { title: q('.aq-hbig').textContent || 'AQHI', facts: factsOf('.aq-hfacts') },
+    ],
+  }));
+</script>
+
+<style is:global>
+  .aq .aq-rows { display: grid; gap: 10px; margin-bottom: 8px; }
+  .aq .aq-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+  .aq .aq-row label { display: block; }
+  .aq .aq-row small { display: block; color: var(--muted, #666); font-size: 12px; }
+  .aq .aq-row input { width: 100%; }
+  .aq select { max-width: 100%; }
+</style>

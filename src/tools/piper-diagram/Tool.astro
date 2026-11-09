@@ -1,0 +1,189 @@
+---
+// Piper and Stiff diagrams for major-ion water chemistry, with meq/L conversion, ion balance and water type.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+// Made-up example: six groundwater samples in mg/L, written by fibub.
+const demo = 'sample\tCa\tMg\tNa\tK\tHCO3\tSO4\tCl\taquifer\nW1\t60.1\t14.6\t18.4\t1.95\t244\t28.8\t17.7\tShallow wells\nW2\t52.1\t18.2\t23\t2.35\t238\t38.4\t17.7\tShallow wells\nW3\t68.1\t12.2\t13.8\t1.56\t256\t24\t14.2\tShallow wells\nD1\t40.1\t18.2\t207\t7.82\t153\t57.6\t319\tDeep wells\nD2\t30.1\t12.2\t149\t5.86\t183\t43.2\t191\tDeep wells\nD3\t16\t6.08\t103\t3.91\t275\t19.2\t35.5\tDeep wells';
+---
+<div class="ax pip">
+  <div class="ax-card">
+    <h2>Water analyses</h2>
+    <label>A header row naming the ions, then one row per sample <textarea class="pp-data" rows="8" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".pp-data" maxCols={30} maxRows={5000} label="Open a file" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Values are in <select class="pp-unit"><option value="mg" selected>mg/L</option><option value="meq">meq/L</option><option value="mmol">mmol/L</option></select></label>
+      <label>Colour by <select class="pp-g"></select></label>
+      <label>Point labels <select class="pp-lab"><option value="off" selected>Off</option><option value="on">On (diamond only)</option></select></label>
+    </div>
+    <p class="ax-help">Needed columns: Ca, Mg, Na, SO4, Cl, and HCO3 or alkalinity (Alk, as mg/L CaCO₃ or meq/L). K, CO3 and NO3 are used when present; a blank or "&lt;" value counts as zero. Names like Ca2+, Calcium or Sulfate are recognised, and a combined Na+K column works too. The example data are made up.</p>
+    <p class="ax-err pp-err" hidden></p>
+  </div>
+
+  <div class="ax-card pp-out">
+    <h2>Piper diagram</h2>
+    <p class="ax-big pp-big"></p>
+    <canvas class="ax-fig pp-fig"></canvas>
+    <div class="ax-scroll"><table class="pp-tab"></table></div>
+    <dl class="ax-facts pp-facts"></dl>
+    <h2 style="margin-top:16px">Stiff diagrams</h2>
+    <canvas class="ax-fig pp-stiff"></canvas>
+    <p class="ax-help">Each Stiff shape puts cations to the left and anions to the right of the centre line, in meq/L, on the same scale for every sample: Na+K and Cl on the top row, Ca and HCO₃+CO₃ in the middle, Mg and SO₄ at the bottom. Similar waters have similar shapes.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { IONS, CACO3_EQ, meq, meqFromMmol, analyse, piperXY, diamondField, waterType, hardness, type Ion, type Meq } from '../../lib/sci/piper';
+  import { paint, wireDownloads, type Figure, type Palette, type Section } from '../../lib/report';
+  import { OKABE_ITO } from '../../lib/sci/plot';
+  import { num, parseTable } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.pip')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const SHAPES = ['circle', 'square', 'triangle', 'diamond', 'cross'] as const;
+  const colours = (pal: Palette) => (pal.red ? [pal.accent] : OKABE_ITO.filter((c) => c !== '#000000' && c !== '#F0E442'));
+  function marker(ctx: CanvasRenderingContext2D, x: number, y: number, k: number, col: string, r = 4) {
+    const s = SHAPES[k % SHAPES.length]; ctx.fillStyle = col; ctx.strokeStyle = col; ctx.lineWidth = 1.6; ctx.beginPath();
+    if (s === 'circle') ctx.arc(x, y, r, 0, 2 * Math.PI);
+    else if (s === 'square') ctx.rect(x - r * 0.85, y - r * 0.85, r * 1.7, r * 1.7);
+    else if (s === 'triangle') { ctx.moveTo(x, y - r * 1.1); ctx.lineTo(x + r, y + r * 0.75); ctx.lineTo(x - r, y + r * 0.75); ctx.closePath(); }
+    else if (s === 'diamond') { ctx.moveTo(x, y - r * 1.2); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r * 1.2); ctx.lineTo(x - r, y); ctx.closePath(); }
+    else { ctx.moveTo(x - r, y - r); ctx.lineTo(x + r, y + r); ctx.moveTo(x + r, y - r); ctx.lineTo(x - r, y + r); ctx.stroke(); return; }
+    ctx.fill();
+  }
+  const pretty = (s: string) => s.replace(/HCO3/g, 'HCO₃').replace(/SO4/g, 'SO₄').replace(/NO3/g, 'NO₃').replace(/CO3/g, 'CO₃');
+  function fill(s: HTMLSelectElement, opts: [string, string][], want: string) {
+    const keep = s.value; s.replaceChildren(...opts.map(([v, t]) => { const o = document.createElement('option'); o.value = v; o.textContent = t; return o; }));
+    s.value = opts.some((o) => o[0] === keep) ? keep : opts.some((o) => o[0] === want) ? want : opts[0]?.[0] ?? '';
+  }
+  // Header names to ions. Charges, units in brackets and punctuation are ignored.
+  const NAMES: Record<string, Ion | 'NaK' | 'Alk'> = { ca: 'Ca', ca2: 'Ca', calcium: 'Ca', mg: 'Mg', mg2: 'Mg', magnesium: 'Mg', na: 'Na', sodium: 'Na', k: 'K', potassium: 'K', nak: 'NaK', hco3: 'HCO3', bicarbonate: 'HCO3', hydrogencarbonate: 'HCO3', co3: 'CO3', co32: 'CO3', carbonate: 'CO3', so4: 'SO4', so42: 'SO4', sulfate: 'SO4', sulphate: 'SO4', cl: 'Cl', chloride: 'Cl', no3: 'NO3', nitrate: 'NO3', alk: 'Alk', alkalinity: 'Alk', totalalkalinity: 'Alk' };
+  const keyOf = (h: string) => h.toLowerCase().replace(/\(.*?\)|\[.*?\]/g, '').replace(/[⁺⁻²³]/g, '').replace(/[^a-z0-9]/g, '');
+  const value = (c: string | undefined) => { const t = (c ?? '').trim(); if (!t) return 0; if (/^</.test(t)) return 0; return num(t); };
+  let fig: Figure | null = null, sfig: Figure | null = null, report: Section[] = [], lastHead = '';
+
+  function calc() {
+    const err = q('.pp-err'), out = q('.pp-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const t = parseTable(q<HTMLTextAreaElement>('.pp-data').value);
+    if (t.length < 2) return fail('Paste a header row and at least one sample row.');
+    const head = t[0].map((h) => h.trim()), body = t.slice(1);
+    const col: Partial<Record<Ion | 'NaK' | 'Alk', number>> = {};
+    head.forEach((h, j) => { const k = NAMES[keyOf(h)]; if (k && col[k] === undefined) col[k] = j; });
+    const missing = (['Ca', 'Mg', 'SO4', 'Cl'] as const).filter((k) => col[k] === undefined);
+    if (col.Na === undefined && col.NaK === undefined) missing.push('Na' as never);
+    if (col.HCO3 === undefined && col.Alk === undefined) missing.push('HCO3 or Alk' as never);
+    if (missing.length) return fail(`Add a column for ${missing.join(', ')}. The header row names the ions, for example Ca, Mg, Na, K, HCO3, SO4, Cl.`);
+    const used = new Set(Object.values(col));
+    const text = head.map((h, j) => [String(j), h || `Column ${j + 1}`] as [string, string]).filter(([j]) => +j > 0 && !used.has(+j) && body.some((r) => (r[+j] ?? '').trim() && !Number.isFinite(num(r[+j]))));
+    const key = head.join('|');
+    if (key !== lastHead) { fill(sel('.pp-g'), [['none', 'Nothing (one colour)'], ...text], text[0]?.[0] ?? 'none'); lastHead = key; }
+    const ig = sel('.pp-g').value === 'none' ? -1 : +sel('.pp-g').value, unit = sel('.pp-unit').value;
+    const conv = (x: number, ion: Ion) => (unit === 'mg' ? meq(x, ion) : unit === 'mmol' ? meqFromMmol(x, ion) : x);
+    const nameCol = used.has(0) ? -1 : 0;
+    type S = { name: string; g: string; m: Meq; a: ReturnType<typeof analyse> };
+    const S: S[] = []; let skipped = 0;
+    body.forEach((r, i) => {
+      const get = (k: Ion | 'NaK' | 'Alk') => (col[k] === undefined ? 0 : value(r[col[k]!]));
+      const raw = { Ca: get('Ca'), Mg: get('Mg'), Na: get('Na'), K: get('K'), NaK: get('NaK'), HCO3: get('HCO3'), CO3: get('CO3'), SO4: get('SO4'), Cl: get('Cl'), NO3: get('NO3'), Alk: get('Alk') };
+      if (Object.values(raw).some((x) => !Number.isFinite(x) || x < 0)) { skipped++; return; }
+      const m: Meq = { Ca: conv(raw.Ca, 'Ca'), Mg: conv(raw.Mg, 'Mg'), K: conv(raw.K, 'K'), CO3: conv(raw.CO3, 'CO3'), SO4: conv(raw.SO4, 'SO4'), Cl: conv(raw.Cl, 'Cl'), NO3: conv(raw.NO3, 'NO3') };
+      // A combined Na+K column is taken as Na (mg/L converted with the Na mass, the usual convention).
+      m.Na = conv(raw.Na, 'Na') + (col.Na === undefined ? conv(raw.NaK, 'Na') : 0);
+      m.HCO3 = col.HCO3 !== undefined ? conv(raw.HCO3, 'HCO3') : unit === 'mg' ? raw.Alk / CACO3_EQ - (m.CO3 ?? 0) : raw.Alk - (m.CO3 ?? 0);
+      if (m.HCO3! < 0) m.HCO3 = 0;
+      const a = analyse(m);
+      if (!a.cp || !a.ap) { skipped++; return; }
+      S.push({ name: nameCol >= 0 ? (r[0] ?? '').trim() || `Row ${i + 1}` : `Row ${i + 1}`, g: ig >= 0 ? (r[ig] ?? '').trim() || '(none)' : '', m, a });
+    });
+    if (!S.length) return fail('No row has the cations and anions needed (numbers of zero or more, with something on each side).');
+    err.hidden = true; out.hidden = false;
+    const groups = [...new Set(S.map((s) => s.g))];
+    const bad = S.filter((s) => Math.abs(s.a.ibe) > 5).length;
+    q('.pp-big').textContent = `${S.length} sample${S.length > 1 ? 's' : ''}${groups.length > 1 ? ` in ${groups.length} groups` : ''}; ${bad ? `${bad} with an ion balance error above 5 %` : 'all ion balances within 5 %'}${skipped ? `; ${skipped} row${skipped > 1 ? 's' : ''} skipped` : ''}`;
+    const showLab = sel('.pp-lab').value === 'on';
+    const G = 0.2, h = Math.sqrt(3) / 2, pos = S.map((s) => piperXY(s.a.cp!, s.a.ap!, G));
+
+    fig = { w: 380, h: 380, alt: 'Piper diagram of the water samples', draw: (ctx, W, H, pal) => {
+      const legendH = groups.length > 1 ? 16 * Math.ceil(groups.length / 2) + 4 : 0;
+      const m = 22, sc = Math.min((W - 2 * m) / (2 + G), (H - 46 - legendH) / (h * (2 + G))), ox = (W - sc * (2 + G)) / 2, oy = 22 + sc * h * (2 + G);
+      const P = (x: number, y: number): [number, number] => [ox + x * sc, oy - y * sc];
+      const line = (a: [number, number], b: [number, number]) => { ctx.beginPath(); ctx.moveTo(...P(...a)); ctx.lineTo(...P(...b)); ctx.stroke(); };
+      // Triangle with bottom-left corner at x0: corners (x0,0), (x0+1,0), (x0+0.5,h).
+      const tri = (x0: number) => {
+        ctx.strokeStyle = pal.grid; ctx.lineWidth = 0.7;
+        for (let v = 0.2; v < 0.99; v += 0.2) {
+          line([x0 + v / 2, v * h], [x0 + 1 - v / 2, v * h]);
+          line([x0 + v, 0], [x0 + 0.5 + v / 2, h * (1 - v)]);
+          line([x0 + 1 - v, 0], [x0 + 0.5 - v / 2, h * (1 - v)]);
+        }
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(...P(x0, 0)); ctx.lineTo(...P(x0 + 1, 0)); ctx.lineTo(...P(x0 + 0.5, h)); ctx.closePath(); ctx.stroke();
+      };
+      tri(0); tri(1 + G);
+      const B: [number, number] = [1 + G / 2, G * h], D = (a: number, b: number): [number, number] => [B[0] + 0.5 * a - 0.5 * b, B[1] + h * (a + b)];
+      ctx.strokeStyle = pal.grid; ctx.lineWidth = 0.7;
+      for (let v = 0.2; v < 0.99; v += 0.2) { line(D(v, 0), D(v, 1)); line(D(0, v), D(1, v)); }
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(...P(...D(0, 0))); ctx.lineTo(...P(...D(1, 0))); ctx.lineTo(...P(...D(1, 1))); ctx.lineTo(...P(...D(0, 1))); ctx.closePath(); ctx.stroke();
+      ctx.fillStyle = pal.ink; ctx.font = '10px system-ui, sans-serif';
+      const txt = (s: string, x: number, y: number, al: CanvasTextAlign, bl: CanvasTextBaseline) => { ctx.textAlign = al; ctx.textBaseline = bl; ctx.fillText(s, ...P(x, y)); };
+      txt('Ca', 0, -0.02, 'left', 'top'); txt('Na+K', 1, -0.02, 'right', 'top'); txt('Mg', 0.47, h, 'right', 'middle');
+      txt('HCO₃+CO₃', 1 + G, -0.02, 'left', 'top'); txt('Cl', 2 + G, -0.02, 'right', 'top'); txt('SO₄', 1.53 + G, h, 'left', 'middle');
+      const top = D(1, 1); txt('Ca+Mg, SO₄+Cl', top[0], top[1] + 0.03, 'center', 'bottom');
+      ctx.fillStyle = pal.muted; ctx.font = '9px system-ui, sans-serif';
+      const lc = D(0, 1), rc = D(1, 0); txt('Ca-HCO₃', lc[0] - 0.02, lc[1] + 0.02, 'right', 'bottom'); txt('Na-Cl', rc[0] + 0.02, rc[1] + 0.02, 'left', 'bottom');
+      const cols = colours(pal);
+      S.forEach((s, i) => { const k = groups.indexOf(s.g), c = cols[k % cols.length]; for (const p of [pos[i].cat, pos[i].an, pos[i].dia]) { const [x, y] = P(...p); marker(ctx, x, y, k, c, 3.4); } });
+      if (showLab) { ctx.font = '9px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; S.forEach((s, i) => { const [x, y] = P(...pos[i].dia); ctx.fillText(s.name, x + 6, y); }); }
+      if (groups.length > 1) groups.forEach((g, k) => { const x = 20 + (k % 2) * (W / 2), y = H - legendH + 8 + 16 * Math.floor(k / 2); marker(ctx, x, y, k, cols[k % cols.length], 4); ctx.fillStyle = pal.ink; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(g.length > 22 ? g.slice(0, 21) + '…' : g, x + 10, y); });
+    } };
+    paint(q<HTMLCanvasElement>('.pp-fig'), fig);
+
+    const thead = ['Sample', 'Cations (meq/L)', 'Anions (meq/L)', 'Balance (%)', 'Water type', 'Diamond field', 'Hardness (mg/L CaCO₃)'];
+    const rows = S.map((s) => [s.name, s.a.cat.toFixed(2), s.a.an.toFixed(2), (s.a.ibe >= 0 ? '+' : '') + s.a.ibe.toFixed(1) + (Math.abs(s.a.ibe) > 5 ? ' (check)' : ''), pretty(waterType(s.m)), pretty(diamondField(s.a.cp!, s.a.ap!)), hardness(s.m.Ca!, s.m.Mg!).toFixed(0)]);
+    const tab = q<HTMLTableElement>('.pp-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); thead.forEach((x) => { const th = document.createElement('th'); th.textContent = x; hr.append(th); });
+    const bd = tab.createTBody(); rows.forEach((r) => { const tr = bd.insertRow(); r.forEach((c) => { tr.insertCell().textContent = c; }); });
+    const f = [
+      fact('Ion balance', 'error = (cations − anions) ÷ (cations + anions) × 100', 'within about ±5 % is usually taken as a good analysis; larger errors point to a missing ion or a lab or unit mistake'),
+      fact('Water type', 'cations, then anions, holding at least 20 % of their side in meq, largest first', 'Na includes K. A rule of thumb used by many studies; other cut-offs exist'),
+      fact('Conversion', unit === 'mg' ? 'meq/L = mg/L × charge ÷ molar mass' : unit === 'mmol' ? 'meq/L = mmol/L × charge' : 'values used as given', unit === 'mg' ? `e.g. Ca ÷ ${(IONS.Ca.m / 2).toFixed(2)}, HCO₃ ÷ ${IONS.HCO3.m.toFixed(2)}, SO₄ ÷ ${(IONS.SO4.m / 2).toFixed(2)}${col.HCO3 === undefined ? '; alkalinity as CaCO₃ ÷ 50.04' : ''}` : ''),
+    ];
+    q('.pp-facts').replaceChildren(...f);
+
+    const SN = S.slice(0, 24), mx = Math.max(...SN.flatMap((s) => [s.m.Na! + (s.m.K ?? 0), s.m.Ca!, s.m.Mg!, s.m.Cl!, s.m.HCO3! + (s.m.CO3 ?? 0), s.m.SO4!]), 1e-9);
+    const ncol = 2, rowsN = Math.ceil(SN.length / ncol);
+    sfig = { w: 380, h: 40 + rowsN * 92, alt: 'Stiff diagrams of the water samples', draw: (ctx, W, H, pal) => {
+      const cw = W / ncol, half = cw / 2 - 30, cols = colours(pal);
+      ctx.font = '9px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.fillText(`Same scale for all: half width = ${+mx.toPrecision(2)} meq/L`, W / 2, 4);
+      SN.forEach((s, i) => {
+        const cx = cw * (i % ncol) + cw / 2, y0 = 34 + 92 * Math.floor(i / ncol), dy = 22, X = (v: number) => (v / mx) * half;
+        const L = [s.m.Na! + (s.m.K ?? 0), s.m.Ca!, s.m.Mg!], R = [s.m.Cl!, s.m.HCO3! + (s.m.CO3 ?? 0), s.m.SO4!];
+        const col = cols[groups.indexOf(s.g) % cols.length];
+        ctx.beginPath(); L.forEach((v, j) => (j ? ctx.lineTo(cx - X(v), y0 + 14 + j * dy) : ctx.moveTo(cx - X(v), y0 + 14))); [...R].reverse().forEach((v, j) => ctx.lineTo(cx + X(v), y0 + 14 + (2 - j) * dy)); ctx.closePath();
+        ctx.globalAlpha = 0.25; ctx.fillStyle = col; ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = col; ctx.lineWidth = 1.4; ctx.stroke();
+        ctx.strokeStyle = pal.line; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(cx, y0 + 10); ctx.lineTo(cx, y0 + 18 + 2 * dy); ctx.stroke();
+        ctx.fillStyle = pal.ink; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(s.name.length > 26 ? s.name.slice(0, 25) + '…' : s.name, cx, y0 + 8);
+        ctx.fillStyle = pal.muted; ctx.font = '8px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+        ['Na+K', 'Ca', 'Mg'].forEach((n, j) => { ctx.textAlign = 'right'; ctx.fillText(n, cx - half - 2, y0 + 14 + j * dy); });
+        ['Cl', 'HCO₃', 'SO₄'].forEach((n, j) => { ctx.textAlign = 'left'; ctx.fillText(n, cx + half + 2, y0 + 14 + j * dy); });
+      });
+      if (S.length > SN.length) { ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(`First ${SN.length} of ${S.length} samples`, W / 2, H - 2); }
+    } };
+    paint(q<HTMLCanvasElement>('.pp-stiff'), sfig);
+    report = [{ title: q('.pp-big').textContent!, figure: fig, table: { head: thead, rows, align: ['l', 'r', 'r', 'r', 'l', 'l', 'r'] }, facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]) }, { title: 'Stiff diagrams', figure: sfig }];
+  }
+
+  root.querySelectorAll('textarea, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.pp-fig'), fig); if (sfig) paint(q<HTMLCanvasElement>('.pp-stiff'), sfig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Piper and Stiff diagrams', subtitle: q('.pp-big').textContent ?? '', file: 'piper-stiff', sections: report }));
+</script>
+
+<style is:global>
+  .pip select { max-width: 100%; }
+  .pip textarea { width: 100%; }
+</style>

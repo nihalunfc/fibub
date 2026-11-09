@@ -1,5 +1,277 @@
 [
  {
+  "sha": "0b07a3281797",
+  "date": "2026-11-08T23:14:48+00:00",
+  "title": "Add the rating curve fitter (#144)",
+  "tools": [
+   "rating-curve"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9f0716ecd28f",
+  "date": "2026-11-08T22:56:57+00:00",
+  "title": "Add the evapotranspiration calculator (#143)",
+  "tools": [
+   "et0-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6f9174b7ee56",
+  "date": "2026-11-08T22:44:34+00:00",
+  "title": "Add flood frequency analysis (#142)",
+  "tools": [
+   "flood-frequency"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d3696ddc6ac5",
+  "date": "2026-11-08T22:30:39+00:00",
+  "title": "Add the rainfall runoff calculator (#141)",
+  "tools": [
+   "manning-weir-calculator",
+   "runoff-calculator",
+   "wave-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "fa09a5a28011",
+  "date": "2026-11-08T22:12:16+00:00",
+  "title": "Add the Manning and weir flow calculator (#140)",
+  "tools": [
+   "manning-weir-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c3ca8e2589d7",
+  "date": "2026-11-08T21:58:14+00:00",
+  "title": "Add the water wave calculator: dispersion, energy, shoaling, refraction and breaking (#139)",
+  "tools": [
+   "wave-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7d87d3f47143",
+  "date": "2026-11-08T21:46:56+00:00",
+  "title": "Add the trend and anomaly analyser: Mann-Kendall, Hamed-Rao, seasonal test, Sen slope and Pettitt change point (#138)",
+  "tools": [
+   "trend-analyser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8b9781bddee6",
+  "date": "2026-11-08T21:33:35+00:00",
+  "title": "Add the Köppen climate classifier with a Walter-Lieth climate diagram (#137)",
+  "tools": [
+   "koppen-climate"
+  ],
+  "site": false
+ },
+ {
+  "sha": "25c7382a628c",
+  "date": "2026-11-08T21:19:58+00:00",
+  "title": "Add the skew-T sounding plotter with CAPE, CIN, LCL and stability indices (#136)",
+  "tools": [
+   "skew-t-sounding"
+  ],
+  "site": false
+ },
+ {
+  "sha": "706443e20ad7",
+  "date": "2026-11-08T21:01:03+00:00",
+  "title": "Add the spectral index calculator with a GeoTIFF reader and writer (#135)",
+  "tools": [
+   "spectral-index-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6dbc212134e9",
+  "date": "2026-11-08T20:45:47+00:00",
+  "title": "Add the GPS track analyser (#134)",
+  "tools": [
+   "gps-track-analyser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e48d0fe179cd",
+  "date": "2026-11-08T20:26:28+00:00",
+  "title": "Add the level book reducer (#133)",
+  "tools": [
+   "level-book-reducer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e6400acb542e",
+  "date": "2026-11-08T20:13:44+00:00",
+  "title": "Add the traverse closure and area calculator (#132)",
+  "tools": [
+   "traverse-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7dadda4082d5",
+  "date": "2026-11-08T20:01:02+00:00",
+  "title": "Add the drill hole composites and intercepts tool (#131)",
+  "tools": [
+   "drill-hole-composites"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1e3f9868bfc4",
+  "date": "2026-11-08T19:47:57+00:00",
+  "title": "Add the grade-tonnage and cut-off grade calculator (#130)",
+  "tools": [
+   "grade-tonnage-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "98de518bab00",
+  "date": "2026-11-08T19:31:47+00:00",
+  "title": "Add the well field drawdown and capture zone tool (#129)",
+  "tools": [
+   "well-field-drawdown"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2f857b017481",
+  "date": "2026-11-08T19:21:25+00:00",
+  "title": "Add the Darcy flow calculator (#128)",
+  "tools": [
+   "darcy-flow-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0981bcd182e8",
+  "date": "2026-11-08T19:09:02+00:00",
+  "title": "Add the slug test analyser (#127)",
+  "tools": [
+   "slug-test-analyser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "abf7d274dd3c",
+  "date": "2026-11-08T18:57:42+00:00",
+  "title": "Add the aquifer pump test analyser (#126)",
+  "tools": [
+   "pump-test-analyser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3da86558e8c9",
+  "date": "2026-11-08T18:45:46+00:00",
+  "title": "Add the Piper and Stiff diagram maker (#125)",
+  "tools": [
+   "piper-diagram"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f44f86efac1d",
+  "date": "2026-11-08T18:33:28+00:00",
+  "title": "Add the ternary and spider plot maker (#124)",
+  "tools": [
+   "ternary-plot-maker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "adccea29334a",
+  "date": "2026-11-08T18:21:02+00:00",
+  "title": "Add the mixing model calculator (#123)",
+  "tools": [
+   "mixing-model-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6791e412a55a",
+  "date": "2026-11-08T17:55:42+00:00",
+  "title": "Add the isotope delta converter (#122)",
+  "tools": [
+   "isotope-delta-converter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3a96cb32feaf",
+  "date": "2026-11-08T17:48:50+00:00",
+  "title": "Add the radiometric age calculator (#121)",
+  "tools": [
+   "radiometric-age-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "12d5d888627c",
+  "date": "2026-11-08T17:36:13+00:00",
+  "title": "Add the vapour pressure and VLE calculator (#120)",
+  "tools": [
+   "vapour-pressure-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b2d362efa13c",
+  "date": "2026-11-08T17:26:08+00:00",
+  "title": "Add the McCabe-Thiele calculator (#119)",
+  "tools": [
+   "mccabe-thiele-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "fd14ff4baa6d",
+  "date": "2026-11-08T17:14:02+00:00",
+  "title": "Add the Gaussian plume calculator (#118)",
+  "tools": [
+   "gaussian-plume-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "dda6567b4fa8",
+  "date": "2026-11-08T16:55:54+00:00",
+  "title": "Add the altermagnet checker (#117)",
+  "tools": [
+   "altermagnet-checker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6e90f4829b7e",
+  "date": "2026-11-08T16:45:51+00:00",
+  "title": "Add the air quality calculator: ppm ↔ µg/m³, US AQI, India AQI, Canada AQHI (#116)",
+  "tools": [
+   "air-quality-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "32584eb7b6a0",
+  "date": "2026-11-08T16:31:52+00:00",
+  "title": "Add the centrifuge calculator (#115)",
+  "tools": [
+   "centrifuge-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "1c91fa16923d",
   "date": "2026-11-08T16:22:42+00:00",
   "title": "Add the binding curve fitter (#114)",

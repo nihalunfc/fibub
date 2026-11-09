@@ -1,0 +1,138 @@
+---
+// Flood frequency analysis of annual maximum flows: Gumbel, GEV and log-Pearson III with bootstrap ranges. Example record made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+// A made-up 40-year record of annual peak flows, drawn at random by fibub (not from any real river).
+const vals = [675, 325, 441, 434, 319, 682, 318, 346, 300, 353, 379, 534, 620, 392, 492, 366, 494, 619, 920, 665, 397, 379, 565, 789, 240, 500, 719, 568, 356, 376, 205, 812, 359, 464, 448, 534, 463, 629, 529, 367];
+const demo = 'year\tannual peak flow (m³/s)\n' + vals.map((v, i) => `${1985 + i}\t${v}`).join('\n');
+---
+<div class="ax ffa">
+  <div class="ax-card">
+    <h2>Annual peak flows</h2>
+    <label>Year and peak flow <textarea class="ff-data" rows="9" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".ff-data" maxCols={20} maxRows={5000} label="Open a file" />
+    <p class="ax-help">One row per year: the year and that year's largest flow (or one column of flows). Only the first two columns are read; empty or non-numeric rows are skipped. Use the annual maximum series, one value per year, from a gauge with no big changes upstream. 10 to 1,000 years. The example record is made up.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Flow unit (for labels) <input class="ff-unit" type="text" value="m³/s" /></label>
+      <label>Main distribution <select class="ff-dist">
+        <option value="gev" selected>GEV (L-moments)</option>
+        <option value="lp3">Log-Pearson III</option>
+        <option value="gumL">Gumbel (L-moments)</option>
+        <option value="gumM">Gumbel (moments)</option>
+      </select></label>
+      <label><span>Log-Pearson skew (blank = station skew)</span> <input class="ff-skew" type="text" inputmode="decimal" value="" /></label>
+      <label>Plotting position <select class="ff-pp"><option value="0" selected>Weibull, i / (n + 1)</option><option value="0.44">Gringorten</option><option value="0.4">Cunnane</option></select></label>
+      <label>Range from the bootstrap <select class="ff-conf"><option value="0.9" selected>90 %</option><option value="0.95">95 %</option><option value="0.8">80 %</option></select></label>
+      <label>Flood for a return period of (years) <input class="ff-T" type="text" inputmode="decimal" value="100" /></label>
+      <label><span>Return period of a flow of (<span class="ff-u">m³/s</span>)</span> <input class="ff-Q" type="text" inputmode="decimal" value="800" /></label>
+      <label>Chance over a span of (years) <input class="ff-N" type="text" inputmode="decimal" value="30" /></label>
+    </div>
+    <p class="ax-err ff-err" hidden></p>
+  </div>
+
+  <div class="ax-card ff-out">
+    <h2>Flood frequency</h2>
+    <p class="ax-big ff-big"></p>
+    <dl class="ax-facts ff-facts"></dl>
+    <canvas class="ax-fig ff-fig"></canvas>
+    <div class="ax-scroll"><table class="ff-tab"></table></div>
+    <p class="ax-help">The range comes from refitting the main distribution to 1,000 resampled records (the same years drawn again at random, with a fixed seed so it is repeatable). It shows how much a record of this length can tell you; it does not cover a changing climate or catchment. Estimates for return periods much longer than the record are extrapolation: treat them with care.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { gumbelMoments, gumbelL, gevL, logPearson3, plotting, grubbsBeck, bootstrap, returnPeriod, riskInYears, lmoments, meanOf, sdOf, skewOf, type Fit } from '../../lib/sci/floodfreq';
+  import { parseSeries } from '../../lib/sci/trend';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const fl = (x: number) => (Math.abs(x) >= 1000 ? Math.round(x).toLocaleString('en') : sg(x, 3));
+  const root = document.querySelector<HTMLElement>('.ffa')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const TS = [2, 5, 10, 25, 50, 100, 200, 500];
+  const SHORT: Record<string, string> = { gev: 'GEV', lp3: 'LP3', gumL: 'Gumbel L', gumM: 'Gumbel mom.' };
+  let fig: Figure | null = null, report: Section[] = [];
+
+  function calc() {
+    const err = q('.ff-err'), out = q('.ff-out'), unit = q<HTMLInputElement>('.ff-unit').value.trim() || 'flow units';
+    q('.ff-u').textContent = unit;
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; fig = null; };
+    const s = parseSeries(parseTable(q<HTMLTextAreaElement>('.ff-data').value), num);
+    const x = s.x;
+    if (x.length > 1000) return fail(`The record has ${x.length.toLocaleString('en')} values; the limit is 1,000 years.`);
+    if (x.length < 10) return fail(`Give at least 10 annual peaks (found ${x.length}). Short records give very uncertain floods.`);
+    if (x.some((v) => !(v > 0))) return fail('Every annual peak must be above zero. Years with no flow need a conditional analysis that this tool does not do.');
+    if (Math.max(...x) === Math.min(...x)) return fail('The peaks are all the same, so there is nothing to fit.');
+    const skewTxt = q<HTMLInputElement>('.ff-skew').value.trim(), skew = skewTxt === '' ? undefined : num(skewTxt);
+    if (skew !== undefined && !(Math.abs(skew) <= 9)) return fail('Give the log-Pearson skew as a number (usually between −1 and 1), or leave it blank.');
+    const T = val('.ff-T'), Qx = val('.ff-Q'), N = val('.ff-N'), conf = +sel('.ff-conf');
+    if (!(T > 1)) return fail('Give a return period above 1 year.');
+    err.hidden = true; out.hidden = false;
+    const fitters: Record<string, (v: number[]) => Fit> = { gev: gevL, lp3: (v) => logPearson3(v, skew), gumL: gumbelL, gumM: gumbelMoments };
+    const fits = Object.fromEntries(Object.entries(fitters).map(([k, f]) => [k, f(x)])) as Record<string, Fit>;
+    const main = sel('.ff-dist'), mf = fits[main];
+    const Tlist = [...new Set([...TS, T])].sort((a, b) => a - b);
+    const ci = bootstrap(x, fitters[main], Tlist, 1000, conf, 1);
+    const ciT = ci[Tlist.indexOf(T)];
+    q('.ff-big').textContent = `${sg(T, 4)}-year flood ${fl(mf.q(T))} ${unit} (${Math.round(conf * 100)} % range ${fl(ciT[0])} to ${fl(ciT[1])})`;
+    const L = lmoments(x), y = x.map(Math.log10), gb = grubbsBeck(x);
+    const yrs = s.kind === 'values' ? `${x.length} years` : `${x.length} years, ${Math.min(...s.t)} to ${Math.max(...s.t)}`;
+    const p = mf.params;
+    const pTxt = main === 'gev' ? `location ξ ${sg(p.xi, 4)}, scale α ${sg(p.alpha, 4)}, shape k ${sg(p.k, 3)}` : main === 'lp3' ? `log10 mean ${sg(p.mean, 4)}, sd ${sg(p.sd, 3)}, skew ${sg(p.skew, 3)}${skew === undefined ? ' (station)' : ' (typed)'}` : `location u ${sg(p.u, 4)}, scale α ${sg(p.alpha, 4)}`;
+    const facts = [
+      fact('Record', yrs, `mean ${fl(meanOf(x))}, standard deviation ${fl(sdOf(x))}, largest ${fl(Math.max(...x))} ${unit}`),
+      fact('Shape of the record', `L-skewness τ3 ${sg(L.t3, 3)}`, `L-CV ${sg(L.l2 / L.l1, 3)}; skew of the log10 flows ${sg(skewOf(y), 3)}`),
+      fact(`${mf.name} parameters`, pTxt),
+      fact(`Return period of ${fl(Qx)} ${unit}`, Qx > 0 ? Object.entries(fits).map(([k, f]) => `${SHORT[k]} ${fmtT(returnPeriod(f, Qx))}`).join('; ') : '–', 'years, by each distribution'),
+      fact(`Chance of a ${sg(T, 4)}-year flood in ${sg(N, 3)} years`, N > 0 ? `${sg(riskInYears(T, N) * 100, 3)} %` : '–', 'at least one year at or above it, 1 − (1 − 1/T)^N'),
+      fact('Outlier screen (Grubbs-Beck, 10 %)', gb.high.length || gb.low.length ? [gb.high.length ? `high: ${gb.high.map(fl).join(', ')}` : '', gb.low.length ? `low: ${gb.low.map(fl).join(', ')}` : ''].filter(Boolean).join('; ') : 'none', `limits ${fl(gb.lo)} to ${fl(gb.hi)} ${unit}${gb.valid ? '' : '; the approximation is meant for 10 to 149 years'}`),
+    ];
+    if (T > 2 * x.length) facts.push(fact('Check', `${sg(T, 4)} years is more than twice the record`, 'the estimate leans on the chosen distribution; compare the four and look at the range'));
+    if (s.skipped) facts.push(fact('Skipped rows', String(s.skipped), 'rows without a number'));
+    q('.ff-facts').replaceChildren(...facts);
+    // Table.
+    const keys = ['gev', 'lp3', 'gumL', 'gumM'];
+    const head = ['T (years)', 'Chance a year', ...keys.map((k) => SHORT[k]), `${SHORT[main]} ${Math.round(conf * 100)} % range`];
+    const rows = Tlist.map((t, i) => [sg(t, 4), `${sg(100 / t, 3)} %`, ...keys.map((k) => fl(fits[k].q(t))), `${fl(ci[i][0])} to ${fl(ci[i][1])}`]);
+    const tab = q<HTMLTableElement>('.ff-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tab.createTBody(); rows.forEach((r, i) => { const tr = bd.insertRow(); if (Tlist[i] === T) tr.className = 'ff-hit'; r.forEach((c) => { tr.insertCell().textContent = c; }); });
+    // Chart on a log return-period axis.
+    const pp = plotting(x, +sel('.ff-pp')), tMax = Math.max(500, T, pp[0].T * 1.2), grid: number[] = [];
+    for (let k = 0; k <= 120; k++) grid.push(Math.pow(10, Math.log10(1.01) + (k / 120) * (Math.log10(tMax) - Math.log10(1.01))));
+    const series = keys.map((k) => ({ name: fits[k].name, x: grid, y: grid.map((t) => fits[k].q(t)), mode: 'line' as const, width: k === main ? 2.4 : 1.2, dash: k === main ? undefined : [5, 4] }));
+    const band = bootstrap(x, fitters[main], grid.filter((_, i) => i % 6 === 0), 300, conf, 2), gx = grid.filter((_, i) => i % 6 === 0);
+    fig = chartFigure({ w: 380, h: 260, xLabel: 'Return period (years)', yLabel: `Annual peak (${unit})`, xLog: true, legend: 'below', series: [
+      ...series,
+      { name: `${Math.round(conf * 100)} % range`, x: [...gx, ...[...gx].reverse()], y: [...band.map((b) => b[0]), ...band.map((b) => b[1]).reverse()], mode: 'line', width: 1, dash: [2, 3] },
+      { name: 'Recorded peaks', x: pp.map((r) => r.T), y: pp.map((r) => r.x), mode: 'points', size: 3.5 },
+    ], marks: [{ kind: 'vline', at: T, dash: [4, 3], label: `${sg(T, 4)} yr` }] }, 'Annual peak flow against return period');
+    paint(q<HTMLCanvasElement>('.ff-fig'), fig);
+    report = [
+      { title: q('.ff-big').textContent!, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig },
+      { title: 'Flood quantiles', table: { head, rows, align: ['r', 'r', 'r', 'r', 'r', 'r', 'r'] } },
+    ];
+  }
+  function fmtT(t: number) { return !Number.isFinite(t) ? 'beyond the fitted range' : t > 1e5 ? 'over 100,000' : sg(t, 3); }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 150); };
+  root.querySelectorAll('input, textarea, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.ff-out').hidden) paint(q<HTMLCanvasElement>('.ff-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Flood frequency', subtitle: q('.ff-big').textContent ?? '', file: 'flood-frequency', sections: report }));
+</script>
+
+<style is:global>
+  .ffa select, .ffa input { max-width: 100%; }
+  .ffa textarea { width: 100%; }
+  .ffa .ff-tab td, .ffa .ff-tab th { text-align: right; white-space: nowrap; }
+  .ffa .ff-hit td { font-weight: 600; }
+</style>

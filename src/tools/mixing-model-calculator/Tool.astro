@@ -1,0 +1,120 @@
+---
+// End-member mixing model: unmix samples into 2 or 3 sources from several tracers, with δ weighting and a tracer biplot.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+// Made-up example: three water sources and four stream samples, written by fibub.
+const emDemo = 'source\tCl\tSO4\td18O\nRain\t1\t2\t-12\nSoil water\t15\t40\t-8\nGroundwater\t60\t10\t-5';
+const smDemo = 'sample\tCl\tSO4\td18O\nStream 1\t35\t17\t-7.25\nStream 2\t12.3\t18.5\t-9.78\nStream 3\t50\t12.4\t-5.94\nStream 4\t19.8\t8\t-9.54';
+---
+<div class="ax mxm">
+  <div class="ax-card">
+    <h2>End-members (sources)</h2>
+    <label>Name, then one column per tracer, with a header row (2 or 3 sources) <textarea class="mx-em" rows="5" spellcheck="false">{emDemo}</textarea></label>
+    <DataFile target=".mx-em" maxCols={12} maxRows={10} label="Open a file (sources)" />
+    <h2 style="margin-top:16px">Samples</h2>
+    <label>Name, then the same tracer columns <textarea class="mx-sm" rows="7" spellcheck="false">{smDemo}</textarea></label>
+    <DataFile target=".mx-sm" maxCols={12} maxRows={5000} label="Open a file (samples)" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Weight δ columns by <select class="mx-w"></select></label>
+      <label>Plot across <select class="mx-x"></select></label>
+      <label>Plot up <select class="mx-y"></select></label>
+    </div>
+    <p class="ax-help">Columns named like d18O, δ13C or delta2H are treated as δ values. A δ mixes in proportion to how much of its element each source carries: for δ¹³C of dissolved carbon, weight it by the carbon concentration column. For δ¹⁸O of water itself, leave "no weighting". The example data are made up.</p>
+    <p class="ax-err mx-err" hidden></p>
+  </div>
+
+  <div class="ax-card mx-out">
+    <h2>Source fractions</h2>
+    <p class="ax-big mx-big"></p>
+    <div class="ax-scroll"><table class="mx-tab"></table></div>
+    <dl class="ax-facts mx-facts"></dl>
+    <canvas class="ax-fig mx-fig"></canvas>
+    <p class="ax-help">Fractions are by amount of mixture (for water, by volume). The tool finds the fractions that best match all tracers at once, scaling each tracer by its spread between the sources, and keeps every fraction between 0 and 100 %. A sample outside the sources' triangle (or beyond the ends of the line) is marked: it needs another source, or one tracer is not behaving conservatively.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { unmix, predict, parseNamed, looksDelta, type Model } from '../../lib/sci/mixing';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { parseTable } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.mxm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let fig: Figure | null = null, report: Section[] = [], lastHeader = '';
+
+  function fill(s: HTMLSelectElement, opts: [string, string][], keep: string) {
+    s.replaceChildren(...opts.map(([v, t]) => { const o = document.createElement('option'); o.value = v; o.textContent = t; return o; }));
+    if (opts.some((o) => o[0] === keep)) s.value = keep;
+  }
+
+  function calc() {
+    const err = q('.mx-err'), out = q('.mx-out');
+    const fail = (m: string) => { err.textContent = m.replace(/([^.])$/, '$1.'); err.hidden = false; out.hidden = true; report = []; };
+    let E: ReturnType<typeof parseNamed>, S: ReturnType<typeof parseNamed>;
+    try { E = parseNamed(q<HTMLTextAreaElement>('.mx-em').value, parseTable); } catch (e) { return fail(`Sources: ${(e as Error).message}`); }
+    try { S = parseNamed(q<HTMLTextAreaElement>('.mx-sm').value, parseTable); } catch (e) { return fail(`Samples: ${(e as Error).message}`); }
+    if (E.rows.length < 2 || E.rows.length > 3) return fail('Give two or three sources');
+    const H = E.header;
+    const idx = H.map((h) => S.header.indexOf(h));
+    if (idx.some((i) => i < 0)) return fail(`The samples need the same columns as the sources: ${H.join(', ')}`);
+    // Selectors follow the header.
+    const key = H.join('|');
+    const concCols = H.map((h, i) => [String(i), h] as [string, string]).filter(([, h]) => !looksDelta(h));
+    if (key !== lastHeader) {
+      fill(sel('.mx-w'), [['none', 'No weighting'], ...concCols], 'none');
+      const opts = H.map((h, i) => [String(i), h] as [string, string]);
+      fill(sel('.mx-x'), opts, '0'); fill(sel('.mx-y'), opts, String(Math.min(1, H.length - 1)));
+      lastHeader = key;
+    }
+    const w = sel('.mx-w').value, wi = w === 'none' ? undefined : +w;
+    const m: Model = { tracers: H.map((h) => ({ name: h, delta: looksDelta(h), weight: looksDelta(h) ? wi : undefined })), names: E.names, em: E.rows };
+    if (wi !== undefined && E.rows.some((r) => !(r[wi] > 0))) return fail('The weighting column must be above zero for every source');
+    let res: { name: string; y: number[]; r: ReturnType<typeof unmix> }[];
+    try { res = S.rows.map((r, i) => { const y = idx.map((j) => r[j]); return { name: S.names[i], y, r: unmix(m, y) }; }); } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; out.hidden = false;
+
+    const nOut = res.filter((x) => x.r.clipped).length;
+    q('.mx-big').textContent = res.length === 1 ? `${res[0].name}: ${E.names.map((n, i) => `${n} ${(res[0].r.f[i] * 100).toFixed(1)} %`).join(', ')}`
+      : `${res.length} samples unmixed into ${E.names.join(', ')}${nOut ? `; ${nOut} outside the sources` : ''}`;
+    const head = ['Sample', ...E.names.map((n) => `${n} (%)`), 'Misfit', 'Note'];
+    const rowsT = res.map((x) => [x.name, ...x.r.f.map((v) => (v * 100).toFixed(1)), x.r.rms.toFixed(3), x.r.clipped ? `outside: unbounded ${x.r.free.map((v) => (v * 100).toFixed(0)).join(' / ')} %` : x.r.rms > 0.05 ? 'poor fit' : '']);
+    const tab = q<HTMLTableElement>('.mx-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tab.createTBody(); rowsT.forEach((r) => { const tr = bd.insertRow(); r.forEach((c) => { tr.insertCell().textContent = c; }); });
+    const f = [
+      fact('Tracers', `${H.length}: ${H.map((h, i) => (m.tracers[i].delta ? `${h} (δ${m.tracers[i].weight !== undefined ? `, weighted by ${H[m.tracers[i].weight!]}` : ''})` : h)).join(', ')}`, H.length > E.rows.length - 1 ? `more than the ${E.rows.length - 1} needed, so the fit is overdetermined and the misfit is a check` : 'exactly enough; the misfit will be zero inside the sources'),
+      fact('Misfit column', 'scaled root mean square', 'each tracer error is divided by that tracer\'s spread between the sources; below about 0.05 is a close match'),
+    ];
+    q('.mx-facts').replaceChildren(...f);
+
+    const xi = +sel('.mx-x').value, yi = +sel('.mx-y').value;
+    const edges: { x: number[]; y: number[] }[] = [];
+    const k = E.rows.length, pairs = k === 2 ? [[0, 1]] : [[0, 1], [1, 2], [2, 0]];
+    for (const [a, b] of pairs) {
+      const xs: number[] = [], ys: number[] = [];
+      for (let t = 0; t <= 50; t++) { const fr = new Array(k).fill(0); fr[a] = 1 - t / 50; fr[b] = t / 50; const p = predict(m, fr); xs.push(p[xi]); ys.push(p[yi]); }
+      edges.push({ x: xs, y: ys });
+    }
+    fig = chartFigure({ h: 300, xLabel: H[xi], yLabel: H[yi], legend: 'none',
+      series: [...edges.map((e, i) => ({ name: i ? '' : 'Mixing lines', x: e.x, y: e.y, mode: 'line' as const, width: 1.5, color: '#888888' })),
+        { name: 'Sources', x: E.rows.map((r) => r[xi]), y: E.rows.map((r) => r[yi]), mode: 'points', marker: 'square', size: 5, labels: E.names },
+        { name: 'Samples', x: res.map((r) => r.y[xi]), y: res.map((r) => r.y[yi]), mode: 'points', size: 4, labels: res.length <= 12 ? res.map((r) => r.name) : undefined }] }, `${H[yi]} against ${H[xi]} with the sources and mixing lines`);
+    paint(q<HTMLCanvasElement>('.mx-fig'), fig);
+    report = [{ title: q('.mx-big').textContent!, table: { head, rows: rowsT, align: ['l', ...E.names.map(() => 'r' as const), 'r', 'l'] }, facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig }];
+  }
+
+  root.querySelectorAll('textarea, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.mx-fig'), fig));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Mixing model', subtitle: q('.mx-big').textContent ?? '', file: 'mixing-model', sections: report }));
+</script>
+
+<style is:global>
+  .mxm select { max-width: 100%; }
+  .mxm textarea { width: 100%; }
+</style>

@@ -1,0 +1,167 @@
+---
+// Altermagnet checker: classify a collinear magnetic crystal as ferro/ferrimagnet, conventional antiferromagnet or
+// altermagnet (d-, g- or i-wave) from its symmetry, and draw where the bands split by spin.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { EXAMPLES } from '../../lib/sci/altermagnet';
+---
+<div class="ax alt">
+  <div class="ax-card">
+    <h2>Magnetic crystal</h2>
+    <div class="ax-grid">
+      <label class="alt-wide">Example <select class="alt-ex">{EXAMPLES.map((e) => <option value={e.id}>{e.name}</option>)}<option value="">My own structure</option></select></label>
+    </div>
+    <label class="alt-lab">One line <code>cell a b c α β γ</code> (Å and degrees), then one line per atom in the cell: element, fractional x y z, and its spin (<code>up</code>, <code>down</code>, or a signed moment such as <code>2.5</code> or <code>-1.5</code>; leave it off for a non-magnetic atom). Fractions like 1/3 are fine.
+      <textarea class="alt-in" rows="9" spellcheck="false">{EXAMPLES[0].text}</textarea></label>
+    <div class="ax-grid">
+      <label>Position tolerance (Å) <input class="alt-tol" inputmode="decimal" value="0.1" /></label>
+      <label>Or open a file <input class="alt-file" type="file" accept=".txt,.cell,.dat,text/plain" /></label>
+    </div>
+    <p class="ax-help">List every atom of the magnetic unit cell, not only the unique ones. Spins must be collinear (all along one axis). The test ignores spin–orbit coupling, which is how altermagnetism is defined. Files stay in your browser; the limit is 200 kB and 200 atoms.</p>
+    <p class="ax-err alt-err" hidden></p>
+    <div class="alt-out">
+      <p class="ax-big alt-big"></p>
+      <dl class="ax-facts alt-facts"></dl>
+      <canvas class="ax-fig alt-map" style="margin-top:10px"></canvas>
+      <canvas class="ax-fig alt-cell" style="margin-top:10px"></canvas>
+      <h3>Operations that swap up and down</h3>
+      <div class="ax-scroll"><table class="alt-tab"></table></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { EXAMPLES, parseCrystal, classify, latticeMatrix, type Result, type V3 } from '../../lib/sci/altermagnet';
+  import { num } from '../../lib/sci/num';
+  import { paint, wireDownloads, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.alt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let figs: Figure[] = [], swapRows: string[][] = [], last: Result | null = null;
+
+  const KIND: Record<Result['kind'], string> = {
+    'non-magnetic': 'Non-magnetic', ferromagnet: 'Ferromagnet', ferrimagnet: 'Ferrimagnet', antiferromagnet: 'Conventional antiferromagnet',
+    altermagnet: 'Altermagnet', 'not compensated by symmetry': 'Compensated ferrimagnet (not protected by symmetry)',
+  };
+
+  /** Pick the k-plane through Γ where the splitting varies most, and draw its sign and size on a disc. */
+  function mapFigure(f: (k: V3) => number, wave: string, form: string): Figure {
+    const s2 = Math.SQRT1_2;
+    const planes: { name: string; u: V3; v: V3; lu: string; lv: string }[] = [
+      { name: 'kz = 0', u: [1, 0, 0], v: [0, 1, 0], lu: 'kx', lv: 'ky' }, { name: 'ky = 0', u: [1, 0, 0], v: [0, 0, 1], lu: 'kx', lv: 'kz' },
+      { name: 'kx = 0', u: [0, 1, 0], v: [0, 0, 1], lu: 'ky', lv: 'kz' }, { name: 'kx = ky', u: [s2, s2, 0], v: [0, 0, 1], lu: '(kx+ky)/√2', lv: 'kz' },
+      { name: 'kx = −ky', u: [s2, -s2, 0], v: [0, 0, 1], lu: '(kx−ky)/√2', lv: 'kz' },
+    ];
+    const at = (p: (typeof planes)[0], a: number, b: number): V3 => [p.u[0] * a + p.v[0] * b, p.u[1] * a + p.v[1] * b, p.u[2] * a + p.v[2] * b];
+    const spread = (p: (typeof planes)[0]) => { let s = 0; for (let i = 0; i < 36; i++) { const t = (i / 36) * 2 * Math.PI; s += f(at(p, Math.cos(t), Math.sin(t))) ** 2; } return s; };
+    const plane = planes.reduce((b, p) => (spread(p) > spread(b) * 1.0001 ? p : b), planes[0]);
+    return { w: 340, h: 320, alt: `Sign of the spin splitting in the ${plane.name} plane (${wave}-wave)`, draw: (ctx, W, H, pal) => {
+      const R = Math.min(W, H - 40) / 2 - 18, cx = W / 2, cy = 22 + R + 6, N = 90;
+      let mx = 0; const vals: number[] = [];
+      for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) { const a = (2 * (i + 0.5)) / N - 1, b = 1 - (2 * (j + 0.5)) / N; const v = a * a + b * b <= 1 ? f(at(plane, a, b)) : NaN; vals.push(v); if (Number.isFinite(v)) mx = Math.max(mx, Math.abs(v)); }
+      const cell = (2 * R) / N;
+      const hex = (c: string) => [1, 3, 5].map((k) => parseInt(c.slice(k, k + 2), 16));
+      const up = hex(pal.accent), dn = hex(pal.accent2), bg = hex(pal.bg);
+      for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+        const v = vals[i * N + j]; if (!Number.isFinite(v)) continue;
+        const w = Math.min(1, Math.abs(v) / (mx || 1)) ** 0.6, c = v >= 0 ? up : dn;
+        ctx.fillStyle = `rgb(${c.map((x, k) => Math.round(bg[k] + (x - bg[k]) * w)).join(',')})`;
+        ctx.fillRect(cx - R + i * cell, cy - R + j * cell, cell + 0.6, cell + 0.6);
+      }
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy); ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R); ctx.strokeStyle = pal.muted; ctx.setLineDash([3, 3]); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = pal.ink; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.fillText(`Spin splitting ∝ ${form}, plane ${plane.name}`, 6, 4);
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(plane.lu, cx + R, cy - 9);
+      ctx.textAlign = 'left'; ctx.fillText(plane.lv, cx + 5, cy - R + 8);
+      const ly = H - 12; ctx.textAlign = 'left';
+      ctx.fillStyle = pal.accent; ctx.fillRect(8, ly - 5, 12, 10); ctx.fillStyle = pal.ink; ctx.fillText('Δ(k) > 0', 24, ly);
+      ctx.fillStyle = pal.accent2; ctx.fillRect(W / 2 + 8, ly - 5, 12, 10); ctx.fillStyle = pal.ink; ctx.fillText('Δ(k) < 0', W / 2 + 24, ly);
+    } };
+  }
+
+  /** The cell seen down c, magnetic atoms marked ↑ or ↓. */
+  function cellFigure(cell: [number, number, number, number, number, number], atoms: { el: string; f: V3; m: number }[]): Figure {
+    const A = latticeMatrix(cell), cart = (f: V3): [number, number] => [A[0][0] * f[0] + A[0][1] * f[1] + A[0][2] * f[2], A[1][0] * f[0] + A[1][1] * f[1] + A[1][2] * f[2]];
+    const corners = [[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]].map((f) => cart(f as V3));
+    return { w: 340, h: 300, alt: 'The unit cell seen down c, with spin up and down atoms marked', draw: (ctx, W, H, pal) => {
+      const xs = corners.map((c) => c[0]), ys = corners.map((c) => c[1]);
+      const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), s = Math.min((W - 60) / (x1 - x0 || 1), (H - 60) / (y1 - y0 || 1));
+      const P = (c: [number, number]) => [30 + (c[0] - x0) * s + ((W - 60) - (x1 - x0) * s) / 2, H - 30 - (c[1] - y0) * s - ((H - 60) - (y1 - y0) * s) / 2];
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 1.2; ctx.beginPath(); corners.forEach((c, i) => { const [x, y] = P(c); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); ctx.closePath(); ctx.stroke();
+      const sorted = [...atoms].sort((a, b) => a.f[2] - b.f[2]);
+      for (const a of sorted) {
+        const [x, y] = P(cart(a.f)), r = a.m ? 13 : 8;
+        ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.fillStyle = a.m > 0 ? pal.accent : a.m < 0 ? pal.accent2 : pal.bg; ctx.fill(); ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.stroke();
+        ctx.fillStyle = a.m ? pal.bg : pal.ink; ctx.font = `${a.m ? 12 : 9}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(a.m > 0 ? '↑' : a.m < 0 ? '↓' : a.el, x, y);
+        ctx.fillStyle = pal.muted; ctx.font = '9px system-ui, sans-serif'; ctx.fillText(`${a.el} z=${+a.f[2].toFixed(2)}`, x, y + r + 7);
+      }
+      ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('Unit cell seen down c (a to the right)', 6, 4);
+    } };
+  }
+
+  function calc() {
+    const err = (m: string) => { q('.alt-err').textContent = m; q('.alt-err').hidden = !m; q('.alt-out').hidden = !!m; if (m) { figs = []; last = null; } };
+    const tol = num(q<HTMLInputElement>('.alt-tol').value);
+    if (!(tol > 0 && tol <= 0.5)) return err('The tolerance is above 0 and at most 0.5 Å.');
+    const { crystal, bad } = parseCrystal(q<HTMLTextAreaElement>('.alt-in').value);
+    if (bad.length) return err(`This line is not "cell a b c α β γ" or "element x y z spin": ${bad[0].slice(0, 60)}`);
+    if (!crystal) return err('Give a "cell" line and at least one atom.');
+    if (crystal.atoms.length > 200) return err('Up to 200 atoms, please.');
+    const A = latticeMatrix(crystal.cell);
+    if (!A.every((r) => r.every(Number.isFinite)) || A[2][2] < 1e-3) return err('Those cell angles do not make a real cell.');
+    const r = classify(crystal, tol); last = r;
+    err('');
+    q('.alt-big').textContent = r.kind === 'altermagnet' && r.wave ? `${KIND[r.kind]} (${r.wave}-wave)` : KIND[r.kind];
+    const facts: HTMLElement[] = [fact('Why', r.why)];
+    if (r.kind === 'altermagnet' && r.form) facts.push(fact('Spin splitting, lowest allowed form', `Δ(k) ∝ ${r.form}`, `${r.degree} spin-degenerate nodal planes through the zone centre (${r.wave}-wave), from the symmetry alone; x is along a, y lies in the ab plane, z is perpendicular to it`));
+    if (r.kind === 'antiferromagnet') facts.push(fact('Bands', 'spin-degenerate everywhere (no spin splitting without spin–orbit coupling)'));
+    facts.push(fact('Symmetry operations', `${r.keep.length} keep every spin, ${r.swap.length} swap up and down`, 'counted per lattice translation, without spin–orbit coupling'));
+    facts.push(fact('Net moment per cell', `${+r.net.toFixed(4)}`, `${r.magnetic} magnetic atom${r.magnetic === 1 ? '' : 's'}`));
+    const ex = EXAMPLES.find((e) => e.id === q<HTMLSelectElement>('.alt-ex').value);
+    if (ex && q<HTMLTextAreaElement>('.alt-in').value.trim() === ex.text.trim()) facts.push(fact('About this example', ex.note, 'idealised structure written by fibub with rounded values'));
+    q('.alt-facts').replaceChildren(...facts);
+    swapRows = r.swap.map((o, i) => [String(i + 1), o.name]);
+    const tab = q<HTMLTableElement>('.alt-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); ['#', 'Operation (fractional translation)'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tab.createTBody(); for (const row of swapRows.length ? swapRows : [['', 'none']]) { const tr = bd.insertRow(); row.forEach((c) => (tr.insertCell().textContent = c)); }
+    figs = [];
+    if (r.kind === 'altermagnet' && r.formFn) figs.push(mapFigure(r.formFn, r.wave!, r.form!));
+    figs.push(cellFigure(crystal.cell, crystal.atoms));
+    const mapC = q<HTMLCanvasElement>('.alt-map'); mapC.hidden = !(r.kind === 'altermagnet' && r.formFn);
+    if (!mapC.hidden) paint(mapC, figs[0]);
+    paint(q<HTMLCanvasElement>('.alt-cell'), figs[figs.length - 1]);
+  }
+
+  q('.alt-ex').addEventListener('change', () => { const e = EXAMPLES.find((x) => x.id === q<HTMLSelectElement>('.alt-ex').value); if (e) q<HTMLTextAreaElement>('.alt-in').value = e.text; calc(); });
+  let timer = 0;
+  q('.alt-in').addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); });
+  q('.alt-tol').addEventListener('input', calc);
+  q('.alt-file').addEventListener('change', async () => {
+    const f = q<HTMLInputElement>('.alt-file').files?.[0]; if (!f) return;
+    if (f.size > 200_000) { q('.alt-err').textContent = 'That file is over 200 kB.'; q('.alt-err').hidden = false; return; }
+    q<HTMLTextAreaElement>('.alt-in').value = await f.text(); q<HTMLSelectElement>('.alt-ex').value = ''; calc();
+  });
+  document.addEventListener('fibub:theme', () => { if (!figs.length) return; const mapC = q<HTMLCanvasElement>('.alt-map'); if (!mapC.hidden) paint(mapC, figs[0]); paint(q<HTMLCanvasElement>('.alt-cell'), figs[figs.length - 1]); });
+  calc();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Altermagnet check', subtitle: q('.alt-big').textContent ?? '', file: 'altermagnet-check',
+    sections: !last ? [] : [
+      { title: q('.alt-big').textContent!, facts: [...root.querySelectorAll('.alt-facts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: figs[0] },
+      ...(figs.length > 1 ? [{ title: 'Unit cell', figure: figs[1] }] : []),
+      { title: 'Operations that swap up and down', table: { head: ['#', 'Operation'], rows: swapRows, align: ['r', 'l'] as ('l' | 'r')[] } },
+    ],
+  }));
+</script>
+
+<style is:global>
+  .alt .alt-wide { grid-column: 1 / -1; }
+  .alt .alt-lab { display: block; }
+  .alt textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 13px; }
+  .alt select { max-width: 100%; }
+  .alt h3 { font-size: 15px; margin: 14px 0 6px; }
+  .alt code { font-size: 13px; }
+</style>

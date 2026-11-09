@@ -1,0 +1,179 @@
+---
+// Well field drawdown by Theis superposition, with an optional straight boundary, and a one-well capture zone.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+// Made-up example well field, written by fibub.
+const wellDemo = 'well\tx (m)\ty (m)\tQ (m³/day)\tstart (day)\nPW1\t0\t0\t800\t0\nPW2\t400\t0\t500\t10\nPW3\t200\t300\t300\t20';
+---
+<div class="ax wfd">
+  <div class="ax-card">
+    <h2>Aquifer and wells</h2>
+    <div class="ax-grid">
+      <label>Transmissivity T (m²/day) <input class="wf-T" type="text" inputmode="decimal" value="500" /></label>
+      <label>Storativity S <input class="wf-S" type="text" inputmode="decimal" value="0.0001" /></label>
+      <label>Well radius (m) <input class="wf-rw" type="text" inputmode="decimal" value="0.1" /></label>
+    </div>
+    <label style="margin-top:10px">Name, x (east), y (north), pumping rate and the day it starts. A negative rate is an injection well. <textarea class="wf-data" rows="5" spellcheck="false">{wellDemo}</textarea></label>
+    <DataFile target=".wf-data" maxCols={6} maxRows={50} label="Open a file" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Straight boundary <select class="wf-bk"><option value="none" selected>None</option><option value="noflow">No-flow (rock wall, fault)</option><option value="head">Constant head (river, lake)</option></select></label>
+      <label>Boundary line <select class="wf-ba"><option value="x" selected>north–south, at x =</option><option value="y">east–west, at y =</option></select></label>
+      <label>Position (m) <input class="wf-bat" type="text" inputmode="decimal" value="-300" /></label>
+      <label>Map at day <input class="wf-t" type="text" inputmode="decimal" value="30" /></label>
+      <label>Observation point x (m) <input class="wf-ox" type="text" inputmode="decimal" value="200" /></label>
+      <label>Observation point y (m) <input class="wf-oy" type="text" inputmode="decimal" value="100" /></label>
+    </div>
+    <p class="ax-help">Uses the Theis solution for each well and adds the drawdowns: a confined aquifer, even and endless apart from the one boundary you choose. A boundary is handled by a mirror-image well. Drawdowns larger than about a quarter of the aquifer's thickness break the assumptions.</p>
+    <p class="ax-err wf-err" hidden></p>
+  </div>
+
+  <div class="ax-card wf-out">
+    <h2>Drawdown</h2>
+    <p class="ax-big wf-big"></p>
+    <dl class="ax-facts wf-facts"></dl>
+    <canvas class="ax-fig wf-map"></canvas>
+    <canvas class="ax-fig wf-time"></canvas>
+    <div class="ax-scroll"><table class="wf-tab"></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Capture zone of one well in regional flow</h2>
+    <div class="ax-grid">
+      <label>Pumping rate Q (m³/day) <input class="cz-q" type="text" inputmode="decimal" value="800" /></label>
+      <label>Aquifer thickness B (m) <input class="cz-b" type="text" inputmode="decimal" value="20" /></label>
+      <label>Hydraulic conductivity K (m/day) <input class="cz-k" type="text" inputmode="decimal" value="25" /></label>
+      <label>Regional gradient i <input class="cz-i" type="text" inputmode="decimal" value="0.002" /></label>
+    </div>
+    <p class="ax-err cz-err" hidden></p>
+    <div class="cz-out">
+      <p class="ax-big cz-big"></p>
+      <dl class="ax-facts cz-facts"></dl>
+      <canvas class="ax-fig cz-fig"></canvas>
+    </div>
+    <p class="ax-help">The steady capture zone of a fully penetrating well in an even aquifer with uniform flow. All water inside the line ends up in the well; water outside flows past. The example values are made up.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { drawdown, withImages, contour, captureZone, type Well, type Boundary } from '../../lib/sci/wellfield';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.wfd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const pairsOf = (f: HTMLElement[]) => f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  const niceStep = (x: number) => { const p = 10 ** Math.floor(Math.log10(x)), m = x / p; return (m < 1.5 ? 1 : m < 3 ? 2 : m < 7 ? 5 : 10) * p; };
+  let mapFig: Figure | null = null, timeFig: Figure | null = null, czFig: Figure | null = null, S: Record<string, Section | null> = {};
+
+  function field() {
+    const err = q('.wf-err'), out = q('.wf-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; S.wf = null; };
+    const T = val('.wf-T'), Sc = val('.wf-S'), rw = val('.wf-rw'), tm = val('.wf-t');
+    if (!(T > 0 && Sc > 0 && rw > 0)) return fail('Enter T, S and the well radius, all above zero.');
+    if (!(tm > 0)) return fail('Enter a map time above zero.');
+    const rows = parseTable(q<HTMLTextAreaElement>('.wf-data').value).filter((r) => r.length >= 4 && r.slice(1, 4).every((c) => Number.isFinite(num(c))));
+    if (!rows.length) return fail('Give at least one well: name, x, y and pumping rate (and optionally the start day).');
+    const wells: Well[] = rows.map((r) => ({ name: r[0].trim(), x: num(r[1]), y: num(r[2]), Q: num(r[3]), t0: Number.isFinite(num(r[4])) ? num(r[4]) : 0 }));
+    const bk = sel('.wf-bk') as Boundary['kind'], bat = val('.wf-bat');
+    if (bk !== 'none' && !Number.isFinite(bat)) return fail('Enter the boundary position.');
+    const b: Boundary = { kind: bk, axis: sel('.wf-ba') as 'x' | 'y', at: bat };
+    if (bk !== 'none' && wells.some((w) => (b.axis === 'x' ? w.x : w.y) === bat)) return fail('A well sits exactly on the boundary; move it or the boundary.');
+    const all = withImages(wells, b), ox = val('.wf-ox'), oy = val('.wf-oy'), hasObs = Number.isFinite(ox) && Number.isFinite(oy);
+    err.hidden = true; out.hidden = false;
+    const sObs = hasObs ? drawdown(ox, oy, tm, all, T, Sc, rw) : NaN;
+    const perWell = wells.map((w) => ({ w, s: drawdown(w.x, w.y, tm, all, T, Sc, rw) }));
+    q('.wf-big').textContent = hasObs ? `Drawdown at (${ox}, ${oy}) on day ${tm}: ${sig(sObs, 3)} m` : `Largest drawdown on day ${tm}: ${sig(Math.max(...perWell.map((p) => p.s)), 3)} m`;
+    const totalQ = wells.filter((w) => w.t0 < tm).reduce((s, w) => s + w.Q, 0);
+    const f = [fact('Wells pumping by then', `${wells.filter((w) => w.t0 < tm).length} of ${wells.length}`, `${sig(totalQ, 4)} m³/day in all`)];
+    if (bk !== 'none') f.push(fact('Boundary', `${bk === 'noflow' ? 'no-flow' : 'constant head'} along ${b.axis} = ${bat} m`, bk === 'noflow' ? 'image wells pump too, so drawdown is larger' : 'image wells inject, so drawdown is smaller and levels off'));
+    if (hasObs) { const self = wells.map((w) => drawdown(ox, oy, tm, [w], T, Sc, rw)); f.push(fact('Share at the point', wells.map((w, i) => `${w.name} ${sig(self[i], 2)} m`).join(', '), 'from each real well alone; the boundary changes the total')); }
+    q('.wf-facts').replaceChildren(...f);
+    const tab = q<HTMLTableElement>('.wf-tab'); tab.replaceChildren();
+    const head = ['Well', 'Q (m³/day)', 'Starts (day)', `Drawdown at the well, day ${tm} (m)`];
+    const hr = tab.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const rowsT = perWell.map((p) => [p.w.name, sig(p.w.Q, 4), String(p.w.t0), sig(p.s, 3)]);
+    const bd = tab.createTBody(); rowsT.forEach((r) => { const tr = bd.insertRow(); r.forEach((c) => { tr.insertCell().textContent = c; }); });
+
+    // Map grid.
+    const xsW = wells.map((w) => w.x), ysW = wells.map((w) => w.y), span = Math.max(Math.max(...xsW) - Math.min(...xsW), Math.max(...ysW) - Math.min(...ysW), 200);
+    const pad = span * 0.6, x0 = Math.min(...xsW) - pad, x1 = Math.max(...xsW) + pad, y0 = Math.min(...ysW) - pad, y1 = Math.max(...ysW) + pad;
+    const N = 70, gx = Array.from({ length: N + 1 }, (_, i) => x0 + ((x1 - x0) * i) / N), gy = Array.from({ length: N + 1 }, (_, j) => y0 + ((y1 - y0) * j) / N);
+    const z = gy.map((yy) => gx.map((xx) => drawdown(xx, yy, tm, all, T, Sc, rw)));
+    const zs = z.flat().filter(Number.isFinite).sort((a, b2) => a - b2), zhi = zs[Math.floor(zs.length * 0.98)], zlo = zs[0];
+    const step = niceStep(Math.max(1e-6, (zhi - Math.max(0, zlo)) / 6)), levels: number[] = [];
+    for (let v = Math.ceil(Math.max(zlo, step / 2) / step) * step; v <= zhi && levels.length < 12; v += step) levels.push(+v.toPrecision(6));
+    const segs = levels.map((v) => ({ v, s: contour(z, gx, gy, v) }));
+    mapFig = { w: 360, h: 360, alt: `Drawdown contours on day ${tm}`, draw: (ctx, W, H, pal) => {
+      const m = 16, sc = Math.min((W - 2 * m) / (x1 - x0), (H - 2 * m - 14) / (y1 - y0)), ox0 = (W - sc * (x1 - x0)) / 2, oy0 = m + 14;
+      const P = (x: number, y: number): [number, number] => [ox0 + (x - x0) * sc, oy0 + (y1 - y) * sc];
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(ox0, oy0, (x1 - x0) * sc, (y1 - y0) * sc);
+      ctx.save(); ctx.beginPath(); ctx.rect(ox0, oy0, (x1 - x0) * sc, (y1 - y0) * sc); ctx.clip();
+      const placed: [number, number][] = [];
+      segs.forEach(({ v, s }) => {
+        ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.1; ctx.beginPath(); s.forEach(([a, b1, c, d]) => { ctx.moveTo(...P(a, b1)); ctx.lineTo(...P(c, d)); }); ctx.stroke();
+        const k = s.length ? s[Math.floor(s.length * 0.3)] : null, lp = k ? P(k[0], k[1]) : null; if (k && lp && !placed.some(([px, py]) => Math.hypot(px - lp[0], py - lp[1]) < 26)) { const [lx, ly] = lp; placed.push(lp); ctx.fillStyle = pal.bg; ctx.fillRect(lx - 1, ly - 6, ctx.measureText(String(v)).width + 6, 11); ctx.fillStyle = pal.ink; ctx.font = '9px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(String(v), lx + 1, ly); }
+      });
+      if (bk !== 'none') { ctx.strokeStyle = bk === 'head' ? pal.accent2 : pal.ink; ctx.lineWidth = 2.5; ctx.setLineDash(bk === 'head' ? [] : [6, 3]); ctx.beginPath(); if (b.axis === 'x') { ctx.moveTo(...P(bat, y0)); ctx.lineTo(...P(bat, y1)); } else { ctx.moveTo(...P(x0, bat)); ctx.lineTo(...P(x1, bat)); } ctx.stroke(); ctx.setLineDash([]); }
+      ctx.font = '10px system-ui, sans-serif';
+      wells.forEach((w) => { const [px, py] = P(w.x, w.y); ctx.fillStyle = w.t0 < tm ? pal.ink : pal.muted; ctx.beginPath(); ctx.arc(px, py, 4, 0, 2 * Math.PI); ctx.fill(); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(w.name, px + 5, py - 3); });
+      if (hasObs) { const [px, py] = P(ox, oy); ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(px - 5, py - 5); ctx.lineTo(px + 5, py + 5); ctx.moveTo(px + 5, py - 5); ctx.lineTo(px - 5, py + 5); ctx.stroke(); }
+      ctx.restore();
+      ctx.fillStyle = pal.muted; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.fillText(`Drawdown (m), day ${tm}; ${sig(x1 - x0, 2)} m across; north up`, ox0, 2);
+    } };
+    paint(q<HTMLCanvasElement>('.wf-map'), mapFig);
+    if (hasObs) {
+      const tEnd = tm * 3, tStart = Math.max(1e-3, tEnd / 1e4), n = 120, tt = Array.from({ length: n + 1 }, (_, i) => tStart * (tEnd / tStart) ** (i / n));
+      timeFig = chartFigure({ w: 380, h: 240, xLog: true, yMin: 0, xLabel: 'Time (days)', yLabel: 'Drawdown (m)', legend: 'none', marks: [{ kind: 'vline', at: tm, dash: [3, 3], label: `day ${tm}` }],
+        series: [{ name: 'Drawdown at the point', x: tt, y: tt.map((t) => drawdown(ox, oy, t, all, T, Sc, rw)), mode: 'line', width: 1.8 }] }, 'Drawdown at the observation point against time');
+      paint(q<HTMLCanvasElement>('.wf-time'), timeFig); q('.wf-time').hidden = false;
+    } else { timeFig = null; q('.wf-time').hidden = true; }
+    S.wf = { title: q('.wf-big').textContent!, facts: pairsOf(f), table: { head, rows: rowsT, align: ['l', 'r', 'r', 'r'] }, figure: mapFig };
+    S.wt = timeFig ? { title: 'Drawdown at the observation point', figure: timeFig } : null;
+  }
+
+  function capture() {
+    const err = q('.cz-err'), out = q('.cz-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; S.cz = null; };
+    const Q = val('.cz-q'), B = val('.cz-b'), K = val('.cz-k'), i = val('.cz-i');
+    if (!(Q > 0 && B > 0 && K > 0 && i > 0)) return fail('Enter Q, B, K and the gradient, all above zero.');
+    const qd = K * i, c = captureZone(Q, B, qd);
+    err.hidden = true; out.hidden = false;
+    q('.cz-big').textContent = `Capture zone ${sig(2 * c.halfWidthFar, 3)} m wide upstream; stagnation point ${sig(c.stagnation, 3)} m downstream`;
+    const f = [fact('Regional Darcy flux q = K·i', `${sig(qd, 3)} m/day`), fact('Stagnation point', `${sig(c.stagnation, 3)} m downstream`, 'Q ÷ (2πBq): beyond this, water flows past the well'),
+      fact('Width at the well', `${sig(2 * c.halfWidthAtWell, 3)} m`, 'Q ÷ (2Bq)'), fact('Width far upstream', `${sig(2 * c.halfWidthFar, 3)} m`, 'Q ÷ (Bq)')];
+    q('.cz-facts').replaceChildren(...f);
+    czFig = { w: 380, h: 260, alt: 'Capture zone outline with the well and the regional flow direction', draw: (ctx, W, H, pal) => {
+      const xl = -c.halfWidthFar * 3, xr = c.stagnation * 2.5, yl = -c.halfWidthFar * 1.25, yh = c.halfWidthFar * 1.25;
+      const m = 14, sc = Math.min((W - 2 * m) / (xr - xl), (H - 2 * m - 16) / (yh - yl)), ox0 = (W - sc * (xr - xl)) / 2, oy0 = m + 16;
+      const P = (x: number, y: number): [number, number] => [ox0 + (x - xl) * sc, oy0 + (yh - y) * sc];
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(ox0, oy0, (xr - xl) * sc, (yh - yl) * sc);
+      ctx.save(); ctx.beginPath(); ctx.rect(ox0, oy0, (xr - xl) * sc, (yh - yl) * sc); ctx.clip();
+      ctx.strokeStyle = pal.grid; for (const yy of [-0.5, 0.5]) { ctx.beginPath(); ctx.moveTo(...P(xl, yy * 2 * c.halfWidthFar)); ctx.lineTo(...P(xr, yy * 2 * c.halfWidthFar)); ctx.stroke(); }
+      const pts = c.pts.filter(([x]) => x >= xl - 1);
+      ctx.strokeStyle = pal.accent; ctx.lineWidth = 2; ctx.beginPath(); pts.forEach(([x, y], k) => (k ? ctx.lineTo(...P(x, y)) : ctx.moveTo(...P(x, y)))); ctx.stroke();
+      const [wx, wy] = P(0, 0); ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.arc(wx, wy, 4, 0, 2 * Math.PI); ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = pal.muted; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(`Regional flow →   (${sig(xr - xl, 2)} m across)`, ox0, 2);
+    } };
+    paint(q<HTMLCanvasElement>('.cz-fig'), czFig);
+    S.cz = { title: q('.cz-big').textContent!, facts: pairsOf(f), figure: czFig };
+  }
+
+  root.querySelectorAll('.wf-T, .wf-S, .wf-rw, .wf-data, .wf-bk, .wf-ba, .wf-bat, .wf-t, .wf-ox, .wf-oy').forEach((i) => { i.addEventListener('input', field); i.addEventListener('change', field); });
+  root.querySelectorAll('.cz-q, .cz-b, .cz-k, .cz-i').forEach((i) => { i.addEventListener('input', capture); i.addEventListener('change', capture); });
+  document.addEventListener('fibub:theme', () => { if (mapFig && !q('.wf-out').hidden) { paint(q<HTMLCanvasElement>('.wf-map'), mapFig); if (timeFig) paint(q<HTMLCanvasElement>('.wf-time'), timeFig); } if (czFig && !q('.cz-out').hidden) paint(q<HTMLCanvasElement>('.cz-fig'), czFig); });
+  field(); capture();
+  wireDownloads(q('.dl'), () => ({ title: 'Well field drawdown', subtitle: q('.wf-big').textContent ?? '', file: 'well-field', sections: [S.wf, S.wt, S.cz].filter(Boolean) as Section[] }));
+</script>
+
+<style is:global>
+  .wfd select, .wfd input { max-width: 100%; }
+  .wfd textarea { width: 100%; }
+</style>

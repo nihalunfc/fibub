@@ -97,6 +97,37 @@ import * as EIS from '../src/lib/sci/eis.ts';
 import * as ENZ from '../src/lib/sci/enzyme.ts';
 import * as BUF from '../src/lib/sci/buffer.ts';
 import * as BND from '../src/lib/sci/binding.ts';
+import * as CEN from '../src/lib/sci/centrifuge.ts';
+import * as AQ from '../src/lib/sci/aqi.ts';
+import * as ALT from '../src/lib/sci/altermagnet.ts';
+import * as PL from '../src/lib/sci/plume.ts';
+import * as MT from '../src/lib/sci/mccabe.ts';
+import * as VL from '../src/lib/sci/vle.ts';
+import * as GC from '../src/lib/sci/geochron.ts';
+import * as DL from '../src/lib/sci/delta.ts';
+import * as MX from '../src/lib/sci/mixing.ts';
+import * as TER from '../src/lib/sci/ternary.ts';
+import * as PIP from '../src/lib/sci/piper.ts';
+import * as PT from '../src/lib/sci/pumptest.ts';
+import * as SLG from '../src/lib/sci/slug.ts';
+import * as DAR from '../src/lib/sci/darcy.ts';
+import * as WF from '../src/lib/sci/wellfield.ts';
+import * as GTN from '../src/lib/sci/gradetonnage.ts';
+import * as DH from '../src/lib/sci/drillhole.ts';
+import * as TRV from '../src/lib/sci/traverse.ts';
+import * as LVL from '../src/lib/sci/levelling.ts';
+import * as GPS from '../src/lib/sci/gpstrack.ts';
+import * as TIF from '../src/lib/sci/tiff.ts';
+import * as SPX from '../src/lib/sci/spectral.ts';
+import * as SND from '../src/lib/sci/sounding.ts';
+import * as KOP from '../src/lib/sci/koppen.ts';
+import * as TRD from '../src/lib/sci/trend.ts';
+import * as WAV from '../src/lib/sci/waves.ts';
+import * as OCH from '../src/lib/sci/openchannel.ts';
+import * as RO from '../src/lib/sci/runoff.ts';
+import * as FF from '../src/lib/sci/floodfreq.ts';
+import * as ET from '../src/lib/sci/et0.ts';
+import * as RC from '../src/lib/sci/rating.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -1540,6 +1571,969 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   const S = BND.scatchard(Ls, Ls.map((l) => (100 * l) / (3 + l)));
   check('Scatchard exact on one-site data', Math.abs(S.Kd - 3) < 1e-9 && Math.abs(S.Bmax - 100) < 1e-9);
   near('Cheng–Prusoff', BND.chengPrusoff(40, 2, 2.5), 40 / 1.8, 1e-12);
+}
+{
+  // Centrifuge: the textbook constant, round trips, k-factor scaling and protocol conversion.
+  near('RCF constant 1.118e-5', CEN.RCF_CONST, 1.118e-5, 0.001e-5);
+  near('10 cm at 3000 rpm ≈ 1006 × g', CEN.rcf(3000, 10), 1006.42, 0.01);
+  near('rpm round trip', CEN.rpmFor(CEN.rcf(13000, 9.5), 9.5), 13000, 1e-6);
+  near('RCF grows with rpm²', CEN.rcf(20000, 8) / CEN.rcf(10000, 8), 4, 1e-12);
+  const k = CEN.kFactor(40000, 4, 8.5);
+  near('k-factor 4–8.5 cm at 40,000 rpm', k, 119.33, 0.01);
+  near('k = 2.533e11 ln(rmax/rmin) / rpm²', k, 2.533e11 * Math.log(8.5 / 4) / 40000 ** 2, 0.05);
+  near('k scales with 1/rpm²', CEN.kAtSpeed(k, 40000, 20000), CEN.kFactor(20000, 4, 8.5), 1e-9);
+  near('70 S pellets in 102 min', CEN.pelletHours(k, 70) * 60, 102.29, 0.01);
+  near('protocol conversion', CEN.convertTime(1, k, CEN.kFactor(45000, 3.5, 7.5)) * 60, 47.93, 0.01);
+  let threw = false; try { CEN.kFactor(40000, 8, 4); } catch { threw = true; } check('k-factor needs rmax > rmin', threw);
+  check('time text', CEN.hms(0.005) === '18 s' && CEN.hms(1.7048) === '102 min' && CEN.hms(2.5) === '2 h 30 min');
+}
+{
+  // Air quality: unit conversion, US AQI (2024 PM2.5 breakpoints, truncation), India AQI and Canada AQHI.
+  near('molar volume 25 °C, 1 atm', AQ.molarVolume(25, 101.325), 24.465, 0.001);
+  near('100 µg/m³ NO2 → ppb', AQ.convertGas(100, 'ug', 'ppb', AQ.gasMass('NO2')), 53.18, 0.01);
+  near('1 ppm CO → mg/m³', AQ.convertGas(1, 'ppm', 'mg', AQ.gasMass('CO')), 1.145, 0.001);
+  near('unit round trip at 0 °C', AQ.convertGas(AQ.convertGas(37, 'ppb', 'ug', 48, 0, 90), 'ug', 'ppb', 48, 0, 90), 37, 1e-9);
+  const u = (k, c) => AQ.usSub(k, c);
+  check('US breakpoints map to their AQI', u('PM2.5', 9.0).index === 50 && u('PM2.5', 9.1).index === 51 && u('PM2.5', 35.4).index === 100 && u('PM2.5', 55.5).index === 151 && u('PM2.5', 225.5).index === 301 && u('PM2.5', 325.4).index === 500);
+  check('US PM2.5 truncates to 0.1 (9.05 is Good)', u('PM2.5', 9.05).index === 50 && u('PM2.5', 9.05).cat === 0);
+  check('US PM2.5 35.9 → 102, sensitive groups', u('PM2.5', 35.9).index === 102 && u('PM2.5', 35.9).cat === 2);
+  check('US ozone 8-hour 0.0789 → 126', u('O3_8h', 0.0789).index === 126);
+  check('US ozone 8-hour above 0.200 is off its scale', Number.isNaN(u('O3_8h', 0.25).index));
+  check('US 1-hour ozone below 0.125 not used', u('O3_1h', 0.1).text === 'not used');
+  check('US CO, NO2, PM10', u('CO', 8.4).index === 90 && u('NO2', 60).index === 57 && u('PM10', 155).index === 101 && u('NO2', 2049).index === 500);
+  const i = (k, c) => AQ.inSub(k, c);
+  check('India bands', i('PM2.5', 30).index === 50 && i('PM2.5', 31).index === 51 && i('PM10', 250).index === 200 && i('PM10', 351).index === 301 && i('PM2.5', 300).text === '401+');
+  check('India CO in mg/m³', i('CO', 2.0).index === 100 && i('CO', 2.1).index === 101);
+  near('India ozone 118 µg/m³', i('O3_8h', 118).index, 126, 0);
+  const a = AQ.aqhi(20, 30, 10);
+  near('AQHI raw', a.raw, (1000 / 10.4) * (Math.exp(0.000871 * 20) - 1 + Math.exp(0.000537 * 30) - 1 + Math.exp(0.000487 * 10) - 1), 1e-12);
+  check('AQHI 4, moderate', a.value === 4 && a.cat === 1);
+  check('AQHI+ wins in smoke', AQ.aqhi(20, 30, 10, 85).value === 9 && AQ.aqhiPlus(0) === 1 && AQ.aqhiPlus(10.1) === 2);
+  check('AQHI bands', AQ.aqhiCat(3) === 0 && AQ.aqhiCat(6) === 1 && AQ.aqhiCat(10) === 2 && AQ.aqhiCat(11) === 3 && AQ.aqhiText(11) === '10+');
+}
+{
+  // Altermagnets: textbook verdicts for idealised structures, the swapping operation and the d/g-wave forms.
+  const run = (id) => ALT.classify(ALT.parseCrystal(ALT.EXAMPLES.find((e) => e.id === id).text).crystal);
+  const ru = run('rutile');
+  check('rutile: d-wave altermagnet, Δ ∝ kx·ky', ru.kind === 'altermagnet' && ru.wave === 'd' && ru.form === 'kxky');
+  check('rutile: swapped by the 4₂ screw', /^4-fold screw .*\[0 0 1\] with translation \(1\/2, 1\/2, 1\/2\)/.test(ru.byOp.name) && ru.keep.length === 8 && ru.swap.length === 8);
+  const mt = run('nias');
+  check('MnTe: g-wave altermagnet via the 6₃ screw', mt.kind === 'altermagnet' && mt.wave === 'g' && /^6-fold screw .*\[0 0 1\] with translation \(0, 0, 1\/2\)/.test(mt.byOp.name));
+  check('MnTe form: ky·kz·(3kx² − ky²)/3', mt.form === 'kx²kykz − (1/3)ky³kz');
+  check('g-wave form odd under the swap, even under keepers', mt.swap.every((o) => [[0.3, 0.5, 0.8], [0.9, -0.2, 0.4]].every((k) => Math.abs(mt.formFn([o.R[0][0] * k[0] + o.R[0][1] * k[1] + o.R[0][2] * k[2], o.R[1][0] * k[0] + o.R[1][1] * k[1] + o.R[1][2] * k[2], o.R[2][0] * k[0] + o.R[2][1] * k[1] + o.R[2][2] * k[2]]) + mt.formFn(k)) < 1e-9)));
+  check('CrSb also g-wave', run('crsb').wave === 'g');
+  const bcc = run('bcc'); check('bcc checkerboard: antiferromagnet by translation', bcc.kind === 'antiferromagnet' && /^translation/.test(bcc.byOp.name));
+  const ch = run('chain'); check('chain: antiferromagnet by inversion (PT)', ch.kind === 'antiferromagnet' && ch.byOp.name === 'inversion');
+  check('unequal moments: ferrimagnet', run('ferri').kind === 'ferrimagnet');
+  const fm = ALT.classify(ALT.parseCrystal('cell 3 3 3 90 90 90\nFe 0 0 0 up\nFe 1/2 1/2 1/2 up').crystal);
+  check('all up: ferromagnet', fm.kind === 'ferromagnet');
+  const cf = ALT.classify(ALT.parseCrystal('cell 3 3 3 90 90 90\nFe 0 0 0 up\nFe 0.5 0.5 0.3 down\nO 0 0 0.5').crystal);
+  check('cancelling but unrelated sites: compensated ferrimagnet', cf.kind === 'not compensated by symmetry');
+  // Square-lattice Néel order with ligands that make the two sites differ by a 90° rotation: the 2D d-wave toy model.
+  const sq = ALT.classify(ALT.parseCrystal('cell 4 4 6 90 90 90\nMn 0 0 0 up\nMn 1/2 1/2 0 down\nO 0.2 0 0\nO 0.8 0 0\nO 1/2 0.7 0\nO 1/2 0.3 0').crystal);
+  check('square Néel with rotated ligands: d-wave altermagnet, kx² − ky²', sq.kind === 'altermagnet' && sq.wave === 'd' && /kx² − ky²|−kx² \+ ky²/.test(sq.form));
+  // Small coordinate noise is tolerated.
+  const noisy = ALT.classify(ALT.parseCrystal('cell 4.5 4.5 3.1 90 90 90\nRu 0.002 0 0 up\nRu 0.5 0.501 0.5 down\nO 0.301 0.3 0\nO 0.7 0.699 0\nO 0.8 0.2 0.5\nO 0.2 0.801 0.5').crystal, 0.1);
+  check('rutile with 0.01 Å noise still d-wave', noisy.kind === 'altermagnet' && noisy.wave === 'd');
+  const pc = ALT.parseCrystal('cell 3 3 3 90 90 90\nFe 1/3 -0.25 1.5 2.5\nnonsense line');
+  check('parser: fractions, wrapping, moments, bad lines', pc.crystal.atoms[0].f[0] === 1 / 3 && pc.crystal.atoms[0].f[1] === 0.75 && pc.crystal.atoms[0].f[2] === 0.5 && pc.crystal.atoms[0].m === 2.5 && pc.bad.length === 1);
+}
+{
+  // Gaussian plume: hand-worked values (Briggs rural D at 1 km, stack 50 m, 100 g/s, 4 m/s at 10 m).
+  const u = PL.windAt(4, 50, 'D', 'rural');
+  near('plume: wind power law', u, 4 * 5 ** 0.15, 1e-12);
+  const s = PL.sigmas(1000, 'D', 'rural');
+  near('plume: sigma-y D rural 1 km', s.sy, 80 / Math.sqrt(1.1), 1e-9);
+  near('plume: sigma-z D rural 1 km', s.sz, 60 / Math.sqrt(2.5), 1e-9);
+  const src = { Q: 100, u, H: 50, cls: 'D', terrain: 'rural' };
+  const hand = (100 / (Math.PI * u * s.sy * s.sz)) * Math.exp(-2500 / (2 * s.sz * s.sz));
+  near('plume: ground centreline = Q/(pi u sy sz) exp(-H²/2sz²)', PL.conc(src, 1000), hand, 1e-15);
+  near('plume: hand value in µg/m³', PL.conc(src, 1000) * 1e6, 906.5, 0.1);
+  near('plume: off-axis factor', PL.conc(src, 1000, s.sy) / PL.conc(src, 1000), Math.exp(-0.5), 1e-12);
+  check('plume: nothing upwind', PL.conc(src, -10) === 0);
+  // The maximum agrees with a brute-force search.
+  const m = PL.groundMax(src);
+  let bx = 0, bc = 0; for (let x = 100; x < 5000; x += 0.5) { const c = PL.conc(src, x); if (c > bc) { bc = c; bx = x; } }
+  near('plume: max distance', m.x, bx, 1); near('plume: max value', m.c, bc, bc * 1e-6);
+  // Ground release: the mirror doubles it.
+  near('plume: ground source', PL.conc({ ...src, H: 0 }, 500), 100 / (Math.PI * u * PL.sigmas(500, 'D', 'rural').sy * PL.sigmas(500, 'D', 'rural').sz), 1e-15);
+  // Mixing lid: far downwind the images add up to a well-mixed layer.
+  const x = 60000, sy = PL.sigmas(x, 'D', 'rural').sy;
+  near('plume: well mixed under a lid', PL.conc({ ...src, L: 200 }, x) / (100 / (Math.sqrt(2 * Math.PI) * u * sy * 200)), 1, 1e-6);
+  near('plume: image sum close to well mixed', PL.vertical(0, 50, 250, 200) / (Math.sqrt(2 * Math.PI) * 250 / 200), 1, 0.01);
+  check('plume: above the lid gives nothing at the ground', PL.conc({ ...src, H: 300, L: 200 }, 2000) === 0);
+  // Briggs plume rise: F = g vs d² (Ts - Ta) / (4 Ts).
+  const r = PL.plumeRise(15, 2, 420, 288, u, 'D');
+  near('plume: buoyancy flux', r.F, (9.80665 * 15 * 4 * 132) / (4 * 420), 1e-12);
+  near('plume: final rise F<55', r.dh, (21.425 * r.F ** 0.75) / u, 1e-12);
+  near('plume: final rise distance', r.xf, 49 * r.F ** (5 / 8), 1e-9);
+  near('plume: gradual rise reaches the final rise at xf', r.gradual(r.xf * 0.999) / r.dh, 1, 0.01);
+  const r2 = PL.plumeRise(20, 5, 450, 288, u, 'D');
+  near('plume: final rise F>=55', r2.dh, (38.71 * r2.F ** 0.6) / u, 1e-12);
+  const rs = PL.plumeRise(15, 2, 420, 288, 3, 'F');
+  near('plume: stable rise', rs.dh, 2.6 * Math.cbrt(rs.F / (3 * (9.80665 * 0.035) / 288)), 1e-12);
+  check('plume: cold gas, no rise', PL.plumeRise(15, 2, 280, 288, 3, 'D').dh === 0);
+  // Pasquill's table and paired classes.
+  check('plume: Pasquill table', PL.pasquillClass(1.5, 'strong') === 'A' && PL.pasquillClass(4, 'moderate') === 'BC' && PL.pasquillClass(7, 'strong') === 'C' && PL.pasquillClass(2.5, 'night-clear') === 'F' && PL.pasquillClass(4, 'night-cloudy') === 'D' && PL.pasquillClass(1, 'overcast') === 'D');
+  near('plume: paired class averages sigmas', PL.sigmasFor(800, 'BC', 'rural').sz, (PL.sigmas(800, 'B', 'rural').sz + PL.sigmas(800, 'C', 'rural').sz) / 2, 1e-12);
+  near('plume: urban A-B sigma-z', PL.sigmas(1000, 'A', 'urban').sz, 240 * Math.sqrt(2), 1e-9);
+  check('plume: stable plumes spread less', PL.sigmas(2000, 'F', 'rural').sz < PL.sigmas(2000, 'D', 'rural').sz && PL.sigmas(2000, 'D', 'rural').sz < PL.sigmas(2000, 'A', 'rural').sz);
+}
+
+{
+  // McCabe-Thiele: alpha 2.5, xF 0.5 (saturated liquid), xD 0.95, xB 0.05.
+  const eq = MT.alphaEq(2.5);
+  near('mccabe: equilibrium', eq.y(0.5), 1.25 / 1.75, 1e-12);
+  near('mccabe: inverse equilibrium', eq.x(eq.y(0.3)), 0.3, 1e-12);
+  const m = MT.minReflux(eq, 0.5, 0.95, 1);
+  near('mccabe: Rmin by hand', m.Rmin, (0.95 - 1.25 / 1.75) / (1.25 / 1.75 - 0.5), 1e-9);
+  check('mccabe: no tangent pinch for constant alpha', !m.tangent);
+  // q = 0.5: q-line y = 1 - x meets the curve where 1.5x² + 2x - 1 = 0.
+  near('mccabe: q-line pinch', MT.qPinch(eq, 0.5, 0.5)[0], (-2 + Math.sqrt(10)) / 3, 1e-9);
+  near('mccabe: saturated vapour feed pinch', MT.qPinch(eq, 0.5, 0)[1], 0.5, 1e-12);
+  const spec = { xF: 0.5, xD: 0.95, xB: 0.05, q: 1, R: 1.5 * m.Rmin };
+  const st = MT.stepStages(eq, spec);
+  check('mccabe: 12 stages, feed on 6', st.N === 12 && st.feed === 6);
+  near('mccabe: operating lines meet on the q-line', st.intersect[1], (spec.R * 0.5 + 0.95) / (spec.R + 1), 1e-12);
+  near('mccabe: stripping line passes (xB, xB)', st.strip.s * 0.05 + st.strip.c, 0.05, 1e-12);
+  // Each step: y(n) on the curve with x(n); the next y on the operating line.
+  check('mccabe: steps lie on the curve', st.stages.every((s) => Math.abs(eq.y(s.x) - s.y) < 1e-9));
+  near('mccabe: Fenske', MT.fenske(0.95, 0.05, 2.5), Math.log(19 * 19) / Math.log(2.5), 1e-12);
+  const tot = MT.stepStages(eq, { ...spec, R: Infinity });
+  check('mccabe: total reflux steps close to Fenske', tot.N === 7 && Math.abs(tot.frac - MT.fenske(0.95, 0.05, 2.5)) < 0.15);
+  near('mccabe: Gilliland at R = Rmin gives infinity-like', MT.gilliland(m.Rmin, m.Rmin, 6.4268), (6.4268 + 0.75) / 0.25, 1e-9);
+  const fl = MT.flows(100, spec);
+  near('mccabe: D', fl.D, 50, 1e-9); near('mccabe: V below = V above for q = 1', fl.Vs, fl.V, 1e-9); near('mccabe: L below', fl.Ls, fl.L + 100, 1e-9);
+  near('mccabe: component balance', fl.D * 0.95 + fl.B * 0.05, 50, 1e-9);
+  let threw = false; try { MT.stepStages(eq, { ...spec, R: 0.9 * m.Rmin }); } catch { threw = true; }
+  check('mccabe: below minimum reflux refused', threw);
+  // Tangent pinch on a made-up curve that flattens near the top.
+  const tq = { y: (x) => x + 0.6 * x * (1 - x) ** 3, x: (y) => { let lo = 0, hi = 1; for (let k = 0; k < 80; k++) { const mid = (lo + hi) / 2; if (mid + 0.6 * mid * (1 - mid) ** 3 < y) lo = mid; else hi = mid; } return (lo + hi) / 2; }, label: 't' };
+  const tp = MT.minReflux(tq, 0.2, 0.9, 1);
+  let best = 0; for (let x = 0.2; x < 0.9; x += 1e-5) best = Math.max(best, (0.9 - tq.y(x)) / (0.9 - x));
+  check('mccabe: tangent pinch found', tp.tangent && tp.pinch[0] > 0.3);
+  near('mccabe: tangent pinch Rmin', tp.Rmin, best / (1 - best), 1e-5);
+  // Data curve: monotone cubic passes through the points and stays monotone.
+  const d = MT.dataEq([0.1, 0.3, 0.5, 0.7, 0.9], [0.3, 0.55, 0.7, 0.82, 0.94]);
+  near('mccabe: data curve hits a point', d.y(0.5), 0.7, 1e-12);
+  let mono = true, prev = -1; for (let x = 0; x <= 1; x += 0.001) { const y = d.y(x); if (y < prev - 1e-12) mono = false; prev = y; }
+  check('mccabe: data curve monotone', mono);
+  near('mccabe: data inverse', d.x(d.y(0.42)), 0.42, 1e-9);
+  let bad = false; try { MT.dataEq([0.2, 0.4], [0.5, 0.45]); } catch { bad = true; }
+  check('mccabe: falling data refused', bad);
+}
+
+{
+  // Antoine and Raoult: every rounded example boils within 0.2 °C of its normal boiling point.
+  for (const e of VL.EXAMPLES) near(`vle: ${e.name} normal boiling point`, VL.tsat(e, 101.325), e.bp, 0.2);
+  const [bz, tl] = [VL.EXAMPLES.find((e) => e.name === 'Benzene'), VL.EXAMPLES.find((e) => e.name === 'Toluene')];
+  near('vle: Antoine by hand', VL.psat(bz, 95), 10 ** (6.906 - 1211 / 315.8) * 101.325 / 760, 1e-12);
+  near('vle: tsat inverts psat', VL.tsat(tl, VL.psat(tl, 47.3)), 47.3, 1e-9);
+  near('vle: kPa constants agree', VL.psat({ ...bz, A: bz.A + Math.log10(101.325 / 760), unit: 'kPa' }, 60), VL.psat(bz, 60), 1e-9);
+  const b = VL.bubbleT(bz, tl, 0.5, 101.325), d = VL.dewT(bz, tl, 0.5, 101.325);
+  near('vle: bubble point sums', 0.5 * VL.psat(bz, b.t) + 0.5 * VL.psat(tl, b.t), 101.325, 1e-6);
+  near('vle: dew point sums', 0.5 / VL.psat(bz, d.t) + 0.5 / VL.psat(tl, d.t), 1 / 101.325, 1e-9);
+  check('vle: bubble below dew, between pure points', VL.tsat(bz, 101.325) < b.t && b.t < d.t && d.t < VL.tsat(tl, 101.325));
+  near('vle: dew of the bubble vapour gives the bubble T', VL.dewT(bz, tl, b.y1, 101.325).t, b.t, 1e-6);
+  near('vle: bubble P at the bubble T', VL.bubbleP(bz, tl, 0.5, b.t).P, 101.325, 1e-6);
+  near('vle: dew P at the dew T', VL.dewP(bz, tl, 0.5, d.t).P, 101.325, 1e-6);
+  const f = VL.flash(bz, tl, 0.5, 95, 101.325);
+  near('vle: flash mass balance', f.V * f.y1 + (1 - f.V) * f.x1, 0.5, 1e-12);
+  near('vle: flash phases sum', f.x1 * VL.psat(bz, 95) + (1 - f.x1) * VL.psat(tl, 95), 101.325, 1e-9);
+  check('vle: flash below bubble is liquid, above dew is vapour', VL.flash(bz, tl, 0.5, 85, 101.325).state === 'liquid' && VL.flash(bz, tl, 0.5, 105, 101.325).state === 'vapour');
+  near('vle: alpha mean', VL.alphaMean(bz, tl, 101.325).mean, Math.sqrt(VL.alphaAt(bz, tl, VL.tsat(bz, 101.325)) * VL.alphaAt(bz, tl, VL.tsat(tl, 101.325))), 1e-12);
+  // Clausius-Clapeyron: dHvap equals -R d(lnP)/d(1/T), checked by finite differences.
+  const T1 = 90, T2 = 90.01, num = Math.log(VL.psat(tl, T2) / VL.psat(tl, T1)), den = 1 / (T1 + 273.15) - 1 / (T2 + 273.15);
+  near('vle: heat of vaporisation from the slope', VL.dHvap(tl, 90.005), (8.314462618 * num) / den / 1000, 1e-3);
+  near('vle: water at 70 kPa boils near 90 °C', VL.tsat(VL.EXAMPLES[0], 70), 90.03, 0.05);
+  const c = VL.txy(bz, tl, 101.325, 10);
+  check('vle: Txy ends at the pure boiling points', Math.abs(c[0].t - VL.tsat(tl, 101.325)) < 1e-6 && Math.abs(c[10].t - VL.tsat(bz, 101.325)) < 1e-6);
+}
+
+{
+  // Radiometric ages. Pearson's data with York's weights: the standard test of a York fit (b = -0.4805, a = 5.4799).
+  const X = [0, 0.9, 1.8, 2.6, 3.3, 4.4, 5.2, 6.1, 6.5, 7.4], Y = [5.9, 5.4, 4.4, 4.6, 3.5, 3.7, 2.8, 2.8, 2.4, 1.5];
+  const WX = [1000, 1000, 500, 800, 200, 80, 60, 20, 1.8, 1], WY = [1, 1.8, 4, 8, 20, 20, 70, 70, 100, 500];
+  const yf = GC.york(X.map((x, i) => ({ x, sx: 1 / Math.sqrt(WX[i]), y: Y[i], sy: 1 / Math.sqrt(WY[i]) })));
+  near('geochron: York slope (Pearson-York data)', yf.b, -0.48053, 1e-4);
+  near('geochron: York intercept', yf.a, 5.47991, 1e-4);
+  near('geochron: York slope error', yf.sb, 0.0576, 0.0005);
+  // With tiny x errors York reduces to weighted least squares of y on x.
+  const pts = [[1, 2.1, 0.1], [2, 3.9, 0.2], [3, 6.2, 0.1], [4, 7.8, 0.3], [5, 10.1, 0.2]];
+  const w = pts.map((p) => 1 / p[2] ** 2), Sw = w.reduce((a, b) => a + b), Sx = w.reduce((a, v, i) => a + v * pts[i][0], 0), Sy = w.reduce((a, v, i) => a + v * pts[i][1], 0);
+  const Sxx = w.reduce((a, v, i) => a + v * pts[i][0] ** 2, 0), Sxy = w.reduce((a, v, i) => a + v * pts[i][0] * pts[i][1], 0), D = Sw * Sxx - Sx * Sx;
+  const yw = GC.york(pts.map((p) => ({ x: p[0], sx: 1e-9, y: p[1], sy: p[2] })));
+  near('geochron: York -> weighted LS slope', yw.b, (Sw * Sxy - Sx * Sy) / D, 1e-9);
+  near('geochron: York -> weighted LS slope error', yw.sb, Math.sqrt(Sw / D), 1e-9);
+  near('geochron: chi-square tail (3.84, 1 dof)', GC.chiSqUpper(3.841459, 1), 0.05, 1e-6);
+  near('geochron: chi-square tail (10, 10 dof)', GC.chiSqUpper(10, 10), 0.4404933, 1e-6);
+  // A perfect isochron returns its age and initial ratio.
+  const lam = 1.42e-11, b = GC.ratioForAge(1.25e9, lam);
+  const perfect = [0.5, 1.5, 3, 5, 8].map((x) => ({ x, sx: 0.005 * x, y: 0.7035 + b * x, sy: 2e-5 }));
+  const pf = GC.york(perfect), pa = GC.isochronAge(pf, lam);
+  near('geochron: perfect isochron age', pa.t, 1.25e9, 1); near('geochron: perfect isochron initial', pa.initial, 0.7035, 1e-12);
+  check('geochron: perfect isochron MSWD 0', pf.mswd < 1e-12);
+  // Simple ages and half-lives.
+  near('geochron: ratio age', GC.ageFromRatio(1, 1.55125e-10).t, Math.LN2 / 1.55125e-10, 1e-3);
+  near('geochron: U-238 half-life 4.468 Ga', Math.LN2 / GC.L238 / 1e9, 4.468, 0.001);
+  near('geochron: U-235 half-life 703.8 Ma', Math.LN2 / GC.L235 / 1e6, 703.8, 0.1);
+  near('geochron: K-40 half-life 1.25 Ga', Math.LN2 / GC.K40.lambda / 1e9, 1.250, 0.001);
+  const kr = GC.kArAge(GC.K40.lambdaE / GC.K40.lambda * Math.expm1(GC.K40.lambda * 1e8));
+  near('geochron: K-Ar round trip', kr.t, 1e8, 1e-3);
+  const J = GC.jFromStandard(28.2e6, 12);
+  near('geochron: Ar-Ar standard gives its own age', GC.arArAge(J, 12).t, 28.2e6, 1e-3);
+  // U-Pb: a point on concordia is concordant and all three ages agree.
+  const c = GC.concordia(2.0e9), u = GC.uPbAges(c[1], c[0]);
+  near('geochron: concordant 206/238', u.t68, 2e9, 1e-3); near('geochron: concordant 207/235', u.t75, 2e9, 1e-3); near('geochron: concordant 207/206', u.t76, 2e9, 1e-2);
+  near('geochron: concordance 100 %', u.concordance, 1, 1e-9);
+  // Lead loss: move towards the origin along a chord; the 207/206 age stays put.
+  const lost = GC.uPbAges(c[1] * 0.8, c[0] * 0.8);
+  near('geochron: lead loss keeps the 207/206 age', lost.t76, 2e9, 1e-2);
+  check('geochron: lead loss is discordant', lost.concordance < 0.9);
+  check('geochron: age units', GC.fmtAge(1.2504e9, 3.1e6) === '1250.4 ± 3.1 Ma' && GC.fmtAge(5000) === '5 ka');
+}
+
+{
+  // Delta notation.
+  const R = DL.rFromDelta(-8.5, 2005.2e-6);
+  near('delta: ratio from δ', R, 2005.2e-6 * 0.9915, 1e-15);
+  near('delta: δ from ratio round trip', DL.deltaFromR(R, 2005.2e-6), -8.5, 1e-9);
+  near('delta: VPDB -> VSMOW', DL.vpdbToVsmow(-5.2), 1.03092 * -5.2 + 30.92, 1e-9);
+  near('delta: VSMOW -> VPDB round trip', DL.vsmowToVpdb(DL.vpdbToVsmow(-5.2)), -5.2, 1e-9);
+  near('delta: VPDB standard itself is +30.92 on VSMOW', DL.vpdbToVsmow(0), 30.92, 1e-12);
+  near('delta: VSMOW is -29.99 on VPDB', DL.vsmowToVpdb(0), -29.99, 0.005);
+  // Rescaling chains: going A->B->A returns the start.
+  near('delta: rescale chain', DL.rescale(DL.rescale(12.3, 7.5), -7.5 / (1 + 7.5 / 1000)), 12.3, 1e-9);
+  const f = DL.fractionation(25, -5);
+  near('delta: alpha', f.alpha, 1025 / 995, 1e-15); near('delta: epsilon', f.eps, (1025 / 995 - 1) * 1000, 1e-12); near('delta: 1000 ln alpha', f.lnAlpha, 1000 * Math.log(1025 / 995), 1e-12);
+  near('delta: Δ′17O', DL.capDelta17(5.3, 10.1), 1000 * (Math.log(1.0053) - 0.528 * Math.log(1.0101)), 1e-12);
+  check('delta: mass-dependent point has Δ′17O 0', Math.abs(DL.capDelta17(1000 * (Math.exp(0.528 * Math.log(1.02)) - 1), 20)) < 1e-12);
+  const m = DL.mix(0.6, 1, -28, 3, -12);
+  near('delta: mixing', m.delta, (0.6 * -28 + 0.4 * 3 * -12) / (0.6 + 1.2), 1e-12);
+  near('delta: inverse mixing', DL.mix(DL.fractionFor(-18, 1, -28, 3, -12), 1, -28, 3, -12).delta, -18, 1e-12);
+  check('delta: target outside the sources', Number.isNaN(DL.fractionFor(-30, 1, -28, 3, -12)));
+  near('delta: equal concentrations mix linearly', DL.mix(0.25, 2, -10, 2, 10).delta, 5, 1e-12);
+  // Exact ratio mixing agrees with the δ approximation within 0.01 ‰ for ordinary values.
+  const Rs = 0.01118, RA = DL.rFromDelta(-28, Rs), RB = DL.rFromDelta(-12, Rs);
+  const hA = 0.6 * 1 * RA / (1 + RA), hB = 0.4 * 3 * RB / (1 + RB), lA = 0.6 * 1 / (1 + RA), lB = 0.4 * 3 / (1 + RB);
+  near('delta: δ mixing vs exact', DL.deltaFromR((hA + hB) / (lA + lB), Rs), m.delta, 0.01);
+}
+
+{
+  // Mixing model: exact recovery, weighted δ, clipping and a degenerate case.
+  const m = { tracers: [{ name: 'Cl', delta: false }, { name: 'SO4', delta: false }, { name: 'd18O', delta: true }], names: ['A', 'B', 'C'], em: [[1, 2, -12], [15, 40, -8], [60, 10, -5]] };
+  const f0 = [0.2, 0.3, 0.5], u = MX.unmix(m, MX.predict(m, f0));
+  check('mixing: exact three-source recovery', u.f.every((v, i) => Math.abs(v - f0[i]) < 1e-9) && u.rms < 1e-9 && !u.clipped);
+  near('mixing: fractions sum to 1', u.f.reduce((a, b) => a + b), 1, 1e-12);
+  const m2 = { tracers: [{ name: 'Sr', delta: false }, { name: 'd87', delta: true, weight: 0 }], names: ['A', 'B'], em: [[100, 5], [400, 15]] };
+  near('mixing: weighted δ forward', MX.predict(m2, [0.3, 0.7])[1], (0.3 * 100 * 5 + 0.7 * 400 * 15) / (0.3 * 100 + 0.7 * 400), 1e-12);
+  // δ alone (weighted) recovers the fraction too.
+  const m3 = { tracers: [{ name: 'C', delta: false }, { name: 'd13C', delta: true, weight: 0 }], names: ['A', 'B'], em: [[2, -25], [8, -5]] };
+  const y3 = MX.predict(m3, [0.6, 0.4]);
+  near('mixing: weighted δ inverse', MX.unmix(m3, y3).f[0], 0.6, 1e-9);
+  check('mixing: weighted δ curve is not linear', Math.abs(y3[1] - (0.6 * -25 + 0.4 * -5)) > 1);
+  const out = MX.unmix(m, [0.5, 1, -13]);
+  check('mixing: outside sample is clipped to a vertex', out.clipped && Math.abs(out.f[0] - 1) < 1e-12 && out.free.some((v) => v < 0));
+  // Outside an edge: the answer must be the best point on that edge (brute force).
+  const yE = [40, 30, -6];
+  const ue = MX.unmix(m, yE);
+  let best = Infinity, bf = null;
+  for (let a = 0; a <= 1.000001; a += 0.0005) for (let b = 0; a + b <= 1.000001; b += 0.0005) {
+    const f = [a, b, Math.max(0, 1 - a - b)], p = MX.predict(m, f);
+    const sp = [59, 38, 7], c = p.reduce((s, v, j) => s + ((v - yE[j]) / sp[j]) ** 2, 0); if (c < best) { best = c; bf = f; }
+  }
+  check('mixing: constrained answer matches brute force', ue.f.every((v, i) => Math.abs(v - bf[i]) < 0.003));
+  let threw = false; try { MX.unmix({ tracers: [{ name: 'x', delta: false }], names: ['A', 'B'], em: [[5], [5]] }, [5]); } catch { threw = true; }
+  check('mixing: identical sources refused', threw);
+  check('mixing: δ names', MX.looksDelta('d18O') && MX.looksDelta('δ13C') && MX.looksDelta('delta2H') && !MX.looksDelta('Cl') && !MX.looksDelta('DOC'));
+}
+
+{
+  // Ternary and spider diagrams.
+  const c = TER.closure(2, 3, 5);
+  near('ternary: closure', c[1], 0.3, 1e-12);
+  check('ternary: closure rejects negatives and zeros', TER.closure(1, -1, 2) === null && TER.closure(0, 0, 0) === null);
+  const [ax, ay] = TER.toXY(1, 0, 0), [bx, by] = TER.toXY(0, 1, 0), [cx, cy] = TER.toXY(0, 0, 1);
+  check('ternary: corners', ax === 0.5 && Math.abs(ay - Math.sqrt(3) / 2) < 1e-12 && bx === 0 && by === 0 && cx === 1 && cy === 0);
+  const [mx, my] = TER.toXY(1, 1, 1);
+  near('ternary: centroid x', mx, 0.5, 1e-12); near('ternary: centroid y', my, Math.sqrt(3) / 6, 1e-12);
+  const back = TER.fromXY(...TER.toXY(0.2, 0.5, 0.3));
+  near('ternary: round trip a', back[0], 0.2, 1e-12); near('ternary: round trip b', back[1], 0.5, 1e-12); near('ternary: round trip c', back[2], 0.3, 1e-12);
+  const ce = TER.centres([[0.5, 0.25, 0.25], [0.5, 0.25, 0.25]]);
+  near('ternary: centre of identical rows', ce.geometric[0], 0.5, 1e-12);
+  const g2 = TER.centres([[0.8, 0.1, 0.1], [0.2, 0.4, 0.4]]).geometric, gm = [0.4, 0.2, 0.2], sg = 0.8;
+  near('ternary: geometric centre closed', g2[0], gm[0] / sg, 1e-12);
+  check('ternary: centre skips rows with zeros', TER.centres([[1, 0, 0]]).geometric === null);
+  const n = TER.normalise([10, 0, 6], [2, 1, 0]);
+  check('spider: normalise', n[0] === 5 && Number.isNaN(n[1]) && Number.isNaN(n[2]));
+  near('spider: Eu anomaly', TER.anomaly(10, 25, 16), 0.5, 1e-12);
+  check('spider: Eu anomaly missing value', Number.isNaN(TER.anomaly(1, 0, 2)));
+}
+{
+  // Piper diagram: meq/L, ion balance, positions, water type.
+  near('piper: 40.078 mg/L Ca is 2 meq/L', PIP.meq(40.078, 'Ca'), 2, 1e-12);
+  near('piper: 61.0168 mg/L HCO3 is 1 meq/L', PIP.meq(61.0168, 'HCO3'), 1, 1e-12);
+  near('piper: mmol to meq for SO4', PIP.meqFromMmol(1.5, 'SO4'), 3, 1e-12);
+  const a = PIP.analyse({ Ca: 3, Mg: 1, Na: 1, HCO3: 4, SO4: 0.5, Cl: 0.5 });
+  near('piper: balanced sample', a.ibe, 0, 1e-12);
+  near('piper: ion balance error', PIP.analyse({ Ca: 5.5, HCO3: 4.5 }).ibe, 10, 1e-12);
+  near('piper: nitrate in the balance', PIP.analyse({ Ca: 2, HCO3: 1, NO3: 1 }).ibe, 0, 1e-12);
+  near('piper: cation share', a.cp.Ca, 0.6, 1e-12);
+  const pCa = PIP.piperXY({ Ca: 1, Mg: 0, NaK: 0 }, { HCO3: 1, SO4: 0, Cl: 0 }, 0.2);
+  check('piper: Ca corner and HCO3 corner', Math.abs(pCa.cat[0]) < 1e-12 && Math.abs(pCa.an[0] - 1.2) < 1e-12);
+  near('piper: Ca-HCO3 is the left diamond corner x', pCa.dia[0], 0.6, 1e-12);
+  near('piper: Ca-HCO3 is the left diamond corner y', pCa.dia[1], 1.2 * Math.sqrt(3) / 2, 1e-12);
+  const pNa = PIP.piperXY({ Ca: 0, Mg: 0, NaK: 1 }, { HCO3: 1, SO4: 0, Cl: 0 }, 0.2);
+  near('piper: Na-HCO3 is the bottom corner', pNa.dia[1], 0.2 * Math.sqrt(3) / 2, 1e-12);
+  const pTop = PIP.piperXY({ Ca: 0.5, Mg: 0.5, NaK: 0 }, { HCO3: 0, SO4: 0.5, Cl: 0.5 }, 0.2);
+  near('piper: top corner', pTop.dia[1], 2.2 * Math.sqrt(3) / 2, 1e-12);
+  // Projection rule: from the cation point along the left edge's direction to the diamond's lower-left edge.
+  const cp = { Ca: 0.3, Mg: 0.25, NaK: 0.45 }, ap = { HCO3: 0.7, SO4: 0.1, Cl: 0.2 }, pp = PIP.piperXY(cp, ap, 0.2), h = Math.sqrt(3) / 2;
+  const tHit = 0.2 + (cp.Ca + cp.Mg) - cp.Mg;
+  near('piper: cation projection meets the diamond edge', pp.cat[0] + 0.5 * tHit, 1.1 - 0.5 * (cp.Ca + cp.Mg), 1e-12);
+  check('piper: diamond point inside', pp.dia[1] > 0.2 * h && pp.dia[1] < 2.2 * h);
+  check('piper: fields', PIP.diamondField({ Ca: 0.7, Mg: 0.1, NaK: 0.2 }, { HCO3: 0.8, SO4: 0.1, Cl: 0.1 }) === 'Ca-Mg-HCO3' && PIP.diamondField({ Ca: 0.2, Mg: 0.2, NaK: 0.6 }, { HCO3: 0.2, SO4: 0.1, Cl: 0.7 }) === 'Na-K-Cl-SO4' && PIP.diamondField(cp, { HCO3: 0.2, SO4: 0.1, Cl: 0.7 }) === 'Ca-Mg-Cl-SO4');
+  check('piper: water type', PIP.waterType({ Ca: 3, Mg: 1.2, Na: 0.8, HCO3: 4, SO4: 0.6, Cl: 0.5 }) === 'Ca-Mg-HCO3');
+  check('piper: water type with K added to Na', PIP.waterType({ Ca: 1, Na: 0.5, K: 0.6, Cl: 2 }) === 'Na-Ca-Cl');
+  near('piper: hardness', PIP.hardness(2, 1), 150.13035, 1e-9);
+}
+{
+  // Pumping tests. W(u) = E1(u) checked against values from the definition: E1(1) = 0.219383934395520 and
+  // E1(u) = -γ - ln u + u - u²/4 + ... for small u.
+  near('pump test: W(1)', PT.wellW(1), 0.21938393439552, 1e-12);
+  near('pump test: W(1e-6) from the series', PT.wellW(1e-6), -0.5772156649015329 - Math.log(1e-6) + 1e-6 - 0.25e-12, 1e-12);
+  // Above 1, compare with a fine numerical integral of e^-x / x.
+  const e1 = (u) => { let s = 0; const N = 400000, L = 50; for (let i = 0; i < N; i++) { const x = u + (i + 0.5) * L / N; s += Math.exp(-x) / x; } return s * L / N; };
+  near('pump test: W(2.5)', PT.wellW(2.5), e1(2.5), 1e-9);
+  near('pump test: W(0.99) and W(1.01) join smoothly', PT.wellW(0.99) - PT.wellW(1.01), 0.02 * Math.exp(-1) / 1, 1e-5);
+  check('pump test: W(0) is undefined', Number.isNaN(PT.wellW(0)));
+  const Q = 500 / 86400, r = 30, T = 250 / 86400, S = 2e-4;
+  const t = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000].map((m) => m * 60), s = t.map((ti) => PT.theis(ti, r, Q, T, S));
+  const f = PT.fitTheis(t, s, r, Q);
+  near('pump test: Theis fit recovers T', f.T / T, 1, 1e-6); near('pump test: Theis fit recovers S', f.S / S, 1, 1e-6);
+  const cj = PT.cooperJacob(t, s, r, Q);
+  near('pump test: Cooper-Jacob T on exact data', cj.T / T, 1, 0.02);
+  check('pump test: Cooper-Jacob keeps small u only', t.every((ti, i) => !cj.used[i] || PT.uOf(ti, r, cj.T, cj.S) <= 0.05));
+  // Cooper-Jacob in its own terms: exact log-linear drawdown gives the exact T and S.
+  const tl = [100, 200, 400, 800, 1600], sl = tl.map((ti) => (2.303 * Q / (4 * Math.PI * T)) * Math.log10((2.25 * T * ti) / (r * r * 1e-6)));
+  const cjl = PT.cooperJacob(tl, sl, r, Q, 1);
+  near('pump test: Cooper-Jacob line T', cjl.T / T, 1, 1e-9); near('pump test: Cooper-Jacob line S', cjl.S / 1e-6, 1, 1e-9);
+  const tp = 6e4, tq = [600, 1200, 3000, 6000, 12000], sr = tq.map((x) => (Q / (4 * Math.PI * T)) * (PT.wellW(PT.uOf(tp + x, r, T, S)) - PT.wellW(PT.uOf(x, r, T, S))));
+  near('pump test: recovery T', PT.recovery(tq, sr, tp, Q, 1).T / T, 1, 0.01);
+  const rs = [5, 10, 20, 40], sd = rs.map((ri) => (2.303 * Q / (2 * Math.PI * T)) * Math.log10(Math.sqrt(2.25 * T * 6e4 / S) / ri));
+  const dd = PT.distanceDrawdown(rs, sd, 6e4, Q);
+  near('pump test: distance-drawdown T', dd.T / T, 1, 1e-9); near('pump test: distance-drawdown S', dd.S / S, 1, 1e-9);
+}
+{
+  // Slug tests: exact exponential recovery gives T0 back, and Hvorslev K by hand.
+  const T0 = 70, t = [0, 10, 20, 40, 80, 160], h = t.map((x) => -0.4 * Math.exp(-x / T0));
+  const f = SLG.fitRecovery(t, h, { lo: 0.01, hi: 1 });
+  near('slug: basic time lag', f.T0, 70, 1e-9); near('slug: line through H/H0 = 1', f.a, 0, 1e-12);
+  check('slug: rising head (negative displacement) handled', f.n === 6 && !f.oscillates);
+  const g = SLG.fitRecovery(t, h, { lo: 0.2, hi: 0.9 });
+  check('slug: fit window', g.n === 4 && !g.used[0] && g.used[1]);
+  check('slug: oscillation flagged', SLG.fitRecovery([0, 1, 2, 3], [1, 0.5, -0.2, 0.1], { lo: 0.05 }).oscillates);
+  near('slug: Hvorslev', SLG.hvorslev(0.025, 0.05, 1.5, 70), 0.025 ** 2 * Math.log(30) / (2 * 1.5 * 70), 1e-18);
+  near('slug: Bouwer-Rice equals Hvorslev when ln(Re/R) = ln(Le/R)', SLG.bouwerRice(0.025, Math.log(30), 1.5, 70), SLG.hvorslev(0.025, 0.05, 1.5, 70), 1e-18);
+  near('slug: effective casing radius', SLG.rcEffective(0.025, 0.05, 0.3), Math.sqrt(0.7 * 0.025 ** 2 + 0.3 * 0.05 ** 2), 1e-15);
+}
+{
+  // Darcy flow, gradient from wells, grain size and Hazen.
+  const d = DAR.darcy(1e-4, 0.002, 50, 0.25, 100);
+  near('darcy: flux', d.q, 2e-7, 1e-20); near('darcy: discharge', d.Q, 1e-5, 1e-18); near('darcy: seepage velocity', d.v, 8e-7, 1e-20); near('darcy: travel time', d.time, 100 / 8e-7, 1e-3);
+  near('darcy: water viscosity at 20 °C about 1.002 mPa·s', DAR.waterViscosity(20) * 1000, 1.002, 0.003);
+  near('darcy: water density at 4 °C', DAR.waterDensity(4), 1000, 0.01);
+  near('darcy: K to k and back', DAR.KFromk(DAR.kFromK(3e-5, 15), 15), 3e-5, 1e-18);
+  const g = DAR.gradient3([0, 100, 0], [0, 0, 100], [10, 9.9, 10.05]);
+  near('darcy: three-point gradient', g.i, Math.hypot(0.001, 0.0005), 1e-15);
+  near('darcy: flow bearing', g.bearing, 90 + Math.atan(0.0005 / 0.001) * 180 / Math.PI, 1e-9);
+  near('darcy: flow due north', DAR.gradient3([0, 10, 0], [0, 0, 10], [5, 5, 4]).bearing % 360, 0, 1e-9);
+  const g4 = DAR.gradient3([0, 100, 0, 100], [0, 0, 100, 100], [10, 9.9, 10.05, 9.95]);
+  near('darcy: four wells on a plane fit exactly', g4.rms, 0, 1e-12);
+  let threw = false; try { DAR.gradient3([0, 1, 2], [0, 1, 2], [1, 2, 3]); } catch { threw = true; }
+  check('darcy: wells in a line refused', threw);
+  near('darcy: d at a sieve', DAR.dAt([1, 0.1], [50, 10], 10), 0.1, 1e-12);
+  near('darcy: d halfway in log size', DAR.dAt([1, 0.1], [50, 10], 30), Math.sqrt(0.1), 1e-12);
+  const gr = DAR.gradation([4, 2, 1, 0.5, 0.25], [100, 80, 60, 30, 10]);
+  near('darcy: d10', gr.d10, 0.25, 1e-12); near('darcy: Cu', gr.Cu, 4, 1e-12); near('darcy: Cc', gr.Cc, 1, 1e-12);
+  near('darcy: Hazen, d10 0.2 mm and C 100 gives 0.04 cm/s', DAR.hazen(0.2, 100), 4e-4, 1e-15);
+}
+{
+  // Well field: superposition, image wells, contours and the capture zone.
+  const w1 = { name: 'A', x: 0, y: 0, Q: 800, t0: 0 }, w2 = { name: 'B', x: 300, y: 0, Q: 500, t0: 5 };
+  const T = 500, S = 1e-4, one = (w, x, y, t) => WF.drawdown(x, y, t, [w], T, S);
+  near('well field: superposition adds', WF.drawdown(100, 50, 20, [w1, w2], T, S), one(w1, 100, 50, 20) + one(w2, 100, 50, 20), 1e-12);
+  near('well field: later start shifts time', one(w2, 100, 50, 20), PT.theis(15, Math.hypot(200, 50), 500, T, S), 1e-12);
+  check('well field: nothing before a well starts', one(w2, 100, 50, 4) === 0);
+  const head = WF.withImages([w1], { kind: 'head', axis: 'x', at: 100 });
+  check('well field: constant-head image', head.length === 2 && head[1].x === 200 && head[1].Q === -800);
+  near('well field: zero drawdown on a constant-head line', WF.drawdown(100, 37, 30, head, T, S), 0, 1e-12);
+  const nf = WF.withImages([w1], { kind: 'noflow', axis: 'y', at: -50 });
+  check('well field: no-flow image', nf[1].y === -100 && nf[1].Q === 800);
+  near('well field: no-flow line has no gradient across it', (WF.drawdown(20, -49.9, 30, nf, T, S) - WF.drawdown(20, -50.1, 30, nf, T, S)), 0, 1e-12);
+  // Contours of z = x on a grid: the level-1.5 line is the vertical x = 1.5.
+  const xs = [0, 1, 2, 3], ys = [0, 1, 2], z = ys.map(() => xs.slice()), seg = WF.contour(z, xs, ys, 1.5);
+  check('well field: contour', seg.length === 2 && seg.every((g) => g[0] === 1.5 && g[2] === 1.5));
+  const cz = WF.captureZone(800, 20, 0.05);
+  near('well field: stagnation point', cz.stagnation, 800 / (2 * Math.PI * 20 * 0.05), 1e-9);
+  near('well field: width at the well', 2 * cz.halfWidthAtWell, 400, 1e-9);
+  const mid = cz.pts.reduce((b, p) => (Math.abs(p[0]) < Math.abs(b[0]) ? p : b));
+  near('well field: divide crosses the well line at Q/(4Bq)', Math.abs(mid[1]), 200, 5);
+}
+{
+  // Grade-tonnage and cut-offs.
+  const b = [{ t: 100, g: 0.2 }, { t: 200, g: 0.5 }, { t: 100, g: 1.0 }];
+  const a = GTN.above(b, 0.5);
+  check('grade-tonnage: tonnes above', a.t === 300); near('grade-tonnage: mean grade above', a.g, (200 * 0.5 + 100) / 300, 1e-12);
+  check('grade-tonnage: nothing above the top', GTN.above(b, 2).t === 0 && Number.isNaN(GTN.above(b, 2).g));
+  const cv = GTN.curve(b, 10);
+  check('grade-tonnage: curve falls', cv.every((c, i) => i === 0 || c.t <= cv[i - 1].t) && cv[0].t === 400);
+  const v = GTN.netValue(9000, 500, 0.02, 'pct');
+  near('grade-tonnage: net value per %', v, 83.2, 1e-12);
+  const co = GTN.cutoffs(v, 0.88, 2.5, 9, 2);
+  near('grade-tonnage: breakeven cut-off', co.breakeven, 13.5 / (83.2 * 0.88), 1e-12); near('grade-tonnage: marginal cut-off', co.marginal, 11 / (83.2 * 0.88), 1e-12);
+  near('grade-tonnage: margin is zero at breakeven grade', GTN.margin(1000, co.breakeven, v, 0.88, 13.5), 0, 1e-9);
+  near('grade-tonnage: gold in g/t', GTN.cutoffs(GTN.netValue(2000 / GTN.TROY_OZ, 0, 0, 'gpt'), 0.9, 3, 15, 2).breakeven, 20 / (2000 / 31.1034768 * 0.9), 1e-12);
+}
+// Drill hole composites and intercepts (worked by hand).
+{
+  const H = [[0, 2, 0.1, 'OX'], [2, 4, 3, 'QV'], [4, 5, 0.2, 'QV'], [5, 7, 2, 'QV'], [7, 8, 0.05, 'SED'], [8, 10, 0.1, 'SED'], [10, 11, 5, 'QV']].map(([from, to, g, lith]) => ({ hole: 'H', from, to, g, lith }));
+  const a = DH.intercepts(H, 0.5, 2, 1);
+  check('drillhole: two intercepts with 2 m dilution', a.length === 2 && a[0].from === 2 && a[0].to === 7 && a[0].dilution === 1 && a[1].from === 10);
+  near('drillhole: first intercept grade', a[0].g, 2.04, 1e-9);
+  const b = DH.intercepts(H, 0.5, 3, 1);
+  check('drillhole: 3 m dilution joins them', b.length === 1 && b[0].len === 9 && b[0].dilution === 4);
+  near('drillhole: joined grade', b[0].g, 15.45 / 9, 1e-9);
+  check('drillhole: minimum length drops the short one', DH.intercepts(H, 0.5, 2, 2).length === 1);
+  check('drillhole: intercept text', DH.fmtIntercept(a[0], 'g/t') === '5.0 m @ 2.04 g/t from 2.0 m');
+  const c = DH.composites(H, 4, 'half');
+  check('drillhole: half rule keeps a 3 m tail', c.length === 3 && c[2].from === 8 && c[2].to === 11);
+  near('drillhole: composite 1', c[0].g, 1.55, 1e-9); near('drillhole: composite 2', c[1].g, 1.0625, 1e-9); near('drillhole: tail composite', c[2].g, 5.2 / 3, 1e-9);
+  const m = DH.composites(H, 4, 'merge');
+  check('drillhole: merge rule', m.length === 2 && m[1].len === 7); near('drillhole: merged grade', m[1].g, 9.45 / 7, 1e-9);
+  check('drillhole: drop rule', DH.composites(H, 4, 'drop').length === 2 && DH.composites(H, 4, 'keep').length === 3);
+  const e = DH.composites(H, 4, 'equal'); near('drillhole: equal lengths', e[1].len, 11 / 3, 1e-9);
+  check('drillhole: half rule merges a short tail', DH.composites(H, 5, 'half').map((x) => x.to).join() === '5,11');
+  const l = DH.lithComposites(H);
+  check('drillhole: lithology runs', l.map((x) => x.lith).join() === 'OX,QV,SED,QV'); near('drillhole: QV run grade', l[1].g, 10.2 / 5, 1e-9);
+  const iss = DH.validate([{ hole: 'A', from: 0, to: 2, g: 1 }, { hole: 'A', from: 3, to: 4, g: 1 }, { hole: 'A', from: 3.5, to: 5, g: 1 }, { hole: 'A', from: 6, to: 6, g: 1 }]);
+  check('drillhole: gap, overlap and bad row found', iss.map((x) => `${x.kind}${x.from}-${x.to}`).join() === 'gap2-3,overlap3.5-4,bad6-6');
+  const cl = DH.clean([{ hole: 'A', from: 3, to: 4, g: 1 }, { hole: 'A', from: 3.5, to: 5, g: 2 }]);
+  check('drillhole: overlap trimmed', cl[1].from === 4);
+  // An unsampled gap counts as zero-grade waste in an intercept but is left out of a composite grade.
+  const G = [{ hole: 'G', from: 0, to: 1, g: 2 }, { hole: 'G', from: 2, to: 3, g: 2 }];
+  near('drillhole: gap is waste in intercepts', DH.intercepts(G, 1, 1, 0)[0].g, 4 / 3, 1e-9);
+  near('drillhole: gap left out of composites', DH.composites(G, 3, 'keep')[0].g, 2, 1e-9);
+  check('drillhole: thin coverage composite dropped', DH.composites(G, 1, 'keep').length === 2);
+}
+
+// Traverses (worked by hand on a 100 m square and simple triangles).
+{
+  near('traverse: DMS', TRV.parseAngle('45 30 15'), 45.50416666666667, 1e-12);
+  near('traverse: DMS symbols', TRV.parseAngle("45°30'15\""), 45.50416666666667, 1e-12);
+  near('traverse: dashes', TRV.parseAngle('45-30-15'), 45.50416666666667, 1e-12);
+  near('traverse: quadrant SW', TRV.parseAngle('S 30 W'), 210, 1e-12);
+  near('traverse: quadrant NW', TRV.parseAngle('N45°30\'W'), 314.5, 1e-12);
+  near('traverse: gons', TRV.parseAngle('150', 'gon') * 0.9, 135, 1e-12);
+  check('traverse: bad minutes rejected', Number.isNaN(TRV.parseAngle('45 61 00')) && Number.isNaN(TRV.parseAngle('abc')));
+  check('traverse: DMS text', TRV.fmtDMS(45.50416666666667) === '45°30′15″' && TRV.fmtDMS(10.99999999) === '11°00′00″');
+  check('traverse: quadrant text', TRV.fmtQuadrant(210) === 'S 30°00′00″ W' && TRV.fmtQuadrant(135) === 'S 45°00′00″ E');
+  const legs = [{ az: 0, d: 100.02 }, { az: 90, d: 100 }, { az: 180, d: 99.97 }, { az: 270, d: 100.03 }];
+  const c = TRV.close(legs, { E: 1000, N: 1000 }, null, 'bowditch');
+  near('traverse: misclosure N', c.fN, 0.05, 1e-9); near('traverse: misclosure E', c.fE, -0.03, 1e-9);
+  near('traverse: precision', c.precision, 400.02 / Math.hypot(0.05, 0.03), 1e-6);
+  near('traverse: Bowditch correction', c.cN[0], -0.05 * 100.02 / 400.02, 1e-12);
+  near('traverse: Bowditch closes', Math.hypot(c.adj[4].E - 1000, c.adj[4].N - 1000), 0, 1e-9);
+  const t = TRV.close(legs, { E: 1000, N: 1000 }, null, 'transit');
+  near('traverse: transit puts N error on N legs', t.cN[0], -0.05 * 100.02 / 199.99, 1e-12);
+  check('traverse: transit leaves E of N legs', Math.abs(t.cE[0]) < 1e-12 && Math.hypot(t.adj[4].E - 1000, t.adj[4].N - 1000) < 1e-9);
+  near('traverse: area of the adjusted square', TRV.area(c.adj.slice(0, 4)), 10000, 1);
+  near('traverse: shoelace', TRV.area([{ E: 0, N: 0 }, { E: 4, N: 0 }, { E: 4, N: 3 }]), 6, 1e-12);
+  const link = TRV.close([{ az: 90, d: 50 }, { az: 90, d: 50.1 }], { E: 0, N: 0 }, { E: 100, N: 0 });
+  near('traverse: link misclosure', link.fE, 0.1, 1e-9); near('traverse: link adjusted end', link.adj[2].E, 100, 1e-9);
+  // Square walked anticlockwise: interior angles 90; one angle 20″ too big.
+  const a = TRV.anglesToAzimuths([90, 90 + 20 / 3600, 90, 90], 0);
+  near('traverse: angular misclosure', a.misclosure * 3600, 20, 1e-6);
+  check('traverse: interior sum', a.interior === 360);
+  near('traverse: adjusted azimuths', a.az[1], 270 + 15 / 3600, 1e-9);
+  near('traverse: adjusted last azimuth', a.az[3], 90 + 5 / 3600, 1e-9);
+  const inv = TRV.inverse({ E: 0, N: 0 }, { E: -3, N: -4 });
+  near('traverse: inverse distance', inv.d, 5, 1e-12); near('traverse: inverse azimuth', inv.az, 180 + Math.atan(3 / 4) * 180 / Math.PI, 1e-9);
+  const bb = TRV.bearingBearing({ E: 0, N: 0 }, 45, { E: 100, N: 0 }, 315);
+  near('traverse: bearing-bearing E', bb.E, 50, 1e-9); near('traverse: bearing-bearing N', bb.N, 50, 1e-9);
+  check('traverse: parallel lines', TRV.bearingBearing({ E: 0, N: 0 }, 10, { E: 5, N: 0 }, 190) === null);
+  const dd = TRV.distanceDistance({ E: 0, N: 0 }, 5, { E: 8, N: 0 }, 5);
+  check('traverse: distance-distance', dd.length === 2 && Math.abs(dd[0].E - 4) < 1e-9 && Math.abs(dd[0].N - 3) < 1e-9 && Math.abs(dd[1].N + 3) < 1e-9);
+  check('traverse: circles too far apart', TRV.distanceDistance({ E: 0, N: 0 }, 1, { E: 8, N: 0 }, 1).length === 0);
+}
+
+// Level book (worked by hand).
+{
+  const book = [{ name: 'BM1', bs: 1.5, dist: 0 }, { name: 'P1', is: 1.2, dist: 30 }, { name: 'CP1', fs: 0.8, bs: 2.1, dist: 30 }, { name: 'P2', is: 2.5, dist: 40 }, { name: 'BM2', fs: 1.0, dist: 20 }];
+  check('levelling: good book has no errors', LVL.bookErrors(book).length === 0);
+  const r = LVL.reduce(book, 100);
+  check('levelling: HoC RLs', r.map((x) => x.rlHoc.toFixed(3)).join() === '100.000,100.300,100.700,100.300,101.800');
+  check('levelling: rise and fall RLs agree', r.every((x) => Math.abs(x.rlRf - x.rlHoc) < 1e-9));
+  near('levelling: second HI', r[2].hi, 102.8, 1e-9);
+  check('levelling: rises and falls', Math.abs(r[3].fall - 0.4) < 1e-9 && Math.abs(r[4].rise - 1.5) < 1e-9);
+  const c = LVL.checks(r);
+  near('levelling: ΣBS − ΣFS', c.bsFs, 1.8, 1e-9);
+  check('levelling: all checks close', [c.hocDiff, c.rfDiff, c.rlDiff, c.fullHoc].every((x) => Math.abs(x) < 1e-9) && c.setups === 2);
+  near('levelling: Σrise', c.sRise, 2.2, 1e-9);
+  const a = LVL.adjust(r, 101.79, 'setup');
+  near('levelling: closing error', a.error, 0.01, 1e-9);
+  check('levelling: correction by setup', a.corr.map((x) => (x * 1000).toFixed(1)).join() === '0.0,-5.0,-5.0,-10.0,-10.0');
+  near('levelling: adjusted closing RL', a.adj[4], 101.79, 1e-9);
+  const d = LVL.adjust(r, 101.79, 'distance');
+  near('levelling: correction by distance', d.corr[2], -0.01 * 60 / 120, 1e-12);
+  check('levelling: chainage mode', LVL.reduce([{ name: 'A', bs: 1, dist: 100 }, { name: 'B', fs: 1, dist: 150 }], 0, 'chainage')[1].chain === 150);
+  near('levelling: allowable', LVL.allowable(12, 4), 24, 1e-12);
+  check('levelling: IS with FS flagged', LVL.bookErrors([{ name: 'A', bs: 1 }, { name: 'B', is: 1, fs: 2 }]).some((x) => /intermediate/.test(x.msg)));
+  const bad = LVL.bookErrors([{ name: 'A', is: 1 }, { name: 'B', bs: 1 }, { name: 'C', is: 1 }]);
+  check('levelling: book errors', bad.length === 3 && bad.some((x) => /change point/.test(x.msg)) && bad.some((x) => /last reading/.test(x.msg)));
+}
+
+// GPS tracks.
+{
+  near('gps: 1° of longitude on the sphere', GPS.haversine(0, 0, 0, 1), 2 * Math.PI * 6371008.8 / 360, 1e-6);
+  near('gps: 1° on the WGS84 equator', GPS.vincenty(0, 0, 0, 1).d, 6378137 * Math.PI / 180, 1e-6);
+  // Flinders Peak to Buninyong, the standard Vincenty test line: 54 972.271 m, forward azimuth 306°52′05.37″.
+  const dms = (d, m, s) => Math.sign(d) * (Math.abs(d) + m / 60 + s / 3600);
+  const fb = GPS.vincenty(dms(-37, 57, 3.7203), dms(144, 25, 29.5244), dms(-37, 39, 10.1561), dms(143, 55, 35.3839));
+  near('gps: Vincenty test line distance', fb.d, 54972.271, 0.005);
+  near('gps: Vincenty test line azimuth', fb.az, dms(306, 52, 5.37), 1 / 3600);
+  check('gps: same point', GPS.vincenty(10, 20, 10, 20).d === 0);
+  check('gps: nearly antipodal falls back', Number.isFinite(GPS.vincenty(0, 0, 0.5, 179.7).d));
+  near('gps: ISO time', GPS.parseTime('2026-01-01T00:00:10Z') - GPS.parseTime('2026-01-01T00:00:00Z'), 10000, 0);
+  // Due north along a meridian, 100 m steps (on the sphere) every 20 s, then a 60 s stop, then a spike.
+  const dLat = 100 / (6371008.8 * Math.PI / 180);
+  const pts = [0, 1, 2, 3].map((k) => ({ lat: k * dLat, lon: 0, t: k * 20000, ele: [100, 101, 106, 104][k], seg: 0 }));
+  pts.push({ lat: 3 * dLat, lon: 0, t: 120000, ele: 104, seg: 0 }, { lat: 3 * dLat + 1, lon: 0, t: 121000, ele: 104, seg: 0 }, { lat: 4 * dLat, lon: 0, t: 140000, ele: 98, seg: 0 });
+  const a = GPS.analyse(pts, { moveSpeed: 0.5, spikeSpeed: 50, eleStep: 3, ellipsoid: false });
+  check('gps: spike dropped', a.spikes === 1);
+  near('gps: distance without the spike', a.dist, 400, 1e-6);
+  near('gps: moving time (the 60 s stop left out)', a.moving, 80, 1e-9);
+  near('gps: elapsed', a.elapsed, 140, 1e-9);
+  near('gps: max speed', a.maxV, 5, 1e-9);
+  check('gps: climbing with a 3 m step', a.gain === 6 && a.loss === 8);
+  const sp = GPS.splits(pts, a.cum, 150);
+  check('gps: splits', sp.length === 2 && Math.abs(sp[0].time - 30) < 1e-9 && Math.abs(sp[1].split - 30) < 1e-9);
+  const segs = [{ lat: 0, lon: 0, seg: 0 }, { lat: dLat, lon: 0, seg: 0 }, { lat: 5, lon: 5, seg: 1 }, { lat: 5 + dLat, lon: 5, seg: 1 }];
+  const s2 = GPS.analyse(segs, { moveSpeed: 0.5, spikeSpeed: 50, eleStep: 3, ellipsoid: false });
+  check('gps: no distance across a segment gap', Math.abs(s2.dist - 200) < 1e-6 && s2.gaps === 1 && !s2.timed);
+  const zig = Array.from({ length: 11 }, (_, k) => ({ lat: 0, lon: (k * 100) / 111195 + (k % 2 ? 0 : 0), seg: 0 }));
+  zig[5] = { lat: 30 / 111195, lon: zig[5].lon, seg: 0 };
+  check('gps: thinning keeps the bump only', GPS.thin(zig, 10).length === 5 && GPS.thin(zig, 25).length === 3 && GPS.thin(zig, 50).length === 2);
+  const noisy = [100, 102, 100, 102, 100, 102].map((ele, k) => ({ lat: 0, lon: k * 1e-4, ele, seg: 0 }));
+  check('gps: height noise below the step is not climbing', GPS.analyse(noisy, { moveSpeed: 0.5, spikeSpeed: 50, eleStep: 5, ellipsoid: false }).gain === 0 && GPS.analyse(noisy, { moveSpeed: 0.5, spikeSpeed: 50, eleStep: 0, ellipsoid: false }).gain === 6);
+  check('gps: durations', GPS.fmtDuration(3725) === '1:02:05' && GPS.fmtDuration(247) === '4:07');
+}
+
+// TIFF reader (fixtures written with Pillow/libtiff) and writer; spectral indices.
+{
+  const { readFileSync } = await import('node:fs');
+  const fx = (f) => { const b = readFileSync(new URL('./fixtures/' + f, import.meta.url)); return b.buffer.slice(b.byteOffset, b.byteOffset + b.length); };
+  for (const f of ['u16-lzw.tif', 'u16-deflate.tif', 'u16-lzw-pred.tif']) {
+    const r = TIF.readTiff(fx(f));
+    check(`tiff: ${f}`, r.width === 37 && r.height === 23 && r.bands.length === 1 && r.bands[0][2 * 37 + 3] === 539 && r.bands[0][36] === 252);
+  }
+  const rgb = TIF.readTiff(fx('rgb-packbits.tif'));
+  check('tiff: PackBits RGB', rgb.bands.length === 3 && rgb.bands[0][77] === 77 && rgb.bands[1][5] === 15 && rgb.bands[2][400] === 200);
+  for (const f of ['f32-lzw.tif', 'f32-deflate-pred3.tif']) near(`tiff: ${f}`, TIF.readTiff(fx(f)).bands[0][2 * 37 + 3], 2.7, 1e-6);
+  const big = TIF.readTiff(fx('u8-lzw-big.tif'));
+  check('tiff: long LZW stream (12-bit codes, table resets)', big.bands[0].reduce((s, x) => s + x, 0) === 801247 && big.bands[0][100 * 160 + 57] === 24);
+  let msg = '';
+  try { TIF.readTiff(new Uint8Array([0x49, 0x49, 43, 0, 8, 0, 0, 0]).buffer); } catch (e) { msg = e.message; }
+  check('tiff: BigTIFF explained', /BigTIFF/.test(msg));
+  // Round trip with georeferencing (UTM-like, metres) and Deflate.
+  const geoTags = new Map([[33550, { type: 12, count: 3, values: [30, 30, 0] }], [33922, { type: 12, count: 6, values: [0, 0, 0, 500000, 4600000, 0] }], [34735, { type: 3, count: 12, values: [1, 1, 0, 2, 1024, 0, 1, 1, 3072, 0, 1, 32617] }]]);
+  const b1 = Float32Array.from({ length: 50 * 20 }, (_, i) => i / 7), b2 = Float32Array.from({ length: 1000 }, (_, i) => (i % 3 ? -i : NaN));
+  for (const z of [false, true]) {
+    const back = TIF.readTiff(TIF.writeTiff(50, 20, [b1, b2], geoTags, z).buffer);
+    check(`tiff: round trip${z ? ' (Deflate)' : ''}`, back.width === 50 && back.height === 20 && back.bands[0][999] === b1[999] && back.bands[1][4] === -4 && Number.isNaN(back.bands[1][3]));
+    check(`tiff: georeferencing kept${z ? ' (Deflate)' : ''}`, back.geo.model === 1 && back.geo.epsg === 32617 && back.geo.scale[0] === 30 && back.geo.tie[2] === 500000);
+  }
+  // Indices on single values.
+  const one = (v) => Float32Array.of(v);
+  const bands = { blue: one(0.04), green: one(0.08), red: one(0.05), nir: one(0.4), swir1: one(0.2), swir2: one(0.1) };
+  const get = (id) => SPX.computeIndex(SPX.INDICES.find((d) => d.id === id), bands, 1)[0];
+  near('spectral: NDVI', get('ndvi'), 0.35 / 0.45, 1e-6);
+  near('spectral: NDWI', get('ndwi'), -0.32 / 0.48, 1e-6);
+  near('spectral: MNDWI', get('mndwi'), -0.12 / 0.28, 1e-6);
+  near('spectral: NBR', get('nbr'), 0.3 / 0.5, 1e-6);
+  near('spectral: NDBI', get('ndbi'), -0.2 / 0.6, 1e-6);
+  near('spectral: EVI', get('evi'), 2.5 * 0.35 / (0.4 + 0.3 - 0.3 + 1), 1e-6);
+  near('spectral: SAVI', SPX.computeIndex(SPX.INDICES.find((d) => d.id === 'savi'), bands, 1, 1, 0, 0.5)[0], 1.5 * 0.35 / 0.95, 1e-6);
+  near('spectral: scale and offset', SPX.computeIndex(SPX.INDICES[0], { nir: one(20000), red: one(9000) }, 1, 0.0000275, -0.2)[0], (0.35 - 0.0475) / (0.35 + 0.0475), 1e-5);
+  near('spectral: custom', SPX.computeIndex('custom', { a: one(3), b: one(1) }, 1)[0], 0.5, 1e-9);
+  check('spectral: missing input gives no value', Number.isNaN(SPX.computeIndex(SPX.INDICES[0], { nir: one(NaN), red: one(1) }, 1)[0]));
+  const st = SPX.stats(Float32Array.of(1, 2, 3, 4, NaN));
+  check('spectral: stats', st.n === 4 && st.mean === 2.5 && st.median === 2.5 && st.min === 1 && Math.abs(st.sd - Math.sqrt(5 / 3)) < 1e-12);
+  const th = SPX.threshold(Float32Array.of(0.1, 0.5, 0.7, NaN), 0.3);
+  check('spectral: threshold', th.count === 2 && th.valid === 3);
+  check('spectral: histogram', SPX.histogram(Float32Array.of(0, 0.1, 0.99, 1), 0, 1, 10).map((h) => h.count).join() === '1,1,0,0,0,0,0,0,0,2');
+  check('spectral: projected pixel area', SPX.rowAreas(3, { model: 1, scale: [30, 30] })[2] === 900);
+  // A 1° × 1° cell at the equator on the sphere: R² × (π/180) × sin 1°.
+  near('spectral: geographic pixel area', SPX.rowAreas(1, { model: 2, scale: [1, 1], tie: [0, 0, 0, 1] })[0], 6371008.8 ** 2 * (Math.PI / 180) * Math.sin(Math.PI / 180), 1);
+}
+
+// Sounding (#136): Bolton es and θe, LCL, moist adiabat, CAPE/CIN, indices; references computed with MetPy 1.7 (BSD) on made-up soundings.
+{
+  near('sounding: es(20 °C) Bolton', SND.es(20), 23.37, 0.01);
+  near('sounding: es(0 °C)', SND.es(0), 6.112, 1e-9);
+  near('sounding: dew point round trip', SND.tdFromW(850, SND.mixr(850, 12.3)), 12.3, 1e-9);
+  near('sounding: saturation mixing ratio 1000 hPa 20 °C (MetPy 0.014868)', SND.mixr(1000, 20), 0.014868, 0.00005);
+  near('sounding: θe 850 hPa 20/15 °C (MetPy 345.68 K)', SND.thetaE(850, 20, 15), 345.676, 0.05);
+  near('sounding: moist adiabat 1000→500 hPa from 20 °C (MetPy −8.48)', SND.moist(1000, 20, 500), -8.485, 0.05);
+  const L = SND.lcl(1000, 30, 20);
+  near('sounding: LCL pressure (MetPy 864.2 hPa)', L.p, 864.2, 1);
+  near('sounding: LCL temperature (MetPy 17.66 °C)', L.t, 17.66, 0.05);
+  near('sounding: θ at 850 hPa, 10 °C', SND.theta(850, 10), 283.15 * (1000 / 850) ** SND.KAPPA, 1e-9);
+  const demo = '985 30.0 20.0 170 10\n950 26.6 18.8 180 18\n925 24.2 18.0 190 22\n900 22.0 16.6 200 25\n850 18.6 13.4 210 28\n800 15.0 9.0 220 30\n750 11.2 3.5 230 32\n700 7.4 -2.6 235 35\n650 3.4 -9.0 240 38\n600 -0.8 -14.5 245 42\n550 -5.4 -19.0 250 46\n500 -10.4 -24.0 250 50\n450 -15.9 -30.5 255 55\n400 -22.1 -36.0 255 60\n350 -29.2 -42.0 260 66\n300 -37.4 -49.0 260 72\n250 -46.8 -57.0 265 78\n200 -55.6 -65.0 265 80\n150 -60.5 -73.0 270 65\n100 -63.0 -80.0 270 45';
+  const ps = SND.parseSounding(demo);
+  check('sounding: headerless 5-column table read', ps.levels.length === 20 && ps.levels[0].dir === 170 && ps.levels[19].spd === 45 && ps.levels[3].td === 16.6);
+  const sb = SND.analyse(ps.levels, 'sb');
+  near('sounding: SBCAPE (MetPy 2849 J/kg, within 2 %)', sb.cape, 2849, 57);
+  check('sounding: SBCIN 0 (MetPy 0)', sb.cin === 0);
+  near('sounding: LCL (MetPy 851.2 hPa)', sb.lcl.p, 851.2, 1);
+  near('sounding: EL (MetPy 188.0 hPa)', sb.el.p, 188.0, 1.5);
+  check('sounding: LFC just above the LCL', sb.lfc.p < sb.lcl.p && sb.lfc.p > 800);
+  near('sounding: lifted index (MetPy −7.41)', sb.li, -7.41, 0.1);
+  near('sounding: Showalter (MetPy −3.66)', sb.showalter, -3.66, 0.1);
+  near('sounding: K index (MetPy 32.4)', sb.k, 32.4, 1e-6);
+  near('sounding: total totals (MetPy 52.8)', sb.tt, 52.8, 1e-6);
+  near('sounding: precipitable water (MetPy 36.72 mm)', sb.pw, 36.72, 0.1);
+  const nv = SND.analyse(ps.levels, 'sb', { virtual: false });
+  near('sounding: LFC without virtual correction (MetPy 813.7 hPa)', nv.lfc.p, 813.7, 1.5);
+  check('sounding: virtual correction raises CAPE', sb.cape > nv.cape);
+  const ml = SND.startParcel(ps.levels, 'ml');
+  near('sounding: mixed parcel T (MetPy 29.76 °C)', ml.t, 29.763, 0.02);
+  near('sounding: mixed parcel Td (MetPy 18.98 °C)', ml.td, 18.978, 0.03);
+  near('sounding: MLCAPE (MetPy 2238, within 3 %)', SND.analyse(ps.levels, 'ml').cape, 2238, 70);
+  // Shear: 10 kt from 170° at the ground, wind at 6 km interpolated.
+  check('sounding: 0–6 km shear about 52 kt', Math.abs(sb.shear06 - 52.1) < 0.5 && sb.shear01 > 15 && sb.shear01 < 22);
+  near('sounding: freezing level ≈ 4.05 km', sb.freezing, 4052, 15);
+  // Hypsometric heights: thickness 1000→500 hPa of an isothermal 0 °C dry layer = Rd·T/g·ln 2.
+  const z = SND.heights([{ p: 1000, t: 0 }, { p: 500, t: 0 }], 0);
+  near('sounding: hypsometric thickness', z[1], (SND.RD * 273.15 / SND.G) * Math.log(2), 1e-6);
+  // Elevated instability over a cold surface: no surface CAPE, MU parcel from 800 hPa (MetPy MUCAPE 368.7, MUCIN −0.77).
+  const el = SND.parseSounding('1000 2.0 0.0 90 10\n950 1.0 -1.0 120 20\n900 8.0 7.0 200 35\n850 10.0 9.5 220 45\n800 7.5 7.0 230 50\n750 4.2 3.8 235 52\n700 0.6 0.0 240 55\n650 -3.4 -4.5 245 58\n600 -7.6 -10.0 250 60\n550 -12.2 -16.0 250 64\n500 -17.4 -24.0 255 68\n400 -29.4 -38.0 260 75\n300 -44.0 -52.0 260 85\n250 -52.5 -60.0 265 90\n200 -56.0 -68.0 265 80').levels;
+  const esb = SND.analyse(el, 'sb'), emu = SND.analyse(el, 'mu');
+  check('sounding: cold surface has no SBCAPE', esb.cape === 0 && esb.lfc === null);
+  check('sounding: MU parcel at 800 hPa', emu.start.p === 800);
+  near('sounding: MUCAPE (MetPy 368.7)', emu.cape, 368.7, 10);
+  near('sounding: MUCIN (MetPy −0.77)', emu.cin, -0.77, 0.3);
+  // Parsers: Wyoming fixed-width text with blank cells, header names, m/s and kelvin.
+  const wy = ['-----------------------------------------------------------------------------', '   PRES   HGHT   TEMP   DWPT   RELH   MIXR   DRCT   SKNT   THTA   THTE   THTV', '    hPa     m      C      C      %    g/kg    deg   knot     K      K      K ', '-----------------------------------------------------------------------------', ' 1000.0    111                                                               ', '  985.0    250   30.0   20.0     55  15.21    170     10  304.4  350.0  307.1', '  850.0   1500   18.6   13.4     72  11.37    210     28  304.6  338.9  306.7', '  500.0   5800  -10.4  -24.0     31   0.71    250     50  320.4  322.9  320.5', ['30.0', '24000', '-50.0', '', '', '', '270', '40', '700.0', '', ''].map((c) => c.padStart(7)).join(''), '', 'Station information and sounding indices'].join('\n');
+  const w = SND.parseSounding(wy);
+  check('sounding: Wyoming text read, below-ground level skipped', w.format === 'University of Wyoming text' && w.levels.length === 4 && w.levels[0].p === 985 && w.levels[0].z === 250);
+  check('sounding: Wyoming missing dew point and wind kept as blanks', w.levels[3].td === undefined && w.levels[3].dir === 270 && w.levels[3].spd === 40 && w.levels[2].dir === 250);
+  const hd = SND.parseSounding('Pressure,Height,Temperature (K),Dewpoint (K),Wind dir,Wind speed (m/s)\n1000,100,300.15,290.15,180,5.14444\n900,1000,293.15,283.15,200,10.28888\n800,2000,286.15,275.15,220,15.43332');
+  check('sounding: header names, kelvin and m/s converted', hd.levels.length === 3 && Math.abs(hd.levels[0].t - 27) < 1e-9 && Math.abs(hd.levels[1].td - 10) < 1e-9 && Math.abs(hd.levels[0].spd - 10) < 1e-3 && hd.levels[2].z === 2000 && /kelvin/.test(hd.note));
+  check('sounding: tidy sorts and drops repeats', SND.tidy([{ p: 500, t: -10 }, { p: 1000, t: 20 }, { p: 500, t: -9 }, { p: NaN, t: 1 }]).length === 2);
+  let threw = ''; try { SND.analyse([{ p: 1000, t: 20 }, { p: 900, t: 12 }, { p: 800, t: 5 }]); } catch (e) { threw = e.message; }
+  check('sounding: needs a surface dew point', /dew point/.test(threw));
+}
+
+// Köppen (#137): made-up stations worked by hand against the Peel et al. (2007) rules; Walter-Lieth scale; parser.
+{
+  const med = [[10, 11, 13, 15, 19, 23, 26, 26, 23, 19, 14, 11], [80, 70, 55, 40, 25, 8, 2, 5, 25, 60, 85, 95]];
+  const r = KOP.koppen(...med);
+  check('koppen: Mediterranean Csa', r.code === 'Csa' && r.name === 'Mediterranean, hot summer');
+  near('koppen: MAT', r.m.MAT, 17.5, 1e-12); near('koppen: MAP', r.m.MAP, 550, 1e-12);
+  near('koppen: winter share → Pthreshold = 2·MAT', KOP.pThreshold(r.m).v, 35, 1e-12);
+  check('koppen: summer half Apr–Sep, Psdry 2, Pwwet 95', r.m.nhSummer && r.m.Psdry === 2 && r.m.Pwwet === 95);
+  check('koppen: explanation steps', r.steps.map((s) => s.result).filter(Boolean).join('>') === 'not E>not B>C (temperate)>s (dry summer)>a (hot summer)');
+  const cls = (T, P, o) => KOP.koppen(T, P, o).code;
+  check('koppen: hot desert BWh', cls([14, 16, 20, 25, 30, 33, 34, 33, 31, 26, 19, 15], [5, 4, 3, 1, 0, 0, 0, 0, 0, 1, 3, 5]) === 'BWh');
+  check('koppen: monsoon Am (driest 20 mm ≥ 100 − 2540/25)', cls([26, 27, 28, 29, 28, 27, 27, 27, 27, 27, 27, 26], [20, 25, 40, 120, 300, 450, 500, 450, 350, 200, 60, 25]) === 'Am');
+  check('koppen: rainforest Af', cls(Array(12).fill(27), Array(12).fill(200)) === 'Af');
+  check('koppen: savanna Aw (dry month in winter)', cls([24, 25, 27, 29, 29, 28, 27, 27, 27, 27, 26, 24], [5, 5, 10, 30, 120, 200, 250, 250, 180, 80, 15, 5]) === 'Aw');
+  check('koppen: humid continental Dfb', cls([-12, -10, -3, 6, 13, 18, 21, 19, 13, 6, -2, -9], [30, 25, 35, 50, 70, 90, 100, 90, 70, 55, 45, 35]) === 'Dfb');
+  check('koppen: southern hemisphere oceanic Cfb (summer = Oct–Mar)', cls([17, 17, 16, 14, 11, 9, 8, 9, 10, 12, 14, 16], [60, 55, 65, 75, 90, 95, 100, 95, 80, 70, 65, 60]) === 'Cfb' && !KOP.metrics([17, 17, 16, 14, 11, 9, 8, 9, 10, 12, 14, 16], Array(12).fill(1)).nhSummer);
+  check('koppen: tundra ET and ice cap EF', cls([-28, -27, -25, -17, -6, 3, 7, 6, 1, -9, -20, -25], [10, 8, 9, 9, 12, 25, 35, 40, 25, 18, 12, 10]) === 'ET' && cls(Array(12).fill(-20), Array(12).fill(1)) === 'EF');
+  // E before B: an ice cap with almost no precipitation stays EF.
+  check('koppen: E takes precedence over B', cls(Array(12).fill(-30), Array(12).fill(0)) === 'EF');
+  // Dry winter monsoon with a hot summer: Cwa.
+  check('koppen: Cwa', cls([3, 6, 12, 18, 23, 27, 28, 27, 23, 17, 10, 4], [10, 12, 25, 60, 110, 180, 230, 210, 120, 50, 20, 8]) === 'Cwa');
+  // Coldest month −2 °C: D with Peel's 0 °C, C with Köppen's −3 °C.
+  const edge = [[-2, 0, 5, 11, 16, 20, 23, 22, 17, 11, 5, 0], Array(12).fill(70)];
+  check('koppen: C/D boundary option', cls(...edge) === 'Dfa' && cls(...edge, { cdBoundary: -3 }) === 'Cfa');
+  // Cold steppe at MAT < 18 (k), hot by the coldest-month rule (coldest month 2 °C > 0).
+  const steppe = [[2, 4, 9, 14, 19, 24, 27, 26, 21, 15, 8, 3], [25, 20, 30, 35, 30, 15, 8, 10, 15, 25, 30, 30]];
+  check('koppen: BSk by MAT, BSh by coldest month', cls(...steppe) === 'BSk' && cls(...steppe, { hk: 'cold' }) === 'BSh');
+  // Subarctic with a very cold winter: Dfd; with a dry winter: Dwd.
+  check('koppen: Dfd and Dwd', cls([-45, -40, -28, -12, 3, 13, 16, 12, 3, -12, -32, -43], [20, 15, 12, 12, 20, 40, 50, 45, 30, 25, 20, 20]) === 'Dfd' && cls([-45, -40, -28, -12, 3, 13, 16, 12, 3, -12, -32, -43], [3, 3, 3, 5, 20, 40, 60, 50, 30, 10, 5, 3]) === 'Dwd');
+  check('koppen: Cfc (only 3 months above 10 °C)', cls([1, 1, 2, 4, 7, 10.5, 12, 11.5, 9, 6, 3, 2], Array(12).fill(100)) === 'Cfc');
+  // Walter-Lieth: 10 °C ↔ 20 mm, compressed above 100 mm; dry months where P < 2T.
+  const w = KOP.walterLieth(med[0], med[1]);
+  check('koppen: Walter-Lieth dry months May–Sep', w.arid.map((a, i) => (a ? i : -1)).filter((i) => i >= 0).join() === '4,5,6,7,8');
+  const w2 = KOP.walterLieth([20], [300]); near('koppen: compressed scale above 100 mm', w2.py[0], 60, 1e-12);
+  near('koppen: curves cross', KOP.crossing(20, 20, 60, 20), 0.5, 1e-12);
+  // Parser: long with month names, a year row skipped, wide two-row form with labels, wrong counts.
+  const rows = (t) => t.split('\n').map((l) => l.split(/\t|,/));
+  const n = (s) => (s.trim() === '' ? NaN : Number(s));
+  const long = KOP.parseMonthly(rows('month,T,P\n' + med[0].map((t, i) => `${i + 1},${t},${med[1][i]}`).join('\n') + '\nYear,17.5,550'), n);
+  check('koppen: parse 12 rows with a month number and a year row', long.T?.[6] === 26 && long.P?.[11] === 95 && long.T.length === 12);
+  const wide = KOP.parseMonthly(rows('Precipitation (mm),' + med[1].join(',') + '\nTemperature,' + med[0].join(',')), n);
+  check('koppen: parse two labelled rows of 12', wide.P?.[0] === 80 && wide.T?.[0] === 10);
+  check('koppen: too few months explained', /only 3 months/.test(KOP.parseMonthly(rows('1,2,3\n4,5,6\n7,8,9'), n).error));
+}
+
+// Trend (#138): Mann-Kendall, Hamed-Rao, seasonal MK and Sen slope against pyMannKendall 1.4.3 (MIT) on made-up series; Pettitt by brute force.
+{
+  const x = [14.0, 14.02, 14.12, 14.02, 13.78, 13.77, 13.61, 13.83, 14.36, 14.13, 13.96, 14.2, 14.31, 14.3, 14.0, 14.09, 14.37, 13.93, 13.94, 13.51, 13.45, 13.25, 13.62, 13.54, 13.96, 14.18, 14.22, 13.55, 13.74, 14.01, 14.23, 13.87, 13.98, 13.9, 13.91, 14.48, 14.27, 14.39, 14.73, 14.51, 14.52, 14.6, 14.64, 14.28, 14.47, 14.97, 14.4, 14.79, 14.81, 14.59];
+  const m = TRD.mannKendall(x);
+  check('trend: S = 480', m.S === 480);
+  near('trend: Var(S) with ties (pyMK 14288.667)', m.varS, 14288.666666666666, 1e-9);
+  near('trend: Z (pyMK 4.007187)', m.Z, 4.00718747245112, 1e-9);
+  near('trend: p (pyMK 6.14461e-5)', m.p, 6.144608917701966e-5, 1e-10);
+  near('trend: tau (pyMK 0.391837)', m.tau, 0.39183673469387753, 1e-12);
+  const t = x.map((_, i) => i), ss = TRD.senSlope(t, x);
+  near('trend: Sen slope (pyMK 0.0152381)', ss.slope, 0.015238095238095252, 1e-12);
+  near('trend: Conover intercept (pyMK 13.731667)', ss.intercept, 13.731666666666667, 1e-9);
+  const ci = TRD.senCI(ss.slopes, m.varS);
+  check('trend: Sen CI brackets the slope', ci.lo < ss.slope && ci.hi > ss.slope && Math.abs(ci.lo - 0.0086957) < 1e-6 && Math.abs(ci.hi - 0.0222771) < 1e-6);
+  const h = TRD.hamedRao(x);
+  near('trend: Hamed-Rao Var(S) all lags (pyMK 35298.284)', h.varS, 35298.283998397, 1e-6);
+  near('trend: Hamed-Rao p (pyMK 0.0107871)', h.p, 0.010787079015057266, 1e-7);
+  const h3 = TRD.hamedRao(x, 0.05, 3);
+  near('trend: Hamed-Rao Var(S) 3 lags (pyMK 46826.823)', h3.varS, 46826.82320034314, 1e-6);
+  near('trend: Hamed-Rao p 3 lags (pyMK 0.0268602)', h3.p, 0.02686016098085986, 1e-7);
+  // Without ties: Var(S) = n(n−1)(2n+5)/18; a perfectly rising series has tau = 1.
+  const up = TRD.mannKendall([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  check('trend: monotone series', up.S === 45 && up.varS === 125 && up.tau === 1);
+  near('trend: Z with continuity correction', up.Z, 44 / Math.sqrt(125), 1e-12);
+  check('trend: tie groups', TRD.mkScore([1, 1, 2, 2, 2, 3]).tiedGroups === 2 && TRD.mkScore([1, 1, 2, 2, 2, 3]).varS === (6 * 5 * 17 - 2 * 1 * 9 - 3 * 2 * 11) / 18);
+  check('trend: ranks with ties', TRD.ranks([3, 1, 3, 2]).join() === '3.5,1,3.5,2');
+  // Seasonal MK on made-up monthly data (10 years).
+  const M = [5.0, 10.3, 13.26, 15.23, 13.75, 9.65, 5.38, -0.15, -3.83, -4.62, -4.0, 0.07, 5.3, 9.65, 13.99, 15.07, 13.4, 10.44, 4.84, -0.06, -3.25, -5.32, -3.48, 0.24, 4.71, 10.43, 13.72, 14.83, 14.16, 9.83, 5.05, 0.43, -3.95, -4.71, -3.43, -0.27, 5.51, 10.04, 13.6, 15.54, 13.5, 10.17, 5.43, -0.25, -3.26, -4.78, -3.85, 0.53, 5.03, 10.05, 14.24, 14.85, 13.95, 10.43, 4.8, 0.5, -3.46, -5.1, -3.06, -0.03, 5.16, 10.6, 13.53, 15.4, 14.09, 9.86, 5.59, 0.19, -3.66, -4.35, -3.69, 0.22, 5.61, 9.91, 14.17, 15.41, 13.6, 10.67, 5.17, 0.1, -2.97, -5.02, -3.32, 0.57, 4.95, 10.61, 14.06, 15.02, 14.4, 10.16, 5.21, 0.72, -3.67, -4.54, -3.09, -0.04, 5.71, 10.38, 13.77, 15.8, 13.81, 10.33, 5.74, 0.02, -3.09, -4.44, -3.64, 0.75, 5.36, 10.22, 14.51, 15.15, 14.11, 10.75, 5.05, 0.68, -3.12, -4.9, -2.83, 0.3];
+  const g = Array.from({ length: 12 }, () => ({ t: [], x: [] }));
+  M.forEach((v, i) => { g[i % 12].t.push(Math.floor(i / 12)); g[i % 12].x.push(v); });
+  const sm = TRD.seasonalMK(g);
+  check('trend: seasonal S and Var(S) (pyMK 163, 1499)', sm.S === 163 && sm.varS === 1499);
+  near('trend: seasonal p (pyMK 2.86151e-5)', sm.p, 2.8615069253445924e-5, 1e-10);
+  near('trend: seasonal tau (pyMK 0.301852)', sm.tau, 0.30185185185185187, 1e-12);
+  near('trend: seasonal Sen slope (pyMK 0.05)', sm.slope, 0.05, 1e-12);
+  // Pettitt: brute-force U_t = Σ_{i≤t} Σ_{j>t} sign(x_i − x_j) gives K = 509 after index 34.
+  const pt = TRD.pettitt(x);
+  check('trend: Pettitt K and position', pt.K === 509 && pt.at === 34);
+  near('trend: Pettitt p', pt.p, 1.014124406710227e-5, 1e-12);
+  const step = TRD.pettitt([1, 1, 1, 1, 1, 5, 5, 5, 5, 5]);
+  check('trend: Pettitt finds a clean step', step.at === 4 && step.K === 25);
+  const an = TRD.anomalies([2000, 2001, 2002, 2003], [1, 2, 3, 10], 2000, 2002);
+  check('trend: anomalies from a baseline', an.mean === 2 && an.count === 3 && an.a.join() === '-1,0,1,8');
+  // Parser: header, dates with months, unsorted rows, a missing value, single column.
+  const rows = (s) => s.split('\n').map((l) => l.split(/\t|,/));
+  const n = (s) => (s === undefined || s.trim() === '' ? NaN : Number(s));
+  const p1 = TRD.parseSeries(rows('date,value\n2020-03,5\n2020-01,3\n2020-02,\n2020-04-16,6'), n);
+  check('trend: parse dates, sort, skip blanks', p1.kind === 'dates' && p1.x.join() === '3,5,6' && p1.month.join() === '1,3,4' && p1.skipped === 1 && Math.abs(p1.t[2] - (2020 + 3 / 12 + 15 / 365.25)) < 1e-9);
+  const p2 = TRD.parseSeries(rows('4\n5\nx\n7'), n);
+  check('trend: parse a single column', p2.kind === 'values' && p2.t.join() === '1,2,3' && p2.x.join() === '4,5,7');
+}
+
+// Waves (#139): dispersion against an independent SciPy root-find, deep and shallow limits, shoaling, refraction and breaking.
+{
+  const w = WAV.wave(10, 10);
+  near('waves: L for T 10 s, h 10 m (SciPy 92.35582)', w.L, 92.35581694832722, 1e-9);
+  near('waves: Cg (SciPy 8.067984)', w.Cg, 8.067984310698067, 1e-9);
+  near('waves: n (SciPy 0.873576)', w.n, 0.8735761944710076, 1e-12);
+  near('waves: L for 8 s in 5 m (SciPy 53.07145)', WAV.wave(8, 5).L, 53.071449593263175, 1e-9);
+  near('waves: L for 12 s in 100 m (SciPy 223.1468)', WAV.wave(12, 100).L, 223.14684963659394, 1e-9);
+  near('waves: Cg for 6 s in 2 m (SciPy 3.955186)', WAV.wave(6, 2).Cg, 3.9551859452633202, 1e-9);
+  near('waves: deep limit L = gT²/2π', WAV.wave(15, 5000).L, (WAV.G * 225) / (2 * Math.PI), 1e-9);
+  near('waves: deep group speed = C/2', WAV.wave(9, 5000).Cg, WAV.wave(9, 5000).C / 2, 1e-12);
+  near('waves: shallow limit C → √(gh)', WAV.wave(200, 1).C, Math.sqrt(WAV.G), 1e-3);
+  check('waves: Fenton-McKee within 1.7 %', [[10, 10], [8, 5], [12, 100], [6, 2]].every(([T, h]) => Math.abs(WAV.fentonMcKee(T, h) / WAV.wave(T, h).L - 1) < 0.017));
+  near('waves: bed orbital speed (SciPy 0.427991)', w.ub, 0.42799129591085666, 1e-9);
+  near('waves: power per metre for H = 1 m (SciPy 10137.24 W)', w.P, 10137.236974877485, 1e-6);
+  check('waves: depth classes', w.regime === 'intermediate' && WAV.wave(10, 200).regime === 'deep' && WAV.wave(10, 1).regime === 'shallow');
+  const t = WAV.transform(10, 2, 50, 5, 30);
+  near('waves: shoaling Ks (SciPy 1.162573)', t.Ks, 1.1625731928861587, 1e-9);
+  near('waves: refraction Kr (SciPy 0.942625)', t.Kr, 0.9426246337224414, 1e-9);
+  near('waves: angle at 5 m (SciPy 12.926°)', t.a2, 12.92599201073054, 1e-7);
+  const bp = WAV.breakPoint(10, 2, 50);
+  near('waves: breaking depth (SciPy 3.25905 m)', bp.hb, 3.2590514863823823, 2e-4);
+  near('waves: breaking height = 0.78 × depth', bp.Hb, 0.78 * bp.hb, 2e-4);
+  check('waves: breaking is depth-limited', bp.by === 'depth' && !bp.already);
+  check('waves: already broken offshore', WAV.breakPoint(10, 5, 5).already === true);
+  const ir = WAV.iribarren(0.02, 2, 156.08);
+  check('waves: Iribarren spilling, plunging, surging', ir.type === 'spilling' && WAV.iribarren(0.1, 1, 100).type === 'plunging' && WAV.iribarren(0.5, 1, 100).type === 'surging or collapsing');
+  near('waves: deep-water equivalent height', WAV.deepEquivalent(10, 2, 50), 2 / Math.sqrt(WAV.wave(10, 50).C0 / 2 / WAV.wave(10, 50).Cg), 1e-12);
+  check('waves: no depth gives NaN', Number.isNaN(WAV.wavenumber(10, 0)));
+}
+
+// Open channels (#140): Manning, normal and critical depth, part-full pipe peak, weirs; against an independent SciPy calculation.
+{
+  const tr = { kind: 'trap', b: 2, z1: 2, z2: 2 }, pipe = { kind: 'circ', D: 1 };
+  near('channel: rectangle 3 m × 1 m, n 0.013, S 0.001 (SciPy 5.19133)', OCH.manningQ({ kind: 'rect', b: 3 }, 1, 0.013, 0.001), 5.191331186026805, 1e-9);
+  near('channel: trapezoid Q (SciPy 3.78232)', OCH.manningQ(tr, 1.2, 0.025, 0.0005), 3.7823198655300083, 1e-9);
+  near('channel: trapezoid normal depth for 5 m³/s (SciPy 1.369813)', OCH.normalDepth(tr, 5, 0.025, 0.0005), 1.3698134016594972, 1e-8);
+  near('channel: trapezoid critical depth (SciPy 0.681644)', OCH.criticalDepth(tr, 5), 0.6816444124755032, 1e-8);
+  near('channel: rectangle critical depth = (q²/g)^(1/3)', OCH.criticalDepth({ kind: 'rect', b: 3 }, 6), Math.cbrt(4 / OCH.G), 1e-9);
+  const tri = OCH.section({ kind: 'tri', z1: 1, z2: 3 }, 2);
+  check('channel: triangle area, perimeter, top width', Math.abs(tri.A - 8) < 1e-12 && Math.abs(tri.P - 2 * (Math.SQRT2 + Math.sqrt(10))) < 1e-12 && tri.T === 8);
+  const half = OCH.section(pipe, 0.5);
+  check('channel: half-full pipe A = πD²/8, P = πD/2', Math.abs(half.A - Math.PI / 8) < 1e-12 && Math.abs(half.P - Math.PI / 2) < 1e-12 && Math.abs(half.T - 1) < 1e-12);
+  near('channel: full pipe (SciPy 1.072231)', OCH.manningQ(pipe, 1, 0.013, 0.002), 1.0722306051861303, 1e-9);
+  near('channel: pipe peak at y/D ≈ 0.938', OCH.peakDepth(pipe, 0.013, 0.002), 0.9381812163758312, 1e-6);
+  near('channel: peak is 1.0757 × full flow', OCH.manningQ(pipe, OCH.peakDepth(pipe, 0.013, 0.002), 0.013, 0.002) / OCH.manningQ(pipe, 1, 0.013, 0.002), 1.0757061294004646, 1e-8);
+  near('channel: pipe normal depth for 0.8 m³/s (SciPy 0.643818)', OCH.normalDepth(pipe, 0.8, 0.013, 0.002), 0.6438177507245075, 1e-8);
+  check('channel: pipe too small gives NaN', Number.isNaN(OCH.normalDepth(pipe, 2, 0.013, 0.002)));
+  near('channel: US units factor 1.486', OCH.manningQ({ kind: 'rect', b: 10 }, 2, 0.015, 0.002, 1.486) / OCH.manningQ({ kind: 'rect', b: 10 }, 2, 0.015, 0.002), 1.486, 1e-12);
+  const fl = OCH.flowAt(tr, 1.2, 3.7823198655300083, 0.0005);
+  near('channel: Froude', fl.Fr, 0.7163484593806837 / Math.sqrt(OCH.G * 5.28 / 6.8), 1e-12);
+  near('channel: specific energy', fl.E, 1.2 + fl.V ** 2 / (2 * OCH.G), 1e-12);
+  near('channel: bed shear ρgRS', fl.tau, 9806.65 * (5.28 / (2 + 2 * 1.2 * Math.sqrt(5))) * 0.0005, 1e-9);
+  near('weir: V-notch 90°, 0.3 m (SciPy 0.0675313)', OCH.vNotch(90, 0.3), 0.06753131303139304, 1e-12);
+  near('weir: rectangular 2 m, 2 contractions, 0.4 m (SciPy 0.889134)', OCH.rectWeir(2, 0.4, 0.62, 2), 0.889133516858493, 1e-12);
+  near('weir: broad-crested Cd 1 = L √g (2H/3)^1.5', OCH.broadWeir(3, 0.6, 1), 3 * Math.sqrt(OCH.G) * 0.4 ** 1.5, 1e-12);
+  near('weir: Cipolletti', OCH.cipolletti(1.5, 0.25), 0.63 * (2 / 3) * Math.sqrt(2 * OCH.G) * 1.5 * 0.125, 1e-12);
+  near('weir: head from discharge round trip', OCH.headFor((H) => OCH.vNotch(90, H), OCH.vNotch(90, 0.3)), 0.3, 1e-9);
+}
+
+{
+  // Rainfall runoff, against an independent Python calculation of the made-up example.
+  const parts = [{ area: 12, c: 0.45, cn: 75 }, { area: 8, c: 0.25, cn: 61 }];
+  near('runoff: weighted C', RO.weighted(parts, 'c'), 0.37, 1e-12);
+  near('runoff: weighted CN', RO.weighted(parts, 'cn'), 69.4, 1e-12);
+  near('runoff: weighted skips parts without a value', RO.weighted([{ area: 5, c: 0.5 }, { area: 5, cn: 70 }], 'c'), 0.5, 1e-12);
+  check('runoff: weighted is NaN with nothing', Number.isNaN(RO.weighted([{ area: 5 }], 'cn')));
+  const tc = RO.kirpich(600, 0.02);
+  near('runoff: Kirpich tc (Python 12.1147519)', tc, 12.114751934895255, 1e-9);
+  near('runoff: Kirpich in feet form 0.0078 L^0.77 S^-0.385 agrees (rounded constants)', RO.kirpich(600, 0.02), 0.0078 * Math.pow(600 / 0.3048, 0.77) * Math.pow(0.02, -0.385), 0.03);
+  const i = RO.idf(1500, 12, 0.8, tc);
+  near('runoff: IDF intensity (Python 117.561473)', i, 117.56147329106953, 1e-9);
+  near('runoff: rational Q SI (Python 2.41654140)', RO.rationalQ(0.37, i, 20), 2.4165413954275405, 1e-9);
+  near('runoff: rational Q US is CiA', RO.rationalQ(0.5, 2, 10, true), 10, 1e-12);
+  near('runoff: SI and US forms differ by 1.008', RO.rationalQ(0.5, 2 * 25.4, 10 * 0.40468564224) * 35.3146667 / RO.rationalQ(0.5, 2, 10, true), 1.008, 0.001);
+  near('runoff: retention S for CN 69.4 (Python 111.994236)', RO.retention(69.4), 111.99423631123915, 1e-9);
+  near('runoff: retention in inches is 1000/CN - 10', RO.retention(80) / 25.4, 1000 / 80 - 10, 1e-12);
+  const r = RO.scsRunoff(80, 69.4);
+  near('runoff: Ia = 0.2 S', r.Ia, 22.39884726224783, 1e-9);
+  near('runoff: SCS Q 80 mm, CN 69.4 (Python 19.5635790)', r.Q, 19.563579029612708, 1e-9);
+  near('runoff: lambda 0.05 with S x 1.42 (Python 22.4639442)', RO.scsRunoff(80, 69.4, 0.05).Q, 22.46394418328949, 1e-9);
+  check('runoff: no runoff below Ia', RO.scsRunoff(20, 69.4).Q === 0);
+  near('runoff: CN 100 runs off everything', RO.scsRunoff(50, 100).Q, 50, 1e-9);
+  near('runoff: 1 in on CN 80 is 0.08 in (hand: (1-0.5)^2/(1+2))', RO.scsRunoff(25.4, 80).Q / 25.4, 0.25 / 3, 1e-9);
+  near('runoff: CN dry (Python 48.7848966)', RO.cnDry(69.4), 48.78489656557542, 1e-9);
+  near('runoff: CN wet (Python 83.9133635)', RO.cnWet(69.4), 83.91336347387237, 1e-9);
+  near('runoff: CN 100 stays 100 dry and wet', RO.cnDry(100) + RO.cnWet(100), 200, 1e-9);
+  const h = RO.triangularHydrograph(0.2, r.Q, 1, tc / 60);
+  near('runoff: time to peak (Python 0.621148 h)', h.Tp, 0.6211475193489525, 1e-9);
+  near('runoff: triangular peak (Python 1.31068939)', h.qp, 1.310689387860392, 1e-9);
+  near('runoff: triangle holds the runoff volume', 0.5 * h.Tb * 3600 * h.qp, r.Q / 1000 * 0.2e6, 1e-6);
+  near('runoff: peak is about 0.208 A Q / Tp', h.qp, 0.208 * 0.2 * r.Q / h.Tp, 0.002);
+}
+{
+  // Flood frequency, against SciPy 1.18 (pearson3, gumbel_r, genextreme, gammainc) on a made-up 40-year record.
+  const x = [675, 325, 441, 434, 319, 682, 318, 346, 300, 353, 379, 534, 620, 392, 492, 366, 494, 619, 920, 665, 397, 379, 565, 789, 240, 500, 719, 568, 356, 376, 205, 812, 359, 464, 448, 534, 463, 629, 529, 367];
+  for (const [a, v, want] of [[0.5, 0.3, 0.5614219739190003], [3, 2.5, 0.45618688411667035], [10, 15, 0.9301463393005901], [400, 380, 0.15855070978429484], [2, 7, 0.9927049442755639]]) near(`flood: gammaP(${a}, ${v}) (SciPy gammainc)`, FF.gammaP(a, v), want, 1e-12);
+  near('flood: gammaPInv round trip', FF.gammaP(3, FF.gammaPInv(0.37, 3)), 0.37, 1e-12);
+  for (const [p, g, want] of [[0.99, 0.5, 2.685721479529419], [0.99, -0.5, 1.9547230565417744], [0.9, 1.2, 1.3404673495554114], [0.5, 0.3, -0.04993278464719886], [0.002, 2.0, -0.9979979973293269], [0.999, -1.5, 1.3127490769294372], [0.99, 0.02, 2.341043791580546]]) near(`flood: Pearson III K(p ${p}, g ${g}) (SciPy pearson3.ppf)`, FF.pearsonK(p, g), want, 1e-7);
+  near('flood: Pearson III K with g ≈ 0 is the normal z (Wilson-Hilferty branch)', FF.pearsonK(0.99, 0.005), 2.326347874 + 0.005 / 6 * (2.326347874 ** 2 - 1), 1e-4);
+  const L = FF.lmoments(x);
+  near('flood: L-moment λ2', L.l2, 91.73653846153849, 1e-9);
+  near('flood: L-moment τ3', L.t3, 0.1692787720511917, 1e-12);
+  near('flood: Gumbel moments Q100 (SciPy 995.68676)', FF.gumbelMoments(x).q(100), 995.6867596814511, 1e-8);
+  near('flood: Gumbel L-moments Q100 (SciPy 1016.7516)', FF.gumbelL(x).q(100), 1016.7516040136445, 1e-8);
+  const gev = FF.gevL(x);
+  near('flood: GEV k (Hosking approximation)', gev.params.k, 0.0010111034027748954, 1e-12);
+  near('flood: GEV Q10 (SciPy genextreme 705.76322)', gev.q(10), 705.7632215706234, 1e-7);
+  near('flood: GEV Q100 (SciPy 1015.9660)', gev.q(100), 1015.9660356646408, 1e-7);
+  near('flood: GEV return period of 800 (SciPy 19.87225)', FF.returnPeriod(gev, 800), 19.872247468697104, 1e-6);
+  const x2 = x.map((v) => (v * v) / 1000), gev2 = FF.gevL(x2);
+  near('flood: skewed GEV k (Python -0.204776)', gev2.params.k, -0.20477628517702348, 1e-10);
+  near('flood: skewed GEV Q100 (SciPy 1003.6413)', gev2.q(100), 1003.6412608022964, 1e-7);
+  near('flood: skewed GEV return period of 500 (SciPy 11.03591)', FF.returnPeriod(gev2, 500), 11.035908059473918, 1e-6);
+  const lp = FF.logPearson3(x);
+  near('flood: LP3 log mean', lp.params.mean, 2.6615991904416894, 1e-12);
+  near('flood: LP3 log sd', lp.params.sd, 0.14545701521863424, 1e-12);
+  near('flood: LP3 station skew (SciPy skew, bias=False)', lp.params.skew, -0.05234611937201275, 1e-10);
+  near('flood: LP3 Q10 (SciPy 703.35678)', lp.q(10), 703.3567804365356, 1e-6);
+  near('flood: LP3 Q100 (SciPy 987.12958)', lp.q(100), 987.129580129204, 1e-6);
+  near('flood: LP3 Q100 with typed skew -0.1 (SciPy 975.5563)', FF.logPearson3(x, -0.1).q(100), 975.5563009697038, 1e-6);
+  near('flood: LP3 return period of 800 (SciPy 21.34228)', FF.returnPeriod(lp, 800), 21.34227799312686, 1e-6);
+  const gb = FF.grubbsBeck(x);
+  near('flood: Grubbs-Beck K_N for n = 40', gb.KN, 2.681356937533647, 1e-12);
+  near('flood: Grubbs-Beck high threshold', gb.hi, 1126.2151553890617, 1e-6);
+  check('flood: no outliers in the example', gb.high.length === 0 && gb.low.length === 0 && gb.valid);
+  check('flood: Grubbs-Beck flags a planted low outlier', FF.grubbsBeck([...x.slice(0, 39), 20]).low.length === 1);
+  near('flood: Gumbel standard error at T = 100 (Kite)', FF.gumbelSE(x, 100), 101.14610793271349, 1e-8);
+  const pp = FF.plotting(x);
+  check('flood: Weibull largest T = n + 1', pp[0].T === 41 && pp[0].x === 920 && pp[39].T === 41 / 40);
+  near('flood: Gringorten largest T', FF.plotting(x, 0.44)[0].T, (40 + 0.12) / 0.56, 1e-12);
+  const ci = FF.bootstrap(x, FF.gevL, [10, 100], 400);
+  check('flood: bootstrap interval brackets the estimate', ci[0][0] < gev.q(10) && gev.q(10) < ci[0][1] && ci[1][0] < gev.q(100) && gev.q(100) < ci[1][1]);
+  check('flood: bootstrap is repeatable with the seed', JSON.stringify(FF.bootstrap(x, FF.gumbelMoments, [50], 200)) === JSON.stringify(FF.bootstrap(x, FF.gumbelMoments, [50], 200)));
+  near('flood: 100-year flood in 30 years', FF.riskInYears(100, 30), 1 - 0.99 ** 30, 1e-15);
+}
+{
+  // FAO-56 Penman-Monteith on made-up days, against an independent Python version (and pyet 1.5 pm_fao56 for day 1, 5.52785).
+  const d1 = ET.penmanMonteith({ tmax: 29, tmin: 16.5, lat: 43.1, z: 180, J: 196, u: 3.1, uh: 10, hum: { kind: 'rhmaxmin', rhmax: 88, rhmin: 41 }, sol: { kind: 'sun', n: 10.2 } });
+  near('et0: day 1 ET0 (Python and pyet 5.5278496)', d1.et0, 5.527849621116586, 1e-9);
+  near('et0: day 1 Ra', d1.Ra, 40.69930161983453, 1e-9);
+  near('et0: day 1 daylight hours', d1.N, 14.878123797966975, 1e-9);
+  near('et0: day 1 Rs from sunshine', d1.Rs, 24.125941895165486, 1e-9);
+  near('et0: day 1 Rnl', d1.Rnl, 4.302173796565052, 1e-9);
+  near('et0: day 1 ea from RHmax/RHmin', d1.ea, 1.647121275020091, 1e-12);
+  near('et0: wind at 10 m to 2 m', d1.u2, 2.3186483330206267, 1e-12);
+  near('et0: pressure at 180 m', d1.P, 99.19030396361237, 1e-10);
+  near('et0: radiation and aerodynamic parts add up', d1.radPart + d1.aeroPart, d1.et0, 1e-12);
+  const d2 = ET.penmanMonteith({ tmax: 12.4, tmin: 3.1, lat: -33.9, z: 40, J: 170, u: 4, hum: { kind: 'tdew', tdew: 2 }, sol: { kind: 'rs', rs: 9.5 } });
+  near('et0: day 2 southern winter, dew point, measured Rs (Python 1.8017673)', d2.et0, 1.8017673003420527, 1e-9);
+  near('et0: day 2 Ra', d2.Ra, 16.219422863339513, 1e-9);
+  const d3 = ET.penmanMonteith({ tmax: 34.5, tmin: 21, lat: 13, z: 350, J: 75, u: 1.6, hum: { kind: 'rhmean', rh: 48 }, sol: { kind: 'temp' } });
+  near('et0: day 3 RH mean, Hargreaves radiation (Python 5.4704115)', d3.et0, 5.470411527731706, 1e-9);
+  near('et0: day 3 Rs from the temperature range', d3.Rs, 21.390841932470586, 1e-9);
+  const d4 = ET.penmanMonteith({ tmax: 5, tmin: -4, lat: 60, z: 800, J: 40, u: 2.5, uh: 3, hum: { kind: 'none' }, sol: { kind: 'sun', n: 4 } });
+  near('et0: day 4 cold, no humidity (dew point = Tmin), negative Rn (Python 0.5239102)', d4.et0, 0.5239102395205919, 1e-9);
+  check('et0: day 4 net radiation is negative', d4.Rn < 0 && Math.abs(d4.Rn - -0.8425105124825056) < 1e-9);
+  near('et0: Hargreaves day 1 (Python 5.4754627)', ET.hargreaves(29, 16.5, d1.Ra), 5.475462654153093, 1e-9);
+  near('et0: Hargreaves day 2 (Python 1.1859210)', ET.hargreaves(12.4, 3.1, d2.Ra), 1.1859210408730503, 1e-9);
+  near('et0: svp at 20 °C', ET.svp(20), 2.338281, 1e-6);
+  near('et0: wind default is 2 m/s', ET.penmanMonteith({ tmax: 25, tmin: 15, lat: 0, z: 0, J: 100, hum: { kind: 'rhmean', rh: 60 }, sol: { kind: 'temp' } }).u2, 2, 0);
+  check('et0: polar night has no sun', ET.extraterrestrial(75, 355).Ra === 0 && ET.extraterrestrial(75, 355).N === 0);
+  near('et0: midnight sun has 24 h of daylight', ET.extraterrestrial(75, 172).N, 24, 1e-9);
+  near('et0: sunshine capped at the day length', ET.penmanMonteith({ tmax: 25, tmin: 15, lat: 40, z: 0, J: 172, hum: { kind: 'rhmean', rh: 60 }, sol: { kind: 'sun', n: 20 } }).Rs, (0.75) * ET.extraterrestrial(40, 172).Ra, 1e-9);
+  check('et0: day of year', ET.dayOfYear('2026-07-15') === 196 && ET.dayOfYear('2024-12-31') === 366 && Number.isNaN(ET.dayOfYear('15/07/2026')));
+  const wc = ET.weatherColumns(['Date', 'Tmax (°C)', 'Tmin (°C)', 'RH max %', 'RH min %', 'Wind 2 m (m/s)', 'Sunshine (h)']);
+  check('et0: weather columns found by name', wc.date === 0 && wc.tmax === 1 && wc.tmin === 2 && wc.rhmax === 3 && wc.rhmin === 4 && wc.rh === -1 && wc.u === 5 && wc.sun === 6 && wc.rs === -1 && wc.tdew === -1);
+  const wc2 = ET.weatherColumns(['day', 'max temp', 'min temp', 'humidity', 'dew point', 'solar radiation']);
+  check('et0: other column names', wc2.tmax === 1 && wc2.tmin === 2 && wc2.rh === 3 && wc2.tdew === 4 && wc2.rs === 5 && wc2.u === -1);
+}
+{
+  // Rating curves on 24 made-up gaugings, against SciPy curve_fit (h0 free) and linregress (h0 fixed).
+  const h = [0.642, 0.658, 0.677, 0.711, 0.731, 0.79, 0.9, 0.93, 0.97, 0.981, 1.147, 1.284, 1.295, 1.671, 1.83, 1.881, 2.269, 2.454, 2.636, 2.67, 2.722, 2.766, 2.887, 3.041], Q = [1.566, 1.67, 1.809, 2.241, 2.525, 2.98, 4.121, 4.611, 5.258, 5.534, 7.973, 11.116, 11.022, 19.104, 21.919, 24.115, 36.939, 41.45, 47.97, 46.741, 49.209, 47.673, 57.671, 61.862];
+  const s = RC.fitSearch(h, Q);
+  near('rating: searched h0 (SciPy 0.3406196)', s.h0, 0.34061961776027544, 2e-5);
+  near('rating: a (SciPy 11.61084)', s.a, 11.610844433136483, 2e-3);
+  near('rating: b (SciPy 1.681117)', s.b, 1.6811168654976243, 1e-4);
+  near('rating: log standard error (SciPy 0.0349236)', s.s, 0.03492364890363027, 1e-7);
+  near('rating: Q at 2.5 m (SciPy 42.3555)', RC.qAt(s, 2.5), 42.355535950917414, 2e-4);
+  const f = RC.fitFixed(h, Q, 0.3);
+  near('rating: fixed h0 a (SciPy linregress 10.602063)', f.a, 10.602063210872172, 1e-9);
+  near('rating: fixed h0 b (SciPy 1.7639135)', f.b, 1.763913506299644, 1e-12);
+  const bd = RC.band(f, 2);
+  near('rating: 95 % band low at 2 m (SciPy t 26.49459)', bd[0], 26.494592419590404, 1e-8);
+  near('rating: 95 % band high at 2 m (SciPy 27.58084)', bd[1], 27.580838507481623, 1e-8);
+  near('rating: stage for a discharge round trip', RC.hAt(s, RC.qAt(s, 1.7)), 1.7, 1e-12);
+  check('rating: zero flow at or below h0', RC.qAt(s, s.h0) === 0 && RC.qAt(s, 0.1) === 0);
+  // Exact curve with a typed h0 is recovered exactly.
+  const hx = [0.5, 0.8, 1.2, 1.9, 2.6, 3.4], qx = hx.map((v) => 7.5 * Math.pow(v - 0.2, 1.8));
+  const ex = RC.fitFixed(hx, qx, 0.2);
+  near('rating: exact a', ex.a, 7.5, 1e-10); near('rating: exact b', ex.b, 1.8, 1e-12);
+  near('rating: exact curve found by the search', RC.fitSearch(hx, qx).h0, 0.2, 1e-5);
+  // Two segments: a control change at 2 m.
+  const h2 = [0.4, 0.6, 0.8, 1.0, 1.3, 1.6, 1.9, 2.1, 2.4, 2.8, 3.2, 3.6], q2 = h2.map((v) => (v < 2 ? 5 * Math.pow(v - 0.1, 1.6) : 9 * Math.pow(v - 0.6, 1.4)));
+  const r2 = RC.fitRating(h2, q2, { brk: 2, h0: 0.1, h0Upper: 0.6 });
+  check('rating: two segments recovered', Math.abs(r2.segs[0].b - 1.6) < 1e-10 && Math.abs(r2.segs[1].a - 9) < 1e-9 && Math.abs(RC.ratingQ(r2, 3) - 9 * Math.pow(2.4, 1.4)) < 1e-9);
+  near('rating: two-segment stage for a discharge', RC.ratingH(r2, 9 * Math.pow(2.4, 1.4)), 3, 1e-9);
+  near('rating: two-segment stage below the break', RC.ratingH(r2, 5 * Math.pow(1.4, 1.6)), 1.5, 1e-9);
+  const sc = RC.scatterPct(s);
+  check('rating: scatter band about ±7 %', sc[0] < -6 && sc[0] > -8 && sc[1] > 6 && sc[1] < 8);
+  check('rating: columns by name', JSON.stringify(RC.pickColumns(['date', 'Discharge (m3/s)', 'Gauge height (m)'], [[NaN, NaN, NaN], [1, 2, 3], [4, 5, 6]])) === JSON.stringify({ hi: 2, qi: 1 }));
+  check('rating: columns by order', JSON.stringify(RC.pickColumns(['a', 'b'], [[1, 2, 3], [4, 5, 6]])) === JSON.stringify({ hi: 0, qi: 1 }));
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

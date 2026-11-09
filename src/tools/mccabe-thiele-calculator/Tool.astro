@@ -1,0 +1,151 @@
+---
+// McCabe-Thiele: binary distillation stages from alpha or x-y data, q-line, minimum reflux, Fenske, Gilliland, flows.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const demo = 'x\ty\n0.05\t0.20\n0.10\t0.33\n0.20\t0.48\n0.30\t0.57\n0.40\t0.63\n0.50\t0.68\n0.60\t0.73\n0.70\t0.78\n0.80\t0.84\n0.90\t0.91';
+---
+<div class="ax mct">
+  <div class="ax-card">
+    <h2>Equilibrium</h2>
+    <div class="ax-grid">
+      <label>Equilibrium from <select class="mct-mode"><option value="alpha">A constant relative volatility</option><option value="data">My x–y data</option></select></label>
+      <label class="mct-al">Relative volatility α <input class="mct-a" inputmode="decimal" value="2.5" /></label>
+    </div>
+    <div class="mct-dbox" hidden>
+      <label>Liquid x and vapour y of the light component, two columns (mole fractions) <textarea class="mct-data" rows="7" spellcheck="false">{demo}</textarea></label>
+      <DataFile target=".mct-data" maxCols={2} label="Open a file (2 columns)" />
+      <p class="ax-help">The example data are made up for illustration. The tool adds (0, 0) and (1, 1) and draws a smooth curve through your points that never wiggles. Mixtures with an azeotrope inside the column range cannot be separated past it, so the tool will say the steps stop.</p>
+    </div>
+    <p class="ax-help mct-ahelp">α is how much more volatile the light component is: y = αx / (1 + (α − 1)x). Close-boiling pairs are near 1.1 to 1.5; benzene and toluene are roughly 2.4.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Column</h2>
+    <div class="ax-grid">
+      <label>Feed, light fraction x<sub>F</sub> <input class="mct-xf" inputmode="decimal" value="0.5" /></label>
+      <label>Distillate x<sub>D</sub> <input class="mct-xd" inputmode="decimal" value="0.95" /></label>
+      <label>Bottoms x<sub>B</sub> <input class="mct-xb" inputmode="decimal" value="0.05" /></label>
+      <label>Feed condition <select class="mct-qs">
+        <option value="1" selected>Saturated liquid (q = 1)</option><option value="0">Saturated vapour (q = 0)</option><option value="0.5">Half vapour (q = 0.5)</option><option value="1.2">Cold liquid (q = 1.2)</option><option value="custom">Type q</option>
+      </select></label>
+      <label class="mct-ql" hidden>q <input class="mct-q" inputmode="decimal" value="1" /></label>
+      <label>Reflux <select class="mct-rm"><option value="mult">A multiple of the minimum</option><option value="abs">A reflux ratio L/D</option><option value="total">Total reflux (minimum stages)</option></select></label>
+      <label class="mct-rl">Multiple of the minimum <input class="mct-r" inputmode="decimal" value="1.5" /></label>
+      <label>Feed rate (optional) <input class="mct-f" inputmode="decimal" value="100" /></label>
+      <label>Overall tray efficiency (%) <input class="mct-e" inputmode="decimal" value="70" /></label>
+    </div>
+    <p class="ax-help">q is the fraction of the feed that joins the liquid going down: 1 for a liquid at its boiling point, 0 for a vapour at its dew point, above 1 for a cold liquid, below 0 for a superheated vapour. Designers often use 1.2 to 1.5 times the minimum reflux.</p>
+    <p class="ax-err mct-err" hidden></p>
+  </div>
+
+  <div class="ax-card mct-out">
+    <h2>Stages</h2>
+    <p class="ax-big mct-big"></p>
+    <dl class="ax-facts mct-facts"></dl>
+    <canvas class="ax-fig mct-fig"></canvas>
+    <div class="ax-scroll"><table class="mct-tab"></table></div>
+    <p class="ax-help">Assumes constant molar overflow (equal molar heats of vaporisation), a total condenser and a partial reboiler counted as the last stage. Good for teaching and first sizing; a real design needs a rigorous simulator.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { alphaEq, dataEq, minReflux, fenske, gilliland, stepStages, flows, type Eq } from '../../lib/sci/mccabe';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, numericColumns } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.mct')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const f3 = (x: number) => (+x.toFixed(3)).toString();
+  const line = (l: { s: number; c: number }) => `${l.s.toFixed(4)} x ${l.c < 0 ? '−' : '+'} ${Math.abs(l.c).toFixed(4)}`;
+  let fig: Figure | null = null, report: Section[] = [];
+
+  function calc() {
+    const err = q('.mct-err'), out = q('.mct-out');
+    const fail = (m: string) => { err.textContent = m.replace(/([^.])$/, '$1.'); err.hidden = false; out.hidden = true; report = []; };
+    const mode = q<HTMLSelectElement>('.mct-mode').value;
+    q('.mct-al').hidden = mode !== 'alpha'; q('.mct-ahelp').hidden = mode !== 'alpha'; q('.mct-dbox').hidden = mode !== 'data';
+    const qs = q<HTMLSelectElement>('.mct-qs').value; q('.mct-ql').hidden = qs !== 'custom';
+    const rm = q<HTMLSelectElement>('.mct-rm').value; q('.mct-rl').hidden = rm === 'total';
+    q('.mct-rl').firstChild!.textContent = rm === 'mult' ? 'Multiple of the minimum ' : 'Reflux ratio L/D ';
+    let eq: Eq, alpha = NaN;
+    try {
+      if (mode === 'alpha') { alpha = val('.mct-a'); eq = alphaEq(alpha); }
+      else { const t = numericColumns(q<HTMLTextAreaElement>('.mct-data').value); if (t.cols.length < 2) throw new Error('Paste two columns: x and y'); eq = dataEq(t.cols[0], t.cols[1]); }
+    } catch (e) { return fail((e as Error).message); }
+    const xF = val('.mct-xf'), xD = val('.mct-xd'), xB = val('.mct-xb'), qv = qs === 'custom' ? val('.mct-q') : num(qs);
+    if (![xF, xD, xB].every((v) => v > 0 && v < 1)) return fail('Enter mole fractions between 0 and 1 (not equal to 0 or 1)');
+    if (!(xB < xF && xF < xD)) return fail('The bottoms must be leaner than the feed, and the feed leaner than the distillate');
+    if (!Number.isFinite(qv)) return fail('Enter a number for q');
+    if (eq.y(xD) <= xD || eq.y(xB) <= xB) return fail('The equilibrium curve is on or below y = x within your range: there is an azeotrope, so distillation cannot reach these purities');
+    let mr: ReturnType<typeof minReflux>;
+    try { mr = minReflux(eq, xF, xD, qv); } catch (e) { return fail((e as Error).message); }
+    const rv = val('.mct-r');
+    let R: number;
+    if (rm === 'total') R = Infinity;
+    else if (rm === 'mult') { if (!(rv > 1)) return fail('The multiple of the minimum reflux must be above 1'); R = rv * mr.Rmin; }
+    else { if (!(rv > 0)) return fail('Enter a reflux ratio above zero'); R = rv; if (R <= mr.Rmin) return fail(`A reflux ratio of ${rv} is at or below the minimum, ${mr.Rmin.toFixed(3)}: no number of stages would do the separation`); }
+    const spec = { xF, xD, xB, q: qv, R };
+    let st: ReturnType<typeof stepStages>, tot: ReturnType<typeof stepStages>;
+    try { st = stepStages(eq, spec); tot = stepStages(eq, { ...spec, R: Infinity }); } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; out.hidden = false;
+    const total = !Number.isFinite(R), Nmin = Number.isFinite(alpha) ? fenske(xD, xB, alpha) : tot.frac;
+    const E = val('.mct-e'), F = val('.mct-f');
+    q('.mct-big').textContent = total ? `${st.N} stages at total reflux (minimum: ${st.frac.toFixed(2)})` : `${st.N} theoretical stages (${st.frac.toFixed(2)} stepped), feed on stage ${st.feed}`;
+    const f: HTMLElement[] = [
+      fact('Minimum reflux ratio', mr.Rmin.toFixed(3), mr.tangent ? `tangent pinch at x = ${f3(mr.pinch[0])}: the curve touches the operating line above the feed` : `pinch where the q-line meets the curve, x = ${f3(mr.qPoint[0])}, y = ${f3(mr.qPoint[1])}`),
+    ];
+    if (!total) f.push(fact('Reflux ratio used', R.toFixed(3), `${(R / mr.Rmin).toFixed(2)} times the minimum`));
+    f.push(fact('Minimum stages (total reflux)', Nmin.toFixed(2), Number.isFinite(alpha) ? 'Fenske equation' : 'stepped against y = x'));
+    if (!total) f.push(fact('Gilliland estimate', `${gilliland(R, mr.Rmin, Nmin).toFixed(1)} stages`, 'a quick correlation; the stepped count is the better answer'));
+    if (E > 0 && E <= 100) { const trays = Math.ceil((st.frac - 1) / (E / 100) - 1e-9); f.push(fact('Real trays', `${trays}`, `${(st.frac - 1).toFixed(2)} theoretical trays above the reboiler, at ${E} % tray efficiency`)); }
+    if (!total) f.push(fact('Operating lines', `top y = ${line(st.rect)}; bottom y = ${line(st.strip)}`, `they meet the q-line at x = ${f3(st.intersect[0])}`));
+    if (F > 0 && !total) {
+      const fl = flows(F, spec);
+      f.push(fact('Distillate and bottoms', `D = ${+fl.D.toPrecision(4)}, B = ${+fl.B.toPrecision(4)}`, 'same unit as the feed rate'));
+      f.push(fact('Internal flows', `top: L ${+fl.L.toPrecision(4)}, V ${+fl.V.toPrecision(4)}; bottom: L′ ${+fl.Ls.toPrecision(4)}, V′ ${+fl.Vs.toPrecision(4)}`, 'liquid down and vapour up; reboiler boil-up is V′'));
+    }
+    q('.mct-facts').replaceChildren(...f);
+
+    const xs = Array.from({ length: 201 }, (_, i) => i / 200);
+    const series: Parameters<typeof chartFigure>[0]['series'] = [
+      { name: 'Equilibrium', x: xs, y: xs.map(eq.y), mode: 'line', width: 2.2 },
+      { name: 'y = x', x: [0, 1], y: [0, 1], mode: 'line', width: 1, dash: [3, 3], color: '#888888' },
+    ];
+    if (!total) {
+      const [xi, yi] = st.intersect;
+      series.push({ name: 'Operating lines', x: [xB, xi, xD], y: [xB, yi, xD], mode: 'line', width: 1.6 });
+      series.push({ name: 'q-line', x: [xF, xi], y: [xF, yi], mode: 'line', width: 1.4, dash: [6, 3] });
+    }
+    series.push({ name: 'Stages', x: st.path.map((p) => p[0]), y: st.path.map((p) => p[1]), mode: 'line', width: 1.2 });
+    const corners = st.stages.filter((_, i) => st.N <= 25 || i % Math.ceil(st.N / 20) === 0 || i === st.N - 1);
+    series.push({ name: '', x: corners.map((s) => s.x), y: corners.map((s) => s.y), mode: 'points', marker: 'none', labels: corners.map((s) => String(s.n)) });
+    fig = chartFigure({ h: 360, xMin: 0, xMax: 1, yMin: 0, yMax: 1, xLabel: 'x, light component in the liquid', yLabel: 'y, in the vapour', legend: 'below', series,
+      marks: [{ kind: 'vline', at: xB, dash: [2, 3], label: 'xB' }, { kind: 'vline', at: xD, dash: [2, 3], label: 'xD' }] }, `McCabe-Thiele diagram with ${st.N} stages`);
+    paint(q<HTMLCanvasElement>('.mct-fig'), fig);
+
+    const head = ['Stage', 'Liquid x', 'Vapour y', 'Section'];
+    const rows = st.stages.map((s) => [s.n === st.N ? `${s.n} (reboiler)` : String(s.n), s.x.toFixed(4), s.y.toFixed(4), total ? 'total reflux' : s.n === st.feed ? 'feed stage' : s.section === 'rect' ? 'rectifying' : 'stripping']);
+    const tab = q<HTMLTableElement>('.mct-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tab.createTBody(); rows.forEach((r) => { const tr = bd.insertRow(); r.forEach((c) => { tr.insertCell().textContent = c; }); });
+    report = [
+      { title: q('.mct-big').textContent!, facts: [...q('.mct-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig },
+      { title: 'Stage by stage', table: { head, rows, align: ['l', 'r', 'r', 'l'] } },
+    ];
+  }
+
+  root.querySelectorAll('input, select, textarea').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.mct-fig'), fig));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'McCabe-Thiele', subtitle: q('.mct-big').textContent ?? '', file: 'mccabe-thiele', sections: report }));
+</script>
+
+<style is:global>
+  .mct select { max-width: 100%; }
+  .mct textarea { width: 100%; }
+</style>

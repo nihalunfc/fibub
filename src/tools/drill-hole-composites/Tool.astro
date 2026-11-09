@@ -1,0 +1,176 @@
+---
+// Drill hole assay checks, composites, significant intercepts and strip logs. Example data made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+// Made-up example: three gold holes written by fibub (DDH-02 has 1 m of lost core at 20-21 m).
+const demo = 'hole\tfrom (m)\tto (m)\tAu (g/t)\tlithology\nDDH-01\t0\t4\t0.03\tOX\nDDH-01\t4\t8\t0.08\tOX\nDDH-01\t8\t10\t0.05\tSED\nDDH-01\t10\t12\t0.12\tSED\nDDH-01\t12\t14\t0.06\tSED\nDDH-01\t14\t16\t0.21\tSED\nDDH-01\t16\t18\t0.09\tSED\nDDH-01\t18\t20\t0.35\tSED\nDDH-01\t20\t21\t1.42\tQV\nDDH-01\t21\t22\t3.86\tQV\nDDH-01\t22\t23\t0.31\tQV\nDDH-01\t23\t24\t2.15\tQV\nDDH-01\t24\t25\t6.2\tQV\nDDH-01\t25\t26\t1.1\tQV\nDDH-01\t26\t28\t0.18\tSED\nDDH-01\t28\t30\t0.07\tSED\nDDH-01\t30\t32\t0.04\tMAF\nDDH-01\t32\t34\t0.02\tMAF\nDDH-01\t34\t36\t0.05\tMAF\nDDH-01\t36\t38\t0.03\tMAF\nDDH-02\t0\t3\t0.02\tOX\nDDH-02\t3\t6\t0.06\tOX\nDDH-02\t6\t8\t0.1\tSED\nDDH-02\t8\t10\t0.08\tSED\nDDH-02\t10\t12\t0.26\tSED\nDDH-02\t12\t13\t0.85\tQV\nDDH-02\t13\t14\t1.95\tQV\nDDH-02\t14\t15\t0.22\tQV\nDDH-02\t15\t16\t0.14\tQV\nDDH-02\t16\t17\t1.31\tQV\nDDH-02\t17\t18\t0.64\tSED\nDDH-02\t18\t20\t0.11\tSED\nDDH-02\t21\t23\t0.09\tSED\nDDH-02\t23\t25\t0.05\tMAF\nDDH-02\t25\t27\t0.03\tMAF\nDDH-02\t27\t30\t0.02\tMAF\nDDH-03\t0\t2\t0.01\tOX\nDDH-03\t2\t4\t0.04\tOX\nDDH-03\t4\t6\t0.07\tSED\nDDH-03\t6\t8\t0.15\tSED\nDDH-03\t8\t9\t0.48\tSED\nDDH-03\t9\t10\t2.7\tQV\nDDH-03\t10\t11\t11.4\tQV\nDDH-03\t11\t12\t4.05\tQV\nDDH-03\t12\t13\t0.72\tQV\nDDH-03\t13\t15\t0.2\tSED\nDDH-03\t15\t17\t0.09\tSED\nDDH-03\t17\t19\t0.06\tMAF\nDDH-03\t19\t22\t0.03\tMAF';
+---
+<div class="ax dhc">
+  <div class="ax-card">
+    <h2>Assay intervals</h2>
+    <label>Hole, from (m), to (m), grade, and optionally lithology <textarea class="dh-data" rows="8" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".dh-data" maxCols={6} maxRows={200000} label="Open a file" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Grade unit <select class="dh-unit"><option selected>g/t</option><option>%</option><option>ppm</option><option>ppb</option></select></label>
+      <label>Top cut (cap high grades; blank: none) <input class="dh-cap" type="text" inputmode="decimal" value="" placeholder="e.g. 10" /></label>
+    </div>
+    <p class="ax-help">Depths are measured along the hole. A top cut lowers any grade above it to the cap before anything else is worked out.</p>
+    <p class="ax-err dh-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Intercepts and composites</h2>
+    <div class="ax-grid">
+      <label>Cut-off grade <input class="dh-cut" type="text" inputmode="decimal" value="0.5" /></label>
+      <label>Most internal waste in a row (m) <input class="dh-dil" type="text" inputmode="decimal" value="2" /></label>
+      <label>Shortest intercept (m) <input class="dh-min" type="text" inputmode="decimal" value="2" /></label>
+      <label>"Including" cut-off (blank: none) <input class="dh-inc" type="text" inputmode="decimal" value="2" /></label>
+      <label>Composites <select class="dh-mode"><option value="len" selected>Fixed length</option><option value="lith">One per lithology run</option></select></label>
+      <label>Composite length (m) <input class="dh-len" type="text" inputmode="decimal" value="2" /></label>
+      <label>Short last piece <select class="dh-rule"><option value="half" selected>Keep if at least half length, else add to the one above</option><option value="merge">Always add to the one above</option><option value="keep">Keep it as it is</option><option value="drop">Drop it</option><option value="equal">Share the hole into equal lengths</option></select></label>
+      <label>Least sampled length in a composite (%) <input class="dh-cov" type="text" inputmode="decimal" value="50" /></label>
+    </div>
+  </div>
+
+  <div class="ax-card dh-out">
+    <h2>Results</h2>
+    <p class="ax-big dh-big"></p>
+    <dl class="ax-facts dh-facts"></dl>
+    <ul class="dh-int"></ul>
+    <label>Strip log <select class="dh-hole"></select></label>
+    <canvas class="ax-fig dh-fig"></canvas>
+    <h3>Composites</h3>
+    <div class="ax-scroll dh-scroll"><table class="dh-tab"></table></div>
+    <p class="ax-help">Lengths are down-hole, not true widths. Unsampled core is left out of composite grades and counted as waste at zero grade inside intercepts.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { byHole, validate, clean, composites, lithComposites, intercepts, fmtIntercept, type Interval, type Composite, type Intercept } from '../../lib/sci/drillhole';
+  import { paint, wireDownloads, type Figure, type Palette, type Section } from '../../lib/report';
+  import { num, parseTable, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.dhc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const m1 = (x: number) => x.toFixed(1);
+  const MAXPLOT = 8;
+  // Rock colours kept apart from the grade (blue), composite (orange) and intercept (red) colours.
+  const LITH = ['#56B4E9', '#009E73', '#CC79A7', '#999999', '#8C6D31', '#F0E442'];
+  const lithColours = (pal: Palette) => (pal.red ? ['#a30000', '#5a0000', '#c00000', '#300000', '#7a0000', '#1c0000'] : LITH);
+  let fig: Figure | null = null, report: Section[] = [], holeKey = '';
+
+  function calc() {
+    const err = q('.dh-err'), out = q('.dh-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const rows = parseTable(q<HTMLTextAreaElement>('.dh-data').value).filter((r) => r.length >= 4 && [1, 2, 3].every((k) => Number.isFinite(num(r[k]))));
+    if (!rows.length) return fail('Paste one row per sample: hole, from, to, grade, and optionally lithology.');
+    const cap = val('.dh-cap'), unit = q<HTMLSelectElement>('.dh-unit').value;
+    const ints: Interval[] = rows.map((r) => { const g = num(r[3]); return { hole: r[0] || '?', from: num(r[1]), to: num(r[2]), g: cap > 0 ? Math.min(g, cap) : g, lith: (r[4] ?? '').trim() || undefined }; });
+    const neg = ints.filter((i) => i.g < 0).length;
+    const capped = cap > 0 ? rows.filter((r) => num(r[3]) > cap).length : 0;
+    const cut = val('.dh-cut'), dil = val('.dh-dil'), minL = val('.dh-min'), inc = val('.dh-inc'), len = val('.dh-len'), cov = val('.dh-cov') / 100;
+    if (!(cut > 0 && dil >= 0 && minL >= 0)) return fail('Give a cut-off grade above zero, and internal waste and shortest intercept of zero or more metres.');
+    const mode = q<HTMLSelectElement>('.dh-mode').value, rule = q<HTMLSelectElement>('.dh-rule').value as 'half';
+    if (mode === 'len' && !(len > 0)) return fail('Give a composite length above zero.');
+    if (!(cov >= 0 && cov <= 1)) return fail('The least sampled length is a percentage from 0 to 100.');
+    q<HTMLSelectElement>('.dh-rule').disabled = q<HTMLInputElement>('.dh-len').disabled = mode !== 'len';
+    err.hidden = true; out.hidden = false;
+    const holes = byHole(ints), issues = validate(ints);
+    const res: { hole: string; v: Interval[]; ix: Intercept[]; inc: Intercept[]; comp: Composite[] }[] = [];
+    for (const [hole, raw] of holes) {
+      const v = clean(raw);
+      if (!v.length) continue;
+      const ix = intercepts(v, cut, dil, minL);
+      const sub = inc > cut ? intercepts(v, inc, dil, Math.min(minL, 1)).filter((s) => ix.some((x) => s.from >= x.from - 1e-9 && s.to <= x.to + 1e-9)) : [];
+      res.push({ hole, v, ix, inc: sub, comp: mode === 'len' ? composites(v, len, rule, cov) : lithComposites(v) });
+    }
+    if (!res.length) return fail('No sample has a "to" depth below its "from" depth.');
+    const allIx = res.flatMap((r) => r.ix), best = allIx.slice().sort((a, b) => b.gxm - a.gxm)[0];
+    const dp = unit === '%' ? 2 : unit === 'ppb' ? 0 : 2;
+    q('.dh-big').textContent = `${res.length} hole${res.length > 1 ? 's' : ''}, ${ints.length} samples; ` + (best ? `best intercept ${fmtIntercept(best, unit, dp)} (${best.hole})` : `no intercept at ${sig(cut, 3)} ${unit}`);
+    const word = { gap: 'gap', overlap: 'overlap', bad: 'from not above to' } as const;
+    const issueTxt = issues.slice(0, 6).map((i) => `${i.hole} ${word[i.kind]} ${m1(i.from)}–${m1(i.to)} m`).join('; ') + (issues.length > 6 ? `; and ${issues.length - 6} more` : '');
+    const metres = res.reduce((s, r) => s + r.v.reduce((a, i) => a + i.to - i.from, 0), 0);
+    const f = [
+      fact('Checks', issues.length ? `${issues.length} to look at` : 'No gaps, overlaps or bad rows', issues.length ? `${issueTxt}. Gaps are treated as unsampled; overlapping samples are trimmed to start where the one above ends; bad rows are skipped.` : ''),
+      fact('Sampled', `${m1(metres)} m`, `${capped ? `${capped} grades capped at ${sig(cap, 3)} ${unit}` : 'no top cut'}${neg ? `; ${neg} negative grades (below detection?) used as given` : ''}`),
+      fact('Intercepts', `${allIx.length} at ${sig(cut, 3)} ${unit}`, `at most ${sig(dil, 3)} m of internal waste in a row, at least ${sig(minL, 3)} m long${inc > cut ? `; "including" at ${sig(inc, 3)} ${unit}` : ''}`),
+      fact('Composites', mode === 'len' ? `${sig(len, 3)} m` : 'by lithology', `${res.reduce((s, r) => s + r.comp.length, 0)} in all`),
+    ];
+    q('.dh-facts').replaceChildren(...f);
+    const lines: string[] = [];
+    const ul = q('.dh-int'); ul.replaceChildren();
+    for (const r of res) {
+      const li = document.createElement('li'), b = document.createElement('strong'); b.textContent = `${r.hole}: `; li.append(b);
+      const txt = r.ix.length ? r.ix.map((x) => { const sub = r.inc.filter((s) => s.from >= x.from - 1e-9 && s.to <= x.to + 1e-9); return fmtIntercept(x, unit, dp) + (sub.length ? `, including ${sub.map((s) => fmtIntercept(s, unit, dp)).join(' and ')}` : ''); }).join('; ') : 'no significant intercept';
+      li.append(txt); ul.append(li); lines.push(`${r.hole}: ${txt}`);
+    }
+    // Strip log picker.
+    const hs = q<HTMLSelectElement>('.dh-hole'), key = res.map((r) => r.hole).join('|');
+    if (key !== holeKey) { const keep = hs.value; hs.replaceChildren(); const o = document.createElement('option'); o.value = ''; o.textContent = res.length > MAXPLOT ? `First ${MAXPLOT} holes` : 'All holes'; hs.append(o); res.forEach((r) => { const e = document.createElement('option'); e.value = r.hole; e.textContent = r.hole; hs.append(e); }); hs.value = res.some((r) => r.hole === keep) ? keep : ''; holeKey = key; }
+    const show = hs.value ? res.filter((r) => r.hole === hs.value) : res.slice(0, MAXPLOT);
+    const liths = [...new Set(res.flatMap((r) => r.v.map((i) => i.lith ?? '')).filter(Boolean))];
+    const gTop = Math.max(cut * 2, ...show.flatMap((r) => r.v.map((i) => i.g)));
+    const dMin = Math.min(...show.map((r) => r.v[0].from)), dMax = Math.max(...show.map((r) => r.v[r.v.length - 1].to));
+    const legendRows = Math.ceil(liths.length / 4);
+    fig = { w: 380, h: 420 + legendRows * 14, alt: `Strip log of ${show.map((r) => r.hole).join(', ')}: lithology column, sample grades, composites and intercepts down the hole`, draw: (ctx, W, H, pal) => {
+      const l = 34, r = 6, t = 26, b = 34 + legendRows * 14, pw = W - l - r, ph = H - t - b, cw = pw / show.length;
+      const Y = (d: number) => t + ((d - dMin) / (dMax - dMin || 1)) * ph, cols = lithColours(pal);
+      ctx.font = '9px system-ui, sans-serif'; ctx.strokeStyle = pal.grid; ctx.lineWidth = 0.7;
+      const span = dMax - dMin, st = [1, 2, 5, 10, 20, 50, 100, 200, 500].find((s) => span / s <= 10) ?? 1000;
+      for (let d = Math.ceil(dMin / st) * st; d <= dMax + 1e-9; d += st) { ctx.beginPath(); ctx.moveTo(l, Y(d)); ctx.lineTo(W - r, Y(d)); ctx.stroke(); ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(String(d), l - 4, Y(d)); }
+      ctx.save(); ctx.translate(10, t + ph / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = pal.muted; ctx.fillText('Depth down the hole (m)', 0, 0); ctx.restore();
+      show.forEach((h, k) => {
+        const x0 = l + k * cw + 3, lw = Math.min(14, cw * 0.22), gx = x0 + lw + 6, gw = cw - lw - 12;
+        ctx.fillStyle = pal.ink; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(h.hole, x0, t - 10);
+        for (const i of h.v) { const li = liths.indexOf(i.lith ?? ''); ctx.fillStyle = li >= 0 ? cols[li % cols.length] : pal.grid; ctx.fillRect(x0, Y(i.from), lw, Math.max(0.5, Y(i.to) - Y(i.from))); }
+        ctx.strokeStyle = pal.line; ctx.lineWidth = 0.7; ctx.strokeRect(x0, Y(h.v[0].from), lw, Y(h.v[h.v.length - 1].to) - Y(h.v[0].from));
+        for (const i of h.v) { ctx.fillStyle = i.g >= cut ? pal.accent : pal.line; ctx.fillRect(gx, Y(i.from), Math.max(0, (Math.max(0, i.g) / gTop) * gw), Math.max(0.5, Y(i.to) - Y(i.from) - 0.4)); }
+        ctx.strokeStyle = pal.accent2; ctx.lineWidth = 1.5; ctx.setLineDash(pal.red ? [4, 2] : []);
+        for (const c of h.comp) { const xx = gx + (Math.max(0, c.g) / gTop) * gw; ctx.beginPath(); ctx.moveTo(xx, Y(c.from)); ctx.lineTo(xx, Y(c.to)); ctx.stroke(); }
+        ctx.setLineDash([]);
+        ctx.strokeStyle = pal.bad; ctx.lineWidth = 3; for (const x of h.ix) { ctx.beginPath(); ctx.moveTo(x0 + lw + 2.5, Y(x.from)); ctx.lineTo(x0 + lw + 2.5, Y(x.to)); ctx.stroke(); }
+        ctx.strokeStyle = pal.muted; ctx.lineWidth = 0.7; ctx.setLineDash([2, 2]); const cx = gx + (cut / gTop) * gw; ctx.beginPath(); ctx.moveTo(cx, t); ctx.lineTo(cx, t + ph); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = pal.muted; ctx.font = '8px system-ui, sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText(sig(gTop, 2), gx + gw, t - 1); ctx.textAlign = 'left'; ctx.fillText('0', gx, t - 1);
+      });
+      ctx.font = '9px system-ui, sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+      const ly = H - b + 12;
+      const key: [string, string][] = [[pal.bad, 'intercept'], [pal.accent, `≥ cut-off`], [pal.accent2, 'composite']];
+      key.forEach(([c, s], k) => { const xx = l + k * 96; ctx.fillStyle = c; ctx.fillRect(xx, ly - 4, 12, 8); ctx.fillStyle = pal.ink; ctx.fillText(s, xx + 16, ly); });
+      liths.forEach((s, k) => { const xx = l + (k % 4) * 82, yy = ly + 16 + Math.floor(k / 4) * 14; ctx.fillStyle = cols[k % cols.length]; ctx.fillRect(xx, yy - 4, 12, 8); ctx.fillStyle = pal.ink; ctx.fillText(s.length > 12 ? s.slice(0, 11) + '…' : s, xx + 16, yy); });
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.fillText(`grade (${unit})`, W - r, ly);
+    } };
+    paint(q<HTMLCanvasElement>('.dh-fig'), fig);
+    const head = ['Hole', 'From (m)', 'To (m)', 'Length (m)', `Grade (${unit})`, 'Sampled'].concat(mode === 'lith' ? ['Lithology'] : []);
+    const all = res.flatMap((r) => r.comp), shown = all.slice(0, 500);
+    const rowsT = shown.map((c) => [c.hole, sig(c.from, 4), sig(c.to, 4), sig(c.len, 3), sig(c.g, 3), `${Math.round((100 * c.sampled) / c.len)} %`].concat(mode === 'lith' ? [c.lith || '–'] : []));
+    const tab = q<HTMLTableElement>('.dh-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tab.createTBody(); rowsT.forEach((r) => { const tr = bd.insertRow(); r.forEach((c) => { tr.insertCell().textContent = c; }); });
+    if (all.length > shown.length) { const tr = bd.insertRow(), td = tr.insertCell(); td.colSpan = head.length; td.textContent = `${all.length - shown.length} more in the downloads`; }
+    const allRows = all.map((c) => [c.hole, sig(c.from, 4), sig(c.to, 4), sig(c.len, 3), sig(c.g, 3), `${Math.round((100 * c.sampled) / c.len)} %`].concat(mode === 'lith' ? [c.lith || '–'] : []));
+    report = [
+      { title: q('.dh-big').textContent!, facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]).concat(lines.map((s) => { const i = s.indexOf(': '); return [s.slice(0, i), s.slice(i + 2)] as [string, string]; })), figure: fig },
+      { title: 'Composites', table: { head, rows: allRows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'l'] } },
+    ];
+  }
+
+  root.querySelectorAll('input, textarea, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => fig && !q('.dh-out').hidden && paint(q<HTMLCanvasElement>('.dh-fig'), fig));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Drill hole composites', subtitle: q('.dh-big').textContent ?? '', file: 'drill-hole-composites', sections: report }));
+</script>
+
+<style is:global>
+  .dhc select, .dhc input { max-width: 100%; }
+  .dhc textarea { width: 100%; }
+  .dhc .dh-int { padding-left: 1.1em; margin: 8px 0 12px; }
+  .dhc .dh-int li { margin: 3px 0; overflow-wrap: anywhere; }
+  .dhc h3 { margin: 14px 0 6px; font-size: 1rem; }
+  .dhc .dh-tab td:first-child { white-space: nowrap; }
+  .dhc .dh-scroll { max-height: 420px; overflow-y: auto; }
+</style>

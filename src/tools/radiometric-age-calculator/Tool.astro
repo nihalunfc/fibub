@@ -1,0 +1,193 @@
+---
+// Radiometric ages: ratio ages (any system, K-Ar, Ar-Ar), York isochrons with MSWD, and U-Pb ages with concordance.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { SYSTEMS } from '../../lib/sci/geochron';
+// Made-up Rb-Sr whole-rock data (about 1.25 Ga, initial 0.7035), written by fibub for the example.
+const demo = 'x\tsx\ty\tsy\n0.4213\t0.0021\t0.711008\t0.00002\n1.1454\t0.0057\t0.724105\t0.00002\n2.0831\t0.0104\t0.740772\t0.00002\n3.3751\t0.0168\t0.763664\t0.00002\n4.6982\t0.0236\t0.787853\t0.00002\n6.014\t0.0301\t0.811291\t0.00002\n7.8657\t0.0393\t0.844093\t0.00002';
+const sysOpts = SYSTEMS.map((s) => ({ v: s.id, t: `${s.name}: ${s.parent} → ${s.daughter}` }));
+---
+<div class="ax ra">
+  <div class="ax-card">
+    <h2>Age from a ratio</h2>
+    <div class="ax-grid">
+      <label>Method <select class="ra-m"><option value="pd">Daughter / parent ratio</option><option value="kar">K-Ar</option><option value="arar">⁴⁰Ar/³⁹Ar</option></select></label>
+      <label class="ra-pd">Decay system <select class="ra-sys">{sysOpts.map((o) => <option value={o.v}>{o.t}</option>)}</select></label>
+      <label class="ra-pd">Decay constant λ (per year) <input class="ra-l" inputmode="decimal" value="1.42e-11" /></label>
+      <label class="ra-pd">Radiogenic daughter / parent (atoms) <input class="ra-r" inputmode="decimal" value="0.05" /></label>
+      <label class="ra-pd">± 1σ (optional) <input class="ra-rs" inputmode="decimal" value="0.0005" /></label>
+      <label class="ra-kar" hidden>Potassium (wt %) <input class="ra-k" inputmode="decimal" value="2.5" /></label>
+      <label class="ra-kar" hidden>Radiogenic ⁴⁰Ar (mol/g) <input class="ra-ar" inputmode="decimal" value="4.0e-10" /></label>
+      <label class="ra-arar" hidden>Standard age (Ma) <input class="ra-ts" inputmode="decimal" value="28.2" /></label>
+      <label class="ra-arar" hidden>Standard ⁴⁰Ar*/³⁹Ar <input class="ra-rstd" inputmode="decimal" value="12.0" /></label>
+      <label class="ra-arar" hidden>J ± 1σ, % (optional) <input class="ra-js" inputmode="decimal" value="0.2" /></label>
+      <label class="ra-arar" hidden>Sample ⁴⁰Ar*/³⁹Ar <input class="ra-rx" inputmode="decimal" value="30" /></label>
+      <label class="ra-arar" hidden>± 1σ (optional) <input class="ra-rxs" inputmode="decimal" value="0.05" /></label>
+    </div>
+    <p class="ax-help ra-help"></p>
+    <p class="ax-err ra-err1" hidden></p>
+    <p class="ax-big ra-big1"></p>
+    <dl class="ax-facts ra-f1"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Isochron</h2>
+    <div class="ax-grid">
+      <label>Decay system <select class="ra-isys">{sysOpts.map((o) => <option value={o.v}>{o.t}</option>)}</select></label>
+      <label>Errors are <select class="ra-et"><option value="abs">absolute, 1σ</option><option value="pct">percent, 1σ</option><option value="abs2">absolute, 2σ</option></select></label>
+    </div>
+    <label>x, σx, y, σy and optional error correlation r, one row per sample <textarea class="ra-data" rows="8" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".ra-data" maxCols={5} label="Open a file (4 or 5 columns)" />
+    <p class="ax-help ra-ihelp"></p>
+    <p class="ax-err ra-err2" hidden></p>
+    <div class="ra-iout">
+      <p class="ax-big ra-big2"></p>
+      <dl class="ax-facts ra-f2"></dl>
+      <canvas class="ax-fig ra-fig"></canvas>
+      <p class="ax-help">Error bars show 2σ. The example data are made up for illustration.</p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>U-Pb ages and concordance</h2>
+    <div class="ax-grid">
+      <label>²⁰⁶Pb*/²³⁸U <input class="ra-68" inputmode="decimal" value="0.30" /></label>
+      <label>± 1σ <input class="ra-68s" inputmode="decimal" value="0.0015" /></label>
+      <label>²⁰⁷Pb*/²³⁵U <input class="ra-75" inputmode="decimal" value="4.80" /></label>
+      <label>± 1σ <input class="ra-75s" inputmode="decimal" value="0.03" /></label>
+    </div>
+    <p class="ax-help">Use radiogenic ratios, corrected for common lead. The 207/206 error here treats the two ratio errors as independent, so it is a little too large for real data, where they are correlated.</p>
+    <p class="ax-err ra-err3" hidden></p>
+    <p class="ax-big ra-big3"></p>
+    <dl class="ax-facts ra-f3"></dl>
+    <canvas class="ax-fig ra-cfig"></canvas>
+    <p class="ax-help">Decay constants: the conventional values (²³⁸U and ²³⁵U from Jaffey and others, 1971; ⁴⁰K from Steiger and Jäger, 1977) and ²³⁸U/²³⁵U = 137.818. Labs differ on some of these, so check which your reference uses.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { SYSTEMS, K40, ageFromRatio, kArAge, k40PerGram, jFromStandard, arArAge, york, isochronAge, uPbAges, concordia, fmtAge, type Pt } from '../../lib/sci/geochron';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.ra')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const opt = (c: string) => { const s = q<HTMLInputElement>(c).value.trim(); return s ? num(s) : 0; };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factsOf = (sel: string) => [...q(sel).children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  const sys = (id: string) => SYSTEMS.find((s) => s.id === id)!;
+  let fig: Figure | null = null, cfig: Figure | null = null;
+
+  function one() {
+    const m = q<HTMLSelectElement>('.ra-m').value;
+    root.querySelectorAll<HTMLElement>('.ra-pd').forEach((e) => (e.hidden = m !== 'pd'));
+    root.querySelectorAll<HTMLElement>('.ra-kar').forEach((e) => (e.hidden = m !== 'kar'));
+    root.querySelectorAll<HTMLElement>('.ra-arar').forEach((e) => (e.hidden = m !== 'arar'));
+    const err = q('.ra-err1'), big = q('.ra-big1'), out = q('.ra-f1');
+    const fail = (s: string) => { err.textContent = s; err.hidden = false; big.textContent = ''; out.replaceChildren(); };
+    const s = sys(q<HTMLSelectElement>('.ra-sys').value);
+    q('.ra-help').textContent = m === 'pd' ? `t = ln(1 + D*/P) / λ. D* is the radiogenic ${s.daughter} (total minus what was there at the start) and P the ${s.parent} left today, both in atoms.${s.note ? ` λ: ${s.note}.` : ''}`
+      : m === 'kar' ? 't = ln(1 + (λ/λe) × ⁴⁰Ar*/⁴⁰K) / λ. Only about 10.5 % of ⁴⁰K decays to ⁴⁰Ar; the rest becomes ⁴⁰Ca. ⁴⁰K is 0.01167 % of all potassium atoms.'
+      : 't = ln(1 + J × ⁴⁰Ar*/³⁹Ar) / λ. J measures how much neutron dose the sample got; it comes from a standard of known age irradiated with it.';
+    try {
+      if (m === 'pd') {
+        const lam = val('.ra-l'), R = val('.ra-r'), sR = opt('.ra-rs');
+        if (!(lam > 0)) return fail('Enter a decay constant above zero, such as 1.42e-11.');
+        if (!(R >= 0) || !(sR >= 0)) return fail('Enter a ratio of zero or more and an error of zero or more.');
+        const a = ageFromRatio(R, lam, sR);
+        big.textContent = `Age: ${fmtAge(a.t, a.s)}`;
+        out.replaceChildren(fact('Half-life', fmtAge(Math.LN2 / lam), `of ${s.parent}, from λ`), fact('Fraction of the parent left', `${(100 / (1 + R)).toFixed(3)} %`, 'of what the rock started with'));
+      } else if (m === 'kar') {
+        const K = val('.ra-k'), Ar = val('.ra-ar');
+        if (!(K > 0 && K <= 100) || !(Ar >= 0)) return fail('Enter potassium between 0 and 100 wt % and an argon amount of zero or more.');
+        const n40 = k40PerGram(K), R = (Ar * 6.02214076e23) / n40, a = kArAge(R);
+        big.textContent = `K-Ar age: ${fmtAge(a.t)}`;
+        out.replaceChildren(fact('⁴⁰K in the sample', `${n40.toExponential(3)} atoms/g`), fact('⁴⁰Ar*/⁴⁰K', R.toExponential(4)), fact('Decay constants', `λ = ${K40.lambda} /yr, λe = ${K40.lambdaE} /yr`, 'Steiger and Jäger (1977)'));
+      } else {
+        const ts = val('.ra-ts') * 1e6, Rs = val('.ra-rstd'), Js = opt('.ra-js'), R = val('.ra-rx'), sR = opt('.ra-rxs');
+        if (!(ts > 0 && Rs > 0 && R > 0)) return fail('Enter the standard age, the standard ratio and the sample ratio, all above zero.');
+        const J = jFromStandard(ts, Rs), a = arArAge(J, R, sR, (J * Js) / 100);
+        big.textContent = `⁴⁰Ar/³⁹Ar age: ${fmtAge(a.t, a.s)}`;
+        out.replaceChildren(fact('J factor', J.toExponential(5), `from a ${val('.ra-ts')} Ma standard; use the age your lab assigns to it`));
+      }
+      err.hidden = true;
+    } catch (e) { fail((e as Error).message); }
+  }
+
+  function iso() {
+    const s = sys(q<HTMLSelectElement>('.ra-isys').value), et = q<HTMLSelectElement>('.ra-et').value;
+    q('.ra-ihelp').textContent = `Columns: ${s.x}, its error, ${s.y}, its error, and (optional) r, the correlation of the two errors. The slope gives the age and the intercept the initial ${s.y}.`;
+    const err = q('.ra-err2'), out = q('.ra-iout');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; };
+    const rows = parseTable(q<HTMLTextAreaElement>('.ra-data').value).map((r) => r.map(num)).filter((r) => r.length >= 4 && r.slice(0, 4).every(Number.isFinite));
+    if (rows.length < 3) return fail('Paste at least three rows of x, σx, y, σy (numbers).');
+    const k = et === 'abs2' ? 0.5 : 1;
+    const pts: Pt[] = rows.map((r) => ({ x: r[0], sx: et === 'pct' ? (r[1] / 100) * r[0] : r[1] * k, y: r[2], sy: et === 'pct' ? (r[3] / 100) * r[2] : r[3] * k, r: Number.isFinite(r[4]) ? r[4] : 0 }));
+    if (pts.some((p) => !(p.sx > 0 && p.sy > 0))) return fail('Every error must be above zero.');
+    if (pts.some((p) => !(Math.abs(p.r!) < 1))) return fail('The error correlation r must be between −1 and 1.');
+    let f: ReturnType<typeof york>;
+    try { f = york(pts); } catch (e) { return fail((e as Error).message); }
+    if (!(f.b > -1)) return fail('The slope is −1 or less, which gives no age; check the columns.');
+    err.hidden = true; out.hidden = false;
+    const a = isochronAge(f, s.lambda), scaled = f.mswd > 1;
+    q('.ra-big2').textContent = `Isochron age: ${fmtAge(a.t, scaled ? a.sScaled : a.s)}${f.b < 0 ? ' (negative slope: no meaningful age)' : ''}`;
+    const dec = Math.max(4, 1 - Math.floor(Math.log10(scaled ? a.sInitialScaled : a.sInitial)));
+    q('.ra-f2').replaceChildren(
+      fact(`Initial ${s.y}`, `${a.initial.toFixed(dec)} ± ${(scaled ? a.sInitialScaled : a.sInitial).toFixed(dec)}`, 'the intercept: the ratio when the samples formed'),
+      fact('Slope', `${f.b.toPrecision(6)} ± ${(scaled ? f.sb * Math.sqrt(f.mswd) : f.sb).toPrecision(2)}`, `with λ = ${s.lambda} per year`),
+      fact('MSWD', `${f.mswd.toFixed(2)} (${rows.length} points)`, f.p < 0.05 ? `probability of fit ${f.p.toFixed(3)}: more scatter than the errors explain, so the errors above are scaled by √MSWD (an errorchron)` : `probability of fit ${f.p.toFixed(2)}: the scatter matches the errors`),
+      fact('Errors', '1σ', scaled ? 'scaled by √MSWD because MSWD is above 1' : 'from the analytical errors alone'),
+    );
+    const xs = pts.map((p) => p.x), lo = Math.min(0, ...xs), hi = Math.max(...xs) * 1.05;
+    fig = chartFigure({ h: 300, xLabel: s.x, yLabel: s.y, legend: 'none',
+      series: [{ name: 'Fit', x: [lo, hi], y: [f.a + f.b * lo, f.a + f.b * hi], mode: 'line', width: 2 }, { name: 'Samples', x: xs, y: pts.map((p) => p.y), xErr: pts.map((p) => 2 * p.sx), yErr: pts.map((p) => 2 * p.sy), mode: 'points', size: 4 }] }, `${s.name} isochron`);
+    paint(q<HTMLCanvasElement>('.ra-fig'), fig);
+  }
+
+  function upb() {
+    const err = q('.ra-err3'), big = q('.ra-big3'), out = q('.ra-f3');
+    const r68 = val('.ra-68'), r75 = val('.ra-75'), s68 = opt('.ra-68s'), s75 = opt('.ra-75s');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; big.textContent = ''; out.replaceChildren(); cfig = null; q('.ra-cfig').hidden = true; };
+    if (!(r68 > 0 && r75 > 0) || !(s68 >= 0 && s75 >= 0)) return fail('Enter both ratios above zero and errors of zero or more.');
+    let u: ReturnType<typeof uPbAges>;
+    try { u = uPbAges(r68, r75, s68, s75); } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; q('.ra-cfig').hidden = false;
+    const disc = (1 - u.concordance) * 100;
+    big.textContent = `²⁰⁷Pb/²⁰⁶Pb age ${fmtAge(u.t76, u.s76)}; ${Math.abs(disc) < 1 ? 'concordant' : `${Math.abs(disc).toFixed(1)} % ${disc > 0 ? 'discordant' : 'reverse discordant'}`}`;
+    out.replaceChildren(
+      fact('²⁰⁶Pb/²³⁸U age', fmtAge(u.t68, u.s68)), fact('²⁰⁷Pb/²³⁵U age', fmtAge(u.t75, u.s75)),
+      fact('²⁰⁷Pb*/²⁰⁶Pb*', u.r76.toFixed(5), 'from the two ratios and ²³⁸U/²³⁵U'),
+      fact('Concordance', `${(u.concordance * 100).toFixed(1)} %`, '²⁰⁶Pb/²³⁸U age ÷ ²⁰⁷Pb/²⁰⁶Pb age; below 100 % usually means lead loss'),
+    );
+    const tMax = Math.max(u.t68, u.t75, u.t76) * 1.25, ts = Array.from({ length: 121 }, (_, i) => (tMax * i) / 120);
+    const step = tMax > 2e9 ? 5e8 : tMax > 5e8 ? 1e8 : 2e7, ticks: number[] = []; for (let t = step; t < tMax; t += step) ticks.push(t);
+    cfig = chartFigure({ h: 300, xLabel: '²⁰⁷Pb*/²³⁵U', yLabel: '²⁰⁶Pb*/²³⁸U', legend: 'none',
+      series: [{ name: 'Concordia', x: ts.map((t) => concordia(t)[0]), y: ts.map((t) => concordia(t)[1]), mode: 'line', width: 2 },
+        { name: 'Ages', x: ticks.map((t) => concordia(t)[0]), y: ticks.map((t) => concordia(t)[1]), mode: 'points', marker: 'open-circle', size: 3.5, labels: ticks.map((t) => `${t / 1e6} Ma`) },
+        { name: 'Sample', x: [r75], y: [r68], xErr: [2 * s75], yErr: [2 * s68], mode: 'points', size: 5 }] }, 'Wetherill concordia with the sample');
+    paint(q<HTMLCanvasElement>('.ra-cfig'), cfig);
+  }
+
+  q('.ra-sys').addEventListener('change', () => { q<HTMLInputElement>('.ra-l').value = String(sys(q<HTMLSelectElement>('.ra-sys').value).lambda); one(); });
+  root.querySelectorAll('.ra-m, .ra-l, .ra-r, .ra-rs, .ra-k, .ra-ar, .ra-ts, .ra-rstd, .ra-js, .ra-rx, .ra-rxs').forEach((i) => { i.addEventListener('input', one); i.addEventListener('change', one); });
+  root.querySelectorAll('.ra-isys, .ra-et, .ra-data').forEach((i) => { i.addEventListener('input', iso); i.addEventListener('change', iso); });
+  root.querySelectorAll('.ra-68, .ra-68s, .ra-75, .ra-75s').forEach((i) => i.addEventListener('input', upb));
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.ra-fig'), fig); if (cfig) paint(q<HTMLCanvasElement>('.ra-cfig'), cfig); });
+  one(); iso(); upb();
+  wireDownloads(q('.dl'), () => {
+    const sec: Section[] = [];
+    if (q('.ra-big1').textContent) sec.push({ title: q('.ra-big1').textContent!, facts: factsOf('.ra-f1') });
+    if (!q('.ra-iout').hidden && fig) sec.push({ title: q('.ra-big2').textContent!, facts: factsOf('.ra-f2'), figure: fig });
+    if (q('.ra-big3').textContent && cfig) sec.push({ title: q('.ra-big3').textContent!, facts: factsOf('.ra-f3'), figure: cfig });
+    return { title: 'Radiometric ages', subtitle: q('.ra-big2').textContent ?? '', file: 'radiometric-age', sections: sec };
+  });
+</script>
+
+<style is:global>
+  .ra select { max-width: 100%; }
+  .ra textarea { width: 100%; }
+</style>
