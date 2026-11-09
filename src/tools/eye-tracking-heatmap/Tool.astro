@@ -1,0 +1,298 @@
+---
+// Eye-tracking heat map: fixations from raw gaze (I-VT or I-DT), a Gaussian heat map over an optional stimulus
+// picture, the scanpath and area-of-interest measures. The example recording is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import raw from '../../../tests/fixtures/eye-tracking-heatmap.csv?raw';
+const example = raw.trim();
+---
+<div class="ax et">
+  <div class="ax-card">
+    <h2>Gaze data</h2>
+    <label>Paste or open the export from your eye tracker: one row per sample with time, x and y (a header row helps the tool find the columns). For fixations, add a duration column.
+      <textarea class="et-data" rows="8" spellcheck="false" wrap="off">{example}</textarea></label>
+    <DataFile target=".et-data" maxMB={30} maxCols={40} maxRows={500000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>The rows are <select class="et-kind"><option value="raw" selected>Raw gaze samples</option><option value="fix">Fixations (x, y, start, duration)</option></select></label>
+      <label>Time unit <select class="et-tu"><option value="1" selected>Milliseconds</option><option value="1000">Seconds</option><option value="0.001">Microseconds</option></select></label>
+      <label>Coordinates <select class="et-cu"><option value="px" selected>Pixels</option><option value="norm">0 to 1 of the screen</option></select></label>
+    </div>
+    <div class="et-det">
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Fixation method <select class="et-meth"><option value="ivt" selected>I-VT (velocity)</option><option value="idt">I-DT (dispersion)</option></select></label>
+        <label class="et-vt">Speed limit (px/s) <input class="et-v" inputmode="decimal" value="1000" /></label>
+        <label class="et-dt" hidden>Dispersion limit (px) <input class="et-d" inputmode="decimal" value="40" /></label>
+        <label>Shortest fixation (ms) <input class="et-min" inputmode="decimal" value="60" /></label>
+      </div>
+      <p class="ax-help">I-VT calls a sample part of a fixation when the eye moves slower than the speed limit. I-DT calls a window of samples a fixation when it lasts the shortest fixation time and its spread (x range + y range) stays within the dispersion limit. To turn degrees into pixels, multiply by your pixels per degree: 30 °/s at 35 px per degree is about 1,050 px/s. Rows with blank or non-number cells are skipped; a gap of more than 100 ms ends a fixation.</p>
+    </div>
+    <p class="ax-err et-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Picture and areas of interest</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small et-img-b">Open the stimulus picture</button>
+      <input type="file" class="et-img" accept="image/*" hidden />
+      <button type="button" class="btn secondary small et-img-x" hidden>Remove picture</button>
+      <span class="ax-help et-img-n" style="margin:0">Optional. The picture stays on your device.</span>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Screen or picture width (px) <input class="et-w" inputmode="numeric" value="800" /></label>
+      <label>Height (px) <input class="et-h" inputmode="numeric" value="600" /></label>
+      <label>Heat map blur σ (px) <input class="et-s" inputmode="decimal" value="40" /></label>
+      <label>Heat weight <select class="et-wt"><option value="dur" selected>Fixation duration</option><option value="n">Fixation count</option></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="et-show-h" checked /> Heat map</label>
+      <label class="ax-check"><input type="checkbox" class="et-show-p" checked /> Scanpath</label>
+      <label class="ax-check"><input type="checkbox" class="et-show-a" checked /> Areas</label>
+    </div>
+    <label style="margin-top:10px">Areas of interest: one rectangle per row as name, left x, top y, right x, bottom y (pixels). Or drag across the picture below to add one.
+      <textarea class="et-aoi" rows="3" spellcheck="false" wrap="off">Logo, 100, 80, 220, 180
+Photo, 560, 380, 720, 520</textarea></label>
+    <p class="ax-help">The picture's own size is used when you open one. Coordinates must be in the same pixels as the picture or screen the gaze was recorded on.</p>
+  </div>
+
+  <div class="ax-card et-out" hidden>
+    <h2>Result</h2>
+    <p class="ax-big et-big"></p>
+    <dl class="ax-facts et-facts"></dl>
+    <canvas class="ax-fig et-fig" style="margin-top:12px;touch-action:none;cursor:crosshair"></canvas>
+    <div class="ax-legend et-leg"><span><i style="background:#0072B2"></i>Low</span><span><i style="background:#009E73"></i></span><span><i style="background:#F0E442"></i></span><span><i style="background:#D55E00"></i>High attention</span><span>Numbered circles: fixations in order, size by duration</span></div>
+    <div class="et-aw"><h3>Areas of interest</h3><div class="ax-scroll"><table class="et-at"></table></div></div>
+    <h3>Fixations</h3>
+    <div class="ax-scroll et-fw"><table class="et-ft"></table></div>
+    <p class="ax-help et-fmore" hidden></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small et-csv">Fixations (CSV)</button>
+      <button type="button" class="btn secondary small et-acsv">Areas (CSV)</button>
+      <button type="button" class="btn secondary small et-png">Heat map picture (PNG)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .et .et-fw { max-height: 360px; overflow-y: auto; }
+</style>
+
+<script>
+  import { ivt, idt, heat, aoiStats, scanpath, type Fixation, type Aoi, type Sample } from '../../lib/sci/gaze';
+  import { paint, wireDownloads, save, LIGHT, type Figure, type Section, type Palette } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.et')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement>(c).value;
+  const ms = (x: number) => (Number.isFinite(x) ? `${Math.round(x).toLocaleString('en')} ms` : '–');
+  const fmt = (x: number, d = 1) => (Number.isFinite(x) ? x.toFixed(d) : '–');
+  let img: HTMLImageElement | null = null, imgName = '';
+  let fx: Fixation[] = [], aois: Aoi[] = [], W = 800, H = 600, fig: Figure | null = null, sections: Section[] = [];
+  let fixCsv: (string | number)[][] = [], aoiCsv: (string | number)[][] = [];
+
+  /** Column positions for time, x, y and duration, from the header if there is one. */
+  function columns(rows: string[][]) {
+    const head = rows[0].map((c) => c.trim().toLowerCase());
+    const isHead = head.some((c) => c !== '' && !Number.isFinite(num(c)));
+    if (!isHead) return { body: rows, t: 0, x: 1, y: 2, d: rows[0].length > 3 ? 3 : -1 };
+    const find = (test: (h: string) => boolean, not: number[] = []) => head.findIndex((h, i) => !not.includes(i) && test(h.replace(/[^a-z]/g, '')));
+    const d = find((h) => h.includes('dur'));
+    const t = find((h) => h === 't' || h.includes('time') || h.includes('start') || h === 'ms', [d]);
+    const x = find((h) => h === 'x' || /^(gaze|pos|point|fix)?x/.test(h) || /x$/.test(h), [d, t]);
+    const y = find((h) => h === 'y' || /^(gaze|pos|point|fix)?y/.test(h) || /y$/.test(h), [d, t, x]);
+    if (t < 0 || x < 0 || y < 0) throw new Error(`Could not find the time, x and y columns in the header (${rows[0].join(', ')}). Name them time, x and y, or remove the header to use the order time, x, y, duration.`);
+    return { body: rows.slice(1), t, x, y, d };
+  }
+
+  function readAois(): Aoi[] {
+    const out: Aoi[] = [];
+    parseTable(val('.et-aoi')).forEach((r, i) => {
+      const c = r.map((s) => s.trim()); if (!c.some(Boolean)) return;
+      const nums = c.slice(-4).map(num);
+      if (c.length < 4 || nums.some((v) => !Number.isFinite(v))) throw new Error(`Area row ${i + 1} needs a name and four numbers: left x, top y, right x, bottom y.`);
+      out.push({ name: c.length > 4 ? c.slice(0, c.length - 4).join(' ') : `Area ${out.length + 1}`, x1: nums[0], y1: nums[1], x2: nums[2], y2: nums[3] });
+    });
+    return out;
+  }
+
+  const RAMP: [number, number, number][] = [[0, 114, 178], [0, 158, 115], [240, 228, 66], [213, 94, 0]];
+  function ramp(v: number, red: boolean): [number, number, number, number] {
+    if (red) return [255, 0, 0, Math.round(220 * v)];
+    const p = Math.min(0.9999, v) * (RAMP.length - 1), i = Math.floor(p), f = p - i, a = RAMP[i], b = RAMP[i + 1];
+    return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f, Math.round(255 * Math.min(0.75, v * 1.4))];
+  }
+
+  function makeFigure(): Figure {
+    const show = { h: q<HTMLInputElement>('.et-show-h').checked, p: q<HTMLInputElement>('.et-show-p').checked, a: q<HTMLInputElement>('.et-show-a').checked };
+    const sigma = num(val('.et-s')), byDur = val('.et-wt') === 'dur';
+    const cell = Math.max(2, Math.ceil(Math.max(W, H) / 400)), cols = Math.ceil(W / cell), rows = Math.ceil(H / cell);
+    const G = show.h ? heat(fx, cols, rows, cell, sigma, byDur) : null;
+    const gmax = G ? G.reduce((m, v) => Math.max(m, v), 0) : 0;
+    const maxDur = Math.max(1, ...fx.map((f) => f.dur));
+    const fw = 720, fh = Math.round((fw * H) / W);
+    return {
+      w: fw, h: fh, alt: `Heat map and scanpath of ${fx.length} fixations on a ${W} by ${H} pixel picture`,
+      draw: (ctx, w, h, pal: Palette) => {
+        const s = w / W;
+        if (img) { ctx.save(); if (pal.red) ctx.filter = 'grayscale(1) brightness(0.5)'; ctx.drawImage(img, 0, 0, w, h); ctx.restore(); }
+        else { ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(0.5, 0.5, w - 1, h - 1); }
+        if (G && gmax > 0) {
+          const c = document.createElement('canvas'); c.width = cols; c.height = rows;
+          const cx = c.getContext('2d')!, id = cx.createImageData(cols, rows);
+          for (let i = 0; i < G.length; i++) { const v = G[i] / gmax; if (v < 0.03) continue; const [r, g, b, a] = ramp(v, pal.red); id.data.set([r, g, b, a], i * 4); }
+          cx.putImageData(id, 0, 0);
+          ctx.save(); ctx.imageSmoothingEnabled = true; ctx.drawImage(c, 0, 0, cols * cell * s, rows * cell * s); ctx.restore();
+        }
+        if (show.a) for (const a of aois) {
+          const x = Math.min(a.x1, a.x2) * s, y = Math.min(a.y1, a.y2) * s;
+          ctx.setLineDash([6, 4]); ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.strokeRect(x, y, Math.abs(a.x2 - a.x1) * s, Math.abs(a.y2 - a.y1) * s); ctx.setLineDash([]);
+          ctx.font = `600 ${Math.max(11, 13 * s)}px system-ui, sans-serif`; ctx.textBaseline = 'top';
+          const tw = ctx.measureText(a.name).width; ctx.fillStyle = pal.bg; ctx.fillRect(x + 2, y + 2, tw + 8, 18 * Math.max(1, s)); ctx.fillStyle = pal.ink; ctx.fillText(a.name, x + 6, y + 4);
+        }
+        if (show.p && fx.length) {
+          const col = pal.ink;
+          ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.beginPath();
+          fx.forEach((f, i) => (i ? ctx.lineTo(f.x * s, f.y * s) : ctx.moveTo(f.x * s, f.y * s))); ctx.stroke();
+          const many = fx.length > 60;
+          fx.forEach((f, i) => {
+            const r = (many ? 3 : 6) + (many ? 6 : 14) * Math.sqrt(f.dur / maxDur);
+            ctx.beginPath(); ctx.arc(f.x * s, f.y * s, r * Math.max(0.6, s), 0, 2 * Math.PI);
+            ctx.fillStyle = pal.bg; ctx.globalAlpha = 0.85; ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = col; ctx.stroke();
+            if (!many) { ctx.fillStyle = pal.ink; ctx.font = `600 ${Math.max(10, 11 * s)}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(i + 1), f.x * s, f.y * s); ctx.textAlign = 'left'; }
+          });
+        }
+      },
+    };
+  }
+
+  function table(sel: string, head: string[], rows: (string | number)[][]) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = String(c); if (i) td.className = 'r'; }); });
+  }
+
+  function calc() {
+    const err = q('.et-err');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; q('.et-out').hidden = true; sections = []; fig = null; };
+    try {
+      const kind = val('.et-kind'), tu = num(val('.et-tu')), norm = val('.et-cu') === 'norm';
+      q('.et-det').hidden = kind === 'fix';
+      const meth = val('.et-meth');
+      q('.et-vt').hidden = meth !== 'ivt'; q('.et-dt').hidden = meth !== 'idt';
+      if (img) { W = img.naturalWidth; H = img.naturalHeight; q<HTMLInputElement>('.et-w').value = String(W); q<HTMLInputElement>('.et-h').value = String(H); }
+      else { W = num(val('.et-w')); H = num(val('.et-h')); }
+      if (!(W >= 10 && H >= 10 && W <= 20000 && H <= 20000)) return fail('Give the screen or picture size in pixels (10 to 20,000).');
+      const sigma = num(val('.et-s'));
+      if (!(sigma > 0)) return fail('Set the heat map blur σ in pixels, above zero (30 to 60 suits most screens).');
+      const rows = parseTable(q<HTMLTextAreaElement>('.et-data').value).filter((r) => r.some((c) => c.trim()));
+      if (rows.length < 2) return fail('Paste or open your gaze data first: time, x and y per row.');
+      const c = columns(rows);
+      const sx = norm ? W : 1, sy = norm ? H : 1;
+      const pts: (Sample & { d: number })[] = [];
+      let skipped = 0;
+      for (const r of c.body) {
+        const t = num(r[c.t]) * tu, x = num(r[c.x]) * sx, y = num(r[c.y]) * sy, d = c.d >= 0 ? num(r[c.d]) * tu : NaN;
+        if (Number.isFinite(t) && Number.isFinite(x) && Number.isFinite(y)) pts.push({ t, x, y, d }); else skipped++;
+      }
+      if (pts.length < 2) return fail('Fewer than two rows have numbers for time, x and y.');
+      for (let i = 1; i < pts.length; i++) if (pts[i].t < pts[i - 1].t) return fail(`Time goes backwards at row ${i + 1} (${sig(pts[i - 1].t, 6)} then ${sig(pts[i].t, 6)}). Sort the rows by time, or check the time column.`);
+      if (kind === 'fix') {
+        if (c.d < 0) return fail('Fixation rows need a duration column (x, y, start time, duration).');
+        if (pts.some((p) => !(p.d >= 0))) return fail('Every fixation needs a duration of zero or more.');
+        fx = pts.map((p) => ({ x: p.x, y: p.y, start: p.t, end: p.t + p.d, dur: p.d, n: 1 }));
+      } else {
+        const minD = num(val('.et-min'));
+        if (!(minD >= 0)) return fail('Set the shortest fixation in milliseconds (zero or more).');
+        if (meth === 'ivt') { const v = num(val('.et-v')); if (!(v > 0)) return fail('Set the speed limit in pixels per second, above zero.'); fx = ivt(pts, v, minD); }
+        else { const d = num(val('.et-d')); if (!(d > 0)) return fail('Set the dispersion limit in pixels, above zero.'); fx = idt(pts, d, Math.max(minD, 1)); }
+      }
+      aois = readAois();
+      err.hidden = true; q('.et-out').hidden = false;
+      const t0 = pts[0].t, span = pts[pts.length - 1].t - t0;
+      const tot = fx.reduce((s, f) => s + f.dur, 0), sp = scanpath(fx);
+      const rate = kind === 'raw' && span > 0 ? ((pts.length - 1) / span) * 1000 : NaN;
+      const outside = fx.filter((f) => f.x < 0 || f.y < 0 || f.x > W || f.y > H).length;
+      q('.et-big').textContent = fx.length ? `${fx.length.toLocaleString('en')} fixation${fx.length === 1 ? '' : 's'}, mean ${ms(tot / fx.length)}` : 'No fixations found: try a higher speed limit or dispersion limit';
+      const facts: [string, string][] = [
+        [kind === 'raw' ? 'Samples' : 'Rows', `${pts.length.toLocaleString('en')}${skipped ? ` (${skipped} skipped)` : ''}`],
+        ...(kind === 'raw' ? [['Sampling rate', Number.isFinite(rate) ? `${sig(rate, 3)} Hz` : '–'] as [string, string]] : []),
+        ['Recording length', ms(kind === 'fix' && fx.length ? fx[fx.length - 1].end - t0 : span)],
+        ['Time in fixations', `${ms(tot)}${span > 0 ? ` (${fmt((100 * tot) / (kind === 'fix' && fx.length ? fx[fx.length - 1].end - t0 : span), 0)} %)` : ''}`],
+        ['Saccades', String(sp.saccades)],
+        ['Mean saccade length', Number.isFinite(sp.meanAmp) ? `${fmt(sp.meanAmp)} px` : '–'],
+        ['Scanpath length', `${fmt(sp.length, 0)} px`],
+        ...(outside ? [['Off the picture', `${outside} fixation${outside > 1 ? 's' : ''}`] as [string, string]] : []),
+      ];
+      const dl = q('.et-facts'); dl.replaceChildren();
+      for (const [k, v] of facts) { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; dl.append(d); }
+
+      const st = aoiStats(fx, aois, t0);
+      const aHead = ['Area', 'Fixations', 'Dwell time (ms)', 'Share of fixation time', 'Time to first fixation (ms)', 'First fixation no.', 'Visits', 'Mean fixation (ms)'];
+      const aRows = st.map((a) => [a.name, a.count, Math.round(a.dwell), `${fmt(100 * a.share)} %`, Number.isFinite(a.first) ? Math.round(a.first) : 'never', a.firstIndex >= 0 ? a.firstIndex + 1 : '–', a.visits, Number.isFinite(a.meanFix) ? Math.round(a.meanFix) : '–']);
+      q('.et-aw').hidden = !aois.length;
+      table('.et-at', aHead, aRows);
+      const fHead = ['No.', 'x (px)', 'y (px)', 'Start (ms)', 'Duration (ms)', 'Area'];
+      const fRows = fx.map((f, i) => [i + 1, fmt(f.x), fmt(f.y), fmt(f.start - t0, 0), fmt(f.dur, 0), aois.filter((a) => f.x >= Math.min(a.x1, a.x2) && f.x <= Math.max(a.x1, a.x2) && f.y >= Math.min(a.y1, a.y2) && f.y <= Math.max(a.y1, a.y2)).map((a) => a.name).join(', ') || '–']);
+      table('.et-ft', fHead, fRows.slice(0, 500));
+      q('.et-fmore').hidden = fRows.length <= 500; q('.et-fmore').textContent = `Showing the first 500 of ${fRows.length.toLocaleString('en')} fixations; the CSV has them all.`;
+      fixCsv = [['fixation', 'x_px', 'y_px', 'start_ms', 'end_ms', 'duration_ms', 'samples', 'area'], ...fx.map((f, i) => [i + 1, +f.x.toFixed(2), +f.y.toFixed(2), +(f.start - t0).toFixed(1), +(f.end - t0).toFixed(1), +f.dur.toFixed(1), f.n, fRows[i][5] === '–' ? '' : fRows[i][5]])];
+      aoiCsv = [['area', 'fixations', 'dwell_ms', 'share_of_fixation_time', 'time_to_first_fixation_ms', 'first_fixation_number', 'visits', 'mean_fixation_ms'], ...st.map((a) => [a.name, a.count, +a.dwell.toFixed(1), +a.share.toFixed(4), Number.isFinite(a.first) ? +a.first.toFixed(1) : '', a.firstIndex >= 0 ? a.firstIndex + 1 : '', a.visits, Number.isFinite(a.meanFix) ? +a.meanFix.toFixed(1) : ''])];
+
+      fig = makeFigure();
+      paint(q<HTMLCanvasElement>('.et-fig'), fig);
+      const method = kind === 'fix' ? 'Fixations as given.' : meth === 'ivt' ? `Fixations by I-VT: speed limit ${val('.et-v')} px/s, shortest fixation ${val('.et-min')} ms.` : `Fixations by I-DT: dispersion limit ${val('.et-d')} px, shortest fixation ${val('.et-min')} ms.`;
+      sections = [
+        { title: q('.et-big').textContent!, text: [method, `Heat map: Gaussian blur σ = ${sigma} px, weighted by fixation ${val('.et-wt') === 'dur' ? 'duration' : 'count'}, on a ${W} × ${H} px ${img ? 'picture' : 'screen'}.`], facts, figure: fig },
+        ...(aois.length ? [{ title: 'Areas of interest', table: { head: aHead, rows: aRows.map((r) => r.map(String)), align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'r'] as ('l' | 'r')[] } }] : []),
+        { title: 'Fixations', table: { head: fHead, rows: fRows.slice(0, 300).map((r) => r.map(String)), align: ['r', 'r', 'r', 'r', 'r', 'l'] }, note: fRows.length > 300 ? `First 300 of ${fRows.length} fixations.` : undefined },
+      ];
+    } catch (e) { fail((e as Error).message); }
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input:not([type=file]), select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+
+  const imgIn = q<HTMLInputElement>('.et-img');
+  q('.et-img-b').addEventListener('click', () => imgIn.click());
+  imgIn.addEventListener('change', () => {
+    const f = imgIn.files?.[0]; imgIn.value = ''; if (!f) return;
+    const im = new Image(), url = URL.createObjectURL(f);
+    im.onload = () => { img = im; imgName = f.name; q('.et-img-n').textContent = `${imgName}: ${im.naturalWidth} × ${im.naturalHeight} px (stays on your device)`; q('.et-img-x').hidden = false; q<HTMLInputElement>('.et-w').disabled = true; q<HTMLInputElement>('.et-h').disabled = true; calc(); };
+    im.onerror = () => { URL.revokeObjectURL(url); q('.et-img-n').textContent = `${f.name} could not be opened as a picture. Try PNG or JPEG.`; };
+    im.src = url;
+  });
+  q('.et-img-x').addEventListener('click', () => {
+    if (img) URL.revokeObjectURL(img.src);
+    img = null; q('.et-img-x').hidden = true; q('.et-img-n').textContent = 'Optional. The picture stays on your device.';
+    q<HTMLInputElement>('.et-w').disabled = false; q<HTMLInputElement>('.et-h').disabled = false; calc();
+  });
+
+  // Drag across the picture to add a rectangle area of interest.
+  const cv = q<HTMLCanvasElement>('.et-fig');
+  let drag: [number, number] | null = null;
+  const toPx = (e: PointerEvent): [number, number] => { const r = cv.getBoundingClientRect(); return [Math.round(((e.clientX - r.left) / r.width) * W), Math.round(((e.clientY - r.top) / r.height) * H)]; };
+  cv.addEventListener('pointerdown', (e) => { drag = toPx(e); cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointerup', (e) => {
+    if (!drag) return; const [x2, y2] = toPx(e), [x1, y1] = drag; drag = null;
+    if (Math.abs(x2 - x1) < 5 || Math.abs(y2 - y1) < 5) return;
+    const ta = q<HTMLTextAreaElement>('.et-aoi'), n = parseTable(ta.value).filter((r) => r.some((c) => c.trim())).length + 1;
+    ta.value = `${ta.value.replace(/\s+$/, '')}${ta.value.trim() ? '\n' : ''}Area ${n}, ${Math.min(x1, x2)}, ${Math.min(y1, y2)}, ${Math.max(x1, x2)}, ${Math.max(y1, y2)}`;
+    calc();
+  });
+
+  q('.et-csv').addEventListener('click', () => { if (fixCsv.length) save(new TextEncoder().encode(toCsv(fixCsv)), 'fixations.csv', 'text/csv'); });
+  q('.et-acsv').addEventListener('click', () => { if (aoiCsv.length) save(new TextEncoder().encode(toCsv(aoiCsv)), 'areas-of-interest.csv', 'text/csv'); });
+  q('.et-png').addEventListener('click', () => {
+    if (!fig) return;
+    const c = document.createElement('canvas'), scale = Math.min(1, 4000 / Math.max(W, H)); c.width = Math.round(W * scale); c.height = Math.round(H * scale);
+    const ctx = c.getContext('2d')!; ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, c.width, c.height);
+    fig.draw(ctx, c.width, c.height, LIGHT);
+    c.toBlob((b) => { if (b) save(b, 'gaze-heat-map.png', 'image/png'); }, 'image/png');
+  });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(cv, fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Eye-tracking heat map', subtitle: q('.et-big').textContent ?? '', file: 'eye-tracking-heat-map', sections }));
+</script>
