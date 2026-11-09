@@ -1,0 +1,150 @@
+---
+// Wright-Fisher drift and selection: many replicate lines, share fixed against Kimura's formula. Seeded, so repeatable.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax wfs">
+  <div class="ax-card">
+    <h2>Population and selection</h2>
+    <div class="ax-grid">
+      <label>Population size N (diploid individuals) <input class="wf-n" inputmode="numeric" value="50" /></label>
+      <label>Start <select class="wf-start"><option value="freq" selected>At a frequency</option><option value="one">One new copy (1/2N)</option></select></label>
+      <label class="wf-pbox">Starting frequency of A <input class="wf-p" inputmode="decimal" value="0.1" /></label>
+      <label>Selection s <input class="wf-s" inputmode="decimal" value="0.02" /></label>
+      <label>Dominance h <input class="wf-h" inputmode="decimal" value="0.5" /></label>
+      <label>Generations <input class="wf-g" inputmode="numeric" value="200" /></label>
+      <label>Lines (replicates) <input class="wf-r" inputmode="numeric" value="1000" /></label>
+      <label>Seed <input class="wf-seed" inputmode="numeric" value="1" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="wf-until" checked /> Keep going until every line is fixed or lost</label>
+      <button type="button" class="btn secondary small wf-new">New seed</button>
+    </div>
+    <p class="ax-help">Fitness: AA 1 + s, Aa 1 + hs, aa 1. s above 0 favours A, below 0 works against it, 0 is pure drift. h = 0.5 is additive, 0 makes A recessive, 1 dominant. Each generation, selection shifts the frequency and then 2N gene copies are drawn at random (binomial sampling). The same seed always gives the same run; "New seed" draws a fresh one. Up to N 100,000, 10,000 lines and 50,000 generations, and at most 20 million line-generations per run.</p>
+    <p class="ax-err wf-err" hidden></p>
+  </div>
+
+  <div class="ax-card wf-out">
+    <h2>Result</h2>
+    <p class="ax-big wf-big"></p>
+    <dl class="ax-facts wf-facts"></dl>
+    <h3>Allele frequency in each line</h3>
+    <canvas class="ax-fig wf-fig"></canvas>
+    <p class="ax-help wf-fighelp"></p>
+    <h3>Share of lines fixed and lost</h3>
+    <canvas class="ax-fig wf-cum"></canvas>
+    <p class="ax-help">The dashed line is Kimura's fixation probability. With enough lines and generations the solid fixed curve settles near it.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small wf-csv">Download by generation (CSV)</button><button type="button" class="btn secondary small wf-fcsv">Download each line's end (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { simulate, kimuraFix, neutralTimes, wilson, type WFResult } from '../../lib/sci/wrightfisher';
+  import { drawChart, canvasPainter } from '../../lib/sci/plot';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.wfs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const pct = (x: number) => `${sig(100 * x, 3)} %`;
+  const int = (x: number) => Math.round(x).toLocaleString('en');
+  let fig: Figure | null = null, cum: Figure | null = null, sections: Section[] = [], last: { r: WFResult; p0: number } | null = null;
+
+  function linesFigure(r: WFResult, alt: string): Figure {
+    const G = r.mean.length - 1, step = Math.max(1, Math.ceil(G / 600)), xs: number[] = [];
+    for (let g = 0; g <= G; g += step) xs.push(g);
+    if (xs[xs.length - 1] !== G) xs.push(G);
+    return { w: 720, h: 360, alt, draw: (ctx, W, H, pal) => {
+      const thin = pal.red ? pal.muted : pal.accent + '55';
+      const series = [
+        ...r.lines.map((l) => ({ name: '', x: xs, y: xs.map((g) => l[g]), mode: 'line' as const, color: thin, width: 1 })),
+        { name: 'Mean of all lines', x: xs, y: xs.map((g) => r.mean[g]), mode: 'line' as const, color: pal.ink, width: 2.2 },
+      ];
+      drawChart(canvasPainter(ctx), { w: W, h: H, series, xLabel: 'Generation', yLabel: 'Frequency of A', yMin: 0, yMax: 1, xMin: 0, xMax: Math.max(1, G), legend: 'inside', ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: pal.bg });
+    } };
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.wf-err').textContent = m; q('.wf-err').hidden = false; q('.wf-out').hidden = true; fig = cum = null; sections = []; last = null; };
+    q('.wf-err').hidden = true;
+    const N = val('.wf-n'), s = val('.wf-s'), h = val('.wf-h'), gens = val('.wf-g'), reps = val('.wf-r'), seed = val('.wf-seed');
+    const one = q<HTMLSelectElement>('.wf-start').value === 'one';
+    q('.wf-pbox').hidden = one;
+    if (!(Number.isInteger(N) && N >= 2 && N <= 100000)) return fail('Population size N must be a whole number from 2 to 100,000.');
+    const p0 = one ? 1 / (2 * N) : val('.wf-p');
+    if (!(p0 > 0 && p0 < 1)) return fail('The starting frequency must be between 0 and 1 (not 0 or 1, where nothing can change).');
+    if (!(Number.isFinite(s) && s > -1 && s <= 10)) return fail('Selection s must be above −1 (so AA keeps some fitness) and at most 10.');
+    if (!(Number.isFinite(h) && h >= -5 && h <= 5)) return fail('Dominance h must be a number from −5 to 5 (0 recessive, 0.5 additive, 1 dominant).');
+    if (1 + h * s <= 0) return fail('With this s and h the heterozygote fitness 1 + hs is zero or less. Change s or h.');
+    if (!(Number.isInteger(gens) && gens >= 1 && gens <= 50000)) return fail('Generations must be a whole number from 1 to 50,000.');
+    if (!(Number.isInteger(reps) && reps >= 1 && reps <= 10000)) return fail('Lines must be a whole number from 1 to 10,000.');
+    if (!(Number.isInteger(seed) && seed >= 0 && seed < 2 ** 32)) return fail('The seed must be a whole number from 0 to 4,294,967,295.');
+    if (reps * gens > 2e7) return fail(`That is ${int(reps * gens)} line-generations; the limit is 20 million per run. Use fewer lines or generations.`);
+    const until = q<HTMLInputElement>('.wf-until').checked;
+    const maxGens = Math.min(50000, Math.floor(2e7 / reps));
+    const keep = Math.max(1, Math.min(50, Math.floor(2e6 / (until ? maxGens : gens))));
+    const start = Math.round(p0 * 2 * N);
+    if (start < 1 || start > 2 * N - 1) return fail(`With N = ${N} there are ${2 * N} gene copies, so the starting frequency rounds to ${start === 0 ? 0 : 1}. Raise it, or raise N.`);
+    const p = start / (2 * N);
+    const r = simulate({ N, p0: p, s, h, gens, reps, seed, untilDone: until, maxGens, keep });
+    last = { r, p0: p };
+    q('.wf-out').hidden = false;
+    const u = kimuraFix(p, N, s, h), [lo, hi] = wilson(r.fixed, reps), G = r.gensRun;
+    q('.wf-big').textContent = `Fixed in ${int(r.fixed)} of ${int(reps)} lines (${pct(r.fixed / reps)}); Kimura ${pct(u)}`;
+    const mean = (a: number[]) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : NaN);
+    const nt = neutralTimes(p, N);
+    const facts = [
+      fact('Fixed (A reached 1)', `${int(r.fixed)} (${pct(r.fixed / reps)})`, `95 % interval ${pct(lo)} to ${pct(hi)} (Wilson)`),
+      fact('Lost (A reached 0)', `${int(r.lost)} (${pct(r.lost / reps)})`),
+      fact('Still segregating', int(r.segregating), r.segregating ? `after ${int(G)} generations${until ? ' (stopped at the work limit)' : ''}: the fixed share can still rise` : `all lines finished by generation ${int(G)}`),
+      fact('Kimura fixation probability', pct(u), `diffusion formula for N = ${int(N)}, s = ${s}, h = ${h}, start ${+p.toPrecision(4)}`),
+      fact('Neutral expectation', pct(p), 'with no selection, the chance of fixation equals the starting frequency'),
+      fact('Mean time to fixation', r.fixTimes.length ? `${sig(mean(r.fixTimes), 4)} generations` : '–', s === 0 ? `neutral theory: ${sig(nt.fix, 4)} (Kimura and Ohta)` : 'among lines that fixed'),
+      fact('Mean time to loss', r.lossTimes.length ? `${sig(mean(r.lossTimes), 4)} generations` : '–', s === 0 ? `neutral theory: ${sig(nt.loss, 4)}` : 'among lines that were lost'),
+      fact('Starting copies', `${start} of ${2 * N}`, `frequency ${+p.toPrecision(4)}; 4Ns = ${sig(4 * N * s, 4)}`),
+    ];
+    q('.wf-facts').replaceChildren(...facts);
+    fig = linesFigure(r, `Allele frequency in ${r.lines.length} of ${reps} lines over ${G} generations`);
+    paint(q<HTMLCanvasElement>('.wf-fig'), fig);
+    q('.wf-fighelp').textContent = `${r.lines.length < reps ? `The first ${r.lines.length} of ${int(reps)} lines are drawn` : `All ${reps} lines are drawn`}, with the mean of all lines in black. Seed ${seed}.`;
+    const step = Math.max(1, Math.ceil(G / 800)), xs: number[] = [];
+    for (let g = 0; g <= G; g += step) xs.push(g);
+    if (xs[xs.length - 1] !== G) xs.push(G);
+    cum = chartFigure({ h: 300, xLabel: 'Generation', yLabel: 'Share of lines', yMin: 0, yMax: 1, legend: 'below', series: [
+      { name: 'Fixed', x: xs, y: xs.map((g) => r.cumFixed[g]), mode: 'line' },
+      { name: 'Lost', x: xs, y: xs.map((g) => r.cumLost[g]), mode: 'line' },
+    ], marks: [{ kind: 'hline', at: u, label: 'Kimura' }] }, 'Share of lines fixed and lost by each generation');
+    paint(q<HTMLCanvasElement>('.wf-cum'), cum);
+    sections = [{ title: q('.wf-big').textContent!, text: [`Wright-Fisher model, ${int(reps)} lines, seed ${seed}. Fitness AA 1 + s, Aa 1 + hs, aa 1 with s = ${s}, h = ${h}; N = ${int(N)} diploid individuals; start ${start} of ${2 * N} copies.`],
+      facts: [...q('.wf-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig },
+      { title: 'Share of lines fixed and lost', figure: cum }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 300); };
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.wf-new').addEventListener('click', () => { q<HTMLInputElement>('.wf-seed').value = String(Math.floor(Math.random() * 1e6)); calc(); });
+  q('.wf-csv').addEventListener('click', () => {
+    if (!last) return;
+    const { r } = last, rows: (string | number)[][] = [['generation', 'mean frequency', 'share fixed', 'share lost', ...r.lines.map((_, i) => `line ${i + 1}`)]];
+    for (let g = 0; g < r.mean.length; g++) rows.push([g, +r.mean[g].toPrecision(6), +r.cumFixed[g].toPrecision(6), +r.cumLost[g].toPrecision(6), ...r.lines.map((l) => +l[g].toPrecision(6))]);
+    save(new TextEncoder().encode(toCsv(rows)), 'wright-fisher-generations.csv', 'text/csv');
+  });
+  q('.wf-fcsv').addEventListener('click', () => {
+    if (!last) return;
+    const rows: (string | number)[][] = [['line', 'final frequency', 'outcome']];
+    last.r.final.forEach((f, i) => rows.push([i + 1, +f.toPrecision(6), f === 1 ? 'fixed' : f === 0 ? 'lost' : 'segregating']));
+    save(new TextEncoder().encode(toCsv(rows)), 'wright-fisher-lines.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.wf-fig'), fig); if (cum) paint(q<HTMLCanvasElement>('.wf-cum'), cum); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Wright-Fisher simulation', subtitle: q('.wf-big').textContent ?? '', file: 'wright-fisher', sections }));
+</script>
+
+<style is:global>
+  .wfs select { max-width: 100%; }
+</style>
