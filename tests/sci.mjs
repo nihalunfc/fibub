@@ -176,6 +176,8 @@ function near(name, got, want, tol) {
 }
 function check(name, ok) { ok ? pass++ : fail++; if (!ok) console.log(`FAIL ${name}`); }
 function throws(name, fn) { try { fn(); check(name, false); } catch { check(name, true); } }
+// Per-tool maths checks live in tests/sci-tools/<id>.mjs: `export default async (check) => {}`.
+for (const f of (await import('node:fs')).readdirSync(new URL('./sci-tools/', import.meta.url)).filter((f) => f.endsWith('.mjs')).sort()) await (await import(new URL('./sci-tools/' + f, import.meta.url))).default(check);
 
 // ---- Statistics: Student t and normal quantiles (standard tables).
 near('t 97.5 % df 1', tInv(0.975, 1), 12.706, 0.001);
@@ -3482,7 +3484,5 @@ ORIGIN
   check('densitometry: findBands of a flat profile finds none', DN.findBands([[0, 0, 0, 0]]).length === 0 && DN.findBands([]).length === 0);
   check('densitometry: two touching peaks get separate rows', (() => { const p = Array.from({ length: 100 }, (_, i) => Math.exp(-(((i - 40) / 4) ** 2)) + 0.6 * Math.exp(-(((i - 55) / 4) ** 2))); const b = DN.findBands([p]); return b.length === 2 && b[0].bottom < b[1].top; })());
 }
-// Per-tool maths checks live in tests/sci-tools/<id>.mjs: `export default async (check) => {}`.
-for (const f of (await import('node:fs')).readdirSync(new URL('./sci-tools/', import.meta.url)).filter((f) => f.endsWith('.mjs')).sort()) await (await import(new URL('./sci-tools/' + f, import.meta.url))).default(check);
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
