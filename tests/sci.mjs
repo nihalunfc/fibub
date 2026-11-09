@@ -158,6 +158,9 @@ import * as PM from '../src/lib/sci/plasmidmap.ts';
 import * as FQ from '../src/lib/sci/fastq.ts';
 import * as AL from '../src/lib/sci/align.ts';
 import * as VC from '../src/lib/sci/vcf.ts';
+import * as SR from '../src/lib/roster.ts';
+import * as RX from '../src/lib/rosterExport.ts';
+import { unzipSync, strFromU8 } from 'fflate';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -3212,6 +3215,79 @@ ORIGIN
   check('vcf: INFO AF, no samples, bad line', q.records === 1 && q.afFrom === 'info' && q.afHist[5] === 1 && q.afHist[10] === 1 && q.noFilter === 1 && q.errors[0].includes('at least 8'));
   const cap = new VC.VcfStats({}, 10); cap.push(t); cap.end();
   check('vcf: kept lines capped', cap.result().lines.length === 10 && cap.result().linesCapped && cap.result().kept === 300);
+}
+// #174 shift scheduler: dates, times, the staff list, the fill rules (days off, weekly hours, 11 hours' rest, one
+// shift a day, fair shares, per-department needs), coverage, the table model and the Excel/Word/PDF files.
+{
+  check('roster: times', SR.minutes('07:00') === 420 && SR.minutes('7am') === 420 && SR.minutes('3:30 pm') === 930 && SR.minutes('12am') === 0 && SR.minutes('12pm') === 720 && SR.minutes('24:00') === 1440 && Number.isNaN(SR.minutes('25')) && Number.isNaN(SR.minutes('13pm')));
+  check('roster: hours past midnight', SR.shiftHours({ start: '22:00', end: '06:00' }) === 8 && SR.shiftHours({ start: '9', end: '17:30' }) === 8.5 && SR.shiftHours({ start: '0:00', end: '24:00' }) === 24);
+  const wk = SR.periodDays('week', '2026-11-11');
+  check('roster: week from Monday', wk.length === 7 && wk[0] === '2026-11-09' && wk[6] === '2026-11-15' && SR.periodDays('week', '2026-11-11', 0)[0] === '2026-11-08' && SR.periodDays('week', '2026-11-09')[0] === '2026-11-09');
+  check('roster: months', SR.periodDays('month', '2026-02-15').length === 28 && SR.periodDays('month', '2028-02-03').length === 29 && SR.periodDays('month', '2026-12-31').at(-1) === '2026-12-31');
+  check('roster: titles', SR.periodTitle(SR.periodDays('week', '2026-12-30')) === '28 Dec 2026 to 3 Jan 2027' && SR.periodTitle(wk) === '9 Nov to 15 Nov 2026' && SR.periodTitle(SR.periodDays('month', '2026-11-20')) === 'Nov 2026' && SR.dayLabel('2026-11-09') === 'Mon 9');
+  const ps = SR.parseStaff('Name, Department, Max hours, Days off\nAva, 32 h, Sat sunday, Bar\nBen, Kitchen, Sat, 20\nCara\tKitchen\nDev, 200\nEd, Kitchen, Bar\n\nAva\n, 30');
+  check('roster: staff list in any order', ps.staff.length === 6 && ps.staff[0].dept === 'Bar' && ps.staff[0].maxHours === 32 && ps.staff[0].off.join() === '6,0' && ps.staff[1].maxHours === 20 && ps.staff[1].off.join() === '6' && ps.staff[2].dept === 'Kitchen' && ps.staff[2].maxHours === 40 && ps.staff[5].name === 'Ava (2)');
+  check('roster: staff list errors', ps.errors.length === 3 && ps.errors[0].includes('Line 5') && ps.errors[1].includes('"Bar"') && ps.errors[2].includes('no name'));
+  const nd = SR.parseNeed('2, Kitchen 3, security: 0');
+  check('roster: needs per department', nd.need === 2 && nd.needBy.kitchen === 3 && nd.needBy.security === 0 && SR.parseNeed('Kitchen 3').need === 0 && SR.parseNeed('x, 3').errors.length === 1 && SR.needFor({ need: 2, needBy: { kitchen: 3 } }, 'Kitchen ') === 3 && SR.needText({ need: 2, needBy: { 'front desk': 1 } }) === '2, Front Desk 1');
+  check('roster: shift codes', SR.codeFor('Morning', []) === 'M' && SR.codeFor('Mid', ['M']) === 'M2' && SR.codeFor('Mid', ['M', 'M2']) === 'M3');
+  // The fill keeps every rule, for every team size, for a week and a month.
+  const rulesOk = (staff, shifts, days, grid, ws = 1) => {
+    const m = new Map(shifts.map((s) => [s.id, s]));
+    for (const p of staff) {
+      const week = new Map();
+      for (let i = 0; i < days.length; i++) {
+        const s = m.get(grid[SR.key(p.name, days[i])]); if (!s) continue;
+        if (p.off.includes(SR.weekday(days[i]))) return `${p.name} works a day off`;
+        const w = SR.addDays(days[i], -((SR.weekday(days[i]) - ws + 7) % 7)); week.set(w, (week.get(w) ?? 0) + SR.shiftHours(s));
+        const o = i ? m.get(grid[SR.key(p.name, days[i - 1])]) : null;
+        if (o) { const endPrev = (i - 1) * 24 + SR.minutes(o.start) / 60 + SR.shiftHours(o), start = i * 24 + SR.minutes(s.start) / 60; if (start - endPrev < 11) return `${p.name} short rest`; }
+      }
+      for (const h of week.values()) if (h > p.maxHours) return `${p.name} over hours`;
+    }
+    return '';
+  };
+  for (const size of ['small', 'medium', 'large']) for (const per of ['week', 'month']) {
+    const ex = SR.exampleTeam(size), staff = SR.parseStaff(ex.staff).staff, days = SR.periodDays(per, '2026-11-09');
+    const r = SR.autoFill(staff, ex.shifts, days, {});
+    const cov = SR.coverage(staff, ex.shifts, days, r.grid), nDept = new Set(staff.map((p) => p.dept)).size;
+    const full = cov.every((c) => ex.shifts.every((s) => c[s.id] === s.need * nDept));
+    const hrs = staff.map((p) => SR.totals(p, ex.shifts, days, r.grid).hours);
+    check(`roster: ${size} ${per} fill covers every shift and keeps the rules`, staff.length === { small: 8, medium: 36, large: 150 }[size] && r.gaps.length === 0 && full && rulesOk(staff, ex.shifts, days, r.grid) === '' && SR.problems(staff, ex.shifts, days, r.grid).length === 0);
+    check(`roster: ${size} ${per} shares hours out`, Math.max(...hrs) - Math.min(...hrs) <= (per === 'week' ? 16 : 32));
+  }
+  // Small hand cases: a person kept on a hand-set night, a gap when too few people, and Sunday-start weeks.
+  const sh = [{ id: 'n', name: 'Night', code: 'N', start: '23:00', end: '07:00', need: 1, color: '#ccc' }, { id: 'm', name: 'Morning', code: 'M', start: '07:00', end: '15:00', need: 1, color: '#eee' }];
+  const two = [{ name: 'A', dept: '', maxHours: 16, off: [] }, { name: 'B', dept: '', maxHours: 40, off: [0] }];
+  const d3 = SR.periodDays('week', '2026-11-09').slice(0, 3);
+  const f = SR.autoFill(two, sh, d3, { 'A|2026-11-09': 'n' });
+  check('roster: hand-set cells stay', f.grid['A|2026-11-09'] === 'n');
+  check('roster: no morning straight after a night', f.grid['A|2026-11-10'] !== 'm' && rulesOk(two, sh, d3, f.grid) === '');
+  check('roster: gaps reported when too few people', f.gaps.length > 0 && f.gaps.every((g) => g.short === 1) && SR.totals(two[0], sh, d3, f.grid).hours <= 16);
+  const pr = SR.problems(two, sh, ['2026-11-15', '2026-11-16'], { 'B|2026-11-15': 'm', 'A|2026-11-15': 'n', 'A|2026-11-16': 'm', 'A|2026-11-16x': 'm' });
+  check('roster: warnings', pr.length === 2 && pr.some((x) => x.includes('day off')) && pr.some((x) => x.includes('rest')));
+  const dpt = [{ name: 'K1', dept: 'Kitchen', maxHours: 40, off: [] }, { name: 'K2', dept: 'Kitchen', maxHours: 40, off: [] }, { name: 'S1', dept: 'Shop', maxHours: 40, off: [] }];
+  const one = [{ id: 'd', name: 'Day', code: 'D', start: '09:00', end: '17:00', need: 1, needBy: { kitchen: 2 }, color: '#ddd' }];
+  const fd = SR.autoFill(dpt, one, d3, {});
+  check('roster: per-department needs', d3.every((d) => fd.grid[`K1|${d}`] === 'd' && fd.grid[`K2|${d}`] === 'd' && fd.grid[`S1|${d}`] === 'd') && fd.gaps.length === 0);
+  const tb = SR.buildTable(dpt, one, d3, fd.grid, { cell: 'time', dept: true, hours: true, count: true, cover: true, extra: 'Sign', totalDays: d3 });
+  check('roster: table columns', tb.head.map((c) => c.text).join('|') === 'Name|Department|Mon 9|Tue 10|Wed 11|Hours|Shifts|Sign' && tb.rows[0].map((c) => c.text).join('|') === 'K1|Kitchen|09:00-17:00|09:00-17:00|09:00-17:00|24|3|' && tb.rows[3][0].text === 'Day (need 3)' && tb.rows[3][2].text === '3' && !tb.rows[3][2].fill);
+  const tb2 = SR.buildTable([two[1]], sh, ['2026-11-15', '2026-11-16'], {}, { cell: 'code', dept: false, hours: false, count: false, cover: true, colors: false });
+  check('roster: off days, short coverage, no colours', tb2.head.length === 3 && tb2.rows[0][1].text === 'off' && tb2.rows[0][2].text === '' && tb2.rows[1][1].bold && !tb2.rows[1][1].fill && SR.buildTable([two[1]], sh, ['2026-11-15'], {}, { cell: 'code', dept: false, hours: false, count: false, cover: true }).rows[1][1].fill === '#f8d0d0');
+  check('roster: sheet names', RX.sheetNames(['Front/desk', 'A'.repeat(40), 'A'.repeat(40), '']).join('|') === `Front desk|${'A'.repeat(31)}|${'A'.repeat(29)} 2|Schedule`);
+  // Files: an Excel workbook with a sheet per department, coloured cells and numbers as numbers; a landscape Word
+  // file with shaded cells and a page per department; a landscape PDF.
+  const sheets = ['Kitchen', 'Shop'].map((d) => ({ name: d, heading: `${d}: 9 Nov to 11 Nov 2026`, table: SR.buildTable(dpt.filter((p) => p.dept === d), one, d3, fd.grid, { cell: 'name', dept: false, hours: true, count: false, cover: true }) }));
+  const xz = unzipSync(await RX.rosterXlsx(sheets, 'Café rota & <test>'));
+  const s1 = strFromU8(xz['xl/worksheets/sheet1.xml']), wbx = strFromU8(xz['xl/workbook.xml']), sty = strFromU8(xz['xl/styles.xml']);
+  check('roster: Excel workbook', wbx.includes('name="Kitchen"') && wbx.includes('name="Shop"') && !!xz['xl/worksheets/sheet2.xml'] && s1.includes('Café rota &amp; &lt;test&gt;') && s1.includes('state="frozen"') && /<c r="E5" s="\d+"><v>24<\/v><\/c>/.test(s1) && sty.includes('FFDDDDDD') && s1.includes('<t xml:space="preserve">Day</t>'));
+  const dz = unzipSync(await RX.rosterDocx(sheets, 'Rota'));
+  const dx = strFromU8(dz['word/document.xml']);
+  check('roster: Word file', dx.includes('w:orient="landscape"') && dx.includes('w:fill="DDDDDD"') && (dx.match(/<w:tbl>/g) ?? []).length === 2 && dx.includes('w:type="page"') && dx.includes('Shop: 9 Nov'));
+  const pdf = await RX.rosterPdf(sheets, 'Rota');
+  const { PDFDocument } = await import('pdf-lib');
+  const pd = await PDFDocument.load(pdf.bytes), pg = pd.getPage(0).getSize();
+  check('roster: PDF', pd.getPageCount() === 2 && Math.round(pg.width) === 842 && Math.round(pg.height) === 595 && pdf.lost.length === 0);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
