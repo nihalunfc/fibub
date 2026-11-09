@@ -32,7 +32,7 @@ This is a regression calculator for economics and the social sciences that runs 
 
 You get a coefficient table with standard errors, t statistics, p-values and confidence intervals, plus R², adjusted R², a Wald F test of all slopes, the residual standard error, and a plot of residuals against fitted values. Download the report as an image, PDF or Word file, or the coefficients as CSV.
 
-Clean and check your data first with the [[data-cleaner]], and test whether time series drift with [[unit-root-cointegration|unit root and cointegration tests]].
+Check your data for gaps and odd values first with the [[csv-profiler]], and test whether time series drift with [[unit-root-cointegration|unit root and cointegration tests]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 827
 icon: compass
 works: offline
 updated: 2026-11-09
-related: [field-sampling-planner, gps-track-analyser, biodiversity-indices, data-cleaner, weather-log, camera-trap-tagger, sample-label-maker, data-dictionary, metadata-builder, quadrat-transect-analyser]
+related: [field-sampling-planner, gps-track-analyser, biodiversity-indices, data-cleaner, weather-log, camera-trap-tagger, sample-label-maker, data-dictionary, metadata-builder, quadrat-transect-analyser, csv-profiler]
 sources:
   - "The form layout, checks and exports are written by fibub. CSV follows RFC 4180 and GeoJSON follows RFC 7946 (longitude before latitude, WGS 84)."
   - "The example form (a roadside pollinator count) is made up."
@@ -33,7 +33,7 @@ Citizen-science projects, student field trips and small surveys need a simple fo
 - **Records** are listed in a table where you can edit or delete them, and, once you tick *Keep the form and records in this browser* (off at first), are kept in this browser so they survive closing the page with no signal.
 - **Export** as CSV for a spreadsheet or R and Python, or as GeoJSON to put the points on a map in QGIS or another GIS. Save the form as a .json file so a whole team fills in exactly the same form.
 
-Plan where and when to sample with the [[field-sampling-planner]], and tidy the returned sheets with the [[data-cleaner]].
+Plan where and when to sample with the [[field-sampling-planner]], and check the returned sheets for gaps and odd values with the [[csv-profiler]].
 
 ## How to use it
 

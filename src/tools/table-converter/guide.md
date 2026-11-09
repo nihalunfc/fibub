@@ -32,7 +32,7 @@ Typing a table into LaTeX by hand means an ampersand between every cell, a doubl
 - **Rounding.** Round to a number of decimal places or significant figures, digit by digit as on paper: 1.005 to two places is 1.01, not the 1.00 that many programs give. Trailing zeros that count are kept, so 2.5 to three figures is 2.50.
 - **Alignment.** Text left and numbers right by default, or all left, centred or right. *On the decimal point* uses siunitx `S` columns in LaTeX (with a `table-format` worked out from your numbers) and pads with figure spaces in Markdown and HTML.
 
-Clean the numbers first in the [[data-cleaner]], and format the equations in the same paper with the [[equation-converter]].
+Check the numbers for gaps and odd values first in the [[csv-profiler]], and format the equations in the same paper with the [[equation-converter]].
 
 ## How to use it
 
