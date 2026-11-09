@@ -1,5 +1,14 @@
 [
  {
+  "sha": "018af27c971d",
+  "date": "2026-11-09T03:33:00+00:00",
+  "title": "Add #163 DNA sequence tools: reverse complement, six-frame translation, ORF finder and codon usage",
+  "tools": [
+   "sequence-tools"
+  ],
+  "site": false
+ },
+ {
   "sha": "cd37a91a5bb0",
   "date": "2026-11-09T03:17:57+00:00",
   "title": "Add #162 LCA lite comparison (user factors, break-even, flip sensitivity, Monte Carlo)",
