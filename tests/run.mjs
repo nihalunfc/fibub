@@ -241,6 +241,7 @@ try {
     // Drag the bottom-right corner up and left by a quarter of the shown picture.
     await page.setViewportSize({ width: 1100, height: 1400 });
     await page.locator('.rz-stage').scrollIntoViewIfNeeded();
+    await page.evaluate(() => document.querySelector('.rz-canvas').scrollIntoView({ block: 'center' })); // clear of the bottom bar
     const box = await page.locator('.rz-canvas').boundingBox();
     const h = await page.locator('.rz-h[data-h=se]').boundingBox();
     await page.mouse.move(h.x + h.width / 2, h.y + h.height / 2);
@@ -3205,6 +3206,117 @@ try {
     check((await page.textContent('.sqa .sa-big')) === 'Score 416: 93.5 % identical over 246 columns', 'alignment: back to DNA');
     await page.fill('.sqa .sa-a', 'A'.repeat(6000)); await page.fill('.sqa .sa-b', 'A'.repeat(6000)); await page.waitForTimeout(700);
     check((await page.textContent('.sqa .sa-err')).includes('more than 25 million cells'), 'alignment: size limit');
+    // #173 VCF viewer
+    await page.goto(`${BASE}/science/vcf-viewer/`); await page.waitForTimeout(900);
+    check((await page.textContent('.vcv .vc-big')) === '300 records, Ti/Tv 2.13', 'vcf: example');
+    { const f = await page.textContent('.vcv .vc-facts'); check(f.includes('SNV 257, insertion 21, deletion 21, MNV 11') && f.includes('PASS 256, failed 44'), 'vcf: facts'); }
+    check((await page.textContent('.vcv .vc-stab')).includes('sample1731446815') && (await page.locator('.vcv .vc-chrom option').count()) === 4, 'vcf: samples and chromosomes');
+    await page.check('.vcv .vc-pass'); await page.fill('.vcv .vc-qual', '50'); await page.waitForTimeout(800);
+    check((await page.textContent('.vcv .vc-big')) === '230 of 300 records, Ti/Tv 2.11', 'vcf: PASS and QUAL filter');
+    await page.uncheck('.vcv .vc-pass'); await page.fill('.vcv .vc-qual', ''); await page.selectOption('.vcv .vc-chrom', 'chrA'); await page.fill('.vcv .vc-start', '10000'); await page.fill('.vcv .vc-end', '30000'); await page.fill('.vcv .vc-dp', '30'); await page.waitForTimeout(800);
+    check((await page.textContent('.vcv .vc-big')) === '32 of 300 records, Ti/Tv 1.60', 'vcf: region and depth');
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.vcv .vc-dl')]); const t = readFileSync(await dl.path(), 'utf8').trim().split('\n'); check(dl.suggestedFilename() === 'variants-filtered.vcf' && t.length === 11 + 32 && t[0] === '##fileformat=VCFv4.2' && t[10].startsWith('#CHROM') && t.slice(11).every((l) => l.startsWith('chrA\t')), `vcf: filtered VCF keeps the header (${t.length} lines)`); }
+    await page.fill('.vcv .vc-start', '40000'); await page.waitForTimeout(800);
+    check((await page.textContent('.vcv .vc-err')).includes('after the "to" position'), 'vcf: bad range');
+    await page.fill('.vcv .vc-start', ''); await page.fill('.vcv .vc-end', ''); await page.fill('.vcv .vc-dp', ''); await page.selectOption('.vcv .vc-chrom', '');
+    for (const t of ['SNV', 'MNV', 'complex', 'other']) await page.uncheck(`.vcv .vc-types input[value=${t}]`);
+    await page.waitForTimeout(800);
+    check((await page.textContent('.vcv .vc-big')) === '42 of 300 records', 'vcf: indels only');
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.vcv .dl [data-f=pdf]')]); check(dl.suggestedFilename().endsWith('-summary.pdf'), 'vcf: PDF'); }
+    for (const t of ['SNV', 'MNV', 'complex', 'other']) await page.check(`.vcv .vc-types input[value=${t}]`);
+    { const ex = await page.inputValue('.vcv .vc-in'); const gz = (await import('node:zlib')).gzipSync(Buffer.from(ex));
+      await page.setInputFiles('.vcv .vc-file', { name: 'calls.vcf.gz', mimeType: 'application/gzip', buffer: gz });
+      await page.waitForFunction(() => /Finished/.test(document.querySelector('.vcv .vc-prog').textContent), null, { timeout: 15000 });
+      check((await page.textContent('.vcv .vc-big')) === '300 records, Ti/Tv 2.13', 'vcf: gzip file'); }
+    await page.selectOption('.vcv .vc-chrom', 'chrC'); await page.waitForFunction(() => /^63 of 300/.test(document.querySelector('.vcv .vc-big').textContent), null, { timeout: 15000 });
+    { const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.vcv .vc-dl')]); check(dl.suggestedFilename() === 'calls-filtered.vcf', 'vcf: filter re-reads the file'); }
+    await page.fill('.vcv .vc-in', 'just some text'); await page.waitForTimeout(800);
+    check((await page.textContent('.vcv .vc-err')).includes('No variant records found') || (await page.textContent('.vcv .vc-err')).includes('at least 8'), 'vcf: not a VCF');
+    // #174 shift scheduler
+    await page.goto(`${BASE}/everyday/shift-scheduler/`); await page.waitForTimeout(900);
+    await page.fill('.shs .sh-start', '2026-11-09'); await page.waitForTimeout(300);
+    await page.click('.shs .sh-fill'); await page.waitForTimeout(300); // the example is filled for the current week
+    const shCount = () => page.evaluate(() => ({ rows: document.querySelectorAll('.shs .sh-grid tbody tr').length, cols: document.querySelectorAll('.shs .sh-grid thead th').length, filled: [...document.querySelectorAll('.shs .sh-grid select')].filter((s) => s.value).length, warn: document.querySelectorAll('.shs .sh-warn li').length, shifts: document.querySelectorAll('.shs .sh-shift').length }));
+    let sc = await shCount();
+    check(sc.rows === 8 && sc.cols === 9 && sc.filled === 28 && sc.warn === 0 && sc.shifts === 2 && (await page.textContent('.shs .sh-label')) === '9 Nov to 15 Nov 2026', `shifts: small example filled ${JSON.stringify(sc)}`);
+    check(!(await page.evaluate(() => localStorage.getItem('fibub-shifts-v1'))), 'shifts: nothing kept in the browser unless asked');
+    check((await page.textContent('.shs .sh-grid tfoot')).includes('M need 2') && !(await page.isVisible('.shs .sh-dept-l')), 'shifts: coverage rows, no departments when small');
+    // Change one cell: hours and coverage follow, and a short shift is reported.
+    const firstOn = page.locator('.shs .sh-grid tbody select.on').first();
+    const who = await firstOn.getAttribute('data-k');
+    await firstOn.selectOption(''); await page.waitForTimeout(300);
+    check((await page.locator('.shs .sh-grid tfoot td.short').count()) === 1 && (await page.textContent('.shs .sh-warn')).includes('1 more needed'), `shifts: emptying ${who} shows the gap`);
+    await page.click('.shs .sh-fill'); await page.waitForTimeout(300);
+    check((await shCount()).filled === 28 && (await page.locator('.shs .sh-grid tfoot td.short').count()) === 0, 'shifts: Fill puts someone back');
+    await page.click('.shs .sh-size [data-size=medium]'); await page.waitForTimeout(500);
+    sc = await shCount();
+    check(sc.rows === 36 && sc.filled === 112 && await page.isVisible('.shs .sh-dept-l') && (await page.locator('.shs .sh-dept option').count()) === 5, `shifts: medium example ${JSON.stringify(sc)}`);
+    await page.selectOption('.shs .sh-dept', 'Kitchen'); await page.waitForTimeout(300);
+    check((await shCount()).rows === 9, 'shifts: one department');
+    await page.click('.shs .sh-size [data-size=large]'); await page.waitForTimeout(600);
+    sc = await shCount();
+    check(sc.rows === 19 && sc.filled === 56 && sc.shifts === 3 && (await page.locator('.shs .sh-dept option').count()) === 8 && (await page.inputValue('.shs .sh-which')) === 'all', `shifts: large example ${JSON.stringify(sc)}`);
+    await page.click('.shs .sh-period [data-p=month]'); await page.waitForTimeout(400);
+    check((await shCount()).cols === 32 && (await page.textContent('.shs .sh-label')) === 'Nov 2026' && (await shCount()).warn > 0, 'shifts: month view shows the empty days');
+    await page.click('.shs .sh-fill'); await page.waitForTimeout(500);
+    check((await shCount()).filled === 240 && (await shCount()).warn === 0, 'shifts: month filled');
+    // Downloads: every department, with an extra column and Sundays left out.
+    await page.fill('.shs .sh-extra', 'Signature'); await page.uncheck('.shs .sh-days input[value="0"]'); await page.waitForTimeout(300);
+    const shDl = async (x) => { const [d] = await Promise.all([page.waitForEvent('download'), page.click(`.shs button[data-x=${x}]`)]); const f = OUT + 'shifts.' + x; await d.saveAs(f); return { name: d.suggestedFilename(), bytes: readFileSync(f) }; };
+    const sx = await shDl('xlsx'), xz = unzipSync(new Uint8Array(sx.bytes));
+    const sheet2 = strFromU8(xz['xl/worksheets/sheet2.xml']);
+    check(sx.name === 'Shift-schedule-Nov-2026.xlsx' && Object.keys(xz).filter((k) => k.startsWith('xl/worksheets/sheet')).length === 8 && strFromU8(xz['xl/workbook.xml']).includes('name="Customer service"') && sheet2.includes('Signature') && !sheet2.includes('>Sun 1<') && sheet2.includes('>Mon 2<'), 'shifts: Excel has a sheet per department');
+    const sd = await shDl('docx'), dx = strFromU8(unzipSync(new Uint8Array(sd.bytes))['word/document.xml']);
+    check((dx.match(/<w:tbl>/g) ?? []).length === 8 && dx.includes('w:orient="landscape"') && dx.includes('Bakery: Nov 2026'), 'shifts: Word file');
+    const sp = await shDl('pdf'), spd = await PDFDocument.load(sp.bytes);
+    check(spd.getPageCount() >= 8 && Math.round(spd.getPage(0).getSize().width) === 842, 'shifts: PDF, landscape, a page per department');
+    const si = await shDl('png');
+    check(si.bytes.slice(1, 4).toString() === 'PNG' && si.bytes.length > 50000, 'shifts: image');
+    // Remember on this device: only when ticked, and Clear removes it.
+    await page.check('.shs .sh-keep'); await page.waitForTimeout(500);
+    check(JSON.parse(await page.evaluate(() => localStorage.getItem('fibub-shifts-v1')) ?? '{}').size === 'large', 'shifts: kept when ticked');
+    await page.reload(); await page.waitForTimeout(900);
+    check((await shCount()).rows === 19 && (await page.isChecked('.shs .sh-keep')), 'shifts: back after reload');
+    await page.click('.shs .sh-forget'); await page.waitForTimeout(200);
+    check(!(await page.evaluate(() => localStorage.getItem('fibub-shifts-v1'))) && !(await page.isChecked('.shs .sh-keep')), 'shifts: Clear saved data');
+    // Your own list: names only, a shift added, Clear asks first.
+    await page.fill('.shs .sh-staff', 'Name\nAli, 16\nBo, Sat Sun\nCy'); await page.waitForTimeout(700);
+    check((await shCount()).rows === 3 && !(await page.isVisible('.shs .sh-dept-l')), 'shifts: own staff list');
+    await page.click('.shs .sh-add'); await page.waitForTimeout(300);
+    check((await shCount()).shifts === 4, 'shifts: add a shift');
+    page.once('dialog', (d) => d.accept()); await page.click('.shs .sh-clear'); await page.waitForTimeout(300);
+    check((await shCount()).filled === 0, 'shifts: Clear empties the period');
+    // #175 interval tools
+    await page.goto(`${BASE}/science/interval-tools/`); await page.waitForTimeout(900);
+    check((await page.textContent('.ivt .iv-big')) === '100 merged regions from 125 exon features, covering 37,272 bases' && await page.isHidden('.ivt .iv-bcard'), 'intervals: example merge');
+    await page.selectOption('.ivt .iv-op', 'intersect'); await page.waitForTimeout(300);
+    check((await page.textContent('.ivt .iv-big')) === '25 overlapping pieces, 3,416 bases shared' && await page.isVisible('.ivt .iv-bcard') && (await page.locator('.ivt .iv-rtab tbody tr').count()) === 25, 'intervals: intersect');
+    await page.selectOption('.ivt .iv-op', 'notOverlapping'); await page.selectOption('.ivt .iv-ta', 'gene'); await page.waitForTimeout(300);
+    check((await page.textContent('.ivt .iv-big')) === '10 of 27 gene features overlap nothing in B', 'intervals: genes without peaks');
+    await page.selectOption('.ivt .iv-op', 'merge'); await page.selectOption('.ivt .iv-ta', ''); await page.fill('.ivt .iv-dist', '1000'); await page.waitForTimeout(400);
+    { const t = await page.textContent('.ivt .iv-big'); check(/^\d+ merged regions from 287 intervals/.test(t) && parseInt(t) < 27, `intervals: merge with a gap (${t})`); }
+    { const [d] = await Promise.all([page.waitForEvent('download'), page.click('.ivt .iv-bed')]); const f = OUT + 'iv.bed'; await d.saveAs(f); const lines = readFileSync(f, 'utf8').trim().split('\n'); check(d.suggestedFilename() === 'example-merge.bed' && lines[0].split('\t').length === 4 && lines[0].startsWith('ctgA\t516\t'), `intervals: BED download ${d.suggestedFilename()} ${lines[0]}`); }
+    await page.fill('.ivt .iv-dist', '0');
+    // Open a gzipped BED file as A.
+    writeFileSync(OUT + 'a.bed.gz', (await import('node:zlib')).gzipSync('chr1\t0\t100\na\nchr1\t50\t150\nchr2\t10\t20\n'));
+    await page.setInputFiles('.ivt .iv-file[data-t=a]', OUT + 'a.bed.gz'); await page.waitForTimeout(700);
+    check((await page.textContent('.ivt .iv-big')) === '2 merged regions from 3 intervals, covering 160 bases' && (await page.textContent('.ivt .iv-ia')).includes('1 line skipped'), 'intervals: gzipped BED file');
+    await page.fill('.ivt .iv-a', 'nothing here'); await page.waitForTimeout(700);
+    check(await page.isVisible('.ivt .iv-err') && await page.isHidden('.ivt .iv-out'), 'intervals: no intervals message');
+    // #176 k-mer counter
+    await page.goto(`${BASE}/science/kmer-counter/`); await page.waitForTimeout(1500);
+    check((await page.textContent('.kmc .km-big')) === '188,111 distinct 21-mers in 800,000' && (await page.textContent('.kmc .km-facts')).includes('43,096 bases'), 'kmer: example');
+    await page.fill('.kmc .km-q', 'tccccggtgcaaaggtcactg'); await page.waitForTimeout(200);
+    check((await page.textContent('.kmc .km-qa')).includes('seen 61 times'), 'kmer: look-up with lower case and reverse complement');
+    { const [d] = await Promise.all([page.waitForEvent('download'), page.click('.kmc .km-csv')]); const f = OUT + 'km.csv'; await d.saveAs(f); const lines = readFileSync(f, 'utf8').trim().split(/\r?\n/); check(d.suggestedFilename() === 'example-k21-spectrum.csv' && lines[0] === 'multiplicity,distinct_kmers' && lines[1] === '1,145234', `kmer: spectrum CSV ${lines[1]}`); }
+    await page.fill('.kmc .km-k', '3'); await page.dispatchEvent('.kmc .km-k', 'change'); await page.waitForTimeout(800);
+    check((await page.textContent('.kmc .km-big')).startsWith('32 distinct 3-mers') && !(await page.textContent('.kmc .km-facts')).includes('Genome size'), 'kmer: k = 3 has all 32 canonical words and no genome size');
+    await page.fill('.kmc .km-k', '21'); await page.dispatchEvent('.kmc .km-k', 'change'); await page.waitForTimeout(800);
+    { const gz = (await import('node:zlib')).gzipSync(Buffer.from('>x\nACGTTGCA\n>y\nNNNN\n')); writeFileSync(OUT + 'k.fa.gz', gz); }
+    await page.fill('.kmc .km-k', '4'); await page.setInputFiles('.kmc .km-file', OUT + 'k.fa.gz'); await page.waitForTimeout(900);
+    check((await page.textContent('.kmc .km-big')) === '5 distinct 4-mers in 5' && (await page.textContent('.kmc .km-prog')).includes('compressed'), 'kmer: gzipped FASTA file');
+    await page.fill('.kmc .km-in', 'hello'); await page.waitForTimeout(900);
+    check(await page.isVisible('.kmc .km-err'), 'kmer: no sequence message');
   }
   check(pageErrors.length === 0, `no page or CSP errors ${pageErrors.join(' | ')}`);
 
@@ -3238,18 +3350,21 @@ try {
   writeFileSync(OUT + 'big.csv', Buffer.alloc(51 * 1024 * 1024, 65));
   await phone.setInputFiles('.cmp-input', OUT + 'big.csv');
   check(/limit is 50/.test(await phone.textContent('.cmp-error')), 'phone: 51 MB file gets a clear limit message');
-  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/', '/science/astronomy/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/', '/science/hemocytometer/', '/science/radiocarbon-calibration/', '/science/sql-playground/', '/science/biodiversity-indices/', '/science/reliability-analysis/', '/science/cosmology-calculator/', '/science/sub-exposure-calculator/', '/science/backfocus-calculator/', '/science/magnitude-flux-converter/', '/science/dark-sky-calendar/', '/science/rocket-equation/', '/science/orbit-transfer-calculator/', '/science/period-finder/', '/science/mosaic-planner/', '/science/meteor-shower-planner/', '/science/light-pollution-calculator/', '/science/habitable-zone-calculator/', '/science/mars-time/', '/science/transit-planner/', '/science/redshift-calculator/', '/science/blackbody-calculator/', '/science/exoplanet-mass-calculator/', '/science/impact-crater-calculator/', '/science/link-budget-calculator/', '/science/radio-telescope-calculator/', '/science/sun-position-calculator/', '/science/jupiter-moons/', '/science/porkchop-plot/', '/science/radial-velocity-fitter/', '/science/eclipse-finder/', '/science/satellite-tracker/', '/science/uv-coverage/', '/science/double-star-calculator/', '/science/rotation-curve-fitter/', '/science/spectral-line-identifier/', '/science/transit-light-curve-fitter/', '/science/star-fwhm-checker/', '/science/hydrogen-line-analyser/', '/science/planet-data-explorer/', '/science/sunspot-counter/', '/science/image-stacker/', '/science/variable-star-log/', '/science/molar-mass-calculator/', '/science/equation-balancer/', '/science/isotope-pattern-calculator/', '/science/reaction-kinetics-fitter/', '/science/titration-curve/', '/science/gas-law-calculator/', '/science/beer-lambert-calculator/', '/science/reaction-equivalents/', '/science/chromatography-calculator/', '/science/method-validation/', '/science/colligative-properties/', '/science/equilibrium-solver/', '/science/cyclic-voltammetry/', '/science/tlc-rf-calculator/', '/science/huckel-mo-calculator/', '/science/crystal-field-calculator/', '/science/diatomic-spectroscopy/', '/science/thermochemistry-calculator/', '/science/nernst-calculator/', '/science/electroplating-calculator/', '/science/green-chemistry-metrics/', '/science/decay-calculator/', '/science/polymer-molar-mass/', '/science/copolymer-composition/', '/science/glass-transition-calculator/', '/science/dsc-tga-analyser/', '/science/battery-cycling-analyser/', '/science/tafel-corrosion-rate/', '/science/nmr-impurity-checker/', '/science/electron-count-calculator/', '/science/phase-diagram-calculator/', '/science/ir-band-finder/', '/science/point-group-finder/', '/science/impedance-fitter/', '/science/enzyme-kinetics-fitter/', '/science/buffer-recipe-calculator/', '/science/binding-curve-fitter/', '/science/centrifuge-calculator/', '/science/air-quality-calculator/', '/science/altermagnet-checker/', '/science/gaussian-plume-calculator/', '/science/mccabe-thiele-calculator/', '/science/vapour-pressure-calculator/', '/science/radiometric-age-calculator/', '/science/isotope-delta-converter/', '/science/mixing-model-calculator/', '/science/ternary-plot-maker/', '/science/piper-diagram/', '/science/pump-test-analyser/', '/science/slug-test-analyser/', '/science/darcy-flow-calculator/', '/science/well-field-drawdown/', '/science/grade-tonnage-calculator/', '/science/drill-hole-composites/', '/science/traverse-calculator/', '/science/level-book-reducer/', '/science/gps-track-analyser/', '/science/spectral-index-calculator/', '/science/skew-t-sounding/', '/science/koppen-climate/', '/science/trend-analyser/', '/science/wave-calculator/', '/science/manning-weir-calculator/', '/science/runoff-calculator/', '/science/flood-frequency/', '/science/et0-calculator/', '/science/rating-curve/', '/science/altermagnet-bands/', '/science/anomalous-hall-checker/', '/science/spin-splitter-conductivity/', '/science/chiral-magnon-bands/', '/science/unit-hydrograph/', '/science/rain-gauge-average/', '/science/lc50-probit/', '/science/species-sensitivity/', '/science/non-detects/', '/science/landfill-gas/', '/science/detention-pond/', '/science/water-quality-index/', '/science/activated-sludge/', '/science/field-sampling-planner/', '/science/bioaccumulation-factor/', '/science/noise-barrier/', '/science/tree-carbon/', '/science/lca-compare/', '/science/sequence-tools/', '/science/nucleic-acid-concentration/', '/science/qpcr-analyser/', '/science/ligation-calculator/', '/science/primer-checker/', '/science/restriction-digest/', '/science/gel-band-sizer/', '/science/plasmid-map/', '/science/fastq-inspector/', '/science/sequence-alignment/', '/science/environment/', '/science/cell-biology/', '/science/ecology/', '/science/social/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
+  for (const path of ['/', '/documents/image-resizer/', '/documents/compress-file/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/', '/science/astronomy/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/', '/science/hemocytometer/', '/science/radiocarbon-calibration/', '/science/sql-playground/', '/science/biodiversity-indices/', '/science/reliability-analysis/', '/science/cosmology-calculator/', '/science/sub-exposure-calculator/', '/science/backfocus-calculator/', '/science/magnitude-flux-converter/', '/science/dark-sky-calendar/', '/science/rocket-equation/', '/science/orbit-transfer-calculator/', '/science/period-finder/', '/science/mosaic-planner/', '/science/meteor-shower-planner/', '/science/light-pollution-calculator/', '/science/habitable-zone-calculator/', '/science/mars-time/', '/science/transit-planner/', '/science/redshift-calculator/', '/science/blackbody-calculator/', '/science/exoplanet-mass-calculator/', '/science/impact-crater-calculator/', '/science/link-budget-calculator/', '/science/radio-telescope-calculator/', '/science/sun-position-calculator/', '/science/jupiter-moons/', '/science/porkchop-plot/', '/science/radial-velocity-fitter/', '/science/eclipse-finder/', '/science/satellite-tracker/', '/science/uv-coverage/', '/science/double-star-calculator/', '/science/rotation-curve-fitter/', '/science/spectral-line-identifier/', '/science/transit-light-curve-fitter/', '/science/star-fwhm-checker/', '/science/hydrogen-line-analyser/', '/science/planet-data-explorer/', '/science/sunspot-counter/', '/science/image-stacker/', '/science/variable-star-log/', '/science/molar-mass-calculator/', '/science/equation-balancer/', '/science/isotope-pattern-calculator/', '/science/reaction-kinetics-fitter/', '/science/titration-curve/', '/science/gas-law-calculator/', '/science/beer-lambert-calculator/', '/science/reaction-equivalents/', '/science/chromatography-calculator/', '/science/method-validation/', '/science/colligative-properties/', '/science/equilibrium-solver/', '/science/cyclic-voltammetry/', '/science/tlc-rf-calculator/', '/science/huckel-mo-calculator/', '/science/crystal-field-calculator/', '/science/diatomic-spectroscopy/', '/science/thermochemistry-calculator/', '/science/nernst-calculator/', '/science/electroplating-calculator/', '/science/green-chemistry-metrics/', '/science/decay-calculator/', '/science/polymer-molar-mass/', '/science/copolymer-composition/', '/science/glass-transition-calculator/', '/science/dsc-tga-analyser/', '/science/battery-cycling-analyser/', '/science/tafel-corrosion-rate/', '/science/nmr-impurity-checker/', '/science/electron-count-calculator/', '/science/phase-diagram-calculator/', '/science/ir-band-finder/', '/science/point-group-finder/', '/science/impedance-fitter/', '/science/enzyme-kinetics-fitter/', '/science/buffer-recipe-calculator/', '/science/binding-curve-fitter/', '/science/centrifuge-calculator/', '/science/air-quality-calculator/', '/science/altermagnet-checker/', '/science/gaussian-plume-calculator/', '/science/mccabe-thiele-calculator/', '/science/vapour-pressure-calculator/', '/science/radiometric-age-calculator/', '/science/isotope-delta-converter/', '/science/mixing-model-calculator/', '/science/ternary-plot-maker/', '/science/piper-diagram/', '/science/pump-test-analyser/', '/science/slug-test-analyser/', '/science/darcy-flow-calculator/', '/science/well-field-drawdown/', '/science/grade-tonnage-calculator/', '/science/drill-hole-composites/', '/science/traverse-calculator/', '/science/level-book-reducer/', '/science/gps-track-analyser/', '/science/spectral-index-calculator/', '/science/skew-t-sounding/', '/science/koppen-climate/', '/science/trend-analyser/', '/science/wave-calculator/', '/science/manning-weir-calculator/', '/science/runoff-calculator/', '/science/flood-frequency/', '/science/et0-calculator/', '/science/rating-curve/', '/science/altermagnet-bands/', '/science/anomalous-hall-checker/', '/science/spin-splitter-conductivity/', '/science/chiral-magnon-bands/', '/science/unit-hydrograph/', '/science/rain-gauge-average/', '/science/lc50-probit/', '/science/species-sensitivity/', '/science/non-detects/', '/science/landfill-gas/', '/science/detention-pond/', '/science/water-quality-index/', '/science/activated-sludge/', '/science/field-sampling-planner/', '/science/bioaccumulation-factor/', '/science/noise-barrier/', '/science/tree-carbon/', '/science/lca-compare/', '/science/sequence-tools/', '/science/nucleic-acid-concentration/', '/science/qpcr-analyser/', '/science/ligation-calculator/', '/science/primer-checker/', '/science/restriction-digest/', '/science/gel-band-sizer/', '/science/plasmid-map/', '/science/fastq-inspector/', '/science/sequence-alignment/', '/science/vcf-viewer/', '/everyday/shift-scheduler/', '/science/interval-tools/', '/science/kmer-counter/', '/learn/', '/learn/school/', '/learn/experiments/', '/learn/courses/', '/learn/languages/', '/tools/', '/news/', '/about/', '/science/environment/', '/science/cell-biology/', '/science/ecology/', '/science/social/', '/privacy/', '/terms/', '/stats/', '/contact/']) {
     await phone.goto(BASE + path);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
     check(sw <= 390, `${path} fits a phone (scrollWidth ${sw})`);
   }
-  // Phone tool list: a full-height side panel half the screen wide; the page behind still scrolls.
+  // Phone menu (Menu tab): a side panel half the screen wide, down to the bottom bar; the page behind still scrolls.
   await phone.goto(BASE + '/money/bill-calendar/');
-  await phone.click('.menu-btn');
+  await phone.click('.tab-menu');
   const box = await phone.locator('#all-tools').boundingBox();
   const vw = phone.viewportSize();
-  check(box && box.width < vw.width * 0.75 && box.y + box.height >= vw.height - 2, `phone menu: side panel ${box && Math.round(box.width)} of ${vw.width} px wide, full height`);
-  check((await phone.locator('#all-tools .at-shelf').count()) === 4 && (await phone.locator('#all-tools details[open]').count()) === 0, 'phone menu: every shelf and subject starts folded');
+  const barTop = (await phone.locator('.tabbar').boundingBox()).y;
+  check(box && box.width < vw.width * 0.75 && Math.abs(box.y + box.height - barTop) <= 2, `phone menu: side panel ${box && Math.round(box.width)} of ${vw.width} px wide, down to the bottom bar (${box && Math.round(box.y + box.height)} vs ${Math.round(barTop)})`);
+  check(await phone.isVisible('.tab-menu') && (await phone.getAttribute('.tab-menu', 'aria-expanded')) === 'true', 'phone menu: the Menu tab stays in view and shows it is open');
+  check((await phone.locator('#all-tools .at-area').count()) === 4 && (await phone.locator('#all-tools .at-area[open]').count()) === 1 && await phone.isVisible('#all-tools .at-area[data-area=tools][open]'), 'phone menu: Learn, Tools, News and About sections, with the current one (Tools) open');
+  check((await phone.locator('#all-tools .at-shelf').count()) === 4 && (await phone.locator('#all-tools .at-shelf[open], #all-tools .at-sj[open]').count()) === 0, 'phone menu: every shelf and subject starts folded');
   await phone.click('#all-tools .at-shelf[data-shelf=science] > summary'); await phone.click('#all-tools .at-sj > summary');
   check(await phone.isVisible('#all-tools .at-sj[open] .at-item'), 'phone menu: opening a subject lists its tools with their numbers');
   await phone.fill('.at-search', 'loan');
@@ -3260,9 +3375,73 @@ try {
   await phone.evaluate(() => window.scrollTo(0, 400));
   check((await phone.evaluate(() => window.scrollY)) > 300, 'phone menu: the page still scrolls while it is open');
   await phone.click('.at-close');
+  // Bottom bar: Learn, Tools, Home, News, Menu on every page, and a smaller bar of the area's sections
+  // above it (not on tool pages). Each area has its own colour; red light mode is red only.
+  const tabState = () => phone.evaluate(() => ({
+    tabs: [...document.querySelectorAll('.tabbar .tb')].map((e) => e.textContent.trim()),
+    on: [...document.querySelectorAll('.tabbar .tb.on')].map((e) => e.textContent.trim()),
+    sub: [...document.querySelectorAll('.tb-sub a')].map((e) => e.textContent.trim()),
+    subOn: [...document.querySelectorAll('.tb-sub a.on')].map((e) => e.textContent.trim()),
+    area: document.documentElement.dataset.area,
+  }));
+  for (const [path, area, on, subOn, n] of [['/', 'home', 'Home', '', 5], ['/learn/', 'learn', 'Learn', 'Overview', 5], ['/learn/languages/', 'learn', 'Learn', 'Languages', 5], ['/tools/', 'tools', 'Tools', 'All', 5], ['/science/', 'tools', 'Tools', 'Science', 5], ['/science/astronomy/', 'tools', 'Tools', 'Science', 5], ['/everyday/shift-scheduler/', 'tools', 'Tools', '', 0], ['/news/', 'news', 'News', 'Latest', 3], ['/changes/', 'news', 'News', 'Change log', 3], ['/stats/', 'news', 'News', 'Usage stats', 3], ['/about/', 'menu', 'Menu', 'About', 4], ['/privacy/', 'menu', 'Menu', 'Privacy', 4]]) {
+    await phone.goto(BASE + path);
+    const t = await tabState();
+    check(t.tabs.join() === 'Learn,Tools,Home,News,Menu' && t.on.join() === on && t.area === area && t.sub.length === n && t.subOn.join() === subOn, `bottom bar on ${path}: ${t.on} lit, ${t.sub.length} sections${subOn ? `, ${subOn} lit` : ''} (${JSON.stringify(t)})`);
+  }
+  await phone.goto(BASE + '/learn/');
+  {
+    const g = await phone.evaluate(() => {
+      const bar = document.querySelector('.tabbar').getBoundingClientRect(), sub = document.querySelector('.tb-sub').getBoundingClientRect();
+      const tabs = [...document.querySelectorAll('.tabbar .tb')].map((e) => e.getBoundingClientRect());
+      scrollTo(0, document.documentElement.scrollHeight);
+      const foot = document.querySelector('footer.site').getBoundingClientRect();
+      return { bar, sub, h: innerHeight, row: new Set(tabs.map((r) => Math.round(r.top))).size, minW: Math.min(...tabs.map((r) => r.width)), foot: foot.bottom, color: getComputedStyle(document.querySelector('.tabbar .tb.on')).color, accent: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() };
+    });
+    check(Math.abs(g.bar.bottom - g.h) <= 1 && Math.abs(g.sub.bottom - g.bar.top) <= 1 && g.sub.height >= 40 && g.sub.height < g.bar.height, `bottom bar: fixed at the bottom, the smaller section bar right above it (${Math.round(g.sub.height)} and ${Math.round(g.bar.height)} px)`);
+    check(g.row === 1 && g.minW >= 60, `bottom bar: five tabs in one row, each at least 60 px wide on a phone (${Math.round(g.minW)})`);
+    check(g.foot <= g.sub.top + 1, `bottom bar: the footer is not hidden under the bars (${Math.round(g.foot)} vs ${Math.round(g.sub.top)})`);
+    check(g.color === 'rgb(15, 118, 110)' && g.accent === '#0f766e', `bottom bar: Learn is lit in its own colour, which is also the page's accent (${g.color}, ${g.accent})`);
+  }
+  {
+    const colours = [];
+    for (const p of ['/learn/', '/tools/', '/', '/news/', '/about/']) { await phone.goto(BASE + p); colours.push(await phone.evaluate(() => getComputedStyle(document.querySelector('.tabbar .tb.on')).color)); }
+    check(new Set(colours).size === 5, `bottom bar: each area has its own colour (${colours.join(' | ')})`);
+  }
+  await phone.goto(BASE + '/news/');
+  await phone.click('.theme-btn');
+  check((await phone.evaluate(() => getComputedStyle(document.querySelector('.tabbar .tb.on')).color)) === 'rgb(251, 191, 36)', 'bottom bar: dark mode uses the lighter version of the colour');
+  await phone.click('.theme-btn');
+  await phone.goto(BASE + '/science/');
+  await phone.click('.red-btn');
+  {
+    const reds = await phone.evaluate(() => [...document.querySelectorAll('.tabbar, .tabbar .tb, .tb-sub, .tb-sub a')].flatMap((e) => { const c = getComputedStyle(e); return [c.color, c.backgroundColor, c.borderTopColor]; }));
+    const bad = reds.filter((c) => { const m = c.match(/\d+(\.\d+)?/g).map(Number); return m[1] !== 0 || m[2] !== 0; });
+    check(bad.length === 0, `bottom bar: red light mode lights only red (${bad.slice(0, 3).join(' | ')})`);
+  }
+  await phone.click('.red-btn');
+  // Typing on a phone: the bars step aside for the keyboard and come back after.
+  await phone.goto(BASE + '/');
+  await phone.tap('.find input');
+  check(!(await phone.isVisible('.tabbar')), 'bottom bar: hidden while typing on a phone');
+  await phone.tap('h1');
+  await phone.waitForTimeout(50);
+  check(await phone.isVisible('.tabbar'), 'bottom bar: back after typing');
+  // The Learn tab goes to Learn, and a section tab to its page.
+  await phone.tap('.tabbar .tb[data-area=learn]');
+  await phone.waitForURL(/\/learn\/$/);
+  await phone.tap('.tb-sub a[href="/learn/school/"]');
+  await phone.waitForURL(/\/learn\/school\/$/);
+  check((await phone.textContent('h1')) === 'Learn: Class 8 to 12' && (await phone.locator('.ar-card').count()) === 5, 'Learn: Class 8 to 12 opens from the section bar, with a card per class');
+  await phone.goto(BASE + '/learn/');
+  check((await phone.locator('.ar-card').count()) === 4 && (await phone.locator('.tc').count()) >= 4, 'Learn: four areas, plus tools students can use today');
+  await phone.goto(BASE + '/news/');
+  check((await phone.locator('.tc').count()) === 12, 'News: the 12 newest tools');
+  await phone.goto(BASE + '/tools/');
+  check((await phone.locator('.ar-card').count()) === 4, 'Tools: a card per shelf');
   // The picture of each tool's steps stays on one row, even on a 320 px screen.
   await phone.setViewportSize({ width: 320, height: 640 });
-  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/', '/science/hemocytometer/', '/science/radiocarbon-calibration/', '/science/sql-playground/', '/science/biodiversity-indices/', '/science/reliability-analysis/', '/science/cosmology-calculator/', '/science/sub-exposure-calculator/', '/science/backfocus-calculator/', '/science/magnitude-flux-converter/', '/science/dark-sky-calendar/', '/science/rocket-equation/', '/science/orbit-transfer-calculator/', '/science/period-finder/', '/science/mosaic-planner/', '/science/meteor-shower-planner/', '/science/light-pollution-calculator/', '/science/habitable-zone-calculator/', '/science/mars-time/', '/science/transit-planner/', '/science/redshift-calculator/', '/science/blackbody-calculator/', '/science/exoplanet-mass-calculator/', '/science/impact-crater-calculator/', '/science/link-budget-calculator/', '/science/radio-telescope-calculator/', '/science/sun-position-calculator/', '/science/jupiter-moons/', '/science/porkchop-plot/', '/science/radial-velocity-fitter/', '/science/eclipse-finder/', '/science/satellite-tracker/', '/science/uv-coverage/', '/science/double-star-calculator/', '/science/rotation-curve-fitter/', '/science/spectral-line-identifier/', '/science/transit-light-curve-fitter/', '/science/star-fwhm-checker/', '/science/hydrogen-line-analyser/', '/science/planet-data-explorer/', '/science/sunspot-counter/', '/science/image-stacker/', '/science/variable-star-log/', '/science/molar-mass-calculator/', '/science/equation-balancer/', '/science/isotope-pattern-calculator/', '/science/reaction-kinetics-fitter/', '/science/titration-curve/', '/science/gas-law-calculator/', '/science/beer-lambert-calculator/', '/science/reaction-equivalents/', '/science/chromatography-calculator/', '/science/method-validation/', '/science/colligative-properties/', '/science/equilibrium-solver/', '/science/cyclic-voltammetry/', '/science/tlc-rf-calculator/', '/science/huckel-mo-calculator/', '/science/crystal-field-calculator/', '/science/diatomic-spectroscopy/', '/science/thermochemistry-calculator/', '/science/nernst-calculator/', '/science/electroplating-calculator/', '/science/green-chemistry-metrics/', '/science/decay-calculator/', '/science/polymer-molar-mass/', '/science/copolymer-composition/', '/science/glass-transition-calculator/', '/science/dsc-tga-analyser/', '/science/battery-cycling-analyser/', '/science/tafel-corrosion-rate/', '/science/nmr-impurity-checker/', '/science/electron-count-calculator/', '/science/phase-diagram-calculator/', '/science/ir-band-finder/', '/science/point-group-finder/', '/science/impedance-fitter/', '/science/enzyme-kinetics-fitter/', '/science/buffer-recipe-calculator/', '/science/binding-curve-fitter/', '/science/centrifuge-calculator/', '/science/air-quality-calculator/', '/science/altermagnet-checker/', '/science/gaussian-plume-calculator/', '/science/mccabe-thiele-calculator/', '/science/vapour-pressure-calculator/', '/science/radiometric-age-calculator/', '/science/isotope-delta-converter/', '/science/mixing-model-calculator/', '/science/ternary-plot-maker/', '/science/piper-diagram/', '/science/pump-test-analyser/', '/science/slug-test-analyser/', '/science/darcy-flow-calculator/', '/science/well-field-drawdown/', '/science/grade-tonnage-calculator/', '/science/drill-hole-composites/', '/science/traverse-calculator/', '/science/level-book-reducer/', '/science/gps-track-analyser/', '/science/spectral-index-calculator/', '/science/skew-t-sounding/', '/science/koppen-climate/', '/science/trend-analyser/', '/science/wave-calculator/', '/science/manning-weir-calculator/', '/science/runoff-calculator/', '/science/flood-frequency/', '/science/et0-calculator/', '/science/rating-curve/', '/science/altermagnet-bands/', '/science/anomalous-hall-checker/', '/science/spin-splitter-conductivity/', '/science/chiral-magnon-bands/', '/science/unit-hydrograph/', '/science/rain-gauge-average/', '/science/lc50-probit/', '/science/species-sensitivity/', '/science/non-detects/', '/science/landfill-gas/', '/science/detention-pond/', '/science/water-quality-index/', '/science/activated-sludge/', '/science/field-sampling-planner/', '/science/bioaccumulation-factor/', '/science/noise-barrier/', '/science/tree-carbon/', '/science/lca-compare/', '/science/sequence-tools/', '/science/nucleic-acid-concentration/', '/science/qpcr-analyser/', '/science/ligation-calculator/', '/science/primer-checker/', '/science/restriction-digest/', '/science/gel-band-sizer/', '/science/plasmid-map/', '/science/fastq-inspector/', '/science/sequence-alignment/']) {
+  for (const path of ['/documents/compress-file/', '/documents/image-resizer/', '/documents/zip-checker/', '/everyday/link-cleaner/', '/everyday/linkedin-post-formatter/', '/documents/prompt-pruner/', '/documents/file-converter/', '/documents/ats-resume-checker/', '/everyday/planner/', '/money/loan-payoff-planner/', '/money/budget-calculator/', '/documents/resume-builder/', '/money/bill-calendar/', '/science/sky-tonight/', '/science/object-altitude/', '/science/polar-alignment/', '/science/sky-events-calendar/', '/science/observing-log/', '/science/observing-session/', '/science/telescope-calculator/', '/science/star-trail-exposure/', '/science/fits-viewer/', '/science/astro-time/', '/science/sky-coordinates/', '/science/uncertainty-calculator/', '/science/graph-digitizer/', '/science/plot-maker/', '/science/calibration-curve/', '/science/dose-response/', '/science/solution-calculator/', '/science/pcr-master-mix/', '/science/sample-size/', '/science/stereonet/', '/science/psychrometric-calculator/', '/science/plate-layout/', '/science/hemocytometer/', '/science/radiocarbon-calibration/', '/science/sql-playground/', '/science/biodiversity-indices/', '/science/reliability-analysis/', '/science/cosmology-calculator/', '/science/sub-exposure-calculator/', '/science/backfocus-calculator/', '/science/magnitude-flux-converter/', '/science/dark-sky-calendar/', '/science/rocket-equation/', '/science/orbit-transfer-calculator/', '/science/period-finder/', '/science/mosaic-planner/', '/science/meteor-shower-planner/', '/science/light-pollution-calculator/', '/science/habitable-zone-calculator/', '/science/mars-time/', '/science/transit-planner/', '/science/redshift-calculator/', '/science/blackbody-calculator/', '/science/exoplanet-mass-calculator/', '/science/impact-crater-calculator/', '/science/link-budget-calculator/', '/science/radio-telescope-calculator/', '/science/sun-position-calculator/', '/science/jupiter-moons/', '/science/porkchop-plot/', '/science/radial-velocity-fitter/', '/science/eclipse-finder/', '/science/satellite-tracker/', '/science/uv-coverage/', '/science/double-star-calculator/', '/science/rotation-curve-fitter/', '/science/spectral-line-identifier/', '/science/transit-light-curve-fitter/', '/science/star-fwhm-checker/', '/science/hydrogen-line-analyser/', '/science/planet-data-explorer/', '/science/sunspot-counter/', '/science/image-stacker/', '/science/variable-star-log/', '/science/molar-mass-calculator/', '/science/equation-balancer/', '/science/isotope-pattern-calculator/', '/science/reaction-kinetics-fitter/', '/science/titration-curve/', '/science/gas-law-calculator/', '/science/beer-lambert-calculator/', '/science/reaction-equivalents/', '/science/chromatography-calculator/', '/science/method-validation/', '/science/colligative-properties/', '/science/equilibrium-solver/', '/science/cyclic-voltammetry/', '/science/tlc-rf-calculator/', '/science/huckel-mo-calculator/', '/science/crystal-field-calculator/', '/science/diatomic-spectroscopy/', '/science/thermochemistry-calculator/', '/science/nernst-calculator/', '/science/electroplating-calculator/', '/science/green-chemistry-metrics/', '/science/decay-calculator/', '/science/polymer-molar-mass/', '/science/copolymer-composition/', '/science/glass-transition-calculator/', '/science/dsc-tga-analyser/', '/science/battery-cycling-analyser/', '/science/tafel-corrosion-rate/', '/science/nmr-impurity-checker/', '/science/electron-count-calculator/', '/science/phase-diagram-calculator/', '/science/ir-band-finder/', '/science/point-group-finder/', '/science/impedance-fitter/', '/science/enzyme-kinetics-fitter/', '/science/buffer-recipe-calculator/', '/science/binding-curve-fitter/', '/science/centrifuge-calculator/', '/science/air-quality-calculator/', '/science/altermagnet-checker/', '/science/gaussian-plume-calculator/', '/science/mccabe-thiele-calculator/', '/science/vapour-pressure-calculator/', '/science/radiometric-age-calculator/', '/science/isotope-delta-converter/', '/science/mixing-model-calculator/', '/science/ternary-plot-maker/', '/science/piper-diagram/', '/science/pump-test-analyser/', '/science/slug-test-analyser/', '/science/darcy-flow-calculator/', '/science/well-field-drawdown/', '/science/grade-tonnage-calculator/', '/science/drill-hole-composites/', '/science/traverse-calculator/', '/science/level-book-reducer/', '/science/gps-track-analyser/', '/science/spectral-index-calculator/', '/science/skew-t-sounding/', '/science/koppen-climate/', '/science/trend-analyser/', '/science/wave-calculator/', '/science/manning-weir-calculator/', '/science/runoff-calculator/', '/science/flood-frequency/', '/science/et0-calculator/', '/science/rating-curve/', '/science/altermagnet-bands/', '/science/anomalous-hall-checker/', '/science/spin-splitter-conductivity/', '/science/chiral-magnon-bands/', '/science/unit-hydrograph/', '/science/rain-gauge-average/', '/science/lc50-probit/', '/science/species-sensitivity/', '/science/non-detects/', '/science/landfill-gas/', '/science/detention-pond/', '/science/water-quality-index/', '/science/activated-sludge/', '/science/field-sampling-planner/', '/science/bioaccumulation-factor/', '/science/noise-barrier/', '/science/tree-carbon/', '/science/lca-compare/', '/science/sequence-tools/', '/science/nucleic-acid-concentration/', '/science/qpcr-analyser/', '/science/ligation-calculator/', '/science/primer-checker/', '/science/restriction-digest/', '/science/gel-band-sizer/', '/science/plasmid-map/', '/science/fastq-inspector/', '/science/sequence-alignment/', '/science/vcf-viewer/', '/everyday/shift-scheduler/', '/science/interval-tools/', '/science/kmer-counter/']) {
     await phone.goto(BASE + path);
     const rows = await phone.$$eval('.flow-step', (els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top))).size);
     const sw = await phone.evaluate(() => document.documentElement.scrollWidth);
@@ -3275,6 +3454,23 @@ try {
   const desk = await ctx.newPage();
   await desk.goto(`${BASE}/documents/compress-file/`);
   check((await desk.textContent('.cmp-limit')) === '200 MB', `desktop limit shown: ${await desk.textContent('.cmp-limit')}`);
+  // On computers the bottom bar is a taskbar: the five buttons side by side, icon and name in a row.
+  await desk.setViewportSize({ width: 1366, height: 800 });
+  await desk.goto(BASE + '/learn/courses/');
+  {
+    const g = await desk.evaluate(() => {
+      const tabs = [...document.querySelectorAll('.tabbar .tb')].map((e) => e.getBoundingClientRect());
+      const ico = document.querySelector('.tabbar .tb .tb-ico').getBoundingClientRect(), txt = document.querySelector('.tabbar .tb .tb-t').getBoundingClientRect();
+      const bar = document.querySelector('.tabbar').getBoundingClientRect();
+      return { row: new Set(tabs.map((r) => Math.round(r.top))).size, side: Math.abs((ico.top + ico.bottom) / 2 - (txt.top + txt.bottom) / 2) < 3 && ico.right <= txt.left + 1, mid: Math.abs((tabs[0].left + tabs[4].right) / 2 - innerWidth / 2) < 4, width: tabs[4].right - tabs[0].left, bar: bar.width, h: bar.height, sub: document.querySelector('.tb-sub a.on')?.textContent };
+    });
+    check(g.row === 1 && g.side && g.mid && g.width < 700 && g.bar === 1366, `desktop: taskbar along the bottom, five buttons centred with icon beside name (${JSON.stringify(g)})`);
+    check(g.sub === 'Courses', 'desktop: section bar shows Courses lit');
+  }
+  await desk.click('.tab-menu');
+  check(await desk.isVisible('#all-tools .at-area[data-area=learn][open] a[href="/learn/courses/"]'), 'desktop: Menu tab opens the menu with the Learn section open');
+  await desk.keyboard.press('Escape');
+  check(await desk.isHidden('#all-tools'), 'desktop: Escape closes the menu');
   await ctx.unrouteAll({ behavior: 'ignoreErrors' });
   await browser.close();
 } finally {

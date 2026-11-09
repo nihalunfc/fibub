@@ -1,0 +1,14 @@
+---
+import LearnPage from '../../components/LearnPage.astro';
+const cards = [
+  { name: 'Class 8', text: 'Science and maths.', items: ['Science: force and pressure, light, sound, materials, cells', 'Maths: numbers, algebra, shapes and data'] },
+  { name: 'Class 9', text: 'Science and maths.', items: ['Science: motion, gravitation, atoms and molecules, cells and tissues', 'Maths: number systems, polynomials, geometry, statistics'] },
+  { name: 'Class 10', text: 'Science and maths.', items: ['Science: light and lenses, electricity, chemical reactions, life processes', 'Maths: quadratic equations, trigonometry, probability'] },
+  { name: 'Class 11', text: 'Physics, chemistry, biology and maths.', items: ['Physics: motion, laws of motion, waves, heat', 'Chemistry: atoms, bonding, equilibrium', 'Biology: cells, plants, the human body', 'Maths: functions, sequences, limits'] },
+  { name: 'Class 12', text: 'Physics, chemistry, biology and maths.', items: ['Physics: electric fields, current, optics, atoms', 'Chemistry: solutions, kinetics, electrochemistry', 'Biology: genetics, evolution, ecology', 'Maths: calculus, vectors, probability'] },
+];
+---
+<LearnPage title="Learn: Class 8 to 12" description="Interactive science and maths tools for Class 8 to 12, topic by topic, following the NCERT books. Free, in your browser."
+  lead="Tools for each class, topic by topic. Each tool lets you change the numbers and watch what happens, with a level switch so one tool can serve several classes."
+  cardsTitle="Classes" cards={cards}
+  toolsTitle="Already on fibub" tools={['equation-balancer', 'molar-mass-calculator', 'gas-law-calculator', 'decay-calculator', 'wave-calculator', 'uncertainty-calculator']} />

@@ -1,5 +1,48 @@
 [
  {
+  "sha": "92dae82478fc",
+  "date": "2026-11-09T08:09:01+00:00",
+  "title": "Add a bottom bar (Learn, Tools, Home, News, Menu) with area colours, plus Learn, Tools and News pages",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "a538565bc466",
+  "date": "2026-11-09T07:39:06+00:00",
+  "title": "Add k-mer counter and spectrum (#176)",
+  "tools": [
+   "kmer-counter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "357702345b2d",
+  "date": "2026-11-09T07:20:05+00:00",
+  "title": "Add BED, GFF and GTF interval tools (#175): merge, intersect, overlap filters, subtract",
+  "tools": [
+   "interval-tools"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9b11799943b8",
+  "date": "2026-11-09T07:00:06+00:00",
+  "title": "Add shift scheduler (#174): weekly or monthly rota for small, medium and large teams, with image, PDF, Excel and Word downloads",
+  "tools": [
+   "shift-scheduler"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5417eeb39f45",
+  "date": "2026-11-09T06:37:36+00:00",
+  "title": "Add VCF viewer (#173): variant counts, Ti/Tv, quality and depth charts, filters",
+  "tools": [
+   "vcf-viewer"
+  ],
+  "site": false
+ },
+ {
   "sha": "0b4b3c53ee14",
   "date": "2026-11-09T06:15:16+00:00",
   "title": "Add #172 pairwise sequence alignment (global, local, semi-global, affine gaps, dot plot)",

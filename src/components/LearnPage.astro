@@ -1,0 +1,41 @@
+---
+// One page of the Learn area: a heading, cards for what the page will hold (most are still being
+// made), and fibub tools that students can already use. Learn follows the topics of the NCERT books
+// for Class 8 to 12; fibub is not part of NCERT, and no textbook text or figures are copied.
+import Base from '../layouts/Base.astro';
+import ToolCard from './ToolCard.astro';
+import { allTools } from '../lib/tools';
+import '../styles/area.css';
+export type Card = { name: string; text: string; items?: string[]; href?: string; live?: boolean };
+interface Props { title: string; description: string; lead: string; cards: Card[]; cardsTitle?: string; tools?: string[]; toolsTitle?: string }
+const { title, description, lead, cards, cardsTitle, tools: ids = [], toolsTitle = 'Tools you can use today' } = Astro.props;
+const all = await allTools();
+const tools = ids.map((id) => all.find((t) => t.id === id && t.data.status === 'live')).filter((t) => !!t);
+---
+<Base title={title} description={description}>
+  <div class="crumbs"><a href="/">Home</a> / {title === 'Learn' ? 'Learn' : <><a href="/learn/">Learn</a> / {title.replace(/^Learn: /, '')}</>}</div>
+  <div class="ar-head">
+    <h1>{title}</h1>
+    <p class="lead">{lead}</p>
+  </div>
+  {cardsTitle && <h2 class="ar-h">{cardsTitle}</h2>}
+  <div class="ar-cards">
+    {cards.map((c) => {
+      const Tag = c.href ? 'a' : 'section';
+      return (
+        <Tag class="ar-card" href={c.href}>
+          <h3>{c.name} <span class:list={['ar-tag', { live: c.live }]}>{c.live ? 'Open' : 'Coming soon'}</span></h3>
+          <p>{c.text}</p>
+          {c.items && <ul>{c.items.map((i) => <li>{i}</li>)}</ul>}
+          {c.href && <span class="ar-go">Open →</span>}
+        </Tag>
+      );
+    })}
+  </div>
+  {tools.length > 0 && <>
+    <h2 class="ar-h">{toolsTitle}</h2>
+    <div class="grid">{tools.map((t) => <ToolCard tool={t!} />)}</div>
+  </>}
+  <slot />
+  <p class="ar-note">Learn follows the topics of the NCERT books used for Class 8 to 12 in India, so students can practise what they study at school. fibub is an independent free site, not part of NCERT, and it doesn't copy textbook text or pictures. Like every fibub tool, everything runs in your browser: no sign-up, nothing about you is saved.</p>
+</Base>

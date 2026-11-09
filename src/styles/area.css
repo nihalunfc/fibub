@@ -1,0 +1,15 @@
+/* Area pages (Tools, Learn, News): cards for the sections of an area. */
+.ar-head { border-left: 4px solid var(--accent); padding-left: 14px; margin: 4px 0 22px; }
+.ar-head h1 { margin-bottom: 6px; }
+.ar-head .lead { margin: 0; }
+.ar-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 12px; margin: 0 0 8px; }
+.ar-card { display: flex; flex-direction: column; gap: 6px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); text-decoration: none; min-width: 0; }
+a.ar-card:hover { border-color: var(--accent); }
+.ar-card h2, .ar-card h3 { margin: 0; font-size: 17px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.ar-card p { margin: 0; color: var(--muted); font-size: 14.5px; line-height: 1.5; }
+.ar-card ul { margin: 2px 0 0; padding-left: 18px; color: var(--muted); font-size: 14px; line-height: 1.55; }
+.ar-card .ar-go { margin-top: auto; padding-top: 4px; color: var(--accent); font-size: 14px; font-weight: 600; }
+.ar-tag { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: .02em; }
+.ar-tag.live { background: var(--good-soft); color: var(--good); }
+.ar-note { font-size: 13.5px; color: var(--muted); max-width: 720px; margin: 18px 0 0; }
+.ar-h { margin: 32px 0 12px; }

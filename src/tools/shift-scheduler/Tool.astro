@@ -1,0 +1,440 @@
+---
+// Shift scheduler for small, medium and large teams: a staff list, shifts, a week or month grid with a fair
+// automatic fill, coverage and warnings, and downloads as an image, PDF, Excel and Word with the columns you pick.
+// Everything stays in the browser; saving on this device is opt-in.
+import '../../styles/astro.css';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax shs">
+  <div class="ax-card">
+    <h2>1. Your team</h2>
+    <div class="ax-seg sh-size" role="group" aria-label="Team size">
+      <button type="button" data-size="small" aria-pressed="true">Under 20 staff</button>
+      <button type="button" data-size="medium" aria-pressed="false">20 to 100</button>
+      <button type="button" data-size="large" aria-pressed="false">Over 100</button>
+    </div>
+    <p class="ax-help sh-size-help" aria-live="polite"></p>
+    <label style="margin-top:10px">Staff, one person per line <textarea class="sh-staff" rows="8" spellcheck="false"></textarea></label>
+    <DataFile target=".sh-staff" maxCols={4} maxRows={2000} label="Open a staff list" />
+    <p class="ax-help">Write a name, then any of: department, the most hours a week, days off. For example <code>Ava, Kitchen, 32, Sat Sun</code>. Only the name is needed; anyone without a number can work 40 hours a week.</p>
+    <p class="ax-err sh-staff-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>2. Shifts</h2>
+    <div class="sh-shifts"></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sh-add">Add a shift</button></div>
+    <p class="ax-help sh-need-help"></p>
+    <p class="ax-err sh-shift-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>3. Schedule</h2>
+    <div class="sh-bar">
+      <div class="ax-seg sh-period" role="group" aria-label="Period">
+        <button type="button" data-p="week" aria-pressed="true">Week</button>
+        <button type="button" data-p="month" aria-pressed="false">Month</button>
+      </div>
+      <div class="sh-nav">
+        <button type="button" class="sh-ico sh-prev" aria-label="Previous">‹</button>
+        <strong class="sh-label" aria-live="polite"></strong>
+        <button type="button" class="sh-ico sh-next" aria-label="Next">›</button>
+      </div>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Starting <input class="sh-start" type="date" /></label>
+      <label>Weeks start on <select class="sh-ws"><option value="1">Monday</option><option value="0">Sunday</option></select></label>
+      <label class="sh-dept-l" hidden>Department <select class="sh-dept"></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn small sh-fill">Fill empty days</button>
+      <button type="button" class="btn secondary small sh-clear">Clear</button>
+    </div>
+    <p class="ax-help sh-fill-help"></p>
+    <div class="ax-scroll sh-box"><table class="sh-grid"></table></div>
+    <p class="ax-help">Tap a cell to pick a shift. Letters are the shift codes; grey “off” marks someone's day off.</p>
+    <ul class="sh-warn" aria-live="polite"></ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>4. Download</h2>
+    <div class="ax-grid">
+      <label>Title <input class="sh-title" type="text" maxlength="60" value="Shift schedule" /></label>
+      <label>Cells show <select class="sh-cell"><option value="name">Shift name</option><option value="code">Code (M, E)</option><option value="time">Times (07:00-15:00)</option></select></label>
+      <label class="sh-which-l" hidden>Download <select class="sh-which"><option value="view">This view</option><option value="all">Every department (a page or sheet each)</option></select></label>
+      <label>Extra empty column <input class="sh-extra" type="text" maxlength="20" placeholder="e.g. Signature" /></label>
+    </div>
+    <fieldset class="sh-fs">
+      <legend>Columns</legend>
+      <label class="ax-check sh-c-dept"><input type="checkbox" class="sh-o-dept" /> Department</label>
+      <label class="ax-check"><input type="checkbox" class="sh-o-hours" checked /> Hours</label>
+      <label class="ax-check"><input type="checkbox" class="sh-o-count" /> Number of shifts</label>
+      <label class="ax-check"><input type="checkbox" class="sh-o-cover" checked /> People per shift (bottom rows)</label>
+      <label class="ax-check"><input type="checkbox" class="sh-o-colors" checked /> Colours</label>
+    </fieldset>
+    <fieldset class="sh-fs sh-days">
+      <legend>Days</legend>
+      {[1, 2, 3, 4, 5, 6, 0].map((d) => <label class="ax-check"><input type="checkbox" value={d} checked /> {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]}</label>)}
+    </fieldset>
+    <p class="ax-help">Untick days you're closed to leave them out of the download. Hours still count every day.</p>
+    <h3 class="sh-ph">Preview</h3>
+    <div class="sh-prevbox"><canvas class="sh-pv" role="img" aria-label="Preview of the downloaded schedule"></canvas></div>
+    <p class="ax-help sh-prev-note"></p>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn small" data-x="png">Image</button>
+      <button type="button" class="btn secondary small" data-x="pdf">PDF</button>
+      <button type="button" class="btn secondary small" data-x="xlsx">Excel</button>
+      <button type="button" class="btn secondary small" data-x="docx">Word</button>
+    </div>
+    <p class="ax-help">Excel and Word files can be edited. PDF and Word are landscape A4.</p>
+    <p class="ax-err sh-dl-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <label class="ax-check"><input type="checkbox" class="sh-keep" /> Remember my schedule on this device</label>
+    <p class="ax-help">Off unless you tick it. When ticked, your staff, shifts and schedule are kept in this browser only, so they are here next time. Nothing is sent to fibub or anyone else.</p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small sh-forget">Clear saved data</button></div>
+  </div>
+</div>
+
+<style is:global>
+  .shs .sh-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+  .shs .sh-nav { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .shs .sh-label { font-size: 16px; white-space: nowrap; }
+  .shs .sh-ico { width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); font-size: 22px; line-height: 1; cursor: pointer; }
+  .shs .sh-shift { display: grid; gap: 6px 8px; grid-template-columns: minmax(0, 1fr) 56px 40px 40px; grid-template-areas: "n c k x" "t t t t" "d d d d"; padding: 10px 0; border-bottom: 1px solid var(--line); align-items: end; }
+  .shs .sh-shift:first-child { padding-top: 0; }
+  .shs .sh-n { grid-area: n; } .shs .sh-c { grid-area: c; } .shs .sh-t { grid-area: t; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; } .shs .sh-d { grid-area: d; } .shs .sh-k { grid-area: k; } .shs .sh-x { grid-area: x; }
+  @media (min-width: 720px) { .shs .sh-shift { grid-template-columns: minmax(0, 1.2fr) 60px 264px minmax(0, 1fr) 40px 40px; grid-template-areas: "n c t d k x"; } }
+  .shs .sh-k, .shs .sh-x { width: 40px; height: 38px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; font: inherit; }
+  .shs .sh-x { background: var(--bg); color: var(--ink); font-size: 20px; }
+  .shs .sh-grid { width: auto; font-size: 13px; }
+  .shs .sh-grid th, .shs .sh-grid td { padding: 3px; border: 1px solid var(--line); text-align: center; vertical-align: middle; }
+  .shs .sh-grid th { font-size: 12px; }
+  .shs .sh-grid th.we { color: var(--ink); }
+  .shs .sh-grid .nm { position: sticky; left: 0; z-index: 1; background: var(--surface); text-align: left; white-space: nowrap; max-width: 130px; overflow: hidden; text-overflow: ellipsis; padding: 3px 8px; }
+  .shs .sh-grid td.nm small { display: block; color: var(--muted); font-size: 11px; }
+  .shs .sh-grid select { width: 46px; padding: 6px 2px !important; font-size: 13px !important; text-align: center; border-radius: 6px !important; -webkit-appearance: none; appearance: none; background: var(--bg); }
+  .shs .sh-grid select.on { color: #0a0a0a !important; font-weight: 700; border-color: rgba(0, 0, 0, 0.25) !important; }
+  .shs .sh-grid select.off { color: var(--muted) !important; }
+  .shs .sh-grid td.tot { white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; }
+  .shs .sh-grid td.over { color: var(--bad); font-weight: 700; }
+  .shs .sh-grid tr.cov td { font-weight: 600; }
+  .shs .sh-grid tr.cov td.short { color: var(--bad); background: var(--bad-soft); }
+  .shs .sh-warn { margin: 10px 0 0; padding-left: 20px; font-size: 14px; color: var(--warn); }
+  .shs .sh-warn:empty { display: none; }
+  .shs .sh-fs { border: 0; padding: 0; margin: 12px 0 0; display: flex; flex-wrap: wrap; gap: 8px 16px; }
+  .shs .sh-fs legend { font-size: 14px; color: var(--muted); padding: 0; margin-bottom: 6px; }
+  .shs .sh-ph { margin: 16px 0 8px; font-size: 15px; }
+  .shs .sh-prevbox { overflow: auto; max-height: 420px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+  .shs .sh-pv { display: block; }
+  html.red-mode .shs .sh-pv { filter: url(#red-night); }
+  html.red-mode .shs .sh-grid select.on, html.red-mode .shs .sh-k { background: #000 !important; color: #a30000 !important; }
+  html.red-mode .shs .sh-prevbox { background: #000; }
+</style>
+
+<script>
+  import { parseStaff, autoFill, problems, totals, coverage, periodDays, periodTitle, dayLabel, weekday, addDays, key, exampleTeam, codeFor, parseNeed, needText, needFor, shiftHours, minutes, fmtTime, buildTable, PALETTE, type Shift, type Staff, type Grid, type Period, type Size, type CellText } from '../../lib/roster';
+  import { drawSheets, type Sheet } from '../../lib/rosterExport';
+  import { save, fileSafe } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.shs')!;
+  const q = <T extends HTMLElement>(c: string) => root.querySelector<T>(c)!;
+  const STORE = 'fibub-shifts-v1';
+  const HELP: Record<Size, string> = {
+    small: 'For a small team: everyone on one schedule. The example is 8 made-up people.',
+    medium: 'For 20 to 100 people: add a department to each person, and each department is filled and counted on its own. The example is 36 made-up people in 4 departments.',
+    large: 'For over 100 people: open your staff list from a spreadsheet, see one department at a time, and download every department as its own page or sheet. The example is 150 made-up people in 8 departments.',
+  };
+  const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+
+  type State = { size: Size; staffText: string; shifts: Shift[]; grid: Grid; period: Period; start: string; weekStart: 0 | 1; dept: string };
+  let st: State;
+  let staff: Staff[] = [];
+  let nextId = 1;
+
+  const examples = new Set((['small', 'medium', 'large'] as Size[]).map((s) => exampleTeam(s).staff.trim()));
+  function fresh(size: Size): State {
+    const ex = exampleTeam(size);
+    const s: State = { size, staffText: ex.staff, shifts: ex.shifts.map((x) => ({ ...x })), grid: {}, period: 'week', start: today(), weekStart: 1, dept: '' };
+    const people = parseStaff(s.staffText).staff;
+    s.dept = size === 'large' ? people[0]?.dept ?? '' : '';
+    s.grid = autoFill(people, s.shifts, periodDays('week', s.start, 1), {}, 1).grid;
+    return s;
+  }
+
+  // ---------- Saved on this device (opt-in) ----------
+  const keep = q<HTMLInputElement>('.sh-keep');
+  function load(): State | null {
+    try { const raw = localStorage.getItem(STORE); if (!raw) return null; const s = JSON.parse(raw); if (!s || !Array.isArray(s.shifts) || typeof s.grid !== 'object') return null; return s as State; } catch { return null; }
+  }
+  let saveTimer = 0;
+  function persist() {
+    if (!keep.checked) return;
+    clearTimeout(saveTimer);
+    saveTimer = window.setTimeout(() => { try { localStorage.setItem(STORE, JSON.stringify(st)); } catch { /* storage full or blocked */ } }, 300);
+  }
+  keep.addEventListener('change', () => { if (keep.checked) persist(); else try { localStorage.removeItem(STORE); } catch { /* blocked */ } });
+  q('.sh-forget').addEventListener('click', () => { try { localStorage.removeItem(STORE); } catch { /* blocked */ } keep.checked = false; });
+
+  // ---------- Team ----------
+  const staffBox = q<HTMLTextAreaElement>('.sh-staff');
+  const hasDepts = () => staff.some((p) => p.dept);
+  const depts = () => [...new Set(staff.map((p) => p.dept))];
+  function readStaff() {
+    const r = parseStaff(st.staffText);
+    staff = r.staff;
+    const err = q('.sh-staff-err');
+    const msgs = [...r.errors.slice(0, 5), ...(r.errors.length > 5 ? [`and ${r.errors.length - 5} more.`] : [])];
+    if (!staff.length) msgs.unshift('Add at least one name.');
+    if (staff.length > 2000) { staff = staff.slice(0, 2000); msgs.push('Only the first 2,000 people are used.'); }
+    err.textContent = msgs.join(' '); err.hidden = !msgs.length;
+  }
+  // A size switch loads that size's example while the box still holds an example; your own list is kept.
+  function setSize(size: Size) {
+    const prev = st.size;
+    if (examples.has(st.staffText.trim()) || !st.staffText.trim()) {
+      st = { ...fresh(size), period: st.period, start: st.start, weekStart: st.weekStart };
+      staffBox.value = st.staffText; readStaff();
+      st.grid = autoFill(staff, st.shifts, days(), {}, st.weekStart).grid;
+    }
+    st.size = size;
+    readStaff();
+    st.dept = size === 'large' ? st.dept || depts()[0] || '' : prev === 'large' ? '' : st.dept;
+    renderAll();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.sh-size button').forEach((b) => b.addEventListener('click', () => setSize(b.dataset.size as Size)));
+  let staffTimer = 0;
+  staffBox.addEventListener('input', () => { clearTimeout(staffTimer); staffTimer = window.setTimeout(() => { st.staffText = staffBox.value; readStaff(); renderAll(); }, 300); });
+
+  // ---------- Shifts ----------
+  const shiftBox = q('.sh-shifts');
+  function renderShifts() {
+    shiftBox.textContent = '';
+    st.shifts.forEach((s) => {
+      const row = document.createElement('div'); row.className = 'sh-shift'; row.dataset.id = s.id;
+      const times = document.createElement('div'); times.className = 'sh-t';
+      const field = (cls: string, label: string, input: HTMLInputElement, into: HTMLElement = row) => { const l = document.createElement('label'); l.className = cls; l.append(label, input); into.append(l); return input; };
+      const inp = (type: string, value: string, attrs: Record<string, string> = {}) => { const i = document.createElement('input'); i.type = type; i.value = value; for (const [k, v] of Object.entries(attrs)) i.setAttribute(k, v); return i; };
+      const n = field('sh-n', 'Shift', inp('text', s.name, { maxlength: '30' }));
+      const c = field('sh-c', 'Code', inp('text', s.code, { maxlength: '3' }));
+      row.append(times);
+      const a = field('sh-s', 'Starts', inp('time', s.start), times);
+      const e = field('sh-e', 'Ends', inp('time', s.end), times);
+      const d = field('sh-d', hasDepts() ? 'People needed (per department)' : 'People needed', inp('text', needText(s), { inputmode: 'text', autocomplete: 'off' }));
+      const k = document.createElement('button'); k.type = 'button'; k.className = 'sh-k'; k.style.background = s.color; k.setAttribute('aria-label', `Colour of ${s.name}, tap to change`);
+      const x = document.createElement('button'); x.type = 'button'; x.className = 'sh-x'; x.textContent = '×'; x.setAttribute('aria-label', `Remove ${s.name}`);
+      row.append(k, x);
+      shiftBox.append(row);
+      n.addEventListener('input', () => { s.name = n.value || 'Shift'; changed(); });
+      c.addEventListener('input', () => { s.code = c.value.trim() || codeFor(s.name, st.shifts.filter((o) => o !== s).map((o) => o.code)); changed(); });
+      a.addEventListener('change', () => { if (a.value) s.start = a.value; changed(); });
+      e.addEventListener('change', () => { if (e.value) s.end = e.value; changed(); });
+      d.addEventListener('input', () => { const r = parseNeed(d.value); s.need = r.need; s.needBy = r.needBy; showShiftErr(r.errors); changed(); });
+      k.addEventListener('click', () => { s.color = PALETTE[(PALETTE.indexOf(s.color) + 1) % PALETTE.length]; k.style.background = s.color; changed(); });
+      x.addEventListener('click', () => {
+        st.shifts = st.shifts.filter((o) => o !== s);
+        for (const g of Object.keys(st.grid)) if (st.grid[g] === s.id) delete st.grid[g];
+        renderShifts(); changed();
+      });
+    });
+    q('.sh-need-help').textContent = hasDepts()
+      ? 'Times can run past midnight (23:00 to 07:00). People needed is for every department; for different numbers write, for example, “2, Kitchen 3, Security 1” (a department not listed gets the first number).'
+      : 'Times can run past midnight (23:00 to 07:00). People needed is how many you want on that shift each day.';
+  }
+  function showShiftErr(errs: string[]) { const e = q('.sh-shift-err'); e.textContent = errs.join(' '); e.hidden = !errs.length; }
+  q('.sh-add').addEventListener('click', () => {
+    const used = st.shifts.map((s) => s.code), name = st.shifts.length ? 'Shift' : 'Day';
+    while (st.shifts.some((s) => s.id === `n${nextId}`)) nextId++;
+    st.shifts.push({ id: `n${nextId++}`, name, code: codeFor(name, used), start: '09:00', end: '17:00', need: 1, color: PALETTE[st.shifts.length % PALETTE.length] });
+    renderShifts(); changed();
+  });
+
+  // ---------- Schedule ----------
+  const days = () => periodDays(st.period, st.start, st.weekStart);
+  const viewStaff = () => (st.dept === '' ? staff : staff.filter((p) => p.dept === st.dept));
+  const byId = () => new Map(st.shifts.map((s) => [s.id, s]));
+  function renderControls() {
+    root.querySelectorAll<HTMLButtonElement>('.sh-size button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.size === st.size)));
+    root.querySelectorAll<HTMLButtonElement>('.sh-period button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.p === st.period)));
+    q('.sh-size-help').textContent = HELP[st.size];
+    q<HTMLInputElement>('.sh-start').value = st.start;
+    q<HTMLSelectElement>('.sh-ws').value = String(st.weekStart);
+    q('.sh-label').textContent = periodTitle(days());
+    const ds = depts(), sel = q<HTMLSelectElement>('.sh-dept');
+    q('.sh-dept-l').hidden = !hasDepts(); q('.sh-which-l').hidden = !hasDepts() || ds.length < 2; q('.sh-c-dept').hidden = !hasDepts();
+    if (st.dept && !ds.includes(st.dept)) st.dept = st.size === 'large' ? ds[0] ?? '' : '';
+    if (st.size === 'large' && st.dept === '' && hasDepts()) st.dept = ds[0];
+    sel.textContent = '';
+    if (st.size !== 'large') sel.add(new Option(`All (${staff.length})`, ''));
+    for (const d of ds) sel.add(new Option(`${d || 'No department'} (${staff.filter((p) => p.dept === d).length})`, d));
+    sel.value = st.dept;
+    const which = q<HTMLSelectElement>('.sh-which');
+    if (!which.dataset.touched) which.value = st.size === 'large' ? 'all' : 'view';
+    q('.sh-fill-help').textContent = `Fill puts people on empty days so each shift has the people it needs${hasDepts() ? ' in every department' : ''}, sharing hours out fairly. It never uses a day off, never goes over anyone's hours for the week and leaves at least 11 hours between shifts. It changes only empty cells${hasDepts() ? ' in all departments' : ''}.`;
+  }
+  function renderGrid() {
+    const ds = days(), ppl = viewStaff(), shifts = st.shifts, m = byId();
+    const t = q<HTMLTableElement>('.sh-grid');
+    t.textContent = '';
+    const head = t.createTHead().insertRow();
+    const th = (txt: string, cls = '') => { const c = document.createElement('th'); c.textContent = txt; if (cls) c.className = cls; head.append(c); };
+    th('Name', 'nm');
+    for (const d of ds) th(dayLabel(d), weekday(d) % 6 === 0 ? 'we' : '');
+    th('Hours');
+    const body = t.createTBody();
+    const opts = [['', ''], ...shifts.map((s) => [s.id, s.code])];
+    for (const p of ppl) {
+      const tr = body.insertRow(); tr.dataset.name = p.name;
+      const n = tr.insertCell(); n.className = 'nm'; n.textContent = p.name; n.title = p.name;
+      if (st.dept === '' && p.dept) { const sm = document.createElement('small'); sm.textContent = p.dept; n.append(sm); }
+      ds.forEach((d) => {
+        const td = tr.insertCell(), s = document.createElement('select');
+        s.dataset.k = key(p.name, d);
+        s.setAttribute('aria-label', `${p.name}, ${dayLabel(d)}`);
+        const isOff = p.off.includes(weekday(d));
+        for (const [v, l] of opts) s.add(new Option(v ? l : isOff ? 'off' : '–', v));
+        s.value = m.has(st.grid[key(p.name, d)]) ? st.grid[key(p.name, d)] : '';
+        styleCell(s, isOff);
+        td.append(s);
+      });
+      const tot = tr.insertCell(); tot.className = 'tot';
+    }
+    const foot = t.createTFoot();
+    for (const s of shifts) {
+      const tr = foot.insertRow(); tr.className = 'cov'; tr.dataset.s = s.id;
+      const n = tr.insertCell(); n.className = 'nm'; n.textContent = `${s.code} needed`; n.title = s.name;
+      ds.forEach(() => tr.insertCell());
+      tr.insertCell();
+    }
+    updateCounts();
+  }
+  function styleCell(s: HTMLSelectElement, isOff: boolean) {
+    const sh = byId().get(s.value);
+    s.classList.toggle('on', !!sh); s.classList.toggle('off', !sh && isOff);
+    s.style.background = sh ? sh.color : '';
+    s.title = sh ? `${sh.name} ${fmtTime(minutes(sh.start))}-${fmtTime(minutes(sh.end))}` : isOff ? 'Day off' : 'No shift';
+  }
+  function updateCounts() {
+    const ds = days(), ppl = viewStaff(), t = q<HTMLTableElement>('.sh-grid');
+    // Hours a week can be more than the period shows, so each person's limit is checked per week below.
+    for (const tr of Array.from(t.tBodies[0]?.rows ?? [])) {
+      const p = ppl.find((x) => x.name === tr.dataset.name); if (!p) continue;
+      const h = totals(p, st.shifts, ds, st.grid).hours, cell = tr.cells[tr.cells.length - 1];
+      cell.textContent = st.period === 'week' ? `${+h.toFixed(2)}/${p.maxHours}` : String(+h.toFixed(2));
+      cell.classList.toggle('over', st.period === 'week' && h > p.maxHours + 1e-9);
+    }
+    const cov = coverage(ppl, st.shifts, ds, st.grid), groups = [...new Set(ppl.map((p) => p.dept))];
+    for (const tr of Array.from(t.tFoot?.rows ?? [])) {
+      const s = st.shifts.find((x) => x.id === tr.dataset.s); if (!s) continue;
+      const need = groups.reduce((a, d) => a + needFor(s, d), 0);
+      tr.cells[0].textContent = `${s.code} need ${need}`;
+      ds.forEach((_, i) => { const c = tr.cells[i + 1], n = cov[i][s.id]; c.textContent = String(n); c.classList.toggle('short', n < need); c.title = n < need ? `${need - n} short` : ''; });
+    }
+    // Warnings for the people shown, plus shifts short of people.
+    const warn = q('.sh-warn'); warn.textContent = '';
+    const bad = st.shifts.filter((s) => !Number.isFinite(shiftHours(s))).map((s) => `${s.name} has a start or end time that can't be read.`);
+    const pr = [...bad, ...problems(ppl, st.shifts, ds, st.grid, st.weekStart)];
+    const short: string[] = [];
+    ds.forEach((d, i) => { for (const s of st.shifts) { const need = groups.reduce((a, g) => a + needFor(s, g), 0), n = cov[i][s.id]; if (n < need) short.push(`${dayLabel(d)} ${s.name}: ${need - n} more needed.`); } });
+    const all = [...pr, ...short];
+    for (const m of all.slice(0, 12)) { const li = document.createElement('li'); li.textContent = m; warn.append(li); }
+    if (all.length > 12) { const li = document.createElement('li'); li.textContent = `And ${all.length - 12} more.`; warn.append(li); }
+    renderPreview();
+    persist();
+  }
+  q('.sh-grid').addEventListener('change', (e) => {
+    const s = e.target as HTMLSelectElement; if (!s.dataset.k) return;
+    if (s.value) st.grid[s.dataset.k] = s.value; else delete st.grid[s.dataset.k];
+    const [name, d] = [s.dataset.k.slice(0, s.dataset.k.lastIndexOf('|')), s.dataset.k.slice(s.dataset.k.lastIndexOf('|') + 1)];
+    styleCell(s, !!staff.find((p) => p.name === name)?.off.includes(weekday(d)));
+    updateCounts();
+  });
+  function renderAll() { renderControls(); renderShifts(); renderGrid(); }
+  function changed() { renderControls(); renderGrid(); }
+
+  root.querySelectorAll<HTMLButtonElement>('.sh-period button').forEach((b) => b.addEventListener('click', () => { st.period = b.dataset.p as Period; renderControls(); renderGrid(); }));
+  q('.sh-prev').addEventListener('click', () => step(-1));
+  q('.sh-next').addEventListener('click', () => step(1));
+  function step(dir: number) {
+    if (st.period === 'week') st.start = addDays(days()[0], 7 * dir);
+    else { const y = +st.start.slice(0, 4), m = +st.start.slice(5, 7) - 1 + dir, d = new Date(Date.UTC(y, m, 1)); st.start = d.toISOString().slice(0, 10); }
+    renderControls(); renderGrid();
+  }
+  q<HTMLInputElement>('.sh-start').addEventListener('change', (e) => { const v = (e.target as HTMLInputElement).value; if (/^\d{4}-\d{2}-\d{2}$/.test(v)) { st.start = v; renderControls(); renderGrid(); } });
+  q<HTMLSelectElement>('.sh-ws').addEventListener('change', (e) => { st.weekStart = (+(e.target as HTMLSelectElement).value) as 0 | 1; renderControls(); renderGrid(); });
+  q<HTMLSelectElement>('.sh-dept').addEventListener('change', (e) => { st.dept = (e.target as HTMLSelectElement).value; renderGrid(); });
+  q('.sh-fill').addEventListener('click', () => {
+    const r = autoFill(staff, st.shifts, days(), st.grid, st.weekStart);
+    st.grid = r.grid;
+    renderGrid();
+    const n = r.gaps.reduce((a, g) => a + g.short, 0);
+    q('.sh-fill-help').textContent = n ? `Filled what it could. ${n} place${n === 1 ? ' is' : 's are'} still empty because nobody else is free; see the notes under the schedule.` : 'Filled. Every shift has the people it needs. Change any cell by tapping it.';
+  });
+  q('.sh-clear').addEventListener('click', () => {
+    const ppl = viewStaff(), ds = days();
+    if (!confirm(`Clear every shift for ${st.dept ? st.dept : 'everyone shown'} in ${periodTitle(ds)}?`)) return;
+    for (const p of ppl) for (const d of ds) delete st.grid[key(p.name, d)];
+    renderGrid();
+  });
+
+  // ---------- Download ----------
+  const opt = () => ({
+    title: q<HTMLInputElement>('.sh-title').value.trim() || 'Shift schedule',
+    cell: q<HTMLSelectElement>('.sh-cell').value as CellText,
+    dept: q<HTMLInputElement>('.sh-o-dept').checked && hasDepts(),
+    hours: q<HTMLInputElement>('.sh-o-hours').checked,
+    count: q<HTMLInputElement>('.sh-o-count').checked,
+    cover: q<HTMLInputElement>('.sh-o-cover').checked,
+    colors: q<HTMLInputElement>('.sh-o-colors').checked,
+    extra: q<HTMLInputElement>('.sh-extra').value,
+    days: Array.from(root.querySelectorAll<HTMLInputElement>('.sh-days input:checked')).map((i) => +i.value),
+    all: q<HTMLSelectElement>('.sh-which').value === 'all' && hasDepts(),
+  });
+  function sheets(): Sheet[] {
+    const o = opt(), all = days(), ds = all.filter((d) => o.days.includes(weekday(d))), title = periodTitle(all);
+    const groups = o.all ? depts().map((d) => ({ name: d || 'No department', people: staff.filter((p) => p.dept === d) })) : [{ name: st.dept || (hasDepts() ? 'All departments' : 'Schedule'), people: viewStaff() }];
+    return groups.map((g) => ({ name: g.name, heading: hasDepts() ? `${g.name}: ${title}` : title, table: buildTable(g.people, st.shifts, ds.length ? ds : all, st.grid, { ...o, totalDays: all }) }));
+  }
+  let prevTimer = 0;
+  function renderPreview() {
+    clearTimeout(prevTimer);
+    prevTimer = window.setTimeout(() => {
+      const sh = sheets(), first = sh.slice(0, 1), c = q<HTMLCanvasElement>('.sh-pv');
+      if (!staff.length) { c.width = c.height = 0; return; }
+      const size = drawSheets(null, first, opt().title), box = q('.sh-prevbox').clientWidth || 320;
+      const cssW = Math.min(size.w, Math.max(box - 2, 280) * (size.w > 900 ? 1.6 : 1)), k = cssW / size.w, dpr = Math.min(2, window.devicePixelRatio || 1);
+      c.style.width = `${cssW}px`; c.style.height = `${size.h * k}px`;
+      c.width = Math.round(size.w * k * dpr); c.height = Math.round(size.h * k * dpr);
+      drawSheets(c.getContext('2d')!, first, opt().title, k * dpr);
+      q('.sh-prev-note').textContent = sh.length > 1 ? `Showing the first of ${sh.length} departments. The image has them one under another; the PDF and Word file give each its own page, and Excel its own sheet.` : '';
+    }, 150);
+  }
+  root.querySelectorAll('.sh-title, .sh-cell, .sh-extra, .sh-fs input, .sh-which').forEach((el) => el.addEventListener('input', renderPreview));
+  root.querySelectorAll('.sh-fs input, .sh-cell, .sh-which').forEach((el) => el.addEventListener('change', renderPreview));
+  q('.sh-which').addEventListener('change', (e) => { (e.target as HTMLElement).dataset.touched = '1'; });
+  root.querySelectorAll<HTMLButtonElement>('button[data-x]').forEach((b) => b.addEventListener('click', async () => {
+    const err = q('.sh-dl-err'); err.hidden = true;
+    if (!staff.length) { err.textContent = 'Add at least one person first.'; err.hidden = false; return; }
+    const sh = sheets(), o = opt(), file = fileSafe(`${o.title} ${periodTitle(days())}`), old = b.textContent;
+    b.disabled = true; b.textContent = 'Making…';
+    try {
+      const X = await import('../../lib/rosterExport');
+      if (b.dataset.x === 'png') save(await X.rosterPng(sh, o.title), `${file}.png`, 'image/png');
+      if (b.dataset.x === 'pdf') { const r = await X.rosterPdf(sh, o.title); save(r.bytes, `${file}.pdf`, 'application/pdf'); if (r.lost.length) { err.textContent = `The PDF fonts can't show ${r.lost.slice(0, 8).join(' ')}; those letters were left out. Excel and Word keep them.`; err.hidden = false; } }
+      if (b.dataset.x === 'xlsx') save(await X.rosterXlsx(sh, o.title), `${file}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      if (b.dataset.x === 'docx') save(await X.rosterDocx(sh, o.title), `${file}.docx`, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    } catch (e) { err.textContent = `Could not make the file: ${(e as Error).message}`; err.hidden = false; }
+    finally { b.disabled = false; b.textContent = old; }
+  }));
+
+  // ---------- Start ----------
+  const saved = load();
+  st = saved ?? fresh('small');
+  keep.checked = !!saved;
+  for (const s of st.shifts) { const m = /^n(\d+)$/.exec(s.id); if (m) nextId = Math.max(nextId, +m[1] + 1); }
+  staffBox.value = st.staffText;
+  readStaff();
+  renderAll();
+  window.addEventListener('resize', renderPreview);
+</script>

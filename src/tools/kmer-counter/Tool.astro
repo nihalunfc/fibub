@@ -1,0 +1,176 @@
+---
+// k-mer counter and spectrum for FASTA/FASTQ, read piece by piece in the browser (gzip too). Nothing is uploaded.
+// The example reads are simulated from a made-up random genome.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax kmc">
+  <div class="ax-card">
+    <h2>Sequences</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small km-open">Open a FASTA or FASTQ file</button>
+      <input type="file" class="km-file" accept=".fa,.fasta,.fna,.fq,.fastq,.gz,.txt,text/plain,application/gzip" hidden />
+      <button type="button" class="btn secondary small km-stop" hidden>Stop</button>
+      <button type="button" class="btn secondary small km-ex">Use the example</button>
+    </div>
+    <p class="ax-help km-prog" aria-live="polite"></p>
+    <label style="margin-top:10px">Or paste sequences (up to 20 MB) <textarea class="km-in" rows="6" spellcheck="false"></textarea></label>
+    <p class="ax-help">FASTA, FASTQ or plain sequence, any size, also .gz; files are read piece by piece on your device and nothing is uploaded. The example is 10,000 reads of 100 bases simulated from a made-up 40,000-base genome with a repeat and 1 % errors.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>k (letters per word) <input class="km-k" type="number" min="1" max="25" step="1" value="21" inputmode="numeric" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="km-can" checked /> Count a word and its reverse complement together (canonical)</label>
+    <p class="ax-help">Use canonical counting for reads, which come from both strands. 21 is a common k for genomes; small k (3 to 8) shows word use in short sequences.</p>
+    <p class="ax-err km-err" hidden></p>
+  </div>
+
+  <div class="ax-card km-out" hidden>
+    <h2>k-mers</h2>
+    <p class="ax-big km-big"></p>
+    <dl class="ax-facts km-facts"></dl>
+    <h3>Spectrum</h3>
+    <canvas class="ax-fig km-fig"></canvas>
+    <p class="ax-help km-note"></p>
+    <h3>Most common</h3>
+    <div class="ax-scroll"><table class="km-top"></table></div>
+    <p class="ax-help">When reverse complements are counted together, each pair is listed once, under whichever of the two comes first alphabetically.</p>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Look up a k-mer <input class="km-q" type="text" spellcheck="false" autocomplete="off" placeholder="e.g. ACGT…" /></label>
+    </div>
+    <p class="ax-help km-qa" aria-live="polite"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small km-csv">Download the spectrum (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .kmc h3 { margin: 18px 0 8px; font-size: 15px; }
+  .kmc .km-top td:first-child { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; white-space: nowrap; }
+</style>
+
+<script>
+  import { KmerCounter, spectrum, topKmers, genomeEstimate, exampleReads, revComp, MAX_K } from '../../lib/sci/kmer';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, fileSafe, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.kmc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const tn = (x: number) => Math.round(x).toLocaleString('en');
+  const pc = (x: number) => `${(100 * x).toFixed(1)} %`;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const err = (m: string) => { q('.km-err').textContent = m; q('.km-err').hidden = !m; };
+  const prog = (m: string) => (q('.km-prog').textContent = m);
+  const box = q<HTMLTextAreaElement>('.km-in');
+  const CAP = 1000;
+
+  let example = '';
+  let source: { file?: File; text?: string; name: string } = { name: 'example' };
+  let counter: KmerCounter | null = null, hist: number[] = [], fig: Figure | null = null, sections: Section[] = [], busy = false, pending = false, stopFlag = false;
+
+  function loadExample() {
+    if (!example) example = exampleReads().fastq;
+    box.value = `${example.slice(0, 3000)}…\n# (only the start is shown; all 10,000 example reads are used)`;
+    box.dataset.example = '1';
+    source = { text: example, name: 'example' };
+    run();
+  }
+
+  async function run() {
+    if (busy) { pending = true; stopFlag = true; return; }
+    const k = Number(q<HTMLInputElement>('.km-k').value);
+    if (!Number.isInteger(k) || k < 1 || k > MAX_K) return err(`k must be a whole number from 1 to ${MAX_K}.`);
+    err(''); busy = true; stopFlag = false;
+    const c = new KmerCounter({ k, canonical: q<HTMLInputElement>('.km-can').checked });
+    let partial = false;
+    try {
+      if (source.file) {
+        const file = source.file; q('.km-stop').hidden = false;
+        const head = new Uint8Array(await file.slice(0, 2).arrayBuffer()), gz = head[0] === 0x1f && head[1] === 0x8b;
+        if (gz && typeof DecompressionStream === 'undefined') throw new Error('This browser cannot unzip .gz files. Unzip it first, or try another browser.');
+        let done = 0;
+        let stream: ReadableStream<Uint8Array> = file.stream().pipeThrough(new TransformStream<Uint8Array, Uint8Array>({ transform(ch, ctl) { done += ch.byteLength; ctl.enqueue(ch); } }));
+        if (gz) stream = stream.pipeThrough(new DecompressionStream('gzip') as unknown as TransformStream<Uint8Array, Uint8Array>);
+        const reader = stream.pipeThrough(new TextDecoderStream() as unknown as TransformStream<Uint8Array, string>).getReader();
+        let t0 = 0;
+        for (;;) {
+          const { value, done: end } = await reader.read(); if (end) break;
+          c.push(value);
+          if (stopFlag) { partial = true; await reader.cancel(); break; }
+          const now = performance.now(); if (now - t0 > 200) { t0 = now; prog(`Reading ${file.name}: ${(100 * done / Math.max(1, file.size)).toFixed(0)} % (${tn(c.records)} sequences so far)`); await new Promise((r) => setTimeout(r, 0)); }
+        }
+        c.end();
+        if (!pending) prog(`${partial ? 'Stopped' : 'Finished'}: ${file.name}, ${(file.size / 1e6).toFixed(1)} MB${gz ? ' compressed' : ''}.`);
+      } else {
+        const t = source.text ?? '';
+        if (t.length > 20e6) throw new Error('Pasted text is limited to 20 MB; open the file instead.');
+        c.push(t); c.end();
+        if (!pending) prog('');
+      }
+      if (!c.total && !pending) throw new Error(c.bases ? `No ${k}-letter words of A, C, G and T found. Try a smaller k.` : 'No sequence found. Paste FASTA (> lines), FASTQ (@ lines) or plain sequence.');
+      if (!pending) { counter = c; show(partial); }
+    } catch (e) { err((e as Error).message); q('.km-out').hidden = true; sections = []; }
+    finally { busy = false; q('.km-stop').hidden = true; if (pending) { pending = false; run(); } }
+  }
+
+  function show(partial: boolean) {
+    const c = counter!, k = c.k;
+    hist = spectrum(c.counts, CAP);
+    const once = hist[1], est = genomeEstimate(hist), possible = 4 ** k / (c.canonical ? 2 : 1);
+    q('.km-out').hidden = false;
+    q('.km-big').textContent = `${tn(c.counts.size)} distinct ${k}-mers in ${tn(c.total)}${partial ? ' (stopped early)' : ''}`;
+    q('.km-facts').replaceChildren(
+      fact(c.format === 'fastq' ? 'Reads' : 'Sequences', tn(c.records), `${tn(c.bases)} letters${c.other ? `, ${tn(c.other)} not A/C/G/T (words across them skipped)` : ''}`),
+      fact(`${k}-mers counted`, tn(c.total), c.canonical ? 'with reverse complements together' : 'one strand only'),
+      fact('Distinct', tn(c.counts.size), k <= 12 ? `${pc(c.counts.size / possible)} of the ${tn(possible)} possible` : ''),
+      fact('Seen once', tn(once), c.counts.size ? `${pc(once / c.counts.size)} of distinct k-mers` : ''),
+      ...(est ? [fact('Genome size (rough)', `${tn(est.size)} bases`, `main peak at ${est.peak}×, valley at ${est.valley}×`)] : []),
+      ...(c.full ? [fact('Limit reached', '5,000,000 distinct', 'k-mers first seen after that were not counted')] : []),
+    );
+    // Spectrum up to a bit past the main peak (or where the counts thin out), log scale.
+    let xmax = 2; for (let m = 1; m < CAP; m++) if (hist[m]) xmax = m;
+    xmax = Math.min(xmax, est ? Math.max(4 * est.peak, 20) : 100, CAP - 1);
+    const xs: number[] = [], ys: number[] = [];
+    for (let m = 1; m <= xmax; m++) if (hist[m]) { xs.push(m); ys.push(hist[m]); }
+    fig = chartFigure({ w: 560, h: 320, xLabel: 'Times a k-mer is seen (multiplicity)', yLabel: 'Distinct k-mers', yLog: true, legend: 'none', xMin: 0, series: [{ name: 'k-mers', x: xs, y: ys, mode: 'both', width: 1.8, size: 2.4 }], marks: est ? [{ kind: 'vline', at: est.peak, dash: [5, 4], label: `peak ${est.peak}×` }, { kind: 'vline', at: est.valley, dash: [2, 4], label: 'valley' }] : [] }, `k-mer spectrum: distinct k-mers by multiplicity, log scale${est ? `; main peak at ${est.peak}` : ''}`);
+    paint(q<HTMLCanvasElement>('.km-fig'), fig);
+    q('.km-note').textContent = est
+      ? `The k-mers seen once or twice on the left are mostly sequencing errors. The hump at ${est.peak}× is the genome at its typical depth; k-mers to its right sit in repeats. The genome size is the k-mers counted from the valley on (${tn(est.solid)}) divided by the peak (${est.peak}): a rough guide that assumes one copy of each chromosome set and even coverage.`
+      : 'There is no clear valley and peak, so no genome size is given. That is normal for an assembly, a single gene, a small k, or reads with low coverage.';
+    const top = topKmers(c.counts, k, 20);
+    const t = q<HTMLTableElement>('.km-top'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); for (const h of ['k-mer', 'Count', 'Share']) { const th = document.createElement('th'); th.textContent = h; hr.append(th); }
+    const b = t.createTBody(); for (const x of top) { const r = b.insertRow(); [x.kmer, tn(x.count), pc(x.count / c.total)].forEach((v, i) => { const td = r.insertCell(); td.textContent = v; if (i) td.className = 'r'; if (!i && c.canonical) td.title = `with ${revComp(x.kmer)}`; }); }
+    lookup();
+    sections = [
+      { title: q('.km-big').textContent!, facts: [...q('.km-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]) },
+      { title: 'Spectrum', figure: fig, note: q('.km-note').textContent! },
+      { title: 'Most common k-mers', table: { head: ['k-mer', 'Count', 'Share'], rows: top.map((x) => [x.kmer, tn(x.count), pc(x.count / c.total)]), align: ['l', 'r', 'r'] } },
+    ];
+  }
+  function lookup() {
+    const w = q<HTMLInputElement>('.km-q').value.trim().toUpperCase(), a = q('.km-qa');
+    if (!w || !counter) { a.textContent = ''; return; }
+    const n = counter.get(w);
+    a.textContent = w.length !== counter.k ? `Type ${counter.k} letters (this has ${w.length}).` : Number.isNaN(n) ? 'Only A, C, G and T can be looked up.' : `${w}${counter.canonical ? ` (with ${revComp(w)})` : ''}: seen ${tn(n)} time${n === 1 ? '' : 's'}.`;
+  }
+
+  q('.km-open').addEventListener('click', () => q<HTMLInputElement>('.km-file').click());
+  q('.km-file').addEventListener('change', () => { const inp = q<HTMLInputElement>('.km-file'), f = inp.files?.[0]; inp.value = ''; if (!f) return; source = { file: f, name: f.name.replace(/\.(fa|fasta|fna|fq|fastq|txt)(\.gz)?$/i, '') }; box.value = ''; box.dataset.example = ''; run(); });
+  q('.km-stop').addEventListener('click', () => { stopFlag = true; });
+  q('.km-ex').addEventListener('click', loadExample);
+  let timer = 0;
+  box.addEventListener('input', () => { box.dataset.example = ''; clearTimeout(timer); timer = window.setTimeout(() => { source = { text: box.value, name: 'sequences' }; run(); }, 400); });
+  q('.km-k').addEventListener('change', run);
+  q('.km-can').addEventListener('change', run);
+  q('.km-q').addEventListener('input', lookup);
+  q('.km-csv').addEventListener('click', () => {
+    if (!counter) return;
+    let last = 0; for (let m = 1; m <= CAP; m++) if (hist[m]) last = m;
+    const rows = ['multiplicity,distinct_kmers'];
+    for (let m = 1; m <= last; m++) rows.push(`${m === CAP ? `${CAP}+` : m},${hist[m]}`);
+    save(new Blob([rows.join('\r\n') + '\r\n'], { type: 'text/csv' }), `${fileSafe(source.name)}-k${counter.k}-spectrum.csv`, 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => ({ title: 'k-mer spectrum', subtitle: q('.km-big').textContent ?? '', file: `${fileSafe(source.name)}-k${counter?.k ?? ''}-kmers`, sections }));
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.km-fig'), fig); });
+  loadExample();
+</script>

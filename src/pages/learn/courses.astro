@@ -1,0 +1,15 @@
+---
+import LearnPage from '../../components/LearnPage.astro';
+const cards = [
+  { name: 'Coding and data', text: 'Start with simple steps, then sort, count and draw charts from real-looking data.' },
+  { name: 'How AI works', text: 'What a model is, how it learns from examples, and where it goes wrong, with small things to try.' },
+  { name: 'Space and the sky', text: 'Find the planets tonight, measure the Moon, and learn how we know how far away stars are.' },
+  { name: 'Climate and energy', text: 'Weather, carbon and clean energy, worked out with your own numbers.' },
+  { name: 'Money basics', text: 'Saving, interest and budgets, explained with calculators you can play with.' },
+  { name: 'Thinking like a scientist', text: 'Asking a question, measuring, uncertainty and fair tests.' },
+];
+---
+<LearnPage title="Learn: Courses" description="Short free courses for young learners on new and advanced topics: coding, AI, space, climate, money and science skills."
+  lead="Short free courses on new and advanced topics, written for young learners. Every lesson is short and has something to try."
+  cardsTitle="Planned courses" cards={cards}
+  toolsTitle="Tools the courses will use" tools={['sky-tonight', 'plot-maker', 'sql-playground', 'budget-calculator', 'tree-carbon', 'sample-size']} />

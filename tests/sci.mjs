@@ -157,6 +157,12 @@ import * as GB from '../src/lib/sci/genbank.ts';
 import * as PM from '../src/lib/sci/plasmidmap.ts';
 import * as FQ from '../src/lib/sci/fastq.ts';
 import * as AL from '../src/lib/sci/align.ts';
+import * as VC from '../src/lib/sci/vcf.ts';
+import * as SR from '../src/lib/roster.ts';
+import * as IV from '../src/lib/sci/intervals.ts';
+import * as KM from '../src/lib/sci/kmer.ts';
+import * as RX from '../src/lib/rosterExport.ts';
+import { unzipSync, strFromU8 } from 'fflate';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -3178,6 +3184,185 @@ ORIGIN
   check('align: dot plot words', JSON.stringify(dp.fwd) === '[[0,0],[4,0]]' && dp.rev.length === 2);
   check('align: type guess', AL.guessType('ACGTNACGT') === 'dna' && AL.guessType('MKVLAAGIV') === 'protein');
   check('align: size limit', (() => { try { AL.align('A'.repeat(6000), 'A'.repeat(6000), d, 'global'); return false; } catch { return true; } })());
+}
+// #173 VCF viewer: the made-up example read in chunks, checked against an independent plain-Python reader (counts
+// by type and chromosome, Ti/Tv, filters, QUAL bins, allele frequency from genotypes, genotypes per sample) with
+// and without filters.
+{
+  const t = VC.exampleVcf(300, 5);
+  check('vcf: example is the same every time', t === VC.exampleVcf(300, 5) && t.startsWith('##fileformat=VCFv4.2\n'));
+  const run = (f, step = 777) => { const st = new VC.VcfStats(f); for (let i = 0; i < t.length; i += step) st.push(t.slice(i, i + step)); st.end(); return st.result(); };
+  const r = run({});
+  check('vcf: records, alleles, samples, contigs', r.records === 300 && r.kept === 300 && r.alleles === 310 && r.samples.map((x) => x.name).join() === 'sample1,sample2,sample3' && r.contigs.join() === 'chrA,chrB,chrC');
+  check('vcf: by type', JSON.stringify(r.byType) === '{"SNV":257,"insertion":21,"deletion":21,"MNV":11,"complex":0,"other":0}');
+  check('vcf: by chromosome', JSON.stringify(r.byChrom) === '[["chrA",136],["chrB",101],["chrC",63]]');
+  check('vcf: Ti/Tv 175/82', r.ti === 175 && r.tv === 82);
+  check('vcf: multi-allelic and filters', r.multiallelic === 10 && r.pass === 256 && r.failed === 44 && r.noFilter === 0 && r.failedBy.length === 2);
+  check('vcf: QUAL bins', r.qualMissing === 8 && r.qualHist[0] === 5 && r.qualHist[11] === 17 && r.qualHist[30] === 2 && r.qualHist.reduce((a, b) => a + b, 0) === 292);
+  check('vcf: allele frequency from genotypes', r.afFrom === 'genotypes' && JSON.stringify(r.afHist) === '[7,0,0,21,0,11,59,0,0,0,94,0,0,70,0,8,32,0,0,7]');
+  check('vcf: genotypes per sample', JSON.stringify(r.samples[0]) === '{"name":"sample1","homRef":73,"het":144,"homAlt":68,"missing":15}' && r.samples[2].homAlt === 90);
+  const b = run({ chrom: 'chrB' }, 101);
+  check('vcf: chromosome filter', b.kept === 101 && b.ti === 59 && b.tv === 24 && b.lines.every((l) => l.startsWith('chrB\t')));
+  const p = run({ passOnly: true, minQual: 50 });
+  check('vcf: PASS and QUAL filter', p.kept === 230 && p.ti === 133 && p.tv === 63 && p.failed === 0);
+  const ind = run({ types: ['insertion', 'deletion'] });
+  check('vcf: type filter', ind.kept === 42 && ind.ti === 0 && ind.byType.SNV === 0);
+  const reg = run({ chrom: 'chrA', start: 10000, end: 30000, minDP: 30 }, 5);
+  check('vcf: region and depth filter', reg.kept === 32 && reg.ti === 16 && reg.tv === 10);
+  check('vcf: variant types', VC.varType('A', 'G') === 'SNV' && VC.varType('A', 'ATG') === 'insertion' && VC.varType('ATG', 'A') === 'deletion' && VC.varType('AT', 'GC') === 'MNV' && VC.varType('AT', 'GCC') === 'complex' && VC.varType('A', '<DEL>') === 'other' && VC.varType('A', '*') === 'other' && VC.varType('A', 'A[2:100[') === 'other');
+  check('vcf: transitions', VC.isTransition('A', 'G') && VC.isTransition('t', 'c') && !VC.isTransition('A', 'C') && !VC.isTransition('G', 'T'));
+  check('vcf: genotypes', VC.gtKind(VC.parseGT('0/0')) === 'homRef' && VC.gtKind(VC.parseGT('0|1')) === 'het' && VC.gtKind(VC.parseGT('2/2')) === 'homAlt' && VC.gtKind(VC.parseGT('1/2')) === 'het' && VC.gtKind(VC.parseGT('./.')) === 'missing' && VC.gtKind(VC.parseGT('1')) === 'homAlt' && VC.gtKind(VC.parseGT('0/.')) === 'missing');
+  const st = new VC.VcfStats(); st.push('##fileformat=VCFv4.2\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\nx\t5\t.\tA\tG,T\t.\t.\tAF=0.25,0.5\nbad line\n'); st.end();
+  const q = st.result();
+  check('vcf: INFO AF, no samples, bad line', q.records === 1 && q.afFrom === 'info' && q.afHist[5] === 1 && q.afHist[10] === 1 && q.noFilter === 1 && q.errors[0].includes('at least 8'));
+  const cap = new VC.VcfStats({}, 10); cap.push(t); cap.end();
+  check('vcf: kept lines capped', cap.result().lines.length === 10 && cap.result().linesCapped && cap.result().kept === 300);
+}
+// #174 shift scheduler: dates, times, the staff list, the fill rules (days off, weekly hours, 11 hours' rest, one
+// shift a day, fair shares, per-department needs), coverage, the table model and the Excel/Word/PDF files.
+{
+  check('roster: times', SR.minutes('07:00') === 420 && SR.minutes('7am') === 420 && SR.minutes('3:30 pm') === 930 && SR.minutes('12am') === 0 && SR.minutes('12pm') === 720 && SR.minutes('24:00') === 1440 && Number.isNaN(SR.minutes('25')) && Number.isNaN(SR.minutes('13pm')));
+  check('roster: hours past midnight', SR.shiftHours({ start: '22:00', end: '06:00' }) === 8 && SR.shiftHours({ start: '9', end: '17:30' }) === 8.5 && SR.shiftHours({ start: '0:00', end: '24:00' }) === 24);
+  const wk = SR.periodDays('week', '2026-11-11');
+  check('roster: week from Monday', wk.length === 7 && wk[0] === '2026-11-09' && wk[6] === '2026-11-15' && SR.periodDays('week', '2026-11-11', 0)[0] === '2026-11-08' && SR.periodDays('week', '2026-11-09')[0] === '2026-11-09');
+  check('roster: months', SR.periodDays('month', '2026-02-15').length === 28 && SR.periodDays('month', '2028-02-03').length === 29 && SR.periodDays('month', '2026-12-31').at(-1) === '2026-12-31');
+  check('roster: titles', SR.periodTitle(SR.periodDays('week', '2026-12-30')) === '28 Dec 2026 to 3 Jan 2027' && SR.periodTitle(wk) === '9 Nov to 15 Nov 2026' && SR.periodTitle(SR.periodDays('month', '2026-11-20')) === 'Nov 2026' && SR.dayLabel('2026-11-09') === 'Mon 9');
+  const ps = SR.parseStaff('Name, Department, Max hours, Days off\nAva, 32 h, Sat sunday, Bar\nBen, Kitchen, Sat, 20\nCara\tKitchen\nDev, 200\nEd, Kitchen, Bar\n\nAva\n, 30');
+  check('roster: staff list in any order', ps.staff.length === 6 && ps.staff[0].dept === 'Bar' && ps.staff[0].maxHours === 32 && ps.staff[0].off.join() === '6,0' && ps.staff[1].maxHours === 20 && ps.staff[1].off.join() === '6' && ps.staff[2].dept === 'Kitchen' && ps.staff[2].maxHours === 40 && ps.staff[5].name === 'Ava (2)');
+  check('roster: staff list errors', ps.errors.length === 3 && ps.errors[0].includes('Line 5') && ps.errors[1].includes('"Bar"') && ps.errors[2].includes('no name'));
+  const nd = SR.parseNeed('2, Kitchen 3, security: 0');
+  check('roster: needs per department', nd.need === 2 && nd.needBy.kitchen === 3 && nd.needBy.security === 0 && SR.parseNeed('Kitchen 3').need === 0 && SR.parseNeed('x, 3').errors.length === 1 && SR.needFor({ need: 2, needBy: { kitchen: 3 } }, 'Kitchen ') === 3 && SR.needText({ need: 2, needBy: { 'front desk': 1 } }) === '2, Front Desk 1');
+  check('roster: shift codes', SR.codeFor('Morning', []) === 'M' && SR.codeFor('Mid', ['M']) === 'M2' && SR.codeFor('Mid', ['M', 'M2']) === 'M3');
+  // The fill keeps every rule, for every team size, for a week and a month.
+  const rulesOk = (staff, shifts, days, grid, ws = 1) => {
+    const m = new Map(shifts.map((s) => [s.id, s]));
+    for (const p of staff) {
+      const week = new Map();
+      for (let i = 0; i < days.length; i++) {
+        const s = m.get(grid[SR.key(p.name, days[i])]); if (!s) continue;
+        if (p.off.includes(SR.weekday(days[i]))) return `${p.name} works a day off`;
+        const w = SR.addDays(days[i], -((SR.weekday(days[i]) - ws + 7) % 7)); week.set(w, (week.get(w) ?? 0) + SR.shiftHours(s));
+        const o = i ? m.get(grid[SR.key(p.name, days[i - 1])]) : null;
+        if (o) { const endPrev = (i - 1) * 24 + SR.minutes(o.start) / 60 + SR.shiftHours(o), start = i * 24 + SR.minutes(s.start) / 60; if (start - endPrev < 11) return `${p.name} short rest`; }
+      }
+      for (const h of week.values()) if (h > p.maxHours) return `${p.name} over hours`;
+    }
+    return '';
+  };
+  for (const size of ['small', 'medium', 'large']) for (const per of ['week', 'month']) {
+    const ex = SR.exampleTeam(size), staff = SR.parseStaff(ex.staff).staff, days = SR.periodDays(per, '2026-11-09');
+    const r = SR.autoFill(staff, ex.shifts, days, {});
+    const cov = SR.coverage(staff, ex.shifts, days, r.grid), nDept = new Set(staff.map((p) => p.dept)).size;
+    const full = cov.every((c) => ex.shifts.every((s) => c[s.id] === s.need * nDept));
+    const hrs = staff.map((p) => SR.totals(p, ex.shifts, days, r.grid).hours);
+    check(`roster: ${size} ${per} fill covers every shift and keeps the rules`, staff.length === { small: 8, medium: 36, large: 150 }[size] && r.gaps.length === 0 && full && rulesOk(staff, ex.shifts, days, r.grid) === '' && SR.problems(staff, ex.shifts, days, r.grid).length === 0);
+    check(`roster: ${size} ${per} shares hours out`, Math.max(...hrs) - Math.min(...hrs) <= (per === 'week' ? 16 : 32));
+  }
+  // Small hand cases: a person kept on a hand-set night, a gap when too few people, and Sunday-start weeks.
+  const sh = [{ id: 'n', name: 'Night', code: 'N', start: '23:00', end: '07:00', need: 1, color: '#ccc' }, { id: 'm', name: 'Morning', code: 'M', start: '07:00', end: '15:00', need: 1, color: '#eee' }];
+  const two = [{ name: 'A', dept: '', maxHours: 16, off: [] }, { name: 'B', dept: '', maxHours: 40, off: [0] }];
+  const d3 = SR.periodDays('week', '2026-11-09').slice(0, 3);
+  const f = SR.autoFill(two, sh, d3, { 'A|2026-11-09': 'n' });
+  check('roster: hand-set cells stay', f.grid['A|2026-11-09'] === 'n');
+  check('roster: no morning straight after a night', f.grid['A|2026-11-10'] !== 'm' && rulesOk(two, sh, d3, f.grid) === '');
+  check('roster: gaps reported when too few people', f.gaps.length > 0 && f.gaps.every((g) => g.short === 1) && SR.totals(two[0], sh, d3, f.grid).hours <= 16);
+  const pr = SR.problems(two, sh, ['2026-11-15', '2026-11-16'], { 'B|2026-11-15': 'm', 'A|2026-11-15': 'n', 'A|2026-11-16': 'm', 'A|2026-11-16x': 'm' });
+  check('roster: warnings', pr.length === 2 && pr.some((x) => x.includes('day off')) && pr.some((x) => x.includes('rest')));
+  const dpt = [{ name: 'K1', dept: 'Kitchen', maxHours: 40, off: [] }, { name: 'K2', dept: 'Kitchen', maxHours: 40, off: [] }, { name: 'S1', dept: 'Shop', maxHours: 40, off: [] }];
+  const one = [{ id: 'd', name: 'Day', code: 'D', start: '09:00', end: '17:00', need: 1, needBy: { kitchen: 2 }, color: '#ddd' }];
+  const fd = SR.autoFill(dpt, one, d3, {});
+  check('roster: per-department needs', d3.every((d) => fd.grid[`K1|${d}`] === 'd' && fd.grid[`K2|${d}`] === 'd' && fd.grid[`S1|${d}`] === 'd') && fd.gaps.length === 0);
+  const tb = SR.buildTable(dpt, one, d3, fd.grid, { cell: 'time', dept: true, hours: true, count: true, cover: true, extra: 'Sign', totalDays: d3 });
+  check('roster: table columns', tb.head.map((c) => c.text).join('|') === 'Name|Department|Mon 9|Tue 10|Wed 11|Hours|Shifts|Sign' && tb.rows[0].map((c) => c.text).join('|') === 'K1|Kitchen|09:00-17:00|09:00-17:00|09:00-17:00|24|3|' && tb.rows[3][0].text === 'Day (need 3)' && tb.rows[3][2].text === '3' && !tb.rows[3][2].fill);
+  const tb2 = SR.buildTable([two[1]], sh, ['2026-11-15', '2026-11-16'], {}, { cell: 'code', dept: false, hours: false, count: false, cover: true, colors: false });
+  check('roster: off days, short coverage, no colours', tb2.head.length === 3 && tb2.rows[0][1].text === 'off' && tb2.rows[0][2].text === '' && tb2.rows[1][1].bold && !tb2.rows[1][1].fill && SR.buildTable([two[1]], sh, ['2026-11-15'], {}, { cell: 'code', dept: false, hours: false, count: false, cover: true }).rows[1][1].fill === '#f8d0d0');
+  check('roster: sheet names', RX.sheetNames(['Front/desk', 'A'.repeat(40), 'A'.repeat(40), '']).join('|') === `Front desk|${'A'.repeat(31)}|${'A'.repeat(29)} 2|Schedule`);
+  // Files: an Excel workbook with a sheet per department, coloured cells and numbers as numbers; a landscape Word
+  // file with shaded cells and a page per department; a landscape PDF.
+  const sheets = ['Kitchen', 'Shop'].map((d) => ({ name: d, heading: `${d}: 9 Nov to 11 Nov 2026`, table: SR.buildTable(dpt.filter((p) => p.dept === d), one, d3, fd.grid, { cell: 'name', dept: false, hours: true, count: false, cover: true }) }));
+  const xz = unzipSync(await RX.rosterXlsx(sheets, 'Café rota & <test>'));
+  const s1 = strFromU8(xz['xl/worksheets/sheet1.xml']), wbx = strFromU8(xz['xl/workbook.xml']), sty = strFromU8(xz['xl/styles.xml']);
+  check('roster: Excel workbook', wbx.includes('name="Kitchen"') && wbx.includes('name="Shop"') && !!xz['xl/worksheets/sheet2.xml'] && s1.includes('Café rota &amp; &lt;test&gt;') && s1.includes('state="frozen"') && /<c r="E5" s="\d+"><v>24<\/v><\/c>/.test(s1) && sty.includes('FFDDDDDD') && s1.includes('<t xml:space="preserve">Day</t>'));
+  const dz = unzipSync(await RX.rosterDocx(sheets, 'Rota'));
+  const dx = strFromU8(dz['word/document.xml']);
+  check('roster: Word file', dx.includes('w:orient="landscape"') && dx.includes('w:fill="DDDDDD"') && (dx.match(/<w:tbl>/g) ?? []).length === 2 && dx.includes('w:type="page"') && dx.includes('Shop: 9 Nov'));
+  const pdf = await RX.rosterPdf(sheets, 'Rota');
+  const { PDFDocument } = await import('pdf-lib');
+  const pd = await PDFDocument.load(pdf.bytes), pg = pd.getPage(0).getSize();
+  check('roster: PDF', pd.getPageCount() === 2 && Math.round(pg.width) === 842 && Math.round(pg.height) === 595 && pdf.lost.length === 0);
+}
+// #175 interval tools: BED/GFF3/GTF reading and bedtools-style merge, intersect, -u, -v and subtract, checked
+// against a brute-force base-by-base version on the made-up example and on random intervals. The example results
+// also matched a separate plain-Python brute-force script.
+{
+  const ex = IV.exampleFiles(), A = IV.parseIntervals(ex.gff), B = IV.parseIntervals(ex.bed);
+  check('intervals: example files', A.format === 'gff' && B.format === 'bed' && A.items.length === 287 && B.items.length === 38 && !A.errors.length && !B.errors.length && ex.gff === IV.exampleFiles().gff);
+  const exon = A.items.filter((x) => x.type === 'exon'), genes = A.items.filter((x) => x.type === 'gene');
+  check('intervals: GFF is converted to BED positions', A.items[0].start === 516 && A.items[0].end === 4572 && A.items[0].name === 'DEMO1' && A.items[0].strand === '+');
+  check('intervals: example results', IV.merge(exon).length === 100 && IV.coveredBases(exon) === 37272 && IV.intersect(B.items, exon).length === 25 && IV.overlapping(B.items, genes).length === 25 && IV.notOverlapping(B.items, genes).length === 13 && IV.subtract(B.items, exon).length === 39 && IV.notOverlapping(genes, B.items).length === 10);
+  // Brute force on bases: a different method from the sweep in the library.
+  const bases = (v) => { const m = new Map(); for (const x of v) { const s = m.get(x.chrom) ?? new Set(); for (let i = x.start; i < x.end; i++) s.add(i); m.set(x.chrom, s); } return m; };
+  const ov = (x, y, st) => x.chrom === y.chrom && x.start < y.end && y.start < x.end && (!st || (x.strand === y.strand && x.strand !== '.'));
+  const key = (v) => v.map((x) => `${x.chrom}:${x.start}-${x.end}`).sort().join(',');
+  let rs = 12345; const rnd = () => { rs = (rs * 1103515245 + 12345) % 2147483648; return rs / 2147483648; };
+  const randIv = (n) => Array.from({ length: n }, () => { const s = Math.floor(rnd() * 2000), l = 1 + Math.floor(rnd() * 120); return { chrom: rnd() < 0.7 ? 'c1' : 'c2', start: s, end: s + l, name: '', score: '', strand: rnd() < 0.5 ? '+' : '-', type: '', attrs: {} }; });
+  let good = true;
+  for (let t = 0; t < 25 && good; t++) {
+    const a = randIv(40), b = randIv(30), st = t % 2 === 1;
+    const bruteInt = []; for (const x of a) for (const y of b) if (ov(x, y, st)) bruteInt.push({ chrom: x.chrom, start: Math.max(x.start, y.start), end: Math.min(x.end, y.end) });
+    const bruteU = a.filter((x) => b.some((y) => ov(x, y, st))), bruteV = a.filter((x) => !b.some((y) => ov(x, y, st)));
+    const bruteSub = []; for (const x of a) { const cov = new Set(); for (const y of b) if (ov(x, y, st)) for (let i = Math.max(x.start, y.start); i < Math.min(x.end, y.end); i++) cov.add(i); let run = null; for (let i = x.start; i <= x.end; i++) { if (i < x.end && !cov.has(i)) { if (run) run.end = i + 1; else run = { chrom: x.chrom, start: i, end: i + 1 }; } else if (run) { bruteSub.push(run); run = null; } } }
+    // Merge: the covered bases must match, regions must not touch, and every input must sit inside one region.
+    const m = IV.merge(a, 0, false), bm = bases(m), ba = bases(a);
+    const sameBases = [...ba].every(([c, s]) => s.size === bm.get(c)?.size && [...s].every((i) => bm.get(c).has(i)));
+    const apart = IV.sortIv(m).every((x, i, v) => i === 0 || v[i - 1].chrom !== x.chrom || v[i - 1].end < x.start);
+    const counted = m.reduce((s, x) => s + x.count, 0) === a.length;
+    const d = IV.merge(a, 25), apart25 = IV.sortIv(d).every((x, i, v) => i === 0 || v[i - 1].chrom !== x.chrom || v[i - 1].end + 25 < x.start);
+    good = key(IV.intersect(a, b, st)) === key(bruteInt) && key(IV.overlapping(a, b, st)) === key(bruteU) && key(IV.notOverlapping(a, b, st)) === key(bruteV) && key(IV.subtract(a, b, st)) === key(bruteSub) && sameBases && apart && counted && apart25;
+  }
+  check('intervals: random cases match brute force (merge, gap merge, intersect, -u, -v, subtract, with and without strand)', good);
+  check('intervals: touching intervals merge but do not overlap', IV.merge([{ chrom: 'c', start: 0, end: 100 }, { chrom: 'c', start: 100, end: 200 }]).length === 1 && IV.intersect([{ chrom: 'c', start: 0, end: 100 }], [{ chrom: 'c', start: 100, end: 200 }]).length === 0);
+  check('intervals: zero-length insertion point', IV.overlapping([{ chrom: 'c', start: 50, end: 50 }], [{ chrom: 'c', start: 40, end: 60 }]).length === 1 && IV.overlapping([{ chrom: 'c', start: 60, end: 60 }], [{ chrom: 'c', start: 40, end: 60 }]).length === 0);
+  const gtf = 'chr2\tsrc\texon\t11\t20\t.\t-\t.\tgene_id "G1"; transcript_id "T1"; gene_name "ABC";\nchr10\tsrc\tCDS\t5\t9\t3.5\t+\t0\tgene_id "G2"; tag "a"; tag "b";\n';
+  const g = IV.parseIntervals(gtf);
+  check('intervals: GTF', g.format === 'gtf' && g.items[0].start === 10 && g.items[0].end === 20 && g.items[0].name === 'ABC' && g.items[0].strand === '-' && g.items[1].attrs.tag === 'a,b' && g.items[1].score === '3.5');
+  const bed = IV.parseIntervals('browser position x\ntrack name=t\n# c\nchr1 5 10\nchr1\t20\t10\nchr1\tx\t5\nchrX\t1\t2\tn\t0\t-\n');
+  check('intervals: BED with spaces, bad lines reported', bed.format === 'bed' && bed.items.length === 2 && bed.skipped === 2 && bed.errors[0].includes('Line 5') && bed.items[1].strand === '-');
+  check('intervals: GFF percent codes and ##FASTA', IV.parseIntervals('##gff-version 3\nc\ts\tgene\t1\t9\t.\t+\t.\tID=g1;Name=a%3Bb\n##FASTA\n>c\nACGT\n').items[0].name === 'a;b');
+  check('intervals: chromosome order', ['chr10', 'chrX', 'chr2', 'chrM', 'scaffold1', 'chr1'].sort(IV.chromCompare).join() === 'chr1,chr2,chr10,chrX,chrM,scaffold1');
+  const s = IV.summary(exon);
+  check('intervals: summary', s.count === 125 && s.covered === 37272 && s.chroms.length === 2 && s.strands.plus + s.strands.minus === 125 && s.total > s.covered);
+  check('intervals: BED out and lanes', IV.toBed([{ chrom: 'c', start: 1, end: 5, name: '', score: '', strand: '.' }]) === 'c\t1\t5\t.\t0\t.\n' && IV.pack([{ start: 0, end: 10 }, { start: 5, end: 20 }, { start: 12, end: 30 }]).lanes === 2);
+}
+// #176 k-mer counter: counts, spectrum and most common k-mers on the simulated example agreed with a separate
+// Python Counter script (k = 5, 21, 25; canonical and not); here they are checked against a plain string count.
+{
+  const ex = KM.exampleReads();
+  check('kmer: example is fixed', ex.fastq === KM.exampleReads().fastq && ex.genome.length === 40000 && ex.fastq.split('\n').length === 40001);
+  const run = (text, k, canonical, step = 65537) => { const c = new KM.KmerCounter({ k, canonical }); for (let i = 0; i < text.length; i += step) c.push(text.slice(i, i + step)); c.end(); return c; };
+  const c21 = run(ex.fastq, 21, true);
+  const h = KM.spectrum(c21.counts, 200), est = KM.genomeEstimate(h);
+  check('kmer: example counts (k 21, canonical)', c21.format === 'fastq' && c21.records === 10000 && c21.bases === 1e6 && c21.total === 800000 && c21.counts.size === 188111 && h[1] === 145234 && h[2] === 4031);
+  check('kmer: genome size from the peak', est && est.valley === 4 && est.peak === 15 && Math.round(est.size) === 43096);
+  check('kmer: most common', JSON.stringify(KM.topKmers(c21.counts, 21, 2)) === JSON.stringify([{ kmer: 'CAGTGACCTTTGCACCGGGGA', count: 61 }, { kmer: 'GCTCAGAAGAGTGAAAGGGAA', count: 61 }]) && c21.get('TCCCCGGTGCAAAGGTCACTG') === 61 && c21.get('CAGTGACCTTTGCACCGGGGA') === 61 && Number.isNaN(c21.get('ACGT')) && Number.isNaN(c21.get('NAGTGACCTTTGCACCGGGGA')));
+  check('kmer: one strand halves the peak', KM.genomeEstimate(KM.spectrum(run(ex.fastq, 21, false).counts, 200)).peak === 8);
+  // Plain string counting on a small mixed input: FASTA over several lines, N, lower case, CRLF, tiny chunks.
+  const fa = '>s1 x\r\nACGTNacgtAC\r\nGTTT\r\n>s2\r\n\r\nGGGG\r\nCC\r\n';
+  const seqs = ['ACGTNACGTACGTTT', 'GGGGCC'], comp = { A: 'T', C: 'G', G: 'C', T: 'A' };
+  let good = true;
+  for (const k of [1, 2, 3, 4]) for (const can of [false, true]) {
+    const want = new Map(); let total = 0;
+    for (const s of seqs) for (let i = 0; i + k <= s.length; i++) { let w = s.slice(i, i + k); if (/[^ACGT]/.test(w)) continue; if (can) { const r = [...w].reverse().map((x) => comp[x]).join(''); if (r < w) w = r; } want.set(w, (want.get(w) ?? 0) + 1); total++; }
+    const c = run(fa, k, can, 3);
+    good &&= c.total === total && c.counts.size === want.size && [...want].every(([w, n]) => c.get(w) === n) && c.records === 2 && c.other === 1;
+  }
+  check('kmer: FASTA lines, N, lower case and chunking match a plain count', good);
+  const plain = run('ACGTACGT\n\nTTTT\n', 2, false);
+  check('kmer: plain sequence, blank line breaks words', plain.format === 'plain' && plain.total === 10 && plain.get('TT') === 3 && plain.get('TA') === 1);
+  check('kmer: encode, decode, reverse complement', KM.decode(KM.encode('GATTACA'), 7) === 'GATTACA' && KM.encode('AC') === 1 && KM.revComp('AACG') === 'CGTT' && KM.decode(0, 3) === 'AAA');
+  check('kmer: k limits', (() => { try { new KM.KmerCounter({ k: 26, canonical: true }); return false; } catch { return true; } })() && run('ACGTACGTACGTACGTACGTACGTACGTACGT', 25, true).total === 8);
+  check('kmer: no clear peak, no estimate', KM.genomeEstimate(KM.spectrum(run('>a\n' + ex.genome + '\n', 21, true).counts, 200)) === null);
+  check('kmer: distinct limit', (() => { const c = new KM.KmerCounter({ k: 8, canonical: false, maxDistinct: 10 }); c.push(ex.genome.slice(0, 500)); c.end(); return c.full && c.counts.size === 10; })());
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

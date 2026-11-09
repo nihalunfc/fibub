@@ -1,0 +1,309 @@
+---
+// BED, GFF3 and GTF viewer with interval tools (merge, intersect, overlap filters, subtract), following the rules
+// of the bedtools commands. Files are read on the device; nothing is uploaded. The examples are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { exampleFiles } from '../../lib/sci/intervals';
+const ex = exampleFiles();
+---
+<div class="ax ivt">
+  <div class="ax-card">
+    <h2>File A</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small iv-open" data-t="a">Open a BED, GFF or GTF file</button>
+      <input type="file" class="iv-file" data-t="a" accept=".bed,.gff,.gff3,.gtf,.gz,.txt,text/plain,application/gzip" hidden />
+    </div>
+    <label style="margin-top:10px">Or paste it <textarea class="iv-a" rows="7" spellcheck="false">{ex.gff}</textarea></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Format <select class="iv-fa"><option value="">Find out from the file</option><option value="bed">BED</option><option value="gff">GFF3</option><option value="gtf">GTF</option></select></label>
+      <label>Feature type <select class="iv-ta"><option value="">All</option></select></label>
+      <label>Chromosome <select class="iv-ca"><option value="">All</option></select></label>
+    </div>
+    <p class="ax-help iv-ia" aria-live="polite"></p>
+    <p class="ax-help">Files up to 500 MB (gzip too) are read on your device; nothing is uploaded. The example is a made-up gene annotation (GFF3) on two made-up contigs.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>What to do</h2>
+    <label>Tool <select class="iv-op">
+      <option value="none">Just summarise A</option>
+      <option value="merge" selected>Merge overlapping intervals (bedtools merge)</option>
+      <option value="intersect">Overlapping parts of A and B (bedtools intersect)</option>
+      <option value="overlapping">A that overlap B (intersect -u)</option>
+      <option value="notOverlapping">A that don't overlap B (intersect -v)</option>
+      <option value="subtract">A with B cut out (bedtools subtract)</option>
+    </select></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="iv-dl-l">Join gaps up to (bases) <input class="iv-dist" type="number" min="0" step="1" value="0" inputmode="numeric" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="iv-strand" /> Same strand only</label>
+    <p class="ax-help iv-ophelp"></p>
+  </div>
+
+  <div class="ax-card iv-bcard" hidden>
+    <h2>File B</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small iv-open" data-t="b">Open a BED, GFF or GTF file</button>
+      <input type="file" class="iv-file" data-t="b" accept=".bed,.gff,.gff3,.gtf,.gz,.txt,text/plain,application/gzip" hidden />
+    </div>
+    <label style="margin-top:10px">Or paste it <textarea class="iv-b" rows="6" spellcheck="false">{ex.bed}</textarea></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Format <select class="iv-fb"><option value="">Find out from the file</option><option value="bed">BED</option><option value="gff">GFF3</option><option value="gtf">GTF</option></select></label>
+      <label>Feature type <select class="iv-tb"><option value="">All</option></select></label>
+    </div>
+    <p class="ax-help iv-ib" aria-live="polite"></p>
+    <p class="ax-help">The example B is a made-up set of peaks (BED), many near the starts of the example genes.</p>
+  </div>
+
+  <p class="ax-err iv-err" hidden></p>
+
+  <div class="ax-card iv-out" hidden>
+    <h2>Result</h2>
+    <p class="ax-big iv-big"></p>
+    <dl class="ax-facts iv-facts"></dl>
+    <h3>View</h3>
+    <div class="ax-grid">
+      <label>Chromosome <select class="iv-vc"></select></label>
+      <label>From <input class="iv-vs" type="number" min="1" step="1" inputmode="numeric" /></label>
+      <label>To <input class="iv-ve" type="number" min="1" step="1" inputmode="numeric" /></label>
+    </div>
+    <canvas class="ax-fig iv-track" style="margin-top:10px"></canvas>
+    <p class="ax-help">Positions here count from 1, as in a genome browser. Boxes are drawn in rows so overlapping ones don't hide each other.</p>
+    <h3>Lengths</h3>
+    <canvas class="ax-fig iv-len"></canvas>
+    <h3>By chromosome</h3>
+    <div class="ax-scroll"><table class="iv-ctab"></table></div>
+    <h3 class="iv-th">By feature type</h3>
+    <div class="ax-scroll iv-tbox"><table class="iv-ttab"></table></div>
+    <h3>Intervals</h3>
+    <p class="ax-help iv-rh"></p>
+    <div class="ax-scroll iv-rbox"><table class="iv-rtab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small iv-bed">Download as BED</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .ivt .iv-rbox { max-height: 420px; overflow: auto; }
+  .ivt h3 { margin: 18px 0 8px; font-size: 15px; }
+</style>
+
+<script>
+  import { parseIntervals, detectFormat, merge, intersect, overlapping, notOverlapping, subtract, summary, toBed, pack, chromCompare, type Iv, type Format, type Op } from '../../lib/sci/intervals';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, fileSafe, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ivt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const tn = (x: number) => (Number.isFinite(x) ? Math.round(x).toLocaleString('en') : '–');
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  function table(sel: string, head: string[], rows: string[][], right: number[] = []) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.className = 'r'; }); });
+  }
+  const MAX = 500e6;
+  const err = (m: string) => { q('.iv-err').textContent = m; q('.iv-err').hidden = !m; };
+  const HELP: Record<Op, string> = {
+    none: 'Counts, lengths and bases covered for file A, per chromosome and per feature type.',
+    merge: 'Joins intervals that overlap or touch into one region each. With a gap above 0, intervals that many bases apart or closer are joined too. The count column says how many went into each region.',
+    intersect: 'For every A and B that overlap by at least one base, gives the part they share, with A’s name and strand. An A that overlaps two Bs gives two pieces.',
+    overlapping: 'Keeps each A that overlaps at least one B, once, unchanged.',
+    notOverlapping: 'Keeps each A that overlaps no B at all.',
+    subtract: 'Cuts every part covered by B out of each A. An A split by a B in its middle becomes two pieces; an A fully covered disappears.',
+  };
+
+  // ---------- Reading ----------
+  const texts: Record<'a' | 'b', { text: string; name: string }> = { a: { text: q<HTMLTextAreaElement>('.iv-a').value, name: 'example.gff3' }, b: { text: q<HTMLTextAreaElement>('.iv-b').value, name: 'example-peaks.bed' } };
+  async function readFile(f: File) {
+    const head = new Uint8Array(await f.slice(0, 2).arrayBuffer()), gz = head[0] === 0x1f && head[1] === 0x8b;
+    if (!gz && f.size > MAX) throw new Error(`${f.name} is ${(f.size / 1e6).toFixed(0)} MB; the limit is 500 MB.`);
+    if (gz && typeof DecompressionStream === 'undefined') throw new Error('This browser cannot unzip .gz files. Unzip it first, or try another browser.');
+    let stream: ReadableStream<Uint8Array> = f.stream();
+    if (gz) stream = stream.pipeThrough(new DecompressionStream('gzip') as unknown as TransformStream<Uint8Array, Uint8Array>);
+    const reader = stream.pipeThrough(new TextDecoderStream() as unknown as TransformStream<Uint8Array, string>).getReader();
+    const parts: string[] = []; let n = 0;
+    for (;;) { const { value, done } = await reader.read(); if (done) break; n += value.length; if (n > MAX) { await reader.cancel(); throw new Error(`${f.name} is over 500 MB once unzipped; the limit is 500 MB.`); } parts.push(value); }
+    return parts.join('');
+  }
+  root.querySelectorAll<HTMLButtonElement>('.iv-open').forEach((b) => b.addEventListener('click', () => q<HTMLInputElement>(`.iv-file[data-t=${b.dataset.t}]`).click()));
+  root.querySelectorAll<HTMLInputElement>('.iv-file').forEach((inp) => inp.addEventListener('change', async () => {
+    const f = inp.files?.[0]; inp.value = ''; if (!f) return;
+    const t = inp.dataset.t as 'a' | 'b', info = q(`.iv-i${t}`);
+    info.textContent = `Reading ${f.name}…`;
+    try {
+      const text = await readFile(f);
+      texts[t] = { text, name: f.name };
+      const box = q<HTMLTextAreaElement>(`.iv-${t}`);
+      box.value = text.length > 200000 ? `${text.slice(0, 200000)}\n# … only the start is shown here; the whole file (${(text.length / 1e6).toFixed(1)} MB) is used.` : text;
+      box.dataset.cut = text.length > 200000 ? '1' : '';
+      parsed[t] = null; run();
+    } catch (e) { info.textContent = ''; err((e as Error).message); }
+  }));
+  for (const t of ['a', 'b'] as const) {
+    let timer = 0;
+    q<HTMLTextAreaElement>(`.iv-${t}`).addEventListener('input', (e) => { const box = e.target as HTMLTextAreaElement; box.dataset.cut = ''; clearTimeout(timer); timer = window.setTimeout(() => { texts[t] = { text: box.value, name: t === 'a' ? 'intervals' : 'intervals-b' }; parsed[t] = null; run(); }, 350); });
+    q(`.iv-f${t}`).addEventListener('change', () => { parsed[t] = null; run(); });
+  }
+
+  const parsed: Record<'a' | 'b', ReturnType<typeof parseIntervals> | null> = { a: null, b: null };
+  function get(t: 'a' | 'b') {
+    if (!parsed[t]) { const fmt = q<HTMLSelectElement>(`.iv-f${t}`).value as Format | ''; parsed[t] = parseIntervals(texts[t].text, fmt || detectFormat(texts[t].text)); }
+    return parsed[t]!;
+  }
+  function typeOptions(sel: HTMLSelectElement, items: Iv[], prefer = '') {
+    const types = [...new Set(items.map((x) => x.type).filter(Boolean))].sort();
+    const cur = sel.value || prefer;
+    if (sel.options.length - 1 !== types.length || types.some((t, i) => sel.options[i + 1].value !== t)) { sel.replaceChildren(new Option('All', '')); for (const t of types) sel.add(new Option(t, t)); }
+    sel.value = types.includes(cur) ? cur : '';
+    (sel.closest('label') as HTMLElement).hidden = !types.length;
+  }
+  const FMT: Record<Format, string> = { bed: 'BED', gff: 'GFF3', gtf: 'GTF' };
+  const info = (t: 'a' | 'b', p: ReturnType<typeof parseIntervals>, used: number) => {
+    q(`.iv-i${t}`).textContent = `${FMT[p.format]}: ${tn(p.items.length)} intervals${used !== p.items.length ? `, ${tn(used)} used after the filters` : ''}.${p.skipped ? ` ${tn(p.skipped)} line${p.skipped === 1 ? '' : 's'} skipped: ${p.errors.slice(0, 3).join(' ')}` : ''}${p.format !== 'bed' ? ' Positions were converted from counting-from-1 to BED.' : ''}`;
+  };
+
+  // ---------- Running ----------
+  let result: (Iv & { count?: number })[] = [], A: Iv[] = [], B: Iv[] = [], sections: Section[] = [], figs: { sel: string; fig: Figure }[] = [], first = true;
+  function run() {
+    err('');
+    const op = q<HTMLSelectElement>('.iv-op').value as Op, needB = !['none', 'merge'].includes(op);
+    q('.iv-bcard').hidden = !needB; q('.iv-dl-l').hidden = op !== 'merge';
+    q('.iv-ophelp').textContent = HELP[op];
+    const pa = get('a');
+    typeOptions(q<HTMLSelectElement>('.iv-ta'), pa.items, first ? 'exon' : '');
+    const ca = q<HTMLSelectElement>('.iv-ca'), chroms = [...new Set(pa.items.map((x) => x.chrom))].sort(chromCompare);
+    if (ca.options.length - 1 !== chroms.length || chroms.some((c, i) => ca.options[i + 1].value !== c)) { const cur = ca.value; ca.replaceChildren(new Option('All', '')); chroms.slice(0, 5000).forEach((c) => ca.add(new Option(c, c))); ca.value = chroms.includes(cur) ? cur : ''; }
+    const ta = q<HTMLSelectElement>('.iv-ta').value, cv = ca.value;
+    A = pa.items.filter((x) => (!ta || x.type === ta) && (!cv || x.chrom === cv));
+    info('a', pa, A.length);
+    if (!pa.items.length) { q('.iv-out').hidden = true; return err(pa.errors[0] ?? 'File A has no intervals. BED needs chromosome, start and end; GFF and GTF need 9 tab-separated columns.'); }
+    if (needB) {
+      const pb = get('b');
+      typeOptions(q<HTMLSelectElement>('.iv-tb'), pb.items);
+      const tb = q<HTMLSelectElement>('.iv-tb').value;
+      B = pb.items.filter((x) => !tb || x.type === tb);
+      info('b', pb, B.length);
+      if (!pb.items.length) { q('.iv-out').hidden = true; return err(pb.errors[0] ?? 'File B has no intervals.'); }
+    }
+    const strand = q<HTMLInputElement>('.iv-strand').checked, dist = Math.max(0, Math.floor(+q<HTMLInputElement>('.iv-dist').value || 0));
+    result = op === 'merge' ? merge(A, dist, strand) : op === 'intersect' ? intersect(A, B, strand) : op === 'overlapping' ? overlapping(A, B, strand) : op === 'notOverlapping' ? notOverlapping(A, B, strand) : op === 'subtract' ? subtract(A, B, strand) : A;
+    first = false;
+    show(op, strand);
+  }
+
+  function show(op: Op, strand: boolean) {
+    q('.iv-out').hidden = false;
+    const sa = summary(A), sr = summary(result), ty = q<HTMLSelectElement>('.iv-ta').value, what = ty ? `${ty} features` : 'intervals';
+    const big: Record<Op, string> = {
+      none: `${tn(sa.count)} ${what}, covering ${tn(sa.covered)} bases`,
+      merge: `${tn(sr.count)} merged regions from ${tn(sa.count)} ${what}, covering ${tn(sr.covered)} bases`,
+      intersect: `${tn(sr.count)} overlapping pieces, ${tn(sr.covered)} bases shared`,
+      overlapping: `${tn(sr.count)} of ${tn(sa.count)} ${what} overlap B`,
+      notOverlapping: `${tn(sr.count)} of ${tn(sa.count)} ${what} overlap nothing in B`,
+      subtract: `${tn(sr.count)} pieces left, covering ${tn(sr.covered)} of ${tn(sa.covered)} bases`,
+    };
+    q('.iv-big').textContent = big[op] + (strand && op !== 'none' ? ' (same strand)' : '');
+    q('.iv-facts').replaceChildren(
+      fact('Intervals in A', tn(sa.count), `${tn(sa.chroms.length)} chromosome${sa.chroms.length === 1 ? '' : 's'}`),
+      fact('Bases covered by A', tn(sa.covered), sa.total !== sa.covered ? `${tn(sa.total)} if overlaps are counted again` : 'no overlaps'),
+      fact('Length of A intervals', `${tn(sa.medianLen)} median`, `shortest ${tn(sa.minLen)}, longest ${tn(sa.maxLen)}`),
+      fact('Strand', `+ ${tn(sa.strands.plus)}, − ${tn(sa.strands.minus)}`, sa.count - sa.strands.plus - sa.strands.minus ? `${tn(sa.count - sa.strands.plus - sa.strands.minus)} without a strand` : ''),
+      ...(op !== 'none' ? [fact('Result', tn(sr.count), `covering ${tn(sr.covered)} bases`)] : []),
+      ...(!['none', 'merge'].includes(op) ? [fact('Intervals in B', tn(B.length), `covering ${tn(summary(B).covered)} bases`)] : []),
+    );
+    // View: keep the chosen chromosome and range if they still make sense.
+    const vc = q<HTMLSelectElement>('.iv-vc'), chroms = [...new Set([...A, ...result].map((x) => x.chrom))].sort(chromCompare), cur = vc.value;
+    vc.replaceChildren(...chroms.slice(0, 5000).map((c) => new Option(c, c)));
+    vc.value = chroms.includes(cur) ? cur : chroms[0] ?? '';
+    if (!chroms.includes(cur)) defaultRange();
+    draw();
+    // Lengths of A and the result, on a log scale.
+    const bins = (v: Iv[]) => { const h = new Array(28).fill(0); for (const x of v) { const L = Math.max(1, x.end - x.start); h[Math.min(27, Math.max(0, Math.floor(Math.log10(L) * 4)))]++; } return h; };
+    const xs = Array.from({ length: 28 }, (_, i) => 10 ** ((i + 0.5) / 4)), ha = bins(A), hr = bins(result);
+    const used = ha.map((v, i) => v || hr[i]).reduce((m, v, i) => (v ? [Math.min(m[0], i), Math.max(m[1], i)] : m), [99, -1]);
+    const lo = Math.max(0, used[0] - 1), hi = Math.min(27, Math.max(used[1] + 1, lo + 2));
+    const series = [{ name: `A (${what})`, x: xs.slice(lo, hi + 1).map(Math.log10), y: ha.slice(lo, hi + 1), mode: 'both' as const, width: 1.8, size: 2.6 }];
+    if (op !== 'none' && op !== 'overlapping' && op !== 'notOverlapping') series.push({ name: 'Result', x: xs.slice(lo, hi + 1).map(Math.log10), y: hr.slice(lo, hi + 1), mode: 'both' as const, width: 1.8, size: 2.6 });
+    figs = [{ sel: '.iv-len', fig: chartFigure({ w: 560, h: 300, xLabel: 'Length, log10 of bases (2 = 100, 3 = 1,000)', yLabel: 'Intervals', legend: series.length > 1 ? 'inside' : 'none', yMin: 0, series }, 'Interval lengths in quarter-decade bins') }];
+    paint(q<HTMLCanvasElement>('.iv-len'), figs[0].fig);
+    // Tables.
+    table('.iv-ctab', ['Chromosome', 'Intervals', 'Bases covered', 'From', 'To'], sa.chroms.slice(0, 500).map(([c, s]) => [c, tn(s.n), tn(s.bases), tn(s.min + 1), tn(s.max)]), [1, 2, 3, 4]);
+    q('.iv-th').hidden = q('.iv-tbox').hidden = !sa.types.length;
+    const allTypes = summary(get('a').items.filter((x) => !q<HTMLSelectElement>('.iv-ca').value || x.chrom === q<HTMLSelectElement>('.iv-ca').value)).types;
+    table('.iv-ttab', ['Type', 'Count'], allTypes.slice(0, 200).map(([t, n]) => [t, tn(n)]), [1]);
+    const merged = op === 'merge', rows = result.slice(0, 500).map((x) => [x.chrom, tn(x.start + 1), tn(x.end), tn(x.end - x.start), ...(merged ? [tn(x.count ?? 1)] : [x.type, x.name, x.strand])]);
+    table('.iv-rtab', ['Chromosome', 'Start', 'End', 'Length', ...(merged ? ['Joined'] : ['Type', 'Name', 'Strand'])], rows, merged ? [1, 2, 3, 4] : [1, 2, 3]);
+    q('.iv-rh').textContent = `${result.length > 500 ? `First 500 of ${tn(result.length)}. ` : ''}Start counts from 1 here; the BED download counts from 0, as BED does.`;
+    sections = [
+      { title: q('.iv-big').textContent!, facts: [...q('.iv-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), table: { head: ['Chromosome', 'Intervals', 'Bases covered'], rows: sa.chroms.slice(0, 60).map(([c, s]) => [c, tn(s.n), tn(s.bases)]), align: ['l', 'r', 'r'] } },
+      { title: 'View', figure: trackFig },
+      { title: 'Lengths', figure: figs[0].fig },
+      { title: 'Intervals', table: { head: ['Chromosome', 'Start', 'End', 'Length', ...(merged ? ['Joined'] : ['Name', 'Strand'])], rows: result.slice(0, 200).map((x) => [x.chrom, tn(x.start + 1), tn(x.end), tn(x.end - x.start), ...(merged ? [tn(x.count ?? 1)] : [x.name, x.strand])]), align: ['l', 'r', 'r', 'r', 'r'] }, note: result.length > 200 ? `First 200 of ${tn(result.length)}; download the BED file for all of them.` : undefined },
+    ];
+  }
+
+  // ---------- Track view ----------
+  let trackFig: Figure;
+  function defaultRange() {
+    const c = q<HTMLSelectElement>('.iv-vc').value, on = [...A, ...result].filter((x) => x.chrom === c);
+    const s = Math.min(...on.map((x) => x.start)), e = Math.max(...on.map((x) => x.end));
+    q<HTMLInputElement>('.iv-vs').value = String(Number.isFinite(s) ? s + 1 : 1);
+    q<HTMLInputElement>('.iv-ve').value = String(Number.isFinite(e) ? Math.min(e, s + 20000) : 1000);
+  }
+  function draw() {
+    const c = q<HTMLSelectElement>('.iv-vc').value, op = q<HTMLSelectElement>('.iv-op').value as Op;
+    let vs = Math.max(1, Math.floor(+q<HTMLInputElement>('.iv-vs').value || 1)) - 1, ve = Math.floor(+q<HTMLInputElement>('.iv-ve').value || 0);
+    if (ve <= vs) ve = vs + 1000;
+    const inView = (v: Iv[]) => v.filter((x) => x.chrom === c && x.end > vs && x.start < ve).slice(0, 3000);
+    const tracks: { name: string; v: Iv[]; col: 'accent' | 'accent2' | 'ink' }[] = [{ name: 'A', v: inView(A), col: 'accent' }];
+    if (!['none', 'merge'].includes(op)) tracks.push({ name: 'B', v: inView(B), col: 'accent2' });
+    if (op !== 'none') tracks.push({ name: 'Result', v: inView(result), col: 'ink' });
+    const span = ve - vs;
+    const packed = tracks.map((t) => ({ ...t, ...pack(t.v, Math.ceil(span / 400)) }));
+    const laneH = 16, H = 60 + packed.reduce((s, t) => s + 30 + Math.min(t.lanes, 12) * laneH, 0);
+    trackFig = {
+      w: 480, h: H, alt: `${c}: ${vs + 1}-${ve}, ${tracks.map((t) => `${t.name} ${t.v.length}`).join(', ')}`,
+      draw(ctx, W, Hh, pal) {
+        const k = W / 480, fs = 13 * k, L = 58 * k, R = W - 12 * k, X = (p: number) => L + ((p - vs) / span) * (R - L);
+        ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, Hh);
+        ctx.font = `${fs}px system-ui, sans-serif`; ctx.textBaseline = 'middle';
+        // Ruler.
+        const step = 10 ** Math.floor(Math.log10(span / 4)), st = span / step > 8 ? step * 2 : step;
+        ctx.strokeStyle = pal.line; ctx.fillStyle = pal.muted; ctx.lineWidth = 1 * k;
+        ctx.beginPath(); ctx.moveTo(L, 22 * k); ctx.lineTo(R, 22 * k); ctx.stroke();
+        for (let p = Math.ceil(vs / st) * st; p <= ve; p += st) { const x = X(p); ctx.beginPath(); ctx.moveTo(x, 18 * k); ctx.lineTo(x, 26 * k); ctx.stroke(); const t = st >= 1e6 ? `${+(p / 1e6).toFixed(3)} Mb` : st >= 1000 ? `${+(p / 1000).toFixed(1)} kb` : tn(p); const w = ctx.measureText(t).width; if (x - w / 2 > L - 4 && x + w / 2 < R + 4) ctx.fillText(t, x - w / 2, 10 * k); }
+        let y = 44 * k;
+        for (const t of packed) {
+          ctx.fillStyle = pal.ink; ctx.font = `bold ${fs}px system-ui, sans-serif`; ctx.fillText(t.name, 6 * k, y + 6 * k);
+          ctx.font = `${fs * 0.85}px system-ui, sans-serif`; ctx.fillStyle = pal.muted; ctx.fillText(`${t.v.length}`, 6 * k, y + 22 * k);
+          const col = pal[t.col];
+          t.v.forEach((x, i) => {
+            if (t.lane[i] >= 12) return;
+            const x0 = Math.max(L, X(x.start)), x1 = Math.min(R, X(Math.max(x.end, x.start + 1))), yy = y + t.lane[i] * laneH * k;
+            ctx.fillStyle = col; ctx.fillRect(x0, yy, Math.max(1.5 * k, x1 - x0), (laneH - 4) * k);
+            if (x.strand !== '.' && x1 - x0 > 10 * k) { ctx.fillStyle = pal.bg; const m = yy + (laneH - 4) * k / 2, cx = (x0 + x1) / 2, d = x.strand === '+' ? 1 : -1; ctx.beginPath(); ctx.moveTo(cx - 3 * k * d, m - 3 * k); ctx.lineTo(cx + 3 * k * d, m); ctx.lineTo(cx - 3 * k * d, m + 3 * k); ctx.fill(); }
+          });
+          if (t.lanes > 12) { ctx.fillStyle = pal.muted; ctx.fillText(`+${t.lanes - 12} rows`, 6 * k, y + 36 * k); }
+          y += (Math.min(t.lanes, 12) * laneH + 30) * k;
+          ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(L, y - 14 * k); ctx.lineTo(R, y - 14 * k); ctx.stroke();
+        }
+      },
+    };
+    paint(q<HTMLCanvasElement>('.iv-track'), trackFig);
+    if (sections[1]) sections[1].figure = trackFig;
+  }
+  q('.iv-vc').addEventListener('change', () => { defaultRange(); draw(); });
+  q('.iv-vs').addEventListener('change', draw); q('.iv-ve').addEventListener('change', draw);
+
+  for (const c of ['.iv-op', '.iv-ta', '.iv-tb', '.iv-ca', '.iv-strand', '.iv-dist']) q(c).addEventListener('change', run);
+  q('.iv-dist').addEventListener('input', run);
+  q('.iv-bed').addEventListener('click', () => {
+    const op = q<HTMLSelectElement>('.iv-op').value;
+    const text = op === 'merge' ? result.map((x) => `${x.chrom}\t${x.start}\t${x.end}\t${x.count ?? 1}`).join('\n') + (result.length ? '\n' : '') : toBed(result);
+    save(new Blob([text], { type: 'text/plain' }), `${fileSafe(texts.a.name.replace(/\.(bed|gff3?|gtf)(\.gz)?$/i, ''))}-${op === 'none' ? 'intervals' : op}.bed`, 'text/plain');
+  });
+  wireDownloads(q('.dl'), () => ({ title: 'Interval summary', subtitle: q('.iv-big').textContent ?? '', file: `${fileSafe(texts.a.name)}-summary`, sections }));
+  document.addEventListener('fibub:theme', () => { for (const f of figs) paint(q<HTMLCanvasElement>(f.sel), f.fig); if (trackFig) paint(q<HTMLCanvasElement>('.iv-track'), trackFig); });
+  run();
+</script>

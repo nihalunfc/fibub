@@ -1,0 +1,120 @@
+/* Area colours and the bottom bar.
+   Each main area has its own colour, used for its tab, its section bar and the page's links and
+   buttons (--accent). Cool, strong colours that pass WCAG AA (4.5:1) for text on white, with lighter
+   versions on black for dark mode. Plain hex values (no color-mix) so older browsers draw them too.
+   Red light mode turns everything back to dim red. */
+:root {
+  --c-learn: #0f766e; --c-learn-soft: #e3f3f0;
+  --c-tools: #1d4ed8; --c-tools-soft: #e7edfd;
+  --c-home: #6d28d9; --c-home-soft: #efe8fc;
+  --c-news: #b45309; --c-news-soft: #fbefdf;
+  --c-menu: #334155; --c-menu-soft: #eaeef3;
+  --bar-bg: #f7f8fa; --bar-line: #dfe3e8;
+  --tb-h: 64px; --sub-h: 0px;
+}
+html[data-theme=dark] {
+  --c-learn: #2dd4bf; --c-learn-soft: #0c2926;
+  --c-tools: #7aa2ff; --c-tools-soft: #121d3b;
+  --c-home: #b79cff; --c-home-soft: #21173a;
+  --c-news: #fbbf24; --c-news-soft: #2a1d07;
+  --c-menu: #cbd5e1; --c-menu-soft: #1b2028;
+  --bar-bg: #0b0c0e; --bar-line: #262a30;
+}
+html:not(.red-mode)[data-area=learn] { --accent: var(--c-learn); --accent-2: var(--c-learn); --accent-soft: var(--c-learn-soft); }
+html:not(.red-mode)[data-area=tools] { --accent: var(--c-tools); --accent-2: var(--c-tools); --accent-soft: var(--c-tools-soft); }
+html:not(.red-mode)[data-area=home] { --accent: var(--c-home); --accent-2: var(--c-home); --accent-soft: var(--c-home-soft); }
+html:not(.red-mode)[data-area=news] { --accent: var(--c-news); --accent-2: var(--c-news); --accent-soft: var(--c-news-soft); }
+html:not(.red-mode)[data-area=menu] { --accent: var(--c-menu); --accent-2: var(--c-menu); --accent-soft: var(--c-menu-soft); }
+html.red-mode {
+  --c-learn: #a30000; --c-tools: #a30000; --c-home: #a30000; --c-news: #a30000; --c-menu: #a30000;
+  --c-learn-soft: #140000; --c-tools-soft: #140000; --c-home-soft: #140000; --c-news-soft: #140000; --c-menu-soft: #140000;
+  --bar-bg: #000; --bar-line: #2b0000;
+}
+/* A thin line in the area's colour under the header says where you are. */
+header.site { box-shadow: inset 0 -2px 0 var(--accent); }
+html:not([data-area]) header.site { box-shadow: none; }
+
+/* Scrolling to a link or a focused field stops above the bars. */
+html { scroll-padding-bottom: 116px; }
+body { padding-bottom: calc(var(--tb-h) + var(--sub-h) + env(safe-area-inset-bottom, 0px)); }
+body.has-sub { --sub-h: 44px; }
+[data-area=learn] { --tc: var(--c-learn); --tc-soft: var(--c-learn-soft); }
+[data-area=tools] { --tc: var(--c-tools); --tc-soft: var(--c-tools-soft); }
+[data-area=home] { --tc: var(--c-home); --tc-soft: var(--c-home-soft); }
+[data-area=news] { --tc: var(--c-news); --tc-soft: var(--c-news-soft); }
+[data-area=menu] { --tc: var(--c-menu); --tc-soft: var(--c-menu-soft); }
+
+/* Main bar: on phones five equal tabs, icon over label; on computers a taskbar along the bottom
+   with the five buttons side by side in the middle, like a desktop panel. */
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; background: var(--bar-bg); border-top: 1px solid var(--bar-line); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.tb-in { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); height: var(--tb-h); max-width: 560px; margin: 0 auto; padding: 0 4px; }
+.tb { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 0; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 11.5px; font-weight: 600; letter-spacing: .01em; text-decoration: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.tb-ico { display: grid; place-items: center; width: 52px; height: 30px; border-radius: 15px; transition: background-color .15s; }
+.tb svg { width: 22px; height: 22px; }
+.tb-t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.tb:hover { color: var(--ink); }
+.tb.on { color: var(--tc); }
+.tb.on .tb-ico { background: var(--tc-soft); }
+.tb.on svg { stroke-width: 2.2; }
+.tb:focus-visible { outline: none; }
+.tb:focus-visible .tb-ico { outline: 2px solid var(--tc); outline-offset: 1px; }
+/* While the menu is open, the Menu tab is the lit one. */
+.tabbar.menu-open .tb.on:not(.tab-menu) { color: var(--muted); }
+.tabbar.menu-open .tb.on:not(.tab-menu) .tb-ico { background: none; }
+.tabbar.menu-open .tab-menu { color: var(--c-menu); }
+.tabbar.menu-open .tab-menu .tb-ico { background: var(--c-menu-soft); }
+
+/* Section bar: smaller, scrolls sideways when the sections don't fit. */
+.tb-sub { position: fixed; left: 0; right: 0; bottom: calc(var(--tb-h) + env(safe-area-inset-bottom, 0px)); z-index: 39; height: var(--sub-h); background: var(--bg); border-top: 1px solid var(--bar-line); }
+.tb-sub-in { display: flex; align-items: center; gap: 6px; height: 100%; padding: 0 12px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.tb-sub-in::-webkit-scrollbar { display: none; }
+.tb-sub a { flex: none; display: inline-flex; align-items: center; height: 30px; padding: 0 13px; border: 1px solid var(--bar-line); border-radius: 15px; background: var(--surface); color: var(--ink); font-size: 13.5px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.tb-sub a:hover { border-color: var(--tc); color: var(--tc); }
+.tb-sub a.on { background: var(--tc); border-color: var(--tc); color: var(--bg); }
+html.red-mode .tb-sub a.on { background: #2b0000; color: #c00000; border-color: #a30000; }
+.tb-sub a:focus-visible { outline: 2px solid var(--tc); outline-offset: 2px; }
+
+@media (min-width: 900px) and (hover: hover) {
+  :root { --tb-h: 56px; }
+  body.has-sub { --sub-h: 42px; }
+  .tb-in { display: flex; justify-content: center; gap: 6px; max-width: none; padding: 0 16px; }
+  .tb { flex-direction: row; gap: 8px; position: relative; height: 42px; margin: auto 0; padding: 0 16px 0 10px; border-radius: 10px; font-size: 14.5px; }
+  .tb-ico { width: auto; height: auto; background: none !important; border-radius: 0; }
+  .tb svg { width: 20px; height: 20px; }
+  .tb:hover { background: var(--surface); box-shadow: inset 0 0 0 1px var(--bar-line); }
+  .tb.on { background: var(--tc-soft); box-shadow: inset 0 0 0 1px var(--tc); }
+  /* the lit tab's marker, like a running app on a desktop panel */
+  .tb.on::after { content: ''; position: absolute; left: 50%; bottom: -7px; width: 18px; height: 3px; margin-left: -9px; border-radius: 2px; background: var(--tc); }
+  .tabbar.menu-open .tb.on:not(.tab-menu) { background: none; box-shadow: none; }
+  .tabbar.menu-open .tb.on:not(.tab-menu)::after { display: none; }
+  .tabbar.menu-open .tab-menu { background: var(--c-menu-soft); box-shadow: inset 0 0 0 1px var(--c-menu); }
+  .tb:focus-visible { outline: 2px solid var(--tc); outline-offset: 2px; }
+  .tb:focus-visible .tb-ico { outline: none; }
+  .tb-sub-in { justify-content: center; }
+  .tb-sub a { height: 28px; font-size: 13.5px; }
+}
+/* When the sections overflow on a computer, start them from the left so none is cut off. */
+@media (min-width: 900px) and (hover: hover) { .tb-sub-in.wide { justify-content: flex-start; } }
+
+/* The menu panel ends above the bars, so the Menu tab stays in view to close it. */
+/* (The header's blur makes it the panel's frame, so the panel is sized by height, not by bottom.) */
+.all-tools { height: calc(100vh - 57px - var(--tb-h) - var(--sub-h) - env(safe-area-inset-bottom, 0px)); height: calc(100dvh - 57px - var(--tb-h) - var(--sub-h) - env(safe-area-inset-bottom, 0px)); }
+.at-area { border-top: 1px solid var(--line); padding: 4px 0; }
+.at-area > summary { list-style: none; display: flex; align-items: center; gap: 10px; padding: 10px 4px; font-weight: 700; font-size: 15.5px; cursor: pointer; color: var(--ink); }
+.at-area > summary::-webkit-details-marker { display: none; }
+.at-area > summary .at-nm { flex: 1; }
+.at-area > summary small { color: var(--muted); font-weight: 500; font-size: 13px; }
+.at-area > summary::after { content: '▾'; margin-left: 4px; color: var(--muted); transition: transform .15s; }
+.at-area:not([open]) > summary::after { transform: rotate(-90deg); }
+.at-area > summary .at-dot { width: 10px; height: 10px; border-radius: 3px; background: var(--tc); flex: none; }
+.at-area > .at-in { padding: 0 0 6px 10px; border-left: 2px solid var(--tc); margin-left: 8px; }
+.at-area .at-link { display: block; padding: 8px 6px; border-radius: 8px; color: var(--ink); text-decoration: none; font-size: 14.5px; }
+.at-area .at-link:hover, .at-area .at-link:focus-visible { background: var(--bg); color: var(--tc); }
+.at-area .at-link small { display: block; color: var(--muted); font-size: 12.5px; line-height: 1.35; }
+.at-area .at-shelf:first-child { border-top: 0; }
+
+/* On phones, hide both bars while typing, so the keyboard has the room. */
+html.typing .tabbar, html.typing .tb-sub { display: none; }
+html.typing body { padding-bottom: 0; }
+html.typing .all-tools { height: calc(100dvh - 57px); }
+@media print { .tabbar, .tb-sub { display: none !important; } body { padding-bottom: 0 !important; } }

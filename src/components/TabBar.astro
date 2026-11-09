@@ -1,0 +1,42 @@
+---
+// The bottom bar on every page, phones and computers: Learn, Tools, Home, News and Menu, each with its
+// own colour. Above it, a smaller bar lists the current area's sections (left out on tool pages, where
+// the screen is needed for the tool). Menu opens the full menu panel (#all-tools). Plain links and
+// one button, so it works before any script loads; the script only opens the panel and scrolls the
+// section bar to the current section.
+import { AREAS, areaOf, currentTab } from '../site';
+interface Props { path: string; sub: boolean }
+const { path, sub } = Astro.props;
+const area = areaOf(path);
+const cur = currentTab(area, path);
+const ICON: Record<string, string> = {
+  learn: '<path d="M2 8.5 12 4l10 4.5-10 4.5z"/><path d="M6 10.5V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-5.5"/><path d="M22 8.5V14"/>',
+  tools: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/>',
+  home: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
+  news: '<path d="M5 4h11v15a1.5 1.5 0 0 0 1.5 1.5H6.5A1.5 1.5 0 0 1 5 19z"/><path d="M16 8h3v11a1.5 1.5 0 0 1-1.5 1.5"/><path d="M8 8h5M8 12h5M8 16h3"/>',
+  menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+};
+const svg = (id: string) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[id]}</svg>`;
+---
+{sub && (
+  <nav class="tb-sub" data-area={area.id} aria-label={`${area.name} sections`}>
+    <div class="tb-sub-in">
+      {area.tabs.map((t) => (
+        <a href={t.href} class:list={[{ on: t === cur }]} aria-current={t === cur ? 'page' : undefined}>{t.name}</a>
+      ))}
+    </div>
+  </nav>
+)}
+<nav class="tabbar" aria-label="Main">
+  <div class="tb-in">
+    {AREAS.map((a) => a.id === 'menu' ? (
+      <button type="button" class:list={['tb', 'tab-menu', { on: area.id === 'menu' }]} data-area="menu" aria-expanded="false" aria-controls="all-tools">
+        <span class="tb-ico" set:html={svg('menu')} /><span class="tb-t">Menu</span>
+      </button>
+    ) : (
+      <a href={a.href} class:list={['tb', { on: area.id === a.id }]} data-area={a.id} aria-current={area.id === a.id && path === a.href ? 'page' : undefined}>
+        <span class="tb-ico" set:html={svg(a.id)} /><span class="tb-t">{a.name}</span>
+      </a>
+    ))}
+  </div>
+</nav>
