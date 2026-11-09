@@ -11,7 +11,7 @@ order: 517
 icon: convert
 works: offline
 updated: 2026-11-09
-related: [solution-calculator, molar-mass-calculator, gas-law-calculator, reaction-equivalents, colligative-properties]
+related: [solution-calculator, molar-mass-calculator, gas-law-calculator, reaction-equivalents, colligative-properties, lab-unit-converter]
 sources:
   - "Unit definitions and the ideal gas law are standard; the gas constant is the exact SI value (Avogadro constant × Boltzmann constant). Code written by fibub and checked in the tests against an independent Python version built on pint and scipy.optimize.brentq."
   - "Molar masses: IUPAC/CIAAW standard atomic weights (abridged values), through the molar mass calculator's formula reader. Dry air is taken as 28.9647 g/mol."

@@ -11,7 +11,7 @@ order: 512
 icon: mountain
 works: offline
 updated: 2026-11-09
-related: [infinite-slope]
+related: [infinite-slope, load-combination-helper]
 sources:
   - "Formulas (general physics and snow science, no data copied): SWE = depth × snow density ÷ water density; snow tube SWE = snow mass ÷ tube cross-section; load = mass × standard gravity; slope = atan(rise ÷ run)."
   - "Vincenty (1975), direct and inverse solutions of geodesics on the ellipsoid, with the WGS84 ellipsoid; W3C DeviceOrientation Event specification for the phone's tilt angles."

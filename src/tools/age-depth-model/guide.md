@@ -11,7 +11,7 @@ order: 884
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [radiocarbon-calibration, insolation-calculator, radiometric-age-calculator, dendro-crossdating, range-chart-plotter]
+related: [radiocarbon-calibration, insolation-calculator, radiometric-age-calculator, dendro-crossdating, range-chart-plotter, luminescence-age-calculator]
 sources:
   - "Smoothing spline: C. H. Reinsch, 'Smoothing by spline functions', Numerische Mathematik 10 (1967), in the form of P. J. Green and B. W. Silverman, Nonparametric Regression and Generalized Linear Models (1994); written by fibub."
   - "Monte Carlo age-depth model with rejection of age reversals: the approach described for Clam by M. Blaauw, Quaternary Geochronology 5 (2010); written by fibub (it does not use Clam's code or calibration curves)."

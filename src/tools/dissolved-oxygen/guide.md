@@ -11,7 +11,7 @@ order: 841
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [water-quality-index, biodiversity-indices, hemocytometer]
+related: [water-quality-index, biodiversity-indices, hemocytometer, pond-oxygen-budget]
 sources:
   - "Garcia, H. E. and Gordon, L. I. (1992), Oxygen solubility in seawater: better fitting equations, Limnology and Oceanography 37, 1307–1312 (erratum 1993, 38, 656): the Benson and Krause fit in µmol/kg, as used in TEOS-10's GSW O2sol."
   - "Benson, B. B. and Krause, D. (1984), Limnology and Oceanography 29, 620–632 (pressure correction); Weiss, R. F. and Price, B. A. (1980), Marine Chemistry 8, 347–359 (water vapour pressure); UNESCO (1981) / Millero and Poisson (1981) sea-water density at the surface."

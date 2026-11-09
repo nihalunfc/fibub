@@ -11,7 +11,7 @@ order: 513
 icon: chart
 works: offline
 updated: 2026-11-09
-related: []
+related: [seismic-refraction, ves-inversion, magnetic-anomaly]
 sources:
   - "SEG-Y rev 1 data exchange format (SEG Technical Standards Committee, 2002) and rev 0 (1975): header byte positions and sample formats; IBM System/360 floating point format."
   - "GSSI DZT header layout as read by the open-source readgssi package (Nesbitt, GPL-3.0; layout facts only, no code copied)."
