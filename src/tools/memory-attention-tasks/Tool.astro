@@ -1,0 +1,372 @@
+---
+// Memory and attention tasks: digit span, Corsi blocks, visual search and simple/choice reaction time for
+// classroom demonstrations. Sequence makers and scoring in src/lib/sci/cogtasks.ts; results stay in the page.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ma">
+  <div class="ax-card">
+    <h2>Choose a task</h2>
+    <div class="ax-seg ma-mode" role="group" aria-label="Task">
+      <button type="button" data-m="digit" aria-pressed="true">Digit span</button><button type="button" data-m="corsi" aria-pressed="false">Corsi blocks</button><button type="button" data-m="search" aria-pressed="false">Visual search</button><button type="button" data-m="rt" aria-pressed="false">Reaction time</button>
+    </div>
+    <p class="ma-what"></p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="ma-o" data-m="digit corsi">Direction <select class="ma-dir"><option value="fwd" selected>Forward</option><option value="bwd">Backward</option></select></label>
+      <label class="ma-o" data-m="digit corsi">Start length <input class="ma-len" type="number" min="2" max="9" value="3" inputmode="numeric" /></label>
+      <label class="ma-o" data-m="search" hidden>Search for <select class="ma-kind"><option value="tl" selected>A T among Ls (hard)</option><option value="ox">An O among Xs (easy)</option></select></label>
+      <label class="ma-o" data-m="search" hidden>Set sizes <input class="ma-sizes" value="4, 8, 16" /></label>
+      <label class="ma-o" data-m="search" hidden>Trials per size, present and absent <input class="ma-per" type="number" min="1" max="20" value="4" inputmode="numeric" /></label>
+      <label class="ma-o" data-m="rt" hidden>Type <select class="ma-rtk"><option value="simple" selected>Simple (one signal)</option><option value="choice">Choice (left or right)</option></select></label>
+      <label class="ma-o" data-m="rt" hidden>Trials <input class="ma-rtn" type="number" min="3" max="100" value="10" inputmode="numeric" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn ma-start">Start</button></div>
+    <p class="ax-help">Browser timing is approximate (a few to tens of milliseconds, depending on the screen and keyboard), so compare people on the same device. Results stay in this page only and are gone when you close or reload it.</p>
+    <p class="ax-err ma-err" hidden></p>
+  </div>
+
+  <div class="ax-card ma-run" hidden>
+    <div class="ax-row" style="justify-content:space-between"><span class="ax-pill ma-prog"></span><button type="button" class="btn secondary small ma-stop">Stop</button></div>
+    <div class="ma-stage"><span class="ma-stim"></span><div class="ma-blocks" hidden></div><div class="ma-field" hidden></div></div>
+    <div class="ma-recall" hidden>
+      <label>Type the digits <input class="ma-ans" inputmode="numeric" autocomplete="off" /></label>
+      <button type="button" class="btn ma-ok">Done</button>
+    </div>
+    <div class="ma-keys"></div>
+    <p class="ax-help ma-keyhelp"></p>
+  </div>
+
+  <div class="ax-card ma-out" hidden>
+    <h2 class="ma-hd"></h2>
+    <p class="ax-big ma-big"></p>
+    <dl class="ax-facts ma-facts"></dl>
+    <canvas class="ax-fig ma-fig" style="margin-top:14px"></canvas>
+    <h3 style="margin-top:14px" class="ma-th"></h3>
+    <div class="ax-scroll"><table class="ma-tab"></table></div>
+    <p class="ax-help ma-note"></p>
+    <h3 style="margin-top:14px">This session</h3>
+    <div class="ax-scroll"><table class="ma-sess"></table></div>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small ma-csv">Download all trials (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .ma .ma-what { margin: 8px 0 0; font-size: 15px; }
+  .ma .ma-stage { position: relative; margin-top: 12px; height: 260px; border-radius: 12px; background: #111; color: #f2f2f2; display: grid; place-items: center; user-select: none; -webkit-user-select: none; touch-action: manipulation; overflow: hidden; }
+  .ma .ma-stim { font: 700 clamp(44px, 14vw, 76px)/1 system-ui, sans-serif; }
+  .ma .ma-stim.ma-small { font-size: 18px; font-weight: 600; text-align: center; padding: 0 16px; }
+  .ma .ma-blocks, .ma .ma-field { position: absolute; inset: 0; }
+  .ma .ma-blk { position: absolute; width: 15%; aspect-ratio: 1; max-height: 22%; border: 0; border-radius: 6px; background: #4a5aa8; transform: translate(-50%, -50%); cursor: pointer; padding: 0; }
+  .ma .ma-blk.ma-lit { background: #ffd21f; }
+  .ma .ma-blk.ma-tap { background: #9aa6dd; }
+  .ma .ma-it { position: absolute; transform: translate(-50%, -50%); font: 700 26px/1 system-ui, sans-serif; color: #f2f2f2; }
+  .ma .ma-sig { width: 34%; aspect-ratio: 1; border-radius: 50%; background: #f2f2f2; }
+  .ma .ma-sig.ma-left { position: absolute; left: 12%; } .ma .ma-sig.ma-right { position: absolute; right: 12%; }
+  .ma .ma-recall { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; margin-top: 12px; }
+  .ma .ma-keys { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; margin-top: 12px; }
+  .ma .ma-keys button { font: inherit; font-size: 17px; font-weight: 600; padding: 16px 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); touch-action: manipulation; cursor: pointer; }
+  .ma .ma-tab td.r, .ma .ma-sess td.r { white-space: nowrap; }
+  .ma .ma-tab td.ma-x { color: var(--bad); }
+  html.red-mode .ma .ma-stage { filter: url(#red-night); }
+</style>
+
+<script>
+  import { digits, sequence, recallCorrect, scoreSpan, nextSpan, searchSummary, searchLayout, rtSummary, type SpanAttempt, type SearchTrial, type RtTrial } from '../../lib/sci/cogtasks';
+  import { csv } from '../../lib/sci/num';
+  import { chartFigure, type Series } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  type Mode = 'digit' | 'corsi' | 'search' | 'rt';
+  const root = document.querySelector<HTMLElement>('.ma')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string, el: ParentNode = root) => el.querySelector(c) as T;
+  const stage = q('.ma-stage'), stim = q('.ma-stim');
+  const WHAT: Record<Mode, string> = {
+    digit: 'Digits appear one a second. Then type them back in the same order (or reversed, for backward span). Each length is tried twice; the test stops when both tries at a length are wrong.',
+    corsi: 'Blocks light up one at a time. Then tap them in the same order (or reversed). The same two-tries rule as digit span; this is the visual-spatial version.',
+    search: 'Look for the target among the other letters and answer as fast as you can: J (or Present) if it is there, F (or Absent) if not. More items slow the search when it needs attention to each item.',
+    rt: 'Simple: press Space (or tap) as soon as the white circle appears. Choice: press F/← or J/→ for the side it appears on. Pressing too early counts as a false start.',
+  };
+  // Made-up block layout (positions as fractions of the stage), irregular so the order cannot be read off rows.
+  const BLOCKS = [[0.18, 0.2], [0.52, 0.14], [0.83, 0.26], [0.33, 0.43], [0.66, 0.4], [0.12, 0.66], [0.45, 0.74], [0.75, 0.66], [0.9, 0.86]];
+  let mode: Mode = 'digit';
+  type Row = Record<string, string | number>;
+  const all: Row[] = [];
+  const session: { task: string; score: string; detail: string }[] = [];
+  let report: Section[] = [], fig: Figure | null = null;
+  let run: { timers: number[]; stop: boolean; rejects: Set<(e: Error) => void>; resolve?: (v: { value: string; t: number }) => void; accept?: string[] } | null = null;
+
+  const fmt = (x: number, d = 0) => (Number.isFinite(x) ? x.toFixed(d).replace(/^-/, '−') : '–');
+  const pct = (x: number) => (Number.isFinite(x) ? `${(x * 100).toFixed(1)} %` : '–');
+  const wait = (ms: number) => new Promise<void>((res, rej) => {
+    if (!run || run.stop) return rej(new Error('stopped'));
+    const R = run; R.rejects.add(rej);
+    R.timers.push(window.setTimeout(() => { R.rejects.delete(rej); res(); }, ms));
+  });
+  const onset = () => new Promise<number>((res) => requestAnimationFrame((t) => res(t)));
+  /** Wait for one of the accepted answers, or time out (value 'none'). */
+  const answer = (accept: string[], timeout = 0) => new Promise<{ value: string; t: number }>((res, rej) => {
+    if (!run || run.stop) return rej(new Error('stopped'));
+    const R = run; R.rejects.add(rej); R.accept = accept;
+    let tm = 0;
+    R.resolve = (v) => { R.resolve = undefined; R.accept = undefined; R.rejects.delete(rej); clearTimeout(tm); res(v); };
+    if (timeout) { tm = window.setTimeout(() => R.resolve?.({ value: 'none', t: performance.now() }), timeout); R.timers.push(tm); }
+  });
+  const give = (value: string, t: number) => { if (run?.resolve && run.accept?.includes(value)) run.resolve({ value, t }); };
+  const show = (text: string, small = false) => { stim.textContent = text; stim.className = 'ma-stim' + (small ? ' ma-small' : ''); stim.hidden = false; };
+  const keysRow = (list: [string, string][]) => { const k = q('.ma-keys'); k.innerHTML = ''; for (const [v, l] of list) { const b = document.createElement('button'); b.type = 'button'; b.dataset.v = v; b.textContent = l; k.append(b); } };
+
+  function setMode(m: Mode) {
+    if (run) return;
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.ma-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.ma-o').forEach((e) => (e.hidden = !e.dataset.m!.split(' ').includes(m)));
+    q('.ma-what').textContent = WHAT[m];
+    q('.ma-err').hidden = true;
+  }
+
+  // ----- Span tasks (digits and Corsi) -----
+  async function span(corsi: boolean) {
+    const back = q<HTMLSelectElement>('.ma-dir').value === 'bwd', start = Number(q<HTMLInputElement>('.ma-len').value);
+    if (!Number.isInteger(start) || start < 2 || start > 9) throw new Error('Choose a start length from 2 to 9.');
+    const att: (SpanAttempt & { seq: number[]; ans: number[] })[] = [];
+    const blocks = q('.ma-blocks');
+    if (corsi) {
+      blocks.innerHTML = ''; blocks.hidden = false; stim.hidden = true;
+      BLOCKS.forEach(([x, y], i) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'ma-blk'; b.dataset.i = String(i); b.style.left = `${x * 100}%`; b.style.top = `${y * 100}%`; b.setAttribute('aria-label', `Block ${i + 1}`); blocks.append(b); });
+      keysRow([['undo', 'Undo'], ['done', 'Done']]);
+      q('.ma-keyhelp').textContent = 'Tap the blocks in order. Done checks your answer.';
+    } else { keysRow([]); q('.ma-keyhelp').textContent = 'Type the digits, then Enter or Done.'; }
+    let len = start;
+    for (;;) {
+      q('.ma-prog').textContent = `Length ${len}, try ${att.filter((a) => a.length === len).length + 1}`;
+      const seq = corsi ? sequence(len, 9, Math.random, true) : digits(len, Math.random);
+      if (!corsi) show('+');
+      await wait(800);
+      for (const v of seq) {
+        if (corsi) { const b = blocks.children[v] as HTMLElement; b.classList.add('ma-lit'); await wait(700); b.classList.remove('ma-lit'); await wait(300); }
+        else { show(String(v)); await wait(800); show(''); await wait(200); }
+      }
+      let ans: number[] = [];
+      if (corsi) {
+        const taps: number[] = [];
+        for (;;) {
+          const r = await answer([...BLOCKS.map((_, i) => `b${i}`), 'undo', 'done']);
+          if (r.value === 'done') break;
+          if (r.value === 'undo') { const i = taps.pop(); if (i !== undefined && !taps.includes(i)) blocks.children[i].classList.remove('ma-tap'); continue; }
+          const i = Number(r.value.slice(1)); taps.push(i); blocks.children[i].classList.add('ma-tap');
+          if (taps.length === len) break;
+        }
+        ans = taps; [...blocks.children].forEach((b) => b.classList.remove('ma-tap'));
+      } else {
+        show('?'); q('.ma-recall').hidden = false; const inp = q<HTMLInputElement>('.ma-ans'); inp.value = ''; inp.focus();
+        await answer(['submit']);
+        ans = inp.value.replace(/\D/g, '').split('').map(Number); q('.ma-recall').hidden = true; inp.blur();
+      }
+      const ok = recallCorrect(seq, ans, back);
+      att.push({ length: len, correct: ok, seq, ans });
+      all.push({ task: corsi ? 'corsi' : 'digit span', trial: att.length, condition: back ? 'backward' : 'forward', length: len, shown: seq.map((v) => (corsi ? v + 1 : v)).join(' '), response: ans.map((v) => (corsi ? v + 1 : v)).join(' '), correct: ok ? 1 : 0, rt_ms: '', set_size: '', target: '' });
+      if (!corsi) show(ok ? '✓' : '✗'); else { stim.hidden = false; show(ok ? '✓' : '✗'); }
+      await wait(700); if (corsi) stim.hidden = true; else show('');
+      const nx = nextSpan(att, 9);
+      if (!nx) break;
+      len = nx.length;
+    }
+    blocks.hidden = true; stim.hidden = false;
+    return att;
+  }
+  function spanResults(corsi: boolean, att: (SpanAttempt & { seq: number[]; ans: number[] })[]) {
+    const s = scoreSpan(att), name = corsi ? 'Corsi block span' : 'Digit span', dir = q<HTMLSelectElement>('.ma-dir').value === 'bwd' ? 'backward' : 'forward';
+    q('.ma-hd').textContent = `${name} (${dir})`;
+    q('.ma-big').textContent = `Span = ${s.span}`;
+    const fl: [string, string][] = [['Correct trials', `${s.total} of ${s.trials}`], ...(corsi ? [['Total score (span × correct)', String(s.product)] as [string, string]] : []), ['Longest length tried', String(Math.max(...att.map((a) => a.length)))]];
+    const head = ['Try', 'Length', 'Shown', 'Your answer', 'Result'];
+    const rows = att.map((a, i) => [String(i + 1), String(a.length), a.seq.map((v) => (corsi ? v + 1 : v)).join(' '), a.ans.map((v) => (corsi ? v + 1 : v)).join(' ') || '–', a.correct ? 'right' : 'wrong']);
+    const ok = att.map((a, i) => ({ i: i + 1, ...a }));
+    fig = chartFigure({ h: 260, xLabel: 'Try', yLabel: 'Length', legend: 'inside', xMin: 0, xMax: att.length + 1, series: [
+      { name: 'Right', x: ok.filter((a) => a.correct).map((a) => a.i), y: ok.filter((a) => a.correct).map((a) => a.length), mode: 'points', marker: 'circle' },
+      { name: 'Wrong', x: ok.filter((a) => !a.correct).map((a) => a.i), y: ok.filter((a) => !a.correct).map((a) => a.length), mode: 'points', marker: 'cross', size: 9 },
+    ] }, 'Sequence length on each try, right and wrong.');
+    const note = corsi ? 'Span is the longest length recalled correctly at least once. The total score multiplies span by the number of correct trials, which spreads people out more (Kessels and colleagues, 2000). Corsi spans are usually a little shorter than digit spans.' : 'Span is the longest length recalled correctly at least once. Most adults recall about 5 to 8 digits forwards and one or two fewer backwards; the block layout and these ranges are for demonstration, not norms.';
+    session.push({ task: `${name}, ${dir}`, score: `span ${s.span}`, detail: `${s.total}/${s.trials} correct${corsi ? `, total ${s.product}` : ''}` });
+    return { fl, head, rows, note, title: 'Every try', cls: (r: number, c: number) => (c === 4 && !att[r].correct ? 'ma-x' : '') };
+  }
+
+  // ----- Visual search -----
+  async function search() {
+    const sizes = q<HTMLInputElement>('.ma-sizes').value.split(/[,;\s]+/).filter(Boolean).map(Number);
+    if (sizes.length < 2 || sizes.some((s) => !Number.isInteger(s) || s < 1 || s > 30) || new Set(sizes).size !== sizes.length) throw new Error('Give two or more different set sizes from 1 to 30, such as 4, 8, 16.');
+    const per = Number(q<HTMLInputElement>('.ma-per').value);
+    if (!Number.isInteger(per) || per < 1 || per > 20) throw new Error('Choose 1 to 20 trials per set size.');
+    const kind = q<HTMLSelectElement>('.ma-kind').value, [tgt, dis] = kind === 'tl' ? ['T', 'L'] : ['O', 'X'];
+    const list: { setSize: number; present: boolean }[] = [];
+    for (const s of sizes) for (let i = 0; i < per; i++) { list.push({ setSize: s, present: true }); list.push({ setSize: s, present: false }); }
+    for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
+    keysRow([['absent', 'Absent (F)'], ['present', 'Present (J)']]);
+    q('.ma-keyhelp').textContent = `Look for the ${tgt}. Keys: J present, F absent. Esc stops.`;
+    const field = q('.ma-field'); field.hidden = false;
+    const out: SearchTrial[] = [];
+    for (let i = 0; i < list.length; i++) {
+      q('.ma-prog').textContent = `Trial ${i + 1} of ${list.length}`;
+      field.innerHTML = ''; show('+'); await wait(500); show('');
+      const L = searchLayout(list[i].setSize, Math.random), ti = list[i].present ? Math.floor(Math.random() * L.length) : -1;
+      L.forEach((p, k) => { const s = document.createElement('span'); s.className = 'ma-it'; s.textContent = k === ti ? tgt : dis; s.style.left = `${4 + p.x * 92}%`; s.style.top = `${4 + p.y * 92}%`; if (kind === 'tl') s.style.transform = `translate(-50%, -50%) rotate(${90 * Math.floor(Math.random() * 4)}deg)`; field.append(s); });
+      stage.dataset.answer = list[i].present ? 'present' : 'absent';
+      const t0 = await onset();
+      const r = await answer(['present', 'absent'], 10000);
+      delete stage.dataset.answer; field.innerHTML = '';
+      const correct = r.value === (list[i].present ? 'present' : 'absent'), rt = r.value === 'none' ? null : r.t - t0;
+      out.push({ ...list[i], correct, rt });
+      all.push({ task: 'visual search', trial: i + 1, condition: kind === 'tl' ? 'T among L' : 'O among X', length: '', shown: list[i].present ? 'present' : 'absent', response: r.value, correct: correct ? 1 : 0, rt_ms: rt === null ? '' : Math.round(rt * 10) / 10, set_size: list[i].setSize, target: list[i].present ? 1 : 0 });
+      if (!correct) { show('✗'); await wait(400); show(''); }
+      await wait(400);
+    }
+    field.hidden = true;
+    return { out, kind };
+  }
+  function searchResults(t: SearchTrial[], kind: string) {
+    const s = searchSummary(t);
+    q('.ma-hd').textContent = `Visual search (${kind === 'tl' ? 'T among Ls' : 'O among Xs'})`;
+    q('.ma-big').textContent = s.present ? `${fmt(s.present.slope, 1)} ms per item (target present)` : 'Not enough correct trials for a slope';
+    const fl: [string, string][] = [];
+    if (s.present) fl.push(['Present: slope, intercept', `${fmt(s.present.slope, 1)} ms/item, ${fmt(s.present.intercept)} ms`], ['Present: r²', fmt(s.present.r2, 3)]);
+    if (s.absent) fl.push(['Absent: slope, intercept', `${fmt(s.absent.slope, 1)} ms/item, ${fmt(s.absent.intercept)} ms`], ['Absent: r²', fmt(s.absent.r2, 3)]);
+    if (Number.isFinite(s.ratio)) fl.push(['Absent ÷ present slope', fmt(s.ratio, 2)]);
+    fl.push(['Accuracy', pct(s.accuracy)]);
+    const head = ['Set size', 'Target', 'Trials', 'Accuracy', 'Mean RT'];
+    const rows = s.cells.map((c) => [String(c.setSize), c.present ? 'present' : 'absent', String(c.n), pct(c.accuracy), c.used ? `${fmt(c.mean)} ms` : '–']);
+    const series: Series[] = [];
+    for (const p of [true, false]) {
+      const cs = s.cells.filter((c) => c.present === p && c.used);
+      if (cs.length) series.push({ name: p ? 'Present' : 'Absent', x: cs.map((c) => c.setSize), y: cs.map((c) => c.mean), mode: 'points', marker: p ? 'circle' : 'square' });
+      const L = p ? s.present : s.absent;
+      if (L) { const xs = [Math.min(...t.map((x) => x.setSize)), Math.max(...t.map((x) => x.setSize))]; series.push({ name: `${p ? 'Present' : 'Absent'} fit`, x: xs, y: xs.map((x) => L.intercept + L.slope * x), mode: 'line', dash: p ? undefined : [5, 4], width: 1.5 }); }
+    }
+    fig = series.length ? chartFigure({ h: 300, xLabel: 'Set size (items)', yLabel: 'Mean RT (ms)', legend: 'inside', series }, 'Mean reaction time against set size, with fitted lines.') : null;
+    session.push({ task: `Visual search, ${kind === 'tl' ? 'T among L' : 'O among X'}`, score: s.present ? `${fmt(s.present.slope, 1)} ms/item` : '–', detail: `absent ${s.absent ? fmt(s.absent.slope, 1) + ' ms/item' : '–'}, ${pct(s.accuracy)} correct` });
+    const note = 'Slopes come from a straight line through every correct trial\'s RT against set size. Flat slopes (under about 10 ms per item) mean the target "pops out"; steep ones mean each item needs attention. Absent slopes are often about twice the present ones, as expected if people stop when they find the target.';
+    return { fl, head, rows, note, title: 'By set size' };
+  }
+
+  // ----- Simple and choice RT -----
+  async function rt() {
+    const kind = q<HTMLSelectElement>('.ma-rtk').value as 'simple' | 'choice', n = Number(q<HTMLInputElement>('.ma-rtn').value);
+    if (!Number.isInteger(n) || n < 3 || n > 100) throw new Error('Choose 3 to 100 trials.');
+    keysRow(kind === 'simple' ? [['go', 'Now! (Space)']] : [['left', '← Left (F)'], ['right', 'Right → (J)']]);
+    q('.ma-keyhelp').textContent = kind === 'simple' ? 'Press Space or tap as soon as the circle appears. Esc stops.' : 'Press F/← or J/→ for the side of the circle. Esc stops.';
+    const out: RtTrial[] = [], field = q('.ma-field'); field.hidden = false;
+    for (let i = 0; i < n; i++) {
+      q('.ma-prog').textContent = `Trial ${i + 1} of ${n}`;
+      field.innerHTML = ''; show('Wait…', true);
+      const fp = 1000 + Math.random() * 2000, side = Math.random() < 0.5 ? 'left' : 'right', accept = kind === 'simple' ? ['go'] : ['left', 'right'];
+      // A press during the wait is a false start.
+      const early = (await answer(accept, fp)).value !== 'none';
+      if (early) {
+        out.push({ kind, foreperiod: fp, correct: false, rt: null, early: true });
+        all.push({ task: `${kind} RT`, trial: i + 1, condition: kind, length: '', shown: kind === 'simple' ? 'signal' : side, response: 'false start', correct: 0, rt_ms: '', set_size: '', target: '' });
+        show('Too soon', true); await wait(900); continue;
+      }
+      show(''); const c = document.createElement('div'); c.className = 'ma-sig' + (kind === 'choice' ? ` ma-${side}` : ''); field.append(c);
+      stage.dataset.answer = kind === 'simple' ? 'go' : side;
+      const t0 = await onset();
+      const r = await answer(accept, 2000);
+      delete stage.dataset.answer; field.innerHTML = '';
+      const correct = r.value !== 'none' && (kind === 'simple' || r.value === side), ms = r.value === 'none' ? null : r.t - t0;
+      out.push({ kind, foreperiod: fp, correct, rt: ms, early: false });
+      all.push({ task: `${kind} RT`, trial: i + 1, condition: kind, length: '', shown: kind === 'simple' ? 'signal' : side, response: r.value, correct: correct ? 1 : 0, rt_ms: ms === null ? '' : Math.round(ms * 10) / 10, set_size: '', target: '' });
+      show(ms === null ? 'Too slow' : correct ? `${Math.round(ms)} ms` : '✗', true); await wait(700);
+    }
+    field.hidden = true;
+    return { out, kind };
+  }
+  function rtResults(t: RtTrial[], kind: string) {
+    const s = rtSummary(t);
+    q('.ma-hd').textContent = `${kind === 'simple' ? 'Simple' : 'Choice'} reaction time`;
+    q('.ma-big').textContent = `Median RT = ${fmt(s.median)} ms`;
+    const fl: [string, string][] = [['Mean RT', `${fmt(s.mean)} ms`], ['SD', `${fmt(s.sd)} ms`], ['Fastest', `${fmt(s.fastest)} ms`], ['RTs used', `${s.used} of ${s.n}`], ['False starts', String(s.falseStarts)], ['Anticipations (< 100 ms)', String(s.anticipations)]];
+    if (kind === 'choice') fl.push(['Accuracy', pct(s.accuracy)]);
+    const head = ['Trial', 'Wait (s)', 'Result', 'RT'];
+    const rows = t.map((x, i) => [String(i + 1), (x.foreperiod / 1000).toFixed(2), x.early ? 'false start' : x.rt === null ? 'no answer' : x.correct ? 'right' : 'wrong', x.rt === null ? '–' : `${fmt(x.rt)} ms`]);
+    const pts = t.map((x, i) => ({ i: i + 1, x })).filter((p) => p.x.rt !== null);
+    fig = pts.length ? chartFigure({ h: 260, xLabel: 'Trial', yLabel: 'RT (ms)', legend: 'none', xMin: 0, xMax: t.length + 1, series: [{ name: 'RT', x: pts.map((p) => p.i), y: pts.map((p) => p.x.rt as number), mode: 'both' }] }, 'Reaction time on each trial.') : null;
+    session.push({ task: `${kind === 'simple' ? 'Simple' : 'Choice'} RT`, score: `median ${fmt(s.median)} ms`, detail: `mean ${fmt(s.mean)} ms, ${s.falseStarts} false starts${kind === 'choice' ? `, ${pct(s.accuracy)} correct` : ''}` });
+    const note = 'The median is less affected by the odd slow trial than the mean. Choice RT is usually longer than simple RT because a decision is added (Hick\'s law: more choices, longer RT). Browser and screen delays add a similar amount to every trial.';
+    return { fl, head, rows, note, title: 'Every trial', cls: (r: number, c: number) => (c === 2 && !t[r].correct ? 'ma-x' : '') };
+  }
+
+  function render(r: { fl: [string, string][]; head: string[]; rows: string[][]; note: string; title: string; cls?: (r: number, c: number) => string }) {
+    const dl = q('.ma-facts'); dl.innerHTML = '';
+    for (const [k, v] of r.fl) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d); }
+    const table = (t: HTMLTableElement, head: string[], rows: string[][], cls?: (r: number, c: number) => string) => {
+      t.innerHTML = '';
+      const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+      const b = t.createTBody(); rows.forEach((row, ri) => { const tr = b.insertRow(); row.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; td.className = [i ? 'r' : '', cls?.(ri, i) ?? ''].join(' ').trim(); }); });
+    };
+    q('.ma-th').textContent = r.title;
+    table(q<HTMLTableElement>('.ma-tab'), r.head, r.rows, r.cls);
+    const sh = ['Task', 'Score', 'Details'], sr = session.map((s) => [s.task, s.score, s.detail]);
+    table(q<HTMLTableElement>('.ma-sess'), sh, sr);
+    q('.ma-note').textContent = r.note;
+    q<HTMLCanvasElement>('.ma-fig').hidden = !fig;
+    if (fig) paint(q<HTMLCanvasElement>('.ma-fig'), fig);
+    report = [{ title: q('.ma-hd').textContent!, facts: [['Result', q('.ma-big').textContent!], ...r.fl], ...(fig ? { figure: fig } : {}) }, { title: r.title, table: { head: r.head, rows: r.rows } }, { title: 'This session', table: { head: sh, rows: sr } }];
+  }
+
+  async function start() {
+    const err = q('.ma-err'); err.hidden = true;
+    run = { timers: [], stop: false, rejects: new Set() };
+    q('.ma-run').hidden = false; q('.ma-recall').hidden = true; q('.ma-blocks').hidden = true; q('.ma-field').hidden = true;
+    (document.activeElement as HTMLElement | null)?.blur();
+    q('.ma-run').scrollIntoView({ block: 'start', behavior: 'instant' as ScrollBehavior });
+    const before = all.length;
+    try {
+      let res;
+      if (mode === 'digit' || mode === 'corsi') res = spanResults(mode === 'corsi', await span(mode === 'corsi'));
+      else if (mode === 'search') { const r = await search(); res = searchResults(r.out, r.kind); }
+      else { const r = await rt(); res = rtResults(r.out, r.kind); }
+      finish(); render(res);
+      q('.ma-out').hidden = false; q('.ma-out').scrollIntoView({ block: 'start', behavior: 'instant' as ScrollBehavior });
+    } catch (e) {
+      finish();
+      if ((e as Error).message !== 'stopped') { err.textContent = (e as Error).message; err.hidden = false; }
+      else { all.splice(before); err.textContent = 'Stopped. Unfinished runs are not scored.'; err.hidden = false; }
+    }
+  }
+  function finish() {
+    if (run) { run.timers.forEach(clearTimeout); run.stop = true; }
+    run = null; delete stage.dataset.answer;
+    q('.ma-run').hidden = true; q('.ma-field').innerHTML = ''; stim.hidden = false; show('');
+  }
+  function stop() {
+    if (!run) return;
+    run.stop = true; run.timers.forEach(clearTimeout); run.resolve = undefined;
+    // Reject whatever the task is waiting for, so it unwinds into start()'s catch.
+    const rs = [...run.rejects]; run.rejects.clear();
+    rs.forEach((f) => f(new Error('stopped')));
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.ma-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m as Mode)));
+  q('.ma-start').addEventListener('click', start);
+  q('.ma-stop').addEventListener('click', stop);
+  q('.ma-ok').addEventListener('click', () => give('submit', performance.now()));
+  q<HTMLInputElement>('.ma-ans').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); give('submit', e.timeStamp); } });
+  q('.ma-keys').addEventListener('pointerdown', (e) => { const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-v]'); if (b) { e.preventDefault(); give(b.dataset.v!, e.timeStamp); } });
+  q('.ma-blocks').addEventListener('pointerdown', (e) => { const b = (e.target as HTMLElement).closest<HTMLButtonElement>('.ma-blk'); if (b) { e.preventDefault(); give(`b${b.dataset.i}`, e.timeStamp); } });
+  document.addEventListener('keydown', (e) => {
+    if (!run) return;
+    if (e.key === 'Escape') { stop(); return; }
+    if ((e.target as HTMLElement).matches?.('input')) return;
+    const k = e.key.toLowerCase();
+    const v = mode === 'search' ? (k === 'j' ? 'present' : k === 'f' ? 'absent' : '') : mode === 'rt' ? (k === ' ' ? 'go' : k === 'f' || k === 'arrowleft' ? 'left' : k === 'j' || k === 'arrowright' ? 'right' : '') : '';
+    if (!v) return;
+    e.preventDefault();
+    if (!e.repeat) give(v, e.timeStamp);
+  });
+  q('.ma-csv').addEventListener('click', () => {
+    const cols = ['task', 'trial', 'condition', 'length', 'set_size', 'target', 'shown', 'response', 'correct', 'rt_ms'];
+    save(new Blob([csv([cols, ...all.map((r) => cols.map((c) => r[c] ?? ''))])], { type: 'text/csv' }), 'memory-attention-trials.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.ma-fig'), fig); });
+  setMode('digit');
+  wireDownloads(q('.dl'), () => ({ title: 'Memory and attention tasks', file: 'memory-attention', sections: report }));
+</script>
