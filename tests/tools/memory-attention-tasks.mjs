@@ -63,7 +63,9 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   check((await page.locator(R + '.ma-tab tbody tr').count()) === 4 && /100\.0 %/.test(await txt('.ma-facts')), 'search: 4 cells, all correct');
   // Simple RT with one false start.
   await page.click(R + '.ma-mode [data-m=rt]'); await page.fill(R + '.ma-rtn', '3'); await page.click(R + '.ma-start');
-  await page.waitForTimeout(300); await page.keyboard.press(' ');
+  // Press during the first wait (1 to 3 s), once the trial is listening: a fixed 300 ms could land before the run started on a busy machine.
+  await page.waitForFunction((r) => document.querySelector(r + '.ma-prog')?.textContent === 'Trial 1 of 3' && document.querySelector(r + '.ma-stim')?.textContent === 'Wait…', R);
+  await page.waitForTimeout(100); await page.keyboard.press(' ');
   for (let i = 0; i < 2; i++) {
     await page.waitForSelector(R + '.ma-stage[data-answer]', { timeout: 8000 });
     await page.waitForTimeout(80); await page.keyboard.press(' ');
