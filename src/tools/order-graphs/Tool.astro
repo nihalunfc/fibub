@@ -1,0 +1,177 @@
+---
+// Order of reaction graphs: zero, first and second order [A]–t, ln[A]–t and 1/[A]–t side by side (only one is
+// straight), half-lives marked, and an Arrhenius card with an energy profile and a catalyst.
+import '../../styles/astro.css';
+import '../../styles/chemquiz.css';
+---
+<div class="ax og">
+  <div class="ax-card">
+    <div class="ax-seg og-n" role="group" aria-label="Order"><button type="button" data-n="0" aria-pressed="false">Zero order</button><button type="button" data-n="1" aria-pressed="true">First order</button><button type="button" data-n="2" aria-pressed="false">Second order</button></div>
+    <label class="og-rl"><span>[A]₀</span><input type="range" class="og-a0" min="0.2" max="2" step="0.1" value="1" /><output class="og-oa0"></output></label>
+    <label class="og-rl"><span>k</span><input type="range" class="og-k" min="-3" max="-1" step="0.05" value="-2" /><output class="og-ok"></output></label>
+    <p class="ax-big og-big" style="margin:10px 0 2px"></p>
+    <p class="og-sub" style="margin:0 0 8px"></p>
+    <div class="og-plots">
+      <figure><figcaption>[A] against t</figcaption><svg class="og-p og-p0" viewBox="0 0 300 150" role="img"></svg></figure>
+      <figure><figcaption>ln[A] against t</figcaption><svg class="og-p og-p1" viewBox="0 0 300 150" role="img"></svg></figure>
+      <figure><figcaption>1/[A] against t</figcaption><svg class="og-p og-p2" viewBox="0 0 300 150" role="img"></svg></figure>
+    </div>
+    <p class="lx-eq og-eq"></p>
+    <p class="ax-help">Time in seconds, one reactant, rate = k[A]ⁿ. Dotted lines on the first graph mark each half-life. The plot that is a straight line tells you the order.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Temperature, activation energy and a catalyst</h2>
+    <label class="og-rl"><span>Ea</span><input type="range" class="og-ea" min="20" max="150" step="1" value="75" /><output class="og-oea"></output></label>
+    <label class="og-rl"><span>T</span><input type="range" class="og-t" min="250" max="500" step="5" value="300" /><output class="og-ot"></output></label>
+    <label class="ax-check" style="margin-top:8px"><input type="checkbox" class="og-cat" /> Add a catalyst (lowers Ea by 30 kJ/mol)</label>
+    <svg class="og-ep" viewBox="0 0 300 170" role="img" aria-label="Energy profile"></svg>
+    <dl class="ax-facts og-facts"></dl>
+    <p class="lx-eq og-aeq"></p>
+    <p class="ax-help">The pre-exponential factor A is fixed at 10¹¹ s⁻¹ and ΔH at −40 kJ/mol to draw the picture; they are example values.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lx-try">
+      <li>For each order, which of the three graphs is straight? What is its slope?</li>
+      <li>First order: change [A]₀. Does the half-life change? Now try second order.</li>
+      <li>Zero order: why does [A] hit zero at a definite time?</li>
+      <li>Raise T by 10 K near room temperature with Ea about 50 kJ/mol. Roughly how much faster is the reaction?</li>
+      <li>Tick the catalyst. What happens to Ea, to ΔH and to k?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cq">
+    <h2>Check yourself</h2>
+    <ol class="cq-list"></ol>
+    <button type="button" class="btn secondary small cq-new">New questions</button>
+  </div>
+</div>
+
+<style is:inline>
+  .og-rl { display: grid !important; grid-template-columns: 34px 1fr 128px; align-items: center; gap: 10px !important; margin-top: 10px; color: var(--ink) !important; }
+  .og-rl input { height: 32px; accent-color: var(--accent); }
+  .og-rl output { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; font-size: 14px; }
+  .og-plots { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 10px; }
+  .og-plots figure { margin: 0; border: 1px solid var(--line); border-radius: 10px; padding: 6px 6px 2px; }
+  .og-plots figure.on { border-color: var(--accent); border-width: 2px; }
+  .og-plots figcaption { font-size: 13px; font-weight: 650; }
+  .og-plots figcaption span { color: var(--good); }
+  .og-p, .og-ep { display: block; width: 100%; }
+  .og-ep { max-width: 440px; margin: 12px auto 4px; }
+  .og .axl { stroke: var(--muted); stroke-width: 1; }
+  .og .cv { fill: none; stroke: var(--ink); stroke-width: 2.4; }
+  .og .cv.cat { stroke: var(--accent); stroke-dasharray: 6 4; }
+  .og .hl { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+  .og .tx { fill: var(--muted); font: 11px system-ui, sans-serif; }
+  .og .tb { fill: var(--ink); font: 600 12px system-ui, sans-serif; }
+  .og .ar { stroke: var(--ink); stroke-width: 1.3; marker-end: none; }
+</style>
+
+<script>
+  import { conc, halfLife, kUnits, straight, r2, arrhenius, ratio, fraction, timeTo, type Order } from '../../lib/sci/ordergraphs';
+  import { mountQuiz, near, same, pickOne, rint, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.og')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const NS = 'http://www.w3.org/2000/svg';
+  const sv = (tag: string, attrs: Record<string, string | number>, text?: string) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, String(v)); if (text != null) n.textContent = text; return n; };
+  const g3 = (x: number) => (Math.abs(x) >= 1e4 || (Math.abs(x) < 1e-3 && x !== 0) ? x.toExponential(2).replace('e', ' × 10^').replace('^+', '^') : String(Number(x.toPrecision(3)))).replace(/-/g, '−');
+  let n: Order = 1;
+  const A_FACTOR = 1e11, DH = -40, CAT = 30;
+
+  function plot(svg: SVGSVGElement, xs: number[], ys: number[], marks: number[], tmax: number, label: string) {
+    svg.replaceChildren();
+    const X0 = 34, X1 = 292, Y0 = 128, Y1 = 10;
+    const lo = Math.min(...ys), hi = Math.max(...ys), span = hi - lo || 1;
+    const px = (t: number) => X0 + (t / tmax) * (X1 - X0), py = (y: number) => Y0 - ((y - lo) / span) * (Y0 - Y1);
+    svg.append(sv('path', { d: `M${X0} ${Y1} L${X0} ${Y0} L${X1} ${Y0}`, class: 'axl' }));
+    svg.append(sv('text', { x: X1, y: 146, class: 'tx', 'text-anchor': 'end' }, `t = ${g3(tmax)} s`));
+    svg.append(sv('text', { x: 2, y: Y1 + 8, class: 'tx' }, g3(hi)), sv('text', { x: 2, y: Y0, class: 'tx' }, g3(lo)));
+    for (const t of marks) if (t <= tmax) svg.append(sv('line', { x1: px(t), y1: Y1, x2: px(t), y2: Y0, class: 'hl' }));
+    svg.append(sv('polyline', { points: xs.map((t, i) => `${px(t).toFixed(1)},${py(ys[i]).toFixed(1)}`).join(' '), class: 'cv' }));
+    svg.setAttribute('aria-label', label);
+  }
+
+  function update() {
+    root.querySelectorAll<HTMLButtonElement>('.og-n button').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.n) === n)));
+    const A0 = Number(q<HTMLInputElement>('.og-a0').value), k = Number((10 ** Number(q<HTMLInputElement>('.og-k').value)).toPrecision(2));
+    q('.og-oa0').textContent = `${A0} mol/L`; q('.og-ok').textContent = `${k} ${kUnits(n)}`;
+    const t12 = halfLife(n, A0, k), tmax = n === 0 ? A0 / k * 1.15 : 4 * t12;
+    const N = 60, ts = Array.from({ length: N + 1 }, (_, i) => (i / N) * tmax);
+    // stop the log and reciprocal plots where [A] reaches 0 (zero order)
+    const As = ts.map((t) => conc(n, A0, k, t)), ok = As.map((a) => a > A0 * 1e-3);
+    const tsP = ts.filter((_, i) => ok[i]), AsP = As.filter((_, i) => ok[i]);
+    const marks: number[] = []; { let a = A0, t = 0; for (let i = 0; i < 6; i++) { const h = halfLife(n, a, k); t += h; a /= 2; marks.push(t); } }
+    const series = [AsP, AsP.map(Math.log), AsP.map((a) => 1 / a)];
+    const names = ['[A] against t', 'ln[A] against t', '1/[A] against t'];
+    series.forEach((ys, i) => {
+      plot(q<SVGSVGElement>(`.og-p${i}`), tsP, ys, i === 0 ? marks : [], tmax, `${names[i]}: ${i === n ? 'a straight line' : 'curved'}`);
+      const fig = q(`.og-p${i}`).parentElement!; fig.classList.toggle('on', i === n);
+      const cap = fig.querySelector('figcaption')!; cap.textContent = names[i];
+      const r = r2(tsP, ys);
+      if (i === n) { const s = document.createElement('span'); s.textContent = ' ✓ straight'; cap.append(s); }
+      fig.dataset.r2 = r.toFixed(6);
+    });
+    const st = straight(n);
+    q('.og-big').textContent = `t½ = ${g3(t12)} s`;
+    q('.og-sub').textContent = `${['Zero', 'First', 'Second'][n]} order: ${st.plot} is straight, slope ${st.slope} = ${n === 2 ? '+' : '−'}${k}. ${n === 1 ? 'Every half-life is the same length, whatever [A]₀.' : n === 0 ? 'Each half-life is half the one before; [A] reaches zero at ' + g3(A0 / k) + ' s.' : 'Each half-life is twice the one before.'}`;
+    const eq = q('.og-eq'); eq.replaceChildren();
+    const lines = n === 0
+      ? [`Rate = k = ${k} ${kUnits(0)}`, `[A] = [A]₀ − kt`, `t½ = [A]₀ / 2k = ${A0} / (2 × ${k}) = ${g3(t12)} s`]
+      : n === 1
+        ? [`Rate = k[A]`, `ln[A] = ln[A]₀ − kt, or k = (2.303 / t) log([A]₀/[A])`, `t½ = 0.693 / k = 0.693 / ${k} = ${g3(t12)} s`]
+        : [`Rate = k[A]²`, `1/[A] = 1/[A]₀ + kt`, `t½ = 1 / (k[A]₀) = 1 / (${k} × ${A0}) = ${g3(t12)} s`];
+    lines.forEach((t, i) => { if (i) eq.append(document.createElement('br')); eq.append(t); });
+    updA();
+  }
+
+  function updA() {
+    const Ea = Number(q<HTMLInputElement>('.og-ea').value), T = Number(q<HTMLInputElement>('.og-t').value), cat = q<HTMLInputElement>('.og-cat').checked;
+    const EaC = Math.max(1, Ea - CAT);
+    q('.og-oea').textContent = `${Ea} kJ/mol`; q('.og-ot').textContent = `${T} K (${T - 273} °C)`;
+    const k1 = arrhenius(A_FACTOR, Ea, T), kc = arrhenius(A_FACTOR, EaC, T), r10 = ratio(Ea, T, T + 10);
+    // energy profile
+    const svg = q<SVGSVGElement>('.og-ep'); svg.replaceChildren();
+    const top = 200, Y = (e: number) => 140 - (e / top) * 120; // e relative to reactants, kJ/mol (reactants at 0 → y 140 − 0)
+    const base = (e: number) => Y(e + 40); // shift so ΔH −40 stays on the picture
+    const path = (ea: number) => `M10 ${base(0)} L70 ${base(0)} C110 ${base(0)}, 120 ${base(ea)}, 150 ${base(ea)} C180 ${base(ea)}, 190 ${base(DH)}, 230 ${base(DH)} L290 ${base(DH)}`;
+    svg.append(sv('path', { d: path(Ea), class: 'cv' }));
+    if (cat) svg.append(sv('path', { d: path(EaC), class: 'cv cat' }));
+    svg.append(sv('line', { x1: 150, y1: base(0), x2: 150, y2: base(Ea), class: 'hl' }));
+    svg.append(sv('text', { x: 156, y: (base(0) + base(Ea)) / 2, class: 'tb' }, `Ea = ${Ea}`));
+    if (cat) svg.append(sv('text', { x: 156, y: base(EaC) + 14, class: 'tb' }, `with catalyst ${EaC}`));
+    svg.append(sv('text', { x: 12, y: base(0) - 6, class: 'tx' }, 'reactants'), sv('text', { x: 288, y: base(DH) - 6, class: 'tx', 'text-anchor': 'end' }, `products (ΔH = ${DH})`));
+    svg.append(sv('text', { x: 10, y: 166, class: 'tx' }, 'progress of reaction →'));
+    const f = q('.og-facts'); f.replaceChildren();
+    const fact = (kk: string, v: string, s = '') => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = kk; const dd = document.createElement('dd'); dd.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; dd.append(sm); } d.append(dt, dd); f.append(d); };
+    fact('k', `${g3(cat ? kc : k1)} s⁻¹`, cat ? `${g3(kc / k1)} times faster with the catalyst` : 'k = A e^(−Ea/RT)');
+    fact('10 K warmer', `${g3(r10)} × faster`, `k(${T + 10} K) / k(${T} K)`);
+    fact('Collisions with enough energy', `${g3(fraction(cat ? EaC : Ea, T))}`, 'fraction e^(−Ea/RT)');
+    const a = q('.og-aeq'); a.replaceChildren();
+    [`k = A e^(−Ea/RT) = 10¹¹ × e^(−${(cat ? EaC : Ea) * 1000} / (8.314 × ${T})) = ${g3(cat ? kc : k1)} s⁻¹`, `log(k₂/k₁) = (Ea / 2.303R)(1/T₁ − 1/T₂) = ${(Math.log10(r10)).toFixed(3)} for ${T} → ${T + 10} K`].forEach((t, i) => { if (i) a.append(document.createElement('br')); a.append(t); });
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.og-n button').forEach((b) => b.addEventListener('click', () => { n = Number(b.dataset.n) as Order; update(); }));
+  ['.og-a0', '.og-k'].forEach((s) => q(s).addEventListener('input', update));
+  ['.og-ea', '.og-t'].forEach((s) => q(s).addEventListener('input', updA)); q('.og-cat').addEventListener('change', updA);
+  update();
+
+  // Check yourself
+  mountQuiz(q('.cq'), (): Question[] => {
+    const k1 = pickOne([0.01, 0.02, 0.05, 0.1, 0.2, 0.5]), t1 = 0.693 / k1;
+    const ord = pickOne([0, 1, 2] as Order[]), plt = ['[A]', 'ln[A]', '1/[A]'][ord];
+    const k3 = pickOne([0.01, 0.02, 0.05]), frac = pickOne([10, 100]), t3 = (2.303 / k3) * Math.log10(frac);
+    const Ea4 = rint(4, 12) * 10, T4 = pickOne([290, 300, 310]), r4 = ratio(Ea4, T4, T4 + 10);
+    const A05 = rint(2, 8) / 10, k5 = pickOne([0.01, 0.02, 0.05]), t5 = A05 / k5;
+    void timeTo;
+    return [
+      { q: `A first-order reaction has k = ${k1} s⁻¹. What is its half-life in seconds? (use 0.693, 3 significant figures)`, hint: 'a number', answer: String(Number(t1.toPrecision(3))), ok: near(t1, 0.006), worked: `t½ = 0.693 / k = 0.693 / ${k1} = ${Number(t1.toPrecision(3))} s.` },
+      { q: `For a ${['zero', 'first', 'second'][ord]}-order reaction, which plot against time is a straight line: [A], ln[A] or 1/[A]?`, hint: '[A], ln[A] or 1/[A]', answer: plt, ok: same(plt, ...(ord === 0 ? ['A', 'conc', 'concentration'] : ord === 1 ? ['lnA', 'ln A', 'log[A]', 'log A'] : ['1/A'])), worked: `${['Zero order: [A] = [A]₀ − kt', 'First order: ln[A] = ln[A]₀ − kt', 'Second order: 1/[A] = 1/[A]₀ + kt'][ord]}, a straight line in ${plt}.` },
+      { q: `A first-order reaction has k = ${k3} s⁻¹. How long does it take for [A] to fall to 1/${frac} of its starting value? (seconds, 3 significant figures)`, hint: 'a number', answer: String(Number(t3.toPrecision(3))), ok: near(t3, 0.006), worked: `t = (2.303 / k) log([A]₀/[A]) = (2.303 / ${k3}) × log ${frac} = ${Number(t3.toPrecision(3))} s.` },
+      { q: `Ea = ${Ea4} kJ/mol. By what factor does k increase from ${T4} K to ${T4 + 10} K? (2 significant figures)`, hint: 'a number', answer: String(Number(r4.toPrecision(2))), ok: near(r4, 0.04), worked: `ln(k₂/k₁) = (Ea/R)(1/T₁ − 1/T₂) = (${Ea4 * 1000} / 8.314) × (1/${T4} − 1/${T4 + 10}) = ${Math.log(r4).toFixed(3)}, so k₂/k₁ = ${Number(r4.toPrecision(2))}.` },
+      { q: `A zero-order reaction starts with [A]₀ = ${A05} mol/L and k = ${k5} mol L⁻¹ s⁻¹. How many seconds until A is used up?`, hint: 'a number', answer: String(Number(t5.toPrecision(3))), ok: near(t5, 0.006), worked: `[A] = [A]₀ − kt = 0 when t = [A]₀ / k = ${A05} / ${k5} = ${Number(t5.toPrecision(3))} s.` },
+    ];
+  });
+</script>
