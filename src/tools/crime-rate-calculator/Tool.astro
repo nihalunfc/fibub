@@ -1,0 +1,189 @@
+---
+// Crime rate calculator: rates per 1,000 or 100,000 with exact Poisson or Byar intervals, rate ratios and percent
+// change between areas or years, and direct age standardisation. All example counts are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cr">
+  <div class="ax-card">
+    <h2>What do you want?</h2>
+    <div class="ax-seg cr-mode" role="group" aria-label="Calculation">
+      <button type="button" data-m="rate" aria-pressed="true">One rate</button><button type="button" data-m="cmp" aria-pressed="false">Compare areas or years</button><button type="button" data-m="std" aria-pressed="false">Age-standardised</button>
+    </div>
+    <p class="ax-help cr-what"></p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Rate per <select class="cr-per"><option value="1000">1,000 people</option><option value="10000">10,000 people</option><option value="100000" selected>100,000 people</option></select></label>
+      <label>Confidence <select class="cr-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+      <label class="cr-mw">Interval <select class="cr-meth"><option value="exact" selected>Exact Poisson</option><option value="byar">Byar's approximation</option></select></label>
+    </div>
+
+    <div class="cr-p" data-m="rate">
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Number of offences (count) <input class="cr-k" inputmode="numeric" value="412" /></label>
+        <label>Population <input class="cr-pop" inputmode="numeric" value="185000" /></label>
+      </div>
+    </div>
+    <div class="cr-p" data-m="cmp" hidden>
+      <label style="margin-top:10px">One area or year per row: name, count, population.
+        <textarea class="cr-rows" rows="5" spellcheck="false" wrap="off">Year 1, 356, 181000
+Year 2, 412, 185000
+Year 3, 389, 188500</textarea></label>
+      <div class="ax-grid" style="margin-top:10px"><label>Compare each row with <select class="cr-ref"></select></label></div>
+    </div>
+    <div class="cr-p" data-m="std" hidden>
+      <label style="margin-top:10px">One age group per row: group, count, population, standard population (the reference age mix).
+        <textarea class="cr-age" rows="6" spellcheck="false" wrap="off">10–17, 12, 21000, 20000
+18–24, 85, 38000, 25000
+25–34, 140, 52000, 30000
+35–49, 96, 46000, 15000
+50+, 41, 30000, 10000</textarea></label>
+      <p class="ax-help">Use the same standard population for every area or year you want to compare: then differences are not just differences in age mix. A national census age structure is the usual choice; enter whichever your field uses.</p>
+    </div>
+    <p class="ax-help">All example counts and populations are made up. Counts are offences recorded in the period; the population is the people at risk in the same area and period (often the mid-year estimate).</p>
+    <p class="ax-err cr-err" hidden></p>
+  </div>
+
+  <div class="ax-card cr-out" hidden>
+    <h2>Result</h2>
+    <p class="ax-big cr-big"></p>
+    <dl class="ax-facts cr-facts"></dl>
+    <canvas class="ax-fig cr-fig" style="margin-top:12px"></canvas>
+    <div class="cr-tw"><h3 class="cr-th"></h3><div class="ax-scroll"><table class="cr-tab"></table></div></div>
+    <p class="ax-help cr-note"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small cr-csv">Table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { crudeRate, rateRatio, directStd } from '../../lib/sci/crimerate';
+  import { niceTicks } from '../../lib/sci/plot';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement>(c).value.trim();
+  const f = (x: number, d = 1) => (Number.isFinite(x) ? x.toLocaleString('en', { minimumFractionDigits: d, maximumFractionDigits: d }) : '–');
+  const r2 = (x: number) => (Number.isFinite(x) ? x.toFixed(3) : x === Infinity ? '∞' : '–');
+  const pc = (x: number) => (Number.isFinite(x) ? `${x >= 0 ? '+' : '−'}${Math.abs(x).toFixed(1)} %` : '–');
+  const pTxt = (p: number) => (!Number.isFinite(p) ? '–' : p < 0.001 ? '< 0.001' : p.toFixed(3));
+  const WHAT: Record<string, string> = {
+    rate: 'A crime rate puts a count of offences on a per-person footing: count ÷ population × 100,000. The interval shows how much a count of this size could move by chance from year to year.',
+    cmp: 'Compare areas or years: each rate with its interval, the rate ratio against the row you choose, an exact test and the percent change.',
+    std: 'Direct age standardisation: the rate the area would have if its population had the standard age mix. Use it to compare places or years whose age structures differ.',
+  };
+  let mode = 'rate', sections: Section[] = [], csvRows: (string | number)[][] = [], fig: Figure | null = null;
+
+  /** A forest-style figure: one row per item, a dot at the rate and a line for its interval. */
+  function forest(items: { name: string; rate: number; ci: [number, number] }[], label: string, ref?: number): Figure {
+    const rowH = 34, M = { l: Math.min(200, 16 + 7.5 * Math.max(...items.map((i) => i.name.length))), r: 20, t: 10, b: 46 }, w = 720, h = M.t + M.b + rowH * items.length;
+    const lo = Math.min(...items.map((i) => i.ci[0]).filter(Number.isFinite)), hi = Math.max(...items.map((i) => i.ci[1]).filter(Number.isFinite));
+    const ticks = niceTicks(Math.max(0, lo - (hi - lo) * 0.1), hi + (hi - lo) * 0.1, 6), x0 = ticks[0], x1 = ticks[ticks.length - 1];
+    return {
+      w, h, alt: `${label} with ${Math.round(100 * Number(val('.cr-conf')))} % intervals for ${items.length} row${items.length === 1 ? '' : 's'}`,
+      draw: (ctx, _w, _h, pal: Palette) => {
+        const X = (v: number) => M.l + ((v - x0) / (x1 - x0)) * (w - M.l - M.r);
+        ctx.font = '13px system-ui, sans-serif'; ctx.strokeStyle = pal.grid; ctx.lineWidth = 1;
+        ticks.forEach((t) => { ctx.beginPath(); ctx.moveTo(X(t), M.t); ctx.lineTo(X(t), h - M.b); ctx.stroke(); ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(sig(t, 4), X(t), h - M.b + 6); });
+        ctx.fillText(label, M.l + (w - M.l - M.r) / 2, h - M.b + 24);
+        if (ref !== undefined) { ctx.setLineDash([4, 4]); ctx.strokeStyle = pal.muted; ctx.beginPath(); ctx.moveTo(X(items[ref].rate), M.t); ctx.lineTo(X(items[ref].rate), h - M.b); ctx.stroke(); ctx.setLineDash([]); }
+        items.forEach((it, i) => {
+          const y = M.t + rowH * (i + 0.5);
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(it.name, M.l - 10, y);
+          ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(it.ci[0]), y); ctx.lineTo(X(Math.min(it.ci[1], x1)), y); ctx.stroke();
+          for (const e of [it.ci[0], Math.min(it.ci[1], x1)]) { ctx.beginPath(); ctx.moveTo(X(e), y - 6); ctx.lineTo(X(e), y + 6); ctx.stroke(); }
+          ctx.fillStyle = i === ref ? pal.bg : pal.accent; ctx.beginPath(); ctx.arc(X(it.rate), y, 6, 0, 2 * Math.PI); ctx.fill(); ctx.strokeStyle = pal.accent; ctx.stroke();
+        });
+      },
+    };
+  }
+
+  function setTable(title: string, head: string[], rows: string[][]) {
+    q('.cr-tw').hidden = !rows.length; q('.cr-th').textContent = title;
+    const t = q<HTMLTableElement>('.cr-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); });
+  }
+  function setFacts(list: [string, string][]) {
+    const dl = q('.cr-facts'); dl.replaceChildren();
+    for (const [k, v] of list) { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; dl.append(d); }
+  }
+  const count = (s: string, what: string, row = '') => { const v = num(s); if (!(Number.isInteger(v) && v >= 0)) throw new Error(`${what}${row} must be a whole number of zero or more (found "${s.trim()}").`); return v; };
+  const popn = (s: string, what: string, row = '') => { const v = num(s); if (!(v > 0)) throw new Error(`${what}${row} must be above zero (found "${s.trim()}").`); return v; };
+
+  function calc() {
+    const err = q('.cr-err');
+    try {
+      const per = Number(val('.cr-per')), conf = Number(val('.cr-conf')), cl = `${Math.round(conf * 100)} %`, meth = val('.cr-meth') as 'exact' | 'byar';
+      const perTxt = `per ${per.toLocaleString('en')}`;
+      q('.cr-mw').hidden = mode === 'std';
+      let note = '';
+      if (mode === 'rate') {
+        const k = count(val('.cr-k'), 'The count'), pop = popn(val('.cr-pop'), 'The population');
+        if (k > pop) throw new Error('The count is larger than the population. Check both numbers.');
+        const r = crudeRate(k, pop, per, conf, meth);
+        q('.cr-big').textContent = `${f(r.rate)} ${perTxt} (${cl} interval ${f(r.ci[0])} to ${f(r.ci[1])})`;
+        const half = (r.ci[1] - r.ci[0]) / 2 / r.rate;
+        setFacts([['Rate', `${f(r.rate)} ${perTxt}`], [`${cl} interval (${meth === 'exact' ? 'exact Poisson' : 'Byar'})`, `${f(r.ci[0])} to ${f(r.ci[1])}`], ['Count', k.toLocaleString('en')], ['Population', pop.toLocaleString('en')], ['Also', `${f((k / pop) * 1000, 2)} per 1,000; 1 in ${Math.round(pop / k).toLocaleString('en')}`]]);
+        note = k < 20 ? `With only ${k} offences the rate is unstable: the interval is wide, and many agencies do not publish rates on fewer than 10 to 20 events.` : `The interval is about ±${Math.round(100 * half)} % of the rate. It covers chance variation in the count only, not recording changes or errors in the population figure.`;
+        fig = forest([{ name: 'Rate', rate: r.rate, ci: r.ci }], `Offences ${perTxt}`);
+        setTable('', [], []);
+        csvRows = [['count', 'population', `rate_${perTxt.replace(/[ ,]/g, '_')}`, 'lower', 'upper', 'confidence', 'method'], [k, pop, +r.rate.toFixed(4), +r.ci[0].toFixed(4), +r.ci[1].toFixed(4), conf, meth]];
+        sections = [{ title: q('.cr-big').textContent!, facts: [...q('.cr-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]), figure: fig, note }];
+      } else if (mode === 'cmp') {
+        const rows = parseTable(q<HTMLTextAreaElement>('.cr-rows').value).filter((r) => r.some((c) => c.trim()));
+        const items = rows.map((r, i) => { const c = r.map((x) => x.trim()), numsAt = c.length >= 3 ? c.length - 2 : 0; if (c.length < 2) throw new Error(`Row ${i + 1} needs a count and a population.`); return { name: numsAt ? c.slice(0, numsAt).join(' ') : `Row ${i + 1}`, k: count(c[numsAt], 'The count', ` in row ${i + 1}`), pop: popn(c[numsAt + 1], 'The population', ` in row ${i + 1}`) }; });
+        if (items.length < 2) throw new Error('Give at least two rows to compare: name, count, population.');
+        if (items.length > 50) throw new Error('Up to 50 rows, please.');
+        const sel = q<HTMLSelectElement>('.cr-ref'), old = sel.value;
+        if (sel.options.length !== items.length || [...sel.options].some((o, i) => o.text !== items[i].name)) { sel.replaceChildren(...items.map((it, i) => new Option(it.name, String(i)))); sel.value = old && Number(old) < items.length ? old : '0'; }
+        const ref = Number(sel.value), R = items[ref];
+        const res = items.map((it) => ({ ...it, r: crudeRate(it.k, it.pop, per, conf, meth), c: rateRatio(it.k, it.pop, R.k, R.pop, conf) }));
+        const head = ['Area or year', 'Count', 'Population', `Rate ${perTxt}`, `${cl} interval`, `Rate ratio vs ${R.name}`, `${cl} interval (exact)`, 'p (exact)', 'Change'];
+        const tRows = res.map((x, i) => i === ref ? [x.name, x.k.toLocaleString('en'), x.pop.toLocaleString('en'), f(x.r.rate), `${f(x.r.ci[0])} to ${f(x.r.ci[1])}`, '1 (reference)', '', '', ''] : [x.name, x.k.toLocaleString('en'), x.pop.toLocaleString('en'), f(x.r.rate), `${f(x.r.ci[0])} to ${f(x.r.ci[1])}`, r2(x.c.rr), `${r2(x.c.exactCi[0])} to ${r2(x.c.exactCi[1])}`, pTxt(x.c.p), pc(x.c.change)]);
+        setTable('Rates and ratios', head, tRows);
+        const last = res.length - 1 === ref ? res[0] : res[res.length - 1];
+        q('.cr-big').textContent = `${last.name}: ${f(last.r.rate)} ${perTxt}, ${pc(last.c.change)} on ${R.name} (rate ratio ${r2(last.c.rr)}, p ${last.c.p < 0.001 ? '< 0.001' : `= ${last.c.p.toFixed(3)}`})`;
+        setFacts([[`Rate ratio, ${last.name} vs ${R.name}`, r2(last.c.rr)], [`${cl} interval, exact`, `${r2(last.c.exactCi[0])} to ${r2(last.c.exactCi[1])}`], [`${cl} interval, log method`, `${r2(last.c.logCi[0])} to ${r2(last.c.logCi[1])}`], ['Percent change', `${pc(last.c.change)} (${pc(last.c.changeCi[0])} to ${pc(last.c.changeCi[1])})`], ['Exact test p', pTxt(last.c.p)]]);
+        note = `The exact interval and test treat the count in one row, given the total of both rows, as binomial (conditional on the total); the log method is exp(ln RR ± z √(1/k₁ + 1/k₂)). ${last.c.p >= 0.05 ? `A change of ${pc(last.c.change)} is within what chance alone often produces with these counts.` : 'A change this large is unlikely from chance alone, but check for changes in recording practice before reading it as a real change.'}`;
+        fig = forest(res.map((x) => ({ name: x.name, rate: x.r.rate, ci: x.r.ci })), `Offences ${perTxt} (open dot: reference)`, ref);
+        csvRows = [['name', 'count', 'population', 'rate', 'lower', 'upper', 'rate_ratio', 'rr_lower_exact', 'rr_upper_exact', 'rr_lower_log', 'rr_upper_log', 'p_exact', 'percent_change'], ...res.map((x) => [x.name, x.k, x.pop, +x.r.rate.toFixed(4), +x.r.ci[0].toFixed(4), +x.r.ci[1].toFixed(4), +x.c.rr.toFixed(6), +x.c.exactCi[0].toFixed(6), +x.c.exactCi[1].toFixed(6), +x.c.logCi[0].toFixed(6), +x.c.logCi[1].toFixed(6), +x.c.p.toPrecision(6), +x.c.change.toFixed(3)])];
+        sections = [{ title: q('.cr-big').textContent!, facts: [...q('.cr-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]), figure: fig, note }, { title: 'Rates and ratios', table: { head, rows: tRows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r'] } }];
+      } else {
+        const rows = parseTable(q<HTMLTextAreaElement>('.cr-age').value).filter((r) => r.some((c) => c.trim()));
+        const g = rows.map((r, i) => { const c = r.map((x) => x.trim()); if (c.length < 4) throw new Error(`Age group row ${i + 1} needs a name, count, population and standard population.`); return { name: c.slice(0, c.length - 3).join(' '), k: count(c[c.length - 3], 'The count', ` in row ${i + 1}`), pop: popn(c[c.length - 2], 'The population', ` in row ${i + 1}`), std: popn(c[c.length - 1], 'The standard population', ` in row ${i + 1}`) }; });
+        if (g.length < 2) throw new Error('Give at least two age groups.');
+        const s = directStd(g, per, conf);
+        if (s.k === 0) throw new Error('All counts are zero, so there is no rate to standardise.');
+        q('.cr-big').textContent = `Age-standardised rate ${f(s.asr)} ${perTxt} (${cl} interval ${f(s.gammaCi[0])} to ${f(s.gammaCi[1])})`;
+        setFacts([['Age-standardised rate', `${f(s.asr)} ${perTxt}`], [`${cl} interval (Fay–Feuer gamma)`, `${f(s.gammaCi[0])} to ${f(s.gammaCi[1])}`], [`${cl} interval (normal)`, `${f(s.normalCi[0])} to ${f(s.normalCi[1])}`], ['Crude rate', `${f(s.crude)} ${perTxt}`], ['Standard error', f(s.se, 2)], ['Offences, population', `${s.k.toLocaleString('en')}, ${s.pop.toLocaleString('en')}`]]);
+        const head = ['Age group', 'Count', 'Population', `Rate ${perTxt}`, 'Standard weight', 'Weighted rate'];
+        const tRows = g.map((x, i) => [x.name, x.k.toLocaleString('en'), x.pop.toLocaleString('en'), f(s.groups[i].rate), `${(100 * s.groups[i].weight).toFixed(1)} %`, f(s.groups[i].rate * s.groups[i].weight, 2)]);
+        setTable('Age groups', head, tRows);
+        note = `The age-standardised rate is ${s.asr > s.crude ? 'above' : 'below'} the crude rate only because this population's age mix differs from the standard's: compare the standard weights with each group's share of the population. The Fay–Feuer interval stays sensible with small counts; the normal interval can go below zero.`;
+        fig = forest([...g.map((x, i) => ({ name: x.name, rate: s.groups[i].rate, ci: crudeRate(x.k, x.pop, per, conf).ci })), { name: 'Crude', rate: s.crude, ci: crudeRate(s.k, s.pop, per, conf).ci }, { name: 'Standardised', rate: s.asr, ci: s.gammaCi }], `Offences ${perTxt}`);
+        csvRows = [['age_group', 'count', 'population', 'standard_population', 'rate', 'standard_weight'], ...g.map((x, i) => [x.name, x.k, x.pop, x.std, +s.groups[i].rate.toFixed(4), +s.groups[i].weight.toFixed(6)]), [], ['age_standardised_rate', +s.asr.toFixed(4), 'lower_gamma', +s.gammaCi[0].toFixed(4), 'upper_gamma', +s.gammaCi[1].toFixed(4)], ['crude_rate', +s.crude.toFixed(4), 'lower_normal', +s.normalCi[0].toFixed(4), 'upper_normal', +s.normalCi[1].toFixed(4)]];
+        sections = [{ title: q('.cr-big').textContent!, facts: [...q('.cr-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]), figure: fig, note }, { title: 'Age groups', table: { head, rows: tRows, align: ['l', 'r', 'r', 'r', 'r', 'r'] } }];
+      }
+      q('.cr-note').textContent = note;
+      err.hidden = true; q('.cr-out').hidden = false;
+      paint(q<HTMLCanvasElement>('.cr-fig'), fig!);
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.cr-out').hidden = true; sections = []; csvRows = []; }
+  }
+  function setMode(m: string) {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.cr-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.cr-p').forEach((p) => (p.hidden = p.dataset.m !== m));
+    q('.cr-what').textContent = WHAT[m];
+    calc();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.cr-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  let t = 0;
+  root.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(calc, 250); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select')) calc(); });
+  q('.cr-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), `crime-rate-${mode === 'rate' ? 'single' : mode === 'cmp' ? 'comparison' : 'age-standardised'}.csv`, 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.cr-fig'), fig); });
+  setMode('rate');
+  wireDownloads(q('.dl'), () => ({ title: 'Crime rate', subtitle: q('.cr-big').textContent ?? '', file: 'crime-rate', sections }));
+</script>
