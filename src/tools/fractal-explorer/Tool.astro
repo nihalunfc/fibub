@@ -1,0 +1,343 @@
+---
+// Fractal explorer: Mandelbrot and Julia sets (escape time, in a Web Worker) and IFS fractals by the chaos game.
+import '../../styles/astro.css';
+---
+<div class="ax fx">
+  <div class="ax-card">
+    <div class="ax-seg fx-mode" role="group" aria-label="Fractal">
+      <button type="button" data-m="mandelbrot" aria-pressed="true">Mandelbrot</button>
+      <button type="button" data-m="julia" aria-pressed="false">Julia</button>
+      <button type="button" data-m="ifs" aria-pressed="false">Fern and friends</button>
+    </div>
+    <div class="ax-grid fx-esc" style="margin-top:12px">
+      <label>Iterations <select class="fx-it">
+        <option value="auto" selected>Automatic</option><option>100</option><option>250</option><option>500</option><option>1000</option><option>2500</option><option>5000</option><option>10000</option>
+      </select></label>
+      <label>Colours <select class="fx-pal"><option value="ocean">Ocean</option><option value="fire">Fire</option><option value="grey">Grey</option></select></label>
+    </div>
+    <div class="fx-jul" hidden>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Shape <select class="fx-jp">
+          <option value="-0.8,0.156">Spirals (c = −0.8 + 0.156i)</option>
+          <option value="-0.123,0.745">Douady rabbit</option>
+          <option value="0,1">Dendrite (c = i)</option>
+          <option value="-0.75,0">San Marco</option>
+          <option value="-0.391,-0.587">Siegel disk</option>
+          <option value="0.285,0.01">Dust (c = 0.285 + 0.01i)</option>
+          <option value="custom">Your own c</option>
+        </select></label>
+        <label>c, real part <input class="fx-jr" inputmode="decimal" value="-0.8" /></label>
+        <label>c, imaginary part <input class="fx-ji" inputmode="decimal" value="0.156" /></label>
+      </div>
+    </div>
+    <div class="fx-ifs" hidden>
+      <div class="ax-grid" style="margin-top:12px">
+        <label>Pattern <select class="fx-ip"><option value="fern">Barnsley fern</option><option value="sierpinski">Sierpinski triangle</option><option value="carpet">Sierpinski carpet</option><option value="dragon">Heighway dragon</option></select></label>
+        <label>Points <select class="fx-n"><option value="50000">50,000</option><option value="200000" selected>200,000</option><option value="1000000">1,000,000</option></select></label>
+      </div>
+    </div>
+    <p class="ax-err fx-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <canvas class="fx-cv" role="img" aria-label="Fractal image"></canvas>
+    <div class="ax-row fx-nav" style="margin-top:10px">
+      <div class="ax-seg"><button type="button" class="fx-zin" aria-label="Zoom in">+</button><button type="button" class="fx-zout" aria-label="Zoom out">−</button></div>
+      <button type="button" class="btn secondary small fx-reset">Reset view</button>
+      <button type="button" class="btn secondary small fx-tojulia">Julia set for the centre</button>
+    </div>
+    <p class="ax-help fx-hint">Drag to move. Double-tap, pinch, scroll or use + and − to zoom.</p>
+    <p class="fx-status ax-help" aria-live="polite"></p>
+    <p class="fx-limit ax-pill warn" hidden>Near the limit of double precision: zooming further would show blocks, not detail.</p>
+    <details class="fx-go">
+      <summary>Go to a point</summary>
+      <div class="ax-grid">
+        <label>Centre, real part <input class="fx-cx" inputmode="decimal" spellcheck="false" /></label>
+        <label>Centre, imaginary part <input class="fx-cy" inputmode="decimal" spellcheck="false" /></label>
+        <label>Width of the view <input class="fx-sp" inputmode="decimal" spellcheck="false" /></label>
+      </div>
+      <p class="ax-help">Try −0.7436447860, 0.1318252536 with a width of 0.00001 (a spiral in "seahorse valley").</p>
+    </details>
+    <div class="dl">
+      <span class="dl-l">Download</span>
+      <button type="button" class="btn secondary fx-png">PNG as shown</button>
+      <button type="button" class="btn secondary fx-big">PNG 2400 × 1800</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>About this view</h2>
+    <dl class="ax-facts fx-facts"></dl>
+    <div class="ax-scroll fx-maps" hidden><table class="fx-mt"></table></div>
+    <p class="ax-help fx-about"></p>
+  </div>
+</div>
+
+<style>
+  .fx-cv { display: block; width: 100%; max-width: 760px; margin: 0 auto; height: auto; aspect-ratio: 4 / 3; border-radius: 8px; touch-action: none; cursor: grab; background: #000; }
+  .fx-nav .ax-seg button { min-width: 44px; font-size: 18px; padding: 4px 12px; }
+  .fx-status { min-height: 1.3em; }
+  .fx-go { margin-top: 10px; }
+  .fx-go summary { cursor: pointer; font-weight: 600; font-size: 15px; }
+  .fx-go .ax-grid { margin-top: 8px; }
+  .fx-maps { margin-top: 12px; }
+</style>
+
+<script>
+  import { IFS, chaos, moranDim, boxDim, bounds, colour, autoIter, minSpan, escapeCount, type Job, type PaletteId } from '../../lib/sci/fractal';
+  import { sig, num } from '../../lib/sci/num';
+  import { pagePalette, save } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.fx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const cv = q<HTMLCanvasElement>('.fx-cv'), ctx = cv.getContext('2d')!;
+  const fmt = (v: number, n = 6) => { const t = sig(v, n); return /×/.test(t) ? t : t.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, ''); };
+  type Mode = 'mandelbrot' | 'julia' | 'ifs';
+  type View = { cx: number; cy: number; span: number };
+  const HOME: Record<Mode, View> = { mandelbrot: { cx: -0.6, cy: 0, span: 3.6 }, julia: { cx: 0, cy: 0, span: 3.6 }, ifs: { cx: 0, cy: 0, span: 1 } };
+  let mode: Mode = 'mandelbrot';
+  let view: View = { ...HOME.mandelbrot };
+  let W = 0, H = 0;
+  // The last finished image and the view it shows, for instant previews while panning and zooming.
+  const prev = document.createElement('canvas'); let prevView: View | null = null;
+  let vals: Float32Array | null = null, valsJob: Job | null = null, inside = 0;
+  let jobId = 0, started = 0, rows = 0;
+  let worker: Worker | null = null, bigWorker: Worker | null = null;
+
+  const palette = (): PaletteId => (document.documentElement.classList.contains('red-mode') ? 'red' : (q<HTMLSelectElement>('.fx-pal').value as PaletteId));
+  const iters = () => { const v = q<HTMLSelectElement>('.fx-it').value; return v === 'auto' ? autoIter(view.span) : Number(v); };
+  const juliaC = (): [number, number] => [num(q<HTMLInputElement>('.fx-jr').value), num(q<HTMLInputElement>('.fx-ji').value)];
+  function err(m: string) { const e = q('.fx-err'); e.textContent = m; e.hidden = !m; }
+
+  function size() {
+    const css = Math.max(240, Math.round(cv.clientWidth || 600)), dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = Math.round(css * dpr), h = Math.round(w * 0.75);
+    if (w !== W || h !== H) { W = w; H = h; cv.width = W; cv.height = H; prevView = null; }
+  }
+  function job(w: number, h: number): Job {
+    const [jr, ji] = juliaC();
+    return { kind: mode === 'julia' ? 'julia' : 'mandelbrot', cx: view.cx, cy: view.cy, span: view.span, w, h, max: iters(), jr, ji };
+  }
+  function paintBand(j: Job, y0: number, data: Float32Array, target: CanvasRenderingContext2D, pal: PaletteId) {
+    const n = data.length / j.w, img = target.createImageData(j.w, n), px = img.data;
+    for (let k = 0; k < data.length; k++) { const [r, g, b] = colour(data[k], pal); px[4 * k] = r; px[4 * k + 1] = g; px[4 * k + 2] = b; px[4 * k + 3] = 255; }
+    target.putImageData(img, 0, y0);
+  }
+  function preview() {
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+    if (!prevView) return;
+    const k = view.span / W, k0 = prevView.span / W, s = k0 / k;
+    const dx = (prevView.cx - view.cx) / k + W / 2 - (W / 2) * s, dy = -(prevView.cy - view.cy) / k + H / 2 - (H / 2) * s;
+    ctx.imageSmoothingEnabled = s < 1; ctx.drawImage(prev, dx, dy, W * s, H * s);
+  }
+  function render() {
+    size();
+    if (mode === 'ifs') { renderIfs(); return; }
+    const [jr, ji] = juliaC();
+    if (mode === 'julia' && !(Number.isFinite(jr) && Number.isFinite(ji))) { err('Type the real and imaginary parts of c as numbers.'); return; }
+    err('');
+    if (!worker) { worker = new Worker(new URL('../../lib/sci/fractalworker.ts', import.meta.url), { type: 'module' }); worker.onmessage = onBand; }
+    preview();
+    const j = job(W, H);
+    jobId++; started = performance.now(); rows = 0; inside = 0;
+    vals = new Float32Array(W * H); valsJob = j;
+    q('.fx-status').textContent = 'Drawing…'; root.dataset.done = '';
+    worker.postMessage({ id: jobId, job: j });
+    facts();
+  }
+  function onBand(e: MessageEvent) {
+    const m = e.data; if (m.id !== jobId || !valsJob) return;
+    if (m.done) {
+      const ms = performance.now() - started;
+      q('.fx-status').textContent = `Drawn in ${ms < 1000 ? Math.round(ms) + ' ms' : (ms / 1000).toFixed(1) + ' s'} (${W} × ${H} pixels, ${valsJob.max.toLocaleString('en')} iterations).`;
+      prev.width = W; prev.height = H; prev.getContext('2d')!.drawImage(cv, 0, 0); prevView = { ...view };
+      root.dataset.done = String(jobId);
+      facts(); return;
+    }
+    vals!.set(m.data, m.y0 * valsJob.w);
+    for (const v of m.data as Float32Array) if (v < 0) inside++;
+    rows += m.y1 - m.y0;
+    paintBand(valsJob, m.y0, m.data, ctx, palette());
+    q('.fx-status').textContent = `Drawing… ${Math.round((100 * rows) / valsJob.h)} %`;
+  }
+  function recolour() {
+    if (mode === 'ifs') { renderIfs(); return; }
+    if (!vals || !valsJob || root.dataset.done !== String(jobId)) { render(); return; }
+    paintBand(valsJob, 0, vals, ctx, palette());
+    prev.getContext('2d')!.drawImage(cv, 0, 0);
+  }
+
+  // ---------- IFS ----------
+  let ifsPts: Float64Array | null = null, ifsKey = '';
+  function ifsImage(w: number, h: number, target: CanvasRenderingContext2D) {
+    const id = q<HTMLSelectElement>('.fx-ip').value, n = Number(q<HTMLSelectElement>('.fx-n').value), key = `${id}:${n}`;
+    if (key !== ifsKey) { ifsPts = chaos(IFS[id].maps, n, 1); ifsKey = key; }
+    const pts = ifsPts!, [x0, x1, y0, y1] = bounds(pts);
+    const k = Math.max((x1 - x0) / (w * 0.92), (y1 - y0) / (h * 0.92)), cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    const cnt = new Uint32Array(w * h); let mx = 0;
+    for (let i = 0; i < pts.length; i += 2) {
+      const px = Math.floor((pts[i] - cx) / k + w / 2), py = Math.floor(h / 2 - (pts[i + 1] - cy) / k);
+      if (px < 0 || py < 0 || px >= w || py >= h) continue;
+      const v = ++cnt[py * w + px]; if (v > mx) mx = v;
+    }
+    const pal = pagePalette(), red = pal.red, dark = pal.bg !== '#ffffff';
+    const bg = red ? [0, 0, 0] : dark ? [10, 10, 10] : [255, 255, 255];
+    const ink = red ? [163, 0, 0] : id === 'fern' ? (dark ? [116, 211, 145] : [20, 108, 52]) : dark ? [127, 178, 240] : [31, 95, 174];
+    const img = target.createImageData(w, h), d = img.data, L = Math.log(1 + mx);
+    for (let p = 0; p < cnt.length; p++) {
+      const t = cnt[p] ? 0.35 + 0.65 * (Math.log(1 + cnt[p]) / L) : 0;
+      for (let c = 0; c < 3; c++) d[4 * p + c] = bg[c] + (ink[c] - bg[c]) * t;
+      d[4 * p + 3] = 255;
+    }
+    target.putImageData(img, 0, 0);
+  }
+  function renderIfs() {
+    err(''); jobId++;
+    const t0 = performance.now();
+    ifsImage(W, H, ctx);
+    q('.fx-status').textContent = `Drawn ${Number(q<HTMLSelectElement>('.fx-n').value).toLocaleString('en')} points in ${Math.round(performance.now() - t0)} ms.`;
+    root.dataset.done = String(jobId);
+    facts();
+  }
+
+  // ---------- Facts ----------
+  function facts(force = false) {
+    const out: [string, string][] = [];
+    const mt = q<HTMLTableElement>('.fx-mt');
+    if (mode === 'ifs') {
+      const id = q<HTMLSelectElement>('.fx-ip').value, d = IFS[id];
+      out.push(['Maps', String(d.maps.length)]);
+      out.push(['Similarity dimension', d.ratios ? `${fmt(moranDim(d.ratios))} (solves Σ rᵢᴰ = 1)` : 'none: the maps are not all similarities']);
+      if (ifsPts) { const b = boxDim(ifsPts); out.push(['Box-counting estimate', Number.isFinite(b.dim) ? `${b.dim.toFixed(2)} (rough, from ${(ifsPts.length / 2).toLocaleString('en')} points)` : '–']); }
+      q('.fx-about').textContent = `${d.about} Each step picks one map at random (with the probability p) and applies it to the current point; after a few steps the points land on the fractal.`;
+      mt.innerHTML = '<thead><tr><th>Map</th><th class="r">a</th><th class="r">b</th><th class="r">c</th><th class="r">d</th><th class="r">e</th><th class="r">f</th><th class="r">p</th></tr></thead><tbody></tbody>';
+      mt.tBodies[0].replaceChildren(...d.maps.map((m, i) => { const tr = document.createElement('tr'); tr.innerHTML = `<td>${i + 1}</td>` + [m.a, m.b, m.c, m.d, m.e, m.f, m.p].map((v) => `<td class="r">${fmt(Math.abs(v) < 1e-15 ? 0 : v, 4)}</td>`).join(''); return tr; }));
+      q('.fx-maps').hidden = false;
+    } else {
+      q('.fx-maps').hidden = true;
+      const j = valsJob, done = root.dataset.done === String(jobId);
+      out.push(['Centre', `${fmt(view.cx, 10)} ${view.cy < 0 ? '−' : '+'} ${fmt(Math.abs(view.cy), 10)}i`]);
+      out.push(['Width of the view', fmt(view.span, 4)]);
+      { const m = 3.6 / view.span; out.push(['Magnification', `${m >= 1000 && m < 1e6 ? Math.round(m).toLocaleString('en') : fmt(m, 4)} ×`]); }
+      out.push(['Iterations', `${iters().toLocaleString('en')}${q<HTMLSelectElement>('.fx-it').value === 'auto' ? ' (automatic)' : ''}`]);
+      if (done && j) {
+        const pix = j.w * j.h, k = j.span / j.w;
+        out.push(['Pixels inside the set', `${fmt((100 * inside) / pix, 3)} %`]);
+        if (mode === 'mandelbrot') out.push(['Area inside, in view', `${fmt(inside * k * k, 4)} (pixel count)`]);
+      }
+      if (mode === 'julia') {
+        const [jr, ji] = juliaC(), inM = escapeCount(0, 0, jr, ji, 5000) < 0;
+        out.push(['Connected?', inM ? 'Yes: c is in the Mandelbrot set' : 'No: c is outside the Mandelbrot set, so this Julia set is dust']);
+      }
+      q('.fx-about').textContent = mode === 'mandelbrot'
+        ? 'Each pixel is a number c. Starting from z = 0, the tool repeats z → z² + c. If z stays small for every step, c is in the Mandelbrot set (black). Otherwise the colour shows how quickly z ran away.'
+        : 'Each pixel is a starting value z. The tool repeats z → z² + c with your fixed c. Points that never run away form the filled Julia set (black).';
+    }
+    q('.fx-facts').replaceChildren(...out.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+    const lim = mode !== 'ifs' && view.span <= minSpan(view.cx, view.cy, W || 800) * 8;
+    q('.fx-limit').hidden = !lim;
+    if (mode !== 'ifs') { const set = (c: string, v: number) => { const i = q<HTMLInputElement>(c); if (force || document.activeElement !== i) i.value = String(+v.toPrecision(12)); }; set('.fx-cx', view.cx); set('.fx-cy', view.cy); set('.fx-sp', view.span); }
+  }
+
+  // ---------- Mode and view ----------
+  function setMode(m: Mode) {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.fx-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    q('.fx-esc').hidden = m === 'ifs'; q('.fx-jul').hidden = m !== 'julia'; q('.fx-ifs').hidden = m !== 'ifs';
+    q('.fx-nav').hidden = m === 'ifs'; q('.fx-go').hidden = m === 'ifs'; q('.fx-hint').hidden = m === 'ifs';
+    q('.fx-tojulia').hidden = m !== 'mandelbrot';
+    q<HTMLButtonElement>('.fx-big').textContent = 'PNG 2400 × 1800';
+    view = { ...HOME[m] }; prevView = null;
+    render();
+  }
+  function setView(v: View) {
+    const lim = minSpan(v.cx, v.cy, W || 800);
+    if (!(v.span > 0) || !Number.isFinite(v.cx) || !Number.isFinite(v.cy)) return;
+    view = { cx: v.cx, cy: v.cy, span: Math.min(16, Math.max(lim, v.span)) };
+    render();
+  }
+  function zoomAt(f: number, px = W / 2, py = H / 2) {
+    const k = view.span / W, x = view.cx + (px - W / 2) * k, y = view.cy - (py - H / 2) * k;
+    const span = Math.max(minSpan(view.cx, view.cy, W), view.span * f), s = span / view.span;
+    setView({ cx: x + (view.cx - x) * s, cy: y + (view.cy - y) * s, span });
+  }
+  const pts = new Map<number, { x: number; y: number }>();
+  let pinch = 0, lastTap = 0, moved = false;
+  const local = (e: { clientX: number; clientY: number }) => { const r = cv.getBoundingClientRect(); return { x: ((e.clientX - r.left) / r.width) * W, y: ((e.clientY - r.top) / r.height) * H }; };
+  cv.addEventListener('pointerdown', (e) => {
+    if (mode === 'ifs') return;
+    cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, local(e)); moved = false;
+    if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = Math.hypot(a.x - b.x, a.y - b.y); }
+  });
+  cv.addEventListener('pointermove', (e) => {
+    const old = pts.get(e.pointerId); if (!old) return;
+    const p = local(e);
+    if (pts.size === 1) {
+      if (!moved && Math.hypot(p.x - old.x, p.y - old.y) < 6) return;
+      moved = true; pts.set(e.pointerId, p);
+      const k = view.span / W; setView({ cx: view.cx - (p.x - old.x) * k, cy: view.cy + (p.y - old.y) * k, span: view.span });
+    } else if (pts.size === 2) {
+      moved = true; pts.set(e.pointerId, p);
+      const [a, b] = [...pts.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinch > 0 && d > 0) zoomAt(pinch / d, (a.x + b.x) / 2, (a.y + b.y) / 2);
+      pinch = d;
+    }
+  });
+  cv.addEventListener('pointerup', (e) => {
+    const p = pts.get(e.pointerId); pts.delete(e.pointerId); if (pts.size < 2) pinch = 0;
+    if (!p || moved) return;
+    const now = performance.now();
+    if (now - lastTap < 350) { zoomAt(0.5, p.x, p.y); lastTap = 0; } else lastTap = now;
+  });
+  cv.addEventListener('pointercancel', (e) => { pts.delete(e.pointerId); pinch = 0; });
+  cv.addEventListener('wheel', (e) => { if (mode === 'ifs') return; e.preventDefault(); const p = local(e); zoomAt(Math.exp(Math.max(-1, Math.min(1, e.deltaY * 0.002))), p.x, p.y); }, { passive: false });
+
+  // ---------- Downloads ----------
+  q('.fx-png').addEventListener('click', () => cv.toBlob((b) => b && save(b, `${mode}.png`, 'image/png'), 'image/png'));
+  q('.fx-big').addEventListener('click', () => {
+    const bw = 2400, bh = 1800, c = document.createElement('canvas'); c.width = bw; c.height = bh;
+    const cc = c.getContext('2d')!, btn = q<HTMLButtonElement>('.fx-big');
+    if (mode === 'ifs') { ifsImage(bw, bh, cc); c.toBlob((b) => b && save(b, `${q<HTMLSelectElement>('.fx-ip').value}-2400.png`, 'image/png'), 'image/png'); return; }
+    // Same view, more pixels: keep the width of the view, so the picture matches the screen.
+    const j: Job = { ...job(bw, bh) };
+    if (bigWorker) bigWorker.terminate();
+    bigWorker = new Worker(new URL('../../lib/sci/fractalworker.ts', import.meta.url), { type: 'module' });
+    btn.disabled = true; let done = 0;
+    const pal = palette();
+    bigWorker.onmessage = (e) => {
+      const m = e.data;
+      if (m.done) { btn.disabled = false; btn.textContent = 'PNG 2400 × 1800'; c.toBlob((b) => b && save(b, `${mode}-2400.png`, 'image/png'), 'image/png'); bigWorker!.terminate(); bigWorker = null; return; }
+      paintBand(j, m.y0, m.data, cc, pal); done += m.y1 - m.y0; btn.textContent = `Making… ${Math.round((100 * done) / bh)} %`;
+    };
+    bigWorker.postMessage({ id: 1, job: j });
+  });
+
+  // ---------- Wiring ----------
+  root.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button'); if (!b) return;
+    if (b.dataset.m) setMode(b.dataset.m as Mode);
+    else if (b.classList.contains('fx-zin')) zoomAt(0.5);
+    else if (b.classList.contains('fx-zout')) zoomAt(2);
+    else if (b.classList.contains('fx-reset')) setView({ ...HOME[mode] });
+    else if (b.classList.contains('fx-tojulia')) {
+      q<HTMLInputElement>('.fx-jr').value = String(+view.cx.toPrecision(8)); q<HTMLInputElement>('.fx-ji').value = String(+view.cy.toPrecision(8));
+      q<HTMLSelectElement>('.fx-jp').value = 'custom'; setMode('julia');
+    }
+  });
+  root.addEventListener('change', (e) => {
+    const t = e.target as HTMLInputElement;
+    if (t.classList.contains('fx-pal')) recolour();
+    else if (t.classList.contains('fx-it')) render();
+    else if (t.classList.contains('fx-jp')) { if (t.value !== 'custom') { const [a, b] = t.value.split(','); q<HTMLInputElement>('.fx-jr').value = a; q<HTMLInputElement>('.fx-ji').value = b; view = { ...HOME.julia }; render(); } }
+    else if (t.classList.contains('fx-jr') || t.classList.contains('fx-ji')) { q<HTMLSelectElement>('.fx-jp').value = 'custom'; render(); }
+    else if (t.classList.contains('fx-ip') || t.classList.contains('fx-n')) render();
+    else if (t.closest('.fx-go')) {
+      const cx = num(q<HTMLInputElement>('.fx-cx').value), cy = num(q<HTMLInputElement>('.fx-cy').value), sp = num(q<HTMLInputElement>('.fx-sp').value);
+      if (!(Number.isFinite(cx) && Number.isFinite(cy) && sp > 0)) { err('Type the centre as two numbers and a width above zero.'); return; }
+      err(''); setView({ cx, cy, span: sp }); facts(true);
+    }
+  });
+  new ResizeObserver(() => { const w = Math.round((cv.clientWidth || 0) * Math.min(2, window.devicePixelRatio || 1)); if (w && w !== W) render(); }).observe(cv);
+  new MutationObserver(() => recolour()).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+  setMode('mandelbrot');
+</script>
