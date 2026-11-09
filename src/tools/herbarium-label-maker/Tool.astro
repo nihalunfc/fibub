@@ -208,8 +208,8 @@ const example = [
   .hl-page .hl-label { box-sizing: border-box; padding: 4mm; overflow: hidden; min-height: 0; }
   .hl-cuts .hl-label { outline: 0.3mm dashed #999; outline-offset: -0.15mm; }
   @media print {
-    body > *:not(.hl-print-sheet) { display: none !important; }
+    body:has(> .hl-print-sheet) > *:not(.hl-print-sheet) { display: none !important; }
     .hl-print-sheet { position: static; left: auto; }
-    html, body { background: #fff !important; }
+    html:has(.hl-print-sheet), html:has(.hl-print-sheet) body { background: #fff !important; }
   }
 </style>
