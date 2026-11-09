@@ -11,7 +11,7 @@ order: 327
 icon: pointer
 works: offline
 updated: 2026-11-09
-related: [hemocytometer, biodiversity-indices, sample-size]
+related: [hemocytometer, biodiversity-indices, sample-size, leaf-area-analyser, spore-size-measurer, cfu-counter]
 sources:
   - "Salisbury, E. J. (1928) On the causes and ecological significance of stomatal frequency, with special reference to the woodland flora. Philosophical Transactions of the Royal Society B 216, 1–65 (stomatal index = stomata ÷ (stomata + epidermal cells) × 100)."
   - "Field of view diameter = eyepiece field number ÷ (objective × any extra magnification), the standard microscope relation."

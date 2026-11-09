@@ -11,7 +11,7 @@ order: 345
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [nernst-calculator, colligative-properties, plot-maker]
+related: [nernst-calculator, colligative-properties, plot-maker, hodgkin-huxley-simulator, osmolarity-calculator]
 sources:
   - "Nernst equation (W. Nernst, 1889); Goldman-Hodgkin-Katz voltage and current equations (D. E. Goldman 1943; A. L. Hodgkin and B. Katz 1949). Constants F and R from CODATA (NIST). Equations only."
   - "Checked in the tests against an independent NumPy implementation, with SciPy brentq for the zero-current potential. The example concentrations are illustrative textbook-style values, made up and rounded."

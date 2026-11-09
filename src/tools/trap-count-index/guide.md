@@ -11,7 +11,7 @@ order: 320
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, field-sampling-planner, trend-analyser, plot-maker]
+related: [biodiversity-indices, field-sampling-planner, trend-analyser, plot-maker, insect-degree-days, cpue-trend]
 sources:
   - "Catch per unit effort (catch per trap per day) and centred moving averages: standard monitoring arithmetic, as described in general entomology and pest-monitoring texts."
   - "ISO 8601 week numbers."

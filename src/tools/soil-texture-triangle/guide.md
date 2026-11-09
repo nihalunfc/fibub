@@ -11,7 +11,7 @@ order: 322
 icon: mountain
 works: offline
 updated: 2026-11-09
-related: [ternary-plot-maker, darcy-flow-calculator, et0-calculator, field-sampling-planner, runoff-calculator]
+related: [ternary-plot-maker, darcy-flow-calculator, et0-calculator, field-sampling-planner, runoff-calculator, soil-test-interpreter, soil-classification, irrigation-scheduler]
 sources:
   - "Class boundaries: the public USDA soil texture definitions (Soil Survey Division Staff, Soil Survey Manual, USDA Handbook 18, and the same rules used by the NRCS soil texture calculator). Rules only; the triangle is drawn by fibub from them."
   - "Checked in the tests against an independent Python implementation of the NRCS rule set (each class written as its full condition) on 5,050 grid points, and against the class polygons drawn on the page."

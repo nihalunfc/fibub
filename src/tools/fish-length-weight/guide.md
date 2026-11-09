@@ -11,7 +11,7 @@ order: 331
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, trend-analyser, plot-maker, sample-size, field-sampling-planner]
+related: [biodiversity-indices, trend-analyser, plot-maker, sample-size, field-sampling-planner, von-bertalanffy-fitter, zooplankton-biomass, stocking-density-calculator]
 sources:
   - "Method: E. D. Le Cren, Journal of Animal Ecology 20, 201-219 (1951) for W = aL^b and relative condition Kn; R. Froese, Journal of Applied Ichthyology 22, 241-253 (2006) for the review of a, b and condition factors; D. G. Sprugel, Ecology 64, 209-210 (1983) for the log-normal bias correction. Formulas only."
   - "Checked in the tests against Python: scipy.stats.linregress on log₁₀ values, statsmodels OLS t_test of b = 3, scipy.stats.t for the interval, and NumPy for the correction factor, Fulton's K and Kn."

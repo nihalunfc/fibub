@@ -11,7 +11,7 @@ order: 4
 icon: table
 works: offline
 updated: 2026-11-09
-related: [tree-viewer, sequence-tools, primer-checker, plot-maker]
+related: [tree-viewer, sequence-tools, primer-checker, plot-maker, punnett-square, crossing-plan, hardy-weinberg-tester]
 sources:
   - "Symbols and layout conventions: Bennett, R. L. et al. (2008), Standardized human pedigree nomenclature: update and assessment of the recommendations of the National Society of Genetic Counselors, Journal of Genetic Counseling 17: 424–433."
   - "Family structure checks (loops, generations, common ancestors) compared with an independent Python check using networkx 3.7 on the example family and on deliberately broken tables."

@@ -11,7 +11,7 @@ order: 325
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [enzyme-kinetics-fitter, binding-curve-fitter, dose-response, plot-maker, uncertainty-calculator]
+related: [enzyme-kinetics-fitter, binding-curve-fitter, dose-response, plot-maker, uncertainty-calculator, curve-fitter, plant-growth-analysis]
 sources:
   - "Light response: the non-rectangular hyperbola (J. H. M. Thornley, Mathematical Models in Plant Physiology, 1976; B. Marshall and P. V. Biscoe, Journal of Experimental Botany 31, 29-39, 1980). Formula only."
   - "A/Ci: G. D. Farquhar, S. von Caemmerer and J. A. Berry, Planta 149, 78-90 (1980); S. von Caemmerer, Biochemical Models of Leaf Photosynthesis (CSIRO, 2000); T. D. Sharkey et al., Plant, Cell and Environment 30, 1035-1040 (2007) for fitting by limitation. Formulas only."

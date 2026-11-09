@@ -11,7 +11,7 @@ order: 307
 icon: eye
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, field-sampling-planner, sample-size, uncertainty-calculator]
+related: [biodiversity-indices, field-sampling-planner, sample-size, uncertainty-calculator, trap-count-index]
 sources:
   - "Method: D. I. MacKenzie, J. D. Nichols, G. B. Lachman, S. Droege, J. A. Royle and C. A. Langtimm (2002), Estimating site occupancy rates when detection probabilities are less than one, Ecology 83: 2248-2255; D. I. MacKenzie et al., Occupancy Estimation and Modeling (2006) for the conditional occupancy of never-detected sites. Formulas only; no tables are copied."
   - "Checked in the tests against an independent Python fit (SciPy 1.x optimize.minimize with BFGS, a finite-difference Hessian and scipy.stats.norm) of the same data."

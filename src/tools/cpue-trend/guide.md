@@ -11,7 +11,7 @@ order: 339
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [trend-analyser, sample-size, biodiversity-indices]
+related: [trend-analyser, sample-size, biodiversity-indices, yield-per-recruit, von-bertalanffy-fitter, time-series-analyser]
 sources:
   - "CPUE standardisation with a lognormal GLM (ln CPUE = year + factors), predictions at reference levels with the exp(s²/2) back-transform: M. N. Maunder and A. E. Punt (2004), Standardizing catch and effort data: a review of recent approaches, Fisheries Research 70: 141-159; N. C. H. Lo, L. D. Jacobson and J. L. Squire (1992), Canadian Journal of Fisheries and Aquatic Sciences 49: 2515-2526. Method only."
   - "Checked in the tests against statsmodels 0.14 (ordinary least squares on log CPUE with categorical year, vessel and area, and its prediction intervals for the mean). The example records are made up."

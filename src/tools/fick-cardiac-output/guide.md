@@ -11,7 +11,7 @@ order: 343
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [gas-law-calculator, darcy-flow-calculator, uncertainty-calculator, colligative-properties]
+related: [gas-law-calculator, darcy-flow-calculator, uncertainty-calculator, colligative-properties, respirometry-calculator, osmolarity-calculator, ultrasound-calculator]
 sources:
   - "Fick principle: A. Fick (1870). O₂ content = 1.34 × Hb × SaO₂ + 0.0031 × PO₂ is the standard textbook form (Hüfner factor 1.34 to 1.39 mL O₂/g Hb; O₂ solubility 0.003 mL/dL/mmHg); see any physiology text, e.g. West's Respiratory Physiology. Formulas only."
   - "Fick's first law of diffusion: A. Fick (1855). Poiseuille's law: J. L. M. Poiseuille (1840s) and G. Hagen (1839). Pressure units: 1 mmHg = 133.322 Pa (NIST)."

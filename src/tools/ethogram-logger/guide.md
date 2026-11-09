@@ -11,7 +11,7 @@ order: 315
 icon: clock
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, reliability-analysis, sample-size, field-sampling-planner]
+related: [biodiversity-indices, reliability-analysis, sample-size, field-sampling-planner, home-range-analyser, bird-song-spectrogram]
 sources:
   - "Continuous (all-occurrence) recording of states and events, time budgets and bouts: Martin, P. and Bateson, P., Measuring Behaviour: An Introductory Guide (Cambridge University Press); Altmann, J. (1974), Behaviour 49: 227–267."
   - "Checked against an independent Python check on the page's made-up session (the running state sampled on a 1 ms grid with numpy; bouts listed directly)."

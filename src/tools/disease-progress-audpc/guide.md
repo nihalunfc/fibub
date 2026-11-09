@@ -11,7 +11,7 @@ order: 330
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [trend-analyser, dose-response, lc50-probit, plot-maker, sample-size]
+related: [trend-analyser, dose-response, lc50-probit, plot-maker, sample-size, leaf-disease-severity, epidemic-model, field-trial-designer]
 sources:
   - "AUDPC: G. Shaner and R. E. Finney, Phytopathology 67, 1051-1056 (1977). AUDPS: I. Simko and H.-P. Piepho, Phytopathology 102, 381-389 (2012). Models and transforms: C. L. Campbell and L. V. Madden, Introduction to Plant Disease Epidemiology (Wiley, 1990); J. E. Vanderplank, Plant Diseases: Epidemics and Control (1963). Formulas only."
   - "Checked in the tests against Python: numpy.trapezoid for AUDPC, the stairs definition of AUDPS, scipy.stats.linregress for the linearised rates and scipy.optimize.curve_fit for the curve fits and their standard errors (SciPy 1.18)."

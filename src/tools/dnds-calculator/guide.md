@@ -11,7 +11,7 @@ order: 311
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [sequence-alignment, sequence-tools, protein-calculator, tree-viewer]
+related: [sequence-alignment, sequence-tools, protein-calculator, tree-viewer, molecular-clock]
 sources:
   - "Method: Nei and Gojobori (1986), Mol. Biol. Evol. 3: 418-426; Jukes and Cantor (1969) correction; variances and the Z test as in Nei and Kumar, Molecular Evolution and Phylogenetics (2000). Standard genetic code (NCBI translation table 1)."
   - "Code written by fibub. Checked in the tests against Biopython 1.88 (Bio.codonalign cal_dn_ds with method NG86: sites, differences, dN and dS agree to 1e-15 on the example) and Python with SciPy 1.18 for the standard errors and the Z test. Unlike Biopython, and as in the original method, pathways through a stop codon are left out; that case is checked by hand."

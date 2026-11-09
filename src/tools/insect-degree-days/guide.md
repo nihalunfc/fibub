@@ -11,7 +11,7 @@ order: 319
 icon: calendar
 works: offline
 updated: 2026-11-09
-related: [et0-calculator, koppen-climate, plot-maker, trend-analyser]
+related: [et0-calculator, koppen-climate, plot-maker, trend-analyser, trap-count-index, embryo-development-timer, station-data-viewer]
 sources:
   - "Single sine method: Baskerville, G. L. and Emin, P. (1969), Ecology 50: 514–517."
   - "Cutoff methods: Zalom, F. G. et al. (1983), Degree-days: the calculation and use of heat units in pest management, University of California Division of Agriculture and Natural Resources Leaflet 21373."

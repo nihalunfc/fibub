@@ -11,7 +11,7 @@ order: 310
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [tree-viewer, sample-size, biodiversity-indices]
+related: [tree-viewer, sample-size, biodiversity-indices, coalescent-simulator, effective-population-size, allele-frequency-calculator]
 sources:
   - "Model: the Wright-Fisher model (Fisher 1930, Wright 1931) with genotype fitnesses 1 + s, 1 + hs and 1, selection then binomial sampling of 2N gene copies. Fixation probability: M. Kimura (1962), Genetics 47: 713-719, u(p) = ∫₀ᵖG / ∫₀¹G with G(x) = exp(−4Ns(hx + (1 − 2h)x²/2)). Neutral mean times to fixation and loss: Kimura and Ohta (1969). Binomial draws by W. Hörmann's (1993) BTRS method. Formulas only; no tables are copied."
   - "Checked in the tests against SciPy: Kimura's integral by scipy.integrate.quad for additive, recessive, dominant, partial and harmful alleles (agreement to 1e-7), and the simulated share fixed against the exact Wright-Fisher fixation probability from solving the absorbing Markov chain (scipy.stats.binom and scipy.linalg.solve) for N = 20. The binomial sampler is checked against the exact binomial distribution by a chi-square test."

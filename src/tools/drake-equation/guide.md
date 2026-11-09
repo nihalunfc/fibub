@@ -11,7 +11,7 @@ order: 353
 icon: telescope
 works: offline
 updated: 2026-11-09
-related: [habitable-zone-calculator, planet-data-explorer, exoplanet-mass-calculator, radio-telescope-calculator]
+related: [habitable-zone-calculator, planet-data-explorer, exoplanet-mass-calculator, radio-telescope-calculator, distribution-explorer]
 sources:
   - "The equation: F. Drake (1961), as described in many textbooks. Treating each factor as log-uniform over a range follows the general approach of A. Sandberg, E. Drexler and T. Ord (2018), arXiv:1806.02404 (method only; none of their numbers are used). Exact distribution of a sum of independent uniform variables for log₁₀ N. Formulas only; no tables are copied."
   - "Checked in the tests against NumPy: the distribution of log₁₀ N by numerical convolution of the seven uniform densities and by a 2-million-draw Monte Carlo, for all three starting presets."

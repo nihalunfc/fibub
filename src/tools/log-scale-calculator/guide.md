@@ -11,7 +11,7 @@ order: 335
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [tree-carbon, field-sampling-planner, calibration-curve]
+related: [tree-carbon, field-sampling-planner, calibration-curve, tree-height-basal-area, forest-inventory-summary]
 sources:
   - "Doyle rule (D − 4)²·L/16; Scribner formula rule (0.79D² − 2D − 4)·L/16 (Bruce's formula version, not the Scribner Decimal C table); International 1/8-inch rule 0.22D² − 0.71D per 4-foot section (J. F. Clark, 1906) with ½-inch taper per section and × 0.905 for a ¼-inch kerf; Smalian, Huber and Newton (Riecke) cubic formulas: standard forest mensuration, as in Avery and Burkhart, Forest Measurements. Formulas only; no log rule tables copied."
   - "Checked in the tests against an independent Python calculation, and the International ¼-inch result against L. R. Grosenbaugh's (1952) closed-form fit of that rule (agrees within 0.5 % for 8 to 30 inch logs, 8 to 20 ft long). The example logs are made up."

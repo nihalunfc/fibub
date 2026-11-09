@@ -11,7 +11,7 @@ order: 318
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [period-finder, wave-calculator, biodiversity-indices, plot-maker]
+related: [period-finder, wave-calculator, biodiversity-indices, plot-maker, audio-spectrum-analyser, fft-workbench, notch-filter-psd]
 sources:
   - "Short-time Fourier transform and one-sided power spectral density as in SciPy (scipy.signal.spectrogram, density scaling, periodic windows); Hann, Hamming and Blackman windows from F. J. Harris, Proc. IEEE 66 (1978) 51–83. Written by fibub."
   - "Checked in the tests against scipy.signal.spectrogram 1.18 (same window, overlap, no detrending) to 1 part in 100 000, and against Parseval's theorem for a pure tone. Viridis colours: the polynomial fit by Matt Zucker of the matplotlib map (CC0)."

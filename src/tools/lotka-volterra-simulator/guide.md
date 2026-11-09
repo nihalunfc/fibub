@@ -11,7 +11,7 @@ order: 304
 icon: orbit
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, reaction-kinetics-fitter, plot-maker, decay-calculator]
+related: [biodiversity-indices, reaction-kinetics-fitter, plot-maker, decay-calculator, ode-solver, chaos-explorer, agent-based-models]
 sources:
   - "Models: A. J. Lotka (1925) and V. Volterra (1926); G. F. Gause (1934) for competition; the logistic prey term as in standard ecology texts (e.g. N. J. Gotelli, A Primer of Ecology, 4th ed. 2008). Numerical method: classic fourth-order Runge-Kutta. Formulas only; no tables are copied."
   - "Checked in the tests against SciPy 1.x solve_ivp (RK45 with tolerances of 1e-12), numpy.linalg.eigvals for the equilibria and scipy.signal.find_peaks for the cycle period, plus the conserved quantity of the classic model."

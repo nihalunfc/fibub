@@ -11,7 +11,7 @@ order: 3
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [sequence-tools, sample-size, tree-viewer, plot-maker]
+related: [sequence-tools, sample-size, tree-viewer, plot-maker, mendelian-chi-square, punnett-square, crossing-plan]
 sources:
   - "Methods: Haldane (1919) and Kosambi (1944) mapping functions; Sturtevant (1913) and standard genetics textbooks for three-point mapping, coincidence and interference; ordering by the sum of adjacent recombination frequencies (SARF) as used in linkage mapping software."
   - "Code written by fibub. Checked in the tests against an independent Python implementation (the mapping functions and their inverses, every order of the 5-locus example scored by SARF and by summed Haldane distances, and the three-point classes counted again) and a made-up textbook-style testcross worked by hand."

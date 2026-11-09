@@ -11,7 +11,7 @@ order: 352
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [plot-maker, wave-calculator, uncertainty-calculator, reaction-kinetics-fitter]
+related: [plot-maker, wave-calculator, uncertainty-calculator, reaction-kinetics-fitter, embryo-development-timer, ode-solver, agent-based-models]
 sources:
   - "A. M. Turing, The chemical basis of morphogenesis, Phil. Trans. R. Soc. B 237 (1952) 37–72. A. Gierer and H. Meinhardt, Kybernetik 12 (1972) 30–39 (activator-inhibitor model; saturation as in Meinhardt's later work). P. Gray and S. K. Scott (1984) and J. E. Pearson, Science 261 (1993) 189–192 (Gray-Scott patterns; diffusion constants rescaled to grid units). L. Wolpert, J. Theor. Biol. 25 (1969) 1–47 (French flag). Equations only; the parameter sets were chosen and tested by fibub."
   - "Checked in the tests: steady states (Gray-Scott u = 1, v = 0; Gierer-Meinhardt a = μh/μa, h = ρμh/μa²) stay put; the wrap-around Laplacian conserves the total; the 1-D finite-difference gradient relaxes to the exact cosh steady state; the Turing band and fastest wavelength match NumPy eigenvalues (18.39 cells)."

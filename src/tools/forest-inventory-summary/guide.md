@@ -11,7 +11,7 @@ order: 336
 icon: table
 works: offline
 updated: 2026-11-09
-related: [tree-carbon, biodiversity-indices, field-sampling-planner, sample-size]
+related: [tree-carbon, biodiversity-indices, field-sampling-planner, sample-size, tree-height-basal-area, log-scale-calculator, quadrat-transect-analyser]
 sources:
   - "Fixed-area plot expansion, basal area, quadratic mean diameter, Lorey's mean height and the standard error of the mean across plots (simple random sampling): standard forest inventory methods, as in Husch, Beers and Kershaw, Forest Mensuration, and Avery and Burkhart, Forest Measurements. Method only."
   - "Checked in the tests against an independent pandas and SciPy calculation. The example tally is made up."

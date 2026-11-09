@@ -11,7 +11,7 @@ order: 349
 icon: target
 works: offline
 updated: 2026-11-09
-related: [uncertainty-calculator, plate-layout, hemocytometer]
+related: [uncertainty-calculator, plate-layout, hemocytometer, spike-train-analyser, calcium-imaging-dff]
 sources:
   - "Geometry only: proportional scaling by the bregma-lambda distance and right-angle trigonometry for tilted tracks and skull tilt, as described in stereotaxic surgery methods texts. No atlas coordinates or reference distances are included; you type your atlas's values."
   - "Checked in the tests against SciPy's Rotation class (rotate a vertical track and intersect it with the skull plane) and NumPy arctan2 for the tilt angles. The example target and distances are made up."
