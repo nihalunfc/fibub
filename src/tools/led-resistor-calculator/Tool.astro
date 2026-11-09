@@ -1,0 +1,143 @@
+---
+// LED series resistor, power budget, E-series choice and series/parallel array layout. Typical forward voltages are rough.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ledr">
+  <div class="ax-card">
+    <h2>LEDs and supply</h2>
+    <div class="ax-grid">
+      <label>Supply voltage (V) <input class="lr-vs" type="text" inputmode="decimal" value="12" /></label>
+      <label>LED type (rough typical values) <select class="lr-type">
+        <option value="">Pick to fill in…</option>
+        <option value="2.0,20">Red, about 2.0 V at 20 mA</option>
+        <option value="2.1,20">Yellow or orange, about 2.1 V</option>
+        <option value="3.0,20">Green (bright), about 3.0 V</option>
+        <option value="3.0,20">Blue or white, about 3.0 V</option>
+        <option value="1.3,50">Infrared, about 1.3 V</option>
+      </select></label>
+      <label>LED forward voltage Vf (V) <input class="lr-vf" type="text" inputmode="decimal" value="3" /></label>
+      <label>LED current (mA) <input class="lr-i" type="text" inputmode="decimal" value="20" /></label>
+      <label>LEDs in series per string <input class="lr-n" type="text" inputmode="numeric" value="3" /></label>
+      <label>Strings in parallel (each with its own resistor) <input class="lr-p" type="text" inputmode="numeric" value="4" /></label>
+      <label>Resistor series <select class="lr-ser"><option value="12">E12</option><option value="24" selected>E24</option><option value="96">E96</option></select></label>
+      <label>Vf spread between parts (± V) <input class="lr-dvf" type="text" inputmode="decimal" value="0.1" /></label>
+      <label>Supply tolerance (± %) <input class="lr-dvs" type="text" inputmode="decimal" value="5" /></label>
+    </div>
+    <p class="ax-help">Use the forward voltage and current from your LED's data sheet; the typical values in the list are rough, rounded guides only. Each parallel string needs its own resistor: LEDs straight in parallel share current badly. The example values are made up.</p>
+    <p class="ax-err lr-err" hidden></p>
+  </div>
+
+  <div class="ax-card lr-out">
+    <h2>Resistor and power</h2>
+    <p class="ax-big lr-big"></p>
+    <dl class="ax-facts lr-facts"></dl>
+    <canvas class="ax-fig lr-fig"></canvas>
+  </div>
+
+  <div class="ax-card">
+    <h2>Array planner</h2>
+    <div class="ax-grid">
+      <label>Total number of LEDs <input class="lr-tot" type="text" inputmode="numeric" value="10" /></label>
+    </div>
+    <p class="ax-help">Uses the supply, Vf and current above. Puts as many LEDs in each string as fit while leaving at least 10 % of the supply for the resistor, then splits them into even strings.</p>
+    <p class="ax-big lr-big2"></p>
+    <div class="ax-scroll"><table class="lr-tab"></table></div>
+    <p class="ax-help lr-sum"></p>
+    <p class="ax-err lr-err2" hidden></p>
+    <p class="ax-help">For study and planning, not a substitute for professional judgement. For mains-powered or high-power LEDs use a proper constant-current driver.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { design, currentWith, pick, rating, maxPerString, layout, spread } from '../../lib/sci/eng-led';
+  import { ohmText } from '../../lib/sci/eng-resistor';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.ledr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const g3 = (x: number) => String(+x.toPrecision(3)).replace('-', '−');
+  const W = (p: number) => (p >= 1 ? `${sig(p, 3)} W` : `${sig(p * 1000, 3)} mW`);
+  const mA = (i: number) => `${sig(i * 1000, 3)} mA`;
+  const RT: Record<string, string> = { '0.0625': '1/16 W', '0.1': '0.1 W', '0.125': '1/8 W', '0.25': '1/4 W', '0.5': '1/2 W' };
+  const rt = (r: number) => (Number.isFinite(r) ? RT[String(r)] ?? `${r} W` : 'more than 10 W: use a driver instead');
+  let fig: Figure | null = null;
+  const sec: (Section | null)[] = [null, null];
+
+  function main() {
+    const err = q('.lr-err'), out = q('.lr-out');
+    const vs = val('.lr-vs'), vf = val('.lr-vf'), i = val('.lr-i') / 1000, n = val('.lr-n'), p = val('.lr-p'), ser = +sel('.lr-ser'), dvf = val('.lr-dvf'), dvs = val('.lr-dvs');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sec[0] = null; };
+    if (!(vs > 0)) return fail('Give the supply voltage.');
+    if (!(vf > 0 && vf < 50)) return fail('Give the LED forward voltage in volts (about 1.3 to 3.6).');
+    if (!(i > 0 && i < 50)) return fail('Give the LED current in milliamps.');
+    if (!(Number.isInteger(n) && n >= 1 && n <= 100)) return fail('Give a whole number of LEDs per string (1 to 100).');
+    if (!(Number.isInteger(p) && p >= 1 && p <= 1000)) return fail('Give a whole number of strings (1 to 1000).');
+    if (!(dvf >= 0 && dvs >= 0 && dvs < 50)) return fail('Give the spreads as 0 or more.');
+    let d;
+    try { d = design(vs, vf, i, n, p); } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; out.hidden = false;
+    const ch = pick(d.r, ser), r = ch.above, ia = currentWith(vs, vf, n, r), pr = ia * ia * r;
+    q('.lr-big').textContent = `${ohmText(+d.r.toPrecision(4))} per string: use ${ohmText(r)} (E${ser})`;
+    const s = spread(vs, vf, n, r, dvf, (vs * dvs) / 100);
+    const facts = [
+      fact('With the chosen resistor', `${mA(ia)} per string`, ch.nearest !== r ? `the nearest E${ser} value ${ohmText(ch.nearest)} would give ${mA(currentWith(vs, vf, n, ch.nearest))}` : 'the next value up, so the current is never above the target'),
+      fact('Resistor power', `${W(pr)} each`, `use a ${rt(rating(pr))} part or bigger (twice the heat, for a cooler, longer-lived resistor)`),
+      fact('LEDs', `${W(vf * ia)} each, ${W(vf * ia * n * p)} in all`, `${n * p} LED${n * p > 1 ? 's' : ''}: ${p} string${p > 1 ? 's' : ''} of ${n}`),
+      fact('From the supply', `${mA(ia * p)}, ${W(vs * ia * p)}`, `${sig((100 * n * vf) / vs, 3)} % reaches the LEDs; the rest heats the resistors`),
+      fact('Current range', `${mA(s.lo)} to ${mA(s.hi)}`, `with Vf ± ${g3(dvf)} V and the supply ± ${g3(dvs)} %`),
+    ];
+    if (d.headroom < 0.1 * vs || s.hi > 1.3 * i || s.lo < 0.7 * i) facts.push(fact('Warning', 'the current depends strongly on Vf and the supply', 'leave more voltage across the resistor (fewer LEDs per string) or use a constant-current driver'));
+    q('.lr-facts').replaceChildren(...facts);
+    const xs: number[] = []; for (let k = 0; k <= 60; k++) xs.push(n * vf * 0.9 + ((vs * 1.3 - n * vf * 0.9) * k) / 60);
+    fig = chartFigure({ w: 380, h: 220, xLabel: 'Supply voltage (V)', yLabel: 'String current (mA)', yMin: 0, legend: 'below', series: [
+      { name: `Vf ${g3(vf - dvf)} V`, x: xs, y: xs.map((v) => currentWith(v, vf - dvf, n, r) * 1000), mode: 'line', width: 1.5, dash: [4, 3] },
+      { name: `Vf ${g3(vf)} V`, x: xs, y: xs.map((v) => currentWith(v, vf, n, r) * 1000), mode: 'line', width: 2 },
+      { name: `Vf ${g3(vf + dvf)} V`, x: xs, y: xs.map((v) => currentWith(v, vf + dvf, n, r) * 1000), mode: 'line', width: 1.5, dash: [2, 3] },
+    ], marks: [{ kind: 'vline', at: vs, dash: [3, 3], label: `${g3(vs)} V` }, { kind: 'hline', at: i * 1000, dash: [3, 3] }] }, `String current against supply voltage with ${ohmText(r)}`);
+    paint(q<HTMLCanvasElement>('.lr-fig'), fig);
+    sec[0] = { title: q('.lr-big').textContent!, facts: facts.map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig };
+  }
+
+  function plan() {
+    const err = q('.lr-err2'), vs = val('.lr-vs'), vf = val('.lr-vf'), i = val('.lr-i') / 1000, tot = val('.lr-tot'), ser = +sel('.lr-ser');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; q('.lr-big2').textContent = ''; q('.lr-tab').replaceChildren(); q('.lr-sum').textContent = ''; sec[1] = null; };
+    if (!(Number.isInteger(tot) && tot >= 1 && tot <= 10000)) return fail('Give a whole number of LEDs (1 to 10,000).');
+    if (!(vs > 0 && vf > 0 && i > 0)) return fail('Fill in the supply, Vf and current above first.');
+    const per = maxPerString(vs, vf);
+    if (per < 1) return fail(`A ${g3(vs)} V supply cannot light even one ${g3(vf)} V LED with room for a resistor.`);
+    err.hidden = true;
+    const L = layout(tot, per), groups = new Map<number, number>();
+    for (const sz of L.sizes) groups.set(sz, (groups.get(sz) ?? 0) + 1);
+    q('.lr-big2').textContent = `${L.strings} string${L.strings > 1 ? 's' : ''} (up to ${per} LEDs each)`;
+    const head = ['Strings', 'LEDs each', 'Resistor', 'Current', 'Resistor power'];
+    let ptot = 0, prs = 0;
+    const rows = [...groups].map(([sz, cnt]) => {
+      const r = pick(design(vs, vf, i, sz).r, ser).above, ia = currentWith(vs, vf, sz, r), pr = ia * ia * r;
+      ptot += vs * ia * cnt; prs += pr * cnt;
+      return [String(cnt), String(sz), ohmText(r), mA(ia), `${W(pr)} (${rt(rating(pr))})`];
+    });
+    const t = q<HTMLTableElement>('.lr-tab'), hr = document.createElement('tr');
+    head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    t.replaceChildren(hr, ...rows.map((r0) => { const tr = document.createElement('tr'); r0.forEach((c, k) => { const td = document.createElement('td'); td.textContent = c; if (k > 1) td.style.textAlign = 'right'; tr.append(td); }); return tr; }));
+    q('.lr-sum').textContent = `Power budget: ${W(ptot)} from the supply (${mA(ptot / vs)}), of which ${W(prs)} heats the resistors (${sig((100 * prs) / ptot, 3)} %).`;
+    sec[1] = { title: `${tot} LEDs: ${q('.lr-big2').textContent}`, text: [q('.lr-sum').textContent!], table: { head, rows } };
+  }
+
+  q('.lr-type').addEventListener('change', () => { const v = sel('.lr-type'); if (v) { const [a, b] = v.split(','); q<HTMLInputElement>('.lr-vf').value = a; q<HTMLInputElement>('.lr-i').value = b; } q<HTMLSelectElement>('.lr-type').value = ''; main(); plan(); });
+  root.querySelectorAll('input, select:not(.lr-type)').forEach((x) => { x.addEventListener('input', () => { main(); plan(); }); x.addEventListener('change', () => { main(); plan(); }); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.lr-out').hidden) paint(q<HTMLCanvasElement>('.lr-fig'), fig); });
+  main(); plan();
+  wireDownloads(q('.dl'), () => ({ title: 'LED resistor', subtitle: q('.lr-big').textContent ?? '', file: 'led-resistor', sections: sec.filter((s): s is Section => !!s) }));
+</script>
+
+<style is:global>
+  .ledr select, .ledr input { max-width: 100%; }
+  .ledr .lr-tab td { white-space: nowrap; }
+</style>
