@@ -1,0 +1,174 @@
+---
+// Mineral formula: oxide wt% (one or many analyses) in; cations per formula unit on an oxygen basis, Fe³⁺ by
+// charge balance (Droop 1987), end-members and Mg# out.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { PRESETS, EXAMPLES } from '../../lib/sci/mineral';
+const first = PRESETS[1];
+---
+<div class="ax mnf">
+  <div class="ax-card">
+    <h2>Mineral and formula basis</h2>
+    <div class="ax-grid">
+      <label>Mineral <select class="mnf-min">{PRESETS.map((p) => <option value={p.id} selected={p.id === first.id}>{p.name}</option>)}</select></label>
+      <label>Oxygens per formula unit <input class="mnf-o" inputmode="decimal" value={first.O} /></label>
+      <label>Ideal cations (for Fe³⁺) <input class="mnf-t" inputmode="decimal" value={first.cat ?? ''} /></label>
+      <label>Iron <select class="mnf-fe"><option value="droop" selected>estimate Fe³⁺ by charge balance (Droop)</option><option value="fe2">all iron as Fe²⁺</option><option value="analysed">FeO and Fe2O3 as analysed</option></select></label>
+    </div>
+    <p class="ax-help">Common bases: olivine 4 O and 3 cations, pyroxene 6 and 4, garnet 12 and 8, feldspar 8 and 5, spinel 4 and 3, amphibole 23 O (anhydrous), mica 11 O. Charge balance needs the ideal cation total; it suits minerals with no vacancies (pyroxene, garnet, spinel, olivine).</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Your analyses (oxide wt%)</h2>
+    <label class="mnf-lab">One analysis per row with oxide names on top (or one per column with oxides down the side). FeO, FeOt and FeO* all mean total iron as FeO. <textarea class="mnf-data" rows="6" spellcheck="false">{EXAMPLES[first.id]}</textarea></label>
+    <DataFile target=".mnf-data" maxCols={40} maxRows={5000} label="Open a file of analyses" />
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small mnf-ex">Use the example for this mineral</button></div>
+    <p class="ax-help">The examples are made-up, rounded analyses. Blank, "n.d." and "&lt;0.01" count as 0. Columns that are not oxides (Total, H2O, F, Cl) are ignored.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Formulae</h2>
+    <p class="ax-err mnf-err" hidden></p>
+    <div class="mnf-out">
+      <p class="ax-big mnf-big"></p>
+      <p class="ax-help mnf-notes"></p>
+      <div class="ax-scroll"><table class="mnf-table"><thead></thead><tbody></tbody></table></div>
+      <canvas class="ax-fig mnf-fig" style="margin-top:12px"></canvas>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small mnf-csv">Download the formulae (CSV)</button></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { formula, readAnalyses, PRESETS, EXAMPLES, IONS, ION_LABEL, OXIDES, type Result, type FeMode } from '../../lib/sci/mineral';
+  import { toXY } from '../../lib/sci/ternary';
+  import { num, parseTable, csv } from '../../lib/sci/num';
+  import { OKABE_ITO, MARKERS } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.mnf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const box = q<HTMLTextAreaElement>('.mnf-data');
+  let res: { names: string[]; wt: Record<string, number>[]; r: Result[] } | null = null, fig: Figure | null = null;
+  let rows: string[][] = [], head: string[] = [];
+  const f3 = (x: number) => (Math.abs(x) < 5e-5 ? '0' : x.toFixed(3));
+
+  q('.mnf-min').addEventListener('change', () => {
+    const was = PRESETS.find((p) => EXAMPLES[p.id].trim() === box.value.trim());
+    const p = PRESETS.find((x) => x.id === sel('.mnf-min'))!;
+    q<HTMLInputElement>('.mnf-o').value = String(p.O); q<HTMLInputElement>('.mnf-t').value = p.cat ? String(p.cat) : '';
+    q<HTMLSelectElement>('.mnf-fe').value = p.fe;
+    if (was) box.value = EXAMPLES[p.id];
+    run();
+  });
+  q('.mnf-ex').addEventListener('click', () => { box.value = EXAMPLES[sel('.mnf-min')]; run(); });
+
+  function run() {
+    const err = (m: string) => { q('.mnf-err').textContent = m; q('.mnf-err').hidden = !m; q('.mnf-out').hidden = !!m; if (m) { res = null; fig = null; } };
+    const X = num(q<HTMLInputElement>('.mnf-o').value), Traw = q<HTMLInputElement>('.mnf-t').value.trim(), T = Traw ? num(Traw) : null, fe = sel('.mnf-fe') as FeMode, mineral = sel('.mnf-min');
+    if (!(X > 0 && X <= 100)) return err('Give the number of oxygens per formula unit, such as 6 for pyroxene.');
+    if (T !== null && !(T > 0 && T < X * 2)) return err('The ideal cation total is a positive number, such as 4 for pyroxene.');
+    if (fe === 'droop' && !T) return err('Charge balance needs the ideal number of cations (for example 4 for 6-oxygen pyroxene). Type it, or choose "all iron as Fe²⁺".');
+    let a: ReturnType<typeof readAnalyses>;
+    try { a = readAnalyses(parseTable(box.value), num); } catch (e) { return err((e as Error).message); }
+    const out: Result[] = [];
+    for (let i = 0; i < a.wt.length; i++) { try { out.push(formula(a.wt[i], X, { fe, T, mineral })); } catch (e) { return err(`${a.names[i]}: ${(e as Error).message}`); } }
+    err('');
+    res = { names: a.names, wt: a.wt, r: out };
+    const used = IONS.filter((k) => out.some((r) => r.apfu[k] > 5e-5));
+    head = ['', ...a.names];
+    rows = [];
+    for (const k of used) rows.push([ION_LABEL[k] ?? k, ...out.map((r) => f3(r.apfu[k]))]);
+    rows.push(['Cations', ...out.map((r) => f3(r.sumCat))], ['Oxygens', ...out.map((r) => f3(r.sumO))], ['Charge', ...out.map((r) => f3(r.charge))]);
+    if (fe === 'droop') rows.push(['Fe³⁺/ΣFe', ...out.map((r) => (r.fe2 + r.fe3 > 0 ? (r.fe3 / (r.fe2 + r.fe3)).toFixed(3) : '–'))]);
+    const ems = out[0].endMembers.map((e) => e.name);
+    ems.forEach((n, j) => rows.push([n.includes('share') || n.includes('#') || n.includes('×') ? n : `${n} (mol %)`, ...out.map((r) => (r.endMembers[j] ? r.endMembers[j].value.toFixed(1) : '–'))]));
+    rows.push(['Mg# = 100 Mg/(Mg + Fe²⁺)', ...out.map((r) => (r.mgNum === null ? '–' : r.mgNum.toFixed(1)))]);
+    rows.push(['Oxide total (wt%)', ...out.map((r) => r.total.toFixed(2))]);
+    if (fe === 'droop') rows.push(['FeO recalculated (wt%)', ...out.map((r) => r.feO.toFixed(2))], ['Fe2O3 recalculated (wt%)', ...out.map((r) => r.fe2o3.toFixed(2))], ['Total after recalculation', ...out.map((r) => r.totalAfter.toFixed(2))]);
+    const th = document.createElement('tr'); head.forEach((h) => { const c = document.createElement('th'); c.textContent = h; th.append(c); });
+    q('.mnf-table thead').replaceChildren(th);
+    q('.mnf-table tbody').replaceChildren(...rows.map((r) => { const tr = document.createElement('tr'); r.forEach((v, j) => { const c = document.createElement(j ? 'td' : 'th'); c.textContent = v; if (!j) c.setAttribute('scope', 'row'); tr.append(c); }); return tr; }));
+    const em = out[0].endMembers;
+    q('.mnf-big').textContent = `${a.names.length} analys${a.names.length === 1 ? 'is' : 'es'} on ${X} oxygens` + (em.length && ['olivine', 'pyroxene', 'feldspar', 'garnet'].includes(mineral) ? ` · ${a.names[0]}: ${em.filter((e) => !e.name.includes('share')).map((e) => `${e.name}${e.value.toFixed(0)}`).join(' ')}` : '');
+    const notes: string[] = [];
+    if (a.feTotal.length) notes.push(`${a.feTotal.join(', ')} read as total iron.`);
+    if (a.ignored.length) notes.push(`Ignored columns: ${a.ignored.join(', ')}.`);
+    const capped = a.names.filter((_, i) => out[i].capped);
+    if (capped.length) notes.push(`${capped.join(', ')}: charge balance asks for more Fe³⁺ than there is iron, so all iron is Fe³⁺ and the formula still has too many cations. Check the analysis or the basis.`);
+    const low = a.names.filter((_, i) => out[i].droopF !== null && out[i].droopF! <= 0);
+    if (low.length && fe === 'droop') notes.push(`${low.join(', ')}: fewer cations than ideal, so no Fe³⁺ is needed (it may contain vacancies, or the analysis is off).`);
+    const bad = a.names.filter((_, i) => out[i].total < 98 || out[i].total > 102);
+    if (bad.length) notes.push(`${bad.join(', ')}: oxide total outside 98 to 102 wt%${['amphibole', 'mica'].includes(mineral) ? ' (expected for hydrous minerals, which hold water the probe does not measure)' : ''}.`);
+    if (T && fe !== 'droop') { const off = a.names.filter((_, i) => Math.abs(out[i].sumCat / T - 1) > 0.015); if (off.length) notes.push(`${off.join(', ')}: cation total more than 1.5 % from the ideal ${T}.`); }
+    q('.mnf-notes').textContent = notes.join(' ');
+    q('.mnf-notes').hidden = !notes.length;
+    drawTernary(mineral);
+  }
+
+  function drawTernary(mineral: string) {
+    const canvas = q<HTMLCanvasElement>('.mnf-fig');
+    const labels = mineral === 'pyroxene' ? ['Wo', 'En', 'Fs'] : mineral === 'feldspar' ? ['An', 'Ab', 'Or'] : null;
+    if (!labels || !res) { fig = null; canvas.hidden = true; return; }
+    canvas.hidden = false;
+    const r = res, W = Math.round(Math.min(560, Math.max(300, q('.mnf-out').clientWidth || 500)));
+    const pad = 34, side = W - 2 * pad, H = Math.round(side * 0.866 + 2 * pad + 30 + 16 * Math.ceil(r.names.length / 3));
+    const P = (a: number, b: number, c: number) => { const [x, y] = toXY(a, b, c); return [pad + x * side, pad + 6 + (0.866 - y) * side] as [number, number]; };
+    fig = { w: W, h: H, alt: `${labels.join('-')} triangle with each analysis plotted`, draw: (ctx: CanvasRenderingContext2D, w: number, h: number, pal: Palette) => {
+      void w; void h;
+      ctx.lineWidth = 1; ctx.strokeStyle = pal.grid;
+      for (let k = 1; k < 5; k++) { const t = k / 5; for (const [a, b] of [[[t, 1 - t, 0], [t, 0, 1 - t]], [[1 - t, t, 0], [0, t, 1 - t]], [[1 - t, 0, t], [0, 1 - t, t]]] as [number, number, number][][]) { ctx.beginPath(); ctx.moveTo(...P(...a)); ctx.lineTo(...P(...b)); ctx.stroke(); } }
+      ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(...P(1, 0, 0)); ctx.lineTo(...P(0, 1, 0)); ctx.lineTo(...P(0, 0, 1)); ctx.closePath(); ctx.stroke();
+      ctx.fillStyle = pal.ink; ctx.font = 'bold 13px system-ui, sans-serif'; ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom'; ctx.fillText(labels[0], ...P(1, 0, 0).map((v, i) => v - (i ? 4 : 0)) as [number, number]);
+      ctx.textBaseline = 'top'; { const [x, y] = P(0, 1, 0); ctx.fillText(labels[1], x, y + 4); } { const [x, y] = P(0, 0, 1); ctx.fillText(labels[2], x, y + 4); }
+      ctx.font = '12px system-ui, sans-serif';
+      r.r.forEach((res1, i) => {
+        const e = res1.endMembers; if (e.length < 3) return;
+        const [x, y] = P(e[0].value, e[1].value, e[2].value), col = pal.red ? pal.ink : OKABE_ITO[i % 7];
+        ctx.fillStyle = col; ctx.strokeStyle = col;
+        const m = MARKERS[i % 4];
+        if (m === 'square') ctx.fillRect(x - 4, y - 4, 8, 8);
+        else if (m === 'triangle') { ctx.beginPath(); ctx.moveTo(x, y - 5); ctx.lineTo(x - 5, y + 4); ctx.lineTo(x + 5, y + 4); ctx.closePath(); ctx.fill(); }
+        else if (m === 'diamond') { ctx.beginPath(); ctx.moveTo(x, y - 5); ctx.lineTo(x - 5, y); ctx.lineTo(x, y + 5); ctx.lineTo(x + 5, y); ctx.closePath(); ctx.fill(); }
+        else { ctx.beginPath(); ctx.arc(x, y, 4, 0, 7); ctx.fill(); }
+        const lx = pad + (i % 3) * (side / 3), ly = pad + 6 + 0.866 * side + 40 + Math.floor(i / 3) * 16;
+        ctx.beginPath(); ctx.arc(lx + 4, ly - 4, 4, 0, 7); if (m === 'circle') ctx.fill(); else ctx.fillRect(lx, ly - 8, 8, 8);
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText(r.names[i].slice(0, 16), lx + 12, ly);
+      });
+    } };
+    paint(canvas, fig);
+  }
+
+  root.querySelectorAll('.mnf-o, .mnf-t, .mnf-fe, .mnf-data').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+  q('.mnf-csv').addEventListener('click', () => {
+    if (!res) return;
+    const r = res, ems = r.r[0].endMembers.map((e) => e.name.replace(/[^A-Za-z0-9#]+/g, '_').replace(/_+$/, ''));
+    const head = ['sample', ...OXIDES.map((o) => `${o.key}_wt`), ...IONS.map((k) => `${k}_apfu`), 'cations', 'oxygens', 'charge', ...ems, 'Mg_number', 'total_wt', 'FeO_recalc_wt', 'Fe2O3_recalc_wt'];
+    const body = r.names.map((n, i) => { const x = r.r[i]; return [n, ...OXIDES.map((o) => r.wt[i][o.key] ?? 0), ...IONS.map((k) => +x.apfu[k].toFixed(5)), +x.sumCat.toFixed(5), +x.sumO.toFixed(5), +x.charge.toFixed(5), ...x.endMembers.map((e) => +e.value.toFixed(3)), x.mgNum === null ? '' : +x.mgNum.toFixed(3), +x.total.toFixed(3), +x.feO.toFixed(4), +x.fe2o3.toFixed(4)]; });
+    save(new TextEncoder().encode(csv([head, ...body])), 'mineral-formulae.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.mnf-fig'), fig); });
+  let lastW = 0;
+  window.addEventListener('resize', () => { const w = q('.mnf-out').clientWidth; if (w && Math.abs(w - lastW) > 40) { lastW = w; run(); } });
+  run(); lastW = q('.mnf-out').clientWidth;
+  wireDownloads(q('.dl'), () => ({
+    title: 'Mineral formulae', subtitle: `${q<HTMLSelectElement>('.mnf-min').selectedOptions[0].text}, ${q<HTMLInputElement>('.mnf-o').value} oxygens`, file: 'mineral-formulae',
+    sections: !res ? [] : [
+      { title: q('.mnf-big').textContent!, table: { head, rows, align: head.map((_, j) => (j ? 'r' : 'l')) }, ...(q('.mnf-notes').textContent ? { note: q('.mnf-notes').textContent! } : {}) },
+      ...(fig ? [{ title: 'Ternary plot', figure: fig }] : []),
+    ],
+  }));
+</script>
+
+<style is:global>
+  .mnf select { max-width: 100%; }
+  .mnf .mnf-lab { display: block; }
+  .mnf textarea { width: 100%; font: inherit; font-size: 14px; }
+  .mnf [hidden] { display: none !important; }
+  .mnf table th[scope=row] { text-align: left; font-weight: 600; white-space: nowrap; }
+  .mnf table td { text-align: right; }
+</style>
