@@ -1,6 +1,7 @@
 ---
 // Gamma shielding: narrow-beam attenuation, half- and tenth-value layers, optional buildup and the thickness for a
-// wanted transmission. Coefficients are a rounded teaching set from NIST XCOM (public domain), editable.
+// wanted transmission. The built-in coefficients are worked out from formulas (Klein-Nishina plus approximate
+// photoelectric and pair terms), not from any table, and are editable; typed values are the recommended path.
 import '../../styles/astro.css';
 import Downloads from '../../components/Downloads.astro';
 import { MATERIALS, LINES } from '../../lib/sci/phgamma';
@@ -22,7 +23,8 @@ import { MATERIALS, LINES } from '../../lib/sci/phgamma';
       <label>Wanted transmission (%) <input class="gs-want" type="text" inputmode="decimal" value="1" /></label>
       <label>Incoming intensity (optional, any unit) <input class="gs-i0" type="text" inputmode="decimal" value="" placeholder="e.g. 100" /></label>
     </div>
-    <p class="ax-help">μ/ρ and density fill in from a small rounded teaching set (from NIST XCOM, US government, public domain) whenever you change the energy or material; type your own to override them. Buildup counts photons scattered towards you that a narrow beam leaves out; the simple form is a rough rule of thumb, and Berger's a and b come from buildup tables for your material, energy and geometry.</p>
+    <p class="ax-pill warn gs-approx" style="display:inline-block"></p>
+    <p class="ax-help">μ/ρ and the density fill in whenever you change the energy or material. <b>μ/ρ is not looked up in a table: the page works it out from formulas</b> (the exact Klein-Nishina Compton cross-section, plus an approximate photoelectric scaling law and a pair-production term above 1.022 MeV), element by element from the material's composition, leaving out coherent scattering and electron binding. <b>For real work, look μ/ρ up in NIST XCOM and type it into the box</b>; a typed value is used exactly as given. Densities are rounded and editable; "concrete" is a simple made-up stand-in mix. Buildup counts photons scattered towards you that a narrow beam leaves out; the simple form is a rough rule of thumb, and Berger's a and b come from buildup tables for your material, energy and geometry.</p>
     <p class="ax-err gs-err" hidden></p>
   </div>
 
@@ -34,6 +36,7 @@ import { MATERIALS, LINES } from '../../lib/sci/phgamma';
     <h3 style="margin:14px 0 6px">All materials at this energy</h3>
     <div class="ax-scroll"><table class="gs-tab"></table></div>
     <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small gs-csv">Download the table (CSV)</button></div>
+    <p class="ax-help gs-note"></p>
     <p class="ax-help">Teaching values, for study and planning, not a substitute for professional judgement or a shielding assessment by a qualified expert. Real shields need the full spectrum, geometry, scatter and your local rules; this page does not work out doses.</p>
     <Downloads />
   </div>
@@ -44,7 +47,7 @@ import { MATERIALS, LINES } from '../../lib/sci/phgamma';
 </style>
 
 <script>
-  import { massAtten, transmission, hvl, tvl, thicknessFor, MATERIALS, LINES, type Buildup } from '../../lib/sci/phgamma';
+  import { massAtten, parts, transmission, hvl, tvl, thicknessFor, MATERIALS, LINES, ACCURACY, type Buildup } from '../../lib/sci/phgamma';
   import { num, fmtExp, csv } from '../../lib/sci/num';
   const sig = (x: number, n = 4) => { const a = Math.abs(x); return a && (a >= 1e6 || a < 1e-4) ? fmtExp(x, n) : String(+x.toPrecision(n)).replace('-', '−'); };
   import { chartFigure } from '../../lib/sci/plot';
@@ -56,7 +59,7 @@ import { MATERIALS, LINES } from '../../lib/sci/phgamma';
   const sel = (c: string) => q<HTMLSelectElement>(c).value;
   const fact = (k: string, v: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (s) { const e = document.createElement('small'); e.textContent = s; d.querySelector('dd')!.append(e); } return d; };
   const pct = (f: number) => (f >= 1e-4 ? `${sig(f * 100, 3)} %` : `${fmtExp(f * 100, 3)} %`);
-  let fig: Figure | null = null, report: Section[] = [], tableRows: (string | number)[][] = [];
+  let fig: Figure | null = null, report: Section[] = [], tableRows: (string | number)[][] = [], typed = false;
 
   const energy = () => (sel('.gs-line') === 'custom' ? num(inp('.gs-e').value) : LINES[sel('.gs-line')].E);
   function fill() {
@@ -64,6 +67,7 @@ import { MATERIALS, LINES } from '../../lib/sci/phgamma';
     const m = MATERIALS[sel('.gs-mat')], v = massAtten(sel('.gs-mat'), energy());
     inp('.gs-mu').value = Number.isFinite(v) ? String(+v.toPrecision(3)) : '';
     inp('.gs-rho').value = String(m.rho);
+    typed = false;
   }
 
   function calc() {
@@ -88,6 +92,11 @@ import { MATERIALS, LINES } from '../../lib/sci/phgamma';
     const name = sel('.gs-mat') ? MATERIALS[sel('.gs-mat')].name.toLowerCase() : 'shield';
     const T0 = transmission(mu, x), TB = transmission(mu, x, B), need = thicknessFor(mu, want, B);
     q('.gs-big').textContent = `${L(x)} of ${name} lets through ${pct(B.kind === 'none' ? T0 : TB)} of ${sig(E, 3)} MeV gamma rays${B.kind === 'none' ? '' : ' (with buildup)'}`;
+    // Where the μ/ρ in use came from, and what the built-in estimate is made of.
+    const built = !typed, pr = parts(MATERIALS[sel('.gs-mat')].comp, E);
+    q('.gs-approx').textContent = built ? 'Built-in estimate: approximate, computed from formulas' : 'Using the μ/ρ you typed';
+    q('.gs-approx').className = `ax-pill gs-approx ${built ? 'warn' : 'good'}`;
+    q('.gs-note').textContent = built ? ACCURACY : 'This result uses the μ/ρ you typed, exactly as given.';
     const facts = [
       fact('Linear attenuation μ', `${sig(mu, 4)} /cm`, `μ = (μ/ρ) × ρ = ${sig(mr, 3)} × ${sig(rho, 4)}`),
       fact('Half-value layer', L(hvl(mu)), 'ln 2 / μ: halves a narrow beam'),
@@ -95,6 +104,7 @@ import { MATERIALS, LINES } from '../../lib/sci/phgamma';
       fact('Mean free path', L(1 / mu), '1 / μ: the average distance before an interaction'),
       fact('Narrow-beam transmission', pct(T0), `e^(−μx), ${sig(x * mu / Math.LN2, 3)} half-value layers`),
     ];
+    if (built) facts.push(fact('What makes up this μ/ρ', `${sig((100 * pr.compton) / pr.total, 3)} % Compton`, `${sig((100 * pr.photo) / pr.total, 3)} % photoelectric (the approximate part), ${sig((100 * pr.pair) / pr.total, 3)} % pair production${pr.photo > 0.2 * pr.total ? '. The photoelectric part is large here, so this estimate is rough: type a value from NIST XCOM' : ''}`));
     if (B.kind !== 'none') facts.push(fact('With buildup', pct(TB), `buildup factor ${sig(TB / T0, 4)} at μx = ${sig(mu * x, 3)}`));
     facts.push(fact(`Thickness for ${pct(want)}`, need == null ? 'not reached' : L(need), B.kind === 'none' ? `${sig(-Math.log10(want), 3)} tenth-value layers` : 'with the chosen buildup'));
     if (i0s) facts.push(fact('Transmitted intensity', sig(I0 * (B.kind === 'none' ? T0 : TB), 4), `from ${sig(I0, 4)} in the same unit`));
@@ -114,10 +124,11 @@ import { MATERIALS, LINES } from '../../lib/sci/phgamma';
     const hr = tab.createTHead().insertRow(); head.forEach((h, j) => { const th = document.createElement('th'); th.textContent = h; if (j) th.className = 'r'; hr.append(th); });
     const bd = tab.createTBody(); rows.forEach((r) => { const tr = bd.insertRow(); r.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j) td.className = 'r'; }); });
     tableRows = [head, ...rows];
-    report = [{ title: q('.gs-big').textContent!, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig }, { title: `All materials at ${sig(E, 3)} MeV`, table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r'] }, note: 'Rounded teaching coefficients from NIST XCOM (public domain), log-log interpolated. Not a shielding assessment.' }];
+    report = [{ title: q('.gs-big').textContent!, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig }, { title: `All materials at ${sig(E, 3)} MeV`, table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r'] }, note: `${ACCURACY} Not a shielding assessment.` }];
   }
 
   ['.gs-line', '.gs-mat'].forEach((c) => q(c).addEventListener('change', () => { fill(); calc(); }));
+  inp('.gs-mu').addEventListener('input', () => { typed = true; });
   inp('.gs-e').addEventListener('input', () => { fill(); calc(); });
   root.querySelectorAll('input, select').forEach((i) => { if (!i.matches('.gs-line, .gs-mat, .gs-e')) { i.addEventListener('input', calc); i.addEventListener('change', calc); } });
   q('.gs-csv').addEventListener('click', () => { if (tableRows.length) save(new TextEncoder().encode(csv(tableRows)), 'gamma-shielding.csv', 'text/csv'); });

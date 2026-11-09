@@ -1,17 +1,74 @@
 // Gamma-ray shielding: narrow-beam attenuation I = I0 e^(−μx), half- and tenth-value layers, optional buildup
-// factor, and the thickness needed for a wanted transmission. Mass attenuation coefficients are a small rounded
-// set (3 significant figures) from NIST XCOM / the NIST X-ray mass attenuation tables (US government work,
-// public domain), interpolated log-log between 0.1 and 2 MeV. Teaching values, editable on the page. No DOM.
+// factor, and the thickness needed for a wanted transmission. The built-in mass attenuation coefficients are not a
+// table: the page works them out from formulas, element by element, as
+//   μ/ρ = Σ (N_A w_i / A_i) [ Z_i σ_KN(E) + σ_photo(Z_i, E) + σ_pair(Z_i, E) ],
+// with the exact Klein-Nishina Compton cross-section, a textbook scaling law for the photoelectric part (the
+// geometric mean of the non-relativistic and extreme-relativistic Born limits, which go as Z⁵/E^3.5 and Z⁵/E), and a
+// near-threshold Born form for pair production above 1.022 MeV (good only to about 3 MeV). Coherent (Rayleigh)
+// scattering and electron binding are left out. It is an approximate model for teaching and rough screening, not reference data: see ACCURACY.
+// Nothing is copied from any table. No DOM.
+import { ELEMENT_ROWS } from './elements.ts';
 
-export const ENERGIES = [0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1.0, 1.25, 1.5, 2.0];
-/** Mass attenuation coefficient μ/ρ (cm²/g, total with coherent scattering), rounded, at ENERGIES. */
-export const MATERIALS: Record<string, { name: string; rho: number; mu: number[] }> = {
-  lead: { name: 'Lead', rho: 11.35, mu: [5.55, 2.01, 0.999, 0.403, 0.232, 0.161, 0.125, 0.0887, 0.0710, 0.0588, 0.0522, 0.0461] },
-  tungsten: { name: 'Tungsten', rho: 19.3, mu: [4.44, 1.58, 0.784, 0.324, 0.193, 0.138, 0.109, 0.0809, 0.0662, 0.0559, 0.0500, 0.0444] },
-  iron: { name: 'Iron (steel)', rho: 7.87, mu: [0.372, 0.196, 0.146, 0.110, 0.0940, 0.0841, 0.0770, 0.0670, 0.0600, 0.0535, 0.0488, 0.0427] },
-  aluminium: { name: 'Aluminium', rho: 2.70, mu: [0.170, 0.138, 0.122, 0.104, 0.0928, 0.0845, 0.0780, 0.0684, 0.0615, 0.0550, 0.0501, 0.0432] },
-  concrete: { name: 'Concrete (ordinary)', rho: 2.30, mu: [0.169, 0.139, 0.124, 0.107, 0.0955, 0.0874, 0.0807, 0.0707, 0.0636, 0.0569, 0.0518, 0.0445] },
-  water: { name: 'Water', rho: 1.00, mu: [0.171, 0.151, 0.137, 0.119, 0.106, 0.0969, 0.0896, 0.0787, 0.0707, 0.0632, 0.0575, 0.0494] },
+export const NA = 6.02214076e23, RE = 2.8179403262e-13, ALPHA = 7.2973525693e-3, ME = 0.51099895;
+const S_TH = (8 / 3) * Math.PI * RE * RE;              // Thomson cross-section, cm²
+const weight = (Z: number) => ELEMENT_ROWS[Z - 1][2];  // standard atomic weight (IUPAC), from the periodic table
+/** How far the model can be out, in plain words; shown on the page and in the guide. */
+export const ACCURACY = 'The built-in coefficients are worked out from approximate formulas, not looked up in a table. Above about 0.5 MeV they are usually within roughly 20 %; below that they read low for heavy materials, by up to about 2.5 times for lead and tungsten at 0.1 MeV, because the photoelectric formula is only a scaling law. Check them against NIST XCOM, and for real work type the XCOM value into the box.';
+/** The model is only used between these energies (MeV); above about 3 MeV pair production needs the full
+ * Bethe-Heitler treatment, which this page does not do. */
+export const RANGE: [number, number] = [0.01, 3];
+
+/** Klein-Nishina total cross-section per free electron (cm²) at photon energy E (MeV). */
+export function kleinNishina(E: number): number {
+  const k = E / ME;
+  // Below k = 0.02 the closed form cancels badly in floating point; use its series, σ_Th(1 − 2k + 26k²/5 − 133k³/10).
+  if (k < 0.02) return S_TH * (1 - 2 * k + (26 * k * k) / 5 - (133 * k * k * k) / 10);
+  const a = ((1 + k) / (k * k)) * ((2 * (1 + k)) / (1 + 2 * k) - Math.log(1 + 2 * k) / k) + Math.log(1 + 2 * k) / (2 * k) - (1 + 3 * k) / (1 + 2 * k) ** 2;
+  return 2 * Math.PI * RE * RE * a;
+}
+/**
+ * Photoelectric cross-section per atom (cm²), a rough scaling law: the geometric mean of the two Born limits,
+ * σ_nr = 4√2 α⁴ Z⁵ σ_Th (E/mc²)^(−7/2) and σ_er = 1.5 α⁴ Z⁵ σ_Th (E/mc²)^(−1), which between them give the familiar
+ * "about Z⁴ to Z⁵ over E³" behaviour. Order of magnitude only (see ACCURACY); no shell structure, no edges.
+ */
+export function photoelectric(Z: number, E: number): number {
+  const eps = E / ME, c = S_TH * ALPHA ** 4 * Z ** 5;
+  return Math.sqrt(c * 4 * Math.SQRT2 * Math.pow(eps, -3.5) * ((c * 1.5) / eps));
+}
+/** Pair production in the nuclear field (cm² per atom), near-threshold Born form; zero below 2 mc² = 1.022 MeV. */
+export function pairProduction(Z: number, E: number): number {
+  const eps = E / ME;
+  return eps <= 2 ? 0 : (2 * Math.PI / 3) * ALPHA * RE * RE * Z * Z * Math.pow((eps - 2) / eps, 3);
+}
+
+/** A material: its name, density (rounded, editable on the page) and composition as weight fractions by element. */
+export type Material = { name: string; rho: number; comp: [number, number][] };
+/** Weight fractions from a chemical formula given as [atomic number, number of atoms]. */
+export function fromFormula(atoms: [number, number][]): [number, number][] {
+  const total = atoms.reduce((s, [Z, n]) => s + n * weight(Z), 0);
+  return atoms.map(([Z, n]) => [Z, (n * weight(Z)) / total] as [number, number]);
+}
+/** Weight fractions of a mixture of parts, each with its own weight fraction. */
+export function mix(parts: [number, [number, number][]][]): [number, number][] {
+  const m = new Map<number, number>();
+  for (const [f, comp] of parts) for (const [Z, w] of comp) m.set(Z, (m.get(Z) ?? 0) + f * w);
+  const total = [...m.values()].reduce((a, b) => a + b, 0);
+  return [...m].map(([Z, w]) => [Z, w / total] as [number, number]).sort((a, b) => a[0] - b[0]);
+}
+const el = (Z: number): [number, number][] => [[Z, 1]];
+// Air by volume: 78.08 % N₂, 20.95 % O₂, 0.93 % Ar (the usual rounded figures), turned into weight fractions.
+const airComp = mix([[0.7808 * 28.014, el(7)], [0.2095 * 31.998, el(8)], [0.0093 * 39.95, el(18)]]);
+// Concrete is not one material: this is a simple made-up stand-in mix, by weight. Edit μ/ρ for your own concrete.
+const concreteComp = mix([[0.6, fromFormula([[14, 1], [8, 2]])], [0.2, fromFormula([[20, 1], [8, 1]])], [0.05, fromFormula([[13, 2], [8, 3]])], [0.03, fromFormula([[26, 2], [8, 3]])], [0.12, fromFormula([[1, 2], [8, 1]])]]);
+
+/** Densities are rounded, well-known values and can be changed on the page. */
+export const MATERIALS: Record<string, Material> = {
+  lead: { name: 'Lead', rho: 11.35, comp: el(82) },
+  tungsten: { name: 'Tungsten', rho: 19.3, comp: el(74) },
+  iron: { name: 'Iron (steel)', rho: 7.87, comp: el(26) },
+  aluminium: { name: 'Aluminium', rho: 2.70, comp: el(13) },
+  concrete: { name: 'Concrete (simple mix)', rho: 2.30, comp: concreteComp },
+  water: { name: 'Water', rho: 1.00, comp: fromFormula([[1, 2], [8, 1]]) },
 };
 /** Common gamma lines (MeV), general values. */
 export const LINES: Record<string, { label: string; E: number }> = {
@@ -23,12 +80,25 @@ export const LINES: Record<string, { label: string; E: number }> = {
   na24: { label: 'Na-24 (1.37 MeV)', E: 1.369 },
 };
 
-/** μ/ρ (cm²/g) for a material at energy E (MeV), log-log interpolation; NaN outside 0.1 to 2 MeV. */
+/** Electrons per gram × the electron charge number: Σ w_i Z_i / A_i. */
+export const zOverA = (comp: [number, number][]) => comp.reduce((s, [Z, w]) => s + (w * Z) / weight(Z), 0);
+
+/** The three parts of μ/ρ (cm²/g) for a composition at energy E (MeV). */
+export function parts(comp: [number, number][], E: number) {
+  let compton = 0, photo = 0, pair = 0;
+  for (const [Z, w] of comp) {
+    const n = (NA * w) / weight(Z);
+    compton += n * Z * kleinNishina(E);
+    photo += n * photoelectric(Z, E);
+    pair += n * pairProduction(Z, E);
+  }
+  return { compton, photo, pair, total: compton + photo + pair };
+}
+/** μ/ρ (cm²/g) for a built-in material at energy E (MeV); NaN outside 0.01 to 20 MeV or for an unknown material. */
 export function massAtten(mat: string, E: number): number {
-  const m = MATERIALS[mat]; if (!m || !(E >= ENERGIES[0] && E <= ENERGIES[ENERGIES.length - 1])) return NaN;
-  let i = 0; while (i < ENERGIES.length - 2 && E > ENERGIES[i + 1]) i++;
-  const f = Math.log(E / ENERGIES[i]) / Math.log(ENERGIES[i + 1] / ENERGIES[i]);
-  return Math.exp(Math.log(m.mu[i]) + f * (Math.log(m.mu[i + 1]) - Math.log(m.mu[i])));
+  const m = MATERIALS[mat];
+  if (!m || !(E >= RANGE[0] && E <= RANGE[1])) return NaN;
+  return parts(m.comp, E).total;
 }
 
 export type Buildup = { kind: 'none' } | { kind: 'linear' } | { kind: 'berger'; a: number; b: number };
