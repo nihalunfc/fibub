@@ -1,0 +1,174 @@
+---
+// DALYs (YLL + YLD) with optional discounting, QALYs from user utilities, and ICERs per QALY and per DALY averted.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax dqy">
+  <p class="ax-help dq-warn">For study and teaching, not medical advice. Check with a qualified professional. All example numbers on this page are made up.</p>
+  <div class="ax-card">
+    <h2>Settings</h2>
+    <div class="ax-grid">
+      <label>Discount rate (% a year) <input class="dq-r" inputmode="decimal" value="3" /></label>
+      <label>Currency sign <input class="dq-cur" value="$" maxlength="4" /></label>
+    </div>
+    <p class="ax-help">Discounting counts a healthy year in the future as worth a little less than one now. Use 0 for no discounting (as the Global Burden of Disease study does since 2010); 3 % is a common choice in cost-effectiveness studies. Formula: each stretch of L years starting at year s counts as (e<sup>−rs</sup> − e<sup>−r(s+L)</sup>) / r years.</p>
+    <p class="ax-err dq-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Disease burden (DALYs)</h2>
+    <label><span>One condition per line: <em>name, deaths, years of life lost per death, cases, disability weight (0 to 1), years lived with it</em>. The rows below are <strong>made up</strong>: type your own weights and numbers.</span>
+      <textarea class="dq-b" rows="4" spellcheck="false">Condition, Deaths, Years lost per death, Cases, Disability weight, Years with it
+Condition X (made up), 20, 30, 500, 0.2, 4
+Condition Y (made up), 3, 62.5, 12000, 0.05, 0.5</textarea></label>
+    <DataFile target=".dq-b" maxCols={6} maxRows={200} />
+    <p class="ax-err dq-berr" hidden></p>
+    <div class="dq-bout" hidden>
+      <p class="ax-big dq-bbig"></p>
+      <div class="ax-scroll" style="margin-top:8px"><table class="dq-btab"></table></div>
+      <p class="ax-help">YLL (years of life lost) = deaths × years lost per death. YLD (years lived with disability) = cases × disability weight × years with it. Both discounted as above. DALY = YLL + YLD.</p>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small dq-bcsv">Download burden (CSV)</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Compare an intervention (QALYs and ICER)</h2>
+    <p class="ax-help" style="margin:0 0 10px">Describe one typical person in each arm as health stages, one per line: <em>utility (1 = full health, 0 = dead), years</em>, and optionally <em>a disability weight</em> for the DALY count (otherwise 1 − utility). After the last stage the person dies. Costs are per person.</p>
+    <div class="dq-arms">
+      <fieldset>
+        <legend>Comparator</legend>
+        <label>Name <input class="dq-n0" value="Usual care" /></label>
+        <label>Cost per person <input class="dq-c0" inputmode="decimal" value="2000" /></label>
+        <label>Health stages <textarea class="dq-s0" rows="3" spellcheck="false">0.6, 5, 0.3</textarea></label>
+      </fieldset>
+      <fieldset>
+        <legend>Intervention</legend>
+        <label>Name <input class="dq-n1" value="New treatment" /></label>
+        <label>Cost per person <input class="dq-c1" inputmode="decimal" value="12000" /></label>
+        <label>Health stages <textarea class="dq-s1" rows="3" spellcheck="false">0.8, 3, 0.15
+0.7, 5, 0.2</textarea></label>
+      </fieldset>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Horizon for DALYs (years) <input class="dq-h" inputmode="decimal" value="10" /></label>
+      <label>Willingness to pay per QALY (optional) <input class="dq-wtp" inputmode="decimal" value="" placeholder="e.g. 30000" /></label>
+    </div>
+    <p class="ax-help">The horizon is the life expectancy DALYs are measured against: years between death and the horizon count as years of life lost. The willingness to pay is a threshold you choose; it gives the net monetary benefit.</p>
+    <p class="ax-err dq-aerr" hidden></p>
+    <div class="dq-aout" hidden>
+      <p class="ax-big dq-abig"></p>
+      <dl class="ax-facts dq-facts"></dl>
+      <canvas class="ax-fig dq-fig" style="margin-top:14px"></canvas>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small dq-acsv">Download comparison (CSV)</button></div>
+    </div>
+  </div>
+  <Downloads />
+</div>
+
+<script>
+  import { num, parseTable, csv } from '../../lib/sci/num';
+  import { burden, parseBurden, arm, parseStages, icer, type Stage } from '../../lib/sci/daly';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.dqy')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => q<HTMLInputElement>(c).value;
+  const sig = (x: number, n = 4) => (Number.isFinite(x) ? (+x.toPrecision(n)).toLocaleString('en', { maximumFractionDigits: 10 }) : '–');
+  const f2 = (x: number) => x.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  let fig: Figure | null = null, bSec: Section | null = null, aSec: Section | null = null, setSec: Section | null = null;
+  let bRows: (string | number)[][] = [], aRows: (string | number)[][] = [];
+
+  const show = (c: string, msg: string) => { const e = q(c); e.textContent = msg; e.hidden = !msg; };
+  function table(el: HTMLTableElement, head: string[], rows: string[][], bold = -1) {
+    el.innerHTML = '';
+    const hr = el.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = el.createTBody(); rows.forEach((r, j) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); if (j === bold) tr.className = 'dq-tot'; });
+  }
+
+  function calc() {
+    const rp = num(v('.dq-r')), r = rp / 100, cur = v('.dq-cur').trim();
+    const money = (x: number) => (Number.isFinite(x) ? `${x < 0 ? '−' : ''}${cur}${Math.round(Math.abs(x)).toLocaleString('en')}` : '–');
+    if (!(rp >= 0 && rp <= 20)) { show('.dq-err', 'The discount rate must be from 0 to 20 %.'); q('.dq-bout').hidden = true; q('.dq-aout').hidden = true; bSec = aSec = null; return; }
+    show('.dq-err', '');
+    const rate = r > 0 ? `${sig(rp, 3)} % a year, continuous: (e^(−rs) − e^(−r(s+L))) / r, r = ${sig(r, 4)}` : 'none (0 %)';
+    setSec = { title: 'Settings', text: [`Discounting: ${rate}.`, 'All example numbers are made up for teaching.'] };
+
+    // Burden.
+    const pb = parseBurden(parseTable(q<HTMLTextAreaElement>('.dq-b').value));
+    if (pb.error) { show('.dq-berr', pb.error); q('.dq-bout').hidden = true; bSec = null; bRows = []; }
+    else {
+      show('.dq-berr', '');
+      const b = burden(pb.rows, r);
+      q('.dq-bout').hidden = false;
+      q('.dq-bbig').textContent = `${f2(b.daly)} DALYs (YLL ${f2(b.yll)} + YLD ${f2(b.yld)})`;
+      const head = ['Condition', 'YLL', 'YLD', 'DALYs'];
+      const rows = [...b.rows.map((o) => [o.name, f2(o.yll), f2(o.yld), f2(o.daly)]), ...(b.rows.length > 1 ? [['Total', f2(b.yll), f2(b.yld), f2(b.daly)]] : [])];
+      table(q<HTMLTableElement>('.dq-btab'), head, rows, b.rows.length > 1 ? rows.length - 1 : -1);
+      bRows = [['condition', 'deaths', 'years_lost_per_death', 'cases', 'disability_weight', 'years_with_it', 'discount_rate_percent', 'YLL', 'YLD', 'DALY'],
+        ...b.rows.map((o) => [o.name, o.deaths, o.yearsLost, o.cases, o.weight, o.duration, rp, +o.yll.toFixed(6), +o.yld.toFixed(6), +o.daly.toFixed(6)])];
+      bSec = { title: 'Disease burden (DALYs)', text: ['YLL = deaths × discounted years lost per death; YLD = cases × disability weight × discounted years with it; DALY = YLL + YLD.'], table: { head, rows, align: ['l', 'r', 'r', 'r'] } };
+    }
+
+    // Comparison.
+    const s0 = parseStages(q<HTMLTextAreaElement>('.dq-s0').value), s1 = parseStages(q<HTMLTextAreaElement>('.dq-s1').value);
+    const c0 = num(v('.dq-c0')), c1 = num(v('.dq-c1')), H = num(v('.dq-h')), wtpS = v('.dq-wtp').trim(), wtp = wtpS ? num(wtpS) : undefined;
+    const n0 = v('.dq-n0').trim() || 'Comparator', n1 = v('.dq-n1').trim() || 'Intervention';
+    const aerr = s0.error ? `${n0}: ${s0.error}` : s1.error ? `${n1}: ${s1.error}` : !Number.isFinite(c0) || !Number.isFinite(c1) ? 'Type a cost for each arm (0 is fine).'
+      : !(H > 0 && H <= 200) ? 'The horizon must be above 0 and at most 200 years.' : wtp !== undefined && !(wtp >= 0) ? 'Willingness to pay must be a number of 0 or more, or blank.' : '';
+    if (aerr) { show('.dq-aerr', aerr); q('.dq-aout').hidden = true; aSec = null; aRows = []; return; }
+    show('.dq-aerr', '');
+    const yrs = (st: Stage[]) => st.reduce((t, s) => t + s.years, 0);
+    if (yrs(s0.stages) > H || yrs(s1.stages) > H) { show('.dq-aerr', `The horizon (${sig(H)} years) is shorter than a health profile: make it at least ${sig(Math.max(yrs(s0.stages), yrs(s1.stages)))} years.`); q('.dq-aout').hidden = true; aSec = null; aRows = []; return; }
+    const a0 = arm(s0.stages, r, H), a1 = arm(s1.stages, r, H), ic = icer(c0, a0, c1, a1, wtp);
+    q('.dq-aout').hidden = false;
+    const verdict = {
+      dominant: `${n1} is dominant: cheaper (or equal) and more QALYs`,
+      dominated: `${n1} is dominated: costs more (or equal) and gives fewer QALYs`,
+      'more-cost-more-effect': `ICER ${money(ic.perQaly)} per QALY gained`,
+      'less-cost-less-effect': `${n1} saves ${money(ic.perQaly)} per QALY lost`,
+      'no-difference': 'No difference in QALYs: compare costs only',
+    }[ic.quadrant];
+    q('.dq-abig').textContent = verdict;
+    const list: [string, string, string?][] = [
+      [`QALYs: ${n0}`, f2(a0.qaly), `${f2(a0.undiscountedQaly)} undiscounted, over ${sig(a0.years)} years`],
+      [`QALYs: ${n1}`, f2(a1.qaly), `${f2(a1.undiscountedQaly)} undiscounted, over ${sig(a1.years)} years`],
+      ['QALYs gained', f2(ic.dQaly)],
+      [`DALYs: ${n0}`, f2(a0.daly), `over a ${sig(H)}-year horizon`],
+      [`DALYs: ${n1}`, f2(a1.daly)],
+      ['DALYs averted', f2(ic.dDaly)],
+      ['Extra cost', money(ic.dCost), `${money(c1)} − ${money(c0)}`],
+      ['Cost per QALY gained', ic.quadrant === 'more-cost-more-effect' || ic.quadrant === 'less-cost-less-effect' ? money(ic.perQaly) : '–', ic.quadrant === 'more-cost-more-effect' ? 'ICER = extra cost ÷ QALYs gained' : 'not shown when one arm dominates'],
+      ['Cost per DALY averted', ic.dDaly > 0 && ic.dCost > 0 ? money(ic.perDaly) : '–', 'extra cost ÷ DALYs averted'],
+    ];
+    if (ic.nmb !== undefined) list.push(['Net monetary benefit', money(ic.nmb), `${money(wtp!)} × QALYs gained − extra cost: ${ic.nmb >= 0 ? 'worth it at this threshold' : 'not worth it at this threshold'}`]);
+    q('.dq-facts').replaceChildren(...list.map(([k, val, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+    const steps = (st: Stage[]) => { const x: number[] = [], y: number[] = []; let t = 0; for (const s of st) { x.push(t, t + s.years); y.push(s.utility, s.utility); t += s.years; } x.push(t, H); y.push(0, 0); return { x, y }; };
+    const p0 = steps(s0.stages), p1 = steps(s1.stages);
+    fig = chartFigure({ h: 320, xLabel: 'Years', yLabel: 'Utility (1 = full health)', xMin: 0, xMax: H, yMin: Math.min(0, ...s0.stages.map((s) => s.utility), ...s1.stages.map((s) => s.utility)), yMax: 1, legend: 'below', series: [
+      { name: n0, x: p0.x, y: p0.y, mode: 'line', width: 2.5, dash: [6, 3] },
+      { name: n1, x: p1.x, y: p1.y, mode: 'line', width: 2.5 },
+    ] }, `Health profiles: utility over ${sig(H)} years for ${n0} and ${n1}; the area under each is its undiscounted QALYs`);
+    paint(q<HTMLCanvasElement>('.dq-fig'), fig);
+    aRows = [['measure', n0, n1, 'difference'], ['cost', c0, c1, ic.dCost], ['QALYs (discounted)', +a0.qaly.toFixed(6), +a1.qaly.toFixed(6), +ic.dQaly.toFixed(6)], ['QALYs (undiscounted)', +a0.undiscountedQaly.toFixed(6), +a1.undiscountedQaly.toFixed(6), +(a1.undiscountedQaly - a0.undiscountedQaly).toFixed(6)],
+      ['DALYs', +a0.daly.toFixed(6), +a1.daly.toFixed(6), +(-ic.dDaly).toFixed(6)], ['cost per QALY gained', '', '', Number.isFinite(ic.perQaly) ? +ic.perQaly.toFixed(4) : ''], ['cost per DALY averted', '', '', Number.isFinite(ic.perDaly) ? +ic.perDaly.toFixed(4) : ''], ['discount rate percent', rp, rp, ''], ['horizon years', H, H, '']];
+    aSec = { title: `Comparison: ${n1} against ${n0}`, text: [verdict + '.', `${n0}: ${s0.stages.map((s) => `utility ${s.utility} for ${s.years} y`).join(', ')}. ${n1}: ${s1.stages.map((s) => `utility ${s.utility} for ${s.years} y`).join(', ')}.`], facts: list.map(([k, val, s]) => [k, s ? `${val} (${s})` : val] as [string, string]), figure: fig };
+  }
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input').forEach((el) => el.addEventListener('input', later));
+  document.addEventListener('fibub:theme', () => fig && !q('.dq-aout').hidden && paint(q<HTMLCanvasElement>('.dq-fig'), fig));
+  q('.dq-bcsv').addEventListener('click', () => bRows.length > 1 && save(new TextEncoder().encode(csv(bRows)), 'daly-burden.csv', 'text/csv'));
+  q('.dq-acsv').addEventListener('click', () => aRows.length > 1 && save(new TextEncoder().encode(csv(aRows)), 'qaly-icer.csv', 'text/csv'));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'DALYs, QALYs and cost-effectiveness', subtitle: q('.dq-abig').textContent ?? '', file: 'daly-qaly', sections: [setSec, bSec, aSec].filter((s): s is Section => !!s) }));
+</script>
+
+<style is:global>
+  .dqy .dq-warn { margin: 0; font-size: 14px; color: var(--ink); }
+  .dqy .dq-arms { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; }
+  .dqy fieldset { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px 12px; margin: 0; display: grid; gap: 8px; min-width: 0; }
+  .dqy legend { font-weight: 600; font-size: 15px; padding: 0 4px; }
+  .dqy tr.dq-tot td { font-weight: 700; }
+</style>
