@@ -1,0 +1,175 @@
+---
+// Travelling wave (Learn): y = A sin(kx − ωt) on a string, one particle tracked, the superposition of two waves
+// (standing waves), and beats between two close tones (with sound only after a button press).
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn trw">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">The wave</h2>
+      <div class="ax-seg tw-mode" role="group" aria-label="What to show"><button type="button" data-m="one" aria-pressed="true">One wave</button><button type="button" data-m="two" aria-pressed="false">Two waves</button><button type="button" data-m="beats" aria-pressed="false">Beats</button></div>
+    </div>
+    <canvas class="lrn-cv tw-cv" style="margin-top:10px" aria-label="A wave moving along a string, with one particle marked"></canvas>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small tw-play">Pause</button>
+      <button type="button" class="btn small tw-sound tw-b" hidden>Play the beats</button>
+      <span class="ax-help tw-note" style="margin:0"></span>
+    </div>
+    <div class="ax-grid tw-w" style="margin-top:10px">
+      <label class="lrn-sl">Amplitude A <b class="tw-Av"></b><input type="range" class="tw-A" min="1" max="10" step="1" value="5" aria-label="Amplitude in centimetres" /></label>
+      <label class="lrn-sl">Wavelength λ <b class="tw-lv"></b><input type="range" class="tw-l" min="0.5" max="4" step="0.1" value="2" aria-label="Wavelength in metres" /></label>
+      <label class="lrn-sl">Period T <b class="tw-Tv"></b><input type="range" class="tw-T" min="0.5" max="4" step="0.1" value="1" aria-label="Period in seconds" /></label>
+      <label>Moving <select class="tw-dir"><option value="1" selected>To the right (kx − ωt)</option><option value="-1">To the left (kx + ωt)</option></select></label>
+      <label class="lrn-sl">Tracked particle at x <b class="tw-xv"></b><input type="range" class="tw-x" min="0" max="4" step="0.05" value="1" aria-label="Position of the tracked particle in metres" /></label>
+    </div>
+    <div class="ax-grid tw-2" style="margin-top:10px" hidden>
+      <label class="lrn-sl">Wave 2 amplitude <b class="tw-A2v"></b><input type="range" class="tw-A2" min="0" max="10" step="1" value="5" aria-label="Second wave amplitude in centimetres" /></label>
+      <label class="lrn-sl">Wave 2 wavelength <b class="tw-l2v"></b><input type="range" class="tw-l2" min="0.5" max="4" step="0.1" value="2" aria-label="Second wave wavelength in metres" /></label>
+      <label>Wave 2 moving <select class="tw-dir2"><option value="1">To the right</option><option value="-1" selected>To the left</option></select></label>
+      <label class="lrn-sl">Wave 2 phase <b class="tw-pv"></b><input type="range" class="tw-p" min="0" max="360" step="30" value="0" aria-label="Phase of the second wave in degrees" /></label>
+    </div>
+    <div class="ax-grid tw-b" style="margin-top:10px" hidden>
+      <label class="lrn-sl">Tone 1 <b class="tw-f1v"></b><input type="range" class="tw-f1" min="200" max="600" step="1" value="440" aria-label="First tone in hertz" /></label>
+      <label class="lrn-sl">Tone 2 <b class="tw-f2v"></b><input type="range" class="tw-f2" min="200" max="600" step="1" value="444" aria-label="Second tone in hertz" /></label>
+    </div>
+    <p class="lrn-eq tw-eq"></p>
+    <dl class="ax-facts tw-facts" style="margin-top:10px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Watch the orange particle: it only goes up and down. The wave moves along; the string does not.</li>
+      <li>Halve the period: the wave moves twice as fast, because v = λ / T.</li>
+      <li>Two waves: keep the same wavelength, one going each way. The sum stops travelling and some points never move: a standing wave with nodes λ/2 apart.</li>
+      <li>Two waves going the same way with phase 180°: they cancel. With phase 0°: one wave twice as tall.</li>
+      <li>Beats: set the tones 4 Hz apart and press play. The sound swells and fades 4 times a second. Bring them together and the beats slow down and stop.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card tw-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { waveNumber, angularFreq, waveSpeed, waveY, particleV, beatFreq, beatsY, beatsEnvelope, nodes } from '../../lib/sci/learnwave';
+  import { mountQuiz, pick, one, r, fitCanvas, loop } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.trw')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v_ = (c: string) => +(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const XMAX = 4;
+  let mode = 'one', t = 0;
+  const st = () => {
+    const A = v_('.tw-A'), lam = v_('.tw-l'), T = v_('.tw-T'), dir = v_('.tw-dir'), k = waveNumber(lam), w = angularFreq(T);
+    const A2 = v_('.tw-A2'), lam2 = v_('.tw-l2'), k2 = waveNumber(lam2), dir2 = v_('.tw-dir2'), phi2 = (v_('.tw-p') * Math.PI) / 180;
+    const w2 = waveSpeed(k, w) * k2; // same string, same speed: ω₂ = v k₂
+    return { A, lam, T, dir, k, w, v: waveSpeed(k, w), A2, lam2, k2, w2, dir2, phi2, x0: v_('.tw-x'), f1: v_('.tw-f1'), f2: v_('.tw-f2') };
+  };
+  const minus = (x: number) => (x < 0 ? '−' : '') + Math.abs(x).toFixed(1);
+
+  function draw(dt: number) {
+    t += dt; const s = st(), pal = pagePalette(), hi = pal.red ? pal.ink : pal.accent, hi2 = pal.red ? pal.muted : pal.accent2;
+    const { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.tw-cv'), 230);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    ctx.font = '12px system-ui, sans-serif';
+    if (mode === 'beats') {
+      const span = 1, y0 = H / 2 - 10, sc = (H / 2 - 30) / 2;
+      ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(0, y0); ctx.lineTo(W, y0); ctx.stroke();
+      ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.beginPath();
+      const n = Math.round(W * 12);
+      for (let i = 0; i <= n; i++) { const u = (i / n) * span, x = (i / n) * W, y = y0 - beatsY(u, 1, s.f1, s.f2) * sc; if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }
+      ctx.stroke();
+      ctx.strokeStyle = hi; ctx.lineWidth = 2;
+      for (const sgn of [1, -1]) { ctx.beginPath(); for (let px = 0; px <= W; px += 2) { const y = y0 - sgn * beatsEnvelope((px / W) * span, 1, s.f1, s.f2) * sc; if (px) ctx.lineTo(px, y); else ctx.moveTo(px, y); } ctx.stroke(); }
+      const cur = ((t % span) / span) * W; ctx.strokeStyle = hi2; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(cur, 0); ctx.lineTo(cur, H - 20); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText('0 s', 4, H - 6); ctx.textAlign = 'right'; ctx.fillText('1 s: sound at one place', W - 4, H - 6);
+      return;
+    }
+    const y0 = 95, sc = 70 / 10, xs = (x: number) => (x / XMAX) * (W - 20) + 10;
+    ctx.strokeStyle = pal.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(10, y0); ctx.lineTo(W - 10, y0); ctx.stroke();
+    const f1 = (x: number) => waveY(x, t, s.A, s.k, s.w, s.dir);
+    const f2 = (x: number) => waveY(x, t, s.A2, s.k2, s.w2, s.dir2, s.phi2);
+    const curve = (f: (x: number) => number, col: string, wid: number) => { ctx.strokeStyle = col; ctx.lineWidth = wid; ctx.beginPath(); for (let px = 10; px <= W - 10; px += 2) { const x = ((px - 10) / (W - 20)) * XMAX, y = y0 - f(x) * sc; if (px > 10) ctx.lineTo(px, y); else ctx.moveTo(px, y); } ctx.stroke(); };
+    if (mode === 'two') {
+      curve(f1, pal.line, 1.5); curve(f2, pal.line, 1.5); ctx.setLineDash([]);
+      curve((x) => f1(x) + f2(x), hi, 2.5);
+      if (s.A === s.A2 && s.lam === s.lam2 && s.dir !== s.dir2) {
+        ctx.fillStyle = pal.ink; for (const nx of nodes(s.lam, XMAX)) { const shift = -s.phi2 / (2 * s.k); for (const m of [-1, 0, 1]) { const xx = nx + shift + (m * s.lam) / 2; if (xx >= 0 && xx <= XMAX + 1e-9) { ctx.beginPath(); ctx.arc(xs(xx), y0, 3.5, 0, 7); ctx.fill(); } } }
+      }
+    } else curve(f1, hi, 2.5);
+    // Tracked particle
+    const ty = mode === 'two' ? f1(s.x0) + f2(s.x0) : f1(s.x0);
+    ctx.strokeStyle = pal.muted; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(xs(s.x0), y0 - 74); ctx.lineTo(xs(s.x0), y0 + 74); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = hi2; ctx.beginPath(); ctx.arc(xs(s.x0), y0 - ty * sc, 6, 0, 7); ctx.fill();
+    // Wavelength bar
+    if (mode === 'one') {
+      const bx = xs(0), bw = xs(s.lam) - xs(0), by = H - 16; ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + bw, by); ctx.moveTo(bx, by - 5); ctx.lineTo(bx, by + 5); ctx.moveTo(bx + bw, by - 5); ctx.lineTo(bx + bw, by + 5); ctx.stroke();
+      ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.fillText(`λ = ${s.lam} m`, Math.min(bx + bw + 6, W - 60), by + 4);
+      ctx.textAlign = 'right'; ctx.fillText(s.dir === 1 ? 'wave moves →' : '← wave moves', W - 10, 14);
+    } else { ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText('thin lines: the two waves; thick line: their sum', 10, H - 10); }
+    q('.tw-note').textContent = `t = ${t.toFixed(2)} s, particle y = ${minus(ty)} cm`;
+  }
+
+  function update() {
+    const s = st();
+    q('.tw-Av').textContent = `${s.A} cm`; q('.tw-lv').textContent = `${s.lam.toFixed(1)} m`; q('.tw-Tv').textContent = `${s.T.toFixed(1)} s`; q('.tw-xv').textContent = `${s.x0.toFixed(2)} m`;
+    q('.tw-A2v').textContent = `${s.A2} cm`; q('.tw-l2v').textContent = `${s.lam2.toFixed(1)} m`; q('.tw-pv').textContent = `${v_('.tw-p')}°`;
+    q('.tw-f1v').textContent = `${s.f1} Hz`; q('.tw-f2v').textContent = `${s.f2} Hz`;
+    q('.tw-w').hidden = mode === 'beats'; q('.tw-2').hidden = mode !== 'two';
+    root.querySelectorAll<HTMLElement>('.tw-b').forEach((e) => { e.hidden = mode !== 'beats'; });
+    if (mode === 'beats') {
+      const fb = beatFreq(s.f1, s.f2);
+      q('.tw-eq').textContent = `Beat frequency = |f₁ − f₂| = |${s.f1} − ${s.f2}| = ${fb} Hz.  You hear about ${(s.f1 + s.f2) / 2} Hz, getting loud and soft ${fb} times a second.`;
+      q('.tw-facts').replaceChildren(fact('Beats per second', `${fb}`, fb === 0 ? 'in tune: no beats' : fb > 15 ? 'too fast to hear as beats' : 'loud–soft cycles each second'), fact('Time between loud moments', fb ? `${sig(1 / fb, 3)} s` : '–'), fact('Note you hear', `${(s.f1 + s.f2) / 2} Hz`, 'the average of the two'));
+      q('.tw-note').textContent = '';
+    } else {
+      const sgn = s.dir === 1 ? '−' : '+';
+      q('.tw-eq').textContent = `k = 2π / λ = 2π / ${s.lam.toFixed(1)} = ${sig(s.k, 4)} rad/m.  ω = 2π / T = 2π / ${s.T.toFixed(1)} = ${sig(s.w, 4)} rad/s.  y(x, t) = ${s.A} sin(${sig(s.k, 4)} x ${sgn} ${sig(s.w, 4)} t) cm.  v = ω / k = λ / T = ${sig(s.v, 4)} m/s.`;
+      const facts = [fact('Wave speed v', `${sig(s.v, 4)} m/s`, `${s.dir === 1 ? 'to the right' : 'to the left'}`), fact('Frequency f', `${sig(1 / s.T, 4)} Hz`, 'f = 1 / T'), fact('Particle top speed', `${sig(s.A * s.w, 4)} cm/s`, 'Aω, not the wave speed')];
+      if (mode === 'two') {
+        const standing = s.A === s.A2 && s.lam === s.lam2 && s.dir !== s.dir2, same = s.lam === s.lam2 && s.dir === s.dir2;
+        const res = standing ? `Standing wave: nodes every λ/2 = ${sig(s.lam / 2, 3)} m; antinodes swing to ${2 * s.A} cm` : same ? `One travelling wave of amplitude ${sig(Math.sqrt(s.A ** 2 + s.A2 ** 2 + 2 * s.A * s.A2 * Math.cos(s.phi2)), 3)} cm` : 'A changing pattern: the sum of two different waves';
+        facts.push(fact('What the sum does', res, standing ? 'y = 2A sin kx cos ωt (phase moves the nodes)' : same ? 'A² = A₁² + A₂² + 2A₁A₂ cos φ' : 'superposition: add the two at every point'));
+      }
+      q('.tw-facts').replaceChildren(...facts);
+    }
+    if (oscs && ac) { oscs[0].frequency.setTargetAtTime(s.f1, ac.currentTime, 0.02); oscs[1].frequency.setTargetAtTime(s.f2, ac.currentTime, 0.02); }
+    anim.redraw();
+  }
+
+  let ac: AudioContext | null = null, oscs: OscillatorNode[] | null = null, gn: GainNode | null = null;
+  const stopSound = () => { if (!oscs || !ac) return; gn!.gain.setTargetAtTime(0, ac.currentTime, 0.03); const o = oscs; setTimeout(() => o.forEach((x) => x.stop()), 150); oscs = null; q('.tw-sound').textContent = 'Play the beats'; };
+  q('.tw-sound').addEventListener('click', () => {
+    if (oscs) return stopSound();
+    ac = ac ?? new AudioContext(); void ac.resume(); const s = st();
+    gn = ac.createGain(); gn.gain.value = 0; gn.connect(ac.destination);
+    oscs = [s.f1, s.f2].map((f) => { const o = ac!.createOscillator(); o.frequency.value = f; o.connect(gn!); o.start(); return o; });
+    gn.gain.setTargetAtTime(0.08, ac.currentTime, 0.05); q('.tw-sound').textContent = 'Stop the beats';
+  });
+
+  const anim = loop(draw, q<HTMLButtonElement>('.tw-play'));
+  root.querySelectorAll<HTMLButtonElement>('.tw-mode button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m!; root.querySelectorAll('.tw-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); if (mode !== 'beats') stopSound(); update();
+  }));
+  root.querySelectorAll('input, select').forEach((e) => e.addEventListener('input', update));
+  addEventListener('resize', () => anim.redraw());
+  update();
+
+  mountQuiz(q('.tw-quiz'), () => {
+    const k = pick(1, 12) / 2, w = pick(2, 40), lam = pick(2, 40) / 10, f1 = pick(250, 500), d = pick(1, 8), dirQ = one([1, -1]);
+    return [
+      { q: `A wave on a string is y = 0.03 sin(${k} x − ${w} t), with x in metres and t in seconds. What is its speed?`, ans: w / k, unit: 'm/s', work: `v = ω / k = ${w} / ${k} = ${r(w / k)} m/s` },
+      { q: `For the same wave, y = 0.03 sin(${k} x − ${w} t), what is the wavelength?`, ans: (2 * Math.PI) / k, unit: 'm', work: `λ = 2π / k = 2π / ${k} = ${r((2 * Math.PI) / k)} m` },
+      { q: `A wave has wavelength ${lam} m and travels at ${w} m/s. What is its frequency?`, ans: w / lam, unit: 'Hz', work: `f = v / λ = ${w} / ${lam} = ${r(w / lam)} Hz` },
+      { q: `Two tuning forks of ${f1} Hz and ${f1 + d} Hz sound together. How many beats do you hear each second?`, ans: d, unit: 'beats/s', work: `beats = |f₁ − f₂| = |${f1} − ${f1 + d}| = ${d} per second` },
+      { q: `Which way does y = A sin(kx ${dirQ === 1 ? '−' : '+'} ωt) travel?`, ans: dirQ === 1 ? 0 : 1, choices: ['Towards +x (right)', 'Towards −x (left)', 'It does not travel'], work: dirQ === 1 ? 'kx − ωt stays the same if x grows as t grows, so the shape moves towards +x.' : 'kx + ωt stays the same if x falls as t grows, so the shape moves towards −x.' },
+    ];
+  });
+</script>
