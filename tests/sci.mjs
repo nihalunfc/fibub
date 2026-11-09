@@ -138,6 +138,7 @@ import * as PRB from '../src/lib/sci/probit.ts';
 import * as SSD from '../src/lib/sci/ssd.ts';
 import * as NDS from '../src/lib/sci/censored.ts';
 import * as LFG from '../src/lib/sci/lfg.ts';
+import * as POND from '../src/lib/sci/pond.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2755,6 +2756,21 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('lfg before placement', LFG.yearShare(0.05, -1) === 0);
   near('lfg CH4 density 0 C', LFG.ch4Density(0), 0.7157589809371521, 1e-12); near('lfg half-life', LFG.halfLife(0.05), 13.862943611198906, 1e-12);
   const f = LFG.fate(100, 0.6, 0.1); near('lfg fate emitted', f.emitted, 36, 1e-12); near('lfg fate oxidised', f.oxidised, 4, 1e-12);
+}
+// #155 Detention pond routing (SciPy solve_ivp DOP853, rtol 1e-11, same outlet equations)
+{
+  const g = { L: 40, W: 25, z: 3, depth: 2 }, o = { d: 0.3, cd: 0.6, invert: 0, crest: 1.6, weirL: 3, cw: 1.7 };
+  const H = POND.rationalHydro(0.65, 60, 12, 15, 30);
+  near('pond rational peak', H.peak, 1.3, 1e-12); near('pond rational volume', H.volume, 2340, 1e-9);
+  const r = POND.route(H.Q, g, o, 6 * 3600, 10);
+  near('pond peak outflow', r.peakO, 0.21862271075257772, 2e-6); near('pond max level', r.hMax, 1.504329269359554, 2e-6); near('pond max storage', r.sMax, 1986.4672306274406, 0.01);
+  [[600, 0.2399965093352044], [1800, 1.2489366443321148], [3600, 1.3771212582383374], [7200, 0.926793253898842]].forEach(([t, h]) => near(`pond level at ${t} s`, r.h[r.t.indexOf(t)], h, 2e-6));
+  check('pond no spill', !r.spill);
+  const d = POND.sizeOrifice(H.Q, g, o, 6 * 3600, 0.4); near('pond sized orifice gives target', POND.route(H.Q, g, { ...o, d }, 6 * 3600, 10).peakO, 0.4, 1e-6);
+  // Storage is the integral of the surface area.
+  let num = 0; for (let k = 0; k < 2000; k++) num += POND.areaAt(g, (k + 0.5) * 0.001) * 0.001; near('pond storage = ∫ area', POND.storageAt(g, 2), num, 1e-3);
+  const T = POND.tableHydro([0, 600, 1800], [0, 2, 0]); near('pond table interp', T.Q(900), 1.5, 1e-12); near('pond table volume', T.volume, 1800, 1e-9);
+  check('pond orifice continuous-ish', POND.orificeQ(o, 0.3) > 0 && POND.orificeQ(o, 0) === 0 && POND.weirQ(o, 1.7) > 0);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

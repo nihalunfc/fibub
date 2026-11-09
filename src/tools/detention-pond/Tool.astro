@@ -1,0 +1,171 @@
+---
+// Stormwater detention pond: modified rational or pasted inflow, sloping-sided pond, orifice and overflow weir,
+// level-pool routing and orifice sizing for a target peak outflow. The example site is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const hydro = 'time (min)\tflow (m³/s)\n0\t0\n10\t0.4\n20\t1.1\n30\t1.3\n40\t0.9\n50\t0.5\n60\t0.25\n75\t0.08\n90\t0';
+---
+<div class="ax dpd">
+  <div class="ax-card">
+    <h2>Inflow</h2>
+    <div class="ax-grid">
+      <label>Inflow from <select class="dp-src"><option value="rat" selected>Modified rational method</option><option value="tab">A hydrograph I paste</option></select></label>
+    </div>
+    <div class="ax-grid dp-rat" style="margin-top:10px">
+      <label>Catchment area (ha) <input class="dp-A" inputmode="decimal" value="12" /></label>
+      <label>Runoff coefficient C <input class="dp-C" inputmode="decimal" value="0.65" /></label>
+      <label>Rain intensity (mm/h) <input class="dp-i" inputmode="decimal" value="60" /></label>
+      <label>Storm duration (min) <input class="dp-td" inputmode="decimal" value="30" /></label>
+      <label>Time of concentration (min) <input class="dp-tc" inputmode="decimal" value="15" /></label>
+    </div>
+    <div class="dp-tab" hidden style="margin-top:10px">
+      <label>Time (minutes) and flow (m³/s), one row per time. <textarea class="dp-hy" rows="7" spellcheck="false">{hydro}</textarea></label>
+      <DataFile target=".dp-hy" maxCols={10} maxRows={5000} />
+    </div>
+    <p class="ax-help">The modified rational method makes a trapezoid: flow rises over the time of concentration to C × i × A, holds while it rains, then falls. Use the rain intensity for your design storm and duration from your local rainfall data, and try several durations: the longest is not always the worst for a pond. A pasted hydrograph can come from any model; up to 5,000 rows.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Pond and outlet</h2>
+    <div class="ax-grid">
+      <label>Bottom length (m) <input class="dp-L" inputmode="decimal" value="40" /></label>
+      <label>Bottom width (m) <input class="dp-W" inputmode="decimal" value="25" /></label>
+      <label>Side slope (horizontal per 1 vertical) <input class="dp-z" inputmode="decimal" value="3" /></label>
+      <label>Depth to the top of the bank (m) <input class="dp-D" inputmode="decimal" value="2" /></label>
+      <label>Orifice diameter (m) <input class="dp-d" inputmode="decimal" value="0.3" /></label>
+      <label>Orifice coefficient <input class="dp-cd" inputmode="decimal" value="0.6" /></label>
+      <label>Overflow weir crest above the bottom (m) <input class="dp-crest" inputmode="decimal" value="1.6" /></label>
+      <label>Overflow weir length (m) <input class="dp-wl" inputmode="decimal" value="3" /></label>
+      <label>Weir coefficient <input class="dp-cw" inputmode="decimal" value="1.7" /></label>
+      <label>Target peak outflow (m³/s, optional) <input class="dp-target" inputmode="decimal" value="0.4" /></label>
+    </div>
+    <p class="ax-help">The orifice sits at the pond bottom. While the water is below its top it acts as a weir, then as a full orifice. The overflow weir carries what the orifice cannot once the water passes its crest; its coefficient is in SI units (about 1.7 for a broad crest). Give a target peak outflow, such as the site's flow before development or a limit set by your council, and the tool finds the orifice size that meets it. The example site is made up.</p>
+    <p class="ax-err dp-err" hidden></p>
+  </div>
+
+  <div class="ax-card dp-out">
+    <h2>Routed through the pond</h2>
+    <p class="ax-big dp-big"></p>
+    <dl class="ax-facts dp-facts"></dl>
+    <canvas class="ax-fig dp-fig"></canvas>
+    <canvas class="ax-fig dp-lev" style="margin-top:12px"></canvas>
+    <details class="dp-ssd">
+      <summary>Stage, storage and outflow (table)</summary>
+      <div class="ax-scroll"><table class="dp-tabl"></table></div>
+    </details>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small dp-csv">Download routed flows (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { rationalHydro, tableHydro, route, sizeOrifice, storageAt, outflow, orificeQ, weirQ, type Geom, type Outlet } from '../../lib/sci/pond';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (!Number.isFinite(x)) return '–'; if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const root = document.querySelector<HTMLElement>('.dpd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const vol = (v: number) => `${Math.round(v).toLocaleString('en')} m³`;
+  const dur = (s: number) => (s >= 5400 ? `${sg(s / 3600, 3)} h` : `${Math.round(s / 60)} min`);
+  let fig: Figure | null = null, lev: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function table(sel: string, head: string[], rows: string[][], right: number[] = []) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.dp-err').textContent = m; q('.dp-err').hidden = false; q('.dp-out').hidden = true; fig = lev = null; sections = []; csvRows = []; };
+    q('.dp-err').hidden = true;
+    const src = q<HTMLSelectElement>('.dp-src').value;
+    q('.dp-rat').hidden = src !== 'rat'; q('.dp-tab').hidden = src !== 'tab';
+    let H: ReturnType<typeof rationalHydro>, hLabel: string;
+    if (src === 'rat') {
+      const A = val('.dp-A'), C = val('.dp-C'), i = val('.dp-i'), td = val('.dp-td'), tc = val('.dp-tc');
+      if (!(A > 0 && A <= 1e5)) return fail('Give the catchment area in hectares (above 0).');
+      if (!(C > 0 && C <= 1)) return fail('The runoff coefficient C is between 0 and 1 (about 0.9 for roofs and paving, 0.2 to 0.4 for grass).');
+      if (!(i > 0 && i <= 1000)) return fail('Give the rain intensity in mm/h (above 0).');
+      if (!(td > 0 && td <= 2880) || !(tc > 0 && tc <= 2880)) return fail('Give the storm duration and time of concentration in minutes, up to 2 days.');
+      H = rationalHydro(C, i, A, tc, td); hLabel = `modified rational: C ${sg(C, 3)}, ${sg(i, 4)} mm/h for ${sg(td, 4)} min over ${sg(A, 4)} ha, tc ${sg(tc, 4)} min`;
+    } else {
+      const rows = parseTable(q<HTMLTextAreaElement>('.dp-hy').value).map((r) => [num(r[0]), num(r[1])]).filter(([a, b]) => Number.isFinite(a) && Number.isFinite(b));
+      if (rows.length < 3) return fail('Paste at least 3 rows of time (minutes) and flow (m³/s).');
+      if (rows.length > 5000) return fail('Up to 5,000 rows, please.');
+      for (let k = 1; k < rows.length; k++) if (!(rows[k][0] > rows[k - 1][0])) return fail(`Times must increase down the rows (row ${k + 1}).`);
+      if (rows.some(([, b]) => b < 0)) return fail('Flows cannot be negative.');
+      if (rows[rows.length - 1][0] - rows[0][0] > 5 * 1440) return fail('The hydrograph can be up to 5 days long.');
+      H = tableHydro(rows.map(([a]) => a * 60), rows.map(([, b]) => b)); hLabel = `pasted hydrograph, ${rows.length} points`;
+      if (!(H.peak > 0)) return fail('All the flows are zero.');
+    }
+    const g: Geom = { L: val('.dp-L'), W: val('.dp-W'), z: val('.dp-z'), depth: val('.dp-D') };
+    const o: Outlet = { d: val('.dp-d'), cd: val('.dp-cd'), invert: 0, crest: val('.dp-crest'), weirL: val('.dp-wl'), cw: val('.dp-cw') };
+    if (!(g.L > 0 && g.W > 0) || !(g.z >= 0 && g.z <= 20) || !(g.depth > 0 && g.depth <= 30)) return fail('Give the pond bottom length and width (m), a side slope from 0 to 20, and a depth up to 30 m.');
+    if (!(o.d > 0 && o.d <= 5) || !(o.cd > 0 && o.cd <= 1)) return fail('Give an orifice diameter up to 5 m and a coefficient between 0 and 1 (about 0.6).');
+    if (!(o.crest > 0) || !(o.weirL >= 0) || !(o.cw > 0 && o.cw <= 3)) return fail('Give the overflow weir crest height (m), its length (0 for none) and a coefficient of up to 3.');
+    q('.dp-out').hidden = false;
+
+    const tEnd = Math.min(H.end + 12 * 3600, 6 * 86400), dt = H.end > 6 * 3600 ? 30 : 10;
+    const r = route(H.Q, g, o, tEnd, dt), cut = 1 - r.peakO / r.peakI;
+    q('.dp-big').textContent = `Peak outflow ${sg(r.peakO, 3)} m³/s, cut by ${Math.round(100 * cut)} %`;
+    const free = g.depth - r.hMax, Sfull = storageAt(g, g.depth);
+    const tStr = q<HTMLInputElement>('.dp-target').value.trim(), target = num(tStr);
+    const facts = [
+      fact('Peak inflow', `${sg(r.peakI, 3)} m³/s`, `at ${dur(r.tPeakI)}; ${vol(H.volume)} of runoff (${hLabel})`),
+      fact('Highest water level', `${sg(r.hMax, 3)} m`, free >= 0 ? `${sg(free, 3)} m below the top of the bank at ${sg(g.depth, 3)} m` : 'above the top of the bank'),
+      fact('Most water stored', vol(r.sMax), `${Math.round((100 * r.sMax) / Sfull)} % of the ${vol(Sfull)} the pond holds to the top`),
+      fact('Peak outflow at', dur(r.tPeakO), `${dur(r.tPeakO - r.tPeakI)} after the peak inflow`),
+      fact('Overflow weir', r.spill ? 'used' : 'not reached', r.spill ? `peak weir flow ${sg(weirQ(o, r.hMax), 3)} m³/s` : `crest at ${sg(o.crest, 3)} m`),
+      fact('Empties to 1 % of peak outflow', Number.isFinite(r.drain) ? `by ${dur(r.drain)}` : `not within ${dur(tEnd)}`, 'from the start of the storm'),
+    ];
+    if (tStr && target > 0) {
+      const d = sizeOrifice(H.Q, g, o, tEnd, target, dt);
+      facts.push(fact(`Orifice for ${sg(target, 3)} m³/s`, Number.isFinite(d) ? `${sg(d * 1000, 3)} mm diameter` : 'no size from 10 mm to 3 m meets it', Number.isFinite(d) ? (() => { const r2 = route(H.Q, g, { ...o, d }, tEnd, dt); return `highest level ${sg(r2.hMax, 3)} m${r2.hMax > g.depth ? ', which overtops the bank' : ''}${r2.spill ? '; the overflow weir runs' : ''}`; })() : 'the overflow weir alone may pass more, or the pond is too small'));
+    }
+    if (r.hMax > g.depth) facts.unshift(fact('Warning', 'the pond overtops', `water rises to ${sg(r.hMax, 3)} m against a ${sg(g.depth, 3)} m bank: make it bigger, deeper, or widen the outlets`));
+    q('.dp-facts').replaceChildren(...facts);
+
+    const hrs = tEnd > 3 * 3600, tu = hrs ? 3600 : 60, step = Math.max(1, Math.round(60 / dt));
+    const shown = Math.min(tEnd, Math.max(H.end * 2, Number.isFinite(r.drain) ? r.drain * 1.15 : tEnd));
+    const idx = r.t.map((_, k) => k).filter((k) => k % step === 0 && r.t[k] <= shown);
+    const xs = idx.map((k) => r.t[k] / tu), xl = `Time (${hrs ? 'hours' : 'minutes'})`;
+    fig = chartFigure({ h: 320, xLabel: xl, yLabel: 'Flow (m³/s)', yMin: 0, legend: 'below', series: [
+      { name: 'Inflow', x: xs, y: idx.map((k) => r.I[k]), mode: 'line', width: 2 },
+      { name: 'Outflow', x: xs, y: idx.map((k) => r.O[k]), mode: 'line', width: 2 },
+    ], marks: tStr && target > 0 ? [{ kind: 'hline', at: target, dash: [3, 3], label: 'target' }] : [] }, `Inflow and outflow hydrographs: peak cut by ${Math.round(100 * cut)} %`);
+    paint(q<HTMLCanvasElement>('.dp-fig'), fig);
+    lev = chartFigure({ h: 260, xLabel: xl, yLabel: 'Water level (m)', yMin: 0, yMax: Math.max(g.depth, r.hMax) * 1.08, series: [
+      { name: 'Water level', x: xs, y: idx.map((k) => r.h[k]), mode: 'line', width: 2 },
+    ], marks: [{ kind: 'hline', at: o.crest, dash: [4, 3], label: 'weir crest' }, { kind: 'hline', at: g.depth, label: 'top of bank' }] }, `Water level peaking at ${sg(r.hMax, 3)} m`);
+    paint(q<HTMLCanvasElement>('.dp-lev'), lev);
+
+    const top = Math.max(g.depth, r.hMax), nS = Math.min(40, Math.max(10, Math.round(top / 0.1))), sRows: string[][] = [];
+    for (let k = 0; k <= nS; k++) { const h = (top * k) / nS; sRows.push([sg(h, 3), vol(storageAt(g, h)), sg(orificeQ(o, h), 3), sg(weirQ(o, h), 3), sg(outflow(o, h), 3)]); }
+    const sHead = ['Level (m)', 'Storage', 'Orifice (m³/s)', 'Weir (m³/s)', 'Total (m³/s)'];
+    table('.dp-tabl', sHead, sRows, [0, 1, 2, 3, 4]);
+
+    csvRows = [['time (min)', 'inflow (m3/s)', 'outflow (m3/s)', 'level (m)', 'storage (m3)'], ...idx.map((k) => [sg(r.t[k] / 60, 6), sg(r.I[k], 6), sg(r.O[k], 6), sg(r.h[k], 6), sg(storageAt(g, r.h[k]), 6)])];
+    sections = [{ title: q('.dp-big').textContent!, text: [`Level-pool routing (dS/dt = inflow − outflow, solved step by step) of the ${hLabel} through a ${sg(g.L, 4)} × ${sg(g.W, 4)} m pond with ${sg(g.z, 3)}:1 sides, a ${sg(o.d * 1000, 4)} mm orifice and a ${sg(o.weirL, 3)} m overflow weir at ${sg(o.crest, 3)} m.`],
+      facts: [...q('.dp-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig },
+      { title: 'Water level', figure: lev, table: { head: sHead, rows: sRows, align: ['r', 'r', 'r', 'r', 'r'] } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 300); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.dp-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'detention-pond.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.dp-fig'), fig); if (lev) paint(q<HTMLCanvasElement>('.dp-lev'), lev); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Detention pond routing', subtitle: q('.dp-big').textContent ?? '', file: 'detention-pond', sections }));
+</script>
+
+<style is:global>
+  .dpd select { max-width: 100%; }
+  .dpd .dp-ssd { margin-top: 14px; }
+  .dpd .dp-ssd summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+</style>
