@@ -1,0 +1,201 @@
+---
+// AC load flow for small networks (Newton-Raphson or Gauss-Seidel, per unit), worked out in the browser.
+// The example 5-bus network is made up for fibub. Nothing is uploaded.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax lfw">
+  <div class="ax-card">
+    <h2>Network</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small lf-ex">Use the example</button>
+    </div>
+    <label style="margin-top:10px">Buses: name, type (slack, PV or PQ), load P (MW), load Q (Mvar), generation P (MW), set voltage (pu)
+      <textarea class="lf-bus" rows="6" spellcheck="false"></textarea></label>
+    <DataFile target=".lf-bus" maxMB={1} maxCols={10} maxRows={300} label="Open a bus file" />
+    <p class="ax-help">Slack: holds its voltage and angle (0°) and makes up whatever power is missing. PV: a generator that holds its voltage and sends a set real power. PQ: a load bus; its voltage is worked out. The set voltage is ignored for PQ buses.</p>
+    <label style="margin-top:10px">Lines: from, to, R, X, B (per unit on the base below; B is the line's total charging)
+      <textarea class="lf-line" rows="6" spellcheck="false"></textarea></label>
+    <DataFile target=".lf-line" maxMB={1} maxCols={10} maxRows={600} label="Open a line file" />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Base power (MVA) <input class="lf-base" type="text" inputmode="decimal" value="100" /></label>
+      <label>Method <select class="lf-m"><option value="nr" selected>Newton-Raphson</option><option value="gs">Gauss-Seidel</option></select></label>
+      <label>Tolerance (pu power) <input class="lf-tol" type="text" inputmode="decimal" value="1e-8" /></label>
+      <label>Most iterations <input class="lf-max" type="text" inputmode="numeric" value="20" /></label>
+      <label class="lf-accbox" hidden>Acceleration factor (Gauss-Seidel) <input class="lf-acc" type="text" inputmode="decimal" value="1.6" /></label>
+    </div>
+    <p class="ax-help">Tolerance: the largest power mismatch allowed at any bus when the solution stops. Newton-Raphson usually needs 3 to 6 iterations; Gauss-Seidel needs many more (try 500), and an acceleration factor of 1.4 to 1.7 speeds it up. Up to 300 buses.</p>
+    <p class="ax-err lf-err" hidden></p>
+  </div>
+
+  <div class="ax-card lf-out" hidden>
+    <h2>Results</h2>
+    <p class="ax-big lf-big"></p>
+    <dl class="ax-facts lf-facts"></dl>
+    <h3>Single-line diagram</h3>
+    <canvas class="ax-fig lf-sld"></canvas>
+    <p class="ax-help">Arrows show the direction of real power on each line, with MW at the sending end. Bus colour: <span class="lf-ok">within 0.95 to 1.05 pu</span>, <span class="lf-lo">outside it</span>.</p>
+    <h3>Buses</h3>
+    <div class="ax-scroll"><table class="lf-btab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small lf-bcsv">Download buses (CSV)</button></div>
+    <h3>Lines</h3>
+    <div class="ax-scroll"><table class="lf-ltab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small lf-lcsv">Download lines (CSV)</button></div>
+    <h3>Convergence</h3>
+    <canvas class="ax-fig lf-conv"></canvas>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .lfw h3 { margin: 22px 0 8px; font-size: 15px; }
+  .lfw .lf-ok { color: var(--good); font-weight: 600; }
+  .lfw .lf-lo { color: var(--bad); font-weight: 600; }
+</style>
+
+<script>
+  import { loadFlow, parseBuses, parseLines, EXAMPLE_BUSES, EXAMPLE_LINES, type FlowResult } from '../../lib/sci/eng-loadflow';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.lfw')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const f = (x: number, d: number) => (Math.abs(x) < 0.5 * 10 ** -d ? 0 : x).toFixed(d).replace('-', '−');
+  const table = (t: HTMLElement, head: string[], rows: (string | number)[][], right: boolean[]) => {
+    t.replaceChildren();
+    const h = t.insertRow(); head.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (right[k]) th.className = 'r'; h.append(th); });
+    for (const r of rows) { const tr = t.insertRow(); r.forEach((x, k) => { const td = tr.insertCell(); td.textContent = String(x); if (right[k]) td.className = 'r'; }); }
+  };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+
+  let res: FlowResult | null = null, sld: Figure | null = null, conv: Figure | null = null, method = 'nr';
+  const BH = ['Bus', 'Type', '|V| (pu)', 'Angle (°)', 'P gen (MW)', 'Q gen (Mvar)', 'P load (MW)', 'Q load (Mvar)'];
+  const LH = ['From', 'To', 'P from (MW)', 'Q from (Mvar)', 'P to (MW)', 'Q to (Mvar)', 'Loss (MW)', 'Loss (Mvar)', 'Current (pu)'];
+  const busRows = (r: FlowResult) => r.buses.map((b) => [b.id, b.type, b.V.toFixed(4), f(b.deg, 3), f(b.Pg, 2), f(b.Qg, 2), f(b.Pd, 2), f(b.Qd, 2)]);
+  const lineRows = (r: FlowResult) => r.lines.map((l) => [l.from, l.to, f(l.Pij, 2), f(l.Qij, 2), f(l.Pji, 2), f(l.Qji, 2), f(l.Ploss, 3), f(l.Qloss, 3), l.I.toFixed(4)]);
+
+  const figW = () => (root.clientWidth < 520 ? 380 : 560);
+  function diagram(r: FlowResult): Figure {
+    const n = r.buses.length, idx = new Map(r.buses.map((b, i) => [b.id, i]));
+    return {
+      w: figW(), h: Math.round(figW() * (n > 12 ? 0.92 : 0.78)), alt: `Single-line diagram of ${n} buses and ${r.lines.length} lines with power flows`,
+      draw: (ctx, W, H, pal) => {
+        const cx = W / 2, cy = H / 2 + 4, R = Math.min(W * 0.27, H * 0.34);
+        const pos = r.buses.map((_, i) => { const a = -Math.PI / 2 + (2 * Math.PI * i) / n; return [cx + R * Math.cos(a), cy + R * Math.sin(a)] as [number, number]; });
+        const fs = n > 12 ? 10 : 12;
+        ctx.font = `${fs}px system-ui, sans-serif`; ctx.lineWidth = 1.5;
+        // Lines with an arrow at the middle in the direction of P, labelled with the sending-end MW.
+        const pairCount = new Map<string, number>();
+        r.lines.forEach((l) => {
+          const i = idx.get(l.from)!, j = idx.get(l.to)!, key = [i, j].sort().join('-'), k = pairCount.get(key) ?? 0; pairCount.set(key, k + 1);
+          const [x1, y1] = pos[i], [x2, y2] = pos[j], len = Math.hypot(x2 - x1, y2 - y1), nx = -(y2 - y1) / len, ny = (x2 - x1) / len, off = k * 10;
+          const a = [x1 + nx * off, y1 + ny * off], b = [x2 + nx * off, y2 + ny * off];
+          ctx.strokeStyle = pal.muted; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+          const fwd = l.Pij >= 0, s = fwd ? a : b, e = fwd ? b : a, mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+          const ux = (e[0] - s[0]) / len, uy = (e[1] - s[1]) / len;
+          ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.moveTo(mx + ux * 7, my + uy * 7); ctx.lineTo(mx - ux * 5 + uy * 5, my - uy * 5 - ux * 5); ctx.lineTo(mx - ux * 5 - uy * 5, my - uy * 5 + ux * 5); ctx.closePath(); ctx.fill();
+          const p = Math.max(Math.abs(l.Pij), Math.abs(l.Pji)), t = `${p.toFixed(1)}`;
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          const tx = s[0] + (e[0] - s[0]) * 0.3 + nx * 10, ty = s[1] + (e[1] - s[1]) * 0.3 + ny * 10, tw = ctx.measureText(t).width;
+          ctx.fillStyle = pal.bg; ctx.fillRect(tx - tw / 2 - 2, ty - fs / 2 - 1, tw + 4, fs + 2);
+          ctx.fillStyle = pal.ink; ctx.fillText(t, tx, ty);
+        });
+        // Buses as thick bars, with generator circles and load arrows.
+        r.buses.forEach((b, i) => {
+          const [x, y] = pos[i], ok = b.V >= 0.95 && b.V <= 1.05, outward = y < cy ? -1 : 1;
+          ctx.strokeStyle = ok ? pal.good : pal.bad; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(x - 18, y); ctx.lineTo(x + 18, y); ctx.stroke(); ctx.lineWidth = 1.5;
+          const t1 = `${b.id}${b.type === 'PQ' ? '' : ` (${b.type})`}`, t2 = `${b.V.toFixed(3)}∠${f(b.deg, 2)}°`;
+          ctx.font = `700 ${fs}px system-ui, sans-serif`; const w1 = ctx.measureText(t1).width;
+          ctx.font = `${fs}px system-ui, sans-serif`; const tw = Math.max(w1, ctx.measureText(t2).width);
+          const side = x < cx - 5 ? -1 : 1;
+          // Beside the bar when it fits, else centred over (or under) it, kept inside the picture.
+          let lx = side < 0 ? x - 24 - tw : side > 0 ? x + 24 : x - tw / 2, ly = side ? y - 8 : y + outward * 30;
+          if (lx < 3 || lx + tw > W - 3) { lx = Math.min(Math.max(3, x - tw / 2), W - 3 - tw); ly = y + (y < cy ? -1 : 1) * 40 - (y < cy ? fs : 0); }
+          ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = pal.ink; ctx.font = `700 ${fs}px system-ui, sans-serif`;
+          ctx.fillText(t1, lx, ly);
+          ctx.font = `${fs}px system-ui, sans-serif`; ctx.fillStyle = pal.muted;
+          ctx.fillText(t2, lx, ly + fs + 2);
+          if (b.type !== 'PQ' || Math.abs(b.Pg) > 1e-9) {
+            const gy = y + outward * 16; ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(x - 8, y); ctx.lineTo(x - 8, gy); ctx.stroke();
+            ctx.beginPath(); ctx.arc(x - 8, gy + outward * 6, 6, 0, 7); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x - 11, gy + outward * 6); ctx.quadraticCurveTo(x - 9.5, gy + outward * 6 - 4, x - 8, gy + outward * 6); ctx.quadraticCurveTo(x - 6.5, gy + outward * 6 + 4, x - 5, gy + outward * 6); ctx.stroke();
+          }
+          if (b.Pd > 0) {
+            const ey = y + outward * 18; ctx.strokeStyle = pal.ink; ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.moveTo(x + 8, y); ctx.lineTo(x + 8, ey); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x + 4, ey); ctx.lineTo(x + 12, ey); ctx.lineTo(x + 8, ey + outward * 6); ctx.closePath(); ctx.fill();
+          }
+        });
+      },
+    };
+  }
+
+  function run() {
+    const err = q('.lf-err'), out = q('.lf-out');
+    method = q<HTMLSelectElement>('.lf-m').value;
+    q('.lf-accbox').hidden = method !== 'gs';
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; res = null; };
+    const bt = q<HTMLTextAreaElement>('.lf-bus').value, lt = q<HTMLTextAreaElement>('.lf-line').value;
+    if (!bt.trim() && !lt.trim()) { err.hidden = true; out.hidden = true; res = null; return; }
+    const base = val('.lf-base'), tol = val('.lf-tol'), maxIter = Math.round(val('.lf-max')), accel = val('.lf-acc');
+    if (!(base > 0)) return fail('Give the base power in MVA (100 is usual).');
+    if (!(tol > 0 && tol < 1)) return fail('Give a tolerance between 0 and 1, for example 1e-8.');
+    if (!(maxIter >= 1 && maxIter <= 20000)) return fail('Give the most iterations, from 1 to 20,000.');
+    if (method === 'gs' && !(accel >= 1 && accel < 2)) return fail('Give an acceleration factor from 1 (none) to just under 2.');
+    let r: FlowResult;
+    try {
+      const buses = parseBuses(bt), lines = parseLines(lt);
+      if (buses.length > 300) return fail('Up to 300 buses.');
+      r = loadFlow(buses, lines, { base, method: method as 'nr' | 'gs', tol, maxIter, accel });
+    } catch (e) { return fail((e as Error).message); }
+    err.hidden = true; out.hidden = false; res = r;
+    const name = method === 'nr' ? 'Newton-Raphson' : 'Gauss-Seidel';
+    q('.lf-big').textContent = r.converged
+      ? `Converged in ${r.iterations} iteration${r.iterations === 1 ? '' : 's'} (${name}); losses ${f(r.lossP, 3)} MW`
+      : `Did not converge after ${r.iterations} iterations (${name})`;
+    const lo = r.buses.reduce((a, b) => (b.V < a.V ? b : a)), hi = r.buses.reduce((a, b) => (b.V > a.V ? b : a));
+    const slack = r.buses.find((b) => b.type === 'slack')!;
+    q('.lf-facts').replaceChildren(
+      fact('Slack bus supplies', `${f(slack.Pg, 2)} MW, ${f(slack.Qg, 2)} Mvar`, `bus ${slack.id}`),
+      fact('Total losses', `${f(r.lossP, 3)} MW, ${f(r.lossQ, 3)} Mvar`, `${sig((100 * r.lossP) / Math.max(1e-9, r.loadP), 3)} % of the load`),
+      fact('Lowest voltage', `${lo.V.toFixed(4)} pu`, `bus ${lo.id}${lo.V < 0.95 ? ', below 0.95 pu' : ''}`),
+      fact('Highest voltage', `${hi.V.toFixed(4)} pu`, `bus ${hi.id}${hi.V > 1.05 ? ', above 1.05 pu' : ''}`),
+      fact('Load and generation', `${f(r.loadP, 2)} MW load, ${f(r.genP, 2)} MW generated`, `reactive: ${f(r.loadQ, 2)} Mvar load, ${f(r.genQ, 2)} Mvar generated`),
+      fact('Final mismatch', `${sig(r.history[r.history.length - 1], 2)} pu`, r.converged ? 'below the tolerance' : 'not below the tolerance: the network may have no solution at this loading, or needs more iterations'),
+    );
+    table(q('.lf-btab'), BH, busRows(r), [false, false, true, true, true, true, true, true]);
+    table(q('.lf-ltab'), LH, lineRows(r), [false, false, true, true, true, true, true, true, true]);
+    sld = diagram(r); paint(q<HTMLCanvasElement>('.lf-sld'), sld);
+    conv = chartFigure({ w: figW(), h: 260, yLog: true, xLabel: 'Iteration', yLabel: 'Largest mismatch (pu)', legend: 'none', marks: [{ kind: 'hline', at: tol, label: 'tolerance' }],
+      series: [{ name: 'Mismatch', x: r.history.map((_, i) => i), y: r.history.map((m) => Math.max(m, 1e-16)), mode: 'both', size: 3 }] }, `Largest power mismatch at each iteration, ${r.iterations} iterations`);
+    paint(q<HTMLCanvasElement>('.lf-conv'), conv);
+  }
+
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(run, 250); };
+  for (const c of ['.lf-bus', '.lf-line', '.lf-base', '.lf-tol', '.lf-max', '.lf-acc']) q(c).addEventListener('input', later);
+  q('.lf-m').addEventListener('change', () => {
+    const m = q<HTMLSelectElement>('.lf-m').value, mx = q<HTMLInputElement>('.lf-max');
+    if (m === 'gs' && mx.value === '20') mx.value = '500'; if (m === 'nr' && mx.value === '500') mx.value = '20';
+    run();
+  });
+  q('.lf-ex').addEventListener('click', () => {
+    q<HTMLTextAreaElement>('.lf-bus').value = EXAMPLE_BUSES; q<HTMLTextAreaElement>('.lf-line').value = EXAMPLE_LINES;
+    q<HTMLInputElement>('.lf-base').value = '100'; run();
+  });
+  q('.lf-bcsv').addEventListener('click', () => { if (res) save(new Blob([csv([['bus', 'type', 'V_pu', 'angle_deg', 'Pgen_MW', 'Qgen_Mvar', 'Pload_MW', 'Qload_Mvar'], ...res.buses.map((b) => [b.id, b.type, b.V.toFixed(6), b.deg.toFixed(5), b.Pg.toFixed(4), b.Qg.toFixed(4), b.Pd, b.Qd])])], { type: 'text/csv' }), 'load-flow-buses.csv', 'text/csv'); });
+  q('.lf-lcsv').addEventListener('click', () => { if (res) save(new Blob([csv([['from', 'to', 'P_from_MW', 'Q_from_Mvar', 'P_to_MW', 'Q_to_Mvar', 'loss_MW', 'loss_Mvar', 'current_pu'], ...res.lines.map((l) => [l.from, l.to, l.Pij.toFixed(4), l.Qij.toFixed(4), l.Pji.toFixed(4), l.Qji.toFixed(4), l.Ploss.toFixed(5), l.Qloss.toFixed(5), l.I.toFixed(5)])])], { type: 'text/csv' }), 'load-flow-lines.csv', 'text/csv'); });
+  wireDownloads(q('.dl'), () => {
+    const r = res!, sections: Section[] = [
+      { title: 'Summary', text: [q('.lf-big').textContent ?? ''], facts: [...q('.lf-facts').querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: sld ?? undefined },
+      { title: 'Buses', table: { head: BH, rows: busRows(r).map((x) => x.map(String)), align: ['l', 'l', 'r', 'r', 'r', 'r', 'r', 'r'] } },
+      { title: 'Lines', table: { head: LH, rows: lineRows(r).map((x) => x.map(String)), align: ['l', 'l', 'r', 'r', 'r', 'r', 'r', 'r', 'r'] } },
+      { title: 'Convergence', figure: conv ?? undefined, note: 'Power flow in per unit; for study and planning, not a substitute for professional judgement.' },
+    ];
+    return { title: 'Load flow', subtitle: q('.lf-big').textContent ?? '', file: 'load-flow', sections };
+  });
+  document.addEventListener('fibub:theme', () => { if (res && sld && conv) { paint(q<HTMLCanvasElement>('.lf-sld'), sld); paint(q<HTMLCanvasElement>('.lf-conv'), conv); } });
+  q('.lf-ex').click();
+</script>

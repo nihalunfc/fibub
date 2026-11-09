@@ -1,0 +1,180 @@
+---
+// Path planning visualiser: draw walls on a grid, then A* or Dijkstra (4- or 8-connected) or a seeded RRT in
+// continuous space. The example map is made up by fibub.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ppv">
+  <div class="ax-card">
+    <h2>Map</h2>
+    <div class="ax-row">
+      <div class="ax-seg pp-tools" role="group" aria-label="What a tap does">
+        <button type="button" data-t="wall" aria-pressed="true">Walls</button>
+        <button type="button" data-t="erase" aria-pressed="false">Erase</button>
+        <button type="button" data-t="start" aria-pressed="false">Start</button>
+        <button type="button" data-t="goal" aria-pressed="false">Goal</button>
+      </div>
+    </div>
+    <canvas class="ax-fig pp-map" style="margin-top:10px;touch-action:none" aria-label="Map: tap or drag to draw walls, or move the start and goal"></canvas>
+    <p class="ax-help">Tap or drag on the map. Walls draws blocked cells, Erase clears them, Start and Goal move the two ends.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Map size <select class="pp-size"><option value="16x11">16 × 11</option><option value="24x16" selected>24 × 16</option><option value="32x22">32 × 22</option></select></label>
+      <label>Random wall share (%) <input class="pp-dens" type="text" inputmode="decimal" value="25" /></label>
+      <label>Random seed <input class="pp-mseed" type="text" inputmode="numeric" value="1" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small pp-example">Example map</button>
+      <button type="button" class="btn secondary small pp-random">Random walls</button>
+      <button type="button" class="btn secondary small pp-clear">Clear walls</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Planner</h2>
+    <div class="ax-grid">
+      <label>Method <select class="pp-alg"><option value="astar" selected>A* (grid)</option><option value="dijkstra">Dijkstra (grid)</option><option value="rrt">RRT (continuous, random)</option></select></label>
+      <label class="pp-gridw">Moves <select class="pp-conn"><option value="8" selected>8 directions (diagonals cost √2)</option><option value="4">4 directions</option></select></label>
+      <label class="pp-rrtw" hidden>Step size (cells) <input class="pp-step" type="text" inputmode="decimal" value="1.5" /></label>
+      <label class="pp-rrtw" hidden>Most iterations <input class="pp-iters" type="text" inputmode="numeric" value="3000" /></label>
+      <label class="pp-rrtw" hidden>Goal bias (%) <input class="pp-bias" type="text" inputmode="decimal" value="5" /></label>
+      <label class="pp-rrtw" hidden>Goal reached within (cells) <input class="pp-tol" type="text" inputmode="decimal" value="1.5" /></label>
+      <label class="pp-rrtw" hidden>Random seed <input class="pp-seed" type="text" inputmode="numeric" value="1" /></label>
+    </div>
+    <label class="ax-check pp-rrtw" style="margin-top:10px" hidden><input type="checkbox" class="pp-smooth" checked /> Shorten the path with straight shortcuts</label>
+    <label class="ax-check pp-gridw" style="margin-top:10px"><input type="checkbox" class="pp-show" checked /> Shade the cells the search expanded</label>
+    <p class="ax-help pp-explain"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Result</h2>
+    <p class="ax-big pp-big"></p>
+    <dl class="ax-facts pp-facts"></dl>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small pp-csv">Download the path (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { makeGrid, parseGrid, astar, rrt, type Grid, type Cell, type GridResult, type RrtResult } from '../../lib/sci/pathplan';
+  import { rng } from '../../lib/sci/kalman';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.ppv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const EXAMPLE = ['........................', '..S.....#...............', '........#.......#.......', '........#.......#.......', '........#.......#.......', '........#.......#.......', '........#.......#.......',
+    '..#######.......#.......', '................#.......', '................#####...', '.....#..................', '.....#..........#.......', '.....#..........#....G..', '.....#..........#.......', '.....#..........#.......', '........................'];
+  let g: Grid, start: Cell, goal: Cell, tool = 'wall', fig: Figure | null = null, sections: Section[] = [], csvRows: (string | number)[][] = [];
+  let gr: GridResult | null = null, rr: RrtResult | null = null;
+
+  function loadExample() { const p = parseGrid(EXAMPLE); g = p.g; start = p.start!; goal = p.goal!; q<HTMLSelectElement>('.pp-size').value = '24x16'; }
+  function resize() {
+    const [w, h] = sel('.pp-size').split('x').map(Number), ng = makeGrid(w, h);
+    for (let y = 0; y < Math.min(h, g.h); y++) for (let x = 0; x < Math.min(w, g.w); x++) ng.wall[y * w + x] = g.wall[y * g.w + x];
+    g = ng; start = [Math.min(start[0], w - 1), Math.min(start[1], h - 1)]; goal = [Math.min(goal[0], w - 1), Math.min(goal[1], h - 1)];
+    g.wall[start[1] * w + start[0]] = 0; g.wall[goal[1] * w + goal[0]] = 0;
+  }
+  function randomWalls() {
+    const d = val('.pp-dens') / 100, r = rng(Math.round(val('.pp-mseed')) || 0);
+    if (!(d >= 0 && d <= 0.6)) { q('.pp-explain').textContent = 'Use a wall share from 0 to 60 %.'; return; }
+    for (let i = 0; i < g.wall.length; i++) g.wall[i] = r.u() < d ? 1 : 0;
+    g.wall[start[1] * g.w + start[0]] = 0; g.wall[goal[1] * g.w + goal[0]] = 0;
+  }
+
+  function run() {
+    const alg = sel('.pp-alg'), eight = sel('.pp-conn') === '8';
+    root.querySelectorAll<HTMLElement>('.pp-rrtw').forEach((e) => (e.hidden = alg !== 'rrt'));
+    root.querySelectorAll<HTMLElement>('.pp-gridw').forEach((e) => (e.hidden = alg === 'rrt'));
+    q('.pp-explain').textContent = alg === 'astar' ? 'A* expands cells in order of distance so far plus a straight-line guess of the distance left, so it finds the shortest grid path while looking at fewer cells.'
+      : alg === 'dijkstra' ? 'Dijkstra expands cells in order of distance from the start: it also finds the shortest grid path but searches in every direction.'
+      : 'RRT grows a tree of random straight steps through open space until it reaches the goal. It finds a path quickly in big spaces, but not the shortest one, and each seed gives a different tree.';
+    const ref = astar(g, start, goal, true), refD = astar(g, start, goal, eight, false), refA = astar(g, start, goal, eight, true);
+    gr = null; rr = null;
+    const f: HTMLElement[] = [];
+    if (alg !== 'rrt') {
+      gr = alg === 'astar' ? refA : refD;
+      if (!gr.found) q('.pp-big').textContent = `No path: the goal cannot be reached (${gr.expanded} cells searched)`;
+      else {
+        const diag = gr.path.slice(1).filter((p, i) => p[0] !== gr!.path[i][0] && p[1] !== gr!.path[i][1]).length;
+        q('.pp-big').textContent = `${alg === 'astar' ? 'A*' : 'Dijkstra'}: length ${gr.length.toFixed(2)} cells, ${gr.expanded} cells expanded`;
+        f.push(fact('Path', `${gr.path.length - 1} moves`, `${gr.path.length - 1 - diag} straight, ${diag} diagonal`),
+          fact('Cells expanded', `A* ${refA.expanded}, Dijkstra ${refD.expanded}`, 'both give the same shortest length; the guess lets A* skip cells'),
+          fact('Open cells', String(g.wall.length - g.wall.reduce((a, b) => a + b, 0)), `${g.w} × ${g.h} map`));
+      }
+    } else {
+      const o = { step: val('.pp-step'), iters: Math.round(val('.pp-iters')), bias: val('.pp-bias') / 100, tol: val('.pp-tol'), seed: Math.round(val('.pp-seed')), smooth: q<HTMLInputElement>('.pp-smooth').checked };
+      if (!(o.step > 0 && o.step <= 20 && o.iters >= 1 && o.iters <= 20000 && o.bias >= 0 && o.bias <= 1 && o.tol > 0 && Number.isFinite(o.seed))) q('.pp-big').textContent = 'Check the RRT settings: step above 0 (up to 20), 1 to 20,000 iterations, bias 0 to 100 %, tolerance above 0 and a whole-number seed.';
+      else {
+        rr = rrt(g, start, goal, o);
+        if (!rr.found) q('.pp-big').textContent = `No path after ${rr.iterations} iterations (${rr.nodes.length} tree nodes)`;
+        else {
+          q('.pp-big').textContent = `RRT: length ${rr.length.toFixed(2)} cells, ${rr.nodes.length} tree nodes`;
+          f.push(fact('Iterations', String(rr.iterations), `seed ${o.seed}; a new seed grows a different tree`),
+            fact('Length before shortcuts', `${rr.rawLength.toFixed(2)} cells`, o.smooth ? `${rr.path.length - 1} straight legs after shortcuts` : 'shortcuts are off'));
+        }
+      }
+    }
+    if (ref.found) f.push(fact('Shortest 8-direction grid path', `${ref.length.toFixed(2)} cells`, `straight line start to goal: ${Math.hypot(goal[0] - start[0], goal[1] - start[1]).toFixed(2)} cells`));
+    q('.pp-facts').replaceChildren(...f);
+    draw();
+    const pts: [number, number][] = gr?.found ? gr.path.map(([x, y]) => [x + 0.5, y + 0.5]) : rr?.found ? rr.path : [];
+    csvRows = pts.length ? [['step', 'x_cells', 'y_cells', 'distance_so_far'], ...pts.map((p, i) => [i, +p[0].toFixed(6), +p[1].toFixed(6), +pts.slice(0, i + 1).reduce((a, c, k) => (k ? a + Math.hypot(c[0] - pts[k - 1][0], c[1] - pts[k - 1][1]) : 0), 0).toFixed(6)])] : [];
+    sections = [{ title: q('.pp-big').textContent!, text: [q('.pp-explain').textContent!], facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig! }];
+  }
+
+  function draw() {
+    const W = 380, cs = W / g.w;
+    const show = q<HTMLInputElement>('.pp-show').checked;
+    fig = { w: W, h: Math.round(cs * g.h), alt: 'Map with walls, the start, the goal and the planned path', draw: (ctx, w, h, pal) => {
+      const c = w / g.w;
+      ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, h);
+      if (gr && show) { ctx.fillStyle = pal.accent; ctx.globalAlpha = 0.16; for (const v of gr.order) { const x = v % g.w, y = Math.floor(v / g.w); ctx.fillRect(x * c, y * c, c, c); } ctx.globalAlpha = 1; }
+      ctx.fillStyle = pal.ink; for (let i = 0; i < g.wall.length; i++) if (g.wall[i]) ctx.fillRect((i % g.w) * c, Math.floor(i / g.w) * c, c, c);
+      ctx.strokeStyle = pal.grid; ctx.lineWidth = 1; ctx.beginPath();
+      for (let x = 0; x <= g.w; x++) { ctx.moveTo(x * c, 0); ctx.lineTo(x * c, h); }
+      for (let y = 0; y <= g.h; y++) { ctx.moveTo(0, y * c); ctx.lineTo(w, y * c); }
+      ctx.stroke();
+      if (rr) { ctx.strokeStyle = pal.muted; ctx.lineWidth = 0.8; ctx.beginPath(); rr.nodes.forEach((n, i) => { const p = rr!.parent[i]; if (p >= 0) { ctx.moveTo(rr!.nodes[p][0] * c, rr!.nodes[p][1] * c); ctx.lineTo(n[0] * c, n[1] * c); } }); ctx.stroke(); }
+      const pts: [number, number][] = gr?.found ? gr.path.map(([x, y]) => [x + 0.5, y + 0.5]) : rr?.found ? rr.path : [];
+      if (pts.length) { ctx.strokeStyle = pal.accent2; ctx.lineWidth = Math.max(2.5, c * 0.22); ctx.lineJoin = 'round'; ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x * c, y * c) : ctx.moveTo(x * c, y * c))); ctx.stroke(); }
+      const dot = (p: Cell, col: string, t: string) => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc((p[0] + 0.5) * c, (p[1] + 0.5) * c, c * 0.42, 0, 2 * Math.PI); ctx.fill(); ctx.fillStyle = pal.bg; ctx.font = `bold ${Math.round(c * 0.55)}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, (p[0] + 0.5) * c, (p[1] + 0.55) * c); };
+      dot(start, pal.good, 'S'); dot(goal, pal.bad, 'G');
+    } };
+    paint(q<HTMLCanvasElement>('.pp-map'), fig);
+  }
+
+  // Drawing on the map.
+  const canvas = q<HTMLCanvasElement>('.pp-map');
+  let painting: 0 | 1 | null = null;
+  const cellAt = (e: PointerEvent): Cell | null => { const r = canvas.getBoundingClientRect(), x = Math.floor(((e.clientX - r.left) / r.width) * g.w), y = Math.floor(((e.clientY - r.top) / r.height) * g.h); return x >= 0 && y >= 0 && x < g.w && y < g.h ? [x, y] : null; };
+  const apply = (c: Cell) => {
+    const i = c[1] * g.w + c[0], isEnd = (c[0] === start[0] && c[1] === start[1]) || (c[0] === goal[0] && c[1] === goal[1]);
+    if (tool === 'start' || tool === 'goal') { if (isEnd) return false; g.wall[i] = 0; if (tool === 'start') start = c; else goal = c; return true; }
+    if (isEnd) return false;
+    const v = painting ?? (tool === 'erase' ? 0 : 1);
+    if (g.wall[i] === v) return false;
+    g.wall[i] = v; return true;
+  };
+  canvas.addEventListener('pointerdown', (e) => { const c = cellAt(e); if (!c) return; e.preventDefault(); canvas.setPointerCapture(e.pointerId); painting = tool === 'erase' ? 0 : tool === 'wall' ? (g.wall[c[1] * g.w + c[0]] ? 0 : 1) : null; if (apply(c)) run(); });
+  canvas.addEventListener('pointermove', (e) => { if (!e.buttons || painting === null && tool !== 'start' && tool !== 'goal') return; const c = cellAt(e); if (c && apply(c)) run(); });
+  const stop = () => { painting = null; };
+  canvas.addEventListener('pointerup', stop); canvas.addEventListener('pointercancel', stop);
+  root.querySelectorAll<HTMLButtonElement>('.pp-tools button').forEach((b) => b.addEventListener('click', () => { tool = b.dataset.t!; root.querySelectorAll('.pp-tools button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); }));
+  q('.pp-example').addEventListener('click', () => { loadExample(); run(); });
+  q('.pp-random').addEventListener('click', () => { randomWalls(); run(); });
+  q('.pp-clear').addEventListener('click', () => { g.wall.fill(0); run(); });
+  q('.pp-size').addEventListener('change', () => { resize(); run(); });
+  root.querySelectorAll('.ppv .ax-card:nth-child(2) input, .ppv .ax-card:nth-child(2) select').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+  q('.pp-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'path.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(canvas, fig); });
+  loadExample(); run();
+  wireDownloads(q('.dl'), () => ({ title: 'Path planning', subtitle: q('.pp-big').textContent ?? '', file: 'path-planning', sections }));
+</script>
+
+<style is:global>
+  .ppv select, .ppv input[type=text] { max-width: 100%; }
+  .ppv .pp-map { cursor: crosshair; }
+</style>

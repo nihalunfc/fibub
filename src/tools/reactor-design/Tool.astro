@@ -1,0 +1,181 @@
+---
+// Isothermal CSTR, PFR, CSTRs in series and batch reactor sizing with a Levenspiel plot. Example values made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax rds">
+  <div class="ax-card">
+    <h2>Reaction and rate law</h2>
+    <div class="ax-grid">
+      <label>Rate law <select class="rd-kind">
+        <option value="power" selected>n-th order: −rA = k·CA^n</option>
+        <option value="reversible">Reversible first order: A ⇌ B</option>
+        <option value="mm">Saturating: −rA = k·CA / (Km + CA)</option>
+      </select></label>
+      <label class="rd-nbox">Order n <input class="rd-n" type="text" inputmode="decimal" value="2" /></label>
+      <label class="rd-Kbox" hidden>Equilibrium constant K = CB/CA <input class="rd-K" type="text" inputmode="decimal" value="4" /></label>
+      <label class="rd-mbox" hidden>Km (mol/L) <input class="rd-Km" type="text" inputmode="decimal" value="0.5" /></label>
+      <label>Time unit <select class="rd-tu"><option value="s">s</option><option value="min" selected>min</option><option value="h">h</option></select></label>
+      <label><span>k at the reference temperature (<span class="rd-ku"></span>)</span> <input class="rd-k" type="text" inputmode="decimal" value="0.15" /></label>
+      <label>Reference temperature (°C) <input class="rd-tr" type="text" inputmode="decimal" value="50" /></label>
+      <label>Activation energy Ea (kJ/mol) <input class="rd-ea" type="text" inputmode="decimal" value="60" /></label>
+      <label>Reactor temperature (°C) <input class="rd-t" type="text" inputmode="decimal" value="60" /></label>
+      <label>Feed concentration CA0 (mol/L) <input class="rd-ca0" type="text" inputmode="decimal" value="1" /></label>
+      <label>Volume change ε (0 for liquids) <input class="rd-eps" type="text" inputmode="decimal" value="0" /></label>
+    </div>
+    <p class="ax-help">The reactor is isothermal: k is moved from the reference temperature to the reactor temperature with the Arrhenius equation (set Ea to 0 to use k as it is). ε is the fractional change in gas volume at complete conversion (for A → 2 B in pure A, ε = 1); it applies to the flow reactors, while the batch reactor is taken at constant volume. The example values are made up.</p>
+    <p class="ax-err rd-rerr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Reactors</h2>
+    <div class="ax-grid">
+      <label>Find <select class="rd-mode"><option value="size" selected>Size for a target conversion</option><option value="conv">Conversion from a given size</option></select></label>
+      <label class="rd-xbox">Target conversion X (0 to 1) <input class="rd-x" type="text" inputmode="decimal" value="0.8" /></label>
+      <label class="rd-vbox" hidden>Reactor volume (L) <input class="rd-V" type="text" inputmode="decimal" value="200" /></label>
+      <label class="rd-vbox" hidden><span>Batch time (<span class="rd-tul">min</span>)</span> <input class="rd-bt" type="text" inputmode="decimal" value="10" /></label>
+      <label><span>Feed flow v0 (L/<span class="rd-tul">min</span>)</span> <input class="rd-v0" type="text" inputmode="decimal" value="10" /></label>
+      <label>CSTRs in series (equal tanks) <input class="rd-N" type="text" inputmode="numeric" value="3" /></label>
+    </div>
+    <p class="ax-err rd-err" hidden></p>
+  </div>
+
+  <div class="ax-card rd-out">
+    <h2>Results</h2>
+    <p class="ax-big rd-big"></p>
+    <dl class="ax-facts rd-facts"></dl>
+    <div class="ax-scroll"><table class="rd-tab"></table></div>
+    <canvas class="ax-fig rd-lev"></canvas>
+    <canvas class="ax-fig rd-prof"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small rd-csv">Levenspiel data (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { arrhenius, rateAt, xMax, cstrVolume, pfrVolume, batchTime, cstrConversion, pfrConversion, batchConversion, seriesConversions, seriesVolume, integrate, type Rate, type RateKind } from '../../lib/sci/reactor';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const root = document.querySelector<HTMLElement>('.rds')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factsOf = (ds: HTMLElement[]) => ds.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  let figs: [string, Figure][] = [], report: Section[] = [], rows: (string | number)[][] = [];
+
+  function all() {
+    const kind = sel('.rd-kind') as RateKind, tu = sel('.rd-tu'), mode = sel('.rd-mode');
+    q('.rd-nbox').hidden = kind !== 'power'; q('.rd-Kbox').hidden = kind !== 'reversible'; q('.rd-mbox').hidden = kind !== 'mm';
+    q('.rd-xbox').hidden = mode !== 'size'; root.querySelectorAll<HTMLElement>('.rd-vbox').forEach((e) => { e.hidden = mode !== 'conv'; });
+    root.querySelectorAll('.rd-tul').forEach((e) => { e.textContent = tu; });
+    const n = val('.rd-n');
+    q('.rd-ku').textContent = kind === 'power' ? (n === 1 ? `1/${tu}` : n === 0 ? `mol/(L·${tu})` : `(L/mol)^${sg(n - 1, 3)}/${tu}`) : kind === 'reversible' ? `1/${tu}` : `mol/(L·${tu})`;
+    const out = q('.rd-out'), rerr = q('.rd-rerr'), err = q('.rd-err');
+    rerr.hidden = true; err.hidden = true;
+    const stop = (el: HTMLElement, m: string) => { el.textContent = m; el.hidden = false; out.hidden = true; report = []; rows = []; };
+    const kRef = val('.rd-k'), Tr = val('.rd-tr') + 273.15, Ea = val('.rd-ea') * 1000, T = val('.rd-t') + 273.15, CA0 = val('.rd-ca0'), eps = val('.rd-eps');
+    if (kind === 'power' && !(n >= 0 && n <= 5)) return stop(rerr, 'Give a reaction order from 0 to 5.');
+    if (!(kRef > 0)) return stop(rerr, 'Give the rate constant k (above 0).');
+    if (!(Tr > 0 && T > 0)) return stop(rerr, 'Give the temperatures in °C (above −273.15).');
+    if (!(Ea >= 0)) return stop(rerr, 'Give the activation energy in kJ/mol (0 or more).');
+    if (!(CA0 > 0)) return stop(rerr, 'Give the feed concentration CA0 (above 0).');
+    if (!(eps > -1 && eps <= 5)) return stop(rerr, 'Give ε between −1 and 5 (0 for liquids).');
+    const K = val('.rd-K'), Km = val('.rd-Km');
+    if (kind === 'reversible' && !(K > 0)) return stop(rerr, 'Give the equilibrium constant K (above 0).');
+    if (kind === 'mm' && !(Km > 0)) return stop(rerr, 'Give Km (above 0).');
+    const k = arrhenius(kRef, Ea, Tr, T);
+    const r: Rate = { kind, k, n, K, Km, CA0, eps };
+    const xm = xMax(r), v0 = val('.rd-v0'), N = val('.rd-N');
+    if (!(v0 > 0)) return stop(err, 'Give the feed flow v0 (above 0).');
+    if (!(Number.isInteger(N) && N >= 1 && N <= 50)) return stop(err, 'Give a whole number of tanks from 1 to 50.');
+    const FA0 = CA0 * v0;
+    let res: { name: string; size: string; tau: string; X: number }[] = [], big: string, Xplot: number;
+    let Vc = NaN, Vp = NaN, Vs = NaN, tb = NaN, Xs: number[] = [];
+    if (mode === 'size') {
+      const X = val('.rd-x');
+      if (!(X > 0 && X < xm)) return stop(err, kind === 'reversible' ? `Give a conversion above 0 and below the equilibrium conversion, ${sg(xm, 4)}.` : 'Give a target conversion above 0 and below 1.');
+      if (kind === 'power' && n === 0 && X > 1 - 1e-9) return stop(err, 'Give a target conversion below 1.');
+      Vc = cstrVolume(r, v0, X); Vp = pfrVolume(r, v0, X); tb = batchTime(r, X); Vs = N > 1 ? seriesVolume(r, v0, N, X) : Vc; Xs = seriesConversions(r, v0, N, Vs / N);
+      big = `For ${sg(X * 100, 4)} % conversion: PFR ${sg(Vp, 4)} L, CSTR ${sg(Vc, 4)} L`;
+      res = [
+        { name: 'CSTR', size: `${sg(Vc, 5)} L`, tau: sg(Vc / v0, 4), X },
+        { name: 'PFR', size: `${sg(Vp, 5)} L`, tau: sg(Vp / v0, 4), X },
+        { name: `${N} CSTRs in series`, size: `${sg(Vs, 5)} L in all (${sg(Vs / N, 4)} L each)`, tau: sg(Vs / v0, 4), X },
+        { name: 'Batch (constant volume)', size: `${sg(tb, 5)} ${tu} reaction time`, tau: '–', X },
+      ];
+      Xplot = X;
+    } else {
+      const V = val('.rd-V'), t = val('.rd-bt');
+      if (!(V > 0)) return stop(err, 'Give the reactor volume (above 0).');
+      if (!(t > 0)) return stop(err, 'Give the batch reaction time (above 0).');
+      const xc = cstrConversion(r, v0, V), xp = pfrConversion(r, v0, V), xb = batchConversion(r, t);
+      Xs = seriesConversions(r, v0, N, V / N);
+      Vc = V; Vp = V; Vs = V; tb = t;
+      big = `In ${sg(V, 4)} L: PFR ${sg(xp * 100, 4)} %, CSTR ${sg(xc * 100, 4)} % conversion`;
+      res = [
+        { name: 'CSTR', size: `${sg(V, 5)} L`, tau: sg(V / v0, 4), X: xc },
+        { name: 'PFR', size: `${sg(V, 5)} L`, tau: sg(V / v0, 4), X: xp },
+        { name: `${N} CSTRs in series`, size: `${sg(V, 5)} L in all (${sg(V / N, 4)} L each)`, tau: sg(V / v0, 4), X: Xs[N - 1] },
+        { name: 'Batch (constant volume)', size: `${sg(t, 5)} ${tu}`, tau: '–', X: xb },
+      ];
+      Xplot = Math.max(xc, xp, Xs[N - 1]);
+    }
+    out.hidden = false;
+    q('.rd-big').textContent = big;
+    const facts = [
+      fact('Rate constant at the reactor temperature', `k = ${sg(k, 5)} ${q('.rd-ku').textContent}`, Ea > 0 ? `${sg(k / kRef, 4)} × the value at ${sg(Tr - 273.15, 4)} °C (Arrhenius)` : 'no temperature correction (Ea = 0)'),
+      fact('Feed', `FA0 = CA0 × v0 = ${sg(FA0, 4)} mol/${tu}`, `inlet rate −rA0 = ${sg(rateAt(r, 0), 4)} mol/(L·${tu})`),
+    ];
+    if (kind === 'reversible') facts.push(fact('Equilibrium conversion', sg(xm, 5), 'Xe = K / (1 + K); no reactor can pass it'));
+    if (mode === 'size') facts.push(fact('PFR versus CSTR', `the CSTR needs ${sg(Vc / Vp, 4)} × the volume`, 'a CSTR runs at the low exit concentration; for positive-order kinetics the PFR is smaller'));
+    facts.push(fact(`Conversion after each of the ${N} tanks`, Xs.map((x) => sg(x, 4)).join(', ')));
+    q('.rd-facts').replaceChildren(...facts);
+    const head = ['Reactor', 'Size', `Space time τ (${tu})`, 'Conversion'];
+    const trs = res.map((x) => [x.name, x.size, x.tau, sg(x.X, 5)]);
+    const mk = (cells: string[], tag: string) => { const tr = document.createElement('tr'); cells.forEach((c, i) => { const e = document.createElement(tag); e.textContent = c; if (i > 1) e.className = 'r'; tr.append(e); }); return tr; };
+    q<HTMLTableElement>('.rd-tab').replaceChildren(mk(head, 'th'), ...trs.map((c) => mk(c, 'td')));
+    // Levenspiel plot.
+    const xs: number[] = [], ys: number[] = [];
+    const top = Math.min(Xplot * 1.15, xm * 0.995, 0.999);
+    for (let i = 0; i <= 120; i++) { const x = (top * i) / 120; xs.push(x); ys.push(FA0 / rateAt(r, x)); }
+    const Xc = mode === 'size' ? Xplot : res[0].X, hc = FA0 / rateAt(r, Xc);
+    const xsP = xs.filter((x) => x <= (mode === 'size' ? Xplot : res[1].X));
+    const lev = chartFigure({ w: 380, h: 260, xLabel: 'Conversion X', yLabel: 'FA0 / (−rA)  (L)', xMin: 0, yMin: 0, legend: 'below', series: [
+      { name: 'FA0 / (−rA)', x: xs, y: ys, mode: 'line', width: 2 },
+      { name: 'CSTR volume (rectangle area)', x: [0, 0, Xc, Xc], y: [0, hc, hc, 0], mode: 'line', width: 1.5, dash: [5, 3] },
+      { name: 'PFR volume (area under the curve)', x: [...xsP, xsP[xsP.length - 1], 0], y: [...xsP.map((x) => FA0 / rateAt(r, x)), 0, 0], mode: 'line', width: 1 },
+    ] }, 'Levenspiel plot: FA0 over the rate against conversion');
+    // Conversion against volume.
+    // Curves drawn as volume against conversion (no inversion needed), cut at the largest volume shown.
+    const Vmax = Math.max(mode === 'size' ? Math.max(Vc, Vs) : Vc, 1e-12), xg: number[] = [];
+    for (let i = 1; i <= 100; i++) xg.push(xm * 0.999 * (1 - (1 - i / 100) ** 2));
+    const curve = (f: (x: number) => number) => { const px: number[] = [0], py: number[] = [0]; let cumV = 0, xPrev = 0;
+      for (const x of xg) { const v = f === pfrV ? (cumV += pfrSeg(xPrev, x)) : f(x); xPrev = x; if (v > Vmax) { break; } px.push(v); py.push(x); }
+      return { px, py }; };
+    const pfrSeg = (a: number, b: number) => FA0 * integrate((x) => 1 / rateAt(r, x), a, b, 1e-9);
+    const pfrV = (x: number) => x, P = curve(pfrV), Cc = curve((x) => cstrVolume(r, v0, x));
+    const cum = Xs.map((_, i) => ((i + 1) * Vs) / N);
+    const prof = chartFigure({ w: 380, h: 240, xLabel: 'Reactor volume (L)', yLabel: 'Conversion X', xMin: 0, xMax: Vmax, yMin: 0, legend: 'below', series: [
+      { name: 'PFR', x: P.px, y: P.py, mode: 'line', width: 2 },
+      { name: 'One CSTR', x: Cc.px, y: Cc.py, mode: 'line', width: 2 },
+      { name: `${N} CSTRs in series`, x: [0, ...cum], y: [0, ...Xs], mode: 'both', size: 3 },
+    ] }, 'Conversion against reactor volume');
+    figs = [['.rd-lev', lev], ['.rd-prof', prof]];
+    figs.forEach(([c, f]) => paint(q<HTMLCanvasElement>(c), f));
+    rows = [['X', 'rate_mol_per_L_' + tu, 'FA0_over_rate_L'], ...xs.map((x, i) => [sg(x, 6), sg(rateAt(r, x), 8), sg(ys[i], 8)])];
+    report = [{ title: big, facts: factsOf(facts), table: { head, rows: trs, align: ['l', 'l', 'r', 'r'] } }, { title: 'Levenspiel plot', figure: lev }, { title: 'Conversion against volume', figure: prof }];
+  }
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
+  q('.rd-csv').addEventListener('click', () => rows.length > 1 && save(new TextEncoder().encode(csv(rows)), 'levenspiel.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (!q('.rd-out').hidden) figs.forEach(([c, f]) => paint(q<HTMLCanvasElement>(c), f)); });
+  all();
+  wireDownloads(q('.dl'), () => ({ title: 'Reactor design', subtitle: q('.rd-big').textContent ?? '', file: 'reactor-design', sections: report }));
+</script>
+
+<style is:global>
+  .rds select, .rds input { max-width: 100%; }
+</style>

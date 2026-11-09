@@ -1,0 +1,162 @@
+---
+// One-group (and two-group) diffusion in a bare reactor: buckling, k_eff, critical size, flux shape, and a numeric
+// finite-volume solve to check the analytic answer. Example materials are made up. Nothing is uploaded.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ndf">
+  <div class="ax-card">
+    <h2>Material</h2>
+    <label>Model <select class="nd-mode"><option value="1" selected>One group</option><option value="2">Two groups (fast and thermal)</option></select></label>
+    <div class="ax-grid nd-one" style="margin-top:10px">
+      <label>Diffusion coefficient D (cm) <input class="nd-D" type="text" inputmode="decimal" value="0.9" /></label>
+      <label>Absorption Σa (1/cm) <input class="nd-sa" type="text" inputmode="decimal" value="0.0195" /></label>
+      <label>Neutron production νΣf (1/cm) <input class="nd-nsf" type="text" inputmode="decimal" value="0.0245" /></label>
+    </div>
+    <div class="ax-grid nd-two" hidden style="margin-top:10px">
+      <label>Fast D₁ (cm) <input class="nd-D1" type="text" inputmode="decimal" value="1.3" /></label>
+      <label>Fast removal Σᵣ₁ (1/cm) <input class="nd-sr1" type="text" inputmode="decimal" value="0.024" /></label>
+      <label>Fast absorption Σa₁ (1/cm) <input class="nd-sa1" type="text" inputmode="decimal" value="0.002" /></label>
+      <label>Thermal D₂ (cm) <input class="nd-D2" type="text" inputmode="decimal" value="0.45" /></label>
+      <label>Thermal absorption Σa₂ (1/cm) <input class="nd-sa2" type="text" inputmode="decimal" value="0.08" /></label>
+      <label>Thermal νΣf₂ (1/cm) <input class="nd-nsf2" type="text" inputmode="decimal" value="0.115" /></label>
+    </div>
+    <p class="ax-help">The values filled in are made up to give a sensible small reactor; they are not real cross-sections of any fuel. Σa is how often a neutron is absorbed per cm, νΣf how many new neutrons fission makes per cm, D how far neutrons spread. Two groups: fast neutrons slow down (removal Σᵣ₁, of which Σa₁ is absorbed) into the thermal group, where all fission happens.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Shape and size</h2>
+    <div class="ax-grid">
+      <label>Shape <select class="nd-g"><option value="sphere" selected>Sphere</option><option value="cylinder">Cylinder</option><option value="slab">Slab (infinite plate)</option><option value="cuboid">Box (cuboid)</option></select></label>
+      <label class="nd-b nd-sphere nd-cylinder">Radius R (cm) <input class="nd-R" type="text" inputmode="decimal" value="40" /></label>
+      <label class="nd-b nd-cylinder" hidden>Height H (cm, 0 = infinitely tall) <input class="nd-H" type="text" inputmode="decimal" value="80" /></label>
+      <label class="nd-b nd-slab nd-cuboid" hidden>Thickness or side a (cm) <input class="nd-a" type="text" inputmode="decimal" value="60" /></label>
+      <label class="nd-b nd-cuboid" hidden>Side b (cm) <input class="nd-bb" type="text" inputmode="decimal" value="60" /></label>
+      <label class="nd-b nd-cuboid" hidden>Side c (cm) <input class="nd-c" type="text" inputmode="decimal" value="90" /></label>
+      <label>Cylinder height ÷ diameter for the critical size <input class="nd-hd" type="text" inputmode="decimal" value="1" /></label>
+      <label>Cells for the numeric solve <input class="nd-n" type="text" inputmode="numeric" value="200" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="nd-ext" checked /> Add the extrapolation distance (2.13 D) to each outer face</label>
+    <p class="ax-help">A bare reactor with no reflector. The flux is taken to fall to zero a little outside the real surface, at the extrapolation distance; untick to put the zero on the surface itself.</p>
+    <p class="ax-err nd-err" hidden></p>
+  </div>
+
+  <div class="ax-card nd-out" hidden>
+    <h2>Criticality</h2>
+    <p class="ax-big nd-big"></p>
+    <dl class="ax-facts nd-facts"></dl>
+    <h3>Flux shape</h3>
+    <canvas class="ax-fig nd-fig"></canvas>
+    <p class="ax-help nd-fignote"></p>
+    <h3>k<sub>eff</sub> against size</h3>
+    <canvas class="ax-fig nd-kfig"></canvas>
+    <h3>Critical sizes</h3>
+    <div class="ax-scroll"><table class="nd-crit"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small nd-csv">Download flux profile (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .ndf h3 { margin: 22px 0 8px; font-size: 15px; }
+</style>
+
+<script>
+  import { buckling, extrapolated, extrap, keff1, kInf, L2, materialB2, criticalSize, twoGroup, fdSolve, shape, volume, type Geometry, type OneGroup, type FdResult } from '../../lib/sci/eng-diffusion';
+  import { chartFigure, type Series } from '../../lib/sci/plot';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ndf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^[−-]?[\d.]+$/.test(t) && t.includes('.') ? t.replace(/0+$/, '').replace(/\.$/, '') : t; };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const describe = (g: Geometry) => g.kind === 'slab' ? `slab ${sg(g.a)} cm thick` : g.kind === 'sphere' ? `sphere of radius ${sg(g.R)} cm` : g.kind === 'cylinder' ? `cylinder R ${sg(g.R)} cm${g.H ? `, H ${sg(g.H)} cm` : ', infinitely tall'}` : `box ${sg(g.a)} × ${sg(g.b)} × ${sg(g.c)} cm`;
+  const vol = (g: Geometry) => { const v = volume(g); return Number.isFinite(v) ? `${sg(v / 1000, 4)}\u00a0L` : '–'; };
+  let fd: FdResult | null = null, figs: Figure[] = [], critRows: string[][] = [], ge: Geometry | null = null;
+
+  function run() {
+    const err = q('.nd-err'), out = q('.nd-out'), two = sel('.nd-mode') === '2', kind = sel('.nd-g') as Geometry['kind'];
+    q('.nd-one').hidden = two; q('.nd-two').hidden = !two;
+    root.querySelectorAll<HTMLElement>('.nd-b').forEach((e) => { e.hidden = !e.classList.contains(`nd-${kind}`); });
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; fd = null; };
+    let k: (B2: number) => number, kinf: number, M2: number, B2c: number, Dx: number, m1: OneGroup | null = null;
+    if (!two) {
+      const m: OneGroup = { D: val('.nd-D'), sigA: val('.nd-sa'), nuSigF: val('.nd-nsf') };
+      if (!(m.D > 0 && m.sigA > 0 && m.nuSigF >= 0)) return fail('Give D and Σa above 0, and νΣf of 0 or more.');
+      m1 = m; k = (B2) => keff1(m, B2); kinf = kInf(m); M2 = L2(m); B2c = materialB2(m); Dx = m.D;
+    } else {
+      const t = { D1: val('.nd-D1'), sigR1: val('.nd-sr1'), sigA1: val('.nd-sa1'), D2: val('.nd-D2'), sigA2: val('.nd-sa2'), nuSigF2: val('.nd-nsf2') };
+      if (!(t.D1 > 0 && t.sigR1 > 0 && t.D2 > 0 && t.sigA2 > 0 && t.nuSigF2 >= 0 && t.sigA1 >= 0)) return fail('Give every two-group value above 0 (fast absorption and νΣf₂ may be 0).');
+      if (!(t.sigA1 < t.sigR1)) return fail('Fast absorption must be smaller than the fast removal (removal includes it).');
+      const r = twoGroup(t); k = r.keff; kinf = r.kInf; M2 = r.M2; B2c = r.B2c; Dx = t.D2;
+    }
+    const R = val('.nd-R'), H = val('.nd-H'), a = val('.nd-a'), b = val('.nd-bb'), c = val('.nd-c'), hd = val('.nd-hd'), n = Math.round(val('.nd-n'));
+    let g: Geometry;
+    if (kind === 'sphere') { if (!(R > 0)) return fail('Give the radius in cm.'); g = { kind, R }; }
+    else if (kind === 'cylinder') { if (!(R > 0) || !(H >= 0)) return fail('Give the radius, and the height (0 for infinitely tall).'); g = { kind, R, H }; }
+    else if (kind === 'slab') { if (!(a > 0)) return fail('Give the slab thickness in cm.'); g = { kind, a }; }
+    else { if (!(a > 0 && b > 0 && c > 0)) return fail('Give all three sides of the box in cm.'); g = { kind, a, b, c }; }
+    if (!(hd >= 0)) return fail('Give the cylinder height ÷ diameter (0 for infinitely tall).');
+    if (!(n >= 20 && n <= 5000)) return fail('Use 20 to 5,000 cells.');
+    err.hidden = true; out.hidden = false;
+    const d = q<HTMLInputElement>('.nd-ext').checked ? extrap(Dx) : 0;
+    ge = extrapolated(g, d);
+    const B2 = buckling(ge), ke = k(B2);
+    const state = Math.abs(ke - 1) < 5e-4 ? 'critical' : ke > 1 ? 'supercritical' : 'subcritical';
+    q('.nd-big').textContent = `k_eff = ${ke.toFixed(5)} (${state})`;
+    const crit = criticalSize(kind, B2c, d, hd);
+    const facts = [
+      fact('k∞ (infinite medium)', kinf.toFixed(5), kinf < 1 ? 'below 1: no size of this material can be critical' : 'neutrons made per neutron lost, if none leaked'),
+      fact(two ? 'Migration area M²' : 'Diffusion area L²', `${sg(M2, 5)} cm²`, `L = ${sg(Math.sqrt(M2), 4)} cm${two ? ' (M² = L₁² + L₂²)' : ', D / Σa'}`),
+      fact('Geometric buckling B²', `${sg(B2, 5)} cm⁻²`, `of the ${describe(ge)} (extrapolated)`),
+      fact('Non-leakage probability', `${(100 * ke / kinf).toFixed(2)} %`, two ? 'k_eff / k∞: share of neutrons that do not leak out' : '1 / (1 + L²B²)'),
+      fact('Critical size of this shape', crit ? describe(crit) : 'none', crit ? `volume ${vol(crit)}${crit.kind === 'cylinder' && hd ? `; height ÷ diameter ${sg(hd)} (extrapolated)` : ''}` : 'k∞ ≤ 1'),
+      fact('Extrapolation distance', d ? `${sg(d, 4)} cm` : 'not used', d ? `2.13 × ${two ? 'thermal D₂' : 'D'}` : 'flux zero on the real surface'),
+    ];
+    fd = null;
+    if (m1) {
+      fd = fdSolve(m1, ge, n);
+      facts.push(fact('Numeric check (finite volume)', fd.k.toFixed(5), `${n} cells, ${fd.iterations} power iterations; differs from the formula by ${sg(Math.abs(fd.k - ke), 2)}${fd.converged ? '' : ' (not converged)'}`));
+    }
+    q('.nd-facts').replaceChildren(...facts);
+    // Flux shape along the main direction.
+    const edge = ge.kind === 'slab' || ge.kind === 'cuboid' ? ge.a / 2 : ge.R, phys = g.kind === 'slab' || g.kind === 'cuboid' ? g.a / 2 : g.R;
+    const sh: Geometry = ge.kind === 'cuboid' ? { kind: 'slab', a: ge.a } : ge;
+    const xs = Array.from({ length: 121 }, (_, i) => (edge * i) / 120);
+    const W = root.clientWidth < 520 ? 380 : 560, axis = kind === 'slab' || kind === 'cuboid' ? 'Distance from the centre, x (cm)' : 'Radius r (cm)';
+    const series: Series[] = [{ name: 'Formula', x: xs, y: xs.map((x) => shape(sh, x)), mode: 'line', width: 2 }];
+    if (fd) { const step = Math.max(1, Math.round(fd.x.length / 30)); series.push({ name: 'Numeric', x: fd.x.filter((_, i) => i % step === 0), y: fd.phi.filter((_, i) => i % step === 0), mode: 'points', size: 3 }); }
+    const fFig = chartFigure({ w: W, h: 340, xLabel: axis, yLabel: 'Flux φ / φ(centre)', yMin: 0, xMin: 0, legend: fd ? 'inside' : 'none', marks: [{ kind: 'vline', at: phys, label: 'surface' }], series }, `Flux shape of the ${describe(g)}`);
+    paint(q<HTMLCanvasElement>('.nd-fig'), fFig);
+    q('.nd-fignote').textContent = `${kind === 'slab' || kind === 'cuboid' ? 'cos(πx/a)' : kind === 'sphere' ? 'sin(πr/R)/(πr/R)' : 'J₀(2.405 r/R)'} across the extrapolated core${kind === 'cuboid' ? ' (along side a)' : kind === 'cylinder' && g.kind === 'cylinder' && g.H ? ', times cos(πz/H) along the height' : ''}. The dashed line is the real surface.`;
+    // k_eff against a scale factor on every dimension.
+    const sc = Array.from({ length: 61 }, (_, i) => 0.25 + (i * 2.75) / 60);
+    const scaled = (f: number): Geometry => g.kind === 'slab' ? { kind: 'slab', a: g.a * f } : g.kind === 'sphere' ? { kind: 'sphere', R: g.R * f } : g.kind === 'cylinder' ? { kind: 'cylinder', R: g.R * f, H: (g.H ?? 0) * f } : { kind: 'cuboid', a: g.a * f, b: g.b * f, c: g.c * f };
+    const main = (x: Geometry) => (x.kind === 'slab' || x.kind === 'cuboid' ? x.a : x.R);
+    const kFig = chartFigure({ w: W, h: 240, xLabel: kind === 'slab' || kind === 'cuboid' ? 'Side a (cm), all sides scaled together' : 'Radius R (cm), height scaled together', yLabel: 'k_eff', legend: 'none', marks: [{ kind: 'hline', at: 1, label: 'critical' }, { kind: 'vline', at: main(g), label: 'yours' }],
+      series: [{ name: 'k_eff', x: sc.map((f) => main(scaled(f))), y: sc.map((f) => k(buckling(extrapolated(scaled(f), d)))), mode: 'line', width: 2 }] }, `k_eff against size, rising toward k∞ = ${kinf.toFixed(4)}`);
+    paint(q<HTMLCanvasElement>('.nd-kfig'), kFig);
+    figs = [fFig, kFig];
+    const shapes: [string, Geometry | null][] = [['Slab', criticalSize('slab', B2c, d)], ['Sphere', criticalSize('sphere', B2c, d)], [`Cylinder, H ÷ D = ${sg(hd || 1)}`, criticalSize('cylinder', B2c, d, hd || 1)], ['Cylinder, infinitely tall', criticalSize('cylinder', B2c, d, 0)], ['Cube', criticalSize('cuboid', B2c, d)]];
+    critRows = shapes.map(([nm, x]) => [nm, x ? describe(x).replace(/^(slab|sphere of radius|cylinder|box) ?/, '') : 'not possible', x ? vol(x) : '–']);
+    const t = q('.nd-crit'); t.replaceChildren();
+    const hr = t.insertRow(); for (const h of ['Shape', 'Critical size', 'Volume']) { const th = document.createElement('th'); th.textContent = h; hr.append(th); }
+    for (const r of critRows) { const tr = t.insertRow(); r.forEach((x) => { tr.insertCell().textContent = x; }); }
+  }
+
+  root.querySelectorAll('input:not([type=checkbox])').forEach((i) => i.addEventListener('input', run));
+  root.querySelectorAll('select, input[type=checkbox]').forEach((i) => i.addEventListener('change', run));
+  q('.nd-csv').addEventListener('click', () => { if (!ge) return; const g = ge, sh: Geometry = g.kind === 'cuboid' ? { kind: 'slab', a: g.a } : g;
+    const rows: (string | number)[][] = fd ? fd.x.map((x, i) => [x.toFixed(5), shape(sh, x).toFixed(8), fd!.phi[i].toFixed(8)]) : Array.from({ length: 201 }, (_, i) => { const x = ((g.kind === 'slab' || g.kind === 'cuboid' ? g.a / 2 : g.R) * i) / 200; return [x.toFixed(5), shape(sh, x).toFixed(8), '']; });
+    save(new Blob([csv([['position_cm', 'flux_formula', 'flux_numeric'], ...rows])], { type: 'text/csv' }), 'flux-profile.csv', 'text/csv'); });
+  wireDownloads(q('.dl'), () => ({ title: 'Diffusion and criticality', subtitle: q('.nd-big').textContent ?? '', file: 'neutron-diffusion', sections: [
+    { title: q('.nd-big').textContent ?? '', facts: [...q('.nd-facts').querySelectorAll('div')].map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: figs[0] },
+    { title: 'k_eff against size', figure: figs[1] },
+    { title: 'Critical sizes', table: { head: ['Shape', 'Critical size', 'Volume'], rows: critRows }, note: 'Bare homogeneous reactor, diffusion theory; made-up example data. Educational.' },
+  ] as Section[] }));
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.nd-out').hidden) { paint(q<HTMLCanvasElement>('.nd-fig'), figs[0]); paint(q<HTMLCanvasElement>('.nd-kfig'), figs[1]); } });
+  run();
+</script>

@@ -1,0 +1,161 @@
+---
+// Reactor point kinetics with six delayed-neutron groups (educational). Implicit Radau IIA solver, prompt jump and
+// inhour equation. Delayed-neutron data are rounded textbook values for U-235 and can be edited. Nothing is uploaded.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax pkn">
+  <div class="ax-card">
+    <h2>Reactivity</h2>
+    <div class="ax-grid">
+      <label>Units <select class="pk-u"><option value="dollar" selected>dollars ($)</option><option value="cent">cents (¢)</option><option value="pcm">pcm</option><option value="dk">Δk/k</option></select></label>
+      <label>Change <select class="pk-kind"><option value="step" selected>Step</option><option value="ramp">Ramp, then hold</option></select></label>
+      <label class="pk-stepbox">Step size <input class="pk-rho" type="text" inputmode="decimal" value="0.1" /></label>
+      <label class="pk-rampbox" hidden>Ramp rate (per second) <input class="pk-rate" type="text" inputmode="decimal" value="0.01" /></label>
+      <label class="pk-rampbox" hidden>Hold at <input class="pk-max" type="text" inputmode="decimal" value="0.3" /></label>
+      <label>Time to simulate (s) <input class="pk-tend" type="text" inputmode="decimal" value="60" /></label>
+      <label>Plot <select class="pk-scale"><option value="log" selected>Log power</option><option value="lin">Linear power</option></select></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="pk-scram" /> Scram (drop the control rods) during the run</label>
+    <div class="ax-grid pk-scrambox" hidden style="margin-top:8px">
+      <label>Scram at (s) <input class="pk-st" type="text" inputmode="decimal" value="10" /></label>
+      <label>Rod worth (negative, same units) <input class="pk-sw" type="text" inputmode="decimal" value="-5" /></label>
+    </div>
+    <p class="ax-help">Reactivity ρ = (k − 1)/k. One dollar ($) equals β, the delayed-neutron fraction, so 1 $ is the edge of prompt criticality; 100 ¢ = 1 $; 1 pcm = 0.00001 Δk/k. The reactor starts critical at steady power (n = 1) with its precursors in balance. There is no temperature feedback: this is the bare kinetics, for study.</p>
+    <p class="ax-err pk-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Delayed neutrons</h2>
+    <label>Prompt neutron generation time Λ (s) <input class="pk-L" type="text" inputmode="decimal" value="1e-4" /></label>
+    <label style="margin-top:10px">Six groups: βᵢ (fraction), λᵢ (1/s), one group per row
+      <textarea class="pk-groups" rows="6" spellcheck="false"></textarea></label>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small pk-reset">Reset to rounded U-235 values</button></div>
+    <p class="ax-help">Filled in with rounded six-group values for thermal fission of U-235 as given in common textbooks (β = 0.0065), for study. Change them for other fuels. Λ is about 10⁻⁴ s in a water-moderated reactor and much shorter in a fast reactor. Fewer than six rows also works (for example one averaged group).</p>
+  </div>
+
+  <div class="ax-card pk-out" hidden>
+    <h2>Power</h2>
+    <p class="ax-big pk-big"></p>
+    <dl class="ax-facts pk-facts"></dl>
+    <canvas class="ax-fig pk-fig"></canvas>
+    <canvas class="ax-fig pk-rfig"></canvas>
+    <h3>Inhour equation</h3>
+    <p class="ax-help">ρ = ωΛ + Σ βᵢω/(ω+ λᵢ) has seven roots ω. The largest sets the stable period T = 1/ω that remains once the others have died away.</p>
+    <div class="ax-scroll"><table class="pk-roots"></table></div>
+    <h3>Power at chosen times</h3>
+    <div class="ax-scroll"><table class="pk-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pk-csv">Download time series (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .pkn h3 { margin: 22px 0 8px; font-size: 15px; }
+  .pkn .pk-rfig { margin-top: 10px; }
+</style>
+
+<script>
+  import { simulate, inhourRoots, promptJump, toRho, U235_GROUPS, type Kinetics, type Reactivity, type Sim } from '../../lib/sci/eng-pointkinetics';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { num, sig, csv, parseTable } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pkn')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^[−-]?[\d.]+$/.test(t) && t.includes('.') ? t.replace(/0+$/, '').replace(/\.$/, '') : t; };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const table = (t: HTMLElement, head: string[], rows: string[][]) => {
+    t.replaceChildren();
+    const h = t.insertRow(); head.forEach((x) => { const th = document.createElement('th'); th.textContent = x; th.className = 'r'; h.append(th); });
+    for (const r of rows) { const tr = t.insertRow(); r.forEach((x) => { const td = tr.insertCell(); td.textContent = x; td.className = 'r'; }); }
+  };
+  const resetGroups = () => { q<HTMLTextAreaElement>('.pk-groups').value = U235_GROUPS.a.map((a, i) => `${+(a * U235_GROUPS.beta).toPrecision(6)}, ${U235_GROUPS.lambda[i]}`).join('\n'); };
+  const per = (w: number) => (Math.abs(w) < 1e-12 ? '∞' : `${sg(1 / w, 4)} s`);
+
+  let sim: Sim | null = null, figs: Figure[] = [], info: { k: Kinetics; beta: number; rho: number } | null = null, rootsRows: string[][] = [], tabRows: string[][] = [];
+
+  function run() {
+    const err = q('.pk-err'), out = q('.pk-out');
+    const kind = sel('.pk-kind'), unit = sel('.pk-u') as 'dollar' | 'cent' | 'pcm' | 'dk';
+    root.querySelectorAll<HTMLElement>('.pk-rampbox').forEach((e) => { e.hidden = kind !== 'ramp'; }); q('.pk-stepbox').hidden = kind !== 'step';
+    q('.pk-scrambox').hidden = !q<HTMLInputElement>('.pk-scram').checked;
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sim = null; };
+    const rows = parseTable(q<HTMLTextAreaElement>('.pk-groups').value);
+    const betas = rows.map((r) => num(r[0])), lambdas = rows.map((r) => num(r[1]));
+    if (!rows.length || rows.length > 8) return fail('Give 1 to 8 delayed-neutron groups, one per row: βᵢ, λᵢ.');
+    if (!betas.every((b) => b > 0 && b < 0.1) || !lambdas.every((l) => l > 0 && l < 1000)) return fail('Each group needs a β above 0 (a fraction such as 0.0014) and a λ above 0 (per second).');
+    const L = val('.pk-L');
+    if (!(L >= 1e-9 && L <= 1)) return fail('Give the prompt neutron generation time Λ in seconds (for example 1e-4).');
+    const k: Kinetics = { betas, lambdas, Lambda: L }, beta = betas.reduce((s, b) => s + b, 0);
+    const R = (v: number) => toRho(v, unit, beta);
+    const tEnd = val('.pk-tend');
+    if (!(tEnd > 0 && tEnd <= 100000)) return fail('Give the time to simulate in seconds (up to 100,000).');
+    let r: Reactivity;
+    const scram = q<HTMLInputElement>('.pk-scram').checked, st = val('.pk-st'), sw = val('.pk-sw');
+    if (scram && !(st >= 0 && st < tEnd)) return fail('Give a scram time within the run.');
+    if (scram && !(sw < 0)) return fail('The rod worth must be negative (it takes reactivity away).');
+    const sc = scram ? { scramAt: st, scramRho: R(sw) } : {};
+    if (kind === 'step') { const v = val('.pk-rho'); if (!Number.isFinite(v)) return fail('Give the step size.'); r = { kind: 'step', rho: R(v), ...sc }; }
+    else { const rate = val('.pk-rate'), mx = val('.pk-max'); if (!(rate > 0) || !Number.isFinite(mx) || mx === 0) return fail('Give a ramp rate above 0 and a value to hold at (negative to ramp down).'); r = { kind: 'ramp', rate: R(rate), max: R(mx), ...sc }; }
+    const rho = kind === 'step' ? (r as { rho: number }).rho : (r as { max: number }).max;
+    if (Math.abs(rho) > 0.5) return fail('That reactivity is too large for this model (more than 0.5 Δk/k).');
+    err.hidden = true; out.hidden = false;
+    const s = simulate(k, r, tEnd, { out: 400, tol: 1e-8, at: [0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000, 3000, 10000].filter((x) => x < tEnd) }); sim = s; info = { k, beta, rho };
+    const n = s.n.length, nEnd = s.n[n - 1], tLast = s.t[n - 1];
+    const roots = inhourRoots(k, rho), w = roots[0];
+    const inDollars = rho / beta;
+    q('.pk-big').textContent = s.stopped != null ? `Runaway: power passed 10⁶⁰ × the start by ${sg(s.stopped, 3)} s` : `Power after ${sg(tEnd, 4)} s: ${nEnd >= 1000 && nEnd < 1e6 ? Math.round(nEnd).toLocaleString('en') : sg(nEnd, 4)} × the start`;
+    const late = n > 2 ? Math.log(s.n[n - 1] / s.n[n - 2]) / (s.t[n - 1] - s.t[n - 2]) : NaN;
+    const facts = [
+      fact('Reactivity', `${sg(inDollars, 4)} $`, `${sg(rho, 4)} Δk/k = ${sg(rho * 1e5, 4)} pcm = ${sg(inDollars * 100, 4)} ¢${kind === 'ramp' ? ' (held value)' : ''}`),
+      fact('Delayed-neutron fraction β', sg(beta, 4), `mean precursor lifetime ${sg(betas.reduce((a, b, i) => a + b / lambdas[i], 0) / beta, 4)} s`),
+      fact('Stable period (inhour)', per(w), Math.abs(w) < 1e-12 ? 'critical: no change' : w > 0 ? `power doubles every ${sg(Math.LN2 / w, 4)} s once settled` : `power halves every ${sg(Math.LN2 / -w, 4)} s once settled (no shorter than about 80 s for U-235)`),
+      fact('Prompt jump', rho < beta ? `× ${sg(promptJump(beta, rho), 4)}` : 'none: prompt critical', rho < beta ? 'the fast change right after a step, β/(β − ρ)' : 'the chain reaction grows on prompt neutrons alone'),
+      fact('Period seen at the end', Number.isFinite(late) && Math.abs(late) > 1e-12 ? per(late) : '∞', 'from the last two points of the run'),
+    ];
+    if (rho >= beta) facts.unshift(fact('Prompt critical', 'ρ ≥ 1 $', 'the power rises on the prompt-neutron time scale; real reactors are designed so this cannot happen'));
+    q('.pk-facts').replaceChildren(...facts);
+    const W = root.clientWidth < 520 ? 380 : 560, log = sel('.pk-scale') === 'log' && s.n.every((x) => x > 0);
+    const pFig = chartFigure({ w: W, h: 300, xLabel: 'Time (s)', yLabel: 'Power n / n₀', yLog: log, legend: 'none', series: [{ name: 'Power', x: s.t, y: s.n, mode: 'line', width: 2 }] }, `Relative power over ${sg(tEnd, 3)} seconds, ending at ${sg(nEnd, 3)} times the start`);
+    const rFig = chartFigure({ w: W, h: 180, xLabel: 'Time (s)', yLabel: 'ρ ($)', legend: 'none', series: [{ name: 'Reactivity', x: s.t, y: s.rho.map((x) => x / beta), mode: 'line', width: 2 }] }, 'Reactivity in dollars over time');
+    paint(q<HTMLCanvasElement>('.pk-fig'), pFig); paint(q<HTMLCanvasElement>('.pk-rfig'), rFig);
+    figs = [pFig, rFig];
+    rootsRows = roots.map((x, i) => [String(i + 1), sg(x, 6), per(x)]);
+    table(q('.pk-roots'), ['Root', 'ω (1/s)', 'Period 1/ω'], rootsRows);
+    const pick = [0.01, 0.1, 1, 10, 100, 1000, 10000].map((f) => f).filter((x) => x <= tLast);
+    const near = (t: number) => { let j = 0; for (let i = 0; i < n; i++) if (Math.abs(s.t[i] - t) < Math.abs(s.t[j] - t)) j = i; return j; };
+    const idx = [...new Set([...pick.map(near), n - 1])].sort((a, b) => a - b);
+    tabRows = idx.map((j) => [sg(s.t[j], 4), sg(s.rho[j] / beta, 4), sg(s.n[j], 6)]);
+    table(q('.pk-tab'), ['Time (s)', 'ρ ($)', 'n / n₀'], tabRows);
+  }
+
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(run, 300); };
+  root.querySelectorAll('input:not([type=checkbox]), textarea').forEach((i) => i.addEventListener('input', later));
+  root.querySelectorAll('select, input[type=checkbox]').forEach((i) => i.addEventListener('change', run));
+  // Changing units converts the typed reactivity values so they stay the same physically.
+  let lastUnit = 'dollar';
+  q('.pk-u').addEventListener('change', () => {
+    const u = sel('.pk-u'), beta = parseTable(q<HTMLTextAreaElement>('.pk-groups').value).reduce((s, r) => s + num(r[0]), 0) || U235_GROUPS.beta;
+    const f = toRho(1, lastUnit as 'dollar', beta) / toRho(1, u as 'dollar', beta);
+    for (const c of ['.pk-rho', '.pk-rate', '.pk-max', '.pk-sw']) { const v = val(c); if (Number.isFinite(v)) q<HTMLInputElement>(c).value = String(+(v * f).toPrecision(6)); }
+    lastUnit = u; run();
+  });
+  q('.pk-reset').addEventListener('click', () => { resetGroups(); q<HTMLInputElement>('.pk-L').value = '1e-4'; run(); });
+  q('.pk-csv').addEventListener('click', () => { if (!sim || !info) return; const s = sim, b = info.beta;
+    save(new Blob([csv([['time_s', 'rho_dollars', 'n_relative', ...s.C[0].map((_, i) => `C${i + 1}`)], ...s.t.map((t, i) => [+t.toPrecision(10), +(s.rho[i] / b).toPrecision(8), s.n[i].toPrecision(10), ...s.C[i].map((c) => c.toPrecision(8))])])], { type: 'text/csv' }), 'point-kinetics.csv', 'text/csv'); });
+  wireDownloads(q('.dl'), () => {
+    const sections: Section[] = [
+      { title: q('.pk-big').textContent ?? '', facts: [...q('.pk-facts').querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: figs[0] },
+      { title: 'Reactivity', figure: figs[1] },
+      { title: 'Inhour roots', table: { head: ['Root', 'ω (1/s)', 'Period'], rows: rootsRows, align: ['r', 'r', 'r'] } },
+      { title: 'Power at chosen times', table: { head: ['Time (s)', 'ρ ($)', 'n/n0'], rows: tabRows, align: ['r', 'r', 'r'] }, note: `Six-group point kinetics, Λ = ${info!.k.Lambda} s, no feedback. Educational; delayed-neutron data rounded.` },
+    ];
+    return { title: 'Reactor point kinetics', subtitle: q('.pk-big').textContent ?? '', file: 'point-kinetics', sections };
+  });
+  document.addEventListener('fibub:theme', () => { if (sim) { paint(q<HTMLCanvasElement>('.pk-fig'), figs[0]); paint(q<HTMLCanvasElement>('.pk-rfig'), figs[1]); } });
+  resetGroups(); run();
+</script>

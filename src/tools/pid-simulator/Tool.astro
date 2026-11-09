@@ -1,0 +1,255 @@
+---
+// PID tuning simulator: a plant with dead time, a PID controller with a filtered derivative, the closed-loop
+// step response and its numbers, the open-loop Bode plot with margins, and Ziegler-Nichols starting gains.
+// Runs in the browser; nothing is uploaded. The example plant and gains are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax pid">
+  <div class="ax-card">
+    <h2>Plant (the process you control)</h2>
+    <div class="ax-grid">
+      <label>Model <select class="pi-model"><option value="fo">First order + dead time</option><option value="so">Second order + dead time</option><option value="tf">Transfer function + dead time</option></select></label>
+      <label>Dead time L (s) <input class="pi-L" type="text" inputmode="decimal" value="1" /></label>
+    </div>
+    <div class="ax-grid pi-fo" style="margin-top:10px">
+      <label>Gain K <input class="pi-K" type="text" inputmode="decimal" value="2" /></label>
+      <label>Time constant τ (s) <input class="pi-tau" type="text" inputmode="decimal" value="5" /></label>
+    </div>
+    <div class="ax-grid pi-so" style="margin-top:10px" hidden>
+      <label>Gain K <input class="pi-K2" type="text" inputmode="decimal" value="1" /></label>
+      <label>Natural frequency ωn (rad/s) <input class="pi-wn" type="text" inputmode="decimal" value="2" /></label>
+      <label>Damping ratio ζ <input class="pi-z" type="text" inputmode="decimal" value="0.3" /></label>
+    </div>
+    <div class="ax-grid pi-tf" style="margin-top:10px" hidden>
+      <label>Numerator <input class="pi-num" type="text" spellcheck="false" value="1" /></label>
+      <label>Denominator <input class="pi-den" type="text" spellcheck="false" value="1 3 3 1" /></label>
+    </div>
+    <p class="ax-help pi-plant"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>PID controller</h2>
+    <div class="pi-gains">
+      <label>Kp (proportional) <span class="pi-pair"><input class="pi-kp" type="text" inputmode="decimal" value="1.2" /><input class="pi-kps" type="range" min="0" max="1" step="0.001" aria-label="Kp slider" /></span></label>
+      <label>Ki (integral, 1/s) <span class="pi-pair"><input class="pi-ki" type="text" inputmode="decimal" value="0.3" /><input class="pi-kis" type="range" min="0" max="1" step="0.001" aria-label="Ki slider" /></span></label>
+      <label>Kd (derivative, s) <span class="pi-pair"><input class="pi-kd" type="text" inputmode="decimal" value="0.5" /><input class="pi-kds" type="range" min="0" max="1" step="0.001" aria-label="Kd slider" /></span></label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Derivative filter Tf (s) <input class="pi-tff" type="text" inputmode="decimal" placeholder="auto: Td/10" /></label>
+      <label>Derivative acts on <select class="pi-don"><option value="e">Error (setpoint − output)</option><option value="y">Output only (no kick)</option></select></label>
+    </div>
+    <p class="ax-help">C(s) = Kp + Ki/s + Kd·s/(Tf·s + 1), in parallel form; Ti = Kp/Ki and Td = Kd/Kp. Tf smooths the derivative; empty means Td/10. Sliders run from 0 to 3 times the value you typed.</p>
+    <details style="margin-top:10px"><summary>Test settings</summary>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Setpoint step size <input class="pi-R" type="text" inputmode="decimal" value="1" /></label>
+        <label>Load disturbance size <input class="pi-dist" type="text" inputmode="decimal" value="0" /></label>
+        <label>Disturbance at (s) <input class="pi-dat" type="text" inputmode="decimal" placeholder="auto: half way" /></label>
+        <label>Simulate for (s) <input class="pi-tend" type="text" inputmode="decimal" placeholder="auto" /></label>
+        <label>Settling band <select class="pi-band"><option value="0.02">±2 %</option><option value="0.05">±5 %</option></select></label>
+      </div>
+      <p class="ax-help">The load disturbance is a step added to the plant input, as a sudden extra load would be.</p>
+    </details>
+    <p class="ax-err pi-err" hidden></p>
+  </div>
+
+  <div class="ax-card pi-out">
+    <h2>Step response</h2>
+    <p class="ax-big pi-big"></p>
+    <canvas class="ax-fig pi-step"></canvas>
+    <canvas class="ax-fig pi-u" style="margin-top:8px"></canvas>
+    <dl class="ax-facts pi-facts" style="margin-top:12px"></dl>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pi-csv">Download response (CSV)</button></div>
+
+    <h3>Bode plot of the open loop C·G</h3>
+    <canvas class="ax-fig pi-mag"></canvas>
+    <canvas class="ax-fig pi-ph" style="margin-top:8px"></canvas>
+    <dl class="ax-facts pi-mfacts" style="margin-top:12px"></dl>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pi-bcsv">Download Bode data (CSV)</button></div>
+
+    <h3>Ziegler-Nichols starting values</h3>
+    <p class="ax-help pi-znote"></p>
+    <div class="ax-scroll"><table class="pi-zn"></table></div>
+    <p class="ax-help">Ziegler-Nichols gains are aggressive on purpose (about a quarter-amplitude decay). Treat them as a first guess and soften from there.</p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .pid h3 { margin: 22px 0 8px; font-size: 15px; }
+  .pid .pi-gains { display: grid; gap: 10px; }
+  .pid .pi-pair { display: grid; grid-template-columns: minmax(0, 110px) minmax(0, 1fr); gap: 12px; align-items: center; }
+  .pid input[type=range] { width: 100%; accent-color: var(--accent); }
+  .pid summary { cursor: pointer; font-size: 15px; font-weight: 600; }
+  .pid .pi-zn button { padding: 4px 10px; font-size: 14px; }
+  .pid .pi-zn td, .pid .pi-zn th { padding: 6px 5px; }
+</style>
+
+<script>
+  import { firstOrder, secondOrder, simulate, closedLoopPoles, dcGains, stepInfo, openLoopTf, freqResp, freqRange, logspace, margins, ultimate, znUltimate, znReaction, reactionCurve, pidTf, type TF, type PID, type Plant, type Sim, type ZN } from '../../lib/sci/ctl-pid';
+  import { cxText, roots } from '../../lib/sci/ctl-linalg';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pid')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sg = (x: number, d = 4) => { if (!Number.isFinite(x)) return x > 0 ? '∞' : '–'; const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const polyText = (p: number[]) => { const n = p.length - 1; const t = p.map((c, i) => ({ c, k: n - i })).filter((x) => x.c !== 0).map(({ c, k }, i) => { const a = Math.abs(c), s = c < 0 ? '−' : i ? '+' : ''; const cs = a === 1 && k ? '' : sg(a); return `${i ? ` ${s} ` : s}${cs}${k ? (k === 1 ? 's' : `s^${k}`) : ''}`; }).join(''); return t || '0'; };
+  const readPoly = (s: string) => { const p = s.replace(/[,;]/g, ' ').trim().split(/\s+/).filter(Boolean).map(num); return p.length && p.every(Number.isFinite) ? p : null; };
+
+  let figs: Figure[] = [], sim: Sim | null = null, bode: { w: number[]; db: number[]; phase: number[] } | null = null, sections: Section[] = [], znRows: ZN[] = [];
+
+  function readPlant(): Plant | string {
+    const m = q<HTMLSelectElement>('.pi-model').value, L = val('.pi-L');
+    q('.pi-fo').hidden = m !== 'fo'; q('.pi-so').hidden = m !== 'so'; q('.pi-tf').hidden = m !== 'tf';
+    if (!(L >= 0)) return 'Give the dead time L in seconds (0 or more).';
+    if (L > 1e4) return 'The dead time is too long for this simulator (up to 10,000 s).';
+    let tf: TF;
+    if (m === 'fo') { const K = val('.pi-K'), tau = val('.pi-tau'); if (!Number.isFinite(K) || K === 0) return 'Give the plant gain K (not 0).'; if (!(tau > 0)) return 'Give the time constant τ in seconds (more than 0).'; tf = firstOrder(K, tau); }
+    else if (m === 'so') { const K = val('.pi-K2'), wn = val('.pi-wn'), z = val('.pi-z'); if (!Number.isFinite(K) || K === 0) return 'Give the plant gain K (not 0).'; if (!(wn > 0)) return 'Give the natural frequency ωn (more than 0).'; if (!(z >= 0)) return 'Give the damping ratio ζ (0 or more).'; tf = secondOrder(K, wn, z); }
+    else {
+      const n = readPoly(q<HTMLInputElement>('.pi-num').value), d = readPoly(q<HTMLInputElement>('.pi-den').value);
+      if (!n || !d) return 'Type the numerator and denominator as coefficients, highest power of s first, e.g. "1 3 3 1" for s³ + 3s² + 3s + 1.';
+      while (n.length > 1 && n[0] === 0) n.shift(); while (d.length > 1 && d[0] === 0) d.shift();
+      if (d.length < 2) return 'The denominator needs at least one power of s (the plant needs a pole).';
+      if (n.length > d.length) return 'The numerator has a higher power of s than the denominator (improper). Add poles or remove zeros.';
+      if (d.length > 11) return 'Up to 10th order, please.';
+      if (n.every((x) => x === 0)) return 'The numerator is zero.';
+      tf = { num: n, den: d };
+    }
+    q('.pi-plant').textContent = `G(s) = (${polyText(tf.num)}) / (${polyText(tf.den)})${L > 0 ? ` · e^(−${sg(L)}s)` : ''}`;
+    return { tf, delay: L };
+  }
+  function readPid(): PID | string {
+    const kp = val('.pi-kp'), ki = val('.pi-ki'), kd = val('.pi-kd');
+    if (![kp, ki, kd].every(Number.isFinite)) return 'Give Kp, Ki and Kd as numbers (0 switches a term off).';
+    if (kp === 0 && ki === 0 && kd === 0) return 'Give at least one gain that is not 0.';
+    let tf = 0;
+    if (kd !== 0) {
+      const s = q<HTMLInputElement>(".pi-tff").value.trim();
+      if (s) { tf = num(s); if (!(tf > 0)) return 'The derivative filter Tf must be more than 0 s.'; }
+      else { if (kp === 0) return 'With Kp = 0, type the derivative filter Tf yourself.'; tf = Math.abs(kd / kp) / 10; }
+    }
+    return { kp, ki, kd, tf, dOnMeasurement: q<HTMLSelectElement>('.pi-don').value === 'y' };
+  }
+
+  function run() {
+    const err = q('.pi-err');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; q('.pi-out').hidden = true; sections = []; };
+    const plant = readPlant(); if (typeof plant === 'string') return fail(plant);
+    const c = readPid(); if (typeof c === 'string') return fail(c);
+    const R = val('.pi-R'), dist = val('.pi-dist') || 0, band = Number(q<HTMLSelectElement>('.pi-band').value);
+    if (!Number.isFinite(R) || R === 0) return fail('Give the setpoint step size (not 0).');
+    let cl;
+    try { cl = closedLoopPoles(plant, c); } catch (e) { return fail((e as Error).message); }
+    const dc = dcGains(plant.tf, c);
+    // How long to simulate: from the slowest closed-loop pole when stable, else from the plant.
+    const pp = roots(plant.tf.den).map((p) => Math.hypot(p.re, p.im)).filter((x) => x > 0);
+    const plantScale = pp.length ? 1 / Math.min(...pp) : 1;
+    let tEnd = val('.pi-tend');
+    const auto = !(tEnd > 0);
+    if (auto) {
+      const slow = Math.min(...cl.poles.map((p) => -p.re).filter((x) => x > 0));
+      tEnd = cl.stable && Number.isFinite(slow) ? Math.min(8 / slow, 400 * plantScale) + 2 * plant.delay : 15 * plantScale + 4 * plant.delay;
+      tEnd = +sig(tEnd, 2);
+    }
+    let dAt = val('.pi-dat');
+    if (dist) { if (!(dAt >= 0)) { dAt = tEnd; if (auto) tEnd *= 2; else dAt = tEnd / 2; } }
+    if (tEnd / Math.max(plant.delay, 1e-300) > 2e5 / 4 && plant.delay > 0) return fail('The dead time is too short compared with the run time; shorten "Simulate for" or set L to 0.');
+    err.hidden = true; q('.pi-out').hidden = false;
+    try { sim = simulate(plant, c, tEnd, { R, dist, dAt: dist ? dAt : undefined, steps: 2000 }); } catch (e) { return fail((e as Error).message); }
+    const final = cl.stable ? dc.r * R : NaN;
+    const info = stepInfo(sim.t, sim.y, final, R, band, sim.dAt);
+    const blown = !sim.y.every(Number.isFinite) || Math.max(...sim.y.map(Math.abs)) > 1e12;
+    q('.pi-big').textContent = !cl.stable ? 'Unstable: the output grows without settling' : `Overshoot ${sg(info.overshoot, 3)} %, settles in ${sg(info.settle, 3)} s`;
+    const facts = [
+      fact('Rise time (10 → 90 %)', cl.stable ? `${sg(info.rise, 3)} s` : '–'),
+      fact(`Settling time (±${band * 100} %)`, cl.stable && Number.isFinite(info.settle) ? `${sg(info.settle, 3)} s` : cl.stable ? 'not within the run' : '–'),
+      fact('Overshoot', cl.stable ? `${sg(info.overshoot, 3)} %` : '–', cl.stable ? `peak ${sg(info.peak, 4)} at ${sg(info.peakTime, 3)} s${info.undershoot > 0 ? `; dips ${sg(info.undershoot, 3)} % the wrong way first` : ''}` : ''),
+      fact('Steady-state error', cl.stable ? sg(Math.abs(R - final) < 1e-12 * Math.abs(R) ? 0 : R - final, 4) : '–', cl.stable ? (c.ki ? 'integral action removes it' : 'no integral action, so some error is left (unless the plant has an integrator)') : ''),
+      fact(cl.approx ? 'Slowest closed-loop poles' : 'Closed-loop poles', (cl.approx ? ((ps) => ps.slice(0, ps[3] && ps[3].im !== 0 && ps[4] && Math.abs(ps[4].im + ps[3].im) < 1e-9 * (1 + Math.abs(ps[3].im)) ? 5 : 4))([...cl.poles].sort((a, b) => b.re - a.re || a.im - b.im)).sort((a, b) => a.re - b.re || a.im - b.im) : cl.poles).map((p) => cxText(p, (x) => sg(x, 3))).join(', '), `${cl.stable ? 'all in the left half-plane: stable' : 'at least one in the right half-plane: unstable'}${cl.approx ? ' (dead time approximated by a 6th-order Padé for this check)' : ''}`),
+    ];
+    if (dist) facts.push(fact('Load disturbance', `${sg(dist)} at ${sg(sim.dAt, 3)} s`, cl.stable ? `steady change in output ${sg(dc.d * dist, 3)}${c.ki ? ' (integral action brings it back)' : ''}` : ''));
+    q('.pi-facts').replaceChildren(...facts);
+    // charts
+    const step = chartFigure({ w: 420, h: 270, xLabel: 'Time (s)', yLabel: 'Output y', legend: 'below', xMin: 0, xMax: tEnd, ...(blown || !cl.stable ? { yMin: -4 * Math.abs(R), yMax: 4 * Math.abs(R) } : {}), series: [
+      { name: 'Output y', x: sim.t, y: sim.y.map((v) => (Number.isFinite(v) ? Math.max(-1e6, Math.min(1e6, v)) : NaN)), mode: 'line', width: 2 },
+      { name: 'Setpoint', x: [0, tEnd], y: [R, R], mode: 'line', dash: [5, 4], width: 1.5 },
+    ] }, `Closed-loop step response: ${q('.pi-big').textContent}`);
+    const umax = Math.max(...sim.u.filter(Number.isFinite).map(Math.abs));
+    const uf = chartFigure({ w: 420, h: 190, xLabel: 'Time (s)', yLabel: 'Controller output u', legend: 'none', xMin: 0, xMax: tEnd, ...(!cl.stable ? { yMin: -4 * umax / 100 - 1, yMax: 4 * umax / 100 + 1 } : {}), series: [
+      { name: 'u', x: sim.t, y: sim.u.map((v) => (Number.isFinite(v) ? Math.max(-1e6, Math.min(1e6, v)) : NaN)), mode: 'line', width: 1.5, color: undefined },
+    ] }, `Controller output, largest ${sg(umax, 3)}`);
+    // Bode
+    const ol = openLoopTf(plant.tf, c), [a, b0] = freqRange(ol, plant.delay);
+    // With dead time the phase falls without end; stop the plot a little past where it passes −720°.
+    const b = plant.delay > 0 ? Math.max(a + 2, Math.min(b0, Math.ceil(Math.log10(20 / plant.delay)))) : b0;
+    const w = logspace(a, b, 400), F = freqResp(ol, plant.delay, w), M = margins(ol, plant.delay, [a, b0]);
+    bode = { w, db: F.db, phase: F.phase };
+    const pmin = Math.min(...F.phase), pmax = Math.max(...F.phase);
+    const ph = chartFigure({ w: 420, h: 220, xLabel: 'Frequency ω (rad/s)', yLabel: 'Phase (°)', xLog: true, legend: 'none', yMin: Math.max(pmin, -720), yMax: Math.max(pmax, -90), series: [{ name: 'Phase', x: w, y: F.phase.map((p) => Math.max(p, -720)), mode: 'line', width: 2 }],
+      marks: [{ kind: 'hline', at: -180, dash: [4, 3], label: '−180°' }, ...(Number.isFinite(M.wpc) ? [{ kind: 'vline' as const, at: M.wpc, dash: [2, 3], label: 'GM' }] : []), ...(Number.isFinite(M.wgc) ? [{ kind: 'vline' as const, at: M.wgc, dash: [2, 3], label: 'PM' }] : [])] }, 'Open-loop phase');
+    const mag = chartFigure({ w: 420, h: 220, xLabel: 'Frequency ω (rad/s)', yLabel: 'Magnitude (dB)', xLog: true, legend: 'none', series: [{ name: 'Magnitude', x: w, y: F.db, mode: 'line', width: 2 }],
+      marks: [{ kind: 'hline', at: 0, dash: [4, 3], label: '0 dB' }, ...(Number.isFinite(M.wgc) ? [{ kind: 'vline' as const, at: M.wgc, dash: [2, 3], label: 'PM' }] : []), ...(Number.isFinite(M.wpc) ? [{ kind: 'vline' as const, at: M.wpc, dash: [2, 3], label: 'GM' }] : [])] }, 'Open-loop magnitude');
+    figs = [step, uf, mag, ph];
+    paint(q<HTMLCanvasElement>('.pi-step'), step); paint(q<HTMLCanvasElement>('.pi-u'), uf); paint(q<HTMLCanvasElement>('.pi-mag'), mag); paint(q<HTMLCanvasElement>('.pi-ph'), ph);
+    const mf = [
+      fact('Gain margin', Number.isFinite(M.gm) ? `${sg(M.gmDb, 3)} dB (× ${sg(M.gm, 3)})` : '∞', Number.isFinite(M.gm) ? `at ${sg(M.wpc, 3)} rad/s, where the phase is −180°; 6 dB or more is usual` : 'the phase never reaches −180°'),
+      fact('Phase margin', Number.isFinite(M.pm) ? `${sg(M.pm, 3)}°` : '∞', Number.isFinite(M.pm) ? `at ${sg(M.wgc, 3)} rad/s, where the gain is 0 dB; 30° to 60° is usual` : 'the gain never crosses 0 dB'),
+      fact('Delay margin', Number.isFinite(M.pm) && M.pm > 0 && M.wgc > 0 ? `${sg(((M.pm * Math.PI) / 180) / M.wgc, 3)} s` : '–', 'extra dead time the loop can take before it goes unstable'),
+    ];
+    q('.pi-mfacts').replaceChildren(...mf);
+    // Ziegler-Nichols
+    const ult = ultimate(plant), rc = reactionCurve(plant);
+    znRows = [];
+    const t = q<HTMLTableElement>('.pi-zn'); t.replaceChildren();
+    const h = t.insertRow(); for (const x of ['Method', 'Type', 'Kp', 'Ki', 'Kd', '']) { const th = document.createElement('th'); th.textContent = x; h.append(th); }
+    const add = (label: string, z: ZN) => { znRows.push(z); const tr = t.insertRow(); [label, z.kind, sg(z.kp, 4), sg(z.ki, 4), sg(z.kd, 4)].forEach((x, k) => { const td = tr.insertCell(); td.textContent = x; if (k > 1) td.className = 'r'; }); const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary small pi-use'; b.textContent = 'Use'; b.dataset.i = String(znRows.length - 1); tr.insertCell().append(b); };
+    const notes: string[] = [];
+    if (ult) { for (const z of znUltimate(ult.ku, ult.pu)) add('Ultimate', z); notes.push(`Ultimate gain Ku = ${sg(ult.ku, 4)} and period Pu = ${sg(ult.pu, 4)} s (where the plant's phase reaches −180°).`); }
+    else notes.push("The plant's phase never reaches −180°, so there is no ultimate gain.");
+    if (rc) { for (const z of znReaction(rc.K, rc.T, rc.L)) add('Reaction', z); notes.push(`Reaction curve (tangent at the steepest point of the plant's own step response): K = ${sg(rc.K, 4)}, lag T = ${sg(rc.T, 4)} s, apparent dead time L = ${sg(rc.L, 4)} s.`); }
+    else notes.push('The plant does not settle to a steady value on its own (or has no lag), so the reaction-curve rules do not apply.');
+    q('.pi-znote').textContent = notes.join(' ');
+    sections = [
+      { title: 'Loop', facts: [['Plant', q('.pi-plant').textContent ?? ''], ['Controller', `Kp ${sg(c.kp)}, Ki ${sg(c.ki)}, Kd ${sg(c.kd)}${c.kd ? `, Tf ${sg(c.tf, 3)} s` : ''}`], ['C(s)', `(${polyText(pidTf(c).num)}) / (${polyText(pidTf(c).den)})`], ['Derivative on', c.dOnMeasurement ? 'output' : 'error']] },
+      { title: 'Step response', text: [q('.pi-big').textContent ?? ''], facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: step },
+      { title: 'Controller output', figure: uf },
+      { title: 'Bode plot', facts: mf.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: mag },
+      { title: 'Phase', figure: ph },
+      { title: 'Ziegler-Nichols starting values', text: notes, table: { head: ['Method', 'Type', 'Kp', 'Ki', 'Kd'], rows: [...t.querySelectorAll('tr')].slice(1).map((tr) => [...tr.cells].slice(0, 5).map((td) => td.textContent ?? '')), align: ['l', 'l', 'r', 'r', 'r'] } },
+    ];
+  }
+
+  // sliders: 0 to 3 × the typed value (re-ranged when a value is typed)
+  const pairs: [string, string][] = [['.pi-kp', '.pi-kps'], ['.pi-ki', '.pi-kis'], ['.pi-kd', '.pi-kds']];
+  const rerange = (box: string, sl: string) => { const v = Math.abs(val(box)) || 1, s = q<HTMLInputElement>(sl); s.max = String(+sig(3 * v, 3)); s.step = String(+sig(3 * v / 600, 2)); s.value = String(Math.abs(val(box)) || 0); };
+  for (const [box, sl] of pairs) {
+    rerange(box, sl);
+    q(box).addEventListener('input', () => { rerange(box, sl); run(); });
+    q(sl).addEventListener('input', () => { q<HTMLInputElement>(box).value = String(+Number(q<HTMLInputElement>(sl).value).toPrecision(4)); run(); });
+  }
+  let tm = 0;
+  root.querySelectorAll('.ax-card:not(.pi-out) input:not([type=range]):not(.pi-kp):not(.pi-ki):not(.pi-kd), .ax-card:not(.pi-out) select').forEach((i) => { i.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(run, 150); }); });
+  q('.pi-zn').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('.pi-use'); if (!b) return;
+    const z = znRows[Number(b.dataset.i)];
+    q<HTMLInputElement>('.pi-kp').value = sg(z.kp, 4); q<HTMLInputElement>('.pi-ki').value = sg(z.ki, 4); q<HTMLInputElement>('.pi-kd').value = sg(z.kd, 4); q<HTMLInputElement>(".pi-tff").value = '';
+    for (const [box, sl] of pairs) rerange(box, sl);
+    run(); q('.pi-gains').scrollIntoView({ block: 'nearest' });
+  });
+  q('.pi-csv').addEventListener('click', () => {
+    if (!sim) return;
+    save(new Blob([csv([['time_s', 'setpoint', 'output_y', 'controller_u'], ...sim.t.map((t, i) => [+t.toPrecision(8), sim!.r[i], +sim!.y[i].toPrecision(8), +sim!.u[i].toPrecision(8)])])], { type: 'text/csv' }), 'pid-step-response.csv', 'text/csv');
+  });
+  q('.pi-bcsv').addEventListener('click', () => {
+    if (!bode) return;
+    save(new Blob([csv([['omega_rad_s', 'magnitude_dB', 'phase_deg'], ...bode.w.map((w, i) => [+w.toPrecision(8), +bode!.db[i].toPrecision(8), +bode!.phase[i].toPrecision(8)])])], { type: 'text/csv' }), 'pid-bode.csv', 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => ({ title: 'PID tuning simulator', subtitle: q('.pi-big').textContent ?? '', file: 'pid-simulation', sections }));
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.pi-out').hidden) ['.pi-step', '.pi-u', '.pi-mag', '.pi-ph'].forEach((c, i) => paint(q<HTMLCanvasElement>(c), figs[i])); });
+  run();
+</script>

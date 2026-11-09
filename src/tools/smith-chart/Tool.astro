@@ -1,0 +1,212 @@
+---
+// Smith chart: load impedance, Γ, VSWR, return loss, line transformation, L-network and single-stub matching.
+// Default values are an example, made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax smc">
+  <div class="ax-card">
+    <h2>Load and line</h2>
+    <div class="ax-grid">
+      <label>Line impedance Z0 (Ω) <input class="sm-z0" type="text" inputmode="decimal" value="50" /></label>
+      <label>Load resistance R (Ω) <input class="sm-r" type="text" inputmode="decimal" value="60" /></label>
+      <label>Load reactance X (Ω) <input class="sm-x" type="text" inputmode="decimal" value="-80" /></label>
+      <label>Frequency (MHz) <input class="sm-f" type="text" inputmode="decimal" value="2000" /></label>
+      <label>Line length (wavelengths) <input class="sm-l" type="text" inputmode="decimal" value="0.1" /></label>
+      <label>Velocity factor of the line <input class="sm-vf" type="text" inputmode="decimal" value="0.66" /></label>
+      <label>Matching <select class="sm-m"><option value="l" selected>L-network (two parts)</option><option value="open">Single stub, open end</option><option value="short">Single stub, shorted end</option><option value="none">None</option></select></label>
+      <label class="ax-check" style="align-self:end"><input class="sm-adm" type="checkbox" /> Show admittance circles</label>
+    </div>
+    <p class="ax-help">Reactance is positive for an inductive load and negative for a capacitive one. The line is lossless; its length moves the point clockwise round the chart (towards the generator), half a wavelength per full turn. The velocity factor (0.66 for solid-polyethylene coax) only turns wavelengths into physical lengths. The example values are made up.</p>
+    <p class="ax-err sm-err" hidden></p>
+  </div>
+
+  <div class="ax-card sm-out">
+    <h2>Smith chart</h2>
+    <p class="ax-big sm-big"></p>
+    <div class="sm-wrap"><svg class="sm-svg" viewBox="-1.18 -1.18 2.36 2.36" role="img" aria-label="Smith chart"></svg></div>
+    <div class="ax-legend sm-leg"></div>
+    <dl class="ax-facts sm-facts" style="margin-top:12px"></dl>
+  </div>
+
+  <div class="ax-card sm-out">
+    <h2>Along the line</h2>
+    <dl class="ax-facts sm-lfacts"></dl>
+  </div>
+
+  <div class="ax-card sm-out sm-mcard">
+    <h2 class="sm-mtitle">Matching</h2>
+    <p class="ax-help sm-mhelp"></p>
+    <dl class="ax-facts sm-mfacts" style="margin-top:10px"></dl>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { mismatch, lineZin, lMatch, stubMatch, component, gamma, lineArc, rCircle, xArc, inv, add, type Cx } from '../../lib/sci/eng-smith';
+  import { paint, wireDownloads, type Figure, type Section, type Palette } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.smc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const clean = (v: number, ref: number) => (Math.abs(v) < 1e-9 * Math.max(1, ref) ? 0 : v);
+  const zs = (zIn: Cx, u = ' Ω') => { const m = Math.hypot(zIn[0], zIn[1]), z: Cx = [clean(zIn[0], m), clean(zIn[1], m)]; return `${sg(z[0], 4)} ${z[1] < 0 ? '−' : '+'} j${sg(Math.abs(z[1]), 4)}${u}`; };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factPairs = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent! + (d.querySelector('small') ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string]);
+  const comp = (c: { type: 'L' | 'C'; value: number }) => c.type === 'L' ? `${sg(c.value * 1e9, 4)} nH` : `${sg(c.value * 1e12, 4)} pF`;
+  let report: Section[] = [], fig: Figure | null = null;
+
+  type Prim = { kind: 'line'; pts: Cx[]; cls: string; width: number; dash?: number[] } | { kind: 'dot'; at: Cx; cls: string; label: string; r?: number } | { kind: 'text'; at: Cx; text: string; cls: string; anchor?: 'start' | 'middle' | 'end' };
+  const R_VALS = [0.2, 0.5, 1, 2, 5], X_VALS = [0.2, 0.5, 1, 2, 5];
+
+  function grid(adm: boolean): Prim[] {
+    const p: Prim[] = [];
+    const flip = (pts: Cx[]) => pts.map((g) => [-g[0], -g[1]] as Cx);
+    if (adm) {
+      for (const r of R_VALS) p.push({ kind: 'line', pts: flip(rCircle(r)), cls: 'adm', width: 0.006 });
+      for (const x of X_VALS) for (const s of [1, -1]) p.push({ kind: 'line', pts: flip(xArc(s * x)), cls: 'adm', width: 0.006 });
+    }
+    for (const r of R_VALS) p.push({ kind: 'line', pts: rCircle(r), cls: 'grid', width: 0.006 });
+    for (const x of X_VALS) for (const s of [1, -1]) p.push({ kind: 'line', pts: xArc(s * x), cls: 'grid', width: 0.006 });
+    p.push({ kind: 'line', pts: [[-1, 0], [1, 0]], cls: 'grid', width: 0.006 });
+    p.push({ kind: 'line', pts: rCircle(0, 240), cls: 'edge', width: 0.012 });
+    for (const r of R_VALS) p.push({ kind: 'text', at: [(r - 1) / (r + 1), -0.025], text: String(r), cls: 'lab', anchor: 'middle' });
+    for (const x of X_VALS) for (const s of [1, -1]) { const g = gamma([0, s * x], 1); p.push({ kind: 'text', at: [g[0] * 1.07, g[1] * 1.07 + (s > 0 ? 0 : 0.03)], text: `${s > 0 ? '+' : '−'}j${x}`, cls: 'lab', anchor: g[0] > 0.05 ? 'start' : g[0] < -0.05 ? 'end' : 'middle' }); }
+    return p;
+  }
+
+  function svgRender(prims: Prim[]) {
+    const svg = q<SVGSVGElement & HTMLElement>('.sm-svg'), NS = 'http://www.w3.org/2000/svg';
+    svg.replaceChildren();
+    for (const p of prims) {
+      if (p.kind === 'line') {
+        const e = document.createElementNS(NS, 'polyline');
+        e.setAttribute('points', p.pts.map((g) => `${g[0].toFixed(5)},${(-g[1]).toFixed(5)}`).join(' '));
+        e.setAttribute('class', `s-${p.cls}`); e.setAttribute('stroke-width', String(p.width)); e.setAttribute('fill', 'none');
+        if (p.dash) e.setAttribute('stroke-dasharray', p.dash.join(' '));
+        svg.append(e);
+      } else if (p.kind === 'dot') {
+        const c = document.createElementNS(NS, 'circle'); c.setAttribute('cx', p.at[0].toFixed(5)); c.setAttribute('cy', (-p.at[1]).toFixed(5)); c.setAttribute('r', String(p.r ?? 0.03)); c.setAttribute('class', `f-${p.cls}`); svg.append(c);
+        const t = document.createElementNS(NS, 'text'); t.setAttribute('x', (p.at[0] + 0.045).toFixed(5)); t.setAttribute('y', (-p.at[1] - 0.035).toFixed(5)); t.setAttribute('class', `t-${p.cls}`); t.textContent = p.label; svg.append(t);
+      } else {
+        const t = document.createElementNS(NS, 'text'); t.setAttribute('x', p.at[0].toFixed(5)); t.setAttribute('y', (-p.at[1]).toFixed(5)); t.setAttribute('class', `t-${p.cls}`); t.setAttribute('text-anchor', p.anchor ?? 'start'); t.textContent = p.text; svg.append(t);
+      }
+    }
+  }
+  function figure(prims: Prim[], alt: string): Figure {
+    return { w: 360, h: 360, alt, draw: (ctx, W, H, pal: Palette) => {
+      const s = W / 2.36, X = (g: Cx) => W / 2 + g[0] * s, Y = (g: Cx) => H / 2 - g[1] * s;
+      const col: Record<string, string> = { grid: pal.line, adm: pal.red ? pal.grid : '#d9c6e8', edge: pal.ink, lab: pal.muted, load: pal.bad, vswr: pal.muted, line: pal.accent, zin: pal.accent, match: pal.good, m2: pal.accent2 };
+      for (const p of prims) {
+        if (p.kind === 'line') { ctx.strokeStyle = col[p.cls]; ctx.lineWidth = Math.max(0.7, p.width * s); ctx.setLineDash((p.dash ?? []).map((d) => d * s)); ctx.beginPath(); p.pts.forEach((g, i) => (i ? ctx.lineTo(X(g), Y(g)) : ctx.moveTo(X(g), Y(g)))); ctx.stroke(); ctx.setLineDash([]); }
+        else if (p.kind === 'dot') { ctx.fillStyle = col[p.cls]; ctx.beginPath(); ctx.arc(X(p.at), Y(p.at), (p.r ?? 0.03) * s, 0, 7); ctx.fill(); ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText(p.label, X(p.at) + 0.045 * s, Y(p.at) - 0.035 * s); }
+        else { ctx.fillStyle = col[p.cls]; ctx.font = '9px system-ui, sans-serif'; ctx.textAlign = (p.anchor === 'middle' ? 'center' : p.anchor === 'end' ? 'right' : 'left'); ctx.textBaseline = 'alphabetic'; ctx.fillText(p.text, X(p.at), Y(p.at)); }
+      }
+    } };
+  }
+
+  function calc() {
+    const err = q('.sm-err'), outs = root.querySelectorAll<HTMLElement>('.sm-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; outs.forEach((o) => (o.hidden = true)); report = []; };
+    const z0 = val('.sm-z0'), R = val('.sm-r'), Xl = val('.sm-x'), fMHz = val('.sm-f'), len = val('.sm-l'), vf = val('.sm-vf'), mode = sel('.sm-m');
+    if (!(z0 > 0)) return fail('Give the line impedance Z0 in ohms (50 or 75 are usual).');
+    if (!(R >= 0)) return fail('Give the load resistance (0 or more; a passive load cannot have negative resistance).');
+    if (!Number.isFinite(Xl)) return fail('Give the load reactance in ohms (0 for a resistor).');
+    if (!(fMHz > 0)) return fail('Give the frequency in MHz.');
+    if (!(len >= 0)) return fail('Give the line length in wavelengths (0 or more).');
+    if (!(vf > 0 && vf <= 1)) return fail('Give a velocity factor between 0 and 1 (0.66 for solid coax, about 0.8 for foam, 1 for air).');
+    err.hidden = true; outs.forEach((o) => (o.hidden = false));
+    const zl: Cx = [R, Xl], f = fMHz * 1e6, m = mismatch(zl, z0), lam = (299792458 * vf) / f;
+    const zin = lineZin(zl, z0, len), mi = mismatch(zin, z0), zn: Cx = [R / z0, Xl / z0], y = R === 0 && Xl === 0 ? null : inv(zl);
+    const vswrTxt = Number.isFinite(m.vswr) ? sg(m.vswr, 4) : '∞';
+    q('.sm-big').textContent = `Γ = ${sg(m.mag, 3)} ∠ ${sg(m.angleDeg, 4)}°, VSWR ${vswrTxt}`;
+    const facts = [
+      fact('Normalised load z', zs(zn, ''), `Z / Z0 = (${zs(zl)}) / ${sg(z0, 4)} Ω`),
+      fact('Reflection coefficient Γ', `${sg(m.mag, 4)} ∠ ${sg(m.angleDeg, 4)}°`, `${sg(m.gamma[0], 4)} ${m.gamma[1] < 0 ? '−' : '+'} j${sg(Math.abs(m.gamma[1]), 4)}; Γ = (Z − Z0)/(Z + Z0)`),
+      fact('VSWR', vswrTxt, '(1 + |Γ|)/(1 − |Γ|)'),
+      fact('Return loss', Number.isFinite(m.returnLoss) ? `${sg(m.returnLoss, 4)} dB` : '∞ (matched)', '−20 log₁₀|Γ|'),
+      fact('Power reflected', `${sg(m.powerReflected * 100, 3)} %`, `mismatch loss ${Number.isFinite(m.mismatchLoss) ? sg(m.mismatchLoss, 3) + ' dB' : '∞'} = −10 log₁₀(1 − |Γ|²)`),
+      fact('Load admittance Y', y ? `${zs([y[0] * 1000, y[1] * 1000], ' mS')}` : '∞ (short circuit)', 'G + jB = 1/Z'),
+    ];
+    q('.sm-facts').replaceChildren(...facts);
+    const lfacts = [
+      fact('Line length', `${sg(len, 4)} λ = ${sg(len * lam * 100, 4)} cm`, `λ in the line = ${sg(lam * 100, 4)} cm at ${sg(fMHz, 6)} MHz with velocity factor ${sg(vf, 3)}`),
+      fact('Input impedance', zs(zin), 'Zin = Z0 (ZL + jZ0 tan βℓ)/(Z0 + jZL tan βℓ)'),
+      fact('Γ at the input', `${sg(mi.mag, 4)} ∠ ${sg(mi.angleDeg, 4)}°`, `same size as at the load; turned by −720° × ${sg(len, 4)} (VSWR unchanged on a lossless line)`),
+    ];
+    q('.sm-lfacts').replaceChildren(...lfacts);
+    // Chart.
+    const prims: Prim[] = grid(q<HTMLInputElement>('.sm-adm').checked);
+    const legend: [string, string][] = [];
+    if (m.mag > 1e-9 && m.mag <= 1) { prims.push({ kind: 'line', pts: lineArc([m.mag, 0], 0.5, 240), cls: 'vswr', width: 0.006, dash: [0.03, 0.025] }); legend.push(['vswr', 'VSWR circle']); }
+    if (len > 0) { prims.push({ kind: 'line', pts: lineArc(m.gamma, Math.min(len, 0.5) === 0.5 ? 0.5 : len % 0.5 || 0.5, 160), cls: 'line', width: 0.014 }); legend.push(['line', `line, ${sg(len, 3)} λ`]); }
+    // Matching.
+    let mHead: string[] = [], mRows: string[][] = [], mHelp = '';
+    const mf: HTMLElement[] = [];
+    q('.sm-mcard').hidden = mode === 'none';
+    if (mode === 'l') {
+      q('.sm-mtitle').textContent = 'L-network matching';
+      const sols = R > 0 ? lMatch(zl, z0) : [];
+      mHelp = R === 0 ? 'A pure reactance cannot be matched: it absorbs no power.' : sols.length ? `Two parts, no line needed. "Shunt first" puts a part across the load, then one in series towards the source (possible when the load's conductance is at most 1/Z0). "Series first" puts a part in series with the load, then one across the source side (possible when R < Z0). Values are at ${sg(fMHz, 6)} MHz; a match by lumped parts holds over a narrow band.` : 'This load is already matched.';
+      mHead = ['#', 'Order', 'Part next to the load', 'Part towards the source', 'Input'];
+      sols.forEach((s, i) => {
+        const cB = component('B', s.B, f), cX = component('X', s.X, f);
+        const shunt = `shunt ${cB.type === 'C' ? 'capacitor' : 'inductor'} ${comp(cB)} (B = ${sg(s.B * 1000, 4)} mS)`, series = `series ${cX.type === 'C' ? 'capacitor' : 'inductor'} ${comp(cX)} (X = ${sg(s.X, 4)} Ω)`;
+        mRows.push([String(i + 1), s.topology === 'shunt-first' ? 'Shunt first' : 'Series first', s.topology === 'shunt-first' ? shunt : series, s.topology === 'shunt-first' ? series : shunt, zs(s.zin)]);
+        const nm = (c: { type: 'L' | 'C' }) => (c.type === 'C' ? 'capacitor' : 'inductor');
+        mf.push(fact(`Solution ${i + 1}, ${s.topology === 'shunt-first' ? 'shunt first' : 'series first'}`, s.topology === 'shunt-first' ? `${comp(cB)} across the load, then ${comp(cX)} in series` : `${comp(cX)} in series with the load, then ${comp(cB)} across`, `${s.topology === 'shunt-first' ? `shunt ${nm(cB)} B = ${sg(s.B * 1000, 4)} mS, series ${nm(cX)} X = ${sg(s.X, 4)} Ω` : `series ${nm(cX)} X = ${sg(s.X, 4)} Ω, shunt ${nm(cB)} B = ${sg(s.B * 1000, 4)} mS`}; input ${zs(s.zin)}`));
+        const mid = s.topology === 'shunt-first' ? gamma(inv(add(inv(zl), [0, s.B])), z0) : gamma(add(zl, [0, s.X]), z0);
+        prims.push({ kind: 'dot', at: mid, cls: i % 2 ? 'm2' : 'match', label: String(i + 1), r: 0.022 });
+      });
+      if (sols.length) legend.push(['match', 'after the first part (numbered)']);
+    } else if (mode === 'open' || mode === 'short') {
+      q('.sm-mtitle').textContent = `Single ${mode === 'open' ? 'open' : 'shorted'} stub matching`;
+      const sols = R > 0 ? stubMatch(zl, z0) : [];
+      mHelp = R === 0 ? 'A pure reactance cannot be matched: it absorbs no power.' : `Move along the line from the load by d until the admittance is 1/Z0 + jB, then put a ${mode === 'open' ? 'stub with an open end' : 'stub with a shorted end'} across the line that adds −jB. Lengths are in wavelengths of the line (physical lengths use the velocity factor). Adding λ/2 to any length gives another solution.`;
+      mHead = ['#', 'Stub at d from the load', 'Admittance there', 'Stub length'];
+      sols.forEach((s, i) => {
+        const l = mode === 'open' ? s.open : s.short;
+        mRows.push([String(i + 1), `${sg(s.d, 4)} λ = ${sg(s.d * lam * 100, 4)} cm`, `${sg(1000 / z0, 4)} ${s.B < 0 ? '−' : '+'} j${sg(Math.abs(s.B * 1000), 4)} mS`, `${sg(l, 4)} λ = ${sg(l * lam * 100, 4)} cm`]);
+        mf.push(fact(`Solution ${i + 1}`, `stub ${sg(l, 4)} λ long at ${sg(s.d, 4)} λ from the load`, `${sg(l * lam * 100, 4)} cm at ${sg(s.d * lam * 100, 4)} cm; admittance there ${mRows[i][2]}`));
+        prims.push({ kind: 'dot', at: gamma(s.zAtStub, z0), cls: i % 2 ? 'm2' : 'match', label: `d${i + 1}`, r: 0.022 });
+      });
+      if (sols.length) legend.push(['match', 'where the stubs go']);
+    }
+    if (mode !== 'none') { q('.sm-mfacts').replaceChildren(...mf); q('.sm-mhelp').textContent = mHelp; }
+    if (m.mag <= 1 + 1e-9) prims.push({ kind: 'dot', at: m.gamma, cls: 'load', label: 'L' });
+    legend.unshift(['load', 'load (L)']);
+    if (len > 0 && mi.mag <= 1 + 1e-9) { prims.push({ kind: 'dot', at: mi.gamma, cls: 'zin', label: 'in', r: 0.025 }); }
+    prims.push({ kind: 'dot', at: [0, 0], cls: 'vswr', label: '', r: 0.012 });
+    svgRender(prims);
+    q('.sm-leg').replaceChildren(...legend.map(([c, t]) => { const s = document.createElement('span'); const i = document.createElement('i'); i.className = `k-${c}`; s.append(i, t); return s; }));
+    fig = figure(prims, `Smith chart: load ${zs(zl)} on ${sg(z0, 4)} Ω, ${q('.sm-big').textContent}`);
+    report = [{ title: q('.sm-big').textContent!, facts: factPairs(facts), figure: fig }, { title: 'Along the line', facts: factPairs(lfacts) }];
+    if (mode !== 'none' && mRows.length) report.push({ title: q('.sm-mtitle').textContent!, text: [mHelp], table: { head: mHead, rows: mRows } });
+  }
+
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Smith chart', subtitle: q('.sm-big').textContent ?? '', file: 'smith-chart', sections: report }));
+</script>
+
+<style is:global>
+  .smc select, .smc input { max-width: 100%; }
+  .smc .sm-wrap { max-width: 460px; margin: 0 auto; }
+  .smc .sm-svg { display: block; width: 100%; height: auto; }
+  .smc .sm-svg polyline { stroke-linejoin: round; stroke-linecap: round; }
+  .smc .s-grid { stroke: var(--line); }
+  .smc .s-adm { stroke: color-mix(in srgb, var(--accent) 30%, var(--bg)); }
+  .smc .s-edge { stroke: var(--ink); }
+  .smc .s-vswr { stroke: var(--muted); }
+  .smc .s-line { stroke: var(--accent); }
+  .smc .t-lab { fill: var(--muted); font-size: 0.055px; font-family: system-ui, sans-serif; }
+  .smc .f-load { fill: var(--bad); } .smc .t-load { fill: var(--bad); font: 600 0.075px system-ui, sans-serif; }
+  .smc .f-zin { fill: var(--accent); } .smc .t-zin { fill: var(--accent); font: 600 0.07px system-ui, sans-serif; }
+  .smc .f-match { fill: var(--good); } .smc .t-match { fill: var(--good); font: 600 0.065px system-ui, sans-serif; }
+  .smc .f-m2 { fill: var(--warn); } .smc .t-m2 { fill: var(--warn); font: 600 0.065px system-ui, sans-serif; }
+  .smc .f-vswr { fill: var(--muted); } .smc .t-vswr { fill: var(--muted); font-size: 0.05px; }
+  .smc .k-load { background: var(--bad); } .smc .k-vswr { background: var(--muted); } .smc .k-line { background: var(--accent); } .smc .k-match { background: var(--good); }
+</style>

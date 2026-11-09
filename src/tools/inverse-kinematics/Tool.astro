@@ -1,0 +1,205 @@
+---
+// Planar inverse kinematics for 2- and 3-link arms: both elbow solutions, reach check, joint limits, drawing, CSV.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax iks">
+  <div class="ax-card">
+    <h2>Arm</h2>
+    <div class="ax-grid">
+      <label>Links <select class="ik-n"><option value="2" selected>2 links (position only)</option><option value="3">3 links (position and tool angle)</option></select></label>
+      <label>Link 1 length L1 <input class="ik-L1" type="text" inputmode="decimal" value="1" /></label>
+      <label>Link 2 length L2 <input class="ik-L2" type="text" inputmode="decimal" value="0.8" /></label>
+      <label class="ik-3box" hidden>Link 3 (tool) length L3 <input class="ik-L3" type="text" inputmode="decimal" value="0.3" /></label>
+    </div>
+    <label class="ik-chk"><input type="checkbox" class="ik-lim" /> <span>Joint limits</span></label>
+    <div class="ax-grid ik-limbox" hidden>
+      <label>Joint 1 min (°) <input class="ik-l1a" type="text" inputmode="decimal" value="-90" /></label>
+      <label>Joint 1 max (°) <input class="ik-l1b" type="text" inputmode="decimal" value="180" /></label>
+      <label>Joint 2 min (°) <input class="ik-l2a" type="text" inputmode="decimal" value="-150" /></label>
+      <label>Joint 2 max (°) <input class="ik-l2b" type="text" inputmode="decimal" value="0" /></label>
+      <label class="ik-3box" hidden>Joint 3 min (°) <input class="ik-l3a" type="text" inputmode="decimal" value="-120" /></label>
+      <label class="ik-3box" hidden>Joint 3 max (°) <input class="ik-l3b" type="text" inputmode="decimal" value="120" /></label>
+    </div>
+    <p class="ax-help">Use any length unit, the same for every length and target. Each joint angle is measured from the previous link, counter-clockwise positive; joint 1 from the +x axis. The example arm is made up.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Target</h2>
+    <div class="ax-grid">
+      <label>x <input class="ik-x" type="text" inputmode="decimal" value="1.2" /></label>
+      <label>y <input class="ik-y" type="text" inputmode="decimal" value="0.6" /></label>
+      <label class="ik-3box" hidden>Tool angle φ (°, from +x) <input class="ik-phi" type="text" inputmode="decimal" value="30" /></label>
+      <label>Draw and list <select class="ik-el"><option value="up" selected>Elbow up</option><option value="down">Elbow down</option></select></label>
+    </div>
+    <p class="ax-err ik-err" hidden></p>
+  </div>
+
+  <div class="ax-card ik-out">
+    <h2>Joint angles</h2>
+    <p class="ax-big ik-big"></p>
+    <dl class="ax-facts ik-facts"></dl>
+    <div class="ax-scroll"><table class="ik-tab"></table></div>
+    <canvas class="ax-fig ik-fig"></canvas>
+  </div>
+
+  <div class="ax-card">
+    <h2>Many targets</h2>
+    <label>One target per line: x, y (and tool angle φ in degrees for 3 links)
+      <textarea class="ik-pts" rows="6" spellcheck="false">x, y, phi
+1.2, 0.6, 30
+1.0, 0.9, 60
+0.5, 1.2, 90
+-0.6, 1.0, 120
+2.5, 0, 0</textarea></label>
+    <DataFile target=".ik-pts" />
+    <p class="ax-err ik-perr" hidden></p>
+    <div class="ax-scroll"><table class="ik-ptab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ik-csv">Joint angles (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { ik2, ik3, fk, reach2, limitBreaks, type Sol } from '../../lib/sci/ik';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv, parseTable } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const D = 180 / Math.PI, deg = (a: number) => (Math.abs(a * D) < 5e-7 ? 0 : a * D).toFixed(3);
+  const root = document.querySelector<HTMLElement>('.iks')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factsOf = (ds: HTMLElement[]) => ds.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  const table = (el: HTMLTableElement, head: string[], rows: string[][], right: number[]) => {
+    const tr = (cells: string[], tag: string) => { const r = document.createElement('tr'); cells.forEach((c, i) => { const e = document.createElement(tag); e.textContent = c; if (right.includes(i)) e.className = 'r'; r.append(e); }); return r; };
+    el.replaceChildren(tr(head, 'th'), ...rows.map((r) => tr(r, 'td')));
+  };
+  let fig: Figure | null = null, main: Section[] = [], many: Section | null = null, rows: (string | number)[][] = [];
+
+  type Arm = { L: number[]; lim?: ([number, number] | undefined)[] };
+  function arm(): Arm | string {
+    const three = q<HTMLSelectElement>('.ik-n').value === '3';
+    root.querySelectorAll<HTMLElement>('.ik-3box').forEach((e) => { e.hidden = !three || (e.closest('.ik-limbox') !== null && !q<HTMLInputElement>('.ik-lim').checked); });
+    const useLim = q<HTMLInputElement>('.ik-lim').checked; q('.ik-limbox').hidden = !useLim;
+    const L = [val('.ik-L1'), val('.ik-L2'), ...(three ? [val('.ik-L3')] : [])];
+    if (!L.every((l) => l > 0)) return 'Give every link length (above 0).';
+    let lim: ([number, number] | undefined)[] | undefined;
+    if (useLim) {
+      lim = [];
+      for (let i = 1; i <= L.length; i++) {
+        const a = val(`.ik-l${i}a`), b = val(`.ik-l${i}b`);
+        if (!(a >= -180 && b <= 180 && a < b)) return `Joint ${i} limits: give a minimum below the maximum, both between −180° and 180°.`;
+        lim.push([a / D, b / D]);
+      }
+    }
+    return { L, lim };
+  }
+  function solve(a: Arm, x: number, y: number, phi: number) {
+    if (a.L.length === 2) return { sols: ik2(a.L[0], a.L[1], x, y), wrist: [x, y] as [number, number] };
+    return ik3(a.L[0], a.L[1], a.L[2], x, y, phi);
+  }
+
+  function one(a: Arm) {
+    const out = q('.ik-out'), err = q('.ik-err');
+    const x = val('.ik-x'), y = val('.ik-y'), phi = val('.ik-phi') / D, three = a.L.length === 3;
+    const stop = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; main = []; };
+    if (!Number.isFinite(x) || !Number.isFinite(y) || (three && !Number.isFinite(phi))) return stop(three ? 'Give the target x, y and tool angle.' : 'Give the target x and y.');
+    const { sols, wrist } = solve(a, x, y, phi), { rMin, rMax } = reach2(a.L[0], a.L[1]), r = Math.hypot(wrist[0], wrist[1]);
+    err.hidden = true; out.hidden = false;
+    const want = q<HTMLSelectElement>('.ik-el').value;
+    const facts: HTMLElement[] = [];
+    const wName = three ? 'Wrist point' : 'Target';
+    facts.push(fact(`${wName} distance from the base`, sg(r, 5), `the first two links reach from ${sg(rMin, 4)} to ${sg(rMax, 4)}${three ? `; wrist at (${sg(wrist[0], 4)}, ${sg(wrist[1], 4)}), back L3 along the tool angle` : ''}`));
+    let pick: Sol | undefined;
+    if (!sols.length) {
+      q('.ik-big').textContent = 'Out of reach';
+      facts.push(fact('Why', r > rMax ? `${sg(r - rMax, 4)} too far` : `${sg(rMin - r, 4)} too close`, r > rMax ? 'even fully stretched the arm stops short; move the target in, or use longer links' : 'the arm cannot fold tightly enough to reach this close to its base'));
+      q<HTMLTableElement>('.ik-tab').replaceChildren();
+    } else {
+      pick = sols.find((s) => s.elbow === want) ?? sols[0];
+      const ok = sols.filter((s) => !limitBreaks(s.q, a.lim).length);
+      q('.ik-big').textContent = `${pick.q.map((v, i) => `θ${i + 1} = ${deg(v)}°`).join(', ')}${sols.length === 1 ? ' (only solution)' : ''}`;
+      if (sols.length === 1) facts.push(fact('Single solution', r >= rMax - 1e-9 ? 'arm fully stretched' : 'arm fully folded', 'elbow up and down coincide: a singular pose, where the arm cannot move in one direction'));
+      if (a.lim) facts.push(fact('Joint limits', ok.length === sols.length ? 'both solutions are within the limits' : ok.length ? `only elbow ${ok[0].elbow} is within the limits` : 'no solution is within the limits', ok.length ? '' : 'the point is in reach, but the joints cannot get there'));
+      let worstErr = 0;
+      const head = ['Solution', ...a.L.map((_, i) => `θ${i + 1} °`), ...(a.lim ? ['Limits'] : [])];
+      const trs = sols.map((s) => { const f = fk(a.L, s.q); worstErr = Math.max(worstErr, Math.hypot(f.pts[a.L.length][0] - x, f.pts[a.L.length][1] - y)); const br = limitBreaks(s.q, a.lim); return [`Elbow ${s.elbow}`, ...s.q.map(deg), ...(a.lim ? [br.length ? `joint ${br.map((i) => i + 1).join(', ')} outside` : 'ok'] : [])]; });
+      facts.push(fact('Check', `tip lands within ${worstErr < 1e-12 ? '1e-12' : sg(worstErr, 2)} of the target`, 'forward kinematics of each solution, worked back from its angles'));
+      table(q('.ik-tab'), head, trs, a.L.map((_, i) => i + 1));
+      main = [{ title: q('.ik-big').textContent!, facts: [], table: { head, rows: trs, align: head.map((_, i) => (i === 0 || i === a.L.length + 1 ? 'l' : 'r')) } }];
+    }
+    q('.ik-facts').replaceChildren(...facts);
+    // Drawing: workspace annulus (of the wrist), the arm(s) and the target.
+    const total = a.L.reduce((s, l) => s + l, 0), ext = Math.max(total, Math.hypot(x, y)) * 1.08;
+    fig = { w: 380, h: 340, alt: 'Arm drawing with the reachable area', draw: (ctx, W, H, pal) => {
+      const s = Math.min(W, H - 20) / (2 * ext), cx = W / 2, cy = (H - 20) / 2 + 4;
+      const X = (u: number) => cx + u * s, Y = (v: number) => cy - v * s;
+      ctx.strokeStyle = pal.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.moveTo(cx, 0); ctx.lineTo(cx, H - 20); ctx.stroke();
+      ctx.fillStyle = pal.red ? pal.twilight : pal.accent; ctx.globalAlpha = 0.12; ctx.beginPath(); ctx.arc(cx, cy, rMax * s, 0, 2 * Math.PI); if (rMin > 0) ctx.arc(cx, cy, rMin * s, 0, 2 * Math.PI, true); ctx.fill('evenodd'); ctx.globalAlpha = 1;
+      ctx.strokeStyle = pal.muted; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.arc(cx, cy, rMax * s, 0, 2 * Math.PI); ctx.stroke(); if (rMin > 0) { ctx.beginPath(); ctx.arc(cx, cy, rMin * s, 0, 2 * Math.PI); ctx.stroke(); } ctx.setLineDash([]);
+      const drawArm = (sol: Sol, main: boolean) => {
+        const p = fk(a.L, sol.q).pts, bad = limitBreaks(sol.q, a.lim).length > 0;
+        ctx.strokeStyle = bad ? pal.bad : main ? pal.ink : pal.muted; ctx.lineWidth = main ? 4 : 2; ctx.setLineDash(main ? [] : [5, 4]);
+        ctx.beginPath(); p.forEach(([u, v], i) => (i ? ctx.lineTo(X(u), Y(v)) : ctx.moveTo(X(u), Y(v)))); ctx.stroke(); ctx.setLineDash([]);
+        if (main) p.slice(0, -1).forEach(([u, v]) => { ctx.fillStyle = pal.bg; ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(u), Y(v), 4, 0, 7); ctx.fill(); ctx.stroke(); });
+      };
+      sols.filter((sl) => sl !== pick).forEach((sl) => drawArm(sl, false));
+      if (pick) drawArm(pick, true);
+      ctx.fillStyle = pal.bg; ctx.strokeStyle = pal.ink; ctx.fillRect(cx - 9, cy - 4, 18, 10); ctx.strokeRect(cx - 9, cy - 4, 18, 10);
+      ctx.strokeStyle = sols.length ? pal.good : pal.bad; ctx.lineWidth = 2; const tx = X(x), ty = Y(y);
+      ctx.beginPath(); ctx.moveTo(tx - 6, ty - 6); ctx.lineTo(tx + 6, ty + 6); ctx.moveTo(tx + 6, ty - 6); ctx.lineTo(tx - 6, ty + 6); ctx.stroke();
+      ctx.fillStyle = pal.muted; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+      ctx.fillText(`Shaded: where the ${three ? 'wrist' : 'tip'} can reach. Solid: elbow ${pick?.elbow ?? want}; dashed: the other`, 4, H - 4);
+    } };
+    paint(q<HTMLCanvasElement>('.ik-fig'), fig);
+    main = [...(main.length ? main : [{ title: q('.ik-big').textContent! }]), { title: 'Details', facts: factsOf(facts), figure: fig }];
+  }
+
+  function list(a: Arm) {
+    const err = q('.ik-perr'), three = a.L.length === 3, want = q<HTMLSelectElement>('.ik-el').value;
+    const tab = parseTable(q<HTMLTextAreaElement>('.ik-pts').value);
+    if (tab.length && Number.isNaN(num(tab[0][0]))) tab.shift();
+    const stop = (m: string) => { err.textContent = m; err.hidden = false; q<HTMLTableElement>('.ik-ptab').replaceChildren(); rows = []; many = null; };
+    if (!tab.length) return stop('List at least one target.');
+    if (tab.length > 20000) return stop('Up to 20,000 targets.');
+    const out: (string | number)[][] = [], shown: string[][] = [];
+    for (const r of tab) {
+      const x = num(r[0]), y = num(r[1]), p = num(r[2] ?? '');
+      if (!Number.isFinite(x) || !Number.isFinite(y) || (three && !Number.isFinite(p))) return stop(`Line "${r.join(', ')}": give x and y${three ? ' and the tool angle' : ''}.`);
+      const { sols } = solve(a, x, y, p / D), s = sols.find((z) => z.elbow === want) ?? sols[0];
+      const br = s ? limitBreaks(s.q, a.lim) : [];
+      const note = !s ? 'out of reach' : br.length ? `joint ${br.map((i) => i + 1).join(', ')} outside limits` : sols.length === 1 ? 'singular (one solution)' : 'ok';
+      out.push([x, y, ...(three ? [p] : []), ...(s ? s.q.map((v) => sg(v * D, 9)) : a.L.map(() => '')), note]);
+      shown.push([String(x), String(y), ...(three ? [String(p)] : []), ...(s ? s.q.map(deg) : a.L.map(() => '–')), note]);
+    }
+    err.hidden = true;
+    const head = ['x', 'y', ...(three ? ['φ °'] : []), ...a.L.map((_, i) => `θ${i + 1} °`), 'Note'];
+    table(q('.ik-ptab'), head, shown.slice(0, 200), head.map((_, i) => i).slice(0, head.length - 1));
+    rows = [['x', 'y', ...(three ? ['phi_deg'] : []), ...a.L.map((_, i) => `theta${i + 1}_deg`), 'note'], ...out];
+    many = { title: `Many targets (elbow ${want})`, table: { head, rows: shown.slice(0, 200), align: head.map((_, i) => (i === head.length - 1 ? 'l' : 'r')) }, note: shown.length > 200 ? `First 200 of ${shown.length}; the CSV has them all.` : undefined };
+  }
+
+  function all() {
+    const a = arm();
+    if (typeof a === 'string') { q('.ik-err').textContent = a; q('.ik-err').hidden = false; q('.ik-out').hidden = true; main = []; many = null; rows = []; return; }
+    one(a); list(a);
+  }
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(all, 250); };
+  root.querySelectorAll('input:not([type=file]), select').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
+  root.querySelectorAll('textarea').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.ik-csv').addEventListener('click', () => rows.length > 1 && save(new TextEncoder().encode(csv(rows)), 'joint-angles.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.ik-out').hidden) paint(q<HTMLCanvasElement>('.ik-fig'), fig); });
+  all();
+  wireDownloads(q('.dl'), () => ({ title: 'Inverse kinematics', subtitle: q('.ik-big').textContent ?? '', file: 'inverse-kinematics', sections: [...main, ...(many ? [many] : [])] }));
+</script>
+
+<style is:global>
+  .iks select, .iks input { max-width: 100%; }
+  .iks label.ik-chk { display: flex; gap: 8px; align-items: center; margin: 12px 0 4px; color: var(--ink); }
+  .iks textarea { margin-top: 4px; }
+  .iks .ik-limbox { margin-top: 8px; }
+</style>

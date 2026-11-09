@@ -1,0 +1,142 @@
+---
+// Model rocket vertical flight: thrust curve, burning propellant, drag in standard-atmosphere air, RK4 integration.
+// Worked out in the browser. The example rocket and motor curve are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax mrs">
+  <div class="ax-card">
+    <h2>Rocket</h2>
+    <div class="ax-grid">
+      <label>Lift-off mass with motor (g) <input class="rs-m" type="text" inputmode="decimal" value="120" /></label>
+      <label>Propellant mass (g) <input class="rs-mp" type="text" inputmode="decimal" value="10.8" /></label>
+      <label>Body diameter (mm) <input class="rs-d" type="text" inputmode="decimal" value="25" /></label>
+      <label>Drag coefficient Cd <input class="rs-cd" type="text" inputmode="decimal" value="0.75" /></label>
+      <label>Launch rod or rail length (m) <input class="rs-rod" type="text" inputmode="decimal" value="1" /></label>
+      <label>Motor ejection delay (s) <input class="rs-delay" type="text" inputmode="decimal" value="4" /></label>
+      <label>Launch site elevation (m) <input class="rs-elev" type="text" inputmode="decimal" value="0" /></label>
+      <label>Air temperature at the pad (°C) <input class="rs-temp" type="text" inputmode="decimal" value="15" /></label>
+    </div>
+    <p class="ax-help">The drag coefficient of a typical small model rocket is about 0.5 to 0.8 (fins, launch lug and a rough finish push it up). The delay is the time from burnout to the ejection charge, printed on the motor. Air density follows the standard atmosphere shifted to your temperature.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Motor thrust curve</h2>
+    <label>Thrust from <select class="rs-src"><option value="paste" selected>A thrust curve I paste or open</option><option value="shape">A made-up shape</option></select></label>
+    <div class="rs-pbox">
+      <label style="margin-top:10px">Time (s) and thrust (N), one pair per line <textarea class="rs-curve" rows="6" spellcheck="false"></textarea></label>
+      <DataFile target=".rs-curve" maxMB={1} maxCols={10} maxRows={5000} />
+      <p class="ax-help">Lines that do not start with two numbers (headers, comments starting with ;) are skipped, so the data part of a RASP .eng motor file can be pasted as it is. The example is a made-up curve shaped like a small black-powder motor, not a real motor; use your motor maker's published curve.</p>
+    </div>
+    <div class="ax-grid rs-sbox" hidden>
+      <label>Shape <select class="rs-shape"><option value="spike" selected>Spike then sustain</option><option value="flat">Flat (constant)</option><option value="regressive">Falling (regressive)</option></select></label>
+      <label>Total impulse (N·s) <input class="rs-I" type="text" inputmode="decimal" value="10" /></label>
+      <label>Burn time (s) <input class="rs-tb" type="text" inputmode="decimal" value="1.7" /></label>
+    </div>
+    <p class="ax-err rs-err" hidden></p>
+  </div>
+
+  <div class="ax-card rs-out">
+    <h2>Flight</h2>
+    <p class="ax-big rs-big"></p>
+    <dl class="ax-facts rs-facts"></dl>
+    <canvas class="ax-fig rs-f1"></canvas>
+    <canvas class="ax-fig rs-f2"></canvas>
+    <canvas class="ax-fig rs-f3"></canvas>
+    <p class="ax-help">Dashed lines: burnout (long dashes) and ejection (short dashes). A straight-up flight with no wind, weathercocking, spin or fin flutter, and the drag coefficient held fixed. Real flights usually go 10 to 30 % lower than a simple simulation. For study and planning: follow your national rocketry safety code and the motor maker's instructions.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small rs-csv">Download the flight (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .mrs select, .mrs input { max-width: 100%; }
+  .mrs .rs-f2, .mrs .rs-f3 { margin-top: 10px; }
+  .mrs .rs-sbox { margin-top: 10px; }
+</style>
+
+<script>
+  import { simulate, readCurve, shapeCurve, EXAMPLE_CURVE, type Curve } from '../../lib/sci/eng-rocketsim';
+  import { stdTP, geopotential } from '../../lib/sci/eng-atmos';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const root = document.querySelector<HTMLElement>('.mrs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const G = 9.80665;
+  let figs: Figure[] = [], sections: Section[] = [], last: ReturnType<typeof simulate> | null = null;
+  q<HTMLTextAreaElement>('.rs-curve').value = EXAMPLE_CURVE;
+
+  function run() {
+    const shape = sel('.rs-src') === 'shape';
+    q('.rs-pbox').hidden = shape; q('.rs-sbox').hidden = !shape;
+    const err = q('.rs-err'), out = q('.rs-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sections = []; last = null; };
+    const m = val('.rs-m') / 1000, mp = val('.rs-mp') / 1000, d = val('.rs-d') / 1000, cd = val('.rs-cd'), rod = val('.rs-rod'), delay = val('.rs-delay'), elev = val('.rs-elev'), temp = val('.rs-temp');
+    if (!(m > 0 && m < 1000)) return fail('Give the lift-off mass in grams.');
+    if (!(mp >= 0 && mp < m)) return fail('Give the propellant mass: 0 or more and less than the lift-off mass.');
+    if (!(d > 0 && d < 2)) return fail('Give the body diameter in millimetres.');
+    if (!(cd > 0 && cd < 3)) return fail('Give a drag coefficient (about 0.5 to 0.8 for model rockets).');
+    if (!(rod >= 0 && rod < 50)) return fail('Give the launch rod or rail length in metres (0 or more).');
+    if (!(delay >= 0 && delay < 60)) return fail('Give the ejection delay in seconds (0 or more).');
+    if (!(elev >= -400 && elev <= 6000)) return fail('Give a launch site elevation between −400 and 6,000 m.');
+    if (!(temp >= -50 && temp <= 55)) return fail('Give the air temperature at the pad (−50 to 55 °C).');
+    let curve: Curve, note = '';
+    if (shape) {
+      const I = val('.rs-I'), tb = val('.rs-tb');
+      if (!(I > 0 && I < 1e6) || !(tb > 0 && tb < 200)) return fail('Give the total impulse (N·s) and the burn time (s).');
+      curve = shapeCurve(sel('.rs-shape') as 'flat' | 'spike' | 'regressive', I, tb);
+    } else {
+      const r = readCurve(q<HTMLTextAreaElement>('.rs-curve').value);
+      if (r.error) return fail(r.error);
+      curve = r.curve; if (r.skipped) note = `${r.skipped} line${r.skipped === 1 ? '' : 's'} without numbers skipped. `;
+    }
+    const dT = temp + 273.15 - stdTP(geopotential(elev)).T;
+    const s = simulate({ mass: m, prop: mp, d, cd, curve, elev, dT, rod, delay });
+    if (!s.lifted || !s.apogee) return fail(`The rocket never leaves the pad: the most thrust is ${sg(s.peakF, 3)} N but it weighs ${sg(m * G, 3)} N. Use a bigger motor or a lighter rocket.`);
+    err.hidden = true; out.hidden = false; last = s;
+    const ap = s.apogee, ej = s.ejection!;
+    q('.rs-big').textContent = `Apogee ${sg(ap.h, 3)} m at ${sg(ap.t, 3)} s`;
+    const ejWhen = ej.h <= 0 && ej.t > ap.t ? 'after it has landed: too long' : Math.abs(ej.t - ap.t) <= 1 ? 'within 1 s of apogee: good' : ej.t < ap.t ? `${sg(ap.t - ej.t, 2)} s before apogee: too short` : `${sg(ej.t - ap.t, 2)} s after apogee: too long`;
+    const f = [
+      fact('Motor', `${s.motorClass} class, ${sg(s.Itot, 4)} N·s`, `${note}average ${sg(s.avgF, 3)} N, peak ${sg(s.peakF, 3)} N over ${sg(s.tb, 3)} s`),
+      fact('Thrust-to-weight', `${sg(s.tw0, 3)} : 1 at peak`, `${sg(s.twAvg, 3)} : 1 average${s.tw0 < 5 ? '; a usual rule of thumb is at least 5 : 1' : ''}`),
+      fact('Speed off the rod', Number.isFinite(s.vRod) ? `${sg(s.vRod, 3)} m/s` : 'never clears it', Number.isFinite(s.vRod) ? `at ${sg(s.tRod, 3)} s${s.vRod < 15 ? '; under about 15 m/s the fins may not keep it straight: use a longer rod or a stronger motor' : ''}` : ''),
+      fact('Top speed', `${sg(s.maxV, 3)} m/s`, `${sg(s.maxV * 3.6, 3)} km/h, Mach ${sg(s.maxMach, 2)}`),
+      fact('Peak acceleration', `${sg(s.maxA / G, 3)} g`, `${sg(s.maxA, 3)} m/s²`),
+      fact('Burnout', `${sg(s.burnout.h, 3)} m at ${sg(s.burnout.v, 3)} m/s`, `${sg(s.tb, 3)} s after ignition, then coasting`),
+      fact('Best ejection delay', `${sg(s.bestDelay, 2)} s`, 'apogee time minus burnout time: pick the motor delay closest to it'),
+      fact(`With a ${sg(delay, 3)} s delay`, `${sg(Math.max(0, ej.h), 3)} m, ${sg(Math.abs(ej.v), 2)} m/s`, `ejection at ${sg(ej.t, 3)} s, ${ejWhen}`),
+    ];
+    q('.rs-facts').replaceChildren(...f);
+    const S = s.samples, step = Math.max(1, Math.round(S.length / 600)), pts = S.filter((_, i) => i % step === 0);
+    const marks = [{ kind: 'vline' as const, at: s.tb, dash: [4, 3] }, { kind: 'vline' as const, at: ej.t, dash: [2, 3] }];
+    const f1 = chartFigure({ w: 380, h: 230, xLabel: 'Time (s)', yLabel: 'Altitude (m)', yMin: 0, legend: 'none', marks, series: [{ name: 'Altitude', x: pts.map((p) => p.t), y: pts.map((p) => p.h), mode: 'line', width: 2 }, { name: 'Apogee', x: [ap.t], y: [ap.h], mode: 'points', size: 4 }] }, `Altitude against time: apogee ${sg(ap.h, 3)} m`);
+    const f2 = chartFigure({ w: 380, h: 230, xLabel: 'Time (s)', yLabel: 'Velocity, up + (m/s)', legend: 'none', marks, series: [{ name: 'Velocity', x: pts.map((p) => p.t), y: pts.map((p) => p.v), mode: 'line', width: 2 }] }, 'Vertical velocity against time');
+    const f3 = chartFigure({ w: 380, h: 200, xLabel: 'Time (s)', yLabel: 'Thrust (N)', yMin: 0, legend: 'none', series: [{ name: 'Thrust', x: curve.t, y: curve.F, mode: 'both', width: 2, size: 2.5 }] }, 'Motor thrust curve');
+    figs = [f1, f2, f3]; paint(q<HTMLCanvasElement>('.rs-f1'), f1); paint(q<HTMLCanvasElement>('.rs-f2'), f2); paint(q<HTMLCanvasElement>('.rs-f3'), f3);
+    sections = [
+      { title: q('.rs-big').textContent!, text: [`Lift-off mass ${sg(m * 1000, 4)} g with ${sg(mp * 1000, 3)} g of propellant, ${sg(d * 1000, 3)} mm diameter, Cd ${cd}, ${sg(elev, 4)} m elevation at ${sg(temp, 3)} °C.`], facts: f.map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: f1 },
+      { title: 'Velocity', figure: f2, note: 'Dashed lines: burnout (long dashes) and ejection (short dashes).' },
+      { title: 'Thrust curve', figure: f3 },
+    ];
+  }
+
+  let tm = 0;
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('change', run); });
+  root.querySelectorAll('input, textarea').forEach((i) => { i.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(run, 200); }); });
+  q('.rs-csv').addEventListener('click', () => {
+    if (!last) return;
+    const S = last.samples, step = Math.max(1, Math.round(0.01 / (S[1].t - S[0].t)));
+    save(new Blob([csv([['time_s', 'altitude_m', 'velocity_m_s', 'acceleration_m_s2', 'mass_g', 'thrust_N', 'drag_N', 'air_density_kg_m3'], ...S.filter((_, i) => i % step === 0).map((p) => [p.t.toFixed(3), p.h.toFixed(3), p.v.toFixed(3), p.a.toFixed(3), (p.m * 1000).toFixed(3), p.F.toFixed(4), p.D.toFixed(5), p.rho.toFixed(5)])])], { type: 'text/csv' }), 'rocket-flight.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.rs-out').hidden) ['.rs-f1', '.rs-f2', '.rs-f3'].forEach((c, i) => paint(q<HTMLCanvasElement>(c), figs[i])); });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Model rocket flight', subtitle: q('.rs-big').textContent ?? '', file: 'model-rocket-flight', sections }));
+</script>

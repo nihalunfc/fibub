@@ -1,0 +1,209 @@
+---
+// Propeller and rotor thrust: actuator-disc momentum theory with a figure of merit, and blade element momentum for a
+// user-defined propeller. Worked out in the browser. The example propeller and aerofoil values are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax prt">
+  <div class="ax-card">
+    <h2>Momentum theory (actuator disc)</h2>
+    <div class="ax-grid">
+      <label>Lengths in <select class="pt-lu"><option value="m" selected>metres</option><option value="in">inches</option></select></label>
+      <label><span>Rotor diameter (<span class="pt-l">m</span>)</span> <input class="pt-D" type="text" inputmode="decimal" value="0.254" /></label>
+      <label>Number of rotors <input class="pt-n" type="text" inputmode="numeric" value="1" /></label>
+      <label>Altitude (m, ISA) <input class="pt-alt" type="text" inputmode="decimal" value="0" /></label>
+      <label>Figure of merit FM <input class="pt-fm" type="text" inputmode="decimal" value="0.7" /></label>
+      <label>Find <select class="pt-mode"><option value="T" selected>Thrust from power</option><option value="P">Power from thrust</option><option value="FM">Figure of merit from a test</option></select></label>
+      <label class="pt-pbox">Shaft power per rotor (W) <input class="pt-P" type="text" inputmode="decimal" value="100" /></label>
+      <label class="pt-tbox" hidden>Thrust per rotor <input class="pt-T" type="text" inputmode="decimal" value="10" /></label>
+      <label class="pt-tbox" hidden>Thrust unit <select class="pt-tu"><option value="N" selected>N</option><option value="g">grams (gf)</option><option value="kg">kg (kgf)</option><option value="lbf">lbf</option></select></label>
+      <label>Axial speed V (m/s, 0 = static or hover) <input class="pt-V" type="text" inputmode="decimal" value="0" /></label>
+    </div>
+    <p class="ax-help">The figure of merit is the ideal power divided by the real power in static thrust or hover: about 0.5 to 0.65 for small model propellers, 0.7 to 0.8 for good helicopter rotors. For a test, measure the thrust and the shaft power (motor electrical power times the motor efficiency) at the same time. The axial speed gives the ideal (Froude) efficiency in climb or forward flight.</p>
+    <p class="ax-err pt-err" hidden></p>
+    <div class="pt-out">
+      <p class="ax-big pt-big"></p>
+      <dl class="ax-facts pt-facts"></dl>
+      <canvas class="ax-fig pt-f1"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Blade element momentum (your propeller)</h2>
+    <div class="ax-grid">
+      <label>Blades <input class="pb-B" type="text" inputmode="numeric" value="2" /></label>
+      <label><span>Diameter (<span class="pt-l">m</span>)</span> <input class="pb-D" type="text" inputmode="decimal" value="0.254" /></label>
+      <label><span>Hub diameter (<span class="pt-l">m</span>)</span> <input class="pb-hub" type="text" inputmode="decimal" value="0.03" /></label>
+      <label><span>Chord at the root (<span class="pt-l">m</span>)</span> <input class="pb-cr" type="text" inputmode="decimal" value="0.025" /></label>
+      <label><span>Chord at the tip (<span class="pt-l">m</span>)</span> <input class="pb-ct" type="text" inputmode="decimal" value="0.015" /></label>
+      <label><span>Geometric pitch (<span class="pt-l">m</span>)</span> <input class="pb-p" type="text" inputmode="decimal" value="0.127" /></label>
+      <label>Speed (rpm) <input class="pb-rpm" type="text" inputmode="decimal" value="8000" /></label>
+      <label>Airspeed V (m/s) <input class="pb-V" type="text" inputmode="decimal" value="0" /></label>
+    </div>
+    <h3>Aerofoil (simple model)</h3>
+    <div class="ax-grid">
+      <label>Lift slope (per radian) <input class="pb-cla" type="text" inputmode="decimal" value="5.7" /></label>
+      <label>Zero-lift angle (°) <input class="pb-a0" type="text" inputmode="decimal" value="-3" /></label>
+      <label>CLmax <input class="pb-clmax" type="text" inputmode="decimal" value="1.2" /></label>
+      <label>Minimum drag cd0 <input class="pb-cd0" type="text" inputmode="decimal" value="0.012" /></label>
+      <label>Drag rise kd (cd = cd0 + kd cl²) <input class="pb-kd" type="text" inputmode="decimal" value="0.012" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="pb-tip" checked /> Prandtl tip loss</label>
+    <p class="ax-help">The blade has a constant geometric pitch (each section's angle is atan(pitch / 2πr)) and a chord that tapers in a straight line from root to tip. Lift rises in a straight line with angle until CLmax, then stays flat while drag rises. Air density comes from the altitude above. The example is a made-up 10 × 5 inch two-blade model propeller; real blades have measured aerofoil data, so treat results as estimates.</p>
+    <p class="ax-err pb-err" hidden></p>
+    <div class="pb-out">
+      <p class="ax-big pb-big"></p>
+      <dl class="ax-facts pb-facts"></dl>
+      <canvas class="ax-fig pb-f1"></canvas>
+      <canvas class="ax-fig pb-f2"></canvas>
+      <div class="ax-row" style="margin-top:10px">
+        <button type="button" class="btn secondary small pb-csv">Download blade stations (CSV)</button>
+        <button type="button" class="btn secondary small pb-jcsv">Download the speed sweep (CSV)</button>
+      </div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .prt h3 { margin: 16px 0 8px; font-size: 15px; }
+  .prt select, .prt input { max-width: 100%; }
+  .prt .pt-out, .prt .pb-out { margin-top: 12px; }
+  .prt .pb-f2, .prt .pt-f1 { margin-top: 10px; }
+</style>
+
+<script>
+  import { hoverPower, staticThrust, figureOfMerit, inducedVelocity, idealPower, idealEfficiency, bem, type Prop } from '../../lib/sci/eng-prop';
+  import { atmosphere } from '../../lib/sci/eng-atmos';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const root = document.querySelector<HTMLElement>('.prt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factsOf = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  const G = 9.80665, TU: Record<string, number> = { N: 1, g: G / 1000, kg: G, lbf: 4.448222 };
+  const thrustText = (T: number) => `${sg(T, 4)} N (${sg((T / G) * 1000, 4)} g, ${sg(T / 4.448222, 3)} lbf)`;
+  let s1: Section | null = null, s2: Section[] = [], figs: (Figure | null)[] = [null, null, null], stations: ReturnType<typeof bem>['stations'] = [], sweep: number[][] = [];
+  const L = () => (sel('.pt-lu') === 'in' ? 0.0254 : 1);
+  const rhoNow = () => { const alt = val('.pt-alt'); return Number.isFinite(alt) && alt >= -500 && alt <= 20000 ? atmosphere(alt).rho : NaN; };
+
+  function momentum() {
+    const err = q('.pt-err'), out = q('.pt-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; s1 = null; figs[0] = null; };
+    const mode = sel('.pt-mode');
+    q('.pt-pbox').hidden = mode === 'P'; root.querySelectorAll<HTMLElement>('.pt-tbox').forEach((e) => { e.hidden = mode === 'T'; });
+    const D = val('.pt-D') * L(), n = Math.round(val('.pt-n')), rho = rhoNow(), fm = val('.pt-fm'), V = val('.pt-V') || 0;
+    if (!(D > 0)) return fail('Give the rotor diameter.');
+    if (!(n >= 1 && n <= 64)) return fail('Give the number of rotors (1 to 64).');
+    if (!(rho > 0)) return fail('Give an altitude between −500 and 20,000 m.');
+    if (mode !== 'FM' && !(fm > 0 && fm <= 1)) return fail('Give a figure of merit between 0 and 1 (about 0.6 to 0.8).');
+    if (!(V >= 0 && V < 300)) return fail('Give an axial speed of 0 or more (m/s).');
+    const A = (Math.PI * D * D) / 4;
+    let T: number, P: number, FM = fm;
+    if (mode === 'T') { P = val('.pt-P'); if (!(P > 0)) return fail('Give the shaft power per rotor.'); T = staticThrust(P, rho, A, fm); }
+    else {
+      T = val('.pt-T') * TU[sel('.pt-tu')]; if (!(T > 0)) return fail('Give the thrust per rotor.');
+      if (mode === 'P') P = hoverPower(T, rho, A, fm);
+      else { P = val('.pt-P'); if (!(P > 0)) return fail('Give the measured shaft power per rotor.'); FM = figureOfMerit(T, P, rho, A); }
+    }
+    err.hidden = true; out.hidden = false;
+    const vi = inducedVelocity(T, rho, A), Pi = idealPower(T, rho, A);
+    q('.pt-big').textContent = mode === 'FM' ? `Figure of merit ${sg(FM, 3)}` : mode === 'T' ? `Static thrust ${thrustText(T)} per rotor` : `Shaft power ${sg(P, 4)} W per rotor`;
+    const f = [
+      fact('Thrust', `${sg(T * n, 4)} N in all`, `${thrustText(T)} per rotor${n > 1 ? `, ${n} rotors` : ''}`),
+      fact('Shaft power', `${sg(P * n, 4)} W in all`, `${sg(P, 4)} W per rotor; ideal ${sg(Pi, 4)} W`),
+      fact('Figure of merit', sg(FM, 3), mode === 'FM' ? (FM > 1 ? 'above 1: check the thrust, power or diameter' : 'ideal power ÷ real power') : 'as given'),
+      fact('Induced velocity', `${sg(vi, 4)} m/s`, `at the disc; ${sg(2 * vi, 4)} m/s in the far wake`),
+      fact('Disc loading', `${sg(T / A, 4)} N/m²`, `disc area ${sg(A, 4)} m² per rotor`),
+      fact('Power loading', `${sg(((T / G) * 1000) / P, 4)} g/W`, `${sg(T / P, 4)} N/W`),
+      fact('Air density', `${sg(rho, 4)} kg/m³`, 'ISA at the altitude'),
+    ];
+    if (V > 0) {
+      const vf = inducedVelocity(T, rho, A, V);
+      f.push(fact(`At ${sg(V, 3)} m/s axial speed`, `ideal efficiency ${sg(100 * idealEfficiency(T, rho, A, V), 3)} %`, `induced velocity ${sg(vf, 3)} m/s; ideal power ${sg(idealPower(T, rho, A, V), 4)} W for the same thrust`));
+    }
+    q('.pt-facts').replaceChildren(...f);
+    const Pmax = Math.max(P, hoverPower(T, rho, A, Math.min(FM, 1))) * 2, ps: number[] = [];
+    for (let i = 1; i <= 80; i++) ps.push((Pmax * i) / 80);
+    const fig = chartFigure({ w: 380, h: 240, xLabel: 'Shaft power per rotor (W)', yLabel: 'Static thrust (N)', xMin: 0, yMin: 0, legend: 'below', series: [
+      { name: 'Ideal (FM = 1)', x: ps, y: ps.map((p) => staticThrust(p, rho, A, 1)), mode: 'line', width: 1.5, dash: [5, 4] },
+      { name: `FM = ${sg(Math.min(FM, 1), 3)}`, x: ps, y: ps.map((p) => staticThrust(p, rho, A, Math.min(FM, 1))), mode: 'line', width: 2 },
+      { name: 'This rotor', x: [P], y: [T], mode: 'points', size: 4 },
+    ] }, 'Static thrust against shaft power, momentum theory');
+    figs[0] = fig; paint(q<HTMLCanvasElement>('.pt-f1'), fig);
+    s1 = { title: `Momentum theory: ${q('.pt-big').textContent}`, text: [`Rotor diameter ${sg(D, 4)} m, ${n} rotor${n > 1 ? 's' : ''}, air ${sg(rho, 4)} kg/m³.`], facts: factsOf(f), figure: fig };
+  }
+
+  function blade() {
+    const err = q('.pb-err'), out = q('.pb-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; s2 = []; stations = []; sweep = []; };
+    const k = L(), B = Math.round(val('.pb-B')), D = val('.pb-D') * k, hub = val('.pb-hub') * k, cr = val('.pb-cr') * k, ct = val('.pb-ct') * k, pitch = val('.pb-p') * k, rpm = val('.pb-rpm'), V = val('.pb-V') || 0, rho = rhoNow();
+    if (!(B >= 1 && B <= 12)) return fail('Give the number of blades (1 to 12).');
+    if (!(D > 0 && hub >= 0 && hub < 0.8 * D)) return fail('Give the diameter and a hub diameter smaller than it.');
+    if (!(cr > 0 && ct > 0 && cr < D && ct < D)) return fail('Give the root and tip chords (more than 0, less than the diameter).');
+    if (!(pitch > 0)) return fail('Give the geometric pitch (the distance one turn would screw forward).');
+    if (!(rpm > 0 && rpm < 100000)) return fail('Give the speed in rpm.');
+    if (!(V >= 0 && V < 300)) return fail('Give an airspeed of 0 or more (m/s).');
+    if (!(rho > 0)) return fail('Fix the altitude in the momentum theory card.');
+    const foil = { cla: val('.pb-cla'), alpha0: (val('.pb-a0') * Math.PI) / 180, clmax: val('.pb-clmax'), cd0: val('.pb-cd0'), kd: val('.pb-kd') };
+    if (!(foil.cla > 0 && foil.cla < 10 && Number.isFinite(foil.alpha0) && Math.abs(foil.alpha0) < 0.35 && foil.clmax > 0 && foil.clmax < 3 && foil.cd0 >= 0 && foil.cd0 < 0.5 && foil.kd >= 0 && foil.kd < 1)) return fail('Check the aerofoil numbers: lift slope 0 to 10 per radian (2π is thin-aerofoil theory), zero-lift angle within ±20°, CLmax up to 3, cd0 and kd small and not negative.');
+    const p: Prop = { B, D, hubD: hub, chordRoot: cr, chordTip: ct, pitch, rpm, V, rho, foil, tipLoss: q<HTMLInputElement>('.pb-tip').checked };
+    const r = bem(p);
+    if (r.failed > r.stations.length / 4) return fail('The blade element model found no steady inflow on many stations; check that the pitch, rpm and airspeed make sense together.');
+    err.hidden = true; out.hidden = false;
+    stations = r.stations;
+    const a = Math.sqrt(1.4 * 287.053 * atmosphere(val('.pt-alt')).T), Mtip = Math.hypot(r.tipSpeed, V) / a;
+    q('.pb-big').textContent = `Thrust ${thrustText(r.T)}, power ${sg(r.P, 4)} W`;
+    const f = [
+      fact('Torque', `${sg(r.Q, 4)} N·m`, `${sg(r.P, 4)} W at ${sg(rpm, 5)} rpm`),
+      fact(V > 0 ? 'Propeller efficiency' : 'Figure of merit', V > 0 ? `${sg(100 * r.eta, 3)} %` : sg(r.FM, 3), V > 0 ? 'thrust × speed ÷ shaft power' : 'ideal power ÷ shaft power, static'),
+      fact('Advance ratio J', sg(r.J, 3), 'V / (n D), n in revolutions per second'),
+      fact('Thrust coefficient CT', sg(r.CT, 4), 'T / (ρ n² D⁴)'),
+      fact('Power coefficient CP', sg(r.CP, 4), 'P / (ρ n³ D⁵)'),
+      fact('Tip speed', `${sg(r.tipSpeed, 4)} m/s`, `helical tip Mach ${sg(Mtip, 3)}${Mtip > 0.85 ? ': too fast, compressibility losses (not modelled)' : ''}`),
+      fact('Stalled stations', `${r.stalled} of ${r.stations.length}`, r.stalled ? 'common near the hub in static thrust' : 'none'),
+    ];
+    if (r.failed) f.push(fact('Unsolved stations', String(r.failed), 'left out of the totals'));
+    q('.pb-facts').replaceChildren(...f);
+    const ok = r.stations.filter((s) => s.ok), R = D / 2;
+    const f1 = chartFigure({ w: 380, h: 240, xLabel: 'Radius r / R', yLabel: 'Thrust dT/dr (N/m)', legend: 'none', series: [
+      { name: 'Thrust loading dT/dr', x: ok.map((s) => s.r / R), y: ok.map((s) => s.dT / ((R - hub / 2) / r.stations.length)), mode: 'line', width: 2 },
+    ] }, 'Thrust along the blade');
+    // Sweep of airspeed from static to beyond zero thrust.
+    sweep = [];
+    const rps = rpm / 60, Vend = 1.4 * pitch * rps;
+    for (let i = 0; i <= 40; i++) {
+      const v = (Vend * i) / 40, x = bem({ ...p, V: v, n: 30 });
+      if (i > 0 && x.T <= 0) break;
+      sweep.push([v, x.J, x.T, x.P, x.CT, x.CP, x.eta]);
+    }
+    const f2 = chartFigure({ w: 380, h: 240, xLabel: 'Advance ratio J', yLabel: 'CT, CP ×10, η', xMin: 0, yMin: 0, legend: 'below', series: [
+      { name: 'CT', x: sweep.map((s) => s[1]), y: sweep.map((s) => s[4] * 10), mode: 'line', width: 2 },
+      { name: 'CP', x: sweep.map((s) => s[1]), y: sweep.map((s) => s[5] * 10), mode: 'line', width: 2, dash: [5, 4] },
+      { name: 'η', x: sweep.map((s) => s[1]), y: sweep.map((s) => s[6]), mode: 'line', width: 2, dash: [2, 3] },
+      { name: 'This J', x: [r.J], y: [V > 0 ? r.eta : r.CT * 10], mode: 'points', size: 4 },
+    ] }, 'Thrust and power coefficients (times 10) and efficiency against advance ratio');
+    figs[1] = f1; figs[2] = f2; paint(q<HTMLCanvasElement>('.pb-f1'), f1); paint(q<HTMLCanvasElement>('.pb-f2'), f2);
+    s2 = [{ title: `Blade element momentum: ${q('.pb-big').textContent}`, text: [`${B} blades, diameter ${sg(D, 4)} m, pitch ${sg(pitch, 4)} m, ${sg(rpm, 5)} rpm, ${sg(V, 3)} m/s, air ${sg(rho, 4)} kg/m³.`], facts: factsOf(f), figure: f1 }, { title: 'Against advance ratio (CT and CP times 10)', figure: f2 }];
+  }
+
+  function all() { root.querySelectorAll('.pt-l').forEach((e) => { e.textContent = sel('.pt-lu') === 'in' ? 'in' : 'm'; }); momentum(); blade(); }
+  let lastL = 'm';
+  q('.pt-lu').addEventListener('change', () => {
+    const now = sel('.pt-lu'); if (now === lastL) return;
+    const f = now === 'in' ? 1 / 0.0254 : 0.0254; lastL = now;
+    for (const c of ['.pt-D', '.pb-D', '.pb-hub', '.pb-cr', '.pb-ct', '.pb-p']) { const i = q<HTMLInputElement>(c), v = num(i.value); if (Number.isFinite(v)) i.value = String(+(v * f).toPrecision(4)); }
+    all();
+  });
+  root.querySelectorAll('input, select').forEach((i) => { if (!i.classList.contains('pt-lu')) { i.addEventListener('input', all); i.addEventListener('change', all); } });
+  q('.pb-csv').addEventListener('click', () => save(new Blob([csv([['r_m', 'chord_m', 'blade_angle_deg', 'inflow_angle_deg', 'angle_of_attack_deg', 'cl', 'cd', 'tip_loss_F', 'relative_speed_m_s', 'dT_N', 'dQ_Nm', 'stalled'], ...stations.map((s) => [s.r.toFixed(5), s.c.toFixed(5), (s.beta * 180 / Math.PI).toFixed(3), (s.phi * 180 / Math.PI).toFixed(3), (s.alpha * 180 / Math.PI).toFixed(3), s.cl.toFixed(4), s.cd.toFixed(5), s.F.toFixed(4), s.W.toFixed(3), s.dT.toPrecision(6), s.dQ.toPrecision(6), s.stalled ? 'yes' : 'no'])])], { type: 'text/csv' }), 'propeller-stations.csv', 'text/csv'));
+  q('.pb-jcsv').addEventListener('click', () => save(new Blob([csv([['airspeed_m_s', 'J', 'thrust_N', 'power_W', 'CT', 'CP', 'efficiency'], ...sweep.map((s) => [s[0].toFixed(3), s[1].toFixed(4), s[2].toPrecision(6), s[3].toPrecision(6), s[4].toPrecision(5), s[5].toPrecision(5), s[6].toFixed(4)])])], { type: 'text/csv' }), 'propeller-sweep.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { const c = ['.pt-f1', '.pb-f1', '.pb-f2']; figs.forEach((f, i) => { if (f) paint(q<HTMLCanvasElement>(c[i]), f); }); });
+  all();
+  wireDownloads(q('.dl'), () => ({ title: 'Propeller and rotor thrust', subtitle: q('.pb-big').textContent ?? '', file: 'propeller-thrust', sections: [...(s1 ? [s1] : []), ...s2] }));
+</script>

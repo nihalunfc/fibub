@@ -1,0 +1,204 @@
+---
+// FIR (windowed sinc) and IIR (Butterworth, Chebyshev I by bilinear transform) filter design with response, pole-zero
+// plot and coefficient export. Default values are an example, made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax dfd">
+  <div class="ax-card">
+    <h2>Filter</h2>
+    <div class="ax-grid">
+      <label>Sample rate (Hz) <input class="fd-fs" type="text" inputmode="decimal" value="1000" /></label>
+      <label>Design <select class="fd-fam"><option value="fir" selected>FIR, windowed sinc</option><option value="butter">IIR Butterworth</option><option value="cheby1">IIR Chebyshev type I</option></select></label>
+      <label>Type <select class="fd-type"><option value="lowpass" selected>Low-pass</option><option value="highpass">High-pass</option><option value="bandpass">Band-pass</option><option value="bandstop">Band-stop</option></select></label>
+      <label><span class="fd-e1l">Cut-off (Hz)</span> <input class="fd-e1" type="text" inputmode="decimal" value="100" /></label>
+      <label class="fd-e2b" hidden>Upper edge (Hz) <input class="fd-e2" type="text" inputmode="decimal" value="200" /></label>
+      <label class="fd-firb">Window <select class="fd-win"><option value="hamming" selected>Hamming</option><option value="hann">Hann</option><option value="blackman">Blackman</option><option value="kaiser">Kaiser (from attenuation)</option><option value="rect">Rectangular (none)</option></select></label>
+      <label class="fd-tapb">Taps (length) <input class="fd-taps" type="text" inputmode="numeric" value="51" /></label>
+      <label class="fd-kb" hidden>Stop-band attenuation (dB) <input class="fd-att" type="text" inputmode="decimal" value="60" /></label>
+      <label class="fd-kb" hidden>Transition width (Hz) <input class="fd-tw" type="text" inputmode="decimal" value="50" /></label>
+      <label class="fd-iirb" hidden>Order <input class="fd-ord" type="text" inputmode="numeric" value="4" /></label>
+      <label class="fd-rpb" hidden>Pass-band ripple (dB) <input class="fd-rp" type="text" inputmode="decimal" value="1" /></label>
+    </div>
+    <p class="ax-help fd-help"></p>
+    <p class="ax-err fd-err" hidden></p>
+  </div>
+
+  <div class="ax-card fd-out">
+    <h2>Response</h2>
+    <p class="ax-big fd-big"></p>
+    <dl class="ax-facts fd-facts"></dl>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Plot <select class="fd-plot"><option value="db" selected>Gain (dB)</option><option value="lin">Gain (linear)</option><option value="phase">Phase</option><option value="gd">Group delay</option></select></label>
+      <label>Lowest dB shown <select class="fd-floor"><option>-40</option><option selected>-100</option><option>-160</option></select></label>
+    </div>
+    <canvas class="ax-fig fd-rfig" style="margin-top:10px"></canvas>
+    <h3 style="margin:14px 0 6px">Poles and zeros</h3>
+    <canvas class="ax-fig fd-pz"></canvas>
+    <p class="ax-help fd-pznote"></p>
+  </div>
+
+  <div class="ax-card fd-out">
+    <h2>Coefficients</h2>
+    <div class="ax-grid">
+      <label>Format <select class="fd-fmt"><option value="c" selected>C arrays, b and a</option><option value="sos">C array, second-order sections</option><option value="csv">CSV</option></select></label>
+    </div>
+    <textarea class="fd-code" rows="10" spellcheck="false" wrap="off" readonly style="margin-top:10px"></textarea>
+    <p class="ax-help fd-codenote"></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small fd-copy">Copy</button>
+      <button type="button" class="btn secondary small fd-dl">Download this</button>
+      <span class="ax-help fd-copied" style="margin:0" hidden>Copied.</span>
+    </div>
+    <p class="ax-help">Difference equation: a₀·y[n] = b₀·x[n] + b₁·x[n−1] + … − a₁·y[n−1] − a₂·y[n−2] − …, with a₀ = 1. Second-order sections are run one after another, each as [b₀ b₁ b₂ a₀ a₁ a₂], the same layout as scipy's sos and MATLAB's SOS matrix.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { firwin, kaiserord, iirDesign, zpk2tf, zpk2sos, response, freqzAt, roots, cArray, cnum, type BandType, type FirWindow, type C } from '../../lib/sci/eng-dfilter';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.dfd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factPairs = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent! + (d.querySelector('small') ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string]);
+  const TYPES: Record<BandType, string> = { lowpass: 'low-pass', highpass: 'high-pass', bandpass: 'band-pass', bandstop: 'band-stop' };
+  let figs: Figure[] = [], report: Section[] = [];
+  let code = { c: '', sos: '', csv: '' }, name = 'filter';
+
+  /** Frequencies where the gain crosses −3.01 dB (half power), by linear interpolation on the response grid. */
+  const crossings = (f: number[], db: number[], level = -3.0103) => { const out: number[] = []; for (let i = 1; i < f.length; i++) { const a = db[i - 1] - level, b = db[i] - level; if (a === 0) out.push(f[i - 1]); else if (a * b < 0) out.push(f[i - 1] + (f[i] - f[i - 1]) * a / (a - b)); } return out; };
+
+  function calc() {
+    const err = q('.fd-err'), outs = root.querySelectorAll<HTMLElement>('.fd-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; outs.forEach((o) => (o.hidden = true)); report = []; };
+    const fam = sel('.fd-fam'), type = sel('.fd-type') as BandType, two = type === 'bandpass' || type === 'bandstop', fir = fam === 'fir', win = sel('.fd-win') as FirWindow;
+    q('.fd-e2b').hidden = !two; q('.fd-e1l').textContent = two ? 'Lower edge (Hz)' : 'Cut-off (Hz)';
+    q('.fd-firb').hidden = !fir; q('.fd-tapb').hidden = !fir || win === 'kaiser';
+    root.querySelectorAll<HTMLElement>('.fd-kb').forEach((e) => (e.hidden = !fir || win !== 'kaiser'));
+    q('.fd-iirb').hidden = fir; q('.fd-rpb').hidden = fam !== 'cheby1';
+    q('.fd-help').textContent = fir
+      ? 'An FIR filter is the ideal response (a sinc) cut to a set length and tapered by a window. It is always stable and has a constant delay (linear phase). More taps give a sharper edge. With Kaiser, the length and shape come from the attenuation and transition width you ask for. The gain at the cut-off is about −6 dB.'
+      : fam === 'butter' ? 'A Butterworth filter is as flat as possible in the pass band, with −3 dB at the cut-off. Each step up in order makes the edge steeper by 6 dB per octave. It is designed as an analogue filter and mapped to digital with the bilinear transform (the cut-off is pre-warped so it lands exactly).'
+      : 'A Chebyshev type I filter allows a small, even ripple in the pass band in return for a steeper edge than a Butterworth of the same order. The cut-off is where the gain leaves the ripple band (−ripple dB), not −3 dB.';
+    const fs = val('.fd-fs'), e1 = val('.fd-e1'), e2 = val('.fd-e2'), nyq = fs / 2;
+    if (!(fs > 0)) return fail('Give the sample rate in Hz.');
+    if (!(e1 > 0 && e1 < nyq)) return fail(`Give ${two ? 'a lower edge' : 'a cut-off'} between 0 and ${sg(nyq, 6)} Hz (half the sample rate).`);
+    if (two && !(e2 > e1 && e2 < nyq)) return fail(`Give an upper edge above the lower edge and below ${sg(nyq, 6)} Hz.`);
+    const edges = two ? [e1, e2] : [e1];
+    let b: number[] = [], a: number[] = [1], sos: number[][] = [], zs: C[] = [], ps: C[] = [], desc = '', facts: HTMLElement[] = [];
+    if (fir) {
+      let taps = Math.round(val('.fd-taps')), beta = 0, note = '';
+      if (win === 'kaiser') {
+        const att = val('.fd-att'), tw = val('.fd-tw');
+        if (!(att >= 10 && att <= 200)) return fail('Give a stop-band attenuation between 10 and 200 dB.');
+        if (!(tw > 0 && tw < nyq)) return fail('Give a transition width in Hz, more than 0 and below half the sample rate.');
+        const ko = kaiserord(att, tw / nyq); taps = ko.taps; beta = ko.beta;
+        if ((type === 'highpass' || type === 'bandstop') && taps % 2 === 0) { taps++; note = ' (made odd, as a high-pass or band-stop FIR needs)'; }
+        facts.push(fact('Kaiser design', `${taps} taps, β = ${sg(beta, 4)}`, `from ${sg(att, 4)} dB and a ${sg(tw, 4)} Hz transition${note}`));
+      }
+      if (!(taps >= 3 && taps <= 1001)) return fail(win === 'kaiser' ? `That needs ${taps} taps; the limit is 1,001. Allow a wider transition or less attenuation.` : 'Give between 3 and 1,001 taps.');
+      if ((type === 'highpass' || type === 'bandstop') && taps % 2 === 0) return fail(`A ${TYPES[type]} FIR needs an odd number of taps (an even-length symmetric filter always has zero gain at half the sample rate). Try ${taps + 1}.`);
+      b = Array.from(firwin(taps, edges, fs, type, win, beta));
+      const wn = win === 'kaiser' ? 'Kaiser' : win === 'rect' ? 'rectangular' : win[0].toUpperCase() + win.slice(1);
+      desc = `FIR ${TYPES[type]}, ${taps} taps, ${wn} window`;
+      name = `fir-${type}-${taps}`;
+      facts.push(fact('Delay', `${sg((taps - 1) / 2, 4)} samples = ${sg(((taps - 1) / 2 / fs) * 1000, 4)} ms`, 'the same for every frequency (linear phase)'));
+      if (taps <= 161) zs = roots(b);
+    } else {
+      const ord = Math.round(val('.fd-ord')), rp = val('.fd-rp');
+      if (!(ord >= 1 && ord <= 20)) return fail('Give an order from 1 to 20.');
+      if (fam === 'cheby1' && !(rp > 0 && rp <= 10)) return fail('Give a pass-band ripple between 0 and 10 dB (0.5 or 1 dB is usual).');
+      const f = iirDesign(fam as 'butter' | 'cheby1', ord, edges, fs, type, rp);
+      const tf = zpk2tf(f); b = tf.b; a = tf.a; sos = zpk2sos(f); zs = f.z; ps = f.p;
+      const realOrd = ord * (two ? 2 : 1);
+      desc = `${fam === 'butter' ? 'Butterworth' : `Chebyshev I (${sg(rp, 3)} dB ripple)`} ${TYPES[type]}, order ${ord}${two ? ` (${realOrd} poles)` : ''}`;
+      name = `${fam}-${type}-${ord}`;
+      const rmax = Math.max(...ps.map((p) => Math.hypot(p[0], p[1])));
+      facts.push(fact('Stable', rmax < 1 ? 'yes' : 'no', `largest pole radius ${sg(rmax, 6)} (must be below 1)`));
+      facts.push(fact('Sections', `${sos.length} second-order section${sos.length === 1 ? '' : 's'}`, `${b.length} b and ${a.length} a coefficients in one piece`));
+    }
+    err.hidden = true; outs.forEach((o) => (o.hidden = false));
+    const sections = fir ? [{ b, a: [1] }] : sos.map((s) => ({ b: s.slice(0, 3), a: s.slice(3) }));
+    const R = response(sections, fs, 2049);
+    const at = (fr: number) => 20 * Math.log10(sections.reduce((m, s) => { const h = freqzAt(s.b, s.a, (2 * Math.PI * fr) / fs); return m * Math.hypot(h[0], h[1]); }, 1));
+    const x3 = crossings(R.f, R.db);
+    q('.fd-big').textContent = desc;
+    facts.unshift(
+      fact(two ? 'Gain at the edges' : 'Gain at the cut-off', edges.map((e) => `${sg(at(e), 3)} dB`).join(', '), edges.map((e) => `${sg(e, 5)} Hz`).join(' and ')),
+      fact('Half-power (−3 dB) points', x3.length ? x3.map((v) => `${sg(v, 5)} Hz`).join(', ') : 'none', 'where the gain crosses −3.01 dB'),
+    );
+    if (!two || type === 'bandpass') {
+      // Gain one octave beyond the (outer) edge, as a quick measure of steepness.
+      const probe = type === 'lowpass' ? 2 * e1 : type === 'highpass' ? e1 / 2 : 2 * e2;
+      if (probe < nyq) facts.push(fact('Gain one octave out', `${sg(at(probe), 4)} dB`, `at ${sg(probe, 5)} Hz`));
+    }
+    q('.fd-facts').replaceChildren(...facts);
+    // Response chart.
+    const pl = sel('.fd-plot'), floor = +sel('.fd-floor');
+    const y = pl === 'db' ? R.db.map((v) => Math.max(v, floor)) : pl === 'lin' ? R.mag : pl === 'phase' ? R.phase.map((v) => (v * 180) / Math.PI) : R.gd;
+    const yLabel = pl === 'db' ? 'Gain (dB)' : pl === 'lin' ? 'Gain' : pl === 'phase' ? 'Phase (degrees, unwrapped)' : 'Group delay (samples)';
+    const rFig = chartFigure({ w: 380, h: 240, xLabel: 'Frequency (Hz)', yLabel, legend: 'none', xMin: 0, xMax: nyq, ...(pl === 'db' ? { yMin: floor, yMax: Math.max(5, Math.ceil(Math.max(...R.db) / 5) * 5) } : {}), series: [
+      { name: yLabel, x: R.f, y, mode: 'line', width: 1.6 },
+    ], marks: [...edges.map((e) => ({ kind: 'vline' as const, at: e, dash: [4, 3] })), ...(pl === 'db' ? [{ kind: 'hline' as const, at: -3.0103, dash: [2, 3] }] : [])] }, `${desc}: ${yLabel.toLowerCase()} against frequency`);
+    paint(q<HTMLCanvasElement>('.fd-rfig'), rFig);
+    // Pole-zero plot.
+    const pzOk = !fir || b.length <= 161;
+    const lim = Math.max(1.2, ...[...zs, ...ps].map((p) => Math.max(Math.abs(p[0]), Math.abs(p[1])) * 1.1).filter((v) => v < 4));
+    const pz: Figure = { w: 300, h: 300, alt: `Pole-zero plot: ${zs.length} zeros (circles) and ${fir ? b.length - 1 + ' poles at the origin' : ps.length + ' poles'} (crosses)`, draw: (ctx, W, H, pal) => {
+      const cx = W / 2, cy = H / 2, sc = (W / 2 - 18) / lim, X = (v: number) => cx + v * sc, Y = (v: number) => cy - v * sc;
+      ctx.strokeStyle = pal.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(-lim), cy); ctx.lineTo(X(lim), cy); ctx.moveTo(cx, Y(-lim)); ctx.lineTo(cx, Y(lim)); ctx.stroke();
+      ctx.strokeStyle = pal.muted; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.arc(cx, cy, sc, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = pal.muted; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.fillText('Re', X(lim) - 16, cy + 3); ctx.fillText('Im', cx + 4, Y(lim)); ctx.fillText('1', X(1) + 2, cy + 3);
+      if (!pzOk) { ctx.fillText('Too many zeros to plot.', 8, 8); return; }
+      const off = (p: C) => Math.abs(p[0]) > lim || Math.abs(p[1]) > lim;
+      ctx.lineWidth = 1.6; ctx.strokeStyle = pal.accent;
+      for (const z of zs) { if (off(z)) continue; ctx.beginPath(); ctx.arc(X(z[0]), Y(z[1]), 4.5, 0, 2 * Math.PI); ctx.stroke(); }
+      ctx.strokeStyle = pal.red ? pal.ink : pal.bad;
+      const cross = (p: C) => { const x = X(p[0]), yy = Y(p[1]); ctx.beginPath(); ctx.moveTo(x - 4.5, yy - 4.5); ctx.lineTo(x + 4.5, yy + 4.5); ctx.moveTo(x - 4.5, yy + 4.5); ctx.lineTo(x + 4.5, yy - 4.5); ctx.stroke(); };
+      if (fir) { cross([0, 0]); ctx.fillStyle = pal.ink; ctx.fillText(`×${b.length - 1}`, cx + 6, cy + 6); } else for (const p of ps) cross(p);
+      const outside = [...zs, ...ps].filter(off).length;
+      if (outside) { ctx.fillStyle = pal.muted; ctx.fillText(`${outside} outside the view`, 8, H - 16); }
+    } };
+    paint(q<HTMLCanvasElement>('.fd-pz'), pz);
+    q('.fd-pznote').textContent = !pzOk ? 'Zeros are only worked out for up to 161 taps.' : fir ? `Circles are the ${zs.length} zeros; an FIR filter has all its poles at the centre. Zeros on the unit circle are frequencies the filter blocks completely; zeros come in mirror pairs (r and 1/r), which is what makes the phase linear.` : 'Crosses are poles, circles zeros. Every pole is inside the dashed unit circle, so the filter is stable. Poles close to the circle give sharp edges but ring longer and need more precise arithmetic.';
+    figs = [rFig, pz];
+    // Code.
+    const head = `// ${desc}, sample rate ${cnum(fs)} Hz, ${two ? `edges ${cnum(e1)} and ${cnum(e2)} Hz` : `cut-off ${cnum(e1)} Hz`}. Made with fibub.com.\n`;
+    code.c = head + cArray('b', b) + '\n' + cArray('a', a);
+    code.sos = fir ? '' : head + `// ${sos.length} sections, each {b0, b1, b2, a0, a1, a2}; run them one after another.\nconst double sos[${sos.length}][6] = {\n${sos.map((s) => '  {' + s.map(cnum).join(', ') + '}').join(',\n')}\n};`;
+    const rows = Math.max(b.length, a.length);
+    code.csv = ['n,b,a', ...Array.from({ length: rows }, (_, i) => `${i},${i < b.length ? cnum(b[i]) : ''},${i < a.length ? cnum(a[i]) : ''}`)].join('\n') + '\n';
+    if (!fir && sos.length) code.csv += '\nsection,b0,b1,b2,a0,a1,a2\n' + sos.map((s, i) => `${i + 1},${s.map(cnum).join(',')}`).join('\n') + '\n';
+    const fmtSel = q<HTMLSelectElement>('.fd-fmt'); fmtSel.options[1].disabled = fir; if (fir && fmtSel.value === 'sos') fmtSel.value = 'c';
+    showCode();
+    report = [{ title: desc, facts: factPairs(facts), figure: rFig }, { title: 'Poles and zeros', figure: pz, text: [q('.fd-pznote').textContent!] }, { title: 'Coefficients', text: [code.c] }];
+  }
+  function showCode() {
+    const f = sel('.fd-fmt') as 'c' | 'sos' | 'csv', fir = sel('.fd-fam') === 'fir';
+    q<HTMLTextAreaElement>('.fd-code').value = code[f];
+    const ord = Math.round(val('.fd-ord')) * (sel('.fd-type').startsWith('band') ? 2 : 1);
+    q('.fd-codenote').textContent = !fir && f === 'c' && ord > 6 ? `With ${ord} poles, one long b/a pair loses accuracy in single precision and can even turn unstable; use the second-order sections for a real filter.` : 'Coefficients are written with full double precision.';
+  }
+
+  root.querySelectorAll('input, select').forEach((i) => { if (i.classList.contains('fd-fmt')) return; i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  q('.fd-fmt').addEventListener('change', showCode);
+  q('.fd-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(q<HTMLTextAreaElement>('.fd-code').value); q('.fd-copied').hidden = false; setTimeout(() => (q('.fd-copied').hidden = true), 1500); } catch { q<HTMLTextAreaElement>('.fd-code').select(); } });
+  q('.fd-dl').addEventListener('click', () => { const f = sel('.fd-fmt'); const csvF = f === 'csv'; save(new Blob([q<HTMLTextAreaElement>('.fd-code').value], { type: csvF ? 'text/csv' : 'text/plain' }), `${name}${f === 'sos' ? '-sos' : ''}.${csvF ? 'csv' : 'h'}`, csvF ? 'text/csv' : 'text/plain'); });
+  document.addEventListener('fibub:theme', () => { if (report.length) { paint(q<HTMLCanvasElement>('.fd-rfig'), figs[0]); paint(q<HTMLCanvasElement>('.fd-pz'), figs[1]); } });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Digital filter design', subtitle: q('.fd-big').textContent ?? '', file: name, sections: report }));
+</script>
+
+<style is:global>
+  .dfd select, .dfd input { max-width: 100%; }
+  .dfd textarea { width: 100%; font-size: 12.5px; }
+  .dfd canvas.fd-pz { max-width: 300px; margin: 0 auto; }
+</style>

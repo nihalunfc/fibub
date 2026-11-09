@@ -1,0 +1,131 @@
+---
+// Material and energy balances on a flowsheet of mixers, splitters, separators and reactors, solved as one linear
+// system, with a degrees-of-freedom check and stream table. Example flowsheet made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax mbs">
+  <div class="ax-card">
+    <h2>Components</h2>
+    <label>One per line: name, molar mass (kg/kmol, optional), heat capacity cp (kJ/kmol·K, optional, for the energy balance)
+      <textarea class="mb-comps" rows="5" spellcheck="false">Component, Molar mass, cp
+N2, 28.014, 29.1
+H2, 2.016, 28.8
+NH3, 17.031, 35.1
+Ar, 39.948, 20.8</textarea></label>
+    <DataFile target=".mb-comps" />
+    <p class="ax-help">Heat capacities are taken as constant; the example values are rounded, made-up averages. Use values for your own temperature range.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Units</h2>
+    <label>One unit per line: type, name, inlets -> outlets, then settings after | bars
+      <textarea class="mb-units" rows="6" spellcheck="false">mixer M1: S1 + S7 -> S2
+reactor R1: S2 -> S3 | N2 + 3 H2 -> 2 NH3 | N2 0.25 | dH -92000
+separator SEP: S3 -> S4 + S5 | NH3 0.95 | T 25
+splitter SPL: S5 -> S6 + S7 | 0.05</textarea></label>
+    <ul class="ax-help mb-list">
+      <li><b>mixer</b>: any inlets into one outlet.</li>
+      <li><b>splitter</b>: one inlet into outlets of the same make-up; give the fraction to each outlet but the last (here 5 % to S6, the purge).</li>
+      <li><b>separator</b>: one inlet, two outlets; give the fraction of each component that goes to the first outlet (unlisted components: 0).</li>
+      <li><b>reactor</b>: one inlet and outlet; give the reaction, the key reactant and its conversion (fraction reacted), and for the energy balance the heat of reaction dH in kJ per kmol of reaction as written (negative = gives out heat).</li>
+      <li>Add <b>T 25</b> to a reactor or separator to fix its outlet temperature (°C); the tool then works out the heat duty. Without it, reactors and mixers are adiabatic and separators and splitters keep the inlet temperature.</li>
+    </ul>
+    <p class="ax-err mb-uerr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Feeds and other specifications</h2>
+    <label>Feeds as "stream: component flow, …" in kmol/h, with "| T" for the temperature; other specifications as "stream component value" or "stream total value"
+      <textarea class="mb-feeds" rows="3" spellcheck="false">S1: N2 100, H2 300, Ar 1 | T 150</textarea></label>
+    <p class="ax-help">Flows are molar (kmol/h); unlisted feed components are zero, and "H2 ?" leaves a feed flow unknown so that another specification can fix it. Heat duties are reported in kW. The example flowsheet, an ammonia-style synthesis loop with a purge, is made up for illustration.</p>
+    <div class="ax-grid">
+      <label>Stream table shows <select class="mb-show"><option value="flow" selected>Flows (kmol/h)</option><option value="frac">Mole fractions</option><option value="mass">Mass flows (kg/h)</option></select></label>
+    </div>
+    <p class="ax-err mb-err" hidden></p>
+  </div>
+
+  <div class="ax-card mb-out">
+    <h2>Balance</h2>
+    <p class="ax-big mb-big"></p>
+    <dl class="ax-facts mb-facts"></dl>
+    <h3>Stream table</h3>
+    <div class="ax-scroll"><table class="mb-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small mb-csv">Stream table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseSheet, solveSheet, type Result } from '../../lib/sci/massbal';
+  import { save, wireDownloads, type Section } from '../../lib/report';
+  import { sig, csv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const fx = (x: number, d: number) => (Math.abs(x) < 0.5 * 10 ** -d ? 0 : x).toFixed(d);
+  const root = document.querySelector<HTMLElement>('.mbs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factsOf = (ds: HTMLElement[]) => ds.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  let report: Section[] = [], rows: (string | number)[][] = [];
+
+  function all() {
+    const out = q('.mb-out'), err = q('.mb-err');
+    const stop = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; rows = []; };
+    let r: Result, sh: ReturnType<typeof parseSheet>;
+    try { sh = parseSheet(q<HTMLTextAreaElement>('.mb-comps').value, q<HTMLTextAreaElement>('.mb-units').value, q<HTMLTextAreaElement>('.mb-feeds').value); r = solveSheet(sh); }
+    catch (e) { return stop((e as Error).message); }
+    if (!sh.units.length) return stop('Describe at least one unit.');
+    err.hidden = true; out.hidden = false;
+    const facts: HTMLElement[] = [];
+    const dofText = `${r.unknowns} unknown flows (${r.streams.length} streams × ${r.comps.length} components), ${r.equations} equations, ${r.rank} of them independent`;
+    if (!r.consistent) {
+      q('.mb-big').textContent = 'Over-specified: the equations disagree';
+      facts.push(fact('Degrees of freedom', String(r.dof), dofText));
+      facts.push(fact('What to do', 'remove a specification', 'two of the given flows or fractions cannot both be true; drop one of the extra specifications or a feed flow'));
+    } else if (r.dof > 0) {
+      q('.mb-big').textContent = `Under-specified: ${r.dof} more specification${r.dof > 1 ? 's' : ''} needed`;
+      facts.push(fact('Degrees of freedom', String(r.dof), dofText));
+      facts.push(fact('Not yet fixed', r.freeVars.slice(0, 8).join('; ') + (r.freeVars.length > 8 ? '; …' : ''), 'give a feed or an extra specification for one of these (or a flow that depends on them)'));
+    } else {
+      q('.mb-big').textContent = 'Solved: 0 degrees of freedom';
+      facts.push(fact('Degrees of freedom', '0', dofText + (r.equations > r.rank ? `; ${r.equations - r.rank} redundant but consistent` : '')));
+      for (const [u, xi] of Object.entries(r.extent)) facts.push(fact(`Extent of reaction in ${u}`, `${sg(xi, 5)} kmol/h`, 'moles of reaction as written, per hour'));
+      const mc = Object.entries(r.massCheck);
+      if (mc.length) { const worst = Math.max(...mc.map(([, v]) => Math.abs(v))); facts.push(fact('Mass balance check', worst < 1e-6 ? 'closes at every unit' : `out by up to ${sg(worst, 3)} kg/h`, worst < 1e-6 ? 'mass in = mass out, using the molar masses' : 'check the reaction is balanced with these molar masses')); }
+      if (r.duty) for (const [u, Q] of Object.entries(r.duty)) if (Math.abs(Q) > 1e-6) facts.push(fact(`Heat duty of ${u}`, `${sg(Q / 3600, 5)} kW`, Q > 0 ? 'heat added' : 'heat removed (cooling)'));
+      if (r.energyNote) facts.push(fact('Energy balance', 'not included', r.energyNote));
+    }
+    q('.mb-facts').replaceChildren(...facts);
+    const show = q<HTMLSelectElement>('.mb-show').value, hasM = sh.comps.every((c) => c.M), solved = r.dof === 0 && r.consistent;
+    const tb = q<HTMLTableElement>('.mb-tab');
+    if (!solved) { tb.replaceChildren(); report = [{ title: q('.mb-big').textContent!, facts: factsOf(facts) }]; rows = []; return; }
+    const mode = show === 'mass' && !hasM ? 'flow' : show;
+    const head = ['Stream', ...r.comps, mode === 'frac' ? 'Total kmol/h' : mode === 'mass' ? 'Total kg/h' : 'Total kmol/h', ...(hasM && mode !== 'mass' ? ['kg/h'] : []), ...(r.T ? ['T °C'] : [])];
+    const trs = r.streams.map((s, i) => {
+      const f = r.flows[i], tot = f.reduce((a, v) => a + v, 0), m = hasM ? f.reduce((a, v, c) => a + v * sh.comps[c].M!, 0) : NaN;
+      const cells = mode === 'frac' ? f.map((v) => fx(tot ? v / tot : 0, 4)) : mode === 'mass' ? f.map((v, c) => fx(v * sh.comps[c].M!, 2)) : f.map((v) => fx(v, 3));
+      return [s, ...cells, mode === 'mass' ? fx(m, 2) : fx(tot, 3), ...(hasM && mode !== 'mass' ? [fx(m, 1)] : []), ...(r.T ? [fx(r.T[s], 2)] : [])];
+    });
+    const mk = (cells: string[], tag: string) => { const tr = document.createElement('tr'); cells.forEach((c, i) => { const e = document.createElement(tag); e.textContent = c; if (i) e.className = 'r'; tr.append(e); }); return tr; };
+    tb.replaceChildren(mk(head, 'th'), ...trs.map((c) => mk(c, 'td')));
+    rows = [['stream', ...r.comps.map((c) => `${c}_kmol_per_h`), 'total_kmol_per_h', ...(hasM ? ['total_kg_per_h'] : []), ...(r.T ? ['T_C'] : [])], ...r.streams.map((s, i) => { const f = r.flows[i]; return [s, ...f.map((v) => sg(v, 8)), sg(f.reduce((a, v) => a + v, 0), 8), ...(hasM ? [sg(f.reduce((a, v, c) => a + v * sh.comps[c].M!, 0), 8)] : []), ...(r.T ? [sg(r.T[s], 7)] : [])]; })];
+    report = [{ title: q('.mb-big').textContent!, facts: factsOf(facts) }, { title: 'Stream table' + (mode === 'frac' ? ' (mole fractions)' : mode === 'mass' ? ' (kg/h)' : ' (kmol/h)'), table: { head, rows: trs, align: head.map((_, i) => (i ? 'r' : 'l')) } }];
+  }
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(all, 250); };
+  root.querySelectorAll('textarea').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.mb-show').addEventListener('change', all);
+  q('.mb-csv').addEventListener('click', () => rows.length > 1 && save(new TextEncoder().encode(csv(rows)), 'stream-table.csv', 'text/csv'));
+  all();
+  wireDownloads(q('.dl'), () => ({ title: 'Mass and energy balance', subtitle: q('.mb-big').textContent ?? '', file: 'mass-balance', sections: report }));
+</script>
+
+<style is:global>
+  .mbs select { max-width: 100%; }
+  .mbs textarea { margin-top: 4px; }
+  .mbs h3 { font-size: 16px; margin: 16px 0 6px; }
+  .mbs .mb-list { padding-left: 18px; margin: 10px 0 0; }
+  .mbs .mb-list li { margin: 4px 0; }
+</style>

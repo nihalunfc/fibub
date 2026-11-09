@@ -1,0 +1,207 @@
+---
+// Wind turbine energy yield: Weibull fit, hub-height shear, air density, power curve, AEP and capacity factor.
+// Worked out in the browser. The example wind data and turbine are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax wey">
+  <div class="ax-card">
+    <h2>Wind</h2>
+    <label>Wind from <select class="we-src"><option value="data" selected>My wind speeds (paste or open)</option><option value="kc">Weibull k and c</option><option value="mean">Mean speed and k</option></select></label>
+    <div class="we-dbox">
+      <label style="margin-top:10px">Wind speeds (m/s), one reading per line <textarea class="we-data" rows="6" spellcheck="false"></textarea></label>
+      <DataFile target=".we-data" maxMB={20} maxCols={20} maxRows={600000} />
+      <div class="ax-grid" style="margin-top:8px">
+        <label>Column with the speed <input class="we-col" type="text" inputmode="numeric" value="1" /></label>
+        <label>Speeds in <select class="we-su"><option value="1" selected>m/s</option><option value="0.514444">knots</option><option value="0.277778">km/h</option><option value="0.44704">mph</option></select></label>
+      </div>
+      <p class="ax-help">Use evenly spaced readings (every 10 minutes or hour) over a whole year if you can, so every season counts the same. Lines without a number in that column are skipped. The example is a made-up year of hourly speeds.</p>
+    </div>
+    <div class="ax-grid we-pbox" hidden>
+      <label class="we-kbox">Shape k <input class="we-k" type="text" inputmode="decimal" value="2" /></label>
+      <label class="we-cbox">Scale c (m/s) <input class="we-c" type="text" inputmode="decimal" value="7" /></label>
+      <label class="we-mbox" hidden>Mean speed (m/s) <input class="we-mean" type="text" inputmode="decimal" value="6.2" /></label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Measured at height (m) <input class="we-h0" type="text" inputmode="decimal" value="10" /></label>
+      <label>Hub height (m) <input class="we-h" type="text" inputmode="decimal" value="100" /></label>
+      <label>Height law <select class="we-law"><option value="power" selected>Power law (shear exponent α)</option><option value="log">Log law (roughness length z0)</option></select></label>
+      <label><span class="we-lawl">Shear exponent α</span> <input class="we-lp" type="text" inputmode="decimal" value="0.143" /></label>
+      <label>Site elevation (m) <input class="we-elev" type="text" inputmode="decimal" value="0" /></label>
+      <label>Mean air temperature (°C) <input class="we-t" type="text" inputmode="decimal" value="15" /></label>
+    </div>
+    <p class="ax-help">Wind grows with height. α = 1/7 (0.143) is the classic open-country value; about 0.1 over the sea and 0.25 or more over towns and forest. For the log law, z0 is about 0.0002 m over calm sea, 0.03 m over open grass and 0.5 to 1 m over forest. These are rough guides; a mast at two heights measures your own.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Turbine</h2>
+    <label>Power curve <select class="we-csrc"><option value="gen" selected>A generic made-up curve</option><option value="paste">My power curve (paste or open)</option></select></label>
+    <div class="ax-grid we-gbox" style="margin-top:10px">
+      <label>Rated power (kW) <input class="we-rated" type="text" inputmode="decimal" value="2000" /></label>
+      <label>Rotor diameter (m) <input class="we-D" type="text" inputmode="decimal" value="100" /></label>
+      <label>Power coefficient Cp <input class="we-cp" type="text" inputmode="decimal" value="0.45" /></label>
+      <label>Cut-in speed (m/s) <input class="we-ci" type="text" inputmode="decimal" value="3" /></label>
+      <label>Cut-out speed (m/s) <input class="we-co" type="text" inputmode="decimal" value="25" /></label>
+    </div>
+    <div class="we-cbox2" hidden>
+      <label style="margin-top:10px">Wind speed (m/s) and power (kW), one pair per line <textarea class="we-curve" rows="6" spellcheck="false" placeholder="3, 20&#10;4, 90&#10;5, 210"></textarea></label>
+      <DataFile target=".we-curve" maxMB={1} maxCols={10} maxRows={2000} />
+      <p class="ax-help">Use the maker's power curve for standard air density (1.225 kg/m³), with straight lines between points; above the last point the turbine is taken as stopped.</p>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Availability (%) <input class="we-av" type="text" inputmode="decimal" value="97" /></label>
+      <label>Other losses (%) <input class="we-loss" type="text" inputmode="decimal" value="10" /></label>
+    </div>
+    <p class="ax-help">The generic curve is ½ ρ A v³ Cp, capped at the rated power, between cut-in and cut-out: a made-up shape for learning, not any real turbine. Availability is the share of time the turbine can run; other losses cover wake effects, electrical losses, icing and curtailment. The example figures are made up.</p>
+    <p class="ax-err we-err" hidden></p>
+  </div>
+
+  <div class="ax-card we-out">
+    <h2>Energy</h2>
+    <p class="ax-big we-big"></p>
+    <dl class="ax-facts we-facts"></dl>
+    <canvas class="ax-fig we-f1"></canvas>
+    <canvas class="ax-fig we-f2"></canvas>
+    <canvas class="ax-fig we-f3"></canvas>
+    <p class="ax-help">The Weibull shape k is assumed the same at hub height, and the whole year's wind is used at one air density. For study and planning; real projects use a year or more of on-site measurement, the maker's certified curve and wake modelling.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small we-csv">Download energy by wind speed (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .wey select, .wey input { max-width: 100%; }
+  .wey .we-f2, .wey .we-f3 { margin-top: 10px; }
+</style>
+
+<script>
+  import { fitWeibull, shear, readPowerCurve, genericCurve, powerAt, aep, aepFromData, powerDensity, weibullPdf, weibullCdf, weibullMean, cFromMean, exampleSpeeds, type Curve } from '../../lib/sci/eng-wind';
+  import { atmosphere, stdTP, geopotential } from '../../lib/sci/eng-atmos';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const grp = (x: number) => Math.round(x).toLocaleString('en');
+  const root = document.querySelector<HTMLElement>('.wey')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const energy = (kWh: number) => (kWh >= 1e6 ? `${grp(kWh / 1000)} MWh` : `${grp(kWh)} kWh`);
+  let figs: Figure[] = [], sections: Section[] = [], bins: (string | number)[][] = [];
+  q<HTMLTextAreaElement>('.we-data').value = exampleSpeeds().join('\n');
+
+  function readSpeeds(text: string, col: number, k: number) {
+    const out: number[] = []; let skipped = 0;
+    for (const line of text.split(/\r?\n/)) {
+      if (!line.trim()) continue;
+      const f = line.trim().split(/[\s,;\t]+/), x = Number(f[col - 1]);
+      if (f.length < col || !Number.isFinite(x) || x < 0) { skipped++; continue; }
+      out.push(x * k);
+    }
+    return { speeds: out, skipped };
+  }
+
+  function run() {
+    const src = sel('.we-src'), csrc = sel('.we-csrc'), law = sel('.we-law') as 'power' | 'log';
+    q('.we-dbox').hidden = src !== 'data'; q('.we-pbox').hidden = src === 'data';
+    q('.we-cbox').hidden = src !== 'kc'; q('.we-mbox').hidden = src !== 'mean';
+    q('.we-gbox').hidden = csrc !== 'gen'; q('.we-cbox2').hidden = csrc !== 'paste';
+    q('.we-lawl').textContent = law === 'power' ? 'Shear exponent α' : 'Roughness length z0 (m)';
+    const err = q('.we-err'), out = q('.we-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sections = []; bins = []; };
+    const h0 = val('.we-h0'), h = val('.we-h'), lp = val('.we-lp'), elev = val('.we-elev'), temp = val('.we-t'), av = val('.we-av') / 100, loss = val('.we-loss') / 100;
+    if (!(h0 > 0 && h0 < 500 && h > 0 && h < 500)) return fail('Give the measurement and hub heights in metres (up to 500).');
+    if (law === 'power' ? !(lp >= 0 && lp < 1) : !(lp > 0 && lp < Math.min(h, h0))) return fail(law === 'power' ? 'Give a shear exponent α from 0 to 1 (about 0.14).' : 'Give a roughness length z0 in metres, smaller than both heights (about 0.03).');
+    if (!(elev >= -400 && elev <= 5000) || !(temp >= -40 && temp <= 50)) return fail('Give a site elevation from −400 to 5,000 m and a mean temperature from −40 to 50 °C.');
+    if (!(av > 0 && av <= 1) || !(loss >= 0 && loss < 1)) return fail('Give the availability (1 to 100 %) and other losses (0 to 99 %).');
+    const factor = shear(1, h0, h, law, lp);
+    // Wind.
+    let k: number, c: number, calm = 0, hub: number[] | null = null, note = '', c0: number;
+    if (src === 'data') {
+      const col = Math.round(val('.we-col'));
+      if (!(col >= 1 && col <= 20)) return fail('Give the column with the speed (1 is the first).');
+      const r = readSpeeds(q<HTMLTextAreaElement>('.we-data').value, col, Number(sel('.we-su')));
+      if (r.speeds.length < 20) return fail('Give at least 20 wind speed readings (one per line).');
+      const fit = fitWeibull(r.speeds);
+      if (!Number.isFinite(fit.k)) return fail('Too few readings above 0 m/s to fit a Weibull distribution.');
+      k = fit.k; c0 = fit.c; c = fit.c * factor; calm = fit.calm / r.speeds.length; hub = r.speeds.map((x) => x * factor);
+      note = `${r.speeds.length.toLocaleString('en')} readings${fit.calm ? `, ${sg(calm * 100, 2)} % calm (0 m/s)` : ''}${r.skipped ? `, ${r.skipped} lines skipped` : ''}; maximum likelihood fit`;
+    } else {
+      k = val('.we-k');
+      if (!(k > 0.5 && k < 10)) return fail('Give the Weibull shape k (usually 1.5 to 3).');
+      if (src === 'kc') { c0 = val('.we-c'); if (!(c0 > 0 && c0 < 50)) return fail('Give the Weibull scale c in m/s.'); }
+      else { const m = val('.we-mean'); if (!(m > 0 && m < 40)) return fail('Give the mean wind speed in m/s.'); c0 = cFromMean(m, k); }
+      c = c0 * factor; note = src === 'kc' ? 'as given' : `c from the mean speed: c = mean / Γ(1 + 1/k)`;
+    }
+    // Turbine.
+    let curve: Curve, rated: number;
+    if (csrc === 'gen') {
+      const R = val('.we-rated'), D = val('.we-D'), cp = val('.we-cp'), ci = val('.we-ci'), co = val('.we-co');
+      if (!(R > 0 && D > 0 && cp > 0 && cp <= 0.593)) return fail('Give the rated power, rotor diameter and a power coefficient up to 0.593 (the Betz limit).');
+      if (!(ci >= 0 && co > ci && co <= 40)) return fail('Give a cut-in speed and a higher cut-out speed (m/s, up to 40).');
+      curve = genericCurve(R, D, cp, ci, co); rated = R;
+    } else {
+      const r = readPowerCurve(q<HTMLTextAreaElement>('.we-curve').value);
+      if (r.error) return fail(r.error);
+      curve = r.curve; rated = Math.max(...curve.P);
+      if (!(rated > 0)) return fail('The power curve never produces any power.');
+    }
+    err.hidden = true; out.hidden = false;
+    const rho = atmosphere(elev, { dT: temp + 273.15 - stdTP(geopotential(elev)).T }).rho, adj = Math.cbrt(rho / 1.225);
+    const g = aep(curve, k, c, rho, 1.225, calm), net = g.kWh * av * (1 - loss), cf = net / (rated * 8760);
+    const fromData = hub ? aepFromData(curve, hub, rho) : null;
+    const top = curve.v[curve.v.length - 1] / adj, firstP = curve.v[curve.P.findIndex((p) => p > 0)] / adj, ratedV = curve.v[curve.P.indexOf(rated)] / adj;
+    const running = (weibullCdf(top, k, c) - weibullCdf(firstP, k, c)) * (1 - calm), atRated = (weibullCdf(top, k, c) - weibullCdf(ratedV, k, c)) * (1 - calm);
+    q('.we-big').textContent = `${energy(net)} a year, capacity factor ${sg(cf * 100, 3)} %`;
+    const f = [
+      fact('Weibull at hub height', `k ${sg(k, 4)}, c ${sg(c, 4)} m/s`, `at ${sg(h0, 4)} m: c ${sg(c0, 4)} m/s; ${note}`),
+      fact('Mean speed at hub', `${sg(weibullMean(k, c) * (1 - calm), 3)} m/s`, `speeds × ${sg(factor, 4)} from ${sg(h0, 4)} m to ${sg(h, 4)} m (${law === 'power' ? `α ${lp}` : `z0 ${lp} m`})`),
+      fact('Wind power density', `${grp(powerDensity(k, c, rho) * (1 - calm))} W/m²`, '½ ρ c³ Γ(1 + 3/k), at hub height'),
+      fact('Gross energy', energy(g.kWh), `mean output ${grp(g.meanKW)} kW`),
+      fact('Net energy', energy(net), `× ${sg(av * 100, 3)} % availability × (1 − ${sg(loss * 100, 3)} % losses)`),
+      ...(fromData ? [fact('Gross from your data directly', energy(fromData.kWh), `no Weibull fit: ${sg((fromData.kWh / g.kWh - 1) * 100, 2)} % against the fit`)] : []),
+      fact('Full-load hours', `${grp(net / rated)} h`, `rated ${grp(rated)} kW`),
+      fact('Time producing', `${sg(running * 100, 3)} %`, `at full power ${sg(atRated * 100, 3)} % of the year`),
+      fact('Air density', `${sg(rho, 4)} kg/m³`, `power curve read at speeds × ${sg(adj, 4)} (equivalent-speed method)`),
+    ];
+    q('.we-facts').replaceChildren(...f);
+    // Figures.
+    const vmax = Math.max(top + 2, c * 3), xs: number[] = []; for (let i = 0; i <= 200; i++) xs.push((vmax * i) / 200);
+    const series: Parameters<typeof chartFigure>[0]['series'] = [{ name: `Weibull k ${sg(k, 3)}, c ${sg(c, 3)}`, x: xs, y: xs.map((x) => weibullPdf(x, k, c) * (1 - calm)), mode: 'line', width: 2 }];
+    if (hub) {
+      const bw = 1, nb = Math.ceil(vmax / bw), cnt = Array(nb).fill(0);
+      for (const s of hub) { const b = Math.floor(s / bw); if (b < nb) cnt[b]++; }
+      series.unshift({ name: 'Your data', x: cnt.map((_, i) => (i + 0.5) * bw), y: cnt.map((n) => n / hub!.length / bw), mode: 'points', marker: 'square', size: 3 });
+    }
+    const f1 = chartFigure({ w: 380, h: 230, xLabel: 'Wind speed at hub (m/s)', yLabel: 'Share per m/s', xMin: 0, yMin: 0, legend: 'below', series }, 'Wind speed distribution at hub height');
+    const pc = xs.map((x) => powerAt(curve, x * adj));
+    const f2 = chartFigure({ w: 380, h: 220, xLabel: 'Wind speed at hub (m/s)', yLabel: 'Power (kW)', xMin: 0, yMin: 0, legend: 'below', series: [
+      { name: 'At this site', x: xs, y: pc, mode: 'line', width: 2 },
+      ...(Math.abs(adj - 1) > 1e-4 ? [{ name: 'Curve as given (1.225 kg/m³)', x: xs, y: xs.map((x) => powerAt(curve, x)), mode: 'line' as const, width: 1.5, dash: [5, 4] }] : []),
+    ] }, 'Power curve');
+    bins = [];
+    for (let b = 0; b < Math.ceil(vmax); b++) {
+      const lo = b, hi = b + 1, n = 40; let e = 0;
+      for (let i = 0; i < n; i++) { const s = lo + ((i + 0.5) * (hi - lo)) / n; e += powerAt(curve, s * adj) * weibullPdf(s, k, c) * ((hi - lo) / n); }
+      bins.push([`${lo}-${hi}`, ((weibullCdf(hi, k, c) - weibullCdf(lo, k, c)) * (1 - calm) * 8760).toFixed(1), powerAt(curve, (b + 0.5) * adj).toFixed(1), (e * (1 - calm) * 8760).toFixed(0)]);
+    }
+    const f3 = chartFigure({ w: 380, h: 220, xLabel: 'Wind speed at hub (m/s)', yLabel: 'Gross energy (MWh)', xMin: 0, yMin: 0, legend: 'none', series: [{ name: 'Energy per 1 m/s band', x: bins.map((_, i) => i + 0.5), y: bins.map((r) => Number(r[3]) / 1000), mode: 'both', width: 2, marker: 'square', size: 3 }] }, 'Gross energy from each 1 m/s band of wind speed');
+    figs = [f1, f2, f3]; ['.we-f1', '.we-f2', '.we-f3'].forEach((s, i) => paint(q<HTMLCanvasElement>(s), figs[i]));
+    sections = [
+      { title: q('.we-big').textContent!, facts: f.map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: f1 },
+      { title: 'Power curve', figure: f2 },
+      { title: 'Energy by wind speed', figure: f3, table: { head: ['Speed (m/s)', 'Hours', 'Power (kW)', 'Gross (kWh)'], rows: bins.map((r) => r.map(String)), align: ['l', 'r', 'r', 'r'] } },
+    ];
+  }
+
+  let tm = 0;
+  root.querySelectorAll('input, textarea').forEach((i) => i.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(run, 250); }));
+  root.querySelectorAll('select').forEach((i) => i.addEventListener('change', run));
+  q('.we-csv').addEventListener('click', () => save(new Blob([csv([['wind_speed_band_m_s', 'hours_per_year', 'power_kW_at_band_middle', 'gross_energy_kWh'], ...bins])], { type: 'text/csv' }), 'wind-energy-bins.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.we-out').hidden) ['.we-f1', '.we-f2', '.we-f3'].forEach((s, i) => paint(q<HTMLCanvasElement>(s), figs[i])); });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Wind turbine energy yield', subtitle: q('.we-big').textContent ?? '', file: 'wind-energy-yield', sections }));
+</script>

@@ -1,0 +1,127 @@
+---
+// Sampling and aliasing explorer: samples of a sine, the alias through them, the folding diagram. Example values made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ald">
+  <div class="ax-card">
+    <h2>Signal and sampling</h2>
+    <div class="ax-grid">
+      <label>Example <select class="al-pre">
+        <option value="">Choose to fill in…</option>
+        <option value="70,100,0" selected>70 Hz sampled at 100 Hz</option>
+        <option value="23,24,0">Wagon wheel: 23 turns/s filmed at 24 frames/s</option>
+        <option value="30000,44100,0">30 kHz tone in 44.1 kHz audio</option>
+        <option value="60,50,0">60 Hz hum sampled at 50 Hz</option>
+        <option value="30,100,0">30 Hz sampled at 100 Hz (no aliasing)</option>
+        <option value="50,100,90">Exactly half the sample rate</option>
+      </select></label>
+      <label>Signal frequency f (Hz) <input class="al-f" type="text" inputmode="decimal" value="70" /></label>
+      <label>Sample rate fs (Hz) <input class="al-fs" type="text" inputmode="decimal" value="100" /></label>
+      <label>Starting phase (degrees) <input class="al-ph" type="text" inputmode="decimal" value="0" /></label>
+      <label>Samples shown <select class="al-n"><option>10</option><option selected>20</option><option>40</option><option>80</option></select></label>
+      <label class="ax-check" style="align-self:end"><input class="al-sinc" type="checkbox" /> Show the ideal (sinc) reconstruction</label>
+    </div>
+    <label style="margin-top:12px">Slide the signal frequency, from 0 to 3 × fs <input class="al-slide" type="range" min="0" max="300" step="0.5" value="70" /></label>
+    <p class="ax-err al-err" hidden></p>
+  </div>
+
+  <div class="ax-card al-out">
+    <h2>What the samples show</h2>
+    <p class="ax-big al-big"></p>
+    <dl class="ax-facts al-facts"></dl>
+    <canvas class="ax-fig al-tfig" style="margin-top:12px"></canvas>
+    <p class="ax-help">The thin line is the real signal, the dots are the samples, and the dashed line is the slowest sine that passes through every dot: the alias. Anything rebuilding the signal from the samples alone (a sound card, a display, your eye watching a film) sees the alias.</p>
+    <h3 style="margin:14px 0 6px">Folding diagram</h3>
+    <canvas class="ax-fig al-ffig"></canvas>
+    <p class="ax-help">Input frequency across, apparent frequency up. Each time the input passes a multiple of fs/2 (the dashed lines) the apparent frequency folds back, like a paper strip folded at every Nyquist zone. In the even zones a rising input gives a falling output, and the alias's phase is flipped.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small al-csv">Download samples (CSV)</button></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>The Nyquist rule in one paragraph</h2>
+    <p class="ax-help" style="font-size:15px;color:var(--ink)">Sampling only records the signal at instants 1/fs apart. Two sines whose frequencies differ by a whole multiple of fs give exactly the same samples, so after sampling they cannot be told apart. Only frequencies below half the sample rate, fs/2 (the <b>Nyquist frequency</b>), come through unchanged. To record a signal faithfully, sample more than twice as fast as its highest frequency, and remove anything above fs/2 with an analogue (anti-aliasing) filter before the converter, because once aliased, it cannot be undone.</p>
+  </div>
+</div>
+
+<script>
+  import { alias, fold, samples, aliasWave, sincRecon } from '../../lib/sci/eng-alias';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.ald')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const hz = (x: number) => { const a = Math.abs(x); return a >= 1e6 ? `${sg(x / 1e6, 5)} MHz` : a >= 1e3 ? `${sg(x / 1e3, 5)} kHz` : `${sg(x, 5)} Hz`; };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factPairs = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent! + (d.querySelector('small') ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string]);
+  let figs: Figure[] = [], report: Section[] = [], rows: (string | number)[][] = [];
+
+  function calc(fromSlider = false) {
+    const err = q('.al-err'), out = q('.al-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const fs = val('.al-fs');
+    if (!(fs > 0)) return fail('Give the sample rate in Hz (more than 0).');
+    const sl = q<HTMLInputElement>('.al-slide');
+    sl.max = String(3 * fs); sl.step = String(fs / 600);
+    if (fromSlider) q<HTMLInputElement>('.al-f').value = sg(+sl.value, 6);
+    const f = val('.al-f'), ph = val('.al-ph');
+    if (!(f >= 0)) return fail('Give the signal frequency in Hz (0 or more).');
+    if (!Number.isFinite(ph)) return fail('Give the starting phase in degrees (0 if unsure).');
+    if (f / fs > 1e5) return fail('The signal frequency is more than 100,000 times the sample rate; pick values closer together.');
+    if (!fromSlider) sl.value = String(Math.min(f, 3 * fs));
+    err.hidden = true; out.hidden = false;
+    const a = alias(f, fs), phi = (ph * Math.PI) / 180, N = +q<HTMLSelectElement>('.al-n').value;
+    q('.al-big').textContent = a.aliased ? `${hz(f)} looks like ${hz(a.apparent)}` : a.edge ? `${hz(f)} sits exactly on the Nyquist frequency` : `${hz(f)} is recorded as ${hz(f)}: no aliasing`;
+    const facts = [
+      fact('Nyquist frequency', hz(fs / 2), 'half the sample rate: the highest frequency that comes through unchanged'),
+      fact('Apparent frequency', hz(a.apparent), `|f − ${a.k} × fs| = |${sg(f, 6)} − ${sg(a.k * fs, 6)}|`),
+      fact('Signed alias', `${a.signed < 0 ? '−' : '+'}${hz(Math.abs(a.signed))}`, a.signed < 0 ? 'negative: the alias runs backwards (a wheel turns the wrong way), phase flipped' : 'positive: the alias runs the same way'),
+      fact('Nyquist zone', String(a.zone), a.edge ? 'on the boundary between two zones' : a.inverted ? 'an even zone: mirrored (spectrum inverted)' : a.zone === 1 ? 'the first zone, 0 to fs/2: safe' : 'an odd zone: not mirrored'),
+      fact('Sample rate needed', f > 0 ? `more than ${hz(2 * f)}` : '–', f > 0 ? `now ${sg(fs / (2 * f), 3)} × the minimum (2f)` : ''),
+    ];
+    if (a.edge) facts.push(fact('Edge case', 'amplitude unreliable', `at exactly a multiple of fs/2 the samples land on the same points of every cycle, so the height they show depends on the phase (try 0° and 90°)`));
+    q('.al-facts').replaceChildren(...facts);
+    // Time chart: span of N samples.
+    const span = N / fs, cycles = f * span, M = Math.min(6000, Math.max(800, Math.ceil(cycles * 24)));
+    const tt = Array.from({ length: M + 1 }, (_, i) => (i / M) * span), xs = tt.map((t) => Math.sin(2 * Math.PI * f * t + phi));
+    const sm = samples(f, fs, 1, phi, N + 1), al = tt.map((t) => aliasWave(f, fs, 1, phi, t));
+    const showSinc = q<HTMLInputElement>('.al-sinc').checked;
+    const wide = showSinc ? samples(f, fs, 1, phi, N + 1 + 800, -400) : null;
+    const series = [
+      { name: `Signal ${hz(f)}`, x: tt, y: xs, mode: 'line' as const, width: cycles > 60 ? 0.5 : 1 },
+      { name: `Alias ${a.signed < 0 ? '−' : ''}${hz(Math.abs(a.signed))}`, x: tt, y: al, mode: 'line' as const, width: 2, dash: [6, 4] },
+      ...(wide ? [{ name: 'Sinc reconstruction', x: tt.filter((_, i) => i % Math.max(1, Math.floor(M / 400)) === 0), y: tt.filter((_, i) => i % Math.max(1, Math.floor(M / 400)) === 0).map((t) => sincRecon(wide.x, -400, fs, t)), mode: 'line' as const, width: 1.4 }] : []),
+      { name: 'Samples', x: sm.t, y: sm.x, mode: 'points' as const, size: 3.5 },
+    ];
+    const tFig = chartFigure({ w: 380, h: 250, xLabel: 'Time (s)', yLabel: 'Value', legend: 'below', yMin: -1.3, yMax: 1.3, series }, `${q('.al-big').textContent}: ${N} samples with the alias`);
+    paint(q<HTMLCanvasElement>('.al-tfig'), tFig);
+    // Folding diagram.
+    const fmax = Math.max(2 * fs, f * 1.15), zones = Math.ceil(fmax / (fs / 2));
+    const fx = Array.from({ length: zones + 1 }, (_, i) => (i * fs) / 2), fy = fx.map((v) => fold(v, fs));
+    const fFig = chartFigure({ w: 380, h: 230, xLabel: 'Input frequency (Hz)', yLabel: 'Apparent frequency (Hz)', legend: 'none', xMin: 0, xMax: fmax, yMin: 0, yMax: (fs / 2) * 1.15, series: [
+      { name: 'Folding', x: fx, y: fy, mode: 'line', width: 1.6 },
+      { name: 'Your signal', x: [f], y: [a.apparent], mode: 'points', size: 5, labels: [hz(a.apparent)] },
+    ], marks: [...fx.slice(1).map((v) => ({ kind: 'vline' as const, at: v, dash: [3, 3] })), { kind: 'hline' as const, at: fs / 2, dash: [2, 3], label: 'fs/2' }, { kind: 'vline' as const, at: f, label: 'f' }] }, `Folding diagram: input ${hz(f)} folds to ${hz(a.apparent)} in Nyquist zone ${a.zone}`);
+    paint(q<HTMLCanvasElement>('.al-ffig'), fFig);
+    figs = [tFig, fFig];
+    rows = [['n', 'time_s', 'sample', 'alias_at_sample'], ...sm.t.map((t, i) => [i, +t.toPrecision(12), +sm.x[i].toPrecision(10), +aliasWave(f, fs, 1, phi, t).toPrecision(10)])];
+    report = [{ title: q('.al-big').textContent!, facts: factPairs(facts), figure: tFig }, { title: 'Folding diagram', figure: fFig }];
+  }
+
+  q('.al-pre').addEventListener('change', () => { const v = q<HTMLSelectElement>('.al-pre').value; if (!v) return; const [f, fs, ph] = v.split(','); q<HTMLInputElement>('.al-f').value = f; q<HTMLInputElement>('.al-fs').value = fs; q<HTMLInputElement>('.al-ph').value = ph; calc(); });
+  root.querySelectorAll('.al-f, .al-fs, .al-ph, .al-n, .al-sinc').forEach((i) => { i.addEventListener('input', () => calc()); i.addEventListener('change', () => calc()); });
+  q('.al-slide').addEventListener('input', () => calc(true));
+  document.addEventListener('fibub:theme', () => { if (report.length) { paint(q<HTMLCanvasElement>('.al-tfig'), figs[0]); paint(q<HTMLCanvasElement>('.al-ffig'), figs[1]); } });
+  q('.al-csv').addEventListener('click', () => save(new Blob([csv(rows)], { type: 'text/csv' }), 'aliasing-samples.csv', 'text/csv'));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Sampling and aliasing', subtitle: q('.al-big').textContent ?? '', file: 'aliasing', sections: report }));
+</script>
+
+<style is:global>
+  .ald select, .ald input { max-width: 100%; }
+  .ald input[type=range] { width: 100%; accent-color: var(--accent); }
+</style>
