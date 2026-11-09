@@ -1,6 +1,7 @@
 // #745 Difference-in-differences: example (statsmodels numbers), options, downloads, bad input.
 export const path = '/science/difference-in-differences/';
 export default async ({ page, check, BASE, OUT, readFileSync }) => {
+  const vp = page.viewportSize();
   await page.goto(BASE + path);
   await page.waitForSelector('.dd-out:not([hidden])');
   const big = () => page.textContent('.dd-big'), facts = () => page.textContent('.dd-facts');
@@ -57,5 +58,5 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   await page.goto(BASE + path);
   await page.waitForSelector('.dd-out:not([hidden])');
   await page.screenshot({ path: OUT + 'difference-in-differences.png', fullPage: true });
-  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.setViewportSize(vp);
 };
