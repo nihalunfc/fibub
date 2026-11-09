@@ -1,4 +1,4 @@
-import { haversine } from '../../src/lib/sci/gravity.ts';
+import { haversine } from '../../src/lib/sci/gravitymodel.ts';
 export const path = '/science/gravity-model/';
 export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) => {
   const runs = () => page.evaluate(() => +(document.querySelector('.gm').dataset.runs || 0));
