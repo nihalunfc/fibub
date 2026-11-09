@@ -1,0 +1,171 @@
+---
+// Stocking density and FCR calculator: tank or pond volume, biomass, density, fish for a target density, FCR,
+// SGR, feed per day and a harvest projection. Nothing is uploaded. Example values are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax sdc">
+  <div class="ax-card">
+    <h2>Tank or pond, and the fish in it</h2>
+    <div class="ax-row"><button type="button" class="btn secondary small sd-ex">Use the example</button></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Shape <select class="sd-shape"><option value="round">Round tank</option><option value="rect">Rectangular tank or pond</option><option value="volume">I know the volume</option></select></label>
+      <label class="sd-r">Diameter (m) <input class="sd-d" type="text" inputmode="decimal" /></label>
+      <label class="sd-q" hidden>Length (m) <input class="sd-L" type="text" inputmode="decimal" /></label>
+      <label class="sd-q" hidden>Width (m) <input class="sd-W" type="text" inputmode="decimal" /></label>
+      <label class="sd-r sd-q">Water depth (m) <input class="sd-D" type="text" inputmode="decimal" /></label>
+      <label class="sd-v" hidden>Water volume (m³) <input class="sd-V" type="text" inputmode="decimal" /></label>
+      <label>Number of fish <input class="sd-n" type="text" inputmode="numeric" /></label>
+      <label>Mean weight (g) <input class="sd-g" type="text" inputmode="decimal" /></label>
+      <label>Target density (kg/m³) <input class="sd-t" type="text" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">Use the water volume, not the tank's full size. The right density depends on species, oxygen supply and water exchange: use your own target.</p>
+    <p class="ax-err sd-err1" hidden></p>
+    <dl class="ax-facts sd-f1" style="margin-top:12px" hidden></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Growth and feed over a period</h2>
+    <div class="ax-grid">
+      <label>Fish at the start <input class="sd-n0" type="text" inputmode="numeric" /></label>
+      <label>Mean weight at the start (g) <input class="sd-g0" type="text" inputmode="decimal" /></label>
+      <label>Fish at the end <input class="sd-n1" type="text" inputmode="numeric" /></label>
+      <label>Mean weight at the end (g) <input class="sd-g1" type="text" inputmode="decimal" /></label>
+      <label>Days <input class="sd-days" type="text" inputmode="numeric" /></label>
+      <label>Feed given (kg) <input class="sd-feed" type="text" inputmode="decimal" /></label>
+      <label>Weight of fish that died (kg, optional) <input class="sd-dead" type="text" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-err sd-err2" hidden></p>
+    <dl class="ax-facts sd-f2" style="margin-top:12px" hidden></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Feeding and harvest projection</h2>
+    <p class="ax-help" style="margin:0 0 10px">Starts from the fish in the first box and grows them at a steady SGR.</p>
+    <div class="ax-grid">
+      <label>SGR (% per day; blank = the SGR above) <input class="sd-sgr" type="text" inputmode="decimal" /></label>
+      <label>Feed (% of body weight per day) <input class="sd-pct" type="text" inputmode="decimal" /></label>
+      <label>Fish lost (% per month) <input class="sd-loss" type="text" inputmode="decimal" value="0" /></label>
+      <label>Harvest weight (g) <input class="sd-hw" type="text" inputmode="decimal" /></label>
+      <label>Show every <select class="sd-step"><option value="1">day</option><option value="7" selected>week</option><option value="14">2 weeks</option><option value="30">30 days</option></select></label>
+    </div>
+    <p class="ax-err sd-err3" hidden></p>
+    <div class="sd-out" hidden>
+      <p class="ax-big sd-big" aria-live="polite"></p>
+      <p class="sd-note"></p>
+      <canvas class="ax-fig sd-fig"></canvas>
+      <div class="ax-scroll sd-tw"><table class="sd-tab"></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sd-csv">Download projection (CSV)</button></div>
+      <Downloads />
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  .sdc .sd-tw { max-height: 420px; overflow-y: auto; margin-top: 10px; }
+  .sdc tr.over td { color: var(--bad); }
+  .sdc .sd-note { margin: 6px 0 10px; }
+</style>
+
+<script>
+  import { volume, biomass, maxFish, fcr, sgr, daysTo, project, EXAMPLE, type Shape, type ProjRow } from '../../lib/sci/aquastock';
+  import { num, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { wireDownloads, save, paint, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.sdc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => { const t = q<HTMLInputElement>(c).value.trim(); return t ? num(t) : NaN; };
+  const shape = q<HTMLSelectElement>('.sd-shape');
+  const s4 = (x: number, n = 4) => String(+x.toPrecision(n));
+  let rows: ProjRow[] = [], fig: Figure | null = null, V = NaN, target = NaN, sgrCalc = NaN;
+  const facts = (dl: HTMLElement, list: [string, string, string?][]) => {
+    dl.replaceChildren(...list.map(([t, val, sm]) => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = t; const dd = document.createElement('dd'); dd.textContent = val; if (sm) { const s = document.createElement('small'); s.textContent = sm; dd.append(s); } d.append(dt, dd); return d; }));
+    dl.hidden = !list.length;
+  };
+  const err = (c: string, msg: string) => { q(c).textContent = msg; q(c).hidden = !msg; };
+
+  function showShape() {
+    const k = shape.value;
+    root.querySelectorAll<HTMLElement>('.sd-r, .sd-q, .sd-v').forEach((el) => (el.hidden = true));
+    root.querySelectorAll<HTMLElement>(k === 'round' ? '.sd-r' : k === 'rect' ? '.sd-q' : '.sd-v').forEach((el) => (el.hidden = false));
+  }
+
+  function stock() {
+    const k = shape.value;
+    const s: Shape = k === 'round' ? { kind: 'round', d: v('.sd-d'), D: v('.sd-D') } : k === 'rect' ? { kind: 'rect', L: v('.sd-L'), W: v('.sd-W'), D: v('.sd-D') } : { kind: 'volume', V: v('.sd-V') };
+    V = volume(s); target = v('.sd-t');
+    const n = v('.sd-n'), g = v('.sd-g'), dl = q('.sd-f1');
+    const filled = [...root.querySelectorAll<HTMLInputElement>('.ax-card:first-child input')].some((i) => i.value.trim());
+    if (!(V > 0)) { err('.sd-err1', filled ? 'Give the tank size as numbers above 0.' : ''); dl.hidden = true; return; }
+    if (!(n > 0 && g > 0)) { err('.sd-err1', filled && (q<HTMLInputElement>('.sd-n').value || q<HTMLInputElement>('.sd-g').value) ? 'Give the number of fish and their mean weight as numbers above 0.' : ''); facts(dl, [['Water volume', `${s4(V, 4)} m³`, `${s4(V * 1000, 4)} litres`]]); return; }
+    err('.sd-err1', '');
+    const kg = biomass(n, g), dens = kg / V;
+    const list: [string, string, string?][] = [['Water volume', `${s4(V, 4)} m³`, `${s4(V * 1000, 4)} litres`], ['Biomass', `${s4(kg, 4)} kg`, `${n.toLocaleString('en')} fish × ${s4(g, 4)} g`], ['Density', `${s4(dens, 4)} kg/m³`, `${s4(dens, 4)} g per litre`]];
+    if (target > 0) { const mx = maxFish(target, V, g); list.push(['Fish at your target', mx.toLocaleString('en'), `${s4(target, 4)} kg/m³ at ${s4(g, 4)} g; ${mx >= n ? `room for ${(mx - n).toLocaleString('en')} more` : `${(n - mx).toLocaleString('en')} too many`}`]); }
+    facts(dl, list);
+  }
+
+  function growth() {
+    const n0 = v('.sd-n0'), g0 = v('.sd-g0'), n1 = v('.sd-n1'), g1 = v('.sd-g1'), d = v('.sd-days'), feed = v('.sd-feed'), dead = v('.sd-dead');
+    const dl = q('.sd-f2'); sgrCalc = NaN;
+    const any = ['.sd-n0', '.sd-g0', '.sd-n1', '.sd-g1', '.sd-days', '.sd-feed'].some((c) => q<HTMLInputElement>(c).value.trim());
+    if (!(g0 > 0 && g1 > 0 && d > 0)) { err('.sd-err2', any ? 'Give the start and end mean weights and the days as numbers above 0.' : ''); dl.hidden = true; return; }
+    err('.sd-err2', '');
+    sgrCalc = sgr(g0, g1, d);
+    const list: [string, string, string?][] = [['SGR', `${sgrCalc.toFixed(3)} % per day`, '100 × (ln end − ln start) ÷ days'], ['Daily gain', `${s4((g1 - g0) / d, 4)} g per fish per day`]];
+    if (n0 > 0 && n1 > 0) {
+      const b0 = biomass(n0, g0), b1 = biomass(n1, g1), gain = b1 - b0 + (dead > 0 ? dead : 0);
+      list.push(['Biomass gain', `${s4(gain, 4)} kg`, `${s4(b0, 4)} → ${s4(b1, 4)} kg${dead > 0 ? ` + ${s4(dead, 4)} kg dead` : ''}`], ['Survival', `${(100 * n1 / n0).toFixed(1)} %`]);
+      if (feed > 0) { const f = fcr(feed, b0, b1, dead > 0 ? dead : 0); list.unshift(['FCR', Number.isFinite(f) ? f.toFixed(2) : '–', Number.isFinite(f) ? `${s4(feed, 4)} kg feed ÷ ${s4(gain, 4)} kg gained` : 'no biomass was gained']); }
+    }
+    facts(dl, list);
+  }
+
+  function projection() {
+    const n = v('.sd-n'), g = v('.sd-g'), s = q<HTMLInputElement>('.sd-sgr').value.trim() ? v('.sd-sgr') : sgrCalc, pct = v('.sd-pct'), loss = v('.sd-loss') || 0, hw = v('.sd-hw');
+    const out = q('.sd-out'); rows = [];
+    const any = ['.sd-pct', '.sd-hw', '.sd-sgr'].some((c) => q<HTMLInputElement>(c).value.trim());
+    const why = !(V > 0 && n > 0 && g > 0) ? 'Fill in the tank and the fish in the first box.' : !(s > 0) ? 'Give an SGR above 0, here or from the growth box.' : !(pct >= 0 && Number.isFinite(pct)) ? 'Give the daily feed as a % of body weight.' : !(hw > g) ? 'Give a harvest weight above the present mean weight.' : !(loss >= 0 && loss < 100) ? 'Fish lost per month must be from 0 to below 100 %.' : '';
+    if (why) { err('.sd-err3', any ? why : ''); out.hidden = true; return; }
+    err('.sd-err3', '');
+    const days = daysTo(g, hw, s), end = Math.ceil(days);
+    rows = project({ count: n, w0: g, sgr: s, lossPct: loss, feedPct: pct, V, days: end, step: Number(q<HTMLSelectElement>('.sd-step').value) });
+    const last = project({ count: n, w0: g, sgr: s, lossPct: loss, feedPct: pct, V, days, step: days })[1];
+    out.hidden = false;
+    q('.sd-big').textContent = `${hw} g in ${days.toFixed(1)} days: ${s4(last.kg, 4)} kg at ${s4(last.density, 3)} kg/m³`;
+    const over = target > 0 ? rows.find((r) => r.density > target) : undefined;
+    const projFcr = last.feedCum / (last.kg - rows[0].kg);
+    q('.sd-note').textContent = `About ${Math.round(last.n).toLocaleString('en')} fish left, ${s4(last.feedCum, 4)} kg of feed in all (FCR about ${projFcr.toFixed(2)} if fed ${pct} % of body weight every day). Feed today: ${s4(rows[0].feedDay, 4)} kg.${target > 0 ? (over ? ` Density passes your target of ${s4(target, 4)} kg/m³ by day ${over.day}: thin or split the stock before then.` : ` Density stays under your target of ${s4(target, 4)} kg/m³.`) : ''}`;
+    const t = q<HTMLTableElement>('.sd-tab'); t.replaceChildren();
+    const h = t.insertRow(); ['Day', 'Mean weight (g)', 'Fish', 'Biomass (kg)', 'Density (kg/m³)', 'Feed per day (kg)', 'Feed so far (kg)'].forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (k) th.className = 'r'; h.append(th); });
+    for (const r of rows) { const tr = t.insertRow(); if (target > 0 && r.density > target) tr.className = 'over'; [r.day, r.w.toFixed(1), Math.round(r.n).toLocaleString('en'), r.kg.toFixed(1), r.density.toFixed(2), r.feedDay.toFixed(2), r.feedCum.toFixed(1)].forEach((x, k) => { const td = tr.insertCell(); td.textContent = String(x); if (k) td.className = 'r'; }); }
+    fig = chartFigure({ w: 640, h: 340, xLabel: 'Day', yLabel: 'Density (kg/m³)', series: [{ name: 'Density', x: rows.map((r) => r.day), y: rows.map((r) => r.density), mode: 'line', marker: 'none', width: 2 }], marks: target > 0 ? [{ kind: 'hline', at: target, dash: [6, 4], label: 'your target' }] : [], legend: 'none', yMin: 0 }, `Projected stocking density over ${end} days`);
+    paint(q<HTMLCanvasElement>('.sd-fig'), fig);
+  }
+
+  const all = () => { stock(); growth(); projection(); };
+  let tm = 0;
+  root.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(all, 200); });
+  shape.addEventListener('change', () => { showShape(); all(); });
+  q('.sd-step').addEventListener('change', all);
+  q('.sd-ex').addEventListener('click', () => {
+    const e = EXAMPLE, set = (c: string, x: number | string) => (q<HTMLInputElement>(c).value = String(x));
+    shape.value = 'round'; showShape(); set('.sd-d', 4); set('.sd-D', 1.2); set('.sd-n', e.count); set('.sd-g', e.meanG); set('.sd-t', e.target);
+    set('.sd-n0', e.start.n); set('.sd-g0', e.start.g); set('.sd-n1', e.end.n); set('.sd-g1', e.end.g); set('.sd-days', e.days); set('.sd-feed', e.feed); set('.sd-dead', e.dead);
+    set('.sd-sgr', ''); set('.sd-pct', e.feedPct); set('.sd-loss', e.lossPct); set('.sd-hw', e.harvestG); q<HTMLSelectElement>('.sd-step').value = '7';
+    all();
+  });
+  q('.sd-csv').addEventListener('click', () => save(new Blob([csv([['day', 'mean_weight_g', 'fish', 'biomass_kg', 'density_kg_m3', 'feed_per_day_kg', 'feed_cumulative_kg'], ...rows.map((r) => [r.day, r.w.toFixed(3), r.n.toFixed(1), r.kg.toFixed(3), r.density.toFixed(4), r.feedDay.toFixed(4), r.feedCum.toFixed(3)])])], { type: 'text/csv' }), 'stocking-projection.csv', 'text/csv'));
+  const dlFacts = (c: string): [string, string][] => [...q(c).querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent ?? '', [...d.querySelector('dd')!.childNodes].map((x) => x.textContent).join(' · ')]);
+  wireDownloads(q('.dl'), () => ({
+    title: 'Stocking density and FCR', subtitle: q('.sd-big').textContent ?? '', file: 'stocking-density',
+    sections: [
+      { title: 'Tank and stock', facts: dlFacts('.sd-f1') },
+      ...(q('.sd-f2').hidden ? [] : [{ title: 'Growth and feed', facts: dlFacts('.sd-f2') }]),
+      ...(rows.length ? [{ title: 'Projection', text: [q('.sd-big').textContent ?? '', q('.sd-note').textContent ?? ''], figure: fig ?? undefined, table: { head: ['Day', 'Weight g', 'Fish', 'kg', 'kg/m³', 'Feed/day kg', 'Feed so far kg'], rows: rows.map((r) => [String(r.day), r.w.toFixed(1), String(Math.round(r.n)), r.kg.toFixed(1), r.density.toFixed(2), r.feedDay.toFixed(2), r.feedCum.toFixed(1)]), align: ['r', 'r', 'r', 'r', 'r', 'r', 'r'] as ('l' | 'r')[] } }] : []),
+    ] as Section[],
+  }));
+  document.addEventListener('fibub:theme', () => { if (fig && rows.length) paint(q<HTMLCanvasElement>('.sd-fig'), fig); });
+  showShape();
+</script>

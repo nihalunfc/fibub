@@ -1,0 +1,210 @@
+---
+// Tree-ring cross-dating: slide an undated ring-width series along a dated master and score every position with
+// Baillie-Pilcher and Hollstein t-values and Gleichläufigkeit. Files stay in the browser. The example is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { EXAMPLE_MASTER, EXAMPLE_SAMPLE } from '../../lib/sci/dendro';
+---
+<div class="ax dcr">
+  <div class="ax-card">
+    <h2>Master chronology (dated)</h2>
+    <label>Tucson .rwl, or a table: year, then one column of ring widths per series
+      <textarea class="dc-m" rows="7" spellcheck="false" wrap="off">{EXAMPLE_MASTER}</textarea></label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small dc-mopen">Open a file</button>
+      <input type="file" class="dc-mfile" accept=".rwl,.txt,.csv,.tsv,.dat,text/plain,text/csv" hidden />
+      <span class="ax-help" style="margin:0">RWL, CSV, TSV or TXT, up to 5 MB.</span>
+    </div>
+    <p class="ax-help dc-minfo" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Sample (undated)</h2>
+    <label>Ring widths from the innermost ring outwards, one per line (or a .rwl or year table)
+      <textarea class="dc-s" rows="6" spellcheck="false" wrap="off">{EXAMPLE_SAMPLE}</textarea></label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small dc-sopen">Open a file</button>
+      <input type="file" class="dc-sfile" accept=".rwl,.txt,.csv,.tsv,.dat,text/plain,text/csv" hidden />
+      <span class="ax-help" style="margin:0">RWL, CSV, TSV or TXT, up to 5 MB.</span>
+    </div>
+    <label class="dc-pickl" style="margin-top:10px" hidden>Series to date <select class="dc-pick"></select></label>
+    <p class="ax-help dc-sinfo" aria-live="polite"></p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Rank matches by <select class="dc-rank"><option value="tBP" selected>t-value, Baillie-Pilcher</option><option value="tH">t-value, Hollstein</option><option value="glk">Gleichläufigkeit</option></select></label>
+      <label>Shortest overlap (rings) <input class="dc-min" type="number" min="10" step="1" value="30" inputmode="numeric" /></label>
+    </div>
+    <p class="ax-help">The example master and sample are made up.</p>
+    <p class="ax-err dc-err" hidden></p>
+  </div>
+
+  <div class="ax-card dc-out" hidden>
+    <h2>Best matches</h2>
+    <p class="ax-big dc-big"></p>
+    <p class="ax-help dc-note"></p>
+    <div class="ax-scroll"><table class="dc-tab"></table></div>
+    <p class="ax-help">Tap a row to see that position below. GLK stars: * p &lt; 0.05, ** p &lt; 0.01, *** p &lt; 0.001 (one-sided).</p>
+    <h3>t-values along the master</h3>
+    <canvas class="ax-fig dc-tfig"></canvas>
+    <h3>The two series at the chosen position</h3>
+    <label>Plot <select class="dc-plot"><option value="bp" selected>Baillie-Pilcher index</option><option value="ho">Hollstein values</option><option value="raw">Ring widths, each divided by its mean</option></select></label>
+    <canvas class="ax-fig dc-ofig"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small dc-csv">Every position (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .dcr h3 { margin: 22px 0 8px; font-size: 15px; }
+  .dcr select { max-width: 100%; }
+  .dcr .dc-tab tr[data-e] { cursor: pointer; }
+  .dcr .dc-tab tr.on td { background: var(--accent-soft); }
+  .dcr .dc-tab td, .dcr .dc-tab th { white-space: nowrap; }
+</style>
+
+<script>
+  import { parseSeries, buildMaster, slide, bpIndex, hollstein, stars, type Series, type Master, type Match } from '../../lib/sci/dendro';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.dcr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement>(c).value;
+  const f2 = (x: number) => (Number.isFinite(x) ? x.toFixed(2) : '–');
+  const pct = (x: number) => (Number.isFinite(x) ? (100 * x).toFixed(1) : '–');
+  const yr = (y: number) => (y > 0 ? String(y) : `${1 - y} BC`);
+  const MAXR = 5000;
+
+  let master: Master | null = null, mseries: Series[] = [], sample: Series | null = null, matches: Match[] = [], ranked: Match[] = [], chosen: Match | null = null;
+  let tfig: Figure | null = null, ofig: Figure | null = null;
+  const err = (m: string) => { q('.dc-err').textContent = m; q('.dc-err').hidden = false; q('.dc-out').hidden = true; };
+
+  function readMaster() {
+    master = null; mseries = [];
+    const info = q('.dc-minfo'); info.textContent = '';
+    if (!val('.dc-m').trim()) return 'Paste or open a dated master chronology.';
+    let r;
+    try { r = parseSeries(val('.dc-m'), 1); } catch (e) { return `Master: ${(e as Error).message}`; }
+    if (r.format === 'list') return 'Master: these look like widths with no years. A master needs dates: use Tucson .rwl or a table with a year column.';
+    mseries = r.series.filter((s) => s.w.length >= 5);
+    if (!mseries.length) return 'Master: no series with at least 5 rings found.';
+    const span = Math.max(...mseries.map((x) => x.start + x.w.length)) - Math.min(...mseries.map((x) => x.start));
+    if (span > MAXR) return `Master: the chronology is ${span} years long; this tool takes up to ${MAXR}.`;
+    master = buildMaster(mseries);
+    const end = master.start + master.raw.length - 1;
+    info.textContent = `Read as ${r.format}: ${mseries.length} series, ${yr(master.start)} to ${yr(end)} (${master.raw.length} years). ${r.notes.join(' ')}`.trim();
+    return '';
+  }
+
+  let sseries: Series[] = [], sformat = '';
+  function readSample() {
+    sample = null;
+    const info = q('.dc-sinfo'); info.textContent = '';
+    if (!val('.dc-s').trim()) return 'Paste the ring widths of the sample to date.';
+    let r;
+    try { r = parseSeries(val('.dc-s'), 1); } catch (e) { return `Sample: ${(e as Error).message}`; }
+    sseries = r.series; sformat = r.format;
+    const pick = q<HTMLSelectElement>('.dc-pick'), old = pick.value;
+    pick.replaceChildren(...sseries.map((s, i) => new Option(s.name, String(i))));
+    if (old && Number(old) < sseries.length) pick.value = old;
+    q('.dc-pickl').hidden = sseries.length < 2;
+    sample = sseries[Number(pick.value) || 0] ?? null;
+    if (!sample) return 'Sample: no ring widths found.';
+    if (sample.w.some((x) => !(x >= 0))) return `Sample: ${sample.name} has a missing or negative width. Fill gaps before cross-dating.`;
+    if (sample.w.length > MAXR) return `Sample: ${sample.w.length} rings; this tool takes up to ${MAXR}.`;
+    const dated = sformat !== 'list';
+    info.textContent = `${sample.name}: ${sample.w.length} rings${dated ? `, now dated ${yr(sample.start)} to ${yr(sample.start + sample.w.length - 1)}` : ''}. Zero widths (missing rings) are left out of the indices.`;
+    return '';
+  }
+
+  function run() {
+    q('.dc-err').hidden = true;
+    const e1 = readMaster(), e2 = readSample();
+    if (e1 || e2) return err(e1 || e2);
+    const minO = Math.max(10, Math.round(Number(val('.dc-min')) || 30));
+    if (sample!.w.length < minO) return err(`The sample has ${sample!.w.length} rings, fewer than the shortest overlap (${minO}). Lower the shortest overlap, but short series date poorly.`);
+    matches = slide(master!, sample!.w, minO);
+    if (!matches.length) return err(`No position overlaps the master by ${minO} rings or more.`);
+    const key = val('.dc-rank') as 'tBP' | 'tH' | 'glk';
+    ranked = [...matches].filter((m) => Number.isFinite(m[key])).sort((a, b) => b[key] - a[key]);
+    chosen = ranked[0] ?? null;
+    q('.dc-out').hidden = false;
+    const b = ranked[0], second = ranked[1];
+    q('.dc-big').textContent = b ? `Best match: last ring in ${yr(b.end)} (${yr(b.first)} to ${yr(b.end)}), t (Baillie-Pilcher) ${f2(b.tBP)}, t (Hollstein) ${f2(b.tH)}, GLK ${pct(b.glk)} %${stars(b.glkP) ? ' ' + stars(b.glkP) : ''}` : 'No position could be scored.';
+    const dated = sformat !== 'list' ? sample!.start + sample!.w.length - 1 : null;
+    const cur = dated !== null ? matches.find((m) => m.end === dated) : undefined;
+    q('.dc-note').textContent = `${matches.length} positions tried, each with at least ${minO} rings in common.${second ? ` The next best ${key === 'glk' ? 'GLK' : 't-value'} is ${key === 'glk' ? pct(second.glk) + ' %' : f2(second[key])} (last ring ${yr(second.end)}).` : ''}${cur ? ` At the sample's present dating (last ring ${yr(dated!)}) t (Baillie-Pilcher) is ${f2(cur.tBP)}.` : ''} A common rule of thumb asks for t of about 3.5 or more on both measures with a significant GLK, a clear gap to the next best, and agreement with other series; check the plot below by eye.`;
+    tableOut(); tPlot(); overlay();
+  }
+
+  const head = ['Last ring', 'First ring', 'Overlap', 't (B-P)', 't (Holl.)', 'GLK %', 'Sig.', 'r (B-P)'];
+  const rowOf = (m: Match) => [yr(m.end), yr(m.first), String(m.overlap), f2(m.tBP), f2(m.tH), pct(m.glk), stars(m.glkP) || 'ns', Number.isFinite(m.rBP) ? m.rBP.toFixed(3) : '–'];
+  function tableOut() {
+    const t = q<HTMLTableElement>('.dc-tab'); t.replaceChildren();
+    const h = t.insertRow(); head.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (k) th.className = 'r'; h.append(th); });
+    for (const m of ranked.slice(0, 10)) {
+      const tr = t.insertRow(); tr.dataset.e = String(m.end); tr.tabIndex = 0; if (m === chosen) tr.className = 'on';
+      rowOf(m).forEach((x, k) => { const td = tr.insertCell(); td.textContent = x; if (k) td.className = 'r'; });
+    }
+  }
+  function tPlot() {
+    const xs = matches.map((m) => m.end);
+    tfig = chartFigure({ w: 640, h: 300, xLabel: 'Year of the sample’s last ring', yLabel: 't-value', legend: 'below', series: [
+      { name: 't (Baillie-Pilcher)', x: xs, y: matches.map((m) => m.tBP), mode: 'line' },
+      { name: 't (Hollstein)', x: xs, y: matches.map((m) => m.tH), mode: 'line' },
+    ], marks: chosen ? [{ kind: 'vline', at: chosen.end, label: yr(chosen.end) }] : [] }, 't-values for every position of the sample along the master');
+    paint(q<HTMLCanvasElement>('.dc-tfig'), tfig);
+  }
+  function overlay() {
+    if (!chosen || !master || !sample) return;
+    const kind = val('.dc-plot');
+    const sv = kind === 'bp' ? bpIndex(sample.w) : kind === 'ho' ? hollstein(sample.w) : sample.w;
+    const mv = kind === 'bp' ? master.bp : kind === 'ho' ? master.ho : master.raw;
+    const mean = (a: number[]) => { const f = a.filter(Number.isFinite); return f.reduce((s, x) => s + x, 0) / f.length; };
+    const ms = kind === 'raw' ? mean(mv) : 1, ss = kind === 'raw' ? mean(sv) : 1;
+    const lo = Math.max(master.start, chosen.first) - 10, hi = Math.min(master.start + mv.length - 1, chosen.end) + 10;
+    const mx: number[] = [], my: number[] = [];
+    for (let y = Math.max(master.start, lo); y <= Math.min(master.start + mv.length - 1, hi); y++) { mx.push(y); my.push(mv[y - master.start] / ms); }
+    ofig = chartFigure({ w: 640, h: 320, xLabel: 'Year', yLabel: kind === 'bp' ? 'Index (100 = 5-year mean)' : kind === 'ho' ? '100 × ln(w / previous w)' : 'Width ÷ mean width', legend: 'below', series: [
+      { name: `Master (${mseries.length} series)`, x: mx, y: my, mode: 'line' },
+      { name: `${sample.name}, last ring ${yr(chosen.end)}`, x: sv.map((_, i) => chosen!.first + i), y: sv.map((v) => v / ss), mode: 'line' },
+    ] }, `Master and sample at the position with the last ring in ${yr(chosen.end)}`);
+    paint(q<HTMLCanvasElement>('.dc-ofig'), ofig);
+  }
+
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(run, 300); };
+  q('.dc-m').addEventListener('input', later); q('.dc-s').addEventListener('input', later); q('.dc-min').addEventListener('input', later);
+  q('.dc-rank').addEventListener('change', run); q('.dc-pick').addEventListener('change', run);
+  q('.dc-plot').addEventListener('change', overlay);
+  q('.dc-tab').addEventListener('click', (e) => {
+    const tr = (e.target as HTMLElement).closest<HTMLElement>('tr[data-e]'); if (!tr) return;
+    chosen = matches.find((m) => m.end === Number(tr.dataset.e)) ?? chosen;
+    q('.dc-tab').querySelectorAll('tr.on').forEach((x) => x.classList.remove('on')); tr.classList.add('on');
+    tPlot(); overlay();
+  });
+  q('.dc-tab').addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter') (e.target as HTMLElement).click(); });
+  for (const [btn, inp, box] of [['.dc-mopen', '.dc-mfile', '.dc-m'], ['.dc-sopen', '.dc-sfile', '.dc-s']]) {
+    q(btn).addEventListener('click', () => q<HTMLInputElement>(inp).click());
+    q(inp).addEventListener('change', async () => {
+      const f = q<HTMLInputElement>(inp).files?.[0]; q<HTMLInputElement>(inp).value = ''; if (!f) return;
+      if (f.size > 5e6) return err(`${f.name} is ${(f.size / 1e6).toFixed(1)} MB; this tool takes files up to 5 MB.`);
+      q<HTMLTextAreaElement>(box).value = await f.text(); run();
+    });
+  }
+  q('.dc-csv').addEventListener('click', () => {
+    save(new Blob([csv([['last_ring', 'first_ring', 'overlap', 'r_bp', 't_bp', 'n_bp', 'r_hollstein', 't_hollstein', 'n_hollstein', 'glk', 'glk_n', 'glk_z', 'glk_p'],
+      ...matches.map((m) => { const g = (v: number) => (Number.isFinite(v) ? v.toPrecision(8) : ''); return [m.end, m.first, m.overlap, g(m.rBP), g(m.tBP), m.nBP, g(m.rH), g(m.tH), m.nH, g(m.glk), m.glkN, g(m.glkZ), g(m.glkP)]; })])], { type: 'text/csv' }), `${(sample?.name ?? 'sample').replace(/[^\w-]+/g, '-')}-crossdating.csv`, 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => {
+    const sections: Section[] = [
+      { title: 'Cross-dating', text: [q('.dc-big').textContent ?? '', q('.dc-note').textContent ?? ''], facts: [['Master', q('.dc-minfo').textContent ?? ''], ['Sample', q('.dc-sinfo').textContent ?? '']] },
+      { title: 'Best matches', table: { head, rows: ranked.slice(0, 10).map(rowOf), align: head.map((_, k) => (k ? 'r' : 'l')) } },
+      { title: 't-values along the master', figure: tfig ?? undefined },
+      { title: 'Master and sample', figure: ofig ?? undefined },
+    ];
+    return { title: 'Tree-ring cross-dating', subtitle: q('.dc-big').textContent ?? '', file: 'crossdating', sections };
+  });
+  document.addEventListener('fibub:theme', () => { if (tfig) paint(q<HTMLCanvasElement>('.dc-tfig'), tfig); if (ofig) paint(q<HTMLCanvasElement>('.dc-ofig'), ofig); });
+  run();
+</script>

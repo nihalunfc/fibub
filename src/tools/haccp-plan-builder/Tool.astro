@@ -1,0 +1,206 @@
+---
+// HACCP plan builder: a printable template with product description, process flow, hazards per step, the CCP
+// decision questions and the details of each CCP. The plan stays on the page; it is kept in this browser only
+// when the user ticks "Remember". Nothing is uploaded.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax hacc">
+  <div class="ax-card">
+    <h2>Your plan</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small hc-ex">Use the example</button>
+      <button type="button" class="btn secondary small hc-new">Start again</button>
+    </div>
+    <label class="ax-check" style="margin-top:12px"><input type="checkbox" class="hc-rem" /> Remember this plan in this browser</label>
+    <div class="ax-row" style="margin-top:6px"><button type="button" class="btn secondary small hc-clear">Clear saved plan</button><span class="ax-help hc-saved" style="margin:0"></span></div>
+    <p class="ax-help">Your plan stays on this page and is never sent anywhere. Only if you tick the box is it kept in this browser's storage on this device, so it is here next time; "Clear saved plan" deletes it.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>1. Product description</h2>
+    <div class="hc-prod"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>2. Process flow</h2>
+    <label>Steps from receiving to dispatch, one per line <textarea class="hc-steps" rows="6" spellcheck="true" placeholder="Receive ingredients&#10;Store chilled&#10;Cook&#10;Cool&#10;Pack"></textarea></label>
+    <p class="ax-help hc-snote">Walk the line to check the flow matches what really happens.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>3. Hazards and critical control points</h2>
+    <p class="ax-help" style="margin-top:0">List each hazard that is reasonably likely at a step: biological (bacteria, viruses, parasites), chemical (allergens, cleaning chemicals, residues) or physical (glass, metal, hard plastic). Then answer the questions to see whether the step is a critical control point (CCP).</p>
+    <div class="hc-hz"></div>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small hc-add">Add a hazard</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>4. Plan summary</h2>
+    <p class="ax-big hc-big"></p>
+    <ul class="hc-probs"></ul>
+    <h3>Hazard analysis</h3>
+    <div class="ax-scroll"><table class="hc-tab1"></table></div>
+    <h3>HACCP plan (critical control points)</h3>
+    <div class="ax-scroll"><table class="hc-tab2"></table></div>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small hc-csv">Download plan (CSV)</button></div>
+    <Downloads />
+    <p class="ax-help">A template to organise your own plan, not legal advice. The questions follow the general idea of the widely used Codex decision tree, in our own words. Critical limits must come from your own validation and the rules where you work; check the official source and your local food authority.</p>
+  </div>
+</div>
+
+<style is:global>
+  .hacc h3 { margin: 20px 0 8px; font-size: 15px; }
+  .hacc .hc-prod { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 10px 12px; }
+  .hacc .hc-item { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-top: 12px; display: grid; gap: 10px; }
+  .hacc .hc-item h4 { margin: 0; font-size: 15px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+  .hacc .hc-q { display: grid; gap: 4px; }
+  .hacc .hc-q select { max-width: 140px; }
+  .hacc .hc-ccp { display: grid; gap: 10px; border-top: 1px dashed var(--line); padding-top: 10px; }
+  .hacc .hc-probs { margin: 0 0 6px; padding-left: 20px; color: var(--warn); font-size: 14px; }
+  .hacc .hc-tab1 td, .hacc .hc-tab2 td { min-width: 110px; }
+</style>
+
+<script>
+  import { PRODUCT_FIELDS, HAZARD_TYPES, QUESTIONS, CCP_FIELDS, emptyPlan, emptyHazard, decide, analysePlan, problems, fromJSON, readSteps, planTables, planCsvRows, examplePlan, type Plan, type QKey, type HazardType } from '../../lib/sci/haccp';
+  import { csv } from '../../lib/sci/num';
+  import { wireDownloads, save, fileSafe, type Section } from '../../lib/report';
+
+  const KEY = 'fibub-haccp-v1';
+  const root = document.querySelector<HTMLElement>('.hacc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const el = <K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLElementTagNameMap[K]> = {}, ...kids: (Node | string)[]) => { const e = Object.assign(document.createElement(tag), props); e.append(...kids); return e; };
+  let plan: Plan = emptyPlan();
+
+  // Product description fields, built once.
+  const prod = q('.hc-prod');
+  for (const f of PRODUCT_FIELDS) {
+    const t = el('textarea', { rows: 2, className: 'hc-p' }); t.dataset.k = f.id;
+    prod.append(el('label', {}, f.name, t));
+  }
+
+  function store() {
+    const box = q<HTMLInputElement>('.hc-rem');
+    try {
+      if (box.checked) { localStorage.setItem(KEY, JSON.stringify(plan)); q('.hc-saved').textContent = 'Saved in this browser.'; }
+      else q('.hc-saved').textContent = '';
+    } catch { q('.hc-saved').textContent = 'This browser would not save it.'; }
+  }
+
+  function select(cls: string, options: [string, string][], value: string) {
+    const s = el('select', { className: cls });
+    for (const [v, t] of options) s.append(new Option(t, v, false, v === value));
+    s.value = value;
+    return s;
+  }
+
+  function renderHazards() {
+    const box = q('.hc-hz'); box.replaceChildren();
+    const a = analysePlan(plan), ccpOf = new Map(a.map((x) => [x.i, x.ccp]));
+    plan.hazards.forEach((h, i) => {
+      const d = decide(h), ccp = ccpOf.get(i);
+      const pill = el('span', { className: `ax-pill ${d.result === 'ccp' ? 'bad' : d.result === 'not' ? 'good' : d.result === 'modify' ? 'warn' : ''}`, textContent: ccp ? `CCP ${ccp}` : d.text });
+      const item = el('div', { className: 'hc-item' }); item.dataset.i = String(i);
+      const stepOpts: [string, string][] = [['', 'Choose a step'], ...plan.steps.map((s, k) => [s, `${k + 1}. ${s}`] as [string, string])];
+      if (h.step && !plan.steps.includes(h.step)) stepOpts.push([h.step, `${h.step} (not in the flow)`]);
+      const hz = el('textarea', { rows: 2, className: 'hc-f', value: h.hazard }); hz.dataset.k = 'hazard';
+      const ct = el('textarea', { rows: 2, className: 'hc-f', value: h.control }); ct.dataset.k = 'control';
+      const rm = el('button', { type: 'button', className: 'btn secondary small hc-rm', textContent: 'Remove' });
+      item.append(
+        el('h4', {}, el('span', {}, `Hazard ${i + 1} `, pill), rm),
+        el('div', { className: 'ax-grid' },
+          el('label', {}, 'Step', select('hc-s', stepOpts, h.step)),
+          el('label', {}, 'Type', select('hc-t', Object.entries(HAZARD_TYPES) as [string, string][], h.type))),
+        el('label', {}, 'Hazard (what could go wrong)', hz),
+        el('label', {}, 'Control measure', ct),
+      );
+      for (const k of d.asked) item.append(el('label', { className: 'hc-q' }, QUESTIONS[k], (() => { const s = select('hc-a', [['', '–'], ['yes', 'Yes'], ['no', 'No']], h[k]); s.dataset.k = k; return s; })()));
+      if (d.result === 'modify') item.append(el('p', { className: 'ax-help', textContent: 'No control exists but one is needed: change the step, the process or the product, then answer again.' }));
+      if (ccp) {
+        const c = el('div', { className: 'hc-ccp' });
+        for (const f of CCP_FIELDS) { const t = el('textarea', { rows: 2, className: 'hc-f', value: h[f.id], placeholder: f.hint }); t.dataset.k = f.id; c.append(el('label', {}, `${f.name}`, t)); }
+        item.append(c);
+      }
+      box.append(item);
+    });
+    if (!plan.hazards.length) box.append(el('p', { className: 'ax-help', textContent: plan.steps.length ? 'No hazards yet. Press "Add a hazard".' : 'Write the process flow first, then add hazards to its steps.' }));
+  }
+
+  function fillTable(t: HTMLElement, head: string[], rows: string[][]) {
+    t.replaceChildren();
+    const h = t.insertRow(); for (const x of head) h.append(el('th', { textContent: x }));
+    for (const r of rows) { const tr = t.insertRow(); for (const x of r) tr.insertCell().textContent = x; }
+    if (!rows.length) { const tr = t.insertRow(); const td = tr.insertCell(); td.colSpan = head.length; td.textContent = 'Nothing yet.'; td.className = 'dim'; }
+  }
+
+  function summary() {
+    const a = analysePlan(plan), n = a.filter((x) => x.ccp).length, t = planTables(plan);
+    q('.hc-big').textContent = `${plan.steps.length} step${plan.steps.length === 1 ? '' : 's'}, ${plan.hazards.length} hazard${plan.hazards.length === 1 ? '' : 's'}, ${n} CCP${n === 1 ? '' : 's'}`;
+    q('.hc-probs').replaceChildren(...problems(plan).slice(0, 12).map((p) => el('li', { textContent: p })));
+    fillTable(q('.hc-tab1'), t.hazards.head, t.hazards.rows);
+    fillTable(q('.hc-tab2'), t.ccps.head, t.ccps.rows);
+    q('.hc-snote').textContent = plan.steps.length ? `${plan.steps.length} steps. Walk the line to check the flow matches what really happens.` : 'Walk the line to check the flow matches what really happens.';
+  }
+
+  function load(p: Plan) {
+    plan = p;
+    for (const t of root.querySelectorAll<HTMLTextAreaElement>('.hc-p')) t.value = plan.product[t.dataset.k as keyof Plan['product']];
+    q<HTMLTextAreaElement>('.hc-steps').value = plan.steps.join('\n');
+    renderHazards(); summary();
+  }
+  const changed = (rerender = false) => { if (rerender) renderHazards(); summary(); store(); };
+
+  prod.addEventListener('input', (e) => { const t = e.target as HTMLTextAreaElement; plan.product[t.dataset.k as keyof Plan['product']] = t.value; changed(); });
+  let tm = 0;
+  q('.hc-steps').addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(() => { plan.steps = readSteps(q<HTMLTextAreaElement>('.hc-steps').value); changed(true); }, 300); });
+  const hz = q('.hc-hz');
+  const idx = (e: Event) => Number((e.target as HTMLElement).closest<HTMLElement>('.hc-item')!.dataset.i);
+  hz.addEventListener('input', (e) => {
+    const t = e.target as HTMLTextAreaElement; if (!t.classList.contains('hc-f')) return;
+    (plan.hazards[idx(e)] as Record<string, string>)[t.dataset.k!] = t.value; changed();
+  });
+  hz.addEventListener('change', (e) => {
+    const t = e.target as HTMLSelectElement, h = plan.hazards[idx(e)];
+    if (t.classList.contains('hc-s')) h.step = t.value;
+    else if (t.classList.contains('hc-t')) h.type = t.value as HazardType;
+    else if (t.classList.contains('hc-a')) {
+      const k = t.dataset.k as QKey; h[k] = t.value as '' | 'yes' | 'no';
+      // Answers further down the tree no longer apply once an earlier answer changes.
+      const order: QKey[] = ['q1', 'q1b', 'q2', 'q3', 'q4'];
+      for (const later of order.slice(order.indexOf(k) + 1)) if (!decide(h).asked.includes(later)) h[later] = '';
+    } else return;
+    changed(true);
+  });
+  hz.addEventListener('click', (e) => {
+    if (!(e.target as HTMLElement).classList.contains('hc-rm')) return;
+    plan.hazards.splice(idx(e), 1); changed(true);
+  });
+  q('.hc-add').addEventListener('click', () => {
+    const last = plan.hazards[plan.hazards.length - 1];
+    plan.hazards.push(emptyHazard(last?.step ?? plan.steps[0] ?? '')); changed(true);
+    const items = root.querySelectorAll<HTMLElement>('.hc-item'); items[items.length - 1]?.querySelector('textarea')?.focus();
+  });
+  q('.hc-ex').addEventListener('click', () => { load(examplePlan()); store(); });
+  q('.hc-new').addEventListener('click', () => { if (plan.hazards.length || plan.steps.length) { if (!confirm('Clear the whole plan on this page?')) return; } load(emptyPlan()); store(); });
+  q('.hc-rem').addEventListener('change', () => { if (!q<HTMLInputElement>('.hc-rem').checked) { try { localStorage.removeItem(KEY); } catch {} } store(); });
+  q('.hc-clear').addEventListener('click', () => { try { localStorage.removeItem(KEY); } catch {} q<HTMLInputElement>('.hc-rem').checked = false; q('.hc-saved').textContent = 'Saved plan deleted from this browser.'; });
+
+  const name = () => plan.product.name.trim() || 'HACCP plan';
+  q('.hc-csv').addEventListener('click', () => save(new Blob([csv(planCsvRows(plan))], { type: 'text/csv' }), `${fileSafe(name())}-haccp.csv`, 'text/csv'));
+  const sections = (): Section[] => {
+    const t = planTables(plan), a = analysePlan(plan);
+    return [
+      { title: '1. Product description', facts: PRODUCT_FIELDS.map((f) => [f.name, plan.product[f.id] || '–'] as [string, string]) },
+      { title: '2. Process flow', text: plan.steps.length ? plan.steps.map((s, i) => `${i + 1}. ${s}`) : ['No steps yet.'] },
+      { title: '3. Hazard analysis', table: { head: ['Step', 'Type', 'Hazard', 'Control', 'Decision'], rows: t.hazards.rows.map((r) => [r[0], r[1], r[2], r[3], r[5] || r[4]]) }, note: `Decision questions: ${Object.values(QUESTIONS).join(' ')}` },
+      ...a.filter((x) => x.ccp).map((x) => ({ title: `CCP ${x.ccp}: ${x.h.step}`, facts: [['Hazard', `${x.h.hazard} (${HAZARD_TYPES[x.h.type].toLowerCase()})`], ['Control measure', x.h.control || '–'], ...CCP_FIELDS.map((f) => [f.name, x.h[f.id] || '–'])] as [string, string][] })),
+      ...(problems(plan).length ? [{ title: 'Still to do', text: problems(plan) }] : []),
+    ];
+  };
+  wireDownloads(q('.dl'), () => ({ title: name(), subtitle: 'HACCP plan', file: `${fileSafe(name())}-haccp`, sections: sections() }));
+
+  let saved: Plan | null = null;
+  try { saved = fromJSON(localStorage.getItem(KEY)); } catch {}
+  if (saved) { q<HTMLInputElement>('.hc-rem').checked = true; load(saved); q('.hc-saved').textContent = 'Loaded your saved plan from this browser.'; }
+  else load(emptyPlan());
+</script>

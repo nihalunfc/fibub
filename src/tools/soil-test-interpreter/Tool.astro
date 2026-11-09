@@ -1,0 +1,183 @@
+---
+// Soil test interpreter: lime to raise pH (base saturation, buffer capacity or the user's own lime factor) and
+// nutrient results against ranges the user types. Nothing is uploaded. The example soil and ranges are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { EXAMPLE_RANGES } from '../../lib/sci/soiltest';
+---
+<div class="ax sti">
+  <div class="ax-card">
+    <h2>pH and lime</h2>
+    <div class="ax-grid">
+      <label>Work lime out from <select class="st-m">
+        <option value="bs" selected>CEC and base saturation</option>
+        <option value="buffer">pH and buffer capacity</option>
+        <option value="factor">pH and my lab's lime factor</option>
+      </select></label>
+      <label class="st-ph" hidden>Soil pH now <input class="st-ph0" type="text" inputmode="decimal" value="5.6" /></label>
+      <label class="st-ph" hidden>Target pH <input class="st-ph1" type="text" inputmode="decimal" value="6.5" /></label>
+      <label class="st-bs"><span>CEC (cmol(+)/kg = meq/100 g)</span> <input class="st-cec" type="text" inputmode="decimal" value="15" /></label>
+      <label class="st-bs">Base saturation now (%) <input class="st-bs0" type="text" inputmode="decimal" value="60" /></label>
+      <label class="st-bs">Target base saturation (%) <input class="st-bs1" type="text" inputmode="decimal" value="80" /></label>
+      <label class="st-bc" hidden><span>Buffer capacity (cmol(+)/kg per pH unit)</span> <input class="st-buf" type="text" inputmode="decimal" value="2.5" /></label>
+      <label class="st-lf" hidden><span>Lime factor (t CaCO₃/ha per pH unit)</span> <input class="st-fac" type="text" inputmode="decimal" value="2" /></label>
+      <label class="st-lf" hidden><span>Factor is for a depth of (cm)</span> <input class="st-fd" type="text" inputmode="decimal" value="15" /></label>
+      <label><span>Depth to lime (cm; 6 in = 15.24 cm)</span> <input class="st-d" type="text" inputmode="decimal" value="15" /></label>
+      <label class="st-rho"><span>Bulk density (g/cm³)</span> <input class="st-bd" type="text" inputmode="decimal" value="1.3" /></label>
+    </div>
+    <h3>Your lime</h3>
+    <div class="ax-grid">
+      <label><span>Neutralising value, CCE (%)</span> <input class="st-cce" type="text" inputmode="decimal" value="95" /></label>
+      <label><span>Fineness efficiency (%)</span> <input class="st-fin" type="text" inputmode="decimal" value="85" /></label>
+      <label>Moisture (%) <input class="st-mo" type="text" inputmode="decimal" value="0" /></label>
+      <label><span>Field area (ha; blank = none)</span> <input class="st-area" type="text" inputmode="decimal" value="8" /></label>
+    </div>
+    <p class="ax-help st-mhelp"></p>
+    <p class="ax-help">CCE is the lime's neutralising value compared with pure calcium carbonate (100 %); fineness efficiency is the share that reacts within the time you care about, from its particle sizes. Both are on the lime's label or quarry test; their product is the ECCE. The example values are made up.</p>
+    <p class="ax-err st-err" hidden></p>
+    <p class="ax-big st-big"></p>
+    <dl class="ax-facts st-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Nutrients against your lab's ranges</h2>
+    <label>One per line: nutrient, your result, bottom of the range, top of the range, unit <textarea class="st-r" rows="7" spellcheck="false">{EXAMPLE_RANGES}</textarea></label>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small st-ex">Use the example</button></div>
+    <p class="ax-help"><b>The example results and ranges are made up and rounded</b>; they are not any lab's or agency's. Ranges depend on the extraction method, the crop and the region, so use the ranges printed on your lab report or given by your adviser.</p>
+    <p class="ax-err st-rerr" hidden></p>
+    <div class="st-rout">
+      <p class="ax-big st-rbig"></p>
+      <div class="ax-scroll"><table class="st-tab"></table></div>
+      <canvas class="ax-fig st-fig"></canvas>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small st-csv">Download the ratings (CSV)</button></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .sti h3 { margin: 18px 0 8px; font-size: 15px; }
+  .sti textarea { width: 100%; }
+  .sti td.low { color: var(--bad); font-weight: 600; }
+  .sti td.high { color: var(--warn); font-weight: 600; }
+  .sti td.ok { color: var(--good); font-weight: 600; }
+</style>
+
+<script>
+  import { limeNeed, ecce, productFor, TON_AC_PER_T_HA, parseRanges, rate, EXAMPLE_RANGES, type LimeIn, type Rating } from '../../lib/sci/soiltest';
+  import { num, csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.sti')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string) => { const d = document.createElement('div'); const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); return d; };
+  const factsOf = (box: Element) => [...box.children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]);
+  const f2 = (x: number) => x.toFixed(2), k0 = (x: number) => Math.round(x).toLocaleString('en');
+  const g = (x: number) => String(+x.toPrecision(4));
+  let limeSec: Section | null = null, nutSec: Section | null = null, fig: Figure | null = null, ratings: Rating[] = [];
+  const HELP: Record<string, string> = {
+    bs: 'Lime replaces acidity on the clay and organic matter: (target − present base saturation) × CEC is the charge to neutralise, in cmol(+) per kg of soil.',
+    buffer: 'The buffer capacity is how many cmol(+)/kg of base raise this soil\'s pH by one unit, from a titration or your lab. It is treated as constant over the pH rise.',
+    factor: 'Type the lime factor your lab or adviser gives (t of pure CaCO₃ per ha to raise pH by one unit, for the depth they state). It is scaled to your depth.',
+  };
+
+  function lime() {
+    const m = q<HTMLSelectElement>('.st-m').value as LimeIn['method'];
+    root.querySelectorAll<HTMLElement>('.st-ph').forEach((e) => { e.hidden = m === 'bs'; });
+    root.querySelectorAll<HTMLElement>('.st-bs').forEach((e) => { e.hidden = m !== 'bs'; });
+    root.querySelectorAll<HTMLElement>('.st-lf').forEach((e) => { e.hidden = m !== 'factor'; });
+    q('.st-bc').hidden = m !== 'buffer'; q('.st-rho').hidden = m === 'factor';
+    q('.st-mhelp').textContent = HELP[m];
+    const err = q('.st-err');
+    const fail = (s: string) => { err.textContent = s; err.hidden = false; q('.st-big').textContent = ''; q('.st-facts').replaceChildren(); limeSec = null; };
+    const d = val('.st-d'), bd = val('.st-bd'), cce = val('.st-cce'), fin = val('.st-fin'), mo = val('.st-mo');
+    const areaRaw = q<HTMLInputElement>('.st-area').value.trim(), area = areaRaw ? num(areaRaw) : NaN;
+    if (!(d > 0 && d <= 100)) return fail('Give the depth to lime in cm (for example 15 or 20).');
+    if (m !== 'factor' && !(bd >= 0.2 && bd <= 2.2)) return fail('Give the bulk density in g/cm³; most mineral soils are 1.0 to 1.7.');
+    if (!(cce > 0 && cce <= 200)) return fail('Give the lime\'s neutralising value (CCE) in %; pure calcium carbonate is 100.');
+    if (!(fin > 0 && fin <= 100)) return fail('Give the fineness efficiency in %, up to 100.');
+    if (!(mo >= 0 && mo < 90)) return fail('Give the moisture in %, 0 for dry lime.');
+    if (areaRaw && !(area > 0)) return fail('Give the field area in hectares, or leave it blank.');
+    let inp: LimeIn;
+    if (m === 'bs') {
+      const cec = val('.st-cec'), b0 = val('.st-bs0'), b1 = val('.st-bs1');
+      if (!(cec > 0 && cec < 300)) return fail('Give the CEC in cmol(+)/kg (the same number as meq/100 g).');
+      if (!(b0 >= 0 && b0 <= 100 && b1 > 0 && b1 <= 100)) return fail('Give both base saturations in %, 0 to 100.');
+      inp = { method: 'bs', cec, bsNow: b0, bsTarget: b1, depthCm: d, bulkDensity: bd };
+    } else {
+      const p0 = val('.st-ph0'), p1 = val('.st-ph1');
+      if (!(p0 > 2 && p0 < 11 && p1 > 2 && p1 < 11)) return fail('Give the soil pH now and the target pH (between 2 and 11).');
+      if (m === 'buffer') {
+        const b = val('.st-buf');
+        if (!(b > 0 && b < 100)) return fail('Give the buffer capacity in cmol(+)/kg per pH unit.');
+        inp = { method: 'buffer', ph: p0, target: p1, bufferCap: b, depthCm: d, bulkDensity: bd };
+      } else {
+        const fct = val('.st-fac'), fd = val('.st-fd');
+        if (!(fct > 0 && fct < 100)) return fail('Type your lime factor in t CaCO₃/ha per pH unit.');
+        if (!(fd > 0 && fd <= 100)) return fail('Give the depth the lime factor is for, in cm.');
+        inp = { method: 'factor', ph: p0, target: p1, factor: fct, refDepthCm: fd, depthCm: d };
+      }
+    }
+    err.hidden = true;
+    const r = limeNeed(inp), E = ecce(cce, fin), prod = productFor(r.caco3, E, mo);
+    const t = prod / 1000;
+    q('.st-big').textContent = r.caco3 <= 0
+      ? (m === 'bs' ? 'No lime needed: base saturation is already at or above the target' : 'No lime needed: the pH is already at or above the target')
+      : `Spread ${f2(t)} t/ha of your lime (${f2(t * TON_AC_PER_T_HA)} tons/acre)`;
+    const facts = [
+      fact('Pure CaCO₃ needed', `${k0(r.caco3)} kg/ha (${k0(r.caco3 * 0.892179)} lb/ac)`),
+      fact('Worked out as', r.note),
+      ...(r.charge !== null ? [fact('Acidity to neutralise', `${g(r.charge)} cmol(+)/kg in ${k0(r.mass!)} t/ha of soil (${d} cm at ${bd} g/cm³)`)] : [fact('Depth', `${d} cm (factor given for ${val('.st-fd')} cm)`)]),
+      fact('ECCE of your lime', `${g(E)} % (CCE ${g(cce)} % × fineness ${g(fin)} %)${mo > 0 ? `, ${g(mo)} % moisture` : ''}`),
+      ...(area > 0 && r.caco3 > 0 ? [fact('For the field', `${f2(t * area)} t for ${g(area)} ha (${f2(t * area * 1.10231)} short tons)`)] : []),
+    ];
+    if (r.caco3 > 0 && t > 10) facts.push(fact('Large amount', 'Over 10 t/ha is often split over two or more years; ask your adviser.'));
+    q('.st-facts').replaceChildren(...facts);
+    limeSec = { title: 'Lime', text: [q('.st-big').textContent!], facts: factsOf(q('.st-facts')) };
+  }
+
+  function nutrients() {
+    const err = q('.st-rerr'), out = q('.st-rout');
+    const { rows, bad } = parseRanges(q<HTMLTextAreaElement>('.st-r').value);
+    const fail = (s: string) => { err.textContent = s; err.hidden = false; out.hidden = true; nutSec = null; fig = null; ratings = []; };
+    if (bad.length) return fail(`Could not read "${bad[0].slice(0, 50)}". Each line needs a name, your result, the bottom and top of the range (bottom first) and, if you like, a unit.`);
+    if (!rows.length) return fail('Type at least one nutrient: name, result, bottom of range, top of range, unit.');
+    if (rows.length > 30) return fail(`You typed ${rows.length} lines; the limit is 30.`);
+    err.hidden = true; out.hidden = false;
+    ratings = rows.map(rate);
+    const low = ratings.filter((r) => r.cls === 'low').map((r) => r.name), high = ratings.filter((r) => r.cls === 'high').map((r) => r.name);
+    q('.st-rbig').textContent = `${ratings.length - low.length - high.length} of ${ratings.length} in range` + (low.length ? `; low: ${low.join(', ')}` : '') + (high.length ? `; high: ${high.join(', ')}` : '');
+    const t = q('.st-tab'); t.replaceChildren();
+    const h = t.insertRow(); for (const x of ['Nutrient', 'Result', 'Range', 'Rating']) { const th = document.createElement('th'); th.textContent = x; h.append(th); }
+    for (const r of ratings) { const tr = t.insertRow(); [r.name, `${g(r.value)} ${r.unit}`.trim(), `${g(r.low)} to ${g(r.high)}`, r.text].forEach((x, k) => { const td = tr.insertCell(); td.textContent = x; if (k === 1) td.className = 'r'; if (k === 3) td.className = r.cls; }); }
+    const n = ratings.length, rowH = 34;
+    fig = {
+      w: 360, h: 20 + n * rowH, alt: `Soil test results against your ranges: ${q('.st-rbig').textContent}`,
+      draw: (ctx, W, H, pal) => {
+        const L = 8, R = 8, w = W - L - R;
+        ctx.font = '12px Arial, Helvetica, sans-serif'; ctx.textBaseline = 'bottom';
+        ratings.forEach((r, i) => {
+          const top = 10 + i * rowH, y = top + 16, max = Math.max(r.value, r.high) * 1.3 || 1, X = (v: number) => L + (Math.max(0, v) / max) * w;
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.fillText(r.name, L, top + 13);
+          ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.fillText(`${g(r.value)} ${r.unit}`, W - R, top + 13);
+          const zone = (a: number, b: number, c: string) => { ctx.globalAlpha = 0.3; ctx.fillStyle = c; ctx.fillRect(X(a), y, X(b) - X(a), 8); ctx.globalAlpha = 1; };
+          zone(0, r.low, pal.bad); zone(r.low, r.high, pal.good); zone(r.high, max, pal.warn);
+          const cx = X(r.value); ctx.fillStyle = r.cls === 'ok' ? pal.good : r.cls === 'low' ? pal.bad : pal.warn;
+          ctx.beginPath(); ctx.moveTo(cx, y + 9); ctx.lineTo(cx - 5, y + 16); ctx.lineTo(cx + 5, y + 16); ctx.closePath(); ctx.fill();
+          ctx.fillRect(cx - 1, y - 2, 2, 12);
+        });
+      },
+    };
+    paint(q<HTMLCanvasElement>('.st-fig'), fig);
+    nutSec = { title: 'Nutrients', text: [q('.st-rbig').textContent!, 'Ranges typed by the user (the example ranges are made up).'], figure: fig, table: { head: ['Nutrient', 'Result', 'Range', 'Rating'], rows: ratings.map((r) => [r.name, `${g(r.value)} ${r.unit}`.trim(), `${g(r.low)} to ${g(r.high)}`, r.text]), align: ['l', 'r', 'r', 'l'] } };
+  }
+
+  root.querySelectorAll('.ax-card:first-child input, .ax-card:first-child select').forEach((i) => { i.addEventListener('input', lime); i.addEventListener('change', lime); });
+  q('.st-r').addEventListener('input', nutrients);
+  q('.st-ex').addEventListener('click', () => { q<HTMLTextAreaElement>('.st-r').value = EXAMPLE_RANGES; nutrients(); });
+  q('.st-csv').addEventListener('click', () => { if (ratings.length) save(new TextEncoder().encode(csv([['nutrient', 'result', 'unit', 'range_bottom', 'range_top', 'rating'], ...ratings.map((r) => [r.name, r.value, r.unit, r.low, r.high, r.cls === 'ok' ? 'in range' : r.cls])])), 'soil-test-ratings.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.st-rout').hidden) paint(q<HTMLCanvasElement>('.st-fig'), fig); });
+  wireDownloads(q('.dl'), () => ({ title: 'Soil test', subtitle: [q('.st-big').textContent, q('.st-rbig').textContent].filter(Boolean).join('. '), file: 'soil-test', sections: [limeSec, nutSec].filter(Boolean) as Section[] }));
+  lime(); nutrients();
+</script>

@@ -1,0 +1,161 @@
+---
+// Fertiliser blend: N, P2O5, K2O (and S) needs to amounts of the products the user lists, by non-negative least
+// squares or the least-cost blend that meets every need. Nothing is uploaded. Example needs and prices are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { EXAMPLE_PRODUCTS } from '../../lib/sci/fertiliser';
+---
+<div class="ax fbl">
+  <div class="ax-card">
+    <h2>Field and needs</h2>
+    <div class="ax-grid">
+      <label>Units <select class="fb-u"><option value="metric" selected>kg per hectare</option><option value="us">lb per acre</option></select></label>
+      <label>Phosphorus and potassium as <select class="fb-ox"><option value="oxide" selected>P₂O₅ and K₂O (as on the bag)</option><option value="element">P and K (elements)</option></select></label>
+      <label><span class="fb-l0">N needed (kg/ha)</span> <input class="fb-n0" type="text" inputmode="decimal" value="150" /></label>
+      <label><span class="fb-l1">P₂O₅ needed (kg/ha)</span> <input class="fb-n1" type="text" inputmode="decimal" value="60" /></label>
+      <label><span class="fb-l2">K₂O needed (kg/ha)</span> <input class="fb-n2" type="text" inputmode="decimal" value="90" /></label>
+      <label><span class="fb-l3">S needed (kg/ha; blank = ignore)</span> <input class="fb-n3" type="text" inputmode="decimal" value="" /></label>
+      <label><span class="fb-la">Field area (ha)</span> <input class="fb-area" type="text" inputmode="decimal" value="12" /></label>
+      <label>Blend <select class="fb-m"><option value="closest" selected>Closest to the needs</option><option value="atleast">Meet every need, least cost</option></select></label>
+    </div>
+    <p class="ax-help">Leave a need blank to ignore that nutrient; type 0 to avoid it. <b>Closest</b> finds the amounts that come nearest to every need (exact when the products allow it). <b>Meet every need</b> finds the cheapest blend (or the lightest, without prices) that gives at least each need, so some nutrients may be over. The example needs are made up; use your own soil test and advice.</p>
+    <p class="ax-err fb-err1" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Products you can buy</h2>
+    <label>One per line: name, grade N-P₂O₅-K₂O (a fourth number is S), <span class="fb-pl">price per tonne</span> (optional) <textarea class="fb-p" rows="5" spellcheck="false">{EXAMPLE_PRODUCTS}</textarea></label>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small fb-ex">Use the example</button></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label><span class="fb-lb">Bag size (kg; blank = no bags)</span> <input class="fb-bag" type="text" inputmode="decimal" value="50" /></label>
+    </div>
+    <p class="ax-help">Up to 12 products. Grades are percent by weight, as printed on the bag (46-0-0 is 46 % N). Prices are only used when every product has one; any currency. The example prices are made up.</p>
+    <p class="ax-err fb-err2" hidden></p>
+  </div>
+
+  <div class="ax-card fb-out" hidden>
+    <h2>Blend</h2>
+    <p class="ax-big fb-big"></p>
+    <div class="ax-scroll"><table class="fb-tab"></table></div>
+    <h3>Nutrients</h3>
+    <div class="ax-scroll"><table class="fb-ntab"></table></div>
+    <dl class="ax-facts fb-facts"></dl>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small fb-csv">Download the blend (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .fbl h3 { margin: 18px 0 8px; font-size: 15px; }
+  .fbl textarea { width: 100%; }
+  .fbl .fb-tab td:nth-child(2) { white-space: nowrap; }
+  .fbl td.over { color: var(--warn); }
+  .fbl td.under { color: var(--bad); }
+</style>
+
+<script>
+  import { blend, parseProduct, P2O5_PER_P, K2O_PER_K, EXAMPLE_PRODUCTS, type Product } from '../../lib/sci/fertiliser';
+  import { num, csv } from '../../lib/sci/num';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.fbl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => q<HTMLInputElement>(c).value;
+  const f1 = (x: number) => (Math.abs(x) < 0.05 ? 0 : x).toLocaleString('en', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const f0 = (x: number) => Math.round(x).toLocaleString('en');
+  const money = (x: number) => x.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const table = (t: HTMLElement, head: string[], rows: string[][], cls: string[][] = []) => {
+    t.replaceChildren();
+    const h = t.insertRow(); for (const x of head) { const th = document.createElement('th'); th.textContent = x; h.append(th); }
+    rows.forEach((r, i) => { const tr = t.insertRow(); r.forEach((x, k) => { const td = tr.insertCell(); td.textContent = x; td.className = (k ? 'r ' : '') + (cls[i]?.[k] ?? ''); }); });
+  };
+  const fact = (k: string, val: string) => { const d = document.createElement('div'); const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = val; d.append(dt, dd); return d; };
+  let sections: Section[] = [], csvRows: string[][] = [];
+
+  function labels() {
+    const us = v('.fb-u') === 'us', ru = us ? 'lb/ac' : 'kg/ha', el = v('.fb-ox') === 'element';
+    const names = ['N', el ? 'P' : 'P₂O₅', el ? 'K' : 'K₂O', 'S'];
+    names.forEach((n, i) => { q(`.fb-l${i}`).textContent = `${n} needed (${ru}${i === 3 ? '; blank = ignore' : ''})`; });
+    q('.fb-la').textContent = `Field area (${us ? 'acres' : 'ha'})`;
+    q('.fb-lb').textContent = `Bag size (${us ? 'lb' : 'kg'}; blank = no bags)`;
+    q('.fb-pl').textContent = us ? 'price per ton of 2,000 lb' : 'price per tonne';
+    return { us, ru, el, names };
+  }
+
+  function run() {
+    const L = labels(), e1 = q('.fb-err1'), e2 = q('.fb-err2'), out = q('.fb-out');
+    const fail = (e: HTMLElement, m: string) => { e.textContent = m; e.hidden = false; out.hidden = true; sections = []; csvRows = []; };
+    e1.hidden = true; e2.hidden = true;
+    const raw = [0, 1, 2, 3].map((i) => v(`.fb-n${i}`).trim());
+    const needIn = raw.map((s) => (s === '' ? null : num(s)));
+    if (needIn.some((x) => x !== null && !(x >= 0 && x < 1e5))) return fail(e1, 'Each need must be a number of 0 or more (or blank to ignore it).');
+    if (needIn.every((x) => x === null)) return fail(e1, 'Type at least one need.');
+    const area = num(v('.fb-area'));
+    if (!(area > 0 && area < 1e7)) return fail(e1, `Give the field area in ${L.us ? 'acres' : 'hectares'} (more than 0).`);
+    // Needs on the oxide basis, which is how grades are printed.
+    const fac = [1, L.el ? P2O5_PER_P : 1, L.el ? K2O_PER_K : 1, 1];
+    const need = needIn.map((x, i) => (x === null ? null : x * fac[i]));
+    const lines = v('.fb-p').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const prods: Product[] = [], badLines: string[] = [];
+    for (const l of lines) { const p = parseProduct(l); if (p) prods.push(p); else badLines.push(l); }
+    if (badLines.length) return fail(e2, `No grade found in "${badLines[0].slice(0, 40)}". Write the grade as three or four numbers with dashes, such as 46-0-0 or 21-0-0-24.`);
+    if (!prods.length) return fail(e2, 'List at least one product with its grade, such as "Urea, 46-0-0".');
+    if (prods.length > 12) return fail(e2, `You listed ${prods.length} products; the limit is 12.`);
+    if (prods.some((p) => p.grade.reduce((s, g) => s + g, 0) > 100)) return fail(e2, `The grade of ${prods.find((p) => p.grade.reduce((s, g) => s + g, 0) > 100)!.name} adds up to more than 100 %.`);
+    if (prods.some((p) => p.grade.every((g) => g === 0))) return fail(e2, `${prods.find((p) => p.grade.every((g) => g === 0))!.name} has no nutrients (0-0-0).`);
+    const method = v('.fb-m') as 'closest' | 'atleast';
+    const r = blend(prods, need, method);
+    if (!r.feasible) {
+      const miss = need.map((x, i) => (x !== null && x > 0 && !prods.some((p) => p.grade[i] > 0) ? L.names[i] : '')).filter(Boolean);
+      return fail(e2, `No product supplies ${miss.join(' or ') || 'one of the needs'}, so every need cannot be met. Add a product that does, or choose "Closest to the needs".`);
+    }
+    out.hidden = false;
+    const bag = v('.fb-bag').trim() === '' ? NaN : num(v('.fb-bag'));
+    const priceDiv = L.us ? 2000 : 1000, massU = L.us ? 'lb' : 'kg', areaU = L.us ? 'ac' : 'ha';
+    const used = prods.map((p, j) => ({ p, x: r.x[j] }));
+    const shown = used.filter((u) => u.x > 0.05);
+    q('.fb-big').textContent = (shown.length ? shown.map((u) => `${u.p.name} ${f1(u.x)}`).join(' + ') + ` ${L.ru}` : 'No product') + (r.exact ? ': every need met exactly' : method === 'atleast' ? ': every need met or exceeded' : ': the closest these products allow');
+    const priced = r.cost !== null;
+    const head = ['Product', 'Grade', `Rate (${L.ru})`, `Total (${massU})`, ...(bag > 0 ? ['Bags'] : []), ...(priced ? [`Cost per ${areaU}`, 'Total cost'] : [])];
+    const rows = used.map((u) => {
+      const tot = u.x * area;
+      return [u.p.name, u.p.grade.slice(0, u.p.grade[3] ? 4 : 3).join('-'), f1(u.x), f0(tot), ...(bag > 0 ? [u.x > 0 ? `${(tot / bag).toFixed(1)} (buy ${Math.ceil(tot / bag - 1e-9)})` : '0'] : []), ...(priced ? [money((u.x * u.p.price!) / priceDiv), money((tot * u.p.price!) / priceDiv)] : [])];
+    });
+    const totM = r.mass * area;
+    rows.push(['Total', '', f1(r.mass), f0(totM), ...(bag > 0 ? [`${(totM / bag).toFixed(1)}`] : []), ...(priced ? [money(r.cost! / priceDiv), money((r.cost! * area) / priceDiv)] : [])]);
+    table(q('.fb-tab'), head, rows);
+    const nrows: string[][] = [], ncls: string[][] = [];
+    need.forEach((x, i) => {
+      if (x === null) { if (r.supplied[i] > 0.05) { nrows.push([L.names[i], 'not set', f1(r.supplied[i] / fac[i]), '']); ncls.push([]); } return; }
+      const d = r.diff[i] / fac[i], pct = x > 0 ? ` (${d >= 0 ? '+' : '−'}${Math.abs((100 * r.diff[i]) / x).toFixed(0)} %)` : '';
+      nrows.push([L.names[i], f1(x / fac[i]), f1(r.supplied[i] / fac[i]), Math.abs(d) < 0.05 ? 'met' : `${d > 0 ? 'over' : 'under'} ${f1(Math.abs(d))}${pct}`]);
+      ncls.push(['', '', '', Math.abs(d) < 0.05 ? '' : d > 0 ? 'over' : 'under']);
+    });
+    table(q('.fb-ntab'), ['Nutrient', `Need (${L.ru})`, `Supplied (${L.ru})`, 'Over or under'], nrows, ncls);
+    const facts = [
+      fact('Method', method === 'closest' ? 'Closest match (non-negative least squares)' : `Meets every need at the lowest ${priced ? 'cost' : 'total weight'}`),
+      fact('Products to spread', `${f1(r.mass)} ${L.ru}, ${f0(totM)} ${massU} for ${area.toLocaleString('en')} ${areaU}${!L.us && totM >= 1000 ? ` (${(totM / 1000).toFixed(2)} t)` : ''}`),
+      ...(priced ? [fact('Cost', `${money(r.cost! / priceDiv)} per ${areaU}, ${money((r.cost! * area) / priceDiv)} in all`)] : [fact('Cost', prods.some((p) => p.price != null) ? 'Give every product a price to see the cost' : 'No prices given')]),
+      ...(L.el ? [fact('Element to oxide', `P × ${P2O5_PER_P.toFixed(4)} = P₂O₅; K × ${K2O_PER_K.toFixed(4)} = K₂O`)] : []),
+    ];
+    q('.fb-facts').replaceChildren(...facts);
+    csvRows = [head, ...rows];
+    sections = [
+      { title: 'Field', facts: [['Area', `${area} ${areaU}`], ...need.map((x, i) => [`${L.names[i]} need`, x === null ? 'ignored' : `${f1(x / fac[i])} ${L.ru}`] as [string, string])] },
+      { title: 'Blend', text: [q('.fb-big').textContent!], table: { head, rows, align: head.map((_, k) => (k < 2 ? 'l' : 'r')) } },
+      { title: 'Nutrients', table: { head: ['Nutrient', `Need (${L.ru})`, `Supplied (${L.ru})`, 'Over or under'], rows: nrows, align: ['l', 'r', 'r', 'r'] }, facts: [...q('.fb-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]) },
+    ];
+  }
+
+  root.querySelectorAll('input, textarea, select').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+  q('.fb-ex').addEventListener('click', () => {
+    q<HTMLTextAreaElement>('.fb-p').value = EXAMPLE_PRODUCTS;
+    q<HTMLSelectElement>('.fb-u').value = 'metric'; q<HTMLSelectElement>('.fb-ox').value = 'oxide'; q<HTMLSelectElement>('.fb-m').value = 'closest';
+    [150, 60, 90, ''].forEach((x, i) => { q<HTMLInputElement>(`.fb-n${i}`).value = String(x); });
+    q<HTMLInputElement>('.fb-area').value = '12'; q<HTMLInputElement>('.fb-bag').value = '50';
+    run();
+  });
+  q('.fb-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(csv(csvRows)), 'fertiliser-blend.csv', 'text/csv'); });
+  wireDownloads(q('.dl'), () => ({ title: 'Fertiliser blend', subtitle: q('.fb-big').textContent ?? '', file: 'fertiliser-blend', sections }));
+  run();
+</script>

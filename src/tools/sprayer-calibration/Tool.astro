@@ -1,0 +1,238 @@
+---
+// Sprayer calibration: boom rate from nozzle flow, speed and spacing (and back), a catch test of each nozzle, the
+// 1/128-acre method, and tank coverage with product per tank for a label rate the user types. Nothing is uploaded.
+// The example values are made up; the page never suggests a product rate.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax spc">
+  <div class="ax-card">
+    <h2>Application rate</h2>
+    <div class="ax-grid">
+      <label>Units <select class="sp-u"><option value="metric" selected>Metric (L/ha, km/h, cm)</option><option value="us">US (gal/acre, mph, inch)</option></select></label>
+      <label>Work out <select class="sp-m"><option value="rate" selected>The rate from the nozzle flow</option><option value="flow">The nozzle flow for a rate</option></select></label>
+      <label class="sp-mr"><span class="sp-lq">Flow of one nozzle (L/min)</span> <input class="sp-q" type="text" inputmode="decimal" value="1.2" /></label>
+      <label class="sp-mf" hidden><span class="sp-lr">Spray volume wanted (L/ha)</span> <input class="sp-r" type="text" inputmode="decimal" value="150" /></label>
+      <label><span class="sp-lv">Travel speed (km/h)</span> <input class="sp-v" type="text" inputmode="decimal" value="8" /></label>
+      <label><span class="sp-lw">Nozzle spacing (cm)</span> <input class="sp-w" type="text" inputmode="decimal" value="50" /></label>
+      <label><span>Number of nozzles</span> <input class="sp-n" type="text" inputmode="numeric" value="24" /></label>
+      <label><span class="sp-lq1">Nozzle's rated flow (L/min; blank = skip)</span> <input class="sp-q1" type="text" inputmode="decimal" value="1.0" /></label>
+      <label><span class="sp-lp1">at a pressure of (bar)</span> <input class="sp-p1" type="text" inputmode="decimal" value="3" /></label>
+    </div>
+    <p class="ax-help">The rated flow and pressure are printed on the nozzle or in its maker's chart; flow rises with the square root of pressure, so doubling the flow takes four times the pressure. Keep to the nozzle's pressure range. The example values are made up.</p>
+    <p class="ax-err sp-err" hidden></p>
+    <p class="ax-big sp-big"></p>
+    <dl class="ax-facts sp-facts"></dl>
+    <h3>Speed from a timed run</h3>
+    <div class="ax-grid">
+      <label><span class="sp-ld">Distance driven (m)</span> <input class="sp-dist" type="text" inputmode="decimal" value="100" /></label>
+      <label><span>Time (s)</span> <input class="sp-time" type="text" inputmode="decimal" value="45" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><span class="sp-run" aria-live="polite"></span> <button type="button" class="btn secondary small sp-userun">Use this speed</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check each nozzle (catch test)</h2>
+    <div class="ax-grid">
+      <label><span>Catch time (s)</span> <input class="sp-ct" type="text" inputmode="decimal" value="60" /></label>
+      <label><span>Flag nozzles off the mean by more than (%)</span> <input class="sp-tol" type="text" inputmode="decimal" value="10" /></label>
+    </div>
+    <label style="margin-top:10px"><span class="sp-lc">Volume caught from each nozzle (mL), in order along the boom</span> <textarea class="sp-c" rows="3" spellcheck="false">1200 1180 1250 1050 1210 1195</textarea></label>
+    <p class="ax-err sp-cerr" hidden></p>
+    <div class="sp-cout">
+      <p class="ax-big sp-cbig"></p>
+      <div class="ax-scroll"><table class="sp-ctab"></table></div>
+      <p class="ax-help sp-cnote"></p>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sp-usemean">Use the mean flow above</button> <button type="button" class="btn secondary small sp-csv">Download the catch test (CSV)</button></div>
+    </div>
+    <div class="sp-128" hidden>
+      <h3>1/128-acre method</h3>
+      <p class="ax-help sp-128t"></p>
+      <label><span>Fluid ounces caught from one nozzle</span> <input class="sp-oz" type="text" inputmode="decimal" value="" /></label>
+      <p class="ax-big sp-128r"></p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Tank and product</h2>
+    <div class="ax-grid">
+      <label><span class="sp-ltank">Tank (L)</span> <input class="sp-tank" type="text" inputmode="decimal" value="3000" /></label>
+      <label><span class="sp-larea">Field area (ha)</span> <input class="sp-area" type="text" inputmode="decimal" value="47" /></label>
+      <label><span>Product rate from the label (blank = none)</span> <input class="sp-lab" type="text" inputmode="decimal" value="" placeholder="from your label" /></label>
+      <label>Label rate unit <select class="sp-labu"></select></label>
+    </div>
+    <p class="ax-help"><b>Always read and follow the product label</b> and local rules: it gives the rate, the spray volume, mixing order, protective equipment and limits. This page only does the arithmetic with the rate you type; it never suggests one. For study and planning, not a substitute for professional judgement.</p>
+    <p class="ax-err sp-terr" hidden></p>
+    <p class="ax-big sp-tbig"></p>
+    <dl class="ax-facts sp-tfacts"></dl>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .spc h3 { margin: 18px 0 8px; font-size: 15px; }
+  .spc textarea { width: 100%; }
+  .spc td.bad { color: var(--bad); font-weight: 600; }
+  .spc td.ok { color: var(--good); }
+  .spc .sp-ctab td { white-space: nowrap; }
+</style>
+
+<script>
+  import { rateLHa, flowFor, pressureFor, speedFromRun, course128, catchTest, tanks, GPA_PER_LHA, L_PER_GAL, M_PER_MI, M_PER_IN, HA_PER_AC, ML_PER_FLOZ, type Catch } from '../../lib/sci/sprayer';
+  import { num, csv } from '../../lib/sci/num';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.spc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const blank = (c: string) => q<HTMLInputElement>(c).value.trim() === '';
+  const fact = (k: string, v: string) => { const d = document.createElement('div'); const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); return d; };
+  const factsOf = (box: Element) => [...box.children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]);
+  const fx = (x: number, d: number) => x.toLocaleString('en', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const g = (x: number) => String(+x.toPrecision(4));
+  const LABEL_UNITS = { metric: ['L', 'mL', 'kg', 'g'], us: ['fl oz', 'pt', 'qt', 'gal', 'oz (dry)', 'lb'] };
+  let unitsNow = '';
+  // Results shared between the cards: the spray volume in the user's units and SI.
+  let rateUser = NaN, rateSI = NaN, catchRes: Catch | null = null, catchIn: number[] = [];
+  let rateSec: Section | null = null, catchSec: Section | null = null, tankSec: Section | null = null;
+
+  function U() {
+    const us = sel('.sp-u') === 'us';
+    return {
+      us, q: us ? 'gal/min' : 'L/min', r: us ? 'gal/acre' : 'L/ha', v: us ? 'mph' : 'km/h', w: us ? 'in' : 'cm', p: us ? 'psi' : 'bar', d: us ? 'ft' : 'm',
+      vol: us ? 'gal' : 'L', a: us ? 'acres' : 'ha', c: us ? 'fl oz' : 'mL',
+      // to SI
+      qSI: (x: number) => (us ? x * L_PER_GAL : x), vSI: (x: number) => (us ? (x * M_PER_MI) / 1000 : x), wSI: (x: number) => (us ? x * M_PER_IN : x / 100),
+      rSI: (x: number) => (us ? x / GPA_PER_LHA : x), qFromSI: (x: number) => (us ? x / L_PER_GAL : x), cSI: (x: number) => (us ? x * ML_PER_FLOZ : x),
+    };
+  }
+
+  function labels() {
+    const u = U();
+    q('.sp-lq').textContent = `Flow of one nozzle (${u.q})`; q('.sp-lr').textContent = `Spray volume wanted (${u.r})`;
+    q('.sp-lv').textContent = `Travel speed (${u.v})`; q('.sp-lw').textContent = `Nozzle spacing (${u.w})`;
+    q('.sp-lq1').textContent = `Nozzle's rated flow (${u.q}; blank = skip)`; q('.sp-lp1').textContent = `at a pressure of (${u.p})`;
+    q('.sp-ld').textContent = `Distance driven (${u.d})`; q('.sp-lc').textContent = `Volume caught from each nozzle (${u.c}), in order along the boom`;
+    q('.sp-ltank').textContent = `Tank (${u.vol})`; q('.sp-larea').textContent = `Field area (${u.a})`;
+    const key = u.us ? 'us' : 'metric';
+    if (unitsNow !== key) { unitsNow = key; q('.sp-labu').replaceChildren(...LABEL_UNITS[key].map((x) => new Option(`${x} per ${u.us ? 'acre' : 'ha'}`, x))); }
+    root.querySelectorAll<HTMLElement>('.sp-mr').forEach((e) => { e.hidden = sel('.sp-m') !== 'rate'; });
+    root.querySelectorAll<HTMLElement>('.sp-mf').forEach((e) => { e.hidden = sel('.sp-m') !== 'flow'; });
+    q('.sp-128').hidden = !u.us;
+    return u;
+  }
+
+  function rate() {
+    const u = labels(), mode = sel('.sp-m'), err = q('.sp-err');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; q('.sp-big').textContent = ''; q('.sp-facts').replaceChildren(); rateUser = NaN; rateSI = NaN; rateSec = null; };
+    const v = val('.sp-v'), w = val('.sp-w'), n = val('.sp-n');
+    if (!(v > 0 && v < 100)) return fail(`Give the travel speed in ${u.v}.`);
+    if (!(w > 0 && w < (u.us ? 120 : 300))) return fail(`Give the nozzle spacing in ${u.w}.`);
+    if (!(n >= 1 && n <= 500 && Number.isInteger(n))) return fail('Give the number of nozzles on the boom (a whole number).');
+    let qSI: number;
+    if (mode === 'rate') {
+      const qq = val('.sp-q'); if (!(qq > 0 && qq < 100)) return fail(`Give the flow of one nozzle in ${u.q}.`);
+      qSI = u.qSI(qq); rateSI = rateLHa(qSI, u.vSI(v), u.wSI(w));
+    } else {
+      const r = val('.sp-r'); if (!(r > 0 && r < 10000)) return fail(`Give the spray volume you want in ${u.r}.`);
+      rateSI = u.rSI(r); qSI = flowFor(rateSI, u.vSI(v), u.wSI(w));
+    }
+    const q1 = blank('.sp-q1') ? NaN : val('.sp-q1'), p1 = val('.sp-p1');
+    if (!blank('.sp-q1') && !(q1 > 0 && p1 > 0)) return fail('Give the nozzle\'s rated flow and the pressure it is rated at, or leave the rated flow blank.');
+    err.hidden = true;
+    rateUser = u.us ? rateSI * GPA_PER_LHA : rateSI;
+    const qUser = u.qFromSI(qSI);
+    q('.sp-big').textContent = mode === 'rate' ? `Spray volume ${fx(rateUser, u.us ? 2 : 1)} ${u.r}` : `Each nozzle must give ${fx(qUser, 3)} ${u.q}`;
+    const widthM = u.wSI(w) * n, haH = (u.vSI(v) * widthM) / 10;
+    const facts = [
+      fact('Spray volume', `${fx(rateSI, 1)} L/ha = ${fx(rateSI * GPA_PER_LHA, 2)} gal/acre`),
+      fact('Nozzle flow', `${fx(qSI, 3)} L/min = ${fx(qSI / L_PER_GAL, 3)} gal/min (${fx(qSI * 1000, 0)} mL/min)`),
+      fact('Boom', `${g(u.us ? widthM / 0.3048 : widthM)} ${u.us ? 'ft' : 'm'} wide, ${fx(u.qFromSI(qSI * n), 1)} ${u.q} in all; covers ${fx(u.us ? haH / HA_PER_AC : haH, 2)} ${u.a} per hour at full speed (no turns or refills)`),
+    ];
+    if (q1 > 0) {
+      const pr = pressureFor(qUser, q1, p1);
+      facts.push(fact('Pressure for this flow', `${g(pr)} ${u.p} (nozzle rated ${g(q1)} ${u.q} at ${g(p1)} ${u.p})${pr > 4 * p1 || pr < p1 / 4 ? '; far from its rating: choose another nozzle size' : ''}`));
+    }
+    q('.sp-facts').replaceChildren(...facts);
+    rateSec = { title: 'Application rate', text: [q('.sp-big').textContent!], facts: [['Speed', `${g(v)} ${u.v}`], ['Nozzle spacing', `${g(w)} ${u.w}`], ['Nozzles', String(n)], ...factsOf(q('.sp-facts'))] };
+  }
+
+  function run() {
+    const u = U(), d = val('.sp-dist'), t = val('.sp-time');
+    if (d > 0 && t > 0) {
+      const kmh = speedFromRun(u.us ? d * 0.3048 : d, t);
+      q('.sp-run').textContent = u.us ? `${fx(kmh / 1.609344, 2)} mph` : `${fx(kmh, 2)} km/h`; q<HTMLButtonElement>('.sp-userun').disabled = false;
+      return u.us ? kmh / 1.609344 : kmh;
+    }
+    q('.sp-run').textContent = 'Give the distance and time.'; q<HTMLButtonElement>('.sp-userun').disabled = true; return NaN;
+  }
+
+  function catches() {
+    const u = U(), err = q('.sp-cerr'), out = q('.sp-cout');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; catchRes = null; catchSec = null; };
+    const ct = val('.sp-ct'), tol = val('.sp-tol');
+    const parts = q<HTMLTextAreaElement>('.sp-c').value.trim().split(/[\s,;]+/).filter(Boolean), vals = parts.map(num);
+    if (!parts.length) return fail(`Type the volume caught from each nozzle in ${u.c}.`);
+    if (vals.some((x) => !(x > 0))) return fail(`"${parts[vals.findIndex((x) => !(x > 0))]}" is not a volume.`);
+    if (!(ct > 0 && ct <= 3600)) return fail('Give the catch time in seconds.');
+    if (!(tol > 0 && tol < 100)) return fail('Give the tolerance in %, for example 10.');
+    err.hidden = true; out.hidden = false;
+    catchIn = vals;
+    const c = catchTest(vals.map(u.cSI), ct, tol); catchRes = c;
+    const meanU = u.qFromSI(c.mean);
+    q('.sp-cbig').textContent = `Mean ${fx(meanU, 3)} ${u.q}; ${c.bad.length ? `${c.bad.length} of ${vals.length} nozzle${vals.length === 1 ? '' : 's'} off by more than ${g(tol)} %: clean or replace them` : `all ${vals.length} within ${g(tol)} %`}`;
+    const t = q('.sp-ctab'); t.replaceChildren();
+    const head = ['Nozzle', `Caught (${u.c})`, `Flow (${u.q})`, 'From mean', 'Check'];
+    const h = t.insertRow(); head.forEach((x) => { const th = document.createElement('th'); th.textContent = x; h.append(th); });
+    const rows = vals.map((x, i) => [String(i + 1), g(x), fx(u.qFromSI(c.flows[i]), 3), `${c.dev[i] >= 0 ? '+' : '−'}${fx(Math.abs(c.dev[i]), 1)} %`, c.bad.includes(i) ? 'fix' : 'ok']);
+    rows.forEach((r, i) => { const tr = t.insertRow(); r.forEach((x, k) => { const td = tr.insertCell(); td.textContent = x; td.className = k === 4 ? (c.bad.includes(i) ? 'bad' : 'ok') : k ? 'r' : ''; }); });
+    const v = val('.sp-v'), w = val('.sp-w');
+    const atMean = v > 0 && w > 0 ? rateLHa(c.mean, u.vSI(v), u.wSI(w)) : NaN;
+    const note = `CV between nozzles ${fx(c.cv, 1)} %.` + (Number.isFinite(atMean) ? ` At ${g(v)} ${u.v} and ${g(w)} ${u.w} spacing the mean flow gives ${fx(u.us ? atMean * GPA_PER_LHA : atMean, 1)} ${u.r}.` : '');
+    q('.sp-cnote').textContent = note;
+    catchSec = { title: 'Catch test', text: [q('.sp-cbig').textContent!, note], table: { head, rows, align: ['r', 'r', 'r', 'r', 'l'] } };
+    // 1/128 acre (US only).
+    if (u.us) {
+      const wi = val('.sp-w');
+      q('.sp-128t').textContent = wi > 0 ? `At ${g(wi)} in spacing, mark a course of ${fx(course128(wi), 1)} ft (1/128 acre for one nozzle's strip). Time the sprayer over it at spraying speed, then catch from one nozzle for that many seconds. There are 128 fl oz in a gallon, so the ounces caught equal the gallons per acre.` : 'Give the nozzle spacing above.';
+      const oz = val('.sp-oz');
+      q('.sp-128r').textContent = oz > 0 ? `${fx(oz, 1)} fl oz caught = ${fx(oz, 1)} gal/acre` : '';
+    }
+  }
+
+  function tank() {
+    const u = U(), err = q('.sp-terr');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; q('.sp-tbig').textContent = ''; q('.sp-tfacts').replaceChildren(); tankSec = null; };
+    if (!(rateUser > 0)) return fail('Work out the spray volume above first.');
+    const tk = val('.sp-tank'), area = val('.sp-area'), lab = blank('.sp-lab') ? null : val('.sp-lab');
+    if (!(tk > 0)) return fail(`Give the tank size in ${u.vol}.`);
+    if (!(area > 0)) return fail(`Give the field area in ${u.a}.`);
+    if (lab !== null && !(lab > 0)) return fail('Type the product rate from the label as a number, or leave it blank.');
+    err.hidden = true;
+    const T = tanks(tk, rateUser, area, lab), lu = sel('.sp-labu'), per = u.us ? 'acre' : 'ha';
+    q('.sp-tbig').textContent = `One ${g(tk)} ${u.vol} tank covers ${fx(T.areaPerTank, 2)} ${u.a}`;
+    const facts = [
+      fact('Spray volume used', `${fx(rateUser, 1)} ${u.r}`),
+      fact(`For ${g(area)} ${u.a}`, `${T.fullTanks} full tank${T.fullTanks === 1 ? '' : 's'}${T.lastArea > 0 ? ` and a last one of ${fx(T.lastWater, 0)} ${u.vol} for ${fx(T.lastArea, 2)} ${u.a}` : ''}; ${fx(rateUser * area, 0)} ${u.vol} of spray in all`),
+    ];
+    if (lab !== null) {
+      facts.push(fact('Product per full tank', `${g(T.productPerTank!)} ${lu}`));
+      if (T.lastArea > 0) facts.push(fact('Product in the last tank', `${g(T.productLast!)} ${lu}`));
+      facts.push(fact('Product in all', `${g(T.productTotal!)} ${lu} (label rate ${g(lab)} ${lu} per ${per})`));
+    }
+    q('.sp-tfacts').replaceChildren(...facts);
+    tankSec = { title: 'Tank and product', text: [q('.sp-tbig').textContent!], facts: factsOf(q('.sp-tfacts')), note: 'The product rate is the one typed from the label; always follow the label.' };
+  }
+
+  const all = () => { rate(); run(); catches(); tank(); };
+  root.querySelectorAll('input, select, textarea').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
+  q('.sp-userun').addEventListener('click', () => { const s = run(); if (s > 0) { q<HTMLInputElement>('.sp-v').value = String(+s.toFixed(2)); all(); } });
+  q('.sp-usemean').addEventListener('click', () => { if (catchRes) { q<HTMLSelectElement>('.sp-m').value = 'rate'; q<HTMLInputElement>('.sp-q').value = String(+U().qFromSI(catchRes.mean).toFixed(4)); all(); } });
+  q('.sp-csv').addEventListener('click', () => {
+    if (!catchRes) return; const u = U();
+    save(new TextEncoder().encode(csv([['nozzle', `caught_${u.us ? 'floz' : 'mL'}`, `flow_${u.us ? 'gal' : 'L'}_per_min`, 'percent_from_mean', 'flag'], ...catchIn.map((x, i) => [i + 1, x, u.qFromSI(catchRes!.flows[i]).toFixed(4), catchRes!.dev[i].toFixed(2), catchRes!.bad.includes(i) ? 'out' : 'ok'])])), 'sprayer-catch-test.csv', 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => ({ title: 'Sprayer calibration', subtitle: q('.sp-big').textContent ?? '', file: 'sprayer-calibration', sections: [rateSec, catchSec, tankSec].filter(Boolean) as Section[] }));
+  all();
+</script>

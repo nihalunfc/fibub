@@ -1,0 +1,164 @@
+---
+// Irrigation scheduler: FAO-56 single-Kc daily root-zone water balance from pasted daily ET0 and rain. Nothing is
+// uploaded. The example season, soil and crop values are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { EXAMPLE } from '../../lib/sci/irrigation';
+---
+<div class="ax irs">
+  <div class="ax-card">
+    <h2>Soil and crop</h2>
+    <div class="ax-grid">
+      <label><span>Field capacity (% water by volume)</span> <input class="ir-fc" type="text" inputmode="decimal" value="30" /></label>
+      <label><span>Wilting point (% water by volume)</span> <input class="ir-wp" type="text" inputmode="decimal" value="14" /></label>
+      <label><span>Root depth (m)</span> <input class="ir-zr" type="text" inputmode="decimal" value="0.6" /></label>
+      <label><span>Depletion fraction p (0 to 1)</span> <input class="ir-p" type="text" inputmode="decimal" value="0.5" /></label>
+      <label><span>Crop coefficient Kc (if no Kc column)</span> <input class="ir-kc" type="text" inputmode="decimal" value="1.1" /></label>
+      <label><span>Depletion on the first day (mm)</span> <input class="ir-d0" type="text" inputmode="decimal" value="20" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="ir-adj" /> Adjust p for each day's crop water use (p + 0.04 × (5 − ETc))</label>
+    <p class="ax-help">Total available water (TAW) is the water held between field capacity and wilting point over the root depth. The crop can take the first part, p × TAW, called readily available water (RAW), without stress. Your soil's water contents and your crop's p and Kc come from your soil test, your adviser or FAO-56; the values here are made up.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Rain and irrigation</h2>
+    <div class="ax-grid">
+      <label><span>Rain that counts (%)</span> <input class="ir-rf" type="text" inputmode="decimal" value="90" /></label>
+      <label><span>Ignore rain below (mm)</span> <input class="ir-rmin" type="text" inputmode="decimal" value="2" /></label>
+      <label>Plan <select class="ir-mode"><option value="auto" selected>Suggest when to irrigate</option><option value="none">No irrigation (only follow the soil water)</option></select></label>
+      <label class="ir-a"><span>Irrigate when depletion reaches (% of RAW)</span> <input class="ir-trig" type="text" inputmode="decimal" value="100" /></label>
+      <label class="ir-a"><span>Leave room for rain (mm below field capacity)</span> <input class="ir-ref" type="text" inputmode="decimal" value="0" /></label>
+      <label><span>Application efficiency (%)</span> <input class="ir-eff" type="text" inputmode="decimal" value="80" /></label>
+      <label><span>Field area (ha; blank = none)</span> <input class="ir-area" type="text" inputmode="decimal" value="10" /></label>
+    </div>
+    <p class="ax-help">Rain that counts is what enters the root zone after runoff; light showers mostly evaporate from leaves and the surface. Efficiency turns the net depth the soil needs into the gross depth to pump: 80 % means 10 mm net needs 12.5 mm applied. It also applies to any irrigation column in your table.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Daily ET0 and rain</h2>
+    <label>One row per day, in mm: date, ET0, rain; add Kc or irrigation columns by name if you have them <textarea class="ir-data" rows="8" spellcheck="false">{EXAMPLE}</textarea></label>
+    <DataFile target=".ir-data" maxCols={10} maxRows={3660} />
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small ir-ex">Use the example</button></div>
+    <p class="ax-help">ET0 is reference evapotranspiration from a weather station or the evapotranspiration calculator. Up to 3,660 days. The example season is made up.</p>
+    <p class="ax-err ir-err" hidden></p>
+  </div>
+
+  <div class="ax-card ir-out" hidden>
+    <h2>Schedule</h2>
+    <p class="ax-big ir-big"></p>
+    <dl class="ax-facts ir-facts"></dl>
+    <canvas class="ax-fig ir-fig"></canvas>
+    <h3 class="ir-eh">Irrigations</h3>
+    <div class="ax-scroll"><table class="ir-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ir-csv">Download the daily balance (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .irs h3 { margin: 18px 0 8px; font-size: 15px; }
+  .irs textarea { width: 100%; }
+  .irs .ir-tab td:first-child { white-space: nowrap; }
+</style>
+
+<script>
+  import { balance, readDays, taw, EXAMPLE, type Row, type Soil, type Opts } from '../../lib/sci/irrigation';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { num, csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.irs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const f1 = (x: number) => (Math.round(x * 10) / 10).toFixed(1), f2 = (x: number) => (Math.round(x * 100) / 100).toFixed(2);
+  const k0 = (x: number) => Math.round(x).toLocaleString('en');
+  const fact = (k: string, v: string) => { const d = document.createElement('div'); const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); return d; };
+  let rows: Row[] = [], fig: Figure | null = null, sections: Section[] = [];
+
+  function run() {
+    const mode = q<HTMLSelectElement>('.ir-mode').value as Opts['mode'];
+    root.querySelectorAll<HTMLElement>('.ir-a').forEach((e) => { e.hidden = mode !== 'auto'; });
+    const err = q('.ir-err'), out = q('.ir-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; rows = []; sections = []; fig = null; };
+    const fc = val('.ir-fc'), wp = val('.ir-wp'), zr = val('.ir-zr'), p = val('.ir-p'), kc = val('.ir-kc'), d0 = val('.ir-d0');
+    const rf = val('.ir-rf'), rmin = val('.ir-rmin'), trig = val('.ir-trig'), ref = val('.ir-ref'), eff = val('.ir-eff');
+    const areaRaw = q<HTMLInputElement>('.ir-area').value.trim(), area = areaRaw ? num(areaRaw) : NaN;
+    if (!(fc > 0 && fc < 80 && wp >= 0 && wp < fc)) return fail('Give field capacity and wilting point as % water by volume, wilting point lower (for example 30 and 14).');
+    if (!(zr > 0 && zr <= 5)) return fail('Give the root depth in metres (for example 0.6).');
+    if (!(p > 0 && p < 1)) return fail('Give the depletion fraction p between 0 and 1 (often 0.3 to 0.7).');
+    if (!(kc >= 0 && kc < 3)) return fail('Give a crop coefficient Kc, usually 0.2 to 1.3.');
+    if (!(rf >= 0 && rf <= 100 && rmin >= 0)) return fail('Give the rain that counts as 0 to 100 %, and a rain threshold of 0 mm or more.');
+    if (!(eff > 0 && eff <= 100)) return fail('Give the application efficiency in %, above 0 and up to 100.');
+    if (mode === 'auto' && !(trig > 0 && trig <= 200)) return fail('Give the trigger as a % of RAW (100 % irrigates when RAW is used up).');
+    if (areaRaw && !(area > 0)) return fail('Give the field area in hectares, or leave it blank.');
+    const soil: Soil = { fc: fc / 100, wp: wp / 100, zr, p, adjustP: q<HTMLInputElement>('.ir-adj').checked };
+    const T = taw(soil);
+    if (!(d0 >= 0 && d0 <= T)) return fail(`Give the first day's depletion in mm, 0 (field capacity) to ${f1(T)} (TAW, wilting point).`);
+    if (mode === 'auto' && !(ref >= 0 && ref < trig / 100 * p * T)) return fail(`The room left for rain must be less than the trigger depletion (${f1((trig / 100) * p * T)} mm).`);
+    const rd = readDays(q<HTMLTextAreaElement>('.ir-data').value);
+    if (rd.error) return fail(rd.error);
+    if (rd.days.length > 3660) return fail(`The table has ${rd.days.length.toLocaleString('en')} days; the limit is 3,660.`);
+    err.hidden = true; out.hidden = false;
+    const o: Opts = { kc, d0, rainFrac: rf / 100, rainMin: rmin, mode, trigger: trig / 100, refill: mode === 'auto' ? ref : 0, eff: eff / 100 };
+    rows = balance(rd.days, soil, o);
+    const sum = (k: keyof Row) => rows.reduce((s, r) => s + (r[k] as number), 0);
+    const ev = rows.filter((r) => r.irrNet > 0), stress = rows.filter((r) => r.ks < 1).length, last = rows[rows.length - 1];
+    q('.ir-big').textContent = mode === 'auto'
+      ? (ev.length ? `Irrigate ${ev.length} time${ev.length === 1 ? '' : 's'}: ${f1(sum('irrNet'))} mm net, ${f1(sum('irrGross'))} mm applied` : 'No irrigation needed in these days')
+      : `No irrigation: ${stress} day${stress === 1 ? '' : 's'} of water stress; depletion ends at ${f1(last.d)} of ${f1(T)} mm`;
+    const n = rows.length, wk = rows.slice(-7), etcWk = wk.reduce((s, r) => s + r.etc, 0) / wk.length;
+    const facts = [
+      fact('Soil water', `TAW ${f1(T)} mm; RAW ${soil.adjustP ? `${f1(Math.min(...rows.map((r) => r.raw)))} to ${f1(Math.max(...rows.map((r) => r.raw)))}` : f1(p * T)} mm`),
+      fact('Crop water use', `${f1(sum('etc'))} mm ETc; ${f1(sum('eta'))} mm actually used over ${n} days`),
+      fact('Rain', `${f1(sum('rain'))} mm fell, ${f1(sum('pe'))} mm counted; ${f1(sum('dp'))} mm drained below the roots`),
+      fact('Water stress', stress ? `${stress} day${stress === 1 ? '' : 's'} with depletion past RAW (lowest Ks ${f2(Math.min(...rows.map((r) => r.ks)))})` : 'none: depletion stayed within RAW'),
+      ...(rd.hasIrr ? [fact('Your irrigation column', `${f1(sum('irrIn'))} mm applied, ${f1(sum('irrIn') * o.eff)} mm counted at ${eff} %`)] : []),
+      ...(rd.hasKc ? [fact('Kc', 'from your Kc column (blank rows use the Kc above)')] : []),
+      fact('At the end', `depletion ${f1(last.d)} mm on ${last.date}`),
+    ];
+    if (mode === 'auto' && etcWk > 0) {
+      const R = last.raw * o.trigger, left = Math.max(0, R - last.d), dd = left / etcWk;
+      facts.push(fact('Next irrigation', left <= 0 ? 'due now' : `in about ${Math.max(1, Math.round(dd))} day${Math.round(dd) === 1 ? '' : 's'} at the last week's ETc of ${f1(etcWk)} mm/day, if no rain`));
+    }
+    if (area > 0 && mode === 'auto' && ev.length) facts.push(fact('Water to pump', `${k0(sum('irrGross') * 10 * area)} m³ for ${area} ha (1 mm on 1 ha = 10 m³)`));
+    if (rd.skipped) facts.push(fact('Skipped rows', `${rd.skipped} (ET0 or rain missing or impossible)`));
+    q('.ir-facts').replaceChildren(...facts);
+    // Events.
+    q('.ir-eh').hidden = mode !== 'auto';
+    const head = ['Date', 'Depletion (mm)', 'Net (mm)', 'Applied (mm)', ...(area > 0 ? ['Applied (m³)'] : [])];
+    const evRows = ev.map((r) => [r.date, f1(r.dPre), f1(r.irrNet), f1(r.irrGross), ...(area > 0 ? [k0(r.irrGross * 10 * area)] : [])]);
+    const t = q('.ir-tab'); t.replaceChildren();
+    if (mode === 'auto' && evRows.length) {
+      const h = t.insertRow(); head.forEach((x) => { const th = document.createElement('th'); th.textContent = x; h.append(th); });
+      for (const r of evRows) { const tr = t.insertRow(); r.forEach((x, k) => { const td = tr.insertCell(); td.textContent = x; if (k) td.className = 'r'; }); }
+    }
+    // Chart: depletion drawn downwards, as a falling tank.
+    const xs = rows.map((_, i) => i + 1);
+    fig = chartFigure({
+      w: 380, h: 240, xLabel: `Day (1 = ${rows[0].date})`, yLabel: 'Depletion (mm)', yReverse: true, yMin: 0, yMax: Math.ceil(T / 10) * 10, legend: 'below',
+      series: [
+        { name: 'Depletion at the end of the day', x: xs, y: rows.map((r) => r.d), mode: 'line', width: 1.8 },
+        ...(ev.length ? [{ name: 'Before irrigating', x: ev.map((r) => rows.indexOf(r) + 1), y: ev.map((r) => r.dPre), mode: 'points' as const, marker: 'triangle' as const, size: 4 }] : []),
+        ...(soil.adjustP ? [{ name: 'RAW', x: xs, y: rows.map((r) => r.raw), mode: 'line' as const, dash: [5, 4], width: 1.2 }] : []),
+      ],
+      marks: [...(soil.adjustP ? [] : [{ kind: 'hline' as const, at: p * T, dash: [5, 4], label: 'RAW' }]), { kind: 'hline' as const, at: T, label: 'TAW' }],
+    }, 'Root zone depletion through the season');
+    paint(q<HTMLCanvasElement>('.ir-fig'), fig);
+    sections = [
+      { title: 'Settings', facts: [['Soil', `field capacity ${fc} %, wilting point ${wp} %, roots ${zr} m`], ['Crop', `Kc ${rd.hasKc ? 'from the table' : kc}, p ${p}${soil.adjustP ? ' (adjusted daily)' : ''}`], ['Rain', `${rf} % counts; under ${rmin} mm ignored`], ['Irrigation', mode === 'auto' ? `at ${trig} % of RAW, refill to ${ref} mm below field capacity, ${eff} % efficiency` : 'none']] },
+      { title: 'Schedule', text: [q('.ir-big').textContent!], facts: [...q('.ir-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]), figure: fig, ...(evRows.length && mode === 'auto' ? { table: { head, rows: evRows, align: head.map((_, k) => (k ? 'r' : 'l')) as ('l' | 'r')[] } } : {}) },
+    ];
+  }
+
+  root.querySelectorAll('input, select, textarea').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+  q('.ir-ex').addEventListener('click', () => { q<HTMLTextAreaElement>('.ir-data').value = EXAMPLE; run(); });
+  q('.ir-csv').addEventListener('click', () => {
+    if (!rows.length) return;
+    save(new TextEncoder().encode(csv([['date', 'ET0', 'Kc', 'ETc', 'Ks', 'ET_actual', 'rain', 'rain_counted', 'irrigation_in_table', 'deep_percolation', 'depletion_before_irrigation', 'irrigation_net', 'irrigation_applied', 'depletion_end', 'RAW', 'TAW'],
+      ...rows.map((r) => [r.date, r.et0, f2(r.kc), f2(r.etc), f2(r.ks), f2(r.eta), r.rain, f2(r.pe), r.irrIn, f2(r.dp), f2(r.dPre), f2(r.irrNet), f2(r.irrGross), f2(r.d), f2(r.raw), f2(r.taw)])])), 'irrigation-schedule.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.ir-out').hidden) paint(q<HTMLCanvasElement>('.ir-fig'), fig); });
+  wireDownloads(q('.dl'), () => ({ title: 'Irrigation schedule', subtitle: q('.ir-big').textContent ?? '', file: 'irrigation-schedule', sections }));
+  run();
+</script>

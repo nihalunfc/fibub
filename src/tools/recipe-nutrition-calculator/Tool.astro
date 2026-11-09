@@ -1,0 +1,145 @@
+---
+// Recipe nutrition from the user's own ingredient rows (per 100 g values from packs or labels): per serving and
+// per 100 g of the cooked food, as a label-style table. No food database is bundled; nothing is uploaded.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax rnut">
+  <div class="ax-card">
+    <h2>Your ingredients</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small rn-ex">Use the example</button>
+      <button type="button" class="btn secondary small rn-blank">Start a blank table</button>
+    </div>
+    <label style="margin-top:10px">One ingredient per line: name, amount in grams, then the values per 100 g from its pack or label
+      <textarea class="rn-in" rows="7" spellcheck="false" placeholder="Ingredient, Amount (g), Energy (kcal), Fat, Saturates, Carbohydrate, Sugars, Fibre, Protein, Salt"></textarea></label>
+    <DataFile target=".rn-in" maxMB={2} maxCols={14} maxRows={500} />
+    <p class="ax-help">Columns are found by their names (Energy in kcal or kJ, Fat, Saturates, Carbohydrate, Sugars, Fibre, Protein, Salt or Sodium). Without a header row the order is: name, grams, kcal, fat, saturates, carbohydrate, sugars, fibre, protein, salt. Leave a cell empty if the label does not give it. Weigh liquids, or use 1 ml ≈ 1 g for water-like ones.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Servings <input class="rn-serv" type="number" min="1" step="1" value="4" inputmode="numeric" /></label>
+      <label>Weight lost in cooking (%) <input class="rn-loss" type="number" min="0" max="99" step="1" value="0" inputmode="decimal" /></label>
+      <label>Or weight after cooking (g) <input class="rn-cooked" type="number" min="0" step="1" placeholder="optional" inputmode="decimal" /></label>
+      <label>Energy <select class="rn-en"><option value="label">From the labels</option><option value="macros">From the nutrients (4/9/4/2)</option></select></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="rn-cf" /> My labels' carbohydrate includes fibre (US-style "total carbohydrate")</label>
+    <p class="ax-help">Weight lost is water that cooks off; the nutrients are assumed to stay in the food. "From the nutrients" works energy out as 4 kcal per gram of protein and carbohydrate, 9 for fat and 2 for fibre (the general Atwater factors).</p>
+    <p class="ax-err rn-err" hidden></p>
+  </div>
+
+  <div class="ax-card rn-out" hidden>
+    <h2>Nutrition</h2>
+    <p class="ax-big rn-big"></p>
+    <dl class="ax-facts rn-facts"></dl>
+    <div class="ax-scroll" style="margin-top:12px"><table class="rn-label"></table></div>
+    <p class="ax-help rn-note"></p>
+    <h3>Where the energy comes from</h3>
+    <canvas class="ax-fig rn-fig"></canvas>
+    <div class="ax-scroll"><table class="rn-ing"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small rn-csv">Download table (CSV)</button></div>
+    <Downloads />
+    <p class="ax-help">For home cooking, study and planning. Values are only as good as the labels you typed; if you sell food, check the labelling rules where you sell it with the official source.</p>
+  </div>
+</div>
+
+<style is:global>
+  .rnut h3 { margin: 22px 0 8px; font-size: 15px; }
+  .rnut .rn-label { max-width: 520px; }
+  .rnut .rn-label td.sub { padding-left: 22px; }
+  .rnut .rn-label tr.top td { border-top: 2px solid var(--ink); }
+</style>
+
+<script>
+  import { parseRecipe, recipe, fmt, NUTRIENTS, EXAMPLE, type RecipeResult } from '../../lib/sci/nutrition';
+  import { num, csv } from '../../lib/sci/num';
+  import { wireDownloads, save, paint, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.rnut')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const table = (t: HTMLElement, head: string[], rows: string[][], cls: string[] = [], rowCls: string[] = []) => {
+    t.replaceChildren();
+    const h = t.insertRow(); head.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (cls[k]) th.className = cls[k]; h.append(th); });
+    rows.forEach((r, i) => { const tr = t.insertRow(); if (rowCls[i]) tr.className = rowCls[i]; r.forEach((x, k) => { const td = tr.insertCell(); td.textContent = x; if (cls[k]) td.className = cls[k]; if (k === 0 && /^of which/.test(x)) td.className = 'sub'; }); });
+  };
+  let res: RecipeResult | null = null, fig: Figure | null = null, labelRows: string[][] = [];
+
+  function run() {
+    const err = q('.rn-err'), out = q('.rn-out');
+    err.hidden = true;
+    const text = q<HTMLTextAreaElement>('.rn-in').value;
+    if (!text.trim()) { out.hidden = true; res = null; return; }
+    const p = parseRecipe(text);
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; };
+    if (p.errors.length) fail(p.errors.slice(0, 4).join(' ') + (p.errors.length > 4 ? ` (and ${p.errors.length - 4} more)` : ''));
+    if (!p.items.length) { out.hidden = true; res = null; if (p.errors.length === 0) fail('Add at least one ingredient with an amount in grams.'); return; }
+    const cookedIn = val('.rn-cooked'), servings = val('.rn-serv'), loss = val('.rn-loss') || 0;
+    if (!(servings > 0)) { out.hidden = true; res = null; return fail('Servings must be a number above 0.'); }
+    if (loss < 0 || loss >= 100) { out.hidden = true; res = null; return fail('Weight lost in cooking must be from 0 to 99 %.'); }
+    const macros = q<HTMLSelectElement>('.rn-en').value === 'macros';
+    try { res = recipe(p.items, { servings, lossPct: loss, cookedWeight: cookedIn > 0 ? cookedIn : undefined, energyFromMacros: macros, carbIncludesFibre: q<HTMLInputElement>('.rn-cf').checked }); }
+    catch (e) { out.hidden = true; res = null; return fail((e as Error).message); }
+    out.hidden = false;
+    const r = res;
+    q('.rn-big').textContent = `${fmt('kcal', r.perServing.kcal)} kcal per serving (${Math.round(r.servingWeight)} g)`;
+    const facts: [string, string][] = [['Ingredients', String(r.rows.length)], ['Raw weight', `${Math.round(r.rawWeight)} g`], ['Cooked weight', `${Math.round(r.cookedWeight)} g`], ['Servings', String(r.servings)], ['Per serving', `${Math.round(r.servingWeight)} g`]];
+    q('.rn-facts').replaceChildren(...facts.map(([k, v]) => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; d.append(dt, dd); return d; }));
+    labelRows = [
+      ['Energy', `${fmt('kj', r.kj.per100)} kJ / ${fmt('kcal', r.per100.kcal)} kcal`, `${fmt('kj', r.kj.perServing)} kJ / ${fmt('kcal', r.perServing.kcal)} kcal`],
+      ...NUTRIENTS.filter((n) => n.id !== 'kcal').map((n) => [n.name, `${fmt(n.id, r.per100[n.id])} g`, `${fmt(n.id, r.perServing[n.id])} g`]),
+    ];
+    table(q('.rn-label'), ['Typical values', 'Per 100 g', `Per serving (${Math.round(r.servingWeight)} g)`], labelRows, ['', 'r', 'r']);
+    const miss = Object.entries(p.missing).filter(([k]) => !(macros && k === 'kcal')).map(([k, names]) => `${NUTRIENTS.find((n) => n.id === k)!.name.replace('of which ', '')}: ${names!.join(', ')}`);
+    q('.rn-note').textContent = `${macros ? 'Energy worked out from protein, fat, carbohydrate and fibre (4/9/4/2 kcal per gram). ' : 'Energy from the labels. '}kJ = kcal × 4.184. Salt = sodium × 2.5.${miss.length ? ` No value given (counted as 0): ${miss.join('; ')}.` : ''}`;
+    table(q('.rn-ing'), ['Ingredient', 'Amount (g)', 'kcal in recipe', 'Share of energy'], r.rows.map((x) => [x.name, String(x.grams), fmt('kcal', x.total.kcal), `${(100 * x.kcalShare).toFixed(1)} %`]), ['', 'r', 'r', 'r']);
+    const rows = r.rows.slice().sort((a, b) => b.kcalShare - a.kcalShare);
+    fig = {
+      w: 420, h: 20 + rows.length * 30, alt: `Share of the recipe's energy by ingredient: ${rows.map((x) => `${x.name} ${(100 * x.kcalShare).toFixed(0)} %`).join(', ')}`,
+      draw: (ctx, W, H, pal) => {
+        const L = Math.min(200, W * 0.38), R = 56;
+        ctx.font = '12px Arial, Helvetica, sans-serif'; ctx.textBaseline = 'middle';
+        rows.forEach((x, i) => {
+          const y = 18 + i * 30, w = (W - L - R) * x.kcalShare;
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'right';
+          const name = x.name.length > 26 ? x.name.slice(0, 25) + '…' : x.name;
+          ctx.fillText(name, L - 8, y + 10);
+          ctx.fillStyle = pal.accent; ctx.fillRect(L, y, Math.max(1, w), 20);
+          ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText(`${(100 * x.kcalShare).toFixed(1)} %`, L + w + 6, y + 10);
+        });
+      },
+    };
+    paint(q<HTMLCanvasElement>('.rn-fig'), fig);
+  }
+
+  const sections = (): Section[] => res ? [
+    { title: 'Nutrition', facts: [['Raw weight', `${Math.round(res.rawWeight)} g`], ['Cooked weight', `${Math.round(res.cookedWeight)} g`], ['Servings', String(res.servings)], ['Serving', `${Math.round(res.servingWeight)} g`]],
+      table: { head: ['Typical values', 'Per 100 g', `Per serving (${Math.round(res.servingWeight)} g)`], rows: labelRows, align: ['l', 'r', 'r'] }, note: q('.rn-note').textContent ?? '' },
+    { title: 'Ingredients', figure: fig ?? undefined, table: { head: ['Ingredient', 'Amount (g)', 'kcal in recipe', 'Share of energy'], rows: res.rows.map((x) => [x.name, String(x.grams), fmt('kcal', x.total.kcal), `${(100 * x.kcalShare).toFixed(1)} %`]), align: ['l', 'r', 'r', 'r'] } },
+  ] : [];
+
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(run, 250); };
+  q('.rn-in').addEventListener('input', later);
+  for (const c of ['.rn-serv', '.rn-loss', '.rn-cooked']) q(c).addEventListener('input', later);
+  for (const c of ['.rn-en', '.rn-cf']) q(c).addEventListener('change', run);
+  q('.rn-ex').addEventListener('click', () => {
+    q<HTMLTextAreaElement>('.rn-in').value = EXAMPLE; q<HTMLInputElement>('.rn-serv').value = '4'; q<HTMLInputElement>('.rn-loss').value = '15';
+    q<HTMLInputElement>('.rn-cooked').value = ''; q<HTMLSelectElement>('.rn-en').value = 'label'; q<HTMLInputElement>('.rn-cf').checked = false; run();
+  });
+  q('.rn-blank').addEventListener('click', () => {
+    const t = q<HTMLTextAreaElement>('.rn-in'); t.value = 'Ingredient, Amount (g), Energy (kcal), Fat, Saturates, Carbohydrate, Sugars, Fibre, Protein, Salt\n'; t.focus(); run();
+  });
+  q('.rn-csv').addEventListener('click', () => {
+    if (!res) return;
+    const r = res;
+    const rows: (string | number)[][] = [['nutrient', 'unit', 'per_100g', 'per_serving', 'whole_recipe'],
+      ['energy', 'kJ', r.kj.per100.toFixed(0), r.kj.perServing.toFixed(0), r.kj.total.toFixed(0)],
+      ...NUTRIENTS.map((n) => [n.name.replace('of which ', ''), n.unit, r.per100[n.id].toFixed(n.id === 'kcal' ? 0 : 3), r.perServing[n.id].toFixed(n.id === 'kcal' ? 0 : 3), r.total[n.id].toFixed(n.id === 'kcal' ? 0 : 3)]),
+      [], ['ingredient', 'grams', ...NUTRIENTS.map((n) => `${n.id}_in_recipe`)],
+      ...r.rows.map((x) => [x.name, x.grams, ...NUTRIENTS.map((n) => x.total[n.id].toFixed(3))]),
+      [], ['raw_weight_g', r.rawWeight], ['cooked_weight_g', r.cookedWeight.toFixed(1)], ['servings', r.servings], ['serving_g', r.servingWeight.toFixed(1)]];
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'recipe-nutrition.csv', 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => ({ title: 'Recipe nutrition', subtitle: q('.rn-big').textContent ?? '', file: 'recipe-nutrition', sections: sections() }));
+  document.addEventListener('fibub:theme', () => { if (fig && res) paint(q<HTMLCanvasElement>('.rn-fig'), fig); });
+</script>
