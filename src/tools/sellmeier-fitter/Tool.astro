@@ -1,0 +1,134 @@
+---
+// Sellmeier and Cauchy dispersion fitter: paste refractive index against wavelength, get the coefficients, residuals,
+// Abbe number, group index and group-velocity dispersion. The example glass is made up; no catalogue data is used.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax slf">
+  <div class="ax-card">
+    <h2>Measured index</h2>
+    <label><span>Wavelength and refractive index, one pair per line (a header row is fine)</span> <textarea class="sf-in" rows="8" spellcheck="false" wrap="off"></textarea></label>
+    <DataFile target=".sf-in" maxCols={10} maxRows={5000} />
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small sf-ex">Use the example</button></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Wavelength unit <select class="sf-u"><option value="auto" selected>Guess (nm if above 50)</option><option value="nm">nm</option><option value="um">µm</option></select></label>
+      <label>Model <select class="sf-m">
+        <option value="s3" selected>Sellmeier, 3 terms</option>
+        <option value="s2">Sellmeier, 2 terms</option>
+        <option value="s1">Sellmeier, 1 term</option>
+        <option value="c3">Cauchy, 3 terms</option>
+        <option value="c2">Cauchy, 2 terms</option>
+      </select></label>
+      <label>Evaluate at (nm) <input class="sf-at" type="text" inputmode="decimal" value="1550" /></label>
+    </div>
+    <p class="ax-help">Sellmeier: n² = 1 + Σ Bᵢλ²/(λ² − Cᵢ), λ in µm, each term a resonance at √Cᵢ µm; it extrapolates well. Cauchy: n = A + B/λ² + C/λ⁴, a simpler fit for visible light. The first two numbers on each line are used. The example glass is made up.</p>
+    <p class="ax-err sf-err" hidden></p>
+  </div>
+
+  <div class="ax-card sf-out">
+    <h2>Fit</h2>
+    <p class="ax-big sf-big"></p>
+    <div class="ax-scroll"><table class="sf-tab"></table></div>
+    <p class="ax-help sf-note"></p>
+    <dl class="ax-facts sf-facts" style="margin-top:12px"></dl>
+    <canvas class="ax-fig sf-fig"></canvas>
+    <canvas class="ax-fig sf-fig2"></canvas>
+    <h3>All models compared</h3>
+    <div class="ax-scroll"><table class="sf-cmp"></table></div>
+    <p class="ax-help">Least-squares fit to the refractive index (Levenberg-Marquardt, started from a separable linear solve). ± is one standard error from the fit, assuming independent errors of equal size. Outside the measured wavelengths every model is an extrapolation. For study and planning; for lens design use measured, certified glass data.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small sf-csv">Download the fitted curve (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { fit, nOf, abbe, dispersion, readData, LINES, type Model, type Fit } from '../../lib/sci/phsell';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv, numericColumns, fmtExp } from '../../lib/sci/num';
+
+  const EXAMPLE = 'wavelength_nm\tn\n380\t1.55306\n420\t1.54541\n460\t1.53994\n500\t1.53584\n550\t1.53194\n600\t1.52903\n650\t1.52671\n700\t1.52483\n800\t1.52198\n900\t1.51979\n1000\t1.51800\n1200\t1.51505\n1400\t1.51235\n1600\t1.50972';
+  const MODELS: Record<string, { m: Model; name: string }> = {
+    s3: { m: { kind: 'sellmeier', terms: 3 }, name: 'Sellmeier, 3 terms' }, s2: { m: { kind: 'sellmeier', terms: 2 }, name: 'Sellmeier, 2 terms' }, s1: { m: { kind: 'sellmeier', terms: 1 }, name: 'Sellmeier, 1 term' },
+    c3: { m: { kind: 'cauchy', terms: 3 }, name: 'Cauchy, 3 terms' }, c2: { m: { kind: 'cauchy', terms: 2 }, name: 'Cauchy, 2 terms' },
+  };
+  const root = document.querySelector<HTMLElement>('.slf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const table = (t: HTMLTableElement, head: string[], rows: string[][]) => { const tr = (cells: string[], th: boolean) => { const r = document.createElement('tr'); cells.forEach((c, j) => { const e = document.createElement(th ? 'th' : 'td'); e.textContent = c; if (j) e.className = 'r'; r.append(e); }); return r; }; t.replaceChildren(tr(head, true), ...rows.map((r) => tr(r, false))); };
+  const sci = (x: number) => (x === 0 ? '0' : Math.abs(x) >= 1e-3 && Math.abs(x) < 1e5 ? sig(x, 6) : fmtExp(x, 5));
+  let figs: Figure[] = [], report: Section[] = [], curve: (string | number)[][] = [];
+
+  function names(m: Model): string[] { return m.kind === 'cauchy' ? ['A', 'B (µm²)', 'C (µm⁴)'].slice(0, m.terms) : Array.from({ length: m.terms }, (_, i) => [`B${i + 1}`, `C${i + 1} (µm²)`]).flat(); }
+
+  function calc() {
+    const err = q('.sf-err'), out = q('.sf-out');
+    const fail = (msg: string) => { err.textContent = msg; err.hidden = false; out.hidden = true; report = []; curve = []; };
+    const text = q<HTMLTextAreaElement>('.sf-in').value;
+    if (!text.trim()) return fail('Paste wavelength and refractive index pairs, open a file, or use the example.');
+    const { cols } = numericColumns(text);
+    if (cols.length < 2) return fail('Give two columns: wavelength, then refractive index.');
+    const d = readData(cols, q<HTMLSelectElement>('.sf-u').value as 'auto' | 'nm' | 'um');
+    if (d.ls.length < 3) return fail('Give at least 3 rows with a wavelength and an index between 1 and 10.');
+    if (new Set(d.ls).size < d.ls.length) return fail('Two rows have the same wavelength; average them first.');
+    const key = q<HTMLSelectElement>('.sf-m').value, M = MODELS[key];
+    let F: Fit;
+    try { F = fit(M.m, d.ls, d.ns); } catch (e) { return fail((e as Error).message); }
+    const at = num(q<HTMLInputElement>('.sf-at').value) / 1000;
+    if (!(at > 0.1 && at < 50)) return fail('Give a wavelength to evaluate at, in nm (100 to 50,000).');
+    err.hidden = true; out.hidden = false;
+    const lmin = Math.min(...d.ls), lmax = Math.max(...d.ls);
+    q('.sf-big').textContent = `${M.name}: RMS residual ${sig(F.rms, 2)}, largest ${sig(F.maxRes, 2)}`;
+    const rows = F.p.map((v, i) => [names(M.m)[i], sci(v), Number.isFinite(F.se[i]) ? `± ${sci(F.se[i])}` : '–']);
+    table(q<HTMLTableElement>('.sf-tab'), ['Coefficient', 'Value', 'Standard error'], rows);
+    const notes: string[] = [`${d.ls.length} points from ${sig(lmin * 1000, 4)} to ${sig(lmax * 1000, 4)} nm${d.dropped ? `; ${d.dropped} row${d.dropped > 1 ? 's' : ''} skipped (not a wavelength and an index)` : ''}.`];
+    if (M.m.kind === 'sellmeier') { const res = F.p.filter((_, i) => i % 2 === 1).map((c) => `${sig(Math.sqrt(c), 3)} µm`); notes.push(`Resonances at ${res.join(', ')}.`); if (M.m.terms === 3 && lmax < 2) notes.push('The infrared term is poorly fixed by data that stop below 2 µm: its B and C trade off against each other (large ± values), even though the curve itself is well determined.'); }
+    if (!F.converged) notes.push('The fit stopped before fully converging; try a model with fewer terms.');
+    if (F.dof <= 0) notes.push('As many coefficients as points: the curve passes through every point and the residuals say nothing about quality.');
+    q('.sf-note').textContent = notes.join(' ');
+    const dz = dispersion(M.m, F.p, at), out_ = at < lmin || at > lmax;
+    const nd = nOf(M.m, F.p, LINES.d), V = abbe(M.m, F.p);
+    const vis = lmin <= LINES.F && lmax >= LINES.C;
+    const f = [
+      fact(`n at ${sig(at * 1000, 5)} nm`, sig(dz.n, 6), out_ ? 'outside the data: extrapolated' : 'interpolated'),
+      fact('Group index', sig(dz.ng, 6), 'n − λ dn/dλ: the speed of a pulse is c divided by this'),
+      fact('Group-velocity dispersion β₂', `${sig(dz.beta2, 4)} fs²/mm`, dz.beta2 > 0 ? 'normal dispersion: red travels faster than blue' : 'anomalous dispersion'),
+      fact('Dispersion parameter D', `${sig(dz.D, 4)} ps/(nm·km)`, '−(λ/c) d²n/dλ², the fibre-optics convention'),
+      fact('n_d (587.6 nm)', sig(nd, 6), vis ? 'helium d line' : 'extrapolated: data do not cover 486 to 656 nm'),
+      fact('Abbe number V_d', sig(V, 4), `(n_d − 1)/(n_F − n_C); ${V > 50 ? 'low dispersion (crown-like)' : 'higher dispersion (flint-like below about 50)'}${vis ? '' : '; extrapolated'}`),
+    ];
+    q('.sf-facts').replaceChildren(...f);
+    // Charts.
+    const lo = Math.max(0.2, lmin * 0.85), hi = lmax * 1.1, xs: number[] = [], ys: number[] = [];
+    for (let i = 0; i <= 300; i++) { const l = lo + ((hi - lo) * i) / 300, v = nOf(M.m, F.p, l); if (Number.isFinite(v)) { xs.push(l * 1000); ys.push(v); } }
+    const c1 = chartFigure({ w: 400, h: 230, xLabel: 'Wavelength (nm)', yLabel: 'Refractive index n', legend: 'below', series: [{ name: 'Measured', x: d.ls.map((l) => l * 1000), y: d.ns, mode: 'points', size: 3.4 }, { name: M.name, x: xs, y: ys, mode: 'line', width: 1.8 }], marks: [{ kind: 'vline', at: at * 1000, dash: [3, 3] }] }, `Refractive index against wavelength with the ${M.name} fit`);
+    const c2 = chartFigure({ w: 400, h: 190, xLabel: 'Wavelength (nm)', yLabel: 'Residual (measured − fit)', legend: 'none', series: [{ name: 'Residual', x: d.ls.map((l) => l * 1000), y: F.res, mode: 'points', size: 3.4 }], marks: [{ kind: 'hline', at: 0, dash: [4, 3] }] }, 'Fit residuals');
+    paint(q<HTMLCanvasElement>('.sf-fig'), c1); paint(q<HTMLCanvasElement>('.sf-fig2'), c2);
+    figs = [c1, c2];
+    // Compare all models.
+    const cmp = Object.entries(MODELS).map(([k, v]) => { try { const g = fit(v.m, d.ls, d.ns); return [v.name + (k === key ? ' (shown)' : ''), sig(g.rms, 2), sig(g.maxRes, 2), sig(nOf(v.m, g.p, at), 6)]; } catch { return [v.name, 'too few points', '', '']; } });
+    table(q<HTMLTableElement>('.sf-cmp'), ['Model', 'RMS residual', 'Largest', `n at ${sig(at * 1000, 5)} nm`], cmp);
+    curve = [['wavelength_nm', 'n_fit'], ...xs.map((x, i) => [+x.toFixed(3), +ys[i].toFixed(8)])];
+    const plain = (els: HTMLElement[]) => els.map((e) => [e.querySelector('dt')!.textContent!, e.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    report = [
+      { title: q('.sf-big').textContent!, table: { head: ['Coefficient', 'Value', 'Standard error'], rows, align: ['l', 'r', 'r'] }, text: [q('.sf-note').textContent!], figure: c1 },
+      { title: 'Derived quantities', facts: plain(f), figure: c2 },
+      { title: 'All models compared', table: { head: ['Model', 'RMS residual', 'Largest', `n at ${sig(at * 1000, 5)} nm`], rows: cmp, align: ['l', 'r', 'r', 'r'] } },
+    ];
+  }
+
+  q('.sf-ex').addEventListener('click', () => { q<HTMLTextAreaElement>('.sf-in').value = EXAMPLE; calc(); });
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 150); };
+  root.querySelectorAll('textarea, input:not([type=file]), select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.sf-out').hidden) { paint(q<HTMLCanvasElement>('.sf-fig'), figs[0]); paint(q<HTMLCanvasElement>('.sf-fig2'), figs[1]); } });
+  q('.sf-csv').addEventListener('click', () => { if (curve.length) save(new TextEncoder().encode(csv(curve)), 'sellmeier-fit.csv', 'text/csv'); });
+  q<HTMLTextAreaElement>('.sf-in').value = EXAMPLE;
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Dispersion fit', subtitle: q('.sf-big').textContent ?? '', file: 'sellmeier-fit', sections: report }));
+</script>
+
+<style is:global>
+  .slf h3 { margin: 18px 0 8px; font-size: 15px; }
+</style>
