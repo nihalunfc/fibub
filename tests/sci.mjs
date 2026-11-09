@@ -163,6 +163,7 @@ import * as IV from '../src/lib/sci/intervals.ts';
 import * as KM from '../src/lib/sci/kmer.ts';
 import * as RX from '../src/lib/rosterExport.ts';
 import * as NW from '../src/lib/sci/newick.ts';
+import * as PP from '../src/lib/sci/protparam.ts';
 import { unzipSync, strFromU8 } from 'fflate';
 
 let pass = 0, fail = 0;
@@ -3404,6 +3405,32 @@ ORIGIN
   check('newick: SVG has every tip and escapes names', svg.startsWith('<svg') && (svg.match(/<text/g) || []).length === texts.length && NW.toSvg({ w: 10, h: 10, shapes: [{ t: 'text', x: 1, y: 1, s: 'a<b&c', size: 5, color: '#000', anchor: 'start' }], hits: [] }).includes('a&lt;b&amp;c'));
   const clad = NW.drawTree(NW.parseNewick('((A,B),(C,(D,E)));'), { ...o, lengths: true });
   check('newick: a tree without lengths is drawn as a cladogram (no scale bar)', !NW.stats(NW.parseNewick('((A,B),C);')).lengths && !clad.shapes.some((x) => x.t === 'line' && x.y1 === x.y2 && x.y1 > clad.h - 30 && x.color === '#000' && x.w === 1.5 && x.x1 === 12));
+}
+
+// ---- #178 Protein parameter calculator: masses and extinction checked against Biopython ----
+{
+  const ex = PP.readProtein(PP.EXAMPLE)[0], a = PP.analyse(ex.seq);
+  check('protein: example is 120 aa, C626H932N176O183S9', ex.seq.length === 120 && a.formula === 'C626H932N176O183S9');
+  // Biopython molecular_weight(monoisotopic=True) 14130.651938; average 14139.751 with older atomic weights.
+  check('protein: monoisotopic mass matches Biopython (14130.6520)', Math.abs(a.mono - 14130.651938) < 1e-3);
+  check('protein: average mass 14139.93 (Biopython 14139.75, older weights)', Math.abs(a.avg - 14139.931) < 0.01 && Math.abs(a.avg - 14139.751) / a.avg < 2e-5);
+  check('protein: extinction 36440 reduced, 36690 with two cystines (Biopython)', a.eps.reduced === 36440 && a.eps.cystines === 36690 && a.eps.pairs === 2);
+  check('protein: pI 7.38 and charge +0.68 at pH 7 with the default pKa set', Math.abs(a.pI - 7.3814) < 1e-3 && Math.abs(a.chargeAt - 0.6804) < 1e-3 && Math.abs(PP.charge(ex.seq, a.pI)) < 1e-9);
+  check('protein: A280 of 1 mg/mL 2.577, and 0.5 → 13.72 µM, 0.194 mg/mL', Math.abs(a.abs01 - 2.5771) < 1e-3 && Math.abs(PP.fromA280(0.5, 36440, a.avg).uM - 13.7212) < 1e-3 && Math.abs(PP.fromA280(0.5, 36440, a.avg).mgPerMl - 0.19402) < 1e-4);
+  const ss = PP.analyse(ex.seq, { disulfides: 2 });
+  check('protein: two disulfides take 4 H (4.032 Da) off and raise ε to 36690', Math.abs(a.avg - ss.avg - 4 * 1.008) < 1e-9 && ss.epsUsed === 36690 && ss.formula === 'C626H928N176O183S9');
+  check('protein: disulfides are capped by the cysteines', PP.analyse(ex.seq, { disulfides: 9 }).disulfides === 2);
+  // Glycine dipeptide: C4H8N2O3, 132.0535 monoisotopic (water + 2 Gly residues).
+  check('protein: GG is C4H8N2O3, 132.0535', PP.analyse('GG').formula === 'C4H8N2O3' && Math.abs(PP.analyse('GG').mono - 132.05349) < 1e-4);
+  check('protein: a lone amino acid with no side chain is neutral at (9.0+3.0)/2', Math.abs(PP.isoelectric('G') - 6) < 1e-9);
+  check('protein: charge falls with pH; +ve at 2, -ve at 12', PP.charge(ex.seq, 2) > 10 && PP.charge(ex.seq, 12) < -10);
+  const p2 = { ...PP.PKA_DEFAULT, H: 7.0 };
+  check('protein: own pKa values change the pI', Math.abs(PP.isoelectric('HHHH', p2) - PP.isoelectric('HHHH')) > 0.3);
+  const r = PP.readProtein('>a one\nmkt ay*\n12 XB\n>b\nACDE\n>c\nhej!');
+  check('protein: FASTA records, lower case, numbers, *, ambiguous and odd letters', r.length === 3 && r[0].seq === 'MKTAY' && r[0].stop && r[0].ambiguous.X === 1 && r[0].ambiguous.B === 1 && r[1].seq === 'ACDE' && r[2].seq === 'HE' && r[2].skipped['!'] === 1 && r[2].ambiguous.J === 1);
+  check('protein: selenocysteine counted', PP.analyse('U').formula === 'C3H7NO2Se');
+  const c = PP.chargeCurve('KDE');
+  check('protein: charge curve from pH 0 to 14', c.x.length === 281 && c.x[0] === 0 && c.x[280] === 14 && c.y[0] > c.y[280]);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

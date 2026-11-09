@@ -1,0 +1,174 @@
+---
+// Protein parameters from a sequence, worked out in the browser. Nothing is uploaded. The example sequence is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ppc">
+  <div class="ax-card">
+    <h2>Protein sequence</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small pp-open">Open a FASTA file</button>
+      <input type="file" class="pp-file" accept=".fa,.fasta,.faa,.txt,text/plain" hidden />
+      <button type="button" class="btn secondary small pp-ex">Use the example</button>
+    </div>
+    <label style="margin-top:10px">Paste a protein sequence (one-letter codes, FASTA is fine) <textarea class="pp-in" rows="5" spellcheck="false" autocapitalize="characters"></textarea></label>
+    <p class="ax-help">Spaces, numbers and a final * are ignored. U (selenocysteine) and O (pyrrolysine) are counted; B, Z, J and X are left out of the mass and charge. Up to 5 MB.</p>
+    <label class="pp-rec-l" hidden>Protein in the file <select class="pp-rec"></select></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>pH for the charge <input class="pp-ph" type="number" min="0" max="14" step="0.1" value="7.0" inputmode="decimal" /></label>
+      <label>Disulfide bonds <input class="pp-ss" type="number" min="0" step="1" value="0" inputmode="numeric" /></label>
+    </div>
+    <p class="ax-help">Each disulfide bond (cystine) takes 2 hydrogens off the mass, adds to the extinction coefficient and takes two cysteines out of the charge.</p>
+    <details class="pp-more">
+      <summary>pKa values and extinction coefficients</summary>
+      <p class="ax-help">The pKa values are fibub's own rounded, approximate values of the kind printed in biochemistry books. Published sets differ by up to about 0.5, so tools give pI values that differ by a few tenths. Type your own to match another tool.</p>
+      <div class="ax-grid pp-pka"></div>
+      <div class="ax-grid pp-eps" style="margin-top:10px"></div>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small pp-def">Back to the default values</button></div>
+    </details>
+    <p class="ax-err pp-err" hidden></p>
+    <p class="ax-help pp-note" hidden></p>
+  </div>
+
+  <div class="ax-card pp-out" hidden>
+    <h2>Parameters</h2>
+    <p class="ax-big pp-big"></p>
+    <dl class="ax-facts pp-facts"></dl>
+    <h3>Charge against pH</h3>
+    <canvas class="ax-fig pp-fig"></canvas>
+    <h3>Concentration from A280</h3>
+    <div class="ax-grid">
+      <label>Absorbance at 280 nm <input class="pp-a" type="number" min="0" step="0.001" placeholder="e.g. 0.5" inputmode="decimal" /></label>
+      <label>Path length (cm) <input class="pp-path" type="number" min="0.001" step="0.01" value="1" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help pp-conc" aria-live="polite">Type a blank-corrected A280 reading to get the concentration.</p>
+    <h3>Composition</h3>
+    <div class="ax-scroll"><table class="pp-comp"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pp-csv">Download composition (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .ppc h3 { margin: 18px 0 8px; font-size: 15px; }
+  .ppc .pp-more { margin-top: 12px; }
+  .ppc .pp-more summary { cursor: pointer; font-weight: 600; }
+  .ppc .pp-pka, .ppc .pp-eps { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+</style>
+
+<script>
+  import { readProtein, analyse, chargeCurve, fromA280, RESIDUES, ORDER, PKA_DEFAULT, EPS_DEFAULT, EXAMPLE, type PkaSet, type EpsSet, type ParsedProtein } from '../../lib/sci/protparam';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, fileSafe, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ppc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const num = (c: string) => Number(q<HTMLInputElement>(c).value);
+  const n2 = (x: number, d = 2) => x.toLocaleString('en', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+
+  const PKA_LABEL: [keyof PkaSet, string][] = [['nTerm', 'N-terminus'], ['cTerm', 'C-terminus'], ['D', 'Asp (D)'], ['E', 'Glu (E)'], ['H', 'His (H)'], ['C', 'Cys (C)'], ['Y', 'Tyr (Y)'], ['K', 'Lys (K)'], ['R', 'Arg (R)'], ['U', 'Sec (U)']];
+  const EPS_LABEL: [keyof EpsSet, string][] = [['W', 'ε Trp'], ['Y', 'ε Tyr'], ['cystine', 'ε cystine']];
+  const field = (key: string, label: string, v: number, step: string) => { const l = document.createElement('label'); l.textContent = label + ' '; const i = document.createElement('input'); i.type = 'number'; i.step = step; i.value = String(v); i.dataset.k = key; i.inputMode = 'decimal'; l.append(i); return l; };
+  const fillParams = () => {
+    q('.pp-pka').replaceChildren(...PKA_LABEL.map(([k, l]) => field(k, `pKa ${l}`, PKA_DEFAULT[k], '0.01')));
+    q('.pp-eps').replaceChildren(...EPS_LABEL.map(([k, l]) => field(k, `${l} (M⁻¹ cm⁻¹)`, EPS_DEFAULT[k], '1')));
+  };
+  fillParams();
+  const pka = (): PkaSet => { const p = { ...PKA_DEFAULT }; root.querySelectorAll<HTMLInputElement>('.pp-pka input').forEach((i) => { const v = Number(i.value); if (i.value !== '' && Number.isFinite(v)) p[i.dataset.k as keyof PkaSet] = v; }); return p; };
+  const eps = (): EpsSet => { const p = { ...EPS_DEFAULT }; root.querySelectorAll<HTMLInputElement>('.pp-eps input').forEach((i) => { const v = Number(i.value); if (i.value !== '' && Number.isFinite(v) && v >= 0) p[i.dataset.k as keyof EpsSet] = v; }); return p; };
+
+  let recs: ParsedProtein[] = [], idx = 0, fig: Figure | null = null, sections: Section[] = [], name = 'protein', res: ReturnType<typeof analyse> | null = null;
+
+  function load(text: string) {
+    recs = readProtein(text);
+    const sel = q<HTMLSelectElement>('.pp-rec');
+    sel.replaceChildren(...recs.map((r, k) => new Option(`${k + 1}. ${r.name.slice(0, 60)} (${r.seq.length})`, String(k))));
+    q('.pp-rec-l').hidden = recs.length < 2;
+    idx = 0; run();
+  }
+
+  function run() {
+    const err = q('.pp-err'), note = q('.pp-note');
+    err.hidden = true; note.hidden = true;
+    const r = recs[idx];
+    if (!r || !r.seq.length) { q('.pp-out').hidden = true; res = null; if (q<HTMLTextAreaElement>('.pp-in').value.trim()) { err.textContent = 'No amino acids found. Paste a protein sequence in one-letter codes, such as MKTAYIAKQR.'; err.hidden = false; } return; }
+    name = r.name;
+    const notes: string[] = [];
+    const amb = Object.entries(r.ambiguous), skip = Object.entries(r.skipped);
+    if (amb.length) notes.push(`Left out (ambiguous): ${amb.map(([k, v]) => `${v} × ${k}`).join(', ')}.`);
+    if (skip.length) notes.push(`Ignored characters: ${skip.slice(0, 8).map(([k, v]) => `${v} × "${k}"`).join(', ')}.`);
+    if (/^[ACGTUN]+$/.test(r.seq) && r.seq.length >= 20) notes.push('This looks like DNA or RNA. To get its protein, use the sequence tools to translate it first.');
+    if (recs.length > 1) notes.push(`${recs.length} sequences in the file; showing number ${idx + 1}.`);
+    note.textContent = notes.join(' '); note.hidden = !notes.length;
+
+    const pH = Math.min(14, Math.max(0, num('.pp-ph') || 0)), ssWant = Math.max(0, Math.floor(num('.pp-ss') || 0));
+    const a = analyse(r.seq, { pH, pka: pka(), eps: eps(), disulfides: ssWant });
+    res = a;
+    q('.pp-out').hidden = false;
+    q('.pp-big').textContent = `${n2(a.avg / 1000)} kDa, pI ${a.pI.toFixed(2)}`;
+    const rows: [string, string, string?][] = [
+      ['Length', `${a.length.toLocaleString('en')} amino acids`],
+      ['Average mass', `${n2(a.avg)} Da`, a.disulfides ? `with ${a.disulfides} disulfide bond${a.disulfides === 1 ? '' : 's'}` : ''],
+      ['Monoisotopic mass', `${n2(a.mono, 4)} Da`],
+      ['Formula', a.formula],
+      ['Isoelectric point (pI)', a.pI.toFixed(2)],
+      [`Net charge at pH ${pH}`, (a.chargeAt >= 0 ? '+' : '') + a.chargeAt.toFixed(2)],
+      ['Charged residues', `${a.positive} positive (Lys, Arg), ${a.negative} negative (Asp, Glu)`],
+      ['Extinction coefficient at 280 nm', a.eps.reduced === 0 ? 'none (no Trp or Tyr)' : `${a.epsUsed.toLocaleString('en')} M⁻¹ cm⁻¹`, a.eps.reduced === 0 ? 'A280 cannot measure this protein; use a dye assay' : a.eps.pairs ? `all Cys reduced: ${a.eps.reduced.toLocaleString('en')}; all ${a.eps.pairs} pairs as cystines: ${a.eps.cystines.toLocaleString('en')}` : ''],
+      ...(a.epsUsed ? [['A280 of 1 mg/mL (1 cm)', a.abs01.toFixed(3)] as [string, string]] : []),
+    ];
+    if (ssWant > a.disulfides) rows.push(['Note', `Only ${a.disulfides} disulfide bond${a.disulfides === 1 ? '' : 's'} possible with ${a.counts.C ?? 0} cysteines.`]);
+    q('.pp-facts').replaceChildren(...rows.map(([k, v, s]) => fact(k, v, s)));
+
+    const c = chargeCurve(r.seq, pka(), (a.counts.C ?? 0) - 2 * a.disulfides);
+    fig = chartFigure({ w: 560, h: 300, xLabel: 'pH', yLabel: 'Net charge', legend: 'none', xMin: 0, xMax: 14, series: [{ name: 'charge', x: c.x, y: c.y, mode: 'line', width: 2 }], marks: [{ kind: 'hline', at: 0, dash: [3, 3] }, { kind: 'vline', at: a.pI, dash: [5, 4], label: `pI ${a.pI.toFixed(2)}` }] }, `Net charge against pH from 0 to 14; zero at pI ${a.pI.toFixed(2)}`);
+    paint(q<HTMLCanvasElement>('.pp-fig'), fig);
+
+    const comp = ORDER.filter((k) => a.counts[k] || !'UO'.includes(k)).map((k) => [RESIDUES[k].three, k, String(a.counts[k] ?? 0), ((100 * (a.counts[k] ?? 0)) / a.length).toFixed(1)]);
+    const t = q('.pp-comp'); t.replaceChildren();
+    const h = t.insertRow(); for (const x of ['Amino acid', '', 'Count', '%']) { const th = document.createElement('th'); th.textContent = x; h.append(th); }
+    for (const row of comp) { const tr = t.insertRow(); row.forEach((x, k) => { const td = tr.insertCell(); td.textContent = k === 0 ? `${RESIDUES[row[1]].name}` : x; if (k > 1) td.className = 'r'; }); }
+    conc();
+    sections = [
+      { title: 'Sequence', text: [name, r.seq.replace(/(.{60})/g, '$1 ').trim()] },
+      { title: 'Parameters', facts: rows.map(([k, v, s]) => [k, s ? `${v} (${s})` : v]) },
+      { title: 'Charge against pH', figure: fig },
+      { title: 'Composition', table: { head: ['Amino acid', 'Code', 'Count', '%'], rows: comp.map((x) => [RESIDUES[x[1]].name, x[1], x[2], x[3]]), align: ['l', 'l', 'r', 'r'] } },
+      { title: 'Values used', text: [`pKa: ${PKA_LABEL.map(([k, l]) => `${l} ${pka()[k]}`).join(', ')}.`, `ε280 per residue: Trp ${eps().W}, Tyr ${eps().Y}, cystine ${eps().cystine} M⁻¹ cm⁻¹.`], note: 'Approximate values; check against your own method.' },
+    ];
+  }
+
+  function conc() {
+    const out = q('.pp-conc');
+    if (!res) return;
+    const A = q<HTMLInputElement>('.pp-a').value === '' ? NaN : num('.pp-a'), path = num('.pp-path');
+    if (!Number.isFinite(A) || !(path > 0)) { out.textContent = 'Type a blank-corrected A280 reading to get the concentration.'; return; }
+    if (!res.epsUsed) { out.textContent = 'This protein has no Trp or Tyr, so A280 cannot give its concentration.'; return; }
+    const c = fromA280(A, res.epsUsed, res.avg, path);
+    out.textContent = `${n2(c.mgPerMl, 3)} mg/mL, which is ${n2(c.uM, 2)} µM.${A > 1.5 ? ' Readings above about 1.5 are often outside the linear range; dilute and measure again.' : ''}`;
+  }
+
+  let t = 0;
+  q('.pp-in').addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(() => load(q<HTMLTextAreaElement>('.pp-in').value), 250); });
+  q('.pp-ex').addEventListener('click', () => { q<HTMLTextAreaElement>('.pp-in').value = EXAMPLE; load(EXAMPLE); });
+  q('.pp-open').addEventListener('click', () => q<HTMLInputElement>('.pp-file').click());
+  q('.pp-file').addEventListener('change', async () => {
+    const f = q<HTMLInputElement>('.pp-file').files?.[0]; if (!f) return;
+    if (f.size > 5e6) { q('.pp-err').textContent = 'That file is over 5 MB.'; q('.pp-err').hidden = false; return; }
+    const text = await f.text(); q<HTMLTextAreaElement>('.pp-in').value = text; load(text);
+    q<HTMLInputElement>('.pp-file').value = '';
+  });
+  q('.pp-rec').addEventListener('change', () => { idx = Number(q<HTMLSelectElement>('.pp-rec').value); run(); });
+  for (const c of ['.pp-ph', '.pp-ss']) q(c).addEventListener('input', run);
+  q('.pp-more').addEventListener('input', run);
+  q('.pp-def').addEventListener('click', () => { fillParams(); run(); });
+  for (const c of ['.pp-a', '.pp-path']) q(c).addEventListener('input', conc);
+  q('.pp-csv').addEventListener('click', () => {
+    if (!res) return;
+    const lines = ['amino_acid,code,count,percent', ...ORDER.filter((k) => res!.counts[k] || !'UO'.includes(k)).map((k) => `${RESIDUES[k].name},${k},${res!.counts[k] ?? 0},${((100 * (res!.counts[k] ?? 0)) / res!.length).toFixed(2)}`)];
+    save(new Blob([lines.join('\n') + '\n'], { type: 'text/csv' }), `${fileSafe(name)}-composition.csv`, 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => ({ title: 'Protein parameters', subtitle: `${name}: ${q('.pp-big').textContent ?? ''}`, file: `${fileSafe(name)}-protein`, sections }));
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.pp-fig'), fig); });
+</script>
