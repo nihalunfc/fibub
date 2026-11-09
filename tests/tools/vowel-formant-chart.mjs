@@ -55,7 +55,7 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   const png = readFileSync(await dl('.vf .dl button[data-f=png]'));
   check(png.length > 5000 && png[1] === 0x50, 'vowel chart: PNG report');
   await page.selectOption('.vf-norm', 'hz');
-  await page.fill('.vf-tab', 'vowel,F1,F2\ni,abc,2300'); await page.waitForTimeout(500);
+  await page.fill('.vf-tab', 'vowel,F1,F2\ni,abc,2300'); await page.waitForFunction(() => /No row has numbers/.test(document.querySelector('.vf-terr')?.textContent || ''), null, { timeout: 5000 }).catch(() => {});
   check(/No row has numbers/.test(await page.textContent('.vf-terr')), 'vowel chart: table without numbers explained');
   await page.click('.vf-clear');
   check(await page.isHidden('.vf-cout'), 'vowel chart: clear hides the chart');
