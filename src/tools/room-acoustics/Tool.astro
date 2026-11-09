@@ -1,0 +1,181 @@
+---
+// Room acoustics for a shoebox room: rigid-wall eigenmodes up to a chosen frequency, and Sabine and Eyring
+// reverberation times by octave band with ISO 9613-1 air absorption. The absorption values offered are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+const MATS: [string, string, number[]][] = [
+  ['hard', 'Hard, smooth floor (made-up)', [0.02, 0.03, 0.04, 0.05, 0.05, 0.05]],
+  ['board', 'Plasterboard wall (made-up)', [0.1, 0.08, 0.06, 0.05, 0.05, 0.05]],
+  ['tiles', 'Ceiling tiles (made-up)', [0.15, 0.25, 0.4, 0.55, 0.6, 0.6]],
+  ['concrete', 'Bare concrete or tile (made-up)', [0.01, 0.01, 0.02, 0.02, 0.02, 0.03]],
+  ['carpet', 'Carpet (made-up)', [0.05, 0.08, 0.2, 0.35, 0.5, 0.6]],
+  ['curtain', 'Heavy curtains (made-up)', [0.1, 0.3, 0.5, 0.6, 0.65, 0.6]],
+  ['panels', 'Thick absorbent panels (made-up)', [0.3, 0.7, 0.95, 0.95, 0.95, 0.9]],
+];
+const SURF: [string, string, string][] = [['floor', 'Floor', 'hard'], ['ceil', 'Ceiling', 'tiles'], ['ends', 'End walls (front and back)', 'board'], ['sides', 'Side walls (left and right)', 'board']];
+const show = (a: number[]) => a.join(', ');
+---
+<div class="ax rma" data-mats={JSON.stringify(MATS)}>
+  <div class="ax-card">
+    <h2>Room</h2>
+    <div class="ax-grid">
+      <label>Length (m) <input class="rm-L" inputmode="decimal" value="5" /></label>
+      <label>Width (m) <input class="rm-W" inputmode="decimal" value="4" /></label>
+      <label>Height (m) <input class="rm-H" inputmode="decimal" value="2.5" /></label>
+      <label>Air temperature (°C) <input class="rm-t" inputmode="decimal" value="20" /></label>
+      <label>Relative humidity (%) <input class="rm-rh" inputmode="decimal" value="50" /></label>
+      <label>List modes up to (Hz) <input class="rm-fmax" inputmode="decimal" value="200" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="rm-air" checked /> Include sound absorbed by the air</label>
+    <p class="ax-help">Inside measurements of a rectangular room. Temperature sets the speed of sound; temperature and humidity set how much the air itself absorbs, which only matters in large rooms at high frequencies. The example room is made up.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Surfaces (absorption coefficient at 125, 250, 500, 1k, 2k, 4k Hz)</h2>
+    {SURF.map(([id, name, def]) => (
+      <div class="rm-surf">
+        <label>{name} <select class={`rm-m rm-m-${id}`} data-s={id}>
+          {MATS.map(([k, n]) => <option value={k} selected={k === def}>{n}</option>)}
+          <option value="own">My own values</option>
+        </select></label>
+        <label><span class="rm-area" data-s={id}></span> <input class={`rm-a rm-a-${id}`} data-s={id} inputmode="decimal" value={show(MATS.find((m) => m[0] === def)![2])} /></label>
+      </div>
+    ))}
+    <label style="margin-top:10px">Extra absorption from furniture and people (m² at each of the six bands) <input class="rm-x" inputmode="decimal" value="1, 2, 3, 3.5, 4, 4" /></label>
+    <p class="ax-help">An absorption coefficient is the share of sound energy a surface soaks up rather than reflects: 0 reflects everything, 1 absorbs everything. The materials in the lists are illustrative made-up values, not measurements; for a real design type the values from the product's own test sheet. Extra absorption is in square metres of a perfect absorber (sabins), for example about 0.5 m² per seated person at mid frequencies.</p>
+    <p class="ax-err rm-err" hidden></p>
+  </div>
+
+  <div class="ax-card rm-out">
+    <h2>Reverberation</h2>
+    <p class="ax-big rm-big"></p>
+    <dl class="ax-facts rm-facts"></dl>
+    <canvas class="ax-fig rm-rt" style="margin-top:12px"></canvas>
+    <div class="ax-scroll"><table class="rm-btab"></table></div>
+    <h2 style="margin-top:16px">Room modes</h2>
+    <p class="rm-msum"></p>
+    <canvas class="ax-fig rm-mfig"></canvas>
+    <div class="ax-scroll rm-mwrap"><table class="rm-mtab"></table></div>
+    <p class="ax-help rm-mnote"></p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small rm-csv">Bands (CSV)</button>
+      <button type="button" class="btn secondary small rm-mcsv">Modes (CSV)</button>
+    </div>
+    <p class="ax-help">Sabine's formula assumes sound is spread evenly through the room; Eyring's is better when the walls absorb a lot. Both assume the absorption is spread around the room, which is rarely quite true. Modes are for rigid walls; real walls shift and damp them. For study and planning, not a substitute for professional judgement.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { roomModes, reverb, modeCount, criticalDistance, RT_BANDS, type Mode, type Surface } from '../../lib/sci/phroom';
+  import { soundSpeed } from '../../lib/sci/phair';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.rma')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const MATS: [string, string, number[]][] = JSON.parse(root.dataset.mats!);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const list = (s: string) => s.split(/[,;\s]+/).filter(Boolean).map(num);
+  const p6 = (x: number, n = 6) => String(+x.toPrecision(n));
+  const s2 = (x: number) => (Number.isFinite(x) ? x.toFixed(2) : '–');
+  let figs: Figure[] = [], sections: Section[] = [], bandCsv: string[][] = [], modeCsv: string[][] = [];
+
+  function table(sel: string, head: string[], rows: string[][], right: number[] = []) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.className = 'r'; }); });
+  }
+
+  function calc() {
+    const err = q('.rm-err'), out = q('.rm-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sections = []; figs = []; bandCsv = []; modeCsv = []; };
+    const L = val('.rm-L'), W = val('.rm-W'), H = val('.rm-H'), tC = val('.rm-t'), rh = val('.rm-rh'), fMax = val('.rm-fmax'), air = q<HTMLInputElement>('.rm-air').checked;
+    const areas: Record<string, number> = { floor: L * W, ceil: L * W, ends: 2 * W * H, sides: 2 * L * H };
+    root.querySelectorAll<HTMLElement>('.rm-area').forEach((e) => { e.textContent = Number.isFinite(areas[e.dataset.s!]) && areas[e.dataset.s!] > 0 ? `${sig(areas[e.dataset.s!], 4)} m²:` : 'Area:'; });
+    if (![L, W, H].every((x) => x > 0 && x <= 500)) return fail('Give the length, width and height in metres (above 0, up to 500).');
+    if (!(tC >= -30 && tC <= 50)) return fail('Give an air temperature from −30 to 50 °C.');
+    if (!(rh >= 0 && rh <= 100)) return fail('Give a relative humidity from 0 to 100 %.');
+    if (!(fMax >= 20 && fMax <= 2000)) return fail('List modes up to a frequency from 20 to 2000 Hz.');
+    const surfaces: Surface[] = [];
+    for (const [id, name] of [['floor', 'Floor'], ['ceil', 'Ceiling'], ['ends', 'End walls'], ['sides', 'Side walls']]) {
+      const a = list(q<HTMLInputElement>(`.rm-a-${id}`).value);
+      if (a.length !== 6 || !a.every((x) => x >= 0 && x <= 1)) return fail(`${name}: give six absorption coefficients from 0 to 1, one for each band (125 Hz to 4 kHz), separated by commas.`);
+      surfaces.push({ name, area: areas[id], alpha: a });
+    }
+    const xs = q<HTMLInputElement>('.rm-x').value.trim(), extra = xs ? list(xs) : [0, 0, 0, 0, 0, 0];
+    if (extra.length !== 6 || !extra.every((x) => x >= 0 && x < 1e5)) return fail('Extra absorption: give six numbers of square metres (0 or more), one for each band, or leave it empty.');
+    const r = reverb(L, W, H, surfaces, extra, tC, rh, 101.325, air);
+    const full = r.bands.findIndex((b) => b.abar >= 1);
+    if (full >= 0) return fail(`At ${RT_BANDS[full]} Hz the room absorbs as much as or more than its whole surface (average coefficient ${s2(r.bands[full].abar)}); lower the coefficients or the extra absorption.`);
+    err.hidden = true; out.hidden = false;
+    const c = soundSpeed(tC), { modes, cut } = roomModes(L, W, H, c, fMax, 3000);
+    q('.rm-big').textContent = `Reverberation time ${s2(r.midE)} s (Eyring), ${s2(r.mid)} s (Sabine) at 500 Hz to 1 kHz`;
+    const R = (r.bands[2].roomConst + r.bands[3].roomConst) / 2, abarMid = (r.bands[2].abar + r.bands[3].abar) / 2;
+    const facts = [
+      fact('Volume and surface', `${sig(r.V, 4)} m³, ${sig(r.S, 4)} m²`, `speed of sound ${sig(c, 4)} m/s at ${sig(tC, 3)} °C`),
+      fact('Average absorption ᾱ', s2(abarMid), 'at 500 Hz to 1 kHz, including the extra absorption'),
+      fact('Schroeder frequency', `${sig(r.schroeder, 3)} Hz`, '2000 √(T/V): below this, single modes rule the sound; above it, reverberation does'),
+      fact('Mean free path', `${sig(r.mfp, 3)} m`, '4V/S, the average distance between reflections'),
+      fact('Critical distance', `${sig(criticalDistance(R, 1), 2)} m`, `where direct and reverberant sound are equal, for a non-directional source (room constant ${sig(R, 3)} m²)`),
+      fact('Lowest mode', modes.length ? `${s2(modes[0].f)} Hz` : '–', modes.length ? `(${modes[0].n.join(', ')}), half a wavelength fits the ${modes[0].n[0] ? 'length' : modes[0].n[1] ? 'width' : 'height'}` : ''),
+    ];
+    q('.rm-facts').replaceChildren(...facts);
+    const bHead = ['Band', 'Absorption A (m²)', 'ᾱ', 'Air (dB/km)', 'Sabine (s)', 'Eyring (s)'];
+    const bRows = r.bands.map((b) => [b.f >= 1000 ? `${b.f / 1000} kHz` : `${b.f} Hz`, sig(b.A, 3), s2(b.abar), air ? sig(b.aAir * 1000, 2) : 'off', s2(b.sabine), s2(b.eyring)]);
+    table('.rm-btab', bHead, bRows, [1, 2, 3, 4, 5]);
+    bandCsv = [['band_hz', 'absorption_m2', 'mean_alpha', 'air_db_per_km', 'rt60_sabine_s', 'rt60_eyring_s'], ...r.bands.map((b) => [String(b.f), p6(b.A), p6(b.abar), air ? p6(b.aAir * 1000, 4) : '0', p6(b.sabine, 5), p6(b.eyring, 5)])];
+    const rt = chartFigure({ w: 380, h: 260, xLabel: 'Octave band (Hz)', yLabel: 'Reverberation time T60 (s)', xLog: true, yMin: 0, legend: 'below', series: [
+      { name: 'Eyring', x: RT_BANDS, y: r.bands.map((b) => b.eyring), mode: 'both', width: 2 },
+      { name: 'Sabine', x: RT_BANDS, y: r.bands.map((b) => b.sabine), mode: 'both', width: 2, dash: [6, 4], marker: 'square' },
+    ] }, `Reverberation time by octave band, ${s2(r.midE)} s at mid frequencies`);
+    // Modes.
+    const by = (t: Mode['type']) => modes.filter((m) => m.type === t);
+    const ax = by('axial'), tg = by('tangential'), ob = by('oblique');
+    let close = 0; for (let i = 1; i < modes.length; i++) if (modes[i].f - modes[i - 1].f < 0.005 * modes[i].f) close++;
+    q('.rm-msum').textContent = `${modes.length}${cut ? '+' : ''} modes up to ${sig(fMax, 4)} Hz: ${ax.length} axial, ${tg.length} tangential, ${ob.length} oblique. ${close ? `${close} pair${close > 1 ? 's' : ''} lie within 0.5 % of each other (they add up and can sound boomy).` : 'No two lie within 0.5 % of each other.'}`;
+    const yOf: Record<Mode['type'], number> = { axial: 3, tangential: 2, oblique: 1 };
+    const mf = chartFigure({ w: 380, h: 240, xLabel: 'Frequency (Hz)', yLabel: 'Mode type', xMin: 0, xMax: fMax, yMin: 0.5, yMax: 3.5, legend: 'below', series: [
+      { name: 'Axial (strongest)', x: ax.map((m) => m.f), y: ax.map(() => yOf.axial), mode: 'points', marker: 'circle' },
+      { name: 'Tangential', x: tg.map((m) => m.f), y: tg.map(() => yOf.tangential), mode: 'points', marker: 'square' },
+      { name: 'Oblique (weakest)', x: ob.map((m) => m.f), y: ob.map(() => yOf.oblique), mode: 'points', marker: 'triangle' },
+    ], marks: r.schroeder < fMax ? [{ kind: 'vline', at: r.schroeder, dash: [4, 3], label: 'Schroeder' }] : [] }, `Room modes up to ${sig(fMax, 4)} Hz: axial at the top, tangential in the middle, oblique at the bottom`);
+    const mHead = ['#', 'Frequency (Hz)', 'n (L, W, H)', 'Type', 'Gap to next (Hz)'];
+    const mRows = modes.slice(0, 80).map((m, i) => [String(i + 1), s2(m.f), m.n.join(', '), m.type, i + 1 < modes.length ? s2(modes[i + 1].f - m.f) : '–']);
+    table('.rm-mtab', mHead, mRows, [0, 1, 4]);
+    q('.rm-mnote').textContent = `${modes.length > 80 ? `The table shows the lowest 80; the CSV has all ${modes.length}${cut ? ' (the list stops at 3,000)' : ''}. ` : ''}A smooth count (Kuttruff) expects about ${Math.round(modeCount(L, W, H, c, fMax))} modes below ${sig(fMax, 4)} Hz. Modes are numbered by how many half-wavelengths fit along the length, width and height.`;
+    modeCsv = [['frequency_hz', 'n_length', 'n_width', 'n_height', 'type'], ...modes.map((m) => [m.f.toFixed(3), ...m.n.map(String), m.type])];
+    paint(q<HTMLCanvasElement>('.rm-rt'), rt); paint(q<HTMLCanvasElement>('.rm-mfig'), mf);
+    figs = [rt, mf];
+    sections = [
+      { title: q('.rm-big').textContent!, text: [`Room ${sig(L, 4)} × ${sig(W, 4)} × ${sig(H, 4)} m at ${sig(tC, 3)} °C and ${sig(rh, 3)} % humidity${air ? '' : ', air absorption off'}.`], facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: rt, table: { head: bHead, rows: bRows, align: ['l', 'r', 'r', 'r', 'r', 'r'] } },
+      { title: 'Room modes', text: [q('.rm-msum').textContent!], figure: mf, table: { head: mHead, rows: mRows.slice(0, 40), align: ['r', 'r', 'l', 'l', 'r'] } },
+    ];
+  }
+
+  root.querySelectorAll<HTMLSelectElement>('.rm-m').forEach((s) => s.addEventListener('change', () => {
+    const m = MATS.find((x) => x[0] === s.value); if (m) q<HTMLInputElement>(`.rm-a-${s.dataset.s}`).value = m[2].join(', ');
+  }));
+  root.querySelectorAll<HTMLInputElement>('.rm-a').forEach((i) => i.addEventListener('input', () => {
+    const s = q<HTMLSelectElement>(`.rm-m-${i.dataset.s}`), a = list(i.value), m = MATS.find((x) => x[2].length === a.length && x[2].every((v, k) => v === a[k]));
+    s.value = m ? m[0] : 'own';
+  }));
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 150); };
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.rm-csv').addEventListener('click', () => { if (bandCsv.length) save(new TextEncoder().encode(toCsv(bandCsv)), 'room-reverb.csv', 'text/csv'); });
+  q('.rm-mcsv').addEventListener('click', () => { if (modeCsv.length) save(new TextEncoder().encode(toCsv(modeCsv)), 'room-modes.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (figs.length) { paint(q<HTMLCanvasElement>('.rm-rt'), figs[0]); paint(q<HTMLCanvasElement>('.rm-mfig'), figs[1]); } });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Room acoustics', subtitle: q('.rm-big').textContent ?? '', file: 'room-acoustics', sections }));
+</script>
+
+<style is:global>
+  .rma select { max-width: 100%; }
+  .rma .rm-surf { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin-bottom: 10px; }
+  @media (min-width: 640px) { .rma .rm-surf { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; } }
+  .rma .rm-mwrap { max-height: 360px; overflow-y: auto; margin-top: 10px; }
+  .rma .rm-msum { margin: 0 0 8px; }
+</style>

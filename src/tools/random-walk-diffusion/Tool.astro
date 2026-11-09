@@ -1,0 +1,178 @@
+---
+// Random walk and diffusion: simulate seeded walks in 1-3 dimensions, mean square displacement and D, and fit D and
+// the anomalous exponent from pasted particle tracks. Example tracks are made up. Everything runs in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax rwd">
+  <div class="ax-card">
+    <h2>Simulate a random walk</h2>
+    <div class="ax-grid">
+      <label>Dimensions <select class="rw-d"><option value="1">1 (a line)</option><option value="2" selected>2 (a plane)</option><option value="3">3 (space)</option></select></label>
+      <label>Steps <select class="rw-k"><option value="lattice" selected>lattice: ±a along one axis</option><option value="gaussian">Gaussian: random length and direction</option></select></label>
+      <label>Walkers <input class="rw-w" type="text" inputmode="numeric" value="500" /></label>
+      <label>Steps per walker <input class="rw-n" type="text" inputmode="numeric" value="1000" /></label>
+      <label>Step length a (root mean square) <input class="rw-a" type="text" inputmode="decimal" value="1" /></label>
+      <label>Time per step <input class="rw-dt" type="text" inputmode="decimal" value="1" /></label>
+      <label>Random seed <input class="rw-seed" type="text" inputmode="numeric" value="1" /></label>
+    </div>
+    <p class="ax-help">Each walker starts at the origin and takes independent random steps. Theory says the mean square displacement grows as 2·d·D·t with D = a² / (2·d·Δt). The same seed repeats a run exactly.</p>
+    <p class="ax-err rw-err" hidden></p>
+  </div>
+
+  <div class="ax-card rw-out">
+    <p class="ax-big rw-big"></p>
+    <dl class="ax-facts rw-facts"></dl>
+    <canvas class="ax-fig rw-f1"></canvas>
+    <canvas class="ax-fig rw-f2"></canvas>
+    <canvas class="ax-fig rw-f3"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small rw-csv">Simulated MSD (CSV)</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Fit D from your tracks</h2>
+    <label>Tracks: one row per frame, track name, time, x, y (z) <textarea class="rw-in" rows="6" spellcheck="false"></textarea></label>
+    <DataFile target=".rw-in" maxMB={20} maxCols={6} maxRows={500000} />
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small rw-ex">Use the example tracks</button></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Coordinates <select class="rw-td"><option value="1">x only</option><option value="2" selected>x, y</option><option value="3">x, y, z</option></select></label>
+      <label>First column <select class="rw-id"><option value="1" selected>track name</option><option value="0">time (one track)</option></select></label>
+      <label>Length unit <input class="rw-lu" type="text" value="µm" /></label>
+      <label>Time unit <input class="rw-tu" type="text" value="s" /></label>
+      <label>Lags to fit <input class="rw-fit" type="text" inputmode="numeric" value="10" /></label>
+      <label>Lags to show <input class="rw-max" type="text" inputmode="numeric" value="25" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="rw-off" checked /> Fit an offset (localisation error)</label>
+    <p class="ax-help">Frames should be evenly spaced in time; missing frames are fine. Short lags carry the most information: fit the first few (often a quarter of the track length or less). The offset absorbs position noise, which adds 2·d·σ² to every MSD value.</p>
+    <p class="ax-err rw-terr" hidden></p>
+  </div>
+
+  <div class="ax-card rw-tout" hidden>
+    <p class="ax-big rw-tbig"></p>
+    <dl class="ax-facts rw-tfacts"></dl>
+    <canvas class="ax-fig rw-f4"></canvas>
+    <div class="ax-scroll" style="margin-top:12px"><table class="rw-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small rw-tcsv">Track MSD (CSV)</button></div>
+    <p class="ax-help">D from a straight-line fit of MSD against lag time; α from a straight line on log-log axes (1 for normal diffusion, below 1 for hindered or confined motion, above 1 for directed motion). Errors are from the fit only; neighbouring lags are correlated, so the true uncertainty is larger.</p>
+  </div>
+  <div class="ax-card"><Downloads /></div>
+</div>
+
+<script>
+  import { simulate, fitD, alphaFit, parseTracks, trackMSD, exampleTracks } from '../../lib/sci/phwalk';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv, parseTable } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.rwd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => num(inp(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const rowsOf = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  const figs: Record<string, Figure> = {};
+  let simRep: Section[] = [], trRep: Section[] = [], simCsv: (string | number)[][] = [], trCsv: (string | number)[][] = [];
+  const nice = (x: number, n = 4) => String(+x.toPrecision(n)).replace('-', '−');
+  const pm = (v: number, e: number) => `${sig(v, 4)} ± ${sig(e, 2)}`;
+
+  function runSim() {
+    const err = q('.rw-err'), out = q('.rw-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; simRep = []; };
+    const dim = +sel('.rw-d') as 1 | 2 | 3, kind = sel('.rw-k') as 'lattice' | 'gaussian', W = val('.rw-w'), N = val('.rw-n'), a = val('.rw-a'), dt = val('.rw-dt'), seed = val('.rw-seed');
+    if (!(Number.isInteger(W) && W >= 1 && W <= 100000)) return fail('Walkers must be a whole number from 1 to 100,000.');
+    if (!(Number.isInteger(N) && N >= 2 && N <= 100000)) return fail('Steps must be a whole number from 2 to 100,000.');
+    if (W * N > 2e7) return fail('Walkers × steps must be at most 20 million, to keep the page responsive.');
+    if (!(a > 0)) return fail('Give a step length greater than 0.');
+    if (!(dt > 0)) return fail('Give a time per step greater than 0.');
+    if (!(Number.isInteger(seed) && seed >= 0)) return fail('The random seed must be a whole number, 0 or more.');
+    err.hidden = true; out.hidden = false;
+    const s = simulate({ dim, walkers: W, steps: N, a, dt, kind, seed, keep: 10 }), f = fitD(s.t, s.msd, dim)!, al = alphaFit(s.t.slice(1), s.msd.slice(1))!;
+    q('.rw-big').textContent = `D = ${pm(f.D, f.Dse)} (theory ${nice(s.Dtheory)})`;
+    const last = s.msd[N], tEnd = s.t[N];
+    const fs = [
+      fact('Final mean square displacement', sig(last, 4), `theory 2·d·D·t = ${nice(2 * dim * s.Dtheory * tEnd)} after ${nice(tEnd)} time units`),
+      fact('Root mean square distance', sig(Math.sqrt(last), 4), `grows like √t: ${sig(Math.sqrt(2 * dim * s.Dtheory * tEnd), 4)} expected`),
+      fact('Exponent α', pm(al.alpha, al.se), 'MSD ∝ t^α; 1 for ordinary diffusion'),
+      fact('Fit', `R² = ${sig(f.r2, 5)}`, `${W} walkers, MSD = 2·${dim}·D·t through the origin`),
+    ];
+    q('.rw-facts').replaceChildren(...fs);
+    const P = s.paths;
+    const c1 = dim === 1
+      ? chartFigure({ w: 380, h: 230, xLabel: 'Time', yLabel: 'Position x', legend: 'none', series: P.map((p, i) => ({ name: `Walker ${i + 1}`, x: s.t, y: p.map((r) => r[0]), mode: 'line' as const, width: 1 })) }, 'Paths of the first walkers against time')
+      : chartFigure({ w: 380, h: 300, xLabel: 'x', yLabel: 'y', legend: 'none', series: P.map((p, i) => ({ name: `Walker ${i + 1}`, x: p.map((r) => r[0]), y: p.map((r) => r[1]), mode: 'line' as const, width: 1 })) }, `Paths of the first ${P.length} walkers${dim === 3 ? ' seen from above (x-y)' : ''}`);
+    const step = Math.max(1, Math.floor(N / 200)), ti: number[] = []; for (let i = 0; i <= N; i += step) ti.push(i);
+    const c2 = chartFigure({ w: 380, h: 230, xLabel: 'Time', yLabel: 'Mean square displacement', xMin: 0, yMin: 0, legend: 'below', series: [
+      { name: 'Simulation', x: ti.map((i) => s.t[i]), y: ti.map((i) => s.msd[i]), mode: 'line', width: 2 },
+      { name: 'Theory 2·d·D·t', x: [0, tEnd], y: [0, 2 * dim * s.Dtheory * tEnd], mode: 'line', width: 1.2, dash: [5, 4] },
+    ] }, 'Mean square displacement against time');
+    // Histogram of the final x positions against the Gaussian of variance 2 D t.
+    const xs = s.finals.map((p) => p[0]), sd = Math.sqrt(2 * s.Dtheory * tEnd), bins = 30, lo = -4 * sd, hi = 4 * sd, wdt = (hi - lo) / bins, cnt = new Array(bins).fill(0);
+    for (const x of xs) { const b = Math.floor((x - lo) / wdt); if (b >= 0 && b < bins) cnt[b]++; }
+    const centres = cnt.map((_, i) => lo + (i + 0.5) * wdt), gx: number[] = []; for (let i = 0; i <= 120; i++) gx.push(lo + ((hi - lo) * i) / 120);
+    const c3 = chartFigure({ w: 380, h: 220, xLabel: 'Final x position', yLabel: 'Fraction per unit length', yMin: 0, legend: 'below', series: [
+      { name: 'Walkers', x: centres, y: cnt.map((c) => c / (W * wdt)), mode: 'points', marker: 'square', size: 3 },
+      { name: 'Gaussian, variance 2·D·t', x: gx, y: gx.map((x) => Math.exp(-(x * x) / (2 * sd * sd)) / (sd * Math.sqrt(2 * Math.PI))), mode: 'line', width: 1.6 },
+    ] }, 'Where the walkers ended up (x coordinate)');
+    figs.f1 = c1; figs.f2 = c2; figs.f3 = c3; paintAll();
+    simCsv = [['t', 'MSD', 'theory'], ...s.t.map((t, i) => [+t.toPrecision(8), +s.msd[i].toPrecision(8), +(2 * dim * s.Dtheory * t).toPrecision(8)])];
+    simRep = [{ title: `Simulation: ${q('.rw-big').textContent}`, text: [`${dim}D ${kind} walk, ${W} walkers, ${N} steps of ${a} every ${dt}, seed ${seed}.`], facts: rowsOf(fs), figure: c2 }, { title: 'Paths', figure: c1 }, { title: 'Final positions', figure: c3 }];
+  }
+
+  function runTracks() {
+    const err = q('.rw-terr'), out = q('.rw-tout');
+    const text = q<HTMLTextAreaElement>('.rw-in').value;
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; trRep = []; };
+    if (!text.trim()) { err.hidden = true; out.hidden = true; trRep = []; return; }
+    const dim = +sel('.rw-td') as 1 | 2 | 3, withId = sel('.rw-id') === '1', nfit = val('.rw-fit'), nmax = val('.rw-max'), lu = inp('.rw-lu').value.trim() || 'units', tu = inp('.rw-tu').value.trim() || 'time';
+    if (!(Number.isInteger(nfit) && nfit >= 2)) return fail('Lags to fit must be a whole number, 2 or more.');
+    if (!(Number.isInteger(nmax) && nmax >= nfit && nmax <= 10000)) return fail('Lags to show must be a whole number at least as big as the lags to fit (up to 10,000).');
+    const p = parseTracks(parseTable(text), dim, withId);
+    if (p.error) return fail(p.error);
+    const m = trackMSD(p.tracks, nmax);
+    if (!m || m.lag.length < 2) return fail('Need tracks with at least three frames to work out an MSD.');
+    const off = inp('.rw-off').checked, k = Math.min(nfit, m.lag.length);
+    if (off && k < 3) return fail('Fitting an offset needs at least 3 lags.');
+    const f = fitD(m.lag.slice(0, k), m.msd.slice(0, k), dim, off)!, al = alphaFit(m.lag.slice(0, k), m.msd.slice(0, k))!;
+    err.hidden = true; out.hidden = false;
+    const Du = `${lu}²/${tu}`;
+    q('.rw-tbig').textContent = `D = ${pm(f.D, f.Dse)} ${Du}`;
+    const fs = [
+      fact('Tracks', `${p.tracks.length}`, `${p.tracks.reduce((s, t) => s + t.t.length, 0)} positions; frame time ${nice(m.dt)} ${tu}`),
+      fact('Exponent α', pm(al.alpha, al.se), al.alpha < 0.8 ? 'below 1: hindered or confined motion' : al.alpha > 1.2 ? 'above 1: directed motion or drift' : 'close to 1: ordinary diffusion'),
+      fact('Fit', `first ${k} lags, R² = ${sig(f.r2, 4)}`, off ? `MSD = 2·${dim}·D·t + offset` : `MSD = 2·${dim}·D·t`),
+    ];
+    if (off) fs.push(fact('Offset', `${sig(f.c, 3)} ${lu}²`, f.c > 0 ? `position noise σ ≈ ${sig(Math.sqrt(f.c / (2 * dim)), 3)} ${lu} per coordinate` : 'negative: often motion blur, or too few lags'));
+    if (m.irregular) fs.push(fact('Warning', 'uneven frame times', 'times are not whole multiples of the shortest gap; lags were rounded'));
+    q('.rw-tfacts').replaceChildren(...fs);
+    const tab = q('.rw-tab'); tab.replaceChildren();
+    const tr = (cells: string[], th = false) => { const r = document.createElement('tr'); cells.forEach((c) => { const d = document.createElement(th ? 'th' : 'td'); d.textContent = c; d.className = 'r'; r.append(d); }); return r; };
+    const head = [`Lag (${tu})`, `MSD (${lu}²)`, 'Pairs'], rows = m.lag.map((l, i) => [nice(l), sig(m.msd[i], 4), String(m.n[i])]);
+    tab.append(tr(head, true), ...rows.slice(0, 50).map((r) => tr(r)));
+    const tf = m.lag.slice(0, k);
+    const c4 = chartFigure({ w: 380, h: 240, xLabel: `Lag time (${tu})`, yLabel: `MSD (${lu}²)`, xMin: 0, yMin: 0, legend: 'below', series: [
+      { name: 'Tracks', x: m.lag, y: m.msd, mode: 'points', marker: 'circle', size: 3.5 },
+      { name: `Fit, D = ${sig(f.D, 3)}`, x: [0, tf[tf.length - 1]], y: [f.c, f.c + 2 * dim * f.D * tf[tf.length - 1]], mode: 'line', width: 2 },
+    ] }, 'Time-averaged mean square displacement of the tracks');
+    figs.f4 = c4; paintAll();
+    trCsv = [['lag', 'MSD', 'pairs'], ...m.lag.map((l, i) => [+l.toPrecision(8), +m.msd[i].toPrecision(10), m.n[i]])];
+    trRep = [{ title: `Tracks: ${q('.rw-tbig').textContent}`, facts: rowsOf(fs), table: { head, rows: rows.slice(0, 50), align: ['r', 'r', 'r'] }, figure: c4 }];
+  }
+  function paintAll() { for (const k of ['f1', 'f2', 'f3', 'f4']) if (figs[k]) paint(q<HTMLCanvasElement>(`.rw-${k}`), figs[k]); }
+
+  let timer = 0;
+  root.querySelectorAll('.rw-d, .rw-k, .rw-w, .rw-n, .rw-a, .rw-dt, .rw-seed').forEach((i) => { const go = () => { clearTimeout(timer); timer = window.setTimeout(runSim, 120); }; i.addEventListener('input', go); i.addEventListener('change', go); });
+  root.querySelectorAll('.rw-in, .rw-td, .rw-id, .rw-lu, .rw-tu, .rw-fit, .rw-max, .rw-off').forEach((i) => { i.addEventListener('input', runTracks); i.addEventListener('change', runTracks); });
+  q('.rw-ex').addEventListener('click', () => { q<HTMLTextAreaElement>('.rw-in').value = exampleTracks(); q<HTMLSelectElement>('.rw-td').value = '2'; q<HTMLSelectElement>('.rw-id').value = '1'; inp('.rw-lu').value = 'µm'; inp('.rw-tu').value = 's'; runTracks(); });
+  q('.rw-csv').addEventListener('click', () => { if (simCsv.length > 1) save(new Blob([csv(simCsv)], { type: 'text/csv' }), 'random-walk-msd.csv', 'text/csv'); });
+  q('.rw-tcsv').addEventListener('click', () => { if (trCsv.length > 1) save(new Blob([csv(trCsv)], { type: 'text/csv' }), 'track-msd.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', paintAll);
+  q<HTMLTextAreaElement>('.rw-in').value = exampleTracks();
+  runSim(); runTracks();
+  wireDownloads(q('.dl'), () => ({ title: 'Random walk and diffusion', file: 'random-walk-diffusion', sections: [...trRep, ...simRep] }));
+</script>
+
+<style is:global>
+  .rwd select, .rwd input { max-width: 100%; }
+</style>

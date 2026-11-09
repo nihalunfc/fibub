@@ -1,0 +1,170 @@
+---
+// Collision calculator: 1D and 2D, elastic to perfectly inelastic, e from measurements, momentum diagram. Example values made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cco">
+  <div class="ax-card">
+    <h2>Collision</h2>
+    <div class="ax-seg cc-mode" role="group" aria-label="Kind of collision">
+      <button type="button" data-m="1d" aria-pressed="true">In a line (1D)</button>
+      <button type="button" data-m="2d" aria-pressed="false">Glancing (2D)</button>
+      <button type="button" data-m="meas" aria-pressed="false">Find e from a lab run</button>
+    </div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Mass 1 (kg) <input class="cc-m1" type="text" inputmode="decimal" value="2" /></label>
+      <label><span class="cc-l1x">Velocity 1 before (m/s)</span> <input class="cc-u1x" type="text" inputmode="decimal" value="3" /></label>
+      <label class="cc-2d" hidden>Velocity 1 before, y (m/s) <input class="cc-u1y" type="text" inputmode="decimal" value="1" /></label>
+      <label>Mass 2 (kg) <input class="cc-m2" type="text" inputmode="decimal" value="1" /></label>
+      <label><span class="cc-l2x">Velocity 2 before (m/s)</span> <input class="cc-u2x" type="text" inputmode="decimal" value="-1" /></label>
+      <label class="cc-2d" hidden>Velocity 2 before, y (m/s) <input class="cc-u2y" type="text" inputmode="decimal" value="0.5" /></label>
+      <label class="cc-2d" hidden>Line of centres at impact (° from +x) <input class="cc-phi" type="text" inputmode="decimal" value="20" /></label>
+      <label class="cc-e">Coefficient of restitution e <input class="cc-ev" type="text" inputmode="decimal" value="0.6" /></label>
+      <label class="cc-2d ax-check" hidden><input class="cc-stick" type="checkbox" /> They stick together</label>
+      <label class="cc-meas" hidden>Velocity 1 after, measured (m/s) <input class="cc-v1" type="text" inputmode="decimal" value="0.1" /></label>
+      <label class="cc-meas" hidden>Velocity 2 after, measured (m/s) <input class="cc-v2" type="text" inputmode="decimal" value="0.62" /></label>
+    </div>
+    <div class="ax-row cc-e" style="margin-top:8px"><span class="ax-help" style="margin:0">Quick e:</span><button type="button" class="btn secondary small cc-el">Elastic (1)</button><button type="button" class="btn secondary small cc-in">Stick (0)</button></div>
+    <p class="ax-help">Velocities are signed: positive to the right (+x), negative to the left. e is the ratio of the speed of separation to the speed of approach: 1 for a perfectly elastic bounce (no energy lost), 0 when the bodies move off together. In 2D, the line of centres is the direction from body 1's centre to body 2's centre at the moment they touch; for smooth spheres only the velocity along it changes. The example numbers are made up.</p>
+    <p class="ax-err cc-err" hidden></p>
+  </div>
+
+  <div class="ax-card cc-out">
+    <h2>Result</h2>
+    <p class="ax-big cc-big"></p>
+    <dl class="ax-facts cc-facts"></dl>
+    <canvas class="ax-fig cc-fig"></canvas>
+    <p class="ax-help">Momentum is always conserved in a collision with no outside force; kinetic energy is conserved only when e = 1. The diagram adds the momentum arrows tip to tail: the dashed total is the same before and after. For study and planning, not a substitute for professional judgement.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { collide1D, collide2D, fromMeasured, angleOf, type V2 } from '../../lib/sci/phcollision';
+  import { paint, wireDownloads, type Figure, type Section, type Palette } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.cco')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => num(inp(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let mode = '1d', figs: Figure[] = [], report: Section[] = [];
+
+  /** Momentum diagram: before and after, arrows p1 then p2 tip to tail, dashed total. */
+  function diagram(b: [V2, V2], a: [V2, V2], alt: string): Figure {
+    const draw = (ctx: CanvasRenderingContext2D, w: number, h: number, pal: Palette) => {
+      ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, h);
+      const sets = [b, a], all: V2[] = [];
+      for (const [p1, p2] of sets) all.push([0, 0], p1, [p1[0] + p2[0], p1[1] + p2[1]]);
+      const xs = all.map((p) => p[0]), ys = all.map((p) => p[1]);
+      const span = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys), 1e-12);
+      const pw = w / 2, ph = h - 50, sc = Math.min((pw - 40) / span, (ph - 30) / span);
+      const cols = pal.red ? [pal.ink, pal.muted, pal.ink] : [pal.accent, pal.accent2, pal.ink];
+      const arrow = (x0: number, y0: number, x1: number, y1: number, c: string, dash: number[] = []) => {
+        ctx.strokeStyle = c; ctx.fillStyle = c; ctx.lineWidth = 2; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.setLineDash([]);
+        const L = Math.hypot(x1 - x0, y1 - y0); if (L < 2) return; const ux = (x1 - x0) / L, uy = (y1 - y0) / L, s = Math.min(9, L / 2);
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - s * ux - s * 0.5 * uy, y1 - s * uy + s * 0.5 * ux); ctx.lineTo(x1 - s * ux + s * 0.5 * uy, y1 - s * uy - s * 0.5 * ux); ctx.closePath(); ctx.fill();
+      };
+      sets.forEach(([p1, p2], i) => {
+        const minx = Math.min(...xs), maxx = Math.max(...xs), miny = Math.min(...ys), maxy = Math.max(...ys);
+        const ox = i * pw + pw / 2 - ((minx + maxx) / 2) * sc, oy = 24 + ph / 2 + ((miny + maxy) / 2) * sc;
+        const X = (p: V2) => ox + p[0] * sc, Y = (p: V2) => oy - p[1] * sc, t: V2 = [p1[0] + p2[0], p1[1] + p2[1]];
+        ctx.fillStyle = pal.ink; ctx.font = '600 13px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(i ? 'After' : 'Before', i * pw + pw / 2, 16);
+        // In 1D all arrows lie on one line, so spread them over three rows to keep them readable.
+        const flat = all.every((p) => p[1] === 0), r = flat ? 22 : 0;
+        arrow(X([0, 0]), Y([0, 0]) + r, X(t), Y(t) + r, cols[2], [5, 4]);
+        arrow(X([0, 0]), Y([0, 0]) - r, X(p1), Y(p1) - r, cols[0]);
+        arrow(X(p1), Y(p1), X(t), Y(t), cols[1]);
+      });
+      ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left';
+      [['p₁ (body 1)', cols[0]], ['p₂ (body 2)', cols[1]], ['total', cols[2]]].forEach(([s, c], i) => { ctx.fillStyle = c; ctx.fillRect(10 + i * 110, h - 18, 14, 3); ctx.fillStyle = pal.ink; ctx.fillText(s, 28 + i * 110, h - 12); });
+    };
+    return { w: 380, h: 230, alt, draw };
+  }
+
+  function setMode(m: string) {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.cc-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.cc-2d').forEach((e) => { e.hidden = m !== '2d'; });
+    root.querySelectorAll<HTMLElement>('.cc-meas').forEach((e) => { e.hidden = m !== 'meas'; });
+    root.querySelectorAll<HTMLElement>('.cc-e').forEach((e) => { e.hidden = m === 'meas'; });
+    q('.cc-l1x').textContent = m === '2d' ? 'Velocity 1 before, x (m/s)' : 'Velocity 1 before (m/s)';
+    q('.cc-l2x').textContent = m === '2d' ? 'Velocity 2 before, x (m/s)' : 'Velocity 2 before (m/s)';
+    calc();
+  }
+
+  function calc() {
+    const err = q('.cc-err'), out = q('.cc-out');
+    const fail = (s: string) => { err.textContent = s; err.hidden = false; out.hidden = true; report = []; };
+    const m1 = val('.cc-m1'), m2 = val('.cc-m2'), u1 = val('.cc-u1x'), u2 = val('.cc-u2x'), e = val('.cc-ev');
+    if (!(m1 > 0) || !(m2 > 0)) return fail('Both masses must be greater than 0 (kg).');
+    if (!Number.isFinite(u1) || !Number.isFinite(u2)) return fail('Give both starting velocities in m/s (negative means moving left).');
+    const stick = inp('.cc-stick').checked;
+    if (mode !== 'meas' && !(mode === '2d' && stick) && !(e >= 0 && e <= 1)) return fail('The coefficient of restitution e must be between 0 and 1.');
+    const V = (x: number) => `${sig(x, 3)} m/s`, Pm = (x: number) => `${sig(x, 4)} kg·m/s`, J = (x: number) => `${sig(x, 4)} J`;
+    let f: HTMLElement[] = [], fig: Figure, big = '';
+    if (mode === '1d') {
+      if (!(u1 > u2)) return fail('Body 1 must be catching up with body 2 (velocity 1 greater than velocity 2), or they never meet.');
+      const r = collide1D(m1, u1, m2, u2, e);
+      big = `After: ${V(r.v1)} and ${V(r.v2)}`;
+      f = [
+        fact('Body 1 after', V(r.v1), r.v1 < 0 ? 'bounces back (moving left)' : r.v1 === 0 ? 'stops' : 'moving right'),
+        fact('Body 2 after', V(r.v2), r.v2 < 0 ? 'moving left' : 'moving right'),
+        fact('Momentum', `${Pm(r.P0)} before and after`, 'm₁u₁ + m₂u₂ = m₁v₁ + m₂v₂'),
+        fact('Kinetic energy', `${J(r.K0)} → ${J(r.K1)}`, r.lost > 1e-12 * r.K0 ? `${J(r.lost)} (${sig((r.lost / r.K0) * 100, 3)} %) turned into heat, sound and deformation` : 'none lost: elastic'),
+        fact('Impulse on body 2', `${sig(r.J, 4)} N·s`, 'equal and opposite on body 1'),
+        fact('Centre-of-mass velocity', V(r.vcm), 'unchanged by the collision'),
+      ];
+      fig = diagram([[m1 * u1, 0], [m2 * u2, 0]], [[m1 * r.v1, 0], [m2 * r.v2, 0]], `Momentum before and after: ${big}`);
+    } else if (mode === '2d') {
+      const u1y = val('.cc-u1y'), u2y = val('.cc-u2y'), phi = val('.cc-phi');
+      if (!Number.isFinite(u1y) || !Number.isFinite(u2y)) return fail('Give the y parts of both velocities (0 if none).');
+      if (!Number.isFinite(phi)) return fail('Give the direction of the line of centres in degrees.');
+      const r = collide2D(m1, [u1, u1y], m2, [u2, u2y], phi, stick ? 0 : e, stick);
+      if (!(r.closing > 0)) return fail('Along that line of centres the bodies are moving apart, so they would not hit. Check the angle (it points from body 1 to body 2).');
+      const s1 = Math.hypot(...r.v1), s2 = Math.hypot(...r.v2);
+      big = stick ? `Together: ${V(s1)} at ${sig(angleOf(r.v1), 3)}°` : `After: ${V(s1)} at ${sig(angleOf(r.v1), 3)}° and ${V(s2)} at ${sig(angleOf(r.v2), 3)}°`;
+      const sep = Math.abs(((angleOf(r.v2) - angleOf(r.v1) + 540) % 360) - 180);
+      f = [
+        fact('Body 1 after', `(${sig(r.v1[0], 4)}, ${sig(r.v1[1], 4)}) m/s`, `speed ${V(s1)} at ${sig(angleOf(r.v1), 3)}°`),
+        fact('Body 2 after', `(${sig(r.v2[0], 4)}, ${sig(r.v2[1], 4)}) m/s`, `speed ${V(s2)} at ${sig(angleOf(r.v2), 3)}°`),
+        ...(stick ? [] : [fact('Angle between them after', `${sig(sep, 3)}°`, m1 === m2 && e === 1 && Math.hypot(u2, u2y) === 0 ? 'equal masses, elastic, one at rest: always 90°' : '')]),
+        fact('Momentum', `(${sig(r.P0[0], 4)}, ${sig(r.P0[1], 4)}) kg·m/s`, 'the same before and after, in both directions'),
+        fact('Kinetic energy', `${J(r.K0)} → ${J(r.K1)}`, r.lost > 1e-12 * r.K0 ? `${J(r.lost)} (${sig((r.lost / r.K0) * 100, 3)} %) lost` : 'none lost: elastic'),
+        fact('Impulse on body 2', `${sig(Math.hypot(...r.J), 4)} N·s`, stick ? `at ${sig(angleOf(r.J), 3)}°` : `along the line of centres (${sig(phi, 3)}°)`),
+      ];
+      fig = diagram([[m1 * u1, m1 * u1y], [m2 * u2, m2 * u2y]], [[m1 * r.v1[0], m1 * r.v1[1]], [m2 * r.v2[0], m2 * r.v2[1]]], `Momentum vectors before and after: ${big}`);
+    } else {
+      const v1 = val('.cc-v1'), v2 = val('.cc-v2');
+      if (!Number.isFinite(v1) || !Number.isFinite(v2)) return fail('Give both measured velocities after the collision (m/s).');
+      if (!(u1 > u2)) return fail('Body 1 must be catching up with body 2 before the collision (velocity 1 greater than velocity 2).');
+      const r = fromMeasured(m1, u1, m2, u2, v1, v2);
+      big = `e = ${sig(r.e, 3)}`;
+      f = [
+        fact('Coefficient of restitution', sig(r.e, 3), r.e > 1.02 ? 'above 1: energy appeared, so a speed is likely mis-measured' : r.e < -0.02 ? 'below 0: body 1 passed through body 2, so check signs' : '(v₂ − v₁) / (u₁ − u₂)'),
+        fact('Momentum', `${Pm(r.P0)} → ${Pm(r.P1)}`, `${r.dP >= 0 ? '+' : ''}${sig(r.dPrel * 100, 3)} %: ${Math.abs(r.dPrel) < 0.05 ? 'within 5 %, a good run' : 'more than 5 %: friction, a tilted track or timing errors'}`),
+        fact('Kinetic energy', `${J(r.K0)} → ${J(r.K1)}`, `${sig((r.lost / r.K0) * 100, 3)} % lost`),
+      ];
+      fig = diagram([[m1 * u1, 0], [m2 * u2, 0]], [[m1 * v1, 0], [m2 * v2, 0]], `Measured momentum before and after (e = ${sig(r.e, 3)})`);
+    }
+    err.hidden = true; out.hidden = false;
+    q('.cc-big').textContent = big;
+    q('.cc-facts').replaceChildren(...f);
+    paint(q<HTMLCanvasElement>('.cc-fig'), fig); figs = [fig];
+    report = [{ title: big, facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig }];
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.cc-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  q('.cc-el').addEventListener('click', () => { inp('.cc-ev').value = '1'; calc(); });
+  q('.cc-in').addEventListener('click', () => { inp('.cc-ev').value = '0'; calc(); });
+  root.querySelectorAll('input').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.cc-out').hidden) paint(q<HTMLCanvasElement>('.cc-fig'), figs[0]); });
+  setMode('1d');
+  wireDownloads(q('.dl'), () => ({ title: 'Collision', subtitle: q('.cc-big').textContent || '', file: 'collision', sections: report }));
+</script>
+
+<style is:global>
+  .cco select, .cco input[type=text] { max-width: 100%; }
+  .cco label[hidden], .cco .ax-row[hidden] { display: none; }
+</style>

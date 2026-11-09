@@ -65,15 +65,23 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   // Tap two atoms: find drawn pixels and tap on them.
   await page.click('.pvdb .pv-clear'); await wait(100);
   check((await t('.pv-pick')).startsWith('Tap an atom') && (await t('.pv-mout')) === '', 'pdb viewer: clear picks');
-  const spots = await page.evaluate(() => {
+  // The drawn pixels are read back from the canvas, so wait until it has finished drawing (on a
+  // busy machine the first read can come back empty, which would make the taps miss).
+  const findSpots = () => page.evaluate(() => {
     const c = document.querySelector('.pvdb .pv-view'), r = c.getBoundingClientRect(), x = c.getContext('2d'), d = x.getImageData(0, 0, c.width, c.height).data, bg = [d[0], d[1], d[2]], s = c.width / r.width, out = [];
     for (let px = 4; px < c.width; px += 6) for (let py = 4; py < c.height; py += 6) { const i = (py * c.width + px) * 4; if (Math.abs(d[i] - bg[0]) + Math.abs(d[i + 1] - bg[1]) + Math.abs(d[i + 2] - bg[2]) > 150) out.push([px / s, py / s]); }
-    return [out[0], out[out.length - 1]];
+    return out;
   });
+  let drawn = await findSpots();
+  for (let i = 0; i < 20 && drawn.length < 2; i++) { await wait(100); drawn = await findSpots(); }
+  check(drawn.length >= 2, `pdb viewer: atoms are drawn on the canvas (${drawn.length} spots)`);
   await page.locator('.pvdb .pv-view').scrollIntoViewIfNeeded();
-  { const bb = await page.locator('.pvdb .pv-view').boundingBox(); await page.mouse.click(bb.x + spots[0][0], bb.y + spots[0][1]); await wait(100);
-    check((await t('.pv-pick')).includes('picked'), `pdb viewer: tap picks an atom (${await t('.pv-pick')})`);
-    await page.mouse.click(bb.x + spots[1][0], bb.y + spots[1][1]); await wait(100); }
+  { const bb = await page.locator('.pvdb .pv-view').boundingBox();
+    // Tap the first spot that lands on an atom: a stray pixel of a bond would pick nothing.
+    let picked = '';
+    for (const [sx, sy] of drawn.slice(0, 12)) { await page.mouse.click(bb.x + sx, bb.y + sy); await wait(100); picked = await t('.pv-pick'); if (picked.includes('picked')) break; }
+    check(picked.includes('picked'), `pdb viewer: tap picks an atom (${picked})`);
+    for (const [sx, sy] of drawn.slice().reverse().slice(0, 12)) { await page.mouse.click(bb.x + sx, bb.y + sy); await wait(100); if (/: \d+\.\d{3} Å$/.test(await t('.pv-pick'))) break; } }
   check(/: \d+\.\d{3} Å$/.test(await t('.pv-pick')), `pdb viewer: second tap gives a distance (${await t('.pv-pick')})`);
 
   // Sequence letters fill the residue boxes.
