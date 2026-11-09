@@ -150,6 +150,7 @@ import * as SQ from '../src/lib/sci/seqtools.ts';
 import * as NC from '../src/lib/sci/nucconc.ts';
 import * as QP from '../src/lib/sci/qpcr.ts';
 import * as LG from '../src/lib/sci/ligation.ts';
+import * as PR from '../src/lib/sci/primer.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2965,6 +2966,27 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   const a = LG.reaction(frags, 50, { total: 20, bufferFraction: 0.5, enzyme: 0 });
   near('lg assembly water', a.water, 6.3931906880474285, 1e-12);
   check('lg does not fit', !LG.reaction(frags, 400, { total: 20, bufferFraction: 0.5, enzyme: 0 }).fits);
+}
+// #167 primer checker: Tm against Biopython 1.88 MeltingTemp (Tm_Wallace, Tm_GC valueset 3); hairpins and dimers against
+// an independent brute-force Python search.
+{
+  const F = 'ACTCACATCGGTGTCACCTG', R = 'TACTTCACGGCGTGTGCATC';
+  near('pr wallace', PR.tmWallace(F), 62, 1e-12); near('pr basic', PR.tmBasic(F), 53.83000000000001, 1e-10);
+  near('pr salt 50', PR.tmSalt(F), 48.7029020719779, 1e-10); near('pr salt 200', PR.tmSalt(F, 200), 58.69709792802209, 1e-10);
+  near('pr salt short', PR.tmSalt('GCGCAAAATTTTGCGC'), 38.215402071977906, 1e-10);
+  check('pr hairpin F', PR.hairpin(F).stem === 3); check('pr hairpin stem 6', PR.hairpin('GCGCAAAATTTTGCGC').stem === 6 && PR.hairpin('GCGCAAAATTTTGCGC').loop === 4);
+  check('pr hairpin stem 8', PR.hairpin('AAAAGGGCTTTTTGCCCTTTT').stem === 8);
+  const dd = (a, b) => { const r = PR.dimer(a, b); return `${r.longest},${r.threePrime}`; };
+  check('pr dimers', dd(F, F) === '4,2' && dd(F, R) === '4,2' && dd(R, R) === '4,1' && dd('ACGTTTTTCCGGA', 'TTTTTCCGGAAAA') === '9,9');
+  const r = PR.runs('ACGAAAAATATATATGC'); check('pr runs', r.run.len === 5 && r.run.base === 'A' && r.di.reps === 4 && r.di.unit === 'AT');
+  check('pr clamp', PR.clamp(F) === 3); check('pr clean', PR.clean('acg u-1') === 'ACGT' && PR.clean('ACGN') === null);
+  const T = 'GGG' + F + 'A'.repeat(50) + PR.rc(R) + 'CC';
+  const fs = PR.sites(T, F), rs = PR.sites(T, R), pp = PR.products(fs, rs, R.length);
+  check('pr sites', fs.length === 1 && fs[0].pos === 3 && rs.length === 1 && rs[0].pos === 73 && rs[0].strand === '−');
+  check('pr product', pp.length === 1 && pp[0].size === 90);
+  const m1 = 'TT' + F.slice(0, 5) + 'G' + F.slice(6) + 'TT', m3 = 'TT' + F.slice(0, 19) + 'A' + 'TT';
+  check('pr one mismatch found', PR.sites(m1, F, 1).some((x) => x.pos === 2 && x.mm === 1) && PR.sites(m1, F, 0).length === 0);
+  check('pr 3-prime mismatch rejected', PR.sites(m3, F, 2).length === 0);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
