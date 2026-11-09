@@ -143,6 +143,7 @@ import * as WQI from '../src/lib/sci/wqi.ts';
 import * as ASL from '../src/lib/sci/asludge.ts';
 import * as SMP from '../src/lib/sci/sampling.ts';
 import * as BIO from '../src/lib/sci/bioacc.ts';
+import * as NB from '../src/lib/sci/barrier.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2843,6 +2844,22 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('tmf slope', T.slope, 0.4348981085880527, 1e-12); near('tmf se', T.se, 0.034171602655777074, 1e-12);
   near('tmf', T.tmf, 2.7220626001240946, 1e-12); near('tmf lo', T.lo, 2.270378427336983, 1e-9); near('tmf hi', T.hi, 3.263607824042527, 1e-9);
   near('tmf r2', T.r2, 0.952933878462072, 1e-12); near('tmf p', T.p, 1.3678427349225121e-06, 1e-12);
+}
+{
+  // Noise barrier: against an independent NumPy implementation (vector path difference, both attenuation forms).
+  const g = { hs: 0.5, ds: 10, hb: 4, dr: 30, hr: 1.5 }, L = [78, 76, 74, 73, 72, 69, 65, 58], c = NB.soundSpeed(15);
+  near('barrier c', c, 340.2750805118605, 1e-10);
+  const k = NB.barrier(g, L, { c, cap: 20, method: 'ka' }), s = NB.barrier(g, L, { c, cap: 20, method: 'simple' });
+  near('barrier delta', k.delta, 0.6862984497041751, 1e-12);
+  [8.422937880938196, 10.502269232068151, 13.131422892110754, 16.04268141969565, 19.03966362869852, 20, 20, 20].forEach((v, i) => near(`barrier KA ${NB.BANDS[i]} Hz`, k.bands[i].il, v, 1e-9));
+  [7.436105078356229, 9.05376632978495, 11.167559804322462, 13.64905989410345, 16.368674750955698, 19.22599471263698, 20, 20].forEach((v, i) => near(`barrier simple ${NB.BANDS[i]} Hz`, s.bands[i].il, v, 1e-9));
+  near('barrier LA before', k.LA0, 76.52603646781606, 1e-10); near('barrier LA after KA', k.LA1, 59.355497095993606, 1e-10); near('barrier LA after simple', s.LA1, 61.34039711495346, 1e-10);
+  near('KA grazing', NB.kurzeAnderson(0), 5, 1e-12); near('KA N -0.1', NB.kurzeAnderson(-0.1), 2.8555483741517955, 1e-12);
+  check('KA clear', NB.kurzeAnderson(-0.3) === 0 && NB.simpleIL(-0.1) === 0);
+  near('KA N 1 about 13 dB', NB.kurzeAnderson(1), 13.1, 0.05);
+  const clear = NB.pathDiff({ hs: 0.5, ds: 10, hb: 1, dr: 30, hr: 3 });
+  check('barrier line of sight clear', !clear.blocked && clear.delta < 0);
+  check('barrier cap', NB.barrier({ ...g, hb: 15 }, L, { c, cap: 25, method: 'ka' }).bands.every((b) => b.il <= 25));
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
