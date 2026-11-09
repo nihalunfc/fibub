@@ -1,5 +1,12 @@
 [
  {
+  "sha": "92dae82478fc",
+  "date": "2026-11-09T08:09:01+00:00",
+  "title": "Add a bottom bar (Learn, Tools, Home, News, Menu) with area colours, plus Learn, Tools and News pages",
+  "tools": [],
+  "site": true
+ },
+ {
   "sha": "a538565bc466",
   "date": "2026-11-09T07:39:06+00:00",
   "title": "Add k-mer counter and spectrum (#176)",
