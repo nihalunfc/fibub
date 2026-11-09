@@ -136,6 +136,7 @@ import * as UH from '../src/lib/sci/uh.ts';
 import * as THS from '../src/lib/sci/thiessen.ts';
 import * as PRB from '../src/lib/sci/probit.ts';
 import * as SSD from '../src/lib/sci/ssd.ts';
+import * as NDS from '../src/lib/sci/censored.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2721,6 +2722,27 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   near('ssd llogis boot lo (MC)', 10 ** bg[0], 2.0073, 0.12); near('ssd llogis boot hi (MC)', 10 ** bg[1], 21.61, 1.0);
   const [ba] = SSD.bootstrapAvg([ln, lg], w, [0.05], 4000); near('ssd averaged boot lo (MC)', 10 ** ba[0], 2.64, 0.2); near('ssd averaged boot hi (MC)', 10 ** ba[1], 22.9, 1.5);
   check('ssd bootstrap repeatable', SSD.bootstrapHC(ln, [0.05], 500)[0][0] === SSD.bootstrapHC(ln, [0.05], 500)[0][0]);
+}
+// #153 Non-detects (statsmodels SurvfuncRight on flipped data + Greenwood restricted-mean variance; statsmodels impute_ros; SciPy censored log-normal MLE)
+{
+  const P = (t) => t.split(' ').map((c) => NDS.parseObs(c));
+  check('cen parse <', NDS.parseObs('<0.5').nd && NDS.parseObs('<0.5').v === 0.5); check('cen parse ND', NDS.parseObs('ND 2').nd && NDS.parseObs('nd<2').v === 2);
+  check('cen parse lone flag', NDS.parseObs('<') === null && NDS.parseObs('') === null && NDS.parseObs('ND') === null);
+  check('cen parse flag', NDS.parseObs('3', 'U').nd && !NDS.parseObs('3', '').nd && NDS.parseObs('x') === null);
+  const a = P('<1 <1 1.2 <2 1.5 2.3 <2 3.1 0.8 4.6 2.0 <1 6.2 1.1 9.8 2.7');
+  const k = NDS.kaplanMeier(a);
+  near('cen KM mean', k.mean, 2.481250000000001, 1e-12); near('cen KM se', k.se, 0.6030028476147564, 1e-12);
+  near('cen KM F below 1.5', k.steps.find((s) => s.x === 1.5).Fbelow, 0.4821428571428572, 1e-12); near('cen KM median', k.q(0.5), 1.5, 0); near('cen KM p90', k.q(0.9), 6.2, 0);
+  const r = NDS.ros(a); near('cen ROS mean', r.mean, 2.4288359198732863, 1e-12); near('cen ROS sd', r.sd, 2.5278432464866607, 1e-12);
+  const m = NDS.mleLognormal(a); near('cen MLE mu', m.mu, 0.48887702413174616, 1e-7); near('cen MLE sigma', m.sigma, 0.9032713587661336, 1e-7); near('cen MLE loglik', m.logLik, -18.415341118663846, 1e-9);
+  const b = P('<0.5 <1 <1 1.2 <2 1.5 2.3 <2 3.1 0.8 4.6 2.0 <1 6.2 1.1 9.8 2.7 <0.5');
+  const k2 = NDS.kaplanMeier(b);
+  near('cen KM mean (lowest censored)', k2.mean, 2.208024691358025, 1e-12); near('cen KM se (lowest censored)', k2.se, 0.5647179412752805, 1e-12);
+  near('cen KM leftover', k2.leftover, 0.271604938271605, 1e-12); check('cen KM p25 below limits', Number.isNaN(k2.q(0.25)));
+  const r2 = NDS.ros(b); near('cen ROS mean 2', r2.mean, 2.148262308336133, 1e-12); near('cen ROS imputed min', Math.min(...r2.values), 0.23949239374100906, 1e-12);
+  near('cen MLE mean 2', NDS.mleLognormal(b).mean, 2.314573952100603, 1e-7);
+  near('cen half-DL mean', NDS.substitute(a, 0.5).mean, (1.2 + 1.5 + 2.3 + 3.1 + 0.8 + 4.6 + 2 + 6.2 + 1.1 + 9.8 + 2.7 + 0.5 * 3 + 1 * 2) / 16, 1e-12);
+  near('cen percentile', NDS.percentile([1, 2, 3, 4], 0.5), 2.5, 1e-12);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

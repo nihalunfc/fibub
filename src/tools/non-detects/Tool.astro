@@ -1,0 +1,163 @@
+---
+// Statistics for results with non-detects ("<DL"): Kaplan–Meier, robust ROS, censored log-normal MLE, and substitution
+// for comparison. The example results are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const raw = '<1 <1 1.2 <2 1.5 2.3 <2 3.1 0.8 4.6 2.0 <1 6.2 1.1 9.8 2.7'.split(' ');
+const example = 'sample\tarsenic (µg/L)\n' + raw.map((v, i) => `Well ${i + 1}\t${v}`).join('\n');
+---
+<div class="ax nds">
+  <div class="ax-card">
+    <h2>Results</h2>
+    <label>One result per row, with an optional sample name before it. Write a non-detect as "&lt;1" or "ND 1" (the number is its detection or reporting limit), or put a flag such as "&lt;", "ND" or "U" in the next column.
+      <textarea class="nd-data" rows="10" spellcheck="false">{example}</textarea></label>
+    <DataFile target=".nd-data" maxCols={10} maxRows={20000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Unit <input class="nd-unit" value="µg/L" /></label>
+      <label>Guideline value (optional) <input class="nd-g" inputmode="decimal" placeholder="e.g. 5" /></label>
+    </div>
+    <p class="ax-help">Several limits are fine, and a detected value may sit below another sample's limit. Kaplan–Meier makes no assumption about the shape of the data; ROS and maximum likelihood assume the values follow a log-normal shape. Substituting zero, half the limit or the limit is shown only for comparison, because it can bias the results. Fill in a guideline value to see how many samples exceed it. Up to 20,000 results. The example results are made up.</p>
+    <p class="ax-err nd-err" hidden></p>
+  </div>
+
+  <div class="ax-card nd-out">
+    <h2>Summary</h2>
+    <p class="ax-big nd-big"></p>
+    <dl class="ax-facts nd-facts"></dl>
+    <canvas class="ax-fig nd-fig"></canvas>
+    <h3>Every method</h3>
+    <div class="ax-scroll"><table class="nd-tab"></table></div>
+    <h3>Results with ROS values</h3>
+    <div class="ax-scroll"><table class="nd-rows"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small nd-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseObs, kaplanMeier, ros, mleLognormal, substitute, percentile, type Obs } from '../../lib/sci/censored';
+  import { tInv, normCdf } from '../../lib/sci/stats';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (!Number.isFinite(x)) return '–'; if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const root = document.querySelector<HTMLElement>('.nds')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const ND = /^(nd|n\.d\.|<|u|non-?detect|less than)$/i;
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function table(sel: string, head: string[], rows: string[][], right: number[] = []) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+
+  /** Rows: "name, result, flag", "result", or a row of several results. */
+  function read(text: string) {
+    const out: { name: string; text: string; o: Obs }[] = [];
+    for (const r of parseTable(text)) {
+      const cells = r.map((c) => c.trim()).filter((c) => c !== '');
+      // Join a lone "ND" or "<" with the number after it.
+      const c2: string[] = [];
+      for (let i = 0; i < cells.length; i++) { if (ND.test(cells[i]) && i + 1 < cells.length && parseObs(cells[i + 1]) && c2.length && !parseObs(c2[c2.length - 1])) { c2.push(`<${cells[++i]}`); } else c2.push(cells[i]); }
+      const vals = c2.map((c) => parseObs(c)), first = vals.findIndex((v) => v);
+      if (first < 0) continue;
+      const text2 = c2.filter((_, i) => !vals[i]);
+      if (!text2.length && vals.every((v) => v)) { c2.forEach((c, i) => out.push({ name: `Result ${out.length + 1}`, text: c, o: vals[i]! })); continue; }
+      const flag = c2[first + 1] !== undefined && !vals[first + 1] ? c2[first + 1] : undefined;
+      const o = parseObs(c2[first], flag)!;
+      out.push({ name: c2.slice(0, first).join(' ') || `Result ${out.length + 1}`, text: o.nd && !/^</.test(c2[first]) ? `<${o.v}` : c2[first], o });
+    }
+    return out;
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.nd-err').textContent = m; q('.nd-err').hidden = false; q('.nd-out').hidden = true; fig = null; sections = []; csvRows = []; };
+    q('.nd-err').hidden = true;
+    const unit = q<HTMLInputElement>('.nd-unit').value.trim(), u = unit ? ` ${unit}` : '';
+    const rows = read(q<HTMLTextAreaElement>('.nd-data').value);
+    if (rows.length > 20000) return fail('Up to 20,000 results, please.');
+    const obs = rows.map((r) => r.o);
+    if (obs.some((o) => !(o.v > 0))) return fail('Results and detection limits must be above zero. Write a non-detect as "<limit", not as 0.');
+    const nd = obs.filter((o) => o.nd).length, nDet = obs.length - nd;
+    if (obs.length < 3) return fail('Give at least 3 results, one per row.');
+    if (nDet < 2) return fail(`Only ${nDet} detected value${nDet === 1 ? '' : 's'}: too few to estimate a mean. Report the share of non-detects and the highest limit instead.`);
+    if (new Set(obs.filter((o) => !o.nd).map((o) => o.v)).size < 2 && nd) return fail('All the detected values are the same, so there is no spread to work with.');
+    q('.nd-out').hidden = false;
+
+    const n = obs.length, km = kaplanMeier(obs), R = ros(obs), M = mleLognormal(obs, [R.icept, Math.max(0.05, R.slope)]);
+    const kmSd = Math.sqrt(km.leftover * (km.floor - km.mean) ** 2 + km.steps.reduce((s, st) => s + (st.F - st.Fbelow) * (st.x - km.mean) ** 2, 0));
+    const ucl = km.mean + tInv(0.95, n - 1) * km.se;
+    const limits = [...new Set(obs.filter((o) => o.nd).map((o) => o.v))].sort((a, b) => a - b), pct = (100 * nd) / n;
+    const kmq = (p: number) => { const v = km.q(p); return Number.isFinite(v) ? sg(v, 3) : `<${sg(Math.max(...limits), 3)}`; };
+    q('.nd-big').textContent = `Mean ${sg(km.mean, 3)}${u}, median ${kmq(0.5)}${u} (Kaplan–Meier)`;
+
+    const g = num(q<HTMLInputElement>('.nd-g').value), gf: HTMLElement[] = [];
+    if (q<HTMLInputElement>('.nd-g').value.trim() && g > 0) {
+      const over = obs.filter((o) => !o.nd && o.v > g).length, unsure = obs.filter((o) => o.nd && o.v > g).length;
+      const asc = [...km.steps].reverse(); let F = km.leftover; for (const st of asc) if (st.x <= g) F = st.F;
+      gf.push(fact(`Above ${sg(g, 4)}${u}`, `${over} of ${n} samples (${sg((100 * over) / n, 3)} %)`, unsure ? `${unsure} non-detect${unsure > 1 ? 's have limits' : ' has a limit'} above the guideline, so ${unsure > 1 ? 'they' : 'it'} could be either side` : `Kaplan–Meier estimate of the share above: ${sg(100 * (1 - F), 3)} %`));
+    }
+    q('.nd-facts').replaceChildren(
+      fact('Results', String(n), `${nDet} detected, ${nd} non-detects (${sg(pct, 3)} %)`),
+      fact('Detection limits', limits.length ? limits.map((l) => `<${sg(l, 4)}`).join(', ') : 'none', limits.length > 1 ? 'several limits are handled by every method except substitution' : ''),
+      fact('Standard error of the mean', `${sg(km.se, 3)}${u}`, 'Kaplan–Meier, Greenwood'),
+      fact('Upper 95 % confidence limit of the mean', `${sg(ucl, 3)}${u}`, `Kaplan–Meier mean + t(0.95, ${n - 1}) × standard error`),
+      ...gf,
+      ...(km.leftover > 0 ? [fact('Note', 'the lowest result is a non-detect', `the Kaplan–Meier mean treats the ${sg(100 * km.leftover, 3)} % below the lowest detected value as sitting at the lowest limit, so it is a little high`)] : []),
+      ...(pct > 80 ? [fact('Caution', 'more than 80 % non-detects', 'means and standard deviations are unreliable; report the share detected and the upper percentiles')] : pct > 50 ? [fact('Caution', 'more than half are non-detects', 'the median and lower percentiles may be below the limits; the mean leans heavily on the method')] : []),
+    );
+
+    const s0 = substitute(obs, 0), sh = substitute(obs, 0.5), s1 = substitute(obs, 1);
+    const ps = [0.5, 0.9, 0.95];
+    const tab = [
+      ['Kaplan–Meier', sg(km.mean, 3), sg(kmSd, 3), ...ps.map(kmq), 'none (nonparametric)'],
+      ['Robust ROS', sg(R.mean, 3), sg(R.sd, 3), ...ps.map((p) => sg(percentile(R.values, p), 3)), 'log-normal below the limits'],
+      ['Maximum likelihood', sg(M.mean, 3), sg(M.sd, 3), ...ps.map((p) => sg(M.q(p), 3)), 'log-normal throughout'],
+      ['Substitute 0', sg(s0.mean, 3), sg(s0.sd, 3), ...ps.map((p) => sg(percentile(s0.values, p), 3)), 'for comparison only'],
+      ['Substitute ½ limit', sg(sh.mean, 3), sg(sh.sd, 3), ...ps.map((p) => sg(percentile(sh.values, p), 3)), 'for comparison only'],
+      ['Substitute the limit', sg(s1.mean, 3), sg(s1.sd, 3), ...ps.map((p) => sg(percentile(s1.values, p), 3)), 'for comparison only'],
+    ];
+    const head = ['Method', `Mean${u}`, 'Std dev', 'Median', '90th %ile', '95th %ile', 'Assumes'];
+    table('.nd-tab', head, tab, [1, 2, 3, 4, 5]);
+    const rRows = rows.map((r, i) => [r.name, r.text, r.o.nd ? sg(R.values[i], 3) : '', sg(100 * R.pp[i], 3)]);
+    const rHead = ['Sample', 'Result', 'ROS value', 'Plotted at (%)'];
+    table('.nd-rows', rHead, rRows, [1, 2, 3]);
+
+    // Cumulative distribution on a log axis.
+    const asc = [...km.steps].reverse(), kx: number[] = [], ky: number[] = [];
+    const lo = Math.min(...obs.map((o) => o.v), ...R.values) / 1.5, hi = Math.max(...obs.map((o) => o.v)) * 1.5;
+    kx.push(lo, asc[0].x); ky.push(100 * km.leftover, 100 * km.leftover);
+    asc.forEach((st, i) => { kx.push(st.x, i + 1 < asc.length ? asc[i + 1].x : hi); ky.push(100 * st.F, 100 * st.F); });
+    const cx: number[] = []; for (let i = 0; i <= 160; i++) cx.push(lo * (hi / lo) ** (i / 160));
+    const di = obs.map((_, i) => i).filter((i) => !obs[i].nd), ci = obs.map((_, i) => i).filter((i) => obs[i].nd);
+    fig = chartFigure({ h: 360, xLog: true, yMin: 0, yMax: 100, xLabel: `Concentration${unit ? ` (${unit})` : ''}`, yLabel: 'Cumulative share (%)', legend: 'below', series: [
+      { name: 'Kaplan–Meier', x: kx, y: ky, mode: 'line', width: 2 },
+      { name: 'Log-normal (MLE)', x: cx, y: cx.map((v) => 100 * normCdf((Math.log(v) - M.mu) / M.sigma)), mode: 'line', dash: [5, 4] },
+      { name: 'Detected (ROS position)', x: di.map((i) => obs[i].v), y: di.map((i) => 100 * R.pp[i]), mode: 'points', marker: 'circle' },
+      ...(ci.length ? [{ name: 'Non-detect (ROS value)', x: ci.map((i) => R.values[i]), y: ci.map((i) => 100 * R.pp[i]), mode: 'points' as const, marker: 'open-circle' as const }] : []),
+    ], marks: limits.slice(0, 6).map((l) => ({ kind: 'vline' as const, at: l, dash: [2, 3], label: `<${sg(l, 3)}` })) }, `Cumulative distribution: Kaplan–Meier mean ${sg(km.mean, 3)}${u}`);
+    paint(q<HTMLCanvasElement>('.nd-fig'), fig);
+
+    csvRows = [head, ...tab, [], ['Kaplan–Meier SE', sg(km.se, 6)], ['UCL95 (KM, t)', sg(ucl, 6)], [], rHead, ...rRows];
+    sections = [{ title: q('.nd-big').textContent!, text: ['Kaplan–Meier on the flipped data (restricted mean), robust regression on order statistics, and maximum likelihood for a censored log-normal, after Helsel. Substitution is shown only for comparison.'],
+      facts: [...q('.nd-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig,
+      table: { head, rows: tab, align: ['l', 'r', 'r', 'r', 'r', 'r', 'l'] } },
+      { title: 'Results with ROS values', table: { head: rHead, rows: rRows, align: ['l', 'r', 'r', 'r'] } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  root.querySelectorAll('textarea, input').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.nd-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'non-detect-statistics.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.nd-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Statistics with non-detects', subtitle: q('.nd-big').textContent ?? '', file: 'non-detects', sections }));
+</script>
+
+<style is:global>
+  .nds select { max-width: 100%; }
+</style>
