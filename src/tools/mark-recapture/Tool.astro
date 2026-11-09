@@ -1,0 +1,146 @@
+---
+// Mark-recapture population size: Lincoln-Petersen and Chapman for two samples, Schnabel for several.
+// The examples are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const example = 'caught\trecaptured\tnewly marked\n30\t0\t30\n35\t5\t30\n40\t11\t29\n32\t13\t19\n38\t19\t19';
+---
+<div class="ax mrc">
+  <div class="ax-card">
+    <h2>Your samples</h2>
+    <div class="ax-seg mr-mode" role="group" aria-label="Number of samples"><button type="button" data-m="two" aria-pressed="true">Two samples</button><button type="button" data-m="many" aria-pressed="false">Several (Schnabel)</button></div>
+    <div class="mr-two" style="margin-top:12px">
+      <div class="ax-grid">
+        <label>Marked in the first sample (M) <input class="mr-M" inputmode="numeric" value="120" /></label>
+        <label>Caught in the second sample (C) <input class="mr-C" inputmode="numeric" value="100" /></label>
+        <label>Of those, already marked (R) <input class="mr-R" inputmode="numeric" value="18" /></label>
+        <label>Interval <select class="mr-ci"><option value="lognormal" selected>Log-normal (recommended)</option><option value="normal">Normal (± z × SE)</option><option value="poisson">Poisson (few recaptures)</option></select></label>
+      </div>
+      <p class="ax-help">M animals are caught, marked and released. Later C are caught, and R of them carry a mark. The example numbers are made up.</p>
+    </div>
+    <div class="mr-many" style="margin-top:12px" hidden>
+      <label>One row per sampling occasion: number caught, how many of them were already marked, and (optional) how many new animals you marked and released. Leave the third column out if every unmarked animal was marked and released.
+        <textarea class="mr-data" rows="7" spellcheck="false">{example}</textarea></label>
+      <DataFile target=".mr-data" maxCols={5} maxRows={500} />
+      <p class="ax-help">Up to 500 occasions. The first row has no recaptures because nothing is marked yet. The example is made up.</p>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Confidence <select class="mr-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+    </div>
+    <p class="ax-err mr-err" hidden></p>
+  </div>
+
+  <div class="ax-card mr-out">
+    <h2>Population size</h2>
+    <p class="ax-big mr-big"></p>
+    <dl class="ax-facts mr-facts"></dl>
+    <div class="mr-sch" hidden>
+      <h3>Occasions</h3>
+      <div class="ax-scroll"><table class="mr-tab"></table></div>
+      <h3>Closed-population check</h3>
+      <canvas class="ax-fig mr-fig"></canvas>
+      <p class="ax-help">If the population is closed and marks are not lost, the share of each catch that is marked rises in a straight line through zero as more animals are marked, with slope 1/N. A curve or a jump suggests births, deaths, movement or trap shyness.</p>
+    </div>
+    <p class="ax-help mr-note"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small mr-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { twoSample, schnabel, type CiKind } from '../../lib/sci/markrecap';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.mrc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const whole = (x: number) => (Number.isFinite(x) ? Math.round(x).toLocaleString('en') : '∞');
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let mode = 'two', fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function table(head: string[], rows: string[][]) {
+    const t = q<HTMLTableElement>('.mr-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c) => { const td = tr.insertCell(); td.textContent = c; td.className = 'r'; }); });
+  }
+  const factPairs = () => [...q('.mr-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+
+  function calc() {
+    const fail = (m: string) => { q('.mr-err').textContent = m; q('.mr-err').hidden = false; q('.mr-out').hidden = true; sections = []; csvRows = []; fig = null; };
+    q('.mr-err').hidden = true;
+    const conf = Number(q<HTMLSelectElement>('.mr-conf').value), cl = `${Math.round(conf * 100)} %`;
+    if (mode === 'two') {
+      const M = num(q<HTMLInputElement>('.mr-M').value), C = num(q<HTMLInputElement>('.mr-C').value), R = num(q<HTMLInputElement>('.mr-R').value);
+      if (![M, C, R].every((v) => Number.isInteger(v) && v >= 0)) return fail('Enter M, C and R as whole numbers of zero or more.');
+      if (!(M > 0 && C > 0)) return fail('M and C must each be at least 1.');
+      if (R > C) return fail(`R (${R}) cannot be more than the number caught in the second sample (${C}).`);
+      if (R > M) return fail(`R (${R}) cannot be more than the number marked (${M}).`);
+      const kind = q<HTMLSelectElement>('.mr-ci').value as CiKind, r = twoSample(M, C, R, kind, conf);
+      q('.mr-out').hidden = false; q('.mr-sch').hidden = true;
+      q('.mr-big').textContent = `N ≈ ${whole(r.chapman)} (${cl} interval ${whole(r.lo)} to ${whole(r.hi)})`;
+      q('.mr-facts').replaceChildren(
+        fact('Chapman estimate', sig(r.chapman, 5), '(M+1)(C+1)/(R+1) − 1, nearly unbiased'),
+        fact('Lincoln-Petersen', R > 0 ? sig(r.lp, 5) : 'not defined', R > 0 ? 'M × C / R, biased high with few recaptures' : 'no recaptures, so M × C / R divides by zero'),
+        fact('Standard error', sig(r.se, 4), `Seber's variance ${sig(r.variance, 5)}`),
+        fact('Coefficient of variation', `${sig(100 * r.cv, 3)} %`, 'SE ÷ estimate'),
+        fact('Animals handled', whole(r.seen), 'M + C − R: the lowest possible size'),
+        fact(`${cl} interval`, `${whole(r.lo)} to ${whole(r.hi)}`, kind === 'lognormal' ? 'log-normal (Chao 1987), never below the animals handled' : kind === 'normal' ? 'Chapman ± z × SE, symmetric' : 'exact Poisson limits on R put into the Chapman formula'),
+        fact('Recaptures', String(R), r.enough ? '7 or more: the estimate is close to unbiased' : 'fewer than 7: the estimate is unreliable; catch more if you can'),
+      );
+      q('.mr-note').textContent = 'Assumes a closed population (no births, deaths or movement between samples), marks that are not lost or missed, and that marked and unmarked animals are equally likely to be caught.';
+      csvRows = [['Quantity', 'Value'], ['M', String(M)], ['C', String(C)], ['R', String(R)], ['Lincoln-Petersen', R > 0 ? sig(r.lp, 8) : ''], ['Chapman', sig(r.chapman, 8)], ['Variance (Seber)', sig(r.variance, 8)], ['SE', sig(r.se, 8)], ['Interval', kind], [`Lower ${cl}`, sig(r.lo, 8)], [`Upper ${cl}`, sig(r.hi, 8)]];
+      sections = [{ title: q('.mr-big').textContent!, text: [`Two-sample mark-recapture: M = ${M} marked, C = ${C} caught later, R = ${R} recaptured.`, q('.mr-note').textContent!], facts: factPairs() }];
+      return;
+    }
+    const rows = parseTable(q<HTMLTextAreaElement>('.mr-data').value).filter((r) => Number.isFinite(num(r[0])) && Number.isFinite(num(r[1])));
+    if (rows.length > 500) return fail('Up to 500 occasions, please.');
+    if (rows.length < 2) return fail('Give at least two rows of "caught, recaptured".');
+    const occ = rows.map((r) => ({ C: num(r[0]), R: num(r[1]), U: r[2] !== undefined && r[2] !== '' ? num(r[2]) : undefined }));
+    for (const [i, o] of occ.entries()) if (![o.C, o.R, o.U ?? 0].every((v) => Number.isInteger(v) && v >= 0)) return fail(`Row ${i + 1}: use whole numbers of zero or more.`);
+    let s: ReturnType<typeof schnabel>;
+    try { s = schnabel(occ, conf); } catch (e) { return fail((e as Error).message); }
+    if (s.sumR === 0) return fail('No recaptures in any sample, so the population size cannot be estimated. Keep sampling.');
+    q('.mr-out').hidden = false; q('.mr-sch').hidden = false;
+    q('.mr-big').textContent = `N ≈ ${whole(s.N)} (${cl} interval ${whole(s.lo)} to ${whole(s.hi)})`;
+    const marked = s.rows.reduce((a, r) => a + r.U, 0);
+    q('.mr-facts').replaceChildren(
+      fact('Schnabel estimate', sig(s.N, 5), 'Σ(C × Mt) ÷ ΣR'),
+      fact('Adjusted (Seber)', sig(s.Nadj, 5), 'Σ(C × Mt) ÷ (ΣR + 1), less biased with few recaptures'),
+      fact(`${cl} interval`, `${whole(s.lo)} to ${whole(s.hi)}`, s.method === 'poisson' ? 'Poisson limits on ΣR (fewer than 50 recaptures)' : `t interval on 1/N, ${s.rows.length - 1} df (50 or more recaptures)`),
+      fact('Totals', `ΣC ${s.sumC}, ΣR ${s.sumR}`, `Σ(C × Mt) = ${s.sumCM.toLocaleString('en')}`),
+      fact('Different animals marked', whole(marked), `over ${s.rows.length} occasions`),
+    );
+    let cm = 0, rr = 0;
+    const head = ['Occasion', 'Caught C', 'Recaptured R', 'Newly marked', 'Marked at large Mt', 'C × Mt', 'Running N'];
+    const tRows = s.rows.map((o, i) => { cm += o.C * o.Mt; rr += o.R; return [String(i + 1), String(o.C), String(o.R), String(o.U), String(o.Mt), String(o.C * o.Mt), rr > 0 ? whole(cm / rr) : '–']; });
+    table(head, tRows);
+    const pts = s.rows.filter((o) => o.Mt > 0 && o.C > 0), xmax = Math.max(...pts.map((o) => o.Mt)) * 1.05;
+    fig = chartFigure({ h: 300, xLabel: 'Marked animals at large (Mt)', yLabel: 'Share of catch marked (R/C)', yMin: 0, xMin: 0, legend: 'below', series: [
+      { name: 'Occasions', x: pts.map((o) => o.Mt), y: pts.map((o) => o.R / o.C), mode: 'points', marker: 'circle' },
+      { name: `Expected, slope 1/N (N = ${whole(s.N)})`, x: [0, xmax], y: [0, xmax / s.N], mode: 'line' },
+    ] }, 'Share of each catch already marked against marked animals at large');
+    paint(q<HTMLCanvasElement>('.mr-fig'), fig);
+    q('.mr-note').textContent = 'Assumes a closed population over all occasions, marks that are not lost, and equal catchability. The Schnabel estimate is a weighted average of Lincoln-Petersen estimates from each occasion.';
+    csvRows = [head, ...tRows, [], ['Schnabel N', sig(s.N, 8)], ['Adjusted N', sig(s.Nadj, 8)], [`Lower ${cl}`, sig(s.lo, 8)], [`Upper ${cl}`, sig(s.hi, 8)], ['Interval method', s.method]];
+    sections = [{ title: q('.mr-big').textContent!, text: [q('.mr-note').textContent!], facts: factPairs(), table: { head, rows: tRows, align: head.map(() => 'r' as const) }, figure: fig }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.mr-mode').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button'); if (!b) return;
+    mode = b.dataset.m!; q('.mr-mode').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.mr-two').hidden = mode !== 'two'; q('.mr-many').hidden = mode === 'two'; calc();
+  });
+  q('.mr-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), mode === 'two' ? 'mark-recapture.csv' : 'schnabel.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig && mode !== 'two') paint(q<HTMLCanvasElement>('.mr-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Mark-recapture population estimate', subtitle: q('.mr-big').textContent ?? '', file: 'mark-recapture', sections }));
+</script>
+
+<style is:global>
+  .mrc select { max-width: 100%; }
+</style>

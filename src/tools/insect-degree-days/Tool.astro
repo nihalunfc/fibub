@@ -1,0 +1,219 @@
+---
+// Insect degree-days from daily min and max temperatures: simple average or single sine, lower and upper
+// thresholds with horizontal or vertical cutoff, running total and the date a degree-day target is reached.
+// The example spring is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const example = `date	min	max
+2026-04-01	4.0	16.7
+2026-04-02	3.6	14.0
+2026-04-03	3.5	13.9
+2026-04-04	4.7	19.9
+2026-04-05	3.8	15.2
+2026-04-06	5.9	17.8
+2026-04-07	5.3	14.8
+2026-04-08	5.3	19.1
+2026-04-09	2.8	16.4
+2026-04-10	1.9	14.5
+2026-04-11	2.2	17.3
+2026-04-12	3.5	18.8
+2026-04-13	6.6	17.8
+2026-04-14	1.4	17.1
+2026-04-15	6.6	18.9
+2026-04-16	3.8	17.6
+2026-04-17	5.1	17.0
+2026-04-18	9.3	17.2
+2026-04-19	7.3	21.6
+2026-04-20	6.4	19.3
+2026-04-21	8.0	19.9
+2026-04-22	5.5	20.2
+2026-04-23	10.9	16.3
+2026-04-24	10.1	20.6
+2026-04-25	7.3	25.5
+2026-04-26	10.3	17.7
+2026-04-27	9.1	22.4
+2026-04-28	8.7	22.8
+2026-04-29	9.2	23.0
+2026-04-30	12.4	19.8
+2026-05-01	10.1	20.5
+2026-05-02	10.1	18.9
+2026-05-03	8.9	21.6
+2026-05-04	12.0	25.1
+2026-05-05	7.8	20.4
+2026-05-06	11.9	17.6
+2026-05-07	9.9	22.6
+2026-05-08	13.5	24.7
+2026-05-09	10.5	22.3
+2026-05-10	10.9	27.2
+2026-05-11	10.7	22.8
+2026-05-12	12.5	23.5
+2026-05-13	11.6	21.2
+2026-05-14	12.1	23.0
+2026-05-15	14.7	26.0
+2026-05-16	12.5	26.2
+2026-05-17	12.0	27.3
+2026-05-18	12.9	26.4
+2026-05-19	10.5	25.9
+2026-05-20	9.9	20.2
+2026-05-21	12.9	23.2
+2026-05-22	14.0	31.3
+2026-05-23	12.2	24.3
+2026-05-24	14.4	27.3
+2026-05-25	13.9	25.7
+2026-05-26	15.8	27.7
+2026-05-27	12.5	26.4
+2026-05-28	14.9	24.1
+2026-05-29	15.5	24.8
+2026-05-30	17.1	27.6
+2026-05-31	15.5	25.9
+2026-06-01	15.3	22.5
+2026-06-02	13.5	28.6
+2026-06-03	11.7	30.0
+2026-06-04	12.6	30.0
+2026-06-05	14.6	30.2
+2026-06-06	16.7	24.6
+2026-06-07	19.2	32.3
+2026-06-08	16.7	28.2
+2026-06-09	16.7	26.6
+2026-06-10	19.4	27.9
+2026-06-11	17.3	27.4
+2026-06-12	16.4	26.4
+2026-06-13	20.3	29.4
+2026-06-14	19.9	30.0`;
+---
+<div class="ax idd">
+  <div class="ax-card">
+    <h2>Daily temperatures</h2>
+    <label>Date, minimum and maximum temperature, one day per row. Paste from a spreadsheet or a weather station export.
+      <textarea class="idd-data" rows="9" spellcheck="false" wrap="off">{example}</textarea></label>
+    <DataFile target=".idd-data" maxCols={10} maxRows={3700} />
+    <p class="ax-help">The example is a made-up spring, 1 April to 14 June. Dates like 2026-04-01 work best; for 01/04/2026 pick the date order below.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Temperature unit <select class="idd-unit"><option value="C" selected>°C</option><option value="F">°F</option></select></label>
+      <label>Lower threshold <input class="idd-lo" inputmode="decimal" value="10" /></label>
+      <label>Upper threshold <input class="idd-hi" inputmode="decimal" value="30" placeholder="none" /></label>
+      <label>Method <select class="idd-method"><option value="sine" selected>Single sine</option><option value="average">Simple average</option></select></label>
+      <label class="idd-cutw">Upper cutoff <select class="idd-cut"><option value="horizontal" selected>Horizontal</option><option value="vertical">Vertical</option></select></label>
+      <label>Start counting on (biofix) <input class="idd-start" type="date" /></label>
+      <label>Degree-day target <input class="idd-target" inputmode="decimal" value="250" /></label>
+      <label>Dates like 01/04/2026 are <select class="idd-dmy"><option value="dmy" selected>day/month/year</option><option value="mdy">month/day/year</option></select></label>
+    </div>
+    <p class="ax-help">The <b>lower threshold</b> is the temperature below which the insect does not develop; the <b>upper threshold</b> is where development stops speeding up (leave it blank for none). <b>Single sine</b> assumes each day warms and cools along a sine curve and counts the part above the lower threshold; <b>simple average</b> uses (max + min) / 2. With a <b>horizontal</b> cutoff, time above the upper threshold still counts, at the upper threshold; with a <b>vertical</b> cutoff it counts nothing. The <b>biofix</b> is the day counting starts, such as the first moth in a trap. The 250 DD target is a made-up example: use the figure for your insect from your local extension service, and check the official source.</p>
+    <p class="ax-err idd-err" hidden></p>
+  </div>
+
+  <div class="ax-card idd-out">
+    <h2>Result</h2>
+    <p class="ax-big idd-big"></p>
+    <p class="idd-when"></p>
+    <dl class="ax-facts idd-facts"></dl>
+    <canvas class="ax-fig idd-fig"></canvas>
+    <canvas class="ax-fig idd-tfig" style="margin-top:12px"></canvas>
+    <h3>Day by day</h3>
+    <div class="ax-scroll idd-scroll"><table class="idd-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small idd-csv">Download days (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .idd .idd-scroll { max-height: 420px; overflow-y: auto; }
+  .idd .idd-tab tr.hit td { font-weight: 700; }
+</style>
+
+<script>
+  import { accumulate, predictDate, readDate, type DDMethod, type Cutoff, type DDRow } from '../../lib/sci/degdays';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.idd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const f1 = (x: number) => (Math.abs(x) < 0.05 ? '0.0' : x.toFixed(1)).replace('-', '−');
+  const nice = (iso: string) => new Date(iso + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  let figs: Figure[] = [], sections: Section[] = [], csvRows: string[][] = [];
+
+  function calc() {
+    const fail = (m: string) => { q('.idd-err').textContent = m; q('.idd-err').hidden = false; q('.idd-out').hidden = true; figs = []; sections = []; csvRows = []; };
+    q('.idd-err').hidden = true;
+    const unit = q<HTMLSelectElement>('.idd-unit').value, deg = `°${unit}`;
+    const L = num(q<HTMLInputElement>('.idd-lo').value), hiTxt = q<HTMLInputElement>('.idd-hi').value.trim(), U = hiTxt ? num(hiTxt) : null;
+    const method = q<HTMLSelectElement>('.idd-method').value as DDMethod, cutoff = q<HTMLSelectElement>('.idd-cut').value as Cutoff;
+    q('.idd-cutw').hidden = U == null;
+    if (!Number.isFinite(L)) return fail('Type a lower threshold, such as 10.');
+    if (U != null && !(U > L)) return fail('The upper threshold must be a number above the lower threshold (or leave it blank).');
+    const mdy = q<HTMLSelectElement>('.idd-dmy').value === 'mdy';
+    const rows = parseTable(q<HTMLTextAreaElement>('.idd-data').value);
+    const days: { date: string; tmin: number; tmax: number }[] = [];
+    let bad = 0;
+    for (const r of rows) {
+      const d = readDate(r[0] ?? '', mdy), a = num(r[1]), b = num(r[2]);
+      if (!d || !Number.isFinite(a) || !Number.isFinite(b)) { if (days.length || /\d/.test(r[0] ?? '') && Number.isFinite(a)) bad++; continue; }
+      days.push({ date: d, tmin: Math.min(a, b), tmax: Math.max(a, b) });
+    }
+    if (days.length > 3700) return fail('Up to 3,700 days (about ten years), please.');
+    if (!days.length) return fail('No rows with a date, a minimum and a maximum temperature were found. Use three columns: date, min, max.');
+    days.sort((x, y) => (x.date < y.date ? -1 : x.date > y.date ? 1 : 0));
+    for (let i = 1; i < days.length; i++) if (days[i].date === days[i - 1].date) return fail(`${nice(days[i].date)} appears twice. Give one row per day.`);
+    let gaps = 0;
+    for (let i = 1; i < days.length; i++) gaps += Math.round((Date.parse(days[i].date) - Date.parse(days[i - 1].date)) / 864e5) - 1;
+    const start = q<HTMLInputElement>('.idd-start').value;
+    const out: DDRow[] = accumulate(days, L, U, method, cutoff, start);
+    if (!out.length) return fail(`No days on or after the start date (${nice(start)}). Clear it or pick an earlier day.`);
+    const target = num(q<HTMLInputElement>('.idd-target').value), hasTarget = Number.isFinite(target) && target > 0;
+    if (q<HTMLInputElement>('.idd-target').value.trim() && !hasTarget) return fail('The degree-day target must be a number above 0 (or leave it blank).');
+    q('.idd-out').hidden = false;
+
+    const total = out[out.length - 1].cum, first = out[0].date, last = out[out.length - 1].date;
+    q('.idd-big').textContent = `${f1(total)} degree-days (${deg}) from ${nice(first)} to ${nice(last)}`;
+    const pr = hasTarget ? predictDate(out, target) : null;
+    let when = '';
+    if (pr?.reached) when = `The ${sig(target, 6)} DD target was reached on ${nice(pr.date)}.`;
+    else if (pr && pr.perDay! > 0) when = `The ${sig(target, 6)} DD target is not reached yet. At the last 7 days' pace (${f1(pr.perDay!)} DD a day) it would be reached in about ${pr.daysAhead} days, on ${nice(pr.date)}. This is a rough guide: the weather ahead will differ.`;
+    else if (pr) when = `The ${sig(target, 6)} DD target is not reached yet, and the last 7 days added nothing, so no date can be projected.`;
+    q('.idd-when').textContent = when;
+    const last7 = out.slice(-7), mean = total / out.length;
+    q('.idd-facts').replaceChildren(
+      fact('Days counted', String(out.length), gaps ? `${gaps} missing day${gaps > 1 ? 's' : ''} in the dates: they add nothing, so fill them in for a fair total` : 'no missing days'),
+      fact('Mean per day', `${f1(mean)} DD`, `last 7 days: ${f1(last7.reduce((s, r) => s + r.dd, 0) / last7.length)} DD`),
+      fact('Days adding nothing', String(out.filter((r) => r.dd === 0).length), `maximum at or below ${sig(L, 4)} ${deg}`),
+      fact('Method', method === 'sine' ? 'Single sine' : 'Simple average', `lower ${sig(L, 4)} ${deg}${U != null ? `, upper ${sig(U, 4)} ${deg}, ${cutoff} cutoff` : ', no upper threshold'}`),
+      ...(bad ? [fact('Rows skipped', String(bad), 'no readable date, minimum or maximum')] : []),
+    );
+
+    const x = out.map((_, i) => i), xl = `Days from ${nice(first)}`;
+    const cumFig = chartFigure({ h: 300, xLabel: xl, yLabel: `Degree-days (${deg})`, yMin: 0, legend: 'none', series: [{ name: 'Running total', x, y: out.map((r) => r.cum), mode: 'line' }],
+      marks: [...(hasTarget ? [{ kind: 'hline' as const, at: target, dash: [5, 4], label: `target ${sig(target, 5)}` }] : []), ...(pr?.reached ? [{ kind: 'vline' as const, at: out.findIndex((r) => r.date === pr.date), dash: [3, 3] }] : [])] }, `Running total of degree-days: ${f1(total)}`);
+    const tFig = chartFigure({ h: 260, xLabel: xl, yLabel: `Temperature (${deg})`, legend: 'below', series: [
+      { name: 'Maximum', x, y: out.map((r) => r.tmax), mode: 'line' }, { name: 'Minimum', x, y: out.map((r) => r.tmin), mode: 'line' }],
+      marks: [{ kind: 'hline', at: L, dash: [5, 4], label: 'lower' }, ...(U != null ? [{ kind: 'hline' as const, at: U, dash: [5, 4], label: 'upper' }] : [])] }, 'Daily minimum and maximum with the thresholds');
+    figs = [cumFig, tFig];
+    paint(q<HTMLCanvasElement>('.idd-fig'), cumFig); paint(q<HTMLCanvasElement>('.idd-tfig'), tFig);
+
+    const head = ['Date', `Min ${deg}`, `Max ${deg}`, 'DD', 'Total DD'];
+    const tabRows = out.map((r) => [r.date, sig(r.tmin, 4), sig(r.tmax, 4), r.dd.toFixed(2), r.cum.toFixed(1)]);
+    const t = q<HTMLTableElement>('.idd-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const tb = t.createTBody();
+    tabRows.forEach((r, k) => { const tr = tb.insertRow(); if (pr?.reached && out[k].date === pr.date) tr.className = 'hit'; r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); });
+    csvRows = [['date', `min_${unit}`, `max_${unit}`, 'degree_days', 'cumulative_degree_days'], ...out.map((r) => [r.date, String(r.tmin), String(r.tmax), r.dd.toFixed(4), r.cum.toFixed(4)])];
+    const facts = [...q('.idd-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    sections = [{ title: q('.idd-big').textContent!, text: [when, `Settings: ${method === 'sine' ? 'single sine (Baskerville and Emin 1969)' : 'simple average'}, lower threshold ${sig(L, 4)} ${deg}${U != null ? `, upper ${sig(U, 4)} ${deg} with ${cutoff} cutoff` : ''}${start ? `, counted from ${nice(start)}` : ''}.`].filter(Boolean), facts, figure: cumFig },
+      { title: 'Temperatures', figure: tFig }, { title: 'Day by day', table: { head, rows: tabRows, align: ['l', 'r', 'r', 'r', 'r'] } }];
+  }
+
+  // Switching unit converts the thresholds so they keep meaning the same temperature.
+  q('.idd-unit').addEventListener('change', () => {
+    const toF = q<HTMLSelectElement>('.idd-unit').value === 'F';
+    for (const c of ['.idd-lo', '.idd-hi']) { const i = q<HTMLInputElement>(c), v = num(i.value); if (Number.isFinite(v)) i.value = String(+(toF ? v * 1.8 + 32 : (v - 32) / 1.8).toFixed(1)); }
+  });
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.idd-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'degree-days.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (figs.length) { paint(q<HTMLCanvasElement>('.idd-fig'), figs[0]); paint(q<HTMLCanvasElement>('.idd-tfig'), figs[1]); } });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Insect degree-days', subtitle: q('.idd-big').textContent ?? '', file: 'degree-days', sections }));
+</script>

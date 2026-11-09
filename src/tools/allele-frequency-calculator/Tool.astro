@@ -1,0 +1,129 @@
+---
+// Allele and genotype frequencies, Hardy-Weinberg chi-square and exact tests, and F-statistics across populations.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const example = 'Population\tAA\tAB\tBB\nNorth meadow\t30\t5\t15\nRiver bank\t12\t28\t10\nCoast dunes\t4\t20\t26';
+---
+<div class="ax afc">
+  <div class="ax-card">
+    <h2>Genotype counts</h2>
+    <label>One row per population: a name, then the number of individuals with genotype AA, AB and BB at one gene with two alleles.
+      <textarea class="af-in" rows="6" spellcheck="false" wrap="off">{example}</textarea></label>
+    <DataFile target=".af-in" maxCols={10} maxRows={500} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>F-statistics <select class="af-meth"><option value="wc" selected>Weir and Cockerham (1984)</option><option value="nei">Nei (1977)</option></select></label>
+      <label>Allele names <input class="af-names" value="A, B" /></label>
+    </div>
+    <p class="ax-help">Weir and Cockerham's estimators correct for the number of populations and the sample sizes, and are the usual choice for data. Nei's are built from the heterozygosities directly (each population counts equally) and are easier to follow by hand. Allele names only change the labels. Up to 500 populations. The example counts are made up.</p>
+    <p class="ax-err af-err" hidden></p>
+  </div>
+
+  <div class="ax-card af-out">
+    <h2>Result</h2>
+    <p class="ax-big af-big"></p>
+    <dl class="ax-facts af-facts"></dl>
+    <h3>Each population</h3>
+    <div class="ax-scroll"><table class="af-tab"></table></div>
+    <p class="ax-help af-note"></p>
+    <h3>Observed against expected heterozygosity</h3>
+    <canvas class="ax-fig af-fig"></canvas>
+    <p class="ax-help">The curve is the share of heterozygotes Hardy-Weinberg expects, 2pq. Points below it have too few heterozygotes (FIS above 0: inbreeding, or hidden structure); points above it have too many.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small af-csv">Download table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { popStats, weirCockerham, neiF, pooled, type PopCounts, type PopStats } from '../../lib/sci/hwefst';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.afc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const f3 = (x: number) => (Number.isFinite(x) ? (Math.abs(x) < 5e-5 ? '0' : x.toFixed(4).replace(/0+$/, '').replace(/\.$/, '')) : '–').replace(/^-/, '−');
+  const pv = (p: number) => (p >= 0.9999 ? '1' : sig(p, 3));
+  const isNum = (s: string | undefined) => s !== undefined && s.trim() !== '' && Number.isFinite(num(s));
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function table(head: string[], rows: string[][]) {
+    const t = q<HTMLTableElement>('.af-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.style.textAlign = 'right'; }); });
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.af-err').textContent = m; q('.af-err').hidden = false; q('.af-out').hidden = true; fig = null; sections = []; csvRows = []; };
+    q('.af-err').hidden = true;
+    const nm = q<HTMLInputElement>('.af-names').value.split(/[,;/]+/).map((s) => s.trim()).filter(Boolean);
+    const A = nm[0] || 'A', B = nm[1] || 'B';
+    const pops: PopCounts[] = [];
+    for (const r of parseTable(q<HTMLTextAreaElement>('.af-in').value)) {
+      const named = !isNum(r[0]), cells = named ? r.slice(1, 4) : r.slice(0, 3);
+      if (cells.length < 3 || !cells.every(isNum)) { if (pops.length || !named || cells.some(isNum)) return fail(`Each row needs a name and three counts (${A}${A}, ${A}${B}, ${B}${B}). Check the row starting "${r.join(' ').slice(0, 30)}".`); continue; }
+      const [x, y, z] = cells.map(num);
+      if (![x, y, z].every((v) => Number.isInteger(v) && v >= 0)) return fail(`Counts must be whole numbers of zero or more (row "${r[0]}").`);
+      const name = named ? r[0] : `Population ${pops.length + 1}`;
+      if (x + y + z === 0) return fail(`${name} has no individuals.`);
+      pops.push({ name, AA: x, AB: y, BB: z });
+    }
+    if (!pops.length) return fail(`Paste at least one row: a population name, then the counts of ${A}${A}, ${A}${B} and ${B}${B}.`);
+    if (pops.length > 500) return fail('Up to 500 populations, please.');
+    const st = pops.map(popStats), all = popStats(pooled(pops)), many = pops.length > 1;
+    const meth = q<HTMLSelectElement>('.af-meth').value;
+    q('.af-out').hidden = false;
+    const facts: HTMLElement[] = [];
+    let F: { Fis: number; Fst: number; Fit: number } | null = null;
+    if (many) {
+      const P = all.p;
+      if (P === 0 || P === 1) facts.push(fact('F-statistics', 'not defined', `only one allele seen in all populations`));
+      else if (meth === 'wc') {
+        const w = weirCockerham(pops); F = w;
+        facts.push(fact('FST (θ)', f3(w.Fst), 'share of variation between populations'), fact('FIS (f)', f3(w.Fis), 'inbreeding within populations'), fact('FIT (F)', f3(w.Fit), 'inbreeding in the whole set'),
+          fact('Variance components', `a ${sig(w.a, 3)}, b ${sig(w.b, 3)}, c ${sig(w.c, 3)}`, 'between populations, between individuals, within individuals'), fact('Sample size n̄, n꜀', `${sig(w.nbar, 4)}, ${sig(w.nc, 4)}`, 'mean, and the size-variation correction'));
+      } else {
+        const n = neiF(pops); F = n;
+        facts.push(fact('FST', f3(n.Fst), '(HT − HS) / HT'), fact('FIS', f3(n.Fis), '(HS − HI) / HS'), fact('FIT', f3(n.Fit), '(HT − HI) / HT'),
+          fact('HI, HS, HT', `${f3(n.HI)}, ${f3(n.HS)}, ${f3(n.HT)}`, 'observed, expected within, expected in total'));
+      }
+    }
+    const one = st[0];
+    q('.af-big').textContent = many && F ? `FST = ${f3(F.Fst)} (${meth === 'wc' ? 'Weir and Cockerham' : 'Nei'}), across ${pops.length} populations`
+      : `${one.name}: p(${A}) = ${f3(one.p)}, Hardy-Weinberg exact p = ${pv(one.pExact)}`;
+    facts.push(fact(`All pooled: p(${A})`, f3(all.p), `${all.n} individuals`), fact('All pooled: exact test', `p = ${pv(all.pExact)}`, many ? 'mixing populations with different frequencies gives a heterozygote shortage (the Wahlund effect)' : `χ² = ${sig(all.chi2, 4)}, p = ${pv(all.pChi)}`));
+    q('.af-facts').replaceChildren(...facts);
+    const head = ['Population', 'n', `p(${A})`, `q(${B})`, `${A}${A} obs (exp)`, `${A}${B} obs (exp)`, `${B}${B} obs (exp)`, 'Ho', 'He', 'FIS', 'χ²', 'p (χ²)', 'p (exact)'];
+    const row = (s: PopStats, c: PopCounts) => [s.name, String(s.n), f3(s.p), f3(s.q), `${c.AA} (${sig(s.eAA, 3)})`, `${c.AB} (${sig(s.eAB, 3)})`, `${c.BB} (${sig(s.eBB, 3)})`, f3(s.Ho), f3(s.He), f3(s.Fis), sig(s.chi2, 3), pv(s.pChi), pv(s.pExact)];
+    const rows = st.map((s, i) => row(s, pops[i]));
+    if (many) rows.push(row(all, pooled(pops)));
+    table(head, rows);
+    const small = st.filter((s) => s.minExpected < 5).map((s) => s.name), sig05 = st.filter((s) => s.pExact < 0.05).map((s) => s.name);
+    q('.af-note').textContent = [`Expected counts under Hardy-Weinberg are in brackets. FIS = 1 − Ho/He. The chi-square test has 1 degree of freedom; the exact test (Wigginton and others, 2005) is reliable at any sample size.`,
+      small.length ? `Some expected counts are below 5 (${small.slice(0, 5).join(', ')}${small.length > 5 ? '…' : ''}), so use the exact test there, not chi-square.` : '',
+      sig05.length ? `Out of Hardy-Weinberg at p < 0.05 (exact): ${sig05.slice(0, 8).join(', ')}${sig05.length > 8 ? '…' : ''}.` : 'No population is out of Hardy-Weinberg at p < 0.05 (exact test).'].filter(Boolean).join(' ');
+    const cx = Array.from({ length: 101 }, (_, i) => i / 100);
+    fig = chartFigure({ h: 320, xMin: 0, xMax: 1, yMin: 0, yMax: Math.max(0.6, ...st.map((s) => s.Ho + 0.05)), xLabel: `Frequency of ${A}`, yLabel: 'Heterozygosity', legend: 'below', series: [
+      { name: 'Expected 2pq', x: cx, y: cx.map((p) => 2 * p * (1 - p)), mode: 'line' },
+      { name: 'Observed Ho', x: st.map((s) => s.p), y: st.map((s) => s.Ho), mode: 'points', labels: st.length <= 12 ? st.map((s) => s.name) : undefined },
+    ] }, 'Observed heterozygosity of each population against the Hardy-Weinberg curve');
+    paint(q<HTMLCanvasElement>('.af-fig'), fig);
+    csvRows = [head, ...rows];
+    sections = [{ title: q('.af-big').textContent!, facts: [...q('.af-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]) },
+      { title: 'Each population', table: { head, rows, align: head.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] }, text: [q('.af-note').textContent!], figure: fig }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.af-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'allele-frequencies.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.af-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Allele frequencies and Hardy-Weinberg', subtitle: q('.af-big').textContent ?? '', file: 'allele-frequencies', sections }));
+</script>
+
+<style is:global>
+  .afc .af-tab td, .afc .af-tab th { white-space: nowrap; }
+  .afc select { max-width: 100%; }
+</style>

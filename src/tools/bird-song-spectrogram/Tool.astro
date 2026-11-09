@@ -1,0 +1,214 @@
+---
+// Spectrogram of a WAV recording, with measurements of a selected stretch: peak frequency, bandwidth, notes.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax bs">
+  <div class="ax-card">
+    <h2>Recording</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small bs-open">Open a WAV file</button>
+      <input type="file" class="bs-file" accept=".wav,audio/wav,audio/x-wav,audio/wave" hidden />
+      <button type="button" class="btn secondary small bs-ex">Use the example</button>
+    </div>
+    <p class="ax-help">WAV only (8, 16, 24 or 32-bit, or float), up to 100 MB. Your recording is read by this page on your device and is never uploaded. If your recorder saves MP3 or M4A, convert it to WAV first (for example in Audacity).</p>
+    <p class="bs-info"></p>
+    <p class="ax-err bs-err" hidden></p>
+    <div class="ax-grid">
+      <label>Show from (s)<input class="bs-v0" type="number" min="0" step="0.1" value="0" /></label>
+      <label>Show to (s)<input class="bs-v1" type="number" min="0" step="0.1" value="2" /></label>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Spectrogram settings</h2>
+    <div class="ax-grid">
+      <label>FFT size<select class="bs-nfft"><option>256</option><option selected>512</option><option>1024</option><option>2048</option><option>4096</option></select><span class="ax-help">Bigger = finer frequency steps but blurrier timing.</span></label>
+      <label>Window<select class="bs-win"><option value="hann">Hann</option><option value="hamming">Hamming</option><option value="blackman">Blackman</option><option value="rect">Rectangular</option></select><span class="ax-help">Shapes each slice; Hann suits most songs.</span></label>
+      <label>Overlap<select class="bs-ov"><option value="0">None</option><option value="0.5">50 %</option><option value="0.75" selected>75 %</option><option value="0.875">87.5 %</option></select><span class="ax-help">More overlap = smoother picture in time.</span></label>
+      <label>Lowest frequency (kHz)<input class="bs-f0" type="number" min="0" step="0.5" value="0" /></label>
+      <label>Highest frequency (kHz)<input class="bs-f1" type="number" min="0" step="0.5" value="11.025" /></label>
+      <label>Contrast: range shown (dB)<input class="bs-dr" type="range" min="20" max="100" step="5" value="60" /><span class="ax-help bs-drv">60 dB: quieter parts are blank.</span></label>
+      <label>Colours<select class="bs-cmap"><option value="grey">Grey (loud = dark)</option><option value="colour">Colour (viridis)</option></select></label>
+    </div>
+  </div>
+
+  <div class="ax-card bs-out" hidden>
+    <h2>Spectrogram</h2>
+    <p class="ax-help" style="margin-top:0">Drag across the picture to select a note or phrase (or type the box below).</p>
+    <canvas class="ax-fig bs-fig"></canvas>
+    <p class="ax-help bs-res"></p>
+    <h3>Selection</h3>
+    <div class="ax-grid">
+      <label>From (s)<input class="bs-s0" type="number" step="0.01" /></label>
+      <label>To (s)<input class="bs-s1" type="number" step="0.01" /></label>
+      <label>Low (kHz)<input class="bs-sf0" type="number" step="0.1" /></label>
+      <label>High (kHz)<input class="bs-sf1" type="number" step="0.1" /></label>
+      <label>Bandwidth level (dB)<input class="bs-bw" type="number" min="1" max="60" value="10" /><span class="ax-help">Width where the sound is this far below its peak.</span></label>
+      <label>Note threshold (dB)<input class="bs-nt" type="number" min="1" max="80" value="20" /><span class="ax-help">A note is sound within this of the loudest moment.</span></label>
+      <label>Shortest note (ms)<input class="bs-mn" type="number" min="0" value="10" /><span class="ax-help">Shorter blips are ignored.</span></label>
+      <label>Join gaps under (ms)<input class="bs-mg" type="number" min="0" value="10" /><span class="ax-help">Notes closer than this count as one.</span></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small bs-all">Select everything shown</button></div>
+    <p class="ax-err bs-serr" hidden></p>
+    <dl class="ax-facts bs-facts" style="margin-top:12px"></dl>
+    <h3>Average spectrum of the selection</h3>
+    <canvas class="ax-fig bs-spec"></canvas>
+    <h3>Notes</h3>
+    <div class="ax-scroll"><table class="bs-notes"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small bs-csv">Notes (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .bs .bs-fig { touch-action: none; cursor: crosshair; }
+  .bs .bs-info { margin: 8px 0 0; font-size: 14px; }
+</style>
+
+<script>
+  import { parseWav, toMono, spectrogram, analyseSelection, exampleSong, db, type Spectrogram, type Selection, type WindowName } from '../../lib/sci/spectro';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { rasterFigure, plotBox, type Raster } from '../../lib/rasterfig';
+  import { paint, wireDownloads, save, fileSafe, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.bs')!;
+  const q = <T extends HTMLElement = HTMLInputElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q(c).value);
+  let audio: { x: Float32Array; fs: number; name: string; desc: string } | null = null;
+  let S: Spectrogram | null = null, sel: Selection | null = null, fig: Figure | null = null, spec: Figure | null = null, raster: Raster | null = null, report: Section[] = [];
+  const MAX_CELLS = 15e6;
+  const cv = q<HTMLCanvasElement>('.bs-fig');
+  // The picture is drawn at the width it is shown (340 to 720 px), so labels stay readable on phones.
+  let FW = 720, FH = 330;
+  const size = () => { const w = cv.clientWidth || root.clientWidth - 34; FW = Math.max(340, Math.min(720, Math.round(w))); FH = Math.round(Math.max(260, FW * 0.46)); };
+
+  function load(x: Float32Array, fs: number, name: string, desc: string) {
+    audio = { x, fs, name, desc };
+    const len = x.length / fs;
+    q('.bs-v0').value = '0'; q('.bs-v1').value = String(+Math.min(len, 30).toFixed(3));
+    q('.bs-f0').value = '0'; q('.bs-f1').value = String(+(fs / 2000).toFixed(3));
+    q('.bs-s0').value = ''; q('.bs-s1').value = ''; q('.bs-sf0').value = ''; q('.bs-sf1').value = '';
+    q('.bs-info').textContent = `${name}: ${desc}, ${sig(len, 4)} s at ${fs.toLocaleString('en')} samples per second.${len > 30 ? ' Showing the first 30 s; change "Show from / to" to see the rest.' : ''}`;
+    draw();
+  }
+  function fail(m: string) { const e = q('.bs-err'); e.textContent = m; e.hidden = false; q('.bs-out').hidden = true; report = []; }
+
+  function draw() {
+    if (!audio) return;
+    q('.bs-err').hidden = true;
+    const { x, fs } = audio, len = x.length / fs;
+    const nfft = Number(q<HTMLSelectElement>('.bs-nfft').value), ov = Number(q<HTMLSelectElement>('.bs-ov').value), win = q<HTMLSelectElement>('.bs-win').value as WindowName;
+    let v0 = val('.bs-v0'), v1 = val('.bs-v1');
+    if (!Number.isFinite(v0) || v0 < 0) v0 = 0; if (!Number.isFinite(v1) || v1 > len) v1 = len;
+    if (!(v1 > v0)) return fail('"Show to" must be later than "Show from".');
+    const i0 = Math.floor(v0 * fs), i1 = Math.min(x.length, Math.ceil(v1 * fs)), overlap = Math.round(nfft * ov), hop = nfft - overlap;
+    if (i1 - i0 < nfft) return fail(`The stretch shown is shorter than one FFT slice (${nfft} samples). Show a longer stretch or pick a smaller FFT size.`);
+    if (((i1 - i0) / hop) * (nfft / 2 + 1) > MAX_CELLS) return fail(`That is too much to draw at once with these settings. Show at most ${sig((MAX_CELLS / (nfft / 2 + 1)) * hop / fs, 2)} s, or use less overlap.`);
+    S = spectrogram(x.subarray(i0, i1), fs, nfft, overlap, win, i0 / fs);
+    let f0 = val('.bs-f0') * 1000, f1 = val('.bs-f1') * 1000;
+    if (!Number.isFinite(f0) || f0 < 0) f0 = 0; if (!Number.isFinite(f1) || f1 > fs / 2) f1 = fs / 2;
+    if (!(f1 > f0)) return fail('The highest frequency must be above the lowest.');
+    q('.bs-out').hidden = false;
+    // Rows: bins in range (max-pooled to ≤ 400); columns: frames (max-pooled to ≤ 1000).
+    const js: number[] = []; for (let j = 0; j < S.bins; j++) if (S.f[j] >= f0 && S.f[j] <= f1) js.push(j);
+    if (js.length < 2) return fail('The frequency range is narrower than one FFT step. Widen it or use a bigger FFT size.');
+    const cols = Math.min(1000, S.frames), rows = Math.min(400, js.length), v = new Float32Array(cols * rows);
+    let top = -Infinity;
+    for (let c = 0; c < cols; c++) {
+      const ka = Math.floor((c * S.frames) / cols), kb = Math.max(ka + 1, Math.floor(((c + 1) * S.frames) / cols));
+      for (let r = 0; r < rows; r++) {
+        const ja = Math.floor((r * js.length) / rows), jb = Math.max(ja + 1, Math.floor(((r + 1) * js.length) / rows));
+        let m = 0; for (let k = ka; k < kb; k++) for (let j = ja; j < jb; j++) m = Math.max(m, S.psd[k * S.bins + js[j]]);
+        const d = db(m); v[(rows - 1 - r) * cols + c] = d; if (d > top) top = d;
+      }
+    }
+    const range = Number(q('.bs-dr').value);
+    q('.bs-drv').textContent = `${range} dB: sound more than ${range} dB below the loudest is blank.`;
+    for (let i = 0; i < v.length; i++) v[i] = (v[i] - (top - range)) / range;
+    raster = { cols, rows, v, x: [S.t[0] - S.hop / S.fs / 2, S.t[S.frames - 1] + S.hop / S.fs / 2], y: [S.f[js[0]] / 1000, S.f[js[js.length - 1]] / 1000], xLabel: 'Time (s)', yLabel: 'Frequency (kHz)', cmap: q<HTMLSelectElement>('.bs-cmap').value as 'grey' | 'colour', smooth: true, overlay: overlay };
+    q('.bs-res').textContent = `Each slice is ${nfft} samples (${sig((nfft / fs) * 1000, 3)} ms); frequency step ${sig(fs / nfft, 4)} Hz, time step ${sig((hop / fs) * 1000, 3)} ms. ${S.frames.toLocaleString('en')} slices.`;
+    if (!(val('.bs-s1') > val('.bs-s0'))) setSel(raster.x[0], raster.x[1], raster.y[0], raster.y[1]);
+    measure();
+  }
+  const r4 = (n: number) => String(+n.toFixed(4));
+  function setSel(t0: number, t1: number, f0: number, f1: number) { q('.bs-s0').value = r4(t0); q('.bs-s1').value = r4(t1); q('.bs-sf0').value = r4(f0); q('.bs-sf1').value = r4(f1); }
+
+  function overlay(ctx: CanvasRenderingContext2D, X: (x: number) => number, Y: (y: number) => number, pal: { warn: string; accent: string; red: boolean }) {
+    const t0 = val('.bs-s0'), t1 = val('.bs-s1'), f0 = val('.bs-sf0'), f1 = val('.bs-sf1');
+    if (![t0, t1, f0, f1].every(Number.isFinite)) return;
+    ctx.strokeStyle = pal.red ? '#a30000' : '#D55E00'; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]);
+    ctx.strokeRect(X(t0), Y(f1), X(t1) - X(t0), Y(f0) - Y(f1)); ctx.setLineDash([]);
+    if (sel) { ctx.fillStyle = pal.red ? '#a30000' : '#D55E00'; for (const n of sel.notes) ctx.fillRect(X(n.start), Y(f1) + 2, Math.max(1, X(n.end) - X(n.start)), 4); }
+  }
+
+  function measure() {
+    if (!S || !raster) return;
+    const t0 = val('.bs-s0'), t1 = val('.bs-s1'), f0 = val('.bs-sf0') * 1000, f1 = val('.bs-sf1') * 1000, se = q('.bs-serr');
+    const o = { bwDb: val('.bs-bw'), noteDb: val('.bs-nt'), minNote: val('.bs-mn') / 1000, minGap: val('.bs-mg') / 1000 };
+    sel = null; se.hidden = true;
+    if (![t0, t1, f0, f1].every(Number.isFinite) || !(t1 > t0) || !(f1 > f0)) { se.textContent = 'Give the selection a start before its end, and a low frequency below the high one.'; se.hidden = false; }
+    else if (!Object.values(o).every((x) => Number.isFinite(x) && x >= 0) || !(o.bwDb > 0) || !(o.noteDb > 0)) { se.textContent = 'The bandwidth level and note threshold must be positive numbers of dB; note and gap lengths zero or more.'; se.hidden = false; }
+    else { sel = analyseSelection(S, t0, t1, f0, f1, o); if (!sel) { se.textContent = 'The selection holds no complete slice or fewer than 3 frequency steps. Make it bigger.'; se.hidden = false; } }
+    size(); fig = rasterFigure(raster, FW, FH, 'Spectrogram'); paint(q<HTMLCanvasElement>('.bs-fig'), fig);
+    const facts: [string, string][] = [], dl = q('.bs-facts'), tb = q<HTMLTableElement>('.bs-notes'); dl.innerHTML = ''; tb.innerHTML = '';
+    let rows: string[][] = [];
+    if (sel) {
+      const n = sel.notes, durs = n.map((x) => x.dur * 1000), gaps = n.slice(1).map((x, i) => (x.start - n[i].end) * 1000);
+      const mean = (a: number[]) => a.reduce((s, x) => s + x, 0) / a.length;
+      facts.push(['Peak frequency', `${sig(sel.peakHz / 1000, 4)} kHz`], [`Bandwidth (−${o.bwDb} dB)`, `${sig(sel.bandwidth / 1000, 3)} kHz`], ['Band edges', `${sig(sel.bwLow / 1000, 3)} – ${sig(sel.bwHigh / 1000, 3)} kHz`], ['Notes', String(n.length)]);
+      if (n.length) facts.push(['Mean note length', `${sig(mean(durs), 3)} ms`]);
+      if (gaps.length) facts.push(['Mean gap', `${sig(mean(gaps), 3)} ms`], ['Note rate', `${sig((n.length - 1) / (n[n.length - 1].start - n[0].start), 3)} per s`]);
+      rows = n.map((x, i) => [String(i + 1), x.start.toFixed(3), x.end.toFixed(3), sig(x.dur * 1000, 3), sig(x.peakHz / 1000, 4), `${sig(x.startHz / 1000, 3)} → ${sig(x.endHz / 1000, 3)}`]);
+      spec = chartFigure({ h: 260, xLabel: 'Frequency (kHz)', yLabel: 'Power (dB)', series: [{ name: 'Average spectrum', x: sel.spectrum.f.map((f) => f / 1000), y: sel.spectrum.db, mode: 'line' }], marks: [{ kind: 'vline', at: sel.bwLow / 1000, dash: [4, 3] }, { kind: 'vline', at: sel.bwHigh / 1000, dash: [4, 3] }, { kind: 'hline', at: sel.peakDb - o.bwDb, dash: [2, 3], label: `−${o.bwDb} dB` }] }, 'Average spectrum of the selection');
+      paint(q<HTMLCanvasElement>('.bs-spec'), spec);
+    } else spec = null;
+    q('.bs-spec').hidden = !spec;
+    for (const [k, v] of facts) { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.children[0].textContent = k; d.children[1].textContent = v; dl.append(d); }
+    const head = ['#', 'Start (s)', 'End (s)', 'Length (ms)', 'Peak (kHz)', 'Start → end (kHz)'];
+    if (rows.length) { const h = tb.createTHead().insertRow(); head.forEach((t, i) => { const th = document.createElement('th'); th.textContent = t; if (i) th.className = 'r'; h.append(th); }); const b = tb.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((t, i) => { const td = tr.insertCell(); td.textContent = t; if (i) td.className = 'r'; }); }); }
+    else if (sel) { const tr = tb.insertRow(); tr.insertCell().textContent = 'No notes found. Lower the note threshold or the shortest note.'; }
+    const a = audio!;
+    report = [
+      { title: 'Recording', facts: [['File', a.name], ['Sound', a.desc], ['Sample rate', `${a.fs} Hz`], ['Slice', `${S.nfft} samples, ${q<HTMLSelectElement>('.bs-win').selectedOptions[0].text} window, ${Number(q<HTMLSelectElement>('.bs-ov').value) * 100} % overlap`]] },
+      { title: 'Spectrogram', figure: fig, text: [q('.bs-res').textContent!] },
+      ...(sel ? [{ title: `Selection ${val('.bs-s0')}–${val('.bs-s1')} s, ${val('.bs-sf0')}–${val('.bs-sf1')} kHz`, facts, figure: spec! }, ...(rows.length ? [{ title: 'Notes', table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r'] as ('l' | 'r')[] } }] : [])] : []),
+    ];
+  }
+
+  // Drag on the spectrogram to select.
+  let drag: [number, number] | null = null;
+  const toData = (e: PointerEvent): [number, number] => {
+    const b = cv.getBoundingClientRect(), k = FW / b.width, px = (e.clientX - b.left) * k, py = (e.clientY - b.top) * k, box = plotBox(FW, FH, raster!);
+    const fx = Math.max(0, Math.min(1, (px - box.l) / (box.r - box.l))), fy = Math.max(0, Math.min(1, (box.b - py) / (box.b - box.t)));
+    return [raster!.x[0] + fx * (raster!.x[1] - raster!.x[0]), raster!.y[0] + fy * (raster!.y[1] - raster!.y[0])];
+  };
+  cv.addEventListener('pointerdown', (e) => { if (!raster) return; drag = toData(e); cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointermove', (e) => { if (!drag) return; const p = toData(e); setSel(Math.min(drag[0], p[0]), Math.max(drag[0], p[0]), Math.min(drag[1], p[1]), Math.max(drag[1], p[1])); paint(cv, rasterFigure(raster!, FW, FH, 'Spectrogram')); });
+  cv.addEventListener('pointerup', (e) => { if (!drag) return; const p = toData(e); const a = drag; drag = null; if (Math.abs(p[0] - a[0]) < 1e-3 || Math.abs(p[1] - a[1]) < 1e-3) return measure(); setSel(Math.min(a[0], p[0]), Math.max(a[0], p[0]), Math.min(a[1], p[1]), Math.max(a[1], p[1])); measure(); });
+
+  let t = 0;
+  const later = (f: () => void) => { clearTimeout(t); t = window.setTimeout(f, 250); };
+  for (const c of ['.bs-nfft', '.bs-win', '.bs-ov', '.bs-cmap', '.bs-dr']) q(c).addEventListener('change', () => draw());
+  q('.bs-dr').addEventListener('input', () => later(draw));
+  for (const c of ['.bs-v0', '.bs-v1', '.bs-f0', '.bs-f1']) q(c).addEventListener('input', () => later(() => { q('.bs-s0').value = ''; draw(); }));
+  for (const c of ['.bs-s0', '.bs-s1', '.bs-sf0', '.bs-sf1', '.bs-bw', '.bs-nt', '.bs-mn', '.bs-mg']) q(c).addEventListener('input', () => later(measure));
+  q('.bs-all').addEventListener('click', () => { if (raster) { setSel(raster.x[0], raster.x[1], raster.y[0], raster.y[1]); measure(); } });
+  const input = q<HTMLInputElement>('.bs-file');
+  q('.bs-open').addEventListener('click', () => input.click());
+  const open = async (f: File) => {
+    if (f.size > 100e6) return fail(`${f.name} is ${sig(f.size / 1e6, 3)} MB; this tool takes WAV files up to 100 MB. Cut out the part you need first.`);
+    try { const w = parseWav(new Uint8Array(await f.arrayBuffer())); if (w.channels[0].length < 256) throw new Error('The recording is too short (under 256 samples).'); load(toMono(w.channels), w.fs, f.name, `${w.channels.length === 1 ? 'mono' : `${w.channels.length} channels mixed to mono`}, ${w.bits}-bit ${w.format === 'float' ? 'float' : 'PCM'}`); }
+    catch (e) { fail(`${f.name}: ${(e as Error).message}`); }
+  };
+  input.addEventListener('change', () => { const f = input.files?.[0]; input.value = ''; if (f) open(f); });
+  root.addEventListener('dragover', (e) => { if (e.dataTransfer?.types.includes('Files')) e.preventDefault(); });
+  root.addEventListener('drop', (e) => { const f = e.dataTransfer?.files?.[0]; if (f) { e.preventDefault(); open(f); } });
+  const example = () => { const fs = 22050; load(exampleSong(fs).x, fs, 'Made-up example', 'synthetic song: 4 falling whistles then a 6-note trill, with quiet noise'); };
+  q('.bs-ex').addEventListener('click', example);
+  q('.bs-csv').addEventListener('click', () => { if (!sel) return; save(new TextEncoder().encode(csv([['note', 'start_s', 'end_s', 'duration_ms', 'peak_kHz', 'start_kHz', 'end_kHz'], ...sel.notes.map((n, i) => [i + 1, n.start.toFixed(4), n.end.toFixed(4), (n.dur * 1000).toFixed(2), (n.peakHz / 1000).toFixed(4), (n.startHz / 1000).toFixed(4), (n.endHz / 1000).toFixed(4)])])), `${fileSafe(audio!.name)}-notes.csv`, 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(cv, fig); if (spec) paint(q<HTMLCanvasElement>('.bs-spec'), spec); });
+  example();
+  wireDownloads(q('.dl'), () => ({ title: 'Bird song spectrogram', subtitle: audio?.name, file: `${fileSafe(audio?.name ?? 'song')}-spectrogram`, sections: report }));
+</script>

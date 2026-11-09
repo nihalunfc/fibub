@@ -1,0 +1,228 @@
+---
+// Ethogram logger: define behaviours with hotkeys (states and point events), log a timed session by key or tap,
+// and get time budgets, bout counts and durations and event rates. The example session is made up.
+// Only the ethogram definition can be kept in this browser, and only if the box is ticked; logs are never stored.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+const ethogram = 'F, Foraging, state\nR, Resting, state\nV, Vigilant, state\nM, Moving, state\nC, Call, event\nS, Scratch, event';
+const exampleLog = JSON.stringify([[0.0, "Vigilant", "state"], [8.9, "Scratch", "event"], [14.1, "Foraging", "state"], [16.3, "Scratch", "event"], [25.5, "Moving", "state"], [27.3, "Call", "event"], [33.6, "Foraging", "state"], [48.6, "Call", "event"], [77.4, "Scratch", "event"], [91.1, "Vigilant", "state"], [93.1, "Resting", "state"], [128.1, "Foraging", "state"], [128.4, "Call", "event"], [147.1, "Moving", "state"], [158.4, "Foraging", "state"], [159.1, "Scratch", "event"], [218.1, "Moving", "state"], [239.4, "Resting", "state"], [239.8, "Call", "event"], [270.9, "Foraging", "state"], [278.3, "Call", "event"], [297.5, "Scratch", "event"], [313.3, "Resting", "state"], [339.9, "Foraging", "state"], [347.4, "Scratch", "event"], [357.8, "Scratch", "event"], [383.7, "Call", "event"], [395.5, "Vigilant", "state"], [412.5, "Moving", "state"], [433.8, "Foraging", "state"], [440.6, "Scratch", "event"], [442.6, "Vigilant", "state"], [464.3, "Foraging", "state"], [484.1, "Resting", "state"], [489.6, "Scratch", "event"], [540.6, "Call", "event"], [557.8, "Call", "event"], [580.0, "", "stop"], [600.0, "Foraging", "state"]]);
+---
+<div class="ax eth" data-example={exampleLog}>
+  <div class="ax-card">
+    <h2>Ethogram</h2>
+    <label>One behaviour per line: a one-letter key, the name, and <b>state</b> (lasts until the next state) or <b>event</b> (a moment with no duration).
+      <textarea class="eth-def" rows="7" spellcheck="false">{ethogram}</textarea></label>
+    <p class="ax-err eth-deferr" hidden></p>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="eth-remember" /> Remember this ethogram on this device</label>
+      <button type="button" class="btn secondary small eth-clear">Clear saved ethogram</button>
+    </div>
+    <p class="ax-help">States are mutually exclusive: starting one ends the one before. Pressing the key of the running state again stops it, for time when the animal is out of sight. If you tick the box, only this list of behaviours is kept in this browser, so it is here next time; your logs are never stored, and nothing leaves your device. Clear removes it.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Session</h2>
+    <div class="ax-row">
+      <span class="ax-big eth-clock">0:00.0</span>
+      <span class="ax-pill eth-now">not started</span>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small eth-start">Start</button>
+      <button type="button" class="btn secondary small eth-stop" disabled>Stop</button>
+      <button type="button" class="btn secondary small eth-undo" disabled>Undo last</button>
+      <button type="button" class="btn secondary small eth-example">Load a made-up example</button>
+    </div>
+    <div class="eth-pad" style="margin-top:12px"></div>
+    <p class="ax-help">Press a behaviour's key on a keyboard, or tap its button. Keys work only while the session runs and you are not typing in a box. Keep this tab open: reloading ends the session and the log is lost unless you download it.</p>
+    <div class="ax-scroll eth-logw" style="margin-top:8px"><table class="eth-log"></table></div>
+  </div>
+
+  <div class="ax-card eth-out" hidden>
+    <h2>Results</h2>
+    <p class="ax-big eth-big"></p>
+    <dl class="ax-facts eth-facts"></dl>
+    <canvas class="ax-fig eth-tl" style="margin-top:12px"></canvas>
+    <h3>Time budget and bouts</h3>
+    <div class="ax-scroll"><table class="eth-states"></table></div>
+    <canvas class="ax-fig eth-bud" style="margin-top:12px"></canvas>
+    <h3>Point events</h3>
+    <div class="ax-scroll"><table class="eth-events"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small eth-csv">Download log (CSV)</button><button type="button" class="btn secondary small eth-scsv">Download summary (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .eth .eth-pad { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 130px), 1fr)); gap: 8px; }
+  .eth .eth-pad button { font: inherit; font-size: 15px; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; text-align: left; display: flex; gap: 8px; align-items: center; }
+  .eth .eth-pad button kbd { font: 600 13px ui-monospace, monospace; border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; color: var(--muted); }
+  .eth .eth-pad button.ev { border-style: dashed; }
+  .eth .eth-pad button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .eth .eth-pad button[aria-pressed=true] kbd { color: inherit; border-color: currentColor; }
+  .eth .eth-pad button:disabled { opacity: 0.55; cursor: default; }
+  .eth .eth-logw { max-height: 240px; overflow-y: auto; }
+  .eth .eth-clock { font-variant-numeric: tabular-nums; }
+</style>
+
+<script>
+  import { parseEthogram, analyse, clock, type Behaviour, type Entry, type Analysis } from '../../lib/sci/ethogram';
+  import { OKABE_ITO } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+  import { sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.eth')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const KEY = 'fibub-ethogram-v1';
+  const DARK = ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4', '#f0e442', '#9ecae1', '#ffffff', '#d55e00'];
+  const cols = (pal: Palette) => (pal.red ? ['#a30000', '#6e0000', '#c00000', '#4a0000'] : pal.bg === '#ffffff' ? OKABE_ITO : DARK);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const s1 = (x: number) => (Number.isFinite(x) ? x.toFixed(1) : '–');
+
+  let eth: Behaviour[] = [], log: Entry[] = [], t0 = 0, running = false, end = 0, current = '', tick = 0;
+  let figs: Figure[] = [], sections: Section[] = [], res: Analysis | null = null;
+  const now = () => (performance.now() - t0) / 1000;
+
+  function readDef() {
+    try { eth = parseEthogram(q<HTMLTextAreaElement>('.eth-def').value); q('.eth-deferr').hidden = true; }
+    catch (e) { q('.eth-deferr').textContent = (e as Error).message; q('.eth-deferr').hidden = false; eth = []; }
+    if (!eth.length && q('.eth-deferr').hidden) { q('.eth-deferr').textContent = 'Add at least one behaviour, such as "F, Foraging, state".'; q('.eth-deferr').hidden = false; }
+    drawPad(); store();
+  }
+  function store() { try { if (q<HTMLInputElement>('.eth-remember').checked) localStorage.setItem(KEY, q<HTMLTextAreaElement>('.eth-def').value); } catch {} }
+
+  function drawPad() {
+    const pad = q('.eth-pad'); pad.replaceChildren();
+    for (const b of eth) {
+      const btn = document.createElement('button'); btn.type = 'button'; btn.dataset.key = b.key; if (b.kind === 'event') btn.className = 'ev';
+      const k = document.createElement('kbd'); k.textContent = b.key.toUpperCase(); btn.append(k, document.createTextNode(b.name + (b.kind === 'event' ? ' (event)' : '')));
+      btn.disabled = !running; btn.setAttribute('aria-pressed', String(b.kind === 'state' && b.name === current));
+      btn.addEventListener('click', () => press(b.key));
+      pad.append(btn);
+    }
+  }
+  function setNow() {
+    q('.eth-now').textContent = running ? (current ? current : 'no state') : log.length ? 'stopped' : 'not started';
+    q('.eth-pad').querySelectorAll<HTMLButtonElement>('button').forEach((b) => { const be = eth.find((x) => x.key === b.dataset.key)!; b.disabled = !running; b.setAttribute('aria-pressed', String(be.kind === 'state' && be.name === current)); });
+    q<HTMLButtonElement>('.eth-start').disabled = running; q<HTMLButtonElement>('.eth-stop').disabled = !running; q<HTMLButtonElement>('.eth-undo').disabled = !log.length;
+    q<HTMLTextAreaElement>('.eth-def').readOnly = running;
+  }
+  function showLog() {
+    const t = q<HTMLTableElement>('.eth-log'); t.replaceChildren();
+    if (!log.length) return;
+    const h = t.createTHead().insertRow(); ['Time', 'Behaviour', 'Type'].forEach((x) => { const th = document.createElement('th'); th.textContent = x; h.append(th); });
+    const b = t.createTBody();
+    for (const e of [...log].reverse()) { const r = b.insertRow(); [clock(e.t), e.kind === 'stop' ? '(stop: no state)' : e.name, e.kind].forEach((x) => { r.insertCell().textContent = x; }); }
+  }
+  function currentState() { let c = ''; for (const e of [...log].sort((a, b) => a.t - b.t)) if (e.kind === 'state') c = e.name; else if (e.kind === 'stop') c = ''; return c; }
+
+  function press(key: string) {
+    if (!running) return;
+    const b = eth.find((x) => x.key === key); if (!b) return;
+    const t = Math.round(now() * 10) / 10;
+    if (b.kind === 'event') log.push({ t, name: b.name, kind: 'event' });
+    else if (b.name === current) { log.push({ t, name: '', kind: 'stop' }); current = ''; }
+    else { log.push({ t, name: b.name, kind: 'state' }); current = b.name; }
+    setNow(); showLog();
+  }
+
+  function start() {
+    readDef(); if (!eth.length) return;
+    log = []; current = ''; t0 = performance.now(); running = true; q('.eth-out').hidden = true; res = null;
+    tick = window.setInterval(() => { q('.eth-clock').textContent = clock(now()); }, 100);
+    setNow(); showLog();
+  }
+  function stop() {
+    if (!running) return;
+    end = Math.round(now() * 10) / 10; running = false; clearInterval(tick); q('.eth-clock').textContent = clock(end);
+    setNow(); results();
+  }
+
+  function timeline(a: Analysis, names: string[], events: string[]): Figure {
+    const rows = [...names, ...events], H = 40 + rows.length * 26 + 30;
+    return { w: 520, h: H, alt: 'Timeline of states and events through the session', draw: (ctx, w, h, pal) => {
+      const L = 100, R = w - 14, top = 14, X = (t: number) => L + ((R - L) * t) / Math.max(1e-9, a.length), c = cols(pal);
+      ctx.font = '14px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+      rows.forEach((n, i) => {
+        const y = top + i * 26; ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.fillText(n.length > 14 ? n.slice(0, 13) + '…' : n, L - 8, y + 11);
+        ctx.fillStyle = pal.grid; ctx.fillRect(L, y + 20, R - L, 1);
+        if (i < names.length) { ctx.fillStyle = c[i % c.length]; for (const b of a.bouts) if (b.name === n) ctx.fillRect(X(b.start), y + 3, Math.max(1, X(b.end) - X(b.start)), 16); }
+        else { ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; for (const e of log) if (e.kind === 'event' && e.name === n) { ctx.beginPath(); ctx.moveTo(X(e.t), y + 2); ctx.lineTo(X(e.t), y + 20); ctx.stroke(); } }
+      });
+      const y = top + rows.length * 26 + 6; ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(R, y); ctx.stroke();
+      const step = [10, 30, 60, 120, 300, 600, 1200, 1800, 3600, 7200].find((s) => a.length / s <= 8) ?? 3600 * Math.ceil(a.length / 28800);
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (let t = 0; t <= a.length + 1e-9; t += step) { ctx.fillRect(X(t), y, 1, 5); ctx.fillText(clock(t, false), X(t), y + 7); }
+    } };
+  }
+  function budget(a: Analysis): Figure {
+    const items = [...a.states.map((s) => ({ n: s.name, v: s.share })), ...(a.unscored > 0 ? [{ n: 'No state', v: a.unscored / a.length }] : [])];
+    return { w: 520, h: 24 + items.length * 30, alt: 'Time budget: share of the session in each state', draw: (ctx, w, h, pal) => {
+      const L = 100, R = w - 70, c = cols(pal); ctx.font = '14px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+      items.forEach((it, i) => {
+        const y = 12 + i * 30; ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.fillText(it.n.length > 14 ? it.n.slice(0, 13) + '…' : it.n, L - 8, y + 10);
+        ctx.fillStyle = i < a.states.length ? c[i % c.length] : pal.line; ctx.fillRect(L, y, Math.max(1, (R - L) * (it.v || 0)), 20);
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.fillText(`${sig(100 * (it.v || 0), 3)} %`, L + (R - L) * (it.v || 0) + 6, y + 10);
+      });
+    } };
+  }
+
+  function table(sel: string, head: string[], rows: string[][]) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); });
+  }
+
+  function results() {
+    if (!log.length || !(end > 0)) { q('.eth-out').hidden = true; res = null; sections = []; return; }
+    const a = analyse(log, end, eth); res = a;
+    q('.eth-out').hidden = false;
+    const top = [...a.states].sort((x, y) => y.total - x.total)[0];
+    q('.eth-big').textContent = top && top.total > 0 ? `${clock(a.length, false)} observed; most time ${top.name} (${sig(100 * top.share, 3)} %)` : `${clock(a.length, false)} observed; no states logged`;
+    q('.eth-facts').replaceChildren(
+      fact('Session length', clock(a.length), `${s1(a.length)} s`),
+      fact('Time in a state', `${sig(a.length ? (100 * a.scored) / a.length : 0, 3)} %`, a.unscored > 0 ? `${s1(a.unscored)} s with no state (stopped or before the first)` : 'every second scored'),
+      fact('State bouts', String(a.bouts.length), `${a.transitions} direct changes from one state to another`),
+      fact('Point events', String(a.events.reduce((s, e) => s + e.count, 0)), `${a.events.filter((e) => e.count).length} kinds`),
+    );
+    const sHead = ['State', 'Total (s)', '% of session', 'Bouts', 'Mean bout (s)', 'Median (s)', 'Shortest (s)', 'Longest (s)'];
+    const sRows = a.states.map((s) => [s.name, s1(s.total), sig(100 * s.share, 3), String(s.bouts), s1(s.mean), s1(s.median), s1(s.min), s1(s.max)]);
+    table('.eth-states', sHead, sRows);
+    const eHead = ['Event', 'Count', 'Per minute'], eRows = a.events.map((e) => [e.name, String(e.count), sig(e.perMin, 3)]);
+    table('.eth-events', eHead, eRows);
+    const tl = timeline(a, a.states.map((s) => s.name), a.events.map((e) => e.name)), bud = budget(a);
+    figs = [tl, bud]; paint(q<HTMLCanvasElement>('.eth-tl'), tl); paint(q<HTMLCanvasElement>('.eth-bud'), bud);
+    sections = [{ title: q('.eth-big').textContent!, text: ['States are mutually exclusive and last until the next state or a stop. Shares are of the whole session.'], facts: [...q('.eth-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: tl },
+      { title: 'Time budget and bouts', table: { head: sHead, rows: sRows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'r'] }, figure: bud },
+      { title: 'Point events', table: { head: eHead, rows: eRows, align: ['l', 'r', 'r'] } }];
+  }
+
+  // Wire up.
+  try { const saved = localStorage.getItem(KEY); if (saved != null) { q<HTMLTextAreaElement>('.eth-def').value = saved; q<HTMLInputElement>('.eth-remember').checked = true; } } catch {}
+  readDef(); setNow();
+  q('.eth-def').addEventListener('input', readDef);
+  q('.eth-remember').addEventListener('change', () => { try { if (q<HTMLInputElement>('.eth-remember').checked) store(); else localStorage.removeItem(KEY); } catch {} });
+  q('.eth-clear').addEventListener('click', () => { try { localStorage.removeItem(KEY); } catch {} q<HTMLInputElement>('.eth-remember').checked = false; });
+  q('.eth-start').addEventListener('click', start);
+  q('.eth-stop').addEventListener('click', stop);
+  q('.eth-undo').addEventListener('click', () => { log.pop(); current = currentState(); setNow(); showLog(); if (!running) results(); });
+  q('.eth-example').addEventListener('click', () => {
+    if (running) stop();
+    q<HTMLTextAreaElement>('.eth-def').value = 'F, Foraging, state\nR, Resting, state\nV, Vigilant, state\nM, Moving, state\nC, Call, event\nS, Scratch, event'; readDef();
+    log = (JSON.parse(root.dataset.example!) as [number, string, string][]).map(([t, name, kind]) => ({ t, name, kind: kind as Entry['kind'] }));
+    end = 660; current = ''; q('.eth-clock').textContent = clock(end); setNow(); showLog(); results();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (!running || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+    const tg = e.target as HTMLElement;
+    if (tg.closest('input, textarea, select, [contenteditable]')) return;
+    const k = e.key.toLowerCase();
+    if (eth.some((b) => b.key === k)) { e.preventDefault(); press(k); }
+  });
+  window.addEventListener('beforeunload', (e) => { if (running) e.preventDefault(); });
+  q('.eth-csv').addEventListener('click', () => { if (log.length) save(new TextEncoder().encode(toCsv([['time_s', 'clock', 'behaviour', 'type'], ...[...log].sort((a, b) => a.t - b.t).map((e) => [e.t.toFixed(1), clock(e.t), e.name, e.kind])])), 'ethogram-log.csv', 'text/csv'); });
+  q('.eth-scsv').addEventListener('click', () => { if (!res) return; save(new TextEncoder().encode(toCsv([['behaviour', 'type', 'total_s', 'share_of_session', 'bouts_or_count', 'mean_bout_s', 'median_bout_s', 'min_bout_s', 'max_bout_s', 'per_minute'],
+    ...res.states.map((s) => [s.name, 'state', s.total.toFixed(2), s.share.toFixed(5), String(s.bouts), Number.isFinite(s.mean) ? s.mean.toFixed(2) : '', Number.isFinite(s.median) ? s.median.toFixed(2) : '', Number.isFinite(s.min) ? s.min.toFixed(2) : '', Number.isFinite(s.max) ? s.max.toFixed(2) : '', '']),
+    ...res.events.map((ev) => [ev.name, 'event', '', '', String(ev.count), '', '', '', '', ev.perMin.toFixed(4)]), ['(no state)', 'unscored', res.unscored.toFixed(2), (res.unscored / res.length).toFixed(5), '', '', '', '', '', ''], ['session', 'length', res.length.toFixed(2), '1', '', '', '', '', '', '']])), 'ethogram-summary.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.eth-out').hidden) { paint(q<HTMLCanvasElement>('.eth-tl'), figs[0]); paint(q<HTMLCanvasElement>('.eth-bud'), figs[1]); } });
+  wireDownloads(q('.dl'), () => ({ title: 'Ethogram session', subtitle: q('.eth-big').textContent ?? '', file: 'ethogram', sections }));
+</script>

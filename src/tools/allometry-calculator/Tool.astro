@@ -1,0 +1,171 @@
+---
+// Allometric scaling Y = a M^b: fit a and b from your data by log-log least squares, with confidence limits,
+// a test of the exponent and predictions; plus scaling laws with illustrative coefficients you can edit.
+// The example species are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const example = `species	mass_kg	metabolic_rate_W
+Species A	0.048	0.314
+Species B	0.052	0.376
+Species C	0.063	0.508
+Species D	0.101	0.624
+Species E	0.22	1.363
+Species F	1.051	3.397
+Species G	1.566	4.717
+Species H	1.607	6.36
+Species I	2.558	7.392
+Species J	3.746	8.017
+Species K	7.267	13.71
+Species L	7.616	16.202
+Species M	34.014	61.529
+Species N	66.832	66.665`;
+---
+<div class="ax alm">
+  <div class="ax-card">
+    <h2>Fit Y = a M<sup>b</sup> to your data</h2>
+    <label>Body mass M and the trait Y, one species or individual per row. An optional name can go in the first column.
+      <textarea class="alm-data" rows="9" spellcheck="false" wrap="off">{example}</textarea></label>
+    <DataFile target=".alm-data" maxCols={10} maxRows={20000} />
+    <p class="ax-help">The example is 14 made-up species with mass in kg and resting metabolic rate in watts.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Mass unit <input class="alm-mu" value="kg" /></label>
+      <label>Y name and unit <input class="alm-yu" value="metabolic rate (W)" /></label>
+      <label>Confidence <select class="alm-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+      <label>Test b against <input class="alm-b0" inputmode="decimal" value="0.75" /></label>
+      <label>Predict Y at mass <input class="alm-at" inputmode="decimal" value="50" /></label>
+    </div>
+    <p class="ax-help">The fit is a straight line through log₁₀ Y against log₁₀ M (ordinary least squares), so b is the slope and a is Y at M = 1. <b>Test b against</b> checks whether your exponent differs from a theoretical one, such as 0.75 (Kleiber) or 0.667 (surface area). The prediction is the typical (median) Y for that mass, with limits for the line and for one new species.</p>
+    <p class="ax-err alm-err" hidden></p>
+  </div>
+
+  <div class="ax-card alm-out">
+    <h2>Fitted scaling</h2>
+    <p class="ax-big alm-big"></p>
+    <dl class="ax-facts alm-facts"></dl>
+    <canvas class="ax-fig alm-fig" style="margin-top:12px"></canvas>
+    <h3>Prediction</h3>
+    <p class="alm-pred"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small alm-csv">Download fit (CSV)</button></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Scaling laws</h2>
+    <p class="ax-help" style="margin-top:0">Common allometric exponents with <b>illustrative coefficients</b>: round numbers to show the shape of each law, not values for any group of animals. Replace a (and b, if you like) with figures for your group from a source you trust.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Law <select class="alm-law">
+        <option value="3.4|0.75|W" selected>Metabolic rate (Kleiber, b = 3/4)</option>
+        <option value="3.4|-0.25|W/kg">Metabolic rate per kg (b = −1/4)</option>
+        <option value="240|-0.25|beats/min">Heart rate (b = −1/4)</option>
+        <option value="12|0.25|years">Lifespan (b = 1/4)</option>
+        <option value="0.1|0.6667|m²">Body surface area (b = 2/3)</option>
+        <option value="1|1|">Custom</option>
+      </select></label>
+      <label>Coefficient a (illustrative) <input class="alm-la" inputmode="decimal" value="3.4" /></label>
+      <label>Exponent b <input class="alm-lb" inputmode="decimal" value="0.75" /></label>
+      <label>Y unit <input class="alm-lu" value="W" /></label>
+      <label>Mass M (kg) <input class="alm-lm" inputmode="decimal" value="70" /></label>
+    </div>
+    <p class="ax-big alm-lout" style="margin-top:12px"></p>
+    <div class="ax-scroll"><table class="alm-ltab"></table></div>
+    <p class="ax-err alm-lerr" hidden></p>
+  </div>
+</div>
+
+<script>
+  import { fitAllometry, testExponent, predictY, scale, type AlloFit } from '../../lib/sci/allomfit';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.alm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const sg = (x: number, n = 4) => sig(x, n);
+  const tr = (x: number, n = 4) => sig(x, n).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function read() {
+    const rows = parseTable(q<HTMLTextAreaElement>('.alm-data').value), out: { name: string; m: number; y: number }[] = [];
+    let skipped = 0;
+    rows.forEach((r, i) => {
+      const nums = r.map(num), lab = r.length >= 3 && !Number.isFinite(nums[0]);
+      const m = lab ? nums[1] : nums[0], y = lab ? nums[2] : nums[1];
+      if (!Number.isFinite(m) || !Number.isFinite(y)) { if (i > 0) skipped++; return; }
+      out.push({ name: lab ? r[0] : `Row ${i + 1}`, m, y });
+    });
+    return { pts: out, skipped };
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.alm-err').textContent = m; q('.alm-err').hidden = false; q('.alm-out').hidden = true; fig = null; sections = []; csvRows = []; };
+    q('.alm-err').hidden = true;
+    const { pts, skipped } = read();
+    if (pts.length > 20000) return fail('Up to 20,000 rows, please.');
+    const bad = pts.find((p) => !(p.m > 0) || !(p.y > 0));
+    if (bad) return fail(`${bad.name}: mass and Y must both be above zero, because the fit uses logarithms.`);
+    const conf = Number(q<HTMLSelectElement>('.alm-conf').value), cl = `${Math.round(conf * 100)} %`;
+    let f: AlloFit;
+    try { f = fitAllometry(pts.map((p) => p.m), pts.map((p) => p.y), conf); } catch (e) { return fail((e as Error).message + (pts.length < 3 ? ' Use two columns, mass then Y (or a name, mass, Y).' : '')); }
+    q('.alm-out').hidden = false;
+    const mu = q<HTMLInputElement>('.alm-mu').value.trim(), yu = q<HTMLInputElement>('.alm-yu').value.trim() || 'Y';
+    q('.alm-big').textContent = `Y = ${tr(f.a)} × M^${tr(f.b)}`;
+    const b0 = num(q<HTMLInputElement>('.alm-b0').value), tt = Number.isFinite(b0) ? testExponent(f, b0) : null;
+    q('.alm-facts').replaceChildren(
+      fact('Exponent b', `${sg(f.b)} ± ${sg(f.seB, 2)}`, `${cl} limits ${sg(f.bLo)} to ${sg(f.bHi)} (± standard error)`),
+      fact('Coefficient a', sg(f.a), `${cl} limits ${sg(f.aLo)} to ${sg(f.aHi)}; Y at M = 1${mu ? ' ' + mu : ''}`),
+      fact('R² (log scale)', sg(f.r2, 4), `${f.n} points${skipped ? `, ${skipped} row${skipped > 1 ? 's' : ''} skipped` : ''}`),
+      fact('Scatter about the line', `${sg(f.s, 3)} log₁₀ units`, `typical point within ×${sg(10 ** f.s, 3)} of the line`),
+      fact('Bias correction factor', sg(f.cf, 4), 'multiply a back-transformed prediction by this to estimate the mean rather than the median'),
+      ...(tt ? [fact(`b against ${tr(b0)}`, `t = ${sg(tt.t, 3)}, p = ${sg(tt.p, 2)}`, tt.inside ? `${tr(b0)} is inside the ${cl} limits: no clear difference` : `${tr(b0)} is outside the ${cl} limits: the exponent differs`)] : []),
+    );
+
+    const lo = f.mMin, hi = f.mMax, xs: number[] = [];
+    for (let i = 0; i <= 60; i++) xs.push(lo * (hi / lo) ** (i / 60));
+    const pr = xs.map((m) => predictY(f, m));
+    fig = chartFigure({ h: 360, xLog: true, yLog: true, xLabel: `Body mass${mu ? ` (${mu})` : ''}`, yLabel: yu, legend: 'below', series: [
+      { name: 'Data', x: pts.map((p) => p.m), y: pts.map((p) => p.y), mode: 'points', marker: 'circle' },
+      { name: `Fit: b = ${sg(f.b, 3)}`, x: xs, y: pr.map((p) => p.y), mode: 'line' },
+      // Lower limit out and upper limit back: one dashed outline around the prediction band.
+      { name: `${cl} prediction band`, x: [...xs, ...[...xs].reverse()], y: [...pr.map((p) => p.piLo), ...pr.map((p) => p.piHi).reverse()], mode: 'line', dash: [5, 4], width: 1 },
+    ] }, `Log-log plot with the fitted line Y = ${sg(f.a)} M^${sg(f.b)}`);
+    paint(q<HTMLCanvasElement>('.alm-fig'), fig);
+
+    const at = num(q<HTMLInputElement>('.alm-at').value);
+    let predText = '';
+    if (at > 0) {
+      const p = predictY(f, at);
+      predText = `At ${sg(at)}${mu ? ' ' + mu : ''}: Y = ${sg(p.y)} (${cl} limits for the line ${sg(p.ciLo)} to ${sg(p.ciHi)}; for one new species ${sg(p.piLo)} to ${sg(p.piHi)}).${p.extrapolated ? ` This mass is outside your data (${sg(lo)} to ${sg(hi)}), so the prediction is an extrapolation: treat it with care.` : ''}`;
+    } else if (q<HTMLInputElement>('.alm-at').value.trim()) predText = 'Type a mass above zero to get a prediction.';
+    q('.alm-pred').textContent = predText;
+
+    csvRows = [['name', 'mass', 'y', 'fitted_y', 'log10_residual'], ...pts.map((p) => { const yh = predictY(f, p.m).y; return [p.name, String(p.m), String(p.y), yh.toPrecision(6), (Math.log10(p.y) - Math.log10(yh)).toFixed(5)]; }),
+      [], ['measure', 'value'], ['n', String(f.n)], ['b', f.b.toPrecision(8)], ['se_b', f.seB.toPrecision(6)], ['b_lower', f.bLo.toPrecision(8)], ['b_upper', f.bHi.toPrecision(8)],
+      ['a', f.a.toPrecision(8)], ['a_lower', f.aLo.toPrecision(8)], ['a_upper', f.aHi.toPrecision(8)], ['r2', f.r2.toPrecision(6)], ['s_log10', f.s.toPrecision(6)], ['correction_factor', f.cf.toPrecision(6)], ['confidence', String(conf)]];
+    sections = [{ title: q('.alm-big').textContent!, text: [`Ordinary least squares on log₁₀ Y against log₁₀ M; limits from Student's t with ${f.n - 2} df.`, predText].filter(Boolean),
+      facts: [...q('.alm-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig }];
+  }
+
+  function law() {
+    const err = q('.alm-lerr');
+    const a = num(q<HTMLInputElement>('.alm-la').value), b = num(q<HTMLInputElement>('.alm-lb').value), M = num(q<HTMLInputElement>('.alm-lm').value), u = q<HTMLInputElement>('.alm-lu').value.trim();
+    if (!Number.isFinite(a) || !Number.isFinite(b) || !(M > 0)) { err.textContent = 'Give a coefficient a, an exponent b and a mass above zero.'; err.hidden = false; q('.alm-lout').textContent = ''; q('.alm-ltab').replaceChildren(); return; }
+    err.hidden = true;
+    q('.alm-lout').textContent = `Y = ${tr(a)} × ${tr(M)}^${tr(b)} = ${sg(scale(a, b, M))}${u ? ' ' + u : ''}`;
+    const t = q<HTMLTableElement>('.alm-ltab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); ['Mass (kg)', `Y${u ? ` (${u})` : ''}`, 'Times the 1 kg value'].forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const tb = t.createTBody();
+    for (const m of [0.01, 0.1, 1, 10, 100, 1000]) { const row = tb.insertRow(); [tr(m), sg(scale(a, b, m)), sg(m ** b)].forEach((c, i) => { const td = row.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); }
+  }
+  q('.alm-law').addEventListener('change', () => { const [a, b, u] = q<HTMLSelectElement>('.alm-law').value.split('|'); q<HTMLInputElement>('.alm-la').value = a; q<HTMLInputElement>('.alm-lb').value = b; q<HTMLInputElement>('.alm-lu').value = u; law(); });
+  ['.alm-la', '.alm-lb', '.alm-lm', '.alm-lu'].forEach((c) => q(c).addEventListener('input', law));
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  ['.alm-data', '.alm-mu', '.alm-yu', '.alm-conf', '.alm-b0', '.alm-at'].forEach((c) => { q(c).addEventListener('input', later); q(c).addEventListener('change', later); });
+  q('.alm-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'allometry-fit.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.alm-fig'), fig); });
+  calc(); law();
+  wireDownloads(q('.dl'), () => ({ title: 'Allometric scaling', subtitle: q('.alm-big').textContent ?? '', file: 'allometry', sections }));
+</script>

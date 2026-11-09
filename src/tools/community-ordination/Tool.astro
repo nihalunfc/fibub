@@ -1,0 +1,225 @@
+---
+// Community ordination: PCA (raw or Hellinger etc.), NMDS on Bray-Curtis with stress and a Shepard plot, and
+// hierarchical clustering with a dendrogram, for a species-by-site table. The example table is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const example = `Species	Q1	Q2	Q3	Q4	Q5	Q6	Q7	Q8	Q9	Q10	Q11	Q12
+Carex nigra	26	29	16	15	5	4	0	0	0	0	0	0
+Juncus effusus	24	20	16	12	9	2	6	3	1	0	0	0
+Caltha palustris	11	22	13	6	3	1	0	0	0	0	0	0
+Mentha aquatica	5	5	5	8	11	4	3	2	0	1	0	0
+Holcus lanatus	1	12	6	21	29	28	26	2	5	2	3	1
+Lolium perenne	0	1	5	15	24	18	31	20	13	9	2	1
+Trifolium repens	0	2	4	6	13	11	17	8	8	7	5	2
+Plantago lanceolata	0	3	3	9	4	11	8	9	6	9	2	2
+Festuca rubra	0	0	0	2	5	6	22	17	27	17	9	12
+Ammophila arenaria	0	0	0	0	0	0	1	1	7	22	34	27
+Jasione montana	0	0	0	0	0	0	1	1	6	5	4	5
+Hypochaeris radicata	1	1	2	3	5	5	9	13	12	7	9	4`;
+---
+<div class="ax cord">
+  <div class="ax-card">
+    <h2>Community table</h2>
+    <label>Species in the first column, then one column per site (quadrat, sample, plot). The first row holds the site names. Counts, cover or biomass all work.
+      <textarea class="co-in" rows="10" spellcheck="false" wrap="off">{example}</textarea></label>
+    <DataFile target=".co-in" maxCols={151} maxRows={1000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>PCA on <select class="co-tr"><option value="hellinger" selected>Hellinger-transformed values</option><option value="none">Raw values</option><option value="sqrt">Square roots</option><option value="relative">Proportions per site</option></select></label>
+      <label>Dissimilarity (NMDS, clusters) <select class="co-dist"><option value="bray-none" selected>Bray-Curtis on raw values</option><option value="bray-sqrt">Bray-Curtis on square roots</option><option value="bray-relative">Bray-Curtis on proportions</option><option value="euclid-hellinger">Hellinger distance</option><option value="euclid-none">Euclidean on raw values</option></select></label>
+      <label>Clustering <select class="co-link"><option value="average" selected>UPGMA (average)</option><option value="ward">Ward</option><option value="complete">Complete linkage</option><option value="single">Single linkage</option></select></label>
+      <label>Groups to colour <input class="co-k" type="number" min="1" max="8" value="3" inputmode="numeric" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="co-sp" checked /> Show species on the PCA plot (biplot)</label>
+    <p class="ax-help">Hellinger (square root of each site's proportions) stops very common species and many shared zeros from dominating a PCA. Bray-Curtis is the usual dissimilarity for counts; square roots or proportions tone down the most abundant species. Up to 150 sites and 1,000 species. The example table is made up: a transect from a wet marsh (Q1) to dunes (Q12).</p>
+    <p class="ax-err co-err" hidden></p>
+  </div>
+
+  <div class="ax-card co-out" hidden>
+    <h2>Principal component analysis (PCA)</h2>
+    <p class="ax-big co-pbig"></p>
+    <dl class="ax-facts co-pfacts"></dl>
+    <canvas class="ax-fig co-pfig"></canvas>
+    <p class="ax-help">Sites close together have similar communities. Colours are the cluster groups from below. In the biplot, species (grey labels) point the way their values rise.</p>
+    <h3>Axes</h3>
+    <div class="ax-scroll"><table class="co-eig"></table></div>
+    <h3>Species loadings</h3>
+    <div class="ax-scroll"><table class="co-load"></table></div>
+
+    <h2 style="margin-top:22px">Non-metric multidimensional scaling (NMDS)</h2>
+    <p class="ax-big co-nbig"></p>
+    <dl class="ax-facts co-nfacts"></dl>
+    <p class="ax-err co-nwarn" hidden></p>
+    <canvas class="ax-fig co-nfig"></canvas>
+    <h3>Shepard plot</h3>
+    <canvas class="ax-fig co-shep"></canvas>
+    <p class="ax-help">Each dot is a pair of sites: their dissimilarity against their distance on the NMDS plot. The step line is the best rising fit; the further the dots are from it, the higher the stress.</p>
+
+    <h2 style="margin-top:22px">Cluster analysis</h2>
+    <p class="ax-big co-cbig"></p>
+    <dl class="ax-facts co-cfacts"></dl>
+    <canvas class="ax-fig co-dend"></canvas>
+    <div class="ax-scroll"><table class="co-grp"></table></div>
+
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn secondary small co-csv">Site scores (CSV)</button>
+      <button type="button" class="btn secondary small co-dcsv">Dissimilarities (CSV)</button>
+      <button type="button" class="btn secondary small co-nwk">Dendrogram (Newick)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { transform, distances, pca, nmds, cluster, cophenetic, cutTree, linkageNewick, type Transform, type DistKind, type Linkage } from '../../lib/sci/ordination';
+  import { parseNewick } from '../../lib/sci/newick';
+  import { treeFigure } from '../../lib/sci/dendrofig';
+  import { chartFigure, OKABE_ITO } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.cord')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sg = (x: number, d = 3) => { if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const pc = (x: number) => `${(100 * x).toFixed(1)} %`;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const LINK: Record<Linkage, string> = { average: 'UPGMA (average linkage)', ward: 'Ward', complete: 'Complete linkage', single: 'Single linkage' };
+  let figs: [string, Figure][] = [], sections: Section[] = [], scoreRows: string[][] = [], distRows: string[][] = [], newick = '';
+
+  function table(sel: string, head: string[], rows: string[][], right: number[] = []) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+  const stressWord = (s: number) => (s < 0.05 ? 'excellent' : s < 0.1 ? 'good' : s < 0.2 ? 'usable, look at it with care' : 'poor: the 2-D picture may mislead');
+
+  function read() {
+    const rows = parseTable(q<HTMLTextAreaElement>('.co-in').value).filter((r) => r.some((c) => c.trim() !== ''));
+    if (rows.length < 3) throw new Error('Paste a header row of site names and at least two species rows.');
+    const sites = rows[0].slice(1).map((s, j) => s.trim() || `Site ${j + 1}`);
+    if (sites.length < 3) throw new Error('Give at least three sites (columns after the species names).');
+    if (sites.length > 150) throw new Error(`Up to 150 sites, please (found ${sites.length}).`);
+    if (rows.length - 1 > 1000) throw new Error('Up to 1,000 species, please.');
+    const species: string[] = [], cols: number[][] = [];
+    let dropped = 0;
+    for (const r of rows.slice(1)) {
+      const v = sites.map((_, j) => { const c = (r[j + 1] ?? '').trim(); if (c === '') return 0; const x = num(c); if (!Number.isFinite(x)) throw new Error(`"${c}" for ${r[0] || 'a species'} is not a number.`); if (x < 0) throw new Error(`Values cannot be negative (${r[0]}: ${c}).`); return x; });
+      if (v.every((x) => x === 0)) { dropped++; continue; }
+      species.push(r[0].trim() || `Species ${species.length + 1}`); cols.push(v);
+    }
+    if (species.length < 2) throw new Error('At least two species need a value above zero somewhere.');
+    const X = sites.map((_, j) => cols.map((c) => c[j]));
+    const empty = sites.filter((_, j) => X[j].every((x) => x === 0));
+    if (empty.length) throw new Error(`These sites have no species at all, so they cannot be compared: ${empty.slice(0, 5).join(', ')}. Remove them.`);
+    return { sites, species, X, dropped };
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.co-err').textContent = m; q('.co-err').hidden = false; q('.co-out').hidden = true; figs = []; sections = []; scoreRows = []; distRows = []; newick = ''; };
+    q('.co-err').hidden = true;
+    let data;
+    try { data = read(); } catch (e) { return fail((e as Error).message); }
+    const { sites, species, X, dropped } = data, n = sites.length;
+    const tr = q<HTMLSelectElement>('.co-tr').value as Transform, [dk, dt] = q<HTMLSelectElement>('.co-dist').value.split('-') as [DistKind, Transform];
+    const link = q<HTMLSelectElement>('.co-link').value as Linkage;
+    const k = Math.round(num(q<HTMLInputElement>('.co-k').value));
+    if (!(k >= 1 && k <= 8)) return fail('Groups to colour: a whole number from 1 to 8.');
+    const K = Math.min(k, n);
+    const distName = q<HTMLSelectElement>('.co-dist').selectedOptions[0].textContent!;
+
+    // Clusters first: their groups colour the plots.
+    const D = distances(transform(X, dt), dk);
+    const Z = cluster(D, link), coph = cophenetic(Z, D), grp = cutTree(Z, n, K);
+    const colorOf = (g: number) => OKABE_ITO[(g - 1) % OKABE_ITO.length];
+    const bySeries = (xy: number[][], a = 0, b = 1) => Array.from({ length: K }, (_, g) => {
+      const idx = sites.map((_, i) => i).filter((i) => grp[i] === g + 1);
+      return { name: `Group ${g + 1}`, x: idx.map((i) => xy[i][a]), y: idx.map((i) => xy[i][b]), labels: idx.map((i) => sites[i]), mode: 'points' as const, marker: 'circle' as const, color: colorOf(g + 1) };
+    });
+
+    // PCA
+    const P = pca(transform(X, tr), 4), ax = P.explained.length;
+    const trName = q<HTMLSelectElement>('.co-tr').selectedOptions[0].textContent!;
+    q('.co-pbig').textContent = ax >= 2 ? `PC1 ${pc(P.explained[0])}, PC2 ${pc(P.explained[1])} of the variation` : `PC1 ${pc(P.explained[0])} of the variation`;
+    q('.co-pfacts').replaceChildren(fact('Sites, species', `${n}, ${species.length}`, dropped ? `${dropped} species with no records left out` : ''), fact('PCA on', trName), fact('Total variance', sg(P.total, 4)), fact('PC1 + PC2', ax >= 2 ? pc(P.explained[0] + P.explained[1]) : '–'));
+    const xy = P.scores.map((s) => [s[0], s[1] ?? 0]);
+    const series = bySeries(xy);
+    const showSp = q<HTMLInputElement>('.co-sp').checked;
+    if (showSp) {
+      const ms = Math.max(...xy.flat().map(Math.abs)), ml = Math.max(...P.loadings.map((l) => Math.max(Math.abs(l[0]), Math.abs(l[1] ?? 0))));
+      const f = ml > 0 ? (0.8 * ms) / ml : 1;
+      // Only the species that load most strongly, so the plot stays readable.
+      const top = species.map((_, j) => j).sort((a, b) => Math.hypot(P.loadings[b][0], P.loadings[b][1] ?? 0) - Math.hypot(P.loadings[a][0], P.loadings[a][1] ?? 0)).slice(0, 12);
+      series.push({ name: 'Species', x: top.map((j) => P.loadings[j][0] * f), y: top.map((j) => (P.loadings[j][1] ?? 0) * f), labels: top.map((j) => species[j]), mode: 'points', marker: 'cross', color: '#888888' });
+    }
+    const pfig = chartFigure({ h: 440, xLabel: `PC1 (${pc(P.explained[0])})`, yLabel: ax >= 2 ? `PC2 (${pc(P.explained[1])})` : 'PC2', legend: 'below', series, marks: [{ kind: 'hline', at: 0, dash: [3, 3] }, { kind: 'vline', at: 0, dash: [3, 3] }] }, `PCA of ${n} sites`);
+    paint(q<HTMLCanvasElement>('.co-pfig'), pfig);
+    const eigHead = ['Axis', 'Eigenvalue', 'Explained', 'Cumulative'];
+    let cum = 0; const eigRows = P.eig.map((e, a) => { cum += P.explained[a]; return [`PC${a + 1}`, sg(e, 4), pc(P.explained[a]), pc(cum)]; });
+    table('.co-eig', eigHead, eigRows, [1, 2, 3]);
+    const loadHead = ['Species', 'PC1', 'PC2'];
+    const loadRows = species.map((s, j) => ({ s, a: P.loadings[j][0], b: P.loadings[j][1] ?? 0 })).sort((u, v) => Math.abs(v.a) - Math.abs(u.a)).slice(0, 40).map((r) => [r.s, sg(r.a, 3), sg(r.b, 3)]);
+    table('.co-load', loadHead, loadRows, [1, 2]);
+
+    // NMDS
+    let nfig: Figure | null = null, sfig: Figure | null = null, nm = null;
+    if (n >= 4) {
+      nm = nmds(D, 2, n > 60 ? 6 : 20, 1);
+      q('.co-nbig').textContent = `Stress ${nm.stress.toFixed(3)}: ${stressWord(nm.stress)}`;
+      q('.co-nfacts').replaceChildren(fact('Dissimilarity', distName), fact('Dimensions', '2'), fact('Starts', `${nm.starts}`, `${nm.sameBest} reached the lowest stress (within 0.001)`), fact('Stress-1 (Kruskal)', nm.stress.toFixed(4)));
+      const w: string[] = [];
+      if (nm.stress < 0.001) w.push('The stress is nearly zero. With few sites, or sites in clearly separate groups, NMDS can squash each group to a point: compare with the PCA and the dendrogram before reading much into it.');
+      if (nm.sameBest < 2) w.push('Only one start reached the lowest stress, so a better layout may exist; treat the picture with care.');
+      q('.co-nwarn').textContent = w.join(' '); q('.co-nwarn').hidden = !w.length;
+      nfig = chartFigure({ h: 440, xLabel: 'NMDS1', yLabel: 'NMDS2', legend: 'below', series: bySeries(nm.Y) }, `NMDS of ${n} sites, stress ${nm.stress.toFixed(3)}`);
+      paint(q<HTMLCanvasElement>('.co-nfig'), nfig);
+      const pr = nm.pairs;
+      sfig = chartFigure({ h: 340, xLabel: 'Dissimilarity', yLabel: 'Distance on the NMDS plot', legend: 'below', series: [
+        { name: 'Site pairs', x: pr.map((p) => p.delta), y: pr.map((p) => p.d), mode: 'points', marker: 'open-circle', size: 3 },
+        { name: 'Monotone fit', x: pr.flatMap((p, i) => (i ? [p.delta, p.delta] : [p.delta])), y: pr.flatMap((p, i) => (i ? [pr[i - 1].fit, p.fit] : [p.fit])), mode: 'line' },
+      ] }, 'Shepard plot');
+      paint(q<HTMLCanvasElement>('.co-shep'), sfig);
+      q('.co-nfig').hidden = q('.co-shep').hidden = false;
+    } else {
+      q('.co-nbig').textContent = 'NMDS needs at least 4 sites.'; q('.co-nfacts').replaceChildren(); q('.co-nwarn').hidden = true;
+      q('.co-nfig').hidden = q('.co-shep').hidden = true;
+    }
+
+    // Dendrogram
+    newick = linkageNewick(Z, sites);
+    const t = parseNewick(newick);
+    for (const nd of t.nodes) if (!nd.children.length) { const i = sites.indexOf(nd.name); if (i >= 0) nd.color = colorOf(grp[i]); }
+    const dfig = treeFigure(t, `Dendrogram of ${n} sites, ${LINK[link]}`, { width: Math.round(Math.min(720, Math.max(320, root.clientWidth - 40))), lengths: true });
+    paint(q<HTMLCanvasElement>('.co-dend'), dfig);
+    q('.co-cbig').textContent = `${K} group${K > 1 ? 's' : ''}, cophenetic correlation ${coph.r.toFixed(3)}`;
+    q('.co-cfacts').replaceChildren(fact('Method', LINK[link]), fact('Dissimilarity', distName), fact('Top merge at', sg(Z[n - 2][2], 4)), fact('Cophenetic r', Number.isFinite(coph.r) ? coph.r.toFixed(3) : '–', 'how well the tree keeps the dissimilarities (1 = perfectly)'));
+    const grpRows = Array.from({ length: K }, (_, g) => [`Group ${g + 1}`, String(grp.filter((x) => x === g + 1).length), sites.filter((_, i) => grp[i] === g + 1).join(', ')]);
+    table('.co-grp', ['Group', 'Sites', 'Members'], grpRows, [1]);
+
+    scoreRows = [['site', 'PC1', 'PC2', 'NMDS1', 'NMDS2', 'group'], ...sites.map((s, i) => [s, sg(P.scores[i][0], 6), sg(P.scores[i][1] ?? 0, 6), nm ? sg(nm.Y[i][0], 6) : '', nm ? sg(nm.Y[i][1], 6) : '', String(grp[i])])].map((r) => r.map((c) => c.replace('−', '-')));
+    distRows = [['', ...sites], ...sites.map((s, i) => [s, ...D[i].map((v) => String(+v.toPrecision(6)))])];
+    figs = [['pca', pfig], ...(nfig ? [['nmds', nfig] as [string, Figure], ['shep', sfig!] as [string, Figure]] : []), ['dend', dfig]];
+    sections = [
+      { title: `PCA: ${q('.co-pbig').textContent}`, text: [`PCA on ${trName.toLowerCase()}, covariance matrix (species centred). ${n} sites, ${species.length} species.`], facts: [...q('.co-pfacts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: pfig, table: { head: eigHead, rows: eigRows, align: ['l', 'r', 'r', 'r'] } },
+      { title: 'Species loadings', table: { head: loadHead, rows: loadRows, align: ['l', 'r', 'r'] } },
+      ...(nm ? [{ title: `NMDS: ${q('.co-nbig').textContent}`, text: [`Non-metric MDS (SMACOF with monotone regression) of ${distName.toLowerCase()}, best of ${nm.starts} starts. Stress-1 after Kruskal.`], figure: nfig! }, { title: 'Shepard plot', figure: sfig! }] : []),
+      { title: `Clusters: ${q('.co-cbig').textContent}`, text: [`${LINK[link]} on ${distName.toLowerCase()}.`], figure: dfig, table: { head: ['Group', 'Sites', 'Members'], rows: grpRows, align: ['l', 'r', 'l'] } },
+    ];
+    q('.co-out').hidden = false;
+  }
+
+  const repaint = () => { for (const [id, f] of figs) paint(q<HTMLCanvasElement>(id === 'pca' ? '.co-pfig' : id === 'nmds' ? '.co-nfig' : id === 'shep' ? '.co-shep' : '.co-dend'), f); };
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.co-csv').addEventListener('click', () => { if (scoreRows.length) save(new TextEncoder().encode(toCsv(scoreRows)), 'site-scores.csv', 'text/csv'); });
+  q('.co-dcsv').addEventListener('click', () => { if (distRows.length) save(new TextEncoder().encode(toCsv(distRows)), 'dissimilarities.csv', 'text/csv'); });
+  q('.co-nwk').addEventListener('click', () => { if (newick) save(new TextEncoder().encode(newick + '\n'), 'dendrogram.nwk', 'text/plain'); });
+  document.addEventListener('fibub:theme', repaint);
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Community ordination and clustering', subtitle: q('.co-pbig').textContent ?? '', file: 'community-ordination', sections }));
+</script>
+
+<style is:global>
+  .cord select { max-width: 100%; }
+  .cord .co-grp td:last-child { white-space: normal; min-width: 160px; }
+</style>

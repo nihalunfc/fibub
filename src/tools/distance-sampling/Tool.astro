@@ -1,0 +1,169 @@
+---
+// Conventional distance sampling for line and point transects. The examples are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const lineData = 'line\tdistance (m)\nL1\t10.0\nL1\t21.8\nL1\t1.3\nL1\t29.5\nL1\t10.8\nL1\t13.7\nL1\t10.8\nL1\t7.9\nL1\t2.3\nL1\t20.5\nL1\t0.6\nL1\t15.3\nL1\t29.6\nL2\t3.4\nL2\t4.1\nL2\t55.4\nL2\t11.9\nL2\t1.1\nL2\t2.5\nL3\t3.2\nL3\t21.5\nL3\t17.8\nL3\t23.3\nL3\t17.8\nL3\t0.7\nL3\t19.5\nL3\t12.8\nL3\t2.5\nL3\t2.4\nL3\t1.4\nL3\t27.0\nL4\t12.7\nL4\t4.2\nL4\t15.0\nL4\t1.5\nL4\t14.7\nL4\t31.6\nL4\t14.9\nL4\t4.5\nL4\t10.2\nL5\t12.7\nL5\t4.3\nL5\t19.8\nL5\t25.2\nL5\t29.1\nL5\t17.5\nL5\t14.2\nL6\t2.1\nL6\t27.7\nL6\t15.2\nL6\t7.2\nL6\t8.1\nL6\t5.5\nL6\t33.5\nL6\t9.4\nL6\t6.7\nL6\t7.8\nL6\t2.7\nL6\t4.3\nL6\t24.5\nL6\t0.3';
+const lineEffort = 'line\tlength (km)\nL1\t2.0\nL2\t1.5\nL3\t2.5\nL4\t1.8\nL5\t2.2\nL6\t2.0';
+const pointData = 'point\tdistance (m)\nP1\t9.1\nP1\t14.5\nP2\t22.9\nP2\t35.6\nP3\t51.4\nP3\t49.4\nP3\t70.1\nP4\t40.5\nP4\t65.1\nP4\t39.3\nP4\t48.7\nP4\t84.4\nP5\t24.4\nP5\t74.3\nP6\t20.4\nP6\t32.9\nP7\t24.6\nP8\t2.4\nP8\t23.8\nP8\t21.9\nP8\t10.4\nP10\t20.5\nP10\t17.7\nP10\t10.1\nP11\t47.1\nP11\t12.7\nP12\t58.8';
+---
+<div class="ax dsm" data-line={lineData} data-point={pointData}>
+  <div class="ax-card">
+    <h2>Your survey</h2>
+    <div class="ax-seg ds-mode" role="group" aria-label="Survey type"><button type="button" data-m="line" aria-pressed="true">Line transects</button><button type="button" data-m="point" aria-pressed="false">Point transects</button></div>
+    <label style="margin-top:12px"><span class="ds-what">One row per detection: the line it was seen from, then its perpendicular distance from the line in metres. A single column of distances also works.</span>
+      <textarea class="ds-data" rows="9" spellcheck="false" wrap="off">{lineData}</textarea></label>
+    <DataFile target=".ds-data" maxCols={4} maxRows={20000} />
+    <label class="ds-effb" style="margin-top:10px">Length of each line in km, one row per line (or one number for the total length)
+      <textarea class="ds-eff" rows="4" spellcheck="false" wrap="off">{lineEffort}</textarea></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="ds-kb" hidden>Number of points surveyed <input class="ds-k" inputmode="numeric" value="12" /></label>
+      <label>Truncation distance w (m) <input class="ds-w" inputmode="decimal" value="50" placeholder="largest distance" /></label>
+      <label>Detection model <select class="ds-key"><option value="best" selected>Best by AIC</option><option value="hn">Half-normal</option><option value="hr">Hazard-rate</option></select></label>
+      <label>Confidence <select class="ds-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+    </div>
+    <p class="ax-help ds-help">Detections farther than w are left out; cutting the farthest 5 to 10 % usually improves the fit. With line names that match the lengths, the variance of the count comes from the spread between lines; otherwise it is taken as Poisson. Up to 20,000 detections. The example is made up.</p>
+    <p class="ax-err ds-err" hidden></p>
+  </div>
+
+  <div class="ax-card ds-out">
+    <h2>Density</h2>
+    <p class="ax-big ds-big"></p>
+    <dl class="ax-facts ds-facts"></dl>
+    <h3>Detection function</h3>
+    <canvas class="ax-fig ds-fig"></canvas>
+    <p class="ax-help ds-fighelp"></p>
+    <h3>Models compared</h3>
+    <div class="ax-scroll"><table class="ds-tab"></table></div>
+    <p class="ax-help">The model with the lowest AIC fits best for its number of parameters; a ΔAIC under 2 means the two fit about equally well.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ds-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { fitDetection, density, g, type DetFit, type Key, type Survey } from '../../lib/sci/distsamp';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.dsm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const tr = (x: number, d = 4) => { const t = sig(x, d); return /^\d+\.\d+$/.test(t) ? t.replace(/\.?0+$/, '') : t; };
+  const NAMES: Record<Key, string> = { hn: 'Half-normal', hr: 'Hazard-rate' };
+  let mode: Survey = 'line', fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+  const lineEffort = q<HTMLTextAreaElement>('.ds-eff').value;
+
+  function calc() {
+    const fail = (m: string) => { q('.ds-err').textContent = m; q('.ds-err').hidden = false; q('.ds-out').hidden = true; sections = []; csvRows = []; fig = null; };
+    q('.ds-err').hidden = true;
+    const recs: { k: string | null; d: number }[] = [];
+    for (const r of parseTable(q<HTMLTextAreaElement>('.ds-data').value)) {
+      const cells = r.filter((c) => c !== '');
+      if (!cells.length) continue;
+      if (cells.length === 1) { const d = num(cells[0]); if (Number.isFinite(d)) recs.push({ k: null, d }); continue; }
+      const d = num(cells[1]);
+      if (Number.isFinite(d)) recs.push({ k: cells[0], d });
+    }
+    if (recs.length > 20000) return fail('Up to 20,000 detections, please.');
+    if (recs.some((r) => r.d < 0)) return fail('Distances cannot be negative.');
+    if (recs.length < 3) return fail('Give at least 3 distances, one per row.');
+    const wTxt = q<HTMLInputElement>('.ds-w').value.trim(), w = wTxt ? num(wTxt) : Math.max(...recs.map((r) => r.d));
+    if (!(w > 0)) return fail('The truncation distance must be above zero.');
+    const kept = recs.filter((r) => r.d <= w);
+    if (kept.length < 3) return fail(`Only ${kept.length} detections are within ${tr(w)} m. Raise the truncation distance.`);
+    let effort: number[], counts: number[] | null = null, effText: string;
+    if (mode === 'line') {
+      const rows = parseTable(q<HTMLTextAreaElement>('.ds-eff').value).filter((r) => r.some((c) => Number.isFinite(num(c))));
+      if (!rows.length) return fail('Give the length of each line in km, or one total length.');
+      if (rows.length === 1 && rows[0].length === 1) { effort = [num(rows[0][0])]; }
+      else {
+        const names = rows.map((r) => r[0]), lens = rows.map((r) => num(r[1]));
+        if (lens.some((l) => !(l > 0))) return fail('Each line needs a length above zero, in km.');
+        if (new Set(names).size !== names.length) return fail('Each line should be listed once in the lengths box.');
+        const unknown = [...new Set(kept.map((r) => r.k))].filter((k) => k === null || !names.includes(k));
+        if (unknown.length) return fail(unknown[0] === null ? 'Some detections have no line name, but the lengths are given per line. Add the line names, or give one total length.' : `Line "${unknown[0]}" has detections but no length.`);
+        effort = lens; counts = names.map((nm) => kept.filter((r) => r.k === nm).length);
+      }
+      if (!(effort[0] > 0)) return fail('The total line length must be above zero, in km.');
+      const E = effort.reduce((a, b) => a + b, 0);
+      effText = `${effort.length > 1 ? `${effort.length} lines, ` : ''}${tr(E)} km`;
+    } else {
+      const K = num(q<HTMLInputElement>('.ds-k').value);
+      if (!(Number.isInteger(K) && K >= 1)) return fail('Give the number of points surveyed, a whole number.');
+      const labels = [...new Set(kept.map((r) => r.k))];
+      if (labels.length > K) return fail(`The detections name ${labels.length} points, more than the ${K} surveyed.`);
+      effort = new Array(K).fill(1);
+      if (K > 1 && labels.every((l) => l !== null)) counts = [...labels.map((l) => kept.filter((r) => r.k === l).length), ...new Array(K - labels.length).fill(0)];
+      effText = `${K} point${K > 1 ? 's' : ''}`;
+    }
+    const survey = mode, conf = Number(q<HTMLSelectElement>('.ds-conf').value), cl = `${Math.round(conf * 100)} %`;
+    const dist = recs.map((r) => r.d), fits: DetFit[] = [];
+    for (const key of ['hn', 'hr'] as Key[]) { try { fits.push(fitDetection(dist, w, key, survey)); } catch { /* model could not be fitted */ } }
+    if (!fits.length) return fail('The detection function could not be fitted to these distances.');
+    const choice = q<HTMLSelectElement>('.ds-key').value;
+    const fit = choice === 'best' ? fits.reduce((a, b) => (b.aic < a.aic ? b : a)) : fits.find((f) => f.key === choice);
+    if (!fit) return fail(`The ${NAMES[choice as Key].toLowerCase()} model could not be fitted to these distances.`);
+    if (!Number.isFinite(fit.seMu)) return fail(`The ${NAMES[fit.key].toLowerCase()} fit is not well determined (its standard error cannot be found). Try the other model, or a different truncation distance.`);
+    const res = density(fit, effort, counts, conf);
+    q('.ds-out').hidden = false;
+    q('.ds-big').textContent = `D = ${tr(res.D)} per km² (${cl} CI ${tr(res.lo)} to ${tr(res.hi)})`;
+    const dropped = recs.length - kept.length;
+    q('.ds-facts').replaceChildren(
+      fact('Per hectare', tr(res.perHa), `${tr(res.se)} per km² standard error, CV ${tr(100 * res.cv, 3)} %`),
+      fact('Detections used', String(res.n), dropped ? `${dropped} beyond w = ${tr(w)} m left out` : `all within w = ${tr(w)} m`),
+      survey === 'line' ? fact('Effective strip width', `${tr(fit.mu)} m`, `± ${tr(fit.seMu, 3)} m; as if every animal within it were seen`) : fact('Effective detection radius', `${tr(fit.edr)} m`, `effective area ${tr(fit.mu)} m² per point`),
+      fact('Detection probability', tr(fit.pa, 3), `average chance an animal within ${tr(w)} m is seen`),
+      fact('Encounter rate', survey === 'line' ? `${tr(res.er)} per km` : `${tr(res.er)} per point`, `${effText}; count CV ${tr(100 * res.cvN, 3)} % (${res.varMethod === 'empirical' ? 'between lines or points' : 'Poisson'})`),
+      fact('Model', `${NAMES[fit.key]}${choice === 'best' ? ' (lowest AIC)' : ''}`, `σ = ${tr(fit.par[0])} m${fit.key === 'hr' ? `, shape b = ${tr(fit.par[1])}` : ''}; CI with ${Number.isFinite(res.df) ? tr(res.df, 3) : '∞'} df`),
+    );
+    // Histogram against the fitted curve: g(x) for lines, the pdf of r for points.
+    const nb = Math.max(5, Math.min(20, Math.round(Math.sqrt(res.n)))), bw = w / nb, hx: number[] = [], hy: number[] = [];
+    for (let b = 0; b < nb; b++) {
+      const c = kept.filter((r) => r.d >= b * bw && (r.d < (b + 1) * bw || (b === nb - 1 && r.d <= w))).length;
+      const h = survey === 'line' ? (c / (res.n * bw)) * fit.mu : c / (res.n * bw);
+      hx.push(b * bw, (b + 1) * bw); hy.push(h, h);
+    }
+    const bx = [0, ...hx, w], by = [0, ...hy, 0];
+    const cx = Array.from({ length: 121 }, (_, i) => (w * i) / 120);
+    const cy = cx.map((x) => (survey === 'line' ? g(fit.key, fit.par, x) : (2 * Math.PI * x * g(fit.key, fit.par, x)) / fit.mu));
+    fig = chartFigure({ w: 560, h: 320, xLabel: survey === 'line' ? 'Perpendicular distance (m)' : 'Radial distance (m)', yLabel: survey === 'line' ? 'Detection probability' : 'Probability density', xMin: 0, xMax: w, yMin: 0, legend: 'below', series: [
+      { name: 'Detections (scaled)', x: bx, y: by, mode: 'line', width: 1.2 },
+      { name: `${NAMES[fit.key]} fit`, x: cx, y: cy, mode: 'line', width: 2.2 },
+    ] }, 'Histogram of distances with the fitted detection function');
+    paint(q<HTMLCanvasElement>('.ds-fig'), fig);
+    q('.ds-fighelp').textContent = survey === 'line' ? 'The histogram is scaled so it estimates the chance of detection at each distance; the fitted curve is 1 on the line itself. Bars well above or below the curve near zero suggest the model is wrong or distances were rounded.' : 'For points, few animals are found close by simply because there is little area there, so both rise and then fall.';
+    const best = Math.min(...fits.map((f) => f.aic));
+    const head = ['Model', 'Parameters', 'AIC', 'ΔAIC', survey === 'line' ? 'ESW (m)' : 'EDR (m)', 'Density /km²'];
+    const rows = fits.map((f) => { const d = Number.isFinite(f.seMu) ? density(f, effort, counts, conf).D : NaN; return [NAMES[f.key], f.key === 'hn' ? `σ ${tr(f.par[0])}` : `σ ${tr(f.par[0])}, b ${tr(f.par[1])}`, f.aic.toFixed(2), (f.aic - best).toFixed(2), tr(survey === 'line' ? f.mu : f.edr), Number.isFinite(d) ? tr(d) : '–']; });
+    const t = q<HTMLTableElement>('.ds-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i > 1) th.className = 'r'; hr.append(th); });
+    const tb = t.createTBody(); rows.forEach((r) => { const trw = tb.insertRow(); r.forEach((c, i) => { const td = trw.insertCell(); td.textContent = c; if (i > 1) td.className = 'r'; }); });
+    csvRows = [['Quantity', 'Value'], ['Survey', survey], ['Model', NAMES[fit.key]], ['sigma (m)', sig(fit.par[0], 8)], ...(fit.key === 'hr' ? [['shape b', sig(fit.par[1], 8)]] : []), ['Truncation w (m)', sig(w, 8)], ['n', String(res.n)], [survey === 'line' ? 'ESW (m)' : 'Effective area per point (m2)', sig(fit.mu, 8)], ['SE', sig(fit.seMu, 6)], ['Detection probability', sig(fit.pa, 6)], ['Density per km2', sig(res.D, 8)], ['Density per ha', sig(res.perHa, 8)], ['CV', sig(res.cv, 6)], ['df', sig(res.df, 6)], [`Lower ${cl}`, sig(res.lo, 8)], [`Upper ${cl}`, sig(res.hi, 8)], [], head, ...rows];
+    sections = [{ title: q('.ds-big').textContent!, text: [`${survey === 'line' ? 'Line' : 'Point'} transect distance sampling, ${NAMES[fit.key].toLowerCase()} detection function fitted by maximum likelihood to exact distances (Buckland et al. 2001). Log-normal confidence interval with Satterthwaite degrees of freedom.`], facts: [...q('.ds-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig, table: { head, rows, align: ['l', 'l', 'r', 'r', 'r', 'r'] } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 300); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.ds-mode').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button'); if (!b || b.dataset.m === mode) return;
+    mode = b.dataset.m as Survey; q('.ds-mode').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    const box = q<HTMLTextAreaElement>('.ds-data'), other = mode === 'line' ? root.dataset.point! : root.dataset.line!;
+    if (box.value.trim() === other.trim() || !box.value.trim()) { box.value = mode === 'line' ? root.dataset.line! : root.dataset.point!; q<HTMLInputElement>('.ds-w').value = mode === 'line' ? '50' : '80'; if (mode === 'line') q<HTMLTextAreaElement>('.ds-eff').value = lineEffort; }
+    q('.ds-effb').hidden = mode !== 'line'; q('.ds-kb').hidden = mode === 'line';
+    q('.ds-what').textContent = mode === 'line' ? 'One row per detection: the line it was seen from, then its perpendicular distance from the line in metres. A single column of distances also works.' : 'One row per detection: the point it was seen from, then its distance from the point in metres. A single column of distances also works.';
+    calc();
+  });
+  q('.ds-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'distance-sampling.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.ds-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Distance sampling density estimate', subtitle: q('.ds-big').textContent ?? '', file: 'distance-sampling', sections }));
+</script>
+
+<style is:global>
+  .dsm select { max-width: 100%; }
+  .dsm .ds-out h3 { margin: 18px 0 8px; }
+  .dsm .ds-tab td { white-space: nowrap; }
+</style>

@@ -1,0 +1,174 @@
+---
+// Leaf disease severity: lesion area as a % of leaf area from a leaf photo. Background, healthy leaf and lesion
+// are told apart by colour rules the user can tune; severity is placed on a class scale the user types. The photo
+// never leaves the browser. The example leaf is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax lds">
+  <div class="ax-card">
+    <h2>Leaf photo</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small ld-open">Open a photo</button>
+      <input type="file" class="ld-file" accept="image/*" hidden />
+      <button type="button" class="btn secondary small ld-ex">Use the example</button>
+    </div>
+    <canvas class="ld-photo" hidden></canvas>
+    <div class="ld-show" hidden>
+      <label class="ax-check" style="margin-top:8px"><input type="checkbox" class="ld-tint" checked /> Colour the classes</label>
+      <p class="ax-legend"><span><i class="ld-kh"></i>Healthy leaf</span><span><i class="ld-kl"></i>Lesion</span><span>Background left as it is</span></p>
+    </div>
+    <p class="ax-help ld-ph"></p>
+    <p class="ax-err ld-err" hidden></p>
+  </div>
+
+  <div class="ax-card ld-set" hidden>
+    <h2>Colour rules</h2>
+    <div class="ax-grid">
+      <label>Background <select class="ld-bg"><option value="light" selected>Light (white paper, scanner)</option><option value="dark">Dark (black card or cloth)</option></select></label>
+      <label>Leaf threshold (0 to 255, blank for automatic) <input class="ld-t" type="number" min="0" max="255" step="1" placeholder="auto (Otsu)" inputmode="numeric" /></label>
+      <label>Healthy colour from hue (°) <input class="ld-h0" type="number" min="0" max="360" step="1" value="65" inputmode="numeric" /></label>
+      <label>to hue (°) <input class="ld-h1" type="number" min="0" max="360" step="1" value="170" inputmode="numeric" /></label>
+      <label>Healthy needs colour strength at least (%) <input class="ld-s" type="number" min="0" max="100" step="1" value="15" inputmode="numeric" /></label>
+      <label>Smallest spot counted (px) <input class="ld-spot" type="number" min="1" step="1" value="20" inputmode="numeric" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="ld-fill" checked /> Holes inside the leaf count as lesion (shot-holes, dead tissue that fell out)</label>
+    <p class="ax-help">Hue is the colour around the colour wheel: about 60° is yellow, 120° green, 30° orange-brown. A leaf pixel is healthy when its hue is inside the healthy range and its colour is strong enough; everything else on the leaf (yellow, brown, black, grey, white) is lesion.</p>
+    <label style="margin-top:12px">Severity scale: upper limit of each class in % <input class="ld-scale" type="text" value="0, 5, 10, 25, 50, 100" spellcheck="false" /></label>
+    <p class="ax-help">Class 0 is the first limit, class 1 the next, and so on. The example scale is made up; type the scale your crop or protocol uses.</p>
+  </div>
+
+  <div class="ax-card ld-out" hidden>
+    <h2>Severity</h2>
+    <p class="ax-big ld-big"></p>
+    <dl class="ax-facts ld-facts"></dl>
+    <div class="ax-scroll"><table class="ld-ctab"></table></div>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn small ld-add">Add this leaf to the list</button></div>
+    <div class="ld-list" hidden>
+      <h3 class="ld-h3">Leaves assessed</h3>
+      <p class="ld-mean"></p>
+      <div class="ax-scroll"><table class="ld-tab"></table></div>
+      <div class="ax-row" style="margin-top:10px">
+        <button type="button" class="btn secondary small ld-reset">Empty the list</button>
+      </div>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ld-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { exampleDisease, severity, parseScale, severityClass, type Severity } from '../../lib/sci/plantimg';
+  import { mean, sd } from '../../lib/sci/stats';
+  import { readPhoto, photoCanvas, tint, fact, factPairs, fillTable, canvasFigure } from '../../lib/plantphoto';
+  import { wireDownloads, save, fileSafe, type Section } from '../../lib/report';
+  import { sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.lds')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const PH = 'Open a photo of one leaf, flat on plain paper or card, taken from straight above in even light. The photo stays on your device and is never uploaded.';
+  type Leaf = { name: string; pct: number; cls: number; leaf: number; lesion: number; spots: number };
+
+  let px: Uint8ClampedArray | null = null, W = 0, H = 0, name = 'leaf', base: HTMLCanvasElement | null = null;
+  let res: Severity | null = null, cur: Leaf | null = null, leaves: Leaf[] = [], limits: number[] = [], sections: Section[] = [];
+  const clsText = (c: number) => (c === 0 ? `class 0 (${limits[0] === 0 ? '0 %' : `up to ${limits[0]} %`})` : `class ${c} (over ${limits[c - 1]} up to ${limits[c]} %)`);
+
+  function load(p: Uint8ClampedArray, w: number, h: number, nm: string) {
+    px = p; W = w; H = h; name = nm; base = photoCanvas(p, w, h);
+    q('.ld-photo').hidden = false; q('.ld-show').hidden = false; q('.ld-set').hidden = false;
+    run();
+  }
+  function fail(m: string) { q('.ld-err').textContent = m; q('.ld-err').hidden = false; q('.ld-out').hidden = true; cur = null; sections = []; draw(); }
+
+  function run() {
+    if (!px) return;
+    q('.ld-err').hidden = true; res = null;
+    const tStr = inp('.ld-t').value.trim(), t = Number(tStr), h0 = Number(inp('.ld-h0').value), h1 = Number(inp('.ld-h1').value), s = Number(inp('.ld-s').value), spot = Number(inp('.ld-spot').value);
+    if (tStr && !(t >= 0 && t <= 255)) return fail('The leaf threshold runs from 0 to 255.');
+    if (!(h0 >= 0 && h1 <= 360 && h1 > h0)) return fail('Give a healthy hue range from 0 to 360°, with the second number larger.');
+    if (!(s >= 0 && s <= 100)) return fail('Colour strength runs from 0 to 100 %.');
+    if (!(spot >= 1)) return fail('The smallest spot is at least 1 px.');
+    const sc = parseScale(q<HTMLInputElement>('.ld-scale').value);
+    if (typeof sc === 'string') return fail(sc);
+    limits = sc;
+    const r = severity(px, W, H, { bg: q<HTMLSelectElement>('.ld-bg').value as 'light' | 'dark', leafT: tStr ? Math.round(t) : -1, hueLo: h0, hueHi: h1, sMin: s / 100, fill: inp('.ld-fill').checked, minSpot: Math.round(spot) });
+    if (r.leafT < 0) return fail('The photo is one flat colour, so there is no leaf to find.');
+    if (!r.leaf) return fail('No leaf found. Check the background setting or set the leaf threshold by hand.');
+    if (r.leaf > 0.98 * W * H) return fail('Almost the whole photo reads as leaf. Check the background setting or set the leaf threshold by hand.');
+    res = r;
+    const c = severityClass(r.pct, limits);
+    cur = { name, pct: r.pct, cls: c, leaf: r.leaf, lesion: r.lesion, spots: r.spots };
+    q('.ld-out').hidden = false;
+    q('.ld-big').textContent = `Severity: ${r.pct.toFixed(1)} % of the leaf, ${clsText(c)}`;
+    q('.ld-facts').replaceChildren(
+      fact('Leaf', `${r.leaf.toLocaleString('en')} px`, `leaf threshold ${r.leafT}${tStr ? ' (typed)' : ' (Otsu)'}`),
+      fact('Lesion', `${r.lesion.toLocaleString('en')} px`),
+      fact('Healthy', `${r.healthy.toLocaleString('en')} px`, `${(100 - r.pct).toFixed(1)} %`),
+      fact('Spots', String(r.spots), `separate lesions of ${Math.round(spot)} px or more`),
+    );
+    const rows = limits.map((l, i) => [String(i), i === 0 ? (l === 0 ? '0' : `0–${l}`) : `${limits[i - 1]}–${l}`, i === c ? '◀ this leaf' : '']);
+    fillTable(q<HTMLTableElement>('.ld-ctab'), ['Class', 'Severity (%)', ''], rows);
+    draw();
+    sections = [{ title: q('.ld-big').textContent!, facts: factPairs(q('.ld-facts')), figure: canvasFigure(q<HTMLCanvasElement>('.ld-photo'), 'The leaf photo with healthy tissue and lesions coloured'), table: { head: ['Class', 'Severity (%)', ''], rows } }, ...listSection()];
+  }
+  function listSection(): Section[] {
+    if (!leaves.length) return [];
+    return [{ title: q('.ld-mean').textContent!, table: { head: ['Leaf', 'Severity (%)', 'Class', 'Spots'], rows: leaves.map((l, i) => [`${i + 1}. ${l.name}`, l.pct.toFixed(2), String(l.cls), String(l.spots)]) } }];
+  }
+  function showList() {
+    q('.ld-list').hidden = !leaves.length;
+    if (leaves.length) {
+      const p = leaves.map((l) => l.pct);
+      q('.ld-mean').textContent = `Mean of ${leaves.length} lea${leaves.length > 1 ? 'ves' : 'f'}: ${mean(p).toFixed(1)}${leaves.length > 1 ? ` ± ${sig(sd(p), 2)} (SD)` : ''} %; mean class ${sig(mean(leaves.map((l) => l.cls)), 3)}`;
+      fillTable(q<HTMLTableElement>('.ld-tab'), ['Leaf', 'Severity (%)', 'Class', 'Spots'], leaves.map((l, i) => [`${i + 1}. ${l.name}`, l.pct.toFixed(2), String(l.cls), String(l.spots)]));
+    }
+    run();
+  }
+
+  function draw() {
+    if (!base) return;
+    const c = q<HTMLCanvasElement>('.ld-photo'); c.width = W; c.height = H;
+    const ctx = c.getContext('2d', { willReadFrequently: true })!; ctx.drawImage(base, 0, 0);
+    if (res && inp('.ld-tint').checked) { const k = res.cls; tint(ctx, W, H, (i) => (k[i] === 1 ? [0, 158, 115] : k[i] === 2 ? [213, 94, 0] : null), 0.6); }
+  }
+
+  q('.ld-open').addEventListener('click', () => inp('.ld-file').click());
+  q('.ld-file').addEventListener('change', async () => {
+    const f = inp('.ld-file').files?.[0]; if (!f) return; inp('.ld-file').value = '';
+    try {
+      const p = await readPhoto(f);
+      load(p.px, p.w, p.h, p.name);
+      q('.ld-ph').textContent = p.scaled ? `The photo was scaled down from ${p.ow} × ${p.oh} to ${p.w} × ${p.h} px to keep the page quick (the percentage is not changed by this). It stays on your device and is never uploaded.` : PH;
+    } catch (e) { q('.ld-err').textContent = (e as Error).message; q('.ld-err').hidden = false; }
+  });
+  function loadExample() {
+    const e = exampleDisease();
+    q<HTMLSelectElement>('.ld-bg').value = 'light'; inp('.ld-t').value = ''; inp('.ld-h0').value = '65'; inp('.ld-h1').value = '170'; inp('.ld-s').value = '15'; inp('.ld-spot').value = '20'; inp('.ld-fill').checked = true;
+    load(e.px, e.w, e.h, 'example-leaf');
+    q('.ld-ph').textContent = 'Made-up example: a green leaf with six brown spots drawn on it, 6.8 % of its area. ' + PH;
+  }
+  q('.ld-ex').addEventListener('click', loadExample);
+  let timer = 0;
+  const later = (f: () => void) => { clearTimeout(timer); timer = window.setTimeout(f, 250); };
+  ['.ld-t', '.ld-h0', '.ld-h1', '.ld-s', '.ld-spot', '.ld-scale'].forEach((c) => q(c).addEventListener('input', () => later(run)));
+  ['.ld-bg', '.ld-fill'].forEach((c) => q(c).addEventListener('change', run));
+  q('.ld-tint').addEventListener('change', () => { draw(); if (sections[0]) sections[0].figure = canvasFigure(q<HTMLCanvasElement>('.ld-photo'), sections[0].figure!.alt); });
+  q('.ld-add').addEventListener('click', () => { if (cur) { leaves.push({ ...cur }); showList(); } });
+  q('.ld-reset').addEventListener('click', () => { leaves = []; showList(); });
+  q('.ld-csv').addEventListener('click', () => {
+    const list = leaves.length ? leaves : cur ? [cur] : [];
+    save(new Blob([csv([['leaf', 'photo', 'severity_percent', 'class', 'leaf_pixels', 'lesion_pixels', 'spots'], ...list.map((l, i) => [i + 1, l.name, l.pct.toFixed(4), l.cls, l.leaf, l.lesion, l.spots])])], { type: 'text/csv' }), leaves.length ? 'leaf-disease-severity.csv' : `${fileSafe(name)}-severity.csv`, 'text/csv');
+  });
+  loadExample();
+  wireDownloads(q('.dl'), () => ({ title: 'Leaf disease severity', subtitle: q('.ld-big').textContent ?? '', file: `${fileSafe(name)}-severity`, sections }));
+</script>
+
+<style is:global>
+  .lds .ld-photo { display: block; width: 100%; height: auto; margin-top: 10px; border: 1px solid var(--line, #ddd); }
+  .lds .ld-kh { background: #009e73; }
+  .lds .ld-kl { background: #d55e00; }
+  .lds .ld-h3 { font-size: 16px; margin: 16px 0 6px; }
+  .lds .ld-mean { font-weight: 600; margin: 0 0 8px; }
+  .lds select, .lds input[type=text] { max-width: 100%; }
+</style>

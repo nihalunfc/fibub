@@ -1,0 +1,211 @@
+---
+// Tree builder: distances (p, JC69, K2P), UPGMA, neighbour joining and maximum parsimony from a small DNA alignment.
+// The example alignment is made up (simulated).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+const example = `>Alpha
+TCACCTCACCGGTATAGCAGCGAAGCGGTCAGTTTGCTAATGCGACTTCCTTACGGAACGTACTGTCTGGCCGCTGCTAG
+>Beta
+TCACCTCACCTGTATAGCAGCGAAGCGGTCAGTTTGCTAATGCGACTTCCTTACGGAACGTACTGTCTGGCCGGTGCTAG
+>Gamma
+TCACCTCACTTGTATAGCAGCGAAGCGGTCCGTTTGCTAATGCGGCTTCCTTACGGAACGCACTGTCTGGCCGGTAATAG
+>Delta
+TCACCTCACTTGTATAGCAGCGAAGCGGTCAGTTTGCTAATGCGGCTTCCTTACGGAACGTACTGTCTGGCCGGTAATAG
+>Epsilon
+TCACCTGACGTGTATAGCGG---AGTGGTCAGTTTGCCACCCGGGTGTAATTAGTGGGCATACTGGCTGGCACATGCTAC
+>Zeta
+TCACCTGACGTGTATAGCGGCACAGCTGTCAGTTTGCCACCCGGGTGTATTTAGTGGGCATACTGGCTGGCACATGCTAC
+>Eta
+TCATCTGACGTGTATGGAGGCGCAGCGGTCAGTTTGCCAACCTGGTGTGCTTAGTGCACATACTGACTGGCAGGTGCCAC
+>Theta
+CTTGCTCACGGGTATAACATCGCAGCGGTCAGTTTGCCAANCGGGTTTTCTAACGGGACATACTGGCTGGCAGGTGCTAC`;
+---
+<div class="ax tbld">
+  <div class="ax-card">
+    <h2>Aligned sequences</h2>
+    <label>DNA or RNA in FASTA format, already aligned (all the same length, gaps as -). From 3 to 200 sequences.
+      <textarea class="tb-in" rows="10" spellcheck="false" wrap="off">{example}</textarea></label>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small tb-open">Open a file</button><input type="file" class="tb-file" accept=".fa,.fasta,.fas,.fna,.aln,.txt,text/plain" hidden /><span class="ax-help" style="margin:0">FASTA or text, up to 2 MB.</span></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Method <select class="tb-m"><option value="nj" selected>Neighbour joining</option><option value="upgma">UPGMA</option><option value="mp">Maximum parsimony</option></select></label>
+      <label class="tb-dw">Distance <select class="tb-d"><option value="k2p" selected>Kimura 2-parameter (K2P)</option><option value="jc">Jukes-Cantor (JC69)</option><option value="p">p-distance (uncorrected)</option></select></label>
+      <label class="tb-gw">Gaps and N <select class="tb-g"><option value="pairwise" selected>Skip per pair (pairwise deletion)</option><option value="complete">Drop the column for all (complete deletion)</option></select></label>
+      <label class="tb-sw" hidden>Search <select class="tb-s"><option value="exact" selected>Exact (branch and bound) when possible</option><option value="heuristic">Fast (stepwise addition + SPR)</option></select></label>
+      <label class="tb-rw">Root <select class="tb-r"></select></label>
+    </div>
+    <p class="ax-help tb-help"></p>
+    <p class="ax-err tb-err" hidden></p>
+  </div>
+
+  <div class="ax-card tb-out" hidden>
+    <h2>Tree</h2>
+    <p class="ax-big tb-big"></p>
+    <dl class="ax-facts tb-facts"></dl>
+    <p class="ax-help tb-note" hidden></p>
+    <canvas class="ax-fig tb-fig"></canvas>
+    <h3>Newick</h3>
+    <textarea class="tb-nwk" rows="3" readonly spellcheck="false"></textarea>
+    <p class="ax-help">Open it in the phylogenetic tree viewer to reroot, colour or draw it as a circle.</p>
+    <div class="tb-dmw">
+      <h3>Distances</h3>
+      <div class="ax-scroll"><table class="tb-dm"></table></div>
+      <p class="ax-help tb-dmhelp"></p>
+    </div>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn secondary small tb-dnwk">Download Newick</button>
+      <button type="button" class="btn secondary small tb-dcsv">Distances (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseFasta, distanceMatrix, upgma, nj, edgesNewick, patterns, parsimony, treeCount, type Model, type Seq, type Edge } from '../../lib/sci/treebuild';
+  import { parseNewick, reroot, midpointRoot, toNewick, type Tree } from '../../lib/sci/newick';
+  import { treeFigure } from '../../lib/sci/dendrofig';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.tbld')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const f4 = (x: number) => (Number.isFinite(x) ? x.toFixed(4) : '–');
+  const MODEL: Record<Model, string> = { k2p: 'Kimura 2-parameter', jc: 'Jukes-Cantor', p: 'p-distance' };
+  const MAX_SEQ = 200, MAX_MP = 40, MAX_EXACT = 12, MAX_LEN = 20000;
+  let fig: Figure | null = null, sections: Section[] = [], newickOut = '', distCsv: string[][] = [], names: string[] = [];
+
+  function table(sel: string, head: string[], rows: string[][], right: number[] = []) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+
+  function read(): Seq[] {
+    const text = q<HTMLTextAreaElement>('.tb-in').value;
+    if (!text.trim()) throw new Error('Paste aligned sequences in FASTA format: a line starting with >name, then the sequence.');
+    const S = parseFasta(text);
+    if (S.length < 3) throw new Error('Give at least three sequences, each starting with a >name line.');
+    if (S.length > MAX_SEQ) throw new Error(`Up to ${MAX_SEQ} sequences, please (found ${S.length}).`);
+    const L = S[0].seq.length;
+    if (!L) throw new Error(`${S[0].name} has no sequence.`);
+    if (L > MAX_LEN) throw new Error(`Up to ${MAX_LEN.toLocaleString('en')} alignment columns, please.`);
+    const bad = S.find((s) => s.seq.length !== L);
+    if (bad) throw new Error(`The sequences are not aligned: ${S[0].name} has ${L} columns but ${bad.name} has ${bad.seq.length}. Align them first (for example with the sequence alignment tool for pairs, or MAFFT or Clustal for more).`);
+    for (const s of S) { const m = /[^ACGTRYSWKMBDHVN?.\-]/.exec(s.seq); if (m) throw new Error(`${s.name} has "${m[0]}", which is not a DNA letter. This tool builds trees from DNA or RNA; protein is not supported.`); }
+    const seen = new Set<string>();
+    for (const s of S) { if (seen.has(s.name)) throw new Error(`The name "${s.name}" is used twice. Give each sequence its own name.`); seen.add(s.name); }
+    return S;
+  }
+
+  function fillRoots(S: Seq[], method: string) {
+    const sel = q<HTMLSelectElement>('.tb-r'), cur = sel.value;
+    const opts = [...(method === 'mp' ? [] : [new Option('Midpoint', '')]), ...S.map((s) => new Option(`Outgroup: ${s.name}`, s.name))];
+    const sig = opts.map((o) => o.value).join('\n');
+    if (sel.dataset.sig !== sig) { sel.replaceChildren(...opts); sel.dataset.sig = sig; sel.value = opts.some((o) => o.value === cur) ? cur : opts[0].value; }
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.tb-err').textContent = m; q('.tb-err').hidden = false; q('.tb-out').hidden = true; fig = null; sections = []; newickOut = ''; distCsv = []; };
+    q('.tb-err').hidden = true;
+    const method = q<HTMLSelectElement>('.tb-m').value, model = q<HTMLSelectElement>('.tb-d').value as Model, gaps = q<HTMLSelectElement>('.tb-g').value as 'pairwise' | 'complete';
+    q('.tb-dw').hidden = q('.tb-gw').hidden = method === 'mp'; q('.tb-sw').hidden = method !== 'mp'; q('.tb-rw').hidden = method === 'upgma';
+    q('.tb-help').textContent = method === 'mp'
+      ? `Maximum parsimony finds the tree that needs the fewest base changes (Fitch). Gaps and N count as missing. The exact search is used up to ${MAX_EXACT} sequences; above that, or if you pick the fast search, stepwise addition and SPR rearrangements find a good tree that may not be the best. Up to ${MAX_MP} sequences. The tree is drawn without branch lengths, rooted on the outgroup you pick.`
+      : method === 'upgma'
+        ? 'UPGMA joins the closest pair first and assumes every lineage evolved at the same rate (a molecular clock), so the tree is rooted and all tips line up. Kimura 2-parameter allows transitions and transversions to happen at different rates; Jukes-Cantor treats all changes alike.'
+        : 'Neighbour joining allows different rates on different branches and gives an unrooted tree; pick an outgroup or the midpoint to root it. Kimura 2-parameter allows transitions and transversions to happen at different rates; Jukes-Cantor treats all changes alike.';
+    let S: Seq[];
+    try { S = read(); } catch (e) { return fail((e as Error).message); }
+    names = S.map((s) => s.name);
+    const n = S.length, L = S[0].seq.length;
+    fillRoots(S, method);
+    const rootOn = q<HTMLSelectElement>('.tb-r').value;
+    const facts: [string, string, string?][] = [['Sequences', String(n)], ['Alignment', `${L.toLocaleString('en')} columns`]];
+    const notes: string[] = [];
+    let trees: string[] = [], lengths = true, title = '';
+    distCsv = [];
+
+    if (method !== 'mp') {
+      const { D, counts, sites } = distanceMatrix(S, model, gaps);
+      if (gaps === 'complete' && !sites) return fail('Every column has a gap or N in at least one sequence, so nothing is left with complete deletion. Switch to pairwise deletion.');
+      for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+        if (!counts[i][j].sites) return fail(`${names[i]} and ${names[j]} share no columns where both have a base, so their distance is unknown.`);
+        if (!Number.isFinite(D[i][j])) return fail(`${names[i]} and ${names[j]} differ at ${(100 * counts[i][j].diff / counts[i][j].sites).toFixed(1)} % of sites, too many for the ${MODEL[model]} correction (the sequences look unrelated or badly aligned). Try the p-distance, or check the alignment.`);
+      }
+      if (gaps === 'complete') facts.push(['Columns used', `${sites} of ${L}`, 'columns with a gap or N anywhere are dropped']);
+      else { const s = counts.flat().filter(Boolean).map((c) => c.sites); facts.push(['Sites compared', Math.min(...s) === Math.max(...s) ? String(s[0]) : `${Math.min(...s)} to ${Math.max(...s)} per pair`]); }
+      facts.push(['Distance', MODEL[model]]);
+      if (method === 'upgma') { trees = [upgma(D, names)]; title = `UPGMA tree of ${n} sequences`; facts.push(['Rooted', 'yes (UPGMA assumes a clock)']); }
+      else {
+        const e: Edge[] = nj(D), neg = e.filter((x) => x.len < -1e-12).length;
+        if (neg) notes.push(`${neg} branch length${neg > 1 ? 's' : ''} came out slightly negative, which neighbour joining can do; ${neg > 1 ? 'they are' : 'it is'} drawn and written as 0.`);
+        trees = [edgesNewick(e, names, true)];
+        title = `Neighbour-joining tree of ${n} sequences`;
+        facts.push(['Total branch length', f4(e.reduce((s, x) => s + x.len, 0)), 'as computed']);
+      }
+      const short = (s: string) => (s.length > 12 ? s.slice(0, 11) + '…' : s);
+      table('.tb-dm', ['', ...names.map(short)], D.map((r, i) => [names[i], ...r.map((v, j) => (i === j ? '' : f4(v)))]), names.map((_, k) => k + 1));
+      q('.tb-dmhelp').textContent = `${MODEL[model]} distances, in substitutions per site.`;
+      distCsv = [['', ...names], ...D.map((r, i) => [names[i], ...r.map((v) => String(+v.toPrecision(8)))])];
+      q('.tb-dmw').hidden = false;
+    } else {
+      if (n > MAX_MP) return fail(`Maximum parsimony here takes up to ${MAX_MP} sequences. Use neighbour joining for more.`);
+      const P = patterns(S);
+      const exact = q<HTMLSelectElement>('.tb-s').value === 'exact' && n <= MAX_EXACT;
+      const mp = parsimony(P, exact, 400_000);
+      lengths = false;
+      trees = mp.trees.map((t) => edgesNewick(t.map(([a, b]) => ({ a, b, len: 1 })), names, false));
+      title = `Most parsimonious tree: ${mp.score} change${mp.score === 1 ? '' : 's'}`;
+      facts.push(['Parsimony score', String(mp.score), 'fewest base changes the tree needs'], ['Informative sites', String(P.informative), `${P.variable} variable of ${P.sites}`], ['Search', mp.method], ['Trees', mp.exact ? `${mp.trees.length}${mp.capped ? '+' : ''} equally best` : 'best found'], ['Possible trees', treeCount(n) < 1e9 ? treeCount(n).toLocaleString('en') : treeCount(n).toExponential(2).replace('e+', ' × 10^')]);
+      if (mp.exact && mp.trees.length > 1) notes.push(`${mp.trees.length}${mp.capped ? ' or more' : ''} trees are equally parsimonious. The first is drawn; all of them are in the Newick download.`);
+      if (!mp.exact) notes.push(n > MAX_EXACT && q<HTMLSelectElement>('.tb-s').value === 'exact' ? `With more than ${MAX_EXACT} sequences the exact search would take too long, so a fast search was used: the tree may not be the very best.` : 'A fast search was used: the tree may not be the very best.');
+      if (P.informative === 0) notes.push('No site is parsimony-informative, so every tree has the same score and the tree means nothing.');
+      q('.tb-dmw').hidden = true;
+    }
+
+    // Root, draw.
+    const rootTree = (nw: string): Tree => {
+      const t = parseNewick(nw);
+      if (method === 'upgma') return t;
+      if (rootOn) { const tip = t.nodes.find((x) => !x.children.length && x.name === rootOn); return tip ? reroot(t, tip, lengths ? (tip.length ?? 0) / 2 : 0) : t; }
+      return lengths ? midpointRoot(t) : t;
+    };
+    const shown = trees.map(rootTree);
+    newickOut = shown.map((t) => toNewick(t)).join('\n');
+    if (method !== 'upgma') facts.push(['Root', rootOn ? `outgroup ${rootOn}` : 'midpoint']);
+    q('.tb-big').textContent = title;
+    q('.tb-facts').replaceChildren(...facts.map(([k, v, s]) => fact(k, v, s)));
+    q('.tb-note').textContent = notes.join(' '); q('.tb-note').hidden = !notes.length;
+    const t0 = shown[0];
+    fig = treeFigure(t0, `${title}${lengths ? '' : ' (branch lengths not drawn)'}`, { width: Math.round(Math.min(720, Math.max(320, root.clientWidth - 40))), lengths });
+    paint(q<HTMLCanvasElement>('.tb-fig'), fig);
+    q<HTMLTextAreaElement>('.tb-nwk').value = newickOut;
+    sections = [{ title, text: [method === 'mp' ? 'Maximum parsimony (Fitch). Gaps and N treated as missing data.' : `${method === 'nj' ? 'Neighbour joining (Saitou and Nei 1987)' : 'UPGMA'} on ${MODEL[model]} distances, ${gaps === 'complete' ? 'complete' : 'pairwise'} deletion of gaps and N.`, ...notes],
+      facts: [...q('.tb-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig, note: newickOut.split('\n')[0] },
+      ...(distCsv.length && n <= 12 ? [{ title: 'Distances', table: { head: distCsv[0], rows: distCsv.slice(1).map((r, i) => r.map((c, k) => (k === 0 ? c : k - 1 === i ? '' : (+c).toFixed(4)))), align: distCsv[0].map((_, k) => (k ? 'r' : 'l')) as ('l' | 'r')[] } }] : [])];
+    q('.tb-out').hidden = false;
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 350); };
+  root.querySelectorAll('.ax-card:first-child textarea, .ax-card:first-child select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  const file = q<HTMLInputElement>('.tb-file');
+  q('.tb-open').addEventListener('click', () => file.click());
+  file.addEventListener('change', async () => {
+    const f = file.files?.[0]; file.value = '';
+    if (!f) return;
+    if (f.size > 2e6) { q('.tb-err').textContent = `${f.name} is ${(f.size / 1e6).toFixed(1)} MB; this tool takes files up to 2 MB.`; q('.tb-err').hidden = false; return; }
+    q<HTMLTextAreaElement>('.tb-in').value = await f.text(); calc();
+  });
+  q('.tb-dnwk').addEventListener('click', () => { if (newickOut) save(new TextEncoder().encode(newickOut + '\n'), 'tree.nwk', 'text/plain'); });
+  q('.tb-dcsv').addEventListener('click', () => { if (distCsv.length) save(new TextEncoder().encode(toCsv(distCsv)), 'distances.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.tb-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Phylogenetic tree', subtitle: q('.tb-big').textContent ?? '', file: 'tree-builder', sections }));
+</script>
+
+<style is:global>
+  .tbld select { max-width: 100%; }
+  .tbld .tb-nwk { width: 100%; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
+  .tbld .tb-dm td, .tbld .tb-dm th { white-space: nowrap; font-variant-numeric: tabular-nums; }
+</style>

@@ -1,0 +1,130 @@
+---
+// Disease progress curves: AUDPC, AUDPS, relative values and monomolecular / logistic / Gompertz fits. Example made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const example = 'day\tCultivar A\tCultivar B\n0\t1\t0.5\n7\t3\t1\n14\t9\t2\n21\t22\t4.5\n28\t41\t9\n35\t58\t15';
+---
+<div class="ax dpa">
+  <div class="ax-card">
+    <h2>Disease assessments</h2>
+    <label>First column: time of each assessment. Then one column of disease severity (or incidence) per plot, cultivar or treatment, with a header row of names.
+      <textarea class="dp-data" rows="8" spellcheck="false">{example}</textarea></label>
+    <DataFile target=".dp-data" maxCols={30} maxRows={500} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Values are <select class="dp-scale"><option value="100" selected>Percent (0 to 100)</option><option value="1">Proportions (0 to 1)</option><option value="max">A rating scale</option></select></label>
+      <label class="dp-maxbox" hidden>Highest rating <input class="dp-max" inputmode="decimal" value="9" /></label>
+      <label>Time unit <input class="dp-unit" value="days" /></label>
+      <label>Curve to draw <select class="dp-show"><option value="best" selected>Best-fitting model</option><option value="monomolecular">Monomolecular</option><option value="logistic">Logistic</option><option value="gompertz">Gompertz</option><option value="none">None (points joined)</option></select></label>
+    </div>
+    <p class="ax-help">The relative values divide by the largest possible area (the highest value × the duration), so curves with different scales or lengths can be compared. Models are fitted to the values as proportions of the highest value. A blank cell is skipped for that column. Up to 500 rows and 29 columns. The example data are made up.</p>
+    <p class="ax-err dp-err" hidden></p>
+  </div>
+
+  <div class="ax-card dp-out">
+    <h2>Result</h2>
+    <p class="ax-big dp-big"></p>
+    <canvas class="ax-fig dp-fig"></canvas>
+    <h3>Area under the curve</h3>
+    <div class="ax-scroll"><table class="dp-area"></table></div>
+    <h3>Apparent infection rate</h3>
+    <div class="ax-scroll"><table class="dp-mod"></table></div>
+    <p class="ax-help">r is the rate in each model, per time unit (for the logistic model, Vanderplank's apparent infection rate). "Linearised" fits a straight line to ln(1/(1−y)), ln(y/(1−y)) or −ln(−ln y) against time, as in the classic method; points at 0 or 100 % cannot be transformed and are left out of it. "Least squares" fits the curve itself. y0 is the fitted level at the first assessment. The best model has the smallest residual SD.</p>
+    <p class="ax-help dp-note" hidden></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small dp-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { audpc, audps, relAudpc, relAudps, fitAll, model, type ModelName } from '../../lib/sci/audpc';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => (Number.isFinite(x) ? sig(x, d) : '–');
+  const sgt = (x: number, d = 4) => sg(x, d).replace(/^(−?\d+\.\d*?)0+$/, '$1').replace(/\.$/, '');
+  const NAMES: Record<ModelName, string> = { monomolecular: 'Monomolecular', logistic: 'Logistic', gompertz: 'Gompertz' };
+  const root = document.querySelector<HTMLElement>('.dpa')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function table(sel: string, head: string[], rows: string[][]) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i > 1 || (sel === '.dp-area' && i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i > 1 || (sel === '.dp-area' && i)) td.style.textAlign = 'right'; }); });
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.dp-err').textContent = m; q('.dp-err').hidden = false; q('.dp-out').hidden = true; fig = null; sections = []; csvRows = []; };
+    q('.dp-err').hidden = true;
+    const sc = q<HTMLSelectElement>('.dp-scale').value; q('.dp-maxbox').hidden = sc !== 'max';
+    const ymax = sc === 'max' ? num(q<HTMLInputElement>('.dp-max').value) : Number(sc);
+    if (!(ymax > 0)) return fail('Give the highest rating on your scale, a number above zero.');
+    const unit = q<HTMLInputElement>('.dp-unit').value.trim() || 'time units', show = q<HTMLSelectElement>('.dp-show').value;
+    const t = parseTable(q<HTMLTextAreaElement>('.dp-data').value);
+    if (!t.length) return fail('Paste the assessments: time in the first column, then one column per curve.');
+    const hasHead = t[0].slice(1).some((c) => c.trim() !== '' && !Number.isFinite(num(c))) || !Number.isFinite(num(t[0][0]));
+    const body = (hasHead ? t.slice(1) : t).filter((r) => Number.isFinite(num(r[0])));
+    if (body.length > 500) return fail('Up to 500 rows, please.');
+    const width = Math.max(...t.map((r) => r.length));
+    if (width < 2) return fail('Add at least one column of disease values after the time column.');
+    if (width > 30) return fail('Up to 29 curves (30 columns), please.');
+    const curves: { name: string; t: number[]; y: number[] }[] = [];
+    for (let c = 1; c < width; c++) {
+      const name = hasHead ? (t[0][c] ?? '').trim() || `Column ${c + 1}` : `Curve ${c}`;
+      const pts = body.filter((r) => (r[c] ?? '').trim() !== '').map((r) => [num(r[0]), num(r[c])]);
+      if (!pts.length) continue;
+      if (pts.some(([, v]) => !Number.isFinite(v))) return fail(`${name}: every value must be a number (or blank).`);
+      if (pts.some(([, v]) => v < 0 || v > ymax)) return fail(`${name}: values must be from 0 to ${ymax}. Check the "Values are" setting.`);
+      pts.sort((a, b) => a[0] - b[0]);
+      if (new Set(pts.map((p) => p[0])).size !== pts.length) return fail(`${name}: each time may appear only once.`);
+      if (pts.length < 2) return fail(`${name}: needs at least two assessments.`);
+      curves.push({ name, t: pts.map((p) => p[0]), y: pts.map((p) => p[1]) });
+    }
+    if (!curves.length) return fail('No disease values found. Put the time in the first column and the values after it.');
+    q('.dp-out').hidden = false;
+    const vu = sc === '100' ? '%' : sc === '1' ? '' : 'rating';
+    const areaU = `${vu ? vu + '-' : ''}${unit}`;
+    const res = curves.map((c) => ({ ...c, auc: audpc(c.t, c.y), aus: audps(c.t, c.y), rc: relAudpc(c.t, c.y, ymax), rs: relAudps(c.t, c.y, ymax), m: fitAll(c.t, c.y.map((v) => v / ymax)) }));
+    const top = res.reduce((a, b) => (b.auc > a.auc ? b : a));
+    q('.dp-big').textContent = res.length === 1 ? `AUDPC ${sgt(top.auc)} ${areaU} (relative ${sgt(top.rc, 3)})` : `Highest AUDPC: ${top.name}, ${sgt(top.auc)} ${areaU}`;
+    const aHead = ['Curve', `AUDPC (${areaU})`, `AUDPS (${areaU})`, 'Relative AUDPC', 'Relative AUDPS', 'Final value', 'Best model'];
+    const aRows = res.map((r) => [r.name, sgt(r.auc), sgt(r.aus), sgt(r.rc, 3), sgt(r.rs, 3), sgt(r.y[r.y.length - 1]), r.m.best ? NAMES[r.m.best] : '–']);
+    table('.dp-area', aHead, aRows);
+    const mHead = ['Curve', 'Model', `r linearised (per ${unit})`, 'R² linearised', `r least squares (per ${unit})`, 'y0 (share)', 'R²', 'Residual SD'];
+    const mRows = res.flatMap((r) => r.m.fits.map((f) => [r.name, NAMES[f.model] + (f.model === r.m.best ? ' (best)' : ''), f.lin ? `${sg(f.lin.r, 4)} ± ${sg(f.lin.rSe, 2)}` : '–', f.lin ? sg(f.lin.r2, 4) : '–', f.nl ? `${sg(f.nl.r, 4)} ± ${sg(f.nl.rSe, 2)}` : '–', f.nl ? sg(f.nl.y0, 3) : '–', f.nl ? sg(f.nl.r2, 4) : '–', f.nl ? sg(f.nl.s, 3) : '–']));
+    table('.dp-mod', mHead, mRows);
+    const notes: string[] = [];
+    if (res.some((r) => r.t.length < 3)) notes.push('Curves with only two assessments get areas but no model fits.');
+    if (res.some((r) => r.t.some((v, i) => i > 1 && Math.abs(v - r.t[i - 1] - (r.t[1] - r.t[0])) > 1e-9))) notes.push('The assessments are not evenly spaced; AUDPS uses the average interval, as Simko and Piepho define it.');
+    q('.dp-note').textContent = notes.join(' '); q('.dp-note').hidden = !notes.length;
+    const series = res.flatMap((r, k) => {
+      const mk = (['circle', 'square', 'triangle', 'diamond', 'open-circle', 'open-square'] as const)[k % 6];
+      const m = show === 'best' ? r.m.best : show === 'none' ? null : (show as ModelName), f = m ? r.m.fits.find((x) => x.model === m)?.nl : null;
+      const pts = { name: r.name, x: r.t, y: r.y, mode: (f ? 'points' : 'both') as 'points' | 'both', marker: mk };
+      if (!f || !m) return [pts];
+      const xs = Array.from({ length: 101 }, (_, i) => r.t[0] + ((r.t[r.t.length - 1] - r.t[0]) * i) / 100);
+      return [pts, { name: `${r.name}: ${NAMES[m]}`, x: xs, y: xs.map((x) => ymax * model(m, x - r.t[0], f.y0, f.r)), mode: 'line' as const }];
+    });
+    fig = chartFigure({ w: 440, h: 330, xLabel: `Time (${unit})`, yLabel: sc === '100' ? 'Disease (%)' : sc === '1' ? 'Disease (proportion)' : 'Disease rating', yMin: 0, legend: 'below', series }, 'Disease progress curves');
+    paint(q<HTMLCanvasElement>('.dp-fig'), fig);
+    csvRows = [aHead, ...aRows, [], mHead, ...mRows];
+    sections = [{ title: q('.dp-big').textContent!, text: ['AUDPC = Σ (yᵢ + yᵢ₊₁)/2 × (tᵢ₊₁ − tᵢ); AUDPS = AUDPC + (y₁ + yₙ)/2 × (tₙ − t₁)/(n − 1) (Simko and Piepho 2012). Relative values divide by the highest possible value over the duration.', ...notes], figure: fig, table: { head: aHead, rows: aRows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'l'] } },
+      { title: 'Apparent infection rate', table: { head: mHead, rows: mRows, align: ['l', 'l', 'r', 'r', 'r', 'r', 'r', 'r'] } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.dp-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'disease-progress.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.dp-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Disease progress: AUDPC and models', subtitle: q('.dp-big').textContent ?? '', file: 'disease-progress', sections }));
+</script>
+
+<style is:global>
+  .dpa select { max-width: 100%; }
+  .dpa textarea { width: 100%; }
+  .dpa td { white-space: nowrap; }
+</style>

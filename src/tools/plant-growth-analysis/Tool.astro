@@ -1,0 +1,123 @@
+---
+// Classical plant growth analysis between harvests (Hunt 1982): RGR, ULR (NAR), LAR, SLA, LWR. Example data made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const example = 'day\ttotal dry mass (g)\tleaf area (cm2)\tleaf dry mass (g)\n14\t0.118\t31.2\t0.061\n14\t0.131\t33.5\t0.066\n14\t0.109\t28.4\t0.057\n14\t0.125\t30.9\t0.063\n21\t0.341\t76.0\t0.162\n21\t0.372\t81.5\t0.170\n21\t0.318\t70.2\t0.151\n21\t0.356\t77.9\t0.166\n28\t0.86\t158\t0.35\n28\t0.95\t171\t0.38\n28\t0.79\t149\t0.33\n28\t0.91\t166\t0.37';
+---
+<div class="ax pga">
+  <div class="ax-card">
+    <h2>Harvest data</h2>
+    <label>One row per plant: harvest time, total dry mass, leaf area and (optional) leaf dry mass. Plants with the same time form one harvest.
+      <textarea class="pg-data" rows="10" spellcheck="false">{example}</textarea></label>
+    <DataFile target=".pg-data" maxCols={10} maxRows={5000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Time in <select class="pg-tu"><option value="day" selected>days</option><option value="week">weeks</option></select></label>
+      <label>Mass in <select class="pg-mu"><option value="1" selected>g</option><option value="0.001">mg</option></select></label>
+      <label>Leaf area in <select class="pg-au"><option value="1" selected>cm²</option><option value="10000">m²</option></select></label>
+      <label>RGR from <select class="pg-rgr"><option value="lnmean" selected>Mean of ln W (with error)</option><option value="mean">ln of mean W (classical)</option></select></label>
+      <label>Confidence <select class="pg-conf"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+    </div>
+    <p class="ax-help">"Mean of ln W" averages the log of each plant's mass, which pairs plants fairly and gives a standard error and confidence interval for RGR (Hoffmann and Poorter 2002). "ln of mean W" is the classical way from harvest means. Up to 5,000 rows. The example data are made up.</p>
+    <p class="ax-err pg-err" hidden></p>
+  </div>
+
+  <div class="ax-card pg-out">
+    <h2>Result</h2>
+    <p class="ax-big pg-big"></p>
+    <dl class="ax-facts pg-facts"></dl>
+    <canvas class="ax-fig pg-fig"></canvas>
+    <h3>Means between harvests</h3>
+    <div class="ax-scroll"><table class="pg-int"></table></div>
+    <h3>Each harvest</h3>
+    <div class="ax-scroll"><table class="pg-har"></table></div>
+    <p class="ax-help">RGR: relative growth rate. ULR: unit leaf rate, also called net assimilation rate (NAR). LAR: leaf area ratio (leaf area per plant mass). SLA: specific leaf area (leaf area per leaf mass). LWR: leaf weight ratio (leaf mass per plant mass). At any instant RGR = ULR × LAR; for means over an interval the product is only approximate, more so when leaf area ratio changes a lot.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pg-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { analyse, type Plant, type Interval } from '../../lib/sci/plantgrowth';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => (Number.isFinite(x) ? sig(x, d) : '–');
+  const root = document.querySelector<HTMLElement>('.pga')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function table(sel: string, head: string[], rows: string[][]) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.style.textAlign = 'right'; }); });
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.pg-err').textContent = m; q('.pg-err').hidden = false; q('.pg-out').hidden = true; fig = null; sections = []; csvRows = []; };
+    q('.pg-err').hidden = true;
+    const tu = q<HTMLSelectElement>('.pg-tu').value, tl = tu === 'day' ? 'd' : 'wk';
+    const mu = Number(q<HTMLSelectElement>('.pg-mu').value), au = Number(q<HTMLSelectElement>('.pg-au').value);
+    const rgrFrom = q<HTMLSelectElement>('.pg-rgr').value as 'lnmean' | 'mean', conf = Number(q<HTMLSelectElement>('.pg-conf').value);
+    const rows = parseTable(q<HTMLTextAreaElement>('.pg-data').value).filter((r) => Number.isFinite(num(r[0])));
+    if (rows.length > 5000) return fail('Up to 5,000 rows, please.');
+    const plants: Plant[] = [];
+    for (const r of rows) {
+      const t = num(r[0]), w = num(r[1]) * mu, la = num(r[2]) * au, lw = (r[3] ?? '').trim() === '' ? NaN : num(r[3]) * mu;
+      if (!Number.isFinite(w) || !Number.isFinite(la)) return fail(`Each row needs a time, a total dry mass and a leaf area (row starting ${r[0]}).`);
+      if (!(w > 0) || !(la > 0)) return fail(`Dry mass and leaf area must be above zero (row starting ${r[0]}).`);
+      if (Number.isFinite(lw) && !(lw > 0 && lw <= w)) return fail(`Leaf dry mass must be above zero and no more than the total dry mass (row starting ${r[0]}).`);
+      plants.push({ t, w, la, lw });
+    }
+    if (new Set(plants.map((p) => p.t)).size < 2) return fail('Give plants from at least two harvest times: time, total dry mass, leaf area, leaf dry mass per row.');
+    const a = analyse(plants, rgrFrom, conf);
+    q('.pg-out').hidden = false;
+    const last = a.whole ?? a.intervals[0], cl = `${Math.round(conf * 100)} %`;
+    const ulrU = `g m⁻² ${tl}⁻¹`, rgrU = `g g⁻¹ ${tl}⁻¹`;
+    const ulr = (i: Interval) => i.ulr * 1e4; // g per cm² → g per m²
+    q('.pg-big').textContent = `RGR ${last.t1}–${last.t2} ${tl === 'd' ? 'days' : 'weeks'}: ${sg(last.rgr, 3)} ${rgrU}`;
+    const noLw = a.harvests.some((h) => !Number.isFinite(h.lw));
+    q('.pg-facts').replaceChildren(
+      fact('Relative growth rate', `${sg(last.rgr * 1000, 3)} mg g⁻¹ ${tl}⁻¹`, Number.isFinite(last.rgrSe) ? `± ${sg(last.rgrSe * 1000, 2)} SE; ${cl} CI ${sg(last.rgrLo * 1000, 3)} to ${sg(last.rgrHi * 1000, 3)}` : rgrFrom === 'mean' ? 'from harvest means (no error)' : 'needs two or more plants per harvest for an error'),
+      fact('Unit leaf rate (NAR)', `${sg(ulr(last), 3)} ${ulrU}`, 'dry mass gained per leaf area per time'),
+      fact('Leaf area ratio', `${sg(last.lar, 3)} cm² g⁻¹`, `mean of the two harvests; ${sg(last.lar / 10, 3)} m² kg⁻¹`),
+      fact('Specific leaf area', noLw ? '–' : `${sg(last.sla, 3)} cm² g⁻¹`, noLw ? 'needs leaf dry mass' : `${sg(last.sla / 10, 3)} m² kg⁻¹`),
+      fact('Leaf weight ratio', noLw ? '–' : `${sg(last.lwr, 3)} g g⁻¹`, noLw ? 'needs leaf dry mass' : 'share of plant mass in leaves'),
+      fact('Check: ULR × LAR', `${sg(last.ulr * last.lar, 3)} ${rgrU}`, `compare with RGR ${sg(last.rgr, 3)}; close when LAR changes little between harvests`),
+    );
+    const ints = [...a.intervals, ...(a.whole ? [a.whole] : [])];
+    const iHead = ['Interval', `RGR (${rgrU})`, `± SE`, `${cl} CI`, `ULR (${ulrU})`, 'LAR (cm² g⁻¹)', 'SLA (cm² g⁻¹)', 'LWR (g g⁻¹)'];
+    const iRows = ints.map((i, k) => [`${i.t1}–${i.t2}${a.whole && k === ints.length - 1 ? ' (all)' : ''}`, sg(i.rgr, 4), sg(i.rgrSe, 2), Number.isFinite(i.rgrLo) ? `${sg(i.rgrLo, 3)} to ${sg(i.rgrHi, 3)}` : '–', sg(ulr(i), 4), sg(i.lar, 4), sg(i.sla, 4), sg(i.lwr, 3)]);
+    table('.pg-int', iHead, iRows);
+    const hHead = [`Time (${tl})`, 'Plants', 'Mean W (g)', 'Mean leaf area (cm²)', 'Mean leaf mass (g)', 'Mean ln W', 'SD ln W', 'LAR', 'SLA', 'LWR'];
+    const hRows = a.harvests.map((h) => [String(h.t), String(h.n), sg(h.w, 4), sg(h.la, 4), sg(h.lw, 4), sg(h.lnW, 4), sg(h.sdLnW, 3), sg(h.lar, 4), sg(h.sla, 4), sg(h.lwr, 3)]);
+    table('.pg-har', hHead, hRows);
+    const ts = a.harvests.map((h) => h.t);
+    fig = chartFigure({ w: 440, h: 320, yLog: true, xLabel: `Time (${tl === 'd' ? 'days' : 'weeks'})`, yLabel: 'Total dry mass (g, log scale)', legend: 'below', series: [
+      { name: 'Each plant', x: plants.map((p) => p.t), y: plants.map((p) => p.w), mode: 'points', marker: 'open-circle' },
+      { name: rgrFrom === 'lnmean' ? 'Geometric mean' : 'Mean', x: ts, y: a.harvests.map((h) => (rgrFrom === 'lnmean' ? Math.exp(h.lnW) : h.w)), mode: 'both', marker: 'square' },
+    ] }, 'Plant dry mass against time on a log scale; the slope is the RGR');
+    paint(q<HTMLCanvasElement>('.pg-fig'), fig);
+    csvRows = [iHead, ...iRows, [], hHead, ...hRows];
+    sections = [{ title: q('.pg-big').textContent!, text: [`Classical growth analysis (Hunt 1982). RGR from ${rgrFrom === 'lnmean' ? 'the mean of ln W per harvest (Hoffmann and Poorter 2002)' : 'ln of the harvest mean W'}; ULR = (W2 − W1)/(t2 − t1) × (ln LA2 − ln LA1)/(LA2 − LA1); LAR, SLA and LWR are means of the two harvests.`],
+      facts: [...q('.pg-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig,
+      table: { head: iHead, rows: iRows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'r'] } },
+      { title: 'Each harvest', table: { head: hHead, rows: hRows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r'] } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  root.querySelectorAll('textarea, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.pg-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'plant-growth-analysis.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.pg-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Plant growth analysis', subtitle: q('.pg-big').textContent ?? '', file: 'plant-growth-analysis', sections }));
+</script>
+
+<style is:global>
+  .pga select { max-width: 100%; }
+  .pga textarea { width: 100%; }
+  .pga td { white-space: nowrap; }
+</style>

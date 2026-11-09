@@ -1,0 +1,229 @@
+---
+// Leaf area from a scan or photo with a scale (a reference square or a drawn scale line), and canopy cover from a
+// photo of plants (excess green index with Otsu's threshold). The photo never leaves the browser. The examples are
+// drawn by the page from made-up shapes.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax laa">
+  <div class="ax-card">
+    <h2>What to measure</h2>
+    <div class="ax-seg la-mode" role="group" aria-label="Measure">
+      <button type="button" data-m="leaf" aria-pressed="true">Leaf area</button>
+      <button type="button" data-m="canopy" aria-pressed="false">Canopy cover</button>
+    </div>
+    <div class="ax-row la-open-row">
+      <button type="button" class="btn secondary small la-open">Open a photo</button>
+      <input type="file" class="la-file" accept="image/*" hidden />
+      <button type="button" class="btn secondary small la-ex">Use the example</button>
+    </div>
+    <canvas class="la-photo" hidden></canvas>
+    <div class="ax-row la-show" hidden>
+      <label class="ax-check"><input type="checkbox" class="la-tint" checked /> Colour what is counted</label>
+    </div>
+    <p class="ax-help la-ph"></p>
+    <p class="ax-err la-err" hidden></p>
+  </div>
+
+  <div class="ax-card la-set" hidden>
+    <h2>Settings</h2>
+    <div class="ax-grid">
+      <label class="la-leafonly">Background <select class="la-bg"><option value="light" selected>Light (white paper, scanner lid)</option><option value="dark">Dark (black card or cloth)</option></select></label>
+      <label><span class="la-tlab">Threshold (0 to 255, blank for automatic)</span> <input class="la-t" type="number" step="any" placeholder="auto (Otsu)" inputmode="decimal" /></label>
+      <label class="la-leafonly">Ignore specks smaller than (px) <input class="la-min" type="number" min="0" step="1" value="50" inputmode="numeric" /></label>
+    </div>
+    <label class="ax-check la-leafonly" style="margin-top:10px"><input type="checkbox" class="la-fill" /> Fill holes inside leaves (count insect holes as leaf)</label>
+    <div class="la-leafonly">
+      <h3 class="la-h3">Scale</h3>
+      <div class="ax-grid">
+        <label>Scale from <select class="la-scale"><option value="square" selected>A reference square in the photo</option><option value="line">A scale line I draw (two taps)</option></select></label>
+        <label><span class="la-lenlab">Side of the square</span> <input class="la-len" type="number" min="0" step="any" value="1" inputmode="decimal" /></label>
+        <label>Unit <select class="la-unit"><option value="cm" selected>cm</option><option value="mm">mm</option></select></label>
+      </div>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small la-tap">Tap the square</button></div>
+    </div>
+    <p class="ax-help la-help"></p>
+  </div>
+
+  <div class="ax-card la-out" hidden>
+    <h2 class="la-oh">Leaf area</h2>
+    <p class="ax-big la-big"></p>
+    <dl class="ax-facts la-facts"></dl>
+    <div class="ax-scroll la-tw"><table class="la-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small la-csv">Download the table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { exampleLeaves, exampleCanopy, minChannel, maxChannel, exg, exgValue, exgByte, histogram, otsu, threshold, leafArea, countOnes, pxPerUnit, type Pt, type LeafResult } from '../../lib/sci/plantimg';
+  import { readPhoto, photoCanvas, tapAt, tint, fact, factPairs, fillTable, canvasFigure } from '../../lib/plantphoto';
+  import { wireDownloads, save, fileSafe, type Section } from '../../lib/report';
+  import { sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.laa')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const PH = 'Open a scan or photo taken straight from above, with the leaves flat and apart. Put a square of known size (or a ruler) in the picture for leaf area. The photo stays on your device and is never uploaded.';
+  const PHC = 'Open a photo of plants: looking straight down on a crop or lawn, or straight up into green leaves. The photo stays on your device and is never uploaded.';
+
+  let mode: 'leaf' | 'canopy' = 'leaf';
+  let px: Uint8ClampedArray | null = null, W = 0, H = 0, name = 'photo', base: HTMLCanvasElement | null = null;
+  let refAt: Pt | null = null, line: Pt[] = [], arming = false, taps: Pt[] = [];
+  let mask: Uint8Array | null = null, res: LeafResult | null = null, sections: Section[] = [], csvRows: (string | number)[][] = [];
+
+  function setMode(m: 'leaf' | 'canopy') {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.la-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.la-leafonly').forEach((e) => (e.hidden = m !== 'leaf'));
+    q('.la-tlab').textContent = m === 'leaf' ? 'Threshold (0 to 255, blank for automatic)' : 'Excess green threshold (−1 to 2, blank for automatic)';
+    q('.la-oh').textContent = m === 'leaf' ? 'Leaf area' : 'Canopy cover';
+    q('.la-ph').textContent = m === 'leaf' ? PH : PHC;
+    inp('.la-t').value = '';
+    q('.la-help').textContent = m === 'leaf'
+      ? 'Everything darker than the threshold (on a light background) counts as leaf. The square or scale line sets the size of a pixel, so leaf area = leaf pixels × area of one pixel.'
+      : 'Excess green (ExG = 2g − r − b, from each pixel\'s share of red, green and blue) is high for green plants and near 0 for soil, sky and grey. Pixels above the threshold count as plant cover.';
+  }
+
+  function load(p: Uint8ClampedArray, w: number, h: number, nm: string) {
+    px = p; W = w; H = h; name = nm; base = photoCanvas(p, w, h);
+    refAt = null; line = []; taps = []; arming = false; tapLabel();
+    q('.la-photo').hidden = false; q('.la-show').hidden = false; q('.la-set').hidden = false; q('.la-err').hidden = true;
+    run();
+  }
+  function tapLabel() {
+    const sq = q<HTMLSelectElement>('.la-scale').value === 'square';
+    q('.la-tap').textContent = arming ? (sq ? 'Tap inside the square…' : taps.length ? 'Tap the other end…' : 'Tap one end of the line…') : sq ? 'Tap the square' : 'Draw the scale line';
+    q('.la-lenlab').textContent = sq ? 'Side of the square' : 'Length of the line';
+  }
+
+  function fail(m: string) { q('.la-err').textContent = m; q('.la-err').hidden = false; q('.la-out').hidden = true; sections = []; draw(); }
+
+  function run() {
+    if (!px) return;
+    q('.la-err').hidden = true; res = null;
+    const n = W * H, tStr = inp('.la-t').value.trim(), tIn = Number(tStr);
+    if (mode === 'canopy') {
+      const v = exg(px, n);
+      let t: number;
+      if (tStr) { if (!(Number.isFinite(tIn) && tIn >= -1 && tIn <= 2)) return fail('The excess green threshold runs from −1 to 2.'); t = Math.min(255, Math.max(0, exgByte(tIn))); }
+      else { t = otsu(histogram(v)); if (t < 0) return fail('The photo is one flat colour, so there is nothing to split.'); }
+      mask = threshold(v, t); const k = countOnes(mask), pct = (100 * k) / n;
+      q('.la-out').hidden = false;
+      q('.la-big').textContent = `Canopy cover: ${pct.toFixed(1)} %`;
+      q('.la-facts').replaceChildren(
+        fact('Plant pixels', `${k.toLocaleString('en')} of ${n.toLocaleString('en')}`),
+        fact('Threshold (ExG)', sig(exgValue(t), 3), tStr ? 'typed by you' : 'Otsu\'s automatic threshold'),
+        fact('Gap (not plant)', `${(100 - pct).toFixed(1)} %`),
+      );
+      q('.la-tw').hidden = true;
+      csvRows = [['photo', 'cover_percent', 'plant_pixels', 'all_pixels', 'exg_threshold'], [name, pct.toFixed(3), k, n, exgValue(t).toFixed(4)]];
+      draw();
+      sections = [{ title: q('.la-big').textContent!, facts: factPairs(q('.la-facts')), figure: canvasFigure(q<HTMLCanvasElement>('.la-photo'), 'The photo with plant pixels coloured') }];
+      return;
+    }
+    const bg = q<HTMLSelectElement>('.la-bg').value, light = bg === 'light';
+    const v = light ? minChannel(px, n) : maxChannel(px, n);
+    let t: number;
+    if (tStr) { if (!(Number.isFinite(tIn) && tIn >= 0 && tIn <= 255)) return fail('The threshold runs from 0 to 255.'); t = Math.round(tIn); }
+    else { t = otsu(histogram(v)); if (t < 0) return fail('The photo is one flat colour, so there is nothing to split.'); }
+    mask = threshold(v, t, light);
+    const minPx = Math.max(0, Number(inp('.la-min').value) || 0), len = Number(inp('.la-len').value), unit = q<HTMLSelectElement>('.la-unit').value;
+    const sq = q<HTMLSelectElement>('.la-scale').value === 'square';
+    if (!(len > 0)) return fail(sq ? 'Give the side of the reference square.' : 'Give the length of the scale line.');
+    let r: LeafResult | string;
+    if (sq) { if (!refAt) return fail('Tap "Tap the square", then tap inside the reference square on the photo.'); r = leafArea(mask, W, H, { refAt, side: len, minPx, fill: inp('.la-fill').checked }); }
+    else { if (line.length < 2) return fail('Tap "Draw the scale line", then tap both ends of the ruler or scale bar on the photo.'); r = leafArea(mask, W, H, { pxPerUnit: pxPerUnit(line[0], line[1], len), minPx, fill: inp('.la-fill').checked }); }
+    if (typeof r === 'string') return fail(r);
+    res = r;
+    if (!r.leaves.length) return fail('No leaves found. Check the background setting or set the threshold by hand.');
+    const u2 = `${unit}²`, f = (x: number) => sig(x, 4);
+    q('.la-out').hidden = false; q('.la-tw').hidden = false;
+    q('.la-big').textContent = `Leaf area: ${f(r.total)} ${u2} (${r.leaves.length} lea${r.leaves.length > 1 ? 'ves' : 'f'})`;
+    const pxSide = Math.sqrt(1 / r.unitPerPx2);
+    q('.la-facts').replaceChildren(
+      fact('Scale', `${sig(pxSide, 4)} px per ${unit}`, sq ? `from the ${len} ${unit} square (${r.ref!.area.toLocaleString('en')} px)` : `from a ${len} ${unit} line of ${sig(Math.hypot(line[1][0] - line[0][0], line[1][1] - line[0][1]), 4)} px`),
+      fact('One pixel', `${sig(r.unitPerPx2, 3)} ${u2}`),
+      fact('Threshold', String(t), `${tStr ? 'typed by you' : 'Otsu\'s automatic threshold'} on the ${light ? 'smallest' : 'largest'} of R, G and B`),
+      fact('Leaf pixels', r.leaves.reduce((s, l) => s + l.area, 0).toLocaleString('en')),
+    );
+    const rows = r.leaves.map((l, i) => [String(i + 1), f(l.area * r.unitPerPx2), l.area.toLocaleString('en'), sig(l.major / pxSide, 3), sig(l.minor / pxSide, 3)]);
+    fillTable(q<HTMLTableElement>('.la-tab'), ['Leaf', `Area (${u2})`, 'Pixels', `Length (${unit})`, `Width (${unit})`], rows);
+    csvRows = [['leaf', `area_${unit}2`, 'pixels', `ellipse_length_${unit}`, `ellipse_width_${unit}`, 'centre_x_px', 'centre_y_px'], ...r.leaves.map((l, i) => [i + 1, l.area * r.unitPerPx2, l.area, l.major / pxSide, l.minor / pxSide, l.cx.toFixed(1), l.cy.toFixed(1)]), ['total', r.total, r.leaves.reduce((s, l) => s + l.area, 0), '', '', '', '']];
+    draw();
+    sections = [{ title: q('.la-big').textContent!, facts: factPairs(q('.la-facts')), figure: canvasFigure(q<HTMLCanvasElement>('.la-photo'), 'The photo with each leaf coloured and numbered'), table: { head: ['Leaf', `Area (${u2})`, 'Pixels', `Length (${unit})`, `Width (${unit})`], rows }, note: 'Length and width are those of the ellipse with the same spread as the leaf (a guide, not a ruler measurement).' }];
+  }
+
+  function draw() {
+    if (!base) return;
+    const c = q<HTMLCanvasElement>('.la-photo'); c.width = W; c.height = H;
+    const ctx = c.getContext('2d', { willReadFrequently: true })!; ctx.drawImage(base, 0, 0);
+    const lw = Math.max(2, W / 300);
+    if (mask && inp('.la-tint').checked) {
+      if (mode === 'canopy') tint(ctx, W, H, (i) => (mask![i] ? [213, 94, 0] : null), 0.5);
+      else if (res) {
+        const r = res, ids = new Set(r.leaves.map((l) => l.id)), refId = r.ref?.id ?? -1;
+        tint(ctx, W, H, (i) => { const l = r.lab[i]; return !l ? null : l === refId ? [230, 159, 0] : ids.has(l) ? [0, 114, 178] : null; });
+        ctx.font = `bold ${Math.max(14, Math.round(W / 24))}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        res.leaves.forEach((l, i) => { ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#000000'; ctx.lineWidth = 3; ctx.strokeText(String(i + 1), l.cx, l.cy); ctx.fillText(String(i + 1), l.cx, l.cy); });
+      }
+    }
+    ctx.lineWidth = lw; ctx.strokeStyle = '#d55e00'; ctx.fillStyle = '#d55e00';
+    const dot = (p: Pt) => { ctx.beginPath(); ctx.arc(p[0], p[1], lw * 2.5, 0, 2 * Math.PI); ctx.fill(); };
+    if (mode === 'leaf' && q<HTMLSelectElement>('.la-scale').value === 'line') { if (line.length === 2) { ctx.beginPath(); ctx.moveTo(...line[0]); ctx.lineTo(...line[1]); ctx.stroke(); } line.forEach(dot); }
+    if (mode === 'leaf' && q<HTMLSelectElement>('.la-scale').value === 'square' && refAt) dot(refAt);
+    taps.forEach(dot);
+  }
+  q('.la-mode').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-m]'); if (!b) return; setMode(b.dataset.m as 'leaf' | 'canopy'); px = null; base = null; q('.la-photo').hidden = true; q('.la-show').hidden = true; q('.la-set').hidden = true; q('.la-out').hidden = true; loadExample(); });
+  q('.la-open').addEventListener('click', () => inp('.la-file').click());
+  q('.la-file').addEventListener('change', async () => {
+    const f = inp('.la-file').files?.[0]; if (!f) return; inp('.la-file').value = '';
+    try {
+      const p = await readPhoto(f);
+      load(p.px, p.w, p.h, p.name);
+      if (p.scaled) q('.la-ph').textContent = `The photo was scaled down from ${p.ow} × ${p.oh} to ${p.w} × ${p.h} px to keep the page quick; areas still come out right because the scale is read on the same picture. It stays on your device and is never uploaded.`;
+      if (mode === 'leaf') { arming = true; taps = []; tapLabel(); }
+    } catch (e) { q('.la-err').textContent = (e as Error).message; q('.la-err').hidden = false; }
+  });
+  function loadExample() {
+    if (mode === 'leaf') {
+      const e = exampleLeaves();
+      q<HTMLSelectElement>('.la-bg').value = 'light'; q<HTMLSelectElement>('.la-scale').value = 'square'; inp('.la-len').value = '1'; q<HTMLSelectElement>('.la-unit').value = 'cm'; inp('.la-fill').checked = false; inp('.la-min').value = '50';
+      load(e.px, e.w, e.h, 'example-leaves'); refAt = e.squareAt; run();
+      q('.la-ph').textContent = 'Made-up example: a scan at 100 px per cm with a 1 cm black square and three leaves, one with a hole. ' + PH;
+    } else {
+      const e = exampleCanopy();
+      load(e.px, e.w, e.h, 'example-canopy');
+      q('.la-ph').textContent = 'Made-up example: green plants on bare soil, seen from above. ' + PHC;
+    }
+  }
+  q('.la-ex').addEventListener('click', loadExample);
+  q('.la-tap').addEventListener('click', () => { arming = !arming; taps = []; tapLabel(); draw(); });
+  q('.la-scale').addEventListener('change', () => { arming = false; taps = []; tapLabel(); run(); });
+  q('.la-photo').addEventListener('click', (ev) => {
+    if (!arming || !base || mode !== 'leaf') return;
+    const p = tapAt(ev, q<HTMLCanvasElement>('.la-photo'), W, H);
+    if (q<HTMLSelectElement>('.la-scale').value === 'square') { refAt = p; arming = false; tapLabel(); run(); return; }
+    taps.push(p);
+    if (taps.length < 2) { tapLabel(); draw(); return; }
+    if (Math.hypot(taps[1][0] - taps[0][0], taps[1][1] - taps[0][1]) < 5) { taps = []; tapLabel(); fail('The two ends are too close together; tap the ends of the scale line again.'); return; }
+    line = taps; taps = []; arming = false; tapLabel(); run();
+  });
+  let timer = 0;
+  const later = (f: () => void) => { clearTimeout(timer); timer = window.setTimeout(f, 250); };
+  ['.la-t', '.la-min', '.la-len'].forEach((c) => q(c).addEventListener('input', () => later(run)));
+  ['.la-bg', '.la-unit', '.la-fill'].forEach((c) => q(c).addEventListener('change', run));
+  q('.la-tint').addEventListener('change', () => { draw(); if (sections[0]) sections[0].figure = canvasFigure(q<HTMLCanvasElement>('.la-photo'), sections[0].figure!.alt); });
+  q('.la-csv').addEventListener('click', () => save(new Blob([csv(csvRows)], { type: 'text/csv' }), `${fileSafe(name)}-${mode === 'leaf' ? 'leaf-area' : 'canopy-cover'}.csv`, 'text/csv'));
+  setMode('leaf');
+  loadExample();
+  wireDownloads(q('.dl'), () => ({ title: mode === 'leaf' ? 'Leaf area' : 'Canopy cover', subtitle: q('.la-big').textContent ?? '', file: `${fileSafe(name)}-${mode === 'leaf' ? 'leaf-area' : 'canopy-cover'}`, sections }));
+</script>
+
+<style is:global>
+  .laa .la-photo { display: block; width: 100%; height: auto; margin-top: 10px; border: 1px solid var(--line, #ddd); cursor: crosshair; touch-action: manipulation; }
+  .laa .la-open-row { margin-top: 12px; }
+  .laa .la-show { margin-top: 8px; }
+  .laa .la-h3 { font-size: 16px; margin: 16px 0 8px; }
+  .laa select { max-width: 100%; }
+</style>

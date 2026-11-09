@@ -1,0 +1,186 @@
+---
+// Leaf gas exchange curves: light response (non-rectangular hyperbola) and A/Ci (Farquhar-von Caemmerer-Berry).
+// The example curves are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const light = 'PPFD (µmol m-2 s-1)\tA (µmol m-2 s-1)\n0\t-1.6\n25\t-0.17\n50\t0.99\n100\t3.29\n150\t5.62\n200\t7.45\n400\t13.08\n600\t16.0\n800\t16.87\n1200\t18.11\n1600\t18.97\n2000\t19.28';
+const aci = 'Ci (µmol mol-1)\tA (µmol m-2 s-1)\n60\t0.4\n100\t3.47\n150\t7.52\n200\t11.1\n250\t13.5\n300\t16.49\n400\t20.75\n600\t24.83\n800\t26.04\n1000\t27.39\n1200\t27.68\n1500\t28.75';
+---
+<div class="ax psc">
+  <div class="ax-card">
+    <h2>Light response curve</h2>
+    <label>Two columns: light (PPFD, µmol m⁻² s⁻¹) and net photosynthesis A (µmol m⁻² s⁻¹), one row per step
+      <textarea class="ps-ldata" rows="8" spellcheck="false">{light}</textarea></label>
+    <DataFile target=".ps-ldata" maxCols={10} maxRows={500} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Curvature θ <select class="ps-th"><option value="fit" selected>Fit it</option><option value="fix">Fix it</option></select></label>
+      <label class="ps-thbox" hidden>θ fixed at <input class="ps-thv" inputmode="decimal" value="0.7" /></label>
+      <label>Saturation point at <select class="ps-sat"><option value="0.75">75 % of maximum</option><option value="0.85">85 % of maximum</option><option value="0.9" selected>90 % of maximum</option><option value="0.95">95 % of maximum</option></select></label>
+    </div>
+    <p class="ax-help">θ sets how sharply the curve bends from the light-limited slope to the plateau (0 is a gentle rectangular hyperbola, 1 a sharp corner). With few points near the bend, fixing θ (often 0.7 to 0.9) gives steadier estimates. The saturation point is the light at which net A reaches that share of its maximum. Up to 500 rows. The example curve is made up.</p>
+    <p class="ax-err ps-lerr" hidden></p>
+    <div class="ps-lout">
+      <p class="ax-big ps-lbig"></p>
+      <dl class="ax-facts ps-lfacts"></dl>
+      <canvas class="ax-fig ps-lfig"></canvas>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ps-lcsv">Download light fit (CSV)</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>A/Ci curve</h2>
+    <label>Two columns: intercellular CO₂ Ci (µmol mol⁻¹) and net photosynthesis A (µmol m⁻² s⁻¹)
+      <textarea class="ps-adata" rows="8" spellcheck="false">{aci}</textarea></label>
+    <DataFile target=".ps-adata" maxCols={10} maxRows={500} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Γ* (µmol mol⁻¹) <input class="ps-gs" inputmode="decimal" value="42.75" /></label>
+      <label>Kc (µmol mol⁻¹) <input class="ps-kc" inputmode="decimal" value="404.9" /></label>
+      <label>Ko (mmol mol⁻¹) <input class="ps-ko" inputmode="decimal" value="278.4" /></label>
+      <label>O₂ (mmol mol⁻¹) <input class="ps-o" inputmode="decimal" value="210" /></label>
+      <label>Electrons per CO₂ <select class="ps-je"><option value="4,8" selected>4 Ci + 8 Γ* (Farquhar)</option><option value="4.5,10.5">4.5 Ci + 10.5 Γ*</option></select></label>
+      <label>Rubisco / RuBP split <select class="ps-split"><option value="auto" selected>Find the best</option><option value="ci">Set by Ci</option></select></label>
+      <label class="ps-splitbox" hidden>Rubisco-limited below Ci <input class="ps-splitv" inputmode="decimal" value="500" /></label>
+    </div>
+    <p class="ax-help">Γ*, Kc and Ko are preset to the values at 25 °C from Bernacchi et al. (2001), with 21 % oxygen. They are general model settings, not your plant's. Change them for another temperature or source. "Find the best" tries every split of the points into a Rubisco-limited part (low Ci) and an RuBP-limited part (high Ci). It keeps the best fit where each point sits on the lower of the two curves.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Light during the curve (PPFD) <input class="ps-ppfd" inputmode="decimal" value="1500" /></label>
+      <label>α for J (electrons per photon) <input class="ps-alpha" inputmode="decimal" value="0.3" /></label>
+      <label>θ for J <input class="ps-thj" inputmode="decimal" value="0.7" /></label>
+    </div>
+    <p class="ax-help">The fit gives J, the electron transport rate at the light used. Jmax, the rate at saturating light, is worked out from J with the same kind of curve, using α and θ (often about 0.3 and 0.7). Leave PPFD empty to skip Jmax. Up to 500 rows. The example curve is made up.</p>
+    <p class="ax-err ps-aerr" hidden></p>
+    <div class="ps-aout">
+      <p class="ax-big ps-abig"></p>
+      <dl class="ax-facts ps-afacts"></dl>
+      <canvas class="ax-fig ps-afig"></canvas>
+      <div class="ax-scroll"><table class="ps-atab"></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ps-acsv">Download A/Ci fit (CSV)</button></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { fitLight, nrhGross, fitAci, aciModel, fRubisco, fRubp, jmaxFromJ, type AciConst } from '../../lib/sci/photosynth';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => (Number.isFinite(x) ? sig(x, d) : '–');
+  const root = document.querySelector<HTMLElement>('.psc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factsOf = (sel: string) => [...q(sel).children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  const U = 'µmol m⁻² s⁻¹';
+  let lfig: Figure | null = null, afig: Figure | null = null, lsec: Section | null = null, asec: Section[] = [], lcsv: string[][] = [], acsv: string[][] = [];
+
+  const pairs = (sel: string) => parseTable(q<HTMLTextAreaElement>(sel).value).filter((r) => Number.isFinite(num(r[0])) && Number.isFinite(num(r[1]))).map((r) => [num(r[0]), num(r[1])]);
+
+  function lightCalc() {
+    const fail = (m: string) => { q('.ps-lerr').textContent = m; q('.ps-lerr').hidden = false; q('.ps-lout').hidden = true; lfig = null; lsec = null; lcsv = []; };
+    q('.ps-lerr').hidden = true;
+    const thMode = q<HTMLSelectElement>('.ps-th').value; q('.ps-thbox').hidden = thMode !== 'fix';
+    const d = pairs('.ps-ldata');
+    if (d.length > 500) return fail('Up to 500 rows, please.');
+    if (d.some(([i]) => i < 0)) return fail('Light (PPFD) cannot be negative.');
+    let th: number | null = null;
+    if (thMode === 'fix') { th = val('.ps-thv'); if (!(th >= 0 && th <= 1)) return fail('θ must be from 0 to 1.'); }
+    const need = th === null ? 5 : 4;
+    if (d.length < need || new Set(d.map(([i]) => i)).size < need) return fail(`Give at least ${need} light levels as two columns: PPFD and net A.`);
+    const I = d.map((r) => r[0]), A = d.map((r) => r[1]);
+    let f: ReturnType<typeof fitLight>;
+    try { f = fitLight(I, A, th, Number(q<HTMLSelectElement>('.ps-sat').value)); } catch { return fail('The curve could not be fitted. Check the columns are PPFD then net A, with values from darkness to high light.'); }
+    if (![f.amax, f.phi, f.rd].every(Number.isFinite) || !(f.amax > 0) || !(f.phi > 0)) return fail('The curve could not be fitted: A does not rise with light in these data. Check the columns are PPFD then net A.');
+    q('.ps-lout').hidden = false;
+    const se = (i: number) => (f.thetaFixed && i === 2 ? 'fixed' : `± ${sg(f.se[i], 2)}`);
+    const pct = Math.round(f.satFrac * 100), maxI = Math.max(...I);
+    q('.ps-lbig').textContent = `Amax ${sg(f.amax, 3)} ${U}, Rd ${sg(f.rd, 3)}`;
+    q('.ps-lfacts').replaceChildren(
+      fact('Amax (gross, light-saturated)', `${sg(f.amax, 4)} ${U}`, se(0)),
+      fact('Quantum yield φ', `${sg(f.phi, 3)} mol mol⁻¹`, `${se(1)}; initial slope, CO₂ per photon`),
+      fact('Curvature θ', sg(f.theta, 3), f.thetaFixed ? (th === null ? 'held at the edge of 0 to 1 (the free fit went outside)' : 'fixed') : se(2)),
+      fact('Dark respiration Rd', `${sg(f.rd, 3)} ${U}`, se(3)),
+      fact('Maximum net A', `${sg(f.amax - f.rd, 4)} ${U}`, 'Amax − Rd'),
+      fact('Light compensation point', `${sg(f.lcp, 3)} ${U}`, 'PPFD where net A = 0'),
+      fact(`Light saturation (${pct} %)`, `${sg(f.isat, 4)} ${U}`, f.isat > maxI ? `beyond the highest light measured (${sg(maxI, 4)}): extrapolated` : `PPFD where net A reaches ${pct} % of its maximum`),
+      fact('Ik = Amax ÷ φ', `${sg(f.ik, 4)} ${U}`, 'where the initial slope meets the plateau'),
+      fact('Fit', `R² ${sg(f.r2, 4)}`, `residual SD ${sg(f.s, 3)} ${U}, ${f.n} points`),
+    );
+    const xs = Array.from({ length: 201 }, (_, i) => (maxI * 1.05 * i) / 200);
+    lfig = chartFigure({ w: 440, h: 320, xLabel: `PPFD (${U})`, yLabel: `Net A (${U})`, legend: 'below', xMin: 0, series: [
+      { name: 'Measured', x: I, y: A, mode: 'points', marker: 'circle' },
+      { name: 'Non-rectangular hyperbola', x: xs, y: xs.map((x) => nrhGross(x, f.amax, f.phi, f.theta) - f.rd), mode: 'line' },
+    ], marks: [{ kind: 'hline', at: 0, dash: [3, 3] }, { kind: 'hline', at: f.amax - f.rd, dash: [5, 3], label: 'max net A' }] }, 'Light response curve with the fitted non-rectangular hyperbola');
+    paint(q<HTMLCanvasElement>('.ps-lfig'), lfig);
+    const rows = I.map((x, i) => { const p = nrhGross(x, f.amax, f.phi, f.theta) - f.rd; return [sg(x, 5), sg(A[i], 4), sg(p, 4), sg(A[i] - p, 3)]; });
+    lcsv = [['Parameter', 'Value', 'SE'], ['Amax', sg(f.amax, 6), sg(f.se[0], 4)], ['phi', sg(f.phi, 6), sg(f.se[1], 4)], ['theta', sg(f.theta, 6), f.thetaFixed ? 'fixed' : sg(f.se[2], 4)], ['Rd', sg(f.rd, 6), sg(f.se[3], 4)], ['Light compensation point', sg(f.lcp, 6), ''], [`Light saturation ${pct} %`, sg(f.isat, 6), ''], ['Ik', sg(f.ik, 6), ''], [], ['PPFD', 'A measured', 'A fitted', 'Residual'], ...rows];
+    lsec = { title: `Light response: ${q('.ps-lbig').textContent}`, text: ['Non-rectangular hyperbola: θA² − (φI + Amax)A + φI·Amax = 0 for gross A; net A = gross − Rd. Least-squares fit.'], facts: factsOf('.ps-lfacts'), figure: lfig, table: { head: ['PPFD', 'A measured', 'A fitted', 'Residual'], rows, align: ['r', 'r', 'r', 'r'] } };
+  }
+
+  function aciCalc() {
+    const fail = (m: string) => { q('.ps-aerr').textContent = m; q('.ps-aerr').hidden = false; q('.ps-aout').hidden = true; afig = null; asec = []; acsv = []; };
+    q('.ps-aerr').hidden = true;
+    const splitMode = q<HTMLSelectElement>('.ps-split').value; q('.ps-splitbox').hidden = splitMode !== 'ci';
+    const [jA, jB] = q<HTMLSelectElement>('.ps-je').value.split(',').map(Number);
+    const k: AciConst = { gammaStar: val('.ps-gs'), kc: val('.ps-kc'), ko: val('.ps-ko'), o: val('.ps-o'), jA, jB };
+    if (!(k.gammaStar >= 0 && k.kc > 0 && k.ko > 0 && k.o >= 0)) return fail('Γ*, Kc, Ko and O₂ must be numbers (Kc and Ko above zero).');
+    const d = pairs('.ps-adata');
+    if (d.length > 500) return fail('Up to 500 rows, please.');
+    if (d.length < 5) return fail('Give at least 5 points as two columns: Ci and net A.');
+    if (d.some(([c]) => !(c > k.gammaStar))) return fail(`Every Ci must be above Γ* (${sg(k.gammaStar, 4)} µmol mol⁻¹); below it the model has no net uptake to fit.`);
+    let split: number | null = null;
+    if (splitMode === 'ci') { split = val('.ps-splitv'); const below = d.filter(([c]) => c < split!).length; if (!(below >= 2 && d.length - below >= 2)) return fail('Set the split Ci so at least two points fall on each side.'); }
+    const ci = d.map((r) => r[0]), A = d.map((r) => r[1]);
+    const f = fitAci(ci, A, k, split);
+    if (!f) return fail('No fit with positive Vcmax and J was found. Check the columns are Ci then net A, from low to high CO₂, and that the curve levels off at high Ci.');
+    q('.ps-aout').hidden = false;
+    const ppfd = q<HTMLInputElement>('.ps-ppfd').value.trim() === '' ? NaN : val('.ps-ppfd');
+    const jmax = Number.isFinite(ppfd) ? jmaxFromJ(f.j, ppfd, val('.ps-alpha'), val('.ps-thj')) : NaN;
+    q('.ps-abig').textContent = `Vcmax ${sg(f.vcmax, 3)}, J ${sg(f.j, 3)}, Rd ${sg(f.rd, 3)} ${U}`;
+    q('.ps-afacts').replaceChildren(
+      fact('Vcmax', `${sg(f.vcmax, 4)} ${U}`, `± ${sg(f.se[0], 2)}; maximum Rubisco carboxylation rate`),
+      fact('J', `${sg(f.j, 4)} ${U}`, `± ${sg(f.se[1], 2)}; electron transport at the light used`),
+      fact('Jmax', Number.isFinite(jmax) ? `${sg(jmax, 4)} ${U}` : '–', Number.isFinite(ppfd) ? (Number.isFinite(jmax) ? `from J at PPFD ${sg(ppfd, 4)}, α ${sg(val('.ps-alpha'), 3)}, θ ${sg(val('.ps-thj'), 3)}` : 'J is too high for this light and α; check them') : 'give the light during the curve'),
+      fact('Rd (day respiration)', `${sg(f.rd, 3)} ${U}`, `± ${sg(f.se[2], 2)}`),
+      fact('J ÷ Vcmax', sg(f.j / f.vcmax, 3), ''),
+      fact('Transition Ci', Number.isFinite(f.ciTransition) ? `${sg(f.ciTransition, 4)} µmol mol⁻¹` : '–', `where Rubisco and RuBP limits cross; ${f.nRubisco} points Rubisco-limited, ${f.nRubp} RuBP-limited`),
+      fact('Fit', `R² ${sg(f.r2, 4)}`, `residual SD ${sg(f.s, 3)} ${U}${f.consistent ? '' : '; some points sit on the higher curve, so treat the split with care'}`),
+    );
+    const xmax = Math.max(...ci) * 1.05, xs = Array.from({ length: 201 }, (_, i) => k.gammaStar + ((xmax - k.gammaStar) * i) / 200);
+    const ymin = Math.min(...A, -f.rd) - 1, ymax = Math.max(...A) * 1.25 + 1;
+    afig = chartFigure({ w: 440, h: 320, xLabel: 'Ci (µmol mol⁻¹)', yLabel: `Net A (${U})`, legend: 'below', yMin: ymin, yMax: ymax, xMin: 0, series: [
+      { name: 'Rubisco-limited points', x: ci.filter((_, i) => f.limits[i] === 'Rubisco'), y: A.filter((_, i) => f.limits[i] === 'Rubisco'), mode: 'points', marker: 'circle' },
+      { name: 'RuBP-limited points', x: ci.filter((_, i) => f.limits[i] === 'RuBP'), y: A.filter((_, i) => f.limits[i] === 'RuBP'), mode: 'points', marker: 'square' },
+      { name: 'Ac − Rd', x: xs, y: xs.map((c) => f.vcmax * fRubisco(c, k) - f.rd), mode: 'line', dash: [5, 3] },
+      { name: 'Aj − Rd', x: xs, y: xs.map((c) => f.j * fRubp(c, k) - f.rd), mode: 'line', dash: [2, 2] },
+      { name: 'Model', x: xs, y: xs.map((c) => aciModel(c, f.vcmax, f.j, f.rd, k)), mode: 'line', width: 2 },
+    ], marks: [{ kind: 'hline', at: 0, dash: [3, 3] }] }, 'A/Ci curve with the fitted Rubisco- and RuBP-limited curves');
+    paint(q<HTMLCanvasElement>('.ps-afig'), afig);
+    const head = ['Ci', 'A measured', 'A fitted', 'Residual', 'Limited by'];
+    const order = ci.map((_, i) => i).sort((a, b) => ci[a] - ci[b]);
+    const rows = order.map((i) => { const p = (f.limits[i] === 'Rubisco' ? f.vcmax * fRubisco(ci[i], k) : f.j * fRubp(ci[i], k)) - f.rd; return [sg(ci[i], 5), sg(A[i], 4), sg(p, 4), sg(A[i] - p, 3), f.limits[i]]; });
+    const t = q<HTMLTableElement>('.ps-atab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i < 4) th.style.textAlign = 'right'; hr.append(th); });
+    const tb = t.createTBody(); rows.forEach((r) => { const tr = tb.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i < 4) td.style.textAlign = 'right'; }); });
+    acsv = [['Parameter', 'Value', 'SE'], ['Vcmax', sg(f.vcmax, 6), sg(f.se[0], 4)], ['J', sg(f.j, 6), sg(f.se[1], 4)], ['Rd', sg(f.rd, 6), sg(f.se[2], 4)], ['Jmax', sg(jmax, 6), ''], ['Transition Ci', sg(f.ciTransition, 6), ''], ['Gamma*', String(k.gammaStar), ''], ['Kc', String(k.kc), ''], ['Ko', String(k.ko), ''], ['O2', String(k.o), ''], [], head, ...rows];
+    asec = [{ title: `A/Ci: ${q('.ps-abig').textContent}`, text: [`Farquhar-von Caemmerer-Berry model: A = min(Ac, Aj) − Rd, Ac = Vcmax(Ci − Γ*)/(Ci + Kc(1 + O/Ko)), Aj = J(Ci − Γ*)/(${jA}Ci + ${jB}Γ*). Γ* ${k.gammaStar}, Kc ${k.kc} µmol mol⁻¹, Ko ${k.ko}, O ${k.o} mmol mol⁻¹.`], facts: factsOf('.ps-afacts'), figure: afig, table: { head, rows, align: ['r', 'r', 'r', 'r', 'l'] } }];
+  }
+
+  const timers: Record<string, number> = {};
+  const later = (fn: () => void, key: string) => () => { clearTimeout(timers[key]); timers[key] = window.setTimeout(fn, 200); };
+  root.querySelectorAll('.ps-ldata, .ps-th, .ps-thv, .ps-sat').forEach((i) => { i.addEventListener('input', later(lightCalc, 'l')); i.addEventListener('change', later(lightCalc, 'l')); });
+  root.querySelectorAll('.ps-adata, .ps-gs, .ps-kc, .ps-ko, .ps-o, .ps-je, .ps-split, .ps-splitv, .ps-ppfd, .ps-alpha, .ps-thj').forEach((i) => { i.addEventListener('input', later(aciCalc, 'a')); i.addEventListener('change', later(aciCalc, 'a')); });
+  q('.ps-lcsv').addEventListener('click', () => { if (lcsv.length) save(new TextEncoder().encode(toCsv(lcsv)), 'light-response-fit.csv', 'text/csv'); });
+  q('.ps-acsv').addEventListener('click', () => { if (acsv.length) save(new TextEncoder().encode(toCsv(acsv)), 'aci-fit.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (lfig) paint(q<HTMLCanvasElement>('.ps-lfig'), lfig); if (afig) paint(q<HTMLCanvasElement>('.ps-afig'), afig); });
+  lightCalc(); aciCalc();
+  wireDownloads(q('.dl'), () => ({ title: 'Photosynthesis curve fits', subtitle: [q('.ps-lbig').textContent, q('.ps-abig').textContent].filter(Boolean).join('; '), file: 'photosynthesis-curves', sections: [...(lsec ? [lsec] : []), ...asec] }));
+</script>
+
+<style is:global>
+  .psc select { max-width: 100%; }
+  .psc textarea { width: 100%; }
+  .psc td { white-space: nowrap; }
+</style>
