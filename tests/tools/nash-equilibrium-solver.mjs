@@ -1,6 +1,7 @@
 // Nash equilibrium solver: presets, typed payoffs, zero-sum, weak dominance, resizing, downloads and bad input.
 export const path = '/science/nash-equilibrium-solver/';
 export default async ({ page, check, BASE, OUT, readFileSync }) => {
+  page.setDefaultTimeout(120000); // pages load slowly when many builds share the machine; reset at the end
   const dl = async (sel) => { await page.locator(sel).scrollIntoViewIfNeeded(); const [d] = await Promise.all([page.waitForEvent('download'), page.click(sel)]); const f = OUT + d.suggestedFilename(); await d.saveAs(f); return f; };
   const big = () => page.textContent('.ne-big');
   const waitBig = (re) => page.waitForFunction((s) => new RegExp(s).test(document.querySelector('.ne-big')?.textContent || ''), re.source);
@@ -29,8 +30,7 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   await page.selectOption('.ne-n', '3');
   await page.waitForFunction(() => document.querySelectorAll('.ne-cell').length === 6);
   await page.fill('.ne-cell[data-i="0"][data-j="2"]', '2'); await page.fill('.ne-cell[data-i="1"][data-j="2"]', '-3');
-  await page.waitForFunction(() => document.querySelector('.ne-zsf')?.textContent?.includes('Value'));
-  await page.waitForTimeout(400);
+  await page.waitForFunction(() => /Value of the game \(to the row player\)−0\.1429/.test(document.querySelector('.ne-zsf')?.textContent || ''));
   check(/Value of the game \(to the row player\)−0\.1429/.test(await page.textContent('.ne-zsf')) && /Heads 4\/7, Tails 3\/7/.test(await page.textContent('.ne-zsf')) && /Tails 5\/7, C3 2\/7/.test(await page.textContent('.ne-zsf')), `nash: 2 x 3 zero-sum matches nashpy (−1/7) (${await page.textContent('.ne-zsf')})`);
   // Weak dominance.
   await page.uncheck('.ne-zs');
@@ -50,4 +50,5 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   await page.waitForFunction(() => document.querySelectorAll('.ne-cell').length === 36);
   await waitBig(/equilibri/);
   check(true, 'nash: 6 x 6 table solves');
+  page.setDefaultTimeout(30000);
 };
