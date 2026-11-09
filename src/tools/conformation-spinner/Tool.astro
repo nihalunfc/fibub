@@ -1,0 +1,185 @@
+---
+// Newman projection spinner: turn the back carbon of ethane or butane, see the conformation name and the
+// torsional energy on a graph; Check yourself on conformation names.
+import '../../styles/astro.css';
+---
+<div class="ax cfs">
+  <div class="ax-card">
+    <h2>Turn the back carbon</h2>
+    <span class="ax-seg cf-mol" role="group" aria-label="Molecule"><button type="button" data-m="ethane" aria-pressed="false">Ethane</button><button type="button" data-m="butane" aria-pressed="true">Butane</button></span>
+    <p class="ax-big cf-big"></p>
+    <canvas class="ax-fig cf-newman" tabindex="0"></canvas>
+    <p class="ax-help cf-drag">Drag round the circle to turn the back carbon, or use the slider.</p>
+    <label>Dihedral angle φ: <b class="cf-deg"></b><input type="range" class="cf-phi" min="0" max="360" step="1" value="60" /></label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small cf-m60" aria-label="Turn back 60 degrees">−60°</button>
+      <button type="button" class="btn secondary small cf-p60" aria-label="Turn on 60 degrees">+60°</button>
+      <button type="button" class="btn small cf-spin" aria-pressed="false">Spin</button>
+    </div>
+    <p class="cf-formula"></p>
+    <dl class="ax-facts cf-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Energy as it turns</h2>
+    <canvas class="ax-fig cf-graph"></canvas>
+    <p class="ax-help">Tap the graph to jump to an angle. Energies are rounded teaching values (kJ/mol, relative to the most stable form) joined by a smooth cosine curve: a model, not a measurement.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="cf-try">
+      <li>Ethane: turn from 60° to 120°. The hydrogens line up (eclipsed) and the energy rises by about 12.5 kJ/mol.</li>
+      <li>Butane: find the lowest point. Why are the two CH₃ groups happiest opposite each other (anti)?</li>
+      <li>Compare gauche (60°) with anti (180°): both staggered, but the CH₃ groups are close in gauche.</li>
+      <li>Press Spin: at room temperature the molecule turns millions of times a second, so the forms cannot be separated.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cf-quiz">
+    <h2>Check yourself</h2>
+    <p class="ax-help" style="margin-top:0">Name each conformation. New questions every time; nothing is saved.</p>
+    <div class="cf-qs"></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn small cf-check">Check</button><button type="button" class="btn secondary small cf-new">New questions</button><span class="cf-score" aria-live="polite"></span></div>
+  </div>
+</div>
+
+<style is:inline>
+  .cf-mol { margin-bottom: 8px; }
+  .cf-newman { max-width: 340px; margin: 0 auto; touch-action: none; cursor: grab; border: 1px solid var(--line); }
+  .cf-graph { max-width: 520px; margin: 0 auto; cursor: pointer; }
+  .cfs input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .cf-formula { font-size: 15px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; overflow-wrap: anywhere; }
+  .cf-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .cf-qs { display: grid; gap: 12px; }
+  .cf-q1 { display: grid; gap: 6px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+  .cf-q1 canvas { max-width: 200px; }
+  .cf-q1 select { max-width: 260px; }
+  .cf-ans { font-size: 14px; margin: 0; }
+  .cf-ans.ok { color: var(--good); } .cf-ans.no { color: var(--bad); }
+  .cf-score { font-weight: 700; }
+</style>
+
+<script>
+  import { energy, nameAt, butaneCoeffs, antiShare, norm, NAMES, LEVELS, type Mol } from '../../lib/sci/conformation';
+  import { paint, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cfs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const nw = q<HTMLCanvasElement>('.cf-newman'), gr = q<HTMLCanvasElement>('.cf-graph');
+  let mol: Mol = 'butane', phi = 60, spinning = 0;
+  const f1 = (x: number) => (Math.abs(x) < 0.05 ? '0.0' : x.toFixed(1));
+
+  /** Newman projection: front carbon = centre point, back carbon = circle; φ turns the back carbon clockwise. */
+  function newman(m: Mol, p: number, size = 300): Figure {
+    return { w: size, h: size, alt: `Newman projection of ${m} at a dihedral angle of ${Math.round(norm(p))}°`, draw: (ctx, W, H, pal) => {
+      const cx = W / 2, cy = H / 2, R = W * 0.16, L = W * 0.34, sc = W / 300;
+      const front = m === 'butane' ? ['CH₃', 'H', 'H'] : ['H', 'H', 'H'], back = front;
+      const at = (deg: number) => { const a = ((deg - 90) * Math.PI) / 180; return [Math.cos(a), Math.sin(a)]; };
+      const label = (t: string, x: number, y: number, col: string) => { ctx.font = `600 ${Math.round(15 * sc)}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; const w = ctx.measureText(t).width + 6; ctx.fillStyle = pal.bg; ctx.fillRect(x - w / 2, y - 10 * sc, w, 20 * sc); ctx.fillStyle = col; ctx.fillText(t, x, y); };
+      // Back bonds (from the circle edge), drawn a hair off when eclipsed so both can be seen.
+      const ecl = Math.min(...[0, 120, 240].map((a) => Math.abs(((norm(p) - a + 540) % 360) - 180))) < 6 ? 7 : 0;
+      ctx.lineCap = 'round';
+      back.forEach((t, i) => {
+        const [dx, dy] = at(p + ecl + i * 120);
+        ctx.strokeStyle = pal.muted; ctx.lineWidth = 3 * sc; ctx.beginPath(); ctx.moveTo(cx + dx * R, cy + dy * R); ctx.lineTo(cx + dx * L, cy + dy * L); ctx.stroke();
+        label(t, cx + dx * (L + 16 * sc), cy + dy * (L + 16 * sc), t === 'CH₃' ? pal.accent2 : pal.muted);
+      });
+      ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fillStyle = pal.bg; ctx.fill(); ctx.strokeStyle = pal.ink; ctx.lineWidth = 2 * sc; ctx.stroke();
+      front.forEach((t, i) => {
+        const [dx, dy] = at(i * 120);
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 3.4 * sc; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + dx * L * 0.92, cy + dy * L * 0.92); ctx.stroke();
+        label(t, cx + dx * (L * 0.92 + 14 * sc), cy + dy * (L * 0.92 + 14 * sc), t === 'CH₃' ? pal.accent : pal.ink);
+      });
+      ctx.beginPath(); ctx.arc(cx, cy, 4 * sc, 0, Math.PI * 2); ctx.fillStyle = pal.ink; ctx.fill();
+      if (size >= 260) { ctx.fillStyle = pal.muted; ctx.font = `${Math.round(11 * sc)}px system-ui, sans-serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText('front C: dark lines · back C: circle', 6, H - 6); }
+    } };
+  }
+
+  function graph(): Figure {
+    return { w: 520, h: 260, alt: `Energy of ${mol} against dihedral angle, with the current angle marked`, draw: (ctx, W, H, pal) => {
+      const l = 44, r = 12, t = 14, b = 36, ymax = mol === 'butane' ? 20 : 14;
+      const X = (d: number) => l + (d / 360) * (W - l - r), Y = (e: number) => H - b - (e / ymax) * (H - t - b);
+      ctx.strokeStyle = pal.grid; ctx.lineWidth = 1; ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = pal.muted;
+      for (let e = 0; e <= ymax; e += 5) { ctx.beginPath(); ctx.moveTo(l, Y(e)); ctx.lineTo(W - r, Y(e)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(String(e), l - 6, Y(e)); }
+      for (let d = 0; d <= 360; d += 60) { ctx.beginPath(); ctx.moveTo(X(d), t); ctx.lineTo(X(d), H - b); ctx.stroke(); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(`${d}°`, X(d), H - b + 4); }
+      ctx.textAlign = 'center'; ctx.fillText('dihedral angle φ', (l + W - r) / 2, H - 14);
+      ctx.save(); ctx.translate(11, (t + H - b) / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText('energy, kJ/mol', 0, 0); ctx.restore();
+      ctx.strokeStyle = pal.accent; ctx.lineWidth = 2.2; ctx.beginPath();
+      for (let d = 0; d <= 360; d += 2) { const x = X(d), y = Y(energy(mol, d)); if (d) ctx.lineTo(x, y); else ctx.moveTo(x, y); }
+      ctx.stroke();
+      const d = norm(phi), e = energy(mol, d);
+      ctx.fillStyle = pal.accent2; ctx.beginPath(); ctx.arc(X(d), Y(e), 6, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = pal.accent2; ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(d), Y(e)); ctx.lineTo(X(d), H - b); ctx.stroke(); ctx.setLineDash([]);
+    } };
+  }
+
+  function update() {
+    const d = Math.round(norm(phi)) % 360, e = energy(mol, d);
+    q<HTMLInputElement>('.cf-phi').value = String(d);
+    q('.cf-deg').textContent = `${d}°`;
+    const nm = nameAt(mol, d);
+    q('.cf-big').textContent = `${mol === 'butane' ? 'Butane' : 'Ethane'} at ${d}°: ${nm}`;
+    if (mol === 'ethane') q('.cf-formula').textContent = `E = ½ × ${LEVELS.ethaneBarrier} × (1 + cos 3φ) = ½ × ${LEVELS.ethaneBarrier} × (1 + cos (3 × ${d}°)) = ${f1(e)} kJ/mol`;
+    else { const [a0, a1, a2, a3] = butaneCoeffs().map((x) => x.toFixed(2)); q('.cf-formula').textContent = `E = ${a0} + ${a1} cos φ − ${Math.abs(+a2).toFixed(2)} cos 2φ + ${a3} cos 3φ = ${f1(e)} kJ/mol at φ = ${d}°`; }
+    const facts = [fact('Dihedral angle', `${d}°`, mol === 'butane' ? 'between the two CH₃ groups' : 'between an H in front and one behind'), fact('Torsional energy', `${f1(e)} kJ/mol`, 'above the most stable form'), fact('Conformation', nm)];
+    if (mol === 'butane') facts.push(fact('Molecules anti at 25 °C', `about ${Math.round(antiShare(298.15) * 100)} %`, 'the rest gauche (Boltzmann share)'));
+    q('.cf-facts').replaceChildren(...facts);
+    paint(nw, newman(mol, d)); paint(gr, graph());
+  }
+
+  for (const b of root.querySelectorAll<HTMLButtonElement>('.cf-mol button')) b.addEventListener('click', () => { mol = b.dataset.m as Mol; for (const x of root.querySelectorAll('.cf-mol button')) x.setAttribute('aria-pressed', String(x === b)); update(); });
+  q('.cf-phi').addEventListener('input', () => { phi = Number(q<HTMLInputElement>('.cf-phi').value); update(); });
+  q('.cf-m60').addEventListener('click', () => { phi = norm(Math.round(phi) - 60); update(); });
+  q('.cf-p60').addEventListener('click', () => { phi = norm(Math.round(phi) + 60); update(); });
+  let timer = 0;
+  q('.cf-spin').addEventListener('click', () => {
+    const btn = q('.cf-spin');
+    if (spinning) { clearInterval(timer); spinning = 0; btn.textContent = 'Spin'; btn.setAttribute('aria-pressed', 'false'); return; }
+    spinning = 1; btn.textContent = 'Stop'; btn.setAttribute('aria-pressed', 'true');
+    timer = window.setInterval(() => { phi = norm(phi + 3); update(); }, 40);
+  });
+  // Drag round the circle: the back CH₃ (or H) follows the finger.
+  let dragging = false;
+  const angleFrom = (e: PointerEvent) => { const r = nw.getBoundingClientRect(); const x = e.clientX - r.left - r.width / 2, y = e.clientY - r.top - r.height / 2; return norm((Math.atan2(y, x) * 180) / Math.PI + 90); };
+  nw.addEventListener('pointerdown', (e) => { dragging = true; nw.setPointerCapture(e.pointerId); phi = Math.round(angleFrom(e)); update(); });
+  nw.addEventListener('pointermove', (e) => { if (dragging) { phi = Math.round(angleFrom(e)); update(); } });
+  const up = () => { dragging = false; }; nw.addEventListener('pointerup', up); nw.addEventListener('pointercancel', up);
+  nw.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { e.preventDefault(); phi = norm(phi + 5); update(); } if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { e.preventDefault(); phi = norm(phi - 5); update(); } });
+  gr.addEventListener('click', (e) => { const r = gr.getBoundingClientRect(), x = ((e.clientX - r.left) / r.width) * 520; phi = Math.max(0, Math.min(360, ((x - 44) / (520 - 56)) * 360)); phi = Math.round(phi / 5) * 5; update(); });
+  new MutationObserver(update).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+
+  // Check yourself.
+  let quiz: { m: Mol; d: number; answer: string }[] = [];
+  function newQuiz() {
+    quiz = [];
+    const seen = new Set<string>();
+    while (quiz.length < 4) {
+      const m: Mol = Math.random() < 0.65 ? 'butane' : 'ethane', d = [0, 60, 120, 180, 240, 300, 30, 90][Math.floor(Math.random() * 8)];
+      const k = `${m}${nameAt(m, d)}`; if (seen.has(k)) continue; seen.add(k);
+      quiz.push({ m, d, answer: nameAt(m, d) });
+    }
+    q('.cf-qs').replaceChildren(...quiz.map((x, i) => {
+      const dv = document.createElement('div'); dv.className = 'cf-q1';
+      const p = document.createElement('p'); p.style.margin = '0'; p.textContent = `${i + 1}. This is ${x.m}, looking along the central C–C bond. Which conformation is it?`;
+      const c = document.createElement('canvas'); c.className = 'ax-fig'; paint(c, newman(x.m, x.d, 200));
+      const s = document.createElement('select'); s.className = 'cf-qa'; s.innerHTML = '<option value="">Choose</option>' + NAMES[x.m].map((n) => `<option>${n}</option>`).join('');
+      const a = document.createElement('p'); a.className = 'cf-ans'; a.hidden = true;
+      dv.append(p, c, s, a); return dv;
+    }));
+    q('.cf-score').textContent = '';
+  }
+  q('.cf-check').addEventListener('click', () => {
+    let right = 0;
+    root.querySelectorAll<HTMLElement>('.cf-q1').forEach((dv, i) => {
+      const v = dv.querySelector('select')!.value, a = dv.querySelector<HTMLElement>('.cf-ans')!, x = quiz[i], ok = v === x.answer; if (ok) right++;
+      a.hidden = false; a.className = 'cf-ans ' + (ok ? 'ok' : 'no');
+      a.textContent = `${ok ? '✓ Right.' : v ? `✗ It is ${x.answer}.` : '✗ No answer yet.'} The dihedral angle is ${x.d}°; the energy is ${f1(energy(x.m, x.d))} kJ/mol above the most stable form.`;
+    });
+    q('.cf-score').textContent = `${right} of ${quiz.length} right`;
+  });
+  q('.cf-new').addEventListener('click', newQuiz);
+
+  update(); newQuiz();
+</script>
