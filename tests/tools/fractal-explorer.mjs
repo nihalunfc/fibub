@@ -1,6 +1,7 @@
 // #547 Fractal explorer
 export const path = '/science/fractal-explorer/';
 export default async ({ page, check, BASE, OUT, readFileSync }) => {
+  const vp0 = page.viewportSize();
   await page.setViewportSize({ width: 1000, height: 900 });
   await page.goto(`${BASE}/science/fractal-explorer/`);
   const R = '.fx ';
@@ -71,5 +72,5 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   await page.setViewportSize({ width: 375, height: 800 }); await page.click(R + '.fx-mode button[data-m="mandelbrot"]'); await done();
   await cv.evaluate((e) => e.scrollIntoView({ block: 'center' })); await page.screenshot({ path: OUT + 'fractal-explorer-375.png' });
   check(await page.evaluate(() => document.documentElement.scrollWidth) <= 375, 'fractal: fits 375 px');
-  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.setViewportSize(vp0);
 };

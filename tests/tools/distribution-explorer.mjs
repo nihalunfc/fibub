@@ -1,6 +1,7 @@
 // #563 Probability distribution explorer
 export const path = '/science/distribution-explorer/';
 export default async ({ page, check, BASE, OUT, readFileSync }) => {
+  const vp0 = page.viewportSize();
   const big = () => page.textContent('.dx .dx-big');
   const facts = () => page.textContent('.dx .dx-facts');
   const wait = () => page.waitForTimeout(350);
@@ -10,7 +11,7 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   { const f = await facts(); check(f.includes('Mean0') && f.includes('Variance1') && f.includes('Excess kurtosis0') && f.includes('Outside, 1 − P0.0499958'), 'distribution explorer: normal moments and complement'); }
   { const t = await page.textContent('.dx .dx-qt'); check(t.includes('−1.95996') && t.includes('1.95996'), 'distribution explorer: quantile table'); }
   check(await page.isVisible('.dx .dx-pdf') && await page.isVisible('.dx .dx-cdf'), 'distribution explorer: density and CDF charts drawn');
-  await page.setViewportSize({ width: 375, height: 900 }); await page.screenshot({ path: OUT + 'distribution-explorer-375.png', fullPage: true }); await page.setViewportSize({ width: 1280, height: 900 });
+  await page.setViewportSize({ width: 375, height: 900 }); await page.screenshot({ path: OUT + 'distribution-explorer-375.png', fullPage: true }); await page.setViewportSize(vp0);
 
   // Every shading option.
   await page.selectOption('.dx .dx-r', 'below'); await wait();

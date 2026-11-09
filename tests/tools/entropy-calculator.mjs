@@ -1,6 +1,7 @@
 // #578 entropy and channel capacity calculator. Expected numbers from scipy/numpy (see tests/sci-tools/entropy-calculator.mjs).
 export const path = '/science/entropy-calculator/';
 export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) => {
+  const vp0 = page.viewportSize();
   await page.goto(`${BASE}${path}`); await page.waitForTimeout(600);
   const T = async (c) => (await page.textContent(`.enc ${c}`)).trim();
   const wait = () => page.waitForTimeout(400);
@@ -101,5 +102,5 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
     const { f, name } = await dl(`.dl [data-f=${k}]`, 'r.' + ext);
     check(name.endsWith('.' + ext) && readFileSync(f).length > 2000, `entropy: ${k} report download (${name})`);
   }
-  await page.setViewportSize({ width: 375, height: 800 }); await mode('dist'); await page.locator('.enc').screenshot({ path: OUT + 'enc-375.png' }); await mode('joint'); await page.locator('.enc .en-out').screenshot({ path: OUT + 'enc-375j.png' }); await page.setViewportSize({ width: 1280, height: 800 });
+  await page.setViewportSize({ width: 375, height: 800 }); await mode('dist'); await page.locator('.enc').screenshot({ path: OUT + 'enc-375.png' }); await mode('joint'); await page.locator('.enc .en-out').screenshot({ path: OUT + 'enc-375j.png' }); await page.setViewportSize(vp0);
 };

@@ -1,6 +1,7 @@
 // #583 transportation and assignment problem solver
 export const path = '/science/transportation-assignment/';
 export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) => {
+  const vp0 = page.viewportSize();
   await page.goto(`${BASE}/science/transportation-assignment/`); await page.waitForTimeout(700);
   const big = () => page.textContent('.trx .tr-big'), facts = () => page.textContent('.trx .tr-facts');
   check((await big()) === 'Lowest total cost: 1780', 'transport: example optimum 1780 (scipy)');
@@ -42,5 +43,5 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   await page.click('.trx .tr-kind button[data-k=t]'); await page.click('.trx .tr-ex'); await page.waitForTimeout(400);
   await page.setViewportSize({ width: 375, height: 800 }); await page.waitForTimeout(300);
   await page.locator('.trx .tr-plan').scrollIntoViewIfNeeded(); await page.screenshot({ path: OUT + 'transport-375.png' });
-  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.setViewportSize(vp0);
 };

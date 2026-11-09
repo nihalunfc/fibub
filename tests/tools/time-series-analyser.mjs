@@ -1,6 +1,7 @@
 // #566 Time series decomposition and ARIMA
 export const path = '/science/time-series-analyser/';
 export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) => {
+  const vp0 = page.viewportSize();
   const txt = (s) => page.textContent(`.ts ${s}`);
   const wait = (ms = 600) => page.waitForTimeout(ms);
   const csvOf = async (sel, name) => { await page.locator(sel).scrollIntoViewIfNeeded(); const [dl] = await Promise.all([page.waitForEvent('download'), page.click(sel)]); const f = OUT + name; await dl.saveAs(f); return readFileSync(f, 'utf8').trim().split('\n'); };
@@ -19,7 +20,7 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   check((await txt('.ts-ar-facts')).includes('Q(10) = 21.8, df 8, p = 0.0053'), 'time series: residual Ljung–Box');
   { const t = await txt('.ts-fct'); check(t.includes('2025-01') && t.includes('209.36') && t.includes('199.95') && t.includes('2025-12'), 'time series: forecast table with continued month labels'); }
   { const r = await csvOf('.ts .ts-fcsv', 'ts-fc.csv'); check(r[0] === 'time,forecast,se,lo80,hi80,lo95,hi95' && r.length === 13 && r[1].startsWith('2025-01,209.36'), 'time series: forecast CSV'); }
-  await page.setViewportSize({ width: 375, height: 900 }); await wait(); await page.screenshot({ path: OUT + 'time-series-analyser-375.png', fullPage: true }); await page.setViewportSize({ width: 1280, height: 900 });
+  await page.setViewportSize({ width: 375, height: 900 }); await wait(); await page.screenshot({ path: OUT + 'time-series-analyser-375.png', fullPage: true }); await page.setViewportSize(vp0);
 
   // Every decomposition method and the seasonal window.
   await page.selectOption('.ts .ts-meth', 'stl-robust'); await wait();

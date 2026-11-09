@@ -1,6 +1,7 @@
 // #556 graph editor with algorithms
 export const path = '/science/graph-algorithms/';
 export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) => {
+  const vp0 = page.viewportSize();
   await page.goto(`${BASE}/science/graph-algorithms/`); await page.waitForTimeout(700);
   const big = () => page.textContent('.gra .ga-big'), tab = () => page.textContent('.gra .ga-tab');
   const alg = async (v) => { await page.selectOption('.gra .ga-alg', v); await page.waitForTimeout(150); };
@@ -62,5 +63,5 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   await page.selectOption('.gra .ga-ex', 'road'); await page.waitForTimeout(400);
   await page.setViewportSize({ width: 375, height: 800 }); await page.waitForTimeout(300);
   await page.locator('.gra .ga-cv').scrollIntoViewIfNeeded(); await page.screenshot({ path: OUT + 'graph-375.png' });
-  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.setViewportSize(vp0);
 };

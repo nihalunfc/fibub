@@ -2,6 +2,7 @@
 // (see tests/sci-tools/huffman-coding.mjs).
 export const path = '/science/huffman-coding/';
 export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) => {
+  const vp0 = page.viewportSize();
   await page.goto(`${BASE}${path}`); await page.waitForTimeout(600);
   const T = async (c) => (await page.textContent(`.hfc ${c}`)).trim();
   const wait = () => page.waitForTimeout(400);
@@ -59,5 +60,5 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
     check(name === `huffman-coding.${ext}` && readFileSync(f).length > 2000, `huffman: ${k} report download`);
   }
   await page.setViewportSize({ width: 375, height: 800 }); await page.click('.hfc .hf-mode [data-m=msg]'); await wait();
-  await page.locator('.hfc').screenshot({ path: OUT + 'hf-375.png' }); await page.setViewportSize({ width: 1280, height: 800 });
+  await page.locator('.hfc').screenshot({ path: OUT + 'hf-375.png' }); await page.setViewportSize(vp0);
 };

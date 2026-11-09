@@ -1,6 +1,7 @@
 // #588 network metrics
 export const path = '/science/network-metrics/';
 export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) => {
+  const vp0 = page.viewportSize();
   await page.goto(`${BASE}/science/network-metrics/`); await page.waitForTimeout(800);
   const big = () => page.textContent('.nmx .nm-big'), facts = () => page.textContent('.nmx .nm-facts');
   check((await big()) === '34 nodes, 83 links: 3 communities (modularity 0.494)', 'network: example summary');
@@ -37,5 +38,5 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   await page.setViewportSize({ width: 375, height: 800 }); await page.waitForTimeout(300);
   await page.locator('.nmx .nm-facts').scrollIntoViewIfNeeded(); await page.screenshot({ path: OUT + 'network-375.png' });
   await page.locator('.nmx .nm-net').scrollIntoViewIfNeeded(); await page.screenshot({ path: OUT + 'network-375b.png' });
-  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.setViewportSize(vp0);
 };

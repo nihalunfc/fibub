@@ -1,6 +1,7 @@
 // #570 confusion matrix and metrics calculator
 export const path = '/science/confusion-matrix/';
 export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) => {
+  const vp0 = page.viewportSize();
   const T = (s) => page.textContent('.cfm ' + s);
   await page.goto(`${BASE}/science/confusion-matrix/`); await page.waitForTimeout(600);
   check((await T('.cfm-big')) === 'Accuracy 86.0 % (95 % CI 77.9 to 91.5 %)', 'confusion: four-count example accuracy and Wilson CI');
@@ -37,5 +38,5 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   check((await T('.cfm-big')).startsWith('Accuracy 0.0 %') && (await T('.cfm-cls')).includes('Class') , 'confusion: other columns can be chosen');
   await page.setViewportSize({ width: 375, height: 800 }); await page.selectOption('.cfm .cfm-mode', 'matrix'); await page.fill('.cfm .cfm-mx', ',cat,dog,rabbit\ncat,42,6,2\ndog,8,37,5\nrabbit,1,4,25'); await page.waitForTimeout(400);
   await page.screenshot({ path: OUT + 'confusion-375.png', fullPage: true });
-  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.setViewportSize(vp0);
 };

@@ -1,6 +1,7 @@
 // #569 small model trainer
 export const path = '/science/small-model-trainer/';
 export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) => {
+  const vp0 = page.viewportSize();
   const T = (s) => page.textContent('.smt ' + s);
   const done = async () => { await page.waitForTimeout(450); await page.waitForFunction(() => document.querySelector('.smt .smt-status').textContent === '', null, { timeout: 20000 }); await page.waitForTimeout(100); };
   await page.goto(`${BASE}/science/small-model-trainer/`); await done();
@@ -59,5 +60,5 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   { const [d] = await Promise.all([page.waitForEvent('download'), page.click('.smt .smt-csv')]); check(d.suggestedFilename() === 'flowers-predictions.csv', 'trainer: download named after the file'); }
   await page.setViewportSize({ width: 375, height: 800 }); await page.goto(`${BASE}/science/small-model-trainer/`); await done();
   await page.screenshot({ path: OUT + 'trainer-375.png', fullPage: true });
-  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.setViewportSize(vp0);
 };

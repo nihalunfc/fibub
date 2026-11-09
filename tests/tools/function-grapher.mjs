@@ -1,6 +1,7 @@
 // #541 Graphing calculator
 export const path = '/science/function-grapher/';
 export default async ({ page, check, BASE, OUT, readFileSync }) => {
+  const vp0 = page.viewportSize();
   await page.setViewportSize({ width: 1100, height: 900 });
   await page.goto(`${BASE}/science/function-grapher/`); await page.waitForTimeout(800);
   const R = '.fg ';
@@ -93,5 +94,5 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   await page.setViewportSize({ width: 375, height: 800 }); await page.selectOption(R + '.fg-ex', 'cubic'); await page.waitForTimeout(500);
   await page.locator(R + '.fg-cv').scrollIntoViewIfNeeded(); await page.screenshot({ path: OUT + 'function-grapher-375.png' });
   check(await page.evaluate(() => document.documentElement.scrollWidth) <= 375, 'grapher: fits 375 px');
-  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.setViewportSize(vp0);
 };

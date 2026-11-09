@@ -2,6 +2,7 @@
 // ciphers from textbook examples (see tests/sci-tools/cipher-teacher.mjs).
 export const path = '/science/cipher-teacher/';
 export default async ({ page, check, BASE, OUT, readFileSync }) => {
+  const vp0 = page.viewportSize();
   await page.goto(`${BASE}${path}`); await page.waitForTimeout(600);
   const T = async (c) => (await page.textContent(`.cpt ${c}`)).trim();
   const out = () => page.inputValue('.cpt .cp-res');
@@ -72,5 +73,5 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   await page.fill('.cpt .cp-smsg', '61 62 63'); await wait();
   { const { f, name } = await dl('.dl [data-f=pdf]', 's.pdf'); check(name === 'sha256.pdf' && readFileSync(f).length > 1500, 'sha256: PDF download'); }
   await page.setViewportSize({ width: 375, height: 800 }); await page.click('.cpt .cp-mode [data-m=classic]'); await wait();
-  await page.locator('.cpt').screenshot({ path: OUT + 'cp-375.png' }); await page.setViewportSize({ width: 1280, height: 800 });
+  await page.locator('.cpt').screenshot({ path: OUT + 'cp-375.png' }); await page.setViewportSize(vp0);
 };

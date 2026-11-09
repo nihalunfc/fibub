@@ -1,6 +1,7 @@
 // #568 CSV and Excel data profiler
 export const path = '/science/csv-profiler/';
 export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) => {
+  const vp0 = page.viewportSize();
   const T = (s) => page.textContent('.cpf ' + s);
   await page.goto(`${BASE}/science/csv-profiler/`); await page.waitForTimeout(700);
   check((await T('.cpf-big')) === '41 rows × 8 columns', 'profiler: example size');
@@ -43,5 +44,5 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   check((await T('.cpf-big')) === '41 rows × 8 columns' && await page.isHidden('.cpf .cpf-err'), 'profiler: load the example again');
   await page.setViewportSize({ width: 375, height: 800 }); await page.waitForTimeout(200);
   await page.screenshot({ path: OUT + 'csv-profiler-375.png', fullPage: true });
-  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.setViewportSize(vp0);
 };

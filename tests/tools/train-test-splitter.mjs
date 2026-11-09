@@ -1,6 +1,7 @@
 // #571 dataset train/test splitter and stratifier
 export const path = '/science/train-test-splitter/';
 export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) => {
+  const vp0 = page.viewportSize();
   const T = (s) => page.textContent('.tts ' + s);
   const csv = async (sel, name) => { await page.locator(sel).scrollIntoViewIfNeeded(); const [d] = await Promise.all([page.waitForEvent('download'), page.click(sel)]); const f = OUT + name; await d.saveAs(f); return { name: d.suggestedFilename(), rows: readFileSync(f, 'utf8').trim().split('\n') }; };
   await page.goto(`${BASE}/science/train-test-splitter/`); await page.waitForTimeout(600);
@@ -47,5 +48,5 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   await page.setViewportSize({ width: 375, height: 800 }); await page.fill('.tts .tts-in', 'x'); await page.waitForTimeout(100);
   await page.goto(`${BASE}/science/train-test-splitter/`); await page.waitForTimeout(500);
   await page.screenshot({ path: OUT + 'splitter-375.png', fullPage: true });
-  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.setViewportSize(vp0);
 };

@@ -1,6 +1,7 @@
 // #561 Regression workbench
 export const path = '/science/regression-workbench/';
 export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) => {
+  const vp0 = page.viewportSize();
   const big = () => page.textContent('.rw .rw-big');
   const err = () => page.textContent('.rw .rw-err');
   const wait = (ms = 450) => page.waitForTimeout(ms);
@@ -14,7 +15,7 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   check((await page.textContent('.rw .rw-facts')).includes('F(5, 26) = 30.79, p = 3.89 × 10⁻¹⁰'), 'regression: F test');
   check(await page.isVisible('.rw .rw-fit') && await page.isVisible('.rw .rw-rvf') && await page.isVisible('.rw .rw-qq') && await page.isVisible('.rw .rw-lev') && await page.isVisible('.rw .rw-cook'), 'regression: five diagnostic plots');
   check((await page.textContent('.rw .rw-inf')).includes('21') && (await page.textContent('.rw .rw-inf-help')).includes("Cook's distance above 4/n"), 'regression: rows to look at');
-  await page.setViewportSize({ width: 375, height: 900 }); await wait(); await page.screenshot({ path: OUT + 'regression-workbench-375.png', fullPage: true }); await page.setViewportSize({ width: 1280, height: 900 });
+  await page.setViewportSize({ width: 375, height: 900 }); await wait(); await page.screenshot({ path: OUT + 'regression-workbench-375.png', fullPage: true }); await page.setViewportSize(vp0);
   // Prediction.
   await page.fill('.rw .rw-pred-in [data-src="fertiliser_g"]', '5'); await page.fill('.rw .rw-pred-in [data-src="water_ml"]', '250'); await page.fill('.rw .rw-pred-in [data-src="light_h"]', '8'); await page.selectOption('.rw .rw-pred-in [data-src="soil"]', 'loam'); await wait();
   check((await page.textContent('.rw .rw-pred-out')) === 'height_cm ≈ 40.94' && (await page.textContent('.rw .rw-pred-help')).includes('prediction interval for one new value: 34.432 to 47.449'), `regression: prediction with intervals (${await page.textContent('.rw .rw-pred-help')})`);

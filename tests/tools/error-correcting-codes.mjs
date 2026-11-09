@@ -2,6 +2,7 @@
 // CRC check values against crcmod; Hamming against the textbook example 1011 -> 0110011.
 export const path = '/science/error-correcting-codes/';
 export default async ({ page, check, BASE, OUT, readFileSync }) => {
+  const vp0 = page.viewportSize();
   await page.goto(`${BASE}${path}`); await page.waitForTimeout(600);
   const T = async (c) => (await page.textContent(`.ecx ${c}`)).trim();
   const wait = () => page.waitForTimeout(350);
@@ -91,5 +92,5 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
     const { f, name } = await dl(`.dl [data-f=${k}]`, 'r.' + ext);
     check(name === `error-correcting-codes.${ext}` && readFileSync(f).length > 1500, `ecc: ${k} report download`);
   }
-  await page.setViewportSize({ width: 375, height: 800 }); await mode('block'); await page.locator('.ecx').screenshot({ path: OUT + 'ec-375.png' }); await page.setViewportSize({ width: 1280, height: 800 });
+  await page.setViewportSize({ width: 375, height: 800 }); await mode('block'); await page.locator('.ecx').screenshot({ path: OUT + 'ec-375.png' }); await page.setViewportSize(vp0);
 };

@@ -1,6 +1,7 @@
 // #555 Hyperbolic geometry drawer
 export const path = '/science/poincare-disk/';
 export default async ({ page, check, BASE, OUT, readFileSync }) => {
+  const vp0 = page.viewportSize();
   await page.setViewportSize({ width: 1000, height: 900 });
   await page.goto(`${BASE}/science/poincare-disk/`); await page.waitForTimeout(600);
   const R = '.hd ';
@@ -75,5 +76,5 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   await page.setViewportSize({ width: 375, height: 800 }); await page.reload(); await page.waitForTimeout(500);
   await page.locator(R + '.hd-cv').evaluate((e) => e.scrollIntoView({ block: 'center' })); await page.screenshot({ path: OUT + 'poincare-disk-375.png' });
   check(await page.evaluate(() => document.documentElement.scrollWidth) <= 375, 'hyperbolic: fits 375 px');
-  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.setViewportSize(vp0);
 };
