@@ -1,0 +1,116 @@
+---
+// Decay heat after shutdown with the Way-Wigner approximation (for study): heat over time, energy released over
+// intervals, and time to fall below a level. Example power is made up. Nothing is uploaded.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax dht">
+  <div class="ax-card">
+    <h2>Reactor</h2>
+    <div class="ax-grid">
+      <label>Thermal power before shutdown P₀ (MW) <input class="dh-p" type="text" inputmode="decimal" value="3000" /></label>
+      <label>Time at that power <input class="dh-T" type="text" inputmode="decimal" value="365" /></label>
+      <label>Unit <select class="dh-Tu"><option value="3600">hours</option><option value="86400" selected>days</option><option value="31557600">years</option><option value="inf">very long (equilibrium)</option></select></label>
+      <label>Find when heat falls below (% of P₀) <input class="dh-lv" type="text" inputmode="decimal" value="1" /></label>
+    </div>
+    <h3>Energy over your own interval</h3>
+    <div class="ax-grid">
+      <label>From <input class="dh-a" type="text" inputmode="decimal" value="1" /></label>
+      <label>To <input class="dh-b" type="text" inputmode="decimal" value="7" /></label>
+      <label>Unit <select class="dh-iu"><option value="60">minutes</option><option value="3600">hours</option><option value="86400" selected>days</option></select></label>
+    </div>
+    <p class="ax-help">Thermal power is the heat the core makes, about three times the electrical output of a power plant; 3,000 MW is a made-up example of a large reactor. The Way-Wigner formula is a rough fit, fair from about 10 seconds to a few months after shutdown (within perhaps tens of percent); real decay heat depends on the fuel, its burnup and history, and is worked out with detailed codes and standards. For study, not for safety analysis.</p>
+    <p class="ax-err dh-err" hidden></p>
+  </div>
+
+  <div class="ax-card dh-out" hidden>
+    <h2>Decay heat</h2>
+    <p class="ax-big dh-big"></p>
+    <dl class="ax-facts dh-facts"></dl>
+    <canvas class="ax-fig dh-fig"></canvas>
+    <h3>Heat after shutdown</h3>
+    <div class="ax-scroll"><table class="dh-tab"></table></div>
+    <p class="ax-help">Water boiled: how much water at 100 °C the heat could turn to steam each hour (2.257 MJ/kg). Times marked * are outside the range where the formula is usually trusted.</p>
+    <h3>Energy released</h3>
+    <div class="ax-scroll"><table class="dh-etab"></table></div>
+    <canvas class="ax-fig dh-efig"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small dh-csv">Download the curve (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .dht h3 { margin: 22px 0 8px; font-size: 15px; }
+  .dht .dh-tab td, .dht .dh-etab td { white-space: nowrap; }
+</style>
+
+<script>
+  import { fraction, energy, timeBelow, duration, TIMES, VALID, H_FG } from '../../lib/sci/eng-decayheat';
+  import { chartFigure, type Series } from '../../lib/sci/plot';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.dht')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^[−-]?[\d.]+$/.test(t) && t.includes('.') ? t.replace(/0+$/, '').replace(/\.$/, '') : t; };
+  const pow = (mw: number) => (mw >= 1 ? `${sg(mw, 4)}\u00a0MW` : mw >= 1e-3 ? `${sg(mw * 1000, 4)}\u00a0kW` : `${sg(mw * 1e6, 4)}\u00a0W`);
+  const gj = (x: number) => `${x >= 1000 ? Math.round(x).toLocaleString('en') : sg(x, 4)}\u00a0GJ`;
+  const en = (mws: number) => { const mwh = mws / 3600; return mwh >= 1 ? `${Math.round(mwh).toLocaleString('en')}\u00a0MWh` : `${sg(mwh * 1000, 3)}\u00a0kWh`; };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const table = (t: HTMLElement, head: string[], rows: string[][]) => {
+    t.replaceChildren();
+    const h = t.insertRow(); head.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (k) th.className = 'r'; h.append(th); });
+    for (const r of rows) { const tr = t.insertRow(); r.forEach((x, k) => { const td = tr.insertCell(); td.textContent = x; if (k) td.className = 'r'; }); }
+  };
+  let st: { P0: number; T: number } | null = null, figs: Figure[] = [], heatRows: string[][] = [], energyRows: string[][] = [];
+
+  function run() {
+    const err = q('.dh-err'), out = q('.dh-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; st = null; };
+    const P0 = val('.dh-p'), tu = sel('.dh-Tu'), T = tu === 'inf' ? Infinity : val('.dh-T') * Number(tu), lv = val('.dh-lv') / 100;
+    q('.dh-T').toggleAttribute('disabled', tu === 'inf');
+    if (!(P0 > 0)) return fail('Give the thermal power before shutdown in MW.');
+    if (!(T > 0)) return fail('Give how long the reactor ran at that power (more than 0).');
+    if (!(lv > 0 && lv < 0.0622)) return fail('Give a level between 0 and 6.22 % of P₀ (the formula never goes above 6.22 %).');
+    const iu = Number(sel('.dh-iu')), a = val('.dh-a') * iu, b = val('.dh-b') * iu;
+    if (!(a >= 0 && b > a)) return fail('Give an interval with "to" later than "from" (0 or more).');
+    err.hidden = true; out.hidden = false; st = { P0, T };
+    const f1h = fraction(3600, T);
+    q('.dh-big').textContent = `1 hour after shutdown: ${pow(P0 * f1h)} (${sg(f1h * 100, 4)} % of P₀)`;
+    const tb = timeBelow(lv, T);
+    q('.dh-facts').replaceChildren(
+      fact('10 seconds after', `${pow(P0 * fraction(10, T))}`, `${sg(fraction(10, T) * 100, 4)} % of P₀`),
+      fact('1 day after', `${pow(P0 * fraction(86400, T))}`, `${sg(fraction(86400, T) * 100, 4)} % of P₀`),
+      fact(`Falls below ${sg(lv * 100, 4)} %`, Number.isFinite(tb) ? `after ${duration(tb)}` : 'not within 30,000 years', Number.isFinite(tb) ? `${pow(P0 * lv)}; ${sg(tb, 4)} s${tb < VALID.from || tb > VALID.to ? ', outside the range the formula is fair for' : ''}` : ''),
+      fact('Energy in the first day', en(P0 * energy(0, 86400, T)), gj((P0 * energy(0, 86400, T)) / 1000)),
+      fact('Operating time', Number.isFinite(T) ? `${q<HTMLInputElement>('.dh-T').value.trim()} ${q<HTMLSelectElement>('.dh-Tu').selectedOptions[0].text}` : 'very long', Number.isFinite(T) ? `longer running builds up more long-lived fission products` : 'equilibrium: 0.0622 t^−0.2'),
+    );
+    heatRows = TIMES.map(([name, t]) => { const fr = fraction(t, T), out = t < VALID.from || t > VALID.to; return [`${name}${out ? ' *' : ''}`, `${sg(fr * 100, 4)}\u00a0%`, pow(P0 * fr), `${sg((P0 * fr * 3600) / H_FG / 1000, 3)}\u00a0t`]; });
+    table(q('.dh-tab'), ['After shutdown', '% of P₀', 'Heat', 'Water boiled per hour'], heatRows);
+    const iv: [string, number, number][] = [['First hour', 0, 3600], ['1 hour to 1 day', 3600, 86400], ['1 day to 1 week', 86400, 7 * 86400], ['1 week to 30 days', 7 * 86400, 30 * 86400], ['30 days to 1 year', 30 * 86400, 365.25 * 86400], [`Yours: ${duration(a) === '–' || a === 0 ? '0' : duration(a)} to ${duration(b)}`, a, b]];
+    energyRows = iv.map(([name, x, y]) => { const e = P0 * energy(x, y, T); return [name, en(e), gj(e / 1000), pow(e / (y - x))]; });
+    table(q('.dh-etab'), ['Interval after shutdown', 'Energy', 'Energy (GJ)', 'Average heat'], energyRows);
+    const W = root.clientWidth < 520 ? 380 : 560, ts = Array.from({ length: 161 }, (_, i) => 10 ** (i / 20)).filter((t) => t <= 3.2e7);
+    const series: Series[] = [{ name: Number.isFinite(T) ? `After ${q<HTMLInputElement>('.dh-T').value.trim()} ${q<HTMLSelectElement>('.dh-Tu').selectedOptions[0].text}` : 'Very long operation', x: ts, y: ts.map((t) => fraction(t, T) * 100), mode: 'line', width: 2 }];
+    if (Number.isFinite(T)) series.push({ name: 'Very long operation', x: ts, y: ts.map((t) => fraction(t, Infinity) * 100), mode: 'line', width: 1.4, dash: [5, 4] });
+    const hFig = chartFigure({ w: W, h: 300, xLog: true, yLog: true, xLabel: 'Seconds after shutdown', yLabel: 'Decay heat (% of P₀)', legend: 'below', marks: [{ kind: 'vline', at: 60, label: '1 min' }, { kind: 'vline', at: 86400, label: '1 day' }, { kind: 'hline', at: lv * 100, label: `${sg(lv * 100, 3)} %` }], series }, `Decay heat falling from ${sg(fraction(1, T) * 100, 3)} % at 1 s to ${sg(fraction(3.15e7, T) * 100, 3)} % at 1 year`);
+    const eFig = chartFigure({ w: W, h: 260, xLog: true, xLabel: 'Seconds after shutdown', yLabel: 'Energy since shutdown (MWh)', legend: 'none', series: [{ name: 'Energy', x: ts, y: ts.map((t) => (P0 * energy(0, t, T)) / 3600), mode: 'line', width: 2 }] }, 'Energy released since shutdown');
+    paint(q<HTMLCanvasElement>('.dh-fig'), hFig); paint(q<HTMLCanvasElement>('.dh-efig'), eFig);
+    figs = [hFig, eFig];
+  }
+
+  root.querySelectorAll('input').forEach((i) => i.addEventListener('input', run));
+  root.querySelectorAll('select').forEach((i) => i.addEventListener('change', run));
+  q('.dh-csv').addEventListener('click', () => { if (!st) return; const { P0, T } = st;
+    const ts = Array.from({ length: 161 }, (_, i) => 10 ** (i / 20)).filter((t) => t <= 3.2e7);
+    save(new Blob([csv([['seconds_after_shutdown', 'fraction_of_P0', 'heat_MW', 'energy_since_shutdown_MWh'], ...ts.map((t) => [+t.toPrecision(8), fraction(t, T).toPrecision(8), (P0 * fraction(t, T)).toPrecision(8), ((P0 * energy(0, t, T)) / 3600).toPrecision(8)])])], { type: 'text/csv' }), 'decay-heat.csv', 'text/csv'); });
+  wireDownloads(q('.dl'), () => ({ title: 'Decay heat (Way-Wigner)', subtitle: q('.dh-big').textContent ?? '', file: 'decay-heat', sections: [
+    { title: q('.dh-big').textContent ?? '', facts: [...q('.dh-facts').querySelectorAll('div')].map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: figs[0] },
+    { title: 'Heat after shutdown', table: { head: ['After shutdown', '% of P0', 'Heat', 'Water boiled per hour'], rows: heatRows, align: ['l', 'r', 'r', 'r'] }, note: '* outside about 10 s to 100 days, where the formula is usually trusted.' },
+    { title: 'Energy released', table: { head: ['Interval', 'Energy', 'GJ', 'Average heat'], rows: energyRows, align: ['l', 'r', 'r', 'r'] }, figure: figs[1], note: 'Way-Wigner approximation P/P0 = 0.0622 [t^-0.2 - (t+T)^-0.2]. An approximation, for study.' },
+  ] as Section[] }));
+  document.addEventListener('fibub:theme', () => { if (st) { paint(q<HTMLCanvasElement>('.dh-fig'), figs[0]); paint(q<HTMLCanvasElement>('.dh-efig'), figs[1]); } });
+  run();
+</script>
