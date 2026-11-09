@@ -1,0 +1,253 @@
+---
+// Natural selection: peppered moths on light or dark bark. Birds eat the moths they can see; the dark allele C
+// rises or falls over the generations. Population size adds chance (drift). Class 12 adds p, q and a
+// Hardy-Weinberg check. Teaching model with made-up numbers.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax nsl">
+  <p class="ax-help nsl-note">A teaching model: the survival numbers are made up, not measurements from real moth studies.</p>
+  <div class="ax-card">
+    <div class="ax-row"><span class="nsl-lab">Level</span>
+      <div class="ax-seg nsl-level" role="group" aria-label="Level"><button type="button" data-v="10" aria-pressed="true">Class 10</button><button type="button" data-v="12" aria-pressed="false">Class 12</button></div></div>
+    <div class="ax-row nsl-gap"><span class="nsl-lab">Tree bark</span>
+      <div class="ax-seg nsl-bark" role="group" aria-label="Tree bark"><button type="button" data-v="light" aria-pressed="false">Light</button><button type="button" data-v="dark" aria-pressed="false">Dark</button><button type="button" data-v="soot" aria-pressed="true">Soot comes</button><button type="button" data-v="clean" aria-pressed="false">Clean air</button></div></div>
+    <label class="nsl-gap">Birds catch the moths they can see: <b class="nsl-sv"></b>
+      <input type="range" class="nsl-s" min="0" max="60" step="5" value="30" aria-label="Share of visible moths eaten, per cent" /></label>
+    <label class="nsl-gap">Dark allele at the start: <b class="nsl-pv"></b>
+      <input type="range" class="nsl-p" min="1" max="99" step="1" value="5" aria-label="Dark allele at the start, per cent" /></label>
+    <div class="ax-row nsl-gap"><span class="nsl-lab">Moths</span>
+      <div class="ax-seg nsl-n" role="group" aria-label="Population size"><button type="button" data-v="50" aria-pressed="false">50</button><button type="button" data-v="500" aria-pressed="false">500</button><button type="button" data-v="5000" aria-pressed="true">5000</button><button type="button" data-v="inf" aria-pressed="false">No chance</button></div></div>
+    <div class="ax-row nsl-gap"><span class="nsl-lab">Mutation</span>
+      <div class="ax-seg nsl-mu" role="group" aria-label="Mutation rate, light to dark"><button type="button" data-v="0" aria-pressed="false">Off</button><button type="button" data-v="0.00001" aria-pressed="false">1 in 100,000</button><button type="button" data-v="0.0001" aria-pressed="true">1 in 10,000</button><button type="button" data-v="0.001" aria-pressed="false">1 in 1,000</button></div></div>
+    <p class="ax-help nsl-muhelp">Mutation: now and then a copying mistake turns a light allele (c) into a dark one (C). This is the chance for each light allele in each generation, so a few new dark moths keep appearing even while birds eat them.</p>
+    <div class="ax-row nsl-gap"><button type="button" class="btn small nsl-run">New run</button><button type="button" class="btn secondary small nsl-play">Play</button></div>
+  </div>
+
+  <div class="ax-card">
+    <label>Generation: <b class="nsl-gv"></b>
+      <input type="range" class="nsl-g" min="0" max="60" step="1" value="60" aria-label="Generation shown" /></label>
+    <canvas class="ax-fig nsl-fig"></canvas>
+    <p class="ax-big nsl-big" aria-live="polite"></p>
+    <p class="nsl-say"></p>
+    <dl class="ax-facts nsl-facts"></dl>
+    <p class="nsl-formula"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Over the generations</h2>
+    <canvas class="ax-fig nsl-graph"></canvas>
+    <p class="ax-help">The solid line is this run; the dashed line is what happens on average with no chance at all.</p>
+    <div class="ax-row nsl-gap"><button type="button" class="btn secondary small nsl-csv">Download generations (CSV)</button></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="nsl-try">
+      <li>Choose <b>Soot comes</b>. How many generations after the bark turns dark do dark moths become most of the population?</li>
+      <li>Set the birds to 0 %. Does the dark allele still change? Try 50 moths, then 5000.</li>
+      <li>Choose <b>Clean air</b>. Why do light moths come back more slowly than dark ones spread? (Hint: light moths are cc, and the c allele hides in dark Cc moths.)</li>
+      <li>Class 12: watch the Hardy-Weinberg check. The newborns fit p², 2pq, q² even while selection is changing p.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <ol class="nsl-qs"></ol>
+    <div class="ax-row"><button type="button" class="btn small nsl-check">Check answers</button><button type="button" class="btn secondary small nsl-new">New questions</button></div>
+    <p class="nsl-score" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+  import { simulate, hwCheck, CHANGE_AT, type Gen, type Schedule } from '../../lib/sci/moths';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Palette, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.nsl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const GENS = 60;
+  let level = 10, schedule: Schedule = 'soot', N = 5000, mu = 0.0001, run: Gen[] = [], expected: Gen[] = [], fig: Figure | null = null, graph: Figure | null = null, playing = 0;
+  let rnd: () => number = Math.random;
+  const pct = (x: number, d = 0) => `${(100 * x).toFixed(d)} %`;
+  const s = () => Number(q<HTMLInputElement>('.nsl-s').value) / 100;
+  const p0 = () => Number(q<HTMLInputElement>('.nsl-p').value) / 100;
+  const gNow = () => Number(q<HTMLInputElement>('.nsl-g').value);
+
+  function newRun() {
+    const opts = { p0: p0(), s: s(), schedule, gens: GENS, mu };
+    expected = simulate({ ...opts, N: Infinity }, rnd);
+    run = Number.isFinite(N) ? simulate({ ...opts, N }, rnd) : expected;
+    show();
+  }
+
+  // ---------- picture: a patch of bark with this generation's moths ----------
+  function drawTrunk(ctx: CanvasRenderingContext2D, W: number, H: number, pal: Palette, gen: Gen) {
+    const darkBark = gen.bark === 'dark';
+    const barkCol = pal.red ? (darkBark ? '#140000' : '#4a0000') : darkBark ? '#2b2724' : '#cfcac0';
+    const streak = pal.red ? (darkBark ? '#200000' : '#5a0000') : darkBark ? '#3a3531' : '#b9b3a7';
+    ctx.fillStyle = barkCol; ctx.fillRect(0, 0, W, H);
+    // bark furrows and lichen speckles, drawn the same every time
+    let seed = 7; const rr = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296);
+    ctx.strokeStyle = streak; ctx.lineWidth = 3;
+    for (let i = 0; i < 26; i++) { const x = rr() * W; ctx.beginPath(); ctx.moveTo(x, 0); ctx.bezierCurveTo(x + 12, H * 0.3, x - 12, H * 0.6, x + 6, H); ctx.stroke(); }
+    if (!darkBark) { ctx.fillStyle = pal.red ? '#6e0000' : '#e6e2d8'; for (let i = 0; i < 160; i++) { ctx.beginPath(); ctx.arc(rr() * W, rr() * H, 1 + rr() * 3, 0, Math.PI * 2); ctx.fill(); } }
+    // moths: up to 60 shown, in proportion
+    const total = gen.dark + gen.light, show = Math.min(60, Math.round(total));
+    const nDark = Math.round((show * gen.dark) / Math.max(1e-9, total)), nDarkEaten = Math.round(nDark * (1 - gen.darkLeft / Math.max(1e-9, gen.dark)));
+    const nLight = show - nDark, nLightEaten = Math.round(nLight * (1 - gen.lightLeft / Math.max(1e-9, gen.light)));
+    seed = 1000 + gen.g * 7;
+    const cols = 10, rows = Math.ceil(show / cols) || 1, cw = W / cols, ch = (H - 20) / Math.max(rows, 6);
+    const order = Array.from({ length: show }, (_, i) => i).sort(() => rr() - 0.5);
+    order.forEach((slot, i) => {
+      const isDark = i < nDark, eaten = isDark ? i < nDarkEaten : i - nDark < nLightEaten;
+      const x = cw * (slot % cols) + cw / 2 + (rr() - 0.5) * cw * 0.5, y = 20 + ch * Math.floor(slot / cols) + ch / 2 + (rr() - 0.5) * ch * 0.4;
+      const body = pal.red ? (isDark ? '#100000' : '#8a0000') : isDark ? '#1a1816' : '#ece8de';
+      ctx.globalAlpha = eaten ? 0.25 : 1;
+      ctx.fillStyle = body; ctx.strokeStyle = pal.red ? '#300000' : isDark ? '#000' : '#9a958a'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x, y - 3); ctx.lineTo(x - 13, y + 7); ctx.lineTo(x - 2, y + 9); ctx.lineTo(x, y + 4); ctx.lineTo(x + 2, y + 9); ctx.lineTo(x + 13, y + 7); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.globalAlpha = 1;
+      if (eaten) { ctx.strokeStyle = pal.red ? '#c00000' : pal.bad; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x - 7, y - 3); ctx.lineTo(x + 7, y + 11); ctx.moveTo(x + 7, y - 3); ctx.lineTo(x - 7, y + 11); ctx.stroke(); }
+    });
+    ctx.fillStyle = darkBark ? '#f5f5f5' : '#0a0a0a'; if (pal.red) ctx.fillStyle = '#a30000';
+    ctx.font = '600 13px system-ui, sans-serif'; ctx.textBaseline = 'top'; ctx.fillText(`Generation ${gen.g}: ${gen.bark} bark. ✕ = eaten by birds`, 8, 5);
+  }
+
+  function facts(list: [string, string, string?][]) {
+    return list.map(([k, v, sm]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const m = document.createElement('small'); m.textContent = sm; d.querySelector('dd')!.append(m); } return d; });
+  }
+  let factList: [string, string, string?][] = [];
+  function show() {
+    const g = gNow(), gen = run[g], inf = !Number.isFinite(N);
+    q('.nsl-sv').textContent = `${Math.round(s() * 100)} %`;
+    q('.nsl-pv').textContent = `${Math.round(p0() * 100)} % (so ${pct(1 - (1 - p0()) ** 2)} of moths are dark)`;
+    q('.nsl-gv').textContent = `${g} of ${GENS}`;
+    fig = { w: 480, h: 280, alt: `Generation ${g}: ${pct(gen.dark / (gen.dark + gen.light))} of moths dark on ${gen.bark} bark`, draw: (ctx, W, H, pal) => drawTrunk(ctx, W, H, pal, gen) };
+    paint(q<HTMLCanvasElement>('.nsl-fig'), fig);
+    const darkShare = gen.dark / (gen.dark + gen.light), favoured = gen.bark === 'light' ? 'light' : 'dark';
+    q('.nsl-big').textContent = `${pct(darkShare)} dark moths in generation ${g}`;
+    const first = run[0], d0 = first.dark / (first.dark + first.light);
+    q('.nsl-say').textContent = s() === 0
+      ? `Birds take no notice of colour, so only ${mu > 0 ? 'mutation and ' : ''}chance change the numbers${inf ? (mu > 0 ? ': with no chance, dark moths creep up very slowly by mutation alone' : ': with no chance, nothing changes at all') : ''}.`
+      : `On ${gen.bark} bark, ${favoured} moths are hidden and ${favoured === 'dark' ? 'light' : 'dark'} ones are easy to see, so more ${favoured} moths live to breed and pass on their ${favoured === 'dark' ? 'C' : 'c'} allele. Dark moths went from ${pct(d0)} to ${pct(darkShare)}.`;
+    const lostAt = inf ? -1 : run.findIndex((x) => x.p === 0);
+    if (lostAt >= 0 && lostAt <= g) q('.nsl-say').textContent += ` In this population the dark allele was lost by chance in generation ${lostAt} (genetic drift)${mu > 0 ? ': only a new mutation can bring it back.' : ', and with mutation off it can never come back.'}`;
+    const per = inf ? ' per 1000' : '';
+    factList = [
+      ['Dark moths', `${Math.round(gen.dark)}${per}`, `${Math.round(gen.dark - gen.darkLeft)} eaten`],
+      ['Light moths', `${Math.round(gen.light)}${per}`, `${Math.round(gen.light - gen.lightLeft)} eaten`],
+      ['Dark allele C', pct(gen.p, 1), 'share of all alleles'],
+    ];
+    if (level === 12) {
+      const hw = hwCheck(gen.CC, gen.Cc, gen.cc);
+      factList.push(['Genotypes CC : Cc : cc', `${Math.round(gen.CC)} : ${Math.round(gen.Cc)} : ${Math.round(gen.cc)}`, 'newborns, before the birds'],
+        ['p (C) and q (c)', `${hw.p.toFixed(3)} and ${hw.q.toFixed(3)}`, 'p + q = 1'],
+        ['Expected p² : 2pq : q²', hw.exp.map((e) => e.toFixed(1)).join(' : '), inf ? 'matches exactly' : `χ² = ${hw.chi2.toFixed(2)}, p = ${hw.pValue < 0.001 ? '< 0.001' : hw.pValue.toFixed(3)}${hw.pValue >= 0.05 ? ': fits Hardy-Weinberg' : ''}`]);
+      q('.nsl-formula').textContent = `p = (2 × CC + Cc) ÷ (2 × N) = (2 × ${Math.round(gen.CC)} + ${Math.round(gen.Cc)}) ÷ ${Math.round(2 * (gen.CC + gen.Cc + gen.cc))} = ${hw.p.toFixed(3)};  p² + 2pq + q² = ${(hw.p ** 2).toFixed(3)} + ${(2 * hw.p * hw.q).toFixed(3)} + ${(hw.q ** 2).toFixed(3)} = 1`;
+    } else q('.nsl-formula').textContent = `% dark = dark ÷ all moths × 100 = ${Math.round(gen.dark)} ÷ ${Math.round(gen.dark + gen.light)} × 100 = ${pct(darkShare, 1)}`;
+    q('.nsl-facts').replaceChildren(...facts(factList));
+    drawGraph();
+  }
+
+  function drawGraph() {
+    const xs = run.map((g) => g.g);
+    const marks: any[] = [{ kind: 'vline', at: gNow(), dash: [3, 3], label: 'shown' }];
+    if (schedule === 'soot' || schedule === 'clean') marks.push({ kind: 'vline', at: CHANGE_AT, dash: [6, 4], label: schedule === 'soot' ? 'soot' : 'clean air' });
+    const series: any[] = [{ name: '% dark moths (this run)', x: xs, y: run.map((g) => (100 * g.dark) / (g.dark + g.light)), mode: 'line', width: 2.5 }];
+    if (Number.isFinite(N)) series.push({ name: '% dark (no chance)', x: xs, y: expected.map((g) => (100 * g.dark) / (g.dark + g.light)), mode: 'line', width: 1.5, dash: [6, 4] });
+    if (level === 12) series.push({ name: 'Allele C (%)', x: xs, y: run.map((g) => 100 * g.p), mode: 'line', width: 2 });
+    graph = chartFigure({ w: 480, h: 320, font: 14, xLabel: 'Generation', yLabel: 'Per cent', xMin: 0, xMax: GENS, yMin: 0, yMax: 100, legend: 'below', series, marks }, 'Share of dark moths over the generations');
+    paint(q<HTMLCanvasElement>('.nsl-graph'), graph);
+  }
+
+  // ---------- Check yourself ----------
+  type Qn = { text: string; options?: string[]; answer: string | number; tol?: number; worked: string };
+  let qs: Qn[] = [];
+  const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
+  function makeQuiz() {
+    const nD = pick([120, 150, 180, 240, 300]), nL = pick([40, 60, 80, 100]);
+    const q2 = pick([0.04, 0.09, 0.16, 0.25, 0.36, 0.49, 0.64]), qq = Math.sqrt(q2);
+    qs = [
+      { text: `A wood has ${nD} dark and ${nL} light moths. What percentage are dark?`, answer: Math.round((1000 * nD) / (nD + nL)) / 10, tol: 0.15, worked: `${nD} ÷ ${nD + nL} × 100 = ${((100 * nD) / (nD + nL)).toFixed(1)} %` },
+      { text: 'Soot makes tree bark dark. Which moths are more likely to survive to breed?', options: ['dark moths', 'light moths', 'neither'], answer: 'dark moths', worked: 'Birds find light moths more easily on dark bark, so dark moths survive and pass on their alleles.' },
+      { text: 'Can a light moth (cc) have dark parents?', options: ['yes, if both parents are Cc', 'no, never'], answer: 'yes, if both parents are Cc', worked: 'Two Cc parents can each pass on c, giving a cc (light) child, 1 time in 4.' },
+    ];
+    if (level === 10) qs.push({ text: 'What is natural selection?', options: ['living things best suited to their surroundings survive and breed more', 'animals choose to change their colour', 'every moth changes colour when the bark changes'], answer: 'living things best suited to their surroundings survive and breed more', worked: 'Variation already exists; the environment decides which variants leave more offspring.' });
+    else {
+      qs.push({ text: `In a population in Hardy-Weinberg balance, ${Math.round(q2 * 100)} % of moths are light (cc). What is q, the frequency of c?`, answer: qq, tol: 0.005, worked: `q² = ${q2}, so q = √${q2} = ${qq.toFixed(2)}` });
+      qs.push({ text: `Same population (q = ${qq.toFixed(2)}): what share of moths are carriers, Cc (as a decimal)?`, answer: Math.round(2 * (1 - qq) * qq * 1000) / 1000, tol: 0.005, worked: `p = 1 − ${qq.toFixed(2)} = ${(1 - qq).toFixed(2)}; 2pq = 2 × ${(1 - qq).toFixed(2)} × ${qq.toFixed(2)} = ${(2 * (1 - qq) * qq).toFixed(3)}` });
+    }
+    const ol = q('.nsl-qs'); ol.innerHTML = '';
+    qs.forEach((x, j) => {
+      const li = document.createElement('li'); li.dataset.a = String(x.answer);
+      const p = document.createElement('p'); p.textContent = x.text; li.append(p);
+      if (x.options) { const sel = document.createElement('select'); sel.className = 'nsl-ans'; sel.setAttribute('aria-label', `Answer ${j + 1}`); sel.append(new Option('Choose…', ''), ...x.options.map((o) => new Option(o, o))); li.append(sel); }
+      else { const inp = document.createElement('input'); inp.className = 'nsl-ans'; inp.inputMode = 'decimal'; inp.setAttribute('aria-label', `Answer ${j + 1}`); li.append(inp); }
+      const w = document.createElement('p'); w.className = 'nsl-worked'; w.hidden = true; li.append(w);
+      ol.append(li);
+    });
+    q('.nsl-score').textContent = '';
+  }
+  function checkQuiz() {
+    let right = 0;
+    root.querySelectorAll<HTMLLIElement>('.nsl-qs li').forEach((li, j) => {
+      const x = qs[j], v = (li.querySelector('.nsl-ans') as HTMLInputElement).value.trim().replace(',', '.').replace('%', '');
+      const ok = x.options ? (li.querySelector('.nsl-ans') as HTMLSelectElement).value === x.answer : v !== '' && Math.abs(Number(v) - Number(x.answer)) <= (x.tol ?? 0.01);
+      if (ok) right++;
+      const w = li.querySelector<HTMLElement>('.nsl-worked')!; w.hidden = false; w.className = `nsl-worked ${ok ? 'ok' : 'no'}`;
+      w.textContent = `${ok ? '✓ Right.' : '✗ Not quite.'} ${x.worked}`;
+    });
+    q('.nsl-score').textContent = `${right} of ${qs.length} right.`;
+  }
+
+  // ---------- wiring ----------
+  const press = (sel: string, v: string) => root.querySelectorAll<HTMLButtonElement>(`${sel} button`).forEach((o) => o.setAttribute('aria-pressed', String(o.dataset.v === v)));
+  root.querySelectorAll<HTMLButtonElement>('.nsl-level button').forEach((b) => b.addEventListener('click', () => { level = Number(b.dataset.v); press('.nsl-level', b.dataset.v!); show(); makeQuiz(); }));
+  root.querySelectorAll<HTMLButtonElement>('.nsl-bark button').forEach((b) => b.addEventListener('click', () => { schedule = b.dataset.v as Schedule; press('.nsl-bark', schedule); newRun(); }));
+  root.querySelectorAll<HTMLButtonElement>('.nsl-n button').forEach((b) => b.addEventListener('click', () => { N = b.dataset.v === 'inf' ? Infinity : Number(b.dataset.v); press('.nsl-n', b.dataset.v!); newRun(); }));
+  root.querySelectorAll<HTMLButtonElement>('.nsl-mu button').forEach((b) => b.addEventListener('click', () => { mu = Number(b.dataset.v); press('.nsl-mu', b.dataset.v!); newRun(); }));
+  root.querySelectorAll('.nsl-s, .nsl-p').forEach((el) => el.addEventListener('input', newRun));
+  q('.nsl-g').addEventListener('input', () => { clearInterval(playing); show(); });
+  q('.nsl-run').addEventListener('click', newRun);
+  q('.nsl-play').addEventListener('click', () => {
+    clearInterval(playing); const sl = q<HTMLInputElement>('.nsl-g'); sl.value = '0'; show();
+    playing = window.setInterval(() => { const v = Number(sl.value) + 1; sl.value = String(v); show(); if (v >= GENS) clearInterval(playing); }, 120);
+  });
+  q('.nsl-csv').addEventListener('click', () => save(new TextEncoder().encode(csv([['generation', 'bark', 'allele_C', 'CC', 'Cc', 'cc', 'dark', 'light', 'dark_survived', 'light_survived'], ...run.map((g) => [g.g, g.bark, +g.p.toFixed(5), +g.CC.toFixed(2), +g.Cc.toFixed(2), +g.cc.toFixed(2), +g.dark.toFixed(2), +g.light.toFixed(2), +g.darkLeft.toFixed(2), +g.lightLeft.toFixed(2)])])), 'natural-selection.csv', 'text/csv'));
+  q('.nsl-check').addEventListener('click', checkQuiz);
+  q('.nsl-new').addEventListener('click', makeQuiz);
+  document.addEventListener('fibub:theme', show);
+  // A test page can ask for a repeatable run with ?seed=<n> in the address.
+  const sd = Number(new URLSearchParams(location.search).get('seed'));
+  if (sd > 0) { let st = sd; rnd = () => ((st = (Math.imul(st, 1664525) + 1013904223) >>> 0) / 4294967296); }
+  newRun(); makeQuiz();
+  wireDownloads(q('.dl'), () => ({ title: 'Natural selection', subtitle: q('.nsl-big').textContent ?? '', file: 'natural-selection',
+    sections: [
+      { title: 'This generation', text: [q('.nsl-say').textContent ?? '', q('.nsl-formula').textContent ?? '', 'Teaching model with made-up survival numbers.'], facts: factList.map(([k, v, sm]) => [k, sm ? `${v} (${sm})` : v] as [string, string]), figure: fig ?? undefined },
+      { title: 'Over the generations', figure: graph ?? undefined },
+    ] as Section[] }));
+</script>
+
+<style is:inline>
+  .nsl .nsl-note { margin: 0; }
+  .nsl .ax-seg { flex-wrap: wrap; }
+  .nsl .nsl-lab { font-size: 14px; color: var(--muted); min-width: 64px; }
+  .nsl .nsl-gap { margin-top: 12px; }
+  .nsl .ax-seg button { min-height: 44px; padding: 8px 12px; }
+  .nsl input[type=range] { width: 100%; height: 36px; accent-color: var(--accent); }
+  .nsl label b { color: var(--ink); }
+  .nsl .btn.small { min-height: 44px; }
+  .nsl .nsl-say { margin: 6px 0 12px; }
+  .nsl .nsl-formula { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; background: var(--accent-soft); padding: 8px 10px; border-radius: 8px; overflow-wrap: anywhere; margin: 12px 0 0; }
+  .nsl .nsl-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .nsl .nsl-qs { padding-left: 20px; display: grid; gap: 14px; margin: 10px 0; }
+  .nsl .nsl-qs p { margin: 0 0 6px; }
+  .nsl .nsl-qs select { width: 100%; min-height: 44px; }
+  .nsl .nsl-qs input { max-width: 220px; min-height: 44px; }
+  .nsl .nsl-worked.ok { color: var(--good); }
+  .nsl .nsl-worked.no { color: var(--bad); }
+  .nsl .nsl-score { font-weight: 700; }
+</style>

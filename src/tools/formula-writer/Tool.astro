@@ -1,0 +1,157 @@
+---
+// Formula writer: pick a cation and an anion; valencies cross over to make the formula, reduced and bracketed,
+// with the name, a charge-balance picture and the formula unit mass (school rounded masses or IUPAC weights).
+import '../../styles/astro.css';
+import '../../styles/chemquiz.css';
+import { CATIONS, ANIONS } from '../../lib/sci/formulawriter';
+const sub = (f: string) => f.replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈₉'[+d]);
+const sup = (v: number, s: string) => (v === 1 ? '' : '⁰¹²³⁴⁵⁶⁷⁸⁹'[v]) + s;
+---
+<div class="ax fw">
+  <div class="ax-card">
+    <div class="ax-grid">
+      <label>Positive ion (cation) <select class="fw-cat">{CATIONS.map((c) => <option value={c.id} selected={c.id === 'Al'}>{sub(c.f)}{sup(c.v, '⁺')}  {c.name} (valency {c.v})</option>)}</select></label>
+      <label>Negative ion (anion) <select class="fw-an">{ANIONS.map((a) => <option value={a.id} selected={a.id === 'SO4'}>{sub(a.f)}{sup(a.v, '⁻')}  {a.name} (valency {a.v})</option>)}</select></label>
+    </div>
+    <svg class="fw-svg" viewBox="0 0 320 150" role="img" aria-label="Criss-cross picture"></svg>
+    <p class="ax-big fw-big" style="margin:8px 0 2px"></p>
+    <p class="fw-name" style="margin:0 0 8px"></p>
+    <ol class="fw-steps"></ol>
+    <h3 style="margin:14px 0 6px">Charges balance</h3>
+    <svg class="fw-bal" viewBox="0 0 320 90" role="img" aria-label="Charge balance"></svg>
+    <p class="ax-help fw-baltxt"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Formula unit mass</h2>
+    <div class="ax-seg fw-lvl" role="group" aria-label="Atomic masses"><button type="button" data-l="9" aria-pressed="true">Class 9: rounded masses</button><button type="button" data-l="11" aria-pressed="false">Class 11: IUPAC weights</button></div>
+    <div class="ax-scroll" style="margin-top:10px"><table class="fw-tab"></table></div>
+    <p class="lx-eq fw-eq"></p>
+    <p class="ax-help">Rounded masses (H 1, C 12, O 16, Na 23, Cl 35.5 …) are the ones school books use. IUPAC standard atomic weights are more exact. The mass of one formula unit in u is the same number as the mass of one mole in grams.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lx-try">
+      <li>Make sodium chloride, then magnesium oxide. Both are 1 : 1, but for different reasons. Look at step 3.</li>
+      <li>Make calcium hydroxide. Why does OH get a bracket, but Cl in calcium chloride does not?</li>
+      <li>Compare iron(II) oxide and iron(III) oxide. Same elements, different formulas.</li>
+      <li>Build aluminium sulfate and count the atoms: how many oxygen atoms are in one formula unit?</li>
+      <li>Find a pair whose formula unit mass is exactly 100 u with rounded masses.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cq">
+    <h2>Check yourself</h2>
+    <ol class="cq-list"></ol>
+    <button type="button" class="btn secondary small cq-new">New questions</button>
+  </div>
+</div>
+
+<style is:inline>
+  .fw select { font-size: 16px; }
+  .fw-svg, .fw-bal { display: block; width: 100%; max-width: 440px; margin: 12px auto 0; }
+  .fw-steps { margin: 6px 0 0; padding-left: 22px; display: grid; gap: 4px; }
+  .fw-svg .ion { fill: var(--ink); font: 700 28px system-ui, sans-serif; text-anchor: middle; }
+  .fw-svg .val { fill: var(--ink); font: 700 22px system-ui, sans-serif; text-anchor: middle; }
+  .fw-svg .vl { fill: var(--muted); font: 12px system-ui, sans-serif; text-anchor: middle; }
+  .fw-svg .xa { stroke: var(--accent); stroke-width: 2.4; fill: none; }
+  .fw-svg .xh { fill: var(--accent); }
+  .fw-bal .pos { fill: var(--ink); }
+  .fw-bal .neg { fill: var(--bg); stroke: var(--ink); stroke-width: 1.5; }
+  .fw-bal .sgn { font: 700 12px system-ui, sans-serif; text-anchor: middle; dominant-baseline: central; }
+  .fw-bal .sgn.p { fill: var(--bg); }
+  .fw-bal .sgn.n { fill: var(--ink); }
+  .fw-bal .gap { stroke: var(--muted); stroke-width: 1; }
+  .fw-bal .lab { fill: var(--muted); font: 11px system-ui, sans-serif; }
+</style>
+
+<script>
+  import { CATIONS, ANIONS, crissCross, formulaMass, atomsIn, type Compound } from '../../lib/sci/formulawriter';
+  import { mountQuiz, near, pickOne, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.fw')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const NS = 'http://www.w3.org/2000/svg';
+  const sv = (tag: string, attrs: Record<string, string | number>, text?: string) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, String(v)); if (text != null) n.textContent = text; return n; };
+  const subs = (f: string) => f.replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈₉'[+d]);
+  let level = 9;
+
+  function drawCross(c: Compound) {
+    const svg = q<SVGSVGElement>('.fw-svg'); svg.replaceChildren();
+    const xa = 80, xb = 240;
+    svg.append(sv('text', { x: xa, y: 34, class: 'ion' }, subs(c.cat.f)), sv('text', { x: xb, y: 34, class: 'ion' }, subs(c.an.f)));
+    svg.append(sv('text', { x: xa, y: 64, class: 'val' }, String(c.cat.v)), sv('text', { x: xb, y: 64, class: 'val' }, String(c.an.v)));
+    svg.append(sv('text', { x: xa, y: 80, class: 'vl' }, 'valency'), sv('text', { x: xb, y: 80, class: 'vl' }, 'valency'));
+    // crossing arrows: cation valency down to the anion's count and back
+    svg.append(sv('path', { d: `M${xa + 14} 62 L${xb - 22} 120`, class: 'xa' }), sv('path', { d: `M${xb - 14} 62 L${xa + 22} 120`, class: 'xa' }));
+    svg.append(sv('path', { d: `M${xb - 22} 120 l-3 -11 l-7 6 z`, class: 'xh' }), sv('path', { d: `M${xa + 22} 120 l3 -11 l7 6 z`, class: 'xh' }));
+    svg.append(sv('text', { x: xa - 20, y: 142, class: 'val' }, `${subs(c.cat.f)} × ${c.swapped[0]}`), sv('text', { x: xb + 20, y: 142, class: 'val' }, `${subs(c.an.f)} × ${c.swapped[1]}`));
+  }
+
+  function drawBalance(c: Compound) {
+    const svg = q<SVGSVGElement>('.fw-bal'); svg.replaceChildren();
+    const total = c.x * c.cat.v, unit = Math.min(36, 280 / total), x0 = 34;
+    svg.append(sv('text', { x: 0, y: 26, class: 'lab' }, '+'), sv('text', { x: 0, y: 66, class: 'lab' }, '−'));
+    for (let i = 0; i < c.x; i++) for (let j = 0; j < c.cat.v; j++) {
+      const k = i * c.cat.v + j, x = x0 + k * unit;
+      svg.append(sv('rect', { x: x + 1, y: 10, width: unit - 2, height: 28, rx: 4, class: 'pos' }), sv('text', { x: x + unit / 2, y: 24, class: 'sgn p' }, '+'));
+    }
+    for (let i = 0; i < c.y; i++) for (let j = 0; j < c.an.v; j++) {
+      const k = i * c.an.v + j, x = x0 + k * unit;
+      svg.append(sv('rect', { x: x + 1, y: 50, width: unit - 2, height: 28, rx: 4, class: 'neg' }), sv('text', { x: x + unit / 2, y: 64, class: 'sgn n' }, '−'));
+    }
+    for (let i = 1; i < c.x; i++) svg.append(sv('line', { x1: x0 + i * c.cat.v * unit, y1: 6, x2: x0 + i * c.cat.v * unit, y2: 42, class: 'gap' }));
+    for (let i = 1; i < c.y; i++) svg.append(sv('line', { x1: x0 + i * c.an.v * unit, y1: 46, x2: x0 + i * c.an.v * unit, y2: 82, class: 'gap' }));
+    svg.setAttribute('aria-label', `${c.x} × (+${c.cat.v}) = +${total} and ${c.y} × (−${c.an.v}) = −${total}`);
+    q('.fw-baltxt').textContent = `${c.x} ${c.cat.name} ion${c.x > 1 ? 's' : ''} × (+${c.cat.v}) = +${total}, and ${c.y} ${c.an.name} ion${c.y > 1 ? 's' : ''} × (−${c.an.v}) = −${total}. Total charge 0.`;
+  }
+
+  function update() {
+    const cat = CATIONS.find((x) => x.id === q<HTMLSelectElement>('.fw-cat').value)!, an = ANIONS.find((x) => x.id === q<HTMLSelectElement>('.fw-an').value)!;
+    const c = crissCross(cat, an);
+    drawCross(c); drawBalance(c);
+    q('.fw-big').textContent = subs(c.formula);
+    q('.fw-name').textContent = c.name === 'water' ? 'Water (hydrogen hydroxide): H⁺ and OH⁻ join as H₂O.' : `${c.name[0].toUpperCase()}${c.name.slice(1)}`;
+    const st = q('.fw-steps'); st.replaceChildren();
+    const li = (t: string) => { const l = document.createElement('li'); l.textContent = t; st.append(l); };
+    li(`Write the symbols with their valencies: ${subs(cat.f)} ${cat.v}, ${subs(an.f)} ${an.v}.`);
+    li(`Cross them over: ${cat.f} gets ${an.v}, ${an.f} gets ${cat.v}.`);
+    li(c.reduced ? `Both numbers share a factor, so divide: ${c.swapped[0]} : ${c.swapped[1]} becomes ${c.x} : ${c.y}.` : `No common factor to divide out: ${c.x} : ${c.y}.`);
+    li(an.poly && c.y > 1 || cat.poly && c.x > 1 ? `Put brackets round a group of atoms that appears more than once, and leave out any 1: ${subs(c.formula)}.` : `Leave out any 1: ${subs(c.formula)}.`);
+    // mass
+    root.querySelectorAll<HTMLButtonElement>('.fw-lvl button').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.l) === level)));
+    const m = formulaMass(c.formula, level === 9);
+    const tb = q<HTMLTableElement>('.fw-tab'); tb.replaceChildren();
+    const hr = tb.createTHead().insertRow(); for (const h of ['Element', 'Atoms', 'Atomic mass (u)', 'Subtotal (u)']) { const th = document.createElement('th'); th.textContent = h; hr.append(th); }
+    const bd = tb.createTBody();
+    const fx = (x: number) => (level === 9 ? String(Math.round(x * 10) / 10) : x.toFixed(3));
+    for (const r of m.rows) { const tr = bd.insertRow(); [`${r.name} (${r.symbol})`, String(r.count), fx(r.mass), fx(r.subtotal)].forEach((t, i) => { const td = tr.insertCell(); td.textContent = t; if (i) td.className = 'r'; }); }
+    q('.fw-eq').textContent = `${subs(c.formula)} = ${m.rows.map((r) => `${r.count} × ${fx(r.mass)}`).join(' + ')} = ${fx(m.total)} u`;
+  }
+  q('.fw-cat').addEventListener('change', update); q('.fw-an').addEventListener('change', update);
+  root.querySelectorAll<HTMLButtonElement>('.fw-lvl button').forEach((b) => b.addEventListener('click', () => { level = Number(b.dataset.l); update(); }));
+  update();
+
+  // Check yourself
+  const sameAtoms = (want: string) => (t: string) => {
+    try {
+      const a = atomsIn(t.replace(/[₀-₉]/g, (d) => String('₀₁₂₃₄₅₆₇₈₉'.indexOf(d)))), b = atomsIn(want);
+      return a.size === b.size && [...b].every(([k, v]) => a.get(k) === v);
+    } catch { return false; }
+  };
+  const pair = () => { let c: Compound; do { c = crissCross(pickOne(CATIONS), pickOne(ANIONS)); } while (c.name === 'water'); return c; };
+  mountQuiz(q('.cq'), (): Question[] => {
+    const c1 = pair(), c2 = pair(), c3 = pair();
+    let c4 = pair(); while (c4.cat.v === 1 || (c4.x === 1 && c4.y === 1)) c4 = pair();
+    const m3 = formulaMass(c3.formula, true).total;
+    const atoms4 = [...atomsIn(c4.formula).values()].reduce((a, b) => a + b, 0);
+    return [
+      { q: `Write the formula of ${c1.name}. (Type numbers as normal digits, e.g. Al2(SO4)3.)`, hint: 'a formula', answer: c1.formula, ok: sameAtoms(c1.formula), worked: `${c1.cat.f} has valency ${c1.cat.v} and ${c1.an.f} has valency ${c1.an.v}. Cross over${c1.reduced ? ' and divide by the common factor' : ''}: ${c1.x} : ${c1.y}.` },
+      { q: `Write the formula of ${c2.name}.`, hint: 'a formula', answer: c2.formula, ok: sameAtoms(c2.formula), worked: `Valencies ${c2.cat.v} and ${c2.an.v}, crossed over${c2.reduced ? ' and simplified' : ''}: ${c2.x} : ${c2.y}.` },
+      { q: `Using rounded atomic masses (${formulaMass(c3.formula, true).rows.map((r) => `${r.symbol} = ${r.mass}`).join(', ')}), what is the formula unit mass of ${c3.formula} in u?`, hint: 'a number', answer: String(m3), ok: near(m3, 0.002), worked: `${formulaMass(c3.formula, true).rows.map((r) => `${r.count} × ${r.mass}`).join(' + ')} = ${m3}.` },
+      { q: `In ${c4.formula}, what is the valency of ${c4.cat.name.replace(/\(.+\)/, '')}?`, hint: 'a whole number', answer: String(c4.cat.v), ok: near(c4.cat.v, 0), worked: `${c4.an.name[0].toUpperCase()}${c4.an.name.slice(1)} has valency ${c4.an.v}. The total charges must balance: ${c4.y} × ${c4.an.v} = ${c4.x} × valency, so valency = ${c4.cat.v}.` },
+      { q: `How many atoms in total are in one formula unit of ${c4.formula}?`, hint: 'a whole number', answer: String(atoms4), ok: near(atoms4, 0), worked: `${[...atomsIn(c4.formula)].map(([k, v]) => `${k} ${v}`).join(' + ')} = ${atoms4}.` },
+    ];
+  });
+</script>

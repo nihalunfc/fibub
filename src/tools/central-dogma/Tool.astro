@@ -1,0 +1,348 @@
+---
+// Central dogma: a coding DNA strand, its template, the mRNA and the protein, codon by codon with the standard
+// genetic code. Tap a base to change it, insert one or delete one, and see silent, missense, nonsense and
+// frameshift changes in the protein chain.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cdg">
+  <div class="ax-card">
+    <label>Coding strand of DNA, 5′ to 3′ (A, C, G, T)
+      <textarea class="cdg-in" rows="2" spellcheck="false" autocomplete="off">GCATGGCTTGGAAAGGTCTGTTCCACTAAGCA</textarea></label>
+    <p class="ax-help">A made-up gene. Type or paste your own: spaces and numbers are ignored, and U counts as T. Reading starts at the first ATG.</p>
+    <div class="ax-row"><button type="button" class="btn secondary small cdg-rand">Random gene</button><button type="button" class="btn secondary small cdg-reset">Back to the example</button></div>
+    <p class="ax-err cdg-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Mutate it</h2>
+    <div class="ax-row"><span class="cdg-lab">Tap a base to</span>
+      <div class="ax-seg cdg-mode" role="group" aria-label="What a tap does"><button type="button" data-v="swap" aria-pressed="true">Change</button><button type="button" data-v="insert" aria-pressed="false">Insert before</button><button type="button" data-v="delete" aria-pressed="false">Delete</button></div></div>
+    <div class="ax-row cdg-gap cdg-baserow"><span class="cdg-lab">New base</span>
+      <div class="ax-seg cdg-base" role="group" aria-label="Which base"><button type="button" data-v="A" aria-pressed="true">A</button><button type="button" data-v="C" aria-pressed="false">C</button><button type="button" data-v="G" aria-pressed="false">G</button><button type="button" data-v="T" aria-pressed="false">T</button></div></div>
+    <div class="cdg-key" aria-hidden="true"><span>Coding DNA 5′→3′</span><span>Template DNA 3′→5′</span><span>mRNA 5′→3′</span><span>Amino acid</span></div>
+    <div class="cdg-strip"></div>
+    <div class="ax-row cdg-gap"><button type="button" class="btn small cdg-play">Play translation</button><button type="button" class="btn secondary small cdg-undo" disabled>Undo all changes</button></div>
+  </div>
+
+  <div class="ax-card">
+    <p class="ax-big cdg-big" aria-live="polite"></p>
+    <p class="cdg-say"></p>
+    <svg class="cdg-chain" role="img" aria-label="Protein chains before and after"></svg>
+    <dl class="ax-facts cdg-facts"></dl>
+    <div class="ax-row cdg-gap"><button type="button" class="btn secondary small cdg-csv">Download codons (CSV)</button></div>
+    <Downloads />
+  </div>
+
+  <details class="ax-card cdg-code">
+    <summary><b>The genetic code</b> (64 codons)</summary>
+    <div class="ax-scroll"><table class="cdg-table"></table></div>
+    <p class="ax-help">First base down the side, second across the top, third inside each box. 61 codons stand for the 20 amino acids and 3 mean stop. AUG means methionine and also start.</p>
+  </details>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="cdg-try">
+      <li>Change the third base of a codon. How often does the amino acid stay the same? (That is a silent change.)</li>
+      <li>Change one base of the TGG codon so it becomes TGA or TAG. What happens to the chain?</li>
+      <li>Insert one base near the start, then insert two more next to it. Why does the protein come back almost as it was?</li>
+      <li>Change the A of the first ATG. Where does the ribosome start now?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <ol class="cdg-qs"></ol>
+    <div class="ax-row"><button type="button" class="btn small cdg-check">Check answers</button><button type="button" class="btn secondary small cdg-new">New questions</button></div>
+    <p class="cdg-score" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+  import { CODON, clean, template, transcribe, translate, classify, mutate, type Change, type Effect, type AA } from '../../lib/sci/dogma';
+  import { csv } from '../../lib/sci/num';
+  import { wireDownloads, save, type Figure, type Palette, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cdg')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const EXAMPLE = 'GCATGGCTTGGAAAGGTCTGTTCCACTAAGCA';
+  let gene = EXAMPLE, changes: Change[] = [], mode: 'swap' | 'insert' | 'delete' = 'swap', base = 'A';
+  let result: ReturnType<typeof classify> | null = null, playTimer = 0;
+  // Which positions of the mutant are new or changed, for highlighting.
+  let marks = new Set<number>();
+
+  const WORDS: Record<Effect, [string, string]> = {
+    none: ['No change yet', 'Tap a base in the strip above to change it.'],
+    silent: ['Silent: same protein', 'The new codon still codes for the same amino acid, because most amino acids have more than one codon.'],
+    missense: ['Missense: one amino acid changed', 'One codon now codes for a different amino acid. The protein may still work, work less well, or not at all.'],
+    nonsense: ['Nonsense: the chain stops early', 'A codon became a stop codon, so the protein is cut short and usually does not work.'],
+    frameshift: ['Frameshift: every codon after it changes', 'Adding or removing one or two bases moves the reading frame, so every codon after the change is read wrongly, often until a stop turns up.'],
+    'in-frame': ['In-frame: whole codons added or lost', 'A multiple of three bases was added or removed, so the frame is kept: amino acids are added or lost but the rest reads normally.'],
+    'start-lost': ['Start lost', 'The first AUG is gone, so the ribosome cannot start there. It may start at a later AUG, if there is one, making a different protein.'],
+    'stop-lost': ['Stop lost: the chain runs on', 'The stop codon became an amino acid, so the ribosome reads on past the end of the gene.'],
+    outside: ['Outside the gene', 'The change is before the start codon or after the stop codon, so the protein is the same (it may still change how much protein is made).'],
+  };
+
+  function compute() {
+    result = classify(gene, changes);
+    marks = new Set();
+    // Track positions: apply changes to a list of original indexes (-1 for inserted bases).
+    let idx = [...gene].map((_, i) => i);
+    const orig = gene;
+    let cur = gene;
+    for (const c of changes) {
+      if (c.kind === 'swap') { idx = idx.slice(); cur = mutate(cur, c); }
+      else if (c.kind === 'insert') { idx = [...idx.slice(0, c.at), -1, ...idx.slice(c.at)]; cur = mutate(cur, c); }
+      else { idx = [...idx.slice(0, c.at), ...idx.slice(c.at + 1)]; cur = mutate(cur, c); }
+    }
+    idx.forEach((o, i) => { if (o < 0 || orig[o] !== cur[i]) marks.add(i); });
+  }
+
+  function strip() {
+    const mut = result!.mutant, mrna = transcribe(mut), tmp = template(mut), rd = result!.effect === 'start-lost' ? result!.after : result!.after;
+    const box = q('.cdg-strip'); box.innerHTML = '';
+    const start = rd.start, end = rd.codons.length ? rd.codons[rd.codons.length - 1].at + 3 : start;
+    const groups: { from: number; to: number; aa?: AA; tag: string }[] = [];
+    if (start < 0) groups.push({ from: 0, to: mut.length, tag: 'no start codon' });
+    else {
+      if (start > 0) groups.push({ from: 0, to: start, tag: 'before the start' });
+      rd.codons.forEach((c) => groups.push({ from: c.at, to: c.at + 3, aa: c.aa, tag: '' }));
+      if (end < mut.length) groups.push({ from: end, to: mut.length, tag: rd.stopped ? 'after the stop' : 'not read' });
+    }
+    groups.forEach((g, gi) => {
+      const card = document.createElement('div'); card.className = `cdg-card${g.aa ? '' : ' cdg-out'}${g.aa?.one === '*' ? ' cdg-stop' : ''}`; card.dataset.g = String(gi);
+      const rows = [document.createElement('div'), document.createElement('div'), document.createElement('div')];
+      rows.forEach((r, k) => (r.className = `cdg-row cdg-r${k}`));
+      for (let i = g.from; i < g.to; i++) {
+        const b = document.createElement('button'); b.type = 'button'; b.className = `cdg-b b-${mut[i]}${marks.has(i) ? ' cdg-new' : ''}`; b.textContent = mut[i]; b.dataset.i = String(i);
+        b.setAttribute('aria-label', `Base ${i + 1}: ${mut[i]}`);
+        rows[0].append(b);
+        const t = document.createElement('span'); t.className = 'cdg-l'; t.textContent = tmp[i]; rows[1].append(t);
+        const m = document.createElement('span'); m.className = 'cdg-l'; m.textContent = mrna[i]; rows[2].append(m);
+      }
+      card.append(...rows);
+      const aa = document.createElement('div'); aa.className = 'cdg-aa'; aa.textContent = g.aa ? (g.aa.one === '*' ? 'Stop' : g.aa.three) : g.tag;
+      card.append(aa);
+      box.append(card);
+    });
+    box.querySelectorAll<HTMLButtonElement>('.cdg-b').forEach((b) => b.addEventListener('click', () => tapBase(Number(b.dataset.i))));
+  }
+
+  function tapBase(i: number) {
+    const cur = result!.mutant;
+    if (mode === 'swap') { let nb = base; if (cur[i] === nb) nb = 'ACGT'[('ACGT'.indexOf(nb) + 1) % 4]; changes.push({ kind: 'swap', at: i, base: nb }); }
+    else if (mode === 'insert') changes.push({ kind: 'insert', at: i, base });
+    else { if (cur.length <= 3) return; changes.push({ kind: 'delete', at: i }); }
+    update();
+    const btn = root.querySelector<HTMLButtonElement>(`.cdg-b[data-i="${Math.min(i, result!.mutant.length - 1)}"]`); btn?.focus({ preventScroll: true });
+  }
+
+  // Protein chains as beads
+  function chain() {
+    const r = result!, before = r.before.protein, after = r.after.protein, W = 640, bead = 26, gap = 4;
+    const per = Math.floor((W - 90) / (bead + gap)), rowsB = Math.max(1, Math.ceil(Math.max(before.length, 1) / per)), rowsA = Math.max(1, Math.ceil(Math.max(after.length, 1) / per));
+    const H = 24 + rowsB * (bead + 8) + 28 + rowsA * (bead + 8) + 6;
+    const svg = q<SVGSVGElement>('.cdg-chain'); svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    const NS = 'http://www.w3.org/2000/svg';
+    const el = (tag: string, attrs: Record<string, string | number>, text?: string) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, String(v)); if (text != null) e.textContent = text; return e; };
+    svg.replaceChildren();
+    const row = (label: string, p: AA[], y0: number, other: AA[] | null) => {
+      svg.append(el('text', { x: 0, y: y0 - 6, class: 'cdg-t' }, label));
+      if (!p.length) { svg.append(el('text', { x: 0, y: y0 + 18, class: 'cdg-m' }, 'no protein')); return y0 + bead + 8; }
+      p.forEach((a, j) => {
+        const x = (j % per) * (bead + gap) + bead / 2, y = y0 + Math.floor(j / per) * (bead + 8) + bead / 2;
+        const changed = other && (other[j]?.one !== a.one);
+        if (j % per) svg.append(el('line', { x1: x - bead / 2 - gap, y1: y, x2: x - bead / 2, y2: y, class: 'cdg-link' }));
+        svg.append(el('circle', { cx: x, cy: y, r: bead / 2, class: changed ? 'cdg-bead cdg-diff' : 'cdg-bead' }));
+        svg.append(el('text', { x, y: y + 4, class: 'cdg-bt', 'text-anchor': 'middle' }, a.one));
+      });
+      return y0 + Math.ceil(p.length / per) * (bead + 8);
+    };
+    let y = row(`Before (${before.length} amino acids)`, before, 20, null);
+    y = row(`After (${after.length} amino acids${r.after.stopped || !after.length ? '' : ', no stop: runs on'})`, after, y + 26, before);
+    svg.setAttribute('aria-label', `Protein before: ${before.map((a) => a.three).join('-')}. After: ${after.map((a) => a.three).join('-') || 'none'}.`);
+  }
+
+  function update() {
+    compute();
+    const r = result!, [head, say] = WORDS[r.effect];
+    let extra = '';
+    if (r.effect === 'missense' || r.effect === 'silent') {
+      const j = r.before.protein.findIndex((a, k) => r.after.protein[k]?.one !== a.one);
+      const c = changes[changes.length - 1], ci = r.before.start >= 0 && c ? Math.floor((c.at - r.before.start) / 3) : -1;
+      if (r.effect === 'missense' && j >= 0) extra = ` (${r.before.protein[j].three} → ${r.after.protein[j].three} at amino acid ${j + 1})`;
+      if (r.effect === 'silent' && ci >= 0 && r.before.codons[ci] && r.after.codons[ci]) extra = ` (${r.before.codons[ci].codon} → ${r.after.codons[ci].codon}, both ${r.after.codons[ci].aa.three})`;
+    }
+    q('.cdg-big').textContent = head + extra;
+    q('.cdg-say').textContent = changes.length > 1 ? `${say} (${changes.length} changes so far, counted together.)` : say;
+    const list: [string, string][] = [
+      ['Bases', `${gene.length} → ${r.mutant.length}`], ['Codons read', String(r.after.codons.length)],
+      ['Protein before', r.before.protein.map((a) => a.three).join('-') || 'none'], ['Protein after', r.after.protein.map((a) => a.three).join('-') || 'none'],
+    ];
+    q('.cdg-facts').replaceChildren(...list.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+    q<HTMLButtonElement>('.cdg-undo').disabled = !changes.length;
+    strip(); chain();
+  }
+
+  function load(text: string) {
+    const c = clean(text), err = q('.cdg-err');
+    if (c.seq.length < 3) { err.textContent = 'Type at least three bases (A, C, G or T).'; err.hidden = false; return; }
+    if (c.seq.length > 300) { err.textContent = 'That is long for this page: only the first 300 bases are shown.'; err.hidden = false; c.seq = c.seq.slice(0, 300); }
+    else if (c.dropped) { err.textContent = `${c.dropped} letter${c.dropped > 1 ? 's' : ''} that are not bases were left out.`; err.hidden = false; }
+    else if (translate(transcribe(c.seq)).start < 0) { err.textContent = 'No ATG in this strand, so no protein is made. Add ATG where the gene should start.'; err.hidden = false; }
+    else err.hidden = true;
+    gene = c.seq; changes = []; update();
+  }
+
+  function randomGene() {
+    const sense = Object.keys(CODON).filter((c) => CODON[c].one !== '*' && c !== 'AUG'), stops = ['TAA', 'TAG', 'TGA'];
+    const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
+    let s = 'GC' + 'ATG';
+    for (let i = 0; i < 7; i++) s += pick(sense).replace(/U/g, 'T');
+    s += pick(stops) + 'GC';
+    q<HTMLTextAreaElement>('.cdg-in').value = s; load(s);
+  }
+
+  function play() {
+    clearInterval(playTimer);
+    const cards = [...root.querySelectorAll<HTMLElement>('.cdg-card:not(.cdg-out)')];
+    let k = 0;
+    cards.forEach((c) => c.classList.remove('cdg-on'));
+    playTimer = window.setInterval(() => {
+      cards.forEach((c, j) => c.classList.toggle('cdg-on', j === k));
+      if (k++ >= cards.length) { clearInterval(playTimer); cards.forEach((c) => c.classList.remove('cdg-on')); }
+    }, 450);
+  }
+
+  function codeTable() {
+    const B = ['U', 'C', 'A', 'G'], t = q<HTMLTableElement>('.cdg-table');
+    const h = t.createTHead().insertRow(); ['', ...B].forEach((x) => { const th = document.createElement('th'); th.textContent = x; h.append(th); });
+    const b = t.createTBody();
+    for (const f of B) {
+      const tr = b.insertRow(); const th = document.createElement('th'); th.textContent = f; tr.append(th);
+      for (const s of B) { const td = tr.insertCell(); td.innerHTML = B.map((x) => `<span>${f}${s}${x} ${CODON[f + s + x].three}</span>`).join(''); }
+    }
+  }
+
+  // ---------- Check yourself ----------
+  type Qn = { text: string; options?: string[]; answer: string; worked: string };
+  let qs: Qn[] = [];
+  const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
+  const rndDNA = (n: number) => Array.from({ length: n }, () => pick(['A', 'C', 'G', 'T'])).join('');
+  function makeQuiz() {
+    const d1 = rndDNA(6), d2 = rndDNA(6);
+    const codon = pick(Object.keys(CODON).filter((c) => CODON[c].one !== '*'));
+    const aas = [...new Set(Object.values(CODON).filter((a) => a.one !== '*').map((a) => a.three))];
+    const opts = [CODON[codon].three, ...aas.filter((a) => a !== CODON[codon].three).sort(() => Math.random() - 0.5).slice(0, 3)].sort();
+    const kinds: [string, string, string][] = [
+      ['GCT changes to GCC (both alanine)', 'silent', 'The amino acid is the same, so the change is silent.'],
+      ['TGG (tryptophan) changes to TGA', 'nonsense', 'TGA is a stop codon, so the chain stops early: nonsense.'],
+      ['GAG (glutamic acid) changes to GTG (valine)', 'missense', 'One amino acid swapped for another: missense.'],
+      ['one extra base is inserted after the start codon', 'frameshift', 'One base shifts the reading frame of every codon after it: frameshift.'],
+      ['AAA (lysine) changes to AAG (lysine)', 'silent', 'Both code for lysine: silent.'],
+      ['two bases are deleted in the middle of the gene', 'frameshift', 'Two bases is not a multiple of three, so the frame shifts.'],
+    ];
+    const k = pick(kinds);
+    qs = [
+      { text: `Coding strand 5′-${d1}-3′. Write the mRNA (5′ to 3′).`, answer: transcribe(d1), worked: `mRNA matches the coding strand with U for T: ${transcribe(d1)}.` },
+      { text: `Template strand 3′-${d2}-5′. Write the mRNA (5′ to 3′).`, answer: template(d2).replace(/T/g, 'U'), worked: `Pair each template base: A→U, T→A, G→C, C→G: ${template(d2).replace(/T/g, 'U')}.` },
+      { text: `Which amino acid does the mRNA codon ${codon} code for?`, options: opts, answer: CODON[codon].three, worked: `${codon} = ${CODON[codon].three} (${CODON[codon].name}).` },
+      { text: `In a gene, ${k[0]}. What kind of change is this?`, options: ['silent', 'missense', 'nonsense', 'frameshift'], answer: k[1], worked: k[2] },
+    ];
+    const ol = q('.cdg-qs'); ol.innerHTML = '';
+    qs.forEach((qq, j) => {
+      const li = document.createElement('li'); li.dataset.a = qq.answer;
+      const p = document.createElement('p'); p.textContent = qq.text; li.append(p);
+      if (qq.options) { const s = document.createElement('select'); s.className = 'cdg-ans'; s.setAttribute('aria-label', `Answer ${j + 1}`); s.append(new Option('Choose…', ''), ...qq.options.map((o) => new Option(o, o))); li.append(s); }
+      else { const inp = document.createElement('input'); inp.className = 'cdg-ans'; inp.autocapitalize = 'characters'; inp.spellcheck = false; inp.setAttribute('aria-label', `Answer ${j + 1}`); li.append(inp); }
+      const w = document.createElement('p'); w.className = 'cdg-worked'; w.hidden = true; li.append(w);
+      ol.append(li);
+    });
+    q('.cdg-score').textContent = '';
+  }
+  function checkQuiz() {
+    let right = 0;
+    root.querySelectorAll<HTMLLIElement>('.cdg-qs li').forEach((li, j) => {
+      const qq = qs[j], raw = (li.querySelector('.cdg-ans') as HTMLInputElement).value;
+      const v = qq.options ? raw : raw.toUpperCase().replace(/[^ACGTU]/g, '');
+      const ok = v !== '' && v === qq.answer;
+      if (ok) right++;
+      const w = li.querySelector<HTMLElement>('.cdg-worked')!; w.hidden = false; w.className = `cdg-worked ${ok ? 'ok' : 'no'}`;
+      w.textContent = `${ok ? '✓ Right.' : '✗ Not quite.'} ${qq.worked}`;
+    });
+    q('.cdg-score').textContent = `${right} of ${qs.length} right.`;
+  }
+
+  // ---------- wiring ----------
+  const press = (sel: string, v: string) => root.querySelectorAll<HTMLButtonElement>(`${sel} button`).forEach((o) => o.setAttribute('aria-pressed', String(o.dataset.v === v)));
+  root.querySelectorAll<HTMLButtonElement>('.cdg-mode button').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.v as typeof mode; press('.cdg-mode', mode); q('.cdg-baserow').hidden = mode === 'delete'; }));
+  root.querySelectorAll<HTMLButtonElement>('.cdg-base button').forEach((b) => b.addEventListener('click', () => { base = b.dataset.v!; press('.cdg-base', base); }));
+  let t = 0;
+  q('.cdg-in').addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(() => load(q<HTMLTextAreaElement>('.cdg-in').value), 250); });
+  q('.cdg-rand').addEventListener('click', randomGene);
+  q('.cdg-reset').addEventListener('click', () => { q<HTMLTextAreaElement>('.cdg-in').value = EXAMPLE; load(EXAMPLE); });
+  q('.cdg-undo').addEventListener('click', () => { changes = []; update(); });
+  q('.cdg-play').addEventListener('click', play);
+  q('.cdg-csv').addEventListener('click', () => { const r = result!; save(new TextEncoder().encode(csv([['codon_number', 'dna_coding', 'mrna', 'amino_acid', 'one_letter'], ...r.after.codons.map((c, j) => [j + 1, c.codon.replace(/U/g, 'T'), c.codon, c.aa.three, c.aa.one])])), 'central-dogma.csv', 'text/csv'); });
+  q('.cdg-check').addEventListener('click', checkQuiz);
+  q('.cdg-new').addEventListener('click', makeQuiz);
+  codeTable(); load(EXAMPLE); makeQuiz();
+
+  // Report figure: the two chains drawn on a canvas.
+  const chainFig = (): Figure => ({ w: 640, h: 170, alt: 'Protein chains before and after the change', draw: (ctx, W, H, pal: Palette) => {
+    const r = result!; ctx.font = '13px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+    const row = (label: string, p: AA[], y: number, other: AA[] | null) => {
+      ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.fillText(label, 6, y - 22);
+      p.slice(0, 22).forEach((a, j) => { const x = 18 + j * 28; ctx.strokeStyle = other && other[j]?.one !== a.one ? pal.bad : pal.ink; ctx.lineWidth = other && other[j]?.one !== a.one ? 3 : 1.5; ctx.beginPath(); ctx.arc(x, y, 12, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.fillText(a.one, x, y + 1); });
+    };
+    row(`Before: ${r.before.protein.length} amino acids`, r.before.protein, 50, null);
+    row(`After: ${r.after.protein.length} amino acids`, r.after.protein, 130, r.before.protein);
+  } });
+  wireDownloads(q('.dl'), () => ({ title: 'Central dogma', subtitle: q('.cdg-big').textContent ?? '', file: 'central-dogma',
+    sections: [
+      { title: 'DNA, mRNA and protein', text: [`Coding strand: ${result!.mutant}`, `mRNA: ${transcribe(result!.mutant)}`, q('.cdg-say').textContent ?? ''], facts: [['Protein before', result!.before.protein.map((a) => a.three).join('-') || 'none'], ['Protein after', result!.after.protein.map((a) => a.three).join('-') || 'none']], figure: chainFig() },
+      { title: 'Codons read', table: { head: ['#', 'mRNA codon', 'Amino acid'], rows: result!.after.codons.map((c, j) => [String(j + 1), c.codon, c.aa.three]) } },
+    ] as Section[] }));
+</script>
+
+<style is:inline>
+  .cdg .cdg-lab { font-size: 14px; color: var(--muted); }
+  .cdg .cdg-gap { margin-top: 12px; }
+  .cdg .ax-seg button { min-height: 44px; padding: 8px 12px; }
+  .cdg .btn.small { min-height: 44px; }
+  .cdg .cdg-baserow[hidden] { display: none; }
+  .cdg .cdg-key { display: grid; gap: 2px; font-size: 12.5px; color: var(--muted); margin: 14px 0 6px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cdg .cdg-key span::before { content: '▸ '; }
+  .cdg .cdg-strip { display: flex; flex-wrap: wrap; gap: 8px; }
+  .cdg .cdg-card { border: 1px solid var(--line); border-radius: 10px; padding: 4px; display: grid; gap: 2px; justify-items: center; background: var(--surface); }
+  .cdg .cdg-card.cdg-out { border-style: dashed; opacity: 0.85; }
+  .cdg .cdg-card.cdg-stop { border-color: var(--bad); }
+  .cdg .cdg-card.cdg-on { outline: 3px solid var(--accent); }
+  .cdg .cdg-row { display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; }
+  .cdg .cdg-b { width: 34px; height: 44px; border: 1px solid var(--line); border-bottom-width: 5px; border-radius: 6px; background: var(--bg); color: var(--ink); font: 700 17px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; cursor: pointer; padding: 0; }
+  .cdg .cdg-b.cdg-new { background: var(--warn-soft); outline: 2px solid var(--warn); }
+  .cdg .b-A { border-bottom-color: #009E73; } .cdg .b-T { border-bottom-color: #D55E00; } .cdg .b-G { border-bottom-color: #E69F00; } .cdg .b-C { border-bottom-color: #0072B2; }
+  html.red-mode .cdg .cdg-b { border-bottom-color: var(--ink); }
+  .cdg .cdg-l { width: 34px; text-align: center; font: 15px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--muted); }
+  .cdg .cdg-r2 .cdg-l { color: var(--ink); }
+  .cdg .cdg-aa { font-weight: 700; font-size: 14px; padding: 2px 0; max-width: 108px; text-align: center; }
+  .cdg .cdg-out .cdg-aa { font-weight: 400; color: var(--muted); font-size: 12px; }
+  .cdg .cdg-chain { display: block; width: 100%; height: auto; margin: 10px 0; }
+  .cdg .cdg-chain .cdg-t { font-size: 15px; fill: var(--ink); font-weight: 600; }
+  .cdg .cdg-chain .cdg-m { font-size: 14px; fill: var(--muted); }
+  .cdg .cdg-chain .cdg-bead { fill: var(--accent-soft); stroke: var(--ink); stroke-width: 1.5; }
+  .cdg .cdg-chain .cdg-diff { stroke: var(--bad); stroke-width: 3.5; fill: var(--bad-soft); }
+  .cdg .cdg-chain .cdg-link { stroke: var(--ink); stroke-width: 2; }
+  .cdg .cdg-chain .cdg-bt { font: 700 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: var(--ink); }
+  .cdg .cdg-code summary { cursor: pointer; min-height: 32px; }
+  .cdg .cdg-table td span { display: block; white-space: nowrap; font: 12.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .cdg .cdg-table th, .cdg .cdg-table td { padding: 5px; border: 1px solid var(--line); }
+  .cdg .cdg-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .cdg .cdg-qs { padding-left: 20px; display: grid; gap: 14px; margin: 10px 0; }
+  .cdg .cdg-qs p { margin: 0 0 6px; overflow-wrap: anywhere; }
+  .cdg .cdg-qs select, .cdg .cdg-qs input { max-width: 240px; min-height: 44px; }
+  .cdg .cdg-worked.ok { color: var(--good); }
+  .cdg .cdg-worked.no { color: var(--bad); }
+  .cdg .cdg-score { font-weight: 700; }
+</style>

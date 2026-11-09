@@ -1,0 +1,13 @@
+/* "Check yourself" block of the school chemistry tools (src/lib/chemquiz.ts) and their shared touch controls. */
+.cq-list { margin: 0; padding-left: 22px; display: grid; gap: 14px; }
+.cq-q { margin: 0 0 6px; }
+.cq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cq-row .cq-in { flex: 1 1 140px; min-width: 0; font: inherit; color: var(--ink); padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.cq-res { margin: 6px 0 0; font-weight: 650; }
+.cq-res.good { color: var(--good); }
+.cq-res.bad { color: var(--bad); }
+.cq-work { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
+.cq-new { margin-top: 12px; }
+.lx-try { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 4px; }
+.lx-eq { font: 15px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 10px 0 0; overflow-wrap: anywhere; }
+.lx-eq b { font-weight: 750; }

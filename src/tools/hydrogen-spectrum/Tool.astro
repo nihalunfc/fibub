@@ -1,0 +1,151 @@
+---
+// Hydrogen spectrum and Bohr levels (Learn): tap two energy levels to make a jump; the photon's energy, wavelength,
+// colour and series (Lyman, Balmer, Paschen ...) with the Rydberg formula filled in; the spectrum of the series.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn hys">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Energy levels of hydrogen</h2>
+      <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="11" aria-pressed="true">Class 11</button><button type="button" data-level="12" aria-pressed="false">Class 12</button></div>
+    </div>
+    <p class="ax-help">Tap a level to start the jump from, then the level to end on. Or choose them below.</p>
+    <canvas class="lrn-cv hy-cv" style="margin-top:8px" aria-label="Energy level diagram of hydrogen with an arrow for the chosen jump"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>From level <select class="hy-from"></select></label>
+      <label>To level <select class="hy-to"></select></label>
+    </div>
+    <p class="ax-big hy-big" style="margin:10px 0 0"></p>
+    <p class="lrn-eq hy-eq"></p>
+    <dl class="ax-facts hy-facts" style="margin-top:10px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="hy-sh">The series</h2>
+    <canvas class="lrn-cv hy-sp" aria-label="The lines of the chosen series along a wavelength scale"></canvas>
+    <p class="ax-help hy-sp-note"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Make every jump that ends on level 2: these are the Balmer lines, and four of them are visible light (red, blue-green, blue and violet).</li>
+      <li>Jumps to level 1 give ultraviolet (Lyman); jumps to level 3 give infrared (Paschen). The bigger the drop, the shorter the wavelength.</li>
+      <li>Jump from ∞ to a level: that is the series limit, the shortest wavelength of the series.</li>
+      <li>Jump upwards: the atom absorbs a photon of exactly the same energy. That is why dark lines in starlight sit at the same places.</li>
+      <li>On the Class 12 level, see how the orbit radius grows as n² and the electron slows down as 1/n.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card hy-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { energyEV, wavelengthNm, photonEV, seriesName, region, radiusNm, speed, RY_EV, R_H } from '../../lib/sci/learnhydrogen';
+  import { nmToRgb } from '../../lib/sci/learnphoto';
+  import { mountQuiz, pick, one, r, fitCanvas, wireLevel } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.hys')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const NMAX = 7, LEVELS = [1, 2, 3, 4, 5, 6, 7, Infinity];
+  const lab = (n: number) => (n === Infinity ? '∞' : String(n));
+  const fromSel = q<HTMLSelectElement>('.hy-from'), toSel = q<HTMLSelectElement>('.hy-to');
+  for (const n of LEVELS) { fromSel.add(new Option(`n = ${lab(n)}`, lab(n))); toSel.add(new Option(`n = ${lab(n)}`, lab(n))); }
+  fromSel.value = '3'; toSel.value = '2';
+  const val = (s: HTMLSelectElement) => (s.value === '∞' ? Infinity : +s.value);
+  let level = '11', pending: number | null = null;
+  const E = (n: number) => (n === Infinity ? 0 : energyEV(n));
+  const colour = (nm: number, pal: ReturnType<typeof pagePalette>) => { if (pal.red) return pal.ink; const c = nmToRgb(nm); return c ? `rgb(${c[0]},${c[1]},${c[2]})` : pal.muted; };
+  // Energy axis: squash with a square root so levels 1 to 7 are all readable
+  const yOf = (e: number, top: number, h: number) => top + h * Math.sqrt(-e / RY_EV);
+
+  function draw() {
+    const pal = pagePalette(), { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.hy-cv'), 320), top = 16, h = H - 44, lx = 54, rx = W - 70;
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const a = val(fromSel), b = val(toSel);
+    ctx.font = '12px system-ui, sans-serif';
+    for (const n of LEVELS) {
+      const y = yOf(E(n), top, h), sel = n === a || n === b || n === pending;
+      ctx.strokeStyle = sel ? pal.ink : pal.line; ctx.lineWidth = sel ? 2.5 : 1.5; ctx.beginPath(); ctx.moveTo(lx, y); ctx.lineTo(rx, y); ctx.stroke();
+      ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; if (n <= 4 || n === Infinity) ctx.fillText(`n = ${lab(n)}`, lx - 6, y + 4);
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; if (n <= 4 || n === Infinity) ctx.fillText(`${n === Infinity ? '0' : sig(E(n), 3)} eV`, rx + 6, y + 4);
+    }
+    if (a !== b) {
+      const nm = wavelengthNm(Math.min(a, b), Math.max(a, b)), ya = yOf(E(a), top, h), yb = yOf(E(b), top, h), x = (lx + rx) / 2;
+      ctx.strokeStyle = colour(nm, pal); ctx.fillStyle = ctx.strokeStyle; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(x, ya); ctx.lineTo(x, yb - Math.sign(yb - ya) * 10); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x, yb); ctx.lineTo(x - 7, yb - Math.sign(yb - ya) * 12); ctx.lineTo(x + 7, yb - Math.sign(yb - ya) * 12); ctx.closePath(); ctx.fill();
+      // wavy photon
+      ctx.lineWidth = 2; ctx.beginPath(); const py = (ya + yb) / 2;
+      for (let i = 0; i <= 40; i++) { const px = x + 12 + i * 1.6, yy = py + 5 * Math.sin(i * 0.9); if (i) ctx.lineTo(px, yy); else ctx.moveTo(px, yy); }
+      ctx.stroke();
+    }
+    ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText('energy (not to scale near the top)', lx, H - 6);
+  }
+
+  function spectrum() {
+    const pal = pagePalette(), a = val(fromSel), b = val(toSel), lo = Math.min(a, b), hi = Math.max(a, b);
+    if (lo === Infinity) return;
+    const lines = [...LEVELS.filter((n) => n > lo), 20].map((n) => ({ n, nm: wavelengthNm(lo, n) }));
+    const nmMin = wavelengthNm(lo, Infinity) * 0.95, nmMax = wavelengthNm(lo, lo + 1) * 1.04;
+    const { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.hy-sp'), 120), gx = 10, gw = W - 20, X = (nm: number) => gx + ((nm - nmMin) / (nmMax - nmMin)) * gw;
+    ctx.fillStyle = pal.red ? pal.bg : '#000'; ctx.fillRect(gx, 10, gw, 60);
+    if (!pal.red) for (let px = 0; px < gw; px++) { const nm = nmMin + (px / gw) * (nmMax - nmMin), c = nmToRgb(nm); if (c) { ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},0.18)`; ctx.fillRect(gx + px, 10, 1, 60); } }
+    for (const l of lines) { if (l.n === 20) continue; const sel = l.n === hi; ctx.strokeStyle = pal.red ? pal.ink : (nmToRgb(l.nm) ? colour(l.nm, pal) : '#bbbbbb'); ctx.lineWidth = sel ? 4 : 2; ctx.beginPath(); ctx.moveTo(X(l.nm), 10); ctx.lineTo(X(l.nm), 70); ctx.stroke(); }
+    ctx.strokeStyle = pal.muted; ctx.setLineDash([3, 3]); ctx.lineWidth = 1; const lim = wavelengthNm(lo, Infinity); ctx.beginPath(); ctx.moveTo(X(lim), 6); ctx.lineTo(X(lim), 74); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = pal.ink; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(`${sig(lim, 4)} nm (limit)`, Math.max(gx + 40, X(lim)), 88);
+    ctx.fillText(`${sig(wavelengthNm(lo, lo + 1), 4)} nm`, Math.min(W - 40, X(wavelengthNm(lo, lo + 1))), 102);
+    ctx.fillStyle = pal.muted; ctx.fillText('wavelength →', W / 2, H - 4);
+    q('.hy-sh').textContent = `The ${seriesName(lo)} series (jumps down to n = ${lo})`;
+    q('.hy-sp-note').textContent = `Lines from n = ${lo + 1}, ${lo + 2}, ${lo + 3} … crowd together towards the series limit at ${sig(lim, 4)} nm (dashed). This series is ${region(wavelengthNm(lo, lo + 1)) === region(lim) ? region(lim) : `${region(lim)} to ${region(wavelengthNm(lo, lo + 1))}`}. The thick line is your jump.`;
+  }
+
+  function update() {
+    const a = val(fromSel), b = val(toSel);
+    if (a === b) {
+      q('.hy-big').textContent = 'Choose two different levels';
+      q('.hy-eq').textContent = ''; q('.hy-facts').replaceChildren(); draw(); return;
+    }
+    const lo = Math.min(a, b), hi = Math.max(a, b), down = a > b, nm = wavelengthNm(lo, hi), eV = photonEV(lo, hi), reg = region(nm);
+    const band = reg !== 'visible' ? reg : nm < 425 ? 'violet' : nm < 480 ? 'blue' : nm < 500 ? 'blue-green' : nm < 570 ? 'green' : nm < 590 ? 'yellow' : nm < 620 ? 'orange' : 'red';
+    q('.hy-big').textContent = `${down ? 'Gives out' : 'Takes in'} a photon of ${sig(nm, 4)} nm (${band})`;
+    q('.hy-eq').textContent = `1/λ = R (1/n₁² − 1/n₂²) = ${(R_H / 1e7).toFixed(4)} × 10⁷ × (1/${lo}² − ${hi === Infinity ? '0' : `1/${hi}²`}) = ${sig(1 / (nm * 1e-9), 5)} m⁻¹, so λ = ${sig(nm, 5)} nm.  Energy = E${lab(hi) === '∞' ? '∞' : hi} − E${lo} = ${hi === Infinity ? '0' : sig(E(hi), 4)} − (${sig(E(lo), 4)}) = ${sig(eV, 4)} eV.`;
+    const facts = [fact('Series', seriesName(lo), down ? `the jump ends on n = ${lo}` : `the jump starts from n = ${lo}`), fact('Photon energy', `${sig(eV, 4)} eV`, `${sig(eV * 1.602176634e-19 * 1e19, 4)} × 10⁻¹⁹ J`), fact('Wavelength', `${sig(nm, 4)} nm`, reg), fact('Frequency', `${sig(299792458 / (nm * 1e-9) / 1e14, 4)} × 10¹⁴ Hz`, 'f = c / λ')];
+    if (level === '12') {
+      const n = lo; facts.push(fact(`Orbit radius at n = ${n}`, `${sig(radiusNm(n), 4)} nm`, 'rₙ = n² × 0.0529 nm'), fact(`Electron speed at n = ${n}`, `${sig(speed(n) / 1000, 4)} km/s`, 'vₙ = 2,188 km/s ÷ n'), fact(`Energy to ionise from n = ${n}`, `${sig(-E(n), 4)} eV`, '13.6 eV ÷ n²'));
+    }
+    q('.hy-facts').replaceChildren(...facts);
+    draw(); spectrum();
+  }
+
+  q<HTMLCanvasElement>('.hy-cv').addEventListener('click', (ev) => {
+    const cv = q<HTMLCanvasElement>('.hy-cv'), rect = cv.getBoundingClientRect(), y = ev.clientY - rect.top, top = 16, h = 320 - 44;
+    let best = LEVELS[0], bd = Infinity; for (const n of LEVELS) { const d = Math.abs(yOf(E(n), top, h) - y); if (d < bd) { bd = d; best = n; } }
+    if (bd > 22) return;
+    if (pending === null) { pending = best; draw(); return; }
+    if (best === pending) { pending = null; draw(); return; }
+    fromSel.value = lab(pending); toSel.value = lab(best); pending = null; update();
+  });
+  [fromSel, toSel].forEach((s) => s.addEventListener('input', () => { pending = null; update(); }));
+  wireLevel(root, (l) => { level = l; update(); });
+  addEventListener('resize', () => { draw(); spectrum(); });
+
+  mountQuiz(q('.hy-quiz'), () => {
+    const n = pick(2, 6), lo = pick(1, 3), hi = lo + pick(1, 3), lo2 = pick(1, 2), hi2 = lo2 + pick(1, 4), n5 = pick(1, 5), ser = pick(1, 3);
+    const e2 = 13.6 * (1 / lo ** 2 - 1 / hi ** 2), lam = 1e9 / (1.097e7 * (1 / lo2 ** 2 - 1 / hi2 ** 2));
+    return [
+      { q: `Using Eₙ = −13.6 / n² eV, what is the energy of level n = ${n}?`, ans: -13.6 / (n * n), unit: 'eV', work: `E${n} = −13.6 / ${n}² = −13.6 / ${n * n} = ${r(-13.6 / (n * n))} eV` },
+      { q: `An electron in hydrogen drops from n = ${hi} to n = ${lo}. What is the energy of the photon, in eV?`, ans: e2, unit: 'eV', work: `E = 13.6 (1/${lo}² − 1/${hi}²) = 13.6 × ${r(1 / lo ** 2 - 1 / hi ** 2)} = ${r(e2)} eV` },
+      { q: `Using R = 1.097 × 10⁷ m⁻¹, what is the wavelength of the photon from n = ${hi2} to n = ${lo2}, in nm?`, ans: lam, unit: 'nm', work: `1/λ = 1.097 × 10⁷ × (1/${lo2}² − 1/${hi2}²) = ${r(1e9 / lam)} m⁻¹, so λ = ${r(lam, 4)} nm` },
+      { q: `How much energy is needed to remove the electron completely from level n = ${n5}?`, ans: 13.6 / (n5 * n5), unit: 'eV', work: `From n = ${n5} to n = ∞: 0 − (−13.6 / ${n5 * n5}) = ${r(13.6 / (n5 * n5))} eV` },
+      { q: `A line belongs to the ${seriesName(ser)} series. Which level does the electron end on?`, ans: ser - 1, choices: ['n = 1', 'n = 2', 'n = 3'], work: `Lyman lines end on n = 1, Balmer on n = 2 and Paschen on n = 3. ${seriesName(ser)} → n = ${ser}.` },
+    ];
+  });
+</script>

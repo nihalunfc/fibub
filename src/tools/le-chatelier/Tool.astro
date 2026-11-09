@@ -1,0 +1,231 @@
+---
+// Le Chatelier sandbox: a box of gas molecules at equilibrium. Add or remove a gas, squeeze or expand, heat or cool,
+// add a catalyst; Q against K shows which way it must move, the molecules shift, and an ICE table shows the numbers.
+import '../../styles/astro.css';
+import '../../styles/chemquiz.css';
+import { REACTIONS } from '../../lib/sci/lechatelier';
+---
+<div class="ax lc">
+  <div class="ax-card">
+    <label>Reaction <select class="lc-rx">{REACTIONS.map((r) => <option value={r.id}>{r.text}</option>)}</select></label>
+    <p class="ax-help lc-note"></p>
+    <svg class="lc-svg" viewBox="0 0 320 196" role="img" aria-label="Molecules in the box"></svg>
+    <div class="ax-legend lc-leg"></div>
+    <div class="lc-btns lc-sp"></div>
+    <div class="lc-btns">
+      <button type="button" class="lc-b" data-c="squeeze">Squeeze<small>volume ÷ 2</small></button>
+      <button type="button" class="lc-b" data-c="expand">Expand<small>volume × 2</small></button>
+      <button type="button" class="lc-b" data-c="heat">Heat<small>+50 K</small></button>
+      <button type="button" class="lc-b" data-c="cool">Cool<small>−50 K</small></button>
+      <button type="button" class="lc-b" data-c="catalyst">Catalyst<small>speeds both ways</small></button>
+      <button type="button" class="lc-b" data-c="reset">Start again<small>first equilibrium</small></button>
+    </div>
+    <p class="ax-big lc-big" style="margin:12px 0 4px"></p>
+    <p class="lc-why" style="margin:0"></p>
+    <svg class="lc-qk" viewBox="0 0 320 64" role="img" aria-label="Q compared with K"></svg>
+    <dl class="ax-facts lc-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>ICE table (mol/L)</h2>
+    <div class="ax-scroll"><table class="lc-ice"></table></div>
+    <p class="lx-eq lc-eq"></p>
+    <p class="ax-help">K values here are made up to make the shifts easy to see; they follow the real direction of each reaction's heat change (ΔH) through the van 't Hoff equation. Real values for these reactions are different.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lx-try">
+      <li>Add N₂ to the ammonia box. Which way does it shift, and does the H₂ go up or down?</li>
+      <li>Squeeze the ammonia box, then the H₂ + I₂ box. Why does only one of them move?</li>
+      <li>Heat the N₂O₄ box: the brown NO₂ grows. Is that reaction endothermic or exothermic?</li>
+      <li>Add a catalyst. Does K change? Does anything shift?</li>
+      <li>Heat the ammonia box. K goes down, so why do factories still run it hot?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cq">
+    <h2>Check yourself</h2>
+    <ol class="cq-list"></ol>
+    <button type="button" class="btn secondary small cq-new">New questions</button>
+  </div>
+</div>
+
+<style is:inline>
+  .lc select { font-size: 16px; min-height: 44px; }
+  .lc-svg { display: block; width: 100%; max-width: 440px; margin: 10px auto 0; }
+  .lc-qk { display: block; width: 100%; max-width: 440px; margin: 8px auto 6px; }
+  .lc-btns { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; margin-top: 8px; }
+  .lc-b, .lc-btns .lc-b { display: grid; place-items: center; gap: 1px; min-height: 52px; padding: 6px; font: inherit; font-size: 15px; font-weight: 650; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; touch-action: manipulation; }
+  .lc-b small, .lc-btns .lc-b small { font-size: 12px; font-weight: 400; color: var(--muted); }
+  .lc-b:disabled, .lc-btns .lc-b:disabled { opacity: 0.4; cursor: default; }
+  .lc-why { color: var(--muted); }
+  .lc-svg .bx { fill: var(--bg); stroke: var(--ink); stroke-width: 2.5; }
+  .lc-svg .s0 { fill: var(--ink); }
+  .lc-svg .s1 { fill: var(--bg); stroke: var(--ink); stroke-width: 1.5; }
+  .lc-svg .s2 { fill: var(--muted); }
+  .lc-svg .brown { fill: #8b3a12; }
+  .lc-svg .lab { fill: var(--muted); font: 12px system-ui, sans-serif; }
+  .lc-qk .ax { stroke: var(--line); stroke-width: 6; stroke-linecap: round; }
+  .lc-qk .k { stroke: var(--ink); stroke-width: 3; }
+  .lc-qk .q { fill: var(--accent); }
+  .lc-qk .t { fill: var(--ink); font: 600 12px system-ui, sans-serif; text-anchor: middle; }
+  .lc-qk .tm { fill: var(--muted); font: 11px system-ui, sans-serif; }
+</style>
+
+<script>
+  import { REACTIONS, Kat, Q, equilibrate, predict, kExpr, dn, type Reaction, type Change } from '../../lib/sci/lechatelier';
+  import { mountQuiz, near, same, pickOne, rint, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.lc')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const NS = 'http://www.w3.org/2000/svg';
+  const sv = (tag: string, attrs: Record<string, string | number>, text?: string) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, String(v)); if (text != null) n.textContent = text; return n; };
+  const subs = (f: string) => f.replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈₉'[+d]);
+  const f3 = (x: number) => (x === 0 ? '0' : Math.abs(x) >= 1000 || Math.abs(x) < 0.001 ? x.toExponential(2).replace('e', ' × 10^') : String(Number(x.toPrecision(3))));
+  const signed = (x: number) => (x >= 0 ? '+' : '−') + f3(Math.abs(x));
+
+  let r: Reaction = REACTIONS[0], n: number[] = [], V = 1, T = 700, before: number[] = [], last = '', anim = 0, catalyst = false;
+
+  // fixed pseudo-random spots so molecules do not jump about between redraws
+  const rnd = (i: number) => { const x = Math.sin(i * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); };
+  const PER = 14; // molecules drawn per mol
+
+  function draw(nn: number[]) {
+    const svg = q<SVGSVGElement>('.lc-svg'); svg.replaceChildren();
+    const w = 300 * Math.sqrt(V / 4), h = 150, x0 = (320 - w) / 2, y0 = 18;
+    svg.append(sv('rect', { x: x0, y: y0, width: w, height: h, rx: 6, class: 'bx' }));
+    svg.append(sv('text', { x: 160, y: 190, class: 'lab', 'text-anchor': 'middle' }, `V = ${f3(V)} L, T = ${Math.round(T)} K`));
+    r.species.forEach((s, si) => {
+      const k = Math.round(nn[si] * PER);
+      for (let j = 0; j < k; j++) {
+        const px = x0 + 6 + rnd(si * 1000 + j) * (w - 12), py = y0 + 6 + rnd(si * 1000 + j + 500) * (h - 12);
+        const cls = s.f === 'NO2' ? 'brown' : `s${si}`;
+        if (s.nu > 0) svg.append(sv('rect', { x: px - 4, y: py - 4, width: 8, height: 8, class: cls }));
+        else svg.append(sv('circle', { cx: px, cy: py, r: si === 0 ? 4.5 : 3.5, class: cls }));
+      }
+    });
+    svg.setAttribute('aria-label', r.species.map((s, i) => `${f3(nn[i])} mol ${s.f}`).join(', '));
+  }
+
+  function drawQK(Qv: number, K: number) {
+    const svg = q<SVGSVGElement>('.lc-qk'); svg.replaceChildren();
+    const lk = Math.log10(K), span = 3, x = (v: number) => 160 + Math.max(-1, Math.min(1, (Math.log10(v) - lk) / span)) * 140;
+    svg.append(sv('line', { x1: 20, y1: 36, x2: 300, y2: 36, class: 'ax' }));
+    svg.append(sv('line', { x1: 160, y1: 22, x2: 160, y2: 50, class: 'k' }), sv('text', { x: 160, y: 14, class: 't' }, `K = ${f3(K)}`));
+    const qx = Number.isFinite(Qv) && Qv > 0 ? x(Qv) : Qv === 0 ? 20 : 300;
+    svg.append(sv('path', { d: `M${qx} 30 l-7 -11 h14 z`, class: 'q' }), sv('text', { x: qx, y: 62, class: 't' }, `Q = ${Number.isFinite(Qv) ? f3(Qv) : '∞'}`));
+    svg.append(sv('text', { x: 20, y: 62, class: 'tm' }, 'Q < K'), sv('text', { x: 300, y: 62, class: 'tm', 'text-anchor': 'end' }, 'Q > K'));
+  }
+
+  function ice(start: number[], eq: number[]) {
+    const tb = q<HTMLTableElement>('.lc-ice'); tb.replaceChildren();
+    const hr = tb.createTHead().insertRow(); ['', ...r.species.map((s) => `[${subs(s.f)}]`)].forEach((t) => { const th = document.createElement('th'); th.textContent = t; th.className = 'r'; hr.append(th); });
+    const bd = tb.createTBody();
+    const row = (label: string, vals: string[]) => { const tr = bd.insertRow(); const th = tr.insertCell(); th.textContent = label; vals.forEach((v) => { const td = tr.insertCell(); td.textContent = v; td.className = 'r'; }); };
+    const xi = r.species.length ? (eq[0] - start[0]) / r.species[0].nu : 0;
+    row('Initial (just after the change)', start.map((x) => f3(x / V)));
+    row('Change', r.species.map((s) => (Math.abs(xi) < 1e-12 ? '0' : `${s.nu > 0 ? '+' : '−'}${Math.abs(s.nu) === 1 ? '' : Math.abs(s.nu)}x`)));
+    row('Equilibrium', eq.map((x) => f3(x / V)));
+    const K = Kat(r, T);
+    const lines = [
+      `x = ${f3(Math.abs(xi) / V)} mol/L ${xi > 1e-12 ? '(shift to the right)' : xi < -1e-12 ? '(shift to the left: x counts backwards)' : '(no shift)'}`,
+      `Kc = ${kExpr(r, subs)} = ${f3(Q(r, eq, V))}  (K at ${Math.round(T)} K = ${f3(K)})`,
+    ];
+    const e = q('.lc-eq'); e.replaceChildren(); lines.forEach((t, i) => { if (i) e.append(document.createElement('br')); e.append(t); });
+  }
+
+  function facts(eq: number[]) {
+    const f = q('.lc-facts'); f.replaceChildren();
+    const fact = (k: string, v: string, s = '') => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; dd.append(sm); } d.append(dt, dd); f.append(d); };
+    r.species.forEach((s, i) => fact(subs(s.f), `${f3(eq[i])} mol`, `${f3(eq[i] / V)} mol/L`));
+    fact('Gas molecules', `${dn(r) === 0 ? 'same on both sides' : dn(r) < 0 ? 'fewer on the right' : 'more on the right'}`, `ΔH ${r.dH > 0 ? '+' : '−'}${Math.abs(r.dH)} kJ/mol (${r.dH > 0 ? 'endothermic' : 'exothermic'})`);
+  }
+
+  function settle(start: number[], target: number[], ms = 900) {
+    cancelAnimationFrame(anim);
+    const t0 = performance.now();
+    const step = (t: number) => {
+      const k = Math.min(1, (t - t0) / ms), e = k * (2 - k);
+      const cur = start.map((x, i) => x + (target[i] - x) * e);
+      draw(cur); drawQK(Q(r, cur, V), Kat(r, T));
+      if (k < 1) anim = requestAnimationFrame(step);
+    };
+    anim = requestAnimationFrame(step);
+  }
+
+  function apply(change: Change | 'reset', species = 0) {
+    const K0 = Kat(r, T);
+    if (change === 'reset') { T = r.T0; V = r.V0; catalyst = false; n = equilibrate(r, r.start, V, T).n; before = [...n]; last = ''; render(n, n, null); return; }
+    const start = [...n];
+    if (change === 'add') start[species] += 0.5;
+    if (change === 'remove') start[species] = Math.max(0, start[species] - 0.5);
+    if (change === 'squeeze') V = V / 2;
+    if (change === 'expand') V = V * 2;
+    if (change === 'heat') T += 50;
+    if (change === 'cool') T -= 50;
+    if (change === 'catalyst') catalyst = true;
+    const Qv = Q(r, start, V), K = Kat(r, T);
+    const eq = equilibrate(r, start, V, T).n;
+    before = start; n = eq;
+    const dir = predict(r, change, species);
+    const what = change === 'add' ? `added 0.5 mol ${subs(r.species[species].f)}` : change === 'remove' ? `removed 0.5 mol ${subs(r.species[species].f)}` : change === 'squeeze' ? 'halved the volume' : change === 'expand' ? 'doubled the volume' : change === 'heat' ? 'heated by 50 K' : change === 'cool' ? 'cooled by 50 K' : 'added a catalyst';
+    let why = '';
+    if (change === 'heat' || change === 'cool') why = `K changes with temperature: from ${f3(K0)} to ${f3(K)}. The reaction is ${r.dH > 0 ? 'endothermic' : 'exothermic'}, so ${change === 'heat' ? 'heating favours the side that takes in heat' : 'cooling favours the side that gives out heat'}.`;
+    else if (change === 'catalyst') why = 'A catalyst speeds up the forward and backward reactions equally. Equilibrium is reached sooner, but K and the amounts stay the same.';
+    else if (change === 'squeeze' || change === 'expand') why = dn(r) === 0 ? 'Both sides have the same number of gas molecules, so Q and K change equally: no shift.' : `${change === 'squeeze' ? 'Squeezing raises' : 'Expanding lowers'} the pressure, so it moves to the side with ${(change === 'squeeze') === (dn(r) < 0) ? 'fewer' : 'more'} gas molecules (the ${(change === 'squeeze') === (dn(r) < 0) ? 'right' : 'left'}). Q jumps to ${f3(Qv)} while K stays ${f3(K)}.`;
+    else why = `Q jumps to ${f3(Qv)} while K stays ${f3(K)}. ${Qv < K ? 'Q < K, so more products form' : 'Q > K, so some products turn back into reactants'}.`;
+    last = `You ${what}: ${dir === 'right' ? 'shifts right →' : dir === 'left' ? '← shifts left' : 'no shift'}`;
+    render(start, eq, why);
+  }
+
+  function render(start: number[], eq: number[], why: string | null) {
+    q('.lc-big').textContent = last || 'At equilibrium. Change something.';
+    q('.lc-why').textContent = why ?? '';
+    ice(start, eq); facts(eq);
+    if (start.some((x, i) => Math.abs(x - eq[i]) > 1e-12)) { draw(start); drawQK(Q(r, start, V), Kat(r, T)); settle(start, eq); }
+    else { cancelAnimationFrame(anim); draw(eq); drawQK(Q(r, eq, V), Kat(r, T)); }
+    root.querySelector<HTMLButtonElement>('[data-c=squeeze]')!.disabled = V <= 0.25 + 1e-9;
+    root.querySelector<HTMLButtonElement>('[data-c=expand]')!.disabled = V >= 4 - 1e-9;
+    root.querySelector<HTMLButtonElement>('[data-c=cool]')!.disabled = T <= r.T0 - 200 + 1e-9;
+    root.querySelector<HTMLButtonElement>('[data-c=heat]')!.disabled = T >= r.T0 + 200 - 1e-9;
+    root.querySelectorAll<HTMLButtonElement>('.lc-sp [data-c=remove]').forEach((b) => { b.disabled = n[Number(b.dataset.i)] <= 1e-9; });
+  }
+
+  function pickReaction() {
+    r = REACTIONS.find((x) => x.id === q<HTMLSelectElement>('.lc-rx').value)!;
+    q('.lc-note').textContent = r.note;
+    const leg = q('.lc-leg'); leg.replaceChildren();
+    r.species.forEach((s, i) => { const sp = document.createElement('span'); sp.textContent = `${s.nu > 0 ? '■' : i === 0 ? '●' : '○'} ${subs(s.f)}`; leg.append(sp); });
+    const sp = q('.lc-sp'); sp.replaceChildren();
+    r.species.forEach((s, i) => {
+      for (const c of ['add', 'remove'] as const) {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'lc-b'; b.dataset.c = c; b.dataset.i = String(i);
+        b.textContent = `${c === 'add' ? 'Add' : 'Remove'} ${subs(s.f)}`; const sm = document.createElement('small'); sm.textContent = '0.5 mol'; b.append(sm);
+        b.addEventListener('click', () => apply(c, i)); sp.append(b);
+      }
+    });
+    apply('reset');
+  }
+  root.querySelectorAll<HTMLButtonElement>('.lc-btns:not(.lc-sp) .lc-b').forEach((b) => b.addEventListener('click', () => apply(b.dataset.c as Change | 'reset')));
+  q('.lc-rx').addEventListener('change', pickReaction);
+  pickReaction();
+
+  // Check yourself
+  const CH: [Change, string][] = [['add', 'add'], ['remove', 'remove'], ['squeeze', 'squeeze the container (raise the pressure)'], ['expand', 'expand the container (lower the pressure)'], ['heat', 'heat it'], ['cool', 'cool it']];
+  const dirQ = (): Question => {
+    const rr = pickOne(REACTIONS), [c, txt] = pickOne(CH), si = rint(0, rr.species.length - 1);
+    const d = predict(rr, c, si);
+    const what = c === 'add' || c === 'remove' ? `${txt} some ${subs(rr.species[si].f)}` : txt;
+    const wk = c === 'add' || c === 'remove' ? `${subs(rr.species[si].f)} is a ${rr.species[si].nu < 0 ? 'reactant' : 'product'}; the system moves to use up what was added or replace what was removed.` : c === 'heat' || c === 'cool' ? `ΔH = ${rr.dH > 0 ? '+' : '−'}${Math.abs(rr.dH)} kJ/mol, so the forward reaction is ${rr.dH > 0 ? 'endothermic' : 'exothermic'}.` : `Gas molecules: ${rr.species.filter((s) => s.nu < 0).reduce((a, s) => a - s.nu, 0)} on the left, ${rr.species.filter((s) => s.nu > 0).reduce((a, s) => a + s.nu, 0)} on the right.`;
+    return { q: `${rr.text}: you ${what}. Which way does the equilibrium shift? (left, right or none)`, hint: 'left, right or none', answer: d, ok: same(d, ...(d === 'none' ? ['no shift', 'no', 'neither'] : [])), worked: wk };
+  };
+  mountQuiz(q('.cq'), (): Question[] => {
+    const a = rint(1, 9) / 10, b = rint(1, 9) / 10, c = rint(2, 20) / 10, Kv = (c * c) / (a * b);
+    const Qn = rint(1, 50), Kn = rint(1, 50) + (Qn === 0 ? 1 : 0); const qd = Qn < Kn ? 'right' : Qn > Kn ? 'left' : 'none';
+    return [dirQ(), dirQ(), dirQ(),
+      { q: `For a reaction at some temperature, Q = ${Qn} and K = ${Kn}. Which way will it go? (left, right or none)`, hint: 'left, right or none', answer: qd, ok: same(qd, ...(qd === 'none' ? ['no shift'] : [])), worked: Qn < Kn ? 'Q < K: too few products, so it goes right (forward).' : Qn > Kn ? 'Q > K: too many products, so it goes left (backward).' : 'Q = K: already at equilibrium.' },
+      { q: `For H₂ + I₂ ⇌ 2HI at equilibrium, [H₂] = ${a} M, [I₂] = ${b} M and [HI] = ${c} M. What is Kc? (3 significant figures)`, hint: 'a number', answer: String(Number(Kv.toPrecision(3))), ok: near(Kv, 0.006), worked: `Kc = [HI]² / ([H₂][I₂]) = ${c}² / (${a} × ${b}) = ${Number((c * c).toPrecision(4))} / ${Number((a * b).toPrecision(4))} = ${Number(Kv.toPrecision(3))}.` },
+    ];
+  });
+</script>

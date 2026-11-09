@@ -1,0 +1,178 @@
+---
+// Galvanic cell builder: pick two half-cells; the picture shows which is the anode and cathode, electrons moving in
+// the wire, ions in the salt bridge and the voltmeter reading; E°cell, ΔG° = −nFE°, K and the Nernst equation.
+import '../../styles/astro.css';
+import '../../styles/chemquiz.css';
+import { CELL_IDS, halfCell, ionOf, electrodeOf } from '../../lib/sci/galvanic';
+const sup = (f: string) => f.replace(/\^(\d*)([+-])/, (_, d, s) => (d ? d.replace(/\d/g, (x: string) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+x]) : '') + (s === '+' ? '⁺' : '⁻'));
+const opts = CELL_IDS.map((id) => { const h = halfCell(id); return { id, label: `${electrodeOf(h)} | ${sup(ionOf(h))}  (E° ${h.E >= 0 ? '+' : '−'}${Math.abs(h.E).toFixed(2)} V)` }; });
+---
+<div class="ax gc">
+  <div class="ax-card">
+    <div class="ax-grid">
+      <label>Left half-cell <select class="gc-a">{opts.map((o) => <option value={o.id} selected={o.id === 'Zn'}>{o.label}</option>)}</select></label>
+      <label>Right half-cell <select class="gc-b">{opts.map((o) => <option value={o.id} selected={o.id === 'Cu2'}>{o.label}</option>)}</select></label>
+    </div>
+    <p class="ax-err gc-err" hidden></p>
+    <svg class="gc-svg" viewBox="0 0 340 250" role="img" aria-label="Galvanic cell"></svg>
+    <p class="ax-big gc-big" style="margin:6px 0 2px"></p>
+    <p class="gc-sub" style="margin:0 0 10px"></p>
+    <dl class="ax-facts gc-facts"></dl>
+    <p class="lx-eq gc-eq"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Change the concentrations (Nernst)</h2>
+    <label class="gc-rl"><span class="gc-la">Left ion</span> <input type="range" class="gc-ca" min="-3" max="0.3" step="0.1" value="0" /><output class="gc-oa">1 M</output></label>
+    <label class="gc-rl"><span class="gc-lb">Right ion</span> <input type="range" class="gc-cb" min="-3" max="0.3" step="0.1" value="0" /><output class="gc-ob">1 M</output></label>
+    <p class="lx-eq gc-neq"></p>
+    <p class="ax-help">25 °C. Concentration stands in for activity, which is close enough below about 0.1 M for this purpose. Standard potentials are rounded textbook values (25 °C, 1 bar, against the standard hydrogen electrode).</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lx-try">
+      <li>Build the Daniell cell (zinc and copper). Which way do the electrons go, and which way do the negative ions in the salt bridge go?</li>
+      <li>Swap the left and right half-cells. Does the voltage change?</li>
+      <li>Pair magnesium with silver. Why is the voltage so large?</li>
+      <li>In the Daniell cell, lower the copper ion concentration. Why does the voltage drop?</li>
+      <li>Find a pair where hydrogen is the cathode, and one where it is the anode.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cq">
+    <h2>Check yourself</h2>
+    <ol class="cq-list"></ol>
+    <button type="button" class="btn secondary small cq-new">New questions</button>
+  </div>
+</div>
+
+<style is:inline>
+  .gc select { font-size: 16px; min-height: 44px; }
+  .gc-svg { display: block; width: 100%; max-width: 480px; margin: 12px auto 0; }
+  .gc-rl { display: grid !important; grid-template-columns: minmax(70px, auto) 1fr 64px; align-items: center; gap: 10px !important; margin-top: 8px; color: var(--ink) !important; }
+  .gc-rl input { height: 32px; accent-color: var(--accent); }
+  .gc-rl output { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+  .gc-svg .glass { fill: none; stroke: var(--ink); stroke-width: 2; }
+  .gc-svg .sol { fill: var(--surface); }
+  .gc-svg .el { fill: #8d939a; stroke: var(--ink); stroke-width: 1; }
+  .gc-svg .el.cu { fill: #b8673a; }
+  .gc-svg .el.pt { fill: #d9dce0; }
+  .gc-svg .wire { fill: none; stroke: var(--ink); stroke-width: 2; }
+  .gc-svg .eflow { fill: none; stroke: var(--accent); stroke-width: 4; stroke-dasharray: 2 14; stroke-linecap: round; animation: gc-flow 1.2s linear infinite; }
+  .gc-svg .bridge { fill: none; stroke: var(--muted); stroke-width: 16; stroke-linejoin: round; opacity: 0.35; }
+  .gc-svg .vm { fill: var(--bg); stroke: var(--ink); stroke-width: 2; }
+  .gc-svg .vt { fill: var(--ink); font: 750 14px system-ui, sans-serif; text-anchor: middle; dominant-baseline: central; }
+  .gc-svg .lab { fill: var(--ink); font: 700 13px system-ui, sans-serif; text-anchor: middle; }
+  .gc-svg .lab2 { fill: var(--muted); font: 11.5px system-ui, sans-serif; text-anchor: middle; }
+  .gc-svg .ion { fill: var(--ink); font: 700 12px system-ui, sans-serif; text-anchor: middle; }
+  @keyframes gc-flow { to { stroke-dashoffset: -32; } }
+  @media (prefers-reduced-motion: reduce) { .gc-svg .eflow { animation: none; } }
+</style>
+
+<script>
+  import { build, ionOf, electrodeOf, cellNotation, halfText, halfCell, CELL_IDS, type Cell } from '../../lib/sci/galvanic';
+  import { pretty } from '../../lib/sci/chem';
+  import { mountQuiz, near, same, pickOne, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.gc')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const NS = 'http://www.w3.org/2000/svg';
+  const sv = (tag: string, attrs: Record<string, string | number>, text?: string) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, String(v)); if (text != null) n.textContent = text; return n; };
+  const nice = (t: string) => { try { return pretty(t); } catch { return t; } };
+  const V = (x: number, d = 2) => `${x >= 0 ? '+' : '−'}${Math.abs(x).toFixed(d)} V`;
+  const conc = (v: number) => { const c = 10 ** v; return c >= 0.1 ? Number(c.toPrecision(2)) : Number(c.toPrecision(1)); };
+  const cTxt = (c: number) => `${c} M`;
+  const mn = (t: string) => t.replace('-', '−');
+
+  function draw(c: Cell, leftIsAnode: boolean) {
+    const svg = q<SVGSVGElement>('.gc-svg'); svg.replaceChildren();
+    const L = leftIsAnode ? c.anode : c.cathode, R = leftIsAnode ? c.cathode : c.anode;
+    const beaker = (x: number, h: typeof L, isAnode: boolean) => {
+      svg.append(sv('rect', { x: x + 2, y: 150, width: 96, height: 76, class: 'sol' }));
+      svg.append(sv('path', { d: `M${x} 120 L${x} 226 Q${x} 232 ${x + 6} 232 L${x + 94} 232 Q${x + 100} 232 ${x + 100} 226 L${x + 100} 120`, class: 'glass' }));
+      const e = electrodeOf(h);
+      svg.append(sv('rect', { x: x + 40, y: 70, width: 20, height: 106, class: `el${e === 'Cu' ? ' cu' : e === 'Pt' ? ' pt' : ''}` }));
+      svg.append(sv('text', { x: x + 50, y: 246, class: 'lab' }, `${isAnode ? 'Anode (−)' : 'Cathode (+)'}`));
+      svg.append(sv('text', { x: x + 50, y: 196, class: 'ion' }, nice(ionOf(h))));
+      svg.append(sv('text', { x: x + 50, y: 214, class: 'lab2' }, isAnode ? 'oxidation' : 'reduction'));
+      svg.append(sv('text', { x: x + 20, y: 104, class: 'lab' }, e === 'Pt' ? 'Pt' : e));
+      if (e === 'Pt') svg.append(sv('text', { x: x + 20, y: 120, class: 'lab2' }, 'H₂ gas'));
+    };
+    beaker(20, L, leftIsAnode); beaker(220, R, !leftIsAnode);
+    // salt bridge
+    svg.append(sv('path', { d: 'M100 170 L100 128 L240 128 L240 170', class: 'bridge' }));
+    svg.append(sv('text', { x: 170, y: 120, class: 'lab2' }, 'salt bridge (KNO₃)'));
+    const an = leftIsAnode ? '← NO₃⁻' : 'NO₃⁻ →', cat = leftIsAnode ? 'K⁺ →' : '← K⁺';
+    svg.append(sv('text', { x: 170, y: 146, class: 'ion' }, `${an}   ${cat}`));
+    // wire and voltmeter
+    svg.append(sv('path', { d: 'M70 70 L70 30 L270 30 L270 70', class: 'wire' }));
+    const flow = leftIsAnode ? 'M70 70 L70 30 L270 30 L270 70' : 'M270 70 L270 30 L70 30 L70 70';
+    svg.append(sv('path', { d: flow, class: 'eflow' }));
+    svg.append(sv('circle', { cx: 170, cy: 30, r: 22, class: 'vm' }), sv('text', { x: 170, y: 30, class: 'vt' }, c.E.toFixed(2)));
+    svg.append(sv('text', { x: 170, y: 64, class: 'lab2' }, `electrons ${leftIsAnode ? '→' : '←'} (volts)`));
+    svg.setAttribute('aria-label', `${electrodeOf(c.anode)} anode and ${electrodeOf(c.cathode)} cathode; electrons flow through the wire from the anode to the cathode; the voltmeter reads ${c.E.toFixed(2)} V`);
+  }
+
+  const fact = (k: string, v: string, s = '') => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; dd.append(sm); } d.append(dt, dd); return d; };
+
+  function update() {
+    const a = q<HTMLSelectElement>('.gc-a').value, b = q<HTMLSelectElement>('.gc-b').value;
+    const va = Number(q<HTMLInputElement>('.gc-ca').value), vb = Number(q<HTMLInputElement>('.gc-cb').value), ca = conc(va), cb = conc(vb);
+    q('.gc-oa').textContent = cTxt(ca); q('.gc-ob').textContent = cTxt(cb);
+    q('.gc-la').textContent = `[${nice(ionOf(halfCell(a)))}] left`; q('.gc-lb').textContent = `[${nice(ionOf(halfCell(b)))}] right`;
+    let c: Cell;
+    try { c = build(a, b, ca, cb); } catch (e) { const er = q('.gc-err'); er.hidden = false; er.textContent = (e as Error).message; q('.gc-svg').replaceChildren(); q('.gc-big').textContent = ''; q('.gc-sub').textContent = ''; q('.gc-facts').replaceChildren(); q('.gc-eq').textContent = ''; q('.gc-neq').textContent = ''; return; }
+    q('.gc-err').hidden = true;
+    const leftIsAnode = c.anode.id === a;
+    draw(c, leftIsAnode);
+    const an = electrodeOf(c.anode), ca2 = electrodeOf(c.cathode);
+    q('.gc-big').textContent = `E°cell = ${V(c.E0)}`;
+    q('.gc-sub').textContent = `${an === 'Pt' ? 'The hydrogen electrode' : an} is the anode: it has the lower (more negative) E°, so it is oxidised and pushes electrons through the wire to ${ca2 === 'Pt' ? 'the hydrogen electrode' : ca2}.`;
+    const f = q('.gc-facts'); f.replaceChildren();
+    const sideText = (xs: Cell['reactants']) => xs.map((x) => `${x.nu === 1 ? '' : x.nu}${nice(x.f)}(${x.st})`).join(' + ');
+    f.append(
+      fact('Cell reaction', `${sideText(c.reactants)} → ${sideText(c.products)}`),
+      fact('Cell notation', cellNotation(c.anode, c.cathode, nice), 'anode on the left, ‖ = salt bridge'),
+      fact('Electrons n', String(c.n), 'per reaction as written'),
+      fact('ΔG°', `${mn(c.dG0.toFixed(1))} kJ/mol`, c.dG0 < 0 ? 'negative: the cell reaction is spontaneous' : ''),
+      fact('Equilibrium constant K', `10^${(c.lnK / Math.LN10).toFixed(1)}`, 'from ΔG° = −RT ln K'),
+    );
+    const eq = q('.gc-eq'); eq.replaceChildren();
+    const lines = [
+      `Cathode (reduction): ${halfText(c.cathode, nice)}   E° = ${V(c.cathode.E, 3)}`,
+      `Anode (oxidation): reverse of ${halfText(c.anode, nice)}   E° = ${V(c.anode.E, 3)}`,
+      `E°cell = E°cathode − E°anode = ${mn(c.cathode.E.toFixed(3))} − (${mn(c.anode.E.toFixed(3))}) = ${mn(c.E0.toFixed(3))} V`,
+      `ΔG° = −nFE°cell = −${c.n} × 96 485 × ${c.E0.toFixed(3)} J/mol = ${mn(c.dG0.toFixed(1))} kJ/mol`,
+    ];
+    lines.forEach((t, i) => { if (i) eq.append(document.createElement('br')); eq.append(t); });
+    const ne = q('.gc-neq'); ne.replaceChildren();
+    const Q = Math.exp(c.lnQ);
+    const nl = [
+      `Ecell = E°cell − (0.0592 / n) log Q`,
+      `Q = ${c.products.filter((x) => x.st === 'aq').map((x) => `[${nice(x.f)}]${x.nu > 1 ? '^' + x.nu : ''}`).join('') || '1'} / ${c.reactants.filter((x) => x.st === 'aq').map((x) => `[${nice(x.f)}]${x.nu > 1 ? '^' + x.nu : ''}`).join('') || '1'} = ${Number(Q.toPrecision(3))}`,
+      `Ecell = ${c.E0.toFixed(3)} − (0.0592 / ${c.n}) × log ${Number(Q.toPrecision(3))} = ${c.E.toFixed(3)} V`,
+    ];
+    nl.forEach((t, i) => { if (i) ne.append(document.createElement('br')); ne.append(t); });
+  }
+  ['.gc-a', '.gc-b'].forEach((s) => q(s).addEventListener('change', update));
+  ['.gc-ca', '.gc-cb'].forEach((s) => q(s).addEventListener('input', update));
+  update();
+
+  // Check yourself
+  const METALS = CELL_IDS.filter((x) => x !== 'H2');
+  const pair = () => { const a = pickOne(METALS); let b = pickOne(CELL_IDS); while (b === a) b = pickOne(CELL_IDS); return build(a, b, 1, 1); };
+  mountQuiz(q('.cq'), (): Question[] => {
+    const c1 = pair(), c2 = pair(), c3 = pair();
+    const e = (h: Cell['anode']) => (electrodeOf(h) === 'Pt' ? 'hydrogen' : electrodeOf(h));
+    const c4 = build('Zn', 'Cu2', pickOne([0.1, 0.01, 1]), pickOne([0.1, 0.01, 0.001]));
+    const ca4 = c4.anode.id === 'Zn' ? Math.exp(c4.lnQ) : 1;
+    return [
+      { q: `A cell is made from ${e(c1.anode)} (E° = ${V(c1.anode.E, 2)}) and ${e(c1.cathode)} (E° = ${V(c1.cathode.E, 2)}) half-cells. What is E°cell in volts? (2 decimal places)`, hint: 'a number', answer: (c1.cathode.E - c1.anode.E).toFixed(2), ok: near(Math.round(c1.E0 * 100) / 100, 0.006), worked: `The higher E° is the cathode: E°cell = ${c1.cathode.E.toFixed(2)} − (${c1.anode.E.toFixed(2)}) = ${(c1.cathode.E - c1.anode.E).toFixed(2)} V.` },
+      { q: `In a cell made from ${e(c2.anode)} and ${e(c2.cathode)} half-cells, which one is the anode?`, hint: 'a metal symbol or hydrogen', answer: e(c2.anode), ok: same(e(c2.anode), ...(e(c2.anode) === 'hydrogen' ? ['H2', 'Pt'] : [])), worked: `${e(c2.anode)} has the lower E° (${V(c2.anode.E, 2)} against ${V(c2.cathode.E, 2)}), so it is oxidised: the anode.` },
+      { q: `For the ${e(c3.anode)}–${e(c3.cathode)} cell, n = ${c3.n} and E°cell = ${c3.E0.toFixed(2)} V. What is ΔG° in kJ/mol? (F = 96 500 C/mol; nearest whole number)`, hint: 'a number', answer: String(Math.round(-c3.n * 96500 * Number(c3.E0.toFixed(2)) / 1000)), ok: near(-c3.n * 96500 * Number(c3.E0.toFixed(2)) / 1000, 0.01), worked: `ΔG° = −nFE° = −${c3.n} × 96 500 × ${c3.E0.toFixed(2)} J/mol = ${Math.round(-c3.n * 96500 * Number(c3.E0.toFixed(2)) / 1000)} kJ/mol.` },
+      { q: `How many electrons (n) are transferred in the ${e(c1.anode)}–${e(c1.cathode)} cell reaction as written with the smallest whole numbers?`, hint: 'a whole number', answer: String(c1.n), ok: near(c1.n, 0), worked: `${e(c1.anode)} gives ${c1.anode.n} per atom, ${e(c1.cathode)} takes ${c1.cathode.n}; the lowest common multiple is ${c1.n}.` },
+      { q: `Daniell cell (E° = 1.10 V, n = 2) with Q = [Zn²⁺]/[Cu²⁺] = ${Number(ca4.toPrecision(3))}. What is Ecell? (use 0.059/n log Q, 2 decimal places)`, hint: 'a number', answer: (1.10 - (0.059 / 2) * Math.log10(ca4)).toFixed(2), ok: near(1.10 - (0.059 / 2) * Math.log10(ca4), 0.006), worked: `Ecell = 1.10 − (0.059 / 2) × log ${Number(ca4.toPrecision(3))} = 1.10 − ${((0.059 / 2) * Math.log10(ca4)).toFixed(3)} = ${(1.10 - (0.059 / 2) * Math.log10(ca4)).toFixed(2)} V.` },
+    ];
+  });
+</script>

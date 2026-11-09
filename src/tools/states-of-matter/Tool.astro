@@ -1,0 +1,173 @@
+---
+// States of matter particle box (Learn): heat or cool a substance and watch its particles vibrate in place (solid),
+// slide past each other (liquid) or fly apart (gas); melting and boiling points; diffusion of two colours.
+// The particle motion is a teaching cartoon, not a simulation of real forces.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn stm">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <div class="ax-seg sm-mode" role="group" aria-label="What to explore"><button type="button" data-m="heat" aria-pressed="true">Heat and cool</button><button type="button" data-m="diff" aria-pressed="false">Diffusion</button></div>
+      <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="8" aria-pressed="true">Class 8</button><button type="button" data-level="9" aria-pressed="false">Class 9</button></div>
+    </div>
+    <canvas class="lrn-cv sm-cv" style="margin-top:10px" aria-label="A box of particles"></canvas>
+    <p class="ax-big sm-big" style="margin:8px 0 0"></p>
+    <p class="sm-say" style="margin:4px 0 0"></p>
+
+    <div class="sm-heat">
+      <div class="ax-row" style="margin-top:10px">
+        <button type="button" class="btn small sm-up">Heat (+10 °C)</button>
+        <button type="button" class="btn secondary small sm-down">Cool (−10 °C)</button>
+        <button type="button" class="btn secondary small sm-play">Pause</button>
+      </div>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Substance <select class="sm-sub"></select></label>
+        <label class="lrn-sl">Temperature <b class="sm-tv"></b><input type="range" class="sm-t" step="1" aria-label="Temperature in degrees Celsius" /></label>
+      </div>
+      <p class="ax-help sm-pts"></p>
+    </div>
+
+    <div class="sm-diff" hidden>
+      <div class="ax-row" style="margin-top:10px">
+        <button type="button" class="btn small sm-lift">Lift the divider</button>
+        <button type="button" class="btn secondary small sm-reset">Start again</button>
+      </div>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>The two colours are <select class="sm-dstate"><option value="gas" selected>Gases</option><option value="liquid">Liquids</option></select></label>
+        <label>Temperature <select class="sm-dheat"><option value="0">Cold</option><option value="0.5" selected>Warm</option><option value="1">Hot</option></select></label>
+      </div>
+      <p class="ax-help">Lift the divider and time how long the colours take to spread out evenly. Try a liquid, then a gas, then a hot gas.</p>
+    </div>
+    <dl class="ax-facts sm-facts" style="margin-top:10px"></dl>
+    <p class="ax-help">A teaching model: the particles are drawn far bigger and far fewer than real ones, and their motion is a cartoon of how real particles behave, not a simulation of the forces between them. Melting and boiling points are rounded values at normal air pressure.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Heat ice from −40 °C. The particles shake harder and harder, then break out of their pattern at 0 °C.</li>
+      <li>Stop exactly at 0 °C or 100 °C: two states live together while the substance melts or boils.</li>
+      <li>Compare ethanol with water: ethanol boils at a much lower temperature, so its particles escape more easily.</li>
+      <li>Oxygen is a gas in the room; you would need to cool it below −183 °C to make it liquid.</li>
+      <li>In Diffusion, time a cold liquid and a hot gas. Hotter particles move faster, so they mix sooner.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card sm-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { SUBSTANCES, phaseOf, toKelvin, meanKE, rng, makeParticles, step, mixing, type Phase } from '../../lib/sci/learnstates';
+  import { mountQuiz, pick, one, fitCanvas, wireLevel, loop } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+  import { fmtExp } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.stm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const sub = q<HTMLSelectElement>('.sm-sub'), tIn = q<HTMLInputElement>('.sm-t');
+  SUBSTANCES.forEach((s) => sub.add(new Option(s.name, s.id)));
+  const rand = rng(Date.now() % 100000);
+  let ps = makeParticles(36, rand), mode = 'heat', level = '8', wall = true, lifted = 0, mixedAt = 0;
+  const S = () => SUBSTANCES.find((s) => s.id === sub.value)!;
+  const setRange = () => { const s = S(); tIn.min = String(Math.min(s.mp - 50, 20)); tIn.max = String(Math.max(s.bp + 50, 20)); };
+  const SAY: Record<Phase, string> = {
+    solid: 'Solid: the particles are packed close in a fixed pattern and only vibrate about their places. It keeps its shape and volume.',
+    melting: 'Melting point: the temperature stays here while the heat breaks the fixed pattern. Solid and liquid are together.',
+    liquid: 'Liquid: the particles are still close, but they slide past one another. It keeps its volume but takes the shape of its container.',
+    boiling: 'Boiling point: bubbles of gas form all through the liquid. The temperature stays here while the heat pulls particles right apart.',
+    gas: 'Gas: the particles are far apart and fly about in all directions, hitting the walls. It fills any container and is easy to squash.',
+  };
+  const heatIn = (tC: number, ph: Phase) => { const s = S(); const h = ph === 'solid' ? (tC - (s.mp - 50)) / 50 : ph === 'gas' ? (tC - s.bp) / 50 : (tC - s.mp) / Math.max(1, s.bp - s.mp); return Math.max(0, Math.min(1, h)); };
+
+  function frame(dt: number) {
+    const pal = pagePalette(), { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.sm-cv'), 270);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const side = Math.min(W - 20, H - 20), ox = (W - side) / 2, oy = 10;
+    let ph: Phase, heat: number;
+    if (mode === 'heat') { const tC = +tIn.value; ph = phaseOf(tC, S().mp, S().bp); heat = heatIn(tC, ph); }
+    else { ph = q<HTMLSelectElement>('.sm-dstate').value as Phase; heat = +q<HTMLSelectElement>('.sm-dheat').value; }
+    const nsub = Math.max(1, Math.round(dt / (1 / 60)));
+    for (let i = 0; i < nsub && dt > 0; i++) step(ps, Math.min(dt, 1 / 30) / nsub, ph, heat, rand, 0.5, 0.5, mode === 'diff' && wall ? 0.5 : Infinity);
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.strokeRect(ox, oy, side, side);
+    if (mode === 'diff' && wall) { ctx.beginPath(); ctx.moveTo(ox + side / 2, oy); ctx.lineTo(ox + side / 2, oy + side); ctx.stroke(); }
+    const rr = Math.max(3, side * 0.022), cA = pal.red ? pal.ink : pal.accent, cB = pal.red ? pal.muted : pal.accent2;
+    for (const p of ps) {
+      ctx.fillStyle = mode === 'diff' ? (p.c ? cB : cA) : cA;
+      ctx.beginPath(); ctx.arc(ox + p.x * side, oy + (1 - p.y) * side, rr, 0, 7); ctx.fill();
+    }
+    if (mode === 'diff') {
+      const m = mixing(ps), el = lifted ? (performance.now() - lifted) / 1000 : 0;
+      if (lifted && !mixedAt && m >= 0.8) mixedAt = el;
+      q('.sm-big').textContent = `Mixed: ${Math.round(m * 100)}%`;
+      q('.sm-say').textContent = wall ? 'The divider keeps the colours apart.' : mixedAt ? `Well mixed (80%) after ${mixedAt.toFixed(1)} s.` : `Spreading… ${el.toFixed(1)} s`;
+    }
+  }
+
+  function snap(dir: number) {
+    const s = S(), t = +tIn.value; let n = t + 10 * dir;
+    for (const mark of [s.mp, s.bp]) if ((dir > 0 && t < mark && n > mark) || (dir < 0 && t > mark && n < mark)) n = mark;
+    tIn.value = String(Math.max(+tIn.min, Math.min(+tIn.max, n))); update();
+  }
+
+  function update() {
+    const s = S(), tC = +tIn.value, ph = phaseOf(tC, s.mp, s.bp);
+    q('.sm-heat').hidden = mode !== 'heat'; q('.sm-diff').hidden = mode !== 'diff';
+    q('.sm-tv').textContent = `${tC} °C`;
+    q('.sm-pts').textContent = `${s.name} melts at ${s.mp} °C and boils at ${s.bp} °C (rounded, at normal air pressure). The heat and cool buttons stop at these points.`;
+    if (mode === 'heat') {
+      const name = { solid: 'Solid', melting: 'Melting', liquid: 'Liquid', boiling: 'Boiling', gas: 'Gas' }[ph];
+      q('.sm-big').textContent = `${name} at ${tC} °C`;
+      q('.sm-say').textContent = SAY[ph];
+      const facts = [fact('State', name), fact('Spacing', ph === 'gas' ? 'far apart' : ph === 'solid' ? 'tightly packed' : 'close'), fact('Particle motion', ph === 'solid' ? 'vibrate in place' : ph === 'gas' ? 'fly freely' : ph === 'liquid' ? 'slide past each other' : 'both at once')];
+      if (level === '9') facts.push(fact('Kelvin', `${(tC + 273).toFixed(0)} K`, `K = °C + 273 (exactly 273.15): ${toKelvin(tC).toFixed(2)} K`), fact('Average energy of a particle', `${fmtExp(meanKE(toKelvin(tC)), 3)} J`, '(3/2)kT: doubles when the kelvin temperature doubles'));
+      q('.sm-facts').replaceChildren(...facts);
+    } else q('.sm-facts').replaceChildren();
+    anim.redraw();
+  }
+
+  function resetDiff() {
+    ps = makeParticles(40, rand); ps.forEach((p) => { p.x = p.c === 0 ? 0.05 + 0.4 * rand() : 0.55 + 0.4 * rand(); p.y = q<HTMLSelectElement>('.sm-dstate').value === 'gas' ? 0.05 + 0.9 * rand() : 0.05 + 0.4 * rand(); });
+    wall = true; lifted = 0; mixedAt = 0; q<HTMLButtonElement>('.sm-lift').disabled = false;
+  }
+
+  const anim = loop(frame, q<HTMLButtonElement>('.sm-play'));
+  q('.sm-up').addEventListener('click', () => snap(1));
+  q('.sm-down').addEventListener('click', () => snap(-1));
+  sub.addEventListener('input', () => { setRange(); tIn.value = String(sub.value === 'water' ? 20 : sub.value === 'iron' ? S().mp - 20 : 20); update(); });
+  tIn.addEventListener('input', update);
+  q('.sm-lift').addEventListener('click', () => { wall = false; lifted = performance.now(); mixedAt = 0; q<HTMLButtonElement>('.sm-lift').disabled = true; });
+  q('.sm-reset').addEventListener('click', () => { resetDiff(); anim.redraw(); });
+  q('.sm-dstate').addEventListener('input', () => { resetDiff(); anim.redraw(); });
+  root.querySelectorAll<HTMLButtonElement>('.sm-mode button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m!; root.querySelectorAll('.sm-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    if (mode === 'diff') resetDiff(); else ps = makeParticles(36, rand);
+    update();
+  }));
+  setRange(); tIn.value = '20';
+  wireLevel(root, (l) => { level = l; update(); });
+  addEventListener('resize', () => anim.redraw());
+
+  mountQuiz(q('.sm-quiz'), () => {
+    const c = pick(-40, 120, 5), k = one([pick(200, 250), pick(300, 400)]);
+    const s = one(SUBSTANCES.slice(0, 3)), lo = s.mp - 30, hi = s.bp + 30;
+    let tt = pick(lo, hi); if (tt === s.mp || tt === s.bp) tt += 1;
+    const ph = phaseOf(tt, s.mp, s.bp), idx = ph === 'solid' ? 0 : ph === 'liquid' ? 1 : 2;
+    const facts: [string, number, string][] = [
+      ['In which state are the particles farthest apart?', 2, 'In a gas the particles are far apart and move freely.'],
+      ['Which state has a fixed volume but takes the shape of its container?', 1, 'A liquid: its particles stay close (fixed volume) but can slide past each other.'],
+      ['In which state do the particles only vibrate about fixed places?', 0, 'In a solid the particles are held in a fixed pattern and can only vibrate.'],
+    ];
+    const f = one(facts);
+    return [
+      { q: `Change ${c} °C to kelvin.`, ans: c + 273, unit: 'K', abs: 0.6, work: `K = °C + 273 = ${c} + 273 = ${c + 273} K (or ${(c + 273.15).toFixed(2)} K with 273.15)` },
+      { q: `Change ${k} K to degrees Celsius.`, ans: k - 273, unit: '°C', abs: 0.6, work: `°C = K − 273 = ${k} − 273 = ${k - 273} °C` },
+      { q: `${s.name} melts at ${s.mp} °C and boils at ${s.bp} °C. What state is it in at ${tt} °C?`, ans: idx, choices: ['Solid', 'Liquid', 'Gas'], work: `${tt} °C is ${idx === 0 ? `below the melting point (${s.mp} °C), so it is a solid` : idx === 1 ? `between ${s.mp} °C and ${s.bp} °C, so it is a liquid` : `above the boiling point (${s.bp} °C), so it is a gas`}.` },
+      { q: f[0], ans: f[1], choices: ['Solid', 'Liquid', 'Gas'], work: f[2] },
+      { q: 'Where does a drop of ink spread fastest?', ans: 0, choices: ['Hot water', 'Cold water', 'The same in both'], work: 'Particles move faster when they are hotter, so diffusion is faster in hot water.' },
+    ];
+  });
+</script>

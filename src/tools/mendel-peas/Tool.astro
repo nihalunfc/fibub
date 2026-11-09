@@ -1,0 +1,289 @@
+---
+// Mendel's pea garden: pick two parents, grow random offspring, compare the counts with the expected ratio,
+// with a Punnett square and (Class 12) a chi-square check, incomplete dominance and codominance.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax mdp">
+  <div class="ax-card">
+    <div class="ax-row"><span class="mdp-lab">Level</span>
+      <div class="ax-seg mdp-level" role="group" aria-label="Level"><button type="button" data-v="10" aria-pressed="true">Class 10</button><button type="button" data-v="12" aria-pressed="false">Class 12</button></div></div>
+    <div class="ax-row mdp-gap"><span class="mdp-lab">Cross</span>
+      <div class="ax-seg mdp-mode" role="group" aria-label="Which cross"><button type="button" data-v="mono" aria-pressed="true">Height</button><button type="button" data-v="di" aria-pressed="false">Seeds (2 genes)</button><button type="button" data-v="flower" aria-pressed="false" data-lv="12">Snapdragon</button><button type="button" data-v="blood" aria-pressed="false" data-lv="12">Blood group</button></div></div>
+    <p class="ax-help mdp-about"></p>
+    <div class="mdp-parents"></div>
+    <div class="ax-row mdp-gap mdp-quick"></div>
+    <div class="ax-row mdp-gap"><span class="mdp-lab">Children</span>
+      <div class="ax-seg mdp-n" role="group" aria-label="How many children"><button type="button" data-v="20" aria-pressed="false">20</button><button type="button" data-v="100" aria-pressed="true">100</button><button type="button" data-v="1000" aria-pressed="false">1000</button></div>
+      <button type="button" class="btn small mdp-grow">Grow again</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="mdp-title"></h2>
+    <canvas class="ax-fig mdp-fig"></canvas>
+    <p class="ax-help mdp-shown"></p>
+    <p class="ax-big mdp-big" aria-live="polite"></p>
+    <div class="ax-scroll"><table class="mdp-tab"></table></div>
+    <p class="mdp-say"></p>
+    <div class="mdp-chi" hidden>
+      <h3>Chi-square check</h3>
+      <p class="mdp-formula"></p>
+      <dl class="ax-facts mdp-facts"></dl>
+      <p class="mdp-verdict"></p>
+    </div>
+    <div class="ax-row mdp-gap"><button type="button" class="btn secondary small mdp-csv">Download counts (CSV)</button></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Punnett square</h2>
+    <p class="ax-help">Eggs down the side, pollen across the top. Each box is one equally likely child.</p>
+    <div class="ax-scroll"><table class="mdp-sq"></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="mdp-try">
+      <li>Cross pure tall with pure short. Every child is tall: where did "short" go? Now press <b>F1 × F1</b>.</li>
+      <li>Grow 20 children a few times, then 1000. Why is the 3 : 1 ratio clearer with more children?</li>
+      <li>Use a <b>test cross</b> to find out whether a tall plant is TT or Tt.</li>
+      <li>Class 12: cross two pink snapdragons. Why are there three colours, not two?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Type fractions like 1/4 or decimals. Nothing is saved.</p>
+    <ol class="mdp-qs"></ol>
+    <div class="ax-row"><button type="button" class="btn small mdp-check">Check answers</button><button type="button" class="btn secondary small mdp-new">New questions</button></div>
+    <p class="mdp-score" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+  import { GENES, cross, child, phenoOf, ratio, chiSquare, genotypesOf, type Gene } from '../../lib/sci/peagarden';
+  import { csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Palette, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.mdp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  type Mode = 'mono' | 'di' | 'flower' | 'blood';
+  const MODES: Record<Mode, { genes: Gene[]; about: string; quick: [string, string[], string[]][]; word: string }> = {
+    mono: { genes: [GENES.height], word: 'pea plants', about: 'Pea plants: T (tall) is dominant over t (short). Pure-breeding means both alleles are the same (TT or tt).',
+      quick: [['Pure tall × pure short', ['TT'], ['tt']], ['F1 × F1', ['Tt'], ['Tt']], ['Test cross', ['Tt'], ['tt']]] },
+    di: { genes: [GENES.shape, GENES.colour], word: 'pea seeds', about: 'Pea seeds: R (round) is dominant over r (wrinkled), and Y (yellow) over y (green). The two genes are sorted into gametes independently.',
+      quick: [['Pure round yellow × wrinkled green', ['RR', 'YY'], ['rr', 'yy']], ['F1 × F1', ['Rr', 'Yy'], ['Rr', 'Yy']], ['Test cross', ['Rr', 'Yy'], ['rr', 'yy']]] },
+    flower: { genes: [GENES.flower], word: 'snapdragon plants', about: 'Snapdragon flowers: neither allele is dominant (incomplete dominance). RR is red, WW white, and RW is in between: pink.',
+      quick: [['Red × white', ['RR'], ['WW']], ['Pink × pink', ['RW'], ['RW']], ['Pink × white', ['RW'], ['WW']]] },
+    blood: { genes: [GENES.blood], word: 'children', about: 'ABO blood groups: alleles A and B are codominant (both show in AB), and O is recessive to both. Three alleles, but each person has two.',
+      quick: [['A (AO) × B (BO)', ['AO'], ['BO']], ['AB × O', ['AB'], ['OO']], ['AB × AB', ['AB'], ['AB']]] },
+  };
+  let level = 10, mode: Mode = 'mono', N = 100, mum = ['TT'], dad = ['tt'];
+  let kids: string[][] = [], fig: Figure | null = null, rowsOut: (string | number)[][] = [], seed = 1;
+  let rnd = Math.random;
+  const fr = (p: number) => { for (const d of [1, 2, 4, 8, 16]) if (Math.abs(p * d - Math.round(p * d)) < 1e-9) return `${Math.round(p * d)}/${d}`; return p.toFixed(4); };
+  const genes = () => MODES[mode].genes;
+
+  function parentsUI() {
+    const box = q('.mdp-parents'); box.innerHTML = '';
+    ['Parent 1 (egg)', 'Parent 2 (pollen)'].forEach((label, who) => {
+      const row = document.createElement('div'); row.className = 'ax-row mdp-gap mdp-par';
+      const sp = document.createElement('span'); sp.className = 'mdp-lab'; sp.textContent = label; row.append(sp);
+      genes().forEach((g, k) => {
+        const s = document.createElement('select'); s.className = `mdp-g mdp-g${who}${k}`; s.setAttribute('aria-label', `${label}, ${g.trait}`);
+        genotypesOf(g).forEach((gt) => s.append(new Option(`${gt} (${g.pheno(gt)})`, gt)));
+        s.value = (who ? dad : mum)[k];
+        s.addEventListener('change', () => { (who ? dad : mum)[k] = s.value; grow(); });
+        row.append(s);
+      });
+      box.append(row);
+    });
+    const qk = q('.mdp-quick'); qk.innerHTML = '';
+    MODES[mode].quick.forEach(([name, a, b], j) => {
+      const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn secondary small mdp-qk'; btn.dataset.q = String(j); btn.textContent = name;
+      btn.addEventListener('click', () => { mum = [...a]; dad = [...b]; parentsUI(); grow(); });
+      qk.append(btn);
+    });
+    q('.mdp-about').textContent = MODES[mode].about;
+  }
+
+  // ---------- picture ----------
+  const SEED = { yellow: '#e2b80a', green: '#4f9a2c' }, FLOWER = { red: '#d0312d', pink: '#f2a0bd', white: '#ffffff' };
+  function icon(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, ph: string[], pal: Palette) {
+    ctx.lineWidth = 1.5; ctx.strokeStyle = pal.ink;
+    if (mode === 'mono') {
+      const h = ph[0] === 'tall' ? s * 0.85 : s * 0.38, base = y + s * 0.45;
+      ctx.strokeStyle = pal.good; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x, base); ctx.lineTo(x, base - h); ctx.stroke();
+      for (let j = 1; j <= (ph[0] === 'tall' ? 3 : 1); j++) { const yy = base - (h * j) / 4; ctx.beginPath(); ctx.ellipse(x - 4, yy, 4, 2, -0.5, 0, Math.PI * 2); ctx.ellipse(x + 4, yy - 2, 4, 2, 0.5, 0, Math.PI * 2); ctx.stroke(); }
+      ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x - 7, base); ctx.lineTo(x + 7, base); ctx.stroke();
+    } else if (mode === 'di') {
+      const r = s * 0.3, wr = ph[0] === 'wrinkled';
+      ctx.fillStyle = pal.red ? (ph[1] === 'yellow' ? pal.ink : pal.muted) : SEED[ph[1] as 'yellow' | 'green'];
+      ctx.beginPath();
+      for (let j = 0; j <= 40; j++) { const a = (j / 40) * Math.PI * 2, rr = r * (wr ? 1 + 0.12 * Math.sin(a * 7) : 1); const px = x + rr * Math.cos(a), py = y + rr * Math.sin(a); j ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+    } else if (mode === 'flower') {
+      const c = pal.red ? ({ red: pal.ink, pink: pal.muted, white: pal.bg } as Record<string, string>)[ph[0]] : FLOWER[ph[0] as 'red' | 'pink' | 'white'];
+      ctx.fillStyle = c;
+      for (let j = 0; j < 5; j++) { const a = (j / 5) * Math.PI * 2; ctx.beginPath(); ctx.arc(x + s * 0.17 * Math.cos(a), y + s * 0.17 * Math.sin(a), s * 0.14, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+    } else {
+      ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.moveTo(x, y - s * 0.38); ctx.bezierCurveTo(x + s * 0.32, y, x + s * 0.3, y + s * 0.34, x, y + s * 0.34); ctx.bezierCurveTo(x - s * 0.3, y + s * 0.34, x - s * 0.32, y, x, y - s * 0.38); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = pal.ink; ctx.font = `600 ${Math.round(s * 0.26)}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(ph[0], x, y + s * 0.08);
+    }
+  }
+  function draw() {
+    const show = kids.slice(0, 100), cols = 10, s = 44, W = cols * s + 8, rowsN = Math.max(1, Math.ceil(show.length / cols)), H = rowsN * s + 8;
+    const g = genes();
+    fig = { w: W, h: H, alt: `${kids.length} ${MODES[mode].word} from ${mum.join('')} × ${dad.join('')}`, draw: (ctx, _w, _h, pal) => {
+      show.forEach((kid, i) => icon(ctx, 4 + s * (i % cols) + s / 2, 4 + s * Math.floor(i / cols) + s / 2, s, g.map((gene, k) => gene.pheno(kid[k])), pal));
+    } };
+    paint(q<HTMLCanvasElement>('.mdp-fig'), fig);
+    q('.mdp-shown').textContent = kids.length > 100 ? `Showing the first 100 of ${kids.length}.` : '';
+  }
+
+  // ---------- counts, ratio, chi-square ----------
+  function grow() {
+    const g = genes(); kids = Array.from({ length: N }, () => child(g, mum, dad, rnd));
+    report();
+  }
+  function report() {
+    const g = genes(), c = cross(g, mum, dad);
+    const ORDER = ['red', 'pink', 'white'];
+    const phen = [...c.pheno.entries()].sort((a, b) => (mode === 'flower' ? ORDER.indexOf(a[0]) - ORDER.indexOf(b[0]) : b[1] - a[1]));
+    const counts = phen.map(([ph]) => kids.filter((k) => phenoOf(g, k) === ph).length);
+    const rat = ratio(phen.map(([, p]) => p));
+    q('.mdp-title').textContent = `${mum.join(' ')} × ${dad.join(' ')}: ${N} ${MODES[mode].word}`;
+    draw();
+    const tb = q<HTMLTableElement>('.mdp-tab'); tb.innerHTML = '';
+    const head = ['Looks like', 'Counted', 'Expected chance', 'Expected count'];
+    const hr = tb.createTHead().insertRow(); head.forEach((h, j) => { const th = document.createElement('th'); th.textContent = h; if (j) th.className = 'r'; hr.append(th); });
+    const b = tb.createTBody();
+    rowsOut = [['phenotype', 'counted', 'expected_chance', 'expected_count']];
+    phen.forEach(([ph, p], j) => {
+      const tr = b.insertRow(); [ph, String(counts[j]), fr(p), (p * N).toFixed(1)].forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; });
+      rowsOut.push([ph, counts[j], fr(p), +(p * N).toFixed(2)]);
+    });
+    const smallest = Math.min(...counts.filter((x) => x > 0), Infinity);
+    q('.mdp-big').textContent = phen.length === 1 ? `All ${N} are ${phen[0][0]}` : `Expected ${rat.join(' : ')}; you got ${counts.join(' : ')}`;
+    const genoList = [...c.geno.entries()].sort((a, b) => b[1] - a[1]).map(([k, p]) => `${k} ${fr(p)}`).join(', ');
+    q('.mdp-say').textContent = `Genotypes expected: ${genoList}.${phen.length > 1 && Number.isFinite(smallest) && counts.every((x) => x > 0) ? ` Your counts divided by the smallest: ${counts.map((x) => (x / smallest).toFixed(2)).join(' : ')}.` : ''} Chance decides each child, so counts wobble around the expected numbers; the more children, the closer the ratio gets.`;
+    // chi-square (Class 12)
+    const chiBox = q('.mdp-chi'); chiBox.hidden = level !== 12 || phen.length < 2;
+    if (!chiBox.hidden) {
+      const cs = chiSquare(counts, phen.map(([, p]) => p));
+      q('.mdp-formula').textContent = `χ² = Σ (O − E)² ÷ E = ${counts.map((o, i) => `(${o} − ${cs.exp[i].toFixed(1)})² ÷ ${cs.exp[i].toFixed(1)}`).join(' + ')} = ${cs.chi2.toFixed(3)}`;
+      const list: [string, string][] = [['χ²', cs.chi2.toFixed(3)], ['Degrees of freedom', `${cs.df} (classes − 1)`], ['p-value', cs.p < 0.001 ? '< 0.001' : cs.p.toFixed(3)]];
+      q('.mdp-facts').replaceChildren(...list.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+      q('.mdp-verdict').textContent = (cs.p >= 0.05 ? `p = ${cs.p.toFixed(3)} is 0.05 or more: the counts fit the expected ${rat.join(' : ')} ratio; the differences are just chance.` : `p is below 0.05: counts this far from ${rat.join(' : ')} would be rare by chance alone. Random children still do this about 1 time in 20, so grow again before you decide.`) + (cs.small ? ' Some expected counts are below 5, so the test is rough: grow more children.' : '');
+      rowsOut.push([], ['chi_square', +cs.chi2.toFixed(4)], ['degrees_of_freedom', cs.df], ['p_value', +cs.p.toFixed(4)]);
+    }
+    // Punnett square
+    const sq = q<HTMLTableElement>('.mdp-sq'); sq.innerHTML = '';
+    const ge = [...c.gametesMum.keys()], gp = [...c.gametesDad.keys()];
+    const h = sq.createTHead().insertRow(); const corner = document.createElement('th'); corner.textContent = '♀ \\ ♂'; h.append(corner);
+    gp.forEach((x) => { const th = document.createElement('th'); th.textContent = x; h.append(th); });
+    const body = sq.createTBody();
+    ge.forEach((e) => {
+      const tr = body.insertRow(); const th = document.createElement('th'); th.textContent = e; tr.append(th);
+      gp.forEach((p) => { const gt = g.map((gene, k) => { const pair = e[k] + p[k]; return gene.alleles.indexOf(pair[0]) <= gene.alleles.indexOf(pair[1]) ? pair : pair[1] + pair[0]; }); const td = tr.insertCell(); td.innerHTML = '<b></b><small></small>'; td.querySelector('b')!.textContent = gt.join(''); td.querySelector('small')!.textContent = phenoOf(g, gt); });
+    });
+  }
+
+  // ---------- Check yourself ----------
+  type Qn = { text: string; options?: string[]; answer: string | number; tol?: number; worked: string };
+  let qs: Qn[] = [];
+  const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
+  const parseAns = (s: string) => { const t = s.trim().replace(',', '.'); if (t.includes('/')) { const [a, b] = t.split('/').map(Number); return a / b; } return t === '' ? NaN : Number(t); };
+  function makeQuiz() {
+    const n16 = pick([160, 320, 480, 640, 800]);
+    const tc = pick<[string, string, number, string]>([['Tt × tt', 'short', 0.5, 'Tt gives T or t; tt gives only t. Children: Tt, tt in equal numbers, so 1/2 are short.'], ['Tt × Tt', 'short', 0.25, 'Punnett square TT, Tt, Tt, tt: 1 box in 4 is tt, so 1/4 are short.'], ['TT × tt', 'short', 0, 'Every child is Tt, so none are short.'], ['Tt × Tt', 'tall', 0.75, 'TT, Tt and Tt are tall: 3 boxes of 4.']]);
+    qs = [
+      { text: `Cross ${tc[0]} (T tall, t short). What fraction of the children are ${tc[1]}?`, answer: tc[2], tol: 0.001, worked: tc[3] },
+      { text: `In the F2 of a cross between pure round yellow (RRYY) and wrinkled green (rryy) peas, you grow ${n16} plants. How many would you expect to have wrinkled green seeds?`, answer: n16 / 16, tol: 0.5, worked: `wrinkled green is rryy, 1 box of 16 in a 9 : 3 : 3 : 1 cross: ${n16} ÷ 16 = ${n16 / 16}.` },
+      { text: 'A tall pea plant crossed with a short one gives some short children. What is the tall parent?', options: ['TT', 'Tt', 'tt'], answer: 'Tt', worked: 'A short child is tt, so it got a t from each parent: the tall parent must carry t, so it is Tt.' },
+    ];
+    if (level === 10) qs.push({ text: 'What ratio of looks (phenotypes) do you expect in the F2 of a cross between pure tall and pure short plants?', options: ['1 : 1', '3 : 1', '1 : 2 : 1', '9 : 3 : 3 : 1'], answer: '3 : 1', worked: 'F1 are all Tt; Tt × Tt gives 1 TT : 2 Tt : 1 tt, which look 3 tall : 1 short.' });
+    else {
+      const tot = pick([80, 100, 120, 160, 200]), e1 = tot * 0.75, o1 = Math.round(e1 + pick([-9, -6, -4, 4, 6, 9])), o2 = tot - o1;
+      const chi = (o1 - e1) ** 2 / e1 + (o2 - tot / 4) ** 2 / (tot / 4);
+      qs.push({ text: `You count ${o1} tall and ${o2} short plants. Expected ratio 3 : 1. Work out χ² (to 2 decimal places).`, answer: Math.round(chi * 100) / 100, tol: 0.015, worked: `Expected ${e1} and ${tot / 4}. χ² = (${o1} − ${e1})² ÷ ${e1} + (${o2} − ${tot / 4})² ÷ ${tot / 4} = ${chi.toFixed(2)}` });
+      qs.push({ text: 'Two pink snapdragons (RW × RW) are crossed. What fraction of the children are pink?', answer: 0.5, tol: 0.001, worked: 'RR, RW, RW, WW: 2 of 4 boxes are RW (pink), so 1/2.' });
+    }
+    const ol = q('.mdp-qs'); ol.innerHTML = '';
+    qs.forEach((qq, j) => {
+      const li = document.createElement('li'); li.dataset.a = String(qq.answer);
+      const p = document.createElement('p'); p.textContent = qq.text; li.append(p);
+      if (qq.options) { const s = document.createElement('select'); s.className = 'mdp-ans'; s.setAttribute('aria-label', `Answer ${j + 1}`); s.append(new Option('Choose…', ''), ...qq.options.map((o) => new Option(o, o))); li.append(s); }
+      else { const inp = document.createElement('input'); inp.className = 'mdp-ans'; inp.inputMode = 'decimal'; inp.setAttribute('aria-label', `Answer ${j + 1}`); li.append(inp); }
+      const w = document.createElement('p'); w.className = 'mdp-worked'; w.hidden = true; li.append(w);
+      ol.append(li);
+    });
+    q('.mdp-score').textContent = '';
+  }
+  function checkQuiz() {
+    let right = 0;
+    root.querySelectorAll<HTMLLIElement>('.mdp-qs li').forEach((li, j) => {
+      const qq = qs[j], v = (li.querySelector('.mdp-ans') as HTMLInputElement).value;
+      const ok = qq.options ? v === qq.answer : Math.abs(parseAns(v) - Number(qq.answer)) <= (qq.tol ?? 0.01);
+      if (ok) right++;
+      const w = li.querySelector<HTMLElement>('.mdp-worked')!; w.hidden = false; w.className = `mdp-worked ${ok ? 'ok' : 'no'}`;
+      w.textContent = `${ok ? '✓ Right.' : '✗ Not quite.'} ${qq.worked}`;
+    });
+    q('.mdp-score').textContent = `${right} of ${qs.length} right.`;
+  }
+
+  // ---------- wiring ----------
+  const press = (sel: string, v: string) => root.querySelectorAll<HTMLButtonElement>(`${sel} button`).forEach((o) => o.setAttribute('aria-pressed', String(o.dataset.v === v)));
+  function setMode(m: Mode) { mode = m; press('.mdp-mode', m); const qk = MODES[m].quick[0]; mum = [...qk[1]]; dad = [...qk[2]]; parentsUI(); grow(); }
+  root.querySelectorAll<HTMLButtonElement>('.mdp-level button').forEach((b) => b.addEventListener('click', () => {
+    level = Number(b.dataset.v); press('.mdp-level', b.dataset.v!);
+    root.querySelectorAll<HTMLButtonElement>('.mdp-mode button[data-lv="12"]').forEach((x) => (x.hidden = level !== 12));
+    if (level === 10 && (mode === 'flower' || mode === 'blood')) setMode('mono'); else report();
+    makeQuiz();
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.mdp-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.v as Mode)));
+  root.querySelectorAll<HTMLButtonElement>('.mdp-n button').forEach((b) => b.addEventListener('click', () => { N = Number(b.dataset.v); press('.mdp-n', b.dataset.v!); grow(); }));
+  q('.mdp-grow').addEventListener('click', grow);
+  q('.mdp-csv').addEventListener('click', () => save(new TextEncoder().encode(csv(rowsOut)), `mendel-${mode}.csv`, 'text/csv'));
+  q('.mdp-check').addEventListener('click', checkQuiz);
+  q('.mdp-new').addEventListener('click', makeQuiz);
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.mdp-fig'), fig));
+  // A test page can ask for repeatable children with ?seed=<n> in the address.
+  const sp = Number(new URLSearchParams(location.search).get('seed'));
+  if (sp > 0) { seed = sp; rnd = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296); }
+  root.querySelectorAll<HTMLButtonElement>('.mdp-mode button[data-lv="12"]').forEach((x) => (x.hidden = true));
+  parentsUI(); grow(); makeQuiz();
+  wireDownloads(q('.dl'), () => ({ title: "Mendel's pea garden", subtitle: q('.mdp-title').textContent ?? '', file: `mendel-${mode}`,
+    sections: [
+      { title: q('.mdp-title').textContent ?? '', figure: fig ?? undefined, text: [q('.mdp-big').textContent ?? '', q('.mdp-say').textContent ?? ''],
+        table: { head: ['Looks like', 'Counted', 'Expected chance', 'Expected count'], rows: rowsOut.slice(1).filter((r) => r.length === 4).map((r) => r.map(String)), align: ['l', 'r', 'r', 'r'] } },
+      ...(level === 12 && !q('.mdp-chi').hidden ? [{ title: 'Chi-square check', text: [q('.mdp-formula').textContent ?? '', q('.mdp-verdict').textContent ?? ''] }] : []),
+    ] as Section[] }));
+</script>
+
+<style is:inline>
+  .mdp .mdp-lab { font-size: 14px; color: var(--muted); min-width: 64px; }
+  .mdp .mdp-gap { margin-top: 12px; }
+  .mdp .ax-seg button { min-height: 44px; padding: 8px 12px; }
+  .mdp .ax-seg button[hidden] { display: none; }
+  .mdp .btn.small { min-height: 44px; }
+  .mdp .mdp-about { margin-top: 10px; }
+  .mdp .mdp-par select { width: auto; min-height: 44px; flex: 1 1 140px; max-width: 220px; }
+  .mdp .mdp-par .mdp-lab { flex: 1 0 100%; }
+  .mdp .mdp-shown { margin: 4px 0 0; }
+  .mdp .mdp-say { margin: 10px 0 0; }
+  .mdp h3 { font-size: 16px; margin: 16px 0 6px; }
+  .mdp .mdp-formula { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; background: var(--accent-soft); padding: 8px 10px; border-radius: 8px; overflow-wrap: anywhere; }
+  .mdp .mdp-verdict { font-weight: 600; }
+  .mdp .mdp-sq th, .mdp .mdp-sq td { text-align: center; border: 1px solid var(--line); padding: 6px; }
+  .mdp .mdp-sq td b { display: block; font-size: 15px; }
+  .mdp .mdp-sq td small { color: var(--muted); font-size: 11.5px; }
+  .mdp .mdp-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .mdp .mdp-qs { padding-left: 20px; display: grid; gap: 14px; margin: 10px 0; }
+  .mdp .mdp-qs p { margin: 0 0 6px; }
+  .mdp .mdp-qs select, .mdp .mdp-qs input { max-width: 220px; min-height: 44px; }
+  .mdp .mdp-worked.ok { color: var(--good); }
+  .mdp .mdp-worked.no { color: var(--bad); }
+  .mdp .mdp-score { font-weight: 700; }
+</style>

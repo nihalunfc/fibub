@@ -1,0 +1,177 @@
+---
+// Photoelectric effect lab (Learn): light on a metal plate; frequency, brightness and collector voltage; the
+// current against voltage; record the stopping potential at several frequencies and fit h/e and the work function.
+// The shape of the current curve is a simple teaching model; the stopping potential follows Einstein's equation.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn pel">
+  <div class="ax-card">
+    <h2>Shine light on a metal</h2>
+    <canvas class="lrn-cv pe-cv" aria-label="Light falling on a metal plate in a vacuum tube, with electrons flying to the collector"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Metal <select class="pe-metal"></select></label>
+      <label class="lrn-sl">Light frequency <b class="pe-fv"></b><input type="range" class="pe-f" min="4" max="15" step="0.1" value="7" aria-label="Light frequency in units of 10 to the 14 hertz" /></label>
+      <label class="lrn-sl">Brightness <b class="pe-Iv"></b><input type="range" class="pe-I" min="0" max="100" step="5" value="60" aria-label="Brightness in percent" /></label>
+      <label class="lrn-sl">Collector voltage <b class="pe-Vv"></b><input type="range" class="pe-V" min="-5" max="5" step="0.05" value="1" aria-label="Collector voltage in volts" /></label>
+    </div>
+    <p class="ax-big pe-big" style="margin:10px 0 0"></p>
+    <p class="lrn-eq pe-eq"></p>
+    <dl class="ax-facts pe-facts" style="margin-top:10px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Current against voltage</h2>
+    <canvas class="lrn-cv pe-iv" aria-label="Graph of photocurrent against collector voltage"></canvas>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small pe-keep">Keep this curve</button>
+      <button type="button" class="btn secondary small pe-clear">Clear kept curves</button>
+    </div>
+    <p class="ax-help">The current levels off (saturates) when every electron set free reaches the collector; a negative voltage pushes electrons back, and at the stopping potential −V₀ even the fastest ones are stopped. The curve's exact shape is a simple teaching model; V₀ follows Einstein's equation.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Find Planck's constant</h2>
+    <p class="ax-help" style="margin-top:0">Record the stopping potential at three or more frequencies. The straight line through them has slope h/e and meets the frequency axis at the threshold frequency.</p>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn small pe-rec">Record V₀ at this frequency</button>
+      <button type="button" class="btn secondary small pe-clr">Clear points</button>
+    </div>
+    <canvas class="lrn-cv pe-vf" style="margin-top:10px" aria-label="Graph of stopping potential against frequency with a fitted straight line"></canvas>
+    <p class="lrn-eq pe-fit"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Turn the frequency down on caesium until the current stops. Now make the light as bright as you like: still nothing. Below the threshold no electrons come out.</li>
+      <li>Keep a curve, then change only the brightness: the saturation current changes, but the stopping potential stays the same.</li>
+      <li>Keep a curve, then raise the frequency: the stopping potential grows, but the saturation current stays the same.</li>
+      <li>Record V₀ at 6, 8, 10 and 12 × 10¹⁴ Hz and read off h. Then try zinc: a parallel line, further right.</li>
+      <li>Zinc and copper need ultraviolet light: no visible colour sets electrons free from them.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card pe-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { METALS, photonEV, kmaxEV, stoppingV, thresholdFreq, thresholdNm, current, lineFit, nmFromFreq, nmToRgb, freqFromNm, H, E_CHARGE } from '../../lib/sci/learnphoto';
+  import { mountQuiz, pick, one, r, fitCanvas, loop } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+  import { sig, fmtExp } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.pel')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v_ = (c: string) => +q<HTMLInputElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const msel = q<HTMLSelectElement>('.pe-metal'); METALS.forEach((m) => msel.add(new Option(`${m.name} (φ ≈ ${m.phi} eV)`, m.id)));
+  const st = () => { const m = METALS.find((x) => x.id === msel.value)!; return { m, phi: m.phi, f: v_('.pe-f') * 1e14, I: v_('.pe-I') / 100, V: v_('.pe-V') }; };
+  let kept: { pts: [number, number][]; label: string }[] = [], points: { f: number; v: number; metal: string }[] = [];
+  type E = { x: number; y: number; vx: number; back: boolean };
+  let els: E[] = [], spawn = 0;
+  const colourOf = (nm: number, pal: ReturnType<typeof pagePalette>) => { if (pal.red) return pal.ink; const c = nmToRgb(nm); return c ? `rgb(${c[0]},${c[1]},${c[2]})` : pal.muted; };
+
+  function draw(dt: number) {
+    const s = st(), pal = pagePalette(), nm = nmFromFreq(s.f), I = current(s.V, s.f, s.phi, s.I), k = kmaxEV(s.f, s.phi);
+    const { ctx, W, H: Hc } = fitCanvas(q<HTMLCanvasElement>('.pe-cv'), 170);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, Hc);
+    const ex = 40, cx = W - 40, top = 40, bot = 140;
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(W / 2, 90, W / 2 - 8, 62, 0, 0, 7); ctx.stroke();
+    ctx.fillStyle = pal.ink; ctx.fillRect(ex - 6, top, 6, bot - top); ctx.fillRect(cx, top, 6, bot - top);
+    ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = pal.muted; ctx.fillText(s.m.name, ex - 3, bot + 14); ctx.fillText(`collector ${s.V >= 0 ? '+' : ''}${s.V.toFixed(2)} V`, cx - 10, bot + 14);
+    if (s.I > 0) { ctx.strokeStyle = colourOf(nm, pal); ctx.globalAlpha = 0.25 + 0.75 * s.I; ctx.lineWidth = 3; for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.moveTo(W / 2 - 40 + i * 14, 8); ctx.lineTo(ex + 2, top + 12 + i * 22); ctx.stroke(); } ctx.globalAlpha = 1; }
+    // Electrons: spawn in proportion to the number set free; each flies with some energy up to K_max
+    if (k > 0 && s.I > 0) { spawn += dt * 30 * s.I; while (spawn > 1) { spawn--; const e = Math.random() * k; els.push({ x: ex, y: top + 8 + Math.random() * (bot - top - 16), vx: 150 * Math.sqrt(e + 0.03), back: e < -s.V }); } }
+    const gap = cx - ex;
+    els = els.filter((e) => {
+      const acc = (150 * 150 * s.V) / (2 * gap); e.vx += acc * dt; e.x += e.vx * dt;
+      return e.x > ex - 2 && e.x < cx && els.length < 400;
+    });
+    ctx.fillStyle = pal.red ? pal.ink : pal.accent; for (const e of els) { ctx.beginPath(); ctx.arc(e.x, e.y, 2.5, 0, 7); ctx.fill(); }
+    ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.fillText(`current ${I.toFixed(0)}`, W - 12, 16);
+  }
+
+  function ivPlot() {
+    const s = st(), pal = pagePalette(), { ctx, W, H: Hc } = fitCanvas(q<HTMLCanvasElement>('.pe-iv'), 200);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, Hc);
+    const gx = 30, gy = 10, gw = W - 40, gh = Hc - 40, X = (V: number) => gx + ((V + 5) / 10) * gw, Y = (I: number) => gy + gh - (I / 105) * gh;
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(gx, gy, gw, gh);
+    ctx.beginPath(); ctx.moveTo(X(0), gy); ctx.lineTo(X(0), gy + gh); ctx.stroke();
+    ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center';
+    for (const V of [-5, -2.5, 0, 2.5, 5]) ctx.fillText(String(V), X(V), gy + gh + 13);
+    ctx.fillText('collector voltage (V)', gx + gw / 2, Hc - 4);
+    ctx.save(); ctx.translate(11, gy + gh / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('current', 0, 0); ctx.restore();
+    kept.forEach((k) => { ctx.strokeStyle = pal.muted; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.5; ctx.beginPath(); k.pts.forEach(([V, I], i) => (i ? ctx.lineTo(X(V), Y(I)) : ctx.moveTo(X(V), Y(I)))); ctx.stroke(); ctx.setLineDash([]); });
+    ctx.strokeStyle = pal.red ? pal.ink : pal.accent; ctx.lineWidth = 2.5; ctx.beginPath();
+    for (let i = 0; i <= 400; i++) { const V = -5 + i / 40, I = current(V, s.f, s.phi, s.I); if (i) ctx.lineTo(X(V), Y(I)); else ctx.moveTo(X(V), Y(I)); }
+    ctx.stroke();
+    ctx.fillStyle = pal.red ? pal.muted : pal.accent2; ctx.beginPath(); ctx.arc(X(s.V), Y(current(s.V, s.f, s.phi, s.I)), 5, 0, 7); ctx.fill();
+    const v0 = stoppingV(s.f, s.phi);
+    if (v0 > 0 && v0 <= 5 && s.I > 0) { ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.fillText(`−V₀`, X(-v0), Y(0) - 6); }
+  }
+
+  function vfPlot() {
+    const pal = pagePalette(), { ctx, W, H: Hc } = fitCanvas(q<HTMLCanvasElement>('.pe-vf'), 200);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, Hc);
+    const gx = 34, gy = 10, gw = W - 44, gh = Hc - 40, X = (f: number) => gx + (f / 15e14) * gw, Y = (v: number) => gy + gh - ((v + 2) / 6) * gh;
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(gx, gy, gw, gh); ctx.beginPath(); ctx.moveTo(gx, Y(0)); ctx.lineTo(gx + gw, Y(0)); ctx.stroke();
+    ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center';
+    for (const f of [0, 5, 10, 15]) ctx.fillText(String(f), X(f * 1e14), gy + gh + 13);
+    ctx.fillText('frequency (× 10¹⁴ Hz)', gx + gw / 2, Hc - 4); ctx.textAlign = 'right';
+    for (const v of [-2, 0, 2, 4]) ctx.fillText(String(v), gx - 4, Y(v) + 4);
+    const groups = [...new Set(points.map((p) => p.metal))];
+    groups.forEach((g, gi) => {
+      const ps = points.filter((p) => p.metal === g), col = pal.red ? pal.ink : [pal.accent, pal.accent2, pal.good, pal.bad][gi % 4];
+      ctx.fillStyle = col; ps.forEach((p) => { ctx.beginPath(); ctx.arc(X(p.f), Y(p.v), 4.5, 0, 7); ctx.fill(); });
+      const fitPs = ps.filter((p) => p.v > 0);
+      if (new Set(fitPs.map((p) => p.f)).size >= 2) { const { a, b } = lineFit(fitPs.map((p) => p.f), fitPs.map((p) => p.v)); ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(0), Y(a)); ctx.lineTo(X(15e14), Y(a + b * 15e14)); ctx.stroke(); }
+    });
+  }
+
+  function fitText() {
+    const s = st(), ps = points.filter((p) => p.metal === s.m.name && p.v > 0);
+    const n = points.filter((p) => p.metal === s.m.name).length;
+    if (new Set(ps.map((p) => p.f)).size < 2) { q('.pe-fit').textContent = n ? `${n} point${n > 1 ? 's' : ''} for ${s.m.name}. Record at least two frequencies above the threshold to draw the line.` : 'No points yet.'; return; }
+    const { a, b } = lineFit(ps.map((p) => p.f), ps.map((p) => p.v)), h = b * E_CHARGE, phi = -a, f0 = -a / b;
+    q('.pe-fit').textContent = `${s.m.name}, ${ps.length} points: slope = h/e = ${fmtExp(b, 4)} V s, so h = slope × e = ${fmtExp(h, 4)} J s (accepted value 6.626 × 10⁻³⁴ J s). The line meets the V axis at −${sig(phi, 3)} V, so the work function φ = ${sig(phi, 3)} eV, and the f axis at f₀ = ${fmtExp(f0, 3)} Hz.`;
+  }
+
+  function update() {
+    const s = st(), nm = nmFromFreq(s.f), E = photonEV(s.f), k = E - s.phi, v0 = stoppingV(s.f, s.phi), I = current(s.V, s.f, s.phi, s.I);
+    const band = nm < 380 ? 'ultraviolet' : nm > 750 ? 'infrared' : nm < 450 ? 'violet' : nm < 495 ? 'blue' : nm < 570 ? 'green' : nm < 590 ? 'yellow' : nm < 620 ? 'orange' : 'red';
+    q('.pe-fv').textContent = `${s.f / 1e14 < 10 ? (s.f / 1e14).toFixed(1) : (s.f / 1e14).toFixed(1)} × 10¹⁴ Hz (${Math.round(nm)} nm, ${band})`;
+    q('.pe-Iv').textContent = `${Math.round(s.I * 100)}%`; q('.pe-Vv').textContent = `${s.V >= 0 ? '+' : ''}${s.V.toFixed(2)} V`;
+    q('.pe-big').textContent = k > 0 ? (s.I > 0 ? `Current ${I.toFixed(1)} (electrons reach the collector${I === 0 ? ': none, all stopped' : ''})` : 'No light, no current') : 'No electrons come out';
+    if (k > 0 && s.I > 0 && I === 0) q('.pe-big').textContent = 'Current 0: the voltage stops every electron';
+    q('.pe-eq').textContent = `Photon energy hf = ${sig(E, 4)} eV.  K_max = hf − φ = ${sig(E, 4)} − ${s.phi} = ${k > 0 ? sig(k, 4) + ' eV, so the stopping potential V₀ = ' + sig(v0, 4) + ' V' : sig(k, 3) + ' eV: below zero, so no electron gets out'}.`;
+    q('.pe-facts').replaceChildren(
+      fact('Threshold frequency f₀', `${sig(thresholdFreq(s.phi) / 1e14, 4)} × 10¹⁴ Hz`, `φ / h; wavelengths shorter than ${Math.round(thresholdNm(s.phi))} nm work`),
+      fact('Stopping potential V₀', k > 0 ? `${sig(v0, 4)} V` : '–', 'does not depend on brightness'),
+      fact('Fastest electrons', k > 0 ? `${sig(Math.sqrt((2 * k * E_CHARGE) / 9.1093837e-31) / 1000, 4)} km/s` : '–', '½mv² = K_max'));
+    ivPlot(); vfPlot(); fitText(); anim.redraw();
+  }
+
+  const anim = loop(draw);
+  root.querySelectorAll('input, select').forEach((e) => e.addEventListener('input', update));
+  q('.pe-keep').addEventListener('click', () => { const s = st(); kept.push({ pts: Array.from({ length: 401 }, (_, i) => { const V = -5 + i / 40; return [V, current(V, s.f, s.phi, s.I)] as [number, number]; }), label: '' }); if (kept.length > 4) kept.shift(); ivPlot(); });
+  q('.pe-clear').addEventListener('click', () => { kept = []; ivPlot(); });
+  q('.pe-rec').addEventListener('click', () => { const s = st(); points = points.filter((p) => !(p.metal === s.m.name && p.f === s.f)); points.push({ f: s.f, v: stoppingV(s.f, s.phi), metal: s.m.name }); vfPlot(); fitText(); });
+  q('.pe-clr').addEventListener('click', () => { points = []; vfPlot(); fitText(); });
+  addEventListener('resize', () => { ivPlot(); vfPlot(); anim.redraw(); });
+  update();
+
+  mountQuiz(q('.pe-quiz'), () => {
+    const nm = pick(200, 700, 10), m = one(METALS.slice(0, 3)), nm2 = pick(200, 450, 10), m3 = one(METALS), nm4 = pick(120, 200, 10), m4 = one(METALS.slice(3));
+    const E = photonEV(freqFromNm(nm)), k2 = photonEV(freqFromNm(nm2)) - m.phi, v4 = photonEV(freqFromNm(nm4)) - m4.phi;
+    return [
+      { q: `What is the energy of a photon of ${nm} nm light, in eV? (hc ≈ 1240 eV nm)`, ans: E, unit: 'eV', work: `E = hc / λ = 1240 / ${nm} = ${r(E)} eV` },
+      { q: `Light of ${nm2} nm falls on ${m.name.toLowerCase()} (φ = ${m.phi} eV). What is the largest kinetic energy of the electrons, in eV?`, ans: k2, unit: 'eV', work: `hf = 1240 / ${nm2} = ${r(k2 + m.phi)} eV; K_max = hf − φ = ${r(k2 + m.phi)} − ${m.phi} = ${r(k2)} eV` },
+      { q: `What is the longest wavelength that can set electrons free from ${m3.name.toLowerCase()} (φ = ${m3.phi} eV)?`, ans: thresholdNm(m3.phi), unit: 'nm', work: `λ₀ = hc / φ = 1240 / ${m3.phi} = ${r(thresholdNm(m3.phi))} nm` },
+      { q: `Ultraviolet light of ${nm4} nm falls on ${m4.name.toLowerCase()} (φ = ${m4.phi} eV). What is the stopping potential?`, ans: v4, unit: 'V', work: `hf = 1240 / ${nm4} = ${r(v4 + m4.phi)} eV; V₀ = (hf − φ) / e = ${r(v4 + m4.phi)} − ${m4.phi} = ${r(v4)} V` },
+      { q: 'Red light gives no photoelectrons from a metal. What happens if you make the red light much brighter?', ans: 2, choices: ['Electrons come out', 'Faster electrons come out', 'Still no electrons'], work: 'Each photon of red light has too little energy (hf < φ). Brighter light means more photons, but none has enough energy, so still no electrons.' },
+    ];
+  });
+</script>

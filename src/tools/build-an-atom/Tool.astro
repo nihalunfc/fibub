@@ -1,0 +1,192 @@
+---
+// Build an atom: tap + and − to add protons, neutrons and electrons; the element, mass number, charge, isotope,
+// Bohr shells (2, 8, 8, 2) and valency update live. Ends with a "Check yourself" block of fresh questions.
+import '../../styles/astro.css';
+import '../../styles/chemquiz.css';
+import { ELEMENTS } from '../../lib/sci/chem';
+const first20 = ELEMENTS.slice(0, 20);
+const parts = [
+  { k: 'p', name: 'Protons', note: 'set the element' },
+  { k: 'n', name: 'Neutrons', note: 'change the mass' },
+  { k: 'e', name: 'Electrons', note: 'set the charge' },
+];
+---
+<div class="ax bat">
+  <div class="ax-card">
+    <h2>Your atom</h2>
+    <svg class="bat-svg" viewBox="-180 -180 360 360" role="img" aria-label="Picture of the atom: nucleus in the middle, electrons on shells"></svg>
+    <div class="bat-ctl">
+      {parts.map((x) => (
+        <div class="bat-r" data-k={x.k}>
+          <span class="bat-lab"><b>{x.name}</b><small>{x.note}</small></span>
+          <button type="button" class="bat-b bat-minus" aria-label={`Remove one ${x.name.toLowerCase().slice(0, -1)}`}>−</button>
+          <output class="bat-v" aria-live="polite">0</output>
+          <button type="button" class="bat-b bat-plus" aria-label={`Add one ${x.name.toLowerCase().slice(0, -1)}`}>+</button>
+        </div>
+      ))}
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <label style="flex:1 1 200px">Start from an element <select class="bat-pick"><option value="">Choose…</option>{first20.map((e) => <option value={e.z}>{e.z} {e.name} ({e.symbol})</option>)}</select></label>
+      <button type="button" class="btn secondary small bat-neutral" style="align-self:end">Make it neutral</button>
+    </div>
+    <p class="ax-big bat-big" style="margin:14px 0 2px"></p>
+    <p class="bat-desc" style="margin:0 0 10px"></p>
+    <dl class="ax-facts bat-facts"></dl>
+    <p class="lx-eq bat-eq"></p>
+    <p class="ax-help">Up to 20 protons and 20 electrons (hydrogen to calcium), filling shells K, L, M and N as 2, 8, 8, 2, the way school chemistry draws them. Mass number counts protons plus neutrons; electrons are so light they are left out.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lx-try">
+      <li>Add 6 protons and 6 neutrons, then 6 electrons: that is carbon-12. Now add two more neutrons: still carbon, now carbon-14.</li>
+      <li>Make sodium (11 protons, 12 neutrons, 11 electrons) and take one electron away. Which shell lost it, and what is the charge?</li>
+      <li>Make chlorine (17, 18, 17) and add one electron. Why does the M shell look "complete" now?</li>
+      <li>Change only the protons. Watch the element's name change while the charge goes up by one each time.</li>
+      <li>Build neon (10, 10, 10). Why is its valency zero?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cq">
+    <h2>Check yourself</h2>
+    <ol class="cq-list"></ol>
+    <button type="button" class="btn secondary small cq-new">New questions</button>
+  </div>
+</div>
+
+<style is:inline>
+  .bat-svg { display: block; width: 100%; max-width: 360px; margin: 0 auto 6px; }
+  .bat-ctl { display: grid; gap: 8px; }
+  .bat-r { display: grid; grid-template-columns: 1fr 48px 52px 48px; align-items: center; gap: 6px; }
+  .bat-lab { display: grid; line-height: 1.2; min-width: 0; }
+  .bat-lab small { color: var(--muted); font-size: 12.5px; }
+  .bat-b { height: 48px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; font-size: 26px; line-height: 1; cursor: pointer; touch-action: manipulation; }
+  .bat-b:disabled { opacity: 0.35; cursor: default; }
+  .bat-v { text-align: center; font-size: 22px; font-weight: 750; font-variant-numeric: tabular-nums; }
+  .bat-svg .p { fill: var(--ink); stroke: var(--bg); stroke-width: 1; }
+  .bat-svg .n { fill: var(--bg); stroke: var(--ink); stroke-width: 1.6; }
+  .bat-svg .pt { fill: var(--bg); font: 700 10px system-ui, sans-serif; text-anchor: middle; dominant-baseline: central; }
+  .bat-svg .sh { fill: none; stroke: var(--line); stroke-width: 1.5; }
+  .bat-svg .sh.on { stroke: var(--muted); }
+  .bat-svg .el { fill: var(--ink); }
+  .bat-svg .lab { fill: var(--muted); font: 600 12px system-ui, sans-serif; }
+</style>
+
+<script>
+  import { build, describe, shells, valency, SHELL_NAMES, MAX_P, MAX_N, MAX_E, type Atom } from '../../lib/sci/atom';
+  import { ELEMENTS } from '../../lib/sci/chem';
+  import { mountQuiz, near, same, rint, pickOne, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.bat')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const st = { p: 3, n: 4, e: 3 };
+  const MAX = { p: MAX_P, n: MAX_N, e: MAX_E } as const;
+  const NS = 'http://www.w3.org/2000/svg';
+  const R = [80, 106, 132, 158]; // shell radii
+
+  // Most common isotope of each element: the neutron count used when you pick an element.
+  const commonN = (z: number) => { const el = ELEMENTS[z - 1]; const iso = el.isotopes.reduce((b, x) => (x.abundance > b.abundance ? x : b)); return iso.a - z; };
+
+  const sv = (tag: string, attrs: Record<string, string | number>, text?: string) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, String(v)); if (text != null) n.textContent = text; return n; };
+
+  function draw(a: Atom) {
+    const svg = q<SVGSVGElement>('.bat-svg'); svg.replaceChildren();
+    // shells
+    R.forEach((r, i) => {
+      svg.append(sv('circle', { cx: 0, cy: 0, r, class: `sh${i < a.shells.length ? ' on' : ''}` }));
+      svg.append(sv('text', { x: r * Math.cos(-Math.PI / 4) + 4, y: r * Math.sin(-Math.PI / 4) - 4, class: 'lab' }, SHELL_NAMES[i]));
+    });
+    // nucleus: protons and neutrons mixed evenly on a sunflower spiral
+    const A = a.p + a.n, rad = 7, c = 7.4;
+    let pi = 0, ni = 0;
+    for (let i = 0; i < A; i++) {
+      // pick proton or neutron so both spread evenly through the cluster
+      const isP = a.n === 0 || (a.p > 0 && (pi + 0.5) / a.p <= (ni + 0.5) / a.n);
+      if (isP) pi++; else ni++;
+      const r = c * Math.sqrt(i + 0.5), t = i * 2.39996;
+      const x = r * Math.cos(t), y = r * Math.sin(t);
+      svg.append(sv('circle', { cx: x.toFixed(1), cy: y.toFixed(1), r: rad, class: isP ? 'p' : 'n' }));
+      if (isP) svg.append(sv('text', { x: x.toFixed(1), y: y.toFixed(1), class: 'pt' }, '+'));
+    }
+    // electrons
+    a.shells.forEach((k, i) => {
+      for (let j = 0; j < k; j++) {
+        const t = -Math.PI / 2 + (2 * Math.PI * j) / k + i * 0.3;
+        svg.append(sv('circle', { cx: (R[i] * Math.cos(t)).toFixed(1), cy: (R[i] * Math.sin(t)).toFixed(1), r: 6, class: 'el' }));
+      }
+    });
+    const alt = a.el ? `${describe(a)}: ${a.p} protons and ${a.n} neutrons in the nucleus, electrons ${a.shells.join(', ') || 'none'} on the shells` : 'Empty: no protons yet';
+    svg.setAttribute('aria-label', alt);
+  }
+
+  const fact = (k: string, v: string, s = '') => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; dd.append(sm); } d.append(dt, dd); return d; };
+  const signed = (x: number) => (x > 0 ? `+${x}` : x < 0 ? `−${-x}` : '0');
+
+  function update() {
+    const a = build(st.p, st.n, st.e);
+    root.querySelectorAll<HTMLElement>('.bat-r').forEach((row) => {
+      const k = row.dataset.k as 'p' | 'n' | 'e';
+      row.querySelector('output')!.textContent = String(st[k]);
+      row.querySelector<HTMLButtonElement>('.bat-minus')!.disabled = st[k] <= 0;
+      row.querySelector<HTMLButtonElement>('.bat-plus')!.disabled = st[k] >= MAX[k];
+    });
+    draw(a);
+    q('.bat-big').textContent = a.el ? `${a.symbolText}  ${a.el.name}` : '—';
+    q('.bat-desc').textContent = a.el ? `A ${describe(a)}: ${a.kind === 'atom' ? 'protons and electrons balance, so it has no charge' : a.kind === 'cation' ? `it has lost ${a.charge} electron${a.charge > 1 ? 's' : ''}, so it is a positive ion (cation)` : `it has gained ${-a.charge} electron${a.charge < -1 ? 's' : ''}, so it is a negative ion (anion)`}.` : describe(a);
+    const f = q('.bat-facts'); f.replaceChildren();
+    if (a.el) {
+      f.append(
+        fact('Element', `${a.el.name} (${a.el.symbol})`, 'set by the number of protons'),
+        fact('Atomic number Z', String(a.p), 'protons'),
+        fact('Mass number A', String(a.A), 'protons + neutrons'),
+        fact('Charge', signed(a.charge), a.kind === 'atom' ? 'neutral atom' : a.kind),
+        fact('Electrons in shells', a.shells.length ? a.shells.map((k, i) => `${SHELL_NAMES[i]} ${k}`).join(', ') : 'none', a.shells.length ? `written ${a.shells.join(',')}` : ''),
+        fact('Valence electrons', String(a.valence), 'in the outermost shell'),
+        fact(`Valency of ${a.el.name.toLowerCase()}`, String(a.valency), valencyNote(a.p)),
+        fact('Isotope', `${a.el.name}-${a.A}`, a.iso!.note),
+      );
+    }
+    const eq = q('.bat-eq'); eq.replaceChildren();
+    const line = (t: string) => { const s = document.createElement('span'); s.textContent = t; eq.append(s, document.createElement('br')); };
+    line(`Mass number A = protons + neutrons = ${a.p} + ${a.n} = ${a.A}`);
+    line(`Charge = protons − electrons = ${a.p} − ${a.e} = ${signed(a.charge)}`);
+    if (a.el) line(`Neutrons = A − Z = ${a.A} − ${a.p} = ${a.n}`);
+    eq.lastChild?.remove();
+  }
+
+  function valencyNote(z: number) {
+    const s = shells(z), v = s[s.length - 1], full = s.length === 1 ? 2 : 8;
+    if (v === full) return 'outer shell already full, so it does not combine';
+    if (s.length === 1) return 'shares or loses its 1 electron';
+    return v <= 4 ? `loses or shares its ${v} outer electron${v > 1 ? 's' : ''}` : `gains or shares ${8 - v} to reach 8`;
+  }
+
+  root.querySelectorAll<HTMLElement>('.bat-r').forEach((row) => {
+    const k = row.dataset.k as 'p' | 'n' | 'e';
+    row.querySelector('.bat-minus')!.addEventListener('click', () => { if (st[k] > 0) { st[k]--; update(); } });
+    row.querySelector('.bat-plus')!.addEventListener('click', () => { if (st[k] < MAX[k]) { st[k]++; update(); } });
+  });
+  q<HTMLSelectElement>('.bat-pick').addEventListener('change', (ev) => {
+    const z = Number((ev.target as HTMLSelectElement).value); if (!z) return;
+    st.p = z; st.e = z; st.n = commonN(z); update();
+  });
+  q('.bat-neutral').addEventListener('click', () => { st.e = Math.min(st.p, MAX_E); update(); });
+  update();
+
+  // Check yourself: fresh numbers each time.
+  const name = (z: number) => ELEMENTS[z - 1].name.toLowerCase();
+  mountQuiz(q('.cq'), (): Question[] => {
+    const z1 = rint(3, 20), n1 = commonN(z1) + rint(0, 2);
+    const z2 = pickOne([3, 4, 11, 12, 13, 8, 9, 16, 17, 19, 20]), lose = valency(z2), metal = [3, 4, 11, 12, 13, 19, 20].includes(z2);
+    const e2 = metal ? z2 - lose : z2 + lose, ch = z2 - e2;
+    const z3 = rint(1, 20), z4 = rint(1, 20), z5 = rint(5, 20), a5 = z5 + commonN(z5) + rint(0, 1);
+    const chs = `${Math.abs(ch) === 1 ? '' : Math.abs(ch)}${ch > 0 ? '+' : '-'}`, chs2 = `${ch > 0 ? '+' : '-'}${Math.abs(ch)}`;
+    return [
+      { q: `An atom has ${z1} protons and ${n1} neutrons. What is its mass number?`, hint: 'a whole number', answer: String(z1 + n1), ok: near(z1 + n1, 0), worked: `Mass number = protons + neutrons = ${z1} + ${n1} = ${z1 + n1}.` },
+      { q: `A ${name(z2)} ion has ${z2} protons and ${e2} electrons. What is its charge? (write it like +2 or −1)`, hint: 'like +2 or −1', answer: chs2, ok: same(chs2, chs, `${Math.abs(ch)}${ch > 0 ? '+' : '-'}`), worked: `Charge = protons − electrons = ${z2} − ${e2} = ${chs2}.` },
+      { q: `Write the electrons in the shells (K, L, M, N) of a neutral ${name(z3)} atom, atomic number ${z3}.`, hint: 'like 2,8,1', answer: shells(z3).join(','), ok: (t) => t.replace(/[\s;]+/g, ',').replace(/,+/g, ',').replace(/^,|,$/g, '') === shells(z3).join(','), worked: `${z3} electrons fill K first (up to 2), then L (up to 8), then M (up to 8), then N: ${shells(z3).join(', ')}.` },
+      { q: `What is the valency of ${name(z4)} (atomic number ${z4})?`, hint: 'a whole number', answer: String(valency(z4)), ok: near(valency(z4), 0), worked: `Shells ${shells(z4).join(',')}: ${shells(z4).at(-1)} electron${shells(z4).at(-1)! > 1 ? 's' : ''} in the outer shell. ${valencyNote(z4).replace(/^./, (c) => c.toUpperCase())}.` },
+      { q: `An isotope of ${name(z5)} (atomic number ${z5}) has mass number ${a5}. How many neutrons does it have?`, hint: 'a whole number', answer: String(a5 - z5), ok: near(a5 - z5, 0), worked: `Neutrons = mass number − atomic number = ${a5} − ${z5} = ${a5 - z5}.` },
+    ];
+  });
+</script>

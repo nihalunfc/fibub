@@ -1,0 +1,170 @@
+---
+// SHM as the shadow of circular motion (Learn): a point goes round a circle, its shadow moves back and forth;
+// x, v and a graphs with a moving cursor, phase, energy bars, and the same motion as a spring-mass or a pendulum.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn shc">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">The circle and its shadow</h2>
+      <div class="ax-seg sh-mode" role="group" aria-label="What moves"><button type="button" data-m="circle" aria-pressed="true">Circle</button><button type="button" data-m="spring" aria-pressed="false">Spring</button><button type="button" data-m="pendulum" aria-pressed="false">Pendulum</button></div>
+    </div>
+    <canvas class="lrn-cv sh-cv" style="margin-top:10px" aria-label="A point going round a circle at a steady speed, and its shadow moving back and forth on a line below it"></canvas>
+    <p class="lrn-eq sh-live" aria-live="off"></p>
+    <div class="ax-row" style="margin-top:6px">
+      <button type="button" class="btn secondary small sh-play">Pause</button>
+      <button type="button" class="btn secondary small sh-zero">Back to t = 0</button>
+      <label class="ax-check"><input type="checkbox" class="sh-slow" /> Slow motion (¼ speed)</label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Amplitude A <b class="sh-Av"></b><input type="range" class="sh-A" min="1" max="20" step="1" value="10" aria-label="Amplitude in centimetres" /></label>
+      <label class="lrn-sl">Starting phase φ <b class="sh-pv"></b><input type="range" class="sh-p" min="0" max="360" step="15" value="0" aria-label="Phase in degrees" /></label>
+      <label class="lrn-sl">Mass m <b class="sh-mv"></b><input type="range" class="sh-m" min="0.1" max="2" step="0.1" value="0.5" aria-label="Mass in kilograms" /></label>
+      <label class="lrn-sl sh-only-c">Time for one turn T <b class="sh-Tv"></b><input type="range" class="sh-T" min="0.5" max="5" step="0.1" value="2" aria-label="Period in seconds" /></label>
+      <label class="lrn-sl sh-only-s" hidden>Spring constant k <b class="sh-kv"></b><input type="range" class="sh-k" min="5" max="100" step="5" value="20" aria-label="Spring constant in newtons per metre" /></label>
+      <label class="lrn-sl sh-only-p" hidden>String length L <b class="sh-Lv"></b><input type="range" class="sh-L" min="0.1" max="2.5" step="0.05" value="1" aria-label="Pendulum length in metres" /></label>
+      <label class="sh-only-p" hidden>Gravity g <select class="sh-g"><option value="9.8" selected>Earth (9.8 m/s²)</option><option value="1.62">Moon (about 1.62 m/s²)</option><option value="3.71">Mars (about 3.71 m/s²)</option></select></label>
+    </div>
+    <p class="lrn-eq sh-eq"></p>
+    <dl class="ax-facts sh-facts" style="margin-top:10px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Position, velocity and acceleration</h2>
+    <canvas class="lrn-cv sh-gr" aria-label="Graphs of position, velocity and acceleration against time over two periods, with a line at the present moment"></canvas>
+    <canvas class="lrn-cv sh-en" style="margin-top:8px" aria-label="Bars for kinetic, potential and total energy"></canvas>
+    <p class="ax-help">The velocity curve is a quarter of a turn ahead of the position curve, and the acceleration is always opposite to the position: a = −ω² x. Energy swaps between kinetic and potential, and the total stays the same (no friction).</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Pause when the shadow is at the end of its swing: the speed is zero but the acceleration is biggest.</li>
+      <li>Pause in the middle: the speed is biggest and the acceleration is zero.</li>
+      <li>Set the phase to 90°: the motion starts in the middle, moving left. That is x = A cos(ωt + 90°) = −A sin ωt.</li>
+      <li>Double the amplitude on the spring: the period does not change, but the energy becomes four times bigger.</li>
+      <li>Make the spring four times stiffer: the period halves. On the pendulum, make the string four times longer: the period doubles. Try the Moon.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card sh-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { omegaFromPeriod, springPeriod, pendulumPeriod, shmState, shmEnergy } from '../../lib/sci/learnshm';
+  import { mountQuiz, pick, one, r, fitCanvas, loop } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.shc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v_ = (c: string) => +q<HTMLInputElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let mode = 'circle', t = 0;
+  const st = () => {
+    const A = v_('.sh-A') / 100, phi = (v_('.sh-p') * Math.PI) / 180, m = v_('.sh-m');
+    const T = mode === 'circle' ? v_('.sh-T') : mode === 'spring' ? springPeriod(m, v_('.sh-k')) : pendulumPeriod(v_('.sh-L'), +q<HTMLSelectElement>('.sh-g').value);
+    return { A, phi, m, T, w: omegaFromPeriod(T) };
+  };
+  const cm = (x: number) => `${(x * 100).toFixed(1)} cm`;
+
+  function draw(dt: number) {
+    const s = st(); t += dt * (q<HTMLInputElement>('.sh-slow').checked ? 0.25 : 1);
+    const now = shmState(s.A, s.w, s.phi, t), pal = pagePalette(), hi = pal.red ? pal.ink : pal.accent, hi2 = pal.red ? pal.muted : pal.accent2;
+    // Circle and shadow
+    { const { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.sh-cv'), 250);
+      ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+      const R = Math.min(W * 0.3, 75), cx = W / 2, cy = 14 + R, scale = R / 0.2, rad = s.A * scale, ty = cy + R + 50;
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx, cy, rad, 0, 7); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx - R - 20, cy); ctx.lineTo(cx + R + 20, cy); ctx.stroke();
+      const px = cx + rad * Math.cos(now.angle), py = cy - rad * Math.sin(now.angle);
+      ctx.strokeStyle = pal.muted; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py); ctx.stroke();
+      { const th = ((now.angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI); ctx.beginPath(); ctx.arc(cx, cy, 16, 0, -th, true); ctx.stroke(); }
+      ctx.setLineDash([3, 4]); ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, ty); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = hi; ctx.beginPath(); ctx.arc(px, py, 6, 0, 7); ctx.fill();
+      // Track
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(cx - R - 20, ty + 10); ctx.lineTo(cx + R + 20, ty + 10); ctx.stroke();
+      ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(cx, ty + 4); ctx.lineTo(cx, ty + 16); ctx.stroke();
+      const qx = cx + now.x * scale;
+      if (mode === 'spring') {
+        const wall = cx - R - 20; ctx.fillStyle = pal.ink; ctx.fillRect(wall - 4, ty - 14, 4, 24);
+        ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(wall, ty); const n = 14, len = qx - 12 - wall;
+        for (let i = 1; i <= n; i++) ctx.lineTo(wall + (len * i) / n, ty + (i === n ? 0 : i % 2 ? -7 : 7)); ctx.stroke();
+        ctx.fillStyle = hi2; ctx.fillRect(qx - 12, ty - 12, 24, 22);
+      } else if (mode === 'pendulum') {
+        const piv = ty - 46; ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(cx - 20, piv); ctx.lineTo(cx + 20, piv); ctx.stroke();
+        const Lp = 46, dx = Math.max(-Lp * 0.95, Math.min(Lp * 0.95, qx - cx)), by = piv + Math.sqrt(Lp * Lp - dx * dx);
+        ctx.beginPath(); ctx.moveTo(cx, piv); ctx.lineTo(cx + dx, by); ctx.stroke();
+        ctx.fillStyle = hi2; ctx.beginPath(); ctx.arc(cx + dx, by, 8, 0, 7); ctx.fill();
+        ctx.fillStyle = hi; ctx.beginPath(); ctx.arc(qx, ty + 10, 4, 0, 7); ctx.fill();
+      } else { ctx.fillStyle = hi2; ctx.beginPath(); ctx.arc(qx, ty, 7, 0, 7); ctx.fill(); }
+      ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText('ωt + φ', cx + 20, cy - 6); ctx.textAlign = 'center'; ctx.fillText('x = 0', cx, ty + 30);
+      ctx.textAlign = 'left'; ctx.fillText(mode === 'pendulum' ? 'the bob’s sideways shadow (small swings)' : 'shadow on the line', 6, H - 6);
+    }
+    // Graphs
+    { const { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.sh-gr'), 240), strip = H / 3, span = 2 * s.T, L = 30;
+      ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+      const rows: [string, (u: number) => number, number, string][] = [
+        ['x', (u) => shmState(s.A, s.w, s.phi, u).x, s.A, hi], ['v', (u) => shmState(s.A, s.w, s.phi, u).v, s.A * s.w, hi2], ['a', (u) => shmState(s.A, s.w, s.phi, u).a, s.A * s.w * s.w, pal.ink]];
+      rows.forEach(([lab, f, amp, col], i) => {
+        const y0 = strip * i + strip / 2, sc = (strip / 2 - 8) / amp;
+        ctx.strokeStyle = pal.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, y0); ctx.lineTo(W - 4, y0); ctx.stroke();
+        ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath();
+        for (let px = 0; px <= W - 4 - L; px += 2) { const u = (px / (W - 4 - L)) * span, y = y0 - f(u) * sc; if (px) ctx.lineTo(L + px, y); else ctx.moveTo(L, y); }
+        ctx.stroke(); ctx.fillStyle = pal.ink; ctx.font = 'bold 13px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(lab, 8, y0 + 4);
+      });
+      const cxr = L + ((((t % span) + span) % span) / span) * (W - 4 - L);
+      ctx.strokeStyle = pal.muted; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(cxr, 0); ctx.lineTo(cxr, H); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'right'; ctx.fillText(`two periods, ${sig(span, 3)} s`, W - 6, H - 4);
+    }
+    // Energy bars
+    { const { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.sh-en'), 84), e = shmEnergy(s.m, s.w, s.A, now.x), L = 80, bw = W - L - 70;
+      ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+      ([['Kinetic', e.KE, hi], ['Potential', e.PE, hi2], ['Total', e.E, pal.ink]] as [string, number, string][]).forEach(([n, val, col], i) => {
+        const y = 8 + i * 25; ctx.fillStyle = pal.ink; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(n, 6, y + 12);
+        ctx.fillStyle = col; ctx.fillRect(L, y, Math.max(0, (val / e.E) * bw), 16);
+        ctx.fillStyle = pal.muted; ctx.fillText(`${sig(Math.max(0, val), 3)} J`, L + bw + 6, y + 12);
+      });
+    }
+    q('.sh-live').textContent = `t = ${t.toFixed(2)} s:  x = ${cm(now.x)},  v = ${(now.v * 100).toFixed(1)} cm/s,  a = ${(now.a * 100).toFixed(1)} cm/s²`;
+  }
+
+  function update() {
+    const s = st();
+    q('.sh-Av').textContent = `${v_('.sh-A')} cm`; q('.sh-pv').textContent = `${v_('.sh-p')}°`; q('.sh-mv').textContent = `${v_('.sh-m').toFixed(1)} kg`;
+    q('.sh-Tv').textContent = `${v_('.sh-T').toFixed(1)} s`; q('.sh-kv').textContent = `${v_('.sh-k')} N/m`; q('.sh-Lv').textContent = `${v_('.sh-L').toFixed(2)} m`;
+    root.querySelectorAll<HTMLElement>('.sh-only-c').forEach((e) => { e.hidden = mode !== 'circle'; });
+    root.querySelectorAll<HTMLElement>('.sh-only-s').forEach((e) => { e.hidden = mode !== 'spring'; });
+    root.querySelectorAll<HTMLElement>('.sh-only-p').forEach((e) => { e.hidden = mode !== 'pendulum'; });
+    const Tline = mode === 'spring' ? `T = 2π√(m/k) = 2π√(${v_('.sh-m').toFixed(1)} / ${v_('.sh-k')}) = ${sig(s.T, 4)} s.  ` : mode === 'pendulum' ? `T = 2π√(L/g) = 2π√(${v_('.sh-L').toFixed(2)} / ${q<HTMLSelectElement>('.sh-g').value}) = ${sig(s.T, 4)} s.  ` : '';
+    q('.sh-eq').textContent = `${Tline}ω = 2π / T = ${sig(s.w, 4)} rad/s.  x = A cos(ωt + φ) = ${v_('.sh-A')} cm × cos(${sig(s.w, 4)} t + ${v_('.sh-p')}°).  v_max = Aω = ${sig(s.A * s.w * 100, 4)} cm/s.  a_max = Aω² = ${sig(s.A * s.w * s.w, 4)} m/s².`;
+    const e = shmEnergy(s.m, s.w, s.A, 0);
+    q('.sh-facts').replaceChildren(fact('Period T', `${sig(s.T, 4)} s`, `frequency ${sig(1 / s.T, 4)} Hz`), fact('Angular frequency ω', `${sig(s.w, 4)} rad/s`), fact('Top speed', `${sig(s.A * s.w * 100, 4)} cm/s`, 'at the middle, x = 0'), fact('Biggest acceleration', `${sig(s.A * s.w * s.w, 4)} m/s²`, 'at the ends, x = ±A'), fact('Total energy', `${sig(e.E, 4)} J`, `½ k A², with k = mω² = ${sig(e.k, 4)} N/m`));
+    anim.redraw();
+  }
+
+  const anim = loop(draw, q<HTMLButtonElement>('.sh-play'));
+  root.querySelectorAll<HTMLButtonElement>('.sh-mode button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m!; root.querySelectorAll('.sh-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); update();
+  }));
+  q('.sh-zero').addEventListener('click', () => { t = 0; anim.redraw(); });
+  root.querySelectorAll('input, select').forEach((e) => e.addEventListener('input', update));
+  addEventListener('resize', () => anim.redraw());
+  update();
+
+  mountQuiz(q('.sh-quiz'), () => {
+    const m = pick(2, 20) / 10, k = pick(2, 40) * 5, L = pick(2, 30) / 10, A = pick(2, 20), T = pick(5, 40) / 10;
+    const w = (2 * Math.PI) / T, at = one([0, 1, 2]);
+    return [
+      { q: `A ${m} kg mass hangs on a spring with k = ${k} N/m. What is the period of its oscillation?`, ans: springPeriod(m, k), unit: 's', work: `T = 2π√(m/k) = 2π√(${m} / ${k}) = ${r(springPeriod(m, k))} s` },
+      { q: `A simple pendulum is ${L} m long, with g = 9.8 m/s². What is its period for small swings?`, ans: pendulumPeriod(L, 9.8), unit: 's', work: `T = 2π√(L/g) = 2π√(${L} / 9.8) = ${r(pendulumPeriod(L, 9.8))} s` },
+      { q: `A body moves in SHM with amplitude ${A} cm and period ${T} s. What is its greatest speed, in cm/s?`, ans: A * w, unit: 'cm/s', work: `ω = 2π / T = 2π / ${T} = ${r(w)} rad/s, so v_max = Aω = ${A} × ${r(w)} = ${r(A * w)} cm/s` },
+      { q: `For the same motion (amplitude ${A} cm, period ${T} s), what is the greatest acceleration, in m/s²?`, ans: (A / 100) * w * w, unit: 'm/s²', work: `a_max = Aω² = ${A / 100} m × (${r(w)} rad/s)² = ${r((A / 100) * w * w)} m/s²` },
+      { q: `Where in SHM is the ${['speed', 'acceleration', 'potential energy'][at]} greatest?`, ans: at === 0 ? 0 : 1, choices: ['At the middle (x = 0)', 'At the ends (x = ±A)', 'The same everywhere'], work: at === 0 ? 'v = ω√(A² − x²) is largest when x = 0, the middle.' : at === 1 ? 'a = −ω² x is largest in size where x is largest: at the ends.' : 'PE = ½ k x² is largest where x is largest: at the ends.' },
+    ];
+  });
+</script>

@@ -1,0 +1,235 @@
+---
+// Electron configuration filler: orbital boxes from 1s to 4p fill in the Aufbau order with Pauli and Hund, every
+// electron's quantum numbers on tap, the chromium and copper exceptions, a fill-it-yourself mode that names the
+// rule a wrong tap breaks, and a "Check yourself" block.
+import '../../styles/astro.css';
+import '../../styles/chemquiz.css';
+import { ELEMENTS } from '../../lib/sci/chem';
+const els = ELEMENTS.slice(0, 36);
+---
+<div class="ax ecf">
+  <div class="ax-card">
+    <div class="ax-seg ecf-mode" role="group" aria-label="Mode"><button type="button" data-m="watch" aria-pressed="true">Watch it fill</button><button type="button" data-m="self" aria-pressed="false">Fill it yourself</button></div>
+    <div class="ax-row" style="margin-top:12px">
+      <label style="flex:1 1 180px">Element <select class="ecf-el">{els.map((e) => <option value={e.z} selected={e.z === 8}>{e.z} {e.name} ({e.symbol})</option>)}</select></label>
+      <div class="ecf-step">
+        <button type="button" class="ecf-b ecf-minus" aria-label="One electron fewer">−</button>
+        <output class="ecf-n" aria-live="polite">8</output>
+        <button type="button" class="ecf-b ecf-plus" aria-label="One electron more">+</button>
+      </div>
+    </div>
+    <input type="range" class="ecf-range" min="0" max="36" value="8" aria-label="Number of electrons" />
+    <p class="ecf-msg" role="status"></p>
+    <svg class="ecf-svg" viewBox="0 0 300 340" role="img" aria-label="Orbital boxes"></svg>
+    <div class="ax-row ecf-selfbtns" hidden><button type="button" class="btn secondary small ecf-undo">Undo</button><button type="button" class="btn secondary small ecf-clear">Start again</button></div>
+    <p class="ax-big ecf-big" style="margin:10px 0 4px"></p>
+    <dl class="ax-facts ecf-facts"></dl>
+    <p class="lx-eq ecf-q"></p>
+    <p class="ecf-exc" hidden></p>
+    <p class="ax-help">Energy goes up the page: boxes fill from the bottom by the n + l rule (lower n + l first; if equal, lower n first). Each box is one orbital and holds two electrons with opposite spins. Here m<sub>l</sub> runs from −l on the left to +l on the right and the first electron in a box is spin up (m<sub>s</sub> = +½), a common way of drawing it. Tap an arrow to see that electron's quantum numbers.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lx-try">
+      <li>Step from boron (5) to neon (10) one electron at a time. Watch the 2p boxes get one arrow each before any pairs up.</li>
+      <li>Go from argon (18) to potassium (19). Why does the new electron go into 4s and not 3d?</li>
+      <li>Pick chromium (24) and copper (29). Compare the boxes with what the Aufbau rule predicts.</li>
+      <li>Switch to <b>Fill it yourself</b>, pick nitrogen and try pairing two electrons in one 2p box. Which rule stops you?</li>
+      <li>Tap the last arrow of any atom and read off n, l, m<sub>l</sub> and m<sub>s</sub>. No two electrons share all four.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cq">
+    <h2>Check yourself</h2>
+    <ol class="cq-list"></ol>
+    <button type="button" class="btn secondary small cq-new">New questions</button>
+  </div>
+</div>
+
+<style is:inline>
+  .ecf-step { display: grid; grid-template-columns: 48px 52px 48px; align-items: center; gap: 6px; align-self: end; }
+  .ecf-b { height: 48px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; font-size: 26px; line-height: 1; cursor: pointer; touch-action: manipulation; }
+  .ecf-b:disabled { opacity: 0.35; cursor: default; }
+  .ecf-n { text-align: center; font-size: 22px; font-weight: 750; font-variant-numeric: tabular-nums; }
+  .ecf-range { width: 100%; margin: 12px 0 4px; height: 32px; accent-color: var(--accent); }
+  .ecf-msg { min-height: 1.4em; margin: 4px 0; font-weight: 600; }
+  .ecf-msg.bad { color: var(--bad); }
+  .ecf-msg.good { color: var(--good); }
+  .ecf-svg { display: block; width: 100%; max-width: 420px; margin: 0 auto; touch-action: manipulation; }
+  .ecf-exc { border-left: 3px solid var(--warn); padding: 6px 10px; margin: 10px 0 0; background: var(--warn-soft); border-radius: 0 8px 8px 0; }
+  .ecf-svg .bx { fill: var(--bg); stroke: var(--ink); stroke-width: 1.4; cursor: pointer; }
+  .ecf-svg .bx.full { fill: var(--surface); }
+  .ecf-svg .ar { stroke: var(--ink); stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+  .ecf-svg .ar.sel { stroke: var(--accent); stroke-width: 3.2; }
+  .ecf-svg .lb { fill: var(--ink); font: 700 14px system-ui, sans-serif; dominant-baseline: central; }
+  .ecf-svg .nl { fill: var(--muted); font: 11px system-ui, sans-serif; dominant-baseline: central; }
+  .ecf-svg .en { stroke: var(--muted); stroke-width: 1.2; fill: none; }
+  .ecf-svg .ent { fill: var(--muted); font: 11px system-ui, sans-serif; }
+</style>
+
+<script>
+  import { ORDER, boxesFor, electrons, quantum, msText, signed, forAtom, emptyBoxes, place, toConfig, total, parseConfig, halfOrFull, configText, nobleGas, unpaired, label, cap, MAX_Z, type Boxes } from '../../lib/sci/econfig';
+  import { aufbau, configuration } from '../../lib/sci/ptable';
+  import { ELEMENTS } from '../../lib/sci/chem';
+  import { mountQuiz, near, rint, pickOne, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.ecf')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const NS = 'http://www.w3.org/2000/svg';
+  const sv = (tag: string, attrs: Record<string, string | number>, text?: string) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, String(v)); if (text != null) n.textContent = text; return n; };
+  const name = (z: number) => (z > 0 ? ELEMENTS[z - 1].name : '');
+
+  let mode: 'watch' | 'self' = 'watch', n = 8, target = 8;
+  let mine: Boxes = emptyBoxes(); const history: { sub: string; box: number; up: boolean }[] = [];
+  let sel: { sub: string; box: number; up: boolean } | null = null;
+
+  const BW = 36, BH = 30, X0 = 62, ROW = 39, TOP = 14;
+  const rowY = (i: number) => TOP + (ORDER.length - 1 - i) * ROW; // 1s at the bottom
+  const xOff = (l: number) => [0, 44, 8][l] ?? 0;
+
+  function arrow(x: number, y: number, up: boolean, cls: string) {
+    const cx = x, t = y + 5, b = y + BH - 5;
+    const d = up ? `M${cx} ${b} L${cx} ${t} M${cx - 5} ${t + 6} L${cx} ${t} L${cx + 5} ${t + 6}` : `M${cx} ${t} L${cx} ${b} M${cx - 5} ${b - 6} L${cx} ${b} L${cx + 5} ${b - 6}`;
+    return sv('path', { d, class: cls });
+  }
+
+  function draw(b: Boxes) {
+    const svg = q<SVGSVGElement>('.ecf-svg'); svg.replaceChildren();
+    svg.append(sv('path', { d: `M14 ${rowY(0) + BH} L14 ${TOP} M9 ${TOP + 8} L14 ${TOP} L19 ${TOP + 8}`, class: 'en' }));
+    svg.append(sv('text', { x: 4, y: rowY(0) + BH + 14, class: 'ent' }, 'energy'));
+    ORDER.forEach((s, i) => {
+      const sub = label(s), y = rowY(i), x0 = X0 + xOff(s.l);
+      svg.append(sv('text', { x: 24, y: y + BH / 2, class: 'lb' }, sub));
+      svg.append(sv('text', { x: x0 + (2 * s.l + 1) * BW + 6, y: y + BH / 2, class: 'nl' }, `n+l=${s.n + s.l}`));
+      b[sub].forEach((cell, j) => {
+        const x = x0 + j * BW;
+        const r = sv('rect', { x, y, width: BW, height: BH, class: `bx${cell.up && cell.down ? ' full' : ''}`, 'data-sub': sub, 'data-box': j, role: 'button', tabindex: 0, 'aria-label': `${sub} box ${j + 1}: ${cell.up ? (cell.down ? 'two electrons' : 'one electron') : 'empty'}` });
+        svg.append(r);
+        const isSel = (up: boolean) => sel && sel.sub === sub && sel.box === j && sel.up === up;
+        if (cell.up) svg.append(arrow(x + (cell.down ? 12 : BW / 2), y, true, `ar${isSel(true) ? ' sel' : ''}`));
+        if (cell.down) svg.append(arrow(x + BW - 12, y, false, `ar${isSel(false) ? ' sel' : ''}`));
+      });
+    });
+  }
+
+  const fact = (k: string, v: string, s = '') => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; dd.append(sm); } d.append(dt, dd); return d; };
+  const msg = (t: string, cls = '') => { const m = q('.ecf-msg'); m.textContent = t; m.className = `ecf-msg ${cls}`; };
+
+  function showQ(sub: string, box: number, up: boolean, k?: number) {
+    const qn = quantum(sub, box, up);
+    q('.ecf-q').textContent = `${k ? `Electron ${k}` : 'This electron'} (${sub}, box ${box + 1}, spin ${up ? 'up' : 'down'}): n = ${qn.n}, l = ${qn.l}, ml = ${signed(qn.ml)}, ms = ${msText(qn.ms)}`;
+  }
+
+  function update() {
+    root.querySelectorAll<HTMLButtonElement>('.ecf-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === mode)));
+    q('.ecf-selfbtns').hidden = mode !== 'self';
+    q<HTMLInputElement>('.ecf-range').hidden = mode === 'self';
+    q('.ecf-step').style.visibility = mode === 'self' ? 'hidden' : 'visible';
+    const exc = q('.ecf-exc'); exc.hidden = true;
+    let b: Boxes, cfg;
+    if (mode === 'watch') {
+      const at = forAtom(n); cfg = at.real; b = boxesFor(cfg);
+      q('.ecf-n').textContent = String(n); q<HTMLInputElement>('.ecf-range').value = String(n);
+      q<HTMLButtonElement>('.ecf-minus').disabled = n <= 0; q<HTMLButtonElement>('.ecf-plus').disabled = n >= MAX_Z;
+      if (n > 0 && q<HTMLSelectElement>('.ecf-el').value !== String(n)) q<HTMLSelectElement>('.ecf-el').value = String(n);
+      if (at.exception) {
+        exc.hidden = false;
+        const d = at.real.find((s) => s.n === 3 && s.l === 2)!;
+        exc.textContent = `${name(n)} breaks the simple rule. Aufbau predicts ${nobleGas(at.aufbau, { sup: true })}, but the real atom is ${nobleGas(at.real, { sup: true })}: one 4s electron moves into 3d so the 3d boxes are ${d.e === 10 ? 'completely full' : 'exactly half full'} (${d.e} electrons), which is extra stable because of more exchange energy and a symmetrical spread of charge.`;
+      }
+      const list = electrons(cfg);
+      if (!sel && list.length) { const last = list[list.length - 1]; showQ(last.sub, last.box, last.ms > 0, last.k); }
+      else if (!list.length) q('.ecf-q').textContent = 'No electrons yet: tap + or pick an element.';
+      if (!q('.ecf-msg').classList.contains('keep')) msg(n ? `${n} electron${n > 1 ? 's' : ''}: ${name(n)} atom` : 'No electrons');
+    } else {
+      b = mine; cfg = toConfig(mine);
+      const t = total(mine);
+      if (!sel) q('.ecf-q').textContent = t ? 'Tap an arrow to see its quantum numbers.' : `Tap the boxes to place ${target} electrons for ${name(target)}, one at a time.`;
+    }
+    draw(b);
+    const e = cfg.reduce((a, s) => a + s.e, 0);
+    q('.ecf-big').textContent = e ? configText(cfg, { sup: true, order: 'fill' }) : '—';
+    const f = q('.ecf-facts'); f.replaceChildren();
+    if (e) f.append(
+      fact('In n, l order', configText(cfg, { sup: true })),
+      fact('Short form', nobleGas(cfg, { sup: true }), 'noble-gas core in brackets'),
+      fact('Unpaired electrons', String(unpaired(cfg)), unpaired(cfg) ? 'attracted to a magnet (paramagnetic)' : 'all paired (diamagnetic)'),
+      fact('Valence shell', `n = ${Math.max(...cfg.map((s) => s.n))}`, `${cfg.filter((s) => s.n === Math.max(...cfg.map((x) => x.n))).reduce((a, s) => a + s.e, 0)} electrons in it`),
+    );
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.ecf-mode button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m as 'watch' | 'self'; sel = null; q('.ecf-msg').classList.remove('keep');
+    if (mode === 'self') { target = Number(q<HTMLSelectElement>('.ecf-el').value); mine = emptyBoxes(); history.length = 0; msg(`Place ${target} electrons for ${name(target)}. Tap a box to add one.`); }
+    update();
+  }));
+  const setN = (v: number) => { n = Math.max(0, Math.min(MAX_Z, v)); sel = null; update(); };
+  q('.ecf-minus').addEventListener('click', () => setN(n - 1));
+  q('.ecf-plus').addEventListener('click', () => setN(n + 1));
+  q<HTMLInputElement>('.ecf-range').addEventListener('input', (ev) => setN(Number((ev.target as HTMLInputElement).value)));
+  q<HTMLSelectElement>('.ecf-el').addEventListener('change', (ev) => {
+    const z = Number((ev.target as HTMLSelectElement).value);
+    if (mode === 'watch') setN(z); else { target = z; mine = emptyBoxes(); history.length = 0; sel = null; msg(`Place ${z} electrons for ${name(z)}. Tap a box to add one.`); update(); }
+  });
+
+  function tapBox(sub: string, box: number) {
+    if (mode === 'watch') {
+      const cell = boxesFor(forAtom(n).real)[sub][box];
+      if (!cell.up) { sel = null; q('.ecf-q').textContent = `That ${sub} box is empty for ${name(n) || 'no electrons'}.`; draw(boxesFor(forAtom(n).real)); return; }
+      const up = !(sel && sel.sub === sub && sel.box === box && sel.up && cell.down);
+      sel = { sub, box, up };
+      const k = electrons(forAtom(n).real).find((x) => x.sub === sub && x.box === box && (x.ms > 0) === up)?.k;
+      showQ(sub, box, up, k); draw(boxesFor(forAtom(n).real)); return;
+    }
+    const t = total(mine);
+    if (t >= target) { msg(`All ${target} electrons are placed. Undo or start again to change them.`, 'bad'); return; }
+    const p = place(mine, sub, box);
+    if (!p.ok) { msg(p.why, 'bad'); return; }
+    if (p.up) mine[sub][box].up = true; else mine[sub][box].down = true;
+    history.push({ sub, box, up: p.up }); sel = { sub, box, up: p.up };
+    showQ(sub, box, p.up, t + 1);
+    if (t + 1 === target) {
+      const real = configuration(target), got = toConfig(mine);
+      const same = configText(real) === configText(got);
+      msg(same ? `Done! That is ${name(target)}: ${configText(got, { sup: true })}.` : `Done by the Aufbau rule. But real ${name(target)} is ${nobleGas(real, { sup: true })}: see the note in Watch it fill.`, 'good');
+    } else msg(`${t + 1} of ${target} placed. ${p.up ? 'Spin up' : 'Spin down, paired'} in ${sub}.`);
+    update();
+  }
+  q('.ecf-svg').addEventListener('click', (ev) => {
+    const r = (ev.target as Element).closest('rect.bx'); if (!r) return;
+    tapBox(r.getAttribute('data-sub')!, Number(r.getAttribute('data-box')));
+  });
+  q('.ecf-svg').addEventListener('keydown', (ev) => {
+    const r = (ev.target as Element).closest('rect.bx'); if (!r || ((ev as KeyboardEvent).key !== 'Enter' && (ev as KeyboardEvent).key !== ' ')) return;
+    ev.preventDefault(); tapBox(r.getAttribute('data-sub')!, Number(r.getAttribute('data-box')));
+  });
+  q('.ecf-undo').addEventListener('click', () => {
+    const h = history.pop(); if (!h) return;
+    if (h.up) mine[h.sub][h.box].up = false; else mine[h.sub][h.box].down = false;
+    sel = null; msg(`${total(mine)} of ${target} placed.`); update();
+  });
+  q('.ecf-clear').addEventListener('click', () => { mine = emptyBoxes(); history.length = 0; sel = null; msg(`Place ${target} electrons for ${name(target)}. Tap a box to add one.`); update(); });
+  update();
+
+  // Check yourself
+  const SUBS = ['1s', '2s', '2p', '3s', '3p', '3d', '4s', '4p', '4d', '4f', '5s', '5p'];
+  const Lch = 'spdf';
+  mountQuiz(q('.cq'), (): Question[] => {
+    const z1 = pickOne([3, 5, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 19, 20, 24, 26, 29, 30]);
+    const real1 = configuration(z1), txt = configText(real1);
+    const z2 = rint(5, 30), up2 = unpaired(configuration(z2));
+    let a = pickOne(SUBS), bb = pickOne(SUBS); while (bb === a) bb = pickOne(SUBS);
+    const nl = (s: string) => Number(s[0]) + Lch.indexOf(s[1]);
+    const firstOf = nl(a) < nl(bb) || (nl(a) === nl(bb) && Number(a[0]) < Number(bb[0])) ? a : bb;
+    const sub4 = pickOne(['2p', '3d', '4f', '3s', '4p', '5d']), l4 = Lch.indexOf(sub4[1]);
+    const n5 = rint(1, 4);
+    return [
+      { q: `Write the electron configuration of ${name(z1)} (Z = ${z1}).`, hint: 'like 1s2 2s2 2p1', answer: txt, ok: (t) => { const c = parseConfig(t); return !!c && configText(c) === txt; }, worked: `Fill ${z1} electrons by n + l: ${configText(aufbau(z1), { order: 'fill' })}.${configText(aufbau(z1)) !== txt ? ' Then move one 4s electron into 3d to make the 3d set half full or full.' : ''} Short form ${nobleGas(real1)}.` },
+      { q: `How many unpaired electrons does a ${name(z2).toLowerCase()} atom (Z = ${z2}) have?`, hint: 'a whole number', answer: String(up2), ok: near(up2, 0), worked: `Configuration ${nobleGas(configuration(z2))}. Fill each box singly before pairing (Hund's rule) and count the single arrows: ${up2}.` },
+      { q: `Which fills first, ${a} or ${bb}?`, hint: `${a} or ${bb}`, answer: firstOf, ok: (t) => t.trim().toLowerCase() === firstOf, worked: `n + l is ${nl(a)} for ${a} and ${nl(bb)} for ${bb}. The lower n + l fills first${nl(a) === nl(bb) ? '; they are equal, so the one with lower n goes first' : ''}.` },
+      { q: `How many orbitals (boxes) are in a ${sub4} subshell, and so how many electrons can it hold? Give the number of electrons.`, hint: 'a whole number', answer: String(cap(l4)), ok: near(cap(l4), 0), worked: `For ${sub4}, l = ${l4}, so m_l runs from −${l4} to +${l4}: ${2 * l4 + 1} orbitals × 2 electrons = ${cap(l4)}.` },
+      { q: `What is the most electrons the shell n = ${n5} can hold?`, hint: 'a whole number', answer: String(2 * n5 * n5), ok: near(2 * n5 * n5, 0), worked: `A shell holds 2n² electrons: 2 × ${n5}² = ${2 * n5 * n5}.` },
+    ];
+  });
+</script>

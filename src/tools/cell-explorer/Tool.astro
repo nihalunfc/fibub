@@ -1,0 +1,362 @@
+---
+// Cell explorer: a plant cell, an animal cell and a bacterium drawn as simple SVG. Tap a part to learn its job,
+// zoom in on it, compare the three cells and work out the magnification. Drawings are fibub's own.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+const ribo = (pts: [number, number][]) => pts.map(([x, y]) => `M${x - 2},${y}a2,2 0 1,0 4,0a2,2 0 1,0 -4,0`).join('');
+---
+<div class="ax cex">
+  <p class="ax-help cex-note">Simple teaching drawings, not to scale inside the cell: real cells are packed far more tightly.</p>
+  <div class="ax-card">
+    <div class="ax-row"><span class="cex-lab">Level</span>
+      <div class="ax-seg cex-level" role="group" aria-label="Level"><button type="button" data-v="9" aria-pressed="true">Class 9</button><button type="button" data-v="11" aria-pressed="false">Class 11</button></div></div>
+    <div class="ax-row cex-gap"><span class="cex-lab">Cell</span>
+      <div class="ax-seg cex-kind" role="group" aria-label="Which cell"><button type="button" data-v="plant" aria-pressed="true">Plant</button><button type="button" data-v="animal" aria-pressed="false">Animal</button><button type="button" data-v="bacterium" aria-pressed="false">Bacterium</button></div></div>
+  </div>
+
+  <div class="ax-card">
+    <p class="cex-hint">Tap any part of the cell.</p>
+    <div class="cex-stage">
+      <svg class="cex-svg" data-k="plant" viewBox="0 0 400 280" role="group" aria-label="Plant cell">
+        <g class="cex-o" data-o="cytoplasm"><rect class="cyto" x="24" y="24" width="352" height="232" rx="10" /></g>
+        <g class="cex-o" data-o="wall"><rect class="wall" x="14" y="14" width="372" height="252" rx="16" /><rect class="hit" x="14" y="14" width="372" height="252" rx="16" /></g>
+        <g class="cex-o" data-o="membrane"><rect class="line" x="24" y="24" width="352" height="232" rx="10" /><rect class="hit" x="24" y="24" width="352" height="232" rx="10" /></g>
+        <g class="cex-o" data-o="plasmo" data-lv="11"><path class="line thick" d="M300,8v22M330,8v22M8,200h22" /><rect class="hitf" x="292" y="4" width="46" height="28" /><rect class="hitf" x="4" y="190" width="28" height="20" /></g>
+        <g class="cex-o" data-o="vacuole"><rect class="sap" x="150" y="62" width="168" height="146" rx="40" /></g>
+        <g class="cex-o" data-o="er"><path class="line" d="M38,138c14,-8 28,8 42,0s28,8 42,0M38,150c14,-8 28,8 42,0s28,8 42,0M38,162c14,-8 28,8 42,0s28,8 42,0" /><rect class="hitf" x="34" y="128" width="96" height="42" /></g>
+        <g class="cex-o" data-o="ribo"><path class="dot" d={ribo([[44, 132], [62, 136], [84, 132], [102, 136], [120, 132], [52, 172], [92, 174], [140, 228], [205, 40], [360, 120], [300, 244]])} /></g>
+        <g class="cex-o" data-o="nucleus"><circle class="nuc" cx="86" cy="80" r="36" /><circle class="nuc2" cx="86" cy="80" r="31" /></g>
+        <g class="cex-o" data-o="nucleolus" data-lv="11"><circle class="solid" cx="94" cy="74" r="10" /></g>
+        <g class="cex-o" data-o="chloro">
+          <g transform="translate(200 42) rotate(-6)"><ellipse class="chl" rx="24" ry="11" /><path class="grana" d="M-14,-4v8M-6,-5v10M2,-5v10M10,-4v8" /></g>
+          <g transform="translate(347 165) rotate(80)"><ellipse class="chl" rx="24" ry="11" /><path class="grana" d="M-14,-4v8M-6,-5v10M2,-5v10M10,-4v8" /></g>
+          <g transform="translate(75 222) rotate(10)"><ellipse class="chl" rx="24" ry="11" /><path class="grana" d="M-14,-4v8M-6,-5v10M2,-5v10M10,-4v8" /></g>
+          <g transform="translate(250 232)"><ellipse class="chl" rx="24" ry="11" /><path class="grana" d="M-14,-4v8M-6,-5v10M2,-5v10M10,-4v8" /></g>
+          <g transform="translate(345 70) rotate(70)"><ellipse class="chl" rx="24" ry="11" /><path class="grana" d="M-14,-4v8M-6,-5v10M2,-5v10M10,-4v8" /></g>
+        </g>
+        <g class="cex-o" data-o="mito">
+          <g transform="translate(140 236) rotate(-20)"><ellipse class="mit" rx="16" ry="8" /><path class="line" d="M-10,0l3,-5l3,9l3,-9l3,9l3,-9l3,5" /></g>
+          <g transform="translate(270 40) rotate(10)"><ellipse class="mit" rx="16" ry="8" /><path class="line" d="M-10,0l3,-5l3,9l3,-9l3,9l3,-9l3,5" /></g>
+          <g transform="translate(350 230) rotate(-50)"><ellipse class="mit" rx="16" ry="8" /><path class="line" d="M-10,0l3,-5l3,9l3,-9l3,9l3,-9l3,5" /></g>
+        </g>
+        <g class="cex-o" data-o="golgi"><path class="line" d="M42,192q28,-12 56,0M46,199q24,-10 48,0M50,206q20,-8 40,0" /><circle class="ves" cx="104" cy="195" r="3" /><circle class="ves" cx="98" cy="208" r="3" /><rect class="hitf" x="38" y="184" width="74" height="30" /></g>
+      </svg>
+
+      <svg class="cex-svg" data-k="animal" viewBox="0 0 400 280" role="group" aria-label="Animal cell" hidden>
+        <g class="cex-o" data-o="cytoplasm"><path class="cyto" d="M60,60C110,10 290,12 345,58S395,200 340,236S120,272 62,226S10,110 60,60Z" /></g>
+        <g class="cex-o" data-o="membrane"><path class="line" d="M60,60C110,10 290,12 345,58S395,200 340,236S120,272 62,226S10,110 60,60Z" /><path class="hit" d="M60,60C110,10 290,12 345,58S395,200 340,236S120,272 62,226S10,110 60,60Z" /></g>
+        <g class="cex-o" data-o="er"><path class="line" d="M140,92c12,-8 24,8 36,0s24,8 36,0M136,190c12,-8 24,8 36,0s24,8 36,0M132,202c12,-8 24,8 36,0s24,8 36,0" /><rect class="hitf" x="134" y="82" width="82" height="20" /><rect class="hitf" x="128" y="180" width="86" height="32" /></g>
+        <g class="cex-o" data-o="ribo"><path class="dot" d={ribo([[146, 86], [166, 90], [186, 86], [206, 90], [142, 184], [164, 186], [186, 184], [100, 150], [300, 100], [320, 196], [250, 238]])} /></g>
+        <g class="cex-o" data-o="nucleus"><circle class="nuc" cx="200" cy="140" r="40" /><circle class="nuc2" cx="200" cy="140" r="35" /></g>
+        <g class="cex-o" data-o="nucleolus" data-lv="11"><circle class="solid" cx="210" cy="132" r="11" /></g>
+        <g class="cex-o" data-o="mito">
+          <g transform="translate(95 110) rotate(-30)"><ellipse class="mit" rx="18" ry="9" /><path class="line" d="M-12,0l3,-6l3,11l3,-11l3,11l3,-11l3,11l3,-5" /></g>
+          <g transform="translate(300 160) rotate(40)"><ellipse class="mit" rx="18" ry="9" /><path class="line" d="M-12,0l3,-6l3,11l3,-11l3,11l3,-11l3,11l3,-5" /></g>
+          <g transform="translate(200 236) rotate(5)"><ellipse class="mit" rx="18" ry="9" /><path class="line" d="M-12,0l3,-6l3,11l3,-11l3,11l3,-11l3,11l3,-5" /></g>
+          <g transform="translate(250 50) rotate(-10)"><ellipse class="mit" rx="18" ry="9" /><path class="line" d="M-12,0l3,-6l3,11l3,-11l3,11l3,-11l3,11l3,-5" /></g>
+        </g>
+        <g class="cex-o" data-o="golgi"><path class="line" d="M280,92q30,-14 60,0M285,100q25,-12 50,0M290,108q20,-9 40,0" /><circle class="ves" cx="344" cy="104" r="3" /><circle class="ves" cx="336" cy="116" r="3" /><rect class="hitf" x="276" y="80" width="74" height="40" /></g>
+        <g class="cex-o" data-o="lyso"><circle class="lys" cx="110" cy="200" r="9" /><circle class="lys" cx="290" cy="215" r="8" /><circle class="lys" cx="150" cy="50" r="7" /></g>
+        <g class="cex-o" data-o="vacuole"><circle class="sap" cx="70" cy="160" r="12" /><circle class="sap" cx="330" cy="130" r="10" /></g>
+        <g class="cex-o" data-o="centriole" data-lv="11"><rect class="solid2" x="250" y="176" width="20" height="8" /><rect class="solid2" x="276" y="168" width="8" height="20" /><rect class="hitf" x="244" y="162" width="46" height="32" /></g>
+      </svg>
+
+      <svg class="cex-svg" data-k="bacterium" viewBox="0 0 400 280" role="group" aria-label="Bacterium" hidden>
+        <g class="cex-o" data-o="flagellum"><path class="line thick" d="M342,140c12,-14 22,14 34,0s14,-12 20,-4" /><rect class="hitf" x="340" y="122" width="58" height="34" /></g>
+        <g class="cex-o" data-o="pili" data-lv="11"><path class="line" d="M110,82l-6,-16M150,78l-2,-18M200,76v-18M250,78l2,-18M290,82l6,-16M120,198l-6,16M180,202v18M240,202l2,18M290,198l6,16" /><rect class="hitf" x="96" y="54" width="208" height="24" /><rect class="hitf" x="108" y="202" width="196" height="22" /></g>
+        <g class="cex-o" data-o="capsule" data-lv="11"><rect class="cap" x="44" y="78" width="306" height="124" rx="62" /><rect class="hit" x="44" y="78" width="306" height="124" rx="62" /></g>
+        <g class="cex-o" data-o="cytoplasm"><rect class="cyto" x="64" y="96" width="268" height="88" rx="44" /></g>
+        <g class="cex-o" data-o="wall"><rect class="wall2" x="56" y="88" width="284" height="104" rx="52" /><rect class="hit" x="56" y="88" width="284" height="104" rx="52" /></g>
+        <g class="cex-o" data-o="membrane"><rect class="line" x="64" y="96" width="268" height="88" rx="44" /><rect class="hit" x="64" y="96" width="268" height="88" rx="44" /></g>
+        <g class="cex-o" data-o="mesosome" data-lv="11"><path class="line" d="M150,184c0,-14 -10,-16 -4,-24s14,-2 10,8s6,10 4,16" /><rect class="hitf" x="140" y="152" width="26" height="32" /></g>
+        <g class="cex-o" data-o="nucleoid"><path class="dna" d="M180,130c10,-20 30,-20 40,0s30,20 40,0s-10,-26 -40,-18s-50,20 -40,36s46,12 56,-4" /><rect class="hitf" x="172" y="104" width="96" height="62" /></g>
+        <g class="cex-o" data-o="plasmid" data-lv="11"><circle class="line" cx="110" cy="128" r="9" /><circle class="line" cx="300" cy="150" r="7" /><rect class="hitf" x="98" y="116" width="24" height="24" /><rect class="hitf" x="290" y="140" width="20" height="20" /></g>
+        <g class="cex-o" data-o="ribo"><path class="dot" d={ribo([[130, 112], [140, 160], [96, 150], [170, 172], [282, 112], [300, 128], [310, 164], [240, 170], [200, 108]])} /></g>
+      </svg>
+      <p class="cex-scale"><span class="cex-bar"></span> <span class="cex-bart"></span></p>
+    </div>
+    <div class="ax-row"><button type="button" class="btn secondary small cex-zoom" disabled>Zoom in on it</button></div>
+    <div class="cex-info" aria-live="polite">
+      <h3 class="cex-name">Nothing picked yet</h3>
+      <p class="cex-job">Tap a part of the cell to see what it does.</p>
+      <p class="cex-more ax-help"></p>
+      <p class="cex-where"></p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Compare the cells</h2>
+    <div class="ax-scroll"><table class="cex-tab"></table></div>
+    <p class="ax-help">Tap a row to find that part in the drawing. Plant and animal cells are eukaryotes (they have a nucleus); bacteria are prokaryotes (no nucleus).</p>
+    <div class="ax-row"><button type="button" class="btn secondary small cex-csv">Download table (CSV)</button></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>How much bigger?</h2>
+    <p class="cex-mag"></p>
+    <p class="cex-formula"></p>
+    <div class="ax-grid">
+      <label>Eyepiece lens (×) <input class="cex-eye" inputmode="decimal" value="10" /></label>
+      <label>Objective lens (×) <input class="cex-obj" inputmode="decimal" value="40" /></label>
+    </div>
+    <p class="cex-micro"></p>
+    <p class="ax-err cex-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="cex-try">
+      <li>Find three parts a plant cell has that an animal cell does not.</li>
+      <li>Tap the bacterium's DNA. Why is it not called a nucleus?</li>
+      <li>Switch to Class 11 and look for the nucleolus, centrioles and plasmids.</li>
+      <li>Hold a ruler to your screen and measure the plant cell drawing. Work out the magnification yourself, then check it here.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <ol class="cex-qs"></ol>
+    <div class="ax-row"><button type="button" class="btn small cex-check">Check answers</button><button type="button" class="btn secondary small cex-new">New questions</button></div>
+    <p class="cex-score" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+  import { PARTS, partById, compare, TYPICAL_UM, magnification, realSize, totalMag, type CellKind } from '../../lib/sci/cellparts';
+  import { num, csv } from '../../lib/sci/num';
+  import { wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cex')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  let level: 9 | 11 = 9, kind: CellKind = 'plant', picked = '', zoomed = false;
+  const KIND_NAME: Record<CellKind, string> = { plant: 'plant cell', animal: 'animal cell', bacterium: 'bacterium' };
+  const VIEW_W = 400; // viewBox width in drawing units
+  // How many drawing units span the whole cell, to turn the drawing into micrometres for the scale bar.
+  const CELL_UNITS: Record<CellKind, number> = { plant: 372, animal: 370, bacterium: 284 };
+  const svgFor = (k: CellKind) => q<SVGSVGElement>(`.cex-svg[data-k=${k}]`);
+
+  // Report: the current drawing as a picture (rendered from the SVG), the part and the compare table.
+  let img: HTMLImageElement | null = null;
+  let SVG_CSS = '';
+  const svgCss = () => SVG_CSS || (SVG_CSS = Array.from(document.styleSheets).flatMap((s) => { try { return Array.from(s.cssRules).map((r) => r.cssText); } catch { return []; } }).filter((t) => t.startsWith('.cex .cex-svg')).join('\n').replace(/\.cex \.cex-svg /g, ''));
+  function snapshot(): Promise<void> {
+    const svg = svgFor(kind).cloneNode(true) as SVGSVGElement;
+    svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg'); svg.setAttribute('width', '800'); svg.setAttribute('height', '560');
+    const css = getComputedStyle(root);
+    const style = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+    style.textContent = svgCss().replace(/var\(--(\w[\w-]*)\)/g, (_, n) => ({ ink: '#0a0a0a', muted: '#5c5c5c', bg: '#ffffff', accent: '#1f5fae', good: '#146c34', bad: '#b3261e', 'accent-soft': '#f2f2f2' } as Record<string, string>)[n] ?? css.getPropertyValue('--' + n));
+    svg.prepend(style);
+    svg.querySelectorAll('[data-lv="11"]').forEach((g) => { if (level < 11) g.remove(); else (g as SVGElement).removeAttribute('style'); });
+    return new Promise((res) => { const im = new Image(); im.onload = () => { img = im; res(); }; im.onerror = () => { img = null; res(); }; im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(svg)); });
+  }
+  const fig = (): Figure => ({ w: 400, h: 280, alt: `Drawing of a ${KIND_NAME[kind]}`, draw: (ctx, w, h) => { if (img) ctx.drawImage(img, 0, 0, w, h); } });
+  function showLevel() {
+    root.querySelectorAll<SVGGElement>('.cex-o[data-lv="11"]').forEach((g) => g.style.display = level === 11 ? '' : 'none');
+    if (picked && partById(picked)!.level > level) pick('');
+  }
+  function showKind() {
+    root.querySelectorAll<SVGSVGElement>('.cex-svg').forEach((s) => s.toggleAttribute('hidden', s.dataset.k !== kind));
+    zoomed = false; svgFor(kind).setAttribute('viewBox', '0 0 400 280'); q('.cex-zoom').textContent = 'Zoom in on it';
+    if (picked && !partById(picked)!.in.includes(kind)) pick(''); else pick(picked);
+    scale();
+  }
+  function pick(id: string) {
+    picked = id; snapshot();
+    root.querySelectorAll('.cex-o').forEach((g) => g.classList.toggle('on', (g as SVGGElement).dataset.o === id));
+    root.querySelectorAll('.cex-tab tbody tr').forEach((tr) => tr.classList.toggle('on', (tr as HTMLElement).dataset.o === id));
+    const p = partById(id);
+    q<HTMLButtonElement>('.cex-zoom').disabled = !p || !p.in.includes(kind);
+    if (!p) { q('.cex-name').textContent = 'Nothing picked yet'; q('.cex-job').textContent = 'Tap a part of the cell to see what it does.'; q('.cex-more').textContent = ''; q('.cex-where').textContent = ''; return; }
+    q('.cex-name').textContent = p.name;
+    q('.cex-job').textContent = p.job;
+    q('.cex-more').textContent = level === 11 ? p.more : '';
+    const where = (['plant', 'animal', 'bacterium'] as CellKind[]).filter((k) => p.in.includes(k)).map((k) => KIND_NAME[k] + 's');
+    q('.cex-where').textContent = `Found in: ${where.join(', ')}.${p.in.includes(kind) ? '' : ` Not in a ${KIND_NAME[kind]}.`}`;
+  }
+  function zoom() {
+    const svg = svgFor(kind), g = svg.querySelector<SVGGElement>(`.cex-o[data-o="${picked}"]`);
+    if (!g) return;
+    zoomed = !zoomed;
+    if (!zoomed) { svg.setAttribute('viewBox', '0 0 400 280'); q('.cex-zoom').textContent = 'Zoom in on it'; scale(); return; }
+    const b = g.getBBox(), pad = 14, w = Math.max(b.width + pad * 2, 90), h = w * 0.7;
+    const cx = b.x + b.width / 2, cy = b.y + b.height / 2;
+    svg.setAttribute('viewBox', `${(cx - w / 2).toFixed(1)} ${(cy - h / 2).toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}`);
+    q('.cex-zoom').textContent = 'Zoom out';
+    scale();
+  }
+  // Scale bar and live magnification on this screen
+  function screenMag() {
+    const svg = svgFor(kind), pxW = svg.getBoundingClientRect().width || 1;
+    const vb = svg.viewBox.baseVal, unitsShown = vb && vb.width ? vb.width : VIEW_W;
+    const umPerUnit = TYPICAL_UM[kind] / CELL_UNITS[kind];
+    const imageMm = (pxW / unitsShown) * CELL_UNITS[kind] * 0.2646; // CSS px are 1/96 inch = 0.2646 mm
+    return { imageMm, mag: magnification(imageMm, TYPICAL_UM[kind]), umPerPx: (umPerUnit * unitsShown) / pxW };
+  }
+  function scale() {
+    const m = screenMag(), barUm = kind === 'bacterium' ? (zoomed ? 0.2 : 0.5) : zoomed ? 2 : 10;
+    const px = barUm / m.umPerPx;
+    q<HTMLElement>('.cex-bar').style.width = `${Math.min(300, px).toFixed(1)}px`;
+    q('.cex-bart').textContent = `${barUm} µm`;
+    const real = TYPICAL_UM[kind];
+    q('.cex-mag').textContent = `A typical ${KIND_NAME[kind]} is about ${real} µm (${real / 1000} mm) across. Drawn this big, it is magnified about ×${Math.round(m.mag / 10) * 10 || Math.round(m.mag)} on your screen.`;
+    q('.cex-formula').textContent = `Magnification = image size ÷ real size = ${m.imageMm.toFixed(0)} mm ÷ ${real / 1000} mm = ×${Math.round(m.mag)}`;
+  }
+  function micro() {
+    const e = num(q<HTMLInputElement>('.cex-eye').value), o = num(q<HTMLInputElement>('.cex-obj').value);
+    const err = q('.cex-err');
+    if (!(e > 0 && e <= 100 && o > 0 && o <= 200)) { err.textContent = 'Type an eyepiece from 1 to 100 and an objective from 1 to 200.'; err.hidden = false; q('.cex-micro').textContent = ''; return; }
+    err.hidden = true;
+    const t = totalMag(e, o), img = (TYPICAL_UM[kind] * t) / 1000;
+    q('.cex-micro').textContent = `Light microscope: total magnification = eyepiece × objective = ${e} × ${o} = ×${t}. A ${TYPICAL_UM[kind]} µm ${KIND_NAME[kind]} then looks ${img.toFixed(img < 1 ? 2 : 1)} mm across.${kind === 'bacterium' && t < 1000 ? ' Bacteria are so small you need about ×1000 (oil immersion) to see them clearly.' : ''}`;
+  }
+
+  // Compare table
+  let rows: ReturnType<typeof compare> = [];
+  function table() {
+    rows = compare(level);
+    const tb = q<HTMLTableElement>('.cex-tab'); tb.innerHTML = '';
+    const hr = tb.createTHead().insertRow();
+    ['Part', 'Plant', 'Animal', 'Bacterium'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const b = tb.createTBody();
+    rows.forEach((r) => {
+      const tr = b.insertRow(); tr.dataset.o = r.id; tr.tabIndex = 0;
+      [r.name, r.plant ? '✓' : '–', r.animal ? '✓' : '–', r.bacterium ? '✓' : '–'].forEach((x) => { tr.insertCell().textContent = x; });
+      const go = () => { if (!rows.find((x) => x.id === r.id)![kind]) { const k = (['plant', 'animal', 'bacterium'] as CellKind[]).find((kk) => r[kk])!; setKind(k); } pick(r.id); q('.cex-stage').scrollIntoView({ block: 'nearest' }); };
+      tr.addEventListener('click', go); tr.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') go(); });
+    });
+    pick(picked);
+  }
+
+  // Check yourself
+  type Qn = { text: string; options?: string[]; answer: string | number; tol?: number; worked: string };
+  let qs: Qn[] = [];
+  const pickOne = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
+  const shuffle = <T,>(a: T[]) => a.map((x) => [Math.random(), x] as [number, T]).sort((x, y) => x[0] - y[0]).map((x) => x[1]);
+  function makeQuiz() {
+    const pool = PARTS.filter((p) => p.level <= level);
+    const p = pickOne(pool), others = shuffle(pool.filter((x) => x.tag !== p.tag)).slice(0, 2);
+    const plantOnly = pickOne(pool.filter((x) => x.in.includes('plant') && !x.in.includes('animal')));
+    const both = shuffle(pool.filter((x) => x.in.includes('plant') && x.in.includes('animal'))).slice(0, 2);
+    const img = pickOne([10, 15, 20, 25, 40, 50]), real = pickOne([20, 25, 40, 50, 100]);
+    const mag = magnification(img, real);
+    const dmm = pickOne([10, 20, 30, 40]), m2 = pickOne([1000, 2000, 5000, 10000]);
+    qs = [
+      { text: `What is the main job of the ${p.name.toLowerCase()}?`, options: shuffle([p, ...others]).map((x) => x.job), answer: p.job, worked: `${p.name}: ${p.job}` },
+      { text: 'Which of these is in a plant cell but not in an animal cell?', options: shuffle([plantOnly, ...both]).map((x) => x.name), answer: plantOnly.name, worked: `${plantOnly.name}. ${both.map((x) => x.name).join(' and ')} are in both.` },
+      { text: `A cell is ${real} µm across. In a drawing it is ${img} mm across. What is the magnification? (1 mm = 1000 µm)`, answer: mag, tol: 0.5, worked: `Image ${img} mm = ${img * 1000} µm; ${img * 1000} ÷ ${real} = ×${mag}` },
+      level === 9
+        ? { text: `A microscope has a ×10 eyepiece and a ×${pickOne([4, 10, 40, 100])} objective. What is the total magnification?`, answer: 0, tol: 0.5, worked: '' }
+        : { text: `In an electron micrograph at ×${m2}, a mitochondrion is ${dmm} mm long. How long is it really, in µm?`, answer: realSize(dmm, m2), tol: 0.01, worked: `Real size = image ÷ magnification = ${dmm * 1000} µm ÷ ${m2} = ${realSize(dmm, m2)} µm` },
+    ];
+    if (level === 9) { const o = Number(qs[3].text.match(/×(\d+) objective/)![1]); qs[3].answer = 10 * o; qs[3].worked = `Eyepiece × objective = 10 × ${o} = ×${10 * o}`; }
+    if (level === 11) qs.push({ text: 'Which kind of ribosome do bacteria have?', options: ['70S', '80S'], answer: '70S', worked: 'Bacteria (prokaryotes) have smaller 70S ribosomes; plant and animal cells have 80S in their cytoplasm.' });
+    const ol = q('.cex-qs'); ol.innerHTML = '';
+    qs.forEach((qq, j) => {
+      const li = document.createElement('li'); li.dataset.a = String(qq.answer);
+      const pp = document.createElement('p'); pp.textContent = qq.text; li.append(pp);
+      if (qq.options) { const s = document.createElement('select'); s.className = 'cex-ans'; s.setAttribute('aria-label', `Answer ${j + 1}`); s.append(new Option('Choose…', ''), ...qq.options.map((o) => new Option(o, o))); li.append(s); }
+      else { const inp = document.createElement('input'); inp.className = 'cex-ans'; inp.inputMode = 'decimal'; inp.setAttribute('aria-label', `Answer ${j + 1}`); li.append(inp); }
+      const w = document.createElement('p'); w.className = 'cex-worked'; w.hidden = true; li.append(w);
+      ol.append(li);
+    });
+    q('.cex-score').textContent = '';
+  }
+  function checkQuiz() {
+    let right = 0;
+    root.querySelectorAll<HTMLLIElement>('.cex-qs li').forEach((li, j) => {
+      const qq = qs[j], val = (li.querySelector('.cex-ans') as HTMLInputElement).value.trim().replace(/^×/, '');
+      const ok = qq.options ? val === qq.answer : val !== '' && Math.abs(num(val) - Number(qq.answer)) <= (qq.tol ?? 0.01);
+      if (ok) right++;
+      const w = li.querySelector<HTMLElement>('.cex-worked')!; w.hidden = false; w.className = `cex-worked ${ok ? 'ok' : 'no'}`;
+      w.textContent = `${ok ? '✓ Right.' : '✗ Not quite.'} ${qq.worked}`;
+    });
+    q('.cex-score').textContent = `${right} of ${qs.length} right.`;
+  }
+
+  // Wiring
+  function seg(sel: string, on: (v: string) => void) {
+    root.querySelectorAll<HTMLButtonElement>(`${sel} button`).forEach((b) => b.addEventListener('click', () => on(b.dataset.v!)));
+  }
+  const press = (sel: string, v: string) => root.querySelectorAll<HTMLButtonElement>(`${sel} button`).forEach((o) => o.setAttribute('aria-pressed', String(o.dataset.v === v)));
+  function setKind(k: CellKind) { kind = k; press('.cex-kind', k); showKind(); micro(); }
+  seg('.cex-level', (v) => { level = Number(v) as 9 | 11; press('.cex-level', v); showLevel(); table(); makeQuiz(); });
+  seg('.cex-kind', (v) => setKind(v as CellKind));
+  root.querySelectorAll<SVGGElement>('.cex-o').forEach((g) => {
+    g.setAttribute('tabindex', '0'); g.setAttribute('role', 'button'); g.setAttribute('aria-label', partById(g.dataset.o!)!.name);
+    g.addEventListener('click', (ev) => { ev.stopPropagation(); pick(g.dataset.o!); });
+    g.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); pick(g.dataset.o!); } });
+  });
+  q('.cex-zoom').addEventListener('click', zoom);
+  root.querySelectorAll('.cex-eye, .cex-obj').forEach((el) => el.addEventListener('input', micro));
+  q('.cex-csv').addEventListener('click', () => save(new TextEncoder().encode(csv([['part', 'plant', 'animal', 'bacterium', 'job'], ...rows.map((r) => [r.name, r.plant ? 'yes' : 'no', r.animal ? 'yes' : 'no', r.bacterium ? 'yes' : 'no', partById(r.id)!.job])])), 'cell-parts.csv', 'text/csv'));
+  q('.cex-check').addEventListener('click', checkQuiz);
+  q('.cex-new').addEventListener('click', makeQuiz);
+  window.addEventListener('resize', scale);
+  showLevel(); showKind(); table(); micro(); makeQuiz();
+
+  wireDownloads(q('.dl'), () => {
+    const p = partById(picked);
+    return { title: 'Cell explorer', subtitle: `${KIND_NAME[kind][0].toUpperCase() + KIND_NAME[kind].slice(1)}, Class ${level} level`, file: `cell-${kind}`,
+      sections: [
+        { title: `The ${KIND_NAME[kind]}`, figure: fig(), text: p ? [`${p.name}: ${p.job}`, ...(level === 11 ? [p.more] : [])] : ['Simple teaching drawing by fibub, not to scale inside the cell.'] },
+        { title: 'Compare the cells', table: { head: ['Part', 'Plant', 'Animal', 'Bacterium'], rows: rows.map((r) => [r.name, r.plant ? 'yes' : 'no', r.animal ? 'yes' : 'no', r.bacterium ? 'yes' : 'no']) } },
+      ] as Section[] };
+  });
+</script>
+
+<style is:inline>
+  .cex .cex-note { margin: 0; }
+  .cex .cex-lab { font-size: 14px; color: var(--muted); min-width: 48px; }
+  .cex .cex-gap { margin-top: 12px; }
+  .cex .ax-seg button { min-height: 44px; padding: 8px 12px; }
+  .cex .btn.small { min-height: 44px; }
+  .cex .cex-hint { margin: 0 0 6px; font-size: 14px; color: var(--muted); }
+  .cex .cex-stage { max-width: 640px; }
+  .cex .cex-svg { display: block; width: 100%; height: auto; touch-action: manipulation; }
+  .cex .cex-svg[hidden] { display: none; }
+  .cex .cex-svg .cex-o { cursor: pointer; outline: none; }
+  .cex .cex-svg .cyto { fill: var(--accent-soft); stroke: none; }
+  .cex .cex-svg .wall { fill: none; stroke: var(--ink); stroke-width: 8; }
+  .cex .cex-svg .wall2 { fill: none; stroke: var(--ink); stroke-width: 6; }
+  .cex .cex-svg .cap { fill: none; stroke: var(--muted); stroke-width: 2; stroke-dasharray: 6 4; }
+  .cex .cex-svg .line { fill: none; stroke: var(--ink); stroke-width: 2; }
+  .cex .cex-svg .line.thick { stroke-width: 3; }
+  .cex .cex-svg .hit { fill: none; stroke: transparent; stroke-width: 12; pointer-events: stroke; }
+  .cex .cex-svg .hitf { fill: transparent; stroke: none; }
+  .cex .cex-svg .sap { fill: var(--accent); fill-opacity: 0.16; stroke: var(--accent); stroke-width: 2; }
+  .cex .cex-svg .nuc { fill: var(--bg); stroke: var(--ink); stroke-width: 2.5; }
+  .cex .cex-svg .nuc2 { fill: var(--accent-soft); stroke: var(--ink); stroke-width: 1; stroke-dasharray: 3 3; }
+  .cex .cex-svg .solid { fill: var(--ink); }
+  .cex .cex-svg .solid2 { fill: var(--muted); stroke: var(--ink); }
+  .cex .cex-svg .chl { fill: var(--good); fill-opacity: 0.35; stroke: var(--good); stroke-width: 2; }
+  .cex .cex-svg .grana { stroke: var(--good); stroke-width: 2.5; }
+  .cex .cex-svg .mit { fill: var(--bg); stroke: var(--ink); stroke-width: 2; }
+  .cex .cex-svg .lys { fill: var(--bad); fill-opacity: 0.2; stroke: var(--bad); stroke-width: 2; }
+  .cex .cex-svg .ves { fill: var(--bg); stroke: var(--ink); stroke-width: 1.5; }
+  .cex .cex-svg .dot { fill: var(--ink); }
+  .cex .cex-svg .dna { fill: none; stroke: var(--ink); stroke-width: 2.5; }
+  .cex .cex-svg .cex-o.on .line, .cex .cex-svg .cex-o.on .wall, .cex .cex-svg .cex-o.on .wall2, .cex .cex-svg .cex-o.on .nuc, .cex .cex-svg .cex-o.on .mit, .cex .cex-svg .cex-o.on .chl, .cex .cex-svg .cex-o.on .sap, .cex .cex-svg .cex-o.on .lys, .cex .cex-svg .cex-o.on .dna, .cex .cex-svg .cex-o.on .cap, .cex .cex-svg .cex-o.on .ves { stroke: var(--accent); stroke-width: 4; }
+  .cex .cex-svg .cex-o.on .dot, .cex .cex-svg .cex-o.on .solid, .cex .cex-svg .cex-o.on .solid2 { fill: var(--accent); }
+  .cex .cex-svg .cex-o.on .cyto { fill: var(--accent); fill-opacity: 0.18; }
+  .cex .cex-svg .cex-o:focus-visible > :first-child { stroke: var(--accent); stroke-width: 4; }
+  .cex .cex-scale { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); margin: 4px 0 8px; }
+  .cex .cex-bar { display: inline-block; height: 4px; background: var(--ink); }
+  .cex .cex-info { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 10px; }
+  .cex .cex-info h3 { margin: 0 0 4px; font-size: 18px; }
+  .cex .cex-info p { margin: 4px 0; }
+  .cex .cex-where { font-size: 14px; color: var(--muted); }
+  .cex .cex-tab tbody tr { cursor: pointer; }
+  .cex .cex-tab tbody tr.on td { background: var(--accent-soft); font-weight: 600; }
+  .cex .cex-tab td:not(:first-child), .cex .cex-tab th:not(:first-child) { text-align: center; }
+  .cex .cex-formula { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; background: var(--accent-soft); padding: 8px 10px; border-radius: 8px; overflow-wrap: anywhere; }
+  .cex .cex-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .cex .cex-qs { padding-left: 20px; display: grid; gap: 14px; margin: 10px 0; }
+  .cex .cex-qs p { margin: 0 0 6px; }
+  .cex .cex-qs select { width: 100%; max-width: 100%; min-height: 44px; }
+  .cex .cex-qs input { max-width: 220px; min-height: 44px; }
+  .cex .cex-worked.ok { color: var(--good); }
+  .cex .cex-worked.no { color: var(--bad); }
+  .cex .cex-score { font-weight: 700; }
+</style>

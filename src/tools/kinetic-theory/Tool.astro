@@ -1,0 +1,142 @@
+---
+// Gas in a box (Learn): discs bounce off each other and the walls; the pressure is counted from the wall hits and
+// compared with the ideal-gas law; a live speed histogram settles into the Maxwell shape; real-gas v_rms and (3/2)kT.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn kth">
+  <div class="ax-card">
+    <h2>Gas in a box</h2>
+    <canvas class="lrn-cv kt-cv" aria-label="Gas particles moving in a box and bouncing off its walls; the right wall is a piston"></canvas>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small kt-play">Pause</button>
+      <button type="button" class="btn secondary small kt-reset">Start again</button>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Temperature <b class="kt-Tv"></b><input type="range" class="kt-T" min="100" max="1200" step="50" value="300" aria-label="Temperature in kelvin" /></label>
+      <label class="lrn-sl">Number of particles <b class="kt-Nv"></b><input type="range" class="kt-N" min="10" max="120" step="10" value="60" aria-label="Number of particles" /></label>
+      <label class="lrn-sl">Box width (piston) <b class="kt-Wv"></b><input type="range" class="kt-W" min="40" max="100" step="5" value="100" aria-label="Box width in percent" /></label>
+    </div>
+    <dl class="ax-facts kt-facts" style="margin-top:10px"></dl>
+    <p class="lrn-eq kt-peq"></p>
+    <h3 style="margin:14px 0 6px;font-size:16px">Speeds right now</h3>
+    <canvas class="lrn-cv kt-hist" aria-label="Histogram of particle speeds with the Maxwell curve drawn over it"></canvas>
+    <p class="ax-help">Bars: how many particles have each speed (averaged over the last few seconds). Line: the Maxwell shape for a gas in a flat (two-dimensional) box. The box is a flat model with a few dozen discs, so pressures are shown relative to its starting state (300 K, 60 particles, full width).</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>A real gas at this temperature</h2>
+    <div class="ax-grid"><label>Gas <select class="kt-gas"></select></label></div>
+    <p class="lrn-eq kt-eq"></p>
+    <dl class="ax-facts kt-real" style="margin-top:10px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Push the piston in to half the width: the particles hit the walls twice as often and the pressure doubles (Boyle's law).</li>
+      <li>Double the number of particles: twice as many hits, twice the pressure.</li>
+      <li>Raise the temperature from 300 K to 1,200 K: the particles move twice as fast and the pressure becomes four times bigger.</li>
+      <li>Start again and watch the histogram: every particle starts at the same speed, then collisions spread the speeds into the Maxwell shape.</li>
+      <li>Compare helium and carbon dioxide at the same temperature: same average energy, but light helium molecules move more than three times faster.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card kt-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { GASES, vrms, vmean, vmostProbable, meanKE, idealP, makeBox, stepBox, rng, measuredP, maxwell2D, meanSq, scaleSpeeds, discCorrection, R_GAS, type Box } from '../../lib/sci/learngas';
+  import { mountQuiz, pick, one, r, fitCanvas, loop } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+  import { sig, fmtExp } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.kth')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v_ = (c: string) => +q<HTMLInputElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const gasSel = q<HTMLSelectElement>('.kt-gas'); GASES.forEach((g) => gasSel.add(new Option(g.name, g.id))); gasSel.value = 'n2';
+  const V300 = 0.3, BINS = 14, rand = rng(Date.now() % 100000);
+  const speedFor = (T: number) => V300 * Math.sqrt(T / 300);
+  // Reference pressure: the 2D ideal-gas value for 60 discs at 300 K in the full box.
+  const PREF = (60 * V300 * V300) / (2 * (1 - 0.024) * (1 - 0.024));
+  let box: Box = makeBox(60, speedFor(300), rand), T = 300, hist = new Array(BINS).fill(0), tick = 0;
+
+  function reset() {
+    T = v_('.kt-T'); box = makeBox(v_('.kt-N'), speedFor(T), rand, v_('.kt-W') / 100); hist = new Array(BINS).fill(0);
+  }
+
+  function draw(dt: number) {
+    const steps = Math.ceil(dt / 0.004);
+    for (let i = 0; i < steps; i++) stepBox(box, dt / steps);
+    const keep = Math.exp(-dt / 4); box.impulse *= keep; box.time *= keep;
+    const pal = pagePalette(), hi = pal.red ? pal.ink : pal.accent, hi2 = pal.red ? pal.muted : pal.accent2;
+    { const { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.kt-cv'), 250), side = Math.min(W - 30, H - 16), ox = (W - side) / 2 - 8, oy = 8;
+      ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(ox + box.w * side, oy); ctx.lineTo(ox, oy); ctx.lineTo(ox, oy + side); ctx.lineTo(ox + box.w * side, oy + side); ctx.stroke();
+      ctx.fillStyle = hi2; ctx.fillRect(ox + box.w * side, oy, 6, side); ctx.fillRect(ox + box.w * side + 6, oy + side / 2 - 3, W - (ox + box.w * side + 6), 6);
+      box.ps.forEach((p, i) => { ctx.fillStyle = i === 0 ? hi2 : hi; ctx.beginPath(); ctx.arc(ox + p.x * side, oy + (1 - p.y) * side, Math.max(2.5, box.r * side), 0, 7); ctx.fill(); });
+    }
+    // Histogram, smoothed over the last few seconds
+    const vr = Math.sqrt(meanSq(box)), vmax = 3 * vr, now = new Array(BINS).fill(0);
+    for (const p of box.ps) { const b = Math.floor((Math.hypot(p.vx, p.vy) / vmax) * BINS); if (b < BINS) now[b]++; }
+    const a = dt > 0 ? 1 - Math.exp(-dt / 1.5) : 0; hist = hist.every((x) => x === 0) ? now : hist.map((h, i) => h + a * (now[i] - h));
+    { const { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.kt-hist'), 150), gx = 8, gw = W - 16, gh = H - 26, bw = gw / BINS;
+      ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+      const n = box.ps.length, scale = gh / Math.max(0.2 * n, ...hist, n * maxwell2D(vr / Math.SQRT2, vr * vr) * (vmax / BINS) * 1.1);
+      ctx.fillStyle = pal.grid; hist.forEach((h, i) => ctx.fillRect(gx + i * bw + 1, 4 + gh - h * scale, bw - 2, h * scale));
+      ctx.strokeStyle = pal.muted; ctx.strokeRect(gx, 4, gw, gh);
+      ctx.strokeStyle = hi; ctx.lineWidth = 2; ctx.beginPath();
+      for (let px = 0; px <= gw; px += 2) { const v = (px / gw) * vmax, y = 4 + gh - n * maxwell2D(v, vr * vr) * (vmax / BINS) * scale; if (px) ctx.lineTo(gx + px, y); else ctx.moveTo(gx, y); }
+      ctx.stroke();
+      ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText('slow', gx, H - 6); ctx.textAlign = 'right'; ctx.fillText('fast', gx + gw, H - 6);
+      ctx.textAlign = 'center'; ctx.fillText('speed →', gx + gw / 2, H - 6);
+    }
+    if (++tick % 15 === 0 || dt === 0) readout();
+  }
+
+  function readout() {
+    const th = ((box.ps.length / 60) * (meanSq(box) / (V300 * V300))) / box.w, me = measuredP(box) / PREF;
+    q('.kt-facts').replaceChildren(
+      fact('Pressure from wall hits', Number.isFinite(me) && box.time > 0.5 ? me.toFixed(2) : 'counting…', 'relative to the starting box'),
+      fact('Ideal-gas value', th.toFixed(2), 'P = N m⟨v²⟩ / 2A for tiny particles'),
+      fact('Temperature', `${T} K`, `average energy ∝ T`));
+    q('.kt-peq').textContent = `P ∝ N T / A = ${box.ps.length} × ${T} / ${(box.w * 100).toFixed(0)}% → ${th.toFixed(2)} × the start. The discs take up ${((discCorrection(box) - 1) * 50).toFixed(1)}% of the box, which pushes the counted pressure up by about ${((discCorrection(box) - 1) * 100).toFixed(0)}%: real molecules do this too (the b in the van der Waals equation).`;
+  }
+
+  function update() {
+    const Tn = v_('.kt-T'), N = v_('.kt-N'), w = v_('.kt-W') / 100;
+    q('.kt-Tv').textContent = `${Tn} K (${Tn - 273} °C)`; q('.kt-Nv').textContent = String(N); q('.kt-Wv').textContent = `${Math.round(w * 100)}%`;
+    if (Tn !== T) { scaleSpeeds(box, Math.sqrt(Tn / T)); T = Tn; box.impulse = 0; box.time = 0; }
+    if (N !== box.ps.length) { reset(); }
+    if (Math.abs(w - box.w) > 1e-9) { const f = w / box.w; box.ps.forEach((p) => { p.x = Math.min(w - box.r, Math.max(box.r, p.x * f)); }); box.w = w; box.impulse = 0; box.time = 0; }
+    const g = GASES.find((x) => x.id === gasSel.value)!;
+    q('.kt-eq').textContent = `v_rms = √(3RT/M) = √(3 × 8.314 × ${T} / ${g.M.toFixed(4)}) = ${sig(vrms(T, g.M), 4)} m/s.  Average kinetic energy = (3/2)kT = 1.5 × 1.381 × 10⁻²³ × ${T} = ${fmtExp(meanKE(T), 4)} J.`;
+    q('.kt-real').replaceChildren(
+      fact('rms speed', `${sig(vrms(T, g.M), 4)} m/s`, `${sig(vrms(T, g.M) * 3.6, 4)} km/h`),
+      fact('Average speed', `${sig(vmean(T, g.M), 4)} m/s`, '√(8RT/πM)'),
+      fact('Most likely speed', `${sig(vmostProbable(T, g.M), 4)} m/s`, '√(2RT/M), the peak'),
+      fact('Pressure of 1 mol in 22.4 L', `${sig(idealP(1, T, 0.0224) / 1000, 4)} kPa`, 'P = nRT/V, any gas'));
+    readout(); anim.redraw();
+  }
+
+  const anim = loop(draw, q<HTMLButtonElement>('.kt-play'));
+  q('.kt-reset').addEventListener('click', () => { reset(); update(); });
+  root.querySelectorAll('input, select').forEach((e) => e.addEventListener('input', update));
+  addEventListener('resize', () => anim.redraw());
+  update();
+
+  mountQuiz(q('.kt-quiz'), () => {
+    const g = one([{ n: 'helium', M: 4 }, { n: 'nitrogen', M: 28 }, { n: 'oxygen', M: 32 }]), T1 = pick(200, 600, 50), f = one([2, 4, 9]), T3 = pick(200, 600, 50), n = pick(1, 4), V = pick(10, 50, 5), T4 = pick(250, 400, 10);
+    const v1 = vrms(T1, g.M / 1000), p4 = idealP(n, T4, V / 1000) / 1000;
+    return [
+      { q: `What is the rms speed of ${g.n} molecules (M = ${g.M} g/mol) at ${T1} K? (R = 8.314 J/(mol K))`, ans: v1, unit: 'm/s', work: `v_rms = √(3RT/M) = √(3 × 8.314 × ${T1} / ${g.M / 1000}) = ${r(v1, 4)} m/s (M in kg/mol)` },
+      { q: `The kelvin temperature of a gas is made ${f} times bigger. By what factor does the rms speed change?`, ans: Math.sqrt(f), unit: '×', work: `v_rms ∝ √T, so it changes by √${f} = ${r(Math.sqrt(f))}` },
+      { q: `What is the average kinetic energy of a gas molecule at ${T3} K, in units of 10⁻²¹ J? (k = 1.38 × 10⁻²³ J/K)`, ans: meanKE(T3) * 1e21, unit: '× 10⁻²¹ J', work: `(3/2)kT = 1.5 × 1.38 × 10⁻²³ × ${T3} = ${r(meanKE(T3) * 1e21)} × 10⁻²¹ J` },
+      { q: `${n} mol of gas is in a ${V} L container at ${T4} K. What is its pressure in kPa?`, ans: p4, unit: 'kPa', work: `P = nRT/V = ${n} × 8.314 × ${T4} / ${V / 1000} m³ = ${r(p4 * 1000, 4)} Pa = ${r(p4)} kPa` },
+      { q: 'A gas is squeezed to half its volume at the same temperature. Its pressure…', ans: 0, choices: ['Doubles', 'Halves', 'Stays the same', 'Becomes four times bigger'], work: 'The molecules hit the walls twice as often, so P doubles (Boyle’s law, PV = constant).' },
+    ];
+  });
+</script>

@@ -1,0 +1,265 @@
+---
+// Nerve impulse: an all-or-none spike (Hodgkin-Huxley), Na+ in and K+ out, the impulse racing along an
+// unmyelinated and a myelinated axon, and a reaction-time test. Teaching model.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax apt">
+  <p class="ax-help apt-note">A teaching model: the spike comes from the classic squid-axon equations, and the speeds are rules of thumb.</p>
+  <div class="ax-card">
+    <div class="ax-row"><span class="apt-lab">Level</span>
+      <div class="ax-seg apt-level" role="group" aria-label="Level"><button type="button" data-v="10" aria-pressed="true">Class 10</button><button type="button" data-v="11" aria-pressed="false">Class 11</button></div></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>One spike</h2>
+    <label>Stimulus strength (a 1 ms push): <b class="apt-iv"></b>
+      <input type="range" class="apt-i" min="0" max="20" step="1" value="10" aria-label="Stimulus strength" /></label>
+    <canvas class="ax-fig apt-v"></canvas>
+    <p class="ax-big apt-big" aria-live="polite"></p>
+    <p class="apt-say"></p>
+    <dl class="ax-facts apt-facts"></dl>
+    <canvas class="ax-fig apt-g" hidden></canvas>
+  </div>
+
+  <div class="ax-card">
+    <h2>Along the axon</h2>
+    <label>Axon thickness: <b class="apt-dv"></b>
+      <input type="range" class="apt-d" min="1" max="20" step="1" value="4" aria-label="Axon diameter in micrometres" /></label>
+    <canvas class="ax-fig apt-fig"></canvas>
+    <p class="ax-help apt-slow"></p>
+    <div class="ax-row"><button type="button" class="btn small apt-race">Send an impulse</button></div>
+    <p class="apt-formula"></p>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>How fast are you?</h2>
+    <p class="ax-help">Tap the box to start, wait until it turns dark, then tap as fast as you can. Five goes. Nothing is saved.</p>
+    <button type="button" class="apt-rt" data-s="idle">Tap to start</button>
+    <p class="apt-times"></p>
+    <dl class="ax-facts apt-rfacts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="apt-try">
+      <li>Slide the stimulus up from 0. Does the spike grow bit by bit, or appear all at once? (All or none.)</li>
+      <li>Send an impulse along a 1 µm and a 10 µm axon. How many times faster is the myelinated one?</li>
+      <li>Your reaction time is far longer than the nerve travel time. Where does the rest of the time go?</li>
+      <li>Class 11: in the conductance graph, which channels open first, Na⁺ or K⁺?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <ol class="apt-qs"></ol>
+    <div class="ax-row"><button type="button" class="btn small apt-check">Check answers</button><button type="button" class="btn secondary small apt-new">New questions</button></div>
+    <p class="apt-score" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+  import { simulate } from '../../lib/sci/hhsim';
+  import { speed, travelMs, position, ionCurrents, stats } from '../../lib/sci/nerve';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, pagePalette, wireDownloads, type Figure, type Palette, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.apt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => Number(q<HTMLInputElement>(c).value);
+  let level = 10, vFig: Figure | null = null, gFig: Figure | null = null, raceT = -1, raceStart = 0;
+  const LEN = 0.1, SLOW = 50; // a 10 cm axon, shown 50 times slower than real life
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const fx = (x: number, d = 1) => x.toFixed(d).replace('-', '−');
+
+  // ---------- one spike ----------
+  let factList: [string, string, string?][] = [];
+  function spike() {
+    const amp = v('.apt-i'), r = simulate({ kind: 'step', amp, start: 1, dur: 1 }, 15, undefined, 0.02, 2);
+    const fired = r.spikes.length > 0;
+    q('.apt-iv').textContent = amp === 0 ? 'none' : `${amp} µA/cm²`;
+    vFig = chartFigure({ w: 480, h: 300, font: 14, xLabel: 'Time (ms)', yLabel: 'Inside of the membrane (mV)', xMin: 0, xMax: 15, yMin: -90, yMax: 50, legend: 'none',
+      series: [{ name: 'Membrane potential', x: r.t, y: r.V, mode: 'line', width: 2.5 }],
+      marks: [{ kind: 'hline', at: -65, dash: [4, 3], label: 'resting −65 mV' }, { kind: 'hline', at: 0, dash: [2, 3] }, { kind: 'vline', at: 1, dash: [2, 3], label: 'push' }] },
+      fired ? `A spike peaking at ${fx(r.peak)} mV` : 'No spike: the push was below threshold');
+    paint(q<HTMLCanvasElement>('.apt-v'), vFig);
+    q('.apt-big').textContent = fired ? `Spike! It peaks at ${r.peak > 0 ? '+' : ''}${fx(r.peak, 0)} mV` : amp === 0 ? 'No push, no impulse' : 'Too weak: no impulse';
+    q('.apt-say').textContent = fired
+      ? 'Once the push takes the membrane past threshold, the impulse fires at full size, whatever the push. That is the all-or-none law: a stronger stimulus makes impulses come more often, not bigger.'
+      : 'The membrane moves a little and slides back to rest. Below threshold there is no impulse at all.';
+    const min = Math.min(...r.V);
+    factList = [['Resting potential', '−65 mV', 'inside negative; textbooks often say about −70 mV'], ['Peak', fired ? `${fx(r.peak, 0)} mV` : 'none', fired ? 'inside briefly positive' : 'below threshold']];
+    const gq = q<HTMLCanvasElement>('.apt-g');
+    if (level === 11) {
+      const c = ionCurrents(r);
+      factList.push(['Lowest after the spike', `${fx(min, 0)} mV`, 'hyperpolarisation: K⁺ channels still open'], ['Largest Na⁺ current', `${fx(Math.min(...c.iNa), 0)} µA/cm²`, 'inward (negative)']);
+      gFig = chartFigure({ w: 480, h: 280, font: 14, xLabel: 'Time (ms)', yLabel: 'Channels open (mS/cm²)', xMin: 0, xMax: 15, yMin: 0, legend: 'below',
+        series: [{ name: 'Na⁺ channels (in)', x: r.t, y: c.gNa, mode: 'line', width: 2.5 }, { name: 'K⁺ channels (out)', x: r.t, y: c.gK, mode: 'line', width: 2.5, dash: [6, 3] }] },
+        'Sodium and potassium conductance during the spike');
+      gq.hidden = false; paint(gq, gFig);
+    } else { gq.hidden = true; gFig = null; }
+    q('.apt-facts').replaceChildren(...factList.map(([k, val, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+  }
+
+  // ---------- along the axon ----------
+  const W = 480, H = 250;
+  function drawAxons(ctx: CanvasRenderingContext2D, w: number, h: number, pal: Palette) {
+    const d = v('.apt-d'), vU = speed(d, false), vM = speed(d, true), x0 = 20, x1 = w - 20, L = x1 - x0;
+    const t = raceT < 0 ? 0 : raceT;
+    const lanes: [string, number, boolean, number][] = [['No myelin', vU, false, 70], ['Myelinated', vM, true, 180]];
+    ctx.font = '13px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+    for (const [name, vel, my, y] of lanes) {
+      ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.fillText(`${name}: ${fx(vel, vel < 10 ? 1 : 0)} m/s`, x0, y - 38);
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x0, y - 8); ctx.lineTo(x1, y - 8); ctx.moveTo(x0, y + 8); ctx.lineTo(x1, y + 8); ctx.stroke();
+      if (my) { ctx.fillStyle = pal.accent; ctx.globalAlpha = 0.28; for (let k = 0; k < 10; k++) { ctx.beginPath(); ctx.roundRect(x0 + (k * L) / 10 + 3, y - 15, L / 10 - 6, 30, 8); ctx.fill(); } ctx.globalAlpha = 1; }
+      const done = raceT >= 0 && travelMs(LEN, vel) <= t;
+      const reach = raceT < 0 ? -1 : Math.min(LEN, position(t, vel, my, LEN / 10)) / LEN;
+      if (reach >= 0) {
+        const px = x0 + reach * L;
+        ctx.fillStyle = pal.bad; ctx.globalAlpha = 0.85; ctx.beginPath(); ctx.ellipse(px, y, 9, 12, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+        if (!done) {
+          ctx.fillStyle = pal.ink; ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText('Na⁺ in ↓', Math.min(x1 - 20, px + 6), y - 24); if (px - x0 > 40) ctx.fillText('K⁺ out ↑', px - 34, y + 26);
+          ctx.font = '13px system-ui, sans-serif';
+        }
+      }
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'right';
+      ctx.fillText(raceT < 0 ? `${fx(travelMs(LEN, vel), 1)} ms for 10 cm` : done ? `arrived after ${fx(travelMs(LEN, vel), 1)} ms` : `${fx(t, 1)} ms`, x1, y - 38);
+    }
+    ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.fillText('10 cm of axon (myelin gaps, the nodes, are drawn 10 times wider apart than real)', w / 2, h - 12);
+  }
+  const axonFig: Figure = { w: W, h: H, alt: 'An impulse travelling along an unmyelinated and a myelinated axon', draw: drawAxons };
+  function axons() {
+    const d = v('.apt-d'), vU = speed(d, false), vM = speed(d, true);
+    q('.apt-dv').textContent = `${d} µm`;
+    q('.apt-slow').textContent = `Shown ${SLOW} times slower than real life. The impulse jumps from gap to gap along the myelinated axon (saltatory conduction).`;
+    q('.apt-formula').textContent = level === 10
+      ? `time = distance ÷ speed: 0.1 m ÷ ${fx(vU, 1)} m/s = ${fx(travelMs(LEN, vU), 1)} ms without myelin; 0.1 m ÷ ${fx(vM, 0)} m/s = ${fx(travelMs(LEN, vM), 2)} ms with myelin`
+      : `v ≈ √d = √${d} = ${fx(vU, 2)} m/s without myelin; v ≈ 6 × d = 6 × ${d} = ${fx(vM, 0)} m/s with myelin (${fx(vM / vU, 0)} times faster)`;
+    paint(q<HTMLCanvasElement>('.apt-fig'), axonFig);
+  }
+  function raceFrame(now: number) {
+    raceT = (now - raceStart) / SLOW;
+    paint(q<HTMLCanvasElement>('.apt-fig'), axonFig, pagePalette());
+    if (raceT < travelMs(LEN, speed(v('.apt-d'), false)) + 2) requestAnimationFrame(raceFrame);
+  }
+  q('.apt-race').addEventListener('click', () => {
+    if (reduce) { raceT = travelMs(LEN, speed(v('.apt-d'), false)); axons(); return; }
+    raceStart = performance.now(); raceT = 0; requestAnimationFrame(raceFrame);
+  });
+
+  // ---------- reaction test ----------
+  const times: number[] = []; let goAt = 0, waitTimer = 0;
+  const rt = q<HTMLButtonElement>('.apt-rt');
+  const setRt = (s: string, text: string) => { rt.dataset.s = s; rt.textContent = text; };
+  rt.addEventListener('pointerdown', (ev) => { ev.preventDefault(); react(); });
+  rt.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); react(); } });
+  function react() {
+    const s = rt.dataset.s;
+    if (s === 'idle' || s === 'done' || s === 'early') {
+      if (s === 'done' && times.length >= 5) times.length = 0;
+      setRt('wait', 'Wait for it…');
+      waitTimer = window.setTimeout(() => { setRt('go', 'TAP NOW!'); goAt = performance.now(); }, 1200 + Math.random() * 2300);
+    } else if (s === 'wait') { clearTimeout(waitTimer); setRt('early', 'Too soon! Tap to try again'); }
+    else if (s === 'go') {
+      const ms = performance.now() - goAt; times.push(ms);
+      setRt('done', times.length >= 5 ? `${Math.round(ms)} ms. Done! Tap to start again` : `${Math.round(ms)} ms. Tap for go ${times.length + 1} of 5`);
+      showTimes();
+    }
+  }
+  function showTimes() {
+    const st = stats(times);
+    q('.apt-times').textContent = times.length ? `Your times: ${times.map((t) => Math.round(t)).join(', ')} ms` : '';
+    const nerve = travelMs(1.5, 60);
+    const list: [string, string, string?][] = times.length ? [
+      ['Average', `${Math.round(st.mean)} ms`], ['Middle (median)', `${Math.round(st.median)} ms`], ['Best', `${Math.round(st.best)} ms`],
+      ['Nerve travel', `about ${Math.round(nerve)} ms`, '1.5 m from eye to brain to hand at 60 m/s'],
+      ['Everything else', `about ${Math.max(0, Math.round(st.median - nerve))} ms`, 'synapses, the brain deciding, muscles starting'],
+    ] : [];
+    q('.apt-rfacts').replaceChildren(...list.map(([k, val, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; }));
+  }
+
+  // ---------- Check yourself ----------
+  type Qn = { text: string; options?: string[]; answer: string | number; tol?: number; worked: string };
+  let qs: Qn[] = [];
+  const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
+  function makeQuiz() {
+    const L = pick([0.5, 0.8, 1, 1.2, 1.5]), sp = pick([20, 40, 50, 60, 80, 100]);
+    const dist = pick([0.3, 0.6, 0.9, 1.2]), ms = pick([10, 15, 20, 30]);
+    qs = [
+      { text: `An impulse travels ${L} m along a nerve at ${sp} m/s. How many milliseconds does it take?`, answer: (1000 * L) / sp, tol: 0.05, worked: `time = ${L} ÷ ${sp} = ${((1000 * L) / sp / 1000).toFixed(4)} s = ${fx((1000 * L) / sp, 2)} ms` },
+      { text: `An impulse covers ${dist} m in ${ms} ms. What is its speed in m/s?`, answer: dist / (ms / 1000), tol: 0.5, worked: `speed = ${dist} ÷ ${ms / 1000} = ${fx(dist / (ms / 1000), 0)} m/s` },
+      { text: 'At rest, the inside of a nerve cell membrane is…', options: ['negative compared with outside', 'positive compared with outside', 'the same as outside'], answer: 'negative compared with outside', worked: 'At rest the inside is about −70 mV compared with the outside.' },
+    ];
+    if (level === 10) qs.push({ text: 'Which part of a neuron carries the impulse away from the cell body?', options: ['axon', 'dendrite', 'synapse'], answer: 'axon', worked: 'Dendrites bring signals in; the axon carries the impulse away to the next cell.' });
+    else {
+      qs.push({ text: 'As the membrane depolarises, which ions rush into the axon?', options: ['Na⁺', 'K⁺', 'Cl⁻'], answer: 'Na⁺', worked: 'Voltage-gated Na⁺ channels open first and Na⁺ rushes in; then K⁺ channels open and K⁺ flows out (repolarisation).' });
+      qs.push({ text: 'Why is a myelinated axon faster?', options: ['the impulse jumps from node to node', 'myelin carries the current itself', 'it has more Na⁺ inside'], answer: 'the impulse jumps from node to node', worked: 'Myelin insulates the axon, so the membrane only fires at the nodes of Ranvier: saltatory conduction.' });
+    }
+    const ol = q('.apt-qs'); ol.innerHTML = '';
+    qs.forEach((x, j) => {
+      const li = document.createElement('li'); li.dataset.a = String(x.answer);
+      const p = document.createElement('p'); p.textContent = x.text; li.append(p);
+      if (x.options) { const sel = document.createElement('select'); sel.className = 'apt-ans'; sel.setAttribute('aria-label', `Answer ${j + 1}`); sel.append(new Option('Choose…', ''), ...x.options.map((o) => new Option(o, o))); li.append(sel); }
+      else { const inp = document.createElement('input'); inp.className = 'apt-ans'; inp.inputMode = 'decimal'; inp.setAttribute('aria-label', `Answer ${j + 1}`); li.append(inp); }
+      const w = document.createElement('p'); w.className = 'apt-worked'; w.hidden = true; li.append(w);
+      ol.append(li);
+    });
+    q('.apt-score').textContent = '';
+  }
+  function checkQuiz() {
+    let right = 0;
+    root.querySelectorAll<HTMLLIElement>('.apt-qs li').forEach((li, j) => {
+      const x = qs[j], val = (li.querySelector('.apt-ans') as HTMLInputElement).value.trim().replace(',', '.');
+      const ok = x.options ? (li.querySelector('.apt-ans') as HTMLSelectElement).value === x.answer : val !== '' && Math.abs(Number(val) - Number(x.answer)) <= (x.tol ?? 0.01);
+      if (ok) right++;
+      const w = li.querySelector<HTMLElement>('.apt-worked')!; w.hidden = false; w.className = `apt-worked ${ok ? 'ok' : 'no'}`;
+      w.textContent = `${ok ? '✓ Right.' : '✗ Not quite.'} ${x.worked}`;
+    });
+    q('.apt-score').textContent = `${right} of ${qs.length} right.`;
+  }
+
+  // ---------- wiring ----------
+  const press = (sel: string, val: string) => root.querySelectorAll<HTMLButtonElement>(`${sel} button`).forEach((o) => o.setAttribute('aria-pressed', String(o.dataset.v === val)));
+  root.querySelectorAll<HTMLButtonElement>('.apt-level button').forEach((b) => b.addEventListener('click', () => { level = Number(b.dataset.v); press('.apt-level', b.dataset.v!); spike(); axons(); makeQuiz(); }));
+  q('.apt-i').addEventListener('input', spike);
+  q('.apt-d').addEventListener('input', () => { raceT = -1; axons(); });
+  q('.apt-check').addEventListener('click', checkQuiz);
+  q('.apt-new').addEventListener('click', makeQuiz);
+  document.addEventListener('fibub:theme', () => { spike(); axons(); });
+  spike(); axons(); makeQuiz();
+  wireDownloads(q('.dl'), () => ({ title: 'Nerve impulse', subtitle: q('.apt-big').textContent ?? '', file: 'nerve-impulse',
+    sections: [
+      { title: 'One spike', text: [q('.apt-say').textContent ?? '', 'Hodgkin-Huxley squid-axon model; a teaching model.'], facts: factList.map(([k, val, s]) => [k, s ? `${val} (${s})` : val] as [string, string]), figure: vFig ?? undefined },
+      ...(gFig ? [{ title: 'Na⁺ and K⁺ channels', figure: gFig }] : []),
+      { title: 'Along the axon', text: [q('.apt-formula').textContent ?? ''], figure: axonFig },
+      ...(times.length ? [{ title: 'Reaction times', text: [q('.apt-times').textContent ?? ''] }] : []),
+    ] as Section[] }));
+</script>
+
+<style is:inline>
+  .apt .apt-note { margin: 0; }
+  .apt .apt-lab { font-size: 14px; color: var(--muted); min-width: 52px; }
+  .apt .ax-seg button { min-height: 44px; padding: 8px 12px; }
+  .apt input[type=range] { width: 100%; height: 36px; accent-color: var(--accent); }
+  .apt label b { color: var(--ink); }
+  .apt .btn.small { min-height: 44px; }
+  .apt canvas[hidden] { display: none; }
+  .apt .apt-g { margin-top: 12px; }
+  .apt .apt-formula { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; background: var(--accent-soft); padding: 8px 10px; border-radius: 8px; overflow-wrap: anywhere; }
+  .apt .apt-rt { display: block; width: 100%; min-height: 140px; border: 2px solid var(--line); border-radius: 14px; background: var(--accent-soft); color: var(--ink); font: 700 22px system-ui, sans-serif; cursor: pointer; touch-action: manipulation; user-select: none; }
+  .apt .apt-rt[data-s=go] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .apt .apt-rt[data-s=early] { border-color: var(--bad); color: var(--bad); }
+  .apt .apt-times { font-weight: 600; }
+  .apt .apt-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .apt .apt-qs { padding-left: 20px; display: grid; gap: 14px; margin: 10px 0; }
+  .apt .apt-qs p { margin: 0 0 6px; }
+  .apt .apt-qs select { width: 100%; min-height: 44px; }
+  .apt .apt-qs input { max-width: 220px; min-height: 44px; }
+  .apt .apt-worked.ok { color: var(--good); }
+  .apt .apt-worked.no { color: var(--bad); }
+  .apt .apt-score { font-weight: 700; }
+</style>

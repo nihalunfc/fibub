@@ -1,0 +1,162 @@
+---
+// Heating curve of water (Learn): heat ice at a steady rate and watch the temperature rise, stop while it melts,
+// rise, stop while it boils; heat and time for each stage; and a mixer for the final temperature (calorimetry).
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn htc">
+  <div class="ax-card">
+    <h2>Heat the ice</h2>
+    <canvas class="lrn-cv hc-cv" aria-label="A beaker of ice being heated and the graph of its temperature against time"></canvas>
+    <p class="ax-big hc-big" style="margin:8px 0 0"></p>
+    <p class="hc-now" style="margin:4px 0 0"></p>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small hc-play">Pause</button>
+      <button type="button" class="btn secondary small hc-restart">Start again</button>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Mass of ice <b class="hc-mv"></b><input type="range" class="hc-m" min="0.1" max="2" step="0.1" value="0.5" aria-label="Mass of ice in kilograms" /></label>
+      <label class="lrn-sl">Heater power <b class="hc-Pv"></b><input type="range" class="hc-P" min="100" max="2000" step="100" value="500" aria-label="Heater power in watts" /></label>
+      <label class="lrn-sl">Ice starts at <b class="hc-T0v"></b><input type="range" class="hc-T0" min="-40" max="0" step="5" value="-20" aria-label="Starting temperature in degrees Celsius" /></label>
+    </div>
+    <p class="lrn-eq hc-eq"></p>
+    <div class="ax-scroll"><table class="hc-tab"></table></div>
+    <p class="ax-help">The heater is assumed to put all its heat into the ice, water or steam, with none lost to the air or the beaker, and the steam is kept in. Rounded school values: c of ice 2,100, of water 4,200 and of steam 2,000 J/(kg K); latent heat of melting 3.34 × 10⁵ J/kg and of boiling 2.26 × 10⁶ J/kg.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Mix and find the final temperature</h2>
+    <div class="ax-grid">
+      <label>Drop in <select class="hc-obj"><option value="4200" selected>Hot water</option><option value="450">An iron ball (c ≈ 450)</option><option value="385">A copper ball (c ≈ 385)</option><option value="900">An aluminium ball (c ≈ 900)</option><option value="ice">Ice at 0 °C</option></select></label>
+      <label>Its mass (kg) <input class="hc-ma" inputmode="decimal" value="0.2" /></label>
+      <label class="hc-tal">Its temperature (°C) <input class="hc-ta" inputmode="decimal" value="80" /></label>
+      <label>Water in the cup (kg) <input class="hc-mb" inputmode="decimal" value="0.3" /></label>
+      <label>Cup water temperature (°C) <input class="hc-tb" inputmode="decimal" value="20" /></label>
+    </div>
+    <p class="ax-err hc-err" hidden></p>
+    <p class="ax-big hc-mix"></p>
+    <p class="lrn-eq hc-mixeq"></p>
+    <p class="ax-help">Heat lost by the hot body = heat gained by the cold body (no heat lost to the cup or the air). The cup water must stay liquid, from 0 to 100 °C. Specific heats of the metals are rounded general values.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Watch the flat parts: the heater is still on, but the temperature does not move while ice melts or water boils.</li>
+      <li>Compare the lengths of the flat parts: boiling takes almost 7 times as long as melting, because L for boiling is much bigger.</li>
+      <li>Double the mass: every stage takes twice as long. Double the power: every stage takes half as long.</li>
+      <li>The water line is less steep than the ice and steam lines: water needs about twice as much heat for each degree.</li>
+      <li>In the mixer, drop 50 g of ice into 200 g of water at 50 °C, then 200 g of ice. Does it all melt?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card hc-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { heatingStages, tempAt, mixTemp, iceIntoWater, C_WATER, L_FUSION, type Stage } from '../../lib/sci/learnheat';
+  import { mountQuiz, pick, r, fitCanvas, loop } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.htc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v_ = (c: string) => +q<HTMLInputElement>(c).value;
+  const TEND = 120, PLAY_S = 24; // the whole curve plays in about 24 s
+  let st: Stage[] = [], t = 0, total = 1;
+  const kJ = (Q: number) => `${sig(Q / 1000, 4)} kJ`;
+  const tm = (s: number) => (s < 120 ? `${sig(s, 3)} s` : `${sig(s / 60, 3)} min`);
+
+  function draw(dt: number) {
+    if (t < total) t = Math.min(total, t + (dt * total) / PLAY_S);
+    const pal = pagePalette(), { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.hc-cv'), 300), now = tempAt(st, t);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const hi = pal.red ? pal.ink : pal.accent, hi2 = pal.red ? pal.muted : pal.accent2;
+    // Beaker
+    const bx = 20, by = 12, bw = 70, bh = 76, stg = st[now.i];
+    const im = st.findIndex((s) => s.kind === 'melt'), ib = st.findIndex((s) => s.kind === 'boil'), i = now.i;
+    const iceLeft = i < im ? 1 : i === im ? 1 - now.frac : 0;
+    const waterLeft = i < im ? 0 : i === im ? now.frac : i < ib ? 1 : i === ib ? 1 - now.frac : 0;
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx, by + bh); ctx.lineTo(bx + bw, by + bh); ctx.lineTo(bx + bw, by); ctx.stroke();
+    const lvl = 40 * waterLeft; ctx.fillStyle = pal.grid; ctx.fillRect(bx + 2, by + bh - lvl - 1, bw - 4, lvl);
+    ctx.strokeStyle = hi; ctx.lineWidth = 1.5;
+    const cubes = Math.round(6 * iceLeft); for (let i = 0; i < cubes; i++) ctx.strokeRect(bx + 6 + (i % 3) * 20, by + bh - 18 - Math.floor(i / 3) * 18 - (lvl > 10 ? lvl - 16 : 0), 15, 15);
+    if (stg && (stg.kind === 'boil' || now.T > 100)) { ctx.strokeStyle = pal.muted; for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.arc(bx + 14 + i * 14, by + 22 + ((t * 7 + i * 9) % 30), 3, 0, 7); ctx.stroke(); } }
+    ctx.fillStyle = hi2; ctx.fillRect(bx + 10, by + bh + 4, bw - 20, 6); // heater
+    ctx.fillStyle = pal.ink; ctx.font = 'bold 20px system-ui, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(`${now.T.toFixed(1)} °C`, bx + bw + 18, by + 34);
+    ctx.font = '13px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.fillText(stg ? stg.name : '', bx + bw + 18, by + 56);
+    // Graph
+    const gx = 40, gy = 112, gw = W - gx - 10, gh = H - gy - 30, Tmin = Math.min(-40, st[0]?.T0 ?? -20), Tmax = 130;
+    const X = (s: number) => gx + (s / total) * gw, Y = (T: number) => gy + gh - ((T - Tmin) / (Tmax - Tmin)) * gh;
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textAlign = 'right';
+    for (const T of [-40, 0, 50, 100]) if (T >= Tmin) { ctx.beginPath(); ctx.moveTo(gx, Y(T)); ctx.lineTo(gx + gw, Y(T)); ctx.stroke(); ctx.fillText(`${T}`, gx - 4, Y(T) + 4); }
+    ctx.textAlign = 'center'; ctx.fillText('time →', gx + gw / 2, H - 8);
+    ctx.save(); ctx.translate(12, gy + gh / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('°C', 0, 0); ctx.restore();
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); st.forEach((s, i) => { if (!i) ctx.moveTo(X(s.t0), Y(s.T0)); ctx.lineTo(X(s.t1), Y(s.T1)); }); ctx.stroke();
+    ctx.strokeStyle = hi; ctx.lineWidth = 3; ctx.beginPath(); st.forEach((s, i) => { if (s.t0 > t) return; if (!i) ctx.moveTo(X(s.t0), Y(s.T0)); const e = Math.min(t, s.t1), T = tempAt(st, e).T; ctx.lineTo(X(e), Y(T)); }); ctx.stroke();
+    ctx.fillStyle = hi2; ctx.beginPath(); ctx.arc(X(t), Y(now.T), 5, 0, 7); ctx.fill();
+    ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.font = '11px system-ui, sans-serif';
+    st.forEach((s) => { if (s.kind !== 'warm' && X(s.t1) - X(s.t0) > 50) ctx.fillText(s.kind === 'melt' ? 'melting' : 'boiling', (X(s.t0) + X(s.t1)) / 2, Y(s.T0) - 6); });
+    // Text
+    if (stg) {
+      q('.hc-big').textContent = `${now.T.toFixed(1)} °C after ${tm(t)}`;
+      q('.hc-now').textContent = stg.kind === 'warm' ? `${stg.name}: the temperature rises.` : `${stg.name}: ${Math.round(now.frac * 100)}% done. The temperature stays at ${stg.T0} °C while the heat breaks the particles apart.`;
+    }
+  }
+
+  function setup(keep = false) {
+    const m = v_('.hc-m'), P = v_('.hc-P'), T0 = v_('.hc-T0');
+    q('.hc-mv').textContent = `${m.toFixed(1)} kg`; q('.hc-Pv').textContent = `${P} W`; q('.hc-T0v').textContent = `${T0} °C`;
+    st = heatingStages(m, P, T0, TEND); const old = total; total = st[st.length - 1].t1; t = keep ? Math.min(total, (t / old) * total) : 0;
+    const tab = q<HTMLTableElement>('.hc-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); ['Stage', 'Heat needed', 'Time at ' + P + ' W', 'How'].forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i === 1 || i === 2) th.className = 'r'; hr.append(th); });
+    const b = tab.createTBody();
+    st.forEach((s) => { const tr = b.insertRow(); const how = s.kind === 'melt' ? `mL = ${m.toFixed(1)} × 334,000` : s.kind === 'boil' ? `mL = ${m.toFixed(1)} × 2,260,000` : `mcΔT = ${m.toFixed(1)} × ${s.T0 < 0 || (s.T1 <= 0) ? '2,100' : s.T0 >= 100 ? '2,000' : '4,200'} × ${s.T1 - s.T0}`; [s.name, kJ(s.Q), tm(s.Q / P), how].forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i === 1 || i === 2) td.className = 'r'; }); });
+    const melt = st.find((s) => s.kind === 'melt')!, boil = st.find((s) => s.kind === 'boil')!;
+    q('.hc-eq').textContent = `Melting: Q = mL = ${m.toFixed(1)} × 3.34 × 10⁵ = ${kJ(melt.Q)}, taking ${tm(melt.Q / P)}.  Boiling: Q = ${m.toFixed(1)} × 2.26 × 10⁶ = ${kJ(boil.Q)}, taking ${tm(boil.Q / P)}.  Total from ${T0} °C to ${TEND} °C: ${kJ(st.reduce((a, s) => a + s.Q, 0))} in ${tm(total)}.`;
+    anim.redraw();
+  }
+
+  function mix() {
+    const err = q('.hc-err'), obj = q<HTMLSelectElement>('.hc-obj').value, ice = obj === 'ice';
+    q('.hc-tal').hidden = ice;
+    const ma = num(q<HTMLInputElement>('.hc-ma').value), ta = num(q<HTMLInputElement>('.hc-ta').value), mb = num(q<HTMLInputElement>('.hc-mb').value), tb = num(q<HTMLInputElement>('.hc-tb').value);
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; q('.hc-mix').textContent = ''; q('.hc-mixeq').textContent = ''; };
+    if (!(ma > 0 && ma <= 100) || !(mb > 0 && mb <= 100)) return fail('Give both masses in kilograms (above 0, up to 100).');
+    if (!(tb >= 0 && tb <= 100)) return fail('The cup water must be liquid: give 0 to 100 °C.');
+    if (!ice && !(ta >= -50 && ta <= (obj === '4200' ? 100 : 1000))) return fail(obj === '4200' ? 'Hot water must be liquid: give 0 to 100 °C.' : 'Give the ball’s temperature from −50 to 1,000 °C.');
+    if (!ice && obj === '4200' && ta < 0) return fail('Hot water must be liquid: give 0 to 100 °C.');
+    err.hidden = true;
+    if (ice) {
+      const res = iceIntoWater(ma, mb, tb), avail = mb * C_WATER * tb, need = ma * L_FUSION;
+      q('.hc-mix').textContent = res.allMelts ? `Final temperature ${res.T.toFixed(1)} °C` : `Final temperature 0 °C, ${sig(res.melted * 1000, 4)} g of ice melts`;
+      q('.hc-mixeq').textContent = `Heat the water can give cooling to 0 °C: ${mb} × 4,200 × ${tb} = ${kJ(avail)}. Heat to melt all the ice: ${ma} × 334,000 = ${kJ(need)}. ` + (res.allMelts ? `All of it melts; the ${kJ(avail - need)} left warms all ${sig(ma + mb, 4)} kg: T = ${kJ(avail - need)} / (${sig(ma + mb, 4)} × 4,200) = ${res.T.toFixed(1)} °C.` : `Not enough: only ${kJ(avail)} / 334,000 = ${sig(res.melted * 1000, 4)} g melts, and the mixture stays at 0 °C with ice left over.`);
+    } else {
+      const c = +obj, T = mixTemp([{ m: ma, c, T: ta }, { m: mb, c: C_WATER, T: tb }]);
+      q('.hc-mix').textContent = `Final temperature ${T.toFixed(1)} °C`;
+      q('.hc-mixeq').textContent = `${ma} × ${c.toLocaleString('en')} × (${ta} − T) = ${mb} × 4,200 × (T − ${tb}), so T = (${ma} × ${c.toLocaleString('en')} × ${ta} + ${mb} × 4,200 × ${tb}) / (${ma} × ${c.toLocaleString('en')} + ${mb} × 4,200) = ${T.toFixed(1)} °C.`;
+    }
+  }
+
+  const anim = loop(draw, q<HTMLButtonElement>('.hc-play'));
+  q('.hc-restart').addEventListener('click', () => { t = 0; anim.redraw(); });
+  ['.hc-m', '.hc-P', '.hc-T0'].forEach((c) => q(c).addEventListener('input', () => setup(true)));
+  ['.hc-obj', '.hc-ma', '.hc-ta', '.hc-mb', '.hc-tb'].forEach((c) => q(c).addEventListener('input', mix));
+  addEventListener('resize', () => anim.redraw());
+  setup(); mix();
+
+  mountQuiz(q('.hc-quiz'), () => {
+    const m1 = pick(2, 20) / 10, dT = pick(10, 80, 5), m2 = pick(1, 20) / 10, P = pick(2, 20) * 100, m3 = pick(1, 10) / 10, a = pick(1, 5) / 10, b = pick(1, 5) / 10, Ta = pick(50, 90, 5), Tb = pick(10, 30, 5);
+    const Tm = (a * Ta + b * Tb) / (a + b);
+    return [
+      { q: `How much heat warms ${m1} kg of water by ${dT} °C? (c = 4,200 J/(kg K)) Answer in kJ.`, ans: (m1 * 4200 * dT) / 1000, unit: 'kJ', work: `Q = mcΔT = ${m1} × 4,200 × ${dT} = ${r(m1 * 4200 * dT, 4)} J = ${r((m1 * 4200 * dT) / 1000)} kJ` },
+      { q: `How much heat melts ${m2} kg of ice at 0 °C? (L = 3.34 × 10⁵ J/kg) Answer in kJ.`, ans: m2 * 334, unit: 'kJ', work: `Q = mL = ${m2} × 334,000 = ${r(m2 * 334000, 4)} J = ${r(m2 * 334)} kJ` },
+      { q: `A ${P} W heater melts ${m3} kg of ice at 0 °C. How long does it take, if no heat is lost?`, ans: (m3 * 334000) / P, unit: 's', work: `Q = mL = ${m3} × 334,000 = ${r(m3 * 334000, 4)} J; t = Q / P = ${r(m3 * 334000, 4)} / ${P} = ${r((m3 * 334000) / P)} s` },
+      { q: `${a} kg of water at ${Ta} °C is mixed with ${b} kg of water at ${Tb} °C. What is the final temperature?`, ans: Tm, unit: '°C', work: `T = (m₁T₁ + m₂T₂) / (m₁ + m₂) = (${a} × ${Ta} + ${b} × ${Tb}) / ${r(a + b)} = ${r(Tm)} °C` },
+      { q: 'While ice is melting on a steady heater, its temperature…', ans: 0, choices: ['Stays the same', 'Rises slowly', 'Falls'], work: 'The heat goes into breaking the solid apart (latent heat), so the temperature stays at 0 °C until all the ice has melted.' },
+    ];
+  });
+</script>
