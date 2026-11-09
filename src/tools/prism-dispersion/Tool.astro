@@ -1,0 +1,181 @@
+---
+// Prism and dispersion for school: a ray through a triangular prism (angles r1, r2, e and the deviation), the
+// deviation against incidence graph with its minimum, and white light split into a spectrum. Maths in
+// src/lib/sci/school-optics.ts. The glass dispersion (Cauchy) coefficients are rounded, made-up teaching values.
+import '../../styles/astro.css';
+const GLASS = [['Crown glass', '1.52', '4200'], ['Dense flint glass', '1.65', '9800'], ['Water (hollow prism)', '1.33', '3100'], ['Diamond', '2.42', '26000']];
+---
+<div class="ax psm">
+  <div class="ax-card">
+    <div class="ax-row psm-top">
+      <div class="ax-seg psm-light" role="group" aria-label="Light">
+        <button type="button" data-w="one" aria-pressed="true">One colour</button><button type="button" data-w="white" aria-pressed="false">White light</button>
+      </div>
+      <div class="ax-seg psm-level" role="group" aria-label="Level">
+        <button type="button" data-l="10" aria-pressed="true">Class 10</button><button type="button" data-l="12" aria-pressed="false">Class 12</button>
+      </div>
+    </div>
+    <canvas class="ax-fig psm-fig" aria-label="Ray through a prism"></canvas>
+    <div class="ax-grid">
+      <label>Angle of incidence i: <b class="psm-iv"></b><input class="psm-i" type="range" min="10" max="89" step="1" value="50" /></label>
+      <label>Prism angle A: <b class="psm-av"></b><input class="psm-a" type="range" min="20" max="80" step="1" value="60" /></label>
+      <label>Prism made of <select class="psm-g">{GLASS.map(([n, v, b]) => <option value={v} data-b={b} selected={n === 'Crown glass'}>{n} ({v})</option>)}</select></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small psm-min">Go to minimum deviation</button></div>
+    <p class="ax-help">The index is for yellow light (589 nm). How much it changes with colour uses Cauchy's formula n = a + b/λ² with rounded, made-up teaching values of b, so the spread of the spectrum is about right but not exact for any real glass.</p>
+  </div>
+
+  <div class="ax-card psm-out">
+    <p class="ax-big psm-big"></p>
+    <p class="ax-err psm-err" hidden></p>
+    <dl class="ax-facts psm-facts"></dl>
+    <pre class="psm-formula"></pre>
+    <h3>Deviation against angle of incidence</h3>
+    <canvas class="ax-fig psm-chart" aria-label="Deviation against incidence"></canvas>
+    <p class="ax-help">The deviation is smallest when the ray passes through the prism symmetrically (i = e, and the ray inside is parallel to the base). That smallest value is the angle of minimum deviation δm.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="psm-try">
+      <li>Slide the angle of incidence from small to large. The deviation first falls, reaches a minimum, then rises again: watch the dot run along the curve.</li>
+      <li>Press <b>Go to minimum deviation</b>: the ray inside the prism runs parallel to the base.</li>
+      <li>Switch to <b>White light</b>. Violet bends the most and red the least, so white light fans out into a spectrum. Dense flint glass and diamond spread it more.</li>
+      <li>Make the angle of incidence small: at some point the light cannot get out of the second face at all (total internal reflection).</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh numbers each time. Angles in degrees. Nothing is saved.</p>
+    <div class="psm-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .psm input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; }
+  .psm-top { justify-content: space-between; margin-bottom: 8px; }
+  .psm .ax-seg button { min-height: 40px; }
+  .psm-fig, .psm-chart { border: 1px solid var(--line); margin: 4px auto; max-width: 520px; }
+  .psm h3 { font-size: 15px; margin: 14px 0 6px; }
+  .psm-formula { font: 15px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; margin: 12px 0 0; padding: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
+  .psm-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+</style>
+
+<script>
+  import { prismPath, minDeviation, indexFromMinDeviation, cauchy, rad } from '../../lib/sci/school-optics';
+  import { paint, type Figure } from '../../lib/report';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { sig } from '../../lib/sci/num';
+  import { mountQuiz, pick, randInt, type Question } from '../../lib/school-quiz';
+
+  const root = document.querySelector<HTMLElement>('.psm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const st = { light: 'one', level: '10', i: 50, A: 60 };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const dg = (x: number) => `${sig(x, 3)}°`;
+  const glass = () => { const s = q<HTMLSelectElement>('.psm-g'); return { n: Number(s.value), b: Number(s.selectedOptions[0].dataset.b), name: s.selectedOptions[0].textContent!.replace(/ \(.*/, '') }; };
+  // Spectrum: wavelengths (nm) and an approximate screen colour for each.
+  const SPECTRUM: [number, string, string][] = [[680, 'red', '#e0201b'], [620, 'orange', '#f07f13'], [580, 'yellow', '#e8c80c'], [530, 'green', '#2ea043'], [480, 'blue', '#1f6fe0'], [445, 'indigo', '#4b3bc4'], [410, 'violet', '#8a2be2']];
+  const nAt = (n589: number, b: number, nm: number) => cauchy(n589 - b / (589 * 589), b, nm);
+
+  type V = [number, number];
+  const dir = (deg: number): V => [Math.cos(rad(deg)), Math.sin(rad(deg))];
+  const add = (p: V, d: V, t: number): V => [p[0] + d[0] * t, p[1] + d[1] * t];
+  function prismFig(A: number, i: number, rays: { n: number; colour: string | null }[], white: boolean, nRef = 1.5): Figure {
+    const W = 400, H = 300;
+    return { w: W, h: H, alt: `Prism of angle ${A}° with light at ${i}°`, draw: (ctx, w, h, pal) => {
+      const a = A / 2, apex: V = [175, 34], L = 220, dL: V = [-Math.sin(rad(a)), Math.cos(rad(a))], dR: V = [Math.sin(rad(a)), Math.cos(rad(a))];
+      const H1 = add(apex, dL, 0.55 * L);
+      const seg = (p: V, q2: V, dash = false) => { ctx.setLineDash(dash ? [5, 4] : []); ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q2[0], q2[1]); ctx.stroke(); ctx.setLineDash([]); };
+      const tri = () => { ctx.beginPath(); ctx.moveTo(apex[0], apex[1]); const l = add(apex, dL, L), r = add(apex, dR, L); ctx.lineTo(l[0], l[1]); ctx.lineTo(r[0], r[1]); ctx.closePath(); };
+      tri(); ctx.globalAlpha = 0.14; ctx.fillStyle = pal.accent; ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = pal.ink; ctx.font = '600 13px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(`A = ${A}°`, apex[0], apex[1] - 4);
+      // Incident ray and its normal.
+      const din = dir(a - i), start = add(H1, din, -190);
+      ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; const nL: V = [-Math.cos(rad(a)), -Math.sin(rad(a))]; seg(add(H1, nL, 40), add(H1, nL, -30), true);
+      ctx.strokeStyle = white ? pal.ink : pal.accent; ctx.lineWidth = 3; seg(start, H1);
+      ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; seg(H1, add(H1, din, 230), true);
+      let any = false;
+      for (const r of rays) {
+        const p = prismPath(A, r.n, i);
+        const r1 = Math.asin(Math.sin(rad(i)) / r.n) * 180 / Math.PI, d1 = dir(a - r1);
+        // Where the ray inside meets the right face: H1 + t d1 = apex + s dR.
+        const det = d1[0] * -dR[1] - d1[1] * -dR[0], ex = apex[0] - H1[0], ey = apex[1] - H1[1];
+        const t = (ex * -dR[1] - ey * -dR[0]) / det, H2 = add(H1, d1, t);
+        ctx.strokeStyle = r.colour && !pal.red ? r.colour : pal.accent; ctx.lineWidth = white ? 1.6 : 2.5;
+        seg(H1, H2);
+        if (!p) continue;
+        any = true;
+        if (!white) { ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; const nR: V = [Math.cos(rad(a)), -Math.sin(rad(a))]; seg(add(H2, nR, 40), add(H2, nR, -30), true); }
+        ctx.strokeStyle = r.colour && !pal.red ? r.colour : pal.bad; ctx.lineWidth = white ? 2 : 2.5;
+        // White light: the colours' spread outside the prism is drawn 4 times bigger so it can be seen.
+        const ref = prismPath(A, nRef, i), eDraw = white && ref ? p.e + 3 * (p.e - ref.e) : p.e;
+        seg(H2, add(H2, dir(eDraw - a), 400));
+      }
+      if (any && white) { ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText('colour spread drawn 4× bigger', W - 8, H - 6); }
+      if (!any) { ctx.fillStyle = pal.bad; ctx.textAlign = 'right'; ctx.textBaseline = 'top'; ctx.fillText('No ray gets out: totally reflected', W - 8, 8); }
+      else if (!white) { ctx.fillStyle = pal.muted; ctx.font = '600 13px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('δ', add(H1, din, 210)[0] - 4, add(H1, din, 210)[1] + 2); }
+    } };
+  }
+
+  let figs: [HTMLCanvasElement, Figure][] = [];
+  function draw() {
+    const { A, i, light, level } = st, g = glass();
+    q('.psm-iv').textContent = `${i}°`; q('.psm-av').textContent = `${A}°`;
+    const p = prismPath(A, g.n, i), dm = minDeviation(A, g.n);
+    const white = light === 'white';
+    const rays = white ? SPECTRUM.map(([nm, , c]) => ({ n: nAt(g.n, g.b, nm), colour: c })) : [{ n: g.n, colour: null }];
+    const pf = prismFig(A, i, rays, white, g.n);
+    // Deviation curve over every angle of incidence that lets light out.
+    const xs: number[] = [], ys: number[] = [];
+    for (let k = 0; k <= 900; k++) { const ii = k / 10, pp = prismPath(A, g.n, ii); if (pp) { xs.push(ii); ys.push(pp.dev); } }
+    const series: any[] = [{ name: 'δ', x: xs, y: ys, mode: 'line', width: 2 }];
+    if (p) series.push({ name: 'This ray', x: [i], y: [p.dev], mode: 'points', size: 6 });
+    const marks = dm !== null ? [{ kind: 'hline' as const, at: dm, dash: [4, 3], label: `δm = ${dg(dm)}` }] : [];
+    const cf = chartFigure({ w: 400, h: 230, xLabel: 'Angle of incidence i (°)', yLabel: 'Deviation δ (°)', legend: 'none', series, marks, xMin: 0, xMax: 90 }, 'Deviation against angle of incidence');
+    figs = [[q('.psm-fig'), pf], [q('.psm-chart'), cf]];
+    for (const [c, f] of figs) paint(c, f);
+    const err = q('.psm-err'), f: HTMLElement[] = [], L: string[] = [];
+    if (dm === null) { err.textContent = `With this glass a ${A}° prism lets no light through at any angle: make the prism angle smaller.`; err.hidden = false; q('.psm-big').textContent = 'No light gets through'; q('.psm-facts').replaceChildren(); q('.psm-formula').textContent = ''; return; }
+    const r1 = Math.asin(Math.sin(rad(i)) / g.n) * 180 / Math.PI;
+    if (!p) {
+      err.hidden = false; err.textContent = `At i = ${i}° the ray meets the second face at ${dg(A - r1)}, more than the critical angle ${dg(Math.asin(1 / g.n) * 180 / Math.PI)}, so it is totally reflected inside. Make i bigger.`;
+      q('.psm-big').textContent = 'No ray comes out';
+    } else {
+      err.hidden = true;
+      q('.psm-big').textContent = white ? `Spectrum: violet bent ${dg(prismPath(A, rays[6].n, i)?.dev ?? NaN)}, red ${dg(prismPath(A, rays[0].n, i)?.dev ?? NaN)}` : `Deviation δ = ${dg(p.dev)}`;
+      f.push(fact('Refraction at 1st face r₁', dg(p.r1)), fact('At 2nd face r₂', dg(p.r2)), fact('Angle of emergence e', dg(p.e)), fact('Deviation δ', dg(p.dev)));
+      L.push(`sin r₁ = sin i / n = sin ${i}° / ${g.n} → r₁ = ${dg(p.r1)}`, `r₂ = A − r₁ = ${A}° − ${dg(p.r1)} = ${dg(p.r2)}`, `sin e = n sin r₂ → e = ${dg(p.e)}`, `δ = i + e − A = ${i}° + ${dg(p.e)} − ${A}° = ${dg(p.dev)}`);
+    }
+    f.push(fact('Minimum deviation δm', dg(dm), `at i = e = ${dg((A + dm) / 2)}`));
+    if (white) {
+      const pv = prismPath(A, rays[6].n, i), pr = prismPath(A, rays[0].n, i);
+      f.push(fact('n for red (680 nm)', sig(rays[0].n, 4)), fact('n for violet (410 nm)', sig(rays[6].n, 4)));
+      if (pv && pr) f.push(fact('Spread of the spectrum', dg(pv.dev - pr.dev), 'violet minus red'));
+    }
+    if (level === '12') L.push(`Minimum deviation: n = sin((A + δm)/2) / sin(A/2)`, `${g.n} = sin((${A}° + δm)/2) / sin(${A / 2}°) → δm = ${dg(dm)}`, `check: sin(${dg((A + dm) / 2)}) / sin(${A / 2}°) = ${sig(indexFromMinDeviation(A, dm), 4)}`);
+    q('.psm-facts').replaceChildren(...f);
+    q('.psm-formula').textContent = L.join('\n');
+  }
+
+  const segs = (sel: string, key: 'light' | 'level', attr: string) => root.querySelectorAll<HTMLButtonElement>(`${sel} button`).forEach((b) => b.addEventListener('click', () => {
+    st[key] = b.dataset[attr]!; root.querySelectorAll<HTMLButtonElement>(`${sel} button`).forEach((x) => x.setAttribute('aria-pressed', String(x === b))); draw();
+  }));
+  segs('.psm-light', 'light', 'w'); segs('.psm-level', 'level', 'l');
+  q('.psm-i').addEventListener('input', () => { st.i = Number(q<HTMLInputElement>('.psm-i').value); draw(); });
+  q('.psm-a').addEventListener('input', () => { st.A = Number(q<HTMLInputElement>('.psm-a').value); draw(); });
+  q('.psm-g').addEventListener('change', draw);
+  q('.psm-min').addEventListener('click', () => { const dm = minDeviation(st.A, glass().n); if (dm === null) return; st.i = Math.round((st.A + dm) / 2); q<HTMLInputElement>('.psm-i').value = String(st.i); draw(); });
+  document.addEventListener('fibub:theme', () => { for (const [c, f] of figs) paint(c, f); });
+
+  const make = (): Question => {
+    const t = pick(['n', 'dm', 'r2', 'dev']);
+    if (t === 'n') { const dm = randInt(30, 50); const n = indexFromMinDeviation(60, dm); return { text: `A 60° glass prism has an angle of minimum deviation of ${dm}°. Find the refractive index of the glass (2 decimal places).`, answer: Math.round(n * 100) / 100, tol: 0.011, work: [`n = sin((A + δm)/2) / sin(A/2) = sin(${(60 + dm) / 2}°) / sin 30°`, `= ${sig(Math.sin(rad((60 + dm) / 2)), 4)} / 0.5 = ${(Math.round(n * 100) / 100).toFixed(2)}`] }; }
+    if (t === 'dm') { const n = pick([1.4, 1.45, 1.5, 1.52, 1.55, 1.6]); const dm = minDeviation(60, n)!; return { text: `Find the angle of minimum deviation of a 60° prism with refractive index ${n} (1 decimal place).`, unit: '°', answer: Math.round(dm * 10) / 10, tol: 0.15, work: [`sin((A + δm)/2) = n sin(A/2) = ${n} × 0.5 = ${n / 2}`, `(A + δm)/2 = ${sig(Math.asin(n / 2) * 180 / Math.PI, 4)}°, so δm = 2 × ${sig(Math.asin(n / 2) * 180 / Math.PI, 4)}° − 60°`, `δm = ${(Math.round(dm * 10) / 10).toFixed(1)}`] }; }
+    if (t === 'r2') { const A = pick([45, 50, 60, 70]), r1 = randInt(15, A - 10); return { text: `Light enters a ${A}° prism and is refracted at r₁ = ${r1}° at the first face. What is the angle r₂ at the second face?`, unit: '°', answer: A - r1, tol: 0.05, work: [`r₁ + r₂ = A, so r₂ = ${A}° − ${r1}° = ${A - r1}`] }; }
+    const A = 60, i = randInt(40, 65), e = Math.round(prismPath(60, 1.5, i)!.e); return { text: `A ray enters a 60° glass prism at i = ${i}° and leaves at e = ${e}°. What is its deviation?`, unit: '°', answer: i + e - A, tol: 0.05, work: [`δ = i + e − A = ${i}° + ${e}° − 60° = ${i + e - A}`] };
+  };
+  mountQuiz(q('.psm-quiz'), make, 4);
+  draw();
+</script>

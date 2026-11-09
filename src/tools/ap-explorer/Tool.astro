@@ -1,0 +1,114 @@
+---
+// Arithmetic progressions as a staircase of bars: a and d sliders, the nth term, and Gauss's pairing trick for the
+// sum drawn as the staircase plus its upside-down copy. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm ap">
+  <div class="ax-card">
+    <h2>The staircase</h2>
+    <p class="ax-big ap-seq" aria-live="polite" style="margin:4px 0 8px"></p>
+    <svg class="sm-fig ap-fig" viewBox="0 0 340 260" role="img" aria-label="Terms of the progression drawn as bars"></svg>
+    <div class="sm-sl"><b>a</b><input type="range" class="ap-ar" min="-20" max="20" step="1" value="3" aria-label="First term slider" /><input type="number" class="ap-a" step="1" value="3" inputmode="decimal" aria-label="First term a" /></div>
+    <div class="sm-sl"><b>d</b><input type="range" class="ap-dr" min="-10" max="10" step="0.5" value="4" aria-label="Common difference slider" /><input type="number" class="ap-d" step="0.5" value="4" inputmode="decimal" aria-label="Common difference d" /></div>
+    <div class="sm-sl"><b>n</b><input type="range" class="ap-nr" min="1" max="40" step="1" value="10" aria-label="Number of terms slider" /><input type="number" class="ap-n" min="1" max="500" step="1" value="10" inputmode="numeric" aria-label="Number of terms n" /></div>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small ap-pre" data-p="3,4,10">3, 7, 11, ...</button>
+      <button type="button" class="btn secondary small ap-pre" data-p="1,1,100">1 to 100</button>
+      <button type="button" class="btn secondary small ap-pre" data-p="21,-3,12">Going down</button>
+      <button type="button" class="btn secondary small ap-pre" data-p="500,100,12">Savings plan</button>
+    </div>
+    <label class="ax-check" style="margin-top:8px"><input type="checkbox" class="ap-gauss" /> Show Gauss's pairing (the staircase and its upside-down copy)</label>
+    <p class="ax-err ap-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Formulas with your numbers</h2>
+    <ul class="sm-steps ap-out"></ul>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Which term is <input type="number" class="ap-v" step="any" value="39" inputmode="decimal" /></label>
+    </div>
+    <p class="sm-f ap-which"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Press "1 to 100" and turn on Gauss's pairing. Each pair adds to 101, and there are 50 pairs.</li>
+      <li>Make d negative. The staircase goes down; once the terms turn negative the bars hang below the line.</li>
+      <li>Savings plan: put away ₹500 in the first month and ₹100 more each month. How much is saved after a year?</li>
+      <li>Find a and d so that the 5th term is 20 and the 10th term is 45.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="ap-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .ap svg .ap-bar { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1; }
+  .ap svg .ap-bar.neg { fill: var(--warn-soft); stroke: var(--warn); }
+  .ap svg .ap-flip { fill: var(--good-soft); stroke: var(--good); stroke-width: 1; }
+</style>
+
+<script>
+  import { nth, terms, sum, whichTerm } from '../../lib/sci/ap-school';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, pair, val, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.ap')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.ap-fig');
+  const A = q<HTMLInputElement>('.ap-a'), D = q<HTMLInputElement>('.ap-d'), N = q<HTMLInputElement>('.ap-n');
+  const setA = pair(q('.ap-ar'), A, draw), setD = pair(q('.ap-dr'), D, draw), setN = pair(q('.ap-nr'), N, draw);
+  q('.ap-gauss').addEventListener('change', draw); q('.ap-v').addEventListener('input', draw);
+
+  function draw() {
+    const a = val(A, 3, -1e6, 1e6), d = val(D, 4, -1e6, 1e6), nRaw = Number(N.value), err = q('.ap-err');
+    const n = Number.isInteger(nRaw) && nRaw >= 1 && nRaw <= 500 ? nRaw : 10;
+    err.hidden = n === nRaw; if (n !== nRaw) err.textContent = 'n must be a whole number from 1 to 500. Showing 10 terms.';
+    const T = terms(a, d, n), last = T.at(-1)!, gauss = q<HTMLInputElement>('.ap-gauss').checked;
+    q('.ap-seq').textContent = T.slice(0, 6).map((x) => fmt(x, 2)).join(', ') + (n > 6 ? `, ... , ${fmt(last, 2)}` : '');
+    fig.replaceChildren();
+    // Bars: when pairing, stack each term on the matching term of the reversed list (only if all terms ≥ 0).
+    const pairOk = gauss && T.every((x) => x >= 0);
+    const top = pairOk ? a + last : Math.max(0, ...T), bot = pairOk ? 0 : Math.min(0, ...T), span = top - bot || 1;
+    const H = 220, y0 = 15 + (top / span) * H, w = 320 / n;
+    const Y = (v: number) => y0 - (v / span) * H;
+    S('line', { x1: 10, x2: 330, y1: y0, y2: y0, class: 'sm-axis' }, fig);
+    T.forEach((t, i) => {
+      const x = 10 + i * w;
+      S('rect', { x: x + w * 0.08, y: Math.min(Y(t), y0), width: w * 0.84, height: Math.abs(Y(t) - y0), class: `ap-bar${t < 0 ? ' neg' : ''}` }, fig);
+      if (pairOk) { const r = T[n - 1 - i]; S('rect', { x: x + w * 0.08, y: Y(t + r), width: w * 0.84, height: Y(t) - Y(t + r), class: 'ap-flip' }, fig); }
+      if (n <= 16) S('text', { x: x + w / 2, y: t >= 0 ? Math.min(Y(t), y0) - 4 : Y(t) + 13, 'text-anchor': 'middle', class: 'sm-tick' }, fig, fmt(t, 1));
+    });
+    if (pairOk) S('text', { x: 170, y: Y(a + last) - 2 + 12, 'text-anchor': 'middle', style: 'font-weight:700' }, fig, `every column = ${fmt(a + last, 2)}`);
+    q('.ap-out').replaceChildren(...[
+      `Common difference d = ${fmt(d, 3)}: each term is the one before ${d >= 0 ? 'plus' : 'minus'} ${fmt(Math.abs(d), 3)}.`,
+      `nth term: aₙ = a + (n − 1)d, so a${String(n).replace(/\d/g, (c) => '₀₁₂₃₄₅₆₇₈₉'[Number(c)])} = ${fmt(a, 3)} + ${n - 1} × ${fmt(d, 3)} = ${fmt(last, 3)}.`,
+      `Sum: Sₙ = n/2 [2a + (n − 1)d] = ${n}/2 × [${fmt(2 * a, 3)} + ${n - 1} × ${fmt(d, 3)}] = ${fmt(sum(a, d, n), 3)}.`,
+      `Gauss: write the sum forwards and backwards. Each of the ${n} pairs adds to first + last = ${fmt(a, 3)} + ${fmt(last, 3)} = ${fmt(a + last, 3)}, so 2Sₙ = ${n} × ${fmt(a + last, 3)} and Sₙ = ${fmt((n * (a + last)) / 2, 3)}.`,
+      ...(gauss && !pairOk ? ['(The pairing picture needs every term to be 0 or more; the sums above still work.)'] : []),
+    ].map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+    const v = Number(q<HTMLInputElement>('.ap-v').value), w2 = Number.isFinite(v) && q<HTMLInputElement>('.ap-v').value.trim() !== '' ? whichTerm(a, d, v) : null;
+    q('.ap-which').textContent = q<HTMLInputElement>('.ap-v').value.trim() === '' ? 'Type a value to find which term it is.' : w2 ? `${fmt(v, 3)} = ${fmt(a, 3)} + (n − 1) × ${fmt(d, 3)} gives n = ${w2}: it is term number ${w2}.` : `(${fmt(v, 3)} − ${fmt(a, 3)}) / ${fmt(d, 3)} + 1 is not a whole number of 1 or more, so ${fmt(v, 3)} is not a term of this progression.`;
+  }
+  root.querySelectorAll<HTMLButtonElement>('.ap-pre').forEach((b) => b.addEventListener('click', () => { const [a, d, n] = b.dataset.p!.split(',').map(Number); setA(a); setD(d); setN(n); draw(); }));
+  draw();
+
+  quiz(q('.ap-quiz'), () => {
+    const out: Question[] = [];
+    const a1 = randInt(-10, 20), d1 = randInt(-5, 7, true), n1 = randInt(8, 30);
+    out.push({ q: `Find the ${n1}th term of ${terms(a1, d1, 3).join(', ')}, ...`.replace(/-/g, '−'), want: [nth(a1, d1, n1)], work: `a = ${a1}, d = ${d1}: a + (n − 1)d = ${a1} + ${n1 - 1} × ${d1} = ${nth(a1, d1, n1)}.`.replace(/-/g, '−') });
+    const a2 = randInt(1, 10), d2 = randInt(1, 6), n2 = randInt(10, 25);
+    out.push({ q: `Find the sum of the first ${n2} terms of ${terms(a2, d2, 3).join(', ')}, ...`, want: [sum(a2, d2, n2)], work: `${n2}/2 × [2 × ${a2} + ${n2 - 1} × ${d2}] = ${n2}/2 × ${2 * a2 + (n2 - 1) * d2} = ${sum(a2, d2, n2)}.` });
+    const a3 = randInt(1, 30), d3 = randInt(2, 7), n3 = randInt(10, 40), v3 = nth(a3, d3, n3);
+    out.push({ q: `Which term of ${terms(a3, d3, 3).join(', ')}, ... is ${v3}?`, want: [n3], work: `${v3} = ${a3} + (n − 1) × ${d3}, so n − 1 = ${(v3 - a3) / d3} and n = ${n3}.` });
+    const m = randInt(5, 30) * 10;
+    out.push({ q: `What is 1 + 2 + 3 + ... + ${m}?`, want: [(m * (m + 1)) / 2], work: `Pair the first and last: ${m}/2 pairs of ${m + 1}, so the sum is ${m / 2} × ${m + 1} = ${(m * (m + 1)) / 2}.` });
+    return out;
+  });
+</script>

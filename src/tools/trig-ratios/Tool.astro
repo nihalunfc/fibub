@@ -1,0 +1,195 @@
+---
+// Trig ratio explorer: drag the angle of a right triangle drawn in a circle; sin, cos and tan as side ratios, exact
+// values at special angles, identities, and the whole unit circle at the Class 11 level. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm tr">
+  <div class="ax-card">
+    <h2>Drag the angle</h2>
+    <div class="ax-row">
+      <span class="ax-help" style="margin:0">Level</span>
+      <div class="ax-seg tr-level" role="group" aria-label="Level">
+        <button type="button" data-l="10" aria-pressed="true">Class 10 (0° to 90°)</button>
+        <button type="button" data-l="11" aria-pressed="false">Class 11 (full circle)</button>
+      </div>
+    </div>
+    <svg class="sm-fig tr-fig" viewBox="0 0 340 340" role="img" aria-label="A right triangle inside a circle; drag the point on the circle to change the angle" style="margin-top:10px"></svg>
+    <p class="ax-help">Drag the blue point around the circle. The <span class="tr-k opp">opposite</span> side, the <span class="tr-k adj">adjacent</span> side and the <span class="tr-k hyp">hypotenuse</span> are coloured.</p>
+    <div class="sm-sl"><b>θ</b><input type="range" class="tr-tr" min="0" max="90" step="1" value="30" aria-label="Angle slider" /><input type="number" class="tr-t" step="1" value="30" inputmode="decimal" aria-label="Angle in degrees" /></div>
+    <div class="sm-sl"><b>r</b><input type="range" class="tr-rr" min="1" max="10" step="0.5" value="5" aria-label="Hypotenuse slider" /><input type="number" class="tr-r" min="0.1" step="0.5" value="5" inputmode="decimal" aria-label="Hypotenuse length" /></div>
+    <p class="ax-help">r is the length of the hypotenuse. Change it: the triangle grows, but the ratios stay the same.</p>
+    <div class="ax-row tr-special">
+      <span class="ax-help" style="margin:0">Special angles</span>
+      <button type="button" class="btn secondary small" data-a="0">0°</button>
+      <button type="button" class="btn secondary small" data-a="30">30°</button>
+      <button type="button" class="btn secondary small" data-a="45">45°</button>
+      <button type="button" class="btn secondary small" data-a="60">60°</button>
+      <button type="button" class="btn secondary small" data-a="90">90°</button>
+    </div>
+    <p class="tr-quad" aria-live="polite"></p>
+    <div class="ax-scroll"><table class="tr-tab"></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Exact values to remember</h2>
+    <div class="ax-scroll"><table class="tr-ex"></table></div>
+    <p class="ax-help">— means not defined (you would divide by 0). The column for the angle you chose is highlighted.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Identities, checked at your angle</h2>
+    <ol class="sm-steps tr-id"></ol>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Move r from 1 to 10 at 30°. The sides change, but sin 30° stays 0.5. That is why a ratio can belong to an angle.</li>
+      <li>Watch tan θ as θ gets close to 90°. The adjacent side shrinks to nothing, so tan grows without limit.</li>
+      <li>Find the angle where sin θ = cos θ. What kind of triangle is it?</li>
+      <li>Switch to Class 11 and take the point into each quadrant. Which ratios stay positive in each one?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Fractions like 3/5 are fine; decimals to 3 places. Nothing is saved.</p>
+    <div class="tr-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .tr .tr-k { font-weight: 700; }
+  .tr .tr-k.opp { color: var(--good); }
+  .tr .tr-k.adj { color: var(--accent); }
+  .tr svg .tr-opp { stroke: var(--good); stroke-width: 4; }
+  .tr svg .tr-adj { stroke: var(--accent); stroke-width: 4; }
+  .tr svg .tr-hyp { stroke: var(--ink); stroke-width: 4; }
+  .tr .tr-ex td.on, .tr .tr-ex th.on { background: var(--accent-soft); font-weight: 700; }
+  .tr .tr-special .btn { min-width: 3.2em; }
+</style>
+
+<script>
+  import { ratios, EXACT, quadrant, POSITIVE, identities, rad, deg, type Ratios } from '../../lib/sci/trig-school';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, dragOn, pair, val, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.tr')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.tr-fig');
+  const T = q<HTMLInputElement>('.tr-t'), Rb = q<HTMLInputElement>('.tr-r'), Tr = q<HTMLInputElement>('.tr-tr');
+  const setT = pair(Tr, T, draw), setR = pair(q('.tr-rr'), Rb, draw);
+  let level = 10;
+  const cx = 170, cy = 170, RAD = 140;
+  const NAMES: (keyof Ratios)[] = ['sin', 'cos', 'tan', 'cosec', 'sec', 'cot'];
+  const f3 = (x: number) => (Number.isNaN(x) ? 'not defined' : fmt(x, 4));
+
+  function angle() {
+    const t = val(T, 30, level === 10 ? 0 : -720, level === 10 ? 90 : 720);
+    return t;
+  }
+
+  function draw() {
+    const th = angle(), r = val(Rb, 5, 0.1, 1000), R = ratios(th);
+    const level10 = level === 10;
+    // Class 10 puts the angle at the bottom left corner and uses a quarter circle; Class 11 the full circle.
+    const ox = level10 ? 40 : cx, oy = level10 ? 300 : cy, rr = level10 ? 260 : RAD;
+    fig.replaceChildren();
+    if (level10) S('path', { d: `M${ox + rr},${oy} A${rr},${rr} 0 0 0 ${ox},${oy - rr}`, class: 'sm-dash' }, fig);
+    else S('circle', { cx: ox, cy: oy, r: rr, class: 'sm-dash' }, fig);
+    S('line', { x1: level10 ? ox - 10 : 10, x2: 330, y1: oy, y2: oy, class: 'sm-axis' }, fig);
+    S('line', { x1: ox, x2: ox, y1: 10, y2: level10 ? oy + 10 : 330, class: 'sm-axis' }, fig);
+    const px = ox + rr * Math.cos(rad(th)), py = oy - rr * Math.sin(rad(th));
+    // Angle arc.
+    const ar = 34, large = (((th % 360) + 360) % 360) > 180 ? 1 : 0, sweep = th >= 0 ? 0 : 1;
+    if (Math.abs(th) > 0.5) S('path', { d: `M${ox + ar},${oy} A${ar},${ar} 0 ${large} ${sweep} ${ox + ar * Math.cos(rad(th))},${oy - ar * Math.sin(rad(th))}`, class: 'sm-line', style: 'stroke-width:1.5' }, fig);
+    S('text', { x: ox + 44 * Math.cos(rad(th / 2)), y: oy - 44 * Math.sin(rad(th / 2)) + 5, 'text-anchor': 'middle' }, fig, `${fmt(th, 1)}°`);
+    S('line', { x1: ox, y1: oy, x2: px, y2: oy, class: 'tr-adj' }, fig);
+    S('line', { x1: px, y1: oy, x2: px, y2: py, class: 'tr-opp' }, fig);
+    S('line', { x1: ox, y1: oy, x2: px, y2: py, class: 'tr-hyp' }, fig);
+    const opp = r * R.sin, adj = r * R.cos;
+    if (Math.abs(R.cos) > 0.08 && Math.abs(R.sin) > 0.08) {
+      const s = 10 * Math.sign(R.cos), u = 10 * Math.sign(R.sin);
+      S('polyline', { points: `${px - s},${oy} ${px - s},${oy - u} ${px},${oy - u}`, class: 'sm-line', style: 'stroke-width:1.2' }, fig);
+    }
+    const tx = (x: number, y: number, t: string, cls = '') => S('text', { x: Math.max(14, Math.min(326, x)), y: Math.max(14, Math.min(334, y)), 'text-anchor': 'middle', class: cls, style: 'font-weight:600' }, fig, t);
+    tx((ox + px) / 2, oy + (R.sin >= 0 ? 18 : -8), `${fmt(adj, 2)}`);
+    tx(px + (R.cos >= 0 ? 24 : -24), (oy + py) / 2 + 4, `${fmt(opp, 2)}`);
+    tx((ox + px) / 2 - 14 * Math.sin(rad(th)), (oy + py) / 2 - 14 * Math.cos(rad(th)), `r = ${fmt(r, 2)}`);
+    S('circle', { cx: px, cy: py, r: 24, class: 'sm-hit' }, fig);
+    S('circle', { cx: px, cy: py, r: 10, class: 'sm-handle tr-h' }, fig);
+
+    const quad = quadrant(th);
+    q('.tr-quad').textContent = level10 ? `opposite = ${fmt(opp, 3)}, adjacent = ${fmt(adj, 3)}, hypotenuse = ${fmt(r, 3)}` : quad ? `Quadrant ${['I', 'II', 'III', 'IV'][quad - 1]}: ${POSITIVE[quad]} positive. In radians θ = ${fmt(rad(th), 4)}.` : `On an axis. In radians θ = ${fmt(rad(th), 4)}.`;
+    const tab = q<HTMLTableElement>('.tr-tab'); tab.replaceChildren();
+    const h = tab.insertRow(); for (const x of ['Ratio', 'Sides', 'Value']) { const e = document.createElement('th'); e.textContent = x; h.append(e); }
+    const sides: Record<keyof Ratios, [string, number, number]> = {
+      sin: ['opposite / hypotenuse', opp, r], cos: ['adjacent / hypotenuse', adj, r], tan: ['opposite / adjacent', opp, adj],
+      cosec: ['hypotenuse / opposite', r, opp], sec: ['hypotenuse / adjacent', r, adj], cot: ['adjacent / opposite', adj, opp],
+    };
+    for (const k of NAMES) {
+      if (level10 && !['sin', 'cos', 'tan', 'cosec', 'sec', 'cot'].includes(k)) continue;
+      const [lab, n, d] = sides[k]; const tr = tab.insertRow(); tr.dataset.k = k;
+      tr.insertCell().textContent = `${k} ${fmt(th, 1)}°`;
+      tr.insertCell().textContent = `${lab} = ${fmt(n, 3)} / ${fmt(d, 3)}`;
+      const c = tr.insertCell(); c.textContent = f3(R[k]); c.className = 'r';
+    }
+    // Exact values table.
+    const ex = q<HTMLTableElement>('.tr-ex'); ex.replaceChildren();
+    const eh = ex.insertRow(); const a0 = document.createElement('th'); a0.textContent = 'θ'; eh.append(a0);
+    const angs = [0, 30, 45, 60, 90];
+    for (const a of angs) { const e = document.createElement('th'); e.textContent = `${a}°`; if (a === th) e.className = 'on'; eh.append(e); }
+    for (const k of NAMES) { const tr = ex.insertRow(); tr.insertCell().textContent = k; for (const a of angs) { const c = tr.insertCell(); c.textContent = EXACT[a][k]; if (a === th) c.className = 'on'; } }
+    // Identities.
+    const I = identities(th);
+    const sq = (x: number) => fmt(x * x, 4);
+    q('.tr-id').replaceChildren(...[
+      `sin²θ + cos²θ = ${sq(R.sin)} + ${sq(R.cos)} = ${fmt(I.sinCos, 4)}. Always 1: it is Pythagoras (opp² + adj² = hyp²) divided by hyp².`,
+      Number.isNaN(R.sec) ? '1 + tan²θ = sec²θ: not defined here, because cos θ = 0.' : `1 + tan²θ = 1 + ${sq(R.tan)} = ${fmt(1 + R.tan ** 2, 4)} = sec²θ = ${sq(R.sec)}.`,
+      Number.isNaN(R.cosec) ? '1 + cot²θ = cosec²θ: not defined here, because sin θ = 0.' : `1 + cot²θ = 1 + ${sq(R.cot)} = ${fmt(1 + R.cot ** 2, 4)} = cosec²θ = ${sq(R.cosec)}.`,
+      `Complementary angles: sin(90° − θ) = sin ${fmt(90 - th, 1)}° = ${f3(ratios(90 - th).sin)} = cos θ, and cos(90° − θ) = ${f3(ratios(90 - th).cos)} = sin θ.`,
+    ].map((s) => Object.assign(document.createElement('li'), { textContent: s })));
+  }
+
+  dragOn(fig, (x, y) => {
+    const th = angle(), lv = level === 10, ox = lv ? 40 : cx, oy = lv ? 300 : cy, rr = lv ? 260 : RAD;
+    return Math.hypot(x - (ox + rr * Math.cos(rad(th))), y - (oy - rr * Math.sin(rad(th)))) < 34 ? 'p' : null;
+  }, (_id, x, y) => {
+    const lv = level === 10, ox = lv ? 40 : cx, oy = lv ? 300 : cy;
+    let a = Math.round(deg(Math.atan2(oy - y, x - ox)));
+    if (lv) a = Math.max(0, Math.min(90, a < -90 ? 90 : a));
+    else if (a < 0) a += 360;
+    setT(a); draw();
+  });
+  root.querySelectorAll<HTMLButtonElement>('.tr-special button').forEach((b) => b.addEventListener('click', () => { setT(Number(b.dataset.a)); draw(); }));
+  root.querySelectorAll<HTMLButtonElement>('.tr-level button').forEach((btn) => btn.addEventListener('click', () => {
+    level = Number(btn.dataset.l);
+    root.querySelectorAll('.tr-level button').forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
+    Tr.max = level === 10 ? '90' : '360';
+    if (level === 10) { const t = val(T, 30); if (t < 0 || t > 90) setT(Math.max(0, Math.min(90, t))); }
+    draw();
+  }));
+  draw();
+
+  quiz(q('.tr-quiz'), () => {
+    const out: Question[] = [];
+    const [o, a, h] = [[3, 4, 5], [5, 12, 13], [8, 15, 17], [7, 24, 25]][randInt(0, 3)];
+    const which = (['sin', 'cos', 'tan'] as const)[randInt(0, 2)];
+    const v = which === 'sin' ? [o, h] : which === 'cos' ? [a, h] : [o, a];
+    out.push({ q: `In a right triangle, the side opposite angle A is ${o} cm and the side next to it is ${a} cm. Find ${which} A.`, want: [v[0] / v[1]], tol: 0.002, hint: 'a fraction or decimal',
+      work: `Hypotenuse = √(${o}² + ${a}²) = √${o * o + a * a} = ${h}. ${which} A = ${which === 'sin' ? 'opposite / hypotenuse' : which === 'cos' ? 'adjacent / hypotenuse' : 'opposite / adjacent'} = ${v[0]}/${v[1]} ≈ ${fmt(v[0] / v[1], 3)}.` });
+    const pairs: [string, number, string][] = [
+      ['sin 30° + cos 60°', 1, '1/2 + 1/2 = 1'], ['2 sin 45° cos 45°', 1, '2 × 1/√2 × 1/√2 = 2 × 1/2 = 1'], ['tan 45° + tan 60° × tan 30°', 2, '1 + √3 × 1/√3 = 1 + 1 = 2'],
+      ['sin² 60° + cos² 60°', 1, '3/4 + 1/4 = 1'], ['cos 0° + sin 90° + tan 0°', 2, '1 + 1 + 0 = 2'], ['sec 60° − cos 60°', 1.5, '2 − 1/2 = 3/2'], ['4 sin 30° cos 60°', 1, '4 × 1/2 × 1/2 = 1'],
+    ];
+    const [e, ev, ew] = pairs[randInt(0, pairs.length - 1)];
+    out.push({ q: `Work out ${e} using the exact values.`, want: [ev], work: `${e} = ${ew}.` });
+    const s = randInt(10, 80);
+    out.push({ q: `sin ${s}° = cos x°. What is x (between 0 and 90)?`, want: [90 - s], work: `sin θ = cos(90° − θ), so x = 90 − ${s} = ${90 - s}.` });
+    const t = [20, 35, 40, 50, 55, 70][randInt(0, 5)], hyp = randInt(4, 12);
+    out.push({ q: `A right triangle has hypotenuse ${hyp} cm and an angle of ${t}°. How long is the side opposite that angle (to 2 decimal places)?`, want: [Math.round(hyp * Math.sin(rad(t)) * 100) / 100], tol: 0.003, hint: 'cm',
+      work: `opposite = hypotenuse × sin ${t}° = ${hyp} × ${fmt(Math.sin(rad(t)), 4)} ≈ ${fmt(hyp * Math.sin(rad(t)), 2)} cm.` });
+    return out;
+  });
+</script>

@@ -1,0 +1,181 @@
+---
+// The human eye and its defects for school: a simplified eye (fixed lens-to-retina distance, a lens whose power can
+// change within a range), myopia, hypermetropia and presbyopia, and the glasses that correct them.
+// Maths in src/lib/sci/school-optics.ts (myopiaPower, hypermetropiaPower). A teaching model only.
+import '../../styles/astro.css';
+---
+<div class="ax eyd">
+  <div class="ax-card">
+    <div class="ax-seg eyd-kind" role="group" aria-label="Eye">
+      <button type="button" data-k="normal" aria-pressed="true">Normal</button><button type="button" data-k="myopia" aria-pressed="false">Short-sighted</button><button type="button" data-k="hyper" aria-pressed="false">Long-sighted</button><button type="button" data-k="presby" aria-pressed="false">Presbyopia</button>
+    </div>
+    <p class="ax-help eyd-about"></p>
+    <canvas class="ax-fig eyd-fig" aria-label="Eye focusing light"></canvas>
+    <div class="ax-grid">
+      <label>Looking at something: <b class="eyd-xv"></b><input class="eyd-x" type="range" min="0" max="100" step="1" value="100" /></label>
+      <label class="eyd-fp-l" hidden>Far point (myopia): <b class="eyd-fpv"></b><input class="eyd-fp" type="range" min="20" max="400" step="5" value="80" /></label>
+      <label class="eyd-np-l" hidden>Near point: <b class="eyd-npv"></b><input class="eyd-np" type="range" min="30" max="300" step="5" value="100" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="eyd-glasses" /> Wear the correcting glasses</label>
+    </div>
+    <p class="ax-help">Slider at the right end = very far away (infinity). The eye is simplified: the lens sits 2.5 cm from the retina and can change its power by up to 4 dioptres (less with presbyopia). Real eyes vary; this is a teaching model, not an eye test.</p>
+  </div>
+
+  <div class="ax-card eyd-out">
+    <p class="ax-big eyd-big"></p>
+    <dl class="ax-facts eyd-facts"></dl>
+    <pre class="eyd-formula"></pre>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="eyd-try">
+      <li>Normal eye: move the object from far away to 25 cm. The eye lens gets stronger (accommodation) and the picture stays sharp. Closer than 25 cm it blurs.</li>
+      <li>Short-sighted: far things focus <b>in front of</b> the retina. Tick the glasses: a concave lens fixes it.</li>
+      <li>Long-sighted: near things focus <b>behind</b> the retina. A convex lens fixes it.</li>
+      <li>Presbyopia: with age the lens stiffens, so the near point moves away. Reading glasses (convex) help; some people need bifocals.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh numbers each time. Powers in dioptres with their sign, distances in cm. Nothing is saved.</p>
+    <div class="eyd-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .eyd input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; }
+  .eyd .ax-seg button { min-height: 40px; }
+  .eyd-fig { border: 1px solid var(--line); margin: 6px auto 4px; max-width: 560px; }
+  .eyd-formula { font: 15px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; margin: 12px 0 0; padding: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
+  .eyd-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+</style>
+
+<script>
+  import { myopiaPower, hypermetropiaPower, NEAR_POINT } from '../../lib/sci/school-optics';
+  import { paint, type Figure } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+  import { mountQuiz, pick, show, type Question } from '../../lib/school-quiz';
+
+  const root = document.querySelector<HTMLElement>('.eyd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const RETINA = 2.5;               // cm from the lens to the retina
+  const RELAXED = 100 / RETINA;     // 40 D: focuses parallel light on the retina
+  const st = { kind: 'normal' };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const D = (x: number) => `${x > 0 ? '+' : ''}${show(x)} D`;
+  /** Object distance in cm from the slider: 10 cm to 10 m on a log scale, the right end = infinity. */
+  const objCm = () => { const s = Number(q<HTMLInputElement>('.eyd-x').value); return s >= 100 ? Infinity : Math.round(10 * Math.pow(100, s / 99)); };
+  const ABOUT: Record<string, string> = {
+    normal: 'A healthy young eye: sharp from very far away down to its near point, 25 cm.',
+    myopia: 'Short sight (myopia): far things blur because the eye focuses them in front of the retina. Near things are fine.',
+    hyper: 'Long sight (hypermetropia): near things blur because the eye focuses them behind the retina. Far things are fine.',
+    presby: 'Presbyopia: with age the eye lens stiffens and cannot get strong enough for near work. Far sight stays normal.',
+  };
+
+  /** The eye's power range in dioptres for the chosen eye. */
+  function range() {
+    const fp = Number(q<HTMLInputElement>('.eyd-fp').value), np = Number(q<HTMLInputElement>('.eyd-np').value);
+    if (st.kind === 'myopia') return { min: RELAXED + 100 / fp, max: RELAXED + 100 / fp + 4, fp, np: 100 / (100 / fp + 4) };
+    if (st.kind === 'hyper') return { min: RELAXED + 100 / np - 4, max: RELAXED + 100 / np, fp: Infinity, np };
+    if (st.kind === 'presby') return { min: RELAXED, max: RELAXED + 100 / np, fp: Infinity, np };
+    return { min: RELAXED, max: RELAXED + 4, fp: Infinity, np: NEAR_POINT };
+  }
+  /** The correcting lens: concave for far sight with myopia, convex for reading at 25 cm otherwise. */
+  function glasses(r: ReturnType<typeof range>) {
+    if (st.kind === 'myopia') return myopiaPower(r.fp);
+    if (st.kind === 'hyper' || st.kind === 'presby') return hypermetropiaPower(r.np);
+    return 0;
+  }
+
+  function eyeFig(x: number, Pg: number, Peye: number, V: number): Figure {
+    const W = 420, H = 230;
+    return { w: W, h: H, alt: 'Light from the object focusing in the eye', draw: (ctx, w, h, pal) => {
+      const cy = 115, lensX = 230, s = 160 / RETINA, retX = lensX + RETINA * s, R = (retX - lensX + 30) / 2, cx = retX - R;
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.stroke();
+      ctx.lineWidth = 4; ctx.strokeStyle = pal.warn; ctx.beginPath(); ctx.arc(cx, cy, R - 2, -0.6, 0.6); ctx.stroke();
+      ctx.fillStyle = pal.muted; ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('retina', retX - 46, cy - R * 0.75);
+      ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.setLineDash([3, 4]); ctx.beginPath(); ctx.moveTo(10, cy); ctx.lineTo(W - 10, cy); ctx.stroke(); ctx.setLineDash([]);
+      // Eye lens: thicker when stronger.
+      const th = 6 + (Peye - RELAXED) * 3;
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(lensX, cy, th, 34, 0, 0, 2 * Math.PI); ctx.globalAlpha = 0.15; ctx.fillStyle = pal.accent; ctx.fill(); ctx.globalAlpha = 1; ctx.stroke();
+      const gX = 150;
+      if (Pg) {
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath();
+        const t = Pg > 0 ? 6 : -5, e = Pg > 0 ? 1 : 6;
+        ctx.moveTo(gX - e, cy - 40); ctx.quadraticCurveTo(gX + e + 2 * t, cy, gX + e, cy + 40); ctx.lineTo(gX - e, cy + 40); ctx.quadraticCurveTo(gX - e - 2 * t, cy, gX - e, cy - 40); ctx.closePath(); ctx.stroke();
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(`glasses ${D(Pg)}`, gX, cy + 44);
+      }
+      // Object (not to scale).
+      ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      const ox = Number.isFinite(x) ? Math.max(14, gX - 20 - Math.log10(x / 5) * 50) : 0;
+      if (Number.isFinite(x)) { ctx.beginPath(); ctx.arc(ox, cy, 4, 0, 2 * Math.PI); ctx.fill(); ctx.fillText(`object ${x < 100 ? `${x} cm` : `${sig(x / 100, 3)} m`}`, Math.max(4, ox - 20), cy + 10); }
+      else ctx.fillText('far away (parallel light) →', 8, 10);
+      ctx.fillStyle = pal.muted; ctx.textBaseline = 'bottom'; ctx.fillText('not to scale outside the eye', 8, H - 4);
+      const vPx = Number.isFinite(1 / V) && V > 0 ? (100 / V) * s : Infinity;
+      for (const hh of [-26, 26]) {
+        ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.8;
+        ctx.beginPath(); ctx.moveTo(Number.isFinite(x) ? ox : 10, Number.isFinite(x) ? cy : cy + hh); ctx.lineTo(Pg ? gX : lensX, cy + hh);
+        if (Pg) ctx.lineTo(lensX, cy + hh);
+        // Inside the eye: towards the focus, stopping at the retina.
+        const yRet = cy + hh * (1 - (retX - lensX) / vPx);
+        ctx.lineTo(retX, yRet); ctx.stroke();
+      }
+      // Focus and blur.
+      const blur = Math.abs(26 * 2 * (1 - (retX - lensX) / vPx));
+      if (blur > 2) { ctx.strokeStyle = pal.bad; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(retX + 1, cy - blur / 2); ctx.lineTo(retX + 1, cy + blur / 2); ctx.stroke(); }
+      if (Number.isFinite(vPx) && lensX + vPx < W - 4) { ctx.fillStyle = blur > 2 ? pal.bad : pal.good; ctx.beginPath(); ctx.arc(lensX + vPx, cy, 4, 0, 2 * Math.PI); ctx.fill(); }
+    } };
+  }
+
+  let fig: Figure;
+  function draw() {
+    root.querySelectorAll<HTMLButtonElement>('.eyd-kind button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.k === st.kind)));
+    q('.eyd-about').textContent = ABOUT[st.kind];
+    q('.eyd-fp-l').hidden = st.kind !== 'myopia'; q('.eyd-np-l').hidden = st.kind !== 'hyper' && st.kind !== 'presby';
+    const r = range(), x = objCm(), wear = q<HTMLInputElement>('.eyd-glasses').checked && st.kind !== 'normal';
+    q('.eyd-glasses').parentElement!.hidden = st.kind === 'normal';
+    const Pg = wear ? glasses(r) : 0;
+    q('.eyd-xv').textContent = Number.isFinite(x) ? (x < 100 ? `${x} cm` : `${sig(x / 100, 3)} m`) : 'very far away';
+    q('.eyd-fpv').textContent = `${r.fp} cm`; q('.eyd-npv').textContent = `${Number(q<HTMLInputElement>('.eyd-np').value)} cm`;
+    // Vergence (dioptres): light from the object arrives with −100/x; the glasses (worn close to the eye) add Pg.
+    const Vin = (Number.isFinite(x) ? -100 / x : 0) + Pg;
+    const need = RELAXED - Vin;                       // eye power that puts the image on the retina
+    const Peye = Math.min(r.max, Math.max(r.min, need));
+    const V = Vin + Peye, sharp = Math.abs(need - Peye) < 0.05;
+    const where = sharp ? 'on the retina: sharp' : V > RELAXED ? 'in front of the retina: blurred' : 'behind the retina: blurred';
+    q('.eyd-big').textContent = `Focus falls ${where}`;
+    const f = [fact('Eye lens power needed', D(need), `to focus this object; 1/f = 1/v − 1/u with v = 2.5 cm`), fact('This eye can manage', `${show(r.min)} to ${show(r.max)} D`, `accommodation ${show(r.max - r.min)} D`), fact('Far point', Number.isFinite(r.fp) ? `${r.fp} cm` : 'infinity'), fact('Near point', `${sig(r.np, 3)} cm`)];
+    if (st.kind !== 'normal') f.push(fact('Correcting lens', D(glasses(r)), st.kind === 'myopia' ? 'concave: spreads light out' : 'convex: brings light together'));
+    q('.eyd-facts').replaceChildren(...f);
+    const L: string[] = [];
+    if (st.kind === 'myopia') L.push('Short sight: the glasses must make far objects seem to be at the far point.', `f = −(far point) = −${r.fp} cm, so P = 100/f = 100/(−${r.fp}) = ${D(myopiaPower(r.fp))}`);
+    else if (st.kind !== 'normal') L.push(`Long sight / presbyopia: the glasses must make an object at 25 cm seem to be at the near point, ${sig(r.np, 3)} cm.`, `u = −25 cm, v = −${sig(r.np, 3)} cm: 1/f = 1/v − 1/u = −1/${sig(r.np, 3)} + 1/25`, `P = 100/25 − 100/${sig(r.np, 3)} = ${D(hypermetropiaPower(r.np))}`);
+    else L.push('Normal eye: relaxed it focuses parallel light (40 D here); squeezed to 44 D it focuses things 25 cm away.', 'Power needed = 100/2.5 + 100/(distance in cm) dioptres.');
+    q('.eyd-formula').textContent = L.join('\n');
+    fig = eyeFig(x, Pg, Peye, V);
+    paint(q('.eyd-fig'), fig);
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.eyd-kind button').forEach((b) => b.addEventListener('click', () => {
+    st.kind = b.dataset.k!;
+    // Show the problem first: myopia looks far, the others look near.
+    q<HTMLInputElement>('.eyd-x').value = st.kind === 'myopia' || st.kind === 'normal' ? '100' : '20';
+    q<HTMLInputElement>('.eyd-glasses').checked = false;
+    draw();
+  }));
+  root.querySelectorAll('input').forEach((i) => { i.addEventListener('input', draw); i.addEventListener('change', draw); });
+  document.addEventListener('fibub:theme', () => fig && paint(q('.eyd-fig'), fig));
+
+  const make = (): Question => {
+    const t = pick(['m', 'h', 'f', 'm']);
+    if (t === 'm') { const fp = pick([40, 50, 80, 100, 125, 200, 250]); return { text: `A short-sighted person cannot see clearly beyond ${fp} cm. What power of lens do they need to see far things clearly?`, unit: 'D', answer: Math.round(myopiaPower(fp) * 100) / 100, tol: 0.011, work: [`A concave lens with f = −${fp} cm = −${fp / 100} m.`, `P = 1/f = 1/(−${fp / 100}) = ${show(myopiaPower(fp))}`] }; }
+    if (t === 'h') { const np = pick([50, 75, 100, 125, 200]); const P = hypermetropiaPower(np); return { text: `A long-sighted person's near point is ${np} cm. What lens power lets them read at 25 cm?`, unit: 'D', answer: Math.round(P * 100) / 100, tol: 0.011, work: [`u = −25 cm, v = −${np} cm: 1/f = 1/v − 1/u = −1/${np} + 1/25`, `P = 100/25 − 100/${np} = ${show(P)}`] }; }
+    const P = pick([-4, -2.5, -2, -1.25, 1, 1.5, 2, 2.5, 4]);
+    return { text: `A prescription says ${P > 0 ? '+' : ''}${show(P)} D. What is the focal length of the lens in cm (with its sign)?`, unit: 'cm', answer: Math.round((100 / P) * 100) / 100, tol: 0.06, work: [`f = 1/P metres = 100/P cm = 100/(${show(P)})`, `= ${show(100 / P)}`] };
+  };
+  mountQuiz(q('.eyd-quiz'), make, 4);
+  draw();
+</script>

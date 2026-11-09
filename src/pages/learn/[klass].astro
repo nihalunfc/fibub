@@ -1,0 +1,69 @@
+---
+// One page per school class (/learn/class-8/ ... /learn/class-12/): every chapter of each subject, in book
+// order, with the fibub tools that let students explore it. Chapters come from src/data/ncert.ts; a tool
+// listed there shows only once it is live, so the page fills up as tools are built.
+import Base from '../../layouts/Base.astro';
+import { CLASSES, type SchoolClass } from '../../data/ncert';
+import { allTools, toolUrl } from '../../lib/tools';
+import { collectionLd } from '../../lib/seo';
+import '../../styles/area.css';
+export function getStaticPaths() {
+  return CLASSES.map((k) => ({ params: { klass: k.id }, props: { cls: k } }));
+}
+const { cls } = Astro.props as { cls: SchoolClass };
+const all = await allTools();
+const live = new Map(all.filter((t) => t.data.status === 'live').map((t) => [t.id, t]));
+const subjects = cls.subjects.map((s) => ({ ...s, chapters: s.chapters.map((ch) => ({ ...ch, live: ch.tools.map((id) => live.get(id)).filter((t) => !!t) })) }));
+const count = new Set(subjects.flatMap((s) => s.chapters.flatMap((ch) => ch.live.map((t) => t!.id)))).size;
+const names = cls.subjects.map((s) => s.name.toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' and $1');
+const title = `Learn: ${cls.name}`;
+const desc = `Interactive ${names} tools for ${cls.name}, chapter by chapter, following the NCERT topics. Free, in your browser, no sign-up.`;
+const others = CLASSES.filter((k) => k.id !== cls.id);
+---
+<Base title={title} docTitle={`${cls.name} ${names} tools, chapter by chapter | fibub`} description={desc} ld={collectionLd(title, desc, `/learn/${cls.id}/`, [{ name: 'Home', url: '/' }, { name: 'Learn', url: '/learn/' }, { name: 'Class 8 to 12', url: '/learn/school/' }, { name: cls.name, url: `/learn/${cls.id}/` }])}>
+  <div class="crumbs"><a href="/">Home</a> / <a href="/learn/">Learn</a> / <a href="/learn/school/">Class 8 to 12</a> / {cls.name}</div>
+  <div class="ar-head">
+    <h1>{cls.name}: {names}</h1>
+    <p class="lead">Every chapter, with tools to try: change a number, drag a point, run an experiment and see what happens. {count} tools so far, and more are on the way.</p>
+  </div>
+  <nav class="lc-jump" aria-label="Subjects">
+    {subjects.map((s) => <a href={`#${s.id}`}>{s.name}{s.book && <small> ({s.book})</small>}</a>)}
+  </nav>
+  {subjects.map((s) => (
+    <section class="lc-subject" id={s.id}>
+      <h2>{s.name}{s.book && <small> · {s.book}</small>}</h2>
+      <ol class="lc-chapters">
+        {s.chapters.map((ch) => (
+          <li class="lc-ch" id={`${s.id}-${ch.n}`}>
+            <h3><span class="lc-n">{ch.n}</span> {ch.title}</h3>
+            <p class="lc-topics">{ch.topics}</p>
+            {ch.live.length > 0
+              ? <ul class="lc-tools">{ch.live.map((t) => <li><a href={toolUrl(t!)}>{t!.data.name}</a></li>)}</ul>
+              : <p class="lc-soon">Tools for this chapter are coming soon.</p>}
+          </li>
+        ))}
+      </ol>
+    </section>
+  ))}
+  <p class="lc-other">Other classes: {others.map((k, i) => <>{i > 0 && ' · '}<a href={`/learn/${k.id}/`}>{k.name}</a></>)}</p>
+  <p class="ar-note">Chapters follow the topics of the NCERT books used in 2026-27 (the new books for Class 8 and 9, the 2023 rationalised books for Class 10 to 12). fibub is an independent free site, not part of NCERT, and copies no textbook text or pictures. Every tool runs in your browser: no sign-up, nothing about you is saved.</p>
+</Base>
+<style is:inline>
+  .lc-jump { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; }
+  .lc-jump a { padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink); text-decoration: none; font-weight: 600; font-size: 14.5px; }
+  .lc-jump a:hover { border-color: var(--accent); }
+  .lc-jump small { color: var(--muted); font-weight: 400; }
+  .lc-subject { margin-top: 28px; scroll-margin-top: 80px; }
+  .lc-subject h2 small { color: var(--muted); font-weight: 400; font-size: .7em; }
+  .lc-chapters { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  .lc-ch { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); scroll-margin-top: 80px; min-width: 0; }
+  .lc-ch:target { border-color: var(--accent); }
+  .lc-ch h3 { margin: 0 0 4px; font-size: 16.5px; display: flex; gap: 8px; align-items: baseline; }
+  .lc-n { flex: none; min-width: 26px; height: 26px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
+  .lc-topics { margin: 0 0 8px; color: var(--muted); font-size: 14px; }
+  .lc-tools { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  .lc-tools a { display: inline-block; padding: 6px 11px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px; }
+  .lc-tools a:hover { text-decoration: underline; }
+  .lc-soon { margin: 0; font-size: 13.5px; color: var(--muted); font-style: italic; }
+  .lc-other { margin-top: 24px; }
+</style>

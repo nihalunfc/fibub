@@ -1,0 +1,37 @@
+/* Shared look for the school maths (Learn) tools: a big picture, slider rows with big touch targets,
+   formula lines with live numbers, the "Try this" list and the "Check yourself" quiz. */
+.sm svg.sm-fig { display: block; width: 100%; height: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; touch-action: none; user-select: none; -webkit-user-select: none; }
+.sm svg.sm-fig text { font: 13px system-ui, sans-serif; fill: var(--ink); }
+.sm svg.sm-fig .sm-axis { stroke: var(--muted); stroke-width: 1.2; }
+.sm svg.sm-fig .sm-grid { stroke: var(--line); stroke-width: 1; }
+.sm svg.sm-fig .sm-tick { fill: var(--muted); font-size: 11px; }
+.sm svg.sm-fig .sm-curve { fill: none; stroke: var(--ink); stroke-width: 2.5; }
+.sm svg.sm-fig .sm-curve2 { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+.sm svg.sm-fig .sm-handle { fill: var(--accent); stroke: var(--surface); stroke-width: 2; cursor: grab; }
+.sm svg.sm-fig .sm-hit { fill: transparent; cursor: grab; }
+.sm svg.sm-fig .sm-good { fill: var(--good); }
+.sm svg.sm-fig .sm-bad { fill: var(--bad); }
+.sm svg.sm-fig .sm-soft { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+.sm svg.sm-fig .sm-soft2 { fill: var(--good-soft); stroke: var(--good); stroke-width: 1.5; }
+.sm svg.sm-fig .sm-soft3 { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1.5; }
+.sm svg.sm-fig .sm-line { stroke: var(--ink); stroke-width: 2; fill: none; }
+.sm svg.sm-fig .sm-dash { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 4; fill: none; }
+.sm .sm-sl { display: grid; grid-template-columns: 2.2em 1fr 5.2em; gap: 10px; align-items: center; margin: 6px 0; }
+.sm .sm-sl b { font-size: 17px; font-style: italic; font-family: Georgia, serif; }
+.sm .sm-sl input[type=range] { width: 100%; height: 32px; margin: 0; accent-color: var(--accent); }
+.sm .sm-sl input[type=number] { width: 100%; min-height: 40px; }
+.sm .sm-f { font-size: 16px; line-height: 1.7; margin: 6px 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.sm .sm-f .v { font-weight: 700; }
+.sm .sm-steps { margin: 6px 0 0; padding-left: 1.3em; line-height: 1.7; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.sm .sm-try { margin: 6px 0 0; padding-left: 1.3em; line-height: 1.6; }
+.sm .sm-try li + li { margin-top: 4px; }
+.sm .ax-seg button { min-height: 40px; }
+.sm .btn.small { min-height: 40px; }
+.sm-quiz ol { padding-left: 1.3em; margin: 0 0 10px; }
+.sm-quiz .sm-q { margin-bottom: 14px; }
+.sm-quiz .sm-qt { margin: 0 0 6px; font-weight: 600; }
+.sm-quiz .sm-qin { flex: 1 1 9em; min-width: 0; min-height: 40px; }
+.sm-quiz .sm-qres { margin: 6px 0 0; min-height: 1em; }
+.sm-quiz .sm-qres.good { color: var(--good); font-weight: 600; }
+.sm-quiz .sm-qres.bad { color: var(--bad); }
+.sm-quiz .sm-qwork { margin: 6px 0 0; padding: 8px 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }

@@ -1,0 +1,138 @@
+---
+// Distance, section and midpoint formula with draggable points on a grid; the centroid of a triangle and its area.
+// Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm sf">
+  <div class="ax-card">
+    <h2>Drag the points</h2>
+    <svg class="sm-fig sf-fig" viewBox="0 0 340 340" role="img" aria-label="Grid with points A and B, the point P dividing AB, and the midpoint"></svg>
+    <p class="ax-help">Drag A and B (and C when the triangle is on). Points snap to whole numbers.</p>
+    <div class="sm-sl"><b>m</b><input type="range" class="sf-mr" min="1" max="9" step="1" value="2" aria-label="m slider" /><input type="number" class="sf-m" min="0.1" step="1" value="2" inputmode="decimal" aria-label="m" /></div>
+    <div class="sm-sl"><b>n</b><input type="range" class="sf-nr" min="1" max="9" step="1" value="1" aria-label="n slider" /><input type="number" class="sf-n" min="0.1" step="1" value="1" inputmode="decimal" aria-label="n" /></div>
+    <label class="ax-check"><input type="checkbox" class="sf-ext" /> Divide externally (P outside AB)</label>
+    <label class="ax-check"><input type="checkbox" class="sf-tri" /> Add a third point C: triangle, centroid and area</label>
+    <p class="ax-err sf-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The formulas with your numbers</h2>
+    <p class="sm-f sf-pts"></p>
+    <p class="sm-f sf-d"></p>
+    <p class="sm-f sf-p"></p>
+    <p class="sm-f sf-mid"></p>
+    <p class="sm-f sf-g"></p>
+    <p class="sm-f sf-area"></p>
+    <p class="sm-f sf-x"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Set m : n to 1 : 1. P lands exactly on the midpoint M.</li>
+      <li>Put A and B on a horizontal line. The distance formula becomes just the difference of the x values.</li>
+      <li>Turn on the triangle. Drag C until the area is 0: the three points are now on one straight line.</li>
+      <li>Find the point that divides AB in the ratio 3 : 1, then check AP and PB with the distance formula.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Give points as x, y. Nothing is saved.</p>
+    <div class="sf-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .sf svg .sf-ab { stroke: var(--ink); stroke-width: 2.5; }
+  .sf svg .sf-tri { fill: var(--accent-soft); fill-opacity: 0.5; stroke: var(--accent); stroke-width: 1.5; }
+  .sf svg .sf-med { stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 4 4; }
+  .sf svg .sf-p { fill: var(--good); }
+  .sf svg .sf-mpt { fill: var(--warn); }
+  .sf svg .sf-gpt { fill: var(--bad); }
+</style>
+
+<script>
+  import { distance, section, midpoint, centroid, triArea, ratioOnXAxis, type Pt } from '../../lib/sci/coord-school';
+  import { fmt, randInt, fracText } from '../../lib/sci/smath';
+  import { S, dragOn, pair, val, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.sf')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.sf-fig');
+  const M = q<HTMLInputElement>('.sf-m'), N = q<HTMLInputElement>('.sf-n');
+  pair(q('.sf-mr'), M, draw); pair(q('.sf-nr'), N, draw);
+  const pts: Record<string, Pt> = { A: [-6, -4], B: [6, 5], C: [5, -6] };
+  const W0 = -10, W1 = 10, L = 10, R = 330;
+  const px = (x: number) => L + ((x - W0) / (W1 - W0)) * (R - L), py = (y: number) => R - ((y - W0) / (W1 - W0)) * (R - L);
+  const ux = (p: number) => W0 + ((p - L) / (R - L)) * (W1 - W0), uy = (p: number) => W0 + ((R - p) / (R - L)) * (W1 - W0);
+  const P2 = (p: Pt) => `(${fmt(p[0], 3)}, ${fmt(p[1], 3)})`;
+  const sq = (x: number) => (x < 0 ? `(${fmt(x)})²` : `${fmt(x)}²`);
+
+  function draw() {
+    const { A, B, C } = pts, m = val(M, 2, 0.001), n = val(N, 1, 0.001), ext = q<HTMLInputElement>('.sf-ext').checked, tri = q<HTMLInputElement>('.sf-tri').checked;
+    const err = q('.sf-err'); err.hidden = true;
+    fig.replaceChildren();
+    for (let x = W0; x <= W1; x++) { S('line', { x1: px(x), x2: px(x), y1: L, y2: R, class: 'sm-grid', style: x % 5 ? 'opacity:.5' : '' }, fig); S('line', { x1: L, x2: R, y1: py(x), y2: py(x), class: 'sm-grid', style: x % 5 ? 'opacity:.5' : '' }, fig); }
+    S('line', { x1: L, x2: R, y1: py(0), y2: py(0), class: 'sm-axis' }, fig); S('line', { x1: px(0), x2: px(0), y1: L, y2: R, class: 'sm-axis' }, fig);
+    for (const v of [-5, 5]) { S('text', { x: px(v), y: py(0) + 14, 'text-anchor': 'middle', class: 'sm-tick' }, fig, fmt(v)); S('text', { x: px(0) - 4, y: py(v) + 4, 'text-anchor': 'end', class: 'sm-tick' }, fig, fmt(v)); }
+    if (tri) {
+      S('polygon', { points: [A, B, C].map((p) => `${px(p[0])},${py(p[1])}`).join(' '), class: 'sf-tri' }, fig);
+      for (const [V, U, W] of [[A, B, C], [B, C, A], [C, A, B]]) { const m2 = midpoint(U, W); S('line', { x1: px(V[0]), y1: py(V[1]), x2: px(m2[0]), y2: py(m2[1]), class: 'sf-med' }, fig); }
+    }
+    S('line', { x1: px(A[0]), y1: py(A[1]), x2: px(B[0]), y2: py(B[1]), class: 'sf-ab' }, fig);
+    const Pp = ext && m === n ? null : section(A, B, m, n, ext), Mp = midpoint(A, B);
+    if (ext && Pp) { const far = Math.abs(Pp[0]) > 30 || Math.abs(Pp[1]) > 30; if (!far) S('line', { x1: px(B[0]), y1: py(B[1]), x2: px(Pp[0]), y2: py(Pp[1]), class: 'sm-dash' }, fig); }
+    const dot = (p: Pt, cls: string, lab: string) => { if (p[0] < W0 || p[0] > W1 || p[1] < W0 || p[1] > W1) return; S('circle', { cx: px(p[0]), cy: py(p[1]), r: 6, class: cls }, fig); S('text', { x: px(p[0]) + 9, y: py(p[1]) - 8, style: 'font-weight:700' }, fig, lab); };
+    dot(Mp, 'sf-mpt', 'M');
+    if (Pp) dot(Pp, 'sf-p sf-ppt', 'P');
+    if (tri) dot(centroid(A, B, C), 'sf-gpt', 'G');
+    for (const k of tri ? ['A', 'B', 'C'] : ['A', 'B']) {
+      const p = pts[k];
+      S('circle', { cx: px(p[0]), cy: py(p[1]), r: 20, class: 'sm-hit' }, fig);
+      S('circle', { cx: px(p[0]), cy: py(p[1]), r: 9, class: `sm-handle sf-h${k}` }, fig);
+      S('text', { x: px(p[0]) - 12, y: py(p[1]) + 22, 'text-anchor': 'middle', style: 'font-weight:700' }, fig, k);
+    }
+    const [x1, y1] = A, [x2, y2] = B, dx = x2 - x1, dy = y2 - y1;
+    q('.sf-pts').textContent = `A = ${P2(A)}, B = ${P2(B)}${tri ? `, C = ${P2(C)}` : ''}`;
+    q('.sf-d').textContent = `Distance AB = √[(x₂ − x₁)² + (y₂ − y₁)²] = √[${sq(dx)} + ${sq(dy)}] = √${fmt(dx * dx + dy * dy)} = ${fmt(distance(A, B), 3)}`;
+    if (!Pp) { q('.sf-p').textContent = 'With m = n there is no external point: the line through A and B never reaches a point equally far "outside" both.'; err.textContent = 'For external division m and n must be different.'; err.hidden = false; }
+    else if (!ext) q('.sf-p').textContent = `P divides AB in ${fmt(m)} : ${fmt(n)}: P = ((m x₂ + n x₁)/(m + n), (m y₂ + n y₁)/(m + n)) = ((${fmt(m)}×${fmt(x2)} + ${fmt(n)}×${fmt(x1)})/${fmt(m + n)}, (${fmt(m)}×${fmt(y2)} + ${fmt(n)}×${fmt(y1)})/${fmt(m + n)}) = ${P2(Pp)}. Check: AP/PB = ${fmt(distance(A, Pp), 3)}/${fmt(distance(Pp, B), 3)} = ${fmt(distance(A, Pp) / distance(Pp, B), 3)}.`;
+    else q('.sf-p').textContent = `P divides AB externally in ${fmt(m)} : ${fmt(n)}: P = ((m x₂ − n x₁)/(m − n), (m y₂ − n y₁)/(m − n)) = ${P2(Pp)}. AP/PB = ${fmt(distance(A, Pp) / distance(Pp, B), 3)}.`;
+    q('.sf-mid').textContent = `Midpoint M = ((x₁ + x₂)/2, (y₁ + y₂)/2) = (${fmt(x1 + x2)}/2, ${fmt(y1 + y2)}/2) = ${P2(Mp)}`;
+    if (tri) {
+      const G = centroid(A, B, C), ar = triArea(A, B, C);
+      q('.sf-g').textContent = `Centroid G = ((x₁ + x₂ + x₃)/3, (y₁ + y₂ + y₃)/3) = (${fmt(A[0] + B[0] + C[0])}/3, ${fmt(A[1] + B[1] + C[1])}/3) = ${P2(G)}. It sits 2 : 1 along each median (dashed).`;
+      q('.sf-area').textContent = `Area = ½ |x₁(y₂ − y₃) + x₂(y₃ − y₁) + x₃(y₁ − y₂)| = ${fmt(ar, 3)}${ar === 0 ? ' : the three points are collinear (on one line).' : ''}`;
+    } else { q('.sf-g').textContent = ''; q('.sf-area').textContent = ''; }
+    const k = ratioOnXAxis(A, B);
+    q('.sf-x').textContent = y1 === 0 && y2 === 0 ? 'AB lies on the x axis.' : k > 0 ? `The x axis cuts AB in the ratio ${fmt(k, 3)} : 1${Number.isInteger(y1) && Number.isInteger(y2) ? ` (${fracText(-y1, y2).replace('/', ' : ')}${fracText(-y1, y2).includes('/') ? '' : ' : 1'})` : ''}, from A.` : 'The x axis does not cut AB between A and B (both points are on the same side).';
+  }
+
+  dragOn(fig, (x, y) => {
+    let best: string | null = null, bd = 28;
+    for (const k of q<HTMLInputElement>('.sf-tri').checked ? ['A', 'B', 'C'] : ['A', 'B']) { const d = Math.hypot(x - px(pts[k][0]), y - py(pts[k][1])); if (d < bd) { bd = d; best = k; } }
+    return best;
+  }, (id, x, y) => { pts[id] = [Math.round(Math.max(W0, Math.min(W1, ux(x)))), Math.round(Math.max(W0, Math.min(W1, uy(y))))]; draw(); });
+  for (const c of ['.sf-ext', '.sf-tri']) q(c).addEventListener('change', draw);
+  draw();
+
+  quiz(q('.sf-quiz'), () => {
+    const out: Question[] = [];
+    const [dx, dy] = [[3, 4], [6, 8], [5, 12], [8, 6], [4, 3]][randInt(0, 4)], x1 = randInt(-5, 5), y1 = randInt(-5, 5);
+    const sx = randInt(0, 1) ? 1 : -1, sy = randInt(0, 1) ? 1 : -1, x2 = x1 + sx * dx, y2 = y1 + sy * dy;
+    out.push({ q: `How far apart are (${x1}, ${y1}) and (${x2}, ${y2})?`, want: [Math.hypot(dx, dy)], work: `√[(${x2} − ${x1})² + (${y2} − ${y1})²] = √(${dx * dx} + ${dy * dy}) = √${dx * dx + dy * dy} = ${Math.hypot(dx, dy)}.`.replace(/− -/g, '+ ').replace(/-/g, '−') });
+    const a = [randInt(-8, 8), randInt(-8, 8)], b = [randInt(-8, 8), randInt(-8, 8)];
+    out.push({ q: `Find the midpoint of (${a[0]}, ${a[1]}) and (${b[0]}, ${b[1]}).`, want: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], ordered: true, hint: 'x, y', work: `((${a[0]} + ${b[0]})/2, (${a[1]} + ${b[1]})/2) = (${fmt((a[0] + b[0]) / 2)}, ${fmt((a[1] + b[1]) / 2)}).`.replace(/-/g, '−') });
+    const m = randInt(1, 3), n = randInt(1, 3), A = [randInt(-6, 6), randInt(-6, 6)], step = [randInt(-2, 2, true), randInt(-2, 2, true)];
+    const B = [A[0] + step[0] * (m + n), A[1] + step[1] * (m + n)], P = section(A as Pt, B as Pt, m, n);
+    out.push({ q: `Find the point dividing the join of A(${A[0]}, ${A[1]}) and B(${B[0]}, ${B[1]}) in the ratio ${m} : ${n}.`, want: [P[0], P[1]], ordered: true, hint: 'x, y',
+      work: `((${m}×${B[0]} + ${n}×${A[0]})/${m + n}, (${m}×${B[1]} + ${n}×${A[1]})/${m + n}) = (${fmt(P[0])}, ${fmt(P[1])}).`.replace(/-/g, '−') });
+    const T = [[randInt(-6, 6), randInt(-6, 6)], [randInt(-6, 6), randInt(-6, 6)]];
+    const gx = randInt(-4, 4), gy = randInt(-4, 4), C3 = [3 * gx - T[0][0] - T[1][0], 3 * gy - T[0][1] - T[1][1]];
+    out.push({ q: `A triangle has corners (${T[0][0]}, ${T[0][1]}), (${T[1][0]}, ${T[1][1]}) and (${C3[0]}, ${C3[1]}). Where is its centroid?`, want: [gx, gy], ordered: true, hint: 'x, y',
+      work: `((${T[0][0]} + ${T[1][0]} + ${C3[0]})/3, (${T[0][1]} + ${T[1][1]} + ${C3[1]})/3) = (${gx}, ${gy}).`.replace(/-/g, '−') });
+    return out;
+  });
+</script>

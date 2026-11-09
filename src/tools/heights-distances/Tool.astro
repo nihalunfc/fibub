@@ -1,0 +1,257 @@
+---
+// Heights and distances: a tower, one or two observers and sight lines; angle of elevation and depression solved
+// with steps. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm hd">
+  <div class="ax-card">
+    <h2>The scene</h2>
+    <div class="ax-seg hd-mode" role="group" aria-label="Problem type">
+      <button type="button" data-m="one" aria-pressed="true">One observer</button>
+      <button type="button" data-m="same" aria-pressed="false">Two, same side</button>
+      <button type="button" data-m="opp" aria-pressed="false">Two, opposite sides</button>
+      <button type="button" data-m="down" aria-pressed="false">Looking down</button>
+    </div>
+    <div class="ax-row hd-findrow" style="margin-top:10px">
+      <span class="ax-help" style="margin:0">Find the</span>
+      <div class="ax-seg hd-find" role="group" aria-label="What to find">
+        <button type="button" data-f="height" aria-pressed="true">height</button>
+        <button type="button" data-f="distance" aria-pressed="false">distance</button>
+        <button type="button" data-f="angle" aria-pressed="false">angle</button>
+      </div>
+    </div>
+    <svg class="sm-fig hd-fig" viewBox="0 0 340 260" role="img" aria-label="A tower, the observers and their lines of sight" style="margin-top:10px"></svg>
+    <p class="ax-help hd-note">Drag the person to change the distance.</p>
+    <div class="sm-sl hd-row" data-v="d"><b>d</b><input type="range" min="1" max="100" step="1" value="30" aria-label="Distance slider" /><input type="number" class="hd-d" min="0.1" step="1" value="30" inputmode="decimal" aria-label="Distance from the foot (m)" /></div>
+    <div class="sm-sl hd-row" data-v="h"><b>h</b><input type="range" min="1" max="100" step="1" value="30" aria-label="Height slider" /><input type="number" class="hd-h" min="0.1" step="1" value="30" inputmode="decimal" aria-label="Height of the tower (m)" /></div>
+    <div class="sm-sl hd-row" data-v="a"><b>θ</b><input type="range" min="1" max="89" step="1" value="60" aria-label="Angle slider" /><input type="number" class="hd-a" min="0.1" max="89.9" step="1" value="60" inputmode="decimal" aria-label="Angle of elevation (degrees)" /></div>
+    <div class="sm-sl hd-row" data-v="b"><b>φ</b><input type="range" min="1" max="89" step="1" value="30" aria-label="Second angle slider" /><input type="number" class="hd-b" min="0.1" max="89.9" step="1" value="30" inputmode="decimal" aria-label="Second angle (degrees)" /></div>
+    <div class="sm-sl hd-row" data-v="s"><b>s</b><input type="range" min="1" max="100" step="1" value="20" aria-label="Gap slider" /><input type="number" class="hd-s" min="0.1" step="1" value="20" inputmode="decimal" aria-label="Distance between the observers (m)" /></div>
+    <div class="sm-sl hd-row" data-v="e"><b>e</b><input type="range" min="0" max="3" step="0.1" value="0" aria-label="Eye height slider" /><input type="number" class="hd-e" min="0" step="0.1" value="0" inputmode="decimal" aria-label="Eye height (m)" /></div>
+    <p class="ax-help hd-key"></p>
+    <p class="ax-err hd-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Solve it, step by step</h2>
+    <p class="ax-big hd-ans" aria-live="polite"></p>
+    <ol class="sm-steps hd-steps"></ol>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>One observer, find the height: keep d = 30 and change θ from 30° to 45° to 60°. At 45° the height equals the distance. Why?</li>
+      <li>Two on the same side: what happens to the height when the two angles get close together?</li>
+      <li>Looking down: the angle of depression from the top equals the angle of elevation from the object. Find both in the picture.</li>
+      <li>Add an eye height of 1.5 m. The answer goes up by exactly 1.5 m; the triangle itself does not change.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Use √3 ≈ 1.732 and give answers to 2 decimal places. Nothing is saved.</p>
+    <div class="hd-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .hd .hd-mode button { flex: 1 1 auto; }
+  .hd svg .hd-sight { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 6 4; }
+  .hd svg .hd-tower { fill: var(--line); stroke: var(--ink); stroke-width: 1.5; }
+  .hd svg .hd-ground { stroke: var(--ink); stroke-width: 2; }
+  .hd svg .hd-person { stroke: var(--ink); stroke-width: 2.5; fill: none; stroke-linecap: round; }
+  .hd .hd-row.found input { opacity: 0.55; }
+</style>
+
+<script>
+  import { oneObserver, twoObservers, depression } from '../../lib/sci/heights-school';
+  import { rad } from '../../lib/sci/trig-school';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, dragOn, pair, val, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.hd')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.hd-fig');
+  const rows: Record<string, HTMLElement> = {}, set: Record<string, (v: number) => void> = {}, box: Record<string, HTMLInputElement> = {};
+  root.querySelectorAll<HTMLElement>('.hd-row').forEach((r) => {
+    const k = r.dataset.v!; rows[k] = r; box[k] = r.querySelector('input[type=number]')!;
+    set[k] = pair(r.querySelector('input[type=range]')!, box[k], draw);
+  });
+  const LABELS: Record<string, Record<string, string>> = {
+    one: { d: 'd = distance from the foot (m)', h: 'h = height of the tower (m)', a: 'θ = angle of elevation', e: 'e = eye height (m)' },
+    same: { a: 'θ = angle from the nearer person', b: 'φ = angle from the farther person', s: 's = gap between them (m)', e: 'e = eye height (m)' },
+    opp: { a: 'θ = angle from the left person', b: 'φ = angle from the right person', s: 's = distance between them (m)', e: 'e = eye height (m)' },
+    down: { h: 'h = height of the tower or cliff (m)', a: 'θ = angle of depression' },
+  };
+  let mode = 'one', find = 'height';
+  const tn = (a: number) => Math.tan(rad(a));
+  const t4 = (a: number) => fmt(tn(a), 4);
+
+  let world = { ox: 30, gy: 220, k: 1 }, dragging = false, frozenTower = 0;
+  function person(x: number, eyeY: number) {
+    const g = S('g', { class: 'hd-person' }, fig);
+    const foot = world.gy, top = Math.min(eyeY, foot - 30);
+    S('circle', { cx: x, cy: top - 6, r: 6 }, g);
+    S('line', { x1: x, y1: top, x2: x, y2: foot - 12 }, g);
+    S('line', { x1: x, y1: foot - 12, x2: x - 6, y2: foot }, g); S('line', { x1: x, y1: foot - 12, x2: x + 6, y2: foot }, g);
+    return top;
+  }
+  function arc(x: number, y: number, ang: number, dir: 1 | -1, down = false, label = '') {
+    const r = 28, ex = x + dir * r * Math.cos(rad(ang)), ey = y + (down ? 1 : -1) * r * Math.sin(rad(ang));
+    const sweep = (dir === 1) !== down ? 0 : 1;
+    S('path', { d: `M${x + dir * r},${y} A${r},${r} 0 0 ${sweep} ${ex},${ey}`, class: 'sm-line', style: 'stroke-width:1.5' }, fig);
+    S('text', { x: x + dir * (r + 12) * Math.cos(rad(ang / 2)), y: y + (down ? 1 : -1) * (r + 12) * Math.sin(rad(ang / 2)) + 4, 'text-anchor': dir === 1 ? 'start' : 'end' }, fig, label || `${fmt(ang, 1)}°`);
+  }
+
+  function scene(o: { towerX: number; h: number; e: number; people: { x: number; ang: number }[]; down?: number }) {
+    fig.replaceChildren();
+    const xs = [0, o.towerX, ...o.people.map((p) => p.x)], minX = Math.min(...xs), maxX = Math.max(...xs);
+    // While a drag is under way keep the scale and the tower where they are, so the person follows the finger.
+    const k = dragging ? world.k : Math.min(270 / Math.max(1e-9, maxX - minX), 190 / Math.max(1e-9, o.h));
+    world = dragging ? { ox: frozenTower - o.towerX * k, gy: 230, k } : { ox: 35 - minX * k, gy: 230, k };
+    const X = (x: number) => world.ox + x * k, Y = (y: number) => world.gy - y * k;
+    S('line', { x1: 5, x2: 335, y1: world.gy, y2: world.gy, class: 'hd-ground' }, fig);
+    const tw = Math.max(8, Math.min(26, 0.08 * o.h * k));
+    S('rect', { x: X(o.towerX) - tw / 2, y: Y(o.h), width: tw, height: o.h * k, class: 'hd-tower' }, fig);
+    S('circle', { cx: X(o.towerX), cy: Y(o.h), r: 22, class: 'sm-hit' }, fig);
+    S('circle', { cx: X(o.towerX), cy: Y(o.h), r: 7, class: 'sm-handle hd-top' }, fig);
+    S('text', { x: X(o.towerX) + tw / 2 + 6, y: (Y(o.h) + world.gy) / 2, class: 'sm-tick' }, fig, `h = ${fmt(o.h, 2)} m`);
+    if (o.down !== undefined) {
+      // Looking down from the top at an object on the ground.
+      const ox = X(o.people[0].x);
+      S('line', { x1: X(o.towerX), y1: Y(o.h), x2: ox, y2: world.gy, class: 'hd-sight' }, fig);
+      S('line', { x1: X(o.towerX), y1: Y(o.h), x2: ox, y2: Y(o.h), class: 'sm-dash' }, fig);
+      arc(X(o.towerX), Y(o.h), o.down, ox < X(o.towerX) ? -1 : 1, true, `${fmt(o.down, 1)}° down`);
+      arc(ox, world.gy, o.down, ox < X(o.towerX) ? 1 : -1);
+      S('rect', { x: ox - 7, y: world.gy - 10, width: 14, height: 10, class: 'sm-soft2 hd-obj' }, fig);
+      S('text', { x: (ox + X(o.towerX)) / 2, y: world.gy + 18, 'text-anchor': 'middle', class: 'sm-tick' }, fig, `${fmt(Math.abs(o.people[0].x - o.towerX), 2)} m`);
+      return;
+    }
+    o.people.forEach((p, i) => {
+      const px = X(p.x), eyeY = Y(o.e);
+      const top = person(px, eyeY);
+      void top;
+      S('circle', { cx: px, cy: world.gy - 14, r: 22, class: 'sm-hit' }, fig);
+      S('circle', { cx: px, cy: world.gy + 0, r: 7, class: `sm-handle hd-p${i}` }, fig);
+      S('line', { x1: px, y1: eyeY, x2: X(o.towerX), y2: Y(o.h), class: 'hd-sight' }, fig);
+      S('line', { x1: px, y1: eyeY, x2: X(o.towerX), y2: eyeY, class: 'sm-dash' }, fig);
+      arc(px, eyeY, p.ang, p.x < o.towerX ? 1 : -1);
+      S('text', { x: (px + X(o.towerX)) / 2, y: world.gy + 18, 'text-anchor': 'middle', class: 'sm-tick' }, fig, `${fmt(Math.abs(p.x - o.towerX), 2)} m`);
+    });
+  }
+
+  function draw() {
+    const err = q('.hd-err'); err.hidden = true;
+    const d = val(box.d, 30, 0.01, 1e6), h = val(box.h, 30, 0.01, 1e6), a = val(box.a, 60, 0.1, 89.9), b = val(box.b, 30, 0.1, 89.9), s = val(box.s, 20, 0.01, 1e6), e = val(box.e, 0, 0, 100);
+    const show = (ks: string[]) => { for (const k in rows) rows[k].hidden = !ks.includes(k); };
+    q('.hd-findrow').hidden = mode !== 'one';
+    for (const k in rows) rows[k].classList.remove('found');
+    const L = LABELS[mode];
+    q('.hd-key').textContent = Object.values(L).join('; ') + '.';
+    const steps: string[] = []; let ans = '';
+    if (mode === 'one') {
+      show(['d', 'h', 'a', 'e']);
+      const need = { height: 'h', distance: 'd', angle: 'a' }[find as 'height']!;
+      rows[need].classList.add('found');
+      q('.hd-note').textContent = `Drag the person (or the top of the tower) to change the picture. The ${find} is worked out for you.`;
+      if (find === 'height') {
+        const r = oneObserver('height', { d, angle: a, e }); set.h(Math.round(r.h * 100) / 100);
+        ans = `Height ≈ ${fmt(r.h, 2)} m`;
+        steps.push(`In the right triangle at the eye: tan θ = opposite / adjacent = (h − e) / d.`);
+        steps.push(`So h − e = d × tan θ = ${fmt(d)} × tan ${fmt(a, 1)}° = ${fmt(d)} × ${t4(a)} = ${fmt(r.rise, 3)}.`);
+        if (e) steps.push(`Add the eye height: h = ${fmt(r.rise, 3)} + ${fmt(e)} = ${fmt(r.h, 3)} m.`);
+        scene({ towerX: d, h: r.h, e, people: [{ x: 0, ang: a }] });
+      } else if (find === 'distance') {
+        if (h <= e) { err.textContent = 'The tower must be taller than the eye height.'; err.hidden = false; }
+        const r = oneObserver('distance', { h: Math.max(h, e + 0.01), angle: a, e }); set.d(Math.round(r.d * 100) / 100);
+        ans = `Distance ≈ ${fmt(r.d, 2)} m`;
+        steps.push(`tan θ = (h − e) / d, so d = (h − e) / tan θ.`);
+        steps.push(`d = ${fmt(r.rise, 3)} / tan ${fmt(a, 1)}° = ${fmt(r.rise, 3)} / ${t4(a)} = ${fmt(r.d, 3)} m.`);
+        scene({ towerX: r.d, h: Math.max(h, e + 0.01), e, people: [{ x: 0, ang: a }] });
+      } else {
+        if (h <= e) { err.textContent = 'The tower must be taller than the eye height.'; err.hidden = false; }
+        const r = oneObserver('angle', { h: Math.max(h, e + 0.01), d, e }); set.a(Math.round(r.angle * 10) / 10);
+        ans = `Angle ≈ ${fmt(r.angle, 1)}°`;
+        steps.push(`tan θ = (h − e) / d = ${fmt(r.rise, 3)} / ${fmt(d)} = ${fmt(r.rise / d, 4)}.`);
+        steps.push(`θ = tan⁻¹(${fmt(r.rise / d, 4)}) ≈ ${fmt(r.angle, 2)}°.`);
+        scene({ towerX: d, h: Math.max(h, e + 0.01), e, people: [{ x: 0, ang: r.angle }] });
+      }
+    } else if (mode === 'same' || mode === 'opp') {
+      show(['a', 'b', 's', 'e']);
+      q('.hd-note').textContent = mode === 'same' ? 'Both people stand on the same side, in a line with the tower. The nearer one sees the top at the bigger angle.' : 'The tower stands between the two people, in a line.';
+      const r = twoObservers(a, b, s, mode === 'same');
+      if (!r) { err.textContent = 'On the same side, the nearer person sees the top at a bigger angle: make θ bigger than φ.'; err.hidden = false; q('.hd-ans').textContent = ''; q('.hd-steps').replaceChildren(); fig.replaceChildren(); return; }
+      ans = `Height ≈ ${fmt(r.h + e, 2)} m`;
+      if (mode === 'same') {
+        steps.push(`Let x be the nearer person's distance. tan θ = h / x and tan φ = h / (x + s).`);
+        steps.push(`So h = x tan θ = (x + s) tan φ, which gives x = s tan φ / (tan θ − tan φ) = ${fmt(s)} × ${t4(b)} / (${t4(a)} − ${t4(b)}) = ${fmt(r.x1, 3)} m.`);
+        steps.push(`h = x tan θ = ${fmt(r.x1, 3)} × ${t4(a)} = ${fmt(r.h, 3)} m above eye level. The farther person is ${fmt(r.x2, 3)} m away.`);
+        scene({ towerX: r.x2, h: r.h + e, e, people: [{ x: r.x2 - r.x1, ang: a }, { x: 0, ang: b }] });
+      } else {
+        steps.push(`Let x be the left person's distance, so the right person is s − x away. tan θ = h / x and tan φ = h / (s − x).`);
+        steps.push(`So x tan θ = (s − x) tan φ, which gives x = s tan φ / (tan θ + tan φ) = ${fmt(s)} × ${t4(b)} / (${t4(a)} + ${t4(b)}) = ${fmt(r.x1, 3)} m.`);
+        steps.push(`h = x tan θ = ${fmt(r.x1, 3)} × ${t4(a)} = ${fmt(r.h, 3)} m above eye level. The right person is ${fmt(r.x2, 3)} m away.`);
+        scene({ towerX: r.x1, h: r.h + e, e, people: [{ x: 0, ang: a }, { x: s, ang: b }] });
+      }
+      if (e) steps.push(`Add the eye height: ${fmt(r.h, 3)} + ${fmt(e)} = ${fmt(r.h + e, 3)} m.`);
+    } else {
+      show(['h', 'a']);
+      q('.hd-note').textContent = 'Someone at the top looks down at an object on the ground. The angle of depression is measured down from the level line.';
+      const x = depression(h, a);
+      ans = `Distance ≈ ${fmt(x, 2)} m`;
+      steps.push('The level line at the top is parallel to the ground, so the angle of depression equals the angle of elevation from the object (alternate angles).');
+      steps.push(`tan θ = h / x, so x = h / tan θ = ${fmt(h)} / ${t4(a)} = ${fmt(x, 3)} m.`);
+      scene({ towerX: x, h, e: 0, people: [{ x: 0, ang: a }], down: a });
+    }
+    q('.hd-ans').textContent = ans;
+    q('.hd-steps').replaceChildren(...steps.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+  }
+
+  dragOn(fig, (x, y) => {
+    if (mode !== 'one') return null;
+    const p = fig.querySelector('.hd-p0'), t = fig.querySelector('.hd-top');
+    frozenTower = Number(t?.getAttribute('cx'));
+    const near = (el: Element | null) => el && Math.hypot(x - Number(el.getAttribute('cx')), y - Number(el.getAttribute('cy'))) < 30;
+    if (near(t) && find !== 'height') return 'top';
+    if (near(p) || (p && Math.abs(x - Number(p.getAttribute('cx'))) < 24 && y > world.gy - 50 && y < world.gy + 20)) return find === 'distance' ? null : 'person';
+    return null;
+  }, (id, x, y) => {
+    dragging = true;
+    if (id === 'person') set.d(Math.max(1, Math.round((frozenTower - x) / world.k)));
+    else set.h(Math.max(1, Math.round((world.gy - y) / world.k)));
+    draw();
+  }, () => { dragging = false; draw(); });
+
+  root.querySelectorAll<HTMLButtonElement>('.hd-mode button').forEach((btn) => btn.addEventListener('click', () => {
+    mode = btn.dataset.m!; root.querySelectorAll('.hd-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
+    if (mode === 'same') { set.a(60); set.b(30); set.s(20); }
+    if (mode === 'opp') { set.a(60); set.b(30); set.s(80); }
+    if (mode === 'down') { set.h(75); set.a(30); }
+    draw();
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.hd-find button').forEach((btn) => btn.addEventListener('click', () => {
+    find = btn.dataset.f!; root.querySelectorAll('.hd-find button').forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
+    draw();
+  }));
+  draw();
+
+  const R3 = 1.732;
+  quiz(q('.hd-quiz'), () => {
+    const out: Question[] = [];
+    const d1 = randInt(2, 9) * 5;
+    out.push({ q: `From a point ${d1} m from the foot of a tower, the angle of elevation of the top is 60°. How tall is the tower?`, want: [Math.round(d1 * R3 * 100) / 100], tol: 0.003, hint: 'm',
+      work: `tan 60° = h / ${d1}, so h = ${d1} × √3 ≈ ${d1} × 1.732 = ${fmt(d1 * R3, 2)} m.` });
+    const h2 = randInt(2, 12) * 5;
+    out.push({ q: `From the top of a ${h2} m cliff, a boat is seen at an angle of depression of 45°. How far is the boat from the foot of the cliff?`, want: [h2],
+      work: `The angle of elevation from the boat is also 45°. tan 45° = 1 = ${h2} / x, so x = ${h2} m.` });
+    const s3 = randInt(1, 6) * 10;
+    out.push({ q: `Walking ${s3} m towards a tower, the angle of elevation of its top changes from 30° to 60°. How tall is the tower?`, want: [Math.round((s3 / 2) * R3 * 100) / 100], tol: 0.003, hint: 'm',
+      work: `With x the nearer distance: h = x√3 and h = (x + ${s3})/√3. So 3x = x + ${s3}, x = ${s3 / 2} m, and h = ${s3 / 2}√3 ≈ ${fmt((s3 / 2) * R3, 2)} m.` });
+    const h4 = randInt(2, 10) * 3;
+    out.push({ q: `A kite string makes 30° with the ground and the kite is ${h4} m high. How long is the string (assume it is straight)?`, want: [2 * h4],
+      work: `sin 30° = height / string = 1/2, so string = 2 × ${h4} = ${2 * h4} m.` });
+    return out;
+  });
+</script>

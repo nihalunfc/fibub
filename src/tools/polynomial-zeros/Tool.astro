@@ -1,0 +1,161 @@
+---
+// Zeros of a polynomial: linear, quadratic or cubic with coefficient sliders, zeros where the curve meets the x
+// axis (drag them to rebuild the polynomial), and the sum and product of zeros against the coefficients.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm pz">
+  <div class="ax-card">
+    <h2>Zeros on the graph</h2>
+    <div class="ax-seg pz-deg" role="group" aria-label="Degree">
+      <button type="button" data-d="1" aria-pressed="false">Linear</button>
+      <button type="button" data-d="2" aria-pressed="true">Quadratic</button>
+      <button type="button" data-d="3" aria-pressed="false">Cubic</button>
+    </div>
+    <p class="ax-big pz-eq" aria-live="polite" style="margin:10px 0 4px"></p>
+    <svg class="sm-fig pz-fig" viewBox="0 0 340 300" role="img" aria-label="Graph of the polynomial; zeros are where it meets the x axis"></svg>
+    <p class="ax-help pz-note">Slide the coefficients, or drag a green zero along the x axis to move it.</p>
+    <div class="sm-sl pz-row" data-k="0"><b>a</b><input type="range" min="-3" max="3" step="0.5" value="1" aria-label="a slider" /><input type="number" step="0.5" value="1" inputmode="decimal" aria-label="a" /></div>
+    <div class="sm-sl pz-row" data-k="1"><b>b</b><input type="range" min="-10" max="10" step="0.5" value="-1" aria-label="b slider" /><input type="number" step="0.5" value="-1" inputmode="decimal" aria-label="b" /></div>
+    <div class="sm-sl pz-row" data-k="2"><b>c</b><input type="range" min="-10" max="10" step="0.5" value="-6" aria-label="c slider" /><input type="number" step="0.5" value="-6" inputmode="decimal" aria-label="c" /></div>
+    <div class="sm-sl pz-row" data-k="3"><b>d</b><input type="range" min="-10" max="10" step="0.5" value="0" aria-label="d slider" /><input type="number" step="0.5" value="0" inputmode="decimal" aria-label="d" /></div>
+    <p class="ax-err pz-err" hidden></p>
+    <p class="sm-f pz-zeros"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Zeros and coefficients</h2>
+    <ul class="sm-steps pz-rel"></ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Quadratic: drag the two zeros towards each other until they meet. The curve now just touches the axis.</li>
+      <li>Cubic: drag the three zeros to −2, 1 and 3. Read b, c and d, and check them against the sum, pair-sum and product.</li>
+      <li>Change a while keeping the zeros. The curve stretches, but the zeros (and −b/a, c/a) stay the same.</li>
+      <li>Find a cubic that crosses the x axis only once. Where did the other two zeros go?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Fractions like 5/2 are fine. Nothing is saved.</p>
+    <div class="pz-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { realZeros, fromZeros, relations, polyText, evalPoly } from '../../lib/sci/polyzeros-school';
+  import { fmt, randInt, fracText } from '../../lib/sci/smath';
+  import { S, dragOn, pair, val, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.pz')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.pz-fig');
+  const rows = [...root.querySelectorAll<HTMLElement>('.pz-row')];
+  const boxes = rows.map((r) => r.querySelector<HTMLInputElement>('input[type=number]')!);
+  const sets = rows.map((r, i) => pair(r.querySelector('input[type=range]')!, boxes[i], draw));
+  const NAMES = ['a', 'b', 'c', 'd'];
+  let deg = 2;
+  const X0 = -6, X1 = 6, Y0 = -10, Y1 = 10, L = 10, R = 330, T = 10, B = 290;
+  const px = (x: number) => L + ((x - X0) / (X1 - X0)) * (R - L), py = (y: number) => B - ((y - Y0) / (Y1 - Y0)) * (B - T);
+  const ux = (p: number) => X0 + ((p - L) / (R - L)) * (X1 - X0);
+
+  function coeffs() {
+    const co = boxes.slice(0, deg + 1).map((b, i) => val(b, i ? 0 : 1, -1000, 1000));
+    return co;
+  }
+
+  function draw() {
+    rows.forEach((r, i) => { r.hidden = i > deg; r.querySelector('b')!.textContent = NAMES[i]; });
+    const err = q('.pz-err');
+    let co = coeffs();
+    if (co[0] === 0) { err.textContent = `With a = 0 the x${deg === 1 ? '' : deg === 2 ? '²' : '³'} term disappears and the degree drops. Using a = 1 for now.`; err.hidden = false; co = [1, ...co.slice(1)]; } else err.hidden = true;
+    const zs = realZeros(co);
+    q('.pz-eq').textContent = `p(x) = ${polyText(co)}`;
+    fig.replaceChildren();
+    for (let x = X0; x <= X1; x++) S('line', { x1: px(x), x2: px(x), y1: T, y2: B, class: 'sm-grid' }, fig);
+    for (let y = Y0; y <= Y1; y += 2) S('line', { x1: L, x2: R, y1: py(y), y2: py(y), class: 'sm-grid' }, fig);
+    S('line', { x1: L, x2: R, y1: py(0), y2: py(0), class: 'sm-axis' }, fig);
+    S('line', { x1: px(0), x2: px(0), y1: T, y2: B, class: 'sm-axis' }, fig);
+    for (const x of [-4, -2, 2, 4]) S('text', { x: px(x), y: py(0) + 14, 'text-anchor': 'middle', class: 'sm-tick' }, fig, fmt(x));
+    for (const y of [-8, -4, 4, 8]) S('text', { x: px(0) - 4, y: py(y) + 4, 'text-anchor': 'end', class: 'sm-tick' }, fig, fmt(y));
+    let d = '', pen = false;
+    for (let i = 0; i <= 360; i++) {
+      const x = X0 + (i / 360) * (X1 - X0), y = evalPoly(co, x);
+      if (y < Y0 - 3 || y > Y1 + 3) { pen = false; continue; }
+      d += `${pen ? 'L' : 'M'}${px(x).toFixed(1)},${py(y).toFixed(1)}`; pen = true;
+    }
+    const clip = S('clipPath', { id: 'pz-clip' }, fig); S('rect', { x: L, y: T, width: R - L, height: B - T }, clip);
+    S('path', { d, class: 'sm-curve', 'clip-path': 'url(#pz-clip)' }, fig);
+    const uniq = [...new Set(zs.map((z) => Math.round(z * 1e6) / 1e6))];
+    const dragZ = zs.length === deg;
+    zs.forEach((z, i) => {
+      if (z < X0 || z > X1) return;
+      if (dragZ) S('circle', { cx: px(z), cy: py(0), r: 20, class: 'sm-hit' }, fig);
+      S('circle', { cx: px(z), cy: py(0), r: 8, class: `sm-good pz-z`, 'data-i': i }, fig);
+    });
+    uniq.forEach((z) => { if (z >= X0 && z <= X1) S('text', { x: px(z), y: py(0) - 14, 'text-anchor': 'middle', style: 'font-weight:600' }, fig, fmt(z, 2)); });
+    const missing = deg - zs.length;
+    q('.pz-zeros').textContent = `${zs.length === 0 ? 'No real zeros: the curve never meets the x axis.' : `Real zeros: ${zs.map((z) => fmt(z, 3)).join(', ')}.`}${missing ? ` ${missing} zero${missing > 1 ? 's are' : ' is'} not real (complex), so ${missing > 1 ? 'they do' : 'it does'} not show on the graph.` : ''} A polynomial of degree ${deg} has at most ${deg} zero${deg > 1 ? 's' : ''}.`;
+    q('.pz-note').textContent = dragZ ? 'Slide the coefficients, or drag a green zero along the x axis to move it.' : 'Slide the coefficients. (Zeros can be dragged when all of them are real.)';
+    // Relations.
+    const Rl = relations(co) as { sum: number; pairs?: number; product?: number };
+    const [a, b, c, dd] = co;
+    const lines: string[] = [];
+    const zl = zs.map((z) => `(${fmt(z, 3)})`);
+    if (deg === 1) lines.push(`The zero of ax + b is −b/a = ${fmt(-b)} / ${fmt(a)} = ${fmt(Rl.sum, 4)}.`);
+    else if (deg === 2) {
+      lines.push(`Sum of zeros α + β = −b/a = ${fmt(-b)} / ${fmt(a)} = ${fmt(Rl.sum, 4)}${zs.length === 2 ? `; from the graph: ${zl.join(' + ')} = ${fmt(zs[0] + zs[1], 4)}` : ''}.`);
+      lines.push(`Product of zeros αβ = c/a = ${fmt(c)} / ${fmt(a)} = ${fmt(Rl.product!, 4)}${zs.length === 2 ? `; from the graph: ${zl.join(' × ')} = ${fmt(zs[0] * zs[1], 4)}` : ''}.`);
+      lines.push(`So p(x) = a[x² − (sum)x + (product)] = ${fmt(a)}[x² ${Rl.sum >= 0 ? '−' : '+'} ${fmt(Math.abs(Rl.sum), 4)}x ${Rl.product! >= 0 ? '+' : '−'} ${fmt(Math.abs(Rl.product!), 4)}].`);
+    } else {
+      const all = zs.length === 3;
+      lines.push(`α + β + γ = −b/a = ${fmt(-b)} / ${fmt(a)} = ${fmt(Rl.sum, 4)}${all ? `; from the graph: ${fmt(zs[0] + zs[1] + zs[2], 4)}` : ''}.`);
+      lines.push(`αβ + βγ + γα = c/a = ${fmt(c)} / ${fmt(a)} = ${fmt(Rl.pairs!, 4)}${all ? `; from the graph: ${fmt(zs[0] * zs[1] + zs[1] * zs[2] + zs[0] * zs[2], 4)}` : ''}.`);
+      lines.push(`αβγ = −d/a = ${fmt(-dd)} / ${fmt(a)} = ${fmt(Rl.product!, 4)}${all ? `; from the graph: ${zl.join(' × ')} = ${fmt(zs[0] * zs[1] * zs[2], 4)}` : ''}.`);
+      if (!all) lines.push('With complex zeros the relations still hold, but you cannot read all the zeros off the graph.');
+    }
+    q('.pz-rel').replaceChildren(...lines.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+  }
+
+  let dragI = -1, held: number[] = [];
+  dragOn(fig, (x, y) => {
+    const co = coeffs(); if (!co[0]) return null;
+    const zs = realZeros(co); if (zs.length !== deg) return null;
+    let best = -1, bd = 26;
+    zs.forEach((z, i) => { const dd = Math.hypot(x - px(z), y - py(0)); if (dd < bd) { bd = dd; best = i; } });
+    if (best < 0) return null;
+    dragI = best; held = zs.map((z) => Math.round(z * 1000) / 1000); return 'z';
+  }, (_id, x) => {
+    held[dragI] = Math.round(Math.max(X0, Math.min(X1, ux(x))) * 2) / 2;
+    const a = coeffs()[0];
+    fromZeros(held, a).forEach((c, i) => sets[i](Math.round(c * 1000) / 1000));
+    draw();
+  });
+
+  root.querySelectorAll<HTMLButtonElement>('.pz-deg button').forEach((btn) => btn.addEventListener('click', () => {
+    deg = Number(btn.dataset.d); root.querySelectorAll('.pz-deg button').forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
+    const start = deg === 1 ? [2, -3] : deg === 2 ? [1, -1, -6] : [1, -2, -5, 6];
+    start.forEach((c, i) => sets[i](c));
+    draw();
+  }));
+  draw();
+
+  quiz(q('.pz-quiz'), () => {
+    const out: Question[] = [];
+    let r1 = randInt(-5, 5), r2 = randInt(-5, 5); while (r1 === r2) r2 = randInt(-5, 5);
+    const co1 = fromZeros([r1, r2]);
+    out.push({ q: `Find the zeros of ${polyText(co1)}.`, want: [r1, r2], hint: 'both zeros', work: `${polyText(co1)} = (x ${r1 < 0 ? '+' : '−'} ${Math.abs(r1)})(x ${r2 < 0 ? '+' : '−'} ${Math.abs(r2)}), so the zeros are ${r1} and ${r2}. Check: sum ${r1 + r2} = −b, product ${r1 * r2} = c.`.replace(/-/g, '−') });
+    const a2 = randInt(2, 5), b2 = randInt(-9, 9, true), c2 = randInt(-9, 9, true);
+    out.push({ q: `For ${polyText([a2, b2, c2])}, what are the sum and the product of the zeros?`, want: [-b2 / a2, c2 / a2], ordered: true, hint: 'sum, product', tol: 0.005,
+      work: `Sum = −b/a = ${fracText(-b2, a2)} and product = c/a = ${fracText(c2, a2)}.` });
+    const s3 = randInt(-6, 6), p3 = randInt(-9, 9);
+    out.push({ q: `A quadratic x² + bx + c has zeros with sum ${s3} and product ${p3}. Find b and c.`, want: [-s3, p3], ordered: true, hint: 'b, c', work: `x² − (sum)x + (product) = x² ${s3 > 0 ? '−' : '+'} ${Math.abs(s3)}x ${p3 < 0 ? '−' : '+'} ${Math.abs(p3)}, so b = ${-s3} and c = ${p3}.`.replace(/(= )-/g, '$1−') });
+    const z = [randInt(-3, 3), randInt(-3, 3), randInt(-3, 3)], co4 = fromZeros(z, 2);
+    out.push({ q: `The cubic ${polyText(co4)} has three zeros. What is their sum? And their product?`, want: [z[0] + z[1] + z[2], z[0] * z[1] * z[2]], ordered: true, hint: 'sum, product',
+      work: `Sum = −b/a = ${fmt(-co4[1])}/2 = ${fmt(z[0] + z[1] + z[2])}; product = −d/a = ${fmt(-co4[3])}/2 = ${fmt(z[0] * z[1] * z[2])}. (The zeros are ${z.slice().sort((x, y) => x - y).join(', ')}.)`.replace(/-/g, '−') });
+    return out;
+  });
+</script>

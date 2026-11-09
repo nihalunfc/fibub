@@ -1,0 +1,293 @@
+---
+// Ohm's law lab: slide the voltage, read the ammeter and voltmeter, record readings and plot V against I.
+// A resistor, a filament bulb (a teaching model) or a length of wire. Everything runs in the browser.
+import '../../styles/astro.css';
+---
+<div class="ax ohl">
+  <div class="ax-card">
+    <h2>Set up the circuit</h2>
+    <div class="ax-row">
+      <span class="ax-seg ohl-level" role="group" aria-label="Level"><button type="button" data-v="10" aria-pressed="true">Class 10</button><button type="button" data-v="12" aria-pressed="false">Class 12</button></span>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <span class="ax-seg ohl-part" role="group" aria-label="What is in the circuit"><button type="button" data-v="resistor" aria-pressed="true">Resistor</button><button type="button" data-v="bulb" aria-pressed="false">Bulb</button><button type="button" data-v="wire" aria-pressed="false">Wire</button></span>
+    </div>
+    <label class="ohl-sl" style="margin-top:12px">Battery voltage across the part: <b class="ohl-vv">6.0 V</b>
+      <input type="range" class="ohl-v" min="0" max="12" step="0.5" value="6" aria-label="Voltage" />
+    </label>
+    <label class="ohl-sl ohl-ronly">Resistance: <b class="ohl-rv">10 Ω</b>
+      <input type="range" class="ohl-r" min="1" max="50" step="1" value="10" aria-label="Resistance" />
+    </label>
+    <div class="ohl-wonly" hidden>
+      <div class="ax-grid">
+        <label>Metal <select class="ohl-mat">
+          <option value="nichrome" selected>Nichrome</option><option value="constantan">Constantan</option><option value="iron">Iron</option>
+          <option value="tungsten">Tungsten</option><option value="aluminium">Aluminium</option><option value="copper">Copper</option>
+        </select></label>
+        <label>Thickness (diameter) <select class="ohl-d">
+          <option value="0.2">0.2 mm</option><option value="0.3" selected>0.3 mm</option><option value="0.4">0.4 mm</option><option value="0.5">0.5 mm</option><option value="0.8">0.8 mm</option><option value="1">1.0 mm</option>
+        </select></label>
+      </div>
+      <label class="ohl-sl" style="margin-top:10px">Length of wire: <b class="ohl-lv">1.00 m</b>
+        <input type="range" class="ohl-l" min="0.1" max="2" step="0.05" value="1" aria-label="Length of wire" />
+      </label>
+    </div>
+    <p class="ax-help ohl-bulbnote" hidden>The bulb is a teaching model of a small 6 V, 0.5 A torch bulb: its filament gets hotter as the current grows, and a hot metal has more resistance.</p>
+  </div>
+
+  <div class="ax-card">
+    <canvas class="ax-fig ohl-fig" aria-label="Circuit with a battery, ammeter, the part and a voltmeter"></canvas>
+    <dl class="ax-facts ohl-read" style="margin-top:10px"></dl>
+    <p class="ax-big ohl-formula" style="margin:12px 0 0"></p>
+    <p class="ohl-wireformula" hidden></p>
+    <dl class="ax-facts ohl-more" style="margin-top:10px" hidden></dl>
+    <p class="ax-err ohl-warn" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>V-I graph</h2>
+    <div class="ax-row">
+      <button type="button" class="btn small ohl-rec">Record this reading</button>
+      <button type="button" class="btn secondary small ohl-auto">Take 6 readings</button>
+      <button type="button" class="btn secondary small ohl-clear">Clear</button>
+    </div>
+    <canvas class="ax-fig ohl-graph" style="margin-top:10px"></canvas>
+    <div class="ax-legend"><span><i class="ohl-kd"></i>your readings</span><span><i class="ohl-kl"></i>best straight line</span><span>ring: the reading now</span></div>
+    <p class="ohl-fit" aria-live="polite"></p>
+    <div class="ax-scroll"><table class="ohl-tab"></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="ohl-try">
+      <li>Take 6 readings with the resistor. The points sit on a straight line through zero, and its slope is the resistance.</li>
+      <li>Switch to the bulb and take 6 readings. The line bends: V/I grows as the filament heats up.</li>
+      <li>With the wire, double the length. The current halves at the same voltage, because R doubles.</li>
+      <li>Change the wire from 0.3 mm to 0.6 mm thick in your head: the area is four times bigger, so R is a quarter. Try 0.2 mm and 0.4 mm here.</li>
+      <li>Try a copper wire: its resistance is so small that the current is huge. That is why copper is used for connecting wires.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="ohl-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .ohl .ohl-sl { display: grid; gap: 6px; margin-top: 10px; color: var(--ink); font-size: 15px; }
+  .ohl .ohl-sl b { font-variant-numeric: tabular-nums; }
+  .ohl input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .ohl .ax-seg button { min-height: 40px; padding: 8px 14px; }
+  .ohl-fig, .ohl-graph { max-width: 520px; margin-left: auto; margin-right: auto; }
+  .ohl-formula { font-size: clamp(18px, 4.6vw, 24px); overflow-wrap: anywhere; }
+  .ohl-wireformula { margin: 6px 0 0; font-size: 16px; overflow-wrap: anywhere; }
+  .ohl-fit { margin: 8px 0; font-size: 15px; }
+  .ohl-kd { background: var(--accent); }
+  .ohl-kl { background: var(--muted); }
+  .ohl-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .ohl .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .ohl .eq-q p { margin: 0 0 6px; }
+  .ohl .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .ohl .eq-ok { color: var(--good); font-weight: 600; }
+  .ohl .eq-no { color: var(--bad); }
+  .ohl .eq-work { margin-top: 4px; font-size: 14px; }
+  .ohl .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .ohl .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { MATERIALS, N_COPPER, bulbR, area, wireR, drift, current, fit, meter, questions, type Part } from '../../lib/sci/ohms-lab';
+  import { pagePalette, type Palette } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+  import { quiz } from '../../lib/elec-quiz-ui';
+
+  const root = document.querySelector<HTMLElement>('.ohl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fig = q<HTMLCanvasElement>('.ohl-fig'), graph = q<HTMLCanvasElement>('.ohl-graph');
+  const fmt = (x: number, d = 2) => x.toFixed(d);
+  const fmtI = (x: number) => x.toFixed(x >= 10 ? 1 : x >= 1 ? 2 : 3);
+  const sg = (x: number, n = 3) => sig(x, n);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const PART_NAME: Record<Part, string> = { resistor: 'resistor', bulb: 'bulb', wire: 'wire' };
+
+  let level = 10, part: Part = 'resistor';
+  let readings: [number, number][] = []; // [I in A, V in V] as read off the meters
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function setup(c: HTMLCanvasElement, w: number, h: number) {
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    if (c.width !== Math.round(w * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c.style.aspectRatio = `${w} / ${h}`; }
+    const x = c.getContext('2d')!; x.setTransform(dpr, 0, 0, dpr, 0, 0); return x;
+  }
+
+  function state() {
+    const V = +q<HTMLInputElement>('.ohl-v').value;
+    let R = +q<HTMLInputElement>('.ohl-r').value, rho = 0, L = 0, d = 0;
+    if (part === 'wire') { rho = MATERIALS[q<HTMLSelectElement>('.ohl-mat').value].rho; L = +q<HTMLInputElement>('.ohl-l').value; d = +q<HTMLSelectElement>('.ohl-d').value / 1000; R = wireR(rho, L, d); }
+    const I = current(part, V, R);
+    const Iread = meter(I, I >= 10 ? 0.1 : I >= 1 ? 0.01 : 0.001), Vread = meter(V, 0.1);
+    return { V, R, I, rho, L, d, Iread, Vread };
+  }
+
+  // The circuit picture: battery, ammeter in series, the part, voltmeter across it, and moving dots for the current.
+  const W = 360, H = 250;
+  let phase = 0, last = 0;
+  function loop(path: [number, number][]) {
+    // Total length and a point at distance s along the loop.
+    const segs = path.map((p, i) => { const n = path[(i + 1) % path.length]; return { p, n, len: Math.hypot(n[0] - p[0], n[1] - p[1]) }; });
+    const total = segs.reduce((s, g) => s + g.len, 0);
+    return { total, at: (s: number) => { s = ((s % total) + total) % total; for (const g of segs) { if (s <= g.len) { const t = s / g.len; return [g.p[0] + (g.n[0] - g.p[0]) * t, g.p[1] + (g.n[1] - g.p[1]) * t]; } s -= g.len; } return path[0]; } };
+  }
+  const LOOP = loop([[40, 60], [320, 60], [320, 200], [40, 200]]);
+  function dial(c: CanvasRenderingContext2D, pal: Palette, x: number, y: number, label: string, frac: number) {
+    c.fillStyle = pal.bg; c.strokeStyle = pal.ink; c.lineWidth = 2;
+    c.beginPath(); c.arc(x, y, 22, 0, Math.PI * 2); c.fill(); c.stroke();
+    c.strokeStyle = pal.muted; c.lineWidth = 1; c.beginPath(); c.arc(x, y, 16, Math.PI * 1.15, Math.PI * 1.85); c.stroke();
+    const a = Math.PI * (1.15 + 0.7 * Math.max(0, Math.min(1, frac)));
+    c.strokeStyle = pal.bad; c.lineWidth = 2; c.beginPath(); c.moveTo(x, y + 4); c.lineTo(x + 18 * Math.cos(a), y + 4 + 18 * Math.sin(a)); c.stroke();
+    c.fillStyle = pal.ink; c.font = '700 13px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(label, x, y + 16);
+  }
+  function drawCircuit(t: number) {
+    const s = state(), pal = pagePalette(), c = setup(fig, W, H);
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    c.strokeStyle = pal.ink; c.lineWidth = 2; c.lineCap = 'round';
+    c.strokeRect(40, 60, 280, 140);
+    // Battery on the left side (gap in the wire, long and short plates).
+    c.fillStyle = pal.bg; c.fillRect(30, 110, 20, 40);
+    c.beginPath(); c.moveTo(22, 120); c.lineTo(58, 120); c.moveTo(31, 132); c.lineTo(49, 132); c.moveTo(22, 140); c.lineTo(58, 140); c.moveTo(31, 152); c.lineTo(49, 152); c.stroke();
+    c.fillStyle = pal.ink; c.font = '13px system-ui, sans-serif'; c.textAlign = 'left'; c.fillText('+', 62, 124); c.fillText(`${fmt(s.V, 1)} V`, 62, 150);
+    // The part on the top wire, between x = 150 and 250.
+    c.fillStyle = pal.bg; c.fillRect(150, 50, 100, 20);
+    c.strokeStyle = pal.ink;
+    if (part === 'resistor') { c.strokeRect(165, 50, 70, 20); c.beginPath(); c.moveTo(150, 60); c.lineTo(165, 60); c.moveTo(235, 60); c.lineTo(250, 60); c.stroke(); }
+    else if (part === 'bulb') {
+      const P = s.V * s.I, glow = Math.min(1, P / 3);
+      if (glow > 0.02) { c.fillStyle = pal.red ? `rgba(163,0,0,${0.15 + 0.5 * glow})` : `rgba(240,170,20,${0.15 + 0.6 * glow})`; c.beginPath(); c.arc(200, 60, 14 + 14 * glow, 0, Math.PI * 2); c.fill(); }
+      c.fillStyle = pal.bg; c.beginPath(); c.arc(200, 60, 13, 0, Math.PI * 2); c.fill(); c.stroke();
+      c.beginPath(); c.moveTo(150, 60); c.lineTo(187, 60); c.moveTo(213, 60); c.lineTo(250, 60); c.moveTo(191, 51); c.lineTo(209, 69); c.moveTo(209, 51); c.lineTo(191, 69); c.stroke();
+    } else {
+      // A coiled wire: zigzag whose number of turns grows with length, thickness with diameter.
+      const n = Math.max(3, Math.round(4 + 6 * s.L)); c.lineWidth = 1 + 3 * Math.min(1, s.d / 0.001);
+      c.beginPath(); c.moveTo(150, 60); for (let k = 0; k <= n; k++) c.lineTo(160 + (80 * k) / n, 60 + (k % 2 ? -8 : 8) * (k === 0 || k === n ? 0 : 1)); c.lineTo(250, 60); c.stroke(); c.lineWidth = 2;
+    }
+    c.fillStyle = pal.muted; c.textAlign = 'center'; c.font = '12px system-ui, sans-serif'; c.fillText(PART_NAME[part], 200, 40);
+    // Voltmeter across the part, above it.
+    c.strokeStyle = pal.ink; c.beginPath(); c.moveTo(150, 60); c.lineTo(150, 22); c.lineTo(178, 22); c.moveTo(222, 22); c.lineTo(250, 22); c.lineTo(250, 60); c.stroke();
+    // Ammeter on the right side.
+    const Imax = [0.5, 1, 3, 10, 30, 100].find((m) => m >= Math.max(0.5, current(part, 12, s.R) * 1.0001)) || 100;
+    dial(c, pal, 320, 130, 'A', s.I / Imax);
+    c.fillStyle = pal.muted; c.font = '12px system-ui, sans-serif'; c.textAlign = 'right'; c.fillText(`0 to ${Imax} A`, 292, 172);
+    dial(c, pal, 200, 22, 'V', s.V / 12);
+    // Switch-like dots: electrons drawn as small dots moving against the conventional current (− to +).
+    const speed = reduce ? 0 : Math.min(140, 30 * Math.sqrt(s.I));
+    if (last) phase += ((t - last) / 1000) * speed; last = t;
+    c.fillStyle = pal.accent;
+    if (s.I > 0) for (let k = 0; k < LOOP.total; k += 28) { const [x, y] = LOOP.at(k - phase); if (Math.hypot(x - 320, y - 130) < 24) continue; c.beginPath(); c.arc(x, y, 3, 0, Math.PI * 2); c.fill(); }
+    // Conventional current arrow on the top wire, + terminal to the part.
+    c.strokeStyle = pal.ink; c.fillStyle = pal.ink; c.beginPath(); c.moveTo(118, 60); c.lineTo(106, 54); c.lineTo(106, 66); c.closePath(); c.fill();
+    c.font = '12px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText('I', 112, 80);
+    c.fillStyle = pal.muted; c.textAlign = 'left';
+    c.fillText('Arrow: current I, from + to −.', 8, 226); c.fillText('Dots: electrons, which drift the other way.', 8, 242);
+  }
+  let raf = 0;
+  const tick = (t: number) => { drawCircuit(t); raf = requestAnimationFrame(tick); };
+
+  function drawGraph() {
+    const pal = pagePalette(), GW = 360, GH = 250, c = setup(graph, GW, GH), s = state();
+    c.fillStyle = pal.bg; c.fillRect(0, 0, GW, GH);
+    const ML = 44, MB = 34, MT = 10, MR = 12, pw = GW - ML - MR, ph = GH - MT - MB;
+    const pts = readings.concat([[s.Iread, s.Vread]]);
+    const imax = Math.max(0.1, ...pts.map((p) => p[0])) * 1.1, vmax = 12.5;
+    const X = (i: number) => ML + (i / imax) * pw, Y = (v: number) => MT + ph - (v / vmax) * ph;
+    c.strokeStyle = pal.grid; c.lineWidth = 1; c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif';
+    for (let v = 0; v <= 12; v += 2) { c.beginPath(); c.moveTo(ML, Y(v)); c.lineTo(ML + pw, Y(v)); c.stroke(); c.textAlign = 'right'; c.fillText(String(v), ML - 5, Y(v) + 4); }
+    const step = [0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100].find((d) => imax / d <= 6) || 100;
+    for (let i = 0; i <= imax; i += step) { c.beginPath(); c.moveTo(X(i), MT); c.lineTo(X(i), MT + ph); c.stroke(); c.textAlign = 'center'; c.fillText(sg(i, 2), X(i), MT + ph + 14); }
+    c.strokeStyle = pal.ink; c.beginPath(); c.moveTo(ML, MT); c.lineTo(ML, MT + ph); c.lineTo(ML + pw, MT + ph); c.stroke();
+    c.fillStyle = pal.ink; c.textAlign = 'center'; c.fillText('Current I (A)', ML + pw / 2, GH - 4);
+    c.save(); c.translate(12, MT + ph / 2); c.rotate(-Math.PI / 2); c.fillText('Voltage V (V)', 0, 0); c.restore();
+    const f = fit(readings);
+    if (f) { c.strokeStyle = pal.muted; c.setLineDash([5, 4]); c.beginPath(); c.moveTo(X(0), Y(f.c)); c.lineTo(X(imax), Y(f.c + f.m * imax)); c.stroke(); c.setLineDash([]); }
+    c.fillStyle = pal.accent; for (const [i, v] of readings) { c.beginPath(); c.arc(X(i), Y(v), 4.5, 0, Math.PI * 2); c.fill(); }
+    c.strokeStyle = pal.accent2; c.lineWidth = 2; c.beginPath(); c.arc(X(s.Iread), Y(s.Vread), 7, 0, Math.PI * 2); c.stroke();
+    graph.setAttribute('aria-label', `V-I graph with ${readings.length} readings`);
+  }
+
+  function readout() {
+    const s = state();
+    q('.ohl-vv').textContent = `${fmt(s.V, 1)} V`;
+    q('.ohl-rv').textContent = `${s.R} Ω`;
+    q('.ohl-lv').textContent = `${fmt(s.L || +q<HTMLInputElement>('.ohl-l').value)} m`;
+    q('.ohl-ronly').hidden = part !== 'resistor';
+    q('.ohl-wonly').hidden = part !== 'wire';
+    q('.ohl-bulbnote').hidden = part !== 'bulb';
+    const Rnow = s.I > 0 ? s.V / s.I : part === 'bulb' ? bulbR(0) : s.R;
+    q('.ohl-read').replaceChildren(
+      fact('Ammeter', `${fmtI(s.Iread)} A`),
+      fact('Voltmeter', `${fmt(s.Vread, 1)} V`),
+      fact('Resistance now', Number.isFinite(Rnow) ? `${sg(Rnow)} Ω` : '–', part === 'bulb' ? 'changes as the filament heats' : 'stays the same'),
+    );
+    q('.ohl-formula').textContent = s.V > 0 ? `R = V / I = ${fmt(s.V, 1)} V ÷ ${sg(s.I)} A = ${sg(s.V / s.I)} Ω` : 'At 0 V no current flows: I = 0 A.';
+    const wf = q('.ohl-wireformula');
+    wf.hidden = part !== 'wire';
+    if (part === 'wire') wf.textContent = `R = ρ L / A = ${sg(s.rho, 2)} Ω m × ${fmt(s.L)} m ÷ ${sg(area(s.d), 3)} m² = ${sg(s.R)} Ω   (A = π d² / 4, d = ${sg(s.d * 1000, 2)} mm)`;
+    const more = q('.ohl-more');
+    more.hidden = level !== 12;
+    if (level === 12) {
+      const items = [fact('Power', `${sg(s.V * s.I)} W`, 'P = V I = I² R')];
+      if (part === 'wire') {
+        const A = area(s.d);
+        items.push(fact('Current density', `${sg(s.I / A)} A/m²`, 'J = I / A'), fact('Conductivity', `${sg(1 / s.rho)} S/m`, 'σ = 1 / ρ'), fact('Electric field in the wire', `${sg(s.V / s.L)} V/m`, 'E = V / L, and J = σ E'));
+        if (q<HTMLSelectElement>('.ohl-mat').value === 'copper') items.push(fact('Drift speed of electrons', `${sg(drift(s.I, N_COPPER, A) * 1000)} mm/s`, 'v = I / (n e A), n = 8.5 × 10²⁸ per m³'));
+      } else if (part === 'bulb') items.push(fact('Filament', s.V > 0 ? `${sg(s.V / s.I)} Ω hot` : '–', '2 Ω cold in this model'));
+      more.replaceChildren(...items);
+    }
+    const warn = q('.ohl-warn');
+    warn.hidden = s.I <= 5;
+    warn.textContent = s.I > 5 ? `A current of ${sg(s.I)} A is close to a short circuit: a real cell could not give it, and the wire would get very hot.` : '';
+    drawGraph();
+    if (reduce) drawCircuit(0);
+  }
+
+  function fitText() {
+    const f = fit(readings), el = q('.ohl-fit');
+    if (!f) { el.textContent = readings.length ? 'Record at least 2 readings to draw the best line.' : 'No readings yet. Record a few at different voltages.'; return; }
+    const rs = readings.filter((r) => r[0] > 0).map((r) => r[1] / r[0]);
+    const lo = Math.min(...rs), hi = Math.max(...rs);
+    const curved = rs.length >= 3 && hi / lo > 1.08;
+    el.textContent = curved
+      ? `The points bend: V/I goes from ${sg(lo)} Ω to ${sg(hi)} Ω, so the resistance is not constant and Ohm's law does not hold here. A straight line is a poor fit (r² = ${f.r2.toFixed(3)}).`
+      : `Slope of the best line = resistance = ${sg(f.m)} Ω (through zero: ${sg(f.k)} Ω). The points lie on a straight line, so V is proportional to I: Ohm's law.`;
+  }
+  function tableOut() {
+    const t = q('.ohl-tab');
+    if (!readings.length) { t.replaceChildren(); return; }
+    const head = document.createElement('tr'); head.innerHTML = '<th>#</th><th class="r">V (V)</th><th class="r">I (A)</th><th class="r">V / I (Ω)</th>';
+    t.replaceChildren(head, ...readings.map(([I, V], k) => { const tr = document.createElement('tr'); for (const [v, cl] of [[String(k + 1), ''], [fmt(V, 1), 'r'], [fmtI(I), 'r'], [I > 0 ? sg(V / I) : '–', 'r']]) { const td = document.createElement('td'); td.textContent = v; if (cl) td.className = cl; tr.append(td); } return tr; }));
+  }
+  const all = () => { readout(); fitText(); tableOut(); drawGraph(); };
+
+  const seg = (sel: string, on: (v: string) => void) => q(sel).addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button'); if (!b) return;
+    for (const x of q(sel).querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b));
+    on(b.dataset.v!);
+  });
+  seg('.ohl-level', (v) => { level = +v; all(); });
+  seg('.ohl-part', (v) => { part = v as Part; readings = []; all(); });
+  for (const c of ['.ohl-v', '.ohl-r', '.ohl-l']) q(c).addEventListener('input', () => { if (c !== '.ohl-v') readings = []; all(); });
+  for (const c of ['.ohl-mat', '.ohl-d']) q(c).addEventListener('change', () => { readings = []; all(); });
+  q('.ohl-rec').addEventListener('click', () => { const s = state(); readings.push([s.Iread, s.Vread]); if (readings.length > 12) readings.shift(); all(); });
+  q('.ohl-auto').addEventListener('click', () => {
+    const vin = q<HTMLInputElement>('.ohl-v'), keep = vin.value; readings = [];
+    for (const v of [2, 4, 6, 8, 10, 12]) { vin.value = String(v); const s = state(); readings.push([s.Iread, s.Vread]); }
+    vin.value = keep; all();
+  });
+  q('.ohl-clear').addEventListener('click', () => { readings = []; all(); });
+  new MutationObserver(() => { all(); if (reduce) drawCircuit(0); }).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+
+  quiz(q('.ohl-quiz'), () => questions());
+  all();
+  if (reduce) drawCircuit(0); else raf = requestAnimationFrame(tick);
+  void raf;
+</script>

@@ -1,0 +1,214 @@
+---
+// Magnetic field mapper: field lines of a bar magnet, a straight wire, a loop and a solenoid, with a compass you drag
+// around and the right-hand thumb rule. Exact Biot-Savart fields for the coils; everything runs in the browser.
+import '../../styles/astro.css';
+---
+<div class="ax mfm">
+  <div class="ax-card">
+    <h2>Pick a magnet or a current</h2>
+    <div class="ax-row">
+      <span class="ax-seg mfm-level" role="group" aria-label="Level"><button type="button" data-v="10" aria-pressed="true">Class 10</button><button type="button" data-v="12" aria-pressed="false">Class 12</button></span>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <span class="ax-seg mfm-kind" role="group" aria-label="Source of the field"><button type="button" data-v="magnet" aria-pressed="true">Bar magnet</button><button type="button" data-v="wire" aria-pressed="false">Straight wire</button><button type="button" data-v="loop" aria-pressed="false">Loop</button><button type="button" data-v="solenoid" aria-pressed="false">Solenoid</button></span>
+    </div>
+    <label class="mfm-sl mfm-ionly" hidden>Current: <b class="mfm-iv">5.0 A</b>
+      <input type="range" class="mfm-i" min="0.5" max="10" step="0.5" value="5" aria-label="Current" />
+    </label>
+    <div class="ax-row" style="margin-top:10px">
+      <label class="mfm-nonly" hidden>Turns <select class="mfm-n" style="width:auto"></select></label>
+      <button type="button" class="btn secondary small mfm-rev">Flip the magnet</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <canvas class="ax-fig mfm-fig"></canvas>
+    <div class="ax-legend"><span><i class="mfm-kn"></i>north end of the needle</span><span>arrows: direction of the field</span><span>⊙ current out of the screen, ⊗ into it</span></div>
+    <p class="ax-help">Drag the compass, or tap anywhere to move it there. The picture is 20 cm across; the Earth's own field is left out.</p>
+    <p class="ax-big mfm-big" aria-live="polite"></p>
+    <dl class="ax-facts mfm-facts" style="margin-top:8px"></dl>
+    <p class="mfm-formula" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="mfm-ruleh">Which way do the lines go?</h2>
+    <p class="mfm-rule"></p>
+    <p class="ax-help mfm-rule12" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="mfm-try">
+      <li>Drag the compass right round the bar magnet. The needle turns twice as you go once round.</li>
+      <li>With the straight wire, move the compass further away: the field gets weaker, and the circles get further apart.</li>
+      <li>Reverse the current. Every arrow and the compass needle swing round.</li>
+      <li>Compare the loop and the solenoid with the bar magnet: the solenoid's field outside looks just like the magnet's.</li>
+      <li>Put the compass inside the solenoid and change the number of turns: more turns, stronger field, and it is almost the same everywhere inside.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="mfm-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .mfm .mfm-sl { display: grid; gap: 6px; margin-top: 10px; color: var(--ink); font-size: 15px; }
+  .mfm input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .mfm .ax-seg button { min-height: 40px; padding: 8px 12px; }
+  .mfm-fig { max-width: 520px; margin-left: auto; margin-right: auto; touch-action: none; cursor: crosshair; }
+  .mfm-kn { background: var(--bad); }
+  .mfm-big { font-size: clamp(18px, 4.6vw, 24px); margin: 10px 0 0; }
+  .mfm-formula { margin: 8px 0 0; font-size: 16px; overflow-wrap: anywhere; }
+  .mfm-rule { margin: 0; font-size: 16px; }
+  .mfm-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .mfm .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .mfm .eq-q p { margin: 0 0 6px; }
+  .mfm .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .mfm .eq-ok { color: var(--good); font-weight: 600; }
+  .mfm .eq-no { color: var(--bad); }
+  .mfm .eq-work { margin-top: 4px; font-size: 14px; }
+  .mfm .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .mfm .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { field, trace, seeds, angleDeg, wireFormula, loopCentre, solenoidInside, questions, SIZE, type Kind, type Setup } from '../../lib/sci/magnetic-mapper';
+  import { pagePalette } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+  import { quiz } from '../../lib/elec-quiz-ui';
+
+  const root = document.querySelector<HTMLElement>('.mfm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const canvas = q<HTMLCanvasElement>('.mfm-fig');
+  const sg = (x: number, n = 3) => sig(x, n);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const W = 360, H = 300, HW = 0.1, HH = (HW * H) / W;
+  const box = { x0: -HW, x1: HW, y0: -HH, y1: HH };
+  const X = (x: number) => ((x + HW) / (2 * HW)) * W, Y = (y: number) => H - ((y + HH) / (2 * HH)) * H;
+  const TURNS: Record<string, number[]> = { loop: [1, 10, 50, 100], solenoid: [50, 100, 200, 500] };
+  const DEF_N: Record<string, number> = { loop: 10, solenoid: 200, wire: 1, magnet: 1 };
+
+  let level = 10, kind: Kind = 'magnet', sign = 1, compass: [number, number] = [0.06, 0.045], dragging = false;
+  const cache: Record<string, [number, number][][]> = {};
+  const setup = (): Setup => ({ kind, I: kind === 'magnet' ? sign : sign * +q<HTMLInputElement>('.mfm-i').value, N: kind === 'magnet' || kind === 'wire' ? 1 : +q<HTMLSelectElement>('.mfm-n').value });
+  // Line shapes depend only on the kind (the size and sign of the current only scale or flip the field).
+  function lines(): [number, number][][] {
+    if (!cache[kind]) { const s: Setup = { kind, I: 1, N: 1 }; cache[kind] = seeds(s, kind === 'wire' ? 8 : 10).map(([x, y]) => trace(s, x, y, box)); }
+    return cache[kind];
+  }
+  const fmtB = (b: number) => (b >= 1e-3 ? `${sg(b * 1e3)} mT` : `${sg(b * 1e6)} µT`);
+  const words = (a: number) => ['right', 'up and to the right', 'up', 'up and to the left', 'left', 'down and to the left', 'down', 'down and to the right'][Math.round(a / 45) % 8];
+
+  function draw() {
+    const pal = pagePalette(), dpr = Math.min(3, window.devicePixelRatio || 1);
+    if (canvas.width !== Math.round(W * dpr)) { canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr); canvas.style.aspectRatio = `${W} / ${H}`; }
+    const c = canvas.getContext('2d')!; c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    const s = setup(), Ls = lines();
+    // Field lines with arrowheads every so often, pointing along B.
+    c.strokeStyle = pal.muted; c.fillStyle = pal.muted; c.lineWidth = 1.2;
+    for (const L of Ls) {
+      c.beginPath(); L.forEach(([x, y], k) => (k ? c.lineTo(X(x), Y(y)) : c.moveTo(X(x), Y(y)))); c.stroke();
+      for (let k = 20; k < L.length - 1; k += 45) {
+        const [x, y] = L[k]; if (Math.abs(x) > HW * 0.97 || Math.abs(y) > HH * 0.97) continue;
+        const [bx, by] = field(s, x, y), m = Math.hypot(bx, by); if (!m) continue;
+        const ux = bx / m, uy = -by / m, px = X(x), py = Y(y);
+        c.beginPath(); c.moveTo(px + 5 * ux, py + 5 * uy); c.lineTo(px - 4 * ux - 3.5 * uy, py - 4 * uy + 3.5 * ux); c.lineTo(px - 4 * ux + 3.5 * uy, py - 4 * uy - 3.5 * ux); c.closePath(); c.fill();
+      }
+    }
+    // The source.
+    const cross = (x: number, y: number, out: boolean) => {
+      c.fillStyle = pal.bg; c.strokeStyle = pal.ink; c.lineWidth = 1.6; c.beginPath(); c.arc(x, y, 7, 0, Math.PI * 2); c.fill(); c.stroke();
+      c.fillStyle = pal.ink;
+      if (out) { c.beginPath(); c.arc(x, y, 2.2, 0, Math.PI * 2); c.fill(); } else { c.beginPath(); c.moveTo(x - 4, y - 4); c.lineTo(x + 4, y + 4); c.moveTo(x + 4, y - 4); c.lineTo(x - 4, y + 4); c.stroke(); }
+    };
+    const outTop = s.I > 0;
+    if (kind === 'wire') cross(X(0), Y(0), s.I > 0);
+    else if (kind === 'loop') {
+      c.strokeStyle = pal.line; c.setLineDash([3, 3]); c.beginPath(); c.moveTo(X(0), Y(SIZE.loopA)); c.lineTo(X(0), Y(-SIZE.loopA)); c.stroke(); c.setLineDash([]);
+      cross(X(0), Y(SIZE.loopA), outTop); cross(X(0), Y(-SIZE.loopA), !outTop);
+    } else if (kind === 'solenoid') {
+      for (let k = 0; k < 11; k++) { const x = -SIZE.solL / 2 + (k * SIZE.solL) / 10; cross(X(x), Y(SIZE.solA), outTop); cross(X(x), Y(-SIZE.solA), !outTop); }
+      const nEnd = s.I > 0 ? 1 : -1;
+      c.fillStyle = pal.ink; c.font = '700 13px system-ui, sans-serif'; c.textAlign = 'center';
+      c.fillText('N', X((nEnd * SIZE.solL) / 2 + nEnd * 0.008), Y(0) + 5); c.fillText('S', X((-nEnd * SIZE.solL) / 2 - nEnd * 0.008), Y(0) + 5);
+    } else {
+      const x0 = X(-SIZE.magL / 2), x1 = X(SIZE.magL / 2), y0 = Y(SIZE.magA), y1 = Y(-SIZE.magA), xm = X(0);
+      const nRight = sign > 0;
+      c.globalAlpha = 0.35;
+      c.fillStyle = nRight ? pal.accent : pal.bad; c.fillRect(x0, y0, xm - x0, y1 - y0);
+      c.fillStyle = nRight ? pal.bad : pal.accent; c.fillRect(xm, y0, x1 - xm, y1 - y0);
+      c.globalAlpha = 1; c.strokeStyle = pal.ink; c.lineWidth = 1.6; c.strokeRect(x0, y0, x1 - x0, y1 - y0);
+      c.fillStyle = pal.ink; c.font = '700 15px system-ui, sans-serif'; c.textAlign = 'center';
+      c.fillText(nRight ? 'S' : 'N', (x0 + xm) / 2, Y(0) + 5); c.fillText(nRight ? 'N' : 'S', (xm + x1) / 2, Y(0) + 5);
+    }
+    // The compass: a ring and a needle along the field, north end in red.
+    const [bx, by] = field(s, compass[0], compass[1]), m = Math.hypot(bx, by), cx = X(compass[0]), cy = Y(compass[1]);
+    c.fillStyle = pal.bg; c.strokeStyle = pal.ink; c.lineWidth = 2; c.beginPath(); c.arc(cx, cy, 17, 0, Math.PI * 2); c.fill(); c.stroke();
+    if (m > 0) {
+      const ux = bx / m, uy = -by / m;
+      c.fillStyle = pal.bad; c.beginPath(); c.moveTo(cx + 14 * ux, cy + 14 * uy); c.lineTo(cx - 3.5 * uy, cy + 3.5 * ux); c.lineTo(cx + 3.5 * uy, cy - 3.5 * ux); c.closePath(); c.fill();
+      c.fillStyle = pal.ink; c.beginPath(); c.moveTo(cx - 14 * ux, cy - 14 * uy); c.lineTo(cx - 3.5 * uy, cy + 3.5 * ux); c.lineTo(cx + 3.5 * uy, cy - 3.5 * ux); c.closePath(); c.fill();
+    }
+    c.fillStyle = pal.ink; c.beginPath(); c.arc(cx, cy, 2, 0, Math.PI * 2); c.fill();
+    canvas.setAttribute('aria-label', `Field lines of a ${kind === 'magnet' ? 'bar magnet' : kind === 'wire' ? 'straight wire' : kind}, compass at ${sg(compass[0] * 100, 2)}, ${sg(compass[1] * 100, 2)} cm`);
+  }
+
+  function readout() {
+    const s = setup(), [bx, by] = field(s, compass[0], compass[1]), B = Math.hypot(bx, by), a = angleDeg(bx, by);
+    q('.mfm-big').textContent = `Needle points ${words(a)} (${Math.round(a)}°)`;
+    const r = Math.hypot(compass[0], compass[1]);
+    const facts = [fact('Field at the compass', kind === 'magnet' ? `${fmtB(B)}` : fmtB(B), kind === 'magnet' ? 'for this model magnet' : `for ${Math.abs(s.I)} A${s.N > 1 ? ` and ${s.N} turns` : ''}`),
+      fact('Compass position', `${sg(compass[0] * 100, 2)} cm, ${sg(compass[1] * 100, 2)} cm`, kind === 'wire' ? `${sg(r * 100, 2)} cm from the wire` : 'from the centre')];
+    q('.mfm-facts').replaceChildren(...facts);
+    const fEl = q('.mfm-formula'); fEl.hidden = level !== 12 || kind === 'magnet';
+    const I = Math.abs(s.I);
+    if (kind === 'wire') fEl.textContent = `B = μ₀ I / (2π r) = 4π × 10⁻⁷ × ${I} / (2π × ${sg(r, 3)} m) = ${fmtB(wireFormula(I, r))}`;
+    else if (kind === 'loop') fEl.textContent = `At the centre: B = μ₀ N I / (2a) = 4π × 10⁻⁷ × ${s.N} × ${I} / (2 × ${SIZE.loopA} m) = ${fmtB(loopCentre(s.N, I, SIZE.loopA))}. Elsewhere the page adds up the field of every bit of the loop (Biot-Savart).`;
+    else if (kind === 'solenoid') fEl.textContent = `Inside a long solenoid: B = μ₀ n I, n = ${s.N} / ${SIZE.solL} m = ${sg(s.N / SIZE.solL)} per m, so B ≈ ${fmtB(solenoidInside(s.N / SIZE.solL, I))}. This one is short and fat, so the exact value in the middle is ${fmtB(Math.hypot(...field(s, 0, 0)))}.`;
+    // The right-hand rule for this setup.
+    const rule = q('.mfm-rule'), r12 = q('.mfm-rule12');
+    const out = s.I > 0;
+    if (kind === 'magnet') { q('.mfm-ruleh').textContent = 'North to south'; rule.textContent = `Outside the magnet the field lines leave the north pole (${sign > 0 ? 'right' : 'left'} end) and go round to the south pole. The north end of a compass needle points along the lines. Lines never cross, and they are closest together near the poles, where the field is strongest.`; }
+    else if (kind === 'wire') { q('.mfm-ruleh').textContent = 'Right-hand thumb rule'; rule.textContent = `Hold the wire in your right hand with your thumb along the current, which now comes ${out ? 'out of the screen (⊙)' : 'into the screen (⊗)'}. Your fingers curl the way the field goes: ${out ? 'anticlockwise' : 'clockwise'} round the wire here. The field lines are circles centred on the wire.`; }
+    else { q('.mfm-ruleh').textContent = 'Right-hand thumb rule for a coil'; rule.textContent = `Curl the fingers of your right hand the way the current goes round the ${kind === 'loop' ? 'loop' : 'turns'} (here ${out ? 'out of the screen on top, ⊙, and into it at the bottom, ⊗' : 'into the screen on top, ⊗, and out of it at the bottom, ⊙'}). Your thumb points along the field through the middle: to the ${out ? 'right' : 'left'}. That end acts like a north pole.`; }
+    r12.hidden = level !== 12;
+    r12.textContent = kind === 'magnet' ? 'Class 12: the page treats the bar magnet as a short, fat solenoid, which has the same field outside. Inside, the lines run from S back to N, so every field line is a closed loop (no magnetic monopoles: Gauss\'s law for magnetism).' : kind === 'wire' ? 'Class 12: Ampère\'s law round a circle of radius r gives B × 2πr = μ₀ I, which is where B = μ₀ I / (2π r) comes from.' : 'Class 12: a current loop is a magnetic dipole of moment m = N I A, pointing along your thumb. Far away its field has the same shape as a bar magnet\'s.';
+    draw();
+  }
+  function turns() {
+    const sel = q<HTMLSelectElement>('.mfm-n');
+    q('.mfm-nonly').hidden = !(kind in TURNS);
+    if (kind in TURNS) sel.replaceChildren(...TURNS[kind].map((n) => { const o = document.createElement('option'); o.value = String(n); o.textContent = String(n); o.selected = n === DEF_N[kind]; return o; }));
+    q('.mfm-ionly').hidden = kind === 'magnet';
+    q('.mfm-rev').textContent = kind === 'magnet' ? 'Flip the magnet' : 'Reverse the current';
+  }
+
+  const toM = (e: PointerEvent): [number, number] => { const b = canvas.getBoundingClientRect(); const x = ((e.clientX - b.left) / b.width) * W, y = ((e.clientY - b.top) / b.height) * H; return [Math.max(-HW, Math.min(HW, (x / W) * 2 * HW - HW)), Math.max(-HH, Math.min(HH, HH - (y / H) * 2 * HH))]; };
+  canvas.addEventListener('pointerdown', (e) => { dragging = true; canvas.setPointerCapture(e.pointerId); compass = toM(e); readout(); e.preventDefault(); });
+  canvas.addEventListener('pointermove', (e) => { if (!dragging) return; compass = toM(e); readout(); });
+  const end = () => { dragging = false; };
+  canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
+  canvas.addEventListener('keydown', (e) => {
+    const d = 0.005, k: Record<string, [number, number]> = { ArrowLeft: [-d, 0], ArrowRight: [d, 0], ArrowUp: [0, d], ArrowDown: [0, -d] };
+    if (!k[e.key]) return; e.preventDefault(); compass = [Math.max(-HW, Math.min(HW, compass[0] + k[e.key][0])), Math.max(-HH, Math.min(HH, compass[1] + k[e.key][1]))]; readout();
+  });
+  canvas.tabIndex = 0;
+
+  const seg = (sel: string, on: (v: string) => void) => q(sel).addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button'); if (!b) return;
+    for (const x of q(sel).querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b));
+    on(b.dataset.v!);
+  });
+  seg('.mfm-level', (v) => { level = +v; readout(); });
+  seg('.mfm-kind', (v) => { kind = v as Kind; sign = 1; turns(); readout(); });
+  q('.mfm-i').addEventListener('input', () => { q('.mfm-iv').textContent = `${(+q<HTMLInputElement>('.mfm-i').value).toFixed(1)} A`; readout(); });
+  q('.mfm-n').addEventListener('change', readout);
+  q('.mfm-rev').addEventListener('click', () => { sign = -sign; readout(); });
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+
+  turns(); readout();
+  quiz(q('.mfm-quiz'), () => questions());
+</script>

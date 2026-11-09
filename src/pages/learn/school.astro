@@ -1,14 +1,26 @@
 ---
 import LearnPage from '../../components/LearnPage.astro';
-const cards = [
-  { name: 'Class 8', text: 'Science and maths.', items: ['Science: force and pressure, light, sound, materials, cells', 'Maths: numbers, algebra, shapes and data'] },
-  { name: 'Class 9', text: 'Science and maths.', items: ['Science: motion, gravitation, atoms and molecules, cells and tissues', 'Maths: number systems, polynomials, geometry, statistics'] },
-  { name: 'Class 10', text: 'Science and maths.', items: ['Science: light and lenses, electricity, chemical reactions, life processes', 'Maths: quadratic equations, trigonometry, probability'] },
-  { name: 'Class 11', text: 'Physics, chemistry, biology and maths.', items: ['Physics: motion, laws of motion, waves, heat', 'Chemistry: atoms, bonding, equilibrium', 'Biology: cells, plants, the human body', 'Maths: functions, sequences, limits'] },
-  { name: 'Class 12', text: 'Physics, chemistry, biology and maths.', items: ['Physics: electric fields, current, optics, atoms', 'Chemistry: solutions, kinetics, electrochemistry', 'Biology: genetics, evolution, ecology', 'Maths: calculus, vectors, probability'] },
-];
+import ToolCard from '../../components/ToolCard.astro';
+import { CLASSES } from '../../data/ncert';
+import { SECTIONS } from '../../site';
+import { allTools } from '../../lib/tools';
+const all = await allTools();
+const live = new Set(all.filter((t) => t.data.status === 'live').map((t) => t.id));
+const cards = CLASSES.map((k) => {
+  const n = new Set(k.subjects.flatMap((s) => s.chapters.flatMap((ch) => ch.tools.filter((id) => live.has(id))))).size;
+  const chapters = k.subjects.reduce((a, s) => a + s.chapters.length, 0);
+  return { name: k.name, href: `/learn/${k.id}/`, live: true, text: `${k.blurb} ${chapters} chapters, ${n} tools so far.`, items: k.subjects.map((s) => `${s.name}${s.book ? ` (${s.book})` : ''}: ${s.chapters.length} chapters`) };
+});
+// The Learn shelf's own tools, by school subject.
+const groups = (SECTIONS.learn ?? []).map((sec) => ({ ...sec, tools: all.filter((t) => t.data.shelf === 'learn' && t.data.status === 'live' && t.data.section === sec.id) })).filter((g) => g.tools.length);
 ---
-<LearnPage title="Learn: Class 8 to 12" description="Interactive science and maths tools for Class 8 to 12, topic by topic, following the NCERT books. Free, in your browser."
-  lead="Tools for each class, topic by topic. Each tool lets you change the numbers and watch what happens, with a level switch so one tool can serve several classes."
-  cardsTitle="Classes" cards={cards}
-  toolsTitle="Already on fibub" tools={['equation-balancer', 'molar-mass-calculator', 'gas-law-calculator', 'decay-calculator', 'wave-calculator', 'uncertainty-calculator']} />
+<LearnPage title="Learn: Class 8 to 12" description="Interactive science and maths tools for Class 8 to 12, chapter by chapter, following the NCERT topics. Free, in your browser."
+  lead="Pick your class to see every chapter with tools to try. Each tool lets you change the numbers and watch what happens, and many have a level switch so one tool serves several classes."
+  cardsTitle="Classes" cards={cards}>
+  {groups.map((g) => (
+    <section id={g.id}>
+      <h2 class="ar-h">{g.name}</h2>
+      <div class="grid">{g.tools.map((t) => <ToolCard tool={t} />)}</div>
+    </section>
+  ))}
+</LearnPage>

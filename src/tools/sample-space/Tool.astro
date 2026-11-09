@@ -1,0 +1,137 @@
+---
+// Sample space builder: two dice, coins or a deck of cards; every outcome shown, the event shaded, P(E) as a fraction,
+// and a simulation whose running frequency settles towards it. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm ss">
+  <div class="ax-card">
+    <h2>Pick an experiment</h2>
+    <div class="ax-seg ss-kind" role="group" aria-label="Experiment">
+      <button type="button" data-k="dice" aria-pressed="true">Two dice</button>
+      <button type="button" data-k="coins" aria-pressed="false">Coins</button>
+      <button type="button" data-k="cards" aria-pressed="false">A deck of cards</button>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Event <select class="ss-ev"></select></label>
+      <label class="ss-krow">Number <input type="number" class="ss-k" step="1" inputmode="numeric" /></label>
+      <label class="ss-crow" hidden>How many coins <select class="ss-n"><option>1</option><option selected>2</option><option>3</option></select></label>
+    </div>
+    <div class="ss-grid" aria-label="All outcomes; the ones in the event are shaded"></div>
+    <p class="ax-big ss-p" aria-live="polite"></p>
+    <p class="sm-f ss-why"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try it many times</h2>
+    <p class="ax-help">The computer does the experiment again and again at random. The share of times the event happens settles near the probability, but it is never exactly the same.</p>
+    <div class="ax-row">
+      <button type="button" class="btn small ss-run" data-n="100">100 times</button>
+      <button type="button" class="btn small ss-run" data-n="1000">1 000 times</button>
+      <button type="button" class="btn small ss-run" data-n="10000">10 000 times</button>
+    </div>
+    <svg class="sm-fig ss-fig" viewBox="0 0 340 200" role="img" aria-label="Running relative frequency against the number of trials" style="margin-top:10px"></svg>
+    <p class="sm-f ss-sim"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Two dice: which sum is most likely? Change the number and watch the shaded diagonal grow and shrink.</li>
+      <li>Coins: with 3 coins, why is "exactly 1 head" three times as likely as "exactly 0 heads"?</li>
+      <li>Run 100 trials a few times. The answers jump about. Now run 10 000: they hardly move.</li>
+      <li>Cards: P(red) + P(not red) = 1. Check it with "not a heart" too.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Fractions like 1/6 are fine. Nothing is saved.</p>
+    <div class="ss-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .ss .ss-grid { display: grid; gap: 3px; margin-top: 12px; font-variant-numeric: tabular-nums; }
+  .ss .ss-grid span { display: grid; place-items: center; min-height: 34px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; background: var(--surface); }
+  .ss .ss-grid span.in { background: var(--accent-soft); border-color: var(--accent); font-weight: 700; }
+  .ss .ss-grid span.red { color: var(--bad); }
+  .ss .ss-grid span.hd { border: 0; background: none; color: var(--muted); font-weight: 700; }
+  .ss .ss-grid.cards span { min-height: 30px; font-size: 11px; overflow: hidden; letter-spacing: -0.3px; }
+  .ss svg .ss-line { fill: none; stroke: var(--accent); stroke-width: 2; }
+  .ss svg .ss-true { stroke: var(--good); stroke-width: 1.5; stroke-dasharray: 6 4; }
+</style>
+
+<script>
+  import { space, EVENTS, probability, simulate, rng, SUITS, RANKS } from '../../lib/sci/sample-school';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.ss')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const ev = q<HTMLSelectElement>('.ss-ev'), K = q<HTMLInputElement>('.ss-k'), Nc = q<HTMLSelectElement>('.ss-n');
+  let kind: 'dice' | 'coins' | 'cards' = 'dice', seed = 1;
+
+  function fillEvents() {
+    ev.replaceChildren(...EVENTS[kind].map((e) => new Option(e.text(e.k ? e.k[2] : 0).replace(/\d+/, 'k').replace(/^(\w)/, (c) => c.toUpperCase()), e.id)));
+    const e = EVENTS[kind][0]; if (e.k) K.value = String(e.k[2]);
+    q('.ss-crow').hidden = kind !== 'coins';
+  }
+  const cur = () => EVENTS[kind].find((e) => e.id === ev.value)!;
+  function kval() { const e = cur(); if (!e.k) return 0; const v = Math.round(Number(K.value)); const max = kind === 'coins' ? Number(Nc.value) : e.k[1]; return Number.isFinite(v) ? Math.max(e.k[0], Math.min(max, v)) : e.k[2]; }
+
+  function draw() {
+    const e = cur(), k = kval(), outs = space(kind, Number(Nc.value)), test = (v: number[]) => e.test(v, k);
+    q('.ss-krow').hidden = !e.k;
+    if (e.k) { K.min = String(e.k[0]); K.max = String(kind === 'coins' ? Nc.value : e.k[1]); }
+    const g = q('.ss-grid'); g.replaceChildren(); g.className = 'ss-grid' + (kind === 'cards' ? ' cards' : '');
+    const cell = (t: string, cls = '') => { const s = document.createElement('span'); s.textContent = t; if (cls) s.className = cls; g.append(s); };
+    if (kind === 'dice') {
+      g.style.gridTemplateColumns = 'repeat(7, 1fr)'; cell('', 'hd'); for (let j = 1; j <= 6; j++) cell(String(j), 'hd');
+      for (let i = 1; i <= 6; i++) { cell(String(i), 'hd'); for (let j = 1; j <= 6; j++) cell(`${i},${j}`, test([i, j]) ? 'in' : ''); }
+    } else if (kind === 'coins') {
+      g.style.gridTemplateColumns = `repeat(${Math.min(4, outs.length)}, 1fr)`; for (const o of outs) cell(o.label, test(o.v) ? 'in' : '');
+    } else {
+      g.style.gridTemplateColumns = 'repeat(13, minmax(0, 1fr))';
+      for (let s = 0; s < 4; s++) for (let r = 1; r <= 13; r++) cell(`${RANKS[r - 1]}${SUITS[s]}`, [test([r, s]) ? 'in' : '', s === 1 || s === 2 ? 'red' : ''].filter(Boolean).join(' '));
+    }
+    const P = probability(outs, test);
+    q('.ss-p').textContent = `P(${e.text(k)}) = ${P.fav}/${P.n}${P.text !== `${P.fav}/${P.n}` ? ` = ${P.text}` : ''} ≈ ${fmt(P.p, 4)}`;
+    q('.ss-why').textContent = `There are ${P.n} equally likely outcomes and ${P.fav} of them are in the event (shaded). Probability = favourable / total. ${P.fav === 0 ? 'None fit, so the event is impossible.' : P.fav === P.n ? 'All fit, so the event is certain.' : `The chance it does not happen is 1 − ${P.text} = ${P.n - P.fav}/${P.n}.`}`;
+    q('.ss-fig').replaceChildren(); q('.ss-sim').textContent = 'Press a button to run the experiment.';
+  }
+
+  function run(trials: number) {
+    const e = cur(), k = kval(), outs = space(kind, Number(Nc.value)), P = probability(outs, (v) => e.test(v, k));
+    const r = simulate(outs, (v) => e.test(v, k), trials, rng(Date.now() + seed++));
+    const svg = q<SVGSVGElement>('.ss-fig'); svg.replaceChildren();
+    const L = 36, R = 330, T = 10, B = 175, X = (n: number) => L + (Math.log10(n) / Math.log10(trials)) * (R - L), Y = (p: number) => B - p * (B - T);
+    S('line', { x1: L, x2: R, y1: B, y2: B, class: 'sm-axis' }, svg); S('line', { x1: L, x2: L, y1: T, y2: B, class: 'sm-axis' }, svg);
+    for (const p of [0, 0.5, 1]) S('text', { x: L - 4, y: Y(p) + 4, 'text-anchor': 'end', class: 'sm-tick' }, svg, fmt(p));
+    for (let n = 1; n <= trials; n *= 10) S('text', { x: X(n), y: B + 15, 'text-anchor': 'middle', class: 'sm-tick' }, svg, n.toLocaleString('en'));
+    S('line', { x1: L, x2: R, y1: Y(P.p), y2: Y(P.p), class: 'ss-true' }, svg);
+    S('polyline', { points: r.path.map(([n, f]) => `${X(n).toFixed(1)},${Y(f).toFixed(1)}`).join(' '), class: 'ss-line ss-path' }, svg);
+    q('.ss-sim').textContent = `The event happened ${r.hits.toLocaleString('en')} times in ${trials.toLocaleString('en')} tries: a relative frequency of ${fmt(r.freq, 4)}. The probability is ${fmt(P.p, 4)} (dashed line); the difference is ${fmt(Math.abs(r.freq - P.p), 4)}.`;
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.ss-kind button').forEach((b) => b.addEventListener('click', () => {
+    kind = b.dataset.k as typeof kind; root.querySelectorAll('.ss-kind button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); fillEvents(); draw();
+  }));
+  ev.addEventListener('change', () => { const e = cur(); if (e.k) K.value = String(Math.min(e.k[2], kind === 'coins' ? Number(Nc.value) : e.k[1])); draw(); });
+  K.addEventListener('input', draw); Nc.addEventListener('change', draw);
+  root.querySelectorAll<HTMLButtonElement>('.ss-run').forEach((b) => b.addEventListener('click', () => run(Number(b.dataset.n))));
+  fillEvents(); draw();
+
+  quiz(q('.ss-quiz'), () => {
+    const out: Question[] = [];
+    const s = randInt(2, 12), D = space('dice'), p1 = probability(D, (v) => v[0] + v[1] === s);
+    out.push({ q: `Two dice are thrown. What is the probability that the sum is ${s}?`, want: [p1.p], tol: 0.002, hint: 'a fraction', work: `${p1.fav} of the 36 outcomes add to ${s}, so P = ${p1.fav}/36${p1.text !== `${p1.fav}/36` ? ` = ${p1.text}` : ''}.` });
+    const n = randInt(2, 3), h = randInt(0, n), C = space('coins', n), p2 = probability(C, (v) => v.reduce((a, b) => a + b, 0) === h);
+    out.push({ q: `${n} coins are tossed. What is the probability of exactly ${h} head${h === 1 ? '' : 's'}?`, want: [p2.p], tol: 0.002, hint: 'a fraction', work: `${C.length} outcomes (${C.map((o) => o.label).join(', ')}); ${p2.fav} have exactly ${h} head${h === 1 ? '' : 's'}, so P = ${p2.fav}/${C.length}${p2.text !== `${p2.fav}/${C.length}` ? ` = ${p2.text}` : ''}.` });
+    const e3 = EVENTS.cards[randInt(0, EVENTS.cards.length - 1)], p3 = probability(space('cards'), (v) => e3.test(v, 0));
+    out.push({ q: `One card is drawn from a well-shuffled deck of 52. What is the probability of ${e3.text(0)}?`, want: [p3.p], tol: 0.002, hint: 'a fraction', work: `${p3.fav} of the 52 cards fit, so P = ${p3.fav}/52 = ${p3.text}.` });
+    const pp = [[1, 4], [2, 5], [3, 8], [5, 12], [7, 10]][randInt(0, 4)];
+    out.push({ q: `The probability that it rains tomorrow is ${pp[0]}/${pp[1]}. What is the probability that it does not rain?`, want: [1 - pp[0] / pp[1]], tol: 0.002, hint: 'a fraction', work: `P(not E) = 1 − P(E) = 1 − ${pp[0]}/${pp[1]} = ${pp[1] - pp[0]}/${pp[1]}.` });
+    return out;
+  });
+</script>

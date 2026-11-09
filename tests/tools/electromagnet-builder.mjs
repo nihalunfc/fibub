@@ -1,0 +1,30 @@
+// #1049 Electromagnet builder
+export const path = '/learn/electromagnet-builder/';
+export default async ({ page, check, BASE }) => {
+  await page.goto(`${BASE}/learn/electromagnet-builder/`); await page.waitForTimeout(600);
+  const R = '.emb ', txt = (s) => page.textContent(R + s);
+  check((await txt('.emb-big')) === 'Picks up 5 paper clips' && (await txt('.emb-facts')).includes('Current1.20 A') && (await txt('.emb-facts')).includes('47 mT') && (await txt('.emb-facts')).includes('right end'), `em: example (${await txt('.emb-facts')})`);
+  const snap = () => page.$eval(R + '.emb-fig', (c) => c.toDataURL());
+  const s0 = await snap();
+  check(s0.length > 3000, 'em: picture drawn');
+  await page.uncheck(R + '.emb-core');
+  check((await txt('.emb-big')) === 'Picks up 0 paper clips' && (await txt('.emb-facts')).includes('470 µT') && (await txt('.emb-text')).startsWith('Without the iron nail'), 'em: no core, no clips');
+  await page.check(R + '.emb-core');
+  await page.click(R + '.emb-cells [data-v="4"]'); await page.$eval(R + '.emb-n', (e) => { e.value = '100'; e.dispatchEvent(new Event('input', { bubbles: true })); });
+  check((await txt('.emb-big')) === 'Picks up 13 paper clips' && (await txt('.emb-facts')).includes('1.33 A') && (await txt('.emb-nv')) === '100', `em: 4 cells, 100 turns (${await txt('.emb-big')})`);
+  await page.click(R + '.emb-cells [data-v="2"]');
+  check((await txt('.emb-big')) === 'Picks up 8 paper clips' && (await txt('.emb-facts')).includes('0.857 A'), 'em: more turns on 2 cells');
+  await page.click(R + '.emb-rev');
+  check((await txt('.emb-big')) === 'Picks up 8 paper clips' && (await txt('.emb-facts')).includes('left end'), 'em: reversed cells swap the poles');
+  await page.click(R + '.emb-sw');
+  check((await txt('.emb-big')).startsWith('Switched off') && (await txt('.emb-sw')) === 'Switch on' && (await txt('.emb-facts')).includes('North pole–'), 'em: switched off');
+  await page.click(R + '.emb-sw'); await page.click(R + '.emb-rev');
+  check(await page.isHidden(R + '.emb-f10'), 'em: Class 10 line hidden at Class 8');
+  await page.click(R + '.emb-level [data-v="10"]');
+  check((await txt('.emb-f10')).includes('n = 100 / 0.08 m = 1250 turns per metre') && (await txt('.emb-f10')).includes('by 100 in this model'), `em: Class 10 formula (${await txt('.emb-f10')})`);
+  await page.click(R + '.emb-level [data-v="8"]');
+  check((await page.$$(R + '.eq-q')).length === 3, 'em: three practice questions');
+  const q1 = await page.textContent(R + '.eq-q:nth-child(1) p'), [N1, c1, N2] = q1.match(/with (\d+) turns picks up (\d+) paper clips.*?would (\d+) turns/).slice(1).map(Number);
+  await page.fill(R + '.eq-q:nth-child(1) .eq-in', String((c1 * N2) / N1)); await page.click(R + '.eq-q:nth-child(1) .eq-go');
+  check((await page.textContent(R + '.eq-q:nth-child(1) .eq-res')).startsWith('Right'), 'em: right answer accepted');
+};

@@ -11,6 +11,7 @@ import { allTools, toolComponent, toolUrl, relatedTools, bySubject, toolPlace } 
 import { ICONS } from '../../lib/icons';
 import { toolSeoTitle, toolDescription, toolLd } from '../../lib/seo';
 import { SHELVES, SUBJECTS } from '../../site';
+import { chaptersFor } from '../../data/ncert';
 // Two kinds of page share this address pattern: a tool (/science/sky-tonight/) and, on shelves with
 // subjects, a subject (/science/physics/). The build fails if a tool id is also a subject id.
 export async function getStaticPaths() {
@@ -28,6 +29,9 @@ const ToolUI = tool ? toolComponent(tool.id) : null;
 const Content = tool ? (await render(tool)).Content : null;
 const updated = tool?.data.updated.toISOString().slice(0, 10);
 const changes = tool ? changesFor(tool.id) : [];
+// School chapters (Learn > Class 8 to 12) that use this tool.
+const syllabus = tool ? chaptersFor(tool.id) : [];
+const secHref = (sh: string, sj: any, sec: any) => sh === 'learn' ? `/learn/school/#${sec.id}` : sj ? `/${sh}/${sj.id}/#${sec.id}` : `/${sh}/#${sec.id}`;
 const everyTool = tool ? await allTools() : [];
 // Hub tools (the plot maker, sample size) relate to dozens of others. Every one stays linked, but past
 // the first CARDS as plain links, so the page stays light.
@@ -35,7 +39,7 @@ const CARDS = 12;
 ---
 {subjectPage ? <SubjectPage shelf={subjectPage.shelf} subject={subjectPage.subject} /> : (
 <Base title={tool.data.title} docTitle={toolSeoTitle(tool)} description={toolDescription(tool)} ld={toolLd(tool)} shelf={shelf.id} tool={tool.id} image={`/og/${tool.id}.png`}>
-  <div class="crumbs"><a href="/">Home</a> / <a href={`/${shelf.id}/`}>{shelf.name}</a>{subject && <> / <a href={`/${shelf.id}/${subject.id}/`}>{subject.name}</a></>}{section && <> / <a href={subject ? `/${shelf.id}/${subject.id}/#${section.id}` : `/${shelf.id}/#${section.id}`}>{section.name}</a></>} / {tool.data.name}{tool.data.num && <span class="tool-num" title="This tool's number. Use it when you tell us about the tool.">Tool #{tool.data.num}</span>}</div>
+  <div class="crumbs"><a href="/">Home</a> / <a href={`/${shelf.id}/`}>{shelf.name}</a>{subject && <> / <a href={`/${shelf.id}/${subject.id}/`}>{subject.name}</a></>}{section && <> / <a href={secHref(shelf.id, subject, section)}>{section.name}</a></>} / {tool.data.name}{tool.data.num && <span class="tool-num" title="This tool's number. Use it when you tell us about the tool.">Tool #{tool.data.num}</span>}</div>
   <h1>{tool.data.title}</h1>
   <p class="page-views tool-counts" data-counter hidden title="How many times this tool's page has been opened, counted as a running total. Nothing about you is kept."><b data-count="v"></b>{' '}<span data-one="view" data-many="views">views</span></p>
   <p class="lead">{tool.data.summary}</p>
@@ -59,6 +63,12 @@ const CARDS = 12;
     <nav class="also" aria-label="Works well with">
       <span>Works well with</span>
       {related.direct.slice(0, CARDS).map((t) => <a href={toolUrl(t)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS[t.data.icon]} />{t.data.name}</a>)}
+    </nav>
+  )}
+  {syllabus.length > 0 && (
+    <nav class="also" aria-label="In the school syllabus">
+      <span>In the school syllabus</span>
+      {syllabus.slice(0, 8).map((x) => <a href={`/learn/${x.cls.id}/#${x.subject.id}-${x.chapter.n}`}>{`${x.cls.name} ${x.subject.name}, chapter ${x.chapter.n}: ${x.chapter.title}`}</a>)}
     </nav>
   )}
   <article class="prose">

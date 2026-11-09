@@ -1,0 +1,32 @@
+// #1046 Phasor diagram and LCR circuit
+export const path = '/learn/lcr-phasors/';
+export default async ({ page, check, BASE }) => {
+  await page.goto(`${BASE}/learn/lcr-phasors/`); await page.waitForTimeout(700);
+  const R = '.lcp ', txt = (s) => page.textContent(R + s);
+  const setR = (s, v) => page.$eval(R + s, (e, v) => { e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true })); }, v);
+  check((await txt('.lcp-fv')) === '50 Hz' && (await txt('.lcp-big')) === 'I = 34.8 mA rms, leading the voltage by 86°', `lcr: example current and phase (${await txt('.lcp-big')})`);
+  check((await txt('.lcp-formula')) === 'Z = √(R² + (X_L − X_C)²) = √(20² + (31.4 − 318)²) = 288 Ω, so I = V / Z = 10 / 288 = 34.8 mA', `lcr: formula (${await txt('.lcp-formula')})`);
+  const f = await txt('.lcp-facts');
+  check(f.includes('Power factor cos φ0.0695capacitive') && f.includes('24.2 mW') && f.includes('Peak current49.2 mA'), `lcr: facts (${f})`);
+  check((await txt('.lcp-qtext')).includes('f₀ = 1/(2π√(LC)) = 159 Hz') && (await txt('.lcp-qtext')).includes('Q factor = (1/R)√(L/C) = 5;') && (await txt('.lcp-qtext')).includes('from 144 to 176 Hz (bandwidth 31.8 Hz'), `lcr: resonance text (${await txt('.lcp-qtext')})`);
+  const inked = (s) => page.$eval(R + s, (c) => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - d[0]) > 60) n++; return n; });
+  check((await inked('.lcp-fig')) > 300 && (await inked('.lcp-curve')) > 300, 'lcr: phasors and curve drawn');
+  await page.click(R + '.lcp-res'); await page.waitForTimeout(100);
+  check((await txt('.lcp-big')) === 'I = 500 mA rms, in step with the voltage (resonance)' && (await txt('.lcp-facts')).includes('Power factor cos φ1resonance') && (await txt('.lcp-facts')).includes('10, 50, 50 V'), `lcr: resonance (${await txt('.lcp-big')})`);
+  await setR('.lcp-r', 5); await page.waitForTimeout(100);
+  check((await txt('.lcp-big')).startsWith('I = 2 A rms, in step') && (await txt('.lcp-qtext')).includes('Q factor = (1/R)√(L/C) = 20;'), `lcr: smaller R, higher Q (${await txt('.lcp-big')})`);
+  await setR('.lcp-f', 1000); await page.waitForTimeout(100);
+  check((await txt('.lcp-fv')) === '1000 Hz' && (await txt('.lcp-big')).includes('lagging') && (await txt('.lcp-facts')).includes('inductive'), 'lcr: high frequency is inductive');
+  await setR('.lcp-l', 200); await setR('.lcp-c', 50); await page.waitForTimeout(100);
+  check((await txt('.lcp-lv')) === '200 mH' && (await txt('.lcp-cv')) === '50 µF' && (await txt('.lcp-qtext')).includes('= 50.3 Hz'), `lcr: L and C sliders (${await txt('.lcp-qtext')})`);
+  await page.selectOption(R + '.lcp-v', '230'); await page.click(R + '.lcp-res'); await page.waitForTimeout(100);
+  check((await txt('.lcp-big')) === 'I = 46 A rms, in step with the voltage (resonance)', `lcr: 230 V supply (${await txt('.lcp-big')})`);
+  await page.click(R + '.lcp-play');
+  const t = await txt('.lcp-play');
+  await page.click(R + '.lcp-play');
+  check(t !== (await txt('.lcp-play')) && ['Play', 'Pause'].includes(t), 'lcr: pause and play');
+  check((await page.$$(R + '.eq-q')).length === 4, 'lcr: four practice questions');
+  const q1 = await page.textContent(R + '.eq-q:nth-child(1) p'), [mH, fr] = q1.match(/a ([\d.]+) mH inductor at ([\d.]+) Hz/).slice(1).map(Number);
+  await page.fill(R + '.eq-q:nth-child(1) .eq-in', String(2 * Math.PI * fr * mH / 1000)); await page.click(R + '.eq-q:nth-child(1) .eq-go');
+  check((await page.textContent(R + '.eq-q:nth-child(1) .eq-res')).startsWith('Right'), 'lcr: right answer accepted');
+};

@@ -1,0 +1,202 @@
+---
+// Optical instruments for school: magnifying glass, compound microscope and refracting telescope, in normal
+// adjustment (final image at infinity) or with the final image at the near point. Rays drawn to scale along the
+// axis (heights are stretched so they can be seen). Maths in src/lib/sci/school-optics.ts.
+import '../../styles/astro.css';
+---
+<div class="ax mst">
+  <div class="ax-card">
+    <div class="ax-seg mst-inst" role="group" aria-label="Instrument">
+      <button type="button" data-k="simple" aria-pressed="false">Magnifying glass</button><button type="button" data-k="micro" aria-pressed="true">Compound microscope</button><button type="button" data-k="tele" aria-pressed="false">Telescope</button>
+    </div>
+    <div class="ax-seg mst-mode" role="group" aria-label="Final image" style="margin-top:8px">
+      <button type="button" data-m="relaxed" aria-pressed="true">Image at infinity (relaxed eye)</button><button type="button" data-m="near" aria-pressed="false">Image at near point (25 cm)</button>
+    </div>
+    <canvas class="ax-fig mst-fig" aria-label="Ray diagram of the instrument"></canvas>
+    <div class="ax-grid">
+      <label class="mst-s">Lens focal length f: <b class="mst-fv"></b><input class="mst-f" type="range" min="2" max="20" step="0.5" value="5" /></label>
+      <label class="mst-m mst-t">Objective focal length f<sub>o</sub>: <b class="mst-fov"></b><input class="mst-fo" type="range" min="0.5" max="3" step="0.1" value="1" /></label>
+      <label class="mst-m mst-t">Eyepiece focal length f<sub>e</sub>: <b class="mst-fev"></b><input class="mst-fe" type="range" min="1" max="10" step="0.5" value="5" /></label>
+      <label class="mst-m">Distance between the lenses L: <b class="mst-Lv"></b><input class="mst-L" type="range" min="8" max="30" step="0.5" value="20" /></label>
+    </div>
+    <p class="ax-help">Near point D = 25 cm (the closest a normal eye sees clearly). Lengths along the axis are to scale; heights are stretched so the small object and its images can be seen.</p>
+    <p class="ax-err mst-err" hidden></p>
+  </div>
+
+  <div class="ax-card mst-out">
+    <p class="ax-big mst-big"></p>
+    <dl class="ax-facts mst-facts"></dl>
+    <pre class="mst-formula"></pre>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="mst-try">
+      <li>Magnifying glass: a shorter focal length magnifies more. Putting the image at the near point gives one extra "×1" but tires the eye.</li>
+      <li>Microscope: make the objective's focal length smaller and watch the total magnification jump. The object sits just outside the objective's focus.</li>
+      <li>Telescope: a long objective and a short eyepiece give a big magnification, and the tube gets as long as f<sub>o</sub> + f<sub>e</sub>.</li>
+      <li>A minus sign means the final image is upside down. That is fine for stars, not for birds, which is why binoculars add prisms.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh numbers each time. Give magnifications with their sign. Nothing is saved.</p>
+    <div class="mst-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .mst input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; }
+  .mst .ax-seg button { min-height: 40px; }
+  .mst-fig { border: 1px solid var(--line); margin: 8px auto 4px; max-width: 640px; }
+  .mst-formula { font: 15px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; margin: 12px 0 0; padding: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
+  .mst-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+</style>
+
+<script>
+  import { simpleMicroscope, compoundMicroscope, telescope, NEAR_POINT } from '../../lib/sci/school-optics';
+  import { paint, type Figure, type Palette } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+  import { mountQuiz, pick, show, type Question } from '../../lib/school-quiz';
+
+  const root = document.querySelector<HTMLElement>('.mst')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const st = { inst: 'micro', mode: 'relaxed' as 'relaxed' | 'near' };
+  const val = (c: string) => Number(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const s3 = (x: number) => sig(x, 3).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+  const cm = (x: number) => `${s3(x)} cm`;
+  const times = (m: number) => `${s3(m)}×`;
+  type P = [number, number];
+
+  /** A drawing of lenses on an axis: world x in cm, heights in px (stretched). */
+  function scene(xs: { lens: number[]; f: number[] }, span: [number, number], paintRays: (ctx: CanvasRenderingContext2D, X: (x: number) => number, Y0: number, pal: Palette) => void, alt: string): Figure {
+    const W = 440, H = 240;
+    return { w: W, h: H, alt, draw: (ctx, w, h, pal) => {
+      const s = (W - 30) / (span[1] - span[0]), X = (x: number) => 15 + (x - span[0]) * s, Y0 = H / 2;
+      ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+      ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, Y0); ctx.lineTo(W, Y0); ctx.stroke();
+      xs.lens.forEach((x, k) => {
+        const px = X(x);
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(px, Y0, 5, H * 0.38, 0, 0, 2 * Math.PI); ctx.globalAlpha = 0.15; ctx.fillStyle = pal.accent; ctx.fill(); ctx.globalAlpha = 1; ctx.stroke();
+        ctx.fillStyle = pal.ink; ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText(xs.lens.length === 1 ? 'lens' : k === 0 ? 'objective' : 'eyepiece', px, Y0 + H * 0.38 + 4);
+        for (const sgn of [-1, 1]) { const fx = X(x + sgn * xs.f[k]); if (fx > 2 && fx < W - 2) { ctx.fillRect(fx - 1, Y0 - 3, 2, 6); ctx.font = '11px system-ui, sans-serif'; ctx.fillText(k === 0 && xs.lens.length > 1 ? 'Fo' : xs.lens.length > 1 ? 'Fe' : 'F', fx, Y0 + 5); } }
+      });
+      paintRays(ctx, X, Y0, pal);
+      ctx.restore();
+    } };
+  }
+  const line = (ctx: CanvasRenderingContext2D, a: P, b: P, dash = false) => { ctx.setLineDash(dash ? [5, 4] : []); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); ctx.setLineDash([]); };
+  const far = (a: P, d: P): P => { const n = Math.hypot(d[0], d[1]) || 1; return [a[0] + (d[0] / n) * 2000, a[1] + (d[1] / n) * 2000]; };
+  const arrow = (ctx: CanvasRenderingContext2D, x: number, Y0: number, y: number, colour: string, dash: boolean, label: string) => {
+    ctx.strokeStyle = colour; ctx.fillStyle = colour; ctx.lineWidth = 2.5; line(ctx, [x, Y0], [x, y], dash);
+    const up = y < Y0 ? 1 : -1; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 5, y + 8 * up); ctx.lineTo(x + 5, y + 8 * up); ctx.closePath(); ctx.fill();
+    ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = up > 0 ? 'bottom' : 'top'; ctx.fillText(label, Math.max(30, Math.min(410, x)), y - 3 * up);
+  };
+  /** Rays leaving the eyepiece at `e` (px x) from the image tip `T` at px (in front of it): parallel (relaxed) or from the final image F. */
+  const emerge = (ctx: CanvasRenderingContext2D, hit: P, T: P, ePx: number, Y0: number, Fimg: P | null) => {
+    if (!Fimg) { line(ctx, hit, far(hit, [ePx - T[0], Y0 - T[1]])); return; }
+    line(ctx, hit, far(hit, [hit[0] - Fimg[0], hit[1] - Fimg[1]])); ctx.globalAlpha = 0.6; line(ctx, hit, Fimg, true); ctx.globalAlpha = 1;
+  };
+
+  let fig: Figure;
+  function draw() {
+    const { inst, mode } = st, err = q('.mst-err');
+    root.querySelectorAll<HTMLButtonElement>('.mst-inst button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.k === inst)));
+    root.querySelectorAll<HTMLButtonElement>('.mst-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === mode)));
+    root.querySelectorAll<HTMLElement>('.mst-s').forEach((e) => (e.hidden = inst !== 'simple'));
+    root.querySelectorAll<HTMLElement>('.mst-m, .mst-t').forEach((e) => (e.hidden = inst === 'simple' || (inst === 'tele' && !e.classList.contains('mst-t'))));
+    // Telescope ranges differ from the microscope's.
+    const fo = q<HTMLInputElement>('.mst-fo');
+    if (inst === 'tele' && fo.max !== '200') { fo.min = '20'; fo.max = '200'; fo.step = '5'; fo.value = '100'; }
+    if (inst === 'micro' && fo.max !== '3') { fo.min = '0.5'; fo.max = '3'; fo.step = '0.1'; fo.value = '1'; }
+    const f = val('.mst-f'), Fo = val('.mst-fo'), Fe = val('.mst-fe'), L = val('.mst-L'), D = NEAR_POINT;
+    q('.mst-fv').textContent = cm(f); q('.mst-fov').textContent = cm(Fo); q('.mst-fev').textContent = cm(Fe); q('.mst-Lv').textContent = cm(L);
+    err.hidden = true;
+    const facts: HTMLElement[] = [], lines: string[] = [];
+    if (inst === 'simple') {
+      const m = simpleMicroscope(f), M = mode === 'relaxed' ? m.relaxed : m.near, u = mode === 'relaxed' ? f : (D * f) / (D + f);
+      q('.mst-big').textContent = `Magnification ${times(M)}`;
+      facts.push(fact('Object distance', cm(u), mode === 'relaxed' ? 'at the focus' : 'just inside the focus'), fact('Angular magnification', times(M)));
+      lines.push(mode === 'relaxed' ? `M = D/f = ${D}/${sig(f, 3)} = ${sig(M, 3)}` : `M = 1 + D/f = 1 + ${D}/${sig(f, 3)} = ${sig(M, 3)}`);
+      const h = 30, Fimg: P | null = mode === 'near' ? [-D, h * (D / u)] : null;
+      fig = scene({ lens: [0], f: [f] }, [-Math.max(1.6 * f, mode === 'near' ? 0.6 * D : 0), 1.8 * f], (ctx, X, Y0, pal) => {
+        const O: P = [X(-u), Y0 - h], C: P = [X(0), Y0];
+        ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.6;
+        const hits: P[] = [[X(0), Y0 - h], C];
+        const FI: P | null = Fimg ? [X(Fimg[0]), Y0 - Fimg[1]] : null;
+        for (const H1 of hits) { line(ctx, O, H1); if (FI) emerge(ctx, H1, FI, X(0), Y0, FI); else line(ctx, H1, far(H1, H1 === C ? [C[0] - O[0], C[1] - O[1]] : [X(f) - H1[0], Y0 - H1[1]])); }
+        arrow(ctx, X(-u), Y0, Y0 - h, pal.ink, false, 'object');
+        if (FI) arrow(ctx, FI[0], Y0, FI[1], pal.accent, true, 'image (25 cm)'); else { ctx.fillStyle = pal.accent; ctx.textAlign = 'right'; ctx.textBaseline = 'top'; ctx.fillText('rays parallel: image at infinity', 432, 8); }
+      }, 'Magnifying glass ray diagram');
+    } else if (inst === 'micro') {
+      const c = compoundMicroscope(Fo, Fe, L, mode);
+      if (!c) { err.textContent = `The lenses are too close: the objective's image must form beyond its focus and before the eyepiece. Make L bigger than f_o + ${mode === 'relaxed' ? 'f_e' : 'the eyepiece object distance'}.`; err.hidden = false; q('.mst-out').hidden = true; paint(q('.mst-fig'), scene({ lens: [0, L], f: [Fo, Fe] }, [-2, L + 2], () => {}, 'Microscope')); return; }
+      q('.mst-out').hidden = false;
+      q('.mst-big').textContent = `Total magnification ${times(c.m)}`;
+      facts.push(fact('Object distance from objective', cm(c.uo), `just outside f_o = ${cm(Fo)}`), fact('First image from objective', cm(c.vo), 'real and inverted'), fact('Objective magnification', times(c.mo), 'm_o = −v_o/u_o'), fact('Eyepiece magnification', times(c.me), mode === 'relaxed' ? 'D/f_e' : '1 + D/f_e'), fact('Total', times(c.m), 'm_o × m_e: inverted'));
+      lines.push(`Eyepiece: u_e = ${mode === 'relaxed' ? `f_e = ${sig(Fe, 3)}` : `D f_e/(D + f_e) = ${sig(c.ue, 3)}`} cm, so v_o = L − u_e = ${sig(c.vo, 3)} cm`, `Objective: 1/u_o = 1/f_o − 1/v_o → u_o = ${sig(c.uo, 4)} cm`, `m_o = −v_o/u_o = ${sig(c.mo, 3)};  m_e = ${mode === 'relaxed' ? 'D/f_e' : '1 + D/f_e'} = ${sig(c.me, 3)}`, `M = m_o × m_e = ${sig(c.m, 3)}`);
+      const h0 = 70 / Math.abs(c.mo), hi = c.mo * h0;  // px heights
+      const Fimg: P | null = mode === 'near' ? [L - D, hi * c.me] : null;
+      fig = scene({ lens: [0, L], f: [Fo, Fe] }, [-Math.max(2.5, c.uo * 1.6), L + Math.max(4, Fe * 1.2)], (ctx, X, Y0, pal) => {
+        const O: P = [X(-c.uo), Y0 - h0], T: P = [X(c.vo), Y0 - hi], E = X(L);
+        const FI: P | null = Fimg ? [X(Fimg[0]), Y0 - Fimg[1]] : null;
+        ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.6;
+        for (const H1 of [[X(0), Y0 - h0], [X(0), Y0]] as P[]) {
+          line(ctx, O, H1);
+          const d: P = [T[0] - H1[0], T[1] - H1[1]], t = (E - H1[0]) / d[0], hit: P = [E, H1[1] + d[1] * t];
+          line(ctx, H1, hit); emerge(ctx, hit, T, E, Y0, FI);
+        }
+        arrow(ctx, X(-c.uo), Y0, Y0 - h0, pal.ink, false, 'object');
+        arrow(ctx, T[0], Y0, T[1], pal.bad, false, 'first image');
+        if (FI && FI[0] > 0) arrow(ctx, FI[0], Y0, Math.max(-20, Math.min(260, FI[1])), pal.accent, true, 'final image');
+        ctx.fillStyle = pal.accent; ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+        ctx.fillText(FI ? (FI[0] > 0 ? 'final image 25 cm from the eyepiece' : '← final image 25 cm from the eyepiece, off the picture') : 'rays leave parallel: final image at infinity', 432, 6);
+      }, 'Compound microscope ray diagram');
+    } else {
+      const t = telescope(Fo, Fe, mode), ue = mode === 'relaxed' ? Fe : (D * Fe) / (D + Fe);
+      q('.mst-out').hidden = false;
+      q('.mst-big').textContent = `Magnification ${times(t.m)}, tube ${cm(t.length)} long`;
+      facts.push(fact('Angular magnification', times(t.m), 'minus: the image is upside down'), fact('Length of the tube', cm(t.length), mode === 'relaxed' ? 'f_o + f_e' : 'f_o + u_e'));
+      lines.push(mode === 'relaxed' ? `M = −f_o/f_e = −${sig(Fo, 3)}/${sig(Fe, 3)} = ${sig(t.m, 3)}` : `M = −(f_o/f_e)(1 + f_e/D) = −(${sig(Fo, 3)}/${sig(Fe, 3)})(1 + ${sig(Fe, 3)}/${D}) = ${sig(t.m, 3)}`, mode === 'relaxed' ? `L = f_o + f_e = ${sig(t.length, 3)} cm` : `u_e = D f_e/(D + f_e) = ${sig(ue, 3)} cm, L = f_o + u_e = ${sig(t.length, 3)} cm`);
+      const span: [number, number] = [-0.12 * Fo, Fo + ue + Math.max(0.25 * Fo, 3 * Fe)];
+      fig = scene({ lens: [0, Fo + ue], f: [Fo, Fe] }, span, (ctx, X, Y0, pal) => {
+        const s = (X(1) - X(0)), hi = -34, slope = -hi / (Fo * s);  // rays from a distant star arrive at a small angle
+        const T: P = [X(Fo), Y0 - hi], E = X(Fo + ue);
+        const FI: P | null = mode === 'near' ? [X(Fo + ue - D), Y0 - hi * (D / ue)] : null;
+        ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.6;
+        for (const y of [-40, 0, 40]) {
+          const H1: P = [X(0), Y0 - y], start: P = [X(span[0]), H1[1] - slope * (X(0) - X(span[0]))];
+          line(ctx, start, H1);
+          const d: P = [T[0] - H1[0], T[1] - H1[1]], t = (E - H1[0]) / d[0], hit: P = [E, H1[1] + d[1] * t];
+          line(ctx, H1, hit); emerge(ctx, hit, T, E, Y0, FI);
+        }
+        arrow(ctx, T[0], Y0, T[1], pal.bad, false, 'first image');
+        ctx.fillStyle = pal.ink; ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('light from a distant object', 6, 6);
+        if (FI) arrow(ctx, FI[0], Y0, FI[1], pal.accent, true, 'final image');
+      }, 'Refracting telescope ray diagram');
+    }
+    q('.mst-out').hidden = false;
+    q('.mst-facts').replaceChildren(...facts);
+    q('.mst-formula').textContent = lines.join('\n');
+    paint(q('.mst-fig'), fig);
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.mst-inst button').forEach((b) => b.addEventListener('click', () => { st.inst = b.dataset.k!; draw(); }));
+  root.querySelectorAll<HTMLButtonElement>('.mst-mode button').forEach((b) => b.addEventListener('click', () => { st.mode = b.dataset.m as 'relaxed' | 'near'; draw(); }));
+  root.querySelectorAll('input').forEach((i) => i.addEventListener('input', draw));
+  document.addEventListener('fibub:theme', () => fig && paint(q('.mst-fig'), fig));
+
+  const make = (): Question => {
+    const t = pick(['s', 's', 'c', 't', 'L']);
+    if (t === 's') { const f = pick([2.5, 5, 10, 12.5]), near = pick([true, false]); const M = near ? 1 + 25 / f : 25 / f; return { text: `A magnifying glass has a focal length of ${f} cm. What is its magnification with the image ${near ? 'at the near point (25 cm)' : 'at infinity'}?`, answer: M, tol: 0.011, work: [near ? `M = 1 + D/f = 1 + 25/${f}` : `M = D/f = 25/${f}`, `= ${show(M)}`] }; }
+    if (t === 'c') { const mo = pick([-5, -10, -20, -25, -40]), fe = pick([2.5, 5, 6.25]); const me = 25 / fe; return { text: `A microscope's objective makes an image ${Math.abs(mo)} times larger (inverted). The eyepiece has f_e = ${fe} cm and the final image is at infinity. What is the total magnification (with its sign)?`, answer: mo * me, tol: 0.05, work: [`m_e = D/f_e = 25/${fe} = ${show(me)}`, `M = m_o × m_e = ${mo} × ${show(me)} = ${show(mo * me)}`] }; }
+    const fo = pick([50, 75, 100, 120, 150]), fe = pick([2.5, 5, 10]);
+    if (t === 't') return { text: `A telescope has an objective of focal length ${fo} cm and an eyepiece of ${fe} cm. What is its magnification in normal adjustment (with its sign)?`, answer: -fo / fe, tol: 0.011, work: [`M = −f_o/f_e = −${fo}/${fe}`, `= ${show(-fo / fe)}`] };
+    return { text: `How long is a telescope (objective ${fo} cm, eyepiece ${fe} cm) in normal adjustment, in cm?`, unit: 'cm', answer: fo + fe, tol: 0.05, work: [`L = f_o + f_e = ${fo} + ${fe}`, `= ${show(fo + fe)}`] };
+  };
+  mountQuiz(q('.mst-quiz'), make, 4);
+  draw();
+</script>

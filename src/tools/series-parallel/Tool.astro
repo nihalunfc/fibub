@@ -1,0 +1,270 @@
+---
+// Series and parallel circuit builder: drag four resistors into the series part, the parallel bank or the tray, and
+// see the equivalent resistance worked out, the current split shown with moving dots, power and the energy bill.
+import '../../styles/astro.css';
+---
+<div class="ax spc">
+  <div class="ax-card">
+    <h2>Build the circuit</h2>
+    <div class="ax-row">
+      <span class="ax-seg spc-level" role="group" aria-label="Level"><button type="button" data-v="10" aria-pressed="true">Class 10</button><button type="button" data-v="12" aria-pressed="false">Class 12</button></span>
+      <label>Battery <select class="spc-v" style="width:auto">
+        <option value="1.5">1.5 V</option><option value="3">3 V</option><option value="4.5">4.5 V</option><option value="6" selected>6 V</option><option value="9">9 V</option><option value="12">12 V</option><option value="230">230 V (mains)</option>
+      </select></label>
+      <button type="button" class="btn secondary small spc-reset">Start again</button>
+    </div>
+    <label class="spc-sl spc-ronly" hidden>Internal resistance of the battery, r: <b class="spc-rv">0.5 Ω</b>
+      <input type="range" class="spc-r" min="0" max="5" step="0.1" value="0.5" aria-label="Internal resistance" />
+    </label>
+    <canvas class="ax-fig spc-fig" style="margin-top:10px"></canvas>
+    <p class="ax-help">Drag a resistor onto the top wire to put it in series, into the box below to put it in parallel, or down to the tray to take it out. The dots show the current: they move faster where more current flows.</p>
+    <div class="ax-scroll"><table class="spc-tab"></table></div>
+    <p class="ax-err spc-err" hidden></p>
+  </div>
+
+  <div class="ax-card spc-out">
+    <h2>Worked out step by step</h2>
+    <p class="ax-big spc-big"></p>
+    <ol class="spc-steps"></ol>
+    <dl class="ax-facts spc-facts" style="margin-top:10px"></dl>
+    <div class="ax-scroll" style="margin-top:10px"><table class="spc-parts"></table></div>
+  </div>
+
+  <div class="ax-card spc-out">
+    <h2>Energy and the bill</h2>
+    <div class="ax-grid">
+      <label>Hours a day <input class="spc-h" type="text" inputmode="decimal" value="5" /></label>
+      <label>Days <input class="spc-d" type="text" inputmode="decimal" value="30" /></label>
+      <label>Price per kWh (₹) <input class="spc-rate" type="text" inputmode="decimal" value="7" /></label>
+    </div>
+    <p class="ax-help">The price is only an example: use the rate per unit on your own electricity bill. 1 unit = 1 kWh.</p>
+    <p class="spc-bill" aria-live="polite"></p>
+    <p class="ax-err spc-berr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="spc-try">
+      <li>Put all four in series. The total is the sum, and the same current flows through each one.</li>
+      <li>Now drag them all into the parallel box. The total is smaller than the smallest one, and each gets the full battery voltage.</li>
+      <li>Two equal resistors in parallel give half of one. Try 10 Ω and 10 Ω.</li>
+      <li>Pick 230 V and put resistors in parallel, the way a house is wired: each appliance gets 230 V and can be switched on its own. Watch the power and the bill.</li>
+      <li>At Class 12, raise the internal resistance: the terminal voltage falls when more current flows.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="spc-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .spc .spc-sl { display: grid; gap: 6px; margin-top: 10px; color: var(--ink); font-size: 15px; }
+  .spc input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .spc .ax-seg button { min-height: 40px; padding: 8px 14px; }
+  .spc-fig { max-width: 520px; margin-left: auto; margin-right: auto; touch-action: none; cursor: grab; }
+  .spc .spc-tab input { min-width: 64px; max-width: 90px; }
+  .spc .spc-tab select { width: auto; }
+  .spc-steps { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; overflow-wrap: anywhere; }
+  .spc-bill { font-size: 17px; font-weight: 650; margin: 10px 0 0; }
+  .spc-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .spc .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .spc .eq-q p { margin: 0 0 6px; }
+  .spc .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .spc .eq-ok { color: var(--good); font-weight: 600; }
+  .spc .eq-no { color: var(--bad); }
+  .spc .eq-work { margin-top: 4px; font-size: 14px; }
+  .spc .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .spc .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { solve, kWh, questions, type Res, type Place } from '../../lib/sci/series-parallel';
+  import { pagePalette } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+  import { quiz } from '../../lib/elec-quiz-ui';
+
+  const root = document.querySelector<HTMLElement>('.spc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const canvas = q<HTMLCanvasElement>('.spc-fig');
+  const sg = (x: number, n = 3) => sig(x, n);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const li = (t: string) => { const e = document.createElement('li'); e.textContent = t; return e; };
+  const START: Res[] = [{ R: 10, place: 'series' }, { R: 10, place: 'parallel' }, { R: 15, place: 'parallel' }, { R: 20, place: 'out' }];
+  let res: Res[] = START.map((r) => ({ ...r }));
+  let level = 10, bad = '';
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const PLACE: Record<Place, string> = { series: 'Series', parallel: 'Parallel', out: 'Not used' };
+  const E = () => +q<HTMLSelectElement>('.spc-v').value, rint = () => (level === 12 ? +q<HTMLInputElement>('.spc-r').value : 0);
+  const amps = (I: number) => (I >= 1 ? `${sg(I)} A` : I >= 1e-3 ? `${sg(I * 1000)} mA` : `${sg(I * 1e6)} µA`);
+  const watts = (P: number) => (P >= 1000 ? `${sg(P / 1000)} kW` : `${sg(P)} W`);
+
+  // Layout of the picture (in canvas units).
+  const W = 360, H = 360, TOP = 40, BOT = 190, XL = 30, XR = 330, BX0 = 105, BX1 = 255, BGAP = 30, TRAY = 318;
+  type Spot = { x: number; y: number };
+  function spots(): Spot[] {
+    const sI = res.map((r, i) => (r.place === 'series' ? i : -1)).filter((i) => i >= 0);
+    const pI = res.map((r, i) => (r.place === 'parallel' ? i : -1)).filter((i) => i >= 0);
+    const oI = res.map((r, i) => (r.place === 'out' ? i : -1)).filter((i) => i >= 0);
+    const out: Spot[] = [];
+    sI.forEach((i, k) => (out[i] = { x: 90 + ((k + 0.5) * 220) / sI.length, y: TOP }));
+    pI.forEach((i, k) => (out[i] = { x: (BX0 + BX1) / 2, y: BOT + k * BGAP }));
+    oI.forEach((i, k) => (out[i] = { x: 60 + k * 80, y: TRAY }));
+    return out;
+  }
+  let drag = -1, dragAt: Spot = { x: 0, y: 0 }, phase = [0, 0, 0, 0, 0], last = 0;
+
+  function setup(w: number, h: number) {
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    if (canvas.width !== Math.round(w * dpr)) { canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); canvas.style.aspectRatio = `${w} / ${h}`; }
+    const c = canvas.getContext('2d')!; c.setTransform(dpr, 0, 0, dpr, 0, 0); return c;
+  }
+  // A path as a list of points, and the point a distance s along it.
+  const along = (pts: number[][], s: number) => {
+    for (let k = 0; k + 1 < pts.length; k++) { const [x0, y0] = pts[k], [x1, y1] = pts[k + 1], L = Math.hypot(x1 - x0, y1 - y0); if (s <= L) return [x0 + ((x1 - x0) * s) / L, y0 + ((y1 - y0) * s) / L]; s -= L; }
+    return pts[pts.length - 1];
+  };
+  const plen = (pts: number[][]) => pts.slice(1).reduce((s, p, k) => s + Math.hypot(p[0] - pts[k][0], p[1] - pts[k][1]), 0);
+
+  function draw(t: number) {
+    const pal = pagePalette(), c = setup(W, H), sol = solve(res, E(), rint()), sp = spots();
+    const pI = res.map((r, i) => (r.place === 'parallel' ? i : -1)).filter((i) => i >= 0);
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    // Zones.
+    c.fillStyle = pal.grid; c.fillRect(XL + 60, BOT - 18, XR - XL - 120, Math.max(1, pI.length) * BGAP + 14);
+    c.fillRect(8, TRAY - 22, W - 16, 44);
+    c.fillStyle = pal.muted; c.font = '12px system-ui, sans-serif'; c.textAlign = 'left';
+    c.fillText('Series: top wire', 90, TOP - 22); c.fillText('Parallel box', XL + 64, BOT + Math.max(1, pI.length) * BGAP + 10); c.fillText('Tray (not used)', 12, TRAY - 26);
+    // Wires.
+    c.strokeStyle = pal.ink; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(XL, BOT); c.lineTo(XL, TOP); c.lineTo(XR, TOP); c.lineTo(XR, BOT); c.lineTo(BX1, BOT); c.moveTo(BX0, BOT); c.lineTo(XL, BOT); c.stroke();
+    const nb = Math.max(1, pI.length);
+    c.beginPath(); for (let k = 0; k < nb; k++) { const y = BOT + k * BGAP; c.moveTo(BX0, y); c.lineTo(BX1, y); } c.moveTo(BX0, BOT); c.lineTo(BX0, BOT + (nb - 1) * BGAP); c.moveTo(BX1, BOT); c.lineTo(BX1, BOT + (nb - 1) * BGAP); c.stroke();
+    if (nb > 1) { c.fillStyle = pal.ink; for (const x of [BX0, BX1]) { c.beginPath(); c.arc(x, BOT, 3.5, 0, Math.PI * 2); c.fill(); } }
+    // Battery on the left wire, + on top.
+    c.fillStyle = pal.bg; c.fillRect(XL - 12, 98, 24, 36);
+    c.beginPath(); c.moveTo(XL - 16, 104); c.lineTo(XL + 16, 104); c.moveTo(XL - 8, 114); c.lineTo(XL + 8, 114); c.moveTo(XL - 16, 122); c.lineTo(XL + 16, 122); c.moveTo(XL - 8, 132); c.lineTo(XL + 8, 132); c.stroke();
+    c.fillStyle = pal.ink; c.textAlign = 'left'; c.font = '13px system-ui, sans-serif'; c.fillText('+', XL + 18, 104); c.fillText(`${E()} V`, XL + 18, 128);
+    // Moving dots: main loop and each branch, speed in proportion to the current there.
+    if (!sol.short && sol.I > 0) {
+      const dt = last ? (t - last) / 1000 : 0; last = t;
+      const base = reduce ? 0 : 50;
+      const main = [[XL, TOP + 0.01], [XL, TOP], [XR, TOP], [XR, BOT], [BX1, BOT]], back = [[BX0, BOT], [XL, BOT], [XL, 134]], up = [[XL, 98], [XL, TOP]];
+      phase[0] += dt * base;
+      c.fillStyle = pal.accent;
+      const dots = (pts: number[][], ph: number) => { const L = plen(pts); for (let s = ((ph % 24) + 24) % 24; s < L; s += 24) { const [x, y] = along(pts, s); c.beginPath(); c.arc(x, y, 3, 0, Math.PI * 2); c.fill(); } };
+      dots(main, phase[0]); dots(back, phase[0]); dots(up, phase[0]);
+      if (!pI.length) dots([[BX1, BOT], [BX0, BOT]], phase[0]);
+      pI.forEach((i, k) => { phase[k + 1] += dt * base * (sol.parts[i].I / sol.I); const y = BOT + k * BGAP; dots([[BX1, BOT], [BX1, y], [BX0, y], [BX0, BOT]].filter((p, j) => k > 0 || j === 0 || j === 3), phase[k + 1]); });
+    } else last = t;
+    // Resistors.
+    res.forEach((r, i) => {
+      const s = drag === i ? dragAt : sp[i];
+      c.fillStyle = pal.bg; c.strokeStyle = drag === i ? pal.accent : pal.ink; c.lineWidth = 2;
+      c.fillRect(s.x - 26, s.y - 12, 52, 24); c.strokeRect(s.x - 26, s.y - 12, 52, 24);
+      c.fillStyle = pal.ink; c.textAlign = 'center'; c.font = '700 12px system-ui, sans-serif'; c.fillText(`R${i + 1}`, s.x, s.y - 1);
+      c.font = '11px system-ui, sans-serif'; c.fillText(`${sg(r.R)} Ω`, s.x, s.y + 9);
+    });
+    canvas.setAttribute('aria-label', `Circuit: ${res.map((r, i) => `R${i + 1} ${sg(r.R)} ohm ${PLACE[r.place].toLowerCase()}`).join(', ')}`);
+  }
+
+  function table() {
+    const t = q('.spc-tab'), head = document.createElement('tr');
+    head.innerHTML = '<th>Resistor</th><th>Ω</th><th>Where</th>';
+    t.replaceChildren(head, ...res.map((r, i) => {
+      const tr = document.createElement('tr'), a = document.createElement('td'), b = document.createElement('td'), c = document.createElement('td');
+      a.textContent = `R${i + 1}`;
+      const inp = document.createElement('input'); inp.type = 'text'; inp.inputMode = 'decimal'; inp.className = 'spc-R'; inp.dataset.i = String(i); inp.value = String(r.R); inp.setAttribute('aria-label', `R${i + 1} in ohms`); b.append(inp);
+      const sel = document.createElement('select'); sel.className = 'spc-p'; sel.dataset.i = String(i); sel.setAttribute('aria-label', `Where R${i + 1} goes`);
+      for (const p of ['series', 'parallel', 'out'] as Place[]) { const o = document.createElement('option'); o.value = p; o.textContent = PLACE[p]; o.selected = r.place === p; sel.append(o); }
+      c.append(sel); tr.append(a, b, c); return tr;
+    }));
+  }
+
+  function results() {
+    const err = q('.spc-err');
+    for (const o of root.querySelectorAll<HTMLElement>('.spc-out')) o.hidden = !!bad;
+    err.hidden = !bad; err.textContent = bad;
+    if (bad) return;
+    const Ev = E(), r = rint(), sol = solve(res, Ev, r);
+    const sN = res.map((x, i) => (x.place === 'series' ? i : -1)).filter((i) => i >= 0), pN = res.map((x, i) => (x.place === 'parallel' ? i : -1)).filter((i) => i >= 0);
+    const steps: string[] = [];
+    if (sN.length) steps.push(`Series part: R_s = ${sN.map((i) => `R${i + 1}`).join(' + ')} = ${sN.map((i) => sg(res[i].R)).join(' + ')} = ${sg(sol.Rs)} Ω`);
+    else steps.push('Series part: no resistors on the top wire, so R_s = 0 Ω.');
+    if (pN.length === 1) steps.push(`Parallel box: only R${pN[0] + 1}, so R_p = ${sg(sol.Rp)} Ω`);
+    else if (pN.length) steps.push(`Parallel box: 1/R_p = ${pN.map((i) => `1/${sg(res[i].R)}`).join(' + ')} = ${sg(1 / sol.Rp, 4)} per Ω, so R_p = ${sg(sol.Rp)} Ω`);
+    else steps.push('Parallel box: empty, so R_p = 0 Ω.');
+    steps.push(`Equivalent resistance: R = R_s + R_p = ${sg(sol.Rs)} + ${sg(sol.Rp)} = ${sg(sol.Req)} Ω`);
+    q('.spc-big').textContent = sol.short ? 'Short circuit!' : `R = ${sg(sol.Req)} Ω,  I = ${amps(sol.I)}`;
+    if (sol.short) {
+      steps.push('Nothing is in the circuit: the battery is joined straight across by a wire. That is a short circuit; the current would be huge and the battery would get hot. Drag a resistor in.');
+    } else {
+      steps.push(r > 0 ? `Current from the battery: I = E / (R + r) = ${Ev} / (${sg(sol.Req)} + ${sg(r)}) = ${amps(sol.I)}` : `Current from the battery: I = V / R = ${Ev} / ${sg(sol.Req)} = ${amps(sol.I)}`);
+      if (sN.length) steps.push(`Each series resistor carries the same ${amps(sol.I)}; the voltage across it is I × R (they add up to ${sg(sol.Vs)} V).`);
+      if (pN.length) steps.push(`Voltage across the parallel box: V_p = I × R_p = ${sg(sol.Vp)} V. It splits the current: ${pN.map((i) => `I${i + 1} = ${sg(sol.Vp)} / ${sg(res[i].R)} = ${amps(sol.parts[i].I)}`).join(', ')}.`);
+      if (pN.length > 1) steps.push(`Check: the branch currents add up to ${amps(pN.reduce((s, i) => s + sol.parts[i].I, 0))}, the current into the junction.`);
+      steps.push(`Power: P = V I = I² R = ${watts(sol.P)} in the resistors.`);
+      if (r > 0) steps.push(`Kirchhoff's loop rule: E = I r + I R, ${Ev} = ${sg(sol.I * r)} + ${sg(sol.I * sol.Req)} V. The terminal voltage is E − I r = ${sg(sol.Vterm)} V.`);
+    }
+    q('.spc-steps').replaceChildren(...steps.map(li));
+    const facts = [fact('Equivalent resistance', `${sg(sol.Req)} Ω`), fact('Current', sol.short ? '–' : amps(sol.I)), fact('Power', sol.short ? '–' : watts(sol.P))];
+    if (r > 0 && !sol.short) facts.push(fact('Terminal voltage', `${sg(sol.Vterm)} V`, `${sg(Ev - sol.Vterm)} V lost inside`), fact('Heat in the battery', watts(sol.Plost), 'I² r'));
+    q('.spc-facts').replaceChildren(...facts);
+    const pt = q('.spc-parts');
+    if (sol.short) pt.replaceChildren();
+    else {
+      const head = document.createElement('tr'); head.innerHTML = '<th>Resistor</th><th>Where</th><th class="r">V</th><th class="r">I</th><th class="r">P</th>';
+      pt.replaceChildren(head, ...sol.parts.filter((p) => p.place !== 'out').map((p) => { const tr = document.createElement('tr'); for (const [v, cl] of [[`R${p.i + 1} (${sg(p.R)} Ω)`, ''], [PLACE[p.place], ''], [`${sg(p.V)} V`, 'r'], [amps(p.I), 'r'], [watts(p.P), 'r']]) { const td = document.createElement('td'); td.textContent = v; if (cl) td.className = cl; tr.append(td); } return tr; }));
+    }
+    // Energy bill.
+    const h = num(q<HTMLInputElement>('.spc-h').value), d = num(q<HTMLInputElement>('.spc-d').value), rate = num(q<HTMLInputElement>('.spc-rate').value);
+    const be = q('.spc-berr'), bill = q('.spc-bill');
+    const berr = !(h >= 0 && h <= 24) ? 'Hours a day must be between 0 and 24.' : !(d >= 0 && d <= 3660) ? 'Type a number of days (0 to 3660).' : !(rate >= 0) ? 'Type a price per kWh of 0 or more.' : '';
+    be.hidden = !berr; be.textContent = berr;
+    if (berr || sol.short) bill.textContent = sol.short ? 'No bill for a short circuit: fix the circuit first.' : '';
+    else { const e = kWh(sol.P, h, d); bill.textContent = `Energy: ${watts(sol.P)} × ${sg(h * d)} h = ${sg(e)} kWh (units). Cost: ₹${e * rate >= 100 ? Math.round(e * rate).toLocaleString('en-IN') : (e * rate).toFixed(2)}.`; }
+  }
+
+  function readTable() {
+    bad = '';
+    for (const inp of root.querySelectorAll<HTMLInputElement>('.spc-R')) {
+      const v = num(inp.value), i = +inp.dataset.i!;
+      if (!(v > 0 && v <= 1e6)) bad = `Type a resistance for R${i + 1} between 0 and 1,000,000 Ω.`; else res[i].R = v;
+    }
+  }
+  const all = () => { results(); if (reduce || drag < 0) draw(performance.now()); };
+
+  // Dragging resistors on the picture.
+  const toCanvas = (e: PointerEvent) => { const b = canvas.getBoundingClientRect(); return { x: ((e.clientX - b.left) / b.width) * W, y: ((e.clientY - b.top) / b.height) * H }; };
+  canvas.addEventListener('pointerdown', (e) => {
+    const p = toCanvas(e), sp = spots();
+    drag = sp.findIndex((s) => Math.abs(p.x - s.x) <= 30 && Math.abs(p.y - s.y) <= 16);
+    if (drag >= 0) { dragAt = p; canvas.setPointerCapture(e.pointerId); e.preventDefault(); draw(performance.now()); }
+  });
+  canvas.addEventListener('pointermove', (e) => { if (drag < 0) return; dragAt = toCanvas(e); draw(performance.now()); });
+  const drop = () => {
+    if (drag < 0) return;
+    const y = dragAt.y, place: Place = y < (TOP + BOT) / 2 + 10 ? 'series' : y < TRAY - 26 ? 'parallel' : 'out';
+    res[drag].place = place; drag = -1; table(); readTable(); all();
+  };
+  canvas.addEventListener('pointerup', drop);
+  canvas.addEventListener('pointercancel', drop);
+
+  q('.spc-tab').addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('.spc-R')) { readTable(); all(); } });
+  q('.spc-tab').addEventListener('change', (e) => { const s = e.target as HTMLSelectElement; if (s.matches('.spc-p')) { res[+s.dataset.i!].place = s.value as Place; readTable(); all(); } });
+  q('.spc-level').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button'); if (!b) return;
+    for (const x of q('.spc-level').querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b));
+    level = +b.dataset.v!; q('.spc-ronly').hidden = level !== 12; all();
+  });
+  q('.spc-r').addEventListener('input', () => { q('.spc-rv').textContent = `${(+q<HTMLInputElement>('.spc-r').value).toFixed(1)} Ω`; all(); });
+  for (const c of ['.spc-v']) q(c).addEventListener('change', all);
+  for (const c of ['.spc-h', '.spc-d', '.spc-rate']) q(c).addEventListener('input', all);
+  q('.spc-reset').addEventListener('click', () => { res = START.map((r) => ({ ...r })); table(); readTable(); all(); });
+  new MutationObserver(() => draw(performance.now())).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+
+  table(); readTable(); all();
+  quiz(q('.spc-quiz'), () => questions());
+  if (!reduce) { const tick = (t: number) => { draw(t); requestAnimationFrame(tick); }; requestAnimationFrame(tick); }
+</script>

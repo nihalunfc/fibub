@@ -1,0 +1,218 @@
+---
+// Similar triangles: the basic proportionality theorem with a draggable parallel line, AA / SSS / SAS similarity
+// checks with both triangles drawn, and the shadow method for heights. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm st">
+  <div class="ax-card">
+    <h2>A line parallel to one side</h2>
+    <svg class="sm-fig st-fig" viewBox="0 0 340 300" role="img" aria-label="Triangle ABC with a line DE parallel to BC"></svg>
+    <p class="ax-help">Drag A, B or C to change the triangle. Drag D along AB (or use the slider): DE stays parallel to BC.</p>
+    <div class="sm-sl"><b>D</b><input type="range" class="st-t" min="0.05" max="0.95" step="0.01" value="0.4" aria-label="Where D sits on AB" /><span class="ax-help st-tv" style="margin:0"></span></div>
+    <p class="sm-f st-bpt" aria-live="polite"></p>
+    <p class="sm-f st-bpt2"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Are these triangles similar?</h2>
+    <div class="ax-seg st-test" role="group" aria-label="Similarity test">
+      <button type="button" data-t="aa" aria-pressed="true">AA</button>
+      <button type="button" data-t="sss" aria-pressed="false">SSS</button>
+      <button type="button" data-t="sas" aria-pressed="false">SAS</button>
+    </div>
+    <div class="st-in" style="margin-top:10px">
+      <div class="st-tri"><b>Triangle 1</b><span class="st-f"></span></div>
+      <div class="st-tri"><b>Triangle 2</b><span class="st-f"></span></div>
+    </div>
+    <svg class="sm-fig st-pair" viewBox="0 0 340 170" role="img" aria-label="The two triangles" style="margin-top:10px"></svg>
+    <p class="st-res" aria-live="polite"></p>
+    <p class="sm-f st-why"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Heights from shadows</h2>
+    <p class="ax-help">At the same moment, the sun's rays hit a stick and a tree at the same angle, so the two triangles are similar (AA).</p>
+    <div class="ax-grid">
+      <label>Stick height (m) <input type="number" class="st-h1" min="0.01" step="0.1" value="1.5" inputmode="decimal" /></label>
+      <label>Stick's shadow (m) <input type="number" class="st-s1" min="0.01" step="0.1" value="2" inputmode="decimal" /></label>
+      <label>Tree's shadow (m) <input type="number" class="st-s2" min="0.01" step="0.1" value="12" inputmode="decimal" /></label>
+    </div>
+    <svg class="sm-fig st-sun" viewBox="0 0 340 170" role="img" aria-label="A stick and a tree with their shadows" style="margin-top:10px"></svg>
+    <p class="sm-f st-shadow"></p>
+    <p class="ax-err st-serr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Put D exactly halfway along AB. Where does E land? How long is DE compared with BC?</li>
+      <li>Drag A far away. The ratios AD/DB and AE/EC still agree.</li>
+      <li>In SSS, make triangle 2 exactly twice triangle 1. Then change one side by 0.5 and watch the test fail.</li>
+      <li>In AA, why do two equal angles always give the third one equal too?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Answers to 2 decimal places where needed. Nothing is saved.</p>
+    <div class="st-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .st .st-in { display: grid; gap: 10px; }
+  .st .st-tri { display: grid; gap: 6px; }
+  .st .st-f { display: flex; flex-wrap: wrap; gap: 6px 10px; }
+  .st .st-f label { display: flex; align-items: center; gap: 4px; font-size: 14px; }
+  .st .st-f input { width: 4.6em; min-height: 40px; }
+  .st svg .st-de { stroke: var(--good); stroke-width: 3; }
+  .st svg .st-bc { stroke: var(--accent); stroke-width: 3; }
+  .st svg .st-t1 { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+  .st svg .st-t2 { fill: var(--good-soft); stroke: var(--good); stroke-width: 2; }
+  .st svg .st-ray { stroke: var(--warn); stroke-width: 1.5; stroke-dasharray: 5 4; }
+  .st svg .st-shade { stroke: var(--muted); stroke-width: 5; stroke-linecap: round; }
+</style>
+
+<script>
+  import { bpt, triangle, anglesFromSides, sss, aa, sas, shadowHeight, type P } from '../../lib/sci/similar-school';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, dragOn, val, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.st')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.st-fig'), T = q<HTMLInputElement>('.st-t');
+  // Points in SVG units (y down).
+  const pts: Record<string, P> = { A: [120, 30], B: [30, 270], C: [310, 270] };
+
+  function bptDraw() {
+    const t = Number(T.value), { A, B, C } = pts, r = bpt(A, B, C, t);
+    fig.replaceChildren();
+    S('polygon', { points: `${A} ${B} ${C}`, class: 'sm-line', style: 'fill:var(--bg)' }, fig);
+    S('line', { x1: B[0], y1: B[1], x2: C[0], y2: C[1], class: 'st-bc' }, fig);
+    S('line', { x1: r.D[0], y1: r.D[1], x2: r.E[0], y2: r.E[1], class: 'st-de' }, fig);
+    const lab = (p: P, s: string, dx: number, dy: number) => S('text', { x: p[0] + dx, y: p[1] + dy, 'text-anchor': 'middle', style: 'font-weight:700' }, fig, s);
+    const cx = (A[0] + B[0] + C[0]) / 3, cy = (A[1] + B[1] + C[1]) / 3;
+    const out = (p: P, s: string) => { const dx = p[0] - cx, dy = p[1] - cy, d = Math.hypot(dx, dy) || 1; lab(p, s, (dx / d) * 18, (dy / d) * 18 + 5); };
+    out(A, 'A'); out(B, 'B'); out(C, 'C');
+    lab(r.D, 'D', -14, 0); lab(r.E, 'E', 14, 0);
+    for (const k of ['A', 'B', 'C']) { S('circle', { cx: pts[k][0], cy: pts[k][1], r: 20, class: 'sm-hit' }, fig); S('circle', { cx: pts[k][0], cy: pts[k][1], r: 8, class: `sm-handle st-h${k}` }, fig); }
+    S('circle', { cx: r.D[0], cy: r.D[1], r: 20, class: 'sm-hit' }, fig); S('circle', { cx: r.D[0], cy: r.D[1], r: 8, class: 'sm-handle st-hD', style: 'fill:var(--good)' }, fig);
+    // Lengths in "units" of 20 SVG pixels so the numbers stay small.
+    const u = (x: number) => fmt(x / 20, 2);
+    q('.st-tv').textContent = `AD : AB = ${fmt(t, 2)}`;
+    q('.st-bpt').textContent = `AD/DB = ${u(r.AD)}/${u(r.DB)} = ${fmt(r.r1, 3)}   and   AE/EC = ${u(r.AE)}/${u(r.EC)} = ${fmt(r.r2, 3)}`;
+    q('.st-bpt2').textContent = `Because DE ∥ BC, triangle ADE is similar to ABC, so DE/BC = AD/AB = ${u(r.DE)}/${u(r.BC)} = ${fmt(r.DE / r.BC, 3)}.`;
+  }
+  dragOn(fig, (x, y) => {
+    let best: string | null = null, bd = 28;
+    const r = bpt(pts.A, pts.B, pts.C, Number(T.value));
+    for (const [k, p] of [...Object.entries(pts), ['D', r.D] as [string, P]]) { const d = Math.hypot(x - p[0], y - p[1]); if (d < bd) { bd = d; best = k; } }
+    return best;
+  }, (id, x, y) => {
+    x = Math.max(10, Math.min(330, x)); y = Math.max(15, Math.min(285, y));
+    if (id === 'D') {
+      const { A, B } = pts, ab = [B[0] - A[0], B[1] - A[1]], L2 = ab[0] ** 2 + ab[1] ** 2;
+      T.value = String(Math.max(0.05, Math.min(0.95, Math.round((((x - A[0]) * ab[0] + (y - A[1]) * ab[1]) / L2) * 100) / 100)));
+    } else pts[id] = [Math.round(x), Math.round(y)];
+    bptDraw();
+  });
+  T.addEventListener('input', bptDraw);
+
+  // Similarity tests.
+  let test = 'aa';
+  const FIELDS: Record<string, [string, string, number[], number[]][]> = {
+    aa: [['∠1', 'Angle 1 (°)', [50], [50]], ['∠2', 'Angle 2 (°)', [60], [70]]],
+    sss: [['p', 'Side 1', [3], [6]], ['q', 'Side 2', [4], [8]], ['r', 'Side 3', [5], [10]]],
+    sas: [['p', 'Side 1', [4], [6]], ['θ', 'Angle between (°)', [40], [40]], ['q', 'Side 2', [6], [9]]],
+  };
+  const tris = [...root.querySelectorAll<HTMLElement>('.st-tri .st-f')];
+  function fields() {
+    tris.forEach((box, i) => box.replaceChildren(...FIELDS[test].map(([k, lab, v1, v2]) => {
+      const l = document.createElement('label'); l.textContent = `${k} `;
+      const inp = document.createElement('input'); inp.type = 'number'; inp.min = '0'; inp.step = 'any'; inp.inputMode = 'decimal'; inp.value = String((i ? v2 : v1)[0]); inp.className = `st-v st-v${i}-${k}`;
+      inp.setAttribute('aria-label', `Triangle ${i + 1}: ${lab}`); inp.addEventListener('input', simDraw); l.append(inp); return l;
+    })));
+  }
+  const v = (i: number) => [...tris[i].querySelectorAll<HTMLInputElement>('input')].map((x) => Number(x.value));
+
+  function drawTri(sides: number[] | null, ox: number, cls: string, scale: number) {
+    if (!sides) return;
+    const [a, b, c] = sides, [, angB] = anglesFromSides(a, b, c);
+    if (Number.isNaN(angB)) return;
+    const B: P = [ox, 150], C: P = [ox + a * scale, 150], A: P = [ox + c * scale * Math.cos((angB * Math.PI) / 180), 150 - c * scale * Math.sin((angB * Math.PI) / 180)];
+    S('polygon', { points: `${A} ${B} ${C}`, class: cls }, q('.st-pair'));
+  }
+  function sidesFromSAS(p: number, th: number, qq: number) { return [p, qq, Math.sqrt(p * p + qq * qq - 2 * p * qq * Math.cos((th * Math.PI) / 180))]; }
+  function sidesFromAA(a1: number, a2: number, base: number) { const a3 = 180 - a1 - a2, s = (x: number) => Math.sin((x * Math.PI) / 180); return a3 > 0 ? [base, (base * s(a1)) / s(a3), (base * s(a2)) / s(a3)].map((x, i) => (i ? x : base)) : null; }
+
+  function simDraw() {
+    const x = v(0), y = v(1), res = q('.st-res'), why = q('.st-why'), svg = q<SVGSVGElement>('.st-pair');
+    svg.replaceChildren();
+    let ok = false, text = '', s1: number[] | null = null, s2: number[] | null = null;
+    if ([...x, ...y].some((n) => !(n > 0))) { res.textContent = ''; why.textContent = 'Type positive numbers in every box.'; return; }
+    if (test === 'aa') {
+      const r = aa([x[0], x[1]], [y[0], y[1]]);
+      if (!r.valid) { why.textContent = 'Two angles of a triangle must add up to less than 180°.'; res.textContent = ''; return; }
+      ok = r.similar;
+      text = `Third angles: 180 − ${fmt(x[0])} − ${fmt(x[1])} = ${fmt(r.third[0])}° and 180 − ${fmt(y[0])} − ${fmt(y[1])} = ${fmt(r.third[1])}°. ${ok ? 'All three angles match, so the triangles are similar (AA).' : 'The angles are not the same set, so the triangles are not similar.'}`;
+      s1 = sidesFromAA(x[0], x[1], 4); s2 = sidesFromAA(y[0], y[1], 5);
+    } else if (test === 'sss') {
+      const bad = (s: number[]) => Number.isNaN(anglesFromSides(s[0], s[1], s[2])[0]);
+      if (bad(x) || bad(y)) { why.textContent = 'Those sides cannot make a triangle: each side must be shorter than the other two together.'; res.textContent = ''; return; }
+      const r = sss(x, y); ok = r.similar;
+      text = `Sorted, the ratios of matching sides are ${r.ratios.map((n) => fmt(n, 3)).join(', ')}. ${ok ? `All equal, so the triangles are similar (SSS) with scale factor ${fmt(1 / r.k, 3)}. Areas are in the ratio ${fmt((1 / r.k) ** 2, 3)} : 1.` : 'They are not all equal, so the triangles are not similar.'}`;
+      s1 = x; s2 = y;
+    } else {
+      if (x[1] >= 180 || y[1] >= 180) { why.textContent = 'The angle must be less than 180°.'; res.textContent = ''; return; }
+      const r = sas(x[0], x[2], x[1], y[0], y[2], y[1]); ok = r.similar;
+      text = `Angles ${fmt(x[1])}° and ${fmt(y[1])}°; side ratios ${fmt(x[0])}/${fmt(y[0])} = ${fmt(r.r1, 3)} and ${fmt(x[2])}/${fmt(y[2])} = ${fmt(r.r2, 3)}. ${ok ? 'Equal angle between sides in the same ratio: similar (SAS).' : !(Math.abs(x[1] - y[1]) < 1e-9) ? 'The angles between the sides differ, so not similar.' : 'The sides are not in the same ratio, so not similar.'}`;
+      s1 = sidesFromSAS(x[0], x[1], x[2]); s2 = sidesFromSAS(y[0], y[1], y[2]);
+    }
+    const big = Math.max(...(s1 ?? [1]), ...(s2 ?? [1]));
+    const sc = Math.min(140 / big, 130 / big);
+    drawTri(s1, 15, 'st-t1', sc); drawTri(s2, 180, 'st-t2', sc);
+    res.replaceChildren(Object.assign(document.createElement('span'), { className: 'ax-pill ' + (ok ? 'good' : 'bad'), textContent: ok ? 'Similar' : 'Not similar' }));
+    why.textContent = text;
+  }
+  root.querySelectorAll<HTMLButtonElement>('.st-test button').forEach((btn) => btn.addEventListener('click', () => {
+    test = btn.dataset.t!; root.querySelectorAll('.st-test button').forEach((x) => x.setAttribute('aria-pressed', String(x === btn))); fields(); simDraw();
+  }));
+
+  function shadow() {
+    const h1 = val(q('.st-h1'), 1.5, 0), s1 = val(q('.st-s1'), 2, 0), s2 = val(q('.st-s2'), 12, 0), err = q('.st-serr'), svg = q<SVGSVGElement>('.st-sun');
+    svg.replaceChildren();
+    if (!(h1 > 0 && s1 > 0 && s2 > 0)) { err.textContent = 'All three lengths must be more than 0.'; err.hidden = false; q('.st-shadow').textContent = ''; return; }
+    err.hidden = true;
+    const h2 = shadowHeight(h1, s1, s2);
+    const k = Math.min(140 / Math.max(h2, h1), 150 / Math.max(s2, s1));
+    const g = 155;
+    S('line', { x1: 5, x2: 335, y1: g, y2: g, class: 'sm-axis' }, svg);
+    const obj = (x0: number, h: number, s: number, label: string) => {
+      S('line', { x1: x0, y1: g, x2: x0 + s * k, y2: g, class: 'st-shade' }, svg);
+      S('line', { x1: x0, y1: g, x2: x0, y2: g - h * k, class: 'sm-line', style: 'stroke-width:4' }, svg);
+      S('line', { x1: x0, y1: g - h * k, x2: x0 + s * k, y2: g, class: 'st-ray' }, svg);
+      S('text', { x: x0 + 4, y: g - h * k - 6, class: 'sm-tick' }, svg, label);
+    };
+    obj(20, h1, s1, `${fmt(h1, 2)} m`); obj(170, h2, s2, `${fmt(h2, 2)} m`);
+    q('.st-shadow').textContent = `height / shadow is the same: ${fmt(h1, 2)}/${fmt(s1, 2)} = h/${fmt(s2, 2)}, so h = ${fmt(h1, 2)} × ${fmt(s2, 2)} / ${fmt(s1, 2)} = ${fmt(h2, 3)} m.`;
+  }
+  for (const c of ['.st-h1', '.st-s1', '.st-s2']) q(c).addEventListener('input', shadow);
+
+  bptDraw(); fields(); simDraw(); shadow();
+
+  quiz(q('.st-quiz'), () => {
+    const out: Question[] = [];
+    const ad = randInt(2, 6), db = randInt(2, 6), ae = randInt(2, 9) * db, ec = (ae * db) / ad;
+    out.push({ q: `In triangle ABC, DE ∥ BC with D on AB and E on AC. AD = ${ad} cm, DB = ${db} cm and AE = ${ae} cm. Find EC.`, want: [ec], tol: 0.003, hint: 'cm',
+      work: `By the basic proportionality theorem AD/DB = AE/EC, so EC = AE × DB / AD = ${ae} × ${db} / ${ad} = ${fmt(ec, 2)} cm.` });
+    const k = randInt(2, 4), [p, qq, r] = [[3, 4, 5], [5, 12, 13], [6, 8, 9], [4, 5, 7]][randInt(0, 3)];
+    out.push({ q: `Triangle PQR has sides ${p}, ${qq}, ${r} cm. A similar triangle has its shortest side ${p * k} cm. How long is its longest side?`, want: [r * k], hint: 'cm', work: `The scale factor is ${p * k}/${p} = ${k}, so the longest side is ${r} × ${k} = ${r * k} cm.` });
+    const h1 = [1, 1.2, 1.5, 2][randInt(0, 3)], s1 = randInt(1, 4), s2 = randInt(5, 20);
+    out.push({ q: `A ${h1} m pole casts a ${s1} m shadow. At the same time a building casts a ${s2} m shadow. How tall is the building?`, want: [Math.round(((h1 * s2) / s1) * 100) / 100], tol: 0.003, hint: 'm',
+      work: `${h1}/${s1} = h/${s2}, so h = ${h1} × ${s2} / ${s1} = ${fmt((h1 * s2) / s1, 2)} m.` });
+    const k2 = randInt(2, 5), A1 = randInt(2, 12);
+    out.push({ q: `Two similar triangles have corresponding sides in the ratio 1 : ${k2}. The smaller has area ${A1} cm². What is the area of the larger?`, want: [A1 * k2 * k2], hint: 'cm²', work: `Areas of similar triangles are in the ratio of the squares of the sides: 1 : ${k2 * k2}. So the area is ${A1} × ${k2 * k2} = ${A1 * k2 * k2} cm².` });
+    return out;
+  });
+</script>

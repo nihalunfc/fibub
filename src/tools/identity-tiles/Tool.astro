@@ -1,0 +1,189 @@
+---
+// Algebraic identities as area models: drag the sizes and the square or rectangle splits into its pieces, with the
+// identity filled in with your numbers; (a + b)³ as eight blocks you can pull apart. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm it">
+  <div class="ax-card">
+    <h2>Pick an identity</h2>
+    <div class="ax-seg it-pick" role="group" aria-label="Identity">
+      <button type="button" data-m="sum" aria-pressed="true">(a + b)²</button>
+      <button type="button" data-m="diff" aria-pressed="false">(a − b)²</button>
+      <button type="button" data-m="dsq" aria-pressed="false">(a + b)(a − b)</button>
+      <button type="button" data-m="xab" aria-pressed="false">(x + a)(x + b)</button>
+      <button type="button" data-m="abc" aria-pressed="false">(a + b + c)²</button>
+      <button type="button" data-m="cube" aria-pressed="false">(a + b)³</button>
+    </div>
+    <p class="ax-big it-id" style="margin:12px 0 6px"></p>
+    <svg class="sm-fig it-fig" viewBox="0 0 340 340" role="img" aria-label="Area model of the identity"></svg>
+    <p class="ax-help it-note"></p>
+    <div class="sm-sl it-row" data-v="x"><b>x</b><input type="range" min="1" max="8" step="0.5" value="4" aria-label="x slider" /><input type="number" class="it-x" min="0.5" step="0.5" value="4" inputmode="decimal" aria-label="x" /></div>
+    <div class="sm-sl it-row" data-v="a"><b>a</b><input type="range" min="1" max="8" step="0.5" value="5" aria-label="a slider" /><input type="number" class="it-a" min="0.5" step="0.5" value="5" inputmode="decimal" aria-label="a" /></div>
+    <div class="sm-sl it-row" data-v="b"><b>b</b><input type="range" min="0.5" max="8" step="0.5" value="3" aria-label="b slider" /><input type="number" class="it-b" min="0" step="0.5" value="3" inputmode="decimal" aria-label="b" /></div>
+    <div class="sm-sl it-row" data-v="c"><b>c</b><input type="range" min="0.5" max="8" step="0.5" value="2" aria-label="c slider" /><input type="number" class="it-c" min="0" step="0.5" value="2" inputmode="decimal" aria-label="c" /></div>
+    <div class="sm-sl it-row" data-v="t"><b class="it-tl">↔</b><input type="range" class="it-t" min="0" max="1" step="0.02" value="0" aria-label="Move the pieces" /><span class="ax-help it-tv" style="margin:0"></span></div>
+    <p class="ax-err it-err" hidden></p>
+    <p class="sm-f it-sum" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>In (a + b)², make b very small. The two ab strips get thin and the b² corner almost vanishes, which is why (a + b)² ≈ a² + 2ab when b is tiny.</li>
+      <li>In (a − b)², notice the corner b² is cut off twice with the two strips. That is why + b² comes back.</li>
+      <li>In (a + b)(a − b), slide the piece across. Nothing is added or lost, so a² − b² = (a + b)(a − b).</li>
+      <li>In (a + b)³, pull the blocks apart. Count the a²b blocks and the ab² blocks.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Use an identity, not a calculator! Nothing is saved.</p>
+    <div class="it-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .it .it-pick button { flex: 1 1 auto; font-variant-numeric: tabular-nums; }
+  .it svg .t0 { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+  .it svg .t1 { fill: var(--good-soft); stroke: var(--good); stroke-width: 1.5; }
+  .it svg .t2 { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1.5; }
+  .it svg .t3 { fill: var(--bad-soft); stroke: var(--bad); stroke-width: 1.5; }
+  .it svg .cut { fill: var(--bad-soft); fill-opacity: 0.55; stroke: var(--bad); stroke-width: 1.5; stroke-dasharray: 5 3; }
+  .it svg .shade1 { fill: var(--ink); fill-opacity: 0.08; }
+  .it svg .shade2 { fill: var(--ink); fill-opacity: 0.18; }
+  .it svg text.lab { font-weight: 700; }
+</style>
+
+<script>
+  import { sqSum, sqDiff, diffSquares, xPlus, sqTriple, cubeBlocks, iso, termSum, type Model } from '../../lib/sci/identity-school';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, pair, val, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.it')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.it-fig');
+  const rows: Record<string, HTMLElement> = {}, box: Record<string, HTMLInputElement> = {};
+  root.querySelectorAll<HTMLElement>('.it-row').forEach((r) => { rows[r.dataset.v!] = r; });
+  for (const k of ['x', 'a', 'b', 'c']) { box[k] = q(`.it-${k}`); pair(rows[k].querySelector('input[type=range]')!, box[k], draw); }
+  q('.it-t').addEventListener('input', draw);
+  let mode = 'sum';
+  const NEED: Record<string, string[]> = { sum: ['a', 'b'], diff: ['a', 'b'], dsq: ['a', 'b', 't'], xab: ['x', 'a', 'b'], abc: ['a', 'b', 'c'], cube: ['a', 'b', 't'] };
+
+  function rects(m: Model, W: number, H: number, extra?: (k: number, ox: number, oy: number) => void) {
+    const k = Math.min(300 / W, 300 / H), ox = (340 - W * k) / 2, oy = (340 - H * k) / 2;
+    for (const r of m.rects) {
+      if (r.sign === -1) continue;
+      S('rect', { x: ox + r.x * k, y: oy + r.y * k, width: r.w * k, height: r.h * k, class: `t${r.tone}` }, fig);
+      if (r.w * k > 18 && r.h * k > 14) S('text', { x: ox + (r.x + r.w / 2) * k, y: oy + (r.y + r.h / 2) * k + 5, 'text-anchor': 'middle', class: 'lab' }, fig, r.label);
+    }
+    extra?.(k, ox, oy);
+    return { k, ox, oy };
+  }
+  const edge = (x1: number, y1: number, x2: number, y2: number, t: string, side: 'top' | 'left') =>
+    S('text', { x: side === 'top' ? (x1 + x2) / 2 : x1 - 6, y: side === 'top' ? y1 - 6 : (y1 + y2) / 2 + 4, 'text-anchor': side === 'top' ? 'middle' : 'end', class: 'sm-tick' }, fig, t);
+
+  function draw() {
+    for (const k in rows) rows[k].hidden = !NEED[mode].includes(k);
+    const x = val(box.x, 4, 0.01, 1000), a = val(box.a, 5, 0.01, 1000), b = val(box.b, 3, 0, 1000), c = val(box.c, 2, 0, 1000), t = Number(q<HTMLInputElement>('.it-t').value);
+    const err = q('.it-err'); err.hidden = true;
+    fig.replaceChildren();
+    const f = (v: number) => fmt(v, 3);
+    let id = '', sum = '', note = '';
+    if (mode === 'sum') {
+      const m = sqSum(a, b); id = `${m.lhs} = ${m.rhs}`;
+      const { k, ox, oy } = rects(m, a + b, a + b);
+      edge(ox, oy, ox + a * k, oy, `a = ${f(a)}`, 'top'); edge(ox + a * k, oy, ox + (a + b) * k, oy, `b = ${f(b)}`, 'top');
+      sum = `(${f(a)} + ${f(b)})² = ${f(a * a)} + 2 × ${f(a * b)} + ${f(b * b)} = ${f(termSum(m))}`;
+      note = 'A square of side a + b splits into a square a², a square b² and two a × b strips.';
+    } else if (mode === 'diff') {
+      if (b > a) { err.textContent = 'For this picture b must not be bigger than a.'; err.hidden = false; }
+      const bb = Math.min(b, a), m = sqDiff(a, bb), d = a - bb; id = `${m.lhs} = ${m.rhs}`;
+      const k = 300 / a, ox = 20, oy = 20;
+      S('rect', { x: ox, y: oy, width: a * k, height: a * k, class: 'sm-dash' }, fig);
+      S('rect', { x: ox, y: oy, width: d * k, height: d * k, class: 't0' }, fig);
+      S('rect', { x: ox + d * k, y: oy, width: bb * k, height: a * k, class: 'cut it-strip' }, fig);
+      S('rect', { x: ox, y: oy + d * k, width: a * k, height: bb * k, class: 'cut it-strip' }, fig);
+      if (d * k > 40) S('text', { x: ox + (d * k) / 2, y: oy + (d * k) / 2 + 5, 'text-anchor': 'middle', class: 'lab' }, fig, '(a − b)²');
+      if (bb * k > 22) { S('text', { x: ox + (d + bb / 2) * k, y: oy + (d / 2) * k, 'text-anchor': 'middle', class: 'lab' }, fig, '− ab'); S('text', { x: ox + (d / 2) * k, y: oy + (d + bb / 2) * k + 5, 'text-anchor': 'middle', class: 'lab' }, fig, '− ab'); S('text', { x: ox + (d + bb / 2) * k, y: oy + (d + bb / 2) * k + 5, 'text-anchor': 'middle', class: 'lab' }, fig, '+ b²'); }
+      edge(ox, oy, ox + a * k, oy, `a = ${f(a)}`, 'top');
+      sum = `(${f(a)} − ${f(bb)})² = ${f(a * a)} − 2 × ${f(a * bb)} + ${f(bb * bb)} = ${f(termSum(m))}`;
+      note = 'Start with a² (dashed). Cut off two a × b strips (red). Their shared corner b² was cut twice, so add it back once.';
+    } else if (mode === 'dsq') {
+      if (b > a) { err.textContent = 'For this picture b must not be bigger than a.'; err.hidden = false; }
+      const bb = Math.min(b, a), d = a - bb, m = diffSquares(a, bb); id = `${m.lhs} = ${m.rhs}`;
+      const k = 300 / (a + bb), ox = 20, oy = 20;
+      // a² with the corner b² removed: a top piece a × (a − b) and a moving piece (a − b) × b.
+      S('rect', { x: ox + d * k, y: oy + d * k, width: bb * k, height: bb * k, class: 'sm-dash it-gone' }, fig);
+      S('rect', { x: ox, y: oy, width: a * k, height: d * k, class: 't0' }, fig);
+      if (d * k > 16) S('text', { x: ox + (a / 2) * k, y: oy + (d / 2) * k + 5, 'text-anchor': 'middle', class: 'lab' }, fig, 'a(a − b)');
+      const tx = (1 - t) * 0 + t * (a + bb), ty = (1 - t) * d + t * 0, ang = 90 * t;
+      const g = S('g', { transform: `translate(${ox + tx * k},${oy + ty * k}) rotate(${ang})`, class: 'it-move' }, fig);
+      S('rect', { x: 0, y: 0, width: d * k, height: bb * k, class: 't1' }, g);
+      if (d * k > 30 && bb * k > 14) S('text', { x: (d * k) / 2, y: (bb * k) / 2 + 5, 'text-anchor': 'middle', class: 'lab' }, g, 'b(a − b)');
+      if (bb * k > 18) S('text', { x: ox + (d + bb / 2) * k, y: oy + (d + bb / 2) * k + 5, 'text-anchor': 'middle', class: 'sm-tick' }, fig, 'b² cut out');
+      q('.it-tl').textContent = '↔'; q('.it-tv').textContent = t < 0.01 ? 'a² − b²' : t > 0.99 ? '(a + b)(a − b)' : 'moving';
+      sum = `(${f(a)} + ${f(bb)})(${f(a)} − ${f(bb)}) = ${f(a + bb)} × ${f(d)} = ${f((a + bb) * d)} = ${f(a * a)} − ${f(bb * bb)}`;
+      note = 'Cut b² from the corner of a². Slide the strip that is left across and turn it: the L shape becomes a rectangle a + b long and a − b wide.';
+    } else if (mode === 'xab') {
+      const m = xPlus(x, a, b); id = `${m.lhs} = ${m.rhs}`;
+      const { k, ox, oy } = rects(m, x + a, x + b);
+      edge(ox, oy, ox + x * k, oy, `x = ${f(x)}`, 'top'); edge(ox + x * k, oy, ox + (x + a) * k, oy, `a = ${f(a)}`, 'top');
+      edge(ox, oy + x * k, ox, oy + (x + b) * k, `b = ${f(b)}`, 'left');
+      sum = `(${f(x)} + ${f(a)})(${f(x)} + ${f(b)}) = ${f(x * x)} + ${f(a + b)} × ${f(x)} + ${f(a * b)} = ${f(termSum(m))}`;
+      note = 'The two strips ax and bx together make (a + b)x, which is why the middle term is (a + b)x.';
+    } else if (mode === 'abc') {
+      const m = sqTriple(a, b, c); id = `${m.lhs} = ${m.rhs}`;
+      const { k, ox, oy } = rects(m, a + b + c, a + b + c);
+      edge(ox, oy, ox + a * k, oy, 'a', 'top'); edge(ox + a * k, oy, ox + (a + b) * k, oy, 'b', 'top'); edge(ox + (a + b) * k, oy, ox + (a + b + c) * k, oy, 'c', 'top');
+      sum = `(${f(a)} + ${f(b)} + ${f(c)})² = ${f(a * a)} + ${f(b * b)} + ${f(c * c)} + ${f(2 * a * b)} + ${f(2 * b * c)} + ${f(2 * c * a)} = ${f(termSum(m))}`;
+      note = 'Nine pieces: three squares on the diagonal and each product twice.';
+    } else {
+      id = '(a + b)³ = a³ + 3a²b + 3ab² + b³';
+      const B = cubeBlocks(a, b), gap = t * 0.45 * (a + b), s = a + b + gap;
+      // Fit the isometric drawing.
+      const corners = [[0, 0, 0], [s, 0, 0], [0, s, 0], [s, s, 0], [0, 0, s], [s, s, s], [s, 0, s], [0, s, s]].map(([X, Y, Z]) => iso(X, Y, Z));
+      const minX = Math.min(...corners.map((p) => p[0])), maxX = Math.max(...corners.map((p) => p[0])), minY = Math.min(...corners.map((p) => p[1])), maxY = Math.max(...corners.map((p) => p[1]));
+      const k = Math.min(300 / (maxX - minX), 300 / (maxY - minY)), ox = 170 - ((minX + maxX) / 2) * k, oy = 170 - ((minY + maxY) / 2) * k;
+      const P = (X: number, Y: number, Z: number) => { const [u, v] = iso(X, Y, Z); return `${(ox + u * k).toFixed(1)},${(oy + v * k).toFixed(1)}`; };
+      const placed = B.map((bl) => ({ ...bl, x: bl.x + (bl.x > 0 ? gap : 0), y: bl.y + (bl.y > 0 ? gap : 0), z: bl.z + (bl.z > 0 ? gap : 0) }));
+      placed.sort((p, r) => p.x + p.y + p.z - (r.x + r.y + r.z));
+      for (const bl of placed) {
+        const { x: X, y: Y, z: Z, w, d, h } = bl, cls = `t${bl.tone} it-block`;
+        const g = S('g', { 'data-l': bl.label }, fig);
+        const face = (pts: string, shade = '') => { S('polygon', { points: pts, class: cls }, g); if (shade) S('polygon', { points: pts, class: shade }, g); };
+        face(`${P(X, Y, Z + h)} ${P(X + w, Y, Z + h)} ${P(X + w, Y + d, Z + h)} ${P(X, Y + d, Z + h)}`);
+        face(`${P(X + w, Y, Z)} ${P(X + w, Y + d, Z)} ${P(X + w, Y + d, Z + h)} ${P(X + w, Y, Z + h)}`, 'shade1');
+        face(`${P(X, Y + d, Z)} ${P(X + w, Y + d, Z)} ${P(X + w, Y + d, Z + h)} ${P(X, Y + d, Z + h)}`, 'shade2');
+        if (t > 0.3) { const [u, v] = iso(X + w / 2, Y + d / 2, Z + h); S('text', { x: ox + u * k, y: oy + v * k + 5, 'text-anchor': 'middle', class: 'lab' }, g, bl.label); }
+      }
+      q('.it-tl').textContent = '↕'; q('.it-tv').textContent = t < 0.01 ? 'whole cube' : 'pulled apart';
+      sum = `(${f(a)} + ${f(b)})³ = ${f(a ** 3)} + 3 × ${f(a * a * b)} + 3 × ${f(a * b * b)} + ${f(b ** 3)} = ${f(a ** 3 + 3 * a * a * b + 3 * a * b * b + b ** 3)}`;
+      note = 'A cube of side a + b cut into 8 blocks: one a³, three a²b, three ab² and one b³. Slide to pull them apart.';
+    }
+    q('.it-id').textContent = id; q('.it-sum').textContent = sum; q('.it-note').textContent = note;
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.it-pick button').forEach((btn) => btn.addEventListener('click', () => {
+    mode = btn.dataset.m!; root.querySelectorAll('.it-pick button').forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
+    q<HTMLInputElement>('.it-t').value = mode === 'cube' ? '0.5' : '0';
+    draw();
+  }));
+  draw();
+
+  quiz(q('.it-quiz'), () => {
+    const out: Question[] = [];
+    const n1 = randInt(1, 9), base = [10, 100][randInt(0, 1)];
+    out.push({ q: `Work out ${base + n1}² using (a + b)².`, want: [(base + n1) ** 2], work: `(${base} + ${n1})² = ${base * base} + 2 × ${base} × ${n1} + ${n1 * n1} = ${(base + n1) ** 2}.` });
+    const n2 = randInt(1, 9);
+    out.push({ q: `Work out ${base - n2}² using (a − b)².`, want: [(base - n2) ** 2], work: `(${base} − ${n2})² = ${base * base} − 2 × ${base} × ${n2} + ${n2 * n2} = ${(base - n2) ** 2}.` });
+    const n3 = randInt(1, 9);
+    out.push({ q: `Work out ${base + n3} × ${base - n3} using (a + b)(a − b).`, want: [base * base - n3 * n3], work: `(${base} + ${n3})(${base} − ${n3}) = ${base}² − ${n3}² = ${base * base} − ${n3 * n3} = ${base * base - n3 * n3}.` });
+    const p = randInt(1, 6), r = randInt(1, 6);
+    out.push({ q: `x² + ${p + r}x + ${p * r} = (x + p)(x + q). Find p and q.`, want: [p, r], hint: 'p, q', work: `p + q = ${p + r} and pq = ${p * r}, so p and q are ${p} and ${r}: (x + ${p})(x + ${r}).` });
+    const s = randInt(3, 9), pr = randInt(1, Math.floor((s * s) / 4));
+    out.push({ q: `If a + b = ${s} and ab = ${pr}, what is a² + b²?`, want: [s * s - 2 * pr], work: `(a + b)² = a² + 2ab + b², so a² + b² = ${s}² − 2 × ${pr} = ${s * s} − ${2 * pr} = ${s * s - 2 * pr}.` });
+    return out;
+  });
+</script>
