@@ -1,0 +1,181 @@
+---
+// Rutherford gold foil simulator (Learn): alpha particles fired at a tiny nucleus or at a "plum pudding" atom;
+// most go through, a few bounce back. One-particle view: impact parameter, scattering angle, closest approach.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn rsc">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <div class="ax-seg rs-model" role="group" aria-label="Model of the atom"><button type="button" data-m="nucleus" aria-pressed="true">Nucleus</button><button type="button" data-m="pudding" aria-pressed="false">Plum pudding</button></div>
+      <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="9" aria-pressed="true">Class 9</button><button type="button" data-level="12" aria-pressed="false">Class 12</button></div>
+    </div>
+    <div class="ax-seg rs-view" role="group" aria-label="What to fire" style="margin-top:8px"><button type="button" data-v="beam" aria-pressed="true">A beam</button><button type="button" data-v="one" aria-pressed="false">One particle</button></div>
+    <canvas class="lrn-cv rs-cv" style="margin-top:10px" aria-label="Alpha particles flying past an atom; most go straight on, a few are turned back"></canvas>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small rs-play">Pause</button>
+      <button type="button" class="btn secondary small rs-zero">Reset counts</button>
+    </div>
+    <dl class="ax-facts rs-counts" style="margin-top:10px"></dl>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Foil <select class="rs-t"></select></label>
+      <label class="lrn-sl">Alpha particle energy <b class="rs-Kv"></b><input type="range" class="rs-K" min="1" max="10" step="0.5" value="5" aria-label="Alpha particle energy in MeV" /></label>
+      <label class="lrn-sl rs-bl" hidden>Aim off-centre by b <b class="rs-bv"></b><input type="range" class="rs-b" min="0" max="5" step="0.05" value="1" aria-label="Impact parameter in units of the head-on distance" /></label>
+    </div>
+    <p class="lrn-eq rs-eq"></p>
+    <dl class="ax-facts rs-facts" style="margin-top:10px"></dl>
+    <p class="ax-help">Not to scale: a real gold atom is about 3,000 times wider than the closest an alpha particle gets to its nucleus, so in a real foil almost every particle misses the nucleus by a long way. Here the picture zooms in on the nucleus so you can see the paths bend. The nucleus is treated as a fixed point charge.</p>
+  </div>
+
+  <div class="ax-card rs-graph-card" data-only="12" hidden>
+    <h2>Angle against aim</h2>
+    <canvas class="lrn-cv rs-gr" aria-label="Graph of scattering angle against impact parameter"></canvas>
+    <p class="ax-help">tan(θ/2) = d / 2b. Aim straight at the nucleus (b = 0) and the particle comes straight back (180°); aim off by half the head-on distance and it turns through 90°.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Fire the beam at the plum pudding atom: its positive charge is spread out, so every particle goes almost straight through.</li>
+      <li>Switch to the nucleus: most still go nearly straight, but the few that come close are turned sharply, some right back.</li>
+      <li>Use faster alpha particles (higher energy): they get closer to the nucleus and fewer are turned back.</li>
+      <li>Change the foil from gold to aluminium: a smaller charge pushes less, so the paths bend less.</li>
+      <li>On Class 12, fire one particle and slide its aim: find the aim that turns it through exactly 90°.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card rs-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { TARGETS, headOn, angleFromB, closest, path } from '../../lib/sci/learnrutherford';
+  import { mountQuiz, pick, one, r, fitCanvas, wireLevel, loop } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.rsc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v_ = (c: string) => +q<HTMLInputElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const tSel = q<HTMLSelectElement>('.rs-t'); TARGETS.forEach((t) => tSel.add(new Option(`${t.name} (Z = ${t.Z})`, t.id)));
+  const WIN = 12, BMAX = 12, cache = new Map<number, ReturnType<typeof path>>();
+  // Paths are in units of the head-on distance d. With a fixed view of the nucleus in units of gold at 5 MeV, a
+  // different foil or energy rescales d, which is the same as rescaling the aim b: b/d.
+  const dRef = headOn(79, 5);
+  const pathFor = (bOverD: number) => { const k = Math.round(bOverD * 50) / 50; let p = cache.get(k); if (!p) { p = path(k, WIN * 4); cache.set(k, p); } return p; };
+  let model = 'nucleus', view = 'beam', level = '9', counts = [0, 0, 0];
+  type Shot = { b: number; i: number; pts: [number, number][]; angle: number };
+  let shots: Shot[] = [], spawn = 0;
+  const st = () => { const t = TARGETS.find((x) => x.id === tSel.value)!, K = v_('.rs-K'), d = headOn(t.Z, K); return { t, K, d, scale: d / dRef }; };
+  const deg = (a: number) => (a * 180) / Math.PI;
+
+  function fire(bView: number) {
+    const s = st(), bd = bView / s.scale; // aim in units of this d
+    if (model === 'pudding' || Math.abs(bd) > 40) { shots.push({ b: bView, i: 0, pts: [[-WIN, bView], [WIN, bView]], angle: 0 }); return; }
+    const p = pathFor(Math.abs(bd)), sg = bView < 0 ? -1 : 1;
+    shots.push({ b: bView, i: 0, pts: p.pts.map(([x, y]) => [x * s.scale, sg * y * s.scale] as [number, number]), angle: p.angle });
+  }
+
+  function draw(dt: number) {
+    const pal = pagePalette(), s = st(), { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.rs-cv'), 260), sc = Math.min(W, H) / (2 * WIN) * 0.95;
+    const X = (x: number) => W / 2 + x * sc, Y = (y: number) => H / 2 - y * sc;
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const hi = pal.red ? pal.ink : pal.accent, hi2 = pal.red ? pal.muted : pal.accent2;
+    if (model === 'pudding') {
+      ctx.fillStyle = pal.grid; ctx.beginPath(); ctx.arc(W / 2, H / 2, H * 0.42, 0, 7); ctx.fill();
+      ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center';
+      for (let i = 0; i < 14; i++) { const a = i * 2.39996, rr = H * 0.38 * Math.sqrt((i + 0.5) / 14); ctx.fillText('−', W / 2 + rr * Math.cos(a), H / 2 + rr * Math.sin(a) + 4); }
+      ctx.fillText('positive charge spread through the whole atom', W / 2, H - 6);
+    } else {
+      ctx.fillStyle = hi2; ctx.beginPath(); ctx.arc(X(0), Y(0), 5, 0, 7); ctx.fill();
+      ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(`${s.t.name} nucleus (+${s.t.Z}e)`, X(0), Y(0) + 20);
+    }
+    if (view === 'beam') {
+      if (dt > 0) { spawn += dt * 6; while (spawn > 1) { spawn--; fire((Math.random() * 2 - 1) * BMAX); } }
+      ctx.lineWidth = 1.5;
+      shots = shots.filter((sh) => {
+        const pts = sh.pts, straight = pts.length < 3;
+        sh.i += dt * (straight ? 0.5 : 40);
+        const n = straight ? Math.min(1, sh.i) : Math.min(pts.length - 1, Math.floor(sh.i));
+        ctx.strokeStyle = pal.line; ctx.beginPath();
+        if (straight) { ctx.moveTo(X(-WIN), Y(sh.b)); ctx.lineTo(X(-WIN + 2 * WIN * n), Y(sh.b)); }
+        else pts.slice(0, n + 1).forEach(([x, y], k) => (k ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y))));
+        ctx.stroke();
+        const [hx, hy] = straight ? [-WIN + 2 * WIN * n, sh.b] : pts[n];
+        ctx.fillStyle = hi; ctx.beginPath(); ctx.arc(X(hx), Y(hy), 3, 0, 7); ctx.fill();
+        const done = straight ? n >= 1 : n >= pts.length - 1;
+        if (done) { const a = deg(sh.angle); counts[a < 10 ? 0 : a < 90 ? 1 : 2]++; tally(); }
+        return !done;
+      });
+    } else {
+      const bv = v_('.rs-b'), p = model === 'pudding' ? null : pathFor(bv);
+      const bdisp = bv * s.scale;
+      ctx.strokeStyle = pal.line; ctx.setLineDash([3, 4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(-WIN), Y(bdisp)); ctx.lineTo(X(WIN), Y(bdisp)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = hi; ctx.lineWidth = 2.5; ctx.beginPath();
+      if (p) p.pts.forEach(([x, y], k) => (k ? ctx.lineTo(X(x * s.scale), Y(y * s.scale)) : ctx.moveTo(X(x * s.scale), Y(y * s.scale))));
+      else { ctx.moveTo(X(-WIN), Y(bdisp)); ctx.lineTo(X(WIN), Y(bdisp)); }
+      ctx.stroke();
+      if (p) { ctx.strokeStyle = pal.muted; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.arc(X(0), Y(0), closest(bv, 1) * s.scale * sc, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.font = '12px system-ui, sans-serif'; ctx.fillText('b', X(-WIN) + 4, Y(bdisp) - 6);
+    }
+  }
+
+  function tally() {
+    const n = counts[0] + counts[1] + counts[2], pc = (k: number) => (n ? `that is ${Math.round((counts[k] / n) * 100)}%` : 'none yet');
+    q('.rs-counts').replaceChildren(fact('Almost straight (under 10°)', String(counts[0]), pc(0)), fact('Turned 10° to 90°', String(counts[1]), pc(1)), fact('Bounced back (over 90°)', String(counts[2]), pc(2)));
+  }
+
+  function graph() {
+    if (level !== '12') return;
+    const pal = pagePalette(), { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.rs-gr'), 190), gx = 36, gy = 8, gw = W - 46, gh = H - 40, s = st();
+    const X = (b: number) => gx + (b / 5) * gw, Y = (a: number) => gy + gh - (a / 180) * gh;
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(gx, gy, gw, gh);
+    ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'right';
+    for (const a of [0, 90, 180]) { ctx.fillText(`${a}°`, gx - 4, Y(a) + 4); ctx.beginPath(); ctx.moveTo(gx, Y(a)); ctx.lineTo(gx + gw, Y(a)); ctx.stroke(); }
+    ctx.textAlign = 'center'; for (const b of [0, 1, 2, 3, 4, 5]) ctx.fillText(String(b), X(b), gy + gh + 13);
+    ctx.fillText(`aim b, in units of d (d = ${sig(s.d, 3)} fm)`, gx + gw / 2, H - 4);
+    ctx.strokeStyle = pal.red ? pal.ink : pal.accent; ctx.lineWidth = 2; ctx.beginPath();
+    for (let px = 0; px <= gw; px += 2) { const b = (px / gw) * 5, a = deg(angleFromB(Math.max(b, 1e-9), 1)); if (px) ctx.lineTo(gx + px, Y(a)); else ctx.moveTo(gx, Y(a)); }
+    ctx.stroke();
+    const b = v_('.rs-b'); ctx.fillStyle = pal.red ? pal.muted : pal.accent2; ctx.beginPath(); ctx.arc(X(b), Y(deg(angleFromB(Math.max(b, 1e-9), 1))), 5, 0, 7); ctx.fill();
+  }
+
+  function update() {
+    const s = st(), b = v_('.rs-b'), th = deg(angleFromB(Math.max(b, 1e-9), 1));
+    q('.rs-Kv').textContent = `${s.K.toFixed(1)} MeV`; q('.rs-bv').textContent = `${b.toFixed(2)} d = ${sig(b * s.d, 3)} fm`;
+    q('.rs-bl').hidden = view !== 'one'; q('.rs-zero').hidden = view !== 'beam'; q('.rs-counts').hidden = view !== 'beam';
+    if (level === '12') {
+      q('.rs-eq').textContent = `Head-on, the alpha particle stops where its energy is all electric: d = k(2e)(Ze) / K = 1.44 MeV fm × 2 × ${s.t.Z} / ${s.K} MeV = ${sig(s.d, 4)} fm.` + (view === 'one' ? `  With aim b = ${sig(b * s.d, 3)} fm: tan(θ/2) = d / 2b, so θ = ${model === 'pudding' ? 'almost 0' : sig(th, 4)}°.` : '');
+      q('.rs-facts').replaceChildren(fact('Head-on closest approach d', `${sig(s.d, 4)} fm`, `1 fm = 10⁻¹⁵ m; the gold nucleus is about 7 fm across`), ...(view === 'one' && model === 'nucleus' ? [fact('Scattering angle θ', `${sig(th, 4)}°`), fact('Closest approach', `${sig(closest(b, 1) * s.d, 4)} fm`, '(d/2)(1 + √(1 + (2b/d)²))')] : []));
+    } else {
+      q('.rs-eq').textContent = model === 'pudding' ? 'Plum pudding: the positive charge is spread thinly through the whole atom, so its push is weak everywhere and no alpha particle is turned much.' : `Nucleus: all the positive charge (${s.t.Z} protons for ${s.t.name.toLowerCase()}) is packed in a tiny centre. Far from it the push is weak, so most particles fly almost straight; the few that come close are pushed hard and turned sharply, some right back.`;
+      q('.rs-facts').replaceChildren();
+    }
+    graph(); anim.redraw();
+  }
+
+  const anim = loop(draw, q<HTMLButtonElement>('.rs-play'));
+  const seg = (cls: string, set: (v: string) => void) => root.querySelectorAll<HTMLButtonElement>(`${cls} button`).forEach((b) => b.addEventListener('click', () => { root.querySelectorAll(`${cls} button`).forEach((x) => x.setAttribute('aria-pressed', String(x === b))); set(b.dataset.m ?? b.dataset.v!); shots = []; counts = [0, 0, 0]; tally(); update(); }));
+  seg('.rs-model', (v) => { model = v; }); seg('.rs-view', (v) => { view = v; });
+  q('.rs-zero').addEventListener('click', () => { counts = [0, 0, 0]; shots = []; tally(); });
+  [tSel, q('.rs-K')].forEach((e) => e.addEventListener('input', () => { shots = []; counts = [0, 0, 0]; tally(); update(); }));
+  q('.rs-b').addEventListener('input', update);
+  wireLevel(root, (l) => { level = l; update(); });
+  addEventListener('resize', () => { graph(); anim.redraw(); });
+  tally();
+
+  mountQuiz(q('.rs-quiz'), () => {
+    const K = one([4, 5, 6, 7.7, 8]), t = one(TARGETS.slice(0, 2)), x = one([0.25, 0.5, 1, 2]);
+    const d = 1.44 * 2 * t.Z / K, th = deg(angleFromB(x, 1));
+    return [
+      { q: `An alpha particle of ${K} MeV heads straight at a ${t.name.toLowerCase()} nucleus (Z = ${t.Z}). How close does it get, in fm? (k e² = 1.44 MeV fm)`, ans: d, unit: 'fm', work: `d = k(2e)(Ze)/K = 1.44 × 2 × ${t.Z} / ${K} = ${r(d)} fm` },
+      { q: `An alpha particle is aimed ${x} d off-centre (d = head-on distance). Through what angle is it turned, in degrees?`, ans: th, unit: '°', work: `tan(θ/2) = d / 2b = 1 / (2 × ${x}) = ${r(1 / (2 * x))}, so θ = 2 × ${r(th / 2)}° = ${r(th)}°` },
+      { q: 'Most alpha particles went straight through the gold foil. What did this show?', ans: 1, choices: ['Atoms are solid all through', 'Most of an atom is empty space', 'Alpha particles have no charge'], work: 'Most particles met nothing to push them, so most of the atom must be empty space.' },
+      { q: 'A very few alpha particles bounced straight back. What did this show?', ans: 0, choices: ['The positive charge and mass are packed in a tiny nucleus', 'Electrons are very heavy', 'The foil was too thick'], work: 'Only a tiny, heavy, highly charged centre could push a fast alpha particle right back: the nucleus.' },
+      { q: 'If the alpha particles have twice the energy, the head-on closest approach…', ans: 2, choices: ['Doubles', 'Stays the same', 'Halves'], work: 'd = k(2e)(Ze)/K, so twice the energy K gives half the distance.' },
+    ];
+  });
+</script>
