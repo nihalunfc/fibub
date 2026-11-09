@@ -1,0 +1,246 @@
+---
+// Fleming's left-hand rule: field, current and force arrows on a wire between magnet poles (drag to turn the view),
+// F = B I L sin θ, and a DC motor with a split-ring commutator. Everything runs in the browser.
+import '../../styles/astro.css';
+---
+<div class="ax flr">
+  <div class="ax-card">
+    <h2>Force on a wire in a magnetic field</h2>
+    <div class="ax-row">
+      <span class="ax-seg flr-level" role="group" aria-label="Level"><button type="button" data-v="10" aria-pressed="true">Class 10</button><button type="button" data-v="12" aria-pressed="false">Class 12</button></span>
+      <button type="button" class="btn secondary small flr-swap">Swap the poles</button>
+      <button type="button" class="btn secondary small flr-rev">Reverse the current</button>
+    </div>
+    <canvas class="ax-fig flr-fig" style="margin-top:10px"></canvas>
+    <div class="ax-legend"><span><i class="flr-kb"></i>B: field (First finger)</span><span><i class="flr-ki"></i>I: current (seCond finger)</span><span><i class="flr-kf"></i>F: force, motion (thuMb)</span></div>
+    <p class="ax-help">Drag the picture to turn it round and look from any side.</p>
+    <label class="flr-sl">Field strength B: <b class="flr-bv">0.50 T</b><input type="range" class="flr-b" min="0" max="1" step="0.05" value="0.5" aria-label="Field strength" /></label>
+    <label class="flr-sl">Current I: <b class="flr-iv">3.0 A</b><input type="range" class="flr-i" min="0" max="10" step="0.5" value="3" aria-label="Current" /></label>
+    <label class="flr-sl">Length of wire in the field L: <b class="flr-lv">10 cm</b><input type="range" class="flr-l" min="5" max="50" step="5" value="10" aria-label="Length" /></label>
+    <label class="flr-sl">Angle between wire and field θ: <b class="flr-tv">90°</b><input type="range" class="flr-t" min="0" max="180" step="5" value="90" aria-label="Angle between wire and field" /></label>
+    <p class="ax-big flr-big" aria-live="polite"></p>
+    <p class="flr-formula"></p>
+    <p class="ax-help flr-vec" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The DC motor</h2>
+    <div class="ax-row">
+      <button type="button" class="btn small flr-play">Pause</button>
+      <label class="ax-check"><input type="checkbox" class="flr-ring" checked /> Split-ring commutator</label>
+    </div>
+    <canvas class="ax-fig flr-mot" style="margin-top:10px"></canvas>
+    <label class="flr-sl">Coil angle: <b class="flr-av">0°</b><input type="range" class="flr-a" min="0" max="359" step="1" value="0" aria-label="Coil angle" /></label>
+    <canvas class="ax-fig flr-tq" style="margin-top:6px"></canvas>
+    <p class="flr-mtext" aria-live="polite"></p>
+    <p class="ax-help">The coil has 50 turns and is 5 cm by 5 cm, in the field B and with the current I set above. The angle is measured from the coil lying flat along the field.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="flr-try">
+      <li>Swap the poles, then reverse the current. Each one flips the force; doing both puts it back.</li>
+      <li>Slide θ to 0°: a wire along the field feels no force at all.</li>
+      <li>Hold your left hand as the legend says and turn the picture until your fingers match the arrows.</li>
+      <li>Untick the split ring: the coil only rocks to and fro, because the turning effect changes sign every half turn.</li>
+      <li>Stop the motor and slide the coil angle to 90°: the coil is upright and the turning effect is zero there, so the coil's own momentum carries it past.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="flr-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .flr .flr-sl { display: grid; gap: 6px; margin-top: 10px; color: var(--ink); font-size: 15px; }
+  .flr input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .flr .ax-seg button { min-height: 40px; padding: 8px 14px; }
+  .flr-fig { max-width: 480px; margin-left: auto; margin-right: auto; touch-action: none; cursor: grab; }
+  .flr-mot, .flr-tq { max-width: 480px; margin-left: auto; margin-right: auto; }
+  .flr-kb { background: var(--accent); }
+  .flr-ki { background: var(--warn); }
+  .flr-kf { background: var(--bad); }
+  .flr-big { font-size: clamp(18px, 4.6vw, 24px); margin: 12px 0 0; }
+  .flr-formula, .flr-mtext { margin: 6px 0 0; font-size: 16px; overflow-wrap: anywhere; }
+  .flr-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .flr .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .flr .eq-q p { margin: 0 0 6px; }
+  .flr .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .flr .eq-ok { color: var(--good); font-weight: 600; }
+  .flr .eq-no { color: var(--bad); }
+  .flr .eq-work { margin-top: 4px; font-size: 14px; }
+  .flr .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .flr .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { wireForce, project, torque, commutated, questions, type V3 } from '../../lib/sci/fleming';
+  import { pagePalette, type Palette } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+  import { quiz } from '../../lib/elec-quiz-ui';
+
+  const root = document.querySelector<HTMLElement>('.flr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fig = q<HTMLCanvasElement>('.flr-fig'), mot = q<HTMLCanvasElement>('.flr-mot'), tq = q<HTMLCanvasElement>('.flr-tq');
+  const sg = (x: number, n = 3) => sig(x, n);
+  const val = (c: string) => +q<HTMLInputElement>(c).value;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const N = 50, A = 0.05 * 0.05;
+  let level = 10, bSign = 1, iSign = 1, yaw = -35, pitch = 22, angle = 0, playing = !reduce, last = 0;
+
+  function setup(c: HTMLCanvasElement, w: number, h: number) {
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    if (c.width !== Math.round(w * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c.style.aspectRatio = `${w} / ${h}`; }
+    const x = c.getContext('2d')!; x.setTransform(dpr, 0, 0, dpr, 0, 0); return x;
+  }
+  const arrow = (c: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, col: string, w = 3) => {
+    const L = Math.hypot(x1 - x0, y1 - y0); if (L < 2) return;
+    const ux = (x1 - x0) / L, uy = (y1 - y0) / L;
+    c.strokeStyle = col; c.fillStyle = col; c.lineWidth = w; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1 - 8 * ux, y1 - 8 * uy); c.stroke();
+    c.beginPath(); c.moveTo(x1, y1); c.lineTo(x1 - 11 * ux - 5 * uy, y1 - 11 * uy + 5 * ux); c.lineTo(x1 - 11 * ux + 5 * uy, y1 - 11 * uy - 5 * ux); c.closePath(); c.fill();
+  };
+  const state = () => wireForce(val('.flr-b'), iSign * val('.flr-i'), val('.flr-l') / 100, val('.flr-t'), bSign);
+
+  // 3D picture: two pole blocks, field lines, the wire, and the B, I, F arrows.
+  const W = 360, H = 300;
+  function draw3d() {
+    const pal = pagePalette(), c = setup(fig, W, H), s = state();
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    const P = (p: V3) => { const [x, y] = project(p, yaw, pitch, 70); return [W / 2 + x, H / 2 + y] as [number, number]; };
+    const line = (a: V3, b: V3, col: string, w = 1, dash: number[] = []) => { const [x0, y0] = P(a), [x1, y1] = P(b); c.strokeStyle = col; c.lineWidth = w; c.setLineDash(dash); c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke(); c.setLineDash([]); };
+    // Pole blocks as boxes (edges), N where the field starts.
+    const block = (x0: number, x1: number, label: string, col: string) => {
+      const v: V3[] = []; for (const x of [x0, x1]) for (const y of [-0.8, 0.8]) for (const z of [-0.8, 0.8]) v.push([x, y, z]);
+      const e = [[0, 1], [0, 2], [1, 3], [2, 3], [4, 5], [4, 6], [5, 7], [6, 7], [0, 4], [1, 5], [2, 6], [3, 7]];
+      for (const [a, b] of e) line(v[a], v[b], col, 1.5);
+      const [lx, ly] = P([(x0 + x1) / 2, 0.95, 0]); c.fillStyle = col; c.font = '700 16px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(label, lx, ly);
+    };
+    block(-1.9, -1.5, bSign > 0 ? 'N' : 'S', bSign > 0 ? pal.bad : pal.accent);
+    block(1.5, 1.9, bSign > 0 ? 'S' : 'N', bSign > 0 ? pal.accent : pal.bad);
+    // Field lines.
+    if (s.Bv[0] !== 0) for (const y of [-0.5, 0.5]) for (const z of [-0.5, 0.5]) { const [x0, y0] = P([-1.45 * bSign, y, z]), [x1, y1] = P([1.45 * bSign, y, z]); arrow(c, x0, y0, x1, y1, pal.accent, 1.2); }
+    // Wire through the middle.
+    const d = s.dir;
+    line([-1.3 * d[0], 0, -1.3 * d[2]], [1.3 * d[0], 0, 1.3 * d[2]], pal.ink, 5);
+    if (s.IL[0] || s.IL[2]) { const sg1 = iSign; const [x0, y0] = P([-0.4 * sg1 * d[0], 0, -0.4 * sg1 * d[2]]), [x1, y1] = P([0.9 * sg1 * d[0], 0, 0.9 * sg1 * d[2]]); arrow(c, x0, y0, x1, y1, pal.warn, 4); const [lx, ly] = P([1.05 * sg1 * d[0], 0.15, 1.05 * sg1 * d[2]]); c.fillStyle = pal.warn; c.font = '700 14px system-ui, sans-serif'; c.fillText('I', lx, ly); }
+    // Force arrow from the middle, its length growing with the force.
+    const Fy = s.F[1];
+    if (Math.abs(Fy) > 1e-12) { const len = 0.5 + 0.7 * Math.min(1, s.size / 0.5), [x0, y0] = P([0, 0, 0]), [x1, y1] = P([0, Math.sign(Fy) * len, 0]); arrow(c, x0, y0, x1, y1, pal.bad, 5); const [lx, ly] = P([0.15, Math.sign(Fy) * (len + 0.15), 0]); c.fillStyle = pal.bad; c.font = '700 14px system-ui, sans-serif'; c.fillText('F', lx, ly); }
+    const [bx, by] = P([0, -0.6, 0.9]); c.fillStyle = pal.accent; c.font = '700 14px system-ui, sans-serif'; c.fillText('B', bx, by);
+    fig.setAttribute('aria-label', `Wire between magnet poles; force ${Fy > 0 ? 'up' : Fy < 0 ? 'down' : 'zero'}`);
+  }
+
+  // Motor: end-on view of the coil between the poles, the split ring and the brushes.
+  const MW = 360, MH = 270;
+  function drawMotor() {
+    const pal = pagePalette(), c = setup(mot, MW, MH), B = val('.flr-b'), I = val('.flr-i'), ring = q<HTMLInputElement>('.flr-ring').checked;
+    c.fillStyle = pal.bg; c.fillRect(0, 0, MW, MH);
+    const cx = 180, cy = 110, r = 62, a = (angle * Math.PI) / 180;
+    // Pole faces and field.
+    c.fillStyle = bSign > 0 ? pal.bad : pal.accent; c.globalAlpha = 0.3; c.fillRect(20, 30, 40, 160); c.fillStyle = bSign > 0 ? pal.accent : pal.bad; c.fillRect(300, 30, 40, 160); c.globalAlpha = 1;
+    c.fillStyle = pal.ink; c.font = '700 16px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(bSign > 0 ? 'N' : 'S', 40, 115); c.fillText(bSign > 0 ? 'S' : 'N', 320, 115);
+    if (B > 0) for (const y of [50, 80, 140, 170]) arrow(c, bSign > 0 ? 66 : 294, y, bSign > 0 ? 294 : 66, y, pal.grid, 1.2);
+    // Coil: a line through the centre, sides 1 and 2 at its ends.
+    const s1x = cx + r * Math.cos(a), s1y = cy - r * Math.sin(a), s2x = cx - r * Math.cos(a), s2y = cy + r * Math.sin(a);
+    c.strokeStyle = pal.ink; c.lineWidth = 3; c.beginPath(); c.moveTo(s1x, s1y); c.lineTo(s2x, s2y); c.stroke();
+    // Current in side 1: out of the screen when the ring sends it that way.
+    const sgn1 = ring ? commutated(angle + 90) * iSign : iSign;
+    const side = (x: number, y: number, out: boolean, lab: string) => {
+      c.fillStyle = pal.bg; c.strokeStyle = pal.warn; c.lineWidth = 2; c.beginPath(); c.arc(x, y, 9, 0, Math.PI * 2); c.fill(); c.stroke();
+      c.fillStyle = pal.warn; if (out) { c.beginPath(); c.arc(x, y, 3, 0, Math.PI * 2); c.fill(); } else { c.beginPath(); c.moveTo(x - 5, y - 5); c.lineTo(x + 5, y + 5); c.moveTo(x + 5, y - 5); c.lineTo(x - 5, y + 5); c.stroke(); }
+      c.fillStyle = pal.muted; c.font = '12px system-ui, sans-serif'; c.fillText(lab, x + 16, y - 10);
+    };
+    // Force on a side: current out (+z) with B along +x gives F up (+y), so F_y = sign(current) × bSign.
+    if (I > 0 && B > 0) {
+      const f1 = sgn1 * bSign, L = 18 + 22 * Math.min(1, (B * I) / 5);
+      arrow(c, s1x, s1y - f1 * 11, s1x, s1y - f1 * (11 + L), pal.bad, 3);
+      arrow(c, s2x, s2y + f1 * 11, s2x, s2y + f1 * (11 + L), pal.bad, 3);
+    }
+    side(s1x, s1y, sgn1 > 0, 'A'); side(s2x, s2y, sgn1 < 0, 'B');
+    c.fillStyle = pal.ink; c.beginPath(); c.arc(cx, cy, 3, 0, Math.PI * 2); c.fill();
+    // Split ring (or slip rings) below, turning with the coil; brushes left and right.
+    const ry = 232, rr = 18;
+    c.lineWidth = 6;
+    if (ring) {
+      const g = 0.25;
+      c.strokeStyle = pal.warn; c.beginPath(); c.arc(cx, ry, rr, -a - Math.PI / 2 + g, -a + Math.PI / 2 - g); c.stroke();
+      c.strokeStyle = pal.muted; c.beginPath(); c.arc(cx, ry, rr, -a + Math.PI / 2 + g, -a + (3 * Math.PI) / 2 - g); c.stroke();
+    } else { c.strokeStyle = pal.muted; c.beginPath(); c.arc(cx, ry, rr, 0, Math.PI * 2); c.stroke(); }
+    c.fillStyle = pal.ink; c.fillRect(cx - rr - 16, ry - 5, 12, 10); c.fillRect(cx + rr + 4, ry - 5, 12, 10);
+    c.font = '12px system-ui, sans-serif'; c.textAlign = 'right'; c.fillText('brush +', cx - rr - 20, ry + 4); c.textAlign = 'left'; c.fillText('brush −', cx + rr + 20, ry + 4);
+    c.textAlign = 'center'; c.fillStyle = pal.muted; c.fillText(ring ? 'split ring' : 'plain rings: no switching', cx, ry - rr - 8);
+    mot.setAttribute('aria-label', `DC motor coil at ${Math.round(angle)} degrees`);
+  }
+  // Turning effect against angle, with and without the split ring.
+  function drawTorque() {
+    const pal = pagePalette(), c = setup(tq, 360, 150), B = val('.flr-b'), I = val('.flr-i'), ring = q<HTMLInputElement>('.flr-ring').checked;
+    c.fillStyle = pal.bg; c.fillRect(0, 0, 360, 150);
+    const ML = 40, MR = 10, top = 12, h = 110, X = (d: number) => ML + (d / 360) * (360 - ML - MR), Y = (t: number) => top + h / 2 - (t / Math.max(1e-9, N * B * I * A)) * (h / 2 - 6);
+    c.strokeStyle = pal.grid; c.lineWidth = 1; for (const d of [0, 90, 180, 270, 360]) { c.beginPath(); c.moveTo(X(d), top); c.lineTo(X(d), top + h); c.stroke(); }
+    c.strokeStyle = pal.line; c.beginPath(); c.moveTo(ML, Y(0)); c.lineTo(360 - MR, Y(0)); c.stroke();
+    c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'center'; for (const d of [0, 90, 180, 270, 360]) c.fillText(`${d}°`, X(d), top + h + 13);
+    c.save(); c.translate(11, top + h / 2); c.rotate(-Math.PI / 2); c.fillText('turning effect', 0, 0); c.restore();
+    const curve = (f: (d: number) => number, col: string, dash: number[]) => { c.strokeStyle = col; c.lineWidth = 2; c.setLineDash(dash); c.beginPath(); for (let d = 0; d <= 360; d += 3) { const y = Y(f(d)); d ? c.lineTo(X(d), y) : c.moveTo(X(d), y); } c.stroke(); c.setLineDash([]); };
+    const raw = (d: number) => iSign * bSign * torque(N, B, I, A, d + 90);
+    curve(raw, pal.muted, [4, 4]);
+    if (ring) curve((d) => commutated(d + 90) * raw(d), pal.accent, []);
+    const now = ring ? commutated(angle + 90) * raw(angle) : raw(angle);
+    c.fillStyle = pal.bad; c.beginPath(); c.arc(X(angle), Y(now), 5, 0, Math.PI * 2); c.fill();
+    tq.setAttribute('aria-label', 'Turning effect against coil angle');
+    return now;
+  }
+
+  function texts() {
+    const s = state(), B = val('.flr-b'), I = val('.flr-i'), L = val('.flr-l'), t = val('.flr-t');
+    q('.flr-bv').textContent = `${B.toFixed(2)} T`; q('.flr-iv').textContent = `${I.toFixed(1)} A`; q('.flr-lv').textContent = `${L} cm`; q('.flr-tv').textContent = `${t}°`;
+    const Fy = s.F[1], dirWord = Math.abs(Fy) < 1e-12 ? 'no force' : Fy > 0 ? 'upwards' : 'downwards';
+    q('.flr-big').textContent = Math.abs(Fy) < 1e-12 ? 'F = 0 N: no force' : `F = ${sg(s.size)} N, ${dirWord}`;
+    q('.flr-formula').textContent = `F = B I L sin θ = ${B.toFixed(2)} T × ${I.toFixed(1)} A × ${(L / 100).toFixed(2)} m × sin ${t}° = ${sg(s.size)} N`;
+    const v = q('.flr-vec'); v.hidden = level !== 12;
+    v.textContent = `Class 12: F = I L × B as vectors. The force is at right angles to both the wire and the field, so here it is always straight up or down. The same rule gives the force on one moving charge, F = q v × B.`;
+  }
+  function motorText(now: number) {
+    const B = val('.flr-b'), I = val('.flr-i'), ring = q<HTMLInputElement>('.flr-ring').checked;
+    q('.flr-av').textContent = `${Math.round(angle)}°`;
+    const tmax = N * B * I * A;
+    q('.flr-mtext').textContent = (level === 12 ? `τ = N B I A sin φ = ${N} × ${B.toFixed(2)} × ${I.toFixed(1)} × 0.0025 × sin ${(Math.round(angle) + 90) % 360}° = ${sg(Math.abs(now) < 1e-12 ? 0 : Math.abs(now))} N m (largest ${sg(tmax)} N m). ` : `Turning effect now: ${tmax ? Math.round((100 * Math.abs(now)) / tmax) : 0}% of the largest. `) +
+      (ring ? 'The split ring swaps the current in the coil every half turn, so it always turns the same way.' : 'Without a split ring the current never swaps, so the push reverses each half turn and the coil just rocks.');
+  }
+  const all = () => { texts(); draw3d(); drawMotor(); motorText(drawTorque()); };
+
+  // Animation of the motor.
+  function tick(t: number) {
+    const dt = last ? Math.min(0.1, (t - last) / 1000) : 0; last = t;
+    const ring = q<HTMLInputElement>('.flr-ring').checked, I = val('.flr-i'), B = val('.flr-b');
+    if (playing && I > 0 && B > 0) {
+      if (ring) angle = (angle + iSign * bSign * dt * 90 * Math.min(1.5, (B * I) / 1.5 + 0.3) + 360) % 360;
+      else { const t2 = t / 1000; angle = (70 * Math.sin(t2 * 2.2) + 360) % 360; }
+      q<HTMLInputElement>('.flr-a').value = String(Math.round(angle) % 360);
+      drawMotor(); motorText(drawTorque());
+    }
+    requestAnimationFrame(tick);
+  }
+
+  // Drag to turn the 3D view.
+  let drag: { x: number; y: number; yaw: number; pitch: number } | null = null;
+  fig.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY, yaw, pitch }; fig.setPointerCapture(e.pointerId); e.preventDefault(); });
+  fig.addEventListener('pointermove', (e) => { if (!drag) return; yaw = drag.yaw + (e.clientX - drag.x) * 0.5; pitch = Math.max(-80, Math.min(80, drag.pitch + (e.clientY - drag.y) * 0.5)); draw3d(); });
+  const end = () => { drag = null; };
+  fig.addEventListener('pointerup', end); fig.addEventListener('pointercancel', end);
+
+  q('.flr-level').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (!b) return; for (const x of q('.flr-level').querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b)); level = +b.dataset.v!; all(); });
+  q('.flr-swap').addEventListener('click', () => { bSign = -bSign; all(); });
+  q('.flr-rev').addEventListener('click', () => { iSign = -iSign; all(); });
+  for (const c of ['.flr-b', '.flr-i', '.flr-l', '.flr-t']) q(c).addEventListener('input', all);
+  q('.flr-ring').addEventListener('change', all);
+  q('.flr-a').addEventListener('input', () => { playing = false; q('.flr-play').textContent = 'Play'; angle = val('.flr-a'); all(); });
+  q('.flr-play').addEventListener('click', () => { playing = !playing; q('.flr-play').textContent = playing ? 'Pause' : 'Play'; });
+  new MutationObserver(all).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+
+  if (!playing) q('.flr-play').textContent = 'Play';
+  all();
+  quiz(q('.flr-quiz'), () => questions());
+  requestAnimationFrame(tick);
+</script>
