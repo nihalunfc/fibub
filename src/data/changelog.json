@@ -1,5 +1,14 @@
 [
  {
+  "sha": "8ca68e5d6534",
+  "date": "2026-11-09T09:14:46+00:00",
+  "title": "Add #179 peptide mass and fragment ion calculator",
+  "tools": [
+   "peptide-mass-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "09573f2cc53b",
   "date": "2026-11-09T08:56:51+00:00",
   "title": "Add #178 protein parameter calculator",
