@@ -1,0 +1,165 @@
+---
+// Diffraction and interference patterns: single and double slits, gratings and circular holes, in the far field
+// (Fraunhofer) and near field (Fresnel). Example values made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax dfp">
+  <div class="ax-card">
+    <h2>Aperture and screen</h2>
+    <div class="ax-grid">
+      <label>Aperture <select class="df-k">
+        <option value="slit">Single slit</option>
+        <option value="double" selected>Double slit</option>
+        <option value="grating">Grating (many slits)</option>
+        <option value="circle">Circular hole</option>
+      </select></label>
+      <label>Wavelength (nm) <input class="df-l" type="text" inputmode="decimal" value="532" /></label>
+      <label class="df-sl">Slit width a (µm) <input class="df-a" type="text" inputmode="decimal" value="40" /></label>
+      <label class="df-sl df-multi">Slit spacing d, centre to centre (µm) <input class="df-d" type="text" inputmode="decimal" value="200" /></label>
+      <label class="df-gr">Number of slits N <input class="df-n" type="text" inputmode="numeric" value="10" /></label>
+      <label class="df-ci">Hole diameter D (mm) <input class="df-D" type="text" inputmode="decimal" value="0.2" /></label>
+      <label>Screen distance z (m) <input class="df-z" type="text" inputmode="decimal" value="1" /></label>
+      <label>Screen half-width shown (mm) <input class="df-w" type="text" inputmode="decimal" value="20" /></label>
+      <label>Pattern <select class="df-r"><option value="both" selected>Fresnel, with far field dashed</option><option value="near">Fresnel (exact distance) only</option><option value="far">Far field (Fraunhofer) only</option></select></label>
+      <label>Picture brightness <select class="df-g"><option value="lin" selected>Linear (as the eye sees)</option><option value="log">Logarithmic (faint fringes)</option></select></label>
+    </div>
+    <p class="ax-help">Slits are long and narrow, lit by a plane wave of one wavelength. The Fresnel pattern is the paraxial near-field result at the exact distance; it turns into the far-field (Fraunhofer) pattern when the Fresnel number is small. The example values are made up.</p>
+    <p class="ax-err df-err" hidden></p>
+  </div>
+
+  <div class="ax-card df-out">
+    <h2>Pattern</h2>
+    <p class="ax-big df-big"></p>
+    <canvas class="ax-fig df-img"></canvas>
+    <canvas class="ax-fig df-fig"></canvas>
+    <dl class="ax-facts df-facts"></dl>
+    <p class="ax-help">Irradiance is relative to the light falling on the aperture (1 = as bright as with no aperture at all). The picture colour is an approximate rendering of the wavelength. Scalar, paraxial diffraction; very wide angles (large orders of fine gratings) are approximate. For study and planning.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small df-csv">Download the profile (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { fraunhofer, irradiance, fresnelNumber, slitCentres, J1_ZERO, type Aperture } from '../../lib/sci/phdiff';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.dfp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const mm = (m: number) => (Math.abs(m) < 1e-3 ? `${sig(m * 1e6, 3)} µm` : `${sig(m * 1e3, 3)} mm`);
+  const deg = (r: number) => `${sig((r * 180) / Math.PI, 3)}°`;
+  let figs: Figure[] = [], report: Section[] = [], prof: (string | number)[][] = [];
+
+  /** Approximate sRGB colour of a wavelength (visible 380 to 780 nm), a common piecewise mapping. */
+  function rgbOf(nm: number): [number, number, number] {
+    let r = 0, g = 0, b = 0;
+    if (nm >= 380 && nm < 440) { r = (440 - nm) / 60; b = 1; } else if (nm < 490) { g = (nm - 440) / 50; b = 1; } else if (nm < 510) { g = 1; b = (510 - nm) / 20; } else if (nm < 580) { r = (nm - 510) / 70; g = 1; } else if (nm < 645) { r = 1; g = (645 - nm) / 65; } else if (nm <= 780) { r = 1; }
+    const f = nm < 380 || nm > 780 ? 0 : nm < 420 ? 0.3 + (0.7 * (nm - 380)) / 40 : nm > 700 ? 0.3 + (0.7 * (780 - nm)) / 80 : 1;
+    if (!(nm >= 380 && nm <= 780)) return [200, 200, 200];
+    return [r, g, b].map((c) => Math.round(255 * Math.pow(c * f, 0.8))) as [number, number, number];
+  }
+
+  function imageFigure(xs: number[], I: number[], circle: boolean, nm: number, log: boolean, half: number): Figure {
+    const max = Math.max(...I) || 1, [cr, cg, cb] = rgbOf(nm);
+    const lv = (v: number) => (log ? Math.log10(1 + (999 * v) / max) / 3 : v / max);
+    const at = (x: number) => { const t = ((x + half) / (2 * half)) * (xs.length - 1), i = Math.floor(t); if (i < 0 || i >= xs.length - 1) return I[Math.max(0, Math.min(xs.length - 1, i))]; return I[i] + (I[i + 1] - I[i]) * (t - i); };
+    const W = 400, H = circle ? 400 : 120;
+    return {
+      w: W, h: H, alt: 'Diffraction pattern on the screen',
+      draw: (ctx, w, h, pal) => {
+        const pw = 200, ph = circle ? 200 : 60;
+        const img = ctx.createImageData(pw, ph);
+        for (let j = 0; j < ph; j++) for (let i = 0; i < pw; i++) {
+          const x = ((i + 0.5) / pw) * 2 * half - half, y = ((j + 0.5) / ph) * 2 * half - half;
+          const v = Math.min(1, Math.max(0, lv(circle ? at(Math.hypot(x, y)) : at(x))));
+          const o = 4 * (j * pw + i);
+          const [r, g, b] = pal.red ? [255, 0, 0] : [cr, cg, cb];
+          img.data[o] = r * v; img.data[o + 1] = g * v; img.data[o + 2] = b * v; img.data[o + 3] = 255;
+        }
+        const c = document.createElement('canvas'); c.width = pw; c.height = ph; c.getContext('2d')!.putImageData(img, 0, 0);
+        ctx.imageSmoothingEnabled = true; ctx.drawImage(c, 0, 0, w, h);
+        ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = '11px system-ui, sans-serif';
+        ctx.fillText(`${sig(2 * half * 1e3, 3)} mm across${log ? ', log brightness' : ''}`, 8, h - 8);
+      },
+    };
+  }
+
+  function calc() {
+    const err = q('.df-err'), out = q('.df-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; prof = []; };
+    const kind = sel('.df-k') as Aperture['kind'];
+    root.querySelectorAll<HTMLElement>('.df-sl').forEach((e) => (e.hidden = kind === 'circle'));
+    q('.df-multi').hidden = kind === 'slit' || kind === 'circle';
+    q('.df-gr').hidden = kind !== 'grating'; q('.df-ci').hidden = kind !== 'circle';
+    const lam = val('.df-l') * 1e-9, a = val('.df-a') * 1e-6, d = val('.df-d') * 1e-6, N = val('.df-n'), D = val('.df-D') * 1e-3, z = val('.df-z'), half = val('.df-w') * 1e-3, reg = sel('.df-r');
+    if (!(lam >= 100e-9 && lam <= 20000e-9)) return fail('Give a wavelength between 100 and 20,000 nm.');
+    if (kind !== 'circle' && !(a > 0 && a <= 0.1)) return fail('Give the slit width in µm (greater than 0).');
+    if ((kind === 'double' || kind === 'grating') && !(d > a)) return fail('The slit spacing d must be larger than the slit width a (the slits would overlap).');
+    if (kind === 'grating' && !(Number.isInteger(N) && N >= 2 && N <= 2000)) return fail('Give a whole number of slits from 2 to 2,000.');
+    if (kind === 'circle' && !(D > 0 && D <= 0.1)) return fail('Give the hole diameter in mm (greater than 0).');
+    if (!(z > 0 && z <= 1e4)) return fail('Give the screen distance in metres (greater than 0).');
+    if (!(half > 0 && half <= 10)) return fail('Give the half-width of the screen to show, in mm.');
+    const ap: Aperture = kind === 'circle' ? { kind, a: D, d: 0, N: 1 } : { kind, a, d: kind === 'slit' ? 0 : d, N: kind === 'grating' ? N : kind === 'double' ? 2 : 1 };
+    const NF = fresnelNumber(ap, lam, z);
+    if (reg !== 'far' && kind === 'circle' && NF > 400) return fail(`The Fresnel number is ${sig(NF, 3)}: too many zones to integrate quickly. Move the screen further away, or choose the far field.`);
+    if (reg !== 'far' && kind !== 'circle' && NF > 1e5) return fail(`The Fresnel number is ${sig(NF, 3)}: this is essentially the geometric shadow. Move the screen further away.`);
+    err.hidden = true; out.hidden = false;
+    const n = kind === 'circle' && reg !== 'far' ? 300 : 1200;
+    const xs: number[] = [], Inear: number[] = [], Ifar: number[] = [];
+    for (let i = 0; i <= n; i++) { const x = kind === 'circle' ? (half * i) / n : -half + (2 * half * i) / n; xs.push(x); Ifar.push(fraunhofer(ap, lam, z, x)); if (reg !== 'far') Inear.push(irradiance(ap, lam, z, x, 'near')); }
+    const main = reg === 'far' ? Ifar : Inear;
+    // Picture: full symmetric profile for the circle comes from the radial one.
+    const fx = kind === 'circle' ? [...xs.slice(1).reverse().map((x) => -x), ...xs] : xs, fI = kind === 'circle' ? [...main.slice(1).reverse(), ...main] : main;
+    const img = imageFigure(fx, fI, kind === 'circle', lam * 1e9, sel('.df-g') === 'log', half);
+    const regime = NF < 0.1 ? 'far field: Fraunhofer applies' : NF < 1 ? 'between: Fresnel needed for accuracy' : 'near field: Fresnel pattern, far field does not apply';
+    const name = { slit: 'Single slit', double: 'Double slit', grating: `${ap.N}-slit grating`, circle: 'Circular hole' }[kind];
+    const f: HTMLElement[] = [fact('Fresnel number', sig(NF, 3), regime)];
+    let big = '';
+    if (kind === 'circle') {
+      const s1 = (J1_ZERO / Math.PI) * (lam / D), r1 = s1 < 1 ? z * Math.tan(Math.asin(s1)) : NaN;
+      big = `${name}: Airy disc radius ${mm(r1)} at ${sig(z, 3)} m`;
+      f.push(fact('First dark ring', `${mm(r1)} radius`, `sin θ = 1.22 λ/D, θ = ${deg(Math.asin(s1))}`));
+      f.push(fact('Centre brightness', `${sig(main[0], 4)} × incident`, reg === 'far' ? 'far-field peak (πR²/λz)²' : 'Fresnel: 4 sin²(πR²/2λz) on axis'));
+    } else {
+      const s1 = lam / a, x1 = s1 < 1 ? z * Math.tan(Math.asin(s1)) : NaN;
+      f.push(fact('Envelope first minimum', s1 < 1 ? `${mm(x1)} from centre` : 'none (slit narrower than λ)', `sin θ = λ/a${s1 < 1 ? `, θ = ${deg(Math.asin(s1))}` : ''}; central band ${s1 < 1 ? mm(2 * x1) : '–'} wide`));
+      if (kind === 'slit') big = `${name}: central band ${s1 < 1 ? mm(2 * x1) : 'fills the screen'} wide at ${sig(z, 3)} m`;
+      else {
+        const sp = (lam * z) / d, r = d / a, mmax = Math.ceil(r - 1e-9) - 1, whole = Math.abs(r - Math.round(r)) < 1e-9;
+        f.push(fact('Fringe spacing', mm(sp), 'λz/d near the centre'));
+        f.push(fact('Bright fringes in the central band', String(2 * mmax + 1), `orders up to ±${mmax}${whole ? `; order ${Math.round(r)} falls on the envelope's zero (a missing order)` : ''}`));
+        if (kind === 'double') big = `${name}: fringes every ${mm(sp)} at ${sig(z, 3)} m`;
+        else {
+          const ords: string[] = [];
+          for (let m = 1; m * lam / d < 1 && m <= 6; m++) ords.push(`${m}: ${deg(Math.asin((m * lam) / d))}`);
+          f.push(fact('Grating orders (angle)', ords.length ? ords.join(', ') : 'none beyond 0', `sin θ = mλ/d; ${sig(1e-3 / d, 4)} lines per mm`));
+          f.push(fact('Resolving power', `${sig(ap.N, 4)} × order`, `λ/Δλ = mN: resolves ${sig((lam * 1e9) / ap.N, 3)} nm in 1st order`));
+          big = `${name}: 1st order at ${lam / d < 1 ? deg(Math.asin(lam / d)) : 'none'}, ${lam / d < 1 ? mm(z * Math.tan(Math.asin(lam / d))) : ''} from centre`.replace(/, $/, '');
+        }
+      }
+      f.push(fact('Peak irradiance', `${sig(Math.max(...main), 4)} × incident`, reg === 'far' ? 'far field: N² a²/(λz) at the centre' : 'Fresnel pattern'));
+    }
+    q('.df-big').textContent = big;
+    q('.df-facts').replaceChildren(...f);
+    const k = 1e3;
+    const series = reg === 'far' ? [{ name: 'Far field (Fraunhofer)', x: xs.map((x) => x * k), y: Ifar, mode: 'line' as const, width: 1.6 }]
+      : [{ name: 'Fresnel at this distance', x: xs.map((x) => x * k), y: Inear, mode: 'line' as const, width: 1.6 }, ...(reg === 'both' ? [{ name: 'Far field', x: xs.map((x) => x * k), y: Ifar, mode: 'line' as const, width: 1.2, dash: [4, 3] }] : [])];
+    const chart = chartFigure({ w: 400, h: 230, xLabel: kind === 'circle' ? 'Radius on the screen (mm)' : 'Position on the screen (mm)', yLabel: 'Irradiance ÷ incident', yMin: 0, legend: series.length > 1 ? 'below' : 'none', series }, `${name} irradiance across the screen`);
+    paint(q<HTMLCanvasElement>('.df-img'), img); paint(q<HTMLCanvasElement>('.df-fig'), chart);
+    figs = [img, chart];
+    prof = [[kind === 'circle' ? 'r_mm' : 'x_mm', 'I_far_field', ...(reg !== 'far' ? ['I_fresnel'] : [])], ...xs.map((x, i) => [+(x * k).toPrecision(8), +Ifar[i].toPrecision(6), ...(reg !== 'far' ? [+Inear[i].toPrecision(6)] : [])])];
+    const plain = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    report = [{ title: big, facts: plain(f), figure: chart }, { title: 'Pattern on the screen', figure: img, note: `λ = ${sig(lam * 1e9, 4)} nm, z = ${sig(z, 4)} m${kind === 'circle' ? `, D = ${sig(D * 1e3, 4)} mm` : `, a = ${sig(a * 1e6, 4)} µm${ap.N > 1 ? `, d = ${sig(d * 1e6, 4)} µm, ${slitCentres(ap).length} slits` : ''}`}.` }];
+  }
+
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.df-out').hidden) { paint(q<HTMLCanvasElement>('.df-img'), figs[0]); paint(q<HTMLCanvasElement>('.df-fig'), figs[1]); } });
+  q('.df-csv').addEventListener('click', () => { if (prof.length) save(new TextEncoder().encode(csv(prof)), 'diffraction-profile.csv', 'text/csv'); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Diffraction pattern', subtitle: q('.df-big').textContent ?? '', file: 'diffraction', sections: report }));
+</script>
