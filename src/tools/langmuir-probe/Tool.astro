@@ -1,0 +1,126 @@
+---
+// Langmuir probe I-V analyser: electron temperature, floating and plasma potential, density. Example trace is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax lpa">
+  <div class="ax-card">
+    <h2>Probe trace</h2>
+    <label>Probe voltage (V) and current, two columns <textarea class="lp-in" rows="7" spellcheck="false"></textarea></label>
+    <DataFile target=".lp-in" maxCols={10} />
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small lp-ex">Use the example</button></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Current unit <select class="lp-u"><option value="1">A</option><option value="1e-3" selected>mA</option><option value="1e-6">µA</option></select></label>
+      <label>Sign of the current <select class="lp-sg"><option value="1" selected>Electron current positive</option><option value="-1">Electron current negative</option></select></label>
+      <label>Probe collecting area (mm²) <input class="lp-a" type="text" inputmode="decimal" value="2" /></label>
+      <label>Gas (ion) <select class="lp-g"><option value="40" selected>Argon, Ar⁺</option><option value="4">Helium, He⁺</option><option value="1">Hydrogen, H⁺</option><option value="20.18">Neon, Ne⁺</option><option value="28">Nitrogen, N₂⁺</option><option value="32">Oxygen, O₂⁺</option><option value="131.3">Xenon, Xe⁺</option><option value="c">Other…</option></select></label>
+      <label class="lp-cm" hidden>Ion mass (u) <input class="lp-m" type="text" inputmode="decimal" value="40" /></label>
+      <label>Ion fit: voltages below (V) <input class="lp-im" type="text" inputmode="decimal" placeholder="automatic" /></label>
+      <label>Te fit from (V) <input class="lp-lo" type="text" inputmode="decimal" placeholder="automatic" /></label>
+      <label>Te fit to (V) <input class="lp-hi" type="text" inputmode="decimal" placeholder="automatic" /></label>
+    </div>
+    <p class="ax-help">A header row is fine; the first two numeric columns are used. Area: the surface that collects current (a wire tip of diameter d and length L: π d L + π d²/4). Leave the fit limits blank to let the page choose them: ion saturation below Vf − 2Te, and Te between Vf + Te/2 and Vp − Te/2. The example trace is made up.</p>
+    <p class="ax-err lp-err" hidden></p>
+  </div>
+
+  <div class="ax-card lp-out" hidden>
+    <h2>Results</h2>
+    <p class="ax-big lp-big"></p>
+    <dl class="ax-facts lp-facts"></dl>
+    <canvas class="ax-fig lp-fig"></canvas>
+    <canvas class="ax-fig lp-fig2"></canvas>
+    <p class="ax-help">Classical single-probe analysis: thin sheath, Maxwellian electrons, no magnetic field, collisionless sheath. RF plasmas need a compensated probe, and in magnetised plasmas the electron side is unreliable (use the ion density). For study and planning, not a substitute for professional judgement.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small lp-csv">Download the analysed trace (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { analyse, exampleTrace, type ProbeResult } from '../../lib/sci/phlangmuir';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv, parseTable } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.lpa')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => { const t = q<HTMLInputElement>(c).value.trim(); return t ? num(t) : NaN; };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const box = q<HTMLTextAreaElement>('.lp-in');
+  let res: ProbeResult | null = null, figs: Figure[] = [], report: Section[] = [], U = 1e-3;
+  const cur = (a: number) => { const x = Math.abs(a); return x >= 1 ? `${sig(a, 3)} A` : x >= 1e-3 ? `${sig(a * 1e3, 3)} mA` : `${sig(a * 1e6, 3)} µA`; };
+
+  function example() {
+    const { V, I } = exampleTrace();
+    q<HTMLSelectElement>('.lp-u').value = '1e-3'; q<HTMLSelectElement>('.lp-sg').value = '1'; q<HTMLInputElement>('.lp-a').value = '2'; q<HTMLSelectElement>('.lp-g').value = '40';
+    for (const c of ['.lp-im', '.lp-lo', '.lp-hi']) q<HTMLInputElement>(c).value = '';
+    box.value = 'V\tI (mA)\n' + V.map((v, i) => `${v}\t${+(I[i] * 1e3).toPrecision(5)}`).join('\n');
+    calc();
+  }
+
+  function calc() {
+    const err = q('.lp-err'), out = q('.lp-out');
+    q('.lp-cm').hidden = q<HTMLSelectElement>('.lp-g').value !== 'c';
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; res = null; report = []; };
+    const rows = parseTable(box.value).map((r) => r.map(num).filter((x) => Number.isFinite(x))).filter((r) => r.length >= 2);
+    if (!box.value.trim()) { err.hidden = true; out.hidden = true; res = null; return; }
+    if (rows.length < 10) return fail('Paste at least 10 rows of probe voltage and current (two columns).');
+    U = +q<HTMLSelectElement>('.lp-u').value; const sg = +q<HTMLSelectElement>('.lp-sg').value;
+    const area = val('.lp-a') * 1e-6, gs = q<HTMLSelectElement>('.lp-g').value, A = gs === 'c' ? val('.lp-m') : +gs;
+    if (!(area > 0)) return fail('Give the probe area in mm² (greater than 0).');
+    if (!(A >= 1 && A < 1000)) return fail('Give the ion mass in atomic mass units (argon is 40).');
+    const im = val('.lp-im'), lo = val('.lp-lo'), hi = val('.lp-hi');
+    if (Number.isFinite(lo) && Number.isFinite(hi) && !(hi > lo)) return fail('The Te fit range must end above where it starts.');
+    try { res = analyse(rows.map((r) => r[0]), rows.map((r) => r[1] * U * sg), { area, A, ionMax: im, teLo: lo, teHi: hi }); }
+    catch (e) { return fail((e as Error).message); }
+    err.hidden = true; out.hidden = false;
+    const r = res;
+    q('.lp-big').textContent = `Tₑ = ${sig(r.Te, 3)} eV, nₑ = ${sig(r.nE, 3)} m⁻³ (from ions ${sig(r.nI, 3)})`;
+    const ratio = r.nE / r.nI;
+    const f = [
+      fact('Electron temperature Tₑ', `${sig(r.Te, 3)} eV`, `${sig(r.Te * 11604.5, 3)} K; slope of ln Iₑ from ${sig(r.lo, 3)} to ${sig(r.hi, 3)} V, R² = ${r.te.r2.toFixed(4)}`),
+      fact('Floating potential Vf', `${sig(r.Vf, 3)} V`, 'where the probe draws no net current'),
+      fact('Plasma potential Vp', `${sig(r.Vp, 3)} V`, r.es ? 'the knee: where the exponential and saturation lines of ln Iₑ cross' : 'steepest point (no saturation region found)'),
+      fact('Vp − Vf', `${sig(r.Vp - r.Vf, 3)} V`, `theory for this gas: Tₑ ln(√(mᵢ/2πmₑ)/0.61) = ${sig(r.dVtheory, 3)} V`),
+      fact('Ion saturation current', cur(r.Iis), `straight line fitted below ${sig(r.ionTop, 3)} V, taken at Vf; R² = ${r.ion.r2.toFixed(4)}`),
+      fact('Electron saturation current', cur(r.Ies), 'electron current at Vp'),
+      fact('Density from electron saturation', `${sig(r.nE, 3)} m⁻³`, 'Iₑₛ = ¼ n e A v̄, so n = Iₑₛ / (e A √(kTₑ/2πmₑ))'),
+      fact('Density from ion saturation', `${sig(r.nI, 3)} m⁻³`, 'Bohm: Iᵢₛ = 0.61 n e A √(kTₑ/mᵢ)'),
+      fact('Ratio of the two densities', sig(ratio, 3), ratio > 0.5 && ratio < 2 ? 'close: the trace is consistent' : 'far apart: check the area, gas, or for RF or magnetic effects'),
+      fact('Debye length', `${sig(r.lambdaD * 1e6, 3)} µm`, 'the probe should be much larger than this for the thin-sheath analysis'),
+    ];
+    q('.lp-facts').replaceChildren(...f);
+    const VV = r.V, sgn = (x: number) => (x * sg) / U;
+    const ionY = VV.map((v) => sgn(r.ion.a + r.ion.b * v));
+    const c1 = chartFigure({ w: 380, h: 250, xLabel: 'Probe voltage (V)', yLabel: `Current (${U === 1 ? 'A' : U === 1e-3 ? 'mA' : 'µA'})`, legend: 'below', series: [
+      { name: 'Measured', x: VV, y: r.I.map(sgn), mode: 'points', marker: 'circle', size: 2 },
+      { name: 'Ion saturation line', x: VV, y: ionY, mode: 'line', width: 1.5, dash: [5, 4] },
+    ], marks: [{ kind: 'vline', at: r.Vf, dash: [3, 3], label: 'Vf' }, { kind: 'vline', at: r.Vp, dash: [3, 3], label: 'Vp' }] }, 'Probe current against voltage with the ion saturation fit');
+    const pos = VV.map((v, i) => [v, r.Ie[i]]).filter((p) => p[1] > 0);
+    const tl = [r.lo - 1, r.Vp + 1], top = Math.max(...pos.map((p) => p[1])) * 3;
+    const c2 = chartFigure({ w: 380, h: 250, xLabel: 'Probe voltage (V)', yLabel: 'Electron current (A, log)', yLog: true, yMin: Math.max(Math.min(...pos.map((p) => p[1])), top / 3e4), yMax: top, legend: 'below', series: [
+      { name: 'Electron current Iₑ', x: pos.map((p) => p[0]), y: pos.map((p) => p[1]), mode: 'points', marker: 'circle', size: 2 },
+      { name: `Exponential fit, Tₑ = ${sig(r.Te, 3)} eV`, x: tl, y: tl.map((v) => Math.exp(r.te.a + r.te.b * v)), mode: 'line', width: 1.5 },
+      ...(r.es ? [{ name: 'Saturation fit', x: [r.Vp - 2, VV[VV.length - 1]], y: [r.Vp - 2, VV[VV.length - 1]].map((v) => Math.exp(r.es!.a + r.es!.b * v)), mode: 'line' as const, width: 1.5, dash: [6, 3] }] : []),
+    ], marks: [{ kind: 'vline', at: r.Vf, dash: [3, 3], label: 'Vf' }, { kind: 'vline', at: r.Vp, dash: [3, 3], label: 'Vp' }] }, 'Electron current on a log scale with the Te and saturation fits');
+    figs = [c1, c2]; paint(q<HTMLCanvasElement>('.lp-fig'), c1); paint(q<HTMLCanvasElement>('.lp-fig2'), c2);
+    report = [{ title: q('.lp-big').textContent!, facts: f.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: c2 }, { title: 'I-V curve', figure: c1 }];
+  }
+
+  q('.lp-ex').addEventListener('click', example);
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (res) { paint(q<HTMLCanvasElement>('.lp-fig'), figs[0]); paint(q<HTMLCanvasElement>('.lp-fig2'), figs[1]); } });
+  q('.lp-csv').addEventListener('click', () => {
+    if (!res) return; const r = res;
+    const rows: (string | number)[][] = [['V', 'I_A_electron_positive', 'ion_fit_A', 'electron_current_A']];
+    r.V.forEach((v, i) => rows.push([v, +r.I[i].toPrecision(6), +(r.ion.a + r.ion.b * v).toPrecision(6), +r.Ie[i].toPrecision(6)]));
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'langmuir-probe.csv', 'text/csv');
+  });
+  example();
+  wireDownloads(q('.dl'), () => ({ title: 'Langmuir probe analysis', subtitle: q('.lp-big').textContent ?? '', file: 'langmuir-probe', sections: report }));
+</script>
+
+<style is:global>
+  .lpa textarea { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+  .lpa canvas.ax-fig { margin-top: 12px; }
+</style>
