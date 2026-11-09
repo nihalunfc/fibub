@@ -147,6 +147,7 @@ import * as NB from '../src/lib/sci/barrier.ts';
 import * as TC from '../src/lib/sci/treecarbon.ts';
 import * as LCA from '../src/lib/sci/lca.ts';
 import * as SQ from '../src/lib/sci/seqtools.ts';
+import * as NC from '../src/lib/sci/nucconc.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2909,6 +2910,25 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('seq RNA parse', r.rna && r.seq === 'ATGGCTTAA' && r.dropped === 1 && SQ.translate(r.seq) === 'MA*');
   check('seq ambiguous codon', SQ.translate('ATGNNNTAA') === 'MX*');
   check('seq stop mode', SQ.findOrfs('AAATAAGGGCCCTTTTGA', 3, 'stop', false).some((x) => x.start === 7 && x.end === 18 && !x.complete));
+}
+// #164 nucleic acid concentration: masses from elemental formulas, checked against an independent Python calculation.
+{
+  near('nc dA residue', NC.DNA_RES.A, 313.21, 1e-9); near('nc U residue', NC.RNA_RES.U, 306.167, 1e-9);
+  near('nc ds 3000 linear', NC.molarMass('ds', 3000), 1853733.03, 1e-4);
+  near('nc ds 5000 circular', NC.molarMass('ds', 5000, '', true), 3089495.0, 1e-4);
+  near('nc ss 20', NC.molarMass('ss', 20), 6197.005, 1e-6);
+  near('nc rna 1000', NC.molarMass('rna', 1000), 321459.765, 1e-4);
+  near('nc ds seq', NC.molarMass('ds', 0, 'ATGCGTACGTTAGC'), 8686.616, 1e-6);
+  near('nc ss seq', NC.molarMass('ss', 0, 'ATGCGTACGTTAGC'), 4358.813, 1e-6);
+  near('nc rna seq (T read as U)', NC.molarMass('rna', 0, 'ATGCGTACGTTAGC'), 4526.691, 1e-6);
+  const c = NC.conc(0.75, 50, 10, 1, 0.01), mw = NC.molarMass('ds', 3000);
+  near('nc conc', c, 370, 1e-9); near('nc nM', NC.nM(c, mw), 199.59724189626164, 1e-9); near('nc copies', NC.copies(c, mw) / 1e11, 1.2020026860070567, 1e-12);
+  near('nc conc 0.1 cm path', NC.conc(0.1, 40, 1, 0.1), 40, 1e-12);
+  near('nc protein', NC.proteinConc(0.62, 43824, 66463, 2, 1, 0.02), 1.8199069003285868, 1e-12);
+  const d = NC.diluteTo(370, 10, 50); near('nc dilute stock', d.stock, 50 * 10 / 370, 1e-12); near('nc dilute diluent', d.diluent + d.stock, 50, 1e-12); near('nc fold', d.fold, 37, 1e-12);
+  check('nc dilute too weak', NC.diluteTo(5, 10, 50) === null);
+  check('nc purity ok', NC.purity('ds', 1.85, 2.1).ok); check('nc purity protein', NC.purity('ds', 1.5, 2.1).notes[0].includes('protein'));
+  check('nc purity rna fine at 2.05', NC.purity('rna', 2.05, NaN).ok); check('nc purity salt', NC.purity('rna', 2.0, 1.2).notes[0].includes('260/230'));
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

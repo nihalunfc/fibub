@@ -1,0 +1,187 @@
+---
+// DNA, RNA and protein concentration from UV absorbance, purity ratios, molarity, copy number and dilution to a target.
+// The example readings are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const readings = 'sample,A260,A280,A230,A320\nPrep 1,7.40,3.98,3.45,0.02\nPrep 2,2.15,1.17,0.98,0.01\nPrep 3,0.88,0.55,0.41,0.02\nPrep 4,1.32,0.70,0.95,0.01';
+---
+<div class="ax nac">
+  <div class="ax-card">
+    <h2>Sample type</h2>
+    <div class="ax-grid">
+      <label>What you measured <select class="nc-kind">
+        <option value="ds" selected>Double-stranded DNA</option>
+        <option value="ss">Single-stranded DNA</option>
+        <option value="rna">RNA</option>
+        <option value="protein">Protein (A280)</option>
+      </select></label>
+      <label class="nc-facl">Factor (ng/µL per A260 unit) <input class="nc-fac" inputmode="decimal" value="50" /></label>
+      <label class="nc-epsl" hidden>Extinction coefficient ε (M⁻¹ cm⁻¹) <input class="nc-eps" inputmode="decimal" value="50000" /></label>
+      <label class="nc-mwl" hidden>Molar mass (kDa) <input class="nc-mw" inputmode="decimal" value="50" /></label>
+      <label>Dilution factor <input class="nc-dil" inputmode="decimal" value="1" /></label>
+      <label>Path length (cm) <input class="nc-path" inputmode="decimal" value="1" /></label>
+    </div>
+    <p class="ax-help nc-kh">Concentration = (A260 − A320) × factor × dilution ÷ path length. The usual factors are 50 for double-stranded DNA, 33 for single-stranded DNA and 40 for RNA. Short oligos vary with their sequence, so use the factor on the supplier's sheet. Most microvolume readers already report absorbance for a 1 cm path; leave the path at 1 for those.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Readings</h2>
+    <label>Sample name (optional), A260, A280, and optionally A230 and A320 <textarea class="nc-data" rows="6" spellcheck="false">{readings}</textarea></label>
+    <DataFile target=".nc-data" maxCols={8} maxRows={2000} />
+    <p class="ax-help">One sample per row, up to 2,000. A320 is the background (turbidity, bubbles, a dirty window); it is taken off every reading, ratios included. Leave A230 or A320 blank if you don't have them. The example readings are made up.</p>
+    <p class="ax-err nc-err" hidden></p>
+  </div>
+
+  <div class="ax-card nc-sizec">
+    <h2>Size, for molarity and copies</h2>
+    <div class="ax-grid">
+      <label><span class="nc-lenlab">Length (bp)</span> <input class="nc-len" inputmode="numeric" value="3000" /></label>
+      <label class="nc-topl">Shape <select class="nc-top"><option value="lin" selected>Linear (PCR product, cut plasmid)</option><option value="circ">Circular (plasmid)</option></select></label>
+    </div>
+    <label>Or paste the sequence for its exact mass (optional) <textarea class="nc-seq" rows="2" spellcheck="false" placeholder="ACGT..."></textarea></label>
+    <p class="ax-help">Without a sequence the tool uses the average mass of a base (or base pair). Masses are worked out from the chemical formulas of the nucleotides; linear strands are counted with a 5′ phosphate.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Dilute to</h2>
+    <div class="ax-grid">
+      <label>Target <input class="nc-tgt" inputmode="decimal" value="10" /></label>
+      <label>Unit <select class="nc-unit"></select></label>
+      <label>Final volume (µL) <input class="nc-vol" inputmode="decimal" value="50" /></label>
+    </div>
+    <p class="ax-help">For each sample, how much stock to mix with water or buffer to make the final volume at the target.</p>
+  </div>
+
+  <div class="ax-card nc-out">
+    <h2>Results</h2>
+    <p class="ax-big nc-big"></p>
+    <dl class="ax-facts nc-facts"></dl>
+    <div class="ax-scroll"><table class="nc-tab"></table></div>
+    <canvas class="ax-fig nc-fig"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small nc-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { FACTOR, molarMass, conc, proteinConc, nM, copies, diluteTo, purity, type Kind } from '../../lib/sci/nucconc';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (!Number.isFinite(x)) return '–'; if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const tn = (x: number, d = 3) => (Math.abs(x) >= 1000 && Math.abs(x) < 1e6 ? Math.round(x).toLocaleString('en') : sg(x, d));
+  const SUP: Record<string, string> = { '-': '⁻', 0: '⁰', 1: '¹', 2: '²', 3: '³', 4: '⁴', 5: '⁵', 6: '⁶', 7: '⁷', 8: '⁸', 9: '⁹' };
+  const big = (x: number) => { if (!Number.isFinite(x)) return '–'; if (x < 1e6) return tn(x); const e = Math.floor(Math.log10(x)), m = x / 10 ** e; return `${sg(m, 3)}\u00a0×\u00a010${String(e).split('').map((c) => SUP[c]).join('')}`; };
+  const vol = (v: number) => (v >= 100 ? sg(v, 4) : sg(v, 3));
+  const root = document.querySelector<HTMLElement>('.nac')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const isNum = (s: string | undefined) => s !== undefined && s.trim() !== '' && Number.isFinite(num(s));
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [], lastKind = 'ds';
+  const UNITS: Record<string, [string, string][]> = { na: [['ng', 'ng/µL'], ['nM', 'nM'], ['cp', 'copies/µL']], protein: [['mg', 'mg/mL'], ['uM', 'µM']] };
+
+  function table(sel: string, head: string[], rows: string[][], right: number[] = []) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+  function setUnits(group: 'na' | 'protein') {
+    const s = q<HTMLSelectElement>('.nc-unit');
+    if (s.dataset.g === group) return;
+    s.dataset.g = group; s.replaceChildren(...UNITS[group].map(([v, t]) => { const o = document.createElement('option'); o.value = v; o.textContent = t; return o; }));
+    q<HTMLInputElement>('.nc-tgt').value = group === 'na' ? '10' : '1';
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.nc-err').textContent = m; q('.nc-err').hidden = false; q('.nc-out').hidden = true; fig = null; sections = []; csvRows = []; };
+    q('.nc-err').hidden = true;
+    const kind = q<HTMLSelectElement>('.nc-kind').value as Kind | 'protein', prot = kind === 'protein';
+    if (kind !== lastKind && !prot) q<HTMLInputElement>('.nc-fac').value = String(FACTOR[kind]);
+    lastKind = kind;
+    q('.nc-facl').hidden = prot; q('.nc-epsl').hidden = !prot; q('.nc-mwl').hidden = !prot; q('.nc-sizec').hidden = prot;
+    q('.nc-topl').hidden = kind !== 'ds'; q('.nc-lenlab').textContent = kind === 'ds' ? 'Length (bp)' : 'Length (nt)';
+    setUnits(prot ? 'protein' : 'na');
+    const fac = val('.nc-fac'), eps = val('.nc-eps'), mwP = val('.nc-mw') * 1000, dil = val('.nc-dil'), path = val('.nc-path');
+    if (!prot && !(fac > 0 && fac <= 1000)) return fail('Give a factor above 0 (50 for double-stranded DNA, 33 single-stranded, 40 RNA).');
+    if (prot && !(eps > 0)) return fail('Give the extinction coefficient ε in M⁻¹ cm⁻¹ (above 0).');
+    if (prot && !(mwP > 0)) return fail('Give the molar mass in kDa (above 0).');
+    if (!(dil >= 1 && dil <= 1e6)) return fail('Give a dilution factor of 1 or more (1 if you measured the stock as it is).');
+    if (!(path > 0 && path <= 10)) return fail('Give the path length in cm (above 0, up to 10).');
+    // Size
+    let mw = mwP, sizeNote = '';
+    if (!prot) {
+      const seq = q<HTMLTextAreaElement>('.nc-seq').value.replace(/[\s\d]/g, '');
+      if (seq && /[^ACGTUNRYKMSWBDHVacgtunrykmswbdhv]/.test(seq)) return fail('The sequence has letters that are not bases. Use A, C, G, T or U (IUPAC codes count as an average base).');
+      const len = val('.nc-len');
+      if (!seq && !(len >= 1 && len <= 1e9 && Number.isInteger(len))) return fail('Give the length as a whole number of bases or base pairs, or paste the sequence.');
+      const circ = kind === 'ds' && q<HTMLSelectElement>('.nc-top').value === 'circ';
+      mw = molarMass(kind, len, seq, circ);
+      const n = seq ? seq.length : len;
+      sizeNote = `${tn(n)} ${kind === 'ds' ? 'bp' : 'nt'}${kind === 'ds' ? (circ ? ', circular' : ', linear') : ''}, ${seq ? 'from the sequence' : 'average base mass'}`;
+    }
+    const all = parseTable(q<HTMLTextAreaElement>('.nc-data').value).filter((r) => r.some((x) => x.trim() !== ''));
+    const data = all.filter((r) => r.some((x) => isNum(x)));
+    if (!data.length) return fail('Give at least one reading: sample name (optional), A260, A280.');
+    if (data.length > 2000) return fail('Up to 2,000 samples, please.');
+    const named = data.some((r) => !isNum(r[0])), x0 = named ? 1 : 0;
+    const tgt = val('.nc-tgt'), unit = q<HTMLSelectElement>('.nc-unit').value, fv = val('.nc-vol');
+    const wantDil = tgt > 0 && fv > 0;
+    type Row = { id: string; c: number; molar: number; cp: number; r280: number; r230: number; notes: string[]; d: ReturnType<typeof diluteTo>; low: boolean };
+    const rows: Row[] = [];
+    for (let i = 0; i < data.length; i++) {
+      const r = data[i], g = (k: number) => (isNum(r[x0 + k]) ? num(r[x0 + k]) : NaN);
+      const a260 = g(0), a280 = g(1), a230 = g(2), a320 = Number.isFinite(g(3)) ? g(3) : 0;
+      if (!Number.isFinite(a260) || !Number.isFinite(a280)) return fail(`Sample ${i + 1}: give both A260 and A280.`);
+      if ([a260, a280, a230, a320].some((v) => Number.isFinite(v) && (v < -1 || v > 1000))) return fail(`Sample ${i + 1}: absorbance readings should be between −1 and 1,000.`);
+      const b260 = a260 - a320, b280 = a280 - a320, b230 = a230 - a320;
+      const c = prot ? proteinConc(a280, eps, mwP, dil, path, a320) : conc(a260, fac, dil, path, a320);
+      const r280 = b280 > 0 ? b260 / b280 : NaN, r230 = Number.isFinite(b230) && b230 > 0 ? b260 / b230 : NaN;
+      const p = prot ? { notes: [] as string[] } : purity(kind as Kind, r280, r230);
+      const main = prot ? b280 : b260, low = main < 0.02;
+      const notes = [...(low ? [`${prot ? 'A280' : 'A260'} is very low: the reading is unreliable`] : []), ...p.notes];
+      // Concentration in the target unit: ng/µL ↔ mg/mL are numerically the same × 1000.
+      const molar = prot ? (c / mwP) * 1e6 : nM(c, mw), cp = prot ? NaN : copies(c, mw);
+      const stockIn = unit === 'ng' ? c : unit === 'nM' ? molar : unit === 'cp' ? cp : unit === 'mg' ? c : molar;
+      rows.push({ id: named ? (r[0] ?? '').trim() || `Sample ${i + 1}` : `Sample ${i + 1}`, c, molar, cp, r280, r230, notes, d: wantDil && c > 0 ? diluteTo(stockIn, tgt, fv) : null, low });
+    }
+    q('.nc-out').hidden = false;
+    const cu = prot ? 'mg/mL' : 'ng/µL', mu = prot ? 'µM' : 'nM', tUnit = UNITS[prot ? 'protein' : 'na'].find(([v]) => v === unit)![1];
+    const flagged = rows.filter((r) => r.notes.length).length;
+    if (rows.length === 1) q('.nc-big').textContent = prot ? `${sg(rows[0].c, 3)} mg/mL (${sg(rows[0].molar, 3)} µM)` : `${tn(rows[0].c)} ng/µL, ${big(rows[0].cp)} copies/µL`;
+    else { const cs = rows.map((r) => r.c); q('.nc-big').textContent = `${rows.length} samples, ${tn(Math.min(...cs))}–${tn(Math.max(...cs))} ${cu}${flagged ? `; ${flagged} to check` : ''}`; }
+    q('.nc-facts').replaceChildren(
+      ...(prot ? [fact('Formula', `c = (A280 − A320) × dilution × M ÷ (ε × path)`, `ε ${tn(eps)} M⁻¹ cm⁻¹, M ${sg(mwP / 1000, 4)} kDa: 1 A280 unit = ${sg(mwP / eps, 3)} mg/mL over 1 cm`)]
+        : [fact('Formula', `c = (A260 − A320) × ${sg(fac, 4)} × dilution ÷ path`, `dilution ${sg(dil, 4)}, path ${sg(path, 3)} cm`), fact('Molar mass', `${Math.round(mw).toLocaleString('en')} g/mol`, sizeNote)]),
+      fact('Purity', flagged ? `${flagged} of ${rows.length} sample${rows.length > 1 ? 's' : ''} to check` : prot ? 'no checks for protein' : 'all within the usual ranges', prot ? 'A260/A280 near 0.6 is typical of pure protein; higher suggests nucleic acid' : kind === 'rna' ? 'pure RNA: 260/280 about 2.0, 260/230 about 2.0–2.2' : 'pure DNA: 260/280 about 1.8, 260/230 about 2.0–2.2'),
+      ...(wantDil ? [fact('Dilute to', `${sg(tgt, 4)} ${tUnit} in ${sg(fv, 4)} µL`, rows.some((r) => !r.d && r.c > 0) ? 'some samples are weaker than the target' : 'volumes are in the table')] : []),
+    );
+    const head = ['Sample', cu, mu, ...(prot ? [] : ['Copies/µL']), '260/280', '260/230', ...(wantDil ? ['Stock (µL)', 'Diluent (µL)'] : []), 'Note'];
+    const trs = rows.map((r) => [r.id, prot ? sg(r.c, 3) : tn(r.c), tn(r.molar), ...(prot ? [] : [big(r.cp)]), sg(r.r280, 3), sg(r.r230, 3), ...(wantDil ? (r.d ? [vol(r.d.stock), vol(r.d.diluent)] : ['–', '–']) : []), r.notes.length ? r.notes.join('; ') : r.c > 0 ? 'OK' : '–']);
+    const nr = head.length - 1;
+    table('.nc-tab', head, trs.slice(0, 500), Array.from({ length: nr - 1 }, (_, i) => i + 1));
+    const pts = rows.filter((r) => Number.isFinite(r.r280) && Number.isFinite(r.r230));
+    if (pts.length && !prot) {
+      const lo = kind === 'rna' ? 1.9 : 1.7, hi = kind === 'rna' ? 2.2 : 2.0;
+      fig = chartFigure({ h: 340, xLabel: '260/280', yLabel: '260/230', legend: 'none', xMin: Math.min(1.2, ...pts.map((r) => r.r280)), xMax: Math.max(2.4, ...pts.map((r) => r.r280)), yMin: 0, yMax: Math.max(3, ...pts.map((r) => r.r230)), series: [{ name: 'Samples', x: pts.map((r) => r.r280), y: pts.map((r) => r.r230), mode: 'points', labels: pts.length <= 12 ? pts.map((r) => r.id) : undefined }], marks: [{ kind: 'vline', at: lo, label: String(lo) }, { kind: 'vline', at: hi, label: String(hi) }, { kind: 'hline', at: 1.8, label: '1.8' }] }, `Purity ratios of ${pts.length} samples: 260/280 against 260/230, with the usual limits`);
+      q('.nc-fig').hidden = false; paint(q<HTMLCanvasElement>('.nc-fig'), fig);
+    } else { fig = null; q('.nc-fig').hidden = true; }
+    csvRows = [['sample', prot ? 'mg_per_ml' : 'ng_per_ul', prot ? 'uM' : 'nM', ...(prot ? [] : ['copies_per_ul']), 'a260_a280', 'a260_a230', ...(wantDil ? ['stock_ul', 'diluent_ul'] : []), 'note'], ...rows.map((r) => [r.id, sg(r.c, 6), sg(r.molar, 6), ...(prot ? [] : [sg(r.cp, 6)]), Number.isFinite(r.r280) ? sg(r.r280, 4) : '', Number.isFinite(r.r230) ? sg(r.r230, 4) : '', ...(wantDil ? (r.d ? [sg(r.d.stock, 5), sg(r.d.diluent, 5)] : ['', '']) : []), r.notes.join('; ')])];
+    sections = [{ title: q('.nc-big').textContent!, facts: [...q('.nc-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), ...(fig ? { figure: fig } : {}), table: { head, rows: trs.slice(0, 500), align: head.map((_, i) => (i === 0 || i === nr ? 'l' : 'r') as 'l' | 'r') } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.nc-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'concentrations.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.nc-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Nucleic acid and protein concentration', subtitle: q('.nc-big').textContent ?? '', file: 'concentration', sections }));
+</script>
+
+<style is:global>
+  .nac select { max-width: 100%; }
+  .nac .nc-tab td:last-child { min-width: 12em; }
+</style>
