@@ -1,0 +1,268 @@
+---
+// 2D electrostatics solver: draw or type electrodes, solve Laplace's equation by over-relaxation, and see the
+// potential map, equipotentials, field and capacitance. Worked out in the browser. The examples are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax esv">
+  <div class="ax-card">
+    <h2>Electrodes</h2>
+    <div class="ax-grid">
+      <label>Start from <select class="es-pre">
+        <option value="coax" selected>Coaxial cable (round wire in a round shield)</option>
+        <option value="plates">Parallel plates (edge effects)</option>
+        <option value="twin">Two wires, ±50 V</option>
+        <option value="plane">Wire above a ground plane</option>
+        <option value="box">Square bar in a grounded box</option>
+        <option value="empty">Empty box: draw your own</option>
+      </select></label>
+      <label>Box size (cm, each side) <input class="es-L" type="text" inputmode="decimal" value="10" /></label>
+      <label>Grid <select class="es-n"><option value="81">81 × 81 (fast)</option><option value="121" selected>121 × 121</option><option value="161">161 × 161 (finer)</option></select></label>
+      <label>Box edges <select class="es-bnd"><option value="ground" selected>Grounded metal box (0 V)</option><option value="open">Open (no field crosses the edge)</option></select></label>
+    </div>
+    <label style="margin-top:10px"><span>Shapes, one per line, in cm from the centre: <code>circle x y r V</code>, <code>ring x y r V</code> (a thin round shell), <code>rect x1 y1 x2 y2 V</code>, <code>line x1 y1 x2 y2 V</code></span> <textarea class="es-shapes" rows="4" spellcheck="false"></textarea></label>
+    <h3 style="margin-top:12px">Draw on the picture</h3>
+    <div class="ax-row">
+      <div class="ax-seg es-mode" role="group" aria-label="What a tap on the picture does"><button type="button" data-m="probe" aria-pressed="true">Probe</button><button type="button" data-m="draw" aria-pressed="false">Draw</button><button type="button" data-m="erase" aria-pressed="false">Erase</button></div>
+      <button type="button" class="btn secondary small es-clear">Clear drawing</button>
+    </div>
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Brush voltage (V) <input class="es-bv" type="text" inputmode="decimal" value="100" /></label>
+      <label>Brush radius (cm) <input class="es-br" type="text" inputmode="decimal" value="0.3" /></label>
+    </div>
+    <p class="ax-help">Draw paints electrodes at the brush voltage; Erase removes electrode (including typed shapes) under the brush; Probe reads the potential and field. The solver holds every electrode at its voltage and finds the potential everywhere else (Laplace's equation, empty space between the electrodes). Each shape runs on unchanged into and out of the screen, so capacitance is per metre of that length.</p>
+    <p class="ax-err es-err" hidden></p>
+  </div>
+
+  <div class="ax-card es-out">
+    <p class="ax-big es-big"></p>
+    <canvas class="ax-fig es-fig"></canvas>
+    <div class="ax-legend"><span><i class="es-kn"></i>low potential</span><span><i class="es-k0"></i>middle</span><span><i class="es-kp"></i>high potential</span><span>black: electrodes; lines: equipotentials; arrows: field direction</span></div>
+    <p class="ax-help es-levels"></p>
+    <dl class="ax-facts es-facts" style="margin-top:10px"></dl>
+    <h3 style="margin-top:14px">Charge on each electrode</h3>
+    <div class="ax-scroll"><table class="es-tab"></table></div>
+    <p class="ax-help">Charges come from Gauss's law on the grid; curved electrodes become staircases of grid points, so expect results within a few per cent of exact formulas, closer on a finer grid. With open edges the far field is cut off at the box, so results are only rough unless the electrodes are small next to the box. Empty space only (εr = 1); for a uniform dielectric everywhere, multiply capacitance and charge by εr.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small es-csv">Download potential grid (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { rasterize, solve, probe, charges, energy, fieldAt, inShape, type Shape, type Grid } from '../../lib/sci/ph-laplace';
+  import { contour } from '../../lib/sci/ph-fieldlines';
+  import { paint, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.esv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const canvas = q<HTMLCanvasElement>('.es-fig');
+  const PRE: Record<string, [string, string]> = {
+    coax: ['circle 0 0 1 100\nring 0 0 4 0', 'ground'],
+    plates: ['line -2.5 1 2.5 1 50\nline -2.5 -1 2.5 -1 -50', 'ground'],
+    twin: ['circle -2 0 0.5 50\ncircle 2 0 0.5 -50', 'ground'],
+    plane: ['circle 0 0 0.5 100\nline -5 -2 5 -2 0', 'ground'],
+    box: ['rect -1.5 -1.5 1.5 1.5 100', 'ground'],
+    empty: ['', 'ground'],
+  };
+  type Stroke = { x: number; y: number; r: number; v: number; erase: boolean };
+  let strokes: Stroke[] = [], mode = 'probe', probeAt: [number, number] = [2.5, 0];
+  let state: { g: Grid; V: Float64Array; vmin: number; vmax: number; levels: number[]; segs: [number, number, number, number][][] } | null = null;
+  let fig: Figure | null = null, report: Section[] = [];
+  const W = 380, ML = 34, MB = 24, MT = 8, MR = 8, PW = W - ML - MR, H = PW + MT + MB;
+
+  function parseShapes(text: string): Shape[] | string {
+    const out: Shape[] = [];
+    const lines = text.split('\n').map((l) => l.replace(/#.*/, '').trim()).filter(Boolean);
+    if (lines.length > 40) return 'up to 40 shapes';
+    for (const [i, l] of lines.entries()) {
+      const p = l.split(/[\s,;]+/), k = p[0].toLowerCase(), v = p.slice(1).map(num);
+      const need = k === 'circle' || k === 'ring' ? 4 : k === 'rect' || k === 'line' ? 5 : 0;
+      if (!need) return `line ${i + 1}: start with circle, ring, rect or line`;
+      if (v.length < need || v.slice(0, need).some((x) => !Number.isFinite(x))) return `line ${i + 1}: ${k} needs ${need} numbers`;
+      const c = v.map((x, j) => (j < need - 1 ? x / 100 : x));
+      if ((k === 'circle' || k === 'ring') && !(c[2] > 0)) return `line ${i + 1}: the radius must be above 0`;
+      if (k === 'circle' || k === 'ring') out.push({ kind: k, x: c[0], y: c[1], r: c[2], v: c[3] });
+      else out.push({ kind: k as 'rect' | 'line', x1: c[0], y1: c[1], x2: c[2], y2: c[3], v: c[4] });
+    }
+    return out;
+  }
+
+  function buildGrid(shapes: Shape[], n: number, L: number): Grid {
+    const g = rasterize(shapes, n, L);
+    for (const s of strokes) {
+      const c: Shape = { kind: 'circle', x: s.x / 100, y: s.y / 100, r: s.r / 100, v: s.v };
+      for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+        const x = -L / 2 + i * g.h, y = -L / 2 + j * g.h;
+        if (inShape(c, x, y, g.h)) { const k = j * n + i; if (s.erase) { g.fixed[k] = 0; g.val[k] = 0; } else { g.fixed[k] = 1; g.val[k] = s.v; } }
+      }
+    }
+    return g;
+  }
+
+  function colour(t: number, pal: Palette): string {
+    // t from 0 (lowest) to 1 (highest). Blue → white (or black) → red; red night mode: dark → red.
+    if (pal.red) return `rgb(${Math.round(20 + 140 * t)},0,0)`;
+    const dark = pal.bg !== '#ffffff', lo = [33, 102, 172], hi = [178, 24, 43], mid = dark ? [10, 10, 10] : [247, 247, 247];
+    const [a, b, u] = t < 0.5 ? [lo, mid, t / 0.5] : [mid, hi, (t - 0.5) / 0.5];
+    return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * u)).join(',')})`;
+  }
+
+  function figure(): Figure {
+    return { w: W, h: H, alt: 'Potential map with electrodes, equipotentials and field arrows', draw: (c: CanvasRenderingContext2D, _w: number, _h: number, pal: Palette) => {
+      if (!state) return;
+      const { g, V, vmin, vmax, segs } = state, n = g.n, L = g.L, span = vmax - vmin || 1;
+      const X = (x: number) => ML + ((x + L / 2) / L) * PW, Y = (y: number) => MT + PW - ((y + L / 2) / L) * PW, cell = PW / (n - 1);
+      for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+        const k = j * n + i;
+        c.fillStyle = g.fixed[k] ? pal.ink : colour((V[k] - vmin) / span, pal);
+        c.fillRect(X(-L / 2 + i * g.h) - cell / 2, Y(-L / 2 + j * g.h) - cell / 2, cell + 0.6, cell + 0.6);
+      }
+      // Strokes still being drawn (before the next solve).
+      c.fillStyle = pal.ink;
+      for (const s of pending) { c.beginPath(); c.arc(X(s.x / 100), Y(s.y / 100), Math.max(2, (s.r / 100 / L) * PW), 0, 2 * Math.PI); if (s.erase) { c.strokeStyle = pal.muted; c.stroke(); } else c.fill(); }
+      c.save(); c.beginPath(); c.rect(ML, MT, PW, PW); c.clip();
+      c.strokeStyle = pal.red ? '#600000' : pal.bg === '#ffffff' ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.6)'; c.lineWidth = 1;
+      for (const s of segs) { c.beginPath(); for (const p of s) { c.moveTo(X(p[0]), Y(p[1])); c.lineTo(X(p[2]), Y(p[3])); } c.stroke(); }
+      // Field arrows on a 15 × 15 grid, length growing with √|E|.
+      const m = 15, step = (n - 1) / m, Es: [number, number, number, number][] = [];
+      let emax = 0;
+      for (let b = 0; b < m; b++) for (let a = 0; a < m; a++) {
+        const i = Math.round((a + 0.5) * step), j = Math.round((b + 0.5) * step);
+        if (g.fixed[j * n + i]) continue;
+        const e = fieldAt(V, g, i, j), mag = Math.hypot(e[0], e[1]); emax = Math.max(emax, mag); Es.push([i, j, e[0], e[1]]);
+      }
+      c.strokeStyle = pal.ink; c.fillStyle = pal.ink; c.lineWidth = 1;
+      for (const [i, j, ex, ey] of Es) {
+        const mag = Math.hypot(ex, ey); if (!(mag > emax * 1e-3)) continue;
+        const len = 9 * Math.sqrt(mag / emax) + 2, ux = ex / mag, uy = -ey / mag, x = X(-L / 2 + i * g.h), y = Y(-L / 2 + j * g.h);
+        c.beginPath(); c.moveTo(x - (ux * len) / 2, y - (uy * len) / 2); c.lineTo(x + (ux * len) / 2, y + (uy * len) / 2); c.stroke();
+        const a = Math.atan2(uy, ux), tx = x + (ux * len) / 2, ty = y + (uy * len) / 2;
+        c.beginPath(); c.moveTo(tx, ty); c.lineTo(tx - 4 * Math.cos(a - 0.5), ty - 4 * Math.sin(a - 0.5)); c.lineTo(tx - 4 * Math.cos(a + 0.5), ty - 4 * Math.sin(a + 0.5)); c.closePath(); c.fill();
+      }
+      const px = X(probeAt[0] / 100), py = Y(probeAt[1] / 100);
+      c.strokeStyle = pal.accent2; c.lineWidth = 2; c.beginPath(); c.arc(px, py, 5, 0, 2 * Math.PI); c.stroke();
+      c.restore();
+      c.strokeStyle = pal.line; c.lineWidth = 1; c.strokeRect(ML, MT, PW, PW);
+      c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif';
+      const cm = L * 100, st = [0.5, 1, 2, 5, 10, 20, 50, 100].find((s) => cm / s <= 8) ?? 200;
+      c.textAlign = 'center'; c.textBaseline = 'top';
+      for (let v = Math.ceil(-cm / 2 / st) * st; v <= cm / 2 + 1e-9; v += st) c.fillText(sig(v, 3), X(v / 100), MT + PW + 4);
+      c.textAlign = 'right'; c.textBaseline = 'middle';
+      for (let v = Math.ceil(-cm / 2 / st) * st; v <= cm / 2 + 1e-9; v += st) c.fillText(sig(v, 3), ML - 5, Y(v / 100));
+      c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText('cm', 4, MT);
+    } };
+  }
+  let pending: Stroke[] = [];
+
+  function showProbe() {
+    if (!state) return;
+    const p = probe(state.V, state.g, probeAt[0] / 100, probeAt[1] / 100), e = Math.hypot(p.ex, p.ey), deg = ((Math.atan2(p.ey, p.ex) * 180) / Math.PI + 360) % 360;
+    const f = q('.es-facts').querySelector('[data-k=probe]');
+    const el = fact(`Probe at (${sig(probeAt[0], 3)}, ${sig(probeAt[1], 3)}) cm`, `${sig(p.v, 4)} V`, `|E| = ${e >= 1e3 ? `${sig(e / 1000, 3)} kV/m` : `${sig(e, 3)} V/m`} at ${sig(deg >= 359.95 ? 0 : deg, 3)}°`);
+    el.dataset.k = 'probe';
+    if (f) f.replaceWith(el); else q('.es-facts').prepend(el);
+    return el;
+  }
+
+  function calc() {
+    const err = q('.es-err'), out = q('.es-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; state = null; };
+    const L = val('.es-L') / 100, n = +q<HTMLSelectElement>('.es-n').value, bnd = q<HTMLSelectElement>('.es-bnd').value as 'ground' | 'open';
+    if (!(L > 0)) return fail('Give the box size in cm (greater than 0).');
+    const shapes = parseShapes(q<HTMLTextAreaElement>('.es-shapes').value);
+    if (typeof shapes === 'string') return fail(`Shapes, ${shapes}.`);
+    const g = buildGrid(shapes, n, L);
+    const vs = new Set<number>(); for (let k = 0; k < n * n; k++) if (g.fixed[k]) vs.add(g.val[k]);
+    if (bnd === 'ground') vs.add(0);
+    if (!g.fixed.some((x) => x === 1)) return fail('There are no electrodes yet: type a shape or choose Draw and paint one on the picture.');
+    if (vs.size < 2) return fail('Every electrode (and the box) is at the same voltage, so there is no field. Give one a different voltage.');
+    err.hidden = true; out.hidden = false;
+    const s = solve(g, bnd, 1e-8);
+    const vmin = Math.min(...vs), vmax = Math.max(...vs), levels: number[] = [];
+    for (let i = 1; i < 10; i++) levels.push(vmin + ((vmax - vmin) * i) / 10);
+    const box = { x0: -L / 2, x1: L / 2, y0: -L / 2, y1: L / 2 };
+    state = { g, V: s.V, vmin, vmax, levels, segs: levels.map((lv) => contour(s.V, n, n, box, lv)) };
+    q('.es-levels').textContent = `Equipotentials every ${sig((vmax - vmin) / 10, 3)} V, from ${sig(levels[0], 4)} to ${sig(levels[levels.length - 1], 4)} V. Solved in ${s.iters} sweeps.`;
+    const ch = charges(s.V, g, bnd), W2 = energy(s.V, g);
+    const conductors = [...ch.byVolt.entries()].sort((a, b) => b[0] - a[0]);
+    if (bnd === 'ground') { const z = conductors.find((c) => c[0] === 0); if (z) z[1] += ch.box; else conductors.push([0, ch.box]); conductors.sort((a, b) => b[0] - a[0]); }
+    let big = '';
+    // Two conductors, or two plus a grounded box that ends up with (almost) no charge, as with ±V pairs.
+    const qmax = Math.max(...conductors.map((c) => Math.abs(c[1]))), zero = conductors.find((c) => c[0] === 0);
+    const pair = vs.size === 2 || (vs.size === 3 && vmin < 0 && vmax > 0 && zero != null && Math.abs(zero[1]) < 1e-3 * qmax);
+    if (pair) {
+      const C = (conductors.find((c) => c[0] === vmax)![1]) / (vmax - vmin);
+      big = `C = ${sig(C * 1e12, 4)} pF per metre`;
+    } else big = `${vs.size} voltages: see the charge on each electrode`;
+    q('.es-big').textContent = big;
+    let emax = 0, at = [0, 0];
+    for (let j = 1; j < n - 1; j++) for (let i = 1; i < n - 1; i++) { if (g.fixed[j * n + i]) continue; const e = fieldAt(s.V, g, i, j), m = Math.hypot(e[0], e[1]); if (m > emax) { emax = m; at = [(-L / 2 + i * g.h) * 100, (-L / 2 + j * g.h) * 100]; } }
+    const facts = [
+      fact('Field energy', `${sig(W2 * 1e9, 4)} nJ per metre`, '½ ε0 ∫|E|² over the box'),
+      fact('Strongest field in the gaps', emax >= 1e3 ? `${sig(emax / 1000, 3)} kV/m` : `${sig(emax, 3)} V/m`, `near (${sig(at[0], 3)}, ${sig(at[1], 3)}) cm, next to an electrode edge or corner`),
+      fact('Grid', `${n} × ${n}, ${sig(g.h * 1000, 3)} mm spacing`, `${s.iters} sweeps of over-relaxation`),
+    ];
+    if (pair) facts.unshift(fact('Capacitance per metre', `${sig(((conductors.find((c) => c[0] === vmax)![1]) / (vmax - vmin)) * 1e12, 4)} pF/m`, `charge on the ${sig(vmax, 4)} V electrode ÷ ${sig(vmax - vmin, 4)} V${vs.size === 3 ? '; the grounded box carries almost no charge here' : ''}`));
+    q('.es-facts').replaceChildren(...facts);
+    const pf = showProbe()!;
+    const hd = document.createElement('tr'); hd.innerHTML = '<th>Electrode voltage</th><th class="r">Charge per metre</th>';
+    const rows = conductors.map(([v, qq]) => [`${sig(v, 4)} V${v === 0 && bnd === 'ground' ? ' (with the box)' : ''}`, `${sig(qq * 1e9, 4)} nC/m`]);
+    q('.es-tab').replaceChildren(hd, ...rows.map((r) => { const tr = document.createElement('tr'); r.forEach((v, k) => { const td = document.createElement('td'); td.textContent = v; if (k) td.className = 'r'; tr.append(td); }); return tr; }));
+    fig = figure(); paint(canvas, fig);
+    const all = [pf, ...facts];
+    report = [
+      { title: big, text: [q('.es-levels').textContent!], facts: all.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig },
+      { title: 'Charge on each electrode', table: { head: ['Electrode voltage', 'Charge per metre'], rows, align: ['l', 'r'] }, text: [`Shapes: ${q<HTMLTextAreaElement>('.es-shapes').value.replace(/\n/g, '; ') || 'none typed'}${strokes.length ? `; plus ${strokes.length} brush strokes` : ''}`] },
+    ];
+  }
+
+  // Picture interaction.
+  const toCm = (e: PointerEvent): [number, number] => {
+    const r = canvas.getBoundingClientRect(), sx = ((e.clientX - r.left) / r.width) * W, sy = ((e.clientY - r.top) / r.height) * H, L = val('.es-L');
+    return [((sx - ML) / PW - 0.5) * L, (0.5 - (sy - MT) / PW) * L];
+  };
+  let down = false, raf = false;
+  const addStroke = (e: PointerEvent) => {
+    const [x, y] = toCm(e), r = val('.es-br'), v = val('.es-bv');
+    if (!(r > 0) || (mode === 'draw' && !Number.isFinite(v))) { const er = q('.es-err'); er.textContent = 'Give a brush radius above 0 and a brush voltage.'; er.hidden = false; return; }
+    if (strokes.length + pending.length >= 5000) return;
+    pending.push({ x, y, r, v: mode === 'draw' ? v : 0, erase: mode === 'erase' });
+    if (!raf && fig) { raf = true; requestAnimationFrame(() => { raf = false; if (fig) paint(canvas, fig); }); }
+  };
+  canvas.addEventListener('pointerdown', (e) => {
+    if (mode === 'probe') { const [x, y] = toCm(e); probeAt = [Math.round(x * 100) / 100, Math.round(y * 100) / 100]; if (state && fig) { showProbe(); paint(canvas, fig); const pf = q('.es-facts').querySelector('[data-k=probe]')!; report[0].facts![0] = [pf.querySelector('dt')!.textContent!, pf.querySelector('dd')!.childNodes[0].textContent!]; } return; }
+    down = true; canvas.setPointerCapture(e.pointerId); e.preventDefault(); addStroke(e);
+  });
+  canvas.addEventListener('pointermove', (e) => { if (down) addStroke(e); });
+  const up = () => { if (!down) return; down = false; strokes.push(...pending); pending = []; calc(); };
+  canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+  q('.es-mode').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-m]'); if (!b) return;
+    mode = b.dataset.m!; q('.es-mode').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  });
+  q('.es-clear').addEventListener('click', () => { strokes = []; calc(); });
+  function preset() { const p = PRE[q<HTMLSelectElement>('.es-pre').value]; q<HTMLTextAreaElement>('.es-shapes').value = p[0]; q<HTMLSelectElement>('.es-bnd').value = p[1]; strokes = []; }
+  q('.es-pre').addEventListener('change', preset);
+  root.querySelectorAll('.es-pre, .es-L, .es-n, .es-bnd, .es-shapes').forEach((i) => { i.addEventListener('change', calc); });
+  let typing: ReturnType<typeof setTimeout> | undefined;
+  root.querySelectorAll('.es-L, .es-shapes').forEach((i) => i.addEventListener('input', () => { clearTimeout(typing); typing = setTimeout(calc, 350); }));
+  document.addEventListener('fibub:theme', () => { if (fig && state) paint(canvas, fig); });
+  q('.es-csv').addEventListener('click', () => {
+    if (!state) return;
+    const { g, V } = state, out = ['x_cm,y_cm,V_volt,Ex_V_per_m,Ey_V_per_m,electrode'];
+    for (let j = 0; j < g.n; j++) for (let i = 0; i < g.n; i++) { const e = fieldAt(V, g, i, j), k = j * g.n + i; out.push([(-g.L / 2 + i * g.h) * 100, (-g.L / 2 + j * g.h) * 100, V[k], e[0], e[1]].map((x) => +x.toPrecision(6)).join(',') + `,${g.fixed[k] ? 1 : 0}`); }
+    save(new Blob([out.join('\n') + '\n'], { type: 'text/csv' }), 'electrostatics-grid.csv', 'text/csv');
+  });
+  preset(); calc();
+  wireDownloads(q('.dl'), () => ({ title: '2D electrostatics', subtitle: `${q<HTMLSelectElement>('.es-pre').selectedOptions[0].text}, box ${q<HTMLInputElement>('.es-L').value} cm`, file: 'electrostatics', sections: report }));
+</script>
+
+<style is:global>
+  .esv .es-fig { touch-action: none; cursor: crosshair; border: 1px solid var(--line); margin-top: 4px; }
+  .esv code { font-size: 13px; }
+  .esv select, .esv input { max-width: 100%; }
+  .esv .es-kn { background: rgb(33, 102, 172); } .esv .es-k0 { background: rgb(247, 247, 247); border: 1px solid var(--line); } .esv .es-kp { background: rgb(178, 24, 43); }
+</style>
