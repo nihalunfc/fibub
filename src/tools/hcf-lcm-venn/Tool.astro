@@ -1,0 +1,171 @@
+---
+// HCF and LCM: prime factor trees grow for two numbers, their primes sort into a Venn picture (shared primes in the
+// middle give the HCF, all of them the LCM), Euclid's division steps, and the HCF × LCM check. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm hl">
+  <div class="ax-card">
+    <h2>Pick two numbers</h2>
+    <div class="ax-grid">
+      <label>First number <span class="ax-row" style="flex-wrap:nowrap"><button type="button" class="btn secondary small hl-st" data-t="a" data-d="-1" aria-label="First number minus 1">−</button><input type="number" class="hl-a" min="2" max="100000" step="1" value="96" inputmode="numeric" /><button type="button" class="btn secondary small hl-st" data-t="a" data-d="1" aria-label="First number plus 1">+</button></span></label>
+      <label>Second number <span class="ax-row" style="flex-wrap:nowrap"><button type="button" class="btn secondary small hl-st" data-t="b" data-d="-1" aria-label="Second number minus 1">−</button><input type="number" class="hl-b" min="2" max="100000" step="1" value="404" inputmode="numeric" /><button type="button" class="btn secondary small hl-st" data-t="b" data-d="1" aria-label="Second number plus 1">+</button></span></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small hl-pre" data-p="96,404">96 and 404</button>
+      <button type="button" class="btn secondary small hl-pre" data-p="360,84">360 and 84</button>
+      <button type="button" class="btn secondary small hl-pre" data-p="17,23">17 and 23</button>
+      <button type="button" class="btn secondary small hl-pre" data-p="1024,96">1024 and 96</button>
+    </div>
+    <p class="ax-help">Whole numbers from 2 to 100 000.</p>
+    <p class="ax-err hl-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Factor trees</h2>
+    <div class="hl-trees">
+      <div><svg class="sm-fig hl-ta" role="img" aria-label="Factor tree of the first number"></svg><p class="sm-f hl-pa"></p></div>
+      <div><svg class="sm-fig hl-tb" role="img" aria-label="Factor tree of the second number"></svg><p class="sm-f hl-pb"></p></div>
+    </div>
+    <p class="ax-help">Each number splits into its smallest prime (circled) and what is left, until only primes remain.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Primes in a Venn picture</h2>
+    <svg class="sm-fig hl-venn" viewBox="0 0 340 220" role="img" aria-label="Venn picture: primes of the first number on the left, shared primes in the middle, primes of the second number on the right"></svg>
+    <p class="sm-f hl-hcf"></p>
+    <p class="sm-f hl-lcm"></p>
+    <p class="sm-f hl-prod"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Euclid's division algorithm</h2>
+    <p class="ax-help">Divide the bigger number by the smaller, then divide the divisor by the remainder, and repeat until the remainder is 0. The last divisor is the HCF.</p>
+    <div class="ax-scroll"><table class="hl-eu"></table></div>
+    <p class="sm-f hl-eus"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Pick two different primes, like 17 and 23. The middle of the Venn is empty: the HCF is 1 and the LCM is the product.</li>
+      <li>Pick a number and one of its multiples, like 12 and 36. Where do all the primes of 12 go?</li>
+      <li>Press + on one number again and again and watch the HCF jump around while the trees regrow.</li>
+      <li>Check that HCF × LCM = first × second for every pair you try. Why does it work? (Every prime is counted once in each.)</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="hl-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .hl .hl-trees { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 520px) { .hl .hl-trees { grid-template-columns: 1fr; } }
+  .hl input[type=number] { min-width: 0; flex: 1 1 auto; }
+  .hl .hl-st { min-width: 40px; }
+  .hl svg .hl-prime { fill: var(--good-soft); stroke: var(--good); stroke-width: 1.5; }
+  .hl svg .hl-comp { fill: var(--surface); stroke: var(--muted); stroke-width: 1; }
+  .hl svg .hl-edge { stroke: var(--muted); stroke-width: 1.5; }
+  .hl svg .hl-ca { fill: var(--accent-soft); fill-opacity: 0.6; stroke: var(--accent); stroke-width: 1.5; }
+  .hl svg .hl-cb { fill: var(--warn-soft); fill-opacity: 0.6; stroke: var(--warn); stroke-width: 1.5; }
+  .hl svg text.hl-p { font-weight: 700; font-size: 15px; }
+</style>
+
+<script>
+  import { factorTree, powerText, venn, euclid, type TreeNode } from '../../lib/sci/hcf-school';
+  import { randInt, gcd } from '../../lib/sci/smath';
+  import { S, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.hl')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const A = q<HTMLInputElement>('.hl-a'), B = q<HTMLInputElement>('.hl-b');
+  const read = (i: HTMLInputElement) => { const v = Number(i.value); return Number.isInteger(v) && v >= 2 && v <= 100000 ? v : null; };
+
+  function tree(svg: SVGSVGElement, t: TreeNode) {
+    svg.replaceChildren();
+    // Layout: the chain goes down and to the right; each prime hangs to the left of its parent.
+    const depth = (n: TreeNode): number => (n.right ? 1 + depth(n.right) : 0);
+    const D = depth(t), W = 160, step = 34, h = 30 + D * step + 20;
+    svg.setAttribute('viewBox', `0 0 ${W} ${h}`);
+    const dx = Math.min(18, (W - 50) / Math.max(1, D));
+    let node: TreeNode | undefined = t, x = 40, y = 20;
+    const label = (cx: number, cy: number, n: number, prime: boolean) => {
+      const w = Math.max(24, String(n).length * 8.5 + 10);
+      S(prime ? 'circle' : 'rect', prime ? { cx, cy, r: Math.max(12, w / 2), class: 'hl-prime' } : { x: cx - w / 2, y: cy - 11, width: w, height: 22, rx: 6, class: 'hl-comp' }, svg);
+      S('text', { x: cx, y: cy + 5, 'text-anchor': 'middle', style: 'font-weight:600' }, svg, String(n));
+    };
+    while (node) {
+      if (node.left && node.right) {
+        S('line', { x1: x, y1: y + 10, x2: x - 22, y2: y + step - 10, class: 'hl-edge' }, svg);
+        S('line', { x1: x, y1: y + 10, x2: x + dx, y2: y + step - 10, class: 'hl-edge' }, svg);
+      }
+      label(x, y, node.n, !node.left);
+      if (node.left) label(x - 22, y + step, node.left.n, true);
+      node = node.right; x += dx; y += step;
+    }
+  }
+
+  function vennDraw(v: ReturnType<typeof venn>, a: number, b: number) {
+    const svg = q<SVGSVGElement>('.hl-venn'); svg.replaceChildren();
+    S('circle', { cx: 125, cy: 115, r: 95, class: 'hl-ca' }, svg);
+    S('circle', { cx: 215, cy: 115, r: 95, class: 'hl-cb' }, svg);
+    S('text', { x: 60, y: 22, 'text-anchor': 'middle', style: 'font-weight:700' }, svg, String(a));
+    S('text', { x: 280, y: 22, 'text-anchor': 'middle', style: 'font-weight:700' }, svg, String(b));
+    const place = (list: number[], cx: number, w: number, cls: string) => {
+      const per = Math.max(1, Math.floor(w / 26)), rows = Math.ceil(list.length / per);
+      if (rows > 4) { S('text', { x: cx, y: 120, 'text-anchor': 'middle', class: `hl-p ${cls}` }, svg, powerText(list.reduce((s, p) => s * p, 1))); return; }
+      list.forEach((p, i) => {
+        const r = Math.floor(i / per), c = i % per, n = Math.min(per, list.length - r * per);
+        S('text', { x: cx + (c - (n - 1) / 2) * 26, y: 120 + (r - (rows - 1) / 2) * 24, 'text-anchor': 'middle', class: `hl-p ${cls}` }, svg, String(p));
+      });
+    };
+    place(v.onlyA, 78, 70, 'hl-va');
+    place(v.both, 170, 50, 'hl-vb');
+    place(v.onlyB, 262, 70, 'hl-vc');
+    if (!v.both.length) S('text', { x: 170, y: 120, 'text-anchor': 'middle', class: 'sm-tick' }, svg, 'none');
+  }
+
+  function draw() {
+    const a = read(A), b = read(B), err = q('.hl-err');
+    if (a === null || b === null) { err.textContent = 'Type two whole numbers from 2 to 100 000.'; err.hidden = false; return; }
+    err.hidden = true;
+    tree(q('.hl-ta'), factorTree(a)); tree(q('.hl-tb'), factorTree(b));
+    q('.hl-pa').textContent = `${a} = ${powerText(a)}`; q('.hl-pb').textContent = `${b} = ${powerText(b)}`;
+    const v = venn(a, b);
+    vennDraw(v, a, b);
+    q('.hl-hcf').textContent = `HCF = product of the shared primes in the middle = ${v.both.length ? v.both.join(' × ') : '1 (nothing shared)'}${v.both.length > 1 ? ` = ${v.hcf}` : ''}`;
+    const all = [...v.onlyA, ...v.both, ...v.onlyB];
+    q('.hl-lcm').textContent = `LCM = product of every prime in the picture = ${all.length > 14 ? `${powerText(v.lcm)}` : all.join(' × ')} = ${v.lcm.toLocaleString('en')}`;
+    q('.hl-prod').textContent = `Check: HCF × LCM = ${v.hcf} × ${v.lcm.toLocaleString('en')} = ${(v.hcf * v.lcm).toLocaleString('en')} = ${a} × ${b} ✓`;
+    const E = euclid(a, b), t = q<HTMLTableElement>('.hl-eu'); t.replaceChildren();
+    const h = t.insertRow(); for (const x of ['Step', 'Division', 'Remainder']) { const e = document.createElement('th'); e.textContent = x; h.append(e); }
+    E.forEach((r, i) => { const tr = t.insertRow(); tr.insertCell().textContent = String(i + 1); tr.insertCell().textContent = `${r.a} = ${r.b} × ${r.q} + ${r.r}`; const c = tr.insertCell(); c.textContent = String(r.r); c.className = 'r'; });
+    q('.hl-eus').textContent = `The remainder reached 0 at step ${E.length}, so HCF(${a}, ${b}) = ${E.at(-1)!.b}, the same as the Venn picture.`;
+  }
+
+  for (const i of [A, B]) i.addEventListener('input', draw);
+  root.querySelectorAll<HTMLButtonElement>('.hl-st').forEach((btn) => btn.addEventListener('click', () => {
+    const i = btn.dataset.t === 'a' ? A : B; i.value = String(Math.min(100000, Math.max(2, (read(i) ?? 2) + Number(btn.dataset.d)))); draw();
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.hl-pre').forEach((btn) => btn.addEventListener('click', () => { const [a, b] = btn.dataset.p!.split(','); A.value = a; B.value = b; draw(); }));
+  draw();
+
+  quiz(q('.hl-quiz'), () => {
+    const out: Question[] = [];
+    const pick = () => { const g = [2, 3, 4, 5, 6, 7, 8, 9, 12][randInt(0, 8)]; let x = randInt(2, 12), y = randInt(2, 12); while (gcd(x, y) !== 1 || x === y) { x = randInt(2, 12); y = randInt(2, 12); } return [g * x, g * y, g]; };
+    const [a1, b1, g1] = pick();
+    out.push({ q: `Find the HCF of ${a1} and ${b1}.`, want: [g1], work: `${a1} = ${powerText(a1)} and ${b1} = ${powerText(b1)}. The shared primes multiply to ${g1}, so HCF = ${g1}.` });
+    const [a2, b2, g2] = pick();
+    out.push({ q: `Find the LCM of ${a2} and ${b2}.`, want: [(a2 * b2) / g2], work: `HCF = ${g2}, so LCM = ${a2} × ${b2} / ${g2} = ${(a2 * b2) / g2}. (Or multiply every prime in the Venn picture.)` });
+    const [a3, b3, g3] = pick();
+    out.push({ q: `Two numbers have HCF ${g3} and product ${a3 * b3}. What is their LCM?`, want: [(a3 * b3) / g3], work: `HCF × LCM = product, so LCM = ${a3 * b3} / ${g3} = ${(a3 * b3) / g3}.` });
+    const x = randInt(100, 999), y = randInt(11, 99), r = x % y;
+    out.push({ q: `In the first step of Euclid's algorithm for ${x} and ${y}, ${x} = ${y} × q + r. What are q and r?`, want: [Math.floor(x / y), r], ordered: true, hint: 'q, r',
+      work: `${y} × ${Math.floor(x / y)} = ${y * Math.floor(x / y)}, and ${x} − ${y * Math.floor(x / y)} = ${r}. So q = ${Math.floor(x / y)} and r = ${r}.` });
+    return out;
+  });
+</script>
