@@ -1,5 +1,14 @@
 [
  {
+  "sha": "09573f2cc53b",
+  "date": "2026-11-09T08:56:51+00:00",
+  "title": "Add #178 protein parameter calculator",
+  "tools": [
+   "protein-calculator"
+  ],
+  "site": false
+ },
+ {
   "sha": "4eed7f76da37",
   "date": "2026-11-09T08:39:38+00:00",
   "title": "Add #177 phylogenetic tree viewer (Newick and NEXUS)",
