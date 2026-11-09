@@ -11,7 +11,7 @@ order: 347
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [nernst-calculator, plot-maker, reaction-kinetics-fitter]
+related: [nernst-calculator, plot-maker, reaction-kinetics-fitter, membrane-potential, spike-train-analyser, ode-solver]
 sources:
   - "A. L. Hodgkin and A. F. Huxley (1952), J. Physiol. 117: 500-544: the model, its rate equations and constants (g̅Na 120, g̅K 36, g̅L 0.3 mS/cm²; Cm 1 µF/cm²), written in the modern convention with rest at −65 mV (E_Na +50, E_K −77, E_L −54.387 mV). Equations only."
   - "Checked in the tests against SciPy solve_ivp (DOP853, relative tolerance 10⁻¹⁰) on the same equations: spike times agree within 0.1 µs, threshold and firing rates match."

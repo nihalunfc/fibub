@@ -11,7 +11,7 @@ order: 348
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [period-finder, plot-maker, sample-size, uncertainty-calculator]
+related: [period-finder, plot-maker, sample-size, uncertainty-calculator, hodgkin-huxley-simulator, calcium-imaging-dff, notch-filter-psd]
 sources:
   - "Definitions as in P. Dayan and L. F. Abbott, Theoretical Neuroscience (MIT Press, 2001), chapter 1: firing rate, ISI coefficient of variation (SD with n in the denominator), Fano factor, PSTH and autocorrelogram. Fano factor here uses the sample variance (n − 1) of spike counts across trains. Written by fibub."
   - "Checked in the tests against an independent NumPy 2.5 calculation (np.diff, np.var, np.histogram) on the example, and against the Poisson-process values CV = 1 and Fano factor = 1."

@@ -11,7 +11,7 @@ order: 309
 icon: clock
 works: offline
 updated: 2026-11-09
-related: [sequence-alignment, tree-viewer, sequence-tools, radiometric-age-calculator]
+related: [sequence-alignment, tree-viewer, sequence-tools, radiometric-age-calculator, tree-builder, dnds-calculator]
 sources:
   - "Methods: Zuckerkandl and Pauling (1965) for the molecular clock; Jukes and Cantor (1969) and Kimura (1980) for the distances and their variances, as given in Nei and Kumar, Molecular Evolution and Phylogenetics (2000); Tajima (1993) for the relative rate test."
   - "Code written by fibub. Checked in the tests against Python: the distances, their standard errors by an independent numerical delta method, Tajima's counts, and SciPy 1.18's chi-square p-value."

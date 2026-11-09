@@ -11,7 +11,7 @@ order: 5
 icon: check
 works: offline
 updated: 2026-11-09
-related: [vcf-viewer, sample-size, sequence-tools]
+related: [vcf-viewer, sample-size, sequence-tools, allele-frequency-calculator, punnett-square, mendelian-chi-square, ternary-plot-maker]
 sources:
   - "Hardy-Weinberg principle (G. H. Hardy 1908; W. Weinberg 1908). Exact test: J. E. Wigginton, D. J. Cutler and G. R. Abecasis (2005), Am. J. Hum. Genet. 76: 887-893. Continuity correction: F. Yates (1934). de Finetti diagram: B. de Finetti (1926). Formulas only; no tables are copied."
   - "Checked in the tests: two-sided and one-sided exact p-values against a full enumeration with exact fractions in Python; Yates-corrected chi-square against NumPy and scipy.stats.chi2; three-allele chi-square, He and F against an independent NumPy calculation."

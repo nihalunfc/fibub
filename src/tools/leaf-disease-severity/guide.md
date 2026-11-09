@@ -11,7 +11,7 @@ order: 328
 icon: image
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, sample-size, spectral-index-calculator]
+related: [biodiversity-indices, sample-size, spectral-index-calculator, disease-progress-audpc, leaf-area-analyser, spore-size-measurer]
 sources:
   - "Severity as diseased area ÷ total leaf area × 100 follows the usual definition in plant disease assessment (for example Bock, C. H. et al. (2010) Plant disease severity estimated visually, by digital photography and image analysis, and by hyperspectral imaging. Critical Reviews in Plant Sciences 29, 59–107)."
   - "Otsu, N. (1979) A threshold selection method from gray-level histograms. IEEE Transactions on Systems, Man, and Cybernetics 9, 62–66 (the automatic leaf threshold)."

@@ -11,7 +11,7 @@ order: 316
 icon: target
 works: offline
 updated: 2026-11-09
-related: [gps-track-analyser, biodiversity-indices, field-sampling-planner, plot-maker]
+related: [gps-track-analyser, biodiversity-indices, field-sampling-planner, plot-maker, vector-map-viewer, utm-converter, mark-recapture]
 sources:
   - "Reference bandwidth and fixed kernel home range: Worton, B. J. (1989), Ecology 70: 164–168."
   - "Minimum convex polygon and the percentage MCP by distance to the centre: as in Calenge, C. (2006), the adehabitatHR package for R, Ecological Modelling 197: 516–519."

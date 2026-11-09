@@ -11,7 +11,7 @@ order: 312
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [vcf-viewer, biodiversity-indices, sample-size, sequence-tools]
+related: [vcf-viewer, biodiversity-indices, sample-size, sequence-tools, hardy-weinberg-tester, effective-population-size, punnett-square]
 sources:
   - "Hardy-Weinberg exact test: J. E. Wigginton, D. J. Cutler and G. R. Abecasis (2005), Am. J. Hum. Genet. 76: 887-893 (the algorithm). F-statistics: B. S. Weir and C. C. Cockerham (1984), Evolution 38: 1358-1370; M. Nei (1977), Ann. Hum. Genet. 41: 225-233. Formulas only; no tables are copied."
   - "Checked in the tests: exact-test p-values against a full enumeration of every heterozygote count with exact fractions in Python (8 cases, including tiny samples and a p-value of 5.6 × 10⁻¹⁹); chi-square against scipy.stats.chi2; Weir and Cockerham's θ, F, f and variance components against scikit-allel 1.3.13 (weir_cockerham_fst); Nei's FIS, FST and FIT against an independent numpy calculation."

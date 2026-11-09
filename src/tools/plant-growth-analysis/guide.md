@@ -11,7 +11,7 @@ order: 324
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [tree-carbon, et0-calculator, trend-analyser, sample-size, plot-maker]
+related: [tree-carbon, et0-calculator, trend-analyser, sample-size, plot-maker, photosynthesis-curve-fitter, leaf-area-analyser, growth-curve-tracker]
 sources:
   - "Formulas: R. Hunt, Plant Growth Curves: the Functional Approach to Plant Growth Analysis (Edward Arnold, 1982), and R. Hunt et al., A modern tool for classical plant growth analysis, Annals of Botany 90, 485-488 (2002). RGR with error from the mean of ln W: H. Hoffmann and H. Poorter, Annals of Botany 90, 37-42 (2002). Formulas only; no data are copied."
   - "Checked in the tests against an independent Python script (NumPy and SciPy): the example's RGR, standard error, confidence interval (scipy.stats t), ULR, LAR, SLA and LWR, and the mean ULR formula against the exact mean found by numerical integration (scipy.integrate.quad) for steady growth with leaf area linear in mass."

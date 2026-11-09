@@ -11,7 +11,7 @@ order: 305
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, field-sampling-planner, sample-size, uncertainty-calculator]
+related: [biodiversity-indices, field-sampling-planner, sample-size, uncertainty-calculator, occupancy-estimator, quadrat-transect-analyser]
 sources:
   - "Methods: S. T. Buckland, D. R. Anderson, K. P. Burnham, J. L. Laake, D. L. Borchers and L. Thomas, Introduction to Distance Sampling (Oxford University Press, 2001): detection functions, the likelihood for exact distances, encounter-rate variance, the delta method, the log-normal interval and Satterthwaite degrees of freedom. Hazard-rate model: Hayes and Buckland (1983). Formulas only; no tables are copied."
   - "Checked in the tests against an independent Python fit (SciPy 1.x optimize.minimize, integrate.quad, a finite-difference Hessian and stats.t) of the same data, and against the closed-form half-normal estimate σ² = mean of x² with no truncation."

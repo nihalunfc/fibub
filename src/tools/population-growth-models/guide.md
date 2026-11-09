@@ -11,7 +11,7 @@ order: 303
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, decay-calculator, plot-maker, trend-analyser]
+related: [biodiversity-indices, decay-calculator, plot-maker, trend-analyser, lotka-volterra-simulator, epidemic-model, ode-solver, yield-per-recruit]
 sources:
   - "Methods: P. H. Leslie (1945) matrix model; H. Caswell, Matrix Population Models (2nd ed. 2001) for the characteristic equation, stable distribution, reproductive value, R₀ and generation time; Verhulst's logistic equation. Formulas only; no tables are copied."
   - "Checked in the tests against NumPy 2.x (numpy.linalg.eig of the matrix and its transpose, and matrix powers) and Python's math module."

@@ -11,7 +11,7 @@ order: 334
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [tree-carbon, biodiversity-indices, field-sampling-planner]
+related: [tree-carbon, biodiversity-indices, field-sampling-planner, forest-inventory-summary, log-scale-calculator, canopy-gap-analyser]
 sources:
   - "Tangent and sine height methods, basal area (π·DBH²/4, 0.005454·DBH² ft²), fixed-area plot expansion and Bitterlich angle-count (prism) sampling with basal area factors and tree factors: standard forest mensuration, as in Husch, Beers and Kershaw, Forest Mensuration, and Avery and Burkhart, Forest Measurements. Sine method: M. J. Larjavaara and H. C. Muller-Landau (2013), Methods in Ecology and Evolution 4: 793-801. Method only; no tables copied."
   - "Checked in the tests against an independent NumPy calculation. The example readings, trees and prism counts are made up."

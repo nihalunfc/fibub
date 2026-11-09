@@ -11,7 +11,7 @@ order: 341
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [trend-analyser, binding-curve-fitter, sample-size]
+related: [trend-analyser, binding-curve-fitter, sample-size, von-bertalanffy-fitter, cpue-trend, population-growth-models]
 sources:
   - "Yield per recruit: R. J. H. Beverton and S. J. Holt (1957), On the Dynamics of Exploited Fish Populations; F0.1: J. A. Gulland and L. K. Boerema (1973). Surplus production: M. B. Schaefer (1954); W. W. Fox (1970), in the Gompertz form rB ln(K/B); observation-error fitting as in M. Hilborn and C. J. Walters (1992), Quantitative Fisheries Stock Assessment, and M. Haddon, Modelling and Quantitative Methods in Fisheries. Method only; no stock data copied."
   - "Checked in the tests against SciPy: yield per recruit by numerical integration of the cohort (scipy.integrate.quad), Fmax and F0.1 by scipy.optimize, and the Schaefer and Fox fits by scipy.optimize.minimize on the same likelihood. All example values are made up."

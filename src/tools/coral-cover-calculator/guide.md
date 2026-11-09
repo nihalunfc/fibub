@@ -11,7 +11,7 @@ order: 332
 icon: target
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, field-sampling-planner, sample-size]
+related: [biodiversity-indices, field-sampling-planner, sample-size, quadrat-transect-analyser]
 sources:
   - "Random point counts on photo quadrats as in Kohler, K. E. and Gill, S. M. (2006) Coral Point Count with Excel extensions (CPCe). Computers & Geosciences 32, 1259–1269. fibub's page is independent and uses none of CPCe's code or files."
   - "Wilson, E. B. (1927) Probable inference, the law of succession, and statistical inference. Journal of the American Statistical Association 22, 209–212 (the interval), checked in the tests against statsmodels 0.15 proportion_confint(method='wilson') to 1e-6."

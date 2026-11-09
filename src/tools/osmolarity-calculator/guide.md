@@ -11,7 +11,7 @@ order: 344
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [colligative-properties, solution-calculator, molar-mass-calculator, buffer-recipe-calculator]
+related: [colligative-properties, solution-calculator, molar-mass-calculator, buffer-recipe-calculator, membrane-potential, fick-cardiac-output]
 sources:
   - "Osmotic pressure: J. H. van 't Hoff (1887), π = cRT. Gas constant R = 8.314462618 J/(mol·K) (CODATA)."
   - "Molar masses from the formula and the IUPAC/CIAAW standard atomic weights; the van 't Hoff factors are ideal dissociation counts (general chemistry). Which solutes cross cell membranes (urea, glycerol, ethanol) is general physiology."

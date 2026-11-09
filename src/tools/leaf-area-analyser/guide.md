@@ -11,7 +11,7 @@ order: 323
 icon: image
 works: offline
 updated: 2026-11-09
-related: [spectral-index-calculator, biodiversity-indices, tree-carbon, image-resizer]
+related: [spectral-index-calculator, biodiversity-indices, tree-carbon, image-resizer, canopy-gap-analyser, stomatal-density-counter, leaf-disease-severity, plant-growth-analysis]
 sources:
   - "Otsu, N. (1979) A threshold selection method from gray-level histograms. IEEE Transactions on Systems, Man, and Cybernetics 9, 62–66 (the automatic threshold)."
   - "Woebbecke, D. M. et al. (1995) Color indices for weed identification under various soil, residue, and lighting conditions. Transactions of the ASAE 38, 259–269 (excess green index, 2g − r − b)."

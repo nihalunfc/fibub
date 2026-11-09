@@ -11,7 +11,7 @@ order: 329
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [hemocytometer, graph-digitizer, uncertainty-calculator]
+related: [hemocytometer, graph-digitizer, uncertainty-calculator, particle-size-image, stomatal-density-counter]
 sources:
   - "The (min–)low–high(–max) × (min–)low–high(–max) µm form with Q = length ÷ width per spore is the usual way spore measurements are written in mycology (described, for example, in Largent, D. L. (1977) How to Identify Mushrooms to Genus I: Macroscopic Features, and in many species descriptions)."
   - "Mean, sample standard deviation and percentiles (linear interpolation) are checked in the tests against NumPy on a made-up set of 10 spores; the moment ellipse (length and width as 4 √ of the second-moment eigenvalues) is checked against scikit-image regionprops (axis_major_length, axis_minor_length) within 1e-9 px."

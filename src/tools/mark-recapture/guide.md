@@ -11,7 +11,7 @@ order: 301
 icon: target
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, field-sampling-planner, sample-size, uncertainty-calculator]
+related: [biodiversity-indices, field-sampling-planner, sample-size, uncertainty-calculator, occupancy-estimator, distance-sampling, population-growth-models]
 sources:
   - "Methods: Lincoln (1930) and Petersen; D. G. Chapman (1951) estimator; G. A. F. Seber, The Estimation of Animal Abundance (2nd ed. 1982) for the variance and adjusted Schnabel estimate; Z. E. Schnabel (1938); A. Chao (1987) and Burnham et al. (1987) for the log-normal interval; C. J. Krebs, Ecological Methodology (2nd ed. 1999) for the Schnabel limits; Robson and Regier (1964) for the 7-recapture rule. Formulas only; no tables are copied."
   - "Checked in the tests against an independent Python implementation using SciPy 1.x (normal, chi-square and t quantiles)."

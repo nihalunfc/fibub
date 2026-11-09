@@ -11,7 +11,7 @@ order: 313
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, sample-size, vcf-viewer]
+related: [biodiversity-indices, sample-size, vcf-viewer, wright-fisher-simulator, coalescent-simulator, breeders-equation]
 sources:
   - "Formulas: S. Wright (1931), Genetics 16: 97-159 (sex ratio and harmonic mean); J. F. Crow and M. Kimura (1970), An Introduction to Population Genetics Theory (Ne = (4N − 2)/(Vk + 2)); M. Nei and F. Tajima (1981), Genetics 98: 625-640 (Fc); R. S. Waples (1989), Genetics 121: 379-391 (sampling correction, plans I and II, chi-square interval). Formulas only; no tables are copied."
   - "Checked in the tests against an independent numpy and SciPy calculation (scipy.stats.hmean, numpy.var, scipy.stats.chi2.ppf), including a locus with three alleles and sampling plan II. A Python simulation of drift with a true Ne of 100 (200 loci, 200 runs) gave a median temporal estimate of 103, as expected for this slightly biased method."

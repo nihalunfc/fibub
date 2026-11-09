@@ -11,7 +11,7 @@ order: 321
 icon: book
 works: offline
 updated: 2026-11-09
-related: [tree-viewer, biodiversity-indices, field-sampling-planner, plate-layout]
+related: [tree-viewer, biodiversity-indices, field-sampling-planner, plate-layout, gram-stain-key, herbarium-label-maker]
 sources:
   - "Dichotomous key structure (couplets of two contrasting leads): standard taxonomic practice, as in Winston, J. E., Describing Species (Columbia University Press, 1999)."
   - "The example key was written for this page from general knowledge of insect orders; it is simplified and not for identification."

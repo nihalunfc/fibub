@@ -11,7 +11,7 @@ order: 306
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, plot-maker, tree-viewer, sample-size]
+related: [biodiversity-indices, plot-maker, tree-viewer, sample-size, quadrat-transect-analyser, tree-builder, metabolite-volcano-pca, embedding-visualiser]
 sources:
   - "Methods: Legendre and Legendre, Numerical Ecology (3rd ed., 2012) for PCA, the Hellinger transform (Legendre and Gallagher 2001), Bray-Curtis, and the linkage rules; Kruskal (1964) for non-metric scaling and stress-1, fitted by SMACOF (de Leeuw 1977) with monotone regression; Clarke (1993) for the rule-of-thumb stress bands."
   - "Code written by fibub. Checked in the tests against NumPy 2 (PCA by SVD), SciPy 1.18 (Bray-Curtis, linkage heights and merge order for all four methods, cophenetic correlation, cluster cuts) and scikit-learn 1.9 (non-metric MDS: the stress-1 here matches its best of 50 starts to 0.00001)."

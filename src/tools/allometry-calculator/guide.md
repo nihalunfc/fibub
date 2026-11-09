@@ -11,7 +11,7 @@ order: 317
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [plot-maker, calibration-curve, uncertainty-calculator, tree-carbon]
+related: [plot-maker, calibration-curve, uncertainty-calculator, tree-carbon, respirometry-calculator, fish-length-weight, regression-workbench]
 sources:
   - "Allometric equation and log-log fitting: Huxley, J. S. (1932), Problems of Relative Growth; Kleiber, M. (1932), Hilgardia 6: 315–353 (the 3/4 exponent)."
   - "Back-transformation bias correction: Baskerville, G. L. (1972), Canadian Journal of Forest Research 2: 49–53; Sprugel, D. G. (1983), Ecology 64: 209–210."

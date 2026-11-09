@@ -11,7 +11,7 @@ order: 342
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [gas-law-calculator, psychrometric-calculator, uncertainty-calculator, plot-maker]
+related: [gas-law-calculator, psychrometric-calculator, uncertainty-calculator, plot-maker, allometry-calculator, fick-cardiac-output, vo2max-estimator]
 sources:
   - "Flow-through equations: J. R. B. Lighton, Measuring Metabolic Rates: A Manual for Scientists (Oxford University Press, 2008), chapters 8 to 10 (nitrogen balance, eq. 10.2 for scrubbed CO₂). Written from the mass balances; no tables copied."
   - "Energy: J. B. de V. Weir (1949), J. Physiol. 109: 1-9, kcal = 3.941 V̇O₂ + 1.106 V̇CO₂; oxycalorific equivalent 16 + 5.164 RQ J/mL O₂ from Lighton et al. (1987) as given in Lighton (2008)."

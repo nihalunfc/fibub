@@ -11,7 +11,7 @@ order: 326
 icon: file
 works: offline
 updated: 2026-11-09
-related: [field-sampling-planner, plate-layout, data-cleaner, qr-code-generator, observing-log]
+related: [field-sampling-planner, plate-layout, data-cleaner, qr-code-generator, observing-log, dichotomous-key-builder, spore-size-measurer]
 sources:
   - "Field names: Darwin Core terms, Biodiversity Information Standards (TDWG), dwc.tdwg.org/terms (CC BY 4.0). Term names only."
   - "Label layout follows common herbarium practice (heading, family, name in italics with authors in roman, locality, coordinates, elevation, habitat, collector and number, date, determiner). Written by fibub."

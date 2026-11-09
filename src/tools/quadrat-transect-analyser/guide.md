@@ -11,7 +11,7 @@ order: 302
 icon: table
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, field-sampling-planner, plot-maker, tree-carbon]
+related: [biodiversity-indices, field-sampling-planner, plot-maker, tree-carbon, community-ordination, coral-cover-calculator, forest-inventory-summary]
 sources:
   - "Methods: J. T. Curtis and R. P. McIntosh (1951), importance value; R. H. Canfield (1941), line-intercept cover; C. W. Strong (1966), line-intercept density; textbook definitions of density, frequency and cover (e.g. C. J. Krebs, Ecological Methodology, 1999). Formulas only; no tables are copied."
   - "Checked in the tests against an independent calculation of the same data with pandas 2.x."

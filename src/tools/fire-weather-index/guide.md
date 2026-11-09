@@ -11,7 +11,7 @@ order: 337
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [psychrometric-calculator, trend-analyser, tree-carbon]
+related: [psychrometric-calculator, trend-analyser, tree-carbon, wind-chill-heat-index, station-data-viewer, forest-inventory-summary]
 sources:
   - "C. E. Van Wagner (1987), Development and structure of the Canadian Forest Fire Weather Index System, Canadian Forestry Service, Forestry Technical Report 35; C. E. Van Wagner and T. L. Pickett (1985), Equations and FORTRAN program for the Canadian Forest Fire Weather Index System, Forestry Technical Report 33; X. Wang, K. R. Anderson and R. D. Suddaby (2015), Updated source code for calculating fire danger indices in the Canadian Forest Fire Weather Index System, Information Report NOR-X-424. The published equations and their coefficients are the method; no tables or data are copied."
   - "Checked in the tests against xclim 1.0 (its Python port of the CFS cffdrs code), day by day over a made-up 150-day series with a long drought and heavy rain, and over the page's made-up example. Not an official fire danger rating."

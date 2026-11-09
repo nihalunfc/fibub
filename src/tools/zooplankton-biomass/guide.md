@@ -11,7 +11,7 @@ order: 333
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, field-sampling-planner, hemocytometer, water-quality-index, sample-size]
+related: [biodiversity-indices, field-sampling-planner, hemocytometer, water-quality-index, sample-size, fish-length-weight, pond-oxygen-budget]
 sources:
   - "Method: standard net-sample calculations (volume filtered from mouth area, distance and efficiency or a flowmeter; scaling from a subsample) and length-weight conversion of zooplankton, as described in R. P. Harris et al. (eds.), ICES Zooplankton Methodology Manual (Academic Press, 2000) and E. McCauley in J. A. Downing and F. H. Rigler (eds.), A Manual on Methods for the Assessment of Secondary Productivity in Fresh Waters (Blackwell, 1984). Formulas only."
   - "No length-weight coefficients are bundled. The example a and b values are made up and labelled illustrative; users enter equations from the source they cite."
