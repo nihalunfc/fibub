@@ -1,0 +1,349 @@
+---
+// Newton's laws sandbox: push a trolley (F = ma, friction, inertia), two trolleys pushing apart (action and
+// reaction, momentum) and catching a ball (impulse). Maths in src/lib/sci/newton.ts.
+import '../../styles/astro.css';
+---
+<div class="ax nl">
+  <div class="ax-card">
+    <div class="ax-row nl-top">
+      <span class="nl-lab">Level</span>
+      <div class="ax-seg nl-level" role="group" aria-label="Level">
+        <button type="button" data-l="8" aria-pressed="false">Class 8</button>
+        <button type="button" data-l="9" aria-pressed="true">Class 9</button>
+        <button type="button" data-l="11" aria-pressed="false">Class 11</button>
+      </div>
+    </div>
+    <div class="ax-seg nl-mode" role="group" aria-label="Experiment">
+      <button type="button" data-m="push" aria-pressed="true">Push a trolley</button>
+      <button type="button" data-m="pair" aria-pressed="false">Action and reaction</button>
+      <button type="button" data-m="catch" aria-pressed="false">Catch a ball</button>
+    </div>
+
+    <canvas class="nl-scene" aria-label="The experiment"></canvas>
+
+    <div class="nl-p nl-p-push">
+      <div class="ax-row"><button type="button" class="btn small nl-go">Push for 2 s</button><button type="button" class="btn secondary small nl-hold">Hold to push</button><button type="button" class="btn secondary small nl-reset">Reset</button></div>
+      <label>Push force F: <b class="nl-fv"></b><input class="nl-f" type="range" min="0" max="40" step="1" value="10" /></label>
+      <label>Mass of trolley and load m: <b class="nl-mv"></b><input class="nl-m" type="range" min="1" max="10" step="0.5" value="2" /></label>
+      <label>Surface <select class="nl-surf">
+        <option value="ice">Ice (almost no friction)</option>
+        <option value="floor" selected>Smooth floor</option>
+        <option value="carpet">Carpet</option>
+      </select></label>
+      <p class="ax-help nl-mu"></p>
+    </div>
+
+    <div class="nl-p nl-p-pair" hidden>
+      <div class="ax-row"><button type="button" class="btn small nl-apart">Push apart</button><button type="button" class="btn secondary small nl-reset2">Reset</button></div>
+      <label>Mass of trolley A (left): <b class="nl-m1v"></b><input class="nl-m1" type="range" min="20" max="100" step="5" value="50" /></label>
+      <label>Mass of trolley B (right): <b class="nl-m2v"></b><input class="nl-m2" type="range" min="20" max="100" step="5" value="25" /></label>
+      <label>Push between them (for 0.5 s): <b class="nl-pfv"></b><input class="nl-pf" type="range" min="20" max="200" step="10" value="100" /></label>
+      <p class="ax-help">Two people on trolleys push each other. The wheels run freely (no friction).</p>
+    </div>
+
+    <div class="nl-p nl-p-catch" hidden>
+      <label>Ball mass: <b class="nl-bmv"></b><input class="nl-bm" type="range" min="0.05" max="0.5" step="0.01" value="0.16" /></label>
+      <label>Ball speed: <b class="nl-bvv"></b><input class="nl-bv" type="range" min="5" max="40" step="1" value="25" /></label>
+      <label>Time to stop it (pull your hands back to make it longer): <b class="nl-btv"></b><input class="nl-bt" type="range" min="0.02" max="0.5" step="0.01" value="0.1" /></label>
+      <p class="ax-help">The ball sizes are made-up round numbers. The picture shows the force on the hands against time: the shaded area is the impulse, and it stays the same.</p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="nl-h">What is happening</h2>
+    <p class="nl-state"><span class="ax-pill nl-pill"></span></p>
+    <dl class="ax-facts nl-facts"></dl>
+    <div class="nl-eq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="nl-try">
+      <li><b>First law:</b> on ice, push for 2 s and let go. With no friction the trolley keeps going at the same speed: nothing is needed to keep it moving.</li>
+      <li><b>Second law:</b> double the mass and push again with the same force. The acceleration halves.</li>
+      <li><b>Friction:</b> on carpet, a small push does nothing. The forces are balanced until the push is bigger than the friction can hold.</li>
+      <li><b>Third law:</b> in Action and reaction, make A twice as heavy as B. The pushes are equal, but B moves off twice as fast. The total momentum stays zero.</li>
+      <li><b>Impulse:</b> in Catch a ball, make the stopping time 4 times longer. The force on your hands falls to a quarter.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="nl-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { G, step, friction, pushApart, catchBall, questions } from '../../lib/sci/newton';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { pagePalette, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.nl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => Number(inp(c).value);
+  const f = (x: number, d = 2) => { const r = Math.round(x * 10 ** d) / 10 ** d; return (Object.is(r, -0) ? 0 : r).toFixed(d).replace(/\.?0+$/, '').replace('-', '−'); };
+  // Made-up, rounded friction coefficients for the teaching surfaces: [static, kinetic].
+  const SURF: Record<string, [number, number, string]> = { ice: [0, 0, 'ice'], floor: [0.15, 0.1, 'smooth floor'], carpet: [0.4, 0.3, 'carpet'] };
+  const DT = 1 / 120, H = 200;
+
+  let level: 8 | 9 | 11 = 9, mode: 'push' | 'pair' | 'catch' = 'push';
+  // push experiment state
+  let tr = { x: 0, v: 0 }, a = 0, fric = 0, pushing = false, pushLeft = 0, holding = false, letGo: number | null = null, stoppedAt: number | null = null, raf = 0, last = 0, acc = 0, cam = 0;
+  // pair experiment state
+  let pair = { t: -1, x1: 0, x2: 0 };
+
+  function setup(c: HTMLCanvasElement, h: number) {
+    const w = Math.max(260, Math.round(c.clientWidth || c.parentElement!.clientWidth || 320)), dpr = Math.min(3, window.devicePixelRatio || 1);
+    c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c.style.height = `${h}px`;
+    const ctx = c.getContext('2d')!; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w };
+  }
+  function arrow(ctx: CanvasRenderingContext2D, x: number, y: number, dx: number, dy: number, col: string, label = '', w = 3) {
+    const len = Math.hypot(dx, dy); if (len < 2) return;
+    const ux = dx / len, uy = dy / len;
+    ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = w;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + dx - ux * 8, y + dy - uy * 8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + dx, y + dy); ctx.lineTo(x + dx - ux * 10 - uy * 6, y + dy - uy * 10 + ux * 6); ctx.lineTo(x + dx - ux * 10 + uy * 6, y + dy - uy * 10 - ux * 6); ctx.closePath(); ctx.fill();
+    if (label) { ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(label, x + dx / 2 + (Math.abs(uy) > 0.5 ? (ux >= 0 ? 34 : -34) : 0), y + dy / 2 + (Math.abs(uy) > 0.5 ? 0 : -8)); }
+  }
+  function trolley(ctx: CanvasRenderingContext2D, pal: Palette, cx: number, yG: number, wPx: number, label: string, loads = 0) {
+    ctx.fillStyle = pal.bg; ctx.strokeStyle = pal.ink; ctx.lineWidth = 2;
+    ctx.fillRect(cx - wPx / 2, yG - 34, wPx, 22); ctx.strokeRect(cx - wPx / 2, yG - 34, wPx, 22);
+    for (let i = 0; i < loads; i++) { ctx.fillStyle = pal.muted; ctx.fillRect(cx - wPx / 2 + 4 + (i % 4) * ((wPx - 8) / 4), yG - 34 - 10 - Math.floor(i / 4) * 10, (wPx - 8) / 4 - 2, 8); }
+    for (const dx of [-wPx / 2 + 10, wPx / 2 - 10]) { ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.arc(cx + dx, yG - 7, 7, 0, 7); ctx.fill(); ctx.stroke(); }
+    ctx.fillStyle = pal.ink; ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(label, cx, yG - 19);
+  }
+  function ground(ctx: CanvasRenderingContext2D, pal: Palette, w: number, yG: number, X: (x: number) => number, x0: number, x1: number) {
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, yG); ctx.lineTo(w, yG); ctx.stroke();
+    ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 1; ctx.strokeStyle = pal.muted; ctx.fillStyle = pal.muted;
+    for (let m = Math.floor(x0); m <= x1; m++) { const px = X(m); if (px < -5 || px > w + 5) continue; ctx.beginPath(); ctx.moveTo(px, yG); ctx.lineTo(px, yG + (m % 5 === 0 ? 8 : 4)); ctx.stroke(); if (m % 5 === 0) ctx.fillText(`${m} m`, px, yG + 20); }
+  }
+
+  // ---- push a trolley ------------------------------------------------------------------------------------
+  const surf = () => SURF[q<HTMLSelectElement>('.nl-surf').value];
+  const F = () => (pushing || holding ? val('.nl-f') : 0);
+
+  function drawPush(pal: Palette) {
+    const c = q<HTMLCanvasElement>('.nl-scene'), { ctx, w } = setup(c, H), yG = 150, ppm = 28;
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, H);
+    // camera follows the trolley once it passes a third of the width
+    cam = Math.max(0, tr.x - (w * 0.35) / ppm);
+    const X = (x: number) => 30 + (x - cam) * ppm;
+    ground(ctx, pal, w, yG, X, cam - 2, cam + w / ppm + 2);
+    const m = val('.nl-m'), cx = X(tr.x), wPx = 64;
+    trolley(ctx, pal, cx, yG, wPx, `${f(m)} kg`, Math.round((m - 1) * 2));
+    const scale = 3.2, Fa = F();
+    if (Fa > 0) arrow(ctx, cx - wPx / 2 - 6 - Fa * scale, yG - 23, Fa * scale, 0, pal.accent, `push ${f(Fa)} N`);
+    if (Math.abs(fric) > 1e-9) arrow(ctx, fric < 0 ? cx - wPx / 2 : cx + wPx / 2, yG - 3, fric * scale, 0, pal.accent2, `friction ${f(Math.abs(fric))} N`);
+    if (level === 11) {
+      const Wt = m * G, s = 1.6;
+      arrow(ctx, cx, yG - 34, 0, -Math.min(60, Wt * s), pal.ink, `N ${f(Wt)} N`, 2);
+      arrow(ctx, cx + 1, yG - 12, 0, Math.min(40, Wt * s * 0.66), pal.ink, '', 2);
+      ctx.fillStyle = pal.ink; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(`mg ${f(Wt)} N`, cx + 8, yG + 30 > H - 4 ? H - 4 : yG + 32);
+    }
+    ctx.fillStyle = pal.ink; ctx.font = '600 13px system-ui, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(`v = ${f(tr.v)} m/s`, 10, 20); ctx.fillText(`a = ${f(a)} m/s²`, 10, 38);
+    c.setAttribute('aria-label', `Trolley at ${f(tr.x)} m moving at ${f(tr.v)} m/s`);
+  }
+
+  function pushReadouts() {
+    const m = val('.nl-m'), Fset = val('.nl-f'), [mus, muk, name] = surf(), Fa = F(), net = Fa + fric;
+    q('.nl-fv').textContent = `${f(Fset)} N`; q('.nl-mv').textContent = `${f(m)} kg`;
+    q('.nl-mu').textContent = level === 11 ? `Made-up round values for ${name}: static μs = ${f(mus)} (holds up to μs·mg = ${f(mus * m * G)} N), kinetic μk = ${f(muk)} (μk·mg = ${f(muk * m * G)} N while it slides). g = 9.8 m/s².` : `Friction on the ${name} (made-up round value): it can hold back up to ${f(mus * m * G)} N while the trolley is still, and slows it with ${f(muk * m * G)} N while it moves.`;
+    const moving = Math.abs(tr.v) > 1e-9;
+    const pill = q('.nl-pill');
+    if (Fa > 0 && !moving && Math.abs(net) < 1e-9) { pill.textContent = 'Balanced forces: friction matches your push, so nothing moves'; pill.className = 'ax-pill warn nl-pill'; }
+    else if (Math.abs(net) > 1e-9) { pill.textContent = `Unbalanced force of ${f(Math.abs(net))} N: the speed is ${net * (tr.v || net) > 0 ? 'increasing' : 'decreasing'}`; pill.className = 'ax-pill nl-pill'; }
+    else if (moving) { pill.textContent = 'No net force: it keeps moving at a steady speed (inertia)'; pill.className = 'ax-pill good nl-pill'; }
+    else { pill.textContent = stoppedAt !== null ? `Stopped after ${f(stoppedAt)} m` : 'At rest: press Push'; pill.className = 'ax-pill nl-pill'; }
+    const facts = [
+      ['Push F', `${f(Fa)} N`, Fa ? 'pushing now' : `set to ${f(Fset)} N`],
+      ['Friction', `${f(Math.abs(fric))} N`, moving ? 'against the motion' : Fa ? 'holding it still' : ''],
+      ['Net force', `${f(net)} N`, 'push − friction'],
+      ['Acceleration a', `${f(a)} m/s²`, 'net force ÷ mass'],
+      ['Velocity v', `${f(tr.v)} m/s`, letGo !== null ? `${f(letGo)} m/s when you let go` : ''],
+      ['Distance', `${f(tr.x)} m`, ''],
+    ];
+    if (level >= 9) facts.push(['Momentum p', `${f(m * tr.v)} kg m/s`, 'p = m v']);
+    q('.nl-facts').replaceChildren(...facts.map(([k, v, s]) => fact(k, v, s)));
+    // the formula with the numbers, for a push at the set force
+    const fr0 = friction(Fset, m, 0, mus, muk), net0 = Fset + fr0, aP = net0 / m;
+    const eq: HTMLElement[] = [];
+    eq.push(para([[level === 8 ? 'With your push: ' : 'Second law, a = (F − friction) ÷ m'], net0 > 1e-9 ? ` → (${f(Fset)} − ${f(muk * m * G)}) ÷ ${f(m)} = ${f(aP)} m/s² while you push.` : ` → your ${f(Fset)} N push is not more than the ${f(mus * m * G)} N friction can hold, so the forces balance and a = 0.`]));
+    if (level === 8) eq.push(para([['Remember: '], 'a push or pull that is not balanced changes the speed or direction. Friction always acts against the motion, and rougher surfaces give more of it.']));
+    else eq.push(para([['First law (inertia): '], 'once you let go, only friction acts. On ice there is nothing to slow it, so it keeps its speed.']));
+    if (level === 11) eq.push(para([['Free-body diagram: '], `weight mg = ${f(m * G)} N down, normal force N = ${f(m * G)} N up (they balance), push and friction along the floor. Static friction adjusts itself up to μs N; sliding friction is μk N.`]));
+    q('.nl-eq').replaceChildren(...eq);
+  }
+
+  function simLoop(now: number) {
+    acc += Math.min(0.25, (now - last) / 1000); last = now;
+    const m = val('.nl-m'), [mus, muk] = surf();
+    while (acc >= DT) {
+      acc -= DT;
+      const s = step(tr, F(), m, mus, muk, DT);
+      const wasMoving = Math.abs(tr.v) > 1e-9;
+      tr = { x: s.x, v: s.v }; a = s.a; fric = s.fric;
+      if (pushing) { pushLeft--; if (pushLeft <= 0) { pushing = false; letGo = tr.v; } }
+      if (wasMoving && !s.moving && !pushing && !holding) stoppedAt = tr.x;
+    }
+    if (!pushing && !holding) { fric = Math.abs(tr.v) > 1e-9 ? friction(0, m, tr.v, mus, muk) : 0; a = fric / m; }
+    draw();
+    const active = pushing || holding || Math.abs(tr.v) > 1e-9;
+    // keep going while it moves and is on screen of the numbers (stop after 60 s of coasting at most)
+    if (active && tr.x < 5000) raf = requestAnimationFrame(simLoop); else { raf = 0; q<HTMLButtonElement>('.nl-go').disabled = false; draw(); }
+  }
+  function startSim() { if (!raf) { last = performance.now(); acc = 0; raf = requestAnimationFrame(simLoop); } }
+  function resetPush() { cancelAnimationFrame(raf); raf = 0; tr = { x: 0, v: 0 }; a = 0; fric = 0; pushing = false; holding = false; letGo = null; stoppedAt = null; q<HTMLButtonElement>('.nl-go').disabled = false; draw(); }
+  q('.nl-go').addEventListener('click', () => { pushing = true; pushLeft = Math.round(2 / DT); letGo = null; stoppedAt = null; q<HTMLButtonElement>('.nl-go').disabled = true; startSim(); });
+  const hold = q('.nl-hold');
+  hold.addEventListener('pointerdown', (e) => { e.preventDefault(); holding = true; letGo = null; stoppedAt = null; hold.setPointerCapture(e.pointerId); startSim(); });
+  const release = () => { if (holding) { holding = false; letGo = tr.v; } };
+  hold.addEventListener('pointerup', release); hold.addEventListener('pointercancel', release); hold.addEventListener('lostpointercapture', release);
+  hold.addEventListener('contextmenu', (e) => e.preventDefault());
+  q('.nl-reset').addEventListener('click', resetPush);
+
+  // ---- action and reaction ---------------------------------------------------------------------------------
+  const PT = 0.5;
+  function pairState(t: number) {
+    const m1 = val('.nl-m1'), m2 = val('.nl-m2'), Fp = val('.nl-pf'), r = pushApart(m1, m2, Fp, PT);
+    const pos = (aa: number, vv: number) => (t <= PT ? 0.5 * aa * t * t : 0.5 * aa * PT * PT + vv * (t - PT));
+    return { r, x1: t < 0 ? 0 : pos(r.a1, r.v1), x2: t < 0 ? 0 : pos(r.a2, r.v2), pushing: t >= 0 && t < PT };
+  }
+  function drawPair(pal: Palette) {
+    const c = q<HTMLCanvasElement>('.nl-scene'), { ctx, w } = setup(c, H), yG = 150, ppm = 30;
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, H);
+    const X = (x: number) => w / 2 + x * ppm;
+    ground(ctx, pal, w, yG, X, -w / ppm, w / ppm);
+    const s = pairState(pair.t), wA = 50 + val('.nl-m1') * 0.3, wB = 50 + val('.nl-m2') * 0.3;
+    const cA = X(s.x1) - wA / 2 - 2, cB = X(s.x2) + wB / 2 + 2;
+    trolley(ctx, pal, cA, yG, wA, `A ${val('.nl-m1')} kg`); trolley(ctx, pal, cB, yG, wB, `B ${val('.nl-m2')} kg`);
+    const Fp = val('.nl-pf'), L = Math.min(70, Fp * 0.45);
+    if (s.pushing || pair.t < 0) {
+      arrow(ctx, cA + wA / 2, yG - 50, -L, 0, pal.accent, `B on A ${Fp} N`);
+      arrow(ctx, cB - wB / 2, yG - 50, L, 0, pal.accent2, `A on B ${Fp} N`);
+    }
+    ctx.fillStyle = pal.ink; ctx.font = '600 13px system-ui, sans-serif'; ctx.textAlign = 'left';
+    if (pair.t >= 0) { ctx.fillText(`A: ${f(pair.t < PT ? s.r.a1 * pair.t : s.r.v1)} m/s`, 10, 20); ctx.textAlign = 'right'; ctx.fillText(`B: ${f(pair.t < PT ? s.r.a2 * pair.t : s.r.v2)} m/s`, w - 10, 20); }
+  }
+  function pairReadouts() {
+    const m1 = val('.nl-m1'), m2 = val('.nl-m2'), Fp = val('.nl-pf'), r = pushApart(m1, m2, Fp, PT);
+    q('.nl-m1v').textContent = `${m1} kg`; q('.nl-m2v').textContent = `${m2} kg`; q('.nl-pfv').textContent = `${Fp} N`;
+    const pill = q('.nl-pill'); pill.className = 'ax-pill nl-pill';
+    pill.textContent = pair.t < 0 ? 'Press Push apart' : pair.t < PT ? 'Pushing: equal and opposite forces' : 'Rolling apart at steady speeds';
+    const facts: [string, string, string][] = [
+      ['Force on A (from B)', `${Fp} N to the left`, ''], ['Force on B (from A)', `${Fp} N to the right`, 'same size, opposite way'],
+      ['Acceleration of A', `${f(r.a1)} m/s²`, `F ÷ m = ${Fp} ÷ ${m1}`], ['Acceleration of B', `${f(r.a2)} m/s²`, `F ÷ m = ${Fp} ÷ ${m2}`],
+      ['Final velocity of A', `${f(r.v1)} m/s`, ''], ['Final velocity of B', `${f(r.v2)} m/s`, ''],
+    ];
+    if (level >= 9) facts.push(['Momentum of A', `${f(r.p1)} kg m/s`, ''], ['Momentum of B', `${f(r.p2)} kg m/s`, ''], ['Total momentum', `${f(r.total)} kg m/s`, 'before: 0, after: 0']);
+    q('.nl-facts').replaceChildren(...facts.map(([k, v, s]) => fact(k, v, s)));
+    const eq = [para([['Third law: '], `the two pushes are an action-reaction pair: ${Fp} N each, on different trolleys, in opposite directions. They never cancel, because they act on different bodies.`])];
+    if (level >= 9) eq.push(para([['Conservation of momentum: '], `before, both are still (total 0). After, ${m1} × ${p(r.v1)} + ${m2} × ${p(r.v2)} = ${f(r.p1)} + ${f(r.p2)} = ${f(r.total)} kg m/s. The lighter trolley moves faster, by the ratio of the masses (${f(m1 / m2)} times).`]));
+    if (level === 11) eq.push(para([['Impulse: '], `each trolley gets an impulse F Δt = ${Fp} × ${PT} = ${f(r.impulse)} N s, equal to its change in momentum.`]));
+    q('.nl-eq').replaceChildren(...eq);
+  }
+  const p = (x: number) => (x < 0 ? `(${f(x)})` : f(x));
+  let pairRaf = 0;
+  q('.nl-apart').addEventListener('click', () => {
+    cancelAnimationFrame(pairRaf); pair.t = 0; let lastT = performance.now();
+    const tick = (now: number) => { pair.t += Math.min(0.1, (now - lastT) / 1000); lastT = now; draw(); if (pair.t < 6) pairRaf = requestAnimationFrame(tick); };
+    pairRaf = requestAnimationFrame(tick);
+  });
+  q('.nl-reset2').addEventListener('click', () => { cancelAnimationFrame(pairRaf); pair.t = -1; draw(); });
+
+  // ---- catch a ball ------------------------------------------------------------------------------------------
+  function drawCatch(pal: Palette) {
+    const c = q<HTMLCanvasElement>('.nl-scene'), { ctx, w } = setup(c, H);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, H);
+    const m = val('.nl-bm'), v = val('.nl-bv'), t = val('.nl-bt'), r = catchBall(m, v, t);
+    // force-time graph on a fixed scale (largest case: 0.5 kg × 40 m/s in 0.02 s = 1000 N), drawn up to 400 N
+    const L = 46, R = 12, T0 = 16, B = H - 26, tMax = 0.5, fMax = 400;
+    const X = (tt: number) => L + (tt / tMax) * (w - L - R), Y = (ff: number) => B - (Math.min(ff, fMax) / fMax) * (B - T0);
+    ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.lineWidth = 1;
+    for (let ff = 0; ff <= fMax; ff += 100) { ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(L, Y(ff)); ctx.lineTo(w - R, Y(ff)); ctx.stroke(); ctx.fillText(String(ff), L - 5, Y(ff) + 4); }
+    ctx.textAlign = 'center'; for (let tt = 0; tt <= tMax + 1e-9; tt += 0.1) ctx.fillText(f(tt, 1), X(tt), B + 14);
+    ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(L, T0); ctx.lineTo(L, B); ctx.lineTo(w - R, B); ctx.stroke();
+    ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.font = '600 12px system-ui, sans-serif'; ctx.fillText('Force on hands (N)', L + 6, T0 + 4);
+    ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.fillText('time (s)', w - R, B + 24);
+    ctx.save(); ctx.globalAlpha = pal.red ? 0.5 : 0.28; ctx.fillStyle = pal.accent; ctx.fillRect(X(0), Y(r.force), X(t) - X(0), B - Y(r.force)); ctx.restore();
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(X(0), B); ctx.lineTo(X(0), Y(r.force)); ctx.lineTo(X(t), Y(r.force)); ctx.lineTo(X(t), B); ctx.stroke();
+    if (r.force > fMax) { ctx.fillStyle = pal.bad; ctx.textAlign = 'left'; ctx.font = '600 12px system-ui, sans-serif'; ctx.fillText(`↑ ${f(r.force, 0)} N, off the top`, X(t) + 6, T0 + 18); }
+    ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.font = '600 12px system-ui, sans-serif';
+    ctx.fillText(`area = ${f(r.impulse)} N s`, Math.min(X(t) + 6, w - 110), Math.max(T0 + 34, Y(r.force) + (r.force > fMax ? 34 : -6)));
+  }
+  function catchReadouts() {
+    const m = val('.nl-bm'), v = val('.nl-bv'), t = val('.nl-bt'), r = catchBall(m, v, t);
+    q('.nl-bmv').textContent = `${f(m * 1000, 0)} g`; q('.nl-bvv').textContent = `${v} m/s (${f(v * 3.6, 0)} km/h)`; q('.nl-btv').textContent = `${f(t)} s`;
+    const pill = q('.nl-pill'); pill.className = `ax-pill ${r.force > 200 ? 'warn' : 'good'} nl-pill`;
+    pill.textContent = r.force > 200 ? 'Ouch: a big force on the hands' : 'Comfortable catch';
+    q('.nl-facts').replaceChildren(fact('Momentum of the ball', `${f(r.p)} kg m/s`, `m v = ${f(m)} × ${v}`), fact('Impulse (change in momentum)', `${f(r.impulse)} N s`, 'the same however you catch it'), fact('Average force on the hands', `${f(r.force, 1)} N`, `impulse ÷ time = ${f(r.impulse)} ÷ ${f(t)}`), fact('Hands move back about', `${f((v / 2) * t * 100, 0)} cm`, 'average speed v/2 × time'));
+    const eq = [para([['Force = change in momentum ÷ time'], ` = ${f(r.impulse)} ÷ ${f(t)} = ${f(r.force, 1)} N. Make the time longer and the force gets smaller: that is why fielders pull their hands back and cars have crumple zones.`])];
+    if (level === 11) eq.push(para([['Impulse J = ∫F dt'], ' is the area under the force-time graph. A real catch has a curved force graph, but its area is the same m v; the rectangle shows the average force.']));
+    q('.nl-eq').replaceChildren(...eq);
+  }
+
+  // ---- shared -----------------------------------------------------------------------------------------------
+  function fact(k: string, v: string, sm = '') {
+    const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd');
+    dt.textContent = k; dd.textContent = v;
+    if (sm) { const e = document.createElement('small'); e.textContent = sm; dd.append(e); }
+    d.append(dt, dd); return d;
+  }
+  function para(parts: (string | [string])[]) { const el = document.createElement('p'); for (const x of parts) { if (typeof x === 'string') el.append(x); else { const b = document.createElement('b'); b.textContent = x[0]; el.append(b); } } return el; }
+  function draw() {
+    const pal = pagePalette();
+    if (mode === 'push') { drawPush(pal); pushReadouts(); }
+    else if (mode === 'pair') { drawPair(pal); pairReadouts(); }
+    else { drawCatch(pal); catchReadouts(); }
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.nl-level button').forEach((b) => b.addEventListener('click', () => {
+    level = Number(b.dataset.l) as 8 | 9 | 11;
+    root.querySelectorAll('.nl-level button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    renderQuiz(); draw();
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.nl-mode button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m as typeof mode;
+    root.querySelectorAll('.nl-mode button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    for (const m of ['push', 'pair', 'catch']) q(`.nl-p-${m}`).hidden = m !== mode;
+    draw();
+  }));
+  root.querySelectorAll('input, select').forEach((i) => i.addEventListener('input', () => { if (!raf) draw(); }));
+  q('.nl-surf').addEventListener('change', () => { if (!raf) draw(); });
+
+  let renderQuiz = () => {};
+  renderQuiz = mountQuiz(q('.nl-quiz'), () => questions(level));
+  draw();
+  document.addEventListener('fibub:theme', draw);
+  let rw = 0; new ResizeObserver(() => { const w = q('.nl-scene').clientWidth; if (w !== rw) { rw = w; draw(); } }).observe(q('.nl-scene'));
+</script>
+
+<style is:inline>
+  .nl .nl-top { margin-bottom: 10px; }
+  .nl .nl-lab { font-size: 14px; color: var(--muted); }
+  .nl .nl-mode { margin-bottom: 12px; }
+  .nl .ax-seg button { min-height: 44px; }
+  .nl .nl-p { display: grid; gap: 10px; margin-top: 12px; }
+  .nl .nl-p[hidden] { display: none; }
+  .nl input[type=range] { width: 100%; height: 32px; accent-color: var(--ink); }
+  .nl label b { color: var(--ink); }
+  .nl canvas { display: block; width: 100%; }
+  .nl .btn.small { min-height: 44px; }
+  .nl .nl-hold { touch-action: none; user-select: none; -webkit-user-select: none; }
+  .nl .nl-state { margin: 0 0 12px; }
+  .nl .nl-pill { font-size: 14px; white-space: normal; }
+  .nl .nl-eq p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .nl .nl-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>
