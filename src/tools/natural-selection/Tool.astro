@@ -17,7 +17,10 @@ import Downloads from '../../components/Downloads.astro';
     <label class="nsl-gap">Dark allele at the start: <b class="nsl-pv"></b>
       <input type="range" class="nsl-p" min="1" max="99" step="1" value="5" aria-label="Dark allele at the start, per cent" /></label>
     <div class="ax-row nsl-gap"><span class="nsl-lab">Moths</span>
-      <div class="ax-seg nsl-n" role="group" aria-label="Population size"><button type="button" data-v="50" aria-pressed="false">50</button><button type="button" data-v="500" aria-pressed="true">500</button><button type="button" data-v="5000" aria-pressed="false">5000</button><button type="button" data-v="inf" aria-pressed="false">No chance</button></div></div>
+      <div class="ax-seg nsl-n" role="group" aria-label="Population size"><button type="button" data-v="50" aria-pressed="false">50</button><button type="button" data-v="500" aria-pressed="false">500</button><button type="button" data-v="5000" aria-pressed="true">5000</button><button type="button" data-v="inf" aria-pressed="false">No chance</button></div></div>
+    <div class="ax-row nsl-gap"><span class="nsl-lab">Mutation</span>
+      <div class="ax-seg nsl-mu" role="group" aria-label="Mutation rate, light to dark"><button type="button" data-v="0" aria-pressed="false">Off</button><button type="button" data-v="0.00001" aria-pressed="false">1 in 100,000</button><button type="button" data-v="0.0001" aria-pressed="true">1 in 10,000</button><button type="button" data-v="0.001" aria-pressed="false">1 in 1,000</button></div></div>
+    <p class="ax-help nsl-muhelp">Mutation: now and then a copying mistake turns a light allele (c) into a dark one (C). This is the chance for each light allele in each generation, so a few new dark moths keep appearing even while birds eat them.</p>
     <div class="ax-row nsl-gap"><button type="button" class="btn small nsl-run">New run</button><button type="button" class="btn secondary small nsl-play">Play</button></div>
   </div>
 
@@ -67,7 +70,7 @@ import Downloads from '../../components/Downloads.astro';
   const root = document.querySelector<HTMLElement>('.nsl')!;
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const GENS = 60;
-  let level = 10, schedule: Schedule = 'soot', N = 500, run: Gen[] = [], expected: Gen[] = [], fig: Figure | null = null, graph: Figure | null = null, playing = 0;
+  let level = 10, schedule: Schedule = 'soot', N = 5000, mu = 0.0001, run: Gen[] = [], expected: Gen[] = [], fig: Figure | null = null, graph: Figure | null = null, playing = 0;
   let rnd: () => number = Math.random;
   const pct = (x: number, d = 0) => `${(100 * x).toFixed(d)} %`;
   const s = () => Number(q<HTMLInputElement>('.nsl-s').value) / 100;
@@ -75,7 +78,7 @@ import Downloads from '../../components/Downloads.astro';
   const gNow = () => Number(q<HTMLInputElement>('.nsl-g').value);
 
   function newRun() {
-    const opts = { p0: p0(), s: s(), schedule, gens: GENS };
+    const opts = { p0: p0(), s: s(), schedule, gens: GENS, mu };
     expected = simulate({ ...opts, N: Infinity }, rnd);
     run = Number.isFinite(N) ? simulate({ ...opts, N }, rnd) : expected;
     show();
@@ -128,8 +131,10 @@ import Downloads from '../../components/Downloads.astro';
     q('.nsl-big').textContent = `${pct(darkShare)} dark moths in generation ${g}`;
     const first = run[0], d0 = first.dark / (first.dark + first.light);
     q('.nsl-say').textContent = s() === 0
-      ? `Birds take no notice of colour, so only chance changes the numbers${inf ? ': with no chance, nothing changes at all' : ''}.`
+      ? `Birds take no notice of colour, so only ${mu > 0 ? 'mutation and ' : ''}chance change the numbers${inf ? (mu > 0 ? ': with no chance, dark moths creep up very slowly by mutation alone' : ': with no chance, nothing changes at all') : ''}.`
       : `On ${gen.bark} bark, ${favoured} moths are hidden and ${favoured === 'dark' ? 'light' : 'dark'} ones are easy to see, so more ${favoured} moths live to breed and pass on their ${favoured === 'dark' ? 'C' : 'c'} allele. Dark moths went from ${pct(d0)} to ${pct(darkShare)}.`;
+    const lostAt = inf ? -1 : run.findIndex((x) => x.p === 0);
+    if (lostAt >= 0 && lostAt <= g) q('.nsl-say').textContent += ` In this population the dark allele was lost by chance in generation ${lostAt} (genetic drift)${mu > 0 ? ': only a new mutation can bring it back.' : ', and with mutation off it can never come back.'}`;
     const per = inf ? ' per 1000' : '';
     factList = [
       ['Dark moths', `${Math.round(gen.dark)}${per}`, `${Math.round(gen.dark - gen.darkLeft)} eaten`],
@@ -203,6 +208,7 @@ import Downloads from '../../components/Downloads.astro';
   root.querySelectorAll<HTMLButtonElement>('.nsl-level button').forEach((b) => b.addEventListener('click', () => { level = Number(b.dataset.v); press('.nsl-level', b.dataset.v!); show(); makeQuiz(); }));
   root.querySelectorAll<HTMLButtonElement>('.nsl-bark button').forEach((b) => b.addEventListener('click', () => { schedule = b.dataset.v as Schedule; press('.nsl-bark', schedule); newRun(); }));
   root.querySelectorAll<HTMLButtonElement>('.nsl-n button').forEach((b) => b.addEventListener('click', () => { N = b.dataset.v === 'inf' ? Infinity : Number(b.dataset.v); press('.nsl-n', b.dataset.v!); newRun(); }));
+  root.querySelectorAll<HTMLButtonElement>('.nsl-mu button').forEach((b) => b.addEventListener('click', () => { mu = Number(b.dataset.v); press('.nsl-mu', b.dataset.v!); newRun(); }));
   root.querySelectorAll('.nsl-s, .nsl-p').forEach((el) => el.addEventListener('input', newRun));
   q('.nsl-g').addEventListener('input', () => { clearInterval(playing); show(); });
   q('.nsl-run').addEventListener('click', newRun);
@@ -227,6 +233,7 @@ import Downloads from '../../components/Downloads.astro';
 
 <style is:inline>
   .nsl .nsl-note { margin: 0; }
+  .nsl .ax-seg { flex-wrap: wrap; }
   .nsl .nsl-lab { font-size: 14px; color: var(--muted); min-width: 64px; }
   .nsl .nsl-gap { margin-top: 12px; }
   .nsl .ax-seg button { min-height: 44px; padding: 8px 12px; }

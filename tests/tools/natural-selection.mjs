@@ -7,22 +7,28 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   const slide = async (sel, v) => { await page.$eval(R + sel, (el, v) => { el.value = String(v); el.dispatchEvent(new Event('input', { bubbles: true })); }, v); await page.waitForTimeout(250); };
   const big = () => page.textContent(R + '.nsl-big'), facts = () => page.textContent(R + '.nsl-facts');
   check((await page.textContent(R + '.nsl-pv')).includes('10 % of moths are dark') || (await page.textContent(R + '.nsl-pv')).includes('(so 10 %'), `moths: start label (${await page.textContent(R + '.nsl-pv')})`);
+  check((await page.getAttribute(R + '.nsl-n button[data-v="5000"]', 'aria-pressed')) === 'true' && (await page.getAttribute(R + '.nsl-mu button[data-v="0.0001"]', 'aria-pressed')) === 'true' && (await page.textContent(R + '.nsl-muhelp')).startsWith('Mutation:'), 'moths: defaults 5000 moths, mutation 1 in 10,000, explained');
+  check(Number((await big()).split(' ')[0]) > 80, `moths: soot story with 5000 moths ends mostly dark (${await big()})`);
+  // Small population, no mutation, light bark: the dark allele is lost by drift and the page says so
+  await tap('.nsl-bark button[data-v=light]'); await tap('.nsl-n button[data-v="50"]'); await tap('.nsl-mu button[data-v="0"]');
+  check((await page.textContent(R + '.nsl-say')).includes('lost by chance') && (await page.textContent(R + '.nsl-say')).includes('can never come back'), `moths: drift loss explained (${(await page.textContent(R + '.nsl-say')).slice(-160)})`);
+  await tap('.nsl-mu button[data-v="0.0001"]'); await tap('.nsl-n button[data-v="5000"]'); await tap('.nsl-bark button[data-v=soot]');
   // Expected path (no chance)
   await tap('.nsl-n button[data-v=inf]');
-  check((await big()) === '99 % dark moths in generation 60' && (await page.textContent(R + '.nsl-formula')).includes('= 98.8 %'), `moths: soot, no chance (${await big()})`);
+  check((await big()) === '99 % dark moths in generation 60' && (await page.textContent(R + '.nsl-formula')).includes('= 98.9 %'), `moths: soot, no chance (${await big()})`);
   await slide('.nsl-g', 10);
-  check((await big()) === '0 % dark moths in generation 10' && (await facts()).includes('3 per 1000'), `moths: generation 10 (${await big()})`);
+  check((await big()) === '0 % dark moths in generation 10' && (await facts()).includes('4 per 1000'), `moths: generation 10 (${await big()})`);
   await slide('.nsl-g', 30);
-  check((await big()) === '70 % dark moths in generation 30', `moths: generation 30 (${await big()})`);
+  check((await big()) === '74 % dark moths in generation 30', `moths: generation 30 (${await big()})`);
   const pic = await page.$eval(R + '.nsl-fig', (c) => c.toDataURL().length);
   check(pic > 5000, 'moths: trunk drawn');
   // Class 12 detail
   await tap('.nsl-level button[data-v="12"]');
-  { const f = await facts(); check(f.includes('Genotypes CC : Cc : cc') && f.includes('p (C) and q (c)0.452 and 0.548') && f.includes('matches exactly'), `moths: Class 12 facts (${f.slice(0, 220)})`); }
+  { const f = await facts(); check(f.includes('Genotypes CC : Cc : cc') && f.includes('p (C) and q (c)0.492 and 0.508') && f.includes('matches exactly'), `moths: Class 12 facts (${f.slice(0, 220)})`); }
   check((await page.textContent(R + '.nsl-formula')).includes('p² + 2pq + q² = ') && (await page.textContent(R + '.nsl-formula')).endsWith('= 1'), 'moths: Hardy-Weinberg formula');
   // No birds: nothing changes without chance
   await slide('.nsl-s', 0);
-  check((await page.textContent(R + '.nsl-say')).includes('nothing changes at all') && (await big()) === '10 % dark moths in generation 30', `moths: no selection (${await big()})`);
+  check((await page.textContent(R + '.nsl-say')).includes('by mutation alone') && (await big()) === '10 % dark moths in generation 30', `moths: no selection (${await big()})`);
   await slide('.nsl-s', 30);
   // Random population: counts add up and HW check shown
   await tap('.nsl-n button[data-v="500"]');

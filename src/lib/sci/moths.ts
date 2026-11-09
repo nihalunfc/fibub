@@ -33,9 +33,20 @@ export function binomial(n: number, p: number, r: () => number): number {
   return Math.min(n, Math.max(0, Math.round(m + sd * z)));
 }
 
-/** Simulate gens generations. N = Infinity gives the expected (no-chance) path with fractional counts per 1000. */
-export function simulate(opts: { p0: number; s: number; schedule: Schedule; N: number; gens: number }, r: () => number): Gen[] {
-  const out: Gen[] = [];
+/** Poisson random number by inversion (for rare events such as new mutations; fine for small means). */
+export function poisson(lambda: number, r: () => number): number {
+  if (!(lambda > 0)) return 0;
+  let k = 0, prob = Math.exp(-lambda), cum = prob; const u = r();
+  while (u > cum && k < 1000) { k++; prob *= lambda / k; cum += prob; }
+  return k;
+}
+/** Light-to-dark mutation: a share mu of the c alleles turn into C each generation (expected value). */
+export const mutate = (p: number, mu: number) => p + mu * (1 - p);
+
+/** Simulate gens generations. N = Infinity gives the expected (no-chance) path with fractional counts per 1000.
+ *  mu (default 0) is the chance per generation that a light allele c mutates to dark C. */
+export function simulate(opts: { p0: number; s: number; schedule: Schedule; N: number; gens: number; mu?: number }, r: () => number): Gen[] {
+  const out: Gen[] = [], mu = Math.max(0, opts.mu ?? 0);
   let p = opts.p0;
   for (let g = 0; g <= opts.gens; g++) {
     const bark = barkAt(opts.schedule, g), w = fitness(bark, opts.s), q = 1 - p;
@@ -44,7 +55,7 @@ export function simulate(opts: { p0: number; s: number; schedule: Schedule; N: n
       CC = 1000 * p * p; Cc = 2000 * p * q; cc = 1000 * q * q;
       darkLeft = (CC + Cc) * w.dark; lightLeft = cc * w.light;
       out.push({ g, bark, p, CC, Cc, cc, dark: CC + Cc, light: cc, darkLeft, lightLeft });
-      p = nextP(p, w.dark, w.light);
+      p = mutate(nextP(p, w.dark, w.light), mu);
       continue;
     }
     // Random mating: each moth gets two alleles drawn with chance p.
@@ -55,7 +66,11 @@ export function simulate(opts: { p0: number; s: number; schedule: Schedule; N: n
     darkLeft = CCleft + Ccleft; lightLeft = ccleft;
     out.push({ g, bark, p, CC, Cc, cc, dark: CC + Cc, light: cc, darkLeft, lightLeft });
     const alleles = 2 * (CCleft + Ccleft + ccleft);
-    if (alleles > 0) p = (2 * CCleft + Ccleft) / alleles;
+    if (alleles > 0) {
+      const C = 2 * CCleft + Ccleft, c = alleles - C;
+      const born = mu > 0 ? Math.min(c, poisson(c * mu, r)) : 0; // new dark alleles by mutation
+      p = (C + born) / alleles;
+    }
   }
   return out;
 }
