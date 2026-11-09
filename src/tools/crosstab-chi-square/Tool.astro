@@ -1,0 +1,174 @@
+---
+// Cross-tab and chi-square: two categorical survey variables (optionally weighted) to a table with percentages,
+// Pearson chi-square, G², Cramér's V, standardised residuals and Fisher's exact test. Maths in src/lib/sci/crosstab.ts.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import example from './example.csv?raw';
+---
+<div class="ax xt">
+  <div class="ax-card">
+    <h2>Your survey data</h2>
+    <label>One row per respondent, one column per question, with a header row. The sample is a made-up survey of 240 people.
+      <textarea class="xt-in" rows="7" spellcheck="false" wrap="off">{example.trim()}</textarea></label>
+    <DataFile target=".xt-in" maxCols={200} maxRows={200000} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Rows <select class="xt-r"></select></label>
+      <label>Columns <select class="xt-c"></select></label>
+      <label>Weight <select class="xt-w"></select></label>
+    </div>
+    <p class="ax-help">Rows with a blank answer in either question (or a blank weight) are left out and counted. A weight column makes each person count for their weight, as survey weights do.</p>
+    <p class="ax-err xt-err" hidden></p>
+  </div>
+
+  <div class="ax-card xt-out" hidden>
+    <h2 class="xt-h"></h2>
+    <p class="ax-big xt-big"></p>
+    <p class="xt-verdict"></p>
+    <dl class="ax-facts xt-facts"></dl>
+    <h3>Table</h3>
+    <div class="ax-seg xt-pct" role="group" aria-label="Percentages">
+      <button type="button" data-p="row" aria-pressed="true">Row %</button><button type="button" data-p="col" aria-pressed="false">Column %</button><button type="button" data-p="tot" aria-pressed="false">Total %</button><button type="button" data-p="none" aria-pressed="false">Counts only</button>
+    </div>
+    <div class="ax-scroll" style="margin-top:8px"><table class="xt-tab"></table></div>
+    <h3>Adjusted standardised residuals</h3>
+    <div class="ax-scroll"><table class="xt-res"></table></div>
+    <p class="ax-help">Each residual is (observed − expected) divided by its standard error, so it reads like a z score: beyond ±1.96 (marked) the cell has clearly more (+) or fewer (−) people than if the two questions were unrelated.</p>
+    <p class="ax-help xt-note"></p>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small xt-csv">Table as CSV</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .xt h3 { font-size: 15px; margin: 14px 0 6px; }
+  .xt .xt-verdict { font-weight: 600; margin: 0 0 12px; }
+  .xt .xt-tab td, .xt .xt-tab th, .xt .xt-res td, .xt .xt-res th { white-space: nowrap; }
+  .xt .xt-tab td small { display: block; color: var(--muted); font-size: 12px; }
+  .xt .xt-tab tr.xt-tot td, .xt .xt-tab td.xt-tot { font-weight: 650; }
+  .xt .xt-res td.xt-hi { color: var(--good); font-weight: 700; }
+  .xt .xt-res td.xt-lo { color: var(--bad); font-weight: 700; }
+</style>
+
+<script>
+  import { parseTable, num, sig } from '../../lib/sci/num';
+  import { readColumns } from '../../lib/sci/econometrics';
+  import { crosstab, type Crosstab } from '../../lib/sci/crosstab';
+  import { save, wireDownloads, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.xt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string, el: ParentNode = root) => el.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c);
+  let pct = 'row', report: Section[] = [], last: Crosstab | null = null, names = ['', ''], lastHead = '';
+  const f2 = (x: number) => x.toFixed(2).replace('-', '−');
+  const f3 = (x: number) => (Number.isFinite(x) ? x.toFixed(3).replace('-', '−') : x > 0 ? '∞' : '–');
+  const pTxt = (p: number) => (p < 0.0001 ? '< 0.0001' : p.toFixed(4));
+  const fmtN = (x: number, w: boolean) => (w ? x.toLocaleString('en', { maximumFractionDigits: 1 }) : x.toLocaleString('en'));
+  const vBand = (v: number, k: number) => { const s = v * Math.sqrt(k); return s < 0.1 ? 'negligible' : s < 0.3 ? 'small' : s < 0.5 ? 'medium' : 'large'; };
+
+  function setup() {
+    const { head, cols, n } = readColumns(parseTable(q<HTMLTextAreaElement>('.xt-in').value));
+    const key = head.join(',');
+    if (key !== lastHead) {
+      lastHead = key;
+      const distinct = (h: string) => new Set(cols[h].filter((c) => c !== '')).size;
+      const cats = head.filter((h) => { const d = distinct(h); return d >= 2 && d <= 50; });
+      const nums = head.filter((h) => cols[h].some((c) => c !== '') && cols[h].every((c) => c === '' || Number.isFinite(num(c))));
+      const fill = (s: HTMLSelectElement, list: string[], pick: string, blank?: string) => { s.innerHTML = ''; if (blank) s.add(new Option(blank, '')); for (const h of list) s.add(new Option(h, h)); s.value = list.includes(pick) ? pick : blank ? '' : list[0] ?? ''; };
+      const list = cats.length >= 2 ? cats : head;
+      fill(sel('.xt-r'), list, list.includes('age_group') ? 'age_group' : list[0]);
+      fill(sel('.xt-c'), list, list.includes('main_transport') ? 'main_transport' : list[1] ?? list[0]);
+      fill(sel('.xt-w'), nums, '', 'None (unweighted)');
+    }
+    return { cols, n };
+  }
+
+  function run(): Section[] {
+    const { cols, n } = setup();
+    const R = sel('.xt-r').value, C = sel('.xt-c').value, W = sel('.xt-w').value;
+    if (!R || !C) throw new Error('Choose a question for the rows and one for the columns.');
+    if (R === C) throw new Error('Choose two different questions for rows and columns.');
+    const a: string[] = [], b: string[] = [], w: number[] = [];
+    let dropped = 0;
+    for (let i = 0; i < n; i++) {
+      const x = cols[R][i], y = cols[C][i], wt = W ? num(cols[W][i]) : 1;
+      if (x === '' || y === '' || !Number.isFinite(wt)) { dropped++; continue; }
+      a.push(x); b.push(y); w.push(wt);
+    }
+    const t = crosstab(a, b, W ? w : undefined);
+    last = t; names = [R, C];
+    const k = Math.min(t.rows.length, t.cols.length) - 1;
+    q('.xt-h').textContent = `${R} by ${C}`;
+    const fl: [string, string][] = [];
+    let main: { chi2: number; p: number; label: string };
+    if (t.design) {
+      main = { chi2: t.design.chi2, p: t.design.p, label: 'Design-adjusted χ²' };
+      fl.push(['Design-adjusted χ²', `${f3(t.design.chi2)} (df ${t.df}), p ${pTxt(t.design.p)}`], ['Design-adjusted G²', `${f3(t.design.g2)}, p ${pTxt(t.design.pG2)}`], ['Design effect (Kish)', `${f3(t.design.deff)}: effective sample ${Math.round(t.design.nEff)}`], ["Cramér's V", `${f3(t.cramerV)} (${vBand(t.cramerV, k)})`], ['Respondents', `${t.n.toLocaleString('en')}, weighted total ${fmtN(t.N, true)}`]);
+    } else {
+      main = { chi2: t.chi2, p: t.p, label: 'Pearson χ²' };
+      fl.push(['Pearson χ²', `${f3(t.chi2)} (df ${t.df}), p ${pTxt(t.p)}`], ['Likelihood ratio G²', `${f3(t.g2)}, p ${pTxt(t.pG2)}`], ["Cramér's V", `${f3(t.cramerV)} (${vBand(t.cramerV, k)})`], ['Respondents', t.n.toLocaleString('en')]);
+      if (t.yates) fl.push(['Yates-corrected χ²', `${f3(t.yates.chi2)}, p ${pTxt(t.yates.p)}`]);
+      if (t.fisher) fl.push(["Fisher's exact p (two-sided)", pTxt(t.fisher.p)], ['Odds ratio', f3(t.fisher.oddsRatio)]);
+    }
+    fl.push(['Smallest expected count', `${sig(t.minExpected, 3)}${t.smallCells ? ` (${t.smallCells} of ${t.rows.length * t.cols.length} cells below 5)` : ''}`]);
+    if (dropped) fl.push(['Left out', `${dropped} row${dropped > 1 ? 's' : ''} with a blank`]);
+    q('.xt-big').textContent = `${main.label} = ${f3(main.chi2)}, p ${pTxt(main.p)}`;
+    q('.xt-verdict').textContent = main.p < 0.05 ? `${R} and ${C} are related (p < 0.05). The residuals show which cells drive it.` : `No clear relationship between ${R} and ${C} at the 5 % level.`;
+    const dl = q('.xt-facts'); dl.innerHTML = '';
+    for (const [kk, v] of fl) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = kk; dd.textContent = v; d.append(dt, dd); dl.append(d); }
+    drawTables();
+    const notes: string[] = [];
+    if (t.design) notes.push(`With weights, the ordinary chi-square on weighted counts is far too large. This tool uses a simple first-order correction in the spirit of Rao and Scott: the chi-square is computed from the weighted shares as if from the ${t.n} actual respondents, then divided by Kish's design effect from the weights, n Σw² / (Σw)² = ${f3(t.design.deff)}. It accounts for unequal weights only, not for clustering or strata; if your survey has a complex design, use survey software with the full Rao-Scott correction.`);
+    if (t.smallCells) notes.push(`${t.smallCells} cell${t.smallCells > 1 ? 's have' : ' has'} an expected count below 5, so the chi-square p-value may be inaccurate${t.fisher ? "; use Fisher's exact test" : '; consider merging categories'}.`);
+    if (t.yates) notes.push("For 2 × 2 tables, Yates' correction makes the chi-square more conservative; Fisher's exact test needs no approximation.");
+    q('.xt-note').textContent = notes.join(' ');
+    return buildReport(fl);
+  }
+  function tableRows(t: Crosstab) {
+    const P = pct === 'row' ? t.rowPct : pct === 'col' ? t.colPct : pct === 'tot' ? t.totPct : null;
+    const body = t.rows.map((r, i) => [r, ...t.cols.map((_, j) => fmtN(t.O[i][j], t.weighted) + (P ? ` (${P[i][j].toFixed(1)} %)` : '')), fmtN(t.rowTot[i], t.weighted) + (pct === 'col' ? ` (${((100 * t.rowTot[i]) / t.N).toFixed(1)} %)` : pct === 'tot' ? ` (${((100 * t.rowTot[i]) / t.N).toFixed(1)} %)` : pct === 'row' ? ' (100 %)' : '')]);
+    body.push(['Total', ...t.colTot.map((c) => fmtN(c, t.weighted) + (pct === 'row' || pct === 'tot' ? ` (${((100 * c) / t.N).toFixed(1)} %)` : pct === 'col' ? ' (100 %)' : '')), fmtN(t.N, t.weighted)]);
+    return body;
+  }
+  function fillTable(el: HTMLTableElement, head: string[], body: string[][], cls?: (i: number, j: number) => string) {
+    el.innerHTML = '';
+    const hr = el.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const tb = el.createTBody();
+    body.forEach((r, i) => { const tr = tb.insertRow(); r.forEach((x, j) => { const td = tr.insertCell(); td.textContent = x; td.className = [j ? 'r' : '', cls?.(i, j) ?? ''].join(' ').trim(); }); });
+  }
+  function drawTables() {
+    const t = last!;
+    const head = [`${names[0]} ↓ / ${names[1]} →`, ...t.cols, 'Total'];
+    fillTable(q<HTMLTableElement>('.xt-tab'), head, tableRows(t), (i, j) => (i === t.rows.length || j === t.cols.length + 1 ? 'xt-tot' : ''));
+    q('.xt-tab').querySelector('tbody tr:last-child')?.classList.add('xt-tot');
+    fillTable(q<HTMLTableElement>('.xt-res'), [head[0], ...t.cols], t.rows.map((r, i) => [r, ...t.adjResid[i].map(f2)]), (i, j) => (j ? (t.adjResid[i][j - 1] > 1.96 ? 'xt-hi' : t.adjResid[i][j - 1] < -1.96 ? 'xt-lo' : '') : ''));
+  }
+  function buildReport(fl: [string, string][]): Section[] {
+    const t = last!, head = [`${names[0]} / ${names[1]}`, ...t.cols, 'Total'];
+    return [
+      { title: q('.xt-h').textContent!, text: [q('.xt-big').textContent!, q('.xt-verdict').textContent!], facts: fl },
+      { title: `Table (${pct === 'row' ? 'row %' : pct === 'col' ? 'column %' : pct === 'tot' ? 'total %' : 'counts'})`, table: { head, rows: tableRows(t), align: ['l', ...t.cols.map(() => 'r' as const), 'r'] } },
+      { title: 'Adjusted standardised residuals', table: { head: head.slice(0, -1), rows: t.rows.map((r, i) => [r, ...t.adjResid[i].map(f2)]), align: ['l', ...t.cols.map(() => 'r' as const)] }, note: q('.xt-note').textContent || undefined },
+    ];
+  }
+  function calc() {
+    const err = q('.xt-err');
+    try { report = run(); err.hidden = true; q('.xt-out').hidden = false; }
+    catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.xt-out').hidden = true; report = []; last = null; }
+  }
+  root.querySelectorAll<HTMLButtonElement>('.xt-pct button').forEach((b) => b.addEventListener('click', () => {
+    pct = b.dataset.p!;
+    root.querySelectorAll<HTMLButtonElement>('.xt-pct button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    if (last) { drawTables(); report = buildReport(report[0].facts!); }
+  }));
+  let tm = 0;
+  q('.xt-in').addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(calc, 300); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select')) calc(); });
+  q('.xt-csv').addEventListener('click', () => {
+    const t = last; if (!t) return;
+    const rows = [[`${names[0]} / ${names[1]}`, ...t.cols, 'Total'], ...t.rows.map((r, i) => [r, ...t.O[i].map(String), String(t.rowTot[i])]), ['Total', ...t.colTot.map(String), String(t.N)], [], ['Adjusted residuals', ...t.cols], ...t.rows.map((r, i) => [r, ...t.adjResid[i].map(String)])];
+    save(new TextEncoder().encode(rows.map((r) => r.map((c) => (/[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c)).join(',')).join('\n') + '\n'), 'crosstab.csv', 'text/csv');
+  });
+  calc();
+  wireDownloads(q('.xt .dl'), () => ({ title: 'Cross-tabulation', file: 'crosstab', sections: report }));
+</script>
