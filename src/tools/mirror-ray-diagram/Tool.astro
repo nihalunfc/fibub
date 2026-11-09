@@ -1,0 +1,213 @@
+---
+// Spherical mirror ray diagram for school: concave or convex, drag the object, see the principal rays, the image
+// and the mirror formula with signs. Maths in src/lib/sci/school-optics.ts, drawing in src/lib/school-optics-draw.ts.
+import '../../styles/astro.css';
+---
+<div class="ax mrd">
+  <div class="ax-card">
+    <div class="ax-row mrd-top">
+      <div class="ax-seg mrd-level" role="group" aria-label="Level">
+        <button type="button" data-l="10" aria-pressed="true">Class 10</button><button type="button" data-l="12" aria-pressed="false">Class 12</button>
+      </div>
+      <div class="ax-seg mrd-kind" role="group" aria-label="Mirror">
+        <button type="button" data-k="concave" aria-pressed="true">Concave</button><button type="button" data-k="convex" aria-pressed="false">Convex</button>
+      </div>
+    </div>
+    <p class="ax-help">Put the object at a standard position:</p>
+    <div class="mrd-pos"></div>
+    <canvas class="ax-fig mrd-fig" aria-label="Ray diagram"></canvas>
+    <p class="ax-help">Drag the object along the axis (or tap where you want it), or use the sliders. Coloured lines are the rays; a dashed line is where a ray only <em>seems</em> to come from.</p>
+    <div class="ax-grid mrd-sl">
+      <label>Object distance: <b class="mrd-uv"></b><input class="mrd-u" type="range" min="1" max="54" step="0.5" value="30" /></label>
+      <label>Focal length: <b class="mrd-fv"></b><input class="mrd-f" type="range" min="5" max="40" step="1" value="15" /></label>
+    </div>
+    <div class="ax-grid mrd-type">
+      <label>Object distance (cm) <input class="mrd-ut" type="text" inputmode="decimal" value="30" /></label>
+      <label>Focal length (cm) <input class="mrd-ft" type="text" inputmode="decimal" value="15" /></label>
+      <label class="mrd-12" hidden>Object height (cm) <input class="mrd-ht" type="text" inputmode="decimal" value="2" /></label>
+    </div>
+    <p class="ax-err mrd-err" hidden></p>
+  </div>
+
+  <div class="ax-card mrd-out">
+    <h2>The image</h2>
+    <p class="ax-big mrd-big"></p>
+    <dl class="ax-facts mrd-facts"></dl>
+    <h3>Mirror formula, with signs</h3>
+    <pre class="mrd-formula"></pre>
+    <p class="ax-help mrd-signs">Sign convention: distances are measured from the pole P. Light comes from the left, so the object is at a negative u. Distances in front of the mirror are negative, behind it positive; heights up are positive. A concave mirror's f is negative, a convex mirror's positive.</p>
+    <p class="ax-help mrd-12" hidden>Class 12: the radius of curvature R = 2f, and the formula holds for paraxial rays (rays close to the axis). A ray striking the pole reflects at an equal angle to the axis (the fourth ray drawn).</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Where is the image?</h2>
+    <div class="ax-scroll"><table class="mrd-table"><thead><tr><th>Object</th><th>Image</th><th>Size</th><th>Nature</th></tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="mrd-try">
+      <li>Slide the object slowly from far away towards a concave mirror. Watch the image grow and move out past C, then jump behind the mirror once the object passes F.</li>
+      <li>Put the object exactly at F: the reflected rays come out parallel, so no image forms (it is "at infinity").</li>
+      <li>Switch to a convex mirror. Wherever the object is, the image stays small, upright and behind the mirror. That is why vehicles use convex mirrors to see more of the road.</li>
+      <li>Check the magnification sign: negative means the image is upside down (real), positive means upright (virtual).</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh numbers each time. Give distances in cm with their sign (for example −30). Nothing is saved.</p>
+    <div class="mrd-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .mrd input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; }
+  .mrd-top { justify-content: space-between; margin-bottom: 6px; }
+  .mrd-pos { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
+  .mrd-pos button { font: inherit; font-size: 14px; padding: 8px 10px; min-height: 40px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); cursor: pointer; }
+  .mrd-pos button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .mrd-fig { touch-action: pan-y; cursor: ew-resize; margin: 4px auto; border: 1px solid var(--line); max-width: 720px; }
+  .mrd-formula { font: 15px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; padding: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
+  .mrd h3 { font-size: 15px; margin: 14px 0 6px; }
+  .mrd-table tr.on td { background: var(--bg); font-weight: 700; }
+  .mrd-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .mrd .ax-seg button { min-height: 40px; }
+</style>
+
+<script>
+  import { mirrorImage, position, imageTable, power, type MirrorKind, type Position } from '../../lib/sci/school-optics';
+  import { benchFigure, worldX, type BenchOpts } from '../../lib/school-optics-draw';
+  import { paint } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+  import { mountQuiz, pick, show, r2, type Question } from '../../lib/school-quiz';
+
+  const root = document.querySelector<HTMLElement>('.mrd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const canvas = q<HTMLCanvasElement>('.mrd-fig');
+  const st = { kind: 'concave' as MirrorKind, F: 15, U: 30 as number, level: '10', h: 2 };
+  const POS: Record<MirrorKind, [string, number][]> = {
+    concave: [['At infinity', Infinity], ['Beyond C', 3], ['At C', 2], ['Between C and F', 1.5], ['At F', 1], ['Between F and P', 0.5]],
+    convex: [['At infinity', Infinity], ['Anywhere in front', 1.5]],
+  };
+  const s4 = (x: number) => sig(x, 4).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+  const cm = (x: number) => `${show(x)} cm`;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const paren = (x: number) => (x < 0 ? `(${show(x)})` : show(x));
+  let opts: BenchOpts;
+
+  function posButtons() {
+    const box = q('.mrd-pos');
+    box.replaceChildren(...POS[st.kind].map(([t, k]) => {
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.dataset.k = String(k);
+      b.addEventListener('click', () => { st.U = k * st.F; sync(); draw(); });
+      return b;
+    }));
+  }
+  function sync() {
+    q<HTMLInputElement>('.mrd-u').max = String(Math.round(3.6 * st.F));
+    if (Number.isFinite(st.U)) q<HTMLInputElement>('.mrd-u').value = String(st.U);
+    q<HTMLInputElement>('.mrd-f').value = String(st.F);
+    q<HTMLInputElement>('.mrd-ut').value = Number.isFinite(st.U) ? String(r2(st.U)) : 'infinity';
+    q<HTMLInputElement>('.mrd-ft').value = String(r2(st.F));
+  }
+  function draw() {
+    const err = q('.mrd-err');
+    err.hidden = true;
+    const { kind, F, U } = st;
+    const im = mirrorImage(kind, F, U), pos: Position = position(kind, 'mirror', F, U);
+    q('.mrd-uv').textContent = Number.isFinite(U) ? `${show(U)} cm` : 'infinity';
+    q('.mrd-fv').textContent = `${show(F)} cm`;
+    const W = Math.round(Math.max(300, Math.min(720, canvas.clientWidth || 400)));
+    opts = { W, H: Math.round(Math.max(240, W * 0.6)), element: 'mirror', kind, f: F, u: U, rays: st.level === '12' ? 4 : 3 };
+    paint(canvas, benchFigure(opts, `Ray diagram: ${kind} mirror, object ${Number.isFinite(U) ? `${show(U)} cm` : 'at infinity'}`));
+    // Highlight the standard position, if the object is at one.
+    root.querySelectorAll<HTMLButtonElement>('.mrd-pos button').forEach((b) => {
+      b.setAttribute('aria-pressed', String(position(kind, 'mirror', F, Number(b.dataset.k) * F) === pos));
+    });
+    const rows = imageTable('mirror', kind);
+    const row = rows.find((r) => r.pos === pos)!;
+    const tb = q('.mrd-table tbody');
+    tb.replaceChildren(...rows.map((r) => { const tr = document.createElement('tr'); if (r === row) tr.className = 'on'; for (const c of [r.object, r.image, r.size, r.nature]) { const td = document.createElement('td'); td.textContent = c; tr.append(td); } return tr; }));
+    q('.mrd-big').textContent = `${row.nature}, ${row.size.toLowerCase()}, ${row.image.charAt(0).toLowerCase() + row.image.slice(1)}`;
+    // Numbers and the formula with signs.
+    const f: HTMLElement[] = [];
+    const L: string[] = ['1/v + 1/u = 1/f'];
+    if (!Number.isFinite(U)) {
+      f.push(fact('u', '−∞', 'object very far away'), fact('f', cm(im.f)), fact('v', cm(im.v), 'the image forms at F'));
+      L.push(`u = −∞, so 1/u = 0 and v = f = ${cm(im.f)}`);
+    } else if (!Number.isFinite(im.v)) {
+      f.push(fact('u', cm(im.u)), fact('f', cm(im.f)), fact('v', '∞', 'reflected rays are parallel'));
+      L.push(`1/v = 1/f − 1/u = 1/${paren(im.f)} − 1/${paren(im.u)} = 0`, 'v = ∞ (the image is at infinity)');
+    } else {
+      f.push(fact('u', cm(im.u), 'object distance'), fact('f', cm(im.f), kind === 'concave' ? 'negative: concave' : 'positive: convex'), fact('v', cm(im.v), im.v < 0 ? 'in front: real' : 'behind: virtual'), fact('m', show(im.m), im.m < 0 ? 'negative: inverted' : 'positive: erect'));
+      L.push(`1/v = 1/f − 1/u = 1/${paren(im.f)} − 1/${paren(im.u)}`, `1/v = ${s4(1 / im.v)}`, `v = ${cm(im.v)}`, `m = −v/u = −${paren(im.v)}/${paren(im.u)} = ${show(im.m)}`);
+    }
+    if (st.level === '12') {
+      f.push(fact('R = 2f', cm(2 * im.f)), fact('Power P = 1/f', `${show(power(im.f))} D`, 'f in metres'));
+      if (Number.isFinite(im.m) && Number.isFinite(U)) { f.push(fact("Image height h′ = m h", cm(im.m * st.h), `object ${cm(st.h)} tall`)); L.push(`h′ = m × h = ${show(im.m)} × ${show(st.h)} = ${cm(im.m * st.h)}`); }
+    }
+    q('.mrd-facts').replaceChildren(...f);
+    q('.mrd-formula').textContent = L.join('\n');
+  }
+
+  function setLevel(l: string) {
+    st.level = l;
+    root.querySelectorAll<HTMLButtonElement>('.mrd-level button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.l === l)));
+    root.querySelectorAll<HTMLElement>('.mrd-12').forEach((e) => (e.hidden = l !== '12'));
+    draw();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.mrd-level button').forEach((b) => b.addEventListener('click', () => setLevel(b.dataset.l!)));
+  root.querySelectorAll<HTMLButtonElement>('.mrd-kind button').forEach((b) => b.addEventListener('click', () => {
+    st.kind = b.dataset.k as MirrorKind;
+    root.querySelectorAll<HTMLButtonElement>('.mrd-kind button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    posButtons(); draw();
+  }));
+  const snap = (u: number) => (Math.abs(u - 2 * st.F) < 0.04 * st.F ? 2 * st.F : Math.abs(u - st.F) < 0.04 * st.F ? st.F : u);
+  q<HTMLInputElement>('.mrd-u').addEventListener('input', (e) => { st.U = Number((e.target as HTMLInputElement).value); sync(); draw(); });
+  q<HTMLInputElement>('.mrd-f').addEventListener('input', (e) => { const nf = Number((e.target as HTMLInputElement).value); if (Number.isFinite(st.U)) st.U = r2((st.U / st.F) * nf); st.F = nf; sync(); draw(); });
+  const typed = () => {
+    const ut = q<HTMLInputElement>('.mrd-ut').value.trim(), u = /^inf/i.test(ut) || ut === '∞' ? Infinity : Math.abs(num(ut)), fv = Math.abs(num(q<HTMLInputElement>('.mrd-ft').value)), h = num(q<HTMLInputElement>('.mrd-ht').value);
+    const err = q('.mrd-err');
+    const bad = !(fv >= 1 && fv <= 500) ? 'Give a focal length from 1 to 500 cm.' : !(u > 0 && u <= 5000) ? 'Give the object distance as a size in cm, from 0 to 5000 (or type "infinity").' : !(Number.isFinite(h) && h > 0 && h <= 1000) ? 'Give the object height in cm (more than 0).' : '';
+    if (bad) { err.textContent = bad; err.hidden = false; return; }
+    st.U = u; st.F = fv; st.h = h;
+    q<HTMLInputElement>('.mrd-u').max = String(Math.round(3.6 * st.F));
+    if (Number.isFinite(u)) q<HTMLInputElement>('.mrd-u').value = String(u);
+    q<HTMLInputElement>('.mrd-f').value = String(fv);
+    draw();
+  };
+  root.querySelectorAll<HTMLInputElement>('.mrd-type input').forEach((i) => i.addEventListener('input', typed));
+  // Drag or tap on the picture to move the object (left of the mirror only).
+  let dragging = false;
+  const move = (e: PointerEvent) => {
+    const r = canvas.getBoundingClientRect(), x = worldX(opts, e.clientX - r.left, r.width);
+    if (x >= -0.1 * st.F) return;
+    st.U = snap(Math.min(Math.round(-x * 2) / 2, 5000)); sync(); draw();
+  };
+  canvas.addEventListener('pointerdown', (e) => { dragging = true; canvas.setPointerCapture(e.pointerId); move(e); });
+  canvas.addEventListener('pointermove', (e) => { if (dragging) move(e); });
+  const end = () => { dragging = false; };
+  canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
+  document.addEventListener('fibub:theme', draw);
+  let lastW = 0; window.addEventListener('resize', () => { if (Math.abs(canvas.clientWidth - lastW) > 20) { lastW = canvas.clientWidth; draw(); } });
+
+  // Check yourself.
+  const NICE: [number, number][] = [[10, 15], [10, 30], [12, 18], [12, 36], [15, 20], [20, 30], [20, 60], [10, 20], [15, 30], [15, 10], [20, 10], [12, 4], [30, 20], [24, 8]];
+  const CONVEX: [number, number][] = [[15, 30], [20, 20], [30, 15], [12, 24], [10, 40], [18, 9], [20, 30], [15, 10]];
+  const make = (): Question => {
+    const t = pick(['v', 'v', 'cv', 'm', 'f']);
+    if (t === 'cv') {
+      const [F, U] = pick(CONVEX), im = mirrorImage('convex', F, U);
+      return { text: `A convex mirror has a focal length of ${F} cm. An object is ${U} cm in front of it. Find the image distance v.`, unit: 'cm', answer: r2(im.v), tol: 0.06, work: [`Signs: u = −${U} cm, f = +${F} cm (convex).`, `1/v = 1/f − 1/u = 1/${F} − 1/(−${U}) = ${s4(1 / im.v)}`, `v = ${cm(im.v)}: positive, so the image is behind the mirror (virtual and erect).`] };
+    }
+    const [F, U] = pick(NICE), im = mirrorImage('concave', F, U);
+    const work = [`Signs: u = −${U} cm, f = −${F} cm (concave).`, `1/v = 1/f − 1/u = 1/(−${F}) − 1/(−${U}) = ${s4(1 / im.v)}`, `v = ${cm(im.v)}: ${im.v < 0 ? 'negative, so the image is in front of the mirror (real)' : 'positive, so the image is behind the mirror (virtual)'}.`];
+    if (t === 'v') return { text: `A concave mirror has a focal length of ${F} cm. An object is ${U} cm in front of it. Find the image distance v.`, unit: 'cm', answer: r2(im.v), tol: 0.06, work };
+    if (t === 'm') return { text: `An object ${U} cm in front of a concave mirror gives an image at v = ${show(im.v)} cm. Find the magnification m.`, unit: '', answer: r2(im.m), tol: 0.011, work: [`m = −v/u = −${paren(im.v)}/(−${U}) = ${show(im.m)}`, im.m < 0 ? 'Negative: the image is real and inverted.' : 'Positive: the image is virtual and erect.'] };
+    return { text: `An object ${U} cm in front of a mirror gives an image at v = ${show(im.v)} cm. Find the focal length f (with its sign).`, unit: 'cm', answer: -F, tol: 0.06, work: [`1/f = 1/v + 1/u = 1/${paren(im.v)} + 1/(−${U}) = ${s4(-1 / F)}`, `f = −${F} cm: negative, so it is a concave mirror.`] };
+  };
+  mountQuiz(q('.mrd-quiz'), make, 4);
+
+  posButtons(); sync(); draw();
+</script>
