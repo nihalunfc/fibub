@@ -1,0 +1,182 @@
+---
+// 2D truss and frame solver by the direct stiffness method. Example structures are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const nodes = 'Node\tx (m)\ty (m)\n1\t0\t0\n2\t3\t0\n3\t6\t0\n4\t9\t0\n5\t12\t0\n6\t3\t3\n7\t6\t3\n8\t9\t3';
+const members = 'Member\tFrom\tTo\tE (GPa)\tA (cm²)\na\t1\t2\t200\t20\nb\t2\t3\t200\t20\nc\t3\t4\t200\t20\nd\t4\t5\t200\t20\ne\t6\t7\t200\t20\nf\t7\t8\t200\t20\ng\t1\t6\t200\t20\nh\t8\t5\t200\t20\ni\t2\t6\t200\t20\nj\t3\t7\t200\t20\nk\t4\t8\t200\t20\nl\t6\t3\t200\t20\nm\t8\t3\t200\t20';
+const supports = 'Node\tType\n1\tpin\n5\troller';
+const loads = 'Node\tFx (kN)\tFy (kN)\tM (kN·m)\n2\t0\t-20\t0\n3\t0\t-20\t0\n4\t0\t-20\t0';
+---
+<div class="ax tfs">
+  <div class="ax-card">
+    <h2>Structure</h2>
+    <div class="ax-grid">
+      <label>Type <select class="tf-mode"><option value="truss" selected>Truss (pin-jointed, axial only)</option><option value="frame">Frame (rigid joints, bending)</option></select></label>
+      <label>Fill in an example <select class="tf-ex"><option value="">Pick to fill in…</option><option value="truss">Pratt truss, 12 m (made up)</option><option value="frame">Portal frame with a lateral load (made up)</option></select></label>
+    </div>
+    <label class="tf-l">Nodes: name, x, y (metres)
+      <textarea class="tf-nodes" rows="6" spellcheck="false">{nodes}</textarea>
+    </label>
+    <DataFile target=".tf-nodes" maxCols={3} maxRows={500} label="Open a nodes file" />
+    <label class="tf-l"><span class="tf-ml">Members: name, from node, to node, E (GPa), A (cm²)</span>
+      <textarea class="tf-mem" rows="6" spellcheck="false">{members}</textarea>
+    </label>
+    <DataFile target=".tf-mem" maxCols={7} maxRows={1000} label="Open a members file" />
+    <label class="tf-l">Supports: node, type (pin, roller, roller-y, fixed)
+      <textarea class="tf-sup" rows="3" spellcheck="false">{supports}</textarea>
+    </label>
+    <DataFile target=".tf-sup" maxCols={2} maxRows={500} label="Open a supports file" />
+    <label class="tf-l">Loads at nodes: node, Fx (kN), Fy (kN, up is +), M (kN·m, anticlockwise +)
+      <textarea class="tf-loads" rows="4" spellcheck="false">{loads}</textarea>
+    </label>
+    <DataFile target=".tf-loads" maxCols={4} maxRows={500} label="Open a loads file" />
+    <p class="ax-help">A pin holds both directions, a roller holds only up and down (roller-y holds only sideways), a fixed support also stops rotation. In a frame, add I (cm⁴) after A, and optionally a uniform load w (kN/m along the member, in the y direction, minus for gravity). Steel E is about 200 GPa; the example structures are made up. Paste tables from a spreadsheet; a header row is skipped.</p>
+    <p class="ax-err tf-err" hidden></p>
+  </div>
+
+  <div class="ax-card tf-out">
+    <h2>Results</h2>
+    <p class="ax-big tf-big"></p>
+    <dl class="ax-facts tf-facts"></dl>
+    <div class="ax-grid tf-sg"><label>Deflection drawn × (empty = automatic) <input class="tf-scale" type="text" inputmode="decimal" value="" /></label></div>
+    <canvas class="ax-fig tf-fig"></canvas>
+    <h3 class="tf-h3">Member forces</h3>
+    <div class="ax-scroll"><table class="tf-mtab"></table></div>
+    <h3 class="tf-h3">Node displacements and reactions</h3>
+    <div class="ax-scroll"><table class="tf-ntab"></table></div>
+    <p class="ax-help">Linear elastic, small deflections, members straight between nodes. For study and planning, not a substitute for professional judgement: check your local code and a qualified engineer. Compression members also need a buckling check.</p>
+    <div class="ax-row tf-row"><button type="button" class="btn secondary small tf-mcsv">Member forces (CSV)</button><button type="button" class="btn secondary small tf-ncsv">Nodes (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { buildModel, analyse, deflectedMember, type Model, type Result } from '../../lib/sci/eng-frame';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv, parseTable } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 4) => { if (Math.abs(x) < 1e-9) return '0'; const t = sig(x, d); return /^[-−]?[\d.]+$/.test(t) ? String(parseFloat(t.replace('−', '-'))).replace('-', '−') : t; };
+  const root = document.querySelector<HTMLElement>('.tfs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const ta = (c: string) => q<HTMLTextAreaElement>(c);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const table = (t: HTMLTableElement, head: string[], rows: string[][]) => {
+    const tr = (cells: string[], th: boolean) => { const r = document.createElement('tr'); cells.forEach((c, i) => { const e = document.createElement(th ? 'th' : 'td'); e.textContent = c; if (i) e.className = 'r'; r.append(e); }); return r; };
+    const h = document.createElement('thead'); h.append(tr(head, true)); const b = document.createElement('tbody'); rows.forEach((r) => b.append(tr(r, false))); t.replaceChildren(h, b);
+  };
+  const EX = {
+    truss: { mode: 'truss', nodes: ta('.tf-nodes').value, mem: ta('.tf-mem').value, sup: ta('.tf-sup').value, loads: ta('.tf-loads').value },
+    frame: { mode: 'frame', nodes: 'Node\tx (m)\ty (m)\n1\t0\t0\n2\t0\t4\n3\t6\t4\n4\t6\t0', mem: 'Member\tFrom\tTo\tE (GPa)\tA (cm²)\tI (cm⁴)\tw (kN/m)\nc1\t1\t2\t200\t50\t5000\nb\t2\t3\t200\t50\t5000\t-10\nc2\t3\t4\t200\t50\t5000', sup: 'Node\tType\n1\tfixed\n4\tfixed', loads: 'Node\tFx (kN)\tFy (kN)\tM (kN·m)\n2\t15\t0\t0' },
+  } as const;
+  let fig: Figure | null = null, report: Section[] = [], mCsv: (string | number)[][] = [], nCsv: (string | number)[][] = [];
+
+  function drawing(model: Model, r: Result, userScale: number): { fig: Figure; scale: number } {
+    const xs = model.nodes.map((n) => n.x), ys = model.nodes.map((n) => n.y);
+    const span = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys), 1e-9);
+    const dmax = Math.max(...r.disp.map((d) => Math.hypot(d.ux, d.uy)), 1e-300);
+    const auto = (0.08 * span) / dmax, rounded = 10 ** Math.floor(Math.log10(auto)) * [1, 2, 5].filter((m) => m * 10 ** Math.floor(Math.log10(auto)) <= auto).pop()!;
+    const scale = userScale > 0 ? userScale : rounded;
+    const byId = new Map(model.nodes.map((n) => [n.id, n])), dById = new Map(r.disp.map((d) => [d.id, d]));
+    const truss = model.mode === 'truss', fmax = Math.max(...r.members.map((m) => Math.abs(m.axial)), 1e-9);
+    const shapes = model.members.map((m) => { const a = byId.get(m.i)!, b = byId.get(m.j)!, da = dById.get(m.i)!, db = dById.get(m.j)!; return deflectedMember(a, b, [da.ux, da.uy, da.rz], [db.ux, db.uy, db.rz], scale, truss); });
+    const all = shapes.flat().concat(model.nodes.map((n) => [n.x, n.y] as [number, number]));
+    const x0 = Math.min(...all.map((p) => p[0])), x1 = Math.max(...all.map((p) => p[0])), y0 = Math.min(...all.map((p) => p[1])), y1 = Math.max(...all.map((p) => p[1]));
+    return { scale, fig: { w: 380, h: 280, alt: `Structure and deflected shape, deflections drawn ${sg(scale, 3)} times larger`, draw: (ctx, W, H, pal) => {
+      const pad = 34, sc = Math.min((W - 2 * pad) / (x1 - x0 || 1), (H - 2 * pad - 14) / (y1 - y0 || 1));
+      const X = (x: number) => (W - (x1 - x0) * sc) / 2 + (x - x0) * sc, Y = (y: number) => H - pad - 14 - ((H - 2 * pad - 14) - (y1 - y0) * sc) / 2 - (y - y0) * sc;
+      const tens = pal.red ? '#a30000' : pal.bg === '#ffffff' ? '#0072B2' : '#56B4E9', comp = pal.red ? '#6e0000' : pal.bg === '#ffffff' ? '#D55E00' : '#f0b45a';
+      // Undeformed members, coloured by force in a truss.
+      model.members.forEach((m, k) => {
+        const a = byId.get(m.i)!, b = byId.get(m.j)!, f = r.members[k].axial;
+        ctx.strokeStyle = truss ? (Math.abs(f) < fmax * 1e-6 ? pal.muted : f > 0 ? tens : comp) : pal.muted;
+        ctx.lineWidth = truss ? 1.5 + 3 * Math.abs(f) / fmax : 2; ctx.beginPath(); ctx.moveTo(X(a.x), Y(a.y)); ctx.lineTo(X(b.x), Y(b.y)); ctx.stroke();
+      });
+      // Deflected shape.
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.2; ctx.setLineDash([5, 3]);
+      shapes.forEach((s) => { ctx.beginPath(); s.forEach(([x, y], i) => (i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)))); ctx.stroke(); });
+      ctx.setLineDash([]);
+      // Supports.
+      ctx.strokeStyle = pal.ink; ctx.fillStyle = pal.ink; ctx.lineWidth = 1.2;
+      for (const s of model.supports) {
+        const n = byId.get(s.node)!, x = X(n.x), y = Y(n.y);
+        if (s.rz && !truss) { ctx.fillRect(x - 9, y, 18, 4); }
+        else if (s.ux && s.uy) { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 7, y + 10); ctx.lineTo(x + 7, y + 10); ctx.closePath(); ctx.stroke(); }
+        else if (s.uy) { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 7, y + 9); ctx.lineTo(x + 7, y + 9); ctx.closePath(); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x - 8, y + 12); ctx.lineTo(x + 8, y + 12); ctx.stroke(); }
+        else { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 10, y - 7); ctx.lineTo(x - 10, y + 7); ctx.closePath(); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x - 13, y - 8); ctx.lineTo(x - 13, y + 8); ctx.stroke(); }
+      }
+      // Loads.
+      ctx.strokeStyle = pal.bad; ctx.fillStyle = pal.bad;
+      for (const l of model.loads) {
+        const n = byId.get(l.node)!, mag = Math.hypot(l.fx, l.fy); if (!mag) continue;
+        const ux = l.fx / mag, uy = l.fy / mag, x = X(n.x), y = Y(n.y), len = 22;
+        ctx.beginPath(); ctx.moveTo(x - ux * len, y + uy * len); ctx.lineTo(x - ux * 3, y + uy * 3); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x - ux * 3, y + uy * 3); ctx.lineTo(x - ux * 9 - uy * 4, y + uy * 9 - ux * 4); ctx.lineTo(x - ux * 9 + uy * 4, y + uy * 9 + ux * 4); ctx.closePath(); ctx.fill();
+      }
+      // Node names.
+      ctx.fillStyle = pal.ink; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+      for (const n of model.nodes) { ctx.beginPath(); ctx.arc(X(n.x), Y(n.y), 2.2, 0, 7); ctx.fill(); ctx.fillText(n.id, X(n.x) + 3, Y(n.y) - 2); }
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillText(`${truss ? 'blue tension, orange compression; ' : ''}dashed: deflected × ${sg(scale, 3)}`, W / 2, H - 3);
+    } } };
+  }
+
+  function run() {
+    const err = q('.tf-err'), out = q('.tf-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; mCsv = []; nCsv = []; fig = null; };
+    const mode = q<HTMLSelectElement>('.tf-mode').value as 'truss' | 'frame';
+    q('.tf-ml').textContent = mode === 'truss' ? 'Members: name, from node, to node, E (GPa), A (cm²)' : 'Members: name, from node, to node, E (GPa), A (cm²), I (cm⁴), w (kN/m, optional)';
+    let model: Model, r: Result;
+    try { model = buildModel(mode, parseTable(ta('.tf-nodes').value), parseTable(ta('.tf-mem').value), parseTable(ta('.tf-sup').value), parseTable(ta('.tf-loads').value), num); }
+    catch (e) { return fail((e as Error).message); }
+    if (model.nodes.length > 300 || model.members.length > 600) return fail('This tool takes up to 300 nodes and 600 members.');
+    try { r = analyse(model); }
+    catch (e) { return fail((e as Error).message === 'unstable' ? `The structure can move without resisting: it is a mechanism or not held enough. Add members or supports${mode === 'truss' ? ' (a stable truss needs members + reactions ≥ 2 × nodes)' : ''}, and check every node is connected.` : (e as Error).message); }
+    err.hidden = true; out.hidden = false;
+    const truss = mode === 'truss';
+    const big = r.members.reduce((a, b) => (Math.abs(b.axial) > Math.abs(a.axial) ? b : a));
+    const dmax = r.disp.reduce((a, b) => (Math.hypot(b.ux, b.uy) > Math.hypot(a.ux, a.uy) ? b : a));
+    const mmax = truss ? null : r.members.reduce((a, b) => (Math.max(Math.abs(b.M1), Math.abs(b.M2)) > Math.max(Math.abs(a.M1), Math.abs(a.M2)) ? b : a));
+    q('.tf-big').textContent = truss ? `Largest force ${sg(Math.abs(big.axial), 4)} kN ${big.axial >= 0 ? 'tension' : 'compression'} in member ${big.id}` : `Largest moment ${sg(Math.max(Math.abs(mmax!.M1), Math.abs(mmax!.M2)), 4)} kN·m in member ${mmax!.id}`;
+    const facts = [
+      fact('Largest deflection', `${sg(Math.hypot(dmax.ux, dmax.uy) * 1000, 4)} mm at node ${dmax.id}`, `ux ${sg(dmax.ux * 1000, 4)}, uy ${sg(dmax.uy * 1000, 4)} mm`),
+      fact('Reactions', r.reactions.map((x) => `${x.node}: ${[x.rx ? `Rx ${sg(x.rx, 4)}` : '', x.ry ? `Ry ${sg(x.ry, 4)}` : '', x.mz ? `M ${sg(x.mz, 4)}` : ''].filter(Boolean).join(', ') || '0'}`).join('; '), 'kN and kN·m, + is right, up, anticlockwise'),
+      fact('Equilibrium check', `${sg(Math.abs(r.check.fx) + Math.abs(r.check.fy), 2)} kN left over`, 'loads + reactions should add to zero'),
+    ];
+    if (!truss) facts.splice(1, 0, fact('Largest axial force', `${sg(Math.abs(big.axial), 4)} kN ${big.axial >= 0 ? 'tension' : 'compression'}`, `member ${big.id}`));
+    q('.tf-facts').replaceChildren(...facts);
+    const mhead = truss ? ['Member', 'Length m', 'Force kN', 'State'] : ['Member', 'L m', 'N kN', 'V start', 'M start kN·m', 'V end', 'M end kN·m'];
+    const mrows = r.members.map((m) => truss ? [m.id, sg(m.L, 4), sg(m.axial, 5), Math.abs(m.axial) < 1e-6 ? 'zero' : m.axial > 0 ? 'tension' : 'compression'] : [m.id, sg(m.L, 4), sg(m.axial, 4), sg(m.V1, 4), sg(m.M1, 4), sg(m.V2, 4), sg(m.M2, 4)]);
+    table(q<HTMLTableElement>('.tf-mtab'), mhead, mrows);
+    const rmap = new Map(r.reactions.map((x) => [x.node, x]));
+    const nhead = truss ? ['Node', 'ux mm', 'uy mm', 'Rx kN', 'Ry kN'] : ['Node', 'ux mm', 'uy mm', 'rz mrad', 'Rx kN', 'Ry kN', 'M kN·m'];
+    const nrows = r.disp.map((d) => { const x = rmap.get(d.id); const re = x ? (truss ? [sg(x.rx, 4), sg(x.ry, 4)] : [sg(x.rx, 4), sg(x.ry, 4), sg(x.mz, 4)]) : truss ? ['', ''] : ['', '', '']; return [d.id, sg(d.ux * 1000, 4), sg(d.uy * 1000, 4), ...(truss ? [] : [sg(d.rz * 1000, 4)]), ...re]; });
+    table(q<HTMLTableElement>('.tf-ntab'), nhead, nrows);
+    mCsv = [['member', 'from', 'to', 'length_m', 'N_kN_tension_positive', 'V_start_kN', 'M_start_kNm', 'V_end_kN', 'M_end_kNm'], ...r.members.map((m, k) => [m.id, model.members[k].i, model.members[k].j, +m.L.toFixed(6), +m.axial.toPrecision(8), +m.V1.toPrecision(8), +m.M1.toPrecision(8), +m.V2.toPrecision(8), +m.M2.toPrecision(8)])];
+    nCsv = [['node', 'x_m', 'y_m', 'ux_mm', 'uy_mm', 'rz_rad', 'Rx_kN', 'Ry_kN', 'M_kNm'], ...r.disp.map((d, k) => { const x = rmap.get(d.id); return [d.id, model.nodes[k].x, model.nodes[k].y, +(d.ux * 1000).toPrecision(8), +(d.uy * 1000).toPrecision(8), +d.rz.toPrecision(8), x ? +x.rx.toPrecision(8) : '', x ? +x.ry.toPrecision(8) : '', x ? +x.mz.toPrecision(8) : '']; })];
+    const d = drawing(model, r, num(q<HTMLInputElement>('.tf-scale').value));
+    fig = d.fig; paint(q<HTMLCanvasElement>('.tf-fig'), fig);
+    report = [
+      { title: q('.tf-big').textContent!, facts: facts.map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig },
+      { title: 'Member forces', table: { head: mhead, rows: mrows, align: mhead.map((_, i) => (i ? 'r' : 'l')) } },
+      { title: 'Nodes', table: { head: nhead, rows: nrows, align: nhead.map((_, i) => (i ? 'r' : 'l')) }, note: 'Example structures made up. For study and planning, not a substitute for professional judgement: check your local code and a qualified engineer.' },
+    ];
+  }
+  q('.tf-ex').addEventListener('change', () => { const v = q<HTMLSelectElement>('.tf-ex').value as keyof typeof EX | ''; if (!v) return; const e = EX[v]; q<HTMLSelectElement>('.tf-mode').value = e.mode; ta('.tf-nodes').value = e.nodes; ta('.tf-mem').value = e.mem; ta('.tf-sup').value = e.sup; ta('.tf-loads').value = e.loads; q<HTMLInputElement>('.tf-scale').value = ''; q<HTMLSelectElement>('.tf-ex').value = ''; run(); });
+  root.querySelectorAll('textarea, .tf-mode, .tf-scale').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+  document.addEventListener('fibub:theme', () => { if (fig && !q('.tf-out').hidden) paint(q<HTMLCanvasElement>('.tf-fig'), fig); });
+  q('.tf-mcsv').addEventListener('click', () => { if (mCsv.length) save(new Blob([csv(mCsv)], { type: 'text/csv' }), 'member-forces.csv', 'text/csv'); });
+  q('.tf-ncsv').addEventListener('click', () => { if (nCsv.length) save(new Blob([csv(nCsv)], { type: 'text/csv' }), 'node-results.csv', 'text/csv'); });
+  run();
+  wireDownloads(q('.dl'), () => ({ title: 'Truss and frame analysis', subtitle: q('.tf-big').textContent ?? '', file: 'truss-frame', sections: report }));
+</script>
+
+<style is:global>
+  .tfs .tf-l { margin-top: 12px; }
+  .tfs .tf-h3 { font-size: 15px; margin: 16px 0 0; }
+  .tfs .tf-mtab, .tfs .tf-ntab { margin: 8px 0 4px; font-size: 13px; }
+  .tfs .tf-mtab th, .tfs .tf-ntab th { white-space: normal; }
+  .tfs .tf-mtab th, .tfs .tf-mtab td, .tfs .tf-ntab th, .tfs .tf-ntab td { padding: 6px 4px; }
+  .tfs .tf-row { margin-top: 10px; }
+  .tfs .tf-sg { margin: 10px 0 6px; }
+</style>
