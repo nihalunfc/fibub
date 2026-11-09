@@ -152,6 +152,7 @@ import * as QP from '../src/lib/sci/qpcr.ts';
 import * as LG from '../src/lib/sci/ligation.ts';
 import * as PR from '../src/lib/sci/primer.ts';
 import * as DG from '../src/lib/sci/digest.ts';
+import * as GS from '../src/lib/sci/gelsize.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -3008,6 +3009,20 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   check('dg fragments linear', lin === '381,770,650,1199'); check('dg fragments circular', circ === '770,650,1580');
   check('dg one cut circle', DG.fragments(3000, [{ pos: 10, enz: 'X' }], true)[0].size === 3000);
   near('dg migration ends', DG.migration(10000, 100, 10000), 0.06, 1e-12); near('dg migration mid', DG.migration(1000, 100, 10000), 0.5, 1e-12);
+}
+// #169 gel band sizer: fits checked against numpy.polyfit (degrees 1 and 3) and numpy.interp in log10 size.
+{
+  const L = [10000, 5000, 3000, 2000, 1500, 1000, 700, 500, 400, 300, 200, 100], D = [6.2, 11.6, 16.6, 20.6, 23.0, 27.2, 31.2, 34.2, 37.0, 39.8, 44.8, 52.7];
+  const lin = GS.fit(D, L, 'linear'), cub = GS.fit(D, L, 'cubic'), itp = GS.fit(D, L, 'interp');
+  near('gs lin slope', lin.coef[0], -0.042695246826678, 1e-12); near('gs lin int', lin.coef[1], 4.191923535863206, 1e-11);
+  near('gs lin s', lin.s, 0.036113942715523144, 1e-12); near('gs lin r2', lin.r2, 0.9966193483947875, 1e-12);
+  near('gs cubic c3', cub.coef[0], -1.9297564278643435e-06, 1e-15); near('gs cubic c0', cub.coef[3], 4.331966031451878, 1e-10);
+  near('gs cubic s', cub.s, 0.011024419919015576, 1e-11); near('gs cubic r2', cub.r2, 0.999747970087764, 1e-12);
+  [[lin, [2073.3421459429933, 738.5346639718673, 150.2131265450127]], [cub, [1967.7271953943562, 692.5139650680809, 160.36231792270402]], [itp, [2020.3763546918221, 712.5956026078567, 162.02343866708017]]].forEach(([m, want], k) =>
+    [20.5, 31.0, 47.2].forEach((d, i) => near(`gs size ${m.method} ${d}`, GS.sizeAt(m, d).size / want[i], 1, 1e-9)));
+  const e = GS.sizeAt(lin, 31); near('gs spread', e.hi / e.size, 10 ** 0.036113942715523144, 1e-12);
+  check('gs outside', !GS.sizeAt(lin, 60).inside && GS.sizeAt(lin, 30).inside);
+  check('gs interp no spread', Number.isNaN(GS.sizeAt(itp, 30).hi));
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
