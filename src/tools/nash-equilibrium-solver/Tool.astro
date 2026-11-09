@@ -1,0 +1,215 @@
+---
+// Nash equilibria of two-player games up to 6 x 6: best responses, pure and mixed equilibria, dominated
+// strategies, zero-sum value. The example games are the textbook classics or made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ne">
+  <div class="ax-card">
+    <h2>The game</h2>
+    <div class="ax-grid">
+      <label>Start from <select class="ne-pre">
+        <option value="pd">Prisoner's dilemma</option>
+        <option value="bos" selected>Battle of the sexes</option>
+        <option value="chicken">Chicken (hawk-dove)</option>
+        <option value="stag">Stag hunt</option>
+        <option value="mp">Matching pennies (zero-sum)</option>
+        <option value="rps">Rock, paper, scissors (zero-sum)</option>
+        <option value="m33">Made-up 3 × 3 game</option>
+        <option value="blank">Blank</option>
+      </select></label>
+      <label>Row player's strategies <select class="ne-m"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label>
+      <label>Column player's strategies <select class="ne-n"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="ne-zs" /> Zero-sum: the column player gets minus the row player's payoff</label>
+    <p class="ax-help ne-cellhelp"></p>
+    <div class="ax-scroll" style="margin-top:8px"><table class="ne-grid"></table></div>
+    <p class="ax-help">Strategy names can be edited. Higher numbers are better for that player.</p>
+    <label class="ax-check" style="margin-top:6px"><input type="checkbox" class="ne-weak" /> Also remove weakly dominated strategies</label>
+    <p class="ax-help">Weak dominance can remove equilibria and its result can depend on the order, so it is off by default.</p>
+    <p class="ax-err ne-err" hidden></p>
+  </div>
+
+  <div class="ax-card ne-out">
+    <h2>Equilibria</h2>
+    <p class="ax-big ne-big"></p>
+    <div class="ax-scroll"><table class="ne-eq"></table></div>
+    <p class="ax-help ne-degen" hidden></p>
+    <h3>Best responses</h3>
+    <div class="ax-scroll"><table class="ne-br"></table></div>
+    <p class="ax-help">A <b>row</b> payoff in bold is the row player's best response to that column; a <b>column</b> payoff in bold is the column player's best response to that row. Cells where both are bold (shaded) are pure Nash equilibria.</p>
+    <h3>Dominated strategies</h3>
+    <ul class="ne-elim"></ul>
+    <div class="ne-zsbox" hidden>
+      <h3>Zero-sum solution</h3>
+      <dl class="ax-facts ne-zsf"></dl>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ne-csv">Download equilibria (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .ne .ne-grid { border-collapse: collapse; }
+  .ne .ne-grid td, .ne .ne-grid th { padding: 3px; }
+  .ne .ne-grid input { width: 74px; min-width: 0; padding: 6px; font-variant-numeric: tabular-nums; }
+  .ne .ne-grid input.ne-name { width: 74px; font-weight: 600; }
+  .ne .ne-br td, .ne .ne-br th { text-align: center; white-space: nowrap; }
+  .ne .ne-br td.ne-nash { background: var(--good-soft); }
+  .ne .ne-br td.ne-gone { color: var(--muted); text-decoration: line-through; }
+  .ne .ne-br b { font-weight: 750; }
+  .ne .ne-eq td, .ne .ne-eq th { white-space: nowrap; }
+  .ne .ne-eq td.r, .ne .ne-eq th.r { text-align: right; }
+  .ne .ne-elim { margin: 4px 0 0; padding-left: 20px; }
+</style>
+
+<script>
+  import { supportEnumeration, bestResponses, eliminate, zeroSum, isConstantSum, looksDegenerate, type Matrix } from '../../lib/sci/nash';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+  import { num, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.ne')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  type Pre = { rows: string[]; cols: string[]; cells: string[][]; zs?: boolean };
+  const PRE: Record<string, Pre> = {
+    pd: { rows: ['Quiet', 'Confess'], cols: ['Quiet', 'Confess'], cells: [['-1, -1', '-3, 0'], ['0, -3', '-2, -2']] },
+    bos: { rows: ['Opera', 'Football'], cols: ['Opera', 'Football'], cells: [['3, 2', '0, 0'], ['0, 0', '2, 3']] },
+    chicken: { rows: ['Swerve', 'Straight'], cols: ['Swerve', 'Straight'], cells: [['0, 0', '-1, 1'], ['1, -1', '-10, -10']] },
+    stag: { rows: ['Stag', 'Hare'], cols: ['Stag', 'Hare'], cells: [['4, 4', '0, 3'], ['3, 0', '3, 3']] },
+    mp: { rows: ['Heads', 'Tails'], cols: ['Heads', 'Tails'], cells: [['1', '-1'], ['-1', '1']], zs: true },
+    rps: { rows: ['Rock', 'Paper', 'Scissors'], cols: ['Rock', 'Paper', 'Scissors'], cells: [['0', '-1', '1'], ['1', '0', '-1'], ['-1', '1', '0']], zs: true },
+    m33: { rows: ['Top', 'Middle', 'Bottom'], cols: ['Left', 'Centre', 'Right'], cells: [['4, 3', '1, 1', '2, 5'], ['3, 0', '5, 4', '0, 2'], ['1, 6', '2, 2', '1, 1']] },
+  };
+  let sections: Section[] = [], csvRows: string[][] = [];
+
+  function build(m: number, n: number, pre?: Pre) {
+    const old = readRaw();
+    const t = q<HTMLTableElement>('.ne-grid'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); hr.append(document.createElement('th'));
+    const name = (v: string, label: string) => { const i = document.createElement('input'); i.className = 'ne-name'; i.value = v; i.setAttribute('aria-label', label); return i; };
+    for (let j = 0; j < n; j++) { const th = document.createElement('th'); th.append(name(pre?.cols[j] ?? old?.cols[j] ?? `C${j + 1}`, `Column strategy ${j + 1} name`)); hr.append(th); }
+    const b = t.createTBody();
+    for (let i = 0; i < m; i++) {
+      const tr = b.insertRow(), th = document.createElement('th'); th.append(name(pre?.rows[i] ?? old?.rows[i] ?? `R${i + 1}`, `Row strategy ${i + 1} name`)); tr.append(th);
+      for (let j = 0; j < n; j++) { const td = tr.insertCell(), inp = document.createElement('input'); inp.className = 'ne-cell'; inp.dataset.i = String(i); inp.dataset.j = String(j); inp.inputMode = 'text'; inp.value = pre?.cells[i]?.[j] ?? old?.cells[i]?.[j] ?? (q<HTMLInputElement>('.ne-zs').checked ? '0' : '0, 0'); inp.setAttribute('aria-label', `Payoffs for row ${i + 1}, column ${j + 1}`); td.append(inp); }
+    }
+    t.querySelectorAll('input').forEach((i) => i.addEventListener('input', later));
+  }
+  function readRaw() {
+    const t = q<HTMLTableElement>('.ne-grid');
+    if (!t.rows.length) return null;
+    const cols = [...t.tHead!.querySelectorAll<HTMLInputElement>('input')].map((i) => i.value);
+    const rows = [...t.tBodies[0].rows].map((r) => r.querySelector<HTMLInputElement>('th input')!.value);
+    const cells = [...t.tBodies[0].rows].map((r) => [...r.querySelectorAll<HTMLInputElement>('td input')].map((i) => i.value));
+    return { rows, cols, cells };
+  }
+  function setPreset(k: string) {
+    const p = PRE[k];
+    if (p) { q<HTMLSelectElement>('.ne-m').value = String(p.rows.length); q<HTMLSelectElement>('.ne-n').value = String(p.cols.length); q<HTMLInputElement>('.ne-zs').checked = !!p.zs; }
+    const m = Number(q<HTMLSelectElement>('.ne-m').value), n = Number(q<HTMLSelectElement>('.ne-n').value);
+    const blank: Pre = { rows: [], cols: [], cells: Array.from({ length: m }, () => Array.from({ length: n }, () => (q<HTMLInputElement>('.ne-zs').checked ? '0' : '0, 0'))) };
+    q<HTMLTableElement>('.ne-grid').replaceChildren();
+    build(m, n, p ?? blank);
+    calc();
+  }
+
+  const f = (x: number) => { const s = sig(Math.abs(x) < 1e-12 ? 0 : x, 4); return s; };
+  /** A probability as a fraction when it is a simple one, else a decimal. */
+  function prob(p: number) {
+    if (Math.abs(p) < 1e-12) return '0';
+    if (Math.abs(p - 1) < 1e-12) return '1';
+    for (let d = 2; d <= 24; d++) { const k = Math.round(p * d); if (Math.abs(p - k / d) < 1e-9) return `${k}/${d}`; }
+    return sig(p, 4);
+  }
+  const mixText = (x: number[], names: string[]) => x.findIndex((p) => Math.abs(p - 1) < 1e-12) >= 0 ? names[x.findIndex((p) => Math.abs(p - 1) < 1e-12)] : x.map((p, i) => (p > 1e-12 ? `${names[i]} ${prob(p)}` : '')).filter(Boolean).join(', ');
+
+  function calc() {
+    const err = q('.ne-err'), fail = (m: string) => { err.textContent = m; err.hidden = false; q('.ne-out').hidden = true; sections = []; csvRows = []; };
+    err.hidden = true;
+    const zs = q<HTMLInputElement>('.ne-zs').checked;
+    q('.ne-cellhelp').textContent = zs ? 'Each cell: the row player\'s payoff (the column player gets minus that).' : 'Each cell: row player\'s payoff, column player\'s payoff, such as "3, 2".';
+    const raw = readRaw(); if (!raw) return;
+    const A: Matrix = [], B: Matrix = [];
+    for (let i = 0; i < raw.cells.length; i++) {
+      A.push([]); B.push([]);
+      for (let j = 0; j < raw.cells[i].length; j++) {
+        const parts = raw.cells[i][j].trim().split(/\s*[,;\s]\s*/).filter(Boolean).map(num);
+        const where = `${raw.rows[i] || `row ${i + 1}`} / ${raw.cols[j] || `column ${j + 1}`}`;
+        if (zs) { if (parts.length !== 1 || !Number.isFinite(parts[0])) return fail(`Cell ${where}: enter one number, the row player's payoff.`); A[i].push(parts[0]); B[i].push(-parts[0]); }
+        else { if (parts.length !== 2 || !parts.every(Number.isFinite)) return fail(`Cell ${where}: enter two numbers, the row player's payoff then the column player's, such as "3, 2".`); A[i].push(parts[0]); B[i].push(parts[1]); }
+      }
+    }
+    if (A.flat().some((x) => Math.abs(x) > 1e9) || B.flat().some((x) => Math.abs(x) > 1e9)) return fail('Payoffs must be smaller than a billion.');
+    const R = raw.rows.map((s, i) => s.trim() || `R${i + 1}`), C = raw.cols.map((s, j) => s.trim() || `C${j + 1}`);
+    const eqs = supportEnumeration(A, B), npure = eqs.filter((e) => e.pure).length;
+    const degen = looksDegenerate(A, B);
+    q('.ne-out').hidden = false;
+    q('.ne-big').textContent = eqs.length === 1 ? (npure ? 'One equilibrium, in pure strategies' : 'One equilibrium, in mixed strategies') : `${eqs.length} equilibria: ${npure} pure, ${eqs.length - npure} mixed`;
+    // Equilibria table.
+    const head = ['#', 'Row player plays', 'Column player plays', 'Row payoff', 'Column payoff'];
+    const rows = eqs.map((e, k) => [String(k + 1), mixText(e.x, R), mixText(e.y, C), f(e.u), f(e.v)]);
+    const t = q<HTMLTableElement>('.ne-eq'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i >= 3) th.className = 'r'; hr.append(th); });
+    const tb = t.createTBody(); rows.forEach((r) => { const tr = tb.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i >= 3) td.className = 'r'; }); });
+    q('.ne-degen').hidden = !degen;
+    q('.ne-degen').textContent = 'Some strategy has two or more equally good replies, so the game is "degenerate". The table lists the extreme equilibria; any mix of two listed equilibria that share their supports can also be an equilibrium (a whole line or area of them).';
+    // Best-response table.
+    const { rowBR, colBR } = bestResponses(A, B), el = eliminate(A, B, q<HTMLInputElement>('.ne-weak').checked);
+    const bt = q<HTMLTableElement>('.ne-br'); bt.replaceChildren();
+    const bh = bt.createTHead().insertRow(); bh.append(document.createElement('th')); C.forEach((c) => { const th = document.createElement('th'); th.textContent = c; bh.append(th); });
+    const bb = bt.createTBody();
+    const brRows: string[][] = [];
+    A.forEach((row, i) => {
+      const tr = bb.insertRow(), th = document.createElement('th'); th.textContent = R[i]; tr.append(th);
+      const out: string[] = [R[i]];
+      row.forEach((a, j) => {
+        const td = tr.insertCell(), rb = rowBR[j].includes(i), cb = colBR[i].includes(j);
+        const s1 = document.createElement(rb ? 'b' : 'span'), s2 = document.createElement(cb ? 'b' : 'span');
+        s1.textContent = f(a); s2.textContent = f(B[i][j]);
+        td.append(s1, ', ', s2);
+        if (rb && cb) td.className = 'ne-nash';
+        if (!el.rows.includes(i) || !el.cols.includes(j)) td.classList.add('ne-gone');
+        out.push(`${f(a)}${rb ? '*' : ''}, ${f(B[i][j])}${cb ? '*' : ''}${rb && cb ? ' (Nash)' : ''}`);
+      });
+      brRows.push(out);
+    });
+    // Elimination steps.
+    const ul = q('.ne-elim'); ul.replaceChildren();
+    const li = (s: string) => { const e = document.createElement('li'); e.textContent = s; ul.append(e); };
+    const kind = q<HTMLInputElement>('.ne-weak').checked ? 'dominated' : 'strictly dominated';
+    if (!el.steps.length) li(`No strategy is ${kind} by another, so none can be removed.`);
+    for (const s of el.steps) li(s.player === 'row' ? `Row player: ${R[s.removed]} is ${kind} by ${R[s.by]}, remove it.` : `Column player: ${C[s.removed]} is ${kind} by ${C[s.by]}, remove it.`);
+    if (el.steps.length) li(el.rows.length === 1 && el.cols.length === 1 ? `Only ${R[el.rows[0]]} / ${C[el.cols[0]]} is left: the game is solved by dominance.` : `Left: ${el.rows.map((i) => R[i]).join(', ')} for the row player and ${el.cols.map((j) => C[j]).join(', ')} for the column player. Removed strategies are struck through above.`);
+    // Zero-sum.
+    const constSum = isConstantSum(A, B);
+    q('.ne-zsbox').hidden = !constSum;
+    let zsFacts: [string, string][] = [];
+    if (constSum) {
+      const z = zeroSum(A);
+      zsFacts = [['Value of the game (to the row player)', f(z.value)], ['Row player\'s safest mix (maximin)', mixText(z.x, R)], ['Column player\'s safest mix (minimax)', mixText(z.y, C)]];
+      const dl = q('.ne-zsf'); dl.replaceChildren(...zsFacts.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+    }
+    csvRows = [head, ...rows];
+    sections = [
+      { title: q('.ne-big').textContent!, text: ['Equilibria found by support enumeration over supports of every size (vertex enumeration).', ...(degen ? [q('.ne-degen').textContent!] : [])], table: { head, rows, align: ['l', 'l', 'l', 'r', 'r'] } },
+      { title: 'Best responses (* = best reply)', table: { head: ['', ...C], rows: brRows, align: ['l', ...C.map(() => 'l' as const)] } },
+      { title: 'Dominated strategies', text: [...ul.children].map((e) => e.textContent!) },
+      ...(constSum ? [{ title: 'Zero-sum solution', facts: zsFacts }] : []),
+    ];
+  }
+
+  let timer = 0;
+  function later() { clearTimeout(timer); timer = window.setTimeout(calc, 200); }
+  q('.ne-pre').addEventListener('change', () => setPreset(q<HTMLSelectElement>('.ne-pre').value));
+  const resize = () => { const r = readRaw(); q<HTMLTableElement>('.ne-grid').replaceChildren(); build(Number(q<HTMLSelectElement>('.ne-m').value), Number(q<HTMLSelectElement>('.ne-n').value), r ? { rows: r.rows, cols: r.cols, cells: r.cells } : undefined); calc(); };
+  q('.ne-m').addEventListener('change', resize); q('.ne-n').addEventListener('change', resize);
+  q('.ne-zs').addEventListener('change', () => {
+    const zs = q<HTMLInputElement>('.ne-zs').checked;
+    root.querySelectorAll<HTMLInputElement>('.ne-cell').forEach((i) => { const p = i.value.split(/\s*[,;\s]\s*/).filter(Boolean); i.value = zs ? (p[0] ?? '0') : `${p[0] ?? '0'}, ${p[0] ? String(-num(p[0])).replace(/^-0$/, '0') : '0'}`; });
+    calc();
+  });
+  q('.ne-weak').addEventListener('change', calc);
+  q('.ne-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'nash-equilibria.csv', 'text/csv'); });
+  setPreset(q<HTMLSelectElement>('.ne-pre').value);
+  wireDownloads(q('.dl'), () => ({ title: 'Nash equilibria', subtitle: q('.ne-big').textContent ?? '', file: 'nash-equilibria', sections }));
+</script>
