@@ -162,6 +162,7 @@ import * as SR from '../src/lib/roster.ts';
 import * as IV from '../src/lib/sci/intervals.ts';
 import * as KM from '../src/lib/sci/kmer.ts';
 import * as RX from '../src/lib/rosterExport.ts';
+import * as NW from '../src/lib/sci/newick.ts';
 import { unzipSync, strFromU8 } from 'fflate';
 
 let pass = 0, fail = 0;
@@ -3363,6 +3364,46 @@ ORIGIN
   check('kmer: k limits', (() => { try { new KM.KmerCounter({ k: 26, canonical: true }); return false; } catch { return true; } })() && run('ACGTACGTACGTACGTACGTACGTACGTACGT', 25, true).total === 8);
   check('kmer: no clear peak, no estimate', KM.genomeEstimate(KM.spectrum(run('>a\n' + ex.genome + '\n', 21, true).counts, 200)) === null);
   check('kmer: distinct limit', (() => { const c = new KM.KmerCounter({ k: 8, canonical: false, maxDistinct: 10 }); c.push(ex.genome.slice(0, 500)); c.end(); return c.full && c.counts.size === 10; })());
+}
+
+// ---- #177 Newick tree viewer: distances and midpoint depths checked against Biopython Bio.Phylo ----
+{
+  const t = NW.parseNewick(NW.EXAMPLE), st = NW.stats(t), L = NW.leaves(t.root), by = (n) => L.find((x) => x.name === n);
+  check('newick: example has 14 tips, 13 branch points, total 2.35, 12 support values', st.tips === 14 && st.internal === 13 && Math.abs(st.total - 2.35) < 1e-9 && st.support === 12 && st.binary);
+  check('newick: _ becomes a space', L[0].name === 'Taxon A');
+  check('newick: distance A to B = 0.18, C to N = 0.80 (Bio.Phylo)', Math.abs(NW.distance(by('Taxon A'), by('Taxon B')) - 0.18) < 1e-9 && Math.abs(NW.distance(by('Taxon C'), by('Taxon N')) - 0.8) < 1e-9);
+  const m = NW.midpointRoot(t), d = NW.depths(m), ML = NW.leaves(m.root), dm = (n) => d.get(ML.find((x) => x.name === n));
+  // Bio.Phylo root_at_midpoint on the example: N 0.40, C 0.40, I 0.24, G 0.38
+  check('newick: midpoint root depths match Bio.Phylo', Math.abs(dm('Taxon N') - 0.4) < 1e-9 && Math.abs(dm('Taxon C') - 0.4) < 1e-9 && Math.abs(dm('Taxon I') - 0.24) < 1e-9 && Math.abs(dm('Taxon G') - 0.38) < 1e-9);
+  let same = true; for (const a of L) for (const b of L) { const x = ML.find((n) => n.name === a.name), y = ML.find((n) => n.name === b.name); if (Math.abs(NW.distance(a, b) - NW.distance(x, y)) > 1e-9) same = false; }
+  check('newick: rerooting keeps every tip-to-tip distance', same && Math.abs(NW.stats(m).total - 2.35) < 1e-9 && m.root.children.length === 2);
+  check('newick: Newick written back reads the same', NW.toNewick(NW.parseNewick(NW.toNewick(t))) === NW.toNewick(t) && NW.toNewick(t).startsWith("(((('Taxon A':0.08,'Taxon B':0.1)98:0.05"));
+  // Rerooting on a leaf branch: support values move with their branches.
+  const s2 = NW.parseNewick('((A:1,B:1)80:1,(C:1,D:1)60:1);'), C = NW.leaves(s2.root).find((n) => n.name === 'C');
+  const r2 = NW.reroot(s2, C, 0.25);
+  check('newick: reroot on C, 0.25 along its branch (a tip branch has no support; the old root joins its single branch)', NW.toNewick(r2) === '(C:0.25,((A:1,B:1)80:2,D:1):0.75);');
+  const s3 = NW.parseNewick('(((A:1,B:1)90:1,C:1)70:1,D:1,E:1);'), ab = s3.nodes[2];
+  const r3 = NW.reroot(s3, ab, 0.5);
+  check('newick: support follows reversed branches when rerooting', NW.toNewick(r3) === '((A:1,B:1)90:0.5,((D:1,E:1)70:1,C:1)90:0.5);');
+  check('newick: ladderize puts smaller groups first', NW.toNewick(NW.ladderize(NW.parseNewick('((A,(B,C)),D);'))) === '(D,(A,(B,C)));');
+  check('newick: quoted names, comments, spaces and scientific lengths', (() => { const q = NW.parseNewick("[header] ( 'it''s : here':1e-2 , B_c [x] :2.5E0 ) root ;"); return q.root.children[0].name === "it's : here" && q.root.children[0].length === 0.01 && q.root.children[1].name === 'B c' && q.root.children[1].length === 2.5 && q.root.name === 'root'; })());
+  const bad = (s) => { try { NW.parseNewick(s); return false; } catch (e) { return /character/.test(e.message); } };
+  check('newick: clear errors for broken trees', bad('((A,B);') && bad('(A:x,B);') && bad("('A,B);") && bad('(A,B));'));
+  check('newick: splitTrees keeps ; inside quotes and comments', NW.splitTrees("(A,B);\n('x;y',C)[c;];\n(D,E)").length === 3);
+  const nex = "#NEXUS\nBEGIN TREES;\n [c;] TRANSLATE 1 Homo_sapiens, 2 'Pan troglodytes', 3 Gorilla;\n TREE t1 = [&R] ((1:0.1,2:0.12)95:0.05,3:0.2);\n tree 'two' = (1,(2,3));\nEND;";
+  const rn = NW.readTrees(nex), tn = NW.applyTranslate(NW.parseNewick(rn.trees[0].newick), rn.translate);
+  check('newick: NEXUS trees and TRANSLATE table', rn.nexus && rn.trees.length === 2 && rn.trees[1].name === 'two' && NW.leaves(tn.root).map((n) => n.name).join('|') === 'Homo sapiens|Pan troglodytes|Gorilla');
+  check('newick: a NEXUS file without trees says so', (() => { try { NW.readTrees('#NEXUS\nbegin taxa; end;'); return false; } catch (e) { return /TREES/.test(e.message); } })());
+  const o = { layout: 'rect', lengths: true, align: false, support: true, branchLabels: false, font: 12, line: 1.5, italic: false, ink: '#000', muted: '#666', width: 600 };
+  const dr = NW.drawTree(t, o), texts = dr.shapes.filter((x) => x.t === 'text');
+  check('newick: drawing has 14 tip names, 12 support labels and a scale bar', texts.filter((x) => x.size === 12).length === 14 && texts.filter((x) => x.size === 9).length === 12 && dr.shapes.some((x) => x.t === 'text' && x.s === '0.1'));
+  check('newick: drawing stays inside its box', dr.shapes.every((x) => x.t !== 'line' || (Math.max(x.x1, x.x2) <= dr.w && Math.max(x.y1, x.y2) <= dr.h)) && dr.hits.length === 27);
+  const dc = NW.drawTree(t, { ...o, layout: 'circle' }), arcs = dc.shapes.filter((x) => x.t === 'arc');
+  check('newick: circular drawing has an arc per branch point', arcs.length === 13 && dc.h >= dc.w);
+  const svg = NW.toSvg(dr);
+  check('newick: SVG has every tip and escapes names', svg.startsWith('<svg') && (svg.match(/<text/g) || []).length === texts.length && NW.toSvg({ w: 10, h: 10, shapes: [{ t: 'text', x: 1, y: 1, s: 'a<b&c', size: 5, color: '#000', anchor: 'start' }], hits: [] }).includes('a&lt;b&amp;c'));
+  const clad = NW.drawTree(NW.parseNewick('((A,B),(C,(D,E)));'), { ...o, lengths: true });
+  check('newick: a tree without lengths is drawn as a cladogram (no scale bar)', !NW.stats(NW.parseNewick('((A,B),C);')).lengths && !clad.shapes.some((x) => x.t === 'line' && x.y1 === x.y2 && x.y1 > clad.h - 30 && x.color === '#000' && x.w === 1.5 && x.x1 === 12));
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

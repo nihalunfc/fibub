@@ -1,0 +1,280 @@
+---
+// Phylogenetic tree viewer for Newick and NEXUS files, drawn in the browser. Nothing is uploaded.
+// The example is a made-up 14-taxon tree with made-up branch lengths and support values.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax nwk">
+  <div class="ax-card">
+    <h2>Tree</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small nw-open">Open a tree file</button>
+      <input type="file" class="nw-file" accept=".nwk,.newick,.tre,.tree,.trees,.nex,.nexus,.nxs,.txt,.ph,.phb,text/plain" hidden />
+      <button type="button" class="btn secondary small nw-ex">Use the example</button>
+    </div>
+    <label style="margin-top:10px">Or paste a tree in Newick or NEXUS <textarea class="nw-in" rows="4" spellcheck="false" placeholder="((A:0.1,B:0.2)90:0.05,C:0.3);"></textarea></label>
+    <p class="ax-help">Newick (.nwk, .tre, .tree) or NEXUS (.nex) with a TREES block and TRANSLATE table, up to 50 MB. Branch lengths, support values, quoted names and [comments] are read. The file stays on your device.</p>
+    <label class="nw-which-l" hidden>Tree in the file <select class="nw-which"></select></label>
+    <p class="ax-err nw-err" hidden></p>
+  </div>
+
+  <div class="ax-card nw-out" hidden>
+    <h2>View</h2>
+    <div class="ax-seg nw-lay" role="group" aria-label="Layout">
+      <button type="button" data-v="rect" aria-pressed="true">Rectangular</button>
+      <button type="button" data-v="circle" aria-pressed="false">Circular</button>
+    </div>
+    <div class="nw-checks">
+      <label class="ax-check"><input type="checkbox" class="nw-len" checked /> Use branch lengths</label>
+      <label class="ax-check"><input type="checkbox" class="nw-align" /> Line up tip names</label>
+      <label class="ax-check"><input type="checkbox" class="nw-sup" checked /> Show support values</label>
+      <label class="ax-check"><input type="checkbox" class="nw-bl" /> Show branch lengths</label>
+      <label class="ax-check"><input type="checkbox" class="nw-ital" /> Italic names</label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Text size <input class="nw-fs" type="number" min="7" max="24" step="1" value="12" inputmode="numeric" /></label>
+      <label>Line width <input class="nw-lw" type="number" min="0.5" max="5" step="0.5" value="1.5" inputmode="decimal" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn secondary small nw-mid">Root at the midpoint</button>
+      <button type="button" class="btn secondary small nw-lad">Ladderize</button>
+      <button type="button" class="btn secondary small nw-reset">Undo all changes</button>
+    </div>
+    <p class="ax-big nw-big"></p>
+    <dl class="ax-facts nw-facts"></dl>
+    <p class="ax-err nw-warn" hidden></p>
+    <canvas class="ax-fig nw-fig"></canvas>
+    <p class="ax-help">Tap a branch point or a tip to pick it, or choose a tip below.</p>
+    <div class="nw-sel">
+      <label>Picked <select class="nw-node"></select></label>
+      <p class="ax-help nw-selinfo" aria-live="polite"></p>
+      <div class="ax-row">
+        <button type="button" class="btn secondary small nw-root">Root here</button>
+        <button type="button" class="btn secondary small nw-swap">Swap its branches</button>
+        <label class="nw-col-l">Colour <input type="color" class="nw-col" value="#1d4ed8" /></label>
+        <button type="button" class="btn secondary small nw-paint">Colour this group</button>
+        <button type="button" class="btn secondary small nw-clear">Clear colours</button>
+      </div>
+    </div>
+    <h3>Tips</h3>
+    <div class="ax-scroll"><table class="nw-tips"></table></div>
+    <p class="ax-help nw-tipnote"></p>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn secondary small nw-svg">Download SVG</button>
+      <button type="button" class="btn secondary small nw-nwk">Download Newick</button>
+      <button type="button" class="btn secondary small nw-dist">Distances between tips (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .nwk h3 { margin: 18px 0 8px; font-size: 15px; }
+  .nwk .nw-checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 4px 16px; margin-top: 10px; }
+  .nwk .nw-fig { cursor: pointer; touch-action: manipulation; }
+  .nwk .nw-sel { margin-top: 6px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
+  .nwk .nw-sel select { max-width: 100%; }
+  .nwk .nw-col-l { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
+  .nwk .nw-col { width: 40px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: none; }
+</style>
+
+<script>
+  import { readTrees, applyTranslate, parseNewick, toNewick, leaves, descendants, depths, distance, stats, ladderize, swap, reroot, midpointRoot, copyTree, drawTree, toSvg, EXAMPLE, type Tree, type Node, type Drawing, type Shape, type DrawOpts } from '../../lib/sci/newick';
+  import { paint, wireDownloads, save, fileSafe, LIGHT, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.nwk')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const FONT = 'Arial, Helvetica, sans-serif';
+  const MAX_BYTES = 50e6, MAX_DRAW = 5000, MAX_DIST = 1000;
+  const fmt = (v: number) => (Number.isFinite(v) ? String(+v.toPrecision(4)) : '');
+  const fact = (k: string, v: string) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; };
+  const mctx = document.createElement('canvas').getContext('2d')!;
+  mctx.font = `100px ${FONT}`;
+  const measure = (s: string) => mctx.measureText(s).width / 100;
+
+  let trees: { name: string; newick: string }[] = [], translate: Map<string, string> | null = null, which = 0;
+  let original: Tree | null = null, cur: Tree | null = null, sel: Node | null = null, fig: Figure | null = null, drawing: Drawing | null = null, sections: Section[] = [], name = 'tree';
+  let layout: 'rect' | 'circle' = 'rect';
+
+  const err = (m: string) => { q('.nw-err').textContent = m; q('.nw-err').hidden = !m; };
+
+  function load(text: string, fileName: string) {
+    err('');
+    try {
+      const r = readTrees(text);
+      trees = r.trees; translate = r.translate; name = fileName;
+      const w = q<HTMLSelectElement>('.nw-which');
+      w.replaceChildren(...trees.map((t, k) => new Option(`${k + 1}. ${t.name}`, String(k))));
+      q('.nw-which-l').hidden = trees.length < 2;
+      pick(0);
+    } catch (e) { err((e as Error).message); q('.nw-out').hidden = true; }
+  }
+  function pick(k: number) {
+    which = k;
+    try {
+      original = applyTranslate(parseNewick(trees[k].newick), translate);
+      cur = copyTree(original); sel = null;
+      q('.nw-out').hidden = false; err('');
+      fillNodes(); render();
+    } catch (e) { err(`${trees.length > 1 ? `Tree ${k + 1}: ` : ''}${(e as Error).message}`); q('.nw-out').hidden = true; }
+  }
+
+  const opts = (ink: string, muted: string): DrawOpts => ({
+    layout, lengths: q<HTMLInputElement>('.nw-len').checked, align: q<HTMLInputElement>('.nw-align').checked,
+    support: q<HTMLInputElement>('.nw-sup').checked, branchLabels: q<HTMLInputElement>('.nw-bl').checked, italic: q<HTMLInputElement>('.nw-ital').checked,
+    font: Math.min(24, Math.max(7, Number(q<HTMLInputElement>('.nw-fs').value) || 12)), line: Math.min(5, Math.max(0.5, Number(q<HTMLInputElement>('.nw-lw').value) || 1.5)),
+    ink, muted, width: Math.round(Math.min(960, Math.max(320, q('.nw-out').clientWidth - 36))),
+  });
+
+  function drawShapes(ctx: CanvasRenderingContext2D, shapes: Shape[], pal: Palette, ink: string, muted: string) {
+    // Red light: every colour becomes the palette's own red.
+    const col = (c: string) => (pal.red ? (c === muted ? pal.muted : pal.ink) : c);
+    ctx.lineCap = 'square';
+    for (const s of shapes) {
+      if (s.t === 'line') { ctx.strokeStyle = col(s.color); ctx.lineWidth = s.w; ctx.setLineDash(s.dash ? [2, 3] : []); ctx.beginPath(); ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); ctx.stroke(); }
+      else if (s.t === 'arc') { ctx.strokeStyle = col(s.color); ctx.lineWidth = s.w; ctx.setLineDash([]); ctx.beginPath(); ctx.arc(s.cx, s.cy, s.r, s.a0, s.a1); ctx.stroke(); }
+      else {
+        ctx.save(); ctx.fillStyle = col(s.color); ctx.font = `${s.italic ? 'italic ' : ''}${s.size}px ${FONT}`;
+        ctx.textAlign = s.anchor === 'middle' ? 'center' : s.anchor === 'end' ? 'right' : 'left'; ctx.textBaseline = 'middle';
+        ctx.translate(s.x, s.y); if (s.rot) ctx.rotate((s.rot * Math.PI) / 180); ctx.fillText(s.s, 0, 0); ctx.restore();
+      }
+    }
+    void ink;
+  }
+
+  function fillNodes() {
+    const box = q<HTMLSelectElement>('.nw-node');
+    const L = leaves(cur!.root);
+    const opt = [new Option('Nothing picked', '')];
+    if (L.length <= 3000) opt.push(...L.map((n) => new Option(n.name || '(no name)', String(n.id))));
+    box.replaceChildren(...opt);
+    box.value = sel ? String(sel.id) : '';
+  }
+
+  function render() {
+    if (!cur) return;
+    const t = cur, st = stats(t), L = leaves(t.root), d = depths(t);
+    q('.nw-big').textContent = `${st.tips.toLocaleString('en')} tips, ${st.internal.toLocaleString('en')} branch points`;
+    const facts = q('.nw-facts'); facts.replaceChildren();
+    const rows: [string, string][] = [
+      ['Branch lengths', st.lengths ? `yes, total ${fmt(st.total)}` : 'none (drawn as a cladogram)'],
+      ...(st.lengths ? [['Root to tip', st.minDepth === st.maxDepth ? fmt(st.maxDepth) : `${fmt(st.minDepth)} to ${fmt(st.maxDepth)}`] as [string, string]] : []),
+      ['Splits', st.binary ? 'all in two' : 'some in 3 or more'],
+      ['Root', `${st.rootChildren} branch${st.rootChildren === 1 ? '' : 'es'}`],
+      ['Support values', st.support ? `${st.support} branch point${st.support === 1 ? '' : 's'}` : 'none'],
+    ];
+    if (trees.length > 1) rows.unshift(['Tree', `${which + 1} of ${trees.length}: ${trees[which].name}`]);
+    for (const [k, v] of rows) facts.append(fact(k, v));
+    const warn: string[] = [];
+    if (st.duplicates.length) warn.push(`Some tip names are used more than once: ${st.duplicates.slice(0, 5).join(', ')}${st.duplicates.length > 5 ? ' …' : ''}.`);
+    if (st.unnamed) warn.push(`${st.unnamed} tip${st.unnamed === 1 ? ' has' : 's have'} no name.`);
+    if (L.length > MAX_DRAW) warn.push(`The tree has more than ${MAX_DRAW.toLocaleString('en')} tips, too many to draw here; the counts and downloads still work.`);
+    q('.nw-warn').textContent = warn.join(' '); q('.nw-warn').hidden = !warn.length;
+
+    const canvas = q<HTMLCanvasElement>('.nw-fig');
+    if (L.length <= MAX_DRAW) {
+      const o = opts(LIGHT.ink, LIGHT.muted);
+      drawing = drawTree(t, o, measure);
+      const dd = drawing;
+      fig = {
+        w: dd.w, h: dd.h, alt: `Tree of ${st.tips} tips, ${layout === 'rect' ? 'rectangular' : 'circular'} layout`,
+        draw: (ctx, _w, _h, pal) => {
+          const oo = opts(pal.ink, pal.muted); oo.width = dd.w;
+          const dr = drawTree(t, oo, measure);
+          drawShapes(ctx, dr.shapes, pal, pal.ink, pal.muted);
+          const hit = sel && dr.hits.find((h) => h.node === sel);
+          if (hit) { ctx.setLineDash([]); ctx.strokeStyle = pal.accent; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(hit.x, hit.y, 6, 0, 2 * Math.PI); ctx.stroke(); }
+        },
+      };
+      canvas.hidden = false; paint(canvas, fig);
+    } else { canvas.hidden = true; fig = null; drawing = null; }
+
+    // Tips table
+    const lengths = st.lengths, show = L.slice(0, 500);
+    const tbl = q('.nw-tips'); tbl.replaceChildren();
+    const head = tbl.insertRow(); for (const h of ['#', 'Tip', ...(lengths ? ['Root to tip'] : [])]) { const th = document.createElement('th'); th.textContent = h; head.append(th); }
+    show.forEach((n, k) => { const r = tbl.insertRow(); r.insertCell().textContent = String(k + 1); r.insertCell().textContent = n.name; if (lengths) { const c = r.insertCell(); c.textContent = fmt(d.get(n)!); c.className = 'r'; } });
+    q('.nw-tipnote').textContent = L.length > show.length ? `The first ${show.length} of ${L.length.toLocaleString('en')} tips, in drawing order.` : 'In drawing order, top to bottom (clockwise from the top in the circular layout).';
+    q<HTMLButtonElement>('.nw-dist').disabled = L.length > MAX_DIST;
+    q<HTMLButtonElement>('.nw-dist').title = L.length > MAX_DIST ? `Up to ${MAX_DIST} tips` : '';
+    selInfo();
+
+    sections = [
+      { title: 'Tree', facts: [...rows, ['Tips', st.tips.toLocaleString('en')], ['Branch points', st.internal.toLocaleString('en')]], note: warn.join(' ') || undefined },
+      ...(fig ? [{ title: 'Drawing', figure: fig }] : []),
+      { title: 'Tips', table: { head: ['#', 'Tip', ...(lengths ? ['Root to tip'] : [])], rows: L.slice(0, 2000).map((n, k) => [String(k + 1), n.name, ...(lengths ? [fmt(d.get(n)!)] : [])]), align: ['r', 'l', 'r'] } },
+      { title: 'Newick', text: [toNewick(t).slice(0, 20000)] },
+    ];
+  }
+
+  function selInfo() {
+    const n = sel, info = q('.nw-selinfo');
+    q<HTMLButtonElement>('.nw-root').disabled = !n || !n.parent;
+    q<HTMLButtonElement>('.nw-swap').disabled = !n || n.children.length < 2;
+    q<HTMLButtonElement>('.nw-paint').disabled = !n;
+    if (!n) { info.textContent = 'Pick a tip or branch point to root the tree there, swap its branches or colour its group.'; return; }
+    const tips = leaves(n);
+    info.textContent = n.children.length
+      ? `${n === cur!.root ? 'The root' : 'A branch point'} with ${tips.length} tips below it${n.name ? ` (label ${n.name})` : ''}${n.length !== null && n.parent ? `, branch length ${fmt(n.length)}` : ''}.`
+      : `Tip "${n.name}"${n.length !== null ? `, branch length ${fmt(n.length)}` : ''}.`;
+    q<HTMLSelectElement>('.nw-node').value = n.children.length ? '' : String(n.id);
+  }
+
+  const change = (f: () => void) => { if (!cur) return; f(); fillNodes(); render(); };
+  q('.nw-mid').addEventListener('click', () => change(() => { cur = midpointRoot(cur!); sel = null; }));
+  q('.nw-lad').addEventListener('click', () => change(() => { ladderize(cur!, 'up'); }));
+  q('.nw-reset').addEventListener('click', () => change(() => { cur = copyTree(original!); sel = null; }));
+  q('.nw-root').addEventListener('click', () => change(() => { if (sel?.parent) { cur = reroot(cur!, sel); sel = null; } }));
+  q('.nw-swap').addEventListener('click', () => change(() => { if (sel) swap(sel); }));
+  q('.nw-paint').addEventListener('click', () => change(() => { if (sel) { for (const m of descendants(sel)) delete m.color; sel.color = q<HTMLInputElement>('.nw-col').value; } }));
+  q('.nw-clear').addEventListener('click', () => change(() => { for (const m of cur!.nodes) delete m.color; }));
+  q('.nw-node').addEventListener('change', () => { const v = q<HTMLSelectElement>('.nw-node').value; sel = v ? cur!.nodes.find((n) => String(n.id) === v) ?? null : null; render(); });
+  q('.nw-fig').addEventListener('click', (e) => {
+    if (!drawing || !fig) return;
+    const c = e.currentTarget as HTMLCanvasElement, r = c.getBoundingClientRect();
+    const x = ((e.clientX - r.left) / r.width) * fig.w, y = ((e.clientY - r.top) / r.height) * fig.h;
+    let best: Node | null = null, bd = (16 * fig.w) / r.width;
+    for (const h of drawing.hits) { const dd = Math.hypot(h.x - x, h.y - y); if (dd < bd) { bd = dd; best = h.node; } }
+    sel = best; render();
+  });
+  for (const b of root.querySelectorAll<HTMLButtonElement>('.nw-lay button')) b.addEventListener('click', () => {
+    layout = b.dataset.v as 'rect' | 'circle';
+    root.querySelectorAll('.nw-lay button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    render();
+  });
+  for (const c of ['.nw-len', '.nw-align', '.nw-sup', '.nw-bl', '.nw-ital', '.nw-fs', '.nw-lw']) q(c).addEventListener('change', render);
+  q('.nw-which').addEventListener('change', () => pick(Number(q<HTMLSelectElement>('.nw-which').value)));
+
+  // Input
+  let typing = 0;
+  q('.nw-in').addEventListener('input', () => { clearTimeout(typing); typing = window.setTimeout(() => { const v = q<HTMLTextAreaElement>('.nw-in').value; if (v.trim()) load(v, 'tree'); }, 300); });
+  q('.nw-ex').addEventListener('click', () => { q<HTMLTextAreaElement>('.nw-in').value = EXAMPLE; load(EXAMPLE, 'example-tree'); });
+  q('.nw-open').addEventListener('click', () => q<HTMLInputElement>('.nw-file').click());
+  q('.nw-file').addEventListener('change', async () => {
+    const f = q<HTMLInputElement>('.nw-file').files?.[0]; if (!f) return;
+    if (f.size > MAX_BYTES) { err(`That file is ${(f.size / 1e6).toFixed(0)} MB; the limit is 50 MB.`); return; }
+    const text = await f.text();
+    q<HTMLTextAreaElement>('.nw-in').value = text.length > 200000 ? '' : text;
+    load(text, f.name.replace(/\.[^.]+$/, ''));
+    q<HTMLInputElement>('.nw-file').value = '';
+  });
+  addEventListener('resize', () => { if (cur && !q('.nw-out').hidden) render(); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.nw-fig'), fig); });
+
+  // Downloads
+  q('.nw-svg').addEventListener('click', () => {
+    if (!cur) return;
+    const dr = drawTree(cur, opts(LIGHT.ink, LIGHT.muted), measure);
+    save(new Blob([toSvg(dr, '#ffffff', FONT)], { type: 'image/svg+xml' }), `${fileSafe(name)}.svg`, 'image/svg+xml');
+  });
+  q('.nw-nwk').addEventListener('click', () => { if (cur) save(new Blob([toNewick(cur) + '\n'], { type: 'text/plain' }), `${fileSafe(name)}.nwk`, 'text/plain'); });
+  q('.nw-dist').addEventListener('click', () => {
+    if (!cur) return;
+    const L = leaves(cur.root); if (L.length > MAX_DIST) return;
+    const csvq = (s: string) => (/[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
+    const lines = [['', ...L.map((n) => csvq(n.name))].join(',')];
+    for (const a of L) lines.push([csvq(a.name), ...L.map((b) => fmt(a === b ? 0 : distance(a, b)))].join(','));
+    save(new Blob([lines.join('\n') + '\n'], { type: 'text/csv' }), `${fileSafe(name)}-distances.csv`, 'text/csv');
+  });
+  wireDownloads(q('.dl'), () => ({ title: 'Phylogenetic tree', subtitle: q('.nw-big').textContent ?? '', file: `${fileSafe(name)}-tree`, sections }));
+</script>
