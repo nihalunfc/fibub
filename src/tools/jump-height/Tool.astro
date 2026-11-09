@@ -1,0 +1,205 @@
+---
+// Jump height from flight time, typed or marked frame by frame on a video opened on this device.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax jmp">
+  <p class="jmp-med">For study and teaching, not medical advice. Check with a qualified professional.</p>
+
+  <div class="ax-card">
+    <h2>Mark a video (optional)</h2>
+    <p class="ax-help" style="margin-top:0">Film the jump side-on with the feet in view, in slow motion if your phone has it. The video is opened on this device only and never uploaded.</p>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small jmp-open">Open a video</button>
+      <input type="file" class="jmp-file" accept="video/*" hidden />
+      <span class="ax-help jmp-vname" style="margin:0"></span>
+    </div>
+    <p class="ax-err jmp-verr" hidden></p>
+    <div class="jmp-vbox" hidden>
+      <video class="jmp-video" playsinline muted preload="auto"></video>
+      <div class="ax-row jmp-steps">
+        <button type="button" class="btn secondary small jmp-back" aria-label="Back one frame">− 1 frame</button>
+        <button type="button" class="btn secondary small jmp-fwd" aria-label="Forward one frame">+ 1 frame</button>
+        <span class="jmp-pos" aria-live="polite"></span>
+      </div>
+      <input type="range" class="jmp-scrub" min="0" max="1000" value="0" aria-label="Position in the video" />
+      <div class="ax-row" style="margin-top:8px">
+        <button type="button" class="btn secondary small jmp-mc">Contact starts</button>
+        <button type="button" class="btn secondary small jmp-mt">Take-off</button>
+        <button type="button" class="btn secondary small jmp-ml">Landing</button>
+      </div>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Frame rate (frames/s) <select class="jmp-fps"><option>24</option><option>25</option><option selected>30</option><option>50</option><option>60</option><option>120</option><option>240</option><option value="custom">Other…</option></select></label>
+      <label class="jmp-fpsw" hidden>Other frame rate <input class="jmp-fpsc" inputmode="decimal" value="100" /></label>
+      <label>Contact starts (frame) <input class="jmp-fc" inputmode="numeric" placeholder="optional" /></label>
+      <label>Take-off (frame) <input class="jmp-ft" inputmode="numeric" value="100" /></label>
+      <label>Landing (frame) <input class="jmp-fl" inputmode="numeric" value="115" /></label>
+    </div>
+    <p class="ax-help">Take-off is the first frame with both feet off the ground; landing the first frame a foot touches down. For a drop jump, "contact starts" is the first frame on the ground after the drop. No video? Count frames in any video player and type them here.</p>
+    <p class="ax-help jmp-fres"></p>
+    <p class="ax-err jmp-ferr" hidden></p>
+    <div class="ax-row" style="margin-top:6px"><button type="button" class="btn small jmp-add">Add to the list</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Jumps</h2>
+    <div class="ax-grid">
+      <label>Times in <select class="jmp-unit"><option value="ms" selected>milliseconds (ms)</option><option value="s">seconds (s)</option></select></label>
+      <label>Gravity g (m/s²) <input class="jmp-g" inputmode="decimal" value="9.81" /></label>
+    </div>
+    <label style="margin-top:10px">One jump per line: flight time, then contact time (optional, for the reactive strength index), then a name (optional).
+      <textarea class="jmp-in" rows="7" spellcheck="false">flight, contact, name
+500, , CMJ 1
+520, , CMJ 2
+480, , CMJ 3
+440, 210, Drop jump 1
+430, 190, Drop jump 2</textarea></label>
+    <p class="ax-err jmp-err" hidden></p>
+  </div>
+
+  <div class="ax-card jmp-out">
+    <h2>Results</h2>
+    <p class="ax-big jmp-big"></p>
+    <dl class="ax-facts jmp-facts"></dl>
+    <p class="ax-help jmp-units">Flight and contact in ms, heights in cm, RSI in m/s.</p>
+    <div class="ax-scroll" style="margin-top:6px"><table class="jmp-tab"></table></div>
+    <canvas class="ax-fig jmp-fig" style="margin-top:12px"></canvas>
+    <p class="ax-help">Height = g × t² / 8 assumes the body is in the same position at take-off and landing. Landing with bent knees or tucked legs makes the flight longer and the height too high.</p>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small jmp-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .jmp .jmp-med { margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; }
+  .jmp .jmp-video { display: block; width: 100%; max-height: 60vh; background: #000; border-radius: 8px; margin-top: 10px; }
+  .jmp .jmp-steps { margin-top: 8px; }
+  .jmp .jmp-pos { font-variant-numeric: tabular-nums; font-size: 14px; }
+  .jmp .jmp-scrub { width: 100%; margin-top: 8px; }
+  .jmp .jmp-tab td { white-space: nowrap; }
+  .jmp .jmp-tab td, .jmp .jmp-tab th { padding: 7px 5px; }
+</style>
+
+<script>
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { parseJumps, meanSd, flightFromFrames, heightFromFlight, frameRange, type Jump } from '../../lib/sci/jump';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.jmp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  let fig: Figure | null = null, report: Section[] = [], rows: (string | number)[][] = [];
+  const cm = (m: number) => (m * 100).toFixed(1);
+
+  const fps = () => { const s = q<HTMLSelectElement>('.jmp-fps').value; return s === 'custom' ? num(inp('.jmp-fpsc').value) : Number(s); };
+  const g = () => num(inp('.jmp-g').value);
+
+  // ---- Frames typed or marked
+  function frames() {
+    const ferr = q('.jmp-ferr'), out = q('.jmp-fres');
+    q('.jmp-fpsw').hidden = q<HTMLSelectElement>('.jmp-fps').value !== 'custom';
+    try {
+      const r = fps(), gg = g();
+      if (!(r >= 1 && r <= 2000)) throw new Error('Type a frame rate between 1 and 2000 frames/s.');
+      if (!(gg > 0 && gg < 30)) throw new Error('Gravity must be a positive number in m/s² (9.81 on Earth).');
+      const ft = num(inp('.jmp-ft').value), fl = num(inp('.jmp-fl').value), fcS = inp('.jmp-fc').value.trim(), fc = fcS ? num(fcS) : NaN;
+      if (!Number.isInteger(ft) || !Number.isInteger(fl) || ft < 0) throw new Error('Type whole frame numbers for take-off and landing.');
+      if (!(fl > ft)) throw new Error('Landing must come after take-off.');
+      if (fcS && !(Number.isInteger(fc) && fc >= 0 && fc < ft)) throw new Error('Contact must start before take-off.');
+      const t = flightFromFrames(ft, fl, r), h = heightFromFlight(t, gg), [lo, hi] = frameRange(t, r, gg);
+      out.textContent = `Flight ${fl - ft} frames = ${Math.round(t * 1000)} ms, so the jump is ${cm(h)} cm (${cm(lo)} to ${cm(hi)} cm if a mark is one frame out)` + (fcS ? `. Contact ${ft - fc} frames = ${Math.round(((ft - fc) / r) * 1000)} ms.` : '.');
+      ferr.hidden = true;
+      return { t, tc: fcS ? (ft - fc) / r : null };
+    } catch (e) { ferr.textContent = (e as Error).message; ferr.hidden = false; out.textContent = ''; return null; }
+  }
+
+  // ---- The jump list
+  function calc() {
+    const err = q('.jmp-err'), unit = q<HTMLSelectElement>('.jmp-unit').value as 'ms' | 's';
+    try {
+      const gg = g(); if (!(gg > 0 && gg < 30)) throw new Error('Gravity must be a positive number in m/s² (9.81 on Earth).');
+      const r = fps();
+      const js = parseJumps(q<HTMLTextAreaElement>('.jmp-in').value, unit, gg, r >= 1 ? r : undefined);
+      err.hidden = true; q('.jmp-out').hidden = false;
+      show(js, r);
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.jmp-out').hidden = true; report = []; rows = []; }
+  }
+  function show(js: Jump[], r: number) {
+    const best = js.reduce((a, b) => (b.h > a.h ? b : a)), s = meanSd(js.map((j) => j.h));
+    const withR = js.filter((j) => j.rsi !== null);
+    q('.jmp-units').textContent = `Flight and contact in ms, heights in cm (± 1 frame: the height if a mark is one frame out at ${sig(r, 4)} frames/s), RSI in m/s.`;
+    q('.jmp-big').textContent = `Best jump ${cm(best.h)} cm (${best.label})`;
+    const facts: [string, string][] = [['Jumps', String(js.length)], ['Mean height', `${cm(s.mean)} cm`], ['SD', js.length > 1 ? `${cm(s.sd)} cm` : '–'], ['Best take-off speed', `${best.v.toFixed(2)} m/s`]];
+    if (withR.length) { const b = withR.reduce((a, c) => (c.rsi! > a.rsi! ? c : a)); facts.push(['Best RSI', `${b.rsi!.toFixed(2)} m/s (${b.label})`]); }
+    q('.jmp-facts').replaceChildren(...facts.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+    const head = ['Jump', 'Flight', 'Height', '± 1 frame', 'Contact', 'RSI'];
+    const body = js.map((j) => [j.label, String(Math.round(j.flight * 1000)), cm(j.h), j.lo !== null ? `${cm(j.lo)}–${cm(j.hi!)}` : '–', j.contact !== null ? String(Math.round(j.contact * 1000)) : '–', j.rsi !== null ? j.rsi.toFixed(2) : '–']);
+    const tab = q<HTMLTableElement>('.jmp-tab'); tab.replaceChildren();
+    { const tr = tab.insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; tr.append(th); }); }
+    for (const b of body) { const tr = tab.insertRow(); b.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); }
+    const xs = js.map((_, i) => i + 1);
+    fig = chartFigure({ w: 440, h: 300, xLabel: 'Jump number', yLabel: 'Height (cm)', legend: 'none', yMin: 0, xMin: 0.5, xMax: js.length + 0.5,
+      series: [{ name: 'Height', x: xs, y: js.map((j) => j.h * 100), mode: 'points', marker: 'circle', size: 6, yErr: js.map((j) => (j.lo !== null ? ((j.hi! - j.lo) / 2) * 100 : undefined)) }],
+      marks: [{ kind: 'hline', at: s.mean * 100, dash: [5, 4], label: 'mean' }] }, 'Jump heights, with the ± one frame range as error bars');
+    paint(q<HTMLCanvasElement>('.jmp-fig'), fig);
+    rows = [['jump', 'flight_s', 'contact_s', 'height_m', 'takeoff_velocity_m_s', 'height_minus_1_frame_m', 'height_plus_1_frame_m', 'rsi_m_s', 'flight_to_contact_ratio'],
+      ...js.map((j) => [j.label, +j.flight.toFixed(4), j.contact ?? '', +j.h.toFixed(4), +j.v.toFixed(4), j.lo !== null ? +j.lo.toFixed(4) : '', j.hi !== null ? +j.hi.toFixed(4) : '', j.rsi !== null ? +j.rsi.toFixed(4) : '', j.ratio !== null ? +j.ratio.toFixed(4) : ''])];
+    report = [{ title: 'Jump height from flight time', facts: [['Best jump', `${cm(best.h)} cm`], ...facts], text: [q('.jmp-units').textContent!], table: { head, rows: body, align: ['l', 'r', 'r', 'r', 'r', 'r'] }, figure: fig, note: `h = g t² / 8 with g = ${g()} m/s² (Bosco, Luhtanen and Komi, 1983). RSI = jump height / contact time.` }];
+  }
+  q('.jmp-add').addEventListener('click', () => {
+    const f = frames(); if (!f) return;
+    const unit = q<HTMLSelectElement>('.jmp-unit').value, k = unit === 'ms' ? 1000 : 1;
+    const ta = q<HTMLTextAreaElement>('.jmp-in'), n = ta.value.split('\n').filter((l) => /^\s*\d/.test(l)).length;
+    const v = (x: number) => (unit === 'ms' ? String(Math.round(x * k)) : x.toFixed(4));
+    ta.value = ta.value.replace(/\s*$/, '') + `\n${v(f.t)}, ${f.tc !== null ? v(f.tc) : ''}, Video jump ${n + 1}`;
+    calc();
+  });
+
+  // ---- Video: opened from this device as a blob URL, stepped one frame at a time.
+  const video = q<HTMLVideoElement>('.jmp-video');
+  let url = '', frameNow = 0;
+  const hasRvfc = 'requestVideoFrameCallback' in HTMLVideoElement.prototype;
+  const vfail = (msg: string) => { const e = q('.jmp-verr'); e.textContent = msg; e.hidden = false; q('.jmp-vbox').hidden = true; };
+  const showPos = (t: number) => {
+    const r = fps(); frameNow = Math.max(0, Math.round(t * r - 0.5 + 1e-6));
+    q('.jmp-pos').textContent = `Frame ${frameNow} · ${t.toFixed(3)} s`;
+    if (Number.isFinite(video.duration) && video.duration > 0) inp('.jmp-scrub').value = String(Math.round((t / video.duration) * 1000));
+  };
+  const watch = () => {
+    if (hasRvfc) (video as any).requestVideoFrameCallback((_n: number, m: { mediaTime: number }) => showPos(m.mediaTime));
+    else showPos(video.currentTime);
+  };
+  // Frame steps go to the middle of the frame. After dragging the slider, requestVideoFrameCallback (where the
+  // browser has it) gives the time of the frame actually shown, so the frame number is exact.
+  video.addEventListener('seeked', () => showPos(video.currentTime));
+  const seekFrame = (f: number) => { const r = fps(); if (!(r >= 1)) return; f = Math.max(0, f); video.currentTime = (f + 0.5) / r; showPos(video.currentTime); };
+  q('.jmp-open').addEventListener('click', () => q<HTMLInputElement>('.jmp-file').click());
+  q<HTMLInputElement>('.jmp-file').addEventListener('change', (e) => {
+    const f = (e.target as HTMLInputElement).files?.[0]; (e.target as HTMLInputElement).value = '';
+    if (!f) return;
+    if (url) URL.revokeObjectURL(url);
+    url = URL.createObjectURL(f);
+    q('.jmp-verr').hidden = true; q('.jmp-vname').textContent = f.name;
+    video.src = url; video.load();
+  });
+  video.addEventListener('loadeddata', () => { q('.jmp-vbox').hidden = false; seekFrame(0); });
+  video.addEventListener('error', () => vfail('This video could not be opened here (the format may not be supported by this browser). You can still count frames in another player and type them below.'));
+  document.addEventListener('securitypolicyviolation', (e) => { if (e.blockedURI.startsWith('blob')) vfail('This page is not allowed to play videos yet. You can still count frames in another player and type them below.'); });
+  q('.jmp-back').addEventListener('click', () => seekFrame(frameNow - 1));
+  q('.jmp-fwd').addEventListener('click', () => seekFrame(frameNow + 1));
+  inp('.jmp-scrub').addEventListener('input', () => { if (Number.isFinite(video.duration)) { watch(); video.currentTime = (num(inp('.jmp-scrub').value) / 1000) * video.duration; } });
+  const mark = (c: string) => { inp(c).value = String(frameNow); frames(); };
+  q('.jmp-mc').addEventListener('click', () => mark('.jmp-fc'));
+  q('.jmp-mt').addEventListener('click', () => mark('.jmp-ft'));
+  q('.jmp-ml').addEventListener('click', () => mark('.jmp-fl'));
+
+  let t = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('.jmp-scrub')) return; clearTimeout(t); t = window.setTimeout(() => { frames(); calc(); }, 200); });
+  root.addEventListener('change', () => { frames(); calc(); });
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.jmp-fig'), fig));
+  q('.jmp-csv').addEventListener('click', () => rows.length > 1 && save(new TextEncoder().encode(csv(rows)), 'jump-heights.csv', 'text/csv'));
+  frames(); calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Jump height', subtitle: q('.jmp-big').textContent ?? '', file: 'jump-height', sections: report }));
+</script>
