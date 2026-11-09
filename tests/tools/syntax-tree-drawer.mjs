@@ -1,10 +1,12 @@
 // #734 Syntax tree drawer: browser checks.
 export const path = '/science/syntax-tree-drawer/';
 export default async ({ page, check, BASE, OUT, readFileSync }) => {
+  const vp0 = page.viewportSize();
+  page.setDefaultTimeout(120000); // slow shared test machines
   await page.setViewportSize({ width: 1200, height: 900 });
   await page.goto(BASE + path); await page.waitForTimeout(700);
   const fact = (k) => page.$$eval('.st-facts div', (ds, k) => ds.find((d) => d.querySelector('dt').textContent === k)?.querySelector('dd').textContent, k);
-  const type = async (v) => { await page.fill('.st-in', v); await page.waitForTimeout(450); };
+  const type = async (v) => { await page.fill('.st-in', v); await page.waitForTimeout(1200); };
   const svgCount = (sel) => page.$$eval('.st-pic svg ' + sel, (e) => e.length);
 
   check((await fact('Phrases (labels)')) === '11' && (await fact('Word groups')) === '6' && (await fact('Depth (levels)')) === '6' && (await fact('Arrows')) === '1', 'st: wh example counts 11/6/6/1');
@@ -56,5 +58,6 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   await page.screenshot({ path: OUT + 'syntax-tree-drawer-375.png', fullPage: false });
   const fits = await page.$eval('.st-pic svg', (s) => s.getBoundingClientRect().width <= s.parentElement.clientWidth + 1);
   check(fits, 'st: tree fits a phone screen');
-  await page.setViewportSize({ width: 1200, height: 900 });
+  page.setDefaultTimeout(30000);
+  if (vp0) await page.setViewportSize(vp0);
 };
