@@ -1,0 +1,250 @@
+---
+// Inflation: real and nominal values from index numbers the user enters (no CPI data is bundled), a constant
+// rate, or a pasted index series; the Fisher equation for real rates. The example series is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const example = 'Year\tPrice index\tAverage wage\n2015\t100.0\t40000\n2016\t101.2\t40800\n2017\t103.1\t41900\n2018\t105.4\t43000\n2019\t107.2\t44200\n2020\t108.5\t45000\n2021\t112.0\t46100\n2022\t120.3\t48000\n2023\t125.6\t50500\n2024\t129.1\t52600\n2025\t132.4\t54300';
+---
+<div class="ax inf">
+  <div class="ax-card">
+    <h2>What do you have?</h2>
+    <div class="ax-seg inf-mode" role="group" aria-label="Input">
+      <button type="button" data-m="two" aria-pressed="true">Two index values</button><button type="button" data-m="rate" aria-pressed="false">A yearly rate</button><button type="button" data-m="series" aria-pressed="false">An index series</button>
+    </div>
+    <p class="ax-help inf-what"></p>
+
+    <div class="inf-p" data-m="two">
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Amount <input class="inf-amt" inputmode="decimal" value="100" /></label>
+        <label>Currency sign <input class="inf-cur" value="$" placeholder="e.g. $, ₹, £" /></label>
+        <label>Start date <input class="inf-d1" value="2015" placeholder="2015, 2015-06 or 2015Q2" /></label>
+        <label>Index at start <input class="inf-c1" inputmode="decimal" value="100" /></label>
+        <label>End date <input class="inf-d2" value="2025" placeholder="2025, 2025-06 or 2025Q2" /></label>
+        <label>Index at end <input class="inf-c2" inputmode="decimal" value="132.4" /></label>
+      </div>
+      <p class="ax-help">The example index values are made up: type the official consumer price index (CPI) for your two dates. Any base year works, as only the ratio matters.</p>
+    </div>
+
+    <div class="inf-p" data-m="rate" hidden>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Amount <input class="inf-ramt" inputmode="decimal" value="100" /></label>
+        <label>Currency sign <input class="inf-rcur" value="$" /></label>
+        <label>Inflation per year (%) <input class="inf-rate" inputmode="decimal" value="2.5" /></label>
+        <label>Years <input class="inf-years" inputmode="decimal" value="7" /></label>
+      </div>
+      <p class="ax-help">For planning: what the same basket of goods will cost if prices rise at a steady rate. A central bank's target (often about 2 %) is a common choice.</p>
+    </div>
+
+    <div class="inf-p" data-m="series" hidden>
+      <label>One row per period: the date, the price index, and optionally a money value to adjust (wages, sales, rent). A header row is optional. Dates can be years (2015), months (2015-06, Jun 2015) or quarters (2015Q2).
+        <textarea class="inf-data" rows="10" spellcheck="false" wrap="off">{example}</textarea></label>
+      <DataFile target=".inf-data" maxCols={10} maxRows={5000} />
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Rebase to (= 100) <select class="inf-base"></select></label>
+        <label>Convert from <select class="inf-from"></select></label>
+        <label>Convert to <select class="inf-to"></select></label>
+        <label>Amount <input class="inf-samt" inputmode="decimal" value="100" /></label>
+      </div>
+      <p class="ax-help">The example series is made up. Money values are shown in the prices of the rebase period ("real" values).</p>
+    </div>
+    <p class="ax-err inf-err" hidden></p>
+  </div>
+
+  <div class="ax-card inf-out">
+    <h2>Result</h2>
+    <p class="ax-big inf-big"></p>
+    <dl class="ax-facts inf-facts"></dl>
+    <div class="inf-sres" hidden>
+      <canvas class="ax-fig inf-fig" style="margin-top:12px"></canvas>
+      <canvas class="ax-fig inf-fig2" style="margin-top:12px" hidden></canvas>
+      <h3>By period</h3>
+      <div class="ax-scroll"><table class="inf-tab"></table></div>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small inf-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Real interest or growth (Fisher)</h2>
+    <p class="ax-help" style="margin-top:0">What a savings rate, a pay rise or an investment return is worth after inflation. The inflation box is filled from the result above until you change it.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Nominal rate (% per year) <input class="inf-nom" inputmode="decimal" value="5" /></label>
+      <label>Inflation (% per year) <input class="inf-pi" inputmode="decimal" value="" /></label>
+    </div>
+    <p class="ax-big inf-real" style="margin-top:10px"></p>
+    <p class="ax-help inf-realh"></p>
+  </div>
+</div>
+
+<style is:global>
+  .inf .inf-tab td, .inf .inf-tab th { white-space: nowrap; }
+  .inf .inf-tab td.r, .inf .inf-tab th.r { text-align: right; }
+  .inf .inf-tab td.neg { color: var(--bad); }
+</style>
+
+<script>
+  import { decimalYear, between, rateFactor, fisher, series, type Point, type SeriesResult } from '../../lib/sci/inflation';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.inf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  let mode = 'two', fig: Figure | null = null, fig2: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [], lastAnnual = NaN, piTouched = false;
+  const WHAT: Record<string, string> = {
+    two: 'Convert an amount between two dates with the price index (such as the consumer price index, CPI) for each date.',
+    rate: 'See what prices become if they rise by the same percentage every year.',
+    series: 'Paste a price index over time to rebase it, see inflation each period, and turn money values into real (inflation-adjusted) values.',
+  };
+  const pct = (x: number, d = 3) => (Number.isFinite(x) ? `${sig(100 * x, d)} %` : '–');
+  const money = (cur: string, x: number) => {
+    if (!Number.isFinite(x)) return '–';
+    const a = Math.abs(x), s = a >= 1 ? a.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : sig(a, 3);
+    return `${x < 0 ? '−' : ''}${cur}${s}`;
+  };
+  function fact(k: string, val: string, sm = '') { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; }
+  const factList = () => [...q('.inf-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+
+  function runTwo() {
+    const amt = v('.inf-amt'), c1 = v('.inf-c1'), c2 = v('.inf-c2'), cur = q<HTMLInputElement>('.inf-cur').value.trim();
+    const d1s = q<HTMLInputElement>('.inf-d1').value.trim(), d2s = q<HTMLInputElement>('.inf-d2').value.trim();
+    if (!Number.isFinite(amt)) throw new Error('Enter an amount.');
+    if (!(c1 > 0 && c2 > 0)) throw new Error('Both index values must be numbers above zero.');
+    const t1 = decimalYear(d1s), t2 = decimalYear(d2s);
+    const years = Number.isFinite(t1) && Number.isFinite(t2) ? t2 - t1 : NaN;
+    if ((d1s && !Number.isFinite(t1)) || (d2s && !Number.isFinite(t2))) throw new Error('Write dates as a year (2015), a month (2015-06 or Jun 2015) or a quarter (2015Q2), or leave them blank.');
+    const b = between(c1, c2, Math.abs(years)), n1 = d1s || 'the start', n2 = d2s || 'the end';
+    q('.inf-big').textContent = `${money(cur, amt)} in ${n1} = ${money(cur, amt * b.factor)} in ${n2}`;
+    const facts = [
+      fact('Prices changed by', pct(b.cumulative), `index ${c1} → ${c2}`),
+      fact('Average per year', Number.isFinite(years) && years !== 0 ? pct(years > 0 ? b.annual : (1 / b.factor) ** (1 / -years) - 1) : '–', Number.isFinite(years) && years !== 0 ? `compound, over ${sig(Math.abs(years), 4)} years` : 'add both dates to see this'),
+      fact('Buying power of money', pct(1 / b.factor - 1), `${money(cur, amt)} in ${n2} buys what ${money(cur, amt / b.factor)} bought in ${n1}`),
+    ];
+    q('.inf-facts').replaceChildren(...facts);
+    lastAnnual = years > 0 ? b.annual : NaN;
+    csvRows = [['Quantity', 'Value'], ['Start date', d1s], ['Index at start', String(c1)], ['End date', d2s], ['Index at end', String(c2)], ['Amount at start', String(amt)], ['Equivalent at end', sig(amt * b.factor, 8)], ['Cumulative inflation (%)', sig(100 * b.cumulative, 8)], ['Average per year (%)', sig(100 * b.annual, 8)]];
+    sections = [{ title: q('.inf-big').textContent!, text: ['Equivalent value = amount × index at end ÷ index at start. Average yearly inflation = (index ratio)^(1 / years) − 1.'], facts: factList() }];
+  }
+
+  function runRate() {
+    const amt = v('.inf-ramt'), r = v('.inf-rate') / 100, y = v('.inf-years'), cur = q<HTMLInputElement>('.inf-rcur').value.trim();
+    if (!Number.isFinite(amt)) throw new Error('Enter an amount.');
+    if (!Number.isFinite(r) || r <= -1) throw new Error('Enter an inflation rate above −100 %.');
+    if (!(y >= 0)) throw new Error('Enter a number of years of zero or more.');
+    const f = rateFactor(r, y);
+    q('.inf-big').textContent = `${money(cur, amt)} today = ${money(cur, amt * f)} in ${sig(y, 4)} years`;
+    const facts = [
+      fact('Prices rise by', pct(f - 1), `${sig(100 * r, 4)} % a year, compounded`),
+      fact('Buying power of money', pct(1 / f - 1), `${money(cur, amt)} then buys what ${money(cur, amt / f)} buys today`),
+      fact('Prices double in', r > 0 ? `${sig(Math.log(2) / Math.log(1 + r), 3)} years` : 'never', r > 0 ? `rule of 70 gives ${sig(70 / (100 * r), 3)}` : ''),
+    ];
+    q('.inf-facts').replaceChildren(...facts);
+    lastAnnual = r;
+    csvRows = [['Quantity', 'Value'], ['Amount today', String(amt)], ['Inflation per year (%)', String(100 * r)], ['Years', String(y)], ['Equivalent amount', sig(amt * f, 8)], ['Cumulative inflation (%)', sig(100 * (f - 1), 8)]];
+    sections = [{ title: q('.inf-big').textContent!, text: ['Future price level = (1 + yearly rate)^years.'], facts: factList() }];
+  }
+
+  let seriesKey = '';
+  function fillSelect(sel: HTMLSelectElement, labels: string[], pick: number) {
+    const keep = sel.value;
+    sel.replaceChildren(...labels.map((l, i) => { const o = document.createElement('option'); o.value = String(i); o.textContent = l; return o; }));
+    sel.value = keep && Number(keep) < labels.length && seriesKey === labels.join('|') ? keep : String(pick);
+  }
+  function runSeries() {
+    const rows = parseTable(q<HTMLTextAreaElement>('.inf-data').value);
+    if (!rows.length) throw new Error('Paste a price index series first.');
+    const head = !Number.isFinite(num(rows[0][1])) ? rows[0] : null, body = head ? rows.slice(1) : rows;
+    if (body.length < 2) throw new Error('Give at least two periods.');
+    if (body.length > 5000) throw new Error('Up to 5,000 periods, please.');
+    const hasNom = body.some((r) => (r[2] ?? '').trim() !== '');
+    const pts: Point[] = body.map((r, i) => {
+      const t = decimalYear(r[0] ?? ''), c = num(r[1]);
+      if (!Number.isFinite(t)) throw new Error(`Row ${i + 1}: "${r[0]}" is not a date. Use a year (2015), a month (2015-06) or a quarter (2015Q2).`);
+      if (!(c > 0)) throw new Error(`Row ${i + 1}: the index "${r[1] ?? ''}" must be a number above zero.`);
+      const n = hasNom ? num(r[2]) : undefined;
+      if (hasNom && !Number.isFinite(n)) throw new Error(`Row ${i + 1}: the money value "${r[2] ?? ''}" is not a number.`);
+      return { label: r[0].trim(), t, cpi: c, nominal: n };
+    });
+    for (let i = 1; i < pts.length; i++) if (!(pts[i].t > pts[i - 1].t)) throw new Error(`Row ${i + 1} (${pts[i].label}) is not after the row before it. Put the periods in time order, oldest first.`);
+    const labels = pts.map((p) => p.label);
+    fillSelect(q<HTMLSelectElement>('.inf-base'), labels, labels.length - 1);
+    fillSelect(q<HTMLSelectElement>('.inf-from'), labels, 0);
+    fillSelect(q<HTMLSelectElement>('.inf-to'), labels, labels.length - 1);
+    seriesKey = labels.join('|');
+    const bi = Number(q<HTMLSelectElement>('.inf-base').value), fi = Number(q<HTMLSelectElement>('.inf-from').value), ti = Number(q<HTMLSelectElement>('.inf-to').value);
+    const s: SeriesResult = series(pts, bi), amt = v('.inf-samt');
+    const nomName = head?.[2]?.trim() || 'Value', idxName = head?.[1]?.trim() || 'Index';
+    const conv = amt * pts[ti].cpi / pts[fi].cpi;
+    q('.inf-big').textContent = Number.isFinite(amt) ? `${sig(amt, 6)} in ${labels[fi]} = ${conv.toLocaleString('en', { maximumFractionDigits: 2 })} in ${labels[ti]}` : `Prices rose ${pct(s.cumulative)} from ${labels[0]} to ${labels[labels.length - 1]}`;
+    const facts = [
+      fact(`Change, ${labels[0]} to ${labels[labels.length - 1]}`, pct(s.cumulative)),
+      fact('Average per year', pct(s.annual), `compound, over ${sig(s.years, 4)} years`),
+      fact('Data', `${pts.length} periods`, s.perYear === 12 ? 'monthly' : s.perYear === 4 ? 'quarterly' : s.perYear === 1 ? 'yearly' : 'uneven spacing: no year-on-year column'),
+    ];
+    if (hasNom) {
+      const r0 = s.rows[0], r1 = s.rows[s.rows.length - 1];
+      facts.push(fact(`${nomName}: real change`, pct(r1.real! / r0.real! - 1), `nominal change ${pct(r1.nominal! / r0.nominal! - 1)}`));
+    }
+    q('.inf-facts').replaceChildren(...facts);
+    lastAnnual = s.annual;
+    const yoyCol = [1, 4, 12].includes(s.perYear) && s.perYear !== 1;
+    const head2 = ['Period', idxName, `Rebased (${labels[bi]} = 100)`, 'Change', ...(yoyCol ? ['Over a year'] : []), ...(hasNom ? [nomName, `In ${labels[bi]} prices`, 'Real change'] : [])];
+    const f = (x: number | undefined, d = 4) => (x === undefined || !Number.isFinite(x) ? '–' : sig(x, d));
+    const trs = s.rows.map((r) => [r.label, String(r.cpi), f(r.rebased, 5), pct(r.change), ...(yoyCol ? [pct(r.yoy)] : []), ...(hasNom ? [f(r.nominal, 6), f(r.real, 6), pct(r.realChange ?? NaN)] : [])]);
+    const t = q<HTMLTableElement>('.inf-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head2.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const tb = t.createTBody(); trs.slice(0, 400).forEach((r) => { const tr = tb.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; td.className = [i ? 'r' : '', /^−/.test(c) && i ? 'neg' : ''].join(' ').trim(); }); });
+    q('.inf-sres').hidden = false;
+    fig = chartFigure({ h: 340, xLabel: 'Date', yLabel: `Index (${labels[bi]} = 100)`, legend: 'none', series: [{ name: 'Rebased index', x: s.rows.map((r) => r.t), y: s.rows.map((r) => r.rebased), mode: s.rows.length > 40 ? 'line' : 'both', marker: 'circle' }], marks: [{ kind: 'hline', at: 100, dash: [3, 3], label: labels[bi] }] }, `Price index rebased to ${labels[bi]} = 100`);
+    paint(q<HTMLCanvasElement>('.inf-fig'), fig);
+    q('.inf-fig2').hidden = !hasNom;
+    fig2 = hasNom ? chartFigure({ h: 320, xLabel: 'Date', yLabel: nomName, legend: 'below', series: [
+      { name: 'Nominal (as paid)', x: s.rows.map((r) => r.t), y: s.rows.map((r) => r.nominal!), mode: s.rows.length > 40 ? 'line' : 'both', marker: 'circle' },
+      { name: `Real (${labels[bi]} prices)`, x: s.rows.map((r) => r.t), y: s.rows.map((r) => r.real!), mode: s.rows.length > 40 ? 'line' : 'both', marker: 'square' },
+    ] }, `${nomName}, nominal and in ${labels[bi]} prices`) : null;
+    if (fig2) paint(q<HTMLCanvasElement>('.inf-fig2'), fig2);
+    csvRows = [head2, ...trs.map((r) => r.map((c) => c.replace(' %', '').replace('−', '-')))];
+    csvRows[0] = head2.map((h, i) => (/Change|year/.test(h) && i > 2 ? `${h} (%)` : h));
+    sections = [{ title: q('.inf-big').textContent!, text: [`Rebased index = 100 × index ÷ index in ${labels[bi]}.${hasNom ? ` Real value = nominal value × index in ${labels[bi]} ÷ index in that period.` : ''}`], facts: factList(), figure: fig },
+      ...(fig2 ? [{ title: `${nomName}: nominal and real`, figure: fig2 }] : []),
+      { title: 'By period', table: { head: head2, rows: trs, align: head2.map((_, i) => (i ? 'r' : 'l') as 'l' | 'r') } }];
+  }
+
+  function realRate() {
+    const piBox = q<HTMLInputElement>('.inf-pi');
+    if (!piTouched) piBox.value = Number.isFinite(lastAnnual) ? sig(100 * lastAnnual, 4).replace('−', '-') : '';
+    const i = v('.inf-nom') / 100, p = num(piBox.value) / 100;
+    if (!Number.isFinite(i) || !Number.isFinite(p) || p <= -1) { q('.inf-real').textContent = '–'; q('.inf-realh').textContent = 'Enter a nominal rate and an inflation rate.'; return; }
+    const r = fisher(i, p);
+    q('.inf-real').textContent = `Real rate ${pct(r.exact, 4)} a year`;
+    q('.inf-realh').textContent = `Exact: (1 + ${sig(100 * i, 4)} %) ÷ (1 + ${sig(100 * p, 4)} %) − 1 = ${pct(r.exact, 4)}. The quick approximation nominal − inflation gives ${pct(r.approx, 4)}; the gap grows when rates are high. ${r.exact < 0 ? 'Below zero: the money buys less each year even though the balance grows.' : ''}`.trim();
+  }
+
+  function calc() {
+    const err = q('.inf-err');
+    q('.inf-sres').hidden = mode !== 'series';
+    try {
+      if (mode === 'two') runTwo(); else if (mode === 'rate') runRate(); else runSeries();
+      err.hidden = true; q('.inf-out').hidden = false;
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.inf-out').hidden = true; sections = []; csvRows = []; fig = fig2 = null; lastAnnual = NaN; }
+    realRate();
+  }
+  function setMode(m: string) {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.inf-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.inf-p').forEach((p) => (p.hidden = p.dataset.m !== m));
+    q('.inf-what').textContent = WHAT[m];
+    calc();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.inf-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  q('.inf-pi').addEventListener('input', () => { piTouched = q<HTMLInputElement>('.inf-pi').value.trim() !== ''; });
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.inf-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'inflation.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.inf-fig'), fig); if (fig2) paint(q<HTMLCanvasElement>('.inf-fig2'), fig2); });
+  setMode('two');
+  wireDownloads(q('.dl'), () => ({ title: 'Inflation calculator', subtitle: q('.inf-big').textContent ?? '', file: 'inflation', sections }));
+</script>

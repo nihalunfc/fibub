@@ -1,0 +1,238 @@
+---
+// Difference-in-differences: 2 × 2 from group means, or from panel data the two-way fixed effects regression
+// with unit-clustered errors, an event study and a pre-trend check. Maths in src/lib/sci/did.ts.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import example from './example.csv?raw';
+---
+<div class="ax did">
+  <div class="ax-card">
+    <h2>What do you have?</h2>
+    <div class="ax-seg dd-mode" role="group" aria-label="Input">
+      <button type="button" data-m="panel" aria-pressed="true">Panel data</button><button type="button" data-m="means" aria-pressed="false">Group means</button>
+    </div>
+    <p class="ax-help dd-what"></p>
+
+    <div class="dd-p" data-m="panel">
+      <label>One row per unit and period, with a header row. The sample is a made-up example: employment rate in 20 counties, 8 of which started a programme in 2019.
+        <textarea class="dd-in" rows="8" spellcheck="false" wrap="off">{example.trim()}</textarea></label>
+      <DataFile target=".dd-in" maxCols={40} maxRows={100000} />
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Unit (person, firm, county) <select class="dd-unit"></select></label>
+        <label>Period (a number, e.g. year) <select class="dd-time"></select></label>
+        <label>Outcome <select class="dd-y"></select></label>
+        <label>Treated group (1 = treated, 0 = not) <select class="dd-tr"></select></label>
+        <label>Treatment starts in period <input class="dd-start" inputmode="decimal" value="2019" /></label>
+        <label>Reference period <select class="dd-ref"></select></label>
+        <label>Confidence level <select class="dd-lv"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+      </div>
+      <p class="ax-help">The treated column marks the group (the same value in every row of a unit), not the period. All treated units must start in the same period. The event study is measured against the reference period, normally the last one before the start.</p>
+    </div>
+
+    <div class="dd-p" data-m="means" hidden>
+      <p class="ax-help" style="margin-top:0">Mean outcome in each group before and after. Standard deviations and group sizes are optional; with them you also get a standard error and interval.</p>
+      <div class="ax-scroll"><table class="dd-mt">
+        <thead><tr><th>Group</th><th class="r">Mean</th><th class="r">SD</th><th class="r">Size n</th></tr></thead>
+        <tbody>
+          <tr><td>Treated, before</td><td><input class="dd-m" data-c="tPre" data-k="mean" inputmode="decimal" value="50" /></td><td><input class="dd-m" data-c="tPre" data-k="sd" inputmode="decimal" value="8" /></td><td><input class="dd-m" data-c="tPre" data-k="n" inputmode="numeric" value="40" /></td></tr>
+          <tr><td>Treated, after</td><td><input class="dd-m" data-c="tPost" data-k="mean" inputmode="decimal" value="57" /></td><td><input class="dd-m" data-c="tPost" data-k="sd" inputmode="decimal" value="9" /></td><td><input class="dd-m" data-c="tPost" data-k="n" inputmode="numeric" value="38" /></td></tr>
+          <tr><td>Comparison, before</td><td><input class="dd-m" data-c="cPre" data-k="mean" inputmode="decimal" value="48" /></td><td><input class="dd-m" data-c="cPre" data-k="sd" inputmode="decimal" value="7.5" /></td><td><input class="dd-m" data-c="cPre" data-k="n" inputmode="numeric" value="45" /></td></tr>
+          <tr><td>Comparison, after</td><td><input class="dd-m" data-c="cPost" data-k="mean" inputmode="decimal" value="51" /></td><td><input class="dd-m" data-c="cPost" data-k="sd" inputmode="decimal" value="8.2" /></td><td><input class="dd-m" data-c="cPost" data-k="n" inputmode="numeric" value="44" /></td></tr>
+        </tbody>
+      </table></div>
+      <p class="ax-help">Made-up example values. The standard error assumes the four groups are separate samples (different people before and after). If the same people are measured twice, use panel data instead.</p>
+    </div>
+    <p class="ax-err dd-err" hidden></p>
+  </div>
+
+  <div class="ax-card dd-out" hidden>
+    <h2>Difference-in-differences</h2>
+    <p class="ax-big dd-big"></p>
+    <dl class="ax-facts dd-facts"></dl>
+    <div class="dd-ev">
+      <h3>Event study</h3>
+      <canvas class="ax-fig dd-fig1"></canvas>
+      <div class="ax-scroll"><table class="dd-tab"></table></div>
+    </div>
+    <h3 class="dd-h2">Group means over time</h3>
+    <canvas class="ax-fig dd-fig2"></canvas>
+    <p class="ax-help dd-note"></p>
+    <div class="ax-row dd-csvw" style="margin-top:12px"><button type="button" class="btn secondary small dd-csv">Event study as CSV</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .did .dd-p { margin-top: 12px; }
+  .did h3 { font-size: 15px; margin: 14px 0 6px; }
+  .did .dd-mt input { min-width: 64px; }
+  .did .dd-mt td { vertical-align: middle; }
+  .did .dd-tab td, .did .dd-tab th { white-space: nowrap; }
+</style>
+
+<script>
+  import { parseTable, num, sig } from '../../lib/sci/num';
+  import { didPanel, did2x2, type Cell } from '../../lib/sci/did';
+  import { readColumns } from '../../lib/sci/econometrics';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.did')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string, el: ParentNode = root) => el.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c);
+  let mode = 'panel', report: Section[] = [], csvRows: string[][] = [], figs: Figure[] = [], lastHead = '';
+  const WHAT: Record<string, string> = {
+    panel: 'Two-way fixed effects regression (unit and period effects) with errors clustered by unit, plus an event study and a check of the trends before treatment.',
+    means: 'The classic 2 × 2: the change in the treated group minus the change in the comparison group.',
+  };
+  const f3 = (x: number) => (Number.isFinite(x) ? sig(x, 4) : '–');
+  const pTxt = (p: number) => (p < 0.0001 ? '< 0.0001' : p.toFixed(4));
+
+  function facts(list: [string, string][]) {
+    const dl = q('.dd-facts'); dl.innerHTML = '';
+    for (const [k, v] of list) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d); }
+  }
+  function options(s: HTMLSelectElement, list: string[], pick: string) {
+    const old = s.value; s.innerHTML = '';
+    for (const h of list) s.add(new Option(h, h));
+    s.value = list.includes(old) ? old : list.includes(pick) ? pick : list[0] ?? '';
+  }
+
+  function runPanel(): Section[] {
+    const { head, cols, n } = readColumns(parseTable(q<HTMLTextAreaElement>('.dd-in').value));
+    const key = head.join(',');
+    if (key !== lastHead) {
+      lastHead = key;
+      const find = (re: RegExp, i: number) => head.find((h) => re.test(h)) ?? head[Math.min(i, head.length - 1)];
+      options(sel('.dd-unit'), head, find(/^(id|unit|county|state|firm|person|school|country|pid|region)$/i, 0));
+      options(sel('.dd-time'), head, find(/^(year|yr|time|period|wave|month|t)$/i, 1));
+      options(sel('.dd-tr'), head, find(/^(treat|treated|treatment|group|d)$/i, 2));
+      options(sel('.dd-y'), head, head.find((h) => ![sel('.dd-unit').value, sel('.dd-time').value, sel('.dd-tr').value].includes(h)) ?? head[0]);
+    }
+    const U = sel('.dd-unit').value, T = sel('.dd-time').value, Y = sel('.dd-y').value, TR = sel('.dd-tr').value;
+    if (new Set([U, T, Y, TR]).size < 4) throw new Error('Unit, period, outcome and treated group must be four different columns.');
+    const rows: { unit: string; time: number; y: number; treated: boolean }[] = [];
+    let dropped = 0;
+    for (let i = 0; i < n; i++) {
+      const u = cols[U][i], t = num(cols[T][i]), y = num(cols[Y][i]), tr = cols[TR][i].trim();
+      if (!u || !Number.isFinite(t) || !Number.isFinite(y) || tr === '') { dropped++; continue; }
+      if (!/^(0|1|true|false|yes|no)$/i.test(tr)) throw new Error(`The treated column should hold 1 or 0, but row ${i + 1} has "${tr}".`);
+      rows.push({ unit: u, time: t, y, treated: /^(1|true|yes)$/i.test(tr) });
+    }
+    if (rows.length < 4) throw new Error(`The period column "${T}" and outcome "${Y}" need numbers. Fewer than 4 usable rows were found.`);
+    const seen = new Set<string>();
+    for (const r of rows) { const k = r.unit + '\u0000' + r.time; if (seen.has(k)) throw new Error(`Unit "${r.unit}" has two rows for period ${r.time}. Each unit needs at most one row per period.`); seen.add(k); }
+    const start = num(q<HTMLInputElement>('.dd-start').value);
+    if (!Number.isFinite(start)) throw new Error('Enter the period in which treatment starts.');
+    const times = [...new Set(rows.map((r) => r.time))].sort((a, b) => a - b);
+    const refSel = sel('.dd-ref'), pre = times.filter((t) => t < start), oldRef = refSel.value;
+    refSel.innerHTML = '';
+    refSel.add(new Option('Last period before the start', ''));
+    for (const t of times) refSel.add(new Option(String(t), String(t)));
+    refSel.value = times.map(String).includes(oldRef) ? oldRef : '';
+    const level = Number(sel('.dd-lv').value), pct = `${Math.round(level * 100)} %`;
+    const r = didPanel(rows, start, refSel.value ? Number(refSel.value) : undefined, level);
+    q('.dd-big').textContent = `DiD = ${f3(r.did.b)} (${pct} CI ${f3(r.did.lo)} to ${f3(r.did.hi)})`;
+    const fl: [string, string][] = [
+      ['Clustered SE', f3(r.did.se)],
+      ['t, p', `${r.did.t.toFixed(3).replace('-', '−')}, ${pTxt(r.did.p)}`],
+      ['Units', `${r.units.treated} treated, ${r.units.control} comparison`],
+      ['Periods', `${times.length} (${pre.length} before the start)`],
+      ['Observations', `${r.twfe.n.toLocaleString('en')}${dropped ? ` (${dropped} incomplete rows left out)` : ''}`],
+      ['Pre-trend test', r.pre ? `F(${r.pre.df1}, ${r.pre.df2}) = ${f3(r.pre.F)}, p ${pTxt(r.pre.p)}` : 'needs 2+ periods before the start'],
+    ];
+    facts(fl);
+    const th0 = ['Period', 'Event time', 'Coefficient', 'Clustered SE', 'p', `${pct} CI low`, `${pct} CI high`];
+    const trows = r.event.map((e) => e.est ? [String(e.time), String(e.rel).replace('-', '−'), f3(e.est.b), f3(e.est.se), pTxt(e.est.p), f3(e.est.lo), f3(e.est.hi)] : [String(e.time), String(e.rel).replace('-', '−'), '0 (reference)', '', '', '', '']);
+    const tb = q<HTMLTableElement>('.dd-tab'); tb.innerHTML = '';
+    const hr = tb.createTHead().insertRow(); th0.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const body = tb.createTBody(); trows.forEach((rw) => { const tr = body.insertRow(); rw.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+    csvRows = [['period', 'event_time', 'coefficient', 'clustered_se', 'p', 'ci_low', 'ci_high'], ...r.event.map((e) => [e.time, e.rel, e.est?.b ?? 0, e.est?.se ?? '', e.est?.p ?? '', e.est?.lo ?? '', e.est?.hi ?? ''].map(String))];
+    const ev = r.event.filter((e) => e.est);
+    const f1 = chartFigure({
+      xLabel: 'Periods since treatment started', yLabel: `Effect on ${Y}`, legend: 'none', xMin: r.event[0].rel - 0.5, xMax: r.event[r.event.length - 1].rel + 0.5,
+      series: [
+        { name: 'Estimate', x: ev.map((e) => e.rel), y: ev.map((e) => e.est!.b), yErr: ev.map((e) => e.est!.hi - e.est!.b), mode: 'points', marker: 'circle' },
+        { name: 'Reference', x: r.event.filter((e) => !e.est).map((e) => e.rel), y: [0], mode: 'points', marker: 'open-circle' },
+      ],
+      marks: [{ kind: 'hline', at: 0, dash: [4, 4] }, { kind: 'vline', at: -0.5, dash: [2, 3], label: 'start' }],
+    }, `Event-study coefficients with ${pct} intervals, relative to period ${r.ref}`);
+    // Parallel-trends picture: the comparison group shifted by the average gap before the start.
+    const gap = r.means.filter((m) => m.time < start).reduce((s, m) => s + m.treated - m.control, 0) / pre.length;
+    const f2 = chartFigure({
+      xLabel: T, yLabel: `Mean ${Y}`, legend: 'below',
+      series: [
+        { name: 'Treated', x: r.means.map((m) => m.time), y: r.means.map((m) => m.treated), mode: 'both', marker: 'circle' },
+        { name: 'Comparison', x: r.means.map((m) => m.time), y: r.means.map((m) => m.control), mode: 'both', marker: 'square' },
+        { name: 'Comparison + pre-period gap', x: r.means.map((m) => m.time), y: r.means.map((m) => m.control + gap), mode: 'line', dash: [5, 4] },
+      ],
+      marks: [{ kind: 'vline', at: start - 0.5, dash: [2, 3], label: 'start' }],
+    }, 'Mean outcome of treated and comparison groups by period');
+    figs = [f1, f2];
+    paint(q<HTMLCanvasElement>('.dd-fig1'), f1); paint(q<HTMLCanvasElement>('.dd-fig2'), f2);
+    const preOk = r.pre && r.pre.p >= 0.1;
+    q('.dd-note').textContent = `The DiD is the coefficient on treated × after in a regression with unit and period fixed effects; standard errors are clustered by unit (G − 1 = ${r.twfe.df} degrees of freedom). ${r.pre ? (preOk ? 'The coefficients before the start are jointly close to zero, which fits parallel trends (it cannot prove them).' : 'The coefficients before the start are jointly different from zero: the groups were already drifting apart, so parallel trends is doubtful.') : ''} The dashed line in the lower chart is the comparison group shifted by the average gap before the start: where the treated line leaves it after the start is the effect. ${r.units.treated + r.units.control < 30 ? 'With fewer than about 30 units, clustered errors can be too small.' : ''}`.trim();
+    return [
+      { title: 'Difference-in-differences (two-way fixed effects)', text: [q('.dd-big').textContent!], facts: fl },
+      { title: 'Event study', table: { head: th0, rows: trows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r'] }, figure: f1 },
+      { title: 'Group means over time', figure: f2, note: q('.dd-note').textContent! },
+    ];
+  }
+
+  function runMeans(): Section[] {
+    const cells: Record<string, Cell> = {};
+    root.querySelectorAll<HTMLInputElement>('.dd-m').forEach((i) => {
+      const c = (cells[i.dataset.c!] ??= { mean: NaN }), v = i.value.trim() === '' ? undefined : num(i.value);
+      if (v !== undefined && !Number.isFinite(v)) throw new Error(`"${i.value}" is not a number.`);
+      (c as Record<string, number | undefined>)[i.dataset.k!] = v;
+    });
+    const partial = Object.values(cells).some((c) => c.sd !== undefined || c.n !== undefined) && !Object.values(cells).every((c) => c.sd !== undefined && c.n !== undefined);
+    const r = did2x2(cells.tPre, cells.tPost, cells.cPre, cells.cPost);
+    q('.dd-big').textContent = `DiD = ${f3(r.did)}` + (r.se !== undefined ? ` (95 % CI ${f3(r.lo!)} to ${f3(r.hi!)})` : '');
+    const fl: [string, string][] = [
+      ['Treated change', f3(r.treatedChange)],
+      ['Comparison change', f3(r.controlChange)],
+      ['Treated after without treatment', f3(r.counterfactual)],
+      ...(r.se !== undefined ? [['Standard error', f3(r.se)], ['t, p', `${r.t!.toFixed(3).replace('-', '−')}, ${pTxt(r.p!)}`], ['Degrees of freedom', String(r.df)]] as [string, string][] : []),
+    ];
+    facts(fl);
+    const f2 = chartFigure({
+      xLabel: 'Before (0) and after (1)', yLabel: 'Mean outcome', legend: 'below', xMin: -0.2, xMax: 1.2,
+      series: [
+        { name: 'Treated', x: [0, 1], y: [cells.tPre.mean, cells.tPost.mean], mode: 'both', marker: 'circle' },
+        { name: 'Comparison', x: [0, 1], y: [cells.cPre.mean, cells.cPost.mean], mode: 'both', marker: 'square' },
+        { name: 'Treated without treatment', x: [0, 1], y: [cells.tPre.mean, r.counterfactual], mode: 'line', dash: [5, 4] },
+      ],
+    }, 'Treated and comparison means before and after, with the counterfactual');
+    figs = [f2]; paint(q<HTMLCanvasElement>('.dd-fig2'), f2);
+    csvRows = [];
+    q('.dd-note').textContent = `${partial ? 'Fill in the SD and size for all four groups to get a standard error. ' : ''}The estimate assumes that, without treatment, the treated group would have changed by the same amount as the comparison group (parallel trends). ${r.se !== undefined ? 'The standard error is √(Σ SD²/n) over the four groups, the same as HC2 robust errors in the regression on individual data, with t on N − 4 degrees of freedom.' : ''}`.trim();
+    return [{ title: 'Difference-in-differences (2 × 2)', text: [q('.dd-big').textContent!], facts: fl, figure: f2, note: q('.dd-note').textContent! }];
+  }
+
+  function calc() {
+    const err = q('.dd-err');
+    try {
+      report = mode === 'panel' ? runPanel() : runMeans();
+      err.hidden = true; q('.dd-out').hidden = false;
+      q('.dd-ev').hidden = q('.dd-csvw').hidden = mode !== 'panel';
+      q('.dd-h2').textContent = mode === 'panel' ? 'Group means over time (parallel trends)' : 'Before and after';
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.dd-out').hidden = true; report = []; csvRows = []; }
+  }
+  function setMode(m: string) {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.dd-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.dd-p').forEach((p) => (p.hidden = p.dataset.m !== m));
+    q('.dd-what').textContent = WHAT[m];
+    calc();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.dd-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  let t = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('textarea, input')) { clearTimeout(t); t = window.setTimeout(calc, 300); } });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select')) calc(); });
+  q('.dd-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(csvRows.map((r) => r.map((c) => (/[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c)).join(',')).join('\n') + '\n'), 'event-study.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (!q('.dd-out').hidden) { if (mode === 'panel' && figs.length === 2) { paint(q<HTMLCanvasElement>('.dd-fig1'), figs[0]); paint(q<HTMLCanvasElement>('.dd-fig2'), figs[1]); } else if (figs[0]) paint(q<HTMLCanvasElement>('.dd-fig2'), figs[0]); } });
+  setMode('panel');
+  wireDownloads(q('.did .dl'), () => ({ title: 'Difference-in-differences', file: mode === 'panel' ? 'did-event-study' : 'did-2x2', sections: report }));
+</script>

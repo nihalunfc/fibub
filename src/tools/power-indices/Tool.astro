@@ -1,0 +1,132 @@
+---
+// Power indices for weighted voting games: Shapley-Shubik and Banzhaf by exact counting, plus Deegan-Packel, Holler and Johnston for up to 20 players.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax pw">
+  <div class="ax-card">
+    <h2>Players and quota</h2>
+    <label>One player per line: a name, then its weight (votes, seats or shares). Made-up example.
+      <textarea class="pw-in" rows="7" spellcheck="false" wrap="off">Harbour 34
+Valley 27
+Ridge 18
+Coast 12
+Forest 6
+Lake 3</textarea></label>
+    <p class="ax-help">You can also type just the weights on one line, such as <b>4, 4, 4, 2, 2, 1</b>. Up to 60 players; decimals are fine.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Quota <input class="pw-q" type="number" min="0" step="any" value="51" inputmode="decimal" /></label>
+      <label>Quota is <select class="pw-qt"><option value="abs" selected>A number of votes</option><option value="pct">A % of all weight</option></select></label>
+    </div>
+    <p class="ax-help">A coalition wins when its weights add up to at least the quota. A quota over half the total (a "proper" game) means two separate coalitions can never both win.</p>
+    <p class="ax-err pw-err" hidden></p>
+  </div>
+
+  <div class="ax-card pw-out" hidden>
+    <h2>Voting power</h2>
+    <p class="ax-big pw-big"></p>
+    <dl class="ax-facts pw-facts"></dl>
+    <h3 class="pw-h3">Indices</h3>
+    <div class="ax-scroll"><table class="pw-tab"></table></div>
+    <p class="ax-help pw-what"></p>
+    <canvas class="ax-fig pw-fig" style="margin-top:14px"></canvas>
+    <div class="pw-mw" hidden><h3 class="pw-h3">Minimal winning coalitions</h3><p class="ax-help pw-mwn"></p><div class="ax-scroll"><table class="pw-mwt"></table></div></div>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small pw-csv">Download indices (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .pw .pw-h3 { font-size: 15px; margin: 16px 0 6px; }
+  .pw .pw-tab th, .pw .pw-tab td { white-space: nowrap; }
+  .pw .pw-tab td.pw-zero { color: var(--muted); }
+</style>
+
+<script>
+  import { sig, csv } from '../../lib/sci/num';
+  import { power, mwcIndices, parsePlayers } from '../../lib/sci/powerindex';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pw')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let report: Section[] = [], csvRows: string[][] = [], fig: Figure | null = null;
+  const f4 = (x: number) => x.toFixed(4);
+  const bigInt = (s: string) => (s.length > 15 ? `${s[0]}.${s.slice(1, 4)} × 10^${s.length - 1}` : Number(s).toLocaleString('en'));
+
+  function table(t: HTMLTableElement, head: string[], rows: string[][], cls?: (r: number, c: number) => string) {
+    t.innerHTML = '';
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r, ri) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; td.className = [i ? 'r' : '', cls?.(ri, i) ?? ''].join(' ').trim(); }); });
+  }
+
+  function calc() {
+    const err = q('.pw-err');
+    try {
+      const { names, weights } = parsePlayers(q<HTMLTextAreaElement>('.pw-in').value);
+      if (weights.length > 60) throw new Error(`${weights.length} players: this tool takes up to 60`);
+      const total = weights.reduce((a, b) => a + b, 0);
+      const qv = Number(q<HTMLInputElement>('.pw-q').value), pct = q<HTMLSelectElement>('.pw-qt').value === 'pct';
+      if (!Number.isFinite(qv) || q<HTMLInputElement>('.pw-q').value === '') throw new Error('Type a quota');
+      const quota = pct ? +(total * qv / 100).toFixed(6) : qv;
+      const r = power({ quota, weights }), m = mwcIndices({ quota, weights });
+      const n = names.length;
+      const order = [...names.keys()];
+      const best = order.reduce((a, b) => (r.shapley[b] > r.shapley[a] ? b : a), 0);
+      q('.pw-big').textContent = `${names[best]}: ${(r.shapley[best] * 100).toFixed(1)} % of the power with ${(weights[best] / total * 100).toFixed(1)} % of the weight`;
+      const veto = names.filter((_, i) => r.veto[i]), dummy = names.filter((_, i) => r.dummy[i]);
+      const fl: [string, string][] = [
+        ['Game', `[${sig(quota, 8)}; ${weights.map((w) => sig(w, 8)).join(', ')}]`],
+        ['Quota', `${sig(quota, 8)} of ${sig(total, 8)} (${(quota / total * 100).toFixed(1)} %)`],
+        ['Winning coalitions', `${bigInt(String(r.winning))} of ${bigInt((2n ** BigInt(n)).toString())}`],
+        ['Proper game', r.proper ? 'Yes (quota over half)' : 'No: two separate coalitions can both win'],
+        ['Veto players', veto.length ? veto.join(', ') : 'None'],
+        ['Dummies (no power)', dummy.length ? dummy.join(', ') : 'None'],
+      ];
+      const dl = q('.pw-facts'); dl.innerHTML = '';
+      for (const [k, v] of fl) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d); }
+      const head = ['Player', 'Weight', 'Weight %', 'Shapley-Shubik', 'Banzhaf', 'Banzhaf (absolute)', 'Swings', 'Pivotal orderings', ...(m ? ['Deegan-Packel', 'Holler', 'Johnston'] : [])];
+      const rows = names.map((nm, i) => [nm, sig(weights[i], 8), (weights[i] / total * 100).toFixed(2), f4(r.shapley[i]), f4(r.banzhaf[i]), f4(r.banzhafAbs[i]), bigInt(String(r.swings[i])), bigInt(r.pivots[i]), ...(m ? [f4(m.deeganPackel[i]), f4(m.holler[i]), f4(m.johnston[i])] : [])]);
+      table(q('.pw-tab'), head, rows, (ri, c) => (c >= 3 && r.dummy[ri] ? 'pw-zero' : ''));
+      csvRows = [head, ...names.map((nm, i) => [nm, String(weights[i]), String(weights[i] / total), String(r.shapley[i]), String(r.banzhaf[i]), String(r.banzhafAbs[i]), String(r.swings[i]), r.pivots[i], ...(m ? [String(m.deeganPackel[i]), String(m.holler[i]), String(m.johnston[i])] : [])])];
+      const what = `Shapley-Shubik: share of the ${bigInt(r.orderings)} orders of joining in which the player tips a coalition into winning. Banzhaf: share of all swings (a winning coalition that loses without the player); absolute Banzhaf is swings ÷ 2^${n - 1}, the chance a player's vote decides the outcome if every coalition is equally likely. ` + (m ? `Deegan-Packel and Holler use only the ${m.mwc} minimal winning coalitions (each member needed); Johnston shares each of the ${m.vulnerable} winning coalitions with a swing player equally among its swing players.` : 'Deegan-Packel, Holler and Johnston need every coalition listed, so they are shown for up to 20 players.');
+      q('.pw-what').textContent = what;
+      const mx = Math.max(...weights.map((w) => w / total), ...r.shapley, ...r.banzhaf);
+      fig = chartFigure({
+        w: 600, h: 420, xLabel: 'Share of weight', yLabel: 'Share of power', xMin: 0, yMin: 0,
+        series: [
+          { name: 'Shapley-Shubik', x: weights.map((w) => w / total), y: r.shapley, mode: 'points', marker: 'circle', labels: n <= 12 ? names : undefined },
+          { name: 'Banzhaf', x: weights.map((w) => w / total), y: r.banzhaf, mode: 'points', marker: 'open-square' },
+          { name: 'Power = weight', x: [0, mx], y: [0, mx], mode: 'line', dash: [5, 4], color: '#888888' },
+        ], legend: 'auto',
+      }, 'Share of power against share of weight for each player, with the line where power equals weight.');
+      paint(q<HTMLCanvasElement>('.pw-fig'), fig);
+      q('.pw-mw').hidden = !m;
+      let mwRows: string[][] = [];
+      if (m) {
+        mwRows = m.list.map((c) => { const w = c.reduce((s, j) => s + weights[j], 0); return [c.map((j) => names[j]).join(' + '), sig(w, 8), String(c.length)]; });
+        q('.pw-mwn').textContent = m.mwc > m.list.length ? `${m.mwc.toLocaleString('en')} in all; the first ${m.list.length} are listed.` : `${m.mwc} in all.`;
+        table(q('.pw-mwt'), ['Coalition', 'Weight', 'Members'], mwRows);
+      }
+      report = [
+        { title: 'Game', facts: fl },
+        { title: 'Indices', table: { head, rows, align: head.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] }, note: what },
+        { title: 'Power against weight', figure: fig },
+        ...(m ? [{ title: 'Minimal winning coalitions', table: { head: ['Coalition', 'Weight', 'Members'], rows: mwRows, align: ['l', 'r', 'r'] as ('l' | 'r')[] } }] : []),
+      ];
+      err.hidden = true; q('.pw-out').hidden = false;
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.pw-out').hidden = true; report = []; }
+  }
+  let t = 0;
+  root.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(calc, 250); });
+  q('.pw-qt').addEventListener('change', () => {
+    const { weights } = (() => { try { return parsePlayers(q<HTMLTextAreaElement>('.pw-in').value); } catch { return { weights: [] as number[] }; } })();
+    const total = weights.reduce((a, b) => a + b, 0), inp = q<HTMLInputElement>('.pw-q'), v = Number(inp.value);
+    if (total > 0 && Number.isFinite(v)) inp.value = String(q<HTMLSelectElement>('.pw-qt').value === 'pct' ? +(v / total * 100).toFixed(4) : +(v * total / 100).toFixed(6));
+    calc();
+  });
+  q('.pw-csv').addEventListener('click', () => { if (csvRows.length) save(new Blob([csv(csvRows)], { type: 'text/csv' }), 'power-indices.csv', 'text/csv'); });
+  new MutationObserver(() => fig && paint(q<HTMLCanvasElement>('.pw-fig'), fig)).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Power indices', file: 'power-indices', sections: report }));
+</script>

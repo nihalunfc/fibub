@@ -1,0 +1,199 @@
+---
+// Location quotients, shift-share and economic base from employment by industry for a region and a reference area.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax lqs">
+  <div class="ax-card">
+    <h2>Jobs by industry</h2>
+    <label>One row per industry: name, region year 1, region year 2, reference year 1, reference year 2. For one year only, give name, region, reference. A header row is optional.
+      <textarea class="lqs-in" rows="11" spellcheck="false" wrap="off">Industry	Region 2015	Region 2025	Country 2015	Country 2025
+Farming and fishing	1800	1500	240000	210000
+Mining and quarrying	950	1200	60000	52000
+Manufacturing	8200	7600	1100000	1020000
+Construction	3100	3900	520000	610000
+Retail and wholesale	6400	6900	1250000	1300000
+Health and social care	5200	6800	980000	1210000
+Tourism and hospitality	4300	5600	540000	600000
+Professional services	2900	3500	860000	1050000
+Public administration	2100	2200	410000	420000</textarea></label>
+    <DataFile target=".lqs-in" maxCols={5} maxRows={2000} />
+    <p class="ax-help">The example is a made-up region. The reference area is usually the country or state the region belongs to. Use the same industry list and the same kind of count (jobs or full-time equivalents) in every column.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Basic jobs worked out for <select class="lqs-year"><option value="1" selected>The second year</option><option value="0">The first year</option></select></label>
+    </div>
+    <p class="ax-help">Basic (export) jobs are the jobs above what the region would have if it had the reference area's mix. Only used with two years.</p>
+    <p class="ax-err lqs-err" hidden></p>
+  </div>
+
+  <div class="ax-card lqs-out" hidden>
+    <h2>Result</h2>
+    <p class="ax-big lqs-big"></p>
+    <dl class="ax-facts lqs-facts"></dl>
+    <h3>Location quotients</h3>
+    <canvas class="ax-fig lqs-fig1"></canvas>
+    <div class="lqs-ssw">
+      <h3>Shift-share: where the change in jobs came from</h3>
+      <canvas class="ax-fig lqs-fig2"></canvas>
+    </div>
+    <h3>By industry</h3>
+    <div class="ax-scroll"><table class="lqs-tab"></table></div>
+    <p class="ax-help lqs-note"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small lqs-csv">Download table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .lqs h3 { font-size: 15px; margin: 16px 0 8px; }
+  .lqs .lqs-tab td.lqs-hi { font-weight: 700; }
+  .lqs .lqs-tab tr.lqs-tot td { font-weight: 700; border-top: 2px solid var(--line); }
+</style>
+
+<script>
+  import { parseTable, num, sig, csv } from '../../lib/sci/num';
+  import { analyse, type Industry, type LqResult } from '../../lib/sci/lq';
+  import { paint, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.lqs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let report: Section[] = [], csvRows: (string | number)[][] = [];
+
+  const int = (x: number) => (Number.isFinite(x) ? Math.round(x).toLocaleString('en').replace(/^-/, '−') : '–');
+  const sgn = (x: number) => (Number.isFinite(x) ? (x > 0.5 ? '+' : '') + int(x) : '–');
+  const f2 = (x: number) => (Number.isFinite(x) ? x.toFixed(2) : '–');
+  const pct = (x: number) => (Number.isFinite(x) ? `${x >= 0 ? '+' : '−'}${Math.abs(x * 100).toFixed(1)} %` : '–');
+
+  function read(text: string) {
+    const rows = parseTable(text);
+    if (!rows.length) throw new Error('Paste your table first.');
+    const isNum = (c: string) => Number.isFinite(num(c));
+    // A header row: every cell after the first is a label or a year.
+    const head = rows[0].slice(1).every((c) => !isNum(c) || /^(1[89]|20)\d\d$/.test(c.trim())) ? rows[0] : null;
+    const body = head ? rows.slice(1) : rows;
+    const w = Math.max(...body.map((r) => r.length));
+    if (w !== 3 && w !== 5) throw new Error(`Each row needs 3 columns (industry, region, reference) or 5 (industry, region year 1, region year 2, reference year 1, reference year 2). This table has ${w}.`);
+    const list: Industry[] = body.map((r, i) => {
+      const v = r.slice(1).map((c, j) => { const x = num(c); if (!Number.isFinite(x)) throw new Error(`"${c || '(blank)'}" in row ${i + 1}, column ${j + 2} is not a number.`); return x; });
+      return w === 5 ? { name: r[0] || `Industry ${i + 1}`, r0: v[0], r1: v[1], n0: v[2], n1: v[3] } : { name: r[0] || `Industry ${i + 1}`, r0: v[0], r1: NaN, n0: v[1], n1: NaN };
+    });
+    const labels = w === 5 ? (head ? head.slice(1, 5) : ['Region year 1', 'Region year 2', 'Reference year 1', 'Reference year 2']) : (head ? [head[1], '', head[2], ''] : ['Region', '', 'Reference', '']);
+    return { list, labels, years: w === 5 ? [yearOf(labels[0], 'year 1'), yearOf(labels[1], 'year 2')] : ['', ''] };
+  }
+  const yearOf = (s: string, fallback: string) => s.match(/\b(1[89]|20)\d\d\b/)?.[0] ?? fallback;
+
+  /** Horizontal bars, one group per industry; `ref` draws a dashed line (LQ = 1). */
+  function bars(names: string[], series: { name: string; values: number[]; color: (p: Palette) => string }[], ref: number | null, xLabel: string, w = 720): Figure {
+    const gh = series.length * 14 + 10, h = 40 + names.length * gh + 46 + (w < 560 && series.length > 2 ? 18 : 0);
+    return {
+      w, h, alt: `${xLabel} by industry`,
+      draw(ctx, W, H, pal) {
+        ctx.font = '13px system-ui, sans-serif';
+        const lw = Math.min(W * 0.38, Math.max(...names.map((n) => ctx.measureText(n).width)) + 12), x0 = lw + 8, x1 = W - 20, top = 16;
+        const all = series.flatMap((s) => s.values).filter(Number.isFinite).concat(ref ?? 0, 0);
+        let lo = Math.min(...all), hi = Math.max(...all); const pad = (hi - lo) * 0.06 || 1; lo = lo < 0 ? lo - pad : 0; hi += pad;
+        const X = (v: number) => x0 + ((v - lo) / (hi - lo)) * (x1 - x0);
+        const step = Math.pow(10, Math.floor(Math.log10((hi - lo) / 4))), mul = (hi - lo) / step > 20 ? 5 : (hi - lo) / step > 8 ? 2 : 1, st = step * mul;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        for (let t = Math.ceil(lo / st) * st; t <= hi + 1e-9; t += st) {
+          ctx.strokeStyle = pal.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(t), top); ctx.lineTo(X(t), top + names.length * gh); ctx.stroke();
+          ctx.fillStyle = pal.muted; ctx.fillText(Math.abs(t) < st / 1e6 ? '0' : (+t.toPrecision(6)).toLocaleString('en').replace(/^-/, '−'), X(t), top + names.length * gh + 6);
+        }
+        ctx.fillText(xLabel, Math.min((x0 + x1) / 2, W - ctx.measureText(xLabel).width / 2 - 4), top + names.length * gh + 26);
+        names.forEach((n, i) => {
+          const y = top + i * gh;
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; let t = n; while (t.length > 3 && ctx.measureText(t).width > lw - 4) t = t.slice(0, -2) + '…'; ctx.fillText(t, lw, y + gh / 2);
+          series.forEach((s, k) => { const v = s.values[i]; if (!Number.isFinite(v)) return; ctx.fillStyle = s.color(pal); const a = X(Math.min(0, v)), b = X(Math.max(0, v)); ctx.fillRect(a, y + 5 + k * 14, Math.max(1, b - a), 11); });
+        });
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(0), top); ctx.lineTo(X(0), top + names.length * gh); ctx.stroke();
+        if (ref !== null) { ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(X(ref), top - 4); ctx.lineTo(X(ref), top + names.length * gh); ctx.stroke(); ctx.setLineDash([]); }
+        if (series.length > 1) {
+          ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+          const lines: (typeof series)[] = [[]]; let lx = 8;
+          for (const s of series) { const sw = ctx.measureText(s.name).width + 32; if (lx + sw > W && lines[lines.length - 1].length) { lines.push([]); lx = 8; } lines[lines.length - 1].push(s); lx += sw; }
+          lines.forEach((ln, li) => { let x = 8; const ly = H - 8 - (lines.length - 1 - li) * 18; for (const s of ln) { ctx.fillStyle = s.color(pal); ctx.fillRect(x, ly - 5, 10, 10); ctx.fillStyle = pal.ink; ctx.fillText(s.name, x + 14, ly); x += ctx.measureText(s.name).width + 32; } });
+        }
+      },
+    };
+  }
+
+  function calc() {
+    const err = q('.lqs-err');
+    try {
+      const { list, labels, years } = read(q<HTMLTextAreaElement>('.lqs-in').value);
+      const r: LqResult = analyse(list, Number(q<HTMLSelectElement>('.lqs-year').value) as 0 | 1);
+      err.hidden = true; q('.lqs-out').hidden = false;
+      show(r, labels, years);
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.lqs-out').hidden = true; report = []; }
+    // For tests: how many times the result was worked out, and whether an update is still waiting.
+    root.dataset.runs = String(Number(root.dataset.runs || 0) + 1); delete root.dataset.busy;
+  }
+
+  function show(r: LqResult, labels: string[], years: string[]) {
+    const T = r.totals, two = r.twoYears, byLabel = two ? years[r.baseYear] : '';
+    q('.lqs-big').textContent = Number.isFinite(r.multiplier) ? `Base multiplier ${sig(r.multiplier, 3)}` : 'No basic jobs';
+    const facts: [string, string][] = [
+      ['Regional jobs', two ? `${int(T.r0)} → ${int(T.r1)}` : int(T.r0)],
+      ...(two ? [['Change in the region', `${sgn(T.change)} (${pct(T.r1 / T.r0 - 1)})`], ['Reference area growth', pct(r.G)], ['National share', sgn(T.ns)], ['Industry mix', sgn(T.im)], ['Regional shift', sgn(T.rs)]] as [string, string][] : []),
+      [`Basic jobs${byLabel ? ` (${byLabel})` : ''}`, `${int(T.basic)} of ${int(T.basic + T.nonBasic)}`],
+      ['Coefficient of specialisation', f2(r.specialisation)],
+    ];
+    const dl = q('.lqs-facts'); dl.innerHTML = '';
+    for (const [k, v] of facts) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d); }
+
+    const names = r.rows.map((x) => x.name);
+    const lqSeries = two ? [{ name: years[0], values: r.rows.map((x) => x.lq0), color: (p: Palette) => p.line }, { name: years[1], values: r.rows.map((x) => x.lq1), color: (p: Palette) => p.accent }] : [{ name: 'LQ', values: r.rows.map((x) => x.lq0), color: (p: Palette) => p.accent }];
+    const pw = Math.round(Math.max(330, Math.min(720, q('.lqs-out').clientWidth - 34)));
+    const lqLabel = 'Location quotient (1 = same share as the reference area)';
+    const fig1 = bars(names, lqSeries, 1, lqLabel);
+    paint(q<HTMLCanvasElement>('.lqs-fig1'), bars(names, lqSeries, 1, pw < 500 ? 'Location quotient (1 = reference share)' : lqLabel, pw));
+    let fig2: Figure | null = null;
+    q('.lqs-ssw').hidden = !two;
+    if (two) {
+      const ss: Parameters<typeof bars>[1] = [
+        { name: 'National share', values: r.rows.map((x) => x.ns), color: (p) => p.muted },
+        { name: 'Industry mix', values: r.rows.map((x) => x.im), color: (p) => p.accent2 },
+        { name: 'Regional shift', values: r.rows.map((x) => x.rs), color: (p) => p.accent },
+      ];
+      fig2 = bars(names, ss, null, 'Change in jobs');
+      paint(q<HTMLCanvasElement>('.lqs-fig2'), bars(names, ss, null, 'Change in jobs', pw));
+    }
+
+    const head = two
+      ? ['Industry', `LQ ${years[0]}`, `LQ ${years[1]}`, 'Change', 'National share', 'Industry mix', 'Regional shift', `Basic${byLabel ? ' ' + byLabel : ''}`]
+      : ['Industry', 'Region jobs', 'Reference jobs', 'LQ', 'Basic', 'Non-basic'];
+    const rows = r.rows.map((x) => two
+      ? [x.name, f2(x.lq0), f2(x.lq1), sgn(x.change), sgn(x.ns), sgn(x.im), sgn(x.rs), int(x.basic)]
+      : [x.name, int(x.r0), int(x.n0), f2(x.lq0), int(x.basic), int(x.nonBasic)]);
+    rows.push(two ? ['All industries', '1.00', '1.00', sgn(T.change), sgn(T.ns), sgn(T.im), sgn(T.rs), int(T.basic)] : ['All industries', int(T.r0), int(T.n0), '1.00', int(T.basic), int(T.nonBasic)]);
+    const t = q<HTMLTableElement>('.lqs-tab'); t.innerHTML = '';
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody();
+    rows.forEach((row, ri) => { const tr = b.insertRow(); if (ri === rows.length - 1) tr.className = 'lqs-tot'; row.forEach((v, i) => { const td = tr.insertCell(); td.textContent = v; td.className = i ? 'r' : ''; const lqCol = two ? i === 2 : i === 3; if (lqCol && ri < r.rows.length && (two ? r.rows[ri].lq1 : r.rows[ri].lq0) > 1.25) td.classList.add('lqs-hi'); }); });
+
+    const top = [...r.rows].sort((a, b2) => (two ? b2.lq1 - a.lq1 : b2.lq0 - a.lq0))[0];
+    q('.lqs-note').textContent = `${top.name} is the most concentrated industry (LQ ${f2(two ? top.lq1 : top.lq0)}): the region has ${f2(two ? top.lq1 : top.lq0)} times the reference area's share of jobs in it. LQs above 1.25 are in bold. ` +
+      (two ? `National share is the change if every industry had grown at the reference area's overall rate (${pct(r.G)}); industry mix is the extra from the region's mix of fast- or slow-growing industries; regional shift is what is left, the region doing better or worse than the same industry elsewhere. ` : '') +
+      'The economic base multiplier is total jobs divided by basic jobs: each basic job goes with that many jobs in all. It is a rough guide: the LQ method assumes everyone consumes the same mix and ignores imports.';
+
+    csvRows = [two ? ['Industry', labels[0], labels[1], labels[2], labels[3], 'LQ year 1', 'LQ year 2', 'Region growth', 'Reference growth', 'Change', 'National share', 'Industry mix', 'Regional shift', 'Basic', 'Non-basic'] : ['Industry', labels[0], labels[2], 'LQ', 'Basic', 'Non-basic']];
+    for (const x of r.rows) csvRows.push(two ? [x.name, x.r0, x.r1, x.n0, x.n1, x.lq0, x.lq1, x.rGrowth, x.nGrowth, x.change, x.ns, x.im, x.rs, x.basic, x.nonBasic] : [x.name, x.r0, x.n0, x.lq0, x.basic, x.nonBasic]);
+    csvRows = csvRows.map((row) => row.map((v) => (typeof v === 'number' ? (Number.isFinite(v) ? +v.toPrecision(10) : '') : v)));
+
+    report = [
+      { title: 'Summary', facts: [['Economic base multiplier', Number.isFinite(r.multiplier) ? sig(r.multiplier, 3) : 'no basic jobs'], ...facts] },
+      { title: 'Location quotients', figure: fig1 },
+      ...(fig2 ? [{ title: 'Shift-share', figure: fig2 }] : []),
+      { title: 'By industry', table: { head, rows, align: head.map((_, i) => (i ? 'r' : 'l') as 'l' | 'r') }, note: q('.lqs-note').textContent! },
+    ];
+  }
+
+  let tm = 0;
+  root.addEventListener('input', () => { root.dataset.busy = '1'; clearTimeout(tm); tm = window.setTimeout(calc, 250); });
+  q('.lqs-year').addEventListener('change', calc);
+  q('.lqs-csv').addEventListener('click', () => csvRows.length > 1 && save(new Blob([csv(csvRows)], { type: 'text/csv' }), 'location-quotients-shift-share.csv', 'text/csv'));
+  wireDownloads(q('.dl'), () => ({ title: 'Location quotients and shift-share', file: 'location-quotients-shift-share', sections: report }));
+  new MutationObserver(() => calc()).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+  calc();
+</script>

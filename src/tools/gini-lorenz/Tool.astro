@@ -1,0 +1,159 @@
+---
+// Inequality: Gini, Lorenz curve, Palma, quantile shares, Theil and Atkinson from incomes (optionally weighted)
+// or grouped data. The examples are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const raw = 'Income (thousands)\n12\n18\n22\n25\n28\n31\n35\n38\n42\n47\n52\n58\n66\n75\n90\n110\n140\n210';
+const grouped = 'Group\tPopulation (%)\tIncome share (%)\nPoorest fifth\t20\t6.5\nSecond\t20\t11\nMiddle\t20\t15.5\nFourth\t20\t22\nRichest fifth\t20\t45';
+---
+<div class="ax gl">
+  <div class="ax-card">
+    <h2>Your data</h2>
+    <div class="ax-seg gl-mode" role="group" aria-label="Data type">
+      <button type="button" data-m="raw" aria-pressed="true">Incomes</button><button type="button" data-m="grp" aria-pressed="false">Grouped (shares)</button>
+    </div>
+    <div class="gl-p" data-m="raw">
+      <label style="margin-top:10px">One income per row (household or person). An optional second column is a weight, such as household size or a survey weight. A header row is optional.
+        <textarea class="gl-raw" rows="9" spellcheck="false" wrap="off">{raw}</textarea></label>
+      <DataFile target=".gl-raw" maxCols={4} maxRows={200000} />
+      <p class="ax-help">Incomes must be zero or more. The example incomes are made up.</p>
+    </div>
+    <div class="gl-p" data-m="grp" hidden>
+      <label style="margin-top:10px">One row per group, poorest first or in any order: a name (optional), its population (count or %), and its income (total or % share).
+        <textarea class="gl-grp" rows="7" spellcheck="false" wrap="off">{grouped}</textarea></label>
+      <DataFile target=".gl-grp" maxCols={4} maxRows={1000} />
+      <p class="ax-help">With groups, people inside a group are treated as equal, so the Gini and the other indices are lower bounds. The example shares are made up.</p>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Atkinson inequality aversion ε <input class="gl-eps" value="0.5, 1, 2" /></label>
+    </div>
+    <p class="ax-help">ε says how much weight the Atkinson index puts on the poorest: 0.5 is mild, 2 is strong.</p>
+    <p class="ax-err gl-err" hidden></p>
+  </div>
+
+  <div class="ax-card gl-out">
+    <h2>Inequality</h2>
+    <p class="ax-big gl-big"></p>
+    <dl class="ax-facts gl-facts"></dl>
+    <canvas class="ax-fig gl-fig" style="margin-top:12px"></canvas>
+    <h3>Income shares</h3>
+    <div class="ax-scroll"><table class="gl-tab"></table></div>
+    <p class="ax-help gl-note"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small gl-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .gl .gl-tab td.r, .gl .gl-tab th.r { text-align: right; }
+</style>
+
+<script>
+  import { inequality, atkinson, fromGroups } from '../../lib/sci/gini';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.gl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let mode = 'raw', fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+  const f3 = (x: number) => (Number.isFinite(x) ? x.toFixed(3) : x === Infinity ? '∞' : '–');
+  const pc = (x: number) => (Number.isFinite(x) ? `${(100 * x).toFixed(1)} %` : '–');
+  function fact(k: string, val: string, sm = '') { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; }
+
+  function readRaw(): { x: number[]; w?: number[] } {
+    const rows = parseTable(q<HTMLTextAreaElement>('.gl-raw').value);
+    const body = rows.length && !Number.isFinite(num(rows[0][0])) ? rows.slice(1) : rows;
+    const x: number[] = [], w: number[] = [];
+    let weighted = false;
+    body.forEach((r, i) => {
+      const v = num(r[0]);
+      if (!Number.isFinite(v)) throw new Error(`Row ${i + 1}: "${r[0]}" is not a number.`);
+      if (v < 0) throw new Error(`Row ${i + 1}: incomes cannot be negative (${r[0]}).`);
+      x.push(v);
+      if (r.length > 1 && r[1].trim() !== '') { const ww = num(r[1]); if (!(ww >= 0)) throw new Error(`Row ${i + 1}: the weight "${r[1]}" must be a number of zero or more.`); w.push(ww); weighted = true; } else w.push(1);
+    });
+    if (x.length < 2) throw new Error('Give at least two incomes.');
+    return { x, w: weighted ? w : undefined };
+  }
+  function readGrp(): { x: number[]; w: number[]; names: string[] } {
+    const rows = parseTable(q<HTMLTextAreaElement>('.gl-grp').value);
+    const isNum = (c?: string) => c !== undefined && Number.isFinite(num(c));
+    const body = rows.length && !isNum(rows[0][rows[0].length - 1]) ? rows.slice(1) : rows;
+    const pop: number[] = [], inc: number[] = [], names: string[] = [];
+    body.forEach((r, i) => {
+      const cells = isNum(r[0]) ? r : r.slice(1);
+      names.push(isNum(r[0]) ? `Group ${i + 1}` : r[0]);
+      const p = num(cells[0]), v = num(cells[1]);
+      if (!(p > 0)) throw new Error(`Row ${i + 1}: the population "${cells[0] ?? ''}" must be a number above zero.`);
+      if (!(v >= 0)) throw new Error(`Row ${i + 1}: the income "${cells[1] ?? ''}" must be a number of zero or more.`);
+      pop.push(p); inc.push(v);
+    });
+    if (pop.length < 2) throw new Error('Give at least two groups.');
+    const g = fromGroups(pop, inc);
+    return { ...g, names };
+  }
+
+  function calc() {
+    const err = q('.gl-err'), fail = (m: string) => { err.textContent = m; err.hidden = false; q('.gl-out').hidden = true; fig = null; sections = []; csvRows = []; };
+    err.hidden = true;
+    let x: number[], w: number[] | undefined;
+    try { if (mode === 'raw') ({ x, w } = readRaw()); else ({ x, w } = readGrp()); } catch (e) { return fail((e as Error).message); }
+    const tot = x.reduce((s, v, i) => s + v * (w ? w[i] : 1), 0);
+    if (!(tot > 0)) return fail('The total income is zero, so shares cannot be worked out.');
+    const eps = q<HTMLInputElement>('.gl-eps').value.split(/[,;\s]+/).filter(Boolean).map(num);
+    if (eps.some((e) => !(e >= 0 && e <= 10))) return fail('Atkinson ε values must be between 0 and 10.');
+    const r = inequality(x, w);
+    q('.gl-out').hidden = false;
+    q('.gl-big').textContent = `Gini ${f3(r.gini)}`;
+    const atk = eps.slice(0, 6).map((e) => [e, atkinson(x, w, e)] as const);
+    const facts = [
+      ...(mode === 'raw' && Number.isFinite(r.giniSample) ? [fact('Gini, sample-corrected', f3(r.giniSample), `× n/(n − 1) for a sample of ${r.n}`)] : []),
+      fact('Palma ratio', f3(r.palma), 'share of the top 10 % ÷ share of the bottom 40 %'),
+      fact('Top 10 % share', pc(r.top10)), fact('Bottom 40 % share', pc(r.bottom40)), fact('Top 1 % share', pc(r.top1), mode === 'grp' ? 'within the top group, spread evenly' : ''),
+      fact('Theil T', f3(r.theilT), '0 is equal; ln(n) when one has everything'),
+      fact('Theil L (mean log deviation)', f3(r.theilL), Number.isFinite(r.theilL) ? '' : 'not defined when someone has zero income'),
+      ...atk.map(([e, a]) => fact(`Atkinson (ε = ${+e.toPrecision(3)})`, f3(a), Number.isFinite(a) ? `the same welfare with ${pc(1 - a)} of the income shared equally` : '')),
+      ...(mode === 'raw' ? [fact('P90/P10', f3(r.p90p10), 'income at the 90th ÷ 10th percentile')] : []),
+      fact('Mean income', mode === 'raw' ? sig(r.mean, 5) : '–', mode === 'raw' ? `${w ? 'weighted, ' : ''}${r.n} ${r.n === 1 ? 'income' : 'incomes'}${w ? `, total weight ${sig(r.totalWeight, 6)}` : ''}` : 'shares only'),
+    ];
+    q('.gl-facts').replaceChildren(...facts);
+    // Quintile table.
+    const names = ['Poorest 20 %', 'Second 20 %', 'Middle 20 %', 'Fourth 20 %', 'Richest 20 %'];
+    let cum = 0;
+    const rows = r.quintiles.map((s, i) => { cum += s; return [names[i], pc(s), pc(cum)]; });
+    const t = q<HTMLTableElement>('.gl-tab'); t.replaceChildren();
+    const head = ['Quintile', 'Share of income', 'Cumulative'];
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const tb = t.createTBody(); rows.forEach((rr) => { const tr = tb.insertRow(); rr.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); });
+    q('.gl-note').textContent = `With perfect equality each fifth would have 20 %. The Gini is twice the area between the Lorenz curve and the line of equality: 0 is perfect equality and 1 is one person with everything. ${mode === 'grp' ? 'Shares between group edges are read off the straight line between them.' : ''}`.trim();
+    // Lorenz curve: thin the points for very large data.
+    const L = r.lorenz, step = Math.max(1, Math.floor(L.p.length / 2000));
+    const px: number[] = [], py: number[] = [];
+    for (let i = 0; i < L.p.length; i += step) { px.push(100 * L.p[i]); py.push(100 * L.l[i]); }
+    if (px[px.length - 1] !== 100) { px.push(100); py.push(100); }
+    fig = chartFigure({ h: 380, xMin: 0, xMax: 100, yMin: 0, yMax: 100, xLabel: 'Share of people, poorest first (%)', yLabel: 'Share of income (%)', legend: 'below', series: [
+      { name: 'Line of equality', x: [0, 100], y: [0, 100], mode: 'line', dash: [5, 4] },
+      { name: `Lorenz curve (Gini ${f3(r.gini)})`, x: px, y: py, mode: L.p.length <= 30 ? 'both' : 'line', marker: 'circle', width: 2.2 },
+    ] }, `Lorenz curve, Gini ${f3(r.gini)}`);
+    paint(q<HTMLCanvasElement>('.gl-fig'), fig);
+    const fl = facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    csvRows = [['Measure', 'Value'], ['Gini', String(r.gini)], ...fl.map(([k, v]) => [k, v]), [], head, ...rows, [], ['Population share', 'Income share'], ...L.p.map((p, i) => [String(p), String(L.l[i])])];
+    sections = [{ title: q('.gl-big').textContent!, facts: fl, figure: fig, table: { head, rows, align: ['l', 'r', 'r'] }, note: q('.gl-note').textContent! }];
+  }
+  function setMode(m: string) {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.gl-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.gl-p').forEach((p) => (p.hidden = p.dataset.m !== m));
+    calc();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.gl-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  root.querySelectorAll('textarea, input').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.gl-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'inequality.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.gl-fig'), fig); });
+  setMode('raw');
+  wireDownloads(q('.dl'), () => ({ title: 'Inequality: Gini and Lorenz curve', subtitle: q('.gl-big').textContent ?? '', file: 'gini-lorenz', sections }));
+</script>

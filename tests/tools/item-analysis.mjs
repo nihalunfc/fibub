@@ -1,0 +1,50 @@
+// #764 Item analysis: the made-up example, key options, scored mode, group sizes, distractors, CSVs, bad input.
+export const path = '/science/item-analysis/';
+export default async ({ page, check, BASE, OUT, readFileSync }) => {
+  await page.goto(BASE + path);
+  await page.waitForSelector('.ia-out:not([hidden])');
+  const TXT = (sel) => [...document.querySelectorAll(sel + ' tr')].map((r) => [...r.cells].map((c) => c.textContent).join(' ')).join(' | ');
+  const f = await page.textContent('.ia-facts');
+  check(/30, 10/.test(f) && /4\.30 of 10/.test(f) && /KR-20 reliability0\.761/.test(f) && /measurement1\.27/.test(f) && /8 each/.test(f), `items: whole test (${f})`);
+  let it = await page.evaluate(TXT, '.ia-items');
+  check(/Q1 \(B\) 0\.83 0\.50 very good 0\.44 0\.31 0\.755 –/.test(it) && /Q7 \(C\) 0\.13 .*very hard/.test(it) && /Q3 \(A\) 0\.57 0\.50 very good 0\.42 0\.24 0\.768 lowers KR-20/.test(it), `items: item table (${it.slice(0, 220)})`);
+  check((await page.$eval('.ia-item', (s) => s.value)) === '0' && /^B ✓ 25/.test(await page.evaluate(TXT, '.ia-dis').then((t) => t.split(' | ')[1])), 'items: Q1 distractors shown first');
+  await page.selectOption('.ia-item', '9');
+  const dis = await page.evaluate(TXT, '.ia-dis');
+  check(/A ✓ 12 40 % 88 % 0 % 0\.68/.test(dis) && /B 6 20 % 0 % 38 % −0\.35/.test(dis) && /\(blank\) 1/.test(dis), `items: Q10 distractors (${dis})`);
+  // Key typed in the box wins over the Key row.
+  await page.fill('.ia-key', 'BDACABCDBB');
+  await page.waitForFunction(() => /Q10 \(B\)/.test(document.querySelector('.ia-items').textContent));
+  check(/check key/.test(await page.evaluate(TXT, '.ia-items')), 'items: a wrong key shows up as check key');
+  await page.fill('.ia-key', 'B D A');
+  await page.waitForFunction(() => /key has 3 answers but there are 10/.test(document.querySelector('.ia-err').textContent));
+  check(true, 'items: short key refused');
+  await page.fill('.ia-key', '');
+  await page.selectOption('.ia-frac', '0.5');
+  await page.waitForFunction(() => /15 each/.test(document.querySelector('.ia-facts').textContent));
+  check(true, 'items: 50 % groups');
+  await page.selectOption('.ia-frac', '0.27');
+  await page.waitForFunction(() => /8 each/.test(document.querySelector('.ia-facts').textContent));
+  const [d] = await Promise.all([page.waitForEvent('download'), page.click('.ia-csv-i')]);
+  const fi = OUT + 'ia-i.csv'; await d.saveAs(fi);
+  const ci = readFileSync(fi, 'utf8').trim().split('\n');
+  check(ci[0] === 'Question,Key,p,D,Point-biserial,Corrected r,KR-20 if dropped,Check' && /^Q1,B,0\.833333,0\.5,0\.437075/.test(ci[1]) && ci.length === 11, `items: items CSV (${ci[1]})`);
+  const [d2] = await Promise.all([page.waitForEvent('download'), page.click('.ia-csv-s')]);
+  const fs = OUT + 'ia-s.csv'; await d2.saveAs(fs);
+  const cs = readFileSync(fs, 'utf8').trim().split('\n');
+  check(cs[0] === 'ID,Score,Percent' && /^S01,\d+,/.test(cs[1]) && cs.length === 31, `items: scores CSV (${cs[1]})`);
+  const [w] = await Promise.all([page.waitForEvent('download'), page.click('.ia .dl button[data-f=docx]')]);
+  check(/\.docx$/.test(w.suggestedFilename()), 'items: Word report');
+  // Scored mode.
+  await page.selectOption('.ia-form', 'scored');
+  await page.fill('.ia-in', 'Name\tA\tB\tC\nAna\t1\t1\t1\nBo\t1\t1\t0\nCy\t1\t0\t0\nDee\t0\t0\t0');
+  await page.waitForFunction(() => /KR-20 reliability0\.750/.test(document.querySelector('.ia-facts').textContent));
+  check(await page.isHidden('.ia-dw') && await page.isHidden('.ia-kl'), 'items: scored mode, no distractors or key');
+  await page.fill('.ia-in', 'A\tB\n1\t2\n0\t1');
+  await page.waitForFunction(() => /"2" for Row 1 \(B\) is not 0 or 1/.test(document.querySelector('.ia-err').textContent));
+  check(true, 'items: non 0/1 score refused');
+  await page.selectOption('.ia-form', 'key');
+  await page.fill('.ia-in', 'S1\tA\tB\nS2\tB\tB');
+  await page.waitForFunction(() => /Type the answer key/.test(document.querySelector('.ia-err').textContent));
+  check(true, 'items: missing key asked for');
+};

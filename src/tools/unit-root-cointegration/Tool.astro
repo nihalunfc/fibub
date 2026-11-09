@@ -1,0 +1,279 @@
+---
+// Unit root and cointegration tests: ADF, KPSS and Engle-Granger, with critical values and p-values from a
+// seeded Monte Carlo simulation run in small chunks on this page. Maths in src/lib/sci/unitroot.ts.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import example from './example.csv?raw';
+---
+<div class="ax ur">
+  <div class="ax-card">
+    <h2>Your time series</h2>
+    <label>One column per series, oldest first, with a header row. The sample is made up: 120 months of three prices.
+      <textarea class="ur-in" rows="7" spellcheck="false" wrap="off">{example.trim()}</textarea></label>
+    <DataFile target=".ur-in" maxCols={20} maxRows={5000} />
+  </div>
+
+  <div class="ax-card">
+    <h2>Test</h2>
+    <div class="ax-seg ur-mode" role="group" aria-label="Test">
+      <button type="button" data-m="adf" aria-pressed="true">ADF</button><button type="button" data-m="kpss" aria-pressed="false">KPSS</button><button type="button" data-m="eg" aria-pressed="false">Engle-Granger</button>
+    </div>
+    <p class="ax-help ur-what"></p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="ur-ow" data-show="adf kpss">Series <select class="ur-col"></select></label>
+      <label class="ur-ow" data-show="eg">Dependent series (y) <select class="ur-y"></select></label>
+      <label>Deterministic terms <select class="ur-reg"></select></label>
+      <label>Lags <select class="ur-lagm"></select></label>
+      <label class="ur-lagw"><span class="ur-lagl">Largest lag to try</span> <input class="ur-lag" inputmode="numeric" placeholder="automatic" /></label>
+    </div>
+    <div class="ur-ow" data-show="eg">
+      <h3>Other series in the cointegrating regression</h3>
+      <div class="ur-list ur-xs"></div>
+    </div>
+    <details class="ur-sim">
+      <summary>Simulation settings</summary>
+      <div class="ax-grid" style="margin-top:8px">
+        <label>Simulated samples <select class="ur-reps"><option value="2000">2,000 (quick)</option><option value="10000" selected>10,000</option><option value="50000">50,000 (slow, precise)</option></select></label>
+        <label>Random seed <input class="ur-seed" inputmode="numeric" value="1" /></label>
+      </div>
+    </details>
+    <p class="ax-help ur-lagh"></p>
+    <p class="ax-err ur-err" hidden></p>
+  </div>
+
+  <div class="ax-card ur-out" hidden>
+    <h2 class="ur-h"></h2>
+    <p class="ax-big ur-big"></p>
+    <p class="ur-verdict"></p>
+    <dl class="ax-facts ur-facts"></dl>
+    <h3>Critical values (simulated)</h3>
+    <p class="ax-help ur-status" aria-live="polite"></p>
+    <div class="ax-scroll"><table class="ur-crit"></table></div>
+    <canvas class="ax-fig ur-fig2"></canvas>
+    <h3 class="ur-h1"></h3>
+    <canvas class="ax-fig ur-fig1"></canvas>
+    <p class="ax-help ur-note"></p>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small ur-csv">Results as CSV</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .ur h3 { font-size: 15px; margin: 14px 0 6px; }
+  .ur .ur-list { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+  .ur .ur-sim { margin-top: 12px; font-size: 14px; }
+  .ur .ur-sim summary { cursor: pointer; color: var(--accent); }
+  .ur .ur-verdict { font-weight: 600; margin: 0 0 12px; }
+  .ur .ur-crit td, .ur .ur-crit th { white-space: nowrap; }
+</style>
+
+<script>
+  import { parseTable, num, sig } from '../../lib/sci/num';
+  import { readColumns } from '../../lib/sci/econometrics';
+  import { adf, kpss, engleGranger, simulateNull, normalRng, criticalValues, simPValue, quantile, type NullSpec } from '../../lib/sci/unitroot';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ur')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string, el: ParentNode = root) => el.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c);
+  let mode = 'adf', report: Section[] = [], csvRows: string[][] = [], figs: (Figure | null)[] = [null, null], lastHead = '', token = 0;
+  const cache = new Map<string, number[]>();
+  const WHAT: Record<string, string> = {
+    adf: 'Augmented Dickey-Fuller: the null hypothesis is a unit root (the series wanders and does not return to a mean). A small p-value says the series is stationary.',
+    kpss: 'KPSS: the null hypothesis is the opposite, that the series is stationary. A small p-value says it is not. Use it alongside ADF.',
+    eg: 'Engle-Granger: regress one series on the others, then test the residuals for a unit root. The null is no cointegration; a small p-value says the series move together in the long run.',
+  };
+  const REG: Record<string, [string, string][]> = {
+    adf: [['c', 'Constant'], ['ct', 'Constant and trend'], ['n', 'None']],
+    kpss: [['c', 'Level (constant)'], ['ct', 'Trend']],
+    eg: [['c', 'Constant'], ['ct', 'Constant and trend']],
+  };
+  const LAGS: Record<string, [string, string][]> = {
+    adf: [['aic', 'Chosen by AIC'], ['bic', 'Chosen by BIC'], ['fixed', 'Fixed number']],
+    kpss: [['auto', 'Automatic (Hobijn et al.)'], ['legacy', 'Schwert rule'], ['fixed', 'Fixed number']],
+    eg: [['aic', 'Chosen by AIC'], ['bic', 'Chosen by BIC'], ['fixed', 'Fixed number']],
+  };
+  const f3 = (x: number) => (Number.isFinite(x) ? x.toFixed(3).replace('-', '−') : '–');
+  const pTxt = (p: number) => (p < 0.001 ? String(+p.toPrecision(2)) : p.toFixed(3));
+
+  function fillSel(s: HTMLSelectElement, list: [string, string][]) {
+    const old = s.value; s.innerHTML = '';
+    for (const [v, t] of list) s.add(new Option(t, v));
+    s.value = list.some(([v]) => v === old) ? old : list[0][0];
+  }
+  function readData() {
+    const { head, cols, n } = readColumns(parseTable(q<HTMLTextAreaElement>('.ur-in').value));
+    const numeric = head.filter((h) => cols[h].filter((c) => c !== '').length >= 2 && cols[h].every((c) => c === '' || Number.isFinite(num(c))));
+    if (!numeric.length) throw new Error('No column holds numbers. Paste one column per series with a header row.');
+    const key = numeric.join(',');
+    if (key !== lastHead) {
+      lastHead = key;
+      const opts = (s: HTMLSelectElement, pick: string) => { s.innerHTML = ''; for (const h of numeric) s.add(new Option(h, h)); s.value = numeric.includes(pick) ? pick : numeric[0]; };
+      const series = numeric.filter((h) => !/^(t|time|date|year|month|week|day|period|obs|id)$/i.test(h));
+      opts(sel('.ur-col'), series[0] ?? numeric[0]);
+      opts(sel('.ur-y'), numeric.includes('price_b') ? 'price_b' : series[0] ?? numeric[0]);
+      const box = q('.ur-xs'); box.innerHTML = '';
+      for (const h of numeric) {
+        const l = document.createElement('label'), c = document.createElement('input');
+        l.className = 'ax-check'; c.type = 'checkbox'; c.value = h;
+        c.checked = numeric.includes('price_a') ? h === 'price_a' : h === (series[1] ?? '');
+        l.append(c, ' ' + h); box.append(l);
+      }
+    }
+    return { cols, n };
+  }
+  /** The numbers of one column, with blank rows at the start or end trimmed; blanks inside are an error. */
+  function series(cols: Record<string, string[]>, h: string) {
+    const v = cols[h].map((c) => (c === '' ? NaN : num(c)));
+    let a = 0, b = v.length;
+    while (a < b && !Number.isFinite(v[a])) a++;
+    while (b > a && !Number.isFinite(v[b - 1])) b--;
+    const s = v.slice(a, b), gap = s.findIndex((x) => !Number.isFinite(x));
+    if (gap >= 0) throw new Error(`"${h}" has a blank or text in row ${a + gap + 1}. Time series tests need an unbroken series.`);
+    return { s, a };
+  }
+  function lagSetting(): { auto: 'aic' | 'bic' | null; n?: number; kp?: 'auto' | 'legacy' | number } {
+    const m = sel('.ur-lagm').value, t = q<HTMLInputElement>('.ur-lag').value.trim();
+    const v = t === '' ? undefined : num(t);
+    if (v !== undefined && !(Number.isInteger(v) && v >= 0)) throw new Error('The number of lags must be a whole number of 0 or more.');
+    if (mode === 'kpss') return { auto: null, kp: m === 'fixed' ? (v ?? 0) : (m as 'auto' | 'legacy') };
+    if (m === 'fixed' && v === undefined) throw new Error('Enter the number of lags.');
+    return { auto: m === 'fixed' ? null : (m as 'aic' | 'bic'), n: v };
+  }
+
+  function draw(stat: number, d: number[] | null, lower: boolean) {
+    if (!d) return;
+    const lo = Math.min(quantile(d, 0.001), stat), hi = Math.max(quantile(d, 0.999), stat), bins = 50, w = (hi - lo) / bins || 1;
+    const h = new Array(bins).fill(0);
+    for (const x of d) { const i = Math.min(bins - 1, Math.max(0, Math.floor((x - lo) / w))); if (x >= lo && x <= hi) h[i]++; }
+    const xs = h.map((_, i) => lo + (i + 0.5) * w), ys = h.map((c) => c / (d.length * w));
+    figs[1] = chartFigure({
+      xLabel: 'Test statistic', yLabel: 'Density under the null', legend: 'none',
+      series: [{ name: 'Simulated null distribution', x: xs, y: ys, mode: 'line' }],
+      marks: [{ kind: 'vline', at: stat, label: 'your data', dash: [] }, { kind: 'vline', at: quantile(d, lower ? 0.05 : 0.95), label: '5 %', dash: [4, 4] }],
+    }, 'Simulated distribution of the statistic under the null hypothesis, with the value from your data');
+    paint(q<HTMLCanvasElement>('.ur-fig2'), figs[1]);
+  }
+
+  async function calc() {
+    const my = ++token, err = q('.ur-err');
+    let res: { stat: number; title: string; facts: [string, string][]; spec: NullSpec; lower: boolean; plot: { name: string; x: number[]; y: number[] }[]; plotTitle: string; nullTxt: string; altTxt: string; note: string };
+    try {
+      const { cols } = readData();
+      const reg = sel('.ur-reg').value as 'c', lag = lagSetting();
+      if (mode === 'adf' || mode === 'kpss') {
+        const h = sel('.ur-col').value, { s, a } = series(cols, h), t = s.map((_, i) => a + i + 1);
+        if (s.length < 10) throw new Error(`"${h}" has only ${s.length} values. Unit-root tests need at least 10, and many more to have any power.`);
+        if (mode === 'adf') {
+          const r = adf(s, { regression: reg as 'c', autolag: lag.auto, maxlag: lag.n });
+          res = {
+            stat: r.stat, title: `ADF test on ${h}`, lower: true, spec: { test: 'adf', regression: reg, T: r.nobs },
+            facts: [['Lags of Δ used', `${r.usedLag}${lag.auto ? ` (by ${lag.auto.toUpperCase()}, 0 to ${r.maxlag} tried)` : ''}`], ['Rows in the regression', String(r.nobs)], ['Coefficient on the lagged level', `${sig(r.gamma, 4)} (SE ${sig(r.seGamma, 3)})`], ['Deterministic terms', REG.adf.find(([v]) => v === reg)![1]]],
+            plot: [{ name: h, x: t, y: s }], plotTitle: `The series ${h}`, nullTxt: 'a unit root', altTxt: 'a stationary series',
+            note: 'The ADF statistic is the t ratio of the lagged level in a regression of the change on the lagged level, lagged changes and the deterministic terms. It is compared with the Dickey-Fuller distribution, not the t distribution.',
+          };
+        } else {
+          const r = kpss(s, { regression: reg as 'c', nlags: lag.kp });
+          res = {
+            stat: r.stat, title: `KPSS test on ${h}`, lower: false, spec: { test: 'kpss', regression: reg as 'c', n: r.nobs, lags: r.lags },
+            facts: [['Lags (Bartlett window)', String(r.lags)], ['Observations', String(r.nobs)], ['Stationary around', reg === 'c' ? 'a constant level' : 'a straight-line trend']],
+            plot: [{ name: h, x: t, y: s }], plotTitle: `The series ${h}`, nullTxt: reg === 'c' ? 'level stationarity' : 'trend stationarity', altTxt: 'a unit root',
+            note: 'KPSS adds up the deviations from the mean (or trend) and compares their size with the long-run variance. Large values mean the series drifts away: not stationary.',
+          };
+        }
+      } else {
+        const y = sel('.ur-y').value, xs = [...root.querySelectorAll<HTMLInputElement>('.ur-xs input:checked')].map((i) => i.value).filter((h) => h !== y);
+        if (!xs.length) throw new Error('Tick at least one other series for the cointegrating regression.');
+        if (xs.length > 5) throw new Error('Use at most 5 other series.');
+        const keep: number[] = [], all = [y, ...xs], n = cols[y].length;
+        for (let i = 0; i < n; i++) if (all.every((h) => Number.isFinite(num(cols[h][i])))) keep.push(i);
+        if (keep.length && keep[keep.length - 1] - keep[0] + 1 !== keep.length) throw new Error('The series have blanks in the middle. Engle-Granger needs unbroken series of the same length.');
+        if (keep.length < 20) throw new Error('Engle-Granger needs at least 20 rows where every chosen series has a value.');
+        const Y = keep.map((i) => num(cols[y][i])), X = keep.map((i) => xs.map((h) => num(cols[h][i])));
+        const r = engleGranger(Y, X, { trend: reg as 'c', autolag: lag.auto, maxlag: lag.n });
+        const eq = `${y} = ${r.coefs.slice(xs.length).map((c, j) => (j === 0 ? sig(c, 4) : `${sig(c, 4)}·t`)).join(' + ')} + ${xs.map((h, j) => `${sig(r.coefs[j], 4)}·${h}`).join(' + ')}`.replace(/\+ −/g, '− ');
+        res = {
+          stat: r.stat, title: `Engle-Granger test: ${y} on ${xs.join(', ')}`, lower: true, spec: { test: 'eg', trend: reg as 'c', n: Y.length, k: xs.length + 1 },
+          facts: [['Cointegrating regression', eq], ['Lags in the residual ADF', `${r.usedLag}${lag.auto ? ` (by ${lag.auto.toUpperCase()})` : ''}`], ['Rows', String(Y.length)], ['Series', String(xs.length + 1)]],
+          plot: [{ name: 'Residuals', x: keep.map((i) => i + 1), y: r.resid }], plotTitle: 'Residuals of the cointegrating regression', nullTxt: 'no cointegration', altTxt: 'cointegration',
+          note: 'Step 1 regresses y on the other series; step 2 runs an ADF test without a constant on the residuals. The critical values depend on the number of series, so they are simulated with the same number of independent random walks.',
+        };
+      }
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.ur-out').hidden = true; report = []; csvRows = []; return; }
+    err.hidden = true; q('.ur-out').hidden = false;
+    q('.ur-h').textContent = res.title;
+    q('.ur-big').textContent = `${mode === 'kpss' ? 'KPSS' : 'ADF'} statistic = ${f3(res.stat)}`;
+    const dl = q('.ur-facts'); dl.innerHTML = '';
+    for (const [k, v] of res.facts) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d); }
+    q('.ur-h1').textContent = res.plotTitle;
+    figs[0] = chartFigure({ xLabel: 'Row', yLabel: res.plot[0].name, legend: 'none', series: res.plot.map((p) => ({ ...p, mode: 'line' as const })), marks: mode === 'eg' ? [{ kind: 'hline', at: 0, dash: [4, 4] }] : [] }, res.plotTitle);
+    paint(q<HTMLCanvasElement>('.ur-fig1'), figs[0]);
+    q('.ur-note').textContent = res.note + ' Critical values and p-values come from a seeded simulation on this page, not from published tables: run it again with another seed or more samples to see how stable they are.';
+    // Simulate the null distribution in small chunks so the page stays responsive.
+    const reps = Number(sel('.ur-reps').value), seedN = num(q<HTMLInputElement>('.ur-seed').value), seed = Number.isFinite(seedN) ? Math.round(seedN) : 1;
+    const key = JSON.stringify([res.spec, reps, seed]);
+    let d = cache.get(key) ?? null;
+    const status = q('.ur-status'), crit = q<HTMLTableElement>('.ur-crit');
+    if (!d) {
+      crit.innerHTML = ''; q('.ur-verdict').textContent = '';
+      const rand = normalRng(seed), out: number[] = [];
+      const size = res.spec.test === 'eg' ? res.spec.n * res.spec.k * 3 : res.spec.test === 'adf' ? res.spec.T : res.spec.n;
+      const chunk = Math.max(20, Math.floor(400000 / Math.max(1, size)));
+      while (out.length < reps) {
+        status.textContent = `Simulating ${reps.toLocaleString('en')} samples under the null… ${Math.round((100 * out.length) / reps)} %`;
+        const part = simulateNull(res.spec, Math.min(chunk, reps - out.length), rand);
+        for (const x of part) out.push(x);
+        await new Promise((r) => setTimeout(r, 0));
+        if (my !== token) return;
+      }
+      d = out.filter(Number.isFinite).sort((a, b) => a - b);
+      cache.set(key, d);
+      if (cache.size > 20) cache.delete(cache.keys().next().value!);
+    }
+    const p = simPValue(d, res.stat, res.lower), cv = criticalValues(d, res.lower);
+    status.textContent = `From ${d.length.toLocaleString('en')} simulated samples (seed ${seed}). The p-value's simulation error is about ±${(p.se * 1.96).toFixed(3)}.`;
+    const head = ['Level', 'Critical value', 'Reject the null?'];
+    const rows = cv.map((c) => [`${c.level * 100} %`, f3(c.value), (res.lower ? res.stat <= c.value : res.stat >= c.value) ? 'yes' : 'no']);
+    crit.innerHTML = '';
+    const hr = crit.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const body = crit.createTBody(); rows.forEach((r) => { const tr = body.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+    const rej = p.p < 0.05;
+    const pShow = p.p <= 1 / (d.length + 1) + 1e-15 ? `< ${pTxt(2 / (d.length + 1))}` : `= ${pTxt(p.p)}`;
+    q('.ur-verdict').textContent = `p ${pShow}: ${rej ? `reject ${res.nullTxt} at the 5 % level; the evidence points to ${res.altTxt}.` : `do not reject ${res.nullTxt} at the 5 % level.`}`;
+    draw(res.stat, d, res.lower);
+    const fl: [string, string][] = [['Statistic', f3(res.stat)], ['Simulated p-value', `${pShow.replace('= ', '')} (± ${(p.se * 1.96).toFixed(3)})`], ...res.facts, ['Simulation', `${d.length} samples, seed ${seed}`]];
+    report = [
+      { title: res.title, text: [q('.ur-verdict').textContent!], facts: fl },
+      { title: 'Critical values (simulated)', table: { head, rows, align: ['l', 'r', 'r'] }, figure: figs[1] ?? undefined },
+      { title: res.plotTitle, figure: figs[0]!, note: q('.ur-note').textContent! },
+    ];
+    csvRows = [['item', 'value'], ['test', res.title], ['statistic', String(res.stat)], ['p_value_simulated', String(p.p)], ['p_value_mc_se', String(p.se)], ...res.facts.map(([k, v]) => [k, v]), ...cv.map((c) => [`critical_value_${c.level * 100}pct`, String(c.value)]), ['simulated_samples', String(d.length)], ['seed', String(seed)]];
+  }
+
+  function show() {
+    root.querySelectorAll<HTMLElement>('.ur-ow').forEach((el) => (el.hidden = !el.dataset.show!.split(' ').includes(mode)));
+    const m = sel('.ur-lagm').value;
+    q('.ur-lagw').hidden = mode === 'kpss' && m !== 'fixed';
+    q('.ur-lagl').textContent = m === 'fixed' ? 'Number of lags' : 'Largest lag to try';
+    q('.ur-lagh').textContent = mode === 'kpss'
+      ? 'The lags set how many autocovariances go into the long-run variance (Bartlett weights). Automatic follows Hobijn, Franses and Ooms (1998).'
+      : m === 'fixed' ? 'Exactly this many lagged changes are added to soak up autocorrelation.' : `Every lag from 0 up to the largest (blank: 12 × (n/100)^¼) is tried on the same rows and the one with the lowest ${m.toUpperCase()} is kept. BIC picks shorter lags than AIC.`;
+  }
+  function setMode(m: string) {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.ur-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    q('.ur-what').textContent = WHAT[m];
+    fillSel(sel('.ur-reg'), REG[m]); fillSel(sel('.ur-lagm'), LAGS[m]);
+    show(); calc();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.ur-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  let t = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('textarea, input:not([type=checkbox])')) { clearTimeout(t); t = window.setTimeout(calc, 350); } });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select, input[type=checkbox]')) { show(); calc(); } });
+  q('.ur-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(csvRows.map((r) => r.map((c) => (/[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c)).join(',')).join('\n') + '\n'), `${mode}-test.csv`, 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (!q('.ur-out').hidden) { if (figs[0]) paint(q<HTMLCanvasElement>('.ur-fig1'), figs[0]); if (figs[1]) paint(q<HTMLCanvasElement>('.ur-fig2'), figs[1]); } });
+  setMode('adf');
+  wireDownloads(q('.ur .dl'), () => ({ title: 'Unit root and cointegration test', file: `${mode}-test`, sections: report }));
+</script>

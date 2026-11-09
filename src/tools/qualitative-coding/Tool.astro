@@ -1,0 +1,294 @@
+---
+// Qualitative coding: tag passages of your own texts with codes from a code book, then count, compare
+// (co-occurrence) and retrieve them. Optional keeping in this browser.
+import '../../styles/astro.css';
+---
+<div class="ax qc">
+  <div class="ax-card">
+    <h2>Documents</h2>
+    <div class="ax-grid">
+      <label>Document <select class="qc-doc"></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small qc-open">Open .txt files</button>
+      <input type="file" class="qc-file" accept=".txt,text/plain" multiple hidden />
+      <button type="button" class="btn secondary small qc-rmdoc">Remove this document</button>
+    </div>
+    <details class="qc-paste" style="margin-top:10px"><summary>Paste a document</summary>
+      <label style="margin-top:8px">Name <input class="qc-pname" placeholder="e.g. Interview 4" /></label>
+      <label style="margin-top:8px">Text <textarea class="qc-ptext" rows="5"></textarea></label>
+      <button type="button" class="btn secondary small qc-padd" style="margin-top:8px">Add document</button>
+    </details>
+    <p class="ax-err qc-derr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Code book</h2>
+    <p class="ax-help" style="margin:0 0 8px">Select a passage in the text below, then press a code to tag it. A passage can have several codes.</p>
+    <div class="qc-codes"></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>New code <input class="qc-cname" placeholder="e.g. Belonging" /></label>
+      <label>Colour <select class="qc-ccol"></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small qc-cadd">Add code</button></div>
+    <p class="ax-err qc-cerr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="qc-dh">Text</h2>
+    <p class="ax-help qc-sel" style="margin:0 0 8px">Nothing selected.</p>
+    <div class="qc-text" tabindex="0"></div>
+    <div class="qc-here" hidden></div>
+  </div>
+
+  <div class="ax-card qc-res">
+    <h2>Results</h2>
+    <h3 style="margin:0 0 6px">Passages per code and document</h3>
+    <div class="ax-scroll"><table class="qc-counts"></table></div>
+    <h3 style="margin:16px 0 6px">Code co-occurrence</h3>
+    <div class="ax-grid">
+      <label>Count <select class="qc-mode"><option value="overlap">Overlapping passages</option><option value="document">Documents with both codes</option></select></label>
+      <label>Show <select class="qc-show"><option value="n">Counts</option><option value="c">c-coefficient</option></select></label>
+    </div>
+    <div class="ax-scroll" style="margin-top:8px"><table class="qc-mat"></table></div>
+    <p class="ax-help qc-mnote"></p>
+    <h3 style="margin:16px 0 6px">Retrieve passages</h3>
+    <div class="ax-grid"><label>Code <select class="qc-rcode"></select></label></div>
+    <ol class="qc-ret"></ol>
+  </div>
+
+  <div class="ax-card">
+    <h2>Save, export and import</h2>
+    <label class="ax-check"><input type="checkbox" class="qc-keep" /> Keep my project in this browser</label>
+    <p class="ax-help">Off by default. When it is on, your documents, codes and passages are saved only in this browser on this device, so they are here next time. They are never sent anywhere. <b>Clear all</b> removes everything from the page and from this browser.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small qc-x" data-f="seg">Passages CSV</button>
+      <button type="button" class="btn secondary small qc-x" data-f="counts">Counts CSV</button>
+      <button type="button" class="btn secondary small qc-x" data-f="matrix">Co-occurrence CSV</button>
+      <button type="button" class="btn secondary small qc-x" data-f="json">Project JSON</button>
+      <button type="button" class="btn secondary small qc-imp">Import JSON</button>
+      <input type="file" class="qc-jfile" accept=".json,application/json" hidden />
+      <button type="button" class="btn secondary small qc-clear">Clear all</button>
+    </div>
+    <p class="ax-help qc-status"></p>
+    <p class="ax-err qc-ierr" hidden></p>
+  </div>
+</div>
+
+<style is:global>
+  .qc summary { cursor: pointer; font-size: 14px; }
+  .qc .qc-codes { display: grid; gap: 6px; }
+  .qc .qc-code { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .qc .qc-code .apply { display: inline-flex; align-items: center; gap: 8px; font: inherit; font-size: 15px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); cursor: pointer; text-align: left; }
+  .qc .qc-code .sw { width: 14px; height: 14px; border-radius: 3px; flex: none; }
+  .qc .qc-code .n { color: var(--muted); font-size: 13px; }
+  .qc .qc-code .del { font: inherit; font-size: 13px; padding: 4px 8px; border: 0; background: none; color: var(--muted); cursor: pointer; text-decoration: underline; }
+  .qc .qc-text { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 16px; line-height: 1.9; max-height: 60vh; overflow-y: auto; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+  .qc .qc-text span[data-c] { border-radius: 2px; cursor: pointer; }
+  .qc .qc-here { margin-top: 10px; font-size: 14px; display: grid; gap: 6px; }
+  .qc .qc-here button { font: inherit; font-size: 13px; padding: 3px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); cursor: pointer; margin-left: 8px; }
+  .qc .qc-ret { padding-left: 22px; margin: 8px 0 0; display: grid; gap: 8px; }
+  .qc .qc-ret li { overflow-wrap: anywhere; }
+  .qc .qc-ret small { display: block; color: var(--muted); font-size: 12.5px; }
+  .qc .qc-mat td.r, .qc .qc-counts td.r { font-variant-numeric: tabular-nums; }
+  .qc .qc-mat td.diag { color: var(--muted); }
+</style>
+
+<script>
+  import { PALETTE, trimRange, pieces, codeCounts, cooccurrence, retrieve, segmentsCsv, countsCsv, matrixCsv, toJson, fromJson, type Project, type QSeg } from '../../lib/sci/qualcode';
+  import { save } from '../../lib/report';
+
+  const KEY = 'fibub-qualcode-v1';
+  const root = document.querySelector<HTMLElement>('.qc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c);
+  const newId = (p: string) => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const COLOR_NAMES = ['Blue', 'Vermilion', 'Green', 'Pink', 'Orange', 'Sky blue', 'Purple', 'Brown'];
+
+  function example(): Project {
+    const docs = [
+      { id: 'd1', name: 'Interview 1', text: 'I moved here for work. The rent is high, but my neighbours help with childcare, so I stay.\nOn weekends we meet at the community garden. That is where I feel I belong.' },
+      { id: 'd2', name: 'Interview 2', text: 'Work is far away. The bus is slow and costs a lot.\nStill, people here look after each other. When my father was ill, the whole street brought food.' },
+      { id: 'd3', name: 'Interview 3', text: 'We have no family nearby. Money is tight, and the rent went up again, so we may leave.\nThe school is good, though, and the children have friends here.' },
+    ];
+    const codes = [['c1', 'Work'], ['c2', 'Cost of living'], ['c3', 'Support'], ['c4', 'Staying or leaving']].map(([id, name], i) => ({ id, name, color: PALETTE[i], memo: '' }));
+    const segs: QSeg[] = [];
+    const tag = (doc: string, code: string, phrase: string) => { const t = docs.find((d) => d.id === doc)!.text, a = t.indexOf(phrase); segs.push({ id: 's' + (segs.length + 1), doc, code, start: a, end: a + phrase.length }); };
+    tag('d1', 'c1', 'I moved here for work.'); tag('d1', 'c2', 'The rent is high'); tag('d1', 'c3', 'my neighbours help with childcare'); tag('d1', 'c4', 'The rent is high, but my neighbours help with childcare, so I stay.'); tag('d1', 'c3', 'On weekends we meet at the community garden.');
+    tag('d2', 'c1', 'Work is far away.'); tag('d2', 'c2', 'The bus is slow and costs a lot.'); tag('d2', 'c3', 'people here look after each other'); tag('d2', 'c3', 'the whole street brought food');
+    tag('d3', 'c3', 'We have no family nearby.'); tag('d3', 'c2', 'Money is tight, and the rent went up again'); tag('d3', 'c4', 'so we may leave.'); tag('d3', 'c4', 'the children have friends here');
+    return { docs, codes, segs };
+  }
+
+  let P: Project = example(), cur = 0, pick: [number, number] | null = null;
+  const keeping = () => q<HTMLInputElement>('.qc-keep').checked;
+  function store() { try { if (keeping()) localStorage.setItem(KEY, toJson(P)); } catch { q('.qc-status').textContent = 'This browser would not save the project (it may be too large or storage is blocked). Export JSON to keep it.'; } }
+  function load() { try { const s = localStorage.getItem(KEY); if (s) { P = fromJson(s).project; q<HTMLInputElement>('.qc-keep').checked = true; } } catch { /* nothing kept */ } }
+  function el(tag: string, cls = '', text = '') { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; }
+  const doc = () => P.docs[cur];
+  const codeOf = (id: string) => P.codes.find((c) => c.id === id)!;
+
+  function renderDocs() {
+    const s = sel('.qc-doc'); s.innerHTML = '';
+    P.docs.forEach((d, i) => s.append(new Option(`${d.name} (${P.segs.filter((x) => x.doc === d.id).length} passages)`, String(i))));
+    if (cur >= P.docs.length) cur = Math.max(0, P.docs.length - 1);
+    s.value = String(cur); q<HTMLButtonElement>('.qc-rmdoc').disabled = !P.docs.length;
+  }
+  function renderCodes() {
+    const box = q('.qc-codes'); box.innerHTML = '';
+    if (!P.codes.length) box.append(el('p', 'ax-help', 'No codes yet. Add your first code below.'));
+    const n = new Map(codeCounts(P).map((r) => [r.code.id, r.total]));
+    for (const c of P.codes) {
+      const row = el('div', 'qc-code'), b = el('button', 'apply') as HTMLButtonElement, sw = el('span', 'sw');
+      b.type = 'button'; b.dataset.code = c.id; sw.style.background = c.color; b.append(sw, document.createTextNode(c.name), el('span', 'n', `· ${n.get(c.id) ?? 0}`));
+      b.addEventListener('click', () => apply(c.id));
+      const del = el('button', 'del', 'Delete') as HTMLButtonElement; del.type = 'button'; del.setAttribute('aria-label', `Delete code ${c.name}`);
+      del.addEventListener('click', () => {
+        const k = P.segs.filter((s) => s.code === c.id).length;
+        if (k && !confirm(`Delete the code "${c.name}" and its ${k} passage${k === 1 ? '' : 's'}?`)) return;
+        P.codes = P.codes.filter((x) => x.id !== c.id); P.segs = P.segs.filter((s) => s.code !== c.id); changed();
+      });
+      row.append(b, del); box.append(row);
+    }
+    const cc = sel('.qc-ccol'); if (!cc.options.length) PALETTE.forEach((p, i) => cc.append(new Option(COLOR_NAMES[i], p)));
+    const used = new Set(P.codes.map((c) => c.color)); cc.value = PALETTE.find((p) => !used.has(p)) ?? PALETTE[P.codes.length % PALETTE.length];
+  }
+  function renderText() {
+    const box = q('.qc-text'); box.innerHTML = ''; q('.qc-here').hidden = true;
+    const d = doc();
+    q('.qc-dh').textContent = d ? d.name : 'Text';
+    if (!d) { box.append(el('span', '', 'No documents. Open .txt files or paste a document above.')); return; }
+    const segs = P.segs.filter((s) => s.doc === d.id);
+    for (const p of pieces(d.text, segs)) {
+      const span = el('span', '', d.text.slice(p.start, p.end)); span.dataset.s = String(p.start);
+      if (p.codes.length) {
+        const cols = p.codes.map((id) => codeOf(id).color);
+        span.dataset.c = p.codes.join(' '); span.title = p.codes.map((id) => codeOf(id).name).join(', ');
+        span.style.background = cols[0] + '2e';
+        span.style.boxShadow = cols.map((c, i) => `inset 0 -${3 * (i + 1)}px 0 ${c}`).join(', ');
+      }
+      box.append(span);
+    }
+  }
+  function renderResults() {
+    const counts = codeCounts(P), t = q<HTMLTableElement>('.qc-counts'); t.innerHTML = '';
+    const head = ['Code', ...P.docs.map((d) => d.name), 'Total', 'Documents'];
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = el('th', i ? 'r' : '', h); hr.append(th); });
+    const b = t.createTBody();
+    for (const r of counts) { const tr = b.insertRow(); [r.code.name, ...r.perDoc.map(String), String(r.total), String(r.docs)].forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); }
+    const mode = sel('.qc-mode').value as 'overlap' | 'document', show = sel('.qc-show').value, m = cooccurrence(P, mode), M = q<HTMLTableElement>('.qc-mat'); M.innerHTML = '';
+    const mh = M.createTHead().insertRow(); mh.append(el('th', '', '')); P.codes.forEach((c) => mh.append(el('th', 'r', c.name)));
+    const mb = M.createTBody();
+    P.codes.forEach((c, i) => { const tr = mb.insertRow(); tr.append(el('th', '', c.name)); P.codes.forEach((_, j) => { const td = tr.insertCell(); td.className = 'r' + (i === j ? ' diag' : ''); td.textContent = show === 'c' && i !== j ? m.c[i][j].toFixed(2) : String(m.n[i][j]); }); });
+    q('.qc-mnote').textContent = (mode === 'overlap' ? 'Each cell counts pairs of passages, one with each code, that overlap in the same document; the grey diagonal is each code\'s number of passages.' : 'Each cell counts documents that have both codes; the grey diagonal is the number of documents with each code.') + (show === 'c' ? ' The c-coefficient is n₁₂ ÷ (n₁ + n₂ − n₁₂): 0 means never together, 1 always together.' : '');
+    const rc = sel('.qc-rcode'), keep = rc.value; rc.innerHTML = ''; P.codes.forEach((c) => rc.append(new Option(c.name, c.id))); rc.value = P.codes.some((c) => c.id === keep) ? keep : P.codes[0]?.id ?? '';
+    const ol = q('.qc-ret'); ol.innerHTML = '';
+    if (rc.value) for (const r of retrieve(P, rc.value)) { const li = el('li', '', r.text); li.append(el('small', '', `${r.doc.name}, characters ${r.seg.start + 1}–${r.seg.end}${r.others.length ? ' · also ' + r.others.join(', ') : ''}`)); ol.append(li); }
+    if (rc.value && !ol.children.length) ol.append(el('li', '', 'No passages with this code yet.'));
+    q('.qc-status').textContent = `${P.docs.length} document${P.docs.length === 1 ? '' : 's'}, ${P.codes.length} code${P.codes.length === 1 ? '' : 's'}, ${P.segs.length} coded passage${P.segs.length === 1 ? '' : 's'}; ${keeping() ? 'kept in this browser' : 'on this page only (not kept)'}.`;
+  }
+  function render() { renderDocs(); renderCodes(); renderText(); renderResults(); }
+  function changed() { store(); render(); }
+
+  // ----- selection to character positions -----
+  function offset(node: Node, off: number): number | null {
+    const box = q('.qc-text');
+    if (!box.contains(node)) return null;
+    if (node === box) { const kids = box.children; if (off >= kids.length) return doc()?.text.length ?? 0; return Number((kids[off] as HTMLElement).dataset.s); }
+    const span = (node.nodeType === 3 ? node.parentElement : (node as HTMLElement))?.closest<HTMLElement>('span[data-s]');
+    if (!span) return null;
+    return Number(span.dataset.s) + (node.nodeType === 3 ? off : 0);
+  }
+  document.addEventListener('selectionchange', () => {
+    const s = document.getSelection(); if (!s || !s.rangeCount || !doc()) return;
+    const r = s.getRangeAt(0);
+    const a = offset(r.startContainer, r.startOffset), b = offset(r.endContainer, r.endOffset);
+    if (a === null || b === null) return;
+    pick = trimRange(doc().text, a, b);
+    const t = pick ? doc().text.slice(pick[0], pick[1]) : '';
+    q('.qc-sel').textContent = pick ? `Selected: “${t.length > 90 ? t.slice(0, 87) + '…' : t}” (${pick[1] - pick[0]} characters). Press a code to tag it.` : 'Nothing selected.';
+  });
+  function apply(code: string) {
+    if (!pick || !doc()) { q('.qc-sel').textContent = 'Select a passage in the text first, then press the code.'; return; }
+    const [a, b] = pick, d = doc();
+    if (P.segs.some((s) => s.doc === d.id && s.code === code && s.start === a && s.end === b)) { q('.qc-sel').textContent = 'That passage already has this code.'; return; }
+    P.segs.push({ id: newId('s'), doc: d.id, code, start: a, end: b });
+    pick = null; document.getSelection()?.removeAllRanges();
+    changed(); q('.qc-sel').textContent = `Tagged with ${codeOf(code).name}.`;
+  }
+  q('.qc-text').addEventListener('click', (e) => {
+    if (document.getSelection()?.toString()) return;
+    const span = (e.target as HTMLElement).closest<HTMLElement>('span[data-s]'); const here = q('.qc-here');
+    if (!span || !span.dataset.c) { here.hidden = true; return; }
+    const at = Number(span.dataset.s), d = doc(); here.innerHTML = '';
+    for (const s of P.segs.filter((x) => x.doc === d.id && x.start <= at && x.end > at)) {
+      const row = el('div'), b = el('button', '', 'Remove') as HTMLButtonElement; b.type = 'button';
+      const txt = d.text.slice(s.start, s.end);
+      row.append(document.createTextNode(`${codeOf(s.code).name}: “${txt.length > 60 ? txt.slice(0, 57) + '…' : txt}”`), b);
+      b.addEventListener('click', () => { P.segs = P.segs.filter((x) => x.id !== s.id); changed(); });
+      here.append(row);
+    }
+    here.hidden = false;
+  });
+
+  // ----- documents and codes -----
+  sel('.qc-doc').addEventListener('change', () => { cur = Number(sel('.qc-doc').value); pick = null; renderText(); });
+  q('.qc-open').addEventListener('click', () => q<HTMLInputElement>('.qc-file').click());
+  q<HTMLInputElement>('.qc-file').addEventListener('change', async (e) => {
+    const inp = e.target as HTMLInputElement, files = [...(inp.files || [])]; inp.value = ''; const err = q('.qc-derr'); err.hidden = true;
+    for (const f of files) {
+      if (f.size > 5e6) { err.textContent = `${f.name} is over 5 MB and was not opened.`; err.hidden = false; continue; }
+      const text = (await f.text()).replace(/\r\n?/g, '\n');
+      if (/\u0000/.test(text.slice(0, 2000))) { err.textContent = `${f.name} does not look like a plain text file.`; err.hidden = false; continue; }
+      P.docs.push({ id: newId('d'), name: f.name.replace(/\.txt$/i, ''), text }); cur = P.docs.length - 1;
+    }
+    changed();
+  });
+  q('.qc-padd').addEventListener('click', () => {
+    const text = q<HTMLTextAreaElement>('.qc-ptext').value.replace(/\r\n?/g, '\n'), err = q('.qc-derr');
+    if (!text.trim()) { err.textContent = 'Paste the text of the document first.'; err.hidden = false; return; }
+    err.hidden = true; P.docs.push({ id: newId('d'), name: q<HTMLInputElement>('.qc-pname').value.trim() || `Document ${P.docs.length + 1}`, text }); cur = P.docs.length - 1;
+    q<HTMLTextAreaElement>('.qc-ptext').value = ''; q<HTMLInputElement>('.qc-pname').value = ''; changed();
+  });
+  q('.qc-rmdoc').addEventListener('click', () => {
+    const d = doc(); if (!d) return;
+    const k = P.segs.filter((s) => s.doc === d.id).length;
+    if (!confirm(`Remove "${d.name}"${k ? ` and its ${k} coded passage${k === 1 ? '' : 's'}` : ''}?`)) return;
+    P.docs = P.docs.filter((x) => x.id !== d.id); P.segs = P.segs.filter((s) => s.doc !== d.id); changed();
+  });
+  q('.qc-cadd').addEventListener('click', () => {
+    const name = q<HTMLInputElement>('.qc-cname').value.trim(), err = q('.qc-cerr');
+    if (!name) { err.textContent = 'Type a name for the code.'; err.hidden = false; return; }
+    if (P.codes.some((c) => c.name.toLowerCase() === name.toLowerCase())) { err.textContent = `There is already a code called "${name}".`; err.hidden = false; return; }
+    err.hidden = true; P.codes.push({ id: newId('c'), name, color: sel('.qc-ccol').value, memo: '' }); q<HTMLInputElement>('.qc-cname').value = ''; changed();
+  });
+  for (const c of ['.qc-mode', '.qc-show', '.qc-rcode']) sel(c).addEventListener('change', renderResults);
+
+  // ----- files and keeping -----
+  root.querySelectorAll<HTMLButtonElement>('.qc-x').forEach((b) => b.addEventListener('click', () => {
+    const f = b.dataset.f!;
+    if (f === 'seg') save(new Blob(['﻿' + segmentsCsv(P)], { type: 'text/csv' }), 'coded-passages.csv', 'text/csv');
+    if (f === 'counts') save(new Blob(['﻿' + countsCsv(P)], { type: 'text/csv' }), 'code-counts.csv', 'text/csv');
+    if (f === 'matrix') save(new Blob(['﻿' + matrixCsv(P, sel('.qc-mode').value as 'overlap' | 'document')], { type: 'text/csv' }), 'code-co-occurrence.csv', 'text/csv');
+    if (f === 'json') save(new Blob([toJson(P)], { type: 'application/json' }), 'coding-project.json', 'application/json');
+  }));
+  q('.qc-imp').addEventListener('click', () => q<HTMLInputElement>('.qc-jfile').click());
+  q<HTMLInputElement>('.qc-jfile').addEventListener('change', async (e) => {
+    const inp = e.target as HTMLInputElement, f = inp.files?.[0]; inp.value = ''; const err = q('.qc-ierr'); err.hidden = true;
+    if (!f) return;
+    try {
+      const r = fromJson(await f.text());
+      if ((P.docs.length || P.segs.length) && !confirm('Replace the current project with the one in this file?')) return;
+      P = r.project; cur = 0; changed();
+      if (r.dropped) { err.textContent = `${r.dropped} passage${r.dropped === 1 ? '' : 's'} in the file pointed outside the text and were left out.`; err.hidden = false; }
+    } catch (x) { err.textContent = (x as Error).message; err.hidden = false; }
+  });
+  q<HTMLInputElement>('.qc-keep').addEventListener('change', () => { try { if (keeping()) store(); else localStorage.removeItem(KEY); } catch { /* blocked */ } renderResults(); });
+  q('.qc-clear').addEventListener('click', () => {
+    if (!confirm('Remove all documents, codes and passages from this page' + (keeping() ? ' and from this browser?' : '?'))) return;
+    P = { docs: [], codes: [], segs: [] }; cur = 0; try { localStorage.removeItem(KEY); } catch { /* blocked */ }
+    q<HTMLInputElement>('.qc-keep').checked = false; render();
+  });
+
+  load(); render();
+</script>

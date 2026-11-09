@@ -1,0 +1,157 @@
+---
+// IPA feature matrix: distinctive features of typed IPA segments, natural classes and minimal feature sets.
+import '../../styles/astro.css';
+---
+<div class="ax fm">
+  <div class="ax-card">
+    <h2>Segments</h2>
+    <label>IPA segments, separated by spaces (or run together). Affricates need a tie bar, t͡ʃ, or a ligature, ʧ. Diacritics such as ʰ ʷ ʲ ̃ ̥ ̩ ː and ʼ change the features.
+      <textarea class="fm-in" rows="3" spellcheck="false" autocapitalize="off">p t k b d ɡ f θ s ʃ v ð z ʒ t͡ʃ d͡ʒ m n ŋ l ɹ j w h i ɪ e ɛ æ ɑ ɔ o ʊ u ə ʌ</textarea></label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small fm-ex">Example inventory</button>
+      <button type="button" class="btn secondary small fm-cons">All chart consonants</button>
+      <button type="button" class="btn secondary small fm-vow">All chart vowels</button>
+    </div>
+    <p class="ax-help fm-info"></p>
+    <p class="ax-err fm-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Natural class</h2>
+    <label>Chosen segments: tap column heads in the matrix below, or type them here.
+      <input class="fm-pick" spellcheck="false" autocapitalize="off" value="p t k" /></label>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small fm-none">Clear the choice</button></div>
+    <p class="ax-big fm-big" style="margin-top:12px"></p>
+    <dl class="ax-facts fm-facts"></dl>
+    <p class="ax-help">The smallest feature sets are found by trying every combination of 1, 2, 3, … of the shared features and keeping those that let in no other segment of your list. A set of segments is a natural class only relative to an inventory: add or remove segments and the answer can change.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Feature matrix</h2>
+    <label class="ax-check"><input type="checkbox" class="fm-hide" /> Hide features that are the same for every segment</label>
+    <div class="ax-scroll" style="margin-top:10px"><table class="fm-tab"></table></div>
+    <p class="ax-help">+ and − are the feature values; 0 means the feature does not apply (for example [anterior] only applies to coronals, [round] only to labials). Chosen segments are shaded and the features they share are in bold.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small fm-csv">Matrix (CSV)</button>
+      <button type="button" class="btn secondary small fm-tex">LaTeX tabular (.tex)</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Find segments by features</h2>
+    <label>Features, such as <code>+voice −sonorant</code> or <code>+syl +high</code> (short names work).
+      <input class="fm-spec" spellcheck="false" autocapitalize="off" value="+voice −sonorant" /></label>
+    <p class="ax-big fm-found" style="margin-top:10px"></p>
+    <p class="ax-err fm-serr" hidden></p>
+  </div>
+</div>
+
+<style is:global>
+  .fm { --ipa-font: "Charis SIL", "Doulos SIL", "Gentium Plus", "Noto Sans", "Segoe UI", "Lucida Sans Unicode", "DejaVu Sans", system-ui, sans-serif; }
+  .fm .fm-in, .fm .fm-pick { font-family: var(--ipa-font) !important; font-size: 19px !important; }
+  .fm .fm-big, .fm .fm-found, .fm .fm-facts dd { font-family: var(--ipa-font); }
+  .fm table.fm-tab { width: auto; font-size: 13px; }
+  .fm table.fm-tab th, .fm table.fm-tab td { padding: 3px 5px; text-align: center; border-bottom: 1px solid var(--line); }
+  .fm table.fm-tab th:first-child, .fm table.fm-tab td:first-child { text-align: left; white-space: nowrap; position: sticky; left: 0; background: var(--surface); }
+  .fm table.fm-tab thead button { font-family: var(--ipa-font); font-size: 17px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); min-width: 30px; padding: 2px 4px; cursor: pointer; }
+  .fm table.fm-tab thead button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .fm table.fm-tab td.fm-on { background: var(--grid, var(--line)); }
+  .fm table.fm-tab tr.fm-shared td { font-weight: 700; }
+  .fm table.fm-tab td.fm-z { color: var(--muted); }
+</style>
+
+<script>
+  import { FEATURES, parseSegments, minimalSets, shared, parseSpec, matches, specText, show, toLatex, type Parsed } from '../../lib/sci/ipafeatures';
+  import { PULMONIC, VOWELS } from '../../lib/sci/ipa';
+  import { csv } from '../../lib/sci/num';
+  import { save } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.fm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.fm-in'), pick = q<HTMLInputElement>('.fm-pick');
+  const EX = box.value;
+  let segs: Parsed[] = [], chosen = new Set<number>();
+
+  function readInventory() {
+    const err = q('.fm-err'); err.hidden = true;
+    const r = parseSegments(box.value);
+    // Keep the first of any repeated segment.
+    const seen = new Set<string>(); segs = r.segs.filter((s) => (seen.has(s.text) ? false : (seen.add(s.text), true)));
+    const ign = [...new Set(segs.flatMap((s) => s.ignored))];
+    q('.fm-info').textContent = `${segs.length} segment${segs.length === 1 ? '' : 's'}.` + (ign.length ? ` Diacritics shown but not turned into features: ${ign.map((c) => '◌' + c).join(' ')}.` : '');
+    if (r.unknown.length) { err.textContent = `Not IPA segments this tool knows, left out: ${[...new Set(r.unknown)].join(' ')}. Write affricates with a tie bar (t͡ʃ) and put diacritics after a symbol.`; err.hidden = false; }
+    readPick();
+  }
+  function readPick() {
+    const r = parseSegments(pick.value), texts = r.segs.map((s) => s.text);
+    chosen = new Set(texts.map((t) => segs.findIndex((s) => s.text === t)).filter((i) => i >= 0));
+    render();
+  }
+  function writePick() { pick.value = [...chosen].sort((a, b) => a - b).map((i) => segs[i].text).join(' '); }
+
+  function render() {
+    const t = q<HTMLTableElement>('.fm-tab'); t.innerHTML = '';
+    const ch = [...chosen].sort((a, b) => a - b), sh = new Map(shared(ch.map((i) => segs[i].f)));
+    const hide = q<HTMLInputElement>('.fm-hide').checked;
+    const hr = t.createTHead().insertRow(); hr.append(document.createElement('th'));
+    segs.forEach((s, i) => { const th = document.createElement('th'), b = document.createElement('button'); b.type = 'button'; b.textContent = s.text; b.setAttribute('aria-pressed', String(chosen.has(i))); b.title = `Add ${s.text} to the chosen segments, or take it out`; b.addEventListener('click', () => { chosen.has(i) ? chosen.delete(i) : chosen.add(i); writePick(); render(); }); th.append(b); hr.append(th); });
+    const body = t.createTBody();
+    for (const k of FEATURES) {
+      if (hide && segs.every((s) => s.f[k] === segs[0]?.f[k])) continue;
+      const tr = body.insertRow(); if (sh.has(k)) tr.className = 'fm-shared';
+      const th = tr.insertCell(); th.textContent = k;
+      segs.forEach((s, i) => { const td = tr.insertCell(); td.textContent = show(s.f[k]); td.className = [chosen.has(i) ? 'fm-on' : '', s.f[k] === '0' ? 'fm-z' : ''].join(' ').trim(); });
+    }
+    natural(ch);
+    find();
+  }
+
+  function natural(ch: number[]) {
+    const dl = q('.fm-facts'); dl.innerHTML = '';
+    const add = (k: string, v: string) => { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d); };
+    if (!ch.length) { q('.fm-big').textContent = 'Choose two or more segments to test them as a class.'; return; }
+    const r = minimalSets(segs.map((s) => s.f), ch);
+    const names = ch.map((i) => segs[i].text).join(' ');
+    if (!r.shared.length) { q('.fm-big').textContent = `${names}: no feature is shared, so this is not a natural class.`; return; }
+    if (r.natural) {
+      q('.fm-big').textContent = r.sets.length && r.sets[0].length ? `${names} = ${specText(r.sets[0])}` : `${names}: that is every segment in the list.`;
+      if (r.sets.length > 1) add(`Other ways with ${r.sets[0].length} feature${r.sets[0].length > 1 ? 's' : ''}`, r.sets.slice(1).map(specText).join('  ·  '));
+      add('Natural class', `Yes: ${r.sets[0]?.length ?? 0} feature${r.sets[0]?.length === 1 ? '' : 's'} pick out exactly these ${ch.length} in this list`);
+    } else {
+      q('.fm-big').textContent = `${names} is not a natural class in this list`;
+      add('Every segment with all the shared features', `${names} plus ${r.extra.map((i) => segs[i].text).join(' ')}`);
+    }
+    add('All shared features', specText(r.shared));
+  }
+
+  function find() {
+    const e = q('.fm-serr'); e.hidden = true;
+    try {
+      const spec = parseSpec(q<HTMLInputElement>('.fm-spec').value);
+      if (!spec.length) { q('.fm-found').textContent = ''; return; }
+      const hit = segs.filter((s) => matches(s.f, spec));
+      q('.fm-found').textContent = `${specText(spec)}: ${hit.length ? hit.map((s) => s.text).join(' ') : 'no segment in the list'}`;
+    } catch (x) { e.textContent = (x as Error).message; e.hidden = false; q('.fm-found').textContent = ''; }
+  }
+
+  let tm = 0;
+  box.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(readInventory, 300); });
+  pick.addEventListener('input', () => readPick());
+  q('.fm-spec').addEventListener('input', find);
+  q('.fm-hide').addEventListener('change', render);
+  q('.fm-none').addEventListener('click', () => { pick.value = ''; readPick(); });
+  q('.fm-ex').addEventListener('click', () => { box.value = EX; readInventory(); });
+  q('.fm-cons').addEventListener('click', () => { box.value = PULMONIC.map((c) => c.ch).join(' '); readInventory(); });
+  q('.fm-vow').addEventListener('click', () => { box.value = VOWELS.filter((v) => !v.rhotic).map((v) => v.ch).join(' '); readInventory(); });
+  q('.fm-csv').addEventListener('click', () => {
+    if (!segs.length) return;
+    const rows = [['feature', ...segs.map((s) => s.text)], ...FEATURES.map((k) => [k, ...segs.map((s) => s.f[k])])];
+    save(new Blob(['﻿' + csv(rows)], { type: 'text/csv' }), 'feature-matrix.csv', 'text/csv');
+  });
+  q('.fm-tex').addEventListener('click', () => {
+    if (!segs.length) return;
+    const head = '% Distinctive feature matrix from fibub.com. Compile with XeLaTeX or LuaLaTeX and a font with IPA symbols\n% (for example \\usepackage{fontspec} \\setmainfont{Charis SIL}).\n';
+    save(new Blob([head + toLatex(segs)], { type: 'text/plain' }), 'feature-matrix.tex', 'text/plain');
+  });
+  readInventory();
+</script>

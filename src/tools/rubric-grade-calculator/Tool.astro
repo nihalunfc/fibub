@@ -1,0 +1,216 @@
+---
+// Rubric grade calculator: build a rubric, mark students, weighted totals, grade bands and a class summary.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax rb">
+  <div class="ax-card">
+    <h2>Rubric</h2>
+    <label>Levels: one per line, a name and its points. Shared by every criterion.
+      <textarea class="rb-levels" rows="4" spellcheck="false">Excellent = 4
+Good = 3
+Developing = 2
+Beginning = 1</textarea></label>
+    <h3 class="rb-h3">Criteria and weights</h3>
+    <div class="rb-crit"></div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small rb-addc">Add criterion</button><span class="ax-help rb-wsum" style="margin:0"></span></div>
+    <label style="margin-top:12px">Grade bands: one per line, a grade and the lowest percentage for it.
+      <textarea class="rb-bands" rows="5" spellcheck="false">A: 85
+B: 70
+C: 55
+D: 40
+F: 0</textarea></label>
+    <p class="ax-help">A student's total is the weighted average of (points ÷ top points) over the criteria, as a percentage. Weights can be percentages or any numbers; only their proportions matter.</p>
+    <p class="ax-err rb-rerr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Students</h2>
+    <p class="ax-help" style="margin-top:0">Pick a level for each criterion. Made-up example: six students marked on an essay rubric.</p>
+    <div class="ax-scroll"><table class="rb-stu"></table></div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small rb-adds">Add student</button></div>
+    <label class="ax-check" style="margin-top:14px"><input type="checkbox" class="rb-remember" /> Remember this rubric and these marks on this device</label>
+    <p class="ax-help">Off by default. When ticked, the rubric and marks (including student names) are kept only in this browser's storage, never sent anywhere. Untick it or press Clear to delete them.</p>
+    <div class="ax-row" style="margin-top:6px"><button type="button" class="btn secondary small rb-clear">Clear saved data</button><span class="ax-help rb-saved" style="margin:0"></span></div>
+  </div>
+
+  <div class="ax-card rb-out">
+    <h2>Class summary</h2>
+    <dl class="ax-facts rb-facts"></dl>
+    <h3 class="rb-h3">Grades</h3>
+    <div class="ax-scroll"><table class="rb-gt"></table></div>
+    <h3 class="rb-h3">By criterion</h3>
+    <div class="ax-scroll"><table class="rb-ct"></table></div>
+    <p class="ax-help rb-note"></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small rb-csv">Download marks (CSV)</button><button type="button" class="btn secondary small rb-print">Print</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .rb .rb-h3 { margin: 14px 0 6px; font-size: 16px; }
+  .rb .rb-crow { display: grid; grid-template-columns: minmax(0, 1fr) 84px auto; gap: 8px; align-items: center; margin-top: 6px; }
+  .rb .rb-x { border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 8px; width: 36px; height: 36px; font-size: 18px; cursor: pointer; }
+  .rb .rb-stu td { padding: 4px; vertical-align: middle; }
+  .rb .rb-stu input.rb-sname { min-width: 120px !important; }
+  .rb .rb-stu select { min-width: 96px; padding: 6px; }
+  .rb .rb-stu td.rb-tot, .rb .rb-stu td.rb-gr { white-space: nowrap; font-weight: 650; text-align: right; }
+  .rb .rb-ct td, .rb .rb-gt td { white-space: nowrap; }
+  @media print {
+    header, footer, .flow, .tool-guide, .rb-addc, .rb-adds, .rb-x, .rb-remember, .rb-clear, .rb-csv, .rb-print, .dl, .rb .ax-help { display: none !important; }
+    .rb .ax-card { border: 0; padding: 0; }
+  }
+</style>
+
+<script>
+  import { csv } from '../../lib/sci/num';
+  import { parseLevels, parseBands, weightedPercent, gradeFor, summary, type Level, type Band } from '../../lib/sci/rubric';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const KEY = 'fibub-rubric-v1';
+  const root = document.querySelector<HTMLElement>('.rb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  type Student = { name: string; scores: number[] };
+  type State = { levels: string; bands: string; criteria: { name: string; weight: number }[]; students: Student[] };
+  const EXAMPLE: State = {
+    levels: q<HTMLTextAreaElement>('.rb-levels').value, bands: q<HTMLTextAreaElement>('.rb-bands').value,
+    criteria: [{ name: 'Content', weight: 40 }, { name: 'Organisation', weight: 20 }, { name: 'Evidence', weight: 25 }, { name: 'Language', weight: 15 }],
+    students: [[4, 3, 4, 3], [3, 3, 2, 4], [2, 2, 3, 2], [4, 4, 4, 4], [1, 2, 2, 3], [3, 4, 3, 2]].map((s, i) => ({ name: `Student ${i + 1}`, scores: s })),
+  };
+  let S: State = JSON.parse(JSON.stringify(EXAMPLE)), levels: Level[] = [], bands: Band[] = [], report: Section[] = [], csvRows: (string | number)[][] = [];
+  const f1 = (x: number) => (Number.isFinite(x) ? x.toFixed(1) : '–');
+  const el = <K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLElementTagNameMap[K]> = {}) => Object.assign(document.createElement(tag), props);
+
+  function renderCriteria() {
+    const box = q('.rb-crit'); box.innerHTML = '';
+    S.criteria.forEach((c, i) => {
+      const row = el('div', { className: 'rb-crow' });
+      const name = el('input', { value: c.name, className: 'rb-cname' }); name.setAttribute('aria-label', `Criterion ${i + 1} name`);
+      const w = el('input', { value: String(c.weight), className: 'rb-cw', inputMode: 'decimal' }); w.setAttribute('aria-label', `Criterion ${i + 1} weight`);
+      const x = el('button', { type: 'button', className: 'rb-x', textContent: '×', title: 'Remove criterion' }); x.setAttribute('aria-label', `Remove ${c.name || 'criterion'}`);
+      name.addEventListener('input', () => { S.criteria[i].name = name.value; renderStudents(); calc(); });
+      w.addEventListener('input', () => { S.criteria[i].weight = Number(w.value.replace(',', '.')); calc(); });
+      x.addEventListener('click', () => { if (S.criteria.length < 2) return; S.criteria.splice(i, 1); S.students.forEach((s) => s.scores.splice(i, 1)); renderCriteria(); renderStudents(); calc(); });
+      row.append(name, w, x); box.append(row);
+    });
+  }
+  function renderStudents() {
+    const t = q<HTMLTableElement>('.rb-stu'); t.innerHTML = '';
+    const hr = t.createTHead().insertRow();
+    ['Student', ...S.criteria.map((c) => c.name || '(unnamed)'), 'Total', 'Grade', ''].forEach((h, i) => { const th = el('th', { textContent: h }); if (i > S.criteria.length) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody();
+    S.students.forEach((s, si) => {
+      const tr = b.insertRow();
+      const name = el('input', { value: s.name, className: 'rb-sname' }); name.setAttribute('aria-label', `Student ${si + 1} name`);
+      name.addEventListener('input', () => { s.name = name.value; calc(); });
+      tr.insertCell().append(name);
+      S.criteria.forEach((c, ci) => {
+        const sel = el('select', { className: 'rb-lv' }); sel.setAttribute('aria-label', `${s.name}: ${c.name}`);
+        sel.add(new Option('–', ''));
+        levels.forEach((l) => sel.add(new Option(`${l.name} (${l.points})`, String(l.points))));
+        sel.value = Number.isFinite(s.scores[ci]) && levels.some((l) => l.points === s.scores[ci]) ? String(s.scores[ci]) : '';
+        sel.addEventListener('change', () => { s.scores[ci] = sel.value === '' ? NaN : Number(sel.value); calc(); });
+        tr.insertCell().append(sel);
+      });
+      tr.insertCell().className = 'rb-tot'; tr.insertCell().className = 'rb-gr';
+      const x = el('button', { type: 'button', className: 'rb-x', textContent: '×', title: 'Remove student' }); x.setAttribute('aria-label', `Remove ${s.name || 'student'}`);
+      x.addEventListener('click', () => { S.students.splice(si, 1); renderStudents(); calc(); });
+      tr.insertCell().append(x);
+    });
+  }
+
+  function table(t: HTMLTableElement, head: string[], rows: string[][]) {
+    t.innerHTML = '';
+    const hr = t.createTHead().insertRow();
+    head.forEach((h, i) => { const th = el('th', { textContent: h }); if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody();
+    rows.forEach((r) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+  }
+
+  function parseRubric(): boolean {
+    const err = q('.rb-rerr');
+    try {
+      levels = parseLevels(q<HTMLTextAreaElement>('.rb-levels').value);
+      bands = parseBands(q<HTMLTextAreaElement>('.rb-bands').value);
+      if (S.criteria.some((c) => !Number.isFinite(c.weight) || c.weight < 0)) throw new Error('Each weight must be a number of 0 or more.');
+      if (!(S.criteria.reduce((s, c) => s + c.weight, 0) > 0)) throw new Error('The weights must add up to more than 0.');
+      err.hidden = true; return true;
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; return false; }
+  }
+
+  function calc() {
+    const ok = parseRubric();
+    q('.rb-out').hidden = !ok;
+    const W = S.criteria.reduce((s, c) => s + (Number.isFinite(c.weight) ? c.weight : 0), 0);
+    q('.rb-wsum').textContent = `Weights add up to ${+W.toFixed(4)}${Math.abs(W - 100) < 1e-9 ? ' %' : ''}.`;
+    store();
+    if (!ok) { report = []; csvRows = []; return; }
+    const top = levels[0].points;
+    const pct = S.students.map((s) => weightedPercent(s.scores, S.criteria, top)), grades = pct.map((p) => gradeFor(p, bands));
+    [...q<HTMLTableElement>('.rb-stu').tBodies[0].rows].forEach((tr, i) => {
+      tr.querySelector('.rb-tot')!.textContent = Number.isFinite(pct[i]) ? `${f1(pct[i])} %` : 'not finished';
+      tr.querySelector('.rb-gr')!.textContent = grades[i] || '–';
+    });
+    const sm = summary(pct), done = sm.n, todo = S.students.length - done;
+    const ff: [string, string][] = [
+      ['Students marked', `${done} of ${S.students.length}`],
+      ['Mean', Number.isFinite(sm.mean) ? `${f1(sm.mean)} %` : '–'], ['Median', Number.isFinite(sm.median) ? `${f1(sm.median)} %` : '–'],
+      ['SD', Number.isFinite(sm.sd) ? f1(sm.sd) : '–'], ['Range', done ? `${f1(sm.min)} to ${f1(sm.max)} %` : '–'],
+    ];
+    const dl = q('.rb-facts'); dl.innerHTML = '';
+    for (const [k, v] of ff) { const d = el('div'), dt = el('dt', { textContent: k }), dd = el('dd', { textContent: v }); d.append(dt, dd); dl.append(d); }
+    const gRows = bands.map((b, i) => { const c = grades.filter((g) => g === b.grade).length; return [b.grade, `${b.min} %${i ? ` to below ${bands[i - 1].min} %` : ' and up'}`, String(c), done ? `${((100 * c) / done).toFixed(0)} %` : '–']; });
+    table(q<HTMLTableElement>('.rb-gt'), ['Grade', 'Range', 'Students', 'Share'], gRows);
+    const cRows = S.criteria.map((c, ci) => {
+      const v = S.students.map((s) => s.scores[ci]).filter(Number.isFinite), m = v.length ? v.reduce((a, x) => a + x, 0) / v.length : NaN;
+      return [c.name || '(unnamed)', `${+((100 * c.weight) / W).toFixed(1)} %`, Number.isFinite(m) ? m.toFixed(2) : '–', Number.isFinite(m) ? `${f1((100 * m) / top)} %` : '–'];
+    });
+    table(q<HTMLTableElement>('.rb-ct'), ['Criterion', 'Weight', 'Mean points', 'Mean %'], cRows);
+    const weakest = cRows.filter((r) => r[3] !== '–').sort((a, b) => parseFloat(a[3]) - parseFloat(b[3]))[0];
+    q('.rb-note').textContent = (todo ? `${todo} student${todo > 1 ? 's are' : ' is'} not fully marked and left out of the summary. ` : '') + (weakest ? `The lowest criterion on average is ${weakest[0]} (${weakest[3]}). ` : '') + `Total = Σ weight × points ÷ ${top} ÷ Σ weight × 100.`;
+    const sHead = ['Student', ...S.criteria.map((c) => c.name), 'Total %', 'Grade'];
+    const sRows = S.students.map((s, i) => [s.name, ...S.criteria.map((_, ci) => (Number.isFinite(s.scores[ci]) ? levels.find((l) => l.points === s.scores[ci])?.name ?? String(s.scores[ci]) : '–')), Number.isFinite(pct[i]) ? f1(pct[i]) : '–', grades[i] || '–']);
+    csvRows = [['Student', ...S.criteria.map((c) => `${c.name} (points)`), 'Total %', 'Grade'], ...S.students.map((s, i) => [s.name, ...S.criteria.map((_, ci) => (Number.isFinite(s.scores[ci]) ? s.scores[ci] : '')), Number.isFinite(pct[i]) ? +pct[i].toFixed(4) : '', grades[i]])];
+    report = [
+      { title: 'Rubric', table: { head: ['Criterion', 'Weight'], rows: cRows.map((r) => [r[0], r[1]]), align: ['l', 'r'] }, text: [`Levels: ${levels.map((l) => `${l.name} = ${l.points}`).join(', ')}.`, `Grades: ${bands.map((b) => `${b.grade} from ${b.min} %`).join(', ')}.`] },
+      { title: 'Marks', table: { head: sHead, rows: sRows, align: ['l', ...sHead.slice(1).map(() => 'r' as const)] } },
+      { title: 'Class summary', facts: ff, table: { head: ['Grade', 'Range', 'Students', 'Share'], rows: gRows, align: ['l', 'r', 'r', 'r'] } },
+      { title: 'By criterion', table: { head: ['Criterion', 'Weight', 'Mean points', 'Mean %'], rows: cRows, align: ['l', 'r', 'r', 'r'] }, note: q('.rb-note').textContent! },
+    ];
+  }
+
+  // ---------- saving (only when ticked) ----------
+  const remember = () => q<HTMLInputElement>('.rb-remember').checked;
+  function store() {
+    try {
+      if (remember()) { S.levels = q<HTMLTextAreaElement>('.rb-levels').value; S.bands = q<HTMLTextAreaElement>('.rb-bands').value; localStorage.setItem(KEY, JSON.stringify(S, (_, v) => (typeof v === 'number' && !Number.isFinite(v) ? null : v))); q('.rb-saved').textContent = 'Saved on this device.'; }
+      else q('.rb-saved').textContent = '';
+    } catch { q('.rb-saved').textContent = 'This browser does not allow saving.'; }
+  }
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (saved && Array.isArray(saved.criteria) && Array.isArray(saved.students)) {
+      S = { ...saved, students: saved.students.map((s: Student) => ({ name: String(s.name ?? ''), scores: (s.scores ?? []).map((x: unknown) => (typeof x === 'number' ? x : NaN)) })) };
+      q<HTMLTextAreaElement>('.rb-levels').value = S.levels; q<HTMLTextAreaElement>('.rb-bands').value = S.bands;
+      q<HTMLInputElement>('.rb-remember').checked = true;
+    }
+  } catch { /* nothing saved */ }
+  q('.rb-remember').addEventListener('change', () => { try { if (!remember()) localStorage.removeItem(KEY); } catch {} store(); });
+  q('.rb-clear').addEventListener('click', () => {
+    try { localStorage.removeItem(KEY); } catch {}
+    q<HTMLInputElement>('.rb-remember').checked = false;
+    S = JSON.parse(JSON.stringify(EXAMPLE));
+    q<HTMLTextAreaElement>('.rb-levels').value = S.levels; q<HTMLTextAreaElement>('.rb-bands').value = S.bands;
+    parseRubric(); renderCriteria(); renderStudents(); calc();
+    q('.rb-saved').textContent = 'Saved data cleared.';
+  });
+
+  q('.rb-addc').addEventListener('click', () => { S.criteria.push({ name: `Criterion ${S.criteria.length + 1}`, weight: 10 }); S.students.forEach((s) => s.scores.push(NaN)); renderCriteria(); renderStudents(); calc(); });
+  q('.rb-adds').addEventListener('click', () => { S.students.push({ name: `Student ${S.students.length + 1}`, scores: S.criteria.map(() => NaN) }); renderStudents(); calc(); });
+  let t = 0;
+  for (const c of ['.rb-levels', '.rb-bands']) q(c).addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(() => { if (parseRubric()) renderStudents(); calc(); }, 300); });
+  q('.rb-csv').addEventListener('click', () => { if (csvRows.length > 1) save(new TextEncoder().encode(csv(csvRows)), 'rubric-marks.csv', 'text/csv'); });
+  q('.rb-print').addEventListener('click', () => window.print());
+  parseRubric(); renderCriteria(); renderStudents(); calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Rubric grades', file: 'rubric-grades', sections: report }));
+</script>

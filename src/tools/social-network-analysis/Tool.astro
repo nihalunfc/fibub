@@ -1,0 +1,160 @@
+---
+// Social network analysis: survey name lists or an edge list to a network with centrality measures,
+// density, reciprocity, components, Louvain communities and a force-directed drawing. Maths in src/lib/sci/sna.ts.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import example from './example.csv?raw';
+---
+<div class="ax sn">
+  <div class="ax-card">
+    <h2>Your network data</h2>
+    <div class="ax-seg sn-mode" role="group" aria-label="Data format">
+      <button type="button" data-m="names" aria-pressed="true">Name lists</button><button type="button" data-m="edges" aria-pressed="false">Edge list</button>
+    </div>
+    <p class="ax-help sn-what"></p>
+    <label style="margin-top:10px">Paste or open your data. The sample is a made-up class survey: each pupil named up to five friends.
+      <textarea class="sn-in" rows="8" spellcheck="false" wrap="off">{example.trim()}</textarea></label>
+    <DataFile target=".sn-in" maxCols={60} maxRows={50000} />
+    <div class="ax-row" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" class="sn-head" checked /> First row is a header</label>
+      <label class="ax-check"><input type="checkbox" class="sn-dir" checked /> Ties have a direction (A names B)</label>
+    </div>
+    <p class="ax-help">Names are matched exactly (after trimming spaces), so "Sam" and "sam" are two people. Everything stays in this browser; for real surveys, consider codes instead of names.</p>
+    <p class="ax-err sn-err" hidden></p>
+  </div>
+
+  <div class="ax-card sn-out" hidden>
+    <h2>Network</h2>
+    <dl class="ax-facts sn-facts"></dl>
+    <h3>Drawing</h3>
+    <div class="ax-row">
+      <label class="ax-check"><input type="checkbox" class="sn-lab" checked /> Show names</label>
+      <button type="button" class="btn secondary small sn-redraw">Try another layout</button>
+      <button type="button" class="btn secondary small sn-svg">Drawing as SVG</button>
+    </div>
+    <canvas class="ax-fig sn-fig"></canvas>
+    <p class="ax-help sn-legend"></p>
+    <h3>Measures for each person</h3>
+    <label class="sn-sortw">Sort by <select class="sn-sort"><option value="inDeg" selected>In-degree (times named)</option><option value="outDeg">Out-degree</option><option value="betweenness">Betweenness</option><option value="closeness">Closeness</option><option value="eigenvector">Eigenvector</option><option value="community">Community</option><option value="name">Name</option></select></label>
+    <div class="ax-scroll" style="margin-top:8px"><table class="sn-tab"></table></div>
+    <p class="ax-help sn-note"></p>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small sn-csv">Measures as CSV</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .sn h3 { font-size: 15px; margin: 14px 0 6px; }
+  .sn .sn-sortw { max-width: 280px; }
+  .sn .sn-tab td, .sn .sn-tab th { white-space: nowrap; }
+  .sn canvas.sn-fig { margin-top: 8px; border: 1px solid var(--line); }
+</style>
+
+<script>
+  import { parseTable } from '../../lib/sci/num';
+  import { buildGraph, pairsFromRows, measures, layout, drawNetwork, type Graph, type Measures } from '../../lib/sci/sna';
+  import { canvasPainter, svgPainter } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.sn')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string, el: ParentNode = root) => el.querySelector(c) as T;
+  let mode = 'names', g: Graph | null = null, M: ReturnType<typeof measures> | null = null, pos: [number, number][] = [], seed = 1, fig: Figure | null = null, report: Section[] = [];
+  const WHAT: Record<string, string> = {
+    names: 'One row per respondent: their name or code first, then the people they named, one per column. Respondents who named nobody still count as people.',
+    edges: 'One row per tie: the person who names (source) in the first column and the person named (target) in the second.',
+  };
+  const f3 = (x: number) => (Number.isFinite(x) ? x.toFixed(3) : '–');
+  const HEAD = ['Person', 'In-degree', 'Out-degree', 'Degree centrality', 'Betweenness', 'Closeness', 'Eigenvector', 'Community'];
+
+  function makeFig(): Figure {
+    const n = g!.names.length, h = n > 60 ? 640 : 520;
+    return { w: 720, h, alt: `Network drawing of ${n} people and ${g!.m} ties`, draw: (ctx, W, H, pal) => drawNetwork(canvasPainter(ctx), { w: W, h: H, g: g!, pos, rows: M!.rows, ink: pal.ink, muted: pal.muted, line: pal.line, labels: q<HTMLInputElement>('.sn-lab').checked && n <= 150 }) };
+  }
+  function sorted(): Measures[] {
+    const k = q<HTMLSelectElement>('.sn-sort').value as keyof Measures;
+    return M!.rows.slice().sort((a, b) => (k === 'name' ? a.name.localeCompare(b.name, 'en', { numeric: true }) : k === 'community' ? a.community - b.community || b.inDeg - a.inDeg : (b[k] as number) - (a[k] as number) || a.name.localeCompare(b.name)));
+  }
+  function tableRows() {
+    return sorted().map((r) => [r.name, String(r.inDeg), String(r.outDeg), f3(r.degreeC), f3(r.betweenness), f3(r.closeness), f3(r.eigenvector), String(r.community)]);
+  }
+  function drawTable() {
+    const t = q<HTMLTableElement>('.sn-tab'), head = g!.directed ? HEAD : ['Person', 'Degree', 'Degree centrality', 'Betweenness', 'Closeness', 'Eigenvector', 'Community'];
+    const rows = tableRows().map((r) => (g!.directed ? r : [r[0], r[1], ...r.slice(3)]));
+    t.innerHTML = '';
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const tb = t.createTBody(); rows.forEach((r) => { const tr = tb.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+    return { head, rows };
+  }
+  function drawFig() {
+    fig = makeFig(); paint(q<HTMLCanvasElement>('.sn-fig'), fig);
+    const used = [...new Set(M!.rows.map((r) => r.community))].sort((a, b) => a - b);
+    q('.sn-legend').textContent = `Colours are communities (${used.slice(0, 10).map((c) => `${c}: ${['blue', 'orange', 'green', 'pink', 'yellow', 'sky blue', 'grey', 'brown', 'olive', 'cyan'][(c - 1) % 10]}`).join(', ')}${used.length > 10 ? ', colours repeat after 10' : ''}). Bigger dots are named more often.${g!.directed ? ' Arrows point from the person who named to the person named.' : ''}`;
+  }
+
+  function calc() {
+    const err = q('.sn-err');
+    try {
+      let rows = parseTable(q<HTMLTextAreaElement>('.sn-in').value);
+      if (q<HTMLInputElement>('.sn-head').checked) rows = rows.slice(1);
+      const { pairs, nodes } = pairsFromRows(rows, mode as 'names');
+      if (!pairs.length) throw new Error(mode === 'names' ? 'No ties found. Each row needs a respondent followed by at least one named person.' : 'No ties found. Each row needs a source and a target.');
+      const directed = q<HTMLInputElement>('.sn-dir').checked;
+      g = buildGraph(pairs, directed, mode === 'names' ? nodes : []);
+      if (g.names.length > 2000) throw new Error(`The network has ${g.names.length} people. This page handles up to 2,000.`);
+      M = measures(g);
+      seed = 1; pos = layout(g, seed, g.names.length > 300 ? 120 : 300);
+      const c = M.components;
+      const facts: [string, string][] = [
+        ['People', g.names.length.toLocaleString('en')],
+        ['Ties', `${g.m.toLocaleString('en')}${directed ? ' (directed)' : ''}`],
+        ['Density', f3(M.density)],
+        ...(directed ? [['Reciprocity', `${f3(M.reciprocity)} (${Math.round((M.reciprocity * g.m) / 2)} mutual pairs)`] as [string, string]] : []),
+        ['Components', directed ? `${c.weak.length} weak, ${c.strong.length} strong (largest ${c.strong[0].length})` : `${c.weak.length} (largest ${c.weak[0].length})`],
+        ['Communities (Louvain)', `${M.communities}, modularity ${f3(M.modularity)}`],
+      ];
+      if (mode === 'names') { const nonResp = g.names.length - new Set(rows.map((r) => r[0].trim()).filter(Boolean)).size; if (nonResp) facts.push(['Named but did not answer', String(nonResp)]); }
+      if (g.selfLoops || g.duplicates) facts.push(['Left out', [g.selfLoops ? `${g.selfLoops} self-named` : '', g.duplicates ? `${g.duplicates} repeated tie${g.duplicates > 1 ? 's' : ''}` : ''].filter(Boolean).join(', ')]);
+      const dl = q('.sn-facts'); dl.innerHTML = '';
+      for (const [k, v] of facts) { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d); }
+      err.hidden = true; q('.sn-out').hidden = false;
+      drawFig();
+      const { head, rows: tr } = drawTable();
+      q('.sn-note').textContent = `${directed ? 'In-degree is how often a person was named; out-degree how many they named. ' : ''}Degree centrality is the degree divided by n − 1. Betweenness is the share of shortest paths between others that pass through the person (brokers score high). Closeness is how near the person is to everyone else${directed ? ', following ties towards them' : ''}, adjusted for people who cannot be reached. Eigenvector centrality is high for people tied to well-connected people. Communities come from the Louvain method on the ties ignoring direction. All measures treat ties as unweighted and match networkx.${M.eigenConverged ? '' : ' Eigenvector centrality did not settle in 1,000 steps (common in directed networks with one-way chains), so treat it with care.'}`;
+      report = [
+        { title: 'Network summary', facts },
+        { title: 'Network drawing', figure: fig!, note: q('.sn-legend').textContent! },
+        { title: 'Measures for each person', table: { head, rows: tr, align: head.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] }, note: q('.sn-note').textContent! },
+      ];
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.sn-out').hidden = true; g = null; M = null; report = []; }
+  }
+  function setMode(m: string) {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.sn-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    q('.sn-what').textContent = WHAT[m];
+    calc();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.sn-mode button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m!)));
+  let tm = 0;
+  q('.sn-in').addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(calc, 400); });
+  q('.sn-head').addEventListener('change', calc);
+  q('.sn-dir').addEventListener('change', calc);
+  q('.sn-lab').addEventListener('change', () => g && drawFig());
+  q('.sn-sort').addEventListener('change', () => { if (!g) return; const { head, rows } = drawTable(); if (report[2]) report[2].table = { head, rows, align: head.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] }; });
+  q('.sn-redraw').addEventListener('click', () => { if (!g) return; seed++; pos = layout(g, seed, g.names.length > 300 ? 120 : 300); drawFig(); if (report[1]) report[1].figure = fig!; });
+  q('.sn-svg').addEventListener('click', () => {
+    if (!g || !M) return;
+    const f = makeFig(), P = svgPainter(f.w, f.h);
+    P.poly([[0, 0], [f.w, 0], [f.w, f.h], [0, f.h]], '#ffffff', null);
+    drawNetwork(P, { w: f.w, h: f.h, g, pos, rows: M.rows, ink: '#0a0a0a', muted: '#5c5c5c', line: '#b5b5b5', labels: q<HTMLInputElement>('.sn-lab').checked });
+    save(new TextEncoder().encode(P.toString()), 'network.svg', 'image/svg+xml');
+  });
+  q('.sn-csv').addEventListener('click', () => {
+    if (!M) return;
+    const rows = [['person', 'in_degree', 'out_degree', 'degree_centrality', 'in_degree_centrality', 'out_degree_centrality', 'betweenness', 'closeness', 'eigenvector', 'community', 'component'], ...sorted().map((r) => [r.name, r.inDeg, r.outDeg, r.degreeC, r.inC, r.outC, r.betweenness, r.closeness, r.eigenvector, r.community, r.component].map(String))];
+    save(new TextEncoder().encode(rows.map((r) => r.map((c) => (/[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c)).join(',')).join('\n') + '\n'), 'network-measures.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (g && fig) paint(q<HTMLCanvasElement>('.sn-fig'), fig); });
+  setMode('names');
+  wireDownloads(q('.sn .dl'), () => ({ title: 'Social network analysis', file: 'network', sections: report }));
+</script>

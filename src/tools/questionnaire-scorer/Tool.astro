@@ -1,0 +1,155 @@
+---
+// Questionnaire scorer: reverse-keyed items, subscale sums or means, a missing-answer rule and alpha per subscale.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax qs">
+  <div class="ax-card">
+    <h2>Responses</h2>
+    <label>One row per person, one column per item. A header row with item names and a first column of IDs are optional. Leave a cell blank for a missing answer.
+      <textarea class="qs-in" rows="10" spellcheck="false" wrap="off">ID	I1	I2	I3	I4	I5	I6	I7	I8
+P01	3	3	4	3	3	3	2	3
+P02	3	2	5	1	4	3	4	3
+P03	2	4	4	1	1	1	4	2
+P04	2		4	2	3	3	2	3
+P05	2	3	4	3	3	3	2	4
+P06	1	2	5	1	1	1	5	1
+P07	4	4	3	4	3	3	2	4
+P08	2	2	3	2	3			1
+P09	1	2	4	2	3	4	3	5
+P10	5	3	1	5	3	2	1	3
+P11			1	4	2	2	3	5
+P12	5	5	1	5	4	5	2	4
+P13	2	2	3	3	5	5	2	4
+P14	4	3	3	3	4	3	2	3</textarea></label>
+    <DataFile target=".qs-in" maxCols={200} maxRows={20000} />
+    <p class="ax-help">Made-up example: 14 people answering 8 items on a 1 to 5 scale, with a few blanks.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Scoring</h2>
+    <div class="ax-grid">
+      <label>Lowest answer <input class="qs-min" inputmode="decimal" value="1" /></label>
+      <label>Highest answer <input class="qs-max" inputmode="decimal" value="5" /></label>
+      <label>Score as <select class="qs-method"><option value="sum" selected>Sum of items</option><option value="mean">Mean of items</option></select></label>
+      <label>Items needed (%) <input class="qs-need" inputmode="decimal" value="75" /></label>
+    </div>
+    <p class="ax-help">The answer range is used to reverse items and to catch typing mistakes. A person gets a subscale score only if they answered at least this share of its items; a sum is then prorated (their mean on the answered items × the number of items).</p>
+    <label style="margin-top:10px">Reverse-keyed items <input class="qs-rev" value="I3, I7" placeholder="e.g. I3, I7 or 3, 7" /></label>
+    <p class="ax-help">Scored as lowest + highest − answer, so on a 1 to 5 scale a 2 becomes a 4.</p>
+    <label style="margin-top:10px">Subscales: one per line, as name: items. Leave empty to score all items as one total.
+      <textarea class="qs-scales" rows="3" spellcheck="false">Calm: I1-I4
+Focus: I5-I8</textarea></label>
+    <p class="ax-help">List items by column name or number, with ranges such as I1-I4 or 5-8. An item may belong to more than one subscale.</p>
+    <p class="ax-err qs-err" hidden></p>
+  </div>
+
+  <div class="ax-card qs-out" hidden>
+    <h2>Subscales</h2>
+    <div class="ax-scroll"><table class="qs-sum"></table></div>
+    <p class="ax-help qs-note"></p>
+    <h3 style="margin:16px 0 6px;font-size:16px">Scores per person</h3>
+    <div class="ax-scroll qs-pw"><table class="qs-people"></table></div>
+    <p class="ax-help qs-more" hidden></p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small qs-csv">Download scores (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .qs .qs-pw { max-height: 420px; overflow-y: auto; }
+  .qs .qs-people td.qs-miss { color: var(--muted); }
+  .qs .qs-sum td, .qs .qs-sum th { white-space: nowrap; }
+</style>
+
+<script>
+  import { parseTable, num, sig, csv } from '../../lib/sci/num';
+  import { scoreScales, parseItems, type ScaleResult } from '../../lib/sci/questionnaire';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.qs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement>(c).value;
+  let report: Section[] = [], csvRows: (string | number)[][] = [];
+  const f3 = (x: number) => (Number.isFinite(x) ? x.toFixed(3).replace(/^-/, '−') : '–');
+  const f2 = (x: number) => (Number.isFinite(x) ? sig(x, 4) : '–');
+
+  function table(t: HTMLTableElement, head: string[], rows: string[][], miss?: (r: number, c: number) => boolean) {
+    t.innerHTML = '';
+    const hr = t.createTHead().insertRow();
+    head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody();
+    rows.forEach((r, ri) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; td.className = [i ? 'r' : '', miss?.(ri, i) ? 'qs-miss' : ''].join(' ').trim(); }); });
+  }
+
+  function calc() {
+    const err = q('.qs-err');
+    try {
+      const rows = parseTable(val('.qs-in'));
+      if (!rows.length) throw new Error('Paste the responses first.');
+      const isNum = (c: string) => c.trim() === '' || Number.isFinite(num(c));
+      const hasHead = !rows[0].every(isNum) && rows.length > 1;
+      let body = hasHead ? rows.slice(1) : rows;
+      const hasId = body.every((r) => r[0]?.trim() !== '' && !Number.isFinite(num(r[0])));
+      const head0 = hasHead ? rows[0] : [];
+      const ids = body.map((r, i) => (hasId ? r[0].trim() : `Row ${i + 1}`));
+      if (hasId) body = body.map((r) => r.slice(1));
+      const k = Math.max(...body.map((r) => r.length), hasHead ? head0.length - (hasId ? 1 : 0) : 0);
+      const names = Array.from({ length: k }, (_, j) => (hasHead ? head0[j + (hasId ? 1 : 0)]?.trim() : '') || `Item ${j + 1}`);
+      const X = body.map((r, i) => Array.from({ length: k }, (_, j) => {
+        const c = (r[j] ?? '').trim(); if (c === '') return NaN;
+        const v = num(c); if (!Number.isFinite(v)) throw new Error(`"${c}" for ${ids[i]} (${names[j]}) is not a number.`); return v;
+      }));
+      if (!X.length) throw new Error('Add at least one row of answers.');
+      const min = num(val('.qs-min')), max = num(val('.qs-max')), need = num(val('.qs-need'));
+      if (!Number.isFinite(min) || !Number.isFinite(max)) throw new Error('Enter the lowest and highest possible answer.');
+      if (!Number.isFinite(need)) throw new Error('Enter the share of items needed, from 1 to 100 %.');
+      const reverse = val('.qs-rev').trim() ? parseItems(val('.qs-rev'), names) : [];
+      const lines = val('.qs-scales').split('\n').map((l) => l.trim()).filter(Boolean);
+      const scales = lines.length ? lines.map((l, i) => {
+        const m = l.match(/^([^:=]+)[:=](.*)$/);
+        if (!m) throw new Error(`Subscale line ${i + 1} needs a name, a colon and the items, such as "Calm: I1-I4".`);
+        return { name: m[1].trim(), items: parseItems(m[2], names) };
+      }) : [{ name: 'Total', items: names.map((_, j) => j) }];
+      const method = q<HTMLSelectElement>('.qs-method').value as 'sum' | 'mean';
+      const res = scoreScales(X, scales, { min, max, reverse, method, minAnswered: need / 100 });
+      show(res, ids, names, reverse, method, need, min, max);
+      err.hidden = true; q('.qs-out').hidden = false;
+    } catch (e) { err.textContent = (e as Error).message.replace(/([^.])$/, '$1.'); err.hidden = false; q('.qs-out').hidden = true; report = []; csvRows = []; }
+  }
+
+  function show(res: ScaleResult[], ids: string[], names: string[], reverse: number[], method: string, need: number, min: number, max: number) {
+    const n = ids.length;
+    const sHead = ['Subscale', 'Items', 'Scored', 'Mean', 'SD', 'Lowest', 'Highest', 'Alpha', '95 % interval', 'Alpha n'];
+    const sRows = res.map((r) => [r.name, String(r.items.length), `${r.scored} of ${n}`, f2(r.mean), f2(r.sd), f2(r.lo), f2(r.hi), f3(r.alpha), Number.isFinite(r.alphaCi[0]) ? `${f3(r.alphaCi[0])} to ${f3(r.alphaCi[1])}` : '–', String(r.alphaN)]);
+    table(q<HTMLTableElement>('.qs-sum'), sHead, sRows);
+    const pHead = ['ID', ...res.map((r) => r.name), ...res.map((r) => `${r.name} answered`)];
+    const pRows = ids.map((id, i) => [id, ...res.map((r) => f2(r.scores[i])), ...res.map((r) => `${r.answered[i]}/${r.items.length}`)]);
+    const SHOW = 300;
+    table(q<HTMLTableElement>('.qs-people'), pHead, pRows.slice(0, SHOW), (ri, c) => c >= 1 && c <= res.length && !Number.isFinite(res[c - 1].scores[ri]));
+    q('.qs-more').hidden = n <= SHOW; q('.qs-more').textContent = `Showing the first ${SHOW} of ${n} people. The CSV has them all.`;
+    const notes: string[] = [];
+    if (reverse.length) notes.push(`Reverse-keyed: ${reverse.map((j) => names[j]).join(', ')} (as ${min + max} − answer).`);
+    for (const r of res) {
+      const missing = n - r.scored;
+      if (missing) notes.push(`${r.name}: ${missing} ${missing > 1 ? 'people' : 'person'} answered fewer than ${need} % of the items and ${missing > 1 ? 'have' : 'has'} no score.`);
+      if (r.prorated) notes.push(`${r.name}: ${r.prorated} sum${r.prorated > 1 ? 's were' : ' was'} prorated from the answered items.`);
+      if (r.items.length >= 2 && !Number.isFinite(r.alpha)) notes.push(`${r.name}: alpha needs at least three people who answered every item.`);
+    }
+    notes.push(`Scores are ${method === 'sum' ? 'sums' : 'means'} of the items. Alpha uses only people who answered every item of the subscale. 0.70 is the usual minimum for a research scale.`);
+    q('.qs-note').textContent = notes.join(' ');
+    csvRows = [['ID', ...res.map((r) => r.name), ...res.map((r) => `${r.name} answered`)], ...ids.map((id, i) => [id, ...res.map((r) => (Number.isFinite(r.scores[i]) ? +r.scores[i].toFixed(6) : '')), ...res.map((r) => r.answered[i])])];
+    report = [
+      { title: 'Subscales', table: { head: sHead, rows: sRows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r'] }, note: notes.join(' ') },
+      { title: 'Scores per person', note: n > SHOW ? `First ${SHOW} of ${n} people; the CSV has them all.` : undefined, table: { head: pHead, rows: pRows.slice(0, SHOW), align: ['l', ...pHead.slice(1).map(() => 'r' as const)] } },
+    ];
+  }
+
+  let t = 0;
+  root.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(calc, 250); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select')) calc(); });
+  q('.qs-csv').addEventListener('click', () => { if (csvRows.length > 1) save(new TextEncoder().encode(csv(csvRows)), 'questionnaire-scores.csv', 'text/csv'); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Questionnaire scores', file: 'questionnaire-scores', sections: report }));
+</script>

@@ -1,0 +1,137 @@
+---
+// Lexical diversity and readability: TTR, root TTR, MATTR, MTLD, HD-D, Yule's K and six readability formulas.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ld">
+  <div class="ax-card">
+    <h2>Your text</h2>
+    <label>Paste English text (diversity measures work for any language; the readability formulas are for English).
+      <textarea class="ld-in" rows="9">Our school garden started as a bare patch of clay behind the sports hall. In the first spring, a group of students dug four beds, mixed in compost from the kitchen and planted beans, potatoes and marigolds. Nothing grew well. The clay held water after every storm, and the roots rotted.
+The next year we tried again with raised beds. A retired carpenter showed us how to build frames from old pallets, and the science teacher helped us measure the soil every week. We recorded temperature, moisture and the height of each plant in a shared notebook.
+By midsummer the difference was obvious. The beans climbed past the fence, the potatoes produced a generous harvest, and visitors stopped to ask questions. Younger pupils now help with watering, and the canteen serves our vegetables twice a month. What began as an unpromising corner has become an outdoor classroom where measurement, patience and teamwork matter more than any test score.</textarea></label>
+    <p class="ax-help">The example is a made-up text. Your text stays in your browser.</p>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small ld-open">Open a .txt file</button>
+      <input type="file" class="ld-file" accept=".txt,text/plain" hidden />
+      <span class="ax-help ld-fnote" style="margin:0">Plain text, up to 10 MB.</span>
+    </div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>MATTR window (words) <input class="ld-win" type="number" min="10" max="1000" value="50" /></label>
+      <label>MTLD threshold <input class="ld-thr" type="number" min="0.5" max="0.95" step="0.01" value="0.72" /></label>
+      <label>HD-D sample (words) <input class="ld-s" type="number" min="10" max="200" value="42" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px"><label class="ax-check"><input type="checkbox" class="ld-cs" /> Match case (count "The" and "the" as different words)</label></div>
+    <p class="ax-help">The defaults are the published ones: a 50-word window for MATTR, 0.72 for MTLD and 42 words for HD-D. Change them only to match a study you are comparing with.</p>
+    <p class="ax-err ld-err" hidden></p>
+  </div>
+
+  <div class="ax-card ld-out" hidden>
+    <h2>Lexical diversity</h2>
+    <p class="ax-big ld-big"></p>
+    <div class="ax-scroll"><table class="ld-div"></table></div>
+    <canvas class="ax-fig ld-fig" style="margin-top:12px"></canvas>
+    <p class="ax-help ld-dnote"></p>
+
+    <h2 style="margin-top:22px">Readability</h2>
+    <dl class="ax-facts ld-counts"></dl>
+    <div class="ax-scroll" style="margin-top:12px"><table class="ld-read"></table></div>
+    <p class="ax-help">Syllables are counted by rule of thumb (groups of vowels, minus silent endings), so they are close but not exact; dictionary-based tools may differ by a point or so. Grade scores are US school grades (grade 8 is about age 13 to 14). SMOG is meant for 30 sentences or more.</p>
+    <details style="margin-top:10px"><summary>Longest words and their syllable counts</summary><p class="ax-help ld-syl"></p></details>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small ld-csv">Download CSV</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .ld summary { cursor: pointer; font-size: 14px; }
+</style>
+
+<script>
+  import { tokens, diversity, readability, easeBand, words, syllables } from '../../lib/sci/lexdiv';
+  import { csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { wireDownloads, paint, save, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ld')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const numIn = (c: string, lo: number, hi: number, d: number) => { const v = Number(q<HTMLInputElement>(c).value); return Number.isFinite(v) && q<HTMLInputElement>(c).value.trim() !== '' && v >= lo && v <= hi ? v : NaN; };
+  const f = (x: number, n = 3) => (Number.isFinite(x) ? x.toFixed(n).replace(/^-/, '−') : '–');
+  let report: Section[] = [], rows: string[][] = [], fig: Figure | null = null;
+
+  function table(sel: string, head: string[], body: string[][]) {
+    const t = q<HTMLTableElement>(sel); t.innerHTML = '';
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i === 1) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); body.forEach((r) => { const tr = b.insertRow(); r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i === 1) td.className = 'r'; }); });
+  }
+
+  function calc() {
+    const err = q('.ld-err'), text = q<HTMLTextAreaElement>('.ld-in').value;
+    try {
+      const win = numIn('.ld-win', 10, 1000, 50), thr = numIn('.ld-thr', 0.5, 0.95, 0.72), s = numIn('.ld-s', 10, 200, 42);
+      if (!Number.isInteger(win)) throw new Error('The MATTR window must be a whole number from 10 to 1000.');
+      if (!Number.isFinite(thr)) throw new Error('The MTLD threshold must be between 0.5 and 0.95.');
+      if (!Number.isInteger(s)) throw new Error('The HD-D sample must be a whole number from 10 to 200.');
+      const t = tokens(text, q<HTMLInputElement>('.ld-cs').checked);
+      if (t.length < 10) throw new Error('Paste at least 10 words (100 or more gives steadier numbers).');
+      const d = diversity(t, { window: win, threshold: thr, sample: s }), r = readability(text);
+      q('.ld-big').textContent = `MTLD ${f(d.mtld, 1)} · MATTR ${f(d.mattr)}`;
+      const short = (need: number, name: string) => `${name} needs at least ${need} words`;
+      const div: string[][] = [
+        ['Tokens (running words)', String(d.N), 'All words, repeats included.'],
+        ['Types (different words)', String(d.V), 'Each word form counted once.'],
+        ['Type-token ratio (TTR)', f(d.ttr), 'Types ÷ tokens. Falls as texts get longer, so compare only texts of the same length.'],
+        ['Root TTR (Guiraud)', f(d.rttr), 'Types ÷ √tokens. Less tied to length than TTR, but not free of it.'],
+        ['Log TTR (Herdan C)', f(d.logttr), 'log types ÷ log tokens.'],
+        [`MATTR (window ${win})`, Number.isFinite(d.mattr) ? f(d.mattr) : short(win, 'MATTR'), 'Mean TTR of every run of window-many words, moving one word at a time.'],
+        [`MTLD (threshold ${thr})`, Number.isFinite(d.mtld) ? f(d.mtld, 1) : 'no repeats yet', `Average run of words before TTR falls to ${thr} (forward ${f(d.mtldF, 1)}, backward ${f(d.mtldB, 1)}). Higher is more varied.`],
+        [`HD-D (sample ${s})`, Number.isFinite(d.hdd) ? f(d.hdd) : short(s, 'HD-D'), `Expected TTR of a random ${s}-word sample, from the hypergeometric distribution.`],
+        ["Yule's K", f(d.yuleK, 1), 'Repetition: 10⁴ × (Σ f² − N) ÷ N². Higher means more repetition; does not depend on length.'],
+      ];
+      table('.ld-div', ['Measure', 'Value', 'What it means'], div);
+      fig = null;
+      if (d.mattrSeries.length > 1) {
+        fig = chartFigure({ h: 260, xLabel: 'Window start (word number)', yLabel: 'TTR in window', series: [{ name: 'TTR', x: d.mattrSeries.map((_, i) => i + 1), y: d.mattrSeries, mode: 'line', width: 1.6 }], marks: [{ kind: 'hline', at: d.mattr, dash: [5, 4], label: `MATTR ${f(d.mattr)}` }], legend: 'none' }, `TTR in each ${win}-word window, mean ${f(d.mattr)}`);
+        paint(q<HTMLCanvasElement>('.ld-fig'), fig);
+      }
+      q('.ld-fig').hidden = !fig;
+      q('.ld-dnote').textContent = (fig ? 'The line shows how varied the words are as the window moves through the text; dips are passages with more repetition. ' : '') + (d.N < 100 ? 'Under 100 words, every measure is shaky. ' : '') + 'Words are runs of letters and digits; "don\'t" and "well-known" count as one word.';
+
+      const counts: [string, string][] = [['Sentences', String(r.sentences)], ['Words', String(r.words)], ['Syllables', String(r.syllables)], ['Words per sentence', f(r.words / r.sentences, 1)], ['Syllables per word', f(r.syllables / r.words, 2)], ['Words of 3+ syllables', `${r.polysyllables} (${f((100 * r.polysyllables) / r.words, 1)} %)`]];
+      const dl = q('.ld-counts'); dl.innerHTML = '';
+      for (const [k, v] of counts) { const e = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; e.append(dt, dd); dl.append(e); }
+      const read: string[][] = [
+        ['Flesch reading ease', f(r.fre, 1), `${easeBand(r.fre)} (0 to 100; higher is easier)`],
+        ['Flesch-Kincaid grade', f(r.fkgl, 1), 'US grade, from words per sentence and syllables per word'],
+        ['Gunning fog index', f(r.fog, 1), `grade, from sentence length and ${r.complex} complex words (3+ syllables, not counting -ed/-es/-ing endings or hyphenated words)`],
+        ['SMOG grade', f(r.smog, 1), r.sentences < 30 ? `grade; only ${r.sentences} sentences, SMOG wants 30+` : 'grade, from words of 3+ syllables'],
+        ['Coleman-Liau index', f(r.cli, 1), 'grade, from letters per word (no syllables needed)'],
+        ['Automated readability index', f(r.ari, 1), 'grade, from characters per word'],
+      ];
+      table('.ld-read', ['Formula', 'Score', 'Reads as'], read);
+      const longest = [...new Set(words(text).filter((w) => /\p{L}/u.test(w)).map((w) => w.toLowerCase()))].sort((a, b) => b.length - a.length || (a < b ? -1 : 1)).slice(0, 15);
+      q('.ld-syl').textContent = longest.map((w) => `${w} ${syllables(w)}`).join(' · ');
+      rows = [['Measure', 'Value'], ...div.map((x) => [x[0], x[1]]), ...counts.map(([k, v]) => [k, v]), ...read.map((x) => [x[0], x[1]])];
+      report = [
+        { title: 'Lexical diversity', table: { head: ['Measure', 'Value', 'What it means'], rows: div, align: ['l', 'r', 'l'] }, ...(fig ? { figure: fig } : {}) },
+        { title: 'Readability', facts: counts, table: { head: ['Formula', 'Score', 'Reads as'], rows: read, align: ['l', 'r', 'l'] }, note: 'Syllables counted by rule of thumb.' },
+      ];
+      err.hidden = true; q('.ld-out').hidden = false;
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.ld-out').hidden = true; report = []; rows = []; }
+  }
+
+  q('.ld-open').addEventListener('click', () => q<HTMLInputElement>('.ld-file').click());
+  q<HTMLInputElement>('.ld-file').addEventListener('change', async (e) => {
+    const inp = e.target as HTMLInputElement, file = inp.files?.[0]; inp.value = '';
+    if (!file) return;
+    if (file.size > 10e6) { q('.ld-fnote').textContent = `${file.name} is over 10 MB.`; return; }
+    q<HTMLTextAreaElement>('.ld-in').value = await file.text(); q('.ld-fnote').textContent = `Opened ${file.name}.`; calc();
+  });
+  let tm = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('input[type=checkbox], input[type=file]')) return; clearTimeout(tm); tm = window.setTimeout(calc, 300); });
+  q('.ld-cs').addEventListener('change', calc);
+  q('.ld-csv').addEventListener('click', () => { if (rows.length) save(new Blob([csv(rows)], { type: 'text/csv' }), 'lexical-diversity-readability.csv', 'text/csv'); });
+  new MutationObserver(() => { if (fig) paint(q<HTMLCanvasElement>('.ld-fig'), fig); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Lexical diversity and readability', file: 'lexical-diversity-readability', sections: report }));
+</script>

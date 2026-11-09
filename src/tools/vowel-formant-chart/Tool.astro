@@ -1,0 +1,297 @@
+---
+// Vowel formant chart: open a recording, pick a vowel, measure F1 to F3 by LPC, and plot vowels on an F2-F1 chart.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax vf">
+  <div class="ax-card">
+    <h2>1. Recording</h2>
+    <div class="ax-row">
+      <label class="btn secondary small" style="cursor:pointer">Open a sound file<input type="file" class="vf-file" accept=".wav,audio/*" hidden /></label>
+      <button type="button" class="btn secondary small vf-ex">Load the made-up example</button>
+    </div>
+    <p class="ax-help vf-info">WAV files are read exactly as recorded. Other formats (MP3, M4A, OGG) are decoded by your browser. The sound stays on your device; nothing is uploaded.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Highest formant <select class="vf-max"><option value="5000">5000 Hz: lower voices (most men)</option><option value="5500" selected>5500 Hz: higher voices (most women)</option><option value="6500">6500 Hz: children</option></select></label>
+      <label>Formants below that <select class="vf-n"><option value="4">4</option><option value="5" selected>5</option><option value="6">6</option></select></label>
+      <label>Window (ms) <input class="vf-win" inputmode="decimal" value="25" /></label>
+    </div>
+    <p class="ax-help">The sound is resampled to twice the highest formant and each window gets a linear prediction (LPC) of order 2 × the number of formants. If F1 and F2 merge or a formant appears between them, change the number of formants by one.</p>
+    <p class="ax-err vf-err" hidden></p>
+  </div>
+
+  <div class="ax-card vf-an" hidden>
+    <h2>2. Pick a vowel</h2>
+    <div class="ax-row vf-spans" aria-label="Vowels found"></div>
+    <canvas class="ax-fig vf-wave" style="margin-top:10px;touch-action:none;cursor:crosshair"></canvas>
+    <p class="ax-help">Drag across the picture to choose a stretch, or tap a button above (each takes the middle half of a loud stretch, where vowels are steadiest). Dots are F1 (lowest), F2 and F3 in each window.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>From (s) <input class="vf-t0" inputmode="decimal" /></label>
+      <label>To (s) <input class="vf-t1" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-big vf-big" style="margin-top:12px"></p>
+    <dl class="ax-facts vf-facts"></dl>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Vowel label <input class="vf-lab" value="i" /></label>
+      <label>Speaker <input class="vf-spk" value="me" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small vf-add">Add to the chart</button>
+      <button type="button" class="btn secondary small vf-tcsv">Formant track (CSV)</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>3. Vowel chart</h2>
+    <label>One vowel per row: vowel, F1, F2, F3 (optional) and speaker (optional), in Hz. Paste from Praat or a spreadsheet; a header row with these names is fine.
+      <textarea class="vf-tab" rows="9" spellcheck="false" wrap="off"></textarea></label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small vf-tex">Made-up example table</button>
+      <button type="button" class="btn secondary small vf-clear">Clear</button>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Scale <select class="vf-norm"><option value="hz" selected>Hz (as measured)</option><option value="lob">Lobanov z-scores (per speaker)</option></select></label>
+      <label>Show <select class="vf-show"><option value="all" selected>every vowel</option><option value="mean">vowel means</option></select></label>
+    </div>
+    <p class="ax-help">Lobanov normalisation turns each speaker's F1 and F2 into z-scores (value minus that speaker's mean, divided by their standard deviation), so speakers with longer or shorter vocal tracts can be compared. It needs each speaker's whole vowel space, not one or two vowels.</p>
+    <p class="ax-err vf-terr" hidden></p>
+    <div class="vf-cout" hidden>
+      <canvas class="ax-fig vf-chart" style="margin-top:10px"></canvas>
+      <h3>Vowel means</h3>
+      <div class="ax-scroll"><table class="vf-means"></table></div>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small vf-csv">Chart data (CSV)</button></div>
+      <Downloads />
+    </div>
+  </div>
+</div>
+
+<script>
+  import { formantTrack, spanFormants, loudSpans, lobanov, parseVowelTable, synthVowel, type Track } from '../../lib/sci/formant';
+  import { readWav, type Sound } from '../../lib/sci/formant-audio';
+  import { num, csv } from '../../lib/sci/num';
+  import { chartFigure, OKABE_ITO } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.vf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const tab = q<HTMLTextAreaElement>('.vf-tab');
+  const MAX_S = 60;
+  let snd: Sound | null = null, name = '', tr: Track | null = null, sel: [number, number] | null = null, meas: { F: number[]; sd: number[]; frames: number } | null = null;
+  let chartFig: Figure | null = null, report: Section[] = [], chartRows: (string | number)[][] = [];
+
+  const EX_TABLE = `vowel\tF1\tF2\tF3\tspeaker
+i\t290\t2250\t2950\tA
+i\t310\t2180\t2900\tA
+e\t430\t2000\t2650\tA
+e\t460\t1940\t2600\tA
+a\t720\t1300\t2450\tA
+a\t760\t1250\t2500\tA
+o\t470\t880\t2400\tA
+o\t450\t920\t2350\tA
+u\t330\t820\t2300\tA
+u\t350\t760\t2250\tA
+i\t340\t2700\t3300\tB
+i\t360\t2650\t3250\tB
+e\t520\t2350\t3000\tB
+e\t540\t2300\t2950\tB
+a\t880\t1550\t2800\tB
+a\t920\t1500\t2850\tB
+o\t540\t1000\t2750\tB
+o\t560\t1050\t2700\tB
+u\t380\t900\t2650\tB
+u\t400\t950\t2600\tB`;
+
+  function err(msg: string) { const e = q('.vf-err'); e.textContent = msg; e.hidden = !msg; }
+
+  async function decode(f: File): Promise<Sound> {
+    const buf = await f.arrayBuffer(), head = new Uint8Array(buf, 0, Math.min(12, buf.byteLength));
+    if (String.fromCharCode(...head.slice(0, 4)) === 'RIFF') return readWav(buf);
+    const AC = window.OfflineAudioContext;
+    if (!AC) throw new Error('This browser cannot decode that format. Save the recording as WAV and try again.');
+    let ab: AudioBuffer;
+    try { ab = await new AC(1, 1, 22050).decodeAudioData(buf); } catch { throw new Error('This file could not be read as sound. Try a WAV file.'); }
+    const x = new Float64Array(ab.length);
+    for (let c = 0; c < ab.numberOfChannels; c++) { const d = ab.getChannelData(c); for (let i = 0; i < x.length; i++) x[i] += d[i] / ab.numberOfChannels; }
+    return { fs: ab.sampleRate, x, channels: ab.numberOfChannels, bits: 32, format: 'decoded by the browser', seconds: x.length / ab.sampleRate };
+  }
+
+  function example(): Sound {
+    // Three made-up vowels, close to [i], [a] and [u], with pauses between them.
+    const fs = 16000, gap = new Float64Array(Math.round(0.15 * fs));
+    const v = [[[300, 2300, 3000, 3700, 4500], 210], [[750, 1300, 2500, 3500, 4500], 200], [[320, 800, 2300, 3400, 4400], 220]] as [number[], number][];
+    const parts = [gap, ...v.flatMap(([F, f0]) => [synthVowel(F, [60, 90, 130, 200, 250], f0, 0.35, fs), gap])];
+    const x = new Float64Array(parts.reduce((s, p) => s + p.length, 0)); let at = 0; for (const p of parts) { x.set(p, at); at += p.length; }
+    return { fs, x, channels: 1, bits: 16, format: 'made up', seconds: x.length / fs };
+  }
+
+  function settings() {
+    const win = num(q<HTMLInputElement>('.vf-win').value);
+    if (!(win >= 5 && win <= 100)) throw new Error('Choose a window between 5 and 100 ms.');
+    return { maxFormant: +q<HTMLSelectElement>('.vf-max').value, nFormants: +q<HTMLSelectElement>('.vf-n').value, window: win / 1000, step: 0.005 };
+  }
+
+  function analyse() {
+    if (!snd) return;
+    try {
+      const x = snd.x.length > MAX_S * snd.fs ? snd.x.subarray(0, MAX_S * snd.fs) : snd.x;
+      tr = formantTrack(x, snd.fs, settings());
+      if (tr.t.length < 3) throw new Error('The recording is too short to analyse.');
+      err(''); q('.vf-an').hidden = false;
+      const spans = loudSpans(tr), box = q('.vf-spans'); box.innerHTML = '';
+      spans.slice(0, 12).forEach(([a, b], i) => {
+        const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn secondary small';
+        btn.textContent = `Vowel ${i + 1} (${a.toFixed(2)}–${b.toFixed(2)} s)`;
+        btn.addEventListener('click', () => { const d = (b - a) / 4; setSel(a + d, b - d); });
+        box.append(btn);
+      });
+      if (!spans.length) box.textContent = 'No loud stretch found: drag across the picture to choose one.';
+      if (sel && sel[1] <= tr.t[tr.t.length - 1] + 0.01) setSel(sel[0], sel[1]);
+      else if (spans.length) { const [a, b] = spans[0], d = (b - a) / 4; setSel(a + d, b - d); }
+      else setSel(tr.t[0], tr.t[tr.t.length - 1]);
+    } catch (e) { err((e as Error).message); q('.vf-an').hidden = true; tr = null; }
+  }
+
+  const fmt = (v: number) => (Number.isFinite(v) ? String(Math.round(v)) : '–');
+  function setSel(a: number, b: number) {
+    if (!tr) return;
+    if (b < a) [a, b] = [b, a];
+    sel = [a, b];
+    q<HTMLInputElement>('.vf-t0').value = a.toFixed(3); q<HTMLInputElement>('.vf-t1').value = b.toFixed(3);
+    meas = spanFormants(tr, a, b);
+    const dl = q('.vf-facts'); dl.innerHTML = '';
+    if (!meas.frames || !meas.F.slice(0, 2).every(Number.isFinite)) {
+      q('.vf-big').textContent = 'No formants in this stretch: choose a longer or louder part.';
+      (q('.vf-add') as HTMLButtonElement).disabled = true;
+    } else {
+      q('.vf-big').textContent = `F1 ${fmt(meas.F[0])} Hz, F2 ${fmt(meas.F[1])} Hz, F3 ${fmt(meas.F[2])} Hz`;
+      (q('.vf-add') as HTMLButtonElement).disabled = false;
+      const add = (k: string, v: string, s?: string) => { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; dd.append(sm); } d.append(dt, dd); dl.append(d); };
+      meas.F.forEach((f, k) => add(`F${k + 1} (median)`, `${fmt(f)} Hz`, Number.isFinite(meas!.sd[k]) ? `SD ${fmt(meas!.sd[k])} Hz across windows` : undefined));
+      add('Stretch', `${(b - a).toFixed(3)} s`, `${meas.frames} windows of ${q<HTMLInputElement>('.vf-win').value} ms, every 5 ms`);
+    }
+    drawWave();
+  }
+
+  function drawWave() {
+    if (!tr || !snd || !sel) return;
+    const cv = q<HTMLCanvasElement>('.vf-wave'), W = Math.max(280, Math.round(cv.clientWidth || 600)), H = 240;
+    const T = tr, S = snd, [a, b] = sel, dur = Math.min(S.seconds, MAX_S), maxF = +q<HTMLSelectElement>('.vf-max').value;
+    paint(cv, { w: W, h: H, alt: 'Waveform and formant tracks with the chosen stretch shaded', draw: (ctx, w, h, pal) => {
+      const L = 44, R = 8, top = 6, wH = 54, fT = wH + 14, fH = h - fT - 22, X = (t: number) => L + (t / dur) * (w - L - R);
+      ctx.fillStyle = pal.grid; ctx.fillRect(X(a), top, Math.max(1, X(b) - X(a)), h - top - 22);
+      // Waveform as a min/max envelope per pixel column.
+      ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.beginPath();
+      const n = Math.min(S.x.length, Math.round(dur * S.fs)), cols = w - L - R;
+      let peak = 0; for (let i = 0; i < n; i++) peak = Math.max(peak, Math.abs(S.x[i]));
+      for (let c = 0; c < cols; c++) {
+        let lo = 0, hi = 0; const i0 = Math.floor(c * n / cols), i1 = Math.max(i0 + 1, Math.floor((c + 1) * n / cols));
+        for (let i = i0; i < i1 && i < n; i++) { lo = Math.min(lo, S.x[i]); hi = Math.max(hi, S.x[i]); }
+        const mid = top + wH / 2, k = peak > 0 ? wH / 2 / peak : 0;
+        ctx.moveTo(L + c + 0.5, mid - hi * k); ctx.lineTo(L + c + 0.5, mid - lo * k + 0.5);
+      }
+      ctx.stroke();
+      // Formant tracks.
+      ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      const Y = (f: number) => fT + fH - (f / maxF) * fH;
+      for (let f = 0; f <= maxF; f += 1000) { ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(L, Y(f)); ctx.lineTo(w - R, Y(f)); ctx.stroke(); ctx.fillText(f ? `${f / 1000}k` : '0', L - 4, Y(f)); }
+      ctx.save(); ctx.translate(10, fT + fH / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.fillText('Hz', 0, 0); ctx.restore();
+      const peakR = Math.max(0, ...T.rms), cols3 = pal.red ? ['#a30000', '#a30000', '#a30000'] : pal.bg === '#ffffff' ? [OKABE_ITO[0], OKABE_ITO[1], OKABE_ITO[2]] : ['#56B4E9', '#E69F00', '#5fd3a8'];
+      T.F.forEach((row, k) => { ctx.fillStyle = cols3[k % 3]; row.forEach((f, i) => { if (f != null && T.rms[i] >= 0.1 * peakR) ctx.fillRect(X(T.t[i]) - 1, Y(f) - 1, 2.4, 2.4); }); });
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillStyle = pal.muted;
+      const step = dur > 20 ? 5 : dur > 8 ? 2 : dur > 3 ? 0.5 : dur > 1.2 ? 0.2 : 0.1;
+      for (let t = 0; t <= dur + 1e-9; t += step) if (X(t) < w - R - 16) ctx.fillText(`${+t.toFixed(2)}`, X(t), h - 18);
+      ctx.textAlign = 'right'; ctx.fillText('s', w - R, h - 18);
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; for (const t of [a, b]) { ctx.beginPath(); ctx.moveTo(X(t), top); ctx.lineTo(X(t), h - 22); ctx.stroke(); }
+    } });
+  }
+
+  // Drag across the picture to choose a stretch.
+  { const cv = q<HTMLCanvasElement>('.vf-wave'); let down: number | null = null;
+    const tAt = (e: PointerEvent) => { const r = cv.getBoundingClientRect(), L = 44, dur = Math.min(snd!.seconds, MAX_S); return Math.max(0, Math.min(dur, ((e.clientX - r.left - L) / (r.width - L - 8)) * dur)); };
+    cv.addEventListener('pointerdown', (e) => { if (!tr) return; down = tAt(e); cv.setPointerCapture(e.pointerId); });
+    cv.addEventListener('pointermove', (e) => { if (down == null) return; const t = tAt(e); if (Math.abs(t - down) > 0.005) setSel(down, t); });
+    cv.addEventListener('pointerup', (e) => { if (down == null) return; const t = tAt(e); if (Math.abs(t - down) > 0.005) setSel(down, t); down = null; });
+  }
+
+  async function open(f: File) {
+    err('');
+    if (f.size > 100e6) { err('That file is over 100 MB. Cut out the part you need first.'); return; }
+    try {
+      snd = await decode(f); name = f.name; sel = null;
+      q('.vf-info').textContent = `${f.name}: ${snd.seconds.toFixed(2)} s, ${snd.fs.toLocaleString('en')} Hz, ${snd.channels === 1 ? 'mono' : `${snd.channels} channels mixed to one`}, ${snd.format}${snd.seconds > MAX_S ? `. Only the first ${MAX_S} s are analysed.` : '.'}`;
+      analyse();
+    } catch (e) { snd = null; tr = null; q('.vf-an').hidden = true; err((e as Error).message); }
+  }
+
+  // ---------- Vowel chart ----------
+  function chart() {
+    const e = q('.vf-terr'); e.hidden = true;
+    if (!tab.value.trim()) { q('.vf-cout').hidden = true; report = []; return; }
+    try {
+      const { rows, skipped } = parseVowelTable(tab.value);
+      const lob = q<HTMLSelectElement>('.vf-norm').value === 'lob', means = q<HTMLSelectElement>('.vf-show').value === 'mean';
+      const spk = rows.map((r) => r.speaker);
+      const z1 = lobanov(rows.map((r) => r.F1), spk), z2 = lobanov(rows.map((r) => r.F2), spk), z3 = lobanov(rows.map((r) => r.F3), spk);
+      if (lob && z1.some((v) => !Number.isFinite(v))) throw new Error('Lobanov needs at least two different vowels from every speaker. Add more vowels or switch back to Hz.');
+      const X = lob ? z2 : rows.map((r) => r.F2), Y = lob ? z1 : rows.map((r) => r.F1);
+      const vowels = [...new Set(rows.map((r) => r.vowel))], speakers = [...new Set(spk)];
+      // Means per vowel (over all speakers) for the chart, and per speaker and vowel for the table.
+      const groupMean = (idx: number[], v: number[]) => idx.reduce((s, i) => s + v[i], 0) / idx.length;
+      const series = vowels.map((v, k) => {
+        const idx = rows.map((r, i) => (r.vowel === v ? i : -1)).filter((i) => i >= 0);
+        const xs = means ? [groupMean(idx, X)] : idx.map((i) => X[i]), ys = means ? [groupMean(idx, Y)] : idx.map((i) => Y[i]);
+        return { name: v, x: xs, y: ys, mode: 'points' as const, marker: means ? 'circle' as const : (['circle', 'square', 'triangle', 'diamond', 'open-circle', 'open-square', 'open-triangle', 'cross'] as const)[k % 8], size: means ? 6 : 4, labels: means ? [v] : undefined };
+      });
+      const unit = lob ? ' (Lobanov z)' : ' (Hz)';
+      q('.vf-cout').hidden = false;
+      const cw = Math.max(340, Math.min(720, Math.round(q('.vf-cout').clientWidth || 720)));
+      chartFig = chartFigure({ w: cw, h: Math.round(Math.min(440, cw * 0.85)), xLabel: 'F2' + unit, yLabel: 'F1' + unit, xReverse: true, yReverse: true, legend: vowels.length <= 12 ? 'below' : 'none', series }, `Vowel chart: F2 across (falling to the right) against F1 down (rising downwards), ${rows.length} vowels`);
+      paint(q<HTMLCanvasElement>('.vf-chart'), chartFig);
+      const head = ['Speaker', 'Vowel', 'n', 'F1', 'F2', 'F3', ...(lob ? ['z F1', 'z F2'] : [])];
+      const body: string[][] = [];
+      for (const s of speakers) for (const v of vowels) {
+        const idx = rows.map((r, i) => (r.vowel === v && r.speaker === s ? i : -1)).filter((i) => i >= 0);
+        if (!idx.length) continue;
+        const f3 = idx.map((i) => rows[i].F3).filter(Number.isFinite);
+        body.push([s, v, String(idx.length), fmt(groupMean(idx, rows.map((r) => r.F1))), fmt(groupMean(idx, rows.map((r) => r.F2))), f3.length ? fmt(f3.reduce((a, b) => a + b, 0) / f3.length) : '–', ...(lob ? [groupMean(idx, z1).toFixed(2), groupMean(idx, z2).toFixed(2)] : [])]);
+      }
+      const t = q<HTMLTableElement>('.vf-means'); t.innerHTML = '';
+      const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i > 1) th.className = 'r'; hr.append(th); });
+      const tb = t.createTBody(); body.forEach((r) => { const tr2 = tb.insertRow(); r.forEach((c, i) => { const td = tr2.insertCell(); td.textContent = c; if (i > 1) td.className = 'r'; }); });
+      chartRows = [['vowel', 'speaker', 'F1_Hz', 'F2_Hz', 'F3_Hz', 'z_F1', 'z_F2', 'z_F3'], ...rows.map((r, i) => [r.vowel, r.speaker, r.F1, r.F2, Number.isFinite(r.F3) ? r.F3 : '', Number.isFinite(z1[i]) ? +z1[i].toFixed(4) : '', Number.isFinite(z2[i]) ? +z2[i].toFixed(4) : '', Number.isFinite(z3[i]) ? +z3[i].toFixed(4) : ''])];
+      const facts: [string, string][] = [['Vowels', String(rows.length)], ['Speakers', speakers.join(', ')], ['Scale', lob ? 'Lobanov z-scores per speaker' : 'Hz']];
+      if (skipped) facts.push(['Rows left out', `${skipped} (no number for F1 or F2)`]);
+      report = [{ title: 'Vowel chart', facts, figure: chartFig }, { title: 'Vowel means', table: { head, rows: body, align: head.map((_, i) => (i > 1 ? 'r' : 'l')) } }];
+      if (meas && sel && Number.isFinite(meas.F[0])) report.push({ title: 'Last measurement', facts: [['From file', name || 'example'], ['Stretch', `${sel[0].toFixed(3)} to ${sel[1].toFixed(3)} s`], ...meas.F.map((f, k) => [`F${k + 1}`, `${fmt(f)} Hz`] as [string, string])] });
+      if (skipped) { e.textContent = `${skipped} row${skipped > 1 ? 's' : ''} without numbers for F1 and F2 ${skipped > 1 ? 'were' : 'was'} left out.`; e.hidden = false; }
+    } catch (x) { e.textContent = (x as Error).message; e.hidden = false; q('.vf-cout').hidden = true; report = []; }
+  }
+
+  q<HTMLInputElement>('.vf-file').addEventListener('change', (e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) open(f); });
+  q('.vf-ex').addEventListener('click', () => { snd = example(); name = 'made-up example'; sel = null; q('.vf-info').textContent = `Made-up example: three synthetic vowels close to [i], [a] and [u] (formants 300/2300/3000, 750/1300/2500 and 320/800/2300 Hz), ${snd.seconds.toFixed(2)} s at 16,000 Hz.`; analyse(); });
+  for (const c of ['.vf-max', '.vf-n']) q(c).addEventListener('change', analyse);
+  q('.vf-win').addEventListener('change', analyse);
+  for (const c of ['.vf-t0', '.vf-t1']) q(c).addEventListener('change', () => { const a = num(q<HTMLInputElement>('.vf-t0').value), b = num(q<HTMLInputElement>('.vf-t1').value); if (Number.isFinite(a) && Number.isFinite(b) && b !== a) setSel(a, b); });
+  q('.vf-add').addEventListener('click', () => {
+    if (!meas) return;
+    const lab = q<HTMLInputElement>('.vf-lab').value.trim() || '?', sp = q<HTMLInputElement>('.vf-spk').value.trim() || 'me';
+    const line = `${lab}\t${fmt(meas.F[0])}\t${fmt(meas.F[1])}\t${Number.isFinite(meas.F[2]) ? fmt(meas.F[2]) : ''}\t${sp}`;
+    tab.value = (tab.value.trim() ? tab.value.replace(/\s+$/, '') + '\n' : 'vowel\tF1\tF2\tF3\tspeaker\n') + line;
+    chart();
+  });
+  q('.vf-tcsv').addEventListener('click', () => {
+    if (!tr) return;
+    const rows: (string | number)[][] = [['time_s', 'F1_Hz', 'F2_Hz', 'F3_Hz', 'B1_Hz', 'B2_Hz', 'B3_Hz', 'rms']];
+    tr.t.forEach((t, i) => rows.push([+t.toFixed(4), ...tr!.F.map((r) => (r[i] == null ? '' : +r[i]!.toFixed(1))), ...tr!.B.map((r) => (r[i] == null ? '' : +r[i]!.toFixed(1))), +tr!.rms[i].toExponential(4)]));
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'formant-track.csv', 'text/csv');
+  });
+  q('.vf-csv').addEventListener('click', () => { if (chartRows.length) save(new Blob([csv(chartRows)], { type: 'text/csv' }), 'vowel-chart.csv', 'text/csv'); });
+  q('.vf-tex').addEventListener('click', () => { tab.value = EX_TABLE; chart(); });
+  q('.vf-clear').addEventListener('click', () => { tab.value = ''; chart(); });
+  q('.vf-norm').addEventListener('change', chart); q('.vf-show').addEventListener('change', chart);
+  let tm = 0; tab.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(chart, 300); });
+  let rz = 0; window.addEventListener('resize', () => { clearTimeout(rz); rz = window.setTimeout(drawWave, 150); });
+  new MutationObserver(() => { drawWave(); if (chartFig) paint(q<HTMLCanvasElement>('.vf-chart'), chartFig); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+  tab.value = EX_TABLE; chart();
+  wireDownloads(q('.dl'), () => ({ title: 'Vowel formant chart', file: 'vowel-chart', sections: report }));
+</script>
