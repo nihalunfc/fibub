@@ -1,0 +1,224 @@
+---
+// Big-O plotter: growth curves, fits of measured timings to complexity classes, and timing in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax bo">
+  <div class="ax-card">
+    <h2>Growth curves</h2>
+    <div class="bo-classes ax-row"></div>
+    <label style="margin-top:10px">Your own formulas in n, one per line (optional)
+      <textarea class="bo-expr" rows="2" spellcheck="false">n(n - 1)/2</textarea></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>n from 1 to <input class="bo-N" inputmode="numeric" value="20" /></label>
+      <label>Cut the y axis at <input class="bo-ymax" inputmode="decimal" placeholder="auto" /></label>
+      <label class="ax-check"><input type="checkbox" class="bo-ylog" checked /> Log scale for steps</label>
+    </div>
+    <p class="ax-err bo-gerr" hidden></p>
+    <canvas class="ax-fig bo-gfig" style="margin-top:12px"></canvas>
+    <h3 style="margin:16px 0 6px;font-size:16px">How long at one size</h3>
+    <div class="ax-grid">
+      <label>n <input class="bo-at" inputmode="numeric" value="1000" /></label>
+      <label>Time per step (ns) <input class="bo-ns" inputmode="decimal" value="1" /></label>
+    </div>
+    <div class="ax-scroll" style="margin-top:8px"><table class="bo-attab"></table></div>
+    <p class="ax-help">A modern computer does very roughly one simple step per nanosecond. Steps here are the growth function itself, without the constant a real program adds.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Fit your timings</h2>
+    <label>Two columns: n (the input size) and the time it took, any unit. A header row is fine.
+      <textarea class="bo-data" rows="7" spellcheck="false">n	time (ms)
+1000	0.8
+2000	1.7
+4000	3.1
+8000	6.9
+16000	13.2</textarea></label>
+    <DataFile target=".bo-data" maxMB={2} maxCols={2} maxRows={1000} />
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="bo-flog" /> Log scales on the fit chart</label>
+    <p class="ax-err bo-ferr" hidden></p>
+    <div class="bo-fout">
+      <p class="ax-big bo-big"></p>
+      <dl class="ax-facts bo-facts"></dl>
+      <canvas class="ax-fig bo-ffig" style="margin-top:12px"></canvas>
+      <div class="ax-scroll" style="margin-top:10px"><table class="bo-fittab"></table></div>
+      <p class="ax-help">Each class is fitted as time = a + b × g(n) by least squares. The best is the smallest leftover (residual) sum of squares. Close classes such as n and n log n need a wide range of n to tell apart.</p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Time an algorithm in this browser</h2>
+    <div class="ax-grid">
+      <label>Algorithm <select class="bo-bench"></select></label>
+    </div>
+    <p class="ax-help bo-sizes"></p>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn small bo-run">Run timings</button>
+      <button type="button" class="btn secondary small bo-stop" hidden>Stop</button>
+      <span class="ax-help bo-prog" style="margin:0" aria-live="polite"></span>
+    </div>
+    <p class="ax-help">Each size is run again and again for at least 40 ms, three times, and the middle result is kept. The results go into the fit box above. Timings vary with the browser, the device and what else is running; the copy of the list each sort makes is included.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Save</h2>
+    <div class="ax-row"><button type="button" class="btn secondary small bo-csv">Fit table (CSV)</button><button type="button" class="btn secondary small bo-tcsv">Size table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .bo .bo-classes { gap: 6px 16px; }
+  .bo .bo-attab td:nth-child(n+2), .bo .bo-fittab td:nth-child(n+2) { text-align: right; }
+  .bo .bo-fittab tr.on td { font-weight: 700; }
+  .bo .bo-fittab td, .bo .bo-attab td:first-child { white-space: nowrap; }
+</style>
+
+<script>
+  import { CLASSES, fitClasses, fromLog10, duration, BENCHES, timeIt, type Fit } from '../../lib/sci/bigo';
+  import { parse, variables, compile } from '../../lib/sci/expr';
+  import { num, sig, csv, numericColumns } from '../../lib/sci/num';
+  import { chartFigure, type Series } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.bo')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let gfig: Figure | null = null, ffig: Figure | null = null, fitRows: string[][] = [], atRows: string[][] = [], best = '', fitFacts: [string, string][] = [];
+
+  q('.bo-classes').replaceChildren(...CLASSES.map((c) => {
+    const l = document.createElement('label'); l.className = 'ax-check';
+    const i = document.createElement('input'); i.type = 'checkbox'; i.value = c.id; i.checked = true; i.className = 'bo-c';
+    l.append(i, ' ' + c.name); return l;
+  }));
+  q('.bo-bench').replaceChildren(...BENCHES.map((b) => { const o = document.createElement('option'); o.value = b.id; o.textContent = `${b.name}, expected ${CLASSES.find((c) => c.id === b.cls)!.name}`; return o; }));
+
+  /** Chart width: the card's width, so text stays readable on phones. */
+  const cw = () => Math.max(300, Math.min(720, (q('.bo-gfig').parentElement!.clientWidth || 720) - 32));
+  type Curve = { name: string; f: (n: number) => number; log10: (n: number) => number };
+  function curves(): Curve[] {
+    const on = [...root.querySelectorAll<HTMLInputElement>('.bo-c')].filter((i) => i.checked).map((i) => i.value);
+    const out: Curve[] = CLASSES.filter((c) => on.includes(c.id)).map((c) => ({ name: c.name, f: c.g, log10: c.log10 }));
+    const lines = q<HTMLTextAreaElement>('.bo-expr').value.split('\n').map((l) => l.trim()).filter(Boolean);
+    if (lines.length > 4) throw new Error('Up to 4 formulas of your own.');
+    for (const line of lines) {
+      let tree;
+      try { tree = parse(line); } catch (e) { throw new Error(`"${line}": ${(e as Error).message}.`); }
+      const vs = variables(tree).filter((v) => v !== 'n');
+      if (vs.length) throw new Error(`"${line}" uses ${vs.join(', ')}; formulas can only use n.`);
+      const fn = compile(tree, ['n']);
+      out.push({ name: line, f: (n) => fn([n]), log10: (n) => Math.log10(fn([n])) });
+    }
+    return out;
+  }
+
+  function growth() {
+    const err = q('.bo-gerr');
+    try {
+      const cs = curves(), N = num(q<HTMLInputElement>('.bo-N').value), ylog = q<HTMLInputElement>('.bo-ylog').checked;
+      if (!(Number.isInteger(N) && N >= 2 && N <= 1e9)) throw new Error('n must go up to a whole number from 2 to 1,000,000,000.');
+      if (!cs.length) throw new Error('Tick at least one class or type a formula.');
+      const ymRaw = q<HTMLInputElement>('.bo-ymax').value.trim(), ym = ymRaw ? num(ymRaw) : NaN;
+      if (ymRaw && !(ym > 0)) throw new Error('The y axis cut must be a number above 0, or left empty.');
+      const xs: number[] = [];
+      if (N <= 200) for (let n = 1; n <= N; n++) xs.push(n); else for (let i = 0; i <= 200; i++) xs.push(1 + ((N - 1) * i) / 200);
+      const series: Series[] = cs.map((c) => {
+        const pts = xs.map((n) => [n, c.f(n)]).filter(([, y]) => Number.isFinite(y) && Math.abs(y) < 1e300 && (!ylog || y > 0) && (!Number.isFinite(ym) || y <= ym * 1.0001));
+        const own = !CLASSES.some((k) => k.name === c.name);
+        return { name: c.name, x: pts.map((p) => p[0]), y: pts.map((p) => p[1]), mode: 'line' as const, width: 2, dash: own ? [6, 4] : undefined };
+      }).filter((s) => s.x.length);
+      if (!series.length) throw new Error('Nothing to draw with these settings.');
+      const W = cw(); gfig = chartFigure({ w: W, h: Math.round(W * (W < 500 ? 1.15 : 0.62)), xLabel: 'n (input size)', yLabel: 'Steps', yLog: ylog, xMin: 1, xMax: N, yMax: Number.isFinite(ym) ? ym : undefined, series, legend: 'below' }, 'Growth of each complexity class with n');
+      paint(q<HTMLCanvasElement>('.bo-gfig'), gfig); q('.bo-gfig').hidden = false;
+      // Size table
+      const at = num(q<HTMLInputElement>('.bo-at').value), ns = num(q<HTMLInputElement>('.bo-ns').value);
+      if (!(at >= 1 && at <= 1e15)) throw new Error('Type an n from 1 to 10^15 for the size table.');
+      if (!(ns > 0)) throw new Error('The time per step must be above 0 ns.');
+      atRows = cs.map((c) => { const l = c.log10(at); return [c.name, Number.isNaN(l) ? 'not a number' : fromLog10(l), Number.isNaN(l) ? '' : duration(l + Math.log10(ns) - 9)]; });
+      const tr = (cells: string[], th = false) => { const r = document.createElement('tr'); cells.forEach((x) => { const d = document.createElement(th ? 'th' : 'td'); d.textContent = x; r.append(d); }); return r; };
+      q('.bo-attab').replaceChildren(tr(['Class', `Steps at n = ${at.toLocaleString('en')}`, 'Time'], true), ...atRows.map((r) => tr(r)));
+      err.hidden = true;
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.bo-gfig').hidden = true; gfig = null; atRows = []; q('.bo-attab').replaceChildren(); }
+  }
+
+  const fmt = (x: number) => (Number.isFinite(x) ? (Math.abs(x) < 1e-3 || Math.abs(x) >= 1e6) && x !== 0 ? x.toExponential(3) : sig(x, 4) : '–');
+  function fit() {
+    const err = q('.bo-ferr');
+    try {
+      const tab = numericColumns(q<HTMLTextAreaElement>('.bo-data').value);
+      if (tab.cols.length < 2) throw new Error('Give two columns: n and time.');
+      const rows = tab.cols[0].map((n, i) => [n, tab.cols[1][i]]).filter(([n, t]) => !Number.isNaN(n) || !Number.isNaN(t));
+      const badRow = rows.findIndex(([n, t]) => Number.isNaN(n) || Number.isNaN(t));
+      if (badRow >= 0) throw new Error(`Row ${badRow + 1} is missing a number for n or time.`);
+      const n = rows.map((r) => r[0]), t = rows.map((r) => r[1]), unit = /\((.+)\)/.exec(tab.headers[1] ?? '')?.[1] ?? '';
+      const r = fitClasses(n, t);
+      const sorted = r.fits.slice().sort((a, b) => (a.ok === b.ok ? a.rss - b.rss : a.ok ? -1 : 1));
+      best = r.best ? r.best.name : '';
+      q('.bo-big').textContent = r.best ? `Best fit: ${r.best.name}` : 'No class fits: the times do not grow with n.';
+      const second = sorted.filter((f) => f.ok && f !== r.best)[0];
+      fitFacts = [];
+      if (r.best) fitFacts.push(['Fitted line', r.best.id === '1' ? `time = ${fmt(r.best.a)}` : `time = ${fmt(r.best.a)} + ${fmt(r.best.b)} × ${gName(r.best.id)}`], ['R²', sig(r.best.r2, 4)]);
+      if (r.best && second) fitFacts.push(['Next best', `${second.name}, leftover ${second.rss > 0 && r.best.rss > 0 ? sig(second.rss / r.best.rss, 3) + ' × larger' : 'larger'}`]);
+      if (Number.isFinite(r.slope)) fitFacts.push(['Log-log slope', `${sig(r.slope, 3)} (about 1 for n, 2 for n², 3 for n³)`]);
+      q('.bo-facts').replaceChildren(...fitFacts.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+      fitRows = sorted.map((f) => [f.name, Number.isFinite(f.a) ? fmt(f.a) : '–', f.id === '1' ? '–' : fmt(f.b), Number.isFinite(f.r2) ? sig(f.r2, 4) : '–', Number.isFinite(f.rss) ? fmt(f.rss) : '–', f.ok ? (f === r.best ? 'best' : '') : f.why ?? '']);
+      const tr = (cells: string[], th = false, on = false) => { const x = document.createElement('tr'); if (on) x.className = 'on'; cells.forEach((c) => { const d = document.createElement(th ? 'th' : 'td'); d.textContent = c; x.append(d); }); return x; };
+      q('.bo-fittab').replaceChildren(tr(['Class', 'a', 'b', 'R²', 'Leftover (RSS)', 'Note'], true), ...fitRows.map((row, i) => tr(row, false, sorted[i] === r.best)));
+      const flog = q<HTMLInputElement>('.bo-flog').checked, lo = Math.min(...n), hi = Math.max(...n), xs = Array.from({ length: 101 }, (_, i) => (flog ? lo * (hi / lo) ** (i / 100) : lo + ((hi - lo) * i) / 100));
+      const line = (f: Fit): Series => { const g = CLASSES.find((c) => c.id === f.id)!.g; return { name: `${f.name} fit`, x: xs, y: xs.map((x) => f.a + f.b * g(x)), mode: 'line', marker: 'none', dash: f === r.best ? undefined : [6, 4] }; };
+      const series: Series[] = [{ name: `Measured${unit ? ` (${unit})` : ''}`, x: n, y: t, mode: 'points', marker: 'circle' }];
+      if (r.best) series.push(line(r.best));
+      if (second) series.push(line(second));
+      if (flog) series.forEach((s) => { const keep = s.y.map((y, i) => y > 0 && s.x[i] > 0); s.x = s.x.filter((_, i) => keep[i]); s.y = s.y.filter((_, i) => keep[i]); });
+      const W = cw(); ffig = chartFigure({ w: W, h: Math.round(W * (W < 500 ? 0.8 : 0.58)), xLabel: tab.headers[0] === 'Column 1' ? 'n' : tab.headers[0], yLabel: tab.headers[1] === 'Column 2' ? 'Time' : tab.headers[1], xLog: flog, yLog: flog, series, legend: 'below' }, 'Measured times with the best fitting classes');
+      paint(q<HTMLCanvasElement>('.bo-ffig'), ffig);
+      err.hidden = true; q('.bo-fout').hidden = false;
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.bo-fout').hidden = true; ffig = null; fitRows = []; best = ''; }
+  }
+  const gName = (id: string) => ({ logn: 'log₂ n', n: 'n', nlogn: 'n log₂ n', n2: 'n²', n3: 'n³', '2n': '2ⁿ', nfact: 'n!' } as Record<string, string>)[id] ?? id;
+
+  // Timing
+  let stopNow = false, running = false;
+  const showSizes = () => { const b = BENCHES.find((x) => x.id === q<HTMLSelectElement>('.bo-bench').value)!; q('.bo-sizes').textContent = `Sizes: ${b.sizes.map((s) => s.toLocaleString('en')).join(', ')}.`; };
+  async function runBench() {
+    if (running) return;
+    const b = BENCHES.find((x) => x.id === q<HTMLSelectElement>('.bo-bench').value)!;
+    running = true; stopNow = false; q('.bo-stop').hidden = false; (q('.bo-run') as HTMLButtonElement).disabled = true;
+    const out: [number, number][] = [];
+    try {
+      for (const n of b.sizes) {
+        if (stopNow) break;
+        q('.bo-prog').textContent = `Timing n = ${n.toLocaleString('en')}…`;
+        await new Promise((r) => setTimeout(r, 30));
+        const d = b.setup(n);
+        out.push([n, timeIt(b.run, d, 40)]);
+      }
+    } finally { running = false; q('.bo-stop').hidden = true; (q('.bo-run') as HTMLButtonElement).disabled = false; }
+    q('.bo-prog').textContent = stopNow ? `Stopped after ${out.length} sizes.` : `Done: ${out.length} sizes timed.`;
+    if (out.length >= 3) {
+      q<HTMLTextAreaElement>('.bo-data').value = `n\ttime (ms)\n${out.map(([n, t]) => `${n}\t${+t.toPrecision(4)}`).join('\n')}`;
+      fit();
+    }
+  }
+
+  q('.bo-run').addEventListener('click', runBench);
+  q('.bo-stop').addEventListener('click', () => { stopNow = true; });
+  q('.bo-bench').addEventListener('change', showSizes);
+  let t1 = 0, t2 = 0;
+  for (const c of ['.bo-expr', '.bo-N', '.bo-ymax', '.bo-at', '.bo-ns']) q(c).addEventListener('input', () => { clearTimeout(t1); t1 = window.setTimeout(growth, 250); });
+  root.querySelectorAll('.bo-c, .bo-ylog').forEach((el) => el.addEventListener('change', growth));
+  q('.bo-data').addEventListener('input', () => { clearTimeout(t2); t2 = window.setTimeout(fit, 250); });
+  q('.bo-flog').addEventListener('change', fit);
+  q('.bo-csv').addEventListener('click', () => fitRows.length && save(new Blob([csv([['class', 'a', 'b', 'R2', 'RSS', 'note'], ...fitRows])], { type: 'text/csv' }), 'big-o-fit.csv', 'text/csv'));
+  q('.bo-tcsv').addEventListener('click', () => atRows.length && save(new Blob([csv([['class', `steps at n = ${q<HTMLInputElement>('.bo-at').value}`, 'time'], ...atRows])], { type: 'text/csv' }), 'big-o-sizes.csv', 'text/csv'));
+  wireDownloads(q('.dl'), () => {
+    const sections: Section[] = [];
+    if (fitRows.length) sections.push({ title: best ? `Best fit: ${best}` : 'Fit of your timings', facts: fitFacts, figure: ffig ?? undefined, table: { head: ['Class', 'a', 'b', 'R²', 'RSS', 'Note'], rows: fitRows, align: ['l', 'r', 'r', 'r', 'r', 'l'] } });
+    if (gfig) sections.push({ title: 'Growth curves', figure: gfig, table: atRows.length ? { head: ['Class', `Steps at n = ${q<HTMLInputElement>('.bo-at').value}`, 'Time'], rows: atRows } : undefined });
+    return { title: 'Big-O and runtime', subtitle: best ? `Best fit: ${best}` : '', file: 'big-o', sections };
+  });
+  document.addEventListener('fibub:theme', () => { if (gfig) paint(q<HTMLCanvasElement>('.bo-gfig'), gfig); if (ffig) paint(q<HTMLCanvasElement>('.bo-ffig'), ffig); });
+  let rw = 0;
+  new ResizeObserver(() => { const w = cw(); if (w !== rw) { rw = w; growth(); fit(); } }).observe(root);
+  showSizes(); growth(); fit();
+</script>
