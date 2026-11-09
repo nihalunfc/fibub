@@ -1,0 +1,204 @@
+---
+// RQD from core pieces, Q-system and RMR arithmetic with ratings the user reads from the published tables, an editable
+// RMR–Q correlation and GSI estimates. No rating tables are bundled. Example numbers are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+const pieces = '25, 8, 12, 4, 30, 6, 18, 9, 11, 3, 14';
+---
+<div class="ax rmc">
+  <p class="rmc-note"><strong>Arithmetic only.</strong> Read every rating and parameter from the published tables (Barton, Lien and Lunde 1974 and later updates for Q; Bieniawski 1989 for RMR). This page does not hold those tables and is not a design.</p>
+
+  <div class="ax-card">
+    <h2>RQD from a core run</h2>
+    <div class="ax-grid">
+      <label>Length of the core run (cm) <input class="rm-run" inputmode="decimal" value="150" /></label>
+      <label>Count pieces at least (cm) <input class="rm-min" inputmode="decimal" value="10" /></label>
+    </div>
+    <label style="margin-top:10px">Lengths of the core pieces (cm), in order down the hole <textarea class="rm-pcs" rows="3" spellcheck="false">{pieces}</textarea></label>
+    <p class="ax-help">Deere's RQD: the total length of sound core pieces 10 cm or longer, as a percentage of the run length. Measure along the core's centre line, count only natural breaks (not breaks from drilling or handling), and leave out pieces that are soft or badly weathered. The example is made up.</p>
+    <p class="ax-err rm-rerr" hidden></p>
+    <div class="rm-rout">
+      <p class="ax-big rm-rbig"></p>
+      <dl class="ax-facts rm-rfacts"></dl>
+      <canvas class="ax-fig rm-core"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Q-system</h2>
+    <div class="ax-grid">
+      <label>RQD (%) <input class="rm-rqd" inputmode="decimal" disabled /></label>
+      <label>RQD from <select class="rm-rsrc"><option value="core">the core run above</option><option value="typed">a value I type</option></select></label>
+    </div>
+    <div class="ax-grid rm-qin" style="margin-top:10px">
+      <label><span>J<sub>n</sub>, joint set number</span> <input class="rm-jn" inputmode="decimal" value="9" /><small>how many joint sets there are (more sets, higher number)</small></label>
+      <label><span>J<sub>r</sub>, joint roughness number</span> <input class="rm-jr" inputmode="decimal" value="1.5" /><small>how rough and wavy the joints are (rougher, higher)</small></label>
+      <label><span>J<sub>a</sub>, joint alteration number</span> <input class="rm-ja" inputmode="decimal" value="2" /><small>how altered or clay-filled the joint walls are (more alteration, higher)</small></label>
+      <label><span>J<sub>w</sub>, joint water reduction factor</span> <input class="rm-jw" inputmode="decimal" value="1" /><small>water inflow and pressure (dry is highest; wetter, lower)</small></label>
+      <label><span>SRF, stress reduction factor</span> <input class="rm-srf" inputmode="decimal" value="1" /><small>weak zones, loosening, or high stress in strong rock (worse, higher)</small></label>
+    </div>
+    <label class="ax-check"><input type="checkbox" class="rm-floor" checked /> Use 10 when RQD is below 10 (Barton's convention)</label>
+    <p class="ax-err rm-qerr" hidden></p>
+    <div class="rm-qout">
+      <p class="ax-big rm-qbig"></p>
+      <dl class="ax-facts rm-qfacts"></dl>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>RMR (sum of ratings)</h2>
+    <div class="ax-grid rm-rin">
+      <label>Strength of intact rock <input class="rm-r1" inputmode="decimal" value="7" /><small>rating for uniaxial or point load strength</small></label>
+      <label>RQD <input class="rm-r2" inputmode="decimal" value="13" /><small>rating for the RQD</small></label>
+      <label>Spacing of discontinuities <input class="rm-r3" inputmode="decimal" value="10" /><small>rating for joint spacing</small></label>
+      <label>Condition of discontinuities <input class="rm-r4" inputmode="decimal" value="20" /><small>rating for persistence, aperture, roughness, infill, weathering</small></label>
+      <label>Groundwater <input class="rm-r5" inputmode="decimal" value="10" /><small>rating for water conditions</small></label>
+      <label>Orientation adjustment <input class="rm-adj" inputmode="decimal" value="-5" /><small>0 or negative; depends on tunnel, foundation or slope</small></label>
+    </div>
+    <p class="ax-help">Type the ratings from Bieniawski's (1989) tables. The example ratings are made up.</p>
+    <p class="ax-err rm-merr" hidden></p>
+    <div class="rm-mout">
+      <p class="ax-big rm-mbig"></p>
+      <dl class="ax-facts rm-mfacts"></dl>
+    </div>
+  </div>
+
+  <div class="ax-card rm-cout">
+    <h2>RMR–Q correlation and GSI</h2>
+    <div class="ax-grid">
+      <label>RMR = A ln Q + B, with A <input class="rm-a" inputmode="decimal" value="9" /></label>
+      <label>and B <input class="rm-b" inputmode="decimal" value="44" /></label>
+      <label>Groundwater rating for dry ground (for GSI) <input class="rm-dry" inputmode="decimal" value="15" /></label>
+    </div>
+    <p class="ax-help">A = 9, B = 44 is Bieniawski's (1976) widely used fit; other studies found other values for their rock (the scatter is large), so change A and B to suit. GSI estimates: GSI ≈ RMR89 with dry groundwater and no adjustment, minus 5 (Hoek, Kaiser and Bawden 1995, for RMR above 23), and GSI ≈ A ln Q′ + B with Q′ = (RQD/J<sub>n</sub>)(J<sub>r</sub>/J<sub>a</sub>). Check GSI against the Hoek–Marinos chart in the field.</p>
+    <p class="ax-err rm-cerr" hidden></p>
+    <dl class="ax-facts rm-cfacts"></dl>
+    <canvas class="ax-fig rm-cfig"></canvas>
+    <div class="dl rm-dl2"><span class="dl-l">Data</span><button type="button" class="btn secondary rm-csv">Results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { rqd, qValue, rmr, rmrFromQ, qFromRmr, gsiFromRmr, parseLengths } from '../../lib/sci/rockmass';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.rmc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const factsOf = (sel: string) => [...q(sel).querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]);
+  const showErr = (c: string, m: string) => { const e = q(c); e.textContent = m; e.hidden = !m; };
+  const qf = (x: number) => (x >= 100 ? x.toFixed(0) : x >= 1 ? x.toFixed(2) : sig(x, 3));
+  let coreFig: Figure | null = null, cFig: Figure | null = null, out: [string, string][] = [];
+
+  const coreDraw = (pcs: number[], run: number, min: number): Figure => ({ w: 360, h: 140, alt: `Core run of ${run} cm: pieces of ${min} cm or more dark, shorter pieces light`, draw: (ctx, w, h, p) => {
+    const L = 10, R = w - 10, y = 30, bh = 34, sc = (R - L) / Math.max(run, pcs.reduce((s, x) => s + x, 0));
+    ctx.fillStyle = p.bg; ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = p.muted; ctx.setLineDash([4, 3]); ctx.strokeRect(L, y, run * sc, bh); ctx.setLineDash([]);
+    let x = L;
+    for (const c of pcs) { ctx.fillStyle = c >= min ? p.ink : p.line; ctx.fillRect(x + 1, y + 2, Math.max(1, c * sc - 2), bh - 4); x += c * sc; }
+    ctx.fillStyle = p.ink; ctx.font = '14px system-ui, sans-serif'; ctx.textBaseline = 'bottom'; ctx.textAlign = 'left'; ctx.fillText('Top of run', L, y - 4);
+    ctx.textAlign = 'right'; ctx.fillText(`${run} cm`, L + run * sc, y - 4);
+    ctx.textBaseline = 'top'; ctx.textAlign = 'left'; ctx.fillStyle = p.ink; ctx.fillRect(L, y + bh + 12, 14, 12); ctx.fillText(`counted (${min} cm or more)`, L + 20, y + bh + 10);
+    ctx.fillStyle = p.line; ctx.fillRect(L, y + bh + 34, 14, 12); ctx.fillStyle = p.ink; ctx.fillText('shorter', L + 20, y + bh + 32);
+    ctx.strokeStyle = p.muted; ctx.setLineDash([4, 3]); ctx.strokeRect(L + 110, y + bh + 34, 14, 12); ctx.setLineDash([]); ctx.fillText('lost core', L + 130, y + bh + 32);
+  } });
+
+  function run() {
+    out = [];
+    // RQD
+    const run = v('.rm-run'), min = v('.rm-min'), pl = parseLengths(q<HTMLTextAreaElement>('.rm-pcs').value);
+    let e = '', R = NaN;
+    if (!(run > 0)) e = 'Type the length of the core run (above 0 cm).';
+    else if (!(min > 0)) e = 'Type the shortest piece to count (10 cm in Deere’s definition).';
+    else if (pl.bad.length) e = `These are not lengths: ${pl.bad.slice(0, 5).join(', ')}.`;
+    else if (!pl.values.length) e = 'Type the lengths of the core pieces.';
+    else if (pl.values.reduce((s, x) => s + x, 0) > run * 1.0001) e = 'The pieces add up to more than the run length. Check the run length or the pieces.';
+    showErr('.rm-rerr', e); q('.rm-rout').hidden = !!e;
+    if (!e) {
+      const r = rqd(pl.values, run, min); R = r.rqd;
+      q('.rm-rbig').textContent = `RQD = ${R.toFixed(1)} %`;
+      q('.rm-rfacts').replaceChildren(fact('Pieces counted', `${r.counted} of ${pl.values.length}`, `${sig(r.sum, 4)} cm of ${min} cm or longer`), fact('Core recovery', `${r.recovery.toFixed(1)} %`, `${sig(r.total, 4)} cm of core over a ${sig(run, 4)} cm run`));
+      coreFig = coreDraw(pl.values, run, min); paint(q<HTMLCanvasElement>('.rm-core'), coreFig);
+      out.push(['RQD_percent', R.toFixed(2)], ['core_recovery_percent', r.recovery.toFixed(2)]);
+    } else coreFig = null;
+    // Q
+    const fromCore = q<HTMLSelectElement>('.rm-rsrc').value === 'core', ri = q<HTMLInputElement>('.rm-rqd');
+    ri.disabled = fromCore; if (fromCore && Number.isFinite(R)) ri.value = R.toFixed(1);
+    const P = { rqd: fromCore ? R : v('.rm-rqd'), jn: v('.rm-jn'), jr: v('.rm-jr'), ja: v('.rm-ja'), jw: v('.rm-jw'), srf: v('.rm-srf') };
+    e = '';
+    if (!Number.isFinite(P.rqd)) e = fromCore ? 'Fix the core run above, or type an RQD.' : 'Type an RQD from 0 to 100 %.';
+    else if (P.rqd < 0 || P.rqd > 100) e = 'RQD is from 0 to 100 %.';
+    else if (![P.jn, P.jr, P.ja, P.jw, P.srf].every((x) => x > 0)) e = 'Jn, Jr, Ja, Jw and SRF are all numbers above 0, from the Q tables.';
+    else if (P.jw > 1) e = 'Jw is at most 1 (1 means dry or minor inflow).';
+    showErr('.rm-qerr', e); q('.rm-qout').hidden = !!e;
+    let Q = NaN, Qp = NaN;
+    if (!e) {
+      const r = qValue(P, q<HTMLInputElement>('.rm-floor').checked); Q = r.q; Qp = r.qPrime;
+      q('.rm-qbig').textContent = `Q = ${qf(Q)}`;
+      q('.rm-qfacts').replaceChildren(
+        fact('RQD/Jn, relative block size', String(+r.block.toPrecision(4)), r.rqdUsed !== P.rqd ? `RQD ${sig(P.rqd, 3)} taken as 10` : ''),
+        fact('Jr/Ja, shear strength between blocks', String(+r.shear.toPrecision(4))),
+        fact('Jw/SRF, active stress', String(+r.stress.toPrecision(4))),
+        fact('log₁₀ Q', Q > 0 ? Math.log10(Q).toFixed(2) : '–', 'Q runs on a log scale from about 0.001 to 1000'),
+        fact('Q′ = (RQD/Jn)(Jr/Ja)', qf(Qp), 'Q without the water and stress terms, used for GSI'),
+      );
+      out.push(['Q', Q.toPrecision(6)], ['Q_prime', Qp.toPrecision(6)], ['RQD_over_Jn', r.block.toPrecision(6)], ['Jr_over_Ja', r.shear.toPrecision(6)], ['Jw_over_SRF', r.stress.toPrecision(6)]);
+    }
+    // RMR
+    const rat = ['.rm-r1', '.rm-r2', '.rm-r3', '.rm-r4', '.rm-r5'].map(v), adj = v('.rm-adj');
+    e = '';
+    if (!rat.every((x) => Number.isFinite(x) && x >= 0)) e = 'Type all five ratings (0 or more) from the RMR tables.';
+    else if (!(adj <= 0)) e = 'The orientation adjustment is 0 or negative.';
+    else if (rat.reduce((s, x) => s + x, 0) > 100) e = 'The five ratings add up to more than 100; RMR runs from 0 to 100. Check the ratings.';
+    showErr('.rm-merr', e); q('.rm-mout').hidden = !!e;
+    let M = NaN, ratOk = !e;
+    if (!e) {
+      const r = rmr(rat, adj); M = Math.max(0, r.total);
+      q('.rm-mbig').textContent = `RMR = ${r.total < 0 ? '0' : sig(r.total, 3)}`;
+      q('.rm-mfacts').replaceChildren(fact('Basic RMR (no adjustment)', sig(r.basic, 3), rat.map((x) => sig(x, 3)).join(' + ')), fact('Adjusted RMR', sig(r.total, 3), `${sig(r.basic, 3)} ${adj < 0 ? '−' : '+'} ${sig(Math.abs(adj), 3)}${r.total < 0 ? '; below 0, taken as 0' : ''}`));
+      out.push(['RMR_basic', String(r.basic)], ['RMR_adjusted', String(M)]);
+    }
+    // correlation
+    const A = v('.rm-a'), B = v('.rm-b'), dry = v('.rm-dry');
+    e = !(A > 0) || !Number.isFinite(B) ? 'Type A above 0 and a value for B.' : !(dry >= 0) ? 'Type the dry groundwater rating from the RMR table.' : '';
+    showErr('.rm-cerr', e);
+    const cf: HTMLElement[] = [];
+    if (!e) {
+      if (Q > 0) { const rq = rmrFromQ(Q, A, B); cf.push(fact('RMR from Q', sig(rq, 3), `${A} ln ${qf(Q)} + ${B}${Number.isFinite(M) ? `; measured RMR ${sig(M, 3)}, difference ${sig(M - rq, 2)}` : ''}`)); out.push(['RMR_from_Q', rq.toFixed(2)]); }
+      if (Number.isFinite(M)) { const qr = qFromRmr(M, A, B); cf.push(fact('Q from RMR', qf(qr), `exp((${sig(M, 3)} − ${B}) ÷ ${A})`)); out.push(['Q_from_RMR', qr.toPrecision(6)]); }
+      if (ratOk) { const g = gsiFromRmr(rat, dry); cf.push(fact('GSI from RMR89', g.valid ? sig(g.gsi, 3) : `${sig(g.gsi, 3)} (not valid)`, g.valid ? `RMR with dry groundwater (${sig(g.rmrDry, 3)}) − 5` : 'this estimate is meant for RMR89 above 23; use the GSI chart')); out.push(['GSI_from_RMR', String(g.gsi)]); }
+      if (Qp > 0) { const g = rmrFromQ(Qp, A, B); cf.push(fact('GSI from Q′', sig(g, 3), `${A} ln ${qf(Qp)} + ${B}`)); out.push(['GSI_from_Q_prime', g.toFixed(2)]); }
+    }
+    q('.rm-cfacts').replaceChildren(...cf);
+    if (!e) {
+      const xs = Array.from({ length: 121 }, (_, i) => 10 ** (-3 + i / 20));
+      const pts = Q > 0 && Number.isFinite(M) ? [{ name: 'this rock', x: [Q], y: [M], mode: 'points' as const, size: 7 }] : [];
+      cFig = chartFigure({ h: 300, xLog: true, xMin: 0.001, xMax: 1000, yMin: 0, yMax: 100, xLabel: 'Q', yLabel: 'RMR', legend: 'below',
+        series: [{ name: `RMR = ${A} ln Q + ${B}`, x: xs, y: xs.map((x) => Math.max(-20, Math.min(120, rmrFromQ(x, A, B)))), mode: 'line', width: 2 }, ...pts] }, 'RMR against Q: the correlation line and this rock');
+      paint(q<HTMLCanvasElement>('.rm-cfig'), cFig);
+    } else cFig = null;
+    q<HTMLCanvasElement>('.rm-cfig').hidden = !cFig;
+  }
+
+  root.querySelectorAll('input, select, textarea').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+  q('.rm-csv').addEventListener('click', () => out.length && save(new TextEncoder().encode(csv([['quantity', 'value'], ...out])), 'rock-mass-classification.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (coreFig) paint(q<HTMLCanvasElement>('.rm-core'), coreFig); if (cFig) paint(q<HTMLCanvasElement>('.rm-cfig'), cFig); });
+  run();
+  wireDownloads(q('.rm-cout > .dl:last-child'), () => {
+    const s: Section[] = [{ title: 'Arithmetic only', text: ['Ratings and parameters come from the published Q and RMR tables, typed by the user. Not a design.'] }];
+    if (!q('.rm-rout').hidden && coreFig) s.push({ title: q('.rm-rbig').textContent!, facts: factsOf('.rm-rfacts'), figure: coreFig });
+    if (!q('.rm-qout').hidden) s.push({ title: q('.rm-qbig').textContent!, facts: [['Jn, Jr, Ja, Jw, SRF', ['.rm-jn', '.rm-jr', '.rm-ja', '.rm-jw', '.rm-srf'].map((c) => q<HTMLInputElement>(c).value).join(', ')], ...factsOf('.rm-qfacts')] });
+    if (!q('.rm-mout').hidden) s.push({ title: q('.rm-mbig').textContent!, facts: factsOf('.rm-mfacts') });
+    s.push({ title: 'RMR–Q correlation and GSI', facts: factsOf('.rm-cfacts'), ...(cFig ? { figure: cFig } : {}) });
+    return { title: 'Rock mass classification', subtitle: 'Q, RMR, RQD and GSI arithmetic', file: 'rock-mass-classification', sections: s };
+  });
+</script>
+
+<style is:global>
+  .rmc .rmc-note { border: 1px solid var(--warn); color: var(--ink); border-radius: 10px; padding: 10px 12px; margin: 0; font-size: 15px; }
+  .rmc .rm-qin small, .rmc .rm-rin small { display: block; color: var(--muted); font-size: 13px; margin-top: 3px; font-weight: 400; }
+</style>
