@@ -11,7 +11,7 @@ order: 899
 icon: calendar
 works: offline
 updated: 2026-11-09
-related: [station-data-viewer, rain-gauge-average, wind-chill-heat-index, walter-lieth]
+related: [station-data-viewer, rain-gauge-average, wind-chill-heat-index, walter-lieth, psychrometric-calculator, observing-log, koppen-climate]
 sources:
   - "Methods (written by fibub): calendar-month means, totals and counts of the days logged; daily mean as (max + min) ÷ 2; rain days at or above a threshold you choose; frost days with a minimum below freezing; cloud in oktas (eighths of the sky)."
   - "Checked 2026-11-09 against pandas (monthly groupby means, sums, counts and records with ties) on 630 random days with gaps."
@@ -33,7 +33,9 @@ Many people read a thermometer and a rain gauge every morning: gardeners, farmer
 - **Records**: your highest and lowest maximum and minimum, wettest day, most snow, windiest day, and highest and lowest pressure, with every date it happened.
 - **Import and export**: download the whole log as CSV for a backup or a spreadsheet; paste or open a CSV to add days or to move your log to another device.
 
-**Privacy**: your log is kept only in this browser's storage (localStorage), so it is there when you come back. It is never sent anywhere. **Delete my log** removes it, as does clearing your browser data. Keep a CSV backup.
+**Privacy**: nothing is kept until you tick **Remember my log in this browser**. Ticked, your log stays only in this browser's storage (localStorage), so it is there when you come back; untick it to remove the saved copy. It is never sent anywhere. **Delete my log** removes it, as does clearing your browser data. Keep a CSV backup.
+
+Read a station's own readings with the [[station-data-viewer]], and average rainfall over an area with the [[rain-gauge-average]] tool.
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 653
 icon: mountain
 works: offline
 updated: 2026-11-09
-related: [column-buckling, load-combination-helper, concrete-mix-design, darcy-flow-calculator]
+related: [column-buckling, load-combination-helper, concrete-mix-design, darcy-flow-calculator, rebar-calculator, soil-classification, bearing-capacity, slope-stability, atterberg-compaction]
 sources:
   - "Rankine active and passive earth pressure (including sloping backfill), Coulomb active pressure with wall friction, and the sliding, overturning and bearing (middle-third) checks: standard soil mechanics and foundation engineering, for example Craig's Soil Mechanics, and Das, B. M., Principles of Foundation Engineering (formulas and methods only)."
   - "No design-code tables or factors are used. Soil properties, base friction, allowable bearing pressure and target factors of safety are user inputs; the starting values and both example walls are made up."
@@ -34,6 +34,8 @@ A retaining wall holds back soil. Before sizing the concrete and steel, an engin
 - **Bearing**: where the resultant meets the base (the **eccentricity** e), and the soil pressure under the toe and heel. Within the middle third (e ≤ B/6) the whole base presses on the soil; outside it, only part does, and the toe pressure rises fast.
 
 For study and planning, not a substitute for professional judgement. Check your local code and a qualified engineer. This tool does not design the stem or base for bending, and does not check the overall stability of the slope.
+
+Classify the backfill with the [[soil-classification|soil classification tool]], and check the ground under the footing with the [[bearing-capacity|bearing capacity calculator]].
 
 ## How to use it
 

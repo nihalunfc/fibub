@@ -11,7 +11,7 @@ order: 728
 icon: eye
 works: offline
 updated: 2026-11-09
-related: [plot-maker, data-cleaner, reliability-analysis]
+related: [plot-maker, data-cleaner, reliability-analysis, memory-attention-tasks, reaction-time-experiments, hotspot-density, csv-profiler]
 sources:
   - "Fixation detection: Salvucci, D. D. and Goldberg, J. H. (2000), Identifying fixations and saccades in eye-tracking protocols (I-VT and I-DT). Method only; no data or tables are copied."
   - "Heat map: a duration-weighted Gaussian kernel, the usual attention map. Written by fibub and checked in the tests against an independent NumPy implementation of I-VT, I-DT, the heat map and the area measures."
@@ -26,6 +26,8 @@ flow:
 ## What it does
 
 Eye trackers record where someone looks many times a second. Those raw samples are noisy: the eye rests on a spot for a few hundred milliseconds (a **fixation**), then jumps (a **saccade**). This tool turns an exported gaze file into fixations, draws a **heat map** of where attention went, draws the **scanpath** (the order of fixations), and measures **areas of interest** (AOIs) such as a logo, a headline or a button. It works with the CSV or text export of most eye trackers and webcam trackers. Your gaze file and your stimulus picture are read in the browser and never leave your device.
+
+Run the task that goes with it using the [[memory-attention-tasks]] or the [[reaction-time-experiments]], and check the gaze file for gaps and odd values first in the [[csv-profiler]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 633
 icon: target
 works: offline
 updated: 2026-11-09
-related: [antenna-calculator, link-budget-calculator]
+related: [antenna-calculator, link-budget-calculator, constellation-ber, pcb-trace-calculator, waveguide-modes, circuit-simulator, capacitor-inductor-calculator]
 sources:
   - "Reflection coefficient, standing-wave ratio, lossless transmission line, L-network and single-stub matching: standard formulas, as in Pozar, Microwave Engineering, chapters 2 and 5; Smith (1939), Transmission line calculator, Electronics 12."
   - "Checked against numpy complex arithmetic, Pozar's example 5.1, and by confirming that every matching solution turns the load into exactly Z0."
@@ -32,6 +32,8 @@ The Smith chart is the map radio and microwave engineers use to see how a load (
 - **single-stub matching** with an open or shorted stub: where to put it and how long to make it.
 
 Everything is calculated in your browser.
+
+Find the antenna's size and impedance with the [[antenna-calculator]], and design the feed tracks on a board with the [[pcb-trace-calculator|PCB trace calculator]].
 
 ## How to use it
 

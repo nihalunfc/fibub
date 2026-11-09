@@ -11,7 +11,7 @@ order: 6
 icon: target
 works: offline
 updated: 2026-11-09
-related: [standing-waves, audio-spectrum-analyser, redshift-calculator]
+related: [standing-waves, audio-spectrum-analyser, redshift-calculator, tuning-calculator, ultrasound-calculator, radial-velocity-fitter, wave-calculator]
 sources:
   - "Doppler effect for sound with a moving source, listener and medium, f′ = f (c + u + v_o)/(c + u − v_s); two-way echo f (c + v)/(c − v); relativistic longitudinal Doppler f √((1 + β)/(1 − β)); Mach cone sin μ = 1/M; beats |f₁ − f₂|: standard physics."
   - "Speed of sound in air 331.3 √(1 + θ/273.15) m/s; in water about 1,480 m/s (rounded); speed of light 299,792,458 m/s (exact by definition)."
@@ -33,6 +33,8 @@ When a source of waves moves towards you, its crests arrive bunched up and you h
 - **Beats** between two close tones: how many times a second the sound swells and fades.
 
 Each Doppler case can also run backwards: give the frequency or wavelength you **measured** and it finds the **speed**.
+
+For the speeds of stars and galaxies use the [[redshift-calculator]], and for blood-flow Doppler the [[ultrasound-calculator]].
 
 ## How to use it
 

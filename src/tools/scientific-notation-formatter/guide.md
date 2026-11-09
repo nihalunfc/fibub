@@ -11,7 +11,7 @@ order: 810
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [uncertainty-calculator, table-converter, equation-converter, plot-maker]
+related: [uncertainty-calculator, table-converter, equation-converter, plot-maker, sig-fig-checker, unit-converter, figure-checker, physical-constants]
 sources:
   - "Rounding and formatting are written by fibub, rounding digit by digit with halves away from zero. The uncertainty rule follows the Particle Data Group's published rounding rule (Review of Particle Physics, introduction); SI prefixes follow the SI Brochure (BIPM, 9th edition, with the 2022 prefixes)."
   - "Checked in the tests against the Python packages uncertainties 3.2.3 (BSD licence) and quantiphy 2.23 (MIT licence) on 2,000 random values, and by typesetting the siunitx output with siunitx 3.3."
@@ -32,6 +32,8 @@ Papers, lab reports and slides all want numbers written the same careful way: 1.
 - **LaTeX** maths: `$(1.2 \pm 0.4) \times 10^{-4}\,\mathrm{m}$`.
 - **siunitx** (version 3): `\qty{1.2(4)e-4}{m}`, which also keeps the spacing and the multiplication sign consistent through a thesis.
 - **Concise** form, as used for constants: 1.2(4) × 10⁻⁴ m, where the digits in brackets are the uncertainty in the last digits shown.
+
+Round to the right number of figures with the [[sig-fig-checker]], and find the error to quote with the [[uncertainty-calculator]].
 
 ## How to use it
 

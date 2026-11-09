@@ -11,7 +11,7 @@ order: 15
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [curve-fitter, plot-maker, sig-fig-checker]
+related: [curve-fitter, plot-maker, sig-fig-checker, fft-workbench, uncertainty-calculator, digital-filter-designer, circuit-simulator]
 sources:
   - "Pulse and transition terms and the histogram method for top and base levels: IEEE Std 181-2011 (IEEE Standard for Transitions, Pulses, and Related Waveforms), used for definitions only. Rise time of an RC circuit τ ln 9 and its phase lag atan(ωτ): standard circuit theory."
   - "Checked against theory on noise-free traces and against an independent numpy implementation on the noisy example, written for the tests."
@@ -26,6 +26,8 @@ flow:
 ## What it does
 
 Most oscilloscopes can save what is on the screen as a CSV file: a time column and one column per channel, often with a few lines of settings at the top. This viewer opens that file in your browser, plots every channel, and makes the standard automatic measurements a scope makes, so you can measure saved captures later, check the scope's own numbers, or put clean figures and tables into a lab report.
+
+Look at the spectrum in more depth with the [[fft-workbench|FFT workbench]], and fit a model to the trace with the [[curve-fitter|curve fitter]].
 
 ## How to use it
 

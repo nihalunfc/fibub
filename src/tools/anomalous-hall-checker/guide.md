@@ -11,7 +11,7 @@ order: 3
 icon: compass
 works: offline
 updated: 2026-11-08
-related: [altermagnet-checker, altermagnet-bands, point-group-finder]
+related: [altermagnet-checker, altermagnet-bands, point-group-finder, spin-splitter-conductivity, chiral-magnon-bands, hall-effect, brillouin-zone]
 sources:
   - "Method: Neumann's principle applied to the Hall vector, an axial vector that is odd under time reversal, using the magnetic point group of the crystal with spin–orbit coupling (standard symmetry analysis found in solid-state physics textbooks and the anomalous Hall literature). The group projection is worked out by fibub."
   - "Example structures: the same idealised rutile-type and NiAs-type cells as the Altermagnet checker, written by fibub with rounded lattice constants; not copied from any structure database."

@@ -11,7 +11,7 @@ order: 334
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [tree-carbon, biodiversity-indices, field-sampling-planner]
+related: [tree-carbon, biodiversity-indices, field-sampling-planner, forest-inventory-summary, log-scale-calculator, canopy-gap-analyser, quadrat-transect-analyser]
 sources:
   - "Tangent and sine height methods, basal area (π·DBH²/4, 0.005454·DBH² ft²), fixed-area plot expansion and Bitterlich angle-count (prism) sampling with basal area factors and tree factors: standard forest mensuration, as in Husch, Beers and Kershaw, Forest Mensuration, and Avery and Burkhart, Forest Measurements. Sine method: M. J. Larjavaara and H. C. Muller-Landau (2013), Methods in Ecology and Evolution 4: 793-801. Method only; no tables copied."
   - "Checked in the tests against an independent NumPy calculation. The example readings, trees and prism counts are made up."
@@ -37,6 +37,8 @@ Two everyday forest measurements in one place.
 - for **one tree**;
 - for a **fixed-area plot**: all the trees' basal areas, times 10,000 ÷ plot area in m² (or 43,560 ÷ plot area in ft²), plus stems per hectare and the quadratic mean diameter;
 - from a **prism or angle-gauge sweep** (Bitterlich sampling): each tree counted "in" stands for one basal area factor (BAF) of basal area per hectare, whatever its size. With several points you also get the standard error.
+
+Add up a whole plot's trees in the [[forest-inventory-summary]], and turn tree sizes into stored carbon with the [[tree-carbon|tree carbon calculator]].
 
 ## How to use it
 

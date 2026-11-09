@@ -11,7 +11,7 @@ order: 741
 icon: table
 works: offline
 updated: 2026-11-09
-related: [sql-playground, data-cleaner, plot-maker, location-quotient-shift-share]
+related: [sql-playground, data-cleaner, plot-maker, location-quotient-shift-share, matrix-calculator, supply-demand]
 sources:
   - "Method: Wassily Leontief's input-output model, as set out in Miller and Blair, Input-Output Analysis: Foundations and Extensions (2nd ed., 2009): A = Z x̂⁻¹, L = (I − A)⁻¹, simple and Type I multipliers; Rasmussen (1956) linkages. No tables copied."
   - "Written by fibub. Checked in the tests against NumPy (numpy.linalg.inv and matrix products) on the example and a random 5-sector table."
@@ -32,6 +32,8 @@ An **input-output table** records how much each sector of an economy buys from e
 - **Output multipliers** (column sums of the inverse), **backward and forward linkages**, and **key sectors**.
 - **Type I multipliers** for any quantity you have per sector, such as wages or jobs.
 - The **impact** of any change in final demand on each sector's output, wages and jobs.
+
+Check the matrix sums by hand with the [[matrix-calculator]], and compare a region's industries with the [[location-quotient-shift-share|location quotient and shift-share]] tool.
 
 ## How to use it
 

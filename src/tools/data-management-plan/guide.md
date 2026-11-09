@@ -11,7 +11,7 @@ order: 820
 icon: pencil
 works: offline
 updated: 2026-11-09
-related: [plate-layout, plot-maker]
+related: [plate-layout, plot-maker, grant-budget, gantt-chart, readability-checker, metadata-builder, dataset-readme, data-dictionary, checksum-checker]
 sources:
   - "The eight sections, their short descriptions and the guiding questions are written by fibub in its own words as a generic outline. They are not copied from any funder's or institution's template."
   - "Word counts are checked in the tests against Python (tokens split on white space that hold a letter or digit)."
@@ -37,6 +37,8 @@ A data management plan (DMP) says what data a project will make, how it will be 
 8. **Costs and resources**: storage, staff time, repository fees and training.
 
 Each section has a short list of **questions to answer** (open *Questions to answer*). They are prompts written by fibub, not any funder's wording, so check what your own funder or institution asks for: if they give a template, its headings and limits come first, and you can copy your text across.
+
+Cost the storage and staff in the [[grant-budget|grant budget builder]], and once the data exist describe them with the [[metadata-builder]] and the [[dataset-readme|dataset README builder]].
 
 ## How to use it
 

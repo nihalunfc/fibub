@@ -11,7 +11,7 @@ order: 842
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [point-group-finder, crystal-field-calculator, plot-maker]
+related: [point-group-finder, crystal-field-calculator, plot-maker, cif-viewer, miller-index-calculator, electron-diffraction-indexer, lattice-fft]
 sources:
   - "Bragg's law, the Scherrer equation, the Williamson-Hall method and the cubic selection rules are standard textbook physics; the code is written by fibub and checked in the tests against NumPy and SciPy (find_peaks, curve_fit, polyfit)."
   - "Anode wavelengths are rounded general constants (for example Cu Kα1 1.5406 Å) and can be edited."
@@ -32,6 +32,8 @@ A powder X-ray diffraction pattern is a list of peaks: each sits at an angle 2θ
 - **Williamson-Hall plot.** With three or more widths, β cos θ is plotted against 4 sin θ. A straight line through the points has intercept Kλ/D (size) and slope ε (microstrain), so size and strain are separated. Standard errors and R² are shown.
 - **Cubic indexing.** The ratios of 1/d² (or sin²θ) between lines are whole-number ratios of h² + k² + l². The page tries simple cubic, body-centred, face-centred and diamond cubic, assigns hkl to every line, works out the lattice parameter a from all indexed lines, and lists allowed lines that should be there but are not.
 - **Peak picking.** Open a 2θ/intensity scan (XY, CSV, TXT or Excel). The page takes away a smooth background, finds the peaks, and fits each with a Gaussian or Lorentzian plus a straight line to get its position and FWHM.
+
+Load the structure from a file in the [[cif-viewer|CIF viewer]], and check the planes behind each peak with the [[miller-index-calculator|Miller index calculator]].
 
 ## How to use it
 

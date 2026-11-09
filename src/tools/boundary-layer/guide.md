@@ -11,7 +11,7 @@ order: 5
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [dimensionless-numbers, airfoil-calculator, lattice-boltzmann]
+related: [dimensionless-numbers, airfoil-calculator, lattice-boltzmann, potential-flow, heat-exchanger-sizing, piv-lite, heat-conduction]
 sources:
   - "Blasius, H. (1908), the laminar flat-plate solution, integrated on the page by shooting with RK4; turbulent 1/7 power law (0.37 x Re^−0.2, cf = 0.0592 Re^−0.2, CD = 0.074 Re^−0.2), Prandtl-Schlichting CD = 0.455/(log Re)^2.58 and the mixed-plate correction A/Re: Schlichting, H., Boundary-Layer Theory; White, F. M., Viscous Fluid Flow."
   - "Fluid properties are rounded general values near 20 °C (the light oil is a made-up typical value), editable on the page."
@@ -28,6 +28,8 @@ flow:
 When a fluid flows along a surface, a thin **boundary layer** next to it is slowed by friction, from zero speed at the wall to the full stream speed a little way out. Near the front of a smooth plate the layer is **laminar**, smooth and thin; further back it turns **turbulent**, thicker and with much higher friction. This calculator works out the layer for a flat plate with no pressure gradient: how thick it is anywhere, how hard it rubs on the plate, where it turns turbulent and how much drag the whole plate feels.
 
 The laminar part uses the exact **Blasius solution**, which the page computes itself; the turbulent part uses the classic **1/7 power law**.
+
+Get the Reynolds number with the [[dimensionless-numbers|dimensionless numbers calculator]], and use the drag for a whole wing section in the [[airfoil-calculator]].
 
 ## How to use it
 

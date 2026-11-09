@@ -11,7 +11,7 @@ order: 413
 icon: book
 works: offline
 updated: 2026-11-09
-related: [kmer-counter, sequence-alignment]
+related: [kmer-counter, sequence-alignment, topic-modeller, correspondence-network, manuscript-annotator, corpus-concordancer, lexical-diversity-readability]
 sources:
   - "Method: J. Burrows (2002), \"'Delta': a measure of stylistic difference and a guide to likely authorship\", Literary and Linguistic Computing 17(3), 267-287. Average-linkage (UPGMA) clustering as in Sokal and Michener (1958)."
   - "Checked against an independent Python implementation (numpy, scipy.cluster.hierarchy.linkage with average linkage) on the example and four random corpora: word lists identical, every Delta and every merge height to 1e-15."
@@ -33,6 +33,8 @@ Writers differ less in their rare words than in how often they use the common on
 - draws a **clustered heat map** with an average-linkage tree, and lists the **closest author** for a disputed text.
 
 Everything runs in your browser. Your texts are never uploaded and the page works offline once loaded.
+
+Look at what the texts are about with the [[topic-modeller|topic modeller]], and check how words are used in context with the [[corpus-concordancer|corpus concordancer]].
 
 ## How to use it
 

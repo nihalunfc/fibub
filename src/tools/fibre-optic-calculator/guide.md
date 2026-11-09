@@ -11,7 +11,7 @@ order: 5
 icon: link
 works: offline
 updated: 2026-11-09
-related: [gaussian-beam, link-budget-calculator, uncertainty-calculator]
+related: [gaussian-beam, link-budget-calculator, uncertainty-calculator, sellmeier-fitter, polarisation-calculator, lens-ray-tracer, constellation-ber]
 sources:
   - "Step-index fibre optics under weak guidance (LP modes, cut-offs at Bessel function zeros, the LP01 eigenvalue equation): Gloge, D. (1971), Applied Optics 10, 2252; Snyder, A. W. and Love, J. D., Optical Waveguide Theory; Saleh and Teich, Fundamentals of Photonics, chapter 9."
   - "Mode-field radius approximation w/a = 0.65 + 1.619 V^−1.5 + 2.879 V^−6: Marcuse, D. (1977), Bell System Technical Journal 56, 703. Modal and chromatic pulse spreading and dB power budgets: standard textbook results (for example Keiser, Optical Fiber Communications)."
@@ -26,6 +26,8 @@ flow:
 ## What it does
 
 An optical fibre traps light in its core because the core's refractive index n₁ is a little higher than the cladding's n₂. How much light it accepts, how many ways (modes) the light can travel, how much a pulse spreads out, and how far a signal can go before it is too weak are all worked out here from a few numbers.
+
+Work out the core glass's index with the [[sellmeier-fitter|Sellmeier fitter]], and size the beam you launch into the fibre with the [[gaussian-beam|Gaussian beam calculator]].
 
 ## How to use it
 

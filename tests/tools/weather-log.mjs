@@ -8,7 +8,9 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   const dl = async (sel, name) => { const [d] = await Promise.all([page.waitForEvent('download'), page.click(R + sel)]); const f = OUT + name; await d.saveAs(f); return { d, text: readFileSync(f, 'utf8').replace(/^﻿/, '') }; };
   check((await txt('.wl-count')).startsWith('No days saved yet') && await page.isHidden(R + '.wl-out') && (await stored()) === null, 'wlog: starts empty, nothing stored');
   await page.click(R + '.wl-ex'); await wait();
-  check((await txt('.wl-count')) === '90 days saved, 2026-08-01 to 2026-10-31.' && JSON.parse(await stored()).log.length === 90, 'wlog: example loaded and kept in this browser');
+  check((await txt('.wl-count')) === '90 days saved, 2026-08-01 to 2026-10-31.' && !(await page.isChecked(R + '.wl-keep')) && (await stored()) === null, 'wlog: example loaded, nothing stored before the remember box is ticked');
+  await page.check(R + '.wl-keep'); await wait();
+  check(JSON.parse(await stored()).log.length === 90, 'wlog: ticking the box keeps the log in this browser');
   { const f = await txt('.wl-vfacts'); check(f.includes('Days logged31October 2026') && f.includes('11.0 / 3.2 °C') && f.includes('mean 7.1 °C') && f.includes('16.7 / −2.5 °C') && f.includes('45.2 mm7 rain days') && f.includes('Frost days5'), 'wlog: October facts'); }
   { const r = await page.$$eval(R + '.wl-mon tbody tr', (x) => x.map((y) => [...y.children].map((c) => c.textContent).join('|'))); check(r.length === 3 && r[1].startsWith('2026-09|28|17.3|10.0|13.6|22.9|6.6|103.9|11|') && r[2].includes('|−2.5|45.2|7|0.0|5|'), 'wlog: monthly summary (pandas)'); }
   { const r = await page.$$eval(R + '.wl-rec > div', (x) => x.map((y) => [y.querySelector('dt').textContent, y.querySelector('dd').firstChild.textContent, y.querySelector('small').textContent].join('|'))); check(r[0] === 'Highest maximum|27.6 °C|2026-08-08' && r[3] === 'Lowest minimum|−2.5 °C|2026-10-29' && r.includes('Windiest day|33 km/h|2026-09-02, 2026-10-06, 2026-10-23'), 'wlog: records with a tie'); }
@@ -35,7 +37,7 @@ export default async ({ page, check, BASE, OUT, readFileSync, writeFileSync }) =
   check((await txt('.wl-count')).startsWith('91 days') && await page.isHidden(R + '.wl-undo'), 'wlog: undo');
   // Still there after a reload.
   await page.reload(); await page.waitForTimeout(800);
-  check((await txt('.wl-count')) === '91 days saved, 2026-08-01 to 2026-11-01.', 'wlog: kept after reload');
+  check((await txt('.wl-count')) === '91 days saved, 2026-08-01 to 2026-11-01.' && await page.isChecked(R + '.wl-keep'), 'wlog: kept after reload, box ticked');
   // Units.
   await page.selectOption(R + '.wl-ut', 'F'); await wait();
   { const row = await page.$eval(R + '.wl-days tbody tr', (r) => [...r.children].slice(0, 3).map((c) => c.textContent).join('|')); check(row === '2026-11-01|50.0|35.8' && (await txt('.wl-rec')).includes('81.7 °F') && JSON.parse(await stored()).units.t === 'F', `wlog: converted to °F (${row})`); }

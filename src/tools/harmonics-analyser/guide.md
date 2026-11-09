@@ -11,7 +11,7 @@ order: 422
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [tuning-calculator, wave-calculator, period-finder, tempo-detector]
+related: [tuning-calculator, wave-calculator, period-finder, tempo-detector, audio-spectrum-analyser, fft-workbench, standing-waves, bird-song-spectrogram]
 sources:
   - "Discrete Fourier transform with Hann, Hamming, Blackman or rectangular windows and frame averaging (Welch), parabolic interpolation of spectral peaks, the stiff-string partial formula fₙ = n f₀ √(1 + B n²) (Fletcher), and the spectral centroid: standard signal processing and musical acoustics."
   - "Checked against NumPy (rfft) and SciPy windows on a synthetic tone with stretched partials and noise: spectrum values to 10⁻¹², the five strongest peak frequencies and levels to 10⁻⁹ and the centroid to 10⁻⁸; f₀ and B recovered from tones of known f₀ (41 to 1047 Hz) and B."
@@ -32,6 +32,8 @@ A musical note is a mix of a fundamental and its overtones. How strong each over
 - each **harmonic**: its measured frequency, how many cents it sits above or below n × f₀, and its level in dB, also relative to the strongest;
 - the **inharmonicity coefficient B** from fₙ = n f₀ √(1 + B n²): near 0 for winds and bowed strings, clearly above 0 for pianos, guitars and bells;
 - the **spectral centroid**, the amplitude-weighted mean frequency, a common measure of brightness, also as a multiple of f₀.
+
+Compare the partials you find with ideal tunings in the [[tuning-calculator|tuning calculator]], and look at the whole sound over time with the [[audio-spectrum-analyser|audio spectrum analyser]].
 
 ## How to use it
 

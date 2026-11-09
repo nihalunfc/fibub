@@ -11,7 +11,7 @@ order: 70
 icon: star
 works: offline
 updated: 2026-11-08
-related: [sky-events-calendar, dark-sky-calendar, sky-tonight, observing-log]
+related: [sky-events-calendar, dark-sky-calendar, sky-tonight, observing-log, light-pollution-calculator, object-altitude, star-trail-exposure, observing-session]
 sources:
   - "Sun, Moon and planet positions: astronomy-engine by Don Cross (MIT licence), accurate to about an arcminute."
   - "City coordinates and time zones: public geographic facts, typed by fibub."

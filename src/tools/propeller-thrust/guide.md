@@ -11,7 +11,7 @@ order: 669
 icon: orbit
 works: offline
 updated: 2026-11-09
-related: [aircraft-performance, standard-atmosphere, uncertainty-calculator]
+related: [aircraft-performance, standard-atmosphere, uncertainty-calculator, drone-flight-time, airfoil-calculator, density-altitude, dimensionless-numbers]
 sources:
   - "Actuator-disc momentum theory, figure of merit and ideal propulsive efficiency: Rankine and Froude, as given in Leishman, J. G., Principles of Helicopter Aerodynamics (2006), and McCormick, B. W., Aerodynamics, Aeronautics and Flight Mechanics (equations only)."
   - "Blade element momentum theory with Prandtl's tip-loss factor, solved for the inflow angle by the one-variable residual method of Ning, S. A. (2014), 'A simple solution method for the blade element momentum equations with guaranteed convergence', Wind Energy 17 (equations only)."
@@ -33,6 +33,8 @@ A propeller or rotor makes thrust by pushing air backwards. **Momentum theory** 
 - induced velocity at the disc v = √(T / 2ρA), twice that in the wake.
 
 The second card is a **blade element momentum (BEM)** model of a propeller you describe: blade count, diameter, chord, pitch, rpm and airspeed, with a simple aerofoil. It splits the blade into 40 rings, balances the lift and drag of each blade section with the momentum the ring gives the air (including Prandtl's tip loss), and adds up thrust, torque and power. It also sweeps the airspeed to draw the thrust and power coefficients and the efficiency against the advance ratio J.
+
+Turn the thrust into hover time with the [[drone-flight-time|drone flight time calculator]], and check how thin air cuts it with the [[standard-atmosphere|standard atmosphere calculator]].
 
 ## How to use it
 

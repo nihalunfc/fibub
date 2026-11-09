@@ -11,7 +11,7 @@ order: 688
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [decline-curve, pvt-correlations, pump-test-analyser, slug-test-analyser]
+related: [decline-curve, pvt-correlations, pump-test-analyser, slug-test-analyser, darcy-flow-calculator, well-field-drawdown]
 sources:
   - "Horner, D. R. (1951), Pressure build-up in wells, Proceedings of the Third World Petroleum Congress; Miller, C. C., Dyes, A. B. and Hutchinson, C. A. (1950), Journal of Petroleum Technology 2(4): the semi-log buildup methods, with the standard oilfield-unit constants (162.6, 1.1513, 3.2275, 0.029) as given in petroleum engineering textbooks."
   - "Bourdet, D., Ayoub, J. A. and Pirard, Y. M. (1989), Use of pressure derivative in well-test interpretation, SPE Formation Evaluation 4(2): the derivative and its smoothing window."
@@ -32,6 +32,8 @@ When a producing oil well is shut in, the bottomhole pressure rises back towards
 - **Skin** s = 1.1513 [(p1hr − pwf)/m − log(k/φµct rw²) + 3.2275], the **pressure drop due to skin** 0.869 m s and the flow efficiency.
 - **p\***, the Horner line extrapolated to infinite shut-in time, and the **radius of investigation** 0.029 √(kΔt/φµct).
 - The **Bourdet derivative** on a log-log plot, the standard diagnostic for wellbore storage, radial flow and boundaries.
+
+Get the oil viscosity and formation volume factor from the [[pvt-correlations]] first, and forecast the well's production with the [[decline-curve|decline curve analysis]].
 
 ## How to use it
 

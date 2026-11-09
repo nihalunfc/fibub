@@ -11,7 +11,7 @@ order: 582
 icon: target
 works: offline
 updated: 2026-11-09
-related: [transportation-assignment, vehicle-routing, project-scheduler, plot-maker, sql-playground]
+related: [transportation-assignment, vehicle-routing, project-scheduler, plot-maker, sql-playground, queueing-calculator, matrix-calculator, nash-equilibrium-solver]
 sources:
   - "Methods: the two-phase simplex method with Bland's anti-cycling rule and branch and bound, as described in standard operations research textbooks; the solver was written for fibub."
   - "Checked against SciPy's linprog and milp (HiGHS) on 1,800 random models (optimal, infeasible and unbounded; free, shifted and upper-bounded variables), against brute-force search for small integer models, and the shadow prices and reduced costs against the optimality (KKT) conditions and HiGHS's marginals."
@@ -32,6 +32,8 @@ Linear programming finds the best value of a linear objective, such as profit or
 - **branch and bound** for `int` (whole number) and `bin` (0 or 1) variables;
 - a **picture of the feasible region** when the model has two variables, with the constraint lines, the objective line through the optimum and, for integer models, the allowed whole-number points;
 - the **simplex tableaux, step by step**, for small linear models, which is useful for checking homework done by hand.
+
+For shipping and job-matching problems the [[transportation-assignment|transportation and assignment solver]] is quicker, and delivery rounds go in the [[vehicle-routing|vehicle routing planner]].
 
 ## How to write a model
 

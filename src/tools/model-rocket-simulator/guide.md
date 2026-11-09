@@ -11,7 +11,7 @@ order: 670
 icon: flag
 works: offline
 updated: 2026-11-09
-related: [rocket-equation, standard-atmosphere, aircraft-performance]
+related: [rocket-equation, standard-atmosphere, aircraft-performance, projectile-drag, video-motion-tracker, propeller-thrust]
 sources:
   - "Equation of motion of a rocket in vertical flight (thrust, quadratic drag, gravity, mass falling as propellant burns) integrated with the classical fourth-order Runge-Kutta method: standard rocketry and numerical methods texts (equations only)."
   - "Air density from the 1976 US Standard Atmosphere (US government, public domain), shifted to the temperature you give."
@@ -35,6 +35,8 @@ This simulator flies a model rocket **straight up** and tells you how high it go
 It steps the motion forward with the fourth-order **Runge-Kutta** method until after apogee and the ejection charge. The rocket waits on the pad until the thrust exceeds its weight.
 
 You get the **apogee** and when it happens, the **top speed** and Mach number, peak acceleration, the **speed off the launch rod**, the burnout height and speed, the **best ejection delay** and what happens with the delay you chose, with plots and a CSV of the whole flight.
+
+For bigger rockets the [[rocket-equation]] gives the ideal speed change, and the [[projectile-drag]] tool shows how air slows any launched object.
 
 ## How to use it
 

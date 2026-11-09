@@ -11,7 +11,7 @@ order: 405
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [harris-matrix-builder, radiocarbon-calibration, biodiversity-indices, plot-maker]
+related: [harris-matrix-builder, radiocarbon-calibration, biodiversity-indices, plot-maker, artefact-scale-tool, trench-recording-sheet, community-ordination, range-chart-plotter]
 sources:
   - "Correspondence analysis as in M. Greenacre, Correspondence Analysis in Practice (3rd ed., 2017): SVD of the standardised residuals, principal and standard coordinates. Seriation by the first CA axis and the battleship plot as described by Ford (1962) and in archaeological statistics texts. Brainerd (1951) and Robinson (1951) for the similarity coefficient."
   - "Checked against an independent numpy implementation (inertias and scores to 1e-13 on four tables) and scipy's chi-square test (χ² = inertia × n); the 2 × 2 case against φ² worked by hand; a shuffled perfect sequence is put back in order."

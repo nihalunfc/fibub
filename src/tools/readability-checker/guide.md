@@ -11,7 +11,7 @@ order: 821
 icon: book
 works: offline
 updated: 2026-11-09
-related: [data-management-plan]
+related: [data-management-plan, grant-budget, gantt-chart, abstract-word-counter, lexical-diversity-readability, reviewer-response]
 sources:
   - "The six formulas are the published Flesch Reading Ease, Flesch-Kincaid grade, Gunning Fog, SMOG, Coleman-Liau and Automated Readability Index formulas. The tests feed the same counts through the formula code of the Python package textstat 0.7.13 and get the same numbers."
   - "Syllables are counted by rules written by fibub (no word list is copied). The tests compare them with the CMU Pronouncing Dictionary, which textstat uses: they agree on about 98 % of words in fibub's own guides and 95 % of other English words."
@@ -31,6 +31,8 @@ Ethics boards, funders and patient groups often ask for consent forms and lay su
 - **The counts behind them.** Sentences, words, syllables, words per sentence, syllables per word and words of three or more syllables.
 - **Hints in the text.** Long sentences get a shaded background, possible passive voice is underlined, long words are bold, your own jargon words are red, and words with a plainer choice get a dotted green line (hover or long-press for the suggestion).
 - **A syllable counter** for single words or phrases.
+
+Trim an abstract to its limit with the [[abstract-word-counter]], and compare vocabulary across texts with the [[lexical-diversity-readability|lexical diversity tool]].
 
 ## How to use it
 

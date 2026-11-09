@@ -11,7 +11,7 @@ order: 830
 icon: star
 works: offline
 updated: 2026-11-09
-related: [magnitude-flux-converter, blackbody-calculator, double-star-calculator, period-finder, spectral-line-identifier]
+related: [magnitude-flux-converter, blackbody-calculator, double-star-calculator, period-finder, spectral-line-identifier, variable-star-log, plot-maker]
 sources:
   - "Distance modulus, parallax distance, extinction and reddening, Planck's law and the Stefan-Boltzmann law are standard; the colour-temperature relation is a black body tied to anchor points, derived by fibub (no calibration tables). Checked against astropy's BlackBody model with SciPy brentq and NumPy."
   - "The Sun's temperature is the IAU 2015 nominal value (5772 K). The band wavelengths and the Sun's colours and absolute magnitudes are rounded values for convenience; type your own."
@@ -31,6 +31,8 @@ A Hertzsprung-Russell diagram plots stars by temperature (or colour) against lum
 - **Dereddens** the colour, (colour)₀ = colour − E, and uses A = R × E unless a star has its own A.
 - **Estimates Teff, luminosity and radius** from the colour with a black body, and plots an HR diagram on log axes.
 - Lists every star in a table, and downloads a CSV and a PNG, PDF or Word report.
+
+Convert magnitudes to fluxes with the [[magnitude-flux-converter]], and turn a colour into a temperature with the [[blackbody-calculator]].
 
 ## How the temperatures are found
 

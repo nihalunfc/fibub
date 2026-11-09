@@ -11,7 +11,7 @@ order: 750
 icon: pencil
 works: offline
 updated: 2026-11-09
-related: [reliability-analysis, data-cleaner, plot-maker, field-note-organiser]
+related: [reliability-analysis, data-cleaner, plot-maker, field-note-organiser, social-network-analysis, crosstab-chi-square, manuscript-annotator, corpus-concordancer, topic-modeller]
 sources:
   - "Methods: thematic coding as described in qualitative research textbooks; the c-coefficient n12/(n1 + n2 − n12) as used in qualitative analysis software. Example interviews made up for this tool."
 flow:
@@ -24,6 +24,8 @@ flow:
 ## What it does
 
 Qualitative researchers **code** their data: they mark passages of interviews, open survey answers, field notes or documents with short labels (codes) such as "Support" or "Cost of living", then look across the data for patterns. Dedicated software for this is often expensive. This tool covers the core of the work in your browser: a **code book** with colours, tagging passages by selecting them, **counts** per code and document, a **co-occurrence matrix** of codes that appear together, and **retrieval** of every passage for a code. Your texts never leave your device.
+
+Keep your field notes in order with the [[field-note-organiser]] before you start, and check whether two coders agree with the [[reliability-analysis]] tool.
 
 ## How to use it
 

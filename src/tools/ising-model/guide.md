@@ -11,7 +11,7 @@ order: 3
 icon: sliders
 works: offline
 updated: 2026-11-09
-related: [real-gas-calculator]
+related: [real-gas-calculator, partition-function, quantum-statistics, random-walk-diffusion, cellular-automata, heat-capacity-fitter]
 sources:
   - "Ising model and the Metropolis algorithm: Metropolis, N. et al. (1953), Journal of Chemical Physics 21, 1087; standard treatment in Newman, M. E. J. and Barkema, G. T., Monte Carlo Methods in Statistical Physics."
   - "Exact infinite-lattice results: Onsager, L. (1944), Physical Review 65, 117 (energy, heat capacity, Tc) and Yang, C. N. (1952), Physical Review 85, 808 (spontaneous magnetisation)."
@@ -31,6 +31,8 @@ This playground has two parts:
 
 - **Live lattice.** A 16 × 16 to 128 × 128 grid of spins updated by the **Metropolis Monte Carlo** rule: pick a spin, flip it if that lowers the energy, otherwise flip it with probability e^(−ΔE/T). Move the temperature slider and watch domains grow or melt. A magnetic field h favours up spins.
 - **Temperature scan.** Runs the same simulation at many temperatures and measures the mean **magnetisation** |m|, **energy**, **heat capacity** (from energy fluctuations), **susceptibility** (from magnetisation fluctuations) and the **Binder cumulant**, with error bars from block averages. With no field, the charts show **Onsager's exact curves** for an infinite lattice.
+
+Work out exact results for small systems with the [[partition-function|partition function explorer]], and compare with other grid rules in the [[cellular-automata]].
 
 ## How to use it
 

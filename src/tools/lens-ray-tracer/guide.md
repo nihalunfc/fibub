@@ -11,7 +11,7 @@ order: 3
 icon: eye
 works: offline
 updated: 2026-11-09
-related: [gaussian-beam, telescope-calculator, star-fwhm-checker, backfocus-calculator]
+related: [gaussian-beam, telescope-calculator, star-fwhm-checker, backfocus-calculator, sellmeier-fitter, diffraction-patterns, thin-film-coating, polarisation-calculator, plot-maker]
 sources:
   - "Paraxial y-nu ray trace, real ray tracing through spherical surfaces (the Spencer and Murty / Welford intersection and vector refraction formulas), Petzval sum: standard results, for example Welford, W. T., Aberrations of Optical Systems (1986), and Smith, W. J., Modern Optical Engineering."
   - "Airy disc radius 1.22 λ N: standard diffraction result. The crown-glass index 1.517 is a rounded general value; all example lenses are made up."
@@ -28,6 +28,8 @@ flow:
 A lens bends each ray by Snell's law where it enters and leaves the glass. Rays near the axis (paraxial rays) all meet at the focus that the lens formula predicts, but rays through the edge of a spherical lens, or from a star off to the side, miss it a little. Those misses are the **aberrations**, and they decide how sharp an image the lens can make.
 
 This tool traces **exact rays in three dimensions** through any number of centred spherical or flat surfaces. A paraxial trace gives the first-order numbers (effective and back focal length, image distance, magnification, f-number); then a fan of real rays across the entrance pupil gives a **spot diagram**, the **longitudinal spherical aberration** curve, the **tangential and sagittal ray fans**, the **best focus**, and the **distortion** of the chief ray. A lens layout shows the rays on their way.
+
+Find the glass's index at your wavelength with the [[sellmeier-fitter|Sellmeier fitter]], and check the focused spot of a laser beam with the [[gaussian-beam|Gaussian beam calculator]].
 
 ## How to use it
 

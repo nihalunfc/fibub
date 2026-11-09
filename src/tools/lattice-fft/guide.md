@@ -11,7 +11,7 @@ order: 857
 icon: search
 works: offline
 updated: 2026-11-09
-related: [grain-size-intercept, particle-size-image, phase-fraction]
+related: [grain-size-intercept, particle-size-image, phase-fraction, afm-roughness, electron-diffraction-indexer, xrd-peak-calculator, miller-index-calculator, fft-workbench]
 sources:
   - "The FFT (radix 2), the Hann window, zero padding, spot finding, sub-pixel refinement and the Bragg filter are written by fibub. The tests check the FFT and inverse FFT against numpy.fft, the window against numpy.hanning, and the spectrum, spot positions, d-spacings, angles and filtered image against the same steps in NumPy and SciPy on made-up fringes of known spacing."
   - "d = 1 / |g| (the spacing of the lattice planes is the inverse of the spatial frequency of their fringes) is general physics."
@@ -35,6 +35,8 @@ This page:
 - **Finds the strongest spots** (one of each mirror pair) and refines each centre to a fraction of a spectrum pixel by fitting a parabola to the log power, then gives d, the angle of the planes' normal (counter-clockwise from the image x axis), the angle to the first spot, and the relative strength.
 - **Measures any spot you tap** on the spectrum, after moving to the nearest peak.
 - **Filters**: keeps the transform within a small radius of the ticked spots (and their mirror spots), removes everything else and transforms back. The result shows the periodic lattice with the noise and amorphous background removed (a Bragg or Fourier filter).
+
+Index the spots you find with the [[electron-diffraction-indexer|electron diffraction indexer]], and compare the spacings with the [[xrd-peak-calculator|XRD peak calculator]].
 
 ## How to use it
 

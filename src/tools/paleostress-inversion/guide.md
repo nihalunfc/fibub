@@ -11,7 +11,7 @@ order: 869
 icon: compass
 works: offline
 updated: 2026-11-09
-related: [stereonet, apparent-dip]
+related: [stereonet, apparent-dip, phone-clinometer, earthquake-locator, bootstrap-permutation]
 sources:
   - "Method: Michael, A. J. (1984), Determination of stress from slip data: faults and folds, Journal of Geophysical Research 89, B13, 11517-11526 (the method is described in words and formulas, no data copied)."
   - "Rake convention: Aki and Richards. Bootstrap: resampling faults with replacement (Efron)."
@@ -26,6 +26,8 @@ flow:
 ## What it does
 
 Faults with striations (slickenlines) record how rock slid. If many faults moved under one uniform stress, the directions they slid in tell you that stress. This tool finds the **directions of the three principal stresses** (σ1 the most compressive, σ3 the least) and the **stress ratio**, which says whether σ2 is closer to σ1 or to σ3. It uses **Michael's (1984) linear least-squares method**, gives **bootstrap confidence** for every answer, the **misfit** of each fault, the **P and T axes**, and draws it all on a stereonet.
+
+Collect fault and striation readings in the field with the [[phone-clinometer]], and plot them on the [[stereonet]] to check them before you invert.
 
 ## How to use it
 

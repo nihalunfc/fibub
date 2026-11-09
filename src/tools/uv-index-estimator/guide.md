@@ -11,7 +11,7 @@ order: 504
 icon: star
 works: offline
 updated: 2026-11-09
-related: [sun-position-calculator, air-quality-calculator, psychrometric-calculator]
+related: [sun-position-calculator, air-quality-calculator, psychrometric-calculator, light-exposure-budget, insolation-calculator, weather-log]
 sources:
   - "Madronich, S. (2007) Analytic formula for the clear-sky UV index. Photochemistry and Photobiology 83(6), 1537–1538 (the formula UVI = 12.5 μ^2.42 (Ω/300)^−1.23; editable on the page)."
   - "Sun position from the NOAA solar calculator equations after Meeus, J. (1998) Astronomical Algorithms, 2nd ed. (checked against Meeus examples 25.a and 28.b and against pvlib's NREL SPA)."
@@ -34,6 +34,8 @@ The **UV index** tells you how strongly sunlight can redden skin. It depends mos
 - **Time to a dose**: for a dose you choose in standard erythemal doses (SED), the minutes to receive it from a start time, following the day's curve, as general information only.
 
 It is an estimate. **Check your local UV forecast**, which allows for the day's clouds, haze and ozone.
+
+Find the sun's height for your place and time with the [[sun-position-calculator]], and check the day's air with the [[air-quality-calculator]].
 
 ## How to use it
 

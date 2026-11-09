@@ -11,7 +11,7 @@ order: 885
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [seismogram-viewer, earthquake-locator]
+related: [seismogram-viewer, earthquake-locator, fft-workbench, digital-filter-designer, phone-clinometer]
 sources:
   - "Motion readings from the W3C DeviceOrientation Event specification (devicemotion, accelerationIncludingGravity in m/s²; device axes x across the screen, y along it, z out of the screen)."
   - "Linear resampling, Butterworth highpass by the bilinear transform with zero-phase filtering, Tukey taper and amplitude spectrum: standard signal processing written by fibub, checked against NumPy (interp, rfft) and SciPy 1.18 (butter, sosfiltfilt, detrend, tukey). Standard gravity g = 9.80665 m/s²."
@@ -34,6 +34,8 @@ Every smartphone has an **accelerometer**: a tiny sensor that measures accelerat
 - **Saves** recordings in this browser only, and downloads them as **CSV** or as a **SAC** file to open in the [Seismogram viewer](/science/seismogram-viewer/) or seismology software.
 
 **It is a toy for learning, not an earthquake detector.** A phone is thousands of times less sensitive than a real seismometer, its sensor drifts, and footsteps or a closing door look like earthquakes. It gives no warnings. For real earthquake information follow your national geological survey or civil protection agency.
+
+Open your recordings in the [[seismogram-viewer]] to pick arrivals, and look at the frequencies in a shake with the [[fft-workbench]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 765
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [sample-size, reliability-analysis, uncertainty-calculator, plot-maker, rubric-grade-calculator]
+related: [sample-size, reliability-analysis, uncertainty-calculator, plot-maker, rubric-grade-calculator, effect-size-converter, meta-analysis, hypothesis-tests, item-analysis]
 sources:
   - "Formulas: Cohen (1988); Hedges (1981) small-sample correction and Hedges and Olkin (1985); Glass (1976); Lakens (2013) dz and dav; Borenstein et al. (2009) repeated-measures variance; noncentral t intervals (Steiger and Fouladi 1997) with Lenth's (1989) algorithm; Hake (1998) normalised gain."
   - "Example numbers: made up for this page."
@@ -31,6 +31,8 @@ A p-value tells you whether a difference is likely to be real; an **effect size*
 - **Learning gain**: **Hake's normalised gain**, both the class-average gain ⟨g⟩ and the average of each student's own gain.
 
 Confidence intervals for d, g and dz are exact, found from the **noncentral t distribution**; they match Python's scipy to many decimal places. Nothing you type is sent anywhere.
+
+Convert between effect size measures with the [[effect-size-converter|effect size converter]], and combine several studies in a [[meta-analysis|meta-analysis]].
 
 ## How to use it
 

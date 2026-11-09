@@ -11,7 +11,7 @@ order: 11
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [uncertainty-calculator]
+related: [uncertainty-calculator, scientific-notation-formatter, curve-fitter, unit-converter, physical-constants, lab-report-template]
 sources:
   - "Significant figure counting and the sum and product rules: standard school and university laboratory conventions. Rounding half to even: ISO 80000-1 (Annex B) and IEEE 754; value and uncertainty rounding: the GUM (JCGM 100:2008, section 7) and common lab-manual practice. Formulas and rules only; no text or tables copied."
   - "Checked against Python's decimal module (quantize with ROUND_HALF_UP and ROUND_HALF_EVEN) on 2,970 random numbers, four roundings each, with no mismatch."
@@ -32,6 +32,8 @@ It has four parts:
 2. **Value ± uncertainty**: round the uncertainty to one or two figures, then the value to the same decimal place.
 3. **Calculation**: add, subtract, multiply or divide a list of numbers and round the answer by the textbook rules.
 4. **Check a table** of results, pasted or opened from a file, and get a suggested version of each line.
+
+Work out the uncertainty that decides how many figures to keep with the [[uncertainty-calculator|uncertainty calculator]], and write numbers in proper scientific notation with the [[scientific-notation-formatter|scientific notation formatter]].
 
 ## How to use it
 

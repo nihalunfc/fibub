@@ -11,7 +11,7 @@ order: 3
 icon: target
 works: offline
 updated: 2026-11-09
-related: [mri-bloch-simulator, ct-reconstruction, wave-calculator]
+related: [mri-bloch-simulator, ct-reconstruction, wave-calculator, doppler-beats, dicom-viewer]
 sources:
   - "Acoustic impedance, plane-wave reflection and transmission (normal and oblique, with Snell's law), attenuation in dB/cm/MHz, axial resolution, near-field length D²/4λ, divergence sin θ = 1.22 λ/D, range equation and the Doppler equation: standard diagnostic ultrasound physics, for example Hoskins, P., Martin, K. and Thrush, A. (eds), Diagnostic Ultrasound: Physics and Equipment."
   - "Checked against an independent numpy script written for the tests and the textbook result that soft tissue to air reflects about 99.9 %."
@@ -26,6 +26,8 @@ flow:
 ## What it does
 
 An ultrasound scanner sends short pulses of sound into the body and listens for echoes. How strong an echo is, how deep you can see and how fine a detail you can resolve all follow from a few simple formulas. This calculator puts them in one place: give the probe frequency, the pulse length and size, and the two materials either side of a boundary, and it works out the **acoustic impedance**, the share of the sound **reflected and transmitted**, the **attenuation** on the way down and back, the **resolution**, the **beam shape**, the **timing** and the **Doppler shift**.
+
+Look at the Doppler effect for sound in general with the [[doppler-beats|Doppler and beats calculator]], and open scan images with the [[dicom-viewer]].
 
 ## How to use it
 

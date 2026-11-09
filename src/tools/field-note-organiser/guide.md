@@ -11,7 +11,7 @@ order: 763
 icon: pencil
 works: offline
 updated: 2026-11-09
-related: [data-cleaner, planner]
+related: [data-cleaner, planner, kinship-diagram, qualitative-coding, interlinear-gloss, trench-recording-sheet, anthropometric-indices, field-form-builder]
 sources:
   - "No outside data. Example notes are made up for this tool."
 flow:
@@ -24,6 +24,8 @@ flow:
 ## What it does
 
 Ethnographers, anthropology and sociology students, user researchers and anyone doing fieldwork write notes every day: where they were, who was there, what happened, and their own reflections. After a few weeks those notes are hard to search. This tool is a simple, private notebook for them. Each note has a **date**, a **place**, the **people** involved (as pseudonyms) and **tags**, and you can search, filter and count them, then export everything for your analysis software or your thesis.
+
+Code the themes in your notes with [[qualitative-coding|qualitative coding]], and draw the families you meet with the [[kinship-diagram|kinship diagram]].
 
 ## Privacy first
 

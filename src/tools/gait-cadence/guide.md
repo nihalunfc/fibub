@@ -11,7 +11,7 @@ order: 31
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [jump-height, training-load, heart-rate-zones, period-finder, trend-analyser, plot-maker]
+related: [jump-height, training-load, heart-rate-zones, period-finder, trend-analyser, plot-maker, vo2max-estimator, phone-seismometer, fft-workbench]
 sources:
   - "Butterworth S (1930). On the theory of filter amplifiers. Wireless Engineer 7: 536–541 (low-pass filter); zero-phase filtering as in Winter DA, Biomechanics and Motor Control of Human Movement (Wiley)."
   - "Zijlstra W, Hof AL (2003). Assessment of spatio-temporal gait parameters from trunk accelerations during human walking. Gait Posture 18: 1–10."
@@ -28,6 +28,8 @@ flow:
 ## What it does
 
 Every step jolts your body up and down. A phone's accelerometer feels those jolts, so a short recording while you walk holds your **cadence** (steps per minute) and how regular your steps are. Clinicians and coaches use the same idea with research-grade sensors. This page does it with your own phone, in the browser: it records the motion sensor, or opens a CSV file of time and acceleration from any sensor app, then finds each step and reports cadence, step and stride times, their variability and a spectrum.
+
+Find the step rhythm in any signal with the [[fft-workbench]], and turn your sessions into a training load with the [[training-load|training load tracker]].
 
 ## How to use it
 

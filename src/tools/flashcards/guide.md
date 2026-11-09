@@ -11,11 +11,11 @@ order: 824
 icon: book
 works: offline
 updated: 2026-11-09
-related: [protocol-timer]
+related: [protocol-timer, practice-problems, lab-report-template, periodic-table, physical-constants, item-analysis]
 sources:
   - "SM-2 spaced-repetition algorithm: P. A. Wozniak (1990), as published on supermemo.com. Written here by fibub and checked in the tests against an exact Python port of that description on 2,000 random grade sequences, and against the supermemo2 package on PyPI."
   - "Anki's plain-text export format (tab-separated, with #separator, #html and #tags column header lines) as described in the Anki manual; no Anki code is used."
-  - "The example deck is made up of general science facts. Your decks are saved only in this browser (localStorage) and never uploaded."
+  - "The example deck is made up of general science facts. Your decks are saved only in this browser (localStorage) only if you tick the box, and never uploaded."
 flow:
   - { icon: pencil, label: "Cards" }
   - { icon: book, label: "Study" }
@@ -32,6 +32,8 @@ Spaced repetition shows you each card just before you are likely to forget it. C
 - **Same-day repeats.** As SM-2 asks, any card graded below 4 comes back later in the same session until you know it well. Only your first answer of the day changes the schedule.
 - **Import.** Paste or open a list with the front in one column and the back in the next (tags in a third, optional): CSV, TSV, Excel, or an Anki "Notes in Plain Text" export. Anki's HTML is turned into plain text.
 - **Statistics.** Cards that are new, learning, young and mature, your answers over the last 30 days with the share you got right, and how many cards fall due each day for the next two weeks.
+
+Practise with numbers too in the [[practice-problems|practice problem generator]], and learn the elements with the [[periodic-table]].
 
 ## How to use it
 
@@ -50,7 +52,7 @@ The page opens with a made-up example deck of ten science facts. Set *New cards 
 
 ## Your data
 
-Decks and progress are saved automatically in this browser on this device and are never sent anywhere; the page works offline. Clearing browser data removes them, so use *Download backup (JSON)* now and then, which also moves everything to another device. *Deck for Anki (.txt)* writes a file Anki imports (File, Import), and *Deck with schedule (CSV)* lists each card with its reviews, lapses, easiness and next review date.
+Nothing is saved until you tick *Remember my decks and progress in this browser*. Ticked, decks and progress stay in this browser on this device (untick it to remove the saved copy) and are never sent anywhere; the page works offline. Clearing browser data removes them, so use *Download backup (JSON)* now and then, which also moves everything to another device. *Deck for Anki (.txt)* writes a file Anki imports (File, Import), and *Deck with schedule (CSV)* lists each card with its reviews, lapses, easiness and next review date.
 
 ## FAQ
 

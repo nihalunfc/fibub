@@ -11,7 +11,7 @@ order: 382
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [fertiliser-blend-calculator]
+related: [fertiliser-blend-calculator, irrigation-scheduler, soil-texture-triangle, seeding-rate-calculator, concentration-converter, field-trial-designer]
 sources:
   - "Lime from a charge balance: acidity to neutralise (cmol(+)/kg) × soil mass of the layer (depth × bulk density) × 50.04 g CaCO3 per mole of charge (CaCO3 + 2H+ → Ca2+ + CO2 + H2O; standard atomic weights). Effective calcium carbonate equivalent = CCE × fineness efficiency. General soil chemistry, as in standard soil science textbooks."
   - "No agency lime tables, buffer-pH equations or nutrient sufficiency ranges are bundled: users type their own lime factor and their lab's ranges."

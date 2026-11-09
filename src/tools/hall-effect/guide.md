@@ -11,7 +11,7 @@ order: 9
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [band-structure, uncertainty-calculator, anomalous-hall-checker, trend-analyser]
+related: [band-structure, uncertainty-calculator, anomalous-hall-checker, trend-analyser, carrier-concentration, thin-film-thickness, curve-fitter]
 sources:
   - "Van der Pauw, L. J. (1958), A method of measuring specific resistivity and Hall effect of discs of arbitrary shape, Philips Research Reports 13, 1 to 9: the equation exp(−πR_A/R_s) + exp(−πR_B/R_s) = 1, solved here by Newton's method."
   - "Hall coefficient, carrier density and Hall mobility: standard textbook relations (for example Kittel, Introduction to Solid State Physics, and Sze, Physics of Semiconductor Devices). The measurement routine follows common practice described in NIST's public Hall effect pages."
@@ -36,6 +36,8 @@ This tool takes your raw readings and works out:
 - the **Hall mobility** μ_H in cm²/(V·s);
 - the **resistivity**, conductivity and Hall coefficient;
 - a **reciprocity check** on repeated readings, which flags bad contacts.
+
+Measure the film thickness that the resistivity needs with the [[thin-film-thickness|thin film thickness calculator]], and compare your carrier density with theory in the [[carrier-concentration|carrier concentration calculator]].
 
 ## How to use it
 

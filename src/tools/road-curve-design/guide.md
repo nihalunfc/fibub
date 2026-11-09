@@ -11,7 +11,7 @@ order: 654
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [level-book-reducer, traverse-calculator, retaining-wall-check, gps-track-analyser]
+related: [level-book-reducer, traverse-calculator, retaining-wall-check, gps-track-analyser, utm-converter, dem-terrain, traffic-flow, signal-timing]
 sources:
   - "Circular curve geometry (tangent length, curve length, external distance, middle ordinate, long chord, deflection-angle setting out), the radius from v²/(g(e + f)), stopping sight distance as reaction plus braking distance, and parabolic vertical curves with sight-distance lengths for crests (eye and object heights) and sags (headlight height and beam angle): standard highway and surveying textbooks, for example Garber and Hoel, Traffic and Highway Engineering, and Uren and Price, Surveying for Engineers (formulas only)."
   - "No values are taken from any road design code or guide (AASHTO, IRC, DMRB, TAC or others). Superelevation, side friction, reaction time, braking friction, eye, object and headlight heights and K are user inputs; the starting values and the example road are made up or rounded."
@@ -35,6 +35,8 @@ Roads are straights joined by curves, both in plan (horizontal curves) and in le
 - The **gradient** between two points as a percentage, an angle and "1 in N".
 
 For study and planning, not a substitute for professional judgement. Check your local code and a qualified engineer.
+
+Set out the curve on site with the [[traverse-calculator|traverse calculator]], and check the levels along it with the [[level-book-reducer|level book reducer]].
 
 ## How to use it
 

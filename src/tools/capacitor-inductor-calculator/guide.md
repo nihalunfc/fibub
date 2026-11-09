@@ -11,7 +11,7 @@ order: 3
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [field-line-plotter, coil-field-designer, link-budget-calculator]
+related: [field-line-plotter, coil-field-designer, link-budget-calculator, skin-depth-calculator, magnetic-circuit, electrostatics-solver, circuit-simulator, filter-designer]
 sources:
   - "Capacitance and inductance of parallel plates, coaxial and twin lines, concentric spheres, a wire over a plane, solenoids and toroids: standard results, for example Griffiths, D. J., Introduction to Electrodynamics, and Ramo, Whinnery and Van Duzer, Fields and Waves in Communication Electronics."
   - "Nagaoka's coefficient for a short single-layer coil: Nagaoka, H. (1909), Journal of the College of Science, Tokyo 27, article 6, in its closed form with complete elliptic integrals."
@@ -35,6 +35,8 @@ Capacitance and inductance depend only on the shape and size of the conductors a
 - **Solenoids**, with Nagaoka's correction for short coils, and **toroids** with a rectangular or round cross-section.
 
 For capacitors it also gives the charge and energy at a voltage and the strongest electric field, and warns when that field would break down air (roughly 3 kV/mm). For inductors it gives the energy, flux linkage and flux density at a current, and warns when a core would be near saturation.
+
+Try the part in a working circuit with the [[circuit-simulator]] or the [[filter-designer]], and check high-frequency losses with the [[skin-depth-calculator]].
 
 ## How to use it
 

@@ -1,6 +1,6 @@
 ---
 // Equipment booking: one person's calendar of instrument bookings, shown as a week. Finds clashes, repeats
-// bookings, and exports .ics (for any calendar app) and CSV. Bookings are kept only in this browser.
+// bookings, and exports .ics (for any calendar app) and CSV. Bookings are kept in this browser only if the visitor ticks the box.
 import '../../styles/astro.css';
 import Downloads from '../../components/Downloads.astro';
 ---
@@ -72,7 +72,8 @@ import Downloads from '../../components/Downloads.astro';
 
   <div class="ax-card">
     <h2>Kept in this browser</h2>
-    <p class="ax-help eb-store">Your bookings are saved automatically in this browser on this device, so they are here next time. They are never sent to fibub or anyone else, and nobody else can see them: this is your own planner, not a shared booking system. Clearing your browser data removes them, so download a backup now and then.</p>
+    <label class="ax-check"><input type="checkbox" class="eb-keep" /> Remember my bookings in this browser</label>
+    <p class="ax-help eb-store">Nothing is saved until you tick the box. Ticked, your bookings stay in this browser on this device so they are here next time; untick it to remove the saved copy. They are never sent to fibub or anyone else, and nobody else can see them: this is your own planner, not a shared booking system. Clearing your browser data removes them, so download a backup now and then.</p>
     <div class="ax-row" style="margin-top:10px">
       <button type="button" class="btn secondary small eb-json">Download backup (JSON)</button>
       <button type="button" class="btn secondary small eb-jopen">Open a backup</button>
@@ -106,8 +107,9 @@ import Downloads from '../../components/Downloads.astro';
 
   for (const r of B.REPEATS) { const o = document.createElement('option'); o.value = r.id; o.textContent = r.name; q('.eb-rep').append(o); }
 
-  const persist = () => { try { localStorage.setItem(KEY, B.toJson(list)); } catch { /* storage full or blocked */ } };
-  try { const raw = localStorage.getItem(KEY); if (raw) list = B.fromJson(raw); } catch { list = []; }
+  const keeping = () => inp('.eb-keep').checked;
+  const persist = () => { if (!keeping()) return; try { localStorage.setItem(KEY, B.toJson(list)); } catch { /* storage full or blocked */ } };
+  try { const raw = localStorage.getItem(KEY); if (raw) { inp('.eb-keep').checked = true; list = B.fromJson(raw); } } catch { list = []; }
 
   const dayName = (d: number) => { const x = new Date(d * 864e5); return `${DAYS[B.weekday(d)]} ${x.getUTCDate()} ${MON[x.getUTCMonth()]}`; };
   const hm = (t: number) => B.fromMin(t).slice(11);
@@ -303,7 +305,12 @@ import Downloads from '../../components/Downloads.astro';
   q('.eb-clear').addEventListener('click', () => {
     if (list.length && !confirm('Remove every booking from this browser? Download a backup first if you may need it.')) return;
     list = []; try { localStorage.removeItem(KEY); } catch { /* blocked */ }
+    inp('.eb-keep').checked = false;
     q('.eb-form').hidden = true; render(); msg('Cleared. Nothing is kept in this browser now.');
+  });
+  inp('.eb-keep').addEventListener('change', () => {
+    if (keeping()) { persist(); msg('Your bookings are now kept in this browser.'); }
+    else { try { localStorage.removeItem(KEY); } catch { /* blocked */ } msg('Not kept: the saved copy is removed from this browser.'); }
   });
 
   render();

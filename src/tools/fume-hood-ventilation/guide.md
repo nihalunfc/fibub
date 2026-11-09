@@ -11,7 +11,7 @@ order: 516
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [exposure-twa, hvac-room-load, greenhouse-heating, gas-law-calculator, vapour-pressure-calculator, green-chemistry-metrics, air-quality-calculator]
+related: [exposure-twa, hvac-room-load, greenhouse-heating, gas-law-calculator, vapour-pressure-calculator, green-chemistry-metrics, air-quality-calculator, gaussian-plume-calculator]
 sources:
   - "Face velocity statistics (mean, sample standard deviation, per cent deviation from the mean), flow = area × velocity, air changes per hour, and the well-mixed room model V dC/dt = G − (Q/K) C with its solution and purge time t = (K V/Q) ln(C₀/C): standard industrial ventilation and industrial hygiene formulas, as set out in textbooks such as the ACGIH Industrial Ventilation manual and AIHA's Mathematical Models for Estimating Occupational Exposure to Chemicals (methods only)."
   - "Molar volume from the ideal gas law with the exact SI gas constant (8.314462618 J/(mol K)); ppm to mg/m³ = ppm × M ÷ molar volume. Molar masses from fibub's periodic table (IUPAC standard atomic weights)."
@@ -34,6 +34,8 @@ flow:
 4. **Substance and ppm ↔ mg/m³.** Type a formula or a molar mass. The molar volume comes from the ideal gas law at your air temperature and pressure, and mg/m³ = ppm × M ÷ molar volume.
 5. **Steady state from a constant source.** For a liquid evaporating (or any steady release) at a known rate, the room settles where everything released leaves with the exhaust: C = rate × K ÷ flow, in mg/m³ and ppm.
 6. **Purge or build-up.** C(t) = Css + (C₀ − Css) e^(−t Q ÷ (K V)). It gives the time to go from a starting level to a target, with the source stopped or still running, and plots the curve.
+
+Check that the vapour you handle stays under its workplace limit with the [[exposure-twa|exposure TWA calculator]], and size the room's heating and cooling with the [[hvac-room-load|HVAC room load tool]].
 
 ## How to use it
 

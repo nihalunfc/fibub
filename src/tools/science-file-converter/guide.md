@@ -11,7 +11,7 @@ order: 815
 icon: convert
 works: offline
 updated: 2026-11-09
-related: [fits-viewer, data-cleaner, sql-playground, plot-maker]
+related: [fits-viewer, data-cleaner, sql-playground, plot-maker, data-dictionary, metadata-builder, checksum-checker, dataset-readme, csv-profiler]
 sources:
   - "NetCDF reading follows Unidata's NetCDF Classic Format Specification (CDF-1, CDF-2 and CDF-5); FITS reading follows the FITS Standard 4.0 (IAU FITS Working Group). The readers are written by fibub."
   - "Checked in the tests against files written and read back by scipy.io.netcdf_file, netCDF4-python and astropy.io.fits."
@@ -32,6 +32,8 @@ Climate models, ocean floats, satellites and telescopes save their data in forma
 - **CSV, TSV and Excel (.xlsx)**: each sheet as a table, with a guessed type for every column, so you can turn it into JSON.
 
 **Not supported:** HDF5 and NetCDF-4 files (NetCDF-4 is HDF5 inside), and Parquet. Reading them needs a large library that this page does not load. The page recognises these files and tells you how to convert them: `nccopy -k classic in.nc out.nc` for NetCDF-4, or `pandas.read_parquet(...).to_csv(...)` for Parquet.
+
+Describe each column of the converted table with the [[data-dictionary|data dictionary generator]], and fingerprint the files before you share them with the [[checksum-checker]].
 
 ## How to use it
 

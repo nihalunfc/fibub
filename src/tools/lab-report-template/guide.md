@@ -11,7 +11,7 @@ order: 826
 icon: resume
 works: offline
 updated: 2026-11-09
-related: [practice-problems, uncertainty-calculator, plot-maker]
+related: [practice-problems, uncertainty-calculator, plot-maker, flashcards, rubric-grade-calculator, sig-fig-checker, figure-checker, abstract-word-counter]
 sources:
   - "The section prompts, the figure and table checklist, the example rubric and its level descriptions are written by fibub from common practice in science teaching; no school, exam board or university rubric is copied."
   - "The score is a weighted mean, checked against NumPy on 500 random rubrics."
@@ -32,6 +32,8 @@ A good lab report follows a pattern, and students write better ones when they kn
 - **A marking rubric.** Criteria down the side, levels across the top (Excellent, Good, Developing, Beginning in the example), a description in every cell and a weight for every criterion. Add, remove, rename and reorder them.
 - **A score.** Pick a level for each criterion and the page works out the weighted score as a percentage and as marks out of the total you set.
 - **Downloads.** The template and the rubric each download as Word, PDF or Markdown. Save the rubric as a small .json file to open it again next term.
+
+Draw the graphs for your report with the [[plot-maker]], and work out the error in each result with the [[uncertainty-calculator]].
 
 ## How the score works
 

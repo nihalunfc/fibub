@@ -11,7 +11,7 @@ order: 25
 icon: table
 works: offline
 updated: 2026-11-09
-related: [energy-needs, glycaemic-load, lab-unit-converter, clinical-scores]
+related: [energy-needs, glycaemic-load, lab-unit-converter, clinical-scores, recipe-nutrition-calculator, body-measures]
 sources:
   - "Energy factors 4, 9 and 4 kcal per gram for protein, fat and carbohydrate: the general Atwater factors (Atwater and Bryant, 1900; FAO Food and Nutrition Paper 77, 2003)."
   - "Fibre at 2 kcal per gram, and salt = sodium × 2.5: as used for food labels in EU Regulation (EU) No 1169/2011, Annex XIV and Annex I (checked 2026-11-09; check the official source)."

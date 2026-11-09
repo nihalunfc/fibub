@@ -11,7 +11,7 @@ order: 767
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [sample-size, uncertainty-calculator, trend-analyser, hotspot-density]
+related: [sample-size, uncertainty-calculator, trend-analyser, hotspot-density, rate-standardisation, population-pyramid]
 sources:
   - "Exact (Garwood 1936) Poisson interval and Byar's approximation (as given by Breslow and Day 1987); exact conditional rate ratio test; direct standardisation with the gamma interval of Fay and Feuer (1997). Methods only; no data or tables are copied."
   - "Written by fibub and checked in the tests against SciPy (chi2.ppf, beta.ppf, binomtest with exact Clopper–Pearson intervals) and NumPy."
@@ -25,6 +25,8 @@ flow:
 ## What it does
 
 A raw count of offences means little until it is set against how many people live in the area. This calculator turns counts into **rates per 1,000, 10,000 or 100,000 people**, adds a **confidence interval** that shows how much the rate could move by chance alone, and answers the two questions that follow: is this area or year really different from that one (**rate ratio**, **exact test**, **percent change**), and is the difference just down to age mix (**age-standardised rate**)? Nothing you type leaves the page.
+
+See where incidents cluster with the [[hotspot-density|hot spot density]] map, and compare age mixes in detail with [[rate-standardisation|rates and age standardisation]].
 
 ## How to use it
 

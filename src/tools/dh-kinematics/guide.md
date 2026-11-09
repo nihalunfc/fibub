@@ -11,7 +11,7 @@ order: 635
 icon: compass
 works: offline
 updated: 2026-11-09
-related: [traverse-calculator, stereonet, plot-maker]
+related: [traverse-calculator, stereonet, plot-maker, inverse-kinematics, path-planner, pid-simulator, matrix-calculator]
 sources:
   - "Denavit-Hartenberg transforms in the standard (distal) form Rz·Tz·Tx·Rx and the modified (proximal, Craig) form Rx·Tx·Rz·Tz, the geometric Jacobian, and roll-pitch-yaw and quaternion formulas are standard robotics textbook material, written out by fibub."
   - "Checked against an independent numpy implementation (products of the four elementary transforms in both conventions), scipy's Rotation class (ZYX Euler angles and quaternions) and a finite-difference Jacobian, on the 4 example arms and 24 random tables."
@@ -31,6 +31,8 @@ A Denavit-Hartenberg (D-H) table describes a serial robot arm with four numbers 
 - **Every transform**: the link transform Aᵢ of any joint and the running product ⁰Tᵢ from the base to that joint's frame, plus the full base-to-tool transform ⁰Tₙ.
 - **The Jacobian**: how fast the tool point moves and turns when each joint moves, and its rank, so you can see when the arm is in a singular pose (for example fully stretched out).
 - **A 3D view** of the arm with each joint's frame (x red, y green, z blue) over a ground grid. Drag it sideways to turn it, or use the turn and tilt sliders.
+
+To find the joint angles for a target position, use the [[inverse-kinematics|inverse kinematics solver]], and plan a collision-free route with the [[path-planner|path planning visualiser]].
 
 ## How to use it
 

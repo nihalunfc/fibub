@@ -11,7 +11,7 @@ order: 302
 icon: table
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, field-sampling-planner, plot-maker, tree-carbon]
+related: [biodiversity-indices, field-sampling-planner, plot-maker, tree-carbon, community-ordination, coral-cover-calculator, forest-inventory-summary, distance-sampling]
 sources:
   - "Methods: J. T. Curtis and R. P. McIntosh (1951), importance value; R. H. Canfield (1941), line-intercept cover; C. W. Strong (1966), line-intercept density; textbook definitions of density, frequency and cover (e.g. C. J. Krebs, Ecological Methodology, 1999). Formulas only; no tables are copied."
   - "Checked in the tests against an independent calculation of the same data with pandas 2.x."
@@ -32,6 +32,8 @@ Quadrats and transects are the everyday way to describe vegetation, rocky shores
 - **Cover**: how much of the ground it covers, in %.
 - **Relative density, relative frequency and relative cover**: each species' share of the total for all species, in %.
 - **Importance value**: the sum of the relative values, out of 300 when all three are measured (Curtis and McIntosh). It ranks species by how much they dominate the community.
+
+Turn the species counts into diversity scores with the [[biodiversity-indices|biodiversity indices calculator]], and compare whole sites with the [[community-ordination|community ordination tool]].
 
 ## How to use it
 

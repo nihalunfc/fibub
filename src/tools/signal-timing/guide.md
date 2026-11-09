@@ -11,7 +11,7 @@ order: 684
 icon: clock
 works: offline
 updated: 2026-11-09
-related: [traffic-flow]
+related: [traffic-flow, queueing-calculator, road-curve-design, vehicle-routing]
 sources:
   - "Method: Webster, F. V. (1958), Traffic signal settings, Road Research Technical Paper 39 (optimum cycle, green split in proportion to the critical flow ratios, and the three-term delay formula), as given in transportation engineering textbooks (general formulas)."
   - "Queues for uniform arrivals: vehicles arriving in the effective red, q·r, and the longest queue q·r/(1 − y) (deterministic queueing, general textbook formula)."
@@ -35,6 +35,8 @@ A fixed-time traffic signal shares its cycle between phases. Webster's method, s
 - each approach's **capacity** s·g/C, **degree of saturation** and average **delay** from Webster's formula, and the delay-weighted average for the junction;
 - the **queue** at the end of red (flow × effective red) and the longest queue, flow × red ÷ (1 − y), in vehicles and in metres from a space per vehicle you give (uniform arrivals);
 - a **timing diagram** of one cycle and a curve of **delay against cycle length**.
+
+Find the flows and densities on the approach roads with [[traffic-flow|traffic flow fundamentals]], and check waiting times at other queues with the [[queueing-calculator]].
 
 ## How to use it
 

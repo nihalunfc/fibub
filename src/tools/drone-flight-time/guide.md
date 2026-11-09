@@ -11,7 +11,7 @@ order: 671
 icon: clock
 works: offline
 updated: 2026-11-09
-related: [propeller-thrust, battery-cycling-analyser, standard-atmosphere]
+related: [propeller-thrust, battery-cycling-analyser, standard-atmosphere, aircraft-performance, battery-solar-sizing, density-altitude, unit-converter]
 sources:
   - "Hover power from actuator-disc momentum theory with a figure of merit, and forward-flight induced velocity from Glauert's formula: Leishman, J. G., Principles of Helicopter Aerodynamics (2006) (equations only)."
   - "Air density from the 1976 US Standard Atmosphere (US government, public domain), shifted to the temperature you give."
@@ -31,6 +31,8 @@ A multirotor spends most of its battery holding itself up. This calculator estim
 - Or, better, type your **measured hover current**: the tool works out the hover time directly and the figure of merit it implies, and uses that for forward flight.
 - **Forward flight**: the drone tilts so its thrust also overcomes body drag; Glauert's formula gives the lower induced velocity as air streams through the rotors, so a little forward speed takes *less* power than hovering.
 - **Flight time** = usable battery energy ÷ power, plus **range**, current, C-rate, thrust-to-weight and the speeds for the longest flight and the longest range.
+
+Find the thrust each motor and propeller gives with the [[propeller-thrust]] tool, and check the battery's real capacity with the [[battery-cycling-analyser]].
 
 ## How to use it
 

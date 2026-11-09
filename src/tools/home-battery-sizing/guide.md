@@ -11,7 +11,7 @@ order: 675
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [battery-cycling-analyser, sun-position-calculator, load-flow]
+related: [battery-cycling-analyser, sun-position-calculator, load-flow, solar-pv-yield, lcoe-calculator, battery-solar-sizing, wind-energy-yield]
 sources:
   - "Own code: a step-by-step energy balance of load, solar and a battery with round-trip losses split equally between charging and discharging (a common simple battery model)."
   - "Checked against a separate Python re-implementation on a made-up 14-day profile for five batteries (hourly, half-hourly and quarter-hourly steps), plus energy-balance identities."
@@ -33,6 +33,8 @@ A home battery stores the solar power you would otherwise export and gives it ba
 - **Backup**: how long the battery can run your critical loads (fridge, lights, router, heating pump) in a power cut, from full, from the backup share alone, and at the worst moment in the data.
 - A **sweep** of battery sizes from 0 up to the largest you choose, with a **recommended size**: the smallest that gets most of the possible saving.
 - Optional **money**: yearly bill saving and simple payback from your own prices.
+
+Work out how much your panels make first with the [[solar-pv-yield|solar PV yield estimator]], and compare lifetime costs with the [[lcoe-calculator|LCOE calculator]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 747
 icon: table
 works: offline
 updated: 2026-11-09
-related: [sample-size, reliability-analysis, data-cleaner, sql-playground, likert-chart]
+related: [sample-size, reliability-analysis, data-cleaner, sql-playground, likert-chart, survey-weighting, hypothesis-tests, questionnaire-scorer]
 sources:
   - "Formulas: Pearson (1900), the likelihood-ratio G² test, Cramér (1946), Haberman (1973) adjusted residuals, Fisher (1922) exact test, Yates (1934) correction, Kish (1965) design effect for weights, and the first-order idea of Rao and Scott (1981). Example data made up."
 flow:
@@ -31,6 +31,8 @@ A cross-tabulation shows how the answers to one survey question are spread acros
 - **Adjusted standardised residuals** for every cell, marked when beyond ±1.96, so you can see which combinations are more or less common than chance.
 - For **2 × 2 tables**: Yates' continuity correction, **Fisher's exact test** and the odds ratio.
 - **Survey weights**: weighted counts and percentages, and a chi-square corrected for the design effect of the weights.
+
+Weight the answers to match the population with the [[survey-weighting]] tool, and plan how many people you need to ask with the [[sample-size|sample size calculator]].
 
 ## How to use it
 

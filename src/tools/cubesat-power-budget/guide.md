@@ -11,7 +11,7 @@ order: 510
 icon: orbit
 works: offline
 updated: 2026-11-09
-related: [link-budget-calculator, satellite-tracker, orbit-transfer-calculator, solar-cell-iv]
+related: [link-budget-calculator, satellite-tracker, orbit-transfer-calculator, solar-cell-iv, orbit-elements, battery-solar-sizing]
 sources:
   - "Eclipse fraction of a circular orbit in a cylindrical shadow, f = acos(√(h² + 2Rₑh) / ((Rₑ + h) cos β)) / π, the standard result in spacecraft design texts. Earth radius 6378.137 km and GM 398600.4418 km³/s² (WGS 84); total solar irradiance 1361 W/m²."
   - "Array power, the nadir-frame Sun direction, the duty-cycle load averages and the battery simulation are written by fibub and checked in the tests against numpy (a brute-force shadow test at 2 million points, explicit body-axis vectors, a fine trapezoid integral and a separate battery model)."
@@ -32,6 +32,8 @@ Every CubeSat team has to show that its satellite makes more energy than it uses
 - **Attitude.** *Nadir pointing* keeps +Z at the Earth and +X along the velocity, so the Sun angle on every face changes around the orbit and the page follows it. *Sun pointing* keeps one face square to the Sun. *Tumbling* uses the average of a randomly turning body, a quarter of each panel's peak.
 - **Loads.** A table of loads with their power and the share of the orbit each is on (duty cycle) in each operating mode, summed into an orbit-average load per mode.
 - **Battery.** A step-by-step simulation (1440 steps an orbit) charges the battery with any surplus, drains it with any shortfall, and reports the **deepest depth of discharge** and whether the battery is back where it started after each orbit.
+
+Find the orbit's period and shape with the [[orbit-elements|orbital elements converter]], and check how much data you can send down with the [[link-budget-calculator|link budget calculator]].
 
 ## How to use it
 

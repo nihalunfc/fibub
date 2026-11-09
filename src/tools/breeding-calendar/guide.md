@@ -11,7 +11,7 @@ order: 398
 icon: calendar
 works: offline
 updated: 2026-11-09
-related: [feed-ration-balancer, planner, bill-calendar]
+related: [feed-ration-balancer, planner, bill-calendar, growth-curve-tracker, crossing-plan, embryo-development-timer]
 sources:
   - "Gestation and oestrous cycle lengths are general husbandry facts, rounded by fibub (for example cow about 283 days, ewe 147, sow 114, mare 340, goat 150, dog 63, cat 65, rabbit 31; a 21-day cycle in cattle, pigs, horses and goats and 17 days in sheep). They are editable."
   - "Calendar files follow the iCalendar standard, RFC 5545 (all-day events, lines folded at 75 octets)."

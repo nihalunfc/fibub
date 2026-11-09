@@ -11,7 +11,7 @@ order: 62
 icon: camera
 works: offline
 updated: 2026-11-07
-related: [telescope-calculator, sky-tonight, polar-alignment]
+related: [telescope-calculator, sky-tonight, polar-alignment, sub-exposure-calculator, image-stacker, dark-sky-calendar, light-pollution-calculator, calibration-frames]
 sources:
   - "Camera sensor sizes: typical published sizes, typed by fibub."
   - "Rules of thumb: the common 500 rule and the NPF rule (Frédéric Michaud, Société Astronomique de France)."

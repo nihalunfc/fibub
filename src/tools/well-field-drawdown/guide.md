@@ -11,7 +11,7 @@ order: 5
 icon: target
 works: offline
 updated: 2026-11-08
-related: [pump-test-analyser, darcy-flow-calculator, slug-test-analyser, piper-diagram]
+related: [pump-test-analyser, darcy-flow-calculator, slug-test-analyser, piper-diagram, consolidation-settlement]
 sources:
   - "Theis solution, superposition in space and time, and the method of image wells for straight boundaries: standard hydrogeology, written by fibub from the equations."
   - "Capture zone of one well in uniform flow (stagnation point Q/(2πBq), width Q/(Bq)): the classic analytical solution, written from the stream function."

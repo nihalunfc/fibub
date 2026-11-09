@@ -1,0 +1,462 @@
+---
+// Genome browser lite: open your own FASTA, GFF3/GTF, BED and VCF files and look through them: contigs, zoom and
+// pan, regions and feature names, ruler, bases, GC %, gene models and variants, with a feature's sequence to copy
+// and the view as PNG or SVG. Files are read on the device, nothing is uploaded. The example is made up and is made
+// by the script, so the page itself stays small.
+import '../../styles/astro.css';
+---
+<div class="ax gbl">
+  <div class="ax-card">
+    <h2>Files</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small gb-open">Open files</button>
+      <input type="file" class="gb-file" multiple accept=".fa,.fasta,.fna,.fas,.ffn,.fsa,.gff,.gff3,.gtf,.bed,.vcf,.gz,.txt,text/plain,application/gzip" hidden />
+      <button type="button" class="btn secondary small gb-ex">Use the example</button>
+    </div>
+    <p class="ax-help gb-prog" aria-live="polite"></p>
+    <p class="ax-err gb-err" hidden></p>
+    <ul class="gb-files"></ul>
+    <p class="ax-help">Pick one FASTA (the genome or a few contigs, up to tens of MB) and any number of GFF3, GTF, BED and VCF tracks, at once or one by one; .gz files are unzipped on the page. Everything is read on your device and nothing is uploaded or kept. The example is two made-up contigs with made-up genes, peaks and variants.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>View</h2>
+    <div class="gb-where">
+      <label>Contig <select class="gb-chrom"></select></label>
+      <form class="gb-go-f">
+        <label>Region or feature name <input class="gb-region" type="text" list="gb-names" autocomplete="off" spellcheck="false" enterkeyhint="go" placeholder="chr1:1,000-2,000 or a gene name" /></label>
+        <button type="submit" class="btn small gb-go">Go</button>
+      </form>
+      <datalist id="gb-names"></datalist>
+    </div>
+    <div class="gb-nav" role="group" aria-label="Move and zoom">
+      <button type="button" class="btn secondary small gb-left" aria-label="Move left" title="Move left">◀</button>
+      <button type="button" class="btn secondary small gb-out" aria-label="Zoom out" title="Zoom out">−</button>
+      <button type="button" class="btn secondary small gb-in" aria-label="Zoom in" title="Zoom in">+</button>
+      <button type="button" class="btn secondary small gb-right" aria-label="Move right" title="Move right">▶</button>
+      <button type="button" class="btn secondary small gb-all">Whole contig</button>
+    </div>
+    <p class="ax-err gb-rerr" hidden></p>
+    <div class="gb-wrap">
+      <canvas class="gb-cv" tabindex="0" role="img" aria-label="Genome view"></canvas>
+      <div class="gb-tip" hidden></div>
+    </div>
+    <p class="ax-help">Drag sideways to move, pinch (or Ctrl + scroll, or + and − keys) to zoom, tap a gene or a variant for its details. Bases show as letters from about 40 bases across a phone.</p>
+    <div class="ax-legend gb-legend"></div>
+    <div class="ax-grid gb-opts">
+      <label>GC window <select class="gb-gcw">
+        <option value="0" selected>Automatic</option><option value="20">20 bp</option><option value="50">50 bp</option><option value="100">100 bp</option><option value="500">500 bp</option><option value="1000">1,000 bp</option><option value="5000">5,000 bp</option><option value="10000">10,000 bp</option><option value="100000">100,000 bp</option>
+      </select></label>
+    </div>
+    <div class="ax-row gb-chks">
+      <label class="ax-check"><input type="checkbox" class="gb-sseq" checked /> Sequence</label>
+      <label class="ax-check"><input type="checkbox" class="gb-sgc" checked /> GC %</label>
+    </div>
+    <dl class="ax-facts gb-facts"></dl>
+    <div class="ax-row gb-dl">
+      <button type="button" class="btn secondary small gb-png">Download PNG</button>
+      <button type="button" class="btn secondary small gb-svg">Download SVG</button>
+    </div>
+  </div>
+
+  <div class="ax-card gb-sel" hidden>
+    <h2 class="gb-sname"></h2>
+    <dl class="ax-facts gb-sfacts"></dl>
+    <h3 class="gb-h3">Details</h3>
+    <div class="ax-scroll"><table class="gb-attrs"></table></div>
+    <div class="gb-seqbox">
+      <h3 class="gb-h3">Sequence</h3>
+      <div class="ax-grid"><label>Copy <select class="gb-kind"></select></label></div>
+      <textarea class="gb-seq" rows="6" readonly spellcheck="false"></textarea>
+      <div class="ax-row" style="margin-top:8px">
+        <button type="button" class="btn small gb-copy">Copy</button>
+        <button type="button" class="btn secondary small gb-fa">Download FASTA</button>
+        <button type="button" class="btn secondary small gb-zoomto">Zoom to it</button>
+        <span class="ax-help gb-msg" aria-live="polite"></span>
+      </div>
+      <p class="ax-help gb-shelp"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { FastaReader, GcIndex, parseFeatures, parseVcf, detectKind, parseRegion, clampView, zoom, pan, snap, fmtRegion, featureSeq, blockLen, toFasta, layout, hitAt, toSvg, exampleGenome, inView, VAR_COL, TRACK_COL, type Contig, type Feature, type Variant, type View, type Scene, type Prim, type Col, type SeqKind, type Kind, type Named } from '../../lib/sci/genome';
+  import { pagePalette, LIGHT, save, fileSafe, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.gbl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const cv = q<HTMLCanvasElement>('.gb-cv'), wrap = q('.gb-wrap'), tip = q('.gb-tip');
+  const tn = (x: number) => Math.round(x).toLocaleString('en');
+  const MAX_TEXT = 300e6;
+
+  type FTrack = { name: string; file: string; kind: Kind; by: Map<string, { list: Feature[]; maxLen: number }>; names: Named[]; count: number; note: string };
+  type VTrack = { name: string; file: string; by: Map<string, { list: Variant[]; maxLen: number }>; count: number; note: string };
+  let contigs: Contig[] = [], gcIdx = new Map<string, GcIndex>(), fastaName = '', fastaNote = '';
+  let ftracks: FTrack[] = [], vtracks: VTrack[] = [], isExample = false;
+  let view: View | null = null, selected: Feature | Variant | null = null, scene: Scene | null = null;
+
+  const err = (m: string) => { q('.gb-err').textContent = m; q('.gb-err').hidden = !m; };
+  const rerr = (m: string) => { q('.gb-rerr').textContent = m; q('.gb-rerr').hidden = !m; };
+  const prog = (m: string) => (q('.gb-prog').textContent = m);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+
+  // ---------- contigs ----------
+  function allContigs(): { name: string; length: number }[] {
+    if (contigs.length) return contigs.map((c) => ({ name: c.name, length: c.length }));
+    const m = new Map<string, number>();
+    for (const t of ftracks) for (const [c, v] of t.by) m.set(c, Math.max(m.get(c) ?? 0, ...v.list.map((f) => f.end)));
+    for (const t of vtracks) for (const [c, v] of t.by) m.set(c, Math.max(m.get(c) ?? 0, v.list.at(-1)!.end));
+    return [...m].map(([name, length]) => ({ name, length: Math.max(1, length) }));
+  }
+  const lenOf = (c: string) => allContigs().find((x) => x.name === c)?.length ?? 1;
+  const allNames = (): Named[] => ftracks.flatMap((t) => t.names);
+  function refreshLists() {
+    const cs = allContigs(), sel = q<HTMLSelectElement>('.gb-chrom');
+    sel.replaceChildren(...cs.slice(0, 5000).map((c) => new Option(`${c.name} (${tn(c.length)} bp)`, c.name)));
+    if (view) sel.value = view.chrom;
+    const dl = q('#gb-names');
+    const seen = new Set<string>(), opts: HTMLOptionElement[] = [];
+    for (const n of allNames()) { if (seen.has(n.name) || opts.length >= 2000) continue; seen.add(n.name); opts.push(new Option(n.name)); }
+    dl.replaceChildren(...opts);
+    const list = q('.gb-files');
+    const rows: [string, string, number, 'f' | 'v' | 'g'][] = [];
+    if (contigs.length) rows.push([fastaName, `FASTA: ${tn(contigs.length)} contig${contigs.length === 1 ? '' : 's'}, ${tn(contigs.reduce((s, c) => s + c.length, 0))} bases${fastaNote}`, -1, 'g']);
+    ftracks.forEach((t, i) => rows.push([t.file, `${t.kind.toUpperCase()}: ${tn(t.count)} feature${t.count === 1 ? '' : 's'}${t.note}`, i, 'f']));
+    vtracks.forEach((t, i) => rows.push([t.file, `VCF: ${tn(t.count)} variant${t.count === 1 ? '' : 's'}${t.note}`, i, 'v']));
+    list.replaceChildren(...rows.map(([name, what, i, k]) => {
+      const li = document.createElement('li'), b = document.createElement('b'), s = document.createElement('span'), x = document.createElement('button');
+      b.textContent = name; s.textContent = what; x.type = 'button'; x.className = 'btn secondary small gb-rm'; x.textContent = 'Remove'; x.setAttribute('aria-label', `Remove ${name}`);
+      x.addEventListener('click', () => { if (k === 'g') { contigs = []; gcIdx.clear(); } else if (k === 'f') ftracks.splice(i, 1); else vtracks.splice(i, 1); isExample = false; selected = null; q('.gb-sel').hidden = true; afterLoad(); });
+      li.append(b, s, x); return li;
+    }));
+    // Legend: one swatch per track, plus the variant kinds and bases.
+    const lg = q('.gb-legend'), pal = pagePalette(), sw = (c: string, t: string) => { const s = document.createElement('span'), i = document.createElement('i'); i.style.background = c; s.append(i, t); return s; };
+    lg.replaceChildren(...ftracks.map((t, i) => sw(pal[TRACK_COL[i % TRACK_COL.length]], t.name)), ...(vtracks.length ? [sw(pal[VAR_COL.SNV], 'SNV'), sw(pal[VAR_COL.insertion], 'insertion'), sw(pal[VAR_COL.deletion], 'deletion'), sw(pal[VAR_COL.MNV], 'MNV or complex')] : []),
+      ...(contigs.length ? [sw(pal.good, 'A'), sw(pal.accent, 'C'), sw(pal.accent2, 'G'), sw(pal.bad, 'T')] : []));
+  }
+  function afterLoad(keepView = false) {
+    const cs = allContigs();
+    if (!cs.length) { view = null; refreshLists(); draw(); return; }
+    if (!keepView || !view || !cs.some((c) => c.name === view!.chrom)) view = { chrom: cs[0].name, start: 0, end: cs[0].length };
+    else view = clampView(view, lenOf(view.chrom));
+    refreshLists(); setView(view);
+  }
+
+  // ---------- reading files ----------
+  async function readText(file: File, onChunk?: (s: string, done: number) => void | Promise<void>) {
+    const head = new Uint8Array(await file.slice(0, 2).arrayBuffer()), gz = head[0] === 0x1f && head[1] === 0x8b;
+    if (gz && typeof DecompressionStream === 'undefined') throw new Error('This browser cannot unzip .gz files. Unzip it first, or try another browser.');
+    let done = 0, size = 0;
+    let stream: ReadableStream<Uint8Array> = file.stream().pipeThrough(new TransformStream<Uint8Array, Uint8Array>({ transform(c, ctl) { done += c.byteLength; ctl.enqueue(c); } }));
+    if (gz) stream = stream.pipeThrough(new DecompressionStream('gzip') as unknown as TransformStream<Uint8Array, Uint8Array>);
+    const reader = stream.pipeThrough(new TextDecoderStream() as unknown as TransformStream<Uint8Array, string>).getReader();
+    const parts: string[] = []; let t0 = 0;
+    for (;;) {
+      const { value, done: end } = await reader.read(); if (end) break;
+      size += value.length;
+      if (size > MAX_TEXT) { await reader.cancel(); throw new Error(`${file.name} is over ${MAX_TEXT / 1e6} MB of text, too big for a browser tab. Cut it to the contigs you need first.`); }
+      if (onChunk) await onChunk(value, done); else parts.push(value);
+      const now = performance.now(); if (now - t0 > 150) { t0 = now; prog(`Reading ${file.name}: ${(100 * done / Math.max(1, file.size)).toFixed(0)} %`); await new Promise((r) => setTimeout(r, 0)); }
+    }
+    return parts.join('');
+  }
+  const groupBy = <T extends { chrom: string; start: number; end: number }>(list: T[]) => {
+    const m = new Map<string, { list: T[]; maxLen: number }>();
+    for (const x of list) { const g = m.get(x.chrom) ?? { list: [], maxLen: 0 }; g.list.push(x); g.maxLen = Math.max(g.maxLen, x.end - x.start); m.set(x.chrom, g); }
+    return m;
+  };
+  const trackName = (file: string) => file.replace(/\.gz$/i, '').replace(/\.(gff3?|gtf|bed|vcf|txt)$/i, '');
+  function addText(file: string, kind: Kind, text: string, name = trackName(file)) {
+    if (kind === 'vcf') {
+      const v = parseVcf(text);
+      if (!v.variants.length) throw new Error(`${file}: no variant records found${v.errors[0] ? ` (${v.errors[0]})` : ''}. A VCF has a #CHROM header line and tab-separated records.`);
+      vtracks.push({ name, file, by: groupBy(v.variants), count: v.variants.length, note: v.skipped ? `; ${tn(v.skipped)} lines skipped (${v.errors[0]})` : '' });
+    } else if (kind !== 'fasta') {
+      const t = parseFeatures(text, kind);
+      if (!t.features.length) throw new Error(`${file}: no features found${t.errors[0] ? ` (${t.errors[0]})` : ''}.`);
+      ftracks.push({ name, file, kind, by: groupBy(t.features), names: t.names, count: t.features.length, note: t.skipped ? `; ${tn(t.skipped)} lines skipped (${t.errors[0]})` : '' });
+    }
+  }
+  function setGenome(file: string, r: FastaReader) {
+    if (!r.contigs.length || !r.contigs.some((c) => c.length)) throw new Error(`${file}: no sequence found. A FASTA file has a line starting with > and then the bases.`);
+    contigs = r.contigs.filter((c) => c.length); gcIdx.clear(); fastaName = file;
+    fastaNote = `${r.dropped ? `; ${tn(r.dropped)} non-letters dropped` : ''}${r.duplicates.length ? `; repeated name ${r.duplicates[0]} renamed` : ''}`;
+  }
+  function checkNames() {
+    if (!contigs.length) return;
+    const have = new Set(contigs.map((c) => c.name));
+    for (const t of [...ftracks, ...vtracks]) {
+      const miss = [...t.by.keys()].filter((c) => !have.has(c));
+      if (miss.length && !t.note.includes('not in the FASTA')) t.note += `; ${miss.length === t.by.size ? 'none' : 'some'} on contigs not in the FASTA (${miss.slice(0, 2).join(', ')}${miss.length > 2 ? ', …' : ''})`;
+    }
+  }
+  let loading = false;
+  async function openFiles(files: File[]) {
+    if (loading) return; loading = true; err('');
+    if (isExample) { contigs = []; gcIdx.clear(); ftracks = []; vtracks = []; isExample = false; selected = null; q('.gb-sel').hidden = true; }
+    const problems: string[] = [];
+    for (const f of files) {
+      try {
+        const head = await f.slice(0, 4096).text().catch(() => '');
+        const kind = detectKind(f.name, head.charCodeAt(0) === 0x1f ? '' : head);
+        if (kind === 'fasta') {
+          const r = new FastaReader();
+          await readText(f, (s) => { r.push(s); });
+          r.end(); setGenome(f.name, r);
+        } else addText(f.name, kind, await readText(f));
+      } catch (e) { problems.push((e as Error).message); }
+    }
+    checkNames();
+    prog(`Opened ${files.length} file${files.length === 1 ? '' : 's'}.`);
+    err(problems.join(' '));
+    loading = false; afterLoad(true);
+  }
+  function loadExample() {
+    const ex = exampleGenome();
+    contigs = []; gcIdx.clear(); ftracks = []; vtracks = []; selected = null; q('.gb-sel').hidden = true;
+    const r = new FastaReader(); r.push(ex.fasta); r.end(); setGenome('example.fasta', r);
+    addText('example.gff3', 'gff', ex.gff, 'Genes'); addText('example-peaks.bed', 'bed', ex.bed, 'Peaks'); addText('example.vcf', 'vcf', ex.vcf, 'Variants');
+    isExample = true; err(''); prog('Showing the made-up example.'); rerr('');
+    afterLoad(false);
+  }
+
+  // ---------- view ----------
+  function setView(v: View) {
+    view = clampView(v, lenOf(v.chrom));
+    q<HTMLSelectElement>('.gb-chrom').value = view.chrom;
+    if (document.activeElement !== q('.gb-region')) q<HTMLInputElement>('.gb-region').value = fmtRegion(view);
+    draw();
+  }
+  let raf = 0;
+  const draw = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; render(); }); };
+  function sceneFor(w: number) {
+    if (!view) return null;
+    const c = contigs.find((x) => x.name === view!.chrom);
+    let gc: GcIndex | undefined;
+    if (c && q<HTMLInputElement>('.gb-sgc').checked) { gc = gcIdx.get(c.name); if (!gc) { gc = new GcIndex(c.seq); gcIdx.set(c.name, gc); } }
+    const ch = view.chrom;
+    return layout({ w, view, length: lenOf(ch), seq: c?.seq, gc, gcWin: Number(q<HTMLSelectElement>('.gb-gcw').value), showGc: !!gc, showSeq: q<HTMLInputElement>('.gb-sseq').checked,
+      tracks: ftracks.map((t) => ({ name: t.name, features: t.by.get(ch)?.list ?? [], maxLen: t.by.get(ch)?.maxLen ?? 0 })),
+      vtracks: vtracks.map((t) => ({ name: t.name, variants: t.by.get(ch)?.list ?? [], maxLen: t.by.get(ch)?.maxLen ?? 0 })), selected });
+  }
+  const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif', MONO = 'ui-monospace, Menlo, Consolas, monospace';
+  function paintScene(ctx: CanvasRenderingContext2D, sc: Scene, pal: Palette) {
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, sc.w, sc.h);
+    const P = pal as unknown as Record<Col, string>;
+    for (const p of sc.prims as Prim[]) {
+      if (p.t === 'rect') {
+        if (p.fill) { ctx.globalAlpha = p.op ?? 1; ctx.fillStyle = P[p.fill]; ctx.fillRect(p.x, p.y, p.w, p.h); ctx.globalAlpha = 1; }
+        if (p.stroke) { ctx.strokeStyle = P[p.stroke]; ctx.lineWidth = p.lw ?? 1; ctx.strokeRect(p.x, p.y, p.w, p.h); }
+      } else if (p.t === 'line') {
+        ctx.strokeStyle = P[p.stroke]; ctx.lineWidth = p.lw ?? 1; ctx.setLineDash(p.dash ? [4, 3] : []);
+        ctx.beginPath(); ctx.moveTo(p.x1, p.y1); ctx.lineTo(p.x2, p.y2); ctx.stroke(); ctx.setLineDash([]);
+      } else if (p.t === 'text') {
+        ctx.font = `${p.bold ? '700 ' : ''}${p.size}px ${p.mono ? MONO : FONT}`; ctx.fillStyle = P[p.fill];
+        ctx.textAlign = p.anchor === 'middle' ? 'center' : p.anchor === 'end' ? 'right' : 'left'; ctx.textBaseline = 'alphabetic';
+        ctx.fillText(p.s, p.x, p.y);
+      } else {
+        ctx.beginPath(); ctx.moveTo(p.pts[0], p.pts[1]); for (let i = 2; i < p.pts.length; i += 2) ctx.lineTo(p.pts[i], p.pts[i + 1]);
+        if (p.fill) { ctx.fillStyle = P[p.fill]; ctx.fill(); }
+        if (p.stroke) { ctx.strokeStyle = P[p.stroke]; ctx.lineWidth = p.lw ?? 1; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke(); }
+      }
+    }
+  }
+  function render() {
+    const w = Math.max(200, Math.floor(wrap.clientWidth));
+    scene = sceneFor(w);
+    const dpr = Math.min(3, window.devicePixelRatio || 1), h = scene?.h ?? 60;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.height = `${h}px`;
+    const ctx = cv.getContext('2d')!; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (!scene) { const pal = pagePalette(); ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, h); ctx.fillStyle = pal.muted; ctx.font = `14px ${FONT}`; ctx.fillText('Open a file or use the example.', 8, 34); facts(); return; }
+    paintScene(ctx, scene, pagePalette());
+    cv.setAttribute('aria-label', `Genome view of ${fmtRegion(view!)}`);
+    facts();
+  }
+  function facts() {
+    const box = q('.gb-facts');
+    if (!view || !scene) { box.replaceChildren(); return; }
+    const s = snap(view), span = s.end - s.start, c = contigs.find((x) => x.name === view!.chrom), out = [fact('In view', `${tn(span)} bp`, `${fmtRegion(view)}, ${scene.info.bpPerPx >= 1 ? `${scene.info.bpPerPx.toFixed(scene.info.bpPerPx < 10 ? 1 : 0)} bp per pixel` : `${(1 / scene.info.bpPerPx).toFixed(1)} px per base`}`)];
+    if (c) { const g = (gcIdx.get(c.name) ?? new GcIndex(c.seq)), f = g.fraction(s.start, s.end), all = g.fraction(0, c.length); out.push(fact('GC in view', Number.isFinite(f) ? `${(100 * f).toFixed(1)} %` : '–', `whole contig ${Number.isFinite(all) ? (100 * all).toFixed(1) : '–'} %`)); }
+    ftracks.forEach((t, i) => out.push(fact(t.name, `${tn(scene!.info.shown[i] + scene!.info.hiddenRows[i])} in view`, `${tn(t.by.get(view!.chrom)?.list.length ?? 0)} on this contig`)));
+    vtracks.forEach((t, i) => { const vis = inView(t.by.get(view!.chrom)?.list ?? [], view!.start, view!.end, t.by.get(view!.chrom)?.maxLen ?? 0); out.push(fact(t.name, `${tn(scene!.info.variantsShown[i])} in view`, `${tn(vis.filter((v) => v.type === 'SNV').length)} SNVs, ${tn(vis.filter((v) => v.type === 'insertion' || v.type === 'deletion').length)} indels`)); });
+    box.replaceChildren(...out);
+  }
+
+  // ---------- selection ----------
+  const KIND_NAME: Record<SeqKind, string> = { mrna: 'Spliced (exons joined, mRNA)', cds: 'Coding sequence (CDS)', protein: 'Protein (CDS translated)', genomic: 'Genomic (whole span, introns too)' };
+  function table(head: string[], rows: string[][]) {
+    const t = q<HTMLTableElement>('.gb-attrs'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c) => { tr.insertCell().textContent = c; }); });
+  }
+  const isFeature = (x: Feature | Variant): x is Feature => 'exons' in x;
+  function select(x: Feature | Variant | null) {
+    selected = x; draw();
+    const box = q('.gb-sel'); box.hidden = !x; q('.gb-msg').textContent = '';
+    if (!x) return;
+    if (isFeature(x)) {
+      q('.gb-sname').textContent = x.name;
+      const ex = blockLen(x.exons), cds = blockLen(x.cds);
+      q('.gb-sfacts').replaceChildren(
+        fact('Type', x.type, x.source.toUpperCase()),
+        fact('Location', `${x.chrom}:${tn(x.start + 1)}-${tn(x.end)}`, `${x.strand === '+' ? 'plus' : x.strand === '-' ? 'minus' : 'no'} strand`),
+        fact('Length', `${tn(x.end - x.start)} bp`, x.exons.length > 1 ? `${x.exons.length} exons, ${tn(ex)} nt spliced` : x.solid ? 'one block' : `1 exon, ${tn(ex)} nt`),
+        ...(cds ? [fact('CDS', `${tn(cds)} nt`, `${cds % 3 ? 'not whole codons; ' : ''}${tn(Math.floor(cds / 3) - 1)} amino acids + stop if it ends in one`)] : []),
+      );
+      const rows = Object.entries(x.attrs).map(([k, v]) => [k, v]);
+      if (x.parentAttrs) for (const [k, v] of Object.entries(x.parentAttrs)) rows.push([`gene ${k}`, v]);
+      table(['Attribute', 'Value'], rows.slice(0, 200));
+      const kinds: SeqKind[] = cds ? ['mrna', 'cds', 'protein', 'genomic'] : ['mrna', 'genomic'];
+      if (x.exons.length === 1 && !cds) kinds.splice(0, 1);
+      const ks = q<HTMLSelectElement>('.gb-kind'), cur = ks.value as SeqKind;
+      ks.replaceChildren(...kinds.map((k) => new Option(KIND_NAME[k], k)));
+      ks.value = kinds.includes(cur) ? cur : kinds[0];
+      q('.gb-seqbox').hidden = false; showSeq();
+    } else {
+      q('.gb-sname').textContent = `${x.ref.length > 12 ? x.ref.slice(0, 10) + '…' : x.ref} > ${x.alts.join(',').slice(0, 24)} at ${x.chrom}:${tn(x.pos)}`;
+      q('.gb-sfacts').replaceChildren(
+        fact('Type', x.type, x.id && x.id !== '.' ? x.id : ''),
+        fact('Position', `${x.chrom}:${tn(x.pos)}`, `REF covers ${tn(x.end - x.start)} bp`),
+        fact('QUAL', Number.isFinite(x.qual) ? String(x.qual) : 'not given', `FILTER ${x.filter}`),
+      );
+      table(['Field', 'Value'], [['REF', x.ref], ['ALT', x.alts.join(', ')], ...Object.entries(x.info).map(([k, v]) => [`INFO ${k}`, v]), ...x.gts.map(([s, g]) => [`GT ${s}`, g])].slice(0, 200));
+      q('.gb-seqbox').hidden = true;
+    }
+  }
+  let seqText = '';
+  function showSeq() {
+    const x = selected; if (!x || !isFeature(x)) return;
+    const c = contigs.find((cc) => cc.name === x.chrom), kind = q<HTMLSelectElement>('.gb-kind').value as SeqKind, ta = q<HTMLTextAreaElement>('.gb-seq');
+    const btns = ['.gb-copy', '.gb-fa'].map((s) => q<HTMLButtonElement>(s));
+    if (!c) { seqText = ''; ta.value = ''; ta.placeholder = contigs.length ? `The FASTA has no contig called ${x.chrom}.` : 'Open the genome FASTA too, to copy sequences.'; btns.forEach((b) => (b.disabled = true)); q('.gb-shelp').textContent = ''; return; }
+    if (x.end > c.length) { seqText = ''; ta.value = ''; ta.placeholder = `${x.name} ends at ${tn(x.end)}, past the end of ${c.name} (${tn(c.length)} bp). Is this the right FASTA?`; btns.forEach((b) => (b.disabled = true)); return; }
+    const s = featureSeq(c.seq, x, kind);
+    seqText = toFasta(`${x.name} ${x.chrom}:${x.start + 1}-${x.end}(${x.strand}) ${kind === 'mrna' ? 'spliced' : kind}`, s);
+    ta.value = seqText.length > 2e6 ? seqText.slice(0, 2e6) + '\n… (shortened here; Copy and Download give it all)' : seqText;
+    btns.forEach((b) => (b.disabled = false));
+    q('.gb-shelp').textContent = `${tn(s.length)} ${kind === 'protein' ? 'amino acids (standard genetic code, * = stop)' : 'bases'}${x.strand === '-' && kind !== 'protein' ? ', reverse-complemented because the feature is on the minus strand' : ''}${kind === 'protein' ? '. Read from the first CDS base; a CDS that starts part-way through a codon (phase 1 or 2) will read out of frame' : ''}.`;
+  }
+
+  // ---------- pointer, touch and keys ----------
+  const pts = new Map<number, { x: number; y: number }>();
+  let g0: { x: number; y: number; t: number; view: View; dist: number; mid: number; moved: boolean; multi: boolean } | null = null;
+  const local = (e: PointerEvent | MouseEvent | WheelEvent) => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  const bpAt = (x: number) => view!.start + (x / Math.max(1, wrap.clientWidth)) * (view!.end - view!.start);
+  cv.addEventListener('pointerdown', (e) => {
+    if (!view) return;
+    try { cv.setPointerCapture(e.pointerId); } catch { /* synthetic or ended pointer */ } pts.set(e.pointerId, local(e));
+    const p = [...pts.values()];
+    if (p.length === 1 || !g0) g0 = { x: p[0].x, y: p[0].y, t: performance.now(), view: { ...view }, dist: 0, mid: 0, moved: false, multi: false };
+    else { const midX = (p[0].x + p[1].x) / 2; g0 = { ...g0, view: { ...view }, dist: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y), mid: bpAt(midX), multi: true }; }
+    tip.hidden = true;
+  });
+  cv.addEventListener('pointermove', (e) => {
+    if (!view) return;
+    if (!pts.has(e.pointerId)) { if (e.pointerType === 'mouse') hover(local(e)); return; }
+    pts.set(e.pointerId, local(e));
+    const p = [...pts.values()], L = lenOf(view.chrom);
+    if (!g0) return;
+    if (p.length >= 2 && g0.dist > 0) {
+      const d = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
+      setView(zoom(g0.view, d / g0.dist, L, g0.mid)); g0.moved = true;
+    } else if (p.length === 1 && !g0.multi) {
+      const dx = p[0].x - g0.x;
+      if (Math.abs(dx) > 4) g0.moved = true;
+      if (g0.moved) setView(pan(g0.view, -dx * (g0.view.end - g0.view.start) / Math.max(1, wrap.clientWidth), L));
+    }
+  });
+  const up = (e: PointerEvent) => {
+    const had = pts.has(e.pointerId); pts.delete(e.pointerId);
+    if (!had || !g0 || !view) return;
+    if (pts.size === 0) { if (!g0.moved && !g0.multi && scene) { const p = local(e), h = hitAt(scene, p.x, p.y); select(h ? h.item : null); } g0 = null; }
+    else { const p = [...pts.values()][0]; g0 = { ...g0, x: p.x, y: p.y, view: { ...view }, dist: 0 }; }
+  };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  cv.addEventListener('pointerleave', () => { if (!pts.size) tip.hidden = true; });
+  function hover(p: { x: number; y: number }) {
+    if (!scene) return;
+    const h = hitAt(scene, p.x, p.y);
+    cv.style.cursor = h ? 'pointer' : 'grab';
+    if (!h) { tip.hidden = true; return; }
+    const x = h.item;
+    tip.textContent = isFeature(x) ? `${x.name}\n${x.type}, ${x.chrom}:${tn(x.start + 1)}-${tn(x.end)} (${x.strand})\n${tn(x.end - x.start)} bp${x.exons.length > 1 ? `, ${x.exons.length} exons` : ''}` : `${x.chrom}:${tn(x.pos)} ${x.ref.slice(0, 12)} > ${x.alts.join(',').slice(0, 24)}\n${x.type}, QUAL ${Number.isFinite(x.qual) ? x.qual : '.'}, ${x.filter}${x.info.DP ? `, DP ${x.info.DP}` : ''}${x.info.AF ? `, AF ${x.info.AF}` : ''}`;
+    tip.hidden = false;
+    const W = wrap.clientWidth, tw = tip.offsetWidth;
+    tip.style.left = `${Math.max(0, Math.min(W - tw, p.x + 12))}px`; tip.style.top = `${p.y + 16}px`;
+  }
+  cv.addEventListener('wheel', (e) => {
+    if (!view) return;
+    const L = lenOf(view.chrom);
+    if (e.ctrlKey || e.metaKey) { e.preventDefault(); setView(zoom(view, Math.exp(-e.deltaY * 0.01), L, bpAt(local(e).x))); }
+    else if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) { e.preventDefault(); setView(pan(view, e.deltaX * (view.end - view.start) / Math.max(1, wrap.clientWidth), L)); }
+  }, { passive: false });
+  const step = (f: number) => { if (view) setView(pan(view, f * (view.end - view.start), lenOf(view.chrom))); };
+  const zm = (f: number) => { if (view) setView(zoom(view, f, lenOf(view.chrom))); };
+  cv.addEventListener('keydown', (e) => {
+    const k = e.key;
+    if (k === 'ArrowLeft') step(-0.2); else if (k === 'ArrowRight') step(0.2); else if (k === '+' || k === '=') zm(2); else if (k === '-' || k === '_') zm(0.5); else if (k === 'Escape') select(null); else return;
+    e.preventDefault();
+  });
+  q('.gb-left').addEventListener('click', () => step(-0.5));
+  q('.gb-right').addEventListener('click', () => step(0.5));
+  q('.gb-in').addEventListener('click', () => zm(2));
+  q('.gb-out').addEventListener('click', () => zm(0.5));
+  q('.gb-all').addEventListener('click', () => { if (view) setView({ chrom: view.chrom, start: 0, end: lenOf(view.chrom) }); });
+  q('.gb-chrom').addEventListener('change', () => { const c = q<HTMLSelectElement>('.gb-chrom').value; rerr(''); setView({ chrom: c, start: 0, end: lenOf(c) }); });
+  q('.gb-go-f').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const r = parseRegion(q<HTMLInputElement>('.gb-region').value, allContigs(), allNames());
+    if ('error' in r) return rerr(r.error);
+    rerr(''); q<HTMLInputElement>('.gb-region').blur(); setView(r);
+  });
+  root.querySelectorAll('.gb-gcw, .gb-sseq, .gb-sgc').forEach((el) => el.addEventListener('change', draw));
+  new ResizeObserver(() => draw()).observe(wrap);
+  document.addEventListener('fibub:theme', () => { refreshLists(); draw(); });
+
+  // ---------- buttons ----------
+  q('.gb-open').addEventListener('click', () => q<HTMLInputElement>('.gb-file').click());
+  q('.gb-file').addEventListener('change', () => { const fs = [...(q<HTMLInputElement>('.gb-file').files ?? [])]; q<HTMLInputElement>('.gb-file').value = ''; if (fs.length) openFiles(fs); });
+  q('.gb-ex').addEventListener('click', loadExample);
+  q('.gb-kind').addEventListener('change', showSeq);
+  q('.gb-copy').addEventListener('click', async () => {
+    if (!seqText) return;
+    try { await navigator.clipboard.writeText(seqText); } catch { const ta = q<HTMLTextAreaElement>('.gb-seq'); ta.select(); document.execCommand('copy'); }
+    q('.gb-msg').textContent = 'Copied.';
+  });
+  q('.gb-fa').addEventListener('click', () => { const x = selected; if (seqText && x && isFeature(x)) save(new Blob([seqText], { type: 'text/plain' }), `${fileSafe(x.name)}-${q<HTMLSelectElement>('.gb-kind').value}.fasta`, 'text/plain'); });
+  q('.gb-zoomto').addEventListener('click', () => { const x = selected; if (x && isFeature(x)) { const pad = Math.round((x.end - x.start) * 0.1); setView({ chrom: x.chrom, start: x.start - pad, end: x.end + pad }); cv.scrollIntoView({ block: 'nearest' }); } });
+  const exportScene = () => sceneFor(Math.max(1000, Math.floor(wrap.clientWidth)));
+  const exportName = () => (view ? fileSafe(`${view.chrom}-${snap(view).start + 1}-${snap(view).end}`) : 'genome-view');
+  q('.gb-png').addEventListener('click', () => {
+    const sc = exportScene(); if (!sc) return;
+    const c = document.createElement('canvas'); c.width = sc.w * 2; c.height = sc.h * 2;
+    const ctx = c.getContext('2d')!; ctx.scale(2, 2); paintScene(ctx, sc, LIGHT);
+    c.toBlob((b) => { if (b) save(b, `${exportName()}.png`, 'image/png'); }, 'image/png');
+  });
+  q('.gb-svg').addEventListener('click', () => { const sc = exportScene(); if (sc) save(new Blob([toSvg(sc, LIGHT as unknown as Record<Col, string>)], { type: 'image/svg+xml' }), `${exportName()}.svg`, 'image/svg+xml'); });
+
+  loadExample();
+</script>
+
+<style is:inline>
+  .gbl .gb-files { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+  .gbl .gb-files li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; }
+  .gbl .gb-files b { overflow-wrap: anywhere; }
+  .gbl .gb-files span { grid-column: 1; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+  .gbl .gb-files .gb-rm { grid-column: 2; grid-row: 1 / span 2; padding: 6px 10px; font-size: 14px; }
+  .gbl .gb-where { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  @media (min-width: 640px) { .gbl .gb-where { grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); } }
+  .gbl .gb-go-f { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; margin: 0; }
+  .gbl .gb-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 10px; }
+  .gbl .gb-nav .btn { min-width: 44px; justify-content: center; }
+  .gbl .gb-wrap { position: relative; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--bg); }
+  .gbl .gb-cv { display: block; width: 100%; touch-action: pan-y; cursor: grab; user-select: none; -webkit-user-select: none; }
+  .gbl .gb-cv:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .gbl .gb-tip { position: absolute; pointer-events: none; max-width: min(320px, 90%); background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: 12.5px; line-height: 1.35; white-space: pre-line; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12); }
+  .gbl .gb-opts { margin-top: 10px; }
+  .gbl .gb-chks { margin: 10px 0 12px; }
+  .gbl .gb-dl { margin-top: 12px; }
+  .gbl .gb-h3 { margin: 16px 0 6px; font-size: 1rem; }
+  .gbl .gb-seq { margin-top: 8px; font-size: 12.5px; word-break: break-all; }
+  .gbl .gb-attrs td:last-child { overflow-wrap: anywhere; word-break: break-word; }
+</style>

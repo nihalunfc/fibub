@@ -11,7 +11,7 @@ order: 851
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [larson-miller-calculator, stress-strain-analyser]
+related: [larson-miller-calculator, stress-strain-analyser, thermal-mismatch-stress, phase-diagram-calculator, heat-conduction, random-walk-diffusion, nanoparticle-calculator, dls-analyser]
 sources:
   - "The erf, erfc and Gaussian solutions of Fick's second law and the Arrhenius law are textbook forms (Crank, The Mathematics of Diffusion; Shewmon, Diffusion in Solids; Porter and Easterling, Phase Transformations in Metals and Alloys, ch. 2). fibub's code is checked in the tests against SciPy (scipy.special.erf, erfinv, brentq) and a NumPy finite-difference solver."
   - "The example D₀, Q, temperatures and concentrations are made-up round values, not data for any real material."
@@ -32,6 +32,8 @@ Atoms move through a solid by diffusion, and Fick's second law, ∂C/∂t = D �
 - **Diffusion couple** of two blocks joined at x = 0: C = (C₁ + C₂)/2 + (C₂ − C₁)/2 · erf(x / 2√(Dt)).
 
 The diffusion coefficient comes from the **Arrhenius law** D = D₀ exp(−Q/RT), or you can type it. The page then gives the **diffusion length** √(Dt), the **profile** at a quarter, one and four times your time, the **case depth** where the concentration has fallen to a target, the **time** until a given depth reaches the target, and the concentration at that depth. Tick the **finite-difference check** to solve the same problem numerically on a grid and see how close the two are.
+
+See the same maths for heat with the [[heat-conduction]] tool, and pick the right phase for your temperature with the [[phase-diagram-calculator]].
 
 ## How to use it
 

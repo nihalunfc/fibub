@@ -11,7 +11,7 @@ order: 868
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [tide-predictor, equilibrium-solver, titration-curve, water-quality-index]
+related: [tide-predictor, equilibrium-solver, titration-curve, water-quality-index, dissolved-oxygen, coral-cover-calculator]
 sources:
   - "Method as in CO2SYS (Lewis and Wallace 1998) and PyCO2SYS (Humphreys et al. 2022, Geosci. Model Dev. 15, 15). Published equations: K1, K2 Lueker, Dickson and Keeling (2000, Mar. Chem. 70, 105); K0 and fugacity Weiss (1974, Mar. Chem. 2, 203); KB Dickson (1990, Deep-Sea Res. 37, 755); KW Millero (1995, Geochim. Cosmochim. Acta 59, 661); KHSO4 Dickson (1990, J. Chem. Thermodyn. 22, 113); KHF Dickson and Riley (1979, Mar. Chem. 7, 89); calcite and aragonite Mucci (1983, Am. J. Sci. 283, 780); pressure Millero (1995) and Ingle (1975); borate Uppström (1974) or Lee et al. (2010); sulfate Morris and Riley (1966); fluoride Riley (1965); calcium Riley and Tongudai (1967); vapour pressure Weiss and Price (1980). fibub's code is its own, checked in the tests against PyCO2SYS."
   - "The example water and samples are made up. Nothing you type or open is sent or stored."
@@ -34,6 +34,8 @@ The carbon dioxide dissolved in seawater is spread over three forms (CO2, bicarb
 - **Many samples at once**: paste or open a table and download every result.
 
 The constants are the CO2SYS defaults for seawater: K1 and K2 of Lueker et al. (2000), the bisulfate constant of Dickson (1990), HF of Dickson and Riley (1979), and borate from salinity after Uppström (1974) or Lee et al. (2010). Phosphate and silicate alkalinity are left out.
+
+Work through the equilibria by hand with the [[equilibrium-solver]], and add the oxygen side of the story with the [[dissolved-oxygen|dissolved oxygen calculator]].
 
 ## How to use it
 

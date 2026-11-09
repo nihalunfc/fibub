@@ -11,7 +11,7 @@ order: 802
 icon: book
 works: offline
 updated: 2026-11-09
-related: [author-list-formatter, data-cleaner, file-converter]
+related: [author-list-formatter, data-cleaner, file-converter, equation-converter, table-converter, abstract-word-counter, reviewer-response, metadata-builder]
 sources:
   - "The parser follows the BibTeX file format (entries, @string, @preamble, @comment, # joins) and BibTeX's rules for splitting names, as general knowledge. It was checked against the bibtexparser and pylatexenc Python libraries."
   - "Journal macro names (\\apj, \\mnras, \\aap and others) and the journal names they stand for are general facts used by the AAS macro file and ADS exports."
@@ -34,6 +34,8 @@ A reference list built over years from journal websites, Google Scholar and ADS 
 - **Protects capitals**: words such as DNA, pH, CO2 or HII are wrapped in braces so styles that lower-case titles leave them alone. *Protect every capital* also keeps proper names such as Milky Way.
 - **Tidies fields**: field names in lower case, page ranges with `--`, months as `jan` to `dec`, DOIs without the URL part, empty fields and the fields you list (by default abstract, file, keywords and adsnote) removed, biblatex `journaltitle` and `date` turned into `journal`, `year` and `month`, and a key made for any entry that has none.
 - **Exports** the clean .bib, a reference list in an APA-like, numbered (IEEE-like) or AAS-like style, RIS for EndNote, Zotero or Mendeley, and CSL-JSON for Zotero or Pandoc.
+
+Format the author line with the [[author-list-formatter]], and move tables into LaTeX with the [[table-converter]].
 
 ## How to use it
 

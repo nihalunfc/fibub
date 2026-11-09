@@ -11,7 +11,7 @@ order: 673
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [solar-pv-yield, standard-atmosphere, propeller-thrust]
+related: [solar-pv-yield, standard-atmosphere, propeller-thrust, lcoe-calculator, home-battery-sizing, load-flow, airfoil-calculator]
 sources:
   - "Weibull distribution fitted by maximum likelihood; wind power density ½ρc³Γ(1 + 3/k); power-law and log-law wind shear; annual energy as the integral of the power curve over the wind speed distribution: Manwell, J. F., McGowan, J. G. and Rogers, A. L., Wind Energy Explained (equations only)."
   - "Air-density adjustment of the power curve by the equivalent-speed method for pitch-regulated turbines, v (ρ/ρ0)^(1/3), as described in IEC 61400-12-1 (method only, no tables)."
@@ -34,6 +34,8 @@ How much energy a wind turbine makes depends on how often the wind blows at each
 - **Annual energy production (AEP)** = 8,760 h × the average of power over the wind distribution, then times the availability and (1 − losses). Also the **capacity factor**, full-load hours, time producing, and the energy from each 1 m/s band of wind.
 
 If you give readings, it also works out the energy from the readings directly, with no Weibull fit, so you can see how well the fit represents your site.
+
+Compare with a rooftop array in the [[solar-pv-yield|solar PV yield estimator]], and find the cost per kWh with the [[lcoe-calculator|LCOE calculator]].
 
 ## How to use it
 

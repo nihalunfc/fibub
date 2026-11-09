@@ -11,7 +11,7 @@ order: 311
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [sequence-alignment, sequence-tools, protein-calculator, tree-viewer]
+related: [sequence-alignment, sequence-tools, protein-calculator, tree-viewer, molecular-clock, tree-builder, wright-fisher-simulator]
 sources:
   - "Method: Nei and Gojobori (1986), Mol. Biol. Evol. 3: 418-426; Jukes and Cantor (1969) correction; variances and the Z test as in Nei and Kumar, Molecular Evolution and Phylogenetics (2000). Standard genetic code (NCBI translation table 1)."
   - "Code written by fibub. Checked in the tests against Biopython 1.88 (Bio.codonalign cal_dn_ds with method NG86: sites, differences, dN and dS agree to 1e-15 on the example) and Python with SciPy 1.18 for the standard errors and the Z test. Unlike Biopython, and as in the original method, pathways through a stop codon are left out; that case is checked by hand."
@@ -32,6 +32,8 @@ When a gene is copied down the generations, some mutations change the protein (*
 - **dN/dS > 1**: amino-acid changes have been favoured: **positive (adaptive) selection**.
 
 This calculator works out **dN** (nonsynonymous substitutions per nonsynonymous site) and **dS** (synonymous substitutions per synonymous site) for two coding sequences by the classic **Nei-Gojobori (1986)** method, with the **Jukes-Cantor** correction for sites that changed more than once. The ratio is also called **Ka/Ks** or **ω**. Nothing is uploaded.
+
+Align the coding sequences first with [[sequence-alignment|pairwise sequence alignment]], and put the genes on a tree with the [[tree-builder]].
 
 ## How to use it
 

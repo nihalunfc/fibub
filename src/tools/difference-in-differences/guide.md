@@ -11,7 +11,7 @@ order: 745
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [data-cleaner, plot-maker, trend-analyser, sample-size]
+related: [data-cleaner, plot-maker, trend-analyser, sample-size, regression-ols-iv-panel, unit-root-cointegration, effect-size-converter, hypothesis-tests]
 sources:
   - "Formulas: the difference-in-differences and two-way fixed effects estimators, cluster-robust variance (Liang and Zeger 1986) and event-study regressions as in Angrist and Pischke, Mostly Harmless Econometrics. Example data made up."
 flow:
@@ -29,6 +29,8 @@ Difference-in-differences (DiD) estimates the effect of a policy or event by com
 - **Group means**: the classic 2 × 2 table. Enter the mean outcome for treated and comparison groups before and after; add standard deviations and group sizes to get a standard error.
 
 A second chart shows the **group means over time** with the comparison group shifted by the average gap before the start, so you can see by eye whether the trends were parallel.
+
+Add more controls with the [[regression-ols-iv-panel|regression tool]], and plan how many groups you need with the [[sample-size|sample size calculator]].
 
 ## How to use it
 

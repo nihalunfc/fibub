@@ -11,7 +11,7 @@ order: 832
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [wave-calculator, period-finder, trend-analyser]
+related: [wave-calculator, period-finder, trend-analyser, ocean-currents, time-series-analyser, fft-workbench]
 sources:
   - "Method: harmonic prediction h = Z0 + Σ f·H·cos(V + u − G) with Doodson's constituent numbers (Doodson 1921, Proc. R. Soc. A 100, 305) and Schureman's nodal factors and angles (Schureman 1958, Manual of Harmonic Analysis and Prediction of Tides, US Coast and Geodetic Survey Special Publication 98, equations 73–78, 149, 213–235). Mean longitudes of the Moon, Sun, lunar perigee and node from Meeus (1998, Astronomical Algorithms). Least-squares analysis and the Rayleigh criterion as in Foreman (1977) and Pawlowicz, Beardsley and Lentz (2002, t_tide). fibub's code is its own, checked in the tests against UTide (Codiga 2011, Python port) and an independent NumPy evaluation of Schureman's formulas."
   - "The example constituents and the example record are made up and belong to no real place. Not for navigation. Nothing you type or open is sent or stored."
@@ -31,6 +31,8 @@ The astronomical tide at any place is a sum of regular waves, called constituent
 - **Harmonic analysis.** Paste or open a record of water levels with times, and the page fits the constituents by least squares, choosing which ones a record of that length can separate (the Rayleigh criterion), then hands them to the predictor with one button.
 
 **Not for navigation.** Real water levels also depend on wind, air pressure, surges and river flow, which no harmonic prediction includes. Use your national tide tables for anything that matters.
+
+Check how the water depth affects waves near the shore with the [[wave-calculator|wave calculator]], and look at tidal flows with the [[ocean-currents|ocean currents tool]].
 
 ## How to use it
 

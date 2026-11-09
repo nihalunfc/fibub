@@ -11,7 +11,7 @@ order: 574
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [algorithm-visualiser, plot-maker, trend-analyser]
+related: [algorithm-visualiser, plot-maker, trend-analyser, cache-simulator, curve-fitter, regression-workbench, function-grapher]
 sources:
   - "Complexity classes and their growth functions are standard computer science; n! is computed from the log-gamma function so very large n never overflows."
   - "Checked against numpy: for 8 timing sets (synthetic data of every class with noise, plus one hand-made set), every class's a, b, residual sum of squares and R² match np.linalg.lstsq, the best class matches, and the log-log slope matches np.polyfit. 1000! = 4.02 × 10^2567 checked with scipy.special.gammaln."
@@ -30,6 +30,8 @@ Big-O notation says how the work an algorithm does grows as its input grows. The
 - **How long at one size:** the number of steps for each class at any n, written out even when it is astronomically large, and the time it would take at a chosen speed per step.
 - **Fit your timings:** paste input sizes and measured times (or open a CSV or Excel file). Each class is fitted by least squares and the best one is picked.
 - **Time an algorithm in this browser:** run one of eight small built-in algorithms (a loop, binary search, the built-in sort, merge sort, insertion sort, a pair loop, matrix multiplication, every subset) at several sizes, and the timings go straight into the fit.
+
+Watch the algorithms themselves step by step in the [[algorithm-visualiser]], and see why memory access can matter more than the step count in the [[cache-simulator]].
 
 ## How to use it
 

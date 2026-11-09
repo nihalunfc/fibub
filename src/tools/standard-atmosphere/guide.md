@@ -11,7 +11,7 @@ order: 667
 icon: mountain
 works: offline
 updated: 2026-11-09
-related: [psychrometric-calculator, rocket-equation, uncertainty-calculator]
+related: [psychrometric-calculator, rocket-equation, uncertainty-calculator, aircraft-performance, density-altitude, propeller-thrust, model-rocket-simulator, airfoil-calculator, drone-flight-time]
 sources:
   - "U.S. Standard Atmosphere, 1976 (NOAA, NASA and the US Air Force; a US government publication): the defining constants (sea-level temperature and pressure, gas constant, molar mass of air, standard gravity, Earth radius for geopotential height) and the seven layers' base heights and lapse rates. Everything else is calculated from these with the hydrostatic equation and the ideal gas law; no tables are copied."
   - "Sutherland's law for the viscosity of air, with the constants given in the 1976 standard (β = 1.458 × 10⁻⁶ kg/(m·s·K^½), S = 110.4 K)."
@@ -34,6 +34,8 @@ From those, the hydrostatic equation and the ideal gas law give at any height fr
 - **speed of sound**, **dynamic and kinematic viscosity** (Sutherland's law), **gravity**, pressure scale height, mean free path;
 - the **pressure altitude** for any pressure, and the **density altitude** at an airfield from its elevation, the altimeter setting (QNH) and the outside temperature;
 - a **table** at any step, with plots and a CSV download.
+
+Use the density it gives in the [[aircraft-performance|aircraft performance calculator]] or the [[propeller-thrust]] tool, and compare it with today's weather in the [[density-altitude|density altitude calculator]].
 
 ## How to use it
 

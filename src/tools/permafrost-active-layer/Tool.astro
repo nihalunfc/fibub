@@ -1,0 +1,240 @@
+---
+// Permafrost active layer and frost depth by the Stefan equation: thawing or freezing index from typed degree-days or
+// pasted daily air temperatures (with an n-factor), one to three soil layers solved one after another, the thaw curve
+// over the season and a sensitivity table. Everything stays in the browser. The example year and soils are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax pfa">
+  <div class="ax-card">
+    <h2>What to work out</h2>
+    <div class="ax-seg pf-kind" role="group" aria-label="Thaw or frost"><button type="button" data-k="thaw" aria-pressed="true">Thaw depth (active layer)</button><button type="button" data-k="freeze" aria-pressed="false">Frost depth</button></div>
+    <p class="ax-help pf-khelp"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Temperatures</h2>
+    <div class="ax-grid">
+      <label>I have <select class="pf-src"><option value="daily" selected>Daily mean air temperatures</option><option value="dd">The degree-days already</option></select></label>
+      <label class="pf-ddl" hidden><span class="pf-ddname">Thawing index (°C·days)</span> <input class="pf-dd" inputmode="decimal" value="1000" /></label>
+      <label class="pf-ntl">n-factor for thaw <input class="pf-nt" inputmode="decimal" value="0.8" /></label>
+      <label class="pf-nfl" hidden>n-factor for freezing <input class="pf-nf" inputmode="decimal" value="0.6" /></label>
+    </div>
+    <div class="pf-daily">
+      <label style="margin-top:10px">Daily mean air temperatures in °C, one day per line (a date or day number before each is fine) <textarea class="pf-temps" rows="6" spellcheck="false"></textarea></label>
+      <DataFile target=".pf-temps" maxMB={2} maxCols={10} maxRows={4000} />
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small pf-ex">Use the example year</button><button type="button" class="btn secondary small pf-clear">Start empty</button></div>
+    </div>
+    <p class="ax-help">The <b>thawing index</b> adds up the daily means above 0 °C (a day at 5 °C adds 5 °C·days); the <b>freezing index</b> adds up the days below 0 °C. The <b>n-factor</b> turns the air index into the ground-surface index: below 1 where plants, moss or snow shelter the ground, near 1 for bare ground, above 1 for a sunny road. The starting values are rounded examples; use 1 if your index is already measured at the ground surface.</p>
+    <p class="ax-help pf-tnote" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Soil</h2>
+    <div class="ax-grid"><label>Soil layers <select class="pf-nl"><option value="1" selected>1 (the same all the way down)</option><option value="2">2</option><option value="3">3</option></select></label></div>
+    <div class="pf-layers"></div>
+    <p class="ax-help">k is the thermal conductivity of the soil that conducts the heat: thawed soil for thaw depth, frozen soil for frost depth. Water content is the gravimetric water (or ice) content, in per cent of the dry soil's mass; with the dry density it sets the latent heat L = ρd × w × 334 kJ/kg that has to be supplied to melt (or taken out to freeze) each cubic metre. All starting values are rounded, made-up examples, not from any table: put in your own soil's.</p>
+  </div>
+
+  <p class="ax-err pf-err" hidden></p>
+
+  <div class="ax-card pf-out">
+    <h2 class="pf-title">Result</h2>
+    <p class="ax-big pf-big"></p>
+    <dl class="ax-facts pf-facts"></dl>
+    <canvas class="ax-fig pf-curve" style="margin-top:12px"></canvas>
+    <p class="ax-help pf-cnote"></p>
+    <canvas class="ax-fig pf-tfig" style="margin-top:12px"></canvas>
+    <h3 style="margin:14px 0 6px">Layer by layer</h3>
+    <div class="ax-scroll"><table class="pf-ltab"></table></div>
+    <h3 style="margin:14px 0 6px">Sensitivity</h3>
+    <p class="ax-help" style="margin:0 0 6px">The depth when one input is changed and everything else is kept as given. Soil values change in every layer together.</p>
+    <div class="ax-scroll"><table class="pf-stab"></table></div>
+    <p class="ax-help pf-warn"><b>For study, not design.</b> The Stefan equation leaves out the heat that warms or cools the soil itself, so it usually gives a somewhat deeper front than the real one, and it knows nothing of snow timing, water moving in the soil or the year before. Use it to learn and compare; foundations, roads and pipelines need a proper geothermal design.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small pf-ccsv">Download the curve (CSV)</button><button type="button" class="btn secondary small pf-scsv">Download sensitivity (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { layered, dailyIndex, parseTemps, exampleTemps, sensitivity, layerProblem, latent, type Layer } from '../../lib/sci/permafrost';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, fileSafe, type Figure, type Section } from '../../lib/report';
+  import { num, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.pfa')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const qa = <T extends HTMLElement = HTMLElement>(c: string) => [...root.querySelectorAll(c)] as T[];
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const m2 = (z: number) => (Number.isFinite(z) ? z.toFixed(2) : '–');
+  const s3 = (x: number) => String(Number(x.toPrecision(3)));
+  const dd = (x: number) => (Number.isFinite(x) ? (x >= 100 ? Math.round(x).toString() : s3(x)) : '–');
+  const FACTORS = [0.8, 0.9, 1, 1.1, 1.2];
+
+  // Rounded, made-up starting soils: a silty soil over a gravelly sand over denser gravel.
+  const START = [
+    { h: '0.5', kt: '1.2', kf: '1.8', w: '30', rho: '1400' },
+    { h: '1', kt: '2', kf: '2.6', w: '12', rho: '1700' },
+    { h: '', kt: '2.5', kf: '2.8', w: '8', rho: '1900' },
+  ];
+  const box = q('.pf-layers');
+  START.forEach((s, i) => {
+    const d = document.createElement('div'); d.className = 'pf-layer'; d.dataset.i = String(i);
+    d.innerHTML = `<h3></h3><div class="ax-grid">
+      <label class="pf-hl">Thickness (m) <input class="pf-h" inputmode="decimal" /></label>
+      <label>k thawed (W/m/K) <input class="pf-kt" inputmode="decimal" /></label>
+      <label>k frozen (W/m/K) <input class="pf-kf" inputmode="decimal" /></label>
+      <label>Water content w (%) <input class="pf-w" inputmode="decimal" /></label>
+      <label>Dry density ρd (kg/m³) <input class="pf-rho" inputmode="decimal" /></label></div>`;
+    (d.querySelector('.pf-h') as HTMLInputElement).value = s.h; (d.querySelector('.pf-kt') as HTMLInputElement).value = s.kt;
+    (d.querySelector('.pf-kf') as HTMLInputElement).value = s.kf; (d.querySelector('.pf-w') as HTMLInputElement).value = s.w;
+    (d.querySelector('.pf-rho') as HTMLInputElement).value = s.rho;
+    box.append(d);
+  });
+
+  let kind: 'thaw' | 'freeze' = 'thaw';
+  let curveFig: Figure | null = null, tFig: Figure | null = null, sections: Section[] = [];
+  let curveRows: string[][] = [], sensRows: string[][] = [];
+
+  function table(sel: string, head: string[], rows: string[][]) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); });
+  }
+
+  function labels() {
+    const n = Number(q<HTMLSelectElement>('.pf-nl').value);
+    qa('.pf-layer').forEach((d, i) => {
+      d.hidden = i >= n;
+      const last = i === n - 1;
+      d.querySelector('h3')!.textContent = n === 1 ? 'The soil' : `Layer ${i + 1}${i === 0 ? ' (top)' : ''}${last ? ', and on down' : ''}`;
+      (d.querySelector('.pf-hl') as HTMLElement).hidden = last;
+    });
+    const thaw = kind === 'thaw';
+    q('.pf-ddname').textContent = thaw ? 'Thawing index (°C·days)' : 'Freezing index (°C·days)';
+    q('.pf-ntl').hidden = !thaw; q('.pf-nfl').hidden = thaw;
+    q('.pf-ddl').hidden = q<HTMLSelectElement>('.pf-src').value !== 'dd';
+    q('.pf-daily').hidden = q<HTMLSelectElement>('.pf-src').value !== 'daily';
+    q('.pf-khelp').textContent = thaw
+      ? 'How deep the ground above permafrost thaws over one summer: the active layer. It uses the thawing index and the thawed soil\'s conductivity.'
+      : 'How deep the ground freezes over one winter (seasonal frost). It uses the freezing index and the frozen soil\'s conductivity. For a whole winter, paste the days from autumn to spring, not a calendar year.';
+  }
+
+  function run() {
+    labels();
+    const thaw = kind === 'thaw', word = thaw ? 'thaw' : 'frost';
+    const fail = (m: string) => { q('.pf-err').textContent = m; q('.pf-err').hidden = false; q('.pf-out').hidden = true; sections = []; };
+    q('.pf-err').hidden = true;
+    const n = Number(q<HTMLSelectElement>('.pf-nl').value);
+    const nf = num(q<HTMLInputElement>(thaw ? '.pf-nt' : '.pf-nf').value);
+    if (!(nf > 0 && nf <= 3)) return fail(`Give an n-factor between 0 and 3 (1 if your index is already at the ground surface).`);
+    // Soil
+    const layers: Layer[] = [];
+    for (let i = 0; i < n; i++) {
+      const d = qa('.pf-layer')[i], v = (c: string) => num((d.querySelector(c) as HTMLInputElement).value);
+      const l: Layer = { h: i === n - 1 ? 0 : v('.pf-h'), k: v(thaw ? '.pf-kt' : '.pf-kf'), w: v('.pf-w') / 100, rhoD: v('.pf-rho') };
+      const p = layerProblem(l, i, i === n - 1);
+      if (p) return fail(n === 1 ? p.replace('Layer 1: ', 'Soil: ') : p);
+      layers.push(l);
+    }
+    // Temperatures
+    const daily = q<HTMLSelectElement>('.pf-src').value === 'daily';
+    let Iair: number, temps: number[] = [], cum: number[] = [], days = 0;
+    const note = q('.pf-tnote'); note.hidden = true;
+    if (daily) {
+      const p = parseTemps(q<HTMLTextAreaElement>('.pf-temps').value);
+      if (typeof p === 'string') return fail(p);
+      temps = p.temps; const r = dailyIndex(temps, kind); Iair = r.I; cum = r.cum; days = r.days;
+      note.textContent = `${temps.length} days read${p.skipped ? `; ${p.skipped} line${p.skipped > 1 ? 's' : ''} without a temperature skipped (such as a header)` : ''}.`; note.hidden = false;
+      if (!(Iair > 0)) return fail(thaw ? 'No day in the list is above 0 °C, so nothing thaws (thawing index 0).' : 'No day in the list is below 0 °C, so nothing freezes (freezing index 0).');
+    } else {
+      Iair = num(q<HTMLInputElement>('.pf-dd').value);
+      if (!(Iair > 0 && Iair < 20000)) return fail(`Give a ${thaw ? 'thawing' : 'freezing'} index above 0 and below 20 000 °C·days.`);
+    }
+    const Is = Iair * nf, res = layered(layers, Is);
+    q('.pf-out').hidden = false;
+    q('.pf-title').textContent = thaw ? 'Active-layer (thaw) depth' : 'Frost depth';
+    q('.pf-big').textContent = `${m2(res.depth)} m ${thaw ? 'thaw' : 'frost'} depth`;
+    const L1 = latent(layers[0].rhoD, layers[0].w);
+    const idxName = thaw ? 'Thawing index' : 'Freezing index';
+    q('.pf-facts').replaceChildren(
+      fact(`${idxName}, air`, `${dd(Iair)} °C·days`, daily ? `${days} day${days === 1 ? '' : 's'} ${thaw ? 'above' : 'below'} 0 °C` : 'as typed'),
+      fact('At the ground surface', `${dd(Is)} °C·days`, `× n-factor ${s3(nf)}`),
+      fact(`${word[0].toUpperCase() + word.slice(1)} depth`, `${m2(res.depth)} m`, n > 1 ? `the front stops in layer ${res.layer + 1}` : `√(2 k Iₛ / L), ${Math.round(res.depth * 100)} cm`),
+      fact(n > 1 ? 'Latent heat L, top layer' : 'Latent heat L', `${s3(L1 / 1e6)} MJ/m³`, `ρd × w × 334 kJ/kg; water ${s3(layers[0].rhoD * layers[0].w / 10)} % by volume`),
+    );
+
+    // Layer table, with the day each boundary is reached for daily data.
+    const dayAt = (need: number) => { if (!daily) return ''; const i = cum.findIndex((c) => c * nf >= need); return i < 0 ? 'not reached' : `day ${i + 1}`; };
+    const lhead = ['Layer', 'From (m)', 'To (m)', 'k (W/m/K)', 'L (MJ/m³)', `Surface index to ${word} it all (°C·days)`, ...(daily ? ['Bottom reached'] : []), 'State'];
+    const lrows = res.layers.map((o, i) => [String(i + 1), m2(o.top), Number.isFinite(o.bottom) ? m2(o.bottom) : 'on down', s3(layers[i].k), s3(o.L / 1e6), Number.isFinite(o.cum) ? dd(o.cum) : '–', ...(daily ? [Number.isFinite(o.cum) ? dayAt(o.cum) : '–'] : []), o.reached === 'all' ? `all ${thaw ? 'thawed' : 'frozen'}` : o.reached === 'part' ? `front at ${m2(res.depth)} m` : `not ${thaw ? 'thawed' : 'frozen'}`]);
+    table('.pf-ltab', lhead, lrows);
+
+    // Sensitivity
+    const sens = sensitivity(layers, Is, FACTORS);
+    const shead = ['Change (depth in m)', '−20 %', '−10 %', 'As given', '+10 %', '+20 %'];
+    const srows = sens.map((r) => [r.name, ...r.depths.map((z) => m2(z))]);
+    table('.pf-stab', shead, srows);
+    sensRows = [['input', ...FACTORS.map((f) => `depth_m_at_${Math.round(f * 100)}_percent`)], ...sens.map((r) => [r.name, ...r.depths.map((z) => z.toFixed(4))])];
+
+    // Curve: depth through the season (daily) or against the index (typed).
+    const bounds = res.layers.slice(0, -1).map((o) => o.bottom).filter((b) => b <= Math.max(res.depth * 1.15, 0.05));
+    const marks = bounds.map((b, i) => ({ kind: 'hline' as const, at: b, dash: [4, 4], label: `top of layer ${i + 2}` }));
+    if (daily) {
+      const zs = cum.map((c) => layered(layers, c * nf).depth), xs = temps.map((_, i) => i + 1);
+      curveFig = chartFigure({ h: 300, xLabel: 'Day', yLabel: `${word[0].toUpperCase() + word.slice(1)} depth (m)`, yReverse: true, yMin: 0, legend: 'none', series: [{ name: 'Front', x: xs, y: zs, mode: 'line', width: 2 }], marks }, `${thaw ? 'Thaw' : 'Frost'} depth growing through the ${temps.length} days, reaching ${m2(res.depth)} m`);
+      tFig = chartFigure({ h: 220, xLabel: 'Day', yLabel: 'Air (°C)', legend: 'none', series: [{ name: 'Daily mean', x: xs, y: temps, mode: 'line', width: 1.2 }], marks: [{ kind: 'hline', at: 0, dash: [3, 3] }] }, `Daily mean air temperatures for ${temps.length} days`);
+      curveRows = [['day', 'air_temperature_C', `${thaw ? 'thawing' : 'freezing'}_index_air_Cdays`, 'surface_index_Cdays', `${word}_depth_m`], ...temps.map((t, i) => [String(i + 1), String(t), cum[i].toFixed(2), (cum[i] * nf).toFixed(2), zs[i].toFixed(4)])];
+      q('.pf-cnote').textContent = `The ${word} front deepens fast at first and then more slowly, because the heat has to pass through the ${thaw ? 'thawed' : 'frozen'} soil above it. Dashed lines are layer boundaries.`;
+    } else {
+      const N = 101, xs = Array.from({ length: N }, (_, i) => (Iair * i) / (N - 1)), zs = xs.map((x) => layered(layers, x * nf).depth);
+      curveFig = chartFigure({ h: 300, xLabel: `${idxName} in the air (°C·days)`, yLabel: `${word[0].toUpperCase() + word.slice(1)} depth (m)`, yReverse: true, yMin: 0, legend: 'none', series: [{ name: 'Front', x: xs, y: zs, mode: 'line', width: 2 }], marks }, `${thaw ? 'Thaw' : 'Frost'} depth against the index, reaching ${m2(res.depth)} m`);
+      tFig = null;
+      curveRows = [[`${thaw ? 'thawing' : 'freezing'}_index_air_Cdays`, 'surface_index_Cdays', `${word}_depth_m`], ...xs.map((x, i) => [x.toFixed(2), (x * nf).toFixed(2), zs[i].toFixed(4)])];
+      q('.pf-cnote').textContent = `How the ${word} depth grows as the index adds up through the season. Dashed lines are layer boundaries.`;
+    }
+    q('.pf-tfig').hidden = !tFig;
+    draw();
+    const facts = [...q('.pf-facts').children].map((d) => [d.querySelector('dt')!.textContent!, (d.querySelector('dd')!.childNodes[0].textContent ?? '') + (d.querySelector('small') ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string]);
+    sections = [
+      { title: q('.pf-big').textContent!, facts, figure: curveFig, table: { head: lhead, rows: lrows, align: lhead.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] } },
+      ...(tFig ? [{ title: 'Daily air temperatures', figure: tFig }] : []),
+      { title: 'Sensitivity', table: { head: shead, rows: srows, align: shead.map((_, i) => (i ? 'r' : 'l')) as ('l' | 'r')[] }, note: 'Stefan equation, for study, not design. Soil values are your own or the page\'s made-up examples.' },
+    ];
+  }
+  function draw() {
+    if (curveFig) paint(q<HTMLCanvasElement>('.pf-curve'), curveFig);
+    if (tFig) paint(q<HTMLCanvasElement>('.pf-tfig'), tFig);
+  }
+
+  function example() { q<HTMLTextAreaElement>('.pf-temps').value = exampleTemps().map((t, i) => `${i + 1}, ${t}`).join('\n'); }
+  example();
+
+  qa<HTMLButtonElement>('.pf-kind button').forEach((b) => b.addEventListener('click', () => {
+    kind = b.dataset.k as 'thaw' | 'freeze';
+    qa('.pf-kind button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    run();
+  }));
+  q('.pf-ex').addEventListener('click', () => { example(); run(); });
+  q('.pf-clear').addEventListener('click', () => { q<HTMLTextAreaElement>('.pf-temps').value = ''; run(); });
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(run, 250); };
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('input, textarea')) later(); });
+  ['.pf-src', '.pf-nl'].forEach((c) => q(c).addEventListener('change', run));
+  document.addEventListener('fibub:theme', () => { if (!q('.pf-out').hidden) draw(); });
+  q('.pf-ccsv').addEventListener('click', () => save(new Blob([csv(curveRows)], { type: 'text/csv' }), `${kind === 'thaw' ? 'thaw' : 'frost'}-depth-curve.csv`, 'text/csv'));
+  q('.pf-scsv').addEventListener('click', () => save(new Blob([csv(sensRows)], { type: 'text/csv' }), `${kind === 'thaw' ? 'thaw' : 'frost'}-depth-sensitivity.csv`, 'text/csv'));
+  run();
+  wireDownloads(q('.dl'), () => ({ title: kind === 'thaw' ? 'Active-layer thaw depth (Stefan)' : 'Frost depth (Stefan)', subtitle: q('.pf-big').textContent ?? '', file: fileSafe(kind === 'thaw' ? 'active-layer-thaw-depth' : 'frost-depth'), sections }));
+</script>
+
+<style is:inline>
+  .pfa .pf-layer { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .pfa .pf-layer:first-child { margin-top: 4px; padding-top: 0; border-top: 0; }
+  .pfa .pf-layer h3 { margin: 0 0 8px; font-size: 15px; }
+  .pfa .pf-layer[hidden], .pfa label[hidden], .pfa [hidden] { display: none; }
+  .pfa .ax-seg { margin-bottom: 4px; }
+  .pfa .pf-warn { margin-top: 12px; }
+  .pfa .pf-stab td.r, .pfa .pf-ltab td.r { white-space: nowrap; }
+</style>

@@ -11,7 +11,7 @@ order: 415
 icon: calendar
 works: offline
 updated: 2026-11-09
-related: [radiocarbon-calibration, astro-time, manuscript-annotator, correspondence-network]
+related: [radiocarbon-calibration, astro-time, manuscript-annotator, correspondence-network, eclipse-finder]
 sources:
   - "Gregorian and Julian day numbers: Fliegel and Van Flandern (1968), Communications of the ACM 11(10), and E. G. Richards in the Explanatory Supplement to the Astronomical Almanac (3rd ed., 2013). Hebrew and tabular Islamic calendars: E. M. Reingold and N. Dershowitz, Calendrical Calculations (Cambridge University Press)."
   - "Checked against the Python library convertdate on 20,000 random days from 3761 BC to AD 3200 in both directions for all four calendars, plus the weekday (163,908 checks, no differences)."
@@ -32,6 +32,8 @@ Historians meet dates in many calendars. A letter from London in 1700 is dated i
 - **Hebrew**: the fixed arithmetic calendar, with its 19-year leap cycle and postponement rules.
 - **Julian Day Number** (JDN): a plain count of days used by astronomers and in databases.
 - **Day of the week**.
+
+Put the converted dates on letters in the [[correspondence-network|correspondence network]], and note them beside the page in the [[manuscript-annotator|manuscript annotator]].
 
 ## How to use it
 

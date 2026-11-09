@@ -11,7 +11,7 @@ order: 4
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [lens-ray-tracer, gaussian-beam, spectral-line-identifier, uncertainty-calculator]
+related: [lens-ray-tracer, gaussian-beam, spectral-line-identifier, uncertainty-calculator, spectrometer-calibration, polarisation-calculator, fourier-visualiser, graph-digitizer]
 sources:
   - "Fraunhofer patterns of slits, gratings and circular apertures, Fresnel diffraction with Fresnel integrals and the Fresnel-Kirchhoff integral for a circular aperture: standard textbook results, for example Hecht, E., Optics, chapter 10, and Born, M. and Wolf, E., Principles of Optics, chapter 8."
   - "Fresnel integrals by series and a continued fraction, Bessel functions by series and Hankel's asymptotic expansion: standard numerical methods (Abramowitz and Stegun, chapters 7 and 9)."
@@ -33,6 +33,8 @@ Light passing through a small opening spreads out and interferes with itself, pa
 - a **circular hole** (the Airy disc and its rings).
 
 It shows the pattern as a picture in the light's own colour and as an irradiance profile, both relative to the light falling on the aperture. You can see the far-field (**Fraunhofer**) pattern, the exact near-field (**Fresnel**) pattern at your screen distance, or both together.
+
+Calibrate a grating spectrometer with the [[spectrometer-calibration|spectrometer calibration tool]], and see how a lens focuses the light in the [[lens-ray-tracer|lens ray tracer]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 867
 icon: ruler
 works: offline
 updated: 2026-11-09
-related: [stereonet, traverse-calculator, drill-hole-composites]
+related: [stereonet, traverse-calculator, drill-hole-composites, cross-section-profile, phone-clinometer, strat-column]
 sources:
   - "Formulas: standard structural geology trigonometry (tan α = tan δ sin β; Ragan's general thickness formula for sloping ground), worked here as vector products."
   - "Example bed, outcrop, borehole and three points: made up by fibub."
@@ -31,6 +31,8 @@ Five everyday structural geology sums in one place, all for a flat (planar) bed:
 - **Depth to the bed in a borehole**, vertical or inclined, and the length of core you should get through it.
 - **True dip from two apparent dips**, such as two quarry faces at an angle.
 - The **three-point problem**: strike and dip from three places where the same contact was found.
+
+Take the strike and dip readings with the [[phone-clinometer]], and use the apparent dips to draw a section with the [[cross-section-profile|cross-section tool]].
 
 ## How to use it
 

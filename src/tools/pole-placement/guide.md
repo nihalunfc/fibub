@@ -11,7 +11,7 @@ order: 638
 icon: sliders
 works: offline
 updated: 2026-11-09
-related: []
+related: [pid-simulator, kalman-filter-playground, matrix-calculator, ode-solver]
 sources:
   - "Own code: controllability and observability matrices, Ackermann's formula, observer design by duality, Faddeev-LeVerrier characteristic polynomial with Aberth root finding, Jacobi SVD for ranks, and exact zero-order-hold step response through the matrix exponential (standard control theory methods)."
   - "Checked against python-control (acker, place, ctrb, obsv, step_info), NumPy (eigvals, matrix_rank, svd) and SciPy (expm, signal.step) on the example and four random systems of 2 to 5 states."
@@ -35,6 +35,8 @@ In state-space form a linear system is ẋ = Ax + Bu, y = Cx + Du. With **state 
 - draws the **closed-loop step response** (computed exactly with the matrix exponential) with rise time, overshoot and settling time, and downloads it all as CSV, PNG, PDF or Word.
 
 Multi-input pole placement has many possible answers and needs a robust method; this tool does not try it and says so.
+
+Compare with simple feedback tuning in the [[pid-simulator|PID tuning simulator]], and add a state estimator with the [[kalman-filter-playground]].
 
 ## How to use it
 

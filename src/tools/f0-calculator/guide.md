@@ -11,7 +11,7 @@ order: 3
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [decay-calculator, media-recipe-scaler, cell-doubling-time, reaction-kinetics-fitter]
+related: [decay-calculator, media-recipe-scaler, cell-doubling-time, reaction-kinetics-fitter, cfu-counter, thermal-process-calculator, shelf-life-estimator]
 sources:
   - "The lethal rate L = 10^((T − Tref) / z), F0 as the time integral of L, D-value shifts D_T = D_ref × 10^((T_ref − T) / z), log reduction = F ÷ D and the sterility assurance level are general sterilisation science, written by fibub."
   - "Checked in the tests against an independent NumPy script on the example log and three random logs with random reference temperatures and z-values (F0 totals, running totals, time at the hold temperature, a second z), against the exact integral of a straight-line ramp, and against hand working for the D-value and hold-time arithmetic."
@@ -34,6 +34,8 @@ Heat kills microbes faster the hotter it gets. The **F0 value** puts a whole aut
 - **Hold.** Time at or above the hold temperature, when the hold started and ended, and the F0 gathered during it.
 - **Equivalent time** at another temperature, such as 134 °C.
 - **Kill of one organism.** Type a D-value (minutes for a 90 % kill at a stated temperature) and the organism's own z. The page works out its log reduction over your cycle, the organisms left per item, whether you reach a target **sterility assurance level** (SAL) and how long a steady hold at any temperature would need.
+
+Count any survivors after a run with the [[cfu-counter|CFU counter]], and work out canning lethality for food in the [[thermal-process-calculator]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 1
 icon: mountain
 works: offline
 updated: 2026-11-08
-related: [ternary-plot-maker, radiometric-age-calculator, uncertainty-calculator, plot-maker]
+related: [ternary-plot-maker, radiometric-age-calculator, uncertainty-calculator, plot-maker, drill-hole-composites, rock-mass-classification, npv-irr-calculator]
 sources:
   - "Grade-tonnage curves and breakeven and marginal cut-off grades: standard mining engineering, written by fibub from first principles (cut-off = cost per tonne ÷ (net value per unit grade × recovery))."
   - "Troy ounce 31.1034768 g and pound 0.45359237 kg are exact unit definitions."

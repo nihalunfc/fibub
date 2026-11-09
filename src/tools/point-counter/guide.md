@@ -11,7 +11,7 @@ order: 873
 icon: target
 works: offline
 updated: 2026-11-09
-related: [ternary-plot-maker, grain-size-stats]
+related: [ternary-plot-maker, grain-size-stats, mineral-id-key, cipw-norm, phase-fraction, grain-size-intercept, mineral-formula, coral-cover-calculator]
 sources:
   - "Methods (formulas only, no data copied): binomial standard error of a proportion; Van der Plas and Tobi (1965) 2σ precision chart for point counting; Clopper and Pearson (1934) exact and Wilson (1927) score intervals."
   - "Made-up thin section: random Voronoi grains drawn by fibub; its class areas are measured from its own pixels."
@@ -31,6 +31,8 @@ Point counting is the classic way to measure how much of each mineral or compone
 - **Counting**: press the class's **key** (1, 2, 3 … or any letter you choose) or tap its button. The page moves to the next point and scrolls to it when you are zoomed in. Tap a point to go back to it, use the arrow keys, and **undo** with Backspace or Ctrl+Z.
 - **Results**: count and percentage per class, the binomial **standard error** √(p(1 − p)/N), the **2σ** of Van der Plas and Tobi (1965), an **exact 95 % range** (Clopper-Pearson), and how many points you would need for a target precision. A chart shows the Van der Plas and Tobi lines (2σ against N for proportions from 5 to 50 %) with your classes on it.
 - **No image?** The class buttons and keys work as a plain **tally counter**, for counting under the microscope.
+
+Name each mineral first with the [[mineral-id-key|mineral identification key]], then plot the counts on a [[ternary-plot-maker|ternary diagram]] to name the rock.
 
 ## How to use it
 

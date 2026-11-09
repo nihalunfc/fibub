@@ -11,7 +11,7 @@ order: 1
 icon: link
 works: offline
 updated: 2026-11-09
-related: [plasmid-map, sequence-tools, restriction-digest, primer-checker]
+related: [plasmid-map, sequence-tools, restriction-digest, primer-checker, gene-network-viewer, pathway-ode-builder, gillespie-simulator, ode-solver]
 sources:
   - "Glyph shapes follow the descriptions in the SBOL Visual standard (Synthetic Biology Open Language Visual, sbolstandard.org); fibub draws its own versions of the shapes."
   - "The example is the repressilator design idea (Elowitz, M. B. and Leibler, S. (2000), Nature 403, 335), written with generic part names."
@@ -33,6 +33,8 @@ It also reads the design like a careful colleague would:
 - **Checks**: a gene with no RBS just upstream, a gene no promoter reaches, a promoter with no terminator after it (read-through), an interaction that names a part that is not there, a regulator acting on something that is not a promoter or operator, and duplicate names.
 
 Glyph types: promoter, operator, rbs, cds (or gene), terminator, insulator, ori (origin of replication), spacer and generic.
+
+Draw the plasmid that carries it with the [[plasmid-map]], and see how noise changes the output with the [[gillespie-simulator]].
 
 ## How to use it
 

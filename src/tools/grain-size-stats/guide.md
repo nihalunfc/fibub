@@ -11,7 +11,7 @@ order: 875
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [ternary-plot-maker]
+related: [ternary-plot-maker, strat-column, soil-classification, soil-texture-triangle, particle-size-image, atterberg-compaction, point-counter]
 sources:
   - "Methods (formulas and class limits only, no data copied): Folk and Ward (1957) graphic measures and verbal classes; Krumbein φ scale; Udden (1914) and Wentworth (1922) size classes; moment formulas as written out by Blott and Pye (2001) for GRADISTAT."
   - "Example sieve data: synthetic, made up by fibub."
@@ -33,6 +33,8 @@ A sieve analysis gives the mass of sediment left on each sieve. This page turns 
 - the weight % in each **Udden-Wentworth class**, from boulders to clay, and the gravel, sand and mud totals.
 
 Several samples can go in side by side: one column of masses per sample.
+
+Plot the sand, silt and clay shares on a [[ternary-plot-maker|ternary diagram]], and draw the beds with the [[strat-column|stratigraphic column maker]].
 
 ## How to use it
 

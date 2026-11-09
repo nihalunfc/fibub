@@ -11,7 +11,7 @@ order: 822
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [data-management-plan, readability-checker]
+related: [data-management-plan, readability-checker, gantt-chart, inflation-calculator, project-scheduler]
 sources:
   - "The arithmetic (salary x effort x yearly raise, fringe on salary, indirect costs on a base) is written by fibub and checked in the tests against an independent NumPy version on 300 random budgets."
   - "The page has no built-in rates for any funder or organisation: fringe, raise and indirect rates are all typed by the user. The example's numbers are made up."
@@ -32,6 +32,8 @@ Most grant applications ask for a budget broken down by year: who is paid and ho
 - **Totals per year**: personnel, each category, direct costs, the indirect base, indirect costs and the grand total, with a stacked bar chart.
 
 Nothing is preset: rates and rules differ by organisation and funder, so type the ones from your own agreement and check the official source.
+
+Lay out when each cost falls in the [[gantt-chart|Gantt chart]], and write the data part of the bid with the [[data-management-plan|data management plan builder]].
 
 ## How to use it
 

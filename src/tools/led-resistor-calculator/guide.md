@@ -11,7 +11,7 @@ order: 626
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [resistor-colour-code, op-amp-calculator, circuit-simulator]
+related: [resistor-colour-code, op-amp-calculator, circuit-simulator, battery-solar-sizing, pcb-trace-calculator]
 sources:
   - "Ohm's law with a straight-line LED model, R = (Vsupply − n × Vf) / I, and P = I²R (general electronics)."
   - "E-series values from the fibub resistor colour code tool (IEC 60063 preferred numbers). Typical LED forward voltages in the list are rough, rounded general figures chosen by fibub, not taken from any data sheet."
@@ -32,6 +32,8 @@ An LED needs something to limit its current; the simplest is a resistor in serie
 - **Series and parallel strings**: several LEDs in series share one resistor; several strings in parallel each get their own.
 - How much the current changes when the LED's **forward voltage** varies between parts and the **supply** drifts, with a warning when the design is too touchy.
 - An **array planner**: give the total number of LEDs and it splits them into even strings, with a resistor for each string length and a **power budget**.
+
+Read the colour bands on the resistor you pick with the [[resistor-colour-code]], and see how long a battery will run your LEDs with the [[battery-solar-sizing|battery runtime calculator]].
 
 ## How to use it
 

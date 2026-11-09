@@ -11,7 +11,7 @@ order: 577
 icon: book
 works: offline
 updated: 2026-11-09
-related: [algorithm-visualiser, float-inspector, cache-simulator]
+related: [algorithm-visualiser, float-inspector, cache-simulator, regex-fsm-visualiser, syntax-tree-drawer, big-o-plotter]
 sources:
   - "Lexing, recursive-descent parsing, stack-machine code generation and interpretation are standard compiler techniques (general computer science). The language was made up for this tool."
   - "Checked by running 10 test programs (sums, a 26-digit factorial, Fibonacci, Euclid's algorithm, primes, Collatz, rounding-down division and remainder of negative numbers, logic and precedence, 2^100, nested loops) and comparing every printed line with hand-written Python equivalents; plus exact tokens, bytecode, step counts, tree shapes and error positions for small programs."
@@ -30,6 +30,8 @@ A compiler turns the text of a program into something a machine can run, in stag
 2. **Syntax tree.** The parser (a recursive-descent parser) checks the tokens against the grammar and builds a tree. Statements are shaded; each operator sits above the values it combines, so the tree shows which part of a sum is worked out first.
 3. **Bytecode.** The code generator walks the tree and writes instructions for a stack machine: PUSH a number, LOAD and STORE a variable, ADD, MUL, compare, PRINT, and JUMP or JUMP_IF_ZERO for if and while.
 4. **Run it.** A virtual machine runs the bytecode one instruction at a time. You see the instruction about to run, the stack, the variables and the output.
+
+See the finite state machines behind a tokeniser in the [[regex-fsm-visualiser|regex visualiser]], and draw trees of English sentences with the [[syntax-tree-drawer]].
 
 ## The language
 

@@ -1,0 +1,168 @@
+---
+// Heating, cooling and growing degree days from daily temperatures: mean, modified average, single sine and
+// single triangle methods, editable bases and upper cutoff, missing-day handling, daily, monthly and running
+// totals. The example year is made up and is written into the box by the script (keeps the page small).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax dgd">
+  <div class="ax-card">
+    <h2>Daily temperatures</h2>
+    <label>Date, minimum and maximum, one day per row (or date and mean). Paste from a spreadsheet or a weather station export.
+      <textarea class="dgd-data" rows="9" spellcheck="false" wrap="off"></textarea></label>
+    <DataFile target=".dgd-data" maxCols={10} maxRows={4000} />
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small dgd-ex">Load the example</button></div>
+    <p class="ax-help">The example is a made-up year (2025) for a temperate place, in °C. 14 March is left out on purpose to show how a missing day is handled. Dates like 2025-01-31 work best.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Temperature unit <select class="dgd-unit"><option value="C" selected>°C</option><option value="F">°F</option></select></label>
+      <label>Method <select class="dgd-method"><option value="mean">Mean</option><option value="modified">Modified average</option><option value="sine" selected>Single sine</option><option value="triangle">Single triangle</option></select></label>
+      <label>Heating base <input class="dgd-hb" inputmode="decimal" value="18" /></label>
+      <label>Cooling base <input class="dgd-cb" inputmode="decimal" value="18" /></label>
+      <label>Growing base <input class="dgd-gb" inputmode="decimal" value="10" /></label>
+      <label>Growing upper cutoff <input class="dgd-gu" inputmode="decimal" value="30" placeholder="none" /></label>
+      <label>Missing days <select class="dgd-gap"><option value="interp" selected>Fill with a straight line</option><option value="skip">Leave out (add nothing)</option></select></label>
+      <label>Start counting on <input class="dgd-start" type="date" /></label>
+      <label>Dates like 04/03/2025 are <select class="dgd-dmy"><option value="dmy" selected>day/month/year</option><option value="mdy">month/day/year</option></select></label>
+    </div>
+    <p class="ax-help"><b>Heating degree days</b> add up how far, and for how long, it was colder than the heating base; <b>cooling degree days</b> how far it was warmer than the cooling base; <b>growing degree days</b> how far it was warmer than the growing base, with anything above the upper cutoff counted as if it were at the cutoff (leave it blank for none). The bases on the page are rounded examples (18 °C, about 65 °F, for buildings; 10 °C, 50 °F, for crops): use the ones your utility, crop guide or study uses. <b>Mean</b> uses (min + max) / 2. <b>Modified average</b> first moves a min or max below the growing base up to it, and one above the cutoff down to it (heating and cooling then use the plain mean). <b>Single sine</b> and <b>single triangle</b> draw each day as a curve from the min to the max and back and count the exact area, so a cool day with a warm afternoon still counts some cooling. Switching the unit converts the bases; the data must be in the unit you pick.</p>
+    <p class="ax-err dgd-err" hidden></p>
+  </div>
+
+  <div class="ax-card dgd-out">
+    <h2>Result</h2>
+    <p class="ax-big dgd-big"></p>
+    <dl class="ax-facts dgd-facts"></dl>
+    <canvas class="ax-fig dgd-cfig"></canvas>
+    <canvas class="ax-fig dgd-mfig" style="margin-top:12px"></canvas>
+    <canvas class="ax-fig dgd-tfig" style="margin-top:12px"></canvas>
+    <h3>Month by month</h3>
+    <div class="ax-scroll"><table class="dgd-mtab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small dgd-mcsv">Download months (CSV)</button></div>
+    <h3>Day by day</h3>
+    <div class="ax-scroll dgd-scroll"><table class="dgd-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small dgd-csv">Download days (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:inline>
+  .dgd .dgd-scroll { max-height: 420px; overflow-y: auto; }
+  .dgd .dgd-tab tr.filled td { font-style: italic; color: var(--muted, #5c5c5c); }
+  .dgd select { max-width: 100%; }
+  .dgd tr.total td { font-weight: 700; }
+  .dgd .dgd-tab td:first-child { white-space: nowrap; }
+</style>
+
+<script>
+  import { readDays, fillGaps, degreeDays, monthly, exampleYear, type Method, type DayOut, type Month } from '../../lib/sci/degreedays';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.dgd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => q<HTMLInputElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const f1 = (x: number) => (Math.abs(x) < 0.05 ? '0.0' : x.toFixed(1)).replace('-', '−');
+  const nice = (iso: string) => new Date(iso + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  const monthName = (ym: string) => new Date(ym + '-15T12:00:00Z').toLocaleDateString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+  const METHOD: Record<Method, string> = { mean: 'Mean', modified: 'Modified average', sine: 'Single sine', triangle: 'Single triangle' };
+  let figs: Figure[] = [], sections: Section[] = [], dayCsv: string[][] = [], monCsv: string[][] = [];
+  const canv = ['.dgd-cfig', '.dgd-mfig', '.dgd-tfig'];
+
+  function table(t: HTMLTableElement, head: string[], rows: string[][], cls: (k: number) => string = () => '') {
+    t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const tb = t.createTBody();
+    rows.forEach((r, k) => { const tr = tb.insertRow(); const c = cls(k); if (c) tr.className = c; r.forEach((x, i) => { const td = tr.insertCell(); td.textContent = x; if (i) td.className = 'r'; }); });
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.dgd-err').textContent = m; q('.dgd-err').hidden = false; q('.dgd-out').hidden = true; figs = []; sections = []; dayCsv = []; monCsv = []; };
+    q('.dgd-err').hidden = true;
+    const unit = val('.dgd-unit'), deg = `°${unit}`;
+    const hb = num(val('.dgd-hb')), cb = num(val('.dgd-cb')), gb = num(val('.dgd-gb'));
+    const guTxt = val('.dgd-gu').trim(), gu = guTxt ? num(guTxt) : null;
+    const method = val('.dgd-method') as Method, how = val('.dgd-gap') as 'interp' | 'skip';
+    if (!Number.isFinite(hb) || !Number.isFinite(cb) || !Number.isFinite(gb)) return fail(`Type a number for each base, such as 18 for heating and cooling and 10 for growing (${unit === 'F' ? '65 and 50 in °F' : 'in °C'}).`);
+    if (gu != null && !(gu > gb)) return fail('The growing upper cutoff must be a number above the growing base (or leave it blank).');
+    const parsed = readDays(parseTable(val('.dgd-data')), num, val('.dgd-dmy') === 'mdy');
+    if (!parsed.days.length) return fail('No rows with a date and temperatures were found. Use three columns (date, min, max) or two (date, mean).');
+    if (parsed.dup) return fail(`${nice(parsed.dup)} appears twice. Give one row per day.`);
+    const { days: all, gaps } = fillGaps(parsed.days, how);
+    if (all.length + (how === 'skip' ? gaps.missing : 0) > 4000) return fail('Up to 4,000 days (about ten years), please.');
+    const start = val('.dgd-start');
+    const days = start ? all.filter((d) => d.date >= start) : all;
+    if (!days.length) return fail(`No days on or after the start date (${nice(start)}). Clear it or pick an earlier day.`);
+    q('.dgd-out').hidden = false;
+
+    const out: DayOut[] = degreeDays(days, { heatBase: hb, coolBase: cb, growBase: gb, growUpper: gu, method });
+    const months: Month[] = monthly(out);
+    const last = out[out.length - 1], first = out[0].date;
+    q('.dgd-big').textContent = `Heating ${f1(last.chdd)}, cooling ${f1(last.ccdd)}, growing ${f1(last.cgdd)} degree days (${deg}) from ${nice(first)} to ${nice(last.date)}`;
+    const filledIn = out.filter((d) => d.filled).length;
+    const gapNote = !gaps.missing ? 'no missing days' : how === 'interp'
+      ? `${gaps.missing} missing day${gaps.missing > 1 ? 's' : ''} filled with a straight line between the days either side${gaps.longest > 7 ? `; the longest gap is ${gaps.longest} days, so the fill is rough there` : ''}`
+      : `${gaps.missing} missing day${gaps.missing > 1 ? 's' : ''} left out: they add nothing, so the totals are low`;
+    const n = out.length;
+    q('.dgd-facts').replaceChildren(
+      fact('Days counted', String(n), gapNote + (start && filledIn !== gaps.missing && how === 'interp' ? ` (${filledIn} after the start date)` : '')),
+      fact('Mean per day', `heating ${f1(last.chdd / n)}, cooling ${f1(last.ccdd / n)}, growing ${f1(last.cgdd / n)}`, `degree days (${deg})`),
+      fact('Method', METHOD[method], !parsed.hasMinMax ? 'only daily means were given, so every method uses the mean' : method === 'modified' ? 'heating and cooling use the plain mean under this method' : method === 'mean' ? '(min + max) / 2 against each base' : 'each day drawn as a curve from min to max and back'),
+      fact('Bases', `heating ${sig(hb, 4)} ${deg}, cooling ${sig(cb, 4)} ${deg}`, `growing ${sig(gb, 4)} ${deg}${gu != null ? `, upper cutoff ${sig(gu, 4)} ${deg}` : ', no upper cutoff'}`),
+      fact('Peak months', (() => { const by = [...months].sort((a, b) => b.cdd + b.gdd - a.cdd - a.gdd); return `${monthName(by[0].month)} (${f1(by[0].gdd)} growing)`; })(), (() => { const c = [...months].sort((a, b) => b.hdd - a.hdd)[0]; return `most heating: ${monthName(c.month)} (${f1(c.hdd)})`; })()),
+      ...(parsed.bad ? [fact('Rows skipped', String(parsed.bad), 'the date could not be read')] : []),
+    );
+
+    const x = out.map((_, i) => i), xl = `Days from ${nice(first)}`;
+    const cFig = chartFigure({ h: 300, xLabel: xl, yLabel: `Degree days (${deg})`, yMin: 0, legend: 'below', series: [
+      { name: 'Heating', x, y: out.map((r) => r.chdd), mode: 'line' }, { name: 'Cooling', x, y: out.map((r) => r.ccdd), mode: 'line' }, { name: 'Growing', x, y: out.map((r) => r.cgdd), mode: 'line' }] },
+      `Running totals: heating ${f1(last.chdd)}, cooling ${f1(last.ccdd)}, growing ${f1(last.cgdd)}`);
+    const mx = months.map((_, i) => i + 1);
+    const mFig = chartFigure({ h: 280, xLabel: `Month (1 = ${monthName(months[0].month)})`, yLabel: `Degree days per month (${deg})`, yMin: 0, legend: 'below', series: [
+      { name: 'Heating', x: mx, y: months.map((m) => m.hdd), mode: 'both' }, { name: 'Cooling', x: mx, y: months.map((m) => m.cdd), mode: 'both' }, { name: 'Growing', x: mx, y: months.map((m) => m.gdd), mode: 'both' }] },
+      'Monthly totals of heating, cooling and growing degree days');
+    const baseMarks = [{ kind: 'hline' as const, at: hb, dash: [5, 4], label: cb === hb ? 'heat/cool base' : 'heating base' }, ...(cb !== hb ? [{ kind: 'hline' as const, at: cb, dash: [5, 4], label: 'cooling base' }] : []),
+      ...(gb !== hb && gb !== cb ? [{ kind: 'hline' as const, at: gb, dash: [2, 3], label: 'growing base' }] : []), ...(gu != null ? [{ kind: 'hline' as const, at: gu, dash: [2, 3], label: 'cutoff' }] : [])];
+    const tFig = chartFigure({ h: 260, xLabel: xl, yLabel: `Temperature (${deg})`, legend: 'below', series: parsed.hasMinMax
+      ? [{ name: 'Maximum', x, y: out.map((r) => r.tmax), mode: 'line' }, { name: 'Minimum', x, y: out.map((r) => r.tmin), mode: 'line' }]
+      : [{ name: 'Mean', x, y: out.map((r) => r.mean), mode: 'line' }], marks: baseMarks }, 'Daily temperatures with the bases');
+    figs = [cFig, mFig, tFig];
+    figs.forEach((f, i) => paint(q<HTMLCanvasElement>(canv[i]), f));
+
+    const mHead = ['Month', 'Days', 'Heating', 'Cooling', 'Growing', 'Growing so far'];
+    const mRows = months.map((m) => [monthName(m.month), String(m.days) + (m.filled ? ` (${m.filled} filled)` : ''), f1(m.hdd), f1(m.cdd), f1(m.gdd), f1(m.cgdd)]);
+    mRows.push(['Total', String(n), f1(last.chdd), f1(last.ccdd), f1(last.cgdd), f1(last.cgdd)]);
+    table(q<HTMLTableElement>('.dgd-mtab'), mHead, mRows, (k) => (k === mRows.length - 1 ? 'total' : ''));
+    const dHead = parsed.hasMinMax ? ['Date', `Min ${deg}`, `Max ${deg}`, 'Heating', 'Cooling', 'Growing', 'Growing so far'] : ['Date', `Mean ${deg}`, 'Heating', 'Cooling', 'Growing', 'Growing so far'];
+    const dRows = out.map((r) => [r.date + (r.filled ? ' (filled)' : ''), ...(parsed.hasMinMax ? [r.tmin.toFixed(1), r.tmax.toFixed(1)] : [r.mean.toFixed(1)]), r.hdd.toFixed(2), r.cdd.toFixed(2), r.gdd.toFixed(2), r.cgdd.toFixed(1)]);
+    table(q<HTMLTableElement>('.dgd-tab'), dHead, dRows, (k) => (out[k].filled ? 'filled' : ''));
+
+    dayCsv = [['date', `min_${unit}`, `max_${unit}`, `mean_${unit}`, 'filled', 'heating_dd', 'cooling_dd', 'growing_dd', 'heating_cumulative', 'cooling_cumulative', 'growing_cumulative'],
+      ...out.map((r) => [r.date, sig(r.tmin, 6), sig(r.tmax, 6), sig(r.mean, 6), r.filled ? 'yes' : 'no', r.hdd.toFixed(4), r.cdd.toFixed(4), r.gdd.toFixed(4), r.chdd.toFixed(4), r.ccdd.toFixed(4), r.cgdd.toFixed(4)])];
+    monCsv = [['month', 'days', 'filled_days', 'heating_dd', 'cooling_dd', 'growing_dd', 'growing_cumulative'], ...months.map((m) => [m.month, String(m.days), String(m.filled), m.hdd.toFixed(4), m.cdd.toFixed(4), m.gdd.toFixed(4), m.cgdd.toFixed(4)])];
+    const facts = [...q('.dgd-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]);
+    sections = [
+      { title: q('.dgd-big').textContent!, text: [`Method: ${METHOD[method]}${method === 'sine' ? ' (Baskerville and Emin 1969)' : ''}. ${gapNote[0].toUpperCase() + gapNote.slice(1)}.`], facts, figure: cFig },
+      { title: 'Month by month', table: { head: mHead, rows: mRows, align: ['l', 'r', 'r', 'r', 'r', 'r'] }, figure: mFig },
+      { title: 'Temperatures', figure: tFig },
+    ];
+  }
+
+  // Switching unit converts the bases so they keep meaning the same temperature.
+  q('.dgd-unit').addEventListener('change', () => {
+    const toF = val('.dgd-unit') === 'F';
+    for (const c of ['.dgd-hb', '.dgd-cb', '.dgd-gb', '.dgd-gu']) { const i = q<HTMLInputElement>(c), v = num(i.value); if (Number.isFinite(v)) i.value = String(+(toF ? v * 1.8 + 32 : (v - 32) / 1.8).toFixed(1)); }
+  });
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  root.querySelectorAll('textarea, input, select').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.dgd-ex').addEventListener('click', () => { q<HTMLTextAreaElement>('.dgd-data').value = exampleYear(); if (val('.dgd-unit') === 'F') { q<HTMLSelectElement>('.dgd-unit').value = 'C'; q('.dgd-unit').dispatchEvent(new Event('change')); } calc(); });
+  q('.dgd-csv').addEventListener('click', () => { if (dayCsv.length) save(new TextEncoder().encode(toCsv(dayCsv)), 'degree-days-daily.csv', 'text/csv'); });
+  q('.dgd-mcsv').addEventListener('click', () => { if (monCsv.length) save(new TextEncoder().encode(toCsv(monCsv)), 'degree-days-monthly.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { figs.forEach((f, i) => paint(q<HTMLCanvasElement>(canv[i]), f)); });
+  q<HTMLTextAreaElement>('.dgd-data').value = exampleYear();
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Degree days', subtitle: q('.dgd-big').textContent ?? '', file: 'degree-days', sections }));
+</script>

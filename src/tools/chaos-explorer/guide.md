@@ -11,7 +11,7 @@ order: 552
 icon: orbit
 works: offline
 updated: 2026-11-09
-related: [ode-solver, period-finder, plot-maker]
+related: [ode-solver, period-finder, plot-maker, fractal-explorer, coupled-oscillators, cellular-automata, fourier-visualiser, population-growth-models]
 sources:
   - "Methods: Lyapunov exponents of maps as the mean of ln|f′|; Benettin et al. (1980) and Shimada and Nagashima (1979) for flow spectra; period-doubling points solved from f^p(x) = x and (f^p)′(x) = −1. The systems and their classic parameter values are standard textbook mathematics."
 flow:
@@ -28,6 +28,8 @@ Chaos means a simple, fully determined rule whose future still cannot be predict
 - **Logistic map**, x → r·x·(1 − x), or any map you type in x and r. You get the **cobweb diagram**, the orbit step by step, the **orbit (bifurcation) diagram** over a range of r, the Lyapunov exponent against r, and the **period-doubling points** with the ratios that tend to Feigenbaum's constant δ = 4.6692.
 - **Lorenz and Rössler systems**, the famous strange attractors, drawn in a 3D view you can turn by dragging. A button works out all three Lyapunov exponents.
 - **Hénon map**, a two-dimensional map with a fractal attractor, and both of its exponents.
+
+Draw the fractal sets behind it with the [[fractal-explorer]], and solve your own equations of motion with the [[ode-solver|ODE solver]].
 
 ## How to use it
 

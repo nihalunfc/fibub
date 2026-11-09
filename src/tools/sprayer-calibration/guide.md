@@ -11,7 +11,7 @@ order: 387
 icon: sliders
 works: offline
 updated: 2026-11-09
-related: [seeding-rate-calculator, fertiliser-blend-calculator]
+related: [seeding-rate-calculator, fertiliser-blend-calculator, irrigation-scheduler, soil-test-interpreter, field-trial-designer, disease-progress-audpc, leaf-disease-severity, unit-converter]
 sources:
   - "Spray volume = nozzle flow ÷ area swept per minute (600 × L/min ÷ (km/h × m), or 5940 × gal/min ÷ (mph × inches)); flow proportional to the square root of pressure; the 1/128-acre method (128 fl oz in a US gallon). Standard calibration arithmetic with exact unit conversions."
   - "No product rates are bundled or suggested: the user types the rate from the product label."

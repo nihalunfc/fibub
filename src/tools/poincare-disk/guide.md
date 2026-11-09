@@ -11,7 +11,7 @@ order: 555
 icon: compass
 works: offline
 updated: 2026-11-09
-related: [function-grapher]
+related: [function-grapher, geometry-construction, polyhedron-viewer, knot-braid-drawer, fractal-explorer, group-explorer, tissot-explorer]
 sources:
   - "Standard hyperbolic geometry (Poincaré disk distance, disk isometries, Gauss–Bonnet, right-triangle trigonometry); no outside data."
   - "Checked against Python mpmath at 30 digits: distances, triangle angles by the hyperbolic law of cosines, circle centres and radii, and the side, radii and area of {7,3} and {4,5} tiles."
@@ -27,6 +27,8 @@ flow:
 Hyperbolic geometry is the geometry of a surface that curves away from itself at every point, like a saddle everywhere. Through a point off a line there are infinitely many lines that never meet it, triangles have angle sums below 180°, and the area of a circle grows exponentially with its radius.
 
 The **Poincaré disk** draws the whole infinite hyperbolic plane inside a circle. Straight lines (geodesics) appear as arcs that meet the rim at right angles, or as diameters. Angles on the picture are the true angles, but lengths shrink towards the rim, which is infinitely far away. This page lets you draw in it and measures everything in true hyperbolic terms (curvature −1).
+
+Make the flat version in the [[geometry-construction|interactive geometry construction]], and see how flat maps stretch a round Earth in the [[tissot-explorer]].
 
 ## How to use it
 

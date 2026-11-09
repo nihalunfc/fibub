@@ -11,7 +11,7 @@ order: 722
 icon: clock
 works: offline
 updated: 2026-11-09
-related: [reliability-analysis, sample-size, plot-maker, data-cleaner, staircase-threshold-fitter, eye-tracking-heatmap]
+related: [reliability-analysis, sample-size, plot-maker, data-cleaner, staircase-threshold-fitter, eye-tracking-heatmap, memory-attention-tasks, signal-detection-calculator, hypothesis-tests, effect-size-converter]
 sources:
   - "Task designs: Stroop (1935), Eriksen and Eriksen (1974) flanker task, Kirchner (1958) n-back. Trial lists are generated at random in the page."
   - "Summary formulas: standard descriptive statistics; n-back d′ with the log-linear correction (Hautus 1995)."
@@ -29,6 +29,8 @@ This page runs three classic attention and memory experiments in your browser, t
 - **Stroop:** a colour word (RED, GREEN, BLUE, YELLOW) appears in coloured ink and you name the ink. When the word and ink disagree (incongruent), most people are slower and make more errors.
 - **Flanker:** five arrows appear and you answer the direction of the middle one. Neighbours pointing the other way slow you down.
 - **N-back:** letters appear one at a time and you press Space when a letter is the same as the one 1, 2 or 3 places back.
+
+Compare conditions across people with the [[hypothesis-tests|hypothesis tests]], and report the size of the effect with the [[effect-size-converter|effect size converter]].
 
 ## How to use it
 

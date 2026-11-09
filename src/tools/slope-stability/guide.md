@@ -11,7 +11,7 @@ order: 658
 icon: mountain
 works: offline
 updated: 2026-11-09
-related: [bearing-capacity, soil-classification, stereonet]
+related: [bearing-capacity, soil-classification, stereonet, infinite-slope, retaining-wall-check, rock-mass-classification, atterberg-compaction]
 sources:
   - "Method of slices for circular slip surfaces: Bishop's simplified method (Bishop 1955), FS = Σ[c′b + (W − ub)tan φ′]/m(α) ÷ ΣW sin α with m(α) = cos α + sin α tan φ′/FS, and the ordinary (Fellenius) method: general soil mechanics, written by fibub from the equations."
   - "Pore pressure ratio ru = u/(γh): Bishop and Morgenstern's definition, general soil mechanics."
@@ -30,6 +30,8 @@ A soil slope fails by sliding along a curved surface. This page treats that surf
 - **Bishop's simplified method** allows for the side forces between slices (horizontal only), so FS appears on both sides of its equation. The page iterates until the answer stops changing.
 - **The ordinary method of slices** (Fellenius) ignores the side forces. It is simpler and usually gives a lower, more cautious FS, especially with high pore pressures.
 - A **grid search** tries hundreds of circles to find the **critical circle** with the lowest FS, then refines it.
+
+For a quick check of a long, shallow slope use the [[infinite-slope|infinite slope calculator]], and for a wall holding the slope back try the [[retaining-wall-check]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 756
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [plot-maker, data-cleaner, trend-analyser]
+related: [plot-maker, data-cleaner, trend-analyser, life-table, fertility-rates, population-pyramid, population-growth-models]
 sources:
   - "Method only: cohort-component projection as in Preston, Heuveline and Guillot (2001), chapter 6, and the Leslie (1945) matrix. Example population and rates are made up."
 flow:
@@ -24,6 +24,8 @@ flow:
 ## What it does
 
 The **cohort-component method** is how statistical offices project populations. It follows each 5-year age group (a cohort) forward in time and adds the three components of change: **deaths** (through survival ratios), **births** (through age-specific fertility rates) and **net migration**. This tool runs it for women and men separately, for up to 40 steps (200 years), and shows the total population, births, growth rate, share of children and older people, median age, and the projected **population pyramid** for any year, drawn against the base year.
+
+Get the survival ratios from the [[life-table]] and the birth rates from the [[fertility-rates]] tool, then draw the result as a [[population-pyramid]].
 
 ## How to use it
 

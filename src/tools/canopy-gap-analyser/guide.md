@@ -11,7 +11,7 @@ order: 338
 icon: camera
 works: offline
 updated: 2026-11-09
-related: [tree-carbon, spectral-index-calculator, biodiversity-indices]
+related: [tree-carbon, spectral-index-calculator, biodiversity-indices, leaf-area-analyser, forest-inventory-summary, tree-height-basal-area, phase-fraction]
 sources:
   - "Miller, J. B. (1967) A formula for average foliage density. Australian Journal of Botany 15, 141–144 (LAI = 2 ∫ −ln T(θ) cos θ sin θ dθ)."
   - "Ring sums weighted by sin θ Δθ, as in the LAI-2000 plant canopy analyser's method (Welles, J. M. and Norman, J. M. (1991) Instrument for indirect measurement of canopy architecture. Agronomy Journal 83, 818–825); fibub uses equal rings of your choice, not the instrument's ring table."
@@ -35,6 +35,8 @@ A fisheye photo taken from the forest floor looking straight up records where sk
 - **Results.** Canopy openness (sky as a share of the hemisphere, each pixel weighted by the solid angle it covers), gap fraction (plain share of sky pixels in the circle), and **effective LAI** from Miller's formula.
 
 The photo is read on this page only and is never uploaded.
+
+Measure leaf cover from a top-down photo with the [[leaf-area-analyser|leaf area and canopy cover analyser]], and record the trees around the photo point with the [[tree-height-basal-area|tree height and basal area calculator]].
 
 ## How to use it
 

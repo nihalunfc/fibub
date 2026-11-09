@@ -11,7 +11,7 @@ order: 2
 icon: check
 works: offline
 updated: 2026-11-09
-related: [sample-size, sequence-tools, reliability-analysis]
+related: [sample-size, sequence-tools, reliability-analysis, punnett-square, hypothesis-tests, linkage-map-calculator, hardy-weinberg-tester, crosstab-chi-square]
 sources:
   - "Pearson's chi-square goodness-of-fit test (K. Pearson 1900) and the exact multinomial test (the probability of every outcome no more likely than the one observed). Classic ratios from Mendelian genetics and gene interaction (epistasis), general textbook facts. Formulas only; no tables are copied."
   - "Checked in the tests against SciPy: scipy.stats.chisquare for the statistic and p-value in nine crosses, scipy.stats.binomtest for two classes, and an independent Python enumeration of every multinomial outcome for three or four classes (agreement to 1e-8)."
@@ -26,6 +26,8 @@ flow:
 ## What it does
 
 After a genetic cross you count the offspring in each class, for example round-yellow, round-green, wrinkled-yellow and wrinkled-green. Mendel's laws predict a ratio, such as 9:3:3:1 for two independent genes. Real counts never match a ratio exactly, so the question is whether the difference is small enough to be chance. This page answers it with the **chi-square goodness-of-fit test** and, if you like, an **exact test**.
+
+Work out the expected ratio first with the [[punnett-square|Punnett square]], and when two genes break the 9:3:3:1 ratio, map them with the [[linkage-map-calculator]].
 
 ## How to use it
 

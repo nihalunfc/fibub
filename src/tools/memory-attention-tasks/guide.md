@@ -11,7 +11,7 @@ order: 727
 icon: eye
 works: offline
 updated: 2026-11-09
-related: [reaction-time-experiments, signal-detection-calculator, neural-network-toys, reliability-analysis, sample-size, plot-maker, trend-analyser]
+related: [reaction-time-experiments, signal-detection-calculator, neural-network-toys, reliability-analysis, sample-size, plot-maker, trend-analyser, eye-tracking-heatmap, staircase-threshold-fitter]
 sources:
   - "Task designs: digit span (Jacobs 1887), Corsi block tapping (Corsi 1972) with a made-up block layout, visual search (Treisman and Gelade 1980), simple and choice reaction time (Donders 1868, Hick 1952). Corsi total score: Kessels et al. (2000)."
   - "All sequences and displays are generated at random in the page; no norms or published data are included."
@@ -30,6 +30,8 @@ This page is a small battery of classic memory and attention tests for teaching 
 - **Corsi blocks:** nine blocks, a few light up in turn, and you tap them in the same order. It is the visual-spatial partner of digit span.
 - **Visual search:** find a T among Ls (hard) or an O among Xs (easy) in displays of different sizes. The tool fits a straight line of reaction time against the number of items and reports the **search slope** in milliseconds per item.
 - **Simple and choice reaction time:** press as soon as a circle appears, or press left or right for the side it appears on.
+
+For simple speed tests try the [[reaction-time-experiments]], and score how well people told signal from noise with the [[signal-detection-calculator]].
 
 ## How to use it
 

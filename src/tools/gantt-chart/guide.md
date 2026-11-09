@@ -11,7 +11,7 @@ order: 823
 icon: calendar
 works: offline
 updated: 2026-11-09
-related: [grant-budget, data-management-plan, plate-layout]
+related: [grant-budget, data-management-plan, plate-layout, project-scheduler, planner, equipment-booking]
 sources:
   - "The forward and backward passes (critical path method) are written by fibub and checked in the tests against networkx 3.7 on 400 random task networks with lags, leads, fixed starts and milestones."
   - "The example project is made up."
@@ -30,6 +30,8 @@ A Gantt chart shows a project's tasks as bars on a timeline. Grant applications 
 - **Float** (slack): how many periods a task can slip without delaying the end of the project. The dashed line after a bar shows it.
 - The **critical path**: the chain of tasks with no float. Any delay on it delays the whole project, so those bars are orange.
 - **Milestones** (duration 0) are diamonds; **work packages** get a heading row with a bracket from their first start to their last finish.
+
+Book the instruments the project needs with the [[equipment-booking|equipment booking planner]], and cost each work package in the [[grant-budget|grant budget builder]].
 
 ## How to use it
 

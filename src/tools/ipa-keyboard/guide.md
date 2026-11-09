@@ -11,7 +11,7 @@ order: 732
 icon: pencil
 works: offline
 updated: 2026-11-09
-related: [data-cleaner]
+related: [data-cleaner, ipa-feature-matrix, interlinear-gloss, vowel-formant-chart, corpus-concordancer, pitch-contour-tracker]
 sources:
   - "Symbols and their phonetic descriptions: the International Phonetic Alphabet as organised by the International Phonetic Association; characters and code points from the Unicode Standard."
   - "X-SAMPA: J. C. Wells (1995), Computer-coding the IPA: a proposed extension of SAMPA (University College London)."
@@ -28,6 +28,8 @@ Phonetic transcription needs symbols that are not on any ordinary keyboard: ʃ, 
 - **X-SAMPA input.** Type `D@ k{t` and get ðə kæt. X-SAMPA is the standard way of writing every IPA symbol with plain ASCII characters, so you can transcribe at full typing speed.
 - **Names and code points.** Every key shows its full name (for example "voiced retroflex lateral approximant") and its Unicode code point, so you can be sure you used ɡ (U+0261) and not the keyboard's g, or ʼ (U+02BC) and not an apostrophe.
 - **What is in the transcription.** A table lists every character you used, its code point, its name and how often it appears, and flags anything that is not an IPA symbol.
+
+Look up the features of the symbols you typed in the [[ipa-feature-matrix]], and set out glossed examples with the [[interlinear-gloss|interlinear gloss formatter]].
 
 ## How to use it
 

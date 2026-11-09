@@ -11,7 +11,7 @@ order: 841
 icon: flask
 works: offline
 updated: 2026-11-09
-related: [water-quality-index, biodiversity-indices, hemocytometer, pond-oxygen-budget]
+related: [water-quality-index, biodiversity-indices, hemocytometer, pond-oxygen-budget, carbonate-system, zooplankton-biomass]
 sources:
   - "Garcia, H. E. and Gordon, L. I. (1992), Oxygen solubility in seawater: better fitting equations, Limnology and Oceanography 37, 1307–1312 (erratum 1993, 38, 656): the Benson and Krause fit in µmol/kg, as used in TEOS-10's GSW O2sol."
   - "Benson, B. B. and Krause, D. (1984), Limnology and Oceanography 29, 620–632 (pressure correction); Weiss, R. F. and Price, B. A. (1980), Marine Chemistry 8, 347–359 (water vapour pressure); UNESCO (1981) / Millero and Poisson (1981) sea-water density at the surface."
@@ -34,6 +34,8 @@ Oxygen dissolves less in warm water, in salty water and at low air pressure. Thi
 - A **solubility curve** from 0 to 40 °C for fresh water and your salinity, with a CSV table.
 - A **profile or a batch of samples**: paste or open depth, temperature, salinity and oxygen, and get saturation, % saturation and AOU for every line, with a profile chart and a CSV.
 - **Plankton counts to densities**: cells per litre from a counting chamber and a concentrated water sample, or individuals per cubic metre from a net tow, with an exact 95 % range from the Poisson distribution and the counting precision.
+
+Look at the rest of the water's chemistry with the [[carbonate-system|seawater carbonate system calculator]], and turn plankton counts into biomass with [[zooplankton-biomass]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 589
 icon: table
 works: offline
 updated: 2026-11-09
-related: [agent-based-models, chaos-explorer, network-metrics, plot-maker]
+related: [agent-based-models, chaos-explorer, network-metrics, plot-maker, turing-pattern-simulator, ising-model, fractal-explorer]
 sources:
   - "Rules: Wolfram's numbering of elementary cellular automata (1983) and the B/S notation for Life-like rules; the patterns (glider, spaceship, blinker, pulsar, R-pentomino, acorn, Gosper glider gun) are well-known Game of Life objects, typed in by fibub."
   - "Checked against an independent Python implementation (NumPy for the elementary rules, SciPy's convolve2d for Life-like rules) on 40 random elementary runs and 30 random Life-like runs with both kinds of edge, identical cell for cell; the RLE reader against a separate Python decoder."
@@ -28,6 +28,8 @@ A cellular automaton is a row or grid of cells, each alive or dead, that all upd
 
 - **Elementary (one-dimensional)**: a row of cells where each new cell depends on itself and its two neighbours. There are 2⁸ = 256 such rules, numbered 0 to 255 in **Wolfram's numbering**: write the rule number in binary and read off the new cell for each of the eight neighbourhoods, from 111 down to 000. Each generation is drawn under the last, making a space-time picture.
 - **Life-like (two-dimensional)**: a grid where each cell counts its eight neighbours. In **B/S notation**, B lists the counts that bring a dead cell to life and S the counts that keep a live cell alive. **Conway's Game of Life** is B3/S23; HighLife, Seeds, Day & Night, Maze and others are in the list, or type any rule.
+
+Give the cells movement and goals in the [[agent-based-models|agent-based model playground]], and watch order and chaos in simple equations in the [[chaos-explorer]].
 
 ## How to use it
 

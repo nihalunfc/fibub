@@ -11,7 +11,7 @@ order: 579
 icon: table
 works: offline
 updated: 2026-11-09
-related: [entropy-calculator, compress-file]
+related: [entropy-calculator, compress-file, error-correcting-codes, cipher-teacher, algorithm-visualiser, zip-checker]
 sources:
   - "Methods: Huffman (1952), canonical Huffman codes as used in DEFLATE (RFC 1951), and arithmetic coding as in Cover and Thomas, Elements of Information Theory (general textbook methods)."
   - "Checked against a Python reference written for this tool: heapq Huffman with the same tie rule, and an exact fractions.Fraction arithmetic coder, on four messages and a probability list (codes, bits, final intervals and tags all equal)."
@@ -31,6 +31,8 @@ Compression works by giving common symbols short codes and rare ones long codes.
 - **Encode and decode**: your message as a string of bits, and a box to turn bits back into symbols with the same code.
 - **Canonical codes**: the same code lengths with codes given out in order, so a file only needs to store the lengths. DEFLATE (zip, PNG) and JPEG do this.
 - **Arithmetic coding** gives the whole message one number. It starts with the interval from 0 to 1, and for each symbol shrinks it to that symbol's share. The final interval's width is the probability of the whole message, and the code is the shortest binary fraction whose range fits inside it. The tool does every step with exact fractions, draws the first six, and lists them all.
+
+Find the entropy limit for your symbols with the [[entropy-calculator]], and add check bits for a noisy channel with [[error-correcting-codes]].
 
 ## How to use it
 

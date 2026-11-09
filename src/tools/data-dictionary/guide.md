@@ -11,7 +11,7 @@ order: 817
 icon: table
 works: offline
 updated: 2026-11-09
-related: [sql-playground, data-cleaner, table-converter, plot-maker]
+related: [sql-playground, data-cleaner, table-converter, plot-maker, csv-profiler, dataset-readme, metadata-builder, science-file-converter]
 sources:
   - "Column statistics and type rules are written by fibub. The tests check missing and distinct counts, minimum, maximum, mean, standard deviation and median against pandas on six tables, and check the exported Table Schema against the data with the frictionless Python package (Frictionless Data, MIT licence)."
   - "The Table Schema export follows the published Frictionless Table Schema specification (specs.frictionlessdata.io)."
@@ -35,6 +35,8 @@ A data dictionary tells the next person (a co-author, a reviewer, a repository o
 - **Warnings** for things that trip up analysis: codes with leading zeros, dates written day/month or month/day, and numbers with thousands commas.
 
 Then you add a **title**, a **description** and a **unit** for each column. Units are never guessed: only you know whether a 12 is metres, feet or a count.
+
+Profile the data for gaps and odd values first with the [[csv-profiler]], and add the dictionary to your [[dataset-readme|dataset README]].
 
 ## How to use it
 

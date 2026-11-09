@@ -1,0 +1,281 @@
+---
+// SAR table builder: a compound series with R-group columns and an activity, turned into pIC50, LE and LLE, a potency
+// matrix of one R position against another, and matched pairs with the average effect of each substituent change.
+// No chemistry parsing: R groups are labels (names or SMILES fragments). Everything stays in the browser.
+import '../../styles/astro.css';
+import DataFile from '../../components/DataFile.astro';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax sar">
+  <div class="ax-card">
+    <h2>Your compound series</h2>
+    <label>One compound per line, with a header row. Columns: an ID, one column per R group (R1, R2, ...: names such as 4-Cl or SMILES fragments such as [*]Cl), the activity with its unit in the header, and optionally heavy atoms (HA) and logP.
+      <textarea class="sar-data" rows="9" spellcheck="false" autocomplete="off"></textarea></label>
+    <DataFile target=".sar-data" maxCols={14} maxRows={2001} />
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small sar-ex">Use the example series</button>
+      <button type="button" class="btn secondary small sar-clear">Clear</button>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Units of the activity <select class="sar-unit">
+        <option value="auto" selected>From the header, e.g. "IC50 (nM)"</option>
+        <option value="pM">pM</option><option value="nM">nM</option><option value="uM">µM</option><option value="mM">mM</option><option value="M">M</option>
+        <option value="p">Already a p value (pIC50, pKi)</option>
+      </select></label>
+    </div>
+    <p class="ax-help">IC50, Ki, EC50 and Kd become p values: pIC50 = −log<sub>10</sub>(IC50 in mol/L), so 100 nM is 7 and higher is more potent. A value like &gt;10000 is kept as a limit: it shows in the table and matrix but is left out of matched pairs. Repeats of the same R groups are averaged on the p scale. Columns are recognised by their names; every column that is not the ID, the activity, HA or logP is treated as an R group.</p>
+    <p class="ax-err sar-err" hidden></p>
+  </div>
+
+  <div class="ax-card sar-out" hidden>
+    <h2>Summary</h2>
+    <p class="ax-big sar-big"></p>
+    <dl class="ax-facts sar-facts"></dl>
+  </div>
+
+  <div class="ax-card sar-out sar-mcard" hidden>
+    <h2>Potency matrix</h2>
+    <div class="ax-grid">
+      <label>Rows <select class="sar-mr"></select></label>
+      <label>Columns <select class="sar-mc"></select></label>
+      <label>Order <select class="sar-mo"><option value="input" selected>As in the table</option><option value="potency">Most potent first</option></select></label>
+    </div>
+    <canvas class="ax-fig sar-heat" style="margin-top:8px"></canvas>
+    <p class="ax-help sar-mnote"></p>
+  </div>
+
+  <div class="ax-card sar-out" hidden>
+    <h2>Substituent changes (matched pairs)</h2>
+    <p class="ax-help">A matched pair is two compounds that differ at only one R position. Δ is the change in potency for that swap with everything else the same; averaging it over every pair with the same swap gives the effect of that change.</p>
+    <div class="ax-grid">
+      <label>Position <select class="sar-tp"></select></label>
+    </div>
+    <h3>Best and worst groups</h3>
+    <div class="ax-scroll"><table class="sar-gtab"></table></div>
+    <h3>Each change, averaged</h3>
+    <div class="ax-scroll"><table class="sar-ttab"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small sar-pcsv">Download matched pairs (CSV)</button>
+    </div>
+  </div>
+
+  <div class="ax-card sar-out" hidden>
+    <h2>Compounds <small class="sar-sorthelp">(tap a column to sort)</small></h2>
+    <div class="ax-scroll"><table class="sar-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small sar-csv">Download the table (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseSeries, combos, matchedPairs, transforms, groupScores, matrix, fromP, LE_K, EXAMPLE, type Series, type Combo, type Pair, type Transform, type Unit } from '../../lib/sci/sar';
+  import { parseTable, csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Section, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.sar')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.sar-data');
+  const f2 = (x: number) => (Number.isFinite(x) ? x.toFixed(2) : '–');
+  const sgn = (x: number) => (Number.isFinite(x) ? (x > 0 ? '+' : x < 0 ? '−' : '') + Math.abs(x).toFixed(2) : '–');
+  const conc = (p: number) => { // a p value as a readable concentration
+    if (!Number.isFinite(p)) return '–';
+    const u: [Exclude<Unit, 'p'>, string][] = [['pM', 'pM'], ['nM', 'nM'], ['uM', 'µM'], ['mM', 'mM'], ['M', 'M']];
+    for (const [k, l] of u) { const v = fromP(p, k); if (v < 1000 || k === 'M') return `${v >= 100 ? Math.round(v) : Number(v.toPrecision(2))} ${l}`; }
+    return '';
+  };
+  const mix = (a: string, b: string, t: number) => {
+    const h = (c: string) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
+    const x = h(a), y = h(b); return `rgb(${x.map((v, i) => Math.round(v + (y[i] - v) * t)).join(',')})`;
+  };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+
+  let S: Series | null = null, C: Combo[] = [], P: Pair[] = [], T: Transform[] = [];
+  let sortKey = -1, sortDir = 1, heat: Figure | null = null, sections: Section[] = [];
+
+  function tableEl(t: HTMLTableElement, head: string[], rows: string[][], left = 1) {
+    t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i >= left) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i >= left) td.style.textAlign = 'right'; }); });
+  }
+
+  // ---- compound table (sortable) ----
+  function cpdHead(s: Series) {
+    return [s.idName, ...s.rNames, s.actName, s.pName, ...(s.hasHA ? [s.haName, 'LE'] : []), ...(s.hasLogP ? [s.logpName, 'LLE'] : [])];
+  }
+  function cpdRows(s: Series, sorted = true) {
+    const vals = s.cpds.map((c) => [c.id, ...c.r, c.value, c.p, ...(s.hasHA ? [c.ha, c.le] : []), ...(s.hasLogP ? [c.logp, c.lle] : [])] as (string | number)[]);
+    let idx = s.cpds.map((_, i) => i);
+    if (sorted && sortKey >= 0) {
+      const k = sortKey;
+      // The raw activity column sorts by potency (p value), so "<" and ">" limits sort sensibly.
+      const key = (i: number) => (k === 1 + s.rNames.length ? s.cpds[i].p : vals[i][k]);
+      idx = idx.sort((a, b) => { const x = key(a), y = key(b); if (typeof x === 'string' || typeof y === 'string') return String(x).localeCompare(String(y), undefined, { numeric: true }) * sortDir; const fx = Number.isFinite(x), fy = Number.isFinite(y); if (fx !== fy) return fx ? -1 : 1; return ((x as number) - (y as number)) * sortDir; });
+    }
+    return idx.map((i) => { const c = s.cpds[i]; const pq = c.qual ? c.qual : ''; return [c.id, ...c.r, c.raw, pq + f2(c.p), ...(s.hasHA ? [Number.isFinite(c.ha) ? String(c.ha) : '–', (Number.isFinite(c.le) && pq ? pq : '') + f2(c.le)] : []), ...(s.hasLogP ? [Number.isFinite(c.logp) ? String(c.logp) : '–', (Number.isFinite(c.lle) && pq ? pq : '') + f2(c.lle)] : [])]; });
+  }
+  function drawCpdTable() {
+    if (!S) return;
+    const s = S, t = q<HTMLTableElement>('.sar-tab'), head = cpdHead(s), left = 1 + s.rNames.length + 1;
+    t.replaceChildren();
+    const hr = t.createTHead().insertRow();
+    head.forEach((h, i) => { const th = document.createElement('th'); const b = document.createElement('button'); b.type = 'button'; b.className = 'sar-sort'; b.dataset.k = String(i); b.textContent = h + (sortKey === i ? (sortDir > 0 ? ' ▲' : ' ▼') : ''); th.append(b); if (sortKey === i) th.setAttribute('aria-sort', sortDir > 0 ? 'ascending' : 'descending'); if (i >= left) th.style.textAlign = 'right'; hr.append(th); });
+    const best = Math.max(...s.cpds.filter((c) => !c.qual).map((c) => c.p));
+    const b = t.createTBody();
+    for (const r of cpdRows(s)) { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i >= left) td.style.textAlign = 'right'; }); const cp = s.cpds.find((c) => c.id === r[0]); if (cp && cp.p === best && !cp.qual) tr.className = 'sar-best'; }
+  }
+
+  // ---- heatmap ----
+  function heatFigure(s: Series, ri: number, ci: number, order: 'input' | 'potency', w: number): Figure {
+    const m = matrix(s, ri, ci, order, C);
+    const all = m.cells.flat().filter((c) => Number.isFinite(c.mean)).map((c) => c.mean);
+    const lo = Math.min(...all), hi = Math.max(...all), span = hi - lo || 1;
+    const fs = w < 480 ? 11 : 13;
+    const longest = (list: string[]) => Math.max(...list.map((x) => x.length));
+    const left = Math.min(w * 0.32, Math.max(fs * 3, longest(m.rows) * fs * 0.6 + 10)), right = 6, top = 8;
+    const cw = (w - left - right) / m.cols.length, rot = longest(m.cols) * fs * 0.58 > cw - 4;
+    const bottom = rot ? Math.min(110, longest(m.cols) * fs * 0.55 + fs * 3) : fs * 3.4;
+    const ch = Math.min(46, Math.max(26, cw * 0.62)), h = Math.round(top + ch * m.rows.length + bottom);
+    const cut = (t: string, n: number) => (t.length > n ? t.slice(0, n - 1) + '…' : t);
+    return {
+      w, h, alt: `Potency matrix of ${s.rNames[ri]} (rows) against ${s.rNames[ci]} (columns): mean ${s.pName} in each cell, from ${f2(lo)} to ${f2(hi)}`,
+      draw: (ctx, W, H, pal: Palette) => {
+        const strong = pal.red ? '#a30000' : pal.bg === '#ffffff' ? '#0b4f8a' : '#5aa9e6';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        m.rows.forEach((a, i) => m.cols.forEach((b, j) => {
+          const c = m.cells[i][j], x = left + j * cw, y = top + i * ch;
+          if (!Number.isFinite(c.mean)) {
+            ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(x + 1.5, y + 1.5, cw - 3, ch - 3);
+            ctx.fillStyle = pal.muted; ctx.font = `${fs}px system-ui, sans-serif`; ctx.fillText('–', x + cw / 2, y + ch / 2); return;
+          }
+          const t = 0.12 + 0.88 * ((c.mean - lo) / span), fill = mix(pal.bg.length === 7 ? pal.bg : '#ffffff', strong, c.censored ? 0.06 : t);
+          ctx.fillStyle = fill; ctx.fillRect(x + 1, y + 1, cw - 2, ch - 2);
+          // Ink by the cell's brightness, so the number stays readable on every shade in light and dark mode.
+          const lum = (() => { const v = fill.slice(4, -1).split(',').map((n) => { const u = Number(n) / 255; return u <= 0.04045 ? u / 12.92 : ((u + 0.055) / 1.055) ** 2.4; }); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; })();
+          ctx.fillStyle = pal.red ? (t > 0.6 && !c.censored ? '#000000' : pal.ink) : lum > 0.18 ? '#0a0a0a' : '#ffffff';
+          ctx.font = `600 ${fs}px system-ui, sans-serif`;
+          ctx.fillText((c.censored ? '<' : '') + c.mean.toFixed(cw < 44 ? 1 : 2), x + cw / 2, y + ch / 2 - (c.n > 1 && ch >= 36 ? fs * 0.45 : 0));
+          if (c.n > 1 && ch >= 36) { ctx.font = `${fs - 2}px system-ui, sans-serif`; ctx.fillText(`n=${c.n}`, x + cw / 2, y + ch / 2 + fs * 0.7); }
+        }));
+        ctx.fillStyle = pal.ink; ctx.font = `${fs}px system-ui, sans-serif`;
+        m.rows.forEach((a, i) => { ctx.textAlign = 'right'; ctx.fillText(cut(a, Math.floor((left - 8) / (fs * 0.55))), left - 6, top + i * ch + ch / 2); });
+        const yb = top + m.rows.length * ch;
+        m.cols.forEach((b, j) => {
+          const x = left + j * cw + cw / 2;
+          if (rot) { ctx.save(); ctx.translate(x, yb + 6); ctx.rotate(-Math.PI / 4); ctx.textAlign = 'right'; ctx.fillText(cut(b, 16), 0, 0); ctx.restore(); }
+          else { ctx.textAlign = 'center'; ctx.fillText(b, x, yb + fs); }
+        });
+        ctx.fillStyle = pal.muted; ctx.textAlign = 'center';
+        ctx.fillText(`${s.rNames[ci]} (columns) · ${s.rNames[ri]} (rows) · mean ${s.pName}`, left + (W - left - right) / 2, H - fs * 0.9);
+      },
+    };
+  }
+  function drawHeat() {
+    if (!S || S.rNames.length < 2) { heat = null; return; }
+    const ri = Number(q<HTMLSelectElement>('.sar-mr').value), ci = Number(q<HTMLSelectElement>('.sar-mc').value);
+    if (ri === ci) { q('.sar-heat').hidden = true; q('.sar-mnote').textContent = 'Pick two different positions for rows and columns.'; heat = null; return; }
+    q('.sar-heat').hidden = false;
+    const w = Math.round(Math.min(720, Math.max(300, q('.sar-heat').parentElement!.clientWidth - 34)));
+    heat = heatFigure(S, ri, ci, q<HTMLSelectElement>('.sar-mo').value as 'input' | 'potency', w);
+    paint(q<HTMLCanvasElement>('.sar-heat'), heat);
+    q('.sar-mnote').textContent = `Each cell is the mean ${S.pName} of the compounds with that pair of groups${S.rNames.length > 2 ? ', averaged over the other positions' : ''}; a stronger colour is more potent. A dash means no compound has that pair yet: a gap to make. "<" marks a cell known only as a limit.`;
+    if (sections[1]) sections[1].figure = heat;
+  }
+
+  // ---- matched pairs ----
+  function drawPairs() {
+    if (!S) return;
+    const s = S, pos = Number(q<HTMLSelectElement>('.sar-tp').value);
+    const g = groupScores(s, pos, P, C);
+    const gHead = ['Group', 'Compounds', `Mean ${s.pName}`, 'Pairs', 'Mean Δ vs others'];
+    const gRows = g.map((x) => [x.group, String(x.n), f2(x.meanP), String(x.pairs), sgn(x.score)]);
+    tableEl(q<HTMLTableElement>('.sar-gtab'), gHead, gRows);
+    const tt = T.filter((t) => t.pos === pos);
+    const tHead = ['Change', 'Pairs', 'Mean Δ', 'SD', 'Lowest', 'Highest'];
+    const tRows = tt.map((t) => [`${t.from} → ${t.to}`, String(t.n), sgn(t.mean), Number.isFinite(t.sd) ? t.sd.toFixed(2) : '–', sgn(t.min), sgn(t.max)]);
+    tableEl(q<HTMLTableElement>('.sar-ttab'), tHead, tRows.length ? tRows : [['No matched pairs at this position', '', '', '', '', '']]);
+    if (sections[2]) { sections[2] = { title: `${s.rNames[pos]}: best and worst groups`, table: { head: gHead, rows: gRows, align: ['l', 'r', 'r', 'r', 'r'] }, note: `Mean Δ vs others: the average change in ${s.pName} when this group replaces another at ${s.rNames[pos]}, all else the same.` }; sections[3] = { title: `${s.rNames[pos]}: substituent changes`, table: { head: tHead, rows: tRows, align: ['l', 'r', 'r', 'r', 'r', 'r'] } }; }
+  }
+
+  function fail(m: string) {
+    q('.sar-err').textContent = m; q('.sar-err').hidden = false;
+    root.querySelectorAll<HTMLElement>('.sar-out').forEach((o) => (o.hidden = true)); S = null; sections = [];
+  }
+
+  function run() {
+    q('.sar-err').hidden = true;
+    if (!box.value.trim()) return fail('Paste a series, open a file or use the example series.');
+    let s: Series;
+    try { s = parseSeries(parseTable(box.value), q<HTMLSelectElement>('.sar-unit').value as Unit | 'auto'); } catch (e) { return fail((e as Error).message); }
+    const prevR = S?.rNames.join('\u0001');
+    S = s; C = combos(s); P = matchedPairs(s, C); T = transforms(P);
+    if (sortKey >= cpdHead(s).length) sortKey = -1;
+    root.querySelectorAll<HTMLElement>('.sar-out').forEach((o) => (o.hidden = false));
+    q('.sar-mcard').hidden = s.rNames.length < 2;
+    // Position pickers (kept when the positions did not change).
+    if (prevR !== s.rNames.join('\u0001')) {
+      const opts = (sel: string, v: number) => q<HTMLSelectElement>(sel).replaceChildren(...s.rNames.map((r, i) => new Option(r, String(i), false, i === v)));
+      opts('.sar-mr', 0); opts('.sar-mc', Math.min(1, s.rNames.length - 1)); opts('.sar-tp', 0);
+    }
+    const measured = s.cpds.filter((c) => !c.qual);
+    const top = (measured.length ? measured : s.cpds).reduce((a, b) => (b.p > a.p ? b : a));
+    q('.sar-big').textContent = `Most potent: ${top.id} (${top.r.join(', ')}), ${s.pName} ${f2(top.p)}${s.unit !== 'p' ? ` (${conc(top.p)})` : ''}`;
+    const facts: HTMLElement[] = [
+      fact('Compounds', `${s.cpds.length} rows, ${C.length} distinct`, `${s.rNames.length} R position${s.rNames.length > 1 ? 's' : ''}: ${s.rNames.map((r, i) => `${r} (${new Set(s.cpds.map((c) => c.r[i])).size} groups)`).join(', ')}`),
+      fact(`${s.pName} range`, `${f2(Math.min(...s.cpds.map((c) => c.p)))} to ${f2(top.p)}`, `${s.actName} read as ${s.unit === 'p' ? 'p values' : s.unit === 'uM' ? 'µM' : s.unit}${s.cpds.some((c) => c.qual) ? `; ${s.cpds.filter((c) => c.qual).length} given only as a limit` : ''}`),
+      fact('Matched pairs', String(P.length), `${T.length} different substituent changes`),
+    ];
+    s.rNames.forEach((r, i) => {
+      const g = groupScores(s, i, P, C).filter((x) => Number.isFinite(x.score));
+      if (g.length >= 2) facts.push(fact(`${r}: best / worst`, `${g[0].group} / ${g[g.length - 1].group}`, `mean Δ vs other groups ${sgn(g[0].score)} and ${sgn(g[g.length - 1].score)}`));
+    });
+    if (s.hasHA) { const bl = s.cpds.filter((c) => Number.isFinite(c.le) && !c.qual).reduce((a, b) => (b.le > a.le ? b : a), { le: -Infinity } as never as typeof s.cpds[0]); if (Number.isFinite(bl.le)) facts.push(fact('Best ligand efficiency', `${f2(bl.le)} (${bl.id})`, `LE = ${LE_K} × ${s.pName} ÷ heavy atoms, in kcal/mol per heavy atom; 1.37 is 2.303RT near room temperature (1.364 at 298 K)`)); }
+    if (s.hasLogP) { const bl = s.cpds.filter((c) => Number.isFinite(c.lle) && !c.qual).reduce((a, b) => (b.lle > a.lle ? b : a), { lle: -Infinity } as never as typeof s.cpds[0]); if (Number.isFinite(bl.lle)) facts.push(fact('Best LLE', `${f2(bl.lle)} (${bl.id})`, `LLE = ${s.pName} − ${s.logpName}: potency gained without adding greasiness`)); }
+    q('.sar-facts').replaceChildren(...facts);
+    sections = [
+      { title: q('.sar-big').textContent!, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!.replace(d.querySelector('small')?.textContent ?? '', '') + (d.querySelector('small') ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string]) },
+      { title: 'Potency matrix' },
+      { title: '' }, { title: '' },
+      { title: 'Compounds', table: { head: cpdHead(s), rows: cpdRows(s, false), align: cpdHead(s).map((_, i) => (i > s.rNames.length ? 'r' : 'l')) as ('l' | 'r')[] } },
+    ];
+    drawHeat(); drawPairs(); drawCpdTable();
+    if (!heat) sections.splice(1, 1);
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(run, 300); };
+  box.addEventListener('input', later);
+  q('.sar-unit').addEventListener('change', run);
+  q('.sar-ex').addEventListener('click', () => { box.value = EXAMPLE; q<HTMLSelectElement>('.sar-unit').value = 'auto'; sortKey = -1; run(); });
+  q('.sar-clear').addEventListener('click', () => { box.value = ''; run(); box.focus(); });
+  ['.sar-mr', '.sar-mc', '.sar-mo'].forEach((c) => q(c).addEventListener('change', drawHeat));
+  q('.sar-tp').addEventListener('change', drawPairs);
+  q('.sar-tab').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLElement>('.sar-sort'); if (!b) return; const k = Number(b.dataset.k); if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = k > (S?.rNames.length ?? 0) ? -1 : 1; } drawCpdTable(); });
+  let lastW = 0;
+  window.addEventListener('resize', () => { const w = q('.sar-heat').parentElement!.clientWidth; if (Math.abs(w - lastW) > 20) { lastW = w; drawHeat(); } });
+  document.addEventListener('fibub:theme', () => { if (heat && S) paint(q<HTMLCanvasElement>('.sar-heat'), heat); });
+  q('.sar-csv').addEventListener('click', () => {
+    if (!S) return; const s = S;
+    const head = [s.idName, ...s.rNames, s.actName, `${s.pName} qualifier`, s.pName, ...(s.hasHA ? [s.haName, 'LE (kcal/mol per heavy atom)'] : []), ...(s.hasLogP ? [s.logpName, 'LLE'] : [])];
+    const rows = s.cpds.map((c) => [c.id, ...c.r, c.raw, c.qual, c.p.toFixed(4), ...(s.hasHA ? [Number.isFinite(c.ha) ? String(c.ha) : '', Number.isFinite(c.le) ? c.le.toFixed(4) : ''] : []), ...(s.hasLogP ? [Number.isFinite(c.logp) ? String(c.logp) : '', Number.isFinite(c.lle) ? c.lle.toFixed(4) : ''] : [])]);
+    save(new Blob([csv([head, ...rows])], { type: 'text/csv' }), 'sar-table.csv', 'text/csv');
+  });
+  q('.sar-pcsv').addEventListener('click', () => {
+    if (!S) return; const s = S;
+    const rows = [['position', 'from', 'to', 'compound_from', 'compound_to', `${s.pName}_from`, `${s.pName}_to`, 'delta'], ...P.map((p) => [s.rNames[p.pos], p.from, p.to, p.a.ids.join(' '), p.b.ids.join(' '), p.a.p.toFixed(4), p.b.p.toFixed(4), p.delta.toFixed(4)])];
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'sar-matched-pairs.csv', 'text/csv');
+  });
+  box.value = EXAMPLE; run();
+  wireDownloads(q('.dl'), () => ({ title: 'SAR table', subtitle: q('.sar-big').textContent ?? '', file: 'sar-table', sections: sections.filter((x) => x.title) }));
+</script>
+
+<style is:inline>
+  .sar select { max-width: 100%; }
+  .sar textarea { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; }
+  .sar .sar-sort { border: 0; background: none; font: inherit; font-weight: 600; color: var(--ink); padding: 0; cursor: pointer; text-align: inherit; white-space: nowrap; }
+  .sar .sar-sorthelp { font-size: 14px; font-weight: 400; color: var(--muted); }
+  .sar tr.sar-best td { font-weight: 600; }
+  .sar h3 { margin: 14px 0 6px; font-size: 16px; }
+  .sar td, .sar th { white-space: nowrap; }
+</style>

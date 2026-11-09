@@ -11,7 +11,7 @@ order: 819
 icon: book
 works: offline
 updated: 2026-11-09
-related: [metadata-builder, checksum-checker, science-file-converter]
+related: [metadata-builder, checksum-checker, science-file-converter, data-dictionary, data-management-plan, author-list-formatter, bibtex-cleaner]
 sources:
   - "The section order follows the widely used readme-style metadata layout for research data (general information, sharing and access, data and file overview, methods, data-specific information), as recommended by university research data services. Wording is fibub's own."
   - "Licences are named by their SPDX identifiers; the citation follows the order DataCite recommends (creator, year, title, version, publisher, identifier)."
@@ -33,6 +33,8 @@ A README is the first file people open in a dataset. A good one lets someone who
 - **Files**: a table of file names, sizes and descriptions. Pick the files from your device to add their names and sizes; only those two facts are read.
 - **Methods**: how the data were collected and processed, instruments and software, and quality checks.
 - **Variables**: a table of column names, descriptions, units and missing-value codes.
+
+Make the machine-readable record with the [[metadata-builder]], and build the variables table with the [[data-dictionary|data dictionary generator]].
 
 ## How to use it
 

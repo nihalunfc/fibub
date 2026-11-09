@@ -11,7 +11,7 @@ order: 2
 icon: link
 works: offline
 updated: 2026-11-09
-related: [pathway-ode-builder]
+related: [pathway-ode-builder, gillespie-simulator, network-metrics, genetic-circuit-designer, graph-algorithms]
 sources:
   - "Simple Interaction Format (SIF) and GraphML as used by Cytoscape and other tools; force-directed drawing after Fruchterman, T. M. J. and Reingold, E. M. (1991), Software: Practice and Experience 21, 1129 to 1164; network motifs and the coherent/incoherent feed-forward loop classes after Mangan, S. and Alon, U. (2003), PNAS 100, 11980 to 11985: used as methods, written by fibub."
   - "Checked against NetworkX 3 (degrees, density, weakly connected components, GraphML written by write_graphml, and feed-forward loops counted with DiGraphMatcher) on the example and on a random 40-gene network. The example network is made up."
@@ -35,6 +35,8 @@ This page reads a network in **SIF** or **GraphML**, draws it, and works out:
 - **Feed-forward loops**: X regulates Y, and both regulate Z. They are **coherent** when the direct path has the same sign as the path through Y, and **incoherent** when the signs differ. The best-known kinds are named: **C1** (all activation, a sign-sensitive delay) and **I1** (X activates Y and Z, Y represses Z, a pulse generator).
 
 Nothing is uploaded; the file is read and drawn in your browser.
+
+Turn the circuit into equations with the [[pathway-ode-builder]], and measure hubs and communities in a larger network with [[network-metrics]].
 
 ## How to use it
 

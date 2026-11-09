@@ -11,7 +11,7 @@ order: 751
 icon: check
 works: offline
 updated: 2026-11-09
-related: [sample-size, plot-maker, data-cleaner, power-indices, polling-average]
+related: [sample-size, plot-maker, data-cleaner, power-indices, polling-average, nash-equilibrium-solver]
 sources:
   - "Formulas and counting rules only: Borda (1781), Condorcet (1785), Droop (1881), Gregory transfer method, Schulze (2011), D'Hondt (1878), Sainte-Laguë (1910), Gallagher (1991). Example ballots and vote counts are made up."
 flow:
@@ -24,6 +24,8 @@ flow:
 ## What it does
 
 The same voters can elect different winners depending on how the votes are counted. Type in ranked ballots once and this tool counts them by seven single-winner methods side by side: **plurality** (first past the post), the **two-round system**, **instant-runoff** (the alternative vote), the **Borda count**, the **Condorcet** head-to-head test, the **Schulze** beatpath method and **approval** voting. It also runs a **single transferable vote (STV)** count for several seats, and in the second tab shares out seats among **party lists** by D'Hondt, Sainte-Laguë (plain or modified) and largest remainder with a Hare or Droop quota, with a vote threshold. Every round and every transfer is shown in a table, so you can follow the count by hand. Nothing leaves your browser.
+
+Measure how much each party's seats count in a coalition with [[power-indices|voting power indices]], and follow the polls before the vote with the [[polling-average]].
 
 ## How to use it
 

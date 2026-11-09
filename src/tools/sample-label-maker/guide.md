@@ -11,7 +11,7 @@ order: 814
 icon: qr
 works: offline
 updated: 2026-11-09
-related: [plate-layout]
+related: [plate-layout, reagent-inventory, cryovial-inventory, herbarium-label-maker, field-sampling-planner]
 sources:
   - "The QR code (byte mode, versions 1 to 10, levels L to H) and Code 128 encoders are written by fibub from the published standards (ISO/IEC 18004 and ISO/IEC 15417). The tests check them module for module against python-qrcode and python-barcode, and every test code was read back with the zxing-cpp decoder."
   - "Sheet presets are rounded example layouts, not any label maker's products; measure your own sheet. The example samples are made up."
@@ -32,6 +32,8 @@ Hand-written tube labels smudge, fade in the freezer and are hard to read. This 
 - **Text lines.** Up to four columns are printed as text, the first in bold. Text shrinks to fit the label, and long text is cut with "…".
 - **The sheet.** Page size, labels across and down, label size, margins and pitch. Pick an example layout or type your own. *Labels already used* lets you start part-way down a sheet you used before.
 - **PDF.** A vector PDF: QR squares and bars are exact rectangles, so they print sharp on any printer.
+
+Keep track of what the labelled tubes and bottles hold with the [[cryovial-inventory]] and the [[reagent-inventory]].
 
 ## How to use it
 

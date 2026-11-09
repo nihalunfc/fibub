@@ -11,7 +11,7 @@ order: 2
 icon: target
 works: offline
 updated: 2026-11-09
-related: [decay-calculator, decay-chain, beer-lambert-calculator, uncertainty-calculator]
+related: [decay-calculator, decay-chain, beer-lambert-calculator, uncertainty-calculator, stopping-power, counting-statistics, spectrum-peak-fitter, decay-heat]
 sources:
   - "No attenuation data is used: the built-in coefficients are computed from formulas. Klein-Nishina Compton cross-section: Klein, O. and Nishina, Y. (1929), Zeitschrift für Physik 52, 853. Photoelectric scaling law (the Born limits that give the familiar Z⁴ to Z⁵ over E³ behaviour) and near-threshold pair production: Heitler, W., The Quantum Theory of Radiation, and Evans, R. D., The Atomic Nucleus."
   - "Exponential attenuation, half- and tenth-value layers, and the Berger buildup form B = 1 + a μx e^(b μx): standard results, for example Knoll, G. F., Radiation Detection and Measurement, and Shultis, J. K. and Faw, R. E., Radiation Shielding."
@@ -36,6 +36,8 @@ This page does not carry a table of measured attenuation coefficients. It **work
 Coherent (Rayleigh) scattering, electron binding and absorption edges are left out. So the built-in numbers are an **approximate model for teaching and rough screening, not reference data**. Above about 0.5 MeV they are usually within roughly 20 %; below that they read low for heavy materials, by up to about 2.5 times for lead and tungsten at 0.1 MeV, where the photoelectric effect dominates. The page shows what fraction of each estimate is the approximate photoelectric part, and warns when that part is large.
 
 **For real work, look μ/ρ up in NIST XCOM (free, US government) and type it into the box.** A typed value is used exactly as given, and that is the recommended way to use this page.
+
+Work out the activity of each nuclide with the [[decay-chain|decay chain calculator]], then check your measured dose rates with [[counting-statistics|counting statistics]].
 
 ## What it does
 

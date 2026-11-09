@@ -11,7 +11,7 @@ order: 854
 icon: target
 works: offline
 updated: 2026-11-09
-related: [grain-size-intercept, phase-fraction, uncertainty-calculator]
+related: [grain-size-intercept, phase-fraction, uncertainty-calculator, lattice-fft, afm-roughness, nanoparticle-calculator, dls-analyser, grain-size-stats, plot-maker]
 sources:
   - "Thresholding, hole filling, labelling, the distance transform, the watershed split and the particle measures are written by fibub. The tests check them against SciPy (binary_fill_holes, distance_transform_edt, ConvexHull) and scikit-image 0.26 (label, regionprops, h_maxima and watershed) on a test image, and the D values against numpy.percentile."
   - "Perimeter uses the same 4-neighbour weighted outline estimate as scikit-image; circularity is 4πA/P²."
@@ -39,6 +39,8 @@ This page measures the size and shape of every particle in a micrograph, the way
    - **Aspect ratio**, major ÷ minor axis of the ellipse with the same second moments.
 6. **Edge particles.** A particle cut by the edge of the area would be measured too small, so it is left out (grey) unless you untick the box.
 7. **Distribution.** A histogram and **D10, D50 and D90**: the diameters below which 10, 50 and 90 % of the particles lie, by number or by area (by area weights each particle by its area, closer to what a laser diffraction instrument reports by volume).
+
+Compare with light-scattering sizes in the [[dls-analyser|DLS analyser]], and measure grains in a polished section with the [[grain-size-intercept|grain size intercept tool]].
 
 ## How to use it
 

@@ -11,7 +11,7 @@ order: 627
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [battery-cycling-analyser, sun-position-calculator]
+related: [battery-cycling-analyser, sun-position-calculator, solar-pv-yield, home-battery-sizing, led-resistor-calculator, lcoe-calculator, cubesat-power-budget]
 sources:
   - "Battery energy (Ah × V), runtime from usable capacity, and Peukert's law t = H·(C/(I·H))^k (Peukert 1897): general electrical engineering."
   - "Off-grid sizing method (daily load ÷ peak sun hours with derating for losses and charge efficiency; battery bank = daily load × days of autonomy ÷ depth of discharge; controller current = array W ÷ system V × 1.25): common practice in solar design guides, written by fibub."
@@ -30,6 +30,8 @@ Two linked sums for anyone running things from batteries, from a camping fridge 
 **Battery runtime.** From the battery's capacity (Ah or Wh) and voltage, the load (watts at the device or amps from the battery), the efficiency of any converter or inverter, and how much of the battery you are willing to use, the page gives the **runtime**. It also applies **Peukert's law**: batteries deliver less than their rated capacity when drained faster than the rate they were rated at (often 20 hours). The chart shows how runtime falls as the load rises, with and without that effect.
 
 **Off-grid solar sizing.** List your appliances with their watts, hours a day and quantity, and the page adds up the **daily load**. Using your **peak sun hours** and allowances for losses, it sizes the **solar array** and the number of panels, the **battery bank** for the days you want to cover without sun, the **series and parallel layout** of the batteries, and the **charge controller** current.
+
+Estimate a year's output from a roof system with the [[solar-pv-yield]] tool, and size a battery for a home on the grid with the [[home-battery-sizing]] tool.
 
 ## How to use it
 

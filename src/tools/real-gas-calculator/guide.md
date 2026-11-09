@@ -11,7 +11,7 @@ order: 1
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [gas-law-calculator, phase-diagram-calculator, vapour-pressure-calculator, thermochemistry-calculator]
+related: [gas-law-calculator, phase-diagram-calculator, vapour-pressure-calculator, thermochemistry-calculator, heat-engine-cycles, partition-function, steam-tables, pvt-correlations]
 sources:
   - "van der Waals (1873); Redlich, O. and Kwong, J. N. S. (1949), Chemical Reviews 44, 233; Soave, G. (1972), Chemical Engineering Science 27, 1197; Peng, D.-Y. and Robinson, D. B. (1976), Industrial and Engineering Chemistry Fundamentals 15, 59: the equations and their standard constants, as given in thermodynamics textbooks."
   - "Critical temperatures, pressures and acentric factors: rounded general values for common gases, editable on the page."
@@ -36,6 +36,8 @@ This calculator works out Z with four classic **cubic equations of state** and t
 - **Soave-Redlich-Kwong** and **Peng-Robinson**: add the **acentric factor ω** so they also fit vapour pressures. They are the workhorses of chemical engineering; Peng-Robinson gives better liquid densities.
 
 All four need only the gas's **critical temperature, critical pressure** and (for the last two) **ω**. The plain van der Waals answer with tabulated constants is in the [gas law calculator](/science/gas-law-calculator/); this tool is for comparing equations and drawing Z charts.
+
+Start from the ideal case in the [[gas-law-calculator]], and look up water and steam in the [[steam-tables]].
 
 ## How to use it
 

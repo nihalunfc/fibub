@@ -11,7 +11,7 @@ order: 583
 icon: table
 works: offline
 updated: 2026-11-09
-related: [graph-algorithms, sql-playground]
+related: [graph-algorithms, sql-playground, lp-solver, vehicle-routing, queueing-calculator, project-scheduler, shift-scheduler]
 sources:
   - "Standard operations-research methods (northwest corner rule, least-cost method, Vogel's approximation, MODI / u-v method with stepping-stone loops, Hungarian method of Kuhn and Munkres), written by fibub."
   - "Checked against scipy (BSD licence): optimize.linprog (HiGHS) for 150 random transportation problems and optimize.linear_sum_assignment for 150 random assignment tables, including unbalanced, degenerate, forbidden and maximising cases; all optima equal."
@@ -29,6 +29,8 @@ Two classic problems from an operations research course, solved in your browser 
 
 - **Transportation problem**: several sources (factories, depots) with a supply, several destinations (shops, warehouses) with a demand, and a cost per unit on each route. Which routes should carry how much, to meet demand at the lowest total cost? The tool builds a **starting plan** by the **northwest corner** rule, the **least-cost** method or **Vogel's approximation method**, then improves it with the **MODI (u-v) method**, moving goods round stepping-stone loops until no route can lower the cost.
 - **Assignment problem**: give each person (or machine) a different job so the total cost or time is lowest, or the total profit highest. Solved by the **Hungarian method**.
+
+Add extra rules with the [[lp-solver|linear programming solver]], and plan the delivery rounds with the [[vehicle-routing|vehicle routing planner]].
 
 ## How to use it
 

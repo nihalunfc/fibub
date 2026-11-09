@@ -11,7 +11,7 @@ order: 6
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [decay-calculator, decay-chain, uncertainty-calculator, gamma-shielding]
+related: [decay-calculator, decay-chain, uncertainty-calculator, gamma-shielding, spectrum-peak-fitter, hypothesis-tests, distribution-explorer, sample-size]
 sources:
   - "Currie, L. A. (1968), Limits for qualitative detection and quantitative determination, Analytical Chemistry 40, 586 to 593 (decision threshold and detection limit formulas)."
   - "Poisson counting, dead-time models and optimum counting-time division: standard results, for example Knoll, G. F., Radiation Detection and Measurement. Exact Poisson limits: Garwood, F. (1936), Biometrika 28, 437."
@@ -31,6 +31,8 @@ Radioactive decay is random, so every count has an uncertainty: for N counts the
 1. **Net counts and detection limit.** From gross counts (sample plus background) and a separate background count, it gives the net rate with its uncertainty, √(G/t_g² + B/t_b²), and **Currie's** two limits. The **decision threshold** L_C is the net count above which you say "detected", with a false-positive rate α. The **detection limit** L_D is the true net count you would detect with probability 1 − β. With a counting efficiency it also gives the activity and the **minimum detectable activity** (MDA). Exact Poisson limits are shown for the gross and background counts.
 2. **Dead-time correction.** A detector is blind for a short time τ after each event. The page corrects a measured rate with the **non-paralysable** model, n = m / (1 − mτ), and the **paralysable** one, m = n e^(−nτ) (solved with the Lambert W function), and plots both.
 3. **Counting-time planning.** For expected gross and background rates, the best split of a fixed time is t_sample / t_background = √(R_gross / R_background); the page gives that split, the uncertainty it reaches, and the total time for the uncertainty you want.
+
+Fit the peaks in your gamma spectrum with the [[spectrum-peak-fitter|spectrum peak fitter]], and follow the activity through time with the [[decay-chain|decay chain calculator]].
 
 ## How to use it
 

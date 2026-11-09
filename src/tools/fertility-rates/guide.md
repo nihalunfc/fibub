@@ -11,7 +11,7 @@ order: 757
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [plot-maker, data-cleaner, sample-size, life-table, population-pyramid]
+related: [plot-maker, data-cleaner, sample-size, life-table, population-pyramid, cohort-component-projection, rate-standardisation]
 sources:
   - "Formulas only: standard period fertility measures as in Preston, Heuveline and Guillot (2001), chapter 5. Example births, women and nLx are made up."
 flow:
@@ -30,6 +30,8 @@ How many children are being born, and is a population replacing itself? This too
 - **Gross reproduction rate (GRR):** the same, counting only daughters.
 - **Net reproduction rate (NRR):** daughters per woman after allowing for some women dying before or during their childbearing years. An NRR of 1 means each generation of women just replaces itself.
 - **Mean age at childbearing**, **general fertility rate** (births per 1,000 women aged 15–49) and **crude birth rate** (births per 1,000 people).
+
+Use the rates in the [[cohort-component-projection]] to see how the population grows, and draw its age structure with the [[population-pyramid]].
 
 ## How to use it
 

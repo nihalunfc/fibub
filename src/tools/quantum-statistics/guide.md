@@ -11,7 +11,7 @@ order: 6
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [partition-function, ising-model, blackbody-calculator]
+related: [partition-function, ising-model, blackbody-calculator, band-structure, carrier-concentration, superconductor-calculator, heat-capacity-fitter, real-gas-calculator]
 sources:
   - "Fermi-Dirac and Bose-Einstein statistics, the ideal Fermi and Bose gases, the Fermi energy and the condensation temperature: standard results, for example Pathria, R. K. and Beale, P. D., Statistical Mechanics."
   - "Constants: CODATA 2018 exact values of h, kB and e; electron mass and unified atomic mass unit from CODATA; atomic masses of ³He, ⁴He and ⁸⁷Rb rounded."
@@ -33,6 +33,8 @@ In a system at temperature T, the average number of particles in a quantum state
 - **Bose-Einstein** (bosons: photons, ⁴He, ⁸⁷Rb): f = 1/(e^((E−μ)/kT) − 1). Bosons crowd into the lowest states; f grows without limit as E approaches μ.
 
 The **chemical potential** μ is the energy at which a state is half full for fermions. The top half of the page plots the three curves for any T and μ and reads them off at one energy. The bottom half solves an **ideal quantum gas**: from the particles' mass, spin degeneracy, number density and temperature it finds μ, the **thermal wavelength**, the **degeneracy** nλ³/g (above about 1 quantum effects dominate), the mean energy, the pressure, and the **Fermi energy** for fermions or the **Bose-Einstein condensation temperature** and condensate fraction for bosons.
+
+Use the Fermi-Dirac result for semiconductors in the [[carrier-concentration|carrier concentration calculator]], and see Planck's law for light in the [[blackbody-calculator]].
 
 ## How to use it
 

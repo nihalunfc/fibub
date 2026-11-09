@@ -11,7 +11,7 @@ order: 643
 icon: sliders
 works: offline
 updated: 2026-11-09
-related: [bolt-torque-calculator, beam-calculator]
+related: [bolt-torque-calculator, beam-calculator, shaft-bearing-life, spring-designer, tolerance-stackup, unit-converter]
 sources:
   - "Gear train speed and torque ratios, centre distance from the module, and the Willis (tabular) equation for epicyclic gear sets, as in standard machine design texts such as Shigley's Mechanical Engineering Design and Norton's Design of Machinery (equations only)."
   - "Planetary assembly conditions (ring minus sun even, sun plus ring divisible by the number of equally spaced planets, neighbouring planets clear) are standard geometric rules."
@@ -32,6 +32,8 @@ Three calculators for passing rotation from one shaft to another:
 - **Gear train.** List the meshes from the input onward and get the speed, direction, torque and power of every shaft, the overall ratio and efficiency, and the centre distance of each pair from the module.
 - **Planetary gear set.** A sun, a ring and planets on a carrier. Give any two speeds (one is usually 0, the held member) and the Willis equation gives the third, the planet spin, the ratio, the ideal torques, and whether the planets fit.
 - **Belt drive.** The exact belt length and wrap angles for an open or crossed belt, the driven speed with slip, the belt speed, or the centre distance for a belt you already have.
+
+Once you know the speeds and torques, size the shafts and bearings with the [[shaft-bearing-life|shaft and bearing life calculator]], and check the fits in the [[tolerance-stackup]].
 
 ## How to use it
 

@@ -21,6 +21,7 @@ const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-
   {subject.groups.length > 3 && (
     <nav class="jump" aria-label="Sections">{subject.groups.map((g) => <a href={`#${g.id}`}>{g.name}</a>)}</nav>
   )}
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="sp-star" viewBox="0 0 24 24" set:html={star} /></svg>
   <div class="secs">
     {subject.groups.map((g) => (
       <section class="sec" id={g.id}>
@@ -28,10 +29,10 @@ const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-
         {g.blurb && <p class="blurb">{g.blurb}</p>}
         <ul class="ix">
           {g.tools.map((t) => (
-            <li class="ti" data-id={t.id} data-num={t.data.num} data-search={`${t.data.name} ${t.data.summary} #${t.data.num}`.toLowerCase()}>
+            <li class="ti" data-id={t.id} data-num={t.data.num}>
               <a href={toolUrl(t)}><span class="nm">{t.data.name}</span><span class="sm">{t.data.summary}</span></a>
               <span class="num">#{t.data.num}</span>
-              <button type="button" class="pin" aria-pressed="false" aria-label={`Add ${t.data.name} to My tools`} title="Add to My tools"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true" set:html={star} /></button>
+              <button type="button" class="pin" aria-pressed="false" aria-label={`Add ${t.data.name} to My tools`} title="Add to My tools"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><use href="#sp-star" /></svg></button>
             </li>
           ))}
         </ul>
@@ -57,6 +58,8 @@ const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-
   const input = document.querySelector<HTMLInputElement>('.sp-find input');
   if (input) {
     const rows = [...document.querySelectorAll<HTMLElement>('.secs .ti')];
+    // Search text is built here from what the row shows (name, summary, #number), so the HTML carries it only once.
+    for (const r of rows) r.dataset.search = (r.textContent || '').replace(/\s+/g, ' ').toLowerCase();
     const empty = document.querySelector<HTMLElement>('.sp-empty')!;
     input.addEventListener('input', () => {
       const ws = input.value.toLowerCase().split(/\s+/).filter(Boolean);

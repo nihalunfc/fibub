@@ -11,7 +11,7 @@ order: 860
 icon: target
 works: offline
 updated: 2026-11-09
-related: [tauc-plot, carrier-concentration, blackbody-calculator, wave-calculator]
+related: [tauc-plot, carrier-concentration, blackbody-calculator, wave-calculator, nanoparticle-calculator, dls-analyser, beer-lambert-calculator, schrodinger-solver]
 sources:
   - "The Brus equation (effective-mass model of a spherical dot with confinement, Coulomb and polarisation terms) and the exciton Bohr radius are standard; the code is written by fibub and checked in the tests against NumPy with scipy.constants and scipy.optimize (brentq, minimize_scalar)."
   - "The example materials (CdSe-like, CdS-like, PbS-like) use rounded values made up to behave like those materials. They are not reference data; type your own. No empirical sizing curve is included: you type your own coefficients."
@@ -34,6 +34,8 @@ The first term after the bulk gap Eg is the confinement energy; the second is th
 - **Shows the parts.** The confinement, Coulomb and polarisation terms, the exciton Bohr radius aB = ε(m₀/μ)a₀, and how the dot compares with it.
 - **Plots** the gap against diameter, with the bulk gap and twice the Bohr radius marked.
 - **Your own sizing curve.** Many labs size dots with an empirical polynomial fitted to microscope sizes. The page does not include any; type the coefficients of the curve you use, and it is shown beside the Brus result.
+
+Read the band gap off an absorption spectrum with the [[tauc-plot]], and work out how many particles are in your sample with the [[nanoparticle-calculator]].
 
 ## How to use it
 

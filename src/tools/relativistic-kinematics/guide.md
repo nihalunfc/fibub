@@ -11,7 +11,7 @@ order: 3
 icon: orbit
 works: offline
 updated: 2026-11-09
-related: [decay-chain, uncertainty-calculator, redshift-calculator]
+related: [decay-chain, uncertainty-calculator, redshift-calculator, stopping-power, feynman-diagram, spectrum-peak-fitter, spacetime-diagram, physical-constants, unit-converter]
 sources:
   - "Special-relativistic kinematics (four-vectors, invariant mass, the Källén function for two-body decays, general Lorentz boosts, threshold energies): standard results, for example the Particle Data Group's Review of Particle Physics, Kinematics section, and Hagedorn, R. (1963), Relativistic Kinematics."
   - "Particle masses are rounded general values (Particle Data Group style), listed in the page's code."
@@ -32,6 +32,8 @@ At speeds near light, energy and momentum mix together as a **four-momentum** (E
 2. **Two-body decay:** a particle of mass M at rest splits into two. Their momentum is fixed: p* = √λ(M², m₁², m₂²) / 2M, where λ is the Källén function. If the parent is moving, the page gives each daughter's lab energy range and the largest angle it can make with the parent's direction, with a chart of lab angle against rest-frame angle.
 3. **Lorentz boost:** a four-momentum seen from a frame moving with any velocity β.
 4. **Threshold:** the least beam energy that can make a given set of products on a target at rest, and the energy per beam if two equal beams collide head-on instead.
+
+Follow a charged particle as it slows down in matter with the [[stopping-power|stopping power calculator]], and sketch the reaction you are studying with the [[feynman-diagram|Feynman diagram drawer]].
 
 ## How to use it
 

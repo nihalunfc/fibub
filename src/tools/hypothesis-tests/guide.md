@@ -11,7 +11,7 @@ order: 560
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [sample-size, effect-size-converter, bootstrap-permutation, distribution-explorer, regression-workbench, plot-maker, data-cleaner, reliability-analysis, uncertainty-calculator]
+related: [sample-size, effect-size-converter, bootstrap-permutation, distribution-explorer, regression-workbench, plot-maker, data-cleaner, reliability-analysis, uncertainty-calculator, bayesian-ab-test]
 sources:
   - "Methods as in scipy.stats and statsmodels; Shapiro-Wilk by Royston (1995); Tukey HSD with the studentized range distribution. Example data made up."
 flow:
@@ -32,6 +32,8 @@ Tests included:
 - **Chi-square** goodness of fit and test of independence, and **Fisher's exact test** for 2 × 2 tables.
 - Rank-based tests that do not need normal data: **Mann-Whitney U**, **Wilcoxon signed-rank** (one group or paired) and **Kruskal-Wallis**.
 - **Shapiro-Wilk** to check whether data look normal, with a Q-Q plot.
+
+Plan how many samples you need with the [[sample-size|sample size calculator]] before you start, and report how big the difference is with the [[effect-size-converter]].
 
 ## How to use it
 

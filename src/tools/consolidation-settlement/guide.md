@@ -11,7 +11,7 @@ order: 657
 icon: clock
 works: offline
 updated: 2026-11-09
-related: [bearing-capacity, soil-classification]
+related: [bearing-capacity, soil-classification, atterberg-compaction, darcy-flow-calculator, graph-digitizer, load-combination-helper]
 sources:
   - "Primary consolidation settlement S = Cc·H/(1 + e0)·log(σ′f/σ′0), with Cr below the preconsolidation pressure: one-dimensional consolidation theory, general soil mechanics."
   - "Terzaghi's one-dimensional consolidation theory: U = 1 − Σ 2/M² exp(−M²Tv), M = π(2m + 1)/2, Tv = cv·t/Hdr², and the isochrone series; Casagrande's log-time and Taylor's root-time methods for cv (Tv at 50 % and 90 % computed from the series)."
@@ -31,6 +31,8 @@ When you load saturated clay, water has to squeeze out of its tiny pores before 
 - **How much**: for each layer, the page finds the effective stress at mid-depth before (σ′0) and after (σ′f) loading, compares it with the **preconsolidation pressure σ′p**, and uses the **compression index Cc** (normally consolidated), the **recompression index Cr** (over-consolidated) or both (over-consolidated clay pushed past σ′p).
 - **How long**: Terzaghi's theory gives the average **degree of consolidation U** from the **time factor Tv = cv·t/Hdr²**. The page sums the series exactly, finds the time to any U, and draws the settlement against time and the **isochrones** (how the excess pore pressure dies away through the clay).
 - **cv from a lab test**: from Casagrande's t50 or Taylor's t90 on an oedometer curve.
+
+Check the footing will not fail first with the [[bearing-capacity|bearing capacity calculator]], and read a lab oedometer curve off a scanned figure with the [[graph-digitizer]].
 
 ## How to use it
 

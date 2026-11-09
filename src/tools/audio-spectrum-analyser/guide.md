@@ -11,7 +11,7 @@ order: 3
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [room-acoustics, decibel-distance, period-finder]
+related: [room-acoustics, decibel-distance, period-finder, standing-waves, harmonics-analyser, tuning-calculator, doppler-beats, fft-workbench, bird-song-spectrogram]
 sources:
   - "Fast Fourier transform (Cooley and Tukey, 1965), Hann, Hamming and Blackman windows, Welch's averaged periodogram (Welch, 1967) and parabolic peak interpolation: standard signal processing, written by fibub."
   - "Equal-tempered note names from f = 440 · 2^((n − 69)/12) (A4 adjustable)."
@@ -32,6 +32,8 @@ Every sound is a mix of pure tones. This analyser splits a sound into its freque
 - the **strongest peaks**, refined between FFT bins to a fraction of a hertz, with the nearest **musical note** and how many cents sharp or flat it is.
 
 It works **live from the microphone** or on an **audio file** (WAV, MP3, OGG, FLAC and others your browser can decode). For a file, the spectra of overlapping slices are averaged (Welch's method), which gives a steady, low-noise picture. The page never records, saves or uploads the sound: it is analysed in the browser and thrown away. There are no adverts on this tool.
+
+Analyse a recorded file in more depth with the [[fft-workbench]], or study an instrument's overtones with the [[harmonics-analyser|instrument harmonics analyser]].
 
 ## How to use it
 

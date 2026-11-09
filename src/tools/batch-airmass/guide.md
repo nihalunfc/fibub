@@ -11,7 +11,7 @@ order: 833
 icon: telescope
 works: offline
 updated: 2026-11-09
-related: [object-altitude, sky-coordinates, astro-time, sky-tonight, dark-sky-calendar]
+related: [object-altitude, sky-coordinates, astro-time, sky-tonight, dark-sky-calendar, observing-session, transit-planner]
 sources:
   - "Positions from the astronomy-engine library (MIT licence) with annual aberration added by fibub, checked against astropy's AltAz frame to within 2 arcseconds."
   - "Airmass formulas: Hardie, R. H. 1962, in Astronomical Techniques (ed. W. A. Hiltner), p. 184; Kasten, F. and Young, A. T. 1989, Applied Optics 28, 4735; Pickering, K. A. 2002, DIO 12, 3. Formulas only; no tables are copied."
@@ -32,6 +32,8 @@ Planning a night of observing, or a proposal, starts with a target list and one 
 - **The Moon's distance** from the target at its best time, and the closest it comes during the span.
 
 The results are a table you can sort by any column, an altitude chart of up to ten targets with the night shaded by the Sun's height, a step-by-step table of altitude and airmass, and two CSV files.
+
+Convert your coordinates first with the [[sky-coordinates|sky coordinate converter]], and plan one target in detail with the [[object-altitude|target altitude planner]].
 
 ## Airmass formulas
 

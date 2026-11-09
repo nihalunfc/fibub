@@ -29,6 +29,8 @@ When two drugs are given together, the combined effect can be more than expected
 
 It is for study and teaching, not medical advice. It analyses data from an experiment; it does not suggest doses.
 
+Fit each drug's own curve first with the [[dose-response|dose-response fitter]], and measure how each binds its target with the [[binding-curve-fitter|binding curve fitter]].
+
 ## How to use it
 
 1. **Paste the matrix.** The first row holds drug B's doses after a corner cell; each following row starts with a drug A dose, then the responses at each drug B dose. Both drugs need a dose of 0, so the matrix includes each drug alone. Up to 20 × 20 wells. Or use **Open a file**.

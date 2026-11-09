@@ -11,7 +11,7 @@ order: 512
 icon: mountain
 works: offline
 updated: 2026-11-09
-related: [infinite-slope, load-combination-helper]
+related: [infinite-slope, load-combination-helper, glacier-ice, phone-clinometer, slope-stability]
 sources:
   - "Formulas (general physics and snow science, no data copied): SWE = depth × snow density ÷ water density; snow tube SWE = snow mass ÷ tube cross-section; load = mass × standard gravity; slope = atan(rise ÷ run)."
   - "Vincenty (1975), direct and inverse solutions of geodesics on the ellipsoid, with the WGS84 ellipsoid; W3C DeviceOrientation Event specification for the phone's tilt angles."
@@ -33,6 +33,8 @@ Three small field calculators for snow, on one page, all working without interne
 - **Slope angle**: from **map contours** (interval, number of intervals, map distance and scale), from your **phone's tilt sensor** laid on the slope, from a typed clinometer reading, or from **two GPS points** with elevations. The angle is shown on a 0 to 90° bar with the general band where most slab avalanches start (about 30 to 45°).
 
 **This is not an avalanche or safety forecast.** Angle is only one part of avalanche terrain; the snowpack, the weather, the terrain above and the runout below all matter. Read your local avalanche forecast and take an avalanche course.
+
+Measure a slope on the spot with the [[phone-clinometer]], and check whether a soil slope will hold with the [[infinite-slope]] tool.
 
 ## How to use it
 

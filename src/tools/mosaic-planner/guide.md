@@ -11,7 +11,7 @@ order: 50
 icon: crop
 works: offline
 updated: 2026-11-08
-related: [telescope-calculator, sky-coordinates, object-altitude, sub-exposure-calculator]
+related: [telescope-calculator, sky-coordinates, object-altitude, sub-exposure-calculator, image-stacker, backfocus-calculator, batch-airmass, star-fwhm-checker, dark-sky-calendar]
 sources:
   - "Deep-sky objects: the OpenNGC catalogue by Mattia Verga (CC BY-SA 4.0)."
   - "Camera sensor sizes: typical published sizes, typed by fibub."

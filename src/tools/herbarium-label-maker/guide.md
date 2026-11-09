@@ -11,7 +11,7 @@ order: 326
 icon: file
 works: offline
 updated: 2026-11-09
-related: [field-sampling-planner, plate-layout, data-cleaner, qr-code-generator, observing-log]
+related: [field-sampling-planner, plate-layout, data-cleaner, qr-code-generator, observing-log, dichotomous-key-builder, spore-size-measurer, sample-label-maker]
 sources:
   - "Field names: Darwin Core terms, Biodiversity Information Standards (TDWG), dwc.tdwg.org/terms (CC BY 4.0). Term names only."
   - "Label layout follows common herbarium practice (heading, family, name in italics with authors in roman, locality, coordinates, elevation, habitat, collector and number, date, determiner). Written by fibub."
@@ -27,6 +27,8 @@ flow:
 ## What it does
 
 Every pressed plant in a herbarium carries a **label** with what it is, where and when it was collected, and by whom. This tool turns specimen records into neat, consistent labels, several to a page, ready to print on archival paper. The records use **Darwin Core**, the standard field names used by GBIF and most herbarium databases, so the same data can go straight into a collection database.
+
+Identify the specimen first with a key from the [[dichotomous-key-builder|dichotomous key builder]], and make tube or packet labels with the [[sample-label-maker|sample label maker]].
 
 ## How to use it
 

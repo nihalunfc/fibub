@@ -11,7 +11,7 @@ order: 313
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, sample-size, vcf-viewer]
+related: [biodiversity-indices, sample-size, vcf-viewer, wright-fisher-simulator, coalescent-simulator, breeders-equation, allele-frequency-calculator, hardy-weinberg-tester, mark-recapture]
 sources:
   - "Formulas: S. Wright (1931), Genetics 16: 97-159 (sex ratio and harmonic mean); J. F. Crow and M. Kimura (1970), An Introduction to Population Genetics Theory (Ne = (4N − 2)/(Vk + 2)); M. Nei and F. Tajima (1981), Genetics 98: 625-640 (Fc); R. S. Waples (1989), Genetics 121: 379-391 (sampling correction, plans I and II, chi-square interval). Formulas only; no tables are copied."
   - "Checked in the tests against an independent numpy and SciPy calculation (scipy.stats.hmean, numpy.var, scipy.stats.chi2.ppf), including a locus with three alleles and sampling plan II. A Python simulation of drift with a true Ne of 100 (200 loci, 200 runs) gave a median temporal estimate of 103, as expected for this slightly biased method."
@@ -28,6 +28,8 @@ flow:
 The **effective population size**, Ne, is the size of an ideal population that would lose genetic diversity by drift as fast as the real one does. It is almost always smaller than the number of animals or plants you can count, because not all of them breed, the sexes are unequal, numbers go up and down, and some parents leave far more young than others. Ne matters in conservation (a common rule of thumb is to keep it well above 50 in the short term) and in breeding programmes.
 
 This calculator gives the four classic estimators.
+
+Follow drift in a population of that size with the [[wright-fisher-simulator|Wright-Fisher simulator]], and trace the genealogy back with the [[coalescent-simulator|coalescent simulator]].
 
 ## How to use it
 

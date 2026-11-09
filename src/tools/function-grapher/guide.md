@@ -11,7 +11,7 @@ order: 541
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [fractal-explorer, numerical-methods, symbolic-algebra, plot-maker, calibration-curve]
+related: [fractal-explorer, numerical-methods, symbolic-algebra, plot-maker, calibration-curve, matrix-calculator, ode-solver, fourier-visualiser, geometry-construction, curve-fitter]
 sources:
   - "Standard numerical methods (bisection, golden-section search, marching squares, orthographic projection); no outside data."
   - "Checked against Python numpy and scipy: polynomial roots and crossings (numpy.roots), curve lengths (scipy quad and ellipe), crossings (brentq) and maxima (minimize_scalar)."
@@ -34,6 +34,8 @@ This is a graphing calculator that runs in your browser. Type one or more curves
 Any other single letter, such as `a`, `b` or `k`, becomes a **slider**, so you can watch the graph change. `e` is Euler's number and `pi` is π. Functions include sin, cos, tan, their inverses (asin, acos, atan), sinh, cosh, tanh, exp, ln, log (base 10), sqrt, abs, cbrt, min, max and atan2. Angles are in radians.
 
 The **3D surface** tab draws z = f(x, y) as a shaded wireframe that you can turn and tilt by dragging.
+
+Simplify or differentiate the formula first in [[symbolic-algebra]], and find roots and areas step by step with [[numerical-methods]].
 
 ## How to use it
 

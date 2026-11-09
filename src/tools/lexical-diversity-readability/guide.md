@@ -11,7 +11,7 @@ order: 736
 icon: book
 works: offline
 updated: 2026-11-09
-related: [kmer-counter, plot-maker, reliability-analysis]
+related: [kmer-counter, plot-maker, reliability-analysis, corpus-concordancer, readability-checker, stylometry-delta, abstract-word-counter]
 sources:
   - "Formulas: Guiraud (1954) root TTR; Herdan (1960) log TTR; Covington and McFall (2010) MATTR; McCarthy and Jarvis (2007, 2010) HD-D and MTLD; Yule (1944) K; Flesch (1948); Kincaid et al. (1975); Gunning (1952); McLaughlin (1969) SMOG; Coleman and Liau (1975); Smith and Senter (1967) ARI. Example text written for this tool."
 flow:
@@ -24,6 +24,8 @@ flow:
 ## What it does
 
 **Lexical diversity** is how varied the vocabulary of a text is. Language teachers, second-language researchers, speech therapists and corpus linguists use it to compare essays, transcripts or learner writing. **Readability** formulas estimate how hard a text is to read from sentence length and word length. This tool works out the measures most often reported in research, from the same text, in your browser. Nothing is uploaded.
+
+Look at the words in context with the [[corpus-concordancer]], and check a draft's plain-English score with the [[readability-checker]].
 
 ## How to use it
 
