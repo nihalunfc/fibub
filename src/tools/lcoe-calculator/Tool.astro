@@ -1,0 +1,150 @@
+---
+// Levelised cost of energy with a yearly cash-flow table and a tornado chart. Example plants are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax lco">
+  <div class="ax-card">
+    <h2>Plant</h2>
+    <label>Start from <select class="lcoe-ex"><option value="solar" selected>Solar farm (made-up example)</option><option value="wind">Onshore wind farm (made-up example)</option><option value="gas">Gas combined-cycle plant (made-up example)</option></select></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Capacity (MW) <input class="lcoe-mw" type="text" inputmode="decimal" /></label>
+      <label>Capital cost (per kW) <input class="lcoe-capex" type="text" inputmode="decimal" /></label>
+      <label>Fixed O&amp;M (per kW per year) <input class="lcoe-fom" type="text" inputmode="decimal" /></label>
+      <label>Variable O&amp;M (per MWh) <input class="lcoe-vom" type="text" inputmode="decimal" /></label>
+      <label>Fuel price (per GJ of fuel) <input class="lcoe-fuel" type="text" inputmode="decimal" /></label>
+      <label>Heat rate (GJ of fuel per MWh) <input class="lcoe-hr" type="text" inputmode="decimal" /></label>
+      <label>Capacity factor (%) <input class="lcoe-cf" type="text" inputmode="decimal" /></label>
+      <label>Output loss per year (%) <input class="lcoe-degr" type="text" inputmode="decimal" /></label>
+      <label>Discount rate (% a year) <input class="lcoe-rate" type="text" inputmode="decimal" /></label>
+      <label>Lifetime (years) <input class="lcoe-life" type="text" inputmode="numeric" /></label>
+      <label>O&amp;M and fuel cost rise (% a year) <input class="lcoe-esc" type="text" inputmode="decimal" /></label>
+      <label>Tornado range (± %) <input class="lcoe-tor" type="text" inputmode="decimal" value="20" /></label>
+    </div>
+    <p class="ax-help">All money in one currency of your choice. The example plants are made-up round numbers to show how the sums work; they are not market prices, study results or agency figures, so put in your own. Capacity factor: average output as a share of full output (solar is often 10 to 30 %, wind 25 to 50 %). Heat rate: fuel energy burned per MWh of electricity (0 for wind, solar and hydro). Use a real discount rate with costs in today's money, or a nominal rate with the cost rise set to inflation.</p>
+    <p class="ax-err lcoe-err" hidden></p>
+  </div>
+
+  <div class="ax-card lcoe-out">
+    <h2>Levelised cost</h2>
+    <p class="ax-big lcoe-big"></p>
+    <dl class="ax-facts lcoe-facts"></dl>
+    <h3>What it is made of</h3>
+    <canvas class="ax-fig lcoe-parts"></canvas>
+    <h3>Sensitivity (tornado)</h3>
+    <canvas class="ax-fig lcoe-torfig"></canvas>
+    <p class="ax-help lcoe-tornote"></p>
+    <h3>Cash flow, year by year</h3>
+    <div class="ax-scroll lcoe-tw"><table class="lcoe-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small lcoe-csv">Download cash flow (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .lco h3 { margin: 22px 0 8px; font-size: 15px; }
+  .lco .lcoe-tw { max-height: 460px; overflow-y: auto; }
+</style>
+
+<script>
+  import { lcoe, tornado, EXAMPLES, type LcoeInput, type LcoeResult, type Bar } from '../../lib/sci/eng-lcoe';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.lco')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const m0 = (x: number) => Math.round(x).toLocaleString('en');
+  const m2 = (x: number) => x.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  // Input boxes and the factor between the box and the model (percent boxes are divided by 100).
+  const FIELDS: [keyof LcoeInput, string, number][] = [['mw', '.lcoe-mw', 1], ['capex', '.lcoe-capex', 1], ['fom', '.lcoe-fom', 1], ['vom', '.lcoe-vom', 1], ['fuelPrice', '.lcoe-fuel', 1], ['heatRate', '.lcoe-hr', 1], ['cf', '.lcoe-cf', 100], ['degr', '.lcoe-degr', 100], ['rate', '.lcoe-rate', 100], ['life', '.lcoe-life', 1], ['esc', '.lcoe-esc', 100]];
+  const fill = (k: string) => { const p = EXAMPLES[k].p; for (const [key, c, f] of FIELDS) q<HTMLInputElement>(c).value = String(+(p[key] * f).toPrecision(10)); };
+  const HEAD = ['Year', 'Energy (MWh)', 'Capital', 'Fixed O&M', 'Variable O&M', 'Fuel', 'Total cost', 'Discount factor', 'PV of cost', 'PV of energy (MWh)'];
+  let res: LcoeResult | null = null, bars: Bar[] = [], figs: Figure[] = [], inp: LcoeInput | null = null, span = 0.2;
+
+  const rows = (r: LcoeResult) => r.years.map((y) => [String(y.t), m0(y.mwh), m0(y.capex), m0(y.fom), m0(y.vom), m0(y.fuel), m0(y.total), y.df.toFixed(4), m0(y.pvCost), m0(y.pvMwh)]);
+
+  function run() {
+    const err = q('.lcoe-err'), out = q('.lcoe-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; res = null; };
+    const p = Object.fromEntries(FIELDS.map(([k, c, f]) => [k, val(c) / f])) as LcoeInput;
+    if (!(p.mw > 0)) return fail('Give the capacity in MW.');
+    for (const [k, name] of [['capex', 'capital cost'], ['fom', 'fixed O&M'], ['vom', 'variable O&M'], ['fuelPrice', 'fuel price'], ['heatRate', 'heat rate'], ['degr', 'output loss'], ['esc', 'cost rise']] as const) if (!(p[k] >= 0)) return fail(`Give the ${name} (0 or more).`);
+    if (!(p.cf > 0 && p.cf <= 1)) return fail('Give a capacity factor above 0 and up to 100 %.');
+    if (!(p.degr < 0.5)) return fail('The output loss per year must be under 50 %.');
+    if (!(p.rate >= 0 && p.rate < 1)) return fail('Give a discount rate from 0 to 99 %.');
+    if (!(Number.isInteger(p.life) && p.life >= 1 && p.life <= 100)) return fail('Give a lifetime in whole years, from 1 to 100.');
+    span = val('.lcoe-tor') / 100;
+    if (!(span > 0 && span < 1)) return fail('Give a tornado range between 1 and 99 %.');
+    err.hidden = true; out.hidden = false; inp = p;
+    const r = lcoe(p); res = r;
+    q('.lcoe-big').textContent = `LCOE ${m2(r.lcoe)} per MWh (${(r.lcoe / 1000).toFixed(4)} per kWh)`;
+    q('.lcoe-facts').replaceChildren(
+      fact('Energy in year 1', `${m0(p.mw * 8760 * p.cf)} MWh`, `${sig(p.mw, 4)} MW × 8,760 h × ${sig(p.cf * 100, 3)} %`),
+      fact('Lifetime energy', `${m0(r.totalMwh)} MWh`, `${m0(r.pvMwh)} MWh discounted`),
+      fact('Capital cost', m0(p.capex * p.mw * 1000), 'spent at the start (year 0)'),
+      fact('Present value of all costs', m0(r.pvCost), `at ${sig(p.rate * 100, 3)} % a year`),
+      fact('Capital recovery factor', r.crf.toFixed(5), `the share of the capital to repay each year over ${p.life} years`),
+      fact('Shortcut LCOE', `${m2(r.simple)} per MWh`, p.degr || p.esc ? 'annualised capital + O&M + fuel, ignoring output loss and cost rise' : 'equals the full sum here, as there is no output loss or cost rise'),
+    );
+    const parts: [string, number][] = [['Capital', r.parts.capex], ['Fixed O&M', r.parts.fom], ['Variable O&M', r.parts.vom], ['Fuel', r.parts.fuel]];
+    const W = root.clientWidth < 520 ? 380 : 560;
+    const partsFig: Figure = { w: W, h: 150, alt: `LCOE split: ${parts.map(([n, v]) => `${n} ${m2(v)}`).join(', ')}`, draw: (ctx, w, h, pal) => {
+      const L = 96, R = 14, x = (v: number) => L + (v / r.lcoe) * (w - L - R), cols = [pal.accent, pal.accent2, pal.good, pal.bad];
+      ctx.font = '12px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+      parts.forEach(([n, v], i) => {
+        const y = 14 + i * 32;
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.fillText(n, L - 8, y + 10);
+        ctx.fillStyle = cols[i]; ctx.fillRect(L, y, Math.max(0, x(v) - L), 20);
+        ctx.fillStyle = pal.ink; ctx.textAlign = v / r.lcoe > 0.6 ? 'right' : 'left';
+        const t = `${m2(v)} (${((100 * v) / r.lcoe).toFixed(1)} %)`; ctx.fillStyle = v / r.lcoe > 0.6 ? pal.bg : pal.ink; ctx.fillText(t, v / r.lcoe > 0.6 ? x(v) - 6 : x(v) + 6, y + 10);
+      });
+    } };
+    paint(q<HTMLCanvasElement>('.lcoe-parts'), partsFig);
+    bars = tornado(p, span);
+    const lo = Math.min(r.lcoe, ...bars.map((b) => Math.min(b.low, b.high))), hi = Math.max(r.lcoe, ...bars.map((b) => Math.max(b.low, b.high)));
+    const torFig: Figure = { w: W, h: 50 + bars.length * 30, alt: `Tornado chart: LCOE when each input moves ±${sig(span * 100, 3)} %`, draw: (ctx, w, h, pal) => {
+      const L = 108, R = 16, pad = (hi - lo) * 0.18 || 1, a = lo - pad, z = hi + pad, X = (v: number) => L + ((v - a) / (z - a)) * (w - L - R);
+      ctx.font = '11px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+      bars.forEach((b, i) => {
+        const y = 14 + i * 30, xl = X(b.low), xh = X(b.high), x0 = X(r.lcoe);
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.font = '12px system-ui, sans-serif'; ctx.fillText(b.name, L - 8, y + 10);
+        ctx.font = '11px system-ui, sans-serif';
+        // Low input in one colour, high input in the other.
+        ctx.fillStyle = pal.accent; ctx.fillRect(Math.min(xl, x0), y, Math.abs(xl - x0), 20);
+        ctx.fillStyle = pal.accent2; ctx.fillRect(Math.min(xh, x0), y, Math.abs(xh - x0), 20);
+        ctx.fillStyle = pal.muted;
+        const left = b.low < b.high ? b : null, ll = left ? [b.low, b.lowIn] : [b.high, b.highIn], rr = left ? [b.high, b.highIn] : [b.low, b.lowIn];
+        ctx.textAlign = 'right'; ctx.fillText(`${m2(ll[0])}`, Math.min(xl, xh) - 4, y + 10);
+        ctx.textAlign = 'left'; ctx.fillText(`${m2(rr[0])}`, Math.max(xl, xh) + 4, y + 10);
+      });
+      const x0 = X(r.lcoe); ctx.strokeStyle = pal.ink; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x0, 8); ctx.lineTo(x0, h - 26); ctx.stroke();
+      ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.fillText(`base ${m2(r.lcoe)}`, x0, h - 16);
+      ctx.fillStyle = pal.accent; ctx.fillRect(L, h - 8, 10, 8); ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText(`input −${sig(span * 100, 3)} %`, L + 14, h - 4);
+      ctx.fillStyle = pal.accent2; ctx.fillRect(L + 110, h - 8, 10, 8); ctx.fillStyle = pal.muted; ctx.fillText(`input +${sig(span * 100, 3)} %`, L + 124, h - 4);
+    } };
+    paint(q<HTMLCanvasElement>('.lcoe-torfig'), torFig);
+    q('.lcoe-tornote').textContent = bars.length ? `Each input moved ${sig(span * 100, 3)} % down and up, one at a time, the rest held. Biggest effect: ${bars[0].name} (${m2(Math.min(bars[0].low, bars[0].high))} to ${m2(Math.max(bars[0].low, bars[0].high))}). Inputs set to 0 are left out.` : '';
+    const t = q('.lcoe-tab'); t.replaceChildren();
+    const h = t.insertRow(); HEAD.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (k) th.className = 'r'; h.append(th); });
+    for (const row of rows(r)) { const tr = t.insertRow(); row.forEach((x, k) => { const td = tr.insertCell(); td.textContent = x; if (k) td.className = 'r'; }); }
+    figs = [partsFig, torFig];
+  }
+
+  q('.lcoe-ex').addEventListener('change', () => { fill(q<HTMLSelectElement>('.lcoe-ex').value); run(); });
+  root.querySelectorAll('input').forEach((i) => i.addEventListener('input', run));
+  q('.lcoe-csv').addEventListener('click', () => { if (!res) return;
+    save(new Blob([csv([['year', 'energy_MWh', 'capital', 'fixed_OM', 'variable_OM', 'fuel', 'total_cost', 'discount_factor', 'pv_cost', 'pv_energy_MWh'], ...res.years.map((y) => [y.t, y.mwh.toFixed(3), y.capex.toFixed(2), y.fom.toFixed(2), y.vom.toFixed(2), y.fuel.toFixed(2), y.total.toFixed(2), y.df.toFixed(8), y.pvCost.toFixed(2), y.pvMwh.toFixed(3)]), [], ['LCOE_per_MWh', res.lcoe.toFixed(4)]])], { type: 'text/csv' }), 'lcoe-cash-flow.csv', 'text/csv'); });
+  wireDownloads(q('.dl'), () => {
+    const r = res!, sections: Section[] = [
+      { title: q('.lcoe-big').textContent ?? '', facts: [...q('.lcoe-facts').querySelectorAll('div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: figs[0] },
+      { title: 'Inputs', facts: FIELDS.map(([k, c]) => [(q(c).parentElement!.childNodes[0].textContent ?? k).trim(), q<HTMLInputElement>(c).value] as [string, string]) },
+      { title: 'Sensitivity', figure: figs[1], table: { head: ['Input', 'Low input', 'LCOE', 'High input', 'LCOE'], rows: bars.map((b) => [b.name, sig(b.lowIn, 4), m2(b.low), sig(b.highIn, 4), m2(b.high)]), align: ['l', 'r', 'r', 'r', 'r'] } },
+      { title: 'Cash flow', table: { head: HEAD, rows: rows(r), align: ['r', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r'] }, note: 'Example values are made up; for study and planning.' },
+    ];
+    return { title: 'Levelised cost of energy', subtitle: `${sig(inp!.mw, 4)} MW, ${inp!.life} years at ${sig(inp!.rate * 100, 3)} %`, file: 'lcoe', sections };
+  });
+  document.addEventListener('fibub:theme', () => { if (res) { paint(q<HTMLCanvasElement>('.lcoe-parts'), figs[0]); paint(q<HTMLCanvasElement>('.lcoe-torfig'), figs[1]); } });
+  fill('solar'); run();
+</script>
