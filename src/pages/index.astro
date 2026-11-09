@@ -20,7 +20,10 @@ const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-
         <h1>Free tools that never see your files</h1>
         <p class="lead">Tools for documents, money, everyday tasks and science. They all run in your browser: nothing is uploaded, nothing about you is saved, and there is no sign-up.</p>
       </div>
-      <p class="total"><b>{live.length}</b><span>free tools, each with its own number</span></p>
+      <div class="totals">
+        <p class="total"><b>{live.length}</b><span>free tools, each with its own number</span></p>
+        <p class="total site-views" data-counter hidden title="Every page opened on fibub, counted as a running total. Nothing about you is kept."><b data-count="site"></b><span>page views so far</span></p>
+      </div>
     </div>
     <label class="find">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" set:html={ICONS.search} />
@@ -80,6 +83,7 @@ const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-
   .hero { padding: 8px 0 6px; }
   .hero h1 { max-width: 720px; }
   .hero-top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 32px; }
+  .totals { display: flex; flex-wrap: wrap; gap: 8px 32px; }
   .total { margin: 0 0 20px; display: grid; justify-items: start; }
   .total b { font-size: clamp(44px, 8vw, 64px); line-height: 1; font-weight: 750; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
   .total span { font-size: 13.5px; color: var(--muted); }

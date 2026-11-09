@@ -5,9 +5,9 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "astro dev",
-    "build": "node scripts/changelog.mjs && astro build",
+    "build": "node scripts/changelog.mjs && astro build && node scripts/list-pages.mjs",
     "preview": "astro preview",
-    "test": "node tests/sci.mjs && node tests/run.mjs",
+    "test": "node tests/sci.mjs && node tests/views.mjs && node tests/run.mjs",
     "images": "node scripts/make-images.mjs",
     "changelog": "node scripts/changelog.mjs"
   },

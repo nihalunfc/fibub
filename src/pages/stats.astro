@@ -31,23 +31,9 @@ const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
   <h1>Usage statistics</h1>
   <p class="lead">Anonymous totals of how fibub's tools are used. We count uses, never people: no IP addresses, no visitor IDs, no file names and never your files. <a href="/privacy/">How this works</a>.</p>
 
-  <section class="live-counts" data-live-counts>
-    <h2>Views and uses per tool</h2>
-    <p class="muted">Live running totals. A view is one opening of a tool's page; a use is counted the first time someone works the tool after opening it. Reloading a page counts again: we keep no way to tell visits apart.</p>
-    <div class="grid kpis">
-      <div class="card"><span class="muted">Page views, whole site</span><b data-lc="site">…</b></div>
-      <div class="card"><span class="muted">Tool page views</span><b data-lc="views">…</b></div>
-      <div class="card"><span class="muted">Tool uses</span><b data-lc="uses">…</b></div>
-    </div>
-    <div class="lc-sort" role="group" aria-label="Sort tools by">
-      <button type="button" class="btn secondary" data-sort="v" aria-pressed="true">Most viewed</button>
-      <button type="button" class="btn secondary" data-sort="u" aria-pressed="false">Most used</button>
-      <button type="button" class="btn secondary" data-sort="r" aria-pressed="false">Use rate</button>
-    </div>
-    <div class="lc-scroll">
-      <table class="tbl lc-tbl"><thead><tr><th>Tool</th><th class="r">Views</th><th class="r">Uses</th><th class="r" title="Uses per 100 views">Use rate</th></tr></thead><tbody></tbody></table>
-    </div>
-    <p class="muted lc-msg" hidden>The live counters could not be reached just now. Try again later.</p>
+  <section class="views-note">
+    <h2>Page views</h2>
+    <p>Every page on fibub shows how many times it has been opened, just under its title, and the home page shows the total for the whole site. The full numbers, for every page and tool by day, week, month and year, are published openly every day in the <a href="https://github.com/nihalunfc/fibub/tree/main/data/views">site's public code repository</a> as CSV files anyone can download. They hold counts only: no IP addresses, visitor IDs or times.</p>
   </section>
 
   <h2>Files processed</h2>
@@ -84,10 +70,6 @@ const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
   )}
 </Base>
 
-<script>
-  import '../scripts/live-counts';
-</script>
-
 <style>
   .muted { color: var(--muted); font-size: 14px; }
   .kpis .card { display: grid; gap: 4px; }
@@ -101,11 +83,5 @@ const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
   .row .track { height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; }
   .row .track span { display: block; height: 100%; background: var(--accent); }
   .row .num { text-align: right; color: var(--muted); }
-  .live-counts { margin-bottom: 32px; }
-  .lc-sort { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 10px; }
-  .lc-sort [aria-pressed="true"] { border-color: var(--ink); font-weight: 700; }
-  .lc-scroll { overflow-x: auto; max-height: 70vh; overflow-y: auto; }
-  .lc-tbl { max-width: 640px; font-size: 15px; }
-  .lc-tbl .r { text-align: right; font-variant-numeric: tabular-nums; }
-  .lc-tbl small { color: var(--muted); }
+  .views-note { margin-bottom: 32px; max-width: 720px; }
 </style>

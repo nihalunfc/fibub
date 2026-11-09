@@ -1,0 +1,33 @@
+# Every day, copy fibub's page view and tool use counts into data/views/ so they are public in this
+# repository. Counts only: the counters never hold anything about visitors.
+# The commit message carries [skip ci] so Cloudflare does not rebuild the site for a data-only change.
+name: Publish view counts
+
+on:
+  schedule:
+    - cron: '20 0 * * *' # 00:20 UTC, just after each day ends
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: views-export
+  cancel-in-progress: false
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/views-export.mjs
+      - name: Commit the new counts
+        run: |
+          git add data/views
+          if git diff --cached --quiet; then echo "No new counts"; exit 0; fi
+          git -c user.name="fibub counts" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "Publish view counts to $(date -u -d yesterday +%F) [skip ci]"
+          git push
