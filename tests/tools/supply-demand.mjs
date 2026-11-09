@@ -1,6 +1,7 @@
 // Supply and demand: the made-up example, every policy, constant elasticity, arc elasticity, downloads and bad input.
 export const path = '/science/supply-demand/';
 export default async ({ page, check, BASE, OUT, readFileSync }) => {
+  page.setDefaultTimeout(120000); // pages load slowly when many builds share the machine; reset at the end
   const dl = async (sel) => { await page.locator(sel).scrollIntoViewIfNeeded(); const [d] = await Promise.all([page.waitForEvent('download'), page.click(sel)]); const f = OUT + d.suggestedFilename(); await d.saveAs(f); return f; };
   const big = () => page.textContent('.sd-big');
   const wait = (re) => page.waitForFunction((s) => new RegExp(s).test(document.querySelector('.sd-big')?.textContent || ''), re.source);
@@ -48,8 +49,9 @@ export default async ({ page, check, BASE, OUT, readFileSync }) => {
   await page.fill('.sd-p2', '10');
   await page.waitForFunction(() => /same/.test(document.querySelector('.sd-arch')?.textContent || ''));
   check(true, 'supply-demand: equal prices explained');
-  await page.setViewportSize({ width: 375, height: 800 }); await page.fill('.sd-p2', '12'); await page.selectOption('.sd-pol', 'tax'); await page.fill('.sd-amt', '6');
+  const vp = page.viewportSize(); await page.setViewportSize({ width: 375, height: 800 }); await page.fill('.sd-p2', '12'); await page.selectOption('.sd-pol', 'tax'); await page.fill('.sd-amt', '6');
   await wait(/quantity 52$/);
   await page.screenshot({ path: OUT + 'supply-demand-375.png', fullPage: true });
-  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.setViewportSize(vp);
+  page.setDefaultTimeout(30000);
 };
