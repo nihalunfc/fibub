@@ -1,0 +1,311 @@
+---
+// Habitat connectivity: paint or open a small land-cover map, give each class a resistance, and get least-cost
+// distances between habitat patches, links under a dispersal distance, components, IIC and PC with each patch's
+// dIIC and dPC, and least-cost paths. Everything runs in the browser. The example map is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { DEFAULT_CLASSES } from '../../lib/sci/connectivity';
+const classText = 'code, class, habitat, resistance, colour\n' + DEFAULT_CLASSES.map((c) => `${c.code}, ${c.name}, ${c.habitat ? 'yes' : 'no'}, ${c.resistance}, ${c.colour}`).join('\n');
+---
+<div class="ax hcn">
+  <div class="ax-card">
+    <h2>Map</h2>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small hc-open">Open a map</button>
+      <input type="file" class="hc-file" accept=".csv,.txt,.asc,.tsv,.xlsx,.png,image/png" hidden />
+      <button type="button" class="btn secondary small hc-ex">Use the example</button>
+    </div>
+    <p class="ax-help">A grid of class codes (CSV, TXT, Excel .xlsx or an ESRI ASCII grid) or a PNG with one pixel per cell in the class colours, up to 200 × 200 cells and 5 MB. The map stays on your device.</p>
+    <p class="ax-err hc-ferr" hidden></p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Tapping the map <select class="hc-tap"><option value="pick" selected>Picks two patches for a path</option><option value="paint">Paints cells</option></select></label>
+      <label>Paint with <select class="hc-brush"></select></label>
+      <label>Brush <select class="hc-size"><option value="1" selected>1 cell</option><option value="3">3 × 3 cells</option></select></label>
+    </div>
+    <canvas class="ax-fig hc-map" style="margin-top:10px;touch-action:manipulation;cursor:crosshair"></canvas>
+    <div class="ax-legend hc-legend"></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Cell size (m) <input class="hc-cell" type="text" inputmode="decimal" value="100" /></label>
+      <label>Columns <input class="hc-w" type="number" min="5" max="200" step="1" value="48" inputmode="numeric" /></label>
+      <label>Rows <input class="hc-h" type="number" min="5" max="200" step="1" value="32" inputmode="numeric" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small hc-new">New blank map in the paint class</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Classes and dispersal</h2>
+    <label>Code, class name, habitat (yes or no), resistance, colour <textarea class="hc-cls" rows="7" spellcheck="false">{classText}</textarea></label>
+    <p class="ax-help">Resistance is the cost of crossing one metre of that class relative to the easiest (usually habitat, 1). The values in the example are made up; set them from your species' movement studies or expert opinion.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Dispersal distance (cost units) <input class="hc-thr" type="text" inputmode="decimal" value="5000" /></label>
+      <label>Chance of reaching that far (PC) <input class="hc-p" type="text" inputmode="decimal" value="0.5" /></label>
+      <label>Smallest patch (cells) <input class="hc-min" type="number" min="1" max="10000" step="1" value="1" inputmode="numeric" /></label>
+      <label>Landscape area (ha) <input class="hc-al" type="text" inputmode="decimal" placeholder="the whole map" /></label>
+    </div>
+    <p class="ax-help">A cost unit is one metre through resistance 1, so 5000 means 5 km through habitat or 500 m through resistance 10. Patches closer than the dispersal distance are linked (IIC). For PC, the chance of a direct move falls as exp(−k·d) and equals the value you set at the dispersal distance.</p>
+    <p class="ax-err hc-err" hidden></p>
+  </div>
+
+  <div class="ax-card hc-out" hidden>
+    <h2>Connectivity</h2>
+    <p class="ax-big hc-big"></p>
+    <dl class="ax-facts hc-facts"></dl>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="hc-links" checked /> Show links and patch numbers on the map</label>
+    <h2 style="margin-top:16px">Least-cost path</h2>
+    <div class="ax-grid">
+      <label>From patch <select class="hc-a"></select></label>
+      <label>To patch <select class="hc-b"></select></label>
+    </div>
+    <p class="ax-help hc-path"></p>
+    <h2 style="margin-top:16px">Patches, most important first</h2>
+    <div class="ax-scroll"><table class="hc-tab"></table></div>
+    <p class="ax-help">dPC and dIIC: how much the index drops (%) if the patch is lost, counting its own area, the movement through it and the movement it allows between others (Saura and Rubio 2010 split this into parts).</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small hc-csv">Download patches (CSV)</button>
+      <button type="button" class="btn secondary small hc-dcsv">Download distances (CSV)</button>
+      <button type="button" class="btn secondary small hc-gcsv">Download the map (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { findPatches, patchDistances, leastCostPath, components, importance, exampleLandscape, type LandClass, type Landscape, type Patch } from '../../lib/sci/connectivity';
+  import { readDataFile } from '../../lib/datafile';
+  import { paint, wireDownloads, save, pagePalette, type Figure, type Section, type Palette } from '../../lib/report';
+  import { num, parseTable, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.hcn')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const txt = (c: string) => q<HTMLInputElement>(c).value.trim();
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const MAXC = 200, MAXP = 80;
+
+  let land: Landscape = exampleLandscape();
+  let patches: Patch[] = [], label = new Int32Array(0), D: number[][] = [], links: [number, number][] = [], comp: number[] = [];
+  let pathCells: number[] = [], fig: Figure | null = null, sections: Section[] = [], tableRows: (string | number)[][] = [];
+  let pickA = -1, pickB = -1;
+
+  const hexRgb = (h: string) => { const m = /^#?([0-9a-f]{6})$/i.exec(h.trim()); if (!m) return null; const v = parseInt(m[1], 16); return [v >> 16, (v >> 8) & 255, v & 255]; };
+  const shown = (hex: string, pal: Palette) => { if (!pal.red) return hex; const [r, g, b] = hexRgb(hex) ?? [128, 128, 128]; const l = Math.round((0.3 * r + 0.59 * g + 0.11 * b) * 0.65); return `rgb(${l},0,0)`; };
+
+  function readClasses(): LandClass[] | string {
+    const rows = parseTable(q<HTMLTextAreaElement>('.hc-cls').value);
+    const body = rows.length && !Number.isFinite(num(rows[0][0])) ? rows.slice(1) : rows;
+    const out: LandClass[] = [];
+    for (let i = 0; i < body.length; i++) {
+      const [c, name, hab, r, col] = body[i];
+      const code = num(c), res = num(r), rgb = hexRgb(col ?? '');
+      if (!Number.isInteger(code)) return `Class row ${i + 1}: the code must be a whole number.`;
+      if (out.some((o) => o.code === code)) return `Class code ${code} is listed twice.`;
+      if (!(res > 0)) return `Class row ${i + 1} (${name}): the resistance must be above 0.`;
+      if (!/^(y|yes|n|no|true|false|1|0|habitat)$/i.test((hab ?? '').trim())) return `Class row ${i + 1} (${name}): habitat is yes or no.`;
+      if (!rgb) return `Class row ${i + 1} (${name}): give the colour as a hex code such as #2f7d32.`;
+      out.push({ code, name: name || `Class ${code}`, habitat: /^(y|yes|true|1|habitat)$/i.test(hab.trim()), resistance: res, colour: col.trim() });
+    }
+    if (out.length < 2) return 'List at least two classes: one habitat and one other.';
+    if (out.length > 30) return 'Up to 30 classes, please.';
+    if (!out.some((c) => c.habitat)) return 'Mark at least one class as habitat (yes).';
+    return out;
+  }
+
+  function syncBrush() {
+    const s = q<HTMLSelectElement>('.hc-brush'), was = s.value;
+    s.replaceChildren(...land.classes.map((c, i) => new Option(c.name, String(i), false, String(i) === was)));
+    q('.hc-legend').replaceChildren(...land.classes.map((c) => { const sp = document.createElement('span'); const i = document.createElement('i'); i.style.background = shown(c.colour, pagePalette()); sp.append(i, `${c.name}${c.habitat ? ' (habitat)' : ''} · ${c.resistance}`); return sp; }));
+  }
+
+  function mapFigure(): Figure {
+    const W = land.w, H = land.h, px = Math.max(3, Math.min(24, Math.floor(720 / W))), show = q<HTMLInputElement>('.hc-links').checked;
+    const L = land, pts = patches.map((p) => [p.cx * px, p.cy * px]), lk = links.slice(), pc = pathCells.slice(), lab = label, pa = pickA, pb = pickB;
+    return {
+      w: W * px, h: H * px, alt: `Map of ${W} × ${H} cells with ${patches.length} habitat patches`,
+      draw: (ctx, w, h, pal) => {
+        const cols = L.classes.map((c) => shown(c.colour, pal));
+        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { ctx.fillStyle = cols[L.cls[y * W + x]]; ctx.fillRect(x * px, y * px, px + 0.5, px + 0.5); }
+        // patch outlines
+        ctx.strokeStyle = pal.red ? '#c00000' : '#000'; ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+          const l = lab[y * W + x]; if (l < 0) continue;
+          if (x + 1 >= W || lab[y * W + x + 1] !== l) { ctx.moveTo((x + 1) * px, y * px); ctx.lineTo((x + 1) * px, (y + 1) * px); }
+          if (x === 0 || lab[y * W + x - 1] !== l) { ctx.moveTo(x * px, y * px); ctx.lineTo(x * px, (y + 1) * px); }
+          if (y + 1 >= H || lab[(y + 1) * W + x] !== l) { ctx.moveTo(x * px, (y + 1) * px); ctx.lineTo((x + 1) * px, (y + 1) * px); }
+          if (y === 0 || lab[(y - 1) * W + x] !== l) { ctx.moveTo(x * px, y * px); ctx.lineTo((x + 1) * px, y * px); }
+        }
+        ctx.stroke();
+        if (pc.length) { ctx.fillStyle = pal.red ? 'rgba(255,0,0,0.85)' : 'rgba(213,94,0,0.9)'; for (const c of pc) ctx.fillRect((c % W) * px + px * 0.2, Math.floor(c / W) * px + px * 0.2, px * 0.6, px * 0.6); }
+        if (show) {
+          ctx.strokeStyle = pal.red ? '#ff2020' : '#0b3d91'; ctx.lineWidth = Math.max(1.5, px / 6); ctx.setLineDash([px * 0.6, px * 0.4]);
+          ctx.beginPath(); for (const [a, b] of lk) { ctx.moveTo(pts[a][0], pts[a][1]); ctx.lineTo(pts[b][0], pts[b][1]); } ctx.stroke(); ctx.setLineDash([]);
+          const fs = Math.max(10, Math.min(16, px * 1.1));
+          ctx.font = `700 ${fs}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          pts.forEach(([x, y], i) => { const r = fs * 0.75; ctx.fillStyle = pal.red ? '#000' : (i === pa || i === pb ? '#d55e00' : '#fff'); ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); ctx.strokeStyle = pal.red ? '#c00000' : '#000'; ctx.lineWidth = 1.2; ctx.stroke(); ctx.fillStyle = pal.red ? '#c00000' : (i === pa || i === pb ? '#fff' : '#000'); ctx.fillText(String(i + 1), x, y + 0.5); });
+        }
+      },
+    };
+  }
+  const drawMap = () => { fig = mapFigure(); paint(q<HTMLCanvasElement>('.hc-map'), fig); };
+
+  function run() {
+    const err = q('.hc-err'), out = q('.hc-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; sections = []; patches = []; links = []; pathCells = []; label = new Int32Array(land.w * land.h).fill(-1); drawMap(); };
+    err.hidden = true;
+    const cl = readClasses();
+    if (typeof cl === 'string') return fail(cl);
+    // Keep the map's codes: cells keep the class with the same code; a removed code becomes the first class.
+    const oldCodes = land.classes.map((c) => c.code), idx = new Map(cl.map((c, i) => [c.code, i]));
+    const remap = oldCodes.map((c) => idx.get(c) ?? 0);
+    land = { ...land, cls: Int32Array.from(land.cls, (k) => remap[k]), classes: cl };
+    syncBrush();
+    const cell = num(txt('.hc-cell')); if (!(cell > 0)) return fail('The cell size must be above 0 metres.');
+    land.cell = cell;
+    const thr = num(txt('.hc-thr')), pAt = num(txt('.hc-p'));
+    if (!(thr > 0)) return fail('The dispersal distance must be above 0.');
+    if (!(pAt > 0 && pAt < 1)) return fail('The chance of reaching the dispersal distance is between 0 and 1 (such as 0.5).');
+    const minC = Math.max(1, Math.round(num(txt('.hc-min')) || 1));
+    const fp = findPatches(land, minC); label = fp.label; patches = fp.patches;
+    if (patches.length < 2) return fail(`The map has ${patches.length} habitat patch${patches.length === 1 ? '' : 'es'}${minC > 1 ? ` of ${minC} cells or more` : ''}; paint at least two.`);
+    if (patches.length > MAXP) return fail(`The map has ${patches.length} patches; up to ${MAXP}, please. Raise "Smallest patch" to leave out the tiny ones.`);
+    const mapArea = (land.w * land.h * cell * cell) / 1e4, AL = txt('.hc-al') ? num(txt('.hc-al')) : mapArea;
+    const habArea = patches.reduce((s, p) => s + p.area, 0);
+    if (!(AL >= habArea)) return fail(`The landscape area must be at least the habitat area (${sig(habArea, 4)} ha).`);
+    D = patchDistances(land, patches);
+    const area = patches.map((p) => p.area);
+    links = []; for (let i = 0; i < patches.length; i++) for (let j = i + 1; j < patches.length; j++) if (D[i][j] <= thr) links.push([i, j]);
+    comp = components(patches.length, links);
+    const imp = importance(area, D, thr, pAt, AL);
+    const nComp = new Set(comp).size;
+    q('.hc-big').textContent = `${patches.length} patches, ${links.length} link${links.length === 1 ? '' : 's'}, ${nComp} component${nComp === 1 ? '' : 's'}; IIC ${sig(imp.all.iic, 3)}, PC ${sig(imp.all.pc, 3)}`;
+    const k = -Math.log(pAt) / thr;
+    const facts: [string, string, string][] = [
+      ['Habitat', `${sig(habArea, 4)} ha`, `${(100 * habArea / AL).toFixed(1)} % of ${sig(AL, 5)} ha`],
+      ['Largest component', `${sig(Math.max(...[...new Set(comp)].map((c) => area.filter((_, i) => comp[i] === c).reduce((s, a) => s + a, 0))), 4)} ha`, 'patches joined by links'],
+      ['IIC', sig(imp.all.iic, 4), 'Integral Index of Connectivity, 0 to 1'],
+      ['PC', sig(imp.all.pc, 4), 'Probability of Connectivity, 0 to 1'],
+      ['Equivalent connected area', `${sig(Math.sqrt(imp.all.pc) * AL, 4)} ha`, 'AL × √PC'],
+      ['Distance decay k', `${sig(k, 3)} per cost unit`, `p = ${sig(pAt, 3)} at ${sig(thr, 5)}`],
+    ];
+    q('.hc-facts').replaceChildren(...facts.map(([a, b, c]) => fact(a, b, c)));
+    // Patch table.
+    const order = patches.map((_, i) => i).sort((a, b) => imp.dPC[b] - imp.dPC[a]);
+    const deg = patches.map((_, i) => links.filter(([a, b]) => a === i || b === i).length);
+    const nearest = patches.map((_, i) => Math.min(...D[i].filter((_, j) => j !== i)));
+    const head = ['Patch', 'Area (ha)', 'Links', 'Component', 'Nearest (cost)', 'dPC (%)', 'dIIC (%)'];
+    const rows = order.map((i) => [String(i + 1), sig(area[i], 4), String(deg[i]), String(comp[i] + 1), sig(nearest[i], 4), imp.dPC[i].toFixed(2), imp.dIIC[i].toFixed(2)]);
+    const t = q<HTMLTableElement>('.hc-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'r'; hr.append(th); });
+    const tb = t.createTBody(); rows.forEach((r) => { const tr = tb.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i) td.className = 'r'; }); });
+    tableRows = [['patch', 'area_ha', 'centre_col', 'centre_row', 'links', 'component', 'nearest_cost', 'dPC_pct', 'dIIC_pct'], ...patches.map((p, i) => [i + 1, +p.area.toPrecision(10), +p.cx.toFixed(2), +p.cy.toFixed(2), deg[i], comp[i] + 1, +nearest[i].toPrecision(10), +imp.dPC[i].toPrecision(10), +imp.dIIC[i].toPrecision(10)])];
+    // Path pickers.
+    const sa = q<HTMLSelectElement>('.hc-a'), sb = q<HTMLSelectElement>('.hc-b');
+    if (pickA < 0 || pickA >= patches.length) pickA = order[0];
+    if (pickB < 0 || pickB >= patches.length || pickB === pickA) pickB = order.find((i) => i !== pickA)!;
+    sa.replaceChildren(...patches.map((_, i) => new Option(`Patch ${i + 1}`, String(i), false, i === pickA)));
+    sb.replaceChildren(...patches.map((_, i) => new Option(`Patch ${i + 1}`, String(i), false, i === pickB)));
+    const lp = leastCostPath(land, patches[pickA], patches[pickB]);
+    pathCells = lp.cells;
+    const pLine = `Patch ${pickA + 1} to patch ${pickB + 1}: least cost ${sig(lp.cost, 5)} over ${lp.cells.length} cells, ${lp.cost <= thr ? 'linked' : 'not linked'} (dispersal distance ${sig(thr, 5)}); direct chance ${sig(Math.exp(-k * lp.cost), 3)}.`;
+    q('.hc-path').textContent = pLine;
+    drawMap();
+    sections = [
+      { title: 'Connectivity', text: [q('.hc-big').textContent!, pLine], facts: facts.map(([a, b, c]) => [a, `${b} (${c})`] as [string, string]), figure: fig! },
+      { title: 'Patches', table: { head, rows, align: ['l', 'r', 'r', 'r', 'r', 'r', 'r'] }, note: 'IIC and PC after Pascual-Hortal and Saura (2006) and Saura and Pascual-Hortal (2007). Least-cost distances on the 8-neighbour grid.' },
+      { title: 'Classes', table: { head: ['Code', 'Class', 'Habitat', 'Resistance'], rows: land.classes.map((c) => [String(c.code), c.name, c.habitat ? 'yes' : 'no', sig(c.resistance, 4)]), align: ['r', 'l', 'l', 'r'] } },
+    ];
+    out.hidden = false;
+  }
+
+  // Tapping and painting.
+  let down = false, painted = false;
+  const cellAt = (e: PointerEvent) => { const r = q('.hc-map').getBoundingClientRect(); const x = Math.floor(((e.clientX - r.left) / r.width) * land.w), y = Math.floor(((e.clientY - r.top) / r.height) * land.h); return x >= 0 && y >= 0 && x < land.w && y < land.h ? [x, y] : null; };
+  const paintAt = (e: PointerEvent) => {
+    const c = cellAt(e); if (!c) return;
+    const k = Number(q<HTMLSelectElement>('.hc-brush').value) || 0, s = Number(q<HTMLSelectElement>('.hc-size').value), h = (s - 1) / 2;
+    for (let dy = -h; dy <= h; dy++) for (let dx = -h; dx <= h; dx++) { const x = c[0] + dx, y = c[1] + dy; if (x >= 0 && y >= 0 && x < land.w && y < land.h) land.cls[y * land.w + x] = k; }
+    painted = true; pathCells = []; label = new Int32Array(land.w * land.h).fill(-1); links = []; patches = []; drawMap();
+  };
+  const map = q<HTMLCanvasElement>('.hc-map');
+  map.addEventListener('pointerdown', (e) => {
+    if (q<HTMLSelectElement>('.hc-tap').value === 'paint') { down = true; map.setPointerCapture(e.pointerId); paintAt(e); return; }
+    const c = cellAt(e); if (!c) return;
+    const l = label[c[1] * land.w + c[0]]; if (l === undefined || l < 0) return;
+    if (pickA >= 0 && pickB === -2) { if (l !== pickA) pickB = l; } else { pickA = l; pickB = -2; drawMap(); return; }
+    run();
+  });
+  map.addEventListener('pointermove', (e) => { if (down) paintAt(e); });
+  const up = () => { if (down) { down = false; if (painted) { painted = false; run(); } } };
+  map.addEventListener('pointerup', up); map.addEventListener('pointercancel', up);
+  q('.hc-tap').addEventListener('change', () => { map.style.touchAction = q<HTMLSelectElement>('.hc-tap').value === 'paint' ? 'none' : 'manipulation'; });
+  q('.hc-a').addEventListener('change', () => { pickA = Number(q<HTMLSelectElement>('.hc-a').value); run(); });
+  q('.hc-b').addEventListener('change', () => { pickB = Number(q<HTMLSelectElement>('.hc-b').value); run(); });
+  q('.hc-links').addEventListener('change', () => { drawMap(); if (sections[0]) sections[0].figure = fig!; });
+  let tm = 0;
+  root.addEventListener('input', (e) => { const t = e.target as HTMLElement; if (t.matches('.hc-w, .hc-h, .hc-file, .hc-links')) return; clearTimeout(tm); tm = window.setTimeout(run, 300); });
+  q('.hc-new').addEventListener('click', () => {
+    const w = Math.round(num(txt('.hc-w'))), h = Math.round(num(txt('.hc-h')));
+    if (!(w >= 5 && w <= MAXC && h >= 5 && h <= MAXC)) { q('.hc-err').textContent = `Columns and rows are 5 to ${MAXC}.`; q('.hc-err').hidden = false; return; }
+    land = { ...land, w, h, cls: new Int32Array(w * h).fill(Number(q<HTMLSelectElement>('.hc-brush').value) || 0) };
+    pickA = pickB = -1; q<HTMLSelectElement>('.hc-tap').value = 'paint'; map.style.touchAction = 'none'; run();
+  });
+  q('.hc-ex').addEventListener('click', () => {
+    land = exampleLandscape(); pickA = pickB = -1;
+    q<HTMLTextAreaElement>('.hc-cls').value = 'code, class, habitat, resistance, colour\n' + land.classes.map((c) => `${c.code}, ${c.name}, ${c.habitat ? 'yes' : 'no'}, ${c.resistance}, ${c.colour}`).join('\n');
+    q<HTMLInputElement>('.hc-cell').value = '100'; q<HTMLInputElement>('.hc-w').value = '48'; q<HTMLInputElement>('.hc-h').value = '32'; q<HTMLInputElement>('.hc-al').value = ''; q<HTMLInputElement>('.hc-min').value = '1';
+    q<HTMLInputElement>('.hc-thr').value = '5000'; q<HTMLInputElement>('.hc-p').value = '0.5'; q('.hc-ferr').hidden = true; run();
+  });
+  q('.hc-open').addEventListener('click', () => q<HTMLInputElement>('.hc-file').click());
+  q<HTMLInputElement>('.hc-file').addEventListener('change', async () => {
+    const inp = q<HTMLInputElement>('.hc-file'), f = inp.files?.[0]; inp.value = '';
+    if (!f) return;
+    const ferr = q('.hc-ferr');
+    try {
+      if (f.size > 5e6) throw new Error(`${f.name} is ${(f.size / 1e6).toFixed(1)} MB; up to 5 MB, please.`);
+      const cl = readClasses(); if (typeof cl === 'string') throw new Error(cl);
+      let w = 0, h = 0, codes: number[] = [];
+      if (/\.png$/i.test(f.name) || f.type === 'image/png') {
+        const bmp = await createImageBitmap(f);
+        if (bmp.width > MAXC || bmp.height > MAXC) throw new Error(`The image is ${bmp.width} × ${bmp.height} pixels; up to ${MAXC} × ${MAXC}, with one pixel per cell.`);
+        const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height; const x = c.getContext('2d')!; x.drawImage(bmp, 0, 0);
+        const px = x.getImageData(0, 0, c.width, c.height).data, rgb = cl.map((k) => hexRgb(k.colour)!);
+        w = c.width; h = c.height;
+        for (let i = 0; i < w * h; i++) { let best = 0, bd = Infinity; rgb.forEach((col, k) => { const d = (col[0] - px[4 * i]) ** 2 + (col[1] - px[4 * i + 1]) ** 2 + (col[2] - px[4 * i + 2]) ** 2; if (d < bd) { bd = d; best = k; } }); codes.push(cl[best].code); }
+      } else {
+        let rows: string[][];
+        if (/\.xlsx$/i.test(f.name)) rows = (await readDataFile(f, { maxBytes: 5e6, maxCols: MAXC, maxRows: MAXC })).text.split('\n').map((r) => r.split('\t'));
+        else {
+          const text = await f.text();
+          if (/^\s*ncols/i.test(text)) {
+            const tok = text.trim().split(/\s+/), head: Record<string, number> = {}; let i = 0;
+            while (i < tok.length - 1 && /^[a-z_]+$/i.test(tok[i])) { head[tok[i].toLowerCase()] = Number(tok[i + 1]); i += 2; }
+            w = head.ncols; h = head.nrows;
+            if (!(w > 0 && h > 0)) throw new Error('The ASCII grid needs ncols and nrows.');
+            if (head.cellsize > 0) q<HTMLInputElement>('.hc-cell').value = String(head.cellsize);
+            rows = []; for (let r = 0; r < h; r++) rows.push(tok.slice(i + r * w, i + (r + 1) * w));
+          } else rows = parseTable(text);
+        }
+        rows = rows.filter((r) => r.some((c) => c.trim() !== ''));
+        h = rows.length; w = Math.max(...rows.map((r) => r.length));
+        if (w > MAXC || h > MAXC) throw new Error(`The grid is ${w} × ${h} cells; up to ${MAXC} × ${MAXC}, please.`);
+        if (w < 2 || h < 2) throw new Error('The grid needs at least 2 rows and 2 columns of class codes.');
+        for (let r = 0; r < h; r++) for (let c = 0; c < w; c++) { const v = num(rows[r][c]); if (!Number.isFinite(v)) throw new Error(`Row ${r + 1}, column ${c + 1}: "${rows[r][c] ?? ''}" is not a class code.`); codes.push(v); }
+      }
+      const idx = new Map(cl.map((c, i) => [c.code, i]));
+      const missing = [...new Set(codes.filter((c) => !idx.has(c)))];
+      if (missing.length) throw new Error(`The map uses code${missing.length > 1 ? 's' : ''} ${missing.slice(0, 5).join(', ')} that ${missing.length > 1 ? 'are' : 'is'} not in the class table. Add ${missing.length > 1 ? 'them' : 'it'} first.`);
+      land = { w, h, cls: Int32Array.from(codes, (c) => idx.get(c)!), classes: cl, cell: land.cell };
+      q<HTMLInputElement>('.hc-w').value = String(w); q<HTMLInputElement>('.hc-h').value = String(h);
+      pickA = pickB = -1; ferr.hidden = true; run();
+    } catch (e) { ferr.textContent = (e as Error).message; ferr.hidden = false; }
+  });
+  q('.hc-csv').addEventListener('click', () => save(new Blob([csv(tableRows)], { type: 'text/csv' }), 'habitat-patches.csv', 'text/csv'));
+  q('.hc-dcsv').addEventListener('click', () => {
+    const thr = num(txt('.hc-thr')), k = -Math.log(num(txt('.hc-p'))) / thr, rows: (string | number)[][] = [['patch_a', 'patch_b', 'least_cost_distance', 'linked', 'p_direct']];
+    for (let i = 0; i < patches.length; i++) for (let j = i + 1; j < patches.length; j++) rows.push([i + 1, j + 1, +D[i][j].toPrecision(10), D[i][j] <= thr ? 'yes' : 'no', +Math.exp(-k * D[i][j]).toPrecision(6)]);
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'patch-distances.csv', 'text/csv');
+  });
+  q('.hc-gcsv').addEventListener('click', () => { const rows: number[][] = []; for (let y = 0; y < land.h; y++) rows.push(Array.from(land.cls.subarray(y * land.w, (y + 1) * land.w), (k) => land.classes[k].code)); save(new Blob([csv(rows)], { type: 'text/csv' }), 'habitat-map.csv', 'text/csv'); });
+  wireDownloads(q('.hc-out'), () => ({ title: 'Habitat connectivity', subtitle: 'fibub.com', sections, file: 'habitat-connectivity' }));
+  document.addEventListener('fibub:theme', () => { syncBrush(); drawMap(); if (sections[0]) sections[0].figure = fig!; });
+  run();
+</script>
