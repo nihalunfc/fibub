@@ -11,7 +11,7 @@ order: 395
 icon: check
 works: offline
 updated: 2026-11-09
-related: [sample-size, recipe-nutrition-calculator, shelf-life-estimator]
+related: [sample-size, recipe-nutrition-calculator, shelf-life-estimator, yield-trial-anova]
 sources:
   - "Exact binomial test (general statistics). Psychometric functions for d′ in the triangle, duo-trio, 2-AFC and tetrad tests as given by Ennis (1993) and in the sensR package documentation (Christensen and Brockhoff), written out independently. Guessing model for the proportion of distinguishers (Abbott's formula)."
   - "Binomial p-values, critical values, power and sample size checked against scipy.stats.binom; psychometric functions at d′ 0.5, 1, 2 and 3 and their inverses checked against an independent Python version using scipy.integrate.quad and brentq (triangle at d′ 1 gives 0.418, the textbook value)."

@@ -11,7 +11,7 @@ order: 408
 icon: target
 works: offline
 updated: 2026-11-09
-related: [graph-digitizer, plot-maker, biodiversity-indices]
+related: [graph-digitizer, plot-maker, biodiversity-indices, artefact-scale-tool]
 sources:
   - "Generalised Procrustes analysis as described by Gower (1975) and Rohlf and Slice (1990): centre, scale to unit centroid size, rotate by least squares to the mean, repeat. Tangent-space projection as in Rohlf (1999) and the geomorph R package. TPS format as written by tpsDig (F. J. Rohlf)."
   - "Checked against an independent numpy implementation (SVD rotations) of the full analysis on the example and three random data sets (aligned coordinates, mean shape, distances, tangent coordinates, PCA variances and scores agree to 1e-9 or better), and against scipy.spatial.procrustes for the two-shape fit and every pairwise distance."

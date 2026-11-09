@@ -11,7 +11,7 @@ order: 385
 icon: table
 works: offline
 updated: 2026-11-09
-related: [sample-size, plate-layout, field-sampling-planner]
+related: [sample-size, plate-layout, field-sampling-planner, seeding-rate-calculator, fertiliser-blend-calculator]
 sources:
   - "Design rules (each treatment once per block; once per row and column in a Latin square) and the analysis of variance degrees of freedom are standard experimental design, as in Cochran and Cox, Experimental Designs, and Gomez and Gomez, Statistical Procedures for Agricultural Research."
   - "Randomisation: Fisher-Yates shuffle with the mulberry32 seeded generator. Checked against an independent Python version of the same generator and shuffle (five layouts, cell for cell), and for fairness with chi-square tests over thousands of seeds."

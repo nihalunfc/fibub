@@ -11,7 +11,7 @@ order: 390
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [psychrometric-calculator, et0-calculator]
+related: [psychrometric-calculator, et0-calculator, irrigation-scheduler]
 sources:
   - "Heat balance from first principles: conduction Q = U A ΔT, air exchange Q = ρ cp V̇ ΔT, dry air density from the ideal gas law (R_d = R / M_air), cp of air 1006 J/(kg K), ISA standard atmosphere for pressure at altitude. Unit conversions are exact definitions."
   - "Checked against an independent Python version of the sums, with air density and heat capacity from CoolProp (real-gas air): heat loss agrees within 0.01 % and ventilation flow within 0.1 %."

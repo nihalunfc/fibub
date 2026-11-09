@@ -11,7 +11,7 @@ order: 407
 icon: sigma
 works: offline
 updated: 2026-11-09
-related: [calibration-curve, uncertainty-calculator, trend-analyser, plot-maker, artefact-scale-tool]
+related: [calibration-curve, uncertainty-calculator, trend-analyser, plot-maker, artefact-scale-tool, procrustes-morphometrics, range-chart-plotter]
 sources:
   - "Ordinary least squares on log10-transformed data with the standard prediction interval; %PE and %SEE as defined by R. J. Smith (1984, American Journal of Physiology 246: R152-R160); smearing estimate of N. Duan (1983, Journal of the American Statistical Association 78: 605-610); the QMLE factor exp((ln 10 · SEE)² / 2). No published regression coefficients are included."
   - "Checked against statsmodels (OLS parameters, standard errors, r², SEE, and 90 % and 95 % prediction and confidence intervals at three X values) and numpy (%PE, %SEE, smearing and QMLE factors)."

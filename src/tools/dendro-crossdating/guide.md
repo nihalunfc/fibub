@@ -11,7 +11,7 @@ order: 410
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [radiocarbon-calibration, radiometric-age-calculator, trend-analyser, period-finder]
+related: [radiocarbon-calibration, radiometric-age-calculator, trend-analyser, period-finder, harris-matrix-builder]
 sources:
   - "Baillie, M. G. L. and Pilcher, J. R. (1973), A simple crossdating program for tree-ring research, Tree-Ring Bulletin 33. Hollstein, E. (1980), Mitteleuropäische Eichenchronologie. Gleichläufigkeit after Eckstein, D. and Bauch, J. (1969), with its standard error 1/(2√n). Tucson decadal format as used by the International Tree-Ring Data Bank."
   - "Checked against an independent pandas and scipy implementation (rolling means, scipy.stats.pearsonr, scipy.stats.norm) at all 221 positions of the example: r, both t-values, Gleichläufigkeit and its p agree to 1e-10."

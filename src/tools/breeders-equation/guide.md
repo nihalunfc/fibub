@@ -11,7 +11,7 @@ order: 389
 icon: curve
 works: offline
 updated: 2026-11-09
-related: [crossing-plan, sample-size, reliability-analysis]
+related: [crossing-plan, sample-size, reliability-analysis, field-trial-designer, yield-trial-anova]
 sources:
   - "Breeder's equation, selection intensity for truncation selection, parent-offspring regression and variance-component heritability as in Falconer and Mackay, Introduction to Quantitative Genetics (4th ed.), chapters 10 and 11; n0 for unequal group sizes from the one-way analysis of variance (Snedecor and Cochran)."
   - "Checked against scipy (selection intensity norm.pdf(norm.ppf(1 − p))/p for p from 0.1 % to 90 %; linregress for the regression slope, its standard error and p-value) and statsmodels anova_lm for the unbalanced variance-component example."
