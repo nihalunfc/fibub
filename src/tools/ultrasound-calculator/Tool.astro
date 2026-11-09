@@ -1,0 +1,161 @@
+---
+// Ultrasound physics calculator: impedance, reflection and transmission, attenuation, resolution, beam and
+// Doppler. Material values are rounded and illustrative, all editable. Nothing is uploaded.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { MEDIA } from '../../lib/sci/phus';
+---
+<div class="ax usc">
+  <div class="ax-card">
+    <h2>Probe and pulse</h2>
+    <div class="ax-grid">
+      <label>Frequency (MHz) <input class="us-f" type="text" inputmode="decimal" value="5" /></label>
+      <label>Cycles per pulse <input class="us-n" type="text" inputmode="decimal" value="3" /></label>
+      <label>Transducer diameter (mm) <input class="us-d" type="text" inputmode="decimal" value="10" /></label>
+      <label>Depth of interest (cm) <input class="us-z" type="text" inputmode="decimal" value="10" /></label>
+      <label>Dynamic range (dB) <input class="us-dr" type="text" inputmode="decimal" value="60" /></label>
+    </div>
+    <p class="ax-help">Higher frequency gives finer detail but is absorbed faster. Cycles per pulse sets the pulse length (2 to 3 for imaging, more for Doppler). Dynamic range is how far below the transmitted level the system can still pick up an echo.</p>
+    <h3>Two media and the boundary between them</h3>
+    {[1, 2].map((k) => (
+      <div class="ax-grid us-med" data-k={k} style="margin-top:8px">
+        <label>Medium {k} <select class={`us-m${k}`}>{MEDIA.map((m, i) => <option value={i} selected={i === (k === 1 ? 1 : 6)}>{m.name}</option>)}<option value="own">My own values</option></select></label>
+        <label>Density (kg/m³) <input class={`us-rho${k}`} type="text" inputmode="decimal" value={MEDIA[k === 1 ? 1 : 6].rho} /></label>
+        <label>Speed of sound (m/s) <input class={`us-c${k}`} type="text" inputmode="decimal" value={MEDIA[k === 1 ? 1 : 6].c} /></label>
+        <label>Attenuation (dB/cm/MHz) <input class={`us-a${k}`} type="text" inputmode="decimal" value={MEDIA[k === 1 ? 1 : 6].alpha} /></label>
+      </div>
+    ))}
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Angle of incidence (° from the normal) <input class="us-th" type="text" inputmode="decimal" value="0" /></label>
+    </div>
+    <p class="ax-help">The pulse travels through medium 1 to the boundary with medium 2 at the depth above. Values in the list are rounded, illustrative teaching values (real tissue varies with temperature, frequency and person); edit them freely. Attenuation is taken as proportional to frequency.</p>
+    <h3>Doppler</h3>
+    <div class="ax-grid">
+      <label>Blood or tissue speed (cm/s) <input class="us-v" type="text" inputmode="decimal" value="50" /></label>
+      <label>Angle between beam and flow (°) <input class="us-dth" type="text" inputmode="decimal" value="60" /></label>
+    </div>
+    <p class="ax-err us-err" hidden></p>
+  </div>
+
+  <div class="ax-card us-out">
+    <h2>Results</h2>
+    <p class="ax-big us-big"></p>
+    <h3>Boundary</h3><dl class="ax-facts us-fb"></dl>
+    <h3>Attenuation and depth</h3><dl class="ax-facts us-fa"></dl>
+    <h3>Pulse, resolution and beam</h3><dl class="ax-facts us-fp"></dl>
+    <h3>Doppler</h3><dl class="ax-facts us-fd"></dl>
+    <canvas class="ax-fig us-fig1"></canvas>
+    <canvas class="ax-fig us-fig2"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small us-csv">Download the results (CSV)</button></div>
+    <p class="ax-help">Plane waves, flat smooth boundaries, no scattering or nonlinear effects; the beam figures are for an unfocused circular disc. For study and planning, not a substitute for professional judgement or a scanner's own safety indices.</p>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { MEDIA, boundary, wavelength, attenuationDb, halfValueLayer, penetration, fromDb, axialRes, nearField, divergence, echoTime, maxPrf, doppler, vMaxDoppler, type Medium } from '../../lib/sci/phus';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.usc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let figs: Figure[] = [], report: Section[] = [], rows: string[][] = [];
+  const pct = (x: number) => (x >= 0.9995 && x < 1 ? `${sig(100 * x, 4)} %` : `${sig(100 * x, 3)} %`);
+  const mray = (z: number) => `${sig(z / 1e6, 4)} MRayl`;
+
+  for (const k of [1, 2]) q(`.us-m${k}`).addEventListener('change', () => {
+    const v = q<HTMLSelectElement>(`.us-m${k}`).value; if (v === 'own') return;
+    const m = MEDIA[+v]; q<HTMLInputElement>(`.us-rho${k}`).value = String(m.rho); q<HTMLInputElement>(`.us-c${k}`).value = String(m.c); q<HTMLInputElement>(`.us-a${k}`).value = String(m.alpha);
+  });
+
+  function medium(k: number): Medium | string {
+    const sel = q<HTMLSelectElement>(`.us-m${k}`), name = sel.value === 'own' ? `Medium ${k}` : sel.selectedOptions[0].textContent!;
+    const m = { name, rho: val(`.us-rho${k}`), c: val(`.us-c${k}`), alpha: val(`.us-a${k}`) };
+    if (!(m.rho > 0)) return `Medium ${k}: give a density greater than 0.`;
+    if (!(m.c > 0)) return `Medium ${k}: give a speed of sound greater than 0.`;
+    if (!(m.alpha >= 0)) return `Medium ${k}: give an attenuation of 0 or more.`;
+    return m;
+  }
+
+  function calc() {
+    const err = q('.us-err'), out = q('.us-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; };
+    const f = val('.us-f'), n = val('.us-n'), D = val('.us-d'), z = val('.us-z'), dr = val('.us-dr'), th = val('.us-th'), v = val('.us-v') / 100, dth = val('.us-dth');
+    if (!(f > 0 && f <= 100)) return fail('Give a frequency in MHz (greater than 0, up to 100).');
+    if (!(n > 0)) return fail('Give the number of cycles per pulse (greater than 0).');
+    if (!(D > 0)) return fail('Give the transducer diameter in mm.');
+    if (!(z > 0)) return fail('Give the depth of interest in cm (greater than 0).');
+    if (!(dr > 0)) return fail('Give a dynamic range in dB (greater than 0).');
+    const m1 = medium(1); if (typeof m1 === 'string') return fail(m1);
+    const m2 = medium(2); if (typeof m2 === 'string') return fail(m2);
+    if (!(th >= 0 && th < 90)) return fail('The angle of incidence must be from 0 up to 90°.');
+    if (!(Number.isFinite(v) && dth >= 0 && dth <= 90)) return fail('Give a Doppler speed and an angle from 0 to 90°.');
+    err.hidden = true; out.hidden = false;
+    const b = boundary(m1, m2, th), lam = wavelength(m1.c, f);
+    const oneWay = attenuationDb(m1.alpha, f, z), refl = b.R > 0 ? -10 * Math.log10(b.R) : Infinity, echoDb = 2 * oneWay + refl;
+    const pen = m1.alpha > 0 ? penetration(m1.alpha, f, dr) : Infinity, prf = maxPrf(z, m1.c);
+    q('.us-big').textContent = `${pct(b.R)} reflected at ${m1.name} to ${m2.name}; echo ${Number.isFinite(echoDb) ? `${sig(echoDb, 3)} dB down` : 'none'}`;
+    const fb = [
+      fact('Impedance Z₁ = ρc', mray(b.Z1), m1.name), fact('Impedance Z₂', mray(b.Z2), m2.name),
+      fact('Intensity reflected R', pct(b.R), b.total ? 'beyond the critical angle: total reflection' : th ? 'oblique incidence' : '((Z₂ − Z₁)/(Z₂ + Z₁))² at normal incidence'),
+      fact('Intensity transmitted T', pct(b.T), '1 − R'),
+      fact('Pressure reflection r', sig(b.r, 4), b.r < 0 ? 'negative: the echo is inverted (softer second medium)' : 'amplitude ratio of echo to incident wave'),
+      fact('Refraction', b.total ? 'none (totally reflected)' : `${sig(b.thetaT, 3)}° in medium 2`, b.critical !== null ? `critical angle ${sig(b.critical, 4)}°` : 'no critical angle (medium 2 is slower)'),
+    ];
+    const fa = [
+      fact('Loss to the boundary', `${sig(oneWay, 3)} dB`, `one way: ${sig(m1.alpha, 3)} dB/cm/MHz × ${sig(f, 3)} MHz × ${sig(z, 3)} cm`),
+      fact('Echo level', Number.isFinite(echoDb) ? `−${sig(echoDb, 3)} dB` : 'no echo', `round trip ${sig(2 * oneWay, 3)} dB + reflection ${Number.isFinite(refl) ? sig(refl, 3) : '∞'} dB`),
+      fact('Echo inside the dynamic range?', echoDb <= dr ? 'yes' : 'no', `${sig(dr, 3)} dB available`),
+      fact('Half-value layer', m1.alpha > 0 ? `${sig(halfValueLayer(m1.alpha, f), 3)} cm` : '—', 'depth that halves the intensity (3 dB)'),
+      fact('Deepest useful echo', Number.isFinite(pen) ? `${sig(pen, 3)} cm` : '—', `round trip uses up the ${sig(dr, 3)} dB (strong reflector assumed)`),
+      fact('Intensity left at the boundary', pct(fromDb(oneWay)), 'one way'),
+    ];
+    const div = divergence(D, m1.c, f), nf = nearField(D, m1.c, f);
+    const fp = [
+      fact('Wavelength', `${sig(lam, 3)} mm`, `λ = c / f in medium 1`),
+      fact('Axial resolution', `${sig(axialRes(n, m1.c, f), 3)} mm`, `half the pulse length (${sig(n * lam, 3)} mm)`),
+      fact('Pulse duration', `${sig(n / f, 3)} µs`, 'cycles ÷ frequency'),
+      fact('Near-field length', `${sig(nf / 10, 3)} cm`, 'D²/4λ: the beam is narrowest about here'),
+      fact('Far-field divergence', Number.isFinite(div) ? `${sig(div, 3)}°` : 'very wide', 'half-angle, sin θ = 1.22 λ / D'),
+      fact('Echo time to depth', `${sig(echoTime(z, m1.c), 4)} µs`, 'round trip 2d / c'),
+      fact('Highest PRF', `${sig(prf / 1000, 3)} kHz`, 'one pulse in flight at a time'),
+    ];
+    const fd = doppler(f, v, dth, m1.c), vmax = vMaxDoppler(prf, f, dth, m1.c);
+    const fdl = [
+      fact('Doppler shift', `${sig(fd, 4)} Hz`, '2 f v cos θ / c, audible range'),
+      fact('Highest speed before aliasing', dth === 90 ? '— (no shift at 90°)' : `${sig(vmax * 100, 3)} cm/s`, `PRF/2 at the highest PRF for ${sig(z, 3)} cm`),
+    ];
+    q('.us-fb').replaceChildren(...fb); q('.us-fa').replaceChildren(...fa); q('.us-fp').replaceChildren(...fp); q('.us-fd').replaceChildren(...fdl);
+    const depthMax = Math.max(2 * z, Number.isFinite(pen) ? Math.min(pen * 1.5, 40) : 2 * z), ds = Array.from({ length: 121 }, (_, i) => (i * depthMax) / 120);
+    const fs = [f / 2, f, 2 * f];
+    const c1 = chartFigure({ w: 380, h: 230, xLabel: 'Reflector depth (cm)', yLabel: 'Echo level, round trip (dB)', legend: 'below', yMax: 0, series: fs.map((ff) => ({ name: `${sig(ff, 3)} MHz`, x: ds, y: ds.map((d) => -2 * attenuationDb(m1.alpha, ff, d)), mode: 'line' as const, width: ff === f ? 2.4 : 1.3 })),
+      marks: [{ kind: 'hline', at: -dr, dash: [5, 4], label: 'dynamic range' }, { kind: 'vline', at: z, dash: [3, 3], label: 'boundary' }] }, `Round-trip attenuation against depth in ${m1.name}`);
+    const as = Array.from({ length: 179 }, (_, i) => i * 0.5);
+    const c2 = chartFigure({ w: 380, h: 220, xLabel: 'Angle of incidence (°)', yLabel: 'Intensity reflected (%)', legend: 'none', yMin: 0, yMax: 100, series: [{ name: 'R', x: as, y: as.map((a) => 100 * boundary(m1, m2, a).R), mode: 'line', width: 2 }],
+      marks: b.critical !== null ? [{ kind: 'vline', at: b.critical, dash: [3, 3], label: 'critical' }] : [] }, `Reflection against angle, ${m1.name} to ${m2.name}`);
+    paint(q<HTMLCanvasElement>('.us-fig1'), c1); paint(q<HTMLCanvasElement>('.us-fig2'), c2);
+    figs = [c1, c2];
+    const r = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+    rows = [['group', 'quantity', 'value'], ...[['Boundary', fb], ['Attenuation', fa], ['Pulse and beam', fp], ['Doppler', fdl]].flatMap(([g, els]) => r(els as HTMLElement[]).map(([k, x]) => [g as string, k, x]))];
+    report = [
+      { title: q('.us-big').textContent!, text: [`${sig(f, 3)} MHz, ${sig(n, 3)} cycles, ${sig(D, 3)} mm disc; ${m1.name} (ρ ${sig(m1.rho, 4)}, c ${sig(m1.c, 4)}, α ${sig(m1.alpha, 3)}) to ${m2.name} (ρ ${sig(m2.rho, 4)}, c ${sig(m2.c, 4)}) at ${sig(z, 3)} cm, ${sig(th, 3)}°.`], facts: r(fb), figure: c2 },
+      { title: 'Attenuation and depth', facts: r(fa), figure: c1 }, { title: 'Pulse, resolution and beam', facts: r(fp) }, { title: 'Doppler', facts: r(fdl) },
+    ];
+  }
+
+  root.querySelectorAll('input, select').forEach((i) => {
+    i.addEventListener('input', () => { const k = (i as HTMLElement).closest<HTMLElement>('.us-med')?.dataset.k; if (k && i.tagName === 'INPUT') q<HTMLSelectElement>(`.us-m${k}`).value = 'own'; calc(); });
+    i.addEventListener('change', calc);
+  });
+  q('.us-csv').addEventListener('click', () => save(new Blob([csv(rows)], { type: 'text/csv' }), 'ultrasound.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.us-out').hidden) { paint(q<HTMLCanvasElement>('.us-fig1'), figs[0]); paint(q<HTMLCanvasElement>('.us-fig2'), figs[1]); } });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Ultrasound calculation', subtitle: q('.us-big').textContent ?? '', file: 'ultrasound', sections: report }));
+</script>
+
+<style is:global>
+  .usc h3 { margin: 18px 0 8px; font-size: 15px; }
+</style>
