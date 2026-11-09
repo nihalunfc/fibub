@@ -1,0 +1,280 @@
+---
+// Truth tables, minimal sum of products and product of sums (Quine-McCluskey, up to 6 variables), Karnaugh maps for
+// 2 to 4 variables and a logic gate diagram. Worked out in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax lgc">
+  <div class="ax-card">
+    <div class="ax-seg lg-mode" role="group" aria-label="Input">
+      <button type="button" data-m="expr" aria-pressed="true">Expression</button>
+      <button type="button" data-m="list" aria-pressed="false">Minterms</button>
+    </div>
+    <div class="lg-exprw" style="margin-top:12px">
+      <label>Boolean expression <input class="lg-in" value="AB + A'C + BC" spellcheck="false" autocomplete="off" autocapitalize="off" /></label>
+      <p class="ax-help">Letters are variables (AB means A AND B). NOT: <code>A'</code>, <code>!A</code>, <code>~A</code> or <code>not A</code>. AND: <code>AB</code>, <code>A&amp;B</code>, <code>A·B</code>. OR: <code>A + B</code> or <code>A | B</code>. Also <code>^</code> (XOR), <code>-&gt;</code> (implies), <code>&lt;-&gt;</code> (same as), <code>nand</code>, <code>nor</code>, 0 and 1. Up to 6 variables.</p>
+    </div>
+    <div class="lg-listw" style="margin-top:12px" hidden>
+      <div class="ax-grid">
+        <label>Variables, most significant first <input class="lg-vars" value="A B C D" spellcheck="false" autocomplete="off" autocapitalize="off" /></label>
+        <label>Minterms (rows where F = 1) <input class="lg-m" value="0, 1, 2, 5, 6, 7, 8, 9, 10, 14" spellcheck="false" autocomplete="off" /></label>
+        <label>Don't-cares (optional) <input class="lg-d" value="" placeholder="e.g. 3, 11" spellcheck="false" autocomplete="off" /></label>
+      </div>
+      <p class="ax-help">Row numbers count from 0 with the first variable as the highest bit (for A B C D, row 6 is A=0 B=1 C=1 D=0). Ranges like 4-7 work.</p>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Write answers as <select class="lg-nt"><option value="prime" selected>A′B + AC (textbook)</option><option value="math">¬A∧B ∨ A∧C (logic)</option><option value="code">!A &amp; B | A &amp; C (code)</option><option value="python">~A &amp; B | A &amp; C (SymPy)</option></select></label>
+      <label>Gate diagram for <select class="lg-gf"><option value="sop" selected>Sum of products (AND then OR)</option><option value="pos">Product of sums (OR then AND)</option></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small lg-ex" data-ex="expr|A ^ B ^ C">Example: 3-way XOR</button>
+      <button type="button" class="btn secondary small lg-ex" data-ex="list|A B C D|1, 3, 7, 11, 15|0, 2, 5">Example: don't-cares</button>
+      <button type="button" class="btn secondary small lg-ex" data-ex="expr|(A + B)(A' + C)(B + C)">Example: POS input</button>
+    </div>
+    <p class="ax-err lg-err" hidden></p>
+  </div>
+
+  <div class="ax-card lg-out" hidden>
+    <h2>Simplest forms</h2>
+    <p class="lg-lab">Minimal sum of products</p>
+    <p class="ax-big lg-sop" aria-live="polite"></p>
+    <p class="lg-lab">Minimal product of sums</p>
+    <p class="ax-big lg-pos"></p>
+    <p class="lg-note"></p>
+    <dl class="ax-facts lg-facts"></dl>
+    <h3>Truth table</h3>
+    <div class="ax-scroll lg-ttw"><table class="lg-tt"></table></div>
+    <div class="lg-kw">
+      <h3>Karnaugh map</h3>
+      <canvas class="ax-fig lg-km"></canvas>
+      <div class="ax-legend lg-kleg"></div>
+    </div>
+    <p class="ax-help lg-knote"></p>
+    <h3>Logic gates</h3>
+    <canvas class="ax-fig lg-gates"></canvas>
+    <h3>Prime implicant chart</h3>
+    <p class="ax-help">Each row is a prime implicant (a largest possible group); X marks the minterms it covers. Essential ones are the only cover of some minterm. Rows marked ✓ are in the minimal sum of products.</p>
+    <div class="ax-scroll"><table class="lg-pi"></table></div>
+    <details class="lg-steps"><summary>Quine-McCluskey combining steps</summary><div class="ax-scroll"><table class="lg-qm"></table></div></details>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small lg-csv">Download truth table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .lgc h3 { margin: 22px 0 8px; font-size: 15px; }
+  .lgc code { font-size: 13px; }
+  .lgc .lg-lab { margin: 10px 0 0; color: var(--muted); font-size: 13.5px; }
+  .lgc .lg-sop, .lgc .lg-pos { overflow-wrap: anywhere; margin: 2px 0 0; }
+  .lgc .lg-note { margin: 8px 0 0; font-size: 14.5px; }
+  .lgc .lg-note:empty { display: none; }
+  .lgc .lg-tt td, .lgc .lg-tt th, .lgc .lg-pi td, .lgc .lg-pi th, .lgc .lg-qm td { text-align: center; white-space: nowrap; padding: 4px 7px; }
+  .lgc .lg-tt tr.on td:last-child { font-weight: 700; }
+  .lgc .lg-pi td:first-child, .lgc .lg-pi td:nth-child(2) { text-align: left; }
+  .lgc .lg-steps { margin-top: 14px; }
+  .lgc .lg-steps summary { cursor: pointer; font-weight: 600; font-size: 15px; padding: 6px 0; }
+  .lgc .lg-kleg i.c0 { background: #0072B2; } .lgc .lg-kleg i.c1 { background: #D55E00; } .lgc .lg-kleg i.c2 { background: #009E73; } .lgc .lg-kleg i.c3 { background: #CC79A7; } .lgc .lg-kleg i.c4 { background: #E69F00; } .lgc .lg-kleg i.c5 { background: #56B4E9; } .lgc .lg-kleg i.c6 { background: #000000; } .lgc .lg-kleg i.c7 { background: #8a6d00; }
+  html[data-theme=dark] .lgc .lg-kleg i.c0 { background: #56B4E9; } html[data-theme=dark] .lgc .lg-kleg i.c1 { background: #E69F00; } html[data-theme=dark] .lgc .lg-kleg i.c2 { background: #5fd3a8; } html[data-theme=dark] .lgc .lg-kleg i.c3 { background: #e59ac4; } html[data-theme=dark] .lgc .lg-kleg i.c4 { background: #f0e442; } html[data-theme=dark] .lgc .lg-kleg i.c5 { background: #9ecae1; } html[data-theme=dark] .lgc .lg-kleg i.c6 { background: #ffffff; } html[data-theme=dark] .lgc .lg-kleg i.c7 { background: #d55e00; }
+  html.red-mode .lgc .lg-kleg i { background: #a30000 !important; }
+</style>
+
+<script>
+  import { parseLogic, varsOf, minterms, minimise, parseList, sopText, posText, termText, pattern, covers, literals, kmapLayout, kmapRects, MAX_VARS, type Cube, type Minimal, type Notation } from '../../lib/sci/logic';
+  import { csv } from '../../lib/sci/num';
+  import { paint, save, wireDownloads, type Figure, type Palette, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.lgc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let mode = 'expr', figs: { km: Figure | null; gates: Figure | null } = { km: null, gates: null }, report: Section[] = [], csvRows: (string | number)[][] = [];
+  const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+  const groupColours = (pal: Palette) => (pal.red ? ['#a30000'] : pal.bg === '#ffffff' ? ['#0072B2', '#D55E00', '#009E73', '#CC79A7', '#E69F00', '#56B4E9', '#000000', '#8a6d00'] : ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4', '#f0e442', '#9ecae1', '#ffffff', '#d55e00']);
+  const bin = (m: number, k: number) => m.toString(2).padStart(k, '0');
+
+  function kmapFigure(r: Minimal): Figure {
+    const k = r.vars.length, L = kmapLayout(k), cs = 54;
+    const rv = r.vars.slice(0, L.rowBits).join(''), cv = r.vars.slice(L.rowBits).join('');
+    const left = 70, top = 66, w = left + L.cols.length * cs + 20, h = top + L.rows.length * cs + 16;
+    return {
+      w, h, alt: `Karnaugh map of ${k} variables with ${r.sop.length} group${r.sop.length === 1 ? '' : 's'}`,
+      draw: (ctx, W, H, pal) => {
+        ctx.font = `600 15px ${FONT}`; ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        // Corner label: row variables \ column variables.
+        ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(left - 46, top - 46); ctx.lineTo(left, top); ctx.stroke();
+        ctx.textAlign = 'right'; ctx.fillText(rv, left - 26, top - 10); ctx.textAlign = 'left'; ctx.fillText(cv, left - 20, top - 44);
+        ctx.textAlign = 'center'; ctx.font = `14px ${FONT}`;
+        L.cols.forEach((c, j) => ctx.fillText(bin(c, L.colBits), left + j * cs + cs / 2, top - 14));
+        L.rows.forEach((rr, i) => ctx.fillText(bin(rr, L.rowBits), left - 22, top + i * cs + cs / 2));
+        for (let i = 0; i < L.rows.length; i++) for (let j = 0; j < L.cols.length; j++) {
+          const m = L.cell(i, j), x = left + j * cs, y = top + i * cs;
+          ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(x, y, cs, cs);
+          const v = r.on.includes(m) ? '1' : r.dc.includes(m) ? 'X' : '0';
+          ctx.fillStyle = v === '0' ? pal.muted : pal.ink; ctx.font = `${v === '0' ? 400 : 700} 18px ${FONT}`;
+          ctx.fillText(v, x + cs / 2, y + cs / 2 + 2);
+          ctx.fillStyle = pal.muted; ctx.font = `10px ${FONT}`; ctx.textAlign = 'right'; ctx.fillText(String(m), x + cs - 4, y + cs - 8); ctx.textAlign = 'center';
+        }
+        const cols = groupColours(pal);
+        r.sop.forEach((c, gi) => {
+          const inset = 5 + (gi % 4) * 3;
+          ctx.strokeStyle = cols[gi % cols.length]; ctx.lineWidth = 2.4;
+          for (const rc of kmapRects(c, k)) {
+            const x = left + rc.c0 * cs + inset, y = top + rc.r0 * cs + inset, ww = (rc.c1 - rc.c0 + 1) * cs - 2 * inset, hh = (rc.r1 - rc.r0 + 1) * cs - 2 * inset;
+            ctx.beginPath(); ctx.roundRect(x, y, ww, hh, 12); ctx.stroke();
+          }
+        });
+      },
+    };
+  }
+
+  /** AND-OR (or OR-AND) diagram: one first-level gate per term, its inputs labelled with the literals. */
+  function gatesFigure(r: Minimal, kind: 'sop' | 'pos', nt: Notation): Figure | null {
+    const cover = kind === 'sop' ? r.sop : r.pos, k = r.vars.length;
+    if (!cover.length || (cover.length === 1 && literals(cover[0], k) === 0)) return null;
+    const terms = cover.map((c) => r.vars.map((v, i) => { const bit = 1 << (k - 1 - i); if (c.mask & bit) return null; const one = !!(c.value & bit); return { v, neg: kind === 'sop' ? !one : one }; }).filter(Boolean) as { v: string; neg: boolean }[]);
+    const gap = 16, pin = 22;
+    const heights = terms.map((t) => Math.max(44, t.length * pin + 10));
+    const H = Math.max(110, heights.reduce((s, x) => s + x + gap, 0) + 24), W = 440;
+    const g1 = kind === 'sop' ? 'and' : 'or', g2 = kind === 'sop' ? 'or' : 'and';
+    return {
+      w: W, h: H, alt: `Logic gate diagram for the ${kind === 'sop' ? 'sum of products' : 'product of sums'}`,
+      draw: (ctx, _W, _H, pal) => {
+        ctx.strokeStyle = pal.ink; ctx.fillStyle = pal.bg; ctx.lineWidth = 2; ctx.font = `600 17px ${FONT}`; ctx.textBaseline = 'middle';
+        const gate = (type: string, x: number, y: number, w: number, h: number) => {
+          ctx.beginPath();
+          if (type === 'and') { ctx.moveTo(x, y); ctx.lineTo(x + w - h / 2, y); ctx.arc(x + w - h / 2, y + h / 2, h / 2, -Math.PI / 2, Math.PI / 2); ctx.lineTo(x, y + h); ctx.closePath(); }
+          else { ctx.moveTo(x, y); ctx.quadraticCurveTo(x + w * 0.55, y, x + w, y + h / 2); ctx.quadraticCurveTo(x + w * 0.55, y + h, x, y + h); ctx.quadraticCurveTo(x + w * 0.3, y + h / 2, x, y); ctx.closePath(); }
+          ctx.fill(); ctx.stroke();
+        };
+        const line = (pts: [number, number][]) => { ctx.beginPath(); ctx.moveTo(...pts[0]); for (const p of pts.slice(1)) ctx.lineTo(...p); ctx.stroke(); };
+        const notGate = (x: number, y: number) => { ctx.beginPath(); ctx.moveTo(x, y - 7); ctx.lineTo(x + 14, y); ctx.lineTo(x, y + 7); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.arc(x + 17.5, y, 3.5, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); };
+        const lx = 14, gx = 140, gw = 64, ox = 286, ow = 70;
+        const outs: number[] = [];
+        let y = 20;
+        terms.forEach((t, ti) => {
+          const h = heights[ti], single = t.length === 1;
+          const pins = t.map((_, i) => y + (h - (t.length - 1) * pin) / 2 + i * pin);
+          t.forEach((lit, i) => {
+            ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.fillText(lit.v, lx, pins[i]);
+            const sx = lx + 10 + ctx.measureText(lit.v).width;
+            const end = single ? ox + 12 : gx + (g1 === 'or' ? 8 : 0);
+            if (lit.neg) { line([[sx, pins[i]], [sx + 34, pins[i]]]); ctx.fillStyle = pal.bg; notGate(sx + 34, pins[i]); line([[sx + 55, pins[i]], [end, pins[i]]]); }
+            else line([[sx, pins[i]], [end, pins[i]]]);
+          });
+          if (single) outs.push(pins[0]);
+          else { ctx.fillStyle = pal.bg; gate(g1, gx, y, gw, h); line([[gx + gw, y + h / 2], [ox + 12, y + h / 2]]); outs.push(y + h / 2); }
+          y += h + gap;
+        });
+        // Second-level gate.
+        const top = Math.min(...outs) - 12, bot = Math.max(...outs) + 12;
+        if (terms.length === 1) { line([[ox + 12, outs[0]], [ox + ow + 40, outs[0]]]); ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.fillText('F', ox + ow + 48, outs[0]); return; }
+        ctx.fillStyle = pal.bg; gate(g2, ox, top, ow, bot - top);
+        // Inputs that fall outside the curved back of an OR gate are drawn straight to it.
+        const mid = (top + bot) / 2;
+        line([[ox + ow, mid], [ox + ow + 40, mid]]);
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.fillText('F', ox + ow + 48, mid);
+      },
+    };
+  }
+
+  function calc() {
+    for (const b of root.querySelectorAll<HTMLButtonElement>('.lg-mode button')) b.setAttribute('aria-pressed', String(b.dataset.m === mode));
+    q('.lg-exprw').hidden = mode !== 'expr'; q('.lg-listw').hidden = mode !== 'list';
+    const err = q('.lg-err'), nt = q<HTMLSelectElement>('.lg-nt').value as Notation;
+    try {
+      let vars: string[], on: number[], dc: number[] = [], given = '';
+      if (mode === 'expr') {
+        const e = parseLogic(q<HTMLInputElement>('.lg-in').value);
+        vars = varsOf(e);
+        if (vars.length > MAX_VARS) throw new Error(`Up to ${MAX_VARS} variables, please (this has ${vars.length}: ${vars.join(', ')}).`);
+        if (!vars.length) throw new Error('The expression has no variables: it is a constant. Use letters such as A and B.');
+        on = minterms(e, vars); given = q<HTMLInputElement>('.lg-in').value.trim();
+      } else {
+        vars = q<HTMLInputElement>('.lg-vars').value.trim().split(/[\s,]+/).filter(Boolean);
+        if (!vars.length) throw new Error('Name the variables, such as A B C.');
+        if (vars.length > MAX_VARS) throw new Error(`Up to ${MAX_VARS} variables, please.`);
+        if (new Set(vars).size !== vars.length) throw new Error('Each variable name may appear only once.');
+        if (vars.some((v) => !/^[A-Za-z][A-Za-z0-9_]*$/.test(v))) throw new Error('Variable names are letters (optionally followed by digits), such as A or x1.');
+        on = parseList(q<HTMLInputElement>('.lg-m').value, vars.length, 'Minterms');
+        dc = parseList(q<HTMLInputElement>('.lg-d').value, vars.length, "Don't-cares");
+        const both = dc.filter((m) => on.includes(m));
+        if (both.length) throw new Error(`Row ${both[0]} is both a minterm and a don't-care. Put it in one list only.`);
+      }
+      const k = vars.length, r = minimise(vars, on, dc), n = 1 << k;
+      const sop = sopText(r.sop, vars, nt), pos = posText(r.pos, vars, nt);
+      q('.lg-sop').textContent = `F = ${sop}`; q('.lg-pos').textContent = `F = ${pos}`;
+      const cost = (c: Cube[]) => (c.length === 1 && literals(c[0], k) === 0 ? 'a constant' : `${c.length} term${c.length === 1 ? '' : 's'}, ${c.reduce((s, x) => s + literals(x, k), 0)} literals`);
+      const notes: string[] = [];
+      if (!on.length) notes.push('F is 0 on every row.');
+      else if (on.length + r.dc.length === n) notes.push('F is 1 on every row (where it matters).');
+      if (!r.exact) notes.push('The search for the very smallest form hit its limit, so this form is correct but may not be the smallest.');
+      q('.lg-note').textContent = notes.join(' ');
+      const facts: [string, string][] = [
+        ['Variables', vars.join(', ')],
+        ['Minterms', `Σm(${on.join(', ')})${r.dc.length ? ` + d(${r.dc.join(', ')})` : ''}`],
+        ['Maxterms', `ΠM(${r.off.join(', ')})${r.dc.length ? ` · D(${r.dc.join(', ')})` : ''}`],
+        ['Sum of products', cost(r.sop)], ['Product of sums', cost(r.pos)],
+        ['Prime implicants', `${r.primes.length} (${r.essential.length} essential)`],
+        ['Check', `both forms give the same output as the ${mode === 'expr' ? 'expression' : 'list'} on all ${n} rows${r.dc.length ? " (don't-cares excepted)" : ''}`],
+      ];
+      q('.lg-facts').replaceChildren(...facts.map(([kk, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = kk; d.querySelector('dd')!.textContent = v; return d; }));
+      // Truth table.
+      const tt = q<HTMLTableElement>('.lg-tt'); tt.replaceChildren();
+      const hr = tt.createTHead().insertRow(); for (const h of ['Row', ...vars, 'F']) { const th = document.createElement('th'); th.textContent = h; hr.append(th); }
+      const tb = tt.createTBody();
+      const outOf = (m: number) => (on.includes(m) ? '1' : r.dc.includes(m) ? 'X' : '0');
+      for (let m = 0; m < n; m++) { const tr = tb.insertRow(); if (on.includes(m)) tr.className = 'on'; for (const c of [String(m), ...bin(m, k).split(''), outOf(m)]) tr.insertCell().textContent = c; }
+      csvRows = [['row', ...vars, 'F'], ...Array.from({ length: n }, (_, m) => [m, ...bin(m, k).split(''), outOf(m)])];
+      // K-map.
+      q('.lg-kw').hidden = k < 2 || k > 4;
+      q('.lg-knote').textContent = k < 2 || k > 4 ? `Karnaugh maps are drawn for 2 to 4 variables; with ${k} the truth table, prime implicant chart and steps below do the same job.` : 'Each coloured loop is one term of the minimal sum of products; loops may wrap round the edges, which are next to each other.';
+      figs.km = k >= 2 && k <= 4 ? kmapFigure(r) : null;
+      if (figs.km) paint(q<HTMLCanvasElement>('.lg-km'), figs.km);
+      q('.lg-kleg').replaceChildren(...(figs.km ? r.sop.map((c, i) => { const s = document.createElement('span'); const ic = document.createElement('i'); ic.className = `c${i % 8}`; s.append(ic, termText(c, vars, false, nt)); return s; }) : []));
+      // Gates.
+      const gk = q<HTMLSelectElement>('.lg-gf').value as 'sop' | 'pos';
+      figs.gates = gatesFigure(r, gk, nt);
+      q('.lg-gates').hidden = !figs.gates;
+      if (figs.gates) paint(q<HTMLCanvasElement>('.lg-gates'), figs.gates);
+      // Prime implicant chart.
+      const pi = q<HTMLTableElement>('.lg-pi'); pi.replaceChildren();
+      const ph = pi.createTHead().insertRow(); for (const h of ['Prime implicant', 'Term', ...on.map(String), 'Essential', 'Used']) { const th = document.createElement('th'); th.textContent = h; ph.append(th); }
+      const pb = pi.createTBody();
+      const piRows = r.primes.map((c) => [pattern(c, k), termText(c, vars, false, nt), ...on.map((m) => (covers(c, m) ? 'X' : '')), r.essential.includes(c) ? 'yes' : '', r.sop.includes(c) ? '✓' : '']);
+      for (const row of piRows) { const tr = pb.insertRow(); for (const c of row) tr.insertCell().textContent = c; }
+      // QM steps.
+      const qm = q<HTMLTableElement>('.lg-qm'); qm.replaceChildren();
+      const qh = qm.createTHead().insertRow(); for (const h of ['Step', 'Number of 1s', 'Pattern', 'Covers', 'Combined']) { const th = document.createElement('th'); th.textContent = h; qh.append(th); }
+      const qb = qm.createTBody();
+      r.steps.forEach((s, si) => s.groups.forEach((g) => g.cubes.forEach((c) => { const tr = qb.insertRow(); for (const x of [`${si + 1} (groups of ${s.size})`, String(g.ones), pattern(c.cube, k), c.terms.join(', '), c.used ? '✓' : 'prime']) tr.insertCell().textContent = x; })));
+      err.hidden = true; q('.lg-out').hidden = false;
+      report = [
+        { title: 'Simplest forms', text: [...(given ? [`Input: ${given}`] : []), `Sum of products: F = ${sop}`, `Product of sums: F = ${pos}`], facts },
+        { title: 'Truth table', table: { head: ['Row', ...vars, 'F'], rows: Array.from({ length: n }, (_, m) => [String(m), ...bin(m, k).split(''), outOf(m)]) } },
+        ...(figs.km ? [{ title: 'Karnaugh map', text: [r.sop.map((c) => termText(c, vars, false, nt)).join(', ')], figure: figs.km }] : []),
+        ...(figs.gates ? [{ title: 'Logic gates', figure: figs.gates }] : []),
+        { title: 'Prime implicant chart', table: { head: ['Prime implicant', 'Term', ...on.map(String), 'Essential', 'Used'], rows: piRows } },
+      ];
+    } catch (e) {
+      err.textContent = (e as Error).message; err.hidden = false; q('.lg-out').hidden = true; report = []; csvRows = [];
+    }
+  }
+  let t = 0;
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('input')) { clearTimeout(t); t = window.setTimeout(calc, 300); } });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select')) calc(); });
+  root.addEventListener('click', (e) => {
+    const el = e.target as HTMLElement;
+    const mb = el.closest<HTMLButtonElement>('.lg-mode button');
+    if (mb) { mode = mb.dataset.m!; calc(); return; }
+    const ex = el.closest<HTMLButtonElement>('.lg-ex');
+    if (ex) {
+      const [m, a, b, c] = ex.dataset.ex!.split('|');
+      mode = m;
+      if (m === 'expr') q<HTMLInputElement>('.lg-in').value = a;
+      else { q<HTMLInputElement>('.lg-vars').value = a; q<HTMLInputElement>('.lg-m').value = b; q<HTMLInputElement>('.lg-d').value = c ?? ''; }
+      calc();
+    }
+  });
+  q('.lg-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(csv(csvRows)), 'truth-table.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (figs.km) paint(q<HTMLCanvasElement>('.lg-km'), figs.km); if (figs.gates) paint(q<HTMLCanvasElement>('.lg-gates'), figs.gates); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Logic simplification', subtitle: q('.lg-sop').textContent ?? '', file: 'logic', sections: report }));
+</script>

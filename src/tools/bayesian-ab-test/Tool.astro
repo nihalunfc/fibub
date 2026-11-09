@@ -1,0 +1,196 @@
+---
+// Bayesian A/B test (beta-binomial) and conjugate prior updater (beta-binomial, gamma-Poisson, normal-normal).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ba">
+  <div class="ax-card">
+    <div class="ax-seg ba-mode" role="group" aria-label="What to do">
+      <button type="button" data-m="ab" aria-pressed="true">A/B test</button><button type="button" data-m="conj" aria-pressed="false">Update a prior</button>
+    </div>
+
+    <div class="ba-p" data-m="ab">
+      <div class="ax-grid" style="margin-top:12px">
+        <label>Visitors A <input class="ba-na" inputmode="numeric" value="1000" /></label>
+        <label>Conversions A <input class="ba-sa" inputmode="numeric" value="120" /></label>
+        <label>Visitors B <input class="ba-nb" inputmode="numeric" value="1000" /></label>
+        <label>Conversions B <input class="ba-sb" inputmode="numeric" value="145" /></label>
+        <label>Prior <select class="ba-prior">
+          <option value="1,1" selected>Flat, Beta(1, 1)</option>
+          <option value="0.5,0.5">Jeffreys, Beta(0.5, 0.5)</option>
+          <option value="custom">My own Beta(a, b)</option>
+        </select></label>
+        <label class="ba-cp" hidden>Prior a <input class="ba-pa" inputmode="decimal" value="2" /></label>
+        <label class="ba-cp" hidden>Prior b <input class="ba-pb" inputmode="decimal" value="18" /></label>
+        <label>Loss you can live with (percentage points) <input class="ba-thr" inputmode="decimal" value="0.1" /></label>
+      </div>
+      <p class="ax-help">A conversion is any yes/no result: a sign-up, a click, a sale. The prior is your belief about the rate before the test; the same prior is used for both.</p>
+    </div>
+
+    <div class="ba-p" data-m="conj" hidden>
+      <div class="ax-grid" style="margin-top:12px">
+        <label>Model <select class="ba-model">
+          <option value="beta" selected>Proportion: beta-binomial</option>
+          <option value="gamma">Rate of counts: gamma-Poisson</option>
+          <option value="normal">Mean, known SD: normal-normal</option>
+        </select></label>
+      </div>
+      <div class="ax-grid ba-m" data-k="beta" style="margin-top:10px">
+        <label>Prior a <input class="ba-ba" inputmode="decimal" value="2" /></label>
+        <label>Prior b <input class="ba-bb" inputmode="decimal" value="3" /></label>
+        <label>Successes <input class="ba-bk" inputmode="numeric" value="7" /></label>
+        <label>Trials <input class="ba-bn" inputmode="numeric" value="20" /></label>
+      </div>
+      <div class="ax-grid ba-m" data-k="gamma" style="margin-top:10px" hidden>
+        <label>Prior shape <input class="ba-gk" inputmode="decimal" value="2" /></label>
+        <label>Prior rate <input class="ba-gr" inputmode="decimal" value="0.5" /></label>
+        <label>Total count <input class="ba-gs" inputmode="numeric" value="37" /></label>
+        <label>Number of intervals <input class="ba-gn" inputmode="decimal" value="12" /></label>
+      </div>
+      <div class="ax-grid ba-m" data-k="normal" style="margin-top:10px" hidden>
+        <label>Prior mean <input class="ba-nm" inputmode="decimal" value="100" /></label>
+        <label>Prior SD <input class="ba-ns" inputmode="decimal" value="15" /></label>
+        <label>Number of values n <input class="ba-nn" inputmode="numeric" value="9" /></label>
+        <label>Mean of the values <input class="ba-nx" inputmode="decimal" value="112" /></label>
+        <label>Known SD of one value <input class="ba-nsig" inputmode="decimal" value="20" /></label>
+      </div>
+      <p class="ax-help ba-mh"></p>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Credible interval <select class="ba-cred"><option value="0.9">90 %</option><option value="0.95" selected>95 %</option><option value="0.99">99 %</option></select></label>
+    </div>
+    <p class="ax-err ba-err" hidden></p>
+  </div>
+
+  <div class="ax-card ba-out" hidden>
+    <h2 class="ba-h"></h2>
+    <p class="ax-big ba-big"></p>
+    <div class="ba-say"></div>
+    <dl class="ax-facts ba-facts"></dl>
+    <div class="ba-tw" hidden><div class="ax-scroll"><table class="ba-tab"></table></div></div>
+    <canvas class="ax-fig ba-fig" style="margin-top:14px"></canvas>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small ba-csv">Download the results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .ba .ba-say p { margin: 10px 0 0; }
+  .ba .ba-facts { margin-top: 14px; }
+  .ba .ba-tw { margin-top: 14px; }
+</style>
+
+<script>
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { abTest, summarize, pdf, updateBeta, updateGamma, updateNormal, betaPdf, type Dist } from '../../lib/sci/bayes';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ba')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  let mode = 'ab', fig: Figure | null = null, report: Section[] = [], csvRows: (string | number)[][] = [];
+  const trim = (t: string) => (/[.]/.test(t) && !/×/.test(t) ? t.replace(/0+$/, '').replace(/[.]$/, '') : t);
+  const f4 = (x: number) => (Number.isFinite(x) ? trim(sig(x, 4)) : '–');
+  const pct = (x: number, n = 4) => `${trim(sig(x * 100, n))} %`;
+  const pp = (x: number) => `${trim(sig(x * 100, 3))} pp`;
+  const MH: Record<string, string> = {
+    beta: 'For a proportion (a share, a success rate). Beta(a, b) is like having seen a − 1 successes and b − 1 failures before; Beta(1, 1) is flat.',
+    gamma: 'For a rate of events per interval (calls per hour, cells per square, decays per minute). Gamma(shape, rate) is like having seen "shape" events in "rate" intervals before.',
+    normal: 'For a mean when the spread of single values (σ) is known. The prior says where you think the mean is and how sure you are (its SD).',
+  };
+
+  function dl(list: [string, string][]) {
+    q('.ba-facts').replaceChildren(...list.map(([k, x]) => { const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = x; d.append(dt, dd); return d; }));
+  }
+  function say(lines: string[]) { q('.ba-say').replaceChildren(...lines.map((t) => { const p = document.createElement('p'); p.textContent = t; return p; })); }
+
+  function runAb() {
+    const cred = Number(q<HTMLSelectElement>('.ba-cred').value), pc = `${Math.round(cred * 100)} %`;
+    const pv = q<HTMLSelectElement>('.ba-prior').value;
+    const [pa, pb] = pv === 'custom' ? [v('.ba-pa'), v('.ba-pb')] : pv.split(',').map(Number);
+    const thr = v('.ba-thr');
+    if (!(thr >= 0)) throw new Error('The loss you can live with must be a number of 0 or more.');
+    const r = abTest(v('.ba-sa'), v('.ba-na'), v('.ba-sb'), v('.ba-nb'), { a: pa, b: pb }, cred);
+    q('.ba-h').textContent = 'Bayesian A/B test';
+    q('.ba-big').textContent = `P(B beats A) = ${pct(r.pB)}`;
+    const better = r.pB >= 0.5 ? 'B' : 'A', loss = better === 'B' ? r.lossB : r.lossA;
+    say([
+      `Given the data and the prior, there is a ${pct(r.pB, 3)} chance that B's true conversion rate is higher than A's (and ${pct(1 - r.pB, 3)} that A's is).`,
+      `If you choose ${better} and it is in fact worse, you expect to give up ${pp(loss)} of conversion rate on average (the expected loss). ${loss * 100 <= thr ? `That is within the ${trim(sig(thr, 3))} pp you said you can live with, so choosing ${better} now is reasonable.` : `That is more than the ${trim(sig(thr, 3))} pp you can live with: keep the test running to collect more data.`}`,
+      `B's rate is ${pp(r.diffMean)} ${r.diffMean >= 0 ? 'higher' : 'lower'} on average (${pc} credible interval ${pp(r.diffCi[0])} to ${pp(r.diffCi[1])}); relative lift ${pct(r.liftMedian, 3)} (median, ${pc} interval ${pct(r.liftCi[0], 3)} to ${pct(r.liftCi[1], 3)}).`,
+    ]);
+    const facts: [string, string][] = [
+      ['P(B > A)', pct(r.pB, 6)], ['Expected loss choosing B', pp(r.lossB)], ['Expected loss choosing A', pp(r.lossA)],
+      [`A rate, ${pc} interval`, `${pct(r.A.a / (r.A.a + r.A.b))} (${pct(r.ciA[0])} to ${pct(r.ciA[1])})`], [`B rate, ${pc} interval`, `${pct(r.B.a / (r.B.a + r.B.b))} (${pct(r.ciB[0])} to ${pct(r.ciB[1])})`],
+      [`Difference B − A, ${pc} interval`, `${pp(r.diffMean)} (${pp(r.diffCi[0])} to ${pp(r.diffCi[1])})`], [`Lift B ÷ A − 1, ${pc} interval`, `${pct(r.liftMedian, 3)} (${pct(r.liftCi[0], 3)} to ${pct(r.liftCi[1], 3)})`],
+      ['Posteriors', `A: Beta(${f4(r.A.a)}, ${f4(r.A.b)}), B: Beta(${f4(r.B.a)}, ${f4(r.B.b)})`], ['P(B > A) method', r.method === 'exact' ? 'Exact sum (Evan Miller)' : 'Numerical integration'],
+    ];
+    dl(facts);
+    q('.ba-tw').hidden = true;
+    const sdMax = Math.max(...[r.A, r.B].map((s) => Math.sqrt((s.a * s.b) / ((s.a + s.b) ** 2 * (s.a + s.b + 1))))), lo = Math.max(0, Math.min(r.ciA[0], r.ciB[0]) - 2.5 * sdMax), hi = Math.min(1, Math.max(r.ciA[1], r.ciB[1]) + 2.5 * sdMax);
+    const xs = Array.from({ length: 241 }, (_, i) => lo + ((hi - lo) * i) / 240);
+    fig = chartFigure({ h: 320, xLabel: 'Conversion rate (%)', yLabel: 'Posterior density', yMin: 0, series: [{ name: 'A', x: xs.map((x) => x * 100), y: xs.map((x) => betaPdf(x, r.A.a, r.A.b) / 100), mode: 'line' }, { name: 'B', x: xs.map((x) => x * 100), y: xs.map((x) => betaPdf(x, r.B.a, r.B.b) / 100), mode: 'line' }] }, 'Posterior distributions of the conversion rates of A and B');
+    report = [{ title: 'Bayesian A/B test', text: [q('.ba-big').textContent!, ...[...q('.ba-say').querySelectorAll('p')].map((p) => p.textContent!)], facts, figure: fig }];
+    csvRows = [['quantity', 'value'], ['P(B > A)', r.pB], ['expected loss choosing B', r.lossB], ['expected loss choosing A', r.lossA], ['A posterior a', r.A.a], ['A posterior b', r.A.b], ['B posterior a', r.B.a], ['B posterior b', r.B.b], ['A interval low', r.ciA[0]], ['A interval high', r.ciA[1]], ['B interval low', r.ciB[0]], ['B interval high', r.ciB[1]], ['difference mean', r.diffMean], ['difference low', r.diffCi[0]], ['difference high', r.diffCi[1]], ['lift median', r.liftMedian], ['lift low', r.liftCi[0]], ['lift high', r.liftCi[1]], ['credible level', cred]];
+  }
+
+  function runConj() {
+    const cred = Number(q<HTMLSelectElement>('.ba-cred').value), pc = `${Math.round(cred * 100)} %`, k = q<HTMLSelectElement>('.ba-model').value;
+    let prior: Dist, post: Dist, name: (d: Dist) => string, xl: string, xr: [number, number];
+    if (k === 'beta') {
+      prior = { kind: 'beta', p1: v('.ba-ba'), p2: v('.ba-bb') }; post = updateBeta(prior.p1, prior.p2, v('.ba-bk'), v('.ba-bn'));
+      name = (d) => `Beta(${f4(d.p1)}, ${f4(d.p2)})`; xl = 'Proportion'; xr = [0, 1];
+    } else if (k === 'gamma') {
+      prior = { kind: 'gamma', p1: v('.ba-gk'), p2: v('.ba-gr') }; post = updateGamma(prior.p1, prior.p2, v('.ba-gs'), v('.ba-gn'));
+      name = (d) => `Gamma(shape ${f4(d.p1)}, rate ${f4(d.p2)})`; xl = 'Rate per interval';
+      const sp = summarize(post, 0.999), s0 = summarize(prior, 0.99); xr = [0, Math.max(sp.ci[1], Math.min(s0.ci[1], sp.ci[1] * 3))];
+    } else {
+      prior = { kind: 'normal', p1: v('.ba-nm'), p2: v('.ba-ns') }; post = updateNormal(prior.p1, prior.p2, v('.ba-nn'), v('.ba-nx'), v('.ba-nsig'));
+      name = (d) => `Normal(mean ${f4(d.p1)}, SD ${f4(d.p2)})`; xl = 'Mean';
+      xr = [Math.min(prior.p1 - 3.5 * prior.p2, post.p1 - 4 * post.p2), Math.max(prior.p1 + 3.5 * prior.p2, post.p1 + 4 * post.p2)];
+    }
+    const S0 = summarize(prior, cred), S1 = summarize(post, cred);
+    q('.ba-h').textContent = 'Prior updated with your data';
+    q('.ba-big').textContent = `Posterior ${name(post)}`;
+    say([`Before the data, the ${k === 'beta' ? 'proportion' : k === 'gamma' ? 'rate' : 'mean'} was most likely around ${f4(S0.mean)} (${pc} interval ${f4(S0.ci[0])} to ${f4(S0.ci[1])}). After it, the best estimate is ${f4(S1.mean)}, and there is a ${pc} chance the true value lies between ${f4(S1.ci[0])} and ${f4(S1.ci[1])}.`,
+      k === 'beta' ? 'The posterior is a beta distribution again: a + successes, b + failures. That is what makes the prior "conjugate".' : k === 'gamma' ? 'The posterior is a gamma distribution again: shape + total count, rate + number of intervals.' : 'The posterior mean is a weighted average of the prior mean and the data mean, weighted by their precisions (1 / variance).']);
+    const head = ['', 'Distribution', 'Mean', 'SD', 'Mode', 'Median', `${pc} interval`];
+    const row = (lab: string, d: Dist, s: typeof S0) => [lab, name(d), f4(s.mean), f4(s.sd), f4(s.mode), f4(s.median), `${f4(s.ci[0])} to ${f4(s.ci[1])}`];
+    const rows = [row('Prior', prior, S0), row('Posterior', post, S1)];
+    const t = q<HTMLTableElement>('.ba-tab'); t.innerHTML = '';
+    const hr = t.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((x) => { tr.insertCell().textContent = x; }); });
+    q('.ba-tw').hidden = false; dl([]);
+    const xs = Array.from({ length: 301 }, (_, i) => xr[0] + ((xr[1] - xr[0]) * i) / 300).filter((x) => k !== 'beta' || (x > 0 && x < 1) || (x === 0 && prior.p1 >= 1 && post.p1 >= 1) || (x === 1 && prior.p2 >= 1 && post.p2 >= 1));
+    const cap = (y: number) => (Number.isFinite(y) ? y : NaN);
+    fig = chartFigure({ h: 320, xLabel: xl, yLabel: 'Density', yMin: 0, series: [{ name: 'Prior', x: xs, y: xs.map((x) => cap(pdf(prior, x))), mode: 'line', dash: [6, 4] }, { name: 'Posterior', x: xs, y: xs.map((x) => cap(pdf(post, x))), mode: 'line' }] }, 'Prior and posterior densities');
+    report = [{ title: 'Conjugate prior update', text: [q('.ba-big').textContent!, ...[...q('.ba-say').querySelectorAll('p')].map((p) => p.textContent!)], table: { head, rows }, figure: fig }];
+    csvRows = [['', 'parameter 1', 'parameter 2', 'mean', 'sd', 'mode', 'median', 'interval low', 'interval high'], ['prior', prior.p1, prior.p2, S0.mean, S0.sd, S0.mode, S0.median, S0.ci[0], S0.ci[1]], ['posterior', post.p1, post.p2, S1.mean, S1.sd, S1.mode, S1.median, S1.ci[0], S1.ci[1]]];
+  }
+
+  function calc() {
+    for (const p of root.querySelectorAll<HTMLElement>('.ba-p')) p.hidden = p.dataset.m !== mode;
+    root.querySelectorAll<HTMLElement>('.ba-cp').forEach((e) => { e.hidden = q<HTMLSelectElement>('.ba-prior').value !== 'custom'; });
+    const k = q<HTMLSelectElement>('.ba-model').value;
+    root.querySelectorAll<HTMLElement>('.ba-m').forEach((e) => { e.hidden = e.dataset.k !== k; });
+    q('.ba-mh').textContent = MH[k];
+    const err = q('.ba-err');
+    try {
+      if (mode === 'ab') runAb(); else runConj();
+      err.hidden = true; q('.ba-out').hidden = false;
+      paint(q<HTMLCanvasElement>('.ba-fig'), fig!);
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.ba-out').hidden = true; report = []; csvRows = []; }
+  }
+  q('.ba-mode').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-m]'); if (!b) return;
+    mode = b.dataset.m!; q('.ba-mode').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); calc();
+  });
+  let tm = 0;
+  root.addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(calc, 250); });
+  root.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('select')) calc(); });
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.ba-fig'), fig));
+  q('.ba-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(csv(csvRows)), mode === 'ab' ? 'bayesian-ab-test.csv' : 'conjugate-update.csv', 'text/csv'); });
+  wireDownloads(q('.dl'), () => ({ title: mode === 'ab' ? 'Bayesian A/B test' : 'Conjugate prior update', subtitle: q('.ba-big').textContent ?? '', file: mode === 'ab' ? 'bayesian-ab-test' : 'conjugate-update', sections: report }));
+  calc();
+</script>

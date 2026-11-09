@@ -1,0 +1,182 @@
+---
+// Floating point inspector: IEEE 754 half, single and double bits of any number, exact values, ULPs and errors.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax fl">
+  <div class="ax-card">
+    <h2>Number</h2>
+    <div class="ax-grid">
+      <label>Type a number <input class="fl-in" value="0.1" spellcheck="false" autocomplete="off" /></label>
+      <label>Bit pattern (hex) <input class="fl-hex" spellcheck="false" autocomplete="off" /></label>
+      <label>Special values <select class="fl-spec"><option value="">Choose…</option></select></label>
+    </div>
+    <div class="ax-row" style="margin-top:12px">
+      <div class="ax-seg fl-fmt" role="group" aria-label="Format">
+        <button type="button" data-f="half" aria-pressed="false">Half 16</button>
+        <button type="button" data-f="single" aria-pressed="false">Single 32</button>
+        <button type="button" data-f="double" aria-pressed="true">Double 64</button>
+      </div>
+    </div>
+    <p class="ax-help">Any decimal, like 0.1, -2.5e-3 or 6.02214076e23, or inf, -inf, NaN. It is rounded to the nearest value the format can hold (ties to even), exactly, with whole-number arithmetic.</p>
+    <p class="ax-err fl-err" hidden></p>
+  </div>
+
+  <div class="ax-card fl-out">
+    <h2 class="fl-title"></h2>
+    <p class="fl-big"></p>
+    <div class="fl-bits" aria-label="Bits: press one to flip it"></div>
+    <div class="ax-legend"><span><i class="fl-ks"></i>Sign</span><span><i class="fl-ke"></i>Exponent</span><span><i class="fl-km"></i>Mantissa (fraction)</span></div>
+    <p class="ax-help">Press any bit to flip it and see what the pattern means.</p>
+    <div class="ax-row" style="margin:10px 0 14px">
+      <button type="button" class="btn secondary small fl-down">◀ Next down</button>
+      <button type="button" class="btn secondary small fl-up">Next up ▶</button>
+    </div>
+    <dl class="fl-facts"></dl>
+  </div>
+
+  <div class="ax-card fl-allc">
+    <h2>In all three formats</h2>
+    <div class="ax-scroll"><table class="fl-all"></table></div>
+    <p class="ax-help">Rounding error = stored value − the number you typed. Half precision keeps about 3 significant digits, single about 7, double about 16.</p>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small fl-csv">Table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .fl .fl-big { font-size: 17px; margin: 0 0 12px; overflow-wrap: anywhere; }
+  .fl .fl-big b { font-variant-numeric: tabular-nums; }
+  .fl .fl-bits { display: flex; flex-wrap: wrap; gap: 3px; }
+  .fl .fl-bits button { width: 22px; height: 30px; padding: 0; border: 1px solid var(--line); border-radius: 4px; font: 600 14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; cursor: pointer; color: var(--ink); background: var(--bg); }
+  .fl .fl-bits button.s, .fl .fl-ks { background: var(--bad-soft); }
+  .fl .fl-bits button.e, .fl .fl-ke { background: var(--warn-soft); }
+  .fl .fl-bits button.m, .fl .fl-km { background: var(--accent-soft); }
+  .fl .fl-bits button.gap { margin-left: 8px; }
+  .fl .fl-legend i, .fl .ax-legend i { border: 1px solid var(--line); }
+  .fl .fl-facts { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin: 0; }
+  .fl .fl-facts dt { font-size: 13px; color: var(--muted); }
+  .fl .fl-facts dd { margin: 2px 0 0; font: 15px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: anywhere; }
+  .fl .fl-all td { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .fl .fl-all tr.on td { font-weight: 700; }
+</style>
+
+<script>
+  import { FORMATS, encode, decode, parseDecimal, parseBits, ratToDecimal, ratToNumber, sub, step, ulp, shortest, hex, binary, specials, type Fmt, type FmtId, type Rat } from '../../lib/sci/float';
+  import { csv } from '../../lib/sci/num';
+  import { save, wireDownloads, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.fl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const input = q<HTMLInputElement>('.fl-in'), hexIn = q<HTMLInputElement>('.fl-hex'), err = q('.fl-err');
+  let fmt: Fmt = FORMATS.double, bits = 0n, typed: string | null = '0.1', facts: [string, string][] = [], allRows: string[][] = [];
+  const KIND: Record<string, string> = { zero: 'Zero', subnormal: 'Subnormal (very small, less precision)', normal: 'Normal', infinity: 'Infinity', nan: 'Not a number (NaN)' };
+  const sup = (n: number) => String(n).replace('-', '−');
+  const g = (x: number) => (x === 0 ? '0' : Math.abs(x) >= 1e-4 && Math.abs(x) < 1e6 ? String(+x.toPrecision(4)) : x.toExponential(3));
+
+  /** Rounding error of the typed number in a format: exact, relative and in ULPs. */
+  function error(b: bigint, f: Fmt, t: string | null): { exact: string; num: number; rel: string; ulps: string } | null {
+    if (t == null) return null;
+    const p = parseDecimal(t), d = decode(b, f);
+    if (p.kind !== 'num' || !d.r) return null;
+    const e = sub(d.r, p.r), u = ulp(b, f)!, x = ratToNumber(p.r);
+    return { exact: ratToDecimal(e), num: ratToNumber(e), rel: x === 0 ? '–' : g(ratToNumber(e) / Math.abs(x)), ulps: g(ratToNumber(e) / ratToNumber(u)) };
+  }
+
+  function drawBits() {
+    const s = binary(bits, fmt), box = q('.fl-bits');
+    box.replaceChildren(...[...s].map((ch, i) => {
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = ch;
+      const pos = fmt.bits - 1 - i;
+      b.className = i === 0 ? 's' : i <= fmt.e ? 'e' : 'm';
+      if (i === 1 || i === fmt.e + 1) b.classList.add('gap');
+      b.dataset.pos = String(pos);
+      b.setAttribute('aria-label', `Bit ${pos} (${i === 0 ? 'sign' : i <= fmt.e ? 'exponent' : 'mantissa'}): ${ch}`);
+      return b;
+    }));
+  }
+
+  function show() {
+    const d = decode(bits, fmt), es = binary(bits, fmt).slice(1, 1 + fmt.e), ms = binary(bits, fmt).slice(1 + fmt.e);
+    q('.fl-title').textContent = fmt.name;
+    hexIn.value = hex(bits, fmt);
+    drawBits();
+    const sh = shortest(bits, fmt);
+    const big = q('.fl-big');
+    if (d.r) {
+      const exact = ratToDecimal(d.r);
+      big.replaceChildren(typed != null ? `${typed.trim()} is stored as ` : 'This pattern is ', Object.assign(document.createElement('b'), { textContent: exact }));
+    } else big.textContent = d.kind === 'nan' ? 'This pattern is NaN, "not a number".' : `This pattern is ${d.sign ? 'minus ' : ''}infinity.`;
+    facts = [['Kind', KIND[d.kind]], ['Sign bit', `${d.sign} (${d.sign ? 'negative' : 'positive'})`]];
+    if (d.kind === 'normal' || d.kind === 'subnormal' || d.kind === 'zero') {
+      const sig: Rat = { neg: false, num: d.M, den: 1n << BigInt(fmt.m) };
+      facts.push(
+        ['Exponent bits', `${es} = ${d.expField}${d.expField === 0 ? ' (all zeros: subnormal or zero, exponent fixed at ' + sup(1 - fmt.bias) + ')' : `, minus bias ${fmt.bias} = ${sup(d.e)}`}`],
+        ['Significand', `${d.expField === 0 ? '0' : '1'}.${ms}₂ = ${ratToDecimal(sig)}`],
+        ['Value', `${d.sign ? '−' : '+'}${ratToDecimal(sig)} × 2^${sup(d.e)}`],
+        ['Exact stored value', ratToDecimal(d.r!)],
+        ['Shortest decimal that gives these bits', sh],
+      );
+      const e = error(bits, fmt, typed);
+      if (e) facts.push(['Rounding error (stored − typed)', e.exact], ['Relative error', e.rel], ['Error in ULPs', `${e.ulps} (never more than 0.5 when rounding to nearest)`]);
+      facts.push(['ULP: gap to the next larger magnitude', `${ratToDecimal(ulp(bits, fmt)!)} = 2^${sup(d.e - fmt.m)}`]);
+    } else {
+      facts.push(['Exponent bits', `${es} (all ones: infinity or NaN)`], ['Mantissa bits', `${ms} (${d.mant === 0n ? 'all zero: infinity' : 'not all zero: NaN'})`]);
+    }
+    const up = step(bits, fmt, true), down = step(bits, fmt, false);
+    facts.push(['Next up', `${shortest(up, fmt)} (${hex(up, fmt)})`], ['Next down', `${shortest(down, fmt)} (${hex(down, fmt)})`], ['Bit pattern', `${hex(bits, fmt)} = ${binary(bits, fmt)}`]);
+    q('.fl-facts').replaceChildren(...facts.map(([k, v]) => { const div = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; div.append(dt, dd); return div; }));
+    root.querySelectorAll<HTMLButtonElement>('.fl-fmt button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.f === fmt.id)));
+    all();
+  }
+
+  function all() {
+    const t = typed;
+    allRows = (['half', 'single', 'double'] as FmtId[]).map((id) => {
+      const f = FORMATS[id], b = id === fmt.id ? bits : t != null ? encode(t, f) : null;
+      if (b == null) return [f.name, '–', '–', '–', '–'];
+      const e = error(b, f, t);
+      return [f.name, hex(b, f), shortest(b, f), e ? g(e.num) : '–', e ? e.ulps : '–'];
+    });
+    const tr = (cells: string[], th = false, on = false) => { const r = document.createElement('tr'); if (on) r.className = 'on'; cells.forEach((c) => { const x = document.createElement(th ? 'th' : 'td'); x.textContent = c; r.append(x); }); return r; };
+    q('.fl-all').replaceChildren(tr(['Format', 'Bits (hex)', 'Stored (shortest)', 'Rounding error', 'In ULPs'], true), ...allRows.map((r, i) => tr(r, false, ['half', 'single', 'double'][i] === fmt.id)));
+    q('.fl-allc').hidden = false;
+  }
+
+  function fromInput() {
+    const v = input.value;
+    try { bits = encode(v, fmt); typed = v; err.hidden = true; q('.fl-out').hidden = false; show(); }
+    catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.fl-out').hidden = true; q('.fl-allc').hidden = true; allRows = []; }
+  }
+  function setBits(b: bigint) { bits = b; typed = null; input.value = shortest(b, fmt); err.hidden = true; q('.fl-out').hidden = false; show(); }
+
+  function fillSpecials() {
+    const sel = q<HTMLSelectElement>('.fl-spec');
+    sel.replaceChildren(Object.assign(document.createElement('option'), { value: '', textContent: 'Choose…' }), ...specials(fmt).map((s) => Object.assign(document.createElement('option'), { value: s.bits.toString(), textContent: `${s.name}: ${shortest(s.bits, fmt)}` })));
+  }
+
+  let t = 0;
+  input.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(fromInput, 200); });
+  hexIn.addEventListener('change', () => { try { setBits(parseBits(hexIn.value, fmt)); } catch (e) { err.textContent = (e as Error).message; err.hidden = false; } });
+  q('.fl-spec').addEventListener('change', () => { const v = q<HTMLSelectElement>('.fl-spec').value; if (v) setBits(BigInt(v)); q<HTMLSelectElement>('.fl-spec').value = ''; });
+  root.querySelectorAll<HTMLButtonElement>('.fl-fmt button').forEach((b) => b.addEventListener('click', () => {
+    const old = fmt; fmt = FORMATS[b.dataset.f as FmtId]; fillSpecials();
+    if (typed != null || err.hidden === false) fromInput();
+    else { // carry the value across: the nearest value of the new format
+      const d = decode(bits, old);
+      bits = d.r ? encode(ratToDecimal(d.r), fmt) : encode(d.kind === 'nan' ? 'NaN' : d.sign ? '-inf' : 'inf', fmt);
+      input.value = shortest(bits, fmt); show();
+    }
+  }));
+  q('.fl-bits').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-pos]'); if (b) setBits(bits ^ (1n << BigInt(b.dataset.pos!))); });
+  q('.fl-up').addEventListener('click', () => setBits(step(bits, fmt, true)));
+  q('.fl-down').addEventListener('click', () => setBits(step(bits, fmt, false)));
+  q('.fl-csv').addEventListener('click', () => allRows.length && save(new Blob([csv([['format', 'bits hex', 'stored (shortest)', 'rounding error', 'error in ULPs'], ...allRows])], { type: 'text/csv' }), 'float-formats.csv', 'text/csv'));
+  wireDownloads(q('.dl'), () => {
+    const sections: Section[] = [];
+    if (!q('.fl-out').hidden) sections.push({ title: `${input.value.trim()} as ${fmt.name}`, facts }, { title: 'In all three formats', table: { head: ['Format', 'Bits (hex)', 'Stored (shortest)', 'Rounding error', 'In ULPs'], rows: allRows } });
+    return { title: 'Floating point inspector', subtitle: `${input.value.trim()}, IEEE 754`, file: 'float-' + fmt.id, sections };
+  });
+  fillSpecials();
+  fromInput();
+</script>

@@ -35,7 +35,8 @@ export function fitScaler(X: Mat): { mean: number[]; sd: number[] } {
   const p = X[0]?.length ?? 0, n = X.length, mean = new Array(p).fill(0), sd = new Array(p).fill(0);
   for (const r of X) for (let j = 0; j < p; j++) mean[j] += r[j] / n;
   for (const r of X) for (let j = 0; j < p; j++) sd[j] += (r[j] - mean[j]) ** 2 / n;
-  return { mean, sd: sd.map((v) => (v > 0 ? Math.sqrt(v) : 1)) };
+  // A constant column (up to rounding) keeps scale 1, as StandardScaler does.
+  return { mean, sd: sd.map((v, j) => (Math.sqrt(v) > 1e-12 * Math.max(1, Math.abs(mean[j])) ? Math.sqrt(v) : 1)) };
 }
 export const scale = (X: Mat, s: { mean: number[]; sd: number[] }): Mat => X.map((r) => r.map((v, j) => (v - s.mean[j]) / s.sd[j]));
 
