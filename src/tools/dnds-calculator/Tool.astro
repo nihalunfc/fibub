@@ -1,0 +1,142 @@
+---
+// dN/dS by Nei-Gojobori (1986) with the Jukes-Cantor correction, standard genetic code. The example is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+const example = `>Gene, species 1
+ATGGCACTATCACCCCGTGCTCGATCCCCGACGGCTAGGGGGTGCGATTTGACCCTGTGGAAGCCCACCCTATACGTTCGCAGTAAGGGTCGTCTTAACGGTGGAGCGAGTCAACAATTATGCCCGCATACAATAAGCGACGATGTAGGACCAGAAGAGCTTCGGACCAGCAGCTCAATTTAA
+>Gene, species 2
+ATGGCACTATCACCCCGATCTCGATCCCCTACTGCTAGGGGGTGCGATTTAACCCTGTGGAAGCCCACCCTTAACCTACGTAGTAAAGGTCGTCTTAATGGCGGAGCGAGCCAACAATTGTGCCCGCACAGCATAAGCGACGATGTAGGACCAGAAGAGCTGCGGACCAGCAGCTCAATTTAA`;
+---
+<div class="ax dnds">
+  <div class="ax-card">
+    <h2>Two coding sequences</h2>
+    <label>Two aligned protein-coding DNA sequences in FASTA, in frame from the first base (start codon to stop codon is ideal). Gaps must come in threes.
+      <textarea class="dd-in" rows="7" spellcheck="false" wrap="off">{example}</textarea></label>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small dd-open">Open a file</button><input type="file" class="dd-file" accept=".fa,.fasta,.fas,.fna,.txt,text/plain" hidden /><span class="ax-help" style="margin:0">FASTA or text, up to 1 MB.</span></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Correction <select class="dd-cor"><option value="jc" selected>Jukes-Cantor (dN, dS)</option><option value="none">None (pN, pS)</option></select></label>
+    </div>
+    <p class="ax-help">Uses the standard genetic code. Codons with a gap, N or other ambiguity in either sequence are skipped, as is a stop codon at the end. Jukes-Cantor corrects for sites that changed more than once. The example is made up.</p>
+    <p class="ax-err dd-err" hidden></p>
+  </div>
+
+  <div class="ax-card dd-out" hidden>
+    <h2>Result</h2>
+    <p class="ax-big dd-big"></p>
+    <p class="dd-say"></p>
+    <dl class="ax-facts dd-facts"></dl>
+    <p class="ax-err dd-warn" hidden></p>
+    <h3>Changes along the gene</h3>
+    <canvas class="ax-fig dd-fig"></canvas>
+    <p class="ax-help">Running totals of synonymous and nonsynonymous differences from the first codon to the last. A steep stretch in the nonsynonymous line marks a region where the proteins differ most.</p>
+    <h3>Codons that differ</h3>
+    <div class="ax-scroll dd-tw"><table class="dd-tab"></table></div>
+    <p class="ax-help dd-tnote"></p>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small dd-csv">Codon table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { ng86, internalStops, type DnDs } from '../../lib/sci/dnds';
+  import { parseFasta } from '../../lib/sci/treebuild';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { csv as toCsv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.dnds')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const f4 = (x: number) => (Number.isFinite(x) ? x.toFixed(4) : '–');
+  const h = (x: number) => (Number.isInteger(x) ? String(x) : x.toFixed(2).replace(/0$/, ''));
+  const MAX_ROWS = 500;
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function table(head: string[], rows: string[][], right: number[]) {
+    const t = q<HTMLTableElement>('.dd-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((x, i) => { const th = document.createElement('th'); th.textContent = x; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.dd-err').textContent = m; q('.dd-err').hidden = false; q('.dd-out').hidden = true; fig = null; sections = []; csvRows = []; };
+    q('.dd-err').hidden = true;
+    let S;
+    try { S = parseFasta(q<HTMLTextAreaElement>('.dd-in').value); } catch (e) { return fail((e as Error).message); }
+    if (S.length !== 2) return fail(S.length < 2 ? 'Paste two coding sequences in FASTA format: a >name line, then the sequence, for each.' : `Give exactly two sequences (found ${S.length}).`);
+    const [a, b] = S;
+    if (a.seq.length !== b.seq.length) return fail(`The sequences are not aligned: ${a.name} has ${a.seq.length} bases and ${b.name} has ${b.seq.length}. Align them codon by codon first.`);
+    if (a.seq.length % 3) return fail(`The length (${a.seq.length}) is not a multiple of 3, so the sequences cannot be read as codons. Trim them to the coding region, in frame.`);
+    const bad = S.find((s) => /[^ACGTRYSWKMBDHVN?\-]/.test(s.seq));
+    if (bad) return fail(`${bad.name} has letters that are not DNA. Paste DNA (or RNA) coding sequences, not protein.`);
+    for (const s of S) { const st = internalStops(s.seq); if (st.length) return fail(`${s.name} has a stop codon inside the gene (codon ${st.slice(0, 5).join(', ')}${st.length > 5 ? ' …' : ''}). Check the reading frame starts at base 1, or remove the stop.`); }
+    for (const s of S) for (let i = 0; i < s.seq.length; i += 3) { const c = s.seq.slice(i, i + 3); if (c.includes('-') && c !== '---') return fail(`${s.name} has a gap that breaks a codon (codon ${i / 3 + 1}: ${c}). Gaps must cover whole codons.`); }
+    const r: DnDs = ng86(a.seq, b.seq);
+    if (r.codons < 1) return fail('No codon pair could be compared (all have gaps or ambiguous bases).');
+    const jc = q<HTMLSelectElement>('.dd-cor').value === 'jc';
+    const dN = jc ? r.dN : r.pN, dS = jc ? r.dS : r.pS, ratio = dN / dS;
+    const nm = jc ? ['dN', 'dS'] : ['pN', 'pS'];
+    if (jc && (!Number.isFinite(r.dS) || !Number.isFinite(r.dN))) return fail(`The ${!Number.isFinite(r.dS) ? 'synonymous' : 'nonsynonymous'} differences are 75 % of sites or more, so the Jukes-Cantor correction is not defined: the sequences are too far apart (saturated). Compare closer relatives.`);
+    let say = '';
+    if (r.Sd === 0 && r.Nd === 0) say = 'The two sequences code identically at every compared codon: there is nothing to compare.';
+    else if (r.Sd === 0) say = `There are no synonymous differences, so ${nm[0]}/${nm[1]} cannot be worked out (it would be infinite). The sequences may be too close, or the gene very short.`;
+    else if (!jc) say = 'Without the correction this is the ratio of the raw proportions pN/pS, which falls short of the true dN/dS when sites have changed more than once.';
+    else if (r.pZ < 0.05) say = ratio < 1 ? `dN is significantly smaller than dS (Z test p = ${r.pZ < 0.001 ? '< 0.001' : r.pZ.toFixed(3)}): amino-acid changes have been weeded out, the mark of purifying (negative) selection.` : `dN is significantly larger than dS (Z test p = ${r.pZ < 0.001 ? '< 0.001' : r.pZ.toFixed(3)}): more amino-acid changes than chance predicts, a sign of positive (adaptive) selection.`;
+    else say = `dN and dS do not differ significantly (Z test p = ${r.pZ.toFixed(3)}), consistent with neutral evolution, although a short gene has little power to tell.`;
+    q('.dd-big').textContent = Number.isFinite(ratio) ? `${nm[0]}/${nm[1]} = ${ratio.toFixed(3)}` : `${nm[0]}/${nm[1]} cannot be worked out`;
+    q('.dd-say').textContent = say;
+    const facts: [string, string, string][] = [
+      ['Codons compared', String(r.codons), r.skipped ? `${r.skipped} skipped (gap, ambiguous base or final stop)` : ''],
+      ['Synonymous sites (S)', r.S.toFixed(2), ''], ['Nonsynonymous sites (N)', r.N.toFixed(2), ''],
+      ['Synonymous differences (Sd)', h(r.Sd), ''], ['Nonsynonymous differences (Nd)', h(r.Nd), ''],
+      ['pS = Sd / S', f4(r.pS), ''], ['pN = Nd / N', f4(r.pN), ''],
+      ...(jc ? [['dS (Jukes-Cantor)', `${f4(r.dS)} ± ${f4(r.seS)}`, 'standard error'] as [string, string, string], ['dN (Jukes-Cantor)', `${f4(r.dN)} ± ${f4(r.seN)}`, 'standard error'] as [string, string, string], ['Z test, dN − dS', Number.isFinite(r.z) ? `Z = ${r.z.toFixed(2)}` : '–', Number.isFinite(r.pZ) ? `two-sided p = ${r.pZ < 0.001 ? '< 0.001' : r.pZ.toFixed(3)}` : '']] : []),
+    ];
+    q('.dd-facts').replaceChildren(...facts.map(([k, v, s]) => fact(k, v, s)));
+    const warn: string[] = [];
+    if (jc && r.dS > 1.5) warn.push(`dS is ${r.dS.toFixed(2)}: synonymous sites are close to saturation, so dS (and dN/dS) is unreliable.`);
+    if (r.codons < 50) warn.push('Fewer than 50 codons were compared, so the numbers are very uncertain.');
+    q('.dd-warn').textContent = warn.join(' '); q('.dd-warn').hidden = !warn.length;
+
+    // Running totals along the gene.
+    const xs = [0], ys = [0], yn = [0];
+    let cs = 0, cn = 0;
+    for (const row of r.rows) { cs += row.sd; cn += row.nd; xs.push(row.i); ys.push(cs); yn.push(cn); }
+    const last = Math.floor(a.seq.length / 3); xs.push(last); ys.push(cs); yn.push(cn);
+    fig = chartFigure({ w: 560, h: 320, xMin: 0, yMin: 0, xLabel: 'Codon', yLabel: 'Differences so far', legend: 'below', series: [
+      { name: 'Synonymous', x: xs, y: ys, mode: 'line' }, { name: 'Nonsynonymous', x: xs, y: yn, mode: 'line', dash: [6, 3] },
+    ] }, 'Cumulative synonymous and nonsynonymous differences along the gene');
+    paint(q<HTMLCanvasElement>('.dd-fig'), fig);
+
+    const head = ['Codon', 'Seq 1', 'Seq 2', 'Amino acids', 'Syn.', 'Nonsyn.'];
+    const rows = r.rows.map((x) => [String(x.i), x.c1, x.c2, x.a1 === x.a2 ? `${x.a1} (same)` : `${x.a1} → ${x.a2}`, h(x.sd), h(x.nd)]);
+    table(head, rows.slice(0, MAX_ROWS), [0, 4, 5]);
+    q('.dd-tnote').textContent = rows.length > MAX_ROWS ? `The first ${MAX_ROWS} of ${rows.length} codons that differ; the CSV has them all.` : `${rows.length} codon${rows.length === 1 ? '' : 's'} differ. Codons that differ at two or three positions are split over the possible orders of change (pathways through a stop codon are left out), so they can score halves or thirds.`;
+    csvRows = [['codon', 'codon_1', 'codon_2', 'aa_1', 'aa_2', 'synonymous', 'nonsynonymous'], ...r.rows.map((x) => [String(x.i), x.c1, x.c2, x.a1, x.a2, String(+x.sd.toFixed(6)), String(+x.nd.toFixed(6))])];
+    sections = [{ title: q('.dd-big').textContent!, text: [`${a.name} vs ${b.name}. Nei-Gojobori (1986) method, standard genetic code${jc ? ', Jukes-Cantor correction' : ', no correction'}.`, say, ...warn], facts: facts.map(([k, v]) => [k, v] as [string, string]), figure: fig },
+      { title: 'Codons that differ', table: { head, rows: rows.slice(0, 200), align: ['r', 'l', 'l', 'l', 'r', 'r'] }, ...(rows.length > 200 ? { note: `First 200 of ${rows.length}.` } : {}) }];
+    q('.dd-out').hidden = false;
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 250); };
+  q('.dd-in').addEventListener('input', later); q('.dd-cor').addEventListener('change', calc);
+  const file = q<HTMLInputElement>('.dd-file');
+  q('.dd-open').addEventListener('click', () => file.click());
+  file.addEventListener('change', async () => {
+    const f = file.files?.[0]; file.value = '';
+    if (!f) return;
+    if (f.size > 1e6) { q('.dd-err').textContent = `${f.name} is ${(f.size / 1e6).toFixed(1)} MB; this tool takes files up to 1 MB.`; q('.dd-err').hidden = false; return; }
+    q<HTMLTextAreaElement>('.dd-in').value = await f.text(); calc();
+  });
+  q('.dd-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'dnds-codons.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.dd-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'dN/dS (Nei-Gojobori)', subtitle: q('.dd-big').textContent ?? '', file: 'dnds', sections }));
+</script>
+
+<style is:global>
+  .dnds select { max-width: 100%; }
+  .dnds .dd-tab td, .dnds .dd-tab th { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .dnds .dd-tab td:nth-child(2), .dnds .dd-tab td:nth-child(3) { font-family: ui-monospace, Menlo, Consolas, monospace; }
+</style>
