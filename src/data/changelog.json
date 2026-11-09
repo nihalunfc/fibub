@@ -1,5 +1,14 @@
 [
  {
+  "sha": "a538565bc466",
+  "date": "2026-11-09T07:39:06+00:00",
+  "title": "Add k-mer counter and spectrum (#176)",
+  "tools": [
+   "kmer-counter"
+  ],
+  "site": false
+ },
+ {
   "sha": "357702345b2d",
   "date": "2026-11-09T07:20:05+00:00",
   "title": "Add BED, GFF and GTF interval tools (#175): merge, intersect, overlap filters, subtract",
