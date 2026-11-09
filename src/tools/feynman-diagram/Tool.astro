@@ -1,0 +1,108 @@
+---
+// Feynman diagram drawer: a small text description becomes an SVG drawing, a PNG and TikZ-Feynman code, in the
+// browser. The examples are standard textbook processes.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { PRESETS } from '../../lib/sci/phfeyn';
+---
+<div class="ax fey">
+  <div class="ax-card">
+    <h2>Diagram</h2>
+    <div class="ax-grid">
+      <label class="fy-wide">Example <select class="fy-ex">{Object.entries(PRESETS).map(([k, p]) => <option value={k} selected={k === 'ee'}>{p.label}</option>)}<option value="custom">Your own (edit below)</option></select></label>
+    </div>
+    <label style="margin-top:10px">Vertices and lines <textarea class="fy-in" rows="12" spellcheck="false"></textarea></label>
+    <p class="ax-help"><b>Vertex:</b> <code>name x y</code> (y upwards; add <code>dot</code>, <code>blob</code>, <code>cross</code> or <code>none</code> to choose its mark). <b>Line:</b> <code>from to type label</code>, types fermion, antifermion, photon, gluon, W, Z, higgs (dashed), scalar, ghost (dotted), plain, double. Extras: <code>bend=40</code> curves the line to the left (negative: right), <code>right</code> puts the label on the other side, <code>p=k</code> adds a momentum arrow. <b>Labels:</b> gamma, mu, nu and other Greek names; <code>e-</code>, <code>W^+</code>, <code>pi0</code>; <code>~nu_e</code> for ν̄ₑ. Lines starting with # are notes.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Size (pixels per unit) <input class="fy-unit" type="text" inputmode="numeric" value="60" /></label>
+      <label>Line width <select class="fy-sw"><option value="1.1">thin</option><option value="1.6" selected>normal</option><option value="2.4">thick</option></select></label>
+      <label>Label size (px) <input class="fy-fs" type="text" inputmode="numeric" value="17" /></label>
+    </div>
+    <p class="ax-err fy-err" hidden></p>
+  </div>
+
+  <div class="ax-card fy-out">
+    <h2>Drawing</h2>
+    <div class="fy-svg" role="img" aria-label="Feynman diagram"></div>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small fy-dsvg">Download SVG</button>
+      <button type="button" class="btn secondary small fy-dpng">Download PNG</button>
+    </div>
+    <h3 style="margin:16px 0 6px">TikZ-Feynman code</h3>
+    <textarea class="fy-tikz" rows="10" readonly spellcheck="false"></textarea>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small fy-copy">Copy code</button>
+      <button type="button" class="btn secondary small fy-dtex">Download .tex</button>
+      <span class="ax-help fy-copied" style="margin:0" aria-live="polite"></span>
+    </div>
+    <p class="ax-help">For LaTeX with the tikz-feynman package. Positions are given explicitly, so it compiles with pdfLaTeX (no LuaLaTeX needed). The SVG opens in Inkscape, Illustrator and most slide software.</p>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .fey .fy-wide { grid-column: 1 / -1; }
+  .fey .fy-svg { overflow-x: auto; color: var(--ink); padding: 6px 0; }
+  .fey .fy-svg svg { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+  .fey code { font-size: 12.5px; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 0 3px; }
+</style>
+
+<script>
+  import { parse, toSvg, toTikz, PRESETS, type Diagram } from '../../lib/sci/phfeyn';
+  import { num } from '../../lib/sci/num';
+  import { save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.fey')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const box = q<HTMLTextAreaElement>('.fy-in');
+  let diagram: Diagram | null = null, img: HTMLImageElement | null = null, size = { w: 0, h: 0 }, tikz = '';
+
+  const opts = () => ({ unit: num(q<HTMLInputElement>('.fy-unit').value), stroke: +q<HTMLSelectElement>('.fy-sw').value, font: num(q<HTMLInputElement>('.fy-fs').value) });
+  const exportSvg = () => toSvg(diagram!, { ...opts(), color: '#000000', bg: '#ffffff' });
+
+  function draw() {
+    const err = q('.fy-err'), out = q('.fy-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; diagram = null; };
+    const o = opts();
+    if (!(o.unit >= 20 && o.unit <= 300)) return fail('Size: between 20 and 300 pixels per unit.');
+    if (!(o.font >= 8 && o.font <= 40)) return fail('Label size: between 8 and 40 px.');
+    const r = parse(box.value);
+    if (r.errors.length) return fail(r.errors.slice(0, 4).join(' ') + (r.errors.length > 4 ? ` (${r.errors.length - 4} more)` : ''));
+    err.hidden = true; out.hidden = false; diagram = r.diagram;
+    const surface = getComputedStyle(root.querySelector('.ax-card')!).backgroundColor || '#fff';
+    q('.fy-svg').innerHTML = toSvg(diagram, { ...o, color: 'currentColor', bg: surface }).svg;
+    tikz = toTikz(diagram); q<HTMLTextAreaElement>('.fy-tikz').value = tikz;
+    const ex = exportSvg(); size = { w: ex.w, h: ex.h };
+    const im = new Image(); im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(ex.svg); img = im;
+  }
+
+  function load(k: string) { if (PRESETS[k]) box.value = PRESETS[k].text; }
+  q<HTMLSelectElement>('.fy-ex').addEventListener('change', (e) => { load((e.target as HTMLSelectElement).value); draw(); });
+  box.addEventListener('input', () => { q<HTMLSelectElement>('.fy-ex').value = 'custom'; draw(); });
+  root.querySelectorAll('.fy-unit, .fy-sw, .fy-fs').forEach((i) => { i.addEventListener('input', draw); i.addEventListener('change', draw); });
+  document.addEventListener('fibub:theme', draw);
+
+  q('.fy-dsvg').addEventListener('click', () => { if (diagram) save(new Blob([exportSvg().svg], { type: 'image/svg+xml' }), 'feynman-diagram.svg', 'image/svg+xml'); });
+  q('.fy-dtex').addEventListener('click', () => { if (diagram) save(new Blob([tikz], { type: 'application/x-tex' }), 'feynman-diagram.tex', 'application/x-tex'); });
+  q('.fy-dpng').addEventListener('click', async () => {
+    if (!diagram || !img) return;
+    await img.decode().catch(() => {});
+    const k = 4, c = document.createElement('canvas'); c.width = size.w * k; c.height = size.h * k;
+    const ctx = c.getContext('2d')!; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(img, 0, 0, c.width, c.height);
+    c.toBlob((b) => { if (b) save(b, 'feynman-diagram.png', 'image/png'); }, 'image/png');
+  });
+  q('.fy-copy').addEventListener('click', async () => {
+    const t = q<HTMLTextAreaElement>('.fy-tikz');
+    try { await navigator.clipboard.writeText(t.value); q('.fy-copied').textContent = 'Copied.'; }
+    catch { t.select(); q('.fy-copied').textContent = 'Selected: press Ctrl+C (⌘C) to copy.'; }
+  });
+
+  load('ee'); draw();
+  wireDownloads(q('.dl'), () => {
+    if (!diagram || !img) return { title: 'Feynman diagram', file: 'feynman-diagram', sections: [] };
+    const sc = Math.min(1, 560 / size.w), im = img;
+    const fig: Figure = { w: Math.round(size.w * sc), h: Math.round(size.h * sc), alt: 'Feynman diagram', draw: (ctx, w, h) => { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); ctx.drawImage(im, 0, 0, w, h); } };
+    const sections: Section[] = [{ title: 'Diagram', figure: fig }, { title: 'TikZ-Feynman code', text: tikz.trim().split('\n') }];
+    return { title: 'Feynman diagram', subtitle: q<HTMLSelectElement>('.fy-ex').selectedOptions[0].text, file: 'feynman-diagram', sections };
+  });
+</script>
