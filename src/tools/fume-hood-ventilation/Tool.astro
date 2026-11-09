@@ -1,0 +1,346 @@
+---
+// Fume hood and room ventilation: face velocity traverse statistics with the user's own target band, hood exhaust
+// flow from the sash opening, room air changes, dilution purge and build-up (mixing factor K), steady state from an
+// evaporating source, ppm <-> mg/m³. No agency limits are built in. The example hood, room and spill are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const demo = '0.52 0.55 0.57 0.54 0.50\n0.49 0.53 0.56 0.52 0.47\n0.44 0.50 0.53 0.49 0.42';
+---
+<div class="ax fhv">
+  <p class="fh-note"><strong>For study and planning; hood certification needs a qualified tester and the relevant standard.</strong> This page has no limits built in: you type the targets you were given.</p>
+
+  <div class="ax-card fh-card1">
+    <h2>1. Face velocity traverse</h2>
+    <div class="ax-grid">
+      <label>Velocity unit <select class="fh-vu"><option value="ms" selected>m/s</option><option value="fpm">ft/min</option></select></label>
+      <label>Band for the mean: lowest <input class="fh-lo" type="text" inputmode="decimal" placeholder="none" /></label>
+      <label>Band for the mean: highest <input class="fh-hi" type="text" inputmode="decimal" placeholder="none" /></label>
+      <label>Flag readings more than ± % from the mean <input class="fh-tol" type="text" inputmode="decimal" placeholder="none" /></label>
+    </div>
+    <label style="margin-top:10px">Anemometer readings across the sash opening, one row of the grid per line (top row first)
+      <textarea class="fh-grid" rows="5" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".fh-grid" maxCols={30} maxRows={200} label="Open a file" />
+    <p class="ax-help">Take each reading at the centre of an equal area of the opening, with the sash at its working height. Leave the band and ± % empty for statistics only. The example readings are made up.</p>
+    <p class="ax-err fh-err1" hidden></p>
+    <div class="fh-out1">
+      <p class="ax-big fh-big1"></p>
+      <dl class="ax-facts fh-facts1"></dl>
+      <div class="ax-scroll" style="margin-top:12px"><table class="fh-gtab"></table></div>
+      <p class="ax-help fh-gkey">Each cell: the reading and its difference from the mean. <span class="fh-flag">Marked cells</span> are outside your band or your ± %.</p>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small fh-csv1">Download readings (CSV)</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card fh-card2">
+    <h2>2. Hood exhaust flow</h2>
+    <div class="ax-grid">
+      <label>Length unit <select class="fh-lu"><option value="m" selected>m</option><option value="cm">cm</option><option value="mm">mm</option><option value="ft">ft</option><option value="in">in</option></select></label>
+      <label>Opening width <input class="fh-w" type="text" inputmode="decimal" value="1.5" /></label>
+      <label>Sash height (working) <input class="fh-h" type="text" inputmode="decimal" value="0.45" /></label>
+      <label>Full-open sash height <input class="fh-hmax" type="text" inputmode="decimal" value="0.75" /></label>
+      <label>Face velocity (<span class="fh-vu2">m/s</span>) <input class="fh-v" type="text" inputmode="decimal" placeholder="traverse mean" /></label>
+    </div>
+    <p class="ax-help">Flow = width × sash height × mean face velocity. Leave the face velocity empty to use the traverse mean above.</p>
+    <p class="ax-err fh-err2" hidden></p>
+    <div class="fh-out2">
+      <p class="ax-big fh-big2"></p>
+      <dl class="ax-facts fh-facts2"></dl>
+      <div class="ax-scroll" style="margin-top:12px"><table class="fh-stab"></table></div>
+      <p class="ax-help">CAV: a constant-volume hood keeps the same flow, so the face velocity rises as the sash comes down. VAV: a variable-volume hood keeps the face velocity, so its flow follows the opening.</p>
+    </div>
+  </div>
+
+  <div class="ax-card fh-card3">
+    <h2>3. Room air changes</h2>
+    <div class="ax-grid">
+      <label>Room unit <select class="fh-ru"><option value="m" selected>m</option><option value="ft">ft</option></select></label>
+      <label>Length <input class="fh-rl" type="text" inputmode="decimal" value="8" /></label>
+      <label>Width <input class="fh-rw" type="text" inputmode="decimal" value="6" /></label>
+      <label>Height <input class="fh-rh" type="text" inputmode="decimal" value="3" /></label>
+      <label>Room exhaust flow <input class="fh-q" type="text" inputmode="decimal" value="1600" /></label>
+      <label>Flow unit <select class="fh-qu"><option value="m3/h" selected>m³/h</option><option value="L/s">L/s</option><option value="m3/s">m³/s</option><option value="cfm">ft³/min (cfm)</option></select></label>
+      <label>Mixing factor K <input class="fh-k" type="text" inputmode="decimal" value="3" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small fh-usehood">Use the hood flow</button></div>
+    <p class="ax-help">The flow of air leaving the room (all hoods and general exhaust), with clean air coming in. K = 1 means the air is perfectly mixed; a larger K allows for corners and dead spots the fresh air reaches slowly. Choose it from your own judgement of the room.</p>
+    <p class="ax-err fh-err3" hidden></p>
+    <div class="fh-out3">
+      <p class="ax-big fh-big3"></p>
+      <dl class="ax-facts fh-facts3"></dl>
+    </div>
+  </div>
+
+  <div class="ax-card fh-card4">
+    <h2>4. Substance and ppm ↔ mg/m³</h2>
+    <div class="ax-grid">
+      <label>Formula or molar mass (g/mol) <input class="fh-mw" type="text" value="C3H6O" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
+      <label>Air temperature (°C) <input class="fh-t" type="text" inputmode="decimal" value="25" /></label>
+      <label>Air pressure (kPa) <input class="fh-p" type="text" inputmode="decimal" value="101.325" /></label>
+      <label>Convert <input class="fh-cv" type="text" inputmode="decimal" value="500" /></label>
+      <label>from <select class="fh-cvu"><option value="ppm" selected>ppm</option><option value="mg">mg/m³</option></select></label>
+    </div>
+    <p class="ax-err fh-err4" hidden></p>
+    <div class="fh-out4">
+      <p class="ax-big fh-big4"></p>
+      <dl class="ax-facts fh-facts4"></dl>
+    </div>
+  </div>
+
+  <div class="ax-card fh-card5">
+    <h2>5. Steady state from a constant source</h2>
+    <div class="ax-grid">
+      <label>Evaporation or release rate <input class="fh-g" type="text" inputmode="decimal" value="2" /></label>
+      <label>Rate unit <select class="fh-gu"><option value="mL/min" selected>mL/min of liquid</option><option value="mL/h">mL/h of liquid</option><option value="g/min">g/min</option><option value="g/h">g/h</option><option value="mg/min">mg/min</option><option value="mg/s">mg/s</option></select></label>
+      <label class="fh-dwrap">Liquid density (g/mL) <input class="fh-d" type="text" inputmode="decimal" value="0.79" /></label>
+    </div>
+    <p class="ax-help">Uses the room flow and K from part 3 and the substance from part 4. At steady state everything released leaves with the exhaust: C = rate × K ÷ flow. The example rate is made up.</p>
+    <p class="ax-err fh-err5" hidden></p>
+    <div class="fh-out5">
+      <p class="ax-big fh-big5"></p>
+      <dl class="ax-facts fh-facts5"></dl>
+    </div>
+  </div>
+
+  <div class="ax-card fh-card6">
+    <h2>6. Purge or build-up over time</h2>
+    <div class="ax-grid">
+      <label>Starting concentration <input class="fh-c0" type="text" inputmode="decimal" value="500" /></label>
+      <label>Target concentration <input class="fh-c1" type="text" inputmode="decimal" value="25" /></label>
+      <label>Unit <select class="fh-cu"><option value="ppm" selected>ppm</option><option value="mg">mg/m³</option></select></label>
+      <label>Source during this time <select class="fh-src"><option value="off" selected>stopped (purge only)</option><option value="on">still running (part 5)</option></select></label>
+    </div>
+    <p class="ax-help">C(t) = Css + (C₀ − Css) e^(−t Q ÷ (K V)), with the room, flow and K from part 3. Css is 0 when the source has stopped.</p>
+    <p class="ax-err fh-err6" hidden></p>
+    <div class="fh-out6">
+      <p class="ax-big fh-big6"></p>
+      <dl class="ax-facts fh-facts6"></dl>
+      <canvas class="ax-fig fh-fig" style="margin-top:12px"></canvas>
+      <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small fh-csv6">Download the curve (CSV)</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { parseGrid, traverse, hoodFlow, sashTable, ach, tau, steady, timeTo, curve, molarVolume, ppmToMg, mgToPpm, rateMgS, FPM, CFM, FLOW, LEN, type RateUnit, type FlowUnit, type LenUnit, type Traverse } from '../../lib/sci/fumehood';
+  import { parseFormula, molarMass, pretty, FormulaError } from '../../lib/sci/chem';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.fhv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const raw = (c: string) => q<HTMLInputElement>(c).value.trim();
+  const val = (c: string) => num(raw(c));
+  const opt = (c: string) => { const s = raw(c); return s === '' ? undefined : num(s); };
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const mi = (s: string) => s.replace(/-/g, '−');
+  const g = (x: number, n = 4) => mi(sig(x, n));
+  const pl = (x: number) => mi(String(+x.toPrecision(6))); // a typed value as typed
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const tr = (cells: string[], th = false) => { const e = document.createElement('tr'); cells.forEach((c, j) => { const d = document.createElement(th ? 'th' : 'td'); d.textContent = c; if (j) d.className = 'r'; e.append(d); }); return e; };
+  const facts = (box: string) => [...q(box).children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  const dur = (s: number) => (!Number.isFinite(s) ? '—' : s < 120 ? `${g(s, 3)} s` : s < 7200 ? `${g(s / 60, 3)} min` : `${g(s / 3600, 3)} h`);
+  const flows = (m3s: number) => `${g(m3s * 3600)} m³/h · ${g(m3s * 1000)} L/s · ${g(m3s / CFM)} cfm`;
+  const stage = (i: number) => {
+    const err = q(`.fh-err${i}`), out = q(`.fh-out${i}`);
+    return { fail: (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; return null; }, ok: () => { err.hidden = true; out.hidden = false; } };
+  };
+
+  let T: Traverse | null = null, vUnit = 1, grid: number[][] = [];
+  let hoodQ = NaN, room: { vol: number; q: number; k: number; tc: number } | null = null, mw = NaN, vm = NaN, gen = NaN;
+  let fig: Figure | null = null, curveRows: (string | number)[][] = [];
+  const report: Record<number, Section | null> = {};
+
+  function part1() {
+    const S = stage(1); T = null; report[1] = null;
+    const unit = sel('.fh-vu'); vUnit = unit === 'fpm' ? FPM : 1; const us = unit === 'fpm' ? 'ft/min' : 'm/s';
+    q('.fh-vu2').textContent = us;
+    try { grid = parseGrid(q<HTMLTextAreaElement>('.fh-grid').value); } catch (e) { return S.fail(`${(e as Error).message}. Type only numbers in the grid.`); }
+    if (grid.flat().length < 2) return S.fail('Type at least two readings, one row of the grid per line.');
+    if (grid.flat().some((v) => v < 0)) return S.fail('Face velocities cannot be negative. If air flows out of the hood at a point, note it and smoke-test that spot.');
+    const lo = opt('.fh-lo'), hi = opt('.fh-hi'), tol = opt('.fh-tol');
+    if ([lo, hi, tol].some((x) => x !== undefined && !Number.isFinite(x))) return S.fail('The band and the ± % must be numbers, or empty.');
+    if (lo !== undefined && hi !== undefined && hi < lo) return S.fail('The top of the band is below the bottom.');
+    if (tol !== undefined && !(tol > 0)) return S.fail('The ± % must be above zero.');
+    const t = traverse(grid, { lo, hi, tol });
+    if (!(t.mean > 0)) return S.fail('The mean face velocity is zero.');
+    T = t; S.ok();
+    const other = unit === 'fpm' ? `${g(t.mean * FPM, 3)} m/s` : `${g(t.mean / FPM, 3)} ft/min`;
+    q('.fh-big1').textContent = `Mean face velocity ${g(t.mean)} ${us} (${other})`;
+    const fs = [
+      fact('Readings', `${t.n} (${t.rows} row${t.rows > 1 ? 's' : ''} × up to ${t.cols})`),
+      fact('Lowest and highest', `${pl(t.min)} and ${pl(t.max)} ${us}`, `row ${t.minAt[0] + 1} col ${t.minAt[1] + 1}; row ${t.maxAt[0] + 1} col ${t.maxAt[1] + 1}`),
+      fact('Largest difference from the mean', `${g(t.devMin, 3)} % to +${g(t.devMax, 3)} %`),
+      fact('Standard deviation', `${g(t.sd, 3)} ${us}`, `coefficient of variation ${g(t.cv, 3)} %`),
+    ];
+    if (t.meanInBand !== null) fs.push(fact('Mean in your band', t.meanInBand ? 'yes' : 'no', `${t.nOutBand} reading${t.nOutBand === 1 ? '' : 's'} outside the band`));
+    if (t.tolOk !== null) fs.push(fact(`All within ±${pl(tol!)} %`, t.tolOk ? 'yes' : 'no', `${t.nOutTol} reading${t.nOutTol === 1 ? '' : 's'} outside`));
+    q('.fh-facts1').replaceChildren(...fs);
+    const head = ['Row', ...Array.from({ length: t.cols }, (_, j) => `Col ${j + 1}`)];
+    const rows = grid.map((r, i) => [String(i + 1), ...r.map((_, j) => { const p = t.points.find((x) => x.row === i && x.col === j)!; return `${pl(p.v)}\n${p.dev >= 0 ? '+' : ''}${g(p.dev, 2)}\u00a0%${p.outBand || p.outTol ? ' !' : ''}`; })]);
+    const tb = q<HTMLTableElement>('.fh-gtab');
+    tb.replaceChildren(tr(head, true), ...rows.map((c, i) => { const e = tr(c); [...e.children].slice(1).forEach((td, j) => { const p = t.points.find((x) => x.row === i && x.col === j)!; if (p.outBand || p.outTol) td.classList.add('fh-flag'); }); return e; }));
+    q('.fh-gkey').hidden = t.meanInBand === null && t.tolOk === null;
+    report[1] = { title: q('.fh-big1').textContent!, facts: fs.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), table: { head, rows, align: head.map((_, j) => (j ? 'r' : 'l')) } };
+  }
+
+  function part2() {
+    const S = stage(2); hoodQ = NaN; report[2] = null;
+    const L = LEN[sel('.fh-lu') as LenUnit], lu = sel('.fh-lu'), us = vUnit === 1 ? 'm/s' : 'ft/min';
+    const w = val('.fh-w'), h = val('.fh-h'), hmax = opt('.fh-hmax'), vt = opt('.fh-v');
+    if (!(w > 0) || !(h > 0)) return S.fail('Enter the opening width and the sash height, both above zero.');
+    if (hmax !== undefined && !(hmax >= h)) return S.fail('The full-open sash height must be at least the working height (or leave it empty).');
+    let v: number;
+    if (vt === undefined) { if (!T) return S.fail('Fix the traverse above, or type a face velocity here.'); v = T.mean; }
+    else { if (!(vt > 0)) return S.fail('The face velocity must be above zero.'); v = vt; }
+    const vms = v * vUnit, Q = hoodFlow(w * L, h * L, vms); hoodQ = Q; S.ok();
+    q('.fh-big2').textContent = `Hood exhaust ${g(Q * 3600)} m³/h (${g(Q / CFM)} cfm)`;
+    const fs = [
+      fact('Flow', `${g(Q, 4)} m³/s`, flows(Q)),
+      fact('Opening area', `${pl(w * h)} ${lu}²`, lu === 'm' ? '' : `${g(w * h * L * L)} m²`),
+      fact('Face velocity used', `${g(v)} ${us}`, vt === undefined ? 'the traverse mean' : 'typed in'),
+    ];
+    q('.fh-facts2').replaceChildren(...fs);
+    const fr = hmax === undefined ? [0.5, 0.75, 1, 1.25, 1.5].map((f) => f * h) : [0.25, 0.5, 0.75, 1].map((f) => f * hmax);
+    const hs = [...new Set([...fr, h].map((x) => +x.toPrecision(10)))].sort((a, b) => a - b);
+    const tbl = sashTable(w * L, hs.map((x) => x * L), Q, vms);
+    const head = [`Sash (${lu})`, `CAV velocity (${us})`, 'VAV flow (m³/h)'];
+    const rows = tbl.map((r, i) => [`${pl(hs[i])}${Math.abs(hs[i] - h) < 1e-9 * h ? ' (working)' : ''}`, g(r.vCav / vUnit), g(r.qVav * 3600)]);
+    q<HTMLTableElement>('.fh-stab').replaceChildren(tr(head, true), ...rows.map((c) => tr(c)));
+    report[2] = { title: q('.fh-big2').textContent!, facts: facts('.fh-facts2'), table: { head, rows, align: ['l', 'r', 'r'] } };
+  }
+
+  function part3() {
+    const S = stage(3); room = null; report[3] = null;
+    const L = sel('.fh-ru') === 'ft' ? LEN.ft : 1, l = val('.fh-rl'), w = val('.fh-rw'), h = val('.fh-rh');
+    const qv = val('.fh-q'), Q = qv * FLOW[sel('.fh-qu') as FlowUnit], k = val('.fh-k');
+    if (!(l > 0 && w > 0 && h > 0)) return S.fail('Enter the room length, width and height, all above zero.');
+    if (!(Q > 0)) return S.fail('Enter the room exhaust flow, above zero.');
+    if (!(k >= 1)) return S.fail('The mixing factor K is 1 (perfect mixing) or more.');
+    const vol = l * w * h * L ** 3, tc = tau(vol, Q, k); room = { vol, q: Q, k, tc }; S.ok();
+    const n = ach(Q, vol);
+    q('.fh-big3').textContent = `${g(n, 3)} air changes per hour`;
+    const fs = [
+      fact('Room volume', `${g(vol)} m³`, L === 1 ? '' : `${g(l * w * h)} ft³`),
+      fact('Room exhaust', `${g(Q * 3600)} m³/h`, flows(Q)),
+      fact('Effective air changes', `${g(n / k, 3)} per hour`, `air changes ÷ K (${g(k, 3)})`),
+      fact('Time constant τ = K V ÷ Q', dur(tc)),
+      fact('Time to clear 90 %', dur(tc * Math.log(10)), 'source stopped, clean supply air'),
+      fact('Time to clear 99 %', dur(tc * Math.log(100))),
+      fact('Time to clear 99.9 %', dur(tc * Math.log(1000))),
+    ];
+    q('.fh-facts3').replaceChildren(...fs);
+    report[3] = { title: q('.fh-big3').textContent!, facts: facts('.fh-facts3') };
+  }
+
+  function part4() {
+    const S = stage(4); mw = NaN; vm = NaN; report[4] = null;
+    const s = raw('.fh-mw'); let name = '';
+    if (!s) return S.fail('Type a formula (such as C3H6O) or a molar mass in g/mol.');
+    const n = num(s);
+    if (Number.isFinite(n)) { if (!(n > 0)) return S.fail('The molar mass must be above zero.'); mw = n; name = `${g(n)} g/mol`; }
+    else { try { mw = molarMass(parseFormula(s)); name = pretty(s); } catch (e) { return S.fail(e instanceof FormulaError ? e.message : 'That formula could not be read.'); } }
+    const t = val('.fh-t'), p = val('.fh-p');
+    if (!(t > -273.15) || !(t < 1000)) return S.fail('Enter the air temperature in °C.');
+    if (!(p > 0)) return S.fail('Enter the air pressure in kPa (101.325 at sea level).');
+    vm = molarVolume(t, p);
+    const c = val('.fh-cv'), from = sel('.fh-cvu');
+    if (!(c >= 0)) { mw = NaN; return S.fail('Enter a concentration to convert, 0 or more.'); }
+    S.ok();
+    q('.fh-big4').textContent = from === 'ppm' ? `${g(c)} ppm = ${g(ppmToMg(c, mw, vm))} mg/m³` : `${g(c)} mg/m³ = ${g(mgToPpm(c, mw, vm))} ppm`;
+    const fs = [
+      fact('Substance', name, Number.isFinite(n) ? '' : `molar mass ${g(mw, 6)} g/mol`),
+      fact('Molar volume of air', `${g(vm, 5)} L/mol`, `ideal gas at ${g(t)} °C and ${g(p)} kPa`),
+      fact('1 ppm is', `${g(ppmToMg(1, mw, vm))} mg/m³`, 'mg/m³ = ppm × M ÷ molar volume'),
+    ];
+    q('.fh-facts4').replaceChildren(...fs);
+    report[4] = { title: q('.fh-big4').textContent!, facts: facts('.fh-facts4') };
+  }
+
+  function part5() {
+    const S = stage(5); gen = NaN; report[5] = null;
+    const u = sel('.fh-gu') as RateUnit, liquid = u.startsWith('mL');
+    q('.fh-dwrap').hidden = !liquid;
+    const x = val('.fh-g'), d = val('.fh-d');
+    if (!(x >= 0)) return S.fail('Enter the release rate, 0 or more.');
+    if (liquid && !(d > 0)) return S.fail('Enter the liquid density in g/mL to turn a volume rate into mass.');
+    if (!room) return S.fail('Fix the room in part 3 first.');
+    if (!Number.isFinite(mw)) return S.fail('Fix the substance in part 4 first.');
+    gen = rateMgS(x, u, d); S.ok();
+    const css = steady(gen, room.q, room.k);
+    q('.fh-big5').textContent = `Steady state ${g(css)} mg/m³ = ${g(mgToPpm(css, mw, vm))} ppm`;
+    const fs = [
+      fact('Release rate', `${g(gen)} mg/s`, `${g(gen * 3.6)} g/h`),
+      fact('Flow ÷ K', `${g((room.q / room.k) * 3600)} m³/h`, 'the effective dilution flow'),
+      fact('Reaches 95 % of it after', dur(room.tc * Math.log(20)), 'from clean air, 3 time constants'),
+    ];
+    q('.fh-facts5').replaceChildren(...fs);
+    report[5] = { title: q('.fh-big5').textContent!, facts: facts('.fh-facts5') };
+  }
+
+  function part6() {
+    const S = stage(6); report[6] = null; curveRows = []; fig = null;
+    const unit = sel('.fh-cu'), us = unit === 'ppm' ? 'ppm' : 'mg/m³', src = sel('.fh-src') === 'on';
+    const c0 = val('.fh-c0'), c1 = val('.fh-c1');
+    if (!(c0 >= 0) || !(c1 >= 0)) return S.fail('Enter the starting and target concentrations, 0 or more.');
+    if (!room) return S.fail('Fix the room in part 3 first.');
+    let css = 0;
+    if (src) {
+      if (!Number.isFinite(gen)) return S.fail('Fix the source in part 5 first.');
+      const mg = steady(gen, room.q, room.k);
+      if (unit === 'ppm' && !Number.isFinite(mw)) return S.fail('Fix the substance in part 4 first (needed to work in ppm).');
+      css = unit === 'ppm' ? mgToPpm(mg, mw, vm) : mg;
+    }
+    const t = timeTo(c0, c1, css, room.tc); S.ok();
+    const dir = c1 < c0 ? 'fall' : 'rise';
+    if (Number.isFinite(t)) q('.fh-big6').textContent = `${g(c0)} → ${g(c1)} ${us} in ${dur(t)}`;
+    else if (c1 === c0) q('.fh-big6').textContent = 'The start and target are the same.';
+    else q('.fh-big6').textContent = src && ((c1 < c0 && c1 <= css) || (c1 > c0 && c1 >= css)) ? `Never: with the source running the level settles at ${g(css)} ${us}` : `Never: without a source the level only falls`;
+    const fs = [
+      fact('Steady state Css', `${g(css)} ${us}`, src ? 'source still running' : 'source stopped'),
+      fact('Time constant τ', dur(room.tc), `K V ÷ Q = ${g(room.k, 3)} × ${g(room.vol)} m³ ÷ ${g(room.q * 3600)} m³/h`),
+      fact(`Level after τ`, `${g(css + (c0 - css) * Math.exp(-1))} ${us}`, `63 % of the way to Css (${dir === 'fall' ? 'falling' : 'rising'})`),
+    ];
+    q('.fh-facts6').replaceChildren(...fs);
+    const tEnd = Number.isFinite(t) && t > 0 ? Math.max(t * 1.25, room.tc) : room.tc * 4, cv = curve(c0, css, room.tc, tEnd, 160);
+    const tu = tEnd < 7200 ? 60 : 3600, tl = tu === 60 ? 'min' : 'h';
+    const marks: any[] = [{ kind: 'hline', at: c1, dash: [5, 4], label: 'target' }];
+    if (src) marks.push({ kind: 'hline', at: css, dash: [2, 3], label: 'steady state' });
+    if (Number.isFinite(t) && t > 0) marks.push({ kind: 'vline', at: t / tu, dash: [5, 4] });
+    fig = chartFigure({ w: 420, h: 300, xLabel: `Time (${tl})`, yLabel: `Concentration (${us})`, legend: 'none', yMin: 0, series: [{ name: 'C(t)', x: cv.t.map((x) => x / tu), y: cv.c, mode: 'line', width: 2 }], marks }, `Concentration in the room over time, from ${g(c0)} ${us}, with the target at ${g(c1)} ${us}`);
+    paint(q<HTMLCanvasElement>('.fh-fig'), fig);
+    curveRows = [['time_s', `concentration_${unit === 'ppm' ? 'ppm' : 'mg_m3'}`], ...cv.t.map((x, i) => [+x.toFixed(3), +cv.c[i].toPrecision(8)])];
+    report[6] = { title: q('.fh-big6').textContent!, facts: facts('.fh-facts6'), figure: fig };
+  }
+
+  function calc() { part1(); part2(); part3(); part4(); part5(); part6(); }
+  root.querySelectorAll('input, textarea, select').forEach((i) => { if (i.closest('.dfb')) return; i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  q('.fh-usehood').addEventListener('click', () => {
+    if (!Number.isFinite(hoodQ)) return;
+    q<HTMLInputElement>('.fh-q').value = sig(hoodQ / FLOW[sel('.fh-qu') as FlowUnit], 5); calc();
+  });
+  q('.fh-csv1').addEventListener('click', () => {
+    if (!T) return;
+    const rows: (string | number)[][] = [['row', 'col', `velocity_${vUnit === 1 ? 'm_s' : 'ft_min'}`, 'deviation_percent', 'outside_band', 'outside_tolerance'], ...T.points.map((p) => [p.row + 1, p.col + 1, p.v, +p.dev.toFixed(4), p.outBand ? 'yes' : 'no', p.outTol ? 'yes' : 'no'])];
+    save(new Blob([csv(rows)], { type: 'text/csv' }), 'face-velocity-traverse.csv', 'text/csv');
+  });
+  q('.fh-csv6').addEventListener('click', () => curveRows.length && save(new Blob([csv(curveRows)], { type: 'text/csv' }), 'room-concentration-curve.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => fig && paint(q<HTMLCanvasElement>('.fh-fig'), fig));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Fume hood and room ventilation', subtitle: 'For study and planning; hood certification needs a qualified tester and the relevant standard.', file: 'fume-hood-ventilation', sections: [1, 2, 3, 4, 5, 6].map((i) => report[i]).filter((s): s is Section => !!s) }));
+</script>
+
+<style is:global>
+  .fhv select, .fhv input { max-width: 100%; }
+  .fhv textarea { width: 100%; }
+  .fhv .fh-note { margin: 0; padding: 12px 14px; border: 1px solid var(--line); border-left: 4px solid var(--warn); border-radius: 10px; background: var(--surface); font-size: 14px; }
+  .fhv .fh-gtab td { white-space: pre-line; line-height: 1.3; }
+  .fhv .fh-gtab th, .fhv .fh-gtab td { padding-left: 5px; padding-right: 5px; }
+  .fhv .fh-flag { color: var(--bad); font-weight: 700; }
+  .fhv .fh-stab th { white-space: normal; vertical-align: bottom; }
+</style>
