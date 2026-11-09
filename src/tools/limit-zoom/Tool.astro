@@ -1,0 +1,183 @@
+---
+// Limit zoom: zoom in on a function near a point, read tables of values from the left and the right, see
+// sin x / x → 1 with the sector picture, and sort breaks into holes, jumps, infinite breaks and wobbles.
+// Class 11 maths (limits) and Class 12 maths (continuity).
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax lzm">
+  <div class="ax-card">
+    <h2>Pick a function and a point</h2>
+    <div class="ax-grid">
+      <label>Example <select class="lz-ex"></select></label>
+      <label class="lz-own" hidden>Type f(x) <input class="lz-f" type="text" value="(x^3 - 1)/(x - 1)" autocomplete="off" spellcheck="false" /></label>
+      <label class="lz-own" hidden>Near x = a <input class="lz-a" type="text" inputmode="decimal" value="1" /></label>
+    </div>
+    <p class="ax-err lz-err" hidden></p>
+    <div class="ax-row lz-lv"><span class="ax-help">Level</span>
+      <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-lv="11" aria-pressed="true">Class 11</button><button type="button" data-lv="12" aria-pressed="false">Class 12</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card lz-out">
+    <h2 class="lz-title"></h2>
+    <canvas class="ax-fig lz-fig" role="img"></canvas>
+    <label class="lz-sl">Zoom: window x = a ± <b class="lz-wv"></b><input class="lz-z" type="range" min="0" max="1000" value="0" /></label>
+    <div class="ax-row"><button type="button" class="btn small lz-go">Zoom in</button><button type="button" class="btn small secondary lz-reset">Zoom out</button></div>
+    <p class="lz-note"></p>
+    <dl class="ax-facts lz-facts"></dl>
+    <h3>Close in from both sides</h3>
+    <div class="lz-tabs">
+      <div class="ax-scroll"><table class="lz-tl"><thead><tr><th class="r">x (from the left)</th><th class="r">f(x)</th></tr></thead><tbody></tbody></table></div>
+      <div class="ax-scroll"><table class="lz-tr"><thead><tr><th class="r">x (from the right)</th><th class="r">f(x)</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="ax-card lz-sector" hidden>
+    <h2>Why sin x / x → 1</h2>
+    <canvas class="ax-fig lz-sfig" role="img"></canvas>
+    <label class="lz-sl">Angle x (radians) = <b class="lz-xv"></b><input class="lz-x" type="range" min="0.05" max="1.4" step="0.01" value="0.9" /></label>
+    <p class="lz-snote"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lz-try">
+      <li>With sin x / x, press <b>Zoom in</b>: the graph flattens towards the line y = 1, and there is still a hole at 0.</li>
+      <li>Pick <b>|x| / x</b>: however far you zoom, the left piece stays at −1 and the right at +1. No limit.</li>
+      <li>Pick <b>sin(1/x)</b>: zooming never helps, it keeps wobbling.</li>
+      <li>Switch to Class 12 and pick <b>x², but f(1) = 3</b>: the limit is 1 but the value is 3, a removable break.</li>
+      <li>Type your own, such as (x^3 − 1)/(x − 1) near 1. Factor it: the limit should be 3.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="lz-quiz" />
+</div>
+
+<script>
+  import { EXAMPLES, examine, table, type Kind } from '../../lib/sci/school-limits';
+  import { readFn, type Fn } from '../../lib/sci/school-calculus';
+  import { paint, pagePalette, type Figure } from '../../lib/report';
+  import { view, axes, curve, line, dot, label, px, py, fmt, FONT } from '../../lib/sm-graph';
+  import { num } from '../../lib/sci/num';
+  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.lzm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380, H = 260;
+  let level = '11', anim = 0;
+  const sel = q<HTMLSelectElement>('.lz-ex');
+  sel.replaceChildren(...EXAMPLES.map((e) => new Option(e.label, e.id)), new Option('My own…', 'own'));
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+  const KIND: Record<Kind, [string, string]> = {
+    continuous: ['Continuous', 'no break: the limit equals the value'],
+    removable: ['Removable break (a hole)', 'the limit exists but is not f(a); define f(a) = the limit to mend it'],
+    jump: ['Jump', 'the left and right limits differ'],
+    infinite: ['Infinite break', 'the values grow without bound (a vertical asymptote)'],
+    oscillating: ['No limit (wobbles)', 'the values never settle'],
+  };
+  const fx = (x: number) => fmt(x, Math.abs(x) < 0.01 ? 7 : 5);
+
+  function run() {
+    const id = sel.value, err = q('.lz-err'), out = q('.lz-out');
+    root.querySelectorAll<HTMLElement>('.lz-own').forEach((e) => { e.hidden = id !== 'own'; });
+    err.hidden = true;
+    let f: Fn, a: number, name: string, note = '';
+    if (id === 'own') {
+      try { f = readFn(q<HTMLInputElement>('.lz-f').value); } catch (e) { err.textContent = (e as Error).message; err.hidden = false; out.hidden = true; return; }
+      a = num(q<HTMLInputElement>('.lz-a').value);
+      if (!Number.isFinite(a) || Math.abs(a) > 1000) { err.textContent = 'Type the point a as a number (up to 1000).'; err.hidden = false; out.hidden = true; return; }
+      name = q<HTMLInputElement>('.lz-f').value.trim();
+    } else { const e = EXAMPLES.find((k) => k.id === id)!; f = e.f; a = e.a; name = e.label.replace(/ at .*$/, ''); note = e.note; }
+    out.hidden = false;
+    q('.lz-sector').hidden = id !== 'sinx';
+    const r = examine(f, a);
+    const w = 4 * Math.pow(10, -(+q<HTMLInputElement>('.lz-z').value) / 250);
+    q('.lz-wv').textContent = fmt(w, w < 0.01 ? 4 : 3);
+    q('.lz-title').textContent = `${name} near x = ${fmt(a)}`;
+    // y window: centred on the limit (or the value) when there is one, else on what is seen.
+    const ys: number[] = []; for (let i = 0; i <= 200; i++) { const y = f(a - w + (2 * w * i) / 200); if (Number.isFinite(y)) ys.push(y); }
+    ys.sort((p, s) => p - s);
+    let y0: number, y1: number;
+    if (r.kind === 'continuous' || r.kind === 'removable') { const c = r.limit, lo = ys.length ? ys[Math.floor(ys.length * 0.05)] : c - 1, hi = ys.length ? ys[Math.ceil(ys.length * 0.95) - 1] : c + 1, span = Math.max(Math.abs(hi - c), Math.abs(c - lo), 1e-9) * 1.3; y0 = Math.min(c - span, r.value - 0.2 * span || c - span); y1 = Math.max(c + span, r.value + 0.2 * span || c + span); }
+    else if (r.kind === 'jump') { const lo = Math.min(r.left, r.right, Number.isFinite(r.value) ? r.value : r.left), hi = Math.max(r.left, r.right, Number.isFinite(r.value) ? r.value : r.right), span = Math.max(hi - lo, 0.5); y0 = lo - span * 0.6; y1 = hi + span * 0.6; }
+    else if (r.kind === 'infinite') { const m = Math.max(5, Math.min(1e6, 1 / (w * w))); y0 = r.left < 0 || r.right < 0 ? -m : -m * 0.15; y1 = r.left > 0 || r.right > 0 ? m : m * 0.15; }
+    else { y0 = -1.4; y1 = 1.4; }
+    const v = view(a - w, a + w, y0, y1, W, H, { l: 52, r: 10, t: 10, b: 24 });
+    const fig: Figure = { w: W, h: H, alt: `${name} for x from ${fmt(a - w)} to ${fmt(a + w)}: ${KIND[r.kind][0]}`, draw: (ctx, ww, hh, pl) => {
+      axes(ctx, v, pl, { xName: 'x', yName: 'y' });
+      line(ctx, v, a, y0, a, y1, pl.muted, 1, [3, 3]);
+      curve(ctx, v, (x) => (Math.abs(x - a) < w * 1e-6 ? NaN : f(x)), pl.accent, 2.4, [], a - w, a - w * 1e-6);
+      curve(ctx, v, (x) => (Math.abs(x - a) < w * 1e-6 ? NaN : f(x)), pl.accent, 2.4, [], a + w * 1e-6, a + w);
+      if (Number.isFinite(r.left)) dot(ctx, v, a, r.left, pl.accent, 5.5, true, pl.bg);
+      if (Number.isFinite(r.right)) dot(ctx, v, a, r.right, pl.accent, 5.5, true, pl.bg);
+      if (Number.isFinite(r.value)) dot(ctx, v, a, r.value, pl.ink, 5.5);
+      if (Number.isFinite(r.limit)) label(ctx, v, a, r.limit, `limit ${fmt(r.limit, 4)}`, pl.ink, 10, -8);
+    } };
+    paint(q<HTMLCanvasElement>('.lz-fig'), fig);
+    q('.lz-note').textContent = note || 'Open circles: where the graph heads from each side. Filled dot: the value f(a), if there is one.';
+    const lim = (x: number) => (Number.isNaN(x) ? 'does not exist' : fmt(x, 5));
+    const facts = [
+      fact(`Left-hand limit (x → ${fmt(a)}⁻)`, lim(r.left)),
+      fact(`Right-hand limit (x → ${fmt(a)}⁺)`, lim(r.right)),
+      fact('Limit', Number.isFinite(r.limit) ? fmt(r.limit, 5) : Math.abs(r.limit) === Infinity ? lim(r.limit) + ' (grows without bound)' : 'does not exist', Number.isFinite(r.limit) ? 'left and right agree' : r.kind === 'jump' ? 'left and right differ' : ''),
+      fact(`Value f(${fmt(a)})`, Number.isFinite(r.value) ? fmt(r.value, 5) : 'not defined'),
+    ];
+    if (level === '12') facts.push(fact(`Continuous at x = ${fmt(a)}?`, r.kind === 'continuous' ? 'Yes' : 'No', 'needs: f(a) defined, the limit exists, and they are equal'), fact('Kind of point', KIND[r.kind][0], KIND[r.kind][1]));
+    q('.lz-facts').replaceChildren(...facts);
+    const rows = (side: -1 | 1) => table(f, a, side).slice(0, 5).map((p) => { const tr = document.createElement('tr'); [fx(p.x), Number.isFinite(p.y) ? fmt(p.y, 6) : 'undefined'].forEach((t) => { const td = document.createElement('td'); td.className = 'r'; td.textContent = t; tr.append(td); }); return tr; });
+    q('.lz-tl tbody').replaceChildren(...rows(-1)); q('.lz-tr tbody').replaceChildren(...rows(1));
+    if (id === 'sinx') sector();
+  }
+
+  function sector() {
+    const x = +q<HTMLInputElement>('.lz-x').value, s = Math.sin(x), c = Math.cos(x), t = Math.tan(x);
+    q('.lz-xv').textContent = fmt(x, 2);
+    const v = view(-0.1, 1.15, -0.1, Math.min(2.4, Math.max(1.1, t + 0.15)), W, 240, { l: 10, r: 10, t: 10, b: 10 });
+    const fig: Figure = { w: W, h: 240, alt: `Sector of angle ${fmt(x, 2)}: sin x ${fmt(s, 3)} < x ${fmt(x, 3)} < tan x ${fmt(t, 3)}`, draw: (ctx, w, h, pl) => {
+      const O = [px(v, 0), py(v, 0)], R = px(v, 1) - px(v, 0), sy = (py(v, 0) - py(v, 1));
+      ctx.save(); ctx.translate(O[0], O[1]); ctx.scale(1, sy / R);
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, R, 0, -x, true); ctx.closePath(); ctx.fillStyle = pl.accent; ctx.globalAlpha = 0.2; ctx.fill(); ctx.globalAlpha = 1;
+      ctx.beginPath(); ctx.arc(0, 0, R, 0, -Math.PI / 2, true); ctx.strokeStyle = pl.line; ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.restore();
+      line(ctx, v, 0, 0, 1.12, 0, pl.muted, 1); line(ctx, v, 0, 0, 1, t, pl.ink, 1.4);
+      line(ctx, v, c, 0, c, s, pl.accent2, 3); line(ctx, v, 1, 0, 1, t, pl.good, 3);
+      dot(ctx, v, c, s, pl.ink, 4); dot(ctx, v, 1, t, pl.good, 4);
+      label(ctx, v, c, s / 2, 'sin x', pl.accent2, -6, 4, 'right'); label(ctx, v, 1, t / 2, 'tan x', pl.good, 6, 4);
+      ctx.font = FONT; ctx.fillStyle = pl.accent; ctx.textAlign = 'left'; ctx.fillText('arc = x', px(v, Math.cos(x / 2)) + 6, py(v, Math.sin(x / 2)) - 4);
+    } };
+    paint(q<HTMLCanvasElement>('.lz-sfig'), fig);
+    q('.lz-snote').textContent = `Areas: small triangle ½ sin x (${fmt(s / 2, 4)}) < sector ½ x (${fmt(x / 2, 4)}) < big triangle ½ tan x (${fmt(t / 2, 4)}). Divide by ½ sin x: 1 < x / sin x < 1 / cos x, so cos x < sin x / x < 1. Here ${fmt(c, 4)} < ${fmt(s / x, 4)} < 1. As x → 0, cos x → 1 and sin x / x is squeezed to 1.`;
+  }
+
+  sel.addEventListener('change', () => { q<HTMLInputElement>('.lz-z').value = '0'; run(); });
+  root.querySelectorAll('.lz-f, .lz-a, .lz-z').forEach((e) => e.addEventListener('input', () => { if (e.classList.contains('lz-z')) cancelAnimationFrame(anim); run(); }));
+  q('.lz-x').addEventListener('input', sector);
+  q('.lz-go').addEventListener('click', () => { cancelAnimationFrame(anim); const z = q<HTMLInputElement>('.lz-z'), z0 = +z.value, t0 = performance.now(); const st = (t: number) => { const k = Math.min(1, (t - t0) / 2000); z.value = String(Math.round(z0 + (1000 - z0) * k)); run(); if (k < 1) anim = requestAnimationFrame(st); }; anim = requestAnimationFrame(st); });
+  q('.lz-reset').addEventListener('click', () => { cancelAnimationFrame(anim); q<HTMLInputElement>('.lz-z').value = '0'; run(); });
+  root.querySelectorAll<HTMLButtonElement>('.lz-lv button').forEach((b) => b.addEventListener('click', () => { level = b.dataset.lv!; root.querySelectorAll('.lz-lv button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); run(); }));
+  document.addEventListener('fibub:theme', run);
+  run();
+
+  quiz(q('.lz-quiz'), (): Question[] => {
+    const k = rint(1, 6), m = rint(2, 7), n = rint(2, 4), a = rint(1, 3), j = rint(-2, 4), p = rint(1, 5);
+    return [
+      { text: `lim (x → ${k}) of (x² − ${k * k}) / (x − ${k}) = ?`, answer: 2 * k, worked: `Factor the top: (x − ${k})(x + ${k}). Cancel (x − ${k}) for x ≠ ${k}, leaving x + ${k} → ${2 * k}.` },
+      { text: `lim (x → 0) of sin(${m}x) / x = ?`, answer: m, worked: `sin(${m}x)/x = ${m} × sin(${m}x)/(${m}x), and sin θ / θ → 1 as θ = ${m}x → 0, so the limit is ${m}.` },
+      { text: `lim (x → ${a}) of (x${'⁰¹²³⁴'[n]} − ${a ** n}) / (x − ${a}) = ?`, answer: n * a ** (n - 1), worked: `The standard result lim (xⁿ − aⁿ)/(x − a) = n aⁿ⁻¹ gives ${n} × ${a}${'⁰¹²³⁴'[n - 1]} = ${n * a ** (n - 1)}.` },
+      { text: `For the greatest integer function [x], what is the left-hand limit at x = ${j}?`, answer: j - 1, worked: `Just left of ${j}, x is a little less than ${j}, so [x] = ${j - 1}. (From the right it is ${j}: a jump.)` },
+      { text: `What kind of break does f(x) = 1/(x − ${p})² have at x = ${p}?`, choices: ['A hole', 'A jump', 'Infinite'], correct: 2, worked: `As x → ${p} from either side, (x − ${p})² → 0⁺, so f grows without bound: an infinite break, with a vertical asymptote x = ${p}.` },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .lzm .lz-sl { display: grid; gap: 4px; color: var(--ink); font-size: 15px; margin-top: 10px; }
+  .lzm .lz-sl input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .lzm .ax-seg button { min-height: 40px; }
+  .lzm h3 { margin: 16px 0 6px; font-size: 16px; }
+  .lzm .lz-tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 12px; }
+  .lzm .lz-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+  .lzm .lz-note, .lzm .lz-snote { margin: 8px 0; }
+  .lzm .ax-row { margin-top: 8px; }
+</style>
