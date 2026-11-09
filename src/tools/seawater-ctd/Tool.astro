@@ -1,0 +1,237 @@
+---
+// Seawater properties (TEOS-10) and a CTD cast viewer (lib/sci/seawater.ts).
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { cFromSp } from '../../lib/sci/seawater';
+// A made-up cast: a 36 m mixed layer over a thermocline and halocline, 2 dbar steps, rounded like a CTD file.
+const rows: string[] = ['pressure_dbar\ttemperature_C\tconductivity_mS_cm'];
+for (let p = 2; p <= 800; p += 2) {
+  const d = Math.max(p - 36, 0);
+  const t = 6 + 12 * Math.exp(-d / 160), sp = 35.0 + 1.3 * Math.exp(-d / 260);
+  rows.push(`${p}\t${t.toFixed(4)}\t${cFromSp(sp, t, p).toFixed(4)}`);
+}
+const cast = rows.join('\n');
+---
+<div class="ax swc">
+  <div class="ax-card">
+    <h2>One water sample</h2>
+    <div class="ax-grid">
+      <label>Temperature (°C, in situ, ITS-90) <input class="swc-t" inputmode="decimal" value="10" /></label>
+      <label>Pressure (dbar) <input class="swc-p" inputmode="decimal" value="1000" /></label>
+      <label>Salinity given as <select class="swc-kind"><option value="SP">practical salinity (PSS-78)</option><option value="C">conductivity (mS/cm)</option></select></label>
+      <label class="swc-vl">Practical salinity <input class="swc-v" inputmode="decimal" value="35" /></label>
+      <label>Latitude (°, for depth) <input class="swc-lat" inputmode="decimal" value="30" /></label>
+    </div>
+    <p class="ax-err swc-err" hidden></p>
+    <dl class="ax-facts swc-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>CTD cast</h2>
+    <p class="ax-help">Paste or open a cast: one line per level, with columns for pressure (dbar), temperature (°C) and practical salinity or conductivity. Sea-Bird .cnv headers (lines starting * or #) are skipped. The example cast is made up.</p>
+    <label class="swc-lab">Cast <textarea class="swc-cast" rows="7" spellcheck="false">{cast}</textarea></label>
+    <DataFile target=".swc-cast" maxCols={30} label="Open a cast (CSV, TXT, CNV text, Excel)" />
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Pressure column <select class="swc-cp"></select></label>
+      <label>Temperature column <select class="swc-ct"></select></label>
+      <label>Salinity column <select class="swc-cs"></select></label>
+      <label>That column is <select class="swc-ck"><option value="C">conductivity, mS/cm</option><option value="CS">conductivity, S/m</option><option value="SP">practical salinity</option></select></label>
+      <label>Latitude (°) <input class="swc-clat" inputmode="decimal" value="30" /></label>
+    </div>
+    <div class="ax-grid">
+      <label>Mixed layer by <select class="swc-mk"><option value="density">density: σθ up by</option><option value="temperature">temperature: θ changed by</option></select></label>
+      <label>Threshold <input class="swc-mth" inputmode="decimal" value="0.03" /></label>
+      <label>Reference pressure (dbar) <input class="swc-mref" inputmode="decimal" value="10" /></label>
+    </div>
+    <p class="ax-help">The usual thresholds (de Boyer Montégut et al. 2004) are 0.03 kg/m³ for density and 0.2 °C for temperature, from 10 dbar.</p>
+    <p class="ax-err swc-cerr" hidden></p>
+    <div class="swc-cout">
+      <p class="swc-big"></p>
+      <dl class="ax-facts swc-cfacts"></dl>
+      <h3>Profile</h3>
+      <div class="ax-seg swc-seg" role="group" aria-label="Profile shown"><button type="button" data-k="pt" aria-pressed="true">θ</button><button type="button" data-k="SP" aria-pressed="false">Salinity</button><button type="button" data-k="sigma0" aria-pressed="false">σθ</button><button type="button" data-k="c" aria-pressed="false">Sound</button><button type="button" data-k="n2" aria-pressed="false">N²</button></div>
+      <canvas class="ax-fig swc-pfig" style="margin-top:8px"></canvas>
+      <h3>T–S diagram</h3>
+      <canvas class="ax-fig swc-tsfig"></canvas>
+      <p class="ax-help">Conservative Temperature against Absolute Salinity, with lines of equal potential density σ0 (kg/m³ − 1000).</p>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small swc-csv">Download the derived cast (CSV)</button></div>
+      <Downloads />
+    </div>
+  </div>
+</div>
+
+<script>
+  import { properties, nSquared, mixedLayer, sigma0, spFromC, cFromSp, type Level } from '../../lib/sci/seawater';
+  import { num, sig, csv, parseTable } from '../../lib/sci/num';
+  import { chartFigure, type Series } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.swc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+
+  // ---------- one sample ----------
+  function one() {
+    const t = v('.swc-t'), p = v('.swc-p'), lat = v('.swc-lat'), kind = sel('.swc-kind'), val = v('.swc-v');
+    q('.swc-vl').firstChild!.textContent = kind === 'SP' ? 'Practical salinity ' : 'Conductivity (mS/cm) ';
+    const err = (m: string) => { q('.swc-err').textContent = m; q('.swc-err').hidden = !m; q('.swc-facts').hidden = !!m; };
+    if (!(t >= -2.5 && t <= 40)) return err('Temperature: −2.5 to 40 °C.');
+    if (!(p >= 0 && p <= 11000)) return err('Pressure: 0 to 11000 dbar (sea pressure, 0 at the surface).');
+    if (!(lat >= -90 && lat <= 90)) return err('Latitude: −90 to 90°.');
+    if (!(val >= 0) || (kind === 'SP' && val > 42) || (kind === 'C' && val > 80)) return err(kind === 'SP' ? 'Practical salinity: 0 to 42.' : 'Conductivity: 0 to 80 mS/cm.');
+    const L = properties(t, p, lat, kind === 'SP' ? { SP: val } : { C: val });
+    if (!Number.isFinite(L.SP)) return err('That conductivity gives no valid salinity.');
+    err('');
+    q('.swc-facts').replaceChildren(
+      ...(kind === 'C' ? [fact('Practical salinity SP', L.SP.toFixed(4), 'PSS-78 from conductivity, temperature and pressure')] : []),
+      fact('Absolute Salinity SA', `${L.SA.toFixed(4)} g/kg`, 'taken as Reference Salinity, 35.16504/35 × SP'),
+      fact('Conservative Temperature Θ', `${L.CT.toFixed(4)} °C`),
+      fact('Potential temperature θ', `${L.pt.toFixed(4)} °C`, 'referenced to the surface'),
+      fact('In-situ density ρ', `${L.rho.toFixed(3)} kg/m³`),
+      fact('Potential density σ0', `${L.sigma0.toFixed(3)} kg/m³`, 'σθ: density at the surface minus 1000'),
+      fact('Speed of sound', `${L.c.toFixed(2)} m/s`),
+      fact('Thermal expansion α', `${(L.alpha * 1e4).toFixed(4)} × 10⁻⁴ /K`),
+      fact('Haline contraction β', `${(L.beta * 1e4).toFixed(4)} × 10⁻⁴ kg/g`),
+      fact('Depth', `${(-L.z).toFixed(1)} m`, 'from pressure and latitude'),
+    );
+  }
+
+  // ---------- cast ----------
+  let levels: Level[] = [], n2: { n2: number[]; pMid: number[] } = { n2: [], pMid: [] }, mld = NaN, pfig: Figure | null = null, tsfig: Figure | null = null, prof = 'pt';
+  let headers: string[] = [], colsKey = '';
+  const PROF: Record<string, [string, (l: Level) => number]> = { pt: ['Potential temperature θ (°C)', (l) => l.pt], SP: ['Practical salinity', (l) => l.SP], sigma0: ['σθ (kg/m³)', (l) => l.sigma0], c: ['Sound speed (m/s)', (l) => l.c] };
+
+  function table() {
+    const lines = q<HTMLTextAreaElement>('.swc-cast').value.split(/\r?\n/).filter((l) => !/^\s*[*#]/.test(l));
+    return parseTable(lines.join('\n'));
+  }
+  function setColumns(rows: string[][]) {
+    const head = rows.length && rows[0].some((c) => c !== '' && Number.isNaN(num(c)));
+    const width = Math.max(0, ...rows.map((r) => r.length));
+    headers = Array.from({ length: width }, (_, i) => (head ? rows[0][i] || `Column ${i + 1}` : `Column ${i + 1}`));
+    const key = headers.join('|');
+    if (key === colsKey) return head;
+    colsKey = key;
+    const find = (re: RegExp, dflt: number) => { const i = headers.findIndex((h) => re.test(h)); return i >= 0 ? i : Math.min(dflt, width - 1); };
+    const opts = headers.map((h, i) => `<option value="${i}">${i + 1}: ${h.replace(/[<&>"]/g, '')}</option>`).join('');
+    for (const c of ['.swc-cp', '.swc-ct', '.swc-cs']) q(c).innerHTML = opts;
+    q<HTMLSelectElement>('.swc-cp').value = String(find(/^(pr|pres|p\b|press|prdm|prsm)/i, 0));
+    q<HTMLSelectElement>('.swc-ct').value = String(find(/^(t|temp|t0?9|tv?290|t68)/i, 1));
+    const si = headers.findIndex((h) => /^(sal|sp\b|psal|sal00)/i.test(h)), ci = headers.findIndex((h) => /^(c\d?|cond)/i.test(h));
+    q<HTMLSelectElement>('.swc-cs').value = String(si >= 0 ? si : ci >= 0 ? ci : Math.min(2, width - 1));
+    q<HTMLSelectElement>('.swc-ck').value = si >= 0 ? 'SP' : ci >= 0 && /S\/m/i.test(headers[ci]) ? 'CS' : 'C';
+    return head;
+  }
+
+  function cast() {
+    levels = []; pfig = tsfig = null;
+    const err = (m: string) => { q('.swc-cerr').textContent = m; q('.swc-cerr').hidden = !m; q('.swc-cout').hidden = !!m; };
+    const rows = table();
+    const head = setColumns(rows);
+    const body = head ? rows.slice(1) : rows;
+    if (headers.length < 3 || body.length < 3) return err('Paste at least three lines with pressure, temperature and salinity or conductivity.');
+    const ip = Number(sel('.swc-cp')), it = Number(sel('.swc-ct')), is = Number(sel('.swc-cs')), kind = sel('.swc-ck'), lat = v('.swc-clat');
+    if (new Set([ip, it, is]).size < 3) return err('Pick three different columns.');
+    if (!(lat >= -90 && lat <= 90)) return err('Latitude: −90 to 90°.');
+    const L: Level[] = [];
+    let bad = 0;
+    for (const r of body) {
+      const p = num(r[ip]), t = num(r[it]), s = num(r[is]);
+      if (![p, t, s].every(Number.isFinite) || p < 0 || t < -2.5 || t > 40 || s < 0) { bad++; continue; }
+      const lv = properties(t, p, lat, kind === 'SP' ? { SP: s } : { C: kind === 'CS' ? s * 10 : s });
+      if (Number.isFinite(lv.SP) && lv.SP <= 42) L.push(lv); else bad++;
+    }
+    if (L.length < 3) return err('Fewer than three usable levels. Check the column choices and that conductivity units are right.');
+    // Sort by pressure and keep the downcast order (drop repeats).
+    L.sort((a, b) => a.p - b.p);
+    levels = L.filter((l, i) => i === 0 || l.p > L[i - 1].p);
+    err('');
+    n2 = nSquared(levels.map((l) => l.SA), levels.map((l) => l.CT), levels.map((l) => l.p), lat);
+    const mk = sel('.swc-mk') as 'density' | 'temperature', th = v('.swc-mth'), pref = v('.swc-mref');
+    mld = th > 0 && pref >= 0 ? mixedLayer(levels.map((l) => l.p), levels.map((l) => (mk === 'density' ? l.sigma0 : l.pt)), pref, th, mk) : NaN;
+    const top = levels[0], bot = levels[levels.length - 1];
+    const zm = Number.isFinite(mld) ? -properties(10, mld, lat, { SP: 35 }).z : NaN;
+    q('.swc-big').textContent = Number.isFinite(mld) ? `Mixed layer depth ${mld.toFixed(1)} dbar (${zm.toFixed(1)} m), ${mk === 'density' ? `σθ + ${th} kg/m³` : `θ ± ${th} °C`} from ${pref} dbar` : (th > 0 && pref >= 0 ? 'The threshold is never reached: the cast is mixed to the bottom, or the reference level is below the cast.' : 'Give a threshold above zero and a reference pressure.');
+    const iMax = n2.n2.reduce((b, x, i) => (x > n2.n2[b] ? i : b), 0), cMin = levels.reduce((b, l, i) => (l.c < levels[b].c ? i : b), 0);
+    q('.swc-cfacts').replaceChildren(
+      fact('Levels', `${levels.length}`, `${sig(top.p, 4)} to ${sig(bot.p, 4)} dbar${bad ? `; ${bad} line${bad > 1 ? 's' : ''} skipped` : ''}`),
+      fact('Surface (top level)', `θ ${top.pt.toFixed(3)} °C, SP ${top.SP.toFixed(3)}, σθ ${top.sigma0.toFixed(3)}`),
+      fact('Bottom', `θ ${bot.pt.toFixed(3)} °C, SP ${bot.SP.toFixed(3)}, σθ ${bot.sigma0.toFixed(3)}`, `depth ${(-bot.z).toFixed(1)} m`),
+      fact('Strongest stratification', `N² ${(n2.n2[iMax] * 1e4).toFixed(3)} × 10⁻⁴ s⁻²`, `at ${n2.pMid[iMax].toFixed(1)} dbar; period ${(2 * Math.PI / Math.sqrt(Math.max(n2.n2[iMax], 1e-12)) / 60).toFixed(1)} min`),
+      fact('Sound-speed minimum', `${levels[cMin].c.toFixed(2)} m/s`, `at ${levels[cMin].p} dbar`),
+    );
+    drawProfile(); drawTS();
+  }
+
+  function drawProfile() {
+    root.querySelectorAll<HTMLButtonElement>('.swc-seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.k === prof)));
+    const W = Math.round(Math.min(760, Math.max(320, q('.swc-cout').clientWidth || 640))), narrow = W < 500;
+    const P = levels.map((l) => l.p);
+    let s: Series[], xl: string;
+    if (prof === 'n2') { xl = 'N² (10⁻⁴ s⁻²)'; s = [{ name: 'N²', x: n2.n2.map((x) => x * 1e4), y: n2.pMid, mode: 'line', width: 1.4 }]; }
+    else { const [lab, f] = PROF[prof]; xl = lab; s = [{ name: lab, x: levels.map(f), y: P, mode: 'line', width: 1.6 }]; }
+    pfig = chartFigure({ w: W, h: narrow ? 420 : 480, xLabel: xl, yLabel: 'Pressure (dbar)', yReverse: true, series: s, marks: Number.isFinite(mld) ? [{ kind: 'hline', at: mld, label: `mixed layer ${mld.toFixed(0)} dbar` }] : [], legend: 'none' }, `${xl} against pressure`);
+    paint(q<HTMLCanvasElement>('.swc-pfig'), pfig);
+  }
+
+  function drawTS() {
+    const W = Math.round(Math.min(760, Math.max(320, q('.swc-cout').clientWidth || 640))), narrow = W < 500;
+    const SA = levels.map((l) => l.SA), CT = levels.map((l) => l.CT);
+    let s0 = Math.min(...SA), s1 = Math.max(...SA), c0 = Math.min(...CT), c1 = Math.max(...CT);
+    const ps = Math.max((s1 - s0) * 0.1, 0.05), pc = Math.max((c1 - c0) * 0.1, 0.5);
+    s0 -= ps; s1 += ps; c0 -= pc; c1 += pc;
+    // σ0 contours: CT where σ0(SA, CT) = level, by bisection along CT for each SA.
+    const sg = [sigma0(s0, c1), sigma0(s1, c0), sigma0(s0, c0), sigma0(s1, c1)], lo = Math.min(...sg), hi = Math.max(...sg);
+    const step = [0.1, 0.2, 0.25, 0.5, 1, 2].find((d) => (hi - lo) / d <= 8) ?? 5;
+    const lines: Series[] = [];
+    for (let lev = Math.ceil(lo / step) * step; lev <= hi; lev += step) {
+      const xs: number[] = [], ys: number[] = [];
+      for (let i = 0; i <= 40; i++) {
+        const sa = s0 + ((s1 - s0) * i) / 40;
+        let a = c0, b = c1, fa = sigma0(sa, a) - lev, fb = sigma0(sa, b) - lev;
+        if (fa * fb > 0) continue;
+        for (let k = 0; k < 40; k++) { const m = (a + b) / 2, fm = sigma0(sa, m) - lev; if (fm * fa > 0) { a = m; fa = fm; } else { b = m; fb = fm; } }
+        xs.push(sa); ys.push((a + b) / 2);
+      }
+      if (xs.length > 1) lines.push({ name: '', x: xs, y: ys, mode: 'line', width: 0.8, dash: [3, 3], color: '#888888', labels: xs.map((_, i) => (i === xs.length - 1 ? (+lev.toFixed(2)).toString() : '')) });
+    }
+    tsfig = chartFigure({ w: W, h: narrow ? 380 : 440, xLabel: 'Absolute Salinity SA (g/kg)', yLabel: 'Conservative Temperature Θ (°C)', xMin: s0, xMax: s1 + (s1 - s0) * (narrow ? 0.16 : 0.08), yMin: c0, yMax: c1, series: [...lines, { name: 'cast', x: SA, y: CT, mode: 'both', size: 2, width: 1.2 }], legend: 'none' }, 'T–S diagram of the cast with potential density contours');
+    paint(q<HTMLCanvasElement>('.swc-tsfig'), tsfig);
+  }
+
+  root.querySelectorAll('.swc-t, .swc-p, .swc-kind, .swc-v, .swc-lat').forEach((i) => { i.addEventListener('input', one); i.addEventListener('change', one); });
+  root.querySelectorAll('.swc-cast, .swc-cp, .swc-ct, .swc-cs, .swc-ck, .swc-clat, .swc-mk, .swc-mth, .swc-mref').forEach((i) => { i.addEventListener('input', cast); i.addEventListener('change', cast); });
+  q('.swc-mk').addEventListener('change', () => { q<HTMLInputElement>('.swc-mth').value = sel('.swc-mk') === 'density' ? '0.03' : '0.2'; cast(); });
+  q('.swc-kind').addEventListener('change', () => { const t = v('.swc-t'), p = v('.swc-p'), x = v('.swc-v'); if (sel('.swc-kind') === 'C' && x >= 0 && x <= 42) { q<HTMLInputElement>('.swc-v').value = cFromSp(x, t, p).toFixed(4); one(); } else if (sel('.swc-kind') === 'SP') { const s = spFromC(x, t, p); if (Number.isFinite(s)) q<HTMLInputElement>('.swc-v').value = s.toFixed(4); one(); } });
+  root.querySelectorAll<HTMLButtonElement>('.swc-seg button').forEach((b) => b.addEventListener('click', () => { prof = b.dataset.k!; if (levels.length) drawProfile(); }));
+  q('.swc-csv').addEventListener('click', () => {
+    if (!levels.length) return;
+    const rows: (string | number)[][] = [['pressure_dbar', 'depth_m', 'temperature_C', 'SP', 'SA_g_kg', 'CT_C', 'theta_C', 'rho_kg_m3', 'sigma0_kg_m3', 'sound_speed_m_s', 'N2_mid_s-2']];
+    levels.forEach((l, i) => rows.push([l.p, +(-l.z).toFixed(3), l.t, +l.SP.toFixed(5), +l.SA.toFixed(5), +l.CT.toFixed(5), +l.pt.toFixed(5), +l.rho.toFixed(4), +l.sigma0.toFixed(4), +l.c.toFixed(3), i < n2.n2.length ? +n2.n2[i].toExponential(5) : '']));
+    save(new TextEncoder().encode(csv(rows)), 'ctd-cast-teos10.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (pfig) paint(q<HTMLCanvasElement>('.swc-pfig'), pfig); if (tsfig) paint(q<HTMLCanvasElement>('.swc-tsfig'), tsfig); });
+  let lastW = 0;
+  window.addEventListener('resize', () => { const w = q('.swc-cout').clientWidth; if (w && Math.abs(w - lastW) > 40) { lastW = w; if (levels.length) { drawProfile(); drawTS(); } } });
+  one(); cast(); lastW = q('.swc-cout').clientWidth;
+  wireDownloads(q('.dl'), () => ({
+    title: 'CTD cast (TEOS-10)', subtitle: q('.swc-big').textContent!, file: 'ctd-cast',
+    sections: !levels.length || !pfig || !tsfig ? [] : [
+      { title: q('.swc-big').textContent!, facts: [...root.querySelectorAll('.swc-cfacts > div')].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]) },
+      { title: 'Profile', figure: pfig },
+      { title: 'T–S diagram', figure: tsfig },
+    ],
+  }));
+</script>
+
+<style is:global>
+  .swc select { max-width: 100%; }
+  .swc .swc-lab { display: block; }
+  .swc textarea { width: 100%; font: inherit; font-size: 14px; }
+  .swc [hidden] { display: none !important; }
+  .swc .swc-big { font-weight: 650; margin: 0 0 8px; }
+  .swc h3 { font-size: 16px; margin: 16px 0 6px; }
+</style>
