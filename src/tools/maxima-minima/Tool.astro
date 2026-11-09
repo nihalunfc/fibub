@@ -1,0 +1,218 @@
+---
+// Maxima and minima: f, f′ and f″ stacked with the critical points, the first and second derivative
+// tests, absolute extremes on [a, b], and optimisation stories (open box, fence, can). Class 12 maths.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax mmx">
+  <div class="ax-card">
+    <div class="ax-seg mm-mode" role="group" aria-label="What to show"><button type="button" data-m="find" aria-pressed="true">Turning points</button><button type="button" data-m="story" aria-pressed="false">Optimisation stories</button></div>
+  </div>
+
+  <div class="mm-find ax">
+    <div class="ax-card">
+      <h2>Pick a function</h2>
+      <div class="ax-grid">
+        <label>Function f(x) <select class="mm-fn">
+          <option value="cubic" selected>x³ − 3x</option><option value="quartic">x⁴ − 4x²</option><option value="flat">x³ (flat but no turn)</option><option value="quart4">x⁴ (f″ = 0 at a minimum)</option><option value="sin">sin x + cos x</option><option value="xex">x e⁻ˣ</option><option value="recip">x + 1/x</option><option value="own">My own…</option>
+        </select></label>
+        <label class="mm-ownl" hidden>Type f(x) <input class="mm-own" type="text" value="x^3 - 6x^2 + 9x + 1" autocomplete="off" spellcheck="false" /></label>
+        <label>From a <input class="mm-a" type="text" inputmode="decimal" value="-2.5" /></label>
+        <label>To b <input class="mm-b" type="text" inputmode="decimal" value="2.5" /></label>
+      </div>
+      <p class="ax-err mm-err" hidden></p>
+    </div>
+    <div class="ax-card mm-out">
+      <h2>f, f′ and f″ stacked</h2>
+      <canvas class="ax-fig mm-fig" role="img"></canvas>
+      <label class="mm-sl">Look at x = <b class="mm-xv"></b><input class="mm-x" type="range" min="0" max="1000" value="300" /></label>
+      <p class="mm-now"></p>
+      <h3>Critical points (where f′(x) = 0)</h3>
+      <div class="ax-scroll"><table class="mm-tab"><thead><tr><th class="r">x</th><th class="r">f(x)</th><th>f′ just left → right</th><th class="r">f″(x)</th><th>First test</th><th>Second test</th></tr></thead><tbody></tbody></table></div>
+      <p class="ax-help mm-none" hidden>No point in this interval where f′(x) = 0.</p>
+      <dl class="ax-facts mm-abs"></dl>
+    </div>
+  </div>
+
+  <div class="mm-story ax" hidden>
+    <div class="ax-card">
+      <h2>Pick a story</h2>
+      <div class="ax-grid">
+        <label>Story <select class="mm-st"><option value="box" selected>Open box from a square sheet</option><option value="fence">Fence along a river</option><option value="can">Closed can, least metal</option></select></label>
+        <label class="mm-pl">Sheet side s (cm) <input class="mm-p" type="text" inputmode="decimal" value="30" /></label>
+      </div>
+      <p class="ax-err mm-serr" hidden></p>
+    </div>
+    <div class="ax-card mm-sout">
+      <h2 class="mm-stitle"></h2>
+      <canvas class="ax-fig mm-pic" role="img"></canvas>
+      <label class="mm-sl"><span class="mm-slname"></span> = <b class="mm-sxv"></b><input class="mm-sx" type="range" min="1" max="999" value="300" /></label>
+      <canvas class="ax-fig mm-sfig" role="img"></canvas>
+      <dl class="ax-facts mm-sfacts"></dl>
+      <ol class="mm-steps"></ol>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="mm-try">
+      <li>Slide x across x³ − 3x: where f′ (middle) is above the axis, f climbs; where it is below, f falls. The turning points sit where f′ crosses zero.</li>
+      <li>Pick <b>x³</b>: f′ touches zero at 0 but does not change sign, so 0 is neither a maximum nor a minimum.</li>
+      <li>Pick <b>x⁴</b>: f″(0) = 0, so the second derivative test says nothing, but the first test still finds the minimum.</li>
+      <li>Pick <b>x + 1/x</b>: the local maximum (−2) is lower than the local minimum (2). "Local" means only near that point.</li>
+      <li>In the open box story, try different cuts: the box is biggest when the cut is one sixth of the sheet side.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="mm-quiz" />
+</div>
+
+<script>
+  import { CURVES, criticalPoints, absolute, box, fence, can, type Critical, type Kind } from '../../lib/sci/school-extrema';
+  import { readFn, deriv, deriv2, type Fn } from '../../lib/sci/school-calculus';
+  import { paint, pagePalette, type Figure } from '../../lib/report';
+  import { view, axes, curve, line, dot, label, px, py, fmt, FONT, type View } from '../../lib/sm-graph';
+  import { num } from '../../lib/sci/num';
+  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.mmx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380;
+  let mode = 'find';
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+  const KIND: Record<Kind, string> = { max: 'local maximum', min: 'local minimum', neither: 'neither (no turn)', unknown: 'test fails (f″ = 0)' };
+  const yr = (g: Fn, a: number, b: number, qq = 0.04): [number, number] => {
+    const ys: number[] = []; for (let i = 0; i <= 200; i++) { const y = g(a + ((b - a) * i) / 200); if (Number.isFinite(y)) ys.push(y); }
+    ys.sort((p, r) => p - r); if (!ys.length) return [-1, 1];
+    const lo = Math.min(0, ys[Math.floor(ys.length * qq)]), hi = Math.max(0, ys[Math.ceil(ys.length * (1 - qq)) - 1]), pad = Math.max(0.3, (hi - lo) * 0.12);
+    return [lo - pad, hi + pad];
+  };
+
+  function find() {
+    const err = q('.mm-err'), out = q('.mm-out'); err.hidden = true;
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; };
+    const id = q<HTMLSelectElement>('.mm-fn').value; q('.mm-ownl').hidden = id !== 'own';
+    let f: Fn, d: Fn, d2: Fn;
+    if (id === 'own') { try { f = readFn(q<HTMLInputElement>('.mm-own').value); } catch (e) { return fail((e as Error).message); } const g = f; d = (x) => deriv(g, x); d2 = (x) => deriv2(g, x); }
+    else { const c = CURVES.find((k) => k.id === id)!; f = c.f; d = c.d; d2 = c.d2; }
+    const a = num(q<HTMLInputElement>('.mm-a').value), b = num(q<HTMLInputElement>('.mm-b').value);
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return fail('Type the start a and end b as numbers.');
+    if (!(b > a)) return fail('The end b must be bigger than the start a.');
+    if (b - a > 100) return fail('Keep the interval shorter than 100.');
+    out.hidden = false;
+    const crit = criticalPoints(f, a, b, d, d2), abs = absolute(f, a, b, crit);
+    const xs = a + ((b - a) * +q<HTMLInputElement>('.mm-x').value) / 1000;
+    q('.mm-xv').textContent = fmt(xs, 2);
+    const PH = 150, H = PH * 3;
+    const panels: [Fn, string, string][] = [[f, 'f(x)', 'ink'], [d, 'f′(x)', 'accent2'], [d2, 'f″(x)', 'accent']];
+    const views: View[] = panels.map(([g], i) => { const [lo, hi] = yr(g, a, b, i === 0 ? 0 : 0.04); return { ...view(a, b, lo, hi, W, PH), t: i * PH + 8, H: (i + 1) * PH, b: 20 } as View; });
+    const fig: Figure = { w: W, h: H, alt: `f, f′ and f″ from ${fmt(a)} to ${fmt(b)}; ${crit.length} critical point${crit.length === 1 ? '' : 's'}`, draw: (ctx, w, h, pl) => {
+      panels.forEach(([g, name, col], i) => {
+        const v = views[i]; axes(ctx, v, pl, { yName: name });
+        curve(ctx, v, g, (pl as unknown as Record<string, string>)[col], 2.2);
+        for (const c of crit) { line(ctx, v, c.x, v.y0, c.x, v.y1, pl.muted, 1, [3, 3]); if (i === 0) dot(ctx, v, c.x, c.y, c.first === 'max' ? pl.good : c.first === 'min' ? pl.bad : pl.muted, 5.5, false, pl.bg); if (i === 1) dot(ctx, v, c.x, 0, pl.accent2, 4); }
+        line(ctx, v, xs, v.y0, xs, v.y1, pl.ink, 1);
+        const y = g(xs); if (Number.isFinite(y)) dot(ctx, v, xs, y, pl.ink, 4, true, pl.bg);
+        if (i === 0) for (const e of [abs.max, abs.min]) if (e.y >= v.y0 && e.y <= v.y1) label(ctx, v, e.x, e.y, e === abs.max ? 'abs max' : 'abs min', pl.muted, 6, e === abs.max ? -6 : 16);
+      });
+    } };
+    paint(q<HTMLCanvasElement>('.mm-fig'), fig);
+    const s1 = d(xs), s2 = d2(xs);
+    q('.mm-now').textContent = `At x = ${fmt(xs, 2)}: f′ = ${fmt(s1, 3)}, so f is ${Math.abs(s1) < 1e-9 ? 'flat' : s1 > 0 ? 'rising' : 'falling'}; f″ = ${fmt(s2, 3)}, so the curve ${Math.abs(s2) < 1e-9 ? 'is not bending either way' : s2 > 0 ? 'bends up (concave up, like a cup)' : 'bends down (concave down, like a cap)'}.`;
+    const sign = (v: number) => (v > 0 ? '+' : v < 0 ? '−' : '0');
+    q('.mm-tab tbody').replaceChildren(...crit.map((c: Critical) => {
+      const tr = document.createElement('tr');
+      [[fmt(c.x, 4), 'r'], [fmt(c.y, 4), 'r'], [`${sign(c.left)} → ${sign(c.right)}`, ''], [fmt(c.d2, 3), 'r'], [KIND[c.first], ''], [c.second === 'unknown' ? KIND.unknown : KIND[c.second], '']].forEach(([t, cl]) => { const td = document.createElement('td'); td.textContent = t; if (cl) td.className = cl; tr.append(td); });
+      return tr;
+    }));
+    q('.mm-none').hidden = crit.length > 0;
+    q('.mm-abs').replaceChildren(
+      fact(`Absolute maximum on [${fmt(a)}, ${fmt(b)}]`, fmt(abs.max.y, 4), `at x = ${fmt(abs.max.x, 4)} (${abs.max.at === 'end' ? 'an end of the interval' : 'a critical point'})`),
+      fact('Absolute minimum', fmt(abs.min.y, 4), `at x = ${fmt(abs.min.x, 4)} (${abs.min.at === 'end' ? 'an end of the interval' : 'a critical point'})`),
+      fact('Values compared', String(abs.candidates.length), 'both ends and every critical point'),
+    );
+  }
+
+  function story() {
+    const st = q<HTMLSelectElement>('.mm-st').value, P = num(q<HTMLInputElement>('.mm-p').value), err = q('.mm-serr');
+    const L: Record<string, [string, string, string]> = { box: ['Sheet side s (cm)', 'Cut x (cm)', 'cm'], fence: ['Fence length L (m)', 'Width x (m)', 'm'], can: ['Volume V (cm³)', 'Radius r (cm)', 'cm'] };
+    q('.mm-pl').firstChild!.textContent = L[st][0] + ' ';
+    q('.mm-slname').textContent = L[st][1];
+    if (!(P > 0) || P > 1e6) { err.textContent = 'Type a positive size (up to 1 000 000).'; err.hidden = false; q('.mm-sout').hidden = true; return; }
+    err.hidden = true; q('.mm-sout').hidden = false;
+    const k = +q<HTMLInputElement>('.mm-sx').value / 1000;
+    let lo: number, hi: number, G: Fn, best: number, name: string, unit: string, steps: string[];
+    if (st === 'box') { [lo, hi] = box.range(P); G = (x) => box.V(P, x); best = box.best(P); name = 'Volume V (cm³)'; unit = 'cm³';
+      steps = [`V(x) = x(${fmt(P)} − 2x)²`, `V′(x) = (${fmt(P)} − 2x)² − 4x(${fmt(P)} − 2x) = (${fmt(P)} − 2x)(${fmt(P)} − 6x)`, `V′(x) = 0 at x = ${fmt(P / 2)} (no box left) or x = ${fmt(P)}/6 = ${fmt(best, 3)}`, `V″(x) = 24x − 8·${fmt(P)}, which is ${fmt(24 * best - 8 * P, 3)} < 0 there: a maximum`, `Biggest box: V = 2s³/27 = ${fmt(box.bestV(P), 4)} ${unit}`]; }
+    else if (st === 'fence') { [lo, hi] = fence.range(P); G = (x) => fence.A(P, x); best = fence.best(P); name = 'Area A (m²)'; unit = 'm²';
+      steps = [`Two widths x and one length ${fmt(P)} − 2x: A(x) = x(${fmt(P)} − 2x)`, `A′(x) = ${fmt(P)} − 4x = 0 at x = ${fmt(P)}/4 = ${fmt(best, 3)}`, 'A″(x) = −4 < 0: a maximum', `The side along the river is ${fmt(P - 2 * best, 3)} m, twice the width`, `Biggest area: L²/8 = ${fmt(fence.bestA(P), 4)} ${unit}`]; }
+    else { best = can.best(P); lo = best * 0.25; hi = best * 3; G = (r) => can.S(P, r); name = 'Metal S (cm²)'; unit = 'cm²';
+      steps = [`Height h = V/(πr²), so S(r) = 2πr² + 2V/r = 2πr² + ${fmt(2 * P)}/r`, `S′(r) = 4πr − 2V/r² = 0 at r³ = V/(2π), r = ${fmt(best, 4)} cm`, `S″(r) = 4π + 4V/r³ > 0: a minimum`, `Then h = ${fmt(can.h(P, best), 4)} cm = 2r: the best can is as tall as it is wide`, `Least metal: ${fmt(can.S(P, best), 5)} ${unit}`]; }
+    const x = lo + (hi - lo) * k, gx = G(x), gb = G(best);
+    q('.mm-sxv').textContent = `${fmt(x, 2)} ${L[st][2]}`;
+    q('.mm-stitle').textContent = st === 'box' ? 'Cut squares from the corners and fold up the sides' : st === 'fence' ? 'Fence three sides; the river is the fourth' : 'A can holding a fixed volume';
+    const pic: Figure = { w: W, h: 200, alt: `Picture of the ${st} at ${L[st][1]} = ${fmt(x, 2)}`, draw: (ctx, w, h, pl) => {
+      ctx.strokeStyle = pl.ink; ctx.lineWidth = 2; ctx.font = FONT; ctx.fillStyle = pl.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      if (st === 'box') { const S = 170, ox = (w - S) / 2, oy = 15, c = (x / P) * S;
+        ctx.beginPath(); ctx.moveTo(ox + c, oy); ctx.lineTo(ox + S - c, oy); ctx.lineTo(ox + S - c, oy + c); ctx.lineTo(ox + S, oy + c); ctx.lineTo(ox + S, oy + S - c); ctx.lineTo(ox + S - c, oy + S - c); ctx.lineTo(ox + S - c, oy + S); ctx.lineTo(ox + c, oy + S); ctx.lineTo(ox + c, oy + S - c); ctx.lineTo(ox, oy + S - c); ctx.lineTo(ox, oy + c); ctx.lineTo(ox + c, oy + c); ctx.closePath(); ctx.stroke();
+        ctx.setLineDash([4, 3]); ctx.strokeStyle = pl.muted; ctx.strokeRect(ox + c, oy + c, S - 2 * c, S - 2 * c); ctx.setLineDash([]);
+        ctx.fillStyle = pl.accent; ctx.globalAlpha = 0.25; for (const [a2, b2] of [[0, 0], [S - c, 0], [0, S - c], [S - c, S - c]]) ctx.fillRect(ox + a2, oy + b2, c, c); ctx.globalAlpha = 1;
+        ctx.fillStyle = pl.ink; ctx.fillText(`base ${fmt(P - 2 * x, 2)} × ${fmt(P - 2 * x, 2)}, height ${fmt(x, 2)}`, w / 2, oy + S + 12); }
+      else if (st === 'fence') { const Lp = 300, ox = 40, oy = 30, wpx = (x / P) * Lp * 1.6, lpx = ((P - 2 * x) / P) * Lp;
+        ctx.fillStyle = pl.accent; ctx.globalAlpha = 0.2; ctx.fillRect(10, oy - 22, w - 20, 18); ctx.globalAlpha = 1; ctx.fillStyle = pl.ink; ctx.fillText('river', w / 2, oy - 13);
+        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ox, oy + wpx); ctx.lineTo(ox + lpx, oy + wpx); ctx.lineTo(ox + lpx, oy); ctx.stroke();
+        ctx.fillText(`x = ${fmt(x, 2)}`, ox - 2, oy + wpx / 2 > oy + 10 ? oy + wpx / 2 : oy + 10); ctx.fillText(`${fmt(P - 2 * x, 2)} m`, ox + lpx / 2, Math.min(h - 8, oy + wpx + 12)); }
+      else { const h0 = can.h(P, x), sc = 150 / Math.max(2 * x, h0), rw = x * sc, hh = h0 * sc, cx = w / 2, top = (h - hh) / 2;
+        ctx.beginPath(); ctx.ellipse(cx, top, rw, rw * 0.25, 0, 0, 2 * Math.PI); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx - rw, top); ctx.lineTo(cx - rw, top + hh); ctx.ellipse(cx, top + hh, rw, rw * 0.25, 0, Math.PI, 0, true); ctx.lineTo(cx + rw, top); ctx.stroke();
+        ctx.textAlign = 'left'; ctx.fillText(`r = ${fmt(x, 2)}, h = ${fmt(h0, 2)} cm`, Math.min(w - 150, cx + rw + 8), top + hh / 2); }
+    } };
+    paint(q<HTMLCanvasElement>('.mm-pic'), pic);
+    const [y0, y1] = yr(G, lo, hi), v = view(lo, hi, st === 'can' ? Math.min(y0, gb * 0.8) : 0, st === 'can' ? Math.min(y1, gb * 3) : y1, W, 220);
+    const g: Figure = { w: W, h: 220, alt: `${name} against ${L[st][1]}: best at ${fmt(best, 3)}`, draw: (ctx, w, h, pl) => {
+      axes(ctx, v, pl, { yName: name, xName: L[st][1] }); curve(ctx, v, G, pl.accent, 2.4);
+      dot(ctx, v, best, gb, pl.good, 6, false, pl.bg); label(ctx, v, best, gb, st === 'can' ? 'least' : 'most', pl.good, 8, 16);
+      dot(ctx, v, x, gx, pl.ink, 5, true, pl.bg);
+    } };
+    paint(q<HTMLCanvasElement>('.mm-sfig'), g);
+    q('.mm-sfacts').replaceChildren(
+      fact(`${name.split(' (')[0]} now`, `${fmt(gx, 4)} ${unit}`, `at ${L[st][1].split(' (')[0].toLowerCase()} ${fmt(x, 3)}`),
+      fact(st === 'can' ? 'Least possible' : 'Best possible', `${fmt(gb, 4)} ${unit}`, `at ${fmt(best, 4)} ${L[st][2]}`),
+      fact('You are at', `${fmt((gx / gb) * 100, 1)} %`, st === 'can' ? 'of the least metal' : 'of the best'),
+    );
+    q('.mm-steps').replaceChildren(...steps.map((t) => { const li = document.createElement('li'); li.textContent = t; return li; }));
+  }
+
+  const run = () => { q('.mm-find').hidden = mode !== 'find'; q('.mm-story').hidden = mode !== 'story'; if (mode === 'find') find(); else story(); };
+  root.querySelectorAll<HTMLButtonElement>('.mm-mode button').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.m!; root.querySelectorAll('.mm-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); run(); }));
+  q('.mm-fn').addEventListener('change', () => {
+    const id = q<HTMLSelectElement>('.mm-fn').value, c = CURVES.find((k) => k.id === id), r = c ? c.range : [-1, 5];
+    q<HTMLInputElement>('.mm-a').value = fmt(r[0], 4).replace('−', '-'); q<HTMLInputElement>('.mm-b').value = fmt(r[1], 4).replace('−', '-'); run();
+  });
+  q('.mm-st').addEventListener('change', () => { q<HTMLInputElement>('.mm-p').value = { box: '30', fence: '100', can: '500' }[q<HTMLSelectElement>('.mm-st').value]!; run(); });
+  root.querySelectorAll('.mm-own, .mm-a, .mm-b, .mm-x, .mm-p, .mm-sx').forEach((e) => e.addEventListener('input', run));
+  document.addEventListener('fibub:theme', run);
+  run();
+
+  quiz(q('.mm-quiz'), (): Question[] => {
+    const b = 2 * rint(1, 6), a = rint(1, 4), s = pick([12, 18, 24, 30, 36]), L = pick([40, 60, 80, 100, 120]), c = rint(2, 6);
+    return [
+      { text: `f(x) = x² − ${b}x. At what x is f′(x) = 0?`, answer: b / 2, worked: `f′(x) = 2x − ${b} = 0 gives x = ${b / 2}. f″ = 2 > 0, so it is a minimum.` },
+      { text: `f(x) = x³ − ${3 * a * a}x has a local maximum at x = ?`, answer: -a, worked: `f′(x) = 3x² − ${3 * a * a} = 0 at x = ±${a}. f″(x) = 6x is negative at x = −${a}, so the maximum is at x = −${a} (and the minimum at ${a}).` },
+      { text: `f(x) = ${c}x³ − ${3 * c}x² has a critical point at x = 2. Is it a maximum or a minimum?`, choices: ['Maximum', 'Minimum', 'Neither'], correct: 1, worked: `f′(x) = ${3 * c}x² − ${6 * c}x = ${3 * c}x(x − 2), zero at 0 and 2. f″(x) = ${6 * c}x − ${6 * c}, and f″(2) = ${6 * c} > 0, so x = 2 is a minimum.` },
+      { text: `An open box is made from a ${s} cm square sheet by cutting equal squares from the corners. What cut (cm) gives the biggest box?`, answer: s / 6, worked: `V = x(${s} − 2x)². V′ = (${s} − 2x)(${s} − 6x) = 0 at x = ${s}/6 = ${s / 6} (x = ${s / 2} leaves no box). V″ < 0 there, so ${s / 6} cm is best.` },
+      { text: `${L} m of fence makes three sides of a rectangle by a river. What is the largest area (m²)?`, answer: (L * L) / 8, worked: `A = x(${L} − 2x), A′ = ${L} − 4x = 0 at x = ${L / 4}. The long side is ${L / 2}, so A = ${L / 4} × ${L / 2} = ${(L * L) / 8} m².` },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .mmx .mm-sl { display: grid; gap: 4px; color: var(--ink); font-size: 15px; margin-top: 10px; }
+  .mmx .mm-sl input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .mmx .ax-seg button { min-height: 40px; }
+  .mmx .mm-find, .mmx .mm-story { margin-bottom: 0; }
+  .mmx h3 { margin: 16px 0 6px; font-size: 16px; }
+  .mmx .mm-steps, .mmx .mm-try { padding-left: 22px; display: grid; gap: 6px; overflow-wrap: anywhere; }
+  .mmx .mm-try { margin: 0; }
+  .mmx .mm-now { margin: 8px 0; }
+</style>
