@@ -1,0 +1,216 @@
+---
+// Oxygen dissociation curve: haemoglobin saturation against PO2, the Bohr shift with pH, CO2 and temperature,
+// oxygen unloaded in the tissues, and a spirogram of lung volumes. Teaching model.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax odc">
+  <p class="ax-help odc-note">A teaching model from a standard published equation: real blood differs between people. Not for judging anyone's health.</p>
+  <div class="ax-card">
+    <h2>Haemoglobin and oxygen</h2>
+    <label>Oxygen in the blood (PO₂): <b class="odc-pv"></b>
+      <input type="range" class="odc-po2" min="0" max="120" step="1" value="40" aria-label="Partial pressure of oxygen, mmHg" /></label>
+    <div class="ax-row odc-gap"><span class="odc-lab">Conditions</span>
+      <button type="button" class="btn secondary small odc-pre" data-p="normal">Normal blood</button><button type="button" class="btn secondary small odc-pre" data-p="exercise">Working muscle</button><button type="button" class="btn secondary small odc-pre" data-p="cold">Cold, low CO₂</button></div>
+    <div class="ax-grid odc-gap">
+      <label>pH: <b class="odc-hv"></b><input type="range" class="odc-ph" min="7" max="7.7" step="0.02" value="7.4" aria-label="pH" /></label>
+      <label>CO₂ (PCO₂): <b class="odc-cv"></b><input type="range" class="odc-co2" min="20" max="80" step="1" value="40" aria-label="Partial pressure of carbon dioxide, mmHg" /></label>
+      <label>Temperature: <b class="odc-tv"></b><input type="range" class="odc-t" min="32" max="42" step="0.5" value="37" aria-label="Temperature, degrees Celsius" /></label>
+    </div>
+    <label class="ax-check odc-gap"><input type="checkbox" class="odc-fetal" /> Fetal haemoglobin (a baby before birth)</label>
+    <canvas class="ax-fig odc-fig"></canvas>
+    <div class="odc-hbrow"><canvas class="odc-hb" width="120" height="120" aria-label="Haemoglobin molecule"></canvas><p class="ax-big odc-big" aria-live="polite"></p></div>
+    <p class="odc-say"></p>
+    <dl class="ax-facts odc-facts"></dl>
+    <p class="odc-formula"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Lung volumes (spirogram)</h2>
+    <div class="ax-grid">
+      <label>Tidal volume (mL) <input class="odc-tvol" inputmode="numeric" value="500" /></label>
+      <label>Inspiratory reserve (mL) <input class="odc-irv" inputmode="numeric" value="2750" /></label>
+      <label>Expiratory reserve (mL) <input class="odc-erv" inputmode="numeric" value="1050" /></label>
+      <label>Residual volume (mL) <input class="odc-rv" inputmode="numeric" value="1150" /></label>
+      <label>Breaths a minute <input class="odc-rate" inputmode="numeric" value="12" /></label>
+    </div>
+    <p class="ax-help">Typical round adult values. Tidal: one quiet breath. Reserves: the extra you can breathe in or out by trying hard. Residual: what always stays in the lungs.</p>
+    <p class="ax-err odc-err" hidden></p>
+    <canvas class="ax-fig odc-spiro"></canvas>
+    <dl class="ax-facts odc-lfacts"></dl>
+    <p class="odc-lformula"></p>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="odc-try">
+      <li>Slide PO₂ from 100 (lungs) down to 40 (resting tissues). Why does haemoglobin give up only about a quarter of its oxygen at rest?</li>
+      <li>Press <b>Working muscle</b>. Which way does the curve move, and how much more oxygen is unloaded at 40 mmHg?</li>
+      <li>Tick fetal haemoglobin. Why does it help a baby take oxygen from its mother's blood?</li>
+      <li>Work out your vital capacity from the volumes, then check it.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <ol class="odc-qs"></ol>
+    <div class="ax-row"><button type="button" class="btn small odc-check">Check answers</button><button type="button" class="btn secondary small odc-new">New questions</button></div>
+    <p class="odc-score" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+  import { saturation, p50, content, NORMAL, capacities, spiro, type Conditions } from '../../lib/sci/hbcurve';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { num } from '../../lib/sci/num';
+  import { paint, pagePalette, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.odc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => Number(q<HTMLInputElement>(c).value);
+  const pc = (x: number, d = 0) => `${(100 * x).toFixed(d)} %`;
+  const HB = 15; // g/dL, a typical round value
+  let curve: Figure | null = null, sp: Figure | null = null;
+  const cond = (): Conditions => ({ pH: v('.odc-ph'), tempC: v('.odc-t'), pco2: v('.odc-co2'), fetal: q<HTMLInputElement>('.odc-fetal').checked });
+  const PRESETS: Record<string, [number, number, number]> = { normal: [7.4, 40, 37], exercise: [7.2, 60, 39], cold: [7.6, 30, 35] };
+
+  let factList: [string, string, string?][] = [];
+  function update() {
+    const c = cond(), po2 = v('.odc-po2'), s = saturation(po2, c), half = p50(c), half0 = p50(NORMAL);
+    q('.odc-pv').textContent = `${po2} mmHg${po2 >= 95 ? ' (like the lungs)' : po2 >= 35 && po2 <= 45 ? ' (like resting tissues)' : po2 <= 25 ? ' (like hard-working muscle)' : ''}`;
+    q('.odc-hv').textContent = c.pH.toFixed(2); q('.odc-cv').textContent = `${c.pco2} mmHg`; q('.odc-tv').textContent = `${c.tempC} °C`;
+    const xs = Array.from({ length: 241 }, (_, i) => i / 2);
+    const same = Math.abs(half - half0) < 0.05;
+    curve = chartFigure({ w: 480, h: 320, font: 14, xLabel: 'PO₂ (mmHg)', yLabel: 'Haemoglobin saturated (%)', xMin: 0, xMax: 120, yMin: 0, yMax: 100, legend: 'below',
+      series: [
+        ...(same ? [] : [{ name: 'Normal blood', x: xs, y: xs.map((x) => 100 * saturation(x, NORMAL)), mode: 'line' as const, width: 1.5, dash: [6, 4] }]),
+        { name: same ? 'Normal blood' : 'Your conditions', x: xs, y: xs.map((x) => 100 * saturation(x, c)), mode: 'line' as const, width: 2.8 },
+        { name: 'Your PO₂', x: [po2], y: [100 * s], marker: 'circle' as const, size: 9 },
+      ],
+      marks: [{ kind: 'hline', at: 50, dash: [3, 3], label: `P50 ${half.toFixed(1)} mmHg` }, { kind: 'vline', at: 100, dash: [2, 4], label: 'lungs' }, { kind: 'vline', at: 40, dash: [2, 4], label: 'tissues' }] },
+      `Oxygen dissociation curve; P50 ${half.toFixed(1)} mmHg`);
+    paint(q<HTMLCanvasElement>('.odc-fig'), curve);
+    drawHb(s);
+    const shift = half - half0;
+    q('.odc-big').textContent = `${pc(s)} saturated at ${po2} mmHg`;
+    q('.odc-say').textContent = Math.abs(shift) < 0.05 ? 'This is the standard S-shaped curve: haemoglobin loads oxygen easily in the lungs and gives it up quickly once PO₂ falls below about 60 mmHg.'
+      : shift > 0 ? `The curve has moved right by ${shift.toFixed(1)} mmHg (the Bohr effect): haemoglobin holds oxygen less tightly, so it gives more to the tissues that need it.`
+      : `The curve has moved left by ${(-shift).toFixed(1)} mmHg: haemoglobin holds on to oxygen more tightly${c.fetal ? ', which lets a baby\'s blood take oxygen from its mother\'s' : ''}.`;
+    const lungS = saturation(100, NORMAL), tissueS = saturation(40, c), unload = lungS - tissueS;
+    factList = [
+      ['P50', `${half.toFixed(1)} mmHg`, 'PO₂ at which half is loaded; normal about 26.9'],
+      ['In the lungs (100 mmHg)', pc(lungS, 1), 'normal blood'],
+      ['In the tissues (40 mmHg)', pc(tissueS, 1), 'your conditions'],
+      ['Oxygen given up', `${pc(unload, 1)} of the load`, `${(content(100, HB) - content(40, HB, c)).toFixed(1)} mL per 100 mL of blood`],
+    ];
+    q('.odc-facts').replaceChildren(...factList.map(([k, val, sm]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const m = document.createElement('small'); m.textContent = sm; d.querySelector('dd')!.append(m); } return d; }));
+    q('.odc-formula').textContent = `O₂ content = 1.34 × Hb × saturation + 0.003 × PO₂ = 1.34 × ${HB} × ${s.toFixed(3)} + 0.003 × ${po2} = ${content(po2, HB, c).toFixed(1)} mL per 100 mL (Hb ${HB} g/dL)`;
+  }
+  function drawHb(s: number) {
+    const cv = q<HTMLCanvasElement>('.odc-hb'), pal = pagePalette(), dpr = Math.min(3, devicePixelRatio || 1);
+    cv.width = 120 * dpr; cv.height = 120 * dpr; cv.style.width = '120px'; cv.style.height = '120px';
+    const ctx = cv.getContext('2d')!; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, 120, 120);
+    const filled = Math.round(4 * s);
+    [[38, 38], [82, 38], [38, 82], [82, 82]].forEach(([x, y], i) => {
+      ctx.beginPath(); ctx.arc(x, y, 20, 0, Math.PI * 2); ctx.fillStyle = pal.accent; ctx.globalAlpha = 0.15; ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.stroke();
+      ctx.beginPath(); ctx.arc(x, y, 8, 0, Math.PI * 2);
+      if (i < filled) { ctx.fillStyle = pal.bad; ctx.fill(); } else { ctx.strokeStyle = pal.muted; ctx.lineWidth = 1.5; ctx.stroke(); }
+    });
+    cv.setAttribute('aria-label', `Haemoglobin: ${filled} of 4 sites carrying oxygen`);
+  }
+
+  // ---------- lungs ----------
+  let lfacts: [string, string, string?][] = [];
+  function lungs() {
+    const l = { tv: num(q<HTMLInputElement>('.odc-tvol').value), irv: num(q<HTMLInputElement>('.odc-irv').value), erv: num(q<HTMLInputElement>('.odc-erv').value), rv: num(q<HTMLInputElement>('.odc-rv').value), rate: num(q<HTMLInputElement>('.odc-rate').value) };
+    const err = q('.odc-err');
+    const bad = [l.tv, l.irv, l.erv, l.rv].some((x) => !(x > 0 && x <= 8000)) ? 'Each volume must be above 0 and at most 8000 mL.' : !(l.rate >= 4 && l.rate <= 60) ? 'Breaths a minute must be from 4 to 60.' : '';
+    if (bad) { err.textContent = bad; err.hidden = false; return; }
+    err.hidden = true;
+    const c = capacities(l), xs = Array.from({ length: 601 }, (_, i) => i * 0.05);
+    sp = chartFigure({ w: 480, h: 320, font: 14, xLabel: 'Time (s)', yLabel: 'Air in the lungs (mL)', xMin: 0, xMax: 30, yMin: 0, yMax: Math.ceil((c.tlc * 1.1) / 1000) * 1000, legend: 'none',
+      series: [{ name: 'Volume', x: xs, y: xs.map((t) => spiro(l, t)), mode: 'line', width: 2.5 }],
+      marks: [{ kind: 'hline', at: c.tlc, dash: [4, 3], label: `TLC ${c.tlc}` }, { kind: 'hline', at: c.frc, dash: [4, 3], label: `FRC ${c.frc}` }, { kind: 'hline', at: l.rv, dash: [4, 3], label: `RV ${l.rv}` }] },
+      'Spirogram: quiet breathing, one deepest breath in and out, then quiet breathing');
+    paint(q<HTMLCanvasElement>('.odc-spiro'), sp);
+    lfacts = [['Vital capacity', `${c.vc} mL`, 'most you can breathe out after the deepest breath in'], ['Total lung capacity', `${c.tlc} mL`, 'vital capacity + residual volume'], ['Functional residual capacity', `${c.frc} mL`, 'left after a quiet breath out'], ['Inspiratory capacity', `${c.ic} mL`, 'tidal + inspiratory reserve'], ['Air breathed a minute', `${(c.minute / 1000).toFixed(1)} L`, `${l.tv} mL × ${l.rate}`]];
+    q('.odc-lfacts').replaceChildren(...lfacts.map(([k, val, sm]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const m = document.createElement('small'); m.textContent = sm; d.querySelector('dd')!.append(m); } return d; }));
+    q('.odc-lformula').textContent = `VC = ERV + TV + IRV = ${l.erv} + ${l.tv} + ${l.irv} = ${c.vc} mL; TLC = VC + RV = ${c.vc} + ${l.rv} = ${c.tlc} mL`;
+  }
+
+  // ---------- Check yourself ----------
+  type Qn = { text: string; options?: string[]; answer: string | number; tol?: number; worked: string };
+  let qs: Qn[] = [];
+  const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
+  function makeQuiz() {
+    const tv = pick([400, 450, 500, 550]), irv = pick([2500, 2750, 3000]), erv = pick([1000, 1050, 1100]), rate = pick([12, 14, 15, 16]);
+    const what = pick<[string, string]>([['a rise in temperature', 'right'], ['more carbon dioxide', 'right'], ['a lower pH (more acid)', 'right'], ['a higher pH', 'left'], ['cooling', 'left']]);
+    qs = [
+      { text: `Tidal volume ${tv} mL, inspiratory reserve ${irv} mL, expiratory reserve ${erv} mL. What is the vital capacity in mL?`, answer: tv + irv + erv, tol: 0.5, worked: `VC = ERV + TV + IRV = ${erv} + ${tv} + ${irv} = ${tv + irv + erv} mL` },
+      { text: `A person breathes ${rate} times a minute with a tidal volume of ${tv} mL. How many litres of air a minute is that?`, answer: (tv * rate) / 1000, tol: 0.01, worked: `${tv} × ${rate} = ${tv * rate} mL = ${(tv * rate) / 1000} L a minute` },
+      { text: `Which way does ${what[0]} move the oxygen dissociation curve?`, options: ['right', 'left'], answer: what[1], worked: what[1] === 'right' ? 'Right: haemoglobin lets go of oxygen more easily (the Bohr effect), as in working muscle.' : 'Left: haemoglobin holds on to oxygen more tightly.' },
+      { text: 'What does P50 mean?', options: ['the PO₂ at which haemoglobin is half saturated', 'the pressure in the lungs', '50 % of the blood is in the lungs'], answer: 'the PO₂ at which haemoglobin is half saturated', worked: 'P50 is the PO₂ where half the oxygen sites are filled; a higher P50 means a right shift.' },
+    ];
+    const ol = q('.odc-qs'); ol.innerHTML = '';
+    qs.forEach((x, j) => {
+      const li = document.createElement('li'); li.dataset.a = String(x.answer);
+      const p = document.createElement('p'); p.textContent = x.text; li.append(p);
+      if (x.options) { const s = document.createElement('select'); s.className = 'odc-ans'; s.setAttribute('aria-label', `Answer ${j + 1}`); s.append(new Option('Choose…', ''), ...x.options.map((o) => new Option(o, o))); li.append(s); }
+      else { const inp = document.createElement('input'); inp.className = 'odc-ans'; inp.inputMode = 'decimal'; inp.setAttribute('aria-label', `Answer ${j + 1}`); li.append(inp); }
+      const w = document.createElement('p'); w.className = 'odc-worked'; w.hidden = true; li.append(w);
+      ol.append(li);
+    });
+    q('.odc-score').textContent = '';
+  }
+  function checkQuiz() {
+    let right = 0;
+    root.querySelectorAll<HTMLLIElement>('.odc-qs li').forEach((li, j) => {
+      const x = qs[j], el = li.querySelector('.odc-ans') as HTMLInputElement;
+      const ok = x.options ? el.value === x.answer : el.value.trim() !== '' && Math.abs(num(el.value) - Number(x.answer)) <= (x.tol ?? 0.01);
+      if (ok) right++;
+      const w = li.querySelector<HTMLElement>('.odc-worked')!; w.hidden = false; w.className = `odc-worked ${ok ? 'ok' : 'no'}`;
+      w.textContent = `${ok ? '✓ Right.' : '✗ Not quite.'} ${x.worked}`;
+    });
+    q('.odc-score').textContent = `${right} of ${qs.length} right.`;
+  }
+
+  // ---------- wiring ----------
+  root.querySelectorAll('.odc-po2, .odc-ph, .odc-co2, .odc-t, .odc-fetal').forEach((el) => el.addEventListener('input', update));
+  root.querySelectorAll<HTMLButtonElement>('.odc-pre').forEach((b) => b.addEventListener('click', () => {
+    const [ph, co2, t] = PRESETS[b.dataset.p!];
+    q<HTMLInputElement>('.odc-ph').value = String(ph); q<HTMLInputElement>('.odc-co2').value = String(co2); q<HTMLInputElement>('.odc-t').value = String(t); update();
+  }));
+  root.querySelectorAll('.odc-tvol, .odc-irv, .odc-erv, .odc-rv, .odc-rate').forEach((el) => el.addEventListener('input', lungs));
+  q('.odc-check').addEventListener('click', checkQuiz);
+  q('.odc-new').addEventListener('click', makeQuiz);
+  document.addEventListener('fibub:theme', () => { update(); lungs(); });
+  update(); lungs(); makeQuiz();
+  wireDownloads(q('.dl'), () => ({ title: 'Oxygen dissociation and lung volumes', subtitle: q('.odc-big').textContent ?? '', file: 'oxygen-dissociation',
+    sections: [
+      { title: 'Oxygen dissociation curve', text: [q('.odc-say').textContent ?? '', q('.odc-formula').textContent ?? '', 'Teaching model (Severinghaus 1979 equation).'], facts: factList.map(([k, val, sm]) => [k, sm ? `${val} (${sm})` : val] as [string, string]), figure: curve ?? undefined },
+      { title: 'Lung volumes', text: [q('.odc-lformula').textContent ?? ''], facts: lfacts.map(([k, val, sm]) => [k, sm ? `${val} (${sm})` : val] as [string, string]), figure: sp ?? undefined },
+    ] as Section[] }));
+</script>
+
+<style is:inline>
+  .odc .odc-note { margin: 0; }
+  .odc .odc-lab { font-size: 14px; color: var(--muted); min-width: 70px; }
+  .odc .odc-gap { margin-top: 12px; }
+  .odc input[type=range] { width: 100%; height: 36px; accent-color: var(--accent); }
+  .odc label b { color: var(--ink); }
+  .odc .btn.small { min-height: 44px; }
+  .odc .odc-fig { margin-top: 12px; }
+  .odc .odc-hbrow { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+  .odc .odc-hb { flex: 0 0 auto; }
+  .odc .odc-formula, .odc .odc-lformula { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; background: var(--accent-soft); padding: 8px 10px; border-radius: 8px; overflow-wrap: anywhere; }
+  .odc .odc-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .odc .odc-qs { padding-left: 20px; display: grid; gap: 14px; margin: 10px 0; }
+  .odc .odc-qs p { margin: 0 0 6px; }
+  .odc .odc-qs select { width: 100%; min-height: 44px; }
+  .odc .odc-qs input { max-width: 220px; min-height: 44px; }
+  .odc .odc-worked.ok { color: var(--good); }
+  .odc .odc-worked.no { color: var(--bad); }
+  .odc .odc-score { font-weight: 700; }
+</style>
