@@ -139,6 +139,7 @@ import * as SSD from '../src/lib/sci/ssd.ts';
 import * as NDS from '../src/lib/sci/censored.ts';
 import * as LFG from '../src/lib/sci/lfg.ts';
 import * as POND from '../src/lib/sci/pond.ts';
+import * as WQI from '../src/lib/sci/wqi.ts';
 
 let pass = 0, fail = 0;
 function near(name, got, want, tol) {
@@ -2771,6 +2772,19 @@ near('1 m dish at 2.4 GHz, 55 %', dishGain(1, 2.4e9), 25.41, 0.01);
   let num = 0; for (let k = 0; k < 2000; k++) num += POND.areaAt(g, (k + 0.5) * 0.001) * 0.001; near('pond storage = ∫ area', POND.storageAt(g, 2), num, 1e-3);
   const T = POND.tableHydro([0, 600, 1800], [0, 2, 0]); near('pond table interp', T.Q(900), 1.5, 1e-12); near('pond table volume', T.volume, 1800, 1e-9);
   check('pond orifice continuous-ish', POND.orificeQ(o, 0.3) > 0 && POND.orificeQ(o, 0) === 0 && POND.weirQ(o, 1.7) > 0);
+}
+// #156 Water quality index, CCME-style F1/F2/F3 (independent Python implementation)
+{
+  const N = NaN, objs = [{ name: 'pH', min: 6.5, max: 8.5 }, { name: 'DO', min: 5.5, max: N }, { name: 'TP', min: N, max: 0.05 }, { name: 'NO3', min: N, max: 2.5 }, { name: 'Ecoli', min: N, max: 150 }, { name: 'Turb', min: N, max: 8 }];
+  const d = [[7.2, 7.8, 8.2, 7.5, 6.9, 7.9, 8.1, 7.6], [8.1, 7.4, 5.0, 6.2, 4.6, 7.9, 8.4, 6.8], [0.03, 0.07, 0.04, 0.12, 0.05, 0.02, 0.06, 0.03], [1.2, 1.8, 2.1, 1.1, 0.9, 2.3, 2.2, 1.5], [90, 240, 60, 1200, 130, 80, 45, 310], [3.1, 6.5, 12.0, 4.2, 2.8, 9.5, 5.0, 4.4]];
+  const r = WQI.wqi(objs, d.flatMap((row, v) => row.map((value) => ({ v, value }))));
+  near('wqi F1', r.F1, 66.66666666666667, 1e-12); near('wqi F2', r.F2, 20.833333333333332, 1e-12); near('wqi F3', r.F3, 19.53035074878442, 1e-12);
+  near('wqi index', r.index, 58.12631923710902, 1e-11); check('wqi category', r.category === 'Marginal');
+  near('wqi excursion max', WQI.excursion(objs[4], 1200), 7, 1e-12); near('wqi excursion min', WQI.excursion(objs[1], 4.6), 5.5 / 4.6 - 1, 1e-12);
+  check('wqi value at limit passes', !WQI.fails(objs[2], 0.05) && WQI.excursion(objs[2], 0.05) === 0);
+  check('wqi categories', WQI.category(95) === 'Excellent' && WQI.category(94.9) === 'Good' && WQI.category(44.9) === 'Poor');
+  const all = WQI.wqi(objs, [{ v: 0, value: 7 }, { v: 2, value: 0.01 }]); near('wqi all pass = 100', all.index, 100, 1e-12);
+  check('wqi unused variable not counted', all.nVar === 2);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

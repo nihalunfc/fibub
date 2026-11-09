@@ -1,0 +1,160 @@
+---
+// Water quality index (CCME WQI structure: scope, frequency, amplitude) against objectives the user sets.
+// The example objectives and results are made up and are not any jurisdiction's guidelines.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const objectives = 'variable\tlowest allowed\thighest allowed\npH\t6.5\t8.5\nDissolved oxygen (mg/L)\t5.5\t\nTotal phosphorus (mg/L)\t\t0.05\nNitrate (mg/L)\t\t2.5\nE. coli (per 100 mL)\t\t150\nTurbidity (NTU)\t\t8';
+const results = 'sample\tpH\tDissolved oxygen (mg/L)\tTotal phosphorus (mg/L)\tNitrate (mg/L)\tE. coli (per 100 mL)\tTurbidity (NTU)\n' +
+  [['Jan', 7.2, 8.1, 0.03, 1.2, 90, 3.1], ['Feb', 7.8, 7.4, 0.07, 1.8, 240, 6.5], ['Mar', 8.2, 5.0, 0.04, 2.1, 60, 12.0], ['Apr', 7.5, 6.2, 0.12, 1.1, 1200, 4.2],
+   ['May', 6.9, 4.6, 0.05, 0.9, 130, 2.8], ['Jun', 7.9, 7.9, 0.02, 2.3, 80, 9.5], ['Jul', 8.1, 8.4, 0.06, 2.2, 45, 5.0], ['Aug', 7.6, 6.8, 0.03, 1.5, 310, 4.4]].map((r) => r.join('\t')).join('\n');
+---
+<div class="ax wqx">
+  <div class="ax-card">
+    <h2>Objectives</h2>
+    <label>One variable per row: name, lowest allowed value, highest allowed value. Leave a side blank when there is no limit that way (for example, oxygen has only a lowest value).
+      <textarea class="wq-obj" rows="7" spellcheck="false">{objectives}</textarea></label>
+    <DataFile target=".wq-obj" maxCols={5} maxRows={200} label="Open an objectives file" />
+    <p class="ax-help">Type the guideline or objective values that apply to your water and its use (drinking, aquatic life, recreation), from your own regulator. The tool has none built in. The example objectives are made up.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Results</h2>
+    <label>A header row with the same variable names, then one row per sample (a sample name or date first is optional). Leave a cell blank when that variable was not measured.
+      <textarea class="wq-res" rows="9" spellcheck="false">{results}</textarea></label>
+    <DataFile target=".wq-res" maxCols={200} maxRows={20000} label="Open a results file" />
+    <p class="ax-help">Column names are matched to the objectives ignoring capitals and spaces at the ends. A result written as "&lt;0.01" is taken at its detection limit. The index works best with at least 4 variables and 4 samples. Up to 20,000 samples. The example results are made up.</p>
+    <p class="ax-err wq-err" hidden></p>
+  </div>
+
+  <div class="ax-card wq-out">
+    <h2>Water quality index</h2>
+    <p class="ax-big wq-big"></p>
+    <dl class="ax-facts wq-facts"></dl>
+    <canvas class="ax-fig wq-fig"></canvas>
+    <h3>By variable</h3>
+    <div class="ax-scroll"><table class="wq-tab"></table></div>
+    <details class="wq-det">
+      <summary>Every sample (failures marked ✗)</summary>
+      <div class="ax-scroll"><table class="wq-all"></table></div>
+    </details>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small wq-csv">Download results (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { wqi, fails, CATS, type Objective, type Test } from '../../lib/sci/wqi';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv as toCsv } from '../../lib/sci/num';
+
+  const sg = (x: number, d = 3) => { if (!Number.isFinite(x)) return '–'; if (Math.abs(x) < 1e-12) x = 0; const t = sig(Math.abs(x), d), v = /^[\d.]+$/.test(t) ? String(parseFloat(t)) : t; return x < 0 ? `−${v}` : v; };
+  const root = document.querySelector<HTMLElement>('.wqx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const key = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+  const cell = (s: string | undefined) => { const t = (s ?? '').trim(); if (!t) return { v: NaN, nd: false }; const nd = /^</.test(t); return { v: num(t.replace(/^<\s*/, '')), nd }; };
+  let fig: Figure | null = null, sections: Section[] = [], csvRows: string[][] = [];
+
+  function table(sel: string, head: string[], rows: string[][], right: number[] = []) {
+    const t = q<HTMLTableElement>(sel); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (right.includes(i)) th.style.textAlign = 'right'; hr.append(th); });
+    const b = t.createTBody(); rows.forEach((r) => { const tr = b.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (right.includes(i)) td.style.textAlign = 'right'; }); });
+  }
+
+  function calc() {
+    const fail = (m: string) => { q('.wq-err').textContent = m; q('.wq-err').hidden = false; q('.wq-out').hidden = true; fig = null; sections = []; csvRows = []; };
+    q('.wq-err').hidden = true;
+    // Objectives.
+    const objs: Objective[] = [];
+    for (const r of parseTable(q<HTMLTextAreaElement>('.wq-obj').value)) {
+      const name = (r[0] ?? '').trim(); if (!name) continue;
+      const lo = cell(r[1]).v, hi = cell(r[2]).v;
+      if (!Number.isFinite(lo) && !Number.isFinite(hi)) continue; // header or a row with no limits
+      if (Number.isFinite(lo) && Number.isFinite(hi) && lo > hi) return fail(`For ${name}, the lowest allowed value is above the highest.`);
+      if (objs.some((o) => key(o.name) === key(name))) return fail(`${name} is listed twice in the objectives.`);
+      objs.push({ name, min: lo, max: hi });
+    }
+    if (!objs.length) return fail('Give at least one objective: a variable name, then its lowest and/or highest allowed value.');
+    if (objs.length > 200) return fail('Up to 200 variables, please.');
+    // Results.
+    const rows = parseTable(q<HTMLTextAreaElement>('.wq-res').value);
+    const hi = rows.findIndex((r) => r.some((c) => objs.some((o) => key(o.name) === key(c))));
+    if (hi < 0) return fail('The results need a header row whose column names match the objective names.');
+    const head = rows[hi], colOf = head.map((c) => objs.findIndex((o) => key(o.name) === key(c)));
+    const ignored = head.filter((c, i) => colOf[i] < 0 && c.trim() && i > 0).map((c) => c.trim());
+    const nameCol = colOf[0] < 0 ? 0 : -1;
+    const samples = rows.slice(hi + 1).filter((r) => r.some((c, i) => colOf[i] >= 0 && Number.isFinite(cell(c).v)));
+    if (samples.length > 20000) return fail('Up to 20,000 samples, please.');
+    const tests: (Test & { s: number; nd: boolean })[] = [];
+    samples.forEach((r, s) => r.forEach((c, i) => { if (colOf[i] < 0) return; const x = cell(c); if (Number.isFinite(x.v)) tests.push({ v: colOf[i], value: x.v, s, nd: x.nd }); }));
+    if (!tests.length) return fail('No results were found under the variable columns.');
+    q('.wq-out').hidden = false;
+
+    const R = wqi(objs, tests), score = Math.round(R.index);
+    q('.wq-big').textContent = `WQI ${score} (${R.category})`;
+    const perSample = R.nVar ? R.nTest / R.nVar : 0, nds = tests.filter((t) => t.nd).length;
+    const missing = objs.filter((_, i) => !tests.some((t) => t.v === i)).map((o) => o.name);
+    q('.wq-facts').replaceChildren(
+      fact('Scope (F1)', `${sg(R.F1, 3)} %`, `${R.failedVars} of ${R.nVar} variables failed at least once`),
+      fact('Frequency (F2)', `${sg(R.F2, 3)} %`, `${R.failedTests} of ${R.nTest} tests failed`),
+      fact('Amplitude (F3)', sg(R.F3, 3), `how far the failures went: normalised sum of excursions ${sg(R.nse, 3)}`),
+      fact('Index', sg(R.index, 4), `100 − √(F1² + F2² + F3²) / 1.732; categories: ${CATS.map(([lo, n]) => `${n} ${lo}+`).join(', ')}`),
+      ...(R.nVar < 4 || perSample < 4 ? [fact('Caution', `${R.nVar} variables, about ${sg(perSample, 2)} samples each`, 'the index is unstable with fewer than 4 variables or 4 samples')] : []),
+      ...(nds ? [fact('Results below detection', String(nds), 'taken at their detection limit')] : []),
+      ...(missing.length ? [fact('Objectives with no results', missing.join(', '), 'left out of the index')] : []),
+      ...(ignored.length ? [fact('Columns with no objective', ignored.join(', '), 'ignored')] : []),
+    );
+
+    const lim = (o: Objective) => (Number.isFinite(o.min) && Number.isFinite(o.max) ? `${sg(o.min, 4)} to ${sg(o.max, 4)}` : Number.isFinite(o.max) ? `≤ ${sg(o.max, 4)}` : `≥ ${sg(o.min, 4)}`);
+    const pv = R.per.map((p, i) => ({ ...p, i })).filter((p) => p.tests > 0);
+    const vRows = pv.map((p) => [p.name, lim(objs[p.i]), String(p.tests), String(p.failed), `${sg((100 * p.failed) / p.tests, 3)} %`, p.failed ? `${sg(1 + p.worst, 3)}×` : '–']);
+    const vHead = ['Variable', 'Objective', 'Tests', 'Failed', 'Failed (%)', 'Worst (× limit)'];
+    table('.wq-tab', vHead, vRows, [2, 3, 4, 5]);
+    const used = pv.map((p) => p.i);
+    const aHead = ['Sample', ...used.map((i) => objs[i].name)];
+    const aRows = samples.map((r, s) => [nameCol === 0 ? (r[0] ?? '').trim() || `Sample ${s + 1}` : `Sample ${s + 1}`, ...used.map((i) => { const t = tests.find((x) => x.s === s && x.v === i); return t ? `${t.nd ? '<' : ''}${sg(t.value, 4)}${fails(objs[i], t.value) ? ' ✗' : ''}` : ''; })]);
+    table('.wq-all', aHead, aRows, used.map((_, k) => k + 1));
+
+    // Scale with the index, then the share of tests failed per variable.
+    const W = 640, barH = 32, H = 134 + pv.length * (barH + 10);
+    fig = { w: W, h: H, alt: `Water quality index ${score}, ${R.category}; share of tests failed by variable`, draw(ctx, w, h, pal) {
+      const x0 = 12, x1 = w - 12, X = (v: number) => x0 + ((x1 - x0) * v) / 100;
+      ctx.font = '20px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+      const cols = [pal.bad, pal.warn, pal.muted, pal.good, pal.good];
+      const bands: [number, number, string][] = [[0, 45, 'Poor'], [45, 65, 'Marginal'], [65, 80, 'Fair'], [80, 95, 'Good'], [95, 100, 'Exc.']];
+      bands.forEach(([a, b, n], k) => { ctx.fillStyle = cols[k]; ctx.globalAlpha = 0.25; ctx.fillRect(X(a), 10, X(b) - X(a), 32); ctx.globalAlpha = 1; ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; if (X(b) - X(a) > 56) ctx.fillText(n, (X(a) + X(b)) / 2, 26); });
+      ctx.strokeStyle = pal.line; ctx.strokeRect(X(0), 10, X(100) - X(0), 32);
+      ctx.fillStyle = pal.ink; ctx.beginPath(); const xm = X(R.index); ctx.moveTo(xm, 46); ctx.lineTo(xm - 9, 60); ctx.lineTo(xm + 9, 60); ctx.closePath(); ctx.fill();
+      ctx.textAlign = xm > w - 80 ? 'right' : xm < 80 ? 'left' : 'center'; ctx.fillText(`WQI ${score}`, xm, 76);
+      ctx.textAlign = 'left'; ctx.fillStyle = pal.muted; ctx.fillText('Tests failed by variable', x0, 110);
+      const lab = w * 0.46, bx = x0 + lab, bw = x1 - bx - 64;
+      pv.forEach((p, k) => {
+        const y = 128 + k * (barH + 10), f = p.failed / p.tests;
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; let n = p.name; while (ctx.measureText(n).width > lab - 8 && n.length > 3) n = n.slice(0, -2) + '…'; ctx.fillText(n, x0, y + barH / 2);
+        ctx.fillStyle = pal.grid; ctx.fillRect(bx, y, bw, barH); ctx.fillStyle = f > 0 ? pal.bad : pal.good; ctx.fillRect(bx, y, Math.max(f > 0 ? 2 : 0, bw * f), barH);
+        ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.fillText(`${Math.round(100 * f)} %`, x1, y + barH / 2);
+      });
+    } };
+    paint(q<HTMLCanvasElement>('.wq-fig'), fig);
+
+    csvRows = [vHead, ...vRows, [], ['F1', sg(R.F1, 6)], ['F2', sg(R.F2, 6)], ['F3', sg(R.F3, 6)], ['WQI', sg(R.index, 6)], ['Category', R.category], [], aHead, ...aRows];
+    sections = [{ title: q('.wq-big').textContent!, text: ['Water quality index on the CCME WQI structure: scope (F1, variables failing), frequency (F2, tests failing) and amplitude (F3, how far they fail), against the objectives entered.'],
+      facts: [...q('.wq-facts').children].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig,
+      table: { head: vHead, rows: vRows, align: ['l', 'l', 'r', 'r', 'r', 'r'] } },
+      { title: 'Every sample', table: { head: aHead, rows: aRows, align: ['l', ...used.map(() => 'r' as const)] } }];
+  }
+
+  let timer = 0;
+  const later = () => { clearTimeout(timer); timer = window.setTimeout(calc, 200); };
+  root.querySelectorAll('textarea').forEach((i) => { i.addEventListener('input', later); i.addEventListener('change', later); });
+  q('.wq-csv').addEventListener('click', () => { if (csvRows.length) save(new TextEncoder().encode(toCsv(csvRows)), 'water-quality-index.csv', 'text/csv'); });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.wq-fig'), fig); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Water quality index', subtitle: q('.wq-big').textContent ?? '', file: 'water-quality-index', sections }));
+</script>
+
+<style is:global>
+  .wqx .wq-det { margin-top: 14px; }
+  .wqx .wq-det summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+</style>
