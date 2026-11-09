@@ -1,0 +1,368 @@
+---
+// AFM roughness: a height map in (text matrix, XYZ list, greyscale PNG or TIFF); levelling, colour map, areal and
+// profile roughness, a dragged line profile, a step height between two regions and a height histogram out.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax afm">
+  <div class="ax-card">
+    <h2>Your height data</h2>
+    <label class="afm-lab">A matrix of heights (one row of the image per line) or x y z lines <textarea class="afm-data" rows="6" spellcheck="false" wrap="off"></textarea></label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small afm-open">Open a file</button>
+      <input type="file" class="afm-in" hidden accept=".txt,.csv,.asc,.xyz,.dat,.tsv,.png,.tif,.tiff,text/plain,image/png,image/tiff" />
+      <button type="button" class="btn secondary small afm-ex">Use the example</button>
+    </div>
+    <p class="ax-help afm-limit">Text (TXT, CSV, ASC, XYZ: a matrix, or x y z lines) or a greyscale PNG or TIFF (8 or 16-bit, or 32-bit float TIFF), up to 50 MB and 2048 × 2048 points. You can also drop a file on the box.</p>
+    <p class="ax-help afm-note" hidden></p>
+    <p class="ax-err afm-ferr" hidden></p>
+    <div class="ax-grid" style="margin-top:6px">
+      <label class="afm-txt">Text layout <select class="afm-fmt"><option value="auto">work it out</option><option value="matrix">matrix of heights</option><option value="xyz">x y z lines</option></select></label>
+      <label class="afm-zu-l">Height unit in the file <select class="afm-zu"><option value="1">nm</option><option value="1000">µm</option><option value="1e9">m</option><option value="0.001">pm</option><option value="0.1">Å</option></select></label>
+      <label class="afm-xyu-l">x, y unit (XYZ) <select class="afm-xyu"><option value="1">µm</option><option value="0.001">nm</option><option value="1e6">m</option></select></label>
+      <label class="afm-w-l">Scan width (µm) <input class="afm-w" inputmode="decimal" value="5" /></label>
+      <label class="afm-h-l">Scan height (µm) <input class="afm-h" inputmode="decimal" value="5" /></label>
+      <label class="afm-img" hidden>Full grey scale equals (nm) <input class="afm-zr" inputmode="decimal" value="100" /></label>
+    </div>
+    <p class="ax-help afm-img" hidden>A greyscale image only stores levels, so say what height the brightest possible level (65535 for 16-bit, 255 for 8-bit) stands for; black is 0. Read it from the scan's z-range.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Levelling</h2>
+    <div class="ax-grid">
+      <label>Take off a surface <select class="afm-ord"><option value="0">none</option><option value="1" selected>plane (tilt)</option><option value="2">2nd order (bow)</option><option value="3">3rd order</option></select></label>
+      <label>Fitted to <select class="afm-fitto"><option value="all">the whole image</option><option value="A" selected>region A only</option></select></label>
+      <label>Then flatten each line <select class="afm-flat"><option value="-1">no</option><option value="0">offset (row means)</option><option value="1">line (tilt per row)</option><option value="2">2nd order per row</option></select></label>
+    </div>
+    <p class="ax-help">Fit the surface to a flat reference area (region A, such as bare substrate) when the image has a step or large features, so they do not tilt the fit. Line flattening removes scan-line jumps but also flattens real steps along the rows.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Map and results</h2>
+    <p class="ax-err afm-err" hidden></p>
+    <div class="afm-out">
+      <p class="ax-big afm-big"></p>
+      <div class="ax-row" style="gap:10px; align-items:center">
+        <div class="ax-seg afm-mode" role="group" aria-label="Dragging on the map sets"><button type="button" data-m="line" aria-pressed="true">Profile line</button><button type="button" data-m="A" aria-pressed="false">Region A</button><button type="button" data-m="B" aria-pressed="false">Region B</button></div>
+        <label class="afm-cm-l">Colours <select class="afm-cm"><option value="hot">AFM hot</option><option value="grey">grey</option></select></label>
+      </div>
+      <p class="ax-help">Drag on the map to draw the profile line or a region, depending on the button above. x runs right and y runs down from the top-left corner.</p>
+      <canvas class="ax-fig afm-map photo" style="margin-top:8px; touch-action:none; cursor:crosshair"></canvas>
+      <details class="afm-pos" style="margin-top:8px">
+        <summary>Type positions (µm)</summary>
+        <div class="ax-grid" style="margin-top:8px">
+          <label>Line from x <input class="afm-lx0" inputmode="decimal" /></label><label>y <input class="afm-ly0" inputmode="decimal" /></label>
+          <label>to x <input class="afm-lx1" inputmode="decimal" /></label><label>y <input class="afm-ly1" inputmode="decimal" /></label>
+          <label>A: x from <input class="afm-ax0" inputmode="decimal" /></label><label>to <input class="afm-ax1" inputmode="decimal" /></label>
+          <label>A: y from <input class="afm-ay0" inputmode="decimal" /></label><label>to <input class="afm-ay1" inputmode="decimal" /></label>
+          <label>B: x from <input class="afm-bx0" inputmode="decimal" /></label><label>to <input class="afm-bx1" inputmode="decimal" /></label>
+          <label>B: y from <input class="afm-by0" inputmode="decimal" /></label><label>to <input class="afm-by1" inputmode="decimal" /></label>
+        </div>
+      </details>
+      <h3 class="afm-h3">Whole image (areal)</h3>
+      <dl class="ax-facts afm-facts"></dl>
+      <h3 class="afm-h3">Regions and step height</h3>
+      <dl class="ax-facts afm-rfacts"></dl>
+      <h3 class="afm-h3">Line profile</h3>
+      <canvas class="ax-fig afm-pfig"></canvas>
+      <dl class="ax-facts afm-pfacts" style="margin-top:8px"></dl>
+      <h3 class="afm-h3">Height histogram</h3>
+      <canvas class="ax-fig afm-hfig"></canvas>
+      <p class="ax-help">No cut-off filter (λc) is applied: form is removed only by the levelling and by the straight line taken off each profile, so these are unfiltered (primary) values. Results depend on the scan size and pixel size; compare scans taken the same way.</p>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small afm-pcsv">Download the profile (CSV)</button><button type="button" class="btn secondary small afm-mtxt">Download the levelled heights (TXT)</button></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { exampleSurface, readHeader, numberRows, fromMatrix, fromXYZ, decodePng, levelPoly, flattenLines, areal, rowsMean, profileParams, lineProfile, stepHeight, regionValues, histogram, afmhot, type Surface, type Rect, type ProfileP } from '../../lib/sci/afm';
+  import { readTiff } from '../../lib/sci/tiff';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.afm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const v = (c: string) => num(inp(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const nmT = (x: number) => `${Math.abs(x) < 1e-9 ? 0 : sig(x, 4)} nm`;
+  const MAX_BYTES = 50e6, MAX_SIDE = 2048;
+
+  type Img = { w: number; h: number; v: Float64Array; full: number; float: boolean; name: string };
+  let img: Img | null = null;               // an opened image (text data live in the textarea)
+  let raw: Surface | null = null, lev: Surface | null = null;
+  let mode: 'line' | 'A' | 'B' = 'line';
+  let mapFig: Figure | null = null, pFig: Figure | null = null, hFig: Figure | null = null;
+  let mapPx: HTMLCanvasElement | null = null, mapRange: [number, number] = [0, 1];
+  let prof: { dist: number[]; z: number[] } | null = null;
+  let geom = { x: 0, y: 0, w: 1, h: 1 };     // map plot area inside the figure
+
+  const exampleText = () => { const s = exampleSurface(); const rows: string[] = []; for (let j = 0; j < s.ny; j++) rows.push(Array.from(s.z.subarray(j * s.nx, (j + 1) * s.nx)).join(' ')); return '# Width: 5 µm\n# Height: 5 µm\n# Value units: nm\n' + rows.join('\n'); };
+
+  function setDefaults(s: Surface) {
+    const W = (s.nx - 1) * s.dx, H = (s.ny - 1) * s.dy, f = (x: number) => String(+x.toPrecision(4));
+    const put = (c: string, x: number) => (inp(c).value = f(x));
+    put('.afm-lx0', 0); put('.afm-ly0', H / 2); put('.afm-lx1', W); put('.afm-ly1', H / 2);
+    put('.afm-ax0', W * 0.04); put('.afm-ax1', W * 0.55); put('.afm-ay0', H * 0.04); put('.afm-ay1', H * 0.96);
+    put('.afm-bx0', W * 0.75); put('.afm-bx1', W * 0.96); put('.afm-by0', H * 0.04); put('.afm-by1', H * 0.96);
+  }
+
+  /** Build the raw surface from the textarea or the opened image. Returns an error message or ''. */
+  function load(): string {
+    const isImg = !!img;
+    root.querySelectorAll<HTMLElement>('.afm-img').forEach((e) => (e.hidden = !isImg || img!.float));
+    q('.afm-txt').hidden = isImg; q('.afm-xyu-l').hidden = isImg; q('.afm-zu-l').hidden = isImg && !img!.float;
+    q('.afm-lab').hidden = isImg;
+    let nx: number, ny: number, z: Float64Array, dx: number, dy: number;
+    if (img) {
+      nx = img.w; ny = img.h;
+      const zr = v('.afm-zr'), zu = Number(sel('.afm-zu'));
+      if (!img.float && !(zr > 0)) return 'Say what height the full grey scale stands for, in nm, above zero.';
+      z = img.float ? img.v.map((x) => x * zu) : img.v.map((x) => (x / img!.full) * zr);
+      const W = v('.afm-w'), H = v('.afm-h');
+      if (!(W > 0 && H > 0)) return 'Give the scan width and height in µm, above zero.';
+      dx = W / (nx - 1); dy = H / (ny - 1);
+      q('.afm-w-l').hidden = false; q('.afm-h-l').hidden = false;
+    } else {
+      const text = q<HTMLTextAreaElement>('.afm-data').value;
+      let rows: number[][];
+      try { rows = numberRows(text); } catch (e) { return (e as Error).message; }
+      if (!rows.length) return 'Paste a matrix of heights or x y z lines, or open a file.';
+      const fmt = sel('.afm-fmt'), zu = Number(sel('.afm-zu'));
+      const isXYZ = fmt === 'xyz' || (fmt === 'auto' && rows.every((r) => r.length === 3) && rows.length > 9 && (() => { try { fromXYZ(rows); return true; } catch { return false; } })());
+      try {
+        if (isXYZ) {
+          const g = fromXYZ(rows), xyu = Number(sel('.afm-xyu'));
+          ({ nx, ny } = g); z = g.z.map((x) => x * zu); dx = g.dx * xyu; dy = g.dy * xyu;
+          inp('.afm-w').value = String(+((nx - 1) * dx).toPrecision(6)); inp('.afm-h').value = String(+((ny - 1) * dy).toPrecision(6));
+        } else {
+          const m = fromMatrix(rows); ({ nx, ny } = m); z = m.z.map((x) => x * zu);
+          const W = v('.afm-w'), H = v('.afm-h');
+          if (!(W > 0 && H > 0)) return 'Give the scan width and height in µm, above zero.';
+          dx = W / (nx - 1); dy = H / (ny - 1);
+        }
+      } catch (e) { return (e as Error).message; }
+      q('.afm-w-l').hidden = isXYZ; q('.afm-h-l').hidden = isXYZ;
+    }
+    if (nx > MAX_SIDE || ny > MAX_SIDE) return `The data are ${nx} × ${ny} points; this page handles up to ${MAX_SIDE} × ${MAX_SIDE}.`;
+    const changed = !raw || raw.nx !== nx || raw.ny !== ny || Math.abs(raw.dx - dx) > 1e-12 || Math.abs(raw.dy - dy) > 1e-12;
+    raw = { nx, ny, z, dx, dy };
+    if (changed) setDefaults(raw);
+    return '';
+  }
+
+  const rectOf = (p: 'a' | 'b', s: Surface): Rect => ({ x0: v(`.afm-${p}x0`) / s.dx, x1: v(`.afm-${p}x1`) / s.dx, y0: v(`.afm-${p}y0`) / s.dy, y1: v(`.afm-${p}y1`) / s.dy });
+  const rectOk = (r: Rect) => [r.x0, r.x1, r.y0, r.y1].every(Number.isFinite);
+
+  function run() {
+    const err = (m: string) => { q('.afm-err').textContent = m; q('.afm-err').hidden = !m; q('.afm-out').hidden = !!m; if (m) { lev = null; mapFig = pFig = hFig = null; } };
+    const m = load();
+    if (m) return err(m);
+    const s = raw!;
+    const RA = rectOf('a', s), RB = rectOf('b', s);
+    if (!rectOk(RA) || !rectOk(RB)) return err('Region positions must be numbers (open "Type positions").');
+    const ord = Number(sel('.afm-ord')), flat = Number(sel('.afm-flat'));
+    let z = s.z;
+    try { if (ord > 0) z = levelPoly(s, ord, sel('.afm-fitto') === 'A' ? RA : undefined).z; } catch (e) { return err((e as Error).message); }
+    if (flat >= 0) z = flattenLines({ ...s, z }, flat);
+    err('');
+    lev = { ...s, z };
+    const A = areal(z), rm = rowsMean(lev);
+    q('.afm-big').textContent = `Sa ${nmT(A.Sa)} · Sq ${nmT(A.Sq)}`;
+    q('.afm-facts').replaceChildren(
+      fact('Sa (mean absolute height)', nmT(A.Sa), 'average distance from the mean plane'),
+      fact('Sq (root mean square)', nmT(A.Sq)),
+      fact('Ssk (skewness)', A.Ssk.toFixed(3), 'below 0: more valleys; above 0: more peaks'),
+      fact('Sku (kurtosis)', A.Sku.toFixed(3), '3 for a Gaussian surface; above 3: sharp spikes'),
+      fact('Sp, Sv, Sz', `${nmT(A.Sp)}, ${nmT(A.Sv)}, ${nmT(A.Sz)}`, 'highest peak and deepest valley from the mean, and the total height'),
+      fact('Mean of every row: Ra, Rq', `${nmT(rm.Ra)}, ${nmT(rm.Rq)}`, `each line after taking off its straight line; Rz ${nmT(rm.Rz)}, Rsk ${rm.Rsk.toFixed(3)}, Rku ${rm.Rku.toFixed(3)}`),
+      fact('Image', `${s.nx} × ${s.ny} points`, `${+((s.nx - 1) * s.dx).toPrecision(4)} × ${+((s.ny - 1) * s.dy).toPrecision(4)} µm, pixel ${+(s.dx * 1000).toPrecision(4)} × ${+(s.dy * 1000).toPrecision(4)} nm`),
+    );
+    const st = stepHeight(lev, RA, RB), a = areal(regionValues(lev, RA)), b = areal(regionValues(lev, RB));
+    q('.afm-rfacts').replaceChildren(
+      fact('Step height (B − A)', nmT(st.step), `mean of B minus mean of A; standard error ${sig(st.se, 2)} nm from the scatter in each region`),
+      fact('Region A', `Sa ${nmT(a.Sa)}, Sq ${nmT(a.Sq)}`, `${st.A.n} points, mean ${nmT(st.A.mean)}, SD ${nmT(st.A.sd)}`),
+      fact('Region B', `Sa ${nmT(b.Sa)}, Sq ${nmT(b.Sq)}`, `${st.B.n} points, mean ${nmT(st.B.mean)}, SD ${nmT(st.B.sd)}`),
+    );
+    buildMapPixels();
+    drawAll();
+  }
+
+  function buildMapPixels() {
+    const s = lev!;
+    let lo = Infinity, hi = -Infinity; for (const x of s.z) { if (x < lo) lo = x; if (x > hi) hi = x; }
+    if (!(hi > lo)) hi = lo + 1;
+    mapRange = [lo, hi];
+    const c = document.createElement('canvas'); c.width = s.nx; c.height = s.ny;
+    const ctx = c.getContext('2d')!, im = ctx.createImageData(s.nx, s.ny), grey = sel('.afm-cm') === 'grey';
+    for (let k = 0; k < s.z.length; k++) { const t = (s.z[k] - lo) / (hi - lo), [r, g, b] = grey ? [t * 255, t * 255, t * 255].map(Math.round) : afmhot(t); im.data[k * 4] = r; im.data[k * 4 + 1] = g; im.data[k * 4 + 2] = b; im.data[k * 4 + 3] = 255; }
+    ctx.putImageData(im, 0, 0);
+    mapPx = c;
+  }
+
+  function mapFigure(W: number): Figure {
+    const s = lev!, Wum = (s.nx - 1) * s.dx, Hum = (s.ny - 1) * s.dy, narrow = W < 500;
+    const left = 46, right = narrow ? 64 : 80, top = 10, bottom = 40;
+    let pw = W - left - right, ph = pw * (Hum / Wum);
+    if (ph > 520) { ph = 520; pw = ph * (Wum / Hum); }
+    const H = Math.round(ph + top + bottom);
+    geom = { x: left, y: top, w: pw, h: ph };
+    const grey = sel('.afm-cm') === 'grey';
+    const L = { x0: v('.afm-lx0'), y0: v('.afm-ly0'), x1: v('.afm-lx1'), y1: v('.afm-ly1') }, RA = rectOf('a', s), RB = rectOf('b', s);
+    const [lo, hi] = mapRange, px = mapPx!;
+    return { w: W, h: H, alt: 'Colour map of the levelled heights with the profile line and regions A and B', draw: (ctx: CanvasRenderingContext2D, w: number, h: number, pal: Palette) => {
+      void w; void h;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(px, left, top, pw, ph);
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(left, top, pw, ph);
+      ctx.fillStyle = pal.ink; ctx.font = '12px system-ui, sans-serif';
+      const tick = (max: number) => { const step = [0.01, 0.02, 0.05, 0.1, 0.2, 0.25, 0.5, 1, 2, 2.5, 5, 10, 20, 25, 50, 100, 200, 500].find((st) => max / st <= 6) ?? max / 5; const out: number[] = []; for (let t = 0; t <= max + 1e-9; t += step) out.push(+t.toPrecision(6)); return out; };
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (const t of tick(Wum)) { const x = left + (t / Wum) * pw; ctx.fillRect(x, top + ph, 1, 4); ctx.fillText(String(t), x, top + ph + 6); }
+      ctx.fillText('x (µm)', left + pw / 2, top + ph + 22);
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      for (const t of tick(Hum)) { const y = top + (t / Hum) * ph; ctx.fillRect(left - 4, y, 4, 1); ctx.fillText(String(t), left - 6, y); }
+      ctx.save(); ctx.translate(12, top + ph / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.fillText('y (µm)', 0, 0); ctx.restore();
+      // Colour bar.
+      const bx = left + pw + 12, bw = 12;
+      for (let i = 0; i < ph; i++) { const t = 1 - i / ph, [r, g, b] = grey ? [t * 255, t * 255, t * 255].map(Math.round) : afmhot(t); ctx.fillStyle = `rgb(${r},${g},${b})`; ctx.fillRect(bx, top + i, bw, 1.5); }
+      ctx.strokeStyle = pal.line; ctx.strokeRect(bx, top, bw, ph);
+      ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(sig(hi, 3), bx + bw + 4, top);
+      ctx.textBaseline = 'bottom'; ctx.fillText(sig(lo, 3), bx + bw + 4, top + ph); ctx.textBaseline = 'middle'; ctx.fillText('nm', bx + bw + 4, top + ph / 2);
+      // Overlays: regions and line, in colours that show on both maps.
+      const X = (um: number) => left + (um / Wum) * pw, Y = (um: number) => top + (um / Hum) * ph;
+      const box = (r: Rect, col: string, label: string) => {
+        if (!rectOk(r)) return;
+        const x0 = X(Math.min(r.x0, r.x1) * s.dx), x1 = X(Math.max(r.x0, r.x1) * s.dx), y0 = Y(Math.min(r.y0, r.y1) * s.dy), y1 = Y(Math.max(r.y0, r.y1) * s.dy);
+        ctx.lineWidth = 2; ctx.setLineDash([5, 3]); ctx.strokeStyle = '#000'; ctx.strokeRect(x0, y0, x1 - x0, y1 - y0); ctx.setLineDash([5, 3]); ctx.lineDashOffset = 5; ctx.strokeStyle = col; ctx.strokeRect(x0, y0, x1 - x0, y1 - y0); ctx.setLineDash([]); ctx.lineDashOffset = 0;
+        ctx.font = 'bold 13px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.lineWidth = 3; ctx.strokeStyle = '#000'; ctx.strokeText(label, x0 + 4, y0 + 3); ctx.fillStyle = col; ctx.fillText(label, x0 + 4, y0 + 3);
+      };
+      box(RA, '#56B4E9', 'A'); box(RB, '#7CFC00', 'B');
+      if ([L.x0, L.y0, L.x1, L.y1].every(Number.isFinite)) {
+        ctx.lineWidth = 3; ctx.strokeStyle = '#000'; ctx.beginPath(); ctx.moveTo(X(L.x0), Y(L.y0)); ctx.lineTo(X(L.x1), Y(L.y1)); ctx.stroke();
+        ctx.lineWidth = 1.5; ctx.strokeStyle = '#fff'; ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(X(L.x0), Y(L.y0), 3.5, 0, 7); ctx.fill(); ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.stroke();
+      }
+    } };
+  }
+
+  function drawProfile(W: number) {
+    const s = lev!, narrow = W < 500;
+    const L = [v('.afm-lx0') / s.dx, v('.afm-ly0') / s.dy, v('.afm-lx1') / s.dx, v('.afm-ly1') / s.dy];
+    if (!L.every(Number.isFinite)) { prof = null; pFig = null; q('.afm-pfacts').replaceChildren(fact('Line', 'type the line ends as numbers')); return; }
+    const cl = (x: number, n: number) => Math.max(0, Math.min(n - 1, x));
+    prof = lineProfile(s, cl(L[0], s.nx), cl(L[1], s.ny), cl(L[2], s.nx), cl(L[3], s.ny));
+    pFig = chartFigure({ w: W, h: narrow ? 240 : 280, xLabel: 'Distance along the line (µm)', yLabel: 'Height (nm)', series: [{ name: 'profile', x: prof.dist, y: prof.z, mode: 'line', width: 1.5 }], legend: 'none' }, 'Heights along the profile line');
+    paint(q<HTMLCanvasElement>('.afm-pfig'), pFig);
+    if (prof.z.length < 3) return;
+    const p: ProfileP = profileParams(prof.z);
+    q('.afm-pfacts').replaceChildren(
+      fact('Ra, Rq', `${nmT(p.Ra)}, ${nmT(p.Rq)}`, `along ${sig(prof.dist[prof.dist.length - 1], 4)} µm (${prof.z.length} samples), after taking off the best straight line`),
+      fact('Rsk, Rku', `${p.Rsk.toFixed(3)}, ${p.Rku.toFixed(3)}`),
+      fact('Rz, Rt', `${nmT(p.Rz)}, ${nmT(p.Rt)}`, 'Rz: mean peak-to-valley height of five equal parts; Rt: over the whole line'),
+    );
+  }
+
+  function drawAll() {
+    if (!lev) return;
+    const W = Math.round(Math.min(720, Math.max(300, q('.afm-out').clientWidth || 640)));
+    mapFig = mapFigure(W); paint(q<HTMLCanvasElement>('.afm-map'), mapFig);
+    drawProfile(W);
+    const hst = histogram(lev.z, 60);
+    hFig = chartFigure({ w: W, h: W < 500 ? 220 : 260, xLabel: 'Height (nm)', yLabel: 'Points', yMin: 0, series: [{ name: 'count', x: hst.centre, y: hst.count, mode: 'line', width: 1.5 }], legend: 'none' }, 'Histogram of the levelled heights');
+    paint(q<HTMLCanvasElement>('.afm-hfig'), hFig);
+  }
+
+  // Dragging on the map.
+  const mapC = q<HTMLCanvasElement>('.afm-map');
+  let drag: { x: number; y: number } | null = null;
+  const toUm = (e: PointerEvent) => {
+    const r = mapC.getBoundingClientRect(), fx = ((e.clientX - r.left) / r.width) * mapFig!.w, fy = ((e.clientY - r.top) / r.height) * mapFig!.h, s = lev!;
+    const W = (s.nx - 1) * s.dx, H = (s.ny - 1) * s.dy;
+    return { x: Math.max(0, Math.min(W, ((fx - geom.x) / geom.w) * W)), y: Math.max(0, Math.min(H, ((fy - geom.y) / geom.h) * H)) };
+  };
+  const setPos = (a: { x: number; y: number }, b: { x: number; y: number }) => {
+    const f = (x: number) => String(+x.toPrecision(4)), p = mode === 'line' ? 'l' : mode === 'A' ? 'a' : 'b';
+    if (mode === 'line') { inp('.afm-lx0').value = f(a.x); inp('.afm-ly0').value = f(a.y); inp('.afm-lx1').value = f(b.x); inp('.afm-ly1').value = f(b.y); }
+    else { inp(`.afm-${p}x0`).value = f(Math.min(a.x, b.x)); inp(`.afm-${p}x1`).value = f(Math.max(a.x, b.x)); inp(`.afm-${p}y0`).value = f(Math.min(a.y, b.y)); inp(`.afm-${p}y1`).value = f(Math.max(a.y, b.y)); }
+  };
+  mapC.addEventListener('pointerdown', (e) => { if (!lev || !mapFig) return; drag = toUm(e); mapC.setPointerCapture(e.pointerId); e.preventDefault(); });
+  mapC.addEventListener('pointermove', (e) => { if (!drag || !lev) return; setPos(drag, toUm(e)); mapFig = mapFigure(mapFig!.w); paint(mapC, mapFig); });
+  mapC.addEventListener('pointerup', (e) => { if (!drag || !lev) return; const a = drag; drag = null; const b = toUm(e); if (Math.hypot(b.x - a.x, b.y - a.y) < 1e-9) return; setPos(a, b); if (mode === 'line') drawAll(); else run(); });
+
+  root.querySelectorAll<HTMLButtonElement>('.afm-mode button').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.m as typeof mode; root.querySelectorAll('.afm-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); }));
+  root.querySelectorAll('.afm-pos input').forEach((i) => i.addEventListener('input', () => { if (i.className.startsWith('afm-l')) drawAll(); else run(); }));
+  root.querySelectorAll('.ax-card:not(:last-child) input:not(.afm-in), .ax-card:not(:last-child) select, .afm-data').forEach((i) => { i.addEventListener('change', run); if (i.tagName !== 'SELECT') i.addEventListener('input', run); });
+  q('.afm-cm').addEventListener('change', () => { if (lev) { buildMapPixels(); drawAll(); } });
+
+  // Opening files.
+  const note = (t: string, e = '') => { q('.afm-note').textContent = t; q('.afm-note').hidden = !t; q('.afm-ferr').textContent = e; q('.afm-ferr').hidden = !e; };
+  const inflate = async (d: Uint8Array) => new Uint8Array(await new Response(new Blob([d as BlobPart]).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer());
+  async function open(f: File) {
+    if (f.size > MAX_BYTES) return note('', `${f.name} is ${(f.size / 1e6).toFixed(1)} MB; the limit is 50 MB.`);
+    const buf = new Uint8Array(await f.arrayBuffer());
+    const isPng = buf[0] === 0x89 && buf[1] === 0x50, isTif = (buf[0] === 0x49 && buf[1] === 0x49) || (buf[0] === 0x4d && buf[1] === 0x4d);
+    try {
+      if (!isPng && !isTif && /\.(png|tiff?)$/i.test(f.name)) throw new Error(`${f.name} is not a readable PNG or TIFF file.`);
+      if (isPng || isTif) {
+        let w: number, h: number, vals: Float64Array, full: number, float = false, extra = '';
+        if (isPng) { const p = await decodePng(buf, inflate, MAX_SIDE * MAX_SIDE); ({ w, h } = p); vals = p.v; full = 2 ** p.bits - 1; extra = `${p.bits}-bit${p.colour ? ' colour (first channel used: a colour picture is not height data, so use a greyscale export if you can)' : ' greyscale'}`; }
+        else { const t = readTiff(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength), MAX_SIDE * MAX_SIDE * 4); w = t.width; h = t.height; vals = Float64Array.from(t.bands[0]); float = t.format === 3; full = float ? 1 : 2 ** t.bits - 1; extra = float ? `${t.bits}-bit float (values read as heights in the unit chosen below)` : `${t.bits}-bit`; }
+        if (w > MAX_SIDE || h > MAX_SIDE) throw new Error(`The image is ${w} × ${h} pixels; this page handles up to ${MAX_SIDE} × ${MAX_SIDE}.`);
+        if (w < 3 || h < 3) throw new Error('The image is too small.');
+        img = { w, h, v: vals, full, float, name: f.name };
+        note(`Opened ${f.name}: ${w} × ${h} pixels, ${extra}.`);
+      } else {
+        const text = new TextDecoder().decode(buf);
+        img = null;
+        const hd = readHeader(text);
+        if (hd.width) inp('.afm-w').value = String(+hd.width.toPrecision(6));
+        if (hd.height) inp('.afm-h').value = String(+hd.height.toPrecision(6));
+        if (hd.zScale) { const o = [...q<HTMLSelectElement>('.afm-zu').options].find((x) => Math.abs(Number(x.value) / hd.zScale! - 1) < 1e-9); if (o) q<HTMLSelectElement>('.afm-zu').value = o.value; }
+        q<HTMLTextAreaElement>('.afm-data').value = text;
+        note(`Opened ${f.name}.${hd.width || hd.zScale ? ' Scan size and units were read from its header; check them.' : ' Check the scan size and height unit.'}`);
+      }
+      raw = null; run();
+    } catch (e) { note('', (e as Error).message); }
+  }
+  q('.afm-open').addEventListener('click', () => q<HTMLInputElement>('.afm-in').click());
+  q<HTMLInputElement>('.afm-in').addEventListener('change', () => { const f = q<HTMLInputElement>('.afm-in').files?.[0]; if (f) open(f); q<HTMLInputElement>('.afm-in').value = ''; });
+  const box = q<HTMLTextAreaElement>('.afm-data');
+  box.addEventListener('dragover', (e) => e.preventDefault());
+  box.addEventListener('drop', (e) => { e.preventDefault(); const f = e.dataTransfer?.files?.[0]; if (f) open(f); });
+  q('.afm-ex').addEventListener('click', () => { img = null; raw = null; box.value = exampleText(); inp('.afm-w').value = '5'; inp('.afm-h').value = '5'; q<HTMLSelectElement>('.afm-zu').value = '1'; q<HTMLSelectElement>('.afm-fmt').value = 'auto'; note(''); run(); });
+
+  q('.afm-pcsv').addEventListener('click', () => { if (!prof) return; const p = prof; save(new TextEncoder().encode(csv([['distance_um', 'height_nm'], ...p.dist.map((d, i) => [+d.toPrecision(7), +p.z[i].toPrecision(7)])])), 'afm-profile.csv', 'text/csv'); });
+  q('.afm-mtxt').addEventListener('click', () => {
+    if (!lev) return; const s = lev, rows: string[] = [`# Width: ${+((s.nx - 1) * s.dx).toPrecision(6)} µm`, `# Height: ${+((s.ny - 1) * s.dy).toPrecision(6)} µm`, '# Value units: nm'];
+    for (let j = 0; j < s.ny; j++) rows.push(Array.from(s.z.subarray(j * s.nx, (j + 1) * s.nx), (x) => +x.toPrecision(6)).join(' '));
+    save(new TextEncoder().encode(rows.join('\n') + '\n'), 'afm-levelled.txt', 'text/plain');
+  });
+  document.addEventListener('fibub:theme', () => { if (mapFig) paint(mapC, mapFig); if (pFig) paint(q<HTMLCanvasElement>('.afm-pfig'), pFig); if (hFig) paint(q<HTMLCanvasElement>('.afm-hfig'), hFig); });
+  let lastW = 0;
+  window.addEventListener('resize', () => { const w = q('.afm-out').clientWidth; if (w && Math.abs(w - lastW) > 40) { lastW = w; drawAll(); } });
+  box.value = exampleText();
+  run(); lastW = q('.afm-out').clientWidth;
+  const factsOf = (c: string) => [...root.querySelectorAll(`${c} > div`)].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]);
+  wireDownloads(q('.dl'), () => ({
+    title: 'AFM roughness', subtitle: img ? img.name : 'Height map analysis', file: 'afm-roughness',
+    sections: !lev ? [] : [
+      { title: q('.afm-big').textContent!, facts: factsOf('.afm-facts'), ...(mapFig ? { figure: mapFig } : {}) },
+      { title: 'Regions and step height', facts: factsOf('.afm-rfacts') },
+      ...(pFig ? [{ title: 'Line profile', facts: factsOf('.afm-pfacts'), figure: pFig }] : []),
+      ...(hFig ? [{ title: 'Height histogram', figure: hFig }] : []),
+    ],
+  }));
+</script>
+
+<style is:global>
+  .afm select { max-width: 100%; }
+  .afm .afm-lab { display: block; }
+  .afm textarea { width: 100%; font: inherit; font-size: 13px; white-space: pre; overflow-x: auto; }
+  .afm [hidden] { display: none !important; }
+  .afm .afm-h3 { font-size: 16px; margin: 16px 0 6px; }
+  .afm details summary { cursor: pointer; }
+</style>
