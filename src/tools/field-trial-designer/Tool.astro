@@ -1,0 +1,172 @@
+---
+// Field trial layouts (completely randomised, randomised complete block, Latin square), randomised with a seed so
+// a layout can be made again, checked, drawn as a plot map and saved as CSV. Everything runs in the browser.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ftd">
+  <div class="ax-card">
+    <h2>Treatments and design</h2>
+    <div class="ax-row"><button type="button" class="btn secondary small fd-ex">Use the example</button></div>
+    <label style="margin-top:10px">Treatments, one per line (varieties, fertiliser rates, sprays ...) <textarea class="fd-trt" rows="5" spellcheck="false"></textarea></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Design
+        <select class="fd-design">
+          <option value="rcbd" selected>Randomised complete block (RCBD)</option>
+          <option value="latin">Latin square</option>
+          <option value="crd">Completely randomised (CRD)</option>
+        </select>
+      </label>
+      <label class="fd-repl">Blocks (replicates) <input class="fd-reps" type="number" min="1" max="200" step="1" value="4" inputmode="numeric" /></label>
+      <label class="fd-colsl" hidden>Plots per row on the map <input class="fd-cols" type="number" min="1" max="200" step="1" value="5" inputmode="numeric" /></label>
+      <label>Plot numbers
+        <select class="fd-num">
+          <option value="serial">1, 2, 3 ...</option>
+          <option value="block">By row: 101, 102 ... 201 ...</option>
+        </select>
+      </label>
+      <label>Random seed <input class="fd-seed" type="number" min="0" max="4294967295" step="1" value="2026" inputmode="numeric" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="fd-serp" /> Serpentine numbering (every second row runs right to left)</label>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small fd-new">New random layout</button></div>
+    <p class="ax-help fd-help">Blocks: each block holds every treatment once, in its own random order. Lay blocks across the slope or gradient you want to remove.</p>
+    <p class="ax-help">The same treatments, design, replicates and seed always give the same layout, so write the seed down to make the layout again.</p>
+    <p class="ax-err fd-err" hidden></p>
+  </div>
+
+  <div class="ax-card fd-out" hidden>
+    <h2>Layout</h2>
+    <p class="ax-big fd-big"></p>
+    <p class="fd-valid"></p>
+    <canvas class="ax-fig fd-fig"></canvas>
+    <div class="ax-legend fd-leg"></div>
+    <h3>Analysis of variance outline</h3>
+    <div class="ax-scroll"><table class="fd-df"></table></div>
+    <p class="ax-help fd-dfnote"></p>
+    <h3>Field book</h3>
+    <div class="ax-scroll fd-tw"><table class="fd-tab"></table></div>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small fd-csv">Download plot list (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<style is:global>
+  .ftd h3 { margin: 22px 0 8px; font-size: 15px; }
+  .ftd .fd-tw { max-height: 420px; overflow-y: auto; }
+  .ftd .fd-valid { margin: 6px 0 12px; font-size: 15px; }
+</style>
+
+<script>
+  import { design, validate, toCsv, dfTable, readTreatments, EXAMPLE_TREATMENTS, type DesignId, type Layout } from '../../lib/sci/fieldtrial';
+  import { wireDownloads, save, paint, type Figure, type Section } from '../../lib/report';
+  import { OKABE_ITO } from '../../lib/sci/plot';
+
+  const root = document.querySelector<HTMLElement>('.ftd')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const DARKSET = ['#56B4E9', '#E69F00', '#5fd3a8', '#e59ac4', '#f0e442', '#9ecae1', '#ffffff', '#d55e00'];
+  const NAMES: Record<DesignId, string> = { crd: 'Completely randomised design', rcbd: 'Randomised complete block design', latin: 'Latin square' };
+  const HELP: Record<DesignId, string> = {
+    rcbd: 'Blocks: each block holds every treatment once, in its own random order. Lay blocks across the slope or gradient you want to remove.',
+    latin: 'A Latin square has as many rows and columns as treatments, and each treatment once in every row and every column. It removes two gradients at once (for example slope and an irrigation line). Best for 4 to 8 treatments.',
+    crd: 'Every plot gets a treatment at random, with no blocks. Use it only on very even ground, in a glasshouse or growth room.',
+  };
+  let L: Layout | null = null, fig: Figure | null = null;
+
+  const table = (t: HTMLElement, head: string[], rows: (string | number)[][], right: number[] = []) => {
+    t.replaceChildren();
+    const h = t.insertRow(); head.forEach((x, k) => { const th = document.createElement('th'); th.textContent = x; if (right.includes(k)) th.className = 'r'; h.append(th); });
+    for (const r of rows) { const tr = t.insertRow(); r.forEach((x, k) => { const td = tr.insertCell(); td.textContent = String(x); if (right.includes(k)) td.className = 'r'; }); }
+  };
+  const colours = (pal: { red: boolean; bg: string }) => (pal.red ? null : pal.bg === '#ffffff' ? OKABE_ITO : DARKSET);
+
+  function makeFig(L: Layout): Figure {
+    // Sized to the space on the page, so the labels stay readable on a phone.
+    const avail = Math.min(720, Math.max(300, q('.fd-out').clientWidth - 34)), narrow = avail < 480;
+    const cols = L.cols, rows = L.rows, side = L.design === 'crd' ? 0 : narrow ? 30 : 64, top = 26;
+    const cw = Math.max(narrow ? 34 : 44, Math.min(110, (avail - side) / cols)), ch = Math.max(34, Math.min(58, cw * 0.7));
+    const w = Math.round(side + cw * cols + 2), h = Math.round(top + ch * rows + 4);
+    const idx = new Map(L.treatments.map((t, i) => [t, i]));
+    return {
+      w, h, alt: `Plot map of a ${NAMES[L.design].toLowerCase()} with ${L.treatments.length} treatments, ${rows} rows and ${cols} columns, seed ${L.seed}`,
+      draw: (ctx, W, H, pal) => {
+        const set = colours(pal), sx = (W - 2 - side) / cols, sy = (H - top - 4) / rows;
+        ctx.font = '12px system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+        ctx.fillStyle = pal.muted; ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+        for (let c = 0; c < cols; c++) ctx.fillText(L.design === 'rcbd' ? '' : `C${c + 1}`, side + sx * (c + 0.5), top / 2);
+        if (L.design === 'rcbd') { ctx.textAlign = 'left'; ctx.fillText('Plots within each block, in field order', side, top / 2); }
+        for (let r = 0; r < rows; r++) if (side) { ctx.textAlign = 'right'; ctx.fillStyle = pal.muted; ctx.fillText(narrow ? `${L.design === 'rcbd' ? 'B' : 'R'}${r + 1}` : L.design === 'rcbd' ? `Block ${r + 1}` : `Row ${r + 1}`, side - 6, top + sy * (r + 0.5)); }
+        // Names that do not fit a plot are shown as codes T1, T2 ... (listed under the map).
+        ctx.font = '600 12px system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+        const codes = L.treatments.some((t) => ctx.measureText(t).width > sx - 8);
+        for (const p of L.plots) {
+          const x = side + sx * (p.col - 1) + 1, y = top + sy * (p.row - 1) + 1, k = idx.get(p.trt)!;
+          if (set) { ctx.fillStyle = set[k % set.length] + '42'; ctx.fillRect(x, y, sx - 2, sy - 2); }
+          ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, sx - 3, sy - 3);
+          ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.font = '10px system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+          ctx.fillText(String(p.plot), x + 4, y + 3);
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '600 12px system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+          ctx.fillText(codes ? `T${k + 1}` : p.trt, x + (sx - 2) / 2, y + (sy - 2) / 2 + 5);
+        }
+        if (L.design === 'rcbd') { ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; for (let r = 0; r < rows; r++) ctx.strokeRect(side, top + sy * r, sx * cols, sy); }
+        if (L.design === 'crd' && L.plots.length < rows * cols) { ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; for (let c = (L.plots.length % cols); c < cols; c++) ctx.fillText('–', side + sx * (c + 0.5), top + sy * (rows - 0.5)); }
+      },
+    };
+  }
+
+  function run() {
+    const err = q('.fd-err'); err.hidden = true;
+    const d = q<HTMLSelectElement>('.fd-design').value as DesignId;
+    q('.fd-repl').hidden = d === 'latin'; q('.fd-colsl').hidden = d !== 'crd';
+    q('.fd-repl').firstChild!.textContent = d === 'crd' ? 'Replicates (plots per treatment) ' : 'Blocks (replicates) ';
+    q('.fd-help').textContent = HELP[d];
+    const trts = readTreatments(q<HTMLTextAreaElement>('.fd-trt').value);
+    const seed = Math.floor(Number(q<HTMLInputElement>('.fd-seed').value));
+    try {
+      if (!trts.length) { q('.fd-out').hidden = true; return; }
+      if (!(seed >= 0 && seed <= 4294967295)) throw new Error('The seed must be a whole number from 0 to 4294967295.');
+      L = design({ design: d, treatments: trts, reps: Number(q<HTMLInputElement>('.fd-reps').value), seed, cols: Number(q<HTMLInputElement>('.fd-cols').value) || trts.length, numbering: q<HTMLSelectElement>('.fd-num').value as 'serial' | 'block', serpentine: q<HTMLInputElement>('.fd-serp').checked });
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.fd-out').hidden = true; L = null; return; }
+    q('.fd-out').hidden = false;
+    const t = trts.length, n = L.plots.length;
+    q('.fd-big').textContent = d === 'latin' ? `${n} plots: ${t} × ${t} Latin square` : d === 'rcbd' ? `${n} plots: ${t} treatments × ${L.reps} blocks` : `${n} plots: ${t} treatments × ${L.reps} replicates`;
+    const probs = validate(L), v = q('.fd-valid');
+    v.replaceChildren();
+    const pill = document.createElement('span'); pill.className = `ax-pill ${probs.length ? 'bad' : 'good'}`; pill.textContent = probs.length ? 'Problem' : 'Checked';
+    v.append(pill, ' ', probs.length ? probs.join(' ') : d === 'latin' ? 'Each treatment is in every row and every column exactly once.' : d === 'rcbd' ? `Each treatment is in every block exactly once.` : `Each treatment has ${L.reps} plots.`);
+    fig = makeFig(L); paint(q<HTMLCanvasElement>('.fd-fig'), fig);
+    const set = colours({ red: document.documentElement.classList.contains('red-mode'), bg: document.documentElement.dataset.theme === 'dark' ? '#0a0a0a' : '#ffffff' });
+    q('.fd-leg').replaceChildren(...trts.map((tr, k) => { const s = document.createElement('span'); const i = document.createElement('i'); i.style.background = set ? set[k % set.length] : 'transparent'; i.style.border = '1px solid var(--line)'; s.append(i, `T${k + 1} ${tr}`); return s; }));
+    const df = dfTable(L);
+    table(q('.fd-df'), ['Source of variation', 'Degrees of freedom'], df, [1]);
+    const err2 = df.find((r) => r[0] === 'Error')![1];
+    q('.fd-dfnote').textContent = err2 < 12 ? `Only ${err2} error degrees of freedom: tests will have little power. Aim for 12 or more (add ${d === 'latin' ? 'a second square' : 'replicates'}).` : `${err2} error degrees of freedom: enough for a fair test of treatment differences.`;
+    const sorted = L.plots.slice().sort((a, b) => a.plot - b.plot);
+    table(q('.fd-tab'), d === 'rcbd' ? ['Plot', 'Block', 'Position', 'Treatment'] : d === 'latin' ? ['Plot', 'Row', 'Column', 'Treatment'] : ['Plot', 'Row', 'Column', 'Replicate', 'Treatment'],
+      sorted.map((p) => (d === 'crd' ? [p.plot, p.row, p.col, p.rep, p.trt] : [p.plot, p.row, p.col, p.trt])), d === 'crd' ? [0, 1, 2, 3] : [0, 1, 2]);
+  }
+
+  const sections = (): Section[] => {
+    if (!L) return [];
+    const sorted = L.plots.slice().sort((a, b) => a.plot - b.plot);
+    return [
+      { title: 'Design', facts: [['Design', NAMES[L.design]], ['Treatments', String(L.treatments.length)], [L.design === 'rcbd' ? 'Blocks' : L.design === 'latin' ? 'Rows and columns' : 'Replicates', String(L.reps)], ['Plots', String(L.plots.length)], ['Random seed', String(L.seed)], ['Check', validate(L).length ? 'problem' : 'valid']] },
+      { title: 'Plot map', figure: fig ?? undefined },
+      { title: 'Analysis of variance outline', table: { head: ['Source', 'df'], rows: dfTable(L).map(([a, b]) => [a, String(b)]), align: ['l', 'r'] } },
+      { title: 'Field book', table: { head: L.design === 'rcbd' ? ['Plot', 'Block', 'Position', 'Treatment'] : ['Plot', 'Row', 'Column', 'Treatment'], rows: sorted.slice(0, 600).map((p) => [String(p.plot), String(p.row), String(p.col), p.trt]), align: ['r', 'r', 'r', 'l'] }, note: sorted.length > 600 ? `First 600 of ${sorted.length} plots; the CSV has them all.` : undefined },
+    ];
+  };
+
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = window.setTimeout(run, 250); };
+  for (const c of ['.fd-trt', '.fd-reps', '.fd-cols', '.fd-seed']) q(c).addEventListener('input', later);
+  for (const c of ['.fd-design', '.fd-num', '.fd-serp']) q(c).addEventListener('change', run);
+  q('.fd-new').addEventListener('click', () => { const a = new Uint32Array(1); crypto.getRandomValues(a); q<HTMLInputElement>('.fd-seed').value = String(a[0] % 1000000); run(); });
+  q('.fd-ex').addEventListener('click', () => {
+    q<HTMLTextAreaElement>('.fd-trt').value = EXAMPLE_TREATMENTS.join('\n'); q<HTMLSelectElement>('.fd-design').value = 'rcbd';
+    q<HTMLInputElement>('.fd-reps').value = '4'; q<HTMLInputElement>('.fd-seed').value = '2026'; q<HTMLSelectElement>('.fd-num').value = 'serial'; q<HTMLInputElement>('.fd-serp').checked = false; run();
+  });
+  q('.fd-csv').addEventListener('click', () => { if (L) save(new Blob([toCsv(L)], { type: 'text/csv' }), `${L.design}-layout-seed-${L.seed}.csv`, 'text/csv'); });
+  wireDownloads(q('.dl'), () => ({ title: 'Field trial layout', subtitle: q('.fd-big').textContent ?? '', file: L ? `${L.design}-layout-seed-${L.seed}` : 'layout', sections: sections() }));
+  document.addEventListener('fibub:theme', () => { if (L) run(); });
+  q<HTMLTextAreaElement>('.fd-trt').value = EXAMPLE_TREATMENTS.join('\n'); run();
+</script>
