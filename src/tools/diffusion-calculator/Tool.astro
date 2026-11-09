@@ -1,0 +1,232 @@
+---
+// Diffusion calculator: Fick's second law erf solutions (constant surface, thin film, diffusion couple), Arrhenius
+// D, case depth for a target concentration, time to reach a depth, and an explicit finite-difference check.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax dfc">
+  <div class="ax-card">
+    <h2>1. Diffusion coefficient</h2>
+    <div class="ax-seg dfc-mode" role="group" aria-label="How to give D">
+      <button type="button" data-m="arr" aria-pressed="true">From D₀ and Q</button>
+      <button type="button" data-m="d" aria-pressed="false">Type D</button>
+    </div>
+    <div class="ax-grid dfc-arr" style="margin-top:12px">
+      <label><span>Pre-factor D<sub>0</sub></span> <input class="dfc-d0" inputmode="decimal" value="2e-5" /></label>
+      <label>Unit <select class="dfc-d0u"><option value="1" selected>m²/s</option><option value="1e-4">cm²/s</option></select></label>
+      <label>Activation energy Q <input class="dfc-q" inputmode="decimal" value="140" /></label>
+      <label>Unit <select class="dfc-qu"><option value="kj" selected>kJ/mol</option><option value="ev">eV per atom</option></select></label>
+      <label>Temperature <input class="dfc-temp" inputmode="decimal" value="1000" /></label>
+      <label>Unit <select class="dfc-tu"><option value="c" selected>°C</option><option value="k">K</option></select></label>
+    </div>
+    <div class="ax-grid dfc-dd" style="margin-top:12px" hidden>
+      <label>D <input class="dfc-d" inputmode="decimal" value="1e-11" /></label>
+      <label>Unit <select class="dfc-du"><option value="1" selected>m²/s</option><option value="1e-4">cm²/s</option></select></label>
+    </div>
+    <p class="ax-help">D = D₀ exp(−Q/RT). The example D₀ and Q are round made-up values of the size found for carbon in hot steel; use values for your own system.</p>
+    <p class="ax-err dfc-derr" hidden></p>
+    <dl class="ax-facts dfc-dfacts" style="margin-top:12px"></dl>
+    <canvas class="ax-fig dfc-afig" style="margin-top:12px"></canvas>
+  </div>
+
+  <div class="ax-card">
+    <h2>2. Set-up and concentration profile</h2>
+    <div class="ax-grid">
+      <label class="dfc-wide">Situation <select class="dfc-case">
+        <option value="surface" selected>Constant surface concentration (carburising, doping from a gas)</option>
+        <option value="film1">Thin film on the surface, diffusing inwards</option>
+        <option value="film2">Thin film inside a body, diffusing both ways</option>
+        <option value="couple">Diffusion couple (two blocks joined)</option>
+      </select></label>
+      <label class="dfc-b-c0"><span>Starting concentration C<sub>0</sub></span> <input class="dfc-c0" inputmode="decimal" value="0.2" /></label>
+      <label class="dfc-b-cs"><span>Surface concentration C<sub>s</sub></span> <input class="dfc-cs" inputmode="decimal" value="1.0" /></label>
+      <label class="dfc-b-film">Film thickness (nm) <input class="dfc-fh" inputmode="decimal" value="50" /></label>
+      <label class="dfc-b-film">Concentration in the film <input class="dfc-fc" inputmode="decimal" value="100" /></label>
+      <label class="dfc-b-cp"><span>Left block C<sub>1</sub> (x &lt; 0)</span> <input class="dfc-c1" inputmode="decimal" value="0" /></label>
+      <label class="dfc-b-cp"><span>Right block C<sub>2</sub> (x &gt; 0)</span> <input class="dfc-c2" inputmode="decimal" value="1" /></label>
+      <label>Time <input class="dfc-t" inputmode="decimal" value="4" /></label>
+      <label>Unit <select class="dfc-tunit"><option value="1">s</option><option value="60">min</option><option value="3600" selected>h</option><option value="86400">days</option></select></label>
+    </div>
+    <p class="ax-help dfc-casehelp"></p>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="dfc-fd" /> Check with finite differences (explicit FTCS on 200 cells)</label>
+    <p class="ax-err dfc-perr" hidden></p>
+    <div class="dfc-pout">
+      <p class="ax-big dfc-big"></p>
+      <dl class="ax-facts dfc-pfacts"></dl>
+      <canvas class="ax-fig dfc-fig" style="margin-top:12px"></canvas>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small dfc-csv">Download the profile (CSV)</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>3. Case depth and time to reach a depth</h2>
+    <div class="ax-grid">
+      <label>Target concentration <input class="dfc-ct" inputmode="decimal" value="0.4" /></label>
+      <label>Depth or position x (mm) <input class="dfc-x" inputmode="decimal" value="0.5" /></label>
+    </div>
+    <p class="ax-help">Case depth: how deep the target concentration has reached after the time above. Time: how long until the concentration at x reaches the target. For a couple, x is measured from the joint and may be negative.</p>
+    <p class="ax-err dfc-cerr" hidden></p>
+    <dl class="ax-facts dfc-cfacts" style="margin-top:12px"></dl>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { arrhenius, conc, depthFor, timeFor, finiteDiff, R_GAS, type Case } from '../../lib/sci/diffusion';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.dfc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const len = (m: number) => { const a = Math.abs(m); return a === 0 ? '0 mm' : a < 1e-6 ? `${sig(m * 1e9, 4)} nm` : a < 1e-3 ? `${sig(m * 1e6, 4)} µm` : a < 1 ? `${sig(m * 1e3, 4)} mm` : `${sig(m, 4)} m`; };
+  const dur = (s: number) => (s < 120 ? `${sig(s, 4)} s` : s < 7200 ? `${sig(s / 60, 4)} min` : s < 3 * 86400 ? `${sig(s / 3600, 4)} h` : s < 3 * 3.156e7 ? `${sig(s / 86400, 4)} days` : `${sig(s / 3.156e7, 4)} years`);
+  const plain = (x: number) => String(+x.toPrecision(6)).replace('-', '−');
+  const xmm = (m: number) => `${plain(m * 1000)} mm`;
+  const width = () => Math.round(Math.min(720, Math.max(300, root.clientWidth - 34 || 640)));
+  const EV = 96485.33212; // J/mol per eV
+  let mode = 'arr', D = NaN, T = NaN, cs: Case | null = null, t = NaN, fig: Figure | null = null, afig: Figure | null = null;
+  let prof: { x: number[]; c: number[]; fd?: number[] } | null = null;
+  const err = (c: string, out: string | null, m: string) => { q(c).textContent = m; q(c).hidden = !m; if (out) q(out).hidden = !!m; };
+
+  function dStep() {
+    D = NaN; afig = null;
+    q('.dfc-arr').hidden = mode !== 'arr'; q('.dfc-dd').hidden = mode !== 'd';
+    q('.dfc-afig').hidden = mode !== 'arr';
+    if (mode === 'd') {
+      const d = v('.dfc-d') * Number(sel('.dfc-du'));
+      if (!(d > 0)) return err('.dfc-derr', '.dfc-dfacts', 'Give D above zero.');
+      D = d; err('.dfc-derr', '.dfc-dfacts', '');
+      q('.dfc-dfacts').replaceChildren(fact('D', `${sig(D, 4)} m²/s`, `${sig(D * 1e4, 4)} cm²/s`));
+      return;
+    }
+    const D0 = v('.dfc-d0') * Number(sel('.dfc-d0u')), Qin = v('.dfc-q'), Q = sel('.dfc-qu') === 'ev' ? Qin * EV : Qin * 1000;
+    const Tin = v('.dfc-temp'); T = sel('.dfc-tu') === 'c' ? Tin + 273.15 : Tin;
+    if (!(D0 > 0)) return err('.dfc-derr', '.dfc-dfacts', 'Give D₀ above zero.');
+    if (!(Q >= 0)) return err('.dfc-derr', '.dfc-dfacts', 'Give an activation energy of zero or more.');
+    if (!(T > 0)) return err('.dfc-derr', '.dfc-dfacts', 'The temperature must be above absolute zero (−273.15 °C).');
+    D = arrhenius(D0, Q, T); err('.dfc-derr', '.dfc-dfacts', '');
+    q('.dfc-dfacts').replaceChildren(
+      fact('D', `${sig(D, 4)} m²/s`, `${sig(D * 1e4, 4)} cm²/s`),
+      fact('Temperature', `${sig(T, 6)} K`, `${sig(T - 273.15, 6)} °C`),
+      fact('Q', `${sig(Q / 1000, 4)} kJ/mol`, `${sig(Q / EV, 4)} eV per atom; Q/RT = ${sig(Q / (R_GAS * T), 4)}`),
+      fact('D doubles for every', Q > 0 ? `${sig((R_GAS * T * T * Math.LN2) / Q, 3)} K` : 'never', 'warmer, near this temperature'),
+    );
+    const xs: number[] = [], ys: number[] = [];
+    for (let i = 0; i <= 60; i++) { const TT = Math.max(T * 0.6, T - 300) + (i / 60) * (Math.min(T * 1.4, T + 300) - Math.max(T * 0.6, T - 300)); xs.push(TT - (sel('.dfc-tu') === 'c' ? 273.15 : 0)); ys.push(arrhenius(D0, Q, TT)); }
+    const W = width();
+    afig = chartFigure({ w: W, h: W < 500 ? 240 : 280, yLog: true, xLabel: `Temperature (${sel('.dfc-tu') === 'c' ? '°C' : 'K'})`, yLabel: 'D (m²/s)', series: [
+      { name: 'D(T)', x: xs, y: ys, mode: 'line', width: 1.8 },
+      { name: 'this temperature', x: [Tin], y: [D], mode: 'points', marker: 'diamond', size: 6 },
+    ], legend: 'none' }, 'Diffusion coefficient against temperature on a log scale');
+    paint(q<HTMLCanvasElement>('.dfc-afig'), afig);
+  }
+
+  function readCase(): Case | string {
+    const k = sel('.dfc-case');
+    const show = (c: string, on: boolean) => root.querySelectorAll<HTMLElement>(c).forEach((e) => (e.hidden = !on));
+    show('.dfc-b-c0', k !== 'couple'); show('.dfc-b-cs', k === 'surface'); show('.dfc-b-film', k.startsWith('film')); show('.dfc-b-cp', k === 'couple');
+    q('.dfc-casehelp').textContent = {
+      surface: '(C − C₀)/(Cₛ − C₀) = erfc(x / 2√(Dt)). The surface is held at Cₛ from time zero and the body is deep compared with √(Dt). Concentrations in any one unit (wt%, at%, atoms/cm³).',
+      film1: 'C = C₀ + M/√(πDt) · exp(−x²/4Dt), with M = film thickness × film concentration. Valid once √(Dt) is much larger than the film (a "Gaussian" drive-in, no loss from the surface).',
+      film2: 'C = C₀ + (M/2)/√(πDt) · exp(−x²/4Dt): a thin layer sandwiched inside a body spreads both ways, x from the layer.',
+      couple: 'C = (C₁ + C₂)/2 + (C₂ − C₁)/2 · erf(x / 2√(Dt)), x from the joint. Assumes D does not depend on concentration (no Kirkendall shift).',
+    }[k]!;
+    const C0 = v('.dfc-c0');
+    if (k === 'surface') { const Cs = v('.dfc-cs'); if (!Number.isFinite(C0) || !Number.isFinite(Cs)) return 'Type the starting and surface concentrations.'; if (C0 === Cs) return 'The surface and starting concentrations are the same: nothing diffuses.'; return { kind: 'surface', C0, Cs }; }
+    if (k === 'couple') { const C1 = v('.dfc-c1'), C2 = v('.dfc-c2'); if (!Number.isFinite(C1) || !Number.isFinite(C2)) return 'Type both block concentrations.'; if (C1 === C2) return 'The two blocks have the same concentration: nothing diffuses.'; return { kind: 'couple', C1, C2 }; }
+    const h = v('.dfc-fh') * 1e-9, cf = v('.dfc-fc');
+    if (!Number.isFinite(C0)) return 'Type the starting concentration.';
+    if (!(h > 0) || !(cf > C0)) return 'Give a film thickness above zero and a film concentration above the starting concentration.';
+    return { kind: 'film', C0, M: h * (cf - C0), sides: k === 'film1' ? 1 : 2 };
+  }
+
+  function pStep() {
+    cs = null; prof = null; fig = null;
+    const c = readCase();
+    if (!(D > 0)) return err('.dfc-perr', '.dfc-pout', 'Fix the diffusion coefficient first.');
+    if (typeof c === 'string') return err('.dfc-perr', '.dfc-pout', c);
+    t = v('.dfc-t') * Number(sel('.dfc-tunit'));
+    if (!(t > 0)) return err('.dfc-perr', '.dfc-pout', 'Give a time above zero.');
+    cs = c; err('.dfc-perr', '.dfc-pout', '');
+    const Ld = Math.sqrt(D * t), couple = c.kind === 'couple';
+    q('.dfc-big').textContent = `Diffusion length √(Dt) = ${len(Ld)}`;
+    const facts = [fact('2√(Dt)', len(2 * Ld), couple ? 'about half-way from the joint to where the profile flattens' : 'the depth where erfc = 0.157 (the profile is mostly within twice this)'), fact('Time', dur(t), `${sig(t, 6)} s`)];
+    if (c.kind === 'surface') facts.push(fact('Flux into the surface', `${sig(((c.Cs - c.C0) * Math.sqrt(D / (Math.PI * t))), 4)} conc.·m/s`, `J = (Cₛ − C₀)√(D/πt) right now; total taken up per area ${sig((2 * (c.Cs - c.C0) * Ld) / Math.sqrt(Math.PI), 4)} conc.·m`));
+    if (c.kind === 'film') {
+      const h = v('.dfc-fh') * 1e-9;
+      facts.push(fact('Peak (at the film)', sig(conc(c, D, 0, t), 4), `amount per area M = ${sig(c.M, 4)} conc.·m`));
+      facts.push(fact('Film ÷ √(Dt)', sig(h / Ld, 3), h / Ld > 0.2 ? 'not small: the thin-film formula is rough this early; the true profile is flatter near the surface' : 'small enough for the thin-film formula'));
+    }
+    const xMax = couple ? 4 * 2 * Ld : 4.5 * 2 * Ld, xs: number[] = [], cv: number[] = [];
+    const x0 = couple ? -xMax : 0;
+    for (let i = 0; i <= 240; i++) { const x = x0 + ((xMax - x0) * i) / 240; xs.push(x); cv.push(conc(c, D, x, t)); }
+    prof = { x: xs, c: cv };
+    const unit = xMax < 1e-3 ? 1e6 : 1e3, ul = unit === 1e6 ? 'µm' : 'mm';
+    const series: Parameters<typeof chartFigure>[0]['series'] = [
+      { name: `t/4 = ${dur(t / 4)}`, x: xs.map((x) => x * unit), y: xs.map((x) => conc(c, D, x, t / 4)), mode: 'line', width: 1.3, dash: [5, 3] },
+      { name: `t = ${dur(t)}`, x: xs.map((x) => x * unit), y: cv, mode: 'line', width: 2 },
+      { name: `4t = ${dur(4 * t)}`, x: xs.map((x) => x * unit), y: xs.map((x) => conc(c, D, x, 4 * t)), mode: 'line', width: 1.3, dash: [2, 3] },
+    ];
+    if (q<HTMLInputElement>('.dfc-fd').checked) {
+      const fd = finiteDiff(c, D, t, xMax, 200, 0.4);
+      const ex = fd.x.map((x) => conc(c, D, x, t)), rng = Math.max(...ex) - Math.min(...ex);
+      const worst = Math.max(...fd.c.map((y, i) => Math.abs(y - ex[i])));
+      prof.fd = xs.map((x) => { const j = (x - fd.x[0]) / fd.dx, i = Math.min(fd.x.length - 2, Math.floor(j)), w = j - i; return fd.c[i] * (1 - w) + fd.c[i + 1] * w; });
+      const keep = fd.x.map((_, i) => i).filter((i) => i % 8 === 0);
+      series.push({ name: 'finite differences', x: keep.map((i) => fd.x[i] * unit), y: keep.map((i) => fd.c[i]), mode: 'points', marker: 'open-circle', size: 4 });
+      facts.push(fact('Finite-difference check', `${sig((worst / rng) * 100, 2)} % largest gap`, `of the concentration range, over ${fd.x.length} grid points and ${fd.steps.toLocaleString('en')} time steps (r = DΔt/Δx² = ${sig(fd.r, 3)}, stable below 0.5)${c.kind === 'film' ? '; the film starts as a narrow Gaussian' : ''}`));
+    }
+    q('.dfc-pfacts').replaceChildren(...facts);
+    const Ct = v('.dfc-ct'), W = width();
+    fig = chartFigure({ w: W, h: W < 500 ? 280 : 340, xMin: x0 * unit, xMax: xMax * unit, xLabel: couple ? `Position from the joint (${ul})` : `Depth (${ul})`, yLabel: 'Concentration', series, marks: Number.isFinite(Ct) ? [{ kind: 'hline', at: Ct, dash: [4, 3], label: 'target' }] : [], legend: 'below' }, 'Concentration profiles at a quarter, one and four times the given time');
+    paint(q<HTMLCanvasElement>('.dfc-fig'), fig);
+  }
+
+  function cStep() {
+    if (!cs) return err('.dfc-cerr', '.dfc-cfacts', 'Fix the set-up first.');
+    const Ct = v('.dfc-ct'), x = v('.dfc-x') / 1000;
+    if (!Number.isFinite(Ct)) return err('.dfc-cerr', '.dfc-cfacts', 'Type a target concentration.');
+    if (!Number.isFinite(x) || (cs.kind !== 'couple' && x < 0)) return err('.dfc-cerr', '.dfc-cfacts', cs.kind === 'couple' ? 'Type a position.' : 'Type a depth of zero or more.');
+    err('.dfc-cerr', '.dfc-cfacts', '');
+    const d = depthFor(cs, D, t, Ct), tt = timeFor(cs, D, x, Ct);
+    const out = [
+      fact(cs.kind === 'couple' ? `Where C = ${plain(Ct)} after ${dur(t)}` : `Case depth to C = ${plain(Ct)} after ${dur(t)}`, typeof d === 'string' ? 'not reached' : len(d), typeof d === 'string' ? d : cs.kind === 'couple' ? 'from the joint' : `${sig(d / Math.sqrt(D * t), 4)} √(Dt)`),
+      fact(`Time until C = ${plain(Ct)} at x = ${xmm(x)}`, typeof tt === 'string' ? 'never' : dur(tt), typeof tt === 'string' ? tt : `${sig(tt, 5)} s${cs.kind === 'film' ? '; the first time: the concentration there peaks later and then falls' : ''}`),
+      fact(`Concentration at x = ${xmm(x)} after ${dur(t)}`, sig(conc(cs, D, x, t), 4)),
+    ];
+    if (cs.kind === 'surface' && typeof d !== 'string') out.push(fact('Twice the depth needs', `${dur(4 * t)}`, 'depth grows as √t: four times as long'));
+    q('.dfc-cfacts').replaceChildren(...out);
+  }
+
+  const all = () => { dStep(); pStep(); cStep(); };
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
+  q('.dfc-mode').querySelectorAll('button').forEach((bt) => bt.addEventListener('click', () => { mode = bt.dataset.m!; q('.dfc-mode').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === bt))); all(); }));
+  q('.dfc-csv').addEventListener('click', () => {
+    if (!prof) return;
+    const rows: (string | number)[][] = [[cs?.kind === 'couple' ? 'position_m' : 'depth_m', 'concentration', ...(prof.fd ? ['finite_difference'] : [])]];
+    prof.x.forEach((x, i) => rows.push([+x.toPrecision(8), +prof!.c[i].toPrecision(8), ...(prof!.fd ? [+prof!.fd[i].toPrecision(8)] : [])]));
+    save(new TextEncoder().encode(csv(rows)), 'diffusion-profile.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.dfc-fig'), fig); if (afig) paint(q<HTMLCanvasElement>('.dfc-afig'), afig); });
+  let lastW = 0;
+  window.addEventListener('resize', () => { const w = root.clientWidth; if (w && Math.abs(w - lastW) > 40) { lastW = w; all(); } });
+  all(); lastW = root.clientWidth;
+  const facts = (c: string) => [...root.querySelectorAll(`${c} > div`)].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  wireDownloads(q('.dl'), () => {
+    const s: Section[] = [];
+    if (D > 0) s.push({ title: 'Diffusion coefficient', facts: facts('.dfc-dfacts'), ...(afig && mode === 'arr' ? { figure: afig } : {}) });
+    if (cs) s.push({ title: q('.dfc-big').textContent!, text: [q('.dfc-case').querySelector('option:checked')!.textContent!, q('.dfc-casehelp').textContent!], facts: facts('.dfc-pfacts'), ...(fig ? { figure: fig } : {}) });
+    if (cs && !q('.dfc-cfacts').hidden) s.push({ title: 'Case depth and time', facts: facts('.dfc-cfacts') });
+    return { title: 'Diffusion calculator', subtitle: "Fick's second law", file: 'diffusion', sections: s };
+  });
+</script>
+
+<style is:global>
+  .dfc select { max-width: 100%; }
+  .dfc [hidden] { display: none !important; }
+  .dfc .dfc-wide { grid-column: 1 / -1; }
+</style>
