@@ -1,0 +1,143 @@
+---
+// Why the sky is blue and sunsets are red, for school: Rayleigh scattering (strength ∝ 1/λ⁴), the longer air path
+// at sunrise and sunset, and how bigger particles (Tyndall effect, clouds) scatter all colours alike.
+// A simplified colour model for teaching; maths in src/lib/sci/school-optics.ts.
+import '../../styles/astro.css';
+---
+<div class="ax sky">
+  <div class="ax-card">
+    <canvas class="ax-fig sky-fig" aria-label="Sun, sky and the path of sunlight through the air"></canvas>
+    <div class="ax-grid">
+      <label>Sun's height above the horizon: <b class="sky-av"></b><input class="sky-alt" type="range" min="0" max="90" step="1" value="60" /></label>
+      <label>What scatters the light <select class="sky-p">
+        <option value="4" selected>Air molecules (tiny): strongly ∝ 1/λ⁴</option>
+        <option value="1.5">Fine smoke or haze (small)</option>
+        <option value="0">Cloud droplets (large): all colours alike</option>
+        <option value="none">No air at all (the Moon)</option>
+      </select></label>
+    </div>
+    <p class="ax-help">Colours on screen come from a simplified model (three colours, an overhead air thickness that dims violet-blue light by about a fifth, made-up haze strength), so they show the idea rather than an exact sky.</p>
+  </div>
+
+  <div class="ax-card sky-out">
+    <p class="ax-big sky-big"></p>
+    <dl class="ax-facts sky-facts"></dl>
+    <pre class="sky-formula"></pre>
+    <h3>How strongly each colour is scattered</h3>
+    <canvas class="ax-fig sky-chart" aria-label="Scattering strength against wavelength"></canvas>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sky-try">
+      <li>Lower the sun to the horizon. Its light now crosses much more air, so most of the blue is scattered away before it reaches you: the sun looks orange-red.</li>
+      <li>Switch to cloud droplets. Big drops scatter all colours about equally, so clouds look white (or grey when thick).</li>
+      <li>Choose "No air at all". Nothing scatters sunlight into your eyes, so the sky is black even in the daytime, as astronauts and Moon photos show.</li>
+      <li>Shine a torch through slightly soapy or milky water in a dark room: the beam shows (the Tyndall effect), looking bluish from the side.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh numbers each time. Nothing is saved.</p>
+    <div class="sky-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .sky input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; }
+  .sky-fig, .sky-chart { border: 1px solid var(--line); margin: 4px auto; max-width: 560px; }
+  .sky h3 { font-size: 15px; margin: 14px 0 6px; }
+  .sky-formula { font: 15px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; margin: 12px 0 0; padding: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
+  .sky-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+</style>
+
+<script>
+  import { rayleighRatio, airMass, rad } from '../../lib/sci/school-optics';
+  import { paint, type Figure } from '../../lib/report';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { sig } from '../../lib/sci/num';
+  import { mountQuiz, pick, type Question } from '../../lib/school-quiz';
+
+  const root = document.querySelector<HTMLElement>('.sky')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const pct = (x: number) => `${sig(100 * x, 3)}%`;
+  // Three colours stand for the spectrum. TAU450: fraction-ish dimming of 450 nm light by one overhead air path (a rounded teaching value).
+  const RGB = [680, 550, 450], TAU450 = 0.22;
+  /** Share of light of wavelength nm that gets straight through `am` overhead air paths when scattering ∝ λ^-p. */
+  const through = (nm: number, am: number, p: number) => Math.exp(-TAU450 * Math.pow(450 / nm, p) * am);
+  const toRGB = (v: number[]) => { const m = Math.max(...v, 1e-9); return v.map((c) => Math.round(255 * Math.pow(Math.min(1, c / m), 1 / 2.2))); };
+
+  let figs: [HTMLCanvasElement, Figure][] = [];
+  function draw() {
+    const alt = Number(q<HTMLInputElement>('.sky-alt').value), pv = q<HTMLSelectElement>('.sky-p').value, none = pv === 'none', p = none ? 4 : Number(pv);
+    q('.sky-av').textContent = `${alt}°`;
+    const am = airMass(alt), haze = p < 4 ? 3 : 1; // smoke and clouds add more scatterers
+    const sun = RGB.map((nm) => (none ? 1 : through(nm, am * haze, p)));
+    // Sky light: sunlight scattered towards you, ∝ λ^-p, weighted by what is left of the sunlight.
+    const skyRaw = RGB.map((nm, k) => (none ? 0 : Math.pow(450 / nm, p) * (0.4 + 0.6 * sun[k])));
+    const sunC = toRGB(sun), skyC = toRGB(skyRaw);
+    const bright = none ? 0 : Math.min(1, 0.25 + Math.sin(rad(Math.max(alt, 0.5))) * 1.2) * (alt < 2 ? 0.75 : 1);
+    const skyFill = skyC.map((c) => Math.round(c * bright));
+    const W = 400, H = 250;
+    const scene: Figure = { w: W, h: H, alt: `Sun ${alt}° above the horizon`, draw: (ctx, w, h, pal) => {
+      const red = pal.red, gray = (c: number[]) => Math.round(0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2]);
+      const col = (c: number[]) => (red ? `rgb(${Math.round(gray(c) * 0.64)},0,0)` : `rgb(${c[0]},${c[1]},${c[2]})`);
+      ctx.fillStyle = col(skyFill); ctx.fillRect(0, 0, W, H);
+      const gy = H - 28, ox = 120;
+      // Atmosphere layer (drawn thick for the picture).
+      const top = gy - 70;
+      if (!none) { ctx.strokeStyle = red ? '#6e0000' : 'rgba(255,255,255,0.7)'; ctx.setLineDash([6, 5]); ctx.beginPath(); ctx.moveTo(0, top); ctx.lineTo(W, top); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = red ? '#a30000' : 'rgba(255,255,255,0.9)'; ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText('top of the air (not to scale)', W - 6, top - 3); }
+      ctx.fillStyle = red ? '#140000' : '#2b2b2b'; ctx.fillRect(0, gy, W, H - gy);
+      // Sun position on an arc around the observer.
+      const R = 200, a = rad(alt), sx = ox + R * Math.cos(a), sy = gy - R * Math.sin(a) * 0.95;
+      // Path through the air.
+      const t = (gy - top) / Math.max(1e-6, gy - sy), ex = ox + (sx - ox) * Math.min(1, t), ey = gy - (gy - sy) * Math.min(1, t);
+      ctx.strokeStyle = red ? '#a30000' : col(sunC); ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(ox, gy); ctx.lineTo(ex, ey); ctx.stroke();
+      ctx.lineWidth = 1; ctx.setLineDash([3, 4]); ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(sx, sy); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = col(sunC); ctx.beginPath(); ctx.arc(sx, sy, 16, 0, 2 * Math.PI); ctx.fill();
+      ctx.strokeStyle = red ? '#6e0000' : 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1; ctx.stroke();
+      // Observer.
+      ctx.fillStyle = red ? '#a30000' : '#f5f5f5'; ctx.beginPath(); ctx.arc(ox, gy - 14, 5, 0, 2 * Math.PI); ctx.fill(); ctx.fillRect(ox - 2, gy - 10, 4, 10);
+      ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('you', ox + 8, gy + 6);
+      ctx.textAlign = 'right'; ctx.fillText(`air path ${sig(am, 3)}× overhead`, W - 8, gy + 6);
+    } };
+    // Scattering against wavelength.
+    const xs: number[] = [], ys: number[] = [];
+    for (let nm = 380; nm <= 720; nm += 4) { xs.push(nm); ys.push(none ? 0 : Math.pow(700 / nm, p)); }
+    const chart = chartFigure({ w: 400, h: 220, xLabel: 'Wavelength (nm): violet → red', yLabel: 'Scattering, red (700 nm) = 1', legend: 'none', yMin: 0, series: [{ name: 'scattering', x: xs, y: ys, mode: 'line', width: 2 }, { name: 'blue and red', x: [450, 700], y: none ? [0, 0] : [Math.pow(700 / 450, p), 1], mode: 'points', size: 6 }] }, 'Scattering strength against wavelength');
+    figs = [[q('.sky-fig'), scene], [q('.sky-chart'), chart]];
+    for (const [c, f] of figs) paint(c, f);
+    const blueVsRed = rayleighRatio(450, 700);
+    let big: string;
+    if (none) big = 'Black sky: no air to scatter sunlight';
+    else if (p === 0) big = 'White or grey: big drops scatter all colours alike';
+    else if (alt <= 10) big = 'Red-orange sun: the long air path has scattered the blue away';
+    else big = p === 4 ? 'Blue sky: blue light is scattered far more than red' : 'Pale, whitish sky: haze scatters more of the other colours too';
+    q('.sky-big').textContent = big;
+    const f = [
+      fact('Blue (450 nm) vs red (700 nm)', `${sig(Math.pow(700 / 450, p), 3)}× more scattered`, p === 4 ? '(700/450)⁴' : 'with these particles'),
+      fact('Air path for sunlight', `${sig(am, 3)}× overhead`, `sun ${alt}° high`),
+      fact('Blue light reaching you directly', none ? '100%' : pct(sun[2]), 'the rest is scattered across the sky'),
+      fact('Red light reaching you directly', none ? '100%' : pct(sun[0])),
+    ];
+    q('.sky-facts').replaceChildren(...f);
+    q('.sky-formula').textContent = [`Rayleigh scattering ∝ 1/λ⁴`, `blue vs red: (700/450)⁴ = ${sig(blueVsRed, 3)}`, `air path ≈ 1/sin(altitude) = 1/sin ${alt}° = ${alt > 0 ? sig(1 / Math.sin(rad(alt)), 3) : '∞'} (curved Earth: ${sig(am, 3)})`].join('\n');
+  }
+
+  root.querySelectorAll('input, select').forEach((e) => { e.addEventListener('input', draw); e.addEventListener('change', draw); });
+  document.addEventListener('fibub:theme', () => { for (const [c, f] of figs) paint(c, f); });
+
+  const make = (): Question => {
+    const t = pick(['r', 'r', 'am']);
+    if (t === 'r') {
+      const a = pick([400, 420, 450, 470, 500]), b = pick([600, 650, 700, 750]), r = Math.pow(b / a, 4);
+      return { text: `How many times more strongly is light of ${a} nm scattered by air than light of ${b} nm? (2 decimal places)`, answer: Math.round(r * 100) / 100, tol: 0.011, work: [`Rayleigh: strength ∝ 1/λ⁴, so the ratio is (${b}/${a})⁴`, `= ${sig(b / a, 4)}⁴ = ${(Math.round(r * 100) / 100).toFixed(2)}`] };
+    }
+    const alt = pick([10, 15, 20, 30, 45, 60]), m = 1 / Math.sin(rad(alt));
+    return { text: `The sun is ${alt}° above the horizon. Using air path ≈ 1/sin(altitude), how many times longer is its path through the air than when it is overhead? (2 decimal places)`, answer: Math.round(m * 100) / 100, tol: 0.011, work: [`1/sin ${alt}° = 1/${sig(Math.sin(rad(alt)), 4)}`, `= ${(Math.round(m * 100) / 100).toFixed(2)}`] };
+  };
+  mountQuiz(q('.sky-quiz'), make, 4);
+  draw();
+</script>
