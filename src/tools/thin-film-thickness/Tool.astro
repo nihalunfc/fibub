@@ -1,0 +1,266 @@
+---
+// Thin-film thickness from interference fringes: Swanepoel's envelope method (n(λ) and d from a transmittance
+// spectrum on a transparent substrate), fringe extrema with a known index (constant or Cauchy), and a fringe
+// count between two wavelengths. Nothing is uploaded. The example spectrum is made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax tfilm">
+  <div class="ax-card">
+    <h2>Method</h2>
+    <div class="ax-grid">
+      <label>Work out the thickness from <select class="tf-m">
+        <option value="envelope" selected>Fringes and envelopes (Swanepoel, transmittance)</option>
+        <option value="known">Fringe positions with a known index</option>
+        <option value="count">A fringe count between two wavelengths</option>
+      </select></label>
+    </div>
+    <p class="ax-help tf-mhelp"></p>
+  </div>
+
+  <div class="ax-card tf-spec">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Spectrum</h2>
+      <button type="button" class="btn secondary small tf-ex">Use the example</button>
+    </div>
+    <label style="margin-top:10px">Two columns: wavelength (or wavenumber), then T or R <textarea class="tf-data" rows="5" spellcheck="false" wrap="off" placeholder="500&#9;88.1&#10;501&#9;88.6"></textarea></label>
+    <DataFile target=".tf-data" maxCols={6} maxRows={100000} label="Open a spectrum" />
+    <div class="ax-grid" style="margin-top:8px">
+      <label>First column <select class="tf-x"><option value="nm" selected>Wavelength (nm)</option><option value="um">Wavelength (µm)</option><option value="cm1">Wavenumber (cm⁻¹)</option></select></label>
+      <label>Second column <select class="tf-y"><option value="tpct" selected>Transmittance (%)</option><option value="tfrac">Transmittance (0 to 1)</option><option value="rpct">Reflectance (%)</option><option value="rfrac">Reflectance (0 to 1)</option></select></label>
+      <label>Fringe window (points) <input class="tf-w" type="number" min="1" max="200" step="1" inputmode="numeric" value="3" /></label>
+      <label>Smallest fringe (% of range) <input class="tf-prom" inputmode="decimal" value="2" /></label>
+      <label>Smoothing (points each side) <input class="tf-h" type="number" min="0" max="50" step="1" inputmode="numeric" value="1" /></label>
+      <label>Order shift <input class="tf-shift" type="number" min="-20" max="20" step="1" inputmode="numeric" value="0" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="tf-hi" checked /> The film's index is higher than the substrate's</label>
+    <p class="ax-help">A fringe is kept when it is a highest (or lowest) point within the window on each side and stands out from its neighbours by the set share of the spectrum's range; its position is refined with a parabola. Raise the window or the smoothing for noisy spectra, lower them for close fringes. The order shift moves every order by a whole number when the rounded orders are off by one (the thickness then jumps by about λ/2n). When the film's index is higher than the substrate's, transmittance maxima (and reflectance minima) sit at whole orders.</p>
+    <p class="ax-err tf-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="tf-ih">Indices</h2>
+    <div class="ax-grid">
+      <label class="tf-env">Substrate index s <input class="tf-s" inputmode="decimal" value="1.5" /></label>
+      <label class="tf-env">or bare substrate T (%) <input class="tf-ts" inputmode="decimal" placeholder="e.g. 92" /></label>
+      <label class="tf-kn">Film index n (A) <input class="tf-a" inputmode="decimal" value="2.25" /></label>
+      <label class="tf-kn tf-kb">Cauchy B (nm²) <input class="tf-b" inputmode="decimal" value="0" /></label>
+      <label class="tf-kn">Angle of incidence (°) <input class="tf-th" inputmode="decimal" value="0" /></label>
+      <label class="tf-ct">Whole fringes counted N <input class="tf-n" inputmode="decimal" value="10" /></label>
+      <label class="tf-ct">From λ₁ (nm) <input class="tf-l1" inputmode="decimal" value="600" /></label>
+      <label class="tf-ct">To λ₂ (nm) <input class="tf-l2" inputmode="decimal" value="900" /></label>
+    </div>
+    <p class="ax-help tf-ihelp"></p>
+    <p class="ax-err tf-err2" hidden></p>
+  </div>
+
+  <div class="ax-card tf-out" hidden>
+    <h2>Results</h2>
+    <p class="ax-big tf-big"></p>
+    <dl class="ax-facts tf-facts"></dl>
+    <p class="ax-help tf-note"></p>
+    <div class="tf-more">
+      <h3>Fringes</h3>
+      <div class="ax-scroll"><table class="tf-tab"></table></div>
+      <h3>Spectrum</h3>
+      <canvas class="ax-fig tf-fig1"></canvas>
+      <h3>Refractive index</h3>
+      <canvas class="ax-fig tf-fig2"></canvas>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small tf-csv">Download the fringe table (CSV)</button></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { findExtrema, fromExtrema, envelope, fromCount, nEff, substrateIndex, exampleSpectrum, EXAMPLE, type Result, type Extremum } from '../../lib/sci/thinfilm';
+  import { num, sig, parseTable } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, fileSafe, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.tfilm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const v = (c: string) => num(inp(c).value);
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const nmTxt = (x: number) => `${sig(x, 5)} nm`;
+  const pmNm = (d: number, sd: number) => (Number.isFinite(sd) ? `${d.toFixed(sd < 1 ? 1 : 0)} ± ${sd.toFixed(sd < 1 ? 1 : 0)} nm` : `${d.toFixed(1)} nm`);
+
+  const HELP: Record<string, string> = {
+    envelope: 'For a weakly absorbing film on a thick transparent substrate (glass, quartz, sapphire), measured in transmittance with fringes all the way. The upper and lower envelopes through the maxima and minima give the index n at every fringe, then the fringe orders give the thickness.',
+    known: 'When you know the film\'s refractive index (constant, or Cauchy n = A + B/λ²), the positions of the fringe maxima and minima give the thickness. Works for transmittance or reflectance.',
+    count: 'With no spectrum to hand: count whole fringes (maximum to maximum) between two wavelengths and give the index.',
+  };
+  let sections: Section[] = [], figs: (Figure | null)[] = [], name = 'film', lastRes: Result | null = null;
+
+  function show() {
+    const m = sel('.tf-m');
+    q('.tf-mhelp').textContent = HELP[m];
+    q('.tf-spec').hidden = m === 'count';
+    root.querySelectorAll<HTMLElement>('.tf-env').forEach((e) => (e.hidden = m !== 'envelope'));
+    root.querySelectorAll<HTMLElement>('.tf-kn').forEach((e) => (e.hidden = m === 'envelope'));
+    q('.tf-kb').hidden = m !== 'known';
+    root.querySelectorAll<HTMLElement>('.tf-ct').forEach((e) => (e.hidden = m !== 'count'));
+    q('.tf-ih').textContent = m === 'count' ? 'Fringe count' : 'Indices';
+    q('.tf-ihelp').textContent = m === 'envelope' ? 'The substrate index, or the transmittance of the bare substrate (both faces), from which s = 1/Ts + √(1/Ts² − 1). Ts wins when both are given.' : m === 'known' ? 'n(λ) = A + B/λ² with λ in nm; leave B at 0 for a constant index. At an angle the fringes follow √(n² − sin²θ).' : 'd = N / (2 n_eff (1/λ₁ − 1/λ₂)) with n_eff = √(n² − sin²θ). Count maximum to maximum (or minimum to minimum).';
+  }
+
+  function readSpectrum(): { x: number[]; y: number[]; R: boolean } | string {
+    const rows = parseTable(q<HTMLTextAreaElement>('.tf-data').value);
+    if (!rows.length) return '';
+    const xu = sel('.tf-x'), yk = sel('.tf-y');
+    const pts: [number, number][] = [];
+    for (const r of rows) { const a = num(r[0]), b = num(r[1]); if (Number.isFinite(a) && Number.isFinite(b)) pts.push([a, b]); }
+    if (pts.length < 20) return 'The spectrum needs at least 20 lines, each with a wavelength (or wavenumber) and a reading.';
+    if (pts.some((p) => !(p[0] > 0))) return 'Wavelengths and wavenumbers must be positive.';
+    const pct = yk.endsWith('pct');
+    if (!pct && pts.some((p) => p[1] > 1.5)) return 'Readings above 1: are they in per cent? Pick the "%" setting.';
+    const conv = pts.map(([a, b]) => [xu === 'nm' ? a : xu === 'um' ? a * 1000 : 1e7 / a, pct ? b / 100 : b] as [number, number]).sort((p, q2) => p[0] - q2[0]);
+    for (let i = 1; i < conv.length; i++) if (conv[i][0] === conv[i - 1][0]) return 'Two lines have the same wavelength. Remove the repeat.';
+    return { x: conv.map((p) => p[0]), y: conv.map((p) => p[1]), R: yk.startsWith('r') };
+  }
+
+  function run() {
+    show();
+    const err = q('.tf-err'), err2 = q('.tf-err2'), out = q('.tf-out');
+    err.hidden = err2.hidden = true;
+    const fail = (m: string, box = err) => { box.textContent = m; box.hidden = !m; out.hidden = true; sections = []; lastRes = null; };
+    const m = sel('.tf-m');
+    const th = v('.tf-th');
+    if (m !== 'envelope' && !(th >= 0 && th < 90)) return fail('The angle of incidence is between 0 and 90°.', err2);
+
+    if (m === 'count') {
+      const N = v('.tf-n'), l1 = v('.tf-l1'), l2 = v('.tf-l2'), n = v('.tf-a');
+      if (!(N > 0)) return fail('The fringe count is a positive number (it may be a half for maximum to minimum).', err2);
+      if (!(l1 > 0 && l2 > 0 && l1 !== l2)) return fail('Give two different positive wavelengths in nm.', err2);
+      if (!(n >= 1 && n < 10)) return fail('The film index is between 1 and 10.', err2);
+      const d = fromCount(N, l1, l2, n, th);
+      out.hidden = false; q('.tf-more').hidden = true;
+      q('.tf-big').textContent = `Thickness d = ${d.toFixed(1)} nm (${sig(d / 1000, 4)} µm)`;
+      q('.tf-facts').replaceChildren(
+        fact('Fringes', `${N} between ${l1} and ${l2} nm`, `one fringe per ${sig((Math.abs(1 / Math.min(l1, l2) - 1 / Math.max(l1, l2)) / N) * 1e3, 4)} µm⁻¹ of 1/λ`),
+        fact('Index', `n = ${n}`, th ? `n_eff = ${nEff(n, th).toFixed(4)} at ${th}°` : 'normal incidence'),
+        fact('Miscounting by one', `${fromCount(N - 1, l1, l2, n, th).toFixed(1)} to ${fromCount(N + 1, l1, l2, n, th).toFixed(1)} nm`, 'N − 1 and N + 1'),
+      );
+      q('.tf-note').textContent = 'The index is taken as constant between the two wavelengths; dispersion makes the true thickness a little smaller for most materials. Use the fringe positions method with a Cauchy index to include it.';
+      figs = [];
+      sections = [{ title: q('.tf-big').textContent!, facts: [...q('.tf-facts').children].map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), note: q('.tf-note').textContent! }];
+      return;
+    }
+
+    const sp = readSpectrum();
+    if (typeof sp === 'string') return fail(sp);
+    const w = Math.round(v('.tf-w')), prom = v('.tf-prom') / 100, h = Math.round(v('.tf-h')), shift = Math.round(v('.tf-shift'));
+    if (!(w >= 1 && w <= 200)) return fail('The fringe window is a whole number of points from 1 to 200.');
+    if (!(prom >= 0 && prom < 1)) return fail('The smallest fringe is between 0 and 100 % of the range.');
+    if (!(h >= 0 && h <= 50)) return fail('Smoothing is a whole number of points from 0 to 50.');
+    if (!(Math.abs(shift) <= 20) || !Number.isFinite(shift)) return fail('The order shift is a whole number from −20 to 20.');
+    const ex = findExtrema(sp.x, sp.y, w, prom, h);
+    if (ex.length < 3) return fail(`Only ${ex.length} fringe extrema found. Lower the window or the smallest-fringe setting, or check that the spectrum shows fringes.`);
+    const hi = inp('.tf-hi').checked;
+    const wholeAt: 'max' | 'min' = (sp.R ? !hi : hi) ? 'max' : 'min';
+    let res: Result, env: ReturnType<typeof envelope> = null, s = NaN;
+    if (m === 'envelope') {
+      if (sp.R) return fail('The envelope method here works on transmittance. Pick "Fringe positions with a known index" for reflectance.');
+      if (!hi) return fail('The envelope formulas here are for a film whose index is above the substrate\'s.');
+      const tsRaw = inp('.tf-ts').value.trim();
+      if (tsRaw !== '') { const Ts = v('.tf-ts') / 100; if (!(Ts > 0 && Ts < 1)) return fail('The bare substrate transmittance is between 0 and 100 %.', err2); s = substrateIndex(Ts); }
+      else s = v('.tf-s');
+      if (!(s > 1 && s < 5)) return fail('The substrate index is between 1 and 5.', err2);
+      env = envelope(ex, s, shift);
+      if (!env) return fail('The envelope method needs at least two maxima and two minima, and three extrema inside both envelopes.');
+      if (env.res.rows.some((r) => !(r.TM! <= 1 && r.Tm! < r.TM!))) return fail('The envelopes cross or go above 100 %: check the transmittance setting (per cent or 0 to 1).');
+      res = env.res;
+    } else {
+      const A = v('.tf-a'), B = v('.tf-b');
+      if (!(A >= 1 && A < 10)) return fail('The film index A is between 1 and 10.', err2);
+      if (!Number.isFinite(B)) return fail('Cauchy B is a number in nm² (0 for a constant index).', err2);
+      res = fromExtrema(ex, (e) => nEff(A + B / (e.lambda * e.lambda), th), wholeAt, shift);
+    }
+    if (!(res.d1 > 0) || !(res.d2 > 0)) return fail('These fringes give no positive thickness: check the index and the fringes found.');
+    out.hidden = false; q('.tf-more').hidden = false; lastRes = res;
+
+    q('.tf-big').textContent = `Thickness d = ${pmNm(res.d2, res.d2sd)} (${res.rows.length} extrema${m === 'envelope' ? ', Swanepoel envelope' : ''})`;
+    const ms = res.rows.map((r) => r.m!);
+    const facts = [
+      fact('Thickness d (whole orders)', pmNm(res.d2, res.d2sd), 'mean of m·λ/2n over the extrema, ± their standard deviation'),
+      fact('First estimate d₁', pmNm(res.d1, res.d1sd), 'from neighbouring extrema, before the orders are rounded'),
+      fact('Fringe orders', `${Math.max(...ms)} down to ${Math.min(...ms)}`, `whole at the ${wholeAt === 'max' ? 'maxima' : 'minima'}${shift ? `, shifted by ${shift}` : ''}`),
+      fact(m === 'envelope' ? 'Index from the envelopes' : 'Index used', m === 'envelope' ? `${res.rows[0].n2!.toFixed(3)} at ${nmTxt(res.rows[0].lambda)} to ${res.rows[res.rows.length - 1].n2!.toFixed(3)} at ${nmTxt(res.rows[res.rows.length - 1].lambda)}` : `${res.rows[0].n1.toFixed(4)} to ${res.rows[res.rows.length - 1].n1.toFixed(4)}`, m === 'envelope' ? `substrate s = ${s.toFixed(4)}` : th ? `effective index at ${th}°` : 'normal incidence'),
+    ];
+    if (m === 'envelope') { const al = res.rows.map((r) => r.alpha!).filter((a) => a > 0); if (al.length) facts.push(fact('Absorption α', `${sig(Math.min(...al) * 1e7, 3)} to ${sig(Math.max(...al) * 1e7, 3)} cm⁻¹`, 'from the upper envelope (weak absorption only)')); }
+    q('.tf-facts').replaceChildren(...facts);
+    const notes: string[] = [];
+    if (res.d2sd > 0.02 * res.d2) notes.push('The extrema disagree by more than 2 %: try an order shift of ±1, check the index, or remove noise.');
+    if (Number.isFinite(res.d1sd) && Math.abs(res.d1 - res.d2) > 3 * res.d2sd + 0.02 * res.d2) notes.push('d₁ and d differ a lot: an order shift may be needed.');
+    notes.push(m === 'envelope' ? 'Swanepoel\'s method assumes a uniform film on a thick, non-absorbing substrate and weak to medium absorption; the strongly absorbing end of the spectrum gives poor indices.' : 'The thickness is only as good as the index: a 1 % error in n is a 1 % error in d.');
+    q('.tf-note').textContent = notes.join(' ');
+
+    // Table.
+    const head = m === 'envelope' ? ['λ (nm)', 'Type', 'T_M', 'T_m', 'n₁', 'd₁ (nm)', 'm', 'd (nm)', 'n₂'] : ['λ (nm)', 'Type', sp.R ? 'R' : 'T', 'n', 'd₁ (nm)', 'm', 'd (nm)'];
+    const rows = res.rows.map((r) => m === 'envelope'
+      ? [r.lambda.toFixed(1), r.kind, r.TM!.toFixed(4), r.Tm!.toFixed(4), r.n1.toFixed(3), Number.isFinite(r.d1!) ? r.d1!.toFixed(0) : '–', String(r.m), r.d2!.toFixed(1), r.n2!.toFixed(3)]
+      : [r.lambda.toFixed(1), r.kind, r.T.toFixed(4), r.n1.toFixed(4), Number.isFinite(r.d1!) ? r.d1!.toFixed(0) : '–', String(r.m), r.d2!.toFixed(1)]);
+    const t = q<HTMLTableElement>('.tf-tab'); t.replaceChildren();
+    const hr = t.createTHead().insertRow(); head.forEach((x, i) => { const c = document.createElement('th'); c.textContent = x; if (i !== 1) c.className = 'r'; hr.append(c); });
+    const tb = t.createTBody(); rows.forEach((r) => { const tr = tb.insertRow(); r.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; if (i !== 1) td.className = 'r'; }); });
+
+    // Figures.
+    const mxs = ex.filter((e) => e.kind === 'max'), mns = ex.filter((e) => e.kind === 'min');
+    const env1 = env;
+    const envX = env1 ? Array.from({ length: 300 }, (_, i) => sp.x[0] + ((sp.x[sp.x.length - 1] - sp.x[0]) * i) / 299) : [];
+    const f1 = chartFigure({
+      h: 320, xLabel: 'Wavelength (nm)', yLabel: sp.R ? 'Reflectance' : 'Transmittance', legend: 'below',
+      series: [
+        { name: 'Spectrum', x: sp.x, y: sp.y, mode: 'line', width: 1.2 },
+        { name: 'Maxima', x: mxs.map((e) => e.lambda), y: mxs.map((e) => e.T), mode: 'points', marker: 'triangle', size: 4.5 },
+        { name: 'Minima', x: mns.map((e) => e.lambda), y: mns.map((e) => e.T), mode: 'points', marker: 'square', size: 4 },
+        ...(env1 ? [{ name: 'Envelopes', x: envX, y: envX.map((l) => env1.upper(l)), mode: 'line' as const, dash: [4, 3], width: 1 }, { name: '', x: envX, y: envX.map((l) => env1.lower(l)), mode: 'line' as const, dash: [4, 3], width: 1 }] : []),
+      ],
+    }, `Interference spectrum with ${ex.length} fringe extrema marked`);
+    const f2 = chartFigure({
+      h: 280, xLabel: 'Wavelength (nm)', yLabel: 'Refractive index n', legend: 'below',
+      series: m === 'envelope'
+        ? [{ name: 'n₁ from the envelopes', x: res.rows.map((r) => r.lambda), y: res.rows.map((r) => r.n1), mode: 'points', marker: 'circle', size: 4 }, { name: 'n₂ from whole orders', x: res.rows.map((r) => r.lambda), y: res.rows.map((r) => r.n2!), mode: 'both', marker: 'diamond', size: 4 }]
+        : [{ name: 'Index used', x: res.rows.map((r) => r.lambda), y: res.rows.map((r) => r.n1), mode: 'both', marker: 'circle', size: 4 }, { name: 'n from whole orders and d', x: res.rows.map((r) => r.lambda), y: res.rows.map((r) => r.n2!), mode: 'points', marker: 'diamond', size: 4 }],
+    }, 'Refractive index at each fringe');
+    paint(q<HTMLCanvasElement>('.tf-fig1'), f1); paint(q<HTMLCanvasElement>('.tf-fig2'), f2);
+    figs = [f1, f2];
+    sections = [
+      { title: q('.tf-big').textContent!, facts: [...q('.tf-facts').children].map((x) => [x.querySelector('dt')!.textContent!, x.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), note: q('.tf-note').textContent!, figure: f1 },
+      { title: 'Fringes', table: { head, rows, align: head.map((_, i) => (i === 1 ? 'l' : 'r')) as ('l' | 'r')[] }, figure: f2 },
+    ];
+  }
+
+  const timers = new Map<() => void, number>();
+  const later = (f: () => void) => { clearTimeout(timers.get(f)); timers.set(f, window.setTimeout(f, 300)); };
+  q('.tf-data').addEventListener('input', () => { name = 'film'; later(run); });
+  ['.tf-w', '.tf-prom', '.tf-h', '.tf-shift', '.tf-s', '.tf-ts', '.tf-a', '.tf-b', '.tf-th', '.tf-n', '.tf-l1', '.tf-l2'].forEach((c) => inp(c).addEventListener('input', () => later(run)));
+  ['.tf-m', '.tf-x', '.tf-y', '.tf-hi'].forEach((c) => q(c).addEventListener('change', run));
+  q('.tf-ex').addEventListener('click', () => {
+    const e = exampleSpectrum();
+    q<HTMLTextAreaElement>('.tf-data').value = 'wavelength_nm\tT_percent\n' + e.nm.map((x, i) => `${x}\t${e.T[i]}`).join('\n');
+    q<HTMLSelectElement>('.tf-x').value = 'nm'; q<HTMLSelectElement>('.tf-y').value = 'tpct';
+    inp('.tf-w').value = '3'; inp('.tf-prom').value = '2'; inp('.tf-h').value = '1'; inp('.tf-shift').value = '0'; inp('.tf-hi').checked = true;
+    inp('.tf-s').value = String(EXAMPLE.s); inp('.tf-ts').value = '';
+    if (sel('.tf-m') === 'count') q<HTMLSelectElement>('.tf-m').value = 'envelope';
+    name = 'example-film'; run();
+  });
+  document.addEventListener('fibub:theme', () => { if (figs.length && !q('.tf-out').hidden && !q('.tf-more').hidden) { paint(q<HTMLCanvasElement>('.tf-fig1'), figs[0]!); paint(q<HTMLCanvasElement>('.tf-fig2'), figs[1]!); } });
+  q('.tf-csv').addEventListener('click', () => {
+    if (!lastRes) return;
+    const head = ['wavelength_nm', 'type', 'reading', 'T_upper', 'T_lower', 'n1', 'd1_nm', 'order_m', 'd_nm', 'n2', 'alpha_cm1'];
+    const f = (x: number | undefined) => (x === undefined || !Number.isFinite(x) ? '' : String(+x.toPrecision(10)));
+    const body = lastRes.rows.map((r) => [f(r.lambda), r.kind, f(r.T), f(r.TM), f(r.Tm), f(r.n1), f(r.d1), f(r.m), f(r.d2), f(r.n2), f(r.alpha === undefined ? undefined : r.alpha * 1e7)]);
+    save(new Blob([[head, ...body].map((r) => r.join(',')).join('\n') + '\n'], { type: 'text/csv' }), `${fileSafe(name)}-fringes.csv`, 'text/csv');
+  });
+  (q('.tf-ex') as HTMLButtonElement).click();
+  wireDownloads(q('.dl'), () => ({ title: 'Thin-film thickness', subtitle: q('.tf-big').textContent ?? '', file: `${fileSafe(name)}-thickness`, sections }));
+</script>
+
+<style is:global>
+  .tfilm h3 { margin: 20px 0 8px; font-size: 15px; }
+  .tfilm select { max-width: 100%; }
+</style>

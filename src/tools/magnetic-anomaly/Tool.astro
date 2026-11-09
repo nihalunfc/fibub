@@ -1,0 +1,169 @@
+---
+// Magnetic anomaly forward models: sphere, horizontal cylinder, thin dyke and vertical prism, induced plus optional
+// remanent magnetisation; profile, map and misfit against pasted observations. The example readings are made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+// Made-up readings: a sphere slightly off the starting model, with a 2 nT level shift and noise added.
+const demo = 'distance\tdT\n-300\t3.4\n-275\t0.8\n-250\t2.7\n-225\t2.4\n-200\t3.0\n-175\t4.0\n-150\t4.5\n-125\t8.5\n-100\t13.7\n-75\t26.6\n-50\t42.7\n-25\t65.7\n0\t75.5\n25\t51.1\n50\t14.7\n75\t-4.0\n100\t-7.5\n125\t-6.6\n150\t-3.7\n175\t-2.6\n200\t-1.2\n225\t0.6\n250\t0.6\n275\t0.4\n300\t0.9';
+---
+<div class="ax mga">
+  <div class="ax-card">
+    <h2>Earth's field and profile</h2>
+    <div class="ax-grid">
+      <label>Field strength F (nT) <input class="mg-F" type="text" inputmode="decimal" value="50000" /></label>
+      <label>Inclination I (°, down +) <input class="mg-I" type="text" inputmode="decimal" value="65" /></label>
+      <label>Declination D (°, east +) <input class="mg-D" type="text" inputmode="decimal" value="5" /></label>
+      <label>Profile direction (° from north) <input class="mg-az" type="text" inputmode="decimal" value="0" /></label>
+      <label>Sensor height (m) <input class="mg-h" type="text" inputmode="decimal" value="1" /></label>
+      <label>Profile from (m) <input class="mg-s1" type="text" inputmode="decimal" value="-300" /></label>
+      <label>to (m) <input class="mg-s2" type="text" inputmode="decimal" value="300" /></label>
+    </div>
+    <p class="ax-help">The field values are an example; look up the main field for your site and date from a geomagnetic model. Distances run along the profile; the map's other axis runs 90° clockwise from it.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Body</h2>
+    <div class="ax-grid">
+      <label>Shape <select class="mg-kind">
+        <option value="sphere" selected>sphere (dipole)</option><option value="cylinder">horizontal cylinder (2D, across the profile)</option><option value="dyke">thin dyke or sheet (2D)</option><option value="prism">vertical prism (3D box)</option></select></label>
+      <label>Susceptibility χ (SI) <input class="mg-chi" type="text" inputmode="decimal" value="0.05" /></label>
+      <label>Position along profile (m) <input class="mg-s0" type="text" inputmode="decimal" value="0" /></label>
+      <label data-k="sphere cylinder"><span class="mg-zl">Depth to centre (m)</span> <input class="mg-z" type="text" inputmode="decimal" value="80" /></label>
+      <label data-k="sphere cylinder">Radius (m) <input class="mg-R" type="text" inputmode="decimal" value="30" /></label>
+      <label data-k="dyke" hidden>Depth to top (m) <input class="mg-zt" type="text" inputmode="decimal" value="20" /></label>
+      <label data-k="dyke" hidden>Thickness (m) <input class="mg-th" type="text" inputmode="decimal" value="10" /></label>
+      <label data-k="dyke" hidden>Dip (°, toward + profile; 90 vertical) <input class="mg-dip" type="text" inputmode="decimal" value="70" /></label>
+      <label data-k="dyke" hidden>Down-dip extent (m) <input class="mg-ext" type="text" inputmode="decimal" value="500" /></label>
+      <label data-k="prism" hidden>Width along profile (m) <input class="mg-w" type="text" inputmode="decimal" value="80" /></label>
+      <label data-k="prism" hidden>Length across profile (m) <input class="mg-l" type="text" inputmode="decimal" value="150" /></label>
+      <label data-k="prism" hidden>Depth to top (m) <input class="mg-z1" type="text" inputmode="decimal" value="30" /></label>
+      <label data-k="prism" hidden>Depth to bottom (m) <input class="mg-z2" type="text" inputmode="decimal" value="130" /></label>
+    </div>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="mg-rem" /> Add remanent magnetisation</label>
+    <div class="ax-grid mg-remw" hidden style="margin-top:8px">
+      <label>Remanence Mr (A/m) <input class="mg-mr" type="text" inputmode="decimal" value="2" /></label>
+      <label>Its inclination (°) <input class="mg-ri" type="text" inputmode="decimal" value="-40" /></label>
+      <label>Its declination (°) <input class="mg-rd" type="text" inputmode="decimal" value="180" /></label>
+    </div>
+    <p class="ax-err mg-err" hidden></p>
+  </div>
+
+  <div class="ax-card mg-out">
+    <h2>Total-field anomaly</h2>
+    <p class="ax-big mg-big"></p>
+    <dl class="ax-facts mg-facts"></dl>
+    <canvas class="ax-fig mg-fig" style="margin-top:12px"></canvas>
+    <canvas class="ax-fig mg-map" style="margin-top:12px"></canvas>
+    <p class="ax-help">Map of ΔT around the body, red above zero and blue below. The dashed line is the profile.</p>
+    <div class="ax-row" style="margin-top:12px"><button type="button" class="btn secondary small mg-csv">Download profile (CSV)</button></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Compare with observed data</h2>
+    <label>Distance along the profile (m) and observed ΔT (nT); blank to skip
+      <textarea class="mg-obs" rows="6" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".mg-obs" maxCols={4} maxRows={20000} label="Open a file" />
+    <p class="ax-err mg-oerr" hidden></p>
+    <dl class="ax-facts mg-mis" style="margin-top:10px"></dl>
+    <p class="ax-help">Change the body until the curves agree. The second RMS figure ignores a constant difference, such as a regional level. The example readings are made up.</p>
+  </div>
+</div>
+
+<script>
+  import { profile, totalField, magnetisation, koenigsberger, bodyProblem, misfit, type Body, type Field, type Magn, type Vec } from '../../lib/sci/magnetic';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { gridFigure } from '../../lib/sci/geomap';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, numericColumns, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.mga')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const nt = (v: number) => `${v >= 0 ? '+' : '−'}${Math.abs(v) >= 100 ? Math.abs(v).toFixed(0) : Math.abs(v).toFixed(1)} nT`;
+  let fig: Figure | null = null, map: Figure | null = null, report: Section[] = [], rows: (string | number)[][] = [];
+
+  function calc() {
+    const err = q('.mg-err'), out = q('.mg-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; out.hidden = true; report = []; q('.mg-mis').replaceChildren(); };
+    const kind = sel('.mg-kind') as Body['kind'];
+    root.querySelectorAll<HTMLElement>('[data-k]').forEach((e) => { e.hidden = !e.dataset.k!.split(' ').includes(kind); });
+    q('.mg-zl').textContent = kind === 'cylinder' ? 'Depth to axis (m)' : 'Depth to centre (m)';
+    const rem = q<HTMLInputElement>('.mg-rem').checked; q('.mg-remw').hidden = !rem;
+    const f: Field = { F: val('.mg-F'), inc: val('.mg-I'), dec: val('.mg-D'), az: val('.mg-az') };
+    const h = val('.mg-h'), s1 = val('.mg-s1'), s2 = val('.mg-s2');
+    if (!(f.F > 0)) return fail('Enter the field strength in nT, for example 50000.');
+    if (!(Math.abs(f.inc) <= 90) || !Number.isFinite(f.dec) || !Number.isFinite(f.az)) return fail('Inclination must be within ±90°; enter numbers for the declination and profile direction.');
+    if (!(h >= 0)) return fail('The sensor height must be 0 or more.');
+    if (!(s2 > s1)) return fail('The profile must run from a smaller to a larger distance.');
+    const m: Magn = { chi: val('.mg-chi') };
+    if (!Number.isFinite(m.chi)) return fail('Enter the susceptibility in SI units, for example 0.05 (0 for remanence only).');
+    if (rem) { m.mr = val('.mg-mr'); m.rinc = val('.mg-ri'); m.rdec = val('.mg-rd'); if (!(m.mr! >= 0) || !(Math.abs(m.rinc!) <= 90) || !Number.isFinite(m.rdec)) return fail('Remanence needs a strength of 0 or more A/m, an inclination within ±90° and a declination.'); }
+    const s0 = val('.mg-s0');
+    const b: Body = kind === 'sphere' ? { kind, s0, z: val('.mg-z'), R: val('.mg-R') }
+      : kind === 'cylinder' ? { kind, s0, z: val('.mg-z'), R: val('.mg-R') }
+      : kind === 'dyke' ? { kind, s0, z: val('.mg-zt'), thick: val('.mg-th'), dip: val('.mg-dip'), extent: val('.mg-ext') }
+      : { kind, s0, width: val('.mg-w'), length: val('.mg-l'), z1: val('.mg-z1'), z2: val('.mg-z2') };
+    if (!Number.isFinite(s0)) return fail('Enter the body position along the profile.');
+    const bp = bodyProblem(b); if (bp) return fail(bp);
+    err.hidden = true; out.hidden = false;
+    const n = 301, xs = Array.from({ length: n }, (_, i) => s1 + ((s2 - s1) * i) / (n - 1));
+    const dT = profile(b, f, m, xs, h);
+    let iMax = 0, iMin = 0; dT.forEach((v, i) => { if (v > dT[iMax]) iMax = i; if (v < dT[iMin]) iMin = i; });
+    const kname = { sphere: 'Sphere', cylinder: 'Cylinder', dyke: 'Dyke', prism: 'Prism' }[kind];
+    q('.mg-big').textContent = `${kname}: high ${nt(dT[iMax])} at ${sig(xs[iMax], 3)} m, low ${nt(dT[iMin])} at ${sig(xs[iMin], 3)} m`;
+    const M = magnetisation(f, m), Mabs = Math.hypot(...M);
+    const Mi = (Math.asin(M[2] / (Mabs || 1)) * 180) / Math.PI;
+    const fs = [
+      fact('Peak to trough', `${(dT[iMax] - dT[iMin]).toFixed(1)} nT`),
+      fact('Magnetisation', `${sig(Mabs, 3)} A/m`, `inclination ${Mi.toFixed(1)}°${rem ? `; Koenigsberger ratio Q = ${sig(koenigsberger(f, m), 3)}` : `; induced only, χF/μ0`}`),
+      fact('Field direction', `I ${f.inc}°, D ${f.dec}°`, `profile runs ${((f.az % 360) + 360) % 360}° from north`),
+    ];
+    // Observed data and misfit.
+    const otxt = q<HTMLTextAreaElement>('.mg-obs').value.trim(), oerr = q('.mg-oerr');
+    let obsX: number[] = [], obsY: number[] = [];
+    q('.mg-mis').replaceChildren(); oerr.hidden = true;
+    if (otxt) {
+      const t = numericColumns(otxt);
+      if (t.cols.length < 2) { oerr.textContent = 'Paste two columns: distance along the profile and ΔT.'; oerr.hidden = false; }
+      else {
+        t.cols[0].forEach((x, i) => { const y = t.cols[1][i]; if (Number.isFinite(x) && Number.isFinite(y)) { obsX.push(x); obsY.push(y); } });
+        if (!obsX.length) { oerr.textContent = 'No numbers found in the observed data.'; oerr.hidden = false; }
+        else {
+          const calcAt = profile(b, f, m, obsX, h), mf = misfit(obsY, calcAt);
+          const mis = [fact('RMS misfit', `${mf.rms.toFixed(2)} nT`, `${mf.n} readings`), fact('RMS after a level shift', `${mf.rmsShifted.toFixed(2)} nT`, `observed minus model averages ${mf.shift >= 0 ? '+' : '−'}${Math.abs(mf.shift).toFixed(2)} nT`)];
+          q('.mg-mis').replaceChildren(...mis);
+          fs.push(...mis.map((d) => d.cloneNode(true) as HTMLElement));
+        }
+      }
+    }
+    q('.mg-facts').replaceChildren(...fs);
+    const ser: any[] = [{ name: 'Model', x: xs, y: dT, mode: 'line', width: 1.8 }];
+    if (obsX.length) ser.push({ name: 'Observed', x: obsX, y: obsY, mode: 'points', marker: 'open-circle', size: 3.5 });
+    fig = chartFigure({ w: 420, h: 300, xLabel: 'Distance along profile (m)', yLabel: 'ΔT (nT)', legend: obsX.length ? 'below' : 'none', series: ser, marks: [{ kind: 'hline', at: 0, dash: [2, 3] }] }, 'Total-field anomaly along the profile');
+    paint(q<HTMLCanvasElement>('.mg-fig'), fig);
+    // Map on a 41 × 41 grid, square around the profile.
+    const g = 41, half = (s2 - s1) / 2;
+    const gx = Array.from({ length: g }, (_, i) => s1 + ((s2 - s1) * i) / (g - 1)), gy = Array.from({ length: g }, (_, i) => -half + (2 * half * i) / (g - 1));
+    const pts: Vec[] = []; for (const y of gy) for (const x of gx) pts.push([x, y, -h]);
+    const vals = totalField(b, f, m, pts), z = gy.map((_, i) => vals.slice(i * g, (i + 1) * g));
+    map = gridFigure({ x: gx, y: gy, z, unit: 'nT', xLabel: 'Along profile (m)', yLabel: 'Across (m)', series: [{ name: '', x: [s1, s2], y: [0, 0], mode: 'line', dash: [5, 4], width: 1.2 }] }, 'Map of the total-field anomaly around the body', 420, 440);
+    paint(q<HTMLCanvasElement>('.mg-map'), map);
+    rows = [['distance_m', 'dT_nT'], ...xs.map((x, i) => [+x.toFixed(4), +dT[i].toFixed(4)])];
+    report = [{ title: q('.mg-big').textContent!, facts: fs.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]), figure: fig }, { title: 'Map', figure: map }];
+  }
+
+  root.querySelectorAll('input, textarea, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  q('.mg-csv').addEventListener('click', () => save(new Blob([csv(rows)], { type: 'text/csv' }), 'magnetic-profile.csv', 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.mg-fig'), fig); if (map) paint(q<HTMLCanvasElement>('.mg-map'), map); });
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Magnetic anomaly model', subtitle: q('.mg-big').textContent ?? '', file: 'magnetic-anomaly', sections: report }));
+</script>
+
+<style is:global>
+  .mga select, .mga input { max-width: 100%; }
+  .mga textarea { width: 100%; }
+</style>

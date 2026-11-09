@@ -1,0 +1,117 @@
+---
+// Infinite slope factor of safety with water table ratio m, cohesion and root cohesion, critical values and
+// sensitivity plots. Example numbers are made up and rounded. For study, not a slope stability assessment.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax ifs">
+  <p class="ifs-note"><strong>For study, not a slope stability assessment.</strong> A real slope needs a site investigation and a qualified engineer or engineering geologist.</p>
+  <div class="ax-card">
+    <h2>Slope and soil</h2>
+    <div class="ax-grid">
+      <label>Slope angle β (°) <input class="is-b" inputmode="decimal" value="32" /></label>
+      <label><span class="is-zl">Depth of the slip surface, vertical (m)</span> <input class="is-z" inputmode="decimal" value="2" /></label>
+      <label>Depth measured <select class="is-zm"><option value="v">vertically</option><option value="n">square to the slope</option></select></label>
+      <label>Effective cohesion c′ (kPa) <input class="is-c" inputmode="decimal" value="3" /></label>
+      <label><span>Root cohesion c<sub>r</sub> (kPa)</span> <input class="is-cr" inputmode="decimal" value="2" /></label>
+      <label>Friction angle φ′ (°) <input class="is-phi" inputmode="decimal" value="32" /></label>
+      <label>Unit weight above the water table γ (kN/m³) <input class="is-g" inputmode="decimal" value="17" /></label>
+      <label><span>Saturated unit weight γ<sub>sat</sub> (kN/m³)</span> <input class="is-gs" inputmode="decimal" value="20" /></label>
+      <label><span>Unit weight of water γ<sub>w</sub> (kN/m³)</span> <input class="is-gw" inputmode="decimal" value="9.81" /></label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Water <select class="is-w"><option value="dry">Dry (no water table above the slip surface)</option><option value="part" selected>Partly saturated, seepage parallel to the slope</option><option value="sat">Saturated to the surface, seepage parallel</option></select></label>
+      <label>Water table ratio m (0 to 1) <input class="is-m" inputmode="decimal" value="0.4" /></label>
+    </div>
+    <p class="ax-help">m is the height of the water table above the slip surface divided by the depth of the slip surface: 0 dry, 1 water at the ground. Root cohesion is the extra strength roots give where they cross the slip surface; leave it 0 below the root zone. The example numbers are made up.</p>
+    <p class="ax-err is-err" hidden></p>
+  </div>
+
+  <div class="ax-card is-out">
+    <h2>Factor of safety</h2>
+    <p class="ax-big is-big"></p>
+    <p class="is-pill"></p>
+    <dl class="ax-facts is-facts"></dl>
+    <h3>FS against slope angle</h3>
+    <canvas class="ax-fig is-f1"></canvas>
+    <h3>FS against water table ratio m</h3>
+    <canvas class="ax-fig is-f2"></canvas>
+    <p class="ax-help">FS = [c′ + c<sub>r</sub> + ((1 − m)γ + m(γ<sub>sat</sub> − γ<sub>w</sub>)) z cos²β tan φ′] / [((1 − m)γ + m γ<sub>sat</sub>) z sin β cos β], for a long slide parallel to the surface (depth much smaller than its length), with water seeping parallel to the slope.</p>
+    <div class="dl is-dl2"><span class="dl-l">Data</span><button type="button" class="btn secondary is-csv">FS table (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { fs, parts, criticalAngles, criticalM, criticalDepth, check, type Slope } from '../../lib/sci/infslope';
+  import { num, sig, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ifs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const f2 = (x: number) => (Number.isFinite(x) ? (x >= 100 ? x.toFixed(0) : x.toFixed(2)) : '∞');
+  let figs: Figure[] = [], report: Section[] = [], table: string[][] = [];
+
+  function run() {
+    const w = q<HTMLSelectElement>('.is-w').value, mIn = q<HTMLInputElement>('.is-m');
+    if (w === 'dry') mIn.value = '0'; if (w === 'sat') mIn.value = '1';
+    mIn.disabled = w !== 'part';
+    const normal = q<HTMLSelectElement>('.is-zm').value === 'n';
+    q('.is-zl').textContent = normal ? 'Thickness of the slide, square to the slope (m)' : 'Depth of the slip surface, vertical (m)';
+    const beta = v('.is-b'), zIn = v('.is-z');
+    const s: Slope = { c: v('.is-c'), cr: v('.is-cr'), phi: v('.is-phi'), gamma: v('.is-g'), gsat: v('.is-gs'), gw: v('.is-gw'), z: normal ? zIn / Math.cos((beta * Math.PI) / 180) : zIn, beta, m: v('.is-m') };
+    const e = check(s), err = q('.is-err');
+    err.textContent = e; err.hidden = !e; q('.is-out').hidden = !!e;
+    if (e) { report = []; figs = []; return; }
+    const F = fs(s), p = parts(s), ca = criticalAngles(s), cm = criticalM(s), zc = criticalDepth(s), coh = s.c + s.cr > 0;
+    q('.is-big').textContent = `FS = ${f2(F)}`;
+    const pill = q('.is-pill');
+    pill.className = `is-pill ax-pill ${F >= 1 ? 'good' : 'bad'}`;
+    pill.textContent = F >= 1 ? 'Above 1: the model slope stands' : 'Below 1: the model slope slides';
+    const first = ca.roots[0];
+    const facts = [
+      fact('Shear stress on the slip surface τ', `${sig(p.tau, 4)} kPa`, 'driving: weight × sin β cos β'),
+      fact('Normal stress σ, pore pressure u', `${sig(p.sigma, 4)} kPa, ${sig(p.u, 4)} kPa`, `effective normal stress σ′ = ${sig(p.sigmaEff, 4)} kPa`),
+      fact('Strength', `${sig(p.resist, 4)} kPa`, `cohesion ${sig(p.cohesion, 4)} + friction ${sig(p.friction, 4)} kPa`),
+      fact('Critical slope angle', first !== undefined ? `${first.toFixed(1)}°` : 'none', first !== undefined ? (ca.roots.length > 1 ? `FS is below 1 from ${first.toFixed(1)}° to ${ca.roots[1].toFixed(1)}° (steeper still, the soil column is thin enough for cohesion to hold it)` : 'FS falls below 1 at steeper slopes, with this depth and water') : coh ? `FS stays above 1 at every angle; lowest ${f2(ca.min.fs)} at ${ca.min.beta.toFixed(1)}°` : 'FS stays above 1 at every angle'),
+      fact('Critical water table ratio m', cm.always ? 'below 1 even when dry' : cm.never ? 'above 1 even when saturated' : cm.m.toFixed(3), cm.always || cm.never ? '' : 'FS = 1 when the water table rises to this ratio'),
+      fact('Critical depth', zc === null ? (coh ? 'none' : 'does not apply') : `${sig(zc, 3)} m`, zc === null ? (coh ? 'FS stays above 1 at any depth for this slope and m' : 'without cohesion FS does not depend on depth') : 'vertical depth at which FS = 1, same slope and m'),
+      fact('FS dry / saturated', `${f2(fs({ ...s, m: 0 }))} / ${f2(fs({ ...s, m: 1 }))}`, 'm = 0 and m = 1'),
+    ];
+    q('.is-facts').replaceChildren(...facts);
+    const bs = Array.from({ length: 85 }, (_, i) => 1 + i), ms = Array.from({ length: 51 }, (_, i) => i / 50);
+    const cap = (x: number) => Math.min(x, 5);
+    const series = [{ name: 'dry (m = 0)', m: 0 }, ...(s.m > 0 && s.m < 1 ? [{ name: `m = ${sig(s.m, 3)}`, m: s.m }] : []), { name: 'saturated (m = 1)', m: 1 }];
+    // With depth typed square to the slope, z changes with β; keep the vertical z of the chosen slope for the chart.
+    figs = [
+      chartFigure({ h: 300, xLabel: 'Slope angle β (°)', yLabel: 'Factor of safety', xMin: 0, xMax: 85, yMin: 0, yMax: 5, legend: 'below',
+        series: series.map((r) => ({ name: r.name, x: bs, y: bs.map((b) => cap(fs({ ...s, beta: b, m: r.m }))), mode: 'line' as const, width: 2 })),
+        marks: [{ kind: 'hline', at: 1, label: 'FS = 1' }, { kind: 'vline', at: s.beta, label: `${sig(s.beta, 3)}°` }] }, 'Factor of safety against slope angle, dry, at the chosen m and saturated'),
+      chartFigure({ h: 260, xLabel: 'Water table ratio m', yLabel: 'Factor of safety', xMin: 0, xMax: 1, yMin: 0, legend: 'none',
+        series: [{ name: 'FS', x: ms, y: ms.map((m) => fs({ ...s, m })), mode: 'line', width: 2 }],
+        marks: [{ kind: 'hline', at: 1, label: 'FS = 1' }, { kind: 'vline', at: s.m, label: `m = ${sig(s.m, 3)}` }] }, 'Factor of safety against water table ratio'),
+    ];
+    paint(q<HTMLCanvasElement>('.is-f1'), figs[0]); paint(q<HTMLCanvasElement>('.is-f2'), figs[1]);
+    table = bs.map((b) => [String(b), ...[0, 0.25, 0.5, 0.75, 1].map((m) => fs({ ...s, beta: b, m }).toFixed(4))]);
+    report = [
+      { title: q('.is-big').textContent!, text: ['For study, not a slope stability assessment.', `Slope ${sig(s.beta, 3)}°, slip surface ${sig(s.z, 4)} m deep (vertical), c′ ${sig(s.c, 3)} kPa, root cohesion ${sig(s.cr, 3)} kPa, φ′ ${sig(s.phi, 3)}°, γ ${sig(s.gamma, 3)}, γsat ${sig(s.gsat, 3)}, γw ${sig(s.gw, 3)} kN/m³, m ${sig(s.m, 3)}.`], facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]) },
+      { title: 'FS against slope angle', figure: figs[0] },
+      { title: 'FS against water table ratio', figure: figs[1] },
+    ];
+  }
+
+  q('.is-csv').addEventListener('click', () => table.length && save(new TextEncoder().encode(csv([['slope_deg', 'FS_m0', 'FS_m0.25', 'FS_m0.5', 'FS_m0.75', 'FS_m1'], ...table])), 'infinite-slope-fs.csv', 'text/csv'));
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+  document.addEventListener('fibub:theme', () => { if (figs.length) { paint(q<HTMLCanvasElement>('.is-f1'), figs[0]); paint(q<HTMLCanvasElement>('.is-f2'), figs[1]); } });
+  run();
+  wireDownloads(q('.is-out > .dl:last-child'), () => ({ title: 'Infinite slope factor of safety', subtitle: 'For study, not a slope stability assessment', file: 'infinite-slope', sections: report }));
+</script>
+
+<style is:global>
+  .ifs .ifs-note { border: 1px solid var(--warn); color: var(--ink); border-radius: 10px; padding: 10px 12px; margin: 0; font-size: 15px; }
+  .ifs h3 { margin: 16px 0 6px; font-size: 1rem; }
+  .ifs .is-pill { margin: 4px 0 12px; }
+</style>

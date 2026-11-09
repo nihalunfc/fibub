@@ -1,0 +1,117 @@
+---
+// Tephra volume from isopachs: exponential (1 to 3 segments), power law and Weibull fits on thickness against √area,
+// VEI class, mass and DRE volume. The example isopachs are synthetic, made by fibub.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+const demo = 'thickness (cm)\tarea (km²)\n128\t1.5\n64\t10.7\n32\t31.3\n16\t51.6\n8\t114.4\n4\t256.6\n2\t334\n1\t569.5\n0.5\t902.9';
+---
+<div class="ax tpv">
+  <div class="ax-card">
+    <h2>Isopachs</h2>
+    <label>Thickness and the area inside that isopach, one per line <textarea class="tv-in" rows="8" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".tv-in" maxCols={4} maxRows={500} />
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Thickness in <select class="tv-tu"><option value="1e-5">cm</option><option value="1e-6">mm</option><option value="1e-3">m</option></select></label>
+      <label>Area in <select class="tv-au"><option value="1">km²</option><option value="1e-6">m²</option></select></label>
+    </div>
+    <p class="ax-help">Area is the whole area inside each isopach line (not the ring between two lines). A header row is skipped. The example is made up.</p>
+    <p class="ax-err tv-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Models</h2>
+    <div class="ax-grid">
+      <label>Exponential segments <select class="tv-ns"><option value="1">1 (Pyle)</option><option value="2" selected>2</option><option value="3">3</option></select></label>
+      <label>Power law from B (km) <input class="tv-B" inputmode="decimal" value="1" /></label>
+      <label>to C (km) <input class="tv-C" inputmode="decimal" value="300" /></label>
+      <label>Deposit density (kg/m³) <input class="tv-rd" inputmode="decimal" value="1000" /></label>
+      <label>Magma density, dense rock (kg/m³) <input class="tv-rm" inputmode="decimal" value="2500" /></label>
+    </div>
+    <p class="ax-help">Segments are split where the straight lines fit best (every split is tried). The power law has no finite volume from 0 to infinity, so it needs a proximal limit B and a distal limit C as √area in km; the answer depends strongly on them. The densities are round values: change them for your deposit.</p>
+  </div>
+
+  <div class="ax-card tv-out">
+    <h2>Volume</h2>
+    <p class="ax-big tv-big"></p>
+    <div class="ax-scroll"><table class="tv-tab"></table></div>
+    <dl class="ax-facts tv-facts" style="margin-top:12px"></dl>
+    <canvas class="ax-fig tv-fig" style="margin-top:12px"></canvas>
+    <p class="ax-help">VEI from the bulk volume: VEI 2 from 0.001 km³, VEI 3 from 0.01, VEI 4 from 0.1, VEI 5 from 1 km³, and so on by tens (Newhall and Self 1982). VEI is meant for the whole eruption's tephra; a single layer gives a lower bound.</p>
+    <div class="dl tv-dl2"><span class="dl-l">Data</span><button type="button" class="btn secondary tv-csv">Volumes (CSV)</button></div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { bestCuts, expFit, powerFit, weibullFit, weibullT, vei, type Pt } from '../../lib/sci/tephra';
+  import { num, sig, fmtExp, parseTable, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.tpv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const km3 = (x: number) => (x >= 0.01 ? sig(x, 3) : fmtExp(x, 3));
+  let fig: Figure | null = null, report: Section[] = [], rowsOut: string[][] = [], rowsCsv: string[][] = [];
+
+  function run() {
+    const fail = (m: string) => { q('.tv-err').textContent = m; q('.tv-err').hidden = !m; q('.tv-out').hidden = !!m; if (m) report = []; };
+    const tu = Number(q<HTMLSelectElement>('.tv-tu').value), au = Number(q<HTMLSelectElement>('.tv-au').value), tName = q<HTMLSelectElement>('.tv-tu').selectedOptions[0].textContent!;
+    const rows = parseTable(q<HTMLTextAreaElement>('.tv-in').value).map((r) => [num(r[0]), num(r[1])]).filter(([a, b]) => Number.isFinite(a) && Number.isFinite(b));
+    if (rows.some(([t, a]) => !(t > 0 && a > 0))) return fail('Every thickness and area must be above zero.');
+    const pts: Pt[] = rows.map(([t, a]) => ({ x: Math.sqrt(a * au), T: t * tu })).sort((a, b) => a.x - b.x);
+    if (pts.length < 3) return fail('Type at least 3 isopachs: thickness and area on each line.');
+    for (let i = 1; i < pts.length; i++) if (pts[i].x === pts[i - 1].x) return fail('Two isopachs have the same area.');
+    const B = v('.tv-B'), C = v('.tv-C'), rd = v('.tv-rd'), rm = v('.tv-rm'), ns = Number(q<HTMLSelectElement>('.tv-ns').value);
+    if (!(B > 0 && C > B)) return fail('The power-law limits need 0 < B < C (km).');
+    if (!(rd > 0 && rm > 0)) return fail('Densities must be above zero.');
+    if (pts.length < 2 * ns) return fail(`${ns} exponential segments need at least ${2 * ns} isopachs.`);
+    fail('');
+    const cuts = bestCuts(pts, ns), ex = cuts ? expFit(pts, cuts) : null, pw = powerFit(pts, B, C), wb = weibullFit(pts);
+    const models: { name: string; vol: number; note: string }[] = [];
+    if (ex && ex.ok) models.push({ name: `Exponential, ${ns} segment${ns > 1 ? 's' : ''}`, vol: ex.vol, note: ex.segs.map((s, i) => `segment ${i + 1}: T₀ ${sig(s.T0 / tu, 3)} ${tName}, k ${sig(s.k, 3)} /km, R² ${s.r2.toFixed(3)}`).join('; ') });
+    models.push({ name: 'Power law', vol: pw.vol, note: `m = ${sig(pw.m, 3)}, T_pl ${sig(pw.Tpl / tu, 3)} ${tName}·km^m, R² ${pw.r2.toFixed(3)}, from ${sig(B, 3)} to ${sig(C, 3)} km` });
+    if (!wb.degenerate) models.push({ name: 'Weibull', vol: wb.vol, note: `θ ${sig(wb.theta / tu, 3)} ${tName}, λ ${sig(wb.lambda, 3)} km, n ${sig(wb.n, 3)}` });
+    const main = models[0];
+    q('.tv-big').textContent = ex && ex.ok ? `${km3(main.vol)} km³ (${main.name.toLowerCase()}): VEI ${vei(main.vol * 1e9)}` : `No exponential volume: ${ex?.why ?? 'no split fits'}`;
+    const head = ['Model', 'Bulk volume (km³)', 'Bulk volume (m³)', 'VEI', 'Mass (kg)', 'DRE (km³)'];
+    rowsOut = models.map((m) => [m.name, km3(m.vol), fmtExp(m.vol * 1e9, 3), String(vei(m.vol * 1e9)), fmtExp(m.vol * 1e9 * rd, 3), km3((m.vol * rd) / rm)]);
+    rowsCsv = models.map((m) => [m.name, m.vol.toPrecision(6), (m.vol * 1e9).toPrecision(6), String(vei(m.vol * 1e9)), (m.vol * 1e9 * rd).toPrecision(6), ((m.vol * rd) / rm).toPrecision(6)]);
+    const tab = q<HTMLTableElement>('.tv-tab'); tab.replaceChildren();
+    const hr = tab.createTHead().insertRow(); head.forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const bd = tab.createTBody(); rowsOut.forEach((r) => { const tr = bd.insertRow(); r.forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; if (j) td.style.textAlign = 'right'; }); });
+    const facts = models.map((m) => fact(m.name, `${km3(m.vol)} km³`, m.note));
+    if (ex && ex.ok) ex.segs.forEach((s, i) => facts.push(fact(`Exponential segment ${i + 1}`, `${sig(s.vol / ex.vol * 100, 3)} % of the volume`, `isopachs ${s.idx[0] + 1}–${s.idx[1] + 1} (from the vent out); √A ${sig(s.from, 3)} to ${Number.isFinite(s.to) ? sig(s.to, 3) : '∞'} km; thickness half-distance bt = ${sig(s.bt, 3)} km`)));
+    if (ex && !ex.ok) facts.push(fact('Exponential', 'no volume', ex.why ?? ''));
+    if (wb.degenerate) facts.push(fact('Weibull', 'not fixed by these data', 'the best fit runs off to a power law (λ grows without limit), so it has no finite volume here'));
+    q('.tv-facts').replaceChildren(...facts);
+    // Chart
+    const xmax = Math.max(...pts.map((p) => p.x)) * 1.15, xs = Array.from({ length: 121 }, (_, i) => (xmax * (i + 0.5)) / 121);
+    const series: any[] = [{ name: 'Isopachs', x: pts.map((p) => p.x), y: pts.map((p) => p.T / tu), mode: 'points', marker: 'circle', size: 6 }];
+    if (ex && ex.ok) series.push({ name: `Exponential (${ns})`, x: xs, y: xs.map((x) => { const s = ex.segs.find((g) => x >= g.from && x < g.to) ?? ex.segs[ex.segs.length - 1]; return (s.T0 * Math.exp(-s.k * x)) / tu; }), mode: 'line', width: 2 });
+    series.push({ name: 'Power law', x: xs.filter((x) => x >= B && x <= C), y: xs.filter((x) => x >= B && x <= C).map((x) => (pw.Tpl * Math.pow(x, -pw.m)) / tu), mode: 'line', width: 1.6, dash: [6, 4] });
+    if (!wb.degenerate) series.push({ name: 'Weibull', x: xs, y: xs.map((x) => weibullT(x, wb.theta, wb.lambda, wb.n) / tu), mode: 'line', width: 1.6, dash: [2, 3] });
+    const ys = pts.map((p) => p.T / tu);
+    fig = chartFigure({ h: 320, xLabel: '√Area (km)', yLabel: `Thickness (${tName}, log scale)`, yLog: true, xMin: 0, xMax: xmax, yMin: Math.min(...ys) / 4, yMax: Math.max(...ys) * 4, legend: 'below', series }, 'Thickness on a log scale against the square root of isopach area, with the fitted models');
+    paint(q<HTMLCanvasElement>('.tv-fig'), fig);
+    report = [
+      { title: q('.tv-big').textContent!, table: { head, rows: rowsOut, align: ['l', 'r', 'r', 'r', 'r', 'r'] }, facts: facts.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]), figure: fig },
+      { title: 'Isopachs', table: { head: [`Thickness (${tName})`, 'Area (km²)', '√Area (km)'], rows: pts.map((p) => [sig(p.T / tu, 4), sig(p.x * p.x, 4), sig(p.x, 4)]), align: ['r', 'r', 'r'] } },
+    ];
+  }
+
+  q('.tv-csv').addEventListener('click', () => rowsCsv.length && save(new TextEncoder().encode(csv([['model', 'bulk_km3', 'bulk_m3', 'VEI', 'mass_kg', 'DRE_km3'], ...rowsCsv])), 'tephra-volume.csv', 'text/csv'));
+  let tm = 0;
+  q('.tv-in').addEventListener('input', () => { clearTimeout(tm); tm = window.setTimeout(run, 250); });
+  root.querySelectorAll('select, input').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+  document.addEventListener('fibub:theme', () => fig && !q('.tv-out').hidden && paint(q<HTMLCanvasElement>('.tv-fig'), fig));
+  run();
+  wireDownloads(q('.tv-out > .dl:last-child'), () => ({ title: 'Tephra volume', subtitle: q('.tv-big').textContent ?? '', file: 'tephra-volume', sections: report }));
+</script>
+
+<style is:global>
+  .tpv textarea { width: 100%; font-family: ui-monospace, monospace; }
+  .tpv .tv-tab td, .tpv .tv-tab th { white-space: nowrap; }
+</style>

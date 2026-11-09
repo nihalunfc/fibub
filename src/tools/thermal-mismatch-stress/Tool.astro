@@ -1,0 +1,293 @@
+---
+// Thermal mismatch stress: thin-film biaxial stress from CTE mismatch, Stoney's equation (wafer bow), a bonded
+// bilayer strip (Timoshenko and a beam solution with layer stresses), and a constrained bar; CTE may vary with T.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax tms">
+  <div class="ax-card">
+    <h2>1. What to work out</h2>
+    <div class="ax-seg tms-mode" role="group" aria-label="What to work out">
+      <button type="button" data-m="film" aria-pressed="true">Film on a substrate</button>
+      <button type="button" data-m="stoney" aria-pressed="false">Stress from wafer bow</button>
+      <button type="button" data-m="strip" aria-pressed="false">Bonded strip</button>
+      <button type="button" data-m="bar" aria-pressed="false">Held bar</button>
+    </div>
+    <div class="tms-temps" style="margin-top:12px">
+      <div class="ax-grid">
+        <label><span>Stress-free temperature T<sub>0</sub> (°C)</span> <input class="tms-t0" inputmode="decimal" value="300" /></label>
+        <label><span>Final temperature T<sub>1</sub> (°C)</span> <input class="tms-t1" inputmode="decimal" value="20" /></label>
+      </div>
+      <p class="ax-help tms-thelp">T₀ is where there is no stress, such as the deposition or bonding temperature. CTEs are in ppm/K (10⁻⁶ per K).</p>
+      <label class="ax-check" style="margin-top:8px"><input type="checkbox" class="tms-lin" /> <span>CTE changes with temperature: α(T) = α + slope × (T − T<sub>ref</sub>)</span></label>
+      <div class="ax-grid tms-slope" style="margin-top:8px" hidden>
+        <label><span>Reference temperature T<sub>ref</sub> (°C)</span> <input class="tms-tref" inputmode="decimal" value="20" /></label>
+      </div>
+    </div>
+  </div>
+
+  <div class="ax-card tms-p-film">
+    <h2>2. Film on a substrate</h2>
+    <div class="ax-grid">
+      <label><span>Film modulus E<sub>f</sub> (GPa)</span> <input class="tms-ef" inputmode="decimal" value="70" /></label>
+      <label><span>Film Poisson's ratio ν<sub>f</sub></span> <input class="tms-nuf" inputmode="decimal" value="0.33" /></label>
+      <label><span>Film CTE α<sub>f</sub> (ppm/K)</span> <input class="tms-af" inputmode="decimal" value="23" /></label>
+      <label class="tms-sl">Film CTE slope (ppm/K²) <input class="tms-af1" inputmode="decimal" value="0.02" /></label>
+      <label><span>Substrate CTE α<sub>s</sub> (ppm/K)</span> <input class="tms-as" inputmode="decimal" value="3" /></label>
+      <label class="tms-sl">Substrate CTE slope (ppm/K²) <input class="tms-as1" inputmode="decimal" value="0.004" /></label>
+      <label><span>Film thickness h<sub>f</sub> (µm)</span> <input class="tms-hf" inputmode="decimal" value="1" /></label>
+      <label><span>Substrate modulus E<sub>s</sub> (GPa)</span> <input class="tms-es" inputmode="decimal" value="130" /></label>
+      <label><span>Substrate Poisson's ratio ν<sub>s</sub></span> <input class="tms-nus" inputmode="decimal" value="0.28" /></label>
+      <label><span>Substrate thickness h<sub>s</sub> (µm)</span> <input class="tms-hs" inputmode="decimal" value="500" /></label>
+      <label>Wafer diameter (mm) <input class="tms-d" inputmode="decimal" value="100" /></label>
+    </div>
+    <p class="ax-help">σ = E<sub>f</sub>/(1 − ν<sub>f</sub>) × (ε<sub>s</sub> − ε<sub>f</sub>), with ε = ∫α dT from T₀ to T₁: the film is held to the substrate's size in both directions. The substrate values give the bow from Stoney's equation. The example values are round made-up numbers.</p>
+    <p class="ax-err tms-ferr" hidden></p>
+    <div class="tms-fout">
+      <p class="ax-big tms-fbig"></p>
+      <dl class="ax-facts tms-ffacts"></dl>
+      <canvas class="ax-fig tms-ffig" style="margin-top:12px"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card tms-p-stoney" hidden>
+    <h2>2. Film stress from wafer bow (Stoney)</h2>
+    <div class="ax-grid">
+      <label><span>Substrate modulus E<sub>s</sub> (GPa)</span> <input class="tms-ses" inputmode="decimal" value="130" /></label>
+      <label><span>Substrate Poisson's ratio ν<sub>s</sub></span> <input class="tms-snus" inputmode="decimal" value="0.28" /></label>
+      <label><span>Substrate thickness h<sub>s</sub> (µm)</span> <input class="tms-shs" inputmode="decimal" value="500" /></label>
+      <label><span>Film thickness h<sub>f</sub> (µm)</span> <input class="tms-shf" inputmode="decimal" value="1" /></label>
+      <label class="tms-wide">I measured <select class="tms-meas"><option value="bow" selected>the bow (height of the middle) over a diameter</option><option value="r">the radius of curvature</option></select></label>
+      <label class="tms-m-bow">Bow after (µm) <input class="tms-bow1" inputmode="decimal" value="50" /></label>
+      <label class="tms-m-bow">Bow before, bare wafer (µm) <input class="tms-bow0" inputmode="decimal" value="0" /></label>
+      <label class="tms-m-bow">Over a diameter of (mm) <input class="tms-sd" inputmode="decimal" value="100" /></label>
+      <label class="tms-m-r" hidden>Radius after (m) <input class="tms-r1" inputmode="decimal" value="25" /></label>
+      <label class="tms-m-r" hidden>Radius before (m, blank = flat) <input class="tms-r0" inputmode="decimal" value="" /></label>
+    </div>
+    <p class="ax-help">Sign: positive when the film side is concave (dished), which means the film pulls (tension); negative when the film side bulges (compression). The change from before to after is what the film did. Stoney holds for a film much thinner than the substrate and a bow much smaller than the thickness.</p>
+    <p class="ax-err tms-serr" hidden></p>
+    <div class="tms-sout">
+      <p class="ax-big tms-sbig"></p>
+      <dl class="ax-facts tms-sfacts"></dl>
+    </div>
+  </div>
+
+  <div class="ax-card tms-p-strip" hidden>
+    <h2>2. Bonded strip (bimetal)</h2>
+    <div class="ax-grid">
+      <label><span>Bottom layer E<sub>1</sub> (GPa)</span> <input class="tms-e1" inputmode="decimal" value="140" /></label>
+      <label><span>Bottom layer ν<sub>1</sub></span> <input class="tms-nu1" inputmode="decimal" value="0.3" /></label>
+      <label><span>Bottom layer CTE α<sub>1</sub> (ppm/K)</span> <input class="tms-a1" inputmode="decimal" value="1.5" /></label>
+      <label class="tms-sl">Bottom CTE slope (ppm/K²) <input class="tms-a1s" inputmode="decimal" value="0.002" /></label>
+      <label><span>Bottom thickness t<sub>1</sub> (mm)</span> <input class="tms-th1" inputmode="decimal" value="0.5" /></label>
+      <label><span>Top layer E<sub>2</sub> (GPa)</span> <input class="tms-e2" inputmode="decimal" value="110" /></label>
+      <label><span>Top layer ν<sub>2</sub></span> <input class="tms-nu2" inputmode="decimal" value="0.33" /></label>
+      <label><span>Top layer CTE α<sub>2</sub> (ppm/K)</span> <input class="tms-a2" inputmode="decimal" value="19" /></label>
+      <label class="tms-sl">Top CTE slope (ppm/K²) <input class="tms-a2s" inputmode="decimal" value="0.01" /></label>
+      <label><span>Top thickness t<sub>2</sub> (mm)</span> <input class="tms-th2" inputmode="decimal" value="0.5" /></label>
+      <label>Strip length L (mm) <input class="tms-len" inputmode="decimal" value="50" /></label>
+      <label>Shape <select class="tms-wideplate"><option value="beam" selected>narrow strip (uses E)</option><option value="plate">wide plate (uses E/(1 − ν))</option></select></label>
+    </div>
+    <p class="ax-help">Timoshenko's bimetal formula, with the stress through the thickness from beam theory (plane sections stay plane, the strip is free). Positive curvature bends the top layer to the outside. The example values are round made-up numbers.</p>
+    <p class="ax-err tms-berr" hidden></p>
+    <div class="tms-bout">
+      <p class="ax-big tms-bbig"></p>
+      <dl class="ax-facts tms-bfacts"></dl>
+      <canvas class="ax-fig tms-bfig" style="margin-top:12px"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card tms-p-bar" hidden>
+    <h2>2. Bar held between walls</h2>
+    <div class="ax-grid">
+      <label>Modulus E (GPa) <input class="tms-be" inputmode="decimal" value="200" /></label>
+      <label>CTE α (ppm/K) <input class="tms-ba" inputmode="decimal" value="12" /></label>
+      <label class="tms-sl">CTE slope (ppm/K²) <input class="tms-ba1" inputmode="decimal" value="0.01" /></label>
+      <label>Length L (mm) <input class="tms-bl" inputmode="decimal" value="1000" /></label>
+      <label><span>Gap at T<sub>0</sub> (mm)</span> <input class="tms-bg" inputmode="decimal" value="0" /></label>
+      <label>Yield strength (MPa, optional) <input class="tms-by" inputmode="decimal" value="250" /></label>
+    </div>
+    <p class="ax-help">Gap 0: both ends fixed, so heating pushes (compression) and cooling pulls (tension). With a gap the bar is free until it has grown enough to close it, and it never pulls on the walls.</p>
+    <p class="ax-err tms-rerr" hidden></p>
+    <div class="tms-rout">
+      <p class="ax-big tms-rbig"></p>
+      <dl class="ax-facts tms-rfacts"></dl>
+      <canvas class="ax-fig tms-rfig" style="margin-top:12px"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { thermalStrain, filmStress, stoneyStress, stoneyCurvature, bowToCurvature, curvatureToBow, timoshenko, multilayer, constrainedBar, type Cte } from '../../lib/sci/thermalstress';
+  import { num, sig } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, type Figure, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.tms')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const mpa = (x: number) => `${sig(Math.abs(x) < 1e-9 ? 0 : x, 4)} MPa`;
+  const kind = (x: number) => (Math.abs(x) < 1e-9 ? 'no stress' : x > 0 ? 'tension' : 'compression');
+  const radius = (k: number) => (k === 0 ? 'flat (∞)' : Math.abs(1 / k) >= 1000 ? `${sig(1 / k / 1000, 4)} m` : `${sig(1 / k, 4)} mm`);
+  const um = (mm: number) => (Math.abs(mm) < 1 ? `${sig(mm * 1000, 4)} µm` : `${sig(mm, 4)} mm`);
+  const width = () => Math.round(Math.min(720, Math.max(300, root.clientWidth - 34 || 640)));
+  const err = (c: string, out: string, m: string) => { q(c).textContent = m; q(c).hidden = !m; q(out).hidden = !!m; };
+  let mode = 'film';
+  const figs: Record<string, Figure | null> = { film: null, strip: null, bar: null };
+  const canv: Record<string, string> = { film: '.tms-ffig', strip: '.tms-bfig', bar: '.tms-rfig' };
+  const lin = () => q<HTMLInputElement>('.tms-lin').checked;
+  const cte = (a: string, s: string): Cte => ({ a0: v(a) * 1e-6, a1: lin() ? v(s) * 1e-6 : 0, Tref: lin() ? v('.tms-tref') : 20 });
+  const temps = () => ({ T0: v('.tms-t0'), T1: v('.tms-t1') });
+  const tempErr = (T0: number, T1: number) => (!Number.isFinite(T0) || !Number.isFinite(T1) ? 'Type both temperatures.' : T0 < -273.15 || T1 < -273.15 ? 'Temperatures cannot be below −273.15 °C.' : lin() && !Number.isFinite(v('.tms-tref')) ? 'Type the reference temperature for the CTE slope.' : '');
+  const ctesOk = (...c: Cte[]) => c.every((x) => Number.isFinite(x.a0) && Number.isFinite(x.a1!));
+  const tline = (T0: number, T1: number, f: (T: number) => number) => { const x: number[] = [], y: number[] = []; for (let i = 0; i <= 80; i++) { const T = T0 + ((T1 - T0) * i) / 80; x.push(T); y.push(f(T)); } return { x, y }; };
+
+  function film() {
+    figs.film = null;
+    const { T0, T1 } = temps(), Ef = v('.tms-ef') * 1000, nuf = v('.tms-nuf'), Es = v('.tms-es') * 1000, nus = v('.tms-nus'), hf = v('.tms-hf') / 1000, hs = v('.tms-hs') / 1000, d = v('.tms-d');
+    const cf = cte('.tms-af', '.tms-af1'), cs = cte('.tms-as', '.tms-as1');
+    const e = tempErr(T0, T1); if (e) return err('.tms-ferr', '.tms-fout', e);
+    if (!ctesOk(cf, cs)) return err('.tms-ferr', '.tms-fout', 'Type both CTEs (and slopes).');
+    if (!(Ef > 0) || !(Es > 0) || !(hf > 0) || !(hs > 0) || !(d > 0)) return err('.tms-ferr', '.tms-fout', 'Moduli, thicknesses and the diameter must be above zero.');
+    if (!(nuf > -1 && nuf < 0.5) || !(nus > -1 && nus < 0.5)) return err('.tms-ferr', '.tms-fout', "Poisson's ratios must be between −1 and 0.5.");
+    err('.tms-ferr', '.tms-fout', '');
+    const r = filmStress(Ef, nuf, cf, cs, T0, T1), k = stoneyCurvature(Es, nus, hs, hf, r.sigma);
+    const ml = multilayer([{ E: Es / (1 - nus), t: hs, eps: thermalStrain(cs, T0, T1) }, { E: Ef / (1 - nuf), t: hf, eps: thermalStrain(cf, T0, T1) }]);
+    q('.tms-fbig').textContent = `Film stress ${mpa(r.sigma)} (${kind(r.sigma)})`;
+    const facts = [
+      fact('Mismatch strain εs − εf', `${sig(r.mismatch * 1e6, 4)} µε`, `film ${sig(thermalStrain(cf, T0, T1) * 1e6, 4)} µε, substrate ${sig(thermalStrain(cs, T0, T1) * 1e6, 4)} µε free`),
+      fact('Biaxial modulus Ef/(1 − νf)', `${sig(r.biaxial / 1000, 4)} GPa`),
+      fact('Wafer curvature (Stoney)', `${sig(k * 1e6, 4)} /km`, `radius ${radius(k)}; ${k > 0 ? 'film side concave' : k < 0 ? 'film side bulges' : 'flat'}`),
+      fact(`Bow over ${sig(d, 4)} mm`, um(curvatureToBow(k, d))),
+      fact('Force per width σ hf', `${sig(r.sigma * hf * 1000, 4)} N/m`),
+      fact('Full beam check', `${sig((Math.abs(ml.k) / Math.abs(k || 1e-300) - 1) * 100, 2)} %`, 'gap between Stoney and the two-layer beam solution; small when hf ≪ hs'),
+    ];
+    if (hf > 0.1 * hs) facts.push(fact('Thickness ratio', sig(hf / hs, 3), 'the film is not thin: Stoney is rough here'));
+    q('.tms-ffacts').replaceChildren(...facts);
+    if (T0 === T1) { q('.tms-ffig').hidden = true; return; }
+    q('.tms-ffig').hidden = false;
+    const L = tline(T0, T1, (T) => filmStress(Ef, nuf, cf, cs, T0, T).sigma), W = width();
+    figs.film = chartFigure({ w: W, h: W < 500 ? 260 : 300, xLabel: 'Temperature (°C)', yLabel: 'Film stress (MPa)', series: [{ name: 'σ', x: L.x, y: L.y, mode: 'line', width: 1.8 }], marks: [{ kind: 'hline', at: 0, dash: [3, 3] }], legend: 'none', xReverse: T1 < T0 }, 'Film stress against temperature from the stress-free temperature');
+    paint(q<HTMLCanvasElement>('.tms-ffig'), figs.film);
+  }
+
+  function stoney() {
+    const bow = q<HTMLSelectElement>('.tms-meas').value === 'bow';
+    root.querySelectorAll<HTMLElement>('.tms-m-bow').forEach((e) => (e.hidden = !bow)); root.querySelectorAll<HTMLElement>('.tms-m-r').forEach((e) => (e.hidden = bow));
+    const Es = v('.tms-ses') * 1000, nus = v('.tms-snus'), hs = v('.tms-shs') / 1000, hf = v('.tms-shf') / 1000, d = v('.tms-sd');
+    if (!(Es > 0) || !(hs > 0) || !(hf > 0)) return err('.tms-serr', '.tms-sout', 'Modulus and thicknesses must be above zero.');
+    if (!(nus > -1 && nus < 0.5)) return err('.tms-serr', '.tms-sout', "Poisson's ratio must be between −1 and 0.5.");
+    let k1: number, k0: number;
+    if (bow) {
+      const b1 = v('.tms-bow1') / 1000, b0 = q<HTMLInputElement>('.tms-bow0').value.trim() ? v('.tms-bow0') / 1000 : 0;
+      if (!(d > 0) || !Number.isFinite(b1) || !Number.isFinite(b0)) return err('.tms-serr', '.tms-sout', 'Type the bow and the diameter it was measured over.');
+      if (Math.abs(b1) >= d / 2 || Math.abs(b0) >= d / 2) return err('.tms-serr', '.tms-sout', 'The bow must be much smaller than the diameter.');
+      k1 = bowToCurvature(b1, d); k0 = bowToCurvature(b0, d);
+    } else {
+      const r1 = v('.tms-r1') * 1000, r0t = q<HTMLInputElement>('.tms-r0').value.trim(), r0 = r0t ? v('.tms-r0') * 1000 : Infinity;
+      if (!Number.isFinite(r1) || r1 === 0 || Number.isNaN(r0) || r0 === 0) return err('.tms-serr', '.tms-sout', 'Type the radius after (and before, or leave it blank for a flat wafer), not zero.');
+      k1 = 1 / r1; k0 = 1 / r0;
+    }
+    err('.tms-serr', '.tms-sout', '');
+    const k = k1 - k0, s = stoneyStress(Es, nus, hs, hf, k);
+    q('.tms-sbig').textContent = `Film stress ${mpa(s)} (${kind(s)})`;
+    const facts = [
+      fact('Change in curvature', `${sig(k * 1e6, 4)} /km`, `radius ${radius(k)}`),
+      fact('Force per width σ hf', `${sig(s * hf * 1000, 4)} N/m`, 'what the curvature measures directly, whatever the film thickness'),
+      fact('Biaxial modulus Es/(1 − νs)', `${sig(Es / (1 - nus) / 1000, 4)} GPa`),
+    ];
+    if (bow) facts.push(fact('Bow ÷ substrate thickness', sig(Math.abs(v('.tms-bow1') / 1000) / hs, 3), Math.abs(v('.tms-bow1') / 1000) / hs > 0.5 ? 'large: plate bending is no longer linear and Stoney overstates the stress' : 'small enough for Stoney'));
+    if (hf > 0.1 * hs) facts.push(fact('Thickness ratio', sig(hf / hs, 3), 'the film is not thin: Stoney is rough here'));
+    q('.tms-sfacts').replaceChildren(...facts);
+  }
+
+  function strip() {
+    figs.strip = null;
+    const { T0, T1 } = temps(), plate = q<HTMLSelectElement>('.tms-wideplate').value === 'plate';
+    const E1 = v('.tms-e1') * 1000, E2 = v('.tms-e2') * 1000, n1 = v('.tms-nu1'), n2 = v('.tms-nu2'), t1 = v('.tms-th1'), t2 = v('.tms-th2'), L = v('.tms-len');
+    const c1 = cte('.tms-a1', '.tms-a1s'), c2 = cte('.tms-a2', '.tms-a2s');
+    const e = tempErr(T0, T1); if (e) return err('.tms-berr', '.tms-bout', e);
+    if (!ctesOk(c1, c2)) return err('.tms-berr', '.tms-bout', 'Type both CTEs (and slopes).');
+    if (!(E1 > 0) || !(E2 > 0) || !(t1 > 0) || !(t2 > 0) || !(L > 0)) return err('.tms-berr', '.tms-bout', 'Moduli, thicknesses and the length must be above zero.');
+    if (plate && !(n1 > -1 && n1 < 0.5 && n2 > -1 && n2 < 0.5)) return err('.tms-berr', '.tms-bout', "Poisson's ratios must be between −1 and 0.5.");
+    err('.tms-berr', '.tms-bout', '');
+    const M1 = plate ? E1 / (1 - n1) : E1, M2 = plate ? E2 / (1 - n2) : E2, e1 = thermalStrain(c1, T0, T1), e2 = thermalStrain(c2, T0, T1);
+    const k = timoshenko(M1, t1, M2, t2, e2 - e1), ml = multilayer([{ E: M1, t: t1, eps: e1 }, { E: M2, t: t2, eps: e2 }]);
+    const R = 1 / k, tip = k === 0 ? 0 : Math.abs(R) * (1 - Math.cos(L / Math.abs(R))) * Math.sign(k);
+    q('.tms-bbig').textContent = `Curvature ${sig(k * 1000, 4)} /m: radius ${radius(k)}`;
+    const s = ml.stress, mx = Math.max(...s.flatMap((x) => [Math.abs(x.bottom), Math.abs(x.top)]));
+    q('.tms-bfacts').replaceChildren(
+      fact('Free strain difference ε₂ − ε₁', `${sig((e2 - e1) * 1e6, 4)} µε`, k > 0 ? 'the top layer grows more, so it ends up on the outside of the bend' : k < 0 ? 'the bottom layer grows more, so it ends up on the outside' : ''),
+      fact(`Tip deflection of a ${sig(L, 4)} mm cantilever`, um(tip), `mid-span rise if free at both ends: ${um(k === 0 ? 0 : Math.sign(k) * Math.abs(R) * (1 - Math.cos(L / 2 / Math.abs(R))))}`),
+      fact('Bottom layer stress', `${mpa(s[0].bottom)} to ${mpa(s[0].top)}`, 'outer face to the interface'),
+      fact('Top layer stress', `${mpa(s[1].bottom)} to ${mpa(s[1].top)}`, 'interface to the outer face'),
+      fact('Largest stress', mpa(mx), `the jump at the interface is ${mpa(s[1].bottom - s[0].top)}; peel and shear stresses at the free ends are not included`),
+      fact('Beam solution check', `${Math.abs(ml.k / k - 1) < 1e-9 || k === 0 ? '0' : sig(Math.abs(ml.k / k - 1) * 100, 2)} %`, 'gap between Timoshenko\'s formula and the force-and-moment balance'),
+    );
+    const W = width(), z = [0, t1, t1, t1 + t2], sv = [s[0].bottom, s[0].top, s[1].bottom, s[1].top];
+    figs.strip = chartFigure({ w: W, h: W < 500 ? 260 : 300, xLabel: `Stress (MPa) at ${sig(T1, 4)} °C`, yLabel: 'Height z (mm)', series: [{ name: 'σ', x: sv, y: z, mode: 'line', width: 1.8 }], marks: [{ kind: 'hline', at: t1, dash: [3, 3], label: 'interface' }, { kind: 'vline', at: 0, dash: [2, 3] }], legend: 'none' }, 'Stress through the thickness of the bonded strip');
+    paint(q<HTMLCanvasElement>('.tms-bfig'), figs.strip);
+  }
+
+  function bar() {
+    figs.bar = null;
+    const { T0, T1 } = temps(), E = v('.tms-be') * 1000, c = cte('.tms-ba', '.tms-ba1'), L = v('.tms-bl'), g = v('.tms-bg'), yt = q<HTMLInputElement>('.tms-by').value.trim(), Y = v('.tms-by');
+    const e = tempErr(T0, T1); if (e) return err('.tms-rerr', '.tms-rout', e);
+    if (!ctesOk(c)) return err('.tms-rerr', '.tms-rout', 'Type the CTE (and slope).');
+    if (!(E > 0) || !(L > 0)) return err('.tms-rerr', '.tms-rout', 'Modulus and length must be above zero.');
+    if (!(g >= 0)) return err('.tms-rerr', '.tms-rout', 'The gap must be zero or more.');
+    if (yt && !(Y > 0)) return err('.tms-rerr', '.tms-rout', 'Leave the yield strength blank or give it above zero.');
+    err('.tms-rerr', '.tms-rout', '');
+    const r = constrainedBar(E, c, T0, T1, L, g);
+    q('.tms-rbig').textContent = `Bar stress ${mpa(r.sigma)} (${kind(r.sigma)})`;
+    const facts = [
+      fact('Free thermal strain ∫α dT', `${sig(r.eth * 1e6, 4)} µε`, `free change in length ${um(r.free)}`),
+      fact('Gap', g > 0 ? (r.closeT === null ? 'stays open' : `closes at ${sig(r.closeT, 4)} °C`) : 'none: ends fixed', g > 0 && r.closeT === null ? 'no stress' : ''),
+    ];
+    if (yt && Y > 0) facts.push(fact('Against yield', `${sig((Math.abs(r.sigma) / Y) * 100, 3)} %`, Math.abs(r.sigma) >= Y ? 'the bar yields: the true stress stops near the yield strength and the bar is left with a permanent change' : 'elastic'));
+    if (r.sigma < 0 && L > 0) facts.push(fact('Buckling', 'check it', 'a slender bar in compression can buckle long before it yields (Euler load π²EI/L² for pinned ends)'));
+    q('.tms-rfacts').replaceChildren(...facts);
+    if (T0 === T1) { q('.tms-rfig').hidden = true; return; }
+    q('.tms-rfig').hidden = false;
+    const Ln = tline(T0, T1, (T) => constrainedBar(E, c, T0, T, L, g).sigma), W = width();
+    figs.bar = chartFigure({ w: W, h: W < 500 ? 260 : 300, xLabel: 'Temperature (°C)', yLabel: 'Stress (MPa)', series: [{ name: 'σ', x: Ln.x, y: Ln.y, mode: 'line', width: 1.8 }], marks: [{ kind: 'hline', at: 0, dash: [3, 3] }, ...(yt && Y > 0 ? [{ kind: 'hline' as const, at: r.sigma < 0 ? -Y : Y, dash: [5, 3], label: 'yield' }] : [])], legend: 'none', xReverse: T1 < T0 }, 'Bar stress against temperature');
+    paint(q<HTMLCanvasElement>('.tms-rfig'), figs.bar);
+  }
+
+  const all = () => {
+    for (const m of ['film', 'stoney', 'strip', 'bar']) q(`.tms-p-${m}`).hidden = m !== mode;
+    q('.tms-temps').hidden = mode === 'stoney';
+    root.querySelectorAll<HTMLElement>('.tms-sl, .tms-slope').forEach((e) => (e.hidden = !lin()));
+    ({ film, stoney, strip, bar } as Record<string, () => void>)[mode]();
+  };
+  root.querySelectorAll('input, select').forEach((i) => { i.addEventListener('input', all); i.addEventListener('change', all); });
+  q('.tms-mode').querySelectorAll('button').forEach((bt) => bt.addEventListener('click', () => {
+    mode = bt.dataset.m!; q('.tms-mode').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === bt)));
+    // Sensible temperatures for each example the first time it is opened.
+    if (mode === 'strip' || mode === 'bar') { if (q<HTMLInputElement>('.tms-t0').value === '300' && q<HTMLInputElement>('.tms-t1').value === '20') { q<HTMLInputElement>('.tms-t0').value = '20'; q<HTMLInputElement>('.tms-t1').value = mode === 'strip' ? '120' : '70'; } }
+    all();
+  }));
+  document.addEventListener('fibub:theme', () => { for (const k of Object.keys(figs)) if (figs[k]) paint(q<HTMLCanvasElement>(canv[k]), figs[k]!); });
+  let lastW = 0;
+  window.addEventListener('resize', () => { const w = root.clientWidth; if (w && Math.abs(w - lastW) > 40) { lastW = w; all(); } });
+  all(); lastW = root.clientWidth;
+  const facts = (c: string) => [...root.querySelectorAll(`${c} > div`)].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent!] as [string, string]);
+  wireDownloads(q('.dl'), () => {
+    const k = { film: ['.tms-fout', '.tms-fbig', '.tms-ffacts'], stoney: ['.tms-sout', '.tms-sbig', '.tms-sfacts'], strip: ['.tms-bout', '.tms-bbig', '.tms-bfacts'], bar: ['.tms-rout', '.tms-rbig', '.tms-rfacts'] }[mode]!;
+    const s: Section[] = [];
+    const { T0, T1 } = temps();
+    if (!q(k[0]).hidden) s.push({ title: q(k[1]).textContent!, text: mode === 'stoney' ? [] : [`From ${sig(T0, 4)} °C (stress-free) to ${sig(T1, 4)} °C${lin() ? ', CTE linear in temperature' : ''}.`], facts: facts(k[2]), ...(figs[mode] ? { figure: figs[mode]! } : {}) });
+    return { title: 'Thermal mismatch stress', subtitle: q('.tms-mode button[aria-pressed=true]')!.textContent!, file: 'thermal-mismatch-stress', sections: s };
+  });
+</script>
+
+<style is:global>
+  .tms select { max-width: 100%; }
+  .tms [hidden] { display: none !important; }
+  .tms .tms-wide { grid-column: 1 / -1; }
+</style>
