@@ -1,0 +1,360 @@
+---
+// Cell division: step through mitosis and meiosis with a small set of chromosomes, see chromosome number and DNA
+// per cell at each stage, and count dividing cells in a virtual onion root tip. Teaching drawings, not micrographs.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="ax cdv">
+  <p class="ax-help cdv-note">Simple teaching drawings with a few chromosomes. Real cells have many more, and they look less tidy under a microscope.</p>
+  <div class="ax-card">
+    <div class="ax-row"><span class="cdv-lab">Level</span>
+      <div class="ax-seg cdv-level" role="group" aria-label="Level"><button type="button" data-v="10" aria-pressed="true">Class 10</button><button type="button" data-v="11" aria-pressed="false">Class 11</button></div></div>
+    <div class="ax-row cdv-gap"><span class="cdv-lab">Division</span>
+      <div class="ax-seg cdv-kind" role="group" aria-label="Kind of division"><button type="button" data-v="mitosis" aria-pressed="true">Mitosis</button><button type="button" data-v="meiosis" aria-pressed="false">Meiosis</button></div></div>
+    <div class="ax-row cdv-gap"><span class="cdv-lab">Body cell</span>
+      <div class="ax-seg cdv-n" role="group" aria-label="Chromosomes in a body cell"><button type="button" data-v="4" aria-pressed="true">2n = 4</button><button type="button" data-v="6" aria-pressed="false">2n = 6</button></div></div>
+    <label class="ax-check cdv-gap cdv-xo-w" hidden><input type="checkbox" class="cdv-xo" checked /> Crossing over in prophase I</label>
+  </div>
+
+  <div class="ax-card">
+    <div class="cdv-strip" role="group" aria-label="Stage"></div>
+    <canvas class="ax-fig cdv-fig"></canvas>
+    <p class="ax-help">Filled shapes came from the mother, outlined shapes from the father. Each bar is one chromatid.</p>
+    <div class="ax-row"><button type="button" class="btn secondary small cdv-prev">◀ Back</button><button type="button" class="btn small cdv-next">Next ▶</button><button type="button" class="btn secondary small cdv-play">Play</button><button type="button" class="btn secondary small cdv-shuf" hidden>Shuffle line-up</button></div>
+    <p class="ax-big cdv-big" aria-live="polite"></p>
+    <p class="cdv-say"></p>
+    <dl class="ax-facts cdv-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Stage by stage</h2>
+    <div class="ax-scroll"><table class="cdv-tab"></table></div>
+    <p class="ax-help cdv-tnote"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Onion root tip practical</h2>
+    <p class="ax-help">The tip of a growing onion root is full of dividing cells. Look at fields of view and count how many cells are in each stage. The share of cells in a stage tells you how long that stage lasts (here the whole cycle takes 24 hours).</p>
+    <canvas class="ax-fig cdv-field"></canvas>
+    <div class="ax-row"><button type="button" class="btn small cdv-look">Look at a new field</button><button type="button" class="btn secondary small cdv-csv" disabled>Download counts (CSV)</button><button type="button" class="btn secondary small cdv-reset" disabled>Start again</button></div>
+    <p class="ax-big cdv-mi" aria-live="polite"></p>
+    <div class="ax-scroll"><table class="cdv-count"></table></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="cdv-try">
+      <li>Step through mitosis and watch the chromosome count. Where does it double for a moment, and why?</li>
+      <li>Switch to meiosis. At which stage does the number halve: meiosis I or meiosis II?</li>
+      <li>In metaphase I press "Shuffle line-up" a few times. How many different gametes can a cell with 2n = 6 make?</li>
+      <li>Look at five fields of the root tip. Which stage is shortest? Does your estimate get closer to the model as you count more cells?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <ol class="cdv-qs"></ol>
+    <div class="ax-row"><button type="button" class="btn small cdv-check">Check answers</button><button type="button" class="btn secondary small cdv-new">New questions</button></div>
+    <p class="cdv-score" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+  import { MITOSIS, MEIOSIS, gameteTypes, mitoticIndex, phaseHours, field, tally, rng, PHASES, SHARE, CYCLE_H, type Phase, type Stage } from '../../lib/sci/celldiv';
+  import { csv } from '../../lib/sci/num';
+  import { paint, pagePalette, wireDownloads, save, type Figure, type Palette, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cdv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fx = (x: number, d = 1) => x.toFixed(d).replace('-', '−');
+  const seed = Number(new URLSearchParams(location.search).get('seed'));
+  const rnd = Number.isFinite(seed) && seed > 0 ? rng(seed) : Math.random;
+  let level = 10, kind: 'mitosis' | 'meiosis' = 'mitosis', n2 = 4, si = 0, timer = 0;
+  let orient = [false, false, false];
+  const stages = () => (kind === 'mitosis' ? MITOSIS : MEIOSIS);
+  const xo = () => q<HTMLInputElement>('.cdv-xo').checked;
+
+  // ---------- drawing chromosomes ----------
+  const LEN = [40, 30, 21];
+  type Ct = { pair: number; mum: boolean; tip: boolean }; // one chromatid; tip = carries a crossed-over end from the other parent
+  function bar(ctx: CanvasRenderingContext2D, pal: Palette, x: number, y: number, len: number, ang: number, c: Ct, w: number) {
+    const dx = Math.cos(ang) * len / 2, dy = Math.sin(ang) * len / 2;
+    const col = (mum: boolean) => (mum ? pal.accent : pal.accent2);
+    const seg = (a: number, b: number, mum: boolean) => {
+      ctx.beginPath(); ctx.moveTo(x - dx + 2 * dx * a, y - dy + 2 * dy * a); ctx.lineTo(x - dx + 2 * dx * b, y - dy + 2 * dy * b);
+      ctx.lineWidth = w; ctx.strokeStyle = col(mum); ctx.stroke();
+      if (!mum) { ctx.lineWidth = Math.max(1, w - 3.5); ctx.strokeStyle = pal.bg; ctx.stroke(); }
+    };
+    ctx.lineCap = 'round';
+    if (c.tip) { seg(0, 0.65, c.mum); seg(0.65, 1, !c.mum); } else seg(0, 1, c.mum);
+  }
+  /** A chromosome: one chromatid, or two side by side joined at the centromere. */
+  function chrom(ctx: CanvasRenderingContext2D, pal: Palette, x: number, y: number, cts: Ct[], ang: number, w = 6, scale = 1) {
+    const len = LEN[cts[0].pair] * scale;
+    if (cts.length === 1) { bar(ctx, pal, x, y, len, ang, cts[0], w); return; }
+    const ox = -Math.sin(ang) * (w * 0.6), oy = Math.cos(ang) * (w * 0.6);
+    bar(ctx, pal, x - ox, y - oy, len, ang, cts[0], w); bar(ctx, pal, x + ox, y + oy, len, ang, cts[1], w);
+    ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.arc(x, y, w * 0.55, 0, Math.PI * 2); ctx.fill();
+  }
+  function cell(ctx: CanvasRenderingContext2D, pal: Palette, cx: number, cy: number, rx: number, ry: number) {
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); ctx.stroke();
+  }
+  function nucleus(ctx: CanvasRenderingContext2D, pal: Palette, cx: number, cy: number, r: number, broken = false) {
+    ctx.strokeStyle = pal.muted; ctx.lineWidth = 1.5; if (broken) ctx.setLineDash([5, 6]);
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+  }
+  function spindle(ctx: CanvasRenderingContext2D, pal: Palette, px: number[], py: number, targets: [number, number][]) {
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1;
+    for (const [tx, ty] of targets) { const p = Math.abs(tx - px[0]) < Math.abs(tx - px[1]) ? px[0] : px[1]; ctx.beginPath(); ctx.moveTo(p, py); ctx.lineTo(tx, ty); ctx.stroke(); }
+    ctx.fillStyle = pal.ink; for (const p of px) { ctx.beginPath(); ctx.arc(p, py, 4, 0, Math.PI * 2); ctx.fill(); }
+  }
+  // scattered spots inside a nucleus (unit circle), enough for 6 chromosomes
+  const SPOTS: [number, number, number][] = [[-0.45, -0.4, 0.5], [0.35, -0.45, -0.7], [-0.5, 0.3, -0.3], [0.45, 0.35, 0.9], [0, -0.05, 1.4], [-0.05, 0.6, 0.1], [0.05, -0.7, 0.2]];
+  // the homologues: pair p, mum and dad
+  const homologues = () => Array.from({ length: n2 }, (_, k) => ({ pair: Math.floor(k / 2), mum: k % 2 === 0 }));
+  /** The two chromatids of a homologue after S phase; the second carries a crossed-over tip after prophase I. */
+  const doubled = (h: { pair: number; mum: boolean }, crossed: boolean): Ct[] => [{ ...h, tip: false }, { ...h, tip: crossed }];
+
+  function drawStage(ctx: CanvasRenderingContext2D, w: number, h: number, pal: Palette) {
+    const st = stages()[si], id = st.id, H = homologues(), n = n2 / 2, cx = w / 2, cy = h / 2 + 6;
+    const crossed = kind === 'meiosis' && xo() && id !== 's';
+    ctx.font = '600 15px system-ui, sans-serif'; ctx.fillStyle = pal.ink; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+    ctx.fillText(st.name, 12, 18);
+    const scatter = (x: number, y: number, r: number, items: Ct[][], wid: number, sc = 1) => items.forEach((cts, k) => { const [a, b, ang] = SPOTS[k % SPOTS.length]; chrom(ctx, pal, x + a * r, y + b * r, cts, ang, wid, sc); });
+    const single = (hh: { pair: number; mum: boolean }): Ct[] => [{ ...hh, tip: false }];
+    if (id === 'g1' || id === 's' || id === 'g2') {
+      cell(ctx, pal, cx, cy, 210, 120); nucleus(ctx, pal, cx, cy, 82);
+      scatter(cx, cy, 82, H.map((hh) => (id === 'g1' ? single(hh) : doubled(hh, false))), 3, 1.3);
+    } else if (id === 'pro' || id === 'pro1') {
+      cell(ctx, pal, cx, cy, 210, 120); nucleus(ctx, pal, cx, cy, 82, true);
+      if (id === 'pro') scatter(cx, cy, 82, H.map((hh) => doubled(hh, false)), 6);
+      else for (let p = 0; p < n; p++) { const [a, b] = SPOTS[p]; const x = cx + a * 90, y = cy + b * 90; chrom(ctx, pal, x - 9, y, doubled(H[2 * p], crossed), Math.PI / 2, 6); chrom(ctx, pal, x + 9, y, doubled(H[2 * p + 1], crossed), Math.PI / 2, 6); }
+      spindle(ctx, pal, [cx - 190, cx + 190], cy, []);
+    } else if (id === 'meta' || id === 'meta1') {
+      cell(ctx, pal, cx, cy, 210, 120);
+      const m = id === 'meta' ? n2 : n, ys = Array.from({ length: m }, (_, k) => cy + (k - (m - 1) / 2) * (200 / Math.max(m, 3)));
+      const t: [number, number][] = [];
+      if (id === 'meta') H.forEach((hh, k) => { chrom(ctx, pal, cx, ys[k], doubled(hh, false), Math.PI / 2, 6, 0.65); t.push([cx - 4, ys[k]], [cx + 4, ys[k]]); });
+      else for (let p = 0; p < n; p++) { const l = orient[p] ? H[2 * p + 1] : H[2 * p], r = orient[p] ? H[2 * p] : H[2 * p + 1]; chrom(ctx, pal, cx - 12, ys[p], doubled(l, crossed), Math.PI / 2, 6, 0.8); chrom(ctx, pal, cx + 12, ys[p], doubled(r, crossed), Math.PI / 2, 6, 0.8); t.push([cx - 12, ys[p]], [cx + 12, ys[p]]); }
+      spindle(ctx, pal, [cx - 190, cx + 190], cy, t);
+      ctx.strokeStyle = pal.muted; ctx.setLineDash([3, 5]); ctx.beginPath(); ctx.moveTo(cx, cy - 110); ctx.lineTo(cx, cy + 110); ctx.stroke(); ctx.setLineDash([]);
+    } else if (id === 'ana' || id === 'ana1') {
+      cell(ctx, pal, cx, cy, 210, 110);
+      const t: [number, number][] = [];
+      if (id === 'ana') H.forEach((hh, k) => { const y = cy + (k - (n2 - 1) / 2) * (190 / Math.max(n2, 3)); for (const s of [-1, 1]) { const x = cx + s * 95; chrom(ctx, pal, x, y, single(hh), Math.PI / 2, 5, 0.65); t.push([x, y]); } });
+      else for (let p = 0; p < n; p++) { const y = cy + (p - (n - 1) / 2) * 60; const l = orient[p] ? H[2 * p + 1] : H[2 * p], r = orient[p] ? H[2 * p] : H[2 * p + 1]; chrom(ctx, pal, cx - 95, y, doubled(l, crossed), Math.PI / 2, 6, 0.8); chrom(ctx, pal, cx + 95, y, doubled(r, crossed), Math.PI / 2, 6, 0.8); t.push([cx - 95, y], [cx + 95, y]); }
+      spindle(ctx, pal, [cx - 190, cx + 190], cy, t);
+    } else if (id === 'telo') {
+      for (const s of [-1, 1]) { const x = cx + s * 115; cell(ctx, pal, x, cy, 105, 105); nucleus(ctx, pal, x, cy, 60); scatter(x, cy, 60, H.map(single), 3, 1.1); }
+    } else {
+      // meiosis after the first division: the left cell got the "left" homologue of each pair
+      const sides = [0, 1].map((side) => Array.from({ length: n }, (_, p) => { const mumLeft = !orient[p]; const mum = side === 0 ? mumLeft : !mumLeft; return H[2 * p + (mum ? 0 : 1)]; }));
+      if (id === 'telo1' || id === 'meta2' || id === 'ana2') {
+        sides.forEach((hs, side) => {
+          const x = cx + (side ? 1 : -1) * 115; cell(ctx, pal, x, cy, 105, 105);
+          if (id === 'telo1') { nucleus(ctx, pal, x, cy, 60); scatter(x, cy, 60, hs.map((hh) => doubled(hh, crossed)), 5, 0.85); }
+          else {
+            const t: [number, number][] = [];
+            hs.forEach((hh, k) => { const y = cy + (k - (n - 1) / 2) * 52; const d = doubled(hh, crossed);
+              if (id === 'meta2') { chrom(ctx, pal, x, y, d, Math.PI / 2, 5, 0.7); t.push([x - 3, y], [x + 3, y]); }
+              else { chrom(ctx, pal, x - 50, y, [d[0]], Math.PI / 2, 5, 0.7); chrom(ctx, pal, x + 50, y, [d[1]], Math.PI / 2, 5, 0.7); t.push([x - 50, y], [x + 50, y]); } });
+            spindle(ctx, pal, [x - 92, x + 92], cy, t);
+          }
+        });
+      } else {
+        // telophase II: four cells
+        let k = 0;
+        sides.forEach((hs) => [0, 1].forEach((c) => { const x = 62 + k * 119; k++; cell(ctx, pal, x, cy, 56, 80); nucleus(ctx, pal, x, cy, 38); hs.forEach((hh, j) => chrom(ctx, pal, x - 14 + j * 14, cy, [doubled(hh, crossed)[c]], Math.PI / 2, 5, 0.75)); }));
+      }
+    }
+  }
+  const W = 480, Hh = 300;
+  const picture: Figure = { w: W, h: Hh, alt: 'Drawing of the cell at this stage of division', draw: drawStage };
+
+  // ---------- numbers ----------
+  function facts(list: [string, string, string?][]) {
+    return list.map(([k, val, s]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const m = document.createElement('small'); m.textContent = s; d.querySelector('dd')!.append(m); } return d; });
+  }
+  const per = (st: Stage) => (st.cells > 1 ? 'in each cell' : st.id === 'ana' || st.id === 'ana2' ? 'in the cell, for a moment' : 'in the cell');
+  let factList: [string, string, string?][] = [];
+  function update() {
+    const list = stages();
+    si = Math.min(si, list.length - 1);
+    const st = list[si];
+    const strip = q('.cdv-strip');
+    if (strip.childElementCount !== list.length || strip.dataset.k !== kind) {
+      strip.dataset.k = kind;
+      strip.replaceChildren(...list.map((s, k) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = s.short; b.title = s.name; b.addEventListener('click', () => { stop(); si = k; update(); }); return b; }));
+    }
+    strip.querySelectorAll('button').forEach((b, k) => b.setAttribute('aria-pressed', String(k === si)));
+    const c = st.chrom(n2), cells = kind === 'meiosis' && (st.id === 'ana2') ? 2 : st.cells;
+    q('.cdv-big').textContent = `${st.name}: ${c} chromosomes ${per(st)}${cells > 1 ? `, ${cells} cells` : ''}`;
+    q('.cdv-say').textContent = st.note;
+    q<HTMLButtonElement>('.cdv-prev').disabled = si === 0; q<HTMLButtonElement>('.cdv-next').disabled = si === list.length - 1;
+    q('.cdv-shuf').hidden = !(kind === 'meiosis' && ['meta1', 'ana1', 'telo1', 'meta2', 'ana2', 'telo2'].includes(st.id));
+    q('.cdv-xo-w').hidden = kind !== 'meiosis';
+    factList = [
+      ['Chromosomes', `${c} ${per(st)}`, c === n2 ? '2n' : c === n2 / 2 ? 'n (half)' : '4n: chromatids have split'],
+      ['Cells', String(cells), kind === 'mitosis' ? 'mitosis ends with 2 identical cells' : 'meiosis ends with 4 different cells'],
+      ['Same stage in a human cell', `${st.chrom(46)} chromosomes`, 'human body cells have 2n = 46'],
+    ];
+    if (level === 11) {
+      factList.splice(1, 0, ['DNA amount', `${st.dna}C ${st.cells > 1 ? 'per cell' : 'in the cell'}`, 'a gamete has 1C; a G1 cell has 2C']);
+      if (kind === 'meiosis') factList.push(['Different gametes', `${gameteTypes(n2 / 2)} kinds`, `2^${n2 / 2} from independent assortment alone (humans: 2^23 = ${gameteTypes(23).toLocaleString('en')})`]);
+    }
+    q('.cdv-facts').replaceChildren(...facts(factList));
+    paint(q<HTMLCanvasElement>('.cdv-fig'), picture, pagePalette());
+    drawTable();
+  }
+  function drawTable() {
+    const list = stages(), tb = q<HTMLTableElement>('.cdv-tab'); tb.innerHTML = '';
+    const head = ['Stage', 'Chromosomes', ...(level === 11 ? ['DNA'] : []), 'Cells'];
+    const hr = tb.createTHead().insertRow(); head.forEach((h, j) => { const th = document.createElement('th'); th.textContent = h; if (j) th.className = 'r'; hr.append(th); });
+    const b = tb.createTBody();
+    list.forEach((s, k) => { const tr = b.insertRow(); if (k === si) tr.className = 'on';
+      [s.name, String(s.chrom(n2)), ...(level === 11 ? [`${s.dna}C`] : []), String(kind === 'meiosis' && s.id === 'ana2' ? 2 : s.cells)].forEach((x, j) => { const td = tr.insertCell(); td.textContent = x; if (j) td.className = 'r'; }); });
+    q('.cdv-tnote').textContent = kind === 'mitosis' ? 'Mitosis: the daughter cells keep the full number (2n) and the same genes. Used for growth and repair.' : 'Meiosis: two divisions, one copy of DNA. Four cells with half the number (n), used to make gametes (sperm, eggs, pollen).';
+  }
+
+  // ---------- onion root tip ----------
+  let cells: Phase[] = [], fieldNow: Phase[] = [], looks = 0;
+  const NAMES: Record<Phase, string> = { interphase: 'Interphase', prophase: 'Prophase', metaphase: 'Metaphase', anaphase: 'Anaphase', telophase: 'Telophase' };
+  function drawField(ctx: CanvasRenderingContext2D, w: number, h: number, pal: Palette) {
+    const cols = 10, rows = 6, cw = w / cols, ch = h / rows;
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1.5; ctx.fillStyle = pal.ink;
+    if (!fieldNow.length) { ctx.font = '14px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = pal.muted; ctx.fillText('Press "Look at a new field" to see 60 cells', w / 2, h / 2); return; }
+    fieldNow.forEach((p, k) => {
+      const x = (k % cols) * cw, y = Math.floor(k / cols) * ch, mx = x + cw / 2, my = y + ch / 2;
+      ctx.strokeStyle = pal.line; ctx.strokeRect(x + 2, y + 2, cw - 4, ch - 4);
+      ctx.strokeStyle = pal.ink; ctx.fillStyle = pal.ink; ctx.lineWidth = 2;
+      if (p === 'interphase') { ctx.beginPath(); ctx.arc(mx, my, 9, 0, Math.PI * 2); ctx.stroke(); ctx.beginPath(); ctx.arc(mx + 2, my - 2, 2, 0, Math.PI * 2); ctx.fill(); }
+      else if (p === 'prophase') { ctx.beginPath(); for (let j = 0; j < 4; j++) { const a = j * 1.6; ctx.moveTo(mx + Math.cos(a) * 3, my + Math.sin(a) * 3); ctx.lineTo(mx + Math.cos(a + 0.8) * 9, my + Math.sin(a + 0.8) * 9); } ctx.stroke(); }
+      else if (p === 'metaphase') { ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(mx, my - 12); ctx.lineTo(mx, my + 12); ctx.stroke(); }
+      else if (p === 'anaphase') { ctx.lineWidth = 3; for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(mx + s * 6, my - 10); ctx.lineTo(mx + s * 13, my); ctx.lineTo(mx + s * 6, my + 10); ctx.stroke(); } }
+      else { ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(mx, y + 4); ctx.lineTo(mx, y + ch - 4); ctx.stroke(); for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(mx + s * 10, my, 6, 0, Math.PI * 2); ctx.fill(); } }
+    });
+  }
+  const fieldFig: Figure = { w: 480, h: 290, alt: 'Field of view of onion root tip cells in different stages', draw: drawField };
+  const counts = () => tally(cells);
+  function countRows() { const c = counts(), all = cells.length; return PHASES.map((p) => [NAMES[p], String(c[p]), all ? `${fx((100 * c[p]) / all)} %` : '–', all ? `${fx(phaseHours(c, p), 2)} h` : '–', `${fx(SHARE[p] * CYCLE_H, 2)} h`]); }
+  function updateField() {
+    paint(q<HTMLCanvasElement>('.cdv-field'), fieldFig, pagePalette());
+    const c = counts(), all = cells.length;
+    q('.cdv-mi').textContent = all ? `Mitotic index ${fx(100 * mitoticIndex(c))} % (${all - c.interphase} dividing of ${all} cells, ${looks} field${looks > 1 ? 's' : ''})` : '';
+    const tb = q<HTMLTableElement>('.cdv-count'); tb.innerHTML = '';
+    q<HTMLButtonElement>('.cdv-csv').disabled = !all; q<HTMLButtonElement>('.cdv-reset').disabled = !all;
+    if (!all) return;
+    const hr = tb.createTHead().insertRow(); ['Stage', 'Cells', 'Share', 'Your estimate', 'Model'].forEach((h, j) => { const th = document.createElement('th'); th.textContent = h; if (j) th.className = 'r'; hr.append(th); });
+    const b = tb.createTBody(); countRows().forEach((r) => { const tr = b.insertRow(); r.forEach((x, j) => { const td = tr.insertCell(); td.textContent = x; if (j) td.className = 'r'; }); });
+  }
+
+  // ---------- Check yourself ----------
+  type Qn = { text: string; options?: string[]; answer: string | number; tol?: number; worked: string };
+  let qs: Qn[] = [];
+  const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
+  function makeQuiz() {
+    const n = pick([8, 14, 16, 24, 46]), N = pick([200, 250, 400, 500]), d = pick([20, 25, 30, 40]), r = pick([2, 3, 4, 5]);
+    const concept = pick([
+      { text: 'Which division keeps the chromosome number the same?', options: ['mitosis', 'meiosis'], answer: 'mitosis', worked: 'Mitosis gives two cells with the full 2n set, identical to the parent.' },
+      { text: 'Which division makes gametes (sperm and eggs)?', options: ['mitosis', 'meiosis'], answer: 'meiosis', worked: 'Meiosis halves the number so the zygote gets back to 2n at fertilisation.' },
+      { text: 'In mitosis, in which stage do sister chromatids move apart?', options: ['prophase', 'metaphase', 'anaphase', 'telophase'], answer: 'anaphase', worked: 'In anaphase the centromeres split and spindle fibres pull the chromatids to opposite poles.' },
+      { text: 'In which stage does crossing over happen?', options: ['prophase I', 'metaphase I', 'anaphase II', 'telophase II'], answer: 'prophase I', worked: 'Homologous chromosomes pair up in prophase I and swap pieces.' },
+    ]);
+    qs = [
+      { text: `A body cell has 2n = ${n} chromosomes. How many chromosomes are in each of its gametes?`, answer: n / 2, worked: `Meiosis halves the number: ${n} ÷ 2 = ${n / 2}.` },
+      { text: `In a root tip slide, ${d} of ${N} cells are dividing. What is the mitotic index, in per cent?`, answer: +((100 * d) / N).toFixed(2), tol: 0.05, worked: `${d} ÷ ${N} × 100 = ${fx((100 * d) / N, 1)} %.` },
+      concept,
+    ];
+    if (level === 10) {
+      qs.push({ text: `One cell divides by mitosis, then each new cell divides again, ${r} rounds in all. How many cells are there?`, answer: 2 ** r, worked: `Each round doubles the number: 2^${r} = ${2 ** r}.` });
+    } else {
+      const x = pick([6, 8, 12, 20]), late = pick([true, false]);
+      qs.push({ text: `A G1 cell has ${x} pg of DNA. How much DNA is in ${late ? 'one cell at metaphase of mitosis' : 'one gamete after meiosis'}?`, answer: late ? 2 * x : x / 2, tol: 0.01, worked: late ? `S phase doubled it: 2 × ${x} = ${2 * x} pg (4C).` : `G1 is 2C, a gamete is 1C: ${x} ÷ 2 = ${x / 2} pg.` });
+      const p = pick([3, 4, 5, 10]);
+      qs.push({ text: `An organism has ${p} pairs of chromosomes. How many kinds of gamete can independent assortment make (no crossing over)?`, answer: 2 ** p, worked: `Each pair can face either way: 2^${p} = ${2 ** p}.` });
+    }
+    const ol = q('.cdv-qs'); ol.innerHTML = '';
+    qs.forEach((qq, j) => {
+      const li = document.createElement('li'); li.dataset.a = String(qq.answer);
+      const pp = document.createElement('p'); pp.textContent = qq.text; li.append(pp);
+      if (qq.options) { const s = document.createElement('select'); s.className = 'cdv-ans'; s.setAttribute('aria-label', `Answer ${j + 1}`); s.append(new Option('Choose…', ''), ...qq.options.map((o) => new Option(o, o))); li.append(s); }
+      else { const inp = document.createElement('input'); inp.className = 'cdv-ans'; inp.inputMode = 'decimal'; inp.setAttribute('aria-label', `Answer ${j + 1}`); li.append(inp); }
+      const w = document.createElement('p'); w.className = 'cdv-worked'; w.hidden = true; li.append(w);
+      ol.append(li);
+    });
+    q('.cdv-score').textContent = '';
+  }
+  function checkQuiz() {
+    let right = 0;
+    root.querySelectorAll<HTMLLIElement>('.cdv-qs li').forEach((li, j) => {
+      const qq = qs[j], el = li.querySelector('.cdv-ans') as HTMLInputElement;
+      const ok = qq.options ? el.value === qq.answer : el.value.trim() !== '' && Math.abs(Number(el.value.trim().replace(',', '.').replace('−', '-')) - Number(qq.answer)) <= (qq.tol ?? 0.01);
+      if (ok) right++;
+      const w = li.querySelector<HTMLElement>('.cdv-worked')!; w.hidden = false; w.className = `cdv-worked ${ok ? 'ok' : 'no'}`;
+      w.textContent = `${ok ? '✓ Right.' : '✗ Not quite.'} ${qq.worked}`;
+    });
+    q('.cdv-score').textContent = `${right} of ${qs.length} right.`;
+  }
+
+  // ---------- wiring ----------
+  function seg(sel: string, on: (val: string) => void) {
+    root.querySelectorAll<HTMLButtonElement>(`${sel} button`).forEach((b) => b.addEventListener('click', () => {
+      root.querySelectorAll(`${sel} button`).forEach((o) => o.setAttribute('aria-pressed', String(o === b))); on(b.dataset.v!);
+    }));
+  }
+  function stop() { if (timer) { clearInterval(timer); timer = 0; q('.cdv-play').textContent = 'Play'; } }
+  seg('.cdv-level', (val) => { level = Number(val); update(); makeQuiz(); });
+  seg('.cdv-kind', (val) => { stop(); kind = val as typeof kind; si = 0; update(); });
+  seg('.cdv-n', (val) => { n2 = Number(val); update(); });
+  q('.cdv-xo').addEventListener('change', update);
+  q('.cdv-prev').addEventListener('click', () => { stop(); si = Math.max(0, si - 1); update(); });
+  q('.cdv-next').addEventListener('click', () => { stop(); si = Math.min(stages().length - 1, si + 1); update(); });
+  q('.cdv-play').addEventListener('click', () => {
+    if (timer) { stop(); return; }
+    if (si === stages().length - 1) si = 0;
+    q('.cdv-play').textContent = 'Pause'; update();
+    timer = window.setInterval(() => { if (si >= stages().length - 1) { stop(); return; } si++; update(); }, 1600);
+  });
+  q('.cdv-shuf').addEventListener('click', () => { orient = orient.map(() => rnd() < 0.5); update(); });
+  q('.cdv-look').addEventListener('click', () => { fieldNow = field(60, rnd); cells = cells.concat(fieldNow); looks++; updateField(); });
+  q('.cdv-reset').addEventListener('click', () => { cells = []; fieldNow = []; looks = 0; updateField(); });
+  q('.cdv-csv').addEventListener('click', () => cells.length && save(new TextEncoder().encode(csv([['stage', 'cells', 'share_percent', 'estimated_hours', 'model_hours'], ...PHASES.map((p) => { const c = counts(); return [p, c[p], +((100 * c[p]) / cells.length).toFixed(2), +phaseHours(c, p).toFixed(3), SHARE[p] * CYCLE_H]; })])), 'root-tip-counts.csv', 'text/csv'));
+  q('.cdv-check').addEventListener('click', checkQuiz);
+  q('.cdv-new').addEventListener('click', makeQuiz);
+  document.addEventListener('fibub:theme', () => { update(); updateField(); });
+  update(); updateField(); makeQuiz();
+  wireDownloads(q('.dl'), () => ({
+    title: 'Cell division', subtitle: q('.cdv-big').textContent ?? '', file: 'cell-division',
+    sections: [
+      { title: stages()[si].name, text: [q('.cdv-say').textContent ?? '', q('.cdv-tnote').textContent ?? ''], facts: factList.map(([k, val, s]) => [k, s ? `${val} (${s})` : val] as [string, string]), figure: picture,
+        table: { head: ['Stage', 'Chromosomes', 'DNA', 'Cells'], rows: stages().map((s) => [s.name, String(s.chrom(n2)), `${s.dna}C`, String(kind === 'meiosis' && s.id === 'ana2' ? 2 : s.cells)]), align: ['l', 'r', 'r', 'r'] as ('l' | 'r')[] } },
+      ...(cells.length ? [{ title: 'Onion root tip counts', text: [q('.cdv-mi').textContent ?? ''], figure: fieldFig, table: { head: ['Stage', 'Cells', 'Share', 'Your estimate', 'Model'], rows: countRows(), align: ['l', 'r', 'r', 'r', 'r'] as ('l' | 'r')[] } }] : []),
+    ] as Section[],
+  }));
+</script>
+
+<style is:inline>
+  .cdv .cdv-note { margin: 0; }
+  .cdv .cdv-lab { font-size: 14px; color: var(--muted); min-width: 64px; }
+  .cdv .cdv-gap { margin-top: 12px; }
+  .cdv .ax-seg { flex-wrap: wrap; }
+  .cdv .ax-seg button { min-height: 44px; padding: 8px 12px; }
+  .cdv input[type=checkbox] { width: 22px; height: 22px; }
+  .cdv .ax-check { min-height: 44px; align-items: center; }
+  .cdv .btn.small { min-height: 44px; }
+  .cdv .cdv-strip { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .cdv .cdv-strip button { min-height: 44px; min-width: 52px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; }
+  .cdv .cdv-strip button[aria-pressed=true] { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; }
+  .cdv .cdv-say { margin: 6px 0 12px; }
+  .cdv .cdv-tab tr.on td { font-weight: 700; background: var(--accent-soft); }
+  .cdv .cdv-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .cdv .cdv-qs { padding-left: 20px; display: grid; gap: 14px; margin: 10px 0; }
+  .cdv .cdv-qs p { margin: 0 0 6px; }
+  .cdv .cdv-qs select, .cdv .cdv-qs input { max-width: 240px; min-height: 44px; }
+  .cdv .cdv-worked.ok { color: var(--good); }
+  .cdv .cdv-worked.no { color: var(--bad); }
+  .cdv .cdv-score { font-weight: 700; }
+  .cdv [hidden] { display: none !important; }
+</style>
