@@ -1,0 +1,180 @@
+---
+// Data dictionary generator: column types, missing values, distinct values, range, mean, SD, median, examples and
+// allowed values for a CSV or Excel table, with editable titles, descriptions and units, exported as Markdown, CSV or
+// a Frictionless Table Schema (src/lib/sci/datadict.ts). The file never leaves the page.
+import '../../styles/astro.css';
+import DataFile from '../../components/DataFile.astro';
+---
+<div class="ax ddg">
+  <div class="ax-card">
+    <h2>Your table</h2>
+    <label>Paste a table with column names in the first row, or open a file
+      <textarea class="ddg-in" rows="6" spellcheck="false" autocapitalize="off" wrap="off" placeholder="Copy cells in your spreadsheet and paste them here"></textarea>
+    </label>
+    <DataFile target=".ddg-in" maxMB={20} maxCols={100} maxRows={100000} />
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small ddg-ex">Use the example</button>
+      <button type="button" class="btn secondary small ddg-clear">Clear</button>
+    </div>
+    <div class="ax-grid" style="margin-top:12px">
+      <label>Missing-value codes, comma separated <input class="ddg-miss" type="text" value="NA, N/A, n/a, NaN, nan, null, NULL, None, #N/A" autocapitalize="off" /></label>
+      <label class="ax-check"><input type="checkbox" class="ddg-head" checked /> First row has the column names</label>
+    </div>
+    <p class="ax-help">Empty cells always count as missing. Add codes your data uses, such as -999 or ".". Numbers with leading zeros (007) stay text so the zeros are kept, and dates are read when written as YYYY-MM-DD.</p>
+    <p class="ax-err ddg-err" hidden></p>
+  </div>
+
+  <div class="ax-card ddg-res" hidden>
+    <h2>Dictionary</h2>
+    <p class="ax-big ddg-big"></p>
+    <div class="ax-grid">
+      <label>Dataset name (optional) <input class="ddg-name" type="text" placeholder="Spring bird survey 2025" /></label>
+      <label>About the dataset (optional) <input class="ddg-about" type="text" placeholder="Who collected it, where and how" /></label>
+    </div>
+    <p class="ax-help">Below, give each column a title, a one-line description and its unit. Units are never guessed: only you know whether 12 means metres or feet. Your notes stay on this page; download the dictionary before you leave.</p>
+    <div class="ddg-cols"></div>
+  </div>
+
+  <div class="ax-card ddg-exp" hidden>
+    <h2>Export</h2>
+    <div class="ax-seg ddg-fmt" role="group" aria-label="Export format">
+      <button type="button" data-f="md" aria-pressed="true">Markdown</button>
+      <button type="button" data-f="csv" aria-pressed="false">CSV</button>
+      <button type="button" data-f="json" aria-pressed="false">Table Schema (JSON)</button>
+    </div>
+    <p class="ax-help ddg-fhelp"></p>
+    <textarea class="ddg-out" rows="10" readonly spellcheck="false" wrap="off"></textarea>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn small ddg-copy">Copy</button>
+      <button type="button" class="btn secondary small ddg-dl">Download .md</button>
+      <span class="ax-help ddg-done" style="margin:0" aria-live="polite"></span>
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  .ddg-cols { display: grid; gap: 10px; margin-top: 12px; }
+  .ddg-col { border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: var(--bg); min-width: 0; }
+  .ddg-col h3 { margin: 0 0 8px; font-size: 16px; display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; overflow-wrap: anywhere; }
+  .ddg-col h3 code { font-size: 15px; }
+  .ddg-col .ax-facts dd { font-size: 15px; }
+  .ddg-vals { font-size: 14px; margin: 8px 0 0; overflow-wrap: anywhere; }
+  .ddg-vals b { font-weight: 600; color: var(--muted); }
+  .ddg-note { font-size: 13.5px; color: var(--warn); margin: 6px 0 0; }
+  .ddg-col .ax-grid { margin-top: 10px; }
+  .ddg .ddg-out { font-size: 13px; }
+</style>
+
+<script>
+  import { readTable } from '../../lib/sci/tableconv';
+  import { describe, toMarkdown, toCsv, toSchema, typeText, EXAMPLE, type ColInfo, type Meta } from '../../lib/sci/datadict';
+  import { save } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ddg')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const input = q<HTMLTextAreaElement>('.ddg-in');
+  const EXT = { md: ['md', 'text/markdown'], csv: ['csv', 'text/csv'], json: ['json', 'application/json'] } as const;
+  // Notes typed for each column, kept by column name while the data or settings change.
+  const notes = new Map<string, Meta>();
+  let cols: ColInfo[] = [], nRows = 0, fmt: 'md' | 'csv' | 'json' = 'md', text = '', missingCodes: string[] = [];
+
+  const meta = (name: string): Meta => { let m = notes.get(name); if (!m) { m = { title: '', description: '', unit: '' }; notes.set(name, m); } return m; };
+  // Four significant figures without trailing zeros (9.8, 13.45, 2.515); very large or small numbers in e-notation.
+  const num = (x: number | string | null) => (x == null ? '–' : typeof x === 'number' ? (x !== 0 && (Math.abs(x) >= 1e7 || Math.abs(x) < 1e-4) ? x.toExponential(3).replace(/\.?0+e/, 'e') : String(Number(x.toPrecision(4)))).replace('-', '−') : x);
+
+  function fact(dl: HTMLElement, k: string, v: string) { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; d.append(dt, dd); dl.append(d); }
+
+  function render() {
+    const box = q('.ddg-cols'); box.replaceChildren();
+    for (const c of cols) {
+      const el = document.createElement('section'); el.className = 'ddg-col';
+      const h = document.createElement('h3'); const code = document.createElement('code'); code.textContent = c.name;
+      const pill = document.createElement('span'); pill.className = 'ax-pill'; pill.textContent = typeText(c.type) + (c.allowed ? ', categories' : '');
+      h.append(code, pill);
+      if (c.missing) { const mp = document.createElement('span'); mp.className = 'ax-pill warn'; mp.textContent = `${c.missing} missing`; h.append(mp); }
+      el.append(h);
+      const dl = document.createElement('dl'); dl.className = 'ax-facts';
+      fact(dl, 'Missing', `${c.missing} of ${c.rows} (${c.rows ? Math.round((1000 * c.missing) / c.rows) / 10 : 0} %)`);
+      fact(dl, 'Distinct values', String(c.unique) + (c.allUnique && c.filled > 1 ? ' (all different)' : ''));
+      if (c.type === 'integer' || c.type === 'number') {
+        fact(dl, 'Min to max', `${num(c.min)} to ${num(c.max)}`);
+        fact(dl, 'Mean ± SD', `${num(c.mean)}${c.sd != null ? ' ± ' + num(c.sd) : ''}`);
+        fact(dl, 'Median', num(c.median));
+      } else if (c.type === 'date' || c.type === 'datetime') fact(dl, 'Earliest to latest', `${c.min} to ${c.max}`);
+      else if (c.type === 'string') fact(dl, 'Length', c.minLen === c.maxLen ? `${c.minLen} characters` : `${c.minLen} to ${c.maxLen} characters`);
+      el.append(dl);
+      const v = document.createElement('p'); v.className = 'ddg-vals';
+      const b = document.createElement('b'); b.textContent = c.allowed ? 'Allowed values: ' : c.examples.length ? 'Examples: ' : '';
+      v.append(b, c.allowed ? c.allowed.map(([x, n]) => `${x} (${n})`).join(', ') : c.examples.join(', '));
+      if (c.examples.length) el.append(v);
+      if (c.note) { const n = document.createElement('p'); n.className = 'ddg-note'; n.textContent = c.note; el.append(n); }
+      const g = document.createElement('div'); g.className = 'ax-grid';
+      const m = meta(c.name);
+      for (const [k, label, ph] of [['title', 'Title', 'A readable name'], ['description', 'Description', 'What it is and how it was measured'], ['unit', 'Unit', c.type === 'integer' || c.type === 'number' ? 'e.g. °C, mg/L, count' : 'none']] as const) {
+        const l = document.createElement('label'); l.textContent = label + ' ';
+        const i = document.createElement('input'); i.type = 'text'; i.value = m[k]; i.placeholder = ph; i.dataset.col = c.name; i.dataset.k = k; i.className = `ddg-m-${k}`;
+        i.addEventListener('input', () => { meta(c.name)[k] = i.value; exportText(); });
+        l.append(i); g.append(l);
+      }
+      el.append(g);
+      box.append(el);
+    }
+  }
+
+  function exportText() {
+    if (!cols.length) return;
+    const ms = cols.map((c) => meta(c.name));
+    if (fmt === 'md') text = toMarkdown(cols, ms, { name: q<HTMLInputElement>('.ddg-name').value.trim(), description: q<HTMLInputElement>('.ddg-about').value, rows: nRows });
+    else if (fmt === 'csv') text = toCsv(cols, ms);
+    else text = JSON.stringify(toSchema(cols, ms, missingCodes), null, 2) + '\n';
+    q<HTMLTextAreaElement>('.ddg-out').value = text;
+    q('.ddg-dl').textContent = `Download .${EXT[fmt][0]}`;
+    q('.ddg-fhelp').textContent = fmt === 'md' ? 'A table for a README, a lab wiki or a data paper.' : fmt === 'csv' ? 'One row per column, to open in a spreadsheet or deposit with the data.' : 'A Frictionless Table Schema: names, types, descriptions, the missing-value codes and constraints (required, unique, allowed values, minimum and maximum). Repositories and the Frictionless tools can check the data against it.';
+  }
+
+  function run() {
+    q('.ddg-err').hidden = true; q('.ddg-done').textContent = '';
+    const fail = (m: string) => { q('.ddg-err').textContent = m; q('.ddg-err').hidden = false; q('.ddg-res').hidden = true; q('.ddg-exp').hidden = true; cols = []; };
+    if (!input.value.trim()) return fail('Paste a table or open a file first.');
+    const { rows } = readTable(input.value);
+    if (!rows.length) return fail('No cells found.');
+    if (rows.length > 100001) return fail('That is more than 100,000 rows; save a smaller part of the file.');
+    const head = q<HTMLInputElement>('.ddg-head').checked;
+    if (head && rows.length < 2) return fail('There is only one row. Untick "First row has the column names" if it is data, or add rows.');
+    missingCodes = q<HTMLInputElement>('.ddg-miss').value.split(',').map((s) => s.trim()).filter(Boolean);
+    const names = head ? rows[0] : rows[0].map(() => '');
+    const body = head ? rows.slice(1) : rows;
+    nRows = body.length;
+    cols = describe(names, body, missingCodes);
+    const nMiss = cols.reduce((a, c) => a + c.missing, 0);
+    q('.ddg-big').textContent = `${nRows.toLocaleString('en')} rows, ${cols.length} columns, ${nMiss.toLocaleString('en')} missing cell${nMiss === 1 ? '' : 's'}`;
+    q('.ddg-res').hidden = false; q('.ddg-exp').hidden = false;
+    render(); exportText();
+  }
+
+  let timer = 0;
+  input.addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(run, 200); });
+  q('.ddg-miss').addEventListener('input', () => { clearTimeout(timer); timer = window.setTimeout(run, 300); });
+  q('.ddg-head').addEventListener('change', run);
+  for (const c of ['.ddg-name', '.ddg-about']) q(c).addEventListener('input', exportText);
+  root.querySelectorAll<HTMLButtonElement>('.ddg-fmt button').forEach((b) => b.addEventListener('click', () => {
+    fmt = b.dataset.f as typeof fmt;
+    root.querySelectorAll<HTMLButtonElement>('.ddg-fmt button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    exportText();
+  }));
+  q('.ddg-ex').addEventListener('click', () => { input.value = EXAMPLE; q<HTMLInputElement>('.ddg-head').checked = true; run(); });
+  q('.ddg-clear').addEventListener('click', () => { input.value = ''; notes.clear(); run(); input.focus(); });
+  q('.ddg-copy').addEventListener('click', async () => {
+    let ok = true;
+    try { await navigator.clipboard.writeText(text); } catch { ok = false; q<HTMLTextAreaElement>('.ddg-out').select(); }
+    q('.ddg-done').textContent = ok ? 'Copied.' : 'Your browser blocked copying; the text is selected, press Ctrl+C (⌘+C).';
+  });
+  q('.ddg-dl').addEventListener('click', () => {
+    if (!text) return;
+    const nm = (q<HTMLInputElement>('.ddg-name').value.trim().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '') || 'data').slice(0, 50);
+    save(new Blob([fmt === 'csv' ? '\ufeff' + text : text], { type: EXT[fmt][1] }), fmt === 'json' ? `${nm}.schema.json` : `${nm}-dictionary.${EXT[fmt][0]}`, EXT[fmt][1]);
+  });
+
+  input.value = EXAMPLE;
+  run();
+</script>
