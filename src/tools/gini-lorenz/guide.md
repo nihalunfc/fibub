@@ -11,7 +11,7 @@ order: 742
 icon: chart
 works: offline
 updated: 2026-11-09
-related: [biodiversity-indices, data-cleaner, plot-maker, sample-size]
+related: [biodiversity-indices, data-cleaner, plot-maker, sample-size, supply-demand]
 sources:
   - "Standard definitions: Lorenz (1905) curve, Gini (1912) coefficient, Theil (1967) indices, Atkinson (1970) index, Palma ratio as in Cobham and Sumner (2013). No tables copied."
   - "Written by fibub. Checked in the tests against an independent NumPy calculation (Gini from the weighted mean absolute difference over all pairs, shares by interpolation, Theil and Atkinson from their definitions) on made-up, random weighted and grouped data."

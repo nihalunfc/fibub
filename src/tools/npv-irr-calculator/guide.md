@@ -11,7 +11,7 @@ order: 743
 icon: calculator
 works: offline
 updated: 2026-11-09
-related: [loan-payoff-planner, budget-calculator, currency-converter, uncertainty-calculator]
+related: [loan-payoff-planner, budget-calculator, currency-converter, uncertainty-calculator, inflation-calculator]
 sources:
   - "Standard capital budgeting formulas (discounted cash flow, internal rate of return, modified IRR, payback, profitability index, equivalent annual annuity) as in corporate finance textbooks. No tables copied."
   - "Written by fibub. Checked in the tests against numpy-financial 1.1 (npv, irr, mirr), every IRR against the real roots of the cash-flow polynomial from numpy.roots, and payback against numpy.cumsum."
