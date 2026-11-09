@@ -1,0 +1,172 @@
+---
+// FFT workbench: windowed amplitude and power spectra, peaks, brick-wall FFT filtering. Example signal made up.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { rng, gauss } from '../../lib/sci/eng-fft';
+// Made-up example: 1 s at 1000 samples per second, an offset of 0.2, a 50 Hz sine of amplitude 1, a 120 Hz sine of
+// 0.5 and random noise (standard deviation 0.3, fixed seed so the page always shows the same numbers).
+const g = gauss(rng(628));
+const demo = 'time (s)\tvoltage (V)\n' + Array.from({ length: 1000 }, (_, i) => { const t = i / 1000; return `${t.toFixed(3)}\t${(0.2 + Math.sin(2 * Math.PI * 50 * t) + 0.5 * Math.sin(2 * Math.PI * 120 * t) + 0.3 * g()).toFixed(4)}`; }).join('\n');
+---
+<div class="ax ffw">
+  <div class="ax-card">
+    <h2>Signal</h2>
+    <label>Time and value, or values only <textarea class="fw-data" rows="8" spellcheck="false">{demo}</textarea></label>
+    <DataFile target=".fw-data" maxCols={20} maxRows={200000} label="Open a file" />
+    <p class="ax-help">Two columns (time in seconds, value) or one column of values. Samples must be evenly spaced. A first row of names is fine; rows without a number are skipped. The example is made up: 50 Hz and 120 Hz sines plus noise. Up to 200,000 values.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Columns <select class="fw-mode"><option value="auto" selected>Work it out</option><option value="time">First column is time</option><option value="values">Values only (give the sample rate)</option></select></label>
+      <label>Value column <select class="fw-col"><option value="-1" selected>Second (or only)</option><option value="2">Third</option><option value="3">Fourth</option></select></label>
+      <label>Sample rate (Hz), for values only <input class="fw-fs" type="text" inputmode="decimal" value="1000" /></label>
+      <label>Value unit (for labels) <input class="fw-unit" type="text" value="V" /></label>
+    </div>
+    <p class="ax-err fw-err" hidden></p>
+  </div>
+
+  <div class="ax-card fw-out">
+    <h2>Spectrum</h2>
+    <div class="ax-grid">
+      <label>Window <select class="fw-win"><option value="hann" selected>Hann (good all-round)</option><option value="hamming">Hamming</option><option value="blackman">Blackman (low leakage)</option><option value="rect">Rectangular (none)</option></select></label>
+      <label>Show <select class="fw-show"><option value="amp" selected>Amplitude</option><option value="db">Amplitude in dB</option><option value="psd">Power spectral density (dB)</option><option value="pow">Power spectrum</option></select></label>
+      <label>Zero padding <select class="fw-pad"><option value="1" selected>None</option><option value="p2">Up to a power of 2</option><option value="2">2 × length</option><option value="4">4 × length</option><option value="8">8 × length</option></select></label>
+      <label>Peaks to list <select class="fw-np"><option>3</option><option selected>5</option><option>10</option><option>20</option></select></label>
+      <label>Highest frequency shown (Hz, blank = all) <input class="fw-fmax" type="text" inputmode="decimal" value="" /></label>
+      <label class="ax-check" style="align-self:end"><input class="fw-dc" type="checkbox" checked /> Remove the mean first</label>
+    </div>
+    <p class="ax-help">A window tapers the ends of the record so a tone that does not fit a whole number of cycles leaks less into other frequencies. Zero padding draws a smoother curve but does not separate tones that are closer than the resolution. Removing the mean hides the 0 Hz (DC) bar so the rest of the spectrum is easier to read.</p>
+    <p class="ax-big fw-big"></p>
+    <dl class="ax-facts fw-facts"></dl>
+    <canvas class="ax-fig fw-sfig" style="margin-top:12px"></canvas>
+    <h3 style="margin:14px 0 6px">Peaks</h3>
+    <div class="ax-scroll"><table class="fw-peaks"></table></div>
+    <p class="ax-help">Peak frequency and amplitude are refined between bins with a parabola through the log amplitude of the highest bin and its two neighbours. Amplitude is the height of a sine (half its peak-to-peak), corrected for the window.</p>
+  </div>
+
+  <div class="ax-card fw-out">
+    <h2>Filter and back to time</h2>
+    <div class="ax-grid">
+      <label>FFT filter <select class="fw-ft"><option value="none">None</option><option value="low" selected>Low-pass</option><option value="high">High-pass</option><option value="band">Band-pass</option><option value="stop">Band-stop</option></select></label>
+      <label class="fw-f1b">Cut-off (Hz) <input class="fw-f1" type="text" inputmode="decimal" value="80" /></label>
+      <label class="fw-f2b" hidden>Upper edge (Hz) <input class="fw-f2" type="text" inputmode="decimal" value="150" /></label>
+      <label>Time shown <select class="fw-tshow"><option value="1">Whole record</option><option value="0.5">First half</option><option value="0.1" selected>First tenth</option><option value="0.02">First fiftieth</option></select></label>
+    </div>
+    <p class="ax-help">The whole signal is transformed (no window), every frequency outside the pass band is set to zero, and the inverse FFT gives the filtered signal. This "brick-wall" filter is exact for the frequencies it keeps but can ring near sudden jumps, and the signal is treated as if it repeats end to end. For a filter you can run on live data, design one with the FIR/IIR filter designer.</p>
+    <dl class="ax-facts fw-ffacts"></dl>
+    <canvas class="ax-fig fw-tfig" style="margin-top:12px"></canvas>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn secondary small fw-scsv">Download spectrum (CSV)</button>
+      <button type="button" class="btn secondary small fw-tcsv">Download filtered signal (CSV)</button>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { spectrum, findPeaks, fftFilter, parseSignal, envelope, nextPow2, WINDOWS, type WindowName, type FilterKind, type Spectrum } from '../../lib/sci/eng-fft';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure, type Section } from '../../lib/report';
+  import { num, parseTable, sig, csv } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.ffw')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const val = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sg = (x: number, d = 4) => { const t = sig(x, d); return /^-?[\d.]+$/.test(t) ? String(parseFloat(t)) : t; };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const factPairs = (els: HTMLElement[]) => els.map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.childNodes[0].textContent! + (d.querySelector('small') ? ` (${d.querySelector('small')!.textContent})` : '')] as [string, string]);
+  let figs: Figure[] = [], report: Section[] = [], specRows: (string | number)[][] = [], timeRows: (string | number)[][] = [];
+
+  function calc() {
+    const err = q('.fw-err'), outs = root.querySelectorAll<HTMLElement>('.fw-out');
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; outs.forEach((o) => (o.hidden = true)); report = []; };
+    const mode = sel('.fw-mode') as 'auto' | 'time' | 'values', fsIn = val('.fw-fs');
+    const rows = parseTable(q<HTMLTextAreaElement>('.fw-data').value);
+    if (mode === 'values' && !(fsIn > 0)) return fail('Give the sample rate in Hz (samples per second).');
+    const col = +sel('.fw-col');
+    const s = parseSignal(rows, num, mode, fsIn > 0 ? fsIn : 1, mode === 'values' ? (col < 0 ? 0 : col - 1) : col);
+    const n = s.x.length;
+    if (n > 200000) return fail(`The signal has ${n.toLocaleString('en')} values; the limit is 200,000.`);
+    if (n < 8) return fail('Give at least 8 values.');
+    if (!(s.fs > 0) || !Number.isFinite(s.fs)) return fail('The times must increase from one row to the next.');
+    if (s.fromTime && s.jitter > 0.01) return fail(`The time steps are uneven (one differs from the usual step by ${sg(s.jitter * 100, 3)} %). An FFT needs evenly spaced samples: fill gaps or resample first. For uneven times, use the period finder (Lomb-Scargle).`);
+    if (s.x.every((v) => v === s.x[0])) return fail('All the values are the same, so there is nothing to analyse.');
+    err.hidden = true; outs.forEach((o) => (o.hidden = false));
+    const unit = q<HTMLInputElement>('.fw-unit').value.trim(), u = unit ? ` ${unit}` : '';
+    const win = sel('.fw-win') as WindowName, padSel = sel('.fw-pad');
+    const nfft = padSel === '1' ? n : padSel === 'p2' ? nextPow2(n) : n * +padSel;
+    const S: Spectrum = spectrum(s.x, s.fs, win, { detrend: q<HTMLInputElement>('.fw-dc').checked, nfft });
+    const peaks = findPeaks(S, +sel('.fw-np'));
+    const show = sel('.fw-show');
+    const fmaxIn = val('.fw-fmax'), fmax = fmaxIn > 0 ? Math.min(fmaxIn, s.fs / 2) : s.fs / 2;
+    const yOf = (k: number) => show === 'amp' ? S.amp[k] : show === 'db' ? 20 * Math.log10(Math.max(S.amp[k], 1e-300)) : show === 'psd' ? 10 * Math.log10(Math.max(S.psd[k], 1e-300)) : S.pow[k];
+    const yLab = show === 'amp' ? `Amplitude${unit ? ` (${unit})` : ''}` : show === 'db' ? `Amplitude (dB re 1${u})` : show === 'psd' ? `PSD (dB re 1${unit ? ` ${unit}²` : ''}/Hz)` : `Power${unit ? ` (${unit}²)` : ''}`;
+    const top = peaks[0];
+    q('.fw-big').textContent = top ? `Strongest peak ${sg(top.f, 5)} Hz, amplitude ${sg(top.amp, 3)}${u}` : 'No peaks found';
+    const tSpan = n / s.fs;
+    const facts = [
+      fact('Samples', n.toLocaleString('en'), `${sg(tSpan, 4)} s long${s.skipped ? `; ${s.skipped} row${s.skipped === 1 ? '' : 's'} skipped` : ''}`),
+      fact('Sample rate', `${sg(s.fs, 6)} Hz`, s.fromTime ? 'from the time column (1 / time step)' : 'as typed'),
+      fact('Nyquist frequency', `${sg(s.fs / 2, 6)} Hz`, 'the highest frequency the samples can show (half the sample rate)'),
+      fact('Resolution', `${sg(s.fs / n, 4)} Hz`, `1 / record length; bins every ${sg(S.df, 4)} Hz${nfft > n ? ` after padding to ${nfft.toLocaleString('en')} points` : ''}`),
+      fact('Window', WINDOWS[win], `noise bandwidth ${sg(S.enbw, 4)} bins, coherent gain ${sg(S.cg, 4)}`),
+      fact('Mean (DC)', `${sg(S.mean, 4)}${u}`, q<HTMLInputElement>('.fw-dc').checked ? 'removed before the FFT' : 'kept in the 0 Hz bin'),
+    ];
+    q('.fw-facts').replaceChildren(...facts);
+    const ks: number[] = []; for (let k = 0; k < S.f.length && S.f[k] <= fmax + 1e-12; k++) ks.push(k);
+    const fx = ks.map((k) => S.f[k]), fy = ks.map(yOf), env = envelope(fx, fy, 900);
+    const showLab = { amp: 'amplitude', db: 'amplitude in dB', psd: 'power spectral density', pow: 'power' }[show];
+    const sFig = chartFigure({ w: 380, h: 240, xLabel: 'Frequency (Hz)', yLabel: yLab, legend: 'none', xMin: 0, xMax: fmax, series: [
+      { name: showLab!, x: env.x, y: env.y, mode: 'line', width: 1.2 },
+      { name: 'Peaks', x: peaks.filter((p) => p.f <= fmax).slice(0, 5).map((p) => p.f), y: peaks.filter((p) => p.f <= fmax).slice(0, 5).map((p) => yOf(p.k)), mode: 'points', size: 3, labels: peaks.filter((p) => p.f <= fmax).slice(0, 5).map((p) => sg(p.f, 4)) },
+    ] }, `Spectrum (${showLab}) with a ${WINDOWS[win]} window; ${q('.fw-big').textContent}`);
+    paint(q<HTMLCanvasElement>('.fw-sfig'), sFig);
+    const head = ['#', 'Frequency (Hz)', `Amplitude${unit ? ` (${unit})` : ''}`, 'dB', 'Period (s)'];
+    const prow = peaks.map((p, i) => [String(i + 1), sg(p.f, 6), sg(p.amp, 4), (p.db).toFixed(1), sg(1 / p.f, 4)]);
+    const tab = q<HTMLTableElement>('.fw-peaks'); tab.replaceChildren();
+    const tr = (cells: string[], th = false) => { const r = document.createElement('tr'); cells.forEach((c, j) => { const e = document.createElement(th ? 'th' : 'td'); e.textContent = c; if (j) e.className = 'r'; r.append(e); }); return r; };
+    tab.append(tr(head, true), ...prow.map((r) => tr(r)));
+    specRows = [['frequency_Hz', `amplitude${unit ? `_${unit}` : ''}`, 'amplitude_dB', `psd${unit ? `_${unit}2` : ''}_per_Hz`, `power${unit ? `_${unit}2` : ''}`], ...Array.from(S.f, (f, k) => [+f.toPrecision(10), +S.amp[k].toPrecision(8), +(20 * Math.log10(Math.max(S.amp[k], 1e-300))).toFixed(3), +S.psd[k].toPrecision(8), +S.pow[k].toPrecision(8)])];
+
+    // Filter.
+    const ft = sel('.fw-ft') as FilterKind, two = ft === 'band' || ft === 'stop';
+    q('.fw-f1b').hidden = ft === 'none'; q('.fw-f2b').hidden = !two;
+    q('.fw-f1b').firstChild!.textContent = two ? 'Lower edge (Hz) ' : 'Cut-off (Hz) ';
+    let f1 = val('.fw-f1'), f2 = val('.fw-f2'), fNote = '';
+    if (ft !== 'none' && !(f1 >= 0 && f1 <= s.fs / 2)) { fNote = `Give a cut-off between 0 and ${sg(s.fs / 2, 6)} Hz (the Nyquist frequency).`; }
+    else if (two && !(f2 > f1 && f2 <= s.fs / 2)) { fNote = `Give an upper edge above the lower edge and at most ${sg(s.fs / 2, 6)} Hz.`; }
+    const y = fNote ? Float64Array.from(s.x) : fftFilter(s.x, s.fs, ft, f1, f2);
+    const rms = (a: ArrayLike<number>) => { let m = 0, v = 0; for (let i = 0; i < a.length; i++) m += a[i]; m /= a.length; for (let i = 0; i < a.length; i++) v += (a[i] - m) ** 2; return Math.sqrt(v / a.length); };
+    const fdesc = ft === 'none' ? 'no filter' : ft === 'low' ? `low-pass, keeps 0 to ${sg(f1, 5)} Hz` : ft === 'high' ? `high-pass, keeps ${sg(f1, 5)} Hz and up` : ft === 'band' ? `band-pass, keeps ${sg(f1, 5)} to ${sg(f2, 5)} Hz` : `band-stop, removes ${sg(f1, 5)} to ${sg(f2, 5)} Hz`;
+    const ff = [
+      fact('Filter', fNote ? 'not applied' : fdesc, fNote || 'brick-wall in the frequency domain'),
+      fact('Spread (standard deviation)', `${sg(rms(s.x), 4)}${u} → ${sg(rms(y), 4)}${u}`, 'before and after filtering'),
+    ];
+    q('.fw-ffacts').replaceChildren(...ff);
+    const nShow = Math.max(8, Math.ceil(n * +sel('.fw-tshow')));
+    const e1 = envelope(s.t.slice(0, nShow), s.x.slice(0, nShow), 700), e2 = envelope(s.t.slice(0, nShow), y.slice(0, nShow), 700);
+    const tFig = chartFigure({ w: 380, h: 240, xLabel: 'Time (s)', yLabel: unit ? `Value (${unit})` : 'Value', legend: 'below', series: [
+      { name: 'Signal', x: e1.x, y: e1.y, mode: 'line', width: 0.9 },
+      ...(ft === 'none' || fNote ? [] : [{ name: 'Filtered', x: e2.x, y: e2.y, mode: 'line' as const, width: 1.6 }]),
+    ] }, `Signal over time${ft === 'none' || fNote ? '' : ' with the filtered signal'}`);
+    paint(q<HTMLCanvasElement>('.fw-tfig'), tFig);
+    timeRows = [['time_s', 'value', 'filtered'], ...s.t.map((t, i) => [+t.toPrecision(10), s.x[i], +y[i].toPrecision(10)])];
+    figs = [sFig, tFig];
+    report = [
+      { title: q('.fw-big').textContent!, facts: factPairs(facts), figure: sFig, table: { head, rows: prow, align: ['l', 'r', 'r', 'r', 'r'] } },
+      { title: 'Filter and back to time', facts: factPairs(ff), figure: tFig },
+    ];
+  }
+
+  root.querySelectorAll('input, textarea, select').forEach((i) => { i.addEventListener('input', calc); i.addEventListener('change', calc); });
+  document.addEventListener('fibub:theme', () => { if (report.length) { paint(q<HTMLCanvasElement>('.fw-sfig'), figs[0]); paint(q<HTMLCanvasElement>('.fw-tfig'), figs[1]); } });
+  q('.fw-scsv').addEventListener('click', () => save(new Blob([csv(specRows)], { type: 'text/csv' }), 'fft-spectrum.csv', 'text/csv'));
+  q('.fw-tcsv').addEventListener('click', () => save(new Blob([csv(timeRows)], { type: 'text/csv' }), 'fft-filtered-signal.csv', 'text/csv'));
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'FFT spectrum', subtitle: q('.fw-big').textContent ?? '', file: 'fft-spectrum', sections: report }));
+</script>
+
+<style is:global>
+  .ffw select, .ffw input { max-width: 100%; }
+  .ffw textarea { width: 100%; }
+</style>
