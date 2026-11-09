@@ -1,0 +1,323 @@
+---
+// Distribution explorer: density or mass, CDF, shaded probabilities, quantiles, moments and seeded samples for 35 distributions.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { DISTS } from '../../lib/sci/distributions';
+const groups = ['Continuous', 'Discrete'] as const;
+---
+<div class="ax dx">
+  <div class="ax-card">
+    <h2>Distribution</h2>
+    <div class="ax-grid">
+      <label class="dx-pick">Distribution <select class="dx-d">
+        {groups.map((g) => <optgroup label={g}>{DISTS.filter((d) => d.group === g).map((d) => <option value={d.id} selected={d.id === 'normal'}>{d.name}</option>)}</optgroup>)}
+      </select></label>
+    </div>
+    <p class="ax-help dx-about"></p>
+    <div class="ax-grid dx-params" style="margin-top:10px"></div>
+    <p class="ax-help dx-scipy"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Probability and quantiles</h2>
+    <div class="ax-grid">
+      <label>Shade <select class="dx-r">
+        <option value="between">Between a and b</option>
+        <option value="below">Below b (left tail)</option>
+        <option value="above">Above a (right tail)</option>
+        <option value="outside">Outside a to b (both tails)</option>
+      </select></label>
+      <label>a <input class="dx-a" inputmode="decimal" value="-1.96" /></label>
+      <label>b <input class="dx-b" inputmode="decimal" value="1.96" /></label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="dx-wide">Quantiles for probabilities <input class="dx-q" inputmode="decimal" value="0.025, 0.5, 0.975" /></label>
+      <label>Plot from <input class="dx-x0" inputmode="decimal" placeholder="auto" /></label>
+      <label>Plot to <input class="dx-x1" inputmode="decimal" placeholder="auto" /></label>
+    </div>
+    <p class="ax-help">For whole-number distributions the end points count: “between” is P(a ≤ X ≤ b), “above” is P(X ≥ a). A quantile is the value x with P(X ≤ x) = p; for whole numbers it is the smallest k with P(X ≤ k) ≥ p.</p>
+    <p class="ax-err dx-err" hidden></p>
+  </div>
+
+  <div class="ax-card dx-out">
+    <h2>Result</h2>
+    <p class="ax-big dx-big"></p>
+    <dl class="ax-facts dx-facts"></dl>
+    <canvas class="ax-fig dx-pdf" style="margin-top:14px"></canvas>
+    <canvas class="ax-fig dx-cdf" style="margin-top:10px"></canvas>
+    <h3 style="margin:14px 0 6px;font-size:15px">Quantiles</h3>
+    <div class="ax-scroll"><table class="dx-qt"></table></div>
+    <div class="ax-row" style="margin-top:12px">
+      <button type="button" class="btn secondary small dx-ccsv">Curve CSV</button>
+    </div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card">
+    <h2>Random sample</h2>
+    <div class="ax-grid">
+      <label>How many <input class="dx-n" inputmode="numeric" value="1000" /></label>
+      <label>Seed <input class="dx-seed" inputmode="numeric" value="1" /></label>
+    </div>
+    <p class="ax-help">The same seed always gives the same numbers, so a class or a report can repeat them. Up to 100,000 values.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small dx-draw">Draw sample</button>
+      <button type="button" class="btn secondary small dx-scsv" hidden>Sample CSV</button>
+    </div>
+    <p class="ax-err dx-serr" hidden></p>
+    <div class="dx-sout" hidden>
+      <dl class="ax-facts dx-sfacts" style="margin-top:12px"></dl>
+      <canvas class="ax-fig dx-hist" style="margin-top:14px"></canvas>
+    </div>
+  </div>
+</div>
+
+<style>
+  .dx .dx-wide { grid-column: span 2; }
+  @media (max-width: 400px) { .dx .dx-wide { grid-column: auto; } }
+  .dx .dx-ph { font-size: 12.5px; color: var(--muted); }
+</style>
+
+<script>
+  import { num, sig, csv, fmtExp } from '../../lib/sci/num';
+  import { DIST, defaults, validate, quantile, regionProb, sample, plotRange, type Dist, type Params, type Region } from '../../lib/sci/distributions';
+  import { drawChart, canvasPainter, OKABE_ITO, type Chart } from '../../lib/sci/plot';
+  import { paint, save, wireDownloads, type Section, type Figure, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.dx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  let d: Dist = DIST.normal, P: Params = defaults(d);
+  let figs: { pdf?: Figure; cdf?: Figure; hist?: Figure } = {}, report: Section[] = [], curve: (string | number)[][] = [], drawn: number[] = [];
+
+  /** A probability to 6 significant figures; very small ones in powers of ten, ones near 1 as 1 − a small number. */
+  const fmtP = (v: number): string => (v === 0 ? '0' : v === 1 ? '1' : v < 1e-4 ? fmtExp(v, 5) : v > 0.9999 ? `1 − ${fmtP(1 - v)}` : String(Number(v.toPrecision(6))));
+  /** A number to n significant figures without trailing zeros (powers of ten when very large or small). */
+  const g = (v: number, n = 6) => (!Number.isFinite(v) || v === 0 ? sig(v) : Math.abs(v) >= 1e6 || Math.abs(v) < 1e-4 ? fmtExp(v, n) : String(Number(v.toPrecision(n))).replace('-', '−'));
+  const fx = (v: number) => (d.discrete && Number.isFinite(v) && Math.abs(v) < 1e15 ? String(v).replace('-', '−') : g(v));
+  const mom = (v: number) => (Number.isNaN(v) ? 'undefined' : v === Infinity ? 'infinite' : g(v));
+
+  function buildParams(keep = false) {
+    const box = q('.dx-params');
+    const old = keep ? P : null;
+    P = defaults(d);
+    box.replaceChildren(...d.params.map((pd) => {
+      const l = document.createElement('label');
+      l.textContent = pd.label + ' ';
+      const i = document.createElement('input');
+      i.className = 'dx-p'; i.dataset.k = pd.k; i.inputMode = 'decimal'; i.value = String(old?.[pd.k] ?? pd.def);
+      const h = document.createElement('span'); h.className = 'dx-ph'; h.textContent = pd.help;
+      l.append(i, h);
+      return l;
+    }));
+    q('.dx-about').textContent = d.about;
+    q('.dx-scipy').textContent = `Same as scipy.stats.${d.scipy}.`;
+  }
+  function readParams(): Params {
+    const p: Params = {};
+    root.querySelectorAll<HTMLInputElement>('.dx-p').forEach((i) => { p[i.dataset.k!] = num(i.value); });
+    return p;
+  }
+  /** Round a suggested bound to 3 significant figures (whole numbers for counts). */
+  const nice = (v: number) => (d.discrete ? Math.round(v) : Number(v.toPrecision(3)));
+  function suggestBounds() {
+    const p = readParams();
+    if (validate(d, p)) return;
+    let a = quantile(d, p, 0.025), b = quantile(d, p, 0.975);
+    if (d.discrete) { a = Math.max(a, d.support(p)[0]); }
+    inp('.dx-a').value = String(nice(a)).replace('-', '−');
+    inp('.dx-b').value = String(nice(b)).replace('-', '−');
+  }
+
+  function regionText(r: Region, a: number, b: number) {
+    const A = fx(a), B = fx(b), lt = d.discrete ? '≤' : '<';
+    return r === 'between' ? `P(${A} ${lt} X ${lt} ${B})` : r === 'below' ? `P(X ${lt} ${B})` : r === 'above' ? `P(X ${d.discrete ? '≥' : '>'} ${A})` : `P(X ${d.discrete ? '<' : '<'} ${A} or X > ${B})`;
+  }
+  const inRegion = (x: number, r: Region, a: number, b: number) => (r === 'between' ? x >= a && x <= b : r === 'below' ? x <= b : r === 'above' ? x >= a : x <= a || x >= b);
+
+  function colorsFor(pal: Palette) { return pal.red ? ['#a30000', '#7a0000'] : pal.bg === '#ffffff' ? OKABE_ITO : ['#56B4E9', '#E69F00']; }
+  /** The density (or mass) chart with the chosen region shaded. */
+  function pdfFigure(p: Params, lo: number, hi: number, r: Region, a: number, b: number): Figure {
+    const xs: number[] = [], ys: number[] = [];
+    if (d.discrete) { for (let k = Math.ceil(lo); k <= hi; k++) { xs.push(k); ys.push(d.pdf(k, p)); } }
+    else { const n = 400; for (let i = 0; i <= n; i++) { const x = lo + ((hi - lo) * i) / n; xs.push(x); ys.push(d.pdf(x, p)); } }
+    const fin = ys.filter((v) => Number.isFinite(v)).sort((u, v) => u - v);
+    let yMax = fin[fin.length - 1] || 1;
+    const p95 = fin[Math.floor(fin.length * 0.95)] ?? yMax;
+    if (yMax > 3 * p95 && !d.discrete) yMax = 3 * p95; // a density that runs to infinity at an edge
+    if (!fin.length || !Number.isFinite(yMax) || yMax <= 0) yMax = 1;
+    const chart = (pal: Palette, W: number, H: number): Chart => ({
+      w: W, h: H, xLabel: 'x', yLabel: d.discrete ? 'P(X = k)' : 'Density f(x)', legend: 'none', xMin: lo, xMax: hi, yMin: 0, yMax: yMax * 1.05,
+      series: [{ name: '', x: xs, y: ys.map((v) => Math.min(v, yMax * 1.05)), mode: d.discrete ? 'points' : 'line', marker: 'none' }],
+      ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: null, colors: colorsFor(pal),
+    });
+    return {
+      w: figW(), h: Math.round(figW() * 0.47), alt: `${d.discrete ? 'Probability mass' : 'Density'} of the ${d.name} distribution, with ${regionText(r, a, b)} shaded`,
+      draw: (ctx, W, H, pal) => {
+        const Pn = canvasPainter(ctx), c = chart(pal, W, H), m = drawChart(Pn, c), col = colorsFor(pal)[0], dim = pal.muted;
+        Pn.clip(m.px0, m.py0, m.px1 - m.px0, m.py1 - m.py0);
+        const yc = (v: number) => m.Y(Math.min(Number.isFinite(v) ? v : yMax * 1.05, yMax * 1.05));
+        if (d.discrete) {
+          const step = xs.length > 1 ? Math.abs(m.X(xs[1]) - m.X(xs[0])) : 40, wBar = Math.max(1, Math.min(14, step * 0.6));
+          xs.forEach((k, i) => { const hit = inRegion(k, r, a, b); Pn.line([[m.X(k), m.Y(0)], [m.X(k), yc(ys[i])]], hit ? col : dim, wBar); });
+        } else {
+          ctx.save(); ctx.globalAlpha = 0.28;
+          const pieces: [number, number][] = r === 'between' ? [[a, b]] : r === 'below' ? [[lo, b]] : r === 'above' ? [[a, hi]] : [[lo, a], [b, hi]];
+          for (const [u0, u1] of pieces) {
+            const s = Math.max(lo, u0), e = Math.min(hi, u1);
+            if (!(e > s)) continue;
+            const pts: [number, number][] = [[m.X(s), m.Y(0)]];
+            for (let i = 0; i <= 200; i++) { const x = s + ((e - s) * i) / 200; pts.push([m.X(x), yc(d.pdf(x, p))]); }
+            pts.push([m.X(e), m.Y(0)]);
+            Pn.poly(pts, col, null);
+          }
+          ctx.restore();
+          const curvePts: [number, number][] = xs.map((x, i) => [m.X(x), yc(ys[i])]);
+          Pn.line(curvePts, col, 2);
+        }
+        Pn.unclip();
+      },
+    };
+  }
+  function cdfFigure(p: Params, lo: number, hi: number, a: number, b: number, r: Region): Figure {
+    const xs: number[] = [], ys: number[] = [];
+    if (d.discrete) {
+      let F = d.cdf(Math.ceil(lo) - 1, p);
+      xs.push(lo - 0.5); ys.push(F);
+      for (let k = Math.ceil(lo); k <= hi; k++) { xs.push(k); ys.push(F); F = d.cdf(k, p); xs.push(k); ys.push(F); }
+      xs.push(hi + 0.5); ys.push(F);
+    } else for (let i = 0; i <= 300; i++) { const x = lo + ((hi - lo) * i) / 300; xs.push(x); ys.push(d.cdf(x, p)); }
+    const marks: Chart['marks'] = [];
+    if (r !== 'below') marks.push({ kind: 'vline', at: a, label: 'a' });
+    if (r !== 'above') marks.push({ kind: 'vline', at: b, label: 'b' });
+    return {
+      w: figW(), h: Math.round(figW() * 0.36), alt: `Cumulative distribution of the ${d.name} distribution`,
+      draw: (ctx, W, H, pal) => { drawChart(canvasPainter(ctx), { w: W, h: H, xLabel: 'x', yLabel: 'P(X ≤ x)', legend: 'none', xMin: d.discrete ? lo - 0.5 : lo, xMax: d.discrete ? hi + 0.5 : hi, yMin: 0, yMax: 1, series: [{ name: '', x: xs, y: ys, mode: 'line' }], marks, ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: null, colors: colorsFor(pal) }); },
+    };
+  }
+  /** Figure width: the card's width on phones (so the labels stay readable), 720 on computers. */
+  const figW = () => Math.round(Math.min(720, Math.max(380, q('.dx-out').clientWidth || 720)));
+  const facts = (el: HTMLElement, rows: [string, string][]) => el.replaceChildren(...rows.map(([k, v]) => { const x = document.createElement('div'); x.innerHTML = '<dt></dt><dd></dd>'; x.querySelector('dt')!.textContent = k; x.querySelector('dd')!.textContent = v; return x; }));
+
+  function calc() {
+    const err = q('.dx-err');
+    try {
+      const p = readParams();
+      const bad = validate(d, p);
+      if (bad) throw new Error(bad);
+      P = p;
+      const r = q<HTMLSelectElement>('.dx-r').value as Region;
+      const a = num(inp('.dx-a').value), b = num(inp('.dx-b').value);
+      if (r !== 'below' && !Number.isFinite(a)) throw new Error('Type a number for a.');
+      if (r !== 'above' && !Number.isFinite(b)) throw new Error('Type a number for b.');
+      if ((r === 'between' || r === 'outside') && b < a) throw new Error('b must be at least a.');
+      const prob = regionProb(d, p, r, a, b);
+      const M = d.moments(p), med = quantile(d, p, 0.5), [s0, s1] = d.support(p);
+      const big = `${regionText(r, a, b)} = ${fmtP(prob)}`;
+      q('.dx-big').textContent = big;
+      const rows: [string, string][] = [
+        ['Mean', mom(M.mean)], ['Variance', mom(M.variance)], ['Standard deviation', mom(M.variance === Infinity ? Infinity : Math.sqrt(M.variance))],
+        ['Skewness', mom(M.skewness)], ['Excess kurtosis', mom(M.kurtosis)], ['Median', fx(med)],
+        ['Support', `${d.discrete ? '{' : '['}${fx(s0)}, ${d.discrete && !Number.isFinite(s1) ? '…' : fx(s1)}${d.discrete ? '}' : ']'}`],
+      ];
+      if (r === 'between' || r === 'outside') rows.push([r === 'between' ? 'Outside, 1 − P' : 'Inside, 1 − P', fmtP(1 - prob)]);
+      facts(q('.dx-facts'), rows);
+      // Quantile table.
+      const ps = inp('.dx-q').value.split(/[,;\s]+/).filter(Boolean).map(num);
+      if (ps.some((v) => !(v >= 0 && v <= 1))) throw new Error('Quantile probabilities must be between 0 and 1, separated by commas.');
+      if (ps.length > 50) throw new Error('Up to 50 quantile probabilities.');
+      const qrows = ps.map((v) => [g(v, 8), fx(quantile(d, p, v)), fmtP(d.sf(quantile(d, p, v), p))]);
+      q('.dx-qt').innerHTML = '<thead><tr><th>p</th><th class="r">x with P(X ≤ x) = p</th><th class="r">P(X > x)</th></tr></thead><tbody></tbody>';
+      q('.dx-qt tbody').replaceChildren(...qrows.map((row) => { const tr = document.createElement('tr'); row.forEach((c, i) => { const td = document.createElement('td'); if (i) td.className = 'r'; td.textContent = c; tr.append(td); }); return tr; }));
+      // Plot range.
+      let [lo, hi] = plotRange(d, p);
+      const x0 = num(inp('.dx-x0').value), x1 = num(inp('.dx-x1').value);
+      if (Number.isFinite(x0)) lo = d.discrete ? Math.ceil(x0) : x0;
+      if (Number.isFinite(x1)) hi = d.discrete ? Math.floor(x1) : x1;
+      if (!(hi > lo)) throw new Error('“Plot to” must be above “Plot from”.');
+      if (d.discrete && hi - lo > 5000) throw new Error('That plot range has more than 5000 whole numbers; narrow it with Plot from and Plot to.');
+      figs.pdf = pdfFigure(p, lo, hi, r, a, b); figs.cdf = cdfFigure(p, lo, hi, a, b, r);
+      paint(q<HTMLCanvasElement>('.dx-pdf'), figs.pdf); paint(q<HTMLCanvasElement>('.dx-cdf'), figs.cdf);
+      // Curve table for the CSV.
+      curve = [['x', d.discrete ? 'pmf' : 'pdf', 'cdf', 'sf']];
+      if (d.discrete) for (let k = Math.ceil(lo); k <= hi; k++) curve.push([k, d.pdf(k, p), d.cdf(k, p), d.sf(k, p)]);
+      else for (let i = 0; i <= 400; i++) { const x = lo + ((hi - lo) * i) / 400; curve.push([+x.toPrecision(10), d.pdf(x, p), d.cdf(x, p), d.sf(x, p)]); }
+      err.hidden = true; q('.dx-out').hidden = false;
+      const ptxt = d.params.map((pd) => `${pd.label} = ${g(p[pd.k])}`).join(', ');
+      report = [
+        { title: `${d.name}: ${ptxt}`, facts: [['Probability', big], ...rows], figure: figs.pdf },
+        { title: 'Cumulative distribution and quantiles', figure: figs.cdf, table: { head: ['p', 'x', 'P(X > x)'], rows: qrows, align: ['r', 'r', 'r'] }, note: `Same as scipy.stats.${d.scipy}. Made with fibub.com.` },
+      ];
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.dx-out').hidden = true; report = []; }
+  }
+
+  function histFigure(xs: number[], p: Params): Figure {
+    const sorted = [...xs].sort((u, v) => u - v), n = xs.length;
+    let lo = sorted[Math.floor(n * 0.001)], hi = sorted[Math.min(n - 1, Math.ceil(n * 0.999) - 1)];
+    if (d.discrete) { lo = sorted[0]; hi = sorted[n - 1]; }
+    const bars: { x0: number; x1: number; h: number }[] = [], curveX: number[] = [], curveY: number[] = [];
+    if (d.discrete) {
+      const counts = new Map<number, number>(); for (const v of xs) counts.set(v, (counts.get(v) ?? 0) + 1);
+      for (let k = lo; k <= hi; k++) { bars.push({ x0: k - 0.4, x1: k + 0.4, h: (counts.get(k) ?? 0) / n }); curveX.push(k); curveY.push(d.pdf(k, p)); }
+    } else {
+      if (!(hi > lo)) { lo -= 0.5; hi += 0.5; }
+      const nb = Math.max(5, Math.min(60, Math.round(2 * Math.cbrt(n)))), w = (hi - lo) / nb, c = new Array(nb).fill(0);
+      for (const v of xs) { const i = Math.floor((v - lo) / w); if (i >= 0 && i < nb) c[i]++; else if (v === hi) c[nb - 1]++; }
+      c.forEach((k, i) => bars.push({ x0: lo + i * w, x1: lo + (i + 1) * w, h: k / (n * w) }));
+      for (let i = 0; i <= 200; i++) { const x = lo + ((hi - lo) * i) / 200; curveX.push(x); curveY.push(d.pdf(x, p)); }
+    }
+    const yMax = Math.max(...bars.map((b) => b.h), ...curveY.filter(Number.isFinite).map((v) => Math.min(v, 3 * Math.max(...bars.map((b) => b.h))))) * 1.08 || 1;
+    return {
+      w: figW(), h: Math.round(figW() * 0.42), alt: `Histogram of ${n} random values with the ${d.name} ${d.discrete ? 'probabilities' : 'density'} drawn over it`,
+      draw: (ctx, W, H, pal) => {
+        const cols = colorsFor(pal), Pn = canvasPainter(ctx);
+        const m = drawChart(Pn, { w: W, h: H, xLabel: 'x', yLabel: d.discrete ? 'Proportion' : 'Density', legend: 'none', xMin: d.discrete ? lo - 0.5 : lo, xMax: d.discrete ? hi + 0.5 : hi, yMin: 0, yMax, series: [], ink: pal.ink, muted: pal.muted, gridColor: pal.grid, bg: null, colors: cols });
+        Pn.clip(m.px0, m.py0, m.px1 - m.px0, m.py1 - m.py0);
+        for (const b of bars) Pn.poly([[m.X(b.x0), m.Y(0)], [m.X(b.x0), m.Y(b.h)], [m.X(b.x1), m.Y(b.h)], [m.X(b.x1), m.Y(0)]], pal.grid, pal.muted, 0.8);
+        if (d.discrete) curveX.forEach((k, i) => Pn.circle(m.X(k), m.Y(Math.min(curveY[i], yMax)), 3.5, cols[0], cols[0], 1));
+        else Pn.line(curveX.map((x, i) => [m.X(x), m.Y(Math.min(Number.isFinite(curveY[i]) ? curveY[i] : yMax, yMax))]), cols[0], 2);
+        Pn.unclip();
+      },
+    };
+  }
+  function drawSample() {
+    const err = q('.dx-serr');
+    try {
+      const p = readParams(), bad = validate(d, p);
+      if (bad) throw new Error(bad);
+      const n = num(inp('.dx-n').value), seed = num(inp('.dx-seed').value);
+      if (!(n >= 1 && n <= 100000 && n === Math.round(n))) throw new Error('Choose a whole number of values from 1 to 100,000.');
+      if (!(Number.isFinite(seed) && seed === Math.round(seed) && seed >= 0 && seed < 2 ** 32)) throw new Error('The seed must be a whole number from 0 to 4,294,967,295.');
+      drawn = sample(d, p, n, seed);
+      const mean = drawn.reduce((s, v) => s + v, 0) / n, sd = n > 1 ? Math.sqrt(drawn.reduce((s, v) => s + (v - mean) ** 2, 0) / (n - 1)) : NaN;
+      const M = d.moments(p);
+      facts(q('.dx-sfacts'), [
+        ['Sample mean', g(mean, 5)], ['Distribution mean', mom(M.mean)],
+        ['Sample SD', g(sd, 5)], ['Distribution SD', mom(M.variance === Infinity ? Infinity : Math.sqrt(M.variance))],
+        ['Smallest', g(drawn.reduce((u, v) => Math.min(u, v), Infinity), 5)], ['Largest', g(drawn.reduce((u, v) => Math.max(u, v), -Infinity), 5)],
+      ]);
+      figs.hist = histFigure(drawn, p);
+      paint(q<HTMLCanvasElement>('.dx-hist'), figs.hist);
+      err.hidden = true; q('.dx-sout').hidden = false; q('.dx-scsv').hidden = false;
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.dx-sout').hidden = true; q('.dx-scsv').hidden = true; drawn = []; }
+  }
+  const hideSample = () => { q('.dx-sout').hidden = true; q('.dx-scsv').hidden = true; drawn = []; };
+
+  q('.dx-d').addEventListener('change', () => { d = DIST[q<HTMLSelectElement>('.dx-d').value]; buildParams(); inp('.dx-x0').value = ''; inp('.dx-x1').value = ''; suggestBounds(); hideSample(); calc(); });
+  let t = 0;
+  root.addEventListener('input', (e) => {
+    const el = e.target as HTMLElement;
+    if (el.closest('.dx-d')) return;
+    if (el.classList.contains('dx-n') || el.classList.contains('dx-seed')) return;
+    if (el.classList.contains('dx-p')) hideSample();
+    clearTimeout(t); t = window.setTimeout(calc, 200);
+  });
+  q('.dx-r').addEventListener('change', calc);
+  q('.dx-draw').addEventListener('click', drawSample);
+  q('.dx-ccsv').addEventListener('click', () => save(new Blob([csv(curve)], { type: 'text/csv' }), `${d.id}-distribution.csv`, 'text/csv'));
+  q('.dx-scsv').addEventListener('click', () => drawn.length && save(new Blob([csv([['value'], ...drawn.map((v) => [d.discrete ? v : +v.toPrecision(15)])])], { type: 'text/csv' }), `${d.id}-sample.csv`, 'text/csv'));
+  document.addEventListener('fibub:theme', () => { if (figs.pdf) paint(q<HTMLCanvasElement>('.dx-pdf'), figs.pdf); if (figs.cdf) paint(q<HTMLCanvasElement>('.dx-cdf'), figs.cdf); if (figs.hist && drawn.length) paint(q<HTMLCanvasElement>('.dx-hist'), figs.hist); });
+  buildParams();
+  calc();
+  wireDownloads(q('.dl'), () => ({ title: 'Distribution explorer', subtitle: q('.dx-big').textContent ?? '', file: `${d.id}-distribution`, sections: report }));
+</script>
