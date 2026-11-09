@@ -1,0 +1,206 @@
+---
+// Matrix as a transformation: a 2 × 2 matrix bends the grid, the determinant is the area scale, a product
+// is one transformation after another, and a 3 × 3 system is solved by X = A⁻¹B with cofactors.
+// Class 12 maths, matrices and determinants.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax mtx">
+  <div class="ax-card">
+    <div class="ax-seg mt-mode" role="group" aria-label="What to show"><button type="button" data-m="one" aria-pressed="true">2 × 2 transform</button><button type="button" data-m="two" aria-pressed="false">One, then another</button><button type="button" data-m="solve" aria-pressed="false">Solve 3 × 3</button></div>
+  </div>
+
+  <div class="ax-card mt-one">
+    <h2>Matrix A</h2>
+    <div class="ax-row"><label>Preset <select class="mt-pre"><option value="">My own numbers</option></select></label>
+      <label class="mt-thl" hidden>θ = <b class="mt-thv"></b><input class="mt-th" type="range" min="-180" max="180" step="5" value="30" /></label></div>
+    <div class="mt-m">
+      <span class="mt-br">[</span>
+      <div class="mt-cells"><input class="mt-a" type="text" inputmode="decimal" value="2" aria-label="a, top left" /><input class="mt-b" type="text" inputmode="decimal" value="1" aria-label="b, top right" /><input class="mt-c" type="text" inputmode="decimal" value="0" aria-label="c, bottom left" /><input class="mt-d" type="text" inputmode="decimal" value="1" aria-label="d, bottom right" /></div>
+      <span class="mt-br">]</span>
+    </div>
+    <p class="ax-err mt-err" hidden></p>
+    <canvas class="ax-fig mt-fig" role="img"></canvas>
+    <label class="mt-sl">Morph from the identity: <b class="mt-kv"></b><input class="mt-k" type="range" min="0" max="100" value="100" /></label>
+    <p class="ax-help">Grey: the old grid. Blue: where the grid goes. Shaded: the unit square becomes a parallelogram. Arrows: where (1, 0) and (0, 1) land, which are the columns of A. The letter F shows if the picture is flipped.</p>
+    <dl class="ax-facts mt-facts"></dl>
+  </div>
+
+  <div class="ax-card mt-two" hidden>
+    <h2>First A, then B</h2>
+    <div class="ax-grid">
+      <label>A (first) <select class="mt-A"></select></label>
+      <label>B (second) <select class="mt-B"></select></label>
+    </div>
+    <canvas class="ax-fig mt-fig2" role="img"></canvas>
+    <p class="mt-two-note"></p>
+    <dl class="ax-facts mt-facts2"></dl>
+  </div>
+
+  <div class="ax-card mt-solve" hidden>
+    <h2>Solve AX = B by X = A⁻¹B</h2>
+    <p class="ax-help">Type the coefficients of x, y, z and the right-hand side of each equation (whole numbers or fractions).</p>
+    <div class="mt-sys"></div>
+    <div class="ax-row"><button type="button" class="btn small secondary mt-ex1">Example 1</button><button type="button" class="btn small secondary mt-ex2">No solution</button><button type="button" class="btn small secondary mt-ex3">Many solutions</button></div>
+    <p class="ax-err mt-serr" hidden></p>
+    <ol class="mt-steps"></ol>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="mt-try">
+      <li>Pick <b>Rotation by θ</b> and slide θ: the square turns but keeps its area, so det = 1.</li>
+      <li>Pick <b>Reflection in the x-axis</b>: the F is flipped and det = −1. A negative determinant means a mirror image.</li>
+      <li>Pick <b>Squash onto the x-axis</b>: the whole plane collapses onto a line, det = 0, and there is no inverse (you cannot undo a squash).</li>
+      <li>In <b>One, then another</b>, try a shear then a rotation, and then swap them: the results differ, because AB ≠ BA.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="mt-quiz" />
+</div>
+
+<script>
+  import { det2, mul2, apply2, inv2, PRESETS2, solve3, qstr, q as frac, type M2, type M3 } from '../../lib/sci/school-matrix';
+  import { paint, type Figure, type Palette } from '../../lib/report';
+  import { view, axes, line, px, py, fmt, type View } from '../../lib/sm-graph';
+  import { readAnswer, quiz, rint, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.mtx')!;
+  const qq = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380, H = 340;
+  let mode = 'one';
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+  const ms = (m: M2) => `[${fmt(m[0], 3)} ${fmt(m[1], 3)}; ${fmt(m[2], 3)} ${fmt(m[3], 3)}]`;
+  const F: [number, number][] = [[0.2, 0.15], [0.35, 0.15], [0.35, 0.5], [0.6, 0.5], [0.6, 0.62], [0.35, 0.62], [0.35, 0.8], [0.7, 0.8], [0.7, 0.92], [0.2, 0.92]];
+  for (const sel of ['.mt-pre', '.mt-A', '.mt-B']) qq<HTMLSelectElement>(sel).append(...PRESETS2.map((p) => new Option(p.name, p.id)));
+  qq<HTMLSelectElement>('.mt-A').value = 'shear'; qq<HTMLSelectElement>('.mt-B').value = 'rot';
+
+  /** Draw the grid, unit square, basis arrows and F under matrix m (on top of the faint original). */
+  function scene(ctx: CanvasRenderingContext2D, v: View, pl: Palette, ms_: { m: M2; col: string; fill?: boolean }[]) {
+    axes(ctx, v, pl, { xTicks: [-4, -2, 0, 2, 4], yTicks: [-4, -2, 0, 2, 4] });
+    ctx.save(); ctx.beginPath(); ctx.rect(v.l, v.t, v.W - v.l - v.r, v.H - v.t - v.b); ctx.clip();
+    for (const { m, col, fill } of ms_) {
+      const T = (p: [number, number]) => apply2(m, p);
+      if (fill) { ctx.globalAlpha = 0.35; for (let k = -6; k <= 6; k++) { const a = T([k, -6]), b = T([k, 6]), c = T([-6, k]), d = T([6, k]); line(ctx, v, a[0], a[1], b[0], b[1], col, 1); line(ctx, v, c[0], c[1], d[0], d[1], col, 1); } ctx.globalAlpha = 1; }
+      const sq = [[0, 0], [1, 0], [1, 1], [0, 1]].map((p) => T(p as [number, number]));
+      ctx.beginPath(); sq.forEach(([x, y], i) => (i ? ctx.lineTo(px(v, x), py(v, y)) : ctx.moveTo(px(v, x), py(v, y)))); ctx.closePath();
+      ctx.fillStyle = col; ctx.globalAlpha = 0.18; ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.stroke();
+      const f = F.map((p) => T(p)); ctx.beginPath(); f.forEach(([x, y], i) => (i ? ctx.lineTo(px(v, x), py(v, y)) : ctx.moveTo(px(v, x), py(v, y)))); ctx.closePath(); ctx.fillStyle = col; ctx.globalAlpha = 0.8; ctx.fill(); ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+  }
+  const arrow = (ctx: CanvasRenderingContext2D, v: View, x: number, y: number, col: string, name: string) => {
+    line(ctx, v, 0, 0, x, y, col, 3); const X = px(v, x), Y = py(v, y), a = Math.atan2(Y - py(v, 0), X - px(v, 0));
+    if (Math.hypot(x, y) > 0.05) { ctx.beginPath(); ctx.moveTo(X, Y); ctx.lineTo(X - 11 * Math.cos(a - 0.4), Y - 11 * Math.sin(a - 0.4)); ctx.lineTo(X - 11 * Math.cos(a + 0.4), Y - 11 * Math.sin(a + 0.4)); ctx.closePath(); ctx.fillStyle = col; ctx.fill(); }
+    ctx.font = '600 13px system-ui, sans-serif'; ctx.fillStyle = col; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(name, X + 6, Y - 4);
+  };
+  const V = () => view(-5, 5, -4.4, 4.4, W, H);
+
+  function one() {
+    const pre = qq<HTMLSelectElement>('.mt-pre').value, err = qq('.mt-err'); err.hidden = true;
+    qq('.mt-thl').hidden = pre !== 'rot';
+    const th = +qq<HTMLInputElement>('.mt-th').value; qq('.mt-thv').textContent = `${th}°`;
+    if (pre) { const m = PRESETS2.find((p) => p.id === pre)!.m(th); ['.mt-a', '.mt-b', '.mt-c', '.mt-d'].forEach((s, i) => { qq<HTMLInputElement>(s).value = fmt(m[i], 3).replace('−', '-'); }); }
+    const m = ['.mt-a', '.mt-b', '.mt-c', '.mt-d'].map((s) => readAnswer(qq<HTMLInputElement>(s).value)) as M2;
+    if (!m.every(Number.isFinite)) { err.textContent = 'Type a number in each of the four boxes.'; err.hidden = false; return; }
+    if (m.some((x) => Math.abs(x) > 10)) { err.textContent = 'Keep the numbers between −10 and 10 so the picture fits.'; err.hidden = false; return; }
+    const k = +qq<HTMLInputElement>('.mt-k').value / 100; qq('.mt-kv').textContent = `${Math.round(k * 100)} %`;
+    const mk: M2 = [1 + (m[0] - 1) * k, m[1] * k, m[2] * k, 1 + (m[3] - 1) * k];
+    const v = V(), d = det2(m);
+    const fig: Figure = { w: W, h: H, alt: `The matrix ${ms(m)} moves the unit square to a parallelogram of area ${fmt(Math.abs(d))}`, draw: (ctx, w, h, pl) => {
+      scene(ctx, v, pl, [{ m: [1, 0, 0, 1], col: pl.line }, { m: mk, col: pl.accent, fill: true }]);
+      arrow(ctx, v, mk[0], mk[2], pl.accent2, 'A(1, 0)'); arrow(ctx, v, mk[1], mk[3], pl.good, 'A(0, 1)');
+    } };
+    paint(qq<HTMLCanvasElement>('.mt-fig'), fig);
+    const inv = inv2(m);
+    qq('.mt-facts').replaceChildren(
+      fact('det A = ad − bc', fmt(d, 4), `${fmt(m[0], 3)}×${fmt(m[3], 3)} − ${fmt(m[1], 3)}×${fmt(m[2], 3)}`),
+      fact('Area scale', `× ${fmt(Math.abs(d), 4)}`, 'every area is multiplied by |det A|'),
+      fact('Orientation', d < 0 ? 'Flipped' : d > 0 ? 'Kept' : 'Squashed flat', d < 0 ? 'det < 0: a mirror image' : d > 0 ? 'det > 0' : 'det = 0: everything lands on a line or a point'),
+      fact('(1, 0) goes to', `(${fmt(m[0], 3)}, ${fmt(m[2], 3)})`, 'the first column'),
+      fact('(0, 1) goes to', `(${fmt(m[1], 3)}, ${fmt(m[3], 3)})`, 'the second column'),
+      fact('Inverse A⁻¹', inv ? ms(inv) : 'none', inv ? '(1/det)[d −b; −c a]: undoes A' : 'det = 0, so A cannot be undone'),
+    );
+  }
+
+  function two() {
+    const A = PRESETS2.find((p) => p.id === qq<HTMLSelectElement>('.mt-A').value)!.m(90), B = PRESETS2.find((p) => p.id === qq<HTMLSelectElement>('.mt-B').value)!.m(90);
+    const BA = mul2(B, A), AB = mul2(A, B), v = V();
+    paint(qq<HTMLCanvasElement>('.mt-fig2'), { w: W, h: H, alt: `F, then after A, then after B; the product BA is ${ms(BA)}`, draw: (ctx, w, h, pl) => scene(ctx, v, pl, [{ m: [1, 0, 0, 1], col: pl.line }, { m: A, col: pl.accent2 }, { m: BA, col: pl.accent }]) });
+    const same = BA.every((x, i) => Math.abs(x - AB[i]) < 1e-9);
+    qq('.mt-two-note').textContent = `Grey: the start. Orange: after A. Blue: after A and then B. Doing A first and B second is the single matrix BA (the one done first goes on the right). ${same ? 'For these two, AB = BA: the order happens not to matter.' : 'Here AB ≠ BA: the order matters.'}`;
+    qq('.mt-facts2').replaceChildren(fact('A', ms(A)), fact('B', ms(B)), fact('BA (A first)', ms(BA)), fact('AB (B first)', ms(AB)), fact('det(BA) = det B × det A', fmt(det2(BA), 4), `${fmt(det2(B), 3)} × ${fmt(det2(A), 3)}`));
+  }
+
+  // 3 × 3 system inputs.
+  const sys = qq('.mt-sys');
+  sys.replaceChildren(...[0, 1, 2].map((i) => {
+    const row = document.createElement('div'); row.className = 'mt-row';
+    ['x', 'y', 'z', '='].forEach((nm, j) => { const inp = document.createElement('input'); inp.type = 'text'; inp.inputMode = 'decimal'; inp.className = `mt-s${i}${j}`; inp.setAttribute('aria-label', j < 3 ? `Equation ${i + 1}, coefficient of ${nm}` : `Equation ${i + 1}, right-hand side`); const sp = document.createElement('span'); sp.textContent = j < 3 ? `${nm}${j < 2 ? ' +' : ' ='}` : ''; row.append(inp); if (j < 3) row.append(sp); });
+    return row;
+  }));
+  const setSys = (M: number[][]) => { M.forEach((r, i) => r.forEach((v, j) => { qq<HTMLInputElement>(`.mt-s${i}${j}`).value = String(v); })); solve(); };
+  function solve() {
+    const err = qq('.mt-serr'); err.hidden = true;
+    const M = [0, 1, 2].map((i) => [0, 1, 2, 3].map((j) => readAnswer(qq<HTMLInputElement>(`.mt-s${i}${j}`).value)));
+    if (!M.flat().every((v) => Number.isInteger(v) && Math.abs(v) <= 1000)) { err.textContent = 'Use whole numbers from −1000 to 1000 in every box (multiply an equation through to clear fractions).'; err.hidden = false; qq('.mt-steps').replaceChildren(); return; }
+    const A: M3 = M.map((r) => r.slice(0, 3)), B = M.map((r) => r[3]), r = solve3(A, B);
+    const mat = (X: (string | number)[][]) => X.map((row) => `[${row.map(String).join('  ')}]`).join(' ');
+    const steps = [
+      `|A| = ${A[0][0]}(${A[1][1]}·${A[2][2]} − ${A[1][2]}·${A[2][1]}) − ${A[0][1]}(${A[1][0]}·${A[2][2]} − ${A[1][2]}·${A[2][0]}) + ${A[0][2]}(${A[1][0]}·${A[2][1]} − ${A[1][1]}·${A[2][0]}) = ${r.det}`,
+      `Cofactors Aᵢⱼ = (−1)^(i+j) Mᵢⱼ, written as a matrix: ${mat([0, 1, 2].map((i) => [0, 1, 2].map((j) => r.adj[j][i])))}`,
+      `adj A is the transpose of that: ${mat(r.adj)}`,
+    ];
+    if (r.kind === 'unique') {
+      steps.push(`A⁻¹ = (1/|A|) adj A = (1/${r.det}) adj A = ${mat(r.inv!.map((row) => row.map(qstr)))}`);
+      steps.push(`X = A⁻¹B: (adj A)B = (${r.adjB.join(', ')}), divided by ${r.det}`);
+      steps.push(`So x = ${qstr(r.x![0])}, y = ${qstr(r.x![1])}, z = ${qstr(r.x![2])}. Check: ${A.map((row, i) => `${row.map((a, j) => a * (r.x![j].n / r.x![j].d)).reduce((s, t) => s + t, 0).toFixed(6).replace(/\.?0+$/, '')} = ${B[i]}`).join(', ')}`);
+    } else steps.push(`|A| = 0, so A has no inverse. (adj A)B = (${r.adjB.join(', ')}): ${r.kind === 'none' ? 'the equations contradict each other, so there is no solution (inconsistent).' : 'the equations do not contradict, and there are infinitely many solutions (consistent).'}`);
+    qq('.mt-steps').replaceChildren(...steps.map((t) => { const li = document.createElement('li'); li.textContent = t.replace(/-(\d)/g, '−$1'); return li; }));
+  }
+  qq('.mt-ex1').addEventListener('click', () => setSys([[1, 1, 1, 6], [0, 2, 5, -4], [2, 5, -1, 27]]));
+  qq('.mt-ex2').addEventListener('click', () => setSys([[1, 2, 3, 1], [2, 4, 6, 3], [1, 1, 1, 3]]));
+  qq('.mt-ex3').addEventListener('click', () => setSys([[1, 2, 3, 1], [2, 4, 6, 2], [1, 1, 1, 3]]));
+  sys.addEventListener('input', solve);
+
+  const run = () => { qq('.mt-one').hidden = mode !== 'one'; qq('.mt-two').hidden = mode !== 'two'; qq('.mt-solve').hidden = mode !== 'solve'; if (mode === 'one') one(); else if (mode === 'two') two(); else solve(); };
+  root.querySelectorAll<HTMLButtonElement>('.mt-mode button').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.m!; root.querySelectorAll('.mt-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); run(); }));
+  qq('.mt-pre').addEventListener('change', one);
+  root.querySelectorAll('.mt-th, .mt-k').forEach((e) => e.addEventListener('input', one));
+  root.querySelectorAll('.mt-cells input').forEach((e) => e.addEventListener('input', () => { qq<HTMLSelectElement>('.mt-pre').value = ''; one(); }));
+  root.querySelectorAll('.mt-A, .mt-B').forEach((e) => e.addEventListener('change', two));
+  document.addEventListener('fibub:theme', run);
+  setSys([[1, 1, 1, 6], [0, 2, 5, -4], [2, 5, -1, 27]]);
+  run();
+
+  quiz(qq('.mt-quiz'), (): Question[] => {
+    const a = rint(-4, 5), b = rint(-4, 4), c = rint(-4, 4), d = rint(-4, 5), s = rint(2, 4);
+    const e = rint(-3, 3), f = rint(-3, 3), g = rint(-3, 3), h = rint(-3, 3);
+    let p = rint(1, 4), r2 = rint(1, 4), u = rint(1, 3), w = rint(1, 3); if (p * w - r2 * u === 0) w++;
+    const M: M3 = [[rint(-2, 3), rint(-2, 2), rint(0, 2)], [rint(0, 2), rint(1, 3), rint(-2, 2)], [rint(-1, 2), 0, rint(1, 3)]];
+    const D3 = M[0][0] * (M[1][1] * M[2][2] - M[1][2] * M[2][1]) - M[0][1] * (M[1][0] * M[2][2] - M[1][2] * M[2][0]) + M[0][2] * (M[1][0] * M[2][1] - M[1][1] * M[2][0]);
+    const Dp = p * w - r2 * u;
+    return [
+      { text: `det [${a} ${b}; ${c} ${d}] = ?`, answer: a * d - b * c, worked: `ad − bc = (${a})(${d}) − (${b})(${c}) = ${a * d} − ${b * c} = ${a * d - b * c}.` },
+      { text: `A triangle of area 3 is transformed by [${s} 1; 0 ${s}]. What is its new area?`, answer: 3 * s * s, worked: `det = ${s} × ${s} − 1 × 0 = ${s * s}, so every area is multiplied by ${s * s}: 3 × ${s * s} = ${3 * s * s}.` },
+      { text: `[${e} ${f}; ${g} ${h}] × [1 2; 3 4]: what is the top-left entry?`, answer: e * 1 + f * 3, worked: `Row 1 times column 1: ${e} × 1 + ${f} × 3 = ${e + 3 * f}.` },
+      { text: `A = [${p} ${r2}; ${u} ${w}]. What is the top-left entry of A⁻¹? (a fraction is fine)`, answer: w / Dp, worked: `det A = ${p}×${w} − ${r2}×${u} = ${Dp}. A⁻¹ = (1/${Dp})[${w} ${-r2}; ${-u} ${p}], so the top-left entry is ${qstr(frac(w, Dp))}.` },
+      { text: `det [${M.map((r) => r.join(' ')).join('; ')}] = ?`, answer: D3, worked: `Expand along row 1: ${M[0][0]}(${M[1][1]}·${M[2][2]} − ${M[1][2]}·${M[2][1]}) − ${M[0][1]}(${M[1][0]}·${M[2][2]} − ${M[1][2]}·${M[2][0]}) + ${M[0][2]}(${M[1][0]}·${M[2][1]} − ${M[1][1]}·${M[2][0]}) = ${D3}.` },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .mtx .ax-seg button { min-height: 44px; }
+  .mtx .mt-m { display: flex; align-items: center; gap: 6px; margin: 10px 0; }
+  .mtx .mt-br { font-size: 64px; font-weight: 200; line-height: 1; color: var(--muted); }
+  .mtx .mt-cells { display: grid; grid-template-columns: 80px 80px; gap: 8px; }
+  .mtx .mt-cells input { text-align: center; font-size: 18px !important; min-height: 44px; }
+  .mtx .mt-sl, .mtx .mt-thl { display: grid; gap: 4px; color: var(--ink); font-size: 15px; margin-top: 8px; }
+  .mtx input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .mtx .mt-row { display: flex; align-items: center; gap: 6px; margin: 6px 0; flex-wrap: wrap; }
+  .mtx .mt-row input { width: 56px !important; text-align: center; min-height: 44px; }
+  .mtx .mt-steps { padding-left: 22px; display: grid; gap: 8px; overflow-wrap: anywhere; }
+  .mtx .mt-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+  .mtx .ax-row > label { min-width: 0; }
+</style>
