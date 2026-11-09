@@ -1,0 +1,218 @@
+---
+// DLS: intensity autocorrelation g2(τ) in; cumulant z-average and PDI, and a regularised NNLS size distribution
+// (intensity, volume, number) out.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import DataFile from '../../components/DataFile.astro';
+import { exampleData } from '../../lib/sci/dls';
+const ex = exampleData();
+const data = 'tau_us\tg2\n' + ex.tauUs.map((t, i) => `${t}\t${ex.g2[i]}`).join('\n');
+---
+<div class="ax dls">
+  <div class="ax-card">
+    <h2>Your correlation data</h2>
+    <div class="ax-grid">
+      <label>Delay time τ in <select class="dls-tu"><option value="1e-6">µs</option><option value="1e-3">ms</option><option value="1">s</option></select></label>
+      <label>Second column is <select class="dls-col"><option value="g2">g2(τ)</option><option value="g2m1">g2(τ) − 1</option></select></label>
+      <label>Baseline <select class="dls-base"><option value="one">1 (normalised g2)</option><option value="tail">mean of the last 5 % of points</option></select></label>
+    </div>
+    <label class="dls-lab" style="margin-top:10px">Two columns, delay time then correlation, shortest delay first <textarea class="dls-data" rows="7" spellcheck="false">{data}</textarea></label>
+    <DataFile target=".dls-data" maxCols={4} label="Open a file (τ, g2)" />
+    <p class="ax-help">Export the correlation function from your instrument as text. Only the first two columns are used. The example is made up: two populations near 60 nm and 400 nm in water.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Instrument and sample</h2>
+    <div class="ax-grid">
+      <label>Temperature (°C) <input class="dls-t" inputmode="decimal" value="25" /></label>
+      <label>Laser wavelength (nm) <input class="dls-lam" inputmode="decimal" value="633" /></label>
+      <label>Scattering angle (°) <input class="dls-ang" inputmode="decimal" value="173" /></label>
+      <label>Refractive index of the liquid <input class="dls-n" inputmode="decimal" value="1.330" /></label>
+      <label>Liquid <select class="dls-liq"><option value="water">water (viscosity from temperature)</option><option value="other">other (type the viscosity)</option></select></label>
+      <label class="dls-etal" hidden>Viscosity (mPa·s) <input class="dls-eta" inputmode="decimal" value="0.89" /></label>
+    </div>
+    <p class="ax-help dls-setup"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Cumulants: z-average and PDI</h2>
+    <div class="ax-grid">
+      <label>Fit order <select class="dls-ord"><option value="2">2nd order (standard)</option><option value="3">3rd order</option></select></label>
+      <label>Fit down to (% of intercept) <input class="dls-cut" inputmode="decimal" value="10" /></label>
+    </div>
+    <p class="ax-help">ln(g2 − B) is fitted with a polynomial in τ, weighted towards the strong early points, from the first point until the signal falls below this share of its start.</p>
+    <p class="ax-err dls-err" hidden></p>
+    <div class="dls-out">
+      <p class="ax-big dls-big"></p>
+      <dl class="ax-facts dls-facts"></dl>
+      <canvas class="ax-fig dls-fig" style="margin-top:12px"></canvas>
+    </div>
+  </div>
+
+  <div class="ax-card dls-dcard">
+    <h2>Size distribution</h2>
+    <div class="ax-grid">
+      <label>Smallest size (nm) <input class="dls-dmin" inputmode="decimal" value="1" /></label>
+      <label>Largest size (nm) <input class="dls-dmax" inputmode="decimal" value="10000" /></label>
+      <label>Size bins <input class="dls-bins" inputmode="numeric" value="80" /></label>
+      <label>Smoothing α <input class="dls-alpha" inputmode="decimal" value="0.01" /></label>
+    </div>
+    <p class="ax-help">The decay is split into many sizes, none negative, with a penalty on rough shapes (like CONTIN). More smoothing joins close peaks; less makes spiky, unreliable peaks. Try 0.003 to 0.1 and trust only what stays.</p>
+    <p class="ax-err dls-derr" hidden></p>
+    <div class="dls-dout">
+      <div class="ax-seg dls-seg" role="group" aria-label="Distribution shown"><button type="button" data-k="intensity" aria-pressed="true">Intensity</button><button type="button" data-k="volume" aria-pressed="false">Volume</button><button type="button" data-k="number" aria-pressed="false">Number</button></div>
+      <canvas class="ax-fig dls-dfig" style="margin-top:12px"></canvas>
+      <div class="ax-scroll" style="margin-top:10px"><table class="dls-peaks"><thead><tr><th>Peak</th><th>Mean nm</th><th>Mode nm</th><th>SD nm</th><th>Share</th></tr></thead><tbody></tbody></table></div>
+      <dl class="ax-facts dls-dfacts" style="margin-top:10px"></dl>
+      <p class="ax-help dls-warn"></p>
+      <p class="ax-help">Volume and number are worked out from intensity with Rayleigh weighting (light ∝ number × d⁶), with no Mie correction, so they are only right for particles well under about a tenth of the wavelength (about 60 nm for a red laser). Larger particles scatter less than d⁶ predicts, so their volume and number shares come out too small.</p>
+      <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small dls-csv">Download the distributions (CSV)</button><button type="button" class="btn secondary small dls-fcsv">Download the fits (CSV)</button></div>
+    </div>
+    <Downloads />
+  </div>
+</div>
+
+<script>
+  import { cumulants, distribution, baseline, scatteringVector, waterViscosity, type Cumulants, type Dist, type Setup } from '../../lib/sci/dls';
+  import { num, sig, numericColumns, csv } from '../../lib/sci/num';
+  import { chartFigure } from '../../lib/sci/plot';
+  import { paint, wireDownloads, save, type Figure } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.dls')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v = (c: string) => num(q<HTMLInputElement>(c).value);
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const fact = (k: string, val: string, s = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (s) { const sm = document.createElement('small'); sm.textContent = s; d.querySelector('dd')!.append(sm); } return d; };
+  const nm = (x: number) => `${sig(x, 4)} nm`;
+  let fig: Figure | null = null, dfig: Figure | null = null, cum: Cumulants | null = null, dist: Dist | null = null, kind: 'intensity' | 'volume' | 'number' = 'intensity';
+  let tau: number[] = [], y: number[] = [], B = 1;
+  const KIND = { intensity: 'Intensity', volume: 'Volume', number: 'Number' };
+
+  function err(cls: string, out: string, m: string) { q(cls).textContent = m; q(cls).hidden = !m; q(out).hidden = !!m; }
+
+  function run() {
+    q('.dls-etal').hidden = sel('.dls-liq') === 'water';
+    cum = null; dist = null; fig = dfig = null;
+    const t = numericColumns(q<HTMLTextAreaElement>('.dls-data').value);
+    const fail = (m: string) => { err('.dls-err', '.dls-out', m); q('.dls-dcard').hidden = true; };
+    if (t.cols.length < 2 || t.rows < 10) return fail('Paste at least ten lines of two numbers: delay time and correlation.');
+    const [c1, c2] = t.cols;
+    const bad = c1.findIndex((x, i) => !Number.isFinite(x) || !Number.isFinite(c2[i]));
+    if (bad >= 0) return fail(`Line ${bad + 1} of the data is not two numbers.`);
+    if (c1.some((x, i) => x <= 0 || (i > 0 && x <= c1[i - 1]))) return fail('Delay times must be above zero and rise from line to line.');
+    const TC = v('.dls-t'), lam = v('.dls-lam'), ang = v('.dls-ang'), n = v('.dls-n');
+    if (!(TC > -20 && TC < 200)) return fail('Give the temperature in °C.');
+    if (!(lam > 100 && lam < 3000)) return fail('Give the laser wavelength in nm, such as 633 or 532.');
+    if (!(ang > 0 && ang < 180)) return fail('The scattering angle is between 0 and 180 degrees.');
+    if (!(n >= 1 && n < 3)) return fail('Give the refractive index of the liquid, such as 1.330 for water.');
+    const water = sel('.dls-liq') === 'water';
+    if (water && !(TC >= 0 && TC <= 100)) return fail('The water viscosity formula covers 0 to 100 °C. Pick "other" and type the viscosity.');
+    const eta = water ? waterViscosity(TC) : v('.dls-eta');
+    if (!(eta > 0)) return fail('Give the viscosity in mPa·s, above zero.');
+    const s: Setup = { q: scatteringVector(n, lam, ang), T: TC + 273.15, eta: eta * 1e-3 };
+    q('.dls-setup').textContent = `q = ${sig(s.q * 1e-9, 5)} nm⁻¹ (4πn sin(θ/2)/λ), viscosity ${sig(eta, 4)} mPa·s${water ? ' (water at this temperature, Kestin et al. 1978)' : ''}, T = ${sig(s.T, 5)} K.`;
+    const U = Number(sel('.dls-tu'));
+    tau = c1.map((x) => x * U);
+    const g2 = sel('.dls-col') === 'g2' ? c2 : c2.map((x) => x + 1);
+    B = baseline(g2, sel('.dls-base') as 'one' | 'tail');
+    y = g2.map((x) => x - B);
+    if (Math.max(...y.slice(0, 3)) > 2) return fail('The correlation starts above 3: is the second column g2 − 1 rather than g2, or not normalised?');
+    const cut = v('.dls-cut') / 100;
+    if (!(cut > 0 && cut < 1)) return fail('The fit cut-off is a percentage between 0 and 100, such as 10.');
+    let c: Cumulants;
+    try { c = cumulants(tau, y, s, Number(sel('.dls-ord')) as 2 | 3, cut); } catch (e) { return fail((e as Error).message); }
+    err('.dls-err', '.dls-out', ''); cum = c;
+    const z = c.zAvg * 1e9;
+    const pdi = (Math.abs(c.pdi) < 5e-4 ? 0 : c.pdi).toFixed(3);
+    q('.dls-big').textContent = `Z-average ${sig(z, 4)} nm · PDI ${pdi}`;
+    const facts = [
+      fact('Z-average diameter', nm(z), 'intensity-weighted harmonic mean hydrodynamic diameter, from Γ by Stokes–Einstein'),
+      fact('Polydispersity index (PDI)', pdi, c.pdi < 0.05 ? 'below 0.05: very narrow' : c.pdi < 0.1 ? 'under 0.1: narrow' : c.pdi < 0.4 ? 'moderate: the sample has a range of sizes' : 'above 0.4: very broad; the z-average means little, look at the distribution'),
+      fact('Width (from PDI)', nm(z * Math.sqrt(Math.max(0, c.pdi))), 'z-average × √PDI, the standard deviation of a matching Gaussian'),
+      fact('Mean decay rate Γ', `${sig(c.Gamma, 5)} s⁻¹`, `diffusion coefficient D = Γ/q² = ${sig((c.Gamma / s.q ** 2) * 1e12, 4)} µm²/s`),
+      fact('Intercept β', c.beta.toFixed(3), c.beta < 0.6 ? 'low: dust, a weak signal or a misaligned instrument can do this' : 'coherence factor, g2 − B at τ = 0'),
+      fact('Points fitted', String(c.n), `up to τ = ${sig(c.tauMax * 1e6, 4)} µs; rms residual ${sig(c.rms, 3)}`),
+      fact('Baseline B', sig(B, 6)),
+    ];
+    if (c.order === 3) facts.splice(3, 0, fact('Third cumulant μ₃/Γ³', sig(c.mu3 / c.Gamma ** 3, 3), 'skew of the decay-rate distribution'));
+    q('.dls-facts').replaceChildren(...facts);
+
+    // Distribution.
+    q('.dls-dcard').hidden = false;
+    const dMin = v('.dls-dmin'), dMax = v('.dls-dmax'), bins = Math.round(v('.dls-bins')), alpha = v('.dls-alpha');
+    let D: Dist | null = null, dm = '';
+    if (!(dMin > 0 && dMax > dMin * 2)) dm = 'The size range runs from a smaller to a larger size, both above zero.';
+    else if (!(bins >= 20 && bins <= 200)) dm = 'Use between 20 and 200 size bins.';
+    else if (!(alpha >= 0 && alpha <= 100)) dm = 'Smoothing α is zero or above, such as 0.01.';
+    else { try { D = distribution(tau, y, s, { dMin, dMax, bins, alpha }); } catch (e) { dm = (e as Error).message; } }
+    err('.dls-derr', '.dls-dout', dm);
+    dist = D;
+    drawFit();
+    if (D) drawDist();
+  }
+
+  function drawFit() {
+    if (!cum) return;
+    const W = Math.round(Math.min(720, Math.max(320, q('.dls-out').clientWidth || 640))), narrow = W < 500;
+    const X = tau.map((t) => t * 1e6), c = cum;
+    const ci = X.map((_, i) => i).filter((i) => tau[i] <= c.tauMax * 1.6);
+    fig = chartFigure({ w: W, h: narrow ? 300 : 360, xLog: true, xLabel: 'Delay time τ (µs)', yLabel: 'g2 − B', series: [
+      { name: 'data', x: X, y, mode: 'points', size: 2.5 },
+      { name: `cumulant fit (${c.order === 2 ? '2nd' : '3rd'} order)`, x: ci.map((i) => X[i]), y: ci.map((i) => c.fit[i]), mode: 'line', width: 1.5 },
+      ...(dist ? [{ name: 'distribution fit', x: X, y: dist.fit, mode: 'line' as const, width: 1.2, dash: [5, 3] }] : []),
+    ], legend: 'below' }, 'The correlation data on a log time axis, with the cumulant fit and the distribution fit');
+    paint(q<HTMLCanvasElement>('.dls-fig'), fig);
+  }
+
+  function drawDist() {
+    const D = dist!;
+    root.querySelectorAll<HTMLButtonElement>('.dls-seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.k === kind)));
+    const W = Math.round(Math.min(720, Math.max(320, q('.dls-dout').clientWidth || 640))), narrow = W < 500;
+    const vals = D[kind];
+    dfig = chartFigure({ w: W, h: narrow ? 280 : 340, xLog: true, xLabel: 'Hydrodynamic diameter (nm)', yLabel: `${KIND[kind]} (% per bin)`, yMin: 0, series: [
+      { name: KIND[kind], x: D.d, y: vals, mode: 'both', size: 2.5, width: 1.5 },
+    ], legend: 'none' }, `${KIND[kind]} size distribution on a log size axis`);
+    paint(q<HTMLCanvasElement>('.dls-dfig'), dfig);
+    const rows = D.peaks[kind].map((p, i) => { const tr = document.createElement('tr'); [String(i + 1), sig(p.mean, 4), sig(p.mode, 4), sig(p.sd, 3), `${p.area.toFixed(1)} %`].forEach((t) => { const td = document.createElement('td'); td.textContent = t; tr.append(td); }); return tr; });
+    q('.dls-peaks tbody').replaceChildren(...rows);
+    q('.dls-dfacts').replaceChildren(
+      fact('Intensity harmonic mean', nm(D.harmonic), `should be close to the cumulant z-average (${nm(cum!.zAvg * 1e9)})`),
+      fact('Fit', `${D.nPts} points, rms residual ${sig(D.rms, 3)}`, `regularisation weight ${sig(D.alphaEff, 3)} after scaling`),
+    );
+    const edge = (['intensity', 'volume', 'number'] as const).filter((k) => { const p = D.peaks[k]; return p.some((pk) => pk.lo <= D.d[0] * 1.0001 || pk.hi >= D.d[D.d.length - 1] * 0.9999) && p.length; });
+    q('.dls-warn').textContent = edge.length ? `A ${edge.join(' and ')} peak touches the edge of the size range. Peaks at the very smallest or largest sizes are usually noise or dust, not particles: widen the range, raise the smallest size or add smoothing, and check the cumulant result.` : '';
+    q('.dls-warn').hidden = !edge.length;
+  }
+
+  root.querySelectorAll('input, select, textarea').forEach((i) => { i.addEventListener('input', run); i.addEventListener('change', run); });
+  root.querySelectorAll<HTMLButtonElement>('.dls-seg button').forEach((b) => b.addEventListener('click', () => { kind = b.dataset.k as typeof kind; if (dist) drawDist(); }));
+  q('.dls-csv').addEventListener('click', () => {
+    if (!dist) return;
+    const D = dist;
+    save(new TextEncoder().encode(csv([['diameter_nm', 'intensity_pct', 'volume_pct', 'number_pct'], ...D.d.map((d, i) => [+d.toPrecision(6), +D.intensity[i].toPrecision(6), +D.volume[i].toPrecision(6), +D.number[i].toPrecision(6)])])), 'dls-distribution.csv', 'text/csv');
+  });
+  q('.dls-fcsv').addEventListener('click', () => {
+    if (!cum) return;
+    const c = cum, D = dist;
+    save(new TextEncoder().encode(csv([['tau_s', 'g2_minus_B', 'cumulant_fit', 'distribution_fit'], ...tau.map((t, i) => [+t.toPrecision(6), +y[i].toPrecision(7), i < c.n ? +c.fit[i].toPrecision(7) : '', D ? +D.fit[i].toPrecision(7) : ''])])), 'dls-fits.csv', 'text/csv');
+  });
+  document.addEventListener('fibub:theme', () => { if (fig) paint(q<HTMLCanvasElement>('.dls-fig'), fig); if (dfig) paint(q<HTMLCanvasElement>('.dls-dfig'), dfig); });
+  let lastW = 0;
+  window.addEventListener('resize', () => { const w = q('.dls-out').clientWidth; if (w && Math.abs(w - lastW) > 40) { lastW = w; run(); } });
+  run(); lastW = q('.dls-out').clientWidth;
+  const factsOf = (sel: string) => [...root.querySelectorAll(`${sel} > div`)].map((d) => [d.querySelector('dt')!.textContent!, d.querySelector('dd')!.textContent!] as [string, string]);
+  wireDownloads(q('.dl'), () => ({
+    title: 'DLS analysis', subtitle: 'Cumulants and size distribution', file: 'dls-analysis',
+    sections: !cum ? [] : [
+      { title: q('.dls-big').textContent!, facts: factsOf('.dls-facts'), ...(fig ? { figure: fig } : {}) },
+      ...(dist && dfig ? [{ title: `${KIND[kind]} distribution`, facts: [...dist.peaks[kind].map((p, i) => [`Peak ${i + 1}`, `mean ${sig(p.mean, 4)} nm, mode ${sig(p.mode, 4)} nm, ${p.area.toFixed(1)} %`] as [string, string]), ...factsOf('.dls-dfacts')], figure: dfig }] : []),
+    ],
+  }));
+</script>
+
+<style is:global>
+  .dls select { max-width: 100%; }
+  .dls .dls-lab { display: block; }
+  .dls textarea { width: 100%; font: inherit; font-size: 14px; }
+  .dls [hidden] { display: none !important; }
+</style>
