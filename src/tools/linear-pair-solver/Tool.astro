@@ -1,0 +1,199 @@
+---
+// Pair of linear equations: two lines on a graph (crossing, parallel or on top of each other), the ratio test,
+// and substitution and elimination worked step by step. Class 9 level: one equation and its table of solutions.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm lp">
+  <div class="ax-card">
+    <h2>Two lines</h2>
+    <div class="ax-row">
+      <span class="ax-help" style="margin:0">Level</span>
+      <div class="ax-seg lp-level" role="group" aria-label="Level">
+        <button type="button" data-l="9" aria-pressed="false">Class 9 (one equation)</button>
+        <button type="button" data-l="10" aria-pressed="true">Class 10 (a pair)</button>
+      </div>
+    </div>
+    <div class="lp-eqs">
+      <div class="lp-eq" data-n="1"><span class="lp-tag">(1)</span><input type="number" class="lp-a1" value="2" step="1" inputmode="decimal" aria-label="a1" /><i>x</i> + <input type="number" class="lp-b1" value="3" step="1" inputmode="decimal" aria-label="b1" /><i>y</i> = <input type="number" class="lp-c1" value="12" step="1" inputmode="decimal" aria-label="c1" /></div>
+      <div class="lp-eq lp-second" data-n="2"><span class="lp-tag">(2)</span><input type="number" class="lp-a2" value="1" step="1" inputmode="decimal" aria-label="a2" /><i>x</i> + <input type="number" class="lp-b2" value="-1" step="1" inputmode="decimal" aria-label="b2" /><i>y</i> = <input type="number" class="lp-c2" value="1" step="1" inputmode="decimal" aria-label="c2" /></div>
+    </div>
+    <div class="ax-row lp-pres" style="margin-top:8px">
+      <button type="button" class="btn secondary small" data-p="2,3,12,1,-1,1">Cross</button>
+      <button type="button" class="btn secondary small" data-p="1,2,3,2,4,9">Parallel</button>
+      <button type="button" class="btn secondary small" data-p="1,2,3,2,4,6">Same line</button>
+      <button type="button" class="btn secondary small" data-p="3,-5,-4,9,2,7">Fractions</button>
+    </div>
+    <p class="ax-big lp-eqtxt" style="margin:10px 0 4px"></p>
+    <svg class="sm-fig lp-fig" viewBox="0 0 340 340" role="img" aria-label="Graph of the two lines"></svg>
+    <p class="ax-help lp-note"></p>
+    <p class="ax-err lp-err" hidden></p>
+  </div>
+
+  <div class="ax-card lp-c10">
+    <h2>The ratio test</h2>
+    <p class="sm-f lp-ratios"></p>
+    <p class="lp-kind"></p>
+  </div>
+
+  <div class="ax-card lp-c10">
+    <h2>Solve it two ways</h2>
+    <h3>Substitution</h3>
+    <ol class="sm-steps lp-sub"></ol>
+    <h3>Elimination</h3>
+    <ol class="sm-steps lp-elim"></ol>
+  </div>
+
+  <div class="ax-card lp-c9" hidden>
+    <h2>Some solutions of equation (1)</h2>
+    <p class="ax-help">Every point on the line is a solution. Here are a few: put each x in and work out y.</p>
+    <div class="ax-scroll"><table class="lp-tab"></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Drag the crossing point. Both lines slide with it but keep their slopes: only c1 and c2 change.</li>
+      <li>Make a1/a2 equal to b1/b2 (for example x + 2y and 2x + 4y). Now change c2 until the two lines become one.</li>
+      <li>Try the Fractions example and follow elimination: which number did each equation get multiplied by, and why?</li>
+      <li>Class 9: pick an equation and check two rows of the table by putting the numbers back in.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="lp-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .lp .lp-eqs { display: grid; gap: 8px; margin-top: 10px; }
+  .lp .lp-eq { display: flex; align-items: center; gap: 4px; font-size: 16px; flex-wrap: nowrap; max-width: 420px; }
+  .lp .lp-eq input { flex: 1 1 3em; width: 3em; min-width: 2.4em; min-height: 42px; text-align: center; padding: 4px 2px; }
+  .lp .lp-eq i { font-family: Georgia, serif; font-size: 18px; }
+  .lp .lp-tag { color: var(--muted); font-size: 13px; flex: 0 0 1.8em; }
+  .lp .lp-eq[data-n="2"] .lp-tag { color: var(--good); }
+  .lp .lp-eq[data-n="1"] .lp-tag { color: var(--accent); }
+  .lp h3 { font-size: 15px; margin: 14px 0 4px; }
+  .lp svg .lp-l1 { stroke: var(--accent); stroke-width: 3; }
+  .lp svg .lp-l2 { stroke: var(--good); stroke-width: 3; }
+  .lp svg .lp-l2.same { stroke-dasharray: 8 6; }
+</style>
+
+<script>
+  import { solve, ratioTest, substitution, elimination, eqText, type Line } from '../../lib/sci/linpair-school';
+  import { fmt, randInt, fracText } from '../../lib/sci/smath';
+  import { S, dragOn, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.lp')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.lp-fig');
+  const I = (n: string) => q<HTMLInputElement>('.lp-' + n);
+  const num = (n: string) => { const v = Number(I(n).value); return I(n).value.trim() === '' || !Number.isFinite(v) ? NaN : v; };
+  let level = 10;
+  const W0 = -10, W1 = 10, Lp = 10, Rp = 330;
+  const px = (x: number) => Lp + ((x - W0) / (W1 - W0)) * (Rp - Lp), py = (y: number) => Rp - ((y - W0) / (W1 - W0)) * (Rp - Lp);
+  const ux = (p: number) => W0 + ((p - Lp) / (Rp - Lp)) * (W1 - W0), uy = (p: number) => W0 + ((Rp - p) / (Rp - Lp)) * (W1 - W0);
+
+  // Clip the line a x + b y = c to the square window; returns two end points or null.
+  function seg({ a, b, c }: Line): [number, number, number, number] | null {
+    const pts: [number, number][] = [];
+    if (b !== 0) for (const x of [W0, W1]) { const y = (c - a * x) / b; if (y >= W0 - 1e-9 && y <= W1 + 1e-9) pts.push([x, y]); }
+    if (a !== 0) for (const y of [W0, W1]) { const x = (c - b * y) / a; if (x >= W0 - 1e-9 && x <= W1 + 1e-9) pts.push([x, y]); }
+    if (pts.length < 2) return null;
+    pts.sort((p, r) => p[0] - r[0] || p[1] - r[1]);
+    return [pts[0][0], pts[0][1], pts.at(-1)![0], pts.at(-1)![1]];
+  }
+
+  function lines(): [Line, Line] | null {
+    const v = ['a1', 'b1', 'c1', 'a2', 'b2', 'c2'].map(num);
+    if (v.some(Number.isNaN)) return null;
+    return [{ a: v[0], b: v[1], c: v[2] }, { a: v[3], b: v[4], c: v[5] }];
+  }
+
+  function draw() {
+    root.querySelectorAll<HTMLElement>('.lp-c10').forEach((e) => (e.hidden = level !== 10));
+    q('.lp-c9').hidden = level !== 9; q('.lp-second').hidden = level !== 10;
+    const err = q('.lp-err'), L = lines();
+    if (!L) { err.textContent = 'Fill in every box with a number.'; err.hidden = false; return; }
+    const [l1, l2] = L;
+    const bad = (l: Line) => l.a === 0 && l.b === 0;
+    if (bad(l1) || (level === 10 && bad(l2))) { err.textContent = 'Each equation needs an x or a y term (a and b cannot both be 0).'; err.hidden = false; return; }
+    err.hidden = true;
+    q('.lp-eqtxt').textContent = level === 10 ? `${eqText(l1)},  ${eqText(l2)}` : eqText(l1);
+    fig.replaceChildren();
+    for (let x = W0; x <= W1; x += 2) { S('line', { x1: px(x), x2: px(x), y1: Lp, y2: Rp, class: 'sm-grid' }, fig); S('line', { x1: Lp, x2: Rp, y1: py(x), y2: py(x), class: 'sm-grid' }, fig); }
+    S('line', { x1: Lp, x2: Rp, y1: py(0), y2: py(0), class: 'sm-axis' }, fig); S('line', { x1: px(0), x2: px(0), y1: Lp, y2: Rp, class: 'sm-axis' }, fig);
+    for (const x of [-8, -4, 4, 8]) { S('text', { x: px(x), y: py(0) + 14, 'text-anchor': 'middle', class: 'sm-tick' }, fig, String(x).replace('-', '−')); S('text', { x: px(0) - 4, y: py(x) + 4, 'text-anchor': 'end', class: 'sm-tick' }, fig, String(x).replace('-', '−')); }
+    const s = solve(l1, l2);
+    const drawLine = (l: Line, cls: string) => { const g = seg(l); if (g) S('line', { x1: px(g[0]), y1: py(g[1]), x2: px(g[2]), y2: py(g[3]), class: cls }, fig); };
+    drawLine(l1, 'lp-l1');
+    if (level === 10) drawLine(l2, 'lp-l2' + (s.kind === 'coincident' ? ' same' : ''));
+    if (level === 10 && s.kind === 'unique') {
+      const inside = s.x! >= W0 && s.x! <= W1 && s.y! >= W0 && s.y! <= W1;
+      if (inside) {
+        S('circle', { cx: px(s.x!), cy: py(s.y!), r: 22, class: 'sm-hit' }, fig);
+        S('circle', { cx: px(s.x!), cy: py(s.y!), r: 9, class: 'sm-handle lp-x' }, fig);
+        S('text', { x: Math.min(300, px(s.x!) + 12), y: py(s.y!) - 12 }, fig, `(${fmt(s.x!, 2)}, ${fmt(s.y!, 2)})`);
+      }
+      q('.lp-note').textContent = inside ? 'The lines cross at the blue point: it is the solution. Drag it to move both lines.' : `The lines cross at (${fmt(s.x!, 3)}, ${fmt(s.y!, 3)}), outside this window.`;
+    } else q('.lp-note').textContent = level === 9 ? 'Every point on this line is a solution of the equation.' : s.kind === 'parallel' ? 'The lines never meet, so no (x, y) fits both equations.' : 'Both equations draw the same line, so every point on it is a solution.';
+    if (level === 10) {
+      const r = ratioTest(l1, l2);
+      q('.lp-ratios').textContent = `a1/a2 = ${r.a},  b1/b2 = ${r.b},  c1/c2 = ${r.c}${r.sign ? `,  so ${r.sign}` : ''}.`;
+      q('.lp-kind').replaceChildren(Object.assign(document.createElement('span'), { className: 'ax-pill ' + (r.kind === 'unique' ? 'good' : r.kind === 'parallel' ? 'bad' : 'warn'), textContent: r.kind === 'unique' ? 'One solution' : r.kind === 'parallel' ? 'No solution' : 'Infinitely many' }), ' ', r.words);
+      q('.lp-sub').replaceChildren(...substitution(l1, l2).map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+      q('.lp-elim').replaceChildren(...elimination(l1, l2).map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+    } else {
+      const tab = q<HTMLTableElement>('.lp-tab'); tab.replaceChildren();
+      const h = tab.insertRow(); for (const x of ['x', 'y', 'Check']) { const e = document.createElement('th'); e.textContent = x; h.append(e); }
+      const exact = [l1.a, l1.b, l1.c].every(Number.isInteger);
+      for (const x of [-2, -1, 0, 1, 2]) {
+        const tr = tab.insertRow();
+        if (l1.b === 0) { tr.insertCell().textContent = fmt(l1.c / l1.a, 4); tr.insertCell().textContent = String(x); tr.insertCell().textContent = `x is always ${fmt(l1.c / l1.a, 4)}: a vertical line`; continue; }
+        const y = (l1.c - l1.a * x) / l1.b;
+        tr.insertCell().textContent = String(x).replace('-', '−');
+        tr.insertCell().textContent = exact ? fracText(l1.c - l1.a * x, l1.b) : fmt(y, 4);
+        tr.insertCell().textContent = `${fmt(l1.a)} × ${fmt(x)} + ${fmt(l1.b)} × ${fmt(y, 3)} = ${fmt(l1.a * x + l1.b * y, 3)}`;
+      }
+    }
+  }
+
+  for (const n of ['a1', 'b1', 'c1', 'a2', 'b2', 'c2']) I(n).addEventListener('input', draw);
+  root.querySelectorAll<HTMLButtonElement>('.lp-pres button').forEach((btn) => btn.addEventListener('click', () => {
+    btn.dataset.p!.split(',').forEach((v, i) => { I(['a1', 'b1', 'c1', 'a2', 'b2', 'c2'][i]).value = v; }); draw();
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.lp-level button').forEach((btn) => btn.addEventListener('click', () => {
+    level = Number(btn.dataset.l); root.querySelectorAll('.lp-level button').forEach((x) => x.setAttribute('aria-pressed', String(x === btn))); draw();
+  }));
+  dragOn(fig, (x, y) => {
+    const L = lines(); if (!L || level !== 10) return null;
+    const s = solve(...L); if (s.kind !== 'unique') return null;
+    return Math.hypot(x - px(s.x!), y - py(s.y!)) < 30 ? 'x' : null;
+  }, (_id, x, y) => {
+    const L = lines(); if (!L) return;
+    const X = Math.round(Math.max(W0, Math.min(W1, ux(x)))), Y = Math.round(Math.max(W0, Math.min(W1, uy(y))));
+    I('c1').value = String(L[0].a * X + L[0].b * Y); I('c2').value = String(L[1].a * X + L[1].b * Y);
+    draw();
+  });
+  draw();
+
+  quiz(q('.lp-quiz'), () => {
+    const out: Question[] = [];
+    const R = () => randInt(-5, 5, true);
+    let a1 = R(), b1 = R(), a2 = R(), b2 = R(); while (a1 * b2 - a2 * b1 === 0) { a2 = R(); b2 = R(); }
+    const x0 = randInt(-6, 6), y0 = randInt(-6, 6), l1 = { a: a1, b: b1, c: a1 * x0 + b1 * y0 }, l2 = { a: a2, b: b2, c: a2 * x0 + b2 * y0 };
+    out.push({ q: `Solve ${eqText(l1)} and ${eqText(l2)}. Give x and y.`, want: [x0, y0], ordered: true, hint: 'x, y', work: elimination(l1, l2).join(' ') });
+    const k1 = randInt(1, 4), m = randInt(2, 4), c1 = randInt(1, 9);
+    out.push({ q: `For what value of k are the lines ${eqText({ a: k1, b: 3, c: c1 })} and kx + ${3 * m}y = ${c1 * m + 1} parallel?`, want: [k1 * m],
+      work: `Parallel means a1/a2 = b1/b2: ${k1}/k = 3/${3 * m}, so k = ${k1} × ${m} = ${k1 * m}. (Then c1/c2 = ${c1}/${c1 * m + 1}, which is different, so they never meet.)` });
+    const A = randInt(1, 5), B = randInt(1, 5), xx = randInt(-4, 4), C = A * xx + B * randInt(-4, 4);
+    out.push({ q: `On the line ${eqText({ a: A, b: B, c: C })}, what is y when x = ${xx}?`, want: [(C - A * xx) / B], hint: 'y',
+      work: `${A} × ${xx} + ${B}y = ${C}, so ${B}y = ${C - A * xx} and y = ${fracText(C - A * xx, B)}.`.replace(/-/g, '−') });
+    const big = randInt(10, 40), small = randInt(1, big - 1);
+    out.push({ q: `Two numbers add up to ${big + small} and their difference is ${big - small}. What are they?`, want: [big, small], hint: 'both numbers',
+      work: `x + y = ${big + small} and x − y = ${big - small}. Add them: 2x = ${2 * big}, so x = ${big}, and y = ${big + small} − ${big} = ${small}.` });
+    return out;
+  });
+</script>
