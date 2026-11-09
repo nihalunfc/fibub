@@ -1,0 +1,215 @@
+---
+// Polyhedron and tiling viewer: the 5 Platonic and 13 Archimedean solids (and their duals), and the 11 regular and semi-regular plane tilings.
+import '../../styles/astro.css';
+---
+<div class="ax pv">
+  <div class="ax-card">
+    <div class="ax-seg pv-mode" role="group" aria-label="What to show">
+      <button type="button" data-m="solid" aria-pressed="true">Solids</button>
+      <button type="button" data-m="tiling" aria-pressed="false">Plane tilings</button>
+    </div>
+    <div class="pv-sopt">
+      <div class="ax-grid" style="margin-top:12px">
+        <label>Solid <select class="pv-s"></select></label>
+        <label>Show <select class="pv-show"><option value="solid">The solid</option><option value="dual">Its dual</option><option value="both">Both together</option></select></label>
+        <label>Edge length <input class="pv-a" inputmode="decimal" value="1" /></label>
+        <label class="ax-check"><input type="checkbox" class="pv-spin" /> Spin</label>
+      </div>
+    </div>
+    <div class="pv-topt" hidden>
+      <div class="ax-grid" style="margin-top:12px">
+        <label>Tiling <select class="pv-t"></select></label>
+        <label class="ax-check"><input type="checkbox" class="pv-cell" /> Show the repeating cell</label>
+      </div>
+    </div>
+    <p class="ax-err pv-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <canvas class="pv-cv" role="img" aria-label="Polyhedron"></canvas>
+    <div class="ax-legend pv-leg"></div>
+    <div class="ax-row pv-nav" style="margin-top:10px"><button type="button" class="btn secondary small pv-reset">Reset the turn</button><span class="ax-help pv-hint" style="margin:0">Drag the solid to turn it.</span></div>
+    <div class="dl">
+      <span class="dl-l">Download</span>
+      <button type="button" class="btn secondary pv-png">PNG</button>
+      <button type="button" class="btn secondary pv-svg">SVG</button>
+      <button type="button" class="btn secondary pv-obj">3D model (OBJ)</button>
+      <button type="button" class="btn secondary pv-csv">Vertices (CSV)</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="pv-h"></h2>
+    <dl class="ax-facts pv-facts"></dl>
+    <p class="ax-help pv-note"></p>
+  </div>
+</div>
+
+<style is:global>
+  .pv-cv { display: block; width: 100%; max-width: 560px; margin: 0 auto; aspect-ratio: 1; height: auto; touch-action: none; cursor: grab; }
+</style>
+
+<script>
+  import { SOLIDS, TILINGS, build, dual, measure, faceCounts, vertexConfig, normal, centroid, patch, polygonArea, interiorAngle, type Poly, type V3 } from '../../lib/sci/polyhedra';
+  import { canvasPainter, svgPainter, type Painter } from '../../lib/sci/plot';
+  import { sig, num } from '../../lib/sci/num';
+  import { pagePalette, LIGHT, save, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.pv')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const cv = q<HTMLCanvasElement>('.pv-cv');
+  const fmt = (v: number, n = 6) => { const t = sig(v, n); return /×/.test(t) ? t : t.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, ''); };
+  const NAME: Record<number, [string, string]> = { 3: ['triangle', 'triangles'], 4: ['square', 'squares'], 5: ['pentagon', 'pentagons'], 6: ['hexagon', 'hexagons'], 8: ['octagon', 'octagons'], 10: ['decagon', 'decagons'], 12: ['dodecagon', 'dodecagons'] };
+  const COL: Record<number, string> = { 3: '#E69F00', 4: '#56B4E9', 5: '#009E73', 6: '#F0E442', 8: '#CC79A7', 10: '#0072B2', 12: '#D55E00' };
+  const RED: Record<number, string> = { 3: '#a30000', 4: '#7a0000', 5: '#c00000', 6: '#5a0000', 8: '#8a0000', 10: '#6a0000', 12: '#b00000' };
+  let mode: 'solid' | 'tiling' = 'solid';
+  let poly: Poly = build('truncated-icosahedron'), dpoly: Poly = dual(poly);
+  const START = (): number[] => { const a = 0.5, b = -0.35; const ca = Math.cos(a), sa = Math.sin(a), cb = Math.cos(b), sb = Math.sin(b); return [ca, 0, sa, sa * sb, cb, -ca * sb, -sa * cb, sb, ca * cb]; };
+  let M = START(), S = 500;
+
+  // ---------- Selects ----------
+  q<HTMLSelectElement>('.pv-s').innerHTML = ['Platonic', 'Archimedean'].map((fam) => `<optgroup label="${fam}">${SOLIDS.filter((s) => s.family === fam).map((s) => `<option value="${s.id}">${s.name}</option>`).join('')}</optgroup>`).join('');
+  q<HTMLSelectElement>('.pv-s').value = 'truncated-icosahedron';
+  q<HTMLSelectElement>('.pv-t').innerHTML = TILINGS.map((t) => `<option value="${t.id}">${t.name} (${t.config})</option>`).join('');
+  q<HTMLSelectElement>('.pv-t').value = 'rhombitrihexagonal';
+
+  // ---------- 3D ----------
+  const rot = (v: V3): V3 => [M[0] * v[0] + M[1] * v[1] + M[2] * v[2], M[3] * v[0] + M[4] * v[1] + M[5] * v[2], M[6] * v[0] + M[7] * v[1] + M[8] * v[2]];
+  function turn(ax: V3, t: number) {
+    const n = Math.hypot(...ax); if (!n) return; const [x, y, z] = ax.map((c) => c / n), c = Math.cos(t), s = Math.sin(t), C = 1 - c;
+    const R = [c + x * x * C, x * y * C - z * s, x * z * C + y * s, y * x * C + z * s, c + y * y * C, y * z * C - x * s, z * x * C - y * s, z * y * C + x * s, c + z * z * C];
+    const out = new Array(9).fill(0); for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) for (let k = 0; k < 3; k++) out[3 * i + j] += R[3 * i + k] * M[3 * k + j];
+    M = out;
+  }
+  function shade(hex: string, k: number) { const n = parseInt(hex.slice(1), 16), c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((x) => Math.round(x * k)); return `rgb(${c[0]},${c[1]},${c[2]})`; }
+  function drawSolid(P: Painter, s: number, pal: Palette) {
+    const show = q<HTMLSelectElement>('.pv-show').value, main = show === 'dual' ? dpoly : poly;
+    const R = Math.max(...main.v.map((v) => Math.hypot(...v)), show === 'both' ? Math.max(...dpoly.v.map((v) => Math.hypot(...v))) : 0);
+    const k = (s * 0.44) / R, X = (v: V3): [number, number] => { const r = rot(v); return [s / 2 + r[0] * k, s / 2 - r[1] * k]; };
+    const L: V3 = [-0.45, 0.55, 0.7], ln = Math.hypot(...L);
+    const cols = pal.red ? RED : COL;
+    const dualEdges = (front: boolean) => { for (const [a, b] of dpoly.edges) { const m = rot([(dpoly.v[a][0] + dpoly.v[b][0]) / 2, (dpoly.v[a][1] + dpoly.v[b][1]) / 2, (dpoly.v[a][2] + dpoly.v[b][2]) / 2]); if ((m[2] > 0) === front) P.line([X(dpoly.v[a]), X(dpoly.v[b])], front ? pal.ink : pal.muted, front ? 1.6 : 0.8, front ? undefined : [3, 3]); } };
+    if (show === 'both') dualEdges(false);
+    for (const f of main.f) {
+      const n = rot(normal(main.v, f)); if (n[2] <= 1e-9) continue;
+      const light = Math.max(0, (n[0] * L[0] + n[1] * L[1] + n[2] * L[2]) / ln);
+      const base = show === 'dual' ? (pal.red ? '#7a0000' : '#9ecae1') : cols[f.length] ?? '#999999';
+      P.poly(f.map((i) => X(main.v[i])), shade(base, 0.45 + 0.55 * light), pal.ink, 1.1);
+    }
+    if (show === 'both') dualEdges(true);
+  }
+  function drawTiling(P: Painter, s: number, pal: Palette) {
+    const t = TILINGS.find((x) => x.id === q<HTMLSelectElement>('.pv-t').value)!;
+    const span = Math.max(8, 3.2 * Math.hypot(...t.a1)), k = s / span, X = (p: [number, number]): [number, number] => [s / 2 + p[0] * k, s / 2 - p[1] * k];
+    const cols = pal.red ? RED : COL;
+    P.poly([[0, 0], [s, 0], [s, s], [0, s]], pal.bg, null);
+    P.clip(0, 0, s, s);
+    for (const g of patch(t, -span / 2, span / 2, -span / 2, span / 2)) P.poly(g.p.map(X), shade(cols[g.n], pal.bg === '#ffffff' ? 1 : 0.8), pal.ink, 1.2);
+    if (q<HTMLInputElement>('.pv-cell').checked) {
+      const o: [number, number] = [0, 0], a = t.a1, b = t.a2;
+      P.poly([X(o), X(a), X([a[0] + b[0], a[1] + b[1]]), X(b)], null, pal.ink, 3);
+    }
+    P.unclip();
+  }
+  function draw(P: Painter, s: number, pal: Palette) {
+    P.poly([[0, 0], [s, 0], [s, s], [0, s]], pal.bg, null);
+    if (mode === 'solid') drawSolid(P, s, pal); else drawTiling(P, s, pal);
+  }
+  function paint() {
+    S = Math.max(240, Math.round(cv.clientWidth || 500));
+    const dpr = Math.min(3, window.devicePixelRatio || 1); cv.width = cv.height = Math.round(S * dpr);
+    const ctx = cv.getContext('2d')!; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw(canvasPainter(ctx), S, pagePalette());
+  }
+
+  // ---------- Facts ----------
+  const list = (c: Record<number, number>) => Object.entries(c).map(([n, k]) => `${k} ${NAME[+n][k === 1 ? 0 : 1]}`).join(', ');
+  function legend(ns: number[]) {
+    const pal = pagePalette(), cols = pal.red ? RED : COL;
+    q('.pv-leg').replaceChildren(...ns.map((n) => { const s = document.createElement('span'); s.innerHTML = '<i></i>'; (s.firstChild as HTMLElement).style.background = cols[n]; s.append(NAME[n][1]); return s; }));
+  }
+  function facts() {
+    const out: [string, string][] = [];
+    if (mode === 'solid') {
+      const def = SOLIDS.find((s) => s.id === q<HTMLSelectElement>('.pv-s').value)!, a = num(q<HTMLInputElement>('.pv-a').value);
+      const err = q('.pv-err');
+      if (!(a > 0)) { err.textContent = 'Type an edge length above zero.'; err.hidden = false; } else err.hidden = true;
+      const A = a > 0 ? a : 1, m = measure(poly), fc = faceCounts(poly), V = poly.v.length, E = poly.edges.length, F = poly.f.length;
+      const cfg = vertexConfig(poly, 0), dfc = faceCounts(dpoly);
+      q('.pv-h').textContent = `${def.name} (${def.family.toLowerCase()} solid)`;
+      out.push(['Vertices V', String(V)], ['Edges E', String(E)], ['Faces F', `${F}: ${list(fc)}`], ['Euler characteristic V − E + F', `${V} − ${E} + ${F} = ${V - E + F}`],
+        ['At every vertex', `${cfg} (${cfg.split('.').map((n) => NAME[+n][0]).join(', ')})`],
+        ['Angle defect at each vertex', `${fmt(360 - cfg.split('.').reduce((s, n) => s + interiorAngle(+n), 0), 5)}° (× ${V} vertices = 720°)`],
+        ['Surface area', fmt(m.area * A * A)], ['Volume', fmt(m.volume * A ** 3)], ['Circumradius (centre to vertex)', fmt(m.circumradius * A)], ['Midradius (centre to edge)', fmt(m.midradius * A)],
+        ['Dual', `${def.dual}: ${dpoly.v.length} vertices, ${E} edges, ${dpoly.f.length} faces (${Object.entries(dfc).map(([n, k]) => `${k} with ${n} sides`).join(', ')})`]);
+      legend(Object.keys(fc).map(Number));
+      q('.pv-note').textContent = `Edges, area and volume are for an edge length of ${fmt(A)}. The dual swaps vertices and faces: each face becomes a vertex, found by reflecting the face in the sphere that touches every edge (the midsphere), so the two solids' edges cross at right angles. ${def.family === 'Platonic' ? 'Platonic solids have one kind of regular face and the same number meeting at every vertex.' : 'Archimedean solids have two or more kinds of regular face, arranged the same way at every vertex.'}`;
+      cv.setAttribute('aria-label', `${def.name}, ${V} vertices, ${E} edges, ${F} faces`);
+    } else {
+      const t = TILINGS.find((x) => x.id === q<HTMLSelectElement>('.pv-t').value)!, ns = t.config.split('.').map(Number);
+      const per: Record<number, number> = {}; for (const m of t.motif) per[m.n] = (per[m.n] ?? 0) + 1;
+      const cell = Math.abs(t.a1[0] * t.a2[1] - t.a1[1] * t.a2[0]);
+      q('.pv-h').textContent = `${t.name} tiling ${t.config}`;
+      out.push(['Kind', t.kind === 'regular' ? 'Regular: one kind of regular polygon' : 'Semi-regular (Archimedean): two or more kinds'],
+        ['At every vertex', `${t.config} (${ns.map((n) => NAME[n][0]).join(', ')})`],
+        ['Angles at a vertex', `${ns.map((n) => fmt(interiorAngle(n), 4) + '°').join(' + ')} = 360°`],
+        ['Repeating cell holds', list(per)],
+        ['Share of the area', Object.entries(per).map(([n, k]) => `${NAME[+n][1]} ${fmt((100 * k * polygonArea(+n)) / cell, 3)} %`).join(', ')],
+        ['Cell area (edge 1)', fmt(cell)]);
+      legend(Object.keys(per).map(Number));
+      q('.pv-note').textContent = 'Only 11 tilings of the plane by regular polygons have the same arrangement at every vertex: 3 regular and 8 semi-regular. The polygons at a vertex must add up to exactly 360°. Snub tilings come in mirror-image pairs; one hand is shown.';
+      cv.setAttribute('aria-label', `${t.name} tiling ${t.config}`);
+    }
+    q('.pv-facts').replaceChildren(...out.map(([k, v]) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; }));
+  }
+  function update() { facts(); paint(); }
+
+  // ---------- Interaction ----------
+  let last: { x: number; y: number } | null = null;
+  cv.addEventListener('pointerdown', (e) => { if (mode !== 'solid') return; cv.setPointerCapture(e.pointerId); last = { x: e.clientX, y: e.clientY }; });
+  cv.addEventListener('pointermove', (e) => { if (!last) return; const dx = e.clientX - last.x, dy = e.clientY - last.y; last = { x: e.clientX, y: e.clientY }; turn([dy, dx, 0], Math.hypot(dx, dy) * 0.01); paint(); });
+  const end = () => { last = null; }; cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+  let spinning = 0;
+  function spin() { if (!q<HTMLInputElement>('.pv-spin').checked || mode !== 'solid') { spinning = 0; return; } turn([0, 1, 0], 0.01); paint(); spinning = requestAnimationFrame(spin); }
+
+  // ---------- Downloads ----------
+  const file = () => (mode === 'solid' ? `${q<HTMLSelectElement>('.pv-s').value}${q<HTMLSelectElement>('.pv-show').value === 'solid' ? '' : '-' + q<HTMLSelectElement>('.pv-show').value}` : `tiling-${q<HTMLSelectElement>('.pv-t').value}`);
+  q('.pv-svg').addEventListener('click', () => { const P = svgPainter(S, S); draw(P, S, LIGHT); save(new Blob([P.toString()], { type: 'image/svg+xml' }), `${file()}.svg`, 'image/svg+xml'); });
+  q('.pv-png').addEventListener('click', () => { const c = document.createElement('canvas'); c.width = c.height = S * 2; const ctx = c.getContext('2d')!; ctx.scale(2, 2); draw(canvasPainter(ctx), S, LIGHT); c.toBlob((b) => b && save(b, `${file()}.png`, 'image/png'), 'image/png'); });
+  const current = () => { const a = num(q<HTMLInputElement>('.pv-a').value) > 0 ? num(q<HTMLInputElement>('.pv-a').value) : 1; return { p: q<HTMLSelectElement>('.pv-show').value === 'dual' ? dpoly : poly, a }; };
+  const g = (v: number) => String(+v.toPrecision(12));
+  q('.pv-obj').addEventListener('click', () => {
+    const { p, a } = current(), name = SOLIDS.find((s) => s.id === q<HTMLSelectElement>('.pv-s').value)!.name;
+    const txt = [`# ${name}${q<HTMLSelectElement>('.pv-show').value === 'dual' ? ' (dual)' : ''}, edge length ${g(a)}, from fibub.com`, ...p.v.map((v) => `v ${v.map((x) => g(x * a)).join(' ')}`), ...p.f.map((f) => `f ${f.map((i) => i + 1).join(' ')}`)].join('\n') + '\n';
+    save(new Blob([txt], { type: 'model/obj' }), `${file()}.obj`, 'model/obj');
+  });
+  q('.pv-csv').addEventListener('click', () => {
+    const { p, a } = current();
+    save(new Blob([['vertex,x,y,z', ...p.v.map((v, i) => [i + 1, ...v.map((x) => g(x * a))].join(','))].join('\n') + '\n'], { type: 'text/csv' }), `${file()}.csv`, 'text/csv');
+  });
+
+  // ---------- Wiring ----------
+  function setMode(m: 'solid' | 'tiling') {
+    mode = m;
+    root.querySelectorAll<HTMLButtonElement>('.pv-mode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === m)));
+    q('.pv-sopt').hidden = m !== 'solid'; q('.pv-topt').hidden = m !== 'tiling'; q('.pv-nav').hidden = m !== 'solid';
+    q('.pv-obj').hidden = q('.pv-csv').hidden = m !== 'solid';
+    cv.style.cursor = m === 'solid' ? 'grab' : 'default';
+    update(); if (m === 'solid' && !spinning) spin();
+  }
+  root.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest('button'); if (!b) return;
+    if (b.dataset.m) setMode(b.dataset.m as 'solid' | 'tiling');
+    else if (b.classList.contains('pv-reset')) { M = START(); paint(); }
+  });
+  root.addEventListener('change', (e) => {
+    const t = e.target as HTMLElement;
+    if (t.classList.contains('pv-s')) { poly = build((t as HTMLSelectElement).value); dpoly = dual(poly); update(); }
+    else if (t.classList.contains('pv-spin')) { if (!spinning) spin(); }
+    else update();
+  });
+  root.addEventListener('input', (e) => { if ((e.target as HTMLElement).classList.contains('pv-a')) facts(); });
+  new ResizeObserver(() => { if (Math.round(cv.clientWidth) !== S) paint(); }).observe(cv);
+  new MutationObserver(() => update()).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+  update();
+</script>
