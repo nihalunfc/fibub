@@ -1,0 +1,194 @@
+---
+// Phasor diagram and series LCR circuit: R, L, C and frequency sliders, rotating phasors, the impedance triangle and
+// the resonance curve with its Q factor. Everything runs in the browser.
+import '../../styles/astro.css';
+---
+<div class="ax lcp">
+  <div class="ax-card">
+    <h2>Series LCR circuit</h2>
+    <label class="lcp-sl">Resistance R: <b class="lcp-rv">20 Ω</b><input type="range" class="lcp-r" min="1" max="100" step="1" value="20" aria-label="Resistance" /></label>
+    <label class="lcp-sl">Inductance L: <b class="lcp-lv">100 mH</b><input type="range" class="lcp-l" min="10" max="500" step="10" value="100" aria-label="Inductance in millihenry" /></label>
+    <label class="lcp-sl">Capacitance C: <b class="lcp-cv">10 µF</b><input type="range" class="lcp-c" min="1" max="100" step="1" value="10" aria-label="Capacitance in microfarad" /></label>
+    <label class="lcp-sl">Frequency f: <b class="lcp-fv">50 Hz</b><input type="range" class="lcp-f" min="0" max="1000" step="1" value="349" aria-label="Frequency, from 10 to 1000 hertz" /></label>
+    <div class="ax-row" style="margin-top:10px">
+      <label>Supply <select class="lcp-v" style="width:auto"><option value="10" selected>10 V rms</option><option value="230">230 V rms</option></select></label>
+      <button type="button" class="btn secondary small lcp-res">Go to resonance</button>
+      <button type="button" class="btn secondary small lcp-play">Pause</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <canvas class="ax-fig lcp-fig"></canvas>
+    <div class="ax-legend"><span><i class="lcp-ki"></i>I (current)</span><span><i class="lcp-kr"></i>V_R</span><span><i class="lcp-kl"></i>V_L</span><span><i class="lcp-kc"></i>V_C</span><span><i class="lcp-kv"></i>V (supply)</span></div>
+    <p class="ax-big lcp-big" aria-live="polite"></p>
+    <p class="lcp-formula"></p>
+    <dl class="ax-facts lcp-facts" style="margin-top:10px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Resonance curve</h2>
+    <canvas class="ax-fig lcp-curve"></canvas>
+    <p class="lcp-qtext"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lcp-try">
+      <li>Slide the frequency up from 10 Hz. At low frequency the capacitor blocks most of the current; at high frequency the inductor does.</li>
+      <li>Tap Go to resonance: X_L = X_C, they cancel, Z = R, the current is largest and the power factor is 1.</li>
+      <li>At resonance, V_L and V_C can each be bigger than the supply voltage, yet they cancel each other.</li>
+      <li>Make R smaller: the peak gets taller and narrower (a higher Q), which is how a radio tunes to one station.</li>
+      <li>Watch the phasors: V_L is always 90° ahead of I, V_C 90° behind, and V_R in step with it.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="lcp-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .lcp .lcp-sl { display: grid; gap: 6px; margin-top: 10px; color: var(--ink); font-size: 15px; }
+  .lcp .lcp-sl:first-of-type { margin-top: 0; }
+  .lcp input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .lcp-fig, .lcp-curve { max-width: 520px; margin-left: auto; margin-right: auto; }
+  .lcp-ki { background: var(--ink); }
+  .lcp-kr { background: var(--good); }
+  .lcp-kl { background: var(--accent); }
+  .lcp-kc { background: var(--warn); }
+  .lcp-kv { background: var(--bad); }
+  .lcp-big { font-size: clamp(18px, 4.6vw, 24px); margin: 10px 0 0; }
+  .lcp-formula, .lcp-qtext { margin: 6px 0 0; font-size: 16px; overflow-wrap: anywhere; }
+  .lcp-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .lcp .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .lcp .eq-q p { margin: 0 0 6px; }
+  .lcp .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .lcp .eq-ok { color: var(--good); font-weight: 600; }
+  .lcp .eq-no { color: var(--bad); }
+  .lcp .eq-work { margin-top: 4px; font-size: 14px; }
+  .lcp .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .lcp .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { lcr, currentAt, halfPower, questions } from '../../lib/sci/lcr-phasors';
+  import { pagePalette } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+  import { quiz } from '../../lib/elec-quiz-ui';
+
+  const root = document.querySelector<HTMLElement>('.lcp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fig = q<HTMLCanvasElement>('.lcp-fig'), curve = q<HTMLCanvasElement>('.lcp-curve');
+  const sg = (x: number, n = 3) => sig(x, n);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const amps = (I: number) => (I >= 1 ? `${sg(I)} A` : `${sg(I * 1000)} mA`);
+  // The frequency slider is logarithmic: 0 → 10 Hz, 1000 → 1000 Hz.
+  const fFrom = (s: number) => Math.pow(10, 1 + (2 * s) / 1000);
+  const sFrom = (f: number) => Math.round(((Math.log10(f) - 1) * 1000) / 2);
+  let fExact: number | null = null, theta = 0, playing = !reduce, last = 0;
+  const vals = () => {
+    const R = +q<HTMLInputElement>('.lcp-r').value, L = +q<HTMLInputElement>('.lcp-l').value / 1000, C = +q<HTMLInputElement>('.lcp-c').value * 1e-6, V = +q<HTMLSelectElement>('.lcp-v').value;
+    const fs = fFrom(+q<HTMLInputElement>('.lcp-f').value), f = fExact ?? Number(sg(fs, fs < 99.5 ? 2 : 3));
+    return { R, L, C, V, f, s: lcr(R, L, C, f, V) };
+  };
+  function setup(c: HTMLCanvasElement, w: number, h: number) {
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    if (c.width !== Math.round(w * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c.style.aspectRatio = `${w} / ${h}`; }
+    const x = c.getContext('2d')!; x.setTransform(dpr, 0, 0, dpr, 0, 0); return x;
+  }
+  const arrow = (c: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, col: string, w = 3, label = '') => {
+    const L = Math.hypot(x1 - x0, y1 - y0);
+    c.strokeStyle = col; c.fillStyle = col; c.lineWidth = w;
+    if (L >= 2) {
+      const ux = (x1 - x0) / L, uy = (y1 - y0) / L, hl = Math.min(10, L * 0.5);
+      c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1 - hl * ux, y1 - hl * uy); c.stroke();
+      c.beginPath(); c.moveTo(x1, y1); c.lineTo(x1 - hl * ux - 4.5 * uy, y1 - hl * uy + 4.5 * ux); c.lineTo(x1 - hl * ux + 4.5 * uy, y1 - hl * uy - 4.5 * ux); c.closePath(); c.fill();
+    }
+    if (label) { c.font = '700 12px system-ui, sans-serif'; c.textAlign = 'center'; const ux = L ? (x1 - x0) / L : 1, uy = L ? (y1 - y0) / L : 0; c.fillText(label, x1 + 12 * ux, y1 + 12 * uy + 4); }
+  };
+
+  const W = 360, H = 260;
+  function drawPhasors() {
+    const pal = pagePalette(), c = setup(fig, W, H), { R, s } = vals();
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    const cx = 120, cy = 130, rmax = 95, big = Math.max(s.VR, s.VL, s.VC, s.VR && Math.hypot(s.VR, s.VL - s.VC));
+    const k = rmax / big;
+    c.strokeStyle = pal.grid; c.lineWidth = 1; c.beginPath(); c.arc(cx, cy, rmax, 0, Math.PI * 2); c.moveTo(cx - rmax - 6, cy); c.lineTo(cx + rmax + 6, cy); c.stroke();
+    const P = (mag: number, ang: number): [number, number] => [cx + mag * k * Math.cos(ang), cy - mag * k * Math.sin(ang)];
+    // V_L and V_C on the same line: draw V_C from the tip of V_R, then V_L, as in the textbook phasor sum.
+    const t = theta;
+    arrow(c, cx, cy, ...P(s.VR, t), pal.good, 3, 'V_R');
+    arrow(c, cx, cy, ...P(s.VL, t + Math.PI / 2), pal.accent, 3, 'V_L');
+    arrow(c, cx, cy, ...P(s.VC, t - Math.PI / 2), pal.warn, 3, 'V_C');
+    const V = Math.hypot(s.VR, s.VL - s.VC);
+    arrow(c, cx, cy, ...P(V, t + s.phi), pal.bad, 3.5, 'V');
+    // Current phasor, scaled so that it shows the direction only.
+    const [ix, iy] = [cx + 0.45 * rmax * Math.cos(t), cy - 0.45 * rmax * Math.sin(t)];
+    arrow(c, cx, cy, ix, iy, pal.ink, 2, 'I');
+    // Impedance triangle on the right: R along, X up or down, Z the slope.
+    const tx = 250, ty = 130, zk = 80 / Math.max(R, Math.abs(s.X), 1e-9);
+    const rx = R * zk, xy = s.X * zk;
+    c.strokeStyle = pal.good; c.lineWidth = 2.5; c.beginPath(); c.moveTo(tx, ty); c.lineTo(tx + rx, ty); c.stroke();
+    c.strokeStyle = s.X >= 0 ? pal.accent : pal.warn; c.beginPath(); c.moveTo(tx + rx, ty); c.lineTo(tx + rx, ty - xy); c.stroke();
+    c.strokeStyle = pal.bad; c.beginPath(); c.moveTo(tx, ty); c.lineTo(tx + rx, ty - xy); c.stroke();
+    c.fillStyle = pal.muted; c.font = '12px system-ui, sans-serif'; c.textAlign = 'left';
+    c.fillText('impedance triangle', 240, 22); c.fillText('R', tx + rx / 2 - 4, ty + 15); c.fillText('X', tx + rx + 4, ty - xy / 2); c.fillText('Z', tx + rx / 2 - 14, ty - xy / 2 - 4);
+    c.fillText(`φ = ${sg((s.phi * 180) / Math.PI, 3)}°`, 240, 250);
+    fig.setAttribute('aria-label', `Phasor diagram: phase ${Math.round((s.phi * 180) / Math.PI)} degrees`);
+  }
+  function drawCurve() {
+    const pal = pagePalette(), c = setup(curve, 360, 200), { R, L, C, V, f, s } = vals();
+    c.fillStyle = pal.bg; c.fillRect(0, 0, 360, 200);
+    const ML = 44, MR = 10, MT = 10, MB = 30, pw = 360 - ML - MR, ph = 200 - MT - MB;
+    const X = (fr: number) => ML + ((Math.log10(fr) - 1) / 2) * pw, Y = (I: number) => MT + ph - (I / s.Imax) * ph * 0.95;
+    const [f1, f2] = halfPower(R, L, C);
+    c.fillStyle = pal.grid; c.fillRect(Math.max(ML, X(Math.max(10, f1))), MT, Math.max(0, Math.min(ML + pw, X(Math.min(1000, f2))) - Math.max(ML, X(Math.max(10, f1)))), ph);
+    c.strokeStyle = pal.line; c.lineWidth = 1; c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'center';
+    for (const fr of [10, 20, 50, 100, 200, 500, 1000]) { c.beginPath(); c.moveTo(X(fr), MT + ph); c.lineTo(X(fr), MT + ph + 4); c.stroke(); c.fillText(String(fr), X(fr), MT + ph + 15); }
+    c.fillText('frequency (Hz)', ML + pw / 2, 198);
+    c.strokeStyle = pal.ink; c.beginPath(); c.moveTo(ML, MT); c.lineTo(ML, MT + ph); c.lineTo(ML + pw, MT + ph); c.stroke();
+    c.save(); c.translate(12, MT + ph / 2); c.rotate(-Math.PI / 2); c.fillText('current', 0, 0); c.restore();
+    c.textAlign = 'right'; c.fillText(amps(s.Imax), ML - 4, Y(s.Imax) + 4);
+    c.strokeStyle = pal.accent; c.lineWidth = 2; c.beginPath();
+    for (let k = 0; k <= 300; k++) { const fr = Math.pow(10, 1 + (2 * k) / 300), y = Y(currentAt(R, L, C, V, fr)); k ? c.lineTo(X(fr), y) : c.moveTo(X(fr), y); }
+    c.stroke();
+    if (s.f0 >= 10 && s.f0 <= 1000) { c.strokeStyle = pal.muted; c.setLineDash([4, 4]); c.beginPath(); c.moveTo(X(s.f0), MT); c.lineTo(X(s.f0), MT + ph); c.stroke(); c.setLineDash([]); }
+    c.fillStyle = pal.bad; c.beginPath(); c.arc(X(f), Y(s.I), 5, 0, Math.PI * 2); c.fill();
+    curve.setAttribute('aria-label', 'Resonance curve: current against frequency');
+  }
+  function texts() {
+    const { R, L, C, V, f, s } = vals();
+    q('.lcp-rv').textContent = `${R} Ω`; q('.lcp-lv').textContent = `${Math.round(L * 1000)} mH`; q('.lcp-cv').textContent = `${Math.round(C * 1e6)} µF`; q('.lcp-fv').textContent = `${sg(f)} Hz`;
+    const ph = (s.phi * 180) / Math.PI;
+    q('.lcp-big').textContent = `I = ${amps(s.I)} rms, ` + (Math.abs(ph) < 0.05 ? 'in step with the voltage (resonance)' : ph > 0 ? `lagging the voltage by ${sg(ph)}°` : `leading the voltage by ${sg(-ph)}°`);
+    q('.lcp-formula').textContent = `Z = √(R² + (X_L − X_C)²) = √(${R}² + (${sg(s.XL)} − ${sg(s.XC)})²) = ${sg(s.Z)} Ω, so I = V / Z = ${V} / ${sg(s.Z)} = ${amps(s.I)}`;
+    q('.lcp-facts').replaceChildren(
+      fact('X_L = 2πfL', `${sg(s.XL)} Ω`), fact('X_C = 1/(2πfC)', `${sg(s.XC)} Ω`), fact('Impedance Z', `${sg(s.Z)} Ω`),
+      fact('Peak current', amps(Math.SQRT2 * s.I), 'I₀ = √2 × I_rms'),
+      fact('V_R, V_L, V_C', `${sg(s.VR)}, ${sg(s.VL)}, ${sg(s.VC)} V`, 'rms; V_L and V_C partly cancel'),
+      fact('Power factor cos φ', sg(s.pf), Math.abs(ph) < 0.05 ? 'resonance' : ph > 0 ? 'inductive' : 'capacitive'),
+      fact('Average power', s.P >= 1 ? `${sg(s.P)} W` : `${sg(s.P * 1000)} mW`, 'P = V I cos φ, all in R'),
+    );
+    const [f1, f2] = halfPower(R, L, C);
+    q('.lcp-qtext').textContent = `Resonance at f₀ = 1/(2π√(LC)) = ${sg(s.f0)} Hz, where the current peaks at V/R = ${amps(s.Imax)}. Q factor = (1/R)√(L/C) = ${sg(s.Q)}; the current is above 1/√2 of its peak from ${sg(f1)} to ${sg(f2)} Hz (bandwidth ${sg(s.bw)} Hz = f₀/Q).`;
+  }
+  const all = () => { texts(); drawPhasors(); drawCurve(); };
+  function tick(t: number) {
+    const dt = last ? Math.min(0.05, (t - last) / 1000) : 0; last = t;
+    if (playing) { theta = (theta + dt * 1.6) % (2 * Math.PI); drawPhasors(); }
+    requestAnimationFrame(tick);
+  }
+  q('.lcp-r').addEventListener('input', all);
+  for (const c of ['.lcp-l', '.lcp-c']) q(c).addEventListener('input', () => { fExact = null; all(); });
+  q('.lcp-f').addEventListener('input', () => { fExact = null; all(); });
+  q('.lcp-v').addEventListener('change', all);
+  q('.lcp-res').addEventListener('click', () => { const { s } = vals(); fExact = s.f0; q<HTMLInputElement>('.lcp-f').value = String(sFrom(Math.min(1000, Math.max(10, s.f0)))); all(); });
+  q('.lcp-play').addEventListener('click', () => { playing = !playing; q('.lcp-play').textContent = playing ? 'Pause' : 'Play'; });
+  new MutationObserver(all).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+  if (!playing) q('.lcp-play').textContent = 'Play';
+  all();
+  quiz(q('.lcp-quiz'), () => questions());
+  requestAnimationFrame(tick);
+</script>
