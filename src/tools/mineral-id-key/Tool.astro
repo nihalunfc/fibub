@@ -1,0 +1,155 @@
+---
+// Mineral identification key: about 50 common rock-forming and ore minerals with rounded general properties, ranked
+// against what the user observes, with reasons, tolerances, a printable table and CSV. Values written by fibub.
+import '../../styles/astro.css';
+import Downloads from '../../components/Downloads.astro';
+import { MINERALS, LUSTRES, STREAKS, CLEAVAGES, COLOURS, TESTS } from '../../lib/sci/mineralkey';
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const fmt = (r: [number, number]) => (r[0] === r[1] ? String(r[0]) : `${r[0]}–${r[1]}`);
+const clv = Object.fromEntries(CLEAVAGES);
+---
+<div class="ax mik">
+  <div class="ax-card mk-form">
+    <h2>What you see</h2>
+    <div class="ax-grid">
+      <label>Hardness from <select class="mk-hm"><option value="">not tested</option><option value="nail">a fingernail scratches it (under 2.5)</option><option value="coin">a copper coin scratches it, a nail does not (2.5 to 3.5)</option><option value="knife">a steel knife scratches it, a coin does not (3.5 to 5.5)</option><option value="glass">it scratches glass (over 5.5)</option><option value="num" selected>a number I type (Mohs)</option></select></label>
+      <label class="mk-hw">Mohs hardness <input class="mk-h" inputmode="decimal" value="3" /></label>
+      <label>Specific gravity <input class="mk-sg" inputmode="decimal" value="" placeholder="optional, e.g. 2.7" /></label>
+      <label>Lustre <select class="mk-lu"><option value="">not sure</option>{LUSTRES.map((l) => <option value={l} selected={l === 'vitreous'}>{cap(l)}</option>)}</select></label>
+      <label>Streak (powder on unglazed tile) <select class="mk-st"><option value="">not tested</option>{STREAKS.map((l) => <option value={l} selected={l === 'white'}>{cap(l)}</option>)}</select></label>
+      <label>Cleavage <select class="mk-cl"><option value="">not sure</option>{CLEAVAGES.map(([v, t]) => <option value={v} selected={v === '3-not90'}>{cap(t)}</option>)}</select></label>
+      <label>Colour <select class="mk-co"><option value="">any (colour is often misleading)</option>{COLOURS.map((l) => <option value={l}>{cap(l)}</option>)}</select></label>
+    </div>
+    <details class="mk-sgcalc"><summary>Specific gravity from two weighings</summary>
+      <div class="ax-grid"><label>Weight in air (g) <input class="mk-wa" inputmode="decimal" /></label><label>Weight hanging in water (g) <input class="mk-ww" inputmode="decimal" /></label></div>
+      <p class="ax-help mk-sgout">SG = weight in air ÷ (weight in air − weight in water). Fill both to fill in the specific gravity.</p>
+    </details>
+    <h3>Simple tests</h3>
+    <div class="ax-grid mk-tests">
+      {Object.entries(TESTS).map(([k, t]) => <label>{cap(t)} <select data-t={k}><option value="">not tried</option><option value="yes" selected={k === 'fizz-cold'}>yes</option><option value="no">no</option></select></label>)}
+    </div>
+    <p class="ax-help">Acid test: a drop of cold dilute hydrochloric acid (about 5 to 10 %; vinegar works slowly), with eye protection and gloves; rinse afterwards. Powder for the "fizzes when powdered" test by scratching. Never taste minerals.</p>
+    <h3>How strict</h3>
+    <div class="ax-grid">
+      <label>Hardness counts as near within <select class="mk-th"><option value="0">0 (exact range)</option><option value="0.5" selected>± 0.5</option><option value="1">± 1</option></select></label>
+      <label>Specific gravity matches within <select class="mk-ts"><option value="0.1">± 0.1</option><option value="0.2" selected>± 0.2</option><option value="0.5">± 0.5</option></select></label>
+      <label>Allow mismatches <select class="mk-mm"><option value="0">none</option><option value="1" selected>1</option><option value="2">2</option><option value="99">any (rank everything)</option></select></label>
+      <label>Minerals <select class="mk-grp"><option value="all">all</option><option value="rock-forming">rock-forming</option><option value="ore">ore minerals</option></select></label>
+    </div>
+    <p class="ax-err mk-err" hidden></p>
+  </div>
+
+  <div class="ax-card mk-out">
+    <h2>Best matches</h2>
+    <p class="mk-sum"></p>
+    <ol class="mk-list"></ol>
+    <button type="button" class="btn secondary small mk-more" hidden>Show all</button>
+    <p class="ax-help">Each observation scores 1 if it fits the mineral's usual range, ½ if it is close (a near hardness or specific gravity, or a neighbouring lustre, streak or cleavage), and 0 if it does not fit. Real specimens vary, so check the top few against a field guide. Property values are rounded general facts.</p>
+    <div class="dl mk-dl2"><span class="dl-l">Data</span><button type="button" class="btn secondary mk-csv">Matches (CSV)</button></div>
+    <Downloads />
+  </div>
+
+  <div class="ax-card mk-tablewrap">
+    <h2>All minerals in the key</h2>
+    <div class="ax-row"><button type="button" class="btn secondary small mk-print">Print the table</button><button type="button" class="btn secondary small mk-tcsv">Table (CSV)</button></div>
+    <div class="ax-scroll"><table class="mk-table">
+      <thead><tr><th>Mineral</th><th>Formula</th><th class="r">H</th><th class="r">SG</th><th>Lustre</th><th>Streak</th><th>Cleavage</th><th>Colours</th><th>Tests and notes</th></tr></thead>
+      <tbody>{MINERALS.map((x) => <tr><td>{x.name}</td><td>{x.formula}</td><td class="r">{fmt(x.H)}</td><td class="r">{fmt(x.SG)}</td><td>{x.lustre.join(', ')}</td><td>{x.streak.join(', ')}</td><td>{x.cleavage.map((c) => clv[c]).join('; ')}</td><td>{x.colours.join(', ')}</td><td>{[...x.tests.map((t) => TESTS[t]), x.note].join('. ')}</td></tr>)}</tbody>
+    </table></div>
+    <p class="ax-help">Rounded general values written by fibub from general mineralogy knowledge; specimens vary. H = Mohs hardness, SG = specific gravity.</p>
+  </div>
+</div>
+
+<script>
+  import { MINERALS, rank, SCRATCH, TESTS, CLEAVAGES, type Obs, type Ranked, type Test } from '../../lib/sci/mineralkey';
+  import { num, csv } from '../../lib/sci/num';
+  import { save, wireDownloads, type Section } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.mik')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = (c: string) => q<HTMLSelectElement>(c).value;
+  const clv = Object.fromEntries(CLEAVAGES) as Record<string, string>;
+  const fmt = (r: [number, number]) => (r[0] === r[1] ? String(r[0]) : `${r[0]}–${r[1]}`);
+  let res: Ranked[] = [], all = false, obsText: [string, string][] = [];
+
+  function observations(): { o: Obs; err: string } {
+    const o: Obs = {}; let err = ''; obsText = [];
+    const hm = sel('.mk-hm'); q('.mk-hw').hidden = hm !== 'num';
+    if (hm === 'num') { const h = num(q<HTMLInputElement>('.mk-h').value); if (q<HTMLInputElement>('.mk-h').value.trim()) { if (h >= 1 && h <= 10) { o.H = [h, h]; obsText.push(['Hardness', String(h)]); } else err = 'Mohs hardness is from 1 to 10.'; } }
+    else if (hm) { o.H = SCRATCH[hm]; obsText.push(['Hardness', `${o.H[0]} to ${o.H[1]} (scratch test)`]); }
+    const wa = num(q<HTMLInputElement>('.mk-wa').value), ww = num(q<HTMLInputElement>('.mk-ww').value);
+    if (Number.isFinite(wa) && Number.isFinite(ww)) {
+      if (wa > ww && ww >= 0) { const g = wa / (wa - ww); q<HTMLInputElement>('.mk-sg').value = g.toFixed(2); q('.mk-sgout').textContent = `SG = ${wa} ÷ (${wa} − ${ww}) = ${g.toFixed(2)}`; }
+      else q('.mk-sgout').textContent = 'The weight in water must be less than the weight in air (and not negative).';
+    }
+    const sgs = q<HTMLInputElement>('.mk-sg').value.trim();
+    if (sgs) { const g = num(sgs); if (g >= 1 && g <= 25) { o.SG = g; obsText.push(['Specific gravity', String(g)]); } else err = 'Specific gravity of minerals is between about 1 and 25.'; }
+    const lu = sel('.mk-lu'), st = sel('.mk-st'), cl = sel('.mk-cl'), co = sel('.mk-co');
+    if (lu) { o.lustre = lu as Obs['lustre']; obsText.push(['Lustre', lu]); }
+    if (st) { o.streak = st as Obs['streak']; obsText.push(['Streak', st]); }
+    if (cl) { o.cleavage = cl as Obs['cleavage']; obsText.push(['Cleavage', clv[cl]]); }
+    if (co) { o.colour = co as Obs['colour']; obsText.push(['Colour', co]); }
+    o.tests = {};
+    for (const s of root.querySelectorAll<HTMLSelectElement>('.mk-tests select')) if (s.value) { o.tests[s.dataset.t as Test] = s.value as 'yes' | 'no'; obsText.push([TESTS[s.dataset.t as Test], s.value]); }
+    return { o, err };
+  }
+
+  function run() {
+    const { o, err } = observations();
+    const e = q('.mk-err'); e.textContent = err; e.hidden = !err; q('.mk-out').hidden = !!err;
+    if (err) { res = []; return; }
+    const grp = sel('.mk-grp'), list = MINERALS.filter((x) => grp === 'all' || x.kind === grp || x.kind === 'both');
+    res = rank(o, { H: Number(sel('.mk-th')), SG: Number(sel('.mk-ts')) }, Number(sel('.mk-mm')), list);
+    const n = obsText.length;
+    q('.mk-sum').textContent = !n ? 'Add an observation to rank the minerals.' : res.length ? `${res.length} of ${list.length} minerals fit with at most ${sel('.mk-mm') === '99' ? 'any number of' : sel('.mk-mm')} mismatch${sel('.mk-mm') === '1' ? '' : 'es'}, from ${n} observation${n > 1 ? 's' : ''}.` : 'No mineral fits. Allow more mismatches, widen the tolerances, or check the observations.';
+    const show = all ? res : res.slice(0, 8);
+    q('.mk-more').hidden = all || res.length <= 8; q('.mk-more').textContent = `Show all ${res.length}`;
+    q('.mk-list').replaceChildren(...(n ? show : []).map((r) => {
+      const li = document.createElement('li'), h = document.createElement('div'), ul = document.createElement('ul');
+      h.className = 'mk-h4'; h.innerHTML = '<strong></strong> <span class="mk-f"></span> <span class="ax-pill"></span>';
+      h.querySelector('strong')!.textContent = r.mineral.name; h.querySelector('.mk-f')!.textContent = r.mineral.formula;
+      const pill = h.querySelector('.ax-pill')!; pill.textContent = `${r.score} of ${r.of}`; pill.classList.add(r.misses === 0 && r.score === r.of ? 'good' : r.misses === 0 ? 'warn' : 'bad');
+      for (const x of r.reasons) { const it = document.createElement('li'); it.className = `mk-${x.ok}`; it.textContent = `${x.ok === 'match' ? '✓' : x.ok === 'near' ? '≈' : '✗'} ${x.text}`; ul.append(it); }
+      const note = document.createElement('p'); note.className = 'ax-help'; note.textContent = r.mineral.note;
+      li.append(h, ul, note); return li;
+    }));
+  }
+
+  root.querySelectorAll('.mk-form input, .mk-form select').forEach((i) => { i.addEventListener('input', () => { all = false; run(); }); i.addEventListener('change', () => { all = false; run(); }); });
+  q('.mk-more').addEventListener('click', () => { all = true; run(); });
+  const rows = () => [['rank', 'mineral', 'formula', 'score', 'observations', 'misses', 'reasons'], ...res.map((r, i) => [i + 1, r.mineral.name, r.mineral.formula, r.score, r.of, r.misses, r.reasons.map((x) => `${x.ok}: ${x.text}`).join('; ')])];
+  q('.mk-csv').addEventListener('click', () => res.length && save(new TextEncoder().encode(csv(rows())), 'mineral-matches.csv', 'text/csv'));
+  q('.mk-tcsv').addEventListener('click', () => save(new TextEncoder().encode(csv([['mineral', 'formula', 'group', 'hardness_min', 'hardness_max', 'sg_min', 'sg_max', 'lustre', 'streak', 'cleavage', 'colours', 'tests', 'note'], ...MINERALS.map((x) => [x.name, x.formula, x.kind, x.H[0], x.H[1], x.SG[0], x.SG[1], x.lustre.join('; '), x.streak.join('; '), x.cleavage.map((c) => clv[c]).join('; '), x.colours.join('; '), x.tests.map((t) => TESTS[t]).join('; '), x.note])])), 'mineral-key-table.csv', 'text/csv'));
+  q('.mk-print').addEventListener('click', () => { document.documentElement.classList.add('mk-printing'); window.print(); setTimeout(() => document.documentElement.classList.remove('mk-printing'), 500); });
+  window.addEventListener('afterprint', () => document.documentElement.classList.remove('mk-printing'));
+  run();
+  wireDownloads(q('.mk-out > .dl:last-child'), () => ({ title: 'Mineral identification', subtitle: 'Ranked matches from the fibub mineral key', file: 'mineral-matches', sections: [
+    { title: 'Observations', facts: obsText.length ? obsText : [['Observations', 'none']] },
+    { title: 'Best matches', table: { head: ['#', 'Mineral', 'Score', 'Misses', 'H', 'SG'], rows: res.slice(0, 15).map((r, i) => [String(i + 1), r.mineral.name, `${r.score} of ${r.of}`, String(r.misses), fmt(r.mineral.H), fmt(r.mineral.SG)]), align: ['r', 'l', 'r', 'r', 'r', 'r'] }, note: 'Property values are rounded general facts; specimens vary. Check the top matches against a field guide.' },
+  ] }));
+</script>
+
+<style is:global>
+  .mik h3 { margin: 16px 0 6px; font-size: 1rem; }
+  .mik .mk-sgcalc { margin-top: 10px; }
+  .mik .mk-list { padding-left: 1.4em; margin: 8px 0; }
+  .mik .mk-list > li { margin-bottom: 14px; }
+  .mik .mk-h4 { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+  .mik .mk-f { color: var(--muted); font-size: 14px; }
+  .mik .mk-list ul { list-style: none; padding: 0; margin: 4px 0; font-size: 15px; }
+  .mik .mk-miss { color: var(--bad); }
+  .mik .mk-near { color: var(--warn); }
+  .mik .mk-list .ax-help { margin: 2px 0 0; }
+  .mik .mk-table { font-size: 14px; min-width: 1400px; }
+  .mik .mk-table td:last-child { min-width: 360px; }
+  .mik .mk-table td:nth-child(-n+4) { white-space: nowrap; }
+  .mik .mk-table td { vertical-align: top; }
+  @media print {
+    html.mk-printing body * { visibility: hidden; }
+    html.mk-printing .mik .mk-tablewrap, html.mk-printing .mik .mk-tablewrap * { visibility: visible; }
+    html.mk-printing .mik .mk-tablewrap { position: absolute; left: 0; top: 0; width: 100%; border: 0; }
+    html.mk-printing .mik .mk-tablewrap .ax-row { display: none; }
+    html.mk-printing .mik .ax-scroll { overflow: visible; }
+    html.mk-printing .mik .mk-table { min-width: 0; font-size: 10px; }
+  }
+</style>
