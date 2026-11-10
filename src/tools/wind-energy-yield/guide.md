@@ -1,9 +1,9 @@
 ---
-name: Wind turbine energy yield
+name: Wind energy yield
 num: 673
 shelf: science
 section: energy-and-power-systems
-title: "Wind turbine energy yield: Weibull fit, hub-height shear, air density, annual energy production and capacity factor"
+title: "Wind energy yield"
 summary: "Paste or open wind speed readings (or give Weibull k and c, or a mean speed), correct them to hub height with the power or log law, adjust for air density, and combine with a power curve to get the annual energy production, capacity factor, full-load hours and energy by wind speed."
 status: live
 ads: true

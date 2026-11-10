@@ -1,9 +1,9 @@
 ---
-name: Author list and affiliation formatter
+name: Author list formatter
 num: 801
 shelf: science
 section: writing-and-publishing
-title: "Author list and affiliation formatter: LaTeX for AASTeX, MNRAS, A&A, REVTeX and elsarticle, or a superscript list for Word"
+title: "Author list formatter"
 summary: "Type your authors and affiliations once, in a simple line format, and get the author block for AASTeX, MNRAS, A&A, REVTeX or elsarticle, a numbered superscript list for Word, plain text or JATS-style XML. Repeated affiliations are merged and numbered in order, ORCID iDs are checked, and the corresponding author is marked."
 status: live
 ads: false

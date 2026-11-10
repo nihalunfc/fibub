@@ -1,9 +1,9 @@
 ---
-name: Reflex arc and reaction time
+name: Reaction time
 num: 1303
 shelf: learn
 section: school-biology
-title: "Reaction time test and reflex arc: tap when it turns green, then compare with a nerve signal"
+title: "Reaction time"
 summary: "Time your own reactions by tapping when the box turns green, then compare your time with how long a nerve signal takes to travel. Watch a pulse run round a reflex arc and turn a falling-ruler catch into a reaction time. For Class 10 and 11."
 status: live
 ads: false

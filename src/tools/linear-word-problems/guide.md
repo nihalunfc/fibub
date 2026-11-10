@@ -1,9 +1,9 @@
 ---
-name: Linear equation word problems
+name: Linear word problems
 num: 1319
 shelf: learn
 section: school-maths
-title: "Word problems on a pair of linear equations: ages, tickets, boat in a stream, step by step"
+title: "Linear word problems"
 summary: "Pick a story (ages, tickets, a boat in a stream, a rectangle or banknotes) with fresh numbers, then reveal step by step how to name the unknowns, write the two equations, solve them by elimination or substitution and check the answer, with both lines drawn crossing at it."
 status: live
 ads: false

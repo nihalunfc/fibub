@@ -1,9 +1,9 @@
 ---
-name: Bolt preload and torque
+name: Bolt torque
 num: 642
 shelf: science
 section: mechanical-engineering
-title: "Bolt torque calculator: preload, tightening torque, stress area, joint stiffness and separation load"
+title: "Bolt torque"
 summary: "Work out the tightening torque for a target bolt preload (or the preload a torque gives) with the nut factor T = K F d or the thread and under-head friction split, the tensile stress area of ISO metric or UNC/UNF threads from the pitch, the bolt and clamped-part stiffness, the joint constant, the separation load and safety factors, with a joint diagram."
 status: live
 ads: true

@@ -1,9 +1,9 @@
 ---
-name: Hormones and blood sugar feedback
+name: Hormone feedback
 num: 1308
 shelf: learn
 section: school-biology
-title: "Hormone glands and the blood sugar feedback loop: insulin and glucagon over a day"
+title: "Hormone feedback"
 summary: "Tap the hormone glands on a body map to see what each makes, then run a day of blood sugar control: meals push glucose up, insulin brings it down, glucagon lifts it after a run. Compare a healthy body with weak or missing insulin. For Class 10 and 11."
 status: live
 ads: false

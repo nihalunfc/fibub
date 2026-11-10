@@ -1,9 +1,9 @@
 ---
-name: Cache and memory hierarchy simulator
+name: Cache simulator
 num: 576
 shelf: science
 section: computer-science
-title: "Cache simulator: direct-mapped, set-associative and fully associative caches, LRU/FIFO/random, hit/miss per access and AMAT"
+title: "Cache simulator"
 summary: "Run an address trace (pasted, from a file, or generated: array walks, matrix multiply loop orders, random) through one or two cache levels. See every hit and miss with its tag, set and offset, compulsory, capacity and conflict misses, the cache contents at any step, and the average memory access time."
 status: live
 ads: true

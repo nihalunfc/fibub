@@ -1,9 +1,9 @@
 ---
-name: ECG viewer and HRV
+name: ECG viewer
 num: 680
 shelf: science
 section: biomedical-engineering
-title: "ECG viewer and heart rate variability (HRV) calculator: Pan-Tompkins beats, SDNN, RMSSD, LF/HF, Poincaré plot"
+title: "ECG viewer"
 summary: "Open or paste a single-lead ECG, filter it, find the beats with the Pan-Tompkins method and get heart rate, an RR tachogram, time-domain HRV (SDNN, RMSSD, pNN50), a Lomb-Scargle spectrum with LF and HF power, and a Poincaré plot. For study and research, not for diagnosis. Nothing is uploaded."
 status: live
 ads: false

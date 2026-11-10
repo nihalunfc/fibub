@@ -1,9 +1,9 @@
 ---
-name: Gram stain and biochemical test key
+name: Gram stain key
 num: 197
 shelf: science
 section: microbiology
-title: "Gram stain and biochemical test identification key: step by step, ranked results and a printed key"
+title: "Gram stain key"
 summary: "A teaching identification key for common bacteria groups: answer one test at a time (Gram stain, shape, catalase, oxidase, coagulase, lactose, motility and more) and watch the candidates narrow, tick the results you have and see the groups ranked by fit, or print a numbered dichotomous key. Load your own key as CSV or JSON. For teaching, not clinical identification."
 status: live
 ads: false

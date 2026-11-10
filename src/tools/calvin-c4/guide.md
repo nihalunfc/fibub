@@ -1,9 +1,9 @@
 ---
-name: Calvin cycle and C4 comparer
+name: Calvin and C4
 num: 1397
 shelf: learn
 section: school-biology
-title: "Calvin cycle and C4 pathway: ATP and NADPH per CO₂, photorespiration, C3 vs C4 plants"
+title: "Calvin and C4"
 summary: "Count what the Calvin cycle uses and makes for any number of CO₂ fixed: 3-PGA, G3P, ATP, NADPH and glucose. Then compare C3 and C4 plants as the leaf warms or CO₂ changes, with photorespiration, and find where C4 becomes the cheaper way to fix carbon. Class 11, with quick questions."
 status: live
 ads: false

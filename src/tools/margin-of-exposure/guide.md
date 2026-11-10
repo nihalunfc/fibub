@@ -1,9 +1,9 @@
 ---
-name: Margin of exposure calculator
+name: Margin of exposure
 num: 476
 shelf: science
 section: toxicology
-title: "Margin of exposure (MOE) calculator: NOAEL or BMDL ÷ estimated daily exposure, with scenarios and uncertainty factors"
+title: "Margin of exposure"
 summary: "Work out the margin of exposure for several exposure scenarios: dose from concentration × intake ÷ body weight, MOE = point of departure (NOAEL, LOAEL or BMDL) ÷ dose, compared with a target built from your own uncertainty factors, with a bar chart and the concentration that would just meet the target."
 status: live
 ads: false

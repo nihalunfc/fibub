@@ -1,9 +1,9 @@
 ---
-name: ODE solver with phase portraits
+name: ODE solver
 num: 548
 shelf: science
 section: applied-mathematics
-title: "ODE solver online: phase portrait, direction field, nullclines, equilibria, bifurcation diagram (RK4, RK45)"
+title: "ODE solver"
 summary: "Type a system of differential equations and solve it in your browser with RK4 or adaptive RK45 (as SciPy). Time plots, phase portrait with direction field and nullclines, equilibria with eigenvalues, a bifurcation diagram, and a heat and wave equation playground."
 status: live
 ads: true

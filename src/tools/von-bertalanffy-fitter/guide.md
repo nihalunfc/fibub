@@ -1,9 +1,9 @@
 ---
-name: Von Bertalanffy growth fitter
+name: Von Bertalanffy
 num: 340
 shelf: science
 section: fisheries-science
-title: "Von Bertalanffy growth curve fitter: L∞, K and t0 from fish length-at-age, with confidence intervals, Ford-Walford plot and φ'"
+title: "Von Bertalanffy"
 summary: "Fit the von Bertalanffy growth curve to fish length-at-age data by nonlinear least squares. Get L∞, K and t₀ with standard errors and 95 % intervals, the growth performance index φ', a Ford-Walford plot and charts. Paste ages and lengths or open a CSV or Excel file."
 status: live
 ads: true

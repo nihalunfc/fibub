@@ -1,9 +1,9 @@
 ---
-name: Heart rate and power zone calculator
+name: Heart rate zones
 num: 490
 shelf: science
 section: exercise-and-sport-science
-title: "Heart rate zone calculator: max heart rate, Karvonen zones and cycling power zones from FTP"
+title: "Heart rate zones"
 summary: "Estimate maximum heart rate with four published equations, then get training zones as % of max or % of heart rate reserve (Karvonen), with editable boundaries. Add cycling power zones from FTP. Table, bar picture and CSV."
 status: live
 ads: false

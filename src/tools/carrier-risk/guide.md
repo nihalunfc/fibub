@@ -1,9 +1,9 @@
 ---
-name: Carrier risk calculator (Bayesian)
+name: Carrier risk
 num: 500
 shelf: science
 section: genetic-counselling
-title: "Bayesian carrier risk calculator: X-linked and autosomal recessive, unaffected sons, negative tests"
+title: "Carrier risk"
 summary: "Work out the chance that a relative is a carrier of an autosomal recessive or X-linked recessive condition, from her place in the family, her unaffected sons and a negative carrier test with its detection rate. Exact fractions, the prior, conditional, joint and posterior table step by step, and the risk for her children."
 status: live
 ads: false

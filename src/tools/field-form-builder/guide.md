@@ -1,9 +1,9 @@
 ---
-name: Field data form builder
+name: Field form builder
 num: 827
 shelf: science
 section: citizen-science
-title: "Field data form builder: design a survey form, record observations offline with GPS, export CSV or GeoJSON"
+title: "Field form builder"
 summary: "Design a field data form with text, numbers with an allowed range, choices, dates and times, photo notes and a GPS location. Fill in records outdoors, even with no signal once the page is open; records stay on your device, kept in this browser only if you tick the box. Export them as CSV or GeoJSON, and share the form as a small file."
 status: live
 ads: false

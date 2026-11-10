@@ -1,9 +1,9 @@
 ---
-name: Wheatstone and metre bridge
+name: Wheatstone bridge
 num: 1048
 shelf: learn
 section: school-physics
-title: "Metre bridge and Wheatstone bridge: slide the jockey to the null point and find an unknown resistance"
+title: "Wheatstone bridge"
 summary: "A virtual metre bridge with a mystery resistor. Slide the jockey along the wire until the galvanometer reads zero, then work out the unknown resistance from the balance length. Every current in the bridge is shown, with Kirchhoff's junction and loop rules worked out with the live numbers."
 status: live
 ads: false

@@ -1,9 +1,9 @@
 ---
-name: Damped and forced oscillations
+name: Forced oscillations
 num: 1353
 shelf: learn
 section: school-physics
-title: "Damped and forced oscillations: decay, driving force, resonance curve and quality factor"
+title: "Forced oscillations"
 summary: "Let a block on a spring go and watch friction make its swings die away, or push it in rhythm and watch the swings build up to a steady size. Slide the push rate through resonance, see the resonance curve for more and less damping, and get the amplitude, phase lag and Q with your numbers."
 status: live
 ads: false

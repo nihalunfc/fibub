@@ -1,9 +1,9 @@
 ---
-name: Fold axis and cylindrical best fit
+name: Fold axis
 num: 207
 shelf: science
 section: structural-geology
-title: "Fold axis from bedding poles: π-girdle best fit, eigenvectors, interlimb angle and axial plane (free, online)"
+title: "Fold axis"
 summary: "Paste bedding or foliation as strike and dip or dip direction and dip. Get the fold axis (plunge and trend) from the eigenvectors of the poles, the best-fit π-girdle, Woodcock and Vollmer shape numbers, how cylindrical the fold is, the interlimb angle and axial plane from two labelled limbs, and an equal-area net with Kamb density contours."
 status: live
 ads: true

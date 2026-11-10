@@ -1,9 +1,9 @@
 ---
-name: Aerobic and anaerobic respiration
+name: Respiration pathways
 num: 1304
 shelf: learn
 section: school-biology
-title: "Aerobic vs anaerobic respiration: glucose with and without oxygen, in yeast and muscle"
+title: "Respiration pathways"
 summary: "Slide the oxygen supply and watch glucose go the aerobic way (carbon dioxide, water and about 38 ATP) or the anaerobic way (ethanol and carbon dioxide in yeast, lactic acid in muscle, just 2 ATP). Products in moles and grams. For Class 10 and 11."
 status: live
 ads: false

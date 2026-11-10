@@ -1,7 +1,7 @@
 ---
-name: Sales tax, VAT and GST calculator
+name: Sales tax
 shelf: money
-title: Sales tax, VAT and GST calculator
+title: "Sales tax"
 summary: Add or remove HST/GST, US sales tax, UK VAT, India GST or Gulf VAT from any price.
 status: soon
 order: 20

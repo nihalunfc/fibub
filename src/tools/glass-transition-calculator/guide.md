@@ -1,9 +1,9 @@
 ---
-name: Glass transition (Tg) calculator
+name: Glass transition
 num: 102
 shelf: science
 section: polymer-chemistry
-title: "Glass transition calculator: Fox equation for copolymers, Gordon–Taylor for plasticisers, Flory–Fox for molar mass"
+title: "Glass transition"
 summary: "Estimate the Tg of a random copolymer or miscible blend by the Fox equation and find the monomer ratio for a target Tg. Gordon–Taylor (with Simha–Boyer or your own k, and Kwei q) for a polymer with water or a plasticiser, and Flory–Fox for short chains."
 status: live
 ads: true

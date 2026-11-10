@@ -1,9 +1,9 @@
 ---
-name: Satellite ground track and passes
+name: Satellite tracker
 num: 66
 shelf: science
 section: spaceflight-and-astrodynamics
-title: "Satellite ground track and pass predictor: orbit period, map track and passes over your place"
+title: "Satellite tracker"
 summary: "Paste a satellite's TLE or design an orbit to see its ground track on a world map, its period, speeds and how Earth's bulge turns it, and the times it passes over your place."
 status: live
 ads: true

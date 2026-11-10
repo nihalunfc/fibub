@@ -1,9 +1,9 @@
 ---
-name: Room heating and cooling load
+name: HVAC load
 num: 663
 shelf: science
 section: thermal-and-fluid-engineering
-title: "Room heating and cooling load calculator: U·A·ΔT, solar gain, ventilation, people and equipment, in W, BTU/h and tons"
+title: "HVAC load"
 summary: "Estimate the peak heating and cooling load of a room from its walls, windows and roof (U-values), sun through the glass, air leakage and ventilation (sensible and latent), and the heat from people, lighting and equipment. Results in watts, BTU per hour and tons of refrigeration, with a breakdown. A simplified estimate, not a full ASHRAE or CIBSE method."
 status: live
 ads: true

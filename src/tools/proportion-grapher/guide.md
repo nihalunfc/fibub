@@ -1,9 +1,9 @@
 ---
-name: Direct and inverse proportion grapher
+name: Proportion grapher
 num: 1243
 shelf: learn
 section: school-maths
-title: "Direct and inverse proportion grapher: pencils and cost, workers and days, speed and time on a live graph"
+title: "Proportion grapher"
 summary: "Pick an everyday situation and drag a point along its graph. Direct proportion is a straight line through 0 where y ÷ x stays the same; inverse proportion is a curve where x × y stays the same. A live table shows which one, and fresh questions use the unitary method."
 status: live
 ads: false

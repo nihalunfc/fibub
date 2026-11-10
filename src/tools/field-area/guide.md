@@ -1,9 +1,9 @@
 ---
-name: Field area by triangles
+name: Field area
 num: 1283
 shelf: learn
 section: school-maths
-title: "Field area by triangles: split a plot of land, find each part with Heron's formula, check with the shoelace formula"
+title: "Field area"
 summary: "Drag the corners of a plot of land on a 10 m grid. The plot is cut into triangles, each one's area is worked out from its three sides with Heron's formula, and the total is given in m², hectares and acres, with the perimeter. At Class 11 level the shoelace formula checks it."
 status: live
 ads: false

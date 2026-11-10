@@ -1,9 +1,9 @@
 ---
-name: VCF viewer and filter
+name: VCF viewer
 num: 173
 shelf: science
 section: genomics-and-bioinformatics
-title: "VCF viewer and filter: variant counts, Ti/Tv, genotypes per sample and a filtered VCF, in your browser"
+title: "VCF viewer"
 summary: "Open a VCF or .vcf.gz file of any size and see variant types, Ti/Tv ratio, multi-allelic sites, FILTER and QUAL, allele frequencies, genotypes per sample and counts by chromosome. Filter by chromosome, region, QUAL, depth, PASS and type, then download the filtered VCF. Nothing is uploaded."
 status: live
 ads: false

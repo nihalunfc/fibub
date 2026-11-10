@@ -1,9 +1,9 @@
 ---
-name: Flashcards with spaced repetition
+name: Flashcards
 num: 824
 shelf: science
 section: teaching-and-outreach
-title: "Flashcards with spaced repetition (SM-2): import from Anki, CSV or a spreadsheet, study in your browser"
+title: "Flashcards"
 summary: "Make decks of flashcards or import them from a CSV, a spreadsheet or an Anki plain-text export, then study them with the SM-2 spaced-repetition schedule. See what is due, how well you remember, and export back to Anki. Everything stays in your browser."
 status: live
 ads: false

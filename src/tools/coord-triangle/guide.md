@@ -1,9 +1,9 @@
 ---
-name: Triangle type from coordinates
+name: Triangle from coordinates
 num: 1317
 shelf: learn
 section: school-maths
-title: "Triangle type from coordinates: collinear points, isosceles, equilateral, right, acute or obtuse"
+title: "Triangle from coordinates"
 summary: "Drag three points on a grid or type their coordinates. See whether they are collinear, the three side lengths by the distance formula, the area, and whether the triangle is scalene, isosceles or equilateral and right, acute or obtuse, with every step shown."
 status: live
 ads: false

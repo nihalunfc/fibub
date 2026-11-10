@@ -1,9 +1,9 @@
 ---
-name: Force and friction ramp
+name: Friction ramp
 num: 1024
 shelf: learn
 section: school-physics
-title: "Friction on an inclined plane: will the block slide? Free-body diagram, static and kinetic friction, angle of repose"
+title: "Friction ramp"
 summary: "Tilt a ramp, pick the surfaces, set the mass and push, and see at once whether the block stays, slides down or moves up, with the gravity, support, friction and push arrows drawn on it and the numbers worked out."
 status: live
 ads: false

@@ -1,9 +1,9 @@
 ---
-name: Crystal field and spin state calculator
+name: Crystal field
 num: 93
 shelf: science
 section: inorganic-and-coordination-chemistry
-title: "Crystal field splitting calculator: high or low spin, CFSE, unpaired electrons and magnetic moment"
+title: "Crystal field"
 summary: "Pick a d-block metal ion and a geometry (octahedral, tetrahedral, square planar, square pyramidal), give Δ and the pairing energy or an absorption band, and get the d-orbital diagram, high or low spin, CFSE, unpaired electrons, spin-only moment and the Jahn–Teller tendency."
 status: live
 ads: true

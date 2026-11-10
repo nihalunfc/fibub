@@ -1,9 +1,9 @@
 ---
-name: Crossing plan and pedigree tracker
+name: Crossing planner
 num: 388
 shelf: science
 section: horticulture-and-plant-breeding
-title: "Crossing plan and pedigree tracker: inbreeding coefficient and coancestry calculator with a pedigree drawing"
+title: "Crossing planner"
 summary: "Enter plants and their parents, and planned crosses. The tool checks the pedigree for loops and mistakes, works out every plant's inbreeding coefficient and the coancestry of any two plants (the inbreeding their offspring would have), draws the pedigree, and saves a crossing plan as CSV. Nothing is uploaded."
 status: live
 ads: false

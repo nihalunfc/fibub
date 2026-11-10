@@ -1,9 +1,9 @@
 ---
-name: Psychrometric and heat stress calculator
+name: Psychrometrics
 num: 34
 shelf: science
 section: meteorology
-title: "Psychrometric calculator: dew point, wet bulb, humidity ratio, enthalpy, VPD and heat index"
+title: "Psychrometrics"
 summary: "From the air temperature and humidity (or dew point, or wet bulb), get every moist air property with the ASHRAE equations, a psychrometric chart, the heat index and the humidex."
 status: live
 ads: true

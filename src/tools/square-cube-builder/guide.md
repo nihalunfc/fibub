@@ -1,9 +1,9 @@
 ---
-name: Square and cube builder
+name: Squares and cubes
 num: 1229
 shelf: learn
 section: school-maths
-title: "Square and cube builder: see n² and n³ grow, odd numbers that add to a square, perfect squares and cubes, taxicab numbers"
+title: "Squares and cubes"
 summary: "Grow a square out of odd-numbered L-shapes and a cube out of unit cubes. Test any number for being a perfect square or cube from its prime factors, find the smallest number that makes it one, and hunt numbers like 1729 that are a sum of two cubes in two ways."
 status: live
 ads: false

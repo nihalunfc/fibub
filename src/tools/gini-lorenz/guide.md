@@ -1,9 +1,9 @@
 ---
-name: Gini and Lorenz curve
+name: Gini and Lorenz
 num: 742
 shelf: science
 section: economics
-title: "Gini coefficient calculator with Lorenz curve, Palma ratio, Theil and Atkinson indices, from incomes or income shares"
+title: "Gini and Lorenz"
 summary: "Paste incomes (with optional weights such as household size or survey weights) or grouped income shares, and get the Gini coefficient, the Lorenz curve, quintile, top 10 % and top 1 % shares, the Palma ratio, Theil T and L, Atkinson indices and the P90/P10 ratio."
 status: live
 ads: true

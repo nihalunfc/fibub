@@ -1,9 +1,9 @@
 ---
-name: Coral cover point count
+name: Coral cover
 num: 332
 shelf: science
 section: marine-and-freshwater-biology
-title: "Coral cover calculator: photo quadrat random point count (CPCe-style)"
+title: "Coral cover"
 summary: "Place random, stratified random or grid points on reef quadrat photos, label each point with a category from your own list, and get percent cover per category pooled over all photos, with binomial confidence intervals, a per-photo table and CSV. Photos stay in your browser."
 status: live
 ads: false

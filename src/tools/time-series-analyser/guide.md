@@ -1,9 +1,9 @@
 ---
-name: Time series decomposition and ARIMA
+name: Time series
 num: 566
 shelf: science
 section: statistics
-title: "Time series analyser: STL and classical decomposition, ACF and PACF, ARIMA forecasts with intervals, Ljung-Box test"
+title: "Time series"
 summary: "Paste a series and split it into trend, season and remainder (STL or classical), see the ACF and PACF with confidence bands, try differencing, and fit an ARIMA(p, d, q) model by exact maximum likelihood with forecasts, 80 % and 95 % intervals and a Ljung-Box check. Matches statsmodels."
 status: live
 ads: false

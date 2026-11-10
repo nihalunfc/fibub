@@ -1,9 +1,9 @@
 ---
-name: Time, speed and distance race track
+name: Race track
 num: 1247
 shelf: learn
 section: school-maths
-title: "Time, speed and distance race track: head starts, catching up and meeting, with relative speed and a distance-time graph"
+title: "Race track"
 summary: "Two runners on a straight track: the same way with a head start, or towards each other. Play or scrub the race, watch both lines on a distance-time graph, and see when and where they meet, worked out with the relative speed. Includes m/s to km/h and fresh practice questions."
 status: live
 ads: false

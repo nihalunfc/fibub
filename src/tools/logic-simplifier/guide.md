@@ -1,9 +1,9 @@
 ---
-name: Truth table and Karnaugh map simplifier
+name: Logic simplifier
 num: 558
 shelf: science
 section: discrete-maths-and-graph-theory
-title: "Boolean expression simplifier: truth table, Karnaugh map, Quine-McCluskey, minimal SOP and POS, logic gates"
+title: "Logic simplifier"
 summary: "Type a Boolean expression or a list of minterms (with don't-cares) and get the truth table, the minimal sum of products and product of sums by Quine-McCluskey (up to 6 variables), a Karnaugh map with the groups circled (2 to 4 variables), the prime implicant chart and a logic gate diagram. Checked against sympy."
 status: live
 ads: true

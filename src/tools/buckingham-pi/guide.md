@@ -1,9 +1,9 @@
 ---
-name: Dimensional analysis (Buckingham Pi) helper
+name: Buckingham Pi
 num: 551
 shelf: science
 section: applied-mathematics
-title: "Buckingham Pi theorem calculator: dimension matrix, rank, null space and dimensionless groups"
+title: "Buckingham Pi"
 summary: "List your variables with their dimensions (M L T Θ I N J) and get the dimension matrix, its rank, an integer null-space basis and the dimensionless Π groups for the repeating variables you choose. Exact arithmetic, in your browser."
 status: live
 ads: true

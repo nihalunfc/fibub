@@ -1,9 +1,9 @@
 ---
-name: Levelised cost of energy (LCOE)
+name: LCOE calculator
 num: 676
 shelf: science
 section: energy-and-power-systems
-title: "LCOE calculator: levelised cost of electricity with cash flow table and tornado sensitivity chart"
+title: "LCOE calculator"
 summary: "Work out the levelised cost of energy of a solar, wind, gas or any other plant from capital cost, fixed and variable O&M, fuel, output loss, discount rate, lifetime and capacity factor, with a yearly cash-flow table, a cost breakdown and a tornado chart. Nothing is uploaded."
 status: live
 ads: true

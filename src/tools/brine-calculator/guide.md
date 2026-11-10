@@ -1,9 +1,9 @@
 ---
-name: Brine, cure and fermentation salt calculator
+name: Brine calculator
 num: 394
 shelf: science
 section: food-science
-title: "Brine calculator: salt for a brine %, salinometer degrees, equilibrium brine for ferments, dry cure and curing salt ppm"
+title: "Brine calculator"
 summary: "Work out the salt for a brine by weight (of the brine or of the water), read salinometer degrees, salt a vegetable ferment by the equilibrium method, weigh a dry cure, and turn your own nitrite target into grams of curing salt. Nothing is uploaded."
 status: live
 ads: false

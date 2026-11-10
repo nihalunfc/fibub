@@ -1,9 +1,9 @@
 ---
-name: Leaf area and canopy cover analyser
+name: Leaf area
 num: 323
 shelf: science
 section: botany-and-plant-science
-title: "Leaf area meter from a photo or scan, and canopy cover % (excess green)"
+title: "Leaf area"
 summary: "Measure leaf area from a scan or phone photo with a reference square or a scale line, leaf by leaf, or the percentage of a photo covered by green plants. Automatic Otsu threshold you can override. The photo stays in your browser."
 status: live
 ads: false

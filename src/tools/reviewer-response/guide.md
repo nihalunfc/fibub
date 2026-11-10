@@ -1,9 +1,9 @@
 ---
-name: Response to reviewers builder
+name: Reviewer response
 num: 807
 shelf: science
 section: writing-and-publishing
-title: "Response to reviewers builder: split referee comments into numbered points and write the response letter (Word, PDF, LaTeX)"
+title: "Reviewer response"
 summary: "Paste the reviewers' reports and the page splits them into numbered points for each reviewer, keeping their numbers and major/minor groups. Write a response and the change made under each point, see which are still unanswered, and download the letter as Word, PDF, image, LaTeX or Markdown. Your draft is kept in this browser only if you tick the box."
 status: live
 ads: false

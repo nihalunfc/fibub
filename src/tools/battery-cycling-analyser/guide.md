@@ -1,9 +1,9 @@
 ---
-name: Battery cycling data analyser
+name: Battery cycling
 num: 104
 shelf: science
 section: electrochemistry-and-battery-science
-title: "Battery cycling analyser: capacity fade, coulombic efficiency, cycles to 80 % and dQ/dV peaks"
+title: "Battery cycling"
 summary: "Paste or open per-cycle charge and discharge capacities for first-cycle efficiency, average coulombic efficiency, retention, fade per cycle and cycles to 80 %. Paste one voltage curve for incremental capacity (dQ/dV) and its peaks. Works with exports from any cycler."
 status: live
 ads: true

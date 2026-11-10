@@ -1,9 +1,9 @@
 ---
-name: Stream long profile and chi analysis
+name: Stream profile
 num: 890
 shelf: science
 section: geomorphology
-title: "River long profile tool: trace channels on a DEM, slope-area, chi plot, concavity and knickpoints (free, in the browser)"
+title: "Stream profile"
 summary: "Trace a channel down a DEM (GeoTIFF or ASCII grid) by steepest descent, or paste a long profile, and get the long profile, a slope-area fit (ks and θ), a chi plot with the best concavity, normalised steepness ksn and knickpoint hints."
 status: live
 ads: false

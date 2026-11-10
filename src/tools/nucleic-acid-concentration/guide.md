@@ -1,9 +1,9 @@
 ---
-name: DNA, RNA and protein concentration
+name: Nucleic acid concentration
 num: 164
 shelf: science
 section: molecular-biology
-title: "DNA, RNA and protein concentration calculator: A260/A280 to ng/µL, purity ratios, molarity, copy number and dilution"
+title: "Nucleic acid concentration"
 summary: "Turn spectrophotometer readings into concentration for double- or single-stranded DNA, RNA or protein, with background correction, dilution and path length. Check purity with 260/280 and 260/230, get nM and copies per µL from the length or sequence, and see how much stock to dilute to any target. Many samples at once."
 status: live
 ads: true

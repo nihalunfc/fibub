@@ -1,9 +1,9 @@
 ---
-name: APGAR and Glasgow Coma Scale
+name: APGAR and GCS
 num: 481
 shelf: science
 section: clinical-calculators
-title: "APGAR score and Glasgow Coma Scale calculator (adult and paediatric GCS)"
+title: "APGAR and GCS"
 summary: "Score a newborn's APGAR and a Glasgow Coma Scale (adult or young-child wording) by tapping plain descriptions. Gives the total, the parts in E3V4M5 form, and the usual bands, with the original sources."
 status: live
 ads: false

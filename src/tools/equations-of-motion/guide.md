@@ -1,9 +1,9 @@
 ---
-name: Equations of motion from the v-t graph
+name: Equations of motion
 num: 1022
 shelf: learn
 section: school-physics
-title: "Equations of motion: v = u + at, s = ut + ½at² and v² = u² + 2as from the velocity-time graph, with a solver and stopping distance"
+title: "Equations of motion"
 summary: "Drag a velocity-time graph and watch the rectangle and triangle under it add up to the displacement; see v = u + at, s = ut + ½at² and v² = u² + 2as with your numbers; solve any problem from three known values; and find a car's stopping distance."
 status: live
 ads: false

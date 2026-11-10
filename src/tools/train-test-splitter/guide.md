@@ -1,9 +1,9 @@
 ---
-name: Dataset train/test splitter and stratifier
+name: Train-test split
 num: 571
 shelf: science
 section: data-science-and-machine-learning
-title: "Train/test split tool: random, stratified, grouped and time-ordered splits and k-fold assignment for CSV or Excel"
+title: "Train-test split"
 summary: "Split a CSV or Excel table into training, test and validation sets: random, stratified by class, grouped (whole patients or sites together) or by time, or give every row a k-fold number. Set a seed, check the class balance and download each part as CSV. Nothing is uploaded."
 status: live
 ads: false

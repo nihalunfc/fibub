@@ -1,9 +1,9 @@
 ---
-name: Corrosion rate from Tafel plots
+name: Tafel corrosion
 num: 105
 shelf: science
 section: electrochemistry-and-battery-science
-title: "Tafel corrosion rate calculator: Ecorr, icorr, Tafel slopes and mm per year from a polarisation curve"
+title: "Tafel corrosion"
 summary: "Paste or open a potentiodynamic polarisation scan for Ecorr, icorr and both Tafel slopes by Tafel extrapolation, a Wagner–Traud fit and Stern–Geary (Rp), then the corrosion rate in mm/y and mpy by ASTM G102. Also works out weight-loss coupon rates."
 status: live
 ads: true

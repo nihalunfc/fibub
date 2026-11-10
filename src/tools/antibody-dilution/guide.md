@@ -1,9 +1,9 @@
 ---
-name: Antibody dilution and titre calculator
+name: Antibody dilution
 num: 200
 shelf: science
 section: virology-and-immunology
-title: "Antibody dilution calculator: working dilutions, serial dilutions and ELISA endpoint titre"
+title: "Antibody dilution"
 summary: "Work out a working dilution from your antibody stock (as 1:N or a µg/mL target), plan a 2-fold, 3-fold or custom serial dilution for titration, read the endpoint titre of an ELISA dilution series from a blank-based or fixed cutoff, and see how much antibody a run of blots or plates needs."
 status: live
 ads: true

@@ -1,9 +1,9 @@
 ---
-name: Fume hood and lab ventilation calculator
+name: Fume hood ventilation
 num: 516
 shelf: science
 section: green-chemistry-and-safety
-title: "Fume hood face velocity and lab ventilation calculator: traverse average and uniformity, hood exhaust flow, air changes per hour, purge time, steady state, ppm to mg/m³"
+title: "Fume hood ventilation"
 summary: "Average a face velocity traverse and flag readings outside the band and ± % you type in, work out the hood's exhaust flow from the sash opening, a room's air changes per hour, how long dilution ventilation takes to bring a vapour down (with a mixing factor K), the steady level from an evaporating liquid, and convert ppm to mg/m³. For study and planning; no limits built in."
 status: live
 ads: true

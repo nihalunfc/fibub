@@ -1,9 +1,9 @@
 ---
-name: Range chart and diversity through time
+name: Range chart
 num: 409
 shelf: science
 section: paleontology
-title: "Range chart maker and diversity through time: boundary crossers, origination and extinction rates (Foote)"
+title: "Range chart"
 summary: "Paste taxa with their first and last appearances (ages in Ma or numbered bins) and get a range chart, diversity per time bin, range-through and boundary-crosser counts, originations, extinctions and Foote's per-capita rates, with CSV export. Nothing is uploaded."
 status: live
 ads: true

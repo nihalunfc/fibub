@@ -1,9 +1,9 @@
 ---
-name: Banked road and friction
+name: Banked curve
 num: 1028
 shelf: learn
 section: school-physics
-title: "Banked road calculator: safe speed range on a curve from speed, radius, bank angle and friction, with the forces drawn"
+title: "Banked curve"
 summary: "Take a car round a curve at any speed, radius and bank angle on a dry, wet or icy road; see the weight, normal force and friction on it, the friction it needs, the ideal no-friction speed and the safe speed range."
 status: live
 ads: false

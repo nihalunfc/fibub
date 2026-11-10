@@ -1,9 +1,9 @@
 ---
-name: Cell doubling time and passage planner
+name: Doubling time
 num: 189
 shelf: science
 section: cell-biology-and-cell-culture
-title: "Cell doubling time calculator and passage planner: growth rate, generations, seeding density and split ratio"
+title: "Doubling time"
 summary: "Type two or more cell counts and get the doubling time from a log-linear fit, with the growth rate, generations and a 95 % interval. Then plan the next passage: how many cells to seed per flask or well to reach a target confluence on the day you want, the split ratio, the volume to pipette and a schedule of the next passages."
 status: live
 ads: false

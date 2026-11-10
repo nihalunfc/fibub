@@ -1,9 +1,9 @@
 ---
-name: Non-compartmental PK analysis (NCA)
+name: NCA PK
 num: 474
 shelf: science
 section: pharmacology
-title: "NCA pharmacokinetics calculator: AUC, Cmax, half-life, lambda_z, MRT, clearance and volume from a concentration-time table"
+title: "NCA PK"
 summary: "Paste a measured concentration-time profile and get Cmax, Tmax, AUC0-t by linear or linear-up/log-down trapezoids, the terminal slope lambda_z by best fit or chosen points, half-life, AUC0-inf, % extrapolated, AUMC, MRT, and CL/F and Vz/F from the amount given in your study."
 status: live
 ads: false

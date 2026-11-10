@@ -1,9 +1,9 @@
 ---
-name: Acid-base interpreter (blood gas, anion gap, delta ratio)
+name: Blood gas interpreter
 num: 480
 shelf: science
 section: clinical-calculators
-title: "ABG interpreter: arterial blood gas step by step with Winter's formula, anion gap, albumin correction, delta ratio and osmolar gap"
+title: "Blood gas interpreter"
 summary: "Interpret an arterial blood gas step by step: acidaemia or alkalaemia, the primary disorder, expected compensation (Winter's formula and the acute and chronic respiratory rules), the anion gap corrected for albumin, the delta ratio, lactate and the osmolar gap, with an acid-base map."
 status: live
 ads: false

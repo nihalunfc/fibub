@@ -1,9 +1,9 @@
 ---
-name: SN1 vs SN2 race
+name: SN1 vs SN2
 num: 1108
 shelf: learn
 section: school-chemistry
-title: "SN1 or SN2? Pick the substrate, nucleophile and solvent and see the mechanism, energy profile, inversion and racemisation"
+title: "SN1 vs SN2"
 summary: "Choose a methyl, primary, secondary, tertiary or benzylic halide, a strong or weak nucleophile, a protic or aprotic solvent and the leaving group, and see which substitution route wins and why. Compare the one-step and two-step energy profiles, watch backside attack flip the molecule (Walden inversion) or the flat carbocation give a racemic mixture in 3D, and test yourself."
 status: live
 ads: false

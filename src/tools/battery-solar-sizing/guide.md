@@ -1,9 +1,9 @@
 ---
-name: Battery runtime and solar sizing
+name: Battery solar sizing
 num: 627
 shelf: science
 section: electrical-and-electronics
-title: "Battery runtime and off-grid solar sizing calculator: Peukert runtime, panels, battery bank and charge controller"
+title: "Battery solar sizing"
 summary: "How long will a battery run a load, with converter efficiency, usable depth of discharge and the Peukert effect? And what does an off-grid solar system need: list your appliances to get the daily load, solar array size and number of panels, battery bank in Wh and Ah with a series and parallel layout, and the charge controller current."
 status: live
 ads: true

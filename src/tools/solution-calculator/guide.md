@@ -1,9 +1,9 @@
 ---
-name: Solutions and dilutions calculator
+name: Dilution calculator
 num: 30
 shelf: science
 section: general-and-lab-chemistry
-title: "Molarity, dilution (C1V1 = C2V2) and serial dilution calculator"
+title: "Dilution calculator"
 summary: "Work out how much to weigh for a solution in M, mM, mg/mL, % w/v or ppm, how much stock to dilute, and a full serial dilution plan with volumes for every tube."
 status: live
 ads: true

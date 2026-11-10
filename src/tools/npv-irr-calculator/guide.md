@@ -1,9 +1,9 @@
 ---
-name: NPV and IRR calculator
+name: NPV and IRR
 num: 743
 shelf: science
 section: economics
-title: "NPV and IRR calculator: net present value, every IRR, MIRR, payback, discounted payback and profitability index, with NPV profile"
+title: "NPV and IRR"
 summary: "Enter a project's cash flows and a discount rate to get the net present value, every internal rate of return (with a warning when there is more than one), the modified IRR, payback and discounted payback, the profitability index and the equivalent yearly amount, plus an NPV profile chart. Matches numpy-financial."
 status: live
 ads: true

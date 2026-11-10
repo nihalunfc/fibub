@@ -1,9 +1,9 @@
 ---
-name: Protein assay standard curve
+name: Protein assay
 num: 181
 shelf: science
 section: proteomics-and-protein-science
-title: "Protein assay standard curve (Bradford, BCA): concentrations, replicates and loading volumes"
+title: "Protein assay"
 summary: "Paste your BSA standards and sample readings from a Bradford, BCA or Lowry assay. Get a straight-line, quadratic or point-to-point standard curve, each sample's concentration with mean, SD and CV, warnings when a sample is outside the standards, and how many µL hold 20 µg for a gel."
 status: live
 ads: true

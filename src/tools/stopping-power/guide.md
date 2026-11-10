@@ -1,9 +1,9 @@
 ---
-name: Stopping power and range calculator
+name: Stopping power
 num: 948
 shelf: science
 section: nuclear-and-particle-physics
-title: "Bethe-Bloch stopping power and range calculator: protons, alphas, ions and muons in matter, with a Bragg curve"
+title: "Stopping power"
 summary: "Energy loss (stopping power, LET) and CSDA range of protons, deuterons, alphas, carbon ions, your own ion, muons and pions in water, air, PMMA, aluminium, silicon, copper, lead or your own material, from the Bethe-Bloch formula. Plots stopping power against energy and the Bragg curve, and gives the energy left after any thickness."
 status: live
 ads: true

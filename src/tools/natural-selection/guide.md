@@ -1,9 +1,9 @@
 ---
-name: Natural selection with peppered moths
+name: Natural selection
 num: 1126
 shelf: learn
 section: school-biology
-title: "Natural selection simulator: peppered moths on light and dark bark, allele frequency over generations"
+title: "Natural selection"
 summary: "Birds eat the moths they can see. Turn the bark dark with soot or light with clean air and watch dark and light moths rise and fall over 60 generations, with chance (drift) in small populations and, at Class 12 level, p, q and a Hardy-Weinberg check."
 status: live
 ads: false

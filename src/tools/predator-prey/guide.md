@@ -1,9 +1,9 @@
 ---
-name: Predator and prey cycles
+name: Predator and prey
 num: 1453
 shelf: learn
 section: school-biology
-title: "Predator-prey cycles: the Lotka-Volterra model with hares and lynx, time graph and phase plot"
+title: "Predator and prey"
 summary: "Watch hares and lynx rise and fall in turn. Slide the prey birth rate, catch rate, predator gain and death rate and see both populations over time, the loop in the phase plot, the still point and how a prey limit damps the swings. Then sort every species interaction by its + / − / 0 signs."
 status: live
 ads: false

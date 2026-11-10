@@ -1,9 +1,9 @@
 ---
-name: Adduct and neutral loss calculator
+name: Adduct calculator
 num: 984
 shelf: science
 section: metabolomics-and-lipidomics
-title: "Adduct calculator for mass spectrometry: ESI adduct m/z ([M+H]+, [M+Na]+, [M−H]− and more), neutral losses and ppm matching"
+title: "Adduct calculator"
 summary: "Type a formula or a neutral monoisotopic mass and get the m/z of 25 common electrospray adducts in positive and negative mode, the ions left after common neutral losses (water, ammonia, CO2, sugars, phosphate and your own), and match a list of observed m/z values within a ppm tolerance. With no molecule, it turns observed m/z values into candidate neutral masses."
 status: live
 ads: true

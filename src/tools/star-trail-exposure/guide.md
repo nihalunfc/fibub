@@ -1,9 +1,9 @@
 ---
-name: Star trails and exposure calculator
+name: Star trail exposure
 num: 20
 shelf: science
 section: astrophotography
-title: "NPF rule and 500 rule calculator, plus a star trails planner"
+title: "Star trail exposure"
 summary: "Find the longest exposure before stars start to trail with your camera and lens (NPF and 500 rule), and plan star-trail sequences: frames, total time and card space."
 status: live
 ads: true

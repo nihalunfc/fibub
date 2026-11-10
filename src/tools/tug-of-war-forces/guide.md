@@ -1,9 +1,9 @@
 ---
-name: Balanced and unbalanced forces
+name: Balanced forces
 num: 1217
 shelf: learn
 section: school-physics
-title: "Balanced and unbalanced forces: a tug-of-war where forces add as arrows and the net force decides"
+title: "Balanced forces"
 summary: "Add children and adults to each side of a tug-of-war. Their pulls add as arrows, the net force is worked out, and the rope moves only when the forces do not balance. Class 9 adds a = F/m and the time to win."
 status: live
 ads: false

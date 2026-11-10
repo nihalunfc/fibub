@@ -1,9 +1,9 @@
 ---
-name: States of matter particle box
+name: States of matter
 num: 1064
 shelf: learn
 section: school-chemistry
-title: "States of matter particle box: heat and cool solids, liquids and gases, melting and boiling points, diffusion"
+title: "States of matter"
 summary: "Heat or cool water, ethanol, oxygen or iron and watch the particles vibrate in place, slide past each other or fly apart. Stop at the melting and boiling points, change °C to kelvin, and race diffusion in liquids and gases."
 status: live
 ads: false

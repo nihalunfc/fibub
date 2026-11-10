@@ -1,9 +1,9 @@
 ---
-name: EMG envelope and fatigue analyser
+name: EMG analyser
 num: 681
 shelf: science
 section: biomedical-engineering
-title: "EMG envelope, onset and fatigue analyser: RMS envelope, burst detection, median and mean frequency trend"
+title: "EMG analyser"
 summary: "Open or paste a surface EMG recording, band-pass and rectify it, get a moving RMS or low-pass envelope, find each contraction's onset and offset from a rest threshold, and follow muscle fatigue as the median and mean frequency fall in sliding Welch windows, with the slope. For study and research, not for diagnosis. Nothing is uploaded."
 status: live
 ads: false

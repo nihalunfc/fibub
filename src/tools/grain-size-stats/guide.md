@@ -1,9 +1,9 @@
 ---
-name: Grain-size statistics from sieve data
+name: Grain-size statistics
 num: 875
 shelf: science
 section: sedimentology-and-stratigraphy
-title: "Grain size statistics calculator: sieve analysis, Folk and Ward, moments, phi percentiles (free, GRADISTAT-style)"
+title: "Grain-size statistics"
 summary: "Turn sieve masses into a cumulative curve, φ percentiles, Folk and Ward mean, sorting, skewness and kurtosis with their verbal classes, moment statistics and Udden-Wentworth class percentages, for one sample or a whole batch."
 status: live
 ads: true

@@ -1,9 +1,9 @@
 ---
-name: Finite state machine and regex visualiser
+name: Regex visualiser
 num: 559
 shelf: science
 section: computer-science
-title: "Regex to NFA to DFA visualiser: Thompson's construction, subset construction and DFA minimisation, drawn step by step"
+title: "Regex visualiser"
 summary: "Turn a regular expression into a Thompson NFA, a DFA (subset construction) and the minimal DFA, drawn as state diagrams with transition tables. Step through a test string state by state, or type your own DFA and minimise it."
 status: live
 ads: true

@@ -1,9 +1,9 @@
 ---
-name: Tuning system and cents calculator
+name: Tuning calculator
 num: 421
 shelf: science
 section: musicology-and-music-acoustics
-title: "Tuning calculator: equal temperament, just intonation, Pythagorean and meantone frequencies, cents and deviation tables"
+title: "Tuning calculator"
 summary: "Compare tuning systems: equal temperament with any number of steps, 5-limit just intonation, Pythagorean and meantone (quarter-comma and others). Get every note's ratio, cents and frequency from your reference pitch, its deviation from 12-TET and from pure intervals, the cents between any two ratios, and hear the notes and chords. Nothing is uploaded."
 status: live
 ads: false

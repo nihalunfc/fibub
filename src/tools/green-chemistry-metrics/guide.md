@@ -1,9 +1,9 @@
 ---
-name: Green chemistry metrics calculator
+name: Green chemistry metrics
 num: 98
 shelf: science
 section: green-chemistry-and-safety
-title: "Green chemistry metrics: atom economy, E-factor, PMI and reaction mass efficiency calculator"
+title: "Green chemistry metrics"
 summary: "Type a reaction and get its atom economy and carbon economy (balanced for you). Add the masses you used, including solvents and work-up, for yield, reaction mass efficiency, carbon efficiency, E-factor with and without water, process mass intensity and a breakdown of where the mass went."
 status: live
 ads: true

@@ -1,9 +1,9 @@
 ---
-name: 18-electron rule and oxidation state checker
+name: 18-electron rule
 num: 107
 shelf: science
 section: inorganic-and-coordination-chemistry
-title: "18-electron rule calculator: valence electron count, oxidation state and d-electron count of a metal complex"
+title: "18-electron rule"
 summary: "Pick the metal, the charge and the ligands (CO, phosphines, halides, Cp, arenes, allyl, hydride, oxo and more) to get the valence electron count, the metal's oxidation state, its dⁿ count and the L/X bond classification, with both the covalent and ionic counts and 15 textbook examples."
 status: live
 ads: true

@@ -1,9 +1,9 @@
 ---
-name: CSV profiler and SQL playground
+name: SQL playground
 num: 38
 shelf: science
 section: data-science-and-machine-learning
-title: "SQL on CSV and Excel files in your browser: profile columns and run queries (no upload)"
+title: "SQL playground"
 summary: "Open CSV, TSV or Excel files and get a profile of every column: type, missing values, distinct values, range and most common values. Then query them with SQL (SQLite), join files, and download the result. Nothing is uploaded."
 status: live
 ads: false

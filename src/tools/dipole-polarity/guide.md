@@ -1,9 +1,9 @@
 ---
-name: Dipole moment and polarity
+name: Dipole polarity
 num: 1109
 shelf: learn
 section: school-chemistry
-title: "Is it polar? Add up bond dipoles on the 3D shape: CO₂, H₂O, NH₃, NF₃, CCl₄ and more"
+title: "Dipole polarity"
 summary: "Pick a molecule, see each bond dipole as an arrow from the electronegativity difference, and watch them add up or cancel on the 3D VSEPR shape. Swap outer atoms (CH₄ to CH₃Cl to CCl₄), compare with measured dipole moments, see why NF₃ is far less polar than NH₃, and test yourself."
 status: live
 ads: false

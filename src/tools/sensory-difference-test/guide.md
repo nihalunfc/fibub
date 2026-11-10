@@ -1,9 +1,9 @@
 ---
-name: Sensory triangle and duo-trio test analyser
+name: Sensory test
 num: 395
 shelf: science
 section: food-science
-title: "Triangle test calculator: exact p-value, critical values, d-prime, power and sample size for triangle, duo-trio, 2-AFC and tetrad tests"
+title: "Sensory test"
 summary: "Analyse a sensory difference test from the number of answers and correct answers: exact one-sided binomial p-value, the fewest correct needed, Thurstonian d′ and the proportion of distinguishers, power and sample size, and a table of critical values worked out for any n. Nothing is uploaded."
 status: live
 ads: false

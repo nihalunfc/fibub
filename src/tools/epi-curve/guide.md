@@ -1,9 +1,9 @@
 ---
-name: Epidemic curve and attack rates
+name: Epi curve
 num: 464
 shelf: science
 section: epidemiology
-title: "Epi curve maker for outbreaks: epidemic curve from onset dates, incubation and food attack rates"
+title: "Epi curve"
 summary: "Draw an outbreak epidemic curve from onset dates (or dates and counts) in bars of hours, days or weeks, with the peak, median onset and incubation from a shared exposure. Add a food-history table for attack rates, attack-rate ratios with intervals and Fisher's exact p. PNG and CSV downloads."
 status: live
 ads: false

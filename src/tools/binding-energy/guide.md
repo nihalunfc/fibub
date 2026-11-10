@@ -1,9 +1,9 @@
 ---
-name: Binding energy per nucleon
+name: Binding energy
 num: 1070
 shelf: learn
 section: school-physics
-title: "Binding energy per nucleon curve: mass defect calculator, liquid drop formula, and why fission and fusion release energy"
+title: "Binding energy"
 summary: "See the binding energy per nucleon curve rise steeply, peak near iron and fall slowly. Work out the mass defect and binding energy of real nuclei, break the liquid drop formula into its terms, and see fission of uranium and fusion of hydrogen as moves up the curve."
 status: live
 ads: false

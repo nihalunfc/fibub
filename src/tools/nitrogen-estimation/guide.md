@@ -1,10 +1,9 @@
 ---
-name: Nitrogen estimation (Dumas and Kjeldahl)
+name: Nitrogen estimation
 num: 1364
 shelf: learn
 section: school-chemistry
-title: "Percent nitrogen calculator: Dumas and Kjeldahl methods with every step worked"
-seoTitle: "Percent nitrogen: Dumas and Kjeldahl calculator"
+title: "Nitrogen estimation"
 summary: "Work out the percent nitrogen in an organic compound by the Dumas method (volume of N₂ gas reduced to STP, with aqueous tension) or the Kjeldahl method (ammonia caught in H₂SO₄ or HCl, by direct or back titration). Every step is shown with your numbers, beside a sketch of the apparatus and known compounds to compare."
 status: live
 ads: false

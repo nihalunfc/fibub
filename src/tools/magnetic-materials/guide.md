@@ -1,9 +1,9 @@
 ---
-name: Dia, para and ferro magnetism
+name: Magnetic materials
 num: 1410
 shelf: learn
 section: school-physics
-title: "Diamagnetic, paramagnetic and ferromagnetic materials: dipoles, domains, Curie's law and the hysteresis loop"
+title: "Magnetic materials"
 summary: "Put a diamagnetic, paramagnetic or ferromagnetic sample in a field and watch its tiny magnets: induced moments against the field, jiggling dipoles that line up a little, or whole domains that flip. Change the temperature, see Curie's law and the Curie temperature, and trace a hysteresis loop with its remanence and coercivity."
 status: live
 ads: false

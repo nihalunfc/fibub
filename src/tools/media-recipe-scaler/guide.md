@@ -1,9 +1,9 @@
 ---
-name: Stock solution and media recipe scaler
+name: Media scaler
 num: 183
 shelf: science
 section: biochemistry
-title: "Media and buffer recipe scaler: any volume, N× stocks, weigh-outs and C1V1 = C2V2"
+title: "Media scaler"
 summary: "Type a recipe once, as final concentrations or amounts per litre, and scale it to any volume or to a 5× or 10× stock. Get the mass to weigh for every solid (from molarity and molar mass), the volume of every stock to add, a warning when a stock is too dilute, and a printable recipe card."
 status: live
 ads: true

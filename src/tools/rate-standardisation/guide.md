@@ -1,9 +1,9 @@
 ---
-name: Rates and age standardisation
+name: Rate standardisation
 num: 463
 shelf: science
 section: epidemiology
-title: "Incidence rate, prevalence and age-standardised rate calculator (direct and indirect, SMR with CI)"
+title: "Rate standardisation"
 summary: "Incidence rates, cumulative incidence and prevalence with confidence intervals, directly age-standardised rates with Fay-Feuer gamma intervals, and indirect standardisation: expected events and the SMR with exact Poisson limits. Paste data by age group or open a file."
 status: live
 ads: false

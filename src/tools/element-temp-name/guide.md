@@ -1,9 +1,9 @@
 ---
-name: Names for new elements (Z > 100)
+name: New element names
 num: 1357
 shelf: learn
 section: school-chemistry
-title: "IUPAC temporary element name maker: build the systematic name and symbol for any element above 100 (un, bi, tri, ... ium) and read names back"
+title: "New element names"
 summary: "Type an atomic number above 100 and watch its IUPAC temporary name and three-letter symbol build up digit by digit from the roots nil, un, bi, tri, quad, pent, hex, sept, oct and enn, with the spelling rules shown. Or type a name like Unbiunium or a symbol like Uue and get the atomic number back."
 status: live
 ads: false

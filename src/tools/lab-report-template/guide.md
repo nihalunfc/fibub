@@ -1,9 +1,9 @@
 ---
-name: Lab report template and rubric
+name: Lab report
 num: 826
 shelf: science
 section: teaching-and-outreach
-title: "Lab report template and marking rubric: report skeleton with prompts, figure checklist, weighted rubric and score"
+title: "Lab report"
 summary: "Build a lab report skeleton with prompts for every section and a checklist for figures and tables, then a marking rubric of criteria and levels with weights. Mark a report and get the weighted score. Download the template or the rubric as Word, PDF or Markdown, and save a rubric to use again."
 status: live
 ads: true

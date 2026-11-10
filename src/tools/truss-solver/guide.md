@@ -1,9 +1,9 @@
 ---
-name: 2D truss and frame solver
+name: Truss solver
 num: 648
 shelf: science
 section: mechanical-engineering
-title: "Truss and frame calculator: member forces, reactions and deflections by the direct stiffness method"
+title: "Truss solver"
 summary: "Type or paste the nodes, members, supports and loads of a plane truss or frame and solve it by the direct stiffness method: truss member forces in tension or compression, frame axial forces, shears and moments, support reactions, node displacements and a drawing of the deflected shape, with CSV downloads."
 status: live
 ads: true

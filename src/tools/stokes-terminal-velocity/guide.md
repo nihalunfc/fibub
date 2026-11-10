@@ -1,9 +1,9 @@
 ---
-name: Terminal velocity in oil (Stokes' law)
+name: Stokes' law
 num: 1343
 shelf: learn
 section: school-physics
-title: "Terminal velocity and Stokes' law: drop a ball through glycerine, oil or honey, time it between two marks and find the viscosity"
+title: "Stokes' law"
 summary: "Drop a steel, glass, aluminium or nylon ball through a tall jar of glycerine, castor oil, honey or water. Watch it speed up and settle at its terminal velocity, read the forces, time it between two marks like the school practical and work out the liquid's viscosity, with the Reynolds number to say when Stokes' law holds."
 status: live
 ads: false

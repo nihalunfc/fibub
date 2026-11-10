@@ -1,9 +1,9 @@
 ---
-name: Matrix as a transformation
+name: Matrix transform
 num: 1189
 shelf: learn
 section: school-maths
-title: "Matrix transformation visualiser: 2 × 2 matrices bend the grid, determinant as area, solve 3 × 3 by inverse"
+title: "Matrix transform"
 summary: "Watch a 2 × 2 matrix move the whole grid: rotations, shears, stretches, reflections and squashes, with the determinant shown as the area scale and the sign as a flip. Do one transformation after another to see why AB ≠ BA, and solve a 3 × 3 system step by step with cofactors, the adjoint and A⁻¹ in exact fractions."
 status: live
 ads: false

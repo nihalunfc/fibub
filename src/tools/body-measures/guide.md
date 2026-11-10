@@ -1,9 +1,9 @@
 ---
-name: Body measures calculator (BMI, BSA, ideal and lean weight)
+name: BMI calculator
 num: 478
 shelf: science
 section: clinical-calculators
-title: "BMI, body surface area and ideal body weight calculator: Mosteller, DuBois, Devine, adjusted and lean body weight"
+title: "BMI calculator"
 summary: "Work out body mass index with the WHO adult class, body surface area by the Mosteller, DuBois, Haycock and Gehan-George formulas, ideal body weight by Devine, Robinson and Miller, adjusted body weight and Janmahasatian lean body weight, in metric or US units."
 status: live
 ads: false

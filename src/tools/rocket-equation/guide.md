@@ -1,9 +1,9 @@
 ---
-name: Rocket equation and delta-v calculator
+name: Rocket equation
 num: 46
 shelf: science
 section: spaceflight-and-astrodynamics
-title: "Rocket equation calculator: delta-v with staging, Isp and payload (Tsiolkovsky)"
+title: "Rocket equation"
 summary: "Enter each stage's dry mass, propellant and Isp and get the delta-v of every stage and the whole rocket, the payload fraction, and how it compares with the delta-v needed for orbit, the Moon or Mars."
 status: live
 ads: true

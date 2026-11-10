@@ -1,9 +1,9 @@
 ---
-name: Home battery storage sizing
+name: Home battery
 num: 675
 shelf: science
 section: energy-and-power-systems
-title: "Home battery sizing calculator: self-consumption, grid import and export, backup hours and payback with solar"
+title: "Home battery"
 summary: "Simulate a home battery hour by hour with your load and solar data (or a made-up template year), sweep battery sizes, and see self-consumption, grid import and export, cycles, backup hours and a recommended size. Nothing is uploaded."
 status: live
 ads: true

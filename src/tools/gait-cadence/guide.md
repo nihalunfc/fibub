@@ -1,9 +1,9 @@
 ---
-name: Gait and cadence analyser (phone accelerometer)
+name: Gait cadence
 num: 491
 shelf: science
 section: exercise-and-sport-science
-title: "Cadence and gait analyser: steps per minute and step-time variability from a phone accelerometer or CSV"
+title: "Gait cadence"
 summary: "Record your phone's motion sensor while you walk or run, or open a CSV of t, ax, ay, az. The page filters the signal, finds each step, and gives cadence (steps per minute), step and stride time variability, and a spectrum. Nothing leaves your device."
 status: live
 ads: false

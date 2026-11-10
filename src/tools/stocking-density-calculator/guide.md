@@ -1,9 +1,9 @@
 ---
-name: Stocking density and FCR calculator
+name: Stocking density
 num: 401
 shelf: science
 section: aquaculture
-title: "Fish stocking density and FCR calculator: biomass, kg/m³, SGR, feed per day and harvest projection"
+title: "Stocking density"
 summary: "Work out the water volume of a tank or pond, the biomass and stocking density of your fish, how many fish fit a target density, the feed conversion ratio (FCR) and specific growth rate (SGR) over a period, the feed per day at a % of body weight, and when the fish reach harvest weight. Nothing is uploaded."
 status: live
 ads: true

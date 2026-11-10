@@ -1,9 +1,9 @@
 ---
-name: Life cycle comparison (LCA lite)
+name: LCA compare
 num: 162
 shelf: science
 section: carbon-and-energy-accounting
-title: "LCA lite: compare the carbon footprint of two products over their life cycle, with break-even uses and uncertainty"
+title: "LCA compare"
 summary: "Compare two products, such as a reusable and a single-use one, across life stages (materials, manufacturing, transport, use, end of life) with your own emission factors. See the totals for any number of uses, the break-even point, a stacked bar by stage, which input would flip the result, and how sure the answer is when the factors are uncertain."
 status: live
 ads: true

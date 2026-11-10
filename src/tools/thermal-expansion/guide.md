@@ -1,9 +1,9 @@
 ---
-name: Thermal expansion of rails and bridges
+name: Thermal expansion
 num: 1347
 shelf: learn
 section: school-physics
-title: "Thermal expansion: why rails and bridges need gaps, ΔL = α L ΔT, thermal stress and area and volume expansion"
+title: "Thermal expansion"
 summary: "Warm a railway track or a bridge and watch the gaps between the pieces shrink, then close and make the rail bow. See ΔL = α L ΔT with your numbers, the gap to leave, and at Class 11 the stress in a welded rail and how area and volume grow."
 status: live
 ads: false

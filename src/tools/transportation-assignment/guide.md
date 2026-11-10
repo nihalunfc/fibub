@@ -1,9 +1,9 @@
 ---
-name: Transportation and assignment problem solver
+name: Transportation solver
 num: 583
 shelf: science
 section: operations-research
-title: "Transportation problem solver (northwest corner, least cost, Vogel, MODI) and Hungarian assignment solver, step by step"
+title: "Transportation solver"
 summary: "Solve a transportation problem from a starting plan (northwest corner, least cost or Vogel's approximation) to the optimum with the MODI method, showing every step, the u and v potentials and dummy rows for unbalanced problems. Or solve an assignment problem with the Hungarian method, minimising cost or maximising profit. Checked against scipy."
 status: live
 ads: true

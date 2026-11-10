@@ -1,9 +1,9 @@
 ---
-name: Steam tables and Rankine cycle
+name: Steam tables
 num: 661
 shelf: science
 section: thermal-and-fluid-engineering
-title: "Steam tables calculator (IAPWS-IF97) and Rankine cycle efficiency with a T-s diagram"
+title: "Steam tables"
 summary: "Look up water and steam properties from pressure and temperature, saturation by pressure or temperature, or from pressure with enthalpy, entropy or quality, using the IAPWS-IF97 industrial formulation. Then work out a simple or reheat Rankine power cycle: turbine and pump work, heat in, thermal efficiency, exit quality, steam rate and a temperature-entropy diagram."
 status: live
 ads: true
