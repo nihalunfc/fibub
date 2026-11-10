@@ -21,3 +21,7 @@
 /science/harmonics-analyser/*
   ! Permissions-Policy
   Permissions-Policy: camera=(), microphone=(self), geolocation=(self), payment=(), usb=()
+
+# OCR reader files (tesseract.js 7.0.0, src/lib/ocr.ts): versioned by the package pin, keep for a year.
+/ocr/*
+  Cache-Control: public, max-age=31536000, immutable
