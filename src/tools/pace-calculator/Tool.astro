@@ -1,0 +1,150 @@
+---
+// #T913 Pace calculator
+---
+<div class="tool-ui pz">
+  <section class="panel">
+    <label class="pz-mode">What do you want to find?
+      <select data-k="find">
+        <option value="pace">Pace (from distance and time)</option>
+        <option value="time">Time (from distance and pace)</option>
+        <option value="dist">Distance (from time and pace)</option>
+      </select>
+    </label>
+    <div class="pz-fields">
+      <label data-f="dist">Distance
+        <span class="pz-row"><input data-k="dist" inputmode="decimal" value="10" /><select data-k="du"><option value="km">km</option><option value="mi">miles</option></select></span>
+      </label>
+      <label data-f="time">Time (h:mm:ss or mm:ss)
+        <input data-k="time" value="50:00" />
+      </label>
+      <label data-f="pace">Pace (mm:ss)
+        <span class="pz-row"><input data-k="pace" value="5:00" /><select data-k="pu"><option value="km">per km</option><option value="mi">per mile</option></select></span>
+      </label>
+    </div>
+    <div class="pz-quick" aria-label="Race distances">
+      <button type="button" data-d="5">5 km</button><button type="button" data-d="10">10 km</button><button type="button" data-d="21.0975">Half marathon</button><button type="button" data-d="42.195">Marathon</button>
+    </div>
+    <p class="pz-big" aria-live="polite"></p>
+    <p class="pz-say" aria-live="polite"></p>
+    <button type="button" class="pz-reset">Reset</button>
+  </section>
+
+  <section class="panel">
+    <h3>Splits</h3>
+    <p class="pz-fine">Even pace, one row per <span class="pz-su">km</span>. The last row is the part left over.</p>
+    <div class="pz-scroll"><table class="pz-splits"><thead><tr><th><span class="pz-su">km</span></th><th>Split</th><th>Total time</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section class="panel">
+    <h3>Race time predictor</h3>
+    <p class="pz-fine">Riegel's formula: T2 = T1 × (D2 / D1)<sup>k</sup>, from the distance and time above.</p>
+    <label class="pz-k">Fatigue exponent k <input data-k="k" inputmode="decimal" value="1.06" /></label>
+    <div class="pz-scroll"><table class="pz-pred"><thead><tr><th>Race</th><th>Predicted time</th><th>Pace /km</th><th>Pace /mi</th></tr></thead><tbody></tbody></table></div>
+  </section>
+  <p class="pz-fine">Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .pz { display: grid; gap: 14px; margin-bottom: 32px; }
+  .pz .panel { padding: 16px; min-width: 0; }
+  .pz h3 { margin: 0 0 6px; font-size: 17px; }
+  .pz-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; margin-top: 12px; }
+  .pz label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .pz label.pz-off { opacity: .55; }
+  .pz-row { display: flex; gap: 6px; min-width: 0; }
+  .pz-row input { flex: 1 1 auto; }
+  .pz-row select { flex: 0 0 auto; width: auto; }
+  .pz input, .pz select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .pz input:focus, .pz select:focus { border-color: var(--accent); outline: none; }
+  .pz-quick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .pz button { font: inherit; font-size: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .pz button:hover { border-color: var(--accent); }
+  .pz-big { font-size: 26px; font-weight: 700; margin: 14px 0 4px; overflow-wrap: anywhere; }
+  .pz-say { margin: 0 0 12px; color: var(--muted); font-size: 15px; }
+  .pz-k { max-width: 220px; margin: 8px 0; }
+  .pz-scroll { overflow-x: auto; max-height: 420px; overflow-y: auto; }
+  .pz table { border-collapse: collapse; width: 100%; font-size: 14.5px; font-variant-numeric: tabular-nums; }
+  .pz th, .pz td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  .pz th { font-size: 13px; color: var(--muted); font-weight: 600; }
+  .pz-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  const root = document.querySelector('.pz') as HTMLElement;
+  const el = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const big = root.querySelector('.pz-big') as HTMLElement;
+  const say = root.querySelector('.pz-say') as HTMLElement;
+  const MI = 1.609344;
+  const DEF: Record<string, string> = { find: 'pace', dist: '10', du: 'km', time: '50:00', pace: '5:00', pu: 'km', k: '1.06' };
+  // "h:mm:ss", "mm:ss" or plain minutes -> seconds
+  const parseT = (s: string) => {
+    const p = s.trim().split(':').map((x) => x.trim());
+    if (!p[0] || p.some((x) => x === '' || !Number.isFinite(+x) || +x < 0)) return NaN;
+    if (p.length === 1) return +p[0] * 60;
+    if (p.length === 2) return +p[0] * 60 + +p[1];
+    if (p.length === 3) return +p[0] * 3600 + +p[1] * 60 + +p[2];
+    return NaN;
+  };
+  const fmt = (sec: number) => {
+    let s = Math.round(sec); const h = Math.floor(s / 3600); s -= h * 3600; const m = Math.floor(s / 60); s -= m * 60;
+    const ss = String(s).padStart(2, '0');
+    return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
+  };
+  const num = (v: number, d = 2) => v.toLocaleString('en-US', { maximumFractionDigits: d });
+  const RACES: [string, number][] = [['1 mile', MI], ['5 km', 5], ['10 km', 10], ['Half marathon', 21.0975], ['Marathon', 42.195]];
+
+  const calc = () => {
+    const find = el('find').value;
+    root.querySelectorAll('[data-f]').forEach((l) => { const off = (l as HTMLElement).dataset.f === find; l.classList.toggle('pz-off', off); (l.querySelector('input') as HTMLInputElement).readOnly = off; });
+    const du = el('du').value, pu = el('pu').value;
+    let km = parseFloat(el('dist').value) * (du === 'mi' ? MI : 1);
+    let t = parseT(el('time').value);
+    const pIn = parseT(el('pace').value);
+    const secPerKm = pIn / (pu === 'mi' ? MI : 1);
+    if (find === 'pace') { if (!(km > 0 && t > 0)) return fail('Type a distance and a time.'); }
+    else if (find === 'time') { if (!(km > 0 && secPerKm > 0)) return fail('Type a distance and a pace.'); t = km * secPerKm; el('time').value = fmt(t); }
+    else { if (!(t > 0 && secPerKm > 0)) return fail('Type a time and a pace.'); km = t / secPerKm; el('dist').value = String(+(km / (du === 'mi' ? MI : 1)).toFixed(3)); }
+    const pk = t / km, pm = pk * MI, kmh = km / (t / 3600);
+    if (find === 'pace') el('pace').value = fmt(pu === 'mi' ? pm : pk);
+    const dShow = `${num(km / (du === 'mi' ? MI : 1), 3)} ${du === 'mi' ? 'miles' : 'km'}`;
+    if (find === 'pace') big.textContent = `${fmt(pk)} /km  ·  ${fmt(pm)} /mi`;
+    else if (find === 'time') big.textContent = fmt(t);
+    else big.textContent = dShow;
+    say.textContent = `${dShow} in ${fmt(t)} is a pace of ${fmt(pk)} per km (${fmt(pm)} per mile), a speed of ${num(kmh)} km/h (${num(kmh / MI)} mph).`;
+    splits(km, t, du);
+    predict(km, t);
+  };
+  const fail = (m: string) => { big.textContent = ''; say.textContent = m; (root.querySelector('.pz-splits tbody') as HTMLElement).innerHTML = ''; (root.querySelector('.pz-pred tbody') as HTMLElement).innerHTML = ''; };
+  const splits = (km: number, t: number, du: string) => {
+    const unit = du === 'mi' ? MI : 1, d = km / unit, per = t / d;
+    root.querySelectorAll('.pz-su').forEach((s) => (s.textContent = du === 'mi' ? 'mile' : 'km'));
+    const tb = root.querySelector('.pz-splits tbody') as HTMLElement; tb.innerHTML = '';
+    const n = Math.min(Math.ceil(d - 1e-9), 200);
+    for (let i = 1; i <= n; i++) {
+      const at = Math.min(i, d), part = at - (i - 1);
+      const tr = document.createElement('tr');
+      for (const c of [num(at, 2), fmt(per * part), fmt(per * at)]) { const td = document.createElement('td'); td.textContent = c; tr.append(td); }
+      tb.append(tr);
+    }
+  };
+  const predict = (km: number, t: number) => {
+    const k = parseFloat(el('k').value);
+    const tb = root.querySelector('.pz-pred tbody') as HTMLElement; tb.innerHTML = '';
+    if (!Number.isFinite(k) || k <= 0) return;
+    for (const [name, d] of RACES) {
+      const t2 = t * Math.pow(d / km, k);
+      const tr = document.createElement('tr'); tr.dataset.race = name;
+      for (const c of [name, fmt(t2), fmt(t2 / d), fmt((t2 / d) * MI)]) { const td = document.createElement('td'); td.textContent = c; tr.append(td); }
+      tb.append(tr);
+    }
+  };
+  root.querySelectorAll('input, select').forEach((i) => i.addEventListener('input', calc));
+  root.querySelectorAll('.pz-quick button').forEach((b) => b.addEventListener('click', () => {
+    const kmv = +(b as HTMLElement).dataset.d!;
+    if (el('find').value === 'dist') el('find').value = 'pace';
+    el('dist').value = String(+(el('du').value === 'mi' ? kmv / MI : kmv).toFixed(4));
+    calc();
+  }));
+  (root.querySelector('.pz-reset') as HTMLElement).addEventListener('click', () => { for (const k in DEF) el(k).value = DEF[k]; calc(); });
+  calc();
+</script>

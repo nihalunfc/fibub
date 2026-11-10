@@ -1,0 +1,153 @@
+---
+// #T867 Paint calculator
+---
+<div class="tool-ui pnt">
+  <section class="panel">
+    <div class="pnt-grid">
+      <label>Units
+        <select data-k="units"><option value="m">Metric (m, litres)</option><option value="ft">Imperial (ft, US gallons)</option></select>
+      </label>
+      <label>Measure by
+        <select data-k="how"><option value="room">Whole room (length, width, height)</option><option value="walls">Wall by wall</option></select>
+      </label>
+    </div>
+    <div class="pnt-room pnt-grid">
+      <label>Room length <span class="pnt-u" data-u="len"></span><input data-k="L" inputmode="decimal" /></label>
+      <label>Room width <span class="pnt-u" data-u="len"></span><input data-k="W" inputmode="decimal" /></label>
+      <label>Wall height <span class="pnt-u" data-u="len"></span><input data-k="H" inputmode="decimal" /></label>
+    </div>
+    <div class="pnt-walls" hidden>
+      <div class="pnt-list"></div>
+      <button type="button" class="pnt-btn pnt-add">Add a wall</button>
+    </div>
+  </section>
+  <section class="panel pnt-grid">
+    <label>Doors (how many)<input data-k="doors" inputmode="numeric" /></label>
+    <label>Area of one door <span class="pnt-u" data-u="area"></span><input data-k="doorA" inputmode="decimal" /></label>
+    <label>Windows (how many)<input data-k="wins" inputmode="numeric" /></label>
+    <label>Area of one window <span class="pnt-u" data-u="area"></span><input data-k="winA" inputmode="decimal" /></label>
+    <label>Coats<input data-k="coats" inputmode="numeric" /></label>
+    <label>Coverage per coat <span class="pnt-u" data-u="cov"></span><input data-k="cov" inputmode="decimal" /></label>
+    <label class="pnt-check pnt-ceil"><input type="checkbox" data-k="ceil" /> Paint the ceiling too (same coats)</label>
+    <label class="pnt-check"><input type="checkbox" data-k="primer" /> Add one coat of primer</label>
+    <label class="pnt-pcov" hidden>Primer coverage <span class="pnt-u" data-u="cov"></span><input data-k="pcov" inputmode="decimal" /></label>
+  </section>
+  <section class="panel">
+    <p class="pnt-big" aria-live="polite"></p>
+    <p class="pnt-tins" aria-live="polite"></p>
+    <ul class="pnt-lines"></ul>
+    <button type="button" class="pnt-btn pnt-reset">Reset to the example</button>
+  </section>
+  <p class="pnt-fine">Coverage is a typical label figure: check the tin, as rough or porous walls take more. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .pnt { display: grid; gap: 14px; margin-bottom: 32px; }
+  .pnt .panel { padding: 16px; display: grid; gap: 12px; }
+  .pnt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .pnt label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .pnt .pnt-check { display: flex; align-items: center; gap: 8px; color: var(--ink); }
+  .pnt input:not([type=checkbox]), .pnt select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .pnt input:focus, .pnt select:focus { border-color: var(--accent); outline: none; }
+  .pnt-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end; margin-bottom: 8px; }
+  .pnt-btn { font: inherit; font-size: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; justify-self: start; }
+  .pnt-btn:hover { border-color: var(--accent); }
+  .pnt-big { font-size: 26px; font-weight: 700; margin: 0; overflow-wrap: anywhere; }
+  .pnt-tins { margin: 0; font-weight: 600; }
+  .pnt-lines { margin: 0; padding-left: 18px; color: var(--muted); font-size: 15px; display: grid; gap: 2px; }
+  .pnt-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  const root = document.querySelector('.pnt') as HTMLElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const k = (key: string) => root.querySelector(`[data-k="${key}"]`) as HTMLInputElement;
+  const list = $('.pnt-list');
+  const EX: Record<string, Record<string, string>> = {
+    m: { L: '4', W: '3.5', H: '2.4', doors: '1', doorA: '1.9', wins: '1', winA: '1.5', coats: '2', cov: '10', pcov: '10' },
+    ft: { L: '12', W: '10', H: '8', doors: '1', doorA: '21', wins: '1', winA: '16', coats: '2', cov: '400', pcov: '400' },
+  };
+  const TINS: Record<string, { v: number; t: string }[]> = {
+    m: [{ v: 5, t: '5 L' }, { v: 2.5, t: '2.5 L' }, { v: 1, t: '1 L' }],
+    ft: [{ v: 1, t: '1 gallon' }, { v: 0.25, t: '1 quart' }],
+  };
+  const UNITS: Record<string, Record<string, string>> = {
+    m: { len: '(m)', area: '(m²)', cov: '(m² per litre)', a: 'm²', vol: 'L' },
+    ft: { len: '(ft)', area: '(sq ft)', cov: '(sq ft per gallon)', a: 'sq ft', vol: 'US gal' },
+  };
+  const num = (s: string) => (s.trim() === '' ? NaN : Number(s));
+  const f = (v: number, d: number) => v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  // Fewest tins first; among those, the least paint left over.
+  const tins = (need: number, sizes: { v: number; t: string }[]) => {
+    let best: { n: number[]; count: number; total: number } | null = null;
+    const go = (i: number, left: number, n: number[]) => {
+      if (i === sizes.length - 1) {
+        const c = Math.max(0, Math.ceil(left / sizes[i].v - 1e-9));
+        const all = [...n, c], count = all.reduce((a, b) => a + b, 0), total = all.reduce((a, b, j) => a + b * sizes[j].v, 0);
+        if (!best || count < best.count || (count === best.count && total < best.total - 1e-9)) best = { n: all, count, total };
+        return;
+      }
+      const max = Math.ceil(Math.max(0, left) / sizes[i].v - 1e-9);
+      for (let c = 0; c <= max; c++) go(i + 1, left - c * sizes[i].v, [...n, c]);
+    };
+    go(0, need, []);
+    const b = best as unknown as { n: number[]; total: number };
+    return { text: b.n.map((c, j) => (c ? `${c} × ${sizes[j].t}` : '')).filter(Boolean).join(' + '), total: b.total };
+  };
+  const addWall = (len = '', h = '') => {
+    const row = document.createElement('div'); row.className = 'pnt-row';
+    const u = UNITS[k('units').value].len;
+    row.innerHTML = `<label>Wall length ${u}<input class="pnt-wl" inputmode="decimal" /></label><label>Height ${u}<input class="pnt-wh" inputmode="decimal" /></label><button type="button" class="pnt-btn" aria-label="Remove this wall">Remove</button>`;
+    (row.querySelector('.pnt-wl') as HTMLInputElement).value = len; (row.querySelector('.pnt-wh') as HTMLInputElement).value = h;
+    row.querySelectorAll('input').forEach((i) => i.addEventListener('input', calc));
+    (row.querySelector('button') as HTMLElement).addEventListener('click', () => { row.remove(); calc(); });
+    list.append(row);
+  };
+  const big = $('.pnt-big'), tinsEl = $('.pnt-tins'), lines = $('.pnt-lines');
+  function calc() {
+    const u = k('units').value, U = UNITS[u], room = k('how').value === 'room';
+    $('.pnt-room').hidden = !room; $('.pnt-walls').hidden = room; $('.pnt-ceil').hidden = !room;
+    $('.pnt-pcov').hidden = !k('primer').checked;
+    root.querySelectorAll('.pnt-u').forEach((s) => { s.textContent = U[(s as HTMLElement).dataset.u!]; });
+    let walls = NaN, ceil = 0;
+    if (room) {
+      const L = num(k('L').value), W = num(k('W').value), H = num(k('H').value);
+      walls = 2 * (L + W) * H;
+      if (k('ceil').checked) ceil = L * W;
+    } else {
+      walls = 0;
+      list.querySelectorAll('.pnt-row').forEach((r) => { walls += num((r.querySelector('.pnt-wl') as HTMLInputElement).value) * num((r.querySelector('.pnt-wh') as HTMLInputElement).value); });
+    }
+    const open = num(k('doors').value || '0') * num(k('doorA').value || '0') + num(k('wins').value || '0') * num(k('winA').value || '0');
+    const coats = num(k('coats').value), cov = num(k('cov').value);
+    if (!Number.isFinite(walls) || !Number.isFinite(open) || !Number.isFinite(coats) || !(cov > 0) || walls < 0 || coats < 0) {
+      big.textContent = ''; tinsEl.textContent = 'Type the sizes above (numbers only).'; lines.innerHTML = ''; return;
+    }
+    const net = Math.max(0, walls - open) + ceil, coated = net * coats, paint = coated / cov;
+    big.textContent = `${f(paint, 2)} ${U.vol} of paint`;
+    const t = tins(paint, TINS[u]);
+    tinsEl.textContent = paint > 0 ? `Buy ${t.text} (${f(t.total, 2)} ${U.vol}).` : 'Nothing to paint.';
+    const li: string[] = [
+      `Wall area ${f(walls, 1)} ${U.a}${open > 0 ? `, minus doors and windows ${f(open, 1)} ${U.a} = ${f(Math.max(0, walls - open), 1)} ${U.a}` : ''}.`,
+    ];
+    if (ceil) li.push(`Ceiling ${f(ceil, 1)} ${U.a}, so ${f(net, 1)} ${U.a} to paint.`);
+    li.push(`${f(net, 1)} ${U.a} × ${coats} coat${coats === 1 ? '' : 's'} = ${f(coated, 1)} ${U.a}, ÷ ${f(cov, 1)} ${U.a} per ${U.vol} = ${f(paint, 2)} ${U.vol}.`);
+    if (k('primer').checked) {
+      const pc = num(k('pcov').value);
+      if (pc > 0) { const p = net / pc, pt = tins(p, TINS[u]); li.push(`Primer, one coat: ${f(p, 2)} ${U.vol}, buy ${pt.text}.`); }
+    }
+    li.push('Tins: the fewest tins that cover it, then the one with the least left over.');
+    lines.innerHTML = ''; for (const s of li) { const e = document.createElement('li'); e.textContent = s; lines.append(e); }
+  }
+  const load = (u: string) => {
+    for (const [key, v] of Object.entries(EX[u])) k(key).value = v;
+    list.innerHTML = '';
+    if (u === 'm') { addWall('4', '2.4'); addWall('3.5', '2.4'); addWall('4', '2.4'); addWall('3.5', '2.4'); }
+    else { addWall('12', '8'); addWall('10', '8'); addWall('12', '8'); addWall('10', '8'); }
+    calc();
+  };
+  root.querySelectorAll('[data-k]').forEach((e) => e.addEventListener(e.tagName === 'SELECT' || (e as HTMLInputElement).type === 'checkbox' ? 'change' : 'input', () => (e === k('units') ? load(k('units').value) : calc())));
+  $('.pnt-add').addEventListener('click', () => { addWall(); calc(); });
+  $('.pnt-reset').addEventListener('click', () => { k('units').value = 'm'; k('how').value = 'room'; k('ceil').checked = false; k('primer').checked = false; load('m'); });
+  load('m');
+</script>

@@ -1,0 +1,154 @@
+---
+// #T934 Expiry reminders
+---
+<div class="tool-ui de">
+  <section class="panel">
+    <p class="de-note">Only the kind of document, a name you choose and the expiry date. Never type a document number here: the page does not need it.</p>
+    <div class="de-items"></div>
+    <div class="de-row">
+      <button type="button" class="de-add">Add a document</button>
+      <button type="button" class="de-reset">Clear the list</button>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>Soonest first</h2>
+    <div class="de-scroll">
+      <table class="de-tbl">
+        <thead><tr><th>Document</th><th>Expires</th><th>Days left</th><th>Remind on</th><th>Status</th></tr></thead>
+        <tbody class="de-rows" aria-live="polite"></tbody>
+      </table>
+    </div>
+    <p class="de-say"></p>
+    <div class="de-row">
+      <button type="button" class="de-ics">Download reminders (.ics)</button>
+    </div>
+    <p class="de-fine">The .ics file is made on your device. Open it to add one all-day event per document on its expiry date, each with an alarm at 09:00 on its reminder date. Most calendar apps (Google, Apple, Outlook) can import it.</p>
+  </section>
+  <section class="panel">
+    <label class="de-chk"><input class="de-remember" type="checkbox" /> Remember my list in this browser</label>
+    <p class="de-fine"><span class="de-saved">Not saved.</span> When ticked, the list is kept in this browser only (localStorage) and never leaves your device.</p>
+    <button type="button" class="de-forget">Delete saved list</button>
+  </section>
+</div>
+
+<style is:inline>
+  .de { display: grid; gap: 14px; margin-bottom: 32px; }
+  .de .panel { padding: 16px; }
+  .de h2 { font-size: 18px; margin: 0 0 10px; }
+  .de-note { margin: 0 0 12px; font-size: 14px; color: var(--muted); }
+  .de-item { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line); align-items: end; }
+  .de label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .de label.de-chk { display: flex; align-items: center; gap: 8px; color: var(--ink); }
+  .de input:not([type=checkbox]), .de select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .de input:focus, .de select:focus { border-color: var(--accent); outline: none; }
+  .de button { font: inherit; font-size: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .de .de-ics { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .de-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .de-scroll { overflow-x: auto; }
+  .de-tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .de-tbl th, .de-tbl td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--line); }
+  .de-tbl td:nth-child(3) { font-variant-numeric: tabular-nums; }
+  .de-tbl tr.k-expired td:last-child { color: var(--bad, #b42318); font-weight: 600; }
+  .de-tbl tr.k-now td:last-child { color: var(--warn, #9a6700); font-weight: 600; }
+  .de-tbl tr.k-ok td:last-child { color: var(--good, #1a7f37); }
+  .de-say { margin: 10px 0 0; color: var(--muted); font-size: 15px; }
+  .de-fine { color: var(--muted); font-size: 13px; margin: 8px 0; }
+</style>
+
+<script>
+  const root = document.querySelector('.de') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
+  const KEY = 'fibub-expiry-v1', DAY = 86400000;
+  // Suggested lead times, editable per row; fibub's own suggestions (see the guide).
+  const KINDS: [string, string, number][] = [
+    ['passport', 'Passport', 6], ['permit', 'Visa, work or study permit', 4], ['licence', 'Driving licence', 2],
+    ['card', 'ID, residence or health card', 3], ['insurance', 'Insurance policy', 1], ['other', 'Other', 1],
+  ];
+  const LEADS: [number, string][] = [[0.25, '1 week'], [0.5, '2 weeks'], [1, '1 month'], [2, '2 months'], [3, '3 months'], [4, '4 months'], [6, '6 months'], [9, '9 months'], [12, '12 months']];
+  type Item = { kind: string; name: string; exp: string; lead: number };
+  const EXAMPLE: Item[] = [{ kind: 'passport', name: 'My passport', exp: '2027-03-01', lead: 6 }, { kind: 'insurance', name: 'Car insurance', exp: '2027-01-15', lead: 1 }];
+  let items: Item[] = [];
+
+  const parse = (s: string) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) : NaN; };
+  const iso = (t: number) => new Date(t).toISOString().slice(0, 10);
+  const nice = (t: number) => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  const dim = (y: number, m: number) => new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  const minusMonths = (t: number, k: number) => { const d = new Date(t); const m = d.getUTCMonth() - k; const y = d.getUTCFullYear() + Math.floor(m / 12), mm = ((m % 12) + 12) % 12; return Date.UTC(y, mm, Math.min(d.getUTCDate(), dim(y, mm))); };
+  // Weeks are counted in days; months keep the day of the month (moving to the month's last day if it is shorter).
+  const remindOn = (exp: number, lead: number) => (lead < 1 ? exp - Math.round(lead * 4) * 7 * DAY : minusMonths(exp, lead));
+  const today = () => { const d = new Date(); return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()); };
+  const kindName = (k: string) => KINDS.find((x) => x[0] === k)?.[1] ?? 'Other';
+  const label = (it: Item) => it.name.trim() || kindName(it.kind);
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+
+  const drawItems = () => {
+    const box = q('.de-items'); box.innerHTML = '';
+    items.forEach((it, i) => {
+      const row = document.createElement('div'); row.className = 'de-item'; row.dataset.i = String(i);
+      row.innerHTML = `<label>Kind<select data-f="kind">${KINDS.map(([v, t]) => `<option value="${v}"${v === it.kind ? ' selected' : ''}>${t}</option>`).join('')}</select></label>` +
+        `<label>Name (optional)<input data-f="name" type="text" maxlength="60" autocomplete="off" placeholder="${esc(kindName(it.kind))}" value="${esc(it.name)}" /></label>` +
+        `<label>Expiry date<input data-f="exp" type="date" value="${it.exp}" /></label>` +
+        `<label>Remind me<select data-f="lead">${LEADS.map(([v, t]) => `<option value="${v}"${v === it.lead ? ' selected' : ''}>${t} before</option>`).join('')}</select></label>` +
+        `<button type="button" data-f="del">Remove</button>`;
+      row.querySelectorAll('input, select').forEach((el) => el.addEventListener('input', () => {
+        const f = (el as HTMLElement).dataset.f!, v = (el as HTMLInputElement).value;
+        if (f === 'kind') { it.kind = v; it.lead = KINDS.find((x) => x[0] === v)![2]; (row.querySelector('[data-f=lead]') as HTMLSelectElement).value = String(it.lead); (row.querySelector('[data-f=name]') as HTMLInputElement).placeholder = kindName(v); }
+        else if (f === 'lead') it.lead = +v; else if (f === 'name') it.name = v; else it.exp = v;
+        calc();
+      }));
+      row.querySelector('[data-f=del]')!.addEventListener('click', () => { items.splice(i, 1); drawItems(); calc(); });
+      box.append(row);
+    });
+  };
+  const rows = () => {
+    const now = today();
+    return items.map((it) => ({ it, exp: parse(it.exp) })).filter((r) => Number.isFinite(r.exp)).map((r) => {
+      const rem = remindOn(r.exp, r.it.lead), left = Math.round((r.exp - now) / DAY);
+      const k = left < 0 ? 'expired' : rem <= now ? 'now' : 'ok';
+      return { ...r, rem, left, k };
+    }).sort((a, b) => a.exp - b.exp);
+  };
+  const calc = () => {
+    const rs = rows();
+    q('.de-rows').innerHTML = rs.map((r) => `<tr class="k-${r.k}" data-k="${r.k}" data-rem="${iso(r.rem)}"><td>${esc(label(r.it))}</td><td>${nice(r.exp)}</td><td>${r.left.toLocaleString('en-US')}</td><td>${nice(r.rem)}${r.rem <= today() ? ' (past)' : ''}</td><td>${r.k === 'expired' ? 'Expired' : r.k === 'now' ? 'Renew now' : 'OK'}</td></tr>`).join('');
+    const ex = rs.filter((r) => r.k === 'expired').length, now = rs.filter((r) => r.k === 'now').length;
+    q('.de-say').textContent = !rs.length ? 'Add a document with an expiry date to see it here.' :
+      `${rs.length} document${rs.length === 1 ? '' : 's'}: ${ex} expired, ${now} inside the reminder time, ${rs.length - ex - now} fine for now.`;
+    store();
+  };
+  const ics = () => {
+    const ymd = (t: number) => iso(t).replace(/-/g, '');
+    const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
+    const txt = (s: string) => s.replace(/[\\;,]/g, (c) => '\\' + c).replace(/\r?\n/g, ' ');
+    const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//fibub.com//Expiry reminders//EN', 'CALSCALE:GREGORIAN'];
+    rows().forEach((r, i) => {
+      const n = Math.max(0, Math.round((r.exp - r.rem) / DAY));
+      // The alarm is n days before the all-day event, at 09:00: (n-1) days and 15 hours before its midnight start.
+      const trig = n >= 1 ? `-P${n - 1}DT15H` : 'PT9H';
+      lines.push('BEGIN:VEVENT', `UID:${ymd(r.exp)}-${i}-expiry@fibub.com`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${ymd(r.exp)}`, `DTEND;VALUE=DATE:${ymd(r.exp + DAY)}`,
+        `SUMMARY:${txt(label(r.it))} expires`, `DESCRIPTION:${txt(`Reminder set for ${iso(r.rem)}. Made with fibub.com expiry reminders.`)}`, 'TRANSP:TRANSPARENT',
+        'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${txt(`Renew ${label(r.it)} (expires ${iso(r.exp)})`)}`, `TRIGGER:${trig}`, 'END:VALARM', 'END:VEVENT');
+    });
+    lines.push('END:VCALENDAR');
+    return lines.join('\r\n') + '\r\n';
+  };
+  const remember = q<HTMLInputElement>('.de-remember');
+  const store = () => { if (!remember.checked) return; try { localStorage.setItem(KEY, JSON.stringify(items)); } catch {} };
+  q('.de-ics').addEventListener('click', () => {
+    if (!rows().length) { q('.de-say').textContent = 'Add at least one document with an expiry date first.'; return; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([ics()], { type: 'text/calendar' })); a.download = 'expiry-reminders.ics';
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  });
+  q('.de-add').addEventListener('click', () => { items.push({ kind: 'other', name: '', exp: '', lead: 1 }); drawItems(); calc(); (q('.de-item:last-child select') as HTMLSelectElement).focus(); });
+  q('.de-reset').addEventListener('click', () => { items = []; drawItems(); calc(); });
+  remember.addEventListener('change', () => {
+    if (remember.checked) { store(); q('.de-saved').textContent = 'Saved in this browser only.'; }
+    else { try { localStorage.removeItem(KEY); } catch {} q('.de-saved').textContent = 'Not saved.'; }
+  });
+  q('.de-forget').addEventListener('click', () => { try { localStorage.removeItem(KEY); } catch {} remember.checked = false; q('.de-saved').textContent = 'Saved list deleted from this browser.'; });
+  let saved: Item[] | null = null;
+  try { const s = localStorage.getItem(KEY); if (s) saved = JSON.parse(s); } catch {}
+  if (Array.isArray(saved)) { items = saved.filter((x) => x && typeof x.exp === 'string').map((x) => ({ kind: KINDS.some((k) => k[0] === x.kind) ? x.kind : 'other', name: String(x.name ?? '').slice(0, 60), exp: x.exp, lead: LEADS.some((l) => l[0] === +x.lead) ? +x.lead : 1 })); remember.checked = true; q('.de-saved').textContent = 'Saved in this browser only.'; }
+  else items = EXAMPLE.map((x) => ({ ...x }));
+  drawItems(); calc();
+</script>

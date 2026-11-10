@@ -1,0 +1,171 @@
+---
+// #T865 Roast time
+---
+<div class="tool-ui rt">
+  <section class="panel rt-form">
+    <div class="rt-row">
+      <label>Meat
+        <select class="rt-meat">
+          <option value="turkey" selected>Turkey (whole)</option>
+          <option value="chicken">Chicken (whole)</option>
+          <option value="beef">Beef roast</option>
+          <option value="pork">Pork roast</option>
+          <option value="lamb">Lamb roast (leg or shoulder)</option>
+        </select>
+      </label>
+      <div class="rt-field"><span>Weight</span>
+        <span class="rt-w"><input class="rt-kg" inputmode="decimal" value="6" />
+          <span class="rt-units" role="radiogroup" aria-label="Weight unit">
+            <label><input type="radio" name="rt-u" value="kg" checked /> kg</label>
+            <label><input type="radio" name="rt-u" value="lb" /> lb</label>
+          </span>
+        </span>
+      </div>
+    </div>
+    <label class="rt-check rt-stuffed-l"><input type="checkbox" class="rt-stuffed" /> Stuffed (stuffing cooked inside the bird)</label>
+    <label class="rt-done-l" hidden>How done
+      <select class="rt-done">
+        <option value="mr">Medium-rare</option>
+        <option value="m" selected>Medium</option>
+        <option value="w">Well done</option>
+      </select>
+    </label>
+    <div class="rt-row rt-rule" hidden>
+      <label><span class="rt-rate-l">Minutes per kg, from</span> <input class="rt-lo" inputmode="decimal" /></label>
+      <label>to <input class="rt-hi" inputmode="decimal" /></label>
+    </div>
+    <p class="rt-rule-note"></p>
+    <div class="rt-btns"><button type="button" class="btn secondary rt-reset">Reset</button></div>
+  </section>
+  <section class="panel">
+    <p class="rt-big" aria-live="polite"></p>
+    <dl class="rt-out" aria-live="polite"></dl>
+    <p class="rt-warn"><strong>Use a thermometer; time is only a guide.</strong> Push it into the thickest part, away from bone.</p>
+  </section>
+  <p class="rt-fine">Safe temperatures from USDA FSIS (Safe Minimum Internal Temperatures, and the turkey roasting and thawing chart) and Health Canada (Safe internal cooking temperatures), checked 2026-11-10. Rules change: check the official source. Ground meat needs 71 °C (160 °F) in both. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .rt { display: grid; gap: 14px; margin-bottom: 32px; }
+  .rt .panel { padding: 16px; }
+  .rt-form { display: grid; gap: 12px; }
+  .rt label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .rt-field { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .rt label[hidden], .rt-row[hidden] { display: none; }
+  .rt input[inputmode], .rt select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .rt input:focus, .rt select:focus { border-color: var(--accent); outline: none; }
+  .rt-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 12px; }
+  .rt-w { display: flex; gap: 10px; align-items: center; }
+  .rt-w input { max-width: 8em; }
+  .rt-units { display: flex; gap: 12px; }
+  .rt-units label, .rt-check { display: inline-flex; gap: 6px; align-items: center; font-size: 15px; color: var(--ink); }
+  .rt-rule-note { margin: 0; color: var(--muted); font-size: 13px; }
+  .rt-btns .btn { padding: 8px 14px; }
+  .rt-big { font-size: 24px; font-weight: 700; margin: 0 0 10px; }
+  .rt-out { margin: 0; display: grid; gap: 8px; }
+  .rt-out dt { font-weight: 600; font-size: 15px; }
+  .rt-out dd { margin: 0; font-size: 15px; overflow-wrap: anywhere; }
+  .rt-warn { margin: 12px 0 0; font-size: 15px; }
+  .rt-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  const root = document.querySelector('.rt') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const meatS = $<HTMLSelectElement>('.rt-meat'), w = $<HTMLInputElement>('.rt-kg'), stuffed = $<HTMLInputElement>('.rt-stuffed');
+  const done = $<HTMLSelectElement>('.rt-done'), lo = $<HTMLInputElement>('.rt-lo'), hi = $<HTMLInputElement>('.rt-hi');
+  const big = $('.rt-big'), out = $('.rt-out'), note = $('.rt-rule-note');
+  const LB = 2.20462;
+  // USDA FSIS turkey roasting chart at 325 °F, minutes, by weight band in lb (low inclusive, high exclusive; 24 lb is in the last band).
+  const UNSTUFFED = [[4, 8, 90, 195], [8, 12, 165, 180], [12, 14, 180, 225], [14, 18, 225, 255], [18, 20, 255, 270], [20, 24, 270, 300]];
+  const STUFFED = [[6, 8, 150, 210], [8, 12, 180, 210], [12, 14, 210, 240], [14, 18, 240, 255], [18, 20, 255, 285], [20, 24, 285, 315]];
+  // fibub's own rules of thumb (minutes per kg), editable on the page.
+  const RULE: Record<string, { c: number; f: number; rate: Record<string, [number, number]>; rest: string }> = {
+    chicken: { c: 190, f: 375, rate: { x: [40, 50] }, rest: '10 to 15 minutes, loosely covered' },
+    beef: { c: 180, f: 350, rate: { mr: [40, 50], m: [45, 55], w: [55, 65] }, rest: '15 to 20 minutes, loosely covered' },
+    pork: { c: 180, f: 350, rate: { x: [60, 70] }, rest: '15 minutes, loosely covered' },
+    lamb: { c: 180, f: 350, rate: { mr: [45, 55], m: [50, 60], w: [60, 70] }, rest: '15 to 20 minutes, loosely covered' },
+  };
+  const DONE: Record<string, [string, string]> = { mr: ['63 °C (145 °F)', 'medium-rare'], m: ['71 °C (160 °F)', 'medium'], w: ['77 °C (170 °F)', 'well done'] };
+  const unit = () => (root.querySelector('[name="rt-u"]:checked') as HTMLInputElement).value;
+  const num = (s: string) => (s.trim() === '' ? NaN : +s.replace(',', '.'));
+  const r1 = (x: number) => Math.round(x * 10) / 10;
+  const hm = (m: number) => { m = Math.round(m / 5) * 5; const h = Math.floor(m / 60), r = m % 60; return h ? (r ? `${h} h ${r} min` : `${h} h`) : `${r} min`; };
+  const half = (x: number) => { const v = Math.round(x * 2) / 2; const s = Math.floor(v) + (v % 1 ? '½' : ''); return s.replace(/^0½/, '½'); };
+  const rows: [string, string][] = [];
+  const row = (t: string, d: string) => rows.push([t, d]);
+  const fillRate = () => {
+    const m = meatS.value; if (m === 'turkey') return;
+    const k = RULE[m].rate[RULE[m].rate.x ? 'x' : done.value];
+    const f = unit() === 'lb' ? 1 / LB : 1;
+    lo.value = String(r1(k[0] * f)); hi.value = String(r1(k[1] * f));
+  };
+  const calc = () => {
+    const m = meatS.value, u = unit();
+    const isBird = m === 'turkey' || m === 'chicken';
+    ($('.rt-stuffed-l') as HTMLElement).hidden = m !== 'turkey';
+    ($('.rt-done-l') as HTMLElement).hidden = !(m === 'beef' || m === 'lamb');
+    ($('.rt-rule') as HTMLElement).hidden = m === 'turkey';
+    $('.rt-rate-l').textContent = `Minutes per ${u}, from`;
+    note.textContent = m === 'turkey'
+      ? 'Turkey times come from the USDA FSIS roasting chart for an oven at 325 °F.'
+      : `Minutes per ${u} is fibub's rule of thumb for a joint at room temperature in a ${RULE[m].c} °C (${RULE[m].f} °F) oven. Change it if your recipe says otherwise.`;
+    rows.length = 0; out.innerHTML = '';
+    const wt = num(w.value);
+    if (!(wt > 0)) { big.textContent = 'Type the weight above.'; return; }
+    const lb = u === 'lb' ? wt : wt * LB, kg = u === 'kg' ? wt : wt / LB;
+    row('Weight', u === 'kg' ? `${r1(kg)} kg (${r1(lb)} lb)` : `${r1(lb)} lb (${r1(kg)} kg)`);
+    if (m === 'turkey') {
+      const T = stuffed.checked ? STUFFED : UNSTUFFED, last = T[T.length - 1];
+      const b = lb > last[1] ? null : T.find((t) => lb < t[1] || t === last);
+      if (!b || lb < T[0][0]) {
+        big.textContent = lb < T[0][0] ? `Below the chart (${T[0][0]} lb)` : `Above the chart (${last[1]} lb)`;
+        row('Roasting time', lb < T[0][0] ? 'The USDA chart starts here, so check early with a thermometer.' : `More than ${hm(last[3])}. Very large birds cook unevenly; think about two smaller ones.`);
+      } else {
+        big.textContent = `${hm(b[2])} to ${hm(b[3])}`;
+        row('Roasting time', `${hm(b[2])} to ${hm(b[3])} for a ${b[0]} to ${b[1]} lb bird${stuffed.checked ? ', stuffed' : ', not stuffed'} (USDA FSIS chart). Start checking at ${hm(b[2])}.`);
+      }
+      row('Oven', '325 °F (about 165 °C). Fan oven: about 20 °C (25 °F) lower.');
+    } else {
+      const a = num(lo.value), z = num(hi.value);
+      if (!(a > 0) || !(z >= a)) { big.textContent = 'Type the minutes per ' + u + ' (from, to).'; return; }
+      big.textContent = `${hm(a * wt)} to ${hm(z * wt)}`;
+      row('Roasting time', `${hm(a * wt)} to ${hm(z * wt)} (${r1(a)} to ${r1(z)} min per ${u}). Start checking at ${hm(a * wt)}.`);
+      row('Oven', `${RULE[m].c} °C (${RULE[m].f} °F). Fan oven: about 20 °C (25 °F) lower.`);
+    }
+    if (isBird) {
+      row('Done when the thickest part reads', '74 °C (165 °F) in the thigh and breast' + (m === 'turkey' && stuffed.checked ? ', and 74 °C (165 °F) in the centre of the stuffing' : '') + '.');
+      row('Safe minimum', 'USDA FSIS: 74 °C (165 °F) for all poultry. Health Canada: 82 °C (180 °F) for whole birds, 74 °C (165 °F) for pieces and stuffing.');
+      row('Rest before carving', m === 'turkey' ? 'At least 20 minutes (USDA FSIS), loosely covered' : RULE.chicken.rest);
+    } else if (m === 'pork') {
+      row('Done when the thickest part reads', 'At least 63 °C (145 °F) by USDA, or 71 °C (160 °F) by Health Canada.');
+      row('Safe minimum', 'USDA FSIS: 63 °C (145 °F) and then a 3 minute rest. Health Canada: 71 °C (160 °F) for pork pieces and whole cuts.');
+      row('Rest before carving', RULE.pork.rest);
+    } else {
+      row('Done when the thickest part reads', `${DONE[done.value][0]} for ${DONE[done.value][1]} (Health Canada).`);
+      row('Safe minimum', 'USDA FSIS: 63 °C (145 °F) and then a 3 minute rest. Health Canada: 63 °C (145 °F) medium-rare, 71 °C (160 °F) medium, 77 °C (170 °F) well done.');
+      row('Rest before carving', RULE[m].rest);
+    }
+    if (m === 'turkey') {
+      const h1 = (lb / 5) * 24, h2 = (lb / 4) * 24;
+      row('Thaw in the fridge', `About ${half((h1 + h2) / 48)} days (${Math.round(h1)} to ${Math.round(h2)} hours): 24 hours for every 4 to 5 lb (2 to 2.5 kg), USDA FSIS.`);
+      row('Thaw in cold water', `About ${half(lb / 2)} hours: 30 minutes per lb, still wrapped, changing the water every 30 minutes. Cook it straight away.`);
+    }
+    for (const [t, d] of rows) { const dt = document.createElement('dt'); dt.textContent = t; const dd = document.createElement('dd'); dd.textContent = d; out.append(dt, dd); }
+  };
+  meatS.addEventListener('change', () => { fillRate(); calc(); });
+  done.addEventListener('change', () => { fillRate(); calc(); });
+  root.querySelectorAll('[name="rt-u"]').forEach((r) => r.addEventListener('change', () => {
+    const v = num(w.value), toLb = unit() === 'lb';
+    if (v > 0) w.value = String(r1(toLb ? v * LB : v / LB));
+    const f = toLb ? 1 / LB : LB;
+    for (const i of [lo, hi]) { const x = num(i.value); if (x > 0) i.value = String(r1(x * f)); }
+    calc();
+  }));
+  [w, stuffed, lo, hi].forEach((i) => i.addEventListener('input', calc));
+  $('.rt-reset').addEventListener('click', () => {
+    meatS.value = 'turkey'; w.value = '6'; stuffed.checked = false; done.value = 'm';
+    (root.querySelector('[name="rt-u"][value="kg"]') as HTMLInputElement).checked = true; calc();
+  });
+  calc();
+</script>

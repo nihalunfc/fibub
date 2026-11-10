@@ -1,0 +1,171 @@
+---
+// #T921 Video to GIF: pick part of your own video and turn it into an animated GIF in the browser. Nothing is uploaded.
+---
+<div class="tool-ui vtg">
+  <section class="panel">
+    <div class="vtg-row">
+      <button type="button" class="btn vtg-open">Open a video</button>
+      <input class="vtg-file" type="file" accept="video/*" hidden />
+      <span class="vtg-name">MP4, WebM or MOV from your phone or computer. It stays on this device.</span>
+    </div>
+    <p class="note bad vtg-err" hidden></p>
+  </section>
+
+  <section class="panel vtg-stage" hidden>
+    <video class="vtg-video" controls muted playsinline preload="auto"></video>
+    <div class="vtg-grid">
+      <label>Start (seconds) <input class="vtg-s" type="number" min="0" step="0.1" value="0" inputmode="decimal" /></label>
+      <label>End (seconds) <input class="vtg-e" type="number" min="0" step="0.1" value="0" inputmode="decimal" /></label>
+    </div>
+    <label class="vtg-sl">Start <input class="vtg-sr" type="range" min="0" max="1" step="0.01" value="0" /></label>
+    <label class="vtg-sl">End <input class="vtg-er" type="range" min="0" max="1" step="0.01" value="1" /></label>
+    <div class="vtg-row"><button type="button" class="btn secondary vtg-here-s">Start at the current frame</button><button type="button" class="btn secondary vtg-here-e">End at the current frame</button></div>
+    <div class="vtg-grid">
+      <label>Width in pixels <input class="vtg-w" type="number" min="80" max="800" step="10" value="320" inputmode="numeric" /></label>
+      <label>Frames per second: <b class="vtg-fpsv">10</b> <input class="vtg-fps" type="range" min="5" max="20" step="1" value="10" /></label>
+      <label>Colours
+        <select class="vtg-pal"><option value="best">Best for each frame (slower)</option><option value="fixed">Fixed 252-colour palette (faster)</option></select>
+      </label>
+      <label class="vtg-check"><input class="vtg-loop" type="checkbox" checked /> Loop forever</label>
+    </div>
+    <p class="vtg-info" aria-live="polite"></p>
+    <div class="vtg-row">
+      <button type="button" class="btn vtg-make">Make the GIF</button>
+      <button type="button" class="btn secondary vtg-stop" hidden>Cancel</button>
+    </div>
+    <progress class="vtg-prog" max="1" value="0" hidden></progress>
+  </section>
+
+  <section class="panel vtg-out" hidden>
+    <img class="vtg-img" alt="Your animated GIF" />
+    <p class="vtg-res" aria-live="polite"></p>
+    <a class="btn vtg-dl" download="clip.gif" href="#">Download the GIF</a>
+  </section>
+  <p class="vtg-fine">The video is read by your browser on this device. Nothing is uploaded.</p>
+</div>
+
+<style is:inline>
+  .vtg { display: grid; gap: 14px; margin-bottom: 32px; }
+  .vtg .panel { display: grid; gap: 12px; padding: 16px; }
+  .vtg-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .vtg-name, .vtg-fine, .vtg-info { color: var(--muted); font-size: 14px; margin: 0; }
+  .vtg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .vtg label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .vtg label.vtg-check { display: flex; align-items: center; gap: 8px; color: var(--ink); }
+  .vtg-sl { grid-template-columns: 44px 1fr; align-items: center; }
+  .vtg input[type=number], .vtg select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .vtg input[type=range] { width: 100%; accent-color: var(--accent); }
+  .vtg-video, .vtg-img { width: 100%; max-height: 360px; background: #000; border-radius: 10px; object-fit: contain; }
+  .vtg-img { width: auto; max-width: 100%; justify-self: start; background: none; }
+  .vtg-prog { width: 100%; height: 14px; accent-color: var(--accent); }
+  .vtg-res { margin: 0; font-weight: 600; }
+  .vtg-dl { justify-self: start; }
+</style>
+
+<script>
+  import { medianCut, fixedPalette, mapPixels, GifWriter, plan } from './gif';
+  const root = document.querySelector('.vtg') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const file = $<HTMLInputElement>('.vtg-file'), video = $<HTMLVideoElement>('.vtg-video'), err = $('.vtg-err');
+  const sIn = $<HTMLInputElement>('.vtg-s'), eIn = $<HTMLInputElement>('.vtg-e'), sR = $<HTMLInputElement>('.vtg-sr'), eR = $<HTMLInputElement>('.vtg-er');
+  const wIn = $<HTMLInputElement>('.vtg-w'), fpsIn = $<HTMLInputElement>('.vtg-fps'), pal = $<HTMLSelectElement>('.vtg-pal'), loop = $<HTMLInputElement>('.vtg-loop');
+  const info = $('.vtg-info'), make = $<HTMLButtonElement>('.vtg-make'), stop = $<HTMLButtonElement>('.vtg-stop'), prog = $<HTMLProgressElement>('.vtg-prog');
+  const out = $('.vtg-out'), img = $<HTMLImageElement>('.vtg-img'), res = $('.vtg-res'), dl = $<HTMLAnchorElement>('.vtg-dl');
+  const MAX_FRAMES = 300;
+  let dur = 0, url = '', gifUrl = '', busy = false, cancel = false, baseName = 'clip', estTimer = 0, estToken = 0, perFrame = 0;
+
+  const once = (el: EventTarget, ev: string, ms = 4000) => new Promise<void>((ok) => { const t = setTimeout(ok, ms); el.addEventListener(ev, () => { clearTimeout(t); ok(); }, { once: true }); });
+  const seek = async (t: number) => { const p = once(video, 'seeked'); video.currentTime = t; await p; };
+  const mb = (b: number) => (b >= 1e6 ? (b / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1e3)) + ' KB');
+  const fx = (t: number) => String(Math.round(t * 100) / 100);
+  const size = () => {
+    const vw = video.videoWidth || 320, vh = video.videoHeight || 240, w = Math.max(16, Math.min(Math.round(+wIn.value) || 320, 800, vw));
+    return { w, h: Math.max(16, Math.round((w * vh) / vw)) };
+  };
+  const range = () => ({ s: +sIn.value, e: +eIn.value });
+
+  const encodeOne = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
+    ctx.drawImage(video, 0, 0, w, h);
+    const px = ctx.getImageData(0, 0, w, h).data, p = pal.value === 'fixed' ? fixedPalette() : medianCut(px);
+    return { idx: mapPixels(px, p), p };
+  };
+
+  const update = (est = true) => {
+    const { s, e } = range(), fps = +fpsIn.value, { w, h } = size();
+    $('.vtg-fpsv').textContent = String(fps);
+    let msg = '', ok = true;
+    if (!(s >= 0) || !(e > s)) { msg = 'The end must be after the start.'; ok = false; }
+    else if (e > dur + 0.01) { msg = `The video is only ${fx(dur)} s long.`; ok = false; }
+    else {
+      const pl = plan(s, e, fps);
+      msg = `${pl.frames} frames, ${w} × ${h} px, ${fx(e - s)} s long.`;
+      if (pl.frames > MAX_FRAMES) { msg += ` That is more than ${MAX_FRAMES} frames: shorten the clip or lower the frames per second.`; ok = false; }
+      else if (perFrame) msg += ` Estimated size: about ${mb(perFrame * pl.frames)}.`;
+    }
+    info.textContent = msg; make.disabled = !ok || busy;
+    if (!est) return; clearTimeout(estTimer); if (ok && !busy) estTimer = window.setTimeout(estimate, 450);
+  };
+
+  // Size estimate: encode the first frame of the clip and multiply by the number of frames.
+  const estimate = async () => {
+    if (busy || !dur) return;
+    const tok = ++estToken, { w, h } = size(), c = document.createElement('canvas'); c.width = w; c.height = h;
+    const ctx = c.getContext('2d', { willReadFrequently: true })!;
+    await seek(plan(range().s, range().e, +fpsIn.value).times[0]);
+    if (tok !== estToken || busy) return;
+    const { idx, p } = encodeOne(ctx, w, h), g = new GifWriter(w, h, false); g.frame(idx, p, 10);
+    perFrame = g.size; update(false);
+  };
+
+  const syncFrom = (src: 'box' | 'range') => {
+    if (src === 'range') { sIn.value = fx(+sR.value); eIn.value = fx(+eR.value); }
+    else { sR.value = sIn.value; eR.value = eIn.value; }
+    perFrame = 0; update();
+  };
+
+  const open = async (f: File) => {
+    err.hidden = true; out.hidden = true; if (url) URL.revokeObjectURL(url);
+    baseName = f.name.replace(/\.[^.]+$/, '') || 'clip';
+    url = URL.createObjectURL(f); video.src = url;
+    const ok = await Promise.race([once(video, 'loadedmetadata', 8000).then(() => video.readyState > 0), once(video, 'error', 8000).then(() => false)]);
+    if (!ok || !video.videoWidth) { err.textContent = 'This browser cannot play that file. Try an MP4 or WebM video.'; err.hidden = false; $('.vtg-stage').hidden = true; return; }
+    if (!Number.isFinite(video.duration)) { video.currentTime = 1e9; for (let i = 0; i < 40 && !Number.isFinite(video.duration); i++) await once(video, 'durationchange', 100); await seek(0); }
+    dur = Math.floor(video.duration * 100) / 100;
+    for (const r of [sR, eR]) r.max = String(dur);
+    sIn.value = '0'; eIn.value = fx(Math.min(dur, 3)); syncFrom('box');
+    $('.vtg-name').textContent = `${f.name}: ${fx(dur)} s, ${video.videoWidth} × ${video.videoHeight} px.`;
+    $('.vtg-stage').hidden = false;
+  };
+
+  make.addEventListener('click', async () => {
+    const { s, e } = range(), fps = +fpsIn.value, { w, h } = size(), pl = plan(s, e, fps);
+    busy = true; cancel = false; out.hidden = true; estToken++; clearTimeout(estTimer); make.disabled = true; stop.hidden = false; prog.hidden = false; prog.value = 0; video.pause();
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const ctx = c.getContext('2d', { willReadFrequently: true })!, g = new GifWriter(w, h, loop.checked), fixed = fixedPalette();
+    for (let i = 0; i < pl.frames && !cancel; i++) {
+      await seek(Math.min(pl.times[i], dur - 0.001));
+      ctx.drawImage(video, 0, 0, w, h);
+      const px = ctx.getImageData(0, 0, w, h).data, p = pal.value === 'fixed' ? fixed : medianCut(px);
+      g.frame(mapPixels(px, p), p, pl.delay);
+      prog.value = (i + 1) / pl.frames; info.textContent = `Making frame ${i + 1} of ${pl.frames}…`;
+      await new Promise((r) => setTimeout(r, 0));
+    }
+    busy = false; stop.hidden = true; prog.hidden = true;
+    if (cancel) { update(false); return; }
+    const bytes = g.finish(), blob = new Blob([bytes], { type: 'image/gif' });
+    if (gifUrl) URL.revokeObjectURL(gifUrl);
+    gifUrl = URL.createObjectURL(blob); img.src = gifUrl; dl.href = gifUrl; dl.download = `${baseName}.gif`;
+    res.textContent = `${pl.frames} frames, ${w} × ${h} px, ${mb(bytes.length)}. Each frame shows for ${pl.delay / 100} s.`;
+    out.dataset.frames = String(pl.frames); out.hidden = false; perFrame = bytes.length / pl.frames; update(false);
+  });
+  stop.addEventListener('click', () => { cancel = true; });
+  $('.vtg-open').addEventListener('click', () => file.click());
+  file.addEventListener('change', () => { if (file.files?.[0]) open(file.files[0]); });
+  sIn.addEventListener('input', () => syncFrom('box')); eIn.addEventListener('input', () => syncFrom('box'));
+  sR.addEventListener('input', () => { if (+sR.value > +eR.value) eR.value = sR.value; syncFrom('range'); });
+  eR.addEventListener('input', () => { if (+eR.value < +sR.value) sR.value = eR.value; syncFrom('range'); });
+  $('.vtg-here-s').addEventListener('click', () => { sIn.value = fx(video.currentTime); syncFrom('box'); });
+  $('.vtg-here-e').addEventListener('click', () => { eIn.value = fx(video.currentTime); syncFrom('box'); });
+  for (const el of [wIn, pal]) el.addEventListener('input', () => { perFrame = 0; update(); });
+  fpsIn.addEventListener('input', () => update()); loop.addEventListener('change', () => update(false));
+</script>

@@ -1,0 +1,148 @@
+---
+// #T855 Timestamp converter
+---
+<div class="tool-ui tc">
+  <section class="panel tc-box">
+    <h3>Timestamp to date</h3>
+    <div class="tc-fields">
+      <label>Unix timestamp
+        <input class="tc-ts" inputmode="numeric" spellcheck="false" autocomplete="off" value="1700000000" />
+      </label>
+      <label>Unit
+        <select class="tc-unit">
+          <option value="auto">Auto (by length)</option>
+          <option value="s">Seconds</option>
+          <option value="ms">Milliseconds</option>
+        </select>
+      </label>
+      <label>Also show in
+        <select class="tc-zone"></select>
+      </label>
+    </div>
+    <div class="tc-btns"><button type="button" class="tc-now">Now</button><button type="button" class="tc-clear">Clear</button></div>
+    <p class="tc-note" aria-live="polite"></p>
+    <div class="tc-wrap"><table class="tc-res"><tbody></tbody></table></div>
+  </section>
+  <section class="panel tc-box">
+    <h3>Date to timestamp</h3>
+    <div class="tc-fields">
+      <label>Date and time
+        <input class="tc-date" type="datetime-local" step="1" value="2023-11-14T22:13:20" />
+      </label>
+      <label>This time is in
+        <select class="tc-dzone">
+          <option value="UTC">UTC</option>
+          <option value="local">My time zone</option>
+          <option value="zone">The zone chosen above</option>
+        </select>
+      </label>
+    </div>
+    <div class="tc-wrap"><table class="tc-back"><tbody></tbody></table></div>
+  </section>
+  <p class="tc-fine">Uses your device's clock and its built-in time zone rules. Nothing leaves this page.</p>
+</div>
+
+<style is:inline>
+  .tc { display: grid; gap: 14px; margin-bottom: 32px; }
+  .tc .panel { padding: 16px; min-width: 0; }
+  .tc h3 { margin: 0 0 10px; font-size: 16px; }
+  .tc-box { display: grid; gap: 12px; }
+  .tc-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .tc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .tc input, .tc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .tc input:focus, .tc select:focus { border-color: var(--accent); outline: none; }
+  .tc-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tc button { font: inherit; font-size: 14px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .tc button:hover { border-color: var(--accent); }
+  .tc-note { margin: 0; color: var(--muted); font-size: 14px; }
+  .tc-note.err { color: var(--bad); font-weight: 600; }
+  .tc-wrap { overflow-x: auto; }
+  .tc table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .tc th, .tc td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .tc th { color: var(--muted); font-weight: 500; width: 38%; }
+  .tc td { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: anywhere; }
+  .tc-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  const root = document.querySelector('.tc') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const ts = q<HTMLInputElement>('.tc-ts'), unit = q<HTMLSelectElement>('.tc-unit'), zone = q<HTMLSelectElement>('.tc-zone');
+  const note = q<HTMLElement>('.tc-note'), res = q<HTMLElement>('.tc-res tbody');
+  const date = q<HTMLInputElement>('.tc-date'), dzone = q<HTMLSelectElement>('.tc-dzone'), back = q<HTMLElement>('.tc-back tbody');
+  const LOCAL = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  let zones: string[] = [];
+  try { zones = (Intl as any).supportedValuesOf('timeZone'); } catch { /* older browser */ }
+  if (!zones.length) zones = ['UTC', 'America/New_York', 'America/Toronto', 'America/Los_Angeles', 'Europe/London', 'Asia/Dubai', 'Asia/Kolkata', 'Asia/Singapore', 'Asia/Tokyo', 'Australia/Sydney'];
+  // Some browsers list old names (Asia/Calcutta); make sure the common current names and your own zone are there.
+  for (const z of ['UTC', LOCAL, 'America/New_York', 'America/Toronto', 'Europe/London', 'Asia/Dubai', 'Asia/Kolkata']) if (!zones.includes(z)) zones.push(z);
+  zones = [...new Set(zones)].sort((a, b) => (a === 'UTC' ? -1 : b === 'UTC' ? 1 : a.localeCompare(b)));
+  for (const z of zones) { const o = document.createElement('option'); o.value = z; o.textContent = z.replace(/_/g, ' '); zone.append(o); }
+  zone.value = LOCAL === 'Asia/Kolkata' ? 'America/New_York' : 'Asia/Kolkata';
+
+  const p2 = (n: number) => String(n).padStart(2, '0');
+  // Wall-clock parts of instant t (ms) in zone z.
+  const parts = (t: number, z: string) => {
+    const f = new Intl.DateTimeFormat('en-US', { timeZone: z, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', weekday: 'short', era: 'short' });
+    const o: Record<string, string> = {}; for (const p of f.formatToParts(new Date(t))) o[p.type] = p.value;
+    let y = +o.year; if (o.era === 'BC' || o.era === 'B') y = 1 - y;
+    return { y, mo: +o.month, d: +o.day, h: +o.hour, mi: +o.minute, s: +o.second, wd: o.weekday };
+  };
+  const offMin = (t: number, z: string) => { const p = parts(t, z); const wall = Date.UTC(p.y, p.mo - 1, p.d, p.h, p.mi, p.s); return Math.round((wall - (t - (((t % 1000) + 1000) % 1000))) / 60000); };
+  const offStr = (m: number) => `${m < 0 ? '-' : '+'}${p2(Math.floor(Math.abs(m) / 60))}:${p2(Math.abs(m) % 60)}`;
+  const yStr = (y: number) => (y >= 0 && y <= 9999 ? String(y).padStart(4, '0') : (y < 0 ? '-' : '+') + String(Math.abs(y)).padStart(6, '0'));
+  const wallStr = (t: number, z: string) => { const p = parts(t, z); const ms = ((t % 1000) + 1000) % 1000; return `${p.wd} ${yStr(p.y)}-${p2(p.mo)}-${p2(p.d)} ${p2(p.h)}:${p2(p.mi)}:${p2(p.s)}${ms ? '.' + String(ms).padStart(3, '0') : ''} (UTC${offStr(offMin(t, z))})`; };
+  const iso = (t: number) => new Date(t).toISOString().replace('.000Z', 'Z');
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const rfc2822 = (t: number) => { const p = parts(t, 'UTC'); return `${p.wd}, ${p2(p.d)} ${MON[p.mo - 1]} ${p.y} ${p2(p.h)}:${p2(p.mi)}:${p2(p.s)} +0000`; };
+  const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+  const relative = (t: number) => {
+    const s = (t - Date.now()) / 1000, a = Math.abs(s);
+    const U: [Intl.RelativeTimeFormatUnit, number][] = [['year', 31557600], ['month', 2629800], ['week', 604800], ['day', 86400], ['hour', 3600], ['minute', 60], ['second', 1]];
+    for (const [u, n] of U) if (a >= n || u === 'second') return rtf.format(Math.round(s / n), u);
+    return '';
+  };
+  const rows = (tb: HTMLElement, r: [string, string][]) => {
+    tb.textContent = '';
+    for (const [k, v] of r) { const tr = document.createElement('tr'); const th = document.createElement('th'); th.textContent = k; const td = document.createElement('td'); td.textContent = v; tr.append(th, td); tb.append(tr); }
+  };
+  const MAXMS = 8.64e15;
+
+  const toDate = () => {
+    note.classList.remove('err');
+    const raw = ts.value.trim().replace(/[\s,_]/g, '');
+    if (raw === '') { note.textContent = 'Type a Unix timestamp, or press Now.'; rows(res, []); return; }
+    if (!/^-?\d+(\.\d+)?$/.test(raw)) { note.classList.add('err'); note.textContent = 'A Unix timestamp is a whole number of seconds or milliseconds, such as 1700000000.'; rows(res, []); return; }
+    const digits = raw.replace(/^-/, '').split('.')[0].replace(/^0+/, '').length;
+    const isMs = unit.value === 'ms' || (unit.value === 'auto' && digits >= 12);
+    const t = isMs ? Math.round(+raw) : Math.round(+raw * 1000);
+    if (!Number.isFinite(t) || Math.abs(t) > MAXMS) { note.classList.add('err'); note.textContent = 'That is outside the range dates can show (about 270,000 years either side of 1970).'; rows(res, []); return; }
+    note.textContent = unit.value === 'auto' ? `Read as ${isMs ? 'milliseconds' : 'seconds'} (${digits} digit${digits === 1 ? '' : 's'}; 12 or more means milliseconds).` : `Read as ${isMs ? 'milliseconds' : 'seconds'}.`;
+    rows(res, [
+      ['Unix seconds', String(Math.floor(t / 1000)) + (t % 1000 ? ` (+${((t % 1000) + 1000) % 1000} ms)` : '')],
+      ['Unix milliseconds', String(t)],
+      ['ISO 8601 (UTC)', iso(t)],
+      ['RFC 2822', rfc2822(t)],
+      ['UTC', wallStr(t, 'UTC')],
+      [`Your time (${LOCAL.replace(/_/g, ' ')})`, wallStr(t, LOCAL)],
+      [zone.value.replace(/_/g, ' '), wallStr(t, zone.value)],
+      ['Relative to now', relative(t)],
+    ]);
+  };
+  const toStamp = () => {
+    const m = date.value.match(/^(\d{4,})-(\d\d)-(\d\d)T(\d\d):(\d\d)(?::(\d\d))?/);
+    if (!m) { rows(back, [['Result', 'Pick a date and time.']]); return; }
+    const z = dzone.value === 'UTC' ? 'UTC' : dzone.value === 'local' ? LOCAL : zone.value;
+    const wall = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0));
+    let t = wall - offMin(wall, z) * 60000; t = wall - offMin(t, z) * 60000;
+    rows(back, [['Zone', z.replace(/_/g, ' ')], ['Unix seconds', String(Math.floor(t / 1000))], ['Unix milliseconds', String(t)], ['ISO 8601 (UTC)', iso(t)]]);
+  };
+  ts.addEventListener('input', toDate);
+  unit.addEventListener('change', toDate);
+  zone.addEventListener('change', () => { toDate(); toStamp(); });
+  date.addEventListener('input', toStamp);
+  dzone.addEventListener('change', toStamp);
+  q<HTMLElement>('.tc-now').addEventListener('click', () => { ts.value = String(Math.floor(Date.now() / 1000)); unit.value = 'auto'; toDate(); });
+  q<HTMLElement>('.tc-clear').addEventListener('click', () => { ts.value = ''; date.value = ''; toDate(); toStamp(); ts.focus(); });
+  toDate(); toStamp();
+</script>

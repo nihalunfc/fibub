@@ -1,0 +1,146 @@
+---
+// #T853 Regex tester
+---
+<div class="tool-ui rt">
+  <section class="panel rt-top">
+    <label class="rt-pat">Pattern
+      <span class="rt-row"><span class="rt-slash">/</span><input class="rt-in" data-k="pat" spellcheck="false" autocomplete="off" value="" /><span class="rt-slash">/</span></span>
+    </label>
+    <fieldset class="rt-flags">
+      <legend>Flags</legend>
+      <label title="Find every match, not just the first"><input type="checkbox" data-f="g" checked /> g all</label>
+      <label title="Ignore upper and lower case"><input type="checkbox" data-f="i" /> i case</label>
+      <label title="^ and $ match at each line"><input type="checkbox" data-f="m" /> m lines</label>
+      <label title="A dot also matches a new line"><input type="checkbox" data-f="s" /> s dot-all</label>
+      <label title="Full Unicode: letter classes and emoji"><input type="checkbox" data-f="u" /> u unicode</label>
+    </fieldset>
+    <label>Test text
+      <textarea class="rt-text" data-k="text" rows="4" spellcheck="false">call 555-1234 or 555-9876</textarea>
+    </label>
+    <label>Replace with (optional; $1, $2, $&lt;name&gt;, $&amp;)
+      <input class="rt-rep" data-k="rep" spellcheck="false" autocomplete="off" value="$2" />
+    </label>
+    <div class="rt-btns"><button type="button" class="rt-clear">Clear</button><button type="button" class="rt-example">Example</button></div>
+  </section>
+  <p class="rt-out" aria-live="polite"></p>
+  <section class="panel">
+    <h3>Matches highlighted</h3>
+    <div class="rt-hl"></div>
+  </section>
+  <section class="panel">
+    <h3>Match list</h3>
+    <div class="rt-wrap"><table class="rt-list"><thead><tr><th>#</th><th>Match</th><th>At</th><th>Groups</th></tr></thead><tbody></tbody></table></div>
+  </section>
+  <section class="panel">
+    <h3>Replace preview</h3>
+    <pre class="rt-repout"></pre>
+  </section>
+  <details class="panel rt-cheat">
+    <summary>Cheat sheet</summary>
+    <dl>
+      <dt>.</dt><dd>any character except a new line (with s: any at all)</dd>
+      <dt>&#92;d &#92;w &#92;s</dt><dd>digit, word character (letter, digit, _), white space; capitals mean "not"</dd>
+      <dt>[abc] [^abc] [a-z]</dt><dd>one of these, none of these, a range</dd>
+      <dt>^ $</dt><dd>start and end of the text (with m: of each line)</dd>
+      <dt>&#92;b</dt><dd>word boundary</dd>
+      <dt>* + ?</dt><dd>0 or more, 1 or more, 0 or 1; add ? to take as few as possible</dd>
+      <dt>&#123;3&#125; &#123;2,5&#125;</dt><dd>exactly 3, between 2 and 5</dd>
+      <dt>(...)</dt><dd>numbered group, $1 in the replacement</dd>
+      <dt>(?&lt;name&gt;...)</dt><dd>named group, $&lt;name&gt; in the replacement</dd>
+      <dt>(?:...)</dt><dd>group that is not captured</dd>
+      <dt>a|b</dt><dd>a or b</dd>
+      <dt>(?=...) (?!...)</dt><dd>followed by, not followed by</dd>
+      <dt>&#92;. &#92;( &#92;&#92;</dt><dd>a backslash makes a special character literal</dd>
+    </dl>
+  </details>
+  <p class="rt-fine">Uses your browser's own JavaScript regex engine. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .rt { display: grid; gap: 14px; margin-bottom: 32px; }
+  .rt .panel { padding: 16px; min-width: 0; }
+  .rt h3 { margin: 0 0 8px; font-size: 16px; }
+  .rt-top { display: grid; gap: 12px; }
+  .rt label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .rt input:not([type=checkbox]), .rt textarea { font: inherit; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .rt input:focus, .rt textarea:focus { border-color: var(--accent); outline: none; }
+  .rt-row { display: flex; align-items: center; gap: 4px; }
+  .rt-slash { font-family: ui-monospace, monospace; font-size: 18px; color: var(--muted); }
+  .rt-flags { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+  .rt-flags legend { font-size: 14px; color: var(--muted); padding: 0; margin-bottom: 4px; }
+  .rt-flags label { display: flex; align-items: center; gap: 5px; color: var(--ink); font-family: ui-monospace, monospace; }
+  .rt-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .rt button { font: inherit; font-size: 14px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .rt button:hover { border-color: var(--accent); }
+  .rt-out { margin: 0; font-weight: 600; }
+  .rt-out.err { color: var(--bad); }
+  .rt-hl, .rt-repout { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; font-size: 14px; line-height: 1.6; }
+  .rt-hl mark { background: var(--accent-soft); color: var(--ink); border-bottom: 2px solid var(--accent); border-radius: 2px; }
+  .rt-wrap { overflow-x: auto; }
+  .rt-list { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .rt-list th, .rt-list td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
+  .rt-list td:nth-child(2), .rt-list td:nth-child(4) { font-family: ui-monospace, monospace; }
+  .rt-cheat summary { cursor: pointer; font-weight: 600; }
+  .rt-cheat dl { display: grid; grid-template-columns: minmax(0, 9em) 1fr; gap: 6px 12px; margin: 12px 0 0; font-size: 14px; }
+  .rt-cheat dt { font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
+  .rt-cheat dd { margin: 0; color: var(--muted); }
+  .rt-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  const root = document.querySelector('.rt') as HTMLElement;
+  const pat = root.querySelector('.rt-in') as HTMLInputElement;
+  const text = root.querySelector('.rt-text') as HTMLTextAreaElement;
+  const rep = root.querySelector('.rt-rep') as HTMLInputElement;
+  const out = root.querySelector('.rt-out') as HTMLElement;
+  const hl = root.querySelector('.rt-hl') as HTMLElement;
+  const tbody = root.querySelector('.rt-list tbody') as HTMLElement;
+  const repout = root.querySelector('.rt-repout') as HTMLElement;
+  const flagBoxes = [...root.querySelectorAll('[data-f]')] as HTMLInputElement[];
+  const MAX = 1000;
+  const show = (s: string) => (s === undefined ? '(not matched)' : JSON.stringify(s));
+
+  const update = () => {
+    hl.textContent = ''; tbody.textContent = ''; repout.textContent = '';
+    out.classList.remove('err');
+    const flags = flagBoxes.filter((b) => b.checked).map((b) => b.dataset.f).join('');
+    const src = text.value;
+    if (pat.value === '') { out.textContent = 'Type a pattern above.'; hl.textContent = src; return; }
+    let re: RegExp;
+    try { re = new RegExp(pat.value, flags.includes('g') ? flags : flags + 'g'); }
+    catch (e) { out.classList.add('err'); out.textContent = 'That pattern is not valid: ' + String((e as Error).message).replace(/^Invalid regular expression: /, ''); hl.textContent = src; return; }
+    const all = flags.includes('g');
+    const found: RegExpExecArray[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(src)) && found.length < MAX) {
+      found.push(m);
+      if (m[0] === '') re.lastIndex += flags.includes('u') && (src.codePointAt(m.index) ?? 0) > 0xffff ? 2 : 1;
+      if (!all) break;
+    }
+    out.textContent = found.length === 0 ? 'No matches.' : `${found.length}${found.length === MAX ? '+' : ''} match${found.length === 1 ? '' : 'es'}${all ? '' : ' (first only; tick g for all)'}.`;
+    let at = 0;
+    for (const f of found) {
+      if (f.index > at) hl.append(src.slice(at, f.index));
+      const mk = document.createElement('mark'); mk.textContent = f[0] || '\u200b'; hl.append(mk);
+      at = f.index + f[0].length;
+    }
+    hl.append(src.slice(at));
+    found.forEach((f, i) => {
+      const tr = document.createElement('tr');
+      const groups: string[] = [];
+      for (let g = 1; g < f.length; g++) groups.push(`$${g} = ${show(f[g])}`);
+      if (f.groups) for (const [k, v] of Object.entries(f.groups)) groups.push(`<${k}> = ${show(v as string)}`);
+      for (const c of [String(i + 1), JSON.stringify(f[0]), String(f.index), groups.join('\n') || 'none']) {
+        const td = document.createElement('td'); td.textContent = c; td.style.whiteSpace = 'pre-wrap'; tr.append(td);
+      }
+      tbody.append(tr);
+    });
+    try { repout.textContent = src.replace(new RegExp(pat.value, flags), rep.value); } catch { repout.textContent = ''; }
+  };
+  [pat, text, rep].forEach((el) => el.addEventListener('input', update));
+  flagBoxes.forEach((b) => b.addEventListener('change', update));
+  (root.querySelector('.rt-clear') as HTMLElement).addEventListener('click', () => { pat.value = ''; text.value = ''; rep.value = ''; flagBoxes.forEach((b) => (b.checked = b.dataset.f === 'g')); update(); pat.focus(); });
+  const example = () => { pat.value = '(\\d{3})-(\\d{4})'; text.value = 'call 555-1234 or 555-9876'; rep.value = '$2'; flagBoxes.forEach((b) => (b.checked = b.dataset.f === 'g')); update(); };
+  (root.querySelector('.rt-example') as HTMLElement).addEventListener('click', example);
+  example();
+</script>

@@ -1,0 +1,135 @@
+---
+// #T872 Deck calculator
+---
+<div class="tool-ui dk">
+  <div class="dk-seg dk-units" role="group" aria-label="Units">
+    <button type="button" data-u="m" aria-pressed="true">Metric (m, mm)</button>
+    <button type="button" data-u="i" aria-pressed="false">Imperial (ft, in)</button>
+  </div>
+  <section class="panel">
+    <div class="dk-fields">
+      <label><span data-l="run">Deck length, along the boards (m)</span> <input data-k="run" inputmode="decimal" /></label>
+      <label><span data-l="wid">Deck width, across the boards (m)</span> <input data-k="wid" inputmode="decimal" /></label>
+      <label><span data-l="bw">Board width (mm)</span> <input data-k="bw" inputmode="decimal" /></label>
+      <label><span data-l="gap">Gap between boards (mm)</span> <input data-k="gap" inputmode="decimal" /></label>
+      <label><span data-l="lens">Board lengths you can buy (m, commas)</span> <input data-k="lens" inputmode="decimal" /></label>
+      <label><span data-l="sp">Joist spacing, centre to centre (mm)</span> <input data-k="sp" inputmode="decimal" /></label>
+      <label>Fixing
+        <select data-k="fix"><option value="screw">Face screws</option><option value="clip">Hidden fasteners (clips)</option></select>
+      </label>
+      <label>Screws per board at each joist <input data-k="spj" inputmode="decimal" value="2" /></label>
+    </div>
+    <div class="dk-btns"><button type="button" class="dk-reset">Reset example</button><button type="button" class="dk-clear">Clear</button></div>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="dk-big"></p>
+    <dl class="dk-dl">
+      <dt>Rows of boards</dt><dd class="dk-rows"></dd>
+      <dt>Each row</dt><dd class="dk-row"></dd>
+      <dt>Boards to buy</dt><dd class="dk-boards"></dd>
+      <dt>Board length</dt><dd class="dk-lin"></dd>
+      <dt>Joists</dt><dd class="dk-joists"></dd>
+      <dt>Fixings</dt><dd class="dk-fix"></dd>
+    </dl>
+    <p class="dk-note"></p>
+  </section>
+  <p class="dk-fine">Span tables and permits are local: check your building code before you build. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .dk { display: grid; gap: 14px; margin-bottom: 32px; }
+  .dk-seg { display: flex; flex-wrap: wrap; gap: 6px; }
+  .dk-seg button, .dk-btns button { font: inherit; font-size: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .dk-seg button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .dk .panel { padding: 16px; }
+  .dk-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .dk label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); align-content: end; }
+  .dk input, .dk select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .dk input:focus, .dk select:focus { border-color: var(--accent); outline: none; }
+  .dk-btns { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .dk-big { font-size: 26px; font-weight: 700; margin: 0 0 10px; overflow-wrap: anywhere; }
+  .dk-dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0; font-size: 15px; }
+  .dk-dl dt { color: var(--muted); }
+  .dk-dl dd { margin: 0; overflow-wrap: anywhere; }
+  .dk-note { margin: 12px 0 0; color: var(--muted); font-size: 14px; }
+  .dk-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  const EX = {
+    m: { run: '4', wid: '3', bw: '140', gap: '5', lens: '3.6, 4.8', sp: '400' },
+    i: { run: '16', wid: '12', bw: '5.5', gap: '0.1875', lens: '12, 16', sp: '16' },
+  } as const;
+  const LAB = {
+    m: { run: 'Deck length, along the boards (m)', wid: 'Deck width, across the boards (m)', bw: 'Board width (mm)', gap: 'Gap between boards (mm)', lens: 'Board lengths you can buy (m, commas)', sp: 'Joist spacing, centre to centre (mm)' },
+    i: { run: 'Deck length, along the boards (ft)', wid: 'Deck width, across the boards (ft)', bw: 'Board width (in)', gap: 'Gap between boards (in)', lens: 'Board lengths you can buy (ft, commas)', sp: 'Joist spacing, centre to centre (in)' },
+  };
+  const root = document.querySelector('.dk') as HTMLElement;
+  const q = (s: string) => root.querySelector(s) as HTMLElement;
+  const k = (s: string) => root.querySelector(`[data-k="${s}"]`) as HTMLInputElement;
+  const n = (v: number, d = 2) => v.toLocaleString('en-US', { maximumFractionDigits: d });
+  let units: 'm' | 'i' = 'm';
+  const long = () => (units === 'm' ? 'm' : 'ft');
+  const SMALL = () => (units === 'm' ? 1000 : 12); // short units per long unit
+
+  // Cheapest way to cover one row: the least total length from up to 4 boards, then the fewest boards.
+  const bestRow = (run: number, lens: number[]) => {
+    let best: number[] | null = null, bestSum = Infinity;
+    const walk = (start: number, pick: number[], sum: number) => {
+      if (sum >= run - 1e-9) {
+        if (sum < bestSum - 1e-9 || (Math.abs(sum - bestSum) < 1e-9 && best && pick.length < best.length)) { best = [...pick]; bestSum = sum; }
+        return;
+      }
+      if (pick.length === 4) return;
+      for (let i = start; i < lens.length; i++) { pick.push(lens[i]); walk(i, pick, sum + lens[i]); pick.pop(); }
+    };
+    walk(0, [], 0);
+    return best as number[] | null;
+  };
+
+  const clearOut = (msg: string) => { q('.dk-big').textContent = ''; for (const c of ['rows', 'row', 'boards', 'lin', 'joists', 'fix']) q('.dk-' + c).textContent = '–'; q('.dk-note').textContent = msg; };
+  const calc = () => {
+    const v: Record<string, number> = {};
+    for (const s of ['run', 'wid', 'bw', 'gap', 'sp', 'spj']) { const t = k(s).value.trim(); v[s] = +t; if (t === '' || !Number.isFinite(v[s]) || v[s] < 0) return clearOut('Type the sizes above.'); }
+    const lens = [...new Set(k('lens').value.split(/[,;\s]+/).filter(Boolean).map(Number).filter((x) => x > 0))].sort((a, b) => b - a);
+    if (!lens.length) return clearOut('Type at least one board length you can buy.');
+    if (v.run <= 0 || v.wid <= 0 || v.bw <= 0 || v.sp <= 0) return clearOut('Sizes and spacing must be more than 0.');
+    const S = SMALL();
+    // n boards and n - 1 gaps must cover the width: n >= (W + gap) / (board + gap).
+    const rows = Math.ceil((v.wid * S + v.gap) / (v.bw + v.gap) - 1e-9);
+    const row = bestRow(v.run, lens);
+    if (!row) return clearOut(`One row needs more than 4 boards; add a longer length.`);
+    const per: Record<string, number> = {};
+    for (const L of row) per[L] = (per[L] || 0) + 1;
+    const rowSum = row.reduce((a, b) => a + b, 0);
+    const joists = Math.ceil((v.run * S) / v.sp - 1e-9) + 1;
+    const lin = rows * rowSum;
+    q('.dk-rows').textContent = `${rows} (${n(v.wid * S, 1)} ÷ ${n(v.bw + v.gap, 2)}, rounded up)`;
+    q('.dk-row').textContent = Object.entries(per).map(([L, c]) => `${c} × ${n(+L)} ${long()}`).join(' + ') + (row.length > 1 ? ' (joints must land on a joist)' : '');
+    const buy = Object.entries(per).map(([L, c]) => `${c * rows} boards of ${n(+L)} ${long()}`).join(' + ');
+    q('.dk-boards').textContent = buy;
+    q('.dk-lin').textContent = `${n(lin, 1)} ${long()} bought, ${n(rows * v.run, 1)} ${long()} on the deck, ${n(lin - rows * v.run, 1)} ${long()} offcut`;
+    q('.dk-joists').textContent = `${joists} joists of ${n(v.wid)} ${long()} (${n(joists * v.wid, 1)} ${long()} in all), at ${n(v.sp)} ${units === 'm' ? 'mm' : 'in'} centres`;
+    const hits = rows * joists;
+    q('.dk-fix').textContent = k('fix').value === 'clip'
+      ? `${hits} hidden clips (one per board at each joist), plus face screws for the first and last board`
+      : `${n(hits * v.spj, 0)} screws (${rows} rows × ${joists} joists × ${n(v.spj)})`;
+    q('.dk-big').textContent = buy;
+    q('.dk-note').textContent = `Add a few spare boards for bad ones and cuts, and extra screws where board ends butt together. Rim joists, beams and posts are not counted.`;
+  };
+  const fill = () => {
+    for (const [s, t] of Object.entries(EX[units])) k(s).value = t;
+    for (const [s, t] of Object.entries(LAB[units])) q(`[data-l="${s}"]`).textContent = t;
+    calc();
+  };
+  root.querySelectorAll('.dk-units button').forEach((b) => b.addEventListener('click', () => {
+    units = (b as HTMLElement).dataset.u as 'm' | 'i';
+    root.querySelectorAll('.dk-units button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    fill();
+  }));
+  root.querySelectorAll('input').forEach((i) => i.addEventListener('input', calc));
+  k('fix').addEventListener('change', calc);
+  q('.dk-reset').addEventListener('click', () => { k('spj').value = '2'; (k('fix') as unknown as HTMLSelectElement).value = 'screw'; fill(); });
+  q('.dk-clear').addEventListener('click', () => { for (const s of ['run', 'wid', 'bw', 'gap', 'lens', 'sp']) k(s).value = ''; calc(); });
+  fill();
+</script>

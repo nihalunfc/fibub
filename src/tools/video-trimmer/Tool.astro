@@ -1,0 +1,153 @@
+---
+// #T922 Video trimmer: cut a clip out of your own video by playing it into the browser's recorder. Nothing is uploaded.
+---
+<div class="tool-ui vtr">
+  <section class="panel">
+    <div class="vtr-row">
+      <button type="button" class="btn vtr-open">Open a video</button>
+      <input class="vtr-file" type="file" accept="video/*" hidden />
+      <span class="vtr-name">MP4, WebM or MOV from your phone or computer. It stays on this device.</span>
+    </div>
+    <p class="note bad vtr-err" hidden></p>
+  </section>
+
+  <section class="panel vtr-stage" hidden>
+    <video class="vtr-video" controls playsinline preload="auto"></video>
+    <div class="vtr-grid">
+      <label>Start (seconds) <input class="vtr-s" type="number" min="0" step="0.1" value="0" inputmode="decimal" /></label>
+      <label>End (seconds) <input class="vtr-e" type="number" min="0" step="0.1" value="0" inputmode="decimal" /></label>
+    </div>
+    <label class="vtr-sl">Start <input class="vtr-sr" type="range" min="0" max="1" step="0.01" value="0" /></label>
+    <label class="vtr-sl">End <input class="vtr-er" type="range" min="0" max="1" step="0.01" value="1" /></label>
+    <div class="vtr-row"><button type="button" class="btn secondary vtr-here-s">Start at the current frame</button><button type="button" class="btn secondary vtr-here-e">End at the current frame</button></div>
+    <label class="vtr-check"><input class="vtr-mute" type="checkbox" /> Remove the sound</label>
+    <p class="vtr-info" aria-live="polite"></p>
+    <p class="note warn vtr-honest">The clip is made by playing that part of the video into your browser's recorder, so it takes as long as the clip itself (a 30 s clip takes about 30 s) and the picture is encoded again as WebM. Keep this tab open and in front while it runs.</p>
+    <div class="vtr-row">
+      <button type="button" class="btn vtr-make">Make the clip</button>
+      <button type="button" class="btn secondary vtr-stop" hidden>Cancel</button>
+    </div>
+    <progress class="vtr-prog" max="1" value="0" hidden></progress>
+  </section>
+
+  <section class="panel vtr-out" hidden>
+    <video class="vtr-result" controls playsinline></video>
+    <p class="vtr-res" aria-live="polite"></p>
+    <a class="btn vtr-dl" download="clip.webm" href="#">Download the clip (WebM)</a>
+  </section>
+  <p class="vtr-fine">The video is read by your browser on this device. Nothing is uploaded.</p>
+</div>
+
+<style is:inline>
+  .vtr { display: grid; gap: 14px; margin-bottom: 32px; }
+  .vtr .panel { display: grid; gap: 12px; padding: 16px; }
+  .vtr-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .vtr-name, .vtr-fine, .vtr-info { color: var(--muted); font-size: 14px; margin: 0; }
+  .vtr-honest { margin: 0; font-size: 14px; }
+  .vtr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .vtr label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .vtr label.vtr-check { display: flex; align-items: center; gap: 8px; color: var(--ink); }
+  .vtr-sl { grid-template-columns: 44px 1fr; align-items: center; }
+  .vtr input[type=number] { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .vtr input[type=range] { width: 100%; accent-color: var(--accent); }
+  .vtr video { width: 100%; max-height: 360px; background: #000; border-radius: 10px; }
+  .vtr-prog { width: 100%; height: 14px; accent-color: var(--accent); }
+  .vtr-res { margin: 0; font-weight: 600; }
+  .vtr-dl { justify-self: start; }
+</style>
+
+<script>
+  const root = document.querySelector('.vtr') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const file = $<HTMLInputElement>('.vtr-file'), video = $<HTMLVideoElement>('.vtr-video'), err = $('.vtr-err');
+  const sIn = $<HTMLInputElement>('.vtr-s'), eIn = $<HTMLInputElement>('.vtr-e'), sR = $<HTMLInputElement>('.vtr-sr'), eR = $<HTMLInputElement>('.vtr-er');
+  const mute = $<HTMLInputElement>('.vtr-mute'), info = $('.vtr-info'), make = $<HTMLButtonElement>('.vtr-make'), stop = $<HTMLButtonElement>('.vtr-stop');
+  const prog = $<HTMLProgressElement>('.vtr-prog'), out = $('.vtr-out'), result = $<HTMLVideoElement>('.vtr-result'), res = $('.vtr-res'), dl = $<HTMLAnchorElement>('.vtr-dl');
+  let dur = 0, url = '', clipUrl = '', busy = false, baseName = 'clip', rec: MediaRecorder | null = null;
+  let ac: AudioContext | null = null, dest: MediaStreamAudioDestinationNode | null = null, speaker: GainNode | null = null;
+
+  const once = (el: EventTarget, ev: string, ms = 4000) => new Promise<void>((ok) => { const t = setTimeout(ok, ms); el.addEventListener(ev, () => { clearTimeout(t); ok(); }, { once: true }); });
+  const seek = async (t: number) => { const p = once(video, 'seeked'); video.currentTime = t; await p; };
+  const fx = (t: number) => String(Math.round(t * 100) / 100);
+  const mb = (b: number) => (b >= 1e6 ? (b / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1e3)) + ' KB');
+  const range = () => ({ s: +sIn.value, e: +eIn.value });
+  const canRecord = () => typeof MediaRecorder !== 'undefined' && (typeof (video as any).captureStream === 'function' || typeof (video as any).mozCaptureStream === 'function');
+
+  const update = () => {
+    const { s, e } = range();
+    let msg = '', ok = true;
+    if (!canRecord()) { msg = 'This browser cannot record a video, so it cannot make the clip. Try a recent Chrome, Edge or Firefox on a computer.'; ok = false; }
+    else if (!(s >= 0) || !(e > s)) { msg = 'The end must be after the start.'; ok = false; }
+    else if (e > dur + 0.01) { msg = `The video is only ${fx(dur)} s long.`; ok = false; }
+    else msg = `Clip from ${fx(s)} s to ${fx(e)} s: ${fx(e - s)} s long${mute.checked ? ', no sound' : ''}. Making it takes about ${Math.max(1, Math.ceil(e - s))} s.`;
+    info.textContent = msg; make.disabled = !ok || busy;
+  };
+  const syncFrom = (src: 'box' | 'range') => {
+    if (src === 'range') { sIn.value = fx(+sR.value); eIn.value = fx(+eR.value); }
+    else { sR.value = sIn.value; eR.value = eIn.value; }
+    update();
+  };
+
+  const open = async (f: File) => {
+    err.hidden = true; out.hidden = true; if (url) URL.revokeObjectURL(url);
+    baseName = f.name.replace(/\.[^.]+$/, '') || 'clip';
+    url = URL.createObjectURL(f); video.src = url;
+    const ok = await Promise.race([once(video, 'loadedmetadata', 8000).then(() => video.readyState > 0), once(video, 'error', 8000).then(() => false)]);
+    if (!ok || !video.videoWidth) { err.textContent = 'This browser cannot play that file. Try an MP4 or WebM video.'; err.hidden = false; $('.vtr-stage').hidden = true; return; }
+    if (!Number.isFinite(video.duration)) { video.currentTime = 1e9; for (let i = 0; i < 40 && !Number.isFinite(video.duration); i++) await once(video, 'durationchange', 100); await seek(0); }
+    dur = Math.floor(video.duration * 100) / 100;
+    for (const r of [sR, eR]) r.max = String(dur);
+    sIn.value = '0'; eIn.value = fx(dur); syncFrom('box');
+    $('.vtr-name').textContent = `${f.name}: ${fx(dur)} s, ${video.videoWidth} × ${video.videoHeight} px.`;
+    $('.vtr-stage').hidden = false;
+  };
+
+  // Sound goes through Web Audio: to the recorder, and to the speakers except while recording.
+  const soundRoute = () => {
+    if (ac) return;
+    ac = new AudioContext();
+    const src = ac.createMediaElementSource(video);
+    dest = ac.createMediaStreamDestination(); speaker = ac.createGain();
+    src.connect(dest); src.connect(speaker); speaker.connect(ac.destination);
+  };
+  const pickType = (audio: boolean) => (audio ? ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus'] : ['video/webm;codecs=vp9', 'video/webm;codecs=vp8']).concat('video/webm').find((t) => MediaRecorder.isTypeSupported(t)) || '';
+
+  make.addEventListener('click', async () => {
+    const { s, e } = range(), len = e - s;
+    busy = true; update(); stop.hidden = false; prog.hidden = false; prog.value = 0; out.hidden = true;
+    const withSound = !mute.checked;
+    if (withSound) { soundRoute(); await ac!.resume(); speaker!.gain.value = 0; }
+    const was = { muted: video.muted, volume: video.volume }; video.muted = !withSound; video.volume = 1; video.controls = false;
+    video.pause(); await seek(s);
+    const vs: MediaStream = (video as any).captureStream ? (video as any).captureStream() : (video as any).mozCaptureStream();
+    const tracks = [...vs.getVideoTracks(), ...(withSound && dest ? dest.stream.getAudioTracks() : [])];
+    const type = pickType(withSound), chunks: Blob[] = [];
+    rec = new MediaRecorder(new MediaStream(tracks), type ? { mimeType: type } : undefined);
+    rec.ondataavailable = (ev) => { if (ev.data.size) chunks.push(ev.data); };
+    const done = new Promise<void>((ok) => { rec!.onstop = () => ok(); });
+    const finish = () => { if (rec && rec.state !== 'inactive') { video.pause(); rec.stop(); } };
+    rec.start(250);
+    await video.play().catch(() => {});
+    const tick = setInterval(() => { prog.value = Math.min(1, (video.currentTime - s) / len); if (video.currentTime >= e || video.ended || video.paused) finish(); }, 40);
+    video.addEventListener('ended', finish, { once: true });
+    await done; clearInterval(tick); if (speaker) speaker.gain.value = 1;
+    video.muted = was.muted; video.volume = was.volume; video.controls = true;
+    const cancelled = stop.dataset.c === '1'; stop.dataset.c = '';
+    busy = false; stop.hidden = true; prog.hidden = true; rec = null; update();
+    if (cancelled) return;
+    const blob = new Blob(chunks, { type: 'video/webm' });
+    if (clipUrl) URL.revokeObjectURL(clipUrl);
+    clipUrl = URL.createObjectURL(blob); result.src = clipUrl; dl.href = clipUrl; dl.download = `${baseName}-${fx(s)}-${fx(e)}s.webm`;
+    res.textContent = `Clip ready: ${fx(len)} s, ${mb(blob.size)}, WebM${withSound ? '' : ', no sound'}.`;
+    out.hidden = false;
+  });
+  stop.addEventListener('click', () => { stop.dataset.c = '1'; video.pause(); if (rec && rec.state !== 'inactive') rec.stop(); });
+  $('.vtr-open').addEventListener('click', () => file.click());
+  file.addEventListener('change', () => { if (file.files?.[0]) open(file.files[0]); });
+  sIn.addEventListener('input', () => syncFrom('box')); eIn.addEventListener('input', () => syncFrom('box'));
+  sR.addEventListener('input', () => { if (+sR.value > +eR.value) eR.value = sR.value; syncFrom('range'); });
+  eR.addEventListener('input', () => { if (+eR.value < +sR.value) sR.value = eR.value; syncFrom('range'); });
+  $('.vtr-here-s').addEventListener('click', () => { sIn.value = fx(video.currentTime); syncFrom('box'); });
+  $('.vtr-here-e').addEventListener('click', () => { eIn.value = fx(video.currentTime); syncFrom('box'); });
+  mute.addEventListener('change', update);
+</script>

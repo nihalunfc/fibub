@@ -1,0 +1,111 @@
+---
+// #T927 Weighted grade
+---
+<div class="tool-ui wg">
+  <section class="panel">
+    <div class="wg-head" aria-hidden="true"><span>Item</span><span>Score (% or 45/50)</span><span>Weight (%)</span><span></span></div>
+    <div class="wg-rows"></div>
+    <p class="wg-btns"><button type="button" class="btn secondary small wg-add">Add a row</button> <button type="button" class="btn secondary small wg-reset">Reset to the example</button></p>
+    <p class="wg-big" aria-live="polite"></p>
+    <p class="wg-say" aria-live="polite"></p>
+    <p class="wg-warn" aria-live="polite"></p>
+  </section>
+  <section class="panel">
+    <h3 class="wg-h">What if</h3>
+    <label class="wg-if">If I score this on the items with no score yet (%)<input data-k="if" inputmode="decimal" placeholder="e.g. 85" /></label>
+    <p class="wg-ifout" aria-live="polite"></p>
+  </section>
+  <section class="panel">
+    <h3 class="wg-h">Letter scale</h3>
+    <p class="wg-fine">Lowest percent for each letter; anything below D is F. Change them to your school's scale.</p>
+    <div class="wg-cuts">
+      <label>A<input data-c="A" inputmode="decimal" value="90" /></label>
+      <label>B<input data-c="B" inputmode="decimal" value="80" /></label>
+      <label>C<input data-c="C" inputmode="decimal" value="70" /></label>
+      <label>D<input data-c="D" inputmode="decimal" value="60" /></label>
+    </div>
+  </section>
+  <p class="wg-fine">Weighted average = sum of (score × weight) ÷ sum of weights. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .wg { display: grid; gap: 14px; margin-bottom: 32px; }
+  .wg .panel { padding: 16px; }
+  .wg-head, .wg-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr) minmax(0, 1fr) 36px; gap: 6px; align-items: center; }
+  .wg-head { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  .wg-row { margin-bottom: 6px; }
+  .wg input { font: inherit; color: var(--ink); padding: 8px 9px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .wg input:focus { border-color: var(--accent); outline: none; }
+  .wg input.bad { border-color: var(--bad); }
+  .wg-del { font: inherit; width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .wg label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .wg-cuts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .wg-big { font-size: 26px; font-weight: 700; margin: 14px 0 4px; overflow-wrap: anywhere; }
+  .wg-say, .wg-ifout { margin: 0; color: var(--muted); font-size: 15px; }
+  .wg-ifout { margin-top: 8px; }
+  .wg-warn { margin: 6px 0 0; color: var(--warn); font-size: 14px; }
+  .wg-warn:empty { display: none; }
+  .wg-h { margin: 0 0 8px; font-size: 16px; }
+  .wg-fine { color: var(--muted); font-size: 13px; margin: 0 0 8px; }
+  .wg-btns { margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
+</style>
+
+<script>
+  const root = document.querySelector('.wg') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
+  const rows = q('.wg-rows'), big = q('.wg-big'), say = q('.wg-say'), warn = q('.wg-warn'), ifOut = q('.wg-ifout');
+  const ifIn = q<HTMLInputElement>('[data-k="if"]');
+  const EX: [string, string, string][] = [['Homework', '90', '20'], ['Midterm', '80', '30'], ['Final exam', '70', '50']];
+  const f1 = (v: number) => v.toFixed(1);
+  const num = (s: string) => (s.trim() === '' ? NaN : Number(s.trim().replace(',', '.')));
+  // "90" is a percent; "45/50" is points earned out of points possible.
+  const score = (s: string): number | null | undefined => {
+    const t = s.trim(); if (t === '') return null;
+    const m = t.match(/^([\d.,]+)\s*\/\s*([\d.,]+)$/);
+    if (m) { const a = num(m[1]), b = num(m[2]); return b > 0 && Number.isFinite(a) ? (a / b) * 100 : undefined; }
+    const v = num(t); return Number.isFinite(v) ? v : undefined;
+  };
+  const letter = (p: number) => {
+    for (const g of ['A', 'B', 'C', 'D']) { const c = num(q<HTMLInputElement>(`[data-c="${g}"]`).value); if (Number.isFinite(c) && p >= c) return g; }
+    return 'F';
+  };
+  const addRow = (n = '', s = '', w = '') => {
+    const r = document.createElement('div'); r.className = 'wg-row';
+    const mk = (f: string, v: string, lab: string, im?: string) => { const i = document.createElement('input'); i.dataset.f = f; i.value = v; i.setAttribute('aria-label', lab); if (im) i.inputMode = im; i.addEventListener('input', calc); return i; };
+    const del = document.createElement('button'); del.type = 'button'; del.className = 'wg-del'; del.textContent = '×'; del.setAttribute('aria-label', 'Remove this row');
+    del.addEventListener('click', () => { r.remove(); calc(); });
+    r.append(mk('name', n, 'Item'), mk('score', s, 'Score, as a percent or points like 45/50'), mk('w', w, 'Weight in percent', 'decimal'), del);
+    rows.append(r);
+  };
+  function calc() {
+    let sw = 0, sum = 0, allW = 0, missW = 0, missing = 0, bad = 0;
+    rows.querySelectorAll<HTMLElement>('.wg-row').forEach((r) => {
+      const si = r.querySelector('[data-f="score"]') as HTMLInputElement, wi = r.querySelector('[data-f="w"]') as HTMLInputElement;
+      const s = score(si.value), w = num(wi.value);
+      si.classList.toggle('bad', s === undefined); wi.classList.toggle('bad', wi.value.trim() !== '' && !(w >= 0));
+      if (s === undefined || !(w >= 0)) { if (si.value.trim() || wi.value.trim()) bad++; return; }
+      allW += w;
+      if (s === null) { missW += w; if (w > 0) missing++; return; }
+      sw += w; sum += s * w;
+    });
+    warn.textContent = '';
+    if (sw <= 0) { big.textContent = ''; say.textContent = 'Type a score and a weight on at least one row.'; ifOut.textContent = ''; return; }
+    const avg = sum / sw;
+    big.textContent = `${f1(avg)}% (${letter(avg)})`;
+    say.textContent = missing ? `Weighted average of the ${f1(sw)}% of the course you have marks for.` : `Weighted average over ${f1(sw)}% of weight.`;
+    const notes: string[] = [];
+    if (Math.abs(allW - 100) > 1e-9) notes.push(`The weights add up to ${f1(allW)}, not 100, so each is scaled by 100 ÷ ${f1(allW)} (the same as dividing by the total weight).`);
+    if (bad) notes.push(`${bad} row${bad > 1 ? 's are' : ' is'} left out because a score or weight could not be read.`);
+    warn.textContent = notes.join(' ');
+    if (!missing) { ifOut.textContent = 'Every row has a score. Clear a score to treat that item as still to come.'; return; }
+    const v = num(ifIn.value);
+    if (!Number.isFinite(v)) { ifOut.textContent = `${missing} item${missing > 1 ? 's have' : ' has'} no score yet (${f1(missW)} of the weight). Type a score above to see your grade at the end.`; return; }
+    const end = (sum + v * missW) / (sw + missW);
+    ifOut.textContent = `Scoring ${f1(v)}% on the ${missing} missing item${missing > 1 ? 's' : ''} gives ${f1(end)}% (${letter(end)}) overall.`;
+  }
+  const reset = () => { rows.innerHTML = ''; for (const r of EX) addRow(...r); ifIn.value = ''; const d: Record<string, string> = { A: '90', B: '80', C: '70', D: '60' }; root.querySelectorAll<HTMLInputElement>('[data-c]').forEach((i) => { i.value = d[i.dataset.c!]; }); calc(); };
+  q('.wg-add').addEventListener('click', () => { addRow(); calc(); (rows.lastElementChild?.querySelector('input') as HTMLInputElement)?.focus(); });
+  q('.wg-reset').addEventListener('click', reset);
+  root.querySelectorAll('[data-c], [data-k]').forEach((i) => i.addEventListener('input', calc));
+  reset();
+</script>

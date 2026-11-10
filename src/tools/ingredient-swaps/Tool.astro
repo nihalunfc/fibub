@@ -1,0 +1,96 @@
+---
+// #T864 Ingredient swaps
+---
+<div class="tool-ui is">
+  <section class="panel is-form">
+    <label>What are you missing?
+      <input class="is-q" type="search" placeholder="e.g. buttermilk, egg, cornflour" autocomplete="off" />
+    </label>
+    <label class="is-amt-l">How much the recipe asks for
+      <span class="is-amt-row"><input class="is-amt" inputmode="decimal" value="1" /> <span class="is-unit">× the unit on each card (cup, tbsp, egg...)</span></span>
+    </label>
+    <fieldset class="is-filters">
+      <legend>Show only swaps that are</legend>
+      <label><input type="checkbox" value="v" /> Vegan</label>
+      <label><input type="checkbox" value="d" /> Dairy-free</label>
+      <label><input type="checkbox" value="e" /> Egg-free</label>
+      <label><input type="checkbox" value="g" /> Gluten-free</label>
+    </fieldset>
+    <div class="is-btns"><button type="button" class="btn secondary is-clear">Clear</button></div>
+  </section>
+  <p class="is-count" aria-live="polite"></p>
+  <div class="is-list"></div>
+  <p class="is-fine">Swaps change the taste or texture a little, so try them in forgiving recipes first. Always check packet labels for allergies. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .is { display: grid; gap: 14px; margin-bottom: 32px; }
+  .is .panel { padding: 16px; }
+  .is-form { display: grid; gap: 12px; }
+  .is label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .is input.is-q, .is input.is-amt { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .is input:focus { border-color: var(--accent); outline: none; }
+  .is-amt-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .is input.is-amt { width: 6em; }
+  .is-unit { font-size: 13px; }
+  .is-filters { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px 16px; }
+  .is-filters legend { font-size: 14px; color: var(--muted); margin-bottom: 6px; padding: 0; }
+  .is-filters label { display: inline-flex; gap: 6px; align-items: center; font-size: 15px; color: var(--ink); }
+  .is-btns .btn { padding: 8px 14px; }
+  .is-count { margin: 0; color: var(--muted); font-size: 14px; }
+  .is-list { display: grid; gap: 10px; }
+  .is-card { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--surface); overflow-wrap: anywhere; }
+  .is-card h3 { margin: 0 0 6px; font-size: 17px; }
+  .is-card ul { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
+  .is-for { font-weight: 400; color: var(--muted); font-size: 15px; }
+  .is-swap { font-size: 16px; }
+  .is-note { display: block; color: var(--muted); font-size: 14px; }
+  .is-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .is-tags span { font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  .is-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  import { ITEMS, amount } from './swaps';
+  const root = document.querySelector('.is') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const q = $<HTMLInputElement>('.is-q'), amt = $<HTMLInputElement>('.is-amt'), list = $('.is-list'), count = $('.is-count');
+  const boxes = [...root.querySelectorAll('.is-filters input')] as HTMLInputElement[];
+  const TAG: Record<string, string> = { v: 'vegan', d: 'dairy-free', e: 'egg-free', g: 'gluten-free' };
+  const total = ITEMS.reduce((s, i) => s + i.swaps.length, 0);
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const el = (tag: string, cls: string, text = '') => { const e = document.createElement(tag); if (cls) e.className = cls; e.textContent = text; return e; };
+  const calc = () => {
+    const a = amt.value.trim() === '' ? 1 : +amt.value.replace(',', '.');
+    const k = Number.isFinite(a) && a > 0 ? a : 1;
+    const words = norm(q.value).split(' ').filter(Boolean);
+    const need = boxes.filter((b) => b.checked).map((b) => b.value);
+    list.innerHTML = '';
+    let items = 0, swaps = 0;
+    for (const it of ITEMS) {
+      const hay = norm(it.name + ' ' + (it.also || ''));
+      if (!words.every((w) => hay.includes(w))) continue;
+      const ok = it.swaps.filter((s) => need.every((f) => s.f.includes(f)));
+      if (!ok.length) continue;
+      items++; swaps += ok.length;
+      const card = el('article', 'is-card');
+      const h = el('h3', '', it.name); h.append(el('span', 'is-for', ` · for ${amount(k, it.per)}`)); card.append(h);
+      const ul = el('ul', '');
+      for (const s of ok) {
+        const li = el('li', '');
+        li.append(el('span', 'is-swap', '= ' + s.parts.map((p) => amount(p[0] * k, p[1], p[2])).join(' + ')));
+        if (s.note) li.append(el('span', 'is-note', s.note));
+        const tags = el('span', 'is-tags');
+        for (const f of s.f) tags.append(el('span', '', TAG[f]));
+        li.append(tags); ul.append(li);
+      }
+      card.append(ul); list.append(card);
+    }
+    count.textContent = items
+      ? `Showing ${items} ${items === 1 ? 'ingredient' : 'ingredients'} with ${swaps} ${swaps === 1 ? 'swap' : 'swaps'} (of ${total} swaps).`
+      : 'No swap matches. Try another word, or untick a filter.';
+  };
+  root.addEventListener('input', calc);
+  $('.is-clear').addEventListener('click', () => { q.value = ''; amt.value = '1'; boxes.forEach((b) => (b.checked = false)); calc(); q.focus(); });
+  calc();
+</script>

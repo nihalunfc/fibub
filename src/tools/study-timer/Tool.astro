@@ -1,0 +1,146 @@
+---
+// #T929 Study timer
+---
+<div class="tool-ui st">
+  <section class="panel st-face">
+    <p class="st-phase" aria-live="polite"></p>
+    <p class="st-time" role="timer" aria-live="off"></p>
+    <p class="st-btns">
+      <button type="button" class="btn st-go">Start</button>
+      <button type="button" class="btn secondary small st-skip">Skip</button>
+      <button type="button" class="btn secondary small st-reset">Reset</button>
+    </p>
+    <p class="st-say" aria-live="polite"></p>
+    <p class="st-done"></p>
+  </section>
+  <section class="panel">
+    <div class="st-fields">
+      <label>Focus (minutes)<input data-k="focus" type="number" inputmode="numeric" min="1" max="180" step="1" value="25" /></label>
+      <label>Short break (minutes)<input data-k="short" type="number" inputmode="numeric" min="1" max="180" step="1" value="5" /></label>
+      <label>Long break (minutes)<input data-k="long" type="number" inputmode="numeric" min="1" max="180" step="1" value="15" /></label>
+      <label>Long break after every<select data-k="every"><option value="2">2 focus sessions</option><option value="3">3 focus sessions</option><option value="4" selected>4 focus sessions</option><option value="5">5 focus sessions</option><option value="6">6 focus sessions</option></select></label>
+    </div>
+    <label class="st-check"><input type="checkbox" data-k="auto" /> Start the next part on its own</label>
+    <label class="st-check"><input type="checkbox" data-k="beep" checked /> Beep when a part ends</label>
+    <p class="st-err" aria-live="polite"></p>
+    <h3 class="st-h">Coming up</h3>
+    <ol class="st-next"></ol>
+  </section>
+  <p class="st-fine">Space starts and pauses (when you are not typing in a box). The time left also shows in the tab title. Nothing is saved: the session count clears when you close the page.</p>
+</div>
+
+<style is:inline>
+  .st { display: grid; gap: 14px; margin-bottom: 32px; }
+  .st .panel { padding: 16px; }
+  .st-face { text-align: center; }
+  .st-phase { margin: 0; font-weight: 600; font-size: 17px; }
+  .st-time { font-size: clamp(56px, 18vw, 96px); font-weight: 700; margin: 4px 0; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .st-face[data-kind="break"] .st-time { color: var(--good); }
+  .st-btns { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center; margin: 8px 0 0; }
+  .st-say, .st-done { margin: 8px 0 0; color: var(--muted); font-size: 14px; }
+  .st-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 12px; }
+  .st label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .st label.st-check { display: flex; gap: 8px; align-items: flex-start; color: var(--ink); margin-top: 10px; }
+  .st input[type="number"], .st select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .st input:focus, .st select:focus { border-color: var(--accent); outline: none; }
+  .st-err { color: var(--bad); font-size: 14px; margin: 8px 0 0; }
+  .st-err:empty { display: none; }
+  .st-h { font-size: 15px; margin: 14px 0 6px; }
+  .st-next { margin: 0; padding-left: 22px; font-size: 14px; color: var(--muted); }
+  .st-next li:first-child { color: var(--ink); font-weight: 600; }
+  .st-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  const root = document.querySelector('.st') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const face = q('.st-face'), phaseEl = q('.st-phase'), timeEl = q('.st-time'), say = q('.st-say'), doneEl = q('.st-done');
+  const go = q<HTMLButtonElement>('.st-go'), err = q('.st-err'), next = q('.st-next');
+  const inp = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const baseTitle = document.title;
+
+  type Kind = 'focus' | 'short' | 'long';
+  const NAMES: Record<Kind, string> = { focus: 'Focus', short: 'Short break', long: 'Long break' };
+  // Phase i (from 0): even = focus; odd = the break after focus number (i+1)/2, long when that number is a multiple of `every`.
+  const kindAt = (i: number, every: number): Kind => (i % 2 === 0 ? 'focus' : ((i + 1) / 2) % every === 0 ? 'long' : 'short');
+
+  const mins = (k: Kind) => { const v = Number(inp(k).value); return Number.isFinite(v) && v >= 1 && v <= 180 ? v : NaN; };
+  const every = () => Number((q<HTMLSelectElement>('[data-k="every"]')).value);
+  const lenMs = (k: Kind) => Math.round((mins(k) || 1) * 60000);
+
+  let idx = 0, left = lenMs('focus'), running = false, endAt = 0, fresh = true, done = 0, timer = 0;
+  let ac: AudioContext | null = null;
+
+  const fmt = (ms: number) => { const s = Math.max(0, Math.ceil(ms / 1000)); const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60; return (h ? `${h}:${String(m).padStart(2, '0')}` : `${m}`) + ':' + String(r).padStart(2, '0'); };
+  const label = (i: number) => { const k = kindAt(i, every()); return k === 'focus' ? `Focus ${Math.floor(i / 2) % every() + 1} of ${every()}` : NAMES[k]; };
+
+  const beep = () => {
+    if (!(q<HTMLInputElement>('[data-k="beep"]')).checked || !ac) return;
+    const t0 = ac.currentTime;
+    for (let n = 0; n < 3; n++) {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.frequency.value = 880; o.connect(g); g.connect(ac.destination);
+      const t = t0 + n * 0.35; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.3, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
+      o.start(t); o.stop(t + 0.27);
+    }
+  };
+
+  const draw = () => {
+    const k = kindAt(idx, every());
+    const ms = running ? endAt - Date.now() : left;
+    face.dataset.kind = k === 'focus' ? 'focus' : 'break';
+    phaseEl.textContent = label(idx);
+    timeEl.textContent = fmt(ms);
+    go.textContent = running ? 'Pause' : fresh ? 'Start' : 'Resume';
+    document.title = fresh && !running ? baseTitle : `${fmt(ms)} ${NAMES[k]}${running ? '' : ' (paused)'} · Study timer`;
+    doneEl.textContent = `Focus sessions finished: ${done}`;
+    next.innerHTML = '';
+    for (let i = idx; i < idx + 8; i++) { const kk = kindAt(i, every()); const li = document.createElement('li'); li.textContent = `${NAMES[kk]}, ${mins(kk) || 1} min`; next.append(li); }
+  };
+
+  const advance = (ended: boolean) => {
+    const k = kindAt(idx, every());
+    if (ended) { if (k === 'focus') done++; beep(); }
+    idx++; const nk = kindAt(idx, every());
+    left = lenMs(nk); fresh = true;
+    const auto = (q<HTMLInputElement>('[data-k="auto"]')).checked;
+    if (running && auto) { endAt = Date.now() + left; fresh = false; }
+    else { running = false; clearInterval(timer); }
+    say.textContent = ended ? (k === 'focus' ? `Focus done. ${auto ? 'Break started.' : 'Press Start for your break.'}` : `Break over. ${auto ? 'Focus started.' : 'Press Start to focus.'}`) : `Skipped to ${NAMES[nk].toLowerCase()}.`;
+    draw();
+  };
+
+  const tick = () => { if (running && endAt - Date.now() <= 0) advance(true); else draw(); };
+
+  const toggle = () => {
+    if (err.textContent) return;
+    if (running) { left = endAt - Date.now(); running = false; clearInterval(timer); say.textContent = 'Paused.'; }
+    else {
+      if (!ac) { try { ac = new AudioContext(); } catch { ac = null; } }
+      ac?.resume?.();
+      endAt = Date.now() + left; running = true; fresh = false; say.textContent = '';
+      clearInterval(timer); timer = window.setInterval(tick, 250);
+    }
+    draw();
+  };
+
+  const settings = () => {
+    const bad = (['focus', 'short', 'long'] as Kind[]).filter((k) => Number.isNaN(mins(k)));
+    err.textContent = bad.length ? `Type a whole number of minutes from 1 to 180 for ${bad.map((k) => NAMES[k].toLowerCase()).join(' and ')}.` : '';
+    // A part that has not started yet takes the new length straight away; one in progress keeps its time.
+    if (fresh && !running) left = lenMs(kindAt(idx, every()));
+    draw();
+  };
+
+  go.addEventListener('click', toggle);
+  q('.st-skip').addEventListener('click', () => advance(false));
+  q('.st-reset').addEventListener('click', () => { running = false; clearInterval(timer); idx = 0; fresh = true; left = lenMs('focus'); say.textContent = ''; draw(); });
+  root.querySelectorAll('input, select').forEach((el) => el.addEventListener('input', settings));
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== ' ' || e.ctrlKey || e.metaKey || e.altKey) return;
+    const t = e.target as HTMLElement;
+    if (t.closest('input, textarea, select, button, [contenteditable="true"], a')) return;
+    e.preventDefault(); toggle();
+  });
+  draw();
+</script>

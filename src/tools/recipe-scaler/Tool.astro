@@ -1,0 +1,100 @@
+---
+// #T863 Recipe scaler
+const EXAMPLE = `2 1/2 cups all-purpose flour
+1 tbsp baking powder
+½ tsp salt
+200 g sugar
+3 eggs
+1 1/4 cups milk
+2-3 tbsp melted butter
+1 tsp vanilla extract
+Berries to serve`;
+---
+<div class="tool-ui rs">
+  <section class="panel rs-form">
+    <label>Ingredients, one per line
+      <textarea class="rs-in" rows="9" spellcheck="false">{EXAMPLE}</textarea>
+    </label>
+    <div class="rs-mode" role="radiogroup" aria-label="Scale by">
+      <label><input type="radio" name="rs-m" value="serv" checked /> Servings</label>
+      <label><input type="radio" name="rs-m" value="fac" /> A factor</label>
+    </div>
+    <div class="rs-row" data-m="serv">
+      <label>Recipe serves <input class="rs-from" inputmode="decimal" value="4" /></label>
+      <label>I want to serve <input class="rs-to" inputmode="decimal" value="6" /></label>
+    </div>
+    <div class="rs-row" data-m="fac" hidden>
+      <label>Multiply by <input class="rs-fac" inputmode="decimal" value="2" /></label>
+    </div>
+    <label class="rs-check"><input type="checkbox" class="rs-metric" /> Change cups, spoons, oz and lb to grams or ml</label>
+    <div class="rs-btns">
+      <button type="button" class="btn secondary rs-copy">Copy</button>
+      <button type="button" class="btn secondary rs-clear">Clear</button>
+      <button type="button" class="btn secondary rs-example">Example</button>
+    </div>
+  </section>
+  <section class="panel">
+    <p class="rs-big" aria-live="polite"></p>
+    <ul class="rs-out" aria-live="polite"></ul>
+  </section>
+  <p class="rs-fine">Amounts are rounded to kitchen fractions for cups and spoons, and to whole grams. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .rs { display: grid; gap: 14px; margin-bottom: 32px; }
+  .rs .panel { padding: 16px; }
+  .rs-form { display: grid; gap: 12px; }
+  .rs label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .rs input:not([type]), .rs input[inputmode], .rs textarea { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .rs textarea { resize: vertical; font-size: 15px; }
+  .rs input:focus, .rs textarea:focus { border-color: var(--accent); outline: none; }
+  .rs-mode { display: flex; gap: 16px; flex-wrap: wrap; }
+  .rs-mode label, .rs-check { display: inline-flex; gap: 6px; align-items: center; font-size: 15px; color: var(--ink); }
+  .rs-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 12px; }
+  .rs-row[hidden] { display: none; }
+  .rs-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .rs-btns .btn { padding: 8px 14px; }
+  .rs-big { font-size: 22px; font-weight: 700; margin: 0 0 8px; }
+  .rs-out { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 16px; overflow-wrap: anywhere; }
+  .rs-out li.same { color: var(--muted); }
+  .rs-was { color: var(--muted); font-size: 14px; }
+  .rs-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  import { scaleLine } from './scale';
+  const root = document.querySelector('.rs') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const inp = $<HTMLTextAreaElement>('.rs-in'), out = $('.rs-out'), big = $('.rs-big');
+  const from = $<HTMLInputElement>('.rs-from'), to = $<HTMLInputElement>('.rs-to'), fac = $<HTMLInputElement>('.rs-fac'), met = $<HTMLInputElement>('.rs-metric');
+  const EXAMPLE = inp.value;
+  const num = (s: string) => (s.trim() === '' ? NaN : +s.replace(',', '.'));
+  const mode = () => (root.querySelector('[name="rs-m"]:checked') as HTMLInputElement).value;
+  let lines: string[] = [];
+  const calc = () => {
+    root.querySelectorAll('.rs-row').forEach((r) => ((r as HTMLElement).hidden = (r as HTMLElement).dataset.m !== mode()));
+    const k = mode() === 'serv' ? num(to.value) / num(from.value) : num(fac.value);
+    out.innerHTML = ''; lines = [];
+    if (!(k > 0) || !Number.isFinite(k)) { big.textContent = mode() === 'serv' ? 'Type both serving numbers.' : 'Type a factor above 0.'; return; }
+    big.textContent = `Scaled × ${k.toLocaleString('en-US', { maximumFractionDigits: 3 })}`;
+    for (const line of inp.value.split('\n')) {
+      if (line.trim() === '') continue;
+      const r = scaleLine(line, k, met.checked);
+      const li = document.createElement('li');
+      const t = document.createElement('span'); t.className = 'rs-line'; t.textContent = r.text.trim(); li.append(t);
+      if (r.was) { const w = document.createElement('span'); w.className = 'rs-was'; w.textContent = ` (${r.was})`; li.append(w); }
+      if (!r.changed) li.className = 'same';
+      out.append(li); lines.push(r.text.trim());
+    }
+    if (!lines.length) big.textContent = 'Paste or type your ingredients above.';
+  };
+  root.addEventListener('input', calc);
+  $('.rs-copy').addEventListener('click', async () => {
+    const b = $('.rs-copy');
+    try { await navigator.clipboard.writeText(lines.join('\n')); b.textContent = 'Copied'; } catch { b.textContent = 'Select and copy the list'; }
+    setTimeout(() => (b.textContent = 'Copy'), 1500);
+  });
+  $('.rs-clear').addEventListener('click', () => { inp.value = ''; calc(); inp.focus(); });
+  $('.rs-example').addEventListener('click', () => { inp.value = EXAMPLE; calc(); });
+  calc();
+</script>

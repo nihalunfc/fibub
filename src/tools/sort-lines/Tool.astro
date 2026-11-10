@@ -1,0 +1,125 @@
+---
+// #T856 Sort lines
+---
+<div class="tool-ui sl">
+  <label class="sl-lab">Your lines (one item per line)
+    <textarea class="sl-in" rows="8" spellcheck="false">item 10
+banana
+apple
+
+Banana
+item 9
+  cherry
+apple</textarea>
+  </label>
+  <section class="panel sl-opts">
+    <label>Order
+      <select data-k="order">
+        <option value="none">Keep as is</option>
+        <option value="az">A to Z</option>
+        <option value="za">Z to A</option>
+        <option value="nat" selected>Natural (numbers by value)</option>
+        <option value="natd">Natural, reversed</option>
+        <option value="short">Shortest first</option>
+        <option value="long">Longest first</option>
+        <option value="rev">Reverse the order</option>
+        <option value="shuf">Shuffle</option>
+      </select>
+    </label>
+    <div class="sl-checks">
+      <label><input type="checkbox" data-k="trim" checked /> Trim spaces at both ends</label>
+      <label><input type="checkbox" data-k="blank" checked /> Remove blank lines</label>
+      <label><input type="checkbox" data-k="dedupe" /> Remove duplicates</label>
+      <label><input type="checkbox" data-k="nocase" /> Duplicates ignore case</label>
+      <label><input type="checkbox" data-k="num" /> Add line numbers</label>
+    </div>
+  </section>
+  <p class="sl-count" aria-live="polite"></p>
+  <label class="sl-lab">Result
+    <textarea class="sl-out" rows="8" readonly spellcheck="false"></textarea>
+  </label>
+  <div class="sl-btns">
+    <button type="button" class="sl-copy">Copy</button>
+    <button type="button" class="sl-dl">Download .txt</button>
+    <button type="button" class="sl-again">Shuffle again</button>
+    <button type="button" class="sl-clear">Clear</button>
+  </div>
+  <p class="sl-fine">Nothing you paste leaves this page.</p>
+</div>
+
+<style is:inline>
+  .sl { display: grid; gap: 14px; margin-bottom: 32px; }
+  .sl .panel { padding: 16px; min-width: 0; display: grid; gap: 12px; }
+  .sl label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .sl textarea, .sl select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .sl textarea { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; }
+  .sl textarea:focus, .sl select:focus { border-color: var(--accent); outline: none; }
+  .sl-checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 8px 16px; }
+  .sl-checks label { display: flex; align-items: center; gap: 6px; color: var(--ink); }
+  .sl-count { margin: 0; font-weight: 600; }
+  .sl-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sl button { font: inherit; font-size: 14px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .sl button:hover { border-color: var(--accent); }
+  .sl button[hidden] { display: none; }
+  .sl-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  const root = document.querySelector('.sl') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const inp = q<HTMLTextAreaElement>('.sl-in'), out = q<HTMLTextAreaElement>('.sl-out'), count = q<HTMLElement>('.sl-count');
+  const order = q<HTMLSelectElement>('[data-k="order"]');
+  const box = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const again = q<HTMLButtonElement>('.sl-again');
+  // A to Z: dictionary order, case ignored, lower case first on a tie. Natural: the same, but runs of digits compare by value.
+  const plain = new Intl.Collator('en', { sensitivity: 'variant', caseFirst: 'lower' });
+  const natural = new Intl.Collator('en', { sensitivity: 'variant', caseFirst: 'lower', numeric: true });
+  const shuffle = (a: string[]) => { const r = new Uint32Array(a.length); crypto.getRandomValues(r); for (let i = a.length - 1; i > 0; i--) { const j = r[i] % (i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
+
+  const update = () => {
+    again.hidden = order.value !== 'shuf';
+    if (inp.value === '') { out.value = ''; count.textContent = 'Paste or type some lines above.'; return; }
+    let lines = inp.value.replace(/\r\n?/g, '\n').split('\n');
+    if (lines.length > 1 && lines[lines.length - 1] === '') lines.pop();
+    const before = lines.length;
+    if (box('trim').checked) lines = lines.map((l) => l.trim());
+    let blanks = 0, dupes = 0;
+    if (box('blank').checked) { const n = lines.length; lines = lines.filter((l) => l.trim() !== ''); blanks = n - lines.length; }
+    if (box('dedupe').checked) {
+      const seen = new Set<string>(), nc = box('nocase').checked, n = lines.length;
+      lines = lines.filter((l) => { const k = nc ? l.toLocaleLowerCase() : l; if (seen.has(k)) return false; seen.add(k); return true; });
+      dupes = n - lines.length;
+    }
+    const o = order.value;
+    if (o === 'az') lines.sort(plain.compare);
+    else if (o === 'za') lines.sort((a, b) => plain.compare(b, a));
+    else if (o === 'nat') lines.sort(natural.compare);
+    else if (o === 'natd') lines.sort((a, b) => natural.compare(b, a));
+    else if (o === 'short') lines.sort((a, b) => [...a].length - [...b].length);
+    else if (o === 'long') lines.sort((a, b) => [...b].length - [...a].length);
+    else if (o === 'rev') lines.reverse();
+    else if (o === 'shuf') shuffle(lines);
+    if (box('num').checked) lines = lines.map((l, i) => `${i + 1}. ${l}`);
+    out.value = lines.join('\n');
+    const gone: string[] = [];
+    if (box('blank').checked) gone.push(`${plural(blanks, 'blank line')} removed`);
+    if (box('dedupe').checked) gone.push(`${plural(dupes, 'duplicate')} removed`);
+    count.textContent = `${plural(before, 'line')} in, ${plural(lines.length, 'line')} out${gone.length ? ': ' + gone.join(', ') : ''}.`;
+  };
+  inp.addEventListener('input', update);
+  order.addEventListener('change', update);
+  root.querySelectorAll('input[type=checkbox]').forEach((b) => b.addEventListener('change', update));
+  again.addEventListener('click', update);
+  q<HTMLElement>('.sl-copy').addEventListener('click', async () => {
+    if (!out.value) return;
+    try { await navigator.clipboard.writeText(out.value); count.textContent = 'Copied.'; } catch { out.select(); count.textContent = 'Press Ctrl+C (or ⌘+C) to copy.'; }
+  });
+  q<HTMLElement>('.sl-dl').addEventListener('click', () => {
+    if (!out.value) return;
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([out.value + '\n'], { type: 'text/plain' }));
+    a.download = 'sorted-lines.txt'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  q<HTMLElement>('.sl-clear').addEventListener('click', () => { inp.value = ''; update(); inp.focus(); });
+  update();
+</script>

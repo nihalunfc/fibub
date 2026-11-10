@@ -1,0 +1,96 @@
+---
+// #T914 One-rep max
+---
+<div class="tool-ui rm">
+  <section class="panel">
+    <div class="rm-fields">
+      <label>Weight lifted
+        <span class="rm-row"><input data-k="w" inputmode="decimal" value="100" /><select data-k="u"><option value="kg">kg</option><option value="lb">lb</option></select></span>
+      </label>
+      <label>Reps done (to near failure)
+        <input data-k="r" inputmode="numeric" value="5" />
+      </label>
+      <label>Round the table to
+        <select data-k="step"><option value="0">No rounding (0.1)</option><option value="1">Nearest 1</option><option value="2.5" selected>Nearest 2.5</option><option value="5">Nearest 5</option></select>
+      </label>
+    </div>
+    <dl class="rm-facts">
+      <div><dt>Epley</dt><dd class="rm-ep"></dd></div>
+      <div><dt>Brzycki</dt><dd class="rm-br"></dd></div>
+      <div><dt>Average</dt><dd class="rm-av"></dd></div>
+    </dl>
+    <p class="rm-warn" role="status"></p>
+    <p class="rm-say"></p>
+    <button type="button" class="rm-reset">Reset</button>
+  </section>
+  <section class="panel">
+    <h3>Percentage table</h3>
+    <p class="rm-fine">Percent of the average one-rep max, and about how many reps that weight allows (Epley turned around).</p>
+    <div class="rm-scroll"><table><thead><tr><th>% of 1RM</th><th>Weight</th><th>About reps</th></tr></thead><tbody></tbody></table></div>
+  </section>
+  <p class="rm-fine">An estimate for planning training, not a test. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .rm { display: grid; gap: 14px; margin-bottom: 32px; }
+  .rm .panel { padding: 16px; min-width: 0; }
+  .rm h3 { margin: 0 0 6px; font-size: 17px; }
+  .rm-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .rm label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .rm-row { display: flex; gap: 6px; min-width: 0; }
+  .rm-row input { flex: 1 1 auto; }
+  .rm-row select { flex: 0 0 auto; width: auto; }
+  .rm input, .rm select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .rm input:focus, .rm select:focus { border-color: var(--accent); outline: none; }
+  .rm-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 16px 0 6px; }
+  .rm-facts dt { font-size: 13px; color: var(--muted); }
+  .rm-facts dd { margin: 2px 0 0; font-size: 22px; font-weight: 700; overflow-wrap: anywhere; }
+  .rm-warn { margin: 6px 0; color: var(--warn); font-size: 14.5px; }
+  .rm-warn:empty { display: none; }
+  .rm-say { margin: 0 0 12px; color: var(--muted); font-size: 15px; }
+  .rm button { font: inherit; font-size: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .rm-scroll { overflow-x: auto; }
+  .rm table { border-collapse: collapse; width: 100%; font-size: 14.5px; font-variant-numeric: tabular-nums; }
+  .rm th, .rm td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  .rm th { font-size: 13px; color: var(--muted); font-weight: 600; }
+  .rm-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  const root = document.querySelector('.rm') as HTMLElement;
+  const el = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const q = (c: string) => root.querySelector(c) as HTMLElement;
+  const LB = 0.45359237;
+  const DEF: Record<string, string> = { w: '100', u: 'kg', r: '5', step: '2.5' };
+  const n1 = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const epley = (w: number, r: number) => (r === 1 ? w : w * (1 + r / 30));
+  const brzycki = (w: number, r: number) => (r >= 37 ? NaN : r === 1 ? w : (w * 36) / (37 - r));
+  let unit = 'kg';
+  const calc = () => {
+    const w = parseFloat(el('w').value), r = Math.round(parseFloat(el('r').value)), u = el('u').value;
+    const tb = q('tbody'); tb.innerHTML = '';
+    if (!(w > 0) || !(r >= 1)) { ['.rm-ep', '.rm-br', '.rm-av'].forEach((c) => (q(c).textContent = '–')); q('.rm-warn').textContent = ''; q('.rm-say').textContent = 'Type the weight and the reps (1 or more).'; return; }
+    const e = epley(w, r), b = brzycki(w, r), avg = Number.isFinite(b) ? (e + b) / 2 : e;
+    q('.rm-ep').textContent = `${n1(e)} ${u}`;
+    q('.rm-br').textContent = Number.isFinite(b) ? `${n1(b)} ${u}` : 'n/a';
+    q('.rm-av').textContent = `${n1(avg)} ${u}`;
+    q('.rm-warn').textContent = r > 12 ? `With more than 12 reps these formulas are less reliable; a set of 3 to 10 reps gives a better estimate.` : '';
+    q('.rm-say').textContent = `${n1(w)} ${u} for ${r} rep${r === 1 ? '' : 's'}: Epley w × (1 + r/30), Brzycki w × 36 / (37 − r).`;
+    const step = parseFloat(el('step').value);
+    for (let p = 100; p >= 50; p -= 5) {
+      let x = (avg * p) / 100; if (step > 0) x = Math.round(x / step) * step;
+      const reps = p === 100 ? 1 : Math.max(1, Math.round(30 * (100 / p - 1)));
+      const tr = document.createElement('tr'); tr.dataset.p = String(p);
+      for (const c of [`${p}%`, `${step > 0 ? x.toLocaleString('en-US', { maximumFractionDigits: 1 }) : n1(x)} ${u}`, String(reps)]) { const td = document.createElement('td'); td.textContent = c; tr.append(td); }
+      tb.append(tr);
+    }
+  };
+  el('u').addEventListener('change', () => {
+    const w = parseFloat(el('w').value), u = el('u').value;
+    if (w > 0 && u !== unit) el('w').value = String(+(u === 'lb' ? w / LB : w * LB).toFixed(1));
+    unit = u; calc();
+  });
+  root.querySelectorAll('input, select').forEach((i) => i.addEventListener('input', calc));
+  q('.rm-reset').addEventListener('click', () => { for (const k in DEF) el(k).value = DEF[k]; unit = 'kg'; calc(); });
+  calc();
+</script>

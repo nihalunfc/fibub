@@ -1,0 +1,98 @@
+---
+// #T851 JWT decoder
+---
+<div class="tool-ui jd">
+  <section class="panel">
+    <label>Token (JWT)<textarea class="jd-in" rows="5" spellcheck="false">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjMiLCJuYW1lIjoiQXNoYSIsImlhdCI6MTcwMDAwMDAwMH0.BtJKPEY4u0oZkkWIqrelzHlzdzhr2Zpn_IVhQt_zjqw</textarea></label>
+    <div class="jd-btns"><button type="button" class="btn secondary jd-clear">Clear</button></div>
+    <p class="jd-err" role="alert" hidden></p>
+    <p class="jd-warn">The signature is shown but <strong>not checked</strong>. Anyone can make a token that decodes; only the server that holds the key can tell whether it is genuine. The token never leaves this page.</p>
+  </section>
+  <section class="panel jd-res" hidden>
+    <h2 class="jd-h">Header <span class="jd-alg"></span></h2>
+    <pre class="jd-head"></pre>
+    <h2 class="jd-h">Payload</h2>
+    <pre class="jd-pay"></pre>
+    <div class="jd-times"></div>
+    <h2 class="jd-h">Signature (not verified)</h2>
+    <pre class="jd-sig"></pre>
+  </section>
+</div>
+
+<style is:inline>
+  .jd { display: grid; gap: 14px; margin-bottom: 32px; }
+  .jd .panel { padding: 16px; display: grid; gap: 10px; }
+  .jd label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .jd textarea { font: 14px ui-monospace, Menlo, Consolas, monospace; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; resize: vertical; word-break: break-all; }
+  .jd textarea:focus { border-color: var(--accent); outline: none; }
+  .jd-btns { display: flex; gap: 8px; }
+  .jd-h { font-size: 16px; margin: 4px 0 0; }
+  .jd-alg { font-weight: 400; color: var(--muted); font-size: 14px; }
+  .jd pre { margin: 0; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .jd-err { color: var(--bad); margin: 0; font-size: 14px; }
+  .jd-warn { margin: 0; font-size: 13px; color: var(--muted); }
+  .jd-times { display: grid; gap: 6px; }
+  .jd-t { margin: 0; font-size: 14px; }
+  .jd-t b { font-family: ui-monospace, Menlo, Consolas, monospace; }
+  .jd-good { color: var(--good); } .jd-bad { color: var(--bad); }
+</style>
+
+<script>
+  const root = document.querySelector('.jd') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const inp = $<HTMLTextAreaElement>('.jd-in'), err = $('.jd-err'), res = $('.jd-res');
+  const LABEL: Record<string, string> = { iat: 'Issued at (iat)', nbf: 'Not before (nbf)', exp: 'Expires (exp)' };
+
+  const part = (s: string, what: string) => {
+    if (!/^[A-Za-z0-9_-]*={0,2}$/.test(s)) throw new Error(`The ${what} has characters that are not Base64url.`);
+    let t = s.replace(/=+$/, '').replace(/-/g, '+').replace(/_/g, '/');
+    if (t.length % 4 === 1) throw new Error(`The ${what} is cut short.`);
+    t += '='.repeat((4 - (t.length % 4)) % 4);
+    const bin = atob(t); const u = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+    let json: unknown;
+    try { json = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(u)); } catch { throw new Error(`The ${what} decodes, but it is not JSON.`); }
+    if (!json || typeof json !== 'object' || Array.isArray(json)) throw new Error(`The ${what} is not a JSON object.`);
+    return json as Record<string, unknown>;
+  };
+  const span = (sec: number) => {
+    const s = Math.abs(sec);
+    const [n, u] = s >= 86400 * 2 ? [Math.round(s / 86400), 'day'] : s >= 7200 ? [Math.round(s / 3600), 'hour'] : s >= 120 ? [Math.round(s / 60), 'minute'] : [Math.round(s), 'second'];
+    return `${n.toLocaleString('en-US')} ${u}${n === 1 ? '' : 's'}`;
+  };
+  const utc = (t: number) => new Date(t * 1000).toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC');
+
+  const run = () => {
+    const tok = inp.value.trim().replace(/^Bearer\s+/i, '');
+    res.hidden = true; err.hidden = true;
+    if (!tok) return;
+    const bits = tok.split('.');
+    try {
+      if (bits.length === 5) throw new Error('This token has 5 parts, so it is encrypted (JWE). Only the holder of the key can read it.');
+      if (bits.length !== 3) throw new Error(`A JWT has 3 parts separated by dots (header.payload.signature); this has ${bits.length}.`);
+      const head = part(bits[0], 'header'), pay = part(bits[1], 'payload');
+      $('.jd-head').textContent = JSON.stringify(head, null, 2);
+      $('.jd-pay').textContent = JSON.stringify(pay, null, 2);
+      $('.jd-alg').textContent = typeof head.alg === 'string' ? `· ${head.alg}${head.alg === 'none' ? ' (no signature at all)' : ''}` : '';
+      $('.jd-sig').textContent = bits[2] || '(empty: this token is not signed)';
+      const box = $('.jd-times'); box.innerHTML = '';
+      const now = Date.now() / 1000;
+      for (const k of ['iat', 'nbf', 'exp']) {
+        const v = pay[k]; if (typeof v !== 'number') continue;
+        const p = document.createElement('p'); p.className = 'jd-t';
+        const b = document.createElement('b'); b.textContent = utc(v);
+        p.append(`${LABEL[k]}: `, b, ` (your time: ${new Date(v * 1000).toLocaleString()})`);
+        const st = document.createElement('span');
+        if (k === 'exp') { st.className = v < now ? 'jd-bad' : 'jd-good'; st.textContent = v < now ? ` Expired ${span(now - v)} ago.` : ` Valid for ${span(v - now)} more.`; }
+        else if (k === 'nbf') { st.className = v > now ? 'jd-bad' : 'jd-good'; st.textContent = v > now ? ` Not valid yet: starts in ${span(v - now)}.` : ' Already active.'; }
+        else st.textContent = v > now ? ` In the future (${span(v - now)} from now).` : ` ${span(now - v)} ago.`;
+        p.append(st); box.append(p);
+      }
+      if (!box.childNodes.length) box.textContent = 'No iat, nbf or exp times in this payload.';
+      res.hidden = false;
+    } catch (e) { err.textContent = (e as Error).message; err.hidden = false; }
+  };
+  inp.addEventListener('input', run);
+  $('.jd-clear').addEventListener('click', () => { inp.value = ''; run(); inp.focus(); });
+  run();
+</script>

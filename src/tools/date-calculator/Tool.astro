@@ -1,0 +1,150 @@
+---
+// #T933 Date calculator
+---
+<div class="tool-ui dc">
+  <div class="dc-tabs" role="tablist" aria-label="What do you want to work out?">
+    <button type="button" role="tab" data-m="age" aria-selected="true">Age</button>
+    <button type="button" role="tab" data-m="between" aria-selected="false">Days between</button>
+    <button type="button" role="tab" data-m="add" aria-selected="false">Add or subtract</button>
+  </div>
+  <section class="panel dc-p" data-p="age">
+    <div class="dc-grid">
+      <label>Date of birth <input class="dc-born" type="date" value="1990-05-15" /></label>
+      <label>Age on <input class="dc-on" type="date" /></label>
+    </div>
+    <p class="dc-big dc-age-big" aria-live="polite"></p>
+    <p class="dc-say dc-age-say" aria-live="polite"></p>
+  </section>
+  <section class="panel dc-p" data-p="between" hidden>
+    <div class="dc-grid">
+      <label>From <input class="dc-from" type="date" value="2026-01-01" /></label>
+      <label>To <input class="dc-to" type="date" value="2026-12-31" /></label>
+    </div>
+    <label class="dc-chk"><input class="dc-incl" type="checkbox" /> Count the end day too</label>
+    <p class="dc-big dc-btw-big" aria-live="polite"></p>
+    <p class="dc-say dc-btw-say" aria-live="polite"></p>
+  </section>
+  <section class="panel dc-p" data-p="add" hidden>
+    <div class="dc-grid">
+      <label>Start date <input class="dc-start" type="date" value="2026-01-31" /></label>
+      <label>Add or subtract
+        <select class="dc-op"><option value="1">Add</option><option value="-1">Subtract</option></select>
+      </label>
+      <label>How many <input class="dc-n" type="number" inputmode="numeric" min="0" step="1" value="1" /></label>
+      <label>Unit
+        <select class="dc-unit"><option value="d">Days</option><option value="w">Weeks</option><option value="m" selected>Months</option><option value="y">Years</option></select>
+      </label>
+    </div>
+    <p class="dc-big dc-add-big" aria-live="polite"></p>
+    <p class="dc-say dc-add-say" aria-live="polite"></p>
+  </section>
+  <div class="dc-row">
+    <button type="button" class="dc-reset">Reset</button>
+    <p class="dc-fine">Dates are calendar days in the Gregorian calendar. Nothing you type leaves this page.</p>
+  </div>
+</div>
+
+<style is:inline>
+  .dc { display: grid; gap: 14px; margin-bottom: 32px; }
+  .dc-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .dc-tabs button, .dc-reset { font: inherit; font-size: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .dc-tabs button[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .dc .panel { padding: 16px; }
+  .dc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 12px; }
+  .dc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .dc label.dc-chk { display: flex; align-items: center; gap: 8px; margin-top: 12px; color: var(--ink); }
+  .dc input:not([type=checkbox]), .dc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .dc input:focus, .dc select:focus { border-color: var(--accent); outline: none; }
+  .dc-big { font-size: 26px; font-weight: 700; margin: 14px 0 4px; overflow-wrap: anywhere; }
+  .dc-say { margin: 0; color: var(--muted); font-size: 15px; }
+  .dc-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .dc-fine { color: var(--muted); font-size: 13px; margin: 0; flex: 1 1 200px; }
+</style>
+
+<script>
+  const root = document.querySelector('.dc') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLInputElement>(s: string) => root.querySelector(s) as T;
+  const DAY = 86400000;
+  // Dates are whole days held as UTC midnight, so clock changes never shift a day.
+  const parse = (s: string) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) : NaN; };
+  const iso = (t: number) => new Date(t).toISOString().slice(0, 10);
+  const long = (t: number) => new Date(t).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const nf = (n: number) => n.toLocaleString('en-US');
+  const pl = (n: number, w: string) => `${nf(n)} ${w}${n === 1 ? '' : 's'}`;
+  const dim = (y: number, m: number) => new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  // Add months, keeping the day but moving to the month's last day when it is shorter (31 Jan + 1 month = 28 Feb).
+  const addMonths = (t: number, k: number) => { const d = new Date(t); const y = d.getUTCFullYear(), m = d.getUTCMonth() + k; const ty = y + Math.floor(m / 12), tm = ((m % 12) + 12) % 12; return Date.UTC(ty, tm, Math.min(d.getUTCDate(), dim(ty, tm))); };
+  // Whole years, months and days from a to b (a <= b).
+  const ymd = (a: number, b: number) => {
+    const da = new Date(a), db = new Date(b);
+    let months = (db.getUTCFullYear() - da.getUTCFullYear()) * 12 + db.getUTCMonth() - da.getUTCMonth();
+    if (addMonths(a, months) > b) months--;
+    return { y: Math.floor(months / 12), m: months % 12, d: Math.round((b - addMonths(a, months)) / DAY) };
+  };
+  const ymdText = (r: { y: number; m: number; d: number }) => `${pl(r.y, 'year')}, ${pl(r.m, 'month')}, ${pl(r.d, 'day')}`;
+  // Mon to Fri in [a, b).
+  const weekdays = (a: number, b: number) => {
+    const n = Math.round((b - a) / DAY); let c = Math.floor(n / 7) * 5;
+    for (let i = Math.floor(n / 7) * 7; i < n; i++) { const w = new Date(a + i * DAY).getUTCDay(); if (w !== 0 && w !== 6) c++; }
+    return c;
+  };
+  const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+
+  const age = () => {
+    const b = parse(q('.dc-born').value), on = parse(q('.dc-on').value);
+    const big = q<HTMLElement>('.dc-age-big'), say = q<HTMLElement>('.dc-age-say');
+    big.dataset.y = big.dataset.m = big.dataset.d = '';
+    if (!Number.isFinite(b) || !Number.isFinite(on)) { big.textContent = ''; say.textContent = 'Pick both dates.'; return; }
+    if (on < b) { big.textContent = ''; say.textContent = 'The "age on" date is before the date of birth.'; return; }
+    const r = ymd(b, on);
+    big.textContent = ymdText(r); big.dataset.y = String(r.y); big.dataset.m = String(r.m); big.dataset.d = String(r.d);
+    // Next birthday: the birthday in the year after the last one, using 28 February for 29 February in common years.
+    const next = addMonths(b, (r.y + 1) * 12), left = Math.round((next - on) / DAY);
+    say.dataset.next = iso(next);
+    say.textContent = `That is ${nf(Math.round((on - b) / DAY))} days or about ${nf(Math.floor((on - b) / DAY / 7))} weeks. ` +
+      (r.m === 0 && r.d === 0 ? `Happy birthday: ${r.y} today. ` : '') +
+      `Next birthday: ${long(next)}, in ${pl(left, 'day')} (turning ${r.y + 1}).`;
+  };
+  const between = () => {
+    let a = parse(q('.dc-from').value), b = parse(q('.dc-to').value);
+    const big = q<HTMLElement>('.dc-btw-big'), say = q<HTMLElement>('.dc-btw-say');
+    big.dataset.days = '';
+    if (!Number.isFinite(a) || !Number.isFinite(b)) { big.textContent = ''; say.textContent = 'Pick both dates.'; return; }
+    const swapped = b < a; if (swapped) [a, b] = [b, a];
+    const incl = q('.dc-incl').checked, end = incl ? b + DAY : b;
+    const days = Math.round((end - a) / DAY), wd = weekdays(a, end);
+    big.textContent = pl(days, 'day'); big.dataset.days = String(days); say.dataset.wd = String(wd);
+    say.textContent = (swapped ? 'The dates were the other way round, so they are swapped. ' : '') +
+      `${pl(Math.floor(days / 7), 'week')} and ${pl(days % 7, 'day')}, or ${ymdText(ymd(a, end))}. ` +
+      `Weekdays (Monday to Friday): ${nf(wd)}. Public holidays are not taken off. ` +
+      (incl ? 'Both the first and the last day are counted.' : 'The first day is counted, the last day is not (tick the box to count it).');
+  };
+  const add = () => {
+    const s = parse(q('.dc-start').value), n = Math.trunc(+q('.dc-n').value), sign = +q<HTMLSelectElement>('.dc-op').value, u = q<HTMLSelectElement>('.dc-unit').value;
+    const big = q<HTMLElement>('.dc-add-big'), say = q<HTMLElement>('.dc-add-say');
+    big.dataset.iso = '';
+    if (!Number.isFinite(s) || q('.dc-n').value.trim() === '' || !Number.isFinite(n) || n < 0) { big.textContent = ''; say.textContent = 'Pick a start date and type a whole number.'; return; }
+    const k = sign * n;
+    const t = u === 'd' ? s + k * DAY : u === 'w' ? s + k * 7 * DAY : addMonths(s, u === 'm' ? k : k * 12);
+    if (!Number.isFinite(t) || Math.abs(t) > 8.64e15) { big.textContent = ''; say.textContent = 'That is too far away to show.'; return; }
+    big.textContent = long(t); big.dataset.iso = iso(t);
+    const clamped = (u === 'm' || u === 'y') && new Date(t).getUTCDate() !== new Date(s).getUTCDate();
+    say.textContent = `${long(s)} ${sign > 0 ? 'plus' : 'minus'} ${pl(n, { d: 'day', w: 'week', m: 'month', y: 'year' }[u]!)} is ${iso(t)}.` +
+      (clamped ? ' That month is shorter, so the answer moves back to its last day.' : '');
+  };
+  const all = () => { age(); between(); add(); };
+  const show = (m: string) => {
+    root.querySelectorAll('.dc-tabs button').forEach((b) => b.setAttribute('aria-selected', String((b as HTMLElement).dataset.m === m)));
+    root.querySelectorAll<HTMLElement>('.dc-p').forEach((p) => { p.hidden = p.dataset.p !== m; });
+  };
+  root.querySelectorAll('.dc-tabs button').forEach((b) => b.addEventListener('click', () => show((b as HTMLElement).dataset.m!)));
+  root.querySelectorAll('input, select').forEach((el) => { el.addEventListener('input', all); el.addEventListener('change', all); });
+  const DEF: Record<string, string> = { '.dc-born': '1990-05-15', '.dc-from': '2026-01-01', '.dc-to': '2026-12-31', '.dc-start': '2026-01-31', '.dc-n': '1' };
+  q('.dc-reset').addEventListener('click', () => {
+    for (const [s, v] of Object.entries(DEF)) q(s).value = v;
+    q('.dc-on').value = today(); q('.dc-incl').checked = false; q<HTMLSelectElement>('.dc-op').value = '1'; q<HTMLSelectElement>('.dc-unit').value = 'm';
+    all();
+  });
+  q('.dc-on').value = today();
+  all();
+</script>

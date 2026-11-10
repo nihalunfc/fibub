@@ -1,0 +1,132 @@
+---
+// #T876 AC size
+---
+<div class="tool-ui ac">
+  <section class="panel">
+    <h3>Cooling: room air conditioner</h3>
+    <div class="ac-row">
+      <label>Units
+        <select data-k="units">
+          <option value="ft">Feet (sq ft)</option>
+          <option value="m">Metres (m²)</option>
+        </select>
+      </label>
+      <label><span class="ac-al">Room area (sq ft)</span> <input data-k="area" inputmode="decimal" value="300" /></label>
+      <label><span class="ac-hl">Ceiling height (ft)</span> <input data-k="h" inputmode="decimal" value="8" /></label>
+      <label>Sun
+        <select data-k="sun">
+          <option value="0">Normal</option>
+          <option value="-10">Heavily shaded (−10%)</option>
+          <option value="10">Very sunny (+10%)</option>
+        </select>
+      </label>
+      <label>Insulation
+        <select data-k="ins">
+          <option value="0">Average</option>
+          <option value="10">Poor (+10%)</option>
+          <option value="-10">Good (−10%)</option>
+        </select>
+      </label>
+      <label>People who usually use the room <input data-k="ppl" inputmode="numeric" value="2" /></label>
+      <label>BTU/h for each person over 2 <input data-k="pp" inputmode="decimal" value="600" /></label>
+      <label class="ac-ck"><input type="checkbox" data-k="kit" /> The room is a kitchen</label>
+      <label>BTU/h added for a kitchen <input data-k="kb" inputmode="decimal" value="4000" /></label>
+    </div>
+  </section>
+  <section class="panel ac-res" aria-live="polite">
+    <p class="ac-band"></p>
+    <p class="ac-big ac-need"></p>
+    <p class="ac-conv"></p>
+    <p class="ac-unit"></p>
+    <p class="ac-say"></p>
+  </section>
+  <section class="panel">
+    <h3>Heating: rough size</h3>
+    <div class="ac-row">
+      <label>Watts per m² (rough rule) <input data-k="wm" inputmode="decimal" value="100" /></label>
+    </div>
+    <p class="ac-heat" aria-live="polite"></p>
+  </section>
+  <div class="ac-btns"><button type="button" class="ac-reset">Reset</button></div>
+  <p class="ac-fine">Cooling bands from ENERGY STAR's room air conditioner sizing chart (energystar.gov, checked 2026-11-10); check the official source. This is an approximation for one room, not a full load calculation. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ac { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ac .panel { padding: 16px; }
+  .ac h3 { font-size: 16px; margin: 0 0 10px; }
+  .ac-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .ac label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ac .ac-ck { display: flex; align-items: center; gap: 8px; color: var(--ink); }
+  .ac input, .ac select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ac input[type="checkbox"] { width: auto; }
+  .ac input:focus, .ac select:focus { border-color: var(--accent); outline: none; }
+  .ac-res p, .ac-heat { margin: 4px 0; overflow-wrap: anywhere; }
+  .ac-big { font-size: 24px; font-weight: 700; }
+  .ac-say { color: var(--muted); font-size: 14px; }
+  .ac button { font: inherit; font-size: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .ac-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  const root = document.querySelector('.ac') as HTMLElement;
+  const el = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const out = (c: string) => root.querySelector('.' + c) as HTMLElement;
+  const n = (v: number, d = 2) => v.toLocaleString('en-US', { maximumFractionDigits: d });
+  const SQFT = 0.09290304, FT = 0.3048, BTU_W = 3.41214;
+  // ENERGY STAR room AC sizing chart: [upper limit in sq ft, BTU/h]. Each band runs from the previous limit (first from 100).
+  const BANDS: [number, number][] = [[150, 5000], [250, 6000], [300, 7000], [350, 8000], [400, 9000], [450, 10000], [550, 12000], [700, 14000], [1000, 18000], [1200, 21000], [1400, 23000], [1500, 24000], [2000, 30000], [2500, 34000]];
+  const UNITS = [5000, 6000, 8000, 10000, 12000, 14000, 18000, 24000];
+  const num = (s: string) => (s.trim() === '' ? NaN : Number(s));
+
+  const calc = () => {
+    const ft = el('units').value === 'ft';
+    const a = num(el('area').value), h = num(el('h').value);
+    const sqft = ft ? a : a / SQFT, hFt = ft ? h : h / FT, m2 = ft ? a * SQFT : a;
+    const clear = (m: string) => { for (const c of ['ac-band', 'ac-need', 'ac-conv', 'ac-unit', 'ac-heat']) out(c).textContent = ''; out('ac-say').textContent = m; };
+    if (!Number.isFinite(sqft) || sqft <= 0) return clear('Type the room area.');
+    const i = BANDS.findIndex(([top]) => sqft <= top + 1e-9);
+    if (i < 0) { clear(`${n(sqft, 0)} sq ft is beyond the ENERGY STAR room air conditioner chart (up to 2,500 sq ft). A space this big needs a proper load calculation by a professional.`); }
+    else {
+      const [top, base] = BANDS[i], lo = i ? BANDS[i - 1][0] : 100;
+      out('ac-band').textContent = `ENERGY STAR chart: ${sqft < 100 ? 'up to 150' : `${n(lo, 0)} to ${n(top, 0)}`} sq ft → ${n(base, 0)} BTU/h`;
+      const hf = Number.isFinite(hFt) && hFt > 8 ? hFt / 8 : 1;
+      const pct = (1 + +el('sun').value / 100) * (1 + +el('ins').value / 100);
+      const ppl = Math.max(0, (num(el('ppl').value) || 0) - 2), pp = num(el('pp').value) || 0;
+      const kit = el('kit').checked ? num(el('kb').value) || 0 : 0;
+      const need = Math.round(base * hf * pct + ppl * pp + kit);
+      out('ac-need').textContent = `About ${n(need, 0)} BTU/h`;
+      out('ac-conv').textContent = `= ${n(need / BTU_W / 1000, 2)} kW · ${n(need / 12000, 2)} tons of cooling`;
+      const unit = UNITS.find((u) => u >= need);
+      out('ac-unit').textContent = unit ? `Next common unit size: ${n(unit, 0)} BTU/h` : 'More than the largest common room unit (24,000 BTU/h): consider two units or a split system, and ask an installer.';
+      const parts = [`${n(base, 0)} BTU/h from the chart`];
+      if (hf > 1) parts.push(`× ${n(hf, 3)} for a ${n(hFt, 2)} ft ceiling`);
+      if (pct !== 1) parts.push(`× ${n(pct, 2)} for sun and insulation`);
+      if (ppl && pp) parts.push(`+ ${n(ppl * pp, 0)} for ${n(ppl, 0)} extra ${ppl === 1 ? 'person' : 'people'}`);
+      if (kit) parts.push(`+ ${n(kit, 0)} for a kitchen`);
+      out('ac-say').textContent = parts.join(' ') + '. A unit far too big cools in short bursts and leaves the room damp; too small runs all the time.';
+    }
+    const wm = num(el('wm').value);
+    if (!Number.isFinite(wm) || wm <= 0) { out('ac-heat').textContent = 'Type watts per m² to see a heating size.'; return; }
+    const w = m2 * wm;
+    out('ac-heat').textContent = `${n(m2, 1)} m² × ${n(wm)} W/m² = about ${n(w / 1000, 2)} kW (${n(w * BTU_W, 0)} BTU/h) of heating.`;
+  };
+
+  el('units').addEventListener('change', () => {
+    const ft = el('units').value === 'ft', a = num(el('area').value), h = num(el('h').value);
+    if (Number.isFinite(a)) el('area').value = String(+(ft ? a / SQFT : a * SQFT).toFixed(1));
+    if (Number.isFinite(h)) el('h').value = String(+(ft ? h / FT : h * FT).toFixed(2));
+    (root.querySelector('.ac-al') as HTMLElement).textContent = ft ? 'Room area (sq ft)' : 'Room area (m²)';
+    (root.querySelector('.ac-hl') as HTMLElement).textContent = ft ? 'Ceiling height (ft)' : 'Ceiling height (m)';
+    calc();
+  });
+  for (const k of ['area', 'h', 'ppl', 'pp', 'kb', 'wm']) el(k).addEventListener('input', calc);
+  for (const k of ['sun', 'ins', 'kit']) el(k).addEventListener('change', calc);
+  (root.querySelector('.ac-reset') as HTMLElement).addEventListener('click', () => {
+    el('units').value = 'ft'; el('area').value = '300'; el('h').value = '8'; el('sun').value = '0'; el('ins').value = '0';
+    el('ppl').value = '2'; el('pp').value = '600'; el('kit').checked = false; el('kb').value = '4000'; el('wm').value = '100';
+    (root.querySelector('.ac-al') as HTMLElement).textContent = 'Room area (sq ft)'; (root.querySelector('.ac-hl') as HTMLElement).textContent = 'Ceiling height (ft)';
+    calc();
+  });
+  calc();
+</script>

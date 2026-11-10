@@ -1,0 +1,115 @@
+---
+// #T918 Sleep calculator
+---
+<div class="tool-ui sc">
+  <div class="sc-tabs" role="tablist" aria-label="What do you know?">
+    <button type="button" role="tab" data-m="wake" aria-selected="true">I wake up at</button>
+    <button type="button" role="tab" data-m="bed" aria-selected="false">I go to bed at</button>
+    <button type="button" role="tab" data-m="now" aria-selected="false">Going to bed now</button>
+  </div>
+  <section class="panel">
+    <div class="sc-grid">
+      <label class="sc-tl"><span class="sc-tlab">Wake-up time</span>
+        <input class="sc-time" type="time" value="07:00" />
+      </label>
+      <label>Minutes to fall asleep
+        <input class="sc-fall" type="number" inputmode="decimal" min="0" max="120" step="5" value="15" />
+      </label>
+      <label>Cycle length (minutes)
+        <input class="sc-cyc" type="number" inputmode="decimal" min="60" max="120" step="5" value="90" />
+      </label>
+      <label>Clock
+        <select class="sc-clock"><option value="24">24-hour</option><option value="12">12-hour (AM/PM)</option></select>
+      </label>
+    </div>
+    <p class="sc-big" aria-live="polite"></p>
+    <ul class="sc-list" aria-live="polite"></ul>
+    <p class="sc-say"></p>
+    <button type="button" class="sc-reset">Reset</button>
+  </section>
+  <section class="panel">
+    <h2>How much sleep by age</h2>
+    <div class="sc-scroll">
+      <table class="sc-tbl">
+        <thead><tr><th>Age</th><th>Recommended (hours a day)</th></tr></thead>
+        <tbody>
+          <tr><td>4 to 12 months</td><td>12 to 16 (with naps)</td></tr>
+          <tr><td>1 to 2 years</td><td>11 to 14 (with naps)</td></tr>
+          <tr><td>3 to 5 years</td><td>10 to 13 (with naps)</td></tr>
+          <tr><td>6 to 12 years</td><td>9 to 12</td></tr>
+          <tr><td>13 to 18 years</td><td>8 to 10</td></tr>
+          <tr><td>Adults 18 to 64</td><td>7 to 9</td></tr>
+          <tr><td>65 and over</td><td>7 to 8</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="sc-fine">Children: American Academy of Sleep Medicine (Paruthi et al. 2016). Adults: AASM and Sleep Research Society (7 or more, 2015) and National Sleep Foundation (Hirshkowitz et al. 2015). Checked 2026-11-10.</p>
+  </section>
+  <p class="sc-fine">Estimates, not medical advice. Real sleep cycles vary from about 70 to 120 minutes and change through the night. If you are often tired after enough sleep, talk to a doctor. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .sc { display: grid; gap: 14px; margin-bottom: 32px; }
+  .sc .panel { padding: 16px; }
+  .sc h2 { font-size: 17px; margin: 0 0 10px; }
+  .sc-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .sc button { font: inherit; font-size: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .sc-tabs button[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .sc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 12px; }
+  .sc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .sc input, .sc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .sc input:focus, .sc select:focus { border-color: var(--accent); outline: none; }
+  .sc-big { font-size: 22px; font-weight: 700; margin: 14px 0 8px; }
+  .sc-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+  .sc-list li { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
+  .sc-list li.best { border-color: var(--accent); }
+  .sc-list b { font-size: 22px; min-width: 6ch; }
+  .sc-list span { color: var(--muted); font-size: 14px; }
+  .sc-say { color: var(--muted); font-size: 15px; margin: 10px 0; }
+  .sc-scroll { overflow-x: auto; }
+  .sc-tbl { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .sc-tbl th, .sc-tbl td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  .sc-tbl th { color: var(--muted); }
+  .sc-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+</style>
+
+<script>
+  const root = document.querySelector('.sc') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const time = q<HTMLInputElement>('.sc-time'), fall = q<HTMLInputElement>('.sc-fall'), cyc = q<HTMLInputElement>('.sc-cyc'), clock = q<HTMLSelectElement>('.sc-clock');
+  let mode = 'wake';
+  const fmt = (m: number) => {
+    m = ((Math.round(m) % 1440) + 1440) % 1440;
+    const h = Math.floor(m / 60), mm = String(m % 60).padStart(2, '0');
+    if (clock.value === '24') return `${String(h).padStart(2, '0')}:${mm}`;
+    return `${h % 12 || 12}:${mm} ${h < 12 ? 'AM' : 'PM'}`;
+  };
+  const hrs = (m: number) => { const h = Math.floor(m / 60), r = Math.round(m % 60); return r ? `${h} h ${r} min` : `${h} h`; };
+  const val = (el: HTMLInputElement, d: number) => { const v = parseFloat(el.value); return Number.isFinite(v) && v >= 0 ? v : d; };
+  const calc = () => {
+    const f = val(fall, 15), c = Math.max(30, val(cyc, 90));
+    let t: number;
+    if (mode === 'now') { const d = new Date(); t = d.getHours() * 60 + d.getMinutes(); }
+    else { const [h, m] = (time.value || '').split(':').map(Number); if (!Number.isFinite(h) || !Number.isFinite(m)) { q('.sc-big').textContent = 'Pick a time above.'; q('.sc-list').innerHTML = ''; return; } t = h * 60 + m; }
+    const back = mode === 'wake';
+    q('.sc-big').textContent = back ? `To wake at ${fmt(t)}, go to bed at:` : `${mode === 'now' ? 'Going to bed now (' + fmt(t) + ')' : 'Going to bed at ' + fmt(t)}, set your alarm for:`;
+    q('.sc-list').innerHTML = [6, 5, 4].map((n) => {
+      const at = back ? t - n * c - f : t + f + n * c;
+      return `<li data-c="${n}"${n >= 5 ? ' class="best"' : ''}><b>${fmt(at)}</b><span>${n} cycles, ${hrs(n * c)} of sleep${n === 5 ? ' (good for most adults)' : n === 6 ? ' (good if you need more)' : ' (short night)'}</span></li>`;
+    }).join('');
+    q('.sc-say').textContent = `Each cycle is ${c} minutes, plus ${f} minutes to fall asleep. Waking at the end of a cycle, when sleep is light, can feel easier than waking in the middle of one.`;
+  };
+  const show = (m: string) => {
+    mode = m;
+    root.querySelectorAll('.sc-tabs button').forEach((b) => b.setAttribute('aria-selected', String((b as HTMLElement).dataset.m === m)));
+    q('.sc-tl').hidden = m === 'now';
+    q('.sc-tlab').textContent = m === 'wake' ? 'Wake-up time' : 'Bedtime';
+    if (m === 'bed' && time.value === '07:00') time.value = '23:00';
+    if (m === 'wake' && time.value === '23:00') time.value = '07:00';
+    calc();
+  };
+  root.querySelectorAll('.sc-tabs button').forEach((b) => b.addEventListener('click', () => show((b as HTMLElement).dataset.m!)));
+  [time, fall, cyc, clock].forEach((el) => el.addEventListener('input', calc));
+  q('.sc-reset').addEventListener('click', () => { time.value = '07:00'; fall.value = '15'; cyc.value = '90'; clock.value = '24'; show('wake'); });
+  show('wake');
+</script>
