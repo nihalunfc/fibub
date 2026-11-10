@@ -1,0 +1,146 @@
+---
+// Cyclone builder (Learn): a low over the sea seen from above; air rushes in, the Earth's spin (Coriolis) turns it,
+// and over a warm enough sea, far enough from the equator, a cyclone grows. Maths in src/lib/sci/j3-cyclone.ts.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn cyb">
+  <div class="ax-card">
+    <div class="ax-row" style="margin-bottom:10px">
+      <span class="cyb-lab">Level</span>
+      <div class="ax-seg" role="group" aria-label="Level">
+        <button type="button" data-level="8" aria-pressed="true">Class 8</button>
+        <button type="button" data-level="11" aria-pressed="false">Class 11</button>
+      </div>
+    </div>
+    <canvas class="lrn-cv cyb-cv" aria-label="Air spiralling into a low over the sea, seen from above"></canvas>
+    <p class="cyb-state" style="margin:8px 0 0"><span class="ax-pill cyb-pill"></span></p>
+    <div class="cyb-bar" aria-hidden="true"><div class="cyb-fill"></div></div>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small cyb-play">Pause</button>
+      <button type="button" class="btn secondary small cyb-restart">Start again</button>
+      <label class="cyb-chk"><input type="checkbox" class="cyb-spin" checked /> Earth spins (Coriolis effect)</label>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Latitude <b class="cyb-latv"></b><input type="range" class="cyb-lat" min="-30" max="30" step="1" value="15" aria-label="Latitude in degrees, north positive" /></label>
+      <label class="lrn-sl">Sea surface temperature <b class="cyb-sstv"></b><input type="range" class="cyb-sst" min="20" max="32" step="0.5" value="29" aria-label="Sea surface temperature in degrees Celsius" /></label>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>What is happening</h2>
+    <dl class="ax-facts cyb-facts"></dl>
+    <div class="lrn-eq cyb-eq"></div>
+    <p class="ax-help">A teaching cartoon, not a forecast. The storm grows only when the sea is at least about 26.5 °C, the place is at least about 5° from the equator and the Earth's spin is on: commonly quoted rules of thumb. Real cyclones also need a pre-existing low, moist air and steady winds high up. The strength words are not an official scale.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Watch from the start: air rushes toward the low, turns, and starts to circle it. The storm grows and an eye forms.</li>
+      <li>Untick "Earth spins". The air now runs straight into the middle and fills the low, so the storm dies away.</li>
+      <li>Drag the latitude to the southern hemisphere. The storm spins the other way.</li>
+      <li>Move to the equator (0°). Even over a hot sea, nothing grows: the spin is zero there.</li>
+      <li>Cool the sea below 26.5 °C. Why do cyclones weaken when they move over land or cool water?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cyb-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { makeStorm, stepStorm, conditions, coriolis, turn, spinWay, spin, inflow, stage, fScaled, questions, OMEGA } from '../../lib/sci/j3-cyclone';
+  import { mountQuiz, fitCanvas, wireLevel, loop } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cyb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  let level = '8', seed = 2024;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  let st = makeStorm(160, rnd), tick = 0;
+  const lat = () => Number(inp('.cyb-lat').value), sst = () => Number(inp('.cyb-sst').value), on = () => inp('.cyb-spin').checked;
+  const latText = (l: number) => (l === 0 ? '0° (the equator)' : `${Math.abs(l)}° ${l > 0 ? 'N' : 'S'}`);
+
+  function draw(dt: number) {
+    if (dt > 0) stepStorm(st, dt, sst(), lat(), on(), rnd);
+    const pal = pagePalette(), { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.cyb-cv'), 320);
+    const dark = document.documentElement.dataset.theme === 'dark';
+    const warmth = Math.max(0, Math.min(1, (sst() - 20) / 12));
+    ctx.fillStyle = pal.red ? pal.bg : dark ? `rgb(${10 + 30 * warmth},${30},${60 - 20 * warmth})` : `rgb(${150 + 80 * warmth},${200 - 10 * warmth},${235 - 60 * warmth})`;
+    ctx.fillRect(0, 0, W, H);
+    const cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 6;
+    // cloud bands
+    if (st.S > 0.2) {
+      const sgn = lat() >= 0 ? 1 : -1;
+      ctx.strokeStyle = pal.red ? pal.muted : dark ? '#c8ccd2' : '#ffffff'; ctx.globalAlpha = Math.min(0.8, st.S);
+      for (let b = 0; b < 3; b++) { ctx.lineWidth = 10 + 10 * st.S; ctx.beginPath(); for (let a = 0; a < 5; a += 0.05) { const r = R * (0.12 + 0.08 * a), th = -sgn * a + (b * 2 * Math.PI) / 3 - sgn * st.t * 0.6; const x = cx + r * Math.cos(th), y = cy - r * Math.sin(th); if (a) ctx.lineTo(x, y); else ctx.moveTo(x, y); } ctx.stroke(); }
+      ctx.globalAlpha = 1;
+    }
+    // parcels as short streaks along their motion
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.6;
+    for (const p of st.ps) { const x = cx + p.x * R, y = cy - p.y * R; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - p.u * R * 0.12, y + p.v * R * 0.12); ctx.stroke(); }
+    // the eye / low
+    ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.arc(cx, cy, 6 + 10 * st.S, 0, 7); ctx.fill(); ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = pal.ink; ctx.font = '700 14px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('L', cx, cy + 5);
+    // north arrow and latitude
+    ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(`N ↑   ${latText(lat())}`, 8, 18);
+    if (tick++ % 10 === 0 || dt === 0) readout();
+  }
+
+  function fact(k: string, v: string, sm = '') {
+    const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd');
+    dt.textContent = k; dd.textContent = v;
+    if (sm) { const e = document.createElement('small'); e.textContent = sm; dd.append(e); }
+    d.append(dt, dd); return d;
+  }
+
+  function readout() {
+    const l = lat(), c = conditions(sst(), l, on()), sp = spin(st), c11 = level === '11';
+    q('.cyb-latv').textContent = latText(l); q('.cyb-sstv').textContent = `${sst()} °C`;
+    const pill = q('.cyb-pill');
+    pill.textContent = c.grows ? `Growing: ${stage(st.S)}` : st.S > 0.15 ? `Fading: ${stage(st.S)}` : `No storm: ${stage(st.S)}`;
+    pill.className = `ax-pill ${c.grows ? 'good' : 'warn'} cyb-pill`;
+    q<HTMLElement>('.cyb-fill').style.width = `${Math.round(st.S * 100)}%`;
+    const turning = Math.abs(sp) < 0.05 ? 'barely turning' : sp > 0 ? 'anticlockwise' : 'clockwise';
+    const facts = [
+      fact('Storm strength', `${Math.round(st.S * 100)}%`, stage(st.S)),
+      fact('The air is circling', turning, on() && l !== 0 ? `expected ${spinWay(l)} in the ${l > 0 ? 'north' : 'south'}` : 'no spin to turn it'),
+      fact('Moving air is turned', on() ? (turn(l) === 'none' ? 'not at all' : `to the ${turn(l)}`) : 'not at all', 'the Coriolis effect'),
+    ];
+    if (c11) facts.push(fact('Coriolis parameter f', `${(coriolis(on() ? l : 0) * 1e5).toFixed(2)} × 10⁻⁵ s⁻¹`, '2Ω sin φ'), fact('Inflow vs circling', `${inflow(st).toFixed(2)} : ${Math.abs(sp).toFixed(2)}`, 'average speeds in the picture'));
+    q('.cyb-facts').replaceChildren(...facts);
+    const lines: string[] = [];
+    if (c.grows) {
+      lines.push(`The sea at ${sst()} °C warms the air and fills it with water vapour. The warm, moist air rises, so the pressure in the middle falls and air rushes in from all sides.`);
+      lines.push(`The Earth's spin turns the moving air to the ${turn(l)}, so instead of reaching the middle it circles round the low ${spinWay(l)}. As the rising air's vapour turns into cloud and rain it gives out heat, which keeps the air rising: the storm feeds itself while it stays over warm water.`);
+    } else lines.push(...c.reasons);
+    if (c11) lines.push(`f = 2Ω sin φ = 2 × ${OMEGA.toExponential(3).replace('e-5', ' × 10⁻⁵')} × sin ${l}° = ${(coriolis(l) * 1e5).toFixed(3)} × 10⁻⁵ s⁻¹. The turning force on air moving at speed v is f v, sideways to its motion: zero at the equator, largest at the poles. (In the picture f is scaled up to ${fScaled(l, on()).toFixed(2)} so you can see it.)`);
+    q('.cyb-eq').replaceChildren(...lines.map((x) => { const e = document.createElement('p'); e.style.margin = '6px 0 0'; e.textContent = x; return e; }));
+    q('.cyb-cv').setAttribute('aria-label', `Seen from above at ${latText(l)}, sea ${sst()} °C: ${pill.textContent}; the air is ${turning}`);
+  }
+
+  let anim: ReturnType<typeof loop> | undefined;
+  const restart = () => { st = makeStorm(160, rnd); readout(); anim?.redraw(); };
+  q('.cyb-restart').addEventListener('click', restart);
+  root.querySelectorAll('.cyb-lat, .cyb-sst, .cyb-spin').forEach((e) => { e.addEventListener('input', () => { readout(); anim?.redraw(); }); e.addEventListener('change', () => { readout(); anim?.redraw(); }); });
+  wireLevel(root, (l) => { level = l; readout(); });
+  anim = loop(draw, q<HTMLButtonElement>('.cyb-play'));
+  const quizBox = document.createElement('div'); q('.cyb-quiz').append(quizBox);
+  mountQuiz(quizBox, () => questions(level));
+  document.addEventListener('fibub:theme', () => anim?.redraw());
+  const cv = q<HTMLCanvasElement>('.cyb-cv'); let rw = 0;
+  new ResizeObserver(() => { const w = cv.clientWidth; if (w !== rw) { rw = w; anim?.redraw(); } }).observe(cv);
+</script>
+
+<style is:inline>
+  .cyb .cyb-lab { font-size: 14px; color: var(--muted); margin-right: 8px; }
+  .cyb .ax-seg button { min-height: 44px; }
+  .cyb .cyb-chk { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font-size: 15px; }
+  .cyb .cyb-chk input { width: 22px; height: 22px; }
+  .cyb .cyb-pill { font-size: 14px; white-space: normal; }
+  .cyb .cyb-bar { height: 10px; border: 1px solid var(--line); border-radius: 6px; margin-top: 8px; overflow: hidden; }
+  .cyb .cyb-fill { height: 100%; background: var(--accent); width: 0; }
+</style>
