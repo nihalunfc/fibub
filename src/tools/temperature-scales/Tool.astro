@@ -1,0 +1,212 @@
+---
+// Temperature scales (Learn): Celsius, Fahrenheit and kelvin (and Rankine at Class 11) side by side on one thermometer
+// you drag; why absolute zero is −273.15 °C from a constant-volume gas thermometer; make your own scale.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn tsc">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">One temperature, three scales</h2>
+      <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="8" aria-pressed="true">Class 8–10</button><button type="button" data-level="11" aria-pressed="false">Class 11</button></div>
+    </div>
+    <canvas class="lrn-cv ts-cv" style="margin-top:10px" aria-label="Thermometers in Celsius, Fahrenheit and kelvin side by side, sharing one level; drag up or down to change the temperature"></canvas>
+    <p class="ax-help">Drag the thermometer up or down, use the slider, or type a temperature in any scale.</p>
+    <div class="ax-grid" style="margin-top:8px">
+      <label class="lrn-sl">Temperature <b class="ts-cv-v"></b><input type="range" class="ts-sl" min="-273.15" max="500" step="0.05" value="25" aria-label="Temperature in degrees Celsius" /></label>
+      <label>Type a temperature<input type="text" inputmode="decimal" class="ts-in" value="25" aria-label="Temperature value" /></label>
+      <label>in<select class="ts-unit"><option value="C" selected>°C (Celsius)</option><option value="F">°F (Fahrenheit)</option><option value="K">K (kelvin)</option><option value="R">°R (Rankine)</option></select></label>
+    </div>
+    <p class="ax-err ts-err" hidden></p>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small ts-jump" data-c="-273.15">Absolute zero</button>
+      <button type="button" class="btn secondary small ts-jump" data-c="-40">−40°</button>
+      <button type="button" class="btn secondary small ts-jump" data-c="0">Ice melts</button>
+      <button type="button" class="btn secondary small ts-jump" data-c="37">Body</button>
+      <button type="button" class="btn secondary small ts-jump" data-c="100">Water boils</button>
+    </div>
+    <p class="lrn-eq ts-eq"></p>
+    <dl class="ax-facts ts-facts" style="margin-top:10px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Why −273.15 °C?</h2>
+    <p class="ax-help" style="margin-top:0">Trap some gas in a closed flask so its volume cannot change, and read its pressure at several temperatures. The points lie on a straight line. Carry the line on to colder temperatures (dashed) and it reaches zero pressure at −273.15 °C, whatever gas and however much of it. The gas would turn liquid first, but every line points to the same place: the coldest anything can be.</p>
+    <canvas class="lrn-cv ts-gas" style="margin-top:10px" aria-label="Pressure against temperature for three samples of gas; their straight lines all reach zero pressure at minus 273.15 degrees Celsius"></canvas>
+    <div class="ax-grid" style="margin-top:8px">
+      <label class="lrn-sl">Gas in the flask (pressure at 0 °C) <b class="ts-p0v"></b><input type="range" class="ts-p0" min="40" max="200" step="10" value="100" aria-label="Pressure at 0 degrees Celsius in kilopascals" /></label>
+    </div>
+    <p class="lrn-eq ts-geq"></p>
+  </div>
+
+  <div class="ax-card" data-only="11" hidden>
+    <h2>Make your own scale</h2>
+    <p class="ax-help" style="margin-top:0">Any scale fixed by two points is a straight-line copy of Celsius. Give your scale a reading for melting ice and one for boiling water.</p>
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Ice point reads<input type="text" inputmode="decimal" class="ts-a" value="20" aria-label="Ice point on your scale" /></label>
+      <label>Steam point reads<input type="text" inputmode="decimal" class="ts-b" value="220" aria-label="Steam point on your scale" /></label>
+    </div>
+    <p class="ax-err ts-cerr" hidden></p>
+    <p class="lrn-eq ts-ceq"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Press −40°: Celsius and Fahrenheit read the same number. Can you show why with the formula?</li>
+      <li>Press Absolute zero: kelvin reads 0. Try typing −300 °C.</li>
+      <li>Warm by 10 °C and watch the kelvin reading: it also goes up by exactly 10. A Fahrenheit degree is smaller (9 of them for every 5 Celsius degrees).</li>
+      <li>On the gas graph, change how much gas is in the flask: the line gets steeper or flatter but still meets zero at −273.15 °C.</li>
+      <li>At Class 11, make a scale with ice point 20 and steam point 220, then find the temperature where it agrees with Celsius.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card ts-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { toC, fromC, belowAbsZero, toCustom, sameReading, gasPressure, ABS_ZERO_C, type Scale } from '../../lib/sci/n2-thermal';
+  import { mountQuiz, pick, one, r, fitCanvas, wireLevel } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.tsc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const num = (s: string) => { const t = s.trim().replace(/[−–]/g, '-').replace(/,/g, ''); return t === '' ? NaN : Number(t); };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const UN: Record<Scale, string> = { C: '°C', F: '°F', K: 'K', R: '°R' };
+  // Show to 2 decimals, dropping trailing zeros.
+  const f2 = (x: number) => { const s = (Math.round(x * 100) / 100).toFixed(2).replace(/\.?0+$/, ''); return s === '-0' ? '0' : s.replace('-', '−'); };
+  let level = '8', C = 25;
+  const LO = -290, HI = 520;
+  const marks: [number, string][] = [[ABS_ZERO_C, 'absolute zero'], [-40, 'C = F'], [0, 'ice melts'], [37, 'body'], [100, 'water boils'], [327.5, 'lead melts']];
+
+  function geom(W: number, H: number) {
+    const top = 14, bot = H - 22, cols = level === '11' ? 4 : 3, left = 4, right = W - Math.min(96, W * 0.27);
+    const y = (c: number) => bot - ((c - LO) / (HI - LO)) * (bot - top);
+    const cOf = (py: number) => LO + ((bot - py) / (bot - top)) * (HI - LO);
+    return { top, bot, cols, left, right, y, cOf, cw: (right - left) / cols };
+  }
+
+  function drawThermo() {
+    const { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.ts-cv'), 330), g = geom(W, H), pal = pagePalette(), hot = pal.red ? pal.ink : pal.bad;
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const scales: Scale[] = level === '11' ? ['C', 'F', 'K', 'R'] : ['C', 'F', 'K'];
+    // Landmarks across all columns
+    ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'left';
+    for (const [c, lab] of marks) {
+      const yy = g.y(c); ctx.strokeStyle = pal.grid; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(g.left, yy); ctx.lineTo(g.right + 4, yy); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = pal.muted; ctx.fillText(lab, g.right + 6, yy + 4);
+    }
+    scales.forEach((s, i) => {
+      const cx = g.left + g.cw * (i + 0.5), tw = 12;
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.2; ctx.strokeRect(cx - tw / 2, g.top, tw, g.bot - g.top);
+      ctx.fillStyle = hot; const yv = g.y(C); ctx.fillRect(cx - tw / 2 + 2, yv, tw - 4, g.bot - yv);
+      ctx.beginPath(); ctx.arc(cx, g.bot + 6, 9, 0, 7); ctx.fill();
+      // ticks in this scale's own units
+      const step = s === 'F' || s === 'R' ? 200 : 100, lo = fromC(LO, s), hi = fromC(HI, s);
+      ctx.fillStyle = pal.muted; ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.font = '10px system-ui, sans-serif';
+      for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) {
+        const yy = g.y(toC(v, s)); ctx.beginPath(); ctx.moveTo(cx - tw / 2 - 4, yy); ctx.lineTo(cx - tw / 2, yy); ctx.stroke();
+        ctx.fillText(String(v).replace('-', '−'), cx - tw / 2 - 5, yy + 3);
+      }
+      ctx.textAlign = 'center'; ctx.fillStyle = pal.ink; ctx.font = 'bold 13px system-ui, sans-serif'; ctx.fillText(UN[s], cx, H - 2);
+    });
+    // Present level and readings
+    const yv = g.y(C); ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(g.left, yv); ctx.lineTo(g.right, yv); ctx.stroke();
+    ctx.font = 'bold 11px system-ui, sans-serif';
+    scales.forEach((s, i) => {
+      const cx = g.left + g.cw * (i + 0.5), txt = f2(fromC(C, s)); ctx.textAlign = 'left';
+      const tw = ctx.measureText(txt).width + 6, x0 = cx + 9, yb = Math.max(g.top + 12, yv - 4);
+      ctx.fillStyle = pal.bg; ctx.fillRect(x0 - 2, yb - 11, tw, 14); ctx.fillStyle = pal.ink; ctx.fillText(txt, x0 + 1, yb);
+    });
+  }
+
+  function drawGas() {
+    const { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.ts-gas'), 230), pal = pagePalette(), p0 = +q<HTMLInputElement>('.ts-p0').value;
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const L = 40, Rm = 10, T = 10, B = H - 30, tMin = -300, tMax = 200, pMax = 300;
+    const X = (t: number) => L + ((t - tMin) / (tMax - tMin)) * (W - L - Rm), Y = (p: number) => B - (p / pMax) * (B - T);
+    ctx.strokeStyle = pal.grid; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'center';
+    for (let t = -300; t <= 200; t += 100) { ctx.beginPath(); ctx.moveTo(X(t), T); ctx.lineTo(X(t), B); ctx.stroke(); ctx.fillText(String(t).replace('-', '−'), X(t), B + 12); }
+    ctx.textAlign = 'right'; for (let p = 0; p <= pMax; p += 100) { ctx.beginPath(); ctx.moveTo(L, Y(p)); ctx.lineTo(W - Rm, Y(p)); ctx.stroke(); ctx.fillText(String(p), L - 4, Y(p) + 3); }
+    ctx.textAlign = 'center'; ctx.fillText('temperature (°C)', (L + W) / 2, H - 2);
+    ctx.save(); ctx.translate(10, (T + B) / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('pressure (kPa)', 0, 0); ctx.restore();
+    const cols = pal.red ? [pal.ink, pal.muted, pal.ink] : [pal.accent, pal.accent2, pal.good];
+    [p0 * 0.5, p0, p0 * 1.5].forEach((pp, i) => {
+      ctx.strokeStyle = cols[i]; ctx.lineWidth = 2;
+      ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(X(ABS_ZERO_C), Y(0)); ctx.lineTo(X(-50), Y(gasPressure(pp, -50))); ctx.stroke(); ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(X(-50), Y(gasPressure(pp, -50))); ctx.lineTo(X(tMax), Y(gasPressure(pp, tMax))); ctx.stroke();
+      ctx.fillStyle = cols[i]; for (const t of [-50, 0, 50, 100, 150]) { ctx.beginPath(); ctx.arc(X(t), Y(gasPressure(pp, t)), 3.5, 0, 7); ctx.fill(); }
+    });
+    ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.arc(X(ABS_ZERO_C), Y(0), 5, 0, 7); ctx.fill();
+    ctx.textAlign = 'left'; ctx.font = 'bold 11px system-ui, sans-serif'; ctx.fillText('−273.15 °C', X(ABS_ZERO_C) + 6, Y(0) - 6);
+    q('.ts-p0v').textContent = `${p0} kPa`;
+    q('.ts-geq').textContent = `p = p₀ × (t + 273.15) / 273.15 = ${p0} × (${f2(C)} + 273.15) / 273.15 = ${sig(Math.max(0, gasPressure(p0, C)), 4)} kPa at ${f2(C)} °C. The middle line: half as much gas gives half the pressure (lower line), half as much again the upper line.`;
+  }
+
+  function custom() {
+    const a = num(q<HTMLInputElement>('.ts-a').value), b = num(q<HTMLInputElement>('.ts-b').value), err = q('.ts-cerr');
+    if (!Number.isFinite(a) || !Number.isFinite(b) || a === b) { err.hidden = false; err.textContent = 'Give two different numbers for the ice point and the steam point.'; q('.ts-ceq').textContent = ''; return; }
+    err.hidden = true;
+    const x = toCustom(C, a, b), same = sameReading(a, b);
+    q('.ts-ceq').textContent = `X = a + (b − a) × C / 100 = ${f2(a)} + ${f2(b - a)} × ${f2(C)} / 100 = ${f2(x)} on your scale. ` +
+      (Number.isFinite(same) ? `It reads the same as Celsius at C = a / (1 − (b − a)/100) = ${f2(same)} °C.` : 'Its degrees are the same size as Celsius degrees, so it never reads the same (unless a = 0).');
+  }
+
+  function update(from: 'slider' | 'typed' | 'other' = 'other') {
+    const err = q('.ts-err');
+    if (from === 'typed') {
+      const v = num(q<HTMLInputElement>('.ts-in').value), u = q<HTMLSelectElement>('.ts-unit').value as Scale;
+      if (!Number.isFinite(v)) { err.hidden = false; err.textContent = 'Type a number, for example 25 or −40.'; return; }
+      const c = toC(v, u);
+      if (belowAbsZero(c)) { err.hidden = false; err.textContent = `Nothing can be colder than absolute zero: ${f2(v)} ${UN[u]} is ${f2(c)} °C, below −273.15 °C (0 K).`; return; }
+      err.hidden = true; C = c; q<HTMLInputElement>('.ts-sl').value = String(C);
+    } else {
+      err.hidden = true;
+      if (from === 'slider') C = Math.max(ABS_ZERO_C, +q<HTMLInputElement>('.ts-sl').value);
+      else q<HTMLInputElement>('.ts-sl').value = String(C);
+      const u = q<HTMLSelectElement>('.ts-unit').value as Scale; q<HTMLInputElement>('.ts-in').value = f2(fromC(C, u)).replace('−', '-');
+    }
+    const F = fromC(C, 'F'), K = fromC(C, 'K'), Rk = fromC(C, 'R');
+    q('.ts-cv-v').textContent = `${f2(C)} °C`;
+    q('.ts-eq').textContent = `F = 9/5 × C + 32 = 1.8 × ${f2(C)} + 32 = ${f2(F)} °F.  K = C + 273.15 = ${f2(C)} + 273.15 = ${f2(K)} K.` + (level === '11' ? `  Rankine = 9/5 × K = ${f2(Rk)} °R.` : '');
+    const items = [fact('Celsius', `${f2(C)} °C`), fact('Fahrenheit', `${f2(F)} °F`), fact('Kelvin', `${f2(K)} K`, 'no ° sign, never negative')];
+    if (level === '11') items.push(fact('Rankine', `${f2(Rk)} °R`, 'absolute scale with Fahrenheit-sized degrees'));
+    items.push(fact('Above absolute zero', `${f2(K)} degrees`, 'in kelvin or Celsius degrees'));
+    q('.ts-facts').replaceChildren(...items);
+    drawThermo(); drawGas(); custom();
+  }
+
+  wireLevel(root, (l) => { level = l; const o = q<HTMLSelectElement>('.ts-unit').querySelector<HTMLOptionElement>('[value="R"]')!; o.hidden = l !== '11'; if (l !== '11' && q<HTMLSelectElement>('.ts-unit').value === 'R') q<HTMLSelectElement>('.ts-unit').value = 'C'; update(); });
+  q('.ts-sl').addEventListener('input', () => update('slider'));
+  q('.ts-in').addEventListener('input', () => update('typed'));
+  q('.ts-unit').addEventListener('change', () => update('other'));
+  q('.ts-p0').addEventListener('input', () => drawGas());
+  q('.ts-a').addEventListener('input', custom); q('.ts-b').addEventListener('input', custom);
+  root.querySelectorAll<HTMLButtonElement>('.ts-jump').forEach((b) => b.addEventListener('click', () => { C = +b.dataset.c!; update(); }));
+  const cv = q<HTMLCanvasElement>('.ts-cv'); let drag = false;
+  const at = (e: PointerEvent) => { const rc = cv.getBoundingClientRect(), g = geom(rc.width, 330); C = Math.round(Math.min(HI - 20, Math.max(ABS_ZERO_C, g.cOf(e.clientY - rc.top)))); if (C < ABS_ZERO_C + 1) C = ABS_ZERO_C; update(); };
+  cv.addEventListener('pointerdown', (e) => { drag = true; cv.setPointerCapture(e.pointerId); at(e); e.preventDefault(); });
+  cv.addEventListener('pointermove', (e) => { if (drag) at(e); });
+  cv.addEventListener('pointerup', () => { drag = false; });
+  addEventListener('resize', () => { drawThermo(); drawGas(); });
+  update();
+
+  mountQuiz(q('.ts-quiz'), () => {
+    const c1 = pick(-30, 60), f1 = pick(-4, 220, 2), k1 = pick(200, 400), a = pick(-20, 40, 5), b = a + one([150, 200, 250]);
+    const x1 = pick(1, 9) * 10, same = sameReading(a, b);
+    const kind = one([0, 1]);
+    return [
+      { q: `Turn ${c1} °C into Fahrenheit.`, ans: fromC(c1, 'F'), unit: '°F', abs: 0.1, work: `F = 1.8 × C + 32 = 1.8 × ${c1} + 32 = ${r(fromC(c1, 'F'), 4)} °F` },
+      { q: `A recipe says ${f1} °F. What is that in Celsius?`, ans: toC(f1, 'F'), unit: '°C', abs: 0.1, work: `C = (F − 32) × 5/9 = (${f1} − 32) × 5/9 = ${r(toC(f1, 'F'), 4)} °C` },
+      { q: `A gas is at ${k1} K. What is its temperature in Celsius?`, ans: toC(k1, 'K'), unit: '°C', abs: 0.05, work: `C = K − 273.15 = ${k1} − 273.15 = ${r(toC(k1, 'K'), 5)} °C` },
+      { q: `A thermometer reads ${a} at melting ice and ${b} at boiling water. What does it read at ${x1} °C?`, ans: toCustom(x1, a, b), unit: '', abs: 0.1, work: `X = a + (b − a) × C / 100 = ${a} + ${b - a} × ${x1} / 100 = ${r(toCustom(x1, a, b), 4)}` },
+      kind === 0
+        ? { q: 'At what temperature do the Celsius and Fahrenheit scales read the same number?', ans: -40, unit: '°', abs: 0.1, work: 'Set F = C: C = 1.8 C + 32, so −0.8 C = 32 and C = −40. So −40 °C = −40 °F.' }
+        : { q: `For the scale above (${a} at ice, ${b} at steam), at what Celsius temperature does it read the same number as Celsius?`, ans: same, unit: '°C', abs: 0.1, work: `Set X = C: C = ${a} + ${(b - a) / 100} C, so C (1 − ${(b - a) / 100}) = ${a} and C = ${r(same, 4)} °C` },
+    ];
+  });
+</script>
