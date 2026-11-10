@@ -1,0 +1,160 @@
+---
+// Growing patterns: triangle, square, pentagon and hexagon numbers drawn as nested dot polygons, a matchstick row,
+// the difference table, guess-the-next-step, the nth-term rule and the sum, plus a rule finder for your own
+// sequence. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+import { PATTERNS } from '../../lib/sci/figurate-school';
+---
+<div class="ax sm fg">
+  <div class="ax-card">
+    <h2>The pattern</h2>
+    <div class="ax-seg fg-pat" role="group" aria-label="Pattern">{PATTERNS.map((p, i) => <button type="button" data-p={p.id} aria-pressed={i === 0 ? 'true' : 'false'}>{p.name}</button>)}</div>
+    <svg class="sm-fig fg-fig" viewBox="0 0 340 240" role="img" aria-label="The dots of this step, with the newest layer coloured" style="margin-top:10px"></svg>
+    <div class="sm-sl"><b>n</b><input type="range" class="fg-nr" min="1" max="8" step="1" value="4" aria-label="Step slider" /><input type="number" class="fg-n" min="1" max="8" step="1" value="4" inputmode="numeric" aria-label="Step number n (1 to 8)" /></div>
+    <p class="ax-big fg-big" aria-live="polite"></p>
+    <p class="ax-help fg-new"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Find the rule</h2>
+    <div class="ax-scroll fg-tab"></div>
+    <p class="ax-help">The 1st differences are what each step adds. When they are all the same, the rule is a straight line (like an AP). When the 2nd differences are all the same, the rule has an n² in it.</p>
+    <label>Guess: how many in the next step after the table?
+      <span class="ax-row" style="margin-top:4px"><input type="text" class="fg-guess" inputmode="numeric" autocomplete="off" aria-label="Your guess" style="flex:1 1 8em" /><button type="button" class="btn small fg-gcheck">Check</button><button type="button" class="btn secondary small fg-reveal">Show the rule</button></span>
+    </label>
+    <p class="fg-gres" aria-live="polite"></p>
+    <div class="fg-rule" hidden>
+      <p class="sm-f fg-rtext"></p>
+      <p class="sm-f fg-why"></p>
+      <div class="sm-sl"><b>k</b><input type="range" class="fg-kr" min="1" max="100" step="1" value="20" aria-label="Any step slider" /><input type="number" class="fg-k" min="1" step="1" value="20" inputmode="numeric" aria-label="Any step k" /></div>
+      <p class="sm-f fg-kout"></p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Your own sequence</h2>
+    <label>Type the first few terms, separated by commas
+      <input type="text" class="fg-own" value="2, 5, 10, 17" autocomplete="off" inputmode="text" aria-label="Your sequence" />
+    </label>
+    <ol class="sm-steps fg-osteps"></ol>
+    <p class="ax-big fg-orule" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Square pattern: count the dots in each coloured L. What are they? Add them up.</li>
+      <li>Triangle pattern: what do two triangles of step n make if you turn one upside down?</li>
+      <li>Type 1, 3, 6, 10 into "Your own sequence". Which pattern is it?</li>
+      <li>Type 1, 2, 4, 8 and then 1, 2, 4, 7. Same start, very different rules. Why do you need more than a few terms to be sure?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="fg-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .fg svg .fg-old { fill: var(--muted); }
+  .fg svg .fg-newd { fill: var(--accent); }
+  .fg svg .fg-stick { stroke: var(--muted); stroke-width: 5; stroke-linecap: round; }
+  .fg svg .fg-stick.fg-newd { stroke: var(--accent); fill: none; }
+  .fg .fg-gres.good { color: var(--good); font-weight: 650; }
+  .fg .fg-gres.bad { color: var(--bad); }
+  .fg .fg-tab table { font-variant-numeric: tabular-nums; }
+</style>
+
+<script>
+  import { PATTERNS, polygonDots, differences, findRule, polygonal, type Pattern } from '../../lib/sci/figurate-school';
+  import { fmt, randInt, readNums } from '../../lib/sci/smath';
+  import { S, pair, val, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.fg')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.fg-fig'), Nb = q<HTMLInputElement>('.fg-n'), Kb = q<HTMLInputElement>('.fg-k');
+  pair(q('.fg-nr'), Nb, draw); pair(q('.fg-kr'), Kb, ruleK);
+  let pat: Pattern = PATTERNS[0];
+  root.querySelectorAll<HTMLButtonElement>('.fg-pat button').forEach((b) => b.addEventListener('click', () => {
+    pat = PATTERNS.find((p) => p.id === b.dataset.p)!;
+    root.querySelectorAll('.fg-pat button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.fg-rule').hidden = true; q('.fg-gres').textContent = ''; q<HTMLInputElement>('.fg-guess').value = '';
+    draw();
+  }));
+  const li = (t: string) => Object.assign(document.createElement('li'), { textContent: t });
+
+  function picture(n: number) {
+    fig.replaceChildren();
+    if (pat.s) {
+      const dots = polygonDots(pat.s, n);
+      const xs = dots.map((d) => d.x), ys = dots.map((d) => d.y);
+      const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+      const k = Math.min(36, 290 / Math.max(x1 - x0, 1e-9), 200 / Math.max(y1 - y0, 1e-9)), ox = 170 - ((x0 + x1) / 2) * k, oy = 120 + ((y0 + y1) / 2) * k;
+      const r = Math.max(3, Math.min(11, k * 0.3));
+      for (const d of dots) S('circle', { cx: ox + d.x * k, cy: oy - d.y * k, r, class: d.layer === n ? 'fg-newd' : 'fg-old' }, fig);
+    } else {
+      // n squares of matchsticks in a row; the last square's 3 new sticks in colour.
+      const k = Math.min(60, 300 / n), ox = 170 - (n * k) / 2, top = 120 - k / 2, bot = 120 + k / 2;
+      const stick = (x1: number, y1: number, x2: number, y2: number, nw: boolean) => S('line', { x1, y1, x2, y2, class: `fg-stick${nw ? ' fg-newd' : ''}` }, fig);
+      stick(ox, top, ox, bot, n === 1);
+      for (let i = 0; i < n; i++) { const nw = i === n - 1; stick(ox + i * k, top, ox + (i + 1) * k, top, nw); stick(ox + i * k, bot, ox + (i + 1) * k, bot, nw); stick(ox + (i + 1) * k, top, ox + (i + 1) * k, bot, nw); }
+    }
+  }
+
+  function draw() {
+    const n = Math.round(val(Nb, 4, 1, 8)), unit = pat.s ? 'dots' : 'matchsticks';
+    picture(n);
+    q('.fg-big').textContent = `Step ${n}: ${pat.term(n)} ${unit}`;
+    q('.fg-new').textContent = n === 1 ? 'Step 1 is where the pattern starts.' : `The coloured ${unit} are the ${pat.term(n) - pat.term(n - 1)} new ones added to step ${n - 1}.`;
+    const terms = Array.from({ length: 6 }, (_, i) => pat.term(i + 1)), { d1, d2 } = differences(terms);
+    const t = document.createElement('table');
+    const row = (head: string, vals: (number | string)[]) => { const tr = document.createElement('tr'); const th = document.createElement('th'); th.textContent = head; tr.append(th); vals.forEach((v) => { const td = document.createElement('td'); td.className = 'r'; td.textContent = String(v); tr.append(td); }); return tr; };
+    t.append(row('Step n', [1, 2, 3, 4, 5, 6]), row(pat.s ? 'Dots' : 'Sticks', terms), row('1st difference', ['', ...d1]), row('2nd difference', ['', '', ...d2]));
+    q('.fg-tab').replaceChildren(t);
+    q('.fg-rtext').textContent = `nth term = ${pat.rule}. Sum of the first n steps = ${pat.sumRule}.`;
+    q('.fg-why').textContent = pat.why;
+    ruleK();
+  }
+  function ruleK() {
+    const k = Math.round(val(Kb, 20, 1, 1e6));
+    q('.fg-kout').textContent = `Step ${k} has ${fmt(pat.term(k), 0)} ${pat.s ? 'dots' : 'matchsticks'}, and the first ${k} steps together have ${fmt(pat.sum(k), 0)}.`;
+  }
+  q('.fg-gcheck').addEventListener('click', () => {
+    const g = readNums(q<HTMLInputElement>('.fg-guess').value)[0], want = pat.term(7), res = q('.fg-gres');
+    if (!Number.isFinite(g)) { res.textContent = 'Type a whole number first.'; res.className = 'fg-gres'; return; }
+    const ok = g === want;
+    res.textContent = ok ? `Right! Step 7 has ${want}.` : `Not quite. Look at the 1st differences: what comes after ${pat.term(6) - pat.term(5)}?`;
+    res.className = `fg-gres ${ok ? 'good' : 'bad'}`;
+    if (ok) q('.fg-rule').hidden = false;
+  });
+  q('.fg-reveal').addEventListener('click', () => { q('.fg-rule').hidden = false; });
+
+  function own() {
+    const xs = readNums(q<HTMLInputElement>('.fg-own').value).filter((x) => Number.isFinite(x)).slice(0, 12);
+    const r = findRule(xs), steps: string[] = [];
+    if (xs.length >= 2) { const { d1, d2 } = differences(xs); steps.push(`1st differences: ${d1.map((v) => fmt(v, 4)).join(', ')}`); if (d2.length) steps.push(`2nd differences: ${d2.map((v) => fmt(v, 4)).join(', ')}`); }
+    if (r.kind === 'linear') steps.push(`The 1st differences are all ${fmt(r.d, 4)}: an arithmetic progression with a = ${fmt(r.a, 4)}, d = ${fmt(r.d, 4)}. nth term = a + (n − 1)d.`);
+    if (r.kind === 'quadratic') steps.push(`The 2nd differences are all ${fmt(2 * r.A, 4)}, so the rule starts with ${fmt(r.A, 4)}n² (half the 2nd difference). Take that away and the rest is a straight line.`);
+    if (r.kind === 'geometric') steps.push(`Each term is ${fmt(r.r, 4)} times the one before: a geometric progression.`);
+    q('.fg-osteps').replaceChildren(...steps.map(li));
+    q('.fg-orule').textContent = r.kind === 'none' ? r.text : `nth term = ${r.text}. Next: ${[1, 2, 3].map((i) => fmt(r.term(xs.length + i), 4)).join(', ')}`;
+  }
+  q('.fg-own').addEventListener('input', own);
+  draw(); own();
+
+  quiz(q('.fg-quiz'), () => {
+    const out: Question[] = [];
+    const a = randInt(2, 9), d = randInt(2, 7), seq = [0, 1, 2, 3].map((i) => a + i * d), k = randInt(15, 40);
+    out.push({ q: `A pattern goes ${seq.join(', ')}, … How many will step ${k} have?`, want: [a + (k - 1) * d], work: `It adds ${d} each step, so step n = ${a} + (n − 1) × ${d} = ${d}n ${a - d < 0 ? '−' : '+'} ${Math.abs(a - d)}. Step ${k}: ${d} × ${k} ${a - d < 0 ? '−' : '+'} ${Math.abs(a - d)} = ${a + (k - 1) * d}.` });
+    const n = randInt(8, 30);
+    out.push({ q: `How many dots are in the ${n}th triangle number (1, 3, 6, 10, …)?`, want: [polygonal(3, n)], work: `n(n + 1)/2 = ${n} × ${n + 1} / 2 = ${polygonal(3, n)}.` });
+    const m = randInt(6, 25);
+    out.push({ q: `What is 1 + 3 + 5 + … + ${2 * m - 1} (the first ${m} odd numbers)?`, want: [m * m], work: `The first n odd numbers make an n by n square of dots, so the sum is ${m}² = ${m * m}.` });
+    const s = randInt(5, 20);
+    out.push({ q: `How many matchsticks make a row of ${s} squares?`, want: [3 * s + 1], work: `4 for the first square, then 3 for each of the other ${s - 1}: 3 × ${s} + 1 = ${3 * s + 1}.` });
+    return out;
+  });
+</script>
