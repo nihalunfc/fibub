@@ -1,0 +1,209 @@
+---
+// Pendulum lab (Learn): a pendulum that swings with the true (large-angle) motion, its period from 2π√(L/g) and the exact
+// value, a stopwatch to time 10 swings, and a straight-line fit of T² against L to find g.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn pdl">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Swing a pendulum</h2>
+      <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="7" aria-pressed="true">Class 7–9</button><button type="button" data-level="11" aria-pressed="false">Class 11</button></div>
+    </div>
+    <canvas class="lrn-cv pd-cv" style="margin-top:10px" aria-label="A pendulum swinging from a pivot, with its string length and the angle it was released from"></canvas>
+    <p class="lrn-eq pd-live" aria-live="off"></p>
+    <div class="ax-row" style="margin-top:6px">
+      <button type="button" class="btn secondary small pd-play">Pause</button>
+      <button type="button" class="btn secondary small pd-rel">Let go again</button>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">String length L <b class="pd-Lv"></b><input type="range" class="pd-L" min="0.1" max="2.5" step="0.05" value="1" aria-label="Length in metres" /></label>
+      <label class="lrn-sl">Let go from <b class="pd-Av"></b><input type="range" class="pd-A" min="2" max="170" step="1" value="10" aria-label="Release angle in degrees" /></label>
+      <label>Gravity g<select class="pd-g"><option value="9.8" selected>Earth (9.8 m/s²)</option><option value="1.62">Moon (about 1.62 m/s²)</option><option value="3.71">Mars (about 3.71 m/s²)</option><option value="24.8">Jupiter (about 24.8 m/s²)</option></select></label>
+    </div>
+    <p class="lrn-eq pd-eq"></p>
+    <dl class="ax-facts pd-facts" style="margin-top:10px"></dl>
+  </div>
+
+  <div class="ax-card" data-only="11" hidden>
+    <h2>How big a swing is too big?</h2>
+    <p class="ax-help" style="margin-top:0">2π√(L/g) assumes sin θ ≈ θ, true only for small swings. The curve shows how much longer the real period is at each release angle; the dot is your swing.</p>
+    <canvas class="lrn-cv pd-err" style="margin-top:8px" aria-label="Percentage by which the true period exceeds 2 pi root L over g, against release angle"></canvas>
+  </div>
+
+  <div class="ax-card">
+    <h2>Time it yourself</h2>
+    <p class="ax-help" style="margin-top:0">Time the pendulum above, or a real one (a nut on a thread works well). Start when the bob is at one end, count the swings back to that end, and stop at the last one. Timing many swings makes your reaction time matter less.</p>
+    <div class="ax-row" style="margin-top:8px">
+      <span class="ax-big pd-watch" aria-live="off">0.00 s</span>
+      <button type="button" class="btn pd-ss">Start</button>
+      <button type="button" class="btn secondary small pd-sr">Reset</button>
+    </div>
+    <div class="ax-grid" style="margin-top:8px">
+      <label>Swings timed<input type="text" inputmode="numeric" class="pd-N" value="10" aria-label="Number of swings timed" /></label>
+      <label>Length used (m)<input type="text" inputmode="decimal" class="pd-Lu" value="1" aria-label="Length used in metres" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small pd-add">Add to my readings</button></div>
+    <label style="margin-top:10px">My readings: length (m), time for the swings (s), one pair per line
+      <textarea class="pd-data" rows="6" spellcheck="false" aria-label="Readings of length and time">0.20, 9.0
+0.40, 12.7
+0.60, 15.5
+0.80, 18.0
+1.00, 20.1</textarea></label>
+    <p class="ax-help">The readings to start with are made up, for practice (10 swings each). Replace them with your own.</p>
+    <p class="ax-err pd-ferr" hidden></p>
+    <canvas class="lrn-cv pd-fit" style="margin-top:10px" aria-label="Period squared against length, with the best straight line"></canvas>
+    <p class="lrn-eq pd-feq"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Make the string four times longer: the period doubles. Twice as long? The period grows by √2, about 1.41.</li>
+      <li>Change the release angle from 5° to 20°: the period hardly changes. That is why pendulum clocks work.</li>
+      <li>At Class 11, let go from 90° or 150°: now the period is clearly longer than 2π√(L/g).</li>
+      <li>Take it to the Moon: the same pendulum swings about 2.5 times more slowly.</li>
+      <li>Find the length that ticks once a second each way (a period of 2 s) on Earth.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card pd-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { smallPeriod, exactPeriod, largeAngleExcess, pendulumStep, lengthFor, gFrom, fitG } from '../../lib/sci/n2-osc';
+  import { mountQuiz, pick, one, r, fitCanvas, loop, wireLevel } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.pdl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v_ = (c: string) => +q<HTMLInputElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const num = (s: string) => { const t = s.trim().replace(/[−–]/g, '-'); return t === '' ? NaN : Number(t); };
+  let level = '7', th = 0, w = 0, t = 0, swings = 0, lastSign = 0;
+  const g = () => +q<HTMLSelectElement>('.pd-g').value, th0 = () => (v_('.pd-A') * Math.PI) / 180;
+  const release = () => { th = th0(); w = 0; t = 0; swings = 0; lastSign = 0; };
+
+  function step(dt: number) {
+    const L = v_('.pd-L'), G = g(), n = Math.max(1, Math.ceil(dt / 0.002)), h = dt / n;
+    for (let i = 0; i < n; i++) {
+      const s = pendulumStep(th, w, h, G, L); th = s.th; w = s.w; t += h;
+      const sg = Math.sign(w); if (lastSign > 0 && sg < 0) swings++; if (sg) lastSign = sg;   // count each return to the right-hand end
+    }
+    const { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.pd-cv'), 260), pal = pagePalette();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const A = th0(), big = A > Math.PI / 2, py = big ? H / 2 - 10 : 24, Rp = big ? Math.min(W / 2 - 16, H / 2 - 20) : Math.min(H - 50, (W / 2 - 16) / Math.max(0.3, Math.sin(Math.min(A, Math.PI / 2))));
+    const px = W / 2, len = Math.min(Rp, big ? H / 2 - 20 : H - 50);
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(px - 30, py); ctx.lineTo(px + 30, py); ctx.stroke();
+    ctx.strokeStyle = pal.grid; ctx.lineWidth = 1; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, py + len + 14); ctx.stroke();
+    ctx.beginPath(); ctx.arc(px, py, len, Math.PI / 2 - A, Math.PI / 2 + A); ctx.stroke(); ctx.setLineDash([]);
+    const bx = px + len * Math.sin(th), by = py + len * Math.cos(th);
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(bx, by); ctx.stroke();
+    ctx.fillStyle = pal.red ? pal.ink : pal.accent; ctx.beginPath(); ctx.arc(bx, by, 11, 0, 7); ctx.fill();
+    ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(`L = ${v_('.pd-L').toFixed(2)} m (drawn to fit)`, 8, H - 8);
+    ctx.textAlign = 'right'; ctx.fillText(`${swings} swing${swings === 1 ? '' : 's'} in ${t.toFixed(1)} s`, W - 8, H - 8);
+    q('.pd-live').textContent = `Angle now ${sig((th * 180) / Math.PI, 3)}°.  Swings so far: ${swings}.`;
+  }
+
+  function drawErr() {
+    if (level !== '11') return;
+    const { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.pd-err'), 190), pal = pagePalette();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const L = 40, Rm = 10, T = 10, B = H - 28, yMax = 60;
+    const X = (a: number) => L + (a / 170) * (W - L - Rm), Y = (p: number) => B - (Math.min(p, yMax) / yMax) * (B - T);
+    ctx.strokeStyle = pal.grid; ctx.fillStyle = pal.muted; ctx.font = '10px system-ui, sans-serif'; ctx.lineWidth = 1;
+    ctx.textAlign = 'center'; for (let a = 0; a <= 170; a += 30) { ctx.beginPath(); ctx.moveTo(X(a), T); ctx.lineTo(X(a), B); ctx.stroke(); ctx.fillText(`${a}°`, X(a), B + 12); }
+    ctx.textAlign = 'right'; for (let p = 0; p <= yMax; p += 20) { ctx.beginPath(); ctx.moveTo(L, Y(p)); ctx.lineTo(W - Rm, Y(p)); ctx.stroke(); ctx.fillText(`${p} %`, L - 3, Y(p) + 3); }
+    ctx.textAlign = 'center'; ctx.fillText('release angle', (L + W) / 2, H - 2);
+    ctx.strokeStyle = pal.red ? pal.ink : pal.accent; ctx.lineWidth = 2; ctx.beginPath();
+    for (let a = 0; a <= 170; a += 1) { const y = Y(largeAngleExcess((a * Math.PI) / 180) * 100); if (a) ctx.lineTo(X(a), y); else ctx.moveTo(X(a), y); } ctx.stroke();
+    const a0 = v_('.pd-A'); ctx.fillStyle = pal.red ? pal.ink : pal.bad; ctx.beginPath(); ctx.arc(X(a0), Y(largeAngleExcess(th0()) * 100), 5, 0, 7); ctx.fill();
+  }
+
+  function fit() {
+    const err = q('.pd-ferr'), N = num(q<HTMLInputElement>('.pd-N').value);
+    const lines = q<HTMLTextAreaElement>('.pd-data').value.split(/\n/).map((s) => s.trim()).filter(Boolean), Ls: number[] = [], Ts: number[] = [];
+    const fail = (m: string) => { err.hidden = false; err.textContent = m; q('.pd-feq').textContent = ''; drawFit([], [], null); };
+    if (!(N >= 1) || !Number.isInteger(N)) return fail('Swings timed must be a whole number, 1 or more.');
+    for (let i = 0; i < lines.length; i++) {
+      const p = lines[i].split(/[,;\t ]+/).map(num);
+      if (p.length < 2 || !(p[0] > 0) || !(p[1] > 0)) return fail(`Line ${i + 1} ("${lines[i]}") needs a length and a time, both above zero, like 0.5, 14.2`);
+      Ls.push(p[0]); Ts.push(p[1] / N);
+    }
+    if (Ls.length < 3) return fail('Add at least 3 readings at different lengths to fit a line.');
+    if (new Set(Ls).size < 2) return fail('Use at least two different lengths.');
+    err.hidden = true;
+    const f = fitG(Ls, Ts);
+    q('.pd-feq').textContent = `Each period T = time ÷ ${N}. Best line: T² = ${sig(f.b, 4)} × L ${f.a < 0 ? '−' : '+'} ${sig(Math.abs(f.a), 3)}  (r² = ${sig(f.r2, 5)}).  Slope = 4π²/g, so g = 4π² / ${sig(f.b, 4)} = ${sig(f.g, 4)} m/s²` +
+      (Number.isFinite(f.se_g) ? ` ± ${sig(f.se_g, 2)} m/s² (one standard error).` : '.') + (f.g > 0 ? `  That is ${sig(((f.g - 9.8) / 9.8) * 100, 2)} % from 9.8 m/s².` : '');
+    drawFit(Ls, Ts, f);
+  }
+
+  function drawFit(Ls: number[], Ts: number[], f: ReturnType<typeof fitG> | null) {
+    const { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.pd-fit'), 200), pal = pagePalette();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    if (!Ls.length) return;
+    const L = 40, Rm = 10, T = 10, B = H - 28, xMax = Math.max(...Ls) * 1.1, yMax = Math.max(...Ts.map((x) => x * x)) * 1.15;
+    const X = (x: number) => L + (x / xMax) * (W - L - Rm), Y = (y: number) => B - (y / yMax) * (B - T);
+    ctx.strokeStyle = pal.line; ctx.beginPath(); ctx.moveTo(L, T); ctx.lineTo(L, B); ctx.lineTo(W - Rm, B); ctx.stroke();
+    ctx.fillStyle = pal.muted; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'center';
+    for (let i = 0; i <= 4; i++) ctx.fillText(sig((xMax * i) / 4, 2), X((xMax * i) / 4), B + 12);
+    ctx.fillText('length L (m)', (L + W) / 2, H - 2); ctx.textAlign = 'right';
+    for (let i = 1; i <= 3; i++) ctx.fillText(sig((yMax * i) / 3, 2), L - 3, Y((yMax * i) / 3) + 3);
+    ctx.save(); ctx.translate(10, (T + B) / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.fillText('T² (s²)', 0, 0); ctx.restore();
+    if (f) { ctx.strokeStyle = pal.red ? pal.muted : pal.accent; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(0), Y(f.a)); ctx.lineTo(X(xMax), Y(f.a + f.b * xMax)); ctx.stroke(); }
+    ctx.fillStyle = pal.ink; Ls.forEach((x, i) => { ctx.beginPath(); ctx.arc(X(x), Y(Ts[i] * Ts[i]), 4, 0, 7); ctx.fill(); });
+  }
+
+  function update() {
+    const L = v_('.pd-L'), G = g(), A = th0(), T0 = smallPeriod(L, G), Tx = exactPeriod(L, G, A), ex = largeAngleExcess(A) * 100;
+    q('.pd-Lv').textContent = `${L.toFixed(2)} m`; q('.pd-Av').textContent = `${v_('.pd-A')}°`;
+    q('.pd-eq').textContent = `T = 2π√(L/g) = 2π√(${L.toFixed(2)} / ${G}) = ${sig(T0, 4)} s.  Time for 10 swings ≈ ${sig(10 * T0, 4)} s.` +
+      (level === '11' ? `  Exact period for a ${v_('.pd-A')}° swing: T = ${sig(Tx, 4)} s, ${sig(ex, 3)} % longer than the formula.` : '');
+    const items = [fact('Period', `${sig(level === '11' ? Tx : T0, 4)} s`, level === '11' ? 'exact, for this swing' : 'one swing there and back'), fact('Frequency', `${sig(1 / (level === '11' ? Tx : T0), 4)} Hz`), fact('Swings per minute', sig(60 / (level === '11' ? Tx : T0), 3))];
+    if (level === '11') items.push(fact('Small-swing formula off by', `${sig(ex, 3)} %`, v_('.pd-A') <= 15 ? 'fine for a school experiment' : 'use a smaller swing for the formula'));
+    else if (v_('.pd-A') > 20) items.push(fact('Note', 'big swing', 'the formula works best below about 15°'));
+    q('.pd-facts').replaceChildren(...items);
+    drawErr(); anim.redraw();
+  }
+
+  // Stopwatch
+  let t0 = 0, running = false, shown = 0, raf = 0;
+  const watch = () => { shown = (performance.now() - t0) / 1000; q('.pd-watch').textContent = `${shown.toFixed(2)} s`; if (running) raf = requestAnimationFrame(watch); };
+  q('.pd-ss').addEventListener('click', () => {
+    running = !running; q('.pd-ss').textContent = running ? 'Stop' : 'Start';
+    if (running) { t0 = performance.now() - shown * 1000; raf = requestAnimationFrame(watch); } else { cancelAnimationFrame(raf); watch(); }
+  });
+  q('.pd-sr').addEventListener('click', () => { running = false; cancelAnimationFrame(raf); shown = 0; q('.pd-ss').textContent = 'Start'; q('.pd-watch').textContent = '0.00 s'; });
+  q('.pd-add').addEventListener('click', () => {
+    const Lu = num(q<HTMLInputElement>('.pd-Lu').value), err = q('.pd-ferr');
+    if (!(Lu > 0) || !(shown > 0)) { err.hidden = false; err.textContent = 'Time some swings first, and give the length you used (above zero).'; return; }
+    const ta = q<HTMLTextAreaElement>('.pd-data'); ta.value = `${ta.value.replace(/\s+$/, '')}\n${Lu}, ${shown.toFixed(2)}`.replace(/^\n/, ''); fit();
+  });
+
+  const anim = loop(step, q<HTMLButtonElement>('.pd-play'));
+  wireLevel(root, (l) => { level = l; const a = q<HTMLInputElement>('.pd-A'); a.max = l === '11' ? '170' : '45'; if (+a.value > +a.max) a.value = a.max; release(); update(); });
+  q('.pd-rel').addEventListener('click', () => { release(); anim.redraw(); });
+  q('.pd-L').addEventListener('input', () => { q<HTMLInputElement>('.pd-Lu').value = v_('.pd-L').toFixed(2); release(); update(); });
+  q('.pd-A').addEventListener('input', () => { release(); update(); });
+  q('.pd-g').addEventListener('input', () => { release(); update(); });
+  q('.pd-data').addEventListener('input', fit); q('.pd-N').addEventListener('input', fit);
+  addEventListener('resize', () => { update(); fit(); });
+  release(); update(); fit();
+
+  mountQuiz(q('.pd-quiz'), () => {
+    const L = pick(2, 25) / 10, T = pick(10, 30) / 10, L2 = pick(5, 15) / 10, n = one([10, 20]), tt = +(n * smallPeriod(L2, 9.8) * (1 + (Math.random() - 0.5) * 0.02)).toFixed(1);
+    const k = one([4, 9]);
+    return [
+      { q: `What is the period of a pendulum ${L} m long, for small swings, with g = 9.8 m/s²?`, ans: smallPeriod(L, 9.8), unit: 's', work: `T = 2π√(L/g) = 2π√(${L} / 9.8) = ${r(smallPeriod(L, 9.8))} s` },
+      { q: `How long must a pendulum be to have a period of ${T} s on Earth (g = 9.8 m/s²)?`, ans: lengthFor(T, 9.8), unit: 'm', work: `L = g T² / 4π² = 9.8 × ${T}² / 39.48 = ${r(lengthFor(T, 9.8))} m` },
+      { q: `A ${L2} m pendulum takes ${tt} s for ${n} swings. What value of g does that give?`, ans: gFrom(L2, tt / n), unit: 'm/s²', work: `T = ${tt} / ${n} = ${r(tt / n, 4)} s. g = 4π² L / T² = 39.48 × ${L2} / ${r(tt / n, 4)}² = ${r(gFrom(L2, tt / n))} m/s²` },
+      { q: `The string is made ${k} times longer. What happens to the period?`, ans: 1, choices: [`It becomes ${k} times longer`, `It becomes ${Math.sqrt(k)} times longer`, 'It stays the same'], work: `T is proportional to √L, so ${k} times the length gives √${k} = ${Math.sqrt(k)} times the period.` },
+      { q: 'Which change makes a pendulum’s period (for small swings) longer?', ans: 2, choices: ['A heavier bob', 'A slightly bigger swing, 5° to 10°', 'Taking it to the Moon'], work: 'T = 2π√(L/g) has no mass in it, and small swings barely change it. On the Moon g is smaller, so T is longer.' },
+    ];
+  });
+</script>
