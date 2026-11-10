@@ -2,6 +2,7 @@
 name: Star trail exposure
 num: 20
 shelf: science
+code: T20
 section: astrophotography
 title: "Star trail exposure"
 summary: "Find the longest exposure before stars start to trail with your camera and lens (NPF and 500 rule), and plan star-trail sequences: frames, total time and card space."

@@ -2,6 +2,7 @@
 name: MRI physics simulator
 num: 971
 shelf: science
+code: T706
 section: biophysics-and-medical-physics
 title: "MRI physics simulator: Bloch equations, T1 and T2 curves, image contrast and k-space to image"
 summary: "Step the Bloch equations through spin echo, gradient echo and inversion recovery sequences, see how TR, TE, flip angle and TI set the brightness of each tissue, find the Ernst angle and the inversion time that nulls a tissue, and watch an image appear from k-space with a 2D Fourier transform."

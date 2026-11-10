@@ -2,6 +2,7 @@
 name: Echo and SONAR
 num: 1265
 shelf: learn
+code: L133
 section: school-physics
 title: "Echo and SONAR"
 summary: "Clap at a wall or send a ship's sound pulse to the sea bed and watch it come back. Get the echo time from the distance, or the depth from a measured echo time, with distance = speed × time ÷ 2."

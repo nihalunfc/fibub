@@ -2,6 +2,7 @@
 name: Water quality index
 num: 156
 shelf: science
+code: T156
 section: environmental-monitoring
 title: "Water quality index calculator (CCME WQI method): score lab results against your own objectives"
 summary: "Turn a season of water lab results into one score from 0 to 100 using the CCME water quality index method. Enter the objectives that apply to your water and the results for each sample. See how many variables and tests failed and by how much, the score and its category, and which samples failed."

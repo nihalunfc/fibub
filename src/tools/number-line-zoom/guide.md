@@ -2,6 +2,7 @@
 name: Number line zoom
 num: 1274
 shelf: learn
+code: L142
 section: school-maths
 title: "Number line zoom: find √2, π or 7/13 digit by digit, and see which decimals stop or repeat"
 summary: "Zoom into the number line ten times at a time to pin down √2, √3, π or any fraction, one decimal digit per zoom, with the check at each step. See why √2 never lands on a mark (irrational) while 3/8 does, and use the decimal detective to find whether p/q stops or repeats, and how long the repeating block is."

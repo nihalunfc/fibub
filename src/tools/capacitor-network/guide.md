@@ -2,6 +2,7 @@
 name: Capacitor network reducer
 num: 1403
 shelf: learn
+code: L245
 section: school-physics
 title: "Capacitors in series and parallel: reduce a network step by step, then find each charge and voltage"
 summary: "Pick a capacitor network, set each capacitor and the battery, and reduce it one series or parallel group at a time to a single equivalent capacitance, with the working for every step. Then see the charge, voltage and energy on each capacitor, worked back out from the battery."

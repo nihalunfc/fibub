@@ -2,6 +2,7 @@
 name: Distance and displacement
 num: 1258
 shelf: learn
+code: L130
 section: school-physics
 title: "Distance vs displacement simulator: walk a path on a map, speed vs velocity, uniform circular motion on a track"
 summary: "Tap a walk on a map and see the distance you walked next to the straight-line displacement, with average speed and average velocity. Then run round a circular track at a steady speed and watch the velocity arrow turn: uniform circular motion."

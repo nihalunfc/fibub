@@ -2,6 +2,7 @@
 name: Tree builder
 num: 308
 shelf: science
+code: T223
 section: evolutionary-biology-and-phylogenetics
 title: "Build a phylogenetic tree online: neighbour joining, UPGMA and maximum parsimony from a DNA alignment"
 summary: "Paste aligned DNA sequences (FASTA) and build a tree by neighbour joining or UPGMA on p, Jukes-Cantor or Kimura 2-parameter distances, or by maximum parsimony with an exact branch and bound search. See the distances, root the tree and download it as Newick. Runs in your browser."

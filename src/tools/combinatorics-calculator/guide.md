@@ -2,6 +2,7 @@
 name: Combinatorics calculator
 num: 557
 shelf: science
+code: T385
 section: discrete-maths-and-graph-theory
 title: "Combinatorics calculator: permutations, combinations, multinomials, Stirling, Bell, Catalan, partitions and derangements (exact)"
 summary: "Count exactly, with every digit: permutations and combinations with or without repetition, multinomial coefficients (arrangements of a word), Stirling numbers of both kinds, Lah numbers, Bell and Catalan numbers, integer partitions and derangements, with tables you can download."

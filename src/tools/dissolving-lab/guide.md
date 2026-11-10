@@ -2,6 +2,7 @@
 name: Dissolving lab
 num: 1226
 shelf: learn
+code: L105
 section: school-chemistry
 title: "Dissolving lab: add salt or sugar to water until it is saturated, solubility curves, crystals on cooling and gases in warm water"
 summary: "Spoon salt, sugar or potassium nitrate into water at any temperature and watch it stop dissolving at saturation. Your beaker is a dot on the solubility curve; cool it to grow crystals, and see why warm water holds less oxygen and fizz."

@@ -2,6 +2,7 @@
 name: NPV and IRR
 num: 743
 shelf: science
+code: T511
 section: economics
 title: "NPV and IRR"
 summary: "Enter a project's cash flows and a discount rate to get the net present value, every internal rate of return (with a warning when there is more than one), the modified IRR, payback and discounted payback, the profitability index and the equivalent yearly amount, plus an NPV profile chart. Matches numpy-financial."

@@ -2,6 +2,7 @@
 name: Rate standardisation
 num: 463
 shelf: science
+code: T314
 section: epidemiology
 title: "Rate standardisation"
 summary: "Incidence rates, cumulative incidence and prevalence with confidence intervals, directly age-standardised rates with Fay-Feuer gamma intervals, and indirect standardisation: expected events and the SMR with exact Poisson limits. Paste data by age group or open a file."

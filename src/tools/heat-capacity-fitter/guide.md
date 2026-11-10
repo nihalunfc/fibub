@@ -2,6 +2,7 @@
 name: Heat capacity fitter
 num: 964
 shelf: science
+code: T699
 section: condensed-matter-physics
 title: "Heat capacity fitter: Debye and Einstein temperatures from measured Cp(T), with the electronic γ and the low-temperature C/T against T² plot"
 summary: "Paste or open measured heat capacity against temperature and fit the Debye and Einstein models, with or without an electronic γT term. Get the Debye or Einstein temperature with its standard error, γ, the fit quality of all four models side by side, residuals, and the classic low-temperature C/T against T² line. Download the fit as CSV, image, PDF or Word."

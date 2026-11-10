@@ -2,6 +2,7 @@
 name: IUPAC namer
 num: 1104
 shelf: learn
+code: L49
 section: school-chemistry
 title: "IUPAC namer"
 summary: "Build a carbon chain of up to 10 carbons, tap carbons to add methyl and ethyl branches, add a double or triple bond and one functional group (–OH, –CHO, C=O, –COOH, –Cl, –Br). Get the IUPAC name with each step explained, the molecular formula and the homologous series, and test yourself on new structures."

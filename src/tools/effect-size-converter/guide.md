@@ -2,6 +2,7 @@
 name: Effect size converter
 num: 565
 shelf: science
+code: T393
 section: statistics
 title: "Effect size converter: Cohen's d, Hedges' g, r, odds ratio, eta squared, Cohen's f, Cliff's delta"
 summary: "Convert between Cohen's d, Hedges' g, r, odds ratios, eta squared, omega squared, Cohen's f and w and Cliff's delta, or work them out from a t, F or chi-square statistic and the sample sizes. With confidence intervals and size labels."

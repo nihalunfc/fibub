@@ -2,6 +2,7 @@
 name: Analog filter designer
 num: 623
 shelf: science
+code: T420
 section: electrical-and-electronics
 title: "Analog filter designer: Butterworth and Chebyshev Sallen-Key, LC ladder, RC and RL low-pass and high-pass with Bode plot"
 summary: "Design a low-pass or high-pass filter of order 1 to 12 with a Butterworth or Chebyshev response, built as unity-gain Sallen-Key op-amp stages, a passive LC ladder, or a single RC or RL. Get every part value, rounded to E-series, the pole frequency and Q of each stage, the order you need for a given cut, and a Bode plot of the exact and rounded designs."

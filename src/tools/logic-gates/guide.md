@@ -2,6 +2,7 @@
 name: Logic gates
 num: 1432
 shelf: learn
+code: L268
 section: school-physics
 title: "Logic gates"
 summary: "Tap the inputs of an AND, OR, NOT, NAND, NOR, XOR or XNOR gate and watch the output lamp and its row of the truth table light up. Build NOT, AND and OR from NAND or NOR gates only, and chain two gates into a three-input circuit with its full truth table."

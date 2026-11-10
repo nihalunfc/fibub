@@ -2,6 +2,7 @@
 name: Electromagnet builder
 num: 1049
 shelf: learn
+code: L24
 section: school-physics
 title: "Electromagnet builder: wind a coil on a nail, add cells, and see how many paper clips it picks up"
 summary: "Make an electromagnet from a coil of wire, some cells and an iron nail. Change the number of turns and cells, take the nail out, switch it off or turn the cells round, and watch three compasses swing and paper clips get picked up or dropped."

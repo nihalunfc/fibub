@@ -2,6 +2,7 @@
 name: Gait cadence
 num: 491
 shelf: science
+code: T342
 section: exercise-and-sport-science
 title: "Gait cadence"
 summary: "Record your phone's motion sensor while you walk or run, or open a CSV of t, ax, ay, az. The page filters the signal, finds each step, and gives cadence (steps per minute), step and stride time variability, and a spectrum. Nothing leaves your device."

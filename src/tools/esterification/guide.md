@@ -2,6 +2,7 @@
 name: Esterification
 num: 1298
 shelf: learn
+code: L166
 section: school-chemistry
 title: "Esterification"
 summary: "Pick a carboxylic acid and an alcohol and join them: see the OH and H leave as water, and get the ester's name, formula, molar mass and smell. Split it again with sodium hydroxide, and at Class 11–12 level work out how much ester forms at equilibrium."

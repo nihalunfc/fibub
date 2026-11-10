@@ -2,6 +2,7 @@
 name: Double fertilisation stepper
 num: 1438
 shelf: learn
+code: L274
 section: school-biology
 title: "Double fertilisation and embryo sac: megaspore to 7 cells and 8 nuclei, pollen tube, syngamy and triple fusion"
 summary: "Step through the ovule: the megaspore mother cell, meiosis, three mitoses to the 7-celled, 8-nucleate embryo sac, then the pollen tube, two male gametes, syngamy (zygote, 2n) and triple fusion (endosperm, 3n). A ploidy counter gives chromosome numbers for pea, onion, maize, rice or wheat."

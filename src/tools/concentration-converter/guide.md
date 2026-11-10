@@ -2,6 +2,7 @@
 name: Concentration converter
 num: 517
 shelf: science
+code: T368
 section: general-and-lab-chemistry
 title: "Concentration converter: molarity, molality, % w/w, % w/v, % v/v, ppm, mg/L, mole fraction and normality"
 summary: "Type one concentration and see it in every common unit at once: mol/L, mmol/L, µmol/L, mol/kg, g/L, mg/L, µg/L, mg/kg, % w/w, % w/v, % v/v, ppm, ppb and ppt by mass, mole fraction, mol % and normality, or ppmv and mg/m³ for gases at your temperature and pressure. The molar mass comes from a formula, every step of the working is shown, and a whole column converts at once."

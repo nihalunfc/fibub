@@ -2,6 +2,7 @@
 name: Dichotomous key explorer
 num: 1269
 shelf: learn
+code: L137
 section: school-biology
 title: "Dichotomous key explorer: follow a yes/no key to name an animal, or build your own"
 summary: "Name a mystery animal from its drawing by answering yes/no questions in a key, see where a wrong answer leads, then build your own key for eight animals by choosing questions that split the group, and test it."

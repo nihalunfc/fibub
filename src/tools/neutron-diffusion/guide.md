@@ -2,6 +2,7 @@
 name: Neutron diffusion
 num: 678
 shelf: science
+code: T475
 section: nuclear-engineering
 title: "Neutron diffusion"
 summary: "Work out the geometric buckling, k_eff and critical size of a bare slab, sphere, cylinder or box from one-group (or two-group) diffusion data, see the flux shape, and check the formula with a numeric finite-volume solve. For study. Nothing is uploaded."

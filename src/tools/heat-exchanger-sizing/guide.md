@@ -2,6 +2,7 @@
 name: Heat exchanger sizing
 num: 647
 shelf: science
+code: T444
 section: mechanical-engineering
 title: "Heat exchanger calculator: LMTD with F correction and effectiveness-NTU, area for a duty or outlets for an area"
 summary: "Size or rate a heat exchanger: counterflow, parallel flow, shell and tube with 1 to 8 shell passes, or crossflow with either fluid mixed or unmixed. Get the duty, outlet temperatures, effectiveness, NTU, LMTD, the 1-2 shell-and-tube F factor and the area from U, with effectiveness-NTU curves and temperature profiles."

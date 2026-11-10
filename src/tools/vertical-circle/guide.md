@@ -2,6 +2,7 @@
 name: Vertical circle
 num: 1338
 shelf: learn
+code: L187
 section: school-physics
 title: "Vertical circle"
 summary: "Whirl a stone on a string and see its centripetal acceleration v²/r and the pull it needs; let go and watch it fly off along the tangent. Then swing a mass in a vertical circle: the speed and tension all the way round, the least speed to loop, and where the string goes slack if it is too slow."

@@ -2,6 +2,7 @@
 name: Qualitative coding
 num: 750
 shelf: science
+code: T518
 section: sociology-and-survey-research
 title: "Qualitative coding tool for interviews and texts: code book, highlight and tag passages, code counts, co-occurrence, retrieve, CSV/JSON"
 summary: "Open your own interview transcripts or texts, tag passages with codes from a colour-coded code book, and see counts per document, a code co-occurrence matrix and every passage for a code. Export CSV or JSON. Nothing is uploaded."

@@ -2,6 +2,7 @@
 name: Walter-Lieth
 num: 900
 shelf: science
+code: T635
 section: climatology
 title: "Walter-Lieth"
 summary: "Type, paste or open 12 monthly mean temperatures and precipitation totals, plus the daily maxima, minima and absolute minima if you have them, and get a full Walter-Lieth climate diagram with the dry season, humid season, very wet months and frost months, ready to download as SVG, PNG, PDF or Word."

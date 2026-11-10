@@ -2,6 +2,7 @@
 name: Cosmology calculator
 num: 41
 shelf: science
+code: T41
 section: galactic-and-extragalactic-astronomy
 title: "Cosmology calculator: lookback time, age and distances for any redshift (Planck 2018)"
 summary: "Type a redshift and get the age of the universe then, the lookback time, comoving, angular diameter and luminosity distances, kpc per arcsecond and the distance modulus, for Planck 2018, WMAP or your own cosmology."

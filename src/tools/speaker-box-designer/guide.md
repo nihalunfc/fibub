@@ -2,6 +2,7 @@
 name: Speaker box designer
 num: 942
 shelf: science
+code: T677
 section: acoustics-and-wave-physics
 title: "Speaker box designer: sealed and ported enclosure response from Thiele-Small parameters, port length and f3"
 summary: "Type a woofer's Thiele-Small parameters (Fs, Qts, Vas) and compare a sealed box with a ported one: the low-frequency response curves, the −3 dB point f3, Qtc and any bump, the port length for your tuning with end corrections, a rough port air speed and the driver's sensitivity. Or size a sealed box for a chosen Qtc."

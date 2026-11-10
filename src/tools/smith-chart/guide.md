@@ -2,6 +2,7 @@
 name: Smith chart
 num: 633
 shelf: science
+code: T430
 section: rf-and-communications
 title: "Smith chart calculator: reflection coefficient, VSWR, return loss, L-network and stub matching"
 summary: "Plot a load impedance on an interactive Smith chart and get the reflection coefficient, VSWR, return loss and mismatch loss, the impedance after any length of line, both L-network matching solutions with part values, and single open or shorted stub matching."

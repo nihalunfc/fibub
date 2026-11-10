@@ -2,6 +2,7 @@
 name: Manning weir
 num: 140
 shelf: science
+code: T140
 section: hydrology-and-water-resources
 title: "Manning weir"
 summary: "Work out the discharge or normal depth in a rectangular, trapezoidal or triangular channel or a part-full pipe with Manning's equation, with velocity, Froude number, critical depth, specific energy, bed shear and a rating curve; and the flow over sharp-crested, V-notch, broad-crested or Cipolletti weirs, or the head for a given flow. SI or US units."

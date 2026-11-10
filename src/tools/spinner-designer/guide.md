@@ -2,6 +2,7 @@
 name: Probability spinner designer
 num: 1282
 shelf: learn
+code: L150
 section: school-maths
 title: "Probability spinner designer: sectors, angle ÷ 360°, thousands of spins and expected value"
 summary: "Design a spinner with up to six coloured sectors, read each probability as angle ÷ 360°, then spin once or a thousand times and watch the share of landings settle near the theory. At Class 12 level give each sector points and find the expected score."

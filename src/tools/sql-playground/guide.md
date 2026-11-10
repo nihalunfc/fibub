@@ -2,6 +2,7 @@
 name: SQL playground
 num: 38
 shelf: science
+code: T38
 section: data-science-and-machine-learning
 title: "SQL playground"
 summary: "Open CSV, TSV or Excel files and get a profile of every column: type, missing values, distinct values, range and most common values. Then query them with SQL (SQLite), join files, and download the result. Nothing is uploaded."

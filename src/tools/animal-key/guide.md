@@ -2,6 +2,7 @@
 name: Animal classification key
 num: 1387
 shelf: learn
+code: L229
 section: school-biology
 title: "Animal kingdom key: classify animals into phyla by organisation, symmetry, germ layers, body cavity and notochord"
 seoTitle: "Animal kingdom classification key: phylum finder"

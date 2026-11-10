@@ -2,6 +2,7 @@
 name: Procrustes
 num: 408
 shelf: science
+code: T296
 section: paleontology
 title: "Procrustes"
 summary: "Tap landmarks on your own photos or paste TPS or a table of coordinates, then run a generalised Procrustes analysis: centroid sizes, aligned shapes, Procrustes distances and a PCA of shape with a scores plot and CSV export. Nothing is uploaded."

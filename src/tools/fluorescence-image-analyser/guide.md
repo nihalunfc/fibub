@@ -2,6 +2,7 @@
 name: Fluorescence image analyser
 num: 191
 shelf: science
+code: T191
 section: cell-biology-and-cell-culture
 title: "Fluorescence image analyser: count nuclei and measure area and intensity in a microscope image"
 summary: "Open a fluorescence microscope image, pick the channel, take away the background, set a threshold and split touching nuclei. Get the count, each object's area, mean and integrated intensity, a histogram, an outlined and numbered overlay, a CSV and a report. The image stays in your browser."

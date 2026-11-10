@@ -2,6 +2,7 @@
 name: Newman projection spinner
 num: 1105
 shelf: learn
+code: L50
 section: school-chemistry
 title: "Newman projection spinner: conformations of ethane and butane with an energy vs dihedral angle graph"
 summary: "Turn the back carbon of ethane or butane with your finger and watch the Newman projection change between staggered and eclipsed, anti and gauche. The energy graph follows along, with the formula and numbers filled in, and a quick quiz on naming conformations."

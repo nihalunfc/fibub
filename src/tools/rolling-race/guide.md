@@ -2,6 +2,7 @@
 name: Rolling race
 num: 1492
 shelf: learn
+code: L310
 section: school-physics
 title: "Rolling race: ring, disc, sphere and block down a ramp"
 summary: "Release a ring, a disc, a solid sphere and a sliding block together down a ramp. See why the acceleration is g sinθ ÷ (1 + I/mr²) and who wins."

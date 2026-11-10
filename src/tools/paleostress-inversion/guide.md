@@ -2,6 +2,7 @@
 name: Paleostress inversion
 num: 869
 shelf: science
+code: T605
 section: structural-geology
 title: "Paleostress inversion"
 summary: "Find the principal stress directions σ1, σ2, σ3 and the stress ratio from faults with striations by Michael's linear least-squares method, with bootstrap confidence, the misfit of every fault, P and T axes and a stereonet."

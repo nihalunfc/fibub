@@ -2,6 +2,7 @@
 name: Allometry calculator
 num: 317
 shelf: science
+code: T232
 section: zoology-and-animal-behaviour
 title: "Allometry calculator: fit Y = aM^b scaling with confidence limits (free)"
 summary: "Paste body masses and a trait such as metabolic rate and fit the allometric equation Y = aM^b by log-log regression, with confidence limits, a test of the exponent against 3/4 or 2/3, and predictions. Also scaling laws with editable, illustrative coefficients. Runs in your browser."

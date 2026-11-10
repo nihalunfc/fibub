@@ -2,6 +2,7 @@
 name: Metadata builder
 num: 816
 shelf: science
+code: T552
 section: data-management
 title: "Dataset metadata builder: DataCite, Dublin Core and Darwin Core records with validation, as XML, JSON or CSV"
 summary: "Fill in a form for DataCite 4.5, Dublin Core or a Darwin Core occurrence, and get a checked record: required fields, ISO 8601 dates, ORCID iD check digits, DOI form and coordinate ranges. Download it as XML, JSON or CSV."

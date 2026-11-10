@@ -2,6 +2,7 @@
 name: Audiogram plotter
 num: 495
 shelf: science
+code: T346
 section: audiology-and-vision-science
 title: "Audiogram plotter: plot hearing thresholds, pure-tone average, degree of hearing loss, air-bone gap"
 summary: "Type air and bone conduction thresholds for each ear and get a standard audiogram (O X < > [ ] symbols), pure-tone averages, the degree of loss by WHO 2021 or Clark 1981 grades (editable), air-bone gap and asymmetry flags, and a printable PNG or PDF. For study and teaching; not a hearing test."

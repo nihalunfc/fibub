@@ -2,6 +2,7 @@
 name: Centrifuge calculator
 num: 115
 shelf: science
+code: T115
 section: molecular-biology
 title: "Centrifuge calculator: rpm to × g (RCF) and back, rotor k-factor and pelleting time"
 summary: "Convert rotor speed to relative centrifugal force (× g) and back for any radius, find a rotor's k-factor and how long particles of a given sedimentation coefficient take to pellet, and work out the run time when you move a protocol to a different rotor."

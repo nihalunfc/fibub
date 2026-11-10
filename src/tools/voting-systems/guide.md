@@ -2,6 +2,7 @@
 name: Voting systems compared
 num: 751
 shelf: science
+code: T519
 section: political-science
 title: "Voting systems calculator: plurality, instant-runoff, Borda, Condorcet, Schulze, STV and D'Hondt (free)"
 summary: "Count one set of ranked ballots by plurality, two-round, instant-runoff, Borda, Condorcet, Schulze and approval, run a multi-seat STV count, or share list seats by D'Hondt, Sainte-Laguë or largest remainder, with every round shown."

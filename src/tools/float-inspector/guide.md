@@ -2,6 +2,7 @@
 name: Float inspector
 num: 575
 shelf: science
+code: T403
 section: computer-science
 title: "Float inspector"
 summary: "See how a computer really stores 0.1 or any other number: the sign, exponent and mantissa bits in half, single and double precision, the exact stored value to the last digit, the rounding error, the next float up and down, and the ULP. Flip bits to see what any pattern means."

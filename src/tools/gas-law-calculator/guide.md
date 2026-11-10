@@ -2,6 +2,7 @@
 name: Gas law calculator
 num: 83
 shelf: science
+code: T83
 section: physical-chemistry
 title: "Gas law calculator: PV = nRT, combined gas law and van der Waals real gases"
 summary: "Work out pressure, volume, amount or temperature of a gas in any units, with the mass and density of a named gas, the van der Waals real-gas answer and how far the ideal gas law is off."

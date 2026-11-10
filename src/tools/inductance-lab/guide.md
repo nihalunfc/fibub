@@ -2,6 +2,7 @@
 name: Inductance lab
 num: 1415
 shelf: learn
+code: L256
 section: school-physics
 title: "Inductance lab"
 summary: "Put one solenoid inside another and work out the self-inductance of each and their mutual inductance from the turns, radii and length. Ramp the current in the inner coil up and down and see the self-induced emf in it and the emf it induces in the outer coil, with the coupling and the stored energy."

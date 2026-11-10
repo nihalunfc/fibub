@@ -2,6 +2,7 @@
 name: Dental chart
 num: 499
 shelf: science
+code: T350
 section: dentistry
 title: "Dental chart and tooth numbering converter: FDI, Universal and Palmer, odontogram with surfaces"
 summary: "Convert tooth numbers between FDI (ISO 3950), Universal and Palmer for permanent and primary teeth, and mark caries, fillings, crowns, missing teeth, implants and notes on a clickable chart by tooth and surface. DMFT count, CSV, image and PDF. Nothing is stored unless you save the file."

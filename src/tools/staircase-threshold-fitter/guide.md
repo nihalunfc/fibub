@@ -2,6 +2,7 @@
 name: Threshold fitter
 num: 725
 shelf: science
+code: T493
 section: psychology-and-psychometrics
 title: "Threshold fitter"
 summary: "Simulate or run 1-up-2-down, 1-up-3-down and weighted staircases, then fit a logistic, Weibull or cumulative normal psychometric function with guess and lapse rates by maximum likelihood. Get the threshold with a bootstrap 95 % interval."

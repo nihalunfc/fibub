@@ -2,6 +2,7 @@
 name: Wind from pressure
 num: 1222
 shelf: learn
+code: L314
 section: school-earth
 title: "Why wind blows: heat the land or the sea and watch a sea breeze, land breeze or monsoon form"
 summary: "Land and sea side by side with air moving over them. Warm one side and the air above it rises, the pressure falls and air blows in from the cooler side. See a sea breeze by day, a land breeze by night and the Indian monsoon."

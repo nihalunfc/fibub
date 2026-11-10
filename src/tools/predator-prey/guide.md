@@ -2,6 +2,7 @@
 name: Predator and prey
 num: 1453
 shelf: learn
+code: L282
 section: school-biology
 title: "Predator and prey"
 summary: "Watch hares and lynx rise and fall in turn. Slide the prey birth rate, catch rate, predator gain and death rate and see both populations over time, the loop in the phase plot, the still point and how a prey limit damps the swings. Then sort every species interaction by its + / − / 0 signs."

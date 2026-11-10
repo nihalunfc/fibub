@@ -2,6 +2,7 @@
 name: Clock hand angles
 num: 1285
 shelf: learn
+code: L153
 section: school-maths
 title: "Clock hand angles: the angle between the hour and minute hands at any time, and when they meet"
 summary: "Drag the minute hand round a clock (the hour hand follows) or type a time, and see the angle between the hands worked out step by step, how far each hand has turned, and every time in 12 hours when the hands make the angle you choose."

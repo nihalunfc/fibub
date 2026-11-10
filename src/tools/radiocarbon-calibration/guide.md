@@ -2,6 +2,7 @@
 name: Radiocarbon calibration
 num: 37
 shelf: science
+code: T37
 section: dating-methods
 title: "Radiocarbon calibration with IntCal20: calendar date ranges and probability plot (free)"
 summary: "Turn a radiocarbon age (years BP ± error) into calendar dates with the IntCal20 curve. Get the 68.3 % and 95.4 % ranges in BC/AD or cal BP, the median, and plots of the probability and the curve."

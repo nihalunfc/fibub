@@ -2,6 +2,7 @@
 name: Build an atom
 num: 1081
 shelf: learn
+code: L36
 section: school-chemistry
 title: "Build an atom: protons, neutrons and electrons, shells, isotopes, ions and valency"
 summary: "Tap to add protons, neutrons and electrons and watch the atom change: the element, atomic number, mass number, charge, isotope, the electrons filling shells 2, 8, 8 and the valency all update as you go. Ends with fresh practice questions."

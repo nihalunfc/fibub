@@ -2,6 +2,7 @@
 name: Chlor-alkali process
 num: 1296
 shelf: learn
+code: L164
 section: school-chemistry
 title: "Chlor-alkali process: electrolysis of brine, what forms at each electrode, and how much (Faraday's laws)"
 summary: "Watch ions move in an animated membrane cell as brine is electrolysed: chlorine at the anode, hydrogen and sodium hydroxide at the cathode. Read the half equations and the uses of each product, and at Class 12 level work out the grams and litres a current makes."

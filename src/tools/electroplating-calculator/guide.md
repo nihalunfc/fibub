@@ -2,6 +2,7 @@
 name: Electroplating
 num: 97
 shelf: science
+code: T97
 section: electrochemistry-and-battery-science
 title: "Electroplating"
 summary: "Plating thickness from current, time and area, or the time or current needed for a thickness, for copper, nickel, zinc, chrome, silver, gold, tin and more (or your own metal), with current efficiency, current density in A/dm² and ASF, plating rate, mass and charge. Also gas volumes from electrolysis of water or brine."

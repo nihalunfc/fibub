@@ -2,6 +2,7 @@
 name: Prism and dispersion
 num: 1004
 shelf: learn
+code: L4
 section: school-physics
 title: "Prism and dispersion: refraction through a glass prism, angle of deviation, minimum deviation and the spectrum"
 summary: "Shine a ray through a glass prism and see it bend twice: the angles at both faces, the angle of deviation, the deviation graph with its minimum, and white light splitting into a spectrum from red to violet."

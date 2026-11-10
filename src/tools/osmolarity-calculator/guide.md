@@ -2,6 +2,7 @@
 name: Osmolarity calculator
 num: 344
 shelf: science
+code: T259
 section: physiology
 title: "Osmolarity and tonicity calculator: mOsm/L of a solution, osmotic pressure and hypo-, iso- or hypertonic"
 summary: "Add the solutes of a solution in mmol/L, g/L, % w/v or mg/dL and get its osmolarity (concentration × van 't Hoff factor × osmotic coefficient), its effective osmolarity, the van 't Hoff osmotic pressure, and whether it is hypo-, iso- or hyperosmotic and tonic compared with a reference you set. For study and teaching, not for clinical use."

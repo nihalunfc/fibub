@@ -2,6 +2,7 @@
 name: Definite integral properties
 num: 1470
 shelf: learn
+code: L294
 section: school-maths
 title: "Definite integral properties, drawn: swap the limits, split at c, f(a + b − x), even and odd functions"
 summary: "See each property of definite integrals as a picture with the numbers worked out: swapping the limits flips the sign, splitting at any c adds up, f(a + b − x) is the same area flipped, ∫₀²ᵏ in two halves, even functions double and odd functions cancel, and the area function A(x) whose slope is f(x)."

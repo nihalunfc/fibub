@@ -2,6 +2,7 @@
 name: Gaussian beam calculator
 num: 930
 shelf: science
+code: T665
 section: optics-and-photonics
 title: "Gaussian beam calculator: laser waist, Rayleigh range and divergence through lenses and mirrors (ABCD)"
 summary: "Put lenses and curved mirrors on an optical rail and follow a laser beam through them with the complex beam parameter q and ABCD matrices: the size and position of every new waist, Rayleigh range, divergence, beam radius and wavefront curvature anywhere, with M² for real lasers."

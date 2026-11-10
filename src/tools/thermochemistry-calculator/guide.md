@@ -2,6 +2,7 @@
 name: Thermochemistry calculator
 num: 95
 shelf: science
+code: T95
 section: physical-chemistry
 title: "Thermochemistry calculator: ΔH, ΔS, ΔG and K of a reaction from standard formation values"
 summary: "Type a balanced reaction and get its standard enthalpy, entropy and Gibbs energy change, the equilibrium constant, ΔG and K at other temperatures, and the temperature where the reaction turns spontaneous. Values for 38 common substances fill in by themselves; type your own for anything else."

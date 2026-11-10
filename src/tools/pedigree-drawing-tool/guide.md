@@ -2,6 +2,7 @@
 name: Pedigree drawing tool
 num: 205
 shelf: science
+code: T205
 section: genetics
 title: "Pedigree chart maker: draw a family tree with standard genetic symbols (free)"
 summary: "Type or paste a family table, or add relatives with buttons, and get a pedigree drawn with the standard NSGC symbols: affected, carrier, deceased, proband, twins, adoption and consanguinity, with generation numbers. Checks for loops, missing parents and sex conflicts. Download SVG or PNG. Nothing leaves your device."

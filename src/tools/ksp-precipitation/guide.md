@@ -2,6 +2,7 @@
 name: Ksp precipitation predictor
 num: 1363
 shelf: learn
+code: L210
 section: school-chemistry
 title: "Ksp precipitation predictor: mix two solutions, compare Q with Ksp, and see the common ion effect"
 seoTitle: "Ksp precipitation predictor: Q vs Ksp and common ion"

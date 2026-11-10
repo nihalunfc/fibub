@@ -2,6 +2,7 @@
 name: Tissue identifier
 num: 1255
 shelf: learn
+code: L127
 section: school-biology
 title: "Tissue identifier: learn plant and animal tissues from drawings, then test yourself"
 summary: "Explore teaching drawings of 15 plant and animal tissues, from parenchyma and xylem to blood, bone, the three muscles and neurons. Tap the numbered features that give each one away, then play Identify with drawings and four choices."

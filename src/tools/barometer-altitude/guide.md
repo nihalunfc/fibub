@@ -2,6 +2,7 @@
 name: Barometer altitude
 num: 1224
 shelf: learn
+code: L316
 section: school-physics
 title: "Air pressure and altitude: climb a mountain, watch the barometer fall and water boil below 100 °C, and see why pressure cookers help"
 summary: "Drag a climber up a mountain and watch the air thin out, the mercury barometer fall from 760 mm and water's boiling point drop to about 70 °C on Everest. Tick the pressure cooker to bring it back above 100 °C."

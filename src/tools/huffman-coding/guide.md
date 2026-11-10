@@ -2,6 +2,7 @@
 name: Huffman coding
 num: 579
 shelf: science
+code: T407
 section: information-theory-and-cryptography
 title: "Huffman coding"
 summary: "Build a Huffman code from a message or from symbol probabilities: see the tree, the code table, the average length against the entropy, and encode or decode bits. Then watch the same message arithmetic coded, interval by interval, with exact fractions."

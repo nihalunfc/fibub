@@ -2,6 +2,7 @@
 name: Sex determination
 num: 1489
 shelf: learn
+code: L307
 section: school-biology
 title: "Sex determination: XX and XY chromosomes, and why each child is a 50 percent chance of a boy or a girl"
 summary: "Cross an XX mother with an XY father, then simulate up to 10 000 births and families. See the share of girls settle near half and why earlier children never change the next one."

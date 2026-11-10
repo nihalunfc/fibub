@@ -2,6 +2,7 @@
 name: Plane mirror lab
 num: 1230
 shelf: learn
+code: L109
 section: school-physics
 title: "Plane mirror lab: law of reflection protractor, images in two mirrors (kaleidoscope) and a periscope"
 summary: "Drag a laser at a flat mirror and see that the angle of reflection always equals the angle of incidence. Put two mirrors at any angle and count the images (360/θ − 1), then tilt the mirrors of a periscope until light gets through."

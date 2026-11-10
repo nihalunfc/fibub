@@ -2,6 +2,7 @@
 name: Hydrogen bonding
 num: 1368
 shelf: learn
+code: L215
 section: school-chemistry
 title: "Hydrogen bonding"
 summary: "Watch water molecules jostle as hydrogen bonds break and re-form, cool them below 0 °C to lock them into an open ice lattice with four bonds each, and see why ice floats. Then sort molecules such as NH₃, HF, CH₄, H₂S and methoxymethane into those that hydrogen bond and those that do not, with the reason."

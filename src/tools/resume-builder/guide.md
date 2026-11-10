@@ -2,6 +2,7 @@
 name: ATS resume builder
 num: 12
 shelf: documents
+code: T12
 title: "Free ATS resume builder: make your resume and download it as PDF and Word (no sign-up)"
 summary: "Fill in your details and get a clean, one-column resume that hiring software can read, with a live ATS score. Download it as PDF or Word."
 status: live

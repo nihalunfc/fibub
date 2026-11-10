@@ -2,6 +2,7 @@
 name: Jump height
 num: 489
 shelf: science
+code: T340
 section: exercise-and-sport-science
 title: "Jump height"
 summary: "Work out vertical jump height from flight time (h = g t²/8), typed in or marked frame by frame on a video opened on your device. Add ground contact time for the reactive strength index. Table, chart and CSV; nothing is uploaded."

@@ -2,6 +2,7 @@
 name: Entropy calculator
 num: 578
 shelf: science
+code: T406
 section: information-theory-and-cryptography
 title: "Entropy calculator"
 summary: "Shannon entropy of a probability distribution, of text or of any file's bytes; joint and conditional entropy and mutual information from a table; Kullback-Leibler and Jensen-Shannon divergence; and the capacity of binary symmetric, erasure, Z and any discrete channel by the Blahut-Arimoto algorithm. Nothing is uploaded."

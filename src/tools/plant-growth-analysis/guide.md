@@ -2,6 +2,7 @@
 name: Plant growth analysis
 num: 324
 shelf: science
+code: T239
 section: botany-and-plant-science
 title: "Plant growth analysis calculator: RGR, NAR (ULR), LAR, SLA and LWR between harvests"
 summary: "Paste dry mass and leaf area for plants from two or more harvests and get the classical growth analysis: relative growth rate with its standard error and confidence interval, unit leaf rate (net assimilation rate), leaf area ratio, specific leaf area and leaf weight ratio, using Hunt's formulas for means between harvests."

@@ -2,6 +2,7 @@
 name: Superconductor calculator
 num: 966
 shelf: science
+code: T701
 section: condensed-matter-physics
 title: "Superconductor calculator: BCS gap from Tc, London penetration depth, coherence length, κ and critical fields"
 summary: "From the critical temperature, get the BCS energy gap and how it closes with temperature, the gap frequency, and from the penetration depth and coherence length (typed, or estimated from the electron density and Fermi velocity) the Ginzburg-Landau κ, type I or II, the critical fields B_c, B_c1 and B_c2, the Pauli limit and the depairing current, with a field-temperature phase diagram."

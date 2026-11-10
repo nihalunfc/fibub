@@ -2,6 +2,7 @@
 name: Heat conduction solver
 num: 920
 shelf: science
+code: T655
 section: thermodynamics-and-statistical-physics
 title: "Heat conduction calculator: wall U-value, transient slab, 2D plate, fin efficiency and pipe insulation thickness"
 summary: "Five conduction problems in one place: steady heat flow and U-value through a layered wall, a slab heating or cooling over time (with the exact series to compare), heat spreading across a 2D plate, fin heat and efficiency, and heat loss and insulation thickness for a pipe."

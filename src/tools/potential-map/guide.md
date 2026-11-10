@@ -2,6 +2,7 @@
 name: Potential map
 num: 1402
 shelf: learn
+code: L244
 section: school-physics
 title: "Potential map"
 summary: "Drag charges around a board and see their electric potential as a coloured map with equipotential lines and as hills and wells in 3D. Probe any point for V = Σ kq/r and the field, and let a positive test charge roll downhill along the field, crossing every equipotential at right angles."

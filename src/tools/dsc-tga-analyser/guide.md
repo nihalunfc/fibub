@@ -2,6 +2,7 @@
 name: DSC TGA analyser
 num: 103
 shelf: science
+code: T103
 section: polymer-chemistry
 title: "DSC TGA analyser"
 summary: "Paste or open a DSC scan to get Tg (onset, midpoint, end, ΔCp), melting and crystallisation peaks with onset and enthalpy, and percent crystallinity. Paste a TGA run for the mass loss steps, DTG peaks, T at 5 % loss, residue and which molecule each step lost."

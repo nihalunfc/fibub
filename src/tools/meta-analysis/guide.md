@@ -2,6 +2,7 @@
 name: Meta-analysis
 num: 469
 shelf: science
+code: T320
 section: biostatistics
 title: "Meta-analysis"
 summary: "Pool studies from 2×2 counts (odds ratio, risk ratio, risk difference), means and SDs (mean difference, Hedges' g) or an estimate with its SE or CI. Fixed effect and random effects (DerSimonian-Laird, REML, Paule-Mandel), Q, I², tau², prediction interval, Egger's test, forest and funnel plots. Matches statsmodels."

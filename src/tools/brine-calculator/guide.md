@@ -2,6 +2,7 @@
 name: Brine calculator
 num: 394
 shelf: science
+code: T282
 section: food-science
 title: "Brine calculator"
 summary: "Work out the salt for a brine by weight (of the brine or of the water), read salinometer degrees, salt a vegetable ferment by the equilibrium method, weigh a dry cure, and turn your own nitrite target into grams of curing salt. Nothing is uploaded."

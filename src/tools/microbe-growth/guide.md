@@ -2,6 +2,7 @@
 name: Microbe growth simulator
 num: 1213
 shelf: learn
+code: L99
 section: school-biology
 title: "Microbe growth simulator: bacteria doubling, and why fridges, pickling, jam and boiling keep food safe"
 summary: "Watch microbes double every few minutes in warm food, then cool them in a fridge, salt them like a pickle, sugar them like jam or boil them. Yeast puffs up dough and curd bacteria sour milk. A teaching model with made-up numbers."

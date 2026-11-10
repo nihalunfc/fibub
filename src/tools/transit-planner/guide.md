@@ -2,6 +2,7 @@
 name: Transit planner
 num: 54
 shelf: science
+code: T54
 section: exoplanets
 title: "Exoplanet transit planner: which transits you can see from your place, with altitude and Moon"
 summary: "Type a planet's ephemeris and see every upcoming transit with ingress, middle and egress on your clock, the star's altitude, darkness, the Moon, how much you can see and how uncertain the timing is."

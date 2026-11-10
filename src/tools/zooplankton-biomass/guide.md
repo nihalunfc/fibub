@@ -2,6 +2,7 @@
 name: Zooplankton biomass
 num: 333
 shelf: science
+code: T248
 section: marine-and-freshwater-biology
 title: "Zooplankton density and biomass calculator: net tow volume, subsample, counts and length-weight equations"
 summary: "Turn a zooplankton net sample into numbers per cubic metre and biomass. Work out the water filtered from the net and tow (or a flowmeter), scale up the counts from the part you counted, and convert measured lengths to mass with your own length-weight equation for each taxon."

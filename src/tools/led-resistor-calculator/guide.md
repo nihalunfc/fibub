@@ -2,6 +2,7 @@
 name: LED resistor calculator
 num: 626
 shelf: science
+code: T423
 section: electrical-and-electronics
 title: "LED resistor calculator: series resistor, power, series and parallel strings, nearest E-series value and power budget"
 summary: "Work out the series resistor for one LED or a string of LEDs, pick the standard E12, E24 or E96 value, see the resistor and LED power with a safe resistor rating, how much the current moves with forward-voltage spread and supply tolerance, and plan an array of many LEDs as even strings with a power budget."

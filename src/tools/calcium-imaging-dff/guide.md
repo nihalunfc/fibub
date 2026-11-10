@@ -2,6 +2,7 @@
 name: Calcium imaging ΔF/F
 num: 350
 shelf: science
+code: T265
 section: neuroscience
 title: "Calcium imaging ΔF/F calculator: neuropil subtraction, sliding percentile baseline, event detection and ROI heat map (free)"
 summary: "Paste or open fluorescence traces for many ROIs (CSV or Excel) and get ΔF/F with a sliding-window percentile, first-N-frames or whole-trace baseline, optional neuropil subtraction, threshold event detection in units of noise, a heat map of all ROIs and CSV downloads. Runs in your browser."

@@ -2,6 +2,7 @@
 name: SI prefixes trainer
 num: 1254
 shelf: learn
+code: L126
 section: school-physics
 title: "SI prefixes trainer: convert between nano, micro, milli, kilo, mega and giga"
 summary: "Convert any measurement between SI prefixes from pico to tera by moving the decimal point, see the jump on a prefix ladder, add two measurements only when they measure the same thing, and practise with fresh questions."

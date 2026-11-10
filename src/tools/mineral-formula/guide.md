@@ -2,6 +2,7 @@
 name: Mineral formula calculator
 num: 872
 shelf: science
+code: T608
 section: mineralogy-and-petrology
 title: "Mineral formula calculator: cations per formula unit from oxide wt%, Fe³⁺ by charge balance and end-members"
 summary: "Paste or open electron-microprobe oxide analyses, one or hundreds. Get cations per formula unit on any oxygen basis, Fe³⁺ estimated by charge balance (Droop 1987), recalculated FeO and Fe2O3, Mg#, and end-members: Fo for olivine, Wo-En-Fs for pyroxene, An-Ab-Or for feldspar, Alm-Prp-Sps-Grs for garnet and Cr# for spinel."

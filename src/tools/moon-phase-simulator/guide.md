@@ -2,6 +2,7 @@
 name: Moon phase simulator
 num: 1227
 shelf: learn
+code: L106
 section: school-earth
 title: "Moon phase simulator: drag the Moon round the Earth and see its phase, tithi, age and rise time"
 summary: "Drag the Moon round its orbit with sunlight from one side and watch its face change from new moon to full and back. Shows the phase name, how much is lit, its age in days, the tithi and paksha, roughly when it rises, and the mean phase on any date."

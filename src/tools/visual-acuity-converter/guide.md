@@ -2,6 +2,7 @@
 name: Visual acuity converter
 num: 496
 shelf: science
+code: T347
 section: audiology-and-vision-science
 title: "Visual acuity converter: Snellen 20/20 and 6/6 to logMAR, decimal, MAR, VAS and ETDRS letters"
 summary: "Convert visual acuity between Snellen (20/40, 6/12, any distance), decimal, logMAR, MAR, the Visual Acuity Score and ETDRS letter score. Paste many values at once, average them properly in logMAR and see the chart lines. For study and teaching."

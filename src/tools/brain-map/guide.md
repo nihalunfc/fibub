@@ -2,6 +2,7 @@
 name: Brain map
 num: 1306
 shelf: learn
+code: L173
 section: school-biology
 title: "Brain map: tap the parts of the human brain and learn what each does"
 summary: "Tap the lobes of the cerebrum, the hypothalamus, pituitary, midbrain, pons, medulla, cerebellum and spinal cord to read what each does. See which are forebrain, midbrain and hindbrain, and play Find the part with everyday actions. For Class 10 and 11."

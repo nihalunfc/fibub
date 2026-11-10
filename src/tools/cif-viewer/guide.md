@@ -2,6 +2,7 @@
 name: CIF viewer
 num: 843
 shelf: science
+code: T579
 section: crystallography
 title: "CIF viewer online: crystal structure in 3D, bond lengths, cell volume, Z and density from a CIF file"
 summary: "Open a Crystallographic Information File (CIF) and see the unit cell in 3D: the symmetry operations fill the cell from the listed atoms, and the page gives bond lengths and coordination, the cell volume, the formula and formula units Z, and the density. The file never leaves your browser."

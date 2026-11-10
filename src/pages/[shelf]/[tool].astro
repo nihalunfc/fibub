@@ -39,7 +39,7 @@ const CARDS = 12;
 ---
 {subjectPage ? <SubjectPage shelf={subjectPage.shelf} subject={subjectPage.subject} /> : (
 <Base title={tool.data.title} docTitle={toolSeoTitle(tool)} description={toolDescription(tool)} ld={toolLd(tool)} shelf={shelf.id} tool={tool.id} image={`/og/${tool.id}.png`}>
-  <div class="crumbs"><a href="/">Home</a> / <a href={`/${shelf.id}/`}>{shelf.name}</a>{subject && <> / <a href={`/${shelf.id}/${subject.id}/`}>{subject.name}</a></>}{section && <> / <a href={secHref(shelf.id, subject, section)}>{section.name}</a></>} / {tool.data.name}{tool.data.num && <span class="tool-num" title="This tool's number. Use it when you tell us about the tool.">Tool #{tool.data.num}</span>}</div>
+  <div class="crumbs"><a href="/">Home</a> / <a href={`/${shelf.id}/`}>{shelf.name}</a>{subject && <> / <a href={`/${shelf.id}/${subject.id}/`}>{subject.name}</a></>}{section && <> / <a href={secHref(shelf.id, subject, section)}>{section.name}</a></>} / {tool.data.name}{tool.data.code && <a class="tool-num" href="/tools/#ids" title="This tool's ID. Use it when you tell us about the tool. Click to see what the letters mean.">Tool #{tool.data.code}{tool.data.num && String(tool.data.num) !== tool.data.code.replace(/^[A-Z]+/, '') && <small> (formerly #{tool.data.num})</small>}</a>}</div>
   <h1>{tool.data.title}</h1>
   <p class="page-views tool-counts" data-counter hidden title="How many times this tool's page has been opened, counted as a running total. Nothing about you is kept."><b data-count="v"></b>{' '}<span data-one="view" data-many="views">views</span></p>
   <p class="lead">{tool.data.summary}</p>

@@ -2,6 +2,7 @@
 name: Quadrat transect
 num: 302
 shelf: science
+code: T217
 section: ecology
 title: "Quadrat transect"
 summary: "Paste quadrat counts and cover, or line-intercept transect measurements, and get density, frequency, cover, relative values and the importance value for every species, with a chart and downloads. Runs in your browser."

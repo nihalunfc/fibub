@@ -2,6 +2,7 @@
 name: LCOE calculator
 num: 676
 shelf: science
+code: T473
 section: energy-and-power-systems
 title: "LCOE calculator"
 summary: "Work out the levelised cost of energy of a solar, wind, gas or any other plant from capital cost, fixed and variable O&M, fuel, output loss, discount rate, lifetime and capacity factor, with a yearly cash-flow table, a cost breakdown and a tornado chart. Nothing is uploaded."

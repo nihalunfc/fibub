@@ -2,6 +2,7 @@
 name: Partition function explorer
 num: 919
 shelf: science
+code: T654
 section: thermodynamics-and-statistical-physics
 title: "Partition function calculator: populations, mean energy, entropy and heat capacity from energy levels"
 summary: "Type or paste energy levels with their degeneracies, or make oscillator, rigid-rotor or two-level ladders, and get the partition function, Boltzmann populations, mean energy, entropy, Helmholtz energy and heat capacity at any temperature, with charts against temperature."

@@ -2,6 +2,7 @@
 name: Derivative slope
 num: 1181
 shelf: learn
+code: L84
 section: school-maths
 title: "Derivative slope"
 summary: "Drag two points on a curve and shrink the gap h: the secant line turns into the tangent and its slope settles on f′(x). See the slope graph f′(x) drawn under f(x), a table of slopes from both sides, first-principles working for xⁿ and sin x, corners where there is no derivative, and fresh practice questions."

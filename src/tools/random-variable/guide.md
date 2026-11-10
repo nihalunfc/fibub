@@ -2,6 +2,7 @@
 name: Random variable builder
 num: 1476
 shelf: learn
+code: L298
 section: school-maths
 title: "Random variable and probability distribution calculator: mean, variance, binomial distribution and simulation"
 summary: "Build a probability distribution table (or pick coins, dice, drawing without replacement or a binomial with sliders) and get the mean, E(X²), variance and standard deviation with every step, a bar chart with μ and μ ± σ, and a simulation that runs the experiment 10 to 10 000 times so you can watch the average settle on the mean."

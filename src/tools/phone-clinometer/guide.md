@@ -2,6 +2,7 @@
 name: Phone clinometer
 num: 866
 shelf: science
+code: T602
 section: structural-geology
 title: "Phone clinometer: measure strike and dip, dip direction, trend and plunge with your phone (compass-clinometer)"
 summary: "Lay your phone on a rock surface to measure strike and dip (or dip direction and dip), or along a lineation for trend and plunge. Averaged over a second, corrected by the magnetic declination you enter, logged offline in this browser with notes and an optional position, and exported as CSV for the stereonet plotter."

@@ -2,6 +2,7 @@
 name: HCF and LCM
 num: 1155
 shelf: learn
+code: L72
 section: school-maths
 title: "HCF and LCM"
 summary: "Type two numbers and watch their prime factor trees grow. Shared primes land in the middle of a Venn picture to give the HCF; all of them give the LCM. Euclid's division steps and the HCF × LCM check are shown too."

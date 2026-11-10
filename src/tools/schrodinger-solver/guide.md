@@ -2,6 +2,7 @@
 name: 1D Schrödinger solver
 num: 923
 shelf: science
+code: T658
 section: quantum-mechanics
 title: "1D Schrödinger equation solver: energy levels and wavefunctions for any potential"
 summary: "Choose a textbook potential, type a formula or draw your own, and get the lowest energy levels and wavefunctions of the one-dimensional Schrödinger equation by the matrix (finite-difference) method, with the exact levels alongside for the box, harmonic oscillator, finite well, Morse, linear and Pöschl–Teller potentials."

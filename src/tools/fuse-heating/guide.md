@@ -2,6 +2,7 @@
 name: Fuse heating
 num: 1216
 shelf: learn
+code: L102
 section: school-physics
 title: "Fuse heating"
 summary: "Turn up the current through fuse wire, a nichrome heater coil or copper and watch it warm, glow and melt. Then switch on appliances at home until the fuse blows. Class 10 adds H = I²Rt and I = P/V."

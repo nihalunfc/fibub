@@ -2,6 +2,7 @@
 name: Occupancy estimator
 num: 307
 shelf: science
+code: T222
 section: ecology
 title: "Occupancy calculator: estimate site occupancy (psi) and detection probability (p) from repeated surveys"
 summary: "Paste detection histories from repeated surveys of your sites and get the single-season occupancy ψ and detection probability p by maximum likelihood (MacKenzie et al. 2002), with confidence intervals, naive versus estimated occupancy, a comparison of constant and survey-specific detection, and how many surveys you need."

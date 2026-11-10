@@ -2,6 +2,7 @@
 name: Gini and Lorenz
 num: 742
 shelf: science
+code: T510
 section: economics
 title: "Gini and Lorenz"
 summary: "Paste incomes (with optional weights such as household size or survey weights) or grouped income shares, and get the Gini coefficient, the Lorenz curve, quintile, top 10 % and top 1 % shares, the Palma ratio, Theil T and L, Atkinson indices and the P90/P10 ratio."

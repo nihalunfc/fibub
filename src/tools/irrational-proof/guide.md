@@ -2,6 +2,7 @@
 name: Irrational √2
 num: 1318
 shelf: learn
+code: L178
 section: school-maths
 title: "Irrational √2"
 summary: "Hunt for a fraction a/b equal to √2 and watch a² and 2b² come close but never meet. See 40 exact digits of √n, then step through the proof by contradiction that √p is irrational, and that r + s√p is irrational too."

@@ -2,6 +2,7 @@
 name: Inequality shader
 num: 1371
 shelf: learn
+code: L218
 section: school-maths
 title: "Linear inequalities: solve on a number line with interval notation, and shade half-planes in x and y"
 seoTitle: "Linear inequality solver with number line and graph"

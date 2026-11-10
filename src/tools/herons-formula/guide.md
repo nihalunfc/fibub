@@ -2,6 +2,7 @@
 name: Heron's formula explorer
 num: 1164
 shelf: learn
+code: L81
 section: school-maths
 title: "Heron's formula explorer: area of a triangle from three sides, step by step"
 summary: "Slide three side lengths (or drag a corner) and see the triangle drawn, or why the sides can't make one. The area by Heron's formula is worked step by step and checked against ½ × base × height."

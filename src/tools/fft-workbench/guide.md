@@ -2,6 +2,7 @@
 name: FFT workbench
 num: 628
 shelf: science
+code: T425
 section: signal-processing
 title: "FFT spectrum analyser online: amplitude and power spectrum, windows, peaks and FFT filter"
 summary: "Paste or open a signal (time and value, or values and a sample rate) and get its amplitude or power spectrum with a Hann, Hamming, Blackman or no window, a list of peaks, and a simple FFT low-, high- or band-pass filter back to time. CSV downloads; nothing is uploaded."

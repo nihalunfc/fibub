@@ -2,6 +2,7 @@
 name: Active layer
 num: 209
 shelf: science
+code: T209
 section: glaciology-and-cryosphere
 title: "Active layer"
 summary: "Estimate how deep the ground thaws above permafrost in summer (the active layer), or how deep it freezes in winter, with the Stefan equation: thawing or freezing index from daily air temperatures and an n-factor, one to three soil layers, the thaw curve through the season and a sensitivity table."

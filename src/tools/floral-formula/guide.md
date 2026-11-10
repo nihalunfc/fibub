@@ -2,6 +2,7 @@
 name: Floral formula
 num: 1388
 shelf: learn
+code: L230
 section: school-biology
 title: "Floral formula"
 summary: "Choose a flower's symmetry and sex, type its sepals, petals, stamens and carpels (free or joined, in groups such as 1+2+(2)), tick stamens on the petals and pick the ovary position. Get the floral formula in proper notation and a floral diagram drawn from it, with the mustard, pea, potato and lily families ready to explore."

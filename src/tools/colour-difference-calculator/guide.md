@@ -2,6 +2,7 @@
 name: Delta E calculator
 num: 418
 shelf: science
+code: T306
 section: heritage-conservation
 title: "Delta E calculator"
 summary: "Compare two colours measured as CIELAB, LCh, XYZ or sRGB and get ΔE*ab (1976), ΔE94 and CIEDE2000 with your own kL, kC and kH, plus lightness, chroma and hue changes and swatches. Paste or open a before-and-after table to check a whole fading survey of museum objects. Nothing is uploaded."

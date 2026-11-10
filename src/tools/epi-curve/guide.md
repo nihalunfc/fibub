@@ -2,6 +2,7 @@
 name: Epi curve
 num: 464
 shelf: science
+code: T315
 section: epidemiology
 title: "Epi curve"
 summary: "Draw an outbreak epidemic curve from onset dates (or dates and counts) in bars of hours, days or weeks, with the peak, median onset and incubation from a shared exposure. Add a food-history table for attack rates, attack-rate ratios with intervals and Fisher's exact p. PNG and CSV downloads."

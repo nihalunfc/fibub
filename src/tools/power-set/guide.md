@@ -2,6 +2,7 @@
 name: Power set builder
 num: 1372
 shelf: learn
+code: L219
 section: school-maths
 title: "Power set builder: list every subset of a set, see why there are 2ⁿ, and count them by size"
 seoTitle: "Power set calculator: all subsets and 2ⁿ"

@@ -2,6 +2,7 @@
 name: Alloy mixer
 num: 1299
 shelf: learn
+code: L167
 section: school-chemistry
 title: "Alloy mixer: brass, bronze, steel, solder and gold carats, with masses, density and why alloys are harder"
 summary: "Pick an alloy such as brass, bronze, steel, stainless steel, solder, duralumin or 22 carat gold, change its recipe, and get the mass of each metal in a batch and the density by the mixing rule. Push layers of atoms to see why alloys are harder, and turn carats into per cent gold."

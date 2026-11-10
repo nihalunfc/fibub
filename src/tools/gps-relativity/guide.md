@@ -2,6 +2,7 @@
 name: GPS relativity explainer
 num: 970
 shelf: science
+code: T705
 section: relativity-and-gravitation
 title: "GPS relativity explainer: why satellite clocks gain 38 microseconds a day, with the numbers for any orbit"
 summary: "Work out how much faster a navigation satellite's clock runs than one on the ground: the general relativity gain from weaker gravity, the special relativity loss from orbital speed, the net microseconds per day, the frequency the clock must be set to before launch, the kilometres of error per day if nobody corrected it, and the periodic eccentricity correction, for GPS, Galileo, GLONASS, geostationary or any orbit."

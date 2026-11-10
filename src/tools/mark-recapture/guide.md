@@ -2,6 +2,7 @@
 name: Mark-recapture estimator
 num: 301
 shelf: science
+code: T216
 section: ecology
 title: "Mark-recapture calculator: Lincoln-Petersen, Chapman and Schnabel population estimates with confidence intervals"
 summary: "Estimate the size of an animal population from capture-mark-recapture counts. Two samples give the Lincoln-Petersen and Chapman estimates with Seber's variance and a log-normal, normal or Poisson interval; several samples give the Schnabel estimate with a closed-population check."

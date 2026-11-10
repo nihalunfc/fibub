@@ -2,6 +2,7 @@
 name: Motional emf
 num: 1414
 shelf: learn
+code: L255
 section: school-physics
 title: "Motional emf"
 summary: "Slide a metal rod along two rails through a magnetic field and see the motional emf ε = Bℓv, the current and its direction, the magnetic drag force and the power. Push it at a steady speed, give it a push and let go, or pull it with a steady force and watch it reach a top speed."

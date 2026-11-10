@@ -2,6 +2,7 @@
 name: Social network analysis
 num: 749
 shelf: science
+code: T517
 section: sociology-and-survey-research
 title: "Social network analysis from survey name lists: centrality, density, communities and network drawing (free)"
 summary: "Turn 'name your friends' survey answers or an edge list into a network: in- and out-degree, betweenness, closeness and eigenvector centrality, density, reciprocity, components, Louvain communities and a force-directed drawing. Matches networkx; nothing leaves your browser."

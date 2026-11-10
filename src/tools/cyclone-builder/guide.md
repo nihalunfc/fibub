@@ -2,6 +2,7 @@
 name: Cyclone builder
 num: 1223
 shelf: learn
+code: L315
 section: school-earth
 title: "Cyclone builder: how a warm sea and the Earth's spin (Coriolis effect) turn a low into a spinning storm"
 summary: "Watch air rush into a low over the sea and turn as the Earth spins. Over a warm enough sea, away from the equator, it spirals into a cyclone with an eye; switch the spin off, cool the sea or move to the equator and it fades."

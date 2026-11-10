@@ -2,6 +2,7 @@
 name: Rebar calculator
 num: 650
 shelf: science
+code: T447
 section: civil-and-structural-engineering
 title: "Rebar calculator"
 summary: "Count the reinforcing bars at your spacing over a slab, wall or footing, split long bars into stock lengths with your lap length, and get the total length, the weight from the steel density, the stock bars to order and a cut list to download."

@@ -2,6 +2,7 @@
 name: Carrier concentration
 num: 862
 shelf: science
+code: T598
 section: semiconductors-and-electronics-materials
 title: "Carrier concentration"
 summary: "Work out the intrinsic carrier density, the electron and hole densities and the Fermi level of a doped semiconductor at any temperature. The band gap follows Varshni's formula, Nc and Nv come from your effective masses, and charge neutrality is solved with dopants that are only partly ionised, using the Fermi-Dirac integral so heavy doping is right too. Plots show the freeze-out, extrinsic and intrinsic regions."

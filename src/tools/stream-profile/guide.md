@@ -2,6 +2,7 @@
 name: Stream profile
 num: 890
 shelf: science
+code: T625
 section: geomorphology
 title: "Stream profile"
 summary: "Trace a channel down a DEM (GeoTIFF or ASCII grid) by steepest descent, or paste a long profile, and get the long profile, a slope-area fit (ks and θ), a chi plot with the best concavity, normalised steepness ksn and knickpoint hints."

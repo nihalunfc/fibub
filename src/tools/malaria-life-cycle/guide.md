@@ -2,6 +2,7 @@
 name: Malaria life cycle
 num: 1454
 shelf: learn
+code: L283
 section: school-biology
 title: "Malaria life cycle"
 summary: "Step round the life cycle of the malaria parasite: sporozoites from a mosquito bite, multiplying in the liver and red blood cells, gametocytes, fertilisation in the mosquito's gut and back to its salivary glands. See why the fever returns every 48 or 72 hours. A teaching diagram."

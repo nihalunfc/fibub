@@ -2,6 +2,7 @@
 name: Probability distribution explorer
 num: 563
 shelf: science
+code: T391
 section: statistics
 title: "Probability distribution calculator: pdf, cdf, quantiles, shaded probabilities and random samples for 35 distributions"
 summary: "Pick a distribution (normal, t, chi-squared, F, beta, gamma, Weibull, binomial, Poisson and 26 more), set its parameters and see the curve with the probability between two values shaded, the quantiles, mean, variance, skewness and kurtosis, and draw seeded random samples. Matches scipy.stats."

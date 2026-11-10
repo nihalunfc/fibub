@@ -2,6 +2,7 @@
 name: Mars time
 num: 53
 shelf: science
+code: T53
 section: planetary-science
 title: "Mars time: sol, Mars Sol Date, MTC and local solar time at Perseverance and Curiosity"
 summary: "See the time on Mars now or at any Earth date: Mars Sol Date, Coordinated Mars Time, local mean and true solar time, the rovers' mission sols, the season and the dates of this Mars year's equinoxes and solstices."

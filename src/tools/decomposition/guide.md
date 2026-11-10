@@ -2,6 +2,7 @@
 name: Decomposition rate
 num: 1458
 shelf: learn
+code: L287
 section: school-biology
 title: "Decomposition rate: how temperature, moisture and toughness change how fast dead leaves break down"
 summary: "Leave a bag of dead leaves or wood in a rainforest, desert, tundra or bog and watch it disappear year by year. Slide the temperature and moisture, see the rate, half-life and time to 95 % gone, and follow the five steps from fragmentation to mineralisation. A teaching model."

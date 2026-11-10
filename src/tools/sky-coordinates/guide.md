@@ -2,6 +2,7 @@
 name: Sky coordinate converter
 num: 23
 shelf: science
+code: T23
 section: research
 title: "RA/Dec converter: J2000, JNow, galactic, ecliptic and alt/az (batch list too)"
 summary: "Convert a sky position, or a whole target list, between J2000, JNow, galactic and ecliptic coordinates, and see where it is in your sky right now."

@@ -2,6 +2,7 @@
 name: Bioaccumulation factor calculator
 num: 159
 shelf: science
+code: T159
 section: ecotoxicology
 title: "Bioconcentration factor (BCF) calculator: fit k1 and k2 to a fish uptake and depuration test, plus trophic magnification factor (TMF)"
 summary: "Work out a kinetic bioconcentration factor from a fish test: fit the uptake rate k1 and depuration rate k2 to your time course and get BCF = k1/k2 with a confidence interval, half-life, time to steady state, steady-state BCF, growth correction and lipid normalisation. Or get the trophic magnification factor of a food web from trophic levels and concentrations."

@@ -2,6 +2,7 @@
 name: Tissot explorer
 num: 894
 shelf: science
+code: T629
 section: remote-sensing-and-gis
 title: "Map projection distortion explorer: Tissot indicatrix, scale and area for Mercator, UTM, Lambert, Albers and more"
 summary: "See how 11 map projections bend the world: Mercator, transverse Mercator, equirectangular, Lambert conformal conic, Albers, azimuthal equidistant and equal-area, stereographic, orthographic, Mollweide and sinusoidal. Tissot ellipses on a world map, and at any point the scale along the meridian and parallel, the areal scale and the angular distortion, compared across all projections."

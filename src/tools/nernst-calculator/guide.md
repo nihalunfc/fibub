@@ -2,6 +2,7 @@
 name: Nernst calculator
 num: 96
 shelf: science
+code: T96
 section: electrochemistry-and-battery-science
 title: "Nernst calculator"
 summary: "Electrode potentials at any concentration, pH and temperature by the Nernst equation, and full galvanic cells: E°cell, Ecell, the balanced cell reaction, cell notation, ΔG, K and Q. Pick from 44 standard half-reactions or type your own, and convert potentials between SHE, SCE, Ag/AgCl and RHE."

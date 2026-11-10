@@ -2,6 +2,7 @@
 name: Henry's law
 num: 1435
 shelf: learn
+code: L271
 section: school-chemistry
 title: "Henry's law"
 summary: "See Henry's law p = KH x at work. Pressurise a bottle of soda, warm it, then open it and watch the CO₂ escape. Compare how well CO₂, oxygen and nitrogen dissolve, and see why divers get the bends and climbers run short of oxygen."

@@ -2,6 +2,7 @@
 name: Parabolic dish
 num: 1380
 shelf: learn
+code: L225
 section: school-maths
 title: "Parabolic dish and reflector: why rays meet at the focus of a parabola, compared with a circle mirror"
 summary: "Shine parallel rays into a dish shaped like the parabola x² = 4ay and watch every one reflect through the focus, while a circle-shaped mirror blurs them. Light from the focus comes out as a straight beam, and a real dish's focus is found from its width and depth."

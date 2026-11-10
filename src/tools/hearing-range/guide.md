@@ -2,6 +2,7 @@
 name: Hearing range explorer
 num: 1266
 shelf: learn
+code: L134
 section: school-physics
 title: "Hearing range explorer: play tones from 20 Hz to 20 kHz and find the edges of your hearing"
 summary: "Play a pure tone from 20 Hz to 20 000 Hz, made in your browser, or sweep up and down and mark where you start hearing it. See the wavelength and compare with the approximate hearing ranges of animals. Not a medical test."

@@ -2,6 +2,7 @@
 name: Nucleic acid concentration
 num: 164
 shelf: science
+code: T164
 section: molecular-biology
 title: "Nucleic acid concentration"
 summary: "Turn spectrophotometer readings into concentration for double- or single-stranded DNA, RNA or protein, with background correction, dilution and path length. Check purity with 260/280 and 260/230, get nM and copies per µL from the length or sequence, and see how much stock to dilute to any target. Many samples at once."

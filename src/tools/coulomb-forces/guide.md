@@ -2,6 +2,7 @@
 name: Coulomb forces
 num: 1399
 shelf: learn
+code: L241
 section: school-physics
 title: "Coulomb forces"
 summary: "Drag up to four point charges around a board, choose one, and see the force from each of the others as an arrow, with Coulomb's law worked out with your numbers. The arrows add head to tail into the net force, with its size, direction and x and y parts."

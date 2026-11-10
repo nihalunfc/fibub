@@ -2,6 +2,7 @@
 name: Fracture toughness calculator
 num: 848
 shelf: science
+code: T584
 section: mechanical-behaviour
 title: "Fracture toughness calculator: stress intensity K, critical crack size, plane-strain check and Paris-law crack growth"
 summary: "Work out the stress intensity K = Yσ√(πa) for centre, edge, double-edge and buried cracks, with finite-width corrections. Get the critical stress and critical crack size against K_IC, the ASTM E399 plane-strain size check, the plastic zone, and the fatigue crack growth life from Paris' law."

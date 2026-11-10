@@ -2,6 +2,7 @@
 name: Significant figures checker
 num: 975
 shelf: science
+code: T710
 section: general-physics-lab-helpers
 title: "Significant figures checker: count sig figs, round correctly, and write value ± uncertainty for lab reports"
 summary: "Count the significant figures in any number and see which digits count, round to significant figures or decimal places (half up or half to even, with exact decimal arithmetic), write a value and its uncertainty the way lab reports expect, apply the sum and product rules, and check a whole table of results at once."

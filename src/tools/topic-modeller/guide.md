@@ -2,6 +2,7 @@
 name: "Topic modelling (LDA)"
 num: 414
 shelf: science
+code: T302
 section: digital-humanities
 title: "Topic modelling with LDA for small text collections, in your browser (seeded, with CSV)"
 summary: "Find the topics in a small collection of letters, notes or articles with latent Dirichlet allocation (collapsed Gibbs sampling): top words per topic, the topic mix of every document, and CSV downloads. Seeded, so runs repeat exactly. Nothing is uploaded."

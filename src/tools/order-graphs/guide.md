@@ -2,6 +2,7 @@
 name: Reaction order
 num: 1090
 shelf: learn
+code: L45
 section: school-chemistry
 title: "Reaction order"
 summary: "See [A], ln[A] and 1/[A] against time side by side for zero, first and second order reactions: only one is a straight line, and that tells you the order. Half-lives are marked as you change [A]₀ and k. A second card shows the Arrhenius equation and an energy profile with and without a catalyst. Ends with fresh practice questions."

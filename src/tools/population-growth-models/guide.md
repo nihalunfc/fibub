@@ -2,6 +2,7 @@
 name: Population growth models
 num: 303
 shelf: science
+code: T218
 section: ecology
 title: "Population growth calculator: exponential, logistic and Leslie matrix (eigenvalue, stable age distribution)"
 summary: "Compare exponential and logistic growth from a starting size, growth rate r and carrying capacity K, or project an age-structured population with a Leslie matrix and get λ, the stable age distribution, reproductive values, R₀ and generation time."

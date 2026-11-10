@@ -2,6 +2,7 @@
 name: Projectile launcher
 num: 1332
 shelf: learn
+code: L181
 section: school-physics
 title: "Projectile motion simulator: range, maximum height and time of flight from speed, angle and height, with or without air"
 summary: "Launch a ball at any speed, angle and height and watch its path: the range, highest point, time of flight and landing speed worked out with your numbers, the matching angle that lands in the same place, the best angle for distance, and what air drag does to it."

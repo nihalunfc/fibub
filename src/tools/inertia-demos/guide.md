@@ -2,6 +2,7 @@
 name: Inertia demos
 num: 1484
 shelf: learn
+code: L302
 section: school-physics
 title: "Inertia demos: coin on card, bus braking and heavy blocks"
 summary: "Flick a card from under a coin, brake a bus and push heavy and light blocks to see inertia at work, then check yourself with a short quiz."

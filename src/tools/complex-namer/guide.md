@@ -2,6 +2,7 @@
 name: Coordination compound namer
 num: 1434
 shelf: learn
+code: L270
 section: school-chemistry
 title: "Coordination compound namer: IUPAC name and formula of a complex, coordination number, Werner's AgCl test"
 summary: "Build a complex from a metal, its oxidation state, ligands (ammine, aqua, chlorido, cyanido, carbonyl, en, oxalato and more) and a counter ion. Get its formula and IUPAC name, coordination number, charge, likely shape, how many ions it gives in water and how much AgCl Werner's test precipitates."

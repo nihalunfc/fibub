@@ -2,6 +2,7 @@
 name: BMI calculator
 num: 478
 shelf: science
+code: T329
 section: clinical-calculators
 title: "BMI calculator"
 summary: "Work out body mass index with the WHO adult class, body surface area by the Mosteller, DuBois, Haycock and Gehan-George formulas, ideal body weight by Devine, Robinson and Miller, adjusted body weight and Janmahasatian lean body weight, in metric or US units."

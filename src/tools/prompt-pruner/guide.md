@@ -2,6 +2,7 @@
 name: Prompt pruner
 num: 8
 shelf: documents
+code: T8
 title: "Prompt pruner: turn PDFs and code into lean Markdown for ChatGPT, Claude and Gemini"
 summary: "Strip repeated headers, page numbers, legal footers and extra spaces from PDFs, Word files, web pages and code, and get clean Markdown that uses fewer AI tokens."
 status: live

@@ -2,6 +2,7 @@
 name: Periodic trends
 num: 1356
 shelf: learn
+code: L205
 section: school-chemistry
 title: "Periodic trends explorer: atomic radius, ionisation energy and electronegativity across a period and down a group, with the exceptions explained"
 summary: "Colour the periodic table by atomic radius, first ionisation energy or electronegativity, tap any element, and graph the trend across its period or down its group. The exceptions to each trend (beryllium to boron, nitrogen to oxygen, aluminium to gallium) are flagged in red with the reason."

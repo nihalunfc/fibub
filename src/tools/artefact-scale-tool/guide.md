@@ -2,6 +2,7 @@
 name: Artefact scale
 num: 404
 shelf: science
+code: T292
 section: archaeology
 title: "Artefact scale"
 summary: "Open a photo of a find with a scale bar in it, tap both ends of the bar and type its length, then measure lengths, edge angles and outline areas in millimetres. Includes a perspective check, click uncertainty, an annotated PNG and a CSV. The photo never leaves your device."

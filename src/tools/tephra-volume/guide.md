@@ -2,6 +2,7 @@
 name: Tephra volume
 num: 887
 shelf: science
+code: T622
 section: volcanology
 title: "Tephra volume"
 summary: "Work out the volume of a tephra fall deposit from isopach thickness and area: exponential fits with one to three segments, the power law between your limits, and the Weibull fit, with VEI class, mass and dense-rock-equivalent volume, and a plot of thickness against √area."

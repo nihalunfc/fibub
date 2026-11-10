@@ -2,6 +2,7 @@
 name: Kinetic theory
 num: 1066
 shelf: learn
+code: L30
 section: school-physics
 title: "Kinetic theory"
 summary: "Watch gas particles bounce around a box. The pressure is counted from their hits on the walls and compared with the gas law; a live histogram shows the speeds settle into the Maxwell shape. Then see the rms speed and average energy of real gases at any temperature."

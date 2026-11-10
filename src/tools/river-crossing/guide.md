@@ -2,6 +2,7 @@
 name: River crossing boat
 num: 1337
 shelf: learn
+code: L186
 section: school-physics
 title: "River crossing and relative velocity: time to cross, drift downstream, and the heading to land straight opposite"
 summary: "Point a boat across a flowing river and watch where it lands. See the boat's velocity, the river's velocity and the velocity over the ground added as arrows, the time to cross, the drift, and the headings for the fastest crossing and for landing straight opposite."

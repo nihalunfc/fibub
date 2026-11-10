@@ -2,6 +2,7 @@
 name: Kohlrausch's law
 num: 1433
 shelf: learn
+code: L269
 section: school-chemistry
 title: "Kohlrausch's law"
 summary: "Plot molar conductivity against √c for KCl, NaCl, HCl, NaOH, MgCl₂ and other strong electrolytes, extend the straight line to find Λ°m, and see why ethanoic acid's curve cannot be extended. Then build Λ°m from ion values with Kohlrausch's law, find Λ° of a weak acid from three strong electrolytes, and get α and κ."

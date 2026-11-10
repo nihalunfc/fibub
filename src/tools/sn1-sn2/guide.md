@@ -2,6 +2,7 @@
 name: SN1 vs SN2
 num: 1108
 shelf: learn
+code: L53
 section: school-chemistry
 title: "SN1 vs SN2"
 summary: "Choose a methyl, primary, secondary, tertiary or benzylic halide, a strong or weak nucleophile, a protic or aprotic solvent and the leaving group, and see which substitution route wins and why. Compare the one-step and two-step energy profiles, watch backside attack flip the molecule (Walden inversion) or the flat carbocation give a racemic mixture in 3D, and test yourself."

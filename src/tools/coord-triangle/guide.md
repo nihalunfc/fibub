@@ -2,6 +2,7 @@
 name: Triangle from coordinates
 num: 1317
 shelf: learn
+code: L177
 section: school-maths
 title: "Triangle from coordinates"
 summary: "Drag three points on a grid or type their coordinates. See whether they are collinear, the three side lengths by the distance formula, the area, and whether the triangle is scalene, isosceles or equilateral and right, acute or obtuse, with every step shown."

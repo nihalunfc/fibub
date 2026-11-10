@@ -2,6 +2,7 @@
 name: Experiment design
 num: 567
 shelf: science
+code: T395
 section: statistics
 title: "Experiment design"
 summary: "Plan an experiment: full factorial, 2^(k−p) fractional factorial with its alias table, Plackett-Burman screening, central composite or Box-Behnken response-surface designs. Get a randomised run sheet (seeded, so you can repeat it) as CSV, then paste your results to see which factors matter."

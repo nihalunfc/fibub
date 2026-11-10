@@ -2,6 +2,7 @@
 name: Rationalise the denominator
 num: 1277
 shelf: learn
+code: L145
 section: school-maths
 title: "Rationalise the denominator step by step: k/√n, k/(a + b√n) and k/(√m ± √n)"
 summary: "Type a fraction with a square root on the bottom and see it rationalised step by step: what to multiply by, how the root disappears from the denominator, the simplified answer and a decimal check. A picture shows why multiplying by the conjugate works: (x + y)(x − y) = x² − y²."

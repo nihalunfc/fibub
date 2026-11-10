@@ -2,6 +2,7 @@
 name: Paschen curve calculator
 num: 955
 shelf: science
+code: T690
 section: plasma-physics
 title: "Paschen curve calculator: breakdown voltage of a gas gap by gas, pressure and distance"
 summary: "Work out the DC voltage that makes a spark jump a gap from the gas, pressure and gap with Paschen's law, find the Paschen minimum, see which gaps a given voltage can break down, and draw the curve for one gas or all of them. The A and B constants are rounded and editable."

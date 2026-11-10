@@ -2,6 +2,7 @@
 name: Field lines
 num: 909
 shelf: science
+code: T644
 section: electromagnetism
 title: "Field lines"
 summary: "Place point charges, line charges and dipoles, drag them around, and watch the field lines and equipotentials redraw. Tap anywhere to read the field strength, direction and potential there, and see the force on every charge."

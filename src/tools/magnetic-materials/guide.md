@@ -2,6 +2,7 @@
 name: Magnetic materials
 num: 1410
 shelf: learn
+code: L251
 section: school-physics
 title: "Magnetic materials"
 summary: "Put a diamagnetic, paramagnetic or ferromagnetic sample in a field and watch its tiny magnets: induced moments against the field, jiggling dipoles that line up a little, or whole domains that flip. Change the temperature, see Curie's law and the Curie temperature, and trace a hysteresis loop with its remanence and coercivity."

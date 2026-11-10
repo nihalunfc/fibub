@@ -2,6 +2,7 @@
 name: Limit zoom
 num: 1185
 shelf: learn
+code: L88
 section: school-maths
 title: "Limits and continuity visualiser: zoom in on a point, left and right tables, sin x / x → 1, holes and jumps"
 summary: "Zoom in on a function near a point and watch where it heads from the left and from the right, with tables of values closing in, the sector picture behind sin x / x → 1, and a Class 12 view that sorts each point as continuous, a hole, a jump, an infinite break or an endless wobble."

@@ -2,6 +2,7 @@
 name: Unit hydrograph builder
 num: 149
 shelf: science
+code: T149
 section: hydrology-and-water-resources
 title: "Unit hydrograph builder: synthetic SCS-type and Nash unit hydrographs, storm hydrographs, and unit hydrographs from observed storms"
 summary: "Build a unit hydrograph for a catchment from its area and time of concentration (a gamma curve with a peak rate factor, as in the SCS method, or a Nash cascade). Turn a series of excess rain into a storm hydrograph by convolution. Or derive the unit hydrograph from a storm you measured, with baseflow separation, a φ-index loss and a non-negative least-squares fit."

@@ -2,6 +2,7 @@
 name: Species sensitivity distribution
 num: 152
 shelf: science
+code: T152
 section: ecotoxicology
 title: "Species sensitivity distribution (SSD) and HC5 calculator: log-normal, log-logistic and model average with bootstrap limits"
 summary: "Turn toxicity values for many species into one protective concentration. Fit a species sensitivity distribution (log-normal, log-logistic or their AICc average), read off the HC5 or any other HCp with bootstrap limits, see the fraction of species affected at any concentration, and plot every species on the curve."

@@ -2,6 +2,7 @@
 name: Converse checker
 num: 1281
 shelf: learn
+code: L149
 section: school-maths
 title: "Converse checker"
 summary: "Pick an if-then statement from geometry or numbers, swap it round into its converse, and test either one on random quadrilaterals, triangles, angles or numbers. Hunt through a thousand cases for a counterexample and see why a converse can be false."

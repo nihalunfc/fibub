@@ -2,6 +2,7 @@
 name: Fold axis
 num: 207
 shelf: science
+code: T207
 section: structural-geology
 title: "Fold axis"
 summary: "Paste bedding or foliation as strike and dip or dip direction and dip. Get the fold axis (plunge and trend) from the eigenvectors of the poles, the best-fit π-girdle, Woodcock and Vollmer shape numbers, how cylindrical the fold is, the interlimb angle and axial plane from two labelled limbs, and an equal-area net with Kamb density contours."

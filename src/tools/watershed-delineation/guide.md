@@ -2,6 +2,7 @@
 name: Watershed delineation
 num: 889
 shelf: science
+code: T624
 section: geomorphology
 title: "Watershed delineation from a DEM: fill sinks, D8 flow, flow accumulation, streams and catchment outline in the browser"
 summary: "Open a small DEM (GeoTIFF or ASCII grid, up to 1000 × 1000 cells), tap a stream to place the outlet, and see the area that drains to it: catchment area, perimeter, longest flow path, relief, mean slope, stream length, drainage density and Strahler order. Depressions are filled with Priority-Flood and flow follows D8. Download the outline and streams as GeoJSON, and flow accumulation and direction as GeoTIFF. Files never leave your device."

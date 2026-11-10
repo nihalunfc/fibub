@@ -2,6 +2,7 @@
 name: Solar PV yield
 num: 672
 shelf: science
+code: T469
 section: energy-and-power-systems
 title: "Solar PV yield"
 summary: "Give a place, the panels' tilt and direction, the system size and losses, and get an hour-by-hour clear-sky year (sun position, Haurwitz clear sky, Erbs split, isotropic sky on the tilted panels), scaled by your own sunshine estimate: yearly and monthly energy, specific yield, capacity factor and the best tilt."

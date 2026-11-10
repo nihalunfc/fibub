@@ -2,6 +2,7 @@
 name: Magnetic anomaly modeller
 num: 881
 shelf: science
+code: T616
 section: geophysics-and-seismology
 title: "Magnetic anomaly modelling: total-field anomaly of a sphere, horizontal cylinder, thin dyke or prism, with remanence, profile, map and RMS misfit"
 summary: "Model the total-field magnetic anomaly of a buried sphere, horizontal cylinder, thin dipping dyke or vertical-sided prism in any field inclination and declination, with optional remanent magnetisation. See the profile and a map, and compare with pasted survey readings by RMS misfit."

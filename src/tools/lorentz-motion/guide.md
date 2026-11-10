@@ -2,6 +2,7 @@
 name: Lorentz motion
 num: 1408
 shelf: learn
+code: L249
 section: school-physics
 title: "Lorentz motion"
 summary: "Fire a proton, electron, alpha particle or deuteron into a magnetic field and watch it circle or spiral, with its radius, period and pitch. Add an electric field at right angles to make a velocity selector, or spin it up in a cyclotron and see its frequency, final energy and number of turns."

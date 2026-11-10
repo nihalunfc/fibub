@@ -2,6 +2,7 @@
 name: Radioactive decay dice
 num: 1071
 shelf: learn
+code: L35
 section: school-physics
 title: "Radioactive decay dice: throw hundreds of dice, remove the sixes, and watch a half-life appear; compare with N = N₀ e^(−λt)"
 summary: "Model radioactive decay with dice or coins: throw them all, remove every six, and repeat. A half-life appears from pure chance. Compare your counts with N = N₀ e^(−λt), and see why big samples follow the curve and small ones wobble."

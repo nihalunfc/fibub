@@ -2,6 +2,7 @@
 name: Video motion tracker
 num: 906
 shelf: science
+code: T641
 section: classical-mechanics
 title: "Video motion tracker: click a moving object frame by frame and get position, velocity and acceleration (video analysis for physics)"
 summary: "Open a phone video, set the scale with a ruler in the shot, click the object in each frame and get x(t), y(t), velocity and acceleration, with straight-line and parabola fits (g from a thrown ball). The video is played in your browser and never uploaded."

@@ -2,6 +2,7 @@
 name: Energy bands
 num: 1429
 shelf: learn
+code: L265
 section: school-physics
 title: "Energy bands: conductor, semiconductor and insulator, band gap, doping and LED colour"
 summary: "See the valence and conduction bands of copper, germanium, silicon, gallium arsenide and diamond. Heat the crystal and watch electrons jump the band gap, dope silicon n-type or p-type and check n × p = nᵢ², then find the colour of an LED from its band gap."

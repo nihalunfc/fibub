@@ -2,6 +2,7 @@
 name: Reactor design
 num: 665
 shelf: science
+code: T462
 section: chemical-engineering
 title: "Reactor design"
 summary: "Size an isothermal CSTR, plug flow reactor, train of equal CSTRs or batch reactor for a target conversion, or find the conversion a given size reaches. n-th order, reversible first-order and saturating rate laws, an Arrhenius rate constant, gas-phase volume change, a Levenspiel plot and conversion-volume curves."

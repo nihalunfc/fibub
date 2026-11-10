@@ -2,6 +2,7 @@
 name: Grant budget builder
 num: 822
 shelf: science
+code: T558
 section: ethics-and-planning
 title: "Research grant budget builder: personnel effort, fringe, raises, indirect costs and totals per year"
 summary: "Build a multi-year research budget: people with salary, effort %, fringe rate and yearly raise, plus equipment, travel, consumables and other lines. Indirect costs on the base you choose, with exclusions and a cap. Totals per year, a chart, and CSV for Excel, PDF or Word. Every rate is yours to type."

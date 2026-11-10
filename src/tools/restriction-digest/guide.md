@@ -2,6 +2,7 @@
 name: Restriction digest simulator
 num: 168
 shelf: science
+code: T168
 section: molecular-biology
 title: "Restriction digest simulator: find cut sites, fragment sizes, plasmid map and a virtual agarose gel"
 summary: "Paste a plasmid or other DNA, pick classic enzymes or type your own sites, and see every cut on both strands, the fragment sizes for single and combined digests, a circular or linear map, single cutters for cloning, and a virtual gel next to your ladder."

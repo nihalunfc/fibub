@@ -2,6 +2,7 @@
 name: Energy skate track
 num: 1025
 shelf: learn
+code: L12
 section: school-physics
 title: "Kinetic and potential energy on a track: shape the track, watch KE, PE and heat swap, friction, and loop the loop"
 summary: "Shape a track with your finger, let a ball roll and watch kinetic energy, potential energy and heat trade places while the total stays the same; add friction and see it turn into heat; then find the lowest start that gets a ball round a loop."

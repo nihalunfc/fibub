@@ -2,6 +2,7 @@
 name: Liquid pressure
 num: 1221
 shelf: learn
+code: L313
 section: school-physics
 title: "Liquid pressure and depth: a bottle with three holes, why the lowest jet squirts hardest, P = ρgh and Torricelli"
 summary: "A bottle of water with holes at three heights. See the lowest jet squirt hardest, read the pressure at each hole, let the bottle drain, raise it on a stand, and at Class 11 work out each jet's speed and where it lands."

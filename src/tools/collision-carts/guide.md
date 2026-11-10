@@ -2,6 +2,7 @@
 name: Collision carts
 num: 1257
 shelf: learn
+code: L129
 section: school-physics
 title: "Collision carts simulator: conservation of momentum, elastic and sticky collisions, recoil of a gun or boat"
 summary: "Roll two carts into each other on a track, bouncy or sticky, and watch the momentum bars before and after: the total never changes. See where the kinetic energy goes, then fire a cannon or jump off a boat to see recoil."

@@ -2,6 +2,7 @@
 name: Particle size
 num: 854
 shelf: science
+code: T590
 section: microscopy-and-image-analysis
 title: "Particle size"
 summary: "Open an SEM, TEM or optical image of particles, calibrate the scale bar and the page finds every particle: threshold, hole filling, a watershed split of touching particles, then area, equivalent diameter, Feret maximum and minimum, circularity and aspect ratio, with edge particles left out, a size histogram and D10, D50 and D90. The image stays in your browser."

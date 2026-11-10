@@ -2,6 +2,7 @@
 name: Banked curve
 num: 1028
 shelf: learn
+code: L15
 section: school-physics
 title: "Banked curve"
 summary: "Take a car round a curve at any speed, radius and bank angle on a dry, wet or icy road; see the weight, normal force and friction on it, the friction it needs, the ideal no-friction speed and the safe speed range."

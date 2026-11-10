@@ -2,6 +2,7 @@
 name: Checksum checker
 num: 818
 shelf: science
+code: T554
 section: data-management
 title: "Checksum checker: SHA-256, MD5 and CRC32 for many files, sha256sum and BagIt manifests, verify downloads"
 summary: "Make SHA-256, SHA-512, SHA-1, MD5 or CRC32 checksums for a whole folder of files, save them as a sha256sum, BSD or BagIt manifest, and check files against a manifest you were given: match, does not match, missing or extra. Nothing is uploaded."

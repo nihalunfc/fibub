@@ -2,6 +2,7 @@
 name: Wind chill
 num: 896
 shelf: science
+code: T631
 section: meteorology
 title: "Wind chill"
 summary: "Type the air temperature, humidity and wind and get the wind chill, the US heat index, the Canadian humidex and the apparent temperature, each with the range where it applies and its warning band, plus a table for any range of temperatures. °C or °F; km/h, mph, m/s or knots."

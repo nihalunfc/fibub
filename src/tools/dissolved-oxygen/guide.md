@@ -2,6 +2,7 @@
 name: Dissolved oxygen
 num: 841
 shelf: science
+code: T577
 section: chemical-and-biological-oceanography
 title: "Dissolved oxygen"
 summary: "Work out oxygen solubility from temperature, salinity and air pressure, then the percent saturation and apparent oxygen utilisation (AOU) of your samples, in mg/L, µmol/kg, µmol/L or mL/L. Paste a whole profile, and turn plankton counts into cells per litre or individuals per cubic metre with a 95 % range."

@@ -2,6 +2,7 @@
 name: Hodgkin-Huxley simulator
 num: 347
 shelf: science
+code: T262
 section: neuroscience
 title: "Hodgkin-Huxley model simulator: action potentials, gating variables m, h, n, threshold and f-I curve"
 summary: "Run the Hodgkin-Huxley (1952) squid giant axon model in your browser. Inject a current step or a pulse train and watch the membrane potential and the m, h and n gates; change the temperature or block Na⁺ and K⁺ channels; find the threshold of a single pulse and draw the firing rate against current (f-I curve). For study and teaching, not for clinical use."

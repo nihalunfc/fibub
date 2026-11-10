@@ -2,6 +2,7 @@
 name: Jupiter's moons
 num: 62
 shelf: science
+code: T62
 section: planetary-science
 title: "Jupiter's moons tonight: where Io, Europa, Ganymede and Callisto are, with transits and eclipses"
 summary: "See where Jupiter's four large moons are at any moment, in the same orientation as your eyepiece, and list the coming transits, shadow transits, occultations and eclipses you can see from your place."

@@ -2,6 +2,7 @@
 name: Number trick decoder
 num: 1249
 shelf: learn
+code: L121
 section: school-maths
 title: "Number trick decoder: think of a number tricks explained with algebra"
 summary: "Run a think-of-a-number trick with any number and with the letter n side by side, see each step as bags and counters, and find out why the answer is always the same, or how a mind reader gets your number back. Build your own trick too."

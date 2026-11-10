@@ -2,6 +2,7 @@
 name: Planet data explorer
 num: 74
 shelf: science
+code: T74
 section: planetary-science
 title: "Planet and moon data explorer: compare sizes, gravity, density and orbits"
 summary: "Every planet, Pluto and the large moons in one sortable table: compare any two to scale, plot any two quantities (such as Kepler's third law) and see your weight on each world."

@@ -2,6 +2,7 @@
 name: Collision lab
 num: 1335
 shelf: learn
+code: L184
 section: school-physics
 title: "Collision simulator: elastic and inelastic collisions in 1D and 2D, coefficient of restitution, momentum and kinetic energy"
 summary: "Crash two trolleys on a track, or two balls at a glancing angle, with any masses, speeds and bounciness from sticking together to perfectly elastic. Watch it happen, then see the velocities after, momentum before and after, the kinetic energy lost, and why equal snooker balls part at 90°."

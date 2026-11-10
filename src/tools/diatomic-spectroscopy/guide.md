@@ -2,6 +2,7 @@
 name: Diatomic spectroscopy calculator
 num: 94
 shelf: science
+code: T94
 section: physical-chemistry
 title: "Diatomic spectroscopy calculator: IR P and R branches, bond length, Morse potential and isotope shifts"
 summary: "Vibrational and rotational spectroscopy of diatomic molecules (HCl, CO, H₂, N₂, O₂, HF, I₂ or your own constants): fundamental and overtones, force constant, bond length, the simulated IR spectrum with P and R branches at any temperature, the Morse potential with its levels, isotope substitution, and a fit of ωe and ωexe."

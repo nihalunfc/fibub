@@ -2,6 +2,7 @@
 name: Pump curve
 num: 662
 shelf: science
+code: T459
 section: thermal-and-fluid-engineering
 title: "Pump curve"
 summary: "Fit a pump curve to points read off the maker's chart, build the system curve from static head and pipe friction, and find the operating point with its efficiency and power. Try pumps in parallel or series, a new speed or a trimmed impeller (affinity laws), and check NPSH available against NPSH required."

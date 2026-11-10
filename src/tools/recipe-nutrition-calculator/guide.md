@@ -2,6 +2,7 @@
 name: Recipe nutrition calculator
 num: 391
 shelf: science
+code: T279
 section: food-science
 title: "Recipe nutrition calculator: per serving and per 100 g from your own ingredient labels, with cooking loss"
 summary: "Type or paste your ingredients with the values per 100 g from their packs, set the servings and the weight lost in cooking, and get a label-style table per 100 g and per serving, with energy from the labels or from the Atwater factors. Nothing is uploaded."

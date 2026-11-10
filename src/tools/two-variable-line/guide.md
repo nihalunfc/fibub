@@ -2,6 +2,7 @@
 name: Line solutions
 num: 1289
 shelf: learn
+code: L157
 section: school-maths
 title: "Line solutions"
 summary: "Set a, b and c in ax + by = c and watch its line move. Whole-number solutions show as dots; tap any grid point or type one to test it, with the sum worked out. A table of solutions, where the line crosses the axes, and lines parallel to the axes. Ends with fresh practice questions."

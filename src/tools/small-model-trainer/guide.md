@@ -2,6 +2,7 @@
 name: Small model trainer
 num: 569
 shelf: science
+code: T397
 section: data-science-and-machine-learning
 title: "Train a decision tree, logistic regression, k-NN or k-means model on your CSV, in your browser"
 summary: "Train a small machine-learning model on a CSV or Excel table: a decision tree (drawn for you), logistic regression, k-nearest neighbours or k-means clustering with an elbow plot. See train and test accuracy, a confusion matrix and per-class scores. Matches scikit-learn. Nothing is uploaded."

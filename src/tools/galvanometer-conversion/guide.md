@@ -2,6 +2,7 @@
 name: Galvanometer conversion
 num: 1413
 shelf: learn
+code: L254
 section: school-physics
 title: "Galvanometer conversion"
 summary: "Turn a moving-coil galvanometer into an ammeter with a shunt, or into a voltmeter with a series resistance. Set the coil resistance, its full-scale current and the range you want; get the resistance with the formula and your numbers, the meter's own resistance, and a relabelled meter face that you can test."

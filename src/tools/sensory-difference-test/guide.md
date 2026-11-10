@@ -2,6 +2,7 @@
 name: Sensory test
 num: 395
 shelf: science
+code: T283
 section: food-science
 title: "Sensory test"
 summary: "Analyse a sensory difference test from the number of answers and correct answers: exact one-sided binomial p-value, the fewest correct needed, Thurstonian d′ and the proportion of distinguishers, power and sample size, and a table of critical values worked out for any n. Nothing is uploaded."

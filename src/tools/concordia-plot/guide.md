@@ -2,6 +2,7 @@
 name: Concordia plot (U-Pb)
 num: 874
 shelf: science
+code: T610
 section: geochemistry-and-geochronology
 title: "U-Pb concordia plot: Wetherill and Tera-Wasserburg diagrams, error ellipses, concordia age, discordia intercepts"
 summary: "Paste U-Pb isotope ratios with errors and correlations. Get Wetherill or Tera-Wasserburg concordia diagrams with 2σ error ellipses, the concordia age with its MSWD (Ludwig 1998), upper and lower discordia intercepts by York regression, the weighted mean ²⁰⁶Pb/²³⁸U age, and each analysis's three ages and discordance."

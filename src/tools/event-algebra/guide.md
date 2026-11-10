@@ -2,6 +2,7 @@
 name: Event algebra
 num: 1385
 shelf: learn
+code: L227
 section: school-maths
 title: "Event algebra: A ∪ B, A ∩ B, not A and the addition rule P(A ∪ B) = P(A) + P(B) − P(A ∩ B) on a grid of outcomes"
 seoTitle: "Probability of A or B: addition rule on a dice grid"

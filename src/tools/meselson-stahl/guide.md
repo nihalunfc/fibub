@@ -2,6 +2,7 @@
 name: Meselson-Stahl experiment
 num: 1446
 shelf: learn
+code: L277
 section: school-biology
 title: "Meselson-Stahl experiment: semi-conservative DNA replication with ¹⁵N and ¹⁴N bands"
 summary: "Grow heavy ¹⁵N DNA in light ¹⁴N for up to four generations and see the bands each model of copying predicts in a density gradient: semi-conservative, conservative or dispersive. Compare with the real result, separate the strands with heat, and see every DNA molecule's old and new strands."

@@ -2,6 +2,7 @@
 name: Readability checker
 num: 821
 shelf: science
+code: T557
 section: ethics-and-planning
 title: "Readability checker for consent forms and plain-language summaries: Flesch, Flesch-Kincaid, Fog, SMOG, Coleman-Liau, ARI"
 summary: "Paste a consent form, information sheet or any English text and get six readability scores, a school grade, long sentences, passive-voice hints, long words, your own jargon and plainer-word suggestions, marked in the text. Nothing is uploaded."

@@ -2,6 +2,7 @@
 name: Load flow
 num: 674
 shelf: science
+code: T471
 section: energy-and-power-systems
 title: "Load flow"
 summary: "Type or open bus and line tables, and solve the AC power flow in per unit by Newton-Raphson or Gauss-Seidel. Get every bus voltage and angle, line flows at both ends, losses and a single-line diagram. Nothing is uploaded."

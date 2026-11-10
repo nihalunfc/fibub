@@ -2,6 +2,7 @@
 name: Sequence explorer
 num: 1280
 shelf: learn
+code: L148
 section: school-maths
 title: "Sequence explorer"
 summary: "Watch dot and matchstick patterns grow step by step, read their differences in a table, and get the rule for step n with the reason it works. Type any list of numbers to find its linear, quadratic or doubling rule and the next term."

@@ -2,6 +2,7 @@
 name: Yield per recruit
 num: 341
 shelf: science
+code: T256
 section: fisheries-science
 title: "Yield per recruit"
 summary: "Work out Beverton-Holt yield per recruit against fishing mortality and age at first capture, with the reference points F0.1 and Fmax. Then get MSY, BMSY and FMSY from the Schaefer or Fox surplus production model, from your own r and K or fitted to a series of catches and CPUE."

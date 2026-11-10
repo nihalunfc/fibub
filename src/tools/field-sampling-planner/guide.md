@@ -2,6 +2,7 @@
 name: Field sampling planner
 num: 158
 shelf: science
+code: T158
 section: environmental-monitoring
 title: "Field sampling planner: how many soil or water samples, grid spacing for hot spots, and random, stratified or grid sample points on your site map"
 summary: "Plan where to take field samples. Draw your site boundary, work out how many samples you need (to estimate an average, compare with an action level, or find a hot spot of a given size), and lay the points out on a square or triangular grid, stratified random or simple random. Download the points as CSV or as GPX for a GPS."

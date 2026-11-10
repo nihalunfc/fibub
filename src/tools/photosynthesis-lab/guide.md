@@ -2,6 +2,7 @@
 name: Photosynthesis lab
 num: 1122
 shelf: learn
+code: L56
 section: school-biology
 title: "Photosynthesis lab: light, carbon dioxide and temperature against oxygen bubbles, with limiting factors"
 summary: "Move a lamp, add carbon dioxide and warm the water around a pondweed, then watch and count the oxygen bubbles. See which factor is limiting the rate, and graphs of rate against light at several carbon dioxide levels (Blackman's law)."

@@ -2,6 +2,7 @@
 name: Function types
 num: 1459
 shelf: learn
+code: L288
 section: school-maths
 title: "Function types"
 summary: "Pick a function, a domain and a codomain, then slide a horizontal line over the graph: it meets the graph more than once where the function is not one-one, and misses it where the function is not onto. See the range, a pair of x with the same y, a value nothing maps to, and the inverse as a mirror image in y = x."

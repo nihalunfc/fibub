@@ -2,6 +2,7 @@
 name: Quadratic explorer
 num: 1151
 shelf: learn
+code: L68
 section: school-maths
 title: "Quadratic equations explorer: parabola, roots, discriminant and completing the square"
 summary: "Slide a, b and c and watch the parabola move: vertex, roots and the discriminant update live, completing the square is drawn with tiles, and the middle term is split for you. With fresh practice questions."

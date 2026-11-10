@@ -2,6 +2,7 @@
 name: Altermagnet checker
 num: 117
 shelf: science
+code: T117
 section: condensed-matter-physics
 title: "Altermagnet checker: is a magnet an altermagnet, antiferromagnet or ferrimagnet? (spin-group symmetry test)"
 summary: "Enter a crystal and mark which atoms are spin up or spin down. The tool finds the symmetry operations that swap the two spin sublattices and tells you whether the material is a conventional antiferromagnet (spin-degenerate bands), an altermagnet (d-, g- or i-wave spin-split bands) or a ferrimagnet, with the symmetry-allowed form of the spin splitting and a map of where it is positive or negative."

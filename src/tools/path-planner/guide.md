@@ -2,6 +2,7 @@
 name: Path planning visualiser
 num: 640
 shelf: science
+code: T437
 section: control-and-robotics
 title: "Path planning visualiser: A*, Dijkstra and RRT on a grid you draw"
 summary: "Draw walls on a grid with a tap or a drag, then watch A* or Dijkstra (4 or 8 directions) find the shortest path and which cells they search, or grow a seeded RRT tree through open space. Shows path length, cells expanded and tree size, and downloads the path as CSV."

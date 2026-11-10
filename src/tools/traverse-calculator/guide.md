@@ -2,6 +2,7 @@
 name: Traverse calculator
 num: 132
 shelf: science
+code: T132
 section: geodesy-and-surveying
 title: "Traverse closure and area calculator: misclosure, precision, Bowditch and transit adjustment, coordinate geometry"
 summary: "Paste or open a survey traverse as bearings and distances or as angles and distances. Get the angular and linear misclosure, the precision ratio, Bowditch or transit adjusted coordinates, the area inside a loop, and the bearing and distance between points and where two lines or two distances meet."

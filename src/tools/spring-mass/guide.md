@@ -2,6 +2,7 @@
 name: Spring combinations
 num: 1352
 shelf: learn
+code: L201
 section: school-physics
 title: "Spring combinations"
 summary: "Hang a mass on one spring, two springs one below the other, or two side by side, and watch it bob. See the combined spring constant, how far it hangs, the period T = 2π√(m/k) and the energy, all with your numbers, and compare series with parallel."

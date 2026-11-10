@@ -2,6 +2,7 @@
 name: Mendelian chi-square test
 num: 203
 shelf: science
+code: T203
 section: genetics
 title: "Chi-square test for Mendelian ratios: 3:1, 1:2:1, 9:3:3:1, 9:3:4, 12:3:1, 15:1 and your own, with an exact test"
 summary: "Check whether the offspring of a cross fit a Mendelian ratio such as 3:1, 1:2:1, 9:3:3:1, 9:3:4, 12:3:1, 15:1, 1:1, 1:1:1:1 or your own. Get expected counts, chi-square, degrees of freedom, the p-value, which classes drive the result, a warning for small expected counts, and an exact binomial or multinomial test."

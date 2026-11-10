@@ -2,6 +2,7 @@
 name: Survey weighting
 num: 494
 shelf: science
+code: T345
 section: public-health
 title: "Survey weighting"
 summary: "Weight survey respondents to match population figures for up to three variables by post-stratification or raking (iterative proportional fitting), starting from design weights if you have them. Get the weights, weighted percentages, Kish's design effect and the effective sample size."

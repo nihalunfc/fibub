@@ -2,6 +2,7 @@
 name: Fractal builder
 num: 1248
 shelf: learn
+code: L120
 section: school-maths
 title: "Fractal builder: Koch snowflake and Sierpinski triangle step by step, perimeter that grows forever and area that stays finite"
 summary: "Build the Koch snowflake and the Sierpinski triangle one step at a time. A live table follows the number of pieces, their size, the perimeter and the area: the snowflake's perimeter grows without end while its area never passes 8/5 of the first triangle, and the Sierpinski triangle's area shrinks to nothing."

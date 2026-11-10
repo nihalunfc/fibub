@@ -2,6 +2,7 @@
 name: Load combination helper
 num: 651
 shelf: science
+code: T448
 section: civil-and-structural-engineering
 title: "Load combination calculator: factored load combinations and the governing case for each effect"
 summary: "Type your load cases (dead, live, snow, wind, earthquake and more) with their forces or moments, and your own load combinations with factors. The tool works out every combination, tries both directions of wind and earthquake, and shows the largest and smallest value of each effect and where it comes from."

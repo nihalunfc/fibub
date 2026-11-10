@@ -2,6 +2,7 @@
 name: Von Bertalanffy
 num: 340
 shelf: science
+code: T255
 section: fisheries-science
 title: "Von Bertalanffy"
 summary: "Fit the von Bertalanffy growth curve to fish length-at-age data by nonlinear least squares. Get L∞, K and t₀ with standard errors and 95 % intervals, the growth performance index φ', a Ford-Walford plot and charts. Paste ages and lengths or open a CSV or Excel file."

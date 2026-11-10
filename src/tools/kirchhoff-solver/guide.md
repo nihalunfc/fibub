@@ -2,6 +2,7 @@
 name: Kirchhoff's rules solver
 num: 1407
 shelf: learn
+code: L248
 section: school-physics
 title: "Kirchhoff's rules solver: draw a DC circuit, see the junction and loop equations solved"
 summary: "Draw a DC circuit of cells and resistors on a grid by tapping the sides between dots. The page writes out Kirchhoff's junction rule and loop rule for it, solves the equations and shows every branch current with its direction, the voltage across each resistor and the power of each cell."

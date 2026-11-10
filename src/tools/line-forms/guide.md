@@ -2,6 +2,7 @@
 name: Line forms converter
 num: 1378
 shelf: learn
+code: L223
 section: school-maths
 title: "Equation of a straight line in every form: drag two points, plus angle between lines and distance from a point"
 summary: "Drag two points and see the slope and every form of the line's equation update together: two-point, point-slope, slope-intercept, intercept, general and normal form. Add a second line and a point for the angle between lines and the perpendicular distance, drawn."

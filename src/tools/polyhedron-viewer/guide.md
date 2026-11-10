@@ -2,6 +2,7 @@
 name: Polyhedron viewer
 num: 554
 shelf: science
+code: T382
 section: geometry-and-topology
 title: "Polyhedron viewer"
 summary: "Turn all 5 Platonic and 13 Archimedean solids in 3D, see their duals, and read vertices, edges, faces, V − E + F, vertex configuration, surface area and volume. Also draws the 11 regular and semi-regular plane tilings. PNG, SVG and OBJ downloads."

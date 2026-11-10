@@ -34,8 +34,9 @@ const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-
     <label class="find">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" set:html={ICONS.search} />
       <span class="visually-hidden">Find a tool</span>
-      <input type="search" placeholder="Find a tool, or #3" autocomplete="off" />
+      <input type="search" placeholder="Find a tool, or an ID like #T3" autocomplete="off" />
     </label>
+    <p class="ids-line">Tool IDs: <b>#T</b> Tools, <b>#L</b> Learn. <a href="/tools/#ids">What they mean, and what we have</a></p>
   </section>
 
   <section class="hits" hidden aria-live="polite">
@@ -75,9 +76,9 @@ const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-
         ) : (
           <ul class="ix">
             {subjects.flatMap((sj) => sj.groups.flatMap((g) => g.tools)).map((t) => (
-              <li class="ti" data-id={t.id} data-num={t.data.num}>
+              <li class="ti" data-id={t.id} data-num={t.data.code}>
                 <a href={toolUrl(t)}><span class="nm">{t.data.name}</span><span class="sm">{t.data.summary}</span></a>
-                <span class="num">#{t.data.num}</span>
+                <span class="num">#{t.data.code}</span>
                 <button type="button" class="pin" aria-pressed="false" aria-label={`Add ${t.data.name} to My tools`} title="Add to My tools"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true" set:html={star} /></button>
               </li>
             ))}
@@ -129,6 +130,7 @@ const star = '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-
   .subj a:hover .nm { text-decoration: underline; text-underline-offset: 3px; }
   .subj .sm { font-size: 13.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .subj .num { font-size: 12px; }
+  .ids-line { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
 
   .mine { margin-top: 26px; padding: 4px 16px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); max-width: 720px; }
   .mine-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }

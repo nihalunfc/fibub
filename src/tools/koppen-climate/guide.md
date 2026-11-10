@@ -2,6 +2,7 @@
 name: Köppen climate classifier
 num: 137
 shelf: science
+code: T137
 section: climatology
 title: "Köppen climate classifier and Walter-Lieth climate diagram from monthly temperature and rainfall"
 summary: "Type or paste 12 monthly mean temperatures and precipitation totals and get the Köppen-Geiger class (such as Csa, Cfb, BWh or Dfb) with every test explained step by step, plus a Walter-Lieth climate diagram showing the dry and wet months."

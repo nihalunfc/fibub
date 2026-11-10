@@ -2,6 +2,7 @@
 name: Slope field
 num: 1474
 shelf: learn
+code: L296
 section: school-maths
 title: "Slope field"
 summary: "See dy/dx = f(x, y) as a field of little slopes and tap anywhere to draw the solution through that point. Growth and decay, Newton's cooling and a mixing tank as stories, plus linear and separable examples with the hand working (separating variables or the integrating factor) and the particular solution for your point."

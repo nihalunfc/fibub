@@ -2,6 +2,7 @@
 name: Habitat connectivity analyser
 num: 511
 shelf: science
+code: T362
 section: conservation-science
 title: "Habitat connectivity calculator: least-cost distances, IIC, PC and dPC patch importance on a raster map"
 summary: "Paint a small land-cover map or open one (CSV grid, ASCII grid or PNG), give each class a resistance, and find the habitat patches, least-cost distances between them, links under a dispersal distance, components, the IIC and PC connectivity indices, each patch's importance (dIIC, dPC) and the least-cost path between any two patches."

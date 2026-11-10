@@ -2,6 +2,7 @@
 name: Squares and cubes
 num: 1229
 shelf: learn
+code: L108
 section: school-maths
 title: "Squares and cubes"
 summary: "Grow a square out of odd-numbered L-shapes and a cube out of unit cubes. Test any number for being a perfect square or cube from its prime factors, find the smallest number that makes it one, and hunt numbers like 1729 that are a sum of two cubes in two ways."
