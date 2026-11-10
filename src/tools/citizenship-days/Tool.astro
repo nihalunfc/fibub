@@ -1,0 +1,122 @@
+---
+// #T932 Citizenship days
+---
+<div class="tool-ui cd">
+  <section class="panel">
+    <div class="cd-grid">
+      <label>Date you became a permanent resident <input data-k="pr" type="date" value="2023-01-01" /></label>
+      <label>Before that, in Canada as a temporary resident or protected person from (optional)
+        <input data-k="tr" type="date" value="" />
+      </label>
+      <label>Count my days on (the date you would sign) <input data-k="on" type="date" /></label>
+    </div>
+    <p class="cd-hint">Temporary resident means visitor, student or worker status. The tool assumes that status ran without a gap until you became a PR.</p>
+  </section>
+
+  <section class="panel">
+    <h3>Trips outside Canada</h3>
+    <p class="cd-hint">The day you left and the day you came back count as days in Canada, so a trip from 1 to 6 July is 4 days away. Add planned trips too.</p>
+    <div class="cd-trips"></div>
+    <button type="button" class="cd-add">Add a trip</button>
+  </section>
+
+  <section class="panel" aria-live="polite">
+    <p class="cd-big"></p>
+    <p class="cd-say"></p>
+    <table class="cd-tab"><tbody></tbody></table>
+    <button type="button" class="cd-reset">Reset to the example</button>
+  </section>
+  <p class="cd-fine">Not affiliated with IRCC. Rules from IRCC's <a href="https://www.canada.ca/en/immigration-refugees-citizenship/services/canadian-citizenship/adult-minor/who/check-adult-eligibility.html" rel="noopener">citizenship eligibility page</a> and the paper physical presence calculator, form CIT 0407 (checked 2026-11-10). Physical presence is only one requirement, and you must use IRCC's own calculator when you apply: check the official source. Nothing you type leaves this page, and no ID numbers are asked for.</p>
+</div>
+
+<style is:inline>
+  .cd { display: grid; gap: 14px; margin-bottom: 32px; }
+  .cd .panel { padding: 16px; }
+  .cd h3 { margin: 0 0 6px; font-size: 17px; }
+  .cd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+  .cd label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); align-content: end; }
+  .cd input { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .cd input:focus { border-color: var(--accent); outline: none; }
+  .cd-hint, .cd-fine { color: var(--muted); font-size: 13px; margin: 6px 0 10px; }
+  .cd-fine { margin: 0; }
+  .cd-trip { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end; margin-bottom: 8px; }
+  .cd-trip span { font-size: 13px; color: var(--muted); grid-column: 1 / -1; margin-top: -4px; }
+  .cd button { font: inherit; padding: 8px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .cd-big { font-size: 26px; font-weight: 700; margin: 0 0 4px; overflow-wrap: anywhere; }
+  .cd-say { margin: 0 0 10px; color: var(--muted); font-size: 15px; }
+  .cd-tab { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .cd-tab td { padding: 5px 4px; border-bottom: 1px solid var(--line); }
+  .cd-tab td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+  .cd-tab tr:first-child td { font-weight: 700; }
+  .cd-reset { margin-top: 12px; }
+</style>
+
+<script>
+  import { NEED, toDay, fromDay, tripDays, count, earliest, awaySet, type Trip } from './days';
+  const root = document.querySelector('.cd') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const el = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const list = q<HTMLElement>('.cd-trips');
+  const body = q<HTMLElement>('.cd-tab tbody');
+  const fmt = (d: number) => new Date(d * 86400000).toLocaleDateString('en-CA', { timeZone: 'UTC', day: 'numeric', month: 'long', year: 'numeric' });
+  const n = (v: number) => v.toLocaleString('en-US', { maximumFractionDigits: 1 });
+
+  const addTrip = (a = '', b = '') => {
+    const row = document.createElement('div'); row.className = 'cd-trip';
+    row.innerHTML = '<label>Left Canada <input type="date" data-t="l" /></label><label>Came back <input type="date" data-t="b" /></label><button type="button" aria-label="Remove this trip">Remove</button><span></span>';
+    (row.querySelector('[data-t="l"]') as HTMLInputElement).value = a;
+    (row.querySelector('[data-t="b"]') as HTMLInputElement).value = b;
+    row.querySelector('button')!.addEventListener('click', () => { row.remove(); calc(); });
+    list.append(row);
+  };
+  const trips = () => {
+    const out: Trip[] = [];
+    list.querySelectorAll('.cd-trip').forEach((r) => {
+      const l = toDay((r.querySelector('[data-t="l"]') as HTMLInputElement).value), b = toDay((r.querySelector('[data-t="b"]') as HTMLInputElement).value);
+      const note = r.querySelector('span')!;
+      if (Number.isNaN(l) || Number.isNaN(b)) { note.textContent = ''; return; }
+      if (b < l) { note.textContent = 'The return date is before the date you left.'; return; }
+      const t = { left: l, back: b }; out.push(t); note.textContent = `${tripDays(t)} days away`;
+    });
+    return out;
+  };
+  const tr = (cells: string[]) => { const r = document.createElement('tr'); for (const c of cells) { const td = document.createElement('td'); td.textContent = c; r.append(td); } body.append(r); };
+
+  const calc = () => {
+    const big = q<HTMLElement>('.cd-big'), say = q<HTMLElement>('.cd-say');
+    body.innerHTML = '';
+    const pr = toDay(el('pr').value);
+    if (Number.isNaN(pr)) { big.textContent = ''; say.textContent = 'Enter the date you became a permanent resident.'; return; }
+    const t0 = toDay(el('tr').value);
+    const trStart = Number.isNaN(t0) || t0 >= pr ? null : t0;
+    const ts = trips();
+    const e = earliest(pr, trStart, ts);
+    if (!e) { big.textContent = 'Not within 20 years'; say.textContent = 'Check the trip dates.'; return; }
+    big.textContent = `Earliest date to apply: ${fmt(e.sign)}`;
+    big.dataset.date = fromDay(e.sign);
+    const on = toDay(el('on').value);
+    let c = e;
+    if (!Number.isNaN(on) && on > pr) {
+      c = count(on, pr, trStart, awaySet(ts));
+      say.textContent = c.total >= NEED ? `On ${fmt(on)} you would have ${n(c.total)} days: enough.` : `On ${fmt(on)} you would have ${n(c.total)} days, ${n(NEED - c.total)} short of ${n(NEED)}.`;
+    } else say.textContent = `By then you reach ${n(e.total)} of the ${n(NEED)} days, if you stay in Canada apart from the trips listed.`;
+    q<HTMLElement>('.cd-tab').dataset.total = String(c.total);
+    q<HTMLElement>('.cd-tab').dataset.credit = String(c.credit);
+    tr([`Total on ${fromDay(c.sign)} (needs ${n(NEED)})`, n(c.total)]);
+    tr([`Counted from ${fromDay(c.from)} to the day before`, '']);
+    tr(['Days in Canada as a PR', n(c.prDays)]);
+    tr(['Full days away since becoming a PR (not counted)', n(c.prAway)]);
+    if (trStart !== null) {
+      tr(['Days in Canada before PR', n(c.trDays)]);
+      tr(['Credit for those days (half, max 365)', n(c.credit)]);
+    }
+  };
+  const reset = () => {
+    el('pr').value = '2023-01-01'; el('tr').value = ''; el('on').value = new Date().toISOString().slice(0, 10);
+    list.innerHTML = ''; calc();
+  };
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  q<HTMLButtonElement>('.cd-add').addEventListener('click', () => { addTrip(); calc(); });
+  q<HTMLButtonElement>('.cd-reset').addEventListener('click', reset);
+  reset();
+</script>
