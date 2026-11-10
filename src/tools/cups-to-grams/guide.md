@@ -12,7 +12,7 @@ order: 2012
 icon: scale
 works: offline
 updated: 2026-11-10
-related: [recipe-scaler, oven-temperature, pan-size-converter]
+related: [recipe-scaler, oven-temperature, pan-size-converter, ingredient-swaps]
 sources:
   - "USDA FoodData Central household measures (grams per cup, US public domain), fdc.nal.usda.gov, checked 2026-11-10. Almond flour is fibub's own working. Check the official source."
   - "Cup sizes: US cup 236.6 ml, metric cup 250 ml, UK (imperial) cup 284 ml."
