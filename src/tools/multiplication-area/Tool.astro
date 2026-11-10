@@ -1,0 +1,191 @@
+---
+// Mental multiplication with the area picture: a × b as the area of a rectangle, split by place value into easy
+// pieces, or built from a round base number with strips added and taken away ((B + x)(B + y)), which turns
+// 103 × 97 into 100² − 3². Fresh mental-maths questions. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm ma">
+  <div class="ax-card">
+    <h2>Two numbers</h2>
+    <div class="ax-grid">
+      <label>First <input type="number" class="ma-a" min="1" max="9999" step="1" value="103" inputmode="numeric" /></label>
+      <label>Second <input type="number" class="ma-b" min="1" max="9999" step="1" value="97" inputmode="numeric" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small ma-pre" data-p="103,97">103 × 97</button>
+      <button type="button" class="btn secondary small ma-pre" data-p="98,96">98 × 96</button>
+      <button type="button" class="btn secondary small ma-pre" data-p="23,47">23 × 47</button>
+      <button type="button" class="btn secondary small ma-pre" data-p="52,48">52 × 48</button>
+      <button type="button" class="btn secondary small ma-pre" data-p="999,999">999 × 999</button>
+    </div>
+    <p class="ax-help">Whole numbers from 1 to 9999.</p>
+    <p class="ax-err ma-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The area picture</h2>
+    <div class="ax-seg ma-m" role="group" aria-label="Method"><button type="button" data-m="base" aria-pressed="true">From a round number</button><button type="button" data-m="grid" aria-pressed="false">Split by place value</button></div>
+    <div class="ax-row ma-brow" style="margin-top:8px">
+      <label>Round number (base) <input type="number" class="ma-base" min="1" max="10000" step="1" inputmode="numeric" /></label>
+      <button type="button" class="btn secondary small ma-auto">Pick for me</button>
+    </div>
+    <p class="ax-help ma-mhelp"></p>
+    <svg class="sm-fig ma-fig" viewBox="0 0 340 300" role="img" aria-label="A rectangle whose area is the product, split into easy pieces"></svg>
+    <p class="ax-help">Not to scale: small pieces are drawn bigger so you can read them.</p>
+    <ol class="sm-steps ma-steps"></ol>
+    <p class="ax-big ma-big" aria-live="polite"></p>
+    <p class="sm-f ma-trick"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>103 × 97: both are 3 away from 100, one above and one below. The two middle strips cancel, so the answer is 100² − 3².</li>
+      <li>98 × 96: both are below 100. Two strips are taken away, and the little corner was taken away twice, so it is added back.</li>
+      <li>Try 23 × 47 both ways. Which needs fewer steps in your head?</li>
+      <li>Try 999 × 999 with base 1000. Can you do 9999 × 9999 the same way?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Work these out in your head with a picture, then type the answer. Nothing is saved.</p>
+    <div class="ma-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .ma svg .ma-pos { fill: var(--accent-soft); stroke: var(--ink); stroke-width: 1; }
+  .ma svg .ma-pos2 { fill: var(--good-soft); stroke: var(--ink); stroke-width: 1; }
+  .ma svg .ma-neg { fill: url(#ma-hatch); stroke: var(--bad); stroke-width: 1.5; }
+  .ma svg .ma-hl { stroke: var(--bad); stroke-width: 1.2; }
+  .ma svg .ma-out { fill: none; stroke: var(--ink); stroke-width: 3; }
+  .ma svg text.ma-t { font-size: 12px; font-weight: 600; }
+  .ma .ma-base { width: 7em; }
+</style>
+
+<script>
+  import { grid, baseParts, autoBase, squaresTrick } from '../../lib/sci/multiplication-area';
+  import { randInt } from '../../lib/sci/smath';
+  import { S, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.ma')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const A = q<HTMLInputElement>('.ma-a'), B = q<HTMLInputElement>('.ma-b'), BASE = q<HTMLInputElement>('.ma-base');
+  let method: 'base' | 'grid' = 'base';
+  const n = (x: number) => x.toLocaleString('en');
+  const sg = (x: number) => (x < 0 ? `− ${n(-x)}` : `+ ${n(x)}`);
+  const read = (i: HTMLInputElement, hi = 9999) => { const v = Number(i.value); return i.value.trim() !== '' && Number.isInteger(v) && v >= 1 && v <= hi ? v : null; };
+
+  function defs(svg: SVGSVGElement) {
+    const d = S('defs', {}, svg), p = S('pattern', { id: 'ma-hatch', width: 7, height: 7, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, d);
+    S('line', { x1: 0, y1: 0, x2: 0, y2: 7, class: 'ma-hl' }, p);
+  }
+  function label(svg: SVGSVGElement, x0: number, y0: number, x1: number, y1: number, t: string) {
+    const w = Math.abs(x1 - x0), h = Math.abs(y1 - y0), cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    S('text', { x: cx, y: cy + 4, 'text-anchor': 'middle', class: 'ma-t', transform: w < 44 && h > w ? `rotate(-90 ${cx} ${cy})` : undefined }, svg, t);
+  }
+
+  function drawBase(a: number, b: number, base: number) {
+    const p = baseParts(a, b, base), svg = q<SVGSVGElement>('.ma-fig'); svg.replaceChildren(); defs(svg);
+    const L = 44, T = 30, Sz = 180, W = 56;
+    const X = (v: 'O' | 'B' | 'E') => (v === 'O' ? L : v === 'B' ? L + Sz : L + Sz + Math.sign(p.x) * W);
+    const Y = (v: 'O' | 'B' | 'E') => (v === 'O' ? T : v === 'B' ? T + Sz : T + Sz + Math.sign(p.y) * W);
+    const terms: { c: ['O' | 'B' | 'E', 'O' | 'B' | 'E']; r: ['O' | 'B' | 'E', 'O' | 'B' | 'E']; v: number; t: string }[] = [
+      { c: ['O', 'B'], r: ['O', 'B'], v: p.BB, t: `${n(base)}² = ${n(p.BB)}` },
+      { c: ['B', 'E'], r: ['O', 'B'], v: p.Bx, t: sg(p.Bx) },
+      { c: ['O', 'B'], r: ['B', 'E'], v: p.By, t: sg(p.By) },
+      { c: ['B', 'E'], r: ['B', 'E'], v: p.xy, t: sg(p.xy) },
+    ];
+    const box = (t: (typeof terms)[0]) => { const xs = [X(t.c[0]), X(t.c[1])], ys = [Y(t.r[0]), Y(t.r[1])]; return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; };
+    terms.forEach((t, i) => { if (t.v <= 0) return; const [x0, y0, x1, y1] = box(t); S('rect', { x: x0, y: y0, width: x1 - x0, height: y1 - y0, class: i === 0 ? 'ma-pos ma-term' : 'ma-pos2 ma-term' }, svg); });
+    terms.forEach((t) => { if (t.v >= 0) return; const [x0, y0, x1, y1] = box(t); S('rect', { x: x0, y: y0, width: x1 - x0, height: y1 - y0, class: 'ma-neg ma-term' }, svg); });
+    terms.forEach((t, i) => { if (!t.v) return; const [x0, y0, x1, y1] = box(t); if (i === 0) label(svg, x0, y0 + 30, x1, y0 + 30, t.t); else label(svg, x0, y0, x1, y1, t.t); });
+    // The answer: the rectangle a by b.
+    S('rect', { x: L, y: T, width: X(p.x ? 'E' : 'B') - L, height: Y(p.y ? 'E' : 'B') - T, class: 'ma-out' }, svg);
+    S('text', { x: (L + X(p.x ? 'E' : 'B')) / 2, y: T - 10, 'text-anchor': 'middle' }, svg, p.x ? `${n(base)} ${sg(p.x)} = ${n(a)}` : n(a));
+    const my = (T + Y(p.y ? 'E' : 'B')) / 2;
+    S('text', { x: 16, y: my, 'text-anchor': 'middle', transform: `rotate(-90 16 ${my})` }, svg, p.y ? `${n(base)} ${sg(p.y)} = ${n(b)}` : n(b));
+    const st = q('.ma-steps'); st.replaceChildren();
+    const lines = [
+      `Write ${n(a)} = ${n(base)} ${sg(p.x)} and ${n(b)} = ${n(base)} ${sg(p.y)}.`,
+      `Big square: ${n(base)} × ${n(base)} = ${n(p.BB)}.`,
+      p.x ? `Strip for ${sg(p.x)}: ${n(base)} × ${p.x < 0 ? '(' + sg(p.x) + ')' : p.x} = ${sg(p.Bx)}${p.x < 0 ? ' (taken away, hatched)' : ''}.` : '',
+      p.y ? `Strip for ${sg(p.y)}: ${n(base)} × ${p.y < 0 ? '(' + sg(p.y) + ')' : p.y} = ${sg(p.By)}${p.y < 0 ? ' (taken away, hatched)' : ''}.` : '',
+      p.xy ? `Corner: ${p.x} × ${p.y} = ${sg(p.xy)}${p.x < 0 && p.y < 0 ? ' (it was taken away twice, so it is added back once)' : p.xy < 0 ? ' (taken away)' : ''}.` : '',
+      `Add up: ${n(p.BB)} ${sg(p.Bx)} ${sg(p.By)} ${sg(p.xy)} = ${n(p.total)}.`,
+    ].filter(Boolean);
+    for (const s of lines) { const li = document.createElement('li'); li.textContent = s; st.append(li); }
+    const tr = squaresTrick(a, b);
+    q('.ma-trick').textContent = tr && tr.d > 0 && tr.m === base
+      ? `Shortcut: ${n(a)} and ${n(b)} are both ${tr.d} from ${n(tr.m)}, so the strips cancel and ${n(a)} × ${n(b)} = ${n(tr.m)}² − ${tr.d}² = ${n(tr.m * tr.m)} − ${n(tr.d * tr.d)} = ${n(a * b)}.`
+      : tr && tr.d > 0 ? `Shortcut: both numbers are ${tr.d} from ${n(tr.m)}, so ${n(a)} × ${n(b)} = ${n(tr.m)}² − ${tr.d}². Set the base to ${n(tr.m)} to see it.` : '';
+  }
+
+  function drawGrid(a: number, b: number) {
+    const g = grid(a, b), svg = q<SVGSVGElement>('.ma-fig'); svg.replaceChildren(); defs(svg);
+    const L = 44, T = 30, Wt = 280, Ht = 250;
+    const sizes = (parts: number[], tot: number) => { const f = parts.map((v) => Math.max(v / parts.reduce((s, x) => s + x, 0), 0.2)); const s = f.reduce((x, y) => x + y, 0); return f.map((v) => (v / s) * tot); };
+    const cw = sizes(g.rb, Wt), rh = sizes(g.ra, Ht);
+    let y = T;
+    g.ra.forEach((ra, i) => {
+      let x = L;
+      g.rb.forEach((rb, j) => {
+        S('rect', { x, y, width: cw[j], height: rh[i], class: `${(i + j) % 2 ? 'ma-pos2' : 'ma-pos'} ma-term` }, svg);
+        label(svg, x, y, x + cw[j], y + rh[i], n(g.cells[i][j]));
+        if (i === 0) S('text', { x: x + cw[j] / 2, y: T - 10, 'text-anchor': 'middle' }, svg, n(rb));
+        x += cw[j];
+      });
+      S('text', { x: 16, y: y + rh[i] / 2, 'text-anchor': 'middle', transform: `rotate(-90 16 ${y + rh[i] / 2})` }, svg, n(ra));
+      y += rh[i];
+    });
+    S('rect', { x: L, y: T, width: Wt, height: Ht, class: 'ma-out' }, svg);
+    const st = q('.ma-steps'); st.replaceChildren();
+    const lines = [
+      `Split by place value: ${n(a)} = ${g.ra.map(n).join(' + ')} and ${n(b)} = ${g.rb.map(n).join(' + ')}.`,
+      ...g.ra.map((ra, i) => `Row ${n(ra)}: ${g.rb.map((rb, j) => `${n(ra)} × ${n(rb)} = ${n(g.cells[i][j])}`).join(', ')}.`),
+      `Add every piece: ${g.cells.flat().map(n).join(' + ')} = ${n(g.total)}.`,
+    ];
+    for (const s of lines) { const li = document.createElement('li'); li.textContent = s; st.append(li); }
+    q('.ma-trick').textContent = '';
+  }
+
+  function draw() {
+    const a = read(A), b = read(B), err = q('.ma-err');
+    if (a === null || b === null) { err.textContent = 'Type two whole numbers from 1 to 9999.'; err.hidden = false; return; }
+    let base = read(BASE, 10000);
+    if (base === null) { base = autoBase(a, b); BASE.value = String(base); }
+    err.hidden = true;
+    q('.ma-brow').hidden = method !== 'base';
+    q('.ma-mhelp').textContent = method === 'base'
+      ? '(base + x)(base + y) = base² + base × x + base × y + x × y. Pieces above the base are added; pieces below it are hatched and taken away.'
+      : 'Each number is split into hundreds, tens and ones. Every piece of the rectangle is an easy product; add them all.';
+    if (method === 'base') drawBase(a, b, base); else drawGrid(a, b);
+    q('.ma-big').textContent = `${n(a)} × ${n(b)} = ${n(a * b)}`;
+  }
+
+  const fresh = () => { BASE.value = ''; draw(); };
+  A.addEventListener('input', fresh); B.addEventListener('input', fresh); BASE.addEventListener('input', draw);
+  q('.ma-auto').addEventListener('click', fresh);
+  root.querySelectorAll<HTMLButtonElement>('.ma-pre').forEach((btn) => btn.addEventListener('click', () => { const [a, b] = btn.dataset.p!.split(','); A.value = a; B.value = b; fresh(); }));
+  root.querySelectorAll<HTMLButtonElement>('.ma-m button').forEach((btn) => btn.addEventListener('click', () => {
+    method = btn.dataset.m as 'base' | 'grid';
+    root.querySelectorAll('.ma-m button').forEach((e) => e.setAttribute('aria-pressed', String(e === btn))); draw();
+  }));
+  draw();
+
+  quiz(q('.ma-quiz'), () => {
+    const out: Question[] = [];
+    const B1 = [10, 20, 50, 100][randInt(0, 3)], d = randInt(1, B1 === 100 ? 9 : 4);
+    out.push({ q: `Work out ${B1 + d} × ${B1 - d}.`, want: [(B1 + d) * (B1 - d)], work: `Both are ${d} from ${B1}: ${B1}² − ${d}² = ${B1 * B1} − ${d * d} = ${(B1 + d) * (B1 - d)}.` });
+    const x = randInt(1, 6), y = randInt(1, 6);
+    out.push({ q: `Work out ${100 - x} × ${100 - y}.`, want: [(100 - x) * (100 - y)],
+      work: `Base 100: 10 000 − ${100 * x} − ${100 * y} + ${x * y} = ${(100 - x) * (100 - y)}. (Two strips off, the corner added back.)` });
+    const u = randInt(1, 9), v = randInt(1, 9);
+    out.push({ q: `Work out ${100 + u} × ${100 + v}.`, want: [(100 + u) * (100 + v)], work: `Base 100: 10 000 + ${100 * u} + ${100 * v} + ${u * v} = ${(100 + u) * (100 + v)}.` });
+    const a4 = randInt(12, 49), b4 = randInt(12, 49), g = grid(a4, b4);
+    out.push({ q: `Work out ${a4} × ${b4}.`, want: [a4 * b4], work: `Split: ${g.cells.flat().join(' + ')} = ${a4 * b4}.` });
+    return out;
+  });
+</script>
