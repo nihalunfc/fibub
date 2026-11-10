@@ -1,0 +1,93 @@
+---
+// #1746 Card payoff
+---
+<div class="tool-ui cp">
+  <section class="panel">
+    <div class="cp-grid">
+      <label>Card balance <input data-k="bal" inputmode="decimal" value="3000" /></label>
+      <label>Interest rate (APR, %) <input data-k="apr" inputmode="decimal" value="20" /></label>
+      <label>Minimum is this % of the balance <input data-k="minpct" inputmode="decimal" value="2" /></label>
+      <label>...but never less than <input data-k="floor" inputmode="decimal" value="25" /></label>
+      <label>Fixed payment you could make <input data-k="fixed" inputmode="decimal" value="150" /></label>
+    </div>
+    <label class="cp-check"><input type="checkbox" data-k="promo" /> Move the balance to a balance-transfer card</label>
+    <div class="cp-promo" hidden>
+      <div class="cp-grid">
+        <label>Transfer fee (%) <input data-k="fee" inputmode="decimal" value="3" /></label>
+        <label>Promo rate (%) <input data-k="prate" inputmode="decimal" value="0" /></label>
+        <label>Promo months <input data-k="pmonths" inputmode="decimal" value="12" /></label>
+      </div>
+      <p class="cp-fine">The fee is added to the balance. After the promo months the card's normal APR above applies to what is left (use the new card's APR). Check the new card's terms before you move anything.</p>
+    </div>
+    <p class="cp-fine">Minimum payments are usually the percentage of the balance (or interest plus 1%) with a floor. Look at your statement for your card's rule.</p>
+  </section>
+  <section class="panel" aria-live="polite">
+    <div class="cp-scroll"><table class="cp-tab"><thead><tr><th></th><th>Minimum only</th><th>Fixed payment</th></tr></thead><tbody></tbody></table></div>
+    <p class="cp-warn" role="alert"></p>
+  </section>
+  <section class="panel">
+    <h2 class="cp-h">What you still owe</h2>
+    <div class="cp-chart"></div>
+    <p class="cp-leg"></p>
+  </section>
+  <p class="cp-fine">Not financial or tax advice. Real cards work out interest daily and may change the rate, so your statement is the final word. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .cp { display: grid; gap: 14px; margin-bottom: 32px; }
+  .cp .panel { padding: 16px; }
+  .cp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .cp label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .cp input:not([type=checkbox]), .cp select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .cp input:focus, .cp select:focus { border-color: var(--accent); outline: none; }
+  .cp label.cp-check { display: flex; gap: 8px; align-items: center; color: var(--ink); margin-top: 12px; }
+  .cp input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .cp-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
+  .cp-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
+  .cp-rows dt { color: var(--muted); } .cp-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .cp-warn { color: var(--bad); margin: 10px 0 0; } .cp-warn:empty { display: none; }
+  .cp-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+  .cp-h { font-size: 16px; margin: 0 0 8px; }
+  .cp-leg .lg { display: inline-flex; align-items: center; gap: 6px; margin-right: 14px; font-size: 13px; color: var(--muted); }
+  .cp-scroll { overflow-x: auto; }
+  .cp-tab { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .cp-tab th, .cp-tab td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .cp-tab th:first-child, .cp-tab td:first-child { text-align: left; }
+  .cp-best { color: var(--good); }
+</style>
+
+<script>
+  import { card, type CardIn } from '../../lib/money/borrowing';
+  import { lineSvg, legend } from '../../lib/money/chart';
+  const root = document.querySelector('.cp') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const num = (k: string) => parseFloat(q(k).value.replace(/,/g, '')) || 0;
+  const m0 = (v: number) => v.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  const m2 = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const span = (n: number) => { const y = Math.floor(n / 12), m = n % 12; return (y ? `${y} yr ` : '') + (m || !y ? `${m} mo` : ''); };
+  const calc = () => {
+    const promo = q('promo').checked;
+    ($('.cp-promo') as HTMLElement).hidden = !promo;
+    const bal = num('bal'), warn = $('.cp-warn');
+    if (!(bal > 0) || num('apr') < 0 || num('apr') > 100) { $('.cp-tab tbody').innerHTML = ''; warn.textContent = 'Type a balance and an APR between 0 and 100.'; $('.cp-chart').innerHTML = ''; $('.cp-leg').innerHTML = ''; return; }
+    const base: CardIn = { balance: bal, aprPct: num('apr'), mode: 'min', minPct: num('minpct'), floor: num('floor'), fixed: num('fixed'), promo, feePct: num('fee'), promoRatePct: num('prate'), promoMonths: Math.round(num('pmonths')) };
+    const a = card(base), b = card({ ...base, mode: 'fixed' });
+    const cell = (r: ReturnType<typeof card>, g: (r: ReturnType<typeof card>) => string) => `<td>${r.never ? 'Never' : g(r)}</td>`;
+    const row = (n: string, g: (r: ReturnType<typeof card>) => string) => `<tr><td>${n}</td>${cell(a, g)}${cell(b, g)}</tr>`;
+    $('.cp-tab tbody').innerHTML = row('Time to pay off', (r) => span(r.months)) + row('Total interest', (r) => m2(r.interest)) +
+      (promo ? row('Transfer fee', (r) => m2(r.fee)) : '') + row('Total you pay', (r) => m2(r.paid)) +
+      `<tr><td>First payment</td><td>${m2(a.first)}</td><td>${m2(b.first)}</td></tr>`;
+    let w = '';
+    if (b.never) w = 'Your fixed payment does not cover the interest, so the balance never goes down. Pay more.';
+    else if (!a.never && b.interest < a.interest) w = `Paying ${m2(num('fixed'))} a month instead of the minimum saves ${m0(a.interest - b.interest)} in interest and ${span(a.months - b.months)}.`;
+    warn.textContent = w; warn.style.color = b.never ? '' : 'var(--ink)';
+    const n = Math.max(a.balances.length, b.balances.length);
+    const pad = (x: number[]) => Array.from({ length: n }, (_, k) => x[k] ?? 0);
+    const s = [{ label: 'Minimum only', ys: pad(a.balances), color: 'var(--muted)', dash: true }, { label: 'Fixed payment', ys: pad(b.balances), color: 'var(--accent)' }];
+    $('.cp-chart').innerHTML = lineSvg(s, Array.from({ length: n }, (_, k) => k), 'Balance owed by month');
+    $('.cp-leg').innerHTML = legend(s) + '<span class="lg">Horizontal axis: months</span>';
+  };
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  calc();
+</script>
