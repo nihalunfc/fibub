@@ -1,0 +1,103 @@
+---
+// #1728 Salary converter: hourly, daily, weekly, biweekly, monthly and yearly pay, before tax.
+---
+<div class="tool-ui hs">
+  <section class="panel">
+    <h2>Your pay</h2>
+    <div class="hs-grid">
+      <label>Currency <select class="hs-cur" data-k="cur"></select></label>
+      <label>I know my <select data-k="unit"><option value="hour">hourly pay</option><option value="day">daily pay</option><option value="week">weekly pay</option><option value="biweek">biweekly pay</option><option value="month">monthly pay</option><option value="year">yearly pay</option></select></label>
+      <label>Amount <input data-k="amt" inputmode="decimal" /></label>
+      <label>Hours a week <span class="hs-suf"><input data-k="hours" inputmode="decimal" /><i>hours</i></span></label>
+      <label>Working days a week <span class="hs-suf"><input data-k="days" inputmode="decimal" /><i>days</i></span></label>
+      <label>Paid weeks a year <span class="hs-suf"><input data-k="weeks" inputmode="decimal" /><i>weeks</i></span></label>
+      <label>Overtime hours a week (optional) <span class="hs-suf"><input data-k="ot" inputmode="decimal" /><i>hours</i></span></label>
+      <label>Overtime pays <span class="hs-suf"><input data-k="mult" inputmode="decimal" /><i>times</i></span></label>
+    </div>
+    <p class="note bad hs-err" role="alert" hidden></p>
+  </section>
+  <section class="hs-res" aria-live="polite">
+    <div class="hs-stats">
+      <div><span>Hourly</span><b class="hs-s-hour"></b></div>
+      <div><span>Monthly</span><b class="hs-s-month"></b></div>
+      <div class="good"><span>Yearly</span><b class="hs-s-year"></b></div>
+      <div><span class="hs-s-ot-l">Yearly with overtime</span><b class="hs-s-ot"></b></div>
+    </div>
+    <div class="hs-chart panel hs-wrap"><table>
+      <thead><tr><th>Per</th><th>Regular pay</th><th>With overtime</th></tr></thead>
+      <tbody class="hs-body"></tbody>
+    </table></div>
+    <p class="hs-line hs-note"></p>
+  </section>
+  <p class="hs-fine">All amounts are before tax and deductions. Monthly is a twelfth of the year and biweekly is 26 pays a year; your employer may count differently. Set paid weeks below 52 for unpaid time off. Not financial or tax advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .hs { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .hs > *, .hs-res > * { min-width: 0; }
+  .hs h2 { margin: 0 0 12px; font-size: 18px; }
+  .hs .panel { padding: 16px; }
+  .hs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .hs label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .hs input, .hs select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .hs input:focus, .hs select:focus { border-color: var(--accent); outline: none; }
+  .hs-suf { position: relative; display: block; }
+  .hs-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .hs-suf input { padding-right: 84px; }
+  .hs-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .hs-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .hs-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .hs-stats span { font-size: 13px; color: var(--muted); }
+  .hs-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
+  .hs-stats .good b { color: var(--good); }
+  .hs-line { margin: 0; font-size: 15px; }
+  .hs-line:empty { display: none; }
+  .hs-chart { margin: 0; }
+  .hs-chart figcaption { font-weight: 600; font-size: 14px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin-bottom: 8px; }
+  .hs-chart figcaption span { font-weight: 500; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
+  .hs-chart i { display: inline-block; width: 18px; height: 3px; border-radius: 2px; }
+  .k-a { background: var(--accent); }
+  .k-b { background: var(--muted); opacity: .7; }
+  .hs-svg { width: 100%; height: auto; display: block; }
+  .hs-svg text { font: 11px system-ui, sans-serif; fill: var(--muted); }
+  .hs-wrap { overflow-x: auto; }
+  .hs table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .hs th, .hs td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .hs th:first-child, .hs td:first-child { text-align: left; }
+  .hs th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .hs details summary { cursor: pointer; font-weight: 700; margin-bottom: 8px; }
+  .hs details .btn { margin-top: 12px; }
+  .hs-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .hs-err { margin: 10px 0 0; }
+  @media (max-width: 720px) { .hs-stats { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<script>
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.hs')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const cur = defaultCurrency();
+  q('.hs-cur').innerHTML = currencyOptions(cur);
+  f('amt').value = '25'; f('hours').value = '40'; f('days').value = '5'; f('weeks').value = '52'; f('ot').value = '0'; f('mult').value = '1.5';
+  const $ = (n: number, d = 2) => money(n, f('cur').value, d);
+  function run() {
+    const unit = f('unit').value, amt = num(f('amt').value), hours = num(f('hours').value), days = num(f('days').value), weeks = num(f('weeks').value), ot = num(f('ot').value), mult = num(f('mult').value);
+    const bad = !(amt > 0) ? 'Enter how much you are paid.' : !(hours > 0 && hours <= 168) ? 'Enter hours a week, from 1 to 168.' : !(days > 0 && days <= 7) ? 'Enter working days a week, from 1 to 7.' : !(weeks > 0 && weeks <= 52) ? 'Enter paid weeks a year, from 1 to 52.' : ot < 0 || mult < 1 ? 'Overtime hours cannot be negative, and the overtime rate is at least 1 times.' : '';
+    q('.hs-err').hidden = !bad; q('.hs-err').textContent = bad; q('.hs-res').hidden = !!bad;
+    if (bad) return;
+    const hourly = unit === 'hour' ? amt : unit === 'day' ? (amt * days) / hours : unit === 'week' ? amt / hours : unit === 'biweek' ? amt / 2 / hours : unit === 'month' ? (amt * 12) / (weeks * hours) : amt / (weeks * hours);
+    const week = hourly * hours, otWeek = hourly * mult * ot, tw = week + otWeek;
+    const per = (w: number) => [['Hour', w / hours], ['Day', w / days], ['Week', w], ['Two weeks', w * 2], ['Month', (w * weeks) / 12], ['Year', w * weeks]] as [string, number][];
+    const a = per(week), b = per(tw);
+    q('.hs-s-hour').textContent = $(hourly);
+    q('.hs-s-month').textContent = $(a[4][1], 0);
+    q('.hs-s-year').textContent = $(a[5][1], 0);
+    q('.hs-s-ot-l').textContent = ot > 0 ? 'Yearly with overtime' : 'Overtime';
+    q('.hs-s-ot').textContent = ot > 0 ? $(b[5][1], 0) : 'None added';
+    q('.hs-body').innerHTML = a.map(([n, v], i) => `<tr><td>${n}</td><td>${$(v, i === 0 || i === 1 ? 2 : 0)}</td><td>${ot > 0 ? $(b[i][1], i === 0 || i === 1 ? 2 : 0) : '-'}</td></tr>`).join('');
+    q('.hs-note').textContent = ot > 0 ? `Overtime adds ${$(otWeek * weeks, 0)} a year at ${mult} times your hourly pay.` : '';
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

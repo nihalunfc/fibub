@@ -1,0 +1,117 @@
+---
+// #1723 Compound interest: growth of a lump sum plus regular deposits.
+---
+<div class="tool-ui ci">
+  <section class="panel">
+    <h2>Your savings</h2>
+    <div class="ci-grid">
+      <label>Currency <select class="ci-cur" data-k="cur"></select></label>
+      <label>Start amount <input data-k="start" inputmode="decimal" /></label>
+      <label>Regular deposit <input data-k="dep" inputmode="decimal" /></label>
+      <label>Deposit every <select data-k="every"><option value="month">month</option><option value="year">year</option></select></label>
+      <label>Deposit made at the <select data-k="when"><option value="end">end of the period</option><option value="start">start of the period</option></select></label>
+      <label>Interest rate <span class="ci-suf"><input data-k="rate" inputmode="decimal" /><i>% a year</i></span></label>
+      <label>Interest added <select data-k="comp"><option value="365">daily</option><option value="52">weekly</option><option value="12">monthly</option><option value="4">quarterly</option><option value="2">every 6 months</option><option value="1">yearly</option></select></label>
+      <label>Years <span class="ci-suf"><input data-k="years" inputmode="decimal" /><i>years</i></span></label>
+      <label>Yearly fee (optional) <span class="ci-suf"><input data-k="fee" inputmode="decimal" /><i>% a year</i></span></label>
+      <label>Inflation (optional) <span class="ci-suf"><input data-k="infl" inputmode="decimal" /><i>% a year</i></span></label>
+    </div>
+    <p class="note bad ci-err" role="alert" hidden></p>
+  </section>
+  <section class="ci-res" aria-live="polite">
+    <div class="ci-stats">
+      <div><span>Final balance</span><b class="ci-s-bal"></b></div>
+      <div><span>You put in</span><b class="ci-s-put"></b></div>
+      <div class="good"><span>Interest earned</span><b class="ci-s-int"></b></div>
+      <div><span class="ci-s-real-l">In today's money</span><b class="ci-s-real"></b></div>
+    </div>
+    <p class="ci-line ci-72"></p>
+    <figure class="ci-chart panel">
+      <figcaption>Growth over time <span><i class="k-a"></i>Balance</span> <span><i class="k-b"></i>Money you put in</span></figcaption>
+      <svg class="ci-svg" viewBox="0 0 640 220" role="img" aria-label="Balance and money put in, year by year"></svg>
+    </figure>
+    <details class="ci-years panel" open>
+      <summary>Year by year</summary>
+      <div class="ci-wrap"><table>
+        <thead><tr><th>Year</th><th>Put in so far</th><th>Interest so far</th><th>Balance</th><th>In today's money</th></tr></thead>
+        <tbody class="ci-body"></tbody>
+      </table></div>
+      <button type="button" class="btn secondary ci-csv">Download the table (CSV)</button>
+    </details>
+  </section>
+  <p class="ci-fine">An estimate with a fixed rate. Interest on each deposit starts the month after it is paid in; a yearly fee is taken off the balance each month. Not financial or tax advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ci { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .ci > *, .ci-res > * { min-width: 0; }
+  .ci h2 { margin: 0 0 12px; font-size: 18px; }
+  .ci .panel { padding: 16px; }
+  .ci-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .ci label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ci input, .ci select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ci input:focus, .ci select:focus { border-color: var(--accent); outline: none; }
+  .ci-suf { position: relative; display: block; }
+  .ci-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .ci-suf input { padding-right: 84px; }
+  .ci-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .ci-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .ci-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .ci-stats span { font-size: 13px; color: var(--muted); }
+  .ci-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
+  .ci-stats .good b { color: var(--good); }
+  .ci-line { margin: 0; font-size: 15px; }
+  .ci-line:empty { display: none; }
+  .ci-chart { margin: 0; }
+  .ci-chart figcaption { font-weight: 600; font-size: 14px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin-bottom: 8px; }
+  .ci-chart figcaption span { font-weight: 500; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
+  .ci-chart i { display: inline-block; width: 18px; height: 3px; border-radius: 2px; }
+  .k-a { background: var(--accent); }
+  .k-b { background: var(--muted); opacity: .7; }
+  .ci-svg { width: 100%; height: auto; display: block; }
+  .ci-svg text { font: 11px system-ui, sans-serif; fill: var(--muted); }
+  .ci-wrap { overflow-x: auto; }
+  .ci table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .ci th, .ci td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .ci th:first-child, .ci td:first-child { text-align: left; }
+  .ci th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .ci details summary { cursor: pointer; font-weight: 700; margin-bottom: 8px; }
+  .ci details .btn { margin-top: 12px; }
+  .ci-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .ci-err { margin: 10px 0 0; }
+  @media (max-width: 720px) { .ci-stats { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<script>
+  import { compound, chartSvg, csv, type Year } from '../../lib/money/growth';
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.ci')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const cur = defaultCurrency();
+  q('.ci-cur').innerHTML = currencyOptions(cur);
+  const india = cur === 'INR';
+  f('start').value = india ? '1,00,000' : '1,000'; f('dep').value = india ? '5,000' : '100';
+  f('rate').value = '5'; f('years').value = '10'; f('fee').value = '0'; f('infl').value = '0'; f('comp').value = '12';
+  const $ = (n: number) => money(n, f("cur").value, Math.abs(n) < 10000 ? 2 : 0);
+  let rows: Year[] = [];
+  function run() {
+    const years = num(f('years').value), rate = num(f('rate').value), fee = num(f('fee').value), infl = num(f('infl').value);
+    const bad = !(years > 0 && years <= 100) ? 'Enter the number of years, from 1 to 100.' : rate < 0 || rate > 100 ? 'Enter the yearly interest rate, for example 5.' : fee < 0 || fee > 20 ? 'Enter a yearly fee between 0 and 20.' : num(f('start').value) < 0 || num(f('dep').value) < 0 ? 'Amounts cannot be negative.' : '';
+    q('.ci-err').hidden = !bad; q('.ci-err').textContent = bad; q('.ci-res').hidden = !!bad;
+    if (bad) return;
+    rows = compound({ start: num(f('start').value), deposit: num(f('dep').value), every: f('every').value as 'month' | 'year', atStart: f('when').value === 'start', rate, perYear: +f('comp').value, years, fee, inflation: infl });
+    const last = rows[rows.length - 1];
+    q('.ci-s-bal').textContent = $(last.balance);
+    q('.ci-s-put').textContent = $(last.deposits);
+    q('.ci-s-int').textContent = $(last.interest);
+    q('.ci-s-real').textContent = infl > 0 ? $(last.real) : 'Add inflation to see';
+    const net = rate - fee;
+    q('.ci-72').textContent = net > 0 ? `Rule of 72: at ${Math.round(net * 100) / 100}% after fees, money roughly doubles every ${Math.round((72 / net) * 10) / 10} years.` : '';
+    q('.ci-svg').innerHTML = chartSvg(rows, (v) => new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(v));
+    q('.ci-body').innerHTML = rows.slice(1).map((r) => `<tr><td>${Math.round(r.year * 100) / 100}</td><td>${$(r.deposits)}</td><td>${$(r.interest)}</td><td>${$(r.balance)}</td><td>${$(r.real)}</td></tr>`).join('');
+  }
+  q('.ci-csv').addEventListener('click', () => csv('compound-interest.csv', ['Year', 'Put in', 'Interest', 'Balance', 'Todays money'], rows.map((r) => [r.year, r.deposits, r.interest, r.balance, r.real])));
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>
