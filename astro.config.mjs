@@ -28,7 +28,7 @@ export default defineConfig({
   trailingSlash: 'always',
   integrations: [sitemap({
     // /nav/ only holds the menu's tool lists for the header to load; it is not a page of its own.
-    filter: (page) => !/\/nav\/$/.test(page),
+    filter: (page) => !/\/nav\/$/.test(page) && !/\/home\/v[\d.]+\/$/.test(page),
     serialize(item) {
       const path = new URL(item.url).pathname.split('/').filter(Boolean);
       const date = path.length === 2 ? changed.byTool.get(path[1]) : undefined;
