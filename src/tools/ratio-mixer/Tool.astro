@@ -1,0 +1,191 @@
+---
+// Ratio mixer: two mixes (paint or lemonade) made of parts; the colour of each mix depends only on the ratio, so
+// equal ratios give the same colour. Simplest form, share as a fraction and percent, cross-multiplying to compare,
+// scaling a mix up to any batch size, and fresh practice questions. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm rx">
+  <div class="ax-card">
+    <h2>What are you mixing?</h2>
+    <div class="ax-seg rx-mode" role="group" aria-label="What to mix"><button type="button" data-m="paint" aria-pressed="true">Blue and yellow paint</button><button type="button" data-m="juice" aria-pressed="false">Lemonade</button></div>
+    <p class="ax-help">Each tap of + adds one equal part (a cup, a spoon, a tin) to the mix.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Two mixes</h2>
+    <div class="rx-two">
+      <div class="rx-mix" data-k="a">
+        <h3>Mix A</h3>
+        <div class="rx-st"><span class="rx-n1">Blue</span><button type="button" class="btn secondary small rx-b" data-v="a1" data-d="-1" aria-label="Mix A first ingredient minus one part">−</button><output class="rx-a1">2</output><button type="button" class="btn secondary small rx-b" data-v="a1" data-d="1" aria-label="Mix A first ingredient plus one part">+</button></div>
+        <div class="rx-st"><span class="rx-n2">Yellow</span><button type="button" class="btn secondary small rx-b" data-v="a2" data-d="-1" aria-label="Mix A second ingredient minus one part">−</button><output class="rx-a2">3</output><button type="button" class="btn secondary small rx-b" data-v="a2" data-d="1" aria-label="Mix A second ingredient plus one part">+</button></div>
+      </div>
+      <div class="rx-mix" data-k="b">
+        <h3>Mix B</h3>
+        <div class="rx-st"><span class="rx-n1">Blue</span><button type="button" class="btn secondary small rx-b" data-v="b1" data-d="-1" aria-label="Mix B first ingredient minus one part">−</button><output class="rx-b1">4</output><button type="button" class="btn secondary small rx-b" data-v="b1" data-d="1" aria-label="Mix B first ingredient plus one part">+</button></div>
+        <div class="rx-st"><span class="rx-n2">Yellow</span><button type="button" class="btn secondary small rx-b" data-v="b2" data-d="-1" aria-label="Mix B second ingredient minus one part">−</button><output class="rx-b2">6</output><button type="button" class="btn secondary small rx-b" data-v="b2" data-d="1" aria-label="Mix B second ingredient plus one part">+</button></div>
+      </div>
+    </div>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small rx-pre" data-p="2,3,4,6">2 : 3 and 4 : 6</button>
+      <button type="button" class="btn secondary small rx-pre" data-p="2,3,3,4">2 : 3 and 3 : 4</button>
+      <button type="button" class="btn secondary small rx-pre" data-p="1,4,2,7">1 : 4 and 2 : 7</button>
+      <button type="button" class="btn secondary small rx-pre" data-p="3,1,9,3">3 : 1 and 9 : 3</button>
+    </div>
+    <p class="ax-help">From 0 to 20 parts of each; a mix needs at least one part.</p>
+    <svg class="sm-fig rx-fig" viewBox="0 0 340 250" role="img" aria-label="The parts of each mix as squares, and a jar showing the colour of each mix"></svg>
+    <p class="sm-f rx-ra"></p>
+    <p class="sm-f rx-rb"></p>
+    <p class="sm-f rx-cmp"></p>
+    <p class="ax-big rx-verdict" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Make more of mix A</h2>
+    <label>How much do you want in all? <input type="number" class="rx-tot" min="1" max="100000" step="any" value="30" inputmode="decimal" /> <span class="rx-unit">cups</span></label>
+    <p class="ax-err rx-err" hidden></p>
+    <p class="sm-f rx-make"></p>
+    <div class="ax-scroll"><table class="rx-tab"></table></div>
+    <p class="ax-help">Every row of the table is the same ratio, so every row makes the same colour.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Set A to 2 : 3 and B to 4 : 6. Twice as much of everything, yet the jars are the same colour.</li>
+      <li>Now add one part of each to B (5 : 7). Adding the same amount to both parts is not the same as multiplying: the colour changes.</li>
+      <li>Find a mix B that looks just like 3 : 5 using exactly 24 parts in all.</li>
+      <li>Switch to lemonade. Which tastes stronger: 1 : 4 or 2 : 7? Check by cross-multiplying before you look at the jars.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="rx-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .rx .rx-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .rx .rx-mix h3 { margin: 0 0 6px; font-size: 16px; }
+  .rx .rx-st { display: grid; grid-template-columns: 1fr 40px 2.2em 40px; gap: 4px; align-items: center; margin: 4px 0; }
+  .rx .rx-st span { font-size: 14px; overflow-wrap: anywhere; }
+  .rx .rx-st output { text-align: center; font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums; }
+  .rx .rx-st .btn { min-width: 40px; padding: 0; }
+  .rx .rx-tot { width: 7em; min-height: 40px; }
+  .rx .rx-verdict { margin: 8px 0 0; font-size: clamp(18px, 4.5vw, 24px); }
+  .rx svg .rx-jar { fill: none; stroke: var(--ink); stroke-width: 2; }
+  .rx svg .rx-sq { stroke: var(--ink); stroke-width: 0.6; }
+  .rx table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .rx th, .rx td { border: 1px solid var(--line); padding: 4px 10px; text-align: right; }
+</style>
+
+<script>
+  import { simplify, share, compare, split, mixColour, type RGB } from '../../lib/sci/ratio-mixer';
+  import { fmt, gcd, randInt } from '../../lib/sci/smath';
+  import { S, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.rx')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const MODES = {
+    paint: { n1: 'Blue', n2: 'Yellow', c1: [40, 110, 200] as RGB, c2: [250, 215, 40] as RGB, unit: 'cups', what: 'blue', more: 'bluer', less: 'more yellow', same: 'the same colour' },
+    juice: { n1: 'Syrup', n2: 'Water', c1: [215, 120, 10] as RGB, c2: [228, 240, 248] as RGB, unit: 'glasses', what: 'syrup', more: 'stronger', less: 'weaker', same: 'just as strong' },
+  };
+  type Mode = keyof typeof MODES;
+  let mode: Mode = 'paint';
+  const v: Record<string, number> = { a1: 2, a2: 3, b1: 4, b2: 6 };
+  const rgb = (c: RGB) => `rgb(${c.join(',')})`;
+  const pct = (x: number) => fmt(100 * x, 1) + '%';
+
+  function jar(svg: SVGSVGElement, cx: number, a: number, b: number, name: string) {
+    const M = MODES[mode];
+    // Parts as squares: up to 8 in a row, first ingredient then second.
+    const parts = [...Array(a).fill(1), ...Array(b).fill(2)];
+    const per = 8, s = 15;
+    parts.forEach((p, i) => {
+      const r = Math.floor(i / per), c = i % per;
+      S('rect', { x: cx - (per * s) / 2 + c * s, y: 8 + r * s, width: s - 2, height: s - 2, rx: 2, fill: rgb(p === 1 ? M.c1 : M.c2), class: `rx-sq rx-p${p}` }, svg);
+    });
+    const top = 100, bot = 228, w = 96;
+    const f = Math.min(1, (a + b) / 40), lvl = bot - 6 - f * (bot - top - 12);
+    S('rect', { x: cx - w / 2 + 3, y: lvl, width: w - 6, height: bot - 3 - lvl, fill: rgb(mixColour(M.c1, M.c2, share(a, b))), class: `rx-fill rx-f${name}` }, svg);
+    S('path', { d: `M${cx - w / 2},${top} V${bot} H${cx + w / 2} V${top}`, class: 'rx-jar' }, svg);
+    S('text', { x: cx, y: 246, 'text-anchor': 'middle', style: 'font-weight:700' }, svg, `Mix ${name}: ${a} : ${b}`);
+  }
+
+  function ratioLine(name: string, a: number, b: number) {
+    const M = MODES[mode], [p, r] = simplify(a, b), g = gcd(a, b);
+    const simp = g > 1 ? ` = ${p} : ${r} (divide both by ${g})` : ' (already in simplest form)';
+    return `Mix ${name}: ${M.n1.toLowerCase()} : ${M.n2.toLowerCase()} = ${a} : ${b}${simp}. ${M.n1} is ${a}/${a + b} of the mix = ${pct(share(a, b))}.`;
+  }
+
+  function draw() {
+    const M = MODES[mode], { a1, a2, b1, b2 } = v;
+    root.querySelectorAll('.rx-n1').forEach((e) => (e.textContent = M.n1));
+    root.querySelectorAll('.rx-n2').forEach((e) => (e.textContent = M.n2));
+    for (const k of ['a1', 'a2', 'b1', 'b2']) q(`.rx-${k}`).textContent = String(v[k]);
+    q('.rx-unit').textContent = M.unit;
+    const svg = q<SVGSVGElement>('.rx-fig'); svg.replaceChildren();
+    jar(svg, 85, a1, a2, 'A'); jar(svg, 255, b1, b2, 'B');
+    q('.rx-ra').textContent = ratioLine('A', a1, a2);
+    q('.rx-rb').textContent = ratioLine('B', b1, b2);
+    const c = compare(a1, a2, b1, b2);
+    q('.rx-cmp').textContent = `Cross-multiply: ${a1} × ${b2} = ${a1 * b2} and ${a2} × ${b1} = ${a2 * b1}. ` +
+      (c === 0 ? 'Equal, so the ratios are equal.' : `${c > 0 ? a1 * b2 + ' is bigger, so A has the bigger share of ' + M.what : a2 * b1 + ' is bigger, so B has the bigger share of ' + M.what}.`);
+    q('.rx-verdict').textContent = c === 0 ? `Same ratio: ${M.same}.` : c > 0 ? `Mix A is ${M.more}.` : `Mix B is ${M.more}.`;
+    make();
+  }
+
+  function make() {
+    const M = MODES[mode], { a1, a2 } = v, t = Number(q<HTMLInputElement>('.rx-tot').value), err = q('.rx-err');
+    if (!(t > 0) || t > 100000) { err.textContent = 'Type an amount from 1 to 100 000.'; err.hidden = false; q('.rx-make').textContent = ''; return; }
+    err.hidden = true;
+    const [x, y] = split(t, a1, a2), n = a1 + a2;
+    q('.rx-make').textContent = `${a1} + ${a2} = ${n} parts in all, so one part = ${fmt(t, 2)} ÷ ${n} = ${fmt(t / n, 3)} ${M.unit}. ${M.n1}: ${a1} × ${fmt(t / n, 3)} = ${fmt(x, 2)} ${M.unit}; ${M.n2.toLowerCase()}: ${a2} × ${fmt(t / n, 3)} = ${fmt(y, 2)} ${M.unit}.`;
+    const tab = q<HTMLTableElement>('.rx-tab'); tab.replaceChildren();
+    const h = tab.insertRow(); for (const s of ['Times', M.n1, M.n2, 'In all']) { const e = document.createElement('th'); e.textContent = s; h.append(e); }
+    for (let k = 1; k <= 5; k++) { const r = tab.insertRow(); for (const s of [`× ${k}`, a1 * k, a2 * k, (a1 + a2) * k]) r.insertCell().textContent = String(s); }
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.rx-b').forEach((b) => b.addEventListener('click', () => {
+    const k = b.dataset.v!, o = k[0] === 'a' ? (k === 'a1' ? 'a2' : 'a1') : k === 'b1' ? 'b2' : 'b1';
+    const nv = Math.max(0, Math.min(20, v[k] + Number(b.dataset.d)));
+    if (nv === 0 && v[o] === 0) return;
+    v[k] = nv; draw();
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.rx-pre').forEach((b) => b.addEventListener('click', () => {
+    const [a1, a2, b1, b2] = b.dataset.p!.split(',').map(Number); Object.assign(v, { a1, a2, b1, b2 }); draw();
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.rx-mode button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m as Mode;
+    root.querySelectorAll('.rx-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    draw();
+  }));
+  q('.rx-tot').addEventListener('input', make);
+  draw();
+
+  quiz(q('.rx-quiz'), () => {
+    const out: Question[] = [];
+    let p = randInt(1, 6), r = randInt(2, 9); while (gcd(p, r) !== 1 || p === r) { p = randInt(1, 6); r = randInt(2, 9); }
+    const k = randInt(2, 9);
+    out.push({ q: `Write ${p * k} : ${r * k} in simplest form.`, want: [p, r], ordered: true, hint: 'two numbers, like 2, 3',
+      work: `Both ${p * k} and ${r * k} divide by ${k} (their HCF), giving ${p} : ${r}.` });
+    const m = randInt(2, 8);
+    out.push({ q: `${p} : ${r} = ${p * m} : x. What is x?`, want: [r * m],
+      work: `${p} was multiplied by ${p * m} ÷ ${p} = ${m}, so x = ${r} × ${m} = ${r * m}.` });
+    const n = p + r, t = n * randInt(2, 12);
+    out.push({ q: `Share ${t} litres of paint in the ratio ${p} : ${r}. How many litres in each part?`, want: [(t * p) / n, (t * r) / n], ordered: true, hint: 'two numbers',
+      work: `${p} + ${r} = ${n} parts, one part = ${t} ÷ ${n} = ${t / n} L. So ${p} × ${t / n} = ${(t * p) / n} L and ${r} × ${t / n} = ${(t * r) / n} L.` });
+    const pairs = [[1, 4, 20], [1, 3, 25], [3, 7, 30], [1, 1, 50], [2, 3, 40], [3, 5, 37.5], [1, 9, 10], [7, 13, 35]];
+    const [s1, s2, pc] = pairs[randInt(0, pairs.length - 1)];
+    out.push({ q: `Lemonade is made with syrup and water in the ratio ${s1} : ${s2}. What percentage of it is syrup?`, want: [pc],
+      work: `Syrup is ${s1} of ${s1 + s2} parts: ${s1}/${s1 + s2} × 100 = ${pc}%.` });
+    let a = randInt(1, 5), b = randInt(2, 8), c = randInt(1, 5), d = randInt(2, 8);
+    while (a * d === b * c) { c = randInt(1, 5); d = randInt(2, 8); }
+    const win = a * d > b * c ? 1 : 2;
+    out.push({ q: `Paint A is ${a} blue : ${b} yellow, paint B is ${c} blue : ${d} yellow. Which is bluer? Type 1 for A or 2 for B.`, want: [win],
+      work: `Cross-multiply: ${a} × ${d} = ${a * d} and ${b} × ${c} = ${b * c}. ${win === 1 ? `${a * d} is bigger, so A` : `${b * c} is bigger, so B`} has the bigger share of blue (A: ${pct(share(a, b))}, B: ${pct(share(c, d))}).` });
+    return out;
+  });
+</script>
