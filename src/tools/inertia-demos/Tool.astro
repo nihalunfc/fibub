@@ -1,0 +1,103 @@
+---
+// #1484 Inertia demos. A teaching model with round numbers. Engine: src/lib/learn/ (quiz.ts, sim.ts).
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn id">
+  <div class="ax-card">
+    <div class="ax-seg id-mode" role="group" aria-label="Demo">
+      <button type="button" data-m="coin" aria-pressed="true">Coin on card</button>
+      <button type="button" data-m="bus" aria-pressed="false">Bus</button>
+      <button type="button" data-m="mass" aria-pressed="false">Heavy or light</button>
+    </div>
+    <div class="ax-seg" role="group" aria-label="Level" style="margin-top:8px"><button type="button" data-level="9" aria-pressed="true">Class 9</button><button type="button" data-level="11" aria-pressed="false">Class 11</button></div>
+    <p class="ax-help">A teaching model with round numbers, not a measurement of a real coin or bus.</p>
+    <canvas class="lrn-cv id-cv" aria-label="The demo"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="id-p id-p-coin">Card speed: <b class="id-v1"></b> m/s <input class="id-s" type="range" min="0.1" max="3" step="0.05" value="2" /></label>
+      <label class="id-p id-p-bus" hidden>Bus acceleration (+ speeding up, − braking): <b class="id-v2"></b> m/s² <input class="id-a" type="range" min="-4" max="4" step="0.5" value="-3" /></label>
+      <label class="id-p id-p-mass" hidden>Mass of the block: <b class="id-v3"></b> kg <input class="id-m" type="range" min="1" max="20" step="1" value="10" /></label>
+    </div>
+    <p class="ax-big id-out" aria-live="polite"></p>
+    <p class="ax-help" data-only="11" hidden>Class 11: the coin gets a sideways push from friction only while the card is under it, so its speed gain is about μg × (contact length ÷ card speed). In the bus, the strap hangs at tan θ = a ÷ g.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul><li>Flick the card fast, then pull it slowly. Where is the cut-off?</li><li>Switch the bus from braking to speeding up and watch which way people lean.</li><li>Double the mass of the block and compare the time to get moving.</li></ul>
+  </div>
+  <div class="ax-card id-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .id .id-cv { width: 100%; }
+</style>
+
+<script>
+  import { mountQuiz, pick, one, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  const root = document.querySelector('.id') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const cv = $<HTMLCanvasElement>('.id-cv'), out = $('.id-out');
+  const G = 9.8, MU = 0.3, LEN = 0.04; // friction coefficient and the length of card under the coin, in metres
+  let mode = 'coin', level = '9';
+  // Coin gets a speed gain of MU*G*LEN/v from friction while the card slides out. If that reaches the card speed, it rides along.
+  const coinGain = (v: number) => Math.min(v, (MU * G * LEN) / v);
+  const dragged = (v: number) => (MU * G * LEN) / v >= v;
+  const leanSide = (a: number) => (a > 0 ? 'back' : a < 0 ? 'forward' : 'none');
+  const draw = () => {
+    const { ctx, W, H } = fitCanvas(cv, 200), pal = pagePalette();
+    ctx.clearRect(0, 0, W, H); ctx.lineWidth = 2; ctx.font = '14px system-ui,sans-serif'; ctx.textAlign = 'left';
+    ctx.strokeStyle = pal.ink; ctx.fillStyle = pal.ink;
+    if (mode === 'coin') {
+      const v = +$<HTMLInputElement>('.id-s').value, drag = dragged(v);
+      $('.id-v1').textContent = v.toFixed(2);
+      const gx = W / 2 - 25, gy = 120; // glass
+      ctx.strokeRect(gx, gy, 50, 70);
+      const cx = drag ? gx + 25 + 70 : gx + 25 + coinGain(v) * 30;
+      const cardX = drag ? cx - 40 : W - 110 + 40; ctx.fillStyle = pal.accent2; ctx.fillRect(cardX, gy - 8, 80, 6);
+      ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.ellipse(drag ? cx : gx + 25, drag ? gy - 14 : gy + 52, 12, 5, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = pal.ink; ctx.fillText(drag ? 'Slow pull: the coin goes with the card' : 'Fast flick: the card shoots out, the coin drops into the glass', 8, 20);
+      $('.id-out').textContent = drag ? 'The coin is dragged along with the card.' : 'The coin stays and drops straight down.';
+      out.dataset.state = drag ? 'dragged' : 'drops'; out.dataset.lean = '';
+    } else if (mode === 'bus') {
+      const a = +$<HTMLInputElement>('.id-a').value, side = leanSide(a);
+      $('.id-v2').textContent = (a > 0 ? '+' : a < 0 ? '−' : '') + Math.abs(a).toFixed(1);
+      ctx.strokeRect(20, 60, W - 40, 100); ctx.fillText('bus →', W - 70, 52);
+      const th = Math.atan(-a / G); // lean is opposite to acceleration
+      ctx.strokeStyle = pal.accent; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(W / 2, 160); ctx.lineTo(W / 2 + 70 * Math.sin(th), 160 - 70 * Math.cos(th)); ctx.stroke();
+      ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(W / 2 + 70 * Math.sin(th) + 8 * Math.sin(th), 160 - 70 * Math.cos(th) - 8 * Math.cos(th), 9, 0, 7); ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = pal.ink; ctx.fillStyle = pal.ink; ctx.fillText('passenger', W / 2 - 30, 185);
+      const deg = (Math.atan(Math.abs(a) / G) * 180) / Math.PI;
+      $('.id-out').textContent = side === 'none' ? 'Steady speed: everyone stands upright.' : `Everyone leans ${side}${level === '11' ? ` (${deg.toFixed(0)}° from upright)` : ''}.`;
+      out.dataset.lean = side; out.dataset.state = '';
+    } else {
+      const m = +$<HTMLInputElement>('.id-m').value, F = 10, t = m / F; // time to reach 1 m/s with a 10 N push
+      $('.id-v3').textContent = String(m);
+      const s = 20 + m * 2.2; ctx.fillStyle = pal.accent2; ctx.fillRect(40, 150 - s, s, s);
+      ctx.fillStyle = pal.ink; ctx.fillText(`${m} kg`, 40, 175); ctx.strokeStyle = pal.accent; ctx.beginPath(); ctx.moveTo(10, 120); ctx.lineTo(38, 120); ctx.stroke();
+      ctx.fillText('push 10 N', 8, 108);
+      ctx.fillStyle = pal.muted; ctx.fillText('bigger mass = more inertia = slower to get going', 120, 30);
+      $('.id-out').textContent = `A steady 10 N push takes ${r(t)} s to reach 1 m/s.`;
+      out.dataset.t = String(t); out.dataset.state = ''; out.dataset.lean = '';
+    }
+  };
+  root.querySelectorAll<HTMLInputElement>('input').forEach((i) => i.addEventListener('input', draw));
+  root.querySelectorAll<HTMLButtonElement>('.id-mode button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m!; root.querySelectorAll('.id-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    ['coin', 'bus', 'mass'].forEach((k) => ($(`.id-p-${k}`).hidden = k !== mode)); draw();
+  }));
+  addEventListener('resize', draw);
+  wireLevel(root, (l) => { level = l; draw(); });
+  mountQuiz($('.id-quiz'), () => {
+    const m = pick(2, 20), F = pick(5, 20, 5), a = pick(1, 4);
+    const num = { q: `A ${m} kg block is pushed with a steady ${F} N on a smooth floor. How long to reach 1 m/s?`, ans: m / F, unit: 's', work: `a = F ÷ m = ${F} ÷ ${m} = ${r(F / m)} m/s², so t = 1 ÷ a = ${r(m / F)} s.` };
+    const more = [
+      { q: 'A bus brakes suddenly. Which way do standing passengers lean?', choices: ['Forward', 'Backward'], ans: 0, work: 'Their bodies keep moving forward at the old speed (inertia) while the bus slows.' },
+      { q: 'A card is flicked very fast from under a coin. Does the coin go with the card?', choices: ['Yes, it goes along', 'No, it drops straight down'], ans: 1, work: 'Friction acts for too short a time to give the coin much sideways speed, so inertia keeps it in place.' },
+      { q: `A bus speeds up at ${a} m/s². Which way do passengers lean?`, choices: ['Forward', 'Backward'], ans: 1, work: 'Their bodies resist the change and lag behind, so they lean backward.' },
+    ].sort(() => Math.random() - 0.5).slice(0, one([2, 3]));
+    return [num, ...more];
+  });
+</script>

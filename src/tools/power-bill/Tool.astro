@@ -1,0 +1,50 @@
+---
+// #1486 Power and bills. Engine: src/lib/learn/ (quiz.ts, sim.ts). Maths in src/lib/sci/ with checks in tests/sci.mjs.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="tool-ui ax lrn pb">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="10" aria-pressed="true">Class 10</button><button type="button" data-level="11" aria-pressed="false">Class 11</button></div>
+    <h2>TODO</h2>
+    <canvas class="lrn-cv pb-cv" aria-label="TODO describe the picture"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>TODO input <input class="pb-in" type="range" min="1" max="10" step="1" value="5" /></label>
+    </div>
+    <p class="ax-big pb-out" aria-live="polite"></p>
+    <p class="ax-help" data-only="11" hidden>TODO extra for Class 11, or delete.</p>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul><li>TODO two or three things to try.</li></ul>
+  </div>
+  <div class="ax-card pb-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .pb .pb-cv { width: 100%; }
+</style>
+
+<script>
+  import { mountQuiz, pick, r } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  const root = document.querySelector('.pb') as HTMLElement;
+  const input = root.querySelector('.pb-in') as HTMLInputElement;
+  const out = root.querySelector('.pb-out') as HTMLElement;
+  const cv = root.querySelector('.pb-cv') as HTMLCanvasElement;
+  let level = '10';
+  const draw = () => {
+    const { ctx, W, H } = fitCanvas(cv, 220), pal = pagePalette();
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = pal.ink; ctx.fillText('TODO drawing', 10, 20);
+    out.textContent = 'TODO result for ' + input.value;
+  };
+  input.addEventListener('input', draw);
+  addEventListener('resize', draw);
+  wireLevel(root, (l) => { level = l; draw(); });
+  mountQuiz(root.querySelector('.pb-quiz') as HTMLElement, () => {
+    const a = pick(2, 9);
+    return [{ q: `TODO question with ${a}`, ans: a * 2, unit: '', work: `TODO working: 2 × ${a} = ${r(a * 2)}` }];
+  });
+</script>
