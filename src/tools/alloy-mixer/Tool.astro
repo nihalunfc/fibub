@@ -1,0 +1,164 @@
+---
+// Alloy mixer: pick an alloy, change its recipe, and get each metal's mass for a batch, the density by the mixing
+// rule, the carat for gold, and a picture of why mixed atoms make a metal harder. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+import '../../styles/chemquiz.css';
+import { ALLOYS } from '../../lib/sci/alloy-school';
+---
+<div class="ax sm al">
+  <div class="ax-card">
+    <div class="ax-grid">
+      <label>Alloy <select class="al-pick">{ALLOYS.map((a) => <option value={a.id}>{a.name}</option>)}</select></label>
+      <label>Batch mass (g) <input type="number" class="al-m" min="0" step="any" value="500" inputmode="decimal" /></label>
+    </div>
+    <p class="al-about" style="margin:10px 0 4px"></p>
+    <div class="al-rows"></div>
+    <div class="ax-row"><button type="button" class="btn secondary small al-reset">Back to the usual recipe</button></div>
+    <p class="ax-big al-big" aria-live="polite" style="margin:8px 0 2px"></p>
+    <ul class="sm-steps al-out"></ul>
+    <p class="ax-err al-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Why alloys are harder</h2>
+    <svg class="sm-fig al-fig" viewBox="0 0 340 200" role="img" aria-label="Layers of metal atoms; in the alloy, atoms of a different size stop the layers sliding"></svg>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn small al-push">Push the top layers</button>
+      <div class="ax-seg al-pure" role="group" aria-label="Which metal"><button type="button" data-p="1" aria-pressed="false">Pure metal</button><button type="button" data-p="0" aria-pressed="true">Alloy</button></div>
+    </div>
+    <p class="al-why" style="margin:8px 0 0"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Gold carats</h2>
+    <div class="ax-grid">
+      <label>Carat <input type="number" class="al-k" min="0" max="24" step="any" value="22" inputmode="decimal" /></label>
+      <label>Mass of jewellery (g) <input type="number" class="al-j" min="0" step="any" value="10" inputmode="decimal" /></label>
+    </div>
+    <p class="sm-f al-kout"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Make brass with more zinc. What happens to its density?</li>
+      <li>Why is steel harder than pure iron when it has less than 1 % carbon? Look at where the small carbon atoms sit.</li>
+      <li>How much pure gold is in a 10 g chain of 18 carat gold?</li>
+      <li>Duralumin is light enough for aircraft. Compare its density with steel's.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cq">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <ol class="cq-list"></ol>
+    <button type="button" class="btn secondary small cq-new">New questions</button>
+  </div>
+</div>
+
+<style is:inline>
+  .al select { font-size: 16px; }
+  .al .al-row { display: grid; grid-template-columns: 6.5em 1fr 5em; gap: 10px; align-items: center; margin: 6px 0; }
+  .al .al-row input[type=range] { width: 100%; height: 32px; margin: 0; accent-color: var(--accent); }
+  .al .al-row input[type=number] { width: 100%; min-height: 40px; min-width: 0; }
+  .al svg .al-host { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+  .al svg .al-bigatom { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1.5; }
+  .al svg .al-small { fill: var(--ink); }
+</style>
+
+<script>
+  import { ALLOYS, DENSITY, NAMES, percents, masses, density, carat, caratToPercent, type Alloy } from '../../lib/sci/alloy-school';
+  import { fmt } from '../../lib/sci/smath';
+  import { S } from '../../lib/smath-ui';
+  import { mountQuiz, near, pickOne, rint, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.al')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.al-fig');
+  let alloy: Alloy = ALLOYS[0], mix: Record<string, number> = { ...alloy.mix }, pushed = false, pure = false;
+  const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
+
+  function rows() {
+    const box = q('.al-rows'); box.replaceChildren();
+    for (const el of Object.keys(mix)) {
+      const row = document.createElement('div'); row.className = 'al-row';
+      const lab = document.createElement('span'); lab.textContent = `${cap(NAMES[el])} (${el}) %`;
+      const max = Math.max(100, Math.ceil(mix[el]));
+      const rg = Object.assign(document.createElement('input'), { type: 'range', min: '0', max: String(max), step: el === 'C' || mix[el] < 5 ? '0.1' : '0.5', value: String(mix[el]) });
+      const nb = Object.assign(document.createElement('input'), { type: 'number', min: '0', max: '100', step: 'any', value: String(mix[el]), className: 'al-pct' });
+      nb.inputMode = 'decimal'; rg.setAttribute('aria-label', `${NAMES[el]} slider`); nb.setAttribute('aria-label', `${NAMES[el]} per cent by mass`); nb.dataset.el = el;
+      rg.addEventListener('input', () => { nb.value = rg.value; mix[el] = Number(rg.value); draw(); });
+      nb.addEventListener('input', () => { const v = Number(nb.value); if (nb.value.trim() !== '' && Number.isFinite(v) && v >= 0) { mix[el] = v; rg.value = String(v); draw(); } });
+      row.append(lab, rg, nb); box.append(row);
+    }
+  }
+
+  function draw() {
+    const m = Number(q<HTMLInputElement>('.al-m').value), err = q('.al-err'), tot = Object.values(mix).reduce((t, x) => t + x, 0);
+    const bad = !(m >= 0) || tot <= 0;
+    err.hidden = !bad; if (bad) err.textContent = 'The batch mass must be 0 or more, and at least one metal must be above 0 %.';
+    q('.al-about').textContent = `Usual recipe: ${alloy.range}. Used for ${alloy.uses}. Why: ${alloy.why}.`;
+    if (bad) { q('.al-out').replaceChildren(); return; }
+    const p = percents(mix), g = masses(mix, m), d = density(mix), host = Object.entries(p).sort((a, b) => b[1] - a[1])[0][0];
+    q('.al-big').textContent = `${alloy.name}: density about ${fmt(d, 2)} g/cm³`;
+    const lines = [];
+    if (Math.abs(tot - 100) > 1e-6) lines.push(`Your numbers add up to ${fmt(tot, 2)} %, so they are scaled to 100 %: ${Object.entries(p).map(([k, v]) => `${k} ${fmt(v, 2)} %`).join(', ')}.`);
+    lines.push(`In ${fmt(m, 2)} g: ${Object.entries(g).map(([k, v]) => `${fmt(v, 2)} g of ${NAMES[k]}`).join(', ')}.`);
+    lines.push(`Density by the mixing rule (each metal keeps its own volume): 1 ÷ (${Object.entries(p).map(([k, v]) => `${fmt(v / 100, 4)} ÷ ${DENSITY[k]}`).join(' + ')}) = ${fmt(d, 3)} g/cm³. The pure metals: ${Object.keys(p).map((k) => `${k} ${DENSITY[k]}`).join(', ')} g/cm³. Real alloys differ a little from this simple rule.`);
+    lines.push(`Volume of the batch: about ${fmt(m / d, 2)} cm³.`);
+    if (p.Au !== undefined) lines.push(`Gold content ${fmt(p.Au, 2)} % = ${fmt(carat(mix), 2)} carat (24 carat is pure gold).`);
+    if (Math.abs(p[host] - 100) < 1e-9) lines.push(`This is pure ${NAMES[host]}, not an alloy.`);
+    q('.al-out').replaceChildren(...lines.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+    lattice();
+  }
+
+  function lattice() {
+    fig.replaceChildren();
+    const p = percents(mix), others = Object.keys(p).filter((k) => k !== Object.entries(p).sort((a, b) => b[1] - a[1])[0][0]);
+    const inter = alloy.interstitial && p[alloy.interstitial] > 0;
+    const share = pure ? 0 : Math.max(0.08, Math.min(0.4, others.filter((k) => k !== alloy.interstitial).reduce((t, k) => t + p[k], 0) / 100));
+    const shift = pushed ? (pure ? 36 : 9) : 0;
+    let n = 0;
+    for (let row = 0; row < 5; row++) for (let col = 0; col < 9; col++) {
+      const top = row < 2, x = 26 + col * 36 + (top ? shift : 0), y = 30 + row * 34;
+      n++;
+      const swap = !pure && !inter && ((n * 7919) % 100) / 100 < share;
+      S('circle', { cx: x, cy: y, r: swap ? 19 : 15, class: swap ? 'al-bigatom' : 'al-host' }, fig);
+      if (!pure && inter && col < 8 && row < 4 && (row * 9 + col) % 5 === 2) S('circle', { cx: x + 18, cy: y + 17, r: 5, class: 'al-small' }, fig);
+    }
+    S('line', { x1: 0, x2: 340, y1: 81, y2: 81, class: 'sm-dash' }, fig);
+    q('.al-why').textContent = pure
+      ? (pushed ? 'In a pure metal every atom is the same size, so the layers slide over each other easily: the metal bends and is soft.' : 'A pure metal: rows of identical atoms. Press "Push the top layers".')
+      : inter ? (pushed ? 'Small carbon atoms sit in the gaps between iron atoms and catch on the layers, so they slide only a little: steel is harder and stronger than iron.' : 'Steel: small carbon atoms sit in the gaps between the iron atoms.')
+      : (pushed ? 'Atoms of a different size make bumps in the layers, so they catch and slide only a little: the alloy is harder than the pure metal.' : 'An alloy: some atoms (shaded differently) are a different size from the main metal.');
+    q('.al-push').textContent = pushed ? 'Put the layers back' : 'Push the top layers';
+  }
+
+  q('.al-pick').addEventListener('change', () => { alloy = ALLOYS.find((a) => a.id === q<HTMLSelectElement>('.al-pick').value)!; mix = { ...alloy.mix }; pushed = false; rows(); draw(); });
+  q('.al-reset').addEventListener('click', () => { mix = { ...alloy.mix }; rows(); draw(); });
+  q('.al-m').addEventListener('input', draw);
+  q('.al-push').addEventListener('click', () => { pushed = !pushed; lattice(); });
+  root.querySelectorAll<HTMLButtonElement>('.al-pure button').forEach((b) => b.addEventListener('click', () => { pure = b.dataset.p === '1'; root.querySelectorAll('.al-pure button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); lattice(); }));
+  function karat() {
+    const k = Number(q<HTMLInputElement>('.al-k').value), j = Number(q<HTMLInputElement>('.al-j').value), out = q('.al-kout');
+    if (!(k >= 0 && k <= 24) || !(j >= 0) || q<HTMLInputElement>('.al-k').value.trim() === '') { out.textContent = 'Carat must be from 0 to 24 and the mass 0 or more.'; return; }
+    const pc = caratToPercent(k);
+    out.textContent = `${fmt(k, 2)} carat = ${fmt(k, 2)} parts gold in 24 = ${fmt(pc, 2)} % gold (sometimes stamped ${Math.round(pc * 10)}). ${fmt(j, 2)} g of it holds ${fmt((pc / 100) * j, 3)} g of pure gold and ${fmt(j - (pc / 100) * j, 3)} g of other metals.`;
+  }
+  q('.al-k').addEventListener('input', karat); q('.al-j').addEventListener('input', karat);
+  rows(); draw(); karat();
+
+  mountQuiz(q('.cq'), (): Question[] => {
+    const zn = rint(30, 40), mb = rint(2, 20) * 50;
+    const k = pickOne([14, 18, 20, 22]), jm = rint(4, 40);
+    const a = pickOne(ALLOYS.filter((x) => Object.keys(x.mix).length === 2)), d = density(a.mix);
+    const c = rint(1, 15) / 10, sm = rint(1, 20) * 100;
+    return [
+      { q: `Brass is ${100 - zn} % copper and ${zn} % zinc by mass. How many grams of zinc are in ${mb} g of it?`, hint: 'grams', answer: fmt((zn / 100) * mb, 2), ok: near((zn / 100) * mb, 0.005), worked: `${zn}/100 × ${mb}.` },
+      { q: `How many grams of pure gold are in a ${jm} g ring of ${k} carat gold?`, hint: 'grams', answer: fmt((k / 24) * jm, 2), ok: near((k / 24) * jm, 0.01), worked: `${k}/24 × ${jm}.` },
+      { q: `Using the mixing rule, what is the density of ${a.name.toLowerCase()} (${Object.entries(a.mix).map(([e, v]) => `${v} % ${NAMES[e]}, ${DENSITY[e]} g/cm³`).join('; ')}) in g/cm³?`, hint: 'g/cm³', answer: fmt(d, 2), ok: near(d, 0.01), worked: `1 ÷ (${Object.entries(a.mix).map(([e, v]) => `${v / 100} ÷ ${DENSITY[e]}`).join(' + ')}).` },
+      { q: `A steel has ${c} % carbon. How many grams of carbon are in ${sm} g of it?`, hint: 'grams', answer: fmt((c / 100) * sm, 3), ok: near((c / 100) * sm, 0.01), worked: `${c}/100 × ${sm}.` },
+    ];
+  });
+</script>
