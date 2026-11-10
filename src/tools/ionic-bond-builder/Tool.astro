@@ -82,7 +82,7 @@ import { METALS, NONMETALS } from '../../lib/sci/ionic-school';
   const cross = (x: number, y: number) => { el('line', { x1: x - 4, y1: y - 4, x2: x + 4, y2: y + 4, class: 'ib-x' }); el('line', { x1: x - 4, y1: y + 4, x2: x + 4, y2: y - 4, class: 'ib-x' }); };
 
   function draw() {
-    const c = counts(m, n), done = plan.slice(0, step), mx = xs(c.metal), nx = xs(c.non), my = 62, ny = 182;
+    const c = counts(m, n), done = plan.slice(0, step), mx = xs(c.metal), nx = xs(c.non), my = 72, ny = 186;
     const left = mx.map(() => gives(m)), got = nx.map(() => 0);
     done.forEach(([i, j]) => { left[i]--; got[j]++; });
     fig.replaceChildren();
@@ -94,7 +94,7 @@ import { METALS, NONMETALS } from '../../lib/sci/ionic-school';
       el('text', { x, y: my + 7, 'text-anchor': 'middle', class: 'ib-sym' }, m.sym);
       for (let e = 0; e < left[i]; e++) { const [ex, ey] = slot(x, my, e, left[i]); cross(ex, ey); }
       if (full) el('text', { x: x + RING + 2, y: my - RING + 8, class: 'ib-chg' }, cation(m).slice(m.sym.length));
-      el('text', { x, y: my - RING - 6, 'text-anchor': 'middle' }, full ? `(${ionShells(m, true).join(', ')})` : `(${shells(m.Z).join(', ')})`);
+      el('text', { x, y: my - RING - 16, 'text-anchor': 'middle' }, full ? `(${ionShells(m, true).join(', ')})` : `(${shells(m.Z).join(', ')})`);
       void inner;
     });
     nx.forEach((x, j) => {
