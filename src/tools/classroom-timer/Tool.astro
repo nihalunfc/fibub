@@ -1,0 +1,169 @@
+---
+// #T930 Countdown timer
+---
+<div class="tool-ui ct">
+  <div class="ct-tabs" role="tablist" aria-label="Timer or stopwatch">
+    <button type="button" role="tab" data-m="down" aria-selected="true">Countdown</button>
+    <button type="button" role="tab" data-m="sw" aria-selected="false">Stopwatch</button>
+  </div>
+  <section class="panel ct-stage">
+    <p class="ct-big" role="timer" aria-live="off"></p>
+    <p class="ct-msg" aria-live="polite"></p>
+    <p class="ct-btns">
+      <button type="button" class="btn ct-go">Start</button>
+      <button type="button" class="btn secondary small ct-lap" hidden>Lap</button>
+      <button type="button" class="btn secondary small ct-reset">Reset</button>
+      <button type="button" class="btn secondary small ct-full">Full screen</button>
+    </p>
+  </section>
+  <section class="panel ct-p" data-p="down">
+    <p class="ct-presets" aria-label="Quick times">
+      <button type="button" data-min="1">1 min</button>
+      <button type="button" data-min="2">2 min</button>
+      <button type="button" data-min="5">5 min</button>
+      <button type="button" data-min="10">10 min</button>
+      <button type="button" data-min="15">15 min</button>
+    </p>
+    <div class="ct-fields">
+      <label>Minutes<input data-k="m" type="number" inputmode="numeric" min="0" max="999" step="1" value="5" /></label>
+      <label>Seconds<input data-k="s" type="number" inputmode="numeric" min="0" max="59" step="1" value="0" /></label>
+      <label>Turn amber in the last (seconds)<input data-k="warn" type="number" inputmode="numeric" min="0" max="3600" step="1" value="30" /></label>
+    </div>
+    <label class="ct-check"><input type="checkbox" data-k="beep" checked /> Beep when time is up</label>
+    <p class="ct-err" aria-live="polite"></p>
+  </section>
+  <section class="panel ct-p" data-p="sw" hidden>
+    <table class="ct-laps"><thead><tr><th>Lap</th><th>Lap time</th><th>Total</th></tr></thead><tbody></tbody></table>
+    <p class="ct-nolaps">Press Lap while the stopwatch runs to note a split.</p>
+  </section>
+  <p class="ct-fine">Full screen fills the screen with the digits, for a projector or a whiteboard; press Esc to leave it. Nothing is saved.</p>
+</div>
+
+<style is:inline>
+  .ct { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ct .panel { padding: 16px; }
+  .ct-tabs, .ct-presets { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+  .ct-tabs button, .ct-presets button { font: inherit; font-size: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .ct-tabs button[aria-selected="true"], .ct-presets button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .ct-stage { text-align: center; background: var(--bg); }
+  .ct-big { font-size: clamp(56px, 19vw, 120px); font-weight: 700; margin: 0; line-height: 1.1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .ct-stage[data-state="warn"] .ct-big { color: var(--warn); }
+  .ct-stage[data-state="up"] .ct-big, .ct-stage[data-state="up"] .ct-msg { color: var(--bad); }
+  .ct-msg { margin: 4px 0 0; font-weight: 600; min-height: 1.3em; }
+  .ct-btns { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center; margin: 10px 0 0; }
+  .ct-stage:fullscreen { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 24px; }
+  .ct-stage:fullscreen .ct-big { font-size: min(30vw, 60vh); }
+  .ct-stage:fullscreen .ct-msg { font-size: 4vw; }
+  .ct-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 12px; margin-top: 12px; }
+  .ct label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ct label.ct-check { display: flex; gap: 8px; align-items: flex-start; color: var(--ink); margin-top: 10px; }
+  .ct input[type="number"] { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ct input:focus { border-color: var(--accent); outline: none; }
+  .ct-err { color: var(--bad); font-size: 14px; margin: 8px 0 0; }
+  .ct-err:empty { display: none; }
+  .ct-laps { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 15px; }
+  .ct-laps th, .ct-laps td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  .ct-nolaps { color: var(--muted); font-size: 14px; margin: 8px 0 0; }
+  .ct-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  const root = document.querySelector('.ct') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const stage = q('.ct-stage'), big = q('.ct-big'), msg = q('.ct-msg'), err = q('.ct-err');
+  const go = q<HTMLButtonElement>('.ct-go'), lapBtn = q<HTMLButtonElement>('.ct-lap');
+  const inp = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const lapsBody = q('.ct-laps tbody'), noLaps = q('.ct-nolaps');
+  let mode: 'down' | 'sw' = 'down', timer = 0;
+  let ac: AudioContext | null = null;
+  const audio = () => { if (!ac) { try { ac = new AudioContext(); } catch { ac = null; } } ac?.resume?.(); };
+  const beep = () => {
+    if (!inp('beep').checked || !ac) return;
+    const t0 = ac.currentTime;
+    for (let n = 0; n < 4; n++) {
+      const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = 988; o.connect(g); g.connect(ac.destination);
+      const t = t0 + n * 0.3; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.35, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+      o.start(t); o.stop(t + 0.24);
+    }
+  };
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const hms = (s: number) => { const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60; return h ? `${h}:${pad(m)}:${pad(r)}` : `${m}:${pad(r)}`; };
+  const swFmt = (ms: number) => { const cs = Math.floor(ms / 10); return `${hms(Math.floor(cs / 100))}.${pad(cs % 100)}`; };
+
+  // Countdown state
+  let dRun = false, dEnd = 0, dLeft = 0, dFresh = true, dUp = false;
+  const setMs = () => { const m = Number(inp('m').value || 0), s = Number(inp('s').value || 0); return Number.isInteger(m) && Number.isInteger(s) && m >= 0 && m <= 999 && s >= 0 && s <= 59 ? (m * 60 + s) * 1000 : NaN; };
+  // Stopwatch state
+  let sRun = false, sStart = 0, sAcc = 0; const laps: number[] = [];
+  const swNow = () => sAcc + (sRun ? performance.now() - sStart : 0);
+
+  const draw = () => {
+    if (mode === 'down') {
+      const ms = dRun ? Math.max(0, dEnd - Date.now()) : dLeft;
+      const sec = Math.ceil(ms / 1000);
+      big.textContent = hms(sec);
+      const warn = Number(inp('warn').value) || 0;
+      stage.dataset.state = dUp ? 'up' : !dFresh && sec <= warn ? 'warn' : '';
+      msg.textContent = dUp ? 'Time is up' : '';
+      go.textContent = dRun ? 'Pause' : dFresh || dUp ? 'Start' : 'Resume';
+      go.disabled = !!err.textContent || dUp;
+    } else {
+      big.textContent = swFmt(swNow());
+      stage.dataset.state = ''; msg.textContent = '';
+      go.textContent = sRun ? 'Pause' : sAcc ? 'Resume' : 'Start'; go.disabled = false;
+      lapBtn.disabled = !sRun;
+    }
+  };
+  const loop = () => {
+    if (dRun && dEnd - Date.now() <= 0) { dRun = false; dLeft = 0; dUp = true; beep(); }
+    draw();
+    if (!dRun && !sRun) { clearInterval(timer); timer = 0; }
+  };
+  const run = () => { if (!timer) timer = window.setInterval(loop, 50); };
+
+  const readSet = () => {
+    const ms = setMs();
+    err.textContent = Number.isNaN(ms) ? 'Type whole minutes (0 to 999) and seconds (0 to 59).' : ms === 0 ? 'Set a time above zero.' : '';
+    if (!err.textContent) { dRun = false; dLeft = ms; dFresh = true; dUp = false; }
+    root.querySelectorAll<HTMLButtonElement>('.ct-presets button').forEach((b) => b.setAttribute('aria-pressed', String(!err.textContent && ms === Number(b.dataset.min) * 60000)));
+    draw();
+  };
+
+  go.addEventListener('click', () => {
+    audio();
+    if (mode === 'down') {
+      if (dRun) { dLeft = Math.max(0, dEnd - Date.now()); dRun = false; }
+      else if (!dUp && dLeft > 0) { dEnd = Date.now() + dLeft; dRun = true; dFresh = false; run(); }
+    } else if (sRun) { sAcc += performance.now() - sStart; sRun = false; }
+    else { sStart = performance.now(); sRun = true; run(); }
+    draw();
+  });
+  q('.ct-reset').addEventListener('click', () => {
+    if (mode === 'down') readSet();
+    else { sRun = false; sAcc = 0; laps.length = 0; lapsBody.innerHTML = ''; noLaps.hidden = false; draw(); }
+  });
+  lapBtn.addEventListener('click', () => {
+    if (!sRun) return;
+    const t = swNow(); const prev = laps.length ? laps[laps.length - 1] : 0; laps.push(t);
+    const tr = document.createElement('tr');
+    for (const c of [String(laps.length), swFmt(t - prev), swFmt(t)]) { const td = document.createElement('td'); td.textContent = c; tr.append(td); }
+    lapsBody.prepend(tr); noLaps.hidden = true;
+  });
+  q('.ct-full').addEventListener('click', () => {
+    if (document.fullscreenElement) document.exitFullscreen?.();
+    else stage.requestFullscreen?.().catch(() => { msg.textContent = 'This browser would not go full screen.'; });
+  });
+  document.addEventListener('fullscreenchange', () => { q('.ct-full').textContent = document.fullscreenElement ? 'Leave full screen' : 'Full screen'; });
+  root.querySelectorAll<HTMLButtonElement>('.ct-presets button').forEach((b) => b.addEventListener('click', () => { inp('m').value = b.dataset.min!; inp('s').value = '0'; readSet(); }));
+  for (const k of ['m', 's']) inp(k).addEventListener('input', readSet);
+  inp('warn').addEventListener('input', draw);
+  root.querySelectorAll<HTMLButtonElement>('.ct-tabs button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m as 'down' | 'sw';
+    root.querySelectorAll('.ct-tabs button').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
+    root.querySelectorAll<HTMLElement>('.ct-p').forEach((p) => (p.hidden = p.dataset.p !== mode));
+    lapBtn.hidden = mode !== 'sw';
+    if (dRun || sRun) run();
+    draw();
+  }));
+  readSet();
+</script>

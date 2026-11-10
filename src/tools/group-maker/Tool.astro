@@ -1,0 +1,131 @@
+---
+// #T928 Group maker
+---
+<div class="tool-ui gm">
+  <section class="panel">
+    <label>Names, one per line (or separated by commas)<textarea class="gm-names" rows="7" spellcheck="false"></textarea></label>
+    <p class="gm-count" aria-live="polite"></p>
+    <label class="gm-check"><input type="checkbox" data-k="keep" /> Remember this list in this browser (it stays on this device)</label>
+    <p class="gm-btns"><button type="button" class="btn secondary small gm-forget">Forget saved list</button> <button type="button" class="btn secondary small gm-reset">Back to the example</button></p>
+  </section>
+  <div class="gm-tabs" role="tablist" aria-label="What to do">
+    <button type="button" role="tab" data-m="groups" aria-selected="true">Make groups</button>
+    <button type="button" role="tab" data-m="pick" aria-selected="false">Pick a name</button>
+  </div>
+  <section class="panel gm-p" data-p="groups">
+    <div class="gm-fields">
+      <label>Split by<select data-k="by"><option value="count">Number of groups</option><option value="size">People per group</option></select></label>
+      <label><span class="gm-nl">Number of groups</span><input data-k="n" type="number" inputmode="numeric" min="1" value="3" /></label>
+    </div>
+    <p class="gm-say" aria-live="polite"></p>
+    <div class="gm-groups" aria-live="polite"></div>
+    <p class="gm-btns"><button type="button" class="btn gm-make">Shuffle again</button> <button type="button" class="btn secondary small gm-copy">Copy groups</button> <button type="button" class="btn secondary small gm-print">Print</button></p>
+  </section>
+  <section class="panel gm-p" data-p="pick" hidden>
+    <label class="gm-check"><input type="checkbox" data-k="remove" checked /> Remove picked names, so nobody is picked twice</label>
+    <p class="gm-big" aria-live="polite"></p>
+    <p class="gm-btns"><button type="button" class="btn gm-pick">Pick a name</button> <button type="button" class="btn secondary small gm-back">Put everyone back</button></p>
+    <p class="gm-say2" aria-live="polite"></p>
+    <ol class="gm-picked"></ol>
+  </section>
+  <p class="gm-fine">Uses your browser's secure random numbers (crypto.getRandomValues). Names stay on this page unless you tick Remember.</p>
+</div>
+
+<style is:inline>
+  .gm { display: grid; gap: 14px; margin-bottom: 32px; }
+  .gm .panel { padding: 16px; }
+  .gm label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .gm label.gm-check { display: flex; gap: 8px; align-items: flex-start; color: var(--ink); margin-top: 8px; }
+  .gm textarea, .gm input[type="number"], .gm select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .gm textarea { resize: vertical; }
+  .gm textarea:focus, .gm input:focus, .gm select:focus { border-color: var(--accent); outline: none; }
+  .gm-count, .gm-say, .gm-say2 { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+  .gm-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 12px; }
+  .gm-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .gm-tabs button { font: inherit; font-size: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .gm-tabs button[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .gm-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr)); gap: 10px; margin-top: 12px; }
+  .gm-group { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--bg); }
+  .gm-group h3 { margin: 0 0 6px; font-size: 15px; }
+  .gm-group ul { margin: 0; padding-left: 18px; }
+  .gm-group li, .gm-picked li { overflow-wrap: anywhere; }
+  .gm-big { font-size: 30px; font-weight: 700; margin: 12px 0 4px; overflow-wrap: anywhere; min-height: 1.2em; }
+  .gm-btns { margin: 10px 0 0; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .gm-picked { margin: 8px 0 0; padding-left: 22px; color: var(--muted); }
+  .gm-fine { color: var(--muted); font-size: 13px; margin: 0; }
+  @media print {
+    body * { visibility: hidden; }
+    .gm-groups, .gm-groups * { visibility: visible; }
+    .gm-groups { position: absolute; left: 0; top: 0; width: 100%; }
+  }
+</style>
+
+<script>
+  const KEY = 'fibub-group-maker-v1';
+  const EX = ['Aisha', 'Ben', 'Chen', 'Divya', 'Ethan', 'Fatima', 'George', 'Hana', 'Isaac', 'Jaya'];
+  const root = document.querySelector('.gm') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
+  const ta = q<HTMLTextAreaElement>('.gm-names'), keep = q<HTMLInputElement>('[data-k="keep"]'), by = q<HTMLSelectElement>('[data-k="by"]'), nIn = q<HTMLInputElement>('[data-k="n"]');
+  const out = q('.gm-groups'), say = q('.gm-say'), big = q('.gm-big'), say2 = q('.gm-say2'), picked = q('.gm-picked'), rm = q<HTMLInputElement>('[data-k="remove"]');
+  // Unbiased random whole number in [0, n) from crypto.getRandomValues.
+  const rand = (n: number) => { const lim = Math.floor(0x100000000 / n) * n, u = new Uint32Array(1); do crypto.getRandomValues(u); while (u[0] >= lim); return u[0] % n; };
+  const shuffle = <T,>(a: T[]) => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = rand(i + 1); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+  const names = () => ta.value.split(/[\n,;]+/).map((s) => s.trim()).filter(Boolean);
+  // Group sizes: by number of groups g, sizes differ by at most one (bigger groups first).
+  // By people per group s: g = ceil(n / s) groups, then balanced the same way, so no group is more than s.
+  const sizes = (n: number, g: number) => Array.from({ length: g }, (_, i) => Math.floor(n / g) + (i < n % g ? 1 : 0));
+  let groups: string[][] = [];
+  const make = () => {
+    const list = names(), n = list.length, k = Math.floor(Number(nIn.value));
+    out.innerHTML = ''; groups = [];
+    if (n < 2) { say.textContent = 'Type at least two names.'; return; }
+    if (!(k >= 1)) { say.textContent = 'Type a whole number of 1 or more.'; return; }
+    const g = by.value === 'count' ? Math.min(k, n) : Math.ceil(n / k);
+    const sz = sizes(n, g), mixed = shuffle(list);
+    let at = 0; for (const s of sz) { groups.push(mixed.slice(at, at + s)); at += s; }
+    say.textContent = `${n} names in ${g} group${g > 1 ? 's' : ''} of ${[...new Set(sz)].join(' or ')}` + (by.value === 'count' && k > n ? ` (only ${n} names, so ${n} groups).` : '.');
+    groups.forEach((m, i) => {
+      const d = document.createElement('div'); d.className = 'gm-group';
+      const h = document.createElement('h3'); h.textContent = `Group ${i + 1} (${m.length})`;
+      const ul = document.createElement('ul'); for (const x of m) { const li = document.createElement('li'); li.textContent = x; ul.append(li); }
+      d.append(h, ul); out.append(d);
+    });
+  };
+  // Picker: a pool of names still to pick; with "remove" on, a picked name leaves the pool.
+  let pool: string[] = [];
+  const refill = () => { pool = names(); picked.innerHTML = ''; big.textContent = ''; say2.textContent = `${pool.length} names to pick from.`; };
+  const pick = () => {
+    if (!rm.checked) { const all = names(); if (!all.length) { say2.textContent = 'Type some names first.'; return; } const x = all[rand(all.length)]; big.textContent = x; const li = document.createElement('li'); li.textContent = x; picked.append(li); say2.textContent = 'Anyone can be picked again.'; return; }
+    if (!pool.length) { big.textContent = ''; say2.textContent = 'Everyone has been picked. Press "Put everyone back" to start again.'; return; }
+    const x = pool.splice(rand(pool.length), 1)[0];
+    big.textContent = x; const li = document.createElement('li'); li.textContent = x; picked.append(li);
+    say2.textContent = `${pool.length} left to pick.`;
+  };
+  const save = () => { try { if (keep.checked) localStorage.setItem(KEY, JSON.stringify({ names: ta.value })); } catch {} };
+  const forget = () => { try { localStorage.removeItem(KEY); } catch {} keep.checked = false; };
+  const counted = () => { const n = names().length; q('.gm-count').textContent = `${n} name${n === 1 ? '' : 's'}.`; };
+  const changed = () => { counted(); save(); make(); refill(); };
+  ta.addEventListener('input', changed);
+  keep.addEventListener('change', () => { if (keep.checked) save(); else forget(); });
+  q('.gm-forget').addEventListener('click', forget);
+  q('.gm-reset').addEventListener('click', () => { ta.value = EX.join('\n'); by.value = 'count'; nIn.value = '3'; q('.gm-nl').textContent = 'Number of groups'; changed(); });
+  by.addEventListener('change', () => { q('.gm-nl').textContent = by.value === 'count' ? 'Number of groups' : 'People per group'; make(); });
+  nIn.addEventListener('input', make);
+  q('.gm-make').addEventListener('click', make);
+  q('.gm-copy').addEventListener('click', async () => {
+    const t = groups.map((m, i) => `Group ${i + 1}: ${m.join(', ')}`).join('\n');
+    try { await navigator.clipboard.writeText(t); say.textContent = 'Copied.'; } catch { say.textContent = 'Copy did not work here; select the groups and copy them by hand.'; }
+  });
+  q('.gm-print').addEventListener('click', () => window.print());
+  q('.gm-pick').addEventListener('click', pick);
+  q('.gm-back').addEventListener('click', refill);
+  root.querySelectorAll('.gm-tabs button').forEach((b) => b.addEventListener('click', () => {
+    const m = (b as HTMLElement).dataset.m!;
+    root.querySelectorAll('.gm-tabs button').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
+    root.querySelectorAll<HTMLElement>('.gm-p').forEach((p) => { p.hidden = p.dataset.p !== m; });
+  }));
+  let saved = '';
+  try { saved = JSON.parse(localStorage.getItem(KEY) || 'null')?.names || ''; } catch {}
+  if (saved) { ta.value = saved; keep.checked = true; } else ta.value = EX.join('\n');
+  counted(); make(); refill();
+</script>

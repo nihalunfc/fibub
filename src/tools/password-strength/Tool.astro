@@ -1,0 +1,182 @@
+---
+// #T937 Password strength
+---
+<div class="tool-ui ps">
+  <section class="panel">
+    <label>Password<input class="ps-in" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" /></label>
+    <label class="ps-check"><input type="checkbox" class="ps-show" /> Show the password</label>
+    <p class="ps-btns"><button type="button" class="btn secondary small ps-clear">Clear</button></p>
+  </section>
+  <section class="panel ps-res" aria-live="polite">
+    <p class="ps-rate"></p>
+    <div class="ps-bar" aria-hidden="true"><span></span></div>
+    <p class="ps-sum"></p>
+    <table class="ps-times" hidden>
+      <thead><tr><th>Attack</th><th>Guesses per second</th><th>Time to try every guess</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <h3 class="ps-h" hidden>Why</h3>
+    <ul class="ps-why"></ul>
+  </section>
+  <p class="ps-fine">Checked on this page only: what you type is never sent anywhere or saved. This is a rough estimate from simple rules, not a promise; a long password from a password generator is always the safest choice.</p>
+</div>
+
+<style is:inline>
+  .ps { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ps .panel { padding: 16px; }
+  .ps label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ps label.ps-check { display: flex; gap: 8px; align-items: flex-start; color: var(--ink); margin-top: 10px; font-size: 15px; }
+  .ps-in { font: inherit; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--ink); padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ps-in:focus { border-color: var(--accent); outline: none; }
+  .ps-btns { margin: 10px 0 0; }
+  .ps-rate { font-size: 24px; font-weight: 700; margin: 0 0 8px; }
+  .ps-bar { height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; }
+  .ps-bar span { display: block; height: 100%; width: 0; background: var(--bad); }
+  .ps-res[data-lv="2"] .ps-bar span { background: var(--warn); }
+  .ps-res[data-lv="3"] .ps-bar span, .ps-res[data-lv="4"] .ps-bar span { background: var(--good); }
+  .ps-res[data-lv="0"] .ps-rate, .ps-res[data-lv="1"] .ps-rate { color: var(--bad); }
+  .ps-res[data-lv="3"] .ps-rate, .ps-res[data-lv="4"] .ps-rate { color: var(--good); }
+  .ps-sum { margin: 10px 0 0; color: var(--muted); font-size: 15px; }
+  .ps-times { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 12px; }
+  .ps-times th, .ps-times td { text-align: left; padding: 6px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .ps-h { font-size: 15px; margin: 14px 0 4px; }
+  .ps-why { margin: 0; padding-left: 20px; font-size: 15px; }
+  .ps-why li { overflow-wrap: anywhere; }
+  .ps-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  const root = document.querySelector('.ps') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const inp = q<HTMLInputElement>('.ps-in'), res = q('.ps-res'), rateEl = q('.ps-rate'), bar = q('.ps-bar span'), sum = q('.ps-sum');
+  const table = q('.ps-times'), tbody = q('.ps-times tbody'), why = q('.ps-why'), whyH = q('.ps-h');
+
+  // A short built-in list of passwords and password words that turn up again and again in leaked password lists.
+  const COMMON = ('password passw0rd 123456 12345678 123456789 1234567890 12345 1234567 qwerty qwertyuiop 111111 000000 123123 abc123 ' +
+    'iloveyou admin welcome monkey dragon letmein football baseball basketball soccer hockey master sunshine princess shadow ' +
+    'superman batman michael jordan charlie donald freedom whatever trustno1 starwars hello login access secret mustang ' +
+    'jennifer hunter ranger buster thomas tigger robert soccer harley andrew matthew daniel jessica ashley summer winter ' +
+    'computer internet pokemon cheese chocolate butterfly flower purple orange banana cookie pepper ginger maggie ' +
+    'liverpool chelsea arsenal manchester india canada london toronto delhi mumbai pakistan dubai america ' +
+    'samsung google apple iphone facebook instagram youtube twitter microsoft killer killer1 qazwsx zaq12wsx ' +
+    'asdfgh asdfghjkl zxcvbnm zxcvbn 1q2w3e4r 1qaz2wsx qwer1234 aa123456 password1 password123 admin123 root toor ' +
+    'changeme default guest test test123 love lovely loveme angel angels baby babygirl family friends forever ' +
+    'blessed jesus christ heaven god allah nothing anything monday tuesday sunday january august ' +
+    'football1 hello123 welcome1 letmein1 666666 654321 7777777 888888 999999 121212 112233 696969 ' +
+    'naruto anime ninja tiger lion eagle wolf bailey cooper buddy rocky lucky diamond silver golden ' +
+    'money cash dollar rich mercedes ferrari porsche corvette yankees cowboys lakers warriors').split(' ');
+  const LIST = [...new Set(COMMON)];
+  const ROWS = ['1234567890', 'qwertyuiop', 'asdfghjkl', 'zxcvbnm', 'qazwsxedcrfvtgbyhnujmikolp'];
+  const LEET: Record<string, string> = { '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '8': 'b', '9': 'g', '@': 'a', '$': 's', '!': 'i', '+': 't' };
+
+  type M = { s: number; e: number; bits: number; why: string };
+  const poolOf = (pw: string) => {
+    let p = 0;
+    if (/[a-z]/.test(pw)) p += 26; if (/[A-Z]/.test(pw)) p += 26; if (/[0-9]/.test(pw)) p += 10;
+    if (/[ -/:-@[-`{-~]/.test(pw)) p += 33; if (/[^\x20-\x7e]/.test(pw)) p += 100;
+    return p;
+  };
+
+  const findMatches = (pw: string): M[] => {
+    const out: M[] = [], n = pw.length, low = pw.toLowerCase();
+    // Common words, also with capitals and with 1337 swaps (0 for o, 3 for e, @ for a ...).
+    const variants = [low, [...low].map((c) => LEET[c] ?? c).join(''), [...low].map((c) => (c === '1' ? 'l' : LEET[c] ?? c)).join('')];
+    for (let s = 0; s < n; s++) for (let e = s + 4; e <= n; e++) {
+      const vi = variants.findIndex((v) => LIST.includes(v.slice(s, e)));
+      if (vi < 0) continue;
+      const raw = pw.slice(s, e), leet = raw.toLowerCase() !== variants[vi].slice(s, e), caps = /[A-Z]/.test(raw);
+      out.push({ s, e, bits: Math.log2(LIST.length) + (caps ? 1 : 0) + (leet ? 1 : 0), why: `"${raw}" is${leet ? ', with letters swapped for look-alikes,' : ''} in the common-password list` });
+    }
+    // Sequences such as abc, 4321 (same step each time).
+    for (let s = 0; s < n - 2; s++) {
+      const d = low.charCodeAt(s + 1) - low.charCodeAt(s);
+      if (Math.abs(d) !== 1 || !/[a-z0-9]/.test(low[s]) || !/[a-z0-9]/.test(low[s + 1])) continue;
+      let e = s + 2; while (e < n && low.charCodeAt(e) - low.charCodeAt(e - 1) === d && /[a-z0-9]/.test(low[e])) e++;
+      if (e - s >= 3) out.push({ s, e, bits: Math.log2(36) + 1 + Math.log2(e - s), why: `"${pw.slice(s, e)}" is a sequence` });
+    }
+    // Keyboard runs such as qwerty, asdf (forwards or backwards along a row).
+    for (const row of ROWS) for (const r of [row, [...row].reverse().join('')]) {
+      for (let s = 0; s < n; s++) {
+        let e = s; while (e < n && r.includes(low.slice(s, e + 1))) e++;
+        if (e - s >= 4) { out.push({ s, e, bits: Math.log2(40) + 1 + Math.log2(e - s), why: `"${pw.slice(s, e)}" is a run of keys next to each other` }); }
+      }
+    }
+    // Repeats: one character (aaaa) or a short chunk (abab, 123123) over and over.
+    for (let s = 0; s < n; s++) for (let L = 1; L <= 6; L++) {
+      const chunk = pw.slice(s, s + L); if (chunk.length < L) break;
+      let e = s + L; while (pw.slice(e, e + L) === chunk) e += L;
+      const reps = (e - s) / L;
+      if ((L === 1 && reps >= 3) || (L > 1 && reps >= 2)) out.push({ s, e, bits: L * Math.log2(poolOf(chunk)) + Math.log2(reps), why: `"${pw.slice(s, e)}" repeats "${chunk}"` });
+    }
+    // Years 1900-2039 and dates such as 15051990, 1990-05-15, 15/05/90.
+    const re = /(?:19|20)\d\d/g; let m: RegExpExecArray | null;
+    while ((m = re.exec(pw))) if (+m[0] <= 2039) out.push({ s: m.index, e: m.index + 4, bits: Math.log2(140), why: `"${m[0]}" looks like a year` });
+    const dre = /(?=(\d{1,2}[-/.]?\d{1,2}[-/.]?(?:19|20)?\d\d|(?:19|20)\d\d[-/.]?\d{1,2}[-/.]?\d{1,2}))/g;
+    while ((m = dre.exec(pw))) { if (m[1].replace(/\D/g, '').length >= 6) out.push({ s: m.index, e: m.index + m[1].length, bits: Math.log2(366 * 140), why: `"${m[1]}" looks like a date` }); dre.lastIndex = m.index + 1; }
+    return out;
+  };
+
+  // Cheapest way to build the password from pieces: matched patterns, or single random characters.
+  const estimate = (pw: string) => {
+    const n = pw.length, cb = Math.log2(poolOf(pw)), ms = findMatches(pw);
+    const dp = new Array(n + 1).fill(Infinity), back: (M | null)[] = new Array(n + 1).fill(null); dp[0] = 0;
+    for (let i = 1; i <= n; i++) {
+      dp[i] = dp[i - 1] + cb; back[i] = null;
+      for (const m of ms) if (m.e === i && dp[m.s] + m.bits < dp[i]) { dp[i] = dp[m.s] + m.bits; back[i] = m; }
+    }
+    const used: M[] = []; for (let i = n; i > 0;) { const m = back[i]; if (m) { used.unshift(m); i = m.s; } else i--; }
+    const whole = used.length === 1 && used[0].s === 0 && used[0].e === n && used[0].why.includes('common-password');
+    return { bits: dp[n], used, whole, cb, pool: poolOf(pw) };
+  };
+
+  const SPEEDS: [string, number][] = [
+    ['Online, with the site limiting tries', 100 / 3600],
+    ['Online, no limit', 10],
+    ['Offline, slow password hash', 1e4],
+    ['Offline, fast hash, many graphics cards', 1e10],
+  ];
+  const sci = (l10: number) => (l10 < 6 ? Math.round(10 ** l10).toLocaleString('en-US') : `about 10^${Math.floor(l10)}`);
+  const timeText = (l10s: number) => {
+    if (l10s < 0) return 'less than a second';
+    const s = 10 ** l10s;
+    const units: [number, string][] = [[1, 'second'], [60, 'minute'], [3600, 'hour'], [86400, 'day'], [2629800, 'month'], [31557600, 'year'], [3155760000, 'century']];
+    if (l10s > Math.log10(31557600 * 1e6)) return 'more than a million years';
+    let u = units[0]; for (const x of units) if (s >= x[0]) u = x;
+    const v = Math.floor(s / u[0]);
+    return `${v} ${u[1] === 'century' ? (v === 1 ? 'century' : 'centuries') : u[1] + (v === 1 ? '' : 's')}`;
+  };
+  const LV = ['Very weak', 'Weak', 'Fair', 'Strong', 'Very strong'];
+
+  const update = () => {
+    const pw = inp.value;
+    if (!pw) {
+      res.dataset.lv = ''; rateEl.textContent = 'Type a password above to check it.'; bar.style.width = '0';
+      sum.textContent = 'It stays on this page.'; table.hidden = true; whyH.hidden = true; why.innerHTML = ''; return;
+    }
+    const r = estimate(pw);
+    const lv = r.whole ? 0 : r.bits < 28 ? 0 : r.bits < 40 ? 1 : r.bits < 60 ? 2 : r.bits < 80 ? 3 : 4;
+    res.dataset.lv = String(lv); rateEl.textContent = LV[lv]; bar.style.width = `${(lv + 1) * 20}%`;
+    const l10 = r.bits * Math.log10(2);
+    sum.textContent = `About ${r.bits.toFixed(1)} bits: an attacker would need up to ${sci(l10)} guesses.`;
+    tbody.innerHTML = '';
+    for (const [name, sp] of SPEEDS) {
+      const tr = document.createElement('tr');
+      for (const c of [name, sp < 1 ? '100 an hour' : sp.toLocaleString('en-US'), timeText(l10 - Math.log10(sp))]) { const td = document.createElement('td'); td.textContent = c; tr.append(td); }
+      tbody.append(tr);
+    }
+    table.hidden = false;
+    const notes: string[] = [];
+    if (r.whole) notes.push('Found in the common-password list: attackers try these first.');
+    for (const m of r.used) if (!r.whole || !m.why.includes('common-password')) notes.push(m.why + '.');
+    if (pw.length < 12) notes.push(`Only ${pw.length} characters: 12 or more is better, 16 or more is best.`);
+    if (r.pool <= 26) notes.push('Only one kind of character: length matters most, but mixing kinds helps a short password.');
+    if (!r.used.length && !r.whole) notes.push(`No common words or patterns found, so each character counts as about ${r.cb.toFixed(1)} bits (${r.pool} possible characters).`);
+    whyH.hidden = false; why.innerHTML = '';
+    for (const t of notes) { const li = document.createElement('li'); li.textContent = t; why.append(li); }
+  };
+
+  inp.addEventListener('input', update);
+  q('.ps-show').addEventListener('change', (e) => { inp.type = (e.target as HTMLInputElement).checked ? 'text' : 'password'; });
+  q('.ps-clear').addEventListener('click', () => { inp.value = ''; update(); inp.focus(); });
+  update();
+</script>

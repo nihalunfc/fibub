@@ -1,0 +1,78 @@
+---
+// #T926 Final grade
+---
+<div class="tool-ui fg">
+  <section class="panel">
+    <div class="fg-fields">
+      <label>Current grade (%)<input data-k="cur" inputmode="decimal" value="82" /></label>
+      <label>Final exam weight (%)<input data-k="w" inputmode="decimal" value="30" /></label>
+      <label>Target grade (%)<input data-k="t" inputmode="decimal" value="85" /></label>
+    </div>
+    <p class="fg-big" aria-live="polite"></p>
+    <p class="fg-say" aria-live="polite"></p>
+  </section>
+  <section class="panel">
+    <h3 class="fg-h">Score needed for each grade</h3>
+    <table class="fg-table"><thead><tr><th>Grade</th><th>Course grade</th><th>Final exam score</th></tr></thead><tbody></tbody></table>
+    <p class="fg-note">Letter cut-offs (lowest percent for each). Change them to your school's scale.</p>
+    <div class="fg-cuts">
+      <label>A<input data-c="A" inputmode="decimal" value="90" /></label>
+      <label>B<input data-c="B" inputmode="decimal" value="80" /></label>
+      <label>C<input data-c="C" inputmode="decimal" value="70" /></label>
+      <label>D<input data-c="D" inputmode="decimal" value="60" /></label>
+    </div>
+  </section>
+  <p><button type="button" class="btn secondary small fg-reset">Reset to the example</button></p>
+  <p class="fg-fine">Needed = (target − current × (1 − weight)) ÷ weight. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .fg { display: grid; gap: 14px; margin-bottom: 32px; }
+  .fg .panel { padding: 16px; }
+  .fg-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 12px; }
+  .fg-cuts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .fg label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .fg input { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .fg input:focus { border-color: var(--accent); outline: none; }
+  .fg-big { font-size: 26px; font-weight: 700; margin: 14px 0 4px; overflow-wrap: anywhere; }
+  .fg-say { margin: 0; color: var(--muted); font-size: 15px; }
+  .fg-h { margin: 0 0 8px; font-size: 16px; }
+  .fg-table { width: 100%; border-collapse: collapse; font-size: 15px; margin-bottom: 10px; }
+  .fg-table th, .fg-table td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+  .fg-table td.no { color: var(--bad); }
+  .fg-table td.ok { color: var(--good); }
+  .fg-note, .fg-fine { color: var(--muted); font-size: 13px; margin: 0 0 8px; }
+</style>
+
+<script>
+  const root = document.querySelector('.fg') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
+  const big = q('.fg-big'), say = q('.fg-say'), body = q('.fg-table tbody');
+  const num = (s: string) => (s.trim() === '' ? NaN : Number(s.replace(',', '.')));
+  const f1 = (v: number) => v.toFixed(1);
+  const need = (cur: number, w: number, t: number) => (t - cur * (1 - w / 100)) / (w / 100);
+  const words = (n: number) => n > 100 ? `${f1(n)}%: over 100%, so not possible with a normal final.` : n <= 0 ? 'Already safe: even 0% on the final keeps it.' : `${f1(n)}%`;
+  const calc = () => {
+    const cur = num(q<HTMLInputElement>('[data-k="cur"]').value), w = num(q<HTMLInputElement>('[data-k="w"]').value), t = num(q<HTMLInputElement>('[data-k="t"]').value);
+    body.innerHTML = '';
+    if (![cur, w, t].every(Number.isFinite)) { big.textContent = ''; say.textContent = 'Type the three numbers above.'; return; }
+    if (w <= 0) { big.textContent = ''; say.textContent = 'With a final weight of 0 the final cannot change your grade: it stays at ' + f1(cur) + '%.'; return; }
+    if (w > 100) { big.textContent = ''; say.textContent = 'The final exam weight cannot be more than 100%.'; return; }
+    const n = need(cur, w, t);
+    big.textContent = n > 100 ? `${f1(n)}% needed` : n <= 0 ? '0% needed' : `${f1(n)}% needed`;
+    say.textContent = n > 100 ? `That is over 100%, so a ${f1(t)}% course grade cannot be reached with a normal final. The best you can get with 100% is ${f1(cur * (1 - w / 100) + w)}%.`
+      : n <= 0 ? `You keep at least ${f1(t)}% even with 0% on the final (you would end on ${f1(cur * (1 - w / 100))}%).`
+      : `Score ${f1(n)}% on a final worth ${f1(w)}% to move from ${f1(cur)}% to ${f1(t)}%.`;
+    for (const g of ['A', 'B', 'C', 'D']) {
+      const c = num(q<HTMLInputElement>(`[data-c="${g}"]`).value); if (!Number.isFinite(c)) continue;
+      const v = need(cur, w, c), tr = document.createElement('tr');
+      const cells = [g, f1(c) + '%', words(v)];
+      cells.forEach((x, i) => { const td = document.createElement('td'); td.textContent = x; if (i === 2) td.className = v > 100 ? 'no' : v <= 0 ? 'ok' : ''; tr.append(td); });
+      body.append(tr);
+    }
+  };
+  const defaults: Record<string, string> = { cur: '82', w: '30', t: '85', A: '90', B: '80', C: '70', D: '60' };
+  root.querySelectorAll('input').forEach((i) => i.addEventListener('input', calc));
+  q('.fg-reset').addEventListener('click', () => { root.querySelectorAll<HTMLInputElement>('input').forEach((i) => { i.value = defaults[i.dataset.k || i.dataset.c || ''] ?? ''; }); calc(); });
+  calc();
+</script>
