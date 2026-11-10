@@ -1,0 +1,86 @@
+---
+// #1781 Commute cost
+---
+<div class="tool-ui cc">
+  <section class="panel">
+    <h2>Your week</h2>
+    <div class="cc-grid">
+      <label>Commuting days a week <input data-k="dpw" inputmode="decimal" value="5" /></label>
+      <label>Weeks a year you commute <input data-k="wpy" inputmode="decimal" value="46" /></label>
+      <label>Value of your time per hour <input data-k="hourly" inputmode="decimal" value="20" /></label>
+    </div>
+    <p class="cc-fine">Time cost = hours spent travelling x the hourly value you give. Put your pay rate, or less, or 0 to leave it out.</p>
+  </section>
+  <section class="panel">
+    <h2>Car</h2>
+    <div class="cc-grid">
+      <label>One-way distance (km) <input data-k="dist" inputmode="decimal" value="15" /></label>
+      <label>Litres per 100 km <input data-k="l100" inputmode="decimal" value="8" /></label>
+      <label>Fuel price per litre <input data-k="fuel" inputmode="decimal" value="1.60" /></label>
+      <label>Parking a day <input data-k="park" inputmode="decimal" value="10" /></label>
+      <label>Tolls a day <input data-k="toll" inputmode="decimal" value="0" /></label>
+      <label>Wear and tear per km <input data-k="wear" inputmode="decimal" value="0.10" /></label>
+      <label>Minutes one way <input data-k="cmin" inputmode="decimal" value="30" /></label>
+    </div>
+    <p class="cc-fine">Wear per km covers tyres, servicing and repairs (and, if you like, a share of depreciation). A typical figure is 0.05 to 0.15 in your currency; adjust it.</p>
+  </section>
+  <section class="panel">
+    <h2>Transit, and bike or walk</h2>
+    <div class="cc-grid">
+      <label>Monthly pass <input data-k="pass" inputmode="decimal" value="120" /></label>
+      <label>Extra per day (last-mile, single fares) <input data-k="textra" inputmode="decimal" value="0" /></label>
+      <label>Transit minutes one way <input data-k="tmin" inputmode="decimal" value="45" /></label>
+      <label>Bike or walk cost a day <input data-k="bday" inputmode="decimal" value="0.5" /></label>
+      <label>Bike or walk minutes one way <input data-k="bmin" inputmode="decimal" value="40" /></label>
+    </div>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="cc-big"></p>
+    <div class="cc-scroll"><table class="cc-tab cc-out"></table></div>
+  </section>
+  <p class="cc-fine">Estimates, not financial advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .cc { display: grid; gap: 14px; margin-bottom: 32px; }
+  .cc .panel { padding: 16px; }
+  .cc h2 { margin: 0 0 12px; font-size: 18px; }
+  .cc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .cc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .cc input:not([type=checkbox]), .cc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .cc input:focus, .cc select:focus { border-color: var(--accent); outline: none; }
+  .cc label.cc-check { display: flex; gap: 8px; align-items: center; color: var(--ink); margin-top: 12px; }
+  .cc input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .cc-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
+  .cc-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
+  .cc-rows dt { color: var(--muted); } .cc-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .cc-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+  .cc-scroll { overflow-x: auto; }
+  .cc-tab { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .cc-tab th, .cc-tab td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .cc-tab th:first-child, .cc-tab td:first-child { text-align: left; }
+  .cc-tab td input, .cc-tab td select { padding: 6px 8px; min-width: 70px; }
+  .cc button { font: inherit; padding: 9px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+  .cc button.cc-main { background: var(--accent); color: #fff; border-color: var(--accent); }
+</style>
+
+<script>
+  import { commute } from '../../lib/money/household';
+  import { fmt, num } from '../../lib/money/ui';
+  const root = document.querySelector('.cc') as HTMLElement;
+  const big = root.querySelector('.cc-big') as HTMLElement, out = root.querySelector('.cc-out') as HTMLElement;
+  const calc = () => {
+    const rows = commute({ daysPerWeek: num(root, 'dpw'), weeksPerYear: num(root, 'wpy'), hourly: num(root, 'hourly'),
+      car: { oneWayKm: num(root, 'dist'), l100: num(root, 'l100'), fuelPrice: num(root, 'fuel'), parking: num(root, 'park'), tolls: num(root, 'toll'), wearPerKm: num(root, 'wear'), minutes: num(root, 'cmin') },
+      transit: { monthly: num(root, 'pass'), extraPerDay: num(root, 'textra'), minutes: num(root, 'tmin') },
+      bike: { perDay: num(root, 'bday'), minutes: num(root, 'bmin') } });
+    const best = rows.reduce((a, b) => (b.withTime < a.withTime ? b : a));
+    big.textContent = `Cheapest with your time counted: ${best.name} (${fmt(best.withTime, 0)} a year)`;
+    const r = (l: string, f: (x: typeof rows[number]) => string) => `<tr><td>${l}</td>${rows.map((x) => `<td>${f(x)}</td>`).join('')}</tr>`;
+    out.innerHTML = `<thead><tr><th></th>${rows.map((x) => `<th>${x.name}</th>`).join('')}</tr></thead><tbody>` +
+      r('Money per day', (x) => fmt(x.day)) + r('Money per month', (x) => fmt(x.month)) + r('Money per year', (x) => `<b>${fmt(x.year, 0)}</b>`) +
+      r('Hours travelling a year', (x) => fmt(x.hoursYear, 0)) + r('Value of that time', (x) => fmt(x.timeYear, 0)) + r('Money plus time, a year', (x) => `<b>${fmt(x.withTime, 0)}</b>`) + '</tbody>';
+  };
+  root.addEventListener('input', calc);
+  calc();
+</script>
