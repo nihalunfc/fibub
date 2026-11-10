@@ -1,0 +1,107 @@
+---
+// #1722 Debt payoff
+---
+<div class="tool-ui ds">
+  <section class="panel">
+    <h2 class="ds-h">Your debts</h2>
+    <div class="ds-list"></div>
+    <button type="button" class="btn secondary ds-add">Add a debt</button>
+    <label class="ds-extra">Extra you can pay each month on top of the minimums <input data-k="extra" inputmode="decimal" value="200" /></label>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="ds-msg" role="alert"></p>
+    <div class="ds-cols"></div>
+    <div class="ds-chart"></div>
+    <p class="ds-leg"></p>
+    <button type="button" class="btn secondary ds-csv">Download month by month (CSV)</button>
+  </section>
+  <section class="panel">
+    <h2 class="ds-h">The minimum-payment trap</h2>
+    <p>A credit card minimum is often only the interest plus 1% of the balance, so the balance shrinks very slowly and most of what you pay is interest. The "Minimums only" column shows this for your own debts. Even a small extra amount, or rolling a paid-off debt's payment onto the next, shortens the road a lot.</p>
+  </section>
+  <p class="ds-fine">Not financial or tax advice. Interest is added once a month at one twelfth of the yearly rate (APR). Check the balance and rate on your latest statements. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ds { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ds .panel { padding: 16px; }
+  .ds-h { font-size: 16px; margin: 0 0 8px; }
+  .ds label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ds input { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ds input:focus { border-color: var(--accent); outline: none; }
+  .ds-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr)); gap: 8px; align-items: end; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .ds-row button { font: inherit; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .ds-extra { max-width: 420px; margin-top: 14px; }
+  .ds-add { margin-top: 10px; }
+  .ds-msg { color: var(--bad); margin: 0 0 8px; } .ds-msg:empty { display: none; }
+  .ds-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 12px; margin-bottom: 14px; }
+  .ds-col { border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  .ds-col.win { border-color: var(--good); background: var(--good-soft); }
+  .ds-col h3 { font-size: 15px; margin: 0 0 6px; }
+  .ds-col .big { font-size: 22px; font-weight: 700; margin: 0; }
+  .ds-col p { margin: 4px 0; font-size: 14px; }
+  .ds-col ol { margin: 6px 0 0; padding-left: 20px; font-size: 14px; }
+  .ds-leg .lg { display: inline-flex; align-items: center; gap: 6px; margin-right: 14px; font-size: 13px; color: var(--muted); }
+  .ds-fine { color: var(--muted); font-size: 13px; margin: 0; }
+  .ds-csv { margin-top: 10px; }
+</style>
+
+<script>
+  import { payoff, type Debt, type Strategy } from '../../lib/money/homes';
+  import { lineSvg, legend, downloadCsv } from '../../lib/money/chart';
+  const root = document.querySelector('.ds') as HTMLElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const list = $('.ds-list');
+  const extraIn = root.querySelector('[data-k="extra"]') as HTMLInputElement;
+  const m0 = (v: number) => Math.round(v).toLocaleString('en-US');
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+  const addRow = (name = '', bal = '', apr = '', min = '') => {
+    const d = document.createElement('div'); d.className = 'ds-row';
+    d.innerHTML = `<label>Name <input data-f="name" value="${esc(name)}" /></label><label>Balance <input data-f="bal" inputmode="decimal" value="${bal}" /></label><label>APR % <input data-f="apr" inputmode="decimal" value="${apr}" /></label><label>Minimum a month <input data-f="min" inputmode="decimal" value="${min}" /></label><button type="button" aria-label="Remove this debt">Remove</button>`;
+    d.querySelector('button')!.addEventListener('click', () => { d.remove(); calc(); });
+    list.appendChild(d);
+  };
+  addRow('Credit card', '5000', '24', '125'); addRow('Store card', '800', '29', '35'); addRow('Car loan', '9000', '7', '250'); addRow('Student loan', '1500', '4', '60');
+  $('.ds-add').addEventListener('click', () => { if (list.children.length < 12) { addRow(`Debt ${list.children.length + 1}`); calc(); } });
+  let last: { debts: Debt[]; res: Record<Strategy, ReturnType<typeof payoff>> } | null = null;
+  const calc = () => {
+    const debts: Debt[] = [];
+    let bad = '';
+    list.querySelectorAll('.ds-row').forEach((r, k) => {
+      const g = (f: string) => (r.querySelector(`[data-f="${f}"]`) as HTMLInputElement).value.trim();
+      if (g('bal') === '' && g('min') === '' ) return;
+      const d = { name: g('name') || `Debt ${k + 1}`, balance: parseFloat(g('bal')), apr: parseFloat(g('apr') || '0'), min: parseFloat(g('min')) };
+      if (!(d.balance > 0) || !(d.apr >= 0) || !(d.min > 0)) bad = 'Each debt needs a balance and a minimum payment above zero, and a rate (APR) of zero or more.';
+      debts.push(d);
+    });
+    const extra = parseFloat(extraIn.value || '0');
+    const msg = $('.ds-msg'), cols = $('.ds-cols');
+    if (!debts.length || bad || !(extra >= 0)) { msg.textContent = bad || 'Add at least one debt.'; cols.innerHTML = ''; $('.ds-chart').innerHTML = ''; $('.ds-leg').innerHTML = ''; last = null; return; }
+    msg.textContent = '';
+    const res = { snowball: payoff(debts, extra, 'snowball'), avalanche: payoff(debts, extra, 'avalanche'), minimums: payoff(debts, 0, 'minimums') };
+    last = { debts, res };
+    const yrs = (mo: number) => `${Math.floor(mo / 12)} yr ${mo % 12} mo`;
+    const card = (title: string, sub: string, r: ReturnType<typeof payoff>, win: boolean) =>
+      `<div class="ds-col${win ? ' win' : ''}"><h3>${title}</h3><p>${sub}</p>` +
+      (r.finished ? `<p class="big">${r.months} months</p><p>${yrs(r.months)} to debt-free</p>` : `<p class="big">Never</p><p>The payments do not cover the interest (after 100 years).</p>`) +
+      `<p>Interest: <b>${m0(r.totalInterest)}</b></p>` +
+      (r.order.length && r.finished ? `<p>Paid off in order:</p><ol>${r.order.map((k) => `<li>${esc(debts[k].name)} (month ${r.doneMonth[k]})</li>`).join('')}</ol>` : '') + '</div>';
+    const a = res.avalanche, s = res.snowball;
+    const winA = a.totalInterest <= s.totalInterest + 0.005;
+    cols.innerHTML = card('Snowball', 'Smallest balance first', s, !winA) + card('Avalanche', 'Highest rate first', a, winA && a.totalInterest < s.totalInterest - 0.005) + card('Minimums only', 'No extra, no roll-over', res.minimums, false);
+    const T = Math.max(s.rows.length, a.rows.length, res.minimums.rows.length, 1);
+    const tot = (r: ReturnType<typeof payoff>) => Array.from({ length: T + 1 }, (_, m) => (m === 0 ? debts.reduce((x, d) => x + d.balance, 0) : (r.rows[m - 1] ? r.rows[m - 1].balances.reduce((x, y) => x + y, 0) : 0)));
+    const sr = [{ label: 'Snowball', ys: tot(s), color: 'var(--accent)' }, { label: 'Avalanche', ys: tot(a), color: 'var(--warn)', dash: true }, { label: 'Minimums only', ys: tot(res.minimums), color: 'var(--muted)' }];
+    $('.ds-chart').innerHTML = lineSvg(sr, Array.from({ length: T + 1 }, (_, m) => m), 'Total owed by month');
+    $('.ds-leg').innerHTML = legend(sr) + '<span class="lg">Horizontal axis: months</span>';
+  };
+  $('.ds-csv').addEventListener('click', () => {
+    if (!last) return;
+    const { debts, res } = last;
+    const out: (string | number)[][] = [['Plan', 'Month', ...debts.map((d) => d.name + ' balance'), 'Interest this month', 'Paid this month']];
+    (['snowball', 'avalanche', 'minimums'] as Strategy[]).forEach((st) => res[st].rows.forEach((r) => out.push([st, r.month, ...r.balances.map((b) => b.toFixed(2)), r.interest.toFixed(2), r.paid.toFixed(2)])));
+    downloadCsv('debt-payoff.csv', out);
+  });
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  calc();
+</script>

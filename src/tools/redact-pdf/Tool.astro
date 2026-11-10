@@ -1,0 +1,294 @@
+---
+// #1706 Redact PDF: true redaction. Pages with redactions are re-drawn as pictures with black boxes burned in.
+---
+<div class="tool-ui rd" data-state="empty">
+  <label class="rd-drop">
+    <input class="rd-file visually-hidden" type="file" accept=".pdf,application/pdf" />
+    <strong>Choose a PDF to redact</strong>
+    <span>or drop it here. It stays on your device.</span>
+  </label>
+  <p class="note bad rd-err" role="alert" hidden></p>
+
+  <div class="rd-work" hidden>
+    <section class="panel rd-find" aria-label="Find text to hide">
+      <h2>1. Find text to hide</h2>
+      <label>Words or phrases, one per line
+        <textarea class="rd-words" rows="3" placeholder="e.g. Jane Doe&#10;Account 12345"></textarea>
+      </label>
+      <fieldset class="rd-pats"><legend>Also hide anything that looks like</legend><div class="rd-patbox"></div></fieldset>
+      <label class="rd-check"><input class="rd-case" type="checkbox" /> Match capital letters exactly</label>
+      <div class="rd-btns"><button type="button" class="btn rd-search">Find on all pages</button></div>
+      <p class="rd-found" role="status" aria-live="polite"></p>
+      <ul class="rd-list"></ul>
+    </section>
+
+    <section class="panel rd-draw" aria-label="Draw boxes">
+      <h2>2. Or draw boxes on the pages</h2>
+      <p class="rd-help">Drag on a page to cover a name, a number, a picture or a signature. Drag a box to move it, pull its square corner to resize it, press the <b>x</b> to remove it. On a phone, switch drawing off to scroll.</p>
+      <button type="button" class="btn secondary rd-mode" aria-pressed="true">Drawing is on</button>
+    </section>
+
+    <div class="pv-pages rd-pages"></div>
+
+    <section class="panel rd-done" aria-label="Save">
+      <h2>3. Save</h2>
+      <label class="rd-sel">Quality of the redacted pages
+        <select class="rd-dpi"><option value="150">150 DPI (smaller file)</option><option value="200" selected>200 DPI (good for most)</option><option value="300">300 DPI (sharpest, large)</option></select>
+      </label>
+      <p class="note warn">Pages with redactions are turned into <b>pictures</b> with the black boxes burned in, so the hidden text is gone for good. Those pages can no longer be searched or selected. Pages without redactions are kept as they are. The original file is not changed.</p>
+      <p class="rd-count" role="status" aria-live="polite"></p>
+      <div class="rd-btns">
+        <button type="button" class="btn rd-save">Redact and download</button>
+        <button type="button" class="btn secondary rd-other">Choose another PDF</button>
+      </div>
+      <div class="rd-report note good" hidden></div>
+    </section>
+  </div>
+</div>
+
+<style is:inline>
+  .rd { display: grid; gap: 14px; margin-bottom: 32px; }
+  .rd-drop { display: grid; place-items: center; gap: 4px; text-align: center; padding: 36px 16px; border: 2px dashed var(--line); border-radius: var(--radius); cursor: pointer; background: var(--bg); }
+  .rd-drop strong { font-size: 19px; color: var(--accent); }
+  .rd-drop span { color: var(--muted); font-size: 14px; }
+  .rd-drop.over, .rd-drop:focus-within { border-color: var(--accent); background: var(--accent-soft); }
+  .rd:not([data-state="empty"]) .rd-drop { display: none; }
+  .rd-work, .rd-find, .rd-draw, .rd-done { display: grid; gap: 10px; }
+  .rd h2 { font-size: 18px; margin: 0; }
+  .rd label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .rd textarea, .rd select { font: inherit; color: var(--ink); padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); width: 100%; min-width: 0; }
+  .rd-pats { border: 0; padding: 0; margin: 0; }
+  .rd-pats legend { font-size: 14px; color: var(--muted); margin-bottom: 6px; }
+  .rd-patbox { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+  .rd label.rd-check, .rd-patbox label { display: flex; gap: 6px; align-items: center; color: var(--ink); font-size: 14.5px; }
+  .rd-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  .rd-help { margin: 0; font-size: 14.5px; }
+  .rd-found, .rd-count { margin: 0; font-size: 14.5px; }
+  .rd-found:empty, .rd-count:empty { display: none; }
+  .rd-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 240px; overflow: auto; }
+  .rd-list li { display: flex; gap: 8px; align-items: center; justify-content: space-between; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; }
+  .rd-list li span { min-width: 0; word-break: break-word; }
+  .rd-list button { border: 0; background: none; color: var(--accent); cursor: pointer; font: inherit; text-decoration: underline; }
+  .rd-report { display: grid; gap: 6px; }
+  .rd-report ul { margin: 0; padding-left: 18px; }
+  .rd.draw .pv-layer { cursor: crosshair; touch-action: none; }
+  .rd-box { width: 100%; height: 100%; background: rgba(0, 0, 0, .55); display: grid; place-items: center; color: #fff; font-size: 11px; pointer-events: none; overflow: hidden; }
+  .rd .pv-item { outline-color: #d00; }
+  .rd-rubber { position: absolute; background: rgba(0, 0, 0, .35); outline: 1.5px dashed #d00; pointer-events: none; }
+  .pv-pages { display: grid; gap: 14px; justify-items: center; }
+  .pv-page { position: relative; background: #fff; box-shadow: 0 0 0 1px var(--line); max-width: 100%; margin-top: 18px; }
+  .pv-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .pv-layer { position: absolute; inset: 0; }
+  .pv-num { position: absolute; left: 6px; top: -1px; transform: translateY(-100%); font-size: 12px; color: var(--muted); }
+  .pv-item { position: absolute; cursor: move; outline: 1.5px dashed var(--accent); touch-action: none; user-select: none; }
+  .pv-item:focus-visible { outline-style: solid; outline-width: 2px; }
+  .pv-x { position: absolute; top: -12px; right: -12px; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 700 16px/1 system-ui, sans-serif; cursor: pointer; padding: 0; }
+  .pv-grip { position: absolute; right: -9px; bottom: -9px; width: 18px; height: 18px; border-radius: 4px; background: #d00; border: 2px solid var(--surface); cursor: nwse-resize; touch-action: none; }
+</style>
+
+<script>
+  import { openPdfJs, showPages, mountItem, downloadBytes, readFile, outName, type Item, type PageView } from '../../lib/docs/pdfview';
+  import { PATTERNS, findHits } from '../../lib/docs/patterns';
+
+  const root = document.querySelector<HTMLElement>('.rd')!;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector<T>(s)!;
+  const idle = (window as any).requestIdleCallback ?? ((f: () => void) => setTimeout(f, 1500));
+  idle(() => import('../../lib/compress/pdf').then((m) => m.warmUp()).catch(() => {}));
+
+  let bytes: Uint8Array | null = null, fileName = 'document.pdf', doc: any = null, views: PageView[] = [], boxes: Item[] = [], nextId = 1;
+  let drawing = true;
+  const labels = new Map<number, string>();
+  const err = (m = '') => { const e = $('.rd-err'); e.textContent = m; e.hidden = !m; };
+
+  const patBox = $('.rd-patbox');
+  for (const p of PATTERNS) {
+    const l = document.createElement('label'); const c = Object.assign(document.createElement('input'), { type: 'checkbox', value: p.id });
+    l.append(c, document.createTextNode(p.label)); patBox.append(l);
+  }
+
+  /* ---------- boxes ---------- */
+  function mountBox(v: PageView, it: Item) {
+    const body = document.createElement('div'); body.className = 'rd-box'; body.textContent = 'Black';
+    mountItem(v, it, body, { free: true, label: 'Redaction box on page ' + (v.index + 1), onChange: refresh, onRemove: (x) => { boxes = boxes.filter((b) => b !== x); labels.delete(x.id); refresh(); renderList(); } });
+  }
+  function addBox(v: PageView, fx: number, fy: number, fw: number, fh: number, label: string, text = '') {
+    const it: Item = { id: nextId++, page: v.index, kind: 'box', fx, fy, fw, fh, text };
+    labels.set(it.id, label); boxes.push(it); mountBox(v, it); refresh(); return it;
+  }
+  function refresh() {
+    const pages = new Set(boxes.map((b) => b.page)).size;
+    $('.rd-count').textContent = boxes.length ? `${boxes.length} box${boxes.length === 1 ? '' : 'es'} on ${pages} page${pages === 1 ? '' : 's'} will be burned in.` : '';
+  }
+  function renderList() {
+    const ul = $('.rd-list'); ul.textContent = '';
+    for (const b of boxes.filter((x) => x.kind === 'box' && x.text)) {
+      const li = document.createElement('li'), sp = document.createElement('span'), rm = document.createElement('button');
+      sp.textContent = `Page ${b.page + 1} · ${labels.get(b.id)} · ${b.text}`; rm.type = 'button'; rm.textContent = 'Keep this'; rm.setAttribute('aria-label', `Do not hide: ${b.text}`);
+      rm.addEventListener('click', () => { boxes = boxes.filter((x) => x !== b); views[b.page].layer.querySelectorAll('.pv-item').forEach(() => {}); rebuildLayers(); renderList(); refresh(); });
+      li.append(sp, rm); ul.append(li);
+    }
+  }
+  function rebuildLayers() {
+    for (const v of views) { v.layer.querySelectorAll('.pv-item').forEach((n) => n.remove()); }
+    for (const b of boxes) mountBox(views[b.page], b);
+  }
+
+  // Draw a new box by dragging on an empty part of a page.
+  let rubber: { v: PageView; el: HTMLElement; x0: number; y0: number } | null = null;
+  root.addEventListener('pointerdown', (e) => {
+    const t = e.target as HTMLElement; if (!drawing || t.closest('.pv-item')) return;
+    const layer = t.closest<HTMLElement>('.pv-layer'); if (!layer) return;
+    const v = views.find((x) => x.layer === layer)!, r = layer.getBoundingClientRect();
+    const el = document.createElement('div'); el.className = 'rd-rubber'; layer.append(el);
+    rubber = { v, el, x0: (e.clientX - r.left) / r.width, y0: (e.clientY - r.top) / r.height };
+    layer.setPointerCapture(e.pointerId); e.preventDefault();
+  });
+  root.addEventListener('pointermove', (e) => {
+    if (!rubber) return;
+    const r = rubber.v.layer.getBoundingClientRect(), x = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+    const s = rubber.el.style; s.left = Math.min(x, rubber.x0) * 100 + '%'; s.top = Math.min(y, rubber.y0) * 100 + '%'; s.width = Math.abs(x - rubber.x0) * 100 + '%'; s.height = Math.abs(y - rubber.y0) * 100 + '%';
+  });
+  const endDraw = (e: PointerEvent) => {
+    if (!rubber) return;
+    const { v, el, x0, y0 } = rubber; rubber = null; el.remove();
+    const r = v.layer.getBoundingClientRect(), x = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+    const fx = Math.min(x, x0), fy = Math.min(y, y0), fw = Math.abs(x - x0), fh = Math.abs(y - y0);
+    if (fw * r.width < 6 || fh * r.height < 6) return;
+    addBox(v, fx, fy, fw, fh, 'Drawn box');
+  };
+  root.addEventListener('pointerup', endDraw); root.addEventListener('pointercancel', endDraw);
+  $('.rd-mode').addEventListener('click', (e) => {
+    drawing = !drawing; root.classList.toggle('draw', drawing);
+    const b = e.currentTarget as HTMLElement; b.setAttribute('aria-pressed', String(drawing)); b.textContent = drawing ? 'Drawing is on' : 'Drawing is off (you can scroll)';
+  });
+
+  /* ---------- search ---------- */
+  $('.rd-search').addEventListener('click', async () => {
+    if (!doc) return;
+    const words = $<HTMLTextAreaElement>('.rd-words').value.split(/\n/);
+    const pats = Array.from(root.querySelectorAll<HTMLInputElement>('.rd-patbox input:checked')).map((c) => c.value);
+    const out = $('.rd-found');
+    if (!words.some((w) => w.trim()) && !pats.length) { out.textContent = 'Type a word, or tick a kind of number to look for.'; return; }
+    out.textContent = 'Looking…';
+    // Forget the earlier search results; boxes the visitor drew stay.
+    boxes = boxes.filter((b) => !b.text);
+    let noText = 0, n = 0;
+    for (let i = 0; i < doc.numPages; i++) {
+      const page = await doc.getPage(i + 1), vp = page.getViewport({ scale: 1 }), tc = await page.getTextContent();
+      const segs: { start: number; end: number; it: any }[] = [];
+      let text = '', prev: any = null;
+      for (const it of tc.items as any[]) {
+        if (typeof it.str !== 'string') continue;
+        if (prev && text && !/\s$/.test(text) && !/^\s/.test(it.str)) {
+          const gap = it.transform[4] - (prev.transform[4] + prev.width), sameLine = Math.abs(it.transform[5] - prev.transform[5]) < 2;
+          if (!sameLine || gap > 1) text += ' ';
+        }
+        segs.push({ start: text.length, end: text.length + it.str.length, it }); text += it.str; if (it.str.trim()) prev = it;
+      }
+      if (!text.trim()) { noText++; continue; }
+      for (const h of findHits(text, words, pats, $<HTMLInputElement>('.rd-case').checked)) {
+        const parts: { x0: number; x1: number; y: number; hgt: number }[] = [];
+        for (const s of segs) {
+          const a = Math.max(h.start, s.start), b = Math.min(h.end, s.end); if (b <= a || !s.it.str.length) continue;
+          const len = s.it.str.length, tx = s.it.transform[4], w = s.it.width;
+          parts.push({ x0: tx + (w * (a - s.start)) / len, x1: tx + (w * (b - s.start)) / len, y: s.it.transform[5], hgt: s.it.height || Math.abs(s.it.transform[3]) });
+        }
+        // One box per line of the match.
+        const lines: typeof parts[] = [];
+        for (const p of parts) { const l = lines.find((q) => Math.abs(q[0].y - p.y) < 2); if (l) l.push(p); else lines.push([p]); }
+        for (const l of lines) {
+          const x0 = Math.min(...l.map((p) => p.x0)) - 2, x1 = Math.max(...l.map((p) => p.x1)) + 2, y = l[0].y, hg = Math.max(...l.map((p) => p.hgt));
+          const [ax, ay] = vp.convertToViewportPoint(x0, y - 0.28 * hg - 1.5), [bx, by] = vp.convertToViewportPoint(x1, y + 0.98 * hg + 1);
+          const fx = Math.max(0, Math.min(ax, bx) / vp.width), fy = Math.max(0, Math.min(ay, by) / vp.height);
+          const fw = Math.min(1 - fx, Math.abs(bx - ax) / vp.width), fh = Math.min(1 - fy, Math.abs(by - ay) / vp.height);
+          const it: Item = { id: nextId++, page: i, kind: 'box', fx, fy, fw, fh, text: text.slice(h.start, h.end).replace(/\s+/g, ' ') };
+          labels.set(it.id, h.label); boxes.push(it); n++;
+        }
+      }
+    }
+    rebuildLayers(); renderList(); refresh();
+    out.textContent = (n ? `Found ${n} place${n === 1 ? '' : 's'} to hide. They are covered on the pages and listed below; check them.` : 'Nothing found.') +
+      (noText ? ` ${noText} page${noText === 1 ? ' has' : 's have'} no selectable text (for example a scan), so search cannot see inside ${noText === 1 ? 'it' : 'them'}; draw boxes there.` : '');
+  });
+
+  /* ---------- open ---------- */
+  async function open(f: File) {
+    err();
+    try {
+      const b = await readFile(f);
+      doc = await openPdfJs(b);
+      bytes = b; fileName = f.name; boxes = []; labels.clear(); $('.rd-list').textContent = ''; $('.rd-found').textContent = ''; $('.rd-report').hidden = true; refresh();
+      root.dataset.state = 'ready'; root.classList.toggle('draw', drawing); $('.rd-work').hidden = false;
+      root.scrollIntoView({ block: 'start' }); views = await showPages(doc, $('.rd-pages'));
+    } catch (e: any) {
+      root.dataset.state = 'empty'; $('.rd-work').hidden = true;
+      err(/password|encrypt/i.test(String(e?.message || e?.name)) ? 'This PDF is locked with a password. Unlock it first, then come back.' : 'That file could not be opened as a PDF.');
+    }
+  }
+  $<HTMLInputElement>('.rd-file').addEventListener('change', (e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) open(f); });
+  const drop = $('.rd-drop');
+  ['dragenter', 'dragover'].forEach((n) => drop.addEventListener(n, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach((n) => drop.addEventListener(n, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', (e) => { const f = (e as DragEvent).dataTransfer?.files?.[0]; if (f) open(f); });
+  $('.rd-other').addEventListener('click', () => { root.scrollIntoView({ block: 'start' }); root.dataset.state = 'empty'; $('.rd-work').hidden = true; $<HTMLInputElement>('.rd-file').value = ''; bytes = null; doc = null; $('.rd-pages').textContent = ''; boxes = []; });
+
+  /* ---------- save: re-draw redacted pages as pictures ---------- */
+  const MAX_PIXELS = 16_000_000;
+  $('.rd-save').addEventListener('click', async () => {
+    if (!bytes || !doc) return;
+    const rep = $('.rd-report'); err();
+    if (!boxes.length) { rep.hidden = false; rep.textContent = 'Nothing to redact yet. Search for text, or draw a box on a page.'; return; }
+    const btn = $<HTMLButtonElement>('.rd-save'); btn.disabled = true;
+    try {
+      const { PDFDocument } = await import('pdf-lib');
+      const { loadForEdit } = await import('../../lib/docs/stamp');
+      const src = await loadForEdit(bytes);
+      const out = await PDFDocument.create();
+      const dpi = +$<HTMLSelectElement>('.rd-dpi').value;
+      const redacted: number[] = [];
+      for (let i = 0; i < doc.numPages; i++) {
+        const mine = boxes.filter((b) => b.page === i);
+        rep.hidden = false; rep.textContent = `Working on page ${i + 1} of ${doc.numPages}…`;
+        if (!mine.length) { const [p] = await out.copyPages(src, [i]); out.addPage(p); continue; }
+        const page = await doc.getPage(i + 1), v1 = page.getViewport({ scale: 1 });
+        let scale = dpi / 72;
+        if (v1.width * scale * v1.height * scale > MAX_PIXELS) scale = Math.sqrt(MAX_PIXELS / (v1.width * v1.height));
+        const vp = page.getViewport({ scale }), c = document.createElement('canvas');
+        c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+        const g = c.getContext('2d')!;
+        g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+        await page.render({ canvasContext: g, viewport: vp }).promise;
+        g.fillStyle = '#000';
+        for (const b of mine) g.fillRect(Math.floor(b.fx * c.width), Math.floor(b.fy * c.height), Math.ceil(b.fw * c.width) + 1, Math.ceil(b.fh * c.height) + 1);
+        const blob: Blob = await new Promise((res, rej) => c.toBlob((x) => (x ? res(x) : rej(new Error('Your browser could not make the page picture'))), 'image/jpeg', 0.92));
+        const img = await out.embedJpg(new Uint8Array(await blob.arrayBuffer()));
+        const np = out.addPage([v1.width, v1.height]); np.drawImage(img, { x: 0, y: 0, width: v1.width, height: v1.height });
+        c.width = c.height = 0; redacted.push(i);
+      }
+      out.setProducer('fibub.com'); out.setCreator('fibub.com'); out.setTitle('');
+      const res = await out.save();
+      // Check our own work: the redacted pages must have no text left, and none of the hidden words may appear there.
+      const chk = await openPdfJs(res); let leftover = 0;
+      const hidden = boxes.map((b) => (b.text || '').trim()).filter((t) => t.length > 2);
+      for (const i of redacted) {
+        const tc = await (await chk.getPage(i + 1)).getTextContent();
+        const t = (tc.items as any[]).map((x) => x.str).join(' ');
+        leftover += t.trim().length; for (const h of hidden) if (t.includes(h)) leftover++;
+      }
+      downloadBytes(res, outName(fileName, '-redacted'));
+      const byPage = new Map<number, number>(); boxes.forEach((b) => byPage.set(b.page, (byPage.get(b.page) || 0) + 1));
+      rep.textContent = '';
+      const h = document.createElement('b'); h.textContent = leftover === 0 ? `Done. Checked: the ${redacted.length} redacted page${redacted.length === 1 ? '' : 's'} now contain no text at all.` : `Saved, but ${leftover} piece(s) of text were still found on redacted pages. Do not share this file.`;
+      const ul = document.createElement('ul');
+      for (const [p, n] of [...byPage].sort((a, b) => a[0] - b[0])) {
+        const li = document.createElement('li'); const what = boxes.filter((b) => b.page === p && b.text).map((b) => labels.get(b.id)).filter((x, i, a) => a.indexOf(x) === i);
+        li.textContent = `Page ${p + 1}: ${n} box${n === 1 ? '' : 'es'} burned in${what.length ? ' (' + what.join(', ') + ')' : ''}`; ul.append(li);
+      }
+      const tail = document.createElement('span'); tail.textContent = 'Those pages are now pictures. Open the file and look at them before you send it.';
+      rep.append(h, ul, tail);
+    } catch (e: any) {
+      rep.hidden = true;
+      err(e?.message === 'encrypted' ? 'This PDF is locked with a password. Unlock it first.' : 'Could not redact this PDF: ' + (e?.message || e));
+    } finally { btn.disabled = false; }
+  });
+</script>

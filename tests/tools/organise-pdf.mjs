@@ -1,0 +1,33 @@
+// #1701 Organise PDF
+import { makePdf, pages, saved } from '../lib/pdfkit.mjs';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const { unzipSync } = require('fflate'), { PDFDocument } = require('pdf-lib');
+export const path = '/documents/organise-pdf/';
+export default async ({ page, check, BASE }) => {
+  await page.goto(`${BASE}${path}`); await page.waitForTimeout(300);
+  const a = await makePdf(3, 'A'), b = await makePdf(2, 'B');
+  await page.setInputFiles('.og-file', [{ name: 'a.pdf', mimeType: 'application/pdf', buffer: a }, { name: 'b.pdf', mimeType: 'application/pdf', buffer: b }]);
+  await page.waitForSelector('.og-card', { timeout: 10000 });
+  check((await page.$$('.og-card')).length === 5, 'organise-pdf: two files give 5 page cards');
+  const m = await saved(page, () => page.click('.og-merge'));
+  check(await pages(m.buf) === 5, 'organise-pdf: merge page count is the sum (5)');
+  await page.click('.og-card:nth-child(2) [data-a=del]');
+  const d = await saved(page, () => page.click('.og-merge'));
+  check(await pages(d.buf) === 4, 'organise-pdf: deleting a page gives 4');
+  await page.click('.og-card:nth-child(1) [data-a=rot]');
+  const r = await saved(page, () => page.click('.og-merge'));
+  check((await PDFDocument.load(r.buf)).getPage(0).getRotation().angle === 90, 'organise-pdf: rotate turns the page 90');
+  await page.click('.og-card:nth-child(1) .og-th'); await page.click('.og-card:nth-child(3) .og-th');
+  const e = await saved(page, () => page.click('.og-extract'));
+  check(await pages(e.buf) === 2, 'organise-pdf: extract two selected pages');
+  await page.fill('.og-ranges', '1-1,2-2');
+  const z = await saved(page, () => page.click('.og-split-r'));
+  const files = Object.keys(unzipSync(new Uint8Array(z.buf)));
+  check(files.length === 2, `organise-pdf: ranges 1-1,2-2 give a ZIP of 2 (${files.length})`);
+  await page.fill('.og-n', '3');
+  const z2 = await saved(page, () => page.click('.og-split-n'));
+  check(Object.keys(unzipSync(new Uint8Array(z2.buf))).length === 2, 'organise-pdf: 4 pages split every 3 gives 2 parts');
+  await page.fill('.og-ranges', '9'); await page.click('.og-split-r');
+  check((await page.textContent('.og-msg')).includes('outside'), 'organise-pdf: bad range explained');
+};

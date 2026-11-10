@@ -1,0 +1,64 @@
+---
+// #1715 Pre-send check
+---
+<div class="tool-ui sc">
+  <label class="sc-drop">Add a PDF, Word, Excel or PowerPoint file <input class="sc-file" type="file" accept=".pdf,.docx,.xlsx,.pptx,.jpg,.jpeg,.png" /></label>
+  <label class="sc-lim">Size limit (leave empty for none)
+    <span class="sc-limrow"><input class="sc-limit" type="number" min="0" step="any" inputmode="decimal" placeholder="e.g. 10" /><select class="sc-unit" aria-label="Unit"><option value="1048576">MB</option><option value="1024">KB</option></select></span>
+  </label>
+  <p class="sc-msg" role="status" aria-live="polite"></p>
+  <div class="sc-sum" hidden></div>
+  <ul class="sc-list"></ul>
+  <p class="sc-more" hidden>The file is over your limit. Shrink it with <a href="/documents/compress-file/">Compress file</a>.</p>
+</div>
+
+<style is:inline>
+  .sc { display: grid; gap: .75rem; }
+  .sc-drop { display: grid; gap: .4rem; padding: 1rem; border: 2px dashed var(--line); border-radius: var(--radius); font-weight: 600; }
+  .sc-lim { display: grid; gap: .3rem; font-weight: 600; }
+  .sc-limrow { display: flex; gap: .4rem; } .sc-limrow input { width: 8em; }
+  .sc-msg { margin: 0; min-height: 1.3em; } .sc-msg.err { color: var(--warn); }
+  .sc-sum { font-weight: 700; } .sc-sum[hidden], .sc-more[hidden] { display: none; }
+  .sc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+  .sc-item { border: 1px solid var(--line); border-left-width: 8px; border-radius: 8px; padding: .5rem .75rem; background: var(--surface); }
+  .sc-item.green { border-left-color: #1a7f37; } .sc-item.amber { border-left-color: #b26a00; } .sc-item.red { border-left-color: #c62828; }
+  .sc-item b { display: block; } .sc-item span { font-size: 14px; overflow-wrap: anywhere; }
+  .sc-tag { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+</style>
+
+<script>
+  import { detectKind, sendFindings, KIND_NAMES, type Finding } from '../../lib/docs/officecheck';
+  const root = document.querySelector('.sc') as HTMLElement;
+  const $ = <T extends Element>(s: string) => root.querySelector(s) as T;
+  const msg = $<HTMLElement>('.sc-msg'), list = $<HTMLElement>('.sc-list'), sum = $<HTMLElement>('.sc-sum'), more = $<HTMLElement>('.sc-more');
+  let current: { name: string; bytes: Uint8Array; kind: NonNullable<ReturnType<typeof detectKind>> } | null = null;
+  const say = (t: string, err = false) => { msg.textContent = t; msg.classList.toggle('err', err); };
+  const TAG = { red: 'Fix', amber: 'Check', green: 'OK' };
+
+  async function run() {
+    if (!current) return;
+    const v = parseFloat($<HTMLInputElement>('.sc-limit').value), limit = v > 0 ? v * Number($<HTMLSelectElement>('.sc-unit').value) : null;
+    try {
+      const f: Finding[] = await sendFindings(current.kind, current.bytes, limit);
+      const order = { red: 0, amber: 1, green: 2 }; f.sort((a, b) => order[a.level] - order[b.level]);
+      list.textContent = '';
+      for (const x of f) {
+        const li = document.createElement('li'); li.className = `sc-item ${x.level}`;
+        const t = document.createElement('b'), tag = document.createElement('span'), d = document.createElement('span');
+        tag.className = 'sc-tag'; tag.textContent = TAG[x.level] + ' · '; t.append(tag, x.title); d.textContent = x.detail;
+        li.append(t, d); list.appendChild(li);
+      }
+      const n = (l: string) => f.filter((x) => x.level === l).length;
+      sum.hidden = false; sum.textContent = `${n('red')} to fix, ${n('amber')} to check, ${n('green')} fine`;
+      more.hidden = !f.some((x) => x.level === 'red' && x.title === 'File size');
+      say(`${current.name} (${KIND_NAMES[current.kind]}) checked. Nothing left your device.`);
+    } catch { say('This file could not be checked. It may be damaged or locked with a password.', true); }
+  }
+  $<HTMLInputElement>('.sc-file').addEventListener('change', async (e) => {
+    const input = e.target as HTMLInputElement, f = input.files?.[0]; input.value = ''; if (!f) return;
+    const bytes = new Uint8Array(await f.arrayBuffer()), kind = detectKind(bytes);
+    if (!kind) { say('That is not a type this tool can check. Use PDF, Word, Excel, PowerPoint, JPG or PNG.', true); return; }
+    current = { name: f.name, bytes, kind }; await run();
+  });
+  $('.sc-limit').addEventListener('input', run); $('.sc-unit').addEventListener('change', run);
+</script>

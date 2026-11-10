@@ -1,0 +1,156 @@
+---
+// #1729 Gratuity: India (Payment of Gratuity Act), UAE private sector, Saudi Arabia end-of-service award.
+---
+<div class="tool-ui gc">
+  <section class="panel">
+    <div class="gc-tabs" role="tablist" aria-label="Country">
+      <button type="button" role="tab" data-c="in" aria-selected="true">India</button>
+      <button type="button" role="tab" data-c="ae" aria-selected="false">UAE</button>
+      <button type="button" role="tab" data-c="sa" aria-selected="false">Saudi Arabia</button>
+    </div>
+
+    <div class="gc-grid" data-for="in">
+      <label>Last monthly basic pay + DA (₹) <input class="gc-in-sal" inputmode="decimal" value="50,000" /></label>
+      <label>Years of service <input class="gc-in-y" type="number" min="0" step="1" value="10" /></label>
+      <label>Extra months <input class="gc-in-m" type="number" min="0" max="11" step="1" value="0" /></label>
+      <label>Gratuity actually paid (₹, optional) <input class="gc-in-rec" inputmode="decimal" placeholder="leave empty" /></label>
+      <label class="gc-chk"><input type="checkbox" class="gc-in-cov" checked /> Employer is covered by the Gratuity Act (10+ staff)</label>
+      <label class="gc-chk"><input type="checkbox" class="gc-in-ft" /> I am a fixed-term employee</label>
+    </div>
+
+    <div class="gc-grid" data-for="ae" hidden>
+      <label>Last monthly basic salary (AED) <input class="gc-ae-b" inputmode="decimal" value="10,000" /></label>
+      <label>Years of service <input class="gc-ae-y" type="number" min="0" step="1" value="7" /></label>
+      <label>Extra months <input class="gc-ae-m" type="number" min="0" max="11" step="1" value="0" /></label>
+      <label>Extra days <input class="gc-ae-d" type="number" min="0" max="364" step="1" value="0" /></label>
+    </div>
+
+    <div class="gc-grid" data-for="sa" hidden>
+      <label>Last monthly wage (SAR) <input class="gc-sa-w" inputmode="decimal" value="8,000" /></label>
+      <label>Years of service <input class="gc-sa-y" type="number" min="0" step="1" value="7" /></label>
+      <label>Extra months <input class="gc-sa-m" type="number" min="0" max="11" step="1" value="0" /></label>
+      <label class="gc-chk"><input type="checkbox" class="gc-sa-r" /> I resigned (not ended by the employer)</label>
+    </div>
+    <p class="gc-hint"></p>
+  </section>
+
+  <section class="gc-res" aria-live="polite">
+    <div class="gc-stats">
+      <div class="good"><span class="gc-l1">Gratuity</span><b class="gc-out"></b></div>
+      <div><span class="gc-l2"></span><b class="gc-o2"></b></div>
+      <div><span class="gc-l3"></span><b class="gc-o3"></b></div>
+    </div>
+    <p class="note warn gc-warn" hidden></p>
+    <div class="panel gc-tw"><table><tbody class="gc-body"></tbody></table></div>
+  </section>
+  <p class="gc-fine"></p>
+</div>
+
+<style is:inline>
+  .gc { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .gc .panel { padding: 16px; }
+  .gc-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .gc-tabs button { font: inherit; padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--ink); cursor: pointer; }
+  .gc-tabs button[aria-selected=true] { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+  .gc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 12px; }
+  .gc-grid[hidden] { display: none; }
+  .gc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .gc .gc-chk { display: flex; align-items: center; gap: 8px; color: var(--ink); }
+  .gc input:not([type=checkbox]) { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .gc-hint, .gc-fine { color: var(--muted); font-size: 14px; margin: 10px 0 0; }
+  .gc-res { display: grid; gap: 12px; min-width: 0; }
+  .gc-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .gc-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); min-width: 0; }
+  .gc-stats span { font-size: 13px; color: var(--muted); }
+  .gc-stats b { font-size: 20px; overflow-wrap: anywhere; }
+  .gc-stats .good b { color: var(--good); }
+  .gc-tw { overflow-x: auto; }
+  .gc table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .gc td { padding: 7px 6px; border-bottom: 1px solid var(--line); text-align: right; }
+  .gc td:first-child { text-align: left; color: var(--muted); }
+  .gc tr.tot td { font-weight: 700; color: var(--ink); }
+  @media (max-width: 640px) { .gc-stats { grid-template-columns: 1fr; } }
+</style>
+
+<script>
+  import { indiaGratuity, uaeGratuity, saudiGratuity, INDIA_TAX_FREE } from '../../lib/money/gratuity-calculator.ts';
+  const root = document.querySelector('.gc') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const num = (s: string) => { const n = parseFloat(q<HTMLInputElement>(s).value.replace(/[^0-9.\-]/g, '')); return isFinite(n) ? n : 0; };
+  const on = (s: string) => q<HTMLInputElement>(s).checked;
+  const money = (cur: string, loc: string) => (n: number) => `${cur} ${Math.round(n).toLocaleString(loc)}`;
+  const inr = (n: number) => '₹' + Math.round(n).toLocaleString('en-IN');
+  const aed = money('AED', 'en-US'), sar = money('SAR', 'en-US');
+  const yrs = (n: number) => `${(Math.round(n * 100) / 100).toLocaleString('en-US')} years`;
+  let c = 'in';
+
+  const FINE: Record<string, string> = {
+    in: 'Payment of Gratuity Act, 1972 and Income Tax Department rules, checked 10 Nov 2026. Central and state government employees: gratuity is fully tax-free. Under 5 years (1 year for fixed-term staff) gratuity is paid only on death or disablement. Not financial or tax advice: check the official source (labour.gov.in, incometax.gov.in) or your employer.',
+    ae: 'UAE private sector, Federal Decree-Law 33 of 2021, Art. 51, checked 10 Nov 2026. Basic salary only (no housing or transport allowance); unpaid leave days do not count. Daily wage taken as basic ÷ 30; some employers use basic × 12 ÷ 365, which gives a little less. UAE nationals are covered by pension law instead; free-zone (DIFC, ADGM) and government rules differ. Not legal advice: check the official source (u.ae, mohre.gov.ae).',
+    sa: 'Saudi Labor Law, Art. 84 and 85, checked 10 Nov 2026. The award uses your last wage, which the law defines as basic pay plus regular allowances (such as housing): estimate, check the official source (hrsd.gov.sa). Not legal advice.',
+  };
+  const HINT: Record<string, string> = {
+    in: 'Use your last basic pay plus dearness allowance (DA) for one month. Bonus, HRA and other allowances do not count.',
+    ae: 'Private-sector, full-time foreign workers. Use your last monthly basic salary.',
+    sa: 'Use your last monthly wage, including regular allowances.',
+  };
+
+  const update = () => {
+    const warn = q('.gc-warn');
+    warn.hidden = true;
+    let rows: [string, string, boolean?][] = [];
+    if (c === 'in') {
+      const r = indiaGratuity({ salary: num('.gc-in-sal'), years: num('.gc-in-y'), months: num('.gc-in-m'), covered: on('.gc-in-cov'), fixedTerm: on('.gc-in-ft'), received: num('.gc-in-rec') });
+      q('.gc-out').textContent = inr(r.payable);
+      q('.gc-l2').textContent = 'Tax-free'; q('.gc-o2').textContent = inr(r.exempt);
+      q('.gc-l3').textContent = 'Taxable'; q('.gc-o3').textContent = inr(r.taxable);
+      if (!r.eligible) { warn.hidden = false; warn.textContent = `Gratuity needs ${r.minYears} year${r.minYears > 1 ? 's' : ''} of continuous service, unless the job ends through death or disablement.`; }
+      rows = [
+        ['Years counted', `${r.countYears}${on('.gc-in-cov') && num('.gc-in-m') > 6 ? ' (over 6 months rounds up)' : ''}`],
+        ['Formula', on('.gc-in-cov') ? '15 ÷ 26 × monthly pay × years' : '½ × average monthly pay × years'],
+        ['Worked-out gratuity', inr(r.amount)],
+        ['Most the Act pays / tax-free limit', inr(INDIA_TAX_FREE)],
+        ['Gratuity due', inr(r.payable), true],
+        ['Tax-free (least of formula, ₹20 lakh, amount paid)', inr(r.exempt)],
+        ['Taxable as salary', inr(r.taxable), true],
+      ];
+    } else if (c === 'ae') {
+      const r = uaeGratuity({ basic: num('.gc-ae-b'), years: num('.gc-ae-y'), months: num('.gc-ae-m'), days: num('.gc-ae-d') });
+      q('.gc-out').textContent = aed(r.amount);
+      q('.gc-l2').textContent = 'Daily basic wage'; q('.gc-o2').textContent = aed(r.daily);
+      q('.gc-l3').textContent = 'Service'; q('.gc-o3').textContent = yrs(r.service);
+      if (!r.eligible) { warn.hidden = false; warn.textContent = 'No gratuity under 1 year of continuous service.'; }
+      if (r.capped) { warn.hidden = false; warn.textContent = 'Capped at 2 years\' basic salary.'; }
+      rows = [
+        ['First 5 years: 21 days a year', aed(r.first)],
+        ['After 5 years: 30 days a year', aed(r.after)],
+        ['Cap: 2 years\' basic', aed(24 * num('.gc-ae-b'))],
+        ['End-of-service gratuity', aed(r.amount), true],
+      ];
+    } else {
+      const r = saudiGratuity({ wage: num('.gc-sa-w'), years: num('.gc-sa-y'), months: num('.gc-sa-m'), resigned: on('.gc-sa-r') });
+      q('.gc-out').textContent = sar(r.amount);
+      q('.gc-l2').textContent = 'Full award'; q('.gc-o2').textContent = sar(r.full);
+      q('.gc-l3').textContent = 'Share paid'; q('.gc-o3').textContent = r.share === 1 ? 'All' : r.share === 0 ? 'None' : r.share < 0.5 ? 'One third' : 'Two thirds';
+      if (on('.gc-sa-r') && r.share === 0) { warn.hidden = false; warn.textContent = 'On resignation, nothing is due under 2 years of service.'; }
+      rows = [
+        ['First 5 years: half a month a year', sar(0.5 * num('.gc-sa-w') * Math.min(r.service, 5))],
+        ['After 5 years: a month a year', sar(num('.gc-sa-w') * Math.max(r.service - 5, 0))],
+        ['Full award', sar(r.full)],
+        ['End-of-service award', sar(r.amount), true],
+      ];
+    }
+    q('.gc-body').innerHTML = rows.map(([l, v, t]) => `<tr${t ? ' class="tot"' : ''}><td>${l}</td><td>${v}</td></tr>`).join('');
+    q('.gc-hint').textContent = HINT[c];
+    q('.gc-fine').textContent = FINE[c];
+  };
+  root.querySelectorAll<HTMLButtonElement>('.gc-tabs button').forEach((b) => b.addEventListener('click', () => {
+    c = b.dataset.c!;
+    root.querySelectorAll('.gc-tabs button').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
+    root.querySelectorAll<HTMLElement>('.gc-grid').forEach((g) => { g.hidden = g.dataset.for !== c; });
+    update();
+  }));
+  root.addEventListener('input', update);
+  root.addEventListener('change', update);
+  update();
+</script>

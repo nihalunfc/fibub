@@ -1,0 +1,82 @@
+---
+// #1719 Unit price
+---
+<div class="tool-ui up">
+  <section class="panel">
+    <div class="up-rows"></div>
+    <button type="button" class="btn secondary up-add">+ Add a product</button>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="up-big"></p>
+    <div class="up-wrap"><table>
+      <thead><tr><th>Product</th><th>Price</th><th>Compared</th></tr></thead>
+      <tbody class="up-body"></tbody>
+    </table></div>
+    <p class="up-warn" role="alert"></p>
+  </section>
+  <p class="up-fine">Prices are compared per 100 g for weight, per litre for liquids, per item for counts and per 100 sheets for sheets. Weight, liquid and count cannot be compared with each other. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .up { display: grid; gap: 14px; margin-bottom: 32px; }
+  .up .panel { padding: 16px; }
+  .up-rows { display: grid; gap: 10px; margin-bottom: 10px; }
+  .up-row { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; align-items: end; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
+  .up-row > label:first-child { grid-column: 1 / 4; } .up-row .up-p { grid-column: 4 / 7; }
+  .up-row .up-q { grid-column: 1 / 3; } .up-row .up-u { grid-column: 3 / 5; } .up-row .up-k { grid-column: 5 / 6; }
+  .up-row .up-x { grid-column: 6 / 7; }
+  .up label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+  .up input:not([type]), .up select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); width: 100%; min-width: 0; }
+  .up input:focus, .up select:focus { border-color: var(--accent); outline: none; }
+  .up-x { height: 40px; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; font-size: 18px; color: var(--muted); cursor: pointer; }
+  @media (max-width: 480px) { .up-row .up-q { grid-column: 1 / 4; } .up-row .up-u { grid-column: 4 / 7; } .up-row .up-k { grid-column: 1 / 5; } .up-row .up-x { grid-column: 5 / 7; } }
+  .up-big { font-size: 20px; font-weight: 700; margin: 0 0 10px; }
+  .up-wrap { overflow-x: auto; }
+  .up table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .up th, .up td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); }
+  .up th:first-child, .up td:first-child { text-align: left; }
+  .up th { font-size: 12px; color: var(--muted); }
+  .up tr.best td { color: var(--good); font-weight: 700; }
+  .up-warn, .up-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+  .up-warn:empty { display: none; }
+</style>
+
+<script>
+  import { unitPrice, perLabel, UNITS, type Kind } from '../../lib/money/shopping';
+  const root = document.querySelector('.up') as HTMLElement;
+  const rows = root.querySelector('.up-rows') as HTMLElement, body = root.querySelector('.up-body') as HTMLElement;
+  const big = root.querySelector('.up-big') as HTMLElement, warn = root.querySelector('.up-warn') as HTMLElement;
+  const add = root.querySelector('.up-add') as HTMLButtonElement;
+  const f = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: v < 1 ? 3 : 2 }).replace(/(\.\d\d)0$/, '$1');
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  const addRow = (name: string, price: string, qty: string, unit: string) => {
+    const d = document.createElement('div'); d.className = 'up-row';
+    d.innerHTML = `<label>Name<input class="up-nm" value="${esc(name)}" /></label><label class="up-p">Price<input class="up-pr" inputmode="decimal" value="${price}" /></label>
+      <label class="up-q">Quantity<input class="up-qt" inputmode="decimal" value="${qty}" /></label><label class="up-u">Unit<select class="up-un">${Object.keys(UNITS).map((u) => `<option${u === unit ? ' selected' : ''}>${u}</option>`).join('')}</select></label>
+      <label class="up-k">Packs<input class="up-pk" inputmode="numeric" value="1" /></label><button type="button" class="up-x" aria-label="Remove this product">×</button>`;
+    d.querySelector('.up-x')!.addEventListener('click', () => { if (rows.children.length > 2) { d.remove(); calc(); } });
+    rows.append(d); calc();
+  };
+  const calc = () => {
+    add.disabled = rows.children.length >= 6;
+    const items = [...rows.children].map((r, i) => {
+      const g = (c: string) => (r.querySelector(c) as HTMLInputElement).value;
+      const nm = g('.up-nm').trim() || `Product ${i + 1}`;
+      const u = g('.up-pr').trim() === '' || g('.up-qt').trim() === '' ? null : unitPrice(+g('.up-pr'), +g('.up-qt'), g('.up-un'), +g('.up-pk') || 1);
+      return { nm, price: +g('.up-pr'), u };
+    });
+    const kinds = new Set(items.filter((x) => x.u).map((x) => x.u!.kind));
+    const best = new Map<Kind, number>();
+    for (const x of items) if (x.u) best.set(x.u.kind, Math.min(best.get(x.u.kind) ?? Infinity, x.u.per));
+    body.innerHTML = items.map((x) => x.u ? `<tr class="${x.u.per === best.get(x.u.kind) && items.filter((y) => y.u?.kind === x.u!.kind).length > 1 ? 'best' : ''}"><td>${esc(x.nm)}</td><td>${f(x.price)}</td><td>${f(x.u.per)} ${perLabel[x.u.kind]}</td></tr>` : `<tr><td>${esc(x.nm)}</td><td colspan="2">Type price and quantity</td></tr>`).join('');
+    const ranked = items.filter((x) => x.u && kinds.size === 1).sort((a, b) => a.u!.per - b.u!.per);
+    if (kinds.size > 1) { big.textContent = ''; warn.textContent = 'These products use different kinds of units (weight, liquid, count), so they cannot be compared. Make them the same kind.'; return; }
+    warn.textContent = '';
+    if (ranked.length < 2) { big.textContent = 'Fill in at least two products to compare.'; return; }
+    const a = ranked[0], b = ranked[ranked.length - 1];
+    big.textContent = a.u!.per === b.u!.per ? 'They cost the same per unit.' : `${a.nm} is cheapest: ${f(a.u!.per)} ${perLabel[a.u!.kind]}, ${f((1 - a.u!.per / b.u!.per) * 100)}% less than ${b.nm}.`;
+  };
+  add.addEventListener('click', () => addRow('', '', '', 'g'));
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  addRow('Pack A', '4.00', '500', 'g'); addRow('Pack B', '7.00', '1', 'kg');
+</script>

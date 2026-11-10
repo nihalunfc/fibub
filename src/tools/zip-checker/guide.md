@@ -2,6 +2,7 @@
 name: ZIP checker
 num: 3
 shelf: documents
+section: convert-files
 code: T3
 title: "ZIP checker: is my ZIP file compressed as much as it can be?"
 summary: See what is inside a ZIP, how well each file is packed, and whether it can get smaller. Nothing is uploaded.

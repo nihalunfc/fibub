@@ -22,6 +22,7 @@ export async function allTools() {
     if (n) nums.set(n, t.id);
     if (t.data.status === 'live' && !toolComponent(t.id)) throw new Error(`Tool "${t.id}" is live but has no Tool.astro`);
     if (t.data.status === 'live' && !t.data.flow) throw new Error(`Tool "${t.id}" is live but has no flow (the picture of its steps) in guide.md`);
+    if (process.env.FIBUB_ONLY) t.data.related = t.data.related.filter((r) => ids.has(r));
     for (const r of t.data.related) if (!ids.has(r)) throw new Error(`Tool "${t.id}" lists unknown related tool "${r}"`);
     if (t.data.section && !SECTIONS[t.data.shelf]?.some((s) => s.id === t.data.section)) throw new Error(`Tool "${t.id}" has unknown section "${t.data.section}" for shelf "${t.data.shelf}"`);
     if (SUBJECTS[t.data.shelf]?.some((s) => s.id === t.id)) throw new Error(`Tool id "${t.id}" is also a subject id: both would live at /${t.data.shelf}/${t.id}/`);

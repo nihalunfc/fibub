@@ -1,0 +1,115 @@
+---
+// #1713 Compare documents
+---
+<div class="tool-ui cd">
+  <div class="cd-in">
+    <div class="cd-box">
+      <h3>Original</h3>
+      <label>PDF, Word (.docx) or text file <input class="cd-f cd-fa" type="file" accept=".pdf,.docx,.txt,.md,.csv,text/plain" /></label>
+      <label>or paste text <textarea class="cd-t cd-ta" rows="7" placeholder="Paste the older version here"></textarea></label>
+    </div>
+    <div class="cd-box">
+      <h3>New version</h3>
+      <label>PDF, Word (.docx) or text file <input class="cd-f cd-fb" type="file" accept=".pdf,.docx,.txt,.md,.csv,text/plain" /></label>
+      <label>or paste text <textarea class="cd-t cd-tb" rows="7" placeholder="Paste the newer version here"></textarea></label>
+    </div>
+  </div>
+  <div class="cd-opts">
+    <label><input class="cd-case" type="checkbox" /> Ignore capital letters</label>
+    <label>Show as <select class="cd-view"><option value="inline">One column (inline)</option><option value="side">Side by side</option></select></label>
+    <button class="btn cd-go" type="button">Compare</button>
+  </div>
+  <p class="cd-msg" role="status" aria-live="polite"></p>
+  <div class="cd-result" hidden>
+    <p class="cd-sum"><strong class="cd-count"></strong> <span class="cd-detail"></span></p>
+    <div class="cd-doc"></div>
+    <div class="cd-row">
+      <button class="btn secondary cd-pdf" type="button">Download redline PDF</button>
+      <button class="btn secondary cd-print" type="button">Print</button>
+    </div>
+  </div>
+</div>
+
+<style is:inline>
+  .cd { display: grid; gap: .75rem; }
+  .cd-in { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .cd-box { display: grid; gap: .5rem; align-content: start; } .cd-box h3 { margin: 0; } .cd-box label { display: grid; gap: .25rem; font-weight: 600; }
+  .cd-t { width: 100%; box-sizing: border-box; font: inherit; }
+  .cd-opts, .cd-row { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; }
+  .cd-msg { margin: 0; min-height: 1.3em; } .cd-msg.err { color: var(--warn); }
+  .cd-result[hidden] { display: none; }
+  .cd-result { display: grid; gap: .6rem; }
+  .cd-sum { margin: 0; }
+  .cd-doc { display: grid; gap: .75rem; }
+  .cd-doc.side { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .cd-pane { border: 1px solid var(--line); border-radius: 8px; padding: .75rem; background: var(--surface); line-height: 1.6; overflow-wrap: anywhere; }
+  .cd-pane h4 { margin: 0 0 .4rem; font-size: .9rem; }
+  .cd-pane ins { color: #0b6b2e; text-decoration: underline; background: rgba(26, 127, 55, .12); }
+  .cd-pane del { color: #b3261e; text-decoration: line-through; background: rgba(198, 40, 40, .1); }
+  html[data-theme=dark] .cd-pane ins { color: #6fdc8c; } html[data-theme=dark] .cd-pane del { color: #ff8a80; }
+  @media print {
+    html.cd-printing body * { visibility: hidden; }
+    html.cd-printing .cd-doc, html.cd-printing .cd-doc * { visibility: visible; }
+    html.cd-printing .cd-doc { position: absolute; left: 0; top: 0; width: 100%; color: #000; }
+    html.cd-printing .cd-pane { border: 0; background: #fff; }
+  }
+</style>
+
+<script>
+  import { diffWords, type Diff } from '../../lib/docs/textdiff';
+  import { fileText, redlinePdf } from '../../lib/docs/doctext';
+  import { download } from '../../lib/docs/pdfpages';
+  const root = document.querySelector('.cd') as HTMLElement;
+  const $ = <T extends Element>(s: string) => root.querySelector(s) as T;
+  const msg = $<HTMLElement>('.cd-msg'), docEl = $<HTMLElement>('.cd-doc'), result = $<HTMLElement>('.cd-result');
+  const ta = $<HTMLTextAreaElement>('.cd-ta'), tb = $<HTMLTextAreaElement>('.cd-tb');
+  const names = { a: 'pasted text', b: 'pasted text' };
+  let last: Diff | null = null;
+  const say = (t: string, err = false) => { msg.textContent = t; msg.classList.toggle('err', err); };
+
+  for (const [sel, area, key] of [['.cd-fa', ta, 'a'], ['.cd-fb', tb, 'b']] as const) {
+    $<HTMLInputElement>(sel).addEventListener('change', async (e) => {
+      const input = e.target as HTMLInputElement, f = input.files?.[0]; input.value = ''; if (!f) return;
+      try { say(`Reading ${f.name}...`); area.value = await fileText(f); names[key] = f.name; say(`${f.name} loaded. You can edit the text before comparing.`); }
+      catch (err: any) { say(`${f.name} could not be read. ${err.message || 'It may be damaged or locked with a password.'}`, true); }
+    });
+  }
+  ta.addEventListener('input', () => (names.a = 'pasted text')); tb.addEventListener('input', () => (names.b = 'pasted text'));
+
+  function pane(d: Diff, show: ('eq' | 'ins' | 'del')[], title?: string) {
+    const div = document.createElement('div'); div.className = 'cd-pane';
+    if (title) { const h = document.createElement('h4'); h.textContent = title; div.appendChild(h); }
+    for (const op of d.ops) {
+      if (!show.includes(op.t)) continue;
+      const host = op.t === 'eq' ? div : div.appendChild(document.createElement(op.t));
+      for (const w of op.words) {
+        host.appendChild(document.createTextNode(w.w));
+        if (w.nl && op.t !== 'del') for (let k = 0; k < w.nl; k++) host.appendChild(document.createElement('br'));
+        else host.appendChild(document.createTextNode(' '));
+      }
+      if (host !== div) div.appendChild(document.createTextNode(' '));
+    }
+    return div;
+  }
+  function render() {
+    if (!last) return;
+    docEl.textContent = ''; docEl.classList.toggle('side', $<HTMLSelectElement>('.cd-view').value === 'side');
+    if ($<HTMLSelectElement>('.cd-view').value === 'side') { docEl.append(pane(last, ['eq', 'del'], 'Original'), pane(last, ['eq', 'ins'], 'New version')); }
+    else docEl.append(pane(last, ['eq', 'del', 'ins']));
+  }
+  $('.cd-go').addEventListener('click', () => {
+    if (!ta.value.trim() && !tb.value.trim()) { say('Add or paste both versions first.', true); return; }
+    last = diffWords(ta.value, tb.value, $<HTMLInputElement>('.cd-case').checked);
+    result.hidden = false;
+    $('.cd-count').textContent = last.same ? 'No differences' : `${last.changes} change${last.changes === 1 ? '' : 's'}`;
+    $('.cd-detail').textContent = last.same ? 'The two versions have the same words.' : `${last.added} word${last.added === 1 ? '' : 's'} added, ${last.removed} word${last.removed === 1 ? '' : 's'} removed.`;
+    say(''); render();
+  });
+  $('.cd-view').addEventListener('change', render);
+  $('.cd-pdf').addEventListener('click', async () => { if (last) { try { download(await redlinePdf(last, names.a, names.b), 'comparison.pdf'); } catch (e: any) { say(e.message || 'Could not make the PDF.', true); } } });
+  $('.cd-print').addEventListener('click', () => {
+    document.documentElement.classList.add('cd-printing');
+    window.addEventListener('afterprint', () => document.documentElement.classList.remove('cd-printing'), { once: true });
+    window.print();
+  });
+</script>

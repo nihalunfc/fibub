@@ -7,7 +7,8 @@ import { ICON_NAMES } from './lib/icons';
 //   guide.md   - the tool's name, shelf and summary (frontmatter) and its explainer text (body)
 //   Tool.astro - the tool itself (markup + script). It must run entirely in the browser.
 const tools = defineCollection({
-  loader: glob({ pattern: '*/guide.md', base: './src/tools', generateId: ({ entry }) => entry.split('/')[0] }),
+  // FIBUB_ONLY=a,b builds just those tools (quick checks while building; never for a real deploy).
+  loader: glob({ pattern: process.env.FIBUB_ONLY ? `{${process.env.FIBUB_ONLY},${process.env.FIBUB_ONLY}}/guide.md` : '*/guide.md', base: './src/tools', generateId: ({ entry }) => entry.split('/')[0] }),
   schema: z.object({
     name: z.string(),
     shelf: z.enum(SHELF_IDS),

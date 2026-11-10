@@ -1,0 +1,107 @@
+---
+// #1712 Number to words. Maths in src/lib/docs/numwords.ts.
+import { CURRENCIES } from '../../lib/docs/numwords';
+---
+<div class="tool-ui ntw">
+  <div class="ntw-card">
+    <label>Number or amount
+      <input class="ntw-in" type="text" inputmode="decimal" autocomplete="off" value="12550000" aria-describedby="ntw-h" />
+    </label>
+    <p id="ntw-h" class="ntw-hint">Commas and spaces are fine. Up to 15 digits before the point.</p>
+    <div class="ntw-grid">
+      <label>Write it as
+        <select class="ntw-mode">
+          <option value="money">An amount of money</option>
+          <option value="plain">A plain number</option>
+        </select>
+      </label>
+      <label class="ntw-cur-l">Currency
+        <select class="ntw-cur">{CURRENCIES.map((c) => <option value={c.code}>{c.name}</option>)}</select>
+      </label>
+      <label>Number style
+        <select class="ntw-sys">
+          <option value="indian">Indian (lakh, crore)</option>
+          <option value="intl">International (million, billion)</option>
+        </select>
+      </label>
+      <label>Letters
+        <select class="ntw-case">
+          <option value="title">Title Case</option>
+          <option value="upper">UPPER CASE</option>
+          <option value="lower">lower case</option>
+        </select>
+      </label>
+    </div>
+    <label class="ntw-chk ntw-fmt-l"><input class="ntw-fmt" type="checkbox" checked /> Cheque style for dollars and pounds ("and 50/100")</label>
+  </div>
+
+  <div class="ntw-card">
+    <h2>In words</h2>
+    <p class="ntw-out" aria-live="polite"></p>
+    <p class="ntw-err" hidden></p>
+    <button type="button" class="btn ntw-copy">Copy the words</button>
+  </div>
+
+  <div class="ntw-card">
+    <h2>Digit grouping</h2>
+    <p class="ntw-hint">The same number written both ways.</p>
+    <dl class="ntw-grp">
+      <dt>Indian</dt><dd class="ntw-g-in"></dd>
+      <dt>International</dt><dd class="ntw-g-intl"></dd>
+    </dl>
+  </div>
+</div>
+
+<style is:inline>
+  .ntw { display: grid; gap: 14px; margin-bottom: 28px; }
+  .ntw-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; display: grid; gap: 10px; min-width: 0; }
+  .ntw-card h2 { margin: 0; font-size: 18px; }
+  .ntw label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .ntw input[type=text], .ntw select { font: inherit; font-size: 16px; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ntw-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .ntw-chk { display: flex !important; align-items: center; gap: 8px; color: var(--ink) !important; }
+  .ntw-chk input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .ntw-hint { margin: 0; font-size: 13px; color: var(--muted); }
+  .ntw-out { margin: 0; font-size: 20px; line-height: 1.4; font-weight: 600; overflow-wrap: anywhere; }
+  .ntw-err { margin: 0; color: var(--bad); }
+  .ntw .btn { justify-self: start; }
+  .ntw-grp { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; }
+  .ntw-grp dt { color: var(--muted); }
+  .ntw-grp dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  @media (max-width: 480px) { .ntw-grid { grid-template-columns: minmax(0, 1fr); } }
+</style>
+
+<script>
+  import { moneyWords, plainWords, groupDigits, parseAmount, currencyOf, type System } from '../../lib/docs/numwords';
+  const root = document.querySelector('.ntw') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
+  const inp = q<HTMLInputElement>('.ntw-in'), mode = q<HTMLSelectElement>('.ntw-mode'), cur = q<HTMLSelectElement>('.ntw-cur'),
+    sys = q<HTMLSelectElement>('.ntw-sys'), cs = q<HTMLSelectElement>('.ntw-case'), fmt = q<HTMLInputElement>('.ntw-fmt'),
+    out = q('.ntw-out'), err = q('.ntw-err');
+  const update = () => {
+    const money = mode.value === 'money';
+    q('.ntw-cur-l').hidden = !money;
+    const c = currencyOf(cur.value);
+    q('.ntw-fmt-l').hidden = !money || c.style !== 'cheque';
+    const s = sys.value as System;
+    const a = parseAmount(inp.value);
+    q('.ntw-g-in').textContent = a ? groupDigits(inp.value, 'indian') : '';
+    q('.ntw-g-intl').textContent = a ? groupDigits(inp.value, 'intl') : '';
+    let w = '';
+    if (a) w = money ? moneyWords(inp.value, c.code, s, c.style === 'cheque' && !fmt.checked ? 'only' : undefined) : plainWords(inp.value, s);
+    err.hidden = !!w || !inp.value.trim();
+    err.textContent = w || !inp.value.trim() ? '' : 'Type digits only (for example 1,25,50,000 or 1234.50), up to 15 digits before the point.';
+    if (cs.value === 'upper') w = w.toUpperCase(); else if (cs.value === 'lower') w = w.toLowerCase();
+    out.textContent = w || (inp.value.trim() ? '' : 'Type a number above.');
+  };
+  cur.addEventListener('change', () => { sys.value = currencyOf(cur.value).indian ? 'indian' : 'intl'; update(); });
+  [inp, mode, sys, cs, fmt].forEach((e) => e.addEventListener('input', update));
+  [mode, sys, cs, fmt].forEach((e) => e.addEventListener('change', update));
+  q('.ntw-copy').addEventListener('click', async (e) => {
+    const b = e.currentTarget as HTMLButtonElement, t = out.textContent || '';
+    try { await navigator.clipboard.writeText(t); b.textContent = 'Copied'; } catch { b.textContent = 'Press Ctrl+C to copy'; const r = document.createRange(); r.selectNodeContents(out); getSelection()?.removeAllRanges(); getSelection()?.addRange(r); }
+    setTimeout(() => (b.textContent = 'Copy the words'), 1800);
+  });
+  sys.value = 'indian';
+  update();
+</script>

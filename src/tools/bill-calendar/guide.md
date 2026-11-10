@@ -2,6 +2,7 @@
 name: Bill calendar
 num: 24
 shelf: money
+section: budgeting
 code: T24
 title: "Bill calendar: see your bills, pay days and balance on one monthly calendar"
 summary: "Put your rent, bills, subscriptions and pay days on a calendar once. Repeating items fill in every month, you tick what you have paid, and a running balance warns you before money runs short."
