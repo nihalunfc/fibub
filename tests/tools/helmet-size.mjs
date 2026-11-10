@@ -1,4 +1,4 @@
-// #T912 Helmet size
+// #T911 Helmet size
 export const path = '/money/helmet-size/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/helmet-size/`); await page.waitForTimeout(300);

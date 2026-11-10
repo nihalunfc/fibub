@@ -1,4 +1,4 @@
-// #T903 Driving hours
+// #T902 Driving hours
 export const path = '/money/driving-hours/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/driving-hours/`); await page.waitForTimeout(400);

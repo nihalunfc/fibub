@@ -1,4 +1,4 @@
-// #T898 Stopping distance
+// #T897 Stopping distance
 export const path = '/money/stopping-distance/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/stopping-distance/`); await page.waitForTimeout(300);

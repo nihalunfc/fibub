@@ -1,4 +1,4 @@
-// #T905 Axle weights
+// #T904 Axle weights
 export const path = '/money/axle-weights/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/axle-weights/`); await page.waitForTimeout(400);

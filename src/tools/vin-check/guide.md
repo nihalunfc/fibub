@@ -2,7 +2,7 @@
 name: VIN check
 num: 1820
 shelf: money
-code: T910
+code: T909
 section: vehicle-buying
 title: "VIN check: is this vehicle identification number valid?"
 summary: "Type a 17-character VIN to check its characters and check digit, and read the maker region, the model year and the plant code. Works offline, with no lookups."

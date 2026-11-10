@@ -2,7 +2,7 @@
 name: Sprocket ratio
 num: 1812
 shelf: money
-code: T902
+code: T901
 section: two-wheelers
 title: "Sprocket ratio calculator: speed per gear and chain length for a bike"
 summary: "See your motorcycle's road speed in every gear at a chosen rpm, how much a different front or rear sprocket changes it, and roughly how many chain links you need."

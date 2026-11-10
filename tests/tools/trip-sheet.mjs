@@ -1,4 +1,4 @@
-// #T893 Trip sheet
+// #T892 Trip sheet
 export const path = '/money/trip-sheet/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/trip-sheet/`); await page.waitForTimeout(300);

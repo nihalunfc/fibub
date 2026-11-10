@@ -2,7 +2,7 @@
 name: Trip sheet
 num: 1803
 shelf: money
-code: T893
+code: T892
 section: trucking
 title: "Truck trip sheet: freight, diesel, tolls, driver bata and profit per trip"
 summary: "Fill in a truck trip sheet with freight, advance, diesel fills, tolls, driver bata and loading charges to get km run, km per litre, total cost, profit and the balance due to the driver. Print it or save a PDF."

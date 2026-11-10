@@ -2,7 +2,7 @@
 name: Cost per mile
 num: 1816
 shelf: money
-code: T906
+code: T905
 section: trucking
 title: "Cost per mile calculator for trucks: break-even rate and rate for your margin"
 summary: "Add up a truck's fixed costs, fuel, maintenance, tyres, tolls and driver pay to get its cost per mile or km, the break-even rate and the rate for a profit margin you choose."

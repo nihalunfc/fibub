@@ -1,4 +1,4 @@
-// #T906 Cost per mile
+// #T905 Cost per mile
 export const path = '/money/cost-per-mile/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/cost-per-mile/`); await page.waitForTimeout(300);

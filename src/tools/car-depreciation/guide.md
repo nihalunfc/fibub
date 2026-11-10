@@ -2,7 +2,7 @@
 name: Car depreciation
 num: 1805
 shelf: money
-code: T895
+code: T894
 section: vehicle-buying
 title: "Car depreciation calculator: what your vehicle will be worth each year"
 summary: "See the value of a car, two-wheeler or truck after each year with a fixed yearly percent or an editable typical curve, adjusted for the km you drive, with a table, chart and loss per km."

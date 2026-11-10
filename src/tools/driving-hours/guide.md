@@ -2,7 +2,7 @@
 name: Driving hours
 num: 1813
 shelf: money
-code: T903
+code: T902
 section: trucking
 title: "Hours of service calculator: truck driving hours left, US and Canada"
 summary: "Type today's duty log and the hours used in your cycle to see how long you can still drive under US FMCSA or Canadian federal hours-of-service rules, when your 30-minute break is due and when your window closes."

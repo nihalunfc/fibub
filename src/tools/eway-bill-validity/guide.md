@@ -2,7 +2,7 @@
 name: E-way bill validity
 num: 1802
 shelf: money
-code: T892
+code: T891
 section: trucking
 title: "E-way bill validity calculator: days by distance, expiry and extension"
 summary: "Work out how many days an e-way bill is valid for a distance (1 day per 200 km, or per 20 km for over-dimensional cargo), the exact expiry, when you can extend it, and whether you need one."

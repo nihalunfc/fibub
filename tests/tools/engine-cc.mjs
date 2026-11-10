@@ -1,4 +1,4 @@
-// #T901 Engine CC
+// #T900 Engine CC
 export const path = '/money/engine-cc/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/engine-cc/`); await page.waitForTimeout(300);

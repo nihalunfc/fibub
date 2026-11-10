@@ -1,4 +1,4 @@
-// #T910 VIN check
+// #T909 VIN check
 export const path = '/money/vin-check/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/vin-check/`); await page.waitForTimeout(300);

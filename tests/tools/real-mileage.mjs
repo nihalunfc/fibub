@@ -1,4 +1,4 @@
-// #T894 Real mileage
+// #T893 Real mileage
 export const path = '/money/real-mileage/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/real-mileage/`); await page.waitForTimeout(400);

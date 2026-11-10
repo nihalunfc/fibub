@@ -1,4 +1,4 @@
-// #T909 Fleet fuel
+// #T908 Fleet fuel
 export const path = '/money/fleet-fuel/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/fleet-fuel/`); await page.waitForTimeout(300);

@@ -2,7 +2,7 @@
 name: Load profit
 num: 1817
 shelf: money
-code: T907
+code: T906
 section: trucking
 title: "Load profit calculator: is this freight load worth taking?"
 summary: "Enter the rate, loaded and empty distance, your cost per mile, tolls and days to see the profit, the rate per total mile, profit per day and whether the load beats your minimum."

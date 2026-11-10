@@ -1,4 +1,4 @@
-// #T896 Car affordability
+// #T895 Car affordability
 export const path = '/money/car-affordability/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/car-affordability/`); await page.waitForTimeout(400);

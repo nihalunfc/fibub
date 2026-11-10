@@ -1,4 +1,4 @@
-// #T899 Tyre pressure
+// #T898 Tyre pressure
 export const path = '/money/tyre-pressure/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/tyre-pressure/`); await page.waitForTimeout(300);

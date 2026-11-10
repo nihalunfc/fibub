@@ -2,7 +2,7 @@
 name: Helmet size
 num: 1822
 shelf: money
-code: T912
+code: T911
 section: two-wheelers
 title: "Helmet size calculator: head circumference to XS, S, M, L, XL"
 summary: "Measure your head in cm or inches and see your motorcycle or scooter helmet size, how to measure, how a helmet should fit, and the safety marks to look for."

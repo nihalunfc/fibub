@@ -1,4 +1,4 @@
-// #T902 Sprocket ratio
+// #T901 Sprocket ratio
 export const path = '/money/sprocket-ratio/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/sprocket-ratio/`); await page.waitForTimeout(300);

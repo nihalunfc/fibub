@@ -2,7 +2,7 @@
 name: Used car checklist
 num: 1821
 shelf: money
-code: T911
+code: T910
 section: vehicle-buying
 title: "Used car checklist: printable inspection list for a car, bike or truck"
 summary: "A printable used vehicle inspection checklist: papers, body, engine, tyres, interior, test drive and after the drive. Mark OK or Problem, add notes, see a score and red flags, print or save a PDF."

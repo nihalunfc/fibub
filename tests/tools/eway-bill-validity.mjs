@@ -1,4 +1,4 @@
-// #T892 E-way bill validity
+// #T891 E-way bill validity
 export const path = '/money/eway-bill-validity/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/eway-bill-validity/`); await page.waitForTimeout(300);

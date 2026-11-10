@@ -2,7 +2,7 @@
 name: Axle weights
 num: 1815
 shelf: money
-code: T905
+code: T904
 section: trucking
 title: "Axle weight calculator: load on each axle and the bridge formula"
 seoTitle: "Axle weight and bridge formula calculator"

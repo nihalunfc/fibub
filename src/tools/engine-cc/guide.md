@@ -2,7 +2,7 @@
 name: Engine CC
 num: 1811
 shelf: money
-code: T901
+code: T900
 section: two-wheelers
 title: "Engine CC calculator: displacement from bore, stroke and cylinders"
 summary: "Work out engine size in cc, litres and cubic inches from bore, stroke and number of cylinders, plus compression ratio and the bore to stroke ratio."

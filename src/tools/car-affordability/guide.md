@@ -2,7 +2,7 @@
 name: Car affordability
 num: 1806
 shelf: money
-code: T896
+code: T895
 section: vehicle-buying
 title: "How much car can I afford? The 20/4/10 rule calculator"
 summary: "Find the most you can spend on a car from your income with the 20/4/10 rule: 20% down, a loan of 4 years at most, and total car costs under 10% of your gross income. All numbers editable."

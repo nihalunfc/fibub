@@ -1,4 +1,4 @@
-// #T904 IFTA
+// #T903 IFTA
 export const path = '/money/ifta-calculator/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/ifta-calculator/`); await page.waitForTimeout(400);

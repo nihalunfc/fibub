@@ -1,4 +1,4 @@
-// #T908 Pallet planner
+// #T907 Pallet planner
 export const path = '/money/pallet-planner/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/pallet-planner/`); await page.waitForTimeout(300);

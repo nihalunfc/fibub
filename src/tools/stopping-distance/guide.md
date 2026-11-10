@@ -2,7 +2,7 @@
 name: Stopping distance
 num: 1808
 shelf: money
-code: T898
+code: T897
 section: driving
 title: "Stopping distance: how far a car, bike or truck needs to stop"
 summary: "Find reaction distance, braking distance and total stopping distance for a car, two-wheeler or loaded truck on dry, wet, snowy or icy roads, with a bar diagram in car lengths."

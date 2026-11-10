@@ -1,4 +1,4 @@
-// #T911 Used car checklist
+// #T910 Used car checklist
 export const path = '/money/used-car-checklist/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/used-car-checklist/`); await page.waitForTimeout(300);

@@ -1,4 +1,4 @@
-// #T895 Car depreciation
+// #T894 Car depreciation
 export const path = '/money/car-depreciation/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/car-depreciation/`); await page.waitForTimeout(400);

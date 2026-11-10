@@ -1,4 +1,4 @@
-// #T900 EV range
+// #T899 EV range
 export const path = '/money/ev-range/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/ev-range/`); await page.waitForTimeout(300);

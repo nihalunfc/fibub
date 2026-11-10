@@ -1,4 +1,4 @@
-// #T907 Load profit
+// #T906 Load profit
 export const path = '/money/load-profit/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/load-profit/`); await page.waitForTimeout(300);

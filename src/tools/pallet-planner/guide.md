@@ -2,7 +2,7 @@
 name: Pallet planner
 num: 1818
 shelf: money
-code: T908
+code: T907
 section: trucking
 title: "Pallet planner: how many pallets fit in a trailer or truck body"
 summary: "Find how many pallets fit in a 53 ft or 48 ft trailer, or a 20 to 32 ft body, with a top-view drawing, stacking and a weight check against the payload."

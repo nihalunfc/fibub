@@ -2,7 +2,7 @@
 name: EV range
 num: 1810
 shelf: money
-code: T900
+code: T899
 section: vehicle-running
 title: "EV range estimator: how far an electric car goes with speed, cold and load"
 summary: "Estimate an electric vehicle's real range from battery size and rated consumption, with editable effects for speed, outside temperature, heater or AC and load, plus charging time."
