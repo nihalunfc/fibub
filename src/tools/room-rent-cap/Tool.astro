@@ -1,0 +1,123 @@
+---
+// #T828 Room rent limit and proportionate deduction (India)
+import InsuranceNote from '../../components/InsuranceNote.astro';
+---
+<div class="tool-ui rr">
+  <InsuranceNote />
+  <section class="panel">
+    <h2>Your policy and your stay</h2>
+    <p class="rr-hint">Example numbers: change them to yours. All amounts are in rupees.</p>
+    <div class="rr-grid">
+      <label>Sum insured <input data-k="si" inputmode="decimal" /></label>
+      <label>Room rent limit is <select data-k="mode"><option value="pct">a % of the sum insured, per day</option><option value="fixed">a fixed amount per day</option></select></label>
+      <label class="rr-pctbox">Limit as % of sum insured <span class="rr-suf"><input data-k="pct" inputmode="decimal" /><i>% a day</i></span></label>
+      <label class="rr-fixbox" hidden>Limit per day <input data-k="fixed" inputmode="decimal" /></label>
+      <label>Type of room <select data-k="kind"><option value="room">Normal room (often 1%)</option><option value="icu">ICU (often 2%)</option></select></label>
+      <label>Room you chose, per day <input data-k="rent" inputmode="decimal" /></label>
+      <label>Days in hospital <input data-k="days" inputmode="decimal" /></label>
+      <label>Co-pay (your share of every claim) <span class="rr-suf"><input data-k="copay" inputmode="decimal" /><i>%</i></span></label>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>The hospital bill</h2>
+    <p class="rr-hint">Tick "cut in proportion" for room, nursing, doctor and surgeon fees and operation theatre. Leave it unticked for medicines, implants, consumables and diagnostics: IRDAI's health insurance rules say proportionate deduction is not applied to those.</p>
+    <div class="rr-rows"></div>
+    <button type="button" class="btn secondary rr-add">Add a bill line</button>
+    <p class="note bad rr-err" role="alert" hidden></p>
+  </section>
+  <section class="rr-res" aria-live="polite">
+    <div class="rr-stats">
+      <div class="good"><span>Insurer pays</span><b class="rr-s-pay"></b></div>
+      <div><span>You pay in total</span><b class="rr-s-you"></b></div>
+      <div><span>Cut caused by your room choice</span><b class="rr-s-cut"></b></div>
+      <div><span>Cut by the co-pay</span><b class="rr-s-cop"></b></div>
+      <div><span>Highest room rent with no cut</span><b class="rr-s-max"></b></div>
+    </div>
+    <p class="rr-line rr-words"></p>
+    <div class="panel"><div class="rr-wrap"><table>
+      <thead><tr><th>Bill line</th><th>Billed</th><th>Insurer counts</th><th>Cut</th></tr></thead>
+      <tbody class="rr-body"></tbody>
+    </table></div></div>
+  </section>
+  <p class="rr-fine">How it is worked out: if the room costs more per day than the limit, each bill line you ticked is paid in the ratio limit ÷ room rent chosen. Lines not ticked are paid in full. Then the co-pay is taken off, and the insurer never pays more than the sum insured. Source: IRDAI master circular on health insurance business (2024), on proportionate deduction, checked 2026-11-10: check the official source and your policy wording, as insurers' terms differ. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .rr { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .rr > *, .rr-res > * { min-width: 0; }
+  .rr h2 { margin: 0 0 10px; font-size: 18px; }
+  .rr .panel { padding: 16px; }
+  .rr-hint { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
+  .rr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 12px; }
+  .rr label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+  .rr input, .rr select { font: inherit; color: var(--ink); padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .rr input:focus, .rr select:focus { border-color: var(--accent); outline: none; }
+  .rr-suf { position: relative; display: block; }
+  .rr-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .rr-suf input { padding-right: 70px; }
+  .rr-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) auto auto; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .rr-row .rr-chk { display: flex; flex-direction: row; align-items: center; gap: 6px; white-space: nowrap; }
+  .rr-row .rr-chk input { width: auto; }
+  .rr-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .rr-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .rr-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .rr-stats span { font-size: 13px; color: var(--muted); }
+  .rr-stats b { font-size: clamp(17px, 3.4vw, 22px); overflow-wrap: anywhere; }
+  .rr-stats .good b { color: var(--good); }
+  .rr-line { margin: 0; font-size: 15px; }
+  .rr-wrap { overflow-x: auto; }
+  .rr table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .rr th, .rr td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .rr th:first-child, .rr td:first-child { text-align: left; }
+  .rr th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .rr-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .rr-err { margin: 10px 0 0; }
+  @media (max-width: 520px) { .rr-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+</style>
+
+<script>
+  import { roomRent, type Bill } from '../../lib/money/insurance';
+  import { money, num } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.rr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const $ = (n: number) => money(n, 'INR', 0);
+  const rowHtml = (label: string, amt: string, linked: boolean) => `<div class="rr-row"><input class="rr-l" value="${label}" aria-label="Bill line" /><input class="rr-a" inputmode="decimal" value="${amt}" aria-label="Amount" /><label class="rr-chk"><input class="rr-c" type="checkbox"${linked ? ' checked' : ''} />cut in proportion</label><button type="button" class="btn secondary rr-del" aria-label="Remove this line">Remove</button></div>`;
+  q('.rr-rows').innerHTML = rowHtml('Room charges', '24,000', true) + rowHtml('Doctor and surgeon fees', '40,000', true) + rowHtml('Medicines', '30,000', false);
+  f('si').value = '5,00,000'; f('pct').value = '1'; f('fixed').value = '5,000'; f('rent').value = '8,000'; f('days').value = '3'; f('copay').value = '0';
+  function run() {
+    const mode = f('mode').value;
+    q('.rr-pctbox').hidden = mode !== 'pct'; q('.rr-fixbox').hidden = mode !== 'fixed';
+    const si = num(f('si').value), copay = num(f('copay').value), rent = num(f('rent').value), days = num(f('days').value);
+    const cap = mode === 'pct' ? (si * num(f('pct').value)) / 100 : num(f('fixed').value);
+    const bills: Bill[] = [...root.querySelectorAll<HTMLElement>('.rr-row')].map((r) => ({
+      label: r.querySelector<HTMLInputElement>('.rr-l')!.value.trim() || 'Bill line',
+      amount: num(r.querySelector<HTMLInputElement>('.rr-a')!.value),
+      linked: r.querySelector<HTMLInputElement>('.rr-c')!.checked,
+    }));
+    const bad = !(si > 0) ? 'Enter the sum insured.' : !(cap > 0) ? 'Enter a room rent limit above 0.' : !(rent > 0) ? 'Enter the room rent per day you chose.' : copay < 0 || copay > 100 ? 'Co-pay must be between 0 and 100.' : bills.some((b) => b.amount < 0) ? 'Bill amounts cannot be negative.' : bills.length === 0 ? 'Add at least one bill line.' : '';
+    q('.rr-err').hidden = !bad; q('.rr-err').textContent = bad; q('.rr-res').hidden = !!bad;
+    if (bad) return;
+    const r = roomRent(bills, cap, rent);
+    const afterCut = r.paid, cop = (afterCut * copay) / 100;
+    const pay = Math.min(afterCut - cop, si);
+    q('.rr-s-pay').textContent = $(pay);
+    q('.rr-s-you').textContent = $(r.billed - pay);
+    q('.rr-s-cut').textContent = $(r.cut);
+    q('.rr-s-cop').textContent = $(cop);
+    q('.rr-s-max').textContent = `${$(cap)} a day`;
+    const over = rent > cap;
+    q('.rr-words').innerHTML = (over
+      ? `Your room costs ${$(rent)} a day, above the limit of ${$(cap)}, so the ticked lines are paid at ${(r.ratio * 100).toFixed(1)}%. `
+      : `Your room costs ${$(rent)} a day, within the limit of ${$(cap)}, so nothing is cut for the room. `)
+      + (days > 0 ? `Over ${days} days the room alone is ${$(rent * days)}; at the limit it would be ${$(cap * days)}.` : '')
+      + (pay >= si ? ' The insurer has reached the sum insured.' : '');
+    q('.rr-body').innerHTML = r.rows.map((x) => `<tr><td>${x.label.replace(/</g, '&lt;')}${x.linked ? '' : ' (not cut)'}</td><td>${$(x.amount)}</td><td>${$(x.paid)}</td><td>${$(x.cut)}</td></tr>`).join('')
+      + `<tr><td><b>Total</b></td><td><b>${$(r.billed)}</b></td><td><b>${$(r.paid)}</b></td><td><b>${$(r.cut)}</b></td></tr>`;
+  }
+  q('.rr-add').addEventListener('click', () => { q('.rr-rows').insertAdjacentHTML('beforeend', rowHtml('Other', '0', false)); run(); });
+  root.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('.rr-del'); if (b) { b.closest('.rr-row')!.remove(); run(); } });
+  f('kind').addEventListener('change', () => { f('pct').value = f('kind').value === 'icu' ? '2' : '1'; run(); });
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

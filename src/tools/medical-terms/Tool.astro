@@ -1,0 +1,100 @@
+---
+// #T839 Medical words explainer
+---
+<div class="tool-ui mt">
+  <p class="note">Your files stay on this device. fibub never sees them. For organising your own records, not medical advice. Ask your doctor or pharmacist about your results.</p>
+  <label class="mt-l">Paste a report, prescription or discharge note
+    <textarea class="mt-in" rows="6" placeholder="Take 1 tab bd pc. CBC unremarkable."></textarea>
+  </label>
+  <div class="mt-row"><button class="btn secondary mt-sample" type="button">Try a sample</button></div>
+  <div class="mt-text" aria-live="polite" hidden></div>
+  <div class="mt-def" role="status" hidden></div>
+  <div class="mt-found" hidden><h3>Words found</h3><dl class="mt-list"></dl></div>
+  <h3>Look up one word</h3>
+  <label class="mt-l">Search <input class="mt-q" type="search" placeholder="prn" autocomplete="off" /></label>
+  <dl class="mt-res"></dl>
+  <h3>Browse A to Z</h3>
+  <div class="mt-az"></div>
+  <dl class="mt-az-list"></dl>
+</div>
+
+<style is:inline>
+  .mt { display: grid; gap: .8rem; }
+  .mt-l { display: grid; gap: .3rem; font-weight: 600; font-size: 15px; }
+  .mt textarea, .mt-q { width: 100%; font: inherit; box-sizing: border-box; }
+  .mt-row { display: flex; gap: .5rem; flex-wrap: wrap; }
+  .mt-text { white-space: pre-wrap; border: 1px solid var(--line); border-radius: var(--radius); padding: .8rem; line-height: 1.7; overflow-wrap: anywhere; }
+  .mt-text[hidden], .mt-def[hidden], .mt-found[hidden] { display: none; }
+  .mt-w { text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; color: var(--accent); cursor: pointer; background: none; border: 0; padding: 0; font: inherit; }
+  .mt-w:focus-visible, .mt-w.on { background: var(--accent-soft); outline: 2px solid var(--accent); }
+  .mt-def { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: .6rem .8rem; border-radius: 6px; }
+  .mt dt { font-weight: 700; margin-top: .5rem; }
+  .mt dd { margin: .1rem 0 0; }
+  .mt-kind { font-weight: 400; font-size: 12.5px; color: var(--muted); margin-left: .4rem; }
+  .mt-az { display: flex; flex-wrap: wrap; gap: 4px; }
+  .mt-az button { min-width: 38px; min-height: 38px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 6px; font: inherit; cursor: pointer; }
+  .mt-az button.on { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+</style>
+
+<script>
+  import { TERMS, findTerms, type Term } from '../../lib/docs/medterms';
+  const root = document.querySelector('.mt') as HTMLElement;
+  const $ = <T extends Element>(s: string) => root.querySelector(s) as T;
+  const input = $<HTMLTextAreaElement>('.mt-in'), out = $<HTMLElement>('.mt-text'), def = $<HTMLElement>('.mt-def');
+  const found = $<HTMLElement>('.mt-found'), list = $<HTMLElement>('.mt-list');
+  const SAMPLE = 'Take 1 tab bd pc for 5 days, then od mane. Review in 2 weeks.\nCBC unremarkable. Bilateral opacity noted on CXR; compare with earlier film. ESR and CRP sent. Follow-up if symptoms persist.';
+  const KIND: Record<string, string> = { prescription: 'prescription word', lab: 'lab test', report: 'report word', imaging: 'imaging word', body: 'body word' };
+  const entry = (t: Term, wrap: HTMLElement) => {
+    const dt = document.createElement('dt'); dt.textContent = t.term;
+    const k = document.createElement('span'); k.className = 'mt-kind'; k.textContent = KIND[t.kind]; dt.append(k);
+    const dd = document.createElement('dd'); dd.textContent = t.plain; wrap.append(dt, dd);
+  };
+  const show = (t: Term) => { def.hidden = false; def.textContent = `${t.term}: ${t.plain}`; };
+
+  function render() {
+    const text = input.value, hits = findTerms(text);
+    out.textContent = ''; list.textContent = '';
+    out.hidden = def.hidden = !text.trim(); found.hidden = !hits.length;
+    if (!text.trim()) return;
+    let at = 0;
+    const btns: HTMLElement[] = [];
+    for (const h of hits) {
+      out.append(text.slice(at, h.start));
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'mt-w'; b.textContent = text.slice(h.start, h.end);
+      b.title = h.entry.plain; b.dataset.term = h.entry.term;
+      const on = () => { btns.forEach((x) => x.classList.remove('on')); b.classList.add('on'); show(h.entry); };
+      b.addEventListener('click', on); b.addEventListener('mouseenter', on); b.addEventListener('focus', on);
+      out.append(b); btns.push(b); at = h.end;
+    }
+    out.append(text.slice(at));
+    def.textContent = hits.length ? 'Tap or hover over an underlined word to see its meaning.' : 'No known words found in this text.';
+    const seen = new Set<Term>();
+    for (const h of hits) if (!seen.has(h.entry)) { seen.add(h.entry); entry(h.entry, list); }
+  }
+  input.addEventListener('input', render);
+  $('.mt-sample').addEventListener('click', () => { input.value = SAMPLE; render(); });
+
+  const res = $<HTMLElement>('.mt-res');
+  const norm = (s: string) => s.toLowerCase().replace(/[.\s]+/g, '');
+  $<HTMLInputElement>('.mt-q').addEventListener('input', (e) => {
+    const q = norm((e.target as HTMLInputElement).value); res.textContent = '';
+    if (!q) return;
+    const exact = TERMS.filter((t) => [t.term, ...t.aliases].some((n) => norm(n) === q));
+    const part = TERMS.filter((t) => !exact.includes(t) && [t.term, ...t.aliases].some((n) => norm(n).includes(q))).slice(0, 12);
+    const all = [...exact, ...part];
+    if (!all.length) { const p = document.createElement('dt'); p.textContent = 'No word found. Try another spelling.'; res.append(p); return; }
+    all.forEach((t) => entry(t, res));
+  });
+
+  const az = $<HTMLElement>('.mt-az'), azl = $<HTMLElement>('.mt-az-list');
+  const sorted = [...TERMS].sort((a, b) => a.term.localeCompare(b.term));
+  const letters = [...new Set(sorted.map((t) => t.term[0].toUpperCase()))];
+  for (const L of letters) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = L;
+    b.addEventListener('click', () => {
+      az.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
+      azl.textContent = ''; sorted.filter((t) => t.term[0].toUpperCase() === L).forEach((t) => entry(t, azl));
+    });
+    az.append(b);
+  }
+</script>

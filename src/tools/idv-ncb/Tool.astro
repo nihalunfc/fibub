@@ -1,0 +1,121 @@
+---
+// #T832 IDV and NCB calculator (India): insured declared value, no-claim bonus and parts depreciation in a claim.
+import InsuranceNote from '../../components/InsuranceNote.astro';
+---
+<div class="tool-ui idn">
+  <InsuranceNote />
+  <section class="panel">
+    <h2>Your car</h2>
+    <p class="idn-hint">Example numbers: change them to yours. Private cars in India, amounts in rupees.</p>
+    <div class="idn-grid">
+      <label>Ex-showroom price <input data-k="price" inputmode="decimal" /></label>
+      <label>Accessories (fitted extras) <input data-k="acc" inputmode="decimal" /></label>
+      <label>Purchase date <input data-k="date" type="date" /></label>
+      <label>Or: age in months (overrides the date) <input data-k="months" inputmode="decimal" /></label>
+      <label>Engine size (cc) <input data-k="cc" inputmode="decimal" /></label>
+      <label>Claim-free years <input data-k="free" inputmode="decimal" /></label>
+      <label>IDV in a quote you have (optional) <input data-k="quoted" inputmode="decimal" /></label>
+    </div>
+    <p class="note bad idn-err" role="alert" hidden></p>
+  </section>
+  <section class="idn-res" aria-live="polite">
+    <div class="idn-stats">
+      <div><span>Age used</span><b class="idn-s-age"></b></div>
+      <div><span>Depreciation</span><b class="idn-s-dep"></b></div>
+      <div><span>IDV (paid at total loss)</span><b class="idn-s-idv"></b></div>
+      <div><span>No-claim bonus (NCB)</span><b class="idn-s-ncb"></b></div>
+      <div><span>Compulsory deductible</span><b class="idn-s-ded"></b></div>
+    </div>
+    <p class="idn-quote"></p>
+  </section>
+  <section class="panel idn-claim">
+    <h2>If you claim for repairs</h2>
+    <p class="idn-hint">List the parts to be replaced and their kind. Labour is not depreciated.</p>
+    <div class="idn-rows"></div>
+    <button type="button" class="btn secondary idn-add">Add a part</button>
+    <div class="idn-grid idn-lab"><label>Labour charges <input data-k="labour" inputmode="decimal" /></label></div>
+    <div class="idn-stats idn-out">
+      <div><span>Insurer pays, without zero-depreciation add-on</span><b class="idn-pay-no"></b></div>
+      <div><span>Insurer pays, with zero-depreciation add-on</span><b class="idn-pay-zd"></b></div>
+      <div><span>Difference</span><b class="idn-pay-diff"></b></div>
+    </div>
+  </section>
+  <p class="idn-src">Sources: India Motor Tariff GR.8 (IDV depreciation), GR.9 (parts depreciation), GR.27 (no-claim bonus) and GR.40 (compulsory deductible), still used by insurers after detariffing, and IRDAI. Checked 2026-11-10, check the official source: your insurer's policy wording rules.</p>
+  <p class="idn-fine">How it is worked out: IDV = (ex-showroom price + accessories) × (1 − depreciation by age). Payout without the add-on = parts × (1 − part depreciation) + labour − compulsory deductible; with the add-on the parts are not depreciated. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .idn { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .idn > *, .idn-res > * { min-width: 0; }
+  .idn h2 { margin: 0 0 12px; font-size: 18px; }
+  .idn .panel { padding: 16px; }
+  .idn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .idn label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .idn input, .idn select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .idn input:focus, .idn select:focus { border-color: var(--accent); outline: none; }
+  .idn-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .idn-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 10px; }
+  .idn-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); align-content: start; }
+  .idn-stats span { font-size: 13px; color: var(--muted); }
+  .idn-stats b { font-size: clamp(16px, 3.4vw, 21px); overflow-wrap: anywhere; }
+  .idn-quote { margin: 0; font-size: 15px; }
+  .idn-quote:empty { display: none; }
+  .idn-hint, .idn-src, .idn-fine { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+  .idn-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 60px 44px; gap: 8px; align-items: end; margin-bottom: 8px; }
+  .idn-row output { padding: 9px 0; font-size: 14px; text-align: right; }
+  .idn-row button { padding: 9px 0; }
+  .idn-lab, .idn-out { margin-top: 12px; }
+  .idn-err { margin: 10px 0 0; }
+</style>
+
+<script>
+  import { idv, idvDep, partDep, compulsoryDeductible, NCB_IN, type PartKind } from '../../lib/money/insurance';
+  import { money, num } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.idn')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const $ = (n: number) => money(n, 'INR', 0);
+  const KINDS: [PartKind, string][] = [['metal', 'Metal'], ['plastic', 'Plastic, rubber, nylon'], ['fibreglass', 'Fibreglass'], ['glass', 'Glass']];
+  const d = new Date(); d.setMonth(d.getMonth() - 30);
+  const def: Record<string, string> = { price: '8,00,000', acc: '0', date: d.toISOString().slice(0, 10), months: '', cc: '1200', free: '3', quoted: '', labour: '5,000' };
+  for (const k in def) f(k).value = def[k];
+  const rows = q('.idn-rows');
+  function addRow(kind: PartKind, cost: string) {
+    const r = document.createElement('div'); r.className = 'idn-row';
+    r.innerHTML = `<label>Part kind <select data-r="kind">${KINDS.map(([v, n]) => `<option value="${v}"${v === kind ? ' selected' : ''}>${n}</option>`).join('')}</select></label><label>Cost of the part <input data-r="cost" inputmode="decimal" value="${cost}" /></label><output class="idn-dep"></output><button type="button" class="btn secondary" aria-label="Remove this part">×</button>`;
+    r.querySelector('button')!.addEventListener('click', () => { r.remove(); run(); });
+    rows.appendChild(r);
+  }
+  addRow('metal', '20,000');
+  q('.idn-add').addEventListener('click', () => { addRow('metal', '0'); run(); });
+  function run() {
+    let age = num(f('months').value);
+    if (!f('months').value.trim()) { const t = new Date(f('date').value); age = isNaN(+t) ? NaN : Math.max(0, Math.round(((Date.now() - +t) / 86400000 / 30.4375) * 100) / 100); }
+    const price = num(f('price').value), acc = num(f('acc').value), cc = num(f('cc').value), free = Math.floor(num(f('free').value)), quoted = num(f('quoted').value);
+    const bad = !(price > 0) ? 'Enter the ex-showroom price.' : !(age >= 0) ? 'Enter a purchase date, or the age in months.' : !(cc > 0) ? 'Enter the engine size in cc.' : free < 0 ? 'Claim-free years cannot be negative.' : '';
+    q('.idn-err').hidden = !bad; q('.idn-err').textContent = bad; q('.idn-res').hidden = !!bad; q('.idn-claim').hidden = !!bad;
+    if (bad) return;
+    const dep = idvDep(age), v = idv(price, acc, age), ded = compulsoryDeductible(cc);
+    q('.idn-s-age').textContent = `${Math.round(age * 10) / 10} months`;
+    q('.idn-s-dep').textContent = dep === null ? 'agreed' : `${dep}%`;
+    q('.idn-s-idv').textContent = v === null ? 'Over 5 years: agreed with the insurer' : $(v);
+    q('.idn-s-ncb').textContent = `${NCB_IN[Math.min(free, NCB_IN.length - 1)]}%`;
+    q('.idn-s-ded').textContent = $(ded);
+    const ref = v ?? 0;
+    q('.idn-quote').textContent = quoted > 0 && v !== null ? (quoted < v ? `A quote with an IDV of ${$(quoted)} would pay ${$(v - quoted)} less than the table IDV at a total loss.` : `A quote with an IDV of ${$(quoted)} pays ${$(quoted - v)} more than the table IDV at a total loss; a higher IDV usually means a higher premium.`) : quoted > 0 ? `Over 5 years the IDV is agreed with the insurer: your quote of ${$(quoted)} is that agreement.` : '';
+    void ref;
+    let withDep = 0, noDep = 0;
+    rows.querySelectorAll<HTMLElement>('.idn-row').forEach((r) => {
+      const kind = (r.querySelector('[data-r="kind"]') as HTMLSelectElement).value as PartKind;
+      const cost = num((r.querySelector('[data-r="cost"]') as HTMLInputElement).value), pd = partDep(kind, age);
+      (r.querySelector('output') as HTMLElement).textContent = `${pd}%`;
+      (r.querySelector('output') as HTMLElement).classList.add('idn-dep' + [...rows.children].indexOf(r));
+      withDep += cost * (1 - pd / 100); noDep += cost;
+    });
+    const lab = num(f('labour').value);
+    const no = Math.max(0, withDep + lab - ded), zd = Math.max(0, noDep + lab - ded);
+    q('.idn-pay-no').textContent = $(no); q('.idn-pay-zd').textContent = $(zd); q('.idn-pay-diff').textContent = $(zd - no);
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

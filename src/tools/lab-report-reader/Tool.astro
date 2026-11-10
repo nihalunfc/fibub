@@ -1,0 +1,163 @@
+---
+// #T837 Lab report reader
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="tool-ui lrr">
+  <p class="note">Your files stay on this device. fibub never sees them. For organising your own records, not medical advice. Ask your doctor or pharmacist about your results.</p>
+  <div class="lrr-in">
+    <label class="lrr-drop">Open a report (PDF, Word or text file) <input class="lrr-file" type="file" accept=".pdf,.docx,.txt,.text,application/pdf,text/plain" /></label>
+    <label>Or paste the report text
+      <textarea class="lrr-paste" rows="6" placeholder="Haemoglobin 13.5 g/dL 13.0 - 17.0"></textarea>
+    </label>
+    <div class="lrr-row">
+      <button class="btn lrr-read" type="button">Find the tests</button>
+      <button class="btn secondary lrr-sample" type="button">Try a sample</button>
+    </div>
+    <p class="lrr-msg" role="status" aria-live="polite"></p>
+  </div>
+  <div class="lrr-res" hidden>
+    <div class="lrr-row">
+      <label>Report date <input class="lrr-date" type="date" /></label>
+      <label>Lab name <input class="lrr-lab" type="text" maxlength="80" placeholder="optional" /></label>
+    </div>
+    <p class="lrr-help">Check every row against your report. Each row is editable, and the original line is shown small so a misread number is easy to spot. The mark only compares the result with the range printed on your report.</p>
+    <div class="lrr-wrap">
+      <table class="lrr-tbl">
+        <thead><tr><th>Test</th><th>Result</th><th>Unit</th><th>Range on report</th><th>Mark</th><th></th></tr></thead>
+        <tbody class="lrr-body"></tbody>
+      </table>
+    </div>
+    <div class="lrr-row"><button class="btn secondary lrr-add" type="button">Add a row</button></div>
+    <h3>Save</h3>
+    <div class="lrr-row">
+      <button class="btn lrr-csv" type="button">Download CSV</button>
+      <button class="btn secondary lrr-trk" type="button">CSV for the Lab results tracker</button>
+    </div>
+    <Downloads label="Report as" class="lrr-dl" />
+    <p class="lrr-help">The tracker file has the columns date, test, value, unit, low, high, lab. Open it in the <a href="/documents/lab-results-tracker/">Lab results tracker</a>.</p>
+  </div>
+</div>
+
+<style is:inline>
+  .lrr { display: grid; gap: .85rem; }
+  .lrr-in { display: grid; gap: .6rem; }
+  .lrr-drop { display: grid; gap: .4rem; padding: 1rem; border: 2px dashed var(--line); border-radius: var(--radius); font-weight: 600; }
+  .lrr label { display: grid; gap: .25rem; font-weight: 600; font-size: 15px; }
+  .lrr textarea { width: 100%; font: inherit; }
+  .lrr-row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: end; }
+  .lrr-msg { margin: 0; min-height: 1.3em; }
+  .lrr-msg.err { color: var(--warn); }
+  .lrr-res[hidden] { display: none; }
+  .lrr-res { display: grid; gap: .7rem; }
+  .lrr-help { font-size: 14px; color: var(--muted); margin: 0; }
+  .lrr-wrap { overflow-x: auto; }
+  .lrr-tbl { border-collapse: collapse; width: 100%; min-width: 640px; }
+  .lrr-tbl th, .lrr-tbl td { border-bottom: 1px solid var(--line); padding: 5px 4px; text-align: left; vertical-align: top; font-size: 15px; }
+  .lrr-tbl input { width: 100%; min-width: 0; font: inherit; padding: 5px 6px; box-sizing: border-box; }
+  .lrr-tbl td:nth-child(2) { width: 90px; } .lrr-tbl td:nth-child(3) { width: 100px; } .lrr-tbl td:nth-child(4) { width: 130px; }
+  .lrr-mark { font-weight: 700; font-size: 14px; color: var(--accent); }
+  tr.lrr-flagged td:first-child { border-left: 3px solid var(--accent); }
+  .lrr-orig { display: block; font-size: 12px; color: var(--muted); margin-top: 3px; overflow-wrap: anywhere; }
+  .lrr-d summary { font-size: 13px; color: var(--accent); cursor: pointer; margin-top: 3px; }
+  .lrr-d p { margin: 3px 0 0; font-size: 13.5px; }
+  .lrr-x { min-height: 36px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 6px; cursor: pointer; font: inherit; }
+</style>
+
+<script>
+  import { parseLabText, parseLine, rangeOf, flagFor, TRACKER_HEAD, type Row } from '../../lib/docs/labparse';
+  import { lookup } from '../../lib/docs/medterms';
+  import { wireDownloads, save, fileSafe } from '../../lib/report';
+  import { toCsv } from '../../lib/convert/table';
+  const root = document.querySelector('.lrr') as HTMLElement;
+  const $ = <T extends Element>(s: string) => root.querySelector(s) as T;
+  const msg = $<HTMLElement>('.lrr-msg'), body = $<HTMLElement>('.lrr-body'), res = $<HTMLElement>('.lrr-res');
+  const say = (t: string, err = false) => { msg.textContent = t; msg.classList.toggle('err', err); };
+  const SAMPLE = `City Lab Report
+Patient: Example Person   Date 14/03/2026
+Haemoglobin 13.5 g/dL 13.0 - 17.0
+Total Cholesterol 210 mg/dL < 200
+Potassium 3.2 mmol/L 3.5-5.0
+HDL Cholesterol 45 mg/dL >40
+Platelets 250 x10^9/L 150-400
+TSH 2.1 mIU/L 0.4–4.0
+Glucose 5.4 mmol/L (3.9-5.6)
+Vitamin B12 450 pg/mL 200 - 900
+Page 1 of 1`;
+
+  const MARK = { below: 'below the printed range', above: 'above the printed range', within: '', none: '' } as const;
+  const rows: Row[] = [];
+  const trs: HTMLTableRowElement[] = [];
+
+  function refresh(i: number) {
+    const r = rows[i], tr = trs[i];
+    r.num = parseFloat(r.value.replace(/[<>≤≥,]/g, ''));
+    const g = rangeOf(r.rangeText); r.low = g.low; r.high = g.high;
+    r.flag = /^[<>≤≥]/.test(r.value.trim()) ? 'none' : flagFor(r.num, r.low, r.high, r.rangeText.trim());
+    (tr.querySelector('.lrr-mark') as HTMLElement).textContent = MARK[r.flag];
+    tr.classList.toggle('lrr-flagged', r.flag === 'below' || r.flag === 'above');
+    const t = lookup(r.test), slot = tr.querySelector('.lrr-slot') as HTMLElement;
+    slot.textContent = '';
+    if (t) {
+      const d = document.createElement('details'); d.className = 'lrr-d';
+      const s = document.createElement('summary'); s.textContent = 'What it measures';
+      const p = document.createElement('p'); p.className = 'lrr-meas'; p.textContent = t.plain;
+      d.append(s, p); slot.append(d);
+    }
+  }
+  function addRow(r: Row) {
+    const i = rows.push(r) - 1, tr = document.createElement('tr'); trs.push(tr);
+    tr.innerHTML = '<td><input data-k="test" aria-label="Test"><div class="lrr-slot"></div></td><td><input data-k="value" aria-label="Result"></td><td><input data-k="unit" aria-label="Unit"></td><td><input data-k="rangeText" aria-label="Range on report"></td><td class="lrr-mark"></td><td><button class="lrr-x" type="button" aria-label="Delete row">&times;</button><span class="lrr-orig"></span></td>';
+    for (const k of ['test', 'value', 'unit', 'rangeText'] as const) (tr.querySelector(`[data-k=${k}]`) as HTMLInputElement).value = r[k] as string;
+    (tr.querySelector('.lrr-orig') as HTMLElement).textContent = r.line ? 'Original: ' + r.line : '';
+    tr.addEventListener('input', (e) => {
+      const el = e.target as HTMLInputElement, k = el.dataset.k as 'test' | 'value' | 'unit' | 'rangeText';
+      const idx = trs.indexOf(tr); rows[idx][k] = el.value; refresh(idx);
+    });
+    (tr.querySelector('.lrr-x') as HTMLElement).onclick = () => { const idx = trs.indexOf(tr); rows.splice(idx, 1); trs.splice(idx, 1); tr.remove(); };
+    body.append(tr); refresh(i);
+  }
+  function load(text: string) {
+    rows.length = 0; trs.length = 0; body.textContent = '';
+    const found = parseLabText(text);
+    if (!found.length) { res.hidden = true; say('No test lines found. A line needs a name, a number and a unit or a range, like "Haemoglobin 13.5 g/dL 13.0 - 17.0". You can paste the lines again or add rows by hand.', true); res.hidden = false; return; }
+    found.forEach(addRow); res.hidden = false;
+    const d = text.match(/(?<!\d)(\d{4})-(\d{2})-(\d{2})(?!\d)/); if (d) $<HTMLInputElement>('.lrr-date').value = d[0];
+    say(`Found ${found.length} test${found.length === 1 ? '' : 's'}. Please check each row against your report.`);
+  }
+
+  $('.lrr-read').addEventListener('click', () => load($<HTMLTextAreaElement>('.lrr-paste').value));
+  $('.lrr-sample').addEventListener('click', () => { $<HTMLTextAreaElement>('.lrr-paste').value = SAMPLE; load(SAMPLE); });
+  $('.lrr-add').addEventListener('click', () => { res.hidden = false; addRow({ test: '', value: '', num: NaN, unit: '', low: null, high: null, rangeText: '', flag: 'none', line: '' }); });
+  $<HTMLInputElement>('.lrr-file').addEventListener('change', async (e) => {
+    const input = e.target as HTMLInputElement, f = input.files?.[0]; input.value = ''; if (!f) return;
+    try {
+      say(`Reading ${f.name}...`);
+      const { fileText } = await import('../../lib/docs/doctext');
+      let text = /\.(png|jpe?g|webp)$/i.test(f.name) || f.type.startsWith('image/') ? '' : await fileText(f).catch(() => '');
+      if (!text.trim()) {
+        const { ocrText } = await import('../../lib/docs/ocrfile');
+        text = await ocrText(f, /\.pdf$/i.test(f.name) || f.type === 'application/pdf', (m) => say(m));
+        if (!text.trim()) { say('No words could be read from this file. Type or paste the lines instead.', true); return; }
+      }
+      $<HTMLTextAreaElement>('.lrr-paste').value = text; load(text);
+    } catch (err: any) { say(err?.message || `${f.name} could not be read.`, true); }
+  });
+
+  const clean = () => rows.filter((r) => r.test.trim() || r.value.trim());
+  const lim = (n: number | null) => (n === null ? '' : String(n));
+  function csv(tracker: boolean) {
+    const date = $<HTMLInputElement>('.lrr-date').value, lab = $<HTMLInputElement>('.lrr-lab').value.trim();
+    const head = tracker ? TRACKER_HEAD : ['test', 'result', 'unit', 'range on report', 'mark', 'original line'];
+    const body = clean().map((r) => tracker ? [date, r.test, r.value, r.unit, lim(r.low), lim(r.high), lab] : [r.test, r.value, r.unit, r.rangeText, MARK[r.flag], r.line]);
+    return toCsv([head, ...body]);
+  }
+  $('.lrr-csv').addEventListener('click', () => save(new Blob([csv(false)], { type: 'text/csv' }), 'lab-report.csv', 'text/csv'));
+  $('.lrr-trk').addEventListener('click', () => save(new Blob([csv(true)], { type: 'text/csv' }), 'for-lab-results-tracker.csv', 'text/csv'));
+  wireDownloads($('.lrr-dl'), () => {
+    const date = $<HTMLInputElement>('.lrr-date').value, lab = $<HTMLInputElement>('.lrr-lab').value.trim();
+    return {
+      title: 'Lab report table', subtitle: [date, lab].filter(Boolean).join(' · '), file: fileSafe('lab-report-' + (date || 'table')),
+      sections: [{ title: 'Results', table: { head: ['Test', 'Result', 'Unit', 'Range on report', 'Mark'], rows: clean().map((r) => [r.test, r.value, r.unit, r.rangeText, MARK[r.flag]]) }, note: 'Copied from the report you opened. Check against the original. The mark only compares with the range printed on that report. Not medical advice.' }],
+    };
+  });
+</script>

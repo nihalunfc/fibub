@@ -1,0 +1,151 @@
+---
+import InsuranceNote from '../../components/InsuranceNote.astro';
+// #T826 Policy fine-print finder: highlights the clauses that most often surprise people.
+---
+<div class="tool-ui pf">
+  <InsuranceNote />
+  <section class="panel">
+    <h2>Policy wording</h2>
+    <p class="pf-priv">Your text stays on this page. It is not uploaded or stored.</p>
+    <label>Paste the wording here <textarea class="pf-text" rows="8" placeholder="Paste a policy clause or the whole document"></textarea></label>
+    <div class="pf-row">
+      <label class="btn secondary pf-file">Open a .txt or text PDF <input class="pf-pick" type="file" accept=".txt,.pdf,text/plain,application/pdf" /></label>
+      <button type="button" class="btn secondary pf-sample">Try an example</button>
+      <button type="button" class="btn secondary pf-clear">Clear</button>
+    </div>
+    <p class="note bad pf-err" role="alert" hidden></p>
+  </section>
+  <section class="pf-res" aria-live="polite" hidden>
+    <div class="panel">
+      <h2>Highlighted text</h2>
+      <div class="pf-key"></div>
+      <div class="pf-hl"></div>
+    </div>
+    <div class="panel">
+      <h2>Clauses found</h2>
+      <div class="pf-found"></div>
+      <button type="button" class="btn pf-copy">Copy summary</button>
+      <span class="pf-copied" role="status"></span>
+    </div>
+  </section>
+  <p class="note pf-none" hidden>No fine-print words found. The wording may use other terms, so read the whole document.</p>
+  <p class="pf-fine">This tool matches words only. It does not read or judge your policy, and it can miss clauses. Check the policy document and ask the insurer. Not insurance advice.</p>
+</div>
+
+<style is:inline>
+  .pf { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .pf > *, .pf-res > * { min-width: 0; }
+  .pf h2 { margin: 0 0 10px; font-size: 18px; }
+  .pf .panel { padding: 16px; }
+  .pf-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .pf-priv { margin: 0 0 10px; font-size: 14px; color: var(--muted); }
+  .pf label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .pf textarea { font: inherit; color: var(--ink); padding: 10px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; resize: vertical; box-sizing: border-box; }
+  .pf textarea:focus { border-color: var(--accent); outline: none; }
+  .pf-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .pf-file { position: relative; display: inline-flex; cursor: pointer; }
+  .pf-file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+  .pf-key { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; font-size: 12px; }
+  .pf-key span, .pf-hl mark { padding: 1px 5px; border-radius: 4px; color: var(--ink); }
+  .pf-hl { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; max-height: 360px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: var(--bg); }
+  .pf-g0 { background: rgba(230, 160, 0, .35); } .pf-g1 { background: rgba(60, 140, 230, .3); } .pf-g2 { background: rgba(60, 170, 90, .3); }
+  .pf-g3 { background: rgba(210, 70, 110, .28); } .pf-g4 { background: rgba(140, 100, 220, .3); } .pf-g5 { background: rgba(40, 170, 170, .3); }
+  .pf-item { border-top: 1px solid var(--line); padding: 10px 0; display: grid; gap: 4px; font-size: 14px; }
+  .pf-item:first-child { border-top: 0; padding-top: 0; }
+  .pf-item h3 { margin: 0; font-size: 15px; }
+  .pf-item p { margin: 0; }
+  .pf-item .pf-q { color: var(--muted); }
+  .pf-nums { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pf-nums b { border: 1px solid var(--line); border-radius: 999px; padding: 0 8px; font-size: 13px; }
+  .pf-snip { color: var(--muted); font-style: italic; overflow-wrap: anywhere; }
+  .pf-copied { margin-left: 10px; font-size: 13px; color: var(--muted); }
+  .pf-fine { margin: 0; color: var(--muted); font-size: 13px; }
+</style>
+
+<script>
+  type Rule = { id: string; name: string; re: RegExp; why: string; ask: string };
+  const R = (id: string, name: string, re: string, why: string, ask: string): Rule => ({ id, name, re: new RegExp(re, 'gi'), why, ask });
+  const RULES: Rule[] = [
+    R('wait', 'Waiting period', 'waiting\\s+periods?|waiting\\s+time', 'Some claims are refused until this time has passed.', 'Which treatments have a waiting period, and when does it start?'),
+    R('pre', 'Pre-existing conditions', 'pre-?\\s?existing(?:\\s+(?:diseases?|conditions?|illness(?:es)?))?', 'Conditions you had before buying may be delayed or excluded.', 'How are my existing conditions treated, and for how long?'),
+    R('mor', 'Moratorium', 'moratorium', 'After a set time, claims generally cannot be refused for old non-disclosure.', 'After how many continuous years does it apply, and what breaks it?'),
+    R('sub', 'Sub-limit', 'sub-?\\s?limits?|(?:limited|capped) to', 'A cap on one item, lower than the main limit.', 'Which items have their own lower caps?'),
+    R('room', 'Room rent', 'room\\s+rent|room\\s+(?:charges|category|rent\\s+cap)', 'A daily room limit can also cut other charges.', 'Is the cap per day, and does it reduce the rest of the bill?'),
+    R('copay', 'Co-payment', 'co-?\\s?pay(?:ment)?s?|co-?\\s?insurance', 'You pay a share of every claim.', 'When does the share apply, and is there a maximum?'),
+    R('ded', 'Deductible or excess', 'deductibles?|excess(?!ive)', 'You pay this first on each claim or year.', 'Is it per claim or per year, and what counts towards it?'),
+    R('excl', 'Exclusion', 'exclusions?|excluded|not\\s+covered|we\\s+will\\s+not\\s+pay', 'Things the policy will not pay for.', 'Can I see the full list of exclusions?'),
+    R('prop', 'Proportionate deduction', 'proportionate(?:ly)?(?:\\s+deduction)?|pro-?\\s?rata|pro\\s+rata', 'The payout is cut in proportion.', 'Which costs are reduced if one limit is exceeded?'),
+    R('avg', 'Average or underinsurance', 'average\\s+clause|under-?\\s?insur(?:ed|ance)|condition\\s+of\\s+average', 'If the cover is below the real value, part losses are paid in proportion.', 'How is the value checked, and how is a part loss reduced?'),
+    R('dep', 'Depreciation', 'depreciation|wear\\s+and\\s+tear', 'Age is deducted from what you are paid.', 'What rates apply by age, and can I add cover without it?'),
+    R('free', 'Free look', 'free[-\\s]?look', 'A short window to cancel and get money back.', 'How many days, and what charges are taken?'),
+    R('grace', 'Grace period', 'grace\\s+periods?', 'Extra days to pay after the due date.', 'Is cover active during the grace period?'),
+    R('canc', 'Cancellation or refund', 'cancell?(?:ation|ed|ing)?|refunds?', 'Ending early may cost a fee or give a partial refund.', 'What do I get back if I cancel mid-year?'),
+    R('notice', 'Claim notice deadline', '(?:notify|notice|inform|intimat\\w+|report)[^.]{0,60}(?:within|no\\s+later\\s+than|before)|within\\s+\\d+\\s*(?:hours?|days?)\\s+(?:of|from|after)', 'A late report can lead to a refused claim.', 'By when must I tell the insurer, and how?'),
+    R('net', 'Network or cashless', 'network|cash-?\\s?less|reimburse\\w*', 'Cover and cost can differ inside and outside the network.', 'Who is in the network, and what if I go outside it?'),
+    R('renew', 'Renewal or age limit', 'renew\\w*|age\\s+limit|entry\\s+age|maximum\\s+age', 'The policy may end or change at a certain age.', 'Is renewal guaranteed, and does the price rise by age?'),
+  ];
+  const NUM = /(?:(?:₹|\$|£|rs\.?|inr|usd|cad|gbp)\s?\d[\d,]*(?:\.\d+)?)|(?:\d[\d,]*(?:\.\d+)?\s?(?:%|per\s?cent|percent|days?|weeks?|months?|years?|yrs?|hours?))/gi;
+  const root = document.querySelector<HTMLElement>('.pf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const ta = q<HTMLTextAreaElement>('.pf-text');
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  let summary = '';
+  const SAMPLE = 'Pre-existing diseases are covered after a waiting period of 36 months. Room rent is limited to 1% of the sum insured per day. A co-payment of 10% applies to every claim. You must tell us within 7 days of admission. This is an example text, not a real policy.';
+  function run() {
+    const text = ta.value;
+    q('.pf-err').hidden = true;
+    const none = q('.pf-none'), res = q('.pf-res');
+    if (!text.trim()) { res.hidden = true; none.hidden = true; return; }
+    const spans: { s: number; e: number; g: number }[] = [];
+    const found = new Map<number, { snips: string[]; nums: Set<string> }>();
+    RULES.forEach((r, g) => {
+      r.re.lastIndex = 0;
+      for (const m of text.matchAll(r.re)) spans.push({ s: m.index!, e: m.index! + m[0].length, g });
+    });
+    // sentences, with the groups they touch
+    const sentRe = /[^.!?\n]+[.!?]*/g;
+    for (const m of text.matchAll(sentRe)) {
+      const s = m[0].trim(); if (!s) continue;
+      RULES.forEach((r, g) => {
+        r.re.lastIndex = 0;
+        if (!r.re.test(s)) return;
+        const e = found.get(g) || { snips: [], nums: new Set<string>() };
+        if (e.snips.length < 3) e.snips.push(s.length > 220 ? s.slice(0, 220) + '...' : s);
+        for (const n of s.match(NUM) || []) e.nums.add(n.replace(/\s+/g, ' ').trim());
+        found.set(g, e);
+      });
+    }
+    spans.sort((a, b) => a.s - b.s || b.e - a.e);
+    let html = '', pos = 0;
+    for (const sp of spans) {
+      if (sp.s < pos) continue;
+      html += esc(text.slice(pos, sp.s)) + `<mark class="pf-g${sp.g % 6}" title="${esc(RULES[sp.g].name)}">${esc(text.slice(sp.s, sp.e))}</mark>`;
+      pos = sp.e;
+    }
+    html += esc(text.slice(pos));
+    const gs = [...found.keys()].sort((a, b) => a - b);
+    none.hidden = gs.length > 0; res.hidden = !gs.length;
+    if (!gs.length) return;
+    q('.pf-hl').innerHTML = html;
+    q('.pf-key').innerHTML = gs.map((g) => `<span class="pf-g${g % 6}">${esc(RULES[g].name)}</span>`).join('');
+    q('.pf-found').innerHTML = gs.map((g) => {
+      const e = found.get(g)!, r = RULES[g];
+      return `<div class="pf-item"><h3><span class="pf-key"><span class="pf-g${g % 6}">${esc(r.name)}</span></span></h3><p>${esc(r.why)}</p>${e.nums.size ? `<div class="pf-nums">${[...e.nums].map((n) => `<b>${esc(n)}</b>`).join('')}</div>` : ''}<p class="pf-snip">${esc(e.snips[0])}</p><p class="pf-q">Ask: ${esc(r.ask)}</p></div>`;
+    }).join('');
+    summary = 'Policy fine-print checklist (words found, not advice)\n\n' + gs.map((g) => { const e = found.get(g)!; return `[ ] ${RULES[g].name}${e.nums.size ? ' (' + [...e.nums].join(', ') + ')' : ''}\n    Why: ${RULES[g].why}\n    Ask: ${RULES[g].ask}`; }).join('\n');
+  }
+  q('.pf-sample').addEventListener('click', () => { ta.value = SAMPLE; run(); });
+  q('.pf-clear').addEventListener('click', () => { ta.value = ''; q<HTMLInputElement>('.pf-pick').value = ''; run(); });
+  q('.pf-copy').addEventListener('click', async () => {
+    const note = q('.pf-copied');
+    try { await navigator.clipboard.writeText(summary); note.textContent = 'Copied.'; } catch { note.textContent = 'Could not copy: select the text on the page instead.'; }
+  });
+  q<HTMLInputElement>('.pf-pick').addEventListener('change', async (ev) => {
+    const file = (ev.target as HTMLInputElement).files?.[0]; if (!file) return;
+    try {
+      const { fileText } = await import('../../lib/docs/doctext');
+      ta.value = (await fileText(file)).slice(0, 400000); run();
+    } catch { q('.pf-err').hidden = false; q('.pf-err').textContent = 'Could not read this file. Paste the text instead.'; }
+  });
+  ta.addEventListener('input', run);
+</script>

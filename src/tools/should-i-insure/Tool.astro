@@ -1,0 +1,107 @@
+---
+import InsuranceNote from '../../components/InsuranceNote.astro';
+// #T825 Should I insure this? Expected loss against the price, with a risk attitude.
+---
+<div class="tool-ui si">
+  <InsuranceNote />
+  <section class="panel">
+    <h2>Your numbers</h2>
+    <p class="si-eg" hidden></p>
+    <div class="si-ex">
+      <span>Fill with an example:</span>
+      <button type="button" class="btn secondary" data-ex="phone">Phone screen cover</button>
+      <button type="button" class="btn secondary" data-ex="warranty">Extended warranty</button>
+      <button type="button" class="btn secondary" data-ex="travel">Travel medical</button>
+    </div>
+    <div class="si-grid">
+      <label>Currency <select class="si-cur" data-k="cur"></select></label>
+      <label>Cover price per year <input data-k="prem" inputmode="decimal" /></label>
+      <label>Chance of the loss per year <span class="si-suf"><input data-k="p" inputmode="decimal" /><i>%</i></span><small class="si-one"></small></label>
+      <label>Size of the loss <input data-k="loss" inputmode="decimal" /></label>
+      <label>Deductible (you pay first) <input data-k="ded" inputmode="decimal" /></label>
+      <label>Savings you could use <input data-k="wealth" inputmode="decimal" /></label>
+      <label>Risk attitude (0 to 4) <input data-k="gamma" inputmode="decimal" /><small>0 = only averages count, 1 = typical, 4 = very cautious.</small></label>
+    </div>
+    <p class="note bad si-err" role="alert" hidden></p>
+  </section>
+  <section class="si-res" aria-live="polite">
+    <div class="si-stats">
+      <div><span>Expected loss per year</span><b class="si-s-exp"></b></div>
+      <div><span>Fair price (expected payout)</span><b class="si-s-fair"></b></div>
+      <div><span>Loading (above the fair price)</span><b class="si-s-load"></b></div>
+      <div><span>Most it is worth paying for you</span><b class="si-s-max"></b></div>
+    </div>
+    <p class="si-verdict"></p>
+    <p class="note warn si-ruin" hidden>The loss is more than your savings, so it could leave you with nothing to fall back on. Weigh this alongside the numbers.</p>
+  </section>
+  <p class="si-fine">How it is worked out: expected loss = chance x loss. Fair price = chance x (loss - deductible). The most worth paying is the price where your expected utility with cover equals that without it, using a standard risk-aversion curve. The chance is your own estimate. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .si { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .si > *, .si-res > * { min-width: 0; }
+  .si h2 { margin: 0 0 12px; font-size: 18px; }
+  .si .panel { padding: 16px; }
+  .si-ex { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; font-size: 14px; color: var(--muted); }
+  .si-eg { margin: 0 0 10px; font-size: 14px; }
+  .si-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .si label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); align-content: start; }
+  .si small { font-size: 12px; }
+  .si input, .si select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .si input:focus, .si select:focus { border-color: var(--accent); outline: none; }
+  .si-suf { position: relative; display: block; }
+  .si-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .si-suf input { padding-right: 30px; }
+  .si-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .si-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .si-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); align-content: start; }
+  .si-stats span { font-size: 13px; color: var(--muted); }
+  .si-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
+  .si-verdict { margin: 0; font-size: 15px; }
+  .si-ruin { margin: 0; }
+  .si-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .si-err { margin: 10px 0 0; }
+  @media (max-width: 720px) { .si-stats { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<script>
+  import { shouldInsure } from '../../lib/money/insurance';
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.si')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  q('.si-cur').innerHTML = currencyOptions(defaultCurrency());
+  const EX: Record<string, [string, string, string, string, string, string, string]> = {
+    // prem, p%, loss, deductible, savings, gamma, label
+    phone: ['40', '10', '300', '0', '5,000', '1', 'Example: screen cover on a phone. Made-up numbers.'],
+    warranty: ['120', '8', '700', '0', '8,000', '1', 'Example: extended warranty on an appliance. Made-up numbers.'],
+    travel: ['60', '2', '40,000', '0', '15,000', '2', 'Example: medical cover for a trip abroad. Made-up numbers.'],
+  };
+  function fill(id: string) {
+    const e = EX[id]; if (!e) return;
+    ['prem', 'p', 'loss', 'ded', 'wealth', 'gamma'].forEach((k, i) => (f(k).value = e[i]));
+    q('.si-eg').hidden = false; q('.si-eg').textContent = e[6] + ' Change them to yours.';
+    run();
+  }
+  const $ = (n: number) => money(n, f('cur').value, 0);
+  function run() {
+    const prem = num(f('prem').value), p = num(f('p').value) / 100, loss = num(f('loss').value), ded = num(f('ded').value), wealth = num(f('wealth').value), gamma = num(f('gamma').value);
+    q('.si-one').textContent = p > 0 && p <= 1 ? `About 1 in ${Math.round((1 / p) * 10) / 10} years.` : '';
+    const bad = !(prem >= 0) || !(loss > 0) ? 'Enter the cover price and the size of the loss.' : !(p > 0 && p < 1) ? 'Enter a chance between 0 and 100 (for example 1).' : ded < 0 || ded >= loss ? 'The deductible must be less than the loss.' : !(wealth > 0) ? 'Enter the savings you could use (more than 0).' : !(gamma >= 0 && gamma <= 4) ? 'Enter a risk attitude from 0 to 4.' : '';
+    q('.si-err').hidden = !bad; q('.si-err').textContent = bad; q('.si-res').hidden = !!bad;
+    if (bad) return;
+    const r = shouldInsure({ wealth, loss, p, premium: prem, deductible: ded, gamma });
+    q('.si-s-exp').textContent = $(r.expLoss);
+    q('.si-s-fair').textContent = $(r.expPayout);
+    q('.si-s-load').textContent = isFinite(r.loading) ? `${Math.round(r.loading * 1000) / 10}%` : 'No payout';
+    q('.si-s-max').textContent = $(r.maxPremium);
+    q('.si-verdict').innerHTML = r.worth
+      ? `The price of <b>${$(prem)}</b> is at or below the most this is worth to you (${$(r.maxPremium)}), so on these numbers the cover costs less than the worry it removes.`
+      : `The price of <b>${$(prem)}</b> is above the most this is worth to you (${$(r.maxPremium)}), so on these numbers you may do as well keeping the risk. This depends on the chance you guessed.`;
+    q('.si-ruin').hidden = !r.ruin;
+  }
+  root.querySelectorAll<HTMLButtonElement>('[data-ex]').forEach((b) => b.addEventListener('click', () => fill(b.dataset.ex!)));
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  f('prem').value = '600'; f('p').value = '1'; f('loss').value = '50,000'; f('ded').value = '0'; f('wealth').value = '100,000'; f('gamma').value = '1';
+  run();
+</script>

@@ -1,0 +1,181 @@
+---
+// #T846 Medical expense tax helper
+import Downloads from '../../components/Downloads.astro';
+---
+<div class="tool-ui mt">
+  <p class="note">Your files stay on this device. fibub never sees them. For organising your own records, not tax, billing or legal advice.</p>
+  <div class="mt-box">
+    <h2>1. Pick a country</h2>
+    <div class="mt-row">
+      <label>Country <select class="mt-cty"><option value="CA">Canada</option><option value="US">United States</option><option value="IN">India</option><option value="UK">United Kingdom</option></select></label>
+      <label>Dates are written <select class="mt-dord"><option value="dmy">day / month / year</option><option value="mdy">month / day / year</option></select></label>
+    </div>
+  </div>
+  <div class="mt-box mt-costs">
+    <h2>2. Add your costs</h2>
+    <div class="mt-row">
+      <label>Date <input class="mt-d" type="date" /></label>
+      <label>Person <input class="mt-p" /></label>
+      <label>What <input class="mt-w" /></label>
+      <label>Amount paid <input class="mt-a" inputmode="decimal" /></label>
+      <label>Paid back by insurance <input class="mt-r" inputmode="decimal" /></label>
+      <button type="button" class="btn small mt-add">Add</button>
+    </div>
+    <label>Or open a CSV (columns: date, person, what, amount, reimbursed) <input class="mt-file" type="file" accept=".csv,.tsv,.txt,.xlsx" /></label>
+    <div class="mt-row"><button type="button" class="btn secondary small mt-ex">Use an example</button><button type="button" class="btn secondary small mt-clear">Clear all</button></div>
+    <p class="mt-msg" role="status" aria-live="polite"></p>
+    <div class="mt-scroll"><table class="mt-list"><thead><tr><th>Date</th><th>Person</th><th>What</th><th>Paid</th><th>Back</th><th></th></tr></thead><tbody></tbody></table></div>
+  </div>
+  <div class="mt-box mt-out" hidden>
+    <h2>3. Your figures</h2>
+    <div class="mt-in mt-in-CA">
+      <div class="mt-row">
+        <label>Tax year <select class="mt-yr"><option value="2025">2025</option><option value="2026">2026</option></select></label>
+        <label>Claim is for <select class="mt-who"><option value="self">Me, my spouse or partner, or children under 18</option><option value="dep">Another dependant (separate claim)</option></select></label>
+        <label><span class="mt-incl">Your net income (line 23600)</span> <input class="mt-ni" inputmode="decimal" value="50000" /></label>
+        <label>Fixed threshold <input class="mt-th" inputmode="decimal" value="2834" /></label>
+        <label>Federal credit rate (%) <input class="mt-cr" inputmode="decimal" value="14.5" /></label>
+      </div>
+      <p class="mt-help">The threshold of $2,834 is the figure on canada.ca for the 2025 tax year. It is not confirmed for 2026, so it stays editable: check canada.ca. The credit rate is the lowest federal rate for the year; provinces have their own credits.</p>
+    </div>
+    <div class="mt-in mt-in-US" hidden>
+      <div class="mt-row"><label>Adjusted gross income (AGI) <input class="mt-agi" inputmode="decimal" value="60000" /></label></div>
+      <p class="mt-help">You can only use this if you itemise on Schedule A instead of taking the standard deduction. Compare the two on your own return.</p>
+    </div>
+    <div class="mt-in mt-in-IN" hidden>
+      <div class="mt-row"><label><input type="checkbox" class="mt-sen" /> Person treated is 60 or older</label></div>
+      <p class="mt-help">Section 80DDB covers treatment of specified illnesses. It is claimed under the old tax regime. Health insurance premiums (80D) are a different deduction and are not worked out here. Section numbers may change under the Income-tax Act 2025.</p>
+    </div>
+    <div class="mt-in mt-in-UK" hidden></div>
+    <div class="mt-result" aria-live="polite"></div>
+    <p class="mt-src"></p>
+    <p class="mt-help">Check the official source or ask a tax professional before you file. This is not tax advice, and it does not say whether a cost qualifies.</p>
+    <div class="mt-row"><button type="button" class="btn secondary small mt-csv">Download CSV</button></div>
+    <Downloads label="Download summary" />
+  </div>
+</div>
+
+<style is:inline>
+  .mt { display: grid; gap: .9rem; }
+  .mt-box { display: grid; gap: .6rem; border: 1px solid var(--line); border-radius: var(--radius); padding: .9rem; }
+  .mt-box h2 { margin: 0; font-size: 1.1rem; }
+  .mt label { display: grid; gap: .25rem; font-weight: 600; font-size: 15px; }
+  .mt-row { display: flex; flex-wrap: wrap; gap: .6rem; align-items: end; }
+  .mt input, .mt select { font: inherit; padding: .45rem; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); max-width: 100%; }
+  .mt-scroll { overflow-x: auto; }
+  .mt-list { border-collapse: collapse; font-size: 14px; width: 100%; }
+  .mt-list th, .mt-list td { text-align: left; padding: 4px; }
+  .mt-list td.n, .mt-list th.n { text-align: right; }
+  .mt-list tr.in td { background: var(--accent-soft, transparent); font-weight: 600; }
+  .mt-help, .mt-msg, .mt-src { margin: 0; font-size: 14px; }
+  .mt-msg.err { color: var(--warn); }
+  .mt-result { display: grid; gap: .3rem; }
+  .mt-result .big { font-size: 1.5rem; font-weight: 700; }
+  .mt [hidden] { display: none !important; }
+</style>
+
+<script>
+  import { parseExpenses, bestWindow, canadaMetc, usDeduction, indiaDdb, net, toIso, toNum, round2, type Expense, type DateOrder } from '../../lib/money/medical';
+  import { wireDownloads, save, type Section } from '../../lib/report';
+  const root = document.querySelector('.mt') as HTMLElement;
+  const $ = <T extends Element>(s: string) => root.querySelector(s) as T;
+  const val = (s: string) => $<HTMLInputElement>(s).value;
+  const order = () => val('.mt-dord') as DateOrder;
+  let list: Expense[] = [];
+  const say = (t: string, err = false) => { const m = $<HTMLElement>('.mt-msg'); m.textContent = t; m.classList.toggle('err', err); };
+  const fmt = (n: number, c: string) => (c === 'IN' ? '₹' : c === 'UK' ? '£' : c === 'US' ? 'US$' : 'CA$') + n.toLocaleString(c === 'IN' ? 'en-IN' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const SRC: Record<string, string> = {
+    CA: 'Source: Canada Revenue Agency, lines 33099 and 33199, eligible medical expenses (canada.ca); fixed threshold $2,834 for 2025, checked 2026-11-10. Federal credit rates as in the Canada income tax calculator on this site. The CRA publishes the list of costs it treats as eligible: check canada.ca.',
+    US: 'Source: IRS Topic 502 and Publication 502, Schedule A (irs.gov): costs above 7.5% of AGI, checked 2026-11-10.',
+    IN: 'Source: Income Tax Department, section 80DDB, limit ₹40,000 (₹1,00,000 for senior citizens), checked 2026-11-10. The rules reduce the amount by what insurance paid back; check the official source.',
+    UK: 'Source: GOV.UK, checked 2026-11-10.',
+  };
+  let report: { rows: string[][]; facts: [string, string][]; text: string[] } = { rows: [], facts: [], text: [] };
+
+  function drawList() {
+    const c = val('.mt-cty');
+    $('.mt-list tbody').innerHTML = list.map((e, i) => `<tr><td>${e.date}</td><td></td><td></td><td class="n">${fmt(e.amount, c)}</td><td class="n">${fmt(e.reimbursed, c)}</td><td><button type="button" class="btn secondary small" data-del="${i}" aria-label="Remove">&times;</button></td></tr>`).join('');
+    $('.mt-list tbody').querySelectorAll('tr').forEach((tr, i) => { tr.children[1].textContent = list[i].person; tr.children[2].textContent = list[i].what; });
+  }
+  function run() {
+    const c = val('.mt-cty');
+    root.querySelectorAll('.mt-in').forEach((d) => ((d as HTMLElement).hidden = !d.classList.contains('mt-in-' + c)));
+    $<HTMLElement>('.mt-costs').hidden = c === 'UK';
+    $<HTMLElement>('.mt-out').hidden = c !== 'UK' && !list.length;
+    $('.mt-src').textContent = SRC[c];
+    drawList();
+    const res = $<HTMLElement>('.mt-result'); res.textContent = '';
+    const add = (t: string, cls = '') => { const p = document.createElement('p'); p.style.margin = '0'; if (cls) p.className = cls; p.textContent = t; res.appendChild(p); return p; };
+    const facts: [string, string][] = [], text: string[] = [];
+    let rows: Expense[] = list;
+    if (c === 'UK') {
+      add('There is no general tax relief for medical expenses in the UK, so there is nothing to work out here.', 'big');
+      text.push('The UK has no general tax relief for medical expenses.');
+      add('Some specific reliefs exist (for example for disability-related items, or VAT relief on some goods). Check GOV.UK.');
+      report = { rows: [], facts, text }; return;
+    }
+    const paid = round2(list.reduce((s, e) => s + e.amount, 0)), back = round2(list.reduce((s, e) => s + e.reimbursed, 0)), netAll = round2(list.reduce((s, e) => s + net(e), 0));
+    if (c === 'CA') {
+      const yr = +val('.mt-yr');
+      $('.mt-incl').textContent = val('.mt-who') === 'dep' ? "That person's net income" : 'Your net income (line 23600)';
+      const w = bestWindow(list, yr);
+      rows = list.filter((e) => e.date >= w.start && e.date <= w.end);
+      const r = canadaMetc(w.total, toNum(val('.mt-ni')) || 0, { creditRate: (toNum(val('.mt-cr')) || 0) / 100, threshold: toNum(val('.mt-th')) || 0 });
+      add(`Best 12 months ending in ${yr}: ${w.start} to ${w.end}`);
+      add(`Costs in that period, after insurance: ${fmt(w.total, c)} (${w.count} items)`);
+      add(`Less the lesser of 3% of net income or the threshold: ${fmt(r.reduce, c)}`);
+      add(`Amount for the claim: ${fmt(r.claim, c)}`);
+      add(`Federal credit at ${val('.mt-cr')}%: ${fmt(r.credit, c)}`, 'big');
+      if (val('.mt-who') === 'dep') add('For another dependant, the claim is separate and the reduction uses that person\'s net income. Check the CRA page for any other limits.');
+      facts.push(['Period', `${w.start} to ${w.end}`], ['Costs after insurance', fmt(w.total, c)], ['Reduction', fmt(r.reduce, c)], ['Amount for the claim', fmt(r.claim, c)], ['Federal credit', fmt(r.credit, c)]);
+      text.push('Canada medical expense tax credit, worked out from the figures typed in. Check canada.ca.');
+    } else if (c === 'US') {
+      const r = usDeduction(netAll, toNum(val('.mt-agi')) || 0);
+      add(`Costs after insurance: ${fmt(netAll, c)}`);
+      add(`Less 7.5% of AGI: ${fmt(r.floor, c)}`);
+      add(`Itemised medical deduction: ${fmt(r.deduction, c)}`, 'big');
+      facts.push(['Costs after insurance', fmt(netAll, c)], ['7.5% of AGI', fmt(r.floor, c)], ['Itemised deduction', fmt(r.deduction, c)]);
+      text.push('US itemised medical deduction (Schedule A), worked out from the figures typed in.');
+    } else {
+      const r = indiaDdb(paid, back, $<HTMLInputElement>('.mt-sen').checked);
+      add(`Costs: ${fmt(paid, c)}, less paid back by insurance ${fmt(back, c)} = ${fmt(r.after, c)}`);
+      add(`Limit: ${fmt(r.limit, c)}${r.capped ? ' (applied)' : ''}`);
+      add(`Section 80DDB deduction: ${fmt(r.deduction, c)}`, 'big');
+      facts.push(['Costs', fmt(paid, c)], ['Paid back by insurance', fmt(back, c)], ['Limit', fmt(r.limit, c)], ['Deduction', fmt(r.deduction, c)]);
+      text.push('India section 80DDB, worked out from the figures typed in.');
+    }
+    report = { rows: rows.map((e) => [e.date, e.person, e.what, fmt(e.amount, c), fmt(e.reimbursed, c)]), facts, text };
+  }
+  ['.mt-cty', '.mt-yr', '.mt-who', '.mt-ni', '.mt-th', '.mt-cr', '.mt-agi', '.mt-sen', '.mt-dord'].forEach((s) => $(s).addEventListener('input', run));
+  $('.mt-yr').addEventListener('change', () => { const y = val('.mt-yr'); $<HTMLInputElement>('.mt-cr').value = y === '2025' ? '14.5' : '14'; run(); });
+  $('.mt-add').addEventListener('click', () => {
+    const date = val('.mt-d'), a = toNum(val('.mt-a'));
+    if (!date || isNaN(a)) { say('Add a date and an amount.', true); return; }
+    const rb = toNum(val('.mt-r'));
+    list.push({ date, person: val('.mt-p'), what: val('.mt-w'), amount: a, reimbursed: isNaN(rb) ? 0 : rb });
+    ['.mt-a', '.mt-r', '.mt-w'].forEach((s) => ($<HTMLInputElement>(s).value = '')); say(''); run();
+  });
+  $('.mt-list tbody').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('[data-del]') as HTMLElement | null; if (b) { list.splice(+b.dataset.del!, 1); run(); } });
+  $('.mt-clear').addEventListener('click', () => { list = []; say(''); run(); });
+  const EX = ['date,person,what,amount,reimbursed'];
+  for (let i = 0; i < 14; i++) { const y = 2025 + Math.floor(i / 12), m = (i % 12) + 1; EX.push(`${y}-${String(m).padStart(2, '0')}-15,Sam,${i === 0 ? 'Dental work' : 'Prescription'},${i === 0 ? 900 : 250 + i * 10},${i % 4 === 0 ? 50 : 0}`); }
+  const loadCsv = (t: string) => { const got = parseExpenses(t, order()); if (!got.length) { say('No rows with a date and an amount were found.', true); return; } list = list.concat(got); say(`Added ${got.length} rows.`); run(); };
+  $('.mt-ex').addEventListener('click', () => { list = []; loadCsv(EX.join('\n')); });
+  $<HTMLInputElement>('.mt-file').addEventListener('change', async (e) => {
+    const inp = e.target as HTMLInputElement, f = inp.files?.[0]; inp.value = ''; if (!f) return;
+    try { const { readDataFile } = await import('../../lib/datafile'); loadCsv((await readDataFile(f, { maxBytes: 5e6, maxCols: 30, maxRows: 5000 })).text); }
+    catch (err: any) { say(err?.message || 'That file could not be read.', true); }
+  });
+  $('.mt-csv').addEventListener('click', () => {
+    const q = (s: string) => `"${s.replace(/"/g, '""')}"`;
+    const out = ['date,person,what,amount,reimbursed', ...list.map((e) => [e.date, q(e.person), q(e.what), e.amount, e.reimbursed].join(','))].join('\n');
+    save(new Blob([out], { type: 'text/csv' }), 'medical-costs.csv', 'text/csv');
+  });
+  wireDownloads($('.mt-out'), () => {
+    const sections: Section[] = [{ title: 'Result', text: report.text, facts: report.facts }];
+    if (report.rows.length) sections.push({ title: 'Costs used', table: { head: ['Date', 'Person', 'What', 'Paid', 'Back'], rows: report.rows, align: ['l', 'l', 'l', 'r', 'r'] } });
+    sections.push({ title: 'Source', text: [$('.mt-src').textContent || ''], note: 'Check the official source or a tax professional. Not tax advice.' });
+    return { title: 'Medical expense tax summary', file: 'medical-expense-tax', sections };
+  });
+  run();
+</script>

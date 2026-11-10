@@ -1,0 +1,105 @@
+---
+// #1791 Currency converter. Rates: src/lib/collect/prices.ts (same-origin /api/prices, checked, with fallback).
+import { CURRENCIES } from '../../lib/collect/prices';
+const opts = CURRENCIES.map(([c, n]) => ({ c, label: `${c.toUpperCase()} · ${n}` }));
+---
+<div class="tool-ui fxc">
+  <div class="fxc-grid">
+    <label>Amount <input class="fxc-amt" type="number" min="0" step="any" inputmode="decimal" value="1000" /></label>
+    <label>From <select class="fxc-from">{opts.map((o) => <option value={o.c} selected={o.c === 'cad'}>{o.label}</option>)}</select></label>
+    <button class="btn secondary small fxc-swap" type="button" aria-label="Swap From and To">⇄ Swap</button>
+    <label>To <select class="fxc-to">{opts.map((o) => <option value={o.c} selected={o.c === 'inr'}>{o.label}</option>)}</select></label>
+  </div>
+  <p class="fxc-res" role="status" aria-live="polite"><b class="fxc-big">…</b><span class="fxc-one"></span></p>
+  <p class="fxc-src">Loading today’s rates from fibub.com…</p>
+
+  <details class="fxc-box" open>
+    <summary>Check a bank or transfer offer</summary>
+    <p class="fxc-help">Type the rate on the offer (1 From = this many To) and any fee, to see what the bank keeps.</p>
+    <div class="fxc-grid">
+      <label>Their rate <input class="fxc-their" type="number" min="0" step="any" inputmode="decimal" placeholder="e.g. 61.5" /></label>
+      <label>Fixed fee (From) <input class="fxc-fee" type="number" min="0" step="any" inputmode="decimal" placeholder="0" /></label>
+      <label>Fee % <input class="fxc-feep" type="number" min="0" max="100" step="any" inputmode="decimal" placeholder="0" /></label>
+    </div>
+    <p class="fxc-offer"></p>
+  </details>
+
+  <details class="fxc-box">
+    <summary>Use my own rate</summary>
+    <p class="fxc-help">For an old receipt, or when you know today’s rate and the page couldn’t load it. 1 From = this many To.</p>
+    <label>My rate <input class="fxc-own" type="number" min="0" step="any" inputmode="decimal" placeholder="use today’s" /></label>
+  </details>
+
+  <table class="fxc-tab"><caption>The same amount in every currency</caption><thead><tr><th>Currency</th><th>Amount</th><th>1 unit in From</th></tr></thead><tbody></tbody></table>
+</div>
+
+<style is:inline>
+  .fxc { display: grid; gap: .75rem; }
+  .fxc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .5rem; align-items: end; }
+  .fxc-grid label { display: grid; gap: .25rem; } .fxc-grid input, .fxc-grid select, .fxc-box input { width: 100%; box-sizing: border-box; min-width: 0; }
+  .fxc-res { margin: 0; display: grid; gap: .2rem; } .fxc-big { font-size: 1.6rem; overflow-wrap: anywhere; } .fxc-one { color: var(--muted); }
+  .fxc-src, .fxc-help, .fxc-offer { margin: 0; font-size: .92rem; } .fxc-src.warn { color: var(--warn); }
+  .fxc-box { border: 1px solid var(--line); border-radius: var(--radius); padding: .6rem .8rem; display: grid; gap: .5rem; }
+  .fxc-box[open] { padding-bottom: .8rem; } .fxc-box summary { cursor: pointer; font-weight: 600; }
+  .fxc-box label { display: grid; gap: .25rem; max-width: 260px; }
+  .fxc-offer .bad { color: var(--warn); }
+  .fxc-tab { width: 100%; border-collapse: collapse; font-size: .92rem; } .fxc-tab caption { text-align: left; font-weight: 600; padding-bottom: .3rem; }
+  .fxc-tab th, .fxc-tab td { text-align: left; padding: .3rem .4rem; border-bottom: 1px solid var(--line); } .fxc-tab td { font-variant-numeric: tabular-nums; }
+  .fxc-tab tr.on td, .fxc-tab tr.on th { font-weight: 700; }
+</style>
+
+<script>
+  import { loadPrices, CURRENCIES, FALLBACK, SOURCE_URL, type Prices } from '../../lib/collect/prices';
+  const root = document.querySelector('.fxc') as HTMLElement;
+  const $ = <T extends Element>(s: string) => root.querySelector(s) as T;
+  const amt = $<HTMLInputElement>('.fxc-amt'), from = $<HTMLSelectElement>('.fxc-from'), to = $<HTMLSelectElement>('.fxc-to');
+  const their = $<HTMLInputElement>('.fxc-their'), fee = $<HTMLInputElement>('.fxc-fee'), feep = $<HTMLInputElement>('.fxc-feep'), own = $<HTMLInputElement>('.fxc-own');
+  const src = $<HTMLElement>('.fxc-src'), offer = $<HTMLElement>('.fxc-offer'), body = root.querySelector('.fxc-tab tbody') as HTMLElement;
+  let P: Prices = FALLBACK;
+  const num = (i: HTMLInputElement) => { const v = parseFloat(i.value); return Number.isFinite(v) && v >= 0 ? v : 0; };
+  const fmt = (v: number, c: string, dp?: number) => {
+    const d = dp ?? (Math.abs(v) >= 100 ? 2 : Math.abs(v) >= 1 ? 4 : 6);
+    try { return new Intl.NumberFormat('en', { style: 'currency', currency: c.toUpperCase(), currencyDisplay: 'code', minimumFractionDigits: Math.min(2, d), maximumFractionDigits: d }).format(v).replace(/ /g, ' '); }
+    catch { return `${c.toUpperCase()} ${v.toFixed(d)}`; }
+  };
+  /** Mid-market rate: 1 unit of a = this many b (both quoted per US dollar). */
+  const mid = (a: string, b: string) => (P.fx[b] ?? 1) / (P.fx[a] ?? 1);
+
+  function render() {
+    const a = from.value, b = to.value, x = num(amt), ownRate = num(own);
+    const r = ownRate > 0 ? ownRate : mid(a, b), fair = x * r;
+    $('.fxc-big').textContent = `${fmt(x, a, 2)} = ${fmt(fair, b, 2)}`;
+    $('.fxc-one').textContent = `1 ${a.toUpperCase()} = ${r.toFixed(4)} ${b.toUpperCase()} · 1 ${b.toUpperCase()} = ${(1 / r).toFixed(4)} ${a.toUpperCase()}${ownRate > 0 ? ' (your own rate)' : ''}`;
+    root.dataset.result = fair.toFixed(2);
+
+    const t = num(their), f = num(fee), fp = num(feep);
+    offer.textContent = '';
+    if (t > 0 && x > 0) {
+      const got = Math.max(0, x - f - x * fp / 100) * t, lost = fair - got, pct = fair > 0 ? lost / fair * 100 : 0, rateGap = (1 - t / r) * 100;
+      const p1 = document.createElement('span'); p1.textContent = `You get ${fmt(got, b, 2)}. `;
+      const p2 = document.createElement('span'); p2.className = lost > 0 ? 'bad' : '';
+      p2.textContent = lost >= 0 ? `That is ${fmt(lost, b, 2)} (${pct.toFixed(2)}%) less than at the mid-market rate. Their rate alone is ${rateGap.toFixed(2)}% below it.` : `That is ${fmt(-lost, b, 2)} more than the mid-market rate: check the rate was typed the right way round (1 ${a.toUpperCase()} = ? ${b.toUpperCase()}).`;
+      offer.append(p1, p2); root.dataset.got = got.toFixed(2); root.dataset.lostPct = pct.toFixed(2);
+    }
+
+    body.textContent = '';
+    for (const [c, n] of CURRENCIES) {
+      const tr = document.createElement('tr'); if (c === b) tr.className = 'on';
+      const k = ownRate > 0 && c === b ? ownRate : mid(a, c);
+      for (const [tag, txt] of [['th', `${c.toUpperCase()} · ${n}`], ['td', fmt(x * k, c, 2)], ['td', fmt(1 / k, a)]] as const) { const el = document.createElement(tag); el.textContent = txt; tr.append(el); }
+      body.append(tr);
+    }
+  }
+
+  function showSource() {
+    src.textContent = ''; src.classList.toggle('warn', !P.live);
+    const b = document.createElement('b'); b.textContent = P.date;
+    const a = document.createElement('a'); a.href = SOURCE_URL; a.rel = 'noopener'; a.textContent = 'source';
+    src.append(P.live ? 'Mid-market rates for ' : 'Could not load today’s rates. Showing rough built-in rates from ', b, `. ${P.live ? 'Daily rates from the free exchange-api (CC0), fetched by fibub.com; nothing about you is sent' : 'Type a current rate under “Use my own rate” for a correct answer'} (`, a, '). Banks and cards charge a little more.');
+  }
+
+  root.addEventListener('input', render); root.addEventListener('change', render);
+  $('.fxc-swap').addEventListener('click', () => { const t = from.value; from.value = to.value; to.value = t; own.value = ''; their.value = ''; render(); });
+  render();
+  loadPrices().then((p) => { P = p; root.dataset.live = String(p.live); showSource(); render(); });
+</script>

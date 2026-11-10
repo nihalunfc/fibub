@@ -1,0 +1,168 @@
+---
+// #T841 Health summary card: a one-page summary, a folding wallet card and a lock-screen picture, all typed by the person.
+import Downloads from '../../components/Downloads.astro';
+import { LISTS } from '../../lib/docs/healthcard';
+const blood = ['', 'A+', 'A−', 'B+', 'B−', 'AB+', 'AB−', 'O+', 'O−'];
+---
+<div class="tool-ui hc">
+  <p class="note hc-note">Your files stay on this device. fibub never sees them. For organising your own records, not medical advice. Ask your doctor or pharmacist about your results.</p>
+
+  <div class="panel">
+    <h2>About you</h2>
+    <div class="hc-grid">
+      <label>Full name <input class="hc-name" autocomplete="off" maxlength="80" /></label>
+      <label>Date of birth <input class="hc-dob" type="date" /></label>
+      <label>Blood group (if you know it) <select class="hc-blood">{blood.map((b) => <option value={b === '' ? '' : b.replace('−', '-')}>{b || 'Not given'}</option>)}</select></label>
+      <label>Language(s) you speak <input class="hc-language" autocomplete="off" maxlength="60" /></label>
+    </div>
+  </div>
+
+  {LISTS.map((l) => (
+    <div class="panel hc-list" data-list={l.key}>
+      <h2>{l.title}</h2>
+      {l.hint && <p class="hc-hint">{l.hint}</p>}
+      <div class="hc-rows"></div>
+      <button type="button" class="btn secondary hc-add">+ Add a row</button>
+    </div>
+  ))}
+
+  <div class="panel">
+    <h2>Anything else</h2>
+    <label class="hc-block">Notes (shown on the summary) <textarea class="hc-notes" rows="3" maxlength="400"></textarea></label>
+  </div>
+
+  <div class="panel hc-keep">
+    <label class="hc-check"><input type="checkbox" class="hc-remember" /> Keep what I type on this device</label>
+    <p class="hc-hint">Off by default. If you tick it, everything typed above (names, medicines, contacts) is kept in this browser only, so it is there next time. It never leaves the device. Untick it, or press Clear, to delete it.</p>
+    <div class="hc-btns"><button type="button" class="btn secondary hc-ex">Fill in an example</button><button type="button" class="btn secondary hc-clear">Clear everything</button></div>
+  </div>
+
+  <div class="panel hc-out" hidden>
+    <h2>Preview</h2>
+    <div class="hc-prev"></div>
+    <div class="hc-cardprev"><div class="hc-face" data-side="front"></div><div class="hc-face" data-side="back"></div></div>
+    <p class="hc-hint hc-when"></p>
+    <h3>One-page summary for a new doctor</h3>
+    <Downloads label="Download the summary" />
+    <p class="hc-hint">The summary is A4. On Letter paper, print with "fit to page".</p>
+    <h3>Wallet card and phone picture</h3>
+    <div class="hc-btns">
+      <button type="button" class="btn secondary hc-card">Wallet card (PDF)</button>
+      <button type="button" class="btn secondary hc-lock">Phone lock screen (PNG)</button>
+    </div>
+    <p class="hc-hint">The card is one strip, front and back side by side, with a fold line. The picture is 1080 × 1920 pixels with big text; the top is left clear for your phone's clock.</p>
+  </div>
+</div>
+
+<style is:inline>
+  .hc { display: grid; gap: 14px; margin-bottom: 32px; }
+  .hc > * { min-width: 0; }
+  .hc h2 { font-size: 17px; margin: 0 0 10px; }
+  .hc h3 { font-size: 15px; margin: 16px 0 4px; }
+  .hc .panel { padding: 16px; }
+  .hc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .hc input, .hc select, .hc textarea { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .hc input:focus, .hc select:focus, .hc textarea:focus { border-color: var(--accent); outline: none; }
+  .hc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+  .hc-hint { margin: 0 0 8px; color: var(--muted); font-size: 14px; }
+  .hc-rows { display: grid; gap: 8px; margin-bottom: 8px; }
+  .hc-row { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)) 40px; gap: 6px; align-items: center; }
+  .hc-x { width: 40px; height: 40px; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; font-size: 18px; color: var(--muted); cursor: pointer; }
+  .hc-check { display: flex !important; align-items: center; gap: 8px; color: var(--ink) !important; font-size: 15px !important; cursor: pointer; }
+  .hc-check input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .hc-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  .hc-prev { display: grid; gap: 10px; }
+  .hc-prev section { border-top: 1px solid var(--line); padding-top: 8px; }
+  .hc-prev h4 { margin: 0 0 4px; font-size: 14px; }
+  .hc-prev p, .hc-prev li { margin: 0; font-size: 14px; overflow-wrap: anywhere; }
+  .hc-prev ul { margin: 0; padding-left: 18px; }
+  .hc-cardprev { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 0; margin-top: 14px; border: 1.5px solid var(--ink); border-radius: 6px; }
+  .hc-face { padding: 10px 12px; font-size: 12px; aspect-ratio: 85.6 / 54; overflow: hidden; }
+  .hc-face + .hc-face { border-left: 1.5px dashed var(--muted); }
+  .hc-face b { display: block; font-size: 11px; letter-spacing: .04em; }
+  .hc-face i { display: block; font-style: normal; font-size: 10px; color: var(--muted); text-transform: uppercase; margin-top: 4px; }
+  @media (max-width: 560px) {
+    .hc-row { grid-template-columns: minmax(0, 1fr) 40px; }
+    .hc-row input { grid-column: 1; }
+    .hc-row .hc-x { grid-column: 2; grid-row: 1; }
+    .hc-face + .hc-face { border-left: 0; border-top: 1.5px dashed var(--muted); }
+  }
+</style>
+
+<script>
+  import { LISTS, KEY, emptyData, exampleData, clean, isEmpty, madeOn, upToDate, niceDate, summarySections, cardPanels, cardPdf, lockCanvas, type Data, type ListKey } from '../../lib/docs/healthcard';
+  import { wireDownloads, save } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.hc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  const remember = () => q<HTMLInputElement>('.hc-remember').checked;
+
+  function addRow(key: ListKey, vals: string[] = []) {
+    const spec = LISTS.find((l) => l.key === key)!;
+    const box = q(`[data-list=${key}] .hc-rows`), n = box.children.length + 1;
+    const row = document.createElement('div');
+    row.className = 'hc-row'; row.style.setProperty('--n', String(spec.cols.length));
+    row.innerHTML = spec.cols.map((c, i) => `<input data-i="${i}" autocomplete="off" maxlength="120" aria-label="${esc(spec.title)} ${n}: ${esc(c)}" placeholder="${esc(c)}" value="${esc(vals[i] ?? '')}" />`).join('') + `<button type="button" class="hc-x" aria-label="Remove row ${n} of ${esc(spec.title)}">×</button>`;
+    box.append(row);
+  }
+  function read(): Data {
+    const d = emptyData();
+    d.name = q<HTMLInputElement>('.hc-name').value; d.dob = q<HTMLInputElement>('.hc-dob').value; d.blood = q<HTMLSelectElement>('.hc-blood').value;
+    d.language = q<HTMLInputElement>('.hc-language').value; d.notes = q<HTMLTextAreaElement>('.hc-notes').value;
+    for (const l of LISTS) d.lists[l.key] = [...q(`[data-list=${l.key}] .hc-rows`).children].map((r) => [...r.querySelectorAll('input')].map((i) => i.value));
+    return d;
+  }
+  function write(d: Data) {
+    q<HTMLInputElement>('.hc-name').value = d.name; q<HTMLInputElement>('.hc-dob').value = d.dob; q<HTMLSelectElement>('.hc-blood').value = d.blood;
+    q<HTMLInputElement>('.hc-language').value = d.language; q<HTMLTextAreaElement>('.hc-notes').value = d.notes;
+    for (const l of LISTS) {
+      q(`[data-list=${l.key}] .hc-rows`).replaceChildren();
+      const rows = d.lists[l.key]?.length ? d.lists[l.key] : [[]];
+      rows.forEach((r) => addRow(l.key, r));
+    }
+  }
+
+  let when = madeOn();
+  function render() {
+    const d = clean(read()), empty = isEmpty(d);
+    q('.hc-out').hidden = empty;
+    if (remember()) { try { localStorage.setItem(KEY, JSON.stringify(read())); } catch {} }
+    if (empty) return;
+    when = madeOn();
+    q('.hc-prev').innerHTML = summarySections(d, when).map((s) => `<section><h4>${esc(s.title)}</h4>${s.facts ? `<p>${s.facts.map(([a, b]) => `${esc(a)}: <b>${esc(b)}</b>`).join(' · ')}</p>` : ''}${s.table ? `<ul>${s.table.rows.map((r) => `<li>${esc(r.filter(Boolean).join(' – '))}</li>`).join('')}</ul>` : ''}${(s.text ?? []).map((t) => `<p>${esc(t)}</p>`).join('')}</section>`).join('');
+    const p = cardPanels(d);
+    const face = (side: 'front' | 'back', title: string) => `<b>${title}</b>` + p[side].map((b) => `${b.head ? `<i>${esc(b.head)}</i>` : ''}${b.lines.map((l) => `<div>${esc(l)}</div>`).join('')}`).join('');
+    q('[data-side=front]').innerHTML = face('front', 'EMERGENCY MEDICAL CARD');
+    q('[data-side=back]').innerHTML = face('back', 'IF FOUND, PLEASE CALL');
+    q('.hc-when').textContent = `${upToDate(when)} (This line is printed on every output.)`;
+  }
+
+  root.addEventListener('input', render);
+  root.addEventListener('change', render);
+  root.addEventListener('click', (e) => {
+    const el = e.target as HTMLElement;
+    const add = el.closest('.hc-add');
+    if (add) { const key = add.closest<HTMLElement>('[data-list]')!.dataset.list as ListKey; addRow(key); (q(`[data-list=${key}] .hc-rows`).lastElementChild!.querySelector('input') as HTMLInputElement).focus(); return; }
+    if (el.closest('.hc-x')) { const rows = el.closest('.hc-rows')!; el.closest('.hc-row')!.remove(); if (!rows.children.length) addRow(rows.closest<HTMLElement>('[data-list]')!.dataset.list as ListKey); render(); }
+  });
+  q('.hc-ex').addEventListener('click', () => { write(exampleData()); render(); });
+  q('.hc-clear').addEventListener('click', () => { write(emptyData()); q<HTMLInputElement>('.hc-remember').checked = false; try { localStorage.removeItem(KEY); } catch {} render(); });
+  q('.hc-remember').addEventListener('change', () => { if (!remember()) { try { localStorage.removeItem(KEY); } catch {} } render(); });
+
+  wireDownloads(q('.hc-out'), () => {
+    const d = clean(read());
+    return { title: `Health summary${d.name ? ': ' + d.name : ''}`, subtitle: upToDate(when), sections: summarySections(d, when), file: 'health-summary' };
+  });
+  q('.hc-card').addEventListener('click', async () => { save(await cardPdf(clean(read()), when), 'emergency-medical-card.pdf', 'application/pdf'); });
+  q('.hc-lock').addEventListener('click', () => {
+    lockCanvas(clean(read()), when).toBlob((b) => { if (b) save(b, 'emergency-lock-screen.png', 'image/png'); }, 'image/png');
+  });
+
+  // Start: nothing is read from the device unless it was kept on purpose.
+  let kept: Data | null = null;
+  try { kept = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch {}
+  if (kept && kept.lists) { write(kept); q<HTMLInputElement>('.hc-remember').checked = true; } else write(emptyData());
+  render();
+  void niceDate;
+</script>

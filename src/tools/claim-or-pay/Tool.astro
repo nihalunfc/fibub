@@ -1,0 +1,115 @@
+---
+// #T831 Claim or pay for the repair yourself? What a claim does to your no-claim discount.
+import InsuranceNote from '../../components/InsuranceNote.astro';
+---
+<div class="tool-ui clm">
+  <InsuranceNote />
+  <section class="panel">
+    <h2>Your policy</h2>
+    <p class="clm-hint">Example numbers: change them to yours.</p>
+    <div class="clm-grid">
+      <label>Currency <select class="clm-cur" data-k="cur"></select></label>
+      <label>Discount table <select data-k="mode"><option value="in">India (motor tariff GR.27)</option><option value="own">My insurer's table</option></select></label>
+      <label>Premium before any discount <input data-k="base" inputmode="decimal" /></label>
+      <label>Your discount level now <select data-k="level" class="clm-level"></select></label>
+      <label>Repair cost <input data-k="repair" inputmode="decimal" /></label>
+      <label>Deductible you would pay <input data-k="ded" inputmode="decimal" /></label>
+      <label>Chance of another claim in a future year <span class="clm-suf"><input data-k="chance" inputmode="decimal" /><i>%</i></span></label>
+      <label>Years to look ahead <input data-k="years" inputmode="decimal" /></label>
+      <label>Discount rate (value of money later) <span class="clm-suf"><input data-k="rate" inputmode="decimal" /><i>% a year</i></span></label>
+    </div>
+    <div class="clm-own" hidden>
+      <div class="clm-grid">
+        <label>Discount % at each level, lowest first, separated by commas <input data-k="ladder" /></label>
+        <label>Levels lost after a claim <input data-k="drop" inputmode="decimal" /></label>
+      </div>
+      <p class="clm-hint">Canadian, US and UK insurers publish their own tables: copy yours here. Level 0 is the first entry.</p>
+    </div>
+    <p class="clm-src">India: 0, 20, 25, 35, 45, 50% after 0 to 5 claim-free years; a claim sends you back to 0. Source: India Motor Tariff GR.27, checked 2026-11-10, check the official source.</p>
+    <p class="note bad clm-err" role="alert" hidden></p>
+  </section>
+  <section class="clm-res" aria-live="polite">
+    <div class="clm-stats">
+      <div><span>The claim pays you</span><b class="clm-s-pay"></b></div>
+      <div><span>Extra premiums if you claim</span><b class="clm-s-tot"></b></div>
+      <div><span>Their value today</span><b class="clm-s-pv"></b></div>
+      <div><span>Claiming leaves you</span><b class="clm-s-net"></b></div>
+    </div>
+    <p class="clm-line clm-words"></p>
+    <div class="panel"><h2>Year by year</h2>
+      <div class="clm-wrap"><table><thead><tr><th>Year</th><th>If you claim</th><th>If you pay yourself</th><th>Extra</th></tr></thead><tbody class="clm-body"></tbody></table></div>
+    </div>
+  </section>
+  <p class="clm-fine">How it is worked out: each future year has a chance of a claim; the model follows how likely you are to be at each discount level and adds up the premium. "Claim" starts from the level after a claim, "pay yourself" from the level after a claim-free year. Extra premiums are discounted at your rate to give today's value. It looks at the own-damage premium only and ignores price changes and any other reason you may need to claim. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .clm { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .clm > *, .clm-res > * { min-width: 0; }
+  .clm h2 { margin: 0 0 12px; font-size: 18px; }
+  .clm .panel { padding: 16px; }
+  .clm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; margin-bottom: 8px; }
+  .clm label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .clm input, .clm select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .clm input:focus, .clm select:focus { border-color: var(--accent); outline: none; }
+  .clm-suf { position: relative; display: block; }
+  .clm-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .clm-suf input { padding-right: 84px; }
+  .clm-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .clm-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 10px; }
+  .clm-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); align-content: start; }
+  .clm-stats span { font-size: 13px; color: var(--muted); }
+  .clm-stats b { font-size: clamp(17px, 3.4vw, 22px); overflow-wrap: anywhere; }
+  .clm-line { margin: 0; font-size: 15px; }
+  .clm-hint, .clm-src, .clm-fine { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+  .clm-wrap { overflow-x: auto; }
+  .clm table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .clm th, .clm td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .clm th:first-child, .clm td:first-child { text-align: left; }
+  .clm th { font-size: 12px; color: var(--muted); font-weight: 600; }
+</style>
+
+<script>
+  import { claimCost, NCB_IN } from '../../lib/money/insurance';
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.clm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const cur = defaultCurrency();
+  q('.clm-cur').innerHTML = currencyOptions(cur);
+  const def: Record<string, string> = { base: cur === 'INR' ? '10,000' : '1,000', repair: '8,000', ded: '1,000', chance: '10', years: '3', rate: '0', ladder: NCB_IN.join(', '), drop: '5' };
+  for (const k in def) f(k).value = def[k];
+  const $ = (n: number) => money(n, f('cur').value, 0);
+  let lastKey = '', lastLen = 0;
+  function ladderNow() { return f('mode').value === 'in' ? NCB_IN : f('ladder').value.split(/[,;\s]+/).filter(Boolean).map((s) => parseFloat(s)); }
+  function fillLevels(keep: number) {
+    const l = ladderNow();
+    const key = l.join('|'); if (key === lastKey) return; lastKey = key; lastLen = l.length;
+    q('.clm-level').innerHTML = l.map((d, i) => `<option value="${i}">Level ${i}: ${Number.isFinite(d) ? d : '?'}% discount</option>`).join('');
+    f('level').value = String(Math.min(keep, l.length - 1));
+  }
+  function run() {
+    const own = f('mode').value === 'own';
+    q('.clm-own').hidden = !own; q('.clm-src').hidden = own;
+    const keep = num(f('level').value);
+    const ladder = ladderNow();
+    fillLevels(lastLen === 0 ? ladder.length - 1 : keep);
+    const level = num(f('level').value), chance = num(f('chance').value), years = Math.round(num(f('years').value)), rate = num(f('rate').value);
+    const repair = num(f('repair').value), ded = num(f('ded').value), base = num(f('base').value);
+    const drop = own ? Math.round(num(f('drop').value)) : 99;
+    const bad = base <= 0 ? 'Enter the premium before any discount.' : ladder.length < 2 || ladder.some((d) => !(d >= 0 && d < 100)) ? 'Enter at least two discount levels, each from 0 to 99, separated by commas.' : repair <= 0 || ded < 0 ? 'Enter the repair cost (and a deductible of 0 or more).' : chance < 0 || chance >= 100 ? 'Enter a chance from 0 to 99.' : !(years >= 1 && years <= 30) ? 'Enter years from 1 to 30.' : drop < 0 ? 'Levels lost after a claim must be 0 or more.' : rate < 0 || rate > 100 ? 'Enter a discount rate from 0 to 100.' : '';
+    q('.clm-err').hidden = !bad; q('.clm-err').textContent = bad; q('.clm-res').hidden = !!bad;
+    if (bad) return;
+    const lambda = chance === 0 ? 0 : -Math.log(1 - chance / 100);
+    const r = claimCost({ base, ladder, level, drop, lambda, years, rate });
+    const pay = Math.max(0, repair - ded), net = pay - r.pv;
+    q('.clm-s-pay').textContent = $(pay);
+    q('.clm-s-tot').textContent = $(r.total);
+    q('.clm-s-pv').textContent = $(r.pv);
+    q('.clm-s-net').textContent = (net >= 0 ? 'ahead by ' : 'behind by ') + $(Math.abs(net));
+    q('.clm-words').innerHTML = pay <= 0 ? `The repair (${$(repair)}) is not above your deductible (${$(ded)}), so a claim would pay <b>nothing</b>: paying yourself costs less.` : net >= 0 ? `The claim pays you <b>${$(pay)}</b>, more than the <b>${$(r.pv)}</b> (today's value) of extra premiums, so claiming costs less in these numbers.` : `The claim pays you <b>${$(pay)}</b> but raises later premiums by <b>${$(r.pv)}</b> (today's value), so paying the repair yourself costs less in these numbers.`;
+    q('.clm-body').innerHTML = r.claim.map((c, k) => `<tr><td>${k + 1}</td><td>${$(c)}</td><td>${$(r.keep[k])}</td><td>${$(r.extra[k])}</td></tr>`).join('');
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

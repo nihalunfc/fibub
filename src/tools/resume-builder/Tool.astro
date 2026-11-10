@@ -7,6 +7,27 @@
     <button type="button" role="tab" data-show="preview" aria-selected="false">Preview <b class="rb-mini"></b></button>
   </div>
 
+  <div class="rb-import panel" hidden>
+    <div class="rb-imp-top">
+      <div class="rb-imp-sc"><span class="rb-imp-b"></span><span aria-hidden="true">→</span><b class="rb-imp-a"></b></div>
+      <div>
+        <strong class="rb-imp-h">Your resume, in ATS style</strong>
+        <p class="rb-imp-p">Your own words from <span class="rb-imp-f"></span>, laid out again in one clean column. Nothing was added or reworded. The reader can put a line in the wrong box, so check each section below, then download.</p>
+      </div>
+    </div>
+    <details class="rb-imp-ch"><summary>What was fixed</summary><ul class="rb-imp-list"></ul></details>
+    <div class="rb-imp-left" hidden>
+      <p class="note warn">These lines didn't fit a box. Copy them into the right section, or leave them out:</p>
+      <textarea class="rb-imp-lines" rows="3" readonly aria-label="Lines that did not fit a box"></textarea>
+    </div>
+    <p class="rb-hint">Anything the score still asks for (numbers in your bullets, missing sections) needs your own words. We never write them for you.</p>
+    <div class="rb-imp-dl">
+      <button type="button" class="btn rb-imp-pdf">Download PDF</button>
+      <button type="button" class="btn secondary rb-imp-docx">Download Word</button>
+      <button type="button" class="rb-link rb-imp-x">Hide this</button>
+    </div>
+  </div>
+
   <div class="rb-cols">
     <form class="rb-form" autocomplete="on" novalidate>
       <div class="rb-tools">
@@ -51,6 +72,20 @@
 <style is:inline>
   .rb { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
   .rb-switch { display: none; }
+  .rb-import { display: grid; gap: 10px; padding: 14px 16px; border-color: var(--accent); }
+  .rb-import[hidden] { display: none; }
+  .rb-imp-top { display: flex; gap: 14px; align-items: center; }
+  .rb-imp-top p { margin: 2px 0 0; font-size: 14px; color: var(--muted); }
+  .rb-imp-sc { flex: none; display: flex; align-items: baseline; gap: 6px; font-size: 18px; color: var(--muted); }
+  .rb-imp-sc b { font-size: 30px; color: var(--good); }
+  .rb-imp-sc b.warn { color: var(--warn); }
+  .rb-imp-sc b.bad { color: var(--bad); }
+  .rb-imp-ch summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: 14px; }
+  .rb-imp-list { margin: 6px 0 0; padding-left: 18px; font-size: 14px; color: var(--muted); display: grid; gap: 3px; }
+  .rb-imp-left { display: grid; gap: 6px; }
+  .rb-imp-left p { margin: 0; font-size: 14px; }
+  .rb-imp-dl { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+  @media (max-width: 520px) { .rb-imp-top { flex-direction: column; align-items: flex-start; gap: 6px; } }
   .rb-cols { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 18px; align-items: start; }
   .rb-form, .rb-cards, .rb-body, .rb-item, .rb-side { grid-template-columns: minmax(0, 1fr); }
   .rb-form { display: grid; gap: 10px; min-width: 0; }
@@ -178,6 +213,8 @@
   // ---------- form ----------
   const field = (path: string, label: string, opts: { type?: string; full?: boolean; area?: number; ph?: string; auto?: string } = {}) => {
     const v = esc(getPath(path) ?? '');
+    // A date read from a file may be a year only ("2019"); a month box can't show that, so use a text box.
+    if (opts.type === 'month' && v && !/^\d{4}-\d{2}$/.test(v)) opts = { ...opts, type: 'text', ph: 'e.g. 2019 or 2019-05' };
     const attrs = `data-p="${path}" placeholder="${esc(opts.ph ?? '')}"${opts.auto ? ` autocomplete="${opts.auto}"` : ''}`;
     const input = opts.area ? `<textarea ${attrs} rows="${opts.area}">${v}</textarea>` : `<input type="${opts.type ?? 'text'}" ${attrs} value="${v}" />`;
     return `<label class="${opts.full ? 'full' : ''}">${label}${input}</label>`;
@@ -281,6 +318,11 @@
     q('.rb-sl').textContent = !filled ? 'ATS score: fill in the form' : s >= 80 ? 'ATS score: ready for most ATS' : s >= 60 ? 'ATS score: good, a few things to add' : 'ATS score: keep going';
     const todo = r.checks.filter((c) => c.status !== 'pass' && c.id !== 'file').sort((a, b) => (b.max - b.points) - (a.max - a.points)).slice(0, 3);
     q('.rb-fixes').innerHTML = filled ? todo.map((c) => `<li>${esc(c.fix)}</li>`).join('') : '';
+    if (!q('.rb-import').hidden) {
+      const a = q('.rb-imp-a');
+      a.textContent = filled ? String(s) : '–';
+      a.className = 'rb-imp-a' + (s >= 80 ? '' : s >= 60 ? ' warn' : ' bad');
+    }
     q('.rb-kw').innerHTML = r.keywords ? [...r.keywords.matched.map((k) => `<span>✓ ${esc(k)}</span>`), ...r.keywords.missing.map((k) => `<span class="miss">✕ ${esc(k)}</span>`)].join('') : '';
   }
 
@@ -376,6 +418,32 @@
     if (!confirm('Clear the whole resume and start again?')) return;
     R = emptyResume(R.paper); renderForm(); renderPreview(); save();
   });
+
+  // ---------- a resume fixed by the ATS checker ("Fix it for me") ----------
+  function takeImport() {
+    if (new URLSearchParams(location.search).get('from') !== 'ats') return;
+    history.replaceState(null, '', location.pathname);
+    let d: any = null;
+    try { d = JSON.parse(sessionStorage.getItem('fibub-resume-import') || 'null'); sessionStorage.removeItem('fibub-resume-import'); } catch {}
+    if (!d?.resume) return;
+    if (remembered && (R.name || R.summary || R.experience.some((j) => j.title)) && !confirm('Replace the resume saved on this device with the one from your file? (Save a backup file first if you want to keep it.)')) return;
+    R = fix(d.resume);
+    openCards.clear(); ['contact', 'summary', 'skills', 'experience', 'education'].forEach((c) => openCards.add(c));
+    if (R.projects.length) openCards.add('projects');
+    save();
+    q('.rb-imp-f').textContent = d.file || 'your file';
+    q('.rb-imp-b').textContent = d.before == null ? '' : String(d.before);
+    q('.rb-imp-sc').hidden = d.before == null;
+    q('.rb-imp-list').innerHTML = (d.changes ?? []).map((c: string) => `<li>${esc(c)}</li>`).join('');
+    const left: string[] = d.unplaced ?? [];
+    q('.rb-imp-left').hidden = !left.length;
+    q<HTMLTextAreaElement>('.rb-imp-lines').value = left.join('\n');
+    q('.rb-import').hidden = false;
+  }
+  q('.rb-imp-pdf').addEventListener('click', () => q('.rb-pdf').click());
+  q('.rb-imp-docx').addEventListener('click', () => q('.rb-docx').click());
+  q('.rb-imp-x').addEventListener('click', () => { q('.rb-import').hidden = true; });
+  takeImport();
 
   root.dataset.show = 'edit';
   renderForm();
