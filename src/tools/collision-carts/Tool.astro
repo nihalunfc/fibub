@@ -1,0 +1,296 @@
+---
+// Collision carts: two carts on a track (bouncy, sticky or any e), and recoil. Maths in src/lib/sci/collision-carts.ts.
+import '../../styles/astro.css';
+---
+<div class="ax cc">
+  <div class="ax-card">
+    <div class="ax-row cc-top">
+      <span class="cc-lab">Level</span>
+      <div class="ax-seg cc-level" role="group" aria-label="Level">
+        <button type="button" data-l="9" aria-pressed="true">Class 9</button>
+        <button type="button" data-l="11" aria-pressed="false">Class 11</button>
+      </div>
+    </div>
+    <div class="ax-seg cc-mode" role="group" aria-label="Experiment">
+      <button type="button" data-m="carts" aria-pressed="true">Two carts</button>
+      <button type="button" data-m="recoil" aria-pressed="false">Recoil</button>
+    </div>
+
+    <canvas class="cc-scene" aria-label="The track"></canvas>
+
+    <div class="cc-p cc-p-carts">
+      <div class="ax-row"><button type="button" class="btn small cc-go">Run</button><button type="button" class="btn secondary small cc-reset">Reset</button></div>
+      <div class="ax-seg cc-type" role="group" aria-label="Type of collision">
+        <button type="button" data-t="1" aria-pressed="true">Bouncy (elastic)</button>
+        <button type="button" data-t="0" aria-pressed="false">Sticky (they join)</button>
+      </div>
+      <label class="cc-e-row" hidden>Coefficient of restitution e: <b class="cc-ev"></b><input class="cc-e" type="range" min="0" max="1" step="0.05" value="1" /></label>
+      <label>Mass of cart A: <b class="cc-m1v"></b><input class="cc-m1" type="range" min="0.5" max="5" step="0.5" value="1" /></label>
+      <label>Velocity of A (+ is to the right): <b class="cc-u1v"></b><input class="cc-u1" type="range" min="-3" max="6" step="0.5" value="2" /></label>
+      <label>Mass of cart B: <b class="cc-m2v"></b><input class="cc-m2" type="range" min="0.5" max="5" step="0.5" value="1" /></label>
+      <label>Velocity of B: <b class="cc-u2v"></b><input class="cc-u2" type="range" min="-6" max="3" step="0.5" value="0" /></label>
+    </div>
+
+    <div class="cc-p cc-p-recoil" hidden>
+      <div class="ax-row"><button type="button" class="btn small cc-fire">Fire</button><button type="button" class="btn secondary small cc-reset2">Reset</button></div>
+      <label>Example <select class="cc-pre">
+        <option value="gun">Toy cannon and ball</option>
+        <option value="boat">Jumping off a boat</option>
+        <option value="hose">Skater throws a medicine ball</option>
+      </select></label>
+      <label><span class="cc-Mname">Mass of the cannon</span>: <b class="cc-Mv"></b><input class="cc-M" type="range" min="1" max="200" step="1" value="5" /></label>
+      <label><span class="cc-mname">Mass of the ball</span>: <b class="cc-mv"></b><input class="cc-m" type="range" min="0.1" max="80" step="0.1" value="0.5" /></label>
+      <label><span class="cc-vname">Speed of the ball</span>: <b class="cc-vv"></b><input class="cc-v" type="range" min="1" max="20" step="0.5" value="10" /></label>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>What is happening</h2>
+    <p class="cc-state"><span class="ax-pill cc-pill"></span></p>
+    <dl class="ax-facts cc-facts"></dl>
+    <div class="cc-eq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="cc-try">
+      <li><b>Swap:</b> two equal carts, bouncy, B at rest. A stops dead and B moves off at A's speed.</li>
+      <li><b>Sticky:</b> make it sticky. The pair moves off at half the speed, and half the kinetic energy is gone, yet the momentum is the same.</li>
+      <li><b>Heavy hits light:</b> make A 5 kg and B 0.5 kg. A hardly slows; B shoots off at almost twice A's speed.</li>
+      <li><b>Head-on:</b> give B a negative velocity so they meet in the middle. Watch the total momentum bar: it never changes.</li>
+      <li><b>Recoil:</b> the cannon and ball start at rest, so their momenta must add up to zero after firing. A heavier cannon kicks back more slowly.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="cc-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { collide, meetTime, recoil, questions } from '../../lib/sci/collision-carts';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { pagePalette, type Palette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => Number(inp(c).value);
+  const f = (x: number, d = 2) => { const r = Math.round(x * 10 ** d) / 10 ** d; return (Object.is(r, -0) ? 0 : r).toFixed(d).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '').replace('-', '−'); };
+  const p = (x: number) => (x < 0 ? `(${f(x)})` : f(x));
+  const H = 270, TRACK = 4, HALF = 0.3; // track length (m), half-length of a cart (m)
+
+  let level: 9 | 11 = 9, mode: 'carts' | 'recoil' = 'carts', eType = 1, t = -1, raf = 0, rt = -1;
+  const E = () => (level === 11 ? val('.cc-e') : eType);
+
+  function setup(c: HTMLCanvasElement, h: number) {
+    const w = Math.max(260, Math.round(c.clientWidth || c.parentElement!.clientWidth || 320)), dpr = Math.min(3, window.devicePixelRatio || 1);
+    c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c.style.height = `${h}px`;
+    const ctx = c.getContext('2d')!; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w };
+  }
+  function arrow(ctx: CanvasRenderingContext2D, x: number, y: number, dx: number, col: string) {
+    if (Math.abs(dx) < 3) return; const s = Math.sign(dx);
+    ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + dx - s * 7, y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + dx, y); ctx.lineTo(x + dx - s * 9, y - 6); ctx.lineTo(x + dx - s * 9, y + 6); ctx.closePath(); ctx.fill();
+  }
+  function cart(ctx: CanvasRenderingContext2D, pal: Palette, cx: number, yG: number, wPx: number, label: string, col: string) {
+    ctx.fillStyle = col; ctx.strokeStyle = pal.ink; ctx.lineWidth = 2;
+    ctx.globalAlpha = pal.red ? 0.5 : 0.25; ctx.fillRect(cx - wPx / 2, yG - 30, wPx, 20); ctx.globalAlpha = 1; ctx.strokeRect(cx - wPx / 2, yG - 30, wPx, 20);
+    for (const dx of [-wPx / 2 + 9, wPx / 2 - 9]) { ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.arc(cx + dx, yG - 6, 6, 0, 7); ctx.fill(); ctx.stroke(); }
+    ctx.fillStyle = pal.ink; ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(label, cx, yG - 36);
+  }
+  // momentum bars: before and after, for A, B and the total
+  function bars(ctx: CanvasRenderingContext2D, pal: Palette, w: number, top: number, rows: [string, number, number, string][], unit: string) {
+    const max = Math.max(1, ...rows.flatMap((r) => [Math.abs(r[1]), Math.abs(r[2])]));
+    const L = 70, mid = L + (w - L - 10) / 2, half = (w - L - 10) / 2 - 4, bh = 9;
+    ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textAlign = 'left';
+    ctx.fillText(`Momentum (${unit}): before ▒ after █`, 8, top);
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(mid, top + 6); ctx.lineTo(mid, top + 8 + rows.length * 26); ctx.stroke();
+    rows.forEach(([name, b, a, col], i) => {
+      const y = top + 10 + i * 26;
+      ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.font = '600 12px system-ui, sans-serif'; ctx.fillText(name, 8, y + 14);
+      ctx.fillStyle = col; ctx.globalAlpha = 0.35; ctx.fillRect(mid, y, (b / max) * half, bh); ctx.globalAlpha = 1;
+      ctx.fillRect(mid, y + bh + 2, (a / max) * half, bh);
+    });
+  }
+
+  // ---- two carts ---------------------------------------------------------------------------------------------
+  function state(tt: number) {
+    const m1 = val('.cc-m1'), u1 = val('.cc-u1'), m2 = val('.cc-m2'), u2 = val('.cc-u2'), r = collide(m1, u1, m2, u2, E());
+    const x1 = 1, x2 = 3, tc = meetTime(x1, u1, x2, u2, 2 * HALF);
+    if (tt < 0) return { r, tc, x1, x2, v1: u1, v2: u2, hit: false };
+    if (tt <= tc) return { r, tc, x1: x1 + u1 * tt, x2: x2 + u2 * tt, v1: u1, v2: u2, hit: false };
+    const a1 = x1 + u1 * tc, a2 = x2 + u2 * tc, d = tt - tc;
+    return { r, tc, x1: a1 + r.v1 * d, x2: a2 + r.v2 * d, v1: r.v1, v2: r.v2, hit: true };
+  }
+  function drawCarts(pal: Palette) {
+    const c = q<HTMLCanvasElement>('.cc-scene'), { ctx, w } = setup(c, H), yG = 92;
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, H);
+    const ppm = (w - 20) / TRACK, X = (x: number) => 10 + x * ppm;
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(4, yG); ctx.lineTo(w - 4, yG); ctx.stroke();
+    ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = pal.muted; ctx.textAlign = 'center';
+    for (let m = 0; m <= TRACK; m++) { ctx.fillRect(X(m) - 0.5, yG, 1, 6); ctx.fillText(`${m} m`, X(m), yG + 18); }
+    const s = state(t), wPx = 2 * HALF * ppm, sticky = E() === 0 && s.hit;
+    const colA = pal.accent, colB = pal.accent2;
+    cart(ctx, pal, X(s.x1), yG, wPx, `A ${f(val('.cc-m1'))} kg`, colA);
+    cart(ctx, pal, X(s.x2), yG, wPx, `B ${f(val('.cc-m2'))} kg`, colB);
+    if (sticky) { ctx.fillStyle = pal.ink; ctx.fillRect(X((s.x1 + s.x2) / 2) - 3, yG - 26, 6, 12); }
+    const sc = 9;
+    arrow(ctx, X(s.x1), yG - 56, s.v1 * sc, colA); arrow(ctx, X(s.x2), yG - 56, s.v2 * sc, colB);
+    ctx.font = '600 12px system-ui, sans-serif'; ctx.fillStyle = pal.ink; ctx.textAlign = 'left';
+    ctx.fillText(`A: ${f(s.v1)} m/s`, 8, 16); ctx.textAlign = 'right'; ctx.fillText(`B: ${f(s.v2)} m/s`, w - 8, 16);
+    if (!Number.isFinite(s.tc)) { ctx.textAlign = 'center'; ctx.fillStyle = pal.warn; ctx.fillText('They never meet: A must catch up with B', w / 2, 120); }
+    const m1 = val('.cc-m1'), m2 = val('.cc-m2'), u1 = val('.cc-u1'), u2 = val('.cc-u2'), r = s.r, met = Number.isFinite(s.tc);
+    bars(ctx, pal, w, 136, [['A', m1 * u1, met ? m1 * r.v1 : m1 * u1, colA], ['B', m2 * u2, met ? m2 * r.v2 : m2 * u2, colB], ['Total', r.pBefore, r.pAfter, pal.ink]], 'kg m/s');
+    c.setAttribute('aria-label', `Cart A at ${f(s.x1)} m moving ${f(s.v1)} m/s, cart B at ${f(s.x2)} m moving ${f(s.v2)} m/s`);
+  }
+  function cartReadouts() {
+    const m1 = val('.cc-m1'), u1 = val('.cc-u1'), m2 = val('.cc-m2'), u2 = val('.cc-u2'), e = E(), r = collide(m1, u1, m2, u2, e);
+    q('.cc-m1v').textContent = `${f(m1)} kg`; q('.cc-m2v').textContent = `${f(m2)} kg`; q('.cc-u1v').textContent = `${f(u1)} m/s`; q('.cc-u2v').textContent = `${f(u2)} m/s`; q('.cc-ev').textContent = f(e);
+    const met = Number.isFinite(meetTime(1, u1, 3, u2, 2 * HALF)), s = state(t);
+    const pill = q('.cc-pill');
+    if (!met) { pill.textContent = 'These carts never meet'; pill.className = 'ax-pill warn cc-pill'; }
+    else if (t < 0) { pill.textContent = 'Press Run'; pill.className = 'ax-pill cc-pill'; }
+    else if (!s.hit) { pill.textContent = 'Rolling towards each other'; pill.className = 'ax-pill cc-pill'; }
+    else { pill.textContent = e === 1 ? 'Bounced: momentum and kinetic energy both kept' : e === 0 ? 'Stuck together: momentum kept, some energy lost' : 'Bounced partly: momentum kept, some energy lost'; pill.className = 'ax-pill good cc-pill'; }
+    const facts: [string, string, string][] = [
+      ['A after', `${f(r.v1)} m/s`, `was ${f(u1)} m/s`], ['B after', `${f(r.v2)} m/s`, `was ${f(u2)} m/s`],
+      ['Momentum before', `${f(r.pBefore)} kg m/s`, ''], ['Momentum after', `${f(r.pAfter)} kg m/s`, 'the same'],
+      ['Kinetic energy before', `${f(r.keBefore)} J`, ''], ['Kinetic energy after', `${f(r.keAfter)} J`, r.keBefore - r.keAfter > 1e-9 ? `${f(r.keBefore - r.keAfter)} J to heat and sound` : 'none lost'],
+    ];
+    if (level === 11) facts.push(['Impulse on B', `${f(r.impulse)} N s`, 'equal and opposite on A']);
+    q('.cc-facts').replaceChildren(...facts.map(([k, v, sm]) => fact(k, v, sm)));
+    const eq = [para([['Conservation of momentum: '], `m₁u₁ + m₂u₂ = ${f(m1)} × ${p(u1)} + ${f(m2)} × ${p(u2)} = ${f(r.pBefore)} kg m/s before, and ${f(m1)} × ${p(r.v1)} + ${f(m2)} × ${p(r.v2)} = ${f(r.pAfter)} kg m/s after.`])];
+    if (e === 0) eq.push(para([['Sticky: '], `they move together, so v = (m₁u₁ + m₂u₂) ÷ (m₁ + m₂) = ${f(r.pBefore)} ÷ ${f(m1 + m2)} = ${f(r.v1)} m/s.`]));
+    else if (e === 1) eq.push(para([['Elastic: '], 'kinetic energy is kept as well as momentum. For equal masses the velocities simply swap.']));
+    if (level === 11) eq.push(para([['Restitution: '], `e = (speed of separation) ÷ (speed of approach) = (${p(r.v2)} − ${p(r.v1)}) ÷ (${p(u1)} − ${p(u2)}) = ${f(e)}. e = 1 is elastic, e = 0 is perfectly inelastic.`]));
+    q('.cc-eq').replaceChildren(...eq);
+  }
+  function runCarts() {
+    cancelAnimationFrame(raf); t = 0; let last = performance.now();
+    const tick = (now: number) => {
+      t += Math.min(0.05, (now - last) / 1000); last = now; draw();
+      const s = state(t), off = (x: number) => x < -0.5 || x > TRACK + 0.5;
+      if (t < 8 && !(off(s.x1) && off(s.x2)) && !(s.hit && Math.abs(s.v1) < 1e-9 && Math.abs(s.v2) < 1e-9)) raf = requestAnimationFrame(tick); else raf = 0;
+    };
+    raf = requestAnimationFrame(tick);
+  }
+  q('.cc-go').addEventListener('click', runCarts);
+  q('.cc-reset').addEventListener('click', () => { cancelAnimationFrame(raf); t = -1; draw(); });
+  root.querySelectorAll<HTMLButtonElement>('.cc-type button').forEach((b) => b.addEventListener('click', () => {
+    eType = Number(b.dataset.t); inp('.cc-e').value = String(eType);
+    root.querySelectorAll('.cc-type button').forEach((o) => o.setAttribute('aria-pressed', String(o === b))); t = -1; draw();
+  }));
+
+  // ---- recoil ------------------------------------------------------------------------------------------------
+  const PRE: Record<string, { M: [string, number, number, number, number]; m: [string, number, number, number, number]; v: [string, number, number, number, number]; body: string; shot: string }> = {
+    gun: { M: ['Mass of the cannon', 1, 20, 0.5, 5], m: ['Mass of the ball', 0.1, 2, 0.1, 0.5], v: ['Speed of the ball', 5, 50, 1, 20], body: 'cannon', shot: 'ball' },
+    boat: { M: ['Mass of the boat', 20, 200, 5, 60], m: ['Mass of the person', 20, 80, 1, 40], v: ['Jump speed', 1, 5, 0.5, 2], body: 'boat', shot: 'person' },
+    hose: { M: ['Mass of the skater', 20, 90, 1, 50], m: ['Mass of the ball', 1, 10, 0.5, 4], v: ['Throw speed', 1, 12, 0.5, 5], body: 'skater', shot: 'ball' },
+  };
+  const pre = () => PRE[q<HTMLSelectElement>('.cc-pre').value];
+  function applyPre() {
+    const P = pre();
+    for (const [k, cls] of [['M', '.cc-M'], ['m', '.cc-m'], ['v', '.cc-v']] as const) { const [name, lo, hi, st, v] = P[k]; const i = inp(cls); i.min = String(lo); i.max = String(hi); i.step = String(st); i.value = String(v); q(`.cc-${k === 'M' ? 'M' : k}name`).textContent = name; }
+    rt = -1; draw();
+  }
+  q('.cc-pre').addEventListener('change', applyPre);
+  function drawRecoil(pal: Palette) {
+    const c = q<HTMLCanvasElement>('.cc-scene'), { ctx, w } = setup(c, H), yG = 92;
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, H);
+    const M = val('.cc-M'), m = val('.cc-m'), v = val('.cc-v'), r = recoil(M, m, v), P = pre();
+    const ppm = (w - 20) / 8, X = (x: number) => w * 0.4 + x * ppm, tt = Math.max(0, rt);
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(4, yG); ctx.lineTo(w - 4, yG); ctx.stroke();
+    const xb = Math.max(-3.2, r.V * tt), xs = Math.min(4.6, 0.6 + v * tt);
+    cart(ctx, pal, X(xb), yG, 64, `${P.body} ${f(M)} kg`, pal.accent);
+    { ctx.fillStyle = pal.accent2; ctx.beginPath(); ctx.arc(rt < 0 ? X(0.55) : X(xs), yG - 20, 7, 0, 7); ctx.fill(); ctx.fillStyle = pal.ink; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(`${P.shot} ${f(m)} kg`, Math.min(w - 40, rt < 0 ? X(0.75) : X(xs)), yG + 18); }
+    if (rt >= 0) arrow(ctx, X(xb), yG - 64, Math.max(-60, Math.min(-12, r.V * 12)), pal.accent);
+    ctx.font = '600 12px system-ui, sans-serif'; ctx.fillStyle = pal.ink; ctx.textAlign = 'left';
+    ctx.fillText(rt < 0 ? 'At rest: total momentum 0' : `${P.body}: ${f(r.V)} m/s`, 8, 16);
+    const after = rt >= 0;
+    bars(ctx, pal, w, 136, [[P.body, 0, after ? r.pBody : 0, pal.accent], [P.shot, 0, after ? r.pShot : 0, pal.accent2], ['Total', 0, 0, pal.ink]], 'kg m/s');
+  }
+  function recoilReadouts() {
+    const M = val('.cc-M'), m = val('.cc-m'), v = val('.cc-v'), r = recoil(M, m, v), P = pre();
+    q('.cc-Mv').textContent = `${f(M)} kg`; q('.cc-mv').textContent = `${f(m)} kg`; q('.cc-vv').textContent = `${f(v)} m/s`;
+    const pill = q('.cc-pill'); pill.className = 'ax-pill cc-pill'; pill.textContent = rt < 0 ? 'Press Fire' : `The ${P.body} recoils at ${f(Math.abs(r.V))} m/s`;
+    const facts: [string, string, string][] = [
+      [`Momentum of the ${P.shot}`, `${f(r.pShot)} kg m/s`, 'forwards'], [`Momentum of the ${P.body}`, `${f(r.pBody)} kg m/s`, 'backwards'],
+      ['Total after', `${f(r.total)} kg m/s`, 'same as before: 0'], [`Recoil velocity of the ${P.body}`, `${f(r.V)} m/s`, `${f(m * v)} ÷ ${f(M)}`],
+    ];
+    if (level === 11) facts.push([`Kinetic energy of the ${P.shot}`, `${f(r.keShot)} J`, ''], [`Kinetic energy of the ${P.body}`, `${f(r.keBody)} J`, 'the lighter one gets most of it']);
+    q('.cc-facts').replaceChildren(...facts.map(([k, vv, sm]) => fact(k, vv, sm)));
+    q('.cc-eq').replaceChildren(para([['Momentum before = 0, so after: '], `M V + m v = 0 → V = −m v ÷ M = −${f(m)} × ${f(v)} ÷ ${f(M)} = ${f(r.V)} m/s. The minus sign means backwards.`]), para([['Rockets work the same way: '], 'they throw hot gas backwards very fast, and the rocket gets the same momentum forwards. No air is needed to push against.']));
+  }
+  q('.cc-fire').addEventListener('click', () => {
+    cancelAnimationFrame(raf); rt = 0; let last = performance.now();
+    const tick = (now: number) => { rt += Math.min(0.05, (now - last) / 1000); last = now; draw(); if (rt < 2.5) raf = requestAnimationFrame(tick); else raf = 0; };
+    raf = requestAnimationFrame(tick);
+  });
+  q('.cc-reset2').addEventListener('click', () => { cancelAnimationFrame(raf); rt = -1; draw(); });
+
+  // ---- shared -----------------------------------------------------------------------------------------------
+  function fact(k: string, v: string, sm = '') {
+    const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd');
+    dt.textContent = k; dd.textContent = v;
+    if (sm) { const e = document.createElement('small'); e.textContent = sm; dd.append(e); }
+    d.append(dt, dd); return d;
+  }
+  function para(parts: (string | [string])[]) { const el = document.createElement('p'); for (const x of parts) { if (typeof x === 'string') el.append(x); else { const b = document.createElement('b'); b.textContent = x[0]; el.append(b); } } return el; }
+  function draw() {
+    const pal = pagePalette();
+    q('.cc-e-row').hidden = level !== 11; q('.cc-type').hidden = level === 11;
+    if (mode === 'carts') { drawCarts(pal); cartReadouts(); } else { drawRecoil(pal); recoilReadouts(); }
+  }
+  root.querySelectorAll<HTMLButtonElement>('.cc-level button').forEach((b) => b.addEventListener('click', () => {
+    level = Number(b.dataset.l) as 9 | 11;
+    if (level === 9) { eType = val('.cc-e') >= 0.5 ? 1 : 0; inp('.cc-e').value = String(eType); root.querySelectorAll<HTMLElement>('.cc-type button').forEach((o) => o.setAttribute('aria-pressed', String(Number(o.dataset.t) === eType))); }
+    root.querySelectorAll('.cc-level button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    renderQuiz(); draw();
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.cc-mode button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m as typeof mode; cancelAnimationFrame(raf); raf = 0;
+    root.querySelectorAll('.cc-mode button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    for (const m of ['carts', 'recoil']) q(`.cc-p-${m}`).hidden = m !== mode;
+    draw();
+  }));
+  root.querySelectorAll('.cc-p-carts input').forEach((i) => i.addEventListener('input', () => { cancelAnimationFrame(raf); raf = 0; t = -1; draw(); }));
+  root.querySelectorAll('.cc-p-recoil input').forEach((i) => i.addEventListener('input', () => { cancelAnimationFrame(raf); raf = 0; rt = -1; draw(); }));
+
+  let renderQuiz = () => {};
+  renderQuiz = mountQuiz(q('.cc-quiz'), () => questions(level));
+  applyPre();
+  draw();
+  document.addEventListener('fibub:theme', draw);
+  let rw = 0; new ResizeObserver(() => { const w = q('.cc-scene').clientWidth; if (w !== rw) { rw = w; draw(); } }).observe(q('.cc-scene'));
+</script>
+
+<style is:inline>
+  .cc .cc-top { margin-bottom: 10px; }
+  .cc .cc-lab { font-size: 14px; color: var(--muted); }
+  .cc .cc-mode { margin-bottom: 12px; }
+  .cc .ax-seg button { min-height: 44px; }
+  .cc .cc-p { display: grid; gap: 10px; margin-top: 12px; }
+  .cc .cc-p[hidden], .cc [hidden] { display: none; }
+  .cc input[type=range] { width: 100%; height: 32px; accent-color: var(--ink); }
+  .cc label b { color: var(--ink); }
+  .cc canvas { display: block; width: 100%; }
+  .cc .btn.small { min-height: 44px; }
+  .cc .cc-state { margin: 0 0 12px; }
+  .cc .cc-pill { font-size: 14px; white-space: normal; }
+  .cc .cc-eq p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .cc .cc-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>
