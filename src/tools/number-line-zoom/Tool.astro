@@ -1,0 +1,223 @@
+---
+// Number line zoom (Learn): zoom into the number line ten times at a time to pin down √2, π or a fraction digit by
+// digit, with the check for each step (squaring, or multiplying back). Rational vs irrational, and a decimal
+// detective that does long division to show whether p/q terminates or repeats. Exact BigInt digits; nothing stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm nz">
+  <div class="ax-card">
+    <h2>Zoom into the number line</h2>
+    <div class="ax-row">
+      <label style="flex:1 1 9em">Number
+        <select class="nz-pick">
+          <option value="s2" selected>√2</option><option value="s3">√3</option><option value="s5">√5</option><option value="s10">√10</option>
+          <option value="pi">π</option><option value="f1/3">1/3</option><option value="f2/7">2/7</option><option value="f7/13">7/13</option><option value="f3/8">3/8</option>
+          <option value="own">My own…</option>
+        </select>
+      </label>
+      <label style="flex:1 1 9em">Or type √n or p/q
+        <input type="text" class="nz-own" placeholder="√7 or 5/6" autocomplete="off" aria-label="Your own number, like √7 or 5/6" />
+      </label>
+    </div>
+    <div class="ax-seg nz-mode" role="group" aria-label="Who zooms" style="margin-top:10px">
+      <button type="button" data-m="auto" aria-pressed="true">Zoom for me</button>
+      <button type="button" data-m="guess" aria-pressed="false">I'll find it</button>
+    </div>
+    <p class="ax-err nz-err" hidden></p>
+    <svg class="sm-fig nz-fig" viewBox="0 0 340 230" role="img" aria-label="The number line, with the part that holds the number magnified ten times below it" style="margin-top:10px"></svg>
+    <p class="ax-help nz-help"></p>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn small nz-in">Zoom in ×10</button>
+      <button type="button" class="btn secondary small nz-out">Zoom out</button>
+      <button type="button" class="btn secondary small nz-reset">Start again</button>
+    </div>
+    <p class="ax-big nz-big" aria-live="polite" style="margin:12px 0 0;overflow-wrap:anywhere"></p>
+    <p class="sm-f nz-why"></p>
+    <p class="sm-f nz-kind"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Decimal detective: does p/q stop or repeat?</h2>
+    <div class="ax-row">
+      <label style="flex:1 1 6em">p <input type="number" class="nz-p" min="0" max="1000000" step="1" value="7" inputmode="numeric" /></label>
+      <label style="flex:1 1 6em">q <input type="number" class="nz-q" min="1" max="100000" step="1" value="13" inputmode="numeric" /></label>
+    </div>
+    <p class="ax-big nz-dbig" style="margin:10px 0 0;overflow-wrap:anywhere"></p>
+    <p class="sm-f nz-dwhy"></p>
+    <div class="ax-scroll"><table class="nz-steps"></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Zoom into √2 six times. The digits never stop and never fall into a repeating pattern: √2 is irrational.</li>
+      <li>Zoom into 3/8. After three zooms it lands exactly on a mark: 0.375 stops.</li>
+      <li>Zoom into 7/13 and watch the digits 538461 come round again and again.</li>
+      <li>In the detective, try q = 7, 14, 21, 28. Which ones repeat from the very first digit?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="nz-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .nz svg .nz-seg { fill: transparent; cursor: pointer; }
+  .nz svg .nz-hl { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+  .nz svg .nz-bad { fill: var(--bad-soft); }
+  .nz svg .nz-lens { fill: var(--accent-soft); opacity: .45; }
+  .nz svg .nz-dot { fill: var(--bad); stroke: var(--surface); stroke-width: 2; }
+  .nz svg .nz-end { font-weight: 700; font-size: 12px; }
+  .nz svg .nz-dg { fill: var(--muted); font-size: 12px; }
+  .nz .nz-steps tr.rep td { background: var(--warn-soft); }
+</style>
+
+<script>
+  import { scaled, exactAt, dec, within, why, rational, isSquare, decimalInfo, decText, type Target } from '../../lib/sci/number-line-zoom';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, quiz, svgPoint, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.nz')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.nz-fig'), pick = q<HTMLSelectElement>('.nz-pick'), own = q<HTMLInputElement>('.nz-own'), err = q('.nz-err');
+  const MAX = 24;
+  let t: Target = { kind: 'sqrt', n: 2 }, label = '√2', k = 0, mode: 'auto' | 'guess' = 'auto', wrong = -1, found = true;
+
+  function parse(s: string): { t: Target; label: string } | string {
+    const x = s.trim().replace(/\s+/g, '').replace(/^sqrt\(?(\d+)\)?$/i, '√$1');
+    let m = /^√(\d+)$/.exec(x);
+    if (m) { const n = Number(m[1]); return n > 1e8 ? 'Keep n up to 100,000,000.' : { t: { kind: 'sqrt', n }, label: `√${n}` }; }
+    m = /^(\d+)\/(\d+)$/.exec(x);
+    if (m) { const p = Number(m[1]), qq = Number(m[2]); return qq === 0 ? 'q cannot be 0.' : p > 1e8 || qq > 1e8 ? 'Keep p and q up to 100,000,000.' : { t: { kind: 'frac', p, q: qq }, label: `${p}/${qq}` }; }
+    return 'Type a square root like √7 or a fraction like 5/6 (whole numbers, not negative).';
+  }
+  function choose() {
+    err.hidden = true;
+    const v = pick.value;
+    if (v === 'own' || (own.value.trim() && document.activeElement === own)) {
+      if (!own.value.trim()) { return; }
+      const r = parse(own.value);
+      if (typeof r === 'string') { err.textContent = r; err.hidden = false; return; }
+      t = r.t; label = r.label; pick.value = 'own';
+    } else if (v === 'pi') { t = { kind: 'pi' }; label = 'π'; }
+    else if (v[0] === 's') { t = { kind: 'sqrt', n: Number(v.slice(1)) }; label = `√${v.slice(1)}`; }
+    else { const [p, qq] = v.slice(1).split('/').map(Number); t = { kind: 'frac', p, q: qq }; label = `${p}/${qq}`; }
+    k = 0; wrong = -1; found = mode === 'auto'; draw();
+  }
+  pick.addEventListener('change', () => { if (pick.value !== 'own') own.value = ''; choose(); });
+  own.addEventListener('input', choose);
+
+  // The current interval is [L, L+1] / 10^k, magnified below from its parent [P, P+1] / 10^(k−1).
+  const X = (f: number) => 20 + f * 300;
+  function draw() {
+    fig.replaceChildren();
+    const L = scaled(t, k), lo = dec(L, k), hi = dec(L + 1n, k);
+    const nextDigit = Number(scaled(t, k + 1) - L * 10n);
+    // Top line: the current interval with its ten parts numbered by the next digit.
+    const yT = 60, yB = 175;
+    S('line', { x1: X(0), x2: X(1), y1: yT, y2: yT, class: 'sm-line' }, fig);
+    for (let i = 0; i < 10; i++) {
+      const cls = mode === 'guess' && !found && i === wrong ? 'nz-bad' : (found || mode === 'auto') && i === nextDigit ? 'nz-hl' : 'nz-seg';
+      S('rect', { x: X(i / 10), y: yT - 16, width: 30, height: 32, class: cls + ' nz-s', 'data-i': i }, fig);
+      S('text', { x: X((i + 0.5) / 10), y: yT + 30, 'text-anchor': 'middle', class: 'nz-dg' }, fig, String(i));
+    }
+    for (let i = 0; i <= 10; i++) S('line', { x1: X(i / 10), x2: X(i / 10), y1: yT - (i % 5 === 0 ? 10 : 6), y2: yT + (i % 5 === 0 ? 10 : 6), class: 'sm-line' }, fig);
+    S('text', { x: X(0), y: yT - 22, class: 'nz-end' }, fig, lo);
+    S('text', { x: X(1), y: yT - 22, 'text-anchor': 'end', class: 'nz-end' }, fig, hi);
+    if (mode === 'auto' || found) S('circle', { cx: X(within(t, k)), cy: yT, r: 6, class: 'nz-dot' }, fig);
+    // Lens and the magnified part below.
+    if ((mode === 'auto' || found) && k < MAX) {
+      const a = X(nextDigit / 10), b = X((nextDigit + 1) / 10);
+      S('polygon', { points: `${a},${yT + 16} ${b},${yT + 16} ${X(1)},${yB} ${X(0)},${yB}`, class: 'nz-lens' }, fig);
+      S('line', { x1: X(0), x2: X(1), y1: yB, y2: yB, class: 'sm-line' }, fig);
+      for (let i = 0; i <= 10; i++) S('line', { x1: X(i / 10), x2: X(i / 10), y1: yB - (i % 5 === 0 ? 10 : 6), y2: yB + (i % 5 === 0 ? 10 : 6), class: 'sm-line' }, fig);
+      const L2 = scaled(t, k + 1);
+      S('text', { x: X(0), y: yB + 26, class: 'nz-end' }, fig, dec(L2, k + 1));
+      S('text', { x: X(1), y: yB + 26, 'text-anchor': 'end', class: 'nz-end' }, fig, dec(L2 + 1n, k + 1));
+      S('circle', { cx: X(within(t, k + 1)), cy: yB, r: 6, class: 'nz-dot' }, fig);
+      S('text', { x: 170, y: yB + 46, 'text-anchor': 'middle', class: 'nz-dg' }, fig, `×10: this part is 10× wider than above`);
+    } else if (mode === 'guess' && !found) {
+      S('text', { x: 170, y: 140, 'text-anchor': 'middle', style: 'font-weight:600' }, fig, `Tap the part (0 to 9) that holds ${label}`);
+    }
+    q('.nz-help').textContent = mode === 'guess' && !found ? `Which tenth of this stretch holds ${label}? Tap it. ${t.kind === 'sqrt' ? 'Square the ends to check.' : t.kind === 'frac' ? 'Multiply the ends by ' + (t as { q: number }).q + ' to check.' : ''}` : `Each zoom shows one more decimal digit: the number of the part that holds ${label}.`;
+    const exact = exactAt(t, k);
+    q('.nz-big').textContent = `${label} = ${dec(L, k)}${exact ? '' : '…'}`;
+    q('.nz-why').textContent = k === 0 && exact ? `${label} is exactly ${dec(L, 0)}.` : exact ? `Landed exactly on a mark: ${label} = ${dec(L, k)}.` : `Why: ${why(t, k)}, so ${label} is between ${lo} and ${hi}.`;
+    let kind = '';
+    if (t.kind === 'pi') kind = 'π is irrational: its digits go on forever with no repeating block, so no fraction p/q equals it. (22/7 = 3.142857… is only close.)';
+    else if (t.kind === 'sqrt') kind = isSquare(t.n) ? `${t.n} is a perfect square, so ${label} is a whole number: rational.` : `${t.n} is not a perfect square, so ${label} is irrational: the zoom never lands on a mark, and the digits never repeat in a block.`;
+    else { const d = decimalInfo(t.p, t.q); kind = `${label} is rational: ${decText(d).replace(/\((\d+)\)/, '$1$1…')} ${d.terminates ? `stops after ${d.pre.length} decimal place${d.pre.length === 1 ? '' : 's'}.` : `repeats the block ${d.rep} for ever.`}`; }
+    q('.nz-kind').textContent = kind;
+    q<HTMLButtonElement>('.nz-in').disabled = k >= MAX || exact;
+    q<HTMLButtonElement>('.nz-out').disabled = k === 0;
+  }
+
+  q('.nz-in').addEventListener('click', () => {
+    if (mode === 'guess' && !found) { wrong = -1; found = true; draw(); return; } // shows the right part first
+    if (k < MAX && !exactAt(t, k)) { k++; wrong = -1; found = mode === 'auto'; draw(); }
+  });
+  q('.nz-out').addEventListener('click', () => { if (k > 0) { k--; wrong = -1; found = mode === 'auto'; draw(); } });
+  q('.nz-reset').addEventListener('click', () => { k = 0; wrong = -1; found = mode === 'auto'; draw(); });
+  fig.addEventListener('pointerdown', (e) => {
+    if (mode !== 'guess' || found) return;
+    const p = svgPoint(fig, e.clientX, e.clientY);
+    if (p.y < 30 || p.y > 100 || p.x < 20 || p.x > 320) return;
+    const i = Math.min(9, Math.floor((p.x - 20) / 30)), right = Number(scaled(t, k + 1) - scaled(t, k) * 10n);
+    if (i === right) { found = true; wrong = -1; draw(); q('.nz-help').textContent = `Right: part ${i}. ${why(t, k + 1)}. Press Zoom in to go closer.`; }
+    else {
+      wrong = i; draw();
+      const L = scaled(t, k) * 10n + BigInt(i), a = dec(L, k + 1), b = dec(L + 1n, k + 1);
+      q('.nz-help').textContent = t.kind === 'sqrt' ? `Not part ${i}: ${a}² = ${dec(L * L, 2 * k + 2)} and ${b}² = ${dec((L + 1n) * (L + 1n), 2 * k + 2)}, so ${label} is not between them (it needs a square of ${t.n}).`
+        : t.kind === 'frac' ? `Not part ${i}: ${a} × ${t.q} = ${dec(L * BigInt(t.q), k + 1)} and ${b} × ${t.q} = ${dec((L + 1n) * BigInt(t.q), k + 1)}, which do not surround ${t.p}.` : `Not part ${i}. Try another.`;
+    }
+  });
+  for (const b of root.querySelectorAll<HTMLButtonElement>('.nz-mode button')) b.addEventListener('click', () => {
+    mode = b.dataset.m as 'auto' | 'guess';
+    for (const o of root.querySelectorAll('.nz-mode button')) o.setAttribute('aria-pressed', String(o === b));
+    found = mode === 'auto'; wrong = -1; draw();
+  });
+
+  // Decimal detective.
+  function detective() {
+    const p = Math.max(0, Math.round(Number(q<HTMLInputElement>('.nz-p').value) || 0)), qq = Math.round(Number(q<HTMLInputElement>('.nz-q').value) || 0);
+    const big = q('.nz-dbig'), w = q('.nz-dwhy'), tab = q('.nz-steps');
+    if (qq < 1 || qq > 100000 || p > 1e6) { big.textContent = ''; w.textContent = 'Use whole numbers: p from 0 to 1,000,000 and q from 1 to 100,000.'; tab.replaceChildren(); return; }
+    const d = decimalInfo(p, qq);
+    big.textContent = `${p}/${qq} = ${decText(d).replace(/\((\d+)\)/, '̅$1').replace(/̅(\d+)/, (_, s: string) => s.split('').map((c) => c + '̅').join(''))}`;
+    const fs = d.factors.length ? d.factors.join(' × ') : '1';
+    w.textContent = d.q !== qq ? `In lowest terms it is ${d.p}/${d.q}. ` : '';
+    w.textContent += d.terminates
+      ? `The denominator ${d.q} = ${fs} has no prime factors but 2 and 5, so the decimal stops${d.pre.length ? ` after ${d.pre.length} place${d.pre.length === 1 ? '' : 's'}` : ' (it is a whole number)'}.`
+      : `The denominator ${d.q} = ${fs} has a prime factor other than 2 and 5, so the decimal repeats. The block ${d.rep} (${d.rep.length} digit${d.rep.length === 1 ? '' : 's'}) comes round for ever${d.pre ? `, after ${d.pre.length} digit${d.pre.length === 1 ? '' : 's'} that do not repeat` : ''}. A bar over a digit marks the repeating block.`;
+    const head = document.createElement('tr'); head.innerHTML = '<th>Step</th><th class="r">Remainder</th><th class="r">× 10</th><th class="r">÷ q gives digit</th><th class="r">New remainder</th>';
+    const firstRep = d.pre.length;
+    const rows = d.steps.slice(0, 40).map((s, i) => {
+      const tr = document.createElement('tr'); if (!d.terminates && i === firstRep) tr.className = 'rep';
+      for (const v of [String(i + 1), String(s.r), String(s.r * 10), String(s.d), String((s.r * 10) % d.q)]) { const td = document.createElement('td'); td.className = 'r'; td.textContent = v; tr.append(td); }
+      tr.firstElementChild!.className = '';
+      return tr;
+    });
+    tab.replaceChildren(head, ...rows);
+    if (!d.terminates) { const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 5; td.textContent = d.steps.length > 40 ? `… ${d.steps.length} steps before a remainder repeats.` : `Remainder ${d.steps[firstRep].r} has come back (highlighted row), so the digits repeat from there.`; tr.append(td); tab.append(tr); }
+  }
+  for (const s of ['.nz-p', '.nz-q']) q(s).addEventListener('input', detective);
+  choose(); detective();
+
+  quiz(q('.nz-quiz'), () => {
+    const out: Question[] = [];
+    let n = randInt(2, 99); while (isSquare(n)) n = randInt(2, 99);
+    const t10 = Number(scaled({ kind: 'sqrt', n }, 1)) / 10;
+    out.push({ q: `√${n} lies between two neighbouring tenths, like 1.4 and 1.5. Type the lower one.`, want: [t10], tol: 0.0001, work: `${fmt(t10, 1)}² = ${fmt(t10 * t10, 2)} ≤ ${n} < ${fmt((t10 + 0.1) ** 2, 2)} = ${fmt(t10 + 0.1, 1)}², so √${n} is between ${fmt(t10, 1)} and ${fmt(t10 + 0.1, 1)}.` });
+    const qq = [3, 7, 11, 13, 27, 37, 41, 9, 33][randInt(0, 8)], d = decimalInfo(1, qq);
+    out.push({ q: `How many digits are in the repeating block of 1/${qq}?`, want: [d.rep.length], work: `1/${qq} = ${decText(d)}: the block ${d.rep} has ${d.rep.length} digit${d.rep.length === 1 ? '' : 's'}.` });
+    const a = randInt(1, 4), b = randInt(0, 4), den = 2 ** a * 5 ** b, num = [1, 3, 7, 9, 11, 13][randInt(0, 5)], dd = decimalInfo(num, den);
+    out.push({ q: `${num}/${den} has a decimal that stops. How many decimal places does it have?`, want: [dd.pre.length], work: `${den} = 2^${a} × 5^${b}, so it stops after ${Math.max(a, b)} places${dd.q !== den ? ' (in lowest terms ' + dd.p + '/' + dd.q + ')' : ''}: ${num}/${den} = ${decText(dd)}.` });
+    const m = [4, 9, 16, 25, 36, 49, 2, 3, 8, 12, 18, 50][randInt(0, 11)], r = rational({ kind: 'sqrt', n: m });
+    out.push({ q: `Is √${m} rational? Type 1 for yes, 0 for no.`, want: [r ? 1 : 0], work: r ? `${m} = ${Math.sqrt(m)}², so √${m} = ${Math.sqrt(m)}: rational.` : `${m} is not a perfect square, so √${m} is irrational.` });
+    return out;
+  });
+</script>
