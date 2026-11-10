@@ -1,0 +1,174 @@
+---
+// Statement and converse checker: pick an "if ... then ..." statement, test it or its converse on random figures
+// (or numbers), and hunt for a counterexample. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+import '../../styles/chemquiz.css';
+import { STATEMENTS } from '../../lib/sci/converse-school';
+const groups = [['quad', 'Quadrilaterals'], ['tri', 'Triangles'], ['angles', 'Angles'], ['num', 'Numbers']] as const;
+---
+<div class="ax sm cv">
+  <div class="ax-card">
+    <div class="ax-grid">
+      <label>Statement <select class="cv-st">{groups.map(([k, name]) => <optgroup label={name}>{STATEMENTS.filter((s) => s.kind === k).map((s) => <option value={s.id}>{s.text}</option>)}</optgroup>)}</select></label>
+    </div>
+    <div class="ax-seg cv-dir" role="group" aria-label="Which direction to test" style="margin-top:10px"><button type="button" data-c="0" aria-pressed="true">Test the statement</button><button type="button" data-c="1" aria-pressed="false">Test the converse</button></div>
+    <p class="cv-if" style="margin:10px 0 0"></p>
+    <p class="cv-then" style="margin:4px 0 0"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>One random figure</h2>
+    <svg class="sm-fig cv-fig" viewBox="0 0 340 240" role="img" aria-label="A random figure with its measurements"></svg>
+    <ul class="sm-steps cv-meas"></ul>
+    <p class="sm-f cv-one" aria-live="polite"></p>
+    <div class="ax-row"><button type="button" class="btn small cv-new">New random figure</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Hunt for a counterexample</h2>
+    <p class="ax-help">A counterexample is a case where the "if" part is true but the "then" part is false. One is enough to show a statement is false. Finding none in many tries is good evidence, but only a proof makes it certain.</p>
+    <div class="ax-row">
+      <button type="button" class="btn small cv-hunt" data-n="100">Test 100</button>
+      <button type="button" class="btn secondary small cv-hunt" data-n="1000">Test 1 000</button>
+      <button type="button" class="btn secondary small cv-show" hidden>Draw the counterexample</button>
+    </div>
+    <p class="sm-f cv-res" aria-live="polite"></p>
+    <details class="cv-ans" style="margin-top:8px"><summary>Show the answer and the reason</summary><p class="cv-why"></p></details>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>"Square → equal diagonals" is true. Test its converse and look at what the counterexamples are: rectangles and isosceles trapeziums.</li>
+      <li>Find two statements whose converses are also true. Those can be joined with "if and only if".</li>
+      <li>Before pressing a hunt button, decide whether you think the converse is true. Then test.</li>
+      <li>Try "divisible by 3 → divisible by 6". The very first odd multiple of 3 breaks it.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cq">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Type true or false. Nothing is saved.</p>
+    <ol class="cq-list"></ol>
+    <button type="button" class="btn secondary small cq-new">New questions</button>
+  </div>
+</div>
+
+<style is:inline>
+  .cv svg .cv-shape { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+  .cv svg .cv-shape.bad { fill: var(--warn-soft); stroke: var(--warn); }
+  .cv svg .cv-diag { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 4; }
+  .cv svg .cv-v { font: 700 14px system-ui, sans-serif; fill: var(--ink); }
+  .cv svg .cv-len { font: 12px system-ui, sans-serif; fill: var(--muted); }
+  .cv svg .cv-big { font: 700 22px system-ui, sans-serif; fill: var(--ink); }
+  .cv svg .cv-ray { stroke: var(--ink); stroke-width: 2; }
+  .cv svg .cv-arc { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+  .cv .cv-yes { color: var(--good); font-weight: 700; }
+  .cv .cv-no { color: var(--bad); font-weight: 700; }
+</style>
+
+<script>
+  import { STATEMENTS, randomFig, hunt, rng, measures, angleAt, type Fig, type Statement } from '../../lib/sci/converse-school';
+  import { fmt } from '../../lib/sci/smath';
+  import { S } from '../../lib/smath-ui';
+  import { mountQuiz, same, pickOne, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.cv')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.cv-fig'), sel = q<HTMLSelectElement>('.cv-st');
+  let conv = false, cur: Fig | null = null, counter: Fig | null = null, seed = 1;
+  const st = (): Statement => STATEMENTS.find((s) => s.id === sel.value) ?? STATEMENTS[0];
+  // Split "If P, then Q." into its parts.
+  const parts = (t: string) => { const m = /^If (.+?), then (.+)\.$/.exec(t); return m ? [m[1], m[2]] : [t, '']; };
+
+  function header() {
+    const s = st(), t = conv ? s.converse : s.text, [p, c] = parts(t);
+    q('.cv-if').innerHTML = ''; q('.cv-then').innerHTML = '';
+    q('.cv-if').append(Object.assign(document.createElement('b'), { textContent: 'If ' }), p + ',');
+    q('.cv-then').append(Object.assign(document.createElement('b'), { textContent: 'then ' }), c + '.');
+    q('.cv-why').textContent = `The statement is ${s.statementTrue ? 'true' : 'false'}. The converse is ${s.converseTrue ? 'true' : 'false'}. ${s.why}`;
+  }
+
+  function drawFig(f: Fig, s: Statement) {
+    fig.replaceChildren();
+    const H = conv ? s.Qc : s.P, C = conv ? s.P : s.Qc, h = H(f), c = C(f);
+    const meas: string[] = [];
+    if (f.kind === 'quad' || f.kind === 'tri') {
+      const xs = f.pts.map((p) => p[0]), ys = f.pts.map((p) => p[1]);
+      const w = Math.max(...xs) - Math.min(...xs), hh = Math.max(...ys) - Math.min(...ys), k = Math.min(260 / (w || 1), 170 / (hh || 1));
+      const ox = 170 - ((Math.max(...xs) + Math.min(...xs)) / 2) * k, oy = 120 + ((Math.max(...ys) + Math.min(...ys)) / 2) * k;
+      const P = f.pts.map(([x, y]) => [ox + x * k, oy - y * k]);
+      if (f.kind === 'quad') { S('line', { x1: P[0][0], y1: P[0][1], x2: P[2][0], y2: P[2][1], class: 'cv-diag' }, fig); S('line', { x1: P[1][0], y1: P[1][1], x2: P[3][0], y2: P[3][1], class: 'cv-diag' }, fig); }
+      S('polygon', { points: P.map((p) => p.join(',')).join(' '), class: 'cv-shape' + (h && !c ? ' bad' : '') }, fig);
+      const names = 'ABCD', cx = P.reduce((t, p) => t + p[0], 0) / P.length, cy = P.reduce((t, p) => t + p[1], 0) / P.length;
+      P.forEach((p, i) => { const dx = p[0] - cx, dy = p[1] - cy, d = Math.hypot(dx, dy) || 1; S('text', { x: p[0] + (dx / d) * 14, y: p[1] + (dy / d) * 14 + 5, 'text-anchor': 'middle', class: 'cv-v' }, fig, names[i]); });
+      const n = f.pts.length, L = (i: number, j: number) => Math.hypot(f.pts[j][0] - f.pts[i][0], f.pts[j][1] - f.pts[i][1]);
+      const sides = Array.from({ length: n }, (_, i) => `${names[i]}${names[(i + 1) % n]} = ${fmt(L(i, (i + 1) % n), 2)}`);
+      meas.push(`Sides: ${sides.join(', ')}.`);
+      meas.push(`Angles: ${f.pts.map((_, i) => `∠${names[i]} = ${fmt(angleAt(f.pts, i), 1)}°`).join(', ')}.`);
+      if (f.kind === 'quad') {
+        const m = measures(f.pts), dot = (f.pts[2][0] - f.pts[0][0]) * (f.pts[3][0] - f.pts[1][0]) + (f.pts[2][1] - f.pts[0][1]) * (f.pts[3][1] - f.pts[1][1]);
+        const ang = (Math.acos(Math.max(-1, Math.min(1, dot / (m.d[0] * m.d[1])))) * 180) / Math.PI;
+        meas.push(`Diagonals: AC = ${fmt(m.d[0], 2)}, BD = ${fmt(m.d[1], 2)}, crossing at ${fmt(Math.min(ang, 180 - ang), 1)}°.`);
+      }
+      meas.push(`This one was made as: ${f.family}.`);
+    } else if (f.kind === 'num') {
+      S('text', { x: 170, y: 130, 'text-anchor': 'middle', class: 'cv-big' }, fig, `n = ${f.n}`);
+      meas.push(`${f.n} ÷ 2 = ${fmt(f.n / 2, 2)}, ${f.n} ÷ 3 = ${fmt(f.n / 3, 2)}, ${f.n} ÷ 6 = ${fmt(f.n / 6, 2)}, n² = ${f.n * f.n}.`);
+    } else {
+      const arc = (x: number, y: number, a0: number, a1: number, r: number) => { const p0 = [x + r * Math.cos(a0), y - r * Math.sin(a0)], p1 = [x + r * Math.cos(a1), y - r * Math.sin(a1)]; S('path', { d: `M ${x} ${y} L ${p0[0]} ${p0[1]} A ${r} ${r} 0 0 0 ${p1[0]} ${p1[1]} Z`, class: 'cv-arc' }, fig); };
+      const ra = (f.a * Math.PI) / 180;
+      if (f.family === 'vertical') {
+        const x = 170, y = 120, L = 110;
+        S('line', { x1: x - L, y1: y, x2: x + L, y2: y, class: 'cv-ray' }, fig);
+        S('line', { x1: x - L * Math.cos(ra), y1: y + L * Math.sin(ra) * 0.9, x2: x + L * Math.cos(ra), y2: y - L * Math.sin(ra) * 0.9, class: 'cv-ray' }, fig);
+        const t = Math.atan2(Math.sin(ra) * 0.9, Math.cos(ra)); arc(x, y, 0, t, 30); arc(x, y, Math.PI, Math.PI + t, 30);
+        meas.push(`Two straight lines cross. The marked angles are vertically opposite: ${fmt((t * 180) / Math.PI, 1)}° each (the picture squashes them a little; the page uses ${f.a}°).`);
+      } else {
+        for (const [x, a] of [[60, f.a], [210, f.b]] as [number, number][]) { const r = (a * Math.PI) / 180; S('line', { x1: x, y1: 170, x2: x + 100, y2: 170, class: 'cv-ray' }, fig); S('line', { x1: x, y1: 170, x2: x + 100 * Math.cos(r), y2: 170 - 100 * Math.sin(r), class: 'cv-ray' }, fig); arc(x, 170, 0, r, 28); }
+        meas.push(`Two separate angles: ${f.a}° and ${f.b}°, not made by two crossing lines.`);
+      }
+    }
+    q('.cv-meas').replaceChildren(...meas.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+    const out = q('.cv-one'); out.replaceChildren();
+    const yes = (ok: boolean) => Object.assign(document.createElement('span'), { className: ok ? 'cv-yes' : 'cv-no', textContent: ok ? 'yes' : 'no' });
+    out.append('"If" part true? ', yes(h), '. "Then" part true? ', yes(c), '. ',
+      !h ? 'The "if" part is false, so this figure tells us nothing about the statement. Try another.' : c ? 'Both are true: this figure agrees with it.' : 'A counterexample: the "if" part is true but the "then" part is false.');
+  }
+
+  function fresh() { cur = randomFig(st().kind, rng(seed++ * 7919 + Date.now() % 100000)); drawFig(cur, st()); }
+  function reset() { header(); counter = null; q('.cv-res').textContent = ''; q<HTMLButtonElement>('.cv-show').hidden = true; q<HTMLDetailsElement>('.cv-ans').open = false; fresh(); }
+  sel.addEventListener('change', reset);
+  root.querySelectorAll<HTMLButtonElement>('.cv-dir button').forEach((b) => b.addEventListener('click', () => { conv = b.dataset.c === '1'; root.querySelectorAll('.cv-dir button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); reset(); }));
+  q('.cv-new').addEventListener('click', fresh);
+  root.querySelectorAll<HTMLButtonElement>('.cv-hunt').forEach((b) => b.addEventListener('click', () => {
+    const n = Number(b.dataset.n), r = hunt(st(), conv, n, rng(seed++ * 104729 + n)), what = st().kind === 'num' ? 'numbers' : 'figures';
+    counter = r.counter;
+    q<HTMLButtonElement>('.cv-show').hidden = !counter;
+    q('.cv-res').textContent = r.hyp === 0 ? `None of the ${n} ${what} met the "if" part. Try again.`
+      : counter ? `Of ${n} random ${what}, ${r.hyp} met the "if" part and ${r.hyp - r.held} of those did not meet the "then" part. Counterexample found${counter.kind === 'num' ? `: n = ${counter.n}` : counter.kind === 'angles' ? `: two separate ${counter.a}° angles` : `: a ${counter.family}`}. So this ${conv ? 'converse' : 'statement'} is false.`
+      : `Of ${n} random ${what}, ${r.hyp} met the "if" part and all ${r.hyp} also met the "then" part. No counterexample: good evidence that the ${conv ? 'converse' : 'statement'} is true (a proof would make it certain).`;
+  }));
+  q('.cv-show').addEventListener('click', () => { if (counter) { cur = counter; drawFig(counter, st()); q('.cv-fig').scrollIntoView({ block: 'nearest' }); } });
+  reset();
+
+  // Quiz: statements and converses, plus a few false statements, answered true or false.
+  const EXTRA = [
+    { t: 'If a quadrilateral has four equal sides, then it is a square.', ok: false, why: 'A rhombus with angles that are not 90° has four equal sides.' },
+    { t: 'If a number is a multiple of 4, then it is even.', ok: true, why: '4k = 2 × 2k, which is even.' },
+    { t: 'If two triangles have the same area, then they are congruent.', ok: false, why: 'A 2 by 6 right triangle and a 3 by 4 right triangle both have area 6.' },
+    { t: 'If a number is even, then it is a multiple of 4.', ok: false, why: '6 is even but not a multiple of 4.' },
+  ];
+  mountQuiz(q('.cq'), (): Question[] => {
+    const out: Question[] = [];
+    const used = new Set<string>();
+    while (out.length < 3) {
+      const s = pickOne(STATEMENTS); if (used.has(s.id)) continue; used.add(s.id);
+      out.push({ q: `Converse of "${s.text}": "${s.converse}" True or false?`, answer: String(s.converseTrue), ok: same(String(s.converseTrue), s.converseTrue ? 't' : 'f'), worked: s.why, hint: 'true or false' });
+    }
+    const e = pickOne(EXTRA);
+    out.push({ q: `"${e.t}" True or false?`, answer: String(e.ok), ok: same(String(e.ok), e.ok ? 't' : 'f'), worked: e.why, hint: 'true or false' });
+    return out;
+  });
+</script>
