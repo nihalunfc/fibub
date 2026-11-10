@@ -1,0 +1,146 @@
+---
+// Capillary rise: a glass tube dipped in water, soapy water, alcohol or mercury; the liquid climbs (or is pushed
+// down) by h = 2T cos θ/(rρg); h against r; a tube too short. Maths in src/lib/sci/capillary.ts.
+import '../../styles/astro.css';
+---
+<div class="ax cr">
+  <div class="ax-card">
+    <div class="ax-row">
+      <span>Liquid</span>
+      <div class="ax-seg cr-liq" role="group" aria-label="Liquid">
+        <button type="button" data-v="water" aria-pressed="true">Water</button>
+        <button type="button" data-v="soapy" aria-pressed="false">Soapy water</button>
+        <button type="button" data-v="ethanol" aria-pressed="false">Alcohol</button>
+        <button type="button" data-v="mercury" aria-pressed="false">Mercury</button>
+      </div>
+    </div>
+    <canvas class="cr-c" aria-label="A capillary tube in a liquid"></canvas>
+    <p class="cr-state"><span class="ax-pill cr-pill"></span></p>
+    <label>Tube radius (inside): <b class="cr-rv"></b><input class="cr-r" type="range" min="0.05" max="2" step="0.05" value="0.5" /></label>
+    <label>Tube sticking out above the liquid: <b class="cr-Lv"></b><input class="cr-L" type="range" min="0.5" max="20" step="0.5" value="10" /></label>
+    <p class="ax-help">Clean glass tubes. Surface tensions, contact angles and densities are rounded values near 20 °C. g = 9.8 m/s². The tube's width is drawn much bigger than it is.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Why it climbs, and how far</h2>
+    <dl class="ax-facts cr-facts"></dl>
+    <div class="cr-eq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="cr-try">
+      <li>Halve the radius. The water climbs twice as high: h × r stays the same (Jurin's law).</li>
+      <li>Switch to soapy water. Soap lowers the surface tension, so it rises less than half as far.</li>
+      <li>Try mercury. It does not wet glass (its contact angle is above 90°), so it is pushed down, and its surface bulges up.</li>
+      <li>Make the tube stick out less than h. The water reaches the top but does not spill over: its surface just flattens.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="cr-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { LIQUIDS, rise, tube, questions } from '../../lib/sci/capillary';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { pagePalette } from '../../lib/report';
+  import { setupCanvas, fmt, sig, fact, lines, segmented, keepDrawn } from '../../lib/school-h4';
+
+  const root = document.querySelector<HTMLElement>('.cr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => Number(q<HTMLInputElement>(c).value);
+  const H = 280;
+  let liq = LIQUIDS[0];
+
+  function draw() {
+    const pal = pagePalette(), c = q<HTMLCanvasElement>('.cr-c'), { ctx, w } = setupCanvas(c, H);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, H);
+    const r = val('.cr-r') / 1000, L = val('.cr-L') / 100, t = tube(liq.T, liq.theta, r, liq.rho, L);
+    const fill = pal.red ? pal.grid : liq.id === 'mercury' ? 'rgba(120,120,120,0.55)' : 'rgba(31,95,174,0.25)';
+    // ---- beaker and tube; vertical scale fits the tube and the column
+    const bx = 14, bw = Math.min(150, w * 0.4), surf = 190, bot = H - 14;
+    const span = Math.max(L, Math.abs(t.h), 0.01), k = Math.min(40 / 0.01, 150 / span); // px per m
+    ctx.fillStyle = fill; ctx.fillRect(bx, surf, bw, bot - surf);
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(bx, surf - 20); ctx.lineTo(bx, bot); ctx.lineTo(bx + bw, bot); ctx.lineTo(bx + bw, surf - 20); ctx.stroke();
+    const tw = 6 + (r / 0.002) * 14, tx = bx + bw / 2 - tw / 2, tTop = surf - L * k, tBot = surf + 50;
+    const level = surf - (t.short ? L : t.h) * k;
+    ctx.fillStyle = pal.bg; ctx.fillRect(tx, tTop, tw, tBot - tTop); // inside the tube: only its own column
+    ctx.fillStyle = fill; ctx.fillRect(tx, level, tw, tBot - level);
+    // meniscus: dips for a wetting liquid, bulges for mercury (flatter when the tube is too short)
+    const sag = Math.min(tw / 2, (tw / 2) * (t.short ? (r / t.Rtop) : 1)) * (liq.theta < 90 ? 1 : -0.7);
+    ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.moveTo(tx, level); ctx.quadraticCurveTo(tx + tw / 2, level + 2 * sag, tx + tw, level); ctx.closePath(); if (sag > 0) ctx.fill();
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(tx, level); ctx.quadraticCurveTo(tx + tw / 2, level + 2 * sag, tx + tw, level); ctx.stroke();
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(tx, tTop); ctx.lineTo(tx, tBot); ctx.moveTo(tx + tw, tTop); ctx.lineTo(tx + tw, tBot); ctx.stroke();
+    // h marker
+    if (Math.abs(level - surf) > 4) {
+      const mx = tx + tw + 10; ctx.strokeStyle = pal.accent2; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(mx, surf); ctx.lineTo(mx, level); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(mx - 4, surf); ctx.lineTo(mx + 4, surf); ctx.moveTo(mx - 4, level); ctx.lineTo(mx + 4, level); ctx.stroke();
+      ctx.fillStyle = pal.accent2; ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(`${t.h < 0 ? '−' : ''}${sig(Math.abs(t.hShown) * 100, 3)} cm`, mx + 6, (surf + level) / 2 + 4);
+    }
+    // ---- h against r for this liquid
+    const gx0 = bx + bw + 52, gx1 = w - 10, gy0 = 24, gy1 = H - 40;
+    if (gx1 - gx0 > 80) {
+      const rMax = 2e-3, hMax = Math.abs(rise(liq.T, liq.theta, 0.1e-3, liq.rho)), X = (rr: number) => gx0 + (rr / rMax) * (gx1 - gx0), Y = (hh: number) => gy1 - (Math.abs(hh) / hMax) * (gy1 - gy0);
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(gx0, gy0); ctx.lineTo(gx0, gy1); ctx.lineTo(gx1, gy1); ctx.stroke();
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath();
+      for (let i = 0; i <= 200; i++) { const rr = 0.1e-3 + (i / 200) * (rMax - 0.1e-3), hh = rise(liq.T, liq.theta, rr, liq.rho); i ? ctx.lineTo(X(rr), Y(hh)) : ctx.moveTo(X(rr), Y(hh)); }
+      ctx.stroke();
+      if (r >= 0.1e-3) { ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(X(r), Y(t.h), 5, 0, 7); ctx.fill(); }
+      ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('0', gx0, gy1 + 14); ctx.fillText('2 mm', gx1 - 12, gy1 + 14); ctx.fillText('tube radius', (gx0 + gx1) / 2, gy1 + 28);
+      ctx.textAlign = 'right'; ctx.fillText(`${sig(hMax * 100, 2)}`, gx0 - 4, gy0 + 8); ctx.fillText('cm', gx0 - 4, gy0 + 20);
+      ctx.save(); ctx.translate(gx0 - 34, (gy0 + gy1) / 2 + 10); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.fillText(liq.theta < 90 ? 'rise' : 'fall', 0, 0); ctx.restore();
+    }
+    c.setAttribute('aria-label', `${liq.name} in a tube of radius ${fmt(r * 1000, 2)} mm: ${t.h >= 0 ? 'rises' : 'falls'} ${sig(Math.abs(t.h) * 100, 3)} cm`);
+
+    q('.cr-rv').textContent = `${fmt(r * 1000, 2)} mm`; q('.cr-Lv').textContent = `${fmt(L * 100, 1)} cm`;
+    const pill = q('.cr-pill');
+    if (t.h < 0) { pill.textContent = 'Pushed down: the liquid does not wet glass'; pill.className = 'ax-pill warn cr-pill'; }
+    else if (t.short) { pill.textContent = 'The tube is too short: the liquid stops at the top and does not spill over'; pill.className = 'ax-pill warn cr-pill'; }
+    else { pill.textContent = 'Rises: the liquid wets the glass and climbs'; pill.className = 'ax-pill good cr-pill'; }
+    const facts = [
+      fact(t.h >= 0 ? 'Height it rises' : 'Depth it is pushed down', `${sig(Math.abs(t.h) * 100, 4)} cm`, `2T cos θ ÷ (r ρ g)`),
+      fact('Liquid', liq.name, `T = ${fmt(liq.T, 3)} N/m, contact angle ${liq.theta}°, ${fmt(liq.rho, 0)} kg/m³`),
+      fact('Radius of the curved surface', `${sig(t.R * 1000, 3)} mm`, `r ÷ |cos θ|`),
+      fact('Pressure step at the surface', `${sig(t.dp, 4)} Pa`, `2T ÷ R; equals ρ g h`),
+      fact('Upward pull of the surface', `${sig(t.pull * 1000, 3)} mN`, `2πrT|cos θ|, holds up ${sig(t.weight * 1000, 3)} mN of liquid`),
+    ];
+    if (t.short) facts.push(fact('In this short tube', `meniscus radius ${sig(t.Rtop * 1000, 3)} mm`, 'flattens until 2T/R = ρ g L'));
+    q('.cr-facts').replaceChildren(...facts);
+    q('.cr-eq').replaceChildren(...lines([
+      ['Why it climbs: ', 'water molecules stick to glass more than to each other, so the surface curls up the wall. The surface tension along the rim of the tube then pulls the column up until its weight balances the pull.'],
+      ['Balance: ', `2πr T cos θ = π r² h ρ g, so h = 2 × ${fmt(liq.T, 3)} × ${fmt(Math.cos((liq.theta * Math.PI) / 180), 3)} ÷ (${sig(r, 3)} × ${fmt(liq.rho, 0)} × 9.8) = ${sig(t.h * 100, 4)} cm.`],
+    ]));
+  }
+
+  segmented(q('.cr-liq'), (v) => { liq = LIQUIDS.find((l) => l.id === v)!; draw(); });
+  root.querySelectorAll('input').forEach((i) => i.addEventListener('input', draw));
+  mountQuiz(q('.cr-quiz'), () => questions());
+  draw();
+  keepDrawn(q<HTMLCanvasElement>('.cr-c'), draw);
+</script>
+
+<style is:inline>
+  .cr canvas { display: block; width: 100%; margin-top: 10px; }
+  .cr > .ax-card:first-child > label { display: grid; margin-top: 10px; }
+  .cr input[type=range] { width: 100%; height: 32px; accent-color: var(--ink); }
+  .cr label b { color: var(--ink); }
+  .cr .ax-seg button { min-height: 44px; }
+  .cr .cr-state { margin: 8px 0 0; }
+  .cr .cr-pill { font-size: 14px; white-space: normal; }
+  .cr .cr-eq p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .cr .cr-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>

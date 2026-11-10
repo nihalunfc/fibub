@@ -1,0 +1,178 @@
+---
+// Resonance tube practical: hold a tuning fork over a tube, move the water level to change the air column, find
+// the two loudest lengths and work out the speed of sound and the end correction. Maths in src/lib/sci/resonance.ts.
+import '../../styles/astro.css';
+---
+<div class="ax rt">
+  <div class="ax-card">
+    <div class="ax-row rt-set">
+      <label>Tuning fork <select class="rt-f"></select></label>
+      <label>Room temperature <select class="rt-T">
+        <option value="10">10 °C</option><option value="20">20 °C</option><option value="25" selected>25 °C</option><option value="30">30 °C</option><option value="40">40 °C</option>
+      </select></label>
+      <label>Tube width <select class="rt-D">
+        <option value="0.03">3 cm</option><option value="0.04" selected>4 cm</option><option value="0.05">5 cm</option>
+      </select></label>
+    </div>
+    <canvas class="rt-c" aria-label="Resonance tube"></canvas>
+    <label>Air column above the water (drag the water too): <b class="rt-Lv"></b><input class="rt-L" type="range" min="2" max="95" step="0.1" value="5" /></label>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small rt-dn" aria-label="Shorter by 1 mm">− 1 mm</button>
+      <button type="button" class="btn secondary small rt-up" aria-label="Longer by 1 mm">+ 1 mm</button>
+      <button type="button" class="btn small rt-r1">Record as 1st resonance</button>
+      <button type="button" class="btn small rt-r2">Record as 2nd resonance</button>
+    </div>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small rt-play">Hear it</button>
+      <button type="button" class="btn secondary small rt-clear">Start again</button>
+    </div>
+    <p class="ax-help">The loudness you hear follows a resonance curve; the dots show the lengths you have tried. The scale reads to 1 mm. The speed of sound uses 331.3 m/s at 0 °C; the end correction is taken as 0.3 × the tube's width.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Your readings and the speed of sound</h2>
+    <dl class="ax-facts rt-facts"></dl>
+    <div class="rt-eq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="rt-try">
+      <li>Raise the air column slowly from the top. The sound swells loud at one length: the first resonance, about a quarter of a wavelength.</li>
+      <li>Keep going: the second resonance is half a wavelength further down. The difference L₂ − L₁ does not depend on the end correction.</li>
+      <li>Use a lower fork. Its wavelength is longer, so the resonances move down the tube.</li>
+      <li>Warm the room. Sound goes faster, the wavelength grows, and the resonance lengths grow with it.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="rt-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { FORKS, soundSpeed, endCorrection, loudness, fromLengths, questions } from '../../lib/sci/resonance';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { pagePalette } from '../../lib/report';
+  import { setupCanvas, fmt, fact, lines, keepDrawn } from '../../lib/school-h4';
+
+  const root = document.querySelector<HTMLElement>('.rt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fSel = q<HTMLSelectElement>('.rt-f'), Lin = q<HTMLInputElement>('.rt-L');
+  fSel.replaceChildren(...FORKS.map((f) => { const o = document.createElement('option'); o.value = String(f); o.textContent = `${fmt(f, 1)} Hz`; if (f === 512) o.selected = true; return o; }));
+  const H = 300, TOP = 40, BOT = H - 20, LMAX = 1; // the tube is 1 m long
+  let tried = new Map<number, number>(), L1: number | null = null, L2: number | null = null, tube = { x: 0, w: 0 };
+  const f = () => Number(fSel.value), T = () => Number(q<HTMLSelectElement>('.rt-T').value), D = () => Number(q<HTMLSelectElement>('.rt-D').value);
+  const L = () => Number(Lin.value) / 100;
+
+  function draw() {
+    const pal = pagePalette(), c = q<HTMLCanvasElement>('.rt-c'), { ctx, w } = setupCanvas(c, H);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, H);
+    const s = (BOT - TOP) / LMAX, tw = 26 + D() * 300, tx = 30;
+    tube = { x: tx, w: tw };
+    const loud = loudness(f(), T(), D(), L());
+    tried.set(Math.round(L() * 1000), loud);
+    // water and tube
+    const wy = TOP + L() * s;
+    ctx.fillStyle = pal.red ? pal.grid : 'rgba(31,95,174,0.28)'; ctx.fillRect(tx, wy, tw, BOT - wy);
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(tx, TOP); ctx.lineTo(tx, BOT); ctx.lineTo(tx + tw, BOT); ctx.lineTo(tx + tw, TOP); ctx.stroke();
+    // scale every 10 cm
+    ctx.fillStyle = pal.muted; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'right';
+    for (let k = 0; k <= 10; k++) { const y = TOP + (k / 10) * s; ctx.fillRect(tx - 6, y, 5, 1); if (k % 2 === 0) ctx.fillText(`${k * 10}`, tx - 8, y + 3); }
+    ctx.textAlign = 'left'; ctx.fillText('cm', 2, TOP - 6);
+    // tuning fork over the open end, buzzing more when loud
+    const fx = tx + tw / 2, amp = 1 + loud * 3;
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(fx - 6 - amp, 6); ctx.lineTo(fx - 6, 30); ctx.lineTo(fx + 6, 30); ctx.lineTo(fx + 6 + amp, 6); ctx.moveTo(fx, 30); ctx.lineTo(fx, 38); ctx.stroke();
+    // standing wave sketch in the air column when near resonance (displacement: node at water, antinode near top)
+    if (loud > 0.3) { const lam = soundSpeed(T()) / f(); ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.5; for (const sgn of [-1, 1]) { ctx.beginPath(); for (let i = 0; i <= 60; i++) { const y = wy - (i / 60) * (wy - TOP), d = (wy - y) / s, a = Math.sin((2 * Math.PI * d) / lam) * (tw / 2 - 4) * loud; i ? ctx.lineTo(fx + sgn * a, y) : ctx.moveTo(fx, y); } ctx.stroke(); } }
+    // loudness against length: the lengths you have tried
+    const gx0 = tx + tw + 50, gx1 = w - 10;
+    if (gx1 - gx0 > 60) {
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(gx0, TOP); ctx.lineTo(gx0, BOT); ctx.moveTo(gx0, TOP); ctx.lineTo(gx1, TOP); ctx.stroke();
+      ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('loudness →', (gx0 + gx1) / 2, TOP - 8);
+      ctx.fillStyle = pal.accent2;
+      for (const [mm, ld] of tried) { const y = TOP + (mm / 1000) * s, x = gx0 + ld * (gx1 - gx0); ctx.fillRect(x - 1.5, y - 1.5, 3, 3); }
+      ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(gx0 + loud * (gx1 - gx0), wy, 5, 0, 7); ctx.fill();
+      ctx.strokeStyle = pal.muted; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(tx + tw, wy); ctx.lineTo(gx0 + loud * (gx1 - gx0), wy); ctx.stroke(); ctx.setLineDash([]);
+      for (const [Lr, lab] of [[L1, 'L₁'], [L2, 'L₂']] as [number | null, string][]) if (Lr !== null) { const y = TOP + Lr * s; ctx.fillStyle = pal.good; ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(lab, gx1 - 18, y + 4); ctx.fillRect(gx0, y, gx1 - gx0 - 22, 1); }
+    }
+    c.setAttribute('aria-label', `Air column ${fmt(L() * 100, 1)} cm, loudness ${fmt(loud * 100, 0)} %`);
+    setVolume(loud);
+    readout(loud);
+  }
+
+  function readout(loud: number) {
+    q('.rt-Lv').textContent = `${fmt(L() * 100, 1)} cm`;
+    const facts = [
+      fact('Loudness now', `${fmt(loud * 100, 0)} %`, loud > 0.9 ? 'resonance: very loud' : loud > 0.3 ? 'getting loud' : 'quiet'),
+      fact('First resonance L₁', L1 === null ? 'not recorded' : `${fmt(L1 * 100, 1)} cm`),
+      fact('Second resonance L₂', L2 === null ? 'not recorded' : `${fmt(L2 * 100, 1)} cm`),
+    ];
+    const eq: [string, string][] = [];
+    if (L1 !== null && L2 !== null && L2 > L1) {
+      const r = fromLengths(f(), L1, L2), vt = soundSpeed(T());
+      facts.push(fact('Wavelength', `${fmt(r.lam * 100, 1)} cm`, '2 (L₂ − L₁)'));
+      facts.push(fact('Your speed of sound', `${fmt(r.v, 1)} m/s`, `${fmt(((r.v - vt) / vt) * 100, 1)} % from ${fmt(vt, 1)} m/s at ${T()} °C`));
+      facts.push(fact('Your end correction', `${fmt(r.e * 100, 2)} cm`, `(L₂ − 3L₁) ÷ 2; expected about ${fmt(endCorrection(D()) * 100, 1)} cm`));
+      eq.push(['Why: ', `the air column resonates when it holds a quarter wave, then three quarters: L₁ + e = λ/4 and L₂ + e = 3λ/4. Subtract: L₂ − L₁ = λ/2, so v = f λ = ${fmt(f(), 1)} × ${fmt(r.lam, 4)} = ${fmt(r.v, 1)} m/s.`]);
+      if (Math.abs(r.v - vt) / vt > 0.05) eq.push(['Hmm: ', 'more than 5 % out. Check that L₁ is the first (shortest) resonance and L₂ the next one, and move in 1 mm steps to find the loudest point.']);
+    } else if (L1 !== null && L2 !== null) eq.push(['Check: ', 'the second resonance must be longer than the first.']);
+    else eq.push(['How: ', 'start with a short air column and lengthen it slowly. When the sound is loudest, fine-tune with the 1 mm buttons and record it. Then go on to the next loud point.']);
+    q('.rt-facts').replaceChildren(...facts);
+    q('.rt-eq').replaceChildren(...lines(eq));
+  }
+
+  // ---- sound: the fork's tone, as loud as the resonance makes it
+  let ac: AudioContext | null = null, osc: OscillatorNode | null = null, gain: GainNode | null = null, timer = 0;
+  function setVolume(loud: number) { if (gain && ac) gain.gain.setTargetAtTime(0.01 + 0.12 * loud * loud, ac.currentTime, 0.05); }
+  function stopSound() { if (osc) { try { osc.stop(); } catch { /* stopped */ } osc = null; } clearTimeout(timer); q('.rt-play').textContent = 'Hear it'; }
+  q('.rt-play').addEventListener('click', () => {
+    if (osc) { stopSound(); return; }
+    const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext; if (!AC) return;
+    ac = ac || new AC(); gain = ac.createGain(); osc = ac.createOscillator(); osc.frequency.value = f(); osc.connect(gain); gain.connect(ac.destination);
+    setVolume(loudness(f(), T(), D(), L())); osc.start(); q('.rt-play').textContent = 'Stop the sound'; timer = window.setTimeout(stopSound, 15000);
+  });
+
+  const reset = () => { tried = new Map(); L1 = null; L2 = null; Lin.value = '5'; stopSound(); draw(); };
+  const nudge = (d: number) => { Lin.value = String(Math.max(2, Math.min(95, Math.round((Number(Lin.value) + d) * 10) / 10))); draw(); };
+  Lin.addEventListener('input', draw);
+  q('.rt-dn').addEventListener('click', () => nudge(-0.1));
+  q('.rt-up').addEventListener('click', () => nudge(0.1));
+  q('.rt-r1').addEventListener('click', () => { L1 = L(); draw(); });
+  q('.rt-r2').addEventListener('click', () => { L2 = L(); draw(); });
+  q('.rt-clear').addEventListener('click', reset);
+  root.querySelectorAll('select').forEach((s) => s.addEventListener('change', () => { if (osc) osc.frequency.value = f(); tried = new Map(); L1 = null; L2 = null; draw(); }));
+  const cv = q<HTMLCanvasElement>('.rt-c');
+  let drag = false;
+  const toL = (e: PointerEvent) => { const r = cv.getBoundingClientRect(), y = e.clientY - r.top; Lin.value = String(Math.max(2, Math.min(95, Math.round(((y - TOP) / (BOT - TOP)) * 1000) / 10))); draw(); };
+  cv.addEventListener('pointerdown', (e) => { const r = cv.getBoundingClientRect(), x = e.clientX - r.left; if (x < tube.x - 10 || x > tube.x + tube.w + 10) return; drag = true; cv.setPointerCapture(e.pointerId); toL(e); });
+  cv.addEventListener('pointermove', (e) => { if (drag) toL(e); });
+  cv.addEventListener('pointerup', () => { drag = false; }); cv.addEventListener('pointercancel', () => { drag = false; });
+  mountQuiz(q('.rt-quiz'), () => questions());
+  draw();
+  keepDrawn(cv, draw);
+</script>
+
+<style is:inline>
+  .rt canvas { display: block; width: 100%; margin-top: 10px; touch-action: pan-x; }
+  .rt > .ax-card:first-child > label { display: grid; margin-top: 10px; }
+  .rt .ax-row { margin-top: 10px; }
+  .rt .rt-set label { display: grid; gap: 4px; font-size: 14px; }
+  .rt select { min-height: 44px; }
+  .rt input[type=range] { width: 100%; height: 32px; accent-color: var(--ink); }
+  .rt label b { color: var(--ink); }
+  .rt .btn { min-height: 44px; }
+  .rt .rt-eq p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .rt .rt-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>

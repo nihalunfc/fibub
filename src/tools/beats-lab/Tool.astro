@@ -1,0 +1,196 @@
+---
+// Beats lab: two close tones, each wave and their sum with its swelling envelope; hear them; and the "find the
+// unknown tuning fork" puzzle with wax loading. Maths in src/lib/sci/beats.ts.
+import '../../styles/astro.css';
+---
+<div class="ax bt">
+  <div class="ax-card">
+    <div class="ax-row">
+      <div class="ax-seg bt-mode" role="group" aria-label="What to do">
+        <button type="button" data-v="tones" aria-pressed="true">Two tones</button>
+        <button type="button" data-v="fork" aria-pressed="false">Find the unknown fork</button>
+      </div>
+    </div>
+    <canvas class="bt-c" aria-label="Two waves and their sum"></canvas>
+    <p class="ax-big bt-big"></p>
+    <div class="bt-tones">
+      <label>First tone f₁: <b class="bt-f1v"></b><input class="bt-f1" type="range" min="200" max="600" step="1" value="256" /></label>
+      <label>Second tone f₂: <b class="bt-f2v"></b><input class="bt-f2" type="range" min="200" max="600" step="0.5" value="260" /></label>
+      <label>Second tone's loudness: <b class="bt-av"></b><input class="bt-a" type="range" min="0.2" max="1" step="0.05" value="1" /></label>
+    </div>
+    <div class="bt-fork" hidden>
+      <p class="bt-forktext"></p>
+      <div class="ax-row">
+        <button type="button" class="btn secondary small bt-wax">Put wax on the unknown fork</button>
+        <button type="button" class="btn secondary small bt-newfork">New unknown fork</button>
+      </div>
+      <div class="ax-row">
+        <label class="bt-guessl">Your answer, Hz <input class="bt-guess" type="text" inputmode="decimal" /></label>
+        <button type="button" class="btn small bt-check">Check</button>
+      </div>
+      <p class="bt-forkres" hidden></p>
+    </div>
+    <div class="ax-row">
+      <button type="button" class="btn small bt-play">Play the sound</button>
+      <span class="ax-help bt-playnote">Turn the volume down first. The sound stops after 6 seconds.</span>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>What you hear</h2>
+    <dl class="ax-facts bt-facts"></dl>
+    <div class="bt-eq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="bt-try">
+      <li>Set both tones the same. The beats stop: musicians tune by listening for this.</li>
+      <li>Move the tones 1 Hz apart, then 10 Hz apart. Above about 15 beats a second the swells run together into a rough sound.</li>
+      <li>Make the second tone quieter. The sum never quite falls silent, so the beats are weaker.</li>
+      <li>In the fork puzzle, the beats alone give two possible answers. The wax decides which one.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="bt-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { wave, sum, envelope, beats, forkPuzzle, questions } from '../../lib/sci/beats';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { pagePalette } from '../../lib/report';
+  import { setupCanvas, fmt, fact, lines, segmented, keepDrawn } from '../../lib/school-h4';
+
+  const root = document.querySelector<HTMLElement>('.bt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => Number(q<HTMLInputElement>(c).value);
+  const H = 300;
+  let mode = 'tones';
+  let f0 = 256, fu = 260, waxed = false;
+  const WAX = 1;
+
+  const newFork = () => { f0 = [256, 288, 320, 384, 512][Math.floor(Math.random() * 5)]; const b = 2 + Math.floor(Math.random() * 5); fu = f0 + (Math.random() < 0.5 ? b : -b); waxed = false; q('.bt-forkres').hidden = true; q<HTMLInputElement>('.bt-guess').value = ''; };
+  const pair = () => mode === 'tones' ? { f1: val('.bt-f1'), f2: val('.bt-f2'), a: val('.bt-a') } : { f1: f0, f2: fu - (waxed ? WAX : 0), a: 1 };
+
+  function draw() {
+    const pal = pagePalette(), c = q<HTMLCanvasElement>('.bt-c'), { ctx, w } = setupCanvas(c, H);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, H);
+    const { f1, f2, a } = pair(), b = beats(f1, f2);
+    const x0 = 8, x1 = w - 8;
+    // top: the first 12 ms of each wave
+    const zoom = 0.012, rowH = 34;
+    const plot = (fn: (t: number) => number, tMax: number, yMid: number, amp: number, col: string, lw = 1.6) => {
+      ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath();
+      const N = Math.round((x1 - x0) * 2);
+      for (let i = 0; i <= N; i++) { const t = (i / N) * tMax, y = yMid - fn(t) * amp; i ? ctx.lineTo(x0 + (i / N) * (x1 - x0), y) : ctx.moveTo(x0, y); }
+      ctx.stroke();
+    };
+    ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(`f₁ = ${fmt(f1, 1)} Hz (first 12 ms)`, x0, 12); plot((t) => wave(f1, t), zoom, 14 + rowH / 2 + 4, rowH / 2 - 2, pal.accent);
+    ctx.fillStyle = pal.muted; ctx.fillText(mode === 'fork' ? 'unknown fork' : `f₂ = ${fmt(f2, 1)} Hz`, x0, 14 + rowH + 14); plot((t) => wave(f2, t, a), zoom, 14 + rowH + 18 + rowH / 2, rowH / 2 - 2, pal.accent2);
+    // bottom: the sum over two beats (between 0.2 s and 2 s), with its envelope
+    const tMax = Number.isFinite(b.period) ? Math.min(2, Math.max(0.2, 2 * b.period)) : 0.5;
+    const yMid = 200, amp = 40;
+    ctx.fillStyle = pal.muted; ctx.fillText(`sum, over ${fmt(tMax, 2)} s`, x0, 114);
+    ctx.strokeStyle = pal.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x0, yMid); ctx.lineTo(x1, yMid); ctx.stroke();
+    plot((t) => sum(f1, f2, t, a), tMax, yMid, amp, pal.ink, 1);
+    ctx.setLineDash([5, 4]); plot((t) => envelope(f1, f2, t, a), tMax, yMid, amp, pal.bad, 1.5); plot((t) => -envelope(f1, f2, t, a), tMax, yMid, amp, pal.bad, 1.5); ctx.setLineDash([]);
+    ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.fillText(`${fmt(tMax, 2)} s`, x1, H - 6); ctx.textAlign = 'left'; ctx.fillText('0', x0, H - 6);
+    c.setAttribute('aria-label', `${fmt(f1, 1)} Hz and ${mode === 'fork' ? 'an unknown fork' : `${fmt(f2, 1)} Hz`}: ${fmt(b.fb, 1)} beats per second`);
+    readout();
+  }
+
+  function readout() {
+    const { f1, f2, a } = pair(), b = beats(f1, f2);
+    q('.bt-big').textContent = b.fb === 0 ? 'No beats: the tones match' : `${fmt(b.fb, 2)} beats per second`;
+    if (mode === 'tones') {
+      q('.bt-f1v').textContent = `${fmt(f1, 1)} Hz`; q('.bt-f2v').textContent = `${fmt(f2, 1)} Hz`; q('.bt-av').textContent = `${fmt(a * 100, 0)} %`;
+      q('.bt-facts').replaceChildren(
+        fact('Beat frequency', `${fmt(b.fb, 2)} Hz`, `|f₁ − f₂| = |${fmt(f1, 1)} − ${fmt(f2, 1)}|`),
+        fact('Time from one loud to the next', Number.isFinite(b.period) ? `${fmt(b.period, 3)} s` : 'no beats', '1 ÷ beat frequency'),
+        fact('Pitch you hear', `${fmt(b.mean, 2)} Hz`, 'the average of the two'),
+        fact('Quietest point', a === 1 ? 'silence' : `${fmt((1 - a) * 100, 0)} % of one tone`, `loudest ${fmt((1 + a) * 100, 0)} %`),
+      );
+      q('.bt-eq').replaceChildren(...lines([
+        ['Superposition: ', 'the two waves add. When their crests line up the sound is loud; half a beat later a crest meets a trough and they cancel.'],
+        ['Product form: ', `sin 2πf₁t + sin 2πf₂t = 2 cos(π(f₁ − f₂)t) × sin(π(f₁ + f₂)t): a tone of ${fmt(b.mean, 2)} Hz whose loudness swells ${fmt(b.fb, 2)} times a second.`],
+      ]));
+    } else {
+      const p = forkPuzzle(f0, fu, WAX);
+      q('.bt-forktext').textContent = waxed
+        ? `With wax on it, the unknown fork and the ${f0} Hz fork give ${p.after} beats per second (before: ${p.before}).`
+        : `A ${f0} Hz fork and an unknown fork, struck together, give ${p.before} beats per second. Wax makes a fork vibrate a little slower (here by ${WAX} Hz).`;
+      q<HTMLButtonElement>('.bt-wax').textContent = waxed ? 'Take the wax off' : 'Put wax on the unknown fork';
+      q('.bt-facts').replaceChildren(
+        fact('Known fork', `${f0} Hz`),
+        fact('Beats without wax', `${p.before} per second`, `so the unknown is ${f0 - p.before} or ${f0 + p.before} Hz`),
+        fact('Beats with wax', waxed ? `${p.after} per second` : 'try it', waxed ? (p.after < p.before ? 'fewer beats' : 'more beats') : ''),
+      );
+      q('.bt-eq').replaceChildren(...lines([
+        ['Reasoning: ', 'wax lowers the unknown fork\'s frequency. If it was above the known fork, it moves closer and the beats fall. If it was below, it moves further away and the beats rise.'],
+      ]));
+    }
+  }
+
+  // ---- sound: two sine oscillators, 6 s, gentle volume
+  let ctxA: AudioContext | null = null, nodes: { o1: OscillatorNode; o2: OscillatorNode; g: GainNode } | null = null, stopTimer = 0;
+  function stopSound() { if (nodes) { try { nodes.o1.stop(); nodes.o2.stop(); } catch { /* already stopped */ } nodes = null; } clearTimeout(stopTimer); q('.bt-play').textContent = 'Play the sound'; }
+  function playSound() {
+    if (nodes) { stopSound(); return; }
+    const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext; if (!AC) return;
+    ctxA = ctxA || new AC();
+    const { f1, f2, a } = pair(), g = ctxA.createGain(), o1 = ctxA.createOscillator(), o2 = ctxA.createOscillator(), g2 = ctxA.createGain();
+    g.gain.value = 0.08; g2.gain.value = a; o1.frequency.value = f1; o2.frequency.value = f2;
+    o1.connect(g); o2.connect(g2); g2.connect(g); g.connect(ctxA.destination); o1.start(); o2.start();
+    nodes = { o1, o2, g }; q('.bt-play').textContent = 'Stop the sound';
+    stopTimer = window.setTimeout(stopSound, 6000);
+  }
+  function retune() { if (nodes) { const { f1, f2 } = pair(); nodes.o1.frequency.value = f1; nodes.o2.frequency.value = f2; } }
+
+  segmented(q('.bt-mode'), (v) => { mode = v; q('.bt-tones').hidden = v !== 'tones'; q('.bt-fork').hidden = v !== 'fork'; if (v === 'fork') newFork(); stopSound(); draw(); });
+  root.querySelectorAll('.bt-tones input').forEach((i) => i.addEventListener('input', () => { draw(); retune(); }));
+  q('.bt-play').addEventListener('click', playSound);
+  q('.bt-wax').addEventListener('click', () => { waxed = !waxed; draw(); retune(); });
+  q('.bt-newfork').addEventListener('click', () => { newFork(); stopSound(); draw(); });
+  const checkGuess = () => {
+    const g = Number(q<HTMLInputElement>('.bt-guess').value.replace(',', '.')), res = q('.bt-forkres'); res.hidden = false;
+    if (!Number.isFinite(g) || q<HTMLInputElement>('.bt-guess').value.trim() === '') { res.textContent = 'Type a frequency first.'; res.dataset.ok = ''; return; }
+    const ok = Math.abs(g - fu) < 0.01; res.dataset.ok = ok ? '1' : '0';
+    res.textContent = ok ? `Right! The unknown fork is ${fu} Hz.` : (Math.abs(g - (2 * f0 - fu)) < 0.01 ? 'That fits the beats, but not the wax test. Try the wax.' : 'Not quite. The answer is the known frequency plus or minus the beats.');
+  };
+  q('.bt-check').addEventListener('click', checkGuess);
+  q('.bt-guess').addEventListener('keydown', (e) => { if (e.key === 'Enter') checkGuess(); });
+  mountQuiz(q('.bt-quiz'), () => questions());
+  draw();
+  keepDrawn(q<HTMLCanvasElement>('.bt-c'), draw);
+</script>
+
+<style is:inline>
+  .bt canvas { display: block; width: 100%; margin-top: 10px; }
+  .bt .bt-tones > label { display: grid; margin-top: 10px; }
+  .bt .ax-row { margin-top: 10px; }
+  .bt input[type=range] { width: 100%; height: 32px; accent-color: var(--ink); }
+  .bt label b { color: var(--ink); }
+  .bt .ax-seg button, .bt .btn { min-height: 44px; }
+  .bt .bt-big { margin: 8px 0 0; }
+  .bt .bt-guessl { display: grid; gap: 4px; font-size: 14px; }
+  .bt .bt-guess { width: 8em; min-height: 44px; }
+  .bt .bt-forkres { margin: 8px 0 0; font-weight: 650; }
+  .bt .bt-forkres[data-ok="1"] { color: var(--good); }
+  .bt .bt-forkres[data-ok="0"] { color: var(--bad); }
+  .bt .bt-eq p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .bt .bt-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>

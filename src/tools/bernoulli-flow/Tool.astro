@@ -1,0 +1,202 @@
+---
+// Bernoulli and Venturi: a pipe that narrows (faster flow, lower pressure, shown by water columns) and
+// Torricelli's tank (speed of efflux and where the jet lands). Maths in src/lib/sci/bernoulli.ts.
+import '../../styles/astro.css';
+---
+<div class="ax bf">
+  <div class="ax-card">
+    <div class="ax-row">
+      <div class="ax-seg bf-mode" role="group" aria-label="What to look at">
+        <button type="button" data-v="venturi" aria-pressed="true">Venturi tube</button>
+        <button type="button" data-v="tank" aria-pressed="false">Torricelli's tank</button>
+      </div>
+    </div>
+    <canvas class="bf-c" aria-label="Flow picture"></canvas>
+    <div class="bf-v">
+      <div class="ax-row">
+        <span>Fluid</span>
+        <div class="ax-seg bf-fluid" role="group" aria-label="Fluid">
+          <button type="button" data-v="water" aria-pressed="true">Water</button>
+          <button type="button" data-v="air" aria-pressed="false">Air</button>
+        </div>
+      </div>
+      <label>Wide part across: <b class="bf-d1v"></b><input class="bf-d1" type="range" min="2" max="20" step="0.5" value="10" /></label>
+      <label>Narrow part (throat) across: <b class="bf-d2v"></b><input class="bf-d2" type="range" min="1" max="20" step="0.5" value="5" /></label>
+      <label>Speed in the wide part: <b class="bf-v1v"></b><input class="bf-v1" type="range" min="0.1" max="5" step="0.1" value="2" /></label>
+    </div>
+    <div class="bf-t" hidden>
+      <label>Water above the hole: <b class="bf-hv"></b><input class="bf-h" type="range" min="0.05" max="2" step="0.05" value="0.8" /></label>
+      <label>Hole above the floor: <b class="bf-yv"></b><input class="bf-y" type="range" min="0" max="2" step="0.05" value="0.45" /></label>
+      <p class="ax-help">The tank is 1 m across and the hole 1 cm across, for the draining time.</p>
+    </div>
+    <p class="ax-help">An ideal fluid: no stickiness (viscosity), steady flow, and for the Venturi tube a level pipe. g = 9.8 m/s²; water 1000 kg/m³, air 1.2 kg/m³.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="bf-head"></h2>
+    <dl class="ax-facts bf-facts"></dl>
+    <div class="bf-eq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="bf-try">
+      <li>Halve the width of the throat. The flow goes 4 times faster there, and the pressure drop grows about 16 times.</li>
+      <li>Switch to air at the same speed. The pressure drop is about 800 times smaller, because air is about 800 times lighter than water.</li>
+      <li>In the tank, raise the water four times higher. The jet only goes twice as fast: speed goes as √h.</li>
+      <li>Put the hole at different heights. With the tank on the floor and the water surface fixed, the jet reaches furthest from a hole halfway down.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="bf-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { FLUIDS, venturi, torricelli, questions } from '../../lib/sci/bernoulli';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { pagePalette } from '../../lib/report';
+  import { setupCanvas, fmt, sig, fact, lines, segmented, keepDrawn } from '../../lib/school-h4';
+
+  const root = document.querySelector<HTMLElement>('.bf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c), val = (c: string) => Number(inp(c).value);
+  const H = 280;
+  let mode = 'venturi', fluid = FLUIDS[0], phase = 0, last = 0, domToo = true;
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function drawVenturi(ctx: CanvasRenderingContext2D, w: number) {
+    const pal = pagePalette();
+    if (val('.bf-d2') > val('.bf-d1')) inp('.bf-d2').value = inp('.bf-d1').value;
+    const d1 = val('.bf-d1') / 100, d2 = val('.bf-d2') / 100, v1 = val('.bf-v1'), o = venturi(d1, d2, v1, fluid.rho);
+    const cy = 200, hw1 = 12 + (d1 / 0.2) * 48, hw2 = Math.max(4, hw1 * (d2 / d1));
+    const xa = 10, xb = w * 0.3, xc = w * 0.45, xd = w * 0.55, xe = w * 0.7, xf = w - 10;
+    const half = (x: number) => x <= xb ? hw1 : x <= xc ? hw1 + (hw2 - hw1) * (x - xb) / (xc - xb) : x <= xd ? hw2 : x <= xe ? hw2 + (hw1 - hw2) * (x - xd) / (xe - xd) : hw1;
+    // fluid
+    ctx.fillStyle = pal.red ? pal.grid : fluid.id === 'water' ? 'rgba(31,95,174,0.18)' : 'rgba(120,120,120,0.12)';
+    ctx.beginPath(); for (let x = xa; x <= xf; x += 2) ctx.lineTo(x, cy - half(x)); for (let x = xf; x >= xa; x -= 2) ctx.lineTo(x, cy + half(x)); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2;
+    for (const s of [-1, 1]) { ctx.beginPath(); for (let x = xa; x <= xf; x += 2) ctx.lineTo(x, cy + s * half(x)); ctx.stroke(); }
+    // moving dots: each moves with the local speed, which goes as 1/width² (continuity), so they spread out and
+    // race through the throat. Travel time to each x is the sum of dx/u(x); dots sit at equal steps of time.
+    const xs: number[] = [], tau: number[] = []; let acc = 0;
+    for (let x = xa; x <= xf; x += 2) { xs.push(x); tau.push(acc); acc += 2 * (half(x) / hw1) ** 2; }
+    const total = acc, N = 16;
+    ctx.fillStyle = pal.accent;
+    for (let line = -2; line <= 2; line++) {
+      for (let k = 0; k < N; k++) {
+        const tt = (((k + (line & 1) * 0.5) / N) * total + phase * 60) % total;
+        let lo = 0, hi = tau.length - 1; while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (tau[mid] <= tt) lo = mid; else hi = mid; }
+        const x = xs[lo], y = cy + (line / 2.6) * half(x);
+        ctx.beginPath(); ctx.arc(x, y, 2.4, 0, 7); ctx.fill();
+      }
+    }
+    // open tubes (piezometers) on the wide part and the throat; the drop in level is Δp/(ρ_water g)
+    const drop = (100 * o.hWater) / (o.hWater + 0.3), top1 = 36; // the drop is drawn on a squeezed scale; the label gives it
+    const tube = (x: number, hw: number, lev: number, label: string) => {
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x - 6, cy - hw); ctx.lineTo(x - 6, top1 - 14); ctx.moveTo(x + 6, cy - hw); ctx.lineTo(x + 6, top1 - 14); ctx.stroke();
+      ctx.fillStyle = pal.red ? pal.muted : 'rgba(31,95,174,0.55)'; ctx.fillRect(x - 5, lev, 10, cy - hw - lev);
+      ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(label, x, top1 - 20);
+    };
+    tube(w * 0.15, hw1, top1, 'p₁, v₁'); tube(w * 0.5, hw2, top1 + drop, 'p₂, v₂');
+    ctx.strokeStyle = pal.accent2; ctx.setLineDash([4, 3]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(w * 0.15 + 8, top1); ctx.lineTo(w * 0.5 - 8, top1); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = pal.accent2; ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(`h = ${sig(o.hWater * 100, 3)} cm of water`, w * 0.5 + 12, top1 + drop / 2 + 4);
+    ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(`${fmt(v1, 2)} m/s`, w * 0.15, cy + hw1 + 16); ctx.fillText(`${sig(o.v2, 3)} m/s`, w * 0.5, cy + Math.max(hw2, 10) + 16);
+    if (domToo) {
+    q('.bf-d1v').textContent = `${fmt(d1 * 100, 1)} cm`; q('.bf-d2v').textContent = `${fmt(d2 * 100, 1)} cm`; q('.bf-v1v').textContent = `${fmt(v1, 1)} m/s`;
+    q('.bf-head').textContent = 'Faster where it is narrow, lower pressure there';
+    q('.bf-facts').replaceChildren(
+      fact('Speed in the throat', `${sig(o.v2, 4)} m/s`, `v₁ × (d₁/d₂)² = ${fmt(v1, 2)} × ${sig((d1 / d2) ** 2, 4)}`),
+      fact('Pressure drop in the throat', `${sig(o.dp, 4)} Pa`, `${sig(o.dp / 1000, 4)} kPa`),
+      fact('Shown by water columns', `${sig(o.hWater * 100, 4)} cm`, 'difference in height h = Δp ÷ (1000 kg/m³ × g)'),
+      fact('Flow through the pipe', `${sig(o.q * 1000, 4)} litres/s`, 'the same in every part'),
+    );
+    q('.bf-eq').replaceChildren(...lines([
+      ['Continuity: ', `what goes in must come out, A₁v₁ = A₂v₂, so v₂ = ${fmt(v1, 2)} × ${sig(o.a1, 3)} ÷ ${sig(o.a2, 3)} = ${sig(o.v2, 4)} m/s.`],
+      ['Bernoulli: ', `in a level pipe p + ½ρv² stays the same, so p₁ − p₂ = ½ × ${fluid.rho} × (${sig(o.v2, 4)}² − ${fmt(v1, 2)}²) = ${sig(o.dp, 4)} Pa.`],
+      ['Venturi meter: ', 'turn it round: measure h, get Δp = ρ_water g h, and work out the flow. This is how pipes measure flow with no moving parts.'],
+    ]));
+    }
+    return `${fluid.name} speeds up from ${fmt(v1, 2)} to ${sig(o.v2, 3)} m/s; pressure drops ${sig(o.dp, 3)} Pa`;
+  }
+
+  function drawTank(ctx: CanvasRenderingContext2D, w: number) {
+    const pal = pagePalette(), h = val('.bf-h'), y = val('.bf-y'), o = torricelli(h, y, 1, 0.01);
+    const floor = H - 20, maxM = 4.2, s = (floor - 16) / maxM; // px per m, vertical and horizontal the same
+    const tx = 16, tw = Math.min(70, w * 0.18), holeY = floor - y * s, surf = holeY - h * s;
+    ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, floor); ctx.lineTo(w, floor); ctx.stroke();
+    // stand and tank
+    ctx.fillStyle = pal.grid; ctx.fillRect(tx + 6, holeY + 6, tw - 12, floor - holeY - 6);
+    ctx.fillStyle = pal.red ? pal.grid : 'rgba(31,95,174,0.25)'; ctx.fillRect(tx, surf, tw, holeY + 6 - surf);
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(tx, surf - 14); ctx.lineTo(tx, holeY + 6); ctx.lineTo(tx + tw, holeY + 6); ctx.lineTo(tx + tw, holeY + 2); ctx.moveTo(tx + tw, holeY - 2); ctx.lineTo(tx + tw, surf - 14); ctx.stroke();
+    // jet: x = v t, drop = g t²/2
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = 3; ctx.beginPath();
+    const tEnd = Math.sqrt((2 * y) / 9.8);
+    for (let i = 0; i <= 60; i++) { const t = (i / 60) * tEnd, x = tx + tw + o.v * t * s, yy = holeY + 0.5 * 9.8 * t * t * s; if (x > w - 4) break; i ? ctx.lineTo(x, yy) : ctx.moveTo(x, yy); }
+    ctx.stroke();
+    const land = tx + tw + o.range * s;
+    ctx.fillStyle = pal.ink; ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'center';
+    if (land < w - 4) { ctx.beginPath(); ctx.arc(land, floor, 4, 0, 7); ctx.fill(); ctx.fillText(`${fmt(o.range, 2)} m`, Math.min(w - 30, land), floor + 15); }
+    ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(`h = ${fmt(h, 2)} m`, tx + tw + 6, (surf + holeY) / 2); ctx.fillText(`y = ${fmt(y, 2)} m`, tx + tw + 6, (holeY + floor) / 2 + 12);
+    ctx.fillText(`v = ${fmt(o.v, 2)} m/s`, tx + tw + 6, holeY - 6);
+    q('.bf-hv').textContent = `${fmt(h, 2)} m`; q('.bf-yv').textContent = `${fmt(y, 2)} m`;
+    q('.bf-head').textContent = 'Torricelli: as fast as a falling stone';
+    q('.bf-facts').replaceChildren(
+      fact('Speed of the jet', `${fmt(o.v, 3)} m/s`, `√(2gh) = √(2 × 9.8 × ${fmt(h, 2)})`),
+      fact('Lands this far from the tank', `${fmt(o.range, 3)} m`, `2√(h y) = 2√(${fmt(h, 2)} × ${fmt(y, 2)})`),
+      fact('Flow out of the 1 cm hole', `${sig(o.flow * 1000, 3)} litres/s`, 'at the start'),
+      fact('Time to drain to the hole', o.drain > 120 ? `${fmt(o.drain / 60, 1)} min` : `${fmt(o.drain, 0)} s`, 'it slows down as the level falls'),
+    );
+    q('.bf-eq').replaceChildren(...lines([
+      ['Bernoulli from the surface to the hole: ', `both are open to the air, the surface hardly moves, so ρgh = ½ρv² and v = √(2gh) = ${fmt(o.v, 3)} m/s.`],
+      ['The jet: ', `it leaves sideways and falls y = ${fmt(y, 2)} m in t = √(2y/g) = ${fmt(Math.sqrt((2 * y) / 9.8), 3)} s, so it lands v t = ${fmt(o.range, 3)} m away.`],
+    ]));
+    return `Jet at ${fmt(o.v, 2)} m/s lands ${fmt(o.range, 2)} m away`;
+  }
+
+  function draw() {
+    const c = q<HTMLCanvasElement>('.bf-c'), { ctx, w } = setupCanvas(c, H), pal = pagePalette();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, H);
+    c.setAttribute('aria-label', mode === 'venturi' ? drawVenturi(ctx, w) : drawTank(ctx, w));
+  }
+
+  // animate the dots in the Venturi tube: move each dot with the local speed (continuity)
+  function tick(t: number) {
+    if (mode === 'venturi' && !reduce && document.visibilityState === 'visible') { phase += Math.min(0.05, (t - last) / 1000) * val('.bf-v1'); domToo = false; draw(); domToo = true; }
+    last = t; requestAnimationFrame(tick);
+  }
+
+  segmented(q('.bf-mode'), (v) => { mode = v; q('.bf-v').hidden = v !== 'venturi'; q('.bf-t').hidden = v !== 'tank'; draw(); });
+  segmented(q('.bf-fluid'), (v) => { fluid = FLUIDS.find((f) => f.id === v)!; draw(); });
+  root.querySelectorAll('input').forEach((i) => i.addEventListener('input', draw));
+  mountQuiz(q('.bf-quiz'), () => questions());
+  draw();
+  keepDrawn(q<HTMLCanvasElement>('.bf-c'), draw);
+  requestAnimationFrame((t) => { last = t; tick(t); });
+</script>
+
+<style is:inline>
+  .bf canvas { display: block; width: 100%; margin-top: 10px; }
+  .bf .bf-v > label, .bf .bf-t > label { display: grid; margin-top: 10px; }
+  .bf .ax-row { margin-top: 10px; }
+  .bf input[type=range] { width: 100%; height: 32px; accent-color: var(--ink); }
+  .bf label b { color: var(--ink); }
+  .bf .ax-seg button { min-height: 44px; }
+  .bf .bf-eq p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .bf .bf-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>

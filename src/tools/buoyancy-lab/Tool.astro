@@ -1,0 +1,163 @@
+---
+// Floating and buoyancy: a cube of cork, wood, wax, ice, aluminium or iron in water, sea water, kerosene,
+// glycerine or mercury. Archimedes' principle, how much floats under, the push to sink it, and the spring-balance
+// reading of a block that sinks. Maths in src/lib/sci/buoyancy.ts.
+import '../../styles/astro.css';
+---
+<div class="ax by">
+  <div class="ax-card">
+    <div class="ax-row">
+      <span>Block</span>
+      <div class="ax-seg by-obj" role="group" aria-label="Block">
+        <button type="button" data-v="cork" aria-pressed="false">Cork</button>
+        <button type="button" data-v="wood" aria-pressed="true">Wood</button>
+        <button type="button" data-v="wax" aria-pressed="false">Wax</button>
+        <button type="button" data-v="ice" aria-pressed="false">Ice</button>
+        <button type="button" data-v="aluminium" aria-pressed="false">Aluminium</button>
+        <button type="button" data-v="iron" aria-pressed="false">Iron</button>
+      </div>
+    </div>
+    <div class="ax-row">
+      <span>Liquid</span>
+      <div class="ax-seg by-liq" role="group" aria-label="Liquid">
+        <button type="button" data-v="water" aria-pressed="true">Fresh water</button>
+        <button type="button" data-v="sea" aria-pressed="false">Sea water</button>
+        <button type="button" data-v="kerosene" aria-pressed="false">Kerosene</button>
+        <button type="button" data-v="glycerine" aria-pressed="false">Glycerine</button>
+        <button type="button" data-v="mercury" aria-pressed="false">Mercury</button>
+      </div>
+    </div>
+    <canvas class="by-c" aria-label="A block in a liquid"></canvas>
+    <p class="by-state"><span class="ax-pill by-pill"></span></p>
+    <label>Side of the cube: <b class="by-av"></b><input class="by-a" type="range" min="2" max="30" step="1" value="10" /></label>
+    <label class="by-pushl">Push it down with your finger (drag the block too): <b class="by-pv"></b><input class="by-p" type="range" min="0" max="100" step="1" value="0" /></label>
+    <p class="ax-help">Densities are rounded, typical values; real wood, wax and ice vary. g = 9.8 m/s².</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Weight, upthrust and the liquid pushed aside</h2>
+    <dl class="ax-facts by-facts"></dl>
+    <div class="by-eq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="by-try">
+      <li>Float ice in fresh water and then in sea water. It rides a little higher in the denser sea water.</li>
+      <li>Push the wooden block right under. The extra push you need is the extra upthrust: let go and it bobs up.</li>
+      <li>Hang the iron block on the spring balance. It seems to weigh less under water by exactly the weight of the water it pushes aside.</li>
+      <li>Put the iron block in mercury. Mercury is denser than iron, so iron floats on it.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="by-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { OBJECTS, LIQUIDS, cube, questions } from '../../lib/sci/buoyancy';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { pagePalette } from '../../lib/report';
+  import { setupCanvas, arrow, fmt, sig, fact, lines, segmented, keepDrawn } from '../../lib/school-h4';
+
+  const root = document.querySelector<HTMLElement>('.by')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => Number(q<HTMLInputElement>(c).value);
+  const H = 300;
+  let obj = OBJECTS[1], liq = LIQUIDS[0], blockBox = { x: 0, y: 0, s: 0 };
+
+  function draw() {
+    const pal = pagePalette(), c = q<HTMLCanvasElement>('.by-c'), { ctx, w } = setupCanvas(c, H);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, H);
+    const a = val('.by-a') / 100, o = cube(a, obj.rho, liq.rho, val('.by-p') / 100);
+    const tx = 16, tw = Math.min(w - 32, 360), surf = 120, bot = H - 14;
+    const fill = pal.red ? pal.grid : liq.id === 'mercury' ? 'rgba(120,120,120,0.45)' : liq.id === 'kerosene' ? 'rgba(201,162,39,0.22)' : liq.id === 'glycerine' ? 'rgba(201,162,39,0.3)' : 'rgba(31,95,174,0.22)';
+    const s = 40 + (a / 0.3) * 70; // drawn size of the cube
+    const cx = tx + tw / 2;
+    let top: number;
+    if (o.floats) top = surf - s * (1 - o.under);
+    else top = bot - s - 30; // hangs fully under from the spring balance
+    // liquid (rises a little by the volume pushed aside, drawn gently)
+    ctx.fillStyle = fill; ctx.fillRect(tx, surf, tw, bot - surf);
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(tx, 60); ctx.lineTo(tx, bot); ctx.lineTo(tx + tw, bot); ctx.lineTo(tx + tw, 60); ctx.stroke();
+    // block
+    ctx.fillStyle = pal.red ? pal.muted : obj.rho > 2000 ? '#6b6b6b' : obj.id === 'ice' ? '#d7e7f7' : obj.id === 'cork' ? '#b98a54' : obj.id === 'wax' ? '#efe6c8' : '#c89b62';
+    ctx.fillRect(cx - s / 2, top, s, s); ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.strokeRect(cx - s / 2, top, s, s);
+    blockBox = { x: cx - s / 2, y: top, s };
+    if (o.floats) { ctx.strokeStyle = pal.accent; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(cx - s / 2 - 6, surf); ctx.lineTo(cx + s / 2 + 6, surf); ctx.stroke(); ctx.setLineDash([]); }
+    // spring balance for a sinking block
+    if (!o.floats) {
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(cx, 34); ctx.lineTo(cx, top); ctx.stroke();
+      ctx.fillStyle = pal.bg; ctx.fillRect(cx - 34, 8, 68, 26); ctx.strokeRect(cx - 34, 8, 68, 26);
+      ctx.fillStyle = pal.ink; ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(`${fmt(o.balance, 2)} N`, cx, 25);
+    }
+    // forces on the block
+    const k = 70 / Math.max(o.weight, o.upthrust, 1e-9), mid = top + s / 2;
+    arrow(ctx, cx - 12, mid, 0, Math.max(14, o.weight * k), pal.bad, 'weight');
+    arrow(ctx, cx + 12, mid, 0, -Math.max(14, o.upthrust * k), pal.good, 'upthrust');
+    if (o.floats && o.push > 1e-9) arrow(ctx, cx + s / 2 + 18, top - 40, 0, 36, pal.accent, 'push');
+    c.setAttribute('aria-label', `${obj.name} cube in ${liq.name.toLowerCase()}: ${o.floats ? `floats, ${fmt(o.floatFrac * 100, 1)} % under` : `sinks, balance reads ${fmt(o.balance, 2)} N`}`);
+
+    q('.by-av').textContent = `${fmt(a * 100, 0)} cm`;
+    q<HTMLElement>('.by-pushl').hidden = !o.floats;
+    q('.by-pv').textContent = o.floats ? `${fmt(o.under * 100, 0)} % under` : '';
+    const pill = q('.by-pill');
+    if (o.floats) { pill.textContent = `Floats: ${obj.name.toLowerCase()} (${obj.rho} kg/m³) is less dense than ${liq.name.toLowerCase()} (${liq.rho} kg/m³)`; pill.className = 'ax-pill good by-pill'; }
+    else { pill.textContent = `Sinks: ${obj.name.toLowerCase()} (${obj.rho} kg/m³) is denser than ${liq.name.toLowerCase()} (${liq.rho} kg/m³)`; pill.className = 'ax-pill bad by-pill'; }
+    const facts = [
+      fact('Weight of the cube', `${sig(o.weight, 4)} N`, `${sig(obj.rho * o.V, 3)} kg × 9.8`),
+      fact('Upthrust', `${sig(o.upthrust, 4)} N`, `the weight of ${sig(o.displacedMl, 4)} mL of ${liq.name.toLowerCase()} pushed aside`),
+    ];
+    if (o.floats) {
+      facts.push(fact('Part under the surface when floating', `${fmt(o.floatFrac * 100, 2)} %`, `ρ_block ÷ ρ_liquid = ${obj.rho} ÷ ${liq.rho}`));
+      facts.push(fact('Your push', o.push > 1e-9 ? `${sig(o.push, 4)} N` : 'none', o.push > 1e-9 ? `to hold it ${fmt(o.under * 100, 0)} % under` : 'it floats by itself'));
+    } else {
+      facts.push(fact('Spring balance reads', `${sig(o.balance, 4)} N`, `weight − upthrust; it seems ${fmt((o.upthrust / o.weight) * 100, 1)} % lighter`));
+      facts.push(fact('Relative density', fmt(o.relDensity, 2), 'weight in air ÷ loss of weight in water (for fresh water)'));
+    }
+    q('.by-facts').replaceChildren(...facts);
+    q('.by-eq').replaceChildren(...lines([
+      ['Archimedes\' principle: ', 'a body in a liquid is pushed up by a force equal to the weight of the liquid it pushes aside.'],
+      ['Here: ', `upthrust = ρ_liquid × V_under × g = ${liq.rho} × ${sig(o.V * o.under, 4)} m³ × 9.8 = ${sig(o.upthrust, 4)} N.`],
+      [o.floats ? 'Floating: ' : 'Sinking: ', o.floats ? `it settles where the upthrust equals its weight, ${sig(o.weight, 4)} N, with ${fmt(o.floatFrac * 100, 2)} % of it under.` : `even fully under, the upthrust ${sig(o.upthrust, 4)} N is less than the weight ${sig(o.weight, 4)} N.`],
+    ]));
+  }
+
+  segmented(q('.by-obj'), (v) => { obj = OBJECTS.find((x) => x.id === v)!; q<HTMLInputElement>('.by-p').value = '0'; draw(); });
+  segmented(q('.by-liq'), (v) => { liq = LIQUIDS.find((x) => x.id === v)!; draw(); });
+  root.querySelectorAll('input').forEach((i) => i.addEventListener('input', draw));
+  const cv = q<HTMLCanvasElement>('.by-c');
+  let y0 = -1, p0 = 0;
+  cv.addEventListener('pointerdown', (e) => { const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top; if (x < blockBox.x || x > blockBox.x + blockBox.s || y < blockBox.y - 10 || y > blockBox.y + blockBox.s + 10) return; y0 = e.clientY; p0 = cube(val('.by-a') / 100, obj.rho, liq.rho, val('.by-p') / 100).under * 100; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointermove', (e) => { if (y0 < 0) return; q<HTMLInputElement>('.by-p').value = String(Math.max(0, Math.min(100, Math.round(p0 + ((e.clientY - y0) / Math.max(blockBox.s, 1)) * 100)))); draw(); });
+  const up = () => { y0 = -1; }; cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  mountQuiz(q('.by-quiz'), () => questions());
+  draw();
+  keepDrawn(cv, draw);
+</script>
+
+<style is:inline>
+  .by canvas { display: block; width: 100%; margin-top: 10px; touch-action: pan-y; }
+  .by > .ax-card:first-child > label { display: grid; margin-top: 10px; }
+  .by > .ax-card:first-child > label[hidden] { display: none; }
+  .by .ax-row { margin-top: 10px; }
+  .by input[type=range] { width: 100%; height: 32px; accent-color: var(--ink); }
+  .by label b { color: var(--ink); }
+  .by .ax-seg button { min-height: 44px; }
+  .by .by-state { margin: 8px 0 0; }
+  .by .by-pill { font-size: 14px; white-space: normal; }
+  .by .by-eq p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .by .by-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>
