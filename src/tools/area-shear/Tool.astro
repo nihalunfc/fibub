@@ -1,0 +1,132 @@
+---
+// Shear and area: slide the top of a parallelogram, triangle or trapezium on a square grid; the area stays the same
+// because the base and height don't change. Cut and slide a parallelogram into a rectangle, or add a turned copy of
+// a triangle or trapezium to make a parallelogram. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm sh">
+  <div class="ax-card">
+    <h2>Shape</h2>
+    <div class="ax-seg sh-shape" role="group" aria-label="Shape">
+      <button type="button" data-s="para" aria-pressed="true">Parallelogram</button><button type="button" data-s="tri" aria-pressed="false">Triangle</button><button type="button" data-s="trap" aria-pressed="false">Trapezium</button>
+    </div>
+    <svg class="sm-fig sh-fig" viewBox="0 0 340 230" role="img" aria-label="The shape on a square grid"></svg>
+    <p class="ax-help">Drag the orange corner sideways to slide the top. Each small square is 1 square unit.</p>
+    <div class="sm-sl"><b>b</b><input type="range" class="sh-br" min="1" max="10" step="1" value="6" aria-label="Base slider" /><input type="number" class="sh-b" min="1" max="10" step="1" value="6" inputmode="decimal" aria-label="Base b" /></div>
+    <div class="sm-sl sh-arow" hidden><b>a</b><input type="range" class="sh-ar" min="1" max="10" step="1" value="3" aria-label="Top side slider" /><input type="number" class="sh-a" min="1" max="10" step="1" value="3" inputmode="decimal" aria-label="Top side a" /></div>
+    <div class="sm-sl"><b>h</b><input type="range" class="sh-hr" min="1" max="7" step="1" value="4" aria-label="Height slider" /><input type="number" class="sh-h" min="1" max="7" step="1" value="4" inputmode="decimal" aria-label="Height h" /></div>
+    <div class="sm-sl"><b>s</b><input type="range" class="sh-sr" min="-6" max="10" step="0.5" value="2" aria-label="Slide slider" /><input type="number" class="sh-s" min="-6" max="10" step="0.5" value="2" inputmode="decimal" aria-label="Slide s (how far the top has moved)" /></div>
+    <div class="sh-cut">
+      <label class="sh-cutl">Cut and slide <input type="range" class="sh-t" min="0" max="1" step="0.05" value="0" aria-label="Cut and slide" /></label>
+    </div>
+    <label class="ax-check sh-copyl" hidden><input type="checkbox" class="sh-copy" /> Add a turned copy</label>
+  </div>
+
+  <div class="ax-card">
+    <h2>Area</h2>
+    <p class="ax-big sh-big" aria-live="polite"></p>
+    <p class="sm-f sh-f"></p>
+    <p class="sm-f sh-note"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Drag the top all the way left, then all the way right. The slanted sides get longer, so the perimeter grows, but the area never changes.</li>
+      <li>Move "Cut and slide" to the end. The cut-off triangle fills the gap and the parallelogram becomes a b × h rectangle.</li>
+      <li>Choose Triangle and tick "Add a turned copy". Two triangles make a parallelogram, so one triangle is half of b × h.</li>
+      <li>Choose Trapezium and add the copy. What is the base of the big parallelogram?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="sh-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .sh .sh-shape { margin-bottom: 10px; }
+  .sh .sh-cutl { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; color: var(--ink); font-size: 15px; }
+  .sh .sh-cutl input { width: 100%; height: 32px; accent-color: var(--accent); }
+  .sh svg .sh-shp { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+  .sh svg .sh-pc { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 2.5; stroke-linejoin: round; }
+  .sh svg .sh-cp { fill: var(--good-soft); stroke: var(--good); stroke-width: 2; stroke-dasharray: 6 4; }
+  .sh svg .sh-hl { stroke: var(--bad); stroke-width: 2; stroke-dasharray: 4 3; }
+  .sh [hidden] { display: none !important; }
+</style>
+
+<script>
+  import { corners, polyArea, formulaArea, cutSlide, copyFor, slant, type Shape, type Pt } from '../../lib/sci/area-shear';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, dragOn, pair, val, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.sh')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.sh-fig');
+  const B = q<HTMLInputElement>('.sh-b'), A = q<HTMLInputElement>('.sh-a'), H = q<HTMLInputElement>('.sh-h'), Sx = q<HTMLInputElement>('.sh-s'), T = q<HTMLInputElement>('.sh-t');
+  pair(q('.sh-br'), B, draw); pair(q('.sh-ar'), A, draw); pair(q('.sh-hr'), H, draw);
+  const setS = pair(q('.sh-sr'), Sx, draw);
+  T.addEventListener('input', draw); q('.sh-copy').addEventListener('change', draw);
+  let shape: Shape = 'para', view = { k: 20, ox: 20, oy: 210 };
+  root.querySelectorAll<HTMLButtonElement>('.sh-shape button').forEach((b) => b.addEventListener('click', () => {
+    shape = b.dataset.s as Shape;
+    root.querySelectorAll('.sh-shape button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.sh-arow').hidden = shape !== 'trap'; q('.sh-cut').hidden = shape !== 'para'; q('.sh-copyl').hidden = shape === 'para';
+    if (shape === 'tri') setS(3);
+    draw();
+  }));
+
+  function draw() {
+    const b = val(B, 6, 0.5, 10), h = val(H, 4, 0.5, 7), s = val(Sx, 2, -6, 10), a = val(A, 3, 0.5, 10);
+    const copy = shape !== 'para' && q<HTMLInputElement>('.sh-copy').checked;
+    const P = corners(shape, b, h, s, a), C = copy ? copyFor(shape, b, h, s, a) : [];
+    const all = [...P, ...C];
+    const minX = Math.min(0, ...all.map((p) => p[0])), maxX = Math.max(...all.map((p) => p[0]));
+    const k = Math.min(300 / Math.max(1, maxX - minX), 180 / h, 34);
+    view = { k, ox: 20 + (300 - (maxX - minX) * k) / 2 - minX * k, oy: 214 };
+    const X = (x: number) => view.ox + x * k, Y = (y: number) => view.oy - y * k;
+    const pts = (p: Pt[]) => p.map(([x, y]) => `${X(x)},${Y(y)}`).join(' ');
+    fig.replaceChildren();
+    for (let gx = Math.floor((20 - view.ox) / k); X(gx) <= 330; gx++) S('line', { x1: X(gx), y1: 6, x2: X(gx), y2: view.oy, class: 'sm-grid' }, fig);
+    for (let gy = 0; Y(gy) >= 6; gy++) S('line', { x1: 10, y1: Y(gy), x2: 330, y2: Y(gy), class: 'sm-grid' }, fig);
+    const t = Number(T.value), cs = shape === 'para' && t > 0 ? cutSlide(b, h, s, t) : null;
+    if (cs) { S('polygon', { points: pts(cs.rest), class: 'sh-shp' }, fig); S('polygon', { points: pts(cs.piece), class: 'sh-pc' }, fig); }
+    else S('polygon', { points: pts(P), class: 'sh-shp' }, fig);
+    if (C.length) S('polygon', { points: pts(C), class: 'sh-cp' }, fig);
+    const top = shape === 'tri' ? P[2] : P[3];
+    S('line', { x1: X(top[0]), y1: Y(h), x2: X(top[0]), y2: Y(0), class: 'sh-hl' }, fig);
+    S('text', { x: X(top[0]) + 5, y: Y(h / 2), style: 'font-weight:700' }, fig, `h = ${fmt(h)}`);
+    S('text', { x: X(b / 2), y: Y(0) + 15, 'text-anchor': 'middle', style: 'font-weight:700' }, fig, `b = ${fmt(b)}`);
+    if (shape === 'trap') S('text', { x: X(s + a / 2), y: Y(h) - 6, 'text-anchor': 'middle', style: 'font-weight:700' }, fig, `a = ${fmt(a)}`);
+    S('circle', { cx: X(top[0]), cy: Y(h), r: 22, class: 'sm-hit' }, fig);
+    S('circle', { cx: X(top[0]), cy: Y(h), r: 9, class: 'sm-handle sh-hd' }, fig);
+
+    const area = formulaArea(shape, b, h, a), shoe = polyArea(P), per = shape === 'tri' ? b + slant(s, h) + slant(s - b, h) : shape === 'trap' ? b + a + slant(s, h) + slant(s + a - b, h) : 2 * b + 2 * slant(s, h);
+    q('.sh-big').textContent = `Area = ${fmt(area, 2)} square units`;
+    q('.sh-f').textContent = shape === 'para' ? `Area = base × height = ${fmt(b)} × ${fmt(h)} = ${fmt(area, 2)}` : shape === 'tri' ? `Area = ½ × base × height = ½ × ${fmt(b)} × ${fmt(h)} = ${fmt(area, 2)}` : `Area = ½ × (a + b) × h = ½ × (${fmt(a)} + ${fmt(b)}) × ${fmt(h)} = ${fmt(area, 2)}`;
+    let note = `Perimeter now ${fmt(per, 2)} units: it changes as you slide, the area does not (counted from the corners: ${fmt(shoe, 2)}).`;
+    if (shape === 'para' && t > 0) note = cs ? (t >= 1 ? `The cut-off piece has moved ${fmt(b)} along: the shape is now a ${fmt(b)} × ${fmt(h)} rectangle, area ${fmt(area, 2)}.` : 'The orange piece slides along the base to fill the gap on the other side.') : `The top has slid more than one base length, so one cut can't make a rectangle. Cut it into thinner strips: the area is still ${fmt(area, 2)}.`;
+    if (copy) note = shape === 'tri' ? `The turned copy (green) makes a parallelogram with base ${fmt(b)} and height ${fmt(h)}, area ${fmt(2 * area, 2)}. The triangle is half: ${fmt(area, 2)}.` : `With the turned copy the shape is a parallelogram with base a + b = ${fmt(a + b)} and height ${fmt(h)}, area ${fmt(2 * area, 2)}. The trapezium is half: ${fmt(area, 2)}.`;
+    q('.sh-note').textContent = note;
+  }
+
+  dragOn(fig, (x, y) => { const h = fig.querySelector('.sh-hd'); return h && Math.hypot(x - Number(h.getAttribute('cx')), y - Number(h.getAttribute('cy'))) < 30 ? 'top' : null; },
+    (_id, x) => { const v = Math.max(-6, Math.min(10, Math.round(((x - view.ox) / view.k) * 2) / 2)); setS(v); draw(); });
+  draw();
+
+  quiz(q('.sh-quiz'), () => {
+    const out: Question[] = [];
+    const b = randInt(3, 15), h = randInt(2, 12);
+    out.push({ q: `A parallelogram has base ${b} cm and height ${h} cm. Its slanted side is ${h + randInt(1, 4)} cm. What is its area?`, want: [b * h], hint: 'cm²', work: `Area = base × height = ${b} × ${h} = ${b * h} cm². The slanted side is not needed.` });
+    const b2 = 2 * randInt(2, 9), h2 = randInt(3, 11);
+    out.push({ q: `A triangle has base ${b2} cm and height ${h2} cm. What is its area?`, want: [(b2 * h2) / 2], hint: 'cm²', work: `Area = ½ × ${b2} × ${h2} = ${(b2 * h2) / 2} cm².` });
+    const a3 = randInt(2, 8), b3 = a3 + randInt(2, 8), h3 = 2 * randInt(1, 6);
+    out.push({ q: `A trapezium has parallel sides ${a3} m and ${b3} m, ${h3} m apart. What is its area?`, want: [((a3 + b3) * h3) / 2], hint: 'm²', work: `Area = ½ × (${a3} + ${b3}) × ${h3} = ${((a3 + b3) * h3) / 2} m².` });
+    const b4 = randInt(4, 12), h4 = randInt(2, 9);
+    out.push({ q: `A parallelogram has area ${b4 * h4} cm² and base ${b4} cm. What is its height?`, want: [h4], hint: 'cm', work: `Height = area ÷ base = ${b4 * h4} ÷ ${b4} = ${h4} cm.` });
+    return out;
+  });
+</script>
