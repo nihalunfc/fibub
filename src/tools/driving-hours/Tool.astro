@@ -1,0 +1,118 @@
+---
+// #T903 Driving hours
+---
+<div class="tool-ui dh">
+  <section class="panel">
+    <div class="dh-grid">
+      <label>Rules
+        <select data-k="rules">
+          <option value="us">US federal (FMCSA), property-carrying</option>
+          <option value="ca">Canada federal, south of 60°</option>
+        </select>
+      </label>
+      <label data-us>Cycle
+        <select data-k="uscycle"><option value="70">70 hours in 8 days</option><option value="60">60 hours in 7 days</option></select>
+      </label>
+      <label data-ca hidden>Cycle
+        <select data-k="cacycle"><option value="1">Cycle 1: 70 hours in 7 days</option><option value="2">Cycle 2: 120 hours in 14 days</option></select>
+      </label>
+      <label>On-duty hours already used in the cycle (before today) <input data-k="used" inputmode="decimal" value="0" /></label>
+      <label data-ca2 hidden>On-duty hours since your last 24 h off (before today) <input data-k="since" inputmode="decimal" value="0" /></label>
+      <label>Time now (24-hour, HH:MM) <input data-k="now" inputmode="numeric" value="14:00" /></label>
+    </div>
+    <button type="button" class="btn dh-nowbtn">Use the time now</button>
+  </section>
+  <section class="panel">
+    <h3 class="dh-h">Today's log</h3>
+    <p class="dh-fine">One row each time your duty status changed, from midnight. Each row lasts until the next one starts. The log is taken to begin after a full rest (10 h off in the US, 8 h in Canada).</p>
+    <div class="dh-rows"></div>
+    <button type="button" class="btn dh-add">Add a change</button>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="dh-big"></p>
+    <p class="dh-break"></p>
+    <dl class="dh-out"></dl>
+    <svg class="dh-bar" viewBox="0 0 480 56" role="img" aria-label="Today's log on a 24-hour line"></svg>
+    <p class="dh-warn" role="alert"></p>
+  </section>
+  <p class="dh-fine">This is a planning aid, not an ELD, a logbook or legal advice. It leaves out split sleeper-berth periods, the 2-hour adverse driving extension, short-haul and other exemptions, and provincial or state rules. Rules checked 2026-11-10 against FMCSA (49 CFR 395.3) and Canada's Commercial Vehicle Drivers Hours of Service Regulations (SOR/2005-313); check the official source. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .dh { display: grid; gap: 14px; margin-bottom: 32px; }
+  .dh .panel { padding: 16px; }
+  .dh-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 12px; }
+  .dh label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .dh input, .dh select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .dh input:focus, .dh select:focus { border-color: var(--accent); outline: none; }
+  .dh .btn { margin-top: 12px; }
+  .dh-h { font-size: 16px; margin: 0 0 6px; }
+  .dh-row { display: grid; grid-template-columns: 1fr 92px 40px; gap: 8px; margin-top: 8px; }
+  .dh-row button { font: inherit; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); cursor: pointer; }
+  .dh-big { font-size: 26px; font-weight: 700; margin: 0 0 6px; }
+  .dh-break { margin: 0 0 10px; font-weight: 600; }
+  .dh-break.due { color: var(--bad); }
+  .dh-out { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
+  .dh-out dt { color: var(--muted); } .dh-out dd { margin: 0; text-align: right; font-weight: 600; }
+  .dh-out small { display: block; font-weight: 400; color: var(--muted); }
+  .dh-out .lim { color: var(--bad); }
+  .dh-bar { width: 100%; height: auto; margin-top: 12px; }
+  .dh-bar text { font-size: 11px; fill: var(--muted); }
+  .dh-warn { color: var(--bad); margin: 10px 0 0; } .dh-warn:empty { display: none; }
+  .dh-fine { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+</style>
+
+<script>
+  import { usClocks, caClocks, toMin, clock, dur, segments, type Row, type Duty } from '../../lib/money/hos';
+  const root = document.querySelector('.dh') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const num = (k: string) => parseFloat(q(k).value.replace(/,/g, '')) || 0;
+  const LABEL: Record<Duty, string> = { off: 'Off duty', sb: 'Sleeper berth', d: 'Driving', on: 'On duty, not driving' };
+  const COLOR: Record<Duty, string> = { off: 'var(--line)', sb: 'var(--muted)', d: 'var(--accent)', on: 'var(--warn)' };
+  const addRow = (status: Duty, start: string) => {
+    const div = document.createElement('div'); div.className = 'dh-row';
+    div.innerHTML = `<select aria-label="Status">${(Object.keys(LABEL) as Duty[]).map((k) => `<option value="${k}"${k === status ? ' selected' : ''}>${LABEL[k]}</option>`).join('')}</select>` +
+      `<input aria-label="Starts at (HH:MM)" inputmode="numeric" value="${start}" /><button type="button" aria-label="Remove this row">×</button>`;
+    (div.querySelector('button') as HTMLButtonElement).onclick = () => { div.remove(); calc(); };
+    $('.dh-rows').append(div);
+  };
+  const rows = (): Row[] => [...root.querySelectorAll('.dh-row')].map((r) => ({ status: (r.querySelector('select') as HTMLSelectElement).value as Duty, start: (r.querySelector('input') as HTMLInputElement).value }));
+  const calc = () => {
+    const us = q('rules').value === 'us';
+    root.querySelector('[data-us]')!.toggleAttribute('hidden', !us);
+    root.querySelector('[data-ca]')!.toggleAttribute('hidden', us);
+    root.querySelector('[data-ca2]')!.toggleAttribute('hidden', us || q('cacycle').value !== '2');
+    const now = toMin(q('now').value), rs = rows();
+    const bad = rs.some((r) => !Number.isFinite(toMin(r.start)));
+    if (!Number.isFinite(now) || bad) { $('.dh-big').textContent = ''; $('.dh-break').textContent = ''; $('.dh-out').innerHTML = ''; $('.dh-warn').textContent = 'Type times as 24-hour HH:MM, for example 06:30.'; return; }
+    const c = us ? usClocks(rs, now, { cycleHours: q('uscycle').value === '60' ? 60 : 70, usedBefore: num('used') })
+                 : caClocks(rs, now, { cycle: q('cacycle').value === '2' ? 2 : 1, usedBefore: num('used'), sinceLong: num('since') });
+    $('.dh-big').textContent = c.drivingLeft > 0 ? `Driving left: ${dur(c.drivingLeft)}` : 'No driving left: take your rest';
+    const br = $('.dh-break');
+    if (us && c.breakDueIn !== null && c.started !== null) {
+      br.textContent = c.breakDueIn === 0 ? 'Break due now: take 30 minutes in a row off the wheel before you drive again.' : `30-minute break due after ${dur(c.breakDueIn)} more driving.`;
+      br.classList.toggle('due', c.breakDueIn === 0);
+    } else if (!us && c.offNeeded !== undefined) {
+      br.textContent = c.offNeeded > 0 ? `Off duty today so far ${dur(c.offToday!)}: you still need ${dur(c.offNeeded)} off before midnight (10 h a day, 2 h of it outside your 8 h rest).` : `You have the 10 hours off duty needed today (${dur(c.offToday!)}).`;
+      br.classList.remove('due');
+    } else { br.textContent = ''; }
+    const minLeft = Math.min(...c.limits.map((l) => l.left));
+    $('.dh-out').innerHTML = (c.started !== null ? `<dt>Shift started</dt><dd>${clock(c.started)}</dd>` : '') +
+      c.limits.map((l) => `<dt>${l.name}<small>${l.note}</small></dt><dd class="${l.left === minLeft ? 'lim' : ''}">${dur(l.left)} left</dd>`).join('') +
+      (c.windowEnds !== null && c.drivingLeft > 0 ? `<dt>Stop driving by</dt><dd>${clock(Math.min(c.windowEnds, now + c.drivingLeft))}</dd>` : '');
+    $('.dh-warn').textContent = c.cycleLeft < 0 ? 'You are over your cycle limit.' : c.started === null ? 'No driving or on-duty time in the log yet.' : '';
+    // 24-hour strip of the log
+    const W = 480, x = (m: number) => (m / 1440) * W;
+    const segs = segments(rs, now);
+    $('.dh-bar').innerHTML = `<rect x="0" y="6" width="${W}" height="22" fill="none" stroke="var(--line)"/>` +
+      segs.map((s) => `<rect x="${x(s.from).toFixed(1)}" y="6" width="${Math.max(0.5, x(s.to) - x(s.from)).toFixed(1)}" height="22" fill="${COLOR[s.status]}"><title>${LABEL[s.status]} ${clock(s.from)} to ${clock(s.to)}</title></rect>`).join('') +
+      `<line x1="${x(now)}" y1="0" x2="${x(now)}" y2="34" stroke="var(--ink)" stroke-width="2"/>` +
+      [0, 6, 12, 18, 24].map((h) => `<text x="${Math.min(W - 14, x(h * 60))}" y="48">${String(h).padStart(2, '0')}</text>`).join('');
+  };
+  addRow('off', '00:00'); addRow('d', '06:00');
+  $('.dh-add').onclick = () => { const d = new Date(); addRow('on', `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`); calc(); };
+  $('.dh-nowbtn').onclick = () => { const d = new Date(); q('now').value = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; calc(); };
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  calc();
+</script>
