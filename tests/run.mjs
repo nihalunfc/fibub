@@ -751,9 +751,9 @@ try {
     check(await page.evaluate(() => document.documentElement.classList.contains('red-mode')), 'theme: red light switch beside it on astronomy pages');
     await page.click('.red-btn'); await page.click('.theme-btn');
     await page.hover('.dd[data-shelf=science] > a'); await page.waitForTimeout(300);
-    await page.hover('.dd-mega .dd-subj >> text=Astronomy'); await page.waitForTimeout(200);
-    check(await page.isVisible('.dd-mega .dd-subj[aria-expanded=true]') && await page.isVisible('.dd-mega .dd-pane.on >> text=Sky tonight'), 'header: Science shows subjects, then the chosen subject\'s sections and tools');
-    const over = await page.$$eval('.dd-mega .dd-item', (els) => els.some((e) => { const r = e.getBoundingClientRect(), p = e.closest('.dd-group').getBoundingClientRect(); return r.right > p.right + 1; }));
+    await page.hover('.dd[data-shelf=science] .dd-mega .dd-subj >> text=Astronomy'); await page.waitForTimeout(200);
+    check(await page.isVisible('.dd[data-shelf=science] .dd-mega .dd-subj[aria-expanded=true]') && await page.isVisible('.dd[data-shelf=science] .dd-mega .dd-pane.on >> text=Sky tonight'), 'header: Science shows subjects, then the chosen subject\'s sections and tools');
+    const over = await page.$$eval('.dd[data-shelf=science] .dd-mega .dd-item', (els) => els.some((e) => { const r = e.getBoundingClientRect(), p = e.closest('.dd-group').getBoundingClientRect(); return r.right > p.right + 1; }));
     check(!over, 'header: no tool name runs into the next column');
     await page.click('.bm-btn');
     check(await page.isVisible('.bm-dlg'), 'bookmark: button opens the bookmark dialog');
@@ -764,7 +764,7 @@ try {
     await page.goto(BASE + '/');
     check(!!(await page.waitForSelector('.mine:not([hidden])', { timeout: 5000 }).catch(() => null)), 'home: My tools shows the pinned tool');
     // Only my tools: star a second tool, hide the rest, then bring them back.
-    await page.click('.dir .ti[data-id=bill-calendar] .pin');
+    await page.click('.dir .ti[data-id=planner] .pin');
     await page.waitForFunction(() => document.querySelectorAll('.mine-list .ti').length === 2, null, { timeout: 5000 }).catch(() => {});
     check((await page.locator('.mine-list .ti').count()) === 2, 'home: the star adds a tool to My tools');
     await page.click('.focus-btn');
