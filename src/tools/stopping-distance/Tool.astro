@@ -1,0 +1,77 @@
+---
+// #T898 Stopping distance
+---
+<div class="tool-ui sd">
+  <section class="panel">
+    <div class="sd-grid">
+      <label>Speed <input data-k="speed" inputmode="decimal" value="100" /></label>
+      <label>Unit <select data-k="unit"><option value="kmh">km/h</option><option value="mph">mph</option></select></label>
+      <label>Vehicle <select data-k="veh"><option value="car">Car</option><option value="bike">Two-wheeler</option><option value="truck">Loaded truck (air brakes)</option></select></label>
+      <label>Reaction time (seconds) <input data-k="react" inputmode="decimal" value="1.5" /></label>
+      <label>Road <select data-k="road"><option value="0.7">Dry</option><option value="0.4">Wet</option><option value="0.2">Snow</option><option value="0.1">Ice</option><option value="custom">My own grip</option></select></label>
+      <label>Grip (μ) <input data-k="mu" inputmode="decimal" value="0.7" /></label>
+      <label>Slope % (+ uphill, − downhill) <input data-k="slope" inputmode="decimal" value="0" /></label>
+    </div>
+    <p class="sd-fine">Reaction time is how long you take to see a problem and press the brake; 1.5 s is a common figure for an alert driver. Grip (μ) is how well tyres hold the road: you can edit it. A loaded truck adds 0.5 s for air-brake lag.</p>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="sd-big sd-out"></p>
+    <dl class="sd-rows"></dl>
+    <svg class="sd-svg" viewBox="0 0 320 90" role="img" aria-label="Bar showing reaction distance and braking distance"></svg>
+    <p class="sd-cars"></p>
+    <p class="sd-warn" role="alert"></p>
+  </section>
+  <p class="sd-fine">These are textbook figures on a flat, clean surface with good brakes and tyres. Real stops are longer with worn tyres, ABS faults, a heavy load or a tired driver. Never use this to decide a safe following distance: leave extra room. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .sd { display: grid; gap: 14px; margin-bottom: 32px; }
+  .sd .panel { padding: 16px; }
+  .sd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 12px; }
+  .sd label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .sd input, .sd select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .sd input:focus, .sd select:focus { border-color: var(--accent); outline: none; }
+  .sd-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
+  .sd-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
+  .sd-rows dt { color: var(--muted); } .sd-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .sd-svg { width: 100%; height: auto; margin-top: 12px; }
+  .sd-warn { color: var(--bad); margin: 10px 0 0; } .sd-warn:empty { display: none; }
+  .sd-cars { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+  .sd-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+</style>
+
+<script>
+  import { stopping } from '../../lib/money/vehicle-physics';
+  const root = document.querySelector('.sd') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const num = (k: string) => parseFloat(q(k).value.replace(/,/g, ''));
+  const f1 = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const CAR = 4.5;
+  const draw = (rd: number, bd: number) => {
+    const tot = rd + bd, w = 300, a = (rd / tot) * w;
+    $('.sd-svg').innerHTML = `<rect x="10" y="20" width="${a}" height="30" fill="#c77d0a"/><rect x="${10 + a}" y="20" width="${w - a}" height="30" fill="#b3261e"/>` +
+      `<text x="10" y="14" font-size="11" fill="currentColor">Reaction ${f1(rd)} m</text><text x="310" y="14" font-size="11" fill="currentColor" text-anchor="end">Braking ${f1(bd)} m</text>` +
+      `<text x="10" y="70" font-size="11" fill="currentColor">0</text><text x="310" y="70" font-size="11" fill="currentColor" text-anchor="end">${f1(tot)} m (${f1(tot / CAR)} car lengths)</text>`;
+  };
+  const calc = () => {
+    const warn = $('.sd-warn');
+    const sp = num('speed'), react = num('react'), mu = num('mu'), slope = num('slope') || 0;
+    if (!(sp > 0) || !(react >= 0) || !(mu > 0)) { $('.sd-big').textContent = ''; $('.sd-rows').innerHTML = ''; $('.sd-svg').innerHTML = ''; $('.sd-cars').textContent = ''; warn.textContent = 'Type a speed above 0, a reaction time of 0 or more, and a grip above 0.'; return; }
+    const kmh = q('unit').value === 'mph' ? sp * 1.609344 : sp;
+    const r = stopping({ kmh, reaction: react, mu, slopePct: slope, extraLag: q('veh').value === 'truck' ? 0.5 : 0 });
+    if (!isFinite(r.brakingDist)) { $('.sd-big').textContent = ''; $('.sd-rows').innerHTML = ''; $('.sd-svg').innerHTML = ''; warn.textContent = 'On a downhill that steep for this grip the vehicle cannot stop by braking alone.'; return; }
+    warn.textContent = '';
+    const mu2 = q('unit').value === 'mph';
+    const ft = (m: number) => mu2 ? ` (${Math.round(m * 3.28084)} ft)` : '';
+    $('.sd-big').textContent = `Total ${f1(r.total)} m`;
+    const line = (a: string, b: string) => `<dt>${a}</dt><dd>${b}</dd>`;
+    $('.sd-rows').innerHTML = line('Speed', `${f1(kmh)} km/h = ${f1(r.mps)} m/s`) + line('Reaction distance', `${f1(r.reactionDist)} m${ft(r.reactionDist)}`) + line('Braking distance', `${f1(r.brakingDist)} m${ft(r.brakingDist)}`) + line('Total stopping distance', `${f1(r.total)} m${ft(r.total)}`);
+    $('.sd-cars').textContent = `About ${f1(r.total / CAR)} car lengths (a car is taken as 4.5 m long).`;
+    draw(r.reactionDist, r.brakingDist);
+  };
+  q('road').addEventListener('change', () => { const v = q('road').value; if (v !== 'custom') q('mu').value = v; calc(); });
+  q('mu').addEventListener('input', () => { q('road').value = 'custom'; });
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  calc();
+</script>
