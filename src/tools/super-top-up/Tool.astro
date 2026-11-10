@@ -1,0 +1,104 @@
+---
+// #T878 Top-up vs super top-up
+import InsuranceNote from '../../components/InsuranceNote.astro';
+---
+<div class="tool-ui stu">
+  <InsuranceNote />
+  <section class="panel">
+    <h2>Your cover</h2>
+    <p class="stu-hint">Example numbers: change them to yours.</p>
+    <div class="stu-grid">
+      <label>Currency <select class="stu-cur" data-k="cur"></select></label>
+      <label>Deductible (where the top-up starts) <input data-k="ded" inputmode="decimal" /></label>
+      <label>Top-up sum insured <input data-k="si" inputmode="decimal" /></label>
+      <label>Base policy sum insured <input data-k="base" inputmode="decimal" /></label>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>Hospital bills in one year</h2>
+    <div class="stu-bills"></div>
+    <button type="button" class="stu-add">Add a bill</button>
+    <p class="note bad stu-err" role="alert" hidden></p>
+  </section>
+  <section class="stu-res" aria-live="polite">
+    <div class="stu-stats">
+      <div><span>Plain top-up pays</span><b class="stu-s-t"></b></div>
+      <div><span>Super top-up pays</span><b class="stu-s-s"></b></div>
+      <div><span>Base policy pays</span><b class="stu-s-b"></b></div>
+    </div>
+    <p class="stu-words"></p>
+    <div class="panel"><h2>Bill by bill</h2>
+      <div class="stu-wrap"><table><thead><tr><th>Bill</th><th>Amount</th><th>Base pays</th><th>Top-up pays</th><th>Super top-up pays</th></tr></thead><tbody class="stu-body"></tbody></table></div>
+      <p class="stu-line"></p>
+    </div>
+  </section>
+  <p class="stu-fine">How it is worked out: the base policy pays the smaller of each bill and what is left of its sum insured. A top-up pays each bill minus the deductible. A super top-up pays the part of the running total above the deductible. Both stop at the top-up sum insured. It ignores room-rent caps, co-pay, waiting periods and items a policy does not cover. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .stu { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .stu > *, .stu-res > * { min-width: 0; }
+  .stu h2 { margin: 0 0 12px; font-size: 18px; }
+  .stu .panel { padding: 16px; }
+  .stu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .stu label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .stu input, .stu select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .stu input:focus, .stu select:focus { border-color: var(--accent); outline: none; }
+  .stu-bills { display: grid; gap: 8px; margin-bottom: 10px; }
+  .stu-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
+  .stu-row button, .stu-add { font: inherit; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .stu-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .stu-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 10px; }
+  .stu-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); align-content: start; }
+  .stu-stats span { font-size: 13px; color: var(--muted); }
+  .stu-stats b { font-size: clamp(17px, 3.4vw, 22px); overflow-wrap: anywhere; }
+  .stu-words, .stu-line { margin: 0 0 8px; font-size: 15px; }
+  .stu-hint, .stu-fine { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+  .stu-wrap { overflow-x: auto; }
+  .stu table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .stu th, .stu td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .stu th:first-child, .stu td:first-child { text-align: left; }
+  .stu th { font-size: 12px; color: var(--muted); font-weight: 600; }
+</style>
+
+<script>
+  import { topUp } from '../../lib/money/insurance';
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.stu')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const cur = defaultCurrency();
+  q('.stu-cur').innerHTML = currencyOptions(cur);
+  const inr = cur === 'INR';
+  const def: Record<string, string> = { ded: inr ? '5,00,000' : '500,000', si: inr ? '10,00,000' : '1,000,000', base: inr ? '5,00,000' : '500,000' };
+  for (const k in def) f(k).value = def[k];
+  const $ = (n: number) => money(n, f('cur').value, 0);
+  const box = q('.stu-bills');
+  function addRow(v: string) {
+    const d = document.createElement('div'); d.className = 'stu-row';
+    d.innerHTML = `<label>Bill <input class="stu-bill" inputmode="decimal" aria-label="Bill amount" /></label><button type="button" class="stu-del" aria-label="Remove this bill">Remove</button>`;
+    d.querySelector<HTMLInputElement>('input')!.value = v;
+    box.appendChild(d);
+  }
+  ['3,00,000', '3,00,000', '3,00,000'].forEach((v) => addRow(inr ? v : v.replace(/(\d),(\d\d),(\d{3})/, '$1$2,$3')));
+  q('.stu-add').addEventListener('click', () => { addRow(''); run(); });
+  box.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('.stu-del'); if (b) { b.parentElement!.remove(); run(); } });
+  function run() {
+    const bills = [...root.querySelectorAll<HTMLInputElement>('.stu-bill')].map((i) => num(i.value));
+    const ded = num(f('ded').value), si = num(f('si').value), base = num(f('base').value);
+    const bad = bills.length === 0 ? 'Add at least one bill.' : bills.some((b) => b <= 0) ? 'Each bill must be more than 0.' : ded < 0 || si <= 0 || base < 0 ? 'Enter a deductible of 0 or more and sums insured above 0.' : '';
+    q('.stu-err').hidden = !bad; q('.stu-err').textContent = bad; q('.stu-res').hidden = !!bad;
+    if (bad) return;
+    const t = topUp(bills, ded, si, 'topup'), s = topUp(bills, ded, si, 'super');
+    let left = base, bp = 0;
+    const baseRows = bills.map((b) => { const p = Math.min(b, left); left -= p; bp += p; return p; });
+    const total = t.billed;
+    q('.stu-s-t').textContent = $(t.paid); q('.stu-s-s').textContent = $(s.paid); q('.stu-s-b').textContent = $(bp);
+    const big = Math.max(...bills);
+    q('.stu-words').innerHTML = t.paid === 0 && s.paid > 0 ? `A plain top-up pays <b>nothing</b> because no single bill (largest ${$(big)}) is above the deductible of ${$(ded)}. A super top-up adds the bills up to ${$(total)} and pays <b>${$(s.paid)}</b>.` : t.paid === 0 ? `Neither pays: no single bill is above the deductible of ${$(ded)}, and the year's total of ${$(total)} does not pass it either.` : `A plain top-up pays <b>${$(t.paid)}</b> and a super top-up pays <b>${$(s.paid)}</b> on bills totalling ${$(total)}.`;
+    q('.stu-body').innerHTML = bills.map((b, k) => `<tr><td>${k + 1}</td><td>${$(b)}</td><td>${$(baseRows[k])}</td><td>${$(t.rows[k].paid)}</td><td>${$(s.rows[k].paid)}</td></tr>`).join('');
+    q('.stu-line').innerHTML = `You pay with the base policy and a plain top-up: <b>${$(Math.max(0, total - bp - t.paid))}</b>. With the base policy and a super top-up: <b>${$(Math.max(0, total - bp - s.paid))}</b>. Without either top-up, after the base policy: <b>${$(total - bp)}</b>.`;
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>
