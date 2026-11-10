@@ -27,7 +27,7 @@ export default async ({ page, check, BASE }) => {
   check((await page.$$(R + '.sm-q')).length === 4, 'linear: four questions');
   for (let i = 1; i <= 4; i++) {
     await page.click(`${R}.sm-q:nth-child(${i}) .sm-qshow`);
-    const wk = await txt(`.sm-q:nth-child(${i}) .sm-qwork`); const m = /= (−?[\d./]+)\.?$/.exec(wk.replace(/\. The.*$/, ''));
+    const wk = await txt(`.sm-q:nth-child(${i}) .sm-qwork`); const m = /= ([−-]?[\d./]+)\.?$/.exec(wk.replace(/\. The.*$/, ''));
     await page.fill(`${R}.sm-q:nth-child(${i}) .sm-qin`, m ? m[1].replace('−', '-').replace(/\.$/, '') : 'x'); await page.click(`${R}.sm-q:nth-child(${i}) .sm-qcheck`);
     check((await txt(`.sm-q:nth-child(${i}) .sm-qres`)) === 'Right!', `linear: quiz ${i} (${wk})`);
   }
