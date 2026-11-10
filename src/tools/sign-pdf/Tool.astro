@@ -273,7 +273,7 @@
       const doc = await openPdfJs(b);
       bytes = b; fileName = f.name; items = []; stopPlacing(); status();
       root.dataset.state = 'ready'; $('.sg-work').hidden = false;
-      views = await showPages(doc, $('.sg-pages'));
+      root.scrollIntoView({ block: 'start' }); views = await showPages(doc, $('.sg-pages'));
     } catch (e: any) {
       root.dataset.state = 'empty'; $('.sg-work').hidden = true;
       err(/password|encrypt/i.test(String(e?.message || e?.name)) ? 'This PDF is locked with a password. Unlock it first, then come back.' : 'That file could not be opened as a PDF.');
@@ -284,7 +284,7 @@
   ['dragenter', 'dragover'].forEach((n) => drop.addEventListener(n, (e) => { e.preventDefault(); drop.classList.add('over'); }));
   ['dragleave', 'drop'].forEach((n) => drop.addEventListener(n, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
   drop.addEventListener('drop', (e) => { const f = (e as DragEvent).dataTransfer?.files?.[0]; if (f) open(f); });
-  $('.sg-other').addEventListener('click', () => { root.dataset.state = 'empty'; $('.sg-work').hidden = true; $<HTMLInputElement>('.sg-file').value = ''; bytes = null; $('.sg-pages').textContent = ''; items = []; $('.sg-saved').hidden = true; });
+  $('.sg-other').addEventListener('click', () => { root.scrollIntoView({ block: 'start' }); root.dataset.state = 'empty'; $('.sg-work').hidden = true; $<HTMLInputElement>('.sg-file').value = ''; bytes = null; $('.sg-pages').textContent = ''; items = []; $('.sg-saved').hidden = true; });
   $<HTMLInputElement>('.sg-date').value = new Date().toLocaleDateString('en-CA');
 
   $('.sg-save').addEventListener('click', async () => {

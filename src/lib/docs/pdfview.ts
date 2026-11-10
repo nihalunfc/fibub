@@ -51,15 +51,6 @@ export async function showPages(doc: any, host: HTMLElement, maxWidth = 820): Pr
   return views;
 }
 
-export const PAGE_CSS = `
-  .pv-pages { display: grid; gap: 14px; justify-items: center; }
-  .pv-page { position: relative; background: #fff; box-shadow: 0 0 0 1px var(--line); max-width: 100%; touch-action: pan-y; }
-  .pv-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-  .pv-layer { position: absolute; inset: 0; }
-  .pv-num { position: absolute; left: 6px; top: -1px; transform: translateY(-100%); font-size: 12px; color: var(--muted); }
-  .pv-page { margin-top: 18px; }
-`;
-
 /** Where a spot on the shown page (fractions from the top-left) lands on the real page, in PDF points. */
 export function toPdfPoint(page: { x: number; y: number; width: number; height: number; rot: number }, fx: number, fy: number) {
   const { x: cx, y: cy, width: cw, height: ch } = page;
@@ -103,7 +94,7 @@ export interface Item { id: number; page: number; kind: string; fx: number; fy: 
  * Put an item on its page layer so it can be dragged, resized (corner) and removed (x button).
  * `fixedRatio`: keep width/height when resizing (pictures). Text items resize by height only.
  */
-export function mountItem(v: PageView, it: Item, body: HTMLElement, opts: { fixedRatio?: boolean; onChange: () => void; onRemove: (it: Item) => void; label?: string }) {
+export function mountItem(v: PageView, it: Item, body: HTMLElement, opts: { fixedRatio?: boolean; free?: boolean; onChange: () => void; onRemove: (it: Item) => void; label?: string }) {
   const el = document.createElement('div'); el.className = 'pv-item'; el.tabIndex = 0; el.dataset.kind = it.kind;
   el.setAttribute('role', 'group'); el.setAttribute('aria-label', opts.label || it.kind);
   const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'pv-x'; rm.textContent = '×'; rm.setAttribute('aria-label', 'Remove');
@@ -111,7 +102,7 @@ export function mountItem(v: PageView, it: Item, body: HTMLElement, opts: { fixe
   el.append(body, rm, grip);
   const place = () => {
     el.style.left = it.fx * 100 + '%'; el.style.top = it.fy * 100 + '%';
-    el.style.width = opts.fixedRatio ? it.fw * 100 + '%' : 'auto'; el.style.height = it.fh * 100 + '%';
+    el.style.width = opts.fixedRatio || opts.free ? it.fw * 100 + '%' : 'auto'; el.style.height = it.fh * 100 + '%';
     const px = v.layer.clientHeight || 1; el.style.setProperty('--ph', px + 'px'); el.style.setProperty('--pw', (v.layer.clientWidth || 1) + 'px');
   };
   place();
@@ -126,8 +117,10 @@ export function mountItem(v: PageView, it: Item, body: HTMLElement, opts: { fixe
   const move = (e: PointerEvent) => {
     if (!mode) return;
     const W = v.layer.clientWidth, H = v.layer.clientHeight, dx = (e.clientX - sx) / W, dy = (e.clientY - sy) / H;
-    if (mode === 'move') { const fw = opts.fixedRatio ? it.fw : el.offsetWidth / W; it.fx = Math.min(1 - fw, Math.max(0, o.fx + dx)); it.fy = Math.min(1 - it.fh, Math.max(0, o.fy + dy)); }
-    else if (opts.fixedRatio) {
+    if (mode === 'move') { const fw = opts.fixedRatio || opts.free ? it.fw : el.offsetWidth / W; it.fx = Math.min(1 - fw, Math.max(0, o.fx + dx)); it.fy = Math.min(1 - it.fh, Math.max(0, o.fy + dy)); }
+    else if (opts.free) {
+      it.fw = Math.min(Math.max(0.01, o.fw + dx), 1 - it.fx); it.fh = Math.min(Math.max(0.006, o.fh + dy), 1 - it.fy);
+    } else if (opts.fixedRatio) {
       const r = (o.fw * W) / (o.fh * H);
       let nw = Math.max(0.03, o.fw + dx);
       nw = Math.min(nw, 1 - it.fx, ((1 - it.fy) * H * r) / W);
@@ -151,12 +144,3 @@ export function mountItem(v: PageView, it: Item, body: HTMLElement, opts: { fixe
   v.layer.append(el);
   return el;
 }
-
-export const ITEM_CSS = `
-  .pv-item { position: absolute; cursor: move; outline: 1.5px dashed var(--accent); outline-offset: 0; touch-action: none; user-select: none; }
-  .pv-item:focus-visible { outline-style: solid; outline-width: 2px; }
-  .pv-item img, .pv-item canvas { width: 100%; height: 100%; display: block; pointer-events: none; }
-  .pv-x { position: absolute; top: -12px; right: -12px; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 700 16px/1 system-ui, sans-serif; cursor: pointer; padding: 0; }
-  .pv-grip { position: absolute; right: -9px; bottom: -9px; width: 18px; height: 18px; border-radius: 4px; background: var(--accent); border: 2px solid var(--surface); cursor: nwse-resize; touch-action: none; }
-  .pv-ph { cursor: crosshair; }
-`;
