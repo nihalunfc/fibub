@@ -1,0 +1,125 @@
+---
+// #1742 NPS calculator: monthly contributions to a corpus, then the annuity and lump-sum split and the monthly pension.
+---
+<div class="tool-ui nc">
+  <section class="panel">
+    <h2>Your NPS</h2>
+    <div class="nc-grid">
+      <label>Monthly contribution (₹) <input data-k="pay" inputmode="decimal" value="5,000" /></label>
+      <label>Raise it each year (optional) <span class="nc-suf"><input data-k="step" inputmode="decimal" value="0" /><i>% a year</i></span></label>
+      <label>Expected return <span class="nc-suf"><input data-k="rate" inputmode="decimal" value="10" /><i>% a year</i></span></label>
+      <label>Your age now <input data-k="age" inputmode="decimal" value="30" /></label>
+      <label>Exit age <input data-k="exit" inputmode="decimal" value="60" /></label>
+      <label>NPS balance today (₹) <input data-k="open" inputmode="decimal" value="0" /></label>
+      <label>You are in
+        <select data-k="sector">
+          <option value="citizen" selected>All Citizen or corporate NPS</option>
+          <option value="government">Government sector NPS</option>
+        </select>
+      </label>
+      <label>Share used for the annuity <span class="nc-suf"><input data-k="ann" inputmode="decimal" value="20" /><i>%</i></span></label>
+      <label>Annuity rate <span class="nc-suf"><input data-k="annrate" inputmode="decimal" value="6" /><i>% a year</i></span></label>
+    </div>
+    <p class="nc-src">At exit at 60, at least 20% (All Citizen and corporate) or 40% (government) must buy an annuity (PFRDA, 19 December 2025). The return and annuity rate are estimates; check the official source.</p>
+    <p class="note bad nc-err" role="alert" hidden></p>
+  </section>
+  <section class="nc-res" aria-live="polite">
+    <div class="nc-stats">
+      <div><span>Corpus at exit</span><b class="nc-s-fv"></b></div>
+      <div class="good"><span>Lump sum</span><b class="nc-s-lump"></b></div>
+      <div><span>Used for the annuity</span><b class="nc-s-ann"></b></div>
+      <div class="good"><span>Monthly pension</span><b class="nc-s-pen"></b></div>
+    </div>
+    <p class="nc-line nc-words"></p>
+    <p class="note nc-rule"></p>
+    <figure class="nc-chart panel">
+      <figcaption>Corpus over time <span><i class="k-a"></i>Corpus</span> <span><i class="k-b"></i>Money paid in</span></figcaption>
+      <svg class="nc-svg" viewBox="0 0 640 220" role="img" aria-label="NPS corpus and money paid in, year by year"></svg>
+    </figure>
+    <details class="nc-years panel">
+      <summary>Year by year</summary>
+      <div class="nc-wrap"><table>
+        <thead><tr><th>Age</th><th>Paid in so far</th><th>Growth so far</th><th>Corpus</th></tr></thead>
+        <tbody class="nc-body"></tbody>
+      </table></div>
+      <button type="button" class="btn secondary nc-csv">Download the table (CSV)</button>
+    </details>
+  </section>
+  <p class="nc-fine">How it is worked out: each contribution is made at the start of the month and grows at the yearly return / 12. At exit, the annuity share buys a pension paying the annuity rate a year, shown per month before tax. NPS returns follow the markets and are not guaranteed; fund charges and tax are not included. Not financial or tax advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .nc { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .nc > *, .nc-res > * { min-width: 0; }
+  .nc h2 { margin: 0 0 12px; font-size: 18px; }
+  .nc .panel { padding: 16px; }
+  .nc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .nc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .nc input, .nc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .nc input:focus, .nc select:focus { border-color: var(--accent); outline: none; }
+  .nc-suf { position: relative; display: block; }
+  .nc-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .nc-suf input { padding-right: 84px; }
+  .nc-src { margin: 12px 0 0; font-size: 13px; color: var(--muted); }
+  .nc-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .nc-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .nc-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .nc-stats span { font-size: 13px; color: var(--muted); }
+  .nc-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
+  .nc-stats .good b { color: var(--good); }
+  .nc-line, .nc-rule { margin: 0; font-size: 15px; }
+  .nc-line:empty, .nc-rule:empty { display: none; }
+  .nc-chart { margin: 0; }
+  .nc-chart figcaption { font-weight: 600; font-size: 14px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin-bottom: 8px; }
+  .nc-chart figcaption span { font-weight: 500; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
+  .nc-chart i { display: inline-block; width: 18px; height: 3px; border-radius: 2px; }
+  .nc .k-a { background: var(--accent); }
+  .nc .k-b { background: var(--muted); opacity: .7; }
+  .nc-svg { width: 100%; height: auto; display: block; }
+  .nc-svg text { font: 11px system-ui, sans-serif; fill: var(--muted); }
+  .nc-wrap { overflow-x: auto; }
+  .nc table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .nc th, .nc td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .nc th:first-child, .nc td:first-child { text-align: left; }
+  .nc th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .nc-years summary { cursor: pointer; font-weight: 700; margin-bottom: 8px; }
+  .nc-years .btn { margin-top: 12px; }
+  .nc-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .nc-err { margin: 10px 0 0; }
+  @media (max-width: 720px) { .nc-stats { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<script>
+  import { nps, NPS_MIN_ANNUITY, NPS_SMALL, NPS_MID, NPS_MID_LUMP } from '../../lib/money/nps-calculator';
+  import { chartSvg, csv, type Year } from '../../lib/money/growth';
+  import { money, num } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.nc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const $ = (n: number) => money(n, 'INR', 0);
+  const short = (v: number) => new Intl.NumberFormat('en-IN', { notation: 'compact', maximumFractionDigits: 1 }).format(v);
+  let rows: Year[] = [], age = 0, lastSector = 'citizen';
+  function run(e?: Event) {
+    const sector = f('sector').value as keyof typeof NPS_MIN_ANNUITY, min = NPS_MIN_ANNUITY[sector];
+    if (e && (e.target as HTMLElement).dataset.k === 'sector' && sector !== lastSector) f('ann').value = String(min);
+    lastSector = sector;
+    const pay = num(f('pay').value), open = num(f('open').value), rate = num(f('rate').value), step = num(f('step').value), exit = num(f('exit').value), ann = num(f('ann').value), annRate = num(f('annrate').value);
+    age = num(f('age').value);
+    const bad = !(pay >= 0 && open >= 0 && pay + open > 0) ? 'Enter a monthly contribution.' : !(age >= 18 && age < 85) ? 'Enter your age now (NPS is open from 18).' : !(exit > age && exit <= 85) ? 'The exit age must be after your age now, up to 85.' : !(rate >= 0 && rate <= 30) ? 'Enter an expected return, for example 10.' : step < 0 || step > 50 ? 'Enter a yearly raise between 0 and 50%.' : !(ann >= min && ann <= 100) ? `The annuity share must be at least ${min}% for this sector.` : !(annRate >= 0 && annRate <= 15) ? 'Enter an annuity rate, for example 6.' : '';
+    q('.nc-err').hidden = !bad; q('.nc-err').textContent = bad; q('.nc-res').hidden = !!bad;
+    if (bad) return;
+    const o = nps({ monthly: pay, stepUp: step, rate, ageNow: age, exitAge: exit, opening: open, annuityShare: ann, annuityRate: annRate });
+    rows = o.rows;
+    q('.nc-s-fv').textContent = $(o.corpus);
+    q('.nc-s-lump').textContent = $(o.lump);
+    q('.nc-s-ann').textContent = $(o.annuity);
+    q('.nc-s-pen').textContent = $(o.pension);
+    q('.nc-words').innerHTML = `You pay in <b>${$(o.invested)}</b> by age ${exit}; at ${rate}% a year it could grow to <b>${$(o.corpus)}</b>. Using ${ann}% for an annuity at ${annRate}% gives about <b>${$(o.pension)}</b> a month for life, before tax.`;
+    q('.nc-rule').textContent = o.corpus <= NPS_SMALL ? 'With a corpus of ₹8 lakh or less, you may take it all as a lump sum or in instalments instead.' : sector === 'citizen' && o.corpus <= NPS_MID ? `With a corpus between ₹8 and ₹12 lakh, the lump sum is limited to ${$(NPS_MID_LUMP)}; the rest is paid in instalments over at least 6 years or buys an annuity.` : '';
+    q('.nc-svg').innerHTML = chartSvg(rows, short);
+    q('.nc-body').innerHTML = rows.slice(1).map((r) => `<tr><td>${Math.round((age + r.year) * 100) / 100}</td><td>${$(r.deposits)}</td><td>${$(r.interest)}</td><td>${$(r.balance)}</td></tr>`).join('');
+  }
+  q('.nc-csv').addEventListener('click', () => csv('nps.csv', ['Age', 'Paid in', 'Growth', 'Corpus'], rows.slice(1).map((r) => [age + r.year, r.deposits, r.interest, r.balance])));
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>
