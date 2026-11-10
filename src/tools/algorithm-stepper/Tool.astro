@@ -1,0 +1,259 @@
+---
+// Algorithm stepper: bubble sort, binary search (against linear search) and Euclid's HCF played one step at a
+// time with the comparisons counted, and a table of how the step counts grow with n. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm as">
+  <div class="ax-card">
+    <h2>Pick an algorithm</h2>
+    <div class="ax-seg as-mode" role="group" aria-label="Algorithm">
+      <button type="button" data-m="sort" aria-pressed="true">Bubble sort</button>
+      <button type="button" data-m="search" aria-pressed="false">Binary search</button>
+      <button type="button" data-m="hcf" aria-pressed="false">Euclid's HCF</button>
+    </div>
+
+    <div class="as-in as-in-sort">
+      <label style="margin-top:10px">List to sort (2 to 12 whole numbers) <input type="text" class="as-list" value="29, 10, 14, 37, 13, 5, 21, 8" inputmode="numeric" /></label>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small as-shuffle">New random list</button></div>
+    </div>
+    <div class="as-in as-in-search" hidden>
+      <p class="ax-help">The list is sorted, smallest first. Binary search keeps halving the part that could still hold the number.</p>
+      <div class="ax-grid" style="margin-top:8px">
+        <label>Number to find <input type="number" class="as-target" value="57" step="1" /></label>
+      </div>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small as-newlist">New sorted list</button></div>
+    </div>
+    <div class="as-in as-in-hcf" hidden>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>First number <input type="number" class="as-a" min="1" max="99999" step="1" value="168" /></label>
+        <label>Second number <input type="number" class="as-b" min="1" max="99999" step="1" value="60" /></label>
+      </div>
+      <p class="ax-help">The picture cuts the biggest squares it can from a 168 by 60 rectangle, then from what is left, and so on. The last square's side is the HCF.</p>
+    </div>
+    <p class="ax-err as-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="as-title">Watch it work</h2>
+    <svg class="sm-fig as-fig" viewBox="0 0 340 210" role="img" aria-label="The algorithm's current step"></svg>
+    <div class="ax-row as-ctrl" style="margin-top:10px">
+      <button type="button" class="btn secondary small as-back" aria-label="Step back">◀ Back</button>
+      <button type="button" class="btn small as-step">Step ▶</button>
+      <button type="button" class="btn secondary small as-play">Play</button>
+      <button type="button" class="btn secondary small as-reset">Reset</button>
+    </div>
+    <p class="sm-f as-note" aria-live="polite"></p>
+    <dl class="ax-facts as-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>How the steps grow</h2>
+    <p class="ax-help" style="margin-top:0">The most comparisons each method can need for a list of n items. Fewer comparisons means a faster algorithm.</p>
+    <div class="ax-scroll"><table class="as-grow"></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Sort a list that is already in order, like 1, 2, 3, 4, 5. How many passes does bubble sort need?</li>
+      <li>Now sort 5, 4, 3, 2, 1. Every comparison is a swap: 10 swaps for 5 numbers, the worst case.</li>
+      <li>Search for a number that is not in the list. Binary search still finishes in 4 or 5 looks; linear search has to check all 16.</li>
+      <li>Find the HCF of two numbers next to each other in the Fibonacci list (1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89 …), like 89 and 55. Euclid needs the most steps for these.</li>
+      <li>Look at the growth table: for a million items, how many looks does binary search need?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="as-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .as svg .as-bar { fill: var(--surface); stroke: var(--muted); stroke-width: 1.2; }
+  .as svg .as-cmp { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+  .as svg .as-swp { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 2; }
+  .as svg .as-fix { fill: var(--good-soft); stroke: var(--good); stroke-width: 1.2; }
+  .as svg .as-out { fill: var(--bg); stroke: var(--line); stroke-width: 1; }
+  .as svg .as-out + text { fill: var(--muted); }
+  .as svg .as-sq0 { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.2; }
+  .as svg .as-sq1 { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1.2; }
+  .as svg .as-sqh { fill: var(--good-soft); stroke: var(--good); stroke-width: 2.5; }
+  .as svg .as-ptr { font-size: 11px; font-weight: 700; }
+  .as .as-ctrl .btn { min-width: 64px; }
+</style>
+
+<script>
+  import { bubbleSteps, binarySteps, linearCount, worst, euclidSteps } from '../../lib/sci/algo-l2';
+  import { randInt } from '../../lib/sci/smath';
+  import { S, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.as')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.as-fig'), note = q('.as-note'), err = q('.as-err');
+  let mode = 'sort', k = 0, timer = 0;
+  let sortSteps: ReturnType<typeof bubbleSteps> = [];
+  let sorted: number[] = [], searchSteps: ReturnType<typeof binarySteps> = [], target = 57;
+  let euc: ReturnType<typeof euclidSteps> = [];
+
+  const total = () => (mode === 'sort' ? sortSteps.length : mode === 'search' ? searchSteps.length : euc.length + 1);
+  const facts = (rows: [string, string][]) => {
+    const dl = q('.as-facts'); dl.replaceChildren();
+    for (const [a, b] of rows) { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = a; const dd = document.createElement('dd'); dd.textContent = b; d.append(dt, dd); dl.append(d); }
+  };
+
+  function readList(): number[] | null {
+    const parts = q<HTMLInputElement>('.as-list').value.split(/[\s,;]+/).filter(Boolean).map(Number);
+    if (parts.length < 2 || parts.length > 12 || parts.some((v) => !Number.isInteger(v) || Math.abs(v) > 999)) {
+      err.textContent = 'Type 2 to 12 whole numbers (each between −999 and 999), separated by commas.'; err.hidden = false; return null;
+    }
+    err.hidden = true; return parts;
+  }
+
+  function prepare() {
+    stop(); k = 0; err.hidden = true;
+    if (mode === 'sort') { const l = readList(); sortSteps = l ? bubbleSteps(l) : []; }
+    if (mode === 'search') {
+      const t = Number(q<HTMLInputElement>('.as-target').value);
+      if (!Number.isInteger(t)) { err.textContent = 'Type a whole number to find.'; err.hidden = false; searchSteps = []; }
+      else { target = t; searchSteps = binarySteps(sorted, t); }
+    }
+    if (mode === 'hcf') {
+      const a = Number(q<HTMLInputElement>('.as-a').value), b = Number(q<HTMLInputElement>('.as-b').value);
+      if (![a, b].every((v) => Number.isInteger(v) && v >= 1 && v <= 99999)) { err.textContent = 'Type two whole numbers from 1 to 99 999.'; err.hidden = false; euc = []; }
+      else euc = euclidSteps(a, b);
+    }
+    draw();
+  }
+
+  function draw() {
+    fig.replaceChildren();
+    if (!err.hidden) { note.textContent = ''; facts([]); return; }
+    if (mode === 'sort') drawSort(); else if (mode === 'search') drawSearch(); else drawHcf();
+    q<HTMLButtonElement>('.as-back').disabled = k === 0;
+    q<HTMLButtonElement>('.as-step').disabled = k >= total() - 1;
+  }
+
+  function drawSort() {
+    const s = sortSteps[k], n = s.arr.length, lo = Math.min(0, ...s.arr), hi = Math.max(1, ...s.arr);
+    const W = 320 / n, base = 170, sc = 140 / (hi - lo);
+    s.arr.forEach((v, idx) => {
+      const x = 10 + idx * W, y0 = base - (0 - lo) * sc;
+      const top = Math.min(y0, y0 - v * sc), h = Math.max(2, Math.abs(v * sc));
+      const cls = idx >= n - s.done ? 'as-fix' : (idx === s.j || idx === s.j + 1) ? (s.swapped ? 'as-swp' : 'as-cmp') : 'as-bar';
+      S('rect', { x: x + 3, y: top, width: W - 6, height: h, rx: 3, class: `as-b ${cls}` }, fig);
+      S('text', { x: x + W / 2, y: base + 18 + (v < 0 ? 0 : 0), 'text-anchor': 'middle', style: 'font-weight:700' }, fig, String(v).replace('-', '−'));
+    });
+    if (s.j >= 0 && s.done < n) S('text', { x: 10 + (s.j + 1) * W, y: 200, 'text-anchor': 'middle', class: 'as-ptr' }, fig, '▲ compare ▲');
+    q('.as-title').textContent = 'Bubble sort';
+    note.textContent = s.note;
+    facts([['Step', `${k} of ${sortSteps.length - 1}`], ['Pass', String(s.pass)], ['Comparisons', String(s.comparisons)], ['Swaps', String(s.swaps)]]);
+  }
+
+  function drawSearch() {
+    const s = searchSteps[k], n = sorted.length, W = 320 / n;
+    sorted.forEach((v, idx) => {
+      const x = 10 + idx * W, inside = idx >= s.lo && idx <= s.hi;
+      const cls = idx === s.mid ? (s.found ? 'as-fix' : 'as-cmp') : inside ? 'as-bar' : 'as-out';
+      S('rect', { x: x + 1, y: 70, width: W - 2, height: 40, rx: 4, class: `as-box ${cls}` }, fig);
+      S('text', { x: x + W / 2, y: 95, 'text-anchor': 'middle', style: `font-size:${W < 22 ? 11 : 13}px;font-weight:600` }, fig, String(v));
+      S('text', { x: x + W / 2, y: 128, 'text-anchor': 'middle', class: 'sm-tick' }, fig, String(idx + 1));
+    });
+    const ptr = (i: number, label: string, y: number) => { if (i >= 0 && i < n) S('text', { x: 10 + i * W + W / 2, y, 'text-anchor': 'middle', class: 'as-ptr' }, fig, label); };
+    if (s.lo <= s.hi) { ptr(s.lo, 'low', 60); ptr(s.hi, 'high', s.hi === s.lo ? 48 : 60); }
+    ptr(s.mid, 'middle ▼', s.mid === s.lo || s.mid === s.hi ? 36 : 60);
+    S('text', { x: 170, y: 22, 'text-anchor': 'middle', style: 'font-weight:700' }, fig, `Looking for ${target}`);
+    const lin = linearCount(sorted, target);
+    S('text', { x: 170, y: 170, 'text-anchor': 'middle' }, fig, `Linear search (left to right) needs ${lin} look${lin === 1 ? '' : 's'}.`);
+    S('text', { x: 170, y: 192, 'text-anchor': 'middle' }, fig, `Binary search: ${searchSteps.at(-1)!.comparisons} look${searchSteps.at(-1)!.comparisons === 1 ? '' : 's'} at most here.`);
+    q('.as-title').textContent = 'Binary search';
+    note.textContent = s.note;
+    facts([['Step', `${k + 1} of ${searchSteps.length}`], ['Looks so far', String(s.comparisons)], ['Still possible', s.lo <= s.hi ? `${s.hi - s.lo + 1} numbers` : 'none']]);
+  }
+
+  function drawHcf() {
+    // A rectangle a by b: each step cuts q squares of side b; the remainder rectangle continues.
+    const a0 = euc[0].a, b0 = euc[0].b, sc = Math.min(320 / a0, 190 / b0), ox = (340 - a0 * sc) / 2, oy = (210 - b0 * sc) / 2;
+    S('rect', { x: ox, y: oy, width: a0 * sc, height: b0 * sc, class: 'as-out' }, fig);
+    let x = 0, y = 0, horiz = true;
+    const shown = Math.min(k, euc.length);
+    for (let t = 0; t < shown; t++) {
+      const { b, q: qq } = euc[t];
+      const x0 = x, y0 = y;
+      for (let i = 0; i < Math.min(qq, 300); i++) {
+        const last = t === euc.length - 1;
+        S('rect', { x: ox + x * sc, y: oy + y * sc, width: b * sc, height: b * sc, class: last ? 'as-sqh' : `as-sq${t % 2}` }, fig);
+        if (b * sc > 22 && i < 6) S('text', { x: ox + (x + b / 2) * sc, y: oy + (y + b / 2) * sc + 4, 'text-anchor': 'middle', style: 'font-size:11px' }, fig, String(b));
+        if (horiz) x += b; else y += b;
+      }
+      if (horiz) x = x0 + qq * b; else y = y0 + qq * b;
+      horiz = !horiz;
+    }
+    q('.as-title').textContent = "Euclid's algorithm";
+    const done = k >= euc.length;
+    if (k === 0) note.textContent = `Start with ${euc[0].a} and ${euc[0].b}. Divide the bigger by the smaller.`;
+    else {
+      const s = euc[k - 1];
+      note.textContent = `${s.a} = ${s.b} × ${s.q} + ${s.r}. ` + (s.r === 0 ? `The remainder is 0, so the HCF is ${s.b}.` : `Now divide ${s.b} by the remainder ${s.r}.`);
+    }
+    facts([['Step', `${k} of ${euc.length}`], ['Divisions so far', String(Math.min(k, euc.length))], ['HCF', done ? String(euc.at(-1)!.b) : '?']]);
+  }
+
+  const go = (d: number) => { k = Math.max(0, Math.min(total() - 1, k + d)); draw(); };
+  const stop = () => { if (timer) { clearInterval(timer); timer = 0; } q('.as-play').textContent = 'Play'; };
+  q('.as-step').addEventListener('click', () => { stop(); go(1); });
+  q('.as-back').addEventListener('click', () => { stop(); go(-1); });
+  q('.as-reset').addEventListener('click', () => { stop(); k = 0; draw(); });
+  q('.as-play').addEventListener('click', () => {
+    if (timer) { stop(); return; }
+    if (k >= total() - 1) k = 0;
+    q('.as-play').textContent = 'Pause';
+    timer = window.setInterval(() => { if (k >= total() - 1) stop(); else go(1); }, 700);
+  });
+
+  const newSorted = () => {
+    const set = new Set<number>(); while (set.size < 16) set.add(randInt(1, 99));
+    sorted = [...set].sort((a, b) => a - b);
+  };
+  sorted = [3, 8, 12, 19, 23, 27, 31, 38, 42, 46, 51, 57, 63, 70, 84, 95];
+  root.querySelectorAll<HTMLButtonElement>('.as-mode button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m!;
+    root.querySelectorAll<HTMLButtonElement>('.as-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    root.querySelectorAll<HTMLElement>('.as-in').forEach((x) => { x.hidden = !x.classList.contains(`as-in-${mode}`); });
+    prepare();
+  }));
+  q('.as-list').addEventListener('input', prepare);
+  q('.as-target').addEventListener('input', prepare);
+  root.querySelectorAll('.as-a, .as-b').forEach((i) => i.addEventListener('input', () => {
+    q('.as-in-hcf .ax-help').textContent = `The picture cuts the biggest squares it can from a ${q<HTMLInputElement>('.as-a').value} by ${q<HTMLInputElement>('.as-b').value} rectangle, then from what is left, and so on. The last square's side is the HCF.`;
+    prepare();
+  }));
+  q('.as-shuffle').addEventListener('click', () => { const n = randInt(6, 10); q<HTMLInputElement>('.as-list').value = Array.from({ length: n }, () => randInt(1, 60)).join(', '); prepare(); });
+  q('.as-newlist').addEventListener('click', () => { newSorted(); q<HTMLInputElement>('.as-target').value = String(sorted[randInt(0, 15)]); prepare(); });
+
+  const t = q<HTMLTableElement>('.as-grow');
+  const h = t.insertRow(); for (const x of ['n', 'Bubble sort', 'Linear search', 'Binary search']) { const e = document.createElement('th'); e.textContent = x; e.className = x === 'n' ? '' : 'r'; h.append(e); }
+  for (const n of [8, 16, 100, 1000, 1000000]) {
+    const r = t.insertRow(); r.insertCell().textContent = n.toLocaleString('en');
+    for (const v of [worst.bubble(n), worst.linear(n), worst.binary(n)]) { const c = r.insertCell(); c.textContent = v.toLocaleString('en'); c.className = 'r'; }
+  }
+
+  prepare();
+
+  quiz(q('.as-quiz'), () => {
+    const out: Question[] = [];
+    const n = randInt(5, 12);
+    out.push({ q: `Bubble sort makes its first pass over a list of ${n} numbers. How many comparisons is that?`, want: [n - 1], work: `It compares neighbours 1 and 2, 2 and 3, …, ${n - 1} and ${n}: that is ${n - 1} comparisons.` });
+    const m = [10, 20, 50, 100, 500, 1000][randInt(0, 5)];
+    out.push({ q: `At most how many looks does binary search need to find a number in a sorted list of ${m}?`, want: [worst.binary(m)], work: `Each look halves what is left. ${m} → ${Array.from({ length: worst.binary(m) - 1 }, (_, i) => Math.floor(m / 2 ** (i + 1))).join(' → ')} → done, so the answer is ${worst.binary(m)}.` });
+    const g = randInt(3, 15), a = g * randInt(5, 20), b = g * randInt(2, 9);
+    const E = euclidSteps(a, b);
+    out.push({ q: `Use Euclid's algorithm to find the HCF of ${a} and ${b}.`, want: [E.at(-1)!.b], work: E.map((s) => `${s.a} = ${s.b} × ${s.q} + ${s.r}`).join('; ') + `. The last divisor is ${E.at(-1)!.b}.` });
+    const L = Array.from({ length: 4 }, () => randInt(1, 9)); while (new Set(L).size < 4) L[randInt(0, 3)] = randInt(1, 9);
+    const sw = bubbleSteps(L).at(-1)!.swaps;
+    out.push({ q: `How many swaps does bubble sort make to sort ${L.join(', ')} smallest first?`, want: [sw], work: `Each swap fixes one pair that is in the wrong order. Count the pairs where a bigger number comes before a smaller one: there are ${sw}.` });
+    return out;
+  });
+</script>
