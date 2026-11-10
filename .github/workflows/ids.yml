@@ -1,0 +1,23 @@
+# Checks that no two tools share an ID code (#T12, #L3) or old number. On a pull request GitHub runs this on the PR
+# merged with the latest main, so two PRs that each took the same code are caught before the second merges.
+# Plain Node, no install: about 10 seconds.
+name: Tool IDs
+on:
+  pull_request:
+    paths: ['src/tools/**', 'scripts/check-ids.mjs']
+  push:
+    branches: [main]
+    paths: ['src/tools/**']
+concurrency:
+  group: ids-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  ids:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/check-ids.mjs
