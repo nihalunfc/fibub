@@ -2,6 +2,7 @@
 name: Statement analyser
 num: 1751
 shelf: money
+code: T785
 section: budgeting
 title: "Statement analyser: see where your money goes and find subscriptions"
 summary: "Open a bank or card export (CSV, OFX or QIF) and see spending by category and month, your top shops and charges that repeat. Nothing is uploaded."

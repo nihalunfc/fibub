@@ -2,6 +2,7 @@
 name: Social Security age
 num: 1787
 shelf: money
+code: T821
 section: retirement
 title: "When to claim Social Security: benefit at 62 to 70 and break-even age calculator"
 summary: "Type the benefit from your Social Security statement and your birth year to see your full retirement age, your monthly benefit at every age from 62 to 70, and the break-even ages."

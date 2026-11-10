@@ -2,6 +2,7 @@
 name: Depreciation
 num: 1759
 shelf: money
+code: T793
 section: accounting
 title: "Depreciation calculator: straight line, declining balance, sum of years' digits"
 summary: "Spread the cost of an asset over its life with straight-line, declining balance, sum of the years' digits or units of production, with a schedule and CSV."

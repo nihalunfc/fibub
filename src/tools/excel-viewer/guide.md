@@ -2,6 +2,7 @@
 name: Excel viewer
 num: 1765
 shelf: documents
+code: T799
 section: convert-files
 title: "Excel viewer: open XLSX and CSV online, free, nothing uploaded"
 summary: "Open an Excel or CSV file in your browser, flip between sheets, see hidden sheets, rows and columns marked, and save a sheet as CSV or PDF. Nothing is uploaded."

@@ -2,6 +2,7 @@
 name: Driver earnings
 num: 1783
 shelf: money
+code: T817
 section: pay
 title: "Rideshare and delivery driver earnings calculator: real profit per hour and per km"
 summary: "Turn your gross fares into net pay per hour and per km after platform fee, fuel, maintenance, insurance and phone, with a tax set-aside."

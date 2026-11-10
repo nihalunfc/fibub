@@ -2,6 +2,7 @@
 name: Merge CSV
 num: 1766
 shelf: documents
+code: T800
 section: convert-files
 title: "Merge CSV: combine many CSV or Excel files into one, or split by a column"
 summary: "Stack several CSV or Excel files into one table, with a column showing which file each row came from. Or split one table into many files by a column. Nothing is uploaded."

@@ -2,6 +2,7 @@
 name: FIRE calculator
 num: 1733
 shelf: money
+code: T767
 section: retirement
 title: "FIRE calculator: how much you need to retire early and how long it takes"
 summary: "Work out your FIRE number from your spending and withdrawal rate, how many years until you get there, and how your saving rate changes it."

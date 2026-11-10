@@ -2,6 +2,7 @@
 name: Freelance rate
 num: 1757
 shelf: money
+code: T791
 section: small-business
 title: "Freelance rate calculator: what hourly and day rate should you charge"
 summary: "Work out the hourly and day rate a freelancer needs to take home the pay they want after tax, business costs, holidays and unbillable time."

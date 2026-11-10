@@ -2,6 +2,7 @@
 name: Return calculator
 num: 1753
 shelf: money
+code: T787
 section: investing
 title: "Return calculator: CAGR and XIRR for your investment"
 summary: "Work out your yearly return (CAGR) from a start and end value, or from dated deposits and withdrawals (XIRR), and compare it with the simple average."

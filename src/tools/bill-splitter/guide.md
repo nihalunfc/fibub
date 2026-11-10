@@ -2,6 +2,7 @@
 name: Bill splitter
 num: 1748
 shelf: money
+code: T782
 section: budgeting
 title: "Bill splitter: share rent and household bills fairly between roommates"
 summary: "Split rent and household bills between roommates or family equally, by agreed share, by room size or by income, with each person's share of every bill and their monthly total."

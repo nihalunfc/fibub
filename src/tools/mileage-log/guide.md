@@ -2,6 +2,7 @@
 name: Mileage log
 num: 1784
 shelf: money
+code: T818
 section: pay
 title: "Mileage log: track business trips and work out your mileage allowance"
 summary: "Log trips by date, place, purpose and distance, see business and personal totals, work out the allowance at the Canada, US or UK rate, and download a CSV."

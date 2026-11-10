@@ -2,6 +2,7 @@
 name: RESP and CESG
 num: 1738
 shelf: money
+code: T772
 section: investing
 title: "RESP calculator 2026: CESG grant, Canada Learning Bond and growth"
 summary: "Plan a child's RESP: yearly contributions, the 20% Canada Education Savings Grant with catch-up, the additional CESG by family income, the Canada Learning Bond, and growth to age 17 or 18."

@@ -2,6 +2,7 @@
 name: Pension tax relief
 num: 1788
 shelf: money
+code: T822
 section: retirement
 title: "UK pension tax relief calculator 2026/27: relief at source, net pay and annual allowance"
 summary: "See the tax relief on your UK pension contributions for 2026/27: relief at source vs net pay vs salary sacrifice, the higher-rate relief to claim back, Scotland's bands, the annual allowance, taper and carry-forward."

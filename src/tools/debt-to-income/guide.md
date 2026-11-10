@@ -2,6 +2,7 @@
 name: Debt-to-income
 num: 1747
 shelf: money
+code: T781
 section: debt
 title: "Debt-to-income ratio calculator with mortgage affordability limits"
 summary: "Work out your debt-to-income ratio and see typical lender limits for a home loan in Canada, the US and the UK, with the most monthly payment and loan you might be approved for."

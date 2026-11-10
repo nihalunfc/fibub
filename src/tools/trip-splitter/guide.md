@@ -2,6 +2,7 @@
 name: Trip splitter
 num: 1749
 shelf: money
+code: T783
 section: budgeting
 title: "Trip splitter: split trip and group expenses and settle up with the fewest payments"
 summary: "Add who paid for what on a trip or shared event, and who it was for. See each person's balance and the fewest payments that settle everyone up."

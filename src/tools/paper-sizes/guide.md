@@ -2,6 +2,7 @@
 name: Paper sizes
 num: 1763
 shelf: documents
+code: T797
 section: templates
 title: "Paper sizes: A4, Letter, A5, B and C series, photo and passport sizes"
 summary: "See any paper size in mm, cm, inches and pixels at your dpi, compare two sizes drawn to scale, and find the percent to print one on the other."

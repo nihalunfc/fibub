@@ -2,6 +2,7 @@
 name: Electricity cost
 num: 1779
 shelf: money
+code: T813
 section: shopping
 title: "Electricity cost calculator: what your appliances cost per day, month and year"
 summary: "Add your appliances and see what each one costs to run, with a flat price or time-of-use prices, including standby power."

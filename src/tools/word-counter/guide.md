@@ -2,6 +2,7 @@
 name: Word counter
 num: 1768
 shelf: documents
+code: T802
 section: text-tools
 title: "Word counter: count words, characters and reading time free"
 summary: "Count words, characters, sentences and paragraphs as you type, see reading and speaking time, check a limit such as 280 characters or 1000 words, and find your most used words."

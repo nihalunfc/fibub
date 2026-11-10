@@ -2,6 +2,7 @@
 name: Text cleaner
 num: 1770
 shelf: documents
+code: T804
 section: text-tools
 title: "Text cleaner: fix text copied from a PDF, remove line breaks, free"
 summary: "Fix text copied from PDFs and emails: join broken lines, remove extra spaces and blank lines, undo line-end hyphens, fix quotes, strip bullets and numbers, remove emojis and hidden characters."

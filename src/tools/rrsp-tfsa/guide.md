@@ -2,6 +2,7 @@
 name: RRSP or TFSA
 num: 1736
 shelf: money
+code: T770
 section: retirement
 title: "RRSP vs TFSA calculator 2026: which account leaves you more after tax"
 summary: "Compare the same savings in an RRSP and a TFSA after tax, using your tax rate now and in retirement, and work out your 2026 TFSA and RRSP contribution room."

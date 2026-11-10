@@ -2,6 +2,7 @@
 name: HRA exemption
 num: 1743
 shelf: money
+code: T777
 section: income-tax
 title: "HRA exemption calculator: tax-free house rent allowance (old regime)"
 summary: "Work out how much of your house rent allowance is tax-free with the least-of-three rule: HRA received, rent minus 10% of salary, and 50% or 40% of salary, with the eight 50% cities from FY 2026-27."

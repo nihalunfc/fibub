@@ -2,6 +2,7 @@
 name: Label maker
 num: 1760
 shelf: documents
+code: T794
 section: templates
 title: "Label maker: print address and product labels from a list to PDF"
 summary: "Turn a list of addresses or product names into label sheets (30-up Letter, 21-up A4 or your own grid) and download a PDF. Nothing is uploaded."

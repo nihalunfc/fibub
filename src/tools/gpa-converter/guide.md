@@ -2,6 +2,7 @@
 name: GPA converter
 num: 1774
 shelf: documents
+code: T808
 section: jobs
 title: "GPA converter: CGPA, percentage, US 4.0, UK class and Canada"
 summary: "Convert a percentage, an Indian CGPA out of 10 or a US GPA to the other scales and to UK degree classes, and work out a credit-weighted GPA from your courses."

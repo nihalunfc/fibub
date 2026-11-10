@@ -2,6 +2,7 @@
 name: Letter builder
 num: 1764
 shelf: documents
+code: T798
 section: templates
 title: "Letter builder: free formal, complaint, resignation and reference letters"
 summary: "Pick a letter type, fill in your details and edit the plain example text. Download it as Word, PDF or text. It all happens on your device."

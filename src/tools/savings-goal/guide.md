@@ -2,6 +2,7 @@
 name: Savings goal
 num: 1732
 shelf: money
+code: T766
 section: interest
 title: "Savings goal calculator: how much to save each month to reach a target"
 summary: "Find how much to save each month to reach a target by a date, or how long it takes at the amount you can save, with interest and an emergency-fund option."

@@ -2,6 +2,7 @@
 name: Booklet maker
 num: 1767
 shelf: documents
+code: T801
 section: pdf-pages
 title: "Booklet maker: print a PDF as a folded booklet, N-up sheets or a tiled poster"
 summary: "Rearrange a PDF so it prints as a staple-and-fold booklet, with 2 or 4 pages per sheet, or as a poster over several sheets with cut marks. Nothing is uploaded."

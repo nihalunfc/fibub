@@ -2,6 +2,7 @@
 name: Certificate maker
 num: 1761
 shelf: documents
+code: T795
 section: templates
 title: "Certificate maker: make printable certificates for one or many names"
 summary: "Make a plain certificate of achievement or attendance with your title, wording, date and signature lines, for one name or a whole list, as a PDF with one page each."

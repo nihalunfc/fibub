@@ -2,6 +2,7 @@
 name: Rebalance portfolio
 num: 1754
 shelf: money
+code: T788
 section: investing
 title: "Portfolio rebalancing calculator: how much to buy or sell"
 summary: "Enter your holdings and target percentages, add new cash if you like, and see how much to buy or sell in each to reach your targets, with a buy-only option."

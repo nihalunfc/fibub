@@ -2,6 +2,7 @@
 name: Markdown to PDF
 num: 1790
 shelf: documents
+code: T823
 section: convert-files
 title: "Markdown to PDF: turn Markdown into a clean PDF or HTML page, free"
 summary: "Write or paste Markdown, see the page live, then save it as a PDF or an HTML file. Headings, lists, tables, code and local pictures work, and nothing is uploaded."
@@ -11,7 +12,7 @@ order: 1790
 icon: pencil
 works: offline
 updated: 2026-11-10
-related: [file-converter, organise-pdf]
+related: [file-converter, organise-pdf, word-counter, text-cleaner]
 sources:
   - "The Markdown reader is fibub's own small parser (common CommonMark and GitHub-style tables and task lists). The PDF is made by your browser's own print feature."
 flow:

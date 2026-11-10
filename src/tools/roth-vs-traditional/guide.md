@@ -2,6 +2,7 @@
 name: Roth or traditional
 num: 1786
 shelf: money
+code: T820
 section: retirement
 title: "Roth vs traditional 401(k) and IRA calculator: which leaves you more after tax"
 summary: "Compare a Roth and a traditional 401(k) or IRA: your contributions, tax rate now and in retirement, years and return give the after-tax value of each, with the 2026 limits."

@@ -2,6 +2,7 @@
 name: Case converter
 num: 1769
 shelf: documents
+code: T803
 section: text-tools
 title: "Case converter: UPPER, lower, Title Case, camelCase and more, free"
 summary: "Change text to upper case, lower case, Title Case, Sentence case, camelCase, snake_case, kebab-case or aLtErNaTe in one press, then copy it."

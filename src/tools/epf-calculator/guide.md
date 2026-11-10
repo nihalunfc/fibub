@@ -2,6 +2,7 @@
 name: EPF calculator
 num: 1741
 shelf: money
+code: T775
 section: retirement
 title: "EPF calculator: PF balance at retirement with employer share and EPS"
 summary: "Estimate your EPF (provident fund) balance at retirement from your Basic + DA: your 12%, the employer's share after the 8.33% pension (EPS) cut, yearly pay rises and the 8.25% rate."

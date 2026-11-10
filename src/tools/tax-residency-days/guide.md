@@ -2,6 +2,7 @@
 name: Residency days
 num: 1778
 shelf: money
+code: T812
 section: income-tax
 title: "Tax residency day counter: 183 days and the US substantial presence test"
 summary: "List your trips and count the days in each country for a calendar, UK or Indian tax year, with 183-day markers and the US substantial presence test."
@@ -11,7 +12,7 @@ order: 1778
 icon: calendar
 works: offline
 updated: 2026-11-10
-related: [canada-income-tax, uk-income-tax, india-income-tax]
+related: [canada-income-tax, uk-income-tax, india-income-tax, us-paycheck]
 sources:
   - "IRS, Substantial presence test: 31 days this year and current + 1/3 prior + 1/6 the year before >= 183 (irs.gov, checked 2026-11-10). gov.uk, Tax on foreign income, Residence: UK tax year 6 April to 5 April, 183-day automatic test, 16 and 46 day overseas tests (checked 2026-11-10). Income Tax Department of India, Residence in India chart: 182 days, or 60 days plus 365 days in the 4 earlier years (checked 2026-11-10). Canada: the 183-day sojourner rule is from the CRA residency pages, which could not be opened when this was written, so check the official source."
 flow:

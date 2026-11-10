@@ -2,6 +2,7 @@
 name: Commute cost
 num: 1781
 shelf: money
+code: T815
 section: shopping
 title: "Commute cost calculator: car vs transit vs bike, per day, month and year"
 summary: "Compare what getting to work costs by car, transit pass or bike, in money and in the value of your time."

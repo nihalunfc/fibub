@@ -2,6 +2,7 @@
 name: US paycheck
 num: 1785
 shelf: money
+code: T819
 section: income-tax
 title: "US paycheck calculator 2026: take-home pay after federal tax, FICA and state tax"
 summary: "Work out your 2026 take-home pay per paycheck after federal income tax, Social Security, Medicare, 401(k), HSA and state tax, for any filing status and pay schedule."

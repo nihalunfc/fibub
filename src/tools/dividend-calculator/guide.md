@@ -2,6 +2,7 @@
 name: Dividend calculator
 num: 1755
 shelf: money
+code: T789
 section: investing
 title: "Dividend calculator: yield, yield on cost and DRIP growth"
 summary: "Work out dividend yield, yield on cost and yearly income from your shares, and project income and value over the years with dividend growth and reinvestment (DRIP)."

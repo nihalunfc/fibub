@@ -2,6 +2,7 @@
 name: Citation generator
 num: 1773
 shelf: documents
+code: T807
 section: templates
 title: "Citation generator: APA, MLA, Chicago, Harvard and IEEE references"
 summary: "Type the details of a book, journal article, chapter, web page or report and get the reference in APA 7, MLA 9, Chicago, Harvard or IEEE. Build a sorted list and export BibTeX or RIS."
@@ -11,7 +12,7 @@ order: 1773
 icon: book
 works: offline
 updated: 2026-11-10
-related: [bibtex-cleaner, resume-builder]
+related: [bibtex-cleaner, resume-builder, word-counter]
 sources:
   - "The punctuation, name order and italic rules for APA 7th edition, MLA 9th edition, Chicago 17th edition (author-date and notes-bibliography), Harvard (the common Cite Them Right layout) and IEEE are written by fibub from the published style rules. They are not the official style guides and no example text is copied from them."
   - "Universities and journals often add their own variations, especially for Harvard. Check your own style guide or the one your journal gives you."

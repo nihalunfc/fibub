@@ -2,6 +2,7 @@
 name: Overtime
 num: 1776
 shelf: money
+code: T810
 section: pay
 title: "Overtime pay calculator: Canada, US, UK and India rules"
 summary: "Work out overtime hours and pay from your hourly rate and hours, with the weekly and daily rules for Canada, the United States, the UK and India, or your own."

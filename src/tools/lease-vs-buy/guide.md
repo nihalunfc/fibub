@@ -2,6 +2,7 @@
 name: Lease or buy
 num: 1782
 shelf: money
+code: T816
 section: loans
 title: "Lease vs buy a car: total cost and net cost over the same period"
 summary: "Compare a car lease with a loan purchase over the lease term: what you pay, what you still owe, the car's value left and the net cost of each."

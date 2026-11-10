@@ -2,6 +2,7 @@
 name: Find and replace
 num: 1771
 shelf: documents
+code: T805
 section: text-tools
 title: "Find and replace text online: many pairs, whole word, regex, free"
 summary: "Paste text and replace many words at once. Use several find and replace pairs, match case or whole words, optional patterns, with every match highlighted and counted."

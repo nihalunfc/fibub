@@ -2,6 +2,7 @@
 name: Card payoff
 num: 1746
 shelf: money
+code: T780
 section: debt
 title: "Credit card payoff calculator: minimum payments vs a fixed amount"
 summary: "See how long a credit card takes to pay off with minimum payments or a fixed amount, how much interest you pay, and what a balance transfer saves."

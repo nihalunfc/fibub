@@ -2,6 +2,7 @@
 name: Lorem ipsum
 num: 1772
 shelf: documents
+code: T806
 section: text-tools
 title: "Lorem ipsum generator: placeholder text in paragraphs, free"
 summary: "Make placeholder text for designs and pages: choose paragraphs, sentences or words, classic Latin or plain English filler, with an option to wrap it in HTML paragraph tags."

@@ -2,6 +2,7 @@
 name: Loan comparison
 num: 1744
 shelf: money
+code: T778
 section: loans
 title: "Loan comparison: compare 2 to 4 loan offers by APR and total cost"
 summary: "Put up to four loan offers side by side with their monthly payment, total cost and APR including fees, and convert a flat rate to a reducing rate."

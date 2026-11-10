@@ -2,6 +2,7 @@
 name: FD calculator
 num: 1735
 shelf: money
+code: T769
 section: interest
 title: "FD calculator: fixed deposit, GIC, CD and recurring deposit maturity"
 summary: "Work out the maturity amount of a fixed deposit, GIC, CD or recurring deposit with monthly, quarterly, half-yearly, yearly or simple interest, plus a deposit ladder."

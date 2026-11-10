@@ -2,6 +2,7 @@
 name: FHSA
 num: 1737
 shelf: money
+code: T771
 section: investing
 title: "FHSA calculator 2026: First Home Savings Account growth and tax refund"
 summary: "Plan your First Home Savings Account: yearly contributions within the $8,000 and $40,000 limits, carry-forward, tax refunds, growth, and how it compares with the RRSP Home Buyers' Plan."

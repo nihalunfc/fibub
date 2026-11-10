@@ -2,6 +2,7 @@
 name: Meeting cost
 num: 1777
 shelf: money
+code: T811
 section: small-business
 title: "Meeting cost calculator: what does a meeting really cost"
 summary: "Multiply people, pay and time to see what a meeting costs, watch the cost grow on a live meter, and see the yearly cost of a recurring meeting."

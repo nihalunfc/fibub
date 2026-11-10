@@ -2,6 +2,7 @@
 name: PPF calculator
 num: 1740
 shelf: money
+code: T774
 section: investing
 title: "PPF calculator: Public Provident Fund maturity value with yearly table"
 summary: "Work out what your PPF account will be worth after 15 years, or after 5-year extensions, at the current 7.1% rate, with a year-by-year table of deposits and interest."

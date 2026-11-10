@@ -2,6 +2,7 @@
 name: NPS calculator
 num: 1742
 shelf: money
+code: T776
 section: retirement
 title: "NPS calculator: corpus, lump sum and monthly pension at 60"
 summary: "Estimate your National Pension System corpus from a monthly contribution, then see the tax-free lump sum, the annuity share (20% minimum for All Citizen NPS from December 2025) and the monthly pension it buys."

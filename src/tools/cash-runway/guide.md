@@ -2,6 +2,7 @@
 name: Cash runway
 num: 1758
 shelf: money
+code: T792
 section: small-business
 title: "Cash runway calculator: how many months until the money runs out"
 summary: "Find how many months your cash will last and the date it hits zero, from your monthly burn or your revenue and costs, with growth."

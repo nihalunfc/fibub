@@ -2,6 +2,7 @@
 name: Capital gains
 num: 1756
 shelf: money
+code: T790
 section: investing
 title: "Capital gains calculator: average cost (ACB) or FIFO"
 summary: "Type your buys and sells and see the gain or loss on each sale and each year, using average cost (Canada's ACB) or first in first out, with an editable taxable share."

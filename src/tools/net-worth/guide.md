@@ -2,6 +2,7 @@
 name: Net worth
 num: 1750
 shelf: money
+code: T784
 section: budgeting
 title: "Net worth calculator: add up what you own and owe, and track it over time"
 summary: "List your assets and debts to see your net worth, a chart of where it sits, and optional dated snapshots kept only on your device if you choose."

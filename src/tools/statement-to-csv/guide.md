@@ -2,6 +2,7 @@
 name: Statement to CSV
 num: 1752
 shelf: documents
+code: T786
 section: convert-files
 title: "Statement to CSV: turn a PDF bank statement into a spreadsheet"
 summary: "Turn a PDF bank or card statement into a table you can open in Excel or Google Sheets. It runs in your browser, so your statement is never uploaded."
