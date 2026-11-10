@@ -1,0 +1,173 @@
+---
+// Dichotomous key: follow a yes/no key to name a mystery animal from its drawing, or build your own key by choosing
+// questions that split the group until every animal stands alone. Teaching drawings. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax sm dk">
+  <div class="ax-card">
+    <div class="ax-seg dk-mode" role="group" aria-label="Mode"><button type="button" data-m="follow" aria-pressed="true">Follow a key</button><button type="button" data-m="build" aria-pressed="false">Build a key</button></div>
+    <div class="dk-gal" role="group" aria-label="The animals"></div>
+    <p class="ax-help dk-galhelp">Tap an animal to make it the mystery, or press Random mystery.</p>
+  </div>
+
+  <div class="ax-card dk-follow">
+    <h2>Name the mystery animal</h2>
+    <div class="dk-top">
+      <svg class="sm-fig dk-big" viewBox="0 0 80 60" role="img" aria-label="The mystery animal"></svg>
+      <div class="dk-ask">
+        <p class="dk-q" aria-live="polite"></p>
+        <div class="ax-row"><button type="button" class="btn small dk-yes">Yes</button><button type="button" class="btn small dk-no">No</button><button type="button" class="btn small secondary dk-rand">Random mystery</button></div>
+      </div>
+    </div>
+    <ol class="sm-steps dk-path"></ol>
+    <p class="ax-big dk-res" aria-live="polite"></p>
+    <h3>The key</h3>
+    <div class="dk-tree dk-ftree"></div>
+  </div>
+
+  <div class="ax-card dk-build" hidden>
+    <h2>Build your own key</h2>
+    <p class="sm-f dk-bnext" aria-live="polite"></p>
+    <div class="dk-grp"></div>
+    <div class="ax-row"><select class="dk-qs" aria-label="Question"></select><button type="button" class="btn small dk-add">Use this question</button><button type="button" class="btn small secondary dk-undo">Undo</button><button type="button" class="btn small secondary dk-reset">Start again</button></div>
+    <p class="ax-err dk-berr" hidden></p>
+    <div class="dk-tree dk-btree"></div>
+    <p class="sm-f dk-bdone" aria-live="polite"></p>
+    <button type="button" class="btn small dk-try" hidden>Follow my key</button>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Follow the key for the snake. How many questions does it take? And for the pigeon?</li>
+      <li>Answer one question wrongly on purpose. Where do you end up?</li>
+      <li>Build a key that starts with "Does it have legs?". Is it shorter or longer than the ready-made one?</li>
+      <li>Why is "Is it big?" a bad question for a key?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card dk-quiz"><h2>Check yourself</h2></div>
+</div>
+
+<style is:inline>
+  .dk .dk-mode { margin-bottom: 10px; }
+  .dk .dk-gal, .dk .dk-grp { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .dk .dk-gal button { padding: 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); cursor: pointer; font: inherit; font-size: 12px; color: var(--ink); min-height: 44px; }
+  .dk .dk-gal button[aria-pressed=true] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+  .dk .dk-gal svg, .dk .dk-grp svg { width: 100%; height: auto; display: block; }
+  .dk .dk-grp div { text-align: center; font-size: 12px; }
+  .dk .dk-top { display: grid; grid-template-columns: minmax(0, 120px) minmax(0, 1fr); gap: 12px; align-items: center; }
+  .dk .dk-q { font-size: 17px; font-weight: 700; margin: 0 0 8px; }
+  .dk .dk-tree ul { list-style: none; margin: 0; padding-left: 16px; border-left: 2px solid var(--line); }
+  .dk .dk-tree > ul { padding-left: 0; border: 0; }
+  .dk .dk-tree li { margin: 4px 0; font-size: 14px; }
+  .dk .dk-tree .on > span { color: var(--accent); font-weight: 700; }
+  .dk .dk-tree .leaf { font-weight: 700; }
+  .dk .dk-tree .open { color: var(--warn); font-weight: 700; }
+  .dk .dk-qs { width: auto; flex: 1 1 14em; }
+  .dk svg .k-ink { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; }
+  .dk svg .k-a { fill: var(--accent-soft); stroke: var(--ink); stroke-width: 1.5; }
+  .dk svg .k-g { fill: var(--good-soft); stroke: var(--ink); stroke-width: 1.5; }
+  .dk svg .k-w { fill: var(--warn-soft); stroke: var(--ink); stroke-width: 1.5; }
+  .dk svg .k-r { fill: var(--bad-soft); stroke: var(--ink); stroke-width: 1.5; }
+  .dk svg .k-d { fill: var(--ink); }
+  .dk [hidden] { display: none !important; }
+</style>
+
+<script>
+  import { ORGS, QUESTIONS, KEY, org, qText, follow, route, addQuestion, nextGroup, questionsUsed, depth, type Node, type Build } from '../../lib/sci/school-dkey';
+  import { S } from '../../lib/smath-ui';
+  import { mountQuiz, one, type QItem } from '../../lib/learnquiz-d';
+
+  const root = document.querySelector<HTMLElement>('.dk')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+
+  /** Small drawings, 80 × 60. */
+  function icon(id: string, svg: SVGElement) {
+    const P = (d: string, c = 'k-ink') => S('path', { d, class: c }, svg), E = (cx: number, cy: number, rx: number, ry: number, c: string) => S('ellipse', { cx, cy, rx, ry, class: c }, svg), C = (cx: number, cy: number, r: number, c = 'k-d') => S('circle', { cx, cy, r, class: c }, svg);
+    switch (id) {
+      case 'worm': S('path', { d: 'M8,40 C20,20 32,50 44,32 S64,24 72,34', class: 'k-ink', style: 'stroke-width:9;stroke:var(--bad-soft)' }, svg); P('M8,40 C20,20 32,50 44,32 S64,24 72,34'); for (const x of [20, 32, 44, 56]) P(`M${x},${x === 32 ? 38 : x === 44 ? 28 : 30} l2,6`); break;
+      case 'spider': for (const s of [-1, 1]) for (const k of [0, 1, 2, 3]) P(`M40,32 l${s * (12 + k * 3)},${-12 + k * 8} l${s * 8},${6 + k * 2}`); E(40, 34, 10, 8, 'k-w'); C(40, 24, 6, 'k-w'); C(38, 22, 1.2); C(42, 22, 1.2); break;
+      case 'butterfly': E(26, 22, 16, 12, 'k-a'); E(54, 22, 16, 12, 'k-a'); E(28, 40, 11, 9, 'k-a'); E(52, 40, 11, 9, 'k-a'); E(40, 31, 3, 15, 'k-d'); P('M39,16 l-6,-10 M41,16 l6,-10'); for (const s of [-1, 1]) for (const y of [30, 34, 38]) P(`M40,${y} l${s * 7},4`); break;
+      case 'fish': E(36, 30, 24, 13, 'k-a'); P('M58,30 L74,18 L74,42 Z', 'k-a'); P('M30,18 l10,-8 l6,9', 'k-a'); P('M28,42 l6,8 l6,-8', 'k-a'); C(22, 27, 2); for (const x of [32, 40, 48]) P(`M${x},24 q3,6 0,12`); break;
+      case 'frog': E(40, 36, 20, 13, 'k-g'); C(30, 22, 6, 'k-g'); C(50, 22, 6, 'k-g'); C(30, 22, 2); C(50, 22, 2); P('M22,44 l-10,8 l8,0 M58,44 l10,8 l-8,0 M28,46 l-4,8 M52,46 l4,8'); P('M32,38 q8,5 16,0'); break;
+      case 'snake': S('path', { d: 'M6,44 C18,24 30,54 42,36 S62,26 70,30', class: 'k-ink', style: 'stroke-width:9;stroke:var(--good-soft)' }, svg); P('M6,44 C18,24 30,54 42,36 S62,26 70,30'); E(71, 29, 7, 5, 'k-g'); C(73, 27, 1.2); P('M78,30 l5,-2 M78,30 l5,2'); break;
+      case 'pigeon': E(38, 32, 20, 12, 'k-a'); C(58, 22, 8, 'k-a'); C(60, 20, 1.5); P('M66,22 l7,2 l-7,2', 'k-w'); P('M28,28 q10,-12 22,0', 'k-a'); P('M18,32 l-12,-4 l2,10 Z', 'k-a'); P('M34,44 l-2,10 M42,44 l2,10'); break;
+      case 'cat': E(36, 36, 20, 11, 'k-w'); C(60, 26, 9, 'k-w'); P('M54,20 l2,-10 l5,7 M62,18 l5,-8 l2,10', 'k-w'); C(57, 25, 1.2); C(63, 25, 1.2); P('M16,32 q-10,-10 -6,-22'); P('M24,44 l0,10 M32,46 l0,8 M42,46 l0,8 M50,44 l0,10'); P('M60,30 l-8,1 M60,30 l8,1'); break;
+    }
+  }
+  const pic = (id: string) => { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 80 60'); s.setAttribute('aria-hidden', 'true'); icon(id, s); return s; };
+
+  let modeNow = 'follow', mystery = 'snake', answers: boolean[] = [], key: Node = KEY, build: Build = { group: ORGS.map((o) => o.id) }, history: Build[] = [];
+  q('.dk-gal').replaceChildren(...ORGS.map((o) => { const b = document.createElement('button'); b.type = 'button'; b.dataset.o = o.id; b.setAttribute('aria-label', o.name); b.append(pic(o.id), o.name); b.addEventListener('click', () => { if (modeNow === 'follow') { mystery = o.id; answers = []; drawFollow(); } }); return b; }));
+  q<HTMLSelectElement>('.dk-qs').replaceChildren(...QUESTIONS.map((x) => new Option(x.text, x.id)));
+
+  /** The key as a nested list; `path` marks the questions taken. */
+  function tree(n: Node | Build, path: { q: string; a: boolean }[] = [], depthAt = 0, onPath = true): HTMLElement {
+    const ul = document.createElement('ul'), li = document.createElement('li'), sp = document.createElement('span');
+    if ('org' in n) { sp.textContent = `→ ${org(n.org).name}`; sp.className = 'leaf'; if (onPath && depthAt === path.length) li.className = 'on'; li.append(sp); }
+    else if ('group' in n) { sp.textContent = n.group.length === 1 ? `→ ${org(n.group[0]).name}` : `? ${n.group.map((id) => org(id).name).join(', ')}`; sp.className = n.group.length === 1 ? 'leaf' : 'open'; li.append(sp); }
+    else {
+      sp.textContent = qText(n.q); if (onPath && depthAt < path.length) li.className = 'on'; li.append(sp);
+      for (const a of [true, false]) { const sub = document.createElement('ul'), l2 = document.createElement('li'); const on = onPath && path[depthAt]?.a === a && depthAt < path.length; l2.append(Object.assign(document.createElement('span'), { textContent: a ? 'Yes:' : 'No:' })); l2.append(tree(a ? n.yes : n.no, path, depthAt + 1, on)); if (on) l2.className = 'on'; sub.append(l2); li.append(sub); }
+    }
+    ul.append(li); return ul;
+  }
+
+  function drawFollow() {
+    root.querySelectorAll<HTMLButtonElement>('.dk-gal button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.o === mystery)));
+    const big = q<SVGSVGElement>('.dk-big'); big.replaceChildren(); icon(mystery, big);
+    const { node, path } = follow(key, answers), done = 'org' in node;
+    q('.dk-q').textContent = done ? 'The key has an answer.' : qText((node as { q: string }).q);
+    (q('.dk-yes') as HTMLButtonElement).disabled = done; (q('.dk-no') as HTMLButtonElement).disabled = done;
+    q('.dk-path').replaceChildren(...path.map((p) => Object.assign(document.createElement('li'), { textContent: `${qText(p.q)} ${p.a ? 'Yes' : 'No'}` })));
+    if (done) {
+      const got = (node as { org: string }).org, ok = got === mystery;
+      const slip = ok ? null : route(key, mystery).find((r, i) => path[i]?.a !== r.a);
+      q('.dk-res').textContent = ok ? `It is a ${org(got).name.toLowerCase()}! (${path.length} questions)` : `The key says ${org(got).name.toLowerCase()}, but the mystery is a ${org(mystery).name.toLowerCase()}. Check: "${qText(slip!.q)}" should be ${slip!.a ? 'Yes' : 'No'}.`;
+    } else q('.dk-res').textContent = '';
+    q('.dk-ftree').replaceChildren(tree(key, path));
+  }
+  q('.dk-yes').addEventListener('click', () => { answers.push(true); drawFollow(); });
+  q('.dk-no').addEventListener('click', () => { answers.push(false); drawFollow(); });
+  q('.dk-rand').addEventListener('click', () => { let id = mystery; while (id === mystery) id = ORGS[Math.floor(Math.random() * ORGS.length)].id; mystery = id; answers = []; drawFollow(); });
+
+  const toNode = (b: Build): Node => ('group' in b ? { org: b.group[0] } : { q: b.q, yes: toNode(b.yes), no: toNode(b.no) });
+  function drawBuild() {
+    const g = nextGroup(build), err = q('.dk-berr');
+    q('.dk-bnext').textContent = g ? `Pick a question that splits: ${g.map((id) => org(id).name).join(', ')}.` : 'Every animal now has its own place in the key.';
+    q('.dk-grp').replaceChildren(...(g ?? []).map((id) => { const d = document.createElement('div'); d.append(pic(id), org(id).name); return d; }));
+    q('.dk-btree').replaceChildren(tree(build));
+    q('.dk-bdone').textContent = g ? '' : `Your key uses ${questionsUsed(build)} questions. The longest route needs ${depth(build)} answers (the ready-made key: ${depth(KEY)}).`;
+    q('.dk-try').hidden = !!g; (q('.dk-add') as HTMLButtonElement).disabled = !g;
+    if (!g) err.hidden = true;
+  }
+  q('.dk-add').addEventListener('click', () => {
+    const r = addQuestion(build, q<HTMLSelectElement>('.dk-qs').value), err = q('.dk-berr');
+    if (typeof r === 'string') { err.textContent = r; err.hidden = false; return; }
+    err.hidden = true; history.push(build); build = r; drawBuild();
+  });
+  q('.dk-undo').addEventListener('click', () => { if (history.length) build = history.pop()!; q('.dk-berr').hidden = true; drawBuild(); });
+  q('.dk-reset').addEventListener('click', () => { build = { group: ORGS.map((o) => o.id) }; history = []; q('.dk-berr').hidden = true; drawBuild(); });
+  const setMode = (m: string) => {
+    modeNow = m; root.querySelectorAll('.dk-mode button').forEach((x) => x.setAttribute('aria-pressed', String((x as HTMLElement).dataset.m === m)));
+    q('.dk-follow').hidden = m !== 'follow'; q('.dk-build').hidden = m !== 'build'; q('.dk-galhelp').hidden = m !== 'follow';
+    if (m === 'follow') drawFollow(); else drawBuild();
+  };
+  root.querySelectorAll<HTMLButtonElement>('.dk-mode button').forEach((b) => b.addEventListener('click', () => { if (b.dataset.m === 'follow') key = KEY; answers = []; setMode(b.dataset.m!); }));
+  q('.dk-try').addEventListener('click', () => { key = toNode(build); answers = []; setMode('follow'); });
+  drawFollow();
+
+  mountQuiz(q('.dk-quiz'), () => {
+    const out: QItem[] = [], ids = ORGS.map((o) => o.id);
+    for (let k = 0; k < 2; k++) {
+      const id = one(ids), r = route(KEY, id), ch = [id, ...ids.filter((x) => x !== id).sort(() => Math.random() - 0.5).slice(0, 2)].sort(() => Math.random() - 0.5);
+      out.push({ q: `Using the ready-made key: ${r.map((x) => `${qText(x.q).replace('?', '')}: ${x.a ? 'yes' : 'no'}`).join('; ')}. Which animal is it?`, ans: ch.indexOf(id), choices: ch.map((c) => org(c).name), work: `That route ends at the ${org(id).name.toLowerCase()}.` });
+    }
+    out.push({ q: 'Which question would split a fish from a snake?', ans: 1, choices: ['Does it have a backbone?', 'Does it have fins?', 'Does it have legs?'], work: 'Both have backbones and no legs; only the fish has fins.' });
+    out.push({ q: 'How many questions does the ready-made key ask to name a snake?', ans: route(KEY, 'snake').length, work: `Backbone yes, feathers no, fur no, legs no, fins no: ${route(KEY, 'snake').length} questions.` });
+    return out;
+  });
+</script>

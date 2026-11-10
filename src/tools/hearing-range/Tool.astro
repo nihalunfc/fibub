@@ -1,0 +1,143 @@
+---
+// Hearing range: play a pure tone from 20 Hz to 20 kHz made in the browser (Web Audio), or sweep up or down and
+// mark where you start or stop hearing it. Nothing is recorded, stored or sent. Not a medical hearing test.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax sm hr">
+  <p class="ax-pill warn hr-warn">Turn your volume down before you start, and stop if a sound is uncomfortable.</p>
+  <div class="ax-card">
+    <h2>Play a tone</h2>
+    <p class="ax-big hr-big" aria-live="polite">1000 Hz</p>
+    <div class="sm-sl"><b>Hz</b><input type="range" class="hr-fr" min="0" max="1000" step="1" value="566" aria-label="Frequency slider (log scale)" /><input type="number" class="hr-f" min="20" max="20000" step="1" value="1000" inputmode="numeric" aria-label="Frequency in hertz" /></div>
+    <div class="sm-sl"><b>vol</b><input type="range" class="hr-vr" min="0" max="100" step="1" value="15" aria-label="Volume slider" /><input type="number" class="hr-v" min="0" max="100" step="1" value="15" inputmode="numeric" aria-label="Volume, percent" /></div>
+    <div class="ax-row"><button type="button" class="btn small hr-play">Play</button><button type="button" class="btn small secondary hr-up">Sweep up</button><button type="button" class="btn small secondary hr-down">Sweep down</button></div>
+    <div class="ax-row hr-markrow" hidden><button type="button" class="btn small hr-mark">I hear it / it's gone</button></div>
+    <p class="sm-f hr-info" aria-live="polite"></p>
+    <dl class="ax-facts"><div><dt>Lowest you marked</dt><dd class="hr-lo">–</dd></div><div><dt>Highest you marked</dt><dd class="hr-hi">–</dd></div></dl>
+    <p class="ax-help">Sweep up from 20 Hz and press the button when you first hear the tone (your lowest). Sweep down from 20 kHz and press it when you first hear it (your highest). Nothing is saved.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Who hears what</h2>
+    <svg class="sm-fig hr-fig" viewBox="0 0 340 200" role="img" aria-label="Approximate hearing ranges on a log scale"></svg>
+    <p class="ax-help">Approximate, rounded ranges; they vary between individuals and studies. The marker is the tone on the slider.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Sweep down from 20 kHz with headphones. Compare your highest with an adult's: the top end drops with age.</li>
+      <li>Try 30 Hz on a phone speaker. Do you hear it? Small speakers can't make deep notes well.</li>
+      <li>Which animals here could hear a 30 kHz dog whistle?</li>
+      <li>Work out the wavelength of a 20 Hz and a 20 kHz sound. How different are they?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card hr-quiz"><h2>Check yourself</h2></div>
+</div>
+
+<style is:inline>
+  .hr .hr-warn { font-size: 14px; padding: 6px 12px; border-radius: 10px; white-space: normal; }
+  .hr svg .hr-bar { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+  .hr svg .hr-you { fill: var(--good-soft); stroke: var(--good); stroke-width: 1.5; }
+  .hr svg .hr-now { stroke: var(--bad); stroke-width: 2.5; }
+  .hr [hidden] { display: none !important; }
+</style>
+
+<script>
+  import { posToF, fToPos, wavelength, band, sweepF, ANIMALS, F_MIN, F_MAX } from '../../lib/sci/hearing-range';
+  import { fmt } from '../../lib/sci/smath';
+  import { S } from '../../lib/smath-ui';
+  import { mountQuiz, one, type QItem } from '../../lib/learnquiz-d';
+
+  const root = document.querySelector<HTMLElement>('.hr')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const FR = q<HTMLInputElement>('.hr-fr'), F = q<HTMLInputElement>('.hr-f'), VR = q<HTMLInputElement>('.hr-vr'), V = q<HTMLInputElement>('.hr-v');
+  let ctx: AudioContext | null = null, osc: OscillatorNode | null = null, gain: GainNode | null = null, sweep = 0, sweepDir = 0, t0 = 0, lo = NaN, hi = NaN;
+  const SWEEP_S = 24;
+
+  const freq = () => { const f = Number(F.value); return Number.isFinite(f) ? Math.max(F_MIN, Math.min(F_MAX, f)) : 1000; };
+  const vol = () => Math.max(0, Math.min(100, Number(V.value) || 0)) / 100;
+  const setF = (f: number) => { F.value = String(Math.round(f)); FR.value = String(fToPos(f)); update(); };
+  FR.addEventListener('input', () => { F.value = String(posToF(Number(FR.value))); update(); });
+  F.addEventListener('input', () => { FR.value = String(fToPos(freq())); update(); });
+  VR.addEventListener('input', () => { V.value = VR.value; update(); });
+  V.addEventListener('input', () => { VR.value = String(Math.round(vol() * 100)); update(); });
+
+  function start() {
+    const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AC) { q('.hr-info').textContent = 'This browser cannot make sounds from a web page.'; return false; }
+    ctx ??= new AC();
+    ctx.resume();
+    stopTone();
+    osc = ctx.createOscillator(); gain = ctx.createGain();
+    osc.type = 'sine'; osc.frequency.value = freq();
+    // Square the volume so low settings stay quiet; ramp in to avoid clicks.
+    gain.gain.value = 0; gain.gain.setTargetAtTime(Math.pow(vol(), 2) * 0.5, ctx.currentTime, 0.03);
+    osc.connect(gain).connect(ctx.destination); osc.start();
+    root.dataset.playing = '1';
+    return true;
+  }
+  function stopTone() {
+    if (osc && gain && ctx) { const o = osc; gain.gain.setTargetAtTime(0, ctx.currentTime, 0.02); setTimeout(() => { try { o.stop(); o.disconnect(); } catch { /* already stopped */ } }, 120); }
+    osc = null; gain = null; delete root.dataset.playing;
+  }
+  function stopAll() { cancelAnimationFrame(sweep); sweepDir = 0; stopTone(); q('.hr-markrow').hidden = true; q('.hr-play').textContent = 'Play'; update(); }
+
+  q('.hr-play').addEventListener('click', () => { if (root.dataset.playing) stopAll(); else if (start()) { q('.hr-play').textContent = 'Stop'; update(); } });
+  const runSweep = (dir: number) => {
+    stopAll(); setF(dir > 0 ? F_MIN : F_MAX);
+    if (!start()) return;
+    sweepDir = dir; t0 = performance.now(); q('.hr-markrow').hidden = false; q('.hr-play').textContent = 'Stop';
+    const tick = (now: number) => {
+      const t = (now - t0) / 1000, f = dir > 0 ? sweepF(t, SWEEP_S, F_MIN, F_MAX) : sweepF(t, SWEEP_S, F_MAX, F_MIN);
+      setF(f); if (osc && ctx) osc.frequency.setValueAtTime(f, ctx.currentTime);
+      if (t < SWEEP_S && sweepDir) sweep = requestAnimationFrame(tick); else stopAll();
+    };
+    sweep = requestAnimationFrame(tick);
+  };
+  q('.hr-up').addEventListener('click', () => runSweep(1));
+  q('.hr-down').addEventListener('click', () => runSweep(-1));
+  q('.hr-mark').addEventListener('click', () => {
+    const f = freq();
+    if (sweepDir > 0) lo = f; else if (sweepDir < 0) hi = f;
+    stopAll();
+  });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) stopAll(); });
+
+  function chart() {
+    const fig = q<SVGSVGElement>('.hr-fig'); fig.replaceChildren();
+    const x = (f: number) => 110 + (220 * Math.log10(f / 10)) / Math.log10(200000 / 10);
+    for (const t of [10, 100, 1000, 10000, 100000]) { S('line', { x1: x(t), y1: 8, x2: x(t), y2: 178, class: 'sm-grid' }, fig); S('text', { x: x(t), y: 194, 'text-anchor': 'middle', class: 'sm-tick' }, fig, t >= 1000 ? `${t / 1000}k` : String(t)); }
+    const rows: [string, number, number, string][] = ANIMALS.map(([n, a, b]) => [n, a, b, 'hr-bar']);
+    if (Number.isFinite(lo) || Number.isFinite(hi)) rows.push(['You (marked)', Number.isFinite(lo) ? lo : 20, Number.isFinite(hi) ? hi : 20000, 'hr-you']);
+    rows.forEach(([n, a, b, cls], i) => { const y = 12 + i * 27; S('text', { x: 104, y: y + 14, 'text-anchor': 'end' }, fig, n); S('rect', { x: x(a), y, width: x(b) - x(a), height: 18, rx: 4, class: cls }, fig); });
+    S('line', { x1: x(freq()), y1: 6, x2: x(freq()), y2: 180, class: 'hr-now' }, fig);
+  }
+
+  function update() {
+    const f = freq();
+    q('.hr-big').textContent = `${fmt(f, 0)} Hz`;
+    if (osc && ctx && !sweepDir) osc.frequency.setValueAtTime(f, ctx.currentTime);
+    if (gain && ctx) gain.gain.setTargetAtTime(Math.pow(vol(), 2) * 0.5, ctx.currentTime, 0.03);
+    q('.hr-info').textContent = `${root.dataset.playing ? 'Playing. ' : ''}A ${fmt(f, 0)} Hz sound vibrates ${fmt(f, 0)} times a second. In air (343 m/s) its wavelength is ${fmt(wavelength(f), wavelength(f) < 0.1 ? 5 : 3)} m. It is ${band(f)}.`;
+    q('.hr-lo').textContent = Number.isFinite(lo) ? `${fmt(lo, 0)} Hz` : '–';
+    q('.hr-hi').textContent = Number.isFinite(hi) ? `${fmt(hi, 0)} Hz` : '–';
+    chart();
+  }
+  update();
+
+  mountQuiz(q('.hr-quiz'), () => {
+    const out: QItem[] = [];
+    const f = one([20, 50, 343, 686, 1000, 3430, 20000]);
+    out.push({ q: `Sound travels at 343 m/s in air. What is the wavelength of a ${f} Hz sound?`, ans: 343 / f, unit: 'm', work: `λ = v ÷ f = 343 ÷ ${f} = ${fmt(343 / f, 4)} m.` });
+    const g = one([5, 15, 25000, 40000, 1000, 8000]);
+    out.push({ q: `Is a ${g} Hz sound infrasound, audible or ultrasound for people?`, ans: g < 20 ? 0 : g > 20000 ? 2 : 1, choices: ['Infrasound', 'Audible', 'Ultrasound'], work: `People hear about 20 Hz to 20 000 Hz, so ${g} Hz is ${band(g)}.` });
+    const lam = one([0.5, 1, 2, 0.1]);
+    out.push({ q: `A sound in air (343 m/s) has a wavelength of ${lam} m. What is its frequency?`, ans: 343 / lam, unit: 'Hz', work: `f = v ÷ λ = 343 ÷ ${lam} = ${fmt(343 / lam, 1)} Hz.` });
+    out.push({ q: 'Which of these could hear a 30 000 Hz whistle?', ans: 1, choices: ['A person', 'A dog', 'An elephant'], work: 'Dogs hear up to about 45 000 Hz; people and elephants stop well below 30 000 Hz.' });
+    return out;
+  });
+</script>

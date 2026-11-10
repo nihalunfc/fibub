@@ -1,0 +1,128 @@
+---
+// Classification tree: walk down from the five kingdoms to familiar species, compare two species to find the
+// lowest rank they share, and check how a binomial (scientific) name is written. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax sm ct">
+  <div class="ax-card">
+    <h2>Walk down the tree</h2>
+    <nav class="ct-crumbs" aria-label="Where you are"></nav>
+    <p class="ax-help ct-rank"></p>
+    <div class="ct-kids"></div>
+    <div class="ct-sp" hidden>
+      <p class="ax-big ct-name"></p>
+      <div class="ax-scroll"><table class="ct-tab"><tbody></tbody></table></div>
+      <p class="ax-help ct-note"></p>
+    </div>
+    <p class="sm-f ct-about"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>How closely related?</h2>
+    <div class="ax-grid"><label>First<select class="ct-a"></select></label><label>Second<select class="ct-b"></select></label></div>
+    <div class="ax-scroll"><table class="ct-cmp"><thead><tr><th>Rank</th><th class="ct-ha"></th><th class="ct-hb"></th></tr></thead><tbody></tbody></table></div>
+    <p class="ax-big ct-rel" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Binomial name checker</h2>
+    <label>Type a scientific name<input type="text" class="ct-in" value="panthera Tigris" autocomplete="off" spellcheck="false" /></label>
+    <p class="ax-big ct-out" aria-live="polite"></p>
+    <ul class="sm-try ct-issues"></ul>
+    <p class="sm-f ct-extra"></p>
+    <p class="ax-help">Rules: two words; the genus starts with a capital; the second word is all small letters; print it in <i>italics</i> (underline each word when handwritten); after the first use you may shorten the genus to its first letter.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Walk from Animalia down to the tiger. How many steps (ranks) is that?</li>
+      <li>Compare a tiger with a lion, then with a house cat, then with a human. Where do they part ways?</li>
+      <li>Which two plants here are in the same genus?</li>
+      <li>Type "Homo Sapiens" in the checker. What is wrong?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card ct-quiz"><h2>Check yourself</h2></div>
+</div>
+
+<style is:inline>
+  .ct .ct-crumbs { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; font-size: 14px; }
+  .ct .ct-crumbs button { font: inherit; border: 0; background: none; color: var(--accent); text-decoration: underline; padding: 6px 2px; cursor: pointer; min-height: 36px; }
+  .ct .ct-crumbs span { color: var(--muted); }
+  .ct .ct-kids { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 8px; margin: 8px 0; }
+  .ct .ct-kids button { min-height: 52px; padding: 8px 10px; text-align: left; font: inherit; font-size: 15px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); cursor: pointer; }
+  .ct .ct-kids button small { display: block; color: var(--muted); font-size: 12px; }
+  .ct .ct-kids button i { font-style: italic; }
+  .ct .ct-cmp tr.same td { background: var(--good-soft); }
+  .ct i.sci, .ct .ct-name i { font-style: italic; }
+  .ct [hidden] { display: none !important; }
+</style>
+
+<script>
+  import { RANKS, SPECIES, KINGDOMS, byId, children, shared, checkName } from '../../lib/sci/school-taxonomy';
+  import { mountQuiz, one, type QItem } from '../../lib/learnquiz-d';
+
+  const root = document.querySelector<HTMLElement>('.ct')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  let path: string[] = [];
+  const el = <K extends keyof HTMLElementTagNameMap>(tag: K, text = '', cls = '') => Object.assign(document.createElement(tag), { textContent: text, className: cls });
+  const it = (text: string) => el('i', text, 'sci');
+
+  function walk() {
+    const crumbs = q('.ct-crumbs'); crumbs.replaceChildren();
+    const home = el('button', 'Life'); home.type = 'button'; home.addEventListener('click', () => { path = []; walk(); }); crumbs.append(home);
+    path.forEach((p, i) => { crumbs.append(el('span', '›')); const b = el('button', p); b.type = 'button'; if (i >= 5) b.style.fontStyle = 'italic'; b.addEventListener('click', () => { path = path.slice(0, i + 1); walk(); }); crumbs.append(b); });
+    const done = path.length === RANKS.length;
+    q('.ct-sp').hidden = !done; q('.ct-kids').hidden = done;
+    q('.ct-about').textContent = path.length >= 1 ? `${path[0]}: ${KINGDOMS[path[0]]}` : 'Whittaker\'s five kingdoms, as used in school. Tap one to go down a rank.';
+    if (done) {
+      const s = SPECIES.find((x) => x.ranks.every((r, i) => r === path[i]))!;
+      q('.ct-rank').textContent = 'Species: the end of the walk.';
+      q('.ct-name').replaceChildren(it(s.ranks[6]), ` · ${s.common}`);
+      q('.ct-tab tbody').replaceChildren(...RANKS.map((r, i) => { const tr = el('tr'); tr.append(el('th', r)); const td = el('td'); if (i >= 5) td.append(it(s.ranks[i])); else td.textContent = s.ranks[i]; tr.append(td); return tr; }));
+      q('.ct-note').textContent = s.note ?? '';
+      return;
+    }
+    q('.ct-rank').textContent = `Choose a ${RANKS[path.length].toLowerCase()}:`;
+    q('.ct-kids').replaceChildren(...children(path).map((c) => {
+      const b = el('button'); b.type = 'button';
+      if (path.length >= 5) b.append(it(c.name)); else b.append(c.name);
+      const common = path.length === 6 ? SPECIES.find((s) => s.ranks[6] === c.name)!.common : `${c.n} species here`;
+      b.append(el('small', common)); b.addEventListener('click', () => { path = [...path, c.name]; walk(); });
+      return b;
+    }));
+  }
+
+  const A = q<HTMLSelectElement>('.ct-a'), B = q<HTMLSelectElement>('.ct-b');
+  for (const [s, v] of [[A, 'tiger'], [B, 'lion']] as const) { s.replaceChildren(...SPECIES.map((x) => new Option(x.common, x.id))); s.value = v; s.addEventListener('change', compare); }
+  function compare() {
+    const a = byId(A.value), b = byId(B.value), k = shared(a, b);
+    q('.ct-ha').textContent = a.common; q('.ct-hb').textContent = b.common;
+    q('.ct-cmp tbody').replaceChildren(...RANKS.map((r, i) => { const tr = el('tr', '', i <= k ? 'same' : ''); tr.append(el('th', r)); for (const s of [a, b]) { const td = el('td'); if (i >= 5) td.append(it(s.ranks[i])); else td.textContent = s.ranks[i]; tr.append(td); } return tr; }));
+    q('.ct-rel').textContent = a.id === b.id ? 'The same species.' : k < 0 ? 'Different kingdoms: very distant relatives.' : `They share every rank down to ${RANKS[k].toLowerCase()} (${a.ranks[k]}).${k >= 4 ? ' Close relatives.' : k >= 2 ? ' Related, but not closely.' : ' Distant relatives.'}`;
+  }
+
+  function name() {
+    const r = checkName(q<HTMLInputElement>('.ct-in').value), out = q('.ct-out');
+    out.replaceChildren(); q('.ct-issues').replaceChildren(...r.issues.map((t) => el('li', t)));
+    if (r.fixed) { out.append(r.ok ? '✓ ' : 'Written properly: ', it(r.fixed), ' · short form ', it(r.short)); }
+    q('.ct-extra').textContent = r.extra;
+  }
+  q('.ct-in').addEventListener('input', name);
+  walk(); compare(); name();
+
+  mountQuiz(q('.ct-quiz'), () => {
+    const out: QItem[] = [];
+    const [a, b] = one([['tiger', 'lion'], ['tiger', 'cat'], ['potato', 'brinjal'], ['human', 'tiger'], ['mango', 'wheat'], ['housefly', 'peafowl']]).map(byId), k = shared(a, b);
+    out.push({ q: `What is the lowest rank a ${a.common.toLowerCase()} and a ${b.common.toLowerCase()} share?`, ans: k, choices: RANKS.slice(0, 6) as unknown as string[], work: `Both are in the ${RANKS[k].toLowerCase()} ${a.ranks[k]}; they split at ${RANKS[k + 1].toLowerCase()}.` });
+    const forms = ['Homo sapiens', 'homo sapiens', 'Homo Sapiens', 'HOMO SAPIENS'].sort(() => Math.random() - 0.5);
+    out.push({ q: 'Which is the right way to write the scientific name of humans?', ans: forms.indexOf('Homo sapiens'), choices: forms, work: 'Homo sapiens: capital H, small s, in italics.' });
+    const s = one(SPECIES);
+    out.push({ q: `${s.ranks[6]} (${s.common}) belongs to which kingdom?`, ans: ['Monera', 'Protista', 'Fungi', 'Plantae', 'Animalia'].indexOf(s.ranks[0]), choices: ['Monera', 'Protista', 'Fungi', 'Plantae', 'Animalia'], work: `${s.ranks[0]}: ${KINGDOMS[s.ranks[0]]}` });
+    out.push({ q: 'How many main ranks are there from kingdom to species (counting both)?', ans: 7, work: 'Kingdom, phylum (or division), class, order, family, genus, species: 7.' });
+    return out;
+  });
+</script>

@@ -1,0 +1,111 @@
+---
+// Area of a circle by slicing: cut a circle into n equal slices and lay them top-to-tail in a row. The row looks
+// more and more like a rectangle πr wide and r tall, so the area is πr². Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm cs">
+  <div class="ax-card">
+    <h2>Slice and unroll</h2>
+    <svg class="sm-fig cs-fig" viewBox="0 0 340 300" role="img" aria-label="A circle cut into slices, moving into a row"></svg>
+    <div class="sm-sl"><b>n</b><input type="range" class="cs-nr" min="4" max="64" step="2" value="8" aria-label="Slices slider" /><input type="number" class="cs-n" min="4" max="200" step="2" value="8" inputmode="numeric" aria-label="Number of slices (even)" /></div>
+    <div class="sm-sl"><b>r</b><input type="range" class="cs-rr" min="1" max="20" step="0.5" value="7" aria-label="Radius slider" /><input type="number" class="cs-r" min="0.1" step="0.5" value="7" inputmode="decimal" aria-label="Radius r in cm" /></div>
+    <label class="cs-tl">Unroll <input type="range" class="cs-t" min="0" max="1" step="0.02" value="1" aria-label="Unroll the slices" /></label>
+    <div class="ax-row"><button type="button" class="btn small cs-play">Play</button><span class="ax-help" style="margin:0">Slices from the top half point up; slices from the bottom half fit in between, pointing down.</span></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>The numbers</h2>
+    <dl class="ax-facts">
+      <div><dt>Width of the row</dt><dd class="cs-w"></dd></div>
+      <div><dt>Height of the row</dt><dd class="cs-h"></dd></div>
+      <div><dt>Width × height</dt><dd class="cs-wh"></dd></div>
+      <div><dt>πr²</dt><dd class="cs-pi"></dd></div>
+    </dl>
+    <p class="sm-f cs-f" aria-live="polite"></p>
+    <p class="ax-big cs-big"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Start with 4 slices: the row is lumpy. Go to 16, then 64. How close does width × height get to πr²?</li>
+      <li>The curved top of the row is half the circle's edge. Why must it be πr long, whatever n is?</li>
+      <li>Double r. What happens to the area: double, or four times?</li>
+      <li>Type 200 slices. The row is now almost exactly a rectangle.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Use π ≈ 3.1416 or 22/7 and give 2 decimal places. Nothing is saved.</p>
+    <div class="cs-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .cs .cs-tl { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; color: var(--ink); font-size: 15px; margin: 6px 0; }
+  .cs .cs-tl input { width: 100%; height: 32px; accent-color: var(--accent); }
+  .cs svg .cs-a { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.2; }
+  .cs svg .cs-b { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1.2; }
+</style>
+
+<script>
+  import { pose, rowWidth, rowHeight, rowArea, circleArea, chord } from '../../lib/sci/circle-slices';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, pair, val, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.cs')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.cs-fig');
+  const N = q<HTMLInputElement>('.cs-n'), Rr = q<HTMLInputElement>('.cs-r'), T = q<HTMLInputElement>('.cs-t');
+  pair(q('.cs-nr'), N, draw); pair(q('.cs-rr'), Rr, draw); T.addEventListener('input', draw);
+  const PX = 72;
+  let raf = 0;
+
+  const nVal = () => { let n = Math.round(val(N, 8, 4, 200)); if (n % 2) n += 1; return n; };
+
+  function draw() {
+    const n = nVal(), r = val(Rr, 7, 0.01), t = Number(T.value);
+    fig.replaceChildren();
+    const a = (2 * Math.PI) / n, c = chord(n, PX), wpx = (n / 2) * c + c / 2;
+    const cx = 170, cy = 90, rx = (340 - wpx) / 2, ry = 280;
+    if (t > 0) S('circle', { cx, cy, r: PX, class: 'sm-dash' }, fig);
+    for (let i = 0; i < n; i++) {
+      const p = pose(i, n, PX, t, cx, cy, rx, ry), d1 = p.dir - a / 2, d2 = p.dir + a / 2;
+      const x1 = p.x + PX * Math.cos(d1), y1 = p.y + PX * Math.sin(d1), x2 = p.x + PX * Math.cos(d2), y2 = p.y + PX * Math.sin(d2);
+      S('path', { d: `M${p.x},${p.y} L${x1},${y1} A${PX},${PX} 0 0 1 ${x2},${y2} Z`, class: i < n / 2 ? 'cs-a' : 'cs-b' }, fig);
+    }
+    if (t > 0.98) {
+      const top = ry - rowHeight(n, PX) - 6;
+      S('text', { x: rx + wpx / 2, y: Math.min(top, 190) - 4, 'text-anchor': 'middle', style: 'font-weight:700' }, fig, `≈ πr = ${fmt(Math.PI * r, 2)}`);
+      S('text', { x: rx - 4, y: ry - rowHeight(n, PX) / 2, 'text-anchor': 'end', style: 'font-weight:700' }, fig, '≈ r');
+    }
+    const W = rowWidth(n, r), H = rowHeight(n, r), A = rowArea(n, r), C = circleArea(r);
+    q('.cs-w').textContent = fmt(W, 3); q('.cs-h').textContent = fmt(H, 3); q('.cs-wh').textContent = fmt(A, 3); q('.cs-pi').textContent = fmt(C, 3);
+    q('.cs-f').textContent = `With ${n} slices, width × height = ${fmt(W, 3)} × ${fmt(H, 3)} = ${fmt(A, 3)}, which is ${fmt((A / C) * 100, 2)}% of πr² = π × ${fmt(r, 3)}² = ${fmt(C, 3)}. (Measured with straight cuts across each slice's curved edge, so a little is missed.)`;
+    q('.cs-big').textContent = `Area of the circle = πr² ≈ ${fmt(C, 2)}`;
+  }
+
+  q('.cs-play').addEventListener('click', () => {
+    cancelAnimationFrame(raf);
+    const t0 = performance.now(), from = Number(T.value) > 0.5 ? 1 : 0, to = 1 - from, still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (still) { T.value = String(to); draw(); return; }
+    const step = (now: number) => { const k = Math.min(1, (now - t0) / 1600); T.value = String(from + (to - from) * k); draw(); if (k < 1) raf = requestAnimationFrame(step); };
+    raf = requestAnimationFrame(step);
+  });
+  draw();
+
+  quiz(q('.cs-quiz'), () => {
+    const out: Question[] = [];
+    const r1 = randInt(2, 14);
+    out.push({ q: `Find the area of a circle of radius ${r1} cm.`, want: [Math.PI * r1 * r1], tol: 0.005, hint: 'cm²', work: `πr² = π × ${r1}² = ${fmt(Math.PI * r1 * r1, 2)} cm² (with 22/7: ${fmt((22 / 7) * r1 * r1, 2)}).` });
+    const d = 2 * randInt(2, 10);
+    out.push({ q: `A circular plate has diameter ${d} cm. What is its area?`, want: [Math.PI * (d / 2) ** 2], tol: 0.005, hint: 'cm²', work: `r = ${d}/2 = ${d / 2}; πr² = π × ${d / 2}² = ${fmt(Math.PI * (d / 2) ** 2, 2)} cm².` });
+    const r3 = 7 * randInt(1, 4);
+    out.push({ q: `A circle of radius ${r3} cm is cut into many slices and laid in a row. About how wide is the row?`, want: [Math.PI * r3], tol: 0.005, hint: 'cm', work: `Half the circumference: πr = π × ${r3} ≈ ${fmt(Math.PI * r3, 2)} cm (22/7 × ${r3} = ${(22 * r3) / 7}).` });
+    const k = randInt(2, 4);
+    out.push({ q: `If the radius of a circle is made ${k} times as big, how many times as big is its area?`, want: [k * k], work: `Area = πr². With ${k}r: π(${k}r)² = ${k * k}πr², so ${k * k} times.` });
+    return out;
+  });
+</script>

@@ -1,0 +1,195 @@
+---
+// Think-of-a-number tricks: run a trick with a number and with the letter n side by side, see bags (n) and counters
+// (1s) after each step, and why the answer never depends on n or how to read n back. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm at">
+  <div class="ax-card">
+    <h2>Pick a trick</h2>
+    <div class="ax-seg at-tricks" role="group" aria-label="Trick">
+      <button type="button" data-t="five" aria-pressed="true">Always 5</button><button type="button" data-t="three" aria-pressed="false">Always 3</button><button type="button" data-t="seven" aria-pressed="false">Always 7</button><button type="button" data-t="mind" aria-pressed="false">Mind reader</button><button type="button" data-t="back" aria-pressed="false">Back to you</button><button type="button" data-t="own" aria-pressed="false">Make your own</button>
+    </div>
+    <div class="at-own" hidden>
+      <p class="ax-help">Add steps one at a time. Use "your number" steps to make the n's cancel.</p>
+      <div class="ax-row">
+        <select class="at-op" aria-label="Step">
+          <option value="add">Add</option><option value="sub">Take away</option><option value="mul">Multiply by</option><option value="div">Divide by</option>
+          <option value="addn">Add your number</option><option value="subn">Take away your number</option>
+        </select>
+        <input type="number" class="at-k" value="4" step="1" inputmode="numeric" aria-label="By how much" style="max-width:6em" />
+        <button type="button" class="btn small at-add">Add step</button>
+        <button type="button" class="btn small secondary at-undo">Undo</button>
+        <button type="button" class="btn small secondary at-clear">Clear</button>
+      </div>
+      <p class="ax-err at-err" hidden></p>
+    </div>
+    <div class="sm-sl"><b>n</b><input type="range" class="at-nr" min="1" max="50" step="1" value="12" aria-label="Your number slider" /><input type="number" class="at-n" step="1" value="12" inputmode="decimal" aria-label="Your number" /></div>
+    <p class="ax-help">Your number. Try a few: the right-hand column (the algebra) does not change.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The trick, step by step</h2>
+    <div class="ax-scroll"><table class="at-tab">
+      <thead><tr><th>Step</th><th class="r">With <span class="at-nh">12</span></th><th>With n</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <p class="ax-help">Tap a row to see it as bags and counters below. A bag holds n counters; a red counter takes one away.</p>
+    <svg class="sm-fig at-fig" viewBox="0 0 340 150" role="img" aria-label="The expression as bags and counters"></svg>
+    <p class="sm-f at-cap" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Why it works</h2>
+    <p class="ax-big at-big" aria-live="polite"></p>
+    <p class="sm-f at-why"></p>
+    <div class="at-dec" hidden>
+      <div class="ax-row"><label style="flex:1 1 12em">Your friend's answer<input type="number" class="at-ans" inputmode="decimal" /></label></div>
+      <p class="sm-f at-dec-out" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Run "Always 5" with 3, then with 1000. Watch the right-hand column: the n's cancel in the last step.</li>
+      <li>In "Make your own", build a trick whose answer is always 10. Hint: multiply, add, divide by the same number, then take away your number.</li>
+      <li>Try the mind reader on a friend. Take 165 from their answer: the hundreds are their number.</li>
+      <li>Make a trick that divides by 3. Pick a number that gives a fraction on the way. Does the end still work?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="at-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .at .at-tricks { margin-bottom: 10px; }
+  .at .at-own { margin: 4px 0 10px; }
+  .at .at-op { width: auto; flex: 1 1 10em; }
+  .at .at-tab tbody tr { cursor: pointer; }
+  .at .at-tab tbody tr.on td { background: var(--accent-soft); }
+  .at .at-tab td:last-child { font-weight: 600; white-space: nowrap; }
+  .at svg .at-bag { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+  .at svg .at-dot { fill: var(--ink); }
+  .at svg .at-neg { fill: var(--bad); }
+  .at [hidden] { display: none !important; }
+</style>
+
+<script>
+  import { TRICKS, trace, at, linText, stepText, verdict, reveal, fval, ftext, F, type Step, type Lin } from '../../lib/sci/algebra-tricks';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, pair, val, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.at')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const N = q<HTMLInputElement>('.at-n');
+  pair(q('.at-nr'), N, draw);
+  let trick = 'five', own: Step[] = [{ op: 'mul', k: 3 }, { op: 'add', k: 30 }, { op: 'div', k: 3 }, { op: 'subn', k: 0 }], sel = -1;
+  const steps = () => (trick === 'own' ? own : TRICKS.find((t) => t.id === trick)!.steps);
+
+  root.querySelectorAll<HTMLButtonElement>('.at-tricks button').forEach((b) => b.addEventListener('click', () => {
+    trick = b.dataset.t!; sel = -1;
+    root.querySelectorAll('.at-tricks button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.at-own').hidden = trick !== 'own';
+    draw();
+  }));
+  q('.at-add').addEventListener('click', () => {
+    const op = q<HTMLSelectElement>('.at-op').value as Step['op'], k = Number(q<HTMLInputElement>('.at-k').value), err = q('.at-err');
+    const needK = op !== 'addn' && op !== 'subn';
+    if (needK && (!Number.isInteger(k) || Math.abs(k) > 1000)) { err.textContent = 'Use a whole number up to 1000.'; err.hidden = false; return; }
+    if (op === 'div' && k === 0) { err.textContent = "You can't divide by 0."; err.hidden = false; return; }
+    if (own.length >= 12) { err.textContent = 'That is plenty of steps (12 at most).'; err.hidden = false; return; }
+    err.hidden = true; own.push({ op, k: needK ? k : 0 }); sel = -1; draw();
+  });
+  q('.at-undo').addEventListener('click', () => { own.pop(); sel = -1; draw(); });
+  q('.at-clear').addEventListener('click', () => { own = []; sel = -1; draw(); });
+  q('.at-ans').addEventListener('input', decode);
+
+  function bags(e: Lin) {
+    const fig = q<SVGSVGElement>('.at-fig'); fig.replaceChildren();
+    const a = fval(e.a), b = fval(e.b);
+    const whole = Number.isInteger(a) && Number.isInteger(b) && a >= 0 && a <= 12 && Math.abs(b) <= 60;
+    if (!whole) {
+      S('text', { x: 170, y: 70, 'text-anchor': 'middle', style: 'font-weight:700' }, fig, linText(e));
+      S('text', { x: 170, y: 95, 'text-anchor': 'middle', class: 'sm-tick' }, fig, a > 12 ? 'Too many bags to draw.' : 'Fractions of a bag are hard to draw, so here is the algebra.');
+      return;
+    }
+    let x = 12, y = 14;
+    for (let i = 0; i < a; i++) {
+      if (x > 300) { x = 12; y += 44; }
+      S('path', { d: `M${x + 4},${y + 8} q-4,30 16,32 q20,-2 16,-32 z`, class: 'at-bag' }, fig);
+      S('text', { x: x + 20, y: y + 30, 'text-anchor': 'middle', style: 'font-weight:700' }, fig, 'n');
+      x += 42;
+    }
+    if (a > 0) { x += 6; }
+    const n = Math.abs(b), cls = b < 0 ? 'at-neg' : 'at-dot';
+    for (let i = 0; i < n; i++) {
+      if (x > 326) { x = 12; y += 18; if (a > 0 && y < 60) y = 60; }
+      S('circle', { cx: x + 6, cy: y + 8, r: 6, class: cls }, fig);
+      x += 15;
+    }
+    if (a === 0 && b === 0) S('text', { x: 170, y: 75, 'text-anchor': 'middle', style: 'font-weight:700' }, fig, 'Nothing left: 0');
+    const h = Math.max(80, y + 50); fig.setAttribute('viewBox', `0 0 340 ${h}`);
+  }
+
+  function draw() {
+    const n = val(N, 12), st = steps(), tr = trace(st);
+    q('.at-nh').textContent = fmt(n, 3);
+    const rows = tr.map((e, i) => {
+      const tr_ = document.createElement('tr');
+      const label = i === 0 ? 'Think of a number' : stepText(st[i - 1]);
+      for (const [t, cls] of [[label, ''], [fmt(at(e, n), 4), 'r'], [linText(e), '']] as const) { const td = document.createElement('td'); td.textContent = t; if (cls) td.className = cls; tr_.append(td); }
+      tr_.tabIndex = 0;
+      const pickRow = () => { sel = i; draw(); };
+      tr_.addEventListener('click', pickRow); tr_.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); pickRow(); } });
+      return tr_;
+    });
+    const s = sel < 0 || sel >= tr.length ? tr.length - 1 : sel;
+    rows[s].classList.add('on');
+    q('.at-tab tbody').replaceChildren(...rows);
+    bags(tr[s]);
+    q('.at-cap').textContent = `${s === 0 ? 'Start' : `After step ${s}`}: ${linText(tr[s])}${s === 0 ? ' (one bag)' : ''}.`;
+    const end = tr[tr.length - 1], v = verdict(end);
+    q('.at-dec').hidden = v.kind !== 'reveal';
+    if (st.length === 0) { q('.at-big').textContent = 'Add some steps'; q('.at-why').textContent = 'With no steps, the answer is just n, your own number.'; return; }
+    if (v.kind === 'constant') {
+      q('.at-big').textContent = `Always ${ftext(v.value)}`;
+      q('.at-why').textContent = `The steps turn n into ${linText(end)}. There is no n left, so whatever number you start with, the answer is ${ftext(v.value)}.`;
+    } else if (v.a.p === 1 && v.a.q === 1 && v.b.p === 0) {
+      q('.at-big').textContent = 'You get your own number back';
+      q('.at-why').textContent = 'Every step is undone by a later one, so the expression ends as n again.';
+    } else {
+      q('.at-big').textContent = `Answer = ${linText(end)}`;
+      const minus = v.b.p === 0 ? '' : `${v.b.p > 0 ? 'take away' : 'add'} ${ftext(F(Math.abs(v.b.p), v.b.q))}`;
+      const divide = v.a.p === v.a.q ? '' : `divide by ${ftext(v.a)}`;
+      q('.at-why').textContent = `The answer still has n in it, so it changes with the number. To read the number back, ${[minus, divide].filter(Boolean).join(', then ')}.`;
+    }
+    decode();
+  }
+
+  function decode() {
+    const end = trace(steps()).at(-1)!, out = q('.at-dec-out'), box = q<HTMLInputElement>('.at-ans');
+    if (verdict(end).kind !== 'reveal') return;
+    if (box.value.trim() === '' || !Number.isFinite(Number(box.value))) { out.textContent = 'Type the answer your friend says, and the page finds their number.'; return; }
+    const a = Number(box.value), n = reveal(end, a);
+    out.textContent = `Their number was ${fmt(n, 4)}. Check: ${linText(end).replace(/(\d)n/g, `$1 × ${fmt(n, 4)}`).replace(/n/g, fmt(n, 4))} → ${fmt(at(end, n), 4)}.`;
+  }
+  draw();
+
+  quiz(q('.at-quiz'), () => {
+    const out: Question[] = [];
+    const k = randInt(2, 5), m = randInt(2, 9);
+    out.push({ q: `Think of a number. Multiply by ${k}, add ${k * m}, divide by ${k}, then take away the number you thought of. What is the answer, whatever the number?`, want: [m], work: `n → ${k}n → ${k}n + ${k * m} → n + ${m} → ${m}. The n's cancel, so the answer is always ${m}.` });
+    const c = randInt(2, 9), n0 = randInt(3, 49), ans = (n0 * 2 + c) * 5;
+    out.push({ q: `A friend doubles a number, adds ${c}, then multiplies by 5, and gets ${ans}. What was the number?`, want: [n0], work: `(2n + ${c}) × 5 = 10n + ${5 * c}. So 10n = ${ans} − ${5 * c} = ${ans - 5 * c}, and n = ${n0}.` });
+    const a = randInt(2, 9), b = randInt(2, 6);
+    out.push({ q: `Start with n. Add ${a}, then multiply by ${b}. The expression is ${b}n + ?`, want: [a * b], work: `(n + ${a}) × ${b} = ${b}n + ${a * b}. Multiply both parts in the bracket.` });
+    const p = randInt(3, 12), r = randInt(1, Math.min(5, p - 1));
+    out.push({ q: `Add ${p} to your number, double it, take away ${2 * r}, halve it, then take away your number. What do you always get?`, want: [p - r], work: `n + ${p} → 2n + ${2 * p} → 2n + ${2 * p - 2 * r} → n + ${p - r} → ${p - r}.` });
+    return out;
+  });
+</script>
