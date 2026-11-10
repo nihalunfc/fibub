@@ -5,19 +5,19 @@ shelf: documents
 section: jobs
 code: T7
 title: "Free ATS resume checker: score your resume out of 100 (no upload)"
-summary: "See your resume the way hiring software reads it, get a score out of 100 with plain fixes, and match it to a job ad. PDF or Word."
+summary: "See your resume the way hiring software reads it, get a score out of 100, then fix the layout in one click and download it as PDF or Word."
 status: live
 ads: false
 order: 25
 related: [resume-builder, file-converter, linkedin-post-formatter, prompt-pruner, readability-checker]
 icon: resume
 works: offline
-updated: 2026-11-06
+updated: 2026-11-10
 flow:
   - { icon: resume, label: "Add resume" }
   - { icon: search, label: "Read as ATS" }
   - { icon: check, label: "Score /100" }
-  - { icon: sliders, label: "Fix list" }
+  - { icon: sliders, label: "Fix it" }
 ---
 
 ## What an ATS is, and why it matters
@@ -35,7 +35,19 @@ No resume yet, or want a clean start? The [[resume-builder]] makes a one-column 
 3. Read your score and the checks. Problems are listed first, biggest first, each with a one-line fix.
 4. Open "What the ATS sees" to read the plain text that was pulled from your file. If the order looks wrong there, it will look wrong to an employer's system too.
 
-Change your resume, save it, and check it again until you are happy. Starting from scratch? The [ATS resume builder](/documents/resume-builder/) makes a resume in this format for you, as PDF or Word.
+5. Press **Fix it for me** to get a clean copy (see below), or change your resume yourself, save it, and check it again until you are happy. Starting from scratch? The [ATS resume builder](/documents/resume-builder/) makes a resume in this format for you, as PDF or Word.
+
+## Fix it in one click
+
+Under your score, **Fix it for me** takes the text the checker read and lays it out again in the [[resume-builder]]'s one-column ATS style. It fixes the layout only:
+
+- two columns become one, read column by column so your jobs and skills don't get mixed up;
+- text in tables, text boxes and the Word page header moves into the main body;
+- creative headings get the standard names an ATS looks for ("Work History" becomes "Experience", "Core Skills" becomes "Skills");
+- every date is written the same way ("Jan 2023 – Present"), and a skills list with one skill per line becomes one comma-separated line;
+- icons and emoji are removed, bullets become real bullets, and the fonts are ones every system has.
+
+It never adds, rewords or summarises anything: every word in the new resume comes from your file. Points the score still asks for, such as numbers in your bullets or a missing section, need your own words. The builder then opens with your details in its boxes and shows the old score next to the new one. Check each section (the reader can put a line in the wrong box, and any line it could not place is shown so you can copy it), then press **Download PDF** or **Download Word**. A scanned PDF is read with OCR on your device first, so check its words closely.
 
 ## What each check means
 
@@ -61,5 +73,9 @@ Priya uploads a two-column PDF made from a design template and scores 58. The ch
 **PDF or Word?** Both are fine for most modern systems if the PDF is text-based (made with "Save as PDF", not scanned). If a job portal asks for Word, send .docx.
 
 **Why is my .doc file not accepted?** Old .doc files use a format that cannot be read reliably in the browser, and some ATS struggle with it too. Save it as .docx or PDF.
+
+**Does "Fix it for me" upload my resume?** No. The text moves from this page to the builder inside your browser tab, and is deleted from the tab's storage as soon as the builder reads it.
+
+**Will the fix change what my resume says?** No. It only moves your words into standard sections and one layout. If a date or job title lands in the wrong box, correct it in the builder before you download.
 
 **How is the score worked out?** Each check is worth a fixed number of points, weighted by how much it affects ATS reading. The score is the points earned out of the points available for your file type.

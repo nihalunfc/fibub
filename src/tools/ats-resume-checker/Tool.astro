@@ -21,6 +21,13 @@
         <p class="ats-sum"></p>
       </div>
     </div>
+    <div class="ats-fix">
+      <div>
+        <b class="ats-fix-h">Fix the layout in one click</b>
+        <p>Puts your own words into a clean, one-column ATS layout: standard headings, one date style, plain bullets, no columns, tables, text boxes or icons. Nothing is added or reworded. You check every field, see the new score, then download PDF or Word.</p>
+      </div>
+      <button type="button" class="btn ats-fixbtn">Fix it for me</button>
+    </div>
     <div class="ats-kw" hidden>
       <h3>Job ad keywords <span class="ats-kwp"></span></h3>
       <p class="ats-kwhint">Add the missing ones only if you really have them, using the job ad's own words.</p>
@@ -79,6 +86,11 @@
   .ats-chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .ats-chips span { font-size: 13px; padding: 3px 10px; border-radius: 999px; background: var(--good-soft); color: var(--good); }
   .ats-chips span.miss { background: var(--bad-soft); color: var(--bad); }
+  .ats-fix { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 16px; align-items: center; padding: 14px 16px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--accent-soft); }
+  .ats-fix b { font-size: 17px; }
+  .ats-fix p { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
+  .ats-fix.done { border-color: var(--good); background: var(--good-soft); }
+  @media (max-width: 560px) { .ats-fix { grid-template-columns: minmax(0, 1fr); } .ats-fixbtn { justify-self: start; } }
   .ats-actions { display: flex; flex-wrap: wrap; gap: 8px; }
   @media (max-width: 420px) { .ats-top { gap: 12px; } .ats-ring { width: 88px; height: 88px; } .ats-ring b { font-size: 26px; } }
 </style>
@@ -96,7 +108,8 @@
   const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
   const input = q<HTMLInputElement>('.ats-input'), drop = q('.ats-drop'), status = q('.ats-status'), err = q('.ats-error');
   const result = q('.ats-result'), jd = q<HTMLTextAreaElement>('.ats-jd');
-  let last: { x: Extracted; name: string; size: number } | null = null;
+  let last: { x: Extracted; name: string; size: number; score?: number } | null = null;
+  let file: File | null = null;
 
   const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
@@ -124,6 +137,9 @@
       q('.ats-chips').innerHTML = [...r.keywords.matched.map((k) => `<span>✓ ${esc(k)}</span>`), ...r.keywords.missing.map((k) => `<span class="miss">✕ ${esc(k)}</span>`)].join('');
     }
     q<HTMLTextAreaElement>('.ats-text').value = x.text.trim();
+    if (last) last.score = r.score;
+    q('.ats-fix').classList.toggle('done', r.score >= 90);
+    q('.ats-fix-h').textContent = r.score >= 90 ? 'Already in good shape. Want the clean layout anyway?' : 'Fix the layout in one click';
     result.hidden = false;
   }
 
@@ -135,6 +151,7 @@
 
   async function pick(f?: File) {
     if (!f) return;
+    file = f;
     err.hidden = true; result.hidden = true;
     if (f.size > 20e6) { err.hidden = false; err.textContent = 'This file is over 20 MB, which is far too big for a resume. Remove pictures and try again.'; return; }
     status.textContent = 'Reading your resume on this device…';
@@ -153,6 +170,53 @@
           : 'Sorry, this file could not be read. Use a PDF, Word (.docx), text or Markdown file.';
     }
   }
+
+  // ---------- one-click fix: hand the resume to the ATS resume builder ----------
+  // A scanned PDF has no text to move, so its pages are read with the shared OCR (on this device) first.
+  async function ocrPdf(f: File) {
+    const [{ loadPdfJs }, { recognise }] = await Promise.all([import('../../lib/compress/pdf'), import('../../lib/ocr')]);
+    const pdfjs = await loadPdfJs(), doc = await pdfjs.getDocument({ data: new Uint8Array(await f.arrayBuffer()), isEvalSupported: false }).promise;
+    let text = '';
+    try {
+      for (let i = 1; i <= doc.numPages; i++) {
+        const pg = await doc.getPage(i), v1 = pg.getViewport({ scale: 1 }), vp = pg.getViewport({ scale: Math.min(3, 2400 / Math.max(v1.width, v1.height)) });
+        const c = document.createElement('canvas'); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+        const x = c.getContext('2d')!; x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+        await pg.render({ canvasContext: x, viewport: vp }).promise;
+        const r = await recognise(c, 'eng', (p, s) => { status.textContent = `Reading the scanned page ${i} of ${doc.numPages} on this device (${/recogn/i.test(s) ? Math.round(p * 100) + '%' : 'loading the text reader, about 7 MB the first time'})…`; });
+        text += r.text + '\n\n';
+      }
+    } finally { await doc.destroy(); }
+    return text;
+  }
+  q('.ats-fixbtn').addEventListener('click', async () => {
+    if (!last) return;
+    const btn = q<HTMLButtonElement>('.ats-fixbtn');
+    btn.disabled = true; err.hidden = true;
+    try {
+      const x = last.x;
+      let text = x.reading ?? x.text, ocr = false;
+      if ((text.match(/[A-Za-z][A-Za-z'-]+/g) ?? []).length < 30) {
+        if (x.kind !== 'PDF' || !file) throw new Error('EMPTY');
+        text = await ocrPdf(file); ocr = true;
+        if ((text.match(/[A-Za-z][A-Za-z'-]+/g) ?? []).length < 30) throw new Error('EMPTY');
+      }
+      status.textContent = 'Laying out your resume…';
+      const { parseResume } = await import('../../lib/ats/parse');
+      const p = parseResume(text, { headerLines: x.headerLines, columns: x.columns, tables: x.tables, textBoxes: x.textBoxes });
+      if (ocr) p.changes.unshift('Your PDF was a scan (a picture of text), so its words were read with OCR on this device. Check them closely: OCR can misread a letter or two.');
+      const { paper, ...resume } = p.resume;
+      // Kept only in this tab for the next page, which reads it and deletes it at once.
+      sessionStorage.setItem('fibub-resume-import', JSON.stringify({ resume, changes: p.changes, unplaced: p.unplaced, before: last.score ?? null, file: last.name }));
+      location.href = '/documents/resume-builder/?from=ats';
+    } catch (e: any) {
+      console.error(e);
+      status.textContent = ''; err.hidden = false;
+      err.textContent = e?.message === 'EMPTY'
+        ? 'There is almost no text in this file to move into a new layout. If it is a picture, type your resume into the ATS resume builder instead.'
+        : 'Sorry, the fix did not work on this file. You can still copy the plain text below into the ATS resume builder.';
+    } finally { btn.disabled = false; }
+  });
 
   input.addEventListener('change', () => pick(input.files?.[0]));
   drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
