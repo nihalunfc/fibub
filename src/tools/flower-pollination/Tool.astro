@@ -1,0 +1,175 @@
+---
+// Flower parts and pollination: a cut-through drawing of a flower to tap and learn, a "find the part" game, and the
+// steps from pollination to seed and fruit (Class 12 adds the embryo sac and double fertilisation).
+// Teaching drawing, not to scale. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax sm fl">
+  <div class="ax-card">
+    <div class="ax-row">
+      <div class="ax-seg fl-mode" role="group" aria-label="Mode"><button type="button" data-m="parts" aria-pressed="true">Parts</button><button type="button" data-m="poll" aria-pressed="false">Pollination to seed</button></div>
+      <div class="ax-seg fl-level" role="group" aria-label="Level"><button type="button" data-level="10" aria-pressed="true">Class 9–10</button><button type="button" data-level="12" aria-pressed="false">Class 12</button></div>
+    </div>
+    <svg class="sm-fig fl-fig" viewBox="0 0 340 260" role="img" aria-label="A flower cut down the middle"></svg>
+    <div class="fl-partsui">
+      <p class="sm-f fl-cap" aria-live="polite">Tap any part of the flower.</p>
+      <div class="ax-row"><button type="button" class="btn small fl-find">Find a part</button><span class="ax-help fl-score" style="margin:0" aria-live="polite"></span></div>
+    </div>
+    <div class="fl-pollui" hidden>
+      <div class="ax-seg fl-kind" role="group" aria-label="Pollination"><button type="button" data-k="cross" aria-pressed="true">Cross-pollination</button><button type="button" data-k="self" aria-pressed="false">Self-pollination</button></div>
+      <label class="fl-tl">Stage <input type="range" class="fl-t" min="0" max="1" step="0.01" value="0" aria-label="Stage" /></label>
+      <div class="ax-row"><button type="button" class="btn small fl-play">Play</button></div>
+      <p class="sm-f fl-step" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>The parts</h2>
+    <div class="ax-scroll"><table class="fl-tab"><thead><tr><th>Part</th><th>Belongs to</th><th>Job</th></tr></thead><tbody></tbody></table></div>
+    <div class="fl-sac" hidden>
+      <h3>Inside the ovule (Class 12)</h3>
+      <p class="ax-help">The mature embryo sac (the common type) has 7 cells and 8 nuclei: egg cell and 2 synergids at one end, 3 antipodal cells at the other, and a large central cell with 2 polar nuclei.</p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Tap the four parts of the pistil from top to bottom. Which one becomes the fruit?</li>
+      <li>Play cross-pollination. What carries the pollen? What else could?</li>
+      <li>Which part becomes the seed? Watch the last stage.</li>
+      <li>Class 12: why is the endosperm 3n while the zygote is 2n?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card fl-quiz"><h2>Check yourself</h2></div>
+</div>
+
+<style is:inline>
+  .fl .fl-level { margin-left: auto; }
+  .fl .fl-fig { margin-top: 10px; }
+  .fl .fl-kind { margin: 8px 0; }
+  .fl .fl-tl { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; color: var(--ink); font-size: 15px; margin: 6px 0; }
+  .fl .fl-tl input { width: 100%; height: 32px; accent-color: var(--accent); }
+  .fl svg [data-part] { cursor: pointer; }
+  .fl svg .p-sepal { fill: var(--good-soft); stroke: var(--good); stroke-width: 2; }
+  .fl svg .p-petal { fill: var(--bad-soft); stroke: var(--bad); stroke-width: 2; }
+  .fl svg .p-filament { stroke: var(--ink); stroke-width: 3; }
+  .fl svg .p-anther { fill: var(--warn); stroke: var(--ink); stroke-width: 1.5; }
+  .fl svg .p-stigma { fill: var(--accent); stroke: var(--ink); stroke-width: 1.5; }
+  .fl svg .p-style { fill: var(--accent-soft); stroke: var(--ink); stroke-width: 1.5; }
+  .fl svg .p-ovary { fill: var(--accent-soft); stroke: var(--ink); stroke-width: 2; }
+  .fl svg .p-ovule { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+  .fl svg .p-receptacle { fill: var(--good-soft); stroke: var(--good); stroke-width: 2; }
+  .fl svg .p-stalk { fill: var(--good); }
+  .fl svg .on { stroke: var(--ink) !important; stroke-width: 4 !important; filter: drop-shadow(0 0 3px var(--accent)); }
+  .fl svg .fl-pollen { fill: var(--warn); stroke: var(--ink); stroke-width: .8; }
+  .fl svg .fl-tube { stroke: var(--warn); stroke-width: 2.5; fill: none; }
+  .fl svg .fl-bee { fill: var(--warn); stroke: var(--ink); stroke-width: 1.5; }
+  .fl svg .fl-fade { opacity: .2; }
+  .fl svg .fl-seed { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 2; }
+  .fl svg .fl-fert { fill: var(--good); stroke: var(--ink); stroke-width: 1.5; }
+  .fl svg .fl-sacb { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+  .fl svg .fl-sm { font-size: 10px !important; }
+  .fl [hidden] { display: none !important; }
+</style>
+
+<script>
+  import { PARTS, part, stageText, type Level } from '../../lib/sci/flower';
+  import { S } from '../../lib/smath-ui';
+  import { mountQuiz, wireLevel, one, type QItem } from '../../lib/learnquiz-d';
+
+  const root = document.querySelector<HTMLElement>('.fl')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.fl-fig'), T = q<HTMLInputElement>('.fl-t');
+  let mode = 'parts', level: Level = '10', cross = true, sel = '', want = '', right = 0, tries = 0, raf = 0;
+
+  q('.fl-tab tbody').replaceChildren(...PARTS.map((p) => { const tr = document.createElement('tr'); for (const c of [p.name, p.group, p.job]) tr.append(Object.assign(document.createElement('td'), { textContent: c })); return tr; }));
+
+  function flower(t: number) {
+    fig.replaceChildren();
+    const after = mode === 'poll' && t >= 0.8, fade = after ? ' fl-fade' : '';
+    const P = (tag: 'path' | 'ellipse' | 'rect' | 'line' | 'circle', a: Record<string, string | number>, id: string, extra = '') => S(tag, { ...a, class: `p-${id}${sel === id ? ' on' : ''}${extra}`, 'data-part': id }, fig);
+    S('rect', { x: 165, y: 230, width: 10, height: 30, class: 'p-stalk' }, fig);
+    P('path', { d: 'M150,220 Q118,214 96,236 Q128,238 158,226 Z' }, 'sepal'); P('path', { d: 'M190,220 Q222,214 244,236 Q212,238 182,226 Z' }, 'sepal');
+    P('path', { d: 'M146,214 Q70,190 52,112 Q110,120 152,206 Z' }, 'petal', fade); P('path', { d: 'M194,214 Q270,190 288,112 Q230,120 188,206 Z' }, 'petal', fade);
+    for (const [x1, x2, y2] of [[150, 124, 112], [158, 142, 128], [182, 198, 128], [190, 216, 112]]) { P('line', { x1, y1: 214, x2, y2 }, 'filament', fade); P('ellipse', { cx: x2, cy: y2 - 10, rx: 7, ry: 12 }, 'anther', fade); }
+    P('ellipse', { cx: 170, cy: 222, rx: 36, ry: 11 }, 'receptacle');
+    const grow = after ? Math.min(1, (t - 0.8) / 0.2) : 0;
+    P('ellipse', { cx: 170, cy: 188, rx: 26 + 14 * grow, ry: 28 + 8 * grow }, 'ovary');
+    P('rect', { x: 166, y: 90, width: 8, height: 72 }, 'style', after ? ' fl-fade' : '');
+    P('ellipse', { cx: 170, cy: 86, rx: 15, ry: 8 }, 'stigma', after ? ' fl-fade' : '');
+    for (const y of [176, 200]) P('ellipse', { cx: 170, cy: y, rx: 7 + 4 * grow, ry: 9 + 3 * grow }, 'ovule', mode === 'poll' && t >= 0.55 && y === 176 ? (after ? ' fl-seed' : ' fl-fert') : after ? ' fl-seed' : '');
+    if (mode !== 'poll') return;
+    // Pollination: pollen arrives, a tube grows down the style to the top ovule.
+    const arrive = Math.min(1, t / 0.22), from = cross ? [24, 40] : [124, 98];
+    if (t < 0.25 && cross) { const bx = 24 + (150 - 24) * arrive, by = 40 + (70 - 40) * arrive; S('ellipse', { cx: bx, cy: by, rx: 14, ry: 9, class: 'fl-bee' }, fig); S('line', { x1: bx - 4, y1: by - 9, x2: bx - 4, y2: by + 9, class: 'p-filament' }, fig); S('line', { x1: bx + 4, y1: by - 9, x2: bx + 4, y2: by + 9, class: 'p-filament' }, fig); }
+    for (let i = 0; i < 4; i++) { const k = Math.max(0, Math.min(1, arrive * 1.2 - i * 0.07)); S('circle', { cx: from[0] + (164 + i * 4 - from[0]) * k, cy: from[1] + (80 - from[1]) * k, r: 3, class: 'fl-pollen' }, fig); }
+    if (t >= 0.25 && t < 0.8) { const g = Math.min(1, (t - 0.25) / 0.3); S('path', { d: `M168,84 L168,${84 + (170 - 84) * g}`, class: 'fl-tube' }, fig); }
+    if (level === '12' && t >= 0.4 && t < 0.8) {
+      // Inset: the embryo sac.
+      S('ellipse', { cx: 292, cy: 196, rx: 44, ry: 26, class: 'fl-sacb' }, fig);
+      S('text', { x: 292, y: 164, 'text-anchor': 'middle', class: 'fl-sm' }, fig, 'Embryo sac (zoomed)');
+      const fused = t >= 0.55;
+      for (const [x, y, lab] of [[260, 188, 's'], [260, 204, 's'], [272, 196, 'egg']] as [number, number, string][]) S('circle', { cx: x, cy: y, r: lab === 'egg' ? 7 : 5, class: lab === 'egg' && fused ? 'fl-fert' : 'p-ovule' }, fig);
+      for (const [x, y] of [[322, 186], [326, 198], [320, 208]]) S('circle', { cx: x, cy: y, r: 4.5, class: 'p-ovule' }, fig);
+      if (fused) S('circle', { cx: 294, cy: 196, r: 6, class: 'fl-fert' }, fig); else { S('circle', { cx: 290, cy: 196, r: 3.5, class: 'p-ovule' }, fig); S('circle', { cx: 298, cy: 196, r: 3.5, class: 'p-ovule' }, fig); }
+      S('text', { x: 292, y: 236, 'text-anchor': 'middle', class: 'fl-sm' }, fig, fused ? 'zygote 2n · endosperm 3n' : 'egg, synergids · polar nuclei · antipodals');
+    }
+    if (after) { S('text', { x: 170, y: 252, 'text-anchor': 'middle', style: 'font-weight:700' }, fig, 'Ovary → fruit, ovule → seed'); }
+  }
+
+  function draw() {
+    const t = Number(T.value);
+    flower(t);
+    if (mode === 'poll') q('.fl-step').textContent = stageText(level, cross, t);
+  }
+  fig.addEventListener('click', (e) => {
+    if (mode !== 'parts') return;
+    const el = (e.target as Element).closest('[data-part]'); if (!el) return;
+    const id = el.getAttribute('data-part')!, p = part(id);
+    if (want) {
+      tries++; const ok = id === want; if (ok) right++;
+      q('.fl-cap').textContent = ok ? `Yes, that is the ${p.name.toLowerCase()}. ${p.job}` : `That is the ${p.name.toLowerCase()}. The ${part(want).name.toLowerCase()} is now outlined.`;
+      sel = want; want = ''; q('.fl-score').textContent = `${right} of ${tries} found. Nothing is saved.`;
+    } else { sel = id; q('.fl-cap').textContent = `${p.name} (${p.group}): ${p.job}`; }
+    draw();
+  });
+  q('.fl-find').addEventListener('click', () => {
+    let id = want; while (id === want || id === sel) id = PARTS[Math.floor(Math.random() * PARTS.length)].id;
+    want = id; sel = ''; q('.fl-cap').textContent = `Tap the ${part(id).name.toLowerCase()}.`; draw();
+  });
+  root.querySelectorAll<HTMLButtonElement>('.fl-mode button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m!; root.querySelectorAll('.fl-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.fl-partsui').hidden = mode !== 'parts'; q('.fl-pollui').hidden = mode !== 'poll'; sel = ''; want = ''; cancelAnimationFrame(raf); draw();
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.fl-kind button').forEach((b) => b.addEventListener('click', () => {
+    cross = b.dataset.k === 'cross'; root.querySelectorAll('.fl-kind button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); T.value = '0'; draw();
+  }));
+  T.addEventListener('input', draw);
+  q('.fl-play').addEventListener('click', () => {
+    cancelAnimationFrame(raf);
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { T.value = '1'; draw(); return; }
+    const t0 = performance.now(); const step = (now: number) => { const k = Math.min(1, (now - t0) / 6000); T.value = String(k); draw(); if (k < 1) raf = requestAnimationFrame(step); }; raf = requestAnimationFrame(step);
+  });
+  wireLevel(root, (l) => { level = l as Level; q('.fl-sac').hidden = level !== '12'; draw(); });
+
+  mountQuiz(q('.fl-quiz'), () => {
+    const out: QItem[] = [];
+    const names = PARTS.map((p) => p.name), pickPart = () => one(PARTS.filter((p) => p.id !== 'receptacle'));
+    for (const p of [pickPart(), pickPart()]) {
+      const wrong = names.filter((n) => n !== p.name).sort(() => Math.random() - 0.5).slice(0, 2), ch = [p.name, ...wrong].sort(() => Math.random() - 0.5);
+      out.push({ q: `Which part: "${p.job}"`, ans: ch.indexOf(p.name), choices: ch, work: `${p.name}, part of the ${p.group.toLowerCase()}.` });
+    }
+    out.push({ q: 'After fertilisation, what does the ovary become?', ans: 1, choices: ['The seed', 'The fruit', 'The petal'], work: 'The ovary becomes the fruit; the ovules inside become the seeds.' });
+    if (level === '12') out.push(one([
+      { q: 'How many nuclei are there in a mature embryo sac (the common type)?', ans: 8, work: 'Egg 1 + synergids 2 + antipodals 3 + polar nuclei 2 = 8 nuclei in 7 cells.' },
+      { q: 'The primary endosperm nucleus is how many times n (its ploidy)?', ans: 3, work: 'One male gamete (n) fuses with two polar nuclei (n + n): 3n.' },
+      { q: 'How many male gametes does one pollen tube carry?', ans: 2, work: 'Two: one fuses with the egg, the other with the polar nuclei (double fertilisation).' },
+    ]));
+    else out.push({ q: 'Pollen moving from the anther to the stigma of a different flower of the same kind is called ...', ans: 0, choices: ['Cross-pollination', 'Self-pollination', 'Fertilisation'], work: 'Cross-pollination; it needs an agent such as insects, wind, water or birds.' });
+    return out;
+  });
+</script>
