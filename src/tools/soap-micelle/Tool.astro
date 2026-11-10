@@ -1,0 +1,161 @@
+---
+// Soap, micelles and hard water: add soap (or detergent) molecules to soft or hard water with an oil drop and see
+// them wrap the oil into a micelle, or get caught by Ca²⁺ ions as scum; then the three-tube lather test. A
+// counting model, not lab data. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/chemquiz.css';
+import { TUBES } from '../../lib/sci/soap-school';
+---
+<div class="ax sw">
+  <div class="ax-card">
+    <h2>Inside the wash</h2>
+    <div class="ax-row">
+      <div class="ax-seg sw-water" role="group" aria-label="Water"><button type="button" data-w="0" aria-pressed="true">Soft water</button><button type="button" data-w="5" aria-pressed="false">Hard water</button></div>
+      <div class="ax-seg sw-kind" role="group" aria-label="Cleaner"><button type="button" data-k="soap" aria-pressed="true">Soap</button><button type="button" data-k="detergent" aria-pressed="false">Detergent</button></div>
+    </div>
+    <svg class="sw-fig" viewBox="0 0 320 230" role="img" aria-label="Water with an oil drop, soap molecules and any hardness ions"></svg>
+    <p class="ax-help">Each soap molecule is drawn as a round head that likes water (ionic, –COO⁻ Na⁺) and a long tail that likes oil (a hydrocarbon chain).</p>
+    <div class="ax-row"><button type="button" class="btn sw-add">Add 2 molecules</button><button type="button" class="btn secondary small sw-rinse">Rinse</button><button type="button" class="btn secondary small sw-reset">Start again</button></div>
+    <p class="ax-big sw-big" aria-live="polite"></p>
+    <ul class="lx-try sw-say"></ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Lather test with three test tubes</h2>
+    <div class="ax-seg sw-tkind" role="group" aria-label="Cleaner for the test"><button type="button" data-k="soap" aria-pressed="true">Soap solution</button><button type="button" data-k="detergent" aria-pressed="false">Detergent solution</button></div>
+    <svg class="sw-tubes" viewBox="0 0 320 190" role="img" aria-label="Three test tubes with lather"></svg>
+    <div class="ax-row"><button type="button" class="btn sw-drop">Add a drop to each and shake</button><button type="button" class="btn secondary small sw-treset">Empty the tubes</button></div>
+    <div class="ax-scroll"><table class="sw-tab"><thead><tr><th>Tube</th><th class="r">Drops</th><th class="r">Lather (cm)</th><th>Scum?</th></tr></thead><tbody></tbody></table></div>
+    <p class="ax-help">Model numbers: tap water has 2 hardness ions per tube and hard water 6. Each ion uses up 2 soap molecules.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lx-try">
+      <li>Soft water and soap: how many molecules do you need before the oil is wrapped up?</li>
+      <li>Switch to hard water. Where do the first molecules go?</li>
+      <li>Run the lather test with soap, then with detergent. Which tube changes most?</li>
+      <li>Why does washing with soap in hard water waste soap and leave a grey layer on clothes?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="cq"><ol class="cq-list"></ol><button type="button" class="btn secondary small cq-new">New questions</button></div>
+  </div>
+</div>
+
+<style is:inline>
+  .sw .sw-fig, .sw .sw-tubes { display: block; width: 100%; height: auto; margin: 12px 0 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+  .sw svg text { font: 12px system-ui, sans-serif; fill: var(--ink); }
+  .sw svg .sw-water { fill: var(--accent-soft); }
+  .sw svg .sw-oil { fill: var(--warn); opacity: 0.8; }
+  .sw svg .sw-mol { transition: transform 0.7s ease; }
+  .sw svg .sw-head { fill: var(--accent); }
+  .sw svg .sw-tail { stroke: var(--ink); stroke-width: 2.2; stroke-linecap: round; }
+  .sw svg .sw-ion { fill: var(--good); }
+  .sw svg .sw-scum { fill: var(--muted); }
+  .sw svg .sw-glass { fill: none; stroke: var(--ink); stroke-width: 2; }
+  .sw svg .sw-foam { fill: var(--bg); stroke: var(--muted); stroke-width: 1; }
+  .sw svg .sw-liq { fill: var(--accent-soft); }
+</style>
+
+<script>
+  import { wash, TUBES, ring, CMC, type Cleaner } from '../../lib/sci/soap-school';
+  import { mountQuiz, near, rint, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.sw')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const NS = 'http://www.w3.org/2000/svg', fig = q<SVGSVGElement>('.sw-fig'), tubes = q<SVGSVGElement>('.sw-tubes');
+  const mk = (tag: string, a: Record<string, string | number>, parent: Element, text?: string) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(a)) e.setAttribute(k, String(v)); if (text !== undefined) e.textContent = text; parent.append(e); return e; };
+  let ions = 0, kind: Cleaner = 'soap', n = 0, rinsed = false;
+  const MAX = 24;
+  const mols: SVGGElement[] = [];
+
+  function seg(sel: string, on: (b: HTMLButtonElement) => void) {
+    root.querySelectorAll<HTMLButtonElement>(`${sel} button`).forEach((b) => b.addEventListener('click', () => { root.querySelectorAll(`${sel} button`).forEach((x) => x.setAttribute('aria-pressed', String(x === b))); on(b); }));
+  }
+  seg('.sw-water', (b) => { ions = Number(b.dataset.w); reset(); });
+  seg('.sw-kind', (b) => { kind = b.dataset.k as Cleaner; reset(); });
+
+  function base() {
+    fig.replaceChildren(); mols.length = 0;
+    mk('rect', { x: 0, y: 20, width: 320, height: 210, class: 'sw-water' }, fig);
+    mk('text', { x: 8, y: 14 }, fig, ions ? 'Hard water: Ca²⁺ ions (green)' : 'Soft water');
+    for (let i = 0; i < MAX; i++) {
+      const g = mk('g', { class: 'sw-mol' }, fig) as SVGGElement;
+      mk('line', { x1: 0, y1: 0, x2: 0, y2: 18, class: 'sw-tail' }, g); mk('circle', { cx: 0, cy: 0, r: 5, class: 'sw-head' }, g);
+      g.style.transform = 'translate(-40px, -40px)'; mols.push(g);
+    }
+  }
+  const at = (g: SVGGElement, x: number, y: number, deg: number) => { g.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) rotate(${deg.toFixed(1)}deg)`; };
+
+  function draw() {
+    // Remove the old ions, scum and oil, keep the molecule groups so they can glide.
+    fig.querySelectorAll('.sw-x').forEach((e) => e.remove());
+    const W = wash(n, ions, kind), cx = rinsed ? 300 : 160, cy = 120;
+    const layer = document.createElementNS(NS, 'g'); layer.setAttribute('class', 'sw-x'); fig.insertBefore(layer, fig.children[2]);
+    const oilR = W.micelles ? 20 : 26;
+    if (!rinsed || !W.micelles) mk('circle', { cx: W.micelles ? cx : 160, cy, r: oilR, class: 'sw-oil' }, layer);
+    mk('text', { x: 160, y: cy + 4, 'text-anchor': 'middle', style: 'font-weight:700' }, layer, rinsed && W.micelles ? '' : 'oil');
+    // Free ions float about; used ones sit in scum at the bottom.
+    for (let i = 0; i < ions - W.scum; i++) { mk('circle', { cx: 30 + i * 52, cy: 60 + (i % 2) * 18, r: 7, class: 'sw-ion' }, layer); mk('text', { x: 30 + i * 52 + 9, y: 58 + (i % 2) * 18 }, layer, 'Ca²⁺'); }
+    for (let i = 0; i < W.scum; i++) { const x = 30 + i * 52; mk('ellipse', { cx: x, cy: 214, rx: 20, ry: 8, class: 'sw-scum' }, layer); mk('circle', { cx: x, cy: 214, r: 5, class: 'sw-ion' }, layer); }
+    // Molecules: scum pairs at the bottom, then a micelle round the oil (up to 14), the rest at the surface.
+    let k = 0;
+    for (let i = 0; i < W.scum; i++) { const x = 30 + i * 52; at(mols[k++], x - 9, 206, 60); at(mols[k++], x + 9, 206, -60); }
+    const inRing = W.micelles ? Math.min(W.free, 14) : 0, rr = ring(inRing, cx, cy, oilR + 18);
+    rr.forEach((p) => { at(mols[k++], p.x, p.y, (p.angle * 180) / Math.PI - 90); });
+    const surface = W.free - inRing;
+    for (let i = 0; i < surface && k < MAX; i++) at(mols[k++], 14 + i * 22, 22, 180);
+    while (k < MAX) at(mols[k++], -40, -40, 0);
+    const say: string[] = [];
+    if (n === 0) say.push('No cleaner yet: oil and water do not mix, so the oil drop just sits there.');
+    if (W.scum) say.push(`${W.scum} Ca²⁺ ion${W.scum > 1 ? 's have' : ' has'} taken ${2 * W.scum} soap molecules out as grey scum (calcium salt of the soap), which sinks and does nothing.`);
+    if (n && !W.micelles) say.push(`${W.free} free molecule${W.free === 1 ? '' : 's'}: not yet enough to wrap the oil (this model needs ${CMC}).`);
+    if (W.micelles) say.push(`The tails dig into the oil and the heads face the water: a micelle. ${surface > 0 ? `${surface} more sit at the surface and make lather.` : ''}`);
+    if (rinsed && W.micelles) say.push('Rinse: the water carries the micelle, with the oil inside, away. The cloth is clean.');
+    if (kind === 'detergent' && ions) say.push('Detergent heads (–SO₃⁻) do not make scum with Ca²⁺, so detergent works in hard water too.');
+    q('.sw-say').replaceChildren(...say.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+    q('.sw-big').textContent = `${n} ${kind} molecules: ${W.scum ? `${2 * W.scum} lost to scum, ` : ''}${W.free} free${W.micelles ? ', oil wrapped in a micelle' : ''}`;
+    q<HTMLButtonElement>('.sw-add').disabled = n >= MAX;
+  }
+  function reset() { n = 0; rinsed = false; base(); draw(); }
+  q('.sw-add').addEventListener('click', () => { n = Math.min(MAX, n + 2); rinsed = false; draw(); });
+  q('.sw-rinse').addEventListener('click', () => { rinsed = true; draw(); });
+  q('.sw-reset').addEventListener('click', reset);
+  reset();
+
+  // Three-tube lather test.
+  let tkind: Cleaner = 'soap', drops = 0;
+  seg('.sw-tkind', (b) => { tkind = b.dataset.k as Cleaner; drops = 0; tubesDraw(); });
+  function tubesDraw() {
+    tubes.replaceChildren();
+    const tb = q('.sw-tab tbody'); tb.replaceChildren();
+    TUBES.forEach((t, i) => {
+      const W = wash(drops, t.ions, tkind), x = 50 + i * 110;
+      mk('rect', { x: x - 18, y: 100, width: 36, height: 70, class: 'sw-liq' }, tubes);
+      const foam = Math.min(70, W.lather * 7);
+      if (foam) mk('rect', { x: x - 18, y: 100 - foam, width: 36, height: foam, class: 'sw-foam' }, tubes);
+      if (W.scum) for (let s = 0; s < Math.min(W.scum, 6); s++) mk('circle', { cx: x - 12 + (s % 3) * 12, cy: 162 - Math.floor(s / 3) * 6, r: 4, class: 'sw-scum' }, tubes);
+      mk('path', { d: `M${x - 18},20 L${x - 18},170 Q${x},186 ${x + 18},170 L${x + 18},20`, class: 'sw-glass' }, tubes);
+      mk('text', { x, y: 14, 'text-anchor': 'middle' }, tubes, ['Distilled', 'Tap', 'Hard'][i]);
+      const tr = document.createElement('tr');
+      [t.name, String(drops), String(W.lather), W.scum ? 'yes' : 'no'].forEach((v, j) => { const td = document.createElement('td'); td.textContent = v; if (j === 1 || j === 2) td.className = 'r'; tr.append(td); });
+      tb.append(tr);
+    });
+  }
+  q('.sw-drop').addEventListener('click', () => { drops = Math.min(30, drops + 1); tubesDraw(); });
+  q('.sw-treset').addEventListener('click', () => { drops = 0; tubesDraw(); });
+  tubesDraw();
+
+  mountQuiz(q('.cq'), () => {
+    const a = rint(2, 9), s = 2 * a + rint(1, 8), b = rint(1, 9);
+    const out: Question[] = [
+      { q: `In this model a tube of hard water has ${a} Ca²⁺ ions. How many soap molecules end up in scum?`, answer: String(2 * a), ok: near(2 * a, 0), worked: `Each Ca²⁺ ion joins 2 soap anions (scum is Ca(RCOO)₂), so ${a} × 2.`, hint: 'a whole number' },
+      { q: `${s} soap molecules go into water with ${a} Ca²⁺ ions. How many are left free to clean?`, answer: String(s - 2 * a), ok: near(s - 2 * a, 0), worked: `${2 * a} are lost to scum, so ${s} − ${2 * a}.`, hint: 'a whole number' },
+      { q: `How many detergent molecules are lost to scum in water with ${b} Ca²⁺ ions?`, answer: '0', ok: (t: string) => t.trim() === '0', worked: 'Detergents do not form scum with calcium or magnesium ions.', hint: 'a whole number' },
+    ];
+    return out;
+  });
+</script>
