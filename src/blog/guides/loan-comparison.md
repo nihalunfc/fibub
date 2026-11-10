@@ -51,7 +51,7 @@ The tool shows:
 | Total paid back | 24,619.84 | 24,874.28 | 24,631.67 |
 | Cost of borrowing | 4,619.84 | 4,874.28 | 4,631.67 |
 | APR | 8.50% | 9.20% | 8.52% |
-| Verdict | Lowest cost | +254.44 | +11.83 |
+| Verdict | Lowest cost | +254.44 | +11.84 |
 
 Offer B has the lowest rate and the lowest payment, yet it is the most expensive. The 600 fee means Maya gets only 19,400 of real money while repaying a 20,000 loan, and that pushes its APR to about 9.20%. Offer C's 5 a month adds 300 over 60 months, which almost cancels its lower rate.
 
