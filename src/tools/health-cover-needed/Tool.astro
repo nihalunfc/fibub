@@ -1,0 +1,104 @@
+---
+// #T880 How much health insurance cover do I need?
+import InsuranceNote from '../../components/InsuranceNote.astro';
+---
+<div class="tool-ui hcn">
+  <InsuranceNote />
+  <section class="panel">
+    <h2>Your numbers</h2>
+    <p class="hcn-hint">Example numbers: change them to yours.</p>
+    <div class="hcn-grid">
+      <label>Currency <select class="hcn-cur" data-k="cur"></select></label>
+      <label>Cost of one serious hospital stay today <input data-k="stay" inputmode="decimal" /></label>
+      <label>Such stays in one bad year <select data-k="stays"><option>1</option><option>2</option><option>3</option></select></label>
+      <label>Family members on a floater <input data-k="fam" inputmode="decimal" /></label>
+      <label>Medical price rise a year <span class="hcn-suf"><input data-k="g" inputmode="decimal" /><i>%</i></span></label>
+      <label>Years ahead <input data-k="years" inputmode="decimal" /></label>
+      <label>Your own cover now <input data-k="own" inputmode="decimal" /></label>
+      <label>Employer cover now <input data-k="emp" inputmode="decimal" /></label>
+      <label class="hcn-chk"><span><input type="checkbox" data-k="ends" checked /> Employer cover ends if I leave the job</span></label>
+    </div>
+    <p class="hcn-hint">Medical price rise: look up the official series for your country, no figure is built in. <a href="https://mospi.gov.in/" rel="noopener">India MoSPI CPI (health)</a>, <a href="https://www.bls.gov/cpi/" rel="noopener">US BLS CPI medical care</a>, <a href="https://www.statcan.gc.ca/" rel="noopener">Statistics Canada CPI health and personal care</a>. Checked 2026-11-10, check the official source.</p>
+    <p class="note bad hcn-err" role="alert" hidden></p>
+  </section>
+  <section class="hcn-res" aria-live="polite">
+    <div class="hcn-stats">
+      <div><span>Cover needed today</span><b class="hcn-s-now"></b></div>
+      <div><span class="hcn-lab-fut">Cover needed later</span><b class="hcn-s-fut"></b></div>
+      <div><span>Gap now, with your cover</span><b class="hcn-s-gap"></b></div>
+      <div><span class="hcn-lab-end">Gap if employer cover ends</span><b class="hcn-s-end"></b></div>
+    </div>
+    <p class="hcn-words"></p>
+    <div class="panel"><h2>Need and cover over the years</h2><div class="hcn-svg"></div><div class="hcn-leg"></div></div>
+  </section>
+  <p class="hcn-fine">How it is worked out: cover needed = cost of one stay × number of stays × (1 + price rise)^years. The gap is the need minus your cover, or nothing if you are covered. Your cover is held flat here, so the chart shows how a growing need outruns it. A floater shares one sum insured between family members, which is why more stays in a bad year make sense for a bigger family. It ignores co-pay, room-rent limits and items a policy does not cover. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .hcn { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .hcn > *, .hcn-res > * { min-width: 0; }
+  .hcn h2 { margin: 0 0 12px; font-size: 18px; }
+  .hcn .panel { padding: 16px; }
+  .hcn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; margin-bottom: 8px; }
+  .hcn label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .hcn label.hcn-chk span { display: flex; gap: 8px; align-items: center; color: var(--ink); padding-top: 20px; }
+  .hcn input, .hcn select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .hcn input[type="checkbox"] { width: auto; }
+  .hcn input:focus, .hcn select:focus { border-color: var(--accent); outline: none; }
+  .hcn-suf { position: relative; display: block; }
+  .hcn-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .hcn-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .hcn-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 10px; }
+  .hcn-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); align-content: start; }
+  .hcn-stats span { font-size: 13px; color: var(--muted); }
+  .hcn-stats b { font-size: clamp(17px, 3.4vw, 22px); overflow-wrap: anywhere; }
+  .hcn-words { margin: 0; font-size: 15px; }
+  .hcn-hint, .hcn-fine { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+  .hcn-leg { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .hcn-leg .lg { display: inline-flex; gap: 6px; align-items: center; }
+</style>
+
+<script>
+  import { lineSvg, legend } from '../../lib/money/chart';
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.hcn')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const cur = defaultCurrency();
+  q('.hcn-cur').innerHTML = currencyOptions(cur);
+  const inr = cur === 'INR';
+  const def: Record<string, string> = { stay: inr ? '5,00,000' : '50,000', fam: '2', g: '7', years: '5', own: inr ? '5,00,000' : '50,000', emp: inr ? '3,00,000' : '30,000' };
+  for (const k in def) f(k).value = def[k];
+  const $ = (n: number) => money(n, f('cur').value, 0);
+  function run() {
+    const stay = num(f('stay').value), stays = num(f('stays').value), fam = Math.round(num(f('fam').value));
+    const g = num(f('g').value), years = Math.round(num(f('years').value));
+    const own = num(f('own').value), emp = num(f('emp').value), ends = f('ends').checked;
+    const bad = stay <= 0 ? 'Enter what one serious hospital stay costs today.' : !(fam >= 1 && fam <= 20) ? 'Enter 1 to 20 family members.' : !(g >= -5 && g <= 50) ? 'Enter a price rise from -5 to 50.' : !(years >= 0 && years <= 40) ? 'Enter years ahead from 0 to 40.' : own < 0 || emp < 0 ? 'Cover cannot be negative.' : '';
+    q('.hcn-err').hidden = !bad; q('.hcn-err').textContent = bad; q('.hcn-res').hidden = !!bad;
+    if (bad) return;
+    const need = (n: number) => stay * stays * Math.pow(1 + g / 100, n);
+    const now = need(0), fut = need(years);
+    const cover = own + emp;
+    const gapNow = Math.max(0, now - cover), gapEnd = Math.max(0, now - own), gapFut = Math.max(0, fut - cover), gapFutEnd = Math.max(0, fut - own);
+    q('.hcn-s-now').textContent = $(now);
+    q('.hcn-lab-fut').textContent = years === 0 ? 'Cover needed (no years ahead)' : `Cover needed in ${years} year${years === 1 ? '' : 's'}`;
+    q('.hcn-s-fut').textContent = $(fut);
+    q('.hcn-s-gap').textContent = gapNow > 0 ? $(gapNow) : 'None';
+    q('.hcn-lab-end').textContent = ends ? 'Gap if employer cover ends' : 'Gap on your own cover alone';
+    q('.hcn-s-end').textContent = gapEnd > 0 ? $(gapEnd) : 'None';
+    const famNote = fam > 1 ? ` On a floater for ${fam} people one sum insured is shared, so make sure the stays above cover the bad year you worry about.` : '';
+    q('.hcn-words').innerHTML = `${gapNow > 0 ? `Your cover of <b>${$(cover)}</b> is <b>${$(gapNow)}</b> short of the <b>${$(now)}</b> needed today.` : `Your cover of <b>${$(cover)}</b> meets the <b>${$(now)}</b> needed today.`}${ends ? ` If the employer cover ends, your own <b>${$(own)}</b> leaves a gap of <b>${$(gapEnd)}</b>.` : ''}${years > 0 ? ` In ${years} year${years === 1 ? '' : 's'} the need is <b>${$(fut)}</b>, a gap of <b>${$(gapFut)}</b> with today's cover${ends ? ` (<b>${$(gapFutEnd)}</b> on your own cover alone)` : ''}.` : ''}${famNote}`;
+    const n = Math.max(years, 5);
+    const xs = Array.from({ length: n + 1 }, (_, k) => k);
+    const series = [
+      { label: 'Cover needed', ys: xs.map(need), color: 'var(--accent)' },
+      { label: 'Your cover' + (emp > 0 ? ' and employer' : ''), ys: xs.map(() => cover), color: 'var(--good)' },
+      ...(ends && emp > 0 ? [{ label: 'Your own cover alone', ys: xs.map(() => own), color: 'var(--warn)', dash: true }] : []),
+    ];
+    q('.hcn-svg').innerHTML = lineSvg(series, xs, 'Cover needed and cover held over the years ahead');
+    q('.hcn-leg').innerHTML = legend(series) + '<span>Bottom axis: years ahead</span>';
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

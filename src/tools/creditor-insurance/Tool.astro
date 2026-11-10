@@ -1,0 +1,127 @@
+---
+// #T886 Mortgage life insurance vs term life
+import InsuranceNote from '../../components/InsuranceNote.astro';
+---
+<div class="tool-ui ci">
+  <InsuranceNote />
+  <section class="panel">
+    <h2>The loan</h2>
+    <p class="ci-hint">Example numbers: change them to yours.</p>
+    <div class="ci-grid">
+      <label>Currency <select class="ci-cur" data-k="cur"></select></label>
+      <label>Loan amount <input data-k="loan" inputmode="decimal" /></label>
+      <label>Interest rate <span class="ci-suf"><input data-k="rate" inputmode="decimal" /><i>% a year</i></span></label>
+      <label>Years <input data-k="years" inputmode="decimal" /></label>
+    </div>
+    <h2 style="margin-top:16px">Creditor (mortgage life) insurance</h2>
+    <div class="ci-grid">
+      <label>How it is charged <select data-k="mode"><option value="fixed">A fixed amount a month</option><option value="pct">A % of the balance a year</option></select></label>
+      <label><span class="ci-modelab">Premium a month</span> <input data-k="cred" inputmode="decimal" /></label>
+    </div>
+    <h2 style="margin-top:16px">Term life insurance</h2>
+    <div class="ci-grid">
+      <label>Term premium a month <input data-k="term" inputmode="decimal" /></label>
+      <label>Cover it pays (level) <input data-k="cover" inputmode="decimal" /></label>
+    </div>
+    <p class="note bad ci-err" role="alert" hidden></p>
+  </section>
+  <section class="ci-res" aria-live="polite">
+    <div class="ci-stats">
+      <div><span>Creditor: total cost</span><b class="ci-s-cc"></b></div>
+      <div><span>Term: total cost</span><b class="ci-s-tc"></b></div>
+      <div><span>Creditor: cost per 1,000 of cover</span><b class="ci-s-cp"></b></div>
+      <div><span>Term: cost per 1,000 of cover</span><b class="ci-s-tp"></b></div>
+      <div><span>Creditor: average cover</span><b class="ci-s-ca"></b></div>
+    </div>
+    <p class="ci-line ci-words"></p>
+    <figure class="ci-chart panel">
+      <figcaption>Cover over the years: <span class="ci-leg"></span></figcaption>
+      <div class="ci-svg"></div>
+    </figure>
+    <div class="panel"><h2>Year by year</h2>
+      <div class="ci-wrap"><table><thead><tr><th>Year</th><th>Balance (creditor cover)</th><th>Creditor premium</th><th>Term cover</th><th>Term premium</th></tr></thead><tbody class="ci-body"></tbody></table></div>
+    </div>
+    <div class="panel"><h2>How they differ</h2>
+      <ul class="ci-diff">
+        <li><b>Who is paid:</b> creditor insurance pays the lender; term pays your family (or whoever you name), who may use it for the loan or anything else.</li>
+        <li><b>Cover amount:</b> creditor cover falls with the balance; term stays level.</li>
+        <li><b>Health check:</b> some creditor products check your health only when you claim, so a claim can be refused then (see the Financial Consumer Agency of Canada's guide to creditor insurance). Term policies are usually checked when you apply.</li>
+        <li><b>Moving the loan:</b> creditor cover is often tied to this lender and loan; a term policy is yours and goes with you.</li>
+        <li><b>Where it applies:</b> mainly Canada; India home-loan cover and US mortgage protection work the same way.</li>
+      </ul>
+    </div>
+  </section>
+  <p class="ci-fine">How it is worked out: the balance at the start of each year comes from the standard monthly repayment formula. Creditor premium = your fixed amount × 12, or the % of that year's opening balance. Cost per 1,000 = yearly cost ÷ average cover × 1,000. It ignores tax, premium changes over time, interest on premiums and your health. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ci { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .ci > *, .ci-res > * { min-width: 0; }
+  .ci h2 { margin: 0 0 12px; font-size: 18px; }
+  .ci .panel { padding: 16px; }
+  .ci-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .ci label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ci input, .ci select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ci input:focus, .ci select:focus { border-color: var(--accent); outline: none; }
+  .ci-suf { position: relative; display: block; }
+  .ci-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .ci-suf input { padding-right: 84px; }
+  .ci-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .ci-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 10px; }
+  .ci-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); align-content: start; }
+  .ci-stats span { font-size: 13px; color: var(--muted); }
+  .ci-stats b { font-size: clamp(17px, 3.4vw, 22px); overflow-wrap: anywhere; }
+  .ci-line { margin: 0; font-size: 15px; }
+  .ci-hint, .ci-fine { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+  .ci-chart { margin: 0; }
+  .ci-chart figcaption { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+  .ci-leg { display: inline-flex; flex-wrap: wrap; gap: 4px 14px; font-weight: 500; color: var(--muted); }
+  .ci-leg .lg { display: inline-flex; gap: 6px; align-items: center; }
+  .ci-svg text { font-family: system-ui, sans-serif; }
+  .ci-wrap { overflow-x: auto; }
+  .ci table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .ci th, .ci td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .ci th:first-child, .ci td:first-child { text-align: left; }
+  .ci th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .ci-diff { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; }
+</style>
+
+<script>
+  import { loanBalances, creditorVsTerm } from '../../lib/money/insurance';
+  import { lineSvg, legend } from '../../lib/money/chart';
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.ci')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const cur = defaultCurrency(), big = cur === 'INR';
+  q('.ci-cur').innerHTML = currencyOptions(cur);
+  const def: Record<string, string> = { loan: big ? '50,00,000' : '300,000', rate: '6', years: '20', cred: big ? '1,500' : '60', term: big ? '1,200' : '40', cover: big ? '50,00,000' : '300,000' };
+  for (const k in def) f(k).value = def[k];
+  const $ = (n: number) => money(n, f('cur').value, 0);
+  const $2 = (n: number) => money(n, f('cur').value, 2);
+  function run() {
+    const pct = f('mode').value === 'pct';
+    q('.ci-modelab').textContent = pct ? 'Premium: % of balance a year' : 'Premium a month';
+    const loan = num(f('loan').value), rate = num(f('rate').value), years = Math.round(num(f('years').value)), cred = num(f('cred').value), term = num(f('term').value), cover = num(f('cover').value);
+    const bad = !(loan > 0) ? 'Enter the loan amount.' : rate < 0 || rate > 60 ? 'Enter an interest rate from 0 to 60.' : !(years >= 1 && years <= 50) ? 'Enter years from 1 to 50.' : cred < 0 || term < 0 ? 'Premiums must be 0 or more.' : !(cover > 0) ? 'Enter the term cover.' : pct && cred > 100 ? 'Enter a percentage from 0 to 100.' : '';
+    q('.ci-err').hidden = !bad; q('.ci-err').textContent = bad; q('.ci-res').hidden = !!bad;
+    if (bad) return;
+    const { balances } = loanBalances(loan, rate, years);
+    const credYearly = balances.map((b) => (pct ? (b * cred) / 100 : cred * 12));
+    const r = creditorVsTerm(balances, credYearly, term * 12, cover);
+    q('.ci-s-cc').textContent = $(r.credCost);
+    q('.ci-s-tc').textContent = $(r.termCost);
+    q('.ci-s-cp').textContent = $2(r.credPer1000);
+    q('.ci-s-tp').textContent = $2(r.termPer1000);
+    q('.ci-s-ca').textContent = $(r.credCover);
+    const cheaper = r.credPer1000 < r.termPer1000 ? 'creditor insurance' : r.credPer1000 > r.termPer1000 ? 'term insurance' : '';
+    q('.ci-words').innerHTML = `Creditor cover averages <b>${$(r.credCover)}</b> over the loan and costs <b>${$2(r.credPer1000)}</b> a year per 1,000 of cover; term costs <b>${$2(r.termPer1000)}</b> per 1,000. ${cheaper ? `In these numbers ${cheaper} costs less per 1,000, but the two pay different people and are not the same product.` : 'They cost the same per 1,000.'}`;
+    q('.ci-body').innerHTML = balances.map((b, k) => `<tr><td>${k + 1}</td><td>${$(b)}</td><td>${$(credYearly[k])}</td><td>${$(cover)}</td><td>${$(term * 12)}</td></tr>`).join('');
+    const xs = balances.map((_, k) => k + 1);
+    const series = [{ label: 'Creditor cover (the balance)', ys: balances, color: 'var(--accent)' }, { label: 'Term cover', ys: balances.map(() => cover), color: 'var(--muted)', dash: true }];
+    q('.ci-svg').innerHTML = lineSvg(series, xs, 'Creditor cover falls with the loan balance while term cover stays level');
+    q('.ci-leg').innerHTML = legend(series);
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

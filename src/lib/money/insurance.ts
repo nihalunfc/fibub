@@ -216,3 +216,90 @@ export function fairTerm(q: number[], sumAssured: number, rate: number) {
   for (let k = 0; k < q.length; k++) { ann += Math.pow(v, k) * alive; ben += Math.pow(v, k + 1) * alive * q[k]; die += alive * q[k]; alive *= 1 - q[k]; }
   return { premium: (sumAssured * ben) / ann, chanceOfClaim: die, survive: alive, pvBenefit: sumAssured * ben, annuity: ann };
 }
+
+// ---------- 11. Top-up vs super top-up (India health) ----------
+/** A top-up pays each bill above the deductible (per claim); a super top-up pays once the year's bills together pass it
+ * (aggregate). Both stop at their own sum insured. Bills are in the order they happen. */
+export function topUp(bills: number[], deductible: number, sumInsured: number, kind: 'topup' | 'super') {
+  let cum = 0, paid = 0;
+  const rows = bills.map((b) => {
+    const before = cum; cum += b;
+    let p = kind === 'topup' ? Math.max(0, b - deductible) : Math.max(0, cum - deductible) - Math.max(0, before - deductible);
+    p = Math.max(0, Math.min(p, sumInsured - paid)); paid += p;
+    return { bill: b, paid: p };
+  });
+  return { rows, paid, billed: cum, youPay: cum - paid };
+}
+
+// ---------- 12. Dental plan year ----------
+export type DentalClass = 'preventive' | 'basic' | 'major';
+export type DentalIn = {
+  premium: number; deductible: number; annualMax: number;
+  pays: Record<DentalClass, number>;   // share the plan pays, 0 to 1 (often 1, 0.8, 0.5)
+  wait: Record<DentalClass, number>;   // waiting period in months from the start date
+  deductibleOnPreventive: boolean;
+  items: { cls: DentalClass; cost: number; month: number }[]; // month after the plan starts (0 = first month)
+};
+/** Works through the year's treatments in date order: waiting period, then deductible, then the plan's share, then the annual maximum. */
+export function dentalYear(a: DentalIn) {
+  let dedLeft = a.deductible, maxLeft = a.annualMax > 0 ? a.annualMax : Infinity, planPays = 0, cost = 0;
+  const rows = [...a.items].sort((x, y) => x.month - y.month).map((it) => {
+    cost += it.cost;
+    if (it.month < a.wait[it.cls]) return { ...it, plan: 0, why: 'waiting period' };
+    let base = it.cost;
+    if (it.cls !== 'preventive' || a.deductibleOnPreventive) { const d = Math.min(dedLeft, base); dedLeft -= d; base -= d; }
+    let p = base * a.pays[it.cls];
+    const capped = p > maxLeft; p = Math.min(p, maxLeft); maxLeft -= p; planPays += p;
+    return { ...it, plan: p, why: capped ? 'annual maximum reached' : '' };
+  });
+  const youPay = cost - planPays;
+  return { rows, cost, planPays, youPay, total: a.premium + youPay, cashOnly: cost, saving: cost - (a.premium + youPay) };
+}
+
+// ---------- 13. Is own-damage (collision) cover still worth it? ----------
+/** Expected yearly payout from own-damage cover on a car worth `value`: claims at rate λ, sizes lognormal, each claim
+ * paid as min(claim, value) − min(claim, deductible). */
+export const odPayout = (value: number, deductible: number, lambda: number, mu: number, s: number) =>
+  lambda * Math.max(0, limitedMean(value, mu, s) - limitedMean(Math.min(deductible, value), mu, s));
+export type OdIn = { value: number; dep: number; premium: number; premiumChange: number; deductible: number; lambda: number; median: number; p90: number; years: number };
+export function ownDamage(a: OdIn) {
+  const { mu, s } = lognormal(a.median, a.p90);
+  const rows = Array.from({ length: a.years }, (_, k) => {
+    const value = a.value * Math.pow(1 - a.dep / 100, k), premium = a.premium * Math.pow(1 + a.premiumChange / 100, k);
+    const expected = odPayout(value, a.deductible, a.lambda, mu, s);
+    return { year: k + 1, value, premium, expected, net: expected - premium, payBack: premium > 0 ? expected / premium : 0 };
+  });
+  return { rows, firstLosing: rows.find((r) => r.net < 0)?.year ?? null };
+}
+
+// ---------- 14. Loan balance for creditor (mortgage) insurance ----------
+/** Balance at the start of each year of a loan repaid monthly. */
+export function loanBalances(principal: number, rate: number, years: number) {
+  const i = rate / 1200, n = years * 12;
+  const pay = i > 0 ? (principal * i) / (1 - Math.pow(1 + i, -n)) : principal / n;
+  const out: number[] = []; let b = principal;
+  for (let m = 0; m < n; m++) { if (m % 12 === 0) out.push(b); b = b * (1 + i) - pay; }
+  return { payment: pay, balances: out };
+}
+/** Cost per 1,000 of cover, averaged over the years: creditor cover follows the balance, level term stays at `termCover`. */
+export function creditorVsTerm(balances: number[], creditorYearly: number[], termYearly: number, termCover: number) {
+  const years = balances.length;
+  const credCost = creditorYearly.reduce((s, c) => s + c, 0), termCost = termYearly * years;
+  const credCover = balances.reduce((s, b) => s + b, 0) / years;
+  return { credCost, termCost, credCover, termCover, credPer1000: credCover > 0 ? (credCost / years / credCover) * 1000 : 0, termPer1000: termCover > 0 ? (termYearly / termCover) * 1000 : 0 };
+}
+
+// ---------- 15. Surrender a savings policy or keep it? ----------
+/** Keeping means giving up the surrender value now, paying the remaining premiums and getting the later benefits:
+ * its return from today is the IRR of [−SV − premium, −premium, ..., +benefits]. */
+export function keepReturn(surrenderValue: number, premium: number, yearsLeft: number, benefits: { year: number; amount: number }[]) {
+  const f = policyFlows({ premium, payYears: yearsLeft, benefits });
+  f[0] -= surrenderValue;
+  return { flows: f, irr: irr(f) };
+}
+/** Surrender now and invest the surrender value plus each premium you no longer pay, at `rate` % a year: value at `atYear`. */
+export function surrenderInvest(surrenderValue: number, premium: number, yearsLeft: number, rate: number, atYear: number) {
+  let v = surrenderValue; const r = rate / 100;
+  for (let k = 0; k < atYear; k++) { if (k < yearsLeft) v += premium; v *= 1 + r; }
+  return v;
+}

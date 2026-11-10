@@ -1,0 +1,149 @@
+---
+import InsuranceNote from '../../components/InsuranceNote.astro';
+// #T885 Car liability limits explained (25/50/25)
+---
+<div class="tool-ui ll">
+  <InsuranceNote />
+  <section class="panel">
+    <h2>Your policy limits</h2>
+    <p class="ll-hint">Example numbers: change them to yours. Liability cover pays other people for harm you cause; it does not repair your own car.</p>
+    <div class="ll-grid">
+      <label>Currency <select class="ll-cur" data-k="cur"></select></label>
+      <label>Type of limits <select data-k="mode"><option value="split">Split limits (such as 25/50/25)</option><option value="single">One combined single limit</option></select></label>
+    </div>
+    <div class="ll-grid ll-split">
+      <label>Injury, most paid per person <input data-k="pp" inputmode="decimal" /></label>
+      <label>Injury, most paid per accident <input data-k="pa" inputmode="decimal" /></label>
+      <label>Property damage, most paid <input data-k="prop" inputmode="decimal" /></label>
+    </div>
+    <div class="ll-grid ll-single" hidden>
+      <label>Combined single limit (injury and property together) <input data-k="csl" inputmode="decimal" /></label>
+    </div>
+    <p class="ll-src">The three split numbers are written in thousands, so 25/50/25 means 25,000 per person, 50,000 per accident and 25,000 for property.</p>
+  </section>
+  <section class="panel">
+    <h2>An accident you are at fault in</h2>
+    <p class="ll-hint">Type what the other people's injuries cost, one row per person, and the damage to their property.</p>
+    <div class="ll-people"></div>
+    <button type="button" class="btn secondary ll-add">Add an injured person</button>
+    <div class="ll-grid ll-gap">
+      <label>Property damage to others <input data-k="pd" inputmode="decimal" /></label>
+      <label>Your net worth (optional) <input data-k="nw" inputmode="decimal" /><small>Savings, home equity and so on, to show what a gap could put at risk.</small></label>
+    </div>
+    <p class="note bad ll-err" role="alert" hidden></p>
+  </section>
+  <section class="ll-res" aria-live="polite">
+    <div class="ll-stats">
+      <div><span>Policy pays for injuries</span><b class="ll-s-inj"></b></div>
+      <div><span>Policy pays for property</span><b class="ll-s-prop"></b></div>
+      <div><span>Policy pays in total</span><b class="ll-s-tot"></b></div>
+      <div><span>Left for you to pay</span><b class="ll-s-you"></b></div>
+    </div>
+    <p class="ll-line ll-words"></p>
+    <div class="panel"><h2>Who pays what</h2>
+      <div class="ll-legend"><span><i class="ll-k ll-kp"></i>Policy pays</span><span><i class="ll-k ll-ky"></i>You pay</span></div>
+      <div class="ll-bars"></div>
+    </div>
+    <p class="note warn ll-nw" hidden></p>
+  </section>
+  <section class="panel ll-regions">
+    <h2>Rules by region</h2>
+    <ul>
+      <li><b>United States:</b> each state sets its own minimum limits, and many are written as three numbers like 25/50/25. Find your state's figure through its insurance department, listed by the NAIC (National Association of Insurance Commissioners) at naic.org. Checked 2026-11-10, check the official source.</li>
+      <li><b>Canada:</b> most provinces require at least $200,000 of third-party liability, and Quebec requires $50,000 for property damage. Check your provincial regulator. Checked 2026-11-10, check the official source.</li>
+      <li><b>India:</b> third-party cover is compulsory under the Motor Vehicles Act 1988. The standard policy has unlimited liability for death or injury and a limit of &#8377;7.5 lakh for property damage on private cars. Check IRDAI. Checked 2026-11-10, check the official source.</li>
+    </ul>
+  </section>
+  <p class="ll-fine">How it's worked out: with split limits each injured person is paid up to the per-person limit, the injury total is held to the per-accident limit, and property is paid up to its own limit. With a single limit, injury and property together are paid up to that one number. Whatever is left is yours to pay. It assumes you are at fault and ignores deductibles, other cover and legal costs. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ll { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .ll > *, .ll-res > * { min-width: 0; }
+  .ll h2 { margin: 0 0 12px; font-size: 18px; }
+  .ll .panel { padding: 16px; }
+  .ll-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; margin-bottom: 8px; }
+  .ll-gap { margin-top: 12px; }
+  .ll label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); align-content: start; }
+  .ll small { font-size: 12px; }
+  .ll input, .ll select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ll input:focus, .ll select:focus { border-color: var(--accent); outline: none; }
+  .ll-person { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; margin-bottom: 8px; }
+  .ll-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .ll-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 10px; }
+  .ll-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); align-content: start; }
+  .ll-stats span { font-size: 13px; color: var(--muted); }
+  .ll-stats b { font-size: clamp(17px, 3.4vw, 22px); overflow-wrap: anywhere; }
+  .ll-line, .ll-nw { margin: 0; font-size: 15px; }
+  .ll-hint, .ll-src, .ll-fine { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+  .ll-fine { margin: 0; }
+  .ll-regions ul { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 8px; }
+  .ll-legend { display: flex; gap: 16px; font-size: 13px; margin-bottom: 8px; }
+  .ll-k { display: inline-block; width: 14px; height: 10px; margin-right: 6px; border-radius: 2px; }
+  .ll-kp { background: var(--accent); }
+  .ll-ky { background: #d97706; }
+  .ll-bar { margin-bottom: 10px; }
+  .ll-bar > div:first-child { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .ll-track { display: flex; height: 16px; border-radius: 4px; overflow: hidden; background: var(--line); }
+  .ll-track .p { background: var(--accent); }
+  .ll-track .y { background: #d97706; }
+</style>
+
+<script>
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.ll')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  q('.ll-cur').innerHTML = currencyOptions(defaultCurrency());
+  const def: Record<string, string> = { pp: '25,000', pa: '50,000', prop: '25,000', csl: '100,000', pd: '10,000', nw: '' };
+  for (const k in def) f(k).value = def[k];
+  const $ = (n: number) => money(n, f('cur').value, 0);
+  const people = q('.ll-people');
+  function addPerson(v: string) {
+    const d = document.createElement('div'); d.className = 'll-person';
+    d.innerHTML = `<label>Injury cost, person <span class="ll-n"></span><input class="ll-cost" inputmode="decimal" /></label><button type="button" class="btn secondary ll-rm" aria-label="Remove this person">Remove</button>`;
+    (d.querySelector('.ll-cost') as HTMLInputElement).value = v;
+    people.appendChild(d); renum();
+  }
+  function renum() { people.querySelectorAll('.ll-n').forEach((e, i) => (e.textContent = String(i + 1))); }
+  addPerson('30,000'); addPerson('15,000');
+  q('.ll-add').addEventListener('click', () => { addPerson(''); run(); });
+  people.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('.ll-rm'); if (b) { b.parentElement!.remove(); renum(); run(); } });
+  const bar = (label: string, pay: number, you: number) => { const t = pay + you; const pp = t > 0 ? (pay / t) * 100 : 0; return `<div class="ll-bar"><div><span>${label}</span><span>Policy ${$(pay)} · You ${$(you)}</span></div><div class="ll-track" role="img" aria-label="${label}: policy pays ${$(pay)}, you pay ${$(you)}"><div class="p" style="width:${pp}%"></div><div class="y" style="width:${t > 0 ? 100 - pp : 0}%"></div></div></div>`; };
+  function run() {
+    const single = f('mode').value === 'single';
+    q('.ll-split').hidden = single; q('.ll-single').hidden = !single;
+    const costs = [...people.querySelectorAll<HTMLInputElement>('.ll-cost')].map((i) => num(i.value));
+    const pd = num(f('pd').value), nw = num(f('nw').value);
+    const pp = num(f('pp').value), pa = num(f('pa').value), prop = num(f('prop').value), csl = num(f('csl').value);
+    const bad = costs.some((c) => c < 0) || pd < 0 ? 'Costs must be 0 or more.' : single ? (csl <= 0 ? 'Enter the combined single limit.' : '') : pp <= 0 || pa <= 0 || prop < 0 ? 'Enter the three limits (per person, per accident, property).' : pa < pp ? 'The per-accident limit is normally at least the per-person limit.' : '';
+    q('.ll-err').hidden = !bad; q('.ll-err').textContent = bad; q('.ll-res').hidden = !!bad;
+    if (bad) return;
+    const injTotal = costs.reduce((a, b) => a + b, 0), all = injTotal + pd;
+    let rows: [string, number, number][] = [];
+    let injPaid: number, propPaid: number;
+    if (single) {
+      const paid = Math.min(all, csl);
+      const injShare = all > 0 ? (injTotal / all) : 0;
+      injPaid = paid * injShare; propPaid = paid - injPaid;
+      costs.forEach((c, i) => rows.push([`Person ${i + 1}`, c * (all > 0 ? paid / all : 0), c - c * (all > 0 ? paid / all : 0)]));
+      rows.push(['Property damage', propPaid, pd - propPaid]);
+    } else {
+      let left = pa;
+      const perPerson = costs.map((c) => { const p = Math.min(c, pp, left); left -= p; return p; });
+      injPaid = perPerson.reduce((a, b) => a + b, 0); propPaid = Math.min(pd, prop);
+      costs.forEach((c, i) => rows.push([`Person ${i + 1}`, perPerson[i], c - perPerson[i]]));
+      rows.push(['Property damage', propPaid, pd - propPaid]);
+    }
+    const tot = injPaid + propPaid, you = all - tot;
+    q('.ll-s-inj').textContent = $(injPaid); q('.ll-s-prop').textContent = $(propPaid);
+    q('.ll-s-tot').textContent = $(tot); q('.ll-s-you').textContent = $(you);
+    q('.ll-words').innerHTML = you <= 0.005 ? 'In this accident the policy covers everything you typed.' : `The policy pays <b>${$(tot)}</b> of <b>${$(all)}</b>. The other <b>${$(you)}</b> is a bill you could be asked to pay yourself.`;
+    q('.ll-bars').innerHTML = rows.map((r) => bar(r[0], r[1], r[2])).join('') + bar('All together', tot, you);
+    const nwEl = q('.ll-nw');
+    nwEl.hidden = !(nw > 0);
+    if (nw > 0) nwEl.textContent = you > 0 ? `That ${$(you)} is ${Math.round((you / nw) * 1000) / 10}% of your net worth of ${$(nw)}. Costs above your limits can be claimed from what you own, depending on local law.` : `Here nothing is left over, but a worse accident could be: your net worth of ${$(nw)} is what sits behind any gap.`;
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

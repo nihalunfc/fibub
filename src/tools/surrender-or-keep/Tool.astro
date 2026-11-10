@@ -1,0 +1,147 @@
+---
+// #T887 Surrender a life insurance policy or keep it?
+import InsuranceNote from '../../components/InsuranceNote.astro';
+---
+<div class="tool-ui sk">
+  <InsuranceNote />
+  <section class="panel">
+    <h2>The offer and the policy</h2>
+    <p class="sk-hint">Example numbers: change them to yours. Copy them from the insurer's letter. Years are counted from today (year 0); each premium is paid at the start of its year.</p>
+    <div class="sk-grid">
+      <label>Currency <select class="sk-cur" data-k="cur"></select></label>
+      <label>Surrender value offered today <input data-k="sv" inputmode="decimal" /></label>
+      <label>Premium a year <input data-k="prem" inputmode="decimal" /></label>
+      <label>Years of premiums left <input data-k="left" inputmode="decimal" /></label>
+      <label>Rate you could earn elsewhere <span class="sk-suf"><input data-k="rate" inputmode="decimal" /><i>% a year</i></span></label>
+    </div>
+    <h2 style="margin-top:16px">Benefits still to come</h2>
+    <div class="sk-rows"></div>
+    <button type="button" class="btn secondary sk-add">Add a benefit</button>
+    <h2 style="margin-top:16px">Optional: make it paid-up</h2>
+    <p class="sk-hint">Paid-up means you stop paying premiums and the policy pays a reduced amount later. Leave the amount at 0 to skip.</p>
+    <div class="sk-grid">
+      <label>Paid-up amount <input data-k="pu" inputmode="decimal" /></label>
+      <label>Paid at year <input data-k="puy" inputmode="decimal" /></label>
+    </div>
+    <h2 style="margin-top:16px">Optional: cover you would still need</h2>
+    <div class="sk-grid">
+      <label>Term premium a year <input data-k="term" inputmode="decimal" /></label>
+      <label>Years of cover needed <input data-k="termy" inputmode="decimal" /></label>
+    </div>
+    <p class="note bad sk-err" role="alert" hidden></p>
+  </section>
+  <section class="sk-res" aria-live="polite">
+    <div class="sk-stats">
+      <div><span>Return of keeping (also the break-even)</span><b class="sk-s-irr"></b></div>
+      <div><span>Surrender and invest, at the end</span><b class="sk-s-sur"></b></div>
+      <div><span>Keeping: benefits grown to the end</span><b class="sk-s-keep"></b></div>
+      <div><span>Paid-up option return</span><b class="sk-s-pu"></b></div>
+      <div><span>Term cover cost</span><b class="sk-s-term"></b></div>
+    </div>
+    <p class="sk-line sk-words"></p>
+    <figure class="sk-chart panel">
+      <figcaption>Value over time: <span class="sk-leg"></span></figcaption>
+      <div class="sk-svg"></div>
+    </figure>
+    <details class="panel" open>
+      <summary>Year by year</summary>
+      <div class="sk-wrap"><table>
+        <thead><tr><th>Year</th><th>Premium if you keep</th><th>Benefit</th><th>Surrender and invest</th><th>Keep: benefits grown</th></tr></thead>
+        <tbody class="sk-body"></tbody>
+      </table></div>
+    </details>
+  </section>
+  <p class="sk-fine">How it is worked out: keeping means giving up the surrender value today, paying the premiums still due and getting the benefits; the return is the rate that makes those cash flows add up to zero (IRR). Surrendering puts the surrender value in an investment at your rate and adds each premium you no longer pay; keeping's benefits are grown at the same rate to the last year, so the two compare. Surrender charges, tax, bonuses that are not guaranteed and the life cover itself are left out: check the policy and the official source. Not financial advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .sk { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .sk > *, .sk-res > * { min-width: 0; }
+  .sk h2 { margin: 0 0 12px; font-size: 18px; }
+  .sk .panel { padding: 16px; }
+  .sk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .sk label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .sk input, .sk select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .sk input:focus, .sk select:focus { border-color: var(--accent); outline: none; }
+  .sk-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .sk-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 10px; }
+  .sk-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); align-content: start; }
+  .sk-stats span { font-size: 13px; color: var(--muted); }
+  .sk-stats b { font-size: clamp(17px, 3.4vw, 22px); overflow-wrap: anywhere; }
+  .sk-line { margin: 0; font-size: 15px; }
+  .sk-fine, .sk-hint { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+  .sk-wrap { overflow-x: auto; }
+  .sk table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .sk th, .sk td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .sk th:first-child, .sk td:first-child { text-align: left; }
+  .sk th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .sk details summary { cursor: pointer; font-weight: 700; margin-bottom: 8px; }
+  .sk-suf { position: relative; display: block; }
+  .sk-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .sk-suf input { padding-right: 84px; }
+  .sk-rows { display: grid; gap: 8px; margin-bottom: 10px; }
+  .sk-row { display: grid; grid-template-columns: 1fr 2fr auto; gap: 8px; align-items: end; }
+  .sk-chart { margin: 0; }
+  .sk-chart figcaption { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+  .sk-leg { display: inline-flex; flex-wrap: wrap; gap: 4px 14px; font-weight: 500; color: var(--muted); }
+  .sk-leg .lg { display: inline-flex; gap: 6px; align-items: center; }
+  .sk-svg text { font-family: system-ui, sans-serif; }
+</style>
+
+<script>
+  import { keepReturn, surrenderInvest, irr } from '../../lib/money/insurance';
+  import { lineSvg, legend } from '../../lib/money/chart';
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.sk')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const cur = defaultCurrency(), big = cur === 'INR';
+  q('.sk-cur').innerHTML = currencyOptions(cur);
+  const def: Record<string, string> = { sv: big ? '3,00,000' : '10,000', prem: big ? '1,00,000' : '3,000', left: '5', rate: '7', pu: '0', puy: '10', term: big ? '10,000' : '300', termy: '10' };
+  for (const k in def) f(k).value = def[k];
+  const rowsEl = q('.sk-rows');
+  function addRow(year: string, amount: string) {
+    const d = document.createElement('div'); d.className = 'sk-row';
+    d.innerHTML = `<label>Year from now <input class="sk-by" inputmode="decimal" aria-label="Benefit year" value="${year}" /></label><label>Amount <input class="sk-ba" inputmode="decimal" aria-label="Benefit amount" value="${amount}" /></label><button type="button" class="btn secondary sk-del" aria-label="Remove this benefit">Remove</button>`;
+    rowsEl.appendChild(d);
+  }
+  addRow('10', big ? '13,00,000' : '40,000');
+  q('.sk-add').addEventListener('click', () => { addRow('', ''); run(); });
+  rowsEl.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('.sk-del'); if (b && rowsEl.children.length > 1) { b.parentElement!.remove(); run(); } });
+  const $ = (n: number) => money(n, f('cur').value, 0);
+  const pct = (v: number) => (Number.isFinite(v) ? (v * 100).toFixed(2) + '%' : 'n/a');
+  const grown = (bens: { year: number; amount: number }[], r: number, at: number) => bens.reduce((s, b) => (b.year <= at ? s + b.amount * Math.pow(1 + r / 100, at - b.year) : s), 0);
+  function run() {
+    const sv = num(f('sv').value), prem = num(f('prem').value), left = Math.round(num(f('left').value)), rate = num(f('rate').value);
+    const pu = num(f('pu').value), puy = Math.round(num(f('puy').value)), term = num(f('term').value), termy = Math.round(num(f('termy').value));
+    const bens = [...rowsEl.querySelectorAll('.sk-row')].map((r) => ({ year: Math.round(num((r.querySelector('.sk-by') as HTMLInputElement).value)), amount: num((r.querySelector('.sk-ba') as HTMLInputElement).value) })).filter((b) => b.amount > 0);
+    const bad = !(sv > 0) ? 'Enter the surrender value you were offered.' : prem < 0 || !(left >= 0 && left <= 60) ? 'Enter a premium of 0 or more and years of premiums left from 0 to 60.' : !bens.length ? 'Add at least one benefit with a year and an amount.' : bens.some((b) => b.year < 1 || b.year > 80) ? 'Benefit years must be from 1 to 80.' : rate < -20 || rate > 60 ? 'Enter a yearly return such as 7.' : pu < 0 || (pu > 0 && !(puy >= 1 && puy <= 80)) ? 'Enter a paid-up amount of 0 or more and a year from 1 to 80.' : term < 0 || termy < 0 || termy > 60 ? 'Enter a term premium of 0 or more and 0 to 60 years of cover.' : '';
+    q('.sk-err').hidden = !bad; q('.sk-err').textContent = bad; q('.sk-res').hidden = !!bad;
+    if (bad) return;
+    const kr = keepReturn(sv, prem, left, bens);
+    const last = Math.max(left, ...bens.map((b) => b.year));
+    const sur = surrenderInvest(sv, prem, left, rate, last), keep = grown(bens, rate, last);
+    q('.sk-s-irr').textContent = pct(kr.irr);
+    q('.sk-s-sur').textContent = $(sur);
+    q('.sk-s-keep').textContent = $(keep);
+    const puIrr = pu > 0 ? irr([-sv, ...Array(puy - 1).fill(0), pu]) : NaN;
+    q('.sk-s-pu').textContent = pu > 0 ? pct(puIrr) : 'not used';
+    q('.sk-s-term').textContent = term > 0 && termy > 0 ? $(term * termy) + ' over ' + termy + ' years' : 'not used';
+    const higher = sur > keep ? 'Surrendering and investing ends higher' : 'Keeping the policy ends higher';
+    q('.sk-words').innerHTML = `Keeping returns about <b>${pct(kr.irr)}</b> a year from today. At ${rate}% a year, ${higher.toLowerCase()} in year ${last}: ${$(sur)} against ${$(keep)}. ${Number.isFinite(kr.irr) ? `If you can earn more than <b>${pct(kr.irr)}</b> elsewhere, surrendering comes out ahead; if less, keeping does.` : ''}${pu > 0 && Number.isFinite(puIrr) ? ` The paid-up option returns ${pct(puIrr)} a year.` : ''} Surrender charges and tax are not counted: check the policy.`;
+    const xs: number[] = [], sv2: number[] = [], kv: number[] = [];
+    let body = '';
+    for (let y = 0; y <= last; y++) {
+      const p = y < left ? prem : 0, b = bens.filter((x) => x.year === y).reduce((s, x) => s + x.amount, 0);
+      const a = surrenderInvest(sv, prem, left, rate, y), c = grown(bens, rate, y);
+      xs.push(y); sv2.push(a); kv.push(c);
+      body += `<tr><td>${y}</td><td>${$(p)}</td><td>${$(b)}</td><td>${$(a)}</td><td>${$(c)}</td></tr>`;
+    }
+    q('.sk-body').innerHTML = body;
+    const series = [{ label: 'Surrender and invest', ys: sv2, color: 'var(--accent)' }, { label: 'Keep: benefits grown', ys: kv, color: 'var(--muted)', dash: true }];
+    q('.sk-svg').innerHTML = lineSvg(series, xs, 'Surrender and invest compared with keeping the policy, year by year');
+    q('.sk-leg').innerHTML = legend(series);
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>
