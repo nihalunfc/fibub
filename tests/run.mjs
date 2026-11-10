@@ -155,7 +155,7 @@ try {
   const isNote = (r) => r.method() === 'POST' && /^\/api\/(hit|use)$/.test(new URL(r.url()).pathname);
   page.on('request', (r) => { if (isNote(r)) counterNotes.push({ url: r.url(), body: r.postData() }); else requests.push({ url: r.url(), method: r.method() }); });
   const pageErrors = [];
-  page.on('pageerror', (e) => pageErrors.push(String(e)));
+  page.on('pageerror', (e) => pageErrors.push(`${new URL(page.url()).pathname}: ${e}`));
   page.on('console', (m) => { if (m.type() === 'error' && /Content Security Policy|Refused/.test(m.text())) pageErrors.push('CSP: ' + m.text()); });
 
   await page.goto(BASE);
@@ -3475,7 +3475,7 @@ try {
       });
       const tp = await tc.newPage();
       tp.on('request', (r) => { if (!isNote(r)) requests.push({ url: r.url(), method: r.method() }); });
-      tp.on('pageerror', (e) => pageErrors.push(String(e)));
+      tp.on('pageerror', (e) => pageErrors.push(`${new URL(tp.url()).pathname}: ${e}`));
       tp.on('console', (m) => { if (m.type() === 'error' && /Content Security Policy|Refused/.test(m.text())) pageErrors.push('CSP: ' + m.text()); });
       for (const t of TOOL_TESTS.slice(i, i + 40)) await t.default({ page: tp, check, BASE, OUT, readFileSync, writeFileSync });
     } finally { await tb.close(); }
