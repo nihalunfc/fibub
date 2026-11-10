@@ -1,0 +1,102 @@
+---
+// #1488 Flower parts. A teaching drawing of one flower: peel sepals, petals and stamens, label the parts, move pollen to the stigma.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+import { PARTS } from '../../lib/sci/learnbc-flower';
+---
+<div class="tool-ui ax lrn fp">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="10" aria-pressed="true">Class 10</button><button type="button" data-level="11" aria-pressed="false">Class 11</button></div>
+    <h2>Peel a flower</h2>
+    <p class="ax-help">A simple drawing for teaching, not a real species. Tap the picture or press Peel to remove the next layer.</p>
+    <canvas class="lrn-cv fp-cv" aria-label="A drawn flower with sepals, petals, stamens and a carpel" style="touch-action:manipulation;cursor:pointer"></canvas>
+    <div class="ax-row" style="margin-top:8px;flex-wrap:wrap;gap:8px">
+      <button type="button" class="btn small fp-peel">Peel sepals</button>
+      <button type="button" class="btn secondary small fp-pol">Move pollen to stigma</button>
+      <button type="button" class="btn secondary small fp-reset">Start again</button>
+      <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" class="fp-lab" checked /> Show labels</label>
+    </div>
+    <p class="ax-big fp-out" aria-live="polite"></p>
+    <p class="ax-help" data-only="11" hidden>Class 11: after pollen lands on a stigma that suits it, it grows a pollen tube down the style to an ovule, carrying the male cells. See double fertilisation.</p>
+  </div>
+  <div class="ax-card">
+    <h2>The parts</h2>
+    <dl class="ax-facts fp-list">
+      {PARTS.map((p) => <div data-part={p.id}><dt>{p.name}</dt><dd>{p.job}<small>{p.group}</small></dd></div>)}
+    </dl>
+  </div>
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Peel the layers one by one and note what is left in the middle: the carpel, which becomes the fruit.</li>
+      <li>Press Move pollen to stigma while the stamens are still there. Then peel the stamens and see the pollen stay.</li>
+      <li>Which parts together make the male part, and which the female part?</li>
+    </ul>
+  </div>
+  <div class="ax-card fp-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .fp .fp-cv { width: 100%; margin-top: 8px; }
+</style>
+
+<script>
+  import { mountQuiz, pick } from '../../lib/learn/quiz';
+  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  import { PARTS, STAGES, quizSet } from '../../lib/sci/learnbc-flower';
+  const root = document.querySelector('.fp') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let stage = 0, pollen = false;
+  const draw = () => {
+    const { ctx: c, W, H } = fitCanvas(q<HTMLCanvasElement>('.fp-cv'), 320), pal = pagePalette(), cx = W * 0.4, lab = q<HTMLInputElement>('.fp-lab').checked;
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H); c.lineWidth = 2;
+    const col = (n: string, red: string) => pal.red ? pal.muted : n;
+    const ell = (x: number, y: number, rx: number, ry: number, rot: number, fill: string) => { c.beginPath(); c.ellipse(x, y, rx, ry, rot, 0, 7); c.fillStyle = fill; c.fill(); c.strokeStyle = pal.ink; c.stroke(); };
+    // stem and receptacle
+    c.strokeStyle = pal.red ? pal.muted : pal.good; c.lineWidth = 6; c.beginPath(); c.moveTo(cx, H); c.lineTo(cx, 262); c.stroke(); c.lineWidth = 2;
+    const pts: Record<string, [number, number, boolean]> = {};
+    if (stage < 2) { ell(cx - 52, 175, 20, 72, -0.42, col('#e58bb0', '')); ell(cx + 52, 175, 20, 72, 0.42, col('#e58bb0', '')); ell(cx, 150, 22, 74, 0, col('#f0a6c4', '')); pts.petal = [cx + 68, 130, true]; }
+    if (stage < 1) { ell(cx - 30, 268, 26, 9, 0.5, col('#5aa469', '')); ell(cx + 30, 268, 26, 9, -0.5, col('#5aa469', '')); pts.sepal = [cx + 52, 276, true]; }
+    c.fillStyle = pal.red ? pal.muted : '#5aa469'; c.beginPath(); c.arc(cx, 262, 9, 0, 7); c.fill();
+    // carpel
+    c.strokeStyle = pal.ink; c.beginPath(); c.moveTo(cx, 250); c.lineTo(cx, 130); c.stroke();
+    ell(cx, 235, 17, 25, 0, col('#9bd08f', '')); pts.ovary = [cx + 16, 235, true];
+    for (const [dx, dy] of [[-6, 228], [6, 228], [0, 242]]) { c.beginPath(); c.arc(cx + dx, dy, 3.2, 0, 7); c.fillStyle = pal.ink; c.fill(); }
+    pts.ovule = [cx + 9, 242, true]; pts.style = [cx + 3, 185, true];
+    ell(cx, 124, 10, 8, 0, col('#f2c94c', '')); pts.stigma = [cx + 10, 122, true];
+    // stamens
+    if (stage < 3) {
+      for (const s of [-1, 1]) { c.strokeStyle = pal.ink; c.beginPath(); c.moveTo(cx + s * 8, 255); c.quadraticCurveTo(cx + s * 40, 200, cx + s * 34, 150); c.stroke(); ell(cx + s * 34, 144, 6, 11, s * 0.15, col('#e8a33d', '')); }
+      pts.filament = [cx + 38, 200, true]; pts.anther = [cx + 40, 144, true];
+    }
+    // pollen
+    if (pollen && stage < 4) {
+      c.fillStyle = pal.red ? pal.ink : '#c98a00';
+      const onS = stage >= 0; for (const [dx, dy] of [[-5, 118], [0, 114], [5, 118], [-2, 120], [3, 121]]) { c.beginPath(); c.arc(cx + dx, dy, 2.2, 0, 7); c.fill(); }
+    } else if (stage < 3) { c.fillStyle = pal.red ? pal.ink : '#c98a00'; for (const s of [-1, 1]) for (const [dx, dy] of [[-3, 138], [3, 142], [0, 149]]) { c.beginPath(); c.arc(cx + s * 34 + dx, dy, 1.8, 0, 7); c.fill(); } }
+    if (lab) {
+      c.font = '13px system-ui, sans-serif'; c.textAlign = 'left'; c.fillStyle = pal.ink; c.strokeStyle = pal.muted; c.lineWidth = 1;
+      let ly = 24;
+      for (const p of PARTS) {
+        const t = pts[p.id]; if (!t) continue;
+        const lx = W - 92; c.beginPath(); c.moveTo(t[0], t[1]); c.lineTo(lx - 4, ly - 4); c.stroke(); c.fillText(p.name, lx, ly); ly += 36;
+      }
+    }
+    q('.fp-peel').textContent = stage < STAGES.length ? STAGES[stage].btn : 'All peeled';
+    (q('.fp-peel') as HTMLButtonElement).disabled = stage >= STAGES.length;
+    q('.fp-out').textContent = stage === 0 ? 'The whole flower: sepals outside, then petals, stamens and the carpel in the middle.' : STAGES[stage - 1].after;
+    const gone = new Set(stage >= 1 ? ['sepal'] : []); if (stage >= 2) gone.add('petal'); if (stage >= 3) { gone.add('filament'); gone.add('anther'); }
+    root.querySelectorAll<HTMLElement>('.fp-list [data-part]').forEach((e) => { e.style.opacity = gone.has(e.dataset.part!) ? '0.45' : '1'; });
+  };
+  const peel = () => { if (stage < STAGES.length) { stage++; draw(); } };
+  q('.fp-peel').addEventListener('click', peel);
+  q('.fp-cv').addEventListener('click', peel);
+  q('.fp-pol').addEventListener('click', () => { pollen = true; draw(); q('.fp-out').textContent = stage >= 3 ? 'The stamens are gone, so there is no pollen left to move.' : 'Pollen has landed on the stigma. This is pollination.'; if (stage >= 3) pollen = false; });
+  q('.fp-reset').addEventListener('click', () => { stage = 0; pollen = false; draw(); });
+  q('.fp-lab').addEventListener('change', draw);
+  addEventListener('resize', draw);
+  wireLevel(root, () => draw());
+  mountQuiz(q('.fp-quiz'), () => quizSet(pick));
+</script>
