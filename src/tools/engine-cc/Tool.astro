@@ -1,0 +1,58 @@
+---
+// #T901 Engine CC
+---
+<div class="tool-ui ec">
+  <section class="panel">
+    <div class="ec-grid">
+      <label>Bore, cylinder width <input data-k="bore" inputmode="decimal" value="57" /></label>
+      <label>Stroke, piston travel <input data-k="stroke" inputmode="decimal" value="58.6" /></label>
+      <label>Unit for bore and stroke <select data-k="unit"><option value="mm">millimetres</option><option value="in">inches</option></select></label>
+      <label>Cylinders <input data-k="cyl" inputmode="numeric" value="1" /></label>
+      <label>Combustion chamber volume (cc, one cylinder, optional) <input data-k="ch" inputmode="decimal" value="" placeholder="e.g. 14.5" /></label>
+    </div>
+    <p class="ec-fine">Bore and stroke are on the engine's spec sheet. The combustion chamber volume is what is left above the piston at the top of its stroke (head, gasket and piston dish together); leave it empty if you only want the size.</p>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="ec-big"></p>
+    <dl class="ec-rows"></dl>
+    <p class="ec-warn" role="alert"></p>
+  </section>
+  <p class="ec-fine">Displacement is the volume the pistons sweep: π / 4 x bore x bore x stroke x cylinders. Makers round the badge (a 149.5 cc engine is sold as "150 cc"). Tax and licence classes often depend on cc: check your own authority. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ec { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ec .panel { padding: 16px; }
+  .ec-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .ec label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ec input, .ec select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ec input:focus, .ec select:focus { border-color: var(--accent); outline: none; }
+  .ec-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
+  .ec-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
+  .ec-rows dt { color: var(--muted); } .ec-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .ec-warn { color: var(--bad); margin: 10px 0 0; } .ec-warn:empty { display: none; }
+  .ec-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+</style>
+
+<script>
+  import { engine } from '../../lib/money/vehicle-physics';
+  const root = document.querySelector('.ec') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const num = (k: string) => parseFloat(q(k).value.replace(/,/g, ''));
+  const f = (v: number, d = 1) => v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const calc = () => {
+    const k = q('unit').value === 'in' ? 25.4 : 1;
+    const bore = num('bore') * k, stroke = num('stroke') * k, cyl = Math.round(num('cyl'));
+    if (!(bore > 0) || !(stroke > 0) || !(cyl >= 1 && cyl <= 16)) { $('.ec-big').textContent = ''; $('.ec-rows').innerHTML = ''; $('.ec-warn').textContent = 'Type a bore and stroke above 0 and 1 to 16 cylinders.'; return; }
+    $('.ec-warn').textContent = '';
+    const r = engine({ boreMm: bore, strokeMm: stroke, cyl, chamberCc: num('ch') });
+    $('.ec-big').textContent = `${f(r.cc)} cc`;
+    const shape = Math.abs(r.ratio - 1) < 0.02 ? 'square' : r.ratio > 1 ? 'over-square (short stroke, revs freely)' : 'under-square (long stroke, more low-down pull)';
+    const line = (a: string, b: string) => `<dt>${a}</dt><dd>${b}</dd>`;
+    $('.ec-rows').innerHTML = line('One cylinder', `${f(r.sweptEach)} cc`) + line('Total in litres', `${f(r.litres, 3)} L`) + line('Total in cubic inches', `${f(r.cuin)} cu in`) +
+      line('Bore / stroke ratio', `${f(r.ratio, 2)}`) + line('Engine shape', shape) + (r.cr ? line('Compression ratio', `${f(r.cr)} : 1`) : '');
+  };
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  calc();
+</script>
