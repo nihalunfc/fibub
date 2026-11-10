@@ -1,0 +1,98 @@
+---
+// #1761 Certificate maker. Layouts and PDF in src/lib/docs/certs.ts.
+---
+<div class="tool-ui cm">
+  <div class="cm-cols">
+    <form class="cm-form" onsubmit="return false" autocomplete="off">
+      <fieldset class="cm-card">
+        <legend>1. Who is it for?</legend>
+        <label>Names (one per line, or open a CSV: the first column is used)
+          <textarea class="cm-names" rows="5" placeholder="Asha Rao&#10;Ben Lee&#10;Chidi Okafor"></textarea>
+        </label>
+        <label>Or open a CSV or text file <input class="cm-file" type="file" accept=".csv,.tsv,.txt,text/csv,text/plain" /></label>
+        <p class="cm-hint cm-count" aria-live="polite"></p>
+      </fieldset>
+      <fieldset class="cm-card">
+        <legend>2. The words</legend>
+        <label>Title <input class="cm-title" type="text" value="Certificate of Achievement" /></label>
+        <label>Line above the name <input class="cm-intro" type="text" value="This certificate is proudly presented to" /></label>
+        <label>Text under the name <textarea class="cm-text" rows="3">in recognition of outstanding effort and commitment.</textarea></label>
+        <div class="cm-grid">
+          <label>Date <input class="cm-date" type="date" /></label>
+          <label>First signature line <input class="cm-s1" type="text" value="Signature" /></label>
+          <label>Second signature line (optional) <input class="cm-s2" type="text" placeholder="Leave empty for one" /></label>
+        </div>
+      </fieldset>
+      <fieldset class="cm-card">
+        <legend>3. Look</legend>
+        <div class="cm-grid">
+          <label>Layout <select class="cm-layout"><option value="classic">Classic (double border)</option><option value="modern">Modern (colour band)</option><option value="simple">Simple (plain lines)</option></select></label>
+          <label>Colour <select class="cm-colour"><option value="navy">Navy</option><option value="green">Green</option><option value="maroon">Maroon</option><option value="black">Black</option></select></label>
+          <label>Paper <select class="cm-size"><option value="a4">A4 landscape</option><option value="letter">Letter landscape</option></select></label>
+          <label>Logo (optional, PNG or JPG) <input class="cm-logo" type="file" accept="image/png,image/jpeg" /></label>
+        </div>
+      </fieldset>
+    </form>
+    <aside class="cm-side">
+      <button type="button" class="btn cm-pdf">Download PDF</button>
+      <p class="cm-status" aria-live="polite"></p>
+      <div class="cm-prev" aria-label="Preview"></div>
+    </aside>
+  </div>
+  <p class="cm-hint">Made in your browser. Names, logo and text are never uploaded or kept. One page is made for each name.</p>
+</div>
+
+<style is:inline>
+  .cm { display: grid; gap: 14px; margin-bottom: 32px; }
+  .cm-cols { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+  .cm-form { display: grid; gap: 10px; min-width: 0; }
+  .cm-card { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px 16px; display: grid; gap: 10px; min-width: 0; }
+  .cm-card legend { font-weight: 700; padding: 0 6px; }
+  .cm label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .cm input[type=text], .cm input[type=date], .cm select, .cm textarea, .cm input[type=file] { font: inherit; font-size: 16px; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .cm textarea { resize: vertical; line-height: 1.4; }
+  .cm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .cm-hint { margin: 0; font-size: 13px; color: var(--muted); }
+  .cm-status { margin: 0; font-size: 14px; color: var(--muted); }
+  .cm-side { position: sticky; top: 72px; display: grid; gap: 10px; min-width: 0; }
+  .cm-prev { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 6px; }
+  .cm-prev svg { display: block; width: 100%; height: auto; }
+  @media (max-width: 760px) { .cm-cols { grid-template-columns: minmax(0, 1fr); } .cm-side { position: static; } .cm-grid { grid-template-columns: minmax(0, 1fr); } }
+</style>
+
+<script>
+  import { parseNames, COLOURS, dateText, type Cert } from '../../lib/docs/certs';
+  const root = document.querySelector('.cm') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
+  const v = (s: string) => q<HTMLInputElement>(s).value;
+  let logo: { data: Uint8Array; type: 'png' | 'jpg' } | null = null;
+  q<HTMLInputElement>('.cm-date').value = new Date().toISOString().slice(0, 10);
+  const cert = (): Cert => ({ layout: v('.cm-layout') as Cert['layout'], size: v('.cm-size') as Cert['size'], title: v('.cm-title'), intro: v('.cm-intro'), text: v('.cm-text'), date: v('.cm-date'), sign1: v('.cm-s1'), sign2: v('.cm-s2'), colour: v('.cm-colour'), logo: logo?.data, logoType: logo?.type });
+  const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]!));
+  function refresh() {
+    const names = parseNames(v('.cm-names')), c = cert(), W = c.size === 'letter' ? 792 : 842, H = c.size === 'letter' ? 612 : 595;
+    q('.cm-count').textContent = `${names.length} name${names.length === 1 ? '' : 's'} = ${Math.max(1, names.length)} page${names.length > 1 ? 's' : ''}.`;
+    const [r, g, b] = COLOURS[c.colour]; const col = `rgb(${Math.round(r * 255)},${Math.round(g * 255)},${Math.round(b * 255)})`;
+    let deco = '';
+    if (c.layout === 'classic') deco = `<rect x="24" y="24" width="${W - 48}" height="${H - 48}" fill="none" stroke="${col}" stroke-width="4"/><rect x="34" y="34" width="${W - 68}" height="${H - 68}" fill="none" stroke="${col}" stroke-width="1"/>`;
+    else if (c.layout === 'modern') deco = `<rect width="${W}" height="70" fill="${col}"/><rect y="${H - 18}" width="${W}" height="18" fill="${col}"/>`;
+    else deco = `<line x1="80" x2="${W - 80}" y1="70" y2="70" stroke="${col}"/><line x1="80" x2="${W - 80}" y1="${H - 70}" y2="${H - 70}" stroke="${col}"/>`;
+    const ff = c.layout === 'simple' ? 'Helvetica,Arial,sans-serif' : 'Georgia,Times,serif', t = (y: number, s: number, x: string, extra = '') => `<text x="${W / 2}" y="${y}" font-size="${s}" text-anchor="middle" font-family="${ff}" ${extra}>${esc(x)}</text>`;
+    const nm = names[0] ?? 'Name goes here', top = c.layout === 'modern' ? 130 : 110;
+    q('.cm-prev').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Certificate preview"><rect width="${W}" height="${H}" fill="#fff"/>${deco}${t(top + 20, 36, c.title, `font-weight="700" fill="${col}"`)}${t(top + 60, 16, c.intro, 'fill="#555" font-style="italic"')}${t(top + 125, 42, nm, 'fill="#111" font-style="italic"')}<line x1="${W / 2 - 170}" x2="${W / 2 + 170}" y1="${top + 140}" y2="${top + 140}" stroke="${col}"/>${t(top + 180, 15, c.text.split('\n')[0] ?? '', 'fill="#555"')}${t(H - 125, 14, dateText(c.date), `transform="translate(${-W * 0.25} 0)"`)}<line x1="${W * 0.25 - 100}" x2="${W * 0.25 + 100}" y1="${H - 105}" y2="${H - 105}" stroke="#333"/><line x1="${W * (c.sign2.trim() ? 0.5 : 0.7) - 100}" x2="${W * (c.sign2.trim() ? 0.5 : 0.7) + 100}" y1="${H - 105}" y2="${H - 105}" stroke="#333"/></svg>`;
+  }
+  root.addEventListener('input', refresh); root.addEventListener('change', refresh);
+  q<HTMLInputElement>('.cm-file').addEventListener('change', async (e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) { q<HTMLTextAreaElement>('.cm-names').value = await f.text(); refresh(); } });
+  q<HTMLInputElement>('.cm-logo').addEventListener('change', async (e) => {
+    const f = (e.target as HTMLInputElement).files?.[0];
+    logo = f ? { data: new Uint8Array(await f.arrayBuffer()), type: f.type === 'image/png' ? 'png' : 'jpg' } : null;
+  });
+  const download = (blob: Blob, name: string) => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
+  q('.cm-pdf').addEventListener('click', async () => {
+    const { certificatePdf } = await import('../../lib/docs/certs');
+    const names = parseNames(v('.cm-names')), r = await certificatePdf(cert(), names);
+    q('.cm-status').textContent = `Made ${r.pages} page${r.pages === 1 ? '' : 's'}.` + (names.length ? '' : ' (No names yet, so the name is blank to write in by hand.)') + (r.lost.length ? ` Characters that can't be shown were replaced: ${r.lost.slice(0, 10).join(' ')}.` : '');
+    download(new Blob([r.bytes as BlobPart], { type: 'application/pdf' }), 'certificates.pdf');
+  });
+  refresh();
+</script>
