@@ -1,0 +1,166 @@
+---
+// Nitrogen estimation: Dumas (volume of N₂ reduced to STP) and Kjeldahl (NH₃ caught in acid, direct or back
+// titration), with every step of the working and a picture of the apparatus. Class 11 chemistry, organic
+// chemistry: quantitative analysis.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+import { COMPOUNDS } from '../../lib/sci/nitrogen-estimation';
+---
+<div class="ax nex">
+  <div class="ax-card">
+    <div class="ax-seg ne-m" role="group" aria-label="Method">
+      <button type="button" data-m="dumas" aria-pressed="true">Dumas</button><button type="button" data-m="kj" aria-pressed="false">Kjeldahl</button>
+    </div>
+    <div class="ax-grid ne-in">
+      <label>Mass of compound (g) <input class="ne-mass" type="number" step="0.001" min="0.001" value="0.3" inputmode="decimal" /></label>
+      <label class="ne-d">Volume of N₂ (mL) <input class="ne-v" type="number" step="0.1" min="0.1" value="50" inputmode="decimal" /></label>
+      <label class="ne-d">Temperature (K) <input class="ne-t" type="number" step="0.1" min="200" value="300" inputmode="decimal" /></label>
+      <label class="ne-d">Pressure (mm Hg) <input class="ne-p" type="number" step="0.1" min="1" value="715" inputmode="decimal" /></label>
+      <label class="ne-d">Aqueous tension (mm Hg) <input class="ne-aq" type="number" step="0.1" min="0" value="0" inputmode="decimal" /></label>
+      <label class="ne-k">Acid <select class="ne-acid"><option value="2" selected>H₂SO₄ (2 H⁺ each)</option><option value="1">HCl (1 H⁺ each)</option></select></label>
+      <label class="ne-k">Acid molarity (mol/L) <input class="ne-ma" type="number" step="0.01" min="0.001" value="0.5" inputmode="decimal" /></label>
+      <label class="ne-k">Acid volume (mL) <input class="ne-va" type="number" step="0.1" min="0.1" value="10" inputmode="decimal" /></label>
+      <label class="ne-k ne-bt">NaOH molarity (mol/L) <input class="ne-mb" type="number" step="0.01" min="0" value="0.5" inputmode="decimal" /></label>
+      <label class="ne-k ne-bt">NaOH volume (mL) <input class="ne-vb" type="number" step="0.1" min="0" value="0" inputmode="decimal" /></label>
+    </div>
+    <label class="ax-check ne-k ne-back-l"><input type="checkbox" class="ne-back" /> Back titration: the acid left over was titrated with NaOH</label>
+    <p class="ax-help ne-hint"></p>
+    <p class="ax-err ne-err" hidden></p>
+    <p class="ax-big ne-big" aria-live="polite"></p>
+    <canvas class="ax-fig ne-fig" role="img"></canvas>
+    <ol class="ne-steps"></ol>
+  </div>
+
+  <div class="ax-card">
+    <h2>Compare with known compounds</h2>
+    <p class="ax-help">Percent nitrogen from the formula (N = 14). Your answer should be close to the compound you think it is.</p>
+    <dl class="ax-facts ne-known">{COMPOUNDS.map((c) => <div><dt>{c.name}</dt><dd>{(((14 * c.nN) / c.M) * 100).toFixed(2)}%<small>{c.nN} × 14 ÷ {c.M}</small></dd></div>)}</dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="ne-try">
+      <li>Dumas: collect the gas over water by giving an aqueous tension of about 27 mm Hg (water at 27 °C). The dry gas pressure falls, and so does %N.</li>
+      <li>Kjeldahl: switch the acid from H₂SO₄ to HCl at the same molarity. %N halves, because each HCl catches only one NH₃.</li>
+      <li>Back titration: 50 mL of 0.5 M H₂SO₄, then 60 mL of 0.5 M NaOH for what is left, with 1 g of compound. What fraction of the acid did the ammonia use?</li>
+      <li>Find readings that give urea's 46.67%.</li>
+    </ul>
+    <p class="ax-help">Kjeldahl's method does not work for nitro and azo compounds or nitrogen in a ring (as in pyridine), because that nitrogen does not turn into ammonium sulfate. Dumas works for all of them.</p>
+  </div>
+
+  <SmQuiz cls="ne-quiz" />
+</div>
+
+<script>
+  import { dumas, kjeldahl } from '../../lib/sci/nitrogen-estimation';
+  import { paint, type Figure } from '../../lib/report';
+  import { fmt } from '../../lib/sm-graph';
+  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.nex')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380, H = 220;
+  let m = 'dumas';
+  const num = (c: string) => { const s = q<HTMLInputElement>(c).value.trim(); return s === '' ? NaN : +s; };
+  const li = (t: string) => { const e = document.createElement('li'); e.textContent = t; return e; };
+
+  function run() {
+    root.querySelectorAll<HTMLElement>('.ne-d').forEach((e) => (e.hidden = m !== 'dumas'));
+    root.querySelectorAll<HTMLElement>('.ne-k').forEach((e) => (e.hidden = m !== 'kj'));
+    const back = q<HTMLInputElement>('.ne-back').checked;
+    root.querySelectorAll<HTMLElement>('.ne-bt').forEach((e) => (e.hidden = m !== 'kj' || !back));
+    q('.ne-hint').textContent = m === 'dumas' ? 'The compound is heated with copper(II) oxide; its nitrogen comes off as N₂ gas, collected over potash solution, which soaks up the CO₂. Leave aqueous tension at 0 if the volume is already for dry gas.' : 'The compound is heated with concentrated H₂SO₄; its nitrogen becomes ammonium sulfate. NaOH then drives off NH₃, which is caught in a known amount of acid.';
+    const mass = num('.ne-mass');
+    let err = '';
+    if (!(mass > 0)) err = 'Type the mass of the compound in grams (more than 0).';
+    let res: { pct: number; massN: number } | null = null; const steps: string[] = [];
+    if (!err && m === 'dumas') {
+      const V = num('.ne-v'), T = num('.ne-t'), P = num('.ne-p'), aq = num('.ne-aq');
+      if (!(V > 0 && T > 0 && P > 0 && aq >= 0)) err = 'Volume, temperature and pressure must be more than 0, and aqueous tension 0 or more.';
+      else if (aq >= P) err = 'Aqueous tension must be less than the pressure.';
+      else {
+        const d = dumas(mass, V, T, P, aq); res = d;
+        if (aq) steps.push(`Dry gas pressure = ${fmt(P, 2)} − ${fmt(aq, 2)} = ${fmt(d.pDry, 2)} mm Hg.`);
+        steps.push(`Volume at STP: V₀ = P₁V₁ × 273 ÷ (760 × T₁) = ${fmt(d.pDry, 2)} × ${fmt(V, 2)} × 273 ÷ (760 × ${fmt(T, 2)}) = ${fmt(d.v0, 3)} mL.`);
+        steps.push(`22 400 mL of N₂ at STP weighs 28 g, so ${fmt(d.v0, 3)} mL weighs 28 × ${fmt(d.v0, 3)} ÷ 22 400 = ${fmt(d.massN, 5)} g.`);
+        steps.push(`% N = ${fmt(d.massN, 5)} ÷ ${fmt(mass, 4)} × 100 = ${fmt(d.pct, 2)}%.`);
+      }
+    } else if (!err) {
+      const b = +q<HTMLSelectElement>('.ne-acid').value, Ma = num('.ne-ma'), Va = num('.ne-va'), Mb = back ? num('.ne-mb') : 0, Vb = back ? num('.ne-vb') : 0;
+      if (!(Ma > 0 && Va > 0 && Mb >= 0 && Vb >= 0)) err = 'Molarities and volumes must be numbers more than 0 (NaOH may be 0).';
+      else {
+        const k = kjeldahl(mass, Ma, Va, b, Mb, Vb);
+        if (k.mmolNH3 <= 0) err = 'The NaOH used up all the acid or more, so no ammonia was caught. Check the numbers.';
+        else {
+          res = k;
+          const acid = b === 2 ? 'H₂SO₄' : 'HCl';
+          steps.push(`H⁺ from the acid = ${b} × ${fmt(Ma, 4)} mol/L × ${fmt(Va, 2)} mL = ${fmt(k.mmolAcid, 3)} mmol${b === 2 ? ` (each ${acid} gives 2 H⁺)` : ''}.`);
+          if (back) steps.push(`NaOH used on the acid left over = ${fmt(Mb, 4)} × ${fmt(Vb, 2)} = ${fmt(k.mmolBase, 3)} mmol, so the ammonia took ${fmt(k.mmolAcid, 3)} − ${fmt(k.mmolBase, 3)} = ${fmt(k.mmolNH3, 3)} mmol of H⁺.`);
+          steps.push(`Each NH₃ takes one H⁺, so NH₃ = ${fmt(k.mmolNH3, 3)} mmol, holding ${fmt(k.mmolNH3, 3)} mmol of N = 14 × ${fmt(k.mmolNH3, 3)} ÷ 1000 = ${fmt(k.massN, 5)} g.`);
+          steps.push(`% N = ${fmt(k.massN, 5)} ÷ ${fmt(mass, 4)} × 100 = ${fmt(k.pct, 2)}%. (Shortcut: % N = 1.4 × ${b === 2 ? '2 × ' : ''}M × V ÷ m.)`);
+        }
+      }
+    }
+    q('.ne-err').hidden = !err; q('.ne-err').textContent = err;
+    if (res && res.pct > 100) { q('.ne-err').hidden = false; q('.ne-err').textContent = 'More than 100% nitrogen is impossible: check the readings.'; }
+    q('.ne-big').textContent = res ? `Nitrogen = ${fmt(res.pct, 2)}%` : '';
+    q('.ne-steps').replaceChildren(...steps.map(li));
+    const pct = res?.pct ?? 0;
+    const fig: Figure = { w: W, h: H, alt: m === 'dumas' ? `Dumas apparatus: N₂ gas collected in a graduated tube, ${fmt(pct, 2)}% nitrogen` : `Kjeldahl apparatus: ammonia from the flask caught in acid, ${fmt(pct, 2)}% nitrogen`, draw: (ctx, w, h, pl) => {
+      ctx.lineWidth = 2; ctx.strokeStyle = pl.ink; ctx.font = '12px system-ui, sans-serif'; ctx.fillStyle = pl.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      // Heated tube or flask on the left.
+      const flame = (x: number, y: number) => { ctx.fillStyle = pl.warn; ctx.beginPath(); ctx.moveTo(x - 8, y + 18); ctx.quadraticCurveTo(x, y - 6, x + 8, y + 18); ctx.closePath(); ctx.fill(); ctx.fillStyle = pl.ink; };
+      if (m === 'dumas') {
+        ctx.strokeRect(20, 80, 120, 22); ctx.fillText('compound + CuO', 80, 106); flame(60, 122); flame(100, 122);
+        ctx.beginPath(); ctx.moveTo(140, 91); ctx.lineTo(240, 91); ctx.lineTo(240, 190); ctx.stroke();
+        ctx.fillText('N₂ + CO₂', 190, 74);
+        // Nitrometer: inverted tube in KOH; gas at the top.
+        const tx = 270, ty = 20, th = 170, frac = Math.min(1, (num('.ne-v') || 0) / 100);
+        ctx.fillStyle = pl.accent; ctx.globalAlpha = 0.15; ctx.fillRect(tx, ty + th * frac, 40, th * (1 - frac)); ctx.globalAlpha = 1;
+        ctx.strokeRect(tx, ty, 40, th); ctx.fillStyle = pl.accent; ctx.fillText('N₂', tx + 20, ty + Math.max(4, (th * frac) / 2 - 6));
+        ctx.fillStyle = pl.muted; for (let i = 1; i < 10; i++) { ctx.beginPath(); ctx.moveTo(tx, ty + (th * i) / 10); ctx.lineTo(tx + 8, ty + (th * i) / 10); ctx.stroke(); }
+        ctx.fillStyle = pl.ink; ctx.fillText('KOH soaks', tx + 20, ty + th + 4); ctx.fillText(`${fmt(num('.ne-v'), 1)} mL`, tx + 74, ty + th * frac - 8);
+        ctx.beginPath(); ctx.moveTo(240, 190); ctx.lineTo(tx + 20, 190); ctx.stroke();
+      } else {
+        ctx.beginPath(); ctx.arc(70, 130, 38, 0, 2 * Math.PI); ctx.stroke(); ctx.strokeRect(62, 60, 16, 34);
+        ctx.fillText('(NH₄)₂SO₄ + NaOH', 70, 174); flame(70, 172);
+        ctx.beginPath(); ctx.moveTo(78, 66); ctx.lineTo(250, 66); ctx.lineTo(250, 150); ctx.stroke(); ctx.fillText('NH₃ gas', 165, 48);
+        ctx.fillStyle = pl.accent2; ctx.globalAlpha = 0.18; ctx.fillRect(212, 130, 76, 60); ctx.globalAlpha = 1; ctx.strokeRect(212, 110, 76, 80);
+        ctx.fillStyle = pl.ink; ctx.fillText(`${fmt(num('.ne-va'), 1)} mL acid`, 250, 194);
+        if (back) { ctx.strokeRect(320, 10, 14, 110); ctx.beginPath(); ctx.moveTo(327, 120); ctx.lineTo(300, 128); ctx.stroke(); ctx.fillText('NaOH', 327, 124); }
+      }
+      if (res) { ctx.font = '600 15px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = pl.good; ctx.fillText(`${fmt(pct, 2)}% N`, 12, 12); }
+    } };
+    paint(q<HTMLCanvasElement>('.ne-fig'), fig);
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.ne-m button').forEach((b) => b.addEventListener('click', () => {
+    m = b.dataset.m!; root.querySelectorAll('.ne-m button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q<HTMLInputElement>('.ne-mass').value = m === 'dumas' ? '0.3' : '0.5'; run();
+  }));
+  root.querySelectorAll('input, select').forEach((e) => { e.addEventListener('input', run); e.addEventListener('change', run); });
+  document.addEventListener('fibub:theme', run);
+  run();
+
+  quiz(q('.ne-quiz'), (): Question[] => {
+    const m1 = pick([0.2, 0.25, 0.3, 0.4]), v1 = rint(30, 60), t1 = rint(290, 310), p1 = rint(700, 760);
+    const d = dumas(m1, v1, t1, p1);
+    const m2 = pick([0.5, 0.75, 1]), M2 = pick([0.1, 0.25, 0.5]), V2 = rint(10, 30), b2 = pick([1, 2]);
+    const k = kjeldahl(m2, M2, V2, b2);
+    return [
+      { text: `${m1} g of a compound gives ${v1} mL of dry N₂ at ${t1} K and ${p1} mm Hg. What is the percent nitrogen?`, answer: d.pct, tol: 0.05, worked: `V₀ = ${p1} × ${v1} × 273 ÷ (760 × ${t1}) = ${fmt(d.v0, 3)} mL. Mass of N₂ = 28 × ${fmt(d.v0, 3)} ÷ 22 400 = ${fmt(d.massN, 5)} g. % N = ${fmt(d.massN, 5)} ÷ ${m1} × 100 = ${fmt(d.pct, 2)}%.` },
+      { text: `The ammonia from ${m2} g of a compound exactly neutralised ${V2} mL of ${M2} M ${b2 === 2 ? 'H₂SO₄' : 'HCl'}. What is the percent nitrogen?`, answer: k.pct, tol: 0.05, worked: `H⁺ = ${b2} × ${M2} × ${V2} = ${fmt(k.mmolAcid, 3)} mmol = mmol of NH₃. N = 14 × ${fmt(k.mmolNH3, 3)} ÷ 1000 = ${fmt(k.massN, 4)} g. % N = ${fmt(k.massN, 4)} ÷ ${m2} × 100 = ${fmt(k.pct, 2)}%.` },
+      { text: 'Which compound cannot be analysed for nitrogen by the Kjeldahl method?', choices: ['Urea', 'Nitrobenzene', 'Glycine'], correct: 1, worked: 'Nitrogen in nitro groups (and azo groups and rings such as pyridine) does not turn into ammonium sulfate, so Kjeldahl misses it. Use Dumas for these.' },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .nex .ax-seg button { min-height: 44px; min-width: 90px; }
+  .nex .ne-in { margin-top: 12px; }
+  .nex .ne-in input, .nex .ne-in select { min-height: 42px; }
+  .nex .ne-back-l { margin-top: 10px; }
+  .nex .ne-big { margin: 12px 0 4px; }
+  .nex .ne-steps { padding-left: 22px; display: grid; gap: 6px; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+  .nex .ne-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+</style>
