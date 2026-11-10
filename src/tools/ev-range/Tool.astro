@@ -1,0 +1,93 @@
+---
+// #T900 EV range
+---
+<div class="tool-ui ev">
+  <section class="panel">
+    <div class="ev-grid">
+      <label>Usable battery (kWh) <input data-k="kwh" inputmode="decimal" value="60" /></label>
+      <label>Rated consumption (kWh per 100 km) <input data-k="per" inputmode="decimal" value="16" /></label>
+      <label>Speed (km/h) <input data-k="speed" inputmode="decimal" value="80" /></label>
+      <label>Outside temperature (°C) <input data-k="temp" inputmode="decimal" value="20" /></label>
+    </div>
+    <label class="ev-check"><input type="checkbox" data-k="heat" /> Heater or air conditioning on</label>
+    <label class="ev-check"><input type="checkbox" data-k="load" /> Heavy load, trailer or roof box</label>
+    <h2 class="ev-h">Factors (typical figures, change them if you know better)</h2>
+    <div class="ev-grid">
+      <label>Speed factor <input data-k="fs" inputmode="decimal" value="1" /></label>
+      <label>Temperature factor <input data-k="ft" inputmode="decimal" value="1" /></label>
+      <label>Heater / AC factor <input data-k="fh" inputmode="decimal" value="1" /></label>
+      <label>Load factor <input data-k="fl" inputmode="decimal" value="1" /></label>
+    </div>
+    <p class="ev-fine">A factor of 1.20 means 20% more energy for every km. The starting figures are typical rounded values from the general pattern in public tests, not exact for any one car.</p>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="ev-big"></p>
+    <dl class="ev-rows"></dl>
+    <p class="ev-warn" role="alert"></p>
+  </section>
+  <section class="panel">
+    <h2 class="ev-h">Charging time</h2>
+    <div class="ev-grid">
+      <label>Charger power (kW) <input data-k="kw" inputmode="decimal" value="11" /></label>
+      <label>Charge from (%) <input data-k="from" inputmode="decimal" value="10" /></label>
+      <label>Charge to (%) <input data-k="to" inputmode="decimal" value="80" /></label>
+    </div>
+    <p class="ev-big ev-charge"></p>
+    <p class="ev-fine">Charging slows down as the battery fills and in the cold, so real times are longer. Compare running costs in the EV vs petrol tool.</p>
+  </section>
+  <p class="ev-fine">Estimates only. Plan long trips with your car's own range display and charger map. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ev { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ev .panel { padding: 16px; }
+  .ev-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 12px; }
+  .ev label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ev input:not([type=checkbox]) { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ev input:focus { border-color: var(--accent); outline: none; }
+  .ev label.ev-check { display: flex; gap: 8px; align-items: center; color: var(--ink); margin-top: 12px; }
+  .ev input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .ev-h { font-size: 16px; margin: 16px 0 8px; }
+  .ev-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
+  .ev-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
+  .ev-rows dt { color: var(--muted); } .ev-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .ev-warn { color: var(--bad); margin: 10px 0 0; } .ev-warn:empty { display: none; }
+  .ev-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+</style>
+
+<script>
+  import { evRange, EV_FACTORS } from '../../lib/money/vehicle-physics';
+  const root = document.querySelector('.ev') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const num = (k: string) => parseFloat(q(k).value.replace(/,/g, ''));
+  const f0 = (v: number) => Math.round(v).toLocaleString('en-US');
+  const f2 = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const preset = (k: string) => {
+    if (k === 'speed' && isFinite(num('speed'))) q('fs').value = String(EV_FACTORS.speed(num('speed')));
+    if (k === 'temp' && isFinite(num('temp'))) q('ft').value = String(EV_FACTORS.temp(num('temp')));
+    if (k === 'heat') q('fh').value = q('heat').checked ? String(EV_FACTORS.heater) : '1';
+    if (k === 'load') q('fl').value = q('load').checked ? String(EV_FACTORS.load) : '1';
+  };
+  const calc = () => {
+    const kwh = num('kwh'), per = num('per'), fac = ['fs', 'ft', 'fh', 'fl'].map(num);
+    if (!(kwh > 0) || !(per > 0) || fac.some((f) => !(f > 0))) { $('.ev-big').textContent = ''; $('.ev-rows').innerHTML = ''; $('.ev-warn').textContent = 'Type a battery size, a consumption above 0 and factors above 0.'; return; }
+    $('.ev-warn').textContent = '';
+    const r = evRange({ kwh, per100: per, factors: fac });
+    const base = evRange({ kwh, per100: per, factors: [] });
+    $('.ev-big').textContent = `About ${f0(r.km)} km`;
+    const line = (a: string, b: string) => `<dt>${a}</dt><dd>${b}</dd>`;
+    $('.ev-rows').innerHTML = line('Rated range (no factors)', `${f0(base.km)} km`) + line('Speed', `x ${f2(fac[0])}`) + line('Temperature', `x ${f2(fac[1])}`) + line('Heater or AC', `x ${f2(fac[2])}`) + line('Load', `x ${f2(fac[3])}`) +
+      line('Real consumption', `${f2(r.per100)} kWh per 100 km`) + line('Range lost', `${f0(base.km - r.km)} km (${f0((1 - r.km / base.km) * 100)}%)`);
+    const kw = num('kw'), from = num('from'), to = num('to');
+    const c = $('.ev-charge');
+    if (kw > 0 && from >= 0 && to > from && to <= 100) {
+      const ch = evRange({ kwh, per100: per, factors: fac, chargerKw: kw, fromPct: from, toPct: to });
+      const h = Math.floor(ch.hours), m = Math.round((ch.hours - h) * 60);
+      c.textContent = `${ch.energy.toLocaleString('en-US', { maximumFractionDigits: 1 })} kWh in about ${h ? h + ' h ' : ''}${m} min`;
+    } else c.textContent = 'Type a charger power and a start below the end percent.';
+  };
+  root.addEventListener('input', (e) => { const k = (e.target as HTMLElement).getAttribute('data-k') || ''; preset(k); calc(); });
+  root.addEventListener('change', (e) => { const k = (e.target as HTMLElement).getAttribute('data-k') || ''; preset(k); calc(); });
+  calc();
+</script>
