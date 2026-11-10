@@ -1,0 +1,30 @@
+// #1388 floral formula (notation checked in tests/sci-tools/floral-formula.mjs)
+export const path = '/learn/floral-formula/';
+export default async ({ page, check, BASE }) => {
+  const R = '.flf ';
+  const t = (s) => page.textContent(R + s);
+  await page.goto(`${BASE}/learn/floral-formula/`); await page.waitForTimeout(400);
+  check((await t('.ff-plain')).includes('⊕ ⚥ K2+2 C4 A2+4 G(2)'), `floral: mustard (${await t('.ff-plain')})`);
+  check((await page.$$eval(R + '.ff-dia .ff-sep', (e) => e.length)) === 4 && (await page.$$eval(R + '.ff-dia .ff-pet', (e) => e.length)) === 4 && (await page.$$eval(R + '.ff-dia .ff-sta', (e) => e.length)) === 12, 'floral: mustard diagram 4, 4, 6 stamens');
+  check(await page.isVisible(R + '.ff-sup'), 'floral: superior ovary line');
+  await page.selectOption(R + '.ff-pre', 'pea');
+  check((await t('.ff-plain')).includes('% ⚥ K(5) C1+2+(2) A(9)+1 G1') && (await page.$$eval(R + '.ff-plane', (e) => e.length)) === 1, 'floral: pea, zygomorphic');
+  await page.selectOption(R + '.ff-pre', 'potato');
+  check(await page.isVisible(R + '.ff-epiarc') && await page.isVisible(R + '.ff-dia .ff-epi'), 'floral: potato epipetalous arc');
+  await page.uncheck(R + '.ff-epi');
+  check(await page.$(R + '.ff-epiarc') === null, 'floral: arc goes when unticked');
+  await page.click(R + '.ff-ov button[data-v="inferior"]');
+  check(await page.isVisible(R + '.ff-inf') && (await t('.ff-plain')).includes('inferior'), 'floral: inferior ovary');
+  await page.click(R + '.ff-sex button[data-v="male"]');
+  check(!(await t('.ff-plain')).includes(' G') && await page.isHidden(R + '.ff-G'), 'floral: male flower has no G');
+  await page.click(R + '.ff-sex button[data-v="bi"]');
+  await page.selectOption(R + '.ff-pre', 'lily');
+  check((await t('.ff-plain')).includes('P(3+3) A3+3 G(3)') && (await page.$$eval(R + '.ff-dia .ff-pet', (e) => e.length)) === 6 && await page.isVisible(R + '.ff-P'), 'floral: lily perianth');
+  await page.fill(R + '.ff-A', '(5');
+  check((await t('.ff-err')).includes('bracket') && await page.isHidden(R + '.ff-out'), 'floral: bad whorl message');
+  await page.fill(R + '.ff-A', '∞');
+  check((await t('.ff-plain')).includes('A∞'), 'floral: many stamens');
+  check((await page.$$eval(R + '.smq-q', (e) => e.length)) === 5, 'floral: five quiz questions');
+  await page.click(R + '.smq-q:nth-child(1) .smq-choices button:nth-child(2)'); await page.click(R + '.smq-q:nth-child(1) .smq-check');
+  check((await t('.smq-q:nth-child(1) .smq-out')) === 'Right!', 'floral: quiz answer');
+};

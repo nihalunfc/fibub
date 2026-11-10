@@ -1,0 +1,209 @@
+---
+// Floral formula and diagram maker: choose symmetry, sex, the parts of each whorl (free or joined), stamens on
+// the petals, carpels and ovary position, and get the floral formula and a floral diagram drawn from it.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax flf">
+  <div class="ax-card">
+    <h2>Describe the flower</h2>
+    <label>Start from <select class="ff-pre"></select></label>
+    <div class="ax-row"><span class="ax-help">Symmetry</span>
+      <div class="ax-seg ff-sym" role="group" aria-label="Symmetry"><button type="button" data-v="actino">⊕ Actinomorphic</button><button type="button" data-v="zygo">% Zygomorphic</button></div>
+    </div>
+    <div class="ax-row"><span class="ax-help">Sex</span>
+      <div class="ax-seg ff-sex" role="group" aria-label="Sex"><button type="button" data-v="bi">⚥ Both</button><button type="button" data-v="male">♂ Male</button><button type="button" data-v="female">♀ Female</button></div>
+    </div>
+    <label class="ff-chk"><input type="checkbox" class="ff-per" /> Sepals and petals look alike (perianth, P)</label>
+    <div class="ax-grid ff-w">
+      <label class="ff-kc">Calyx K (sepals) <input class="ff-K" type="text" autocomplete="off" spellcheck="false" /></label>
+      <label class="ff-kc">Corolla C (petals) <input class="ff-C" type="text" autocomplete="off" spellcheck="false" /></label>
+      <label class="ff-pp" hidden>Perianth P (tepals) <input class="ff-P" type="text" autocomplete="off" spellcheck="false" /></label>
+      <label class="ff-aa">Androecium A (stamens) <input class="ff-A" type="text" autocomplete="off" spellcheck="false" /></label>
+      <label class="ff-gg">Carpels G <input class="ff-G" type="number" min="1" max="10" inputmode="numeric" /></label>
+    </div>
+    <p class="ax-help">Type a count such as 5, brackets for joined parts such as (5), + between groups such as 1+2+(2), or ∞ for many.</p>
+    <label class="ff-chk ff-gg"><input type="checkbox" class="ff-Gf" /> Carpels joined (syncarpous)</label>
+    <label class="ff-chk ff-aa"><input type="checkbox" class="ff-epi" /> Stamens attached to the petals (epipetalous)</label>
+    <div class="ax-row ff-gg"><span class="ax-help">Ovary</span>
+      <div class="ax-seg ff-ov" role="group" aria-label="Ovary position"><button type="button" data-v="superior">Superior</button><button type="button" data-v="inferior">Inferior</button></div>
+    </div>
+    <p class="ax-err ff-err" hidden></p>
+  </div>
+
+  <div class="ax-card ff-out">
+    <h2>Floral formula</h2>
+    <p class="ff-formula" aria-live="polite"></p>
+    <p class="ax-help ff-plain"></p>
+    <svg class="ff-dia" viewBox="0 0 300 300" role="img"></svg>
+    <p class="ax-legend"><span><i class="ff-ks"></i>sepals</span><span><i class="ff-kp"></i>petals or tepals</span><span><i class="ff-ka"></i>stamens</span><span><i class="ff-kg"></i>ovary</span><span>dot: mother axis</span></p>
+    <ul class="ff-desc"></ul>
+    <p class="ff-note"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="ff-try">
+      <li>Pick the <b>pea family</b>: the diagram shows one big standard petal, two wings and the two keel petals joined, and a single carpel.</li>
+      <li>In the <b>potato family</b>, untick "epipetalous": the arc joining C and A in the formula disappears.</li>
+      <li>Switch the ovary to <b>inferior</b>: the line moves from under G to over it.</li>
+      <li>Change sex to ♂: the carpels vanish from the formula and the diagram.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="ff-quiz" />
+</div>
+
+<script>
+  import { readWhorl, formula, describe, PRESETS, SYM, SEX, type Flower } from '../../lib/sci/school-floral';
+  import { S } from '../../lib/smath-ui';
+  import { quiz, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.flf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const sel = q<HTMLSelectElement>('.ff-pre');
+  sel.replaceChildren(...PRESETS.map((p) => new Option(p.label, p.id)));
+  let f: Flower = { ...PRESETS[0].f }, note = PRESETS[0].note;
+  const segs: [string, keyof Flower][] = [['.ff-sym', 'sym'], ['.ff-sex', 'sex'], ['.ff-ov', 'ovary']];
+
+  function load(id: string) {
+    const p = PRESETS.find((x) => x.id === id)!; f = { ...p.f }; note = p.note;
+    q<HTMLInputElement>('.ff-K').value = f.K; q<HTMLInputElement>('.ff-C').value = f.C; q<HTMLInputElement>('.ff-P').value = f.P; q<HTMLInputElement>('.ff-A').value = f.A;
+    q<HTMLInputElement>('.ff-G').value = String(f.G); q<HTMLInputElement>('.ff-Gf').checked = f.Gfused; q<HTMLInputElement>('.ff-epi').checked = f.epipetalous; q<HTMLInputElement>('.ff-per').checked = f.perianth;
+    draw();
+  }
+  function readForm(): string | null {
+    f.K = q<HTMLInputElement>('.ff-K').value; f.C = q<HTMLInputElement>('.ff-C').value; f.P = q<HTMLInputElement>('.ff-P').value; f.A = q<HTMLInputElement>('.ff-A').value;
+    f.perianth = q<HTMLInputElement>('.ff-per').checked; f.Gfused = q<HTMLInputElement>('.ff-Gf').checked; f.epipetalous = q<HTMLInputElement>('.ff-epi').checked;
+    const G = Number(q<HTMLInputElement>('.ff-G').value);
+    if (f.sex !== 'male' && (!Number.isInteger(G) || G < 1 || G > 10)) return 'Carpels: a whole number from 1 to 10.';
+    if (f.sex !== 'male') f.G = G;
+    const check: [string, string, boolean][] = f.perianth ? [['Perianth', f.P, true]] : [['Calyx', f.K, true], ['Corolla', f.C, true]];
+    if (f.sex !== 'female') check.push(['Androecium', f.A, true]);
+    for (const [n, s] of check) { try { readWhorl(s); } catch (e) { return `${n}: ${(e as Error).message}`; } }
+    return null;
+  }
+
+  // Formula with real notation: subscript counts, the ovary line, and the arc joining C (or P) and A.
+  function formulaHTML(): HTMLElement {
+    const p = document.createElement('span'); p.className = 'ff-f';
+    const add = (cls: string, letter: string, count: string) => { const s = document.createElement('span'); s.className = cls; s.append(letter); const sub = document.createElement('sub'); sub.textContent = count; s.append(sub); p.append(s, ' '); return s; };
+    p.append(`${SYM[f.sym]} ${SEX[f.sex]} `);
+    const pc = f.perianth ? add('ff-pc', 'P', readWhorl(f.P).text) : (add('ff-kk', 'K', readWhorl(f.K).text), add('ff-pc', 'C', readWhorl(f.C).text));
+    if (f.sex !== 'female') { const a = add('ff-aa2', 'A', readWhorl(f.A).text); if (f.epipetalous) { const wrap = document.createElement('span'); wrap.className = 'ff-epiarc'; pc.before(wrap); wrap.append(pc, ' ', a); wrap.after(' '); } }
+    if (f.sex !== 'male') add(`ff-g ${f.ovary === 'superior' ? 'ff-sup' : 'ff-inf'}`, 'G', f.Gfused && f.G > 1 ? `(${f.G})` : String(f.G));
+    return p;
+  }
+
+  function diagram() {
+    const svg = root.querySelector<SVGSVGElement>('.ff-dia')!; svg.replaceChildren();
+    const cx = 150, cy = 158, g = S('g', {}, svg);
+    S('circle', { cx, cy: 14, r: 5, class: 'ff-axis' }, g);
+    if (f.sym === 'zygo') S('line', { x1: cx, y1: 24, x2: cx, y2: 292, class: 'ff-plane' }, g);
+    // a whorl of parts around a ring; joined groups get a band behind them
+    const ring = (s: string, r: number, kind: 'sep' | 'pet' | 'sta', offset: number) => {
+      const w = readWhorl(s); if (!w.total) return;
+      // whorls written as 3+3 or (3+3) or 2+4 are drawn as two rings when the groups are whole whorls
+      let k = 0;
+      const step = (2 * Math.PI) / w.total;
+      for (const grp of w.groups) {
+        const a0 = -Math.PI / 2 + offset * step + k * step;
+        if (grp.fused && grp.n > 1) { const a1 = a0 + (grp.n - 1) * step; S('path', { d: arcPath(cx, cy, r, a0 - step * 0.35, a1 + step * 0.35), class: 'ff-band' }, g); }
+        for (let j = 0; j < grp.n; j++) {
+          const a = a0 + j * step, x = cx + r * Math.cos(a), y = cy + r * Math.sin(a), deg = (a * 180) / Math.PI + 90;
+          const big = kind === 'pet' && f.sym === 'zygo' && k === 0 && j === 0 && w.groups[0].n === 1;
+          if (kind === 'sta') { S('ellipse', { cx: x - 3 * Math.sin(a), cy: y + 3 * Math.cos(a), rx: 3.5, ry: 6, transform: `rotate(${deg} ${x} ${y})`, class: 'ff-sta' }, g); S('ellipse', { cx: x + 3 * Math.sin(a), cy: y - 3 * Math.cos(a), rx: 3.5, ry: 6, transform: `rotate(${deg} ${x} ${y})`, class: 'ff-sta' }, g); }
+          else { const half = Math.min(step * 0.42, 0.9) * (big ? 1.5 : 1); S('path', { d: crescent(cx, cy, r, a - half, a + half, kind === 'sep' ? 9 : 11), class: kind === 'sep' ? 'ff-sep' : 'ff-pet' }, g); }
+        }
+        k += grp.n;
+      }
+      if (w.groups.some((x) => x.many)) S('text', { x: cx + r + 4, y: cy - 4, class: 'ff-tx' }, g, '∞');
+    };
+    if (f.perianth) { const w = readWhorl(f.P); const two = w.groups.length === 1 && w.groups[0].sub.length === 2; if (two) { const [a, b] = w.groups[0].sub; ring(`${w.groups[0].fused ? `(${a})` : a}`, 120, 'pet', 0); ring(`${w.groups[0].fused ? `(${b})` : b}`, 98, 'pet', 0.5); } else ring(f.P, 112, 'pet', 0); }
+    else { const z = f.sym === 'zygo'; ring(f.K, 122, 'sep', z ? 0.5 : 0); ring(f.C, 98, 'pet', z ? 0 : 0.5); }
+    if (f.sex !== 'female') {
+      const w = readWhorl(f.A);
+      if (w.groups.length === 2 && !w.groups.some((x) => x.fused) && w.total <= 12) { ring(String(w.groups[0].n), 74, 'sta', 0); ring(String(w.groups[1].n), 60, 'sta', 0.5); }
+      else ring(f.A, 70, 'sta', 0);
+      if (f.epipetalous) S('circle', { cx, cy, r: 84, class: 'ff-epi' }, g);
+    }
+    if (f.sex !== 'male') {
+      const R = 34; S('circle', { cx, cy, r: R, class: 'ff-ov' }, g);
+      if (f.G > 1 && f.Gfused) for (let i = 0; i < f.G; i++) { const a = -Math.PI / 2 + (i + 0.5) * (2 * Math.PI) / f.G; S('line', { x1: cx, y1: cy, x2: cx + R * Math.cos(a), y2: cy + R * Math.sin(a), class: 'ff-sept' }, g); }
+      if (f.G > 1 && !f.Gfused) { g.lastChild?.remove(); for (let i = 0; i < f.G; i++) { const a = -Math.PI / 2 + (i * 2 * Math.PI) / f.G; S('circle', { cx: cx + 18 * Math.cos(a), cy: cy + 18 * Math.sin(a), r: 11, class: 'ff-ov' }, g); } }
+      for (let i = 0; i < f.G; i++) { const a = -Math.PI / 2 + (i * 2 * Math.PI) / f.G; S('circle', { cx: cx + (f.G > 1 ? 16 : 0) * Math.cos(a), cy: cy + (f.G > 1 ? 16 : 0) * Math.sin(a), r: 3, class: 'ff-ovule' }, g); }
+    }
+    svg.setAttribute('aria-label', `Floral diagram: ${formula(f)}`);
+  }
+  const arcPath = (cx: number, cy: number, r: number, a0: number, a1: number) => `M${cx + r * Math.cos(a0)} ${cy + r * Math.sin(a0)} A${r} ${r} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${cx + r * Math.cos(a1)} ${cy + r * Math.sin(a1)}`;
+  const crescent = (cx: number, cy: number, r: number, a0: number, a1: number, t: number) => {
+    const o = r + t / 2, i = r - t / 2, m = (a0 + a1) / 2;
+    return `M${cx + o * Math.cos(a0)} ${cy + o * Math.sin(a0)} A${o} ${o} 0 0 1 ${cx + o * Math.cos(a1)} ${cy + o * Math.sin(a1)} Q${cx + (i - t) * Math.cos(m)} ${cy + (i - t) * Math.sin(m)} ${cx + o * Math.cos(a0)} ${cy + o * Math.sin(a0)}Z`;
+  };
+
+  function draw() {
+    for (const [c, k] of segs) root.querySelectorAll<HTMLButtonElement>(`${c} button`).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === f[k])));
+    const per = q<HTMLInputElement>('.ff-per').checked;
+    root.querySelectorAll<HTMLElement>('.ff-kc').forEach((e) => { e.hidden = per; }); q('.ff-pp').hidden = !per;
+    const err = readForm(), box = q('.ff-err');
+    root.querySelectorAll<HTMLElement>('.ff-aa').forEach((e) => { e.hidden = f.sex === 'female'; });
+    root.querySelectorAll<HTMLElement>('.ff-gg').forEach((e) => { e.hidden = f.sex === 'male'; });
+    if (err) { box.textContent = err; box.hidden = false; q('.ff-out').hidden = true; return; }
+    box.hidden = true; q('.ff-out').hidden = false;
+    q('.ff-formula').replaceChildren(formulaHTML());
+    q('.ff-plain').textContent = `In plain text: ${formula(f)}.`;
+    q('.ff-desc').replaceChildren(...describe(f).map((s) => { const li = document.createElement('li'); li.textContent = s; return li; }));
+    q('.ff-note').textContent = note;
+    diagram();
+  }
+  for (const [c, k] of segs) root.querySelectorAll<HTMLButtonElement>(`${c} button`).forEach((b) => b.addEventListener('click', () => { (f as Record<string, unknown>)[k] = b.dataset.v; draw(); }));
+  sel.addEventListener('change', () => load(sel.value));
+  root.querySelectorAll('.ff-w input, .ff-chk input').forEach((e) => e.addEventListener('input', () => { note = ''; draw(); }));
+  load(PRESETS[0].id);
+
+  quiz(q('.ff-quiz'), (): Question[] => {
+    const p = pick(PRESETS);
+    return [
+      { text: 'What does the symbol ⊕ mean in a floral formula?', choices: ['Bisexual', 'Actinomorphic (radial)', 'Inferior ovary'], correct: 1, worked: '⊕ means actinomorphic: the flower can be split into equal halves through the centre in any direction. % means zygomorphic.' },
+      { text: 'In K(5), what do the brackets tell you?', choices: ['The sepals are joined', 'There are 5 whorls', 'The sepals are missing'], correct: 0, worked: 'Brackets mean the parts are joined (fused): K(5) is five joined sepals (gamosepalous).' },
+      { text: `How many stamens does a flower with A${readWhorl(p.f.A).text} have?`, answer: readWhorl(p.f.A).total, worked: `Add the groups: ${readWhorl(p.f.A).groups.map((g) => g.n).join(' + ')} = ${readWhorl(p.f.A).total}.` },
+      { text: 'A line drawn over G means …', choices: ['Superior ovary', 'Inferior ovary', 'Free carpels'], correct: 1, worked: 'A line over G shows an inferior ovary (the other parts arise above it). A line under G shows a superior ovary.' },
+      pick([
+        { text: 'What is an epipetalous stamen?', choices: ['A stamen without an anther', 'A stamen attached to a petal', 'A stamen joined to a carpel'], correct: 1, worked: 'Epipetalous stamens are fixed to the petals; the formula joins C and A with an arc.' },
+        { text: 'Which family has the formula % ⚥ K(5) C1+2+(2) A(9)+1 G1?', choices: ['Mustard family', 'Pea family', 'Lily family'], correct: 1, worked: 'The pea family (Fabaceae): zygomorphic, one standard, two wings, two joined keel petals, and diadelphous stamens (9) + 1.' },
+      ] as Question[]),
+    ];
+  });
+</script>
+
+<style is:inline>
+  .flf label { display: grid; gap: 4px; }
+  .flf select { min-height: 44px; }
+  .flf .ax-row { flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .flf .ax-seg { flex-wrap: wrap; }
+  .flf .ax-seg button { min-height: 40px; }
+  .flf .ff-chk { display: flex; align-items: center; gap: 8px; min-height: 40px; margin-top: 6px; color: var(--ink); }
+  .flf .ff-w { margin-top: 10px; }
+  .flf .ff-formula { font-size: 26px; line-height: 1.8; color: var(--ink); margin: 6px 0; overflow-wrap: anywhere; }
+  .flf .ff-formula sub { font-size: 0.6em; }
+  .flf .ff-sup { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 2px; }
+  .flf .ff-inf { text-decoration: overline; text-decoration-thickness: 2px; }
+  .flf .ff-epiarc { display: inline-block; border-top: 2px solid var(--ink); border-radius: 50% 50% 0 0 / 14px 14px 0 0; padding-top: 2px; }
+  .flf .ff-dia { width: 100%; max-width: 340px; height: auto; display: block; margin: 0 auto; }
+  .flf .ff-axis { fill: var(--ink); }
+  .flf .ff-plane { stroke: var(--muted); stroke-dasharray: 6 5; }
+  .flf .ff-sep { fill: var(--good-soft); stroke: var(--good); stroke-width: 1.5; }
+  .flf .ff-pet { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+  .flf .ff-sta { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1.5; }
+  .flf .ff-band { fill: none; stroke: var(--line); stroke-width: 10; stroke-linecap: round; opacity: 0.7; }
+  .flf .ff-epi { fill: none; stroke: var(--warn); stroke-width: 1.5; stroke-dasharray: 3 3; }
+  .flf .ff-ov { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
+  .flf .ff-sept { stroke: var(--ink); stroke-width: 1.5; }
+  .flf .ff-ovule { fill: var(--ink); }
+  .flf .ff-tx { font-size: 14px; fill: var(--muted); }
+  .flf .ax-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+  .flf i.ff-ks { background: var(--good); } .flf i.ff-kp { background: var(--accent); } .flf i.ff-ka { background: var(--warn); } .flf i.ff-kg { background: var(--ink); }
+  .flf .ff-desc { padding-left: 20px; display: grid; gap: 4px; }
+  .flf .ff-note { font-weight: 600; }
+  .flf .ff-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+</style>
