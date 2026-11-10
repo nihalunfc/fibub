@@ -8,7 +8,7 @@ export default async ({ page, check, BASE }) => {
   check((await t('.cr-fx')) === 'y = sin(3x)', `chain: default function (${await t('.cr-fx')})`);
   { const f = await t('.cr-formula'); check(f.includes('dy/dx = dy/du × du/dx = cos(3x) × 3') && f.endsWith('0.0707 × 3 = 0.2122'), `chain: formula with numbers (${f})`); }
   { const f = await t('.cr-facts'); check(f.includes('Rate du/dx3') && f.includes('dy/dx (product)0.2122'), `chain: facts (${f})`); }
-  { const tb = await t('.cr-tab tbody'); check(tb.includes('0.2122') || tb.includes('0.2115'), `chain: nudge table (${tb})`); }
+  { const tb = await t('.cr-tab tbody'); check(tb.includes('0.2077') && tb.includes('0.2118'), `chain: nudge table (${tb})`); }
   await page.waitForTimeout(200);
   const px = await page.evaluate(() => { const c = document.querySelector('.cr-gears'); const g = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < g.length; i += 4) if (g[i] > 150 && g[i + 1] > 70 && g[i + 1] < 140 && g[i + 2] < 60) n++; return n; });
   check(px > 50, `chain: x gear drawn in orange (${px} px)`);
@@ -38,7 +38,7 @@ export default async ({ page, check, BASE }) => {
   check((await page.inputValue(R + '.cr-x')) === '1', `chain: Turn the x gear sweeps x by 1 (${await page.inputValue(R + '.cr-x')})`);
   await page.$eval(R + '.cr-gears', (e) => e.scrollIntoView({ block: 'center' }));
   const b = await (await page.$(R + '.cr-gears')).boundingBox();
-  const s = b.width / 380, cx = b.x + 47.5 * s, cy = b.y + 96 * s, r = 25 * s;
+  const s = b.width / 380, cx = b.x + (380 / 6) * s, cy = b.y + 96 * s, r = 25 * s;
   await page.mouse.move(cx + r, cy); await page.mouse.down(); await page.mouse.move(cx, cy + r, { steps: 4 }); await page.mouse.up();
   const xv = +(await page.inputValue(R + '.cr-x'));
   check(Math.abs(xv - 2) < 0.1, `chain: dragging the x gear a quarter turn adds 1 (${xv})`);

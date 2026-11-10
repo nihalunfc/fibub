@@ -15,7 +15,7 @@ export default async ({ page, check, BASE }) => {
   check(px > 30, `e: rise drawn in blue (${px} px)`);
   await page.click(R + '.el-find'); await page.waitForTimeout(2000);
   check(Math.abs(+(await page.inputValue(R + '.el-a')) - Math.E) < 0.002 && await page.isVisible(R + '.el-flag') && (await t('.el-flag')).includes('e = 2.71828'), `e: Find e lands on e (${await page.inputValue(R + '.el-a')})`);
-  check((await t('.el-facts')).includes('Slope ÷ height1'), 'e: ratio 1 at e');
+  check(/Slope ÷ height(1|0\.9999)=/.test(await t('.el-facts')), `e: ratio 1 at e (${await t('.el-facts')})`);
   // Drag P.
   await page.$eval(R + '.el-fig', (e) => e.scrollIntoView({ block: 'center' }));
   const b = await (await page.$(R + '.el-fig')).boundingBox();

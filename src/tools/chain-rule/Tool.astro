@@ -130,7 +130,7 @@ const rows = [
     q('.cr-facts').replaceChildren(...facts);
     // Nudge table.
     const y0 = v.at(-1)!;
-    q('.cr-tab tbody').replaceChildren(...[0.1, 0.01, 0.001].map((dx) => { const dy = values(c, x + dx).at(-1)! - y0, tr = document.createElement('tr'); [String(dx), fmt(dy, 6), fmt(dy / dx, 4)].forEach((t) => { const td = document.createElement('td'); td.className = 'r'; td.textContent = t; tr.append(td); }); return tr; }));
+    q('.cr-tab tbody').replaceChildren(...[0.1, 0.01, 0.001, 0.0001].map((dx) => { const dy = values(c, x + dx).at(-1)! - y0, tr = document.createElement('tr'); [String(dx), fmt(dy, 6), fmt(dy / dx, 4)].forEach((t) => { const td = document.createElement('td'); td.className = 'r'; td.textContent = t; tr.append(td); }); return tr; }));
     q('.cr-tnote').textContent = Number.isFinite(slope) ? `As Δx shrinks, Δy ÷ Δx heads for the product of the rates, ${fmt(slope, 4)}.` : 'No slope at this x.';
     // Graph.
     const f = (t: number) => values(c, t).at(-1)!, ys: number[] = [];
@@ -175,7 +175,7 @@ const rows = [
     const m = rint(2, 5), p = rint(1, 3), c = rint(1, 5);
     const val = n * a * (a * x0 + b) ** (n - 1);
     return [
-      { text: `The u gear turns ${r1} times as fast as x, and the y gear turns ${r2 < 0 ? `${-r2} times as fast as u, the other way (rate ${r2})` : `${r2} times as fast as u`}. What is dy/dx?`, answer: r1 * r2, worked: `dy/dx = dy/du × du/dx = ${r2} × ${r1} = ${r1 * r2}.` },
+      { text: `The u gear turns ${r1} times as fast as x, and the y gear turns ${r2 < 0 ? `${-r2} times as fast as u, the other way (rate ${fmt(r2)})` : `${r2} times as fast as u`}. What is dy/dx?`, answer: r1 * r2, worked: `dy/dx = dy/du × du/dx = ${fmt(r2)} × ${r1} = ${fmt(r1 * r2)}.` },
       { text: `y = (${a}x + ${b})${sup(n)}. What is dy/dx at x = ${x0}?`, answer: val, worked: `Let u = ${a}x + ${b}, so y = u${sup(n)}. dy/du = ${n}u${sup(n - 1)} and du/dx = ${a}. At x = ${x0}, u = ${a * x0 + b}, so dy/dx = ${n} × ${a * x0 + b}${sup(n - 1)} × ${a} = ${val}.` },
       { text: `y = sin(${k}x). What is dy/dx at x = 0?`, answer: k, worked: `dy/dx = cos(${k}x) × ${k}. At x = 0, cos 0 = 1, so dy/dx = ${k}.` },
       { text: `y = e^(${m}x). What is dy/dx at x = 0?`, answer: m, worked: `dy/dx = e^(${m}x) × ${m}. At x = 0, e⁰ = 1, so dy/dx = ${m}.` },
