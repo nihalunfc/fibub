@@ -1,0 +1,130 @@
+---
+// #T883 Is dental insurance worth it?
+import InsuranceNote from '../../components/InsuranceNote.astro';
+---
+<div class="tool-ui dnt">
+  <InsuranceNote />
+  <section class="panel">
+    <h2>The plan</h2>
+    <p class="dnt-hint">Example numbers: change them to yours.</p>
+    <div class="dnt-grid">
+      <label>Currency <select class="dnt-cur"></select></label>
+      <label>Premium <input data-k="prem" inputmode="decimal" /></label>
+      <label>Premium is paid <select data-k="per"><option value="y">per year</option><option value="m">per month</option></select></label>
+      <label>Deductible <input data-k="ded" inputmode="decimal" /></label>
+      <label>Annual maximum (0 if none) <input data-k="max" inputmode="decimal" /></label>
+      <label class="dnt-chk"><input type="checkbox" data-k="dp" /> The deductible also applies to preventive care</label>
+    </div>
+    <table class="dnt-cls"><thead><tr><th></th><th>Plan pays</th><th>Waiting months</th></tr></thead><tbody>
+      <tr><td>Preventive (cleanings, check-ups)</td><td><span class="dnt-suf"><input data-k="pp" inputmode="decimal" aria-label="Preventive plan pays percent" /><i>%</i></span></td><td><input data-k="wp" inputmode="decimal" aria-label="Preventive waiting months" /></td></tr>
+      <tr><td>Basic (fillings, extractions)</td><td><span class="dnt-suf"><input data-k="pb" inputmode="decimal" aria-label="Basic plan pays percent" /><i>%</i></span></td><td><input data-k="wb" inputmode="decimal" aria-label="Basic waiting months" /></td></tr>
+      <tr><td>Major (crowns, bridges, implants)</td><td><span class="dnt-suf"><input data-k="pm" inputmode="decimal" aria-label="Major plan pays percent" /><i>%</i></span></td><td><input data-k="wm" inputmode="decimal" aria-label="Major waiting months" /></td></tr>
+    </tbody></table>
+  </section>
+  <section class="panel">
+    <h2>Treatment you expect this year</h2>
+    <p class="dnt-hint">Month counts from the day the plan starts: 0 is the first month, 6 the seventh.</p>
+    <div class="dnt-wrap"><table><thead><tr><th>Type</th><th>Cost</th><th>Month</th><th></th></tr></thead><tbody class="dnt-rows"></tbody></table></div>
+    <button type="button" class="dnt-add">Add a treatment</button>
+    <p class="note bad dnt-err" role="alert" hidden></p>
+  </section>
+  <section class="panel">
+    <h2>Compare with a discount plan (optional)</h2>
+    <p class="dnt-hint">A discount plan has a fee and takes a percentage off each bill: it is not insurance. Type the fee and the discount from its own price list.</p>
+    <div class="dnt-grid">
+      <label>Yearly fee (0 to skip) <input data-k="fee" inputmode="decimal" /></label>
+      <label>Percent off every bill <span class="dnt-suf"><input data-k="off" inputmode="decimal" /><i>%</i></span></label>
+    </div>
+  </section>
+  <section class="dnt-res" aria-live="polite">
+    <div class="dnt-stats">
+      <div><span>Plan pays</span><b class="dnt-s-plan"></b></div>
+      <div><span>You pay (after the plan)</span><b class="dnt-s-you"></b></div>
+      <div><span>With the premium</span><b class="dnt-s-tot"></b></div>
+      <div><span>Paying cash</span><b class="dnt-s-cash"></b></div>
+      <div class="dnt-disc" hidden><span>Discount plan</span><b class="dnt-s-disc"></b></div>
+    </div>
+    <p class="dnt-line dnt-words"></p>
+    <div class="panel"><h2>Treatment by treatment</h2>
+      <div class="dnt-wrap"><table><thead><tr><th>Type</th><th>Month</th><th>Cost</th><th>Plan pays</th><th>Note</th></tr></thead><tbody class="dnt-body"></tbody></table></div>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>Canada and India</h2>
+    <p class="dnt-hint"><b>Canada:</b> the Canadian Dental Care Plan is for residents with no access to dental insurance and an adjusted family net income under $90,000. You pay no co-pay under $70,000, 40% from $70,000 to $79,999 and 60% from $80,000 to $89,999. Source: canada.ca, checked 2026-11-10, check the official source.</p>
+    <p class="dnt-hint"><b>India:</b> most health policies exclude dental care except after an accident, so dental cover is usually a separate product or you pay cash.</p>
+  </section>
+  <p class="dnt-fine">How it's worked out: treatments are taken in month order. One inside a waiting period gets nothing. Otherwise the deductible comes off first (not for preventive care unless ticked), the plan pays its percentage of the rest, and once the plan has paid the annual maximum it pays no more. Total with the plan = premium + what you pay; cash = the sum of the costs; discount plan = fee + costs x (1 - discount). It ignores out-of-network fees, a different year's deductible and tax. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .dnt { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .dnt > *, .dnt-res > * { min-width: 0; }
+  .dnt h2 { margin: 0 0 12px; font-size: 18px; }
+  .dnt .panel { padding: 16px; }
+  .dnt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; margin-bottom: 8px; }
+  .dnt label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .dnt label.dnt-chk { display: flex; gap: 8px; align-items: center; align-self: end; }
+  .dnt input, .dnt select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .dnt input[type=checkbox] { width: auto; }
+  .dnt input:focus, .dnt select:focus { border-color: var(--accent); outline: none; }
+  .dnt-suf { position: relative; display: block; }
+  .dnt-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .dnt-suf input { padding-right: 28px; }
+  .dnt-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .dnt-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 10px; }
+  .dnt-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); align-content: start; }
+  .dnt-stats span { font-size: 13px; color: var(--muted); }
+  .dnt-stats b { font-size: clamp(17px, 3.4vw, 22px); overflow-wrap: anywhere; }
+  .dnt-line { margin: 0; font-size: 15px; }
+  .dnt-hint, .dnt-fine { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+  .dnt-wrap { overflow-x: auto; }
+  .dnt table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .dnt th, .dnt td { text-align: right; padding: 6px 6px; border-bottom: 1px solid var(--line); }
+  .dnt th:first-child, .dnt td:first-child { text-align: left; }
+  .dnt td input, .dnt td select { min-width: 70px; padding: 6px 8px; }
+  .dnt-cls td:first-child { font-size: 13px; }
+  .dnt-body td { white-space: nowrap; }
+  .dnt-add { margin-top: 10px; }
+</style>
+
+<script>
+  import { dentalYear, type DentalClass } from '../../lib/money/insurance';
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.dnt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const cur = defaultCurrency();
+  q('.dnt-cur').innerHTML = currencyOptions(cur);
+  const def: Record<string, string> = { prem: '400', ded: '50', max: '1,500', pp: '100', pb: '80', pm: '50', wp: '0', wb: '3', wm: '12', fee: '0', off: '20' };
+  for (const k in def) f(k).value = def[k];
+  const $ = (n: number) => money(n, (q('.dnt-cur') as HTMLSelectElement).value, 0);
+  const rows = q('.dnt-rows');
+  const NAMES: Record<string, string> = { preventive: 'Preventive', basic: 'Basic', major: 'Major' };
+  function addRow(c: string, cost: string, m: string) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><select class="dnt-c" aria-label="Type">${['preventive', 'basic', 'major'].map((k) => `<option value="${k}"${k === c ? ' selected' : ''}>${NAMES[k]}</option>`).join('')}</select></td><td><input class="dnt-v" inputmode="decimal" value="${cost}" aria-label="Cost" /></td><td><input class="dnt-m" inputmode="decimal" value="${m}" aria-label="Month" /></td><td><button type="button" class="dnt-del" aria-label="Remove this treatment">Remove</button></td>`;
+    rows.appendChild(tr);
+  }
+  [['preventive', '200', '0'], ['basic', '500', '1'], ['basic', '300', '4'], ['major', '2,000', '6']].forEach((r) => addRow(r[0], r[1], r[2]));
+  q('.dnt-add').addEventListener('click', () => { addRow('basic', '', '0'); run(); });
+  rows.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('.dnt-del'); if (b) { b.closest('tr')!.remove(); run(); } });
+  function run() {
+    const prem = num(f('prem').value) * (f('per').value === 'm' ? 12 : 1);
+    const items = [...rows.children].map((tr) => ({ cls: (tr.querySelector('.dnt-c') as HTMLSelectElement).value as DentalClass, cost: num((tr.querySelector('.dnt-v') as HTMLInputElement).value), month: Math.round(num((tr.querySelector('.dnt-m') as HTMLInputElement).value)) }));
+    const p = (k: string) => num(f(k).value);
+    const bad = prem < 0 || p('ded') < 0 || p('max') < 0 ? 'Premium, deductible and annual maximum must be 0 or more.' : ['pp', 'pb', 'pm'].some((k) => p(k) < 0 || p(k) > 100) ? 'Plan-pays percentages must be from 0 to 100.' : ['wp', 'wb', 'wm'].some((k) => p(k) < 0) ? 'Waiting months must be 0 or more.' : p('off') < 0 || p('off') >= 100 || p('fee') < 0 ? 'The discount plan needs a fee of 0 or more and a percent off below 100.' : !items.length || items.some((i) => i.cost <= 0 || i.month < 0) ? 'Add at least one treatment, each with a cost above 0 and a month of 0 or more.' : '';
+    q('.dnt-err').hidden = !bad; q('.dnt-err').textContent = bad; q('.dnt-res').hidden = !!bad;
+    if (bad) return;
+    const r = dentalYear({ premium: prem, deductible: p('ded'), annualMax: p('max'), pays: { preventive: p('pp') / 100, basic: p('pb') / 100, major: p('pm') / 100 }, wait: { preventive: p('wp'), basic: p('wb'), major: p('wm') }, deductibleOnPreventive: f('dp').checked, items });
+    const disc = p('fee') > 0 ? p('fee') + r.cashOnly * (1 - p('off') / 100) : 0;
+    q('.dnt-s-plan').textContent = $(r.planPays); q('.dnt-s-you').textContent = $(r.youPay);
+    q('.dnt-s-tot').textContent = $(r.total); q('.dnt-s-cash').textContent = $(r.cashOnly);
+    q('.dnt-disc').hidden = !(p('fee') > 0); q('.dnt-s-disc').textContent = $(disc);
+    const best = Math.min(r.total, r.cashOnly, p('fee') > 0 ? disc : Infinity);
+    q('.dnt-words').innerHTML = `Insurance costs you <b>${$(r.total)}</b> this year (premium ${$(prem)} + ${$(r.youPay)} of bills) against <b>${$(r.cashOnly)}</b> paying cash` + (p('fee') > 0 ? ` and <b>${$(disc)}</b> with the discount plan` : '') + `. ` + (best === r.total && r.total < r.cashOnly ? 'In these numbers the plan comes out ahead.' : best === r.total ? 'The plan ties with the other option here.' : 'In these numbers the plan costs more than the cheapest option.') + ' One year of expected treatment is a small sample: a plan helps most when you know major work is coming.';
+    q('.dnt-body').innerHTML = r.rows.map((x) => `<tr><td>${NAMES[x.cls]}</td><td>${x.month}</td><td>${$(x.cost)}</td><td>${$(x.plan)}</td><td>${x.why ? 'Hit: ' + x.why : ''}</td></tr>`).join('');
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>
