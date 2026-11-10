@@ -1,22 +1,42 @@
 ---
-// #1486 Power and bills. Engine: src/lib/learn/ (quiz.ts, sim.ts). Maths in src/lib/sci/ with checks in tests/sci.mjs.
+// #1486 Power and bills. A teaching model: P = W/t, and a made-up electricity rate. Engine: src/lib/learn/.
 import '../../styles/astro.css';
 import '../../styles/learnquiz-d.css';
 ---
 <div class="tool-ui ax lrn pb">
   <div class="ax-card">
-    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="10" aria-pressed="true">Class 10</button><button type="button" data-level="11" aria-pressed="false">Class 11</button></div>
-    <h2>TODO</h2>
-    <canvas class="lrn-cv pb-cv" aria-label="TODO describe the picture"></canvas>
-    <div class="ax-grid" style="margin-top:10px">
-      <label>TODO input <input class="pb-in" type="range" min="1" max="10" step="1" value="5" /></label>
+    <div class="ax-seg pb-mode" role="group" aria-label="Part">
+      <button type="button" data-m="stairs" aria-pressed="true">Stair race</button>
+      <button type="button" data-m="bill" aria-pressed="false">Electricity bill</button>
     </div>
-    <p class="ax-big pb-out" aria-live="polite"></p>
-    <p class="ax-help" data-only="11" hidden>TODO extra for Class 11, or delete.</p>
+    <div class="ax-seg" role="group" aria-label="Level" style="margin-top:8px"><button type="button" data-level="9" aria-pressed="true">Class 9</button><button type="button" data-level="11" aria-pressed="false">Class 11</button></div>
+    <div class="pb-p pb-p-stairs">
+      <p class="ax-help">Two runners of the same mass climb the same stairs. The work is the same, the power is not. Round teaching numbers, g = 9.8 m/s².</p>
+      <canvas class="lrn-cv pb-cv" aria-label="Two runners racing up stairs"></canvas>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn small pb-go">Race again</button></div>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Mass: <b class="pb-mv"></b> kg <input class="pb-m" type="range" min="30" max="90" step="5" value="60" /></label>
+        <label>Height of stairs: <b class="pb-hv"></b> m <input class="pb-h" type="range" min="1" max="10" step="0.5" value="3" /></label>
+        <label>Runner A time: <b class="pb-t1v"></b> s <input class="pb-t1" type="range" min="2" max="20" step="1" value="6" /></label>
+        <label>Runner B time: <b class="pb-t2v"></b> s <input class="pb-t2" type="range" min="2" max="20" step="1" value="12" /></label>
+      </div>
+      <p class="ax-big pb-out" aria-live="polite"></p>
+      <p class="ax-help pb-two"></p>
+    </div>
+    <div class="pb-p pb-p-bill" hidden>
+      <p class="ax-help">Set how many hours a day each appliance runs. The rate below is a made-up example, not a real tariff. Check your own bill for the real rate.</p>
+      <div class="pb-rows"></div>
+      <div class="ax-grid" style="margin-top:10px">
+        <label>Days: <b class="pb-dv"></b> <input class="pb-d" type="range" min="1" max="30" step="1" value="30" /></label>
+        <label>Example rate (₹ per kWh): <input class="pb-rate" type="number" min="0" step="0.5" value="6" inputmode="decimal" /></label>
+      </div>
+      <p class="ax-big pb-bout" aria-live="polite"></p>
+      <p class="ax-help" data-only="11" hidden>Class 11: energy in joules is kWh × 3,600,000, because 1 kWh = 1000 W × 3600 s.</p>
+    </div>
   </div>
   <div class="ax-card">
     <h2>Try this</h2>
-    <ul><li>TODO two or three things to try.</li></ul>
+    <ul><li>Make runner B twice as slow. What happens to the power?</li><li>Run a 1000 W iron for 1 hour and check you get 1 kWh.</li><li>Find which appliance costs the most per month.</li></ul>
   </div>
   <div class="ax-card pb-quiz">
     <h2>Check yourself</h2>
@@ -25,26 +45,70 @@ import '../../styles/learnquiz-d.css';
 
 <style is:inline>
   .pb .pb-cv { width: 100%; }
+  .pb .pb-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; flex-wrap: wrap; }
+  .pb .pb-row span { flex: 1 1 140px; }
+  .pb .pb-row input { width: 5.5em; }
+  .pb .pb-rate { width: 6em; }
 </style>
 
 <script>
   import { mountQuiz, pick, r } from '../../lib/learn/quiz';
-  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  import { fitCanvas, wireLevel, loop, pagePalette } from '../../lib/learn/sim';
   const root = document.querySelector('.pb') as HTMLElement;
-  const input = root.querySelector('.pb-in') as HTMLInputElement;
-  const out = root.querySelector('.pb-out') as HTMLElement;
-  const cv = root.querySelector('.pb-cv') as HTMLCanvasElement;
-  let level = '10';
-  const draw = () => {
-    const { ctx, W, H } = fitCanvas(cv, 220), pal = pagePalette();
-    ctx.clearRect(0, 0, W, H); ctx.fillStyle = pal.ink; ctx.fillText('TODO drawing', 10, 20);
-    out.textContent = 'TODO result for ' + input.value;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const cv = $<HTMLCanvasElement>('.pb-cv'), out = $('.pb-out'), bout = $('.pb-bout');
+  const G = 9.8;
+  const APPS: [string, number, number][] = [['LED bulb', 9, 5], ['Ceiling fan', 60, 8], ['Fridge (running about half the day)', 150, 12], ['TV', 100, 4], ['Iron', 1000, 0], ['Air conditioner', 1500, 0]];
+  let level = '9', t = 0, mode = 'stairs';
+  const power = (m: number, h: number, tt: number) => (m * G * h) / tt;
+  const sim = () => ({ m: +$<HTMLInputElement>('.pb-m').value, h: +$<HTMLInputElement>('.pb-h').value, t1: +$<HTMLInputElement>('.pb-t1').value, t2: +$<HTMLInputElement>('.pb-t2').value });
+  const stairs = () => {
+    const { m, h, t1, t2 } = sim(), W = m * G * h, p1 = power(m, h, t1), p2 = power(m, h, t2);
+    $('.pb-mv').textContent = String(m); $('.pb-hv').textContent = String(h); $('.pb-t1v').textContent = String(t1); $('.pb-t2v').textContent = String(t2);
+    out.textContent = `Work ${r(W)} J. Runner A: ${r(p1)} W. Runner B: ${r(p2)} W.`;
+    out.dataset.w = W.toFixed(2); out.dataset.p1 = p1.toFixed(2); out.dataset.p2 = p2.toFixed(2);
+    $('.pb-two').textContent = `Both do the same work (W = mgh = ${m} × 9.8 × ${h}). Power P = W ÷ t, so the quicker runner has ${r(p1 / p2)} times the power.` + (level === '11' ? ` Average power in horsepower: A ${r(p1 / 746)} hp.` : '');
   };
-  input.addEventListener('input', draw);
+  const draw = () => {
+    const { ctx, W, H } = fitCanvas(cv, 200), pal = pagePalette(), { t1, t2 } = sim();
+    ctx.clearRect(0, 0, W, H); ctx.font = '13px system-ui,sans-serif'; ctx.strokeStyle = pal.ink; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(20, H - 20); for (let i = 0; i < 8; i++) { ctx.lineTo(20 + (i + 1) * ((W - 60) / 8), H - 20 - i * 18); ctx.lineTo(20 + (i + 1) * ((W - 60) / 8), H - 20 - (i + 1) * 18); } ctx.stroke();
+    ([[t1, pal.accent, 'A', 0], [t2, pal.accent2, 'B', 14]] as const).forEach(([tt, col, nm, off]) => {
+      const f = Math.min(1, t / tt), x = 30 + f * (W - 90) + off, y = H - 34 - f * 8 * 18 - 0;
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y - 4, 8, 0, 7); ctx.fill(); ctx.fillStyle = pal.ink; ctx.fillText(nm, x - 4, y - 16);
+    });
+  };
+  const ctl = loop((dt) => { t += dt; if (t > Math.max(sim().t1, sim().t2) + 1.5) t = 0; draw(); });
+  const bill = () => {
+    const d = +$<HTMLInputElement>('.pb-d').value, rate = +$<HTMLInputElement>('.pb-rate').value || 0;
+    $('.pb-dv').textContent = String(d);
+    let kwh = 0; root.querySelectorAll<HTMLInputElement>('.pb-hrs').forEach((i, k) => { kwh += (APPS[k][1] * (+i.value || 0) * d) / 1000; });
+    bout.textContent = `${r(kwh)} kWh used, bill ₹${r(kwh * rate)} (at ₹${rate} per kWh, an example rate).`;
+    bout.dataset.kwh = kwh.toFixed(4); bout.dataset.cost = (kwh * rate).toFixed(2);
+  };
+  const rows = $('.pb-rows');
+  APPS.forEach(([n, w, hrs]) => {
+    const row = document.createElement('label'); row.className = 'pb-row';
+    row.innerHTML = `<span>${n}, ${w} W</span><input class="pb-hrs" type="number" min="0" max="24" step="0.5" value="${hrs}" inputmode="decimal" aria-label="Hours a day for ${n}" /> h/day`;
+    rows.append(row);
+  });
+  root.querySelectorAll('.pb-p-bill input').forEach((i) => i.addEventListener('input', bill));
+  root.querySelectorAll('.pb-p-stairs input').forEach((i) => i.addEventListener('input', () => { stairs(); t = 0; ctl.redraw(); }));
+  $('.pb-go').addEventListener('click', () => { t = 0; ctl.redraw(); });
+  root.querySelectorAll<HTMLButtonElement>('.pb-mode button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m!; root.querySelectorAll('.pb-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    $('.pb-p-stairs').hidden = mode !== 'stairs'; $('.pb-p-bill').hidden = mode !== 'bill'; if (mode === 'stairs') ctl.redraw();
+  }));
   addEventListener('resize', draw);
-  wireLevel(root, (l) => { level = l; draw(); });
-  mountQuiz(root.querySelector('.pb-quiz') as HTMLElement, () => {
-    const a = pick(2, 9);
-    return [{ q: `TODO question with ${a}`, ans: a * 2, unit: '', work: `TODO working: 2 × ${a} = ${r(a * 2)}` }];
+  wireLevel(root, (l) => { level = l; stairs(); });
+  stairs(); bill();
+  mountQuiz($('.pb-quiz'), () => {
+    const m = pick(40, 80, 10), h = pick(2, 6), tt = pick(4, 10), w = pick(500, 2000, 100), hr = pick(2, 8), rt = pick(4, 8);
+    const p = (m * G * h) / tt, kwh = (w * hr) / 1000;
+    return [
+      { q: `A ${m} kg student climbs stairs ${h} m high in ${tt} s. What is the power? (g = 9.8 m/s²)`, ans: p, unit: 'W', work: `P = mgh ÷ t = ${m} × 9.8 × ${h} ÷ ${tt} = ${r(p)} W.` },
+      { q: `A ${w} W heater runs ${hr} hours. How many kWh is that?`, ans: kwh, unit: 'kWh', work: `${w} W = ${w / 1000} kW, and ${w / 1000} × ${hr} = ${r(kwh)} kWh.` },
+      { q: `Electricity costs ₹${rt} per kWh (an example rate). What does the ${w} W heater cost for ${hr} hours?`, ans: kwh * rt, unit: '₹', work: `${r(kwh)} kWh × ₹${rt} = ₹${r(kwh * rt)}.` },
+    ];
   });
 </script>
