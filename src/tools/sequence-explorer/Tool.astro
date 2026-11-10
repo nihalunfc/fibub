@@ -1,0 +1,175 @@
+---
+// Growing patterns: pick a dot or matchstick pattern, see steps 1, 2, 3 and n drawn, the terms with their
+// differences, the rule for the nth term, and a rule finder for any list you type. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+import { PATTERNS } from '../../lib/sci/sequence-school';
+---
+<div class="ax sm sq">
+  <div class="ax-card">
+    <div class="ax-seg sq-lvl" role="group" aria-label="Level"><button type="button" data-l="9" aria-pressed="true">Class 9: patterns</button><button type="button" data-l="11" aria-pressed="false">Class 10–11: rules and sums</button></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Pattern <select class="sq-pat">{PATTERNS.map((p) => <option value={p.id}>{p.name}</option>)}</select></label>
+    </div>
+    <svg class="sm-fig sq-fig" viewBox="0 0 340 200" role="img" aria-label="Steps 1, 2, 3 and n of the pattern" style="margin-top:10px"></svg>
+    <div class="sm-sl"><b>n</b><input type="range" class="sq-nr" min="4" max="10" step="1" value="5" aria-label="Step number slider" /><input type="number" class="sq-n" min="1" max="1000000" step="1" value="5" inputmode="numeric" aria-label="Step number n" /></div>
+    <p class="ax-big sq-big" aria-live="polite" style="margin:6px 0"></p>
+    <p class="ax-err sq-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Terms and differences</h2>
+    <div class="ax-scroll"><table class="sq-tab"></table></div>
+    <ul class="sm-steps sq-out"></ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Find the rule for your own list</h2>
+    <div class="ax-grid"><label>Numbers, separated by commas <input type="text" class="sq-own" value="5, 9, 13, 17" inputmode="decimal" autocomplete="off" /></label></div>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small sq-ex" data-s="5, 9, 13, 17">5, 9, 13, 17</button>
+      <button type="button" class="btn secondary small sq-ex" data-s="2, 5, 10, 17, 26">2, 5, 10, 17, 26</button>
+      <button type="button" class="btn secondary small sq-ex" data-s="3, 6, 12, 24">3, 6, 12, 24</button>
+      <button type="button" class="btn secondary small sq-ex" data-s="1, 1, 2, 3, 5, 8">1, 1, 2, 3, 5, 8</button>
+    </div>
+    <ul class="sm-steps sq-rule"></ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Matchstick squares: why does each new square need only 3 more sticks, not 4?</li>
+      <li>Square numbers: look at the differences. They are the odd numbers, and the L shapes in the "odd numbers" pattern show why.</li>
+      <li>Two triangular numbers side by side make a rectangle n × (n + 1). That is why the nth triangular number is n(n + 1)/2.</li>
+      <li>Type 1, 1, 2, 3, 5, 8. No linear, quadratic or doubling rule fits: each term is the sum of the two before.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="sq-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .sq svg .sq-dot { fill: var(--accent); }
+  .sq svg .sq-dot.new { fill: var(--warn); }
+  .sq svg .sq-stick { stroke: var(--accent); stroke-width: 3; stroke-linecap: round; }
+  .sq svg .sq-stick.new { stroke: var(--warn); }
+  .sq svg .sq-lab { font: 600 12px system-ui, sans-serif; fill: var(--muted); }
+  .sq .sq-tab { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .sq .sq-tab th, .sq .sq-tab td { border: 1px solid var(--line); padding: 4px 8px; text-align: center; min-width: 2.4em; }
+  .sq .sq-tab th { background: var(--bg); text-align: left; white-space: nowrap; }
+</style>
+
+<script>
+  import { PATTERNS, terms, diffs, findRule, dots } from '../../lib/sci/sequence-school';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, pair, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.sq')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.sq-fig'), sel = q<HTMLSelectElement>('.sq-pat'), N = q<HTMLInputElement>('.sq-n');
+  pair(q('.sq-nr'), N, draw);
+  sel.addEventListener('change', draw);
+  let level = 9;
+  const WORK: Record<string, (n: number) => string> = {
+    sticks: (n) => `3 × ${n} + 1`, odd: (n) => `2 × ${n} − 1`, square: (n) => `${n} × ${n}`, triangle: (n) => `${n} × ${n + 1} ÷ 2`,
+    pentagon: (n) => `${n} × (3 × ${n} − 1) ÷ 2`, hexagon: (n) => `${n} × (2 × ${n} − 1)`, rectangle: (n) => `${n} × ${n + 1}`, double: (n) => `2${String(n - 1).replace(/\d/g, (c) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+c])}`,
+  };
+
+  // Draw one step of the pattern inside a box (x0..x0+w, top..bottom); dots added since the last step are marked.
+  function panel(id: string, n: number, x0: number, w: number, label: string) {
+    const top = 24, h = 150;
+    S('text', { x: x0 + w / 2, y: 16, 'text-anchor': 'middle', class: 'sq-lab' }, fig, label);
+    if (id === 'sticks') {
+      const s = Math.min(w / (n + 0.6), 26), y = top + 50;
+      for (let i = 0; i < n; i++) {
+        const x = x0 + (w - n * s) / 2 + i * s, nw = i === n - 1 && n > 1 ? ' new' : '';
+        S('line', { x1: x, y1: y, x2: x + s, y2: y, class: 'sq-stick' + nw }, fig); S('line', { x1: x, y1: y + s, x2: x + s, y2: y + s, class: 'sq-stick' + nw }, fig);
+        S('line', { x1: x + s, y1: y, x2: x + s, y2: y + s, class: 'sq-stick' + nw }, fig);
+        if (i === 0) S('line', { x1: x, y1: y, x2: x, y2: y + s, class: 'sq-stick' }, fig);
+      }
+      return;
+    }
+    const pts = dots(id, n), prev = n > 1 ? dots(id, n - 1).length : 0;
+    if (!pts.length) return;
+    const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+    const minx = Math.min(...xs), maxx = Math.max(...xs), maxy = Math.max(...ys);
+    const g = Math.min(18, (w - 8) / (maxx - minx + 1), h / (maxy + 1)), r = Math.max(1.6, g * 0.36);
+    const ox = x0 + (w - (maxx - minx) * g) / 2 - minx * g, oy = top + (h - maxy * g) / 2;
+    // For figurate patterns, "new" dots are those not in step n − 1 (same positions, since each step grows outward).
+    const old = new Set(n > 1 ? dots(id, n - 1).map((p) => p.join()) : []);
+    pts.forEach((p, i) => S('circle', { cx: ox + p[0] * g, cy: oy + p[1] * g, r, class: 'sq-dot' + ((id === 'double' ? i >= prev : !old.has(p.join())) && n > 1 ? ' new' : '') }, fig));
+  }
+
+  function draw() {
+    const p = PATTERNS.find((x) => x.id === sel.value) ?? PATTERNS[0];
+    const raw = Number(N.value), ok = Number.isInteger(raw) && raw >= 1 && raw <= 1e6, n = ok ? raw : 5;
+    const err = q('.sq-err'); err.hidden = ok; if (!ok) err.textContent = 'n must be a whole number from 1 to 1 000 000. Showing step 5.';
+    fig.replaceChildren();
+    const show = p.id === 'double' ? Math.min(n, 7) : Math.min(n, 10);
+    [1, 2, 3].forEach((k, i) => panel(p.id, k, 4 + i * 66, 62, `step ${k}`));
+    S('line', { x1: 204, x2: 204, y1: 10, y2: 190, class: 'sm-grid' }, fig);
+    panel(p.id, show, 208, 128, show === n ? `step ${n}` : `step ${show} (step ${n} is too big to draw)`);
+    const v = p.nth(n), big = !Number.isSafeInteger(v);
+    const vt = big ? `about 10 to the power ${Math.floor(Math.log10(2) * (n - 1))} (a number with ${Math.floor(Math.log10(2) * (n - 1)) + 1} digits)` : fmt(v, 0);
+    q('.sq-big').textContent = `Step ${n}: ${vt} ${p.id === 'sticks' ? 'sticks' : p.id === 'double' ? 'cells' : 'dots'}`;
+    const T = terms(p.nth, 8), d1 = diffs(T), d2 = diffs(d1);
+    const row = (h: string, xs: (number | string)[]) => `<tr><th>${h}</th>${xs.map((x) => `<td>${typeof x === 'number' ? fmt(x, 0) : x}</td>`).join('')}</tr>`;
+    const rows = [row('n', [1, 2, 3, 4, 5, 6, 7, 8]), row('term', T), row('difference', ['', ...d1])];
+    if (level === 11) rows.push(row('2nd difference', ['', '', ...d2]));
+    q('.sq-tab').innerHTML = rows.join('');
+    const lines: string[] = [];
+    const lin = d1.every((x) => x === d1[0]), quad = !lin && d2.every((x) => x === d2[0]);
+    if (lin) lines.push(`The difference is always ${d1[0]}, so this is an arithmetic progression: start at ${T[0]} and add ${d1[0]} each step.`);
+    else if (quad) lines.push(`The differences grow (${d1.slice(0, 4).join(', ')}, ...) but they go up by the same amount, ${d2[0]}, each time.`);
+    else lines.push(`The differences keep doubling (${d1.slice(0, 4).join(', ')}, ...): each term is the one before times 2.`);
+    lines.push(`Rule: step n has ${p.rule} ${p.id === 'sticks' ? 'sticks' : p.id === 'double' ? 'cells' : 'dots'}. Step ${n}: ${WORK[p.id](n)} = ${vt}.`);
+    if (p.id === 'sticks') lines.push('Why: the first square needs 4 sticks and each new square shares a side with the one before, so it needs only 3 more: 4 + 3(n − 1) = 3n + 1.');
+    if (p.id === 'triangle') lines.push('Why: two copies of the triangle fit together into an n by (n + 1) rectangle of dots, so one triangle is half of n(n + 1). This is Gauss\'s pairing trick.');
+    if (p.id === 'square') lines.push('Why: an n by n square of dots; going from one square to the next adds an L shape of 2n − 1 dots, an odd number.');
+    if (p.id === 'pentagon') lines.push('Why: the picture is a square of n² dots with a triangular roof of n(n − 1)/2 dots; together n² + n(n − 1)/2 = n(3n − 1)/2.');
+    if (p.id === 'odd') lines.push('Why: an L with n dots across and n − 1 more going up. Adding the first n odd numbers gives n², a square.');
+    if (level === 11) {
+      if (lin) lines.push(`Sum of the first ${n} terms: n/2 × (first + last) = ${n}/2 × (${T[0]} + ${fmt(v, 0)}) = ${fmt((n * (T[0] + v)) / 2, 1)}.`);
+      else if (quad) { const s = terms(p.nth, Math.min(n, 2000)).reduce((a, b) => a + b, 0); lines.push(`A constant second difference means a quadratic rule (an² + bn + c, with a = half the second difference = ${fmt(d2[0] / 2, 2)}). Sum of the first ${Math.min(n, 2000)} terms: ${fmt(s, 0)}.`); }
+      else lines.push(`A geometric progression with ratio 2: the sum of the first ${Math.min(n, 50)} terms is 2${String(Math.min(n, 50)).replace(/\d/g, (c) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+c])} − 1 = ${fmt(2 ** Math.min(n, 50) - 1, 0)}.`);
+    }
+    q('.sq-out').replaceChildren(...lines.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+  }
+
+  function own() {
+    const s = q<HTMLInputElement>('.sq-own').value, xs = s.split(/[,;\s]+/).filter(Boolean).map((t) => Number(t.replace('−', '-')));
+    const out: string[] = [];
+    if (xs.some((x) => !Number.isFinite(x))) out.push('Use only numbers, separated by commas.');
+    else {
+      const r = findRule(xs);
+      if (xs.length >= 2) out.push(`Differences: ${diffs(xs).map((x) => fmt(x, 4)).join(', ')}.`);
+      if (r.kind === 'none') out.push(r.text);
+      else {
+        out.push(`${r.kind === 'linear' ? 'Linear (same difference every time).' : r.kind === 'quadratic' ? 'Quadratic (same second difference every time).' : r.kind === 'geometric' ? 'Geometric (same ratio every time).' : 'Constant.'} ${r.text}.`);
+        out.push(`Next term: ${fmt(r.next, 4)}.`);
+      }
+    }
+    q('.sq-rule').replaceChildren(...out.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+  }
+  q('.sq-own').addEventListener('input', own);
+  root.querySelectorAll<HTMLButtonElement>('.sq-ex').forEach((b) => b.addEventListener('click', () => { q<HTMLInputElement>('.sq-own').value = b.dataset.s!; own(); }));
+  root.querySelectorAll<HTMLButtonElement>('.sq-lvl button').forEach((b) => b.addEventListener('click', () => { level = Number(b.dataset.l); root.querySelectorAll('.sq-lvl button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); draw(); }));
+  draw(); own();
+
+  quiz(q('.sq-quiz'), () => {
+    const out: Question[] = [];
+    const a = randInt(2, 9), b = randInt(-3, 10, true), L = terms((n) => a * n + b, 4);
+    out.push({ q: `What comes next: ${L.join(', ')}, ...?`.replace(/-/g, '−'), want: [a * 5 + b], work: `The difference is ${a} every time, so the next term is ${L[3]} + ${a} = ${a * 5 + b}.`.replace(/-/g, '−') });
+    const k = randInt(15, 60);
+    out.push({ q: `The same pattern (${L.join(', ')}, ...): what is term number ${k}?`.replace(/-/g, '−'), want: [a * k + b], work: `The rule is ${a}n ${b < 0 ? '−' : '+'} ${Math.abs(b)} (difference ${a}; ${a} × 1 ${b < 0 ? '−' : '+'} ${Math.abs(b)} = ${L[0]}). Term ${k}: ${a} × ${k} ${b < 0 ? '−' : '+'} ${Math.abs(b)} = ${a * k + b}.` });
+    const c = randInt(1, 3), e = randInt(-2, 4), Q = terms((n) => c * n * n + e, 4);
+    out.push({ q: `What comes next: ${Q.join(', ')}, ...?`.replace(/-/g, '−'), want: [c * 25 + e], work: `Differences ${diffs(Q).join(', ')} go up by ${2 * c} each time, so the next difference is ${diffs(Q)[2] + 2 * c} and the next term is ${Q[3]} + ${diffs(Q)[2] + 2 * c} = ${c * 25 + e}.`.replace(/-/g, '−') });
+    const t = randInt(8, 40);
+    out.push({ q: `How many dots are in triangular number ${t} (1, 3, 6, 10, ...)?`, want: [(t * (t + 1)) / 2], work: `n(n + 1)/2 = ${t} × ${t + 1} / 2 = ${(t * (t + 1)) / 2}.` });
+    return out;
+  });
+</script>
