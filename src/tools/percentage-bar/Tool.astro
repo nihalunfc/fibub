@@ -1,0 +1,162 @@
+---
+// Percentage bar: drag along a bar that stands for the whole to see p% of it (with 1% and 10% steps shown), then
+// see why going up p% and down p% does not land back at the start. Fresh practice questions. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm pb">
+  <div class="ax-card">
+    <h2>Percent of a whole</h2>
+    <div class="ax-grid">
+      <label>The whole <input type="number" class="pb-n" min="0.01" max="1000000000" step="any" value="240" inputmode="decimal" /></label>
+    </div>
+    <div class="sm-sl"><b>p</b><input type="range" class="pb-pr" min="0" max="200" step="1" value="35" aria-label="Percent" /><input type="number" class="pb-p" min="0" max="1000" step="any" value="35" inputmode="decimal" aria-label="Percent" /></div>
+    <p class="ax-help">Drag the handle on the bar, or slide p. The bar is the whole (100%); past 100% it grows longer.</p>
+    <p class="ax-err pb-err" hidden></p>
+    <svg class="sm-fig pb-fig" viewBox="0 0 340 120" role="img" aria-label="A bar standing for the whole, split into ten 10% blocks, filled up to the chosen percent"></svg>
+    <p class="ax-big pb-big" aria-live="polite"></p>
+    <ol class="sm-steps pb-steps"></ol>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small pb-pre" data-p="35,240">35% of 240</button>
+      <button type="button" class="btn secondary small pb-pre" data-p="12.5,640">12.5% of 640</button>
+      <button type="button" class="btn secondary small pb-pre" data-p="150,60">150% of 60</button>
+      <button type="button" class="btn secondary small pb-pre" data-p="1,4500">1% of 4500</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Up, then down by the same percent</h2>
+    <div class="ax-grid">
+      <label>Start <input type="number" class="pb-s" min="0.01" max="1000000000" step="any" value="500" inputmode="decimal" /></label>
+      <label>First change (%) <input type="number" class="pb-c1" min="-99" max="500" step="any" value="20" inputmode="decimal" /></label>
+      <label>Second change (%) <input type="number" class="pb-c2" min="-99" max="500" step="any" value="-20" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">A rise is a positive percent, a fall negative (−20 means down 20%). Each change is a percent of the value just before it.</p>
+    <div class="ax-row"><button type="button" class="btn secondary small pb-sw">Swap the order</button></div>
+    <p class="ax-err pb-err2" hidden></p>
+    <svg class="sm-fig pb-fig2" viewBox="0 0 340 150" role="img" aria-label="Three bars: the start, after the first change, after the second change"></svg>
+    <ol class="sm-steps pb-steps2"></ol>
+    <p class="sm-f pb-net"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Find 10% of 240 by eye on the bar (one block), then 5% (half a block). Now build 35% as 10 + 10 + 10 + 5.</li>
+      <li>Is 35% of 240 the same as 240% of 35? Try both. (Yes: a × b ÷ 100 either way.)</li>
+      <li>Up 20% then down 20%: you lose 4% of the start. What about up 50% then down 50%? Can you see the rule?</li>
+      <li>Press <i>Swap the order</i>. Does going down first then up help?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="pb-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .pb .pb-big { margin: 8px 0 4px; }
+  .pb svg .pb-whole { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+  .pb svg .pb-fill { fill: var(--accent); fill-opacity: 0.35; }
+  .pb svg .pb-over { fill: var(--warn); fill-opacity: 0.35; }
+  .pb svg .pb-blk { stroke: var(--muted); stroke-width: 1; }
+  .pb svg .pb-bar { fill: var(--accent); fill-opacity: 0.35; stroke: var(--ink); stroke-width: 1; }
+  .pb svg .pb-start { stroke: var(--bad); stroke-width: 1.5; stroke-dasharray: 4 3; }
+</style>
+
+<script>
+  import { percentOf, changeBy, overall, original, whatPercent } from '../../lib/sci/percentage-bar';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, quiz, dragOn, pair, val, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.pb')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const N = q<HTMLInputElement>('.pb-n'), PR = q<HTMLInputElement>('.pb-pr'), P = q<HTMLInputElement>('.pb-p');
+  const setP = pair(PR, P, draw);
+  const nf = (x: number, dp = 2) => fmt(x, dp).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const X0 = 20, W100 = 220; // the whole is 220 px wide; the axis can run to 300 px (about 136%) before it rescales
+  let scale = 1;
+
+  function draw() {
+    const n = Number(N.value), p = val(P, 35, 0, 1000), err = q('.pb-err');
+    if (!(n > 0) || n > 1e9) { err.textContent = 'Type a whole bigger than 0.'; err.hidden = false; return; }
+    err.hidden = true;
+    const svg = q<SVGSVGElement>('.pb-fig'); svg.replaceChildren();
+    scale = Math.min(1, 300 / ((W100 * Math.max(100, p)) / 100));
+    const w = W100 * scale, x = (pc: number) => X0 + (w * pc) / 100;
+    S('rect', { x: X0, y: 40, width: w, height: 36, class: 'pb-whole' }, svg);
+    S('rect', { x: X0, y: 40, width: Math.max(0, x(Math.min(p, 100)) - X0), height: 36, class: 'pb-fill' }, svg);
+    if (p > 100) S('rect', { x: x(100), y: 40, width: x(p) - x(100), height: 36, class: 'pb-over' }, svg);
+    for (let k = 10; k < Math.max(100, p); k += 10) S('line', { x1: x(k), y1: 40, x2: x(k), y2: 76, class: 'pb-blk' }, svg);
+    if (p > 100) S('rect', { x: X0, y: 40, width: w, height: 36, class: 'pb-whole', 'fill-opacity': 0 }, svg);
+    for (const k of [0, 50, 100]) {
+      S('text', { x: x(k), y: 32, 'text-anchor': 'middle', class: 'sm-tick' }, svg, `${k}%`);
+      S('text', { x: x(k), y: 94, 'text-anchor': 'middle', class: 'sm-tick' }, svg, nf(percentOf(k, n)));
+    }
+    S('line', { x1: x(p), y1: 36, x2: x(p), y2: 80, class: 'sm-line' }, svg);
+    S('circle', { cx: x(p), cy: 58, r: 11, class: 'sm-handle pb-h' }, svg);
+    S('text', { x: Math.min(300, Math.max(40, x(p))), y: 114, 'text-anchor': 'middle', style: 'font-weight:700' }, svg, `${fmt(p, 2)}% = ${nf(percentOf(p, n))}`);
+    const r = percentOf(p, n);
+    q('.pb-big').textContent = `${fmt(p, 2)}% of ${nf(n)} = ${nf(r)}`;
+    const st = q('.pb-steps'); st.replaceChildren();
+    for (const s of [
+      `Percent means "out of 100", so ${fmt(p, 2)}% = ${fmt(p, 2)}/100 = ${fmt(p / 100, 4)}.`,
+      `${fmt(p, 2)}% of ${nf(n)} = ${fmt(p / 100, 4)} × ${nf(n)} = ${nf(r)}.`,
+      `Another way: 1% of ${nf(n)} is ${nf(n / 100, 4)}, so ${fmt(p, 2)}% is ${fmt(p, 2)} × ${nf(n / 100, 4)} = ${nf(r)}. Each 10% block on the bar is ${nf(n / 10, 3)}.`,
+    ]) { const li = document.createElement('li'); li.textContent = s; st.append(li); }
+  }
+
+  dragOn(q<SVGSVGElement>('.pb-fig'), (px, py) => (py > 25 && py < 95 ? 'h' : null), (_id, px) => {
+    const w = W100 * scale, p = Math.round(Math.max(0, Math.min(300, ((px - X0) / w) * 100)));
+    setP(Math.min(200, p)); draw();
+  });
+
+  function draw2() {
+    const s = Number(q<HTMLInputElement>('.pb-s').value), a = Number(q<HTMLInputElement>('.pb-c1').value), b = Number(q<HTMLInputElement>('.pb-c2').value), err = q('.pb-err2');
+    const okc = (c: string) => { const t = q<HTMLInputElement>(c).value.trim(), x = Number(t); return t !== '' && Number.isFinite(x) && x >= -99 && x <= 500; };
+    if (!(s > 0) || s > 1e9 || !okc('.pb-c1') || !okc('.pb-c2')) { err.textContent = 'Type a start bigger than 0 and changes from −99% to 500%.'; err.hidden = false; return; }
+    err.hidden = true;
+    const v1 = changeBy(s, a), v2 = changeBy(v1, b), net = overall(a, b);
+    const svg = q<SVGSVGElement>('.pb-fig2'); svg.replaceChildren();
+    const big = Math.max(s, v1, v2), k = 210 / big, X = 112;
+    const rows: [string, number][] = [['Start', s], [`${a >= 0 ? 'Up' : 'Down'} ${fmt(Math.abs(a), 2)}%`, v1], [`${b >= 0 ? 'Up' : 'Down'} ${fmt(Math.abs(b), 2)}%`, v2]];
+    rows.forEach(([lab, v], i) => {
+      const y = 14 + i * 44;
+      S('text', { x: 4, y: y + 20 }, svg, lab);
+      S('rect', { x: X, y, width: Math.max(1, v * k), height: 28, class: 'pb-bar' }, svg);
+      S('text', { x: X + 6, y: y + 19, style: 'font-weight:700' }, svg, nf(v));
+    });
+    S('line', { x1: X + s * k, y1: 6, x2: X + s * k, y2: 144, class: 'pb-start' }, svg);
+    const st = q('.pb-steps2'); st.replaceChildren();
+    for (const t of [
+      `${a >= 0 ? 'Up' : 'Down'} ${fmt(Math.abs(a), 2)}%: ${nf(s)} × ${fmt(1 + a / 100, 4)} = ${nf(v1)} (the change is ${fmt(Math.abs(a), 2)}% of ${nf(s)} = ${nf(Math.abs(percentOf(a, s)))}).`,
+      `${b >= 0 ? 'Up' : 'Down'} ${fmt(Math.abs(b), 2)}%: ${nf(v1)} × ${fmt(1 + b / 100, 4)} = ${nf(v2)} (now it is ${fmt(Math.abs(b), 2)}% of ${nf(v1)} = ${nf(Math.abs(percentOf(b, v1)))}, a different amount).`,
+    ]) { const li = document.createElement('li'); li.textContent = t; st.append(li); }
+    q('.pb-net').textContent = `Overall: × ${fmt(1 + a / 100, 4)} × ${fmt(1 + b / 100, 4)} = × ${fmt((1 + a / 100) * (1 + b / 100), 4)}, a ${Math.abs(net) < 1e-9 ? 'change of 0%: back to the start' : `${net > 0 ? 'rise' : 'fall'} of ${fmt(Math.abs(net), 2)}%`}${Math.abs(a + b) < 1e-9 && a !== 0 ? `. Up and down by the same percent always loses ${fmt(a, 2)}² ÷ 100 = ${fmt((a * a) / 100, 2)}%` : ''}.`;
+  }
+
+  N.addEventListener('input', draw);
+  for (const c of ['.pb-s', '.pb-c1', '.pb-c2']) q(c).addEventListener('input', draw2);
+  q('.pb-sw').addEventListener('click', () => { const A = q<HTMLInputElement>('.pb-c1'), B = q<HTMLInputElement>('.pb-c2'); [A.value, B.value] = [B.value, A.value]; draw2(); });
+  root.querySelectorAll<HTMLButtonElement>('.pb-pre').forEach((b) => b.addEventListener('click', () => { const [p, n] = b.dataset.p!.split(','); N.value = n; setP(Number(p)); draw(); }));
+  draw(); draw2();
+
+  quiz(q('.pb-quiz'), () => {
+    const out: Question[] = [];
+    const p1 = [5, 10, 15, 20, 25, 30, 35, 40, 45, 60, 75][randInt(0, 10)], n1 = 20 * randInt(2, 30);
+    out.push({ q: `What is ${p1}% of ${n1}?`, want: [percentOf(p1, n1)], work: `${p1}% of ${n1} = ${p1}/100 × ${n1} = ${fmt(percentOf(p1, n1), 2)}.` });
+    const b2 = 4 * randInt(5, 50), p2 = [25, 50, 75, 5, 10, 20][randInt(0, 5)], a2 = percentOf(p2, b2);
+    out.push({ q: `${fmt(a2, 2)} is what percent of ${b2}?`, want: [p2], work: `${fmt(a2, 2)} ÷ ${b2} × 100 = ${fmt(whatPercent(a2, b2), 2)}%.` });
+    const s3 = 100 * randInt(2, 20), p3 = 5 * randInt(1, 8);
+    out.push({ q: `A price of ₹${s3} goes up by ${p3}%. What is the new price?`, want: [changeBy(s3, p3)], work: `${s3} × (1 + ${p3}/100) = ${s3} × ${fmt(1 + p3 / 100, 2)} = ${fmt(changeBy(s3, p3), 2)}.` });
+    const p4 = 10 * randInt(1, 5);
+    out.push({ q: `A number goes up by ${p4}% and then down by ${p4}%. By what percent has it fallen overall?`, want: [(p4 * p4) / 100],
+      work: `× ${fmt(1 + p4 / 100, 2)} then × ${fmt(1 - p4 / 100, 2)} = × ${fmt((1 + p4 / 100) * (1 - p4 / 100), 4)}, so it fell by ${fmt((p4 * p4) / 100, 2)}%.` });
+    const o5 = 20 * randInt(3, 30), p5 = [10, 20, 25, 50][randInt(0, 3)], a5 = changeBy(o5, p5);
+    out.push({ q: `After a ${p5}% rise, a bill is ₹${fmt(a5, 2)}. What was it before the rise?`, want: [o5],
+      work: `New = old × ${fmt(1 + p5 / 100, 2)}, so old = ${fmt(a5, 2)} ÷ ${fmt(1 + p5 / 100, 2)} = ${fmt(original(a5, p5), 2)}. (Taking ${p5}% off ${fmt(a5, 2)} would be wrong.)` });
+    return out;
+  });
+</script>

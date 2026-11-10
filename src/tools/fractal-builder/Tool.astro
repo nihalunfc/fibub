@@ -1,0 +1,125 @@
+---
+// Fractal builder: the Koch snowflake and the Sierpinski triangle, one step at a time. A table follows the number
+// of pieces, their side, the perimeter and the area, so you can see the perimeter grow without end while the area
+// stays finite (snowflake) or shrinks to nothing (Sierpinski). Fresh practice questions. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm fb">
+  <div class="ax-card">
+    <h2>Pick a fractal</h2>
+    <div class="ax-seg fb-k" role="group" aria-label="Fractal"><button type="button" data-k="koch" aria-pressed="true">Koch snowflake</button><button type="button" data-k="sier" aria-pressed="false">Sierpinski triangle</button></div>
+    <p class="ax-help fb-rule"></p>
+    <div class="sm-sl"><b>n</b><input type="range" class="fb-nr" min="0" max="6" step="1" value="2" aria-label="Number of steps" /><input type="number" class="fb-n" min="0" max="6" step="1" value="2" inputmode="numeric" aria-label="Number of steps" /></div>
+    <p class="ax-help">n is the number of steps (0 to 6).</p>
+    <label>Side of the first triangle (cm) <input type="number" class="fb-s" min="0.1" max="1000" step="any" value="9" inputmode="decimal" /></label>
+    <p class="ax-err fb-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The picture</h2>
+    <svg class="sm-fig fb-fig" viewBox="0 0 340 330" role="img" aria-label="The fractal after n steps"></svg>
+    <p class="ax-big fb-big" aria-live="polite"></p>
+    <p class="sm-f fb-f"></p>
+    <div class="ax-scroll"><table class="fb-tab"></table></div>
+    <p class="sm-f fb-lim"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Watch the perimeter column of the snowflake: each step multiplies it by 4/3. Will it ever stop growing?</li>
+      <li>Now watch its area column. It grows too, but more and more slowly. Can it ever get past the circle that holds the first triangle?</li>
+      <li>For the Sierpinski triangle, what fraction of the area is left after each step? After 6 steps, how much is left?</li>
+      <li>Zoom into a corner of either picture in your head: each piece looks like the whole. That is what makes a fractal.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="fb-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .fb .fb-s { width: 7em; }
+  .fb svg .fb-shape { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.2; stroke-linejoin: round; }
+  .fb svg .fb-ghost { fill: none; stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 3; }
+  .fb svg .fb-tri { fill: var(--accent); fill-opacity: 0.55; stroke: none; }
+  .fb table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .fb th, .fb td { border: 1px solid var(--line); padding: 4px 8px; text-align: right; }
+  .fb tr.fb-cur td { background: var(--accent-soft); font-weight: 700; }
+</style>
+
+<script>
+  import { koch, kochStats, sierpinski, sierpinskiStats, triArea, triangle } from '../../lib/sci/fractal-builder';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, quiz, pair, val, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.fb')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const NR = q<HTMLInputElement>('.fb-nr'), N = q<HTMLInputElement>('.fb-n'), SIDE = q<HTMLInputElement>('.fb-s');
+  pair(NR, N, draw);
+  let kind: 'koch' | 'sier' = 'koch';
+  const big = (x: number) => (x >= 1e5 ? x.toLocaleString('en') : fmt(x, x >= 100 ? 1 : 3));
+
+  function draw() {
+    const n = Math.round(val(N, 2, 0, 6)), s = Number(SIDE.value), err = q('.fb-err');
+    if (!(s > 0) || s > 1000) { err.textContent = 'Type a side above 0 cm.'; err.hidden = false; return; }
+    err.hidden = true;
+    const svg = q<SVGSVGElement>('.fb-fig'); svg.replaceChildren();
+    // Map a side of 1 to the picture: 250 px wide, centred; y goes up in the maths, down on screen.
+    const W = 250, x0 = 45, yb = kind === 'koch' ? 240 : 295;
+    const tx = ([x, y]: [number, number]) => `${(x0 + x * W).toFixed(2)},${(yb - y * W).toFixed(2)}`;
+    q('.fb-rule').textContent = kind === 'koch'
+      ? 'Each step: cut every side into three, and build a small outward triangle on the middle third.'
+      : 'Each step: join the midpoints of every filled triangle and take out the middle one.';
+    if (kind === 'koch') {
+      S('polygon', { points: triangle(1).map(tx).join(' '), class: 'fb-ghost' }, svg);
+      S('polygon', { points: koch(n, 1).map(tx).join(' '), class: 'fb-shape' }, svg);
+      const st = kochStats(n, s), A0 = triArea(s);
+      q('.fb-big').textContent = `Step ${n}: ${st.sides.toLocaleString('en')} sides, perimeter ${big(st.perimeter)} cm, area ${fmt(st.area, 3)} cm²`;
+      q('.fb-f').textContent = `Perimeter = 3 × 4^${n} sides × ${fmt(s, 3)} ÷ 3^${n} cm = ${fmt(3 * s, 3)} × (4/3)^${n} = ${big(st.perimeter)} cm. Area = ${fmt(A0, 3)} × (1 + 3/5 × (1 − (4/9)^${n})) = ${fmt(st.area, 3)} cm².`;
+      q('.fb-lim').textContent = `However many steps you take, the area never passes 8/5 of the first triangle: ${fmt(st.limitArea, 3)} cm². But the perimeter keeps growing by a third each step, past any length you name.`;
+    } else {
+      for (const t of sierpinski(n, 1)) S('polygon', { points: [[t.x, t.y], [t.x + t.s, t.y], [t.x + t.s / 2, t.y + (Math.sqrt(3) / 2) * t.s]].map((p) => tx(p as [number, number])).join(' '), class: 'fb-tri' }, svg);
+      S('polygon', { points: triangle(1).map(tx).join(' '), class: 'fb-ghost' }, svg);
+      const st = sierpinskiStats(n, s);
+      q('.fb-big').textContent = `Step ${n}: ${st.count.toLocaleString('en')} triangles, area ${fmt(st.area, 3)} cm²`;
+      q('.fb-f').textContent = `Triangles = 3^${n} = ${st.count}, each with side ${fmt(s, 3)} ÷ 2^${n} = ${fmt(st.side, 4)} cm. Area left = ${fmt(triArea(s), 3)} × (3/4)^${n} = ${fmt(st.area, 3)} cm². All their edges together: ${big(st.perimeter)} cm.`;
+      q('.fb-lim').textContent = 'Each step keeps 3/4 of the area, so the area shrinks towards 0, while the total length of the edges grows by half each step.';
+    }
+    const tab = q<HTMLTableElement>('.fb-tab'); tab.replaceChildren();
+    const h = tab.insertRow();
+    for (const t of ['Step', kind === 'koch' ? 'Sides' : 'Triangles', 'Side (cm)', 'Perimeter (cm)', 'Area (cm²)']) { const e = document.createElement('th'); e.textContent = t; h.append(e); }
+    for (let k = 0; k <= 6; k++) {
+      const r = tab.insertRow(), st = kind === 'koch' ? kochStats(k, s) : sierpinskiStats(k, s);
+      if (k === n) r.className = 'fb-cur';
+      for (const v of [String(k), ('sides' in st ? st.sides : st.count).toLocaleString('en'), fmt(st.side, 4), big(st.perimeter), fmt(st.area, 3)]) r.insertCell().textContent = v;
+    }
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.fb-k button').forEach((b) => b.addEventListener('click', () => {
+    kind = b.dataset.k as 'koch' | 'sier';
+    root.querySelectorAll('.fb-k button').forEach((e) => e.setAttribute('aria-pressed', String(e === b)));
+    SIDE.value = kind === 'koch' ? '9' : '8'; draw();
+  }));
+  SIDE.addEventListener('input', draw);
+  draw();
+
+  quiz(q('.fb-quiz'), () => {
+    const out: Question[] = [];
+    const n1 = randInt(1, 4);
+    out.push({ q: `How many sides does the Koch snowflake have after ${n1} step${n1 > 1 ? 's' : ''}?`, want: [3 * 4 ** n1], work: `Each step turns every side into 4, so 3 × 4^${n1} = ${3 * 4 ** n1}.` });
+    const s2 = [9, 27, 3, 6][randInt(0, 3)], n2 = randInt(1, 3);
+    out.push({ q: `A Koch snowflake starts from a triangle with sides of ${s2} cm. What is its perimeter after ${n2} step${n2 > 1 ? 's' : ''}, in cm?`, want: [kochStats(n2, s2).perimeter],
+      work: `Start: 3 × ${s2} = ${3 * s2} cm. Each step multiplies the perimeter by 4/3: ${3 * s2} × (4/3)^${n2} = ${fmt(kochStats(n2, s2).perimeter, 3)} cm.` });
+    const n3 = randInt(2, 5);
+    out.push({ q: `How many filled triangles does the Sierpinski triangle have after ${n3} steps?`, want: [3 ** n3], work: `Each step turns every triangle into 3, so 3^${n3} = ${3 ** n3}.` });
+    const n4 = randInt(1, 3);
+    out.push({ q: `What fraction of the first triangle's area is left in the Sierpinski triangle after ${n4} step${n4 > 1 ? 's' : ''}? (A fraction like 9/16 or a decimal.)`, want: [0.75 ** n4],
+      work: `Each step keeps 3/4, so (3/4)^${n4} = ${3 ** n4}/${4 ** n4} = ${fmt(0.75 ** n4, 6)}.` });
+    return out;
+  });
+</script>
