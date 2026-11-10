@@ -45,11 +45,11 @@ const tools = defineCollection({
 
 // The Blog (/blog/): one Markdown file per article in src/blog/<kind>/<slug>.md, shown at
 // /blog/<kind>/<slug>/. Kinds: guides (one per tool: what it is, how to use it, real uses, worked
-// example), together (several tools in one job), kids (for school students, per chapter or subject)
+// example), howto (a task people search for, done with fibub tools), together (several tools in one job), kids (for school students, per chapter or subject)
 // and discoveries (new research, in our own words, and how to check it with fibub tools).
 // Links: tool names link themselves on first mention, [[tool-id]] links a tool, and
 // [[blog:<kind>/<slug>]] (or [[blog:<kind>/<slug>|words]]) links another article (src/lib/autolink.mjs).
-export const BLOG_KINDS = ['guides', 'together', 'kids', 'discoveries'] as const;
+export const BLOG_KINDS = ['guides', 'howto', 'together', 'kids', 'discoveries'] as const;
 const blog = defineCollection({
   loader: glob({ pattern: '*/*.md', base: './src/blog' }),
   schema: z.object({

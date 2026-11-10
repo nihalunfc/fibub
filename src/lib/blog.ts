@@ -7,6 +7,7 @@ export type Article = CollectionEntry<'blog'>;
 export type Kind = (typeof BLOG_KINDS)[number];
 export const KINDS: { id: Kind; name: string; one: string; blurb: string }[] = [
   { id: 'guides', name: 'Tool guides', one: 'Guide', blurb: 'One guide for every tool: what it is for, the idea behind it, how to use it, real uses and a worked example.' },
+  { id: 'howto', name: 'How to', one: 'How to', blurb: 'Step-by-step answers to the things students, researchers and everyone else search for, done with free fibub tools.' },
   { id: 'together', name: 'Using tools together', one: 'Together', blurb: 'Real jobs that take more than one tool, step by step, and how one tool helps in many fields.' },
   { id: 'kids', name: 'For students', one: 'For students', blurb: 'Short, friendly guides for school students on using the Learn activities and tools properly.' },
   { id: 'discoveries', name: 'Discoveries', one: 'Discovery', blurb: 'New research from open-access papers, in plain words, and how to check the numbers with fibub tools.' },
