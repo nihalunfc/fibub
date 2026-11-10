@@ -1,6 +1,7 @@
 ---
 name: QR code generator
 shelf: everyday
+section: sharing
 title: QR code generator
 summary: Make QR codes for links, Wi-Fi and contact cards, right on your device.
 status: soon

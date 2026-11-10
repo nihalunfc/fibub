@@ -13,7 +13,7 @@ export const SITE = {
 export const SHELVES = [
   { id: 'money', name: 'Money', blurb: 'Budgets, loans, taxes and currency.' },
   { id: 'documents', name: 'Documents', blurb: 'PDFs and images, processed on your device.' },
-  { id: 'everyday', name: 'Everyday', blurb: 'Dates, units, time zones and more.' },
+  { id: 'everyday', name: 'Everyday', blurb: 'Developer helpers, home and kitchen maths, fitness, media and life admin.' },
   { id: 'science', name: 'Science', blurb: 'Astronomy and more science tools, worked out in your browser.' },
   { id: 'collecting', name: 'Collecting', blurb: 'Check, value and record coins, banknotes, bullion and any collection.' },
 ] as const;
@@ -60,6 +60,19 @@ export const SUBJECTS: Record<string, Subject[]> = {
     { id: 'privacy', name: 'Privacy and checks', blurb: 'Redact, remove hidden data and compare versions before you send.' },
     { id: 'writing', name: 'Writing and templates', blurb: 'Invoices, letters, mail merge and text helpers.' },
     { id: 'career', name: 'Jobs and study', blurb: 'Resumes, cover letters and applications.' },
+  ],
+  // Everyday (nihal, 2026-11-10): categories and subcategories the same way as Science.
+  everyday: [
+    { id: 'developer', name: 'Developer and web', blurb: 'Encode, decode, check and convert the bits of text and data the web runs on.' },
+    { id: 'home-diy', name: 'Home and DIY', blurb: 'How much paint, tile, concrete or wood to buy, worked out before you go to the store.' },
+    { id: 'kitchen', name: 'Kitchen', blurb: 'Scale recipes, convert cups to grams and time the roast.' },
+    { id: 'fitness', name: 'Fitness and body', blurb: 'Pace, calories, heart-rate zones, sleep and due dates. Estimates, not medical advice.' },
+    { id: 'media', name: 'Photo, audio and video', blurb: 'Trim, convert and record your own files, on your device.' },
+    { id: 'study', name: 'Study and classroom', blurb: 'Grades, timers and group pickers for students and teachers.' },
+    { id: 'life-admin', name: 'Life admin and travel', blurb: 'Immigration points, day counts, reminders and trips.' },
+    { id: 'cars', name: 'Cars', blurb: 'Tyre sizes and EV charging, worked out plainly.' },
+    { id: 'security', name: 'Passwords and security', blurb: 'Strong passwords made and checked on your device.' },
+    { id: 'planning', name: 'Time and sharing', blurb: 'Planners, time zones, shifts, links and QR codes.' },
   ],
 };
 
@@ -273,6 +286,30 @@ export const SECTIONS: Record<string, Section[]> = {
     { id: 'templates', subject: 'writing', name: 'Invoices, letters and templates' },
     { id: 'text-tools', subject: 'writing', name: 'Text helpers' },
     { id: 'jobs', subject: 'career', name: 'Jobs and applications' },
+  ],
+  everyday: [
+    { id: 'encode-decode', subject: 'developer', name: 'Encode and decode' },
+    { id: 'dev-text', subject: 'developer', name: 'Text and data' },
+    { id: 'web-colours', subject: 'developer', name: 'Colours and icons' },
+    { id: 'walls-floors', subject: 'home-diy', name: 'Paint, walls and floors' },
+    { id: 'building', subject: 'home-diy', name: 'Concrete, decks and stairs' },
+    { id: 'yard', subject: 'home-diy', name: 'Yard and landscaping' },
+    { id: 'heating-cooling', subject: 'home-diy', name: 'Heating and cooling' },
+    { id: 'measures', subject: 'kitchen', name: 'Measures and temperatures' },
+    { id: 'recipes', subject: 'kitchen', name: 'Recipes and meals' },
+    { id: 'running', subject: 'fitness', name: 'Running and training' },
+    { id: 'nutrition', subject: 'fitness', name: 'Food and water' },
+    { id: 'sleep-cycles', subject: 'fitness', name: 'Sleep, cycles and pregnancy' },
+    { id: 'video-audio', subject: 'media', name: 'Video and audio' },
+    { id: 'images-icons', subject: 'media', name: 'Images' },
+    { id: 'grades', subject: 'study', name: 'Grades' },
+    { id: 'classroom', subject: 'study', name: 'Timers and classroom' },
+    { id: 'immigration', subject: 'life-admin', name: 'Canada immigration' },
+    { id: 'reminders-travel', subject: 'life-admin', name: 'Dates, reminders and travel' },
+    { id: 'driving', subject: 'cars', name: 'Tyres and charging' },
+    { id: 'passwords', subject: 'security', name: 'Passwords' },
+    { id: 'plan-time', subject: 'planning', name: 'Plans and time zones' },
+    { id: 'sharing', subject: 'planning', name: 'Links and sharing' },
   ],
   // Collecting: sections only, no subjects.
   collecting: [

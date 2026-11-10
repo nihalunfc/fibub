@@ -1,5 +1,23 @@
 [
  {
+  "sha": "9f2168a5c730",
+  "date": "2026-11-10T17:46:20+00:00",
+  "title": "EI Calculator (#T848): EI eligibility and benefit after a layoff, new Work in Canada category",
+  "tools": [
+   "ei-calculator"
+  ],
+  "site": true
+ },
+ {
+  "sha": "b405e9a73267",
+  "date": "2026-11-10T16:12:25+00:00",
+  "title": "Fix duplicate code T824: Image to text becomes #T836",
+  "tools": [
+   "ocr"
+  ],
+  "site": false
+ },
+ {
   "sha": "b5ab04ed7775",
   "date": "2026-11-10T14:33:09+00:00",
   "title": "Insurance tools take the next free codes, #T824 to #T835",
@@ -18,6 +36,15 @@
    "underinsurance-check"
   ],
   "site": false
+ },
+ {
+  "sha": "825d8cd59d6a",
+  "date": "2026-11-10T14:31:02+00:00",
+  "title": "Image to text (OCR, #T824): self-hosted tesseract.js, shared src/lib/ocr.ts",
+  "tools": [
+   "ocr"
+  ],
+  "site": true
  },
  {
   "sha": "b96f80f4f2a1",

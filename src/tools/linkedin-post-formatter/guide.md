@@ -2,6 +2,7 @@
 name: LinkedIn post formatter
 num: 9
 shelf: everyday
+section: sharing
 code: T9
 title: "LinkedIn post formatter: bold, italic and bullet points for LinkedIn"
 summary: "Add bold, italic, underline and bullet lists to LinkedIn posts, see where '…see more' cuts in, and copy it ready to paste."
