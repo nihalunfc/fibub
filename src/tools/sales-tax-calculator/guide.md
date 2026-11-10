@@ -12,7 +12,7 @@ order: 1731
 icon: percent
 works: offline
 updated: 2026-11-10
-related: [percentage-calculator, tip-calculator, budget-calculator]
+related: [percentage-calculator, tip-calculator, budget-calculator, invoice-maker]
 sources:
   - "Canada GST/HST by province (Nova Scotia 14% from 1 April 2025): CRA, GST/HST calculator (and rates), https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/gst-hst-businesses/charge-collect-which-rate/calculator.html (checked 2026-11-10)"
   - "PST: British Columbia 7% https://www2.gov.bc.ca/gov/content/taxes/sales-taxes/pst ; Manitoba RST 7% https://www.gov.mb.ca/finance/taxation/taxes/retail.html ; Saskatchewan 6% https://www.saskatchewan.ca/business/taxes-licensing-and-reporting/provincial-taxes-policies-and-bulletins/provincial-sales-tax ; Quebec QST 9.975%, Revenu Québec, https://www.revenuquebec.ca/en/businesses/consumption-taxes/gsthst-and-qst/basic-rules-for-applying-the-gsthst-and-qst/tables-of-gst-and-qst-rates/ (all checked 2026-11-10)"

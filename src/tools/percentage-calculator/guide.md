@@ -11,7 +11,7 @@ order: 1716
 icon: percent
 works: offline
 updated: 2026-11-10
-related: [budget-calculator]
+related: [budget-calculator, sales-tax-calculator, break-even]
 sources:
   - "Standard percentage formulas. Nothing region-specific; fibub's own working."
 flow:

@@ -12,7 +12,7 @@ order: 1725
 icon: calculator
 works: offline
 updated: 2026-11-10
-related: [uk-income-tax, budget-calculator, loan-payoff-planner]
+related: [uk-income-tax, budget-calculator, loan-payoff-planner, india-income-tax]
 sources:
   - "Federal, provincial and territorial brackets for 2026: CRA, Tax rates and brackets, current year, https://www.canada.ca/en/revenue-agency/services/tax/individuals/tax-rates-brackets/current-year.html (checked 2026-11-10)"
   - "Basic personal amounts, federal amount phase-out, Canada employment amount, Ontario surtax, BC tax reduction (annual $690, phase-out from $25,570 at 3.56%): CRA T4127 Payroll Deductions Formulas, 122nd edition (1 Jan 2026) and 123rd edition (1 Jul 2026), https://www.canada.ca/en/revenue-agency/services/forms-publications/payroll/t4127-payroll-deductions-formulas.html (checked 2026-11-10)"

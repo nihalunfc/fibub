@@ -11,7 +11,7 @@ order: 1720
 icon: sliders
 works: offline
 updated: 2026-11-10
-related: [loan-payoff-planner, budget-calculator]
+related: [loan-payoff-planner, budget-calculator, compound-interest]
 sources:
   - "Payment formula: the standard level-payment annuity formula. Canadian mortgages compound semi-annually by law, so the monthly rate is (1 + rate/2)^(1/6) - 1."
   - "CMHC mortgage insurance premiums (4.00%, 3.10%, 2.80% by down payment) and minimum down payment rules: cmhc-schl.gc.ca, checked 2026-11-10. Check the official source."

@@ -11,7 +11,7 @@ order: 1730
 icon: sliders
 works: offline
 updated: 2026-11-10
-related: [percentage-calculator, unit-price]
+related: [percentage-calculator, unit-price, invoice-maker]
 sources:
   - "Standard break-even formula: break-even units = fixed costs / (price - variable cost per unit). Plain arithmetic."
 flow:

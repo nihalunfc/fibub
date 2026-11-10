@@ -11,7 +11,7 @@ order: 1707
 icon: lock
 works: offline
 updated: 2026-11-10
-related: [send-check, compress-file]
+related: [send-check, compress-file, redact-pdf]
 sources:
   - "Office files are ZIP packages read and rewritten with fflate. PDFs use pdf-lib. JPEG and PNG are edited by dropping the metadata blocks, without re-encoding. All open source."
 flow:

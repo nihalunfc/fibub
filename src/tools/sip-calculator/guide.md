@@ -11,7 +11,7 @@ order: 1724
 icon: sliders
 works: offline
 updated: 2026-11-10
-related: [compound-interest, inflation-calculator]
+related: [compound-interest, inflation-calculator, india-income-tax]
 sources:
   - "Standard future-value-of-an-annuity-due formula, FV = P x ((1+i)^n - 1) / i x (1+i), with monthly rate i = yearly return / 12. Checked: 10,000 a month at 12% for 10 years is 23,23,391."
 flow:

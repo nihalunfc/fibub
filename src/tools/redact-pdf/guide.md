@@ -11,7 +11,7 @@ order: 1706
 icon: eye
 works: offline
 updated: 2026-11-10
-related: [sign-pdf]
+related: [sign-pdf, metadata-cleaner, compare-documents, organise-pdf]
 sources:
   - "Text positions come from pdf.js (Apache 2.0) and the new PDF is built with pdf-lib (MIT), both in your browser. Number shapes (card with Luhn check, SSN, SIN, Aadhaar, PAN, UK NI number) are common public formats and can match other numbers; always check."
 flow:

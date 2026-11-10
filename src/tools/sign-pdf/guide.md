@@ -11,7 +11,7 @@ order: 1704
 icon: pencil
 works: offline
 updated: 2026-11-10
-related: [fill-pdf, compress-file]
+related: [fill-pdf, compress-file, organise-pdf, page-numbers]
 sources:
   - "PDF drawing uses pdf-lib (MIT) and page pictures use pdf.js (Apache 2.0), both running in your browser. No figures or rules; signatures are drawn by you."
 flow:

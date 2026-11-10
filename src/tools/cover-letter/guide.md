@@ -11,7 +11,7 @@ order: 1714
 icon: pencil
 works: offline
 updated: 2026-11-10
-related: [resume-builder, ats-resume-checker]
+related: [resume-builder, ats-resume-checker, send-check]
 sources:
   - "The example phrasing is written by hand for fibub; no AI writes your letter. The layout is one column of plain text with standard fonts, which is what applicant tracking systems read most reliably."
 flow:

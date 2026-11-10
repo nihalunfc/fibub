@@ -11,7 +11,7 @@ order: 1723
 icon: sliders
 works: offline
 updated: 2026-11-10
-related: [inflation-calculator, budget-calculator]
+related: [inflation-calculator, budget-calculator, rent-vs-buy]
 sources:
   - "Standard compound interest formula, FV = P(1 + r/m)^(m t). Checked against the textbook example: 1,000 at 5% for 10 years is 1,628.89 compounded yearly and 1,647.01 compounded monthly. Rule of 72 is a common rule of thumb."
 flow:

@@ -12,7 +12,7 @@ order: 1729
 icon: calculator
 works: offline
 updated: 2026-11-10
-related: [india-income-tax, budget-calculator]
+related: [india-income-tax, budget-calculator, hourly-salary]
 sources:
   - "India formula (15/26 x last basic + DA x years, part year over 6 months counts as a year), not-covered formula and Rs 20 lakh exemption: Income Tax Department, Taxability of Retirement Benefits (as amended by Finance Act, 2025), https://incometaxindia.gov.in/tutorials/77.taxability-of-retirement-benefits.pdf (checked 2026-11-10)"
   - "Fixed-term employees eligible after one year of continuous service, Labour Codes in force from 21 November 2025: PIB release, https://labour.gov.in/sites/default/files/pib2192463.pdf (checked 2026-11-10)"

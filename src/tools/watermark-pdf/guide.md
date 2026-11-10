@@ -11,7 +11,7 @@ order: 1703
 icon: pencil
 works: offline
 updated: 2026-11-10
-related: [page-numbers, organise-pdf]
+related: [page-numbers, organise-pdf, redact-pdf]
 sources:
   - "Marks are drawn with pdf-lib (PDF) and the browser canvas (pictures), using standard fonts. Nothing else is used."
 flow:

@@ -11,7 +11,7 @@ order: 1728
 icon: sliders
 works: offline
 updated: 2026-11-10
-related: [budget-calculator, percentage-calculator]
+related: [budget-calculator, percentage-calculator, canada-income-tax, uk-income-tax, india-income-tax]
 sources:
   - "Plain arithmetic: yearly pay = hourly pay x hours a week x paid weeks a year. Monthly is a twelfth of the year; biweekly is two weeks of pay."
 flow:

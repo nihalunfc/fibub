@@ -11,7 +11,7 @@ order: 1708
 icon: camera
 works: offline
 updated: 2026-11-10
-related: [compress-file, organise-pdf, file-converter]
+related: [compress-file, organise-pdf, file-converter, sign-pdf]
 sources:
   - "Page flattening, edge finding and clean-up filters are fibub's own code (homography and local-average thresholding). PDF made with pdf-lib (open source)."
 flow:
