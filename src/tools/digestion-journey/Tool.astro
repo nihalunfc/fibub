@@ -1,0 +1,235 @@
+---
+// Digestion journey: follow a meal stop by stop through the gut. At each stop the juices and enzymes that act are
+// listed, and bars show how much starch, protein, fat and fibre is still whole, broken part-way, in small units, or
+// absorbed. A teaching model with made-up round shares. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm dgj">
+  <p class="ax-help">A teaching model: the share of food broken down at each stop is a made-up round value to show the idea, not a measurement.</p>
+  <div class="ax-card">
+    <div class="ax-row"><b>Level</b>
+      <div class="ax-seg dgj-level" role="group" aria-label="Level"><button type="button" data-v="10" aria-pressed="true">Class 10</button><button type="button" data-v="11" aria-pressed="false">Class 11</button></div></div>
+    <div class="ax-row dgj-gap"><b>Meal</b>
+      <div class="ax-seg dgj-meals" role="group" aria-label="Meal"></div></div>
+    <div class="dgj-sl">
+      <label>Starch <b class="dgj-v" data-n="starch"></b> g<input type="range" class="dgj-g" data-n="starch" min="0" max="100" step="1" aria-label="Starch in grams" /></label>
+      <label>Protein <b class="dgj-v" data-n="protein"></b> g<input type="range" class="dgj-g" data-n="protein" min="0" max="60" step="1" aria-label="Protein in grams" /></label>
+      <label>Fat <b class="dgj-v" data-n="fat"></b> g<input type="range" class="dgj-g" data-n="fat" min="0" max="60" step="1" aria-label="Fat in grams" /></label>
+      <label>Fibre <b class="dgj-v" data-n="fibre"></b> g<input type="range" class="dgj-g" data-n="fibre" min="0" max="30" step="1" aria-label="Fibre in grams" /></label>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <svg class="sm-fig dgj-fig" viewBox="0 0 340 420" role="img" aria-label="The gut from mouth to anus, with the meal at its current stop"></svg>
+    <div class="ax-row dgj-nav">
+      <button type="button" class="btn secondary small dgj-prev">Back</button>
+      <button type="button" class="btn small dgj-next">Next stop</button>
+      <button type="button" class="btn secondary small dgj-play">Play the journey</button>
+    </div>
+    <p class="ax-help">Tap a numbered stop in the picture to jump there.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="dgj-name" aria-live="polite"></h2>
+    <p class="dgj-what"></p>
+    <dl class="ax-facts dgj-facts"></dl>
+    <h3>What acts on the food</h3>
+    <ul class="dgj-enz"></ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>What has happened to the meal so far</h2>
+    <div class="dgj-bars"></div>
+    <div class="ax-legend"><span><i class="dgj-k0"></i>Whole (big molecules)</span><span><i class="dgj-k1"></i>Broken part-way</span><span><i class="dgj-k2"></i>Small units</span><span><i class="dgj-k3"></i>Absorbed into the body</span></div>
+    <p class="ax-big dgj-big" aria-live="polite"></p>
+    <p class="sm-f dgj-sum"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Pick plain rice and stop at the stomach. Why has some starch already changed, but none of the protein?</li>
+      <li>Pick paneer tikka. Where does the fat start to be broken down, and what helps lipase get at it?</li>
+      <li>Set fibre to 30 g and go to the end. Why does none of it get absorbed?</li>
+      <li>Class 11: which enzymes are made in an inactive form, and what switches each one on?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. For the choices, type the number of your answer. Nothing is saved.</p>
+    <div class="dgj-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .dgj .dgj-gap { margin-top: 10px; }
+  .dgj .dgj-sl { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 4px 14px; margin-top: 10px; }
+  .dgj .dgj-sl input { width: 100%; height: 32px; accent-color: var(--accent); }
+  .dgj .dgj-nav { margin-top: 10px; }
+  .dgj svg .dgj-body { fill: var(--bg); stroke: var(--line); stroke-width: 2; }
+  .dgj svg .dgj-gut { fill: none; stroke: var(--warn-soft); stroke-width: 16; stroke-linejoin: round; stroke-linecap: round; }
+  .dgj svg .dgj-gut2 { fill: none; stroke: var(--warn); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; stroke-dasharray: 1 0; opacity: .55; }
+  .dgj svg .dgj-colon { fill: none; stroke: var(--accent-soft); stroke-width: 22; stroke-linejoin: round; stroke-linecap: round; }
+  .dgj svg .dgj-colon2 { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-linejoin: round; opacity: .6; }
+  .dgj svg .dgj-organ { fill: var(--good-soft); stroke: var(--good); stroke-width: 1.5; }
+  .dgj svg .dgj-stop { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; cursor: pointer; }
+  .dgj svg .dgj-stop.on { fill: var(--accent); stroke: var(--accent); }
+  .dgj svg text.dgj-sn { font-size: 11px; font-weight: 700; pointer-events: none; }
+  .dgj svg text.dgj-sn.on { fill: var(--accent-ink); }
+  .dgj svg .dgj-food { fill: var(--warn); stroke: var(--surface); stroke-width: 2; }
+  .dgj svg text.dgj-lab { font-size: 11px; fill: var(--muted); }
+  .dgj .dgj-bar { display: grid; grid-template-columns: 5.2em 1fr; gap: 8px; align-items: center; margin: 8px 0; font-size: 14px; }
+  .dgj .dgj-track { display: flex; height: 26px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--bg); }
+  .dgj .dgj-track span { display: block; height: 100%; }
+  .dgj .dgj-k0 { background: var(--ink); } .dgj .dgj-k1 { background: var(--warn); } .dgj .dgj-k2 { background: var(--good); } .dgj .dgj-k3 { background: var(--good-soft); outline: 1px solid var(--good); outline-offset: -1px; }
+  .dgj .dgj-small { grid-column: 2; font-size: 13px; color: var(--muted); margin-top: -4px; }
+  .dgj h3 { font-size: 16px; margin: 12px 0 4px; }
+  .dgj .dgj-enz { margin: 0; padding-left: 1.3em; line-height: 1.6; }
+  .dgj .dgj-enz .x11 { color: var(--muted); }
+</style>
+
+<script>
+  import { STOPS, NUTRIENTS, MEALS, journey, timeTo, leftInGut, type Meal, type Nutrient } from '../../lib/sci/digestion';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.dgj')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.dgj-fig');
+  let level = 10, stop = 0, meal: Meal = { ...MEALS[0].meal }, playing = 0, food: SVGCircleElement | null = null;
+
+  // The food's path: points along the gut; STOP_AT gives the point index of each stop.
+  const PTS: [number, number][] = [
+    [170, 60], [170, 80], [172, 100], [176, 120], [182, 136], // mouth, oesophagus
+    [198, 142], [222, 146], [238, 160], [236, 180], [220, 192], [196, 196], // stomach
+    [172, 198], [156, 206], [150, 222], [158, 236], [176, 240], // duodenum
+    [176, 262], [214, 268], [222, 280], [204, 290], [140, 290], [124, 302], [140, 314], [210, 314], [222, 326], [204, 338], [120, 340], // small intestine
+    [86, 352], [84, 300], [86, 252], [150, 250], [256, 252], [258, 300], [256, 356], [210, 372], [176, 380], [172, 398], // large intestine, rectum, anus
+  ];
+  const STOP_AT = [0, 2, 8, 13, 22, 29, 36];
+  const len: number[] = [0];
+  for (let i = 1; i < PTS.length; i++) len.push(len[i - 1] + Math.hypot(PTS[i][0] - PTS[i - 1][0], PTS[i][1] - PTS[i - 1][1]));
+  const at = (d: number): [number, number] => {
+    d = Math.max(0, Math.min(len[len.length - 1], d));
+    let i = 1; while (i < len.length - 1 && len[i] < d) i++;
+    const t = (d - len[i - 1]) / (len[i] - len[i - 1] || 1);
+    return [PTS[i - 1][0] + t * (PTS[i][0] - PTS[i - 1][0]), PTS[i - 1][1] + t * (PTS[i][1] - PTS[i - 1][1])];
+  };
+
+  function drawFig() {
+    fig.replaceChildren();
+    S('circle', { cx: 170, cy: 44, r: 30, class: 'dgj-body' }, fig);
+    S('rect', { x: 150, y: 70, width: 40, height: 40, class: 'dgj-body' }, fig);
+    S('rect', { x: 56, y: 104, width: 228, height: 306, rx: 40, class: 'dgj-body' }, fig);
+    // liver, gall bladder and pancreas
+    S('path', { d: 'M70 132 Q120 118 178 140 Q160 176 112 182 Q76 182 70 160 Z', class: 'dgj-organ' }, fig);
+    S('circle', { cx: 140, cy: 190, r: 8, class: 'dgj-organ' }, fig);
+    S('path', { d: 'M178 214 Q215 204 250 206 Q252 214 246 218 Q212 220 180 222 Z', class: 'dgj-organ' }, fig);
+    S('text', { x: 92, y: 158, class: 'dgj-lab' }, fig, 'liver');
+    S('text', { x: 196, y: 232, class: 'dgj-lab' }, fig, 'pancreas');
+    S('text', { x: 100, y: 205, class: 'dgj-lab' }, fig, 'gall bladder');
+    const line = (a: number, b: number) => PTS.slice(a, b + 1).map((p) => p.join(',')).join(' ');
+    S('polyline', { points: line(26, 36), class: 'dgj-colon' }, fig);
+    S('polyline', { points: line(26, 36), class: 'dgj-colon2' }, fig);
+    S('polyline', { points: line(0, 26), class: 'dgj-gut' }, fig);
+    S('polyline', { points: line(0, 26), class: 'dgj-gut2' }, fig);
+    food = S('circle', { cx: PTS[STOP_AT[stop]][0], cy: PTS[STOP_AT[stop]][1], r: 9, class: 'dgj-food' }, fig);
+    STOPS.forEach((st, i) => {
+      const [x, y] = PTS[STOP_AT[i]], ox = [26, -26, 30, -30, 34, -30, 30][i];
+      const g = S('g', { 'data-stop': i, role: 'button', tabindex: 0, 'aria-label': `Stop ${i + 1}: ${st.name}`, class: 'dgj-sg' }, fig);
+      S('line', { x1: x, y1: y, x2: x + ox, y2: y, stroke: 'currentColor', 'stroke-width': 1, opacity: 0.4 }, g);
+      S('circle', { cx: x + ox, cy: y, r: 11, class: 'dgj-stop' + (i === stop ? ' on' : '') }, g);
+      S('text', { x: x + ox, y: y + 4, 'text-anchor': 'middle', class: 'dgj-sn' + (i === stop ? ' on' : '') }, g, String(i + 1));
+    });
+  }
+
+  function update() {
+    const st = STOPS[stop], J = journey(meal), now = J[stop];
+    drawFig();
+    q('.dgj-name').textContent = `Stop ${stop + 1} of ${STOPS.length}: ${st.name}`;
+    q('.dgj-what').textContent = st.what;
+    const [lo, hi] = timeTo(stop), hrs = (h: number) => (h < 1 ? `${fmt(h * 60, 0)} min` : `${fmt(h, 1)} h`);
+    const facts: [string, string][] = [['Juices', st.juices.join('; ') || 'none'], ['pH', st.ph], ['Time here (rough)', st.hours[1] ? `${hrs(st.hours[0])} to ${hrs(st.hours[1])}` : 'until you go to the toilet'], ['Time since eating (rough)', stop ? `${hrs(lo)} to ${hrs(hi)}` : 'just started']];
+    q('.dgj-facts').replaceChildren(...facts.map(([k, v]) => { const d = document.createElement('div'); d.append(Object.assign(document.createElement('dt'), { textContent: k }), Object.assign(document.createElement('dd'), { textContent: v })); return d; }));
+    q('.dgj-enz').replaceChildren(...st.enzymes10.map((t) => Object.assign(document.createElement('li'), { textContent: t })),
+      ...(level === 11 ? st.enzymes11.map((t) => Object.assign(document.createElement('li'), { textContent: t, className: 'x11' })) : []));
+    const bars = NUTRIENTS.map((n) => {
+      const a = now[n.id], tot = meal[n.id] || 0, row = document.createElement('div'); row.className = 'dgj-bar'; row.dataset.n = n.id;
+      row.append(Object.assign(document.createElement('span'), { textContent: n.name }));
+      const tr = document.createElement('div'); tr.className = 'dgj-track';
+      [a.whole, a.part, a.end, a.absorbed].forEach((v, k) => { const s = document.createElement('span'); s.className = 'dgj-k' + k; s.style.width = tot ? `${(100 * v) / tot}%` : '0'; tr.append(s); });
+      row.append(tr);
+      const words: string[] = [];
+      if (a.whole > 0.05) words.push(`${fmt(a.whole, 1)} g whole`);
+      if (n.part && a.part > 0.05) words.push(`${fmt(a.part, 1)} g ${n.part}`);
+      if (n.end && a.end > 0.05) words.push(`${fmt(a.end, 1)} g ${n.end}`);
+      if (a.absorbed > 0.05) words.push(`${fmt(a.absorbed, 1)} g absorbed`);
+      row.append(Object.assign(document.createElement('span'), { className: 'dgj-small', textContent: tot ? words.join(', ') : 'none in this meal' }));
+      return row;
+    });
+    q('.dgj-bars').replaceChildren(...bars);
+    const total = NUTRIENTS.reduce((t, n) => t + (meal[n.id] || 0), 0), left = leftInGut(now);
+    q('.dgj-big').textContent = `${fmt(total - left, 1)} g of ${fmt(total, 1)} g absorbed`;
+    q('.dgj-sum').textContent = stop === STOPS.length - 1 ? `Egested: ${fmt(left, 1)} g, all of it fibre (plus water and bacteria in real life).` : `Still in the gut after this stop: ${fmt(left, 1)} g.`;
+    q<HTMLButtonElement>('.dgj-prev').disabled = stop === 0;
+    q<HTMLButtonElement>('.dgj-next').disabled = stop === STOPS.length - 1;
+  }
+
+  function go(i: number, animate = true) {
+    i = Math.max(0, Math.min(STOPS.length - 1, i));
+    const from = len[STOP_AT[stop]], to = len[STOP_AT[i]];
+    stop = i; update();
+    if (!animate || from === to || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const t0 = performance.now(), dur = Math.min(1200, 250 + Math.abs(to - from) * 3);
+    const step = (t: number) => { const k = Math.min(1, (t - t0) / dur); const [x, y] = at(from + (to - from) * k); food?.setAttribute('cx', String(x)); food?.setAttribute('cy', String(y)); if (k < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  }
+
+  // controls
+  const mealBox = q('.dgj-meals');
+  const markMeal = (id: string) => mealBox.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === id)));
+  for (const m of MEALS) { const b = document.createElement('button'); b.type = 'button'; b.dataset.v = m.id; b.textContent = m.name; mealBox.append(b); }
+  const syncSliders = () => root.querySelectorAll<HTMLInputElement>('.dgj-g').forEach((r) => { r.value = String(meal[r.dataset.n as Nutrient]); q(`.dgj-v[data-n="${r.dataset.n}"]`).textContent = r.value; });
+  mealBox.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (!b) return; meal = { ...MEALS.find((m) => m.id === b.dataset.v)!.meal }; markMeal(b.dataset.v!); syncSliders(); update(); });
+  root.querySelectorAll<HTMLInputElement>('.dgj-g').forEach((r) => r.addEventListener('input', () => { meal[r.dataset.n as Nutrient] = Number(r.value); q(`.dgj-v[data-n="${r.dataset.n}"]`).textContent = r.value; markMeal(''); update(); }));
+  q('.dgj-level').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (!b) return; level = Number(b.dataset.v); q('.dgj-level').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); update(); });
+  const stopPlay = () => { clearInterval(playing); playing = 0; q('.dgj-play').textContent = 'Play the journey'; };
+  q('.dgj-next').addEventListener('click', () => { stopPlay(); go(stop + 1); });
+  q('.dgj-prev').addEventListener('click', () => { stopPlay(); go(stop - 1); });
+  q('.dgj-play').addEventListener('click', () => {
+    if (playing) { stopPlay(); return; }
+    q('.dgj-play').textContent = 'Stop';
+    go(0, false);
+    playing = window.setInterval(() => { if (stop >= STOPS.length - 1) stopPlay(); else go(stop + 1); }, 1800);
+  });
+  const pickStop = (e: Event) => { const g = (e.target as Element).closest('[data-stop]'); if (g) { stopPlay(); go(Number(g.getAttribute('data-stop'))); } };
+  fig.addEventListener('click', pickStop);
+  fig.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickStop(e); } });
+  markMeal(MEALS[0].id); syncSliders(); update();
+
+  // Check yourself
+  const CHOICE: { q: string; opts: string[]; right: number; why: string }[] = [
+    { q: 'Which enzyme starts digesting protein in the stomach?', opts: ['Pepsin', 'Salivary amylase', 'Lipase'], right: 0, why: 'Pepsin works in the strong acid of the stomach and breaks proteins into peptides.' },
+    { q: 'Which juice has no enzyme but helps fat digestion?', opts: ['Saliva', 'Bile', 'Gastric juice'], right: 1, why: 'Bile, made by the liver, breaks fat into tiny droplets so lipase can reach more of it.' },
+    { q: 'Where are most digested foods absorbed?', opts: ['Stomach', 'Large intestine', 'Small intestine'], right: 2, why: 'The villi of the small intestine give it a huge surface for absorbing.' },
+    { q: 'Where is most of the leftover water absorbed?', opts: ['Large intestine', 'Oesophagus', 'Mouth'], right: 0, why: 'The large intestine soaks up water from the waste.' },
+    { q: 'What does salivary amylase turn starch into?', opts: ['Amino acids', 'Maltose', 'Fatty acids'], right: 1, why: 'Amylase breaks starch into maltose, a sugar made of two glucose units.' },
+    { q: 'What does lipase turn fats into?', opts: ['Glucose', 'Peptides', 'Fatty acids and glycerol'], right: 2, why: 'Lipase splits fats into fatty acids and glycerol.' },
+    { q: 'Why does the stomach not digest itself?', opts: ['Mucus protects its lining', 'It has no acid', 'Pepsin only works in the mouth'], right: 0, why: 'A layer of mucus protects the stomach wall from the acid and pepsin.' },
+    { q: 'Which organ makes trypsin?', opts: ['Liver', 'Pancreas', 'Stomach'], right: 1, why: 'Trypsin is in pancreatic juice, which flows into the duodenum.' },
+  ];
+  quiz(q('.dgj-quiz'), () => {
+    const out: Question[] = [];
+    const bank = [...CHOICE].sort(() => Math.random() - 0.5).slice(0, 3);
+    for (const c of bank) {
+      const order = [0, 1, 2].sort(() => Math.random() - 0.5);
+      const pos = order.indexOf(c.right) + 1;
+      out.push({ q: `${c.q} ${order.map((k, i) => `${i + 1} ${c.opts[k]}`).join(', ')}.`, want: [pos], hint: 'type 1, 2 or 3', work: `${pos}: ${c.opts[c.right]}. ${c.why}` });
+    }
+    const g = randInt(4, 16) * 5;
+    out.push({ q: `A meal has ${g} g of starch. In this model saliva breaks 30 % of it into maltose in the mouth. How many grams of starch are still whole when the food reaches the stomach?`, want: [g * 0.7], hint: 'grams', work: `30 % of ${g} g is ${fmt(g * 0.3, 1)} g, so ${g} − ${fmt(g * 0.3, 1)} = ${fmt(g * 0.7, 1)} g of starch is still whole.` });
+    return out;
+  });
+</script>

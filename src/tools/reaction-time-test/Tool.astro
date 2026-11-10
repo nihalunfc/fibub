@@ -1,0 +1,231 @@
+---
+// Reflex arc and reaction time: tap when the box turns green to time yourself, compare with the time a nerve signal
+// needs to travel, watch a pulse run round a reflex arc, and turn a falling-ruler catch into a reaction time.
+// Times stay on this page only. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm rtt">
+  <div class="ax-card">
+    <div class="ax-row"><b>Level</b>
+      <div class="ax-seg rtt-level" role="group" aria-label="Level"><button type="button" data-v="10" aria-pressed="true">Class 10</button><button type="button" data-v="11" aria-pressed="false">Class 11</button></div></div>
+    <h2 class="rtt-h">Time yourself</h2>
+    <button type="button" class="rtt-pad" data-state="idle" aria-live="polite">Tap here to start</button>
+    <p class="ax-help">Tap to start, then wait. When the box turns green, tap it as fast as you can (or press the space bar). Tapping early does not count. Your times stay on this page only.</p>
+    <div class="ax-row"><button type="button" class="btn secondary small rtt-clear" disabled>Clear my times</button></div>
+    <ol class="rtt-tries"></ol>
+    <dl class="ax-facts rtt-stats"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Your time vs the nerve signal</h2>
+    <svg class="sm-fig rtt-bars" viewBox="0 0 340 150" role="img" aria-label="Bars comparing your reaction time with nerve travel time and a reflex"></svg>
+    <div class="sm-sl"><b title="Nerve path length">L</b><input type="range" class="rtt-lr" min="0.2" max="2" step="0.1" value="1" aria-label="Path length slider" /><input type="number" class="rtt-l" min="0.05" max="5" step="0.1" value="1" inputmode="decimal" aria-label="Nerve path length in metres" /></div>
+    <div class="sm-sl"><b title="Nerve speed">v</b><input type="range" class="rtt-vr" min="1" max="120" step="1" value="60" aria-label="Nerve speed slider" /><input type="number" class="rtt-v" min="0.5" max="150" step="1" value="60" inputmode="decimal" aria-label="Nerve signal speed in metres a second" /></div>
+    <p class="ax-help">L: how far the signal travels along nerves, in metres (eye to brain to spinal cord to hand is roughly 1 m). v: how fast it goes, in metres a second.</p>
+    <p class="sm-f rtt-f1"></p>
+    <p class="rtt-say"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The reflex arc</h2>
+    <svg class="sm-fig rtt-arc" viewBox="0 0 340 250" role="img" aria-label="A reflex arc: hand, sensory neuron, spinal cord, relay neuron, motor neuron and arm muscle"></svg>
+    <div class="ax-row rtt-gap"><button type="button" class="btn small rtt-fire">Touch the hot pan</button></div>
+    <ol class="rtt-steps"></ol>
+    <p class="sm-f rtt-f2"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The falling-ruler test</h2>
+    <p class="ax-help">A friend holds a 30 cm ruler with the 0 mark between your open finger and thumb, lets go without warning, and you catch it. The distance it fell gives your reaction time.</p>
+    <div class="sm-sl"><b>d</b><input type="range" class="rtt-dr" min="1" max="30" step="0.5" value="15" aria-label="Ruler distance slider" /><input type="number" class="rtt-d" min="0.5" max="100" step="0.5" value="15" inputmode="decimal" aria-label="Distance the ruler fell, cm" /></div>
+    <svg class="sm-fig rtt-ruler" viewBox="0 0 340 120" role="img" aria-label="The ruler and how far it fell"></svg>
+    <p class="sm-f rtt-f3"></p>
+    <p class="sm-f rtt-f4"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Take five tries. Is your best time closer to 0.2 s or 0.02 s? Compare it with the nerve travel bar.</li>
+      <li>Set the speed to 1 m/s (a thin nerve with no myelin). Now how long does the signal take?</li>
+      <li>Fire the reflex arc. Which part of the nervous system does it skip, and why is that useful?</li>
+      <li>Catch a real ruler 5 times and type the average distance. Does it match your screen time?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Use g = 9.8 m/s². Nothing is saved.</p>
+    <div class="rtt-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .rtt .rtt-gap { margin-top: 10px; }
+  .rtt .rtt-h { margin-top: 12px; }
+  .rtt .sm-sl b { font-size: 16px; }
+  .rtt .rtt-pad { display: block; width: 100%; min-height: 150px; margin: 6px 0 10px; border: 2px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); font: 700 clamp(20px, 5vw, 26px) system-ui, sans-serif; cursor: pointer; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+  .rtt .rtt-pad[data-state=wait] { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
+  .rtt .rtt-pad[data-state=go] { background: var(--good); border-color: var(--good); color: var(--surface); }
+  .rtt .rtt-pad[data-state=early] { background: var(--warn-soft); border-color: var(--warn); color: var(--warn); }
+  .rtt .rtt-tries { margin: 8px 0; padding-left: 1.6em; columns: 2; font-variant-numeric: tabular-nums; }
+  .rtt svg rect.b1 { fill: var(--accent); } .rtt svg rect.b2 { fill: var(--warn); } .rtt svg rect.b3 { fill: var(--good); }
+  .rtt svg .rtt-n { fill: none; stroke: var(--muted); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+  .rtt svg .rtt-n.s { stroke: var(--warn); } .rtt svg .rtt-n.m { stroke: var(--good); } .rtt svg .rtt-n.r { stroke: var(--accent); }
+  .rtt svg .rtt-cord { fill: var(--bg); stroke: var(--ink); stroke-width: 2; }
+  .rtt svg .rtt-grey { fill: var(--accent-soft); stroke: var(--muted); stroke-width: 1; }
+  .rtt svg .rtt-pulse { fill: var(--bad); stroke: var(--surface); stroke-width: 2; }
+  .rtt svg .rtt-hot { fill: var(--bad-soft); stroke: var(--bad); stroke-width: 1.5; }
+  .rtt svg .rtt-musc { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1.5; }
+  .rtt svg text.rtt-s { font-size: 11px; }
+  .rtt svg .rtt-rule { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1.5; }
+  .rtt .rtt-steps { margin: 6px 0 0; padding-left: 1.4em; line-height: 1.6; }
+  .rtt .rtt-steps li.on { font-weight: 700; }
+</style>
+
+<script>
+  import { travelMs, reflexMs, rulerTime, rulerCm, stats, G } from '../../lib/sci/reaction';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, pair, val, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.rtt')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const pad = q<HTMLButtonElement>('.rtt-pad');
+  const L = q<HTMLInputElement>('.rtt-l'), V = q<HTMLInputElement>('.rtt-v'), D = q<HTMLInputElement>('.rtt-d');
+  let level = 10, times: number[] = [], timer = 0, t0 = 0;
+
+  // ----- the tap test
+  const setPad = (state: string, text: string) => { pad.dataset.state = state; pad.textContent = text; };
+  function press() {
+    const st = pad.dataset.state;
+    if (st === 'idle' || st === 'early' || st === 'done') {
+      setPad('wait', 'Wait for green…');
+      clearTimeout(timer);
+      timer = window.setTimeout(() => { setPad('go', 'TAP!'); t0 = performance.now(); }, 1200 + Math.random() * 2800);
+    } else if (st === 'wait') {
+      clearTimeout(timer); setPad('early', 'Too soon! Tap to try again');
+    } else if (st === 'go') {
+      const ms = performance.now() - t0;
+      times.push(ms); setPad('done', `${fmt(ms, 0)} ms. Tap to go again`);
+      showTimes(); compare();
+    }
+  }
+  pad.addEventListener('pointerdown', (e) => { e.preventDefault(); press(); });
+  pad.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (!e.repeat) press(); } });
+  pad.addEventListener('click', (e) => { if (e.detail === 0) press(); }); // keyboard "click" from assistive tech
+  q('.rtt-clear').addEventListener('click', () => { times = []; setPad('idle', 'Tap here to start'); showTimes(); compare(); });
+  function showTimes() {
+    q('.rtt-tries').replaceChildren(...times.map((t) => Object.assign(document.createElement('li'), { textContent: `${fmt(t, 0)} ms` })));
+    q<HTMLButtonElement>('.rtt-clear').disabled = !times.length;
+    const s = stats(times);
+    const facts: [string, string][] = s.n ? [['Tries', String(s.n)], ['Average', `${fmt(s.mean, 0)} ms`], ['Best', `${fmt(s.best, 0)} ms`], ['Median', `${fmt(s.median, 0)} ms`]] : [];
+    q('.rtt-stats').replaceChildren(...facts.map(([k, v]) => { const d = document.createElement('div'); d.append(Object.assign(document.createElement('dt'), { textContent: k }), Object.assign(document.createElement('dd'), { textContent: v })); return d; }));
+    ruler();
+  }
+
+  // ----- comparison bars
+  function compare() {
+    const l = val(L, 1, 0.01, 10), v = val(V, 60, 0.1, 300), tr = travelMs(l, v), rf = reflexMs(1.6, v, level === 11 ? 2 : 0);
+    const s = stats(times), you = s.n ? s.mean : NaN, svg = q<SVGSVGElement>('.rtt-bars');
+    svg.replaceChildren();
+    const rows: [string, number, string][] = [[s.n ? 'You (average)' : 'You: take a try', you, 'b1'], ['Signal travel only', tr, 'b2'], ['Reflex (1.6 m)', rf, 'b3']];
+    const max = Math.max(250, ...rows.map((r) => (Number.isFinite(r[1]) ? r[1] : 0)));
+    rows.forEach(([name, ms, cls], i) => {
+      const y = 14 + i * 44;
+      S('text', { x: 6, y: y + 10 }, svg, name);
+      if (Number.isFinite(ms)) {
+        S('rect', { x: 6, y: y + 16, width: Math.max(2, (240 * ms) / max), height: 16, rx: 3, class: cls }, svg);
+        S('text', { x: 12 + Math.max(2, (240 * ms) / max), y: y + 29 }, svg, `${fmt(ms, ms < 10 ? 1 : 0)} ms`);
+      }
+    });
+    q('.rtt-f1').textContent = `Travel time = L ÷ v = ${fmt(l, 2)} m ÷ ${fmt(v, 1)} m/s = ${fmt(tr / 1000, 4)} s = ${fmt(tr, 1)} ms`;
+    q('.rtt-say').textContent = s.n
+      ? `Your average of ${fmt(you, 0)} ms is about ${fmt(you / tr, 0)} times the travel time. Most of a reaction is spent in the brain: seeing, deciding and sending the order, not in the wires.`
+      : 'Take a few tries above to see your own bar.';
+  }
+
+  // ----- reflex arc picture
+  const arc = q<SVGSVGElement>('.rtt-arc');
+  const PATH: [number, number][] = [[40, 196], [80, 170], [150, 120], [212, 96], [232, 108], [232, 132], [212, 144], [160, 168], [110, 196], [92, 214]];
+  const PARTS = [
+    { upTo: 1, cls: 's', text: 'Receptor: heat sensors in the skin of the fingertip detect the hot pan.' },
+    { upTo: 3, cls: 's', text: 'Sensory neuron carries the signal to the spinal cord.' },
+    { upTo: 6, cls: 'r', text: 'Relay neuron in the spinal cord passes it straight across, with no thinking.' },
+    { upTo: 8, cls: 'm', text: 'Motor neuron carries the order out to the arm.' },
+    { upTo: 9, cls: 'm', text: 'Effector: the arm muscle contracts and the hand pulls away. The brain is told afterwards, and you feel the pain.' },
+  ];
+  function drawArc(hi = -1) {
+    arc.replaceChildren();
+    S('rect', { x: 14, y: 200, width: 60, height: 22, rx: 4, class: 'rtt-hot' }, arc);
+    S('text', { x: 18, y: 238, class: 'rtt-s' }, arc, 'hot pan');
+    S('ellipse', { cx: 98, cy: 216, rx: 22, ry: 12, class: 'rtt-musc' }, arc);
+    S('text', { x: 84, y: 244, class: 'rtt-s' }, arc, 'arm muscle');
+    S('ellipse', { cx: 236, cy: 120, rx: 56, ry: 46, class: 'rtt-cord' }, arc);
+    S('path', { d: 'M212 98 Q236 80 260 98 Q250 120 260 142 Q236 160 212 142 Q222 120 212 98 Z', class: 'rtt-grey' }, arc);
+    S('text', { x: 236, y: 186, 'text-anchor': 'middle', class: 'rtt-s' }, arc, 'spinal cord');
+    if (level === 11) { S('text', { x: 236, y: 64, 'text-anchor': 'middle', class: 'rtt-s' }, arc, 'grey matter: 2 synapses'); S('text', { x: 300, y: 30, 'text-anchor': 'end', class: 'rtt-s' }, arc, 'up to the brain ↑'); S('line', { x1: 260, y1: 76, x2: 280, y2: 36, class: 'rtt-n' }, arc); }
+    const seg = (a: number, b: number, cls: string) => S('polyline', { points: PATH.slice(a, b + 1).map((p) => p.join(',')).join(' '), class: 'rtt-n ' + cls }, arc);
+    seg(0, 3, 's'); seg(3, 6, 'r'); seg(6, 9, 'm');
+    S('text', { x: 98, y: 124, class: 'rtt-s' }, arc, 'sensory neuron');
+    S('text', { x: 150, y: 196, class: 'rtt-s' }, arc, 'motor neuron');
+    S('text', { x: 244, y: 124, class: 'rtt-s', 'text-anchor': 'middle' }, arc, 'relay');
+    q('.rtt-steps').replaceChildren(...PARTS.map((p, i) => Object.assign(document.createElement('li'), { textContent: p.text, className: i === hi ? 'on' : '' })));
+    const v = val(V, 60, 0.1, 300);
+    q('.rtt-f2').textContent = level === 11
+      ? `Reflex time ≈ 1.6 m ÷ ${fmt(v, 1)} m/s + 2 synapses × 0.5 ms = ${fmt(travelMs(1.6, v), 1)} + 1 = ${fmt(reflexMs(1.6, v, 2), 1)} ms`
+      : `Reflex time ≈ 1.6 m ÷ ${fmt(v, 1)} m/s = ${fmt(travelMs(1.6, v), 1)} ms (plus a little at each junction)`;
+  }
+  let firing = 0;
+  q('.rtt-fire').addEventListener('click', () => {
+    cancelAnimationFrame(firing);
+    const lens = [0]; for (let i = 1; i < PATH.length; i++) lens.push(lens[i - 1] + Math.hypot(PATH[i][0] - PATH[i - 1][0], PATH[i][1] - PATH[i - 1][1]));
+    const tot = lens[lens.length - 1], start = performance.now(), dur = 2400;
+    const dot = () => arc.querySelector('.rtt-pulse') as SVGCircleElement | null;
+    let shown = -1;
+    const step = (t: number) => {
+      const k = Math.min(1, (t - start) / dur), d = k * tot;
+      let i = 1; while (i < lens.length - 1 && lens[i] < d) i++;
+      const f = (d - lens[i - 1]) / (lens[i] - lens[i - 1] || 1), x = PATH[i - 1][0] + f * (PATH[i][0] - PATH[i - 1][0]), y = PATH[i - 1][1] + f * (PATH[i][1] - PATH[i - 1][1]);
+      const part = PARTS.findIndex((p) => i <= p.upTo);
+      if (part !== shown) { drawArc(part); shown = part; S('circle', { r: 8, class: 'rtt-pulse' }, arc); }
+      dot()?.setAttribute('cx', String(x)); dot()?.setAttribute('cy', String(y));
+      if (k < 1) firing = requestAnimationFrame(step); else drawArc(PARTS.length - 1);
+    };
+    firing = requestAnimationFrame(step);
+  });
+
+  // ----- ruler
+  function ruler() {
+    const d = val(D, 15, 0.01, 200), t = rulerTime(d), svg = q<SVGSVGElement>('.rtt-ruler');
+    svg.replaceChildren();
+    const k = 300 / 30, x0 = 20;
+    S('rect', { x: x0, y: 40, width: 300, height: 34, rx: 3, class: 'rtt-rule' }, svg);
+    for (let c = 0; c <= 30; c++) { S('line', { x1: x0 + c * k, y1: 40, x2: x0 + c * k, y2: c % 5 ? 48 : 56, stroke: 'currentColor', 'stroke-width': 1 }, svg); if (c % 5 === 0) S('text', { x: x0 + c * k, y: 70, 'text-anchor': 'middle', class: 'rtt-s' }, svg, String(c)); }
+    const cx = x0 + Math.min(30, d) * k;
+    S('line', { x1: cx, y1: 28, x2: cx, y2: 86, stroke: 'currentColor', 'stroke-width': 3 }, svg);
+    S('text', { x: Math.min(300, Math.max(40, cx)), y: 104, 'text-anchor': 'middle', class: 'rtt-s' }, svg, d > 30 ? `caught at ${fmt(d, 1)} cm (past the end)` : `caught at ${fmt(d, 1)} cm`);
+    S('text', { x: x0, y: 22, class: 'rtt-s' }, svg, 'ruler falls this way →');
+    q('.rtt-f3').textContent = `t = √(2d ÷ g) = √(2 × ${fmt(d / 100, 4)} m ÷ ${fmt(G, 3)} m/s²) = ${fmt(t, 3)} s = ${fmt(t * 1000, 0)} ms`;
+    const s = stats(times);
+    q('.rtt-f4').textContent = s.n ? `With your screen average of ${fmt(s.mean, 0)} ms, a ruler would fall d = ½ g t² = ${fmt(rulerCm(s.mean / 1000), 1)} cm.` : '';
+  }
+
+  pair(q('.rtt-lr'), L, compare); pair(q('.rtt-vr'), V, () => { compare(); drawArc(); }); pair(q('.rtt-dr'), D, ruler);
+  q('.rtt-level').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (!b) return; level = Number(b.dataset.v); q('.rtt-level').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); compare(); drawArc(); });
+  showTimes(); compare(); drawArc();
+
+  quiz(q('.rtt-quiz'), () => {
+    const out: Question[] = [];
+    const d = randInt(5, 25);
+    const t = Math.sqrt((2 * d) / 100 / 9.8);
+    out.push({ q: `A ruler falls ${d} cm before you catch it. What is your reaction time in seconds (3 decimal places)?`, want: [Math.round(t * 1000) / 1000], tol: 0.004, hint: 'seconds', work: `t = √(2d ÷ g) = √(2 × ${d / 100} ÷ 9.8) = √${fmt((2 * d) / 100 / 9.8, 5)} = ${fmt(t, 3)} s.` });
+    const tm = randInt(12, 30) / 100;
+    out.push({ q: `Your reaction time is ${fmt(tm, 2)} s. How many centimetres does the ruler fall before you catch it (1 decimal place)?`, want: [Math.round(490 * tm * tm * 10) / 10], tol: 0.005, hint: 'cm', work: `d = ½ g t² = 0.5 × 9.8 × ${fmt(tm, 2)}² = ${fmt(4.9 * tm * tm, 4)} m = ${fmt(490 * tm * tm, 1)} cm.` });
+    const len = randInt(5, 20) / 10, sp = randInt(4, 12) * 10;
+    out.push({ q: `A nerve signal travels ${fmt(len, 1)} m at ${sp} m/s. How many milliseconds does it take?`, want: [(1000 * len) / sp], tol: 0.005, hint: 'ms', work: `t = ${fmt(len, 1)} ÷ ${sp} = ${fmt(len / sp, 4)} s = ${fmt((1000 * len) / sp, 2)} ms.` });
+    const opts = ['Brain', 'Spinal cord', 'Heart'], order = [0, 1, 2].sort(() => Math.random() - 0.5), pos = order.indexOf(1) + 1;
+    out.push({ q: `Where is the relay neuron of a pull-away reflex? ${order.map((k, i) => `${i + 1} ${opts[k]}`).join(', ')}.`, want: [pos], hint: 'type 1, 2 or 3', work: `${pos}: the spinal cord. The reflex is wired there, so it does not wait for the brain to decide.` });
+    return out;
+  });
+</script>
