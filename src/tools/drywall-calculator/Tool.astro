@@ -1,0 +1,102 @@
+---
+// #T870 Drywall calculator
+---
+<div class="tool-ui dwc">
+  <section class="panel dwc-grid">
+    <label>Units
+      <select data-k="units"><option value="m">Metric (m)</option><option value="ft">Imperial (ft)</option></select>
+    </label>
+    <label>Room length <span data-u="len"></span><input data-k="L" inputmode="decimal" /></label>
+    <label>Room width <span data-u="len"></span><input data-k="W" inputmode="decimal" /></label>
+    <label>Wall height <span data-u="len"></span><input data-k="H" inputmode="decimal" /></label>
+    <label class="dwc-check"><input type="checkbox" data-k="ceil" /> Board the ceiling too</label>
+  </section>
+  <section class="panel dwc-grid">
+    <label>Doors (how many)<input data-k="doors" inputmode="numeric" /></label>
+    <label>Area of one door <span data-u="area"></span><input data-k="doorA" inputmode="decimal" /></label>
+    <label>Windows (how many)<input data-k="wins" inputmode="numeric" /></label>
+    <label>Area of one window <span data-u="area"></span><input data-k="winA" inputmode="decimal" /></label>
+    <label>Sheet size
+      <select data-k="sheet"><option value="32">4 × 8 ft</option><option value="40">4 × 10 ft</option><option value="48">4 × 12 ft</option><option value="mm">1200 × 2400 mm</option></select>
+    </label>
+    <label>Waste and offcuts (%)<input data-k="waste" inputmode="decimal" /></label>
+    <label>Screws per sheet<input data-k="screws" inputmode="numeric" /></label>
+    <label>Joint tape <span data-u="tape"></span><input data-k="tape" inputmode="decimal" /></label>
+    <label>Joint compound <span data-u="mud"></span><input data-k="mud" inputmode="decimal" /></label>
+  </section>
+  <section class="panel">
+    <p class="dwc-big" aria-live="polite"></p>
+    <ul class="dwc-lines"></ul>
+    <button type="button" class="dwc-btn dwc-reset">Reset to the example</button>
+  </section>
+  <p class="dwc-fine">Screws, tape and compound are rules of thumb: change them to match your boards and the product labels. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .dwc { display: grid; gap: 14px; margin-bottom: 32px; }
+  .dwc .panel { padding: 16px; display: grid; gap: 12px; }
+  .dwc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .dwc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .dwc .dwc-check { display: flex; align-items: center; gap: 8px; color: var(--ink); }
+  .dwc input:not([type=checkbox]), .dwc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .dwc input:focus, .dwc select:focus { border-color: var(--accent); outline: none; }
+  .dwc-btn { font: inherit; font-size: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; justify-self: start; }
+  .dwc-btn:hover { border-color: var(--accent); }
+  .dwc-big { font-size: 26px; font-weight: 700; margin: 0; overflow-wrap: anywhere; }
+  .dwc-lines { margin: 0; padding-left: 18px; color: var(--muted); font-size: 15px; display: grid; gap: 2px; }
+  .dwc-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  const root = document.querySelector('.dwc') as HTMLElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const k = (key: string) => root.querySelector(`[data-k="${key}"]`) as HTMLInputElement;
+  const SQFT = 0.09290304;
+  const EX: Record<string, Record<string, string>> = {
+    m: { L: '3.6', W: '3', H: '2.4', doors: '0', doorA: '1.9', wins: '0', winA: '1.5', sheet: 'mm', waste: '10', tape: '1.2', mud: '0.4' },
+    ft: { L: '12', W: '10', H: '8', doors: '0', doorA: '21', wins: '0', winA: '16', sheet: '32', waste: '10', tape: '0.37', mud: '0.01' },
+  };
+  const U: Record<string, Record<string, string>> = {
+    m: { len: '(m)', area: '(m²)', tape: '(m per m²)', mud: '(litres per m²)', a: 'm²', l: 'm', v: 'L' },
+    ft: { len: '(ft)', area: '(sq ft)', tape: '(ft per sq ft)', mud: '(US gal per sq ft)', a: 'sq ft', l: 'ft', v: 'US gal' },
+  };
+  const num = (s: string) => (s.trim() === '' ? NaN : Number(s));
+  const f = (v: number, d: number) => v.toLocaleString('en-US', { maximumFractionDigits: d });
+  // Sheet area in square feet; 1200 x 2400 mm is 2.88 m².
+  const sheetSqft = () => (k('sheet').value === 'mm' ? 2.88 / SQFT : Number(k('sheet').value));
+  // 32 screws for a 4 x 8 sheet, scaled by sheet area.
+  const setScrews = () => { k('screws').value = String(Math.round(sheetSqft())); };
+  const big = $('.dwc-big'), lines = $('.dwc-lines');
+  function calc() {
+    const u = k('units').value, un = U[u];
+    root.querySelectorAll('[data-u]').forEach((s) => { s.textContent = un[(s as HTMLElement).dataset.u!]; });
+    const L = num(k('L').value), W = num(k('W').value), H = num(k('H').value);
+    const walls = 2 * (L + W) * H, ceil = k('ceil').checked ? L * W : 0;
+    const open = num(k('doors').value || '0') * num(k('doorA').value || '0') + num(k('wins').value || '0') * num(k('winA').value || '0');
+    const w = num(k('waste').value), per = num(k('screws').value || '0'), tape = num(k('tape').value || '0'), mud = num(k('mud').value || '0');
+    if (![walls, ceil, open, w, per, tape, mud].every(Number.isFinite) || walls < 0 || w < 0) { big.textContent = ''; lines.innerHTML = '<li>Type the sizes above (numbers only).</li>'; return; }
+    const area = Math.max(0, walls + ceil - open);
+    const sheetA = u === 'm' ? sheetSqft() * SQFT : sheetSqft();
+    const exact = area / sheetA, sheets = Math.ceil(exact * (1 + w / 100) - 1e-9);
+    big.textContent = `${sheets} sheet${sheets === 1 ? '' : 's'}`;
+    const name = k('sheet').selectedOptions[0].textContent;
+    const li = [
+      `Walls ${f(walls, 2)} ${un.a}${ceil ? ` + ceiling ${f(ceil, 2)} ${un.a}` : ''}${open > 0 ? ` − openings ${f(open, 2)} ${un.a}` : ''} = ${f(area, 2)} ${un.a}.`,
+      `${f(area, 2)} ÷ ${f(sheetA, 2)} ${un.a} per ${name} sheet = ${f(exact, 2)} sheets; plus ${f(w, 0)}% = ${f(exact * (1 + w / 100), 2)}, rounded up to ${sheets}.`,
+      `Screws: ${sheets} × ${f(per, 0)} = ${f(sheets * per, 0)}.`,
+      `Joint tape: about ${f(area * tape, 0)} ${un.l}.`,
+      `Joint compound: about ${f(area * mud, 1)} ${un.v}.`,
+    ];
+    lines.innerHTML = ''; for (const s of li) { const e = document.createElement('li'); e.textContent = s; lines.append(e); }
+  }
+  const load = (u: string) => {
+    for (const [key, v] of Object.entries(EX[u])) k(key).value = v;
+    k('ceil').checked = false; setScrews(); calc();
+  };
+  k('units').addEventListener('change', () => load(k('units').value));
+  k('sheet').addEventListener('change', () => { setScrews(); calc(); });
+  k('ceil').addEventListener('change', calc);
+  for (const key of ['L', 'W', 'H', 'doors', 'doorA', 'wins', 'winA', 'waste', 'screws', 'tape', 'mud']) k(key).addEventListener('input', calc);
+  $('.dwc-reset').addEventListener('click', () => { k('units').value = 'm'; load('m'); });
+  load('m');
+</script>
