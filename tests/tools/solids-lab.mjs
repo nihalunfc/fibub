@@ -1,0 +1,57 @@
+// #1290 Solids lab
+export const path = '/learn/solids-lab/';
+export default async ({ page, check, BASE }) => {
+  await page.goto(`${BASE}/learn/solids-lab/`); await page.waitForSelector('.sl .sl-fig polygon');
+  const R = '.sl ';
+  const txt = (s) => page.textContent(R + s);
+  const pick = async (sel) => { await page.click(R + sel); await page.waitForTimeout(100); };
+  check((await txt('.sl-f1')).includes('140π ≈ 439.82') && (await txt('.sl-f2')).includes('238π ≈ 747.7') && (await txt('.sl-f3')).includes('490π ≈ 1,539.38'), 'solids: cylinder example 140π, 238π, 490π');
+  check(await page.isHidden(R + '.sm-sl[data-d="a"]') && await page.isVisible(R + '.sm-sl[data-d="r"]'), 'solids: only r and h shown for a cylinder');
+  const before = await page.$eval(R + '.sl-fig polygon', (e) => e.getAttribute('points'));
+  const vp = page.viewportSize(); await page.setViewportSize({ width: 1280, height: 1600 });
+  await page.locator(R + '.sl-fig').scrollIntoViewIfNeeded();
+  const b = await page.locator(R + '.sl-fig').boundingBox();
+  await page.mouse.move(b.x + 100, b.y + 100); await page.mouse.down(); await page.mouse.move(b.x + 180, b.y + 120, { steps: 4 }); await page.mouse.up(); await page.waitForTimeout(100);
+  check(before !== (await page.$eval(R + '.sl-fig polygon', (e) => e.getAttribute('points'))), 'solids: dragging turns the picture');
+  await page.setViewportSize(vp);
+  await pick('.sl-view button[data-v="net"]');
+  check((await page.$$(R + '.sl-fig rect.sl-net')).length === 1 && (await page.$$(R + '.sl-fig circle')).length === 2, 'solids: cylinder net is a rectangle and two circles');
+  await pick('.sl-view button[data-v="fill"]');
+  check(await page.isVisible(R + '.sl-pour') && (await txt('.sl-fillsay')).includes('3 cones'), 'solids: cylinder takes 3 cones');
+  await pick('.sl-solid button[data-s="cone"]');
+  check((await txt('.sl-f4')).includes('12.21') && (await txt('.sl-f3')).includes('≈ 513.13'), 'solids: cone slant 12.21 and volume 513.13');
+  for (let i = 0; i < 3; i++) await pick('.sl-pour');
+  check((await txt('.sl-fillsay')).includes('Full after 3 pours') && (await txt('.sl-fillsay')).includes('⅓'), 'solids: three cones fill the cylinder');
+  await pick('.sl-empty');
+  check((await txt('.sl-fig')).includes('0 of'), 'solids: empty');
+  await pick('.sl-solid button[data-s="sphere"]');
+  await pick('.sl-pour'); await pick('.sl-pour');
+  check((await txt('.sl-fillsay')).includes('Full after 1.5 pours') && (await txt('.sl-fillsay')).includes('overflowed') && (await txt('.sl-fillsay')).includes('⅔'), 'solids: sphere is two thirds of its cylinder');
+  check((await txt('.sl-f1')).includes('196π ≈ 615.75') && (await txt('.sl-f3')).includes('1,436.76'), 'solids: sphere r 7');
+  await pick('.sl-view button[data-v="net"]');
+  check((await page.$$(R + '.sl-fig circle.sl-net')).length === 4 && (await txt('.sl-vhelp')).includes('4 circles'), 'solids: sphere shows four circles');
+  await pick('.sl-solid button[data-s="cone"]');
+  check((await page.$$(R + '.sl-sector')).length === 1 && (await txt('.sl-vhelp')).includes('206.4°'), 'solids: cone net sector 206.4°');
+  await pick('.sl-solid button[data-s="hemisphere"]');
+  check((await txt('.sl-f2')).includes('147π'), 'solids: hemisphere total 3πr²');
+  await pick('.sl-solid button[data-s="cuboid"]');
+  check((await txt('.sl-f1')).includes('= 320 cm²') && (await txt('.sl-f3')).includes('= 600 cm³') && (await page.$$(R + '.sl-fig rect')).length === 6, 'solids: cuboid 10 × 6 × 10 and its net');
+  await pick('.sl-view button[data-v="fill"]');
+  check((await txt('.sl-fillsay')).includes('10 layers'), 'solids: cuboid fills in 10 layers');
+  await pick('.sl-solid button[data-s="cube"]');
+  await pick('.sl-view button[data-v="3d"]');
+  check((await page.$$(R + '.sl-fig polygon')).length === 6 && (await txt('.sl-f2')).includes('= 216 cm²'), 'solids: cube 6 in 3D');
+  await page.fill(R + '.sl-n-a', '0'); await page.waitForTimeout(100);
+  check(await page.isVisible(R + '.sl-err') && (await txt('.sl-f1')) === '', 'solids: zero edge message');
+  await page.fill(R + '.sl-n-a', '2.5'); await page.waitForTimeout(100);
+  check(await page.isHidden(R + '.sl-err') && (await txt('.sl-f3')).includes('15.63'), 'solids: typed edge 2.5');
+  for (let i = 1; i <= 5; i++) {
+    await page.click(`${R}.sm-q:nth-child(${i}) .sm-qshow`);
+    const w = await txt(`.sm-q:nth-child(${i}) .sm-qwork`);
+    const m = /= ([\d,.]+) cm[²³]?[ .]/.exec(w) || /≈ ([\d,.]+) cm/.exec(w);
+    const all = [...w.matchAll(/= ([\d,.]+) cm/g)].map((x) => x[1]);
+    const a = (i === 4 ? /≈ ([\d,.]+) cm/.exec(w)[1] : all.at(-1) ?? (m && m[1]) ?? 'x').replace(/,/g, '');
+    await page.fill(`${R}.sm-q:nth-child(${i}) .sm-qin`, a); await page.click(`${R}.sm-q:nth-child(${i}) .sm-qcheck`);
+    check((await txt(`.sm-q:nth-child(${i}) .sm-qres`)) === 'Right!', `solids: quiz ${i} (${w})`);
+  }
+};
