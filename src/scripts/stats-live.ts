@@ -19,28 +19,35 @@ function el(tag: string, attrs: Record<string, string | number> = {}, text?: str
 }
 const svg = (w: number, h: number, label: string) => el('svg', { viewBox: `0 0 ${w} ${h}`, role: 'img', 'aria-label': label });
 
-/** Horizontal bars: one row per item, a dark bar for `a` and a light bar for `b`. */
-function barChart(host: HTMLElement, items: { label: string; a: number; b: number; href?: string }[], label: string) {
-  const W = 480, rowH = 30, left = 118, right = 56, top = 4;
-  const H = top + items.length * rowH + 4;
-  const s = svg(W, H, label);
-  const max = Math.max(1, ...items.map((i) => Math.max(i.a, i.b)));
-  const scale = (n: number) => ((W - left - right) * n) / max;
+/** A compact table: rank, name, then each number with a thin bar scaled to the column's largest. */
+function barTable(host: HTMLElement, items: { label: string; a: number; b: number; href?: string }[], cols: [string, string], label: string) {
+  const t = document.createElement('table');
+  t.className = 'st-tbl';
+  const cap = document.createElement('caption'); cap.className = 'visually-hidden'; cap.textContent = label; t.append(cap);
+  const head = t.createTHead().insertRow();
+  for (const [i, h] of ['#', 'Name', ...cols].entries()) { const th = document.createElement('th'); th.scope = 'col'; th.textContent = h; if (i > 1) th.className = 'r'; head.append(th); }
+  const body = t.createTBody();
+  const maxA = Math.max(1, ...items.map((i) => i.a)), maxB = Math.max(1, ...items.map((i) => i.b));
+  const cell = (row: HTMLTableRowElement, n: number, max: number, cls: string) => {
+    const td = row.insertCell(); td.className = 'r';
+    const bar = document.createElement('span'); bar.className = `mb ${cls}`; bar.style.width = `${Math.max(2, (n / max) * 100)}%`;
+    const v = document.createElement('span'); v.textContent = fmt(n);
+    const wrap = document.createElement('span'); wrap.className = 'mbw'; wrap.append(bar);
+    td.append(wrap, v);
+  };
   items.forEach((it, i) => {
-    const y = top + i * rowH;
-    const t = el('text', { x: left - 8, y: y + 14, 'text-anchor': 'end', class: 'lab' }, it.label.length > 18 ? it.label.slice(0, 17) + '…' : it.label);
-    s.append(t);
-    s.append(el('rect', { class: 'b1', x: left, y: y + 3, width: Math.max(2, scale(it.a)), height: 10, rx: 2 }));
-    s.append(el('text', { x: left + Math.max(2, scale(it.a)) + 6, y: y + 12 }, short(it.a)));
-    s.append(el('rect', { class: 'b2', x: left, y: y + 15, width: Math.max(2, scale(it.b)), height: 8, rx: 2 }));
-    s.append(el('text', { x: left + Math.max(2, scale(it.b)) + 6, y: y + 23 }, short(it.b)));
+    const row = body.insertRow();
+    row.insertCell().textContent = String(i + 1);
+    const name = row.insertCell(); name.className = 'nm';
+    if (it.href) { const a = document.createElement('a'); a.href = it.href; a.textContent = it.label; name.append(a); } else name.textContent = it.label;
+    cell(row, it.a, maxA, 'm1'); cell(row, it.b, maxB, 'm2');
   });
-  host.replaceChildren(s);
+  host.replaceChildren(t);
 }
 
 /** A two-line chart over the days: `a` solid, `b` dashed, with a few date labels and gridlines. */
 function lineChart(host: HTMLElement, days: string[], a: number[], b: number[]) {
-  const W = 480, H = 220, l = 40, r = 10, t = 10, bt = 24;
+  const W = 520, H = 130, l = 36, r = 8, t = 8, bt = 20;
   const s = svg(W, H, 'Page views and tool uses per day over the last 30 days');
   const max = Math.max(1, ...a, ...b);
   const x = (i: number) => l + ((W - l - r) * i) / Math.max(1, days.length - 1);
@@ -54,6 +61,21 @@ function lineChart(host: HTMLElement, days: string[], a: number[], b: number[]) 
   const path = (vals: number[]) => vals.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
   s.append(el('path', { class: 'l2', d: path(b) }), el('path', { class: 'l1', d: path(a) }));
   host.replaceChildren(s);
+}
+
+/** The same days as a table, newest first, for reading exact numbers. */
+function dayTable(host: HTMLElement, days: string[], a: number[], b: number[]) {
+  const t = document.createElement('table');
+  t.className = 'st-tbl';
+  const head = t.createTHead().insertRow();
+  for (const [i, h] of ['Day (UTC)', 'Page views', 'Tool uses'].entries()) { const th = document.createElement('th'); th.scope = 'col'; th.textContent = h; if (i) th.className = 'r'; head.append(th); }
+  const body = t.createTBody();
+  for (let i = days.length - 1; i >= 0; i--) {
+    const row = body.insertRow();
+    row.insertCell().textContent = days[i];
+    for (const n of [a[i], b[i]]) { const c = row.insertCell(); c.className = 'r'; c.textContent = fmt(n); }
+  }
+  host.replaceChildren(t);
 }
 
 /** A list of tools, five at a time, with a button for the next five. */
@@ -107,19 +129,21 @@ const byUse = (x: Row, y: Row) => y.use - x.use || y.v - x.v || x.n.localeCompar
 
     // Last 30 days.
     const days = Array.from({ length: 30 }, (_, i) => day(29 - i));
-    lineChart($('.chart-days'), days, days.map((x) => d[x]?.site ?? 0), days.map((x) => Object.values(d[x]?.uses ?? {}).reduce((n, v) => n + v, 0)));
+    const dv = days.map((x) => d[x]?.site ?? 0), du = days.map((x) => Object.values(d[x]?.uses ?? {}).reduce((n, v) => n + v, 0));
+    lineChart($('.chart-days'), days, dv, du);
+    dayTable($('.table-days'), days, dv, du);
 
     // Top 10 tools.
     const ranked = [...rows].sort(byUse).filter((r) => r.use > 0 || r.v > 0);
     const top = ranked.slice(0, 10);
-    if (top.length) barChart($('.chart-top'), top.map((r) => ({ label: r.n, a: r.use, b: r.v })), 'The ten most used tools, with uses and page views');
+    if (top.length) barTable($('.chart-top'), top.map((r) => ({ label: r.n, a: r.use, b: r.v, href: r.u })), ['Uses', 'Views'], 'The ten most used tools, with uses and page views');
     else $('.chart-top').textContent = 'Nothing counted yet.';
 
     // By area (shelf).
     const cats = new Map<string, Row[]>();
     for (const r of rows) cats.set(r.cat, [...(cats.get(r.cat) ?? []), r]);
     const catRows = [...cats].map(([name, list]) => ({ name, list: list.sort(byUse), use: list.reduce((n, r) => n + r.use, 0), v: list.reduce((n, r) => n + r.v, 0) })).sort((x, y) => y.use - x.use || y.v - x.v);
-    barChart($('.chart-cats'), catRows.map((k) => ({ label: k.name, a: k.use, b: k.v })), 'Tool uses and page views by area');
+    barTable($('.chart-cats'), catRows.map((k) => ({ label: k.name, a: k.use, b: k.v })), ['Uses', 'Views'], 'Tool uses and page views by area');
     $('.cat-grid').replaceChildren(...catRows.map((k) => topList(k.name, k.list.filter((r) => r.use > 0 || r.v > 0))));
 
     // Science subjects.
