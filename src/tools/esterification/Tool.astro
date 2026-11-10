@@ -1,0 +1,171 @@
+---
+// Esterification: pick a carboxylic acid and an alcohol, join them (losing water) and get the ester's name,
+// formula, molar mass and smell; split it again with alkali; at Class 11–12 level the equilibrium amount.
+// Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+import '../../styles/chemquiz.css';
+import { ACIDS, ALCOHOLS } from '../../lib/sci/ester-school';
+---
+<div class="ax sm es">
+  <div class="ax-card">
+    <div class="ax-seg es-lvl" role="group" aria-label="Level"><button type="button" data-l="10" aria-pressed="true">Class 10</button><button type="button" data-l="12" aria-pressed="false">Class 11–12: equilibrium</button></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Acid <select class="es-a">{ACIDS.map((a) => <option value={a.id} selected={a.id === 'ethanoic'}>{a.name}</option>)}</select></label>
+      <label>Alcohol <select class="es-r">{ALCOHOLS.map((r) => <option value={r.id} selected={r.id === 'ethanol'}>{r.name}</option>)}</select></label>
+    </div>
+    <svg class="sm-fig es-fig" viewBox="0 0 340 170" role="img" aria-label="The acid and the alcohol joining, with water leaving" style="margin-top:10px"></svg>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn small es-join">Join them (warm with a little conc. H₂SO₄)</button>
+      <button type="button" class="btn secondary small es-split" hidden>Split with NaOH</button>
+    </div>
+    <p class="ax-big es-big" aria-live="polite" style="margin:8px 0 2px"></p>
+    <ul class="sm-steps es-out"></ul>
+  </div>
+
+  <div class="ax-card es-eq" hidden>
+    <h2>How much ester at equilibrium?</h2>
+    <p class="ax-help">The reaction is reversible: acid + alcohol ⇌ ester + water. K = [ester][water] ÷ ([acid][alcohol]); for ethanoic acid and ethanol K is about 4 (a round classroom value).</p>
+    <div class="ax-grid">
+      <label>Acid (mol) <input type="number" class="es-na" min="0" step="any" value="1" inputmode="decimal" /></label>
+      <label>Alcohol (mol) <input type="number" class="es-nr" min="0" step="any" value="1" inputmode="decimal" /></label>
+      <label>Water at the start (mol) <input type="number" class="es-nw" min="0" step="any" value="0" inputmode="decimal" /></label>
+      <label>K <input type="number" class="es-k" min="0.01" step="any" value="4" inputmode="decimal" /></label>
+    </div>
+    <ul class="sm-steps es-eqout"></ul>
+    <p class="ax-err es-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Ethanoic acid and pentan-1-ol give a banana smell. Which pair smells of pineapple?</li>
+      <li>The name comes from the alcohol first, then the acid: ethanol + methanoic acid gives ethyl methanoate.</li>
+      <li>At Class 11–12 level, use 3 mol of alcohol for 1 mol of acid. Why does the yield go up?</li>
+      <li>Press "Split with NaOH" to run the reaction backwards. With the long acids in fats, this is how soap is made.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cq">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Use C = 12, H = 1, O = 16. Nothing is saved.</p>
+    <ol class="cq-list"></ol>
+    <button type="button" class="btn secondary small cq-new">New questions</button>
+  </div>
+</div>
+
+<style is:inline>
+  .es select { font-size: 16px; }
+  .es svg .es-t { font: 600 14px system-ui, sans-serif; fill: var(--ink); }
+  .es svg .es-oh { font: 700 14px system-ui, sans-serif; fill: var(--bad); }
+  .es svg .es-h { font: 700 14px system-ui, sans-serif; fill: var(--bad); }
+  .es svg .es-box { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1.5; stroke-dasharray: 4 3; }
+  .es svg .es-bond { stroke: var(--ink); stroke-width: 2; }
+  .es svg .es-new { stroke: var(--good); stroke-width: 3; }
+  .es svg .es-lab { font: 11px system-ui, sans-serif; fill: var(--muted); }
+</style>
+
+<script>
+  import { ACIDS, ALCOHOLS, SMELLS, esterFormula, esterName, esterCondensed, formulaText, mass, acidFormula, alcoholFormula, equilibrium } from '../../lib/sci/ester-school';
+  import { fmt } from '../../lib/sci/smath';
+  import { S } from '../../lib/smath-ui';
+  import { mountQuiz, near, same, pickOne, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.es')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.es-fig');
+  let joined = false, split = false, level = 10;
+  const A = () => ACIDS.find((a) => a.id === q<HTMLSelectElement>('.es-a').value)!, Rl = () => ALCOHOLS.find((r) => r.id === q<HTMLSelectElement>('.es-r').value)!;
+  const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
+  const rPart = (a: typeof ACIDS[number]) => (a.aromatic ? 'C₆H₅' : a.c === 1 ? 'H' : a.c === 2 ? 'CH₃' : a.c === 3 ? 'C₂H₅' : 'C₃H₇');
+  const rPrime = (r: typeof ALCOHOLS[number]) => (r.c === 1 ? 'CH₃' : r.c === 2 ? 'C₂H₅' : `C${'₀₁₂₃₄₅₆₇₈₉'[r.c]}H${String(2 * r.c + 1).replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈₉'[+d])}`);
+
+  function draw() {
+    const a = A(), r = Rl(), name = esterName(a, r), f = esterFormula(a, r);
+    fig.replaceChildren();
+    const R = rPart(a), Rp = rPrime(r);
+    if (!joined) {
+      // Acid: R–C(=O)–OH        Alcohol: H–O–R'
+      S('text', { x: 60, y: 92, 'text-anchor': 'end', class: 'es-t' }, fig, `${R}–C`);
+      S('line', { x1: 52, y1: 78, x2: 52, y2: 55, class: 'es-bond' }, fig);
+      S('line', { x1: 57, y1: 78, x2: 57, y2: 55, class: 'es-bond' }, fig);
+      S('text', { x: 48, y: 50, class: 'es-t' }, fig, 'O');
+      S('rect', { x: 62, y: 74, width: 34, height: 26, rx: 4, class: 'es-box' }, fig);
+      S('text', { x: 66, y: 92, class: 'es-oh' }, fig, '–OH');
+      S('text', { x: 150, y: 92, class: 'es-t' }, fig, '+');
+      S('rect', { x: 172, y: 74, width: 18, height: 26, rx: 4, class: 'es-box' }, fig);
+      S('text', { x: 176, y: 92, class: 'es-h' }, fig, 'H');
+      S('text', { x: 190, y: 92, class: 'es-t' }, fig, `–O–${Rp}`);
+      S('text', { x: 40, y: 140, class: 'es-lab' }, fig, 'carboxylic acid');
+      S('text', { x: 190, y: 140, class: 'es-lab' }, fig, 'alcohol');
+      S('text', { x: 170, y: 160, 'text-anchor': 'middle', class: 'es-lab' }, fig, 'the boxed OH and H leave as water');
+    } else if (!split) {
+      S('text', { x: 60, y: 92, 'text-anchor': 'end', class: 'es-t' }, fig, `${R}–C`);
+      const o = 0;
+      S('line', { x1: 52 + o, y1: 78, x2: 52 + o, y2: 55, class: 'es-bond' }, fig); S('line', { x1: 57 + o, y1: 78, x2: 57 + o, y2: 55, class: 'es-bond' }, fig);
+      S('text', { x: 48 + o, y: 50, class: 'es-t' }, fig, 'O');
+      S('line', { x1: 64 + o, y1: 87, x2: 80 + o, y2: 87, class: 'es-new' }, fig);
+      S('text', { x: 82 + o, y: 92, class: 'es-t' }, fig, `O–${Rp}`);
+      S('text', { x: 230, y: 92, class: 'es-t' }, fig, '+  H₂O');
+      S('text', { x: 10, y: 140, class: 'es-lab' }, fig, `ester: ${name}`);
+      S('text', { x: 10, y: 158, class: 'es-lab' }, fig, 'new C–O bond (green); the ester link is –COO–');
+    } else {
+      S('text', { x: 10, y: 80, class: 'es-t' }, fig, `${R}–COO⁻ Na⁺`);
+      S('text', { x: 190, y: 80, class: 'es-t' }, fig, `+  ${Rp}–OH`);
+      S('text', { x: 10, y: 120, class: 'es-lab' }, fig, `sodium ${a.stem} (a salt)`);
+      S('text', { x: 190, y: 120, class: 'es-lab' }, fig, r.name.toLowerCase());
+    }
+    const smell = SMELLS[`${a.id}+${r.id}`];
+    q('.es-big').textContent = !joined ? `${a.name.split(' (')[0]} + ${r.name.toLowerCase()}` : split ? `Split: sodium ${a.stem} + ${r.name.toLowerCase()}` : cap(name);
+    const lines: string[] = [];
+    const fa = acidFormula(a), fr = alcoholFormula(r);
+    if (!joined) {
+      lines.push(`Acid ${a.condensed} (${formulaText(fa)}, ${mass(fa)} g/mol) and alcohol ${r.condensed} (${formulaText(fr)}, ${mass(fr)} g/mol).`);
+      lines.push('Warm them with a few drops of concentrated sulfuric acid, which speeds the reaction up (a catalyst) and takes up water.');
+    } else if (!split) {
+      lines.push(`${a.condensed} + ${r.condensed} ⇌ ${esterCondensed(a, r)} + H₂O`);
+      lines.push(`Name: the alcohol part first (${r.alkyl}), then the acid with -oic acid changed to -oate (${a.stem}): ${name}.`);
+      lines.push(`Formula ${formulaText(f)}, molar mass ${mass(f)} g/mol (acid ${mass(fa)} + alcohol ${mass(fr)} − water 18).`);
+      lines.push(smell ? `Smell: ${smell}. Many esters smell sweet and fruity and are used in flavours and perfumes.` : 'Smell: sweet and fruity, like most small esters.');
+      if (level === 12) lines.push('Which oxygen ends up in the water? Experiments with the heavy isotope ¹⁸O in the alcohol find it in the ester, not the water: the OH comes from the acid and the H from the alcohol, as boxed above.');
+    } else {
+      lines.push(`${esterCondensed(a, r)} + NaOH → ${a.aromatic ? 'C₆H₅' : a.condensed.replace(/COOH$/, '')}COONa + ${r.condensed}`);
+      lines.push('Heating an ester with sodium hydroxide splits it into the sodium salt of the acid and the alcohol. This is called saponification: with fats (esters of long-chain acids and glycerol) the salt made is soap.');
+    }
+    q('.es-out').replaceChildren(...lines.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+    q('.es-join').textContent = joined ? 'Start again' : 'Join them (warm with a little conc. H₂SO₄)';
+    q<HTMLButtonElement>('.es-split').hidden = !joined || split;
+    eq();
+  }
+  function eq() {
+    const na = Number(q<HTMLInputElement>('.es-na').value), nr = Number(q<HTMLInputElement>('.es-nr').value), nw = Number(q<HTMLInputElement>('.es-nw').value), K = Number(q<HTMLInputElement>('.es-k').value);
+    const err = q('.es-err'), ok = [na, nr, nw].every((x) => Number.isFinite(x) && x >= 0) && K > 0 && na > 0 && nr > 0;
+    err.hidden = ok; if (!ok) { err.textContent = 'Use amounts of 0 or more (acid and alcohol above 0) and K above 0.'; q('.es-eqout').replaceChildren(); return; }
+    const x = equilibrium(na, nr, K, 0, nw), lim = Math.min(na, nr);
+    const lines = [
+      `Let x mol of ester form. At equilibrium: acid ${fmt(na, 3)} − x, alcohol ${fmt(nr, 3)} − x, ester x, water ${nw ? `${fmt(nw, 3)} + ` : ''}x.`,
+      `K = x(${nw ? `${fmt(nw, 3)} + ` : ''}x) ÷ [(${fmt(na, 3)} − x)(${fmt(nr, 3)} − x)] = ${fmt(K, 3)}. Solving the quadratic gives x = ${fmt(x, 4)} mol.`,
+      `Yield: ${fmt(x, 4)} ÷ ${fmt(lim, 3)} = ${fmt((100 * x) / lim, 1)} % of the most that could form. Left over: ${fmt(na - x, 4)} mol acid and ${fmt(nr - x, 4)} mol alcohol.`,
+      'More of one starting material, or removing water as it forms, pushes the equilibrium towards the ester (Le Chatelier\'s principle).',
+    ];
+    q('.es-eqout').replaceChildren(...lines.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+  }
+  ['.es-a', '.es-r'].forEach((c) => q(c).addEventListener('change', () => { joined = false; split = false; draw(); }));
+  ['.es-na', '.es-nr', '.es-nw', '.es-k'].forEach((c) => q(c).addEventListener('input', eq));
+  q('.es-join').addEventListener('click', () => { joined = !joined; split = false; draw(); });
+  q('.es-split').addEventListener('click', () => { split = true; draw(); });
+  root.querySelectorAll<HTMLButtonElement>('.es-lvl button').forEach((b) => b.addEventListener('click', () => { level = Number(b.dataset.l); root.querySelectorAll('.es-lvl button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); q('.es-eq').hidden = level !== 12; draw(); }));
+  draw();
+
+  mountQuiz(q('.cq'), (): Question[] => {
+    const a = pickOne(ACIDS), r = pickOne(ALCOHOLS), n = esterName(a, r);
+    const a2 = pickOne(ACIDS.filter((x) => !x.aromatic)), r2 = pickOne(ALCOHOLS), m2 = mass(esterFormula(a2, r2));
+    const k = pickOne([2, 3, 4]), y = equilibrium(1, k, 4);
+    return [
+      { q: `Name the ester made from ${a.name.split(' (')[0].toLowerCase()} and ${r.name.toLowerCase()}.`, hint: 'a name', answer: n, ok: same(n, n.replace(' ', '')), worked: `Alcohol part ${r.alkyl}, acid part ${a.stem}.` },
+      { q: `What is the molar mass of ${esterName(a2, r2)} in g/mol?`, hint: 'a number', answer: String(m2), ok: near(m2, 0.001), worked: `${formulaText(esterFormula(a2, r2))}: acid ${mass(acidFormula(a2))} + alcohol ${mass(alcoholFormula(r2))} − 18.` },
+      { q: 'With K = 4, how many moles of ester form at equilibrium from 1 mol of ethanoic acid and 1 mol of ethanol?', hint: 'mol, e.g. 0.5', answer: '0.667', ok: near(2 / 3, 0.01), worked: 'x² ÷ (1 − x)² = 4, so x ÷ (1 − x) = 2 and x = 2/3.' },
+      { q: `With K = 4, how many moles of ester form from 1 mol of acid and ${k} mol of alcohol?`, hint: 'mol', answer: fmt(y, 3), ok: near(y, 0.01), worked: `Solve x² = 4(1 − x)(${k} − x): x = ${fmt(y, 4)}.` },
+    ];
+  });
+</script>
