@@ -1,0 +1,163 @@
+---
+// #T868 Tile calculator
+---
+<div class="tool-ui tlc">
+  <div class="tlc-tabs" role="tablist" aria-label="What are you laying?">
+    <button type="button" role="tab" data-m="tiles" aria-selected="true">Tiles</button>
+    <button type="button" role="tab" data-m="planks" aria-selected="false">Planks (laminate, vinyl, wood)</button>
+  </div>
+  <section class="panel">
+    <label class="tlc-w">Units
+      <select data-k="units"><option value="m">Metric (m, cm, mm)</option><option value="ft">Imperial (ft, inches)</option></select>
+    </label>
+    <p class="tlc-h">Floor or wall area: add rectangles, or take away ones you will not cover (a bath, a kitchen unit).</p>
+    <div class="tlc-list"></div>
+    <button type="button" class="tlc-btn tlc-add">Add a rectangle</button>
+  </section>
+  <section class="panel tlc-grid">
+    <label class="tlc-t">Tile length <span data-u="tile"></span><input data-k="tl" inputmode="decimal" /></label>
+    <label class="tlc-t">Tile width <span data-u="tile"></span><input data-k="tw" inputmode="decimal" /></label>
+    <label>Layout
+      <select data-k="lay"><option value="10">Straight (10% waste)</option><option value="15">Diagonal (15% waste)</option><option value="15h">Herringbone (15% waste)</option></select>
+    </label>
+    <label>Waste and cuts (%)<input data-k="waste" inputmode="decimal" /></label>
+    <label class="tlc-t">Box sold by
+      <select data-k="boxBy"><option value="n">Tiles per box</option><option value="a">Area per box</option></select>
+    </label>
+    <label><span class="tlc-boxl">Tiles per box</span><input data-k="box" inputmode="decimal" /></label>
+    <label class="tlc-check tlc-t"><input type="checkbox" data-k="grout" checked /> Estimate grout</label>
+    <label class="tlc-g">Grout gap <span data-u="gap"></span><input data-k="gap" inputmode="decimal" /></label>
+    <label class="tlc-g">Tile thickness <span data-u="gap"></span><input data-k="thick" inputmode="decimal" /></label>
+    <label class="tlc-g">Grout per litre of joint (kg)<input data-k="dens" inputmode="decimal" /></label>
+  </section>
+  <section class="panel">
+    <p class="tlc-big" aria-live="polite"></p>
+    <p class="tlc-box" aria-live="polite"></p>
+    <ul class="tlc-lines"></ul>
+    <button type="button" class="tlc-btn tlc-reset">Reset to the example</button>
+  </section>
+  <p class="tlc-fine">Counts round up to whole tiles and whole boxes. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .tlc { display: grid; gap: 14px; margin-bottom: 32px; }
+  .tlc .panel { padding: 16px; display: grid; gap: 12px; }
+  .tlc-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tlc-tabs button, .tlc-btn { font: inherit; font-size: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; justify-self: start; }
+  .tlc-tabs button[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .tlc-btn:hover { border-color: var(--accent); }
+  .tlc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .tlc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .tlc-w { max-width: 320px; }
+  .tlc .tlc-check { display: flex; align-items: center; gap: 8px; color: var(--ink); }
+  .tlc input:not([type=checkbox]), .tlc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .tlc input:focus, .tlc select:focus { border-color: var(--accent); outline: none; }
+  .tlc-h { margin: 0; font-size: 14px; color: var(--muted); }
+  .tlc-row { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; align-items: end; margin-bottom: 8px; }
+  @media (max-width: 480px) { .tlc-row { grid-template-columns: 1fr 1fr; } }
+  .tlc-big { font-size: 26px; font-weight: 700; margin: 0; overflow-wrap: anywhere; }
+  .tlc-box { margin: 0; font-weight: 600; }
+  .tlc-lines { margin: 0; padding-left: 18px; color: var(--muted); font-size: 15px; display: grid; gap: 2px; }
+  .tlc-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  const root = document.querySelector('.tlc') as HTMLElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const k = (key: string) => root.querySelector(`[data-k="${key}"]`) as HTMLInputElement;
+  const list = $('.tlc-list');
+  const EX: Record<string, Record<string, string>> = {
+    m: { tl: '30', tw: '30', waste: '10', box: '10', gap: '3', thick: '8', dens: '1.6' },
+    ft: { tl: '12', tw: '12', waste: '10', box: '10', gap: '0.125', thick: '0.3125', dens: '1.6' },
+  };
+  const U: Record<string, Record<string, string>> = {
+    m: { len: '(m)', tile: '(cm)', gap: '(mm)', a: 'm²' },
+    ft: { len: '(ft)', tile: '(in)', gap: '(in)', a: 'sq ft' },
+  };
+  const num = (s: string) => (s.trim() === '' ? NaN : Number(s));
+  const f = (v: number, d: number) => v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const up = (v: number) => Math.ceil(v - 1e-9);
+  let mode = 'tiles';
+  const addRect = (l = '', w = '', sign = '+') => {
+    const row = document.createElement('div'); row.className = 'tlc-row';
+    const u = U[k('units').value].len;
+    row.innerHTML = `<label>Area<select class="tlc-s"><option value="+">Add</option><option value="-">Take away</option></select></label><label>Length ${u}<input class="tlc-l" inputmode="decimal" /></label><label>Width ${u}<input class="tlc-wd" inputmode="decimal" /></label><button type="button" class="tlc-btn" aria-label="Remove this rectangle">Remove</button>`;
+    (row.querySelector('.tlc-s') as HTMLSelectElement).value = sign;
+    (row.querySelector('.tlc-l') as HTMLInputElement).value = l; (row.querySelector('.tlc-wd') as HTMLInputElement).value = w;
+    row.querySelectorAll('input, select').forEach((i) => i.addEventListener('input', calc));
+    (row.querySelector('button') as HTMLElement).addEventListener('click', () => { row.remove(); calc(); });
+    list.append(row);
+  };
+  const big = $('.tlc-big'), boxEl = $('.tlc-box'), lines = $('.tlc-lines');
+  function calc() {
+    const u = k('units').value, un = U[u], tiles = mode === 'tiles';
+    if (!tiles) k('boxBy').value = 'a';
+    const byArea = k('boxBy').value === 'a';
+    root.querySelectorAll('.tlc-t').forEach((e) => { (e as HTMLElement).hidden = !tiles; });
+    root.querySelectorAll('.tlc-g').forEach((e) => { (e as HTMLElement).hidden = !tiles || !k('grout').checked; });
+    $('.tlc-boxl').textContent = byArea ? `${un.a} per box` : 'Tiles per box';
+    root.querySelectorAll('[data-u]').forEach((s) => { s.textContent = un[(s as HTMLElement).dataset.u!]; });
+    let A = 0;
+    list.querySelectorAll('.tlc-row').forEach((r) => {
+      const a = num((r.querySelector('.tlc-l') as HTMLInputElement).value) * num((r.querySelector('.tlc-wd') as HTMLInputElement).value);
+      A += (r.querySelector('.tlc-s') as HTMLSelectElement).value === '-' ? -a : a;
+    });
+    const w = num(k('waste').value), box = num(k('box').value);
+    const tl = num(k('tl').value), tw = num(k('tw').value);
+    const tileA = u === 'm' ? (tl * tw) / 10000 : (tl * tw) / 144;
+    const bad = !Number.isFinite(A) || A < 0 || !(w >= 0) || (tiles && !(tileA > 0));
+    if (bad) { big.textContent = ''; boxEl.textContent = 'Type the sizes above (numbers only, and the area cannot be below zero).'; lines.innerHTML = ''; return; }
+    const li: string[] = [];
+    const withW = A * (1 + w / 100);
+    if (tiles) {
+      const exact = A / tileA, n = up(exact * (1 + w / 100));
+      big.textContent = `${n.toLocaleString('en-US')} tiles`;
+      li.push(`Area ${f(A, 2)} ${un.a} ÷ one tile ${f(tileA, 4)} ${un.a} = ${f(exact, 1)} tiles.`);
+      li.push(`Plus ${f(w, 0)}% for cuts and breakages: ${f(exact * (1 + w / 100), 1)}, rounded up to ${n}.`);
+      if (box > 0) {
+        const b = byArea ? up((n * tileA) / box) : up(n / box);
+        boxEl.textContent = `${b} box${b === 1 ? '' : 'es'}${byArea ? '' : ` (${b * box} tiles)`}.`;
+      } else boxEl.textContent = '';
+      if (k('grout').checked) {
+        const gap = num(k('gap').value), th = num(k('thick').value), dens = num(k('dens').value);
+        if (gap >= 0 && th >= 0 && dens > 0) {
+          const toM = u === 'm' ? 0.001 : 0.0254;
+          const Lm = u === 'm' ? tl / 100 : tl * 0.0254, Wm = u === 'm' ? tw / 100 : tw * 0.0254;
+          const Am = u === 'm' ? A : A * 0.09290304;
+          const litres = ((Lm + Wm) / (Lm * Wm)) * gap * toM * th * toM * Am * 1000;
+          const kg = litres * dens;
+          li.push(`Grout: about ${f(kg, 1)} kg${u === 'ft' ? ` (${f(kg * 2.20462, 1)} lb)` : ''} for ${f(litres, 2)} L of joints. Buy the next bag size up.`);
+        }
+      }
+    } else {
+      big.textContent = box > 0 ? `${up(withW / box)} boxes` : `${f(withW, 2)} ${un.a}`;
+      boxEl.textContent = `Cover ${f(withW, 2)} ${un.a} including waste.`;
+      li.push(`Area ${f(A, 2)} ${un.a} plus ${f(w, 0)}% = ${f(withW, 2)} ${un.a}.`);
+      if (box > 0) li.push(`${f(withW, 2)} ÷ ${f(box, 2)} ${un.a} per box = ${f(withW / box, 2)}, rounded up.`);
+    }
+    lines.innerHTML = ''; for (const s of li) { const e = document.createElement('li'); e.textContent = s; lines.append(e); }
+  }
+  const load = (u: string) => {
+    for (const [key, v] of Object.entries(EX[u])) k(key).value = v;
+    if (mode === 'planks') k('box').value = u === 'm' ? '2.2' : '24';
+    k('lay').value = '10';
+    list.innerHTML = '';
+    if (u === 'm') addRect('3', '4'); else addRect('10', '12');
+    calc();
+  };
+  const show = (m: string) => {
+    mode = m;
+    root.querySelectorAll('.tlc-tabs button').forEach((b) => b.setAttribute('aria-selected', String((b as HTMLElement).dataset.m === m)));
+    k('boxBy').value = m === 'tiles' ? 'n' : 'a';
+    k('box').value = m === 'tiles' ? EX[k('units').value].box : k('units').value === 'm' ? '2.2' : '24';
+    calc();
+  };
+  root.querySelectorAll('.tlc-tabs button').forEach((b) => b.addEventListener('click', () => show((b as HTMLElement).dataset.m!)));
+  k('units').addEventListener('change', () => load(k('units').value));
+  k('lay').addEventListener('change', () => { k('waste').value = k('lay').value.replace('h', ''); calc(); });
+  for (const key of ['tl', 'tw', 'waste', 'box', 'gap', 'thick', 'dens']) k(key).addEventListener('input', calc);
+  k('boxBy').addEventListener('change', calc); k('grout').addEventListener('change', calc);
+  $('.tlc-add').addEventListener('click', () => { addRect(); calc(); });
+  $('.tlc-reset').addEventListener('click', () => { k('units').value = 'm'; k('grout').checked = true; mode = 'tiles'; load('m'); show('tiles'); });
+  load('m');
+</script>
