@@ -1,0 +1,184 @@
+---
+// Map scale and recipe scaler: drag two pins on a made-up town map drawn on a 1 cm grid; the map scale turns the
+// centimetres between them into real distance. Works backwards from a real distance, and scales a recipe to any
+// number of people. Fresh practice questions. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm ms">
+  <div class="ax-card">
+    <h2>Measure on the map</h2>
+    <div class="ax-seg ms-sc" role="group" aria-label="Map scale">
+      <button type="button" data-n="10000" aria-pressed="false">1 : 10 000</button>
+      <button type="button" data-n="25000" aria-pressed="false">1 : 25 000</button>
+      <button type="button" data-n="50000" aria-pressed="true">1 : 50 000</button>
+      <button type="button" data-n="100000" aria-pressed="false">1 : 100 000</button>
+    </div>
+    <p class="ax-help">1 : 50 000 means 1 cm on the map stands for 50 000 cm (500 m) on the ground. Each grid square on this map is 1 cm.</p>
+    <div class="ax-grid">
+      <label>From <select class="ms-from"></select></label>
+      <label>To <select class="ms-to"></select></label>
+    </div>
+    <svg class="sm-fig ms-fig" viewBox="0 0 340 306" role="img" aria-label="A made-up town map on a 1 cm grid with two pins you can drag"></svg>
+    <p class="ax-help">Drag the pins A and B anywhere on the map. (This town is made up.)</p>
+    <p class="ax-big ms-big" aria-live="polite"></p>
+    <ol class="sm-steps ms-steps"></ol>
+  </div>
+
+  <div class="ax-card">
+    <h2>From real distance to the map</h2>
+    <label>Real distance (km) <input type="number" class="ms-km" min="0.001" max="100000" step="any" value="3" inputmode="decimal" /></label>
+    <p class="ax-err ms-err" hidden></p>
+    <p class="sm-f ms-back"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Recipe scaler</h2>
+    <p class="ax-help">A recipe is a ratio too. This lemon rice serves 4; change the number of people.</p>
+    <div class="sm-sl"><b>N</b><input type="range" class="ms-pr" min="1" max="24" step="1" value="6" aria-label="People" /><input type="number" class="ms-p" min="1" max="500" step="1" value="6" inputmode="numeric" aria-label="People" /></div>
+    <p class="sm-f ms-factor"></p>
+    <div class="ax-scroll"><table class="ms-tab"></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Measure Home to School at 1 : 50 000, then switch to 1 : 100 000. The pins did not move, so why did the distance double?</li>
+      <li>Which scale shows more detail of a small area: 1 : 10 000 or 1 : 100 000?</li>
+      <li>How far apart would two towns 12 km apart be on a 1 : 100 000 map? Check with the second box.</li>
+      <li>Cook for 10 people. Why does every amount get multiplied by the same number?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="ms-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .ms .ax-seg button { flex: 1 1 45%; }
+  .ms select { min-height: 40px; width: 100%; }
+  .ms svg .ms-grid { stroke: var(--line); stroke-width: 1; }
+  .ms svg .ms-river { fill: none; stroke: var(--accent); stroke-width: 7; stroke-opacity: 0.35; stroke-linecap: round; }
+  .ms svg .ms-lake { fill: var(--accent); fill-opacity: 0.25; stroke: var(--accent); }
+  .ms svg .ms-road { fill: none; stroke: var(--muted); stroke-width: 3; stroke-linecap: round; }
+  .ms svg .ms-place { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+  .ms svg text.ms-pl { font-size: 11px; font-weight: 600; }
+  .ms svg .ms-meas { stroke: var(--bad); stroke-width: 2.5; stroke-dasharray: 6 4; }
+  .ms svg .ms-bar { fill: var(--ink); }
+  .ms table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .ms th, .ms td { border: 1px solid var(--line); padding: 4px 8px; text-align: right; }
+  .ms th:first-child, .ms td:first-child { text-align: left; }
+</style>
+
+<script>
+  import { realKm, mapCm, scaleN, niceDistance, scaleAmount } from '../../lib/sci/map-scale';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, quiz, dragOn, pair, val, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.ms')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const CM = 34; // SVG units per map centimetre
+  const PLACES: [string, number, number][] = [['Home', 51, 255], ['School', 255, 68], ['Park', 119, 85], ['Market', 187, 187], ['Station', 289, 255], ['Temple', 34, 51], ['Hospital', 272, 153]];
+  let n = 50000;
+  let pins: Record<'A' | 'B', [number, number]> = { A: [51, 255], B: [255, 68] };
+  const sp = (x: number) => x.toLocaleString('en').replace(/,/g, ' ');
+  const FROM = q<HTMLSelectElement>('.ms-from'), TO = q<HTMLSelectElement>('.ms-to');
+  for (const sel of [FROM, TO]) {
+    const o = document.createElement('option'); o.value = ''; o.textContent = '(where the pin is)'; sel.append(o);
+    for (const [name] of PLACES) { const e = document.createElement('option'); e.value = name; e.textContent = name; sel.append(e); }
+  }
+  FROM.value = 'Home'; TO.value = 'School';
+
+  function cmBetween() { const [a, b] = [pins.A, pins.B]; return Math.round((Math.hypot(a[0] - b[0], a[1] - b[1]) / CM) * 10) / 10; }
+
+  function drawMap() {
+    const svg = q<SVGSVGElement>('.ms-fig'); svg.replaceChildren();
+    for (let x = 0; x <= 340; x += CM) S('line', { x1: x, y1: 0, x2: x, y2: 306, class: 'ms-grid' }, svg);
+    for (let y = 0; y <= 306; y += CM) S('line', { x1: 0, y1: y, x2: 340, y2: y, class: 'ms-grid' }, svg);
+    S('path', { d: 'M0,130 C60,110 90,160 150,140 S250,90 340,120', class: 'ms-river' }, svg);
+    S('ellipse', { cx: 70, cy: 185, rx: 30, ry: 18, class: 'ms-lake' }, svg);
+    S('path', { d: 'M51,255 L187,187 L255,68 M187,187 L289,255 M119,85 L255,68 M187,187 L272,153 M34,51 L119,85', class: 'ms-road' }, svg);
+    for (const [name, x, y] of PLACES) {
+      S('rect', { x: x - 5, y: y - 5, width: 10, height: 10, class: 'ms-place' }, svg);
+      S('text', { x: Math.min(330, Math.max(10, x)), y: y + 18, 'text-anchor': 'middle', class: 'ms-pl' }, svg, name);
+    }
+    // Scale bar: the biggest round distance that is at most 4 cm long on the map.
+    const opts = [0.05, 0.1, 0.2, 0.25, 0.5, 1, 2, 5], len = opts.filter((k) => mapCm(k, n) <= 4).pop() ?? 0.05, w = mapCm(len, n) * CM;
+    S('rect', { x: 330 - w, y: 286, width: w, height: 5, class: 'ms-bar' }, svg);
+    S('text', { x: 330 - w / 2, y: 282, 'text-anchor': 'middle', class: 'sm-tick ms-bart' }, svg, niceDistance(len));
+    const [a, b] = [pins.A, pins.B];
+    S('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], class: 'ms-meas' }, svg);
+    for (const k of ['A', 'B'] as const) {
+      const [x, y] = pins[k];
+      S('circle', { cx: x, cy: y, r: 12, class: 'sm-handle ms-pin' }, svg);
+      S('text', { x, y: y + 4, 'text-anchor': 'middle', style: 'fill:var(--accent-ink);font-weight:700' }, svg, k);
+    }
+    const cm = cmBetween(), km = realKm(cm, n), real = cm * n;
+    q('.ms-big').textContent = `${fmt(cm, 1)} cm on the map = ${niceDistance(km)}`;
+    const st = q('.ms-steps'); st.replaceChildren();
+    for (const s of [
+      `The pins are ${fmt(cm, 1)} cm apart on the map (count the 1 cm squares).`,
+      `Scale 1 : ${sp(n)}: real distance = ${fmt(cm, 1)} × ${sp(n)} = ${sp(Number(real.toFixed(1)))} cm.`,
+      `100 cm = 1 m and 1000 m = 1 km, so 100 000 cm = 1 km: ${sp(Number(real.toFixed(1)))} ÷ 100 000 = ${fmt(km, 3)} km${km < 1 ? ` = ${niceDistance(km)}` : ''}.`,
+      'This is the straight-line distance ("as the crow flies"); along the roads it is longer.',
+    ]) { const li = document.createElement('li'); li.textContent = s; st.append(li); }
+    back();
+  }
+
+  function back() {
+    const km = Number(q<HTMLInputElement>('.ms-km').value), err = q('.ms-err');
+    if (!(km > 0) || km > 100000) { err.textContent = 'Type a distance above 0 km.'; err.hidden = false; q('.ms-back').textContent = ''; return; }
+    err.hidden = true;
+    q('.ms-back').textContent = `${fmt(km, 3)} km = ${sp(Number((km * 100000).toFixed(1)))} cm. At 1 : ${sp(n)} that is ${sp(Number((km * 100000).toFixed(1)))} ÷ ${sp(n)} = ${fmt(mapCm(km, n), 2)} cm on the map.`;
+  }
+
+  dragOn(q<SVGSVGElement>('.ms-fig'), (x, y) => {
+    const d = (k: 'A' | 'B') => Math.hypot(pins[k][0] - x, pins[k][1] - y);
+    const k = d('A') <= d('B') ? 'A' : 'B';
+    return d(k) < 40 ? k : null;
+  }, (id, x, y) => {
+    pins[id as 'A' | 'B'] = [Math.max(0, Math.min(340, x)), Math.max(0, Math.min(306, y))];
+    (id === 'A' ? FROM : TO).value = '';
+    drawMap();
+  });
+  const toPlace = (sel: HTMLSelectElement, k: 'A' | 'B') => { const p = PLACES.find((e) => e[0] === sel.value); if (p) { pins[k] = [p[1], p[2]]; drawMap(); } };
+  FROM.addEventListener('change', () => toPlace(FROM, 'A'));
+  TO.addEventListener('change', () => toPlace(TO, 'B'));
+  root.querySelectorAll<HTMLButtonElement>('.ms-sc button').forEach((b) => b.addEventListener('click', () => {
+    n = Number(b.dataset.n); root.querySelectorAll('.ms-sc button').forEach((e) => e.setAttribute('aria-pressed', String(e === b))); drawMap();
+  }));
+  q('.ms-km').addEventListener('input', back);
+
+  // Recipe.
+  const RECIPE: [string, number, string][] = [['Cooked rice', 4, 'cups'], ['Lemon juice', 6, 'tbsp'], ['Peanuts', 60, 'g'], ['Oil', 2, 'tbsp'], ['Salt', 1, 'tsp'], ['Curry leaves', 12, 'leaves']];
+  const PR = q<HTMLInputElement>('.ms-pr'), P = q<HTMLInputElement>('.ms-p');
+  pair(PR, P, recipe);
+  function recipe() {
+    const N = Math.round(val(P, 6, 1, 500)), f = N / 4;
+    q('.ms-factor').textContent = `Scale factor = new ÷ old = ${N} ÷ 4 = ${fmt(f, 3)}. Every amount is multiplied by ${fmt(f, 3)}, so the taste (the ratio) stays the same.`;
+    const t = q<HTMLTableElement>('.ms-tab'); t.replaceChildren();
+    const h = t.insertRow(); for (const s of ['Ingredient', 'For 4', `For ${N}`]) { const e = document.createElement('th'); e.textContent = s; h.append(e); }
+    for (const [name, amt, unit] of RECIPE) { const r = t.insertRow(); r.insertCell().textContent = name; r.insertCell().textContent = `${amt} ${unit}`; r.insertCell().textContent = `${fmt(scaleAmount(amt, 4, N), 2)} ${unit}`; }
+  }
+  drawMap(); recipe();
+
+  quiz(q('.ms-quiz'), () => {
+    const out: Question[] = [];
+    const n1 = [10000, 20000, 25000, 50000, 100000][randInt(0, 4)], c1 = randInt(2, 15) / 2;
+    out.push({ q: `On a map of scale 1 : ${sp(n1)}, two villages are ${fmt(c1, 1)} cm apart. How far apart are they in km?`, want: [realKm(c1, n1)],
+      work: `${fmt(c1, 1)} × ${sp(n1)} = ${sp(c1 * n1)} cm, and ÷ 100 000 gives ${fmt(realKm(c1, n1), 3)} km.` });
+    const n2 = [50000, 100000, 200000, 250000][randInt(0, 3)], k2 = (n2 / 100000) * randInt(2, 12);
+    out.push({ q: `Two towns are ${fmt(k2, 2)} km apart. How many cm apart are they on a 1 : ${sp(n2)} map?`, want: [mapCm(k2, n2)],
+      work: `${fmt(k2, 2)} km = ${sp(k2 * 100000)} cm, and ÷ ${sp(n2)} gives ${fmt(mapCm(k2, n2), 2)} cm.` });
+    const c3 = randInt(2, 8), n3 = [10000, 25000, 50000, 100000][randInt(0, 3)], k3 = realKm(c3, n3);
+    out.push({ q: `On a map, ${c3} cm stands for ${fmt(k3, 3)} km. The scale is 1 : n. What is n?`, want: [scaleN(c3, k3)],
+      work: `${fmt(k3, 3)} km = ${sp(k3 * 100000)} cm, and ${sp(k3 * 100000)} ÷ ${c3} = ${sp(scaleN(c3, k3))}, so the scale is 1 : ${sp(scaleN(c3, k3))}.` });
+    const a4 = randInt(2, 6) * 50, s4 = [2, 4, 5][randInt(0, 2)], t4 = [3, 6, 8, 10, 12].filter((x) => x !== s4)[randInt(0, 3)];
+    out.push({ q: `A cake for ${s4} people needs ${a4} g of flour. How many grams for ${t4} people?`, want: [scaleAmount(a4, s4, t4)],
+      work: `${a4} ÷ ${s4} = ${fmt(a4 / s4, 2)} g for one person, × ${t4} = ${fmt(scaleAmount(a4, s4, t4), 2)} g.` });
+    return out;
+  });
+</script>

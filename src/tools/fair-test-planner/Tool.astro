@@ -1,0 +1,186 @@
+---
+// Fair test planner (Learn): pick a question, decide what to change, what to keep the same and what to measure;
+// the page warns when two things change at once, then gives a results table with averages.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+import { INVESTIGATIONS } from '../../lib/sci/learnj-fairtest';
+---
+<div class="ax lrn ftp">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="8" aria-pressed="true">Class 8</button><button type="button" data-level="9" aria-pressed="false">Class 9 and up</button></div>
+    <label style="display:grid;gap:4px;margin-top:10px">The question to test
+      <select class="ft-q">{INVESTIGATIONS.map((v, i) => <option value={String(i)}>{v.question}</option>)}</select>
+    </label>
+    <h2 style="margin-top:14px">1. Change one thing, keep the rest the same</h2>
+    <p class="ax-help">Tap <b>Change</b> for the one thing that is different between Test A and Test B. Everything else should be <b>Same</b>.</p>
+    <div class="ft-factors"></div>
+    <h2 style="margin-top:14px">2. Measure</h2>
+    <label style="display:grid;gap:4px">What will you measure in both tests?<select class="ft-m"></select></label>
+    <label class="lrn-sl" style="margin-top:10px">Repeats of each test <b class="ft-rv"></b><input type="range" class="ft-r" min="1" max="5" step="1" value="3" aria-label="Number of repeats" /></label>
+  </div>
+
+  <div class="ax-card">
+    <h2>Your two tests side by side</h2>
+    <canvas class="lrn-cv ft-cv" aria-label="Test A and Test B side by side; anything that differs between them is marked"></canvas>
+    <p class="ax-big ft-big" style="margin:10px 0 0"></p>
+    <ul class="ft-list"></ul>
+    <p class="lrn-eq ft-words" data-only="9" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>3. Record your results</h2>
+    <p class="ax-help">Type what you measured in each repeat (your own numbers, or try made-up ones). The average and the spread update as you type. Nothing is saved.</p>
+    <div class="ax-scroll"><table class="ft-tab"></table></div>
+    <p class="lrn-eq ft-res"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Set two things to Change at once and read the warning: if the results differ, which one caused it?</li>
+      <li>Pick "Colour of the water" as the measure. Does it answer the question?</li>
+      <li>Type three times for each test where one repeat is far off. See how the average and the spread show it.</li>
+      <li>Switch to Class 9 and up to see the names scientists use: independent, dependent and control variables.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card ft-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .ftp .ft-factors { display: grid; gap: 8px; margin-top: 8px; }
+  .ftp .ft-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; padding: 8px 0; border-top: 1px solid var(--line); }
+  .ftp .ft-row span { font-size: 15px; min-width: 0; flex: 1 1 140px; }
+  .ftp .ft-row small { display: block; color: var(--muted); font-size: 13px; }
+  .ftp .ft-row .ax-seg button { min-height: 44px; min-width: 76px; }
+  .ftp .ft-list { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 4px; font-size: 15px; }
+  .ftp .ft-list .bad { color: var(--bad); }
+  .ftp .ft-list .ok { color: var(--good); }
+  .ftp .ft-tab input { width: 5.5em; min-height: 40px; font-size: 16px; }
+  .ftp select { min-height: 44px; font-size: 16px; max-width: 100%; }
+</style>
+
+<script>
+  import { INVESTIGATIONS, assess, mean, range, type Role } from '../../lib/sci/learnj-fairtest';
+  import { mountQuiz, pick, one, r, fitCanvas, wireLevel } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.ftp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let inv = INVESTIGATIONS[0], roles: Record<string, Role> = {}, level = '8';
+  const vals: Record<string, string> = {};
+
+  function loadInv() {
+    inv = INVESTIGATIONS[+q<HTMLSelectElement>('.ft-q').value];
+    roles = Object.fromEntries(inv.factors.map((f) => [f.id, 'same' as Role]));
+    const box = q('.ft-factors'); box.replaceChildren();
+    for (const f of inv.factors) {
+      const row = document.createElement('div'); row.className = 'ft-row'; row.dataset.f = f.id;
+      const s = document.createElement('span'); s.textContent = f.name; const sm = document.createElement('small'); s.append(sm); row.append(s);
+      const seg = document.createElement('div'); seg.className = 'ax-seg'; seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', f.name);
+      for (const [role, label] of [['change', 'Change'], ['same', 'Same']] as const) {
+        const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.dataset.role = role;
+        b.addEventListener('click', () => { roles[f.id] = role; render(); }); seg.append(b);
+      }
+      row.append(seg); box.append(row);
+    }
+    const m = q<HTMLSelectElement>('.ft-m'); m.replaceChildren();
+    // Show the measures in a fixed but mixed order so the right one is not always first.
+    const order = [1, 0, 2].filter((i) => i < inv.measures.length);
+    for (const i of order) { const o = document.createElement('option'); o.value = String(i); o.textContent = inv.measures[i]; m.append(o); }
+    m.value = '1';
+    for (const k of Object.keys(vals)) delete vals[k];
+    render();
+  }
+
+  function render() {
+    const pal = pagePalette(), reps = +q<HTMLInputElement>('.ft-r').value, measure = +q<HTMLSelectElement>('.ft-m').value;
+    q('.ft-rv').textContent = String(reps);
+    root.querySelectorAll<HTMLElement>('.ft-row').forEach((row) => {
+      const f = inv.factors.find((x) => x.id === row.dataset.f)!, role = roles[f.id];
+      row.querySelectorAll<HTMLButtonElement>('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.role === role)));
+      row.querySelector('small')!.textContent = role === 'change' ? `A: ${f.a} · B: ${f.b}` : `Both: ${f.a}`;
+    });
+    const v = assess({ inv, roles, measure, repeats: reps });
+    // Picture: two test cards, one line per factor; lines that differ are marked.
+    { const n = inv.factors.length, { ctx: c, W } = fitCanvas(q<HTMLCanvasElement>('.ft-cv'), 64 + n * 34), gap = 10, cw = (W - gap) / 2;
+      c.fillStyle = pal.bg; c.fillRect(0, 0, W, 64 + n * 34);
+      const bad = pal.red ? pal.ink : pal.bad, good = pal.red ? pal.ink : pal.good;
+      ['A', 'B'].forEach((t, k) => {
+        const x0 = k * (cw + gap);
+        c.strokeStyle = pal.line; c.lineWidth = 1; c.strokeRect(x0 + 0.5, 0.5, cw - 1, 63 + n * 34 - 1);
+        c.fillStyle = pal.ink; c.font = 'bold 14px system-ui, sans-serif'; c.textAlign = 'left'; c.fillText(`Test ${t}`, x0 + 8, 20);
+        c.font = '12px system-ui, sans-serif'; c.fillStyle = pal.muted; c.fillText('measure: ' + inv.measures[measure].replace(/ \(.*\)$/, ''), x0 + 8, 38, cw - 16);
+        inv.factors.forEach((f, i) => {
+          const y = 52 + i * 34, diff = roles[f.id] === 'change', ok = diff && f.id === inv.change && v.changed.length === 1;
+          if (diff) { c.fillStyle = ok ? good : bad; c.globalAlpha = pal.red ? 0.25 : 0.12; c.fillRect(x0 + 4, y, cw - 8, 30); c.globalAlpha = 1; c.fillRect(x0 + 4, y, 4, 30); }
+          c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.fillText(f.name, x0 + 12, y + 12, cw - 20);
+          c.fillStyle = diff ? (ok ? good : bad) : pal.ink; c.font = (diff ? 'bold ' : '') + '13px system-ui, sans-serif';
+          c.fillText(k === 1 && diff ? f.b : f.a, x0 + 12, y + 26, cw - 20);
+        });
+      });
+    }
+    q('.ft-big').textContent = v.fair ? 'A fair test.' : v.changed.length > 1 ? `Not fair yet: ${v.changed.length} things change at once.` : 'Not a fair test yet.';
+    q('.ft-big').style.color = v.fair ? 'var(--good)' : 'var(--bad)';
+    const list = q('.ft-list'); list.replaceChildren();
+    for (const t of v.problems) { const li = document.createElement('li'); li.className = 'bad'; li.textContent = t; list.append(li); }
+    for (const t of v.good) { const li = document.createElement('li'); li.className = 'ok'; li.textContent = t; list.append(li); }
+    const ch = inv.factors.filter((f) => roles[f.id] === 'change'), same = inv.factors.filter((f) => roles[f.id] !== 'change');
+    q('.ft-words').textContent = `Independent variable (what you change): ${ch.length ? ch.map((f) => f.name.toLowerCase()).join(', ') : 'none chosen'}.  Dependent variable (what you measure): ${inv.measures[measure].toLowerCase()}.  Control variables (kept the same): ${same.map((f) => f.name.toLowerCase()).join(', ') || 'none'}.  Hypothesis: a sentence you can test, such as "${hypo()}".`;
+    q('.ft-words').hidden = level !== '9';
+    table(reps, measure);
+  }
+  function hypo() {
+    const f = inv.factors.find((x) => x.id === inv.change)!;
+    return `${f.b} will give a different ${inv.measures[0].replace(/ \(.*\)$/, '').toLowerCase()} from ${f.a.toLowerCase()}`;
+  }
+
+  function table(reps: number, measure: number) {
+    const tab = q<HTMLTableElement>('.ft-tab'), f = inv.factors.find((x) => x.id === inv.change)!;
+    tab.replaceChildren();
+    const unit = (inv.measures[measure].match(/\(([^)]+)\)/) ?? [, ''])[1];
+    const hr = tab.createTHead().insertRow(); ['Repeat', `Test A (${f.a})`, `Test B (${f.b})`].forEach((h) => { const c = document.createElement('th'); c.textContent = h; hr.append(c); });
+    const body = tab.createTBody();
+    for (let i = 0; i < reps; i++) {
+      const tr = body.insertRow(); tr.insertCell().textContent = String(i + 1);
+      for (const t of ['A', 'B']) {
+        const inp = document.createElement('input'); inp.inputMode = 'decimal'; inp.className = `ft-in ft-${t}${i}`; inp.setAttribute('aria-label', `Test ${t}, repeat ${i + 1}`);
+        inp.value = vals[`${t}${i}`] ?? ''; inp.addEventListener('input', () => { vals[`${t}${i}`] = inp.value; results(reps, unit); });
+        tr.insertCell().append(inp);
+      }
+    }
+    results(reps, unit);
+  }
+  function results(reps: number, unit: string) {
+    const get = (t: string) => Array.from({ length: reps }, (_, i) => { const s = (vals[`${t}${i}`] ?? '').trim().replace(',', '.'); return s === '' ? NaN : Number(s); });
+    const A = get('A'), B = get('B'), ma = mean(A), mb = mean(B), u = unit ? ' ' + unit : '';
+    if (!Number.isFinite(ma) || !Number.isFinite(mb)) { q('.ft-res').textContent = 'Type at least one result for each test to see the averages.'; return; }
+    const ra = range(A), rb = range(B), d = mb - ma;
+    q('.ft-res').textContent = `Average A = ${r(ma, 4)}${u} (spread ${r(ra, 3)}), average B = ${r(mb, 4)}${u} (spread ${r(rb, 3)}). B − A = ${r(d, 3)}${u}.` +
+      (Math.abs(d) <= Math.max(ra, rb) ? ' The difference is no bigger than the spread between repeats, so it may just be chance: repeat more before deciding.' : ' The difference is bigger than the spread between repeats, so it is more likely to be real.');
+  }
+
+  q('.ft-q').addEventListener('change', loadInv);
+  q('.ft-m').addEventListener('change', render);
+  q('.ft-r').addEventListener('input', render);
+  addEventListener('resize', render);
+  wireLevel(root, (l) => { level = l; if (inv) render(); });
+  loadInv();
+
+  const shuffle = <T,>(xs: T[]) => { const a = [...xs]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  mountQuiz(q('.ft-quiz'), () => {
+    const I = one(INVESTIGATIONS), right = I.factors.find((f) => f.id === I.change)!, others = shuffle(I.factors.filter((f) => f !== right)).slice(0, 2);
+    const c1 = shuffle([right, ...others]), ms = shuffle(I.measures.map((m, i) => ({ m, i })));
+    const I2 = one(INVESTIGATIONS.filter((x) => x !== I)), o2 = I2.factors.filter((f) => f.id !== I2.change)[0], ch2 = I2.factors.find((f) => f.id === I2.change)!;
+    const xs = [pick(20, 40), pick(20, 40), pick(20, 40)], avg = (xs[0] + xs[1] + xs[2]) / 3;
+    return [
+      { q: `To test "${I.question}", which one thing should you change between the two tests?`, ans: c1.indexOf(right), choices: c1.map((f) => f.name), work: `The question is about ${right.name.toLowerCase()}, so that is the only thing to change. Keep everything else the same.` },
+      { q: `For "${I.question}", what should you measure?`, ans: ms.findIndex((x) => x.i === 0), choices: ms.map((x) => x.m), work: I.why },
+      { q: `To test "${I2.question}", a student changes ${ch2.name.toLowerCase()} and also ${o2.name.toLowerCase()}. Is it a fair test?`, ans: 1, choices: ['Yes, more changes give more information', 'No, two things change, so you cannot tell which one caused the result', 'Yes, if they measure carefully'], work: `Only one thing may change. If ${ch2.name.toLowerCase()} and ${o2.name.toLowerCase()} both change, a different result could come from either.` },
+      { q: `Three repeats of a test gave ${xs.join(', ')} seconds. What is the average?`, ans: avg, unit: 'seconds', tol: 0.01, work: `Add them and divide by 3: (${xs.join(' + ')}) ÷ 3 = ${xs[0] + xs[1] + xs[2]} ÷ 3 = ${r(avg, 4)} seconds.` },
+      { q: 'Why do scientists repeat a test and take the average?', ans: 2, choices: ['To make the test take longer', 'To change more things each time', 'So one odd result matters less and the answer is more reliable'], work: 'Every measurement has small errors. Repeating and averaging makes one bad reading matter less, and the spread shows how much the results vary.' },
+    ];
+  });
+</script>

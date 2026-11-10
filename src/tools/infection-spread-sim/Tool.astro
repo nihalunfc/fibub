@@ -1,0 +1,139 @@
+---
+// How an infection spreads (Learn): a town of 400 dots; ill people meet others and pass the illness on; vaccinated
+// people are already immune. Shows R0, the herd immunity threshold and the S, I, R curves. A teaching model only.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn isp">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="8" aria-pressed="true">Class 8</button><button type="button" data-level="9" aria-pressed="false">Class 9 and up</button></div>
+    <canvas class="lrn-cv is-cv" style="margin-top:10px" aria-label="A town of dots: grey can catch it, red are ill, green have recovered, blue rings are vaccinated"></canvas>
+    <p class="ax-help is-key"></p>
+    <div class="ax-row" style="margin-top:6px">
+      <button type="button" class="btn small is-play">Play</button>
+      <button type="button" class="btn secondary small is-day">One day</button>
+      <button type="button" class="btn secondary small is-end">Run to the end</button>
+      <button type="button" class="btn secondary small is-reset">New town</button>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">People met each day by an ill person <b class="is-cv-v"></b><input type="range" class="is-c" min="1" max="10" step="1" value="4" aria-label="People met per day" /></label>
+      <label class="lrn-sl">Chance of passing it on at each meeting <b class="is-p-v"></b><input type="range" class="is-p" min="0.05" max="0.5" step="0.05" value="0.15" aria-label="Chance of passing it on" /></label>
+      <label class="lrn-sl">Days a person is ill <b class="is-d-v"></b><input type="range" class="is-d" min="2" max="10" step="1" value="5" aria-label="Days ill" /></label>
+      <label class="lrn-sl">Share vaccinated <b class="is-v-v"></b><input type="range" class="is-v" min="0" max="95" step="5" value="0" aria-label="Percent vaccinated" /></label>
+    </div>
+    <p class="ax-big is-big" style="margin:10px 0 0"></p>
+    <p class="lrn-eq is-eq"></p>
+    <dl class="ax-facts is-facts" style="margin-top:10px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Day by day</h2>
+    <canvas class="lrn-cv is-gr" aria-label="Graph of how many people can catch it, are ill and have recovered on each day"></canvas>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Press Run to the end a few times with the same settings. Each town turns out a little differently; sometimes it dies out at the start.</li>
+      <li>Lower the people met each day (like staying home when ill) until R0 drops below 1. The outbreak fizzles out.</li>
+      <li>Raise the share vaccinated past the herd immunity threshold. Most people who are not vaccinated are protected too.</li>
+      <li>Make people ill for longer: each ill person has more days to pass it on, so R0 goes up.</li>
+    </ul>
+    <p class="ax-help">A teaching model of a made-up illness in a made-up town, where everyone mixes at random. Real illnesses and towns are more complicated, so this is for learning the ideas only, not for any health decision.</p>
+  </div>
+
+  <div class="ax-card is-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .isp .is-cv { aspect-ratio: 1; max-width: 460px; margin-left: auto; margin-right: auto; }
+</style>
+
+<script>
+  import { r0, herdThreshold, rEff, finalSize, makeTown, step, count, type Day, type Town } from '../../lib/sci/learnj-infect';
+  import { rng } from '../../lib/sci/learnj-micro';
+  import { mountQuiz, pick, one, r, fitCanvas, wireLevel } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.isp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const N = 400;
+  let level = '8', seed = 1, rand = rng(1), town = makeTown(cfg(), rand), hist: Day[] = [count(town.state)], timer = 0;
+  let pos: { x: number; y: number; vx: number; vy: number }[] = [];
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  function cfg(): Town { return { n: N, contacts: +(document.querySelector('.is-c') as HTMLInputElement).value, chance: +(document.querySelector('.is-p') as HTMLInputElement).value, days: +(document.querySelector('.is-d') as HTMLInputElement).value, vaccinated: +(document.querySelector('.is-v') as HTMLInputElement).value / 100, seeds: 3 }; }
+
+  function reset(newSeed = true) {
+    stop(); if (newSeed) seed++; rand = rng(seed * 7919);
+    town = makeTown(cfg(), rand); hist = [count(town.state)];
+    const pr = rng(seed); pos = Array.from({ length: N }, () => ({ x: pr(), y: pr(), vx: (pr() - 0.5) * 0.01, vy: (pr() - 0.5) * 0.01 }));
+    render();
+  }
+  function day() {
+    if (hist[hist.length - 1].i === 0) return stop();
+    const nc = step(cfg(), town, rand); hist.push(count(town.state, nc));
+    for (const p of pos) { p.x += p.vx * 3; p.y += p.vy * 3; if (p.x < 0 || p.x > 1) p.vx *= -1; if (p.y < 0 || p.y > 1) p.vy *= -1; p.x = Math.min(1, Math.max(0, p.x)); p.y = Math.min(1, Math.max(0, p.y)); }
+    render(); if (hist[hist.length - 1].i === 0) stop();
+  }
+  function stop() { if (timer) { clearInterval(timer); timer = 0; } q('.is-play').textContent = 'Play'; }
+
+  function render() {
+    const pal = pagePalette(), t = cfg(), R0 = r0(t.contacts, t.chance, t.days), hit = herdThreshold(R0), last = hist[hist.length - 1], d = hist.length - 1;
+    q('.is-cv-v').textContent = String(t.contacts); q('.is-p-v').textContent = `${Math.round(t.chance * 100)} %`; q('.is-d-v').textContent = `${t.days} days`; q('.is-v-v').textContent = `${Math.round(t.vaccinated * 100)} %`;
+    const col = { s: pal.red ? pal.muted : pal.muted, i: pal.red ? pal.ink : pal.bad, r: pal.red ? pal.accent2 : pal.good, v: pal.red ? pal.ink : pal.accent };
+    // Town
+    { const cv = q<HTMLCanvasElement>('.is-cv'), W = Math.max(200, Math.min(460, cv.clientWidth || 340)), { ctx: c } = fitCanvas(cv, W);
+      c.fillStyle = pal.bg; c.fillRect(0, 0, W, W);
+      town.state.forEach((s, k) => {
+        const p = pos[k], x = 6 + p.x * (W - 12), y = 6 + p.y * (W - 12);
+        c.beginPath(); c.arc(x, y, s === 1 ? 4.5 : 3.5, 0, 7);
+        if (s === 3) { c.strokeStyle = col.v; c.lineWidth = 1.6; c.stroke(); }
+        else { c.fillStyle = s === 0 ? col.s : s === 1 ? col.i : col.r; c.fill(); }
+      });
+    }
+    q('.is-key').textContent = 'Grey dots can catch it, red dots are ill, green dots have recovered and are immune, blue rings were vaccinated.';
+    // Graph
+    { const { ctx: c, W, H } = fitCanvas(q<HTMLCanvasElement>('.is-gr'), 210), gx = 36, gy = 10, gw = W - 46, gh = H - 40, D = Math.max(30, hist.length - 1);
+      const X = (i: number) => gx + (i / D) * gw, Y = (v: number) => gy + gh - (v / N) * gh;
+      c.fillStyle = pal.bg; c.fillRect(0, 0, W, H); c.strokeStyle = pal.line; c.lineWidth = 1; c.strokeRect(gx, gy, gw, gh);
+      c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'right';
+      for (const v of [0, 200, 400]) c.fillText(String(v), gx - 4, Y(v) + 4);
+      c.textAlign = 'center'; for (let x = 0; x <= D; x += D > 60 ? 20 : 10) c.fillText(String(x), X(x), gy + gh + 13); c.fillText('day', gx + gw / 2, H - 3);
+      for (const [k, cl] of [['s', col.s], ['i', col.i], ['r', col.r]] as const) { c.strokeStyle = cl; c.lineWidth = 2; c.beginPath(); hist.forEach((h, i) => { if (i) c.lineTo(X(i), Y(h[k])); else c.moveTo(X(i), Y(h[k])); }); c.stroke(); }
+      c.textAlign = 'left'; c.font = 'bold 11px system-ui, sans-serif'; [['can catch it', col.s], ['ill', col.i], ['recovered', col.r]].forEach(([s, cl], k) => { c.fillStyle = cl; c.fillText(s, gx + 6 + k * 90, gy + 12); });
+    }
+    const ever = last.i + last.r, peak = Math.max(...hist.map((h) => h.i));
+    q('.is-big').textContent = last.i === 0 && d > 0 ? `Over after ${d} days: ${ever} of ${N} people caught it.` : `Day ${d}: ${last.i} ill, ${last.r} recovered, ${last.s} can still catch it.`;
+    q('.is-eq').textContent = `R0 = people met × chance × days ill = ${t.contacts} × ${t.chance} × ${t.days} = ${r(R0, 3)}` + (R0 > 1 ? `.  Herd immunity threshold = 1 − 1/R0 = 1 − 1/${r(R0, 3)} = ${Math.round(hit * 100)} %.` : '. Below 1, so each case causes less than one new case and it dies out.');
+    const sShare = (N - Math.round(t.vaccinated * N)) / N, Re = rEff(R0, sShare);
+    const facts = [
+      fact('Each ill person infects (R0)', r(R0, 3), R0 > 1 ? 'more than 1: it can spread' : 'less than 1: it fades away'),
+      fact('Vaccinated', `${Math.round(t.vaccinated * 100)} %`, R0 <= 1 ? 'not needed to stop this one' : t.vaccinated >= hit ? `at or above ${Math.round(hit * 100)} %: herd immunity` : `below ${Math.round(hit * 100)} %: it can still spread`),
+      fact('Most ill on one day', String(peak), 'the peak'),
+    ];
+    if (level === '9') facts.push(fact('Effective R at the start', r(Re, 3), `R0 × share who can catch it = ${r(R0, 3)} × ${r(sShare, 3)}`), fact('Big-town prediction', `${Math.round(100 * finalSize(Re) * sShare)} % catch it`, 'SIR final size z = 1 − e^(−R z), if it takes off'));
+    q('.is-facts').replaceChildren(...facts);
+  }
+
+  q('.is-play').addEventListener('click', () => { if (timer) return stop(); q('.is-play').textContent = 'Pause'; day(); timer = window.setInterval(day, 250); });
+  q('.is-day').addEventListener('click', () => { stop(); day(); });
+  q('.is-end').addEventListener('click', () => { stop(); for (let k = 0; k < 400 && hist[hist.length - 1].i > 0; k++) { const nc = step(cfg(), town, rand); hist.push(count(town.state, nc)); } render(); });
+  q('.is-reset').addEventListener('click', () => reset());
+  for (const s of ['.is-c', '.is-p', '.is-d', '.is-v']) q(s).addEventListener('input', () => reset(false));
+  addEventListener('resize', render);
+  reset(false);
+  wireLevel(root, (l) => { level = l; render(); });
+
+  mountQuiz(q('.is-quiz'), () => {
+    const c = pick(2, 8), p = one([0.1, 0.2, 0.25, 0.5]), d = pick(2, 6), R0b = one([2, 4, 5, 10]), R0c = one([3, 4, 6]), s = one([0.5, 0.25, 0.4]);
+    return [
+      { q: `An ill person meets ${c} people a day for ${d} days, and passes it on at ${p * 100} % of meetings. What is R0?`, ans: c * p * d, unit: '', work: `R0 = ${c} × ${p} × ${d} = ${r(c * p * d)}` },
+      { q: `An illness has R0 = ${R0b}. What percentage must be immune for herd immunity?`, ans: 100 * (1 - 1 / R0b), unit: '%', work: `1 − 1/${R0b} = ${r(1 - 1 / R0b)}, so ${r(100 * (1 - 1 / R0b))} %` },
+      { q: `R0 is ${R0c}, but only ${s * 100} % of people can still catch it. How many does each case infect now?`, ans: R0c * s, unit: '', work: `Effective R = R0 × share who can catch it = ${R0c} × ${s} = ${r(R0c * s)}` },
+      { q: 'What happens when each ill person infects fewer than one other person on average?', ans: 1, choices: ['It spreads faster', 'The outbreak shrinks and dies out', 'Nothing changes'], work: 'Each "generation" of cases is smaller than the one before, so the outbreak fades away.' },
+      { q: 'Why can vaccinating most people also protect someone who is not vaccinated?', ans: 2, choices: ['The vaccine spreads through the air', 'Unvaccinated people become immune by being near others', 'The illness rarely reaches them, because most people around them cannot pass it on'], work: 'With enough people immune, chains of infection break before they reach the few who are not protected. This is herd immunity.' },
+    ];
+  });
+</script>

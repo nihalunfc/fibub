@@ -1,0 +1,226 @@
+---
+// Kirchhoff solver: draw a DC network on a 3 × 3 grid of junctions (wires, resistors, cells), see the junction
+// and loop equations written out and solved, with every branch current drawn. Everything runs in the browser.
+import '../../styles/astro.css';
+---
+<div class="ax kch">
+  <div class="ax-card">
+    <h2>Draw a circuit</h2>
+    <label>Start from <select class="kch-preset">
+      <option value="twoloop">Two cells, three resistors</option>
+      <option value="series">One cell, series and parallel</option>
+      <option value="parallelcells">Two cells in parallel</option>
+      <option value="ladder">Ladder of four resistors</option>
+      <option value="blank">Blank grid</option>
+    </select></label>
+    <p class="ax-help">Tap a side between two dots to pick it, then choose what goes there below. Dots joined by plain wire are one junction.</p>
+    <canvas class="ax-fig kch-fig" tabindex="0"></canvas>
+    <div class="ax-legend"><span><i class="kch-kw"></i>wire</span><span><i class="kch-kc"></i>current (arrow shows its direction)</span><span><i class="kch-ks"></i>picked</span></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Picked side</h2>
+    <label>Side <select class="kch-edge"></select></label>
+    <div class="ax-row" style="margin-top:10px">
+      <span class="ax-seg kch-kind" role="group" aria-label="What goes on this side"><button type="button" data-v="empty" aria-pressed="false">Nothing</button><button type="button" data-v="wire" aria-pressed="false">Wire</button><button type="button" data-v="resistor" aria-pressed="false">Resistor</button><button type="button" data-v="cell" aria-pressed="false">Cell</button></span>
+    </div>
+    <div class="ax-grid kch-vals" style="margin-top:10px">
+      <label class="kch-rl"><span class="kch-rname">Resistance (Ω)</span> <input class="kch-r" type="text" inputmode="decimal" /></label>
+      <label class="kch-el">Cell emf (V) <input class="kch-e" type="text" inputmode="decimal" /></label>
+    </div>
+    <div class="ax-row kch-fliprow" style="margin-top:10px"><button type="button" class="btn secondary small kch-flip">Turn the cell round</button><span class="kch-pol"></span></div>
+    <p class="ax-err kch-verr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Kirchhoff's rules</h2>
+    <p class="ax-err kch-err" hidden></p>
+    <div class="kch-out">
+      <p class="kch-join"></p>
+      <ol class="kch-eqs"></ol>
+      <p class="ax-big kch-big" aria-live="polite"></p>
+      <div class="ax-scroll"><table class="kch-tab"></table></div>
+      <p class="ax-help">A minus sign means the current really flows the other way. A cell with a negative power is being charged.</p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="kch-try">
+      <li>In "Two cells, three resistors", the 4 V cell's current comes out negative: the 6 V cell pushes current backwards through it and charges it.</li>
+      <li>Make the middle resistor bigger and watch more of the 6 V cell's current go round the outside.</li>
+      <li>In "Two cells in parallel", the 10 V cell gives no current at all. Change its emf to 9 V or 11 V.</li>
+      <li>Put plain wire across a resistor: its current drops to 0 because the wire shorts it out.</li>
+      <li>Add a third loop in the empty bottom row and see one more loop equation appear.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="kch-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .kch-fig { max-width: 420px; margin: 10px auto 0; touch-action: manipulation; cursor: pointer; }
+  .kch-kw { background: var(--ink); height: 3px !important; }
+  .kch-kc { background: var(--accent); }
+  .kch-ks { background: var(--warn); }
+  .kch-eqs { margin: 6px 0 10px; padding-left: 22px; display: grid; gap: 4px; font-size: 15px; overflow-wrap: anywhere; }
+  .kch-eqs b { font-weight: 600; }
+  .kch-join { margin: 0; font-size: 15px; }
+  .kch-big { font-size: clamp(17px, 4.4vw, 22px); margin: 6px 0 8px; }
+  .kch-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .kch-pol { font-size: 14px; color: var(--muted); }
+  .kch .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .kch .eq-q p { margin: 0 0 6px; }
+  .kch .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .kch .eq-ok { color: var(--good); font-weight: 600; }
+  .kch .eq-no { color: var(--bad); }
+  .kch .eq-work { margin-top: 4px; font-size: 14px; }
+  .kch .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .kch .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { solve, edgeIds, ends, edgeName, eqText, sub, questions, PRESETS, NODE_NAMES, COLS, type Edge, type EdgeId, type Kind } from '../../lib/sci/kirchhoff';
+  import { pagePalette } from '../../lib/report';
+  import { num, sig } from '../../lib/sci/num';
+  import { quiz } from '../../lib/elec-quiz-ui';
+  import { setup, seg, onTheme, arrow, pointer } from '../../lib/school-p2';
+
+  const root = document.querySelector<HTMLElement>('.kch')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fig = q<HTMLCanvasElement>('.kch-fig');
+  const W = 340, H = 340, P = (i: number) => [50 + (i % COLS) * 120, 50 + Math.floor(i / COLS) * 120] as const;
+  const IDS = edgeIds();
+  let net: Record<EdgeId, Edge> = {}, picked: EdgeId = 'v01';
+  const blank = (): Edge => ({ kind: 'empty', R: 0, E: 0, plusAtB: false });
+  function load(name: string) {
+    net = {}; for (const id of IDS) net[id] = blank();
+    if (PRESETS[name]) for (const [id, e] of Object.entries(PRESETS[name].net)) net[id] = { ...e };
+  }
+  const fmt = (x: number, n = 3) => sig(x, n);
+  const amps = (x: number) => (Math.abs(x) < 1e-9 ? '0 A' : `${fmt(x)} A`);
+
+  // Drawing one side of the grid.
+  function drawEdge(c: CanvasRenderingContext2D, id: EdgeId, pal: ReturnType<typeof pagePalette>, label: string) {
+    const [a, b] = ends(id), [x0, y0] = P(a), [x1, y1] = P(b), e = net[id], horiz = id[0] === 'h';
+    const mx = (x0 + x1) / 2, my = (y0 + y1) / 2, ux = horiz ? 1 : 0, uy = horiz ? 0 : 1, nx = -uy, ny = ux;
+    if (id === picked) { c.strokeStyle = pal.warn; c.globalAlpha = 0.35; c.lineWidth = 16; c.beginPath(); c.moveTo(x0 + ux * 10, y0 + uy * 10); c.lineTo(x1 - ux * 10, y1 - uy * 10); c.stroke(); c.globalAlpha = 1; }
+    c.strokeStyle = pal.ink; c.fillStyle = pal.ink; c.lineWidth = 2;
+    if (e.kind === 'empty') { c.setLineDash([3, 6]); c.strokeStyle = pal.line; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke(); c.setLineDash([]); return; }
+    if (e.kind === 'wire') { c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke(); return; }
+    const half = e.kind === 'resistor' ? 26 : 8;
+    c.beginPath(); c.moveTo(x0, y0); c.lineTo(mx - ux * half, my - uy * half); c.moveTo(mx + ux * half, my + uy * half); c.lineTo(x1, y1); c.stroke();
+    c.font = '12px system-ui, sans-serif'; c.textAlign = 'center';
+    const tx = (k: number) => [mx + nx * k, my + ny * k] as const;
+    if (e.kind === 'resistor') {
+      c.beginPath(); c.moveTo(mx - ux * half, my - uy * half);
+      for (let i = 1; i <= 6; i++) { const t = -half + (i * 2 * half) / 6, s = i === 6 ? 0 : i % 2 ? 7 : -7; c.lineTo(mx + ux * t + nx * s, my + uy * t + ny * s); }
+      c.stroke();
+      const [lx, ly] = horiz ? tx(-16) : tx(-30);
+      c.fillText(`${fmt(e.R)} Ω`, lx, ly + 4);
+    } else {
+      // Cell: long plate is +. plusAtB puts the long plate on the b side.
+      const longAt = e.plusAtB ? 1 : -1;
+      for (const s of [-1, 1]) { const len = s === longAt ? 14 : 7, w = s === longAt ? 2 : 4; c.lineWidth = w; c.beginPath(); c.moveTo(mx + ux * s * 6 - nx * len, my + uy * s * 6 - ny * len); c.lineTo(mx + ux * s * 6 + nx * len, my + uy * s * 6 + ny * len); c.stroke(); }
+      c.lineWidth = 2;
+      const [lx, ly] = horiz ? tx(-22) : tx(-34);
+      c.fillText(`${fmt(e.E)} V${e.R ? `, ${fmt(e.R)} Ω` : ''}`, lx, ly + 4);
+      c.fillStyle = pal.bad; c.font = '700 12px system-ui, sans-serif';
+      c.fillText('+', mx + ux * longAt * 16 + nx * 14, my + uy * longAt * 16 + ny * 14 + 4);
+    }
+    if (label) { c.fillStyle = pal.accent; c.font = '600 12px system-ui, sans-serif'; const [lx, ly] = horiz ? tx(20) : tx(24); c.fillText(label, lx, ly + 4); }
+  }
+  function draw(sol: ReturnType<typeof solve>) {
+    const pal = pagePalette(), c = setup(fig, W, H);
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    const byId = new Map(sol.branches.map((b) => [b.id, b]));
+    for (const id of IDS) { const b = byId.get(id); drawEdge(c, id, pal, b ? `I${sub(b.n)}` : ''); }
+    // Current arrows on branches.
+    if (sol.ok) for (const b of sol.branches) {
+      if (Math.abs(b.I) < 1e-9) continue;
+      const [a, z] = ends(b.id), [x0, y0] = P(a), [x1, y1] = P(z), horiz = b.id[0] === 'h', dir = b.I > 0 ? 1 : -1;
+      const fx = x0 + (x1 - x0) * 0.2, fy = y0 + (y1 - y0) * 0.2;
+      c.strokeStyle = pal.accent; c.fillStyle = pal.accent; c.lineWidth = 2.5;
+      const L = 14 * dir, sx = horiz ? fx - L / 2 : fx, sy = horiz ? fy : fy - L / 2;
+      arrow(c, sx, sy, horiz ? sx + L : sx, horiz ? sy : sy + L, 7);
+    }
+    // Junction dots and names.
+    c.font = '600 13px system-ui, sans-serif'; c.textAlign = 'center';
+    for (let i = 0; i < 9; i++) {
+      const [x, y] = P(i), used = IDS.some((id) => net[id].kind !== 'empty' && ends(id).includes(i));
+      c.fillStyle = used ? pal.ink : pal.line; c.beginPath(); c.arc(x, y, used ? 4.5 : 3.5, 0, Math.PI * 2); c.fill();
+      c.fillStyle = used ? pal.ink : pal.muted; c.fillText(NODE_NAMES[i], x - 12, y - 9);
+    }
+    fig.setAttribute('aria-label', `Circuit with ${sol.branches.length} branches; picked side ${edgeName(picked)}`);
+  }
+
+  function panel() {
+    const e = net[picked];
+    q<HTMLSelectElement>('.kch-edge').value = picked;
+    for (const b of root.querySelectorAll<HTMLButtonElement>('.kch-kind button')) b.setAttribute('aria-pressed', String(b.dataset.v === e.kind));
+    q('.kch-vals').hidden = e.kind === 'empty' || e.kind === 'wire';
+    q('.kch-el').hidden = e.kind !== 'cell'; q('.kch-fliprow').hidden = e.kind !== 'cell';
+    q('.kch-rname').textContent = e.kind === 'cell' ? 'Internal resistance (Ω)' : 'Resistance (Ω)';
+    q<HTMLInputElement>('.kch-r').value = String(e.R); q<HTMLInputElement>('.kch-e').value = String(e.E);
+    const [a, b] = ends(picked);
+    q('.kch-pol').textContent = `+ end at ${NODE_NAMES[e.plusAtB ? b : a]}`;
+    q('.kch-verr').hidden = true;
+  }
+  function run() {
+    const sol = solve(net);
+    draw(sol);
+    const err = q('.kch-err'); err.hidden = sol.ok; err.textContent = sol.ok ? '' : sol.error;
+    const groups = new Map<number, number[]>();
+    sol.group.forEach((g, i) => { if (IDS.some((id) => net[id].kind !== 'empty' && ends(id).includes(i))) groups.set(g, [...(groups.get(g) ?? []), i]); });
+    const joined = [...groups.values()].filter((g) => g.length > 1).map((g) => `${g.map((i) => NODE_NAMES[i]).join(', ')} (called ${NODE_NAMES[g[0]]})`);
+    q('.kch-join').textContent = joined.length ? `Joined by plain wire, so each of these counts as one junction: ${joined.join('; ')}.` : 'No junctions are joined by plain wire.';
+    q('.kch-eqs').replaceChildren(...sol.equations.map((e) => { const li = document.createElement('li'), b = document.createElement('b'); b.textContent = e.kind === 'junction' ? `Junction ${e.label} (out − in): ` : `Loop ${e.label}: `; li.append(b, eqText(e)); return li; }));
+    q('.kch-out').hidden = !sol.branches.length;
+    const head = document.createElement('tr'); head.innerHTML = '<th>Branch</th><th>Side</th><th class="r">Current</th><th>Flows</th><th class="r">Voltage across R</th><th class="r">Power</th>';
+    if (sol.ok) {
+      q('.kch-big').textContent = `${sol.equations.length} equations, ${sol.branches.length} unknowns: ${sol.branches.map((b) => `I${sub(b.n)} = ${amps(b.I)}`).join(', ')}`;
+      q('.kch-tab').replaceChildren(head, ...sol.branches.map((b) => {
+        const [a, z] = ends(b.id), from = b.I >= 0 ? a : z, to = b.I >= 0 ? z : a, tr = document.createElement('tr');
+        const cells = [`I${sub(b.n)} (${b.kind === 'cell' ? 'cell' : 'resistor'})`, edgeName(b.id), amps(b.I), Math.abs(b.I) < 1e-9 ? '–' : `${NODE_NAMES[from]} → ${NODE_NAMES[to]}`, b.R ? `${fmt(Math.abs(b.V))} V` : '–', b.kind === 'cell' ? `${fmt(b.P)} W ${b.P < -1e-9 ? '(charging)' : 'given'}` : `${fmt(b.P)} W`];
+        cells.forEach((v, i) => { const td = document.createElement('td'); td.textContent = v; if (i === 2 || i === 4 || i === 5) td.className = 'r'; tr.append(td); });
+        return tr;
+      }));
+    } else { q('.kch-big').textContent = ''; q('.kch-tab').replaceChildren(); }
+  }
+
+  // Picking a side on the canvas: the nearest side to the tap, if close enough.
+  fig.addEventListener('pointerdown', (ev) => {
+    const [x, y] = pointer(fig, ev, W);
+    let best: EdgeId | null = null, bd = 30;
+    for (const id of IDS) {
+      const [a, b] = ends(id), [x0, y0] = P(a), [x1, y1] = P(b), mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+      const d = id[0] === 'h' ? (Math.abs(x - mx) < 52 ? Math.abs(y - my) : 99) : (Math.abs(y - my) < 52 ? Math.abs(x - mx) : 99);
+      if (d < bd) { bd = d; best = id; }
+    }
+    if (best) { picked = best; panel(); run(); }
+  });
+  const sel = q<HTMLSelectElement>('.kch-edge');
+  for (const id of IDS) { const o = document.createElement('option'); o.value = id; o.textContent = edgeName(id); sel.append(o); }
+  sel.addEventListener('change', () => { picked = sel.value; panel(); run(); });
+  seg(q('.kch-kind'), (v) => {
+    const e = net[picked], k = v as Kind;
+    net[picked] = { ...e, kind: k, R: k === 'resistor' ? (e.kind === 'resistor' ? e.R : 4) : k === 'cell' ? (e.kind === 'cell' ? e.R : 0) : 0, E: k === 'cell' ? (e.E || 6) : 0 };
+    panel(); run();
+  });
+  const typed = () => {
+    const e = net[picked], R = num(q<HTMLInputElement>('.kch-r').value), Ev = num(q<HTMLInputElement>('.kch-e').value);
+    const bad = e.kind === 'resistor' ? !(R > 0 && R <= 1e6) ? 'Type a resistance above 0 Ω (up to 1 MΩ).' : '' : e.kind === 'cell' ? !(R >= 0 && R <= 1e6) ? 'Type an internal resistance of 0 Ω or more.' : !(Math.abs(Ev) <= 1e4 && Number.isFinite(Ev)) ? 'Type the cell emf in volts.' : '' : '';
+    const v = q('.kch-verr'); v.hidden = !bad; v.textContent = bad;
+    if (bad) return;
+    net[picked] = { ...e, R, E: e.kind === 'cell' ? Ev : 0 }; run();
+  };
+  q('.kch-r').addEventListener('input', typed); q('.kch-e').addEventListener('input', typed);
+  q('.kch-flip').addEventListener('click', () => { net[picked] = { ...net[picked], plusAtB: !net[picked].plusAtB }; panel(); run(); });
+  q('.kch-preset').addEventListener('change', () => { load(q<HTMLSelectElement>('.kch-preset').value); panel(); run(); });
+  onTheme(run);
+  load('twoloop'); panel(); run();
+  quiz(q('.kch-quiz'), () => questions());
+</script>

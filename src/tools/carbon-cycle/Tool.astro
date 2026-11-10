@@ -1,0 +1,176 @@
+---
+// Carbon cycle sandbox (Learn): five stores (air, land, surface ocean, deep ocean, fossil fuels) joined by flows.
+// Burn fuel, clear or plant forests, run the years and watch CO₂ in the air respond. A teaching box model with
+// rounded values (src/lib/sci/carbon-cycle.ts). Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm cc">
+  <div class="ax-card">
+    <h2>The carbon stores</h2>
+    <div class="ax-seg cc-lvl" role="group" aria-label="Level">
+      <button type="button" data-l="1" aria-pressed="true">Class 9 (simple)</button>
+      <button type="button" data-l="2" aria-pressed="false">Class 11 (numbers)</button>
+    </div>
+    <svg class="sm-fig cc-fig" viewBox="0 0 360 330" role="img" aria-label="Boxes for the air, land, surface ocean, deep ocean and fossil fuels, with arrows for the carbon flowing between them" style="margin-top:10px"></svg>
+    <p class="ax-help">Arrow thickness shows how big each flow is. Red arrows are what people add.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Your choices each year</h2>
+    <div class="sm-sl"><b title="Burn">🔥</b><input type="range" class="cc-burnr" min="0" max="20" step="0.5" value="10" aria-label="Fuel burned slider" /><input type="number" class="cc-burn" min="0" max="40" step="0.5" value="10" inputmode="decimal" aria-label="Fossil fuel burned, GtC per year" /></div>
+    <p class="ax-help">Coal, oil and gas burned, in gigatonnes of carbon a year (today about 10).</p>
+    <div class="sm-sl"><b title="Clear">🪓</b><input type="range" class="cc-clearr" min="0" max="5" step="0.1" value="1" aria-label="Forest clearing slider" /><input type="number" class="cc-clear" min="0" max="10" step="0.1" value="1" inputmode="decimal" aria-label="Forest cleared and burned, GtC per year" /></div>
+    <p class="ax-help">Forest cut down and burned or left to rot (today about 1).</p>
+    <div class="sm-sl"><b title="Plant">🌳</b><input type="range" class="cc-plantr" min="0" max="5" step="0.1" value="0" aria-label="Tree planting slider" /><input type="number" class="cc-plant" min="0" max="10" step="0.1" value="0" inputmode="decimal" aria-label="New forests, GtC taken in per year" /></div>
+    <p class="ax-help">Carbon taken in each year by new forests you plant.</p>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn small cc-one">Run 1 year</button>
+      <button type="button" class="btn small cc-ten">Run 10 years</button>
+      <button type="button" class="btn secondary small cc-all">Run to 2100</button>
+      <button type="button" class="btn secondary small cc-reset">Back to 2025</button>
+    </div>
+    <p class="ax-big cc-big" aria-live="polite" style="margin:12px 0 0"></p>
+    <p class="sm-f cc-where"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>CO₂ in the air, year by year</h2>
+    <svg class="sm-fig cc-gr" viewBox="0 0 360 200" role="img" aria-label="Graph of carbon dioxide in parts per million against the year"></svg>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Run to 2100 as things are today (10 and 1). Where does CO₂ end up?</li>
+      <li>Set burning and clearing to 0 and run to 2100. CO₂ falls, but slowly: the ocean and plants take decades to soak it up.</li>
+      <li>Keep burning at 10 and plant 3 a year of new forest. Is planting enough on its own?</li>
+      <li>Switch to Class 11 and run one year. About half of the carbon released stays in the air; find where the rest went.</li>
+    </ul>
+    <p class="ax-help">A teaching model with rounded numbers, not a climate forecast. Real stores and flows are measured with uncertainty and change with temperature, which this model leaves out.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="cc-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .cc svg .cc-box { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+  .cc svg .cc-air { fill: var(--accent-soft); }
+  .cc svg .cc-land { fill: var(--good-soft); }
+  .cc svg .cc-fos { fill: var(--warn-soft); }
+  .cc svg .cc-arr { stroke: var(--ink); fill: none; stroke-linecap: round; }
+  .cc svg .cc-hum { stroke: var(--bad); fill: none; stroke-linecap: round; }
+  .cc svg .cc-sm { font-size: 11px; fill: var(--muted); }
+  .cc svg .cc-b { font-weight: 700; }
+  .cc .sm-sl b { font-style: normal; font-size: 20px; }
+</style>
+
+<script>
+  import { start2025, run, flows, step, ppm, budget, GTC_PER_PPM, type Stores, type Choices } from '../../lib/sci/carbon-cycle';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, pair, val, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.cc')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.cc-fig'), gr = q<SVGSVGElement>('.cc-gr');
+  const burn = q<HTMLInputElement>('.cc-burn'), clear = q<HTMLInputElement>('.cc-clear'), plant = q<HTMLInputElement>('.cc-plant');
+  pair(q('.cc-burnr'), burn, draw); pair(q('.cc-clearr'), clear, draw); pair(q('.cc-plantr'), plant, draw);
+  const START = start2025();
+  let year = 2025, s: Stores = START, hist: [number, number][] = [[2025, ppm(START.air)]], level = 1, last: ReturnType<typeof budget> | null = null, timer = 0;
+  const choices = (): Choices => ({ burn: val(burn, 10, 0, 40), clear: val(clear, 1, 0, 10), plant: val(plant, 0, 0, 10) });
+
+  for (const b of root.querySelectorAll<HTMLButtonElement>('.cc-lvl button')) b.addEventListener('click', () => {
+    level = Number(b.dataset.l);
+    for (const o of root.querySelectorAll('.cc-lvl button')) o.setAttribute('aria-pressed', String(o === b));
+    draw();
+  });
+
+  function advance(n: number) {
+    for (let i = 0; i < n && year < 2300; i++) { last = budget(s, choices()); s = step(s, choices()); year++; hist.push([year, ppm(s.air)]); }
+    draw();
+  }
+  q('.cc-one').addEventListener('click', () => advance(1));
+  q('.cc-ten').addEventListener('click', () => advance(10));
+  q('.cc-all').addEventListener('click', () => {
+    clearInterval(timer);
+    if (year >= 2100) return;
+    timer = window.setInterval(() => { advance(year >= 2095 ? 2100 - year : 5); if (year >= 2100) clearInterval(timer); }, 120);
+  });
+  q('.cc-reset').addEventListener('click', () => { clearInterval(timer); year = 2025; s = START; hist = [[2025, ppm(START.air)]]; last = null; draw(); });
+
+  const words = (x: number) => (x >= 10000 ? 'a huge amount' : x >= 2000 ? 'a lot' : 'some');
+  function box(x: number, y: number, w: number, h: number, cls: string, name: string, amount: number) {
+    S('rect', { x, y, width: w, height: h, rx: 8, class: `cc-box ${cls}` }, fig);
+    S('text', { x: x + w / 2, y: y + 18, 'text-anchor': 'middle', class: 'cc-b' }, fig, name);
+    S('text', { x: x + w / 2, y: y + 34, 'text-anchor': 'middle', class: 'cc-sm' }, fig, level === 2 ? `${fmt(amount, 0)} GtC` : words(amount));
+  }
+  // An arrow from (x1,y1) to (x2,y2) with a head and a label; width grows with the flow.
+  function arrow(x1: number, y1: number, x2: number, y2: number, f: number, label: string, human = false, lx = 0, ly = 0) {
+    const w = Math.max(1.2, Math.min(9, 1 + Math.sqrt(Math.abs(f)) * (human ? 1.6 : 0.6)));
+    if (f <= 0.001 && human) return;
+    const a = Math.atan2(y2 - y1, x2 - x1), hx = x2 - Math.cos(a) * 9, hy = y2 - Math.sin(a) * 9;
+    S('line', { x1, y1, x2: hx, y2: hy, class: human ? 'cc-hum' : 'cc-arr', 'stroke-width': w }, fig);
+    S('polygon', { points: `${x2},${y2} ${hx - Math.sin(a) * (4 + w / 2)},${hy + Math.cos(a) * (4 + w / 2)} ${hx + Math.sin(a) * (4 + w / 2)},${hy - Math.cos(a) * (4 + w / 2)}`, style: `fill:var(--${human ? 'bad' : 'ink'})` }, fig);
+    S('text', { x: (x1 + x2) / 2 + lx, y: (y1 + y2) / 2 + ly, 'text-anchor': 'middle', class: 'cc-sm' }, fig, level === 2 ? `${label} ${fmt(f, 1)}` : label);
+  }
+
+  function draw() {
+    const c = choices(), f = flows(s, c);
+    fig.replaceChildren();
+    box(120, 6, 120, 44, 'cc-air', 'Air (CO₂)', s.air);
+    box(6, 140, 112, 44, 'cc-land', 'Plants & soil', s.land);
+    box(242, 140, 112, 44, '', 'Surface ocean', s.sea);
+    box(242, 276, 112, 44, '', 'Deep ocean', s.deep);
+    box(6, 276, 112, 44, 'cc-fos', 'Fossil fuels', s.fossil);
+    arrow(40, 138, 128, 46, f.photo, 'photosynthesis', false, -40, 0);
+    arrow(142, 52, 74, 138, f.resp, 'respiration, decay', false, 30, 26);
+    arrow(240, 46, 300, 138, f.seaIn, 'dissolves', false, 30, -6);
+    arrow(282, 138, 220, 52, f.seaOut, 'escapes', false, -26, 22);
+    arrow(286, 186, 286, 274, f.down, 'sinks', false, -26, 0);
+    arrow(318, 274, 318, 186, f.up, 'rises', false, 22, 0);
+    arrow(100, 274, 168, 54, f.burn, 'burning', true, 6, 60);
+    arrow(110, 150, 166, 56, f.clear, 'clearing', true, 26, 30);
+    arrow(196, 56, 118, 170, f.plant, 'new forest', true, 40, 46);
+
+    q('.cc-big').textContent = `${year}: CO₂ ${fmt(ppm(s.air), 0)} ppm`;
+    const w = q('.cc-where');
+    if (last) {
+      const out = c.burn + c.clear, inAir = last.air;
+      w.textContent = level === 2
+        ? `Last year: ${fmt(-last.fossil, 1)} GtC burned. Air ${last.air >= 0 ? '+' : '−'}${fmt(Math.abs(last.air), 2)} GtC (${last.air >= 0 ? '+' : '−'}${fmt(Math.abs(last.air) / GTC_PER_PPM, 2)} ppm), plants and soil ${last.land >= 0 ? '+' : '−'}${fmt(Math.abs(last.land), 2)}, ocean ${last.sea >= 0 ? '+' : '−'}${fmt(Math.abs(last.sea), 2)} GtC.` + (out > 0 && inAir > 0 ? ` ${fmt((100 * inAir) / out, 0)}% of what people released stayed in the air.` : '')
+        : last.air > 0.05 ? 'Last year the air gained carbon: people released more than plants and the ocean could take in.' : last.air < -0.05 ? 'Last year the air lost carbon: plants and the ocean took in more than people released.' : 'Last year the air stayed about the same.';
+    } else w.textContent = level === 2 ? `Choices: burn ${fmt(c.burn, 1)}, clear ${fmt(c.clear, 1)}, plant ${fmt(c.plant, 1)} GtC a year. Press Run to move time on.` : 'Press Run to move time on.';
+    graph();
+  }
+
+  function graph() {
+    gr.replaceChildren();
+    const x0 = 2025, x1 = Math.max(2100, year), lo = 300, hi = Math.max(700, Math.ceil(Math.max(...hist.map((h) => h[1])) / 100) * 100);
+    const X = (x: number) => 40 + ((x - x0) / (x1 - x0)) * 310, Y = (y: number) => 180 - ((y - lo) / (hi - lo)) * 168;
+    for (let y = lo; y <= hi; y += 100) { S('line', { x1: 40, x2: 350, y1: Y(y), y2: Y(y), class: 'sm-grid' }, gr); S('text', { x: 36, y: Y(y) + 4, 'text-anchor': 'end', class: 'sm-tick' }, gr, String(y)); }
+    for (let x = 2025; x <= x1; x += 25) S('text', { x: X(x), y: 196, 'text-anchor': 'middle', class: 'sm-tick' }, gr, String(x));
+    S('line', { x1: 40, x2: 350, y1: Y(280), y2: Y(280), class: 'sm-dash' }, gr);
+    S('text', { x: 46, y: Y(lo) - 4, class: 'sm-tick' }, gr, 'ppm');
+    S('polyline', { points: hist.map(([x, y]) => `${X(x)},${Y(y)}`).join(' '), class: 'sm-curve2' }, gr);
+    const [lx, ly] = hist[hist.length - 1];
+    S('circle', { cx: X(lx), cy: Y(ly), r: 4, style: 'fill:var(--accent)' }, gr);
+  }
+  draw();
+
+  quiz(q('.cc-quiz'), () => {
+    const out: Question[] = [];
+    const k = randInt(2, 9);
+    out.push({ q: `About 2.12 GtC of carbon in the air makes 1 ppm of CO₂. How many ppm does ${fmt(2.12 * k, 2)} GtC add?`, want: [k], hint: 'ppm', work: `${fmt(2.12 * k, 2)} ÷ 2.12 = ${k} ppm.` });
+    const rel = randInt(8, 14), kept = randInt(4, Math.floor(rel * 0.6));
+    out.push({ q: `People release ${rel} GtC in a year and the air gains ${kept} GtC. What percentage stayed in the air?`, want: [Math.round((1000 * kept) / rel) / 10], tol: 0.01, hint: '%', work: `${kept} ÷ ${rel} × 100 ≈ ${fmt((100 * kept) / rel, 1)}%. The rest went into plants, soil and the ocean.` });
+    const sink = randInt(2, 5), need = sink * randInt(5, 20);
+    out.push({ q: `New forests take in ${sink} GtC a year. How many years to take in ${need} GtC?`, want: [need / sink], hint: 'years', work: `${need} ÷ ${sink} = ${need / sink} years.` });
+    const a = randInt(3, 8), b = randInt(2, 4), cc = randInt(1, 3), net = a - b - cc;
+    out.push({ q: `In a year ${a} GtC goes into the air, the ocean takes ${b} GtC out and plants take ${cc} GtC out. By how much does the air's carbon change (GtC)? Use a minus sign for a fall.`, want: [net], hint: 'GtC', work: `${a} − ${b} − ${cc} = ${net} GtC.` });
+    return out;
+  });
+</script>

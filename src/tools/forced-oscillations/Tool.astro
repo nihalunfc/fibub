@@ -1,0 +1,166 @@
+---
+// Damped and forced oscillations (Learn, extension): a block on a spring with friction, let go or pushed by a steady
+// rhythm; the x–t trace as it runs, the decay envelope, the steady amplitude and the resonance curve.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn fos">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Push a spring in rhythm</h2>
+      <div class="ax-seg fo-mode" role="group" aria-label="What happens"><button type="button" data-m="free" aria-pressed="false">Let go (damped)</button><button type="button" data-m="driven" aria-pressed="true">Driven</button></div>
+    </div>
+    <canvas class="lrn-cv fo-cv" style="margin-top:10px" aria-label="A block on a spring and a graph of its position against time as it runs"></canvas>
+    <p class="lrn-eq fo-live" aria-live="off"></p>
+    <div class="ax-row" style="margin-top:6px">
+      <button type="button" class="btn secondary small fo-play">Pause</button>
+      <button type="button" class="btn secondary small fo-restart">Start again</button>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Mass m <b class="fo-mv"></b><input type="range" class="fo-m" min="0.5" max="2" step="0.1" value="1" aria-label="Mass in kilograms" /></label>
+      <label class="lrn-sl">Spring constant k <b class="fo-kv"></b><input type="range" class="fo-k" min="10" max="100" step="5" value="40" aria-label="Spring constant in newtons per metre" /></label>
+      <label class="lrn-sl">Damping b <b class="fo-bv"></b><input type="range" class="fo-b" min="0" max="8" step="0.1" value="0.5" aria-label="Damping constant in kilograms per second" /></label>
+      <label class="lrn-sl fo-dr">Push rate ω ÷ ω₀ <b class="fo-wv"></b><input type="range" class="fo-w" min="0.2" max="2.5" step="0.01" value="1" aria-label="Driving frequency as a fraction of the natural frequency" /></label>
+      <label class="lrn-sl fo-dr">Push strength F₀ <b class="fo-Fv"></b><input type="range" class="fo-F" min="0.5" max="3" step="0.5" value="1" aria-label="Driving force in newtons" /></label>
+    </div>
+    <p class="lrn-eq fo-eq"></p>
+    <dl class="ax-facts fo-facts" style="margin-top:10px"></dl>
+  </div>
+
+  <div class="ax-card fo-dr">
+    <h2>The resonance curve</h2>
+    <canvas class="lrn-cv fo-res" aria-label="Steady amplitude against push rate for your damping, half of it and double it; a dot marks your push rate"></canvas>
+    <p class="ax-help">Less damping gives a taller, narrower peak; more damping a lower, wider one. Without damping the peak would be infinitely tall.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Driven: start at ω/ω₀ = 1 and watch the swings build up over several seconds until they level off.</li>
+      <li>Move the push rate to 0.5 or 2: the block hardly moves. Far below resonance it follows the push; far above, it moves opposite to it.</li>
+      <li>Set the damping to 0 at resonance: the swings keep growing. This is why soldiers break step on a bridge.</li>
+      <li>Let go (damped): double b and the swings die away twice as fast.</li>
+      <li>Push the damping up to 8 with m = 1 and k = 10: the block creeps back without swinging at all (overdamped).</li>
+    </ul>
+  </div>
+
+  <div class="ax-card fo-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { oscParams, drivenResponse, resonanceW, drivenStep } from '../../lib/sci/n2-osc';
+  import { mountQuiz, pick, one, r, fitCanvas, loop } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.fos')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v_ = (c: string) => +q<HTMLInputElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let mode = 'driven', x = 0, v = 0, t = 0, hist: [number, number][] = [];
+  const X0 = 0.1, SPAN = 12;
+  const st = () => { const m = v_('.fo-m'), k = v_('.fo-k'), b = v_('.fo-b'), F0 = mode === 'driven' ? v_('.fo-F') : 0, p = oscParams(m, k, b); return { m, k, b, F0, p, w: v_('.fo-w') * p.w0 }; };
+  const restart = () => { t = 0; x = mode === 'free' ? X0 : 0; v = 0; hist = [[0, x]]; };
+
+  function draw(dt: number) {
+    const s = st(), n = Math.max(1, Math.ceil(dt / 0.002)), h = dt / n;
+    for (let i = 0; i < n; i++) { const o = drivenStep(x, v, t, h, s.m, s.k, s.b, s.F0, s.w); x = o.x; v = o.v; t += h; }
+    if (dt) { hist.push([t, x]); while (hist.length && hist[0][0] < t - SPAN) hist.shift(); }
+    const { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.fo-cv'), 230), pal = pagePalette();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const steady = mode === 'driven' && s.b > 0 ? drivenResponse(s.m, s.k, s.b, s.F0, s.w).A : 0;
+    let ymax = Math.max(0.02, X0, steady * 1.15, ...hist.map((p) => Math.abs(p[1])));
+    ymax = Math.min(ymax, 3);
+    const ax = 70, mid = H / 2 - 6, sc = (H / 2 - 22) / ymax;
+    // block on a horizontal spring at the left (moves up/down to share the graph's scale)
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; const by = mid - x * sc;
+    ctx.beginPath(); ctx.moveTo(30, 8); for (let i = 1; i <= 12; i++) ctx.lineTo(30 + (i % 2 ? -7 : 7) * (i === 12 ? 0 : 1), 8 + ((by - 14 - 8) * i) / 12); ctx.stroke();
+    ctx.fillStyle = pal.red ? pal.ink : pal.accent; ctx.fillRect(18, by - 14, 24, 24);
+    if (mode === 'driven') { const f = Math.cos(s.w * t); ctx.strokeStyle = pal.red ? pal.muted : pal.accent2; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(50, by); ctx.lineTo(50, by - f * 18); ctx.stroke(); }
+    // axes
+    ctx.strokeStyle = pal.grid; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(ax, mid); ctx.lineTo(W - 6, mid); ctx.stroke();
+    const T0 = Math.max(0, t - SPAN), X = (tt: number) => ax + ((tt - T0) / SPAN) * (W - 6 - ax);
+    if (mode === 'free' && s.b > 0) {
+      ctx.strokeStyle = pal.line; ctx.setLineDash([4, 4]);
+      [1, -1].forEach((sgn) => { ctx.beginPath(); for (let px = 0; px <= W - 6 - ax; px += 4) { const tt = T0 + (px / (W - 6 - ax)) * SPAN, y = mid - sgn * X0 * Math.exp(-tt / s.p.tau) * sc; if (px) ctx.lineTo(ax + px, y); else ctx.moveTo(ax, y); } ctx.stroke(); });
+      ctx.setLineDash([]);
+    }
+    if (steady) { ctx.strokeStyle = pal.line; ctx.setLineDash([2, 4]); [1, -1].forEach((sg) => { ctx.beginPath(); ctx.moveTo(ax, mid - sg * steady * sc); ctx.lineTo(W - 6, mid - sg * steady * sc); ctx.stroke(); }); ctx.setLineDash([]); }
+    ctx.strokeStyle = pal.red ? pal.ink : pal.accent; ctx.lineWidth = 2; ctx.beginPath();
+    hist.forEach(([tt, xx], i) => { const y = mid - Math.max(-ymax * 1.05, Math.min(ymax * 1.05, xx)) * sc; if (i) ctx.lineTo(X(tt), y); else ctx.moveTo(X(tt), y); }); ctx.stroke();
+    ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(`x (±${sig(ymax * 100, 2)} cm)`, ax + 2, 12); ctx.textAlign = 'right'; ctx.fillText(`last ${SPAN} s`, W - 8, H - 4);
+    q('.fo-live').textContent = `t = ${t.toFixed(1)} s:  x = ${(x * 100).toFixed(1)} cm.`;
+  }
+
+  function drawRes() {
+    if (mode !== 'driven') return;
+    const s = st(), { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.fo-res'), 200), pal = pagePalette();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const L = 44, Rm = 8, T = 10, B = H - 28, bs = [s.b / 2, s.b, s.b * 2].filter((b) => b > 0);
+    const peak = bs.length ? drivenResponse(s.m, s.k, Math.max(0.05, s.b), s.F0, resonanceW(s.m, s.k, Math.max(0.05, s.b)) || s.p.w0).A : s.F0 / s.k * 10;
+    const yMax = peak * 1.25, X = (r_: number) => L + (r_ / 2.5) * (W - L - Rm), Y = (A: number) => B - (Math.min(A, yMax) / yMax) * (B - T);
+    ctx.strokeStyle = pal.grid; ctx.fillStyle = pal.muted; ctx.font = '10px system-ui, sans-serif'; ctx.lineWidth = 1; ctx.textAlign = 'center';
+    for (let r_ = 0; r_ <= 2.5; r_ += 0.5) { ctx.beginPath(); ctx.moveTo(X(r_), T); ctx.lineTo(X(r_), B); ctx.stroke(); ctx.fillText(String(r_), X(r_), B + 12); }
+    ctx.fillText('push rate ω ÷ ω₀', (L + W) / 2, H - 2);
+    ctx.textAlign = 'right'; for (let i = 1; i <= 3; i++) ctx.fillText(`${sig((yMax * i * 100) / 3, 2)}`, L - 3, Y((yMax * i) / 3) + 3);
+    ctx.save(); ctx.translate(10, (T + B) / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.fillText('amplitude (cm)', 0, 0); ctx.restore();
+    const cols = [pal.muted, pal.red ? pal.ink : pal.accent, pal.red ? pal.muted : pal.accent2];
+    (s.b > 0 ? [s.b / 2, s.b, s.b * 2] : [0]).forEach((b, i) => {
+      ctx.strokeStyle = s.b > 0 ? cols[i] : cols[1]; ctx.lineWidth = b === s.b ? 2.5 : 1.5; ctx.setLineDash(b === s.b ? [] : [5, 3]); ctx.beginPath();
+      for (let px = 0; px <= W - L - Rm; px += 1) { const r_ = 0.01 + (px / (W - L - Rm)) * 2.49, A = drivenResponse(s.m, s.k, b, s.F0, r_ * s.p.w0).A; const y = Y(A); if (px) ctx.lineTo(L + px, y); else ctx.moveTo(L, y); }
+      ctx.stroke();
+    });
+    ctx.setLineDash([]);
+    if (s.b > 0) { const A = drivenResponse(s.m, s.k, s.b, s.F0, s.w).A; ctx.fillStyle = pal.red ? pal.ink : pal.bad; ctx.beginPath(); ctx.arc(X(v_('.fo-w')), Y(A), 5, 0, 7); ctx.fill(); }
+    ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.font = '11px system-ui, sans-serif'; ctx.fillText(s.b > 0 ? `b = ${sig(s.b / 2, 2)}, ${sig(s.b, 2)} (bold), ${sig(s.b * 2, 2)} kg/s` : 'b = 0: no limit at ω₀', W - 10, T + 12);
+  }
+
+  function update() {
+    const s = st(), p = s.p;
+    q('.fo-mv').textContent = `${s.m.toFixed(1)} kg`; q('.fo-kv').textContent = `${s.k} N/m`; q('.fo-bv').textContent = `${s.b.toFixed(1)} kg/s`;
+    q('.fo-wv').textContent = `${v_('.fo-w').toFixed(2)} (ω = ${sig(s.w, 3)} rad/s)`; q('.fo-Fv').textContent = `${v_('.fo-F')} N`;
+    root.querySelectorAll<HTMLElement>('.fo-dr').forEach((e) => { e.hidden = mode !== 'driven'; });
+    const base = `ω₀ = √(k/m) = √(${s.k} / ${s.m.toFixed(1)}) = ${sig(p.w0, 4)} rad/s (f₀ = ${sig(p.w0 / (2 * Math.PI), 4)} Hz).  ζ = b / (2√(km)) = ${sig(p.zeta, 3)}.`;
+    const items = [fact('Natural frequency f₀', `${sig(p.w0 / (2 * Math.PI), 4)} Hz`, `ω₀ = ${sig(p.w0, 4)} rad/s`)];
+    if (mode === 'free') {
+      if (s.b === 0) q('.fo-eq').textContent = `${base}  No damping: it swings for ever with amplitude 10 cm.`;
+      else if (p.zeta < 1) q('.fo-eq').textContent = `${base}  Amplitude A(t) = A₀ e^(−bt/2m): it falls to 1/e in τ = 2m/b = ${sig(p.tau, 4)} s and halves every 2m ln 2 / b = ${sig(p.tau * Math.LN2, 4)} s.  It swings at ω′ = ω₀√(1 − ζ²) = ${sig(p.wd, 4)} rad/s.`;
+      else q('.fo-eq').textContent = `${base}  ζ ≥ 1: overdamped (or just critically damped). It creeps back to rest without swinging.`;
+      items.push(fact('Halves every', s.b > 0 ? `${sig(p.tau * Math.LN2, 3)} s` : 'never'), fact('Damping', p.zeta === 0 ? 'none' : p.zeta < 1 ? 'under-damped' : p.zeta === 1 ? 'critical' : 'over-damped', `ζ = ${sig(p.zeta, 3)}`));
+    } else {
+      const res = drivenResponse(s.m, s.k, s.b, s.F0, s.w), wr = resonanceW(s.m, s.k, s.b);
+      q('.fo-eq').textContent = s.b === 0 && Math.abs(v_('.fo-w') - 1) < 0.005
+        ? `${base}  No damping and pushing at ω₀: every push adds energy, so the swings grow without limit.`
+        : `${base}  Steady amplitude A = F₀ / √((k − mω²)² + (bω)²) = ${v_('.fo-F')} / √((${s.k} − ${s.m.toFixed(1)} × ${sig(s.w, 4)}²)² + (${s.b.toFixed(1)} × ${sig(s.w, 4)})²) = ${sig(res.A * 100, 4)} cm.`;
+      items.push(fact('Steady amplitude', s.b === 0 && Math.abs(v_('.fo-w') - 1) < 0.005 ? 'grows for ever' : `${sig(res.A * 100, 4)} cm`, `lags the push by ${sig((res.phase * 180) / Math.PI, 3)}°`),
+        fact('Biggest at', wr ? `ω = ${sig(wr, 4)} rad/s` : 'no peak', wr ? `${sig(wr / p.w0, 4)} × ω₀` : 'too much damping'),
+        fact('Quality factor Q', Number.isFinite(p.Q) ? sig(p.Q, 3) : '∞', 'tall, sharp peaks have big Q'));
+    }
+    q('.fo-facts').replaceChildren(...items);
+    drawRes(); anim.redraw();
+  }
+
+  const anim = loop(draw, q<HTMLButtonElement>('.fo-play'));
+  root.querySelectorAll<HTMLButtonElement>('.fo-mode button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m!; root.querySelectorAll('.fo-mode button').forEach((x_) => x_.setAttribute('aria-pressed', String(x_ === b))); restart(); update();
+  }));
+  q('.fo-restart').addEventListener('click', () => { restart(); anim.redraw(); });
+  root.querySelectorAll('input').forEach((e) => e.addEventListener('input', () => { restart(); update(); }));
+  addEventListener('resize', () => { drawRes(); anim.redraw(); });
+  restart(); update();
+
+  mountQuiz(q('.fo-quiz'), () => {
+    const m = pick(5, 20) / 10, k = pick(4, 20) * 5, b = pick(2, 10) / 10, F0 = pick(1, 4) / 2, rr = one([0.5, 2]);
+    const p = oscParams(m, k, b), off = drivenResponse(m, k, b, F0, rr * p.w0).A;
+    return [
+      { q: `A ${m} kg block is on a spring of k = ${k} N/m. What is its natural frequency in hertz?`, ans: p.w0 / (2 * Math.PI), unit: 'Hz', work: `ω₀ = √(k/m) = √(${k} / ${m}) = ${r(p.w0, 4)} rad/s, f₀ = ω₀ / 2π = ${r(p.w0 / (2 * Math.PI))} Hz` },
+      { q: `With damping b = ${b} kg/s, how long does it take for the swings to halve? (amplitude ∝ e^(−bt/2m))`, ans: p.tau * Math.LN2, unit: 's', work: `e^(−bt/2m) = ½ gives t = 2m ln 2 / b = 2 × ${m} × 0.693 / ${b} = ${r(p.tau * Math.LN2)} s` },
+      { q: `It is pushed by F₀ = ${F0} N at exactly ω₀. Roughly what is the steady amplitude, in cm? (At ω₀, A = F₀ / (b ω₀).)`, ans: (F0 / (b * p.w0)) * 100, unit: 'cm', work: `At ω = ω₀ the spring and mass terms cancel: A = F₀ / (b ω₀) = ${F0} / (${b} × ${r(p.w0, 4)}) = ${r(F0 / (b * p.w0), 3)} m = ${r((F0 / (b * p.w0)) * 100)} cm` },
+      { q: `Now it is pushed at ${rr} × ω₀ instead. What is the steady amplitude, in cm?`, ans: off * 100, unit: 'cm', work: `ω = ${r(rr * p.w0, 4)} rad/s. A = F₀ / √((k − mω²)² + (bω)²) = ${F0} / √((${k} − ${r(m * (rr * p.w0) ** 2, 4)})² + (${r(b * rr * p.w0, 4)})²) = ${r(off * 100)} cm` },
+      { q: 'More damping makes the resonance peak …', ans: 1, choices: ['taller and narrower', 'lower and wider', 'move to a much higher frequency'], work: 'Damping takes energy away every swing, so the steady amplitude at resonance (about F₀ / bω₀) falls and the peak spreads out. The peak moves only slightly, to a little below ω₀.' },
+    ];
+  });
+</script>

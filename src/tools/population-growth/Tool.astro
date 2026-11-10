@@ -1,0 +1,170 @@
+---
+// Population growth: exponential (J-shaped) and logistic (S-shaped) growth with r and K sliders, the
+// dN/dt against N graph, and three age-pyramid shapes. Class 12 Biology, organisms and populations.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax pgr">
+  <div class="ax-card">
+    <h2>Grow a population</h2>
+    <label>Story <select class="pg-st">
+      <option value="bact" selected>Bacteria in a flask</option>
+      <option value="deer">Deer on an island</option>
+      <option value="fish">Fish in a new pond</option>
+      <option value="own">My own numbers</option>
+    </select></label>
+    <p class="ax-help pg-story"></p>
+    <div class="ax-grid pg-gap">
+      <label>Start size N₀: <b class="pg-n0v"></b><input type="range" class="pg-n0" min="1" max="200" step="1" value="10" aria-label="Starting population" /></label>
+      <label>Growth rate r: <b class="pg-rv"></b><input type="range" class="pg-r" min="0.05" max="1.5" step="0.01" value="0.5" aria-label="Intrinsic rate of natural increase r" /></label>
+      <label>Carrying capacity K: <b class="pg-kv"></b><input type="range" class="pg-k" min="100" max="2000" step="10" value="1000" aria-label="Carrying capacity K" /></label>
+      <label>Time t: <b class="pg-tv"></b><input type="range" class="pg-t" min="0" max="40" step="0.5" value="10" aria-label="Time" /></label>
+    </div>
+    <div class="ax-row pg-gap"><span class="pg-lab">Show</span><div class="ax-seg pg-show" role="group" aria-label="Which growth"><button type="button" data-v="both" aria-pressed="true">Both</button><button type="button" data-v="exp" aria-pressed="false">Exponential</button><button type="button" data-v="log" aria-pressed="false">Logistic</button></div></div>
+    <canvas class="ax-fig pg-fig" role="img"></canvas>
+    <div class="ax-legend"><span><i class="pg-ke"></i>exponential (J)</span><span><i class="pg-kl"></i>logistic (S)</span><span><i class="pg-kk"></i>carrying capacity K</span></div>
+    <dl class="ax-facts pg-facts"></dl>
+    <p class="pg-formula"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>How fast is it growing? (dN/dt against N)</h2>
+    <canvas class="ax-fig pg-rate" role="img"></canvas>
+    <p class="ax-help">Exponential: the more there are, the faster they grow, for ever (a straight line). Logistic: growth is fastest at N = K/2 and stops at K (an upside-down U).</p>
+    <p class="pg-rsay"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Age pyramids</h2>
+    <div class="ax-seg pg-pyr" role="group" aria-label="Pyramid shape"><button type="button" data-v="expanding" aria-pressed="true">Expanding</button><button type="button" data-v="stable" aria-pressed="false">Stable</button><button type="button" data-v="declining" aria-pressed="false">Declining</button></div>
+    <canvas class="ax-fig pg-pfig" role="img"></canvas>
+    <p class="pg-psay"></p>
+    <p class="ax-help">Made-up teaching shapes: the share of the population in each 10-year age group. To draw a real country's pyramid from your own numbers, use the population pyramid tool.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="pg-try">
+      <li>Slide time to 20: the exponential curve shoots off the top while the logistic one flattens at K.</li>
+      <li>Find where the logistic curve is steepest. Check that N is K/2 there.</li>
+      <li>Double r. What happens to the doubling time?</li>
+      <li>Start above K (fish story, then raise N₀): the logistic population shrinks back down to K.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="pg-quiz" />
+</div>
+
+<script>
+  import { expN, logN, expRate, logRate, doubling, logTimeTo, maxRate, PYRAMIDS, groups } from '../../lib/sci/pop-growth-r';
+  import { paint, type Palette } from '../../lib/report';
+  import { view, axes, curve, line, dot, label, px, py, fmt, FONT } from '../../lib/sm-graph';
+  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.pgr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const n = (c: string) => +q<HTMLInputElement>(c).value;
+  const W = 380, TMAX = 40;
+  const STORIES: Record<string, { v: [number, number, number, number]; note: string }> = {
+    bact: { v: [10, 0.5, 1000, 10], note: 'Made-up numbers: 10 bacteria in a flask of broth that can feed about 1000 (in thousands), r = 0.5 per hour.' },
+    deer: { v: [20, 0.25, 400, 12], note: 'Made-up numbers: 20 deer reach an island with grass for about 400; r = 0.25 per year.' },
+    fish: { v: [150, 0.6, 300, 4], note: 'Made-up numbers: a pond that holds about 300 fish is stocked with 150; r = 0.6 per year.' },
+  };
+  let show = 'both', pyr: keyof typeof PYRAMIDS = 'expanding';
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+
+  function run() {
+    const st = q<HTMLSelectElement>('.pg-st').value;
+    q('.pg-story').textContent = st === 'own' ? 'Set your own start size, r and K.' : STORIES[st].note;
+    const n0 = n('.pg-n0'), r = n('.pg-r'), K = n('.pg-k'), t = n('.pg-t');
+    q('.pg-n0v').textContent = String(n0); q('.pg-rv').textContent = fmt(r, 2); q('.pg-kv').textContent = String(K); q('.pg-tv').textContent = fmt(t, 1);
+    const E = expN(n0, r, t), L = logN(n0, r, K, t);
+    const ymax = Math.max(K, n0) * 1.5;
+    const v = view(0, TMAX, 0, ymax, W, 240, { l: 44, r: 10, t: 10, b: 24 });
+    paint(q<HTMLCanvasElement>('.pg-fig'), { w: W, h: 240, alt: `Population over time: at t = ${t}, exponential ${String(Math.round(E))}, logistic ${String(Math.round(L))}`, draw: (ctx, w, h, pl: Palette) => {
+      axes(ctx, v, pl, { xName: 'time t', yName: 'N' });
+      line(ctx, v, 0, K, TMAX, K, pl.good, 1.5, [6, 4]); label(ctx, v, TMAX, K, 'K', pl.good, -4, -3, 'right');
+      if (show !== 'log') curve(ctx, v, (x) => expN(n0, r, x), pl.bad, 2.5);
+      if (show !== 'exp') curve(ctx, v, (x) => logN(n0, r, K, x), pl.accent, 2.5);
+      line(ctx, v, t, 0, t, ymax, pl.muted, 1, [2, 3]);
+      if (show !== 'log' && E <= ymax) dot(ctx, v, t, E, pl.bad, 5);
+      if (show !== 'exp') dot(ctx, v, t, L, pl.accent, 5);
+      if (show !== 'exp' && n0 < K / 2) { const th = logTimeTo(n0, r, K, K / 2); dot(ctx, v, th, K / 2, pl.accent, 4, true, pl.bg); label(ctx, v, th, K / 2, 'steepest', pl.accent, 8, 4); }
+    } });
+    const mr = maxRate(r, K);
+    const f = [
+      fact('Exponential N', E > 1e9 ? '> 1 000 000 000' : fmt(E, 1), `N₀e^(rt) = ${n0} × e^(${fmt(r, 2)} × ${fmt(t, 1)})`),
+      fact('Logistic N', fmt(L, 1), `${fmt((100 * L) / K, 1)} % of K`),
+      fact('Doubling time', fmt(doubling(r), 2), 'ln 2 ÷ r, for exponential growth'),
+      fact('Fastest logistic growth', `${fmt(mr.rate, 1)} per unit time`, `at N = K/2 = ${String(Math.round(mr.n))}`),
+    ];
+    if (n0 < K / 2) f.push(fact('Time to reach K/2', fmt(logTimeTo(n0, r, K, K / 2), 2), 'logistic'));
+    q('.pg-facts').replaceChildren(...f);
+    q('.pg-formula').textContent = `dN/dt = rN = ${fmt(r, 2)} × ${fmt(E, 1)} = ${fmt(expRate(r, E), 1)} (exponential);  dN/dt = rN(1 − N/K) = ${fmt(r, 2)} × ${fmt(L, 1)} × (1 − ${fmt(L, 1)}/${K}) = ${fmt(logRate(r, K, L), 1)} (logistic).`;
+    // dN/dt against N
+    const nmax = Math.max(K, n0) * 1.2, rmax = Math.max(r * nmax, 1);
+    const v2 = view(0, nmax, Math.min(0, logRate(r, K, nmax)), rmax * 1.05, W, 220, { l: 44, r: 10, t: 10, b: 24 });
+    paint(q<HTMLCanvasElement>('.pg-rate'), { w: W, h: 220, alt: `Growth rate against N; fastest logistic growth ${fmt(mr.rate, 1)} at N = ${String(Math.round(mr.n))}`, draw: (ctx, w, h, pl: Palette) => {
+      axes(ctx, v2, pl, { xName: 'N', yName: 'dN/dt' });
+      if (show !== 'log') curve(ctx, v2, (x) => expRate(r, x), pl.bad, 2.5);
+      if (show !== 'exp') { curve(ctx, v2, (x) => logRate(r, K, x), pl.accent, 2.5); dot(ctx, v2, L, logRate(r, K, L), pl.accent, 5); dot(ctx, v2, mr.n, mr.rate, pl.accent, 4, true, pl.bg); }
+      if (show !== 'log' && E <= nmax) dot(ctx, v2, E, expRate(r, E), pl.bad, 5);
+      line(ctx, v2, K, v2.y0, K, v2.y1, pl.good, 1.5, [6, 4]); label(ctx, v2, K, v2.y1, 'K', pl.good, -4, 14, 'right');
+    } });
+    q('.pg-rsay').textContent = L >= K * 0.98 && L <= K * 1.02 ? 'The logistic population is at K: births balance deaths, so dN/dt ≈ 0.' : L > K ? 'Above K, dN/dt is negative: there are more deaths than births until N falls to K.' : L < K / 2 ? 'Below K/2: the logistic growth rate is still rising as N grows.' : 'Between K/2 and K: the population still grows, but more slowly as resources run short.';
+    drawPyr();
+  }
+
+  function drawPyr() {
+    const p = PYRAMIDS[pyr], g = groups(p), H = 9 * 24 + 30;
+    paint(q<HTMLCanvasElement>('.pg-pfig'), { w: W, h: H, alt: `${pyr} age pyramid: ${g.young} % under 20, ${g.old} % aged 60 or more`, draw: (ctx, w, h, pl: Palette) => {
+      const cx = w / 2 + 16, sc = (w / 2 - 40) / 28;
+      ctx.font = FONT; ctx.textBaseline = 'middle';
+      p.forEach((s, i) => {
+        const y = h - 30 - (i + 1) * 24 + 2, half = (s / 2) * sc * 2;
+        ctx.fillStyle = i < 2 ? pl.accent : i < 6 ? pl.good : pl.accent2;
+        ctx.fillRect(cx - half, y, half * 2, 20);
+        ctx.fillStyle = pl.muted; ctx.textAlign = 'left'; ctx.fillText(i === 8 ? '80+' : `${i * 10}-${i * 10 + 9}`, 4, y + 10);
+        ctx.textAlign = 'left'; ctx.fillStyle = pl.ink; ctx.fillText(`${s} %`, cx + half + 4, y + 10);
+      });
+      ctx.fillStyle = pl.muted; ctx.textAlign = 'center'; ctx.fillText('share of the population by age', cx, h - 12);
+    } });
+    const why = { expanding: 'Expanding (a wide base): many young people, so the population will grow fast. Typical of a population with high birth rates.', stable: 'Stable (straight sides, like a bell): about the same number in each young age group, so the population stays about the same size.', declining: 'Declining (a narrow base, like an urn): fewer young than middle-aged people, so the population will shrink.' }[pyr];
+    q('.pg-psay').textContent = `${why} Under 20: ${g.young} %, 20 to 59: ${g.working} %, 60 and over: ${g.old} %.`;
+  }
+
+  q('.pg-st').addEventListener('change', () => {
+    const st = q<HTMLSelectElement>('.pg-st').value;
+    if (st !== 'own') { const [a, b, c, d] = STORIES[st].v; q<HTMLInputElement>('.pg-n0').value = String(a); q<HTMLInputElement>('.pg-r').value = String(b); q<HTMLInputElement>('.pg-k').value = String(c); q<HTMLInputElement>('.pg-t').value = String(d); }
+    run();
+  });
+  root.querySelectorAll('.pg-n0, .pg-r, .pg-k').forEach((e) => e.addEventListener('input', () => { q<HTMLSelectElement>('.pg-st').value = 'own'; run(); }));
+  q('.pg-t').addEventListener('input', run);
+  const seg = (sel: string, set: (v: string) => void) => root.querySelectorAll<HTMLButtonElement>(`${sel} button`).forEach((b) => b.addEventListener('click', () => { root.querySelectorAll(`${sel} button`).forEach((x) => x.setAttribute('aria-pressed', String(x === b))); set(b.dataset.v!); run(); }));
+  seg('.pg-show', (v) => { show = v; }); seg('.pg-pyr', (v) => { pyr = v as typeof pyr; });
+  document.addEventListener('fibub:theme', run);
+  run();
+
+  quiz(q('.pg-quiz'), (): Question[] => {
+    const n0 = pick([10, 20, 50, 100]), r = pick([0.1, 0.2, 0.25, 0.5]), K = pick([200, 400, 500, 1000]), N = rint(2, 8) * K / 10;
+    const r2 = pick([0.05, 0.1, 0.2, 0.35]), K2 = pick([600, 800, 1000]);
+    const shapes: Question = (() => { const s = pick(['expanding', 'stable', 'declining'] as const); const ch = ['Expanding', 'Stable', 'Declining']; return { text: `A pyramid with ${s === 'expanding' ? 'a very wide base and a narrow top' : s === 'stable' ? 'nearly straight sides up to old age' : 'a base narrower than the middle'} is…`, choices: ch, correct: ['expanding', 'stable', 'declining'].indexOf(s), worked: 'Wide base: many young, growing. Straight sides: steady. Narrow base: fewer young, shrinking.' }; })();
+    return [
+      { text: `Exponential growth: N₀ = ${n0}, r = ${r} per year. What is N after ${1 / r} years? (to 1 decimal place)`, answer: n0 * Math.E, tol: 0.06, worked: `N = N₀e^(rt) = ${n0} × e^(${r} × ${1 / r}) = ${n0} × e = ${fmt(n0 * Math.E, 2)}.` },
+      { text: `Logistic growth with r = ${r} and K = ${K}. What is dN/dt when N = ${N}?`, answer: logRate(r, K, N), tol: 1e-6, worked: `dN/dt = rN(1 − N/K) = ${r} × ${N} × (1 − ${N}/${K}) = ${fmt(logRate(r, K, N), 3)}.` },
+      { text: `r = ${r2}, K = ${K2}. At which population size N is logistic growth fastest?`, answer: K2 / 2, tol: 0, worked: `Fastest at N = K/2 = ${K2 / 2}, where dN/dt = rK/4 = ${fmt((r2 * K2) / 4, 2)}.` },
+      { text: `A population grows exponentially with r = ${r2} per day. What is its doubling time in days? (2 decimal places)`, answer: Math.LN2 / r2, tol: 0.006, worked: `Doubling time = ln 2 / r = 0.6931 / ${r2} = ${fmt(Math.LN2 / r2, 2)} days.` },
+      shapes,
+    ];
+  });
+</script>
+
+<style is:inline>
+  .pgr .pg-gap { margin-top: 10px; }
+  .pgr .pg-lab { font-size: 14px; color: var(--muted); }
+  .pgr input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .pgr .pg-fig, .pgr .pg-pfig { margin-top: 10px; }
+  .pgr .pg-ke { background: var(--bad); } .pgr .pg-kl { background: var(--accent); } .pgr .pg-kk { background: var(--good); }
+  .pgr .pg-formula, .pgr .pg-rsay, .pgr .pg-psay { font-weight: 600; margin: 10px 0 0; }
+  .pgr .pg-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+</style>

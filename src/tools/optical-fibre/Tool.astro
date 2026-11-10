@@ -1,0 +1,157 @@
+---
+// Total internal reflection and the optical fibre for school (Class 12 ray optics): a ray enters the end of a fibre,
+// bounces along the core by total internal reflection, and may leak out at a tight bend. Critical angle, numerical
+// aperture and acceptance angle. Maths in src/lib/sci/q-fibre.ts.
+import '../../styles/astro.css';
+---
+<div class="ax ofb">
+  <div class="ax-card">
+    <div class="ax-row ofb-top">
+      <div class="ax-seg ofb-shape" role="group" aria-label="Fibre shape">
+        <button type="button" data-s="bent" aria-pressed="true">Bent fibre</button><button type="button" data-s="straight" aria-pressed="false">Straight</button>
+      </div>
+      <div class="ax-seg ofb-level" role="group" aria-label="Level">
+        <button type="button" data-l="12" aria-pressed="true">Class 12</button><button type="button" data-l="more" aria-pressed="false">Going further</button>
+      </div>
+    </div>
+    <canvas class="ax-fig ofb-fig" aria-label="A ray of light inside an optical fibre"></canvas>
+    <div class="ax-grid">
+      <label>Angle the light comes in at θ: <b class="ofb-tv"></b><input class="ofb-t" type="range" min="0" max="80" step="1" value="20" /></label>
+      <label>Bend radius: <b class="ofb-rv"></b><input class="ofb-r" type="range" min="25" max="200" step="5" value="100" /></label>
+      <label>Core index n₁: <b class="ofb-n1v"></b><input class="ofb-n1" type="range" min="1.40" max="1.80" step="0.01" value="1.50" /></label>
+      <label>Cladding index n₂: <b class="ofb-n2v"></b><input class="ofb-n2" type="range" min="1.00" max="1.79" step="0.01" value="1.30" /></label>
+    </div>
+    <p class="ax-help">The picture is not to scale: a real fibre's core is thinner than a hair and its bends are far gentler. The core is 20 units wide and the bend radius is in the same units, so a bend radius of 100 is five core widths. Cladding index 1.00 means bare glass in air.</p>
+  </div>
+
+  <div class="ax-card ofb-out">
+    <p class="ax-big ofb-big"></p>
+    <dl class="ax-facts ofb-facts"></dl>
+    <pre class="ofb-formula"></pre>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="ofb-try">
+      <li>Slide θ up slowly on the straight fibre. Up to a certain angle every ray reaches the far end; beyond it the light leaks out on its first bounce.</li>
+      <li>Bend the fibre more tightly (smaller bend radius). At the outside of the bend the ray hits the wall more steeply, and some rays escape.</li>
+      <li>Make the cladding index closer to the core index. The critical angle grows, so fewer rays are trapped: that is the price paid for a fibre that keeps pulses sharp.</li>
+      <li>Set the cladding to 1.00 (glass in air). Almost everything is trapped, which is why a bent glass rod or a stream of water can carry light.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh numbers each time. Angles in degrees. Nothing is saved.</p>
+    <div class="ofb-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .ofb input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; }
+  .ofb-top { justify-content: space-between; margin-bottom: 8px; }
+  .ofb .ax-seg button { min-height: 40px; }
+  .ofb-fig { border: 1px solid var(--line); margin: 4px auto; max-width: 520px; }
+  .ofb-formula { font: 15px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; margin: 12px 0 0; padding: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
+  .ofb-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+</style>
+
+<script>
+  import { traceFibre, critical, numericalAperture, acceptance, type Fibre, type Pt } from '../../lib/sci/q-fibre';
+  import { paint, type Figure } from '../../lib/report';
+  const sig = (x: number, n = 3) => String(Number(x.toPrecision(n)));
+  import { mountQuiz, pick, randInt, type Question } from '../../lib/school-quiz';
+
+  const root = document.querySelector<HTMLElement>('.ofb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const st = { shape: 'bent', level: '12' };
+  const num = (c: string) => Number(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const dg = (x: number) => `${sig(x, 3)}°`;
+  const A = 10;
+  const fibreOf = (): Fibre => (st.shape === 'straight' ? { a: A, L1: 380, R: null, L2: 0 } : { a: A, L1: 140, R: num('.ofb-r'), L2: 80 });
+
+  function fig(f: Fibre, tr: ReturnType<typeof traceFibre>, theta: number): Figure {
+    const W = 400, H = 300;
+    return { w: W, h: H, alt: `Ray in an optical fibre: ${tr.fate === 'out' ? 'reaches the end' : 'leaks out'}`, draw: (ctx, w, h, pal) => {
+      const C = 3 * A; // cladding half-width
+      const x0 = -70, x1 = f.R === null ? f.L1 + 10 : f.L1 + f.R + C + 10, y0 = f.R === null ? -C - 40 : -C - 10, y1 = f.R === null ? C + 40 : f.R + f.L2 + 10;
+      const s = Math.min((W - 16) / (x1 - x0), (H - 16) / (y1 - y0));
+      const ox = 8 + ((W - 16) - s * (x1 - x0)) / 2 - s * x0, oy = H - 8 - ((H - 16) - s * (y1 - y0)) / 2 + s * y0;
+      const X = (p: Pt): [number, number] => [ox + s * p[0], oy - s * p[1]];
+      const band = (half: number, fill: string, alpha: number) => {
+        ctx.globalAlpha = alpha; ctx.fillStyle = fill; ctx.beginPath();
+        if (f.R === null) { const [ax, ay] = X([0, half]), [bx, by] = X([f.L1, -half]); ctx.rect(ax, ay, bx - ax, by - ay); }
+        else {
+          const R = f.R; const a1 = X([0, half]); ctx.moveTo(a1[0], a1[1]);
+          const p = X([f.L1, half]); ctx.lineTo(p[0], p[1]);
+          const c = X([f.L1, R]); ctx.arc(c[0], c[1], s * (R - half), Math.PI / 2, 0, true);
+          const t1 = X([f.L1 + R - half, R + f.L2]); ctx.lineTo(t1[0], t1[1]);
+          const t2 = X([f.L1 + R + half, R + f.L2]); ctx.lineTo(t2[0], t2[1]);
+          const t3 = X([f.L1 + R + half, R]); ctx.lineTo(t3[0], t3[1]);
+          ctx.arc(c[0], c[1], s * (R + half), 0, Math.PI / 2, false);
+          const b0 = X([0, -half]); ctx.lineTo(b0[0], b0[1]); ctx.closePath();
+        }
+        ctx.fill(); ctx.globalAlpha = 1;
+      };
+      band(C, pal.muted, 0.18); band(A, pal.accent, 0.22);
+      ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      const lab = X([f.L1 * 0.35, -A - 4]); ctx.fillText('cladding n₂', lab[0], lab[1]);
+      const lab2 = X([f.L1 * 0.35, A - 2]); ctx.fillStyle = pal.ink; ctx.fillText('core n₁', lab2[0], lab2[1]);
+      // Incoming ray from air.
+      const din: Pt = [Math.cos(theta * Math.PI / 180), Math.sin(theta * Math.PI / 180)];
+      const st0 = X([-60 * din[0], -60 * din[1]]), e0 = X([0, 0]);
+      ctx.strokeStyle = pal.bad; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(st0[0], st0[1]); ctx.lineTo(e0[0], e0[1]);
+      for (const p of tr.pts) { const [x, y] = X(p); ctx.lineTo(x, y); }
+      ctx.stroke();
+      const last = tr.pts[tr.pts.length - 1];
+      if (tr.fate === 'leak' && tr.leakDir) {
+        ctx.setLineDash([5, 4]); const e = X([last[0] + 3 * C * tr.leakDir[0], last[1] + 3 * C * tr.leakDir[1]]), a0 = X(last);
+        ctx.beginPath(); ctx.moveTo(a0[0], a0[1]); ctx.lineTo(e[0], e[1]); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = pal.bad; ctx.beginPath(); ctx.arc(a0[0], a0[1], 5, 0, 2 * Math.PI); ctx.fill();
+      }
+      ctx.fillStyle = tr.fate === 'out' ? pal.good : pal.bad; ctx.font = '600 13px system-ui, sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+      ctx.fillText(tr.fate === 'out' ? 'Light reaches the far end' : 'Light leaks out', W - 8, 8);
+    } };
+  }
+
+  let figs: [HTMLCanvasElement, Figure][] = [];
+  function draw() {
+    const th = num('.ofb-t'), n1 = num('.ofb-n1'), n2in = num('.ofb-n2'), R = num('.ofb-r');
+    const n2 = Math.min(n2in, n1 - 0.01);
+    q('.ofb-tv').textContent = `${th}°`; q('.ofb-rv').textContent = String(R); q('.ofb-n1v').textContent = n1.toFixed(2); q('.ofb-n2v').textContent = n2.toFixed(2) + (n2 < n2in ? ' (kept below n₁)' : '');
+    q('.ofb-r').closest('label')!.toggleAttribute('hidden', st.shape === 'straight');
+    const f = fibreOf(), tr = traceFibre(f, n1, n2, th);
+    figs = [[q('.ofb-fig'), fig(f, tr, th)]];
+    for (const [c, fg] of figs) paint(c, fg);
+    const C = critical(n1, n2)!, r = Math.asin(Math.sin(th * Math.PI / 180) / n1) * 180 / Math.PI, wall = 90 - r;
+    const NA = numericalAperture(n1, n2), acc = acceptance(n1, n2);
+    q('.ofb-big').textContent = tr.fate === 'out' ? `Guided to the far end: ${tr.reflections} total internal reflection${tr.reflections === 1 ? '' : 's'}` : `Leaks out after ${tr.reflections} reflection${tr.reflections === 1 ? '' : 's'}: the ray met the wall at ${dg(tr.minIncidence)}, less than ${dg(C)}`;
+    const F = [fact('Critical angle C', dg(C), 'core to cladding'), fact('Angle inside the core r', dg(r), 'to the fibre axis'), fact('Angle at the wall (straight part)', dg(wall), wall > C ? 'more than C: reflected' : 'less than C: escapes'), fact('Steepest hit on the wall', dg(tr.minIncidence), 'smallest angle of incidence on this path')];
+    const L = [`sin C = n₂ / n₁ = ${n2.toFixed(2)} / ${n1.toFixed(2)} = ${sig(n2 / n1, 4)} → C = ${dg(C)}`, `Entering: sin θ = n₁ sin r → sin r = sin ${th}° / ${n1.toFixed(2)} → r = ${dg(r)}`, `Straight part: the ray meets the wall at 90° − r = ${dg(wall)} ${wall > C ? '>' : '<'} C, so it is ${wall > C ? 'totally reflected' : 'partly let out'}`];
+    if (st.level === 'more') {
+      F.push(fact('Numerical aperture NA', sig(NA, 3)), fact('Acceptance angle θa', dg(acc), 'largest θ that is still trapped (straight fibre)'));
+      L.push(`NA = √(n₁² − n₂²) = √(${n1.toFixed(2)}² − ${n2.toFixed(2)}²) = ${sig(NA, 3)}`, NA >= 1 ? `NA ≥ 1, so every ray from air is trapped (θa = 90°)` : `sin θa = NA → θa = ${dg(acc)}`);
+    }
+    q('.ofb-facts').replaceChildren(...F);
+    q('.ofb-formula').textContent = L.join('\n');
+  }
+
+  const segs = (sel: string, key: 'shape' | 'level', attr: string) => root.querySelectorAll<HTMLButtonElement>(`${sel} button`).forEach((b) => b.addEventListener('click', () => {
+    st[key] = b.dataset[attr]!; root.querySelectorAll<HTMLButtonElement>(`${sel} button`).forEach((x) => x.setAttribute('aria-pressed', String(x === b))); draw();
+  }));
+  segs('.ofb-shape', 'shape', 's'); segs('.ofb-level', 'level', 'l');
+  for (const c of ['.ofb-t', '.ofb-r', '.ofb-n1', '.ofb-n2']) q(c).addEventListener('input', draw);
+  document.addEventListener('fibub:theme', () => { for (const [c, f] of figs) paint(c, f); });
+
+  const d2 = (x: number) => Math.round(x * 10) / 10;
+  const make = (): Question => {
+    const t = pick(['glass', 'clad', 'n', 'na']);
+    if (t === 'glass') { const n = pick([1.33, 1.4, 1.5, 1.6, 1.7, 2.0, 2.42]); const C = critical(n, 1)!; return { text: `Find the critical angle for light going from a material of refractive index ${n} into air (1 decimal place).`, unit: '°', answer: d2(C), tol: 0.15, work: [`sin C = 1 / n = 1 / ${n} = ${sig(1 / n, 4)}`, `C = ${d2(C).toFixed(1)}`] }; }
+    if (t === 'clad') { const n1 = pick([1.48, 1.5, 1.52, 1.55]), n2 = n1 - pick([0.02, 0.04, 0.05, 0.08, 0.1]); const C = critical(n1, n2)!; return { text: `A fibre has a core of index ${n1} and cladding of index ${n2.toFixed(2)}. What is the critical angle at the core-cladding boundary (1 decimal place)?`, unit: '°', answer: d2(C), tol: 0.15, work: [`sin C = n₂ / n₁ = ${n2.toFixed(2)} / ${n1} = ${sig(n2 / n1, 4)}`, `C = ${d2(C).toFixed(1)}`] }; }
+    if (t === 'n') { const C = randInt(30, 60); const n = 1 / Math.sin(C * Math.PI / 180); return { text: `The critical angle for a transparent solid in air is ${C}°. Find its refractive index (2 decimal places).`, answer: Math.round(n * 100) / 100, tol: 0.011, work: [`n = 1 / sin C = 1 / sin ${C}° = 1 / ${sig(Math.sin(C * Math.PI / 180), 4)}`, `n = ${(Math.round(n * 100) / 100).toFixed(2)}`] }; }
+    const n1 = pick([1.5, 1.52, 1.6]), n2 = pick([1.3, 1.35, 1.4, 1.45]); const NA = numericalAperture(n1, n2); return { text: `A fibre has n₁ = ${n1} and n₂ = ${n2}. What is its numerical aperture NA = √(n₁² − n₂²) (3 decimal places)?`, answer: Math.round(NA * 1000) / 1000, tol: 0.0011, work: [`NA = √(${n1}² − ${n2}²) = √(${sig(n1 * n1 - n2 * n2, 5)})`, `NA = ${(Math.round(NA * 1000) / 1000).toFixed(3)}`] };
+  };
+  mountQuiz(q('.ofb-quiz'), make, 4);
+  draw();
+</script>

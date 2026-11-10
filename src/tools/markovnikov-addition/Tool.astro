@@ -1,0 +1,141 @@
+---
+// Markovnikov addition predictor: pick an alkene and HBr, HCl, HI or water, with or without a peroxide. The two
+// possible carbocations (or radicals) are compared, the more stable one wins on an energy profile, and the
+// product is named. Class 11 chemistry, hydrocarbons (alkenes).
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+import { ALKENES } from '../../lib/sci/markovnikov-addition';
+---
+<div class="ax mkx">
+  <div class="ax-card">
+    <div class="ax-grid">
+      <label>Alkene <select class="mk-a">{ALKENES.map((a) => <option value={a.id}>{a.name}, {a.formula}</option>)}</select></label>
+      <label>Add <select class="mk-r"><option value="HBr" selected>HBr</option><option value="HCl">HCl</option><option value="HI">HI</option><option value="H2O">H₂O with acid (H⁺)</option></select></label>
+    </div>
+    <label class="ax-check mk-px-l"><input type="checkbox" class="mk-px" /> Peroxide present (for example benzoyl peroxide)</label>
+    <p class="ax-big mk-big" aria-live="polite"></p>
+    <p class="mk-prod"></p>
+    <canvas class="ax-fig mk-fig" role="img"></canvas>
+    <p class="ax-help mk-figcap"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="mk-h1"></h2>
+    <div class="mk-opts"></div>
+    <h2 class="mk-h2"></h2>
+    <p class="mk-s2"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Why is a 3° carbocation the most stable?</h2>
+    <ul class="mk-try">
+      <li><b>Inductive effect (+I):</b> each alkyl group pushes a little electron density toward the positive carbon, spreading the charge. More alkyl groups, more help.</li>
+      <li><b>Hyperconjugation:</b> C–H bonds on the carbons next door (α-hydrogens) share their electrons with the empty orbital. The page counts them for each cation.</li>
+      <li>Order: tertiary (3°) &gt; secondary (2°) &gt; primary (1°) &gt; methyl. Free radicals follow the same order, which is why the peroxide path picks the same carbon for the radical but ends with Br on the other one.</li>
+    </ul>
+    <h2>Try this</h2>
+    <ul class="mk-try">
+      <li>Propene + HBr, then tick Peroxide. The bromine jumps from carbon 2 to carbon 1.</li>
+      <li>Keep the peroxide and switch to HCl. Nothing changes: the peroxide effect works only for HBr.</li>
+      <li>But-2-ene: both carbons give the same kind of cation, so there is only one product.</li>
+      <li>2-Methylpropene + water with acid gives a tertiary alcohol. Which?</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="mk-quiz" />
+</div>
+
+<script>
+  import { ALKENES, predict, klass, GROUP, PREFIX, type Reagent } from '../../lib/sci/markovnikov-addition';
+  import { paint, type Figure } from '../../lib/report';
+  import { quiz, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.mkx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380, H = 230;
+  const rg = (r: Reagent) => (r === 'H2O' ? 'H₂O' : r);
+  const el = (tag: string, cls: string, text: string) => { const e = document.createElement(tag); e.className = cls; e.textContent = text; return e; };
+  const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
+
+  function run() {
+    const a = ALKENES.find((x) => x.id === q<HTMLSelectElement>('.mk-a').value)!, r = q<HTMLSelectElement>('.mk-r').value as Reagent, px = q<HTMLInputElement>('.mk-px').checked;
+    q('.mk-px-l').hidden = r === 'H2O';
+    const p = predict(a, r, px && r !== 'H2O'), rad = p.mode === 'radical';
+    q('.mk-big').textContent = `${a.name} + ${rg(r)} → ${p.name}`;
+    q('.mk-prod').textContent = `${a.formula} + ${rg(r)} → ${p.product}. ${p.tie ? 'Both carbons of the double bond are alike, so there is only one product.' : rad ? 'Anti-Markovnikov: the Br ends on the carbon with more hydrogens (peroxide effect).' : 'Markovnikov: the H goes to the carbon that already has more hydrogens, and the ' + GROUP[r] + ' to the other one.'}`;
+    // Option cards: the charged/radical carbon may be side 0 or side 1.
+    const dot = rad ? '•' : '⁺';
+    const opts = [0, 1].map((i) => {
+      const s = a.sides[i], str = rad ? a.cation[i].replace('⁺', '•') : a.cation[i];
+      const card = document.createElement('div'); card.className = 'mk-opt';
+      const win = rad ? i === 1 - p.xSide : i === p.xSide;
+      card.classList.toggle('mk-win', win || p.tie);
+      card.append(el('p', 'mk-ion', str));
+      card.append(el('p', 'mk-cls', `${cap(klass(s.alkyl))} ${rad ? 'radical' : 'carbocation'}: ${s.alkyl + 1} carbon${s.alkyl ? 's' : ''} on the ${dot} carbon, ${s.alphaH} α-H for hyperconjugation`));
+      card.append(el('p', 'mk-verdict', p.tie ? 'Same as the other: either way' : win ? 'More stable: this path wins' : 'Less stable: hardly forms'));
+      return card;
+    });
+    q('.mk-opts').replaceChildren(...(p.tie ? [opts[0]] : opts));
+    q('.mk-h1').textContent = rad ? `Step 1: a Br• radical adds to one end of the C=C` : `Step 1: H⁺ adds to one end of the C=C`;
+    q('.mk-h2').textContent = rad ? 'Step 2: the radical takes H from HBr' : `Step 2: ${GROUP[r] === 'OH' ? 'water' : GROUP[r] + '⁻'} joins the positive carbon`;
+    q('.mk-s2').textContent = rad
+      ? `The peroxide makes Br• radicals. Br• adds to the carbon with more hydrogens, leaving the more stable radical ${a.cation[1 - p.xSide].replace('⁺', '•')} (with Br on the other carbon). That radical pulls an H atom off HBr, making ${p.product} and a new Br• that keeps the chain going.`
+      : `${GROUP[r] === 'OH' ? 'A water molecule bonds to the positive carbon and loses H⁺' : `The ${GROUP[r]}⁻ ion bonds to the positive carbon`}, giving ${p.product} (${p.name}).`;
+    drawProfile(p.tie, rad);
+  }
+
+  function drawProfile(tie: boolean, rad: boolean) {
+    const fig: Figure = { w: W, h: H, alt: tie ? 'Energy profile: both paths are the same.' : `Energy profile: the path through the more stable ${rad ? 'radical' : 'carbocation'} has the lower hump, so it is faster and gives the main product.`, draw: (ctx, w, h, pl) => {
+      const x0 = 30, x1 = w - 20, yR = 150, low = 70, high = 40, yInt = (k: number) => (k ? 112 : 95);
+      ctx.strokeStyle = pl.muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x0, 20); ctx.lineTo(x0, h - 30); ctx.lineTo(x1, h - 30); ctx.stroke();
+      ctx.fillStyle = pl.muted; ctx.font = '12px system-ui, sans-serif'; ctx.save(); ctx.translate(14, 120); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.fillText('energy', 0, 0); ctx.restore();
+      ctx.textAlign = 'center'; ctx.fillText('reaction progress →', (x0 + x1) / 2, h - 14);
+      const path = (top: number, mid: number, col: string, wd: number, dash: number[]) => {
+        ctx.strokeStyle = col; ctx.lineWidth = wd; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x0 + 6, yR);
+        ctx.bezierCurveTo(x0 + 50, yR, x0 + 70, top, x0 + 100, top); ctx.bezierCurveTo(x0 + 130, top, x0 + 140, mid, x0 + 170, mid);
+        ctx.bezierCurveTo(x0 + 200, mid, x0 + 220, mid - 20, x0 + 240, mid - 20); ctx.bezierCurveTo(x0 + 260, mid - 20, x0 + 280, 180, x1, 180); ctx.stroke(); ctx.setLineDash([]);
+      };
+      if (!tie) path(high, yInt(0) - 15, pl.bad, 2, [6, 4]);
+      path(low, yInt(1) + 8, pl.good, 3.2, []);
+      ctx.fillStyle = pl.ink; ctx.textAlign = 'left';
+      ctx.fillText('alkene + ' + (rad ? 'Br•' : 'H⁺'), x0 + 6, yR + 16);
+      ctx.fillStyle = pl.good; ctx.fillText(tie ? 'one path' : `more stable ${rad ? 'radical' : 'cation'}: lower hump`, x0 + 104, low - 10);
+      if (!tie) { ctx.fillStyle = pl.bad; ctx.fillText(`less stable: higher hump`, x0 + 104, high - 10); }
+      ctx.fillStyle = pl.ink; ctx.textAlign = 'right'; ctx.fillText('product', x1, 196);
+    } };
+    paint(q<HTMLCanvasElement>('.mk-fig'), fig);
+    q('.mk-figcap').textContent = 'A sketch, not to scale: the step that makes the more stable intermediate needs less energy, so almost every molecule goes that way.';
+  }
+
+  root.querySelectorAll('select, input').forEach((e) => e.addEventListener('change', run));
+  document.addEventListener('fibub:theme', run);
+  run();
+
+  quiz(q('.mk-quiz'), (): Question[] => {
+    const a = pick(ALKENES.filter((x) => !(x.sides[0].alkyl === x.sides[1].alkyl))), r = pick(['HBr', 'HCl', 'HI'] as Reagent[]);
+    const m = predict(a, r, false), anti = predict(a, 'HBr', true);
+    const ch1 = [m.name, a.halide[1 - m.xSide].replace('X', PREFIX[r])].sort();
+    const ch2 = [anti.name, predict(a, 'HBr', false).name].sort();
+    return [
+      { text: `What is the main product of ${a.name} + ${r} (no peroxide)?`, choices: ch1, correct: ch1.indexOf(m.name), worked: `H⁺ adds to the carbon with more hydrogens, so the positive charge sits on the more substituted carbon (${a.cation[m.xSide]}). ${GROUP[r]}⁻ joins it: ${m.name}.` },
+      { text: `What is the main product of ${a.name} + HBr with a peroxide?`, choices: ch2, correct: ch2.indexOf(anti.name), worked: `With a peroxide, Br• adds first so that the more stable radical forms; Br ends on the carbon with more hydrogens: ${anti.name} (anti-Markovnikov).` },
+      { text: `Which carbocation is the most stable?`, choices: ['(CH₃)₃C⁺', '(CH₃)₂CH⁺', 'CH₃CH₂⁺'], correct: 0, worked: `Tertiary > secondary > primary: (CH₃)₃C⁺ has three methyl groups pushing electrons (+I) and nine α-H for hyperconjugation.` },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .mkx .mk-px-l { margin-top: 10px; }
+  .mkx .mk-big { margin: 12px 0 4px; overflow-wrap: anywhere; }
+  .mkx .mk-prod { margin: 0 0 8px; overflow-wrap: anywhere; }
+  .mkx .mk-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 10px; margin-bottom: 14px; }
+  .mkx .mk-opt { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .mkx .mk-opt.mk-win { border: 2px solid var(--good); }
+  .mkx .mk-opt p { margin: 0 0 4px; }
+  .mkx .mk-ion { font-size: 19px; font-weight: 700; overflow-wrap: anywhere; }
+  .mkx .mk-cls { font-size: 14px; color: var(--muted); }
+  .mkx .mk-verdict { font-weight: 600; }
+  .mkx .mk-win .mk-verdict { color: var(--good); }
+  .mkx .mk-opt:not(.mk-win) .mk-verdict { color: var(--bad); }
+  .mkx .mk-try { padding-left: 20px; display: grid; gap: 6px; margin: 0 0 12px; }
+</style>

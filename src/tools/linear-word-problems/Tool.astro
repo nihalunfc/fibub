@@ -1,0 +1,163 @@
+---
+// Linear word problems: pick a story (ages, tickets, boat in a stream, rectangle, banknotes), turn it into two
+// equations step by step, solve by substitution or elimination and see the two lines cross at the answer.
+// Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm lw">
+  <div class="ax-card">
+    <h2>Pick a story</h2>
+    <div class="lw-pick" role="group" aria-label="Story">
+      <button type="button" data-s="ages" aria-pressed="true">Ages</button>
+      <button type="button" data-s="tickets" aria-pressed="false">Tickets</button>
+      <button type="button" data-s="boat" aria-pressed="false">Boat in a stream</button>
+      <button type="button" data-s="rectangle" aria-pressed="false">Rectangle</button>
+      <button type="button" data-s="notes" aria-pressed="false">Banknotes</button>
+    </div>
+    <p class="lw-text"></p>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small lw-new">New numbers</button>
+    </div>
+    <p class="ax-help" style="margin-top:10px">Have a go on paper first. Then reveal the steps one at a time.</p>
+    <div class="ax-row">
+      <span class="ax-help" style="margin:0">Solve by</span>
+      <div class="ax-seg lw-m" role="group" aria-label="Method">
+        <button type="button" data-m="elim" aria-pressed="true">Elimination</button>
+        <button type="button" data-m="sub" aria-pressed="false">Substitution</button>
+      </div>
+    </div>
+    <ol class="lw-steps"></ol>
+    <div class="ax-row">
+      <button type="button" class="btn small lw-next">Next step</button>
+      <button type="button" class="btn secondary small lw-all">Show all</button>
+      <button type="button" class="btn secondary small lw-hide">Hide steps</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>The two lines</h2>
+    <svg class="sm-fig lw-fig" viewBox="0 0 340 300" role="img" aria-label="Graph of the two equations crossing at the answer"></svg>
+    <p class="ax-help lw-key"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Before revealing step 2, write the two equations yourself. Did you get the same ones (maybe in a different order)?</li>
+      <li>In the boat story, why is it x + y downstream and x − y upstream, and not the other way round?</li>
+      <li>Solve the same story by both methods. Which one needed fewer steps?</li>
+      <li>On the graph, read off where each line meets the axes. What do those points mean in the story?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh stories every time. Type the two answers in the order asked, separated by a comma. Nothing is saved.</p>
+    <div class="lw-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .lw .lw-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 120px), 1fr)); gap: 6px; margin-bottom: 10px; }
+  .lw .lw-pick button { min-height: 44px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); font: inherit; font-size: 14px; padding: 6px 8px; cursor: pointer; }
+  .lw .lw-pick button[aria-pressed=true] { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+  .lw .lw-text { font-size: 17px; line-height: 1.55; margin: 6px 0 10px; padding: 10px 12px; border-left: 4px solid var(--accent); background: var(--bg); border-radius: 6px; }
+  .lw .lw-steps { padding-left: 1.4em; line-height: 1.6; margin: 10px 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .lw .lw-steps > li { margin-bottom: 10px; }
+  .lw .lw-steps h3 { font-size: 15px; margin: 0 0 2px; }
+  .lw .lw-steps ul { padding-left: 1.1em; margin: 0; }
+  .lw svg .lw-l1 { stroke: var(--accent); stroke-width: 2.5; }
+  .lw svg .lw-l2 { stroke: var(--good); stroke-width: 2.5; }
+</style>
+
+<script>
+  import { makeStory, type StoryId, type Story } from '../../lib/sci/linear-word-problems';
+  import { substitution, elimination, eqText, solve } from '../../lib/sci/linpair-school';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.lw')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.lw-fig');
+  let id: StoryId = 'ages', method = 'elim', shown = 0, st: Story = makeStory(id);
+
+  const unit = (v: number, u: string) => (u === '₹' ? `₹${fmt(v, 2)}` : `${fmt(v, 2)} ${u}`);
+  function steps(): { h: string; lines: string[] }[] {
+    const sol = method === 'elim' ? elimination(st.l1, st.l2) : substitution(st.l1, st.l2);
+    return [
+      { h: 'Name the unknowns', lines: [`Let x = ${st.x}.`, `Let y = ${st.y}.`] },
+      { h: 'Write two equations', lines: [st.why1, st.why2, `So (1) ${eqText(st.l1)} and (2) ${eqText(st.l2)}.`] },
+      { h: method === 'elim' ? 'Solve by elimination' : 'Solve by substitution', lines: sol },
+      { h: 'Answer and check', lines: [`x = ${fmt(st.ans[0], 2)}, so ${st.x} is ${unit(st.ans[0], st.ux)}.`, `y = ${fmt(st.ans[1], 2)}, so ${st.y} is ${unit(st.ans[1], st.uy)}.`, `Check: ${st.check}`] },
+    ];
+  }
+  function render() {
+    q('.lw-text').textContent = st.text;
+    const all = steps();
+    q('.lw-steps').replaceChildren(...all.slice(0, shown).map((s) => {
+      const li = document.createElement('li');
+      const ul = document.createElement('ul');
+      ul.append(...s.lines.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+      li.append(Object.assign(document.createElement('h3'), { textContent: s.h }), ul);
+      return li;
+    }));
+    q<HTMLButtonElement>('.lw-next').disabled = shown >= all.length;
+    graph();
+  }
+
+  function graph() {
+    fig.replaceChildren();
+    const [ax, ay] = st.ans, X0 = 44, Y0 = 262, W = 280, H = 240;
+    // Show from 0 to a round number past the answer (and past the axis crossings where they are close).
+    const nice = (v: number) => { const p = 10 ** Math.floor(Math.log10(v)), m = v / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p; };
+    const mx = nice(ax * 1.6 + 1), my = nice(ay * 1.6 + 1);
+    const X = (x: number) => X0 + (x / mx) * W, Y = (y: number) => Y0 - (y / my) * H;
+    for (let i = 0; i <= 5; i++) {
+      S('line', { x1: X((i * mx) / 5), y1: Y(0), x2: X((i * mx) / 5), y2: Y(my), class: 'sm-grid' }, fig);
+      S('line', { x1: X(0), y1: Y((i * my) / 5), x2: X(mx), y2: Y((i * my) / 5), class: 'sm-grid' }, fig);
+      S('text', { x: X((i * mx) / 5), y: Y0 + 16, 'text-anchor': 'middle', class: 'sm-tick' }, fig, fmt((i * mx) / 5, 2));
+      if (i) S('text', { x: X0 - 6, y: Y((i * my) / 5) + 4, 'text-anchor': 'end', class: 'sm-tick' }, fig, fmt((i * my) / 5, 2));
+    }
+    S('line', { x1: X(0), y1: Y(0), x2: X(mx), y2: Y(0), class: 'sm-axis' }, fig);
+    S('line', { x1: X(0), y1: Y(0), x2: X(0), y2: Y(my), class: 'sm-axis' }, fig);
+    S('text', { x: X(mx) - 2, y: Y0 - 6, 'text-anchor': 'end', style: 'font-weight:700' }, fig, 'x');
+    S('text', { x: X0 + 6, y: Y(my) + 12, style: 'font-weight:700' }, fig, 'y');
+    // Clip each line to the box.
+    S('clipPath', { id: 'lw-clip' }, fig).append(S('rect', { x: X0, y: Y0 - H, width: W, height: H }));
+    for (const [l, cls] of [[st.l1, 'lw-l1'], [st.l2, 'lw-l2']] as const) {
+      const pts = l.b !== 0 ? [[0, l.c / l.b], [mx, (l.c - l.a * mx) / l.b]] : [[l.c / l.a, 0], [l.c / l.a, my]];
+      S('line', { x1: X(pts[0][0]), y1: Y(pts[0][1]), x2: X(pts[1][0]), y2: Y(pts[1][1]), class: cls, 'clip-path': 'url(#lw-clip)' }, fig);
+    }
+    const s = solve(st.l1, st.l2);
+    if (s.kind === 'unique' && shown >= 4) {
+      S('line', { x1: X(s.x!), y1: Y(s.y!), x2: X(s.x!), y2: Y(0), class: 'sm-dash' }, fig);
+      S('line', { x1: X(s.x!), y1: Y(s.y!), x2: X(0), y2: Y(s.y!), class: 'sm-dash' }, fig);
+      S('circle', { cx: X(s.x!), cy: Y(s.y!), r: 6, class: 'sm-good lw-dot' }, fig);
+      S('text', { x: X(s.x!) + 9, y: Y(s.y!) - 8, style: 'font-weight:700' }, fig, `(${fmt(s.x!, 2)}, ${fmt(s.y!, 2)})`);
+    }
+    q('.lw-key').textContent = `Blue: (1) ${eqText(st.l1)}. Green: (2) ${eqText(st.l2)}. x = ${st.x}, y = ${st.y}. ${shown >= 4 ? 'They cross at the answer.' : 'Where do they cross? Reveal all the steps to mark it.'}`;
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.lw-pick button').forEach((b) => b.addEventListener('click', () => {
+    id = b.dataset.s as StoryId; st = makeStory(id); shown = 0;
+    root.querySelectorAll('.lw-pick button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); render();
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.lw-m button').forEach((b) => b.addEventListener('click', () => {
+    method = b.dataset.m!; root.querySelectorAll('.lw-m button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); render();
+  }));
+  q('.lw-new').addEventListener('click', () => { st = makeStory(id); shown = 0; render(); });
+  q('.lw-next').addEventListener('click', () => { shown++; render(); });
+  q('.lw-all').addEventListener('click', () => { shown = 4; render(); });
+  q('.lw-hide').addEventListener('click', () => { shown = 0; render(); });
+  render();
+
+  quiz(q('.lw-quiz'), () => {
+    const ids: StoryId[] = ['ages', 'tickets', 'boat', 'rectangle', 'notes'];
+    const skip = randInt(0, 4);
+    return ids.filter((_, i) => i !== skip).map((k): Question => {
+      const s = makeStory(k);
+      return { q: `${s.text} Type ${s.x}, then ${s.y}.`, want: s.ans, ordered: true, tol: 0, hint: 'x, y', work: `(1) ${eqText(s.l1)}, (2) ${eqText(s.l2)}. Solving gives x = ${s.ans[0]}, y = ${s.ans[1]}. ${s.check}` };
+    });
+  });
+</script>

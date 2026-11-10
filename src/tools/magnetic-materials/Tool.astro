@@ -1,0 +1,213 @@
+---
+// Dia, para and ferro: tiny magnetic dipoles line up (or not) as the applied field grows; temperature slider;
+// hysteresis loop traced live for a ferromagnet (Preisach teaching model). Everything runs in the browser.
+import '../../styles/astro.css';
+---
+<div class="ax mgm">
+  <div class="ax-card">
+    <h2>Pick a material</h2>
+    <span class="ax-seg mgm-kind" role="group" aria-label="Material"><button type="button" data-v="dia" aria-pressed="false">Diamagnetic</button><button type="button" data-v="para" aria-pressed="false">Paramagnetic</button><button type="button" data-v="soft" aria-pressed="true">Soft iron</button><button type="button" data-v="hard" aria-pressed="false">Hard steel</button></span>
+    <label class="mgm-sl">Applied field B₀ (to the right): <b class="mgm-bv"></b><input type="range" class="mgm-b" min="-100" max="100" step="1" value="0" aria-label="Applied field, percent of the slider range" /></label>
+    <label class="mgm-sl">Temperature: <b class="mgm-tv"></b><input type="range" class="mgm-t" min="50" max="1500" step="10" value="300" aria-label="Temperature in kelvin" /></label>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small mgm-cycle">Run a full loop</button><button type="button" class="btn secondary small mgm-reset">Demagnetise</button></div>
+  </div>
+
+  <div class="ax-card">
+    <canvas class="ax-fig mgm-fig"></canvas>
+    <p class="ax-help mgm-cap"></p>
+    <canvas class="ax-fig mgm-graph"></canvas>
+    <p class="ax-big mgm-big" aria-live="polite"></p>
+    <p class="mgm-formula"></p>
+    <dl class="ax-facts mgm-facts" style="margin-top:10px"></dl>
+    <p class="ax-help">A teaching model with rounded, made-up material numbers. Real samples differ.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="mgm-try">
+      <li>Soft iron: slide B₀ up, then back to 0. Some magnetism stays (remanence): it has become a magnet.</li>
+      <li>Now push B₀ the other way until M is 0: that field is the coercivity. Hard steel needs far more, which is why permanent magnets are made of hard materials.</li>
+      <li>Heat soft iron past 1043 K (its Curie temperature): the loop vanishes and it behaves like a paramagnet.</li>
+      <li>Paramagnetic: halve the temperature at the same field and the alignment doubles (Curie's law).</li>
+      <li>Diamagnetic: the little induced moments point against B₀, so the field inside is a tiny bit weaker. Temperature makes no difference.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="mgm-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .mgm .mgm-sl { display: grid; gap: 6px; margin-top: 10px; color: var(--ink); font-size: 15px; }
+  .mgm input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .mgm-fig, .mgm-graph { max-width: 520px; margin-left: auto; margin-right: auto; }
+  .mgm-graph { margin-top: 8px; }
+  .mgm-big { font-size: clamp(18px, 4.6vw, 24px); margin: 10px 0 0; }
+  .mgm-formula { margin: 6px 0 0; font-size: 16px; overflow-wrap: anywhere; }
+  .mgm-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .mgm .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .mgm .eq-q p { margin: 0 0 6px; }
+  .mgm .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .mgm .eq-ok { color: var(--good); font-weight: 600; }
+  .mgm .eq-no { color: var(--bad); }
+  .mgm .eq-work { margin-top: 4px; font-size: 14px; }
+  .mgm .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .mgm .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { DIA, FERRO, MU0, langevin, curieChi, curieWeiss, msFraction, makeHysterons, applyField, majorLoop, linear, questions, type Hyst } from '../../lib/sci/magnetic-materials';
+  import { pagePalette } from '../../lib/report';
+  import { sig, fmtExp } from '../../lib/sci/num';
+  import { quiz } from '../../lib/elec-quiz-ui';
+  import { setup, fact, seg, onTheme, arrow, still } from '../../lib/school-p2';
+
+  const root = document.querySelector<HTMLElement>('.mgm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fig = q<HTMLCanvasElement>('.mgm-fig'), graph = q<HTMLCanvasElement>('.mgm-graph');
+  const W = 360, H = 200, GH = 190;
+  type Kind = 'dia' | 'para' | 'soft' | 'hard';
+  let kind: Kind = 'soft', timer = 0;
+  const MAX: Record<Kind, number> = { dia: 2, para: 2, soft: 2.5e-3, hard: 40e-3 }; // tesla at the end of the slider
+  const HC = { soft: FERRO.soft, hard: FERRO.hard };
+  let hs: Hyst[] = makeHysterons(HC.soft), touched = new Set<number>(), trail: [number, number][] = [];
+  const phi = Array.from({ length: 48 }, (_, i) => (((i * 137.508) % 360) - 180) * (Math.PI / 180)); // spread-out start angles
+  const B0 = () => (+q<HTMLInputElement>('.mgm-b').value / 100) * MAX[kind], T = () => +q<HTMLInputElement>('.mgm-t').value;
+  const ferro = () => kind === 'soft' || kind === 'hard';
+  const mT = (b: number) => Math.abs(b) >= 0.1 ? `${sig(b, 3)} T` : `${sig(b * 1000, 3)} mT`;
+  const big = (x: number) => { const a = Math.abs(x); return a && (a < 0.01 || a >= 1e4) ? fmtExp(x, 3) : sig(x, 3); };
+
+  // State of the ferromagnet: M / Ms at the current field and temperature.
+  function ferroState() {
+    const f = msFraction(T()), b = B0();
+    if (f <= 0) { const chi = curieWeiss(T()); return { f, m: 0, M: chi * (b / MU0), chi, para: true }; }
+    const before = hs.map((h) => h.s);
+    const m = applyField(hs, b / f);
+    hs.forEach((h, i) => { if (h.s !== before[i]) touched.add(i); });
+    const mm = Math.abs(m) < 1e-9 ? 0 : m * f;
+    return { f, m: mm, M: mm * FERRO.Ms, chi: 0, para: false };
+  }
+  function chiNow() { return kind === 'dia' ? DIA.chi : curieChi(T()); }
+
+  function drawSample(c: CanvasRenderingContext2D, pal: ReturnType<typeof pagePalette>, align: number) {
+    // Field lines bend into (ferro, para) or around (dia) the sample; the bend is exaggerated to be seen.
+    const cx = 180, cy = 100, bend = kind === 'dia' ? 0.35 : kind === 'para' ? -0.12 : -0.55 * Math.min(1, Math.abs(align) + 0.15);
+    const b = B0();
+    if (Math.abs(b) > 1e-12) {
+      c.strokeStyle = pal.line; c.fillStyle = pal.line; c.lineWidth = 1;
+      for (let y0 = 20; y0 <= 180; y0 += 20) {
+        c.beginPath();
+        for (let x = 6; x <= 354; x += 4) { const g = Math.exp(-(((x - cx) / 90) ** 2)), y = y0 + bend * g * (y0 - cy) * (Math.abs(y0 - cy) < 75 ? 1 : 0.4); x === 6 ? c.moveTo(x, y) : c.lineTo(x, y); }
+        c.stroke();
+        const dir = b > 0 ? 1 : -1; arrow(c, 30 - 6 * dir, y0, 30 + 6 * dir, y0, 5);
+      }
+    }
+    c.fillStyle = pal.bg; c.strokeStyle = pal.ink; c.lineWidth = 1.5;
+    c.beginPath(); c.roundRect(cx - 120, cy - 64, 240, 128, 10); c.fill(); c.stroke();
+    c.strokeStyle = pal.accent; c.fillStyle = pal.accent; c.lineWidth = 1.8;
+    const t = performance.now() / 1000;
+    for (let i = 0; i < 48; i++) {
+      const col = i % 8, row = Math.floor(i / 8), x = cx - 105 + col * 30, y = cy - 50 + row * 20;
+      let ang = 0, len = 9;
+      if (kind === 'dia') { if (Math.abs(b) < 1e-9) { c.beginPath(); c.arc(x, y, 2, 0, Math.PI * 2); c.fill(); continue; } ang = b > 0 ? Math.PI : 0; len = 3 + 6 * Math.min(1, Math.abs(b) / MAX.dia); }
+      else if (kind === 'para' || (ferro() && msFraction(T()) <= 0)) {
+        const jig = still() ? 0 : Math.min(1, T() / 1500) * 0.5 * Math.sin(t * 7 + i * 1.7);
+        ang = (align < 0 ? Math.PI : 0) + (phi[i] + jig) * (1 - Math.abs(align));
+      } else {
+        const k = (i * 7) % hs.length, h = hs[k];
+        ang = touched.has(k) ? (h.s > 0 ? 0 : Math.PI) : [0, Math.PI / 2, Math.PI, -Math.PI / 2][(i * 5 + row) % 4];
+      }
+      const dx = Math.cos(ang) * len, dy = -Math.sin(ang) * len;
+      arrow(c, x - dx, y - dy, x + dx, y + dy, 4);
+    }
+    c.fillStyle = pal.muted; c.font = '12px system-ui, sans-serif'; c.textAlign = 'left';
+    c.fillText(Math.abs(b) < 1e-12 ? 'no applied field' : `B₀ ${b > 0 ? '→' : '←'} ${mT(Math.abs(b))}`, 8, 196);
+  }
+  function draw() {
+    const pal = pagePalette(), c = setup(fig, W, H);
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    let align = 0;
+    if (kind === 'dia') align = 0;
+    else if (kind === 'para' || (ferro() && msFraction(T()) <= 0)) align = langevin((B0() / 0.5) * (300 / T()) * 1.5 * (kind === 'para' ? 1 : 0.2));
+    else align = magnetNow;
+    drawSample(c, pal, align);
+    fig.setAttribute('aria-label', `${kind === 'dia' ? 'Diamagnetic' : kind === 'para' ? 'Paramagnetic' : 'Ferromagnetic'} sample in a field of ${mT(B0())}`);
+    drawGraph();
+  }
+  let magnetNow = 0;
+  function drawGraph() {
+    const pal = pagePalette(), c = setup(graph, W, GH);
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, GH);
+    const X0 = 20, X1 = 350, Y0 = 14, Y1 = 166, mx = (X0 + X1) / 2, my = (Y0 + Y1) / 2;
+    c.strokeStyle = pal.line; c.lineWidth = 1; c.beginPath(); c.moveTo(X0, my); c.lineTo(X1, my); c.moveTo(mx, Y0); c.lineTo(mx, Y1); c.stroke();
+    c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'right'; c.fillText('B₀', X1, my - 4); c.textAlign = 'left';
+    const tx = (b: number) => mx + (b / MAX[kind]) * (X1 - mx);
+    if (ferro() && msFraction(T()) > 0) {
+      c.fillText('M / Ms', mx + 4, Y0 + 6);
+      const ty = (m: number) => my - m * (my - Y0 - 6);
+      c.strokeStyle = pal.accent; c.lineWidth = 2; c.beginPath(); trail.forEach(([b, m], i) => (i ? c.lineTo(tx(b), ty(m)) : c.moveTo(tx(b), ty(m)))); c.stroke();
+      c.fillStyle = pal.bad; c.beginPath(); c.arc(tx(B0()), ty(magnetNow), 5, 0, Math.PI * 2); c.fill();
+      c.fillStyle = pal.muted; c.fillText('±1 = saturated', X0, Y1 + 18);
+      graph.setAttribute('aria-label', 'Hysteresis loop: magnetisation against applied field as you have moved the slider');
+      return;
+    }
+    const chi = ferro() ? curieWeiss(T()) : chiNow(), Mmax = Math.abs(chi) * (MAX[kind] / MU0), ty = (M: number) => my - (M / Mmax) * (my - Y0 - 6) * 0.9;
+    c.fillText('M (A/m)', mx + 4, Y0 + 6);
+    c.strokeStyle = pal.accent; c.lineWidth = 2; c.beginPath(); c.moveTo(tx(-MAX[kind]), ty(-chi * MAX[kind] / MU0)); c.lineTo(tx(MAX[kind]), ty(chi * MAX[kind] / MU0)); c.stroke();
+    c.fillStyle = pal.bad; c.beginPath(); c.arc(tx(B0()), ty((chi * B0()) / MU0), 5, 0, Math.PI * 2); c.fill();
+    c.fillStyle = pal.muted; c.fillText(`straight line: M = χ H, slope ${chi < 0 ? 'negative' : 'positive'}`, X0, Y1 + 18);
+    graph.setAttribute('aria-label', `Magnetisation against applied field: a straight line with ${chi < 0 ? 'negative' : 'positive'} slope`);
+  }
+  function texts() {
+    const b = B0();
+    q('.mgm-bv').textContent = mT(b); q('.mgm-tv').textContent = `${T()} K`;
+    if (ferro()) {
+      const st = ferroState(); magnetNow = st.m;
+      if (!st.para) { const last = trail[trail.length - 1]; if (!last || last[0] !== b || last[1] !== st.m) trail.push([b, st.m]); if (trail.length > 3000) trail.shift(); }
+      const loop = majorLoop(HC[kind as 'soft' | 'hard'] * Math.max(st.f, 1e-6)), Bin = MU0 * (b / MU0 + st.M);
+      q('.mgm-cap').textContent = st.para ? 'Above the Curie temperature the domains break up: each atom\'s moment acts alone, as in a paramagnet.' : 'Each arrow is a domain. Domains that line up with B₀ stay that way when it is removed, until a big enough field flips them back.';
+      q('.mgm-big').textContent = st.para ? `Above ${FERRO.Tc} K: no longer ferromagnetic (χ = ${sig(st.chi, 2)})` : `M = ${sig(st.m * 100, 3)}% of saturation`;
+      q('.mgm-formula').textContent = st.para ? `Curie–Weiss law: χ = C / (T − T_c) = 1 / (${T()} − ${FERRO.Tc})` : `B inside = μ₀ (H + M) = ${mT(Bin)} with only ${mT(b)} applied`;
+      q('.mgm-facts').replaceChildren(
+        fact('Curie temperature', `${FERRO.Tc} K`, 'iron'),
+        fact('Saturation left at this temperature', `${sig(st.f * 100, 3)}%`),
+        fact('Remanence', st.para ? '0' : `${sig(loop.remanence * st.f * 100, 3)}% of Ms`, 'left at B₀ = 0 after saturating'),
+        fact('Coercivity (as B₀)', st.para ? '0' : mT(loop.coercive), kind === 'soft' ? 'small: easy to flip (cores, electromagnets)' : 'large: hard to flip (permanent magnets)'),
+      );
+    } else {
+      const chi = chiNow(), L = linear(chi, b);
+      q('.mgm-cap').textContent = kind === 'dia' ? 'No permanent moments. The field makes a tiny moment in each atom that points against B₀ (arrows not to scale).' : 'Each atom is a tiny magnet pointing anywhere; heat jiggles them. The field lines up a few (alignment hugely exaggerated).';
+      q('.mgm-big').textContent = `χ = ${kind === 'dia' ? '−1.7 × 10⁻⁴' : big(chi)}, μᵣ = 1 ${chi < 0 ? '−' : '+'} ${big(Math.abs(chi))}`;
+      q('.mgm-formula').textContent = `M = χ H = ${big(chi)} × ${big(L.H)} = ${big(L.M)} A/m; B inside = (1 + χ) B₀ = ${Math.abs(b) < 1e-12 ? '0' : sig(L.B, 6) + ' T'}`;
+      q('.mgm-facts').replaceChildren(
+        fact('Susceptibility χ', big(chi), kind === 'dia' ? 'negative, the same at any temperature' : `Curie's law: χ = C / T, C = ${sig(curieChi(1), 2)} K`),
+        fact('Magnetisation M', `${big(L.M)} A/m`),
+        fact('Field inside vs B₀', `${chi < 0 ? '' : '+'}${big(chi * 100)}%`, 'tiny'),
+        fact('In a non-uniform field', kind === 'dia' ? 'pushed to the weak-field region' : 'pulled weakly to the strong-field region'),
+      );
+    }
+  }
+  const all = () => { texts(); draw(); };
+  q('.mgm-b').addEventListener('input', all);
+  q('.mgm-t').addEventListener('input', () => { if (ferro()) trail = []; all(); });
+  const reset = () => { if (ferro()) hs = makeHysterons(HC[kind as 'soft' | 'hard']); touched = new Set(); trail = []; q<HTMLInputElement>('.mgm-b').value = '0'; };
+  seg(q('.mgm-kind'), (v) => { clearInterval(timer); kind = v as Kind; reset(); all(); });
+  q('.mgm-reset').addEventListener('click', () => { clearInterval(timer); reset(); all(); });
+  q('.mgm-cycle').addEventListener('click', () => {
+    clearInterval(timer);
+    const path: number[] = []; for (let v = 0; v <= 100; v += 5) path.push(v); for (let v = 95; v >= -100; v -= 5) path.push(v); for (let v = -95; v <= 100; v += 5) path.push(v);
+    const el = q<HTMLInputElement>('.mgm-b');
+    if (still()) { for (const v of path) { el.value = String(v); texts(); } draw(); return; }
+    let i = 0; timer = window.setInterval(() => { el.value = String(path[i++]); all(); if (i >= path.length) clearInterval(timer); }, 40);
+  });
+  // Gentle jiggle of the paramagnet's arrows (thermal motion), only while it is on screen.
+  let raf = 0;
+  const tick = () => { if (kind === 'para' || (ferro() && msFraction(T()) <= 0)) draw(); raf = requestAnimationFrame(tick); };
+  if (!still()) raf = requestAnimationFrame(tick);
+  void raf;
+  onTheme(draw);
+  all();
+  quiz(q('.mgm-quiz'), () => questions());
+</script>

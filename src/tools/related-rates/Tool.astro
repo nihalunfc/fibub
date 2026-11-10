@@ -1,0 +1,196 @@
+---
+// Related rates: ladder sliding down a wall, balloon blown up, cone tank filling. Animated picture, the link
+// equation differentiated with respect to time with live numbers, and the unknown rate plotted over time.
+// Class 12 maths, application of derivatives. Maths in src/lib/sci/related-rates.ts.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax rrt">
+  <div class="ax-card">
+    <h2>Pick a story</h2>
+    <div class="ax-seg rr-st" role="group" aria-label="Story"><button type="button" data-s="ladder" aria-pressed="true">Ladder</button><button type="button" data-s="balloon" aria-pressed="false">Balloon</button><button type="button" data-s="cone" aria-pressed="false">Cone tank</button></div>
+    <div class="rr-sl rr-p-ladder">
+      <label>Ladder length L = <b class="rr-Lv"></b> m<input class="rr-L" type="range" min="3" max="10" step="0.5" value="5" /></label>
+      <label>Foot starts x₀ = <b class="rr-x0v"></b> m from the wall<input class="rr-x0" type="range" min="0.5" max="9" step="0.5" value="3" /></label>
+      <label>Foot slides out at <b class="rr-vv"></b> m/s<input class="rr-v" type="range" min="0.1" max="2" step="0.1" value="0.5" /></label>
+    </div>
+    <div class="rr-sl rr-p-balloon" hidden>
+      <label>Starting volume <b class="rr-V0v"></b> cm³<input class="rr-V0" type="range" min="100" max="2000" step="50" value="500" /></label>
+      <label>Air pumped in at <b class="rr-qbv"></b> cm³/s<input class="rr-qb" type="range" min="10" max="300" step="10" value="100" /></label>
+    </div>
+    <div class="rr-sl rr-p-cone" hidden>
+      <label>Top radius R = <b class="rr-Rv"></b> m<input class="rr-R" type="range" min="0.5" max="4" step="0.5" value="2" /></label>
+      <label>Height H = <b class="rr-Hv"></b> m<input class="rr-H" type="range" min="1" max="6" step="0.5" value="4" /></label>
+      <label>Water flows in at <b class="rr-qcv"></b> m³/min<input class="rr-qc" type="range" min="0.1" max="3" step="0.1" value="0.5" /></label>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Watch it change</h2>
+    <canvas class="ax-fig rr-fig" role="img"></canvas>
+    <label class="rr-tl">Time t = <b class="rr-tv"></b><input class="rr-t" type="range" min="0" max="1000" step="1" value="0" /></label>
+    <div class="ax-row"><button type="button" class="btn small rr-play">Play</button><span class="ax-help rr-unit"></span></div>
+    <dl class="ax-facts rr-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>The working</h2>
+    <ol class="rr-steps"></ol>
+  </div>
+
+  <div class="ax-card">
+    <h2>The rate over time</h2>
+    <canvas class="ax-fig rr-rate" role="img"></canvas>
+    <p class="ax-help rr-rnote"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="rr-try">
+      <li>Ladder: the foot moves at a steady speed, yet the top falls faster and faster. Play it and watch the rate graph shoot down near the end.</li>
+      <li>Ladder with L = 5 and the foot at 3 m: the top is at 4 m and falls at 3/4 of the foot's speed. That is the 3-4-5 triangle at work.</li>
+      <li>Balloon: air goes in at a steady rate, but the radius grows more and more slowly, because each new layer has more surface to cover.</li>
+      <li>Cone tank: the water level rises fast at first (the cone is narrow at the bottom) and slows near the top.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="rr-quiz" />
+</div>
+
+<script>
+  import { ladder, ladderEnd, balloon, cone, coneEnd } from '../../lib/sci/related-rates';
+  import { paint, pagePalette, type Palette } from '../../lib/report';
+  import { view, axes, curve, dot, fmt } from '../../lib/sm-graph';
+  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.rrt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const num = (c: string) => +q<HTMLInputElement>(c).value;
+  const W = 380, H = 280, H2 = 190;
+  const tIn = q<HTMLInputElement>('.rr-t');
+  let story = 'ladder', anim = 0;
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+  const PI = 'π';
+
+  type Model = { end: number; unit: string; t: number; facts: HTMLElement[]; steps: string[]; rate: (t: number) => number; rateName: string; draw: (ctx: CanvasRenderingContext2D, pl: Palette) => void; alt: string };
+
+  function model(): Model {
+    if (story === 'ladder') {
+      const p = { L: num('.rr-L'), x0: Math.min(num('.rr-x0'), num('.rr-L') - 0.5), v: num('.rr-v') }, end = ladderEnd(p) * 0.995, t = (+tIn.value / 1000) * end, s = ladder(p, t);
+      return { end, unit: 's', t, rateName: 'dy/dt (m/s)', rate: (z) => ladder(p, z).dydt,
+        facts: [fact('Foot x', `${fmt(s.x, 3)} m`), fact('Top y', `${fmt(s.y, 3)} m`), fact('dx/dt (given)', `${fmt(p.v, 2)} m/s`), fact('dy/dt', `${fmt(s.dydt, 4)} m/s`, 'negative: the top is falling'), fact('Angle with the ground', `${fmt((s.angle * 180) / Math.PI, 1)}°`, `changing at ${fmt((s.dAngle * 180) / Math.PI, 2)}° per s`)],
+        steps: [`The ladder, wall and ground make a right triangle: x² + y² = L² = ${fmt(p.L * p.L, 2)}.`, `Differentiate both sides with respect to t: 2x·dx/dt + 2y·dy/dt = 0.`, `So dy/dt = −(x/y)·dx/dt.`, `Now x = ${fmt(s.x, 3)} m, y = √(${fmt(p.L * p.L, 2)} − ${fmt(s.x * s.x, 3)}) = ${fmt(s.y, 3)} m, and dx/dt = ${fmt(p.v, 2)} m/s.`, `dy/dt = −(${fmt(s.x, 3)} / ${fmt(s.y, 3)}) × ${fmt(p.v, 2)} = ${fmt(s.dydt, 4)} m/s.`],
+        alt: `Ladder of length ${p.L} m with its foot ${fmt(s.x)} m from the wall and top ${fmt(s.y)} m high, top falling at ${fmt(-s.dydt)} m/s`,
+        draw: (ctx, pl) => {
+          const sc = (H - 50) / (p.L * 1.05), gx = 60, gy = H - 30;
+          ctx.fillStyle = pl.grid; ctx.fillRect(gx - 14, 10, 14, gy - 10); ctx.fillRect(gx - 14, gy, W - gx, 8);
+          ctx.strokeStyle = pl.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(gx, 10); ctx.lineTo(gx, gy); ctx.lineTo(W - 10, gy); ctx.stroke();
+          const fx = gx + s.x * sc, ty = gy - s.y * sc;
+          ctx.strokeStyle = pl.accent2; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(fx, gy - 3); ctx.lineTo(gx + 3, ty); ctx.stroke(); ctx.lineCap = 'butt';
+          ctx.fillStyle = pl.ink; ctx.font = '13px system-ui, sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText(`x = ${fmt(s.x, 2)} m`, (gx + fx) / 2, gy + 22); ctx.textAlign = 'left'; ctx.fillText(`y = ${fmt(s.y, 2)} m`, gx + 6, (gy + ty) / 2);
+          arrow(ctx, fx + 6, gy - 12, fx + 6 + 40 * Math.min(1, p.v), gy - 12, pl.accent);
+          arrow(ctx, gx + 16, ty + 4, gx + 16, ty + 4 + Math.min(70, 30 * Math.abs(s.dydt)), pl.bad);
+        } };
+    }
+    if (story === 'balloon') {
+      const p = { V0: num('.rr-V0'), q: num('.rr-qb') }, end = 60, t = (+tIn.value / 1000) * end, s = balloon(p, t);
+      return { end, unit: 's', t, rateName: 'dr/dt (cm/s)', rate: (z) => balloon(p, z).drdt,
+        facts: [fact('Volume V', `${fmt(s.V, 0)} cm³`), fact('Radius r', `${fmt(s.r, 3)} cm`), fact('dV/dt (given)', `${fmt(p.q, 0)} cm³/s`), fact('dr/dt', `${fmt(s.drdt, 4)} cm/s`), fact('Surface growing at', `${fmt(s.dSdt, 2)} cm²/s`, 'dS/dt = 8πr·dr/dt')],
+        steps: [`The balloon is a sphere: V = (4/3)${PI}r³.`, `Differentiate with respect to t: dV/dt = 4${PI}r²·dr/dt, so dr/dt = (dV/dt) / (4${PI}r²).`, `At t = ${fmt(t, 1)} s, V = ${fmt(p.V0, 0)} + ${fmt(p.q, 0)} × ${fmt(t, 1)} = ${fmt(s.V, 0)} cm³, so r = ∛(3V / 4${PI}) = ${fmt(s.r, 3)} cm.`, `dr/dt = ${fmt(p.q, 0)} / (4${PI} × ${fmt(s.r, 3)}²) = ${fmt(s.drdt, 4)} cm/s.`, `Surface S = 4${PI}r², so dS/dt = 8${PI}r·dr/dt = ${fmt(s.dSdt, 2)} cm²/s.`],
+        alt: `Balloon of radius ${fmt(s.r)} cm growing at ${fmt(s.drdt)} cm/s`,
+        draw: (ctx, pl) => {
+          const rMax = balloon(p, end).r, sc = (H / 2 - 30) / rMax, cx = W / 2, cy = H / 2 - 6;
+          ctx.strokeStyle = pl.line; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.arc(cx, cy, balloon(p, 0).r * sc, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+          ctx.fillStyle = pl.bg; ctx.strokeStyle = pl.accent; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx, cy, s.r * sc, 0, 7); ctx.fill(); ctx.stroke();
+          ctx.strokeStyle = pl.muted; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(cx, cy + s.r * sc); ctx.lineTo(cx, H - 6); ctx.stroke();
+          ctx.strokeStyle = pl.accent2; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + s.r * sc, cy); ctx.stroke();
+          ctx.fillStyle = pl.ink; ctx.font = '13px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(`r = ${fmt(s.r, 2)} cm`, cx + (s.r * sc) / 2, cy - 8);
+        } };
+    }
+    const p = { R: num('.rr-R'), H: num('.rr-H'), q: num('.rr-qc') }, end = coneEnd(p), t = Math.max(end * 0.01, (+tIn.value / 1000) * end), s = cone(p, t);
+    return { end, unit: 'min', t, rateName: 'dh/dt (m/min)', rate: (z) => cone(p, z).dhdt,
+      facts: [fact('Water volume V', `${fmt(s.V, 3)} m³`), fact('Depth h', `${fmt(s.h, 3)} m`), fact('Surface radius r', `${fmt(s.r, 3)} m`, `r = (R/H)·h = ${fmt(p.R / p.H, 3)}h`), fact('dh/dt', `${fmt(s.dhdt, 4)} m/min`), fact('Surface radius grows at', `${fmt(s.drdt, 4)} m/min`)],
+      steps: [`The water is a cone: V = (1/3)${PI}r²h, and similar triangles give r/h = R/H = ${fmt(p.R / p.H, 3)}.`, `Put r = ${fmt(p.R / p.H, 3)}h in: V = (1/3)${PI}(${fmt(p.R / p.H, 3)})²h³.`, `Differentiate with respect to t: dV/dt = ${PI}(${fmt(p.R / p.H, 3)})²h²·dh/dt = ${PI}r²·dh/dt.`, `At t = ${fmt(t, 2)} min, V = ${fmt(p.q, 2)} × ${fmt(t, 2)} = ${fmt(s.V, 3)} m³, h = ${fmt(s.h, 3)} m, r = ${fmt(s.r, 3)} m.`, `dh/dt = ${fmt(p.q, 2)} / (${PI} × ${fmt(s.r, 3)}²) = ${fmt(s.dhdt, 4)} m/min.`],
+      alt: `Cone tank with water ${fmt(s.h)} m deep, rising at ${fmt(s.dhdt)} m/min`,
+      draw: (ctx, pl) => {
+        const sc = Math.min((H - 40) / p.H, (W - 60) / (2 * p.R)), cx = W / 2, by = H - 20, ty = by - p.H * sc;
+        ctx.fillStyle = pl.accent; ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.moveTo(cx, by); ctx.lineTo(cx - s.r * sc, by - s.h * sc); ctx.lineTo(cx + s.r * sc, by - s.h * sc); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+        ctx.strokeStyle = pl.accent; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx - s.r * sc, by - s.h * sc); ctx.lineTo(cx + s.r * sc, by - s.h * sc); ctx.stroke();
+        ctx.strokeStyle = pl.ink; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(cx - p.R * sc, ty); ctx.lineTo(cx, by); ctx.lineTo(cx + p.R * sc, ty); ctx.stroke();
+        ctx.fillStyle = pl.ink; ctx.font = '13px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(`h = ${fmt(s.h, 2)} m`, cx + 8, by - (s.h * sc) / 2);
+        arrow(ctx, cx - p.R * sc - 6, ty - 4, cx - 6, ty + 30, pl.accent);
+      } };
+  }
+
+  function arrow(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, c: string) {
+    const a = Math.atan2(y2 - y1, x2 - x1);
+    ctx.strokeStyle = c; ctx.fillStyle = c; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4)); ctx.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4)); ctx.closePath(); ctx.fill();
+  }
+
+  function draw() {
+    for (const [c, v] of [['.rr-Lv', '.rr-L'], ['.rr-x0v', '.rr-x0'], ['.rr-vv', '.rr-v'], ['.rr-V0v', '.rr-V0'], ['.rr-qbv', '.rr-qb'], ['.rr-Rv', '.rr-R'], ['.rr-Hv', '.rr-H'], ['.rr-qcv', '.rr-qc']]) q(c).textContent = fmt(num(v), 2);
+    const x0 = q<HTMLInputElement>('.rr-x0'); x0.max = String(num('.rr-L') - 0.5); if (+x0.value > +x0.max) x0.value = x0.max;
+    const m = model(), pal = pagePalette();
+    q('.rr-tv').textContent = `${fmt(m.t, 2)} ${m.unit}`;
+    q('.rr-unit').textContent = `The story runs from 0 to ${fmt(m.end, 1)} ${m.unit}.`;
+    paint(q<HTMLCanvasElement>('.rr-fig'), { w: W, h: H, alt: m.alt, draw: (ctx, w, h, pl) => m.draw(ctx, pl) }, pal);
+    q('.rr-facts').replaceChildren(...m.facts);
+    q('.rr-steps').replaceChildren(...m.steps.map((s) => { const li = document.createElement('li'); li.textContent = s; return li; }));
+    const ys: number[] = []; for (let i = 1; i <= 100; i++) { const y = m.rate((m.end * i) / 100); if (Number.isFinite(y)) ys.push(y); }
+    ys.sort((a, b) => a - b);
+    const lo = Math.min(0, ys[Math.floor(ys.length * 0.02)] ?? 0), hi = Math.max(0, ys[Math.ceil(ys.length * 0.98) - 1] ?? 1), pad = (hi - lo) * 0.1 || 0.1;
+    const v = view(0, m.end, lo - pad, hi + pad, W, H2, { l: 46, r: 10, t: 10, b: 24 }), y = m.rate(m.t);
+    paint(q<HTMLCanvasElement>('.rr-rate'), { w: W, h: H2, alt: `${m.rateName} against time; now ${fmt(y)}`, draw: (ctx, w, h, pl) => {
+      axes(ctx, v, pl, { xName: `t (${m.unit})`, yName: m.rateName }); curve(ctx, v, m.rate, pl.accent, 2.2);
+      if (Number.isFinite(y)) dot(ctx, v, m.t, y, pl.accent2, 5.5);
+    } }, pal);
+    q('.rr-rnote').textContent = `Orange dot: now. ${story === 'ladder' ? 'The top falls faster and faster; as y → 0 the rate grows without limit (a real ladder would leave the wall first).' : story === 'balloon' ? 'Steady air in, but the radius grows more and more slowly.' : 'The water rises fast while the cone is narrow and slows as it widens.'}`;
+  }
+
+  function setStory(s: string) {
+    story = s; cancelAnimationFrame(anim); q('.rr-play').textContent = 'Play';
+    root.querySelectorAll('.rr-st button').forEach((b) => b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.s === s)));
+    for (const k of ['ladder', 'balloon', 'cone']) q(`.rr-p-${k}`).hidden = k !== s;
+    tIn.value = '0'; draw();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.rr-st button').forEach((b) => b.addEventListener('click', () => setStory(b.dataset.s!)));
+  root.querySelectorAll('.rr-sl input').forEach((i) => i.addEventListener('input', draw));
+  tIn.addEventListener('input', () => { cancelAnimationFrame(anim); q('.rr-play').textContent = 'Play'; draw(); });
+  q('.rr-play').addEventListener('click', () => {
+    const b = q('.rr-play');
+    if (b.textContent === 'Pause') { cancelAnimationFrame(anim); b.textContent = 'Play'; return; }
+    if (+tIn.value >= 1000) tIn.value = '0';
+    b.textContent = 'Pause';
+    let last = performance.now();
+    const step = (tm: number) => { const v = Math.min(1000, +tIn.value + (tm - last) / 6); last = tm; tIn.value = String(Math.round(v)); draw(); if (v < 1000) anim = requestAnimationFrame(step); else b.textContent = 'Play'; };
+    anim = requestAnimationFrame(step);
+  });
+  document.addEventListener('fibub:theme', draw);
+  draw();
+
+  quiz(q('.rr-quiz'), (): Question[] => {
+    const tr = pick([[3, 4, 5], [6, 8, 10], [5, 12, 13], [8, 6, 10]]), v = pick([0.5, 1, 2, 3]);
+    const r = rint(2, 10), dr = pick([0.5, 1, 2]), sd = rint(2, 9), ds = rint(1, 4), rb = rint(2, 6), dv = pick([50, 100, 200]);
+    const dy = -(tr[0] / tr[1]) * v;
+    return [
+      { text: `A ${tr[2]} m ladder's foot is ${tr[0]} m from the wall, sliding out at ${v} m/s. How fast is the top moving (m/s, negative if falling)?`, answer: dy, tol: 0.005, worked: `x² + y² = ${tr[2] ** 2}, so y = ${tr[1]}. 2x·dx/dt + 2y·dy/dt = 0 gives dy/dt = −(x/y)·dx/dt = −(${tr[0]}/${tr[1]}) × ${v} = ${fmt(dy, 4)} m/s.` },
+      { text: `A ripple's radius grows at ${dr} cm/s. How fast is the circle's area growing when r = ${r} cm? (cm²/s, use π = 3.1416 or type pi)`, answer: 2 * Math.PI * r * dr, tol: 0.05, worked: `A = πr², so dA/dt = 2πr·dr/dt = 2π × ${r} × ${dr} = ${fmt(2 * r * dr, 3)}π ≈ ${fmt(2 * Math.PI * r * dr, 3)} cm²/s.` },
+      { text: `A square's side grows at ${ds} cm/s. How fast is its area growing when the side is ${sd} cm? (cm²/s)`, answer: 2 * sd * ds, worked: `A = s², so dA/dt = 2s·ds/dt = 2 × ${sd} × ${ds} = ${2 * sd * ds} cm²/s.` },
+      { text: `Air goes into a balloon at ${dv} cm³/s. How fast is the radius growing when r = ${rb} cm? (cm/s, 3 decimals)`, answer: dv / (4 * Math.PI * rb * rb), tol: 0.0006, worked: `V = (4/3)πr³, so dV/dt = 4πr²·dr/dt and dr/dt = ${dv} / (4π × ${rb * rb}) = ${fmt(dv / (4 * Math.PI * rb * rb), 4)} cm/s.` },
+      { text: 'A ladder slides at a steady speed along the ground. What happens to the speed of its top as it nears the ground?', choices: ['It stays the same', 'It slows down', 'It speeds up', 'It stops'], correct: 2, worked: 'dy/dt = −(x/y)·dx/dt. As y gets small, x/y gets big, so the top falls faster and faster.' },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .rrt .rr-sl { display: grid; gap: 10px; margin: 12px 0 0; }
+  .rrt .rr-sl label, .rrt .rr-tl { display: block; color: var(--ink); font-size: 15px; }
+  .rrt input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .rrt .rr-tl { margin: 10px 0; }
+  .rrt .rr-steps { padding-left: 22px; display: grid; gap: 6px; overflow-wrap: anywhere; }
+  .rrt .rr-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+  .rrt .ax-seg button { min-height: 40px; }
+  .rrt .rr-sl[hidden] { display: none; }
+</style>

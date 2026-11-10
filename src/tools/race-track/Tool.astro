@@ -1,0 +1,181 @@
+---
+// Time, speed and distance race track: two runners on a straight track, the same way with a head start or towards
+// each other. Play or scrub the race, see both distance-time lines and where they meet, worked with the relative
+// speed. Fresh practice questions. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm rt">
+  <div class="ax-card">
+    <h2>Set up the race</h2>
+    <div class="ax-seg rt-dir" role="group" aria-label="Which way B runs"><button type="button" data-d="same" aria-pressed="true">Same way, B has a head start</button><button type="button" data-d="towards" aria-pressed="false">Towards each other</button></div>
+    <label style="display:block;margin-top:8px">Track length (m) <input type="number" class="rt-len" min="50" max="5000" step="any" value="400" inputmode="decimal" /></label>
+    <p class="ax-help">Speeds in metres per second. To change m/s into km/h multiply by 3.6 (3600 seconds in an hour, 1000 m in a km).</p>
+    <div class="sm-sl"><b>A</b><input type="range" class="rt-ar" min="1" max="12" step="0.5" value="8" aria-label="Speed of A in m/s" /><input type="number" class="rt-a" min="0.1" max="100" step="any" value="8" inputmode="decimal" aria-label="Speed of A in m/s" /></div>
+    <div class="sm-sl"><b>B</b><input type="range" class="rt-br" min="1" max="12" step="0.5" value="6" aria-label="Speed of B in m/s" /><input type="number" class="rt-b" min="0.1" max="100" step="any" value="6" inputmode="decimal" aria-label="Speed of B in m/s" /></div>
+    <div class="sm-sl rt-hrow"><b>h</b><input type="range" class="rt-hr" min="0" max="200" step="5" value="40" aria-label="Head start of B in metres" /><input type="number" class="rt-h" min="0" max="5000" step="any" value="40" inputmode="decimal" aria-label="Head start of B in metres" /></div>
+    <p class="ax-help rt-hhelp">h is how many metres ahead of A runner B starts.</p>
+    <p class="ax-err rt-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The race</h2>
+    <svg class="sm-fig rt-track" viewBox="0 0 340 86" role="img" aria-label="The track with runners A and B"></svg>
+    <div class="ax-row" style="margin:8px 0">
+      <button type="button" class="btn small rt-play">Play</button>
+      <span class="rt-clock ax-pill"></span>
+    </div>
+    <div class="sm-sl"><b>t</b><input type="range" class="rt-t" min="0" max="100" step="0.1" value="0" aria-label="Time in seconds" /><output class="rt-tv"></output></div>
+    <p class="sm-f rt-now"></p>
+    <svg class="sm-fig rt-graph" viewBox="0 0 340 250" role="img" aria-label="Distance-time graph of both runners"></svg>
+    <ol class="sm-steps rt-steps"></ol>
+    <p class="ax-big rt-big" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Give A and B the same speed. Can A ever catch up? What do the two lines on the graph look like?</li>
+      <li>Double the head start. Does the catch-up time double too?</li>
+      <li>Towards each other, the gap closes at A's speed plus B's speed. Check it with the meeting time.</li>
+      <li>The steeper line on the graph is the faster runner. Why?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="rt-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .rt .ax-seg button { flex: 1 1 45%; }
+  .rt .rt-len { width: 7em; }
+  .rt .sm-sl output { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .rt svg .rt-lane { stroke: var(--muted); stroke-width: 2; }
+  .rt svg .rt-fin { stroke: var(--ink); stroke-width: 3; }
+  .rt svg .rt-ra { fill: var(--accent); }
+  .rt svg .rt-rb { fill: var(--warn); }
+  .rt svg .rt-la { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+  .rt svg .rt-lb { fill: none; stroke: var(--warn); stroke-width: 2.5; stroke-dasharray: 7 4; }
+  .rt svg .rt-meet { fill: var(--bad); }
+  .rt svg text.rt-w { fill: var(--accent-ink); font-weight: 700; font-size: 12px; }
+</style>
+
+<script>
+  import { msToKmh, positions, finishTimes, meet, kmhToMs, type Race } from '../../lib/sci/race-track';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, quiz, pair, val, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.rt')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const A = q<HTMLInputElement>('.rt-a'), Bv = q<HTMLInputElement>('.rt-b'), H = q<HTMLInputElement>('.rt-h'), LEN = q<HTMLInputElement>('.rt-len'), T = q<HTMLInputElement>('.rt-t');
+  pair(q('.rt-ar'), A, setup); pair(q('.rt-br'), Bv, setup); pair(q('.rt-hr'), H, setup);
+  let towards = false, race: Race | null = null, tEnd = 60, playing = false, raf = 0, last = 0;
+
+  function read(): Race | null {
+    const length = Number(LEN.value), vA = val(A, 8), vB = val(Bv, 6), head = val(H, 40);
+    if (!(length >= 50 && length <= 5000) || !(vA > 0 && vA <= 100) || !(vB > 0 && vB <= 100) || (!towards && !(head >= 0 && head < length))) return null;
+    return { length, vA, vB, head: towards ? 0 : head, towards };
+  }
+
+  function setup() {
+    race = read();
+    const err = q('.rt-err');
+    if (!race) { err.textContent = 'Track 50 to 5000 m, speeds above 0 (up to 100 m/s), head start shorter than the track.'; err.hidden = false; stop(); return; }
+    err.hidden = true;
+    q('.rt-hrow').hidden = towards; q('.rt-hhelp').hidden = towards;
+    tEnd = Math.max(...finishTimes(race));
+    T.max = String(Math.ceil(tEnd * 10) / 10);
+    if (Number(T.value) > tEnd) T.value = T.max;
+    steps(); draw();
+  }
+
+  function draw() {
+    if (!race) return;
+    const r = race, t = Number(T.value), [pa, pb] = positions(r, t);
+    const tr = q<SVGSVGElement>('.rt-track'); tr.replaceChildren();
+    const X = (m: number) => 20 + (m / r.length) * 300;
+    for (const y of [30, 62]) S('line', { x1: 20, y1: y, x2: 320, y2: y, class: 'rt-lane' }, tr);
+    S('line', { x1: X(0), y1: 16, x2: X(0), y2: 74, class: 'rt-fin' }, tr);
+    S('line', { x1: X(r.length), y1: 16, x2: X(r.length), y2: 74, class: 'rt-fin' }, tr);
+    S('text', { x: X(0), y: 12, 'text-anchor': 'middle', class: 'sm-tick' }, tr, '0 m');
+    S('text', { x: X(r.length), y: 12, 'text-anchor': 'middle', class: 'sm-tick' }, tr, `${fmt(r.length, 1)} m`);
+    S('circle', { cx: X(pa), cy: 30, r: 10, class: 'rt-ra rt-pa' }, tr); S('text', { x: X(pa), y: 34, 'text-anchor': 'middle', class: 'rt-w' }, tr, 'A');
+    S('circle', { cx: X(pb), cy: 62, r: 10, class: 'rt-rb rt-pb' }, tr); S('text', { x: X(pb), y: 66, 'text-anchor': 'middle', class: 'rt-w' }, tr, 'B');
+    q('.rt-tv').textContent = `${fmt(t, 1)} s`;
+    q('.rt-clock').textContent = `t = ${fmt(t, 1)} s`;
+    q('.rt-now').textContent = `At ${fmt(t, 1)} s: A is at ${fmt(pa, 1)} m, B is at ${fmt(pb, 1)} m, ${fmt(Math.abs(pb - pa), 1)} m apart.`;
+    // Distance-time graph.
+    const g = q<SVGSVGElement>('.rt-graph'); g.replaceChildren();
+    const L = 46, R = 326, Tp = 12, Bt = 212, gx = (s: number) => L + (s / tEnd) * (R - L), gy = (m: number) => Bt - (m / r.length) * (Bt - Tp);
+    for (let i = 0; i <= 4; i++) {
+      S('line', { x1: L, y1: gy((r.length * i) / 4), x2: R, y2: gy((r.length * i) / 4), class: 'sm-grid' }, g);
+      S('text', { x: L - 4, y: gy((r.length * i) / 4) + 4, 'text-anchor': 'end', class: 'sm-tick' }, g, fmt((r.length * i) / 4, 0));
+      S('text', { x: gx((tEnd * i) / 4), y: Bt + 14, 'text-anchor': 'middle', class: 'sm-tick' }, g, fmt((tEnd * i) / 4, 1));
+    }
+    S('line', { x1: L, y1: Bt, x2: R, y2: Bt, class: 'sm-axis' }, g); S('line', { x1: L, y1: Tp, x2: L, y2: Bt, class: 'sm-axis' }, g);
+    S('text', { x: (L + R) / 2, y: Bt + 32, 'text-anchor': 'middle' }, g, 'Time (s)');
+    S('text', { x: 12, y: (Tp + Bt) / 2, 'text-anchor': 'middle', transform: `rotate(-90 12 ${(Tp + Bt) / 2})` }, g, 'Distance from start (m)');
+    const line = (k: 0 | 1, cls: string) => { const pts: string[] = []; for (let i = 0; i <= 100; i++) { const s = (tEnd * i) / 100; pts.push(`${gx(s).toFixed(1)},${gy(positions(r, s)[k]).toFixed(1)}`); } S('polyline', { points: pts.join(' '), class: cls }, g); };
+    line(0, 'rt-la'); line(1, 'rt-lb');
+    const m = meet(r);
+    if (m) S('circle', { cx: gx(m.t), cy: gy(m.at), r: 6, class: 'rt-meet' }, g);
+    S('line', { x1: gx(t), y1: Tp, x2: gx(t), y2: Bt, class: 'sm-dash' }, g);
+    S('text', { x: R - 4, y: Bt - 8, 'text-anchor': 'end', style: 'fill:var(--accent);font-weight:700' }, g, 'A ——');
+    S('text', { x: R - 4, y: Bt - 24, 'text-anchor': 'end', style: 'fill:var(--warn);font-weight:700' }, g, 'B - - -');
+  }
+
+  function steps() {
+    const r = race!, [fa, fb] = finishTimes(r), m = meet(r), st = q('.rt-steps'); st.replaceChildren();
+    const lines = [
+      `Speeds: A = ${fmt(r.vA, 2)} m/s = ${fmt(r.vA, 2)} × 3.6 = ${fmt(msToKmh(r.vA), 2)} km/h; B = ${fmt(r.vB, 2)} m/s = ${fmt(msToKmh(r.vB), 2)} km/h.`,
+      `Time = distance ÷ speed. A finishes in ${fmt(r.length, 1)} ÷ ${fmt(r.vA, 2)} = ${fmt(fa, 2)} s; B runs ${fmt(r.towards ? r.length : r.length - r.head, 1)} m in ${fmt(fb, 2)} s.`,
+      r.towards
+        ? `Towards each other the gap of ${fmt(r.length, 1)} m closes at ${fmt(r.vA, 2)} + ${fmt(r.vB, 2)} = ${fmt(r.vA + r.vB, 2)} m/s (the relative speed).`
+        : `Same way, A gains on B at ${fmt(r.vA, 2)} − ${fmt(r.vB, 2)} = ${fmt(r.vA - r.vB, 2)} m/s (the relative speed). The gap to close is the head start, ${fmt(r.head, 1)} m.`,
+      m ? `They meet after ${fmt(m.gap, 1)} ÷ ${fmt(m.rel, 2)} = ${fmt(m.t, 2)} s, ${fmt(m.at, 1)} m from A's start (A has run ${fmt(r.vA, 2)} × ${fmt(m.t, 2)} = ${fmt(m.at, 1)} m).`
+        : r.vA - r.vB <= 0 ? 'A is not faster than B, so the gap never closes: the lines on the graph never cross.' : `A would need ${fmt(r.head / (r.vA - r.vB), 2)} s to catch up, but B reaches the finish first.`,
+    ];
+    for (const s of lines) { const li = document.createElement('li'); li.textContent = s; st.append(li); }
+    q('.rt-big').textContent = m ? `They meet at ${fmt(m.t, 2)} s, ${fmt(m.at, 1)} m along.` : (r.vA - r.vB <= 0 ? 'A never catches B.' : 'B finishes first.');
+  }
+
+  function stop() { playing = false; cancelAnimationFrame(raf); q('.rt-play').textContent = 'Play'; }
+  function frame(now: number) {
+    const dt = (now - last) / 1000; last = now;
+    const t = Math.min(tEnd, Number(T.value) + (dt * tEnd) / 6);
+    T.value = String(t); draw();
+    if (t >= tEnd) stop(); else raf = requestAnimationFrame(frame);
+  }
+  q('.rt-play').addEventListener('click', () => {
+    if (playing) { stop(); return; }
+    if (!race) return;
+    if (Number(T.value) >= tEnd - 0.05) T.value = '0';
+    playing = true; q('.rt-play').textContent = 'Pause'; last = performance.now(); raf = requestAnimationFrame(frame);
+  });
+  T.addEventListener('input', () => { stop(); draw(); });
+  LEN.addEventListener('input', setup);
+  root.querySelectorAll<HTMLButtonElement>('.rt-dir button').forEach((b) => b.addEventListener('click', () => {
+    towards = b.dataset.d === 'towards';
+    root.querySelectorAll('.rt-dir button').forEach((e) => e.setAttribute('aria-pressed', String(e === b)));
+    T.value = '0'; stop(); setup();
+  }));
+  setup();
+
+  quiz(q('.rt-quiz'), () => {
+    const out: Question[] = [];
+    const v1 = randInt(3, 9), t1 = randInt(20, 90);
+    out.push({ q: `A cyclist rides ${v1 * t1} m in ${t1} s. What is her speed in m/s?`, want: [v1], work: `Speed = distance ÷ time = ${v1 * t1} ÷ ${t1} = ${v1} m/s.` });
+    const k2 = 18 * randInt(1, 6);
+    out.push({ q: `A bus moves at ${k2} km/h. What is that in m/s?`, want: [kmhToMs(k2)], work: `${k2} ÷ 3.6 = ${fmt(kmhToMs(k2), 2)} m/s (or ${k2} × 1000 ÷ 3600).` });
+    const vb = randInt(4, 7), va = vb + randInt(1, 3), tt = randInt(5, 30), head = (va - vb) * tt;
+    out.push({ q: `B starts ${head} m ahead and runs at ${vb} m/s. A runs the same way at ${va} m/s. After how many seconds does A catch B?`, want: [tt],
+      work: `A gains ${va} − ${vb} = ${va - vb} m every second, so ${head} ÷ ${va - vb} = ${tt} s.` });
+    const s1 = randInt(3, 8), s2 = randInt(3, 8), t4 = randInt(10, 40), d4 = (s1 + s2) * t4;
+    out.push({ q: `Two friends ${d4} m apart walk towards each other at ${s1} m/s and ${s2} m/s. After how many seconds do they meet?`, want: [t4],
+      work: `The gap closes at ${s1} + ${s2} = ${s1 + s2} m/s, so ${d4} ÷ ${s1 + s2} = ${t4} s.` });
+    return out;
+  });
+</script>

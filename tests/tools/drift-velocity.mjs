@@ -1,0 +1,35 @@
+// #1406 Drift velocity of electrons
+export const path = '/learn/drift-velocity/';
+export default async ({ page, check, BASE }) => {
+  await page.goto(`${BASE}/learn/drift-velocity/`); await page.waitForTimeout(800);
+  const R = '.drv ', txt = (s) => page.textContent(R + s);
+  const setR = (s, v) => page.$eval(R + s, (e, v) => { e.value = String(v); e.dispatchEvent(new Event('input', { bubbles: true })); }, v);
+  check((await txt('.drv-big')) === 'Drift speed v_d = 0.0735 mm/s', `drift: example (${await txt('.drv-big')})`);
+  check((await txt('.drv-formula')).endsWith('= 7.35 × 10⁻⁵ m/s') && (await txt('.drv-formula')).includes('8.49 × 10²⁸'), `drift: formula (${await txt('.drv-formula')})`);
+  check((await txt('.drv-facts')).includes('3.78 hours') && (await txt('.drv-facts')).includes('1 per atom'), `drift: facts (${await txt('.drv-facts')})`);
+  const inked = () => page.$eval(R + '.drv-fig', (c) => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - d[0]) > 60) n++; return n; });
+  check((await inked()) > 500, 'drift: picture drawn');
+  await setR('.drv-i', 2); check((await txt('.drv-big')) === 'Drift speed v_d = 0.147 mm/s' && (await txt('.drv-iv')) === '2.0 A', 'drift: double current doubles v_d');
+  await setR('.drv-a', 2); check((await txt('.drv-big')) === 'Drift speed v_d = 0.0735 mm/s' && (await txt('.drv-av')) === '2.00 mm²', 'drift: double area halves v_d');
+  await setR('.drv-i', 1); await setR('.drv-a', 1);
+  await page.click(R + '.drv-metal button[data-v=aluminium]');
+  check((await txt('.drv-big')) === 'Drift speed v_d = 0.0345 mm/s' && (await txt('.drv-facts')).includes('3 per atom'), `drift: aluminium (${await txt('.drv-big')})`);
+  await page.click(R + '.drv-metal button[data-v=silver]');
+  check((await txt('.drv-big')) === 'Drift speed v_d = 0.107 mm/s', `drift: silver (${await txt('.drv-big')})`);
+  await page.click(R + '.drv-metal button[data-v=copper]');
+  check(await page.isHidden(R + '.drv-adv'), 'drift: advanced hidden at basic level');
+  await page.click(R + '.drv-level button[data-v="2"]');
+  const adv = await txt('.drv-afacts');
+  check(adv.includes('24.9 fs') && adv.includes('16.8 mV/m') && adv.includes('0.00438') && (await txt('.drv-adv-f')).includes('7.35 × 10⁻⁵ m/s'), `drift: advanced facts (${adv})`);
+  await setR('.drv-i', 0); check((await txt('.drv-big')).startsWith('No current') && (await txt('.drv-facts')).includes('never'), 'drift: zero current');
+  await setR('.drv-i', 1);
+  await page.click(R + '.drv-play'); check((await txt('.drv-play')) === 'Play', 'drift: pause');
+  await page.click(R + '.drv-play'); check((await txt('.drv-play')) === 'Pause', 'drift: play');
+  await page.click(R + '.drv-trail'); check(!(await page.isChecked(R + '.drv-trail')), 'drift: trail off');
+  check((await page.$$(R + '.eq-q')).length === 4, 'drift: four practice questions');
+  const q1 = await page.textContent(R + '.eq-q:nth-child(1) p'), A = Number(q1.match(/cross-section ([\d.]+) mm²/)[1]), I = Number(q1.match(/carries ([\d.]+) A/)[1]);
+  await page.fill(R + '.eq-q:nth-child(1) .eq-in', String(I / (8.5e28 * 1.6e-19 * A * 1e-6) * 1000)); await page.click(R + '.eq-q:nth-child(1) .eq-go');
+  check((await page.textContent(R + '.eq-q:nth-child(1) .eq-res')).startsWith('Right'), 'drift: right answer accepted');
+  await page.fill(R + '.eq-q:nth-child(2) .eq-in', '999'); await page.click(R + '.eq-q:nth-child(2) .eq-go');
+  check((await page.textContent(R + '.eq-q:nth-child(2) .eq-res')).startsWith('Not quite'), 'drift: wrong answer flagged');
+};

@@ -1,0 +1,146 @@
+---
+// Integration technique coach: which method fits a school integral and why (power rule, standard form,
+// substitution, parts with ILATE, partial fractions, parts twice), the steps, the answer checked by
+// differentiating it back, and f with its antiderivative on one graph. Class 12 maths, integrals.
+// Maths in src/lib/sci/integration-coach.ts.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+import { EXAMPLES } from '../../lib/sci/integration-coach';
+const groups = [...new Set(EXAMPLES.map((e) => e.group))];
+---
+<div class="ax icc">
+  <div class="ax-card">
+    <h2>What do you want to integrate?</h2>
+    <label class="ic-inl"><span>∫</span><input class="ic-in" type="text" value="x e^x" autocomplete="off" spellcheck="false" autocapitalize="off" aria-label="Integrand" /><span>dx</span></label>
+    <p class="ax-help">Use ^ for powers, brackets after sin, cos, tan, ln, sqrt, atan, and e^(…). 2x and x ln(x) mean multiply.</p>
+    {groups.map((g) => (
+      <div class="ic-grp"><span class="ax-help">{g}</span>
+        <div class="ic-ex">{EXAMPLES.filter((e) => e.group === g).map((e) => <button type="button" class="ic-chip" data-src={e.src}>{e.label}</button>)}</div>
+      </div>
+    ))}
+    <p class="ax-err ic-err" hidden></p>
+  </div>
+
+  <div class="ax-card ic-out">
+    <p class="ic-method"></p>
+    <p class="ic-why"></p>
+    <ol class="ic-steps"></ol>
+    <p class="ic-ans"></p>
+    <p class="ic-check"></p>
+    <div class="ic-parts"></div>
+  </div>
+
+  <div class="ax-card ic-pic">
+    <h2>f and its antiderivative</h2>
+    <canvas class="ax-fig ic-fig" role="img"></canvas>
+    <p class="ax-help">Black: f(x), the thing inside the integral. Blue: F(x) + C. Dashed: the tangent to F at x; its slope is the height of f there.</p>
+    <label class="ic-sl">x = <b class="ic-xv"></b><input class="ic-x" type="range" min="-4" max="4" step="0.05" value="1.5" /></label>
+    <label class="ic-sl">C = <b class="ic-cv"></b><input class="ic-c" type="range" min="-3" max="3" step="0.1" value="0" /></label>
+    <dl class="ax-facts ic-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>How to choose</h2>
+    <ul class="ic-try">
+      <li><b>Is it a sum?</b> Split it and do each term on its own.</li>
+      <li><b>A function of something, times that something's derivative?</b> Substitution: u = the inside.</li>
+      <li><b>A product of two different kinds</b> (x × eˣ, x × sin x, x × ln x)? Integration by parts. ILATE picks u: Inverse trig, Log, Algebraic, Trig, Exponential.</li>
+      <li><b>A fraction of polynomials?</b> Divide if the top is too big, factor the bottom, then partial fractions.</li>
+      <li><b>eˣ times sin or cos?</b> Parts twice: the integral comes back, and you solve for it.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="ic-quiz" />
+</div>
+
+<script>
+  import { coach, value, type Coach } from '../../lib/sci/integration-coach';
+  import { show, evaluate } from '../../lib/sci/cas';
+  import { paint, pagePalette } from '../../lib/report';
+  import { view, axes, curve, line, dot, fmt } from '../../lib/sm-graph';
+  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.icc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380, H = 260;
+  const inp = q<HTMLInputElement>('.ic-in'), xIn = q<HTMLInputElement>('.ic-x'), cIn = q<HTMLInputElement>('.ic-c');
+  let res: Coach | null = null;
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+  const li = (t: string) => { const e = document.createElement('li'); e.textContent = t; return e; };
+
+  function run() {
+    const err = q('.ic-err');
+    try { res = coach(inp.value); err.hidden = true; }
+    catch (e) { err.textContent = (e as Error).message; err.hidden = false; q('.ic-out').hidden = true; q('.ic-pic').hidden = true; res = null; return; }
+    q('.ic-out').hidden = false;
+    q('.ic-method').textContent = `Method: ${res.title}`;
+    q('.ic-why').textContent = res.why;
+    q('.ic-steps').replaceChildren(...res.steps.map(li));
+    q('.ic-ans').textContent = res.F ? `∫ ${show(res.f)} dx = ${show(res.F)} + C` : '';
+    q('.ic-check').textContent = res.F ? (res.checked ? 'Checked: differentiating the answer gives back the integrand.' : 'The answer did not check out; please tell us which integral this was.') : '';
+    q('.ic-check').className = `ic-check ${res.checked ? 'ok' : 'no'}`;
+    const box = q('.ic-parts');
+    box.replaceChildren(...(res.parts ?? []).filter((p) => p.method !== 'constant' && p.steps.length > 1).map((p) => {
+      const d = document.createElement('details'), s = document.createElement('summary'), ol = document.createElement('ol');
+      s.textContent = `∫ ${show(p.f)} dx: ${p.title}`; ol.append(...p.steps.map(li)); d.append(s, ol); return d;
+    }));
+    q('.ic-pic').hidden = !res.F;
+    graph();
+  }
+
+  function graph() {
+    if (!res?.F) return;
+    const r = res, x = +xIn.value, C = +cIn.value, f = (t: number) => evaluate(r.f, { x: t }), F = (t: number) => value(r.F!, t) + C;
+    q('.ic-xv').textContent = fmt(x, 2); q('.ic-cv').textContent = fmt(C, 1);
+    const ys: number[] = [];
+    for (let i = 0; i <= 160; i++) { const t = -4 + i / 20; for (const y of [f(t), F(t)]) if (Number.isFinite(y)) ys.push(y); }
+    ys.sort((a, b) => a - b);
+    const lo = ys.length ? ys[Math.floor(ys.length * 0.05)] : -3, hi = ys.length ? ys[Math.ceil(ys.length * 0.95) - 1] : 3, pad = Math.max(0.5, (hi - lo) * 0.12);
+    const v = view(-4, 4, Math.max(-40, Math.min(lo, 0) - pad), Math.min(40, Math.max(hi, 0) + pad), W, H);
+    const Fx = F(x), m = f(x);
+    paint(q<HTMLCanvasElement>('.ic-fig'), { w: W, h: H, alt: `f(x) = ${show(r.f)} and F(x) = ${show(r.F!)} + ${fmt(C, 1)}; at x = ${fmt(x, 2)} the slope of F is ${fmt(m)}`, draw: (ctx, w, h, pl) => {
+      axes(ctx, v, pl, { xName: 'x' }); curve(ctx, v, f, pl.ink, 2); curve(ctx, v, F, pl.accent, 2.4);
+      if (Number.isFinite(Fx) && Number.isFinite(m)) { line(ctx, v, -4, Fx + m * (-4 - x), 4, Fx + m * (4 - x), pl.accent2, 1.5, [6, 4]); dot(ctx, v, x, Fx, pl.accent, 5.5); dot(ctx, v, x, m, pl.ink, 4.5, true, pl.bg); }
+    } }, pagePalette());
+    q('.ic-facts').replaceChildren(fact('F(x) + C', fmt(Fx, 4)), fact('Slope of F at x', fmt((F(x + 1e-5) - F(x - 1e-5)) / 2e-5, 4), 'measured on the blue curve'), fact('f(x)', fmt(m, 4), 'the same number: F′ = f'));
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.ic-chip').forEach((b) => b.addEventListener('click', () => { inp.value = b.dataset.src!; run(); }));
+  inp.addEventListener('input', run);
+  xIn.addEventListener('input', graph); cIn.addEventListener('input', graph);
+  document.addEventListener('fibub:theme', graph);
+  run();
+
+  const M = ['Substitution', 'Integration by parts', 'Partial fractions', 'Standard form'];
+  quiz(q('.ic-quiz'), (): Question[] => {
+    const k = rint(2, 5), a = rint(1, 4), b = rint(a + 1, 6);
+    const sub = pick([`x·cos(x²)`, `x·e^(x²)`, `cos x · sin³ x`, `(ln x)²/x`, `2x/(x² + ${k})`]);
+    const parts = pick([`x·e^(${k}x)`, `x·cos x`, `x²·ln x`, `x·sin(${k}x)`, `ln x`]);
+    const pf = pick([`1/((x + ${a})(x + ${b}))`, `(2x + ${k})/(x² − 1)`, `1/(x² − ${k * k})`]);
+    return [
+      { text: `Which method fits ∫ ${sub} dx best?`, choices: M, correct: 0, worked: 'An inside function sits there, and the rest is a constant times its derivative: substitute u = the inside.' },
+      { text: `Which method fits ∫ ${parts} dx best?`, choices: M, correct: 1, worked: 'A product of two different kinds (or a lone ln x): integration by parts, choosing u by ILATE.' },
+      { text: `Which method fits ∫ ${pf} dx best?`, choices: M, correct: 2, worked: 'A fraction of polynomials whose bottom factorises into linear factors: partial fractions.' },
+      { text: 'What is ∫ from 0 to 1 of x eˣ dx?', answer: 1, worked: 'By parts: ∫ x eˣ dx = x eˣ − eˣ. From 0 to 1: (e − e) − (0 − 1) = 1.' },
+      { text: `What is ∫ from 0 to 1 of 2x·e^(x²) dx? (2 decimals)`, answer: Math.E - 1, tol: 0.006, worked: 'Substitute u = x², du = 2x dx: ∫ from 0 to 1 of eᵘ du = e − 1 ≈ 1.7183.' },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .icc .ic-inl { display: flex; align-items: center; gap: 8px; margin: 10px 0 4px; font-size: 22px; color: var(--ink); }
+  .icc .ic-in { flex: 1; min-width: 0; min-height: 44px; font-size: 18px; }
+  .icc .ic-grp { margin-top: 8px; }
+  .icc .ic-ex { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .icc .ic-chip { min-height: 40px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font: inherit; cursor: pointer; }
+  .icc .ic-method { font-size: 20px; font-weight: 700; color: var(--accent); margin: 0 0 6px; }
+  .icc .ic-why { margin: 0 0 10px; }
+  .icc .ic-steps, .icc .ic-parts ol { padding-left: 22px; display: grid; gap: 6px; overflow-wrap: anywhere; }
+  .icc .ic-ans { font-size: 18px; font-weight: 700; overflow-wrap: anywhere; }
+  .icc .ic-check.ok { color: var(--good); font-weight: 600; }
+  .icc .ic-check.no { color: var(--bad); font-weight: 600; }
+  .icc .ic-parts summary { cursor: pointer; min-height: 36px; overflow-wrap: anywhere; }
+  .icc .ic-sl { display: block; margin: 8px 0; color: var(--ink); }
+  .icc .ic-sl input { width: 100%; height: 32px; accent-color: var(--accent); }
+  .icc .ic-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+</style>

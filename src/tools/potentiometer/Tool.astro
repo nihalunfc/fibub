@@ -1,0 +1,171 @@
+---
+// Potentiometer virtual practical: slide the jockey along a 4 m wire until the galvanometer reads zero; compare two
+// emfs, or find a cell's internal resistance with a resistance box. Hidden cells to find. Everything runs in the
+// browser; nothing is stored.
+import '../../styles/astro.css';
+---
+<div class="ax ptm">
+  <div class="ax-card">
+    <h2>Set up</h2>
+    <span class="ax-seg ptm-mode" role="group" aria-label="Experiment"><button type="button" data-v="emf" aria-pressed="true">Compare two emfs</button><button type="button" data-v="ir" aria-pressed="false">Internal resistance</button></span>
+    <label class="ptm-sl">Rheostat in the driver circuit: <b class="ptm-hv"></b><input type="range" class="ptm-h" min="0" max="10" step="0.1" value="0.5" aria-label="Rheostat resistance in ohms" /></label>
+    <div class="ptm-only" data-m="emf" style="margin-top:10px">
+      <span class="ax-seg ptm-cell" role="group" aria-label="Cell in the circuit"><button type="button" data-v="1" aria-pressed="true">Cell 1 (1.50 V)</button><button type="button" data-v="2" aria-pressed="false">Cell 2 (unknown)</button></span>
+    </div>
+    <div class="ptm-only ax-row" data-m="ir" style="margin-top:10px">
+      <label>Resistance box R <select class="ptm-box"><option value="1">1 Ω</option><option value="2">2 Ω</option><option value="5" selected>5 Ω</option><option value="10">10 Ω</option></select></label>
+      <button type="button" class="btn secondary small ptm-k2">Close key K₂</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <canvas class="ax-fig ptm-fig"></canvas>
+    <label class="ptm-sl">Jockey at: <b class="ptm-jv"></b><input type="range" class="ptm-j" min="0" max="400" step="0.1" value="200" aria-label="Jockey position in centimetres from A" /></label>
+    <div class="ax-row ptm-nudge" style="margin-top:6px">
+      <button type="button" class="btn secondary small" data-d="-10">−10</button><button type="button" class="btn secondary small" data-d="-1">−1</button><button type="button" class="btn secondary small" data-d="-0.1">−0.1</button><button type="button" class="btn secondary small" data-d="0.1">+0.1</button><button type="button" class="btn secondary small" data-d="1">+1</button><button type="button" class="btn secondary small" data-d="10">+10</button><span class="ax-help" style="margin:0">cm</span>
+    </div>
+    <p class="ax-big ptm-big" aria-live="polite"></p>
+    <p class="ptm-note"></p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn small ptm-rec">Record this balance length</button></div>
+    <p class="ax-err ptm-rerr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Results</h2>
+    <div class="ax-scroll"><table class="ptm-tab"></table></div>
+    <p class="ptm-res"></p>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small ptm-reveal">Show the true values</button><button type="button" class="btn secondary small ptm-new">New cells</button></div>
+    <p class="ax-help ptm-true" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="ptm-try">
+      <li>Slide the jockey until the needle is at 0, then use the small buttons to get it exact.</li>
+      <li>Make the rheostat bigger: the current in the wire drops, the balance point moves further along, and the reading gets more precise.</li>
+      <li>Make it too big and there is no balance point at all: the whole wire drops less than the cell's emf.</li>
+      <li>Internal resistance: balance with K₂ open (l₁), close K₂ and balance again (l₂). A smaller R makes l₂ shorter.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="ptm-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .ptm .ptm-sl { display: grid; gap: 6px; margin-top: 10px; color: var(--ink); font-size: 15px; }
+  .ptm input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .ptm .ax-row label { display: inline-grid; }
+  .ptm-fig { max-width: 560px; margin-left: auto; margin-right: auto; }
+  .ptm-nudge .btn { min-width: 44px; padding-left: 8px; padding-right: 8px; }
+  .ptm-big { font-size: clamp(18px, 4.6vw, 24px); margin: 10px 0 0; }
+  .ptm-note, .ptm-res { margin: 6px 0 0; font-size: 16px; overflow-wrap: anywhere; }
+  .ptm-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .ptm .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .ptm .eq-q p { margin: 0 0 6px; }
+  .ptm .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .ptm .eq-ok { color: var(--good); font-weight: 600; }
+  .ptm .eq-no { color: var(--bad); }
+  .ptm .eq-work { margin-top: 4px; font-size: 14px; }
+  .ptm .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .ptm .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { DEFAULT, gradient, galvo, balance, emfRatio, internalR, questions, type Branch } from '../../lib/sci/potentiometer';
+  import { pagePalette } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+  import { quiz } from '../../lib/elec-quiz-ui';
+  import { setup, seg, onTheme } from '../../lib/school-p2';
+
+  const root = document.querySelector<HTMLElement>('.ptm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fig = q<HTMLCanvasElement>('.ptm-fig');
+  const W = 360, H = 250, DIV = 10e-6; // one galvanometer division = 10 µA
+  let mode = 'emf', cell = '1', k2 = false;
+  const rnd = (a: number, b: number, d = 2) => Number((a + Math.random() * (b - a)).toFixed(d));
+  let E2 = rnd(0.9, 1.4), Eir = rnd(1.3, 1.6), rir = rnd(0.5, 2.5);
+  const rec: Record<string, number | null> = { c1: null, c2: null, open: null, closed: null };
+  const s3 = (x: number) => sig(x, 3);
+  const setupNow = () => ({ ...DEFAULT, Rh: +q<HTMLInputElement>('.ptm-h').value });
+  const jockey = () => +q<HTMLInputElement>('.ptm-j').value;
+  const branchNow = (): Branch => mode === 'emf' ? (cell === '1' ? { E: 1.5, r: 0.8 } : { E: E2, r: 1.2 }) : { E: Eir, r: rir, shunt: k2 ? +q<HTMLSelectElement>('.ptm-box').value : undefined };
+  const slot = () => (mode === 'emf' ? (cell === '1' ? 'c1' : 'c2') : k2 ? 'closed' : 'open');
+
+  function draw() {
+    const pal = pagePalette(), c = setup(fig, W, H), s = setupNow(), Ig = galvo(s, branchNow(), jockey() / 100), d = Math.max(-30, Math.min(30, Ig / DIV));
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    const X0 = 20, X1 = 340, WY = 110, xj = X0 + (jockey() / 400) * (X1 - X0);
+    // Wire and scale.
+    c.strokeStyle = pal.ink; c.lineWidth = 3; c.beginPath(); c.moveTo(X0, WY); c.lineTo(X1, WY); c.stroke();
+    c.lineWidth = 1; c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'center';
+    for (let cm = 0; cm <= 400; cm += 50) { const x = X0 + (cm / 400) * (X1 - X0); c.beginPath(); c.moveTo(x, WY + 2); c.lineTo(x, WY + (cm % 100 ? 6 : 10)); c.stroke(); if (cm % 100 === 0) c.fillText(String(cm), x, WY + 22); }
+    c.fillStyle = pal.ink; c.font = '700 13px system-ui, sans-serif'; c.fillText('A', X0, WY - 8); c.fillText('B', X1, WY - 8);
+    // Driver circuit above: cell, key, rheostat.
+    c.strokeStyle = pal.ink; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(X0, WY); c.lineTo(X0, 30); c.lineTo(110, 30); c.moveTo(126, 30); c.lineTo(200, 30); c.moveTo(260, 30); c.lineTo(X1, 30); c.lineTo(X1, WY); c.stroke();
+    c.lineWidth = 2; c.beginPath(); c.moveTo(110, 18); c.lineTo(110, 42); c.stroke(); c.lineWidth = 4; c.beginPath(); c.moveTo(118, 23); c.lineTo(118, 37); c.stroke(); c.lineWidth = 1.5;
+    c.strokeRect(200, 22, 60, 16); c.beginPath(); c.moveTo(200 + Math.min(1, s.Rh / 10) * 60, 14); c.lineTo(200 + Math.min(1, s.Rh / 10) * 60, 22); c.stroke();
+    c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.fillText(`driver ${s.Ed} V`, 118, 58); c.fillText(`rheostat ${s3(s.Rh)} Ω`, 230, 58);
+    // Test branch below: from A through the cell (and box) to the galvanometer and the jockey.
+    const GY = 200, gx = 250;
+    c.strokeStyle = pal.ink; c.beginPath(); c.moveTo(X0, WY); c.lineTo(X0, GY); c.lineTo(90, GY); c.moveTo(106, GY); c.lineTo(gx - 22, GY); c.moveTo(gx + 22, GY); c.lineTo(xj, GY); c.lineTo(xj, WY + 30); c.stroke();
+    c.lineWidth = 2; c.beginPath(); c.moveTo(90, GY - 10); c.lineTo(90, GY + 10); c.stroke(); c.lineWidth = 4; c.beginPath(); c.moveTo(98, GY - 16); c.lineTo(98, GY + 16); c.stroke(); c.lineWidth = 1.5;
+    c.fillStyle = pal.muted; c.fillText(mode === 'emf' ? (cell === '1' ? 'cell 1' : 'cell 2') : 'cell', 94, GY + 34);
+    if (mode === 'ir') {
+      c.strokeStyle = pal.ink; c.beginPath(); c.moveTo(70, GY); c.lineTo(70, 238); c.lineTo(80, 238); c.moveTo(108, 238); c.lineTo(118, 238); c.lineTo(118, GY); c.stroke();
+      c.strokeRect(80, 231, 28, 14); c.beginPath(); c.arc(130, 238, 2.5, 0, Math.PI * 2); c.stroke();
+      c.fillStyle = pal.muted; c.textAlign = 'left'; c.fillText(`R ${q<HTMLSelectElement>('.ptm-box').value} Ω, K₂ ${k2 ? 'closed' : 'open'}`, 136, 242); c.textAlign = 'center';
+      if (!k2) { c.fillStyle = pal.bg; c.fillRect(112, 232, 12, 12); }
+    }
+    // Jockey.
+    c.fillStyle = pal.accent; c.beginPath(); c.moveTo(xj, WY + 4); c.lineTo(xj - 7, WY + 30); c.lineTo(xj + 7, WY + 30); c.closePath(); c.fill();
+    // Galvanometer dial with its needle.
+    c.fillStyle = pal.bg; c.strokeStyle = pal.ink; c.lineWidth = 1.5; c.beginPath(); c.arc(gx, GY, 22, 0, Math.PI * 2); c.fill(); c.stroke();
+    for (let k = -3; k <= 3; k++) { const a = -Math.PI / 2 + (k * Math.PI) / 9; c.beginPath(); c.moveTo(gx + 16 * Math.cos(a), GY + 16 * Math.sin(a)); c.lineTo(gx + 20 * Math.cos(a), GY + 20 * Math.sin(a)); c.stroke(); }
+    const a = -Math.PI / 2 + (d / 30) * (Math.PI / 3);
+    c.strokeStyle = Math.abs(d) < 0.5 ? pal.good : pal.bad; c.lineWidth = 2.5; c.beginPath(); c.moveTo(gx, GY + 6); c.lineTo(gx + 19 * Math.cos(a), GY + 19 * Math.sin(a)); c.stroke();
+    c.fillStyle = pal.ink; c.font = '700 12px system-ui, sans-serif'; c.fillText('G', gx, GY + 16);
+    c.fillStyle = pal.accent; c.font = '600 12px system-ui, sans-serif'; c.fillText(`J ${s3(jockey())} cm`, Math.max(40, Math.min(320, xj)), WY + 44);
+    fig.setAttribute('aria-label', `Potentiometer wire with the jockey at ${s3(jockey())} centimetres; galvanometer ${Math.abs(d) < 0.5 ? 'at zero' : `deflected ${Math.round(Math.abs(d))} divisions`}`);
+  }
+  function texts() {
+    const s = setupNow(), Ig = galvo(s, branchNow(), jockey() / 100), d = Ig / DIV, bal = balance(s, branchNow());
+    q('.ptm-hv').textContent = `${s.Rh.toFixed(1)} Ω`; q('.ptm-jv').textContent = `${jockey().toFixed(1)} cm`;
+    for (const el of root.querySelectorAll<HTMLElement>('.ptm-only')) el.hidden = el.dataset.m !== mode;
+    q('.ptm-k2').textContent = k2 ? 'Open key K₂' : 'Close key K₂';
+    const dv = Math.abs(d) >= 30 ? 'off the scale' : `${sig(Math.abs(d), 2)} divisions`;
+    q('.ptm-big').textContent = Math.abs(d) < 0.5 ? 'Galvanometer at zero: balanced!' : `Galvanometer: ${dv} to the ${d > 0 ? 'right (jockey too far)' : 'left (jockey not far enough)'}`;
+    q('.ptm-note').textContent = bal === null ? 'No balance point anywhere on the wire: the potential drop along the whole wire is less than this cell\'s voltage. Lower the rheostat.' : `Potential gradient along the wire: k = ${s3(gradient(s) * 1000 / 100)} mV per cm. At balance no current flows through the cell, so its emf (or terminal voltage) equals k × l.`;
+  }
+  function results() {
+    const head = document.createElement('tr'), rows: [string, number | null][] = mode === 'emf' ? [['Cell 1 balance l₁', rec.c1], ['Cell 2 balance l₂', rec.c2]] : [['K₂ open, l₁', rec.open], ['K₂ closed, l₂', rec.closed]];
+    head.innerHTML = '<th>Reading</th><th class="r">Length (cm)</th>';
+    q('.ptm-tab').replaceChildren(head, ...rows.map(([k, v]) => { const tr = document.createElement('tr'), a = document.createElement('td'), b = document.createElement('td'); a.textContent = k; b.textContent = v === null ? '–' : v.toFixed(1); b.className = 'r'; tr.append(a, b); return tr; }));
+    const R = +q<HTMLSelectElement>('.ptm-box').value;
+    q('.ptm-res').textContent = mode === 'emf'
+      ? rec.c1 && rec.c2 ? `E₂ / E₁ = l₂ / l₁ = ${rec.c2.toFixed(1)} / ${rec.c1.toFixed(1)}, so E₂ = 1.50 × ${s3(emfRatio(rec.c2, rec.c1))} = ${s3(1.5 * emfRatio(rec.c2, rec.c1))} V` : 'Balance cell 1, record; then switch to cell 2, balance and record.'
+      : rec.open && rec.closed ? `r = R (l₁ − l₂) / l₂ = ${R} × (${rec.open.toFixed(1)} − ${rec.closed.toFixed(1)}) / ${rec.closed.toFixed(1)} = ${s3(internalR(R, rec.open, rec.closed))} Ω` : 'Balance with K₂ open and record; close K₂, balance again and record.';
+    const t = q('.ptm-true');
+    t.textContent = mode === 'emf' ? `True emf of cell 2: ${E2.toFixed(2)} V.` : `True values: emf ${Eir.toFixed(2)} V, internal resistance ${rir.toFixed(2)} Ω.`;
+  }
+  const all = () => { texts(); draw(); };
+  q('.ptm-h').addEventListener('input', all); q('.ptm-j').addEventListener('input', all);
+  for (const b of root.querySelectorAll<HTMLButtonElement>('.ptm-nudge button')) b.addEventListener('click', () => { const j = q<HTMLInputElement>('.ptm-j'); j.value = String(Math.max(0, Math.min(400, Math.round((+j.value + +b.dataset.d!) * 10) / 10))); all(); });
+  seg(q('.ptm-mode'), (v) => { mode = v; q('.ptm-rerr').hidden = true; all(); results(); });
+  seg(q('.ptm-cell'), (v) => { cell = v; all(); });
+  q('.ptm-k2').addEventListener('click', () => { k2 = !k2; all(); });
+  q('.ptm-box').addEventListener('change', () => { rec.closed = null; all(); results(); });
+  q('.ptm-rec').addEventListener('click', () => {
+    const d = galvo(setupNow(), branchNow(), jockey() / 100) / DIV, e = q('.ptm-rerr');
+    e.hidden = Math.abs(d) < 0.5; e.textContent = 'Not balanced yet: the galvanometer must read zero before you record.';
+    if (Math.abs(d) < 0.5) { rec[slot()] = jockey(); results(); }
+  });
+  q('.ptm-reveal').addEventListener('click', () => { q('.ptm-true').hidden = false; });
+  q('.ptm-new').addEventListener('click', () => { E2 = rnd(0.9, 1.4); Eir = rnd(1.3, 1.6); rir = rnd(0.5, 2.5); for (const k of Object.keys(rec)) rec[k] = null; q('.ptm-true').hidden = true; all(); results(); });
+  onTheme(draw);
+  all(); results();
+  quiz(q('.ptm-quiz'), () => questions());
+</script>

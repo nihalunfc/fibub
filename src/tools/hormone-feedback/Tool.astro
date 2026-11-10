@@ -1,0 +1,187 @@
+---
+// Hormone and gland map with a feedback loop: tap the glands on a body outline to read their hormones, then run a day
+// of blood sugar control. Meals raise blood glucose, the pancreas answers with insulin, running lowers it and glucagon
+// brings it back. Compare a healthy body with weak or missing insulin. Teaching model with round rates, not medical.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm hfb">
+  <p class="ax-help">A teaching model with made-up round rates. It is not a medical tool and must not be used to manage diabetes.</p>
+  <div class="ax-card">
+    <div class="ax-row"><b>Level</b>
+      <div class="ax-seg hfb-level" role="group" aria-label="Level"><button type="button" data-v="10" aria-pressed="true">Class 10</button><button type="button" data-v="11" aria-pressed="false">Class 11</button></div></div>
+    <h2 class="hfb-h">The glands</h2>
+    <svg class="sm-fig hfb-map" viewBox="0 0 340 330" role="img" aria-label="Body outline with the hormone glands"></svg>
+    <p class="ax-help">Tap a gland.</p>
+    <h3 class="hfb-gn" aria-live="polite"></h3>
+    <p class="ax-pill hfb-gh"></p>
+    <p class="hfb-gt"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Blood sugar: a feedback loop</h2>
+    <div class="ax-row"><b>Body</b>
+      <div class="ax-seg hfb-body" role="group" aria-label="Body"><button type="button" data-v="healthy" aria-pressed="true">Healthy</button><button type="button" data-v="weak" aria-pressed="false">Insulin works weakly</button><button type="button" data-v="none" aria-pressed="false">No insulin made</button></div></div>
+    <div class="ax-row hfb-gap">
+      <label class="hfb-ck"><input type="checkbox" class="hfb-e" data-k="meal" data-at="60" checked /> Breakfast 07:00</label>
+      <label class="hfb-ck"><input type="checkbox" class="hfb-e" data-k="meal" data-at="390" checked /> Lunch 12:30</label>
+      <label class="hfb-ck"><input type="checkbox" class="hfb-e" data-k="run" data-at="600" checked /> Run 16:00</label>
+    </div>
+    <svg class="sm-fig hfb-chart" viewBox="0 0 340 220" role="img" aria-label="Blood glucose and insulin from 06:00 to 18:00"></svg>
+    <div class="ax-legend"><span><i class="hfb-kg"></i>Blood glucose</span><span><i class="hfb-ki"></i>Insulin</span><span><i class="hfb-kn"></i>Glucagon</span><span><i class="hfb-kb"></i>Usual range</span></div>
+    <label class="hfb-gap hfb-tl">Time: <b class="hfb-tv"></b>
+      <input type="range" class="hfb-t" min="0" max="720" step="5" value="120" aria-label="Time of day" /></label>
+    <p class="ax-big hfb-big" aria-live="polite"></p>
+    <svg class="sm-fig hfb-loop" viewBox="0 0 340 170" role="img" aria-label="The feedback loop: high sugar, insulin, sugar falls; low sugar, glucagon, sugar rises"></svg>
+    <p class="hfb-say"></p>
+    <dl class="ax-facts hfb-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Healthy body: drag the time to just after breakfast. Which hormone is rising, and what happens to the glucose?</li>
+      <li>During the run, the glucose dips. Which hormone brings it back up, and from where?</li>
+      <li>Pick "No insulin made". How long does blood sugar stay above the usual range?</li>
+      <li>Untick both meals. Why does glucose stay flat?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Type the number of your answer. Nothing is saved.</p>
+    <div class="hfb-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .hfb .hfb-gap { margin-top: 10px; }
+  .hfb .hfb-h { margin-top: 12px; }
+  .hfb h3 { margin: 8px 0 4px; font-size: 17px; }
+  .hfb .hfb-gh:empty { display: none; }
+  .hfb .hfb-ck { display: inline-flex; align-items: center; gap: 6px; font-size: 15px; color: var(--ink); min-height: 40px; }
+  .hfb .hfb-ck input { width: 20px; height: 20px; }
+  .hfb .hfb-tl { display: block; } .hfb .hfb-tl input { width: 100%; height: 32px; accent-color: var(--accent); }
+  .hfb svg .hfb-bod { fill: var(--bg); stroke: var(--line); stroke-width: 2; }
+  .hfb svg .hfb-gl { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 2; cursor: pointer; }
+  .hfb svg .hfb-gl.on { fill: var(--warn); }
+  .hfb svg text { font-size: 11px; pointer-events: none; }
+  .hfb svg line, .hfb svg path.hfb-ln { pointer-events: none; }
+  .hfb svg .hfb-g { fill: none; stroke: var(--ink); stroke-width: 2.5; }
+  .hfb svg .hfb-i { fill: none; stroke: var(--good); stroke-width: 2; }
+  .hfb svg .hfb-n { fill: none; stroke: var(--warn); stroke-width: 2; stroke-dasharray: 5 3; }
+  .hfb svg .hfb-band { fill: var(--good-soft); }
+  .hfb svg .hfb-ax { stroke: var(--muted); stroke-width: 1; }
+  .hfb svg .hfb-cur { stroke: var(--accent); stroke-width: 2; }
+  .hfb svg .hfb-box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+  .hfb svg .hfb-box.on { stroke: var(--accent); stroke-width: 3; }
+  .hfb svg .hfb-arr { stroke: var(--muted); stroke-width: 1.5; fill: none; marker-end: url(#hfb-a); }
+  .hfb svg #hfb-a path { fill: var(--muted); }
+  .hfb .ax-legend i.hfb-kg { background: var(--ink); } .hfb .ax-legend i.hfb-ki { background: var(--good); } .hfb .ax-legend i.hfb-kn { background: var(--warn); } .hfb .ax-legend i.hfb-kb { background: var(--good-soft); outline: 1px solid var(--good); }
+</style>
+
+<script>
+  import { GLANDS, simulate, summary, SET, type Body, type Event as Ev } from '../../lib/sci/glucose-loop';
+  import { fmt } from '../../lib/sci/smath';
+  import { S, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.hfb')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const map = q<SVGSVGElement>('.hfb-map'), chart = q<SVGSVGElement>('.hfb-chart'), loop = q<SVGSVGElement>('.hfb-loop'), T = q<HTMLInputElement>('.hfb-t');
+  let level = 10, gland = 'pancreas', body: Body = 'healthy', run = simulate([], 'healthy');
+
+  // ----- gland map
+  const POS: Record<string, [number, number, number, string, number]> = { // x, y, r, label, label x
+    pineal: [176, 34, 6, 'pineal', 250], hypothalamus: [166, 44, 6, 'hypothalamus', 60], pituitary: [168, 58, 6, 'pituitary', 250],
+    thyroid: [170, 96, 9, 'thyroid', 60], thymus: [170, 128, 9, 'thymus', 250], adrenal: [148, 182, 8, 'adrenal glands', 60],
+    pancreas: [184, 198, 10, 'pancreas', 250], gonads: [170, 262, 10, 'testes or ovaries', 250],
+  };
+  function drawMap() {
+    map.replaceChildren();
+    S('circle', { cx: 170, cy: 46, r: 30, class: 'hfb-bod' }, map);
+    S('path', { d: 'M156 74 L184 74 L186 90 L240 104 L262 210 L246 214 L228 128 L222 220 L214 320 L184 320 L172 246 L168 246 L156 320 L126 320 L118 220 L112 128 L94 214 L78 210 L100 104 L154 90 Z', class: 'hfb-bod' }, map);
+    for (const g of GLANDS) {
+      const [x, y, r, label, lx] = POS[g.id];
+      S('line', { x1: x, y1: y, x2: lx < 170 ? lx + 4 : lx - 4, y2: y, stroke: 'currentColor', 'stroke-width': 0.8, opacity: 0.5 }, map);
+      S('text', { x: lx, y: y + 4, 'text-anchor': lx < 170 ? 'end' : 'start' }, map, label);
+      if (g.id === 'adrenal') S('circle', { cx: 192, cy: y, r, class: 'hfb-gl' + (gland === g.id ? ' on' : ''), 'data-g': g.id }, map);
+      S('circle', { cx: x, cy: y, r: Math.max(r, 7), class: 'hfb-gl' + (gland === g.id ? ' on' : ''), 'data-g': g.id, role: 'button', tabindex: 0, 'aria-label': g.name }, map);
+    }
+    const G = GLANDS.find((x) => x.id === gland)!;
+    q('.hfb-gn').textContent = G.name; q('.hfb-gh').textContent = G.hormone;
+    q('.hfb-gt').textContent = G.t10 + (level === 11 ? ' ' + G.t11 : '');
+  }
+  const pickGland = (e: globalThis.Event) => { const c = (e.target as Element).closest('[data-g]'); if (c) { gland = c.getAttribute('data-g')!; drawMap(); } };
+  map.addEventListener('click', pickGland);
+  map.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickGland(e); } });
+
+  // ----- feedback loop
+  const clock = (m: number) => { const h = 6 + Math.floor(m / 60), mm = m % 60; return `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}`; };
+  const events = (): Ev[] => [...root.querySelectorAll<HTMLInputElement>('.hfb-e')].filter((c) => c.checked).map((c) => ({ kind: c.dataset.k as 'meal' | 'run', at: Number(c.dataset.at) }));
+  function simulateNow() { run = simulate(events(), body); drawChart(); readout(); }
+  const X = (m: number) => 36 + (m / 720) * 294, Y = (g: number) => 190 - ((g - 40) / 200) * 170;
+  function drawChart() {
+    chart.replaceChildren();
+    S('rect', { x: 36, y: Y(140), width: 294, height: Y(70) - Y(140), class: 'hfb-band' }, chart);
+    for (const g of [60, 100, 140, 180, 220]) { S('line', { x1: 36, y1: Y(g), x2: 330, y2: Y(g), class: 'hfb-ax', opacity: 0.3 }, chart); S('text', { x: 32, y: Y(g) + 4, 'text-anchor': 'end' }, chart, String(g)); }
+    for (let h = 0; h <= 12; h += 3) S('text', { x: X(h * 60), y: 208, 'text-anchor': 'middle' }, chart, clock(h * 60));
+    S('text', { x: 4, y: 12 }, chart, 'glucose, mg/dL');
+    const path = (arr: number[], f: (v: number) => number) => arr.map((v, i) => `${i ? 'L' : 'M'}${X(run.t[i]).toFixed(1)} ${f(v).toFixed(1)}`).join(' ');
+    const scale = (v: number) => Y(40 + v * 2); // hormones on their own scale, drawn low on the chart
+    S('path', { d: path(run.ins, scale), class: 'hfb-i hfb-ln' }, chart);
+    S('path', { d: path(run.glu, scale), class: 'hfb-n hfb-ln' }, chart);
+    S('path', { d: path(run.g, (g) => Y(Math.min(240, g))), class: 'hfb-g hfb-ln' }, chart);
+    for (const e of events()) S('text', { x: X(e.at), y: 26, 'text-anchor': 'middle' }, chart, e.kind === 'meal' ? 'meal' : 'run');
+    const t = Number(T.value);
+    S('line', { x1: X(t), y1: 18, x2: X(t), y2: 192, class: 'hfb-cur' }, chart);
+  }
+  function drawLoop(mode: 'up' | 'down' | 'calm') {
+    loop.replaceChildren();
+    const defs = S('defs', {}, loop), mk = S('marker', { id: 'hfb-a', viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 6, markerHeight: 6, orient: 'auto' }, defs); S('path', { d: 'M0 0 L10 5 L0 10 z' }, mk);
+    const box = (x: number, y: number, w: number, t1: string, t2: string, on: boolean) => { S('rect', { x, y, width: w, height: 38, rx: 8, class: 'hfb-box' + (on ? ' on' : '') }, loop); S('text', { x: x + w / 2, y: y + 16, 'text-anchor': 'middle', style: 'font-weight:600' }, loop, t1); S('text', { x: x + w / 2, y: y + 30, 'text-anchor': 'middle' }, loop, t2); };
+    box(110, 66, 120, `Set point ${SET}`, 'mg/dL', mode === 'calm');
+    box(8, 8, 150, 'Sugar too high', 'pancreas: insulin', mode === 'up');
+    box(182, 8, 150, 'Cells, liver take in', 'glucose; sugar falls', mode === 'up');
+    box(182, 124, 150, 'Sugar too low', 'pancreas: glucagon', mode === 'down');
+    box(8, 124, 150, 'Liver releases', 'glucose; sugar rises', mode === 'down');
+    const a = (d: string) => S('path', { d, class: 'hfb-arr' }, loop);
+    a('M140 66 L110 48'); a('M158 27 L180 27'); a('M257 46 L232 70'); a('M232 104 L257 122'); a('M182 143 L160 143'); a('M83 122 L110 104');
+  }
+  function readout() {
+    const t = Number(T.value), i = Math.round(t), g = run.g[i], ins = run.ins[i], glu = run.glu[i], s = summary(run);
+    q('.hfb-tv').textContent = clock(t);
+    q('.hfb-big').textContent = `At ${clock(t)} blood glucose is ${fmt(g, 0)} mg/dL`;
+    const mode = ins > 3 && ins > glu ? 'up' : glu > 1 ? 'down' : 'calm';
+    drawLoop(mode); drawChart();
+    let say = mode === 'up' ? 'Glucose is above the set point, so the pancreas releases insulin. Muscle and liver cells take glucose in (the liver stores it as glycogen), and the level falls back.'
+      : mode === 'down' ? 'Glucose has dropped below the set point, so the pancreas releases glucagon. The liver breaks down glycogen and lets glucose out, and the level rises back.'
+      : 'Glucose is near the set point, so little hormone is needed.';
+    if (body === 'none') say = g > 140 ? 'No insulin is made, so the cells cannot take in the glucose: it stays high in the blood. This is like untreated type 1 diabetes. Above about 180 mg/dL some spills into the urine.' : 'No insulin is made. Without a meal, glucose drifts slowly.';
+    if (body === 'weak' && mode === 'up') say += ' Here the cells respond weakly to insulin, so the level falls slowly, a bit like type 2 diabetes.';
+    if (level === 11) say += ' This is negative feedback: the response undoes the change that caused it.';
+    q('.hfb-say').textContent = say;
+    const facts: [string, string][] = [['Highest', `${fmt(s.peak, 0)} mg/dL at ${clock(s.peakAt)}`], ['Lowest', `${fmt(s.low, 0)} mg/dL`], ['Time above 140', `${fmt(s.minutesAbove140 / 60, 1)} h`], ['Insulin now', `${fmt(ins, 1)} units`], ['Glucagon now', `${fmt(glu, 1)} units`]];
+    q('.hfb-facts').replaceChildren(...facts.map(([k, v]) => { const d = document.createElement('div'); d.append(Object.assign(document.createElement('dt'), { textContent: k }), Object.assign(document.createElement('dd'), { textContent: v })); return d; }));
+  }
+
+  const seg = (s: string, on: (v: string) => void) => q(s).addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (!b) return; q(s).querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); on(b.dataset.v!); });
+  seg('.hfb-level', (v) => { level = Number(v); drawMap(); readout(); });
+  seg('.hfb-body', (v) => { body = v as Body; simulateNow(); });
+  root.querySelectorAll('.hfb-e').forEach((c) => c.addEventListener('change', simulateNow));
+  T.addEventListener('input', readout);
+  drawMap(); simulateNow();
+
+  const FACTS: { q: string; opts: string[]; right: number; why: string }[] = [
+    { q: 'Which hormone lowers blood sugar?', opts: ['Insulin', 'Glucagon', 'Adrenaline'], right: 0, why: 'Insulin helps cells take glucose in from the blood.' },
+    { q: 'Which gland makes insulin?', opts: ['Thyroid', 'Pancreas', 'Adrenal'], right: 1, why: 'The pancreas, in its islets of Langerhans.' },
+    { q: 'Lack of iodine in food can cause', opts: ['diabetes', 'dwarfism', 'goitre'], right: 2, why: 'The thyroid needs iodine to make thyroxin; without it, it swells (goitre).' },
+    { q: 'Which hormone prepares the body for "fight or flight"?', opts: ['Adrenaline', 'Thyroxin', 'Melatonin'], right: 0, why: 'Adrenaline from the adrenal glands.' },
+    { q: 'Which gland is called the master gland?', opts: ['Pancreas', 'Pituitary', 'Thymus'], right: 1, why: 'The pituitary controls several other glands.' },
+    { q: 'How do hormones travel round the body?', opts: ['Along nerves', 'Through ducts', 'In the blood'], right: 2, why: 'Endocrine glands have no ducts; their hormones go straight into the blood.' },
+    { q: 'Too little growth hormone in childhood causes', opts: ['dwarfism', 'goitre', 'diabetes'], right: 0, why: 'Growth hormone from the pituitary controls growth.' },
+  ];
+  quiz(q('.hfb-quiz'), () => [...FACTS].sort(() => Math.random() - 0.5).slice(0, 4).map((c) => {
+    const order = [0, 1, 2].sort(() => Math.random() - 0.5), pos = order.indexOf(c.right) + 1, list = order.map((k, i) => `${i + 1} ${c.opts[k]}`).join(', ');
+    return { q: c.q.endsWith('?') ? `${c.q} ${list}.` : `${c.q} ___? ${list}.`, want: [pos], hint: 'type 1, 2 or 3', work: `${pos}: ${c.opts[c.right]}. ${c.why}` } as Question;
+  }));
+</script>

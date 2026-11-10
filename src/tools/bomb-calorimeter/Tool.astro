@@ -1,0 +1,161 @@
+---
+// Bomb calorimeter virtual practical: calibrate with benzoic acid, burn a sample, read the temperature rise off a
+// live thermometer trace, then q = C·ΔT, ΔU per mole and ΔH = ΔU + Δn(gas)RT. Class 11 chemistry, thermodynamics.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+import { SAMPLES } from '../../lib/sci/bomb-calorimeter';
+---
+<div class="ax bcx">
+  <div class="ax-card">
+    <h2>The calorimeter</h2>
+    <p class="ax-help">A steel "bomb" filled with oxygen sits in a known amount of water. A spark burns the sample inside at constant volume, and a fine thermometer (read to 0.001 °C) records the water warming up.</p>
+    <canvas class="ax-fig bc-fig" role="img"></canvas>
+    <p class="ax-big bc-read" aria-live="polite"></p>
+    <button type="button" class="btn small secondary bc-new">Use a different calorimeter</button>
+  </div>
+
+  <div class="ax-card">
+    <h2>Step 1: calibrate with benzoic acid</h2>
+    <p class="ax-help">Benzoic acid gives out a known 26.43 kJ per gram (rounded) when it burns, so the temperature rise tells you how much heat it takes to warm this calorimeter by 1 K: its heat capacity C.</p>
+    <div class="bc-row">
+      <label>Mass of benzoic acid (g) <input class="bc-m1" type="number" min="0.1" max="2" step="0.001" value="1.000" inputmode="decimal" /></label>
+      <button type="button" class="btn bc-fire1">Fire</button>
+    </div>
+    <ol class="bc-steps bc-s1"></ol>
+  </div>
+
+  <div class="ax-card">
+    <h2>Step 2: burn your sample</h2>
+    <div class="bc-row">
+      <label>Sample <select class="bc-s">{SAMPLES.filter((s) => s.id !== 'benzoic').map((s) => <option value={s.id}>{s.name}, {s.formula}</option>)}</select></label>
+      <label>Mass (g) <input class="bc-m2" type="number" min="0.1" max="2" step="0.001" value="1.200" inputmode="decimal" /></label>
+      <button type="button" class="btn bc-fire2">Fire</button>
+    </div>
+    <p class="ax-help bc-need">Calibrate first (step 1), so you know C.</p>
+    <ol class="bc-steps bc-s2"></ol>
+    <dl class="ax-facts bc-facts"></dl>
+    <p class="ax-err bc-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="bc-try">
+      <li>Burn 1.2 g of glucose and of sucrose. Which gives more energy per gram? Per mole?</li>
+      <li>Naphthalene has fewer gas molecules after burning than before (Δn = −2), so ΔH is a little more negative than ΔU. Urea has more (Δn = +½).</li>
+      <li>Use a different calorimeter: the temperature rise changes, but once you calibrate again, ΔU per mole comes out the same.</li>
+      <li>Burn twice as much sample: ΔT doubles, ΔU per mole does not.</li>
+    </ul>
+    <p class="ax-help">A virtual practical: the readings come from rounded standard values, not from a real instrument. Real work also corrects for the fuse wire and for heat lost while the temperature rises.</p>
+  </div>
+
+  <SmQuiz cls="bc-quiz" />
+</div>
+
+<script>
+  import { SAMPLES, BENZOIC_KJ_PER_G, heatCapacity, rise, molarU, enthalpy, reading } from '../../lib/sci/bomb-calorimeter';
+  import { paint, type Figure } from '../../lib/report';
+  import { view, axes, curve, line, label, fmt } from '../../lib/sm-graph';
+  import { quiz, pick, rint, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.bcx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380, H = 240, T0 = 25;
+  let trueC = 10.15, C = NaN, shown = { dT: 0, t: 0, what: '' }, anim = 0;
+  const li = (t: string) => { const e = document.createElement('li'); e.textContent = t; return e; };
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+  const r3 = (x: number) => Math.round(x * 1000) / 1000;
+
+  function draw() {
+    const { dT, t, what } = shown, top = Math.max(1, dT * 1.25);
+    const v = view(0, 15, T0 - 0.15 * top, T0 + top, W, H, { l: 44, r: 12, t: 12, b: 26 });
+    const fig: Figure = { w: W, h: H, alt: what ? `Temperature against time for ${what}: steady at ${T0} °C, then rising by ${fmt(dT, 3)} °C after the spark at 5 minutes.` : 'Temperature against time: nothing burned yet.', draw: (ctx, w, h, pl) => {
+      axes(ctx, v, pl, { xName: 'time (min)', yName: 'T (°C)' });
+      if (!what) { label(ctx, v, 7.5, T0 + top / 2, 'Press Fire to burn a sample', pl.muted, 0, 0, 'center'); return; }
+      line(ctx, v, 5, v.y0, 5, v.y1, pl.warn, 1, [4, 4]); label(ctx, v, 5, T0 + top * 0.95, 'spark', pl.warn, 4, 12);
+      curve(ctx, v, (x) => reading(x, T0, dT), pl.accent, 2.6, [], 0, t);
+      if (t >= 15) { line(ctx, v, 13, T0, 13, T0 + dT, pl.good, 2); label(ctx, v, 13, T0 + dT / 2, `ΔT = ${fmt(r3(dT), 3)}`, pl.good, -6, 6, 'right'); line(ctx, v, 0, T0, 15, T0, pl.muted, 1, [3, 3]); }
+    } };
+    paint(q<HTMLCanvasElement>('.bc-fig'), fig);
+    q('.bc-read').textContent = what ? `Thermometer: ${(T0 + (t < 5 ? 0 : r3(reading(t, 0, dT)))).toFixed(3)} °C${t >= 15 ? `, ΔT = ${r3(dT).toFixed(3)} K` : ''}` : 'Thermometer: 25.000 °C';
+  }
+
+  /** Run the trace from 0 to 15 minutes over about 1.5 s, then call done. */
+  function fire(dT: number, what: string, done: () => void) {
+    cancelAnimationFrame(anim);
+    shown = { dT, t: 0, what };
+    const start = performance.now();
+    const step = (now: number) => { shown.t = Math.min(15, ((now - start) / 1500) * 15); draw(); if (shown.t < 15) anim = requestAnimationFrame(step); else done(); };
+    anim = requestAnimationFrame(step);
+  }
+
+  const mass = (c: string) => { const s = q<HTMLInputElement>(c).value.trim(), m = +s; return s && m >= 0.1 && m <= 2 ? m : NaN; };
+  function err(t: string) { q('.bc-err').hidden = !t; q('.bc-err').textContent = t; }
+
+  q('.bc-fire1').addEventListener('click', () => {
+    const m = mass('.bc-m1');
+    if (!Number.isFinite(m)) { q('.bc-s1').replaceChildren(li('Type a mass from 0.1 to 2 g.')); return; }
+    const dT = r3(rise(m * BENZOIC_KJ_PER_G, trueC));
+    q('.bc-s1').replaceChildren(li('Burning…'));
+    fire(dT, `${m} g of benzoic acid`, () => {
+      C = heatCapacity(m, dT);
+      q('.bc-s1').replaceChildren(
+        li(`Heat given out: q = ${fmt(m, 3)} g × 26.43 kJ/g = ${fmt(m * BENZOIC_KJ_PER_G, 3)} kJ.`),
+        li(`Temperature rise read off the trace: ΔT = ${dT.toFixed(3)} K.`),
+        li(`Heat capacity C = q ÷ ΔT = ${fmt(m * BENZOIC_KJ_PER_G, 3)} ÷ ${dT.toFixed(3)} = ${fmt(C, 3)} kJ/K.`),
+      );
+      q('.bc-need').hidden = true;
+    });
+  });
+
+  q('.bc-fire2').addEventListener('click', () => {
+    err('');
+    if (!Number.isFinite(C)) { err('Calibrate first: press Fire in step 1.'); return; }
+    const m = mass('.bc-m2'); if (!Number.isFinite(m)) { err('Type a mass from 0.1 to 2 g.'); return; }
+    const s = SAMPLES.find((x) => x.id === q<HTMLSelectElement>('.bc-s').value)!;
+    const dT = r3(rise((m / s.M) * -s.dU, trueC));
+    q('.bc-s2').replaceChildren(li('Burning…')); q('.bc-facts').replaceChildren();
+    fire(dT, `${m} g of ${s.name.toLowerCase()}`, () => {
+      const qk = C * dT, U = molarU(qk, m, s.M), Hm = enthalpy(U, s.dng);
+      q('.bc-s2').replaceChildren(
+        li(`ΔT = ${dT.toFixed(3)} K, so heat given out q = C × ΔT = ${fmt(C, 3)} × ${dT.toFixed(3)} = ${fmt(qk, 3)} kJ.`),
+        li(`Moles burned = ${fmt(m, 3)} ÷ ${s.M} = ${fmt(m / s.M, 5)} mol, so ΔU = −${fmt(qk, 3)} ÷ ${fmt(m / s.M, 5)} = ${fmt(U, 1)} kJ/mol (minus: heat leaves the reaction).`),
+        li(`${s.eq}. Gas moles change by Δn = ${fmt(s.dng, 1)}, so ΔH = ΔU + ΔnRT = ${fmt(U, 1)} + (${fmt(s.dng, 1)} × 8.314 × 298 ÷ 1000) = ${fmt(Hm, 1)} kJ/mol.`),
+      );
+      q('.bc-facts').replaceChildren(
+        fact('Energy per gram', `${fmt(qk / m, 2)} kJ/g`),
+        fact('ΔU (constant volume)', `${fmt(U, 1)} kJ/mol`),
+        fact('ΔH (constant pressure)', `${fmt(Hm, 1)} kJ/mol`, `Δn(gas) = ${fmt(s.dng, 1)}`),
+      );
+    });
+  });
+
+  q('.bc-new').addEventListener('click', () => {
+    trueC = Math.round((8 + Math.random() * 5) * 100) / 100; C = NaN; shown = { dT: 0, t: 0, what: '' };
+    q('.bc-s1').replaceChildren(li('New calorimeter: calibrate it again.')); q('.bc-s2').replaceChildren(); q('.bc-facts').replaceChildren(); q('.bc-need').hidden = false; draw();
+  });
+  document.addEventListener('fibub:theme', draw);
+  draw();
+
+  quiz(q('.bc-quiz'), (): Question[] => {
+    const m1 = pick([0.8, 1, 1.2, 0.5]), dT1 = pick([2.1, 2.5, 2.64, 3.05]), C1 = heatCapacity(m1, dT1);
+    const Cq = pick([9.5, 10, 10.5, 12]), s = pick(SAMPLES.filter((x) => x.id === 'glucose' || x.id === 'sucrose')), m2 = pick([0.9, 1, 1.5]);
+    const dT2 = r3(rise((m2 / s.M) * -s.dU, Cq)), U2 = molarU(Cq * dT2, m2, s.M);
+    const U3 = -rint(3000, 5500), n3 = pick([-2, -1, -0.5, 1]);
+    return [
+      { text: `${m1} g of benzoic acid (26.43 kJ/g) raises the temperature by ${dT1} K. What is the calorimeter's heat capacity, in kJ/K?`, answer: C1, tol: 0.01, worked: `q = ${m1} × 26.43 = ${fmt(m1 * 26.43, 3)} kJ. C = q ÷ ΔT = ${fmt(m1 * 26.43, 3)} ÷ ${dT1} = ${fmt(C1, 3)} kJ/K.` },
+      { text: `${m2} g of ${s.name.split(' (')[0].toLowerCase()} (M = ${s.M} g/mol) raises a ${Cq} kJ/K calorimeter by ${dT2.toFixed(3)} K. What is ΔU in kJ/mol?`, answer: U2, tol: Math.abs(U2) * 0.002, worked: `q = ${Cq} × ${dT2.toFixed(3)} = ${fmt(Cq * dT2, 3)} kJ. Moles = ${m2} ÷ ${s.M} = ${fmt(m2 / s.M, 5)}. ΔU = −q ÷ moles = ${fmt(U2, 0)} kJ/mol.` },
+      { text: `ΔU = ${U3} kJ/mol and the gas moles change by Δn = ${n3}. What is ΔH at 298 K, in kJ/mol?`, answer: enthalpy(U3, n3), tol: 0.1, worked: `ΔH = ΔU + ΔnRT = ${U3} + (${n3} × 8.314 × 298 ÷ 1000) = ${U3} ${n3 < 0 ? '−' : '+'} ${fmt(Math.abs(n3) * 2.4777, 2)} = ${fmt(enthalpy(U3, n3), 2)} kJ/mol.` },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .bcx .bc-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; margin-top: 10px; }
+  .bcx .bc-row label { flex: 1 1 150px; }
+  .bcx .bc-row input, .bcx .bc-row select { min-height: 44px; }
+  .bcx .bc-row .btn { min-height: 44px; min-width: 90px; }
+  .bcx .bc-read { margin: 10px 0 8px; font-variant-numeric: tabular-nums; }
+  .bcx .bc-new { min-height: 44px; }
+  .bcx .bc-steps { padding-left: 22px; display: grid; gap: 6px; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+  .bcx .bc-try { padding-left: 20px; display: grid; gap: 6px; margin: 0 0 10px; }
+</style>

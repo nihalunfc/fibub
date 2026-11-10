@@ -1,0 +1,153 @@
+---
+// Calvin cycle and C4 comparer (Learn #1397): count what the Calvin cycle uses for any number of CO₂ fixed, then
+// compare C3 and C4 plants at different temperatures and CO₂ levels, with photorespiration.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn cc4">
+  <div class="ax-card">
+    <h2>The Calvin cycle</h2>
+    <canvas class="lrn-cv cc-cv" aria-label="The Calvin cycle: carboxylation, reduction and regeneration, with the molecules used and made"></canvas>
+    <label class="lrn-sl" style="margin-top:10px">CO₂ molecules fixed (turns of the cycle) <b class="cc-nv"></b><input type="range" class="cc-n" min="1" max="18" step="1" value="6" aria-label="Number of carbon dioxide molecules fixed" /></label>
+    <p class="ax-big cc-big" style="margin:8px 0 0" aria-live="polite"></p>
+    <dl class="ax-facts cc-facts" style="margin-top:10px"></dl>
+    <p class="lrn-eq cc-eq"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>C3 or C4: which is cheaper here?</h2>
+    <div class="ax-grid">
+      <label class="lrn-sl">Leaf temperature <b class="cc-tv"></b><input type="range" class="cc-t" min="10" max="45" step="1" value="25" aria-label="Leaf temperature in degrees Celsius" /></label>
+      <label class="lrn-sl">CO₂ in the air <b class="cc-av"></b><input type="range" class="cc-a" min="200" max="1000" step="20" value="420" aria-label="Carbon dioxide in the air in parts per million" /></label>
+    </div>
+    <canvas class="lrn-cv cc-gr" style="margin-top:10px" aria-label="ATP needed per CO2 kept against temperature, for C3 and C4 plants"></canvas>
+    <div class="ax-legend"><span><i class="cc-k3"></i>C3 (e.g. wheat, rice)</span><span><i class="cc-k4"></i>C4 (e.g. maize, sugarcane)</span></div>
+    <p class="ax-big cc-big2" style="margin:8px 0 0" aria-live="polite"></p>
+    <div class="ax-scroll"><table class="cc-tab"></table></div>
+    <p class="lrn-eq cc-eq2"></p>
+    <p class="ax-help">Teaching model. The cycle counts are standard. For photorespiration, the CO₂ level where RuBisCO's two jobs balance (Γ*) is a made-up rounded curve, 40 ppm at 25 °C rising 5 % per degree; CO₂ at RuBisCO is taken as 0.7 × air in a C3 leaf and 10 × air in a C4 bundle sheath; each O₂ grabbed loses ½ CO₂ and costs 3.5 ATP and 2 NADPH.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Set 6 CO₂: one glucose, 18 ATP and 12 NADPH. Now 12: two glucose, and every number doubles.</li>
+      <li>Only 1 in every 6 G3P made leaves the cycle; the other 5 rebuild RuBP so the cycle can keep turning.</li>
+      <li>In the comparer, warm the leaf from 25 to 40 °C. The C3 plant loses more and more carbon to photorespiration; the C4 plant hardly any.</li>
+      <li>Find the temperature where the lines cross. Then raise the CO₂: the crossing moves to a higher temperature.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cc-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .cc4 .cc-k3 { background: var(--accent); }
+  .cc4 .cc-k4 { background: var(--warn); }
+  .cc4 .cc-big, .cc4 .cc-big2 { font-size: clamp(18px, 4.6vw, 24px); }
+</style>
+
+<script>
+  import { calvin, pathway, crossover, gammaStar } from '../../lib/sci/calvin-c4';
+  import { mountQuiz, pick, one, r, fitCanvas, loop, type QItem } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.cc4')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const cv = q<HTMLCanvasElement>('.cc-cv'), gr = q<HTMLCanvasElement>('.cc-gr');
+  const v = (s: string) => +q<HTMLInputElement>(s).value;
+  let ph = 0;
+  const fact = (a: string, b: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = a; d.querySelector('dd')!.textContent = b; if (sm) { const x = document.createElement('small'); x.textContent = sm; d.querySelector('dd')!.append(x); } return d; };
+
+  function drawCycle() {
+    const pal = pagePalette(), { ctx: c, W } = fitCanvas(cv, 300), n = v('.cc-n'), k = calvin(n);
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, 300);
+    const cx = W / 2, cy = 150, R = Math.min(105, W / 2 - 70);
+    const node = (a: number) => [cx + R * Math.cos(a), cy + R * Math.sin(a)] as const;
+    const A = -Math.PI / 2, B = Math.PI / 6, C = (5 * Math.PI) / 6;
+    c.strokeStyle = pal.line; c.lineWidth = 10; c.beginPath(); c.arc(cx, cy, R, 0, Math.PI * 2); c.stroke();
+    // moving carbon dots round the cycle
+    c.fillStyle = pal.good; for (let i = 0; i < 6; i++) { const a = ph + (i * Math.PI) / 3; c.beginPath(); c.arc(cx + R * Math.cos(a), cy + R * Math.sin(a), 4, 0, Math.PI * 2); c.fill(); }
+    const box = (a: number, title: string, sub: string, col: string) => {
+      const [x, y] = node(a); c.fillStyle = pal.bg; c.strokeStyle = col; c.lineWidth = 2;
+      c.beginPath(); c.roundRect(x - 62, y - 22, 124, 44, 8); c.fill(); c.stroke();
+      c.fillStyle = pal.ink; c.font = '700 12px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(title, x, y - 4);
+      c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.fillText(sub, x, y + 12);
+    };
+    box(A, '1 Carboxylation', `${k.rubp} RuBP + ${n} CO₂`, pal.accent);
+    box(B, '2 Reduction', `${k.pga} PGA → ${k.g3p} G3P`, pal.warn);
+    box(C, '3 Regeneration', `${r(k.g3pBack)} G3P → ${k.rubp} RuBP`, pal.good);
+    c.font = '700 12px system-ui, sans-serif'; c.fillStyle = pal.bad; c.textAlign = 'center';
+    const [bx, by] = node(B), [rx, ry] = node(C), [ax, ay] = node(A);
+    c.fillText(`${k.atpReduce} ATP + ${k.nadph} NADPH in`, bx - 10, by + 40);
+    c.fillText(`${k.atpRegen} ATP in`, rx + 10, ry + 40);
+    c.fillStyle = pal.accent; c.fillText(`${n} CO₂ in (RuBisCO)`, ax, ay - 30);
+    c.fillStyle = pal.good; c.fillText(`${r(k.g3pOut)} G3P out → ${r(k.glucose)} glucose`, cx, cy + 8);
+  }
+  function texts1() {
+    const n = v('.cc-n'), k = calvin(n);
+    q('.cc-nv').textContent = String(n);
+    q('.cc-big').textContent = `${n} CO₂ fixed: ${k.atp} ATP and ${k.nadph} NADPH used, ${r(k.glucose)} glucose made`;
+    q('.cc-facts').replaceChildren(fact('3-PGA made', String(k.pga), 'first stable product, 3 carbons'), fact('ATP used', String(k.atp), `${k.atpReduce} reduction + ${k.atpRegen} regeneration`), fact('NADPH used', String(k.nadph)), fact('G3P leaving the cycle', r(k.g3pOut), 'the rest rebuild RuBP'), fact('Glucose', r(k.glucose), '6 CO₂ per glucose'));
+    q('.cc-eq').textContent = `Per CO₂: 3 ATP + 2 NADPH. So ${n} CO₂ × 3 = ${k.atp} ATP and ${n} × 2 = ${k.nadph} NADPH. One glucose (6 carbons) needs 6 turns: 18 ATP and 12 NADPH.`;
+  }
+  function drawGraph() {
+    const pal = pagePalette(), { ctx: c, W } = fitCanvas(gr, 210), T = v('.cc-t'), air = v('.cc-a');
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, 210);
+    const ML = 36, MB = 30, MT = 10, pw = W - ML - 10, ph2 = 210 - MT - MB, T0 = 10, T1 = 45, Y0 = 3, Y1 = 10;
+    const X = (t: number) => ML + ((t - T0) / (T1 - T0)) * pw, Y = (y: number) => MT + ph2 - ((Math.min(Y1, y) - Y0) / (Y1 - Y0)) * ph2;
+    c.strokeStyle = pal.ink; c.lineWidth = 1; c.beginPath(); c.moveTo(ML, MT); c.lineTo(ML, MT + ph2); c.lineTo(ML + pw, MT + ph2); c.stroke();
+    c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'center';
+    for (let t = 10; t <= 45; t += 5) c.fillText(String(t), X(t), MT + ph2 + 14);
+    c.fillText('leaf temperature (°C)', ML + pw / 2, 208);
+    c.textAlign = 'right'; for (let y = 3; y <= 10; y++) c.fillText(String(y), ML - 4, Y(y) + 4);
+    c.save(); c.translate(10, MT + ph2 / 2); c.rotate(-Math.PI / 2); c.textAlign = 'center'; c.fillText('ATP per CO₂ kept', 0, 0); c.restore();
+    for (const [type, col] of [['C3', pal.accent], ['C4', pal.warn]] as const) {
+      c.strokeStyle = col; c.lineWidth = 2.5; c.beginPath();
+      for (let t = T0; t <= T1; t += 0.5) { const y = Y(pathway(type, t, air).atp); t === T0 ? c.moveTo(X(t), y) : c.lineTo(X(t), y); }
+      c.stroke(); c.fillStyle = col; c.beginPath(); c.arc(X(T), Y(pathway(type, T, air).atp), 5, 0, Math.PI * 2); c.fill();
+    }
+    const xo = crossover(air);
+    if (xo > T0 && xo < T1) { c.strokeStyle = pal.muted; c.setLineDash([4, 4]); c.beginPath(); c.moveTo(X(xo), MT); c.lineTo(X(xo), MT + ph2); c.stroke(); c.setLineDash([]); }
+  }
+  function texts2() {
+    const T = v('.cc-t'), air = v('.cc-a'), a = pathway('C3', T, air), b = pathway('C4', T, air), xo = crossover(air);
+    q('.cc-tv').textContent = `${T} °C`; q('.cc-av').textContent = `${air} ppm`;
+    q('.cc-big2').textContent = a.atp < b.atp ? `C3 is cheaper here: ${r(a.atp)} ATP per CO₂ against ${r(b.atp)}` : `C4 is cheaper here: ${r(b.atp)} ATP per CO₂ against ${r(a.atp)}`;
+    const tab = q('.cc-tab');
+    tab.innerHTML = '<thead><tr><th></th><th class="r">C3</th><th class="r">C4</th></tr></thead><tbody></tbody>';
+    const rows: [string, string, string][] = [
+      ['First stable product', '3-PGA (3C)', 'OAA (4C)'],
+      ['First CO₂ catcher', 'RuBisCO', 'PEP carboxylase'],
+      ['CO₂ at RuBisCO', `${Math.round(a.C)} ppm`, `${Math.round(b.C)} ppm`],
+      ['Carbon lost to photorespiration', `${r(a.lost, 3)} %`, `${r(b.lost, 2)} %`],
+      ['ATP per CO₂ kept', r(a.atp), r(b.atp)],
+      ['NADPH per CO₂ kept', r(a.nadph), r(b.nadph)],
+    ];
+    for (const row of rows) { const tr = document.createElement('tr'); row.forEach((x, i) => { const td = document.createElement('td'); td.textContent = x; if (i) td.className = 'r'; tr.append(td); }); tab.querySelector('tbody')!.append(tr); }
+    q('.cc-eq2').textContent = `Γ* = 40 × 1.05^(${T} − 25) = ${r(gammaStar(T))} ppm. C3: O₂ grabbed per CO₂ = 2Γ*/C = ${r(a.phi)}, so ATP per CO₂ kept = (3 + 3.5 × ${r(a.phi)}) / (1 − 0.5 × ${r(a.phi)}) = ${r(a.atp)}. At ${air} ppm the two cost the same at ${r(xo, 3)} °C.`;
+  }
+  const all = () => { texts1(); texts2(); drawCycle(); drawGraph(); };
+  q('.cc-n').addEventListener('input', () => { texts1(); drawCycle(); });
+  for (const s of ['.cc-t', '.cc-a']) q(s).addEventListener('input', () => { texts2(); drawGraph(); });
+  new ResizeObserver(() => { drawCycle(); drawGraph(); }).observe(cv);
+  new MutationObserver(() => { drawCycle(); drawGraph(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+  all();
+  loop((dt) => { ph = (ph + dt * 0.8) % (Math.PI * 2); drawCycle(); });
+
+  mountQuiz(q('.cc-quiz'), (): QItem[] => {
+    const g = pick(1, 5), n = pick(2, 30);
+    return [
+      { q: `How many ATP does the Calvin cycle use to make ${g} glucose molecule${g > 1 ? 's' : ''} in a C3 plant?`, ans: 18 * g, unit: 'ATP', work: `One glucose needs 6 CO₂, and each CO₂ needs 3 ATP: 6 × 3 × ${g} = ${18 * g} ATP.` },
+      { q: `How many NADPH are used to fix ${n} CO₂?`, ans: 2 * n, unit: 'NADPH', work: `2 NADPH per CO₂: ${n} × 2 = ${2 * n}.` },
+      { q: `How many ATP does a C4 plant use to fix ${n} CO₂ (ignore photorespiration)?`, ans: 5 * n, unit: 'ATP', work: `3 ATP in the Calvin cycle + 2 ATP to make PEP again = 5 per CO₂: ${n} × 5 = ${5 * n}.` },
+      one<QItem>([
+        { q: 'What is the first stable product of CO₂ fixation in a C4 plant?', ans: 1, choices: ['3-phosphoglycerate (3C)', 'Oxaloacetate (4C)', 'RuBP (5C)', 'Glucose (6C)'], work: 'In C4 plants PEP carboxylase fixes CO₂ into oxaloacetic acid (OAA), a 4-carbon acid: hence the name C4.' },
+        { q: 'Which enzyme fixes CO₂ in the Calvin cycle and also grabs O₂?', ans: 0, choices: ['RuBisCO', 'PEP carboxylase', 'ATP synthase', 'Amylase'], work: 'RuBisCO (RuBP carboxylase-oxygenase) can add CO₂ or O₂ to RuBP; adding O₂ starts photorespiration.' },
+        { q: 'Why do C4 plants hardly photorespire?', ans: 2, choices: ['They have no RuBisCO', 'They close their stomata all day', 'They pump CO₂ into the bundle sheath, so RuBisCO meets far more CO₂ than O₂', 'They live in cold places'], work: 'The C4 pathway concentrates CO₂ around RuBisCO in the bundle sheath cells (Kranz anatomy), so it rarely grabs O₂.' },
+      ]),
+    ];
+  });
+</script>

@@ -1,0 +1,200 @@
+---
+// Glucose ring flipper (Learn): Fischer projection beside the Haworth ring, α and β, D and L, tap a carbon to see
+// where its –OH goes, and mutarotation of glucose over time.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn sgs">
+  <div class="ax-card">
+    <h2 style="margin:0 0 8px">From chain to ring</h2>
+    <div class="ax-row">
+      <label class="sgs-lab">Sugar <select class="sgs-sugar" aria-label="Sugar"></select></label>
+      <div class="ax-seg sgs-an" role="group" aria-label="Ring form"><button type="button" data-v="alpha" aria-pressed="true">α ring</button><button type="button" data-v="beta" aria-pressed="false">β ring</button></div>
+    </div>
+    <svg class="sgs-svg" viewBox="0 0 345 250" role="group" aria-label="Fischer projection on the left and Haworth ring on the right"></svg>
+    <div class="ax-row sgs-cs" role="group" aria-label="Pick a carbon"></div>
+    <p class="lrn-eq sgs-say" aria-live="polite"></p>
+    <div class="ax-scroll"><table class="sgs-tab"></table></div>
+    <p class="ax-help sgs-note"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Mutarotation of glucose</h2>
+    <p class="ax-help">Dissolve pure α- or pure β-D-glucose in water and the ring keeps opening and closing, so the rotation of polarised light drifts to the same value. Rotations are rounded textbook values; the speed is an illustrative room-temperature value.</p>
+    <div class="ax-row">
+      <div class="ax-seg sgs-start" role="group" aria-label="Start with"><button type="button" data-v="alpha" aria-pressed="true">Start pure α</button><button type="button" data-v="beta" aria-pressed="false">Start pure β</button></div>
+      <button type="button" class="btn secondary small sgs-play">Play</button>
+    </div>
+    <label class="lrn-sl" style="margin-top:10px">Time after dissolving <b class="sgs-tv"></b><input type="range" class="sgs-time" min="0" max="360" step="5" value="0" aria-label="Time in minutes" /></label>
+    <canvas class="lrn-cv sgs-cv" aria-label="Specific rotation against time, falling from +112 or rising from +18.7 to +52.7 degrees"></canvas>
+    <p class="lrn-eq sgs-mix"></p>
+    <dl class="ax-facts sgs-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Tap C2, C3 and C4 one by one: every –OH on the right in the Fischer projection points <b>down</b> in the ring.</li>
+      <li>Switch between α and β: only C1 changes. That new stereocentre is the <b>anomeric carbon</b>.</li>
+      <li>Pick galactose, then mannose. Which carbon is different from glucose in each?</li>
+      <li>Pick L-glucose. Where does the CH₂OH go, and which way does α point now?</li>
+      <li>Start with pure β and play: the rotation <b>rises</b> to +52.7°. Work out the share of β at the end.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card sgs-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { SUGARS, sugarById, family, haworth, ROT, eqAlpha, mixRotation, alphaFromRotation, alphaAt, halfTime, type Anomer } from '../../lib/sci/sugars';
+  import { mountQuiz, pick, one, r, fitCanvas, loop } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.sgs')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const NS = 'http://www.w3.org/2000/svg', K = 0.012;
+  let sugar = sugarById('glucose'), an: Anomer = 'alpha', cSel = 2, start: Anomer = 'alpha', t = 0;
+  const sv = (tag: string, at: Record<string, string | number>, text?: string) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(at)) e.setAttribute(k, String(v)); if (text) e.textContent = text; return e; };
+  SUGARS.forEach((s) => q<HTMLSelectElement>('.sgs-sugar').append(new Option(s.name, s.id)));
+  const cb = q('.sgs-cs');
+  [1, 2, 3, 4, 5].forEach((c) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary small sgs-c'; b.dataset.c = String(c); b.textContent = `C${c}`; b.addEventListener('click', () => { cSel = c; draw(); }); cb.append(b); });
+
+  // ---------- picture ----------
+  const RING: Record<number, [number, number]> = { 1: [322, 132], 2: [290, 164], 3: [212, 164], 4: [178, 132], 5: [212, 100] };
+  const RO: [number, number] = [290, 100];
+  function draw() {
+    const svg = q<SVGSVGElement>('.sgs-svg'); svg.replaceChildren();
+    const fam = family(sugar), groups = haworth(sugar, an);
+    // Fischer projection
+    const X = 78, Y = [34, 72, 108, 144, 180, 216];
+    svg.append(sv('text', { x: X, y: 18, class: 'sgs-t' }, 'CHO'), sv('text', { x: X + 16, y: 30, class: 'sgs-n' }, '1'));
+    svg.append(sv('line', { x1: X, y1: 24, x2: X, y2: 204, class: 'sgs-b' }));
+    sugar.fischer.forEach((side, k) => {
+      const y = Y[k + 1], c = k + 2, on = c === cSel;
+      const g = sv('g', { class: `sgs-row${on ? ' on' : ''}`, 'data-c': c });
+      g.append(sv('rect', { x: X - 70, y: y - 14, width: 140, height: 28, rx: 6, class: 'sgs-hit' }));
+      g.append(sv('line', { x1: X - 32, y1: y, x2: X + 32, y2: y, class: 'sgs-b' }));
+      g.append(sv('text', { x: X - 50, y: y + 4, class: 'sgs-t' }, side === 'L' ? 'HO' : 'H'), sv('text', { x: X + 50, y: y + 4, class: 'sgs-t' }, side === 'R' ? 'OH' : 'H'));
+      g.append(sv('text', { x: X + 8, y: y - 4, class: 'sgs-n' }, String(c)));
+      g.addEventListener('click', () => { cSel = c; draw(); });
+      svg.append(g);
+    });
+    svg.append(sv('text', { x: X, y: 230, class: 'sgs-t' }, 'CH₂OH'), sv('text', { x: X + 30, y: 222, class: 'sgs-n' }, '6'));
+    svg.append(sv('text', { x: X, y: 248, class: 'sgs-cap' }, `open chain, ${fam}`));
+    // Haworth ring
+    const pts = [RING[1], RING[2], RING[3], RING[4], RING[5], RO];
+    for (let i = 0; i < 6; i++) { const [a, b] = [pts[i], pts[(i + 1) % 6]]; const front = i === 1; svg.append(sv('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], class: front ? 'sgs-b sgs-front' : 'sgs-b' })); }
+    svg.append(sv('circle', { cx: RO[0], cy: RO[1], r: 9, class: 'sgs-obg' }), sv('text', { x: RO[0], y: RO[1] + 4, class: 'sgs-t' }, 'O'));
+    for (const gr of groups) {
+      const [x, y] = RING[gr.c], on = gr.c === cSel;
+      const g = sv('g', { class: `sgs-rc${on ? ' on' : ''}`, 'data-c': gr.c });
+      if (on) g.append(sv('circle', { cx: x, cy: y, r: 7, class: 'sgs-dot' }));
+      g.append(sv('line', { x1: x, y1: y, x2: x, y2: y - 26, class: 'sgs-b' }), sv('line', { x1: x, y1: y, x2: x, y2: y + 26, class: 'sgs-b' }));
+      g.append(sv('text', { x, y: y - 30, class: `sgs-t${on && gr.up.includes('OH') ? ' hi' : ''}` }, gr.up), sv('text', { x, y: y + 40, class: `sgs-t${on && gr.down.includes('OH') ? ' hi' : ''}` }, gr.down));
+      g.append(sv('text', { x: x + (gr.c === 1 ? -12 : gr.c === 4 ? 12 : 9), y: y + (gr.c === 2 || gr.c === 3 ? -6 : 14), class: 'sgs-n' }, String(gr.c)));
+      svg.append(g);
+    }
+    svg.append(sv('text', { x: 250, y: 248, class: 'sgs-cap' }, `${an === 'alpha' ? 'α' : 'β'}-${sugar.name} (pyranose ring)`));
+    // carbon buttons and words
+    root.querySelectorAll<HTMLButtonElement>('.sgs-c').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.c) === cSel)));
+    const gr = groups[cSel - 1];
+    let say = '';
+    if (cSel === 1) say = `C1 is the aldehyde carbon. When the C5 –OH adds to the C=O, C1 becomes a new stereocentre (the anomeric carbon). In ${an === 'alpha' ? 'α' : 'β'}-${sugar.name} its –OH points ${gr.up === 'OH' ? 'up' : 'down'}: ${an === 'alpha' ? 'on the opposite face to CH₂OH (trans)' : 'on the same face as CH₂OH (cis)'}.`;
+    else if (cSel === 5) say = `C5’s –OH is the one that closes the ring, so its O becomes the ring O. It is on the ${sugar.fischer[3] === 'R' ? 'right' : 'left'} in the Fischer projection, so this is a${family(sugar) === 'D' ? ' D' : 'n L'} sugar and the CH₂OH points ${gr.up === 'CH₂OH' ? 'up' : 'down'}.`;
+    else { const side = sugar.fischer[cSel - 2]; say = `C${cSel}: –OH on the ${side === 'R' ? 'right' : 'left'} in the Fischer projection → ${side === 'R' ? 'down' : 'up'} in the Haworth ring.`; }
+    q('.sgs-say').textContent = say;
+    const tb = q<HTMLTableElement>('.sgs-tab'); tb.innerHTML = '';
+    const hr = tb.createTHead().insertRow(); ['Carbon', 'Fischer –OH', 'Haworth –OH'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    const body = tb.createTBody();
+    groups.forEach((g) => {
+      const tr = body.insertRow(); if (g.c === cSel) tr.className = 'on';
+      const f = g.c === 1 ? 'C=O (no –OH yet)' : g.c === 5 ? `${sugar.fischer[3] === 'R' ? 'right' : 'left'} (closes the ring)` : sugar.fischer[g.c - 2] === 'R' ? 'right' : 'left';
+      const h = g.c === 5 ? `ring O; CH₂OH ${g.up === 'CH₂OH' ? 'up' : 'down'}` : g.up === 'OH' ? 'up' : 'down';
+      [`C${g.c}`, f, h].forEach((x) => { tr.insertCell().textContent = x; });
+    });
+    q('.sgs-note').textContent = `${sugar.name}: ${sugar.note}. Both rings and the open chain are in balance in water; the open chain is well under 1 %.`;
+  }
+
+  // ---------- mutarotation ----------
+  function drawMut() {
+    const pal = pagePalette(), { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.sgs-cv'), 200), L = 40, B = 24, T = 360;
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const xp = (m: number) => L + (m / T) * (W - L - 10), yp = (rot: number) => 10 + ((120 - rot) / 110) * (H - B - 10);
+    ctx.strokeStyle = pal.grid; ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'right';
+    for (const v of [20, 40, 60, 80, 100, 120]) { ctx.beginPath(); ctx.moveTo(L, yp(v)); ctx.lineTo(W - 10, yp(v)); ctx.stroke(); ctx.fillText(`${v}°`, L - 4, yp(v) + 4); }
+    ctx.textAlign = 'center'; for (const m of [0, 60, 120, 180, 240, 300, 360]) ctx.fillText(`${m / 60} h`, xp(m), H - 6);
+    ctx.setLineDash([5, 4]); ctx.strokeStyle = pal.muted; ctx.beginPath(); ctx.moveTo(L, yp(ROT.eq)); ctx.lineTo(W - 10, yp(ROT.eq)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.textAlign = 'left'; ctx.fillText('+52.7° at equilibrium', L + 4, yp(ROT.eq) - 4);
+    for (const [s, col] of [['alpha', pal.accent], ['beta', pal.red ? pal.muted : pal.accent2]] as [Anomer, string][]) {
+      ctx.strokeStyle = col; ctx.lineWidth = s === start ? 3 : 1.2; ctx.beginPath();
+      for (let m = 0; m <= T; m += 3) { const y = yp(mixRotation(alphaAt(m, s, K))); m ? ctx.lineTo(xp(m), y) : ctx.moveTo(xp(m), y); }
+      ctx.stroke();
+    }
+    ctx.lineWidth = 1;
+    const a = alphaAt(t, start, K), rot = mixRotation(a);
+    ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(xp(t), 10); ctx.lineTo(xp(t), H - B); ctx.stroke();
+    ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.arc(xp(t), yp(rot), 5, 0, 7); ctx.fill();
+    q('.sgs-tv').textContent = `${Math.round(t)} min`;
+    q('.sgs-mix').textContent = `[α] = ${r(a * 100, 3)} % × (+112°) + ${r((1 - a) * 100, 3)} % × (+18.7°) = +${rot.toFixed(1)}°`;
+    const fact = (k: string, v: string) => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; return d; };
+    q('.sgs-facts').replaceChildren(fact('α now', `${(a * 100).toFixed(1)} %`), fact('β now', `${((1 - a) * 100).toFixed(1)} %`), fact('At equilibrium', `${(eqAlpha() * 100).toFixed(1)} % α, ${((1 - eqAlpha()) * 100).toFixed(1)} % β`), fact('Half the change in', `about ${Math.round(halfTime(K))} min (illustrative)`));
+  }
+  const anim = loop((dt) => {
+    if (dt && t < 360) { t = Math.min(360, t + dt * 40); q<HTMLInputElement>('.sgs-time').value = String(Math.round(t)); }
+    drawMut();
+  }, q<HTMLButtonElement>('.sgs-play'));
+  if (anim.playing) q<HTMLButtonElement>('.sgs-play').click();
+
+  // ---------- wiring ----------
+  const press = (sel: string, v: string) => root.querySelectorAll<HTMLButtonElement>(`${sel} button`).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === v)));
+  q<HTMLSelectElement>('.sgs-sugar').addEventListener('change', (e) => { sugar = sugarById((e.target as HTMLSelectElement).value); draw(); });
+  root.querySelectorAll<HTMLButtonElement>('.sgs-an button').forEach((b) => b.addEventListener('click', () => { an = b.dataset.v as Anomer; press('.sgs-an', an); draw(); }));
+  root.querySelectorAll<HTMLButtonElement>('.sgs-start button').forEach((b) => b.addEventListener('click', () => { start = b.dataset.v as Anomer; press('.sgs-start', start); t = 0; q<HTMLInputElement>('.sgs-time').value = '0'; anim.redraw(); }));
+  q('.sgs-time').addEventListener('input', () => { t = Number(q<HTMLInputElement>('.sgs-time').value); anim.redraw(); });
+  q('.sgs-play').addEventListener('click', () => { if (t >= 360) t = 0; });
+  addEventListener('resize', () => anim.redraw());
+  document.addEventListener('fibub:theme', () => anim.redraw());
+  draw();
+
+  mountQuiz(q('.sgs-quiz'), () => {
+    const s = one(SUGARS), c = pick(2, 4), side = s.fischer[c - 2];
+    const d = one([true, false]), a = one(['α', 'β']), up = (a === 'β') === d;
+    const share = pick(20, 80), rot = mixRotation(share / 100);
+    const obs = pick(25, 100), pa = alphaFromRotation(obs) * 100;
+    const c5 = one(['right', 'left']);
+    return [
+      { q: `In the Fischer projection of ${s.name}, the –OH on C${c} is on the ${side === 'R' ? 'right' : 'left'}. In the Haworth ring, does it point up or down?`, ans: side === 'R' ? 1 : 0, choices: ['Up', 'Down'], work: `Right in Fischer → down in Haworth; left → up. So C${c}’s –OH points ${side === 'R' ? 'down' : 'up'}.` },
+      { q: `In ${a}-${d ? 'D' : 'L'}-glucose drawn as a Haworth ring, does the –OH on C1 point up or down?`, ans: up ? 0 : 1, choices: ['Up', 'Down'], work: `The CH₂OH points ${d ? 'up (D)' : 'down (L)'}. α means the C1 –OH is on the opposite face to CH₂OH, β the same face, so it points ${up ? 'up' : 'down'}.` },
+      { q: `A glucose solution is ${share} % α and ${100 - share} % β. Using +112° for α and +18.7° for β, what is its specific rotation?`, ans: rot, unit: '°', tol: 0.01, work: `[α] = ${share / 100} × 112 + ${(100 - share) / 100} × 18.7 = ${rot.toFixed(1)}°` },
+      { q: `A glucose solution shows a specific rotation of +${obs}°. What percentage of it is the α form? (α +112°, β +18.7°)`, ans: pa, unit: '%', tol: 0.02, work: `fraction α = (${obs} − 18.7) ÷ (112 − 18.7) = ${(obs - 18.7).toFixed(1)} ÷ 93.3 = ${(pa / 100).toFixed(3)}, so ${pa.toFixed(1)} %` },
+      { q: `In a sugar’s Fischer projection, the –OH on the carbon furthest from the C=O (the last stereocentre) is on the ${c5}. Is it a D or an L sugar?`, ans: c5 === 'right' ? 0 : 1, choices: ['D', 'L'], work: `D and L name the side of that –OH: right is D, left is L. It says nothing about which way the sugar turns light.` },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .sgs .sgs-lab { display: grid; gap: 2px; font-size: 14px; color: var(--muted); }
+  .sgs .sgs-lab select { min-height: 44px; font-size: 15px; }
+  .sgs .ax-seg button { min-height: 44px; padding: 8px 12px; }
+  .sgs .sgs-svg { display: block; width: 100%; max-width: 520px; margin: 10px auto 4px; height: auto; user-select: none; }
+  .sgs .sgs-b { stroke: var(--ink); stroke-width: 1.6; }
+  .sgs .sgs-front { stroke-width: 5; }
+  .sgs .sgs-t { font: 600 13px system-ui, sans-serif; fill: var(--ink); text-anchor: middle; }
+  .sgs .sgs-t.hi { fill: var(--accent); font-weight: 800; }
+  .sgs .sgs-n { font: 10px system-ui, sans-serif; fill: var(--muted); text-anchor: middle; }
+  .sgs .sgs-cap { font: 12px system-ui, sans-serif; fill: var(--muted); text-anchor: middle; }
+  .sgs .sgs-obg { fill: var(--bg); stroke: none; }
+  .sgs .sgs-hit { fill: transparent; cursor: pointer; }
+  .sgs .sgs-row line, .sgs .sgs-row text { pointer-events: none; }
+  .sgs .sgs-row.on .sgs-hit { fill: var(--accent-soft); }
+  .sgs .sgs-row.on .sgs-t { fill: var(--accent); }
+  .sgs .sgs-dot { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+  .sgs .sgs-cs { gap: 6px; }
+  .sgs .sgs-cs .btn { min-width: 52px; }
+  .sgs .sgs-cs .btn[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .sgs .sgs-tab { margin-top: 10px; font-size: 14px; }
+  .sgs .sgs-tab tr.on td { font-weight: 700; color: var(--accent); }
+  .sgs .sgs-facts { margin-top: 10px; }
+</style>

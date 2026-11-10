@@ -1,0 +1,209 @@
+---
+// Biomolecule test lab (Learn #1396): a virtual food-test bench. Pick a sample and a test (iodine, Benedict's,
+// biuret, Sudan III), add the reagent, heat where needed, watch the colour, fill a results table and solve a mystery.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn bmt">
+  <div class="ax-card">
+    <h2>Test a sample</h2>
+    <div class="ax-grid">
+      <label>Sample <select class="bt-sam"></select></label>
+      <label class="lrn-sl bt-glw">Glucose strength <b class="bt-gv"></b><input type="range" class="bt-g" min="0" max="2.5" step="0.1" value="1" aria-label="Glucose strength in percent" /></label>
+    </div>
+    <div class="ax-seg bt-test" role="group" aria-label="Test" style="margin-top:10px">
+      <button type="button" data-t="iodine" aria-pressed="true">Iodine</button><button type="button" data-t="benedict" aria-pressed="false">Benedict's</button><button type="button" data-t="biuret" aria-pressed="false">Biuret</button><button type="button" data-t="sudan" aria-pressed="false">Sudan III</button>
+    </div>
+    <p class="bt-how" style="margin:8px 0 0"></p>
+    <label class="ax-check bt-hyw" style="margin-top:6px" hidden><input type="checkbox" class="bt-hy" /> First boil with dilute acid, then neutralise (Class 11)</label>
+    <canvas class="lrn-cv bt-cv" style="margin-top:10px" aria-label="A test tube with the sample and reagent"></canvas>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn small bt-add">Add reagent</button>
+      <button type="button" class="btn secondary small bt-heat" hidden>Heat in water bath</button>
+      <button type="button" class="btn secondary small bt-new">Fresh tube</button>
+    </div>
+    <p class="ax-big bt-big" style="margin:8px 0 0" aria-live="polite"></p>
+    <p class="bt-note" style="margin:4px 0 0"></p>
+    <p class="ax-help">Colours are drawn roughly. In a real lab wear eye protection, take care with hot water and sodium hydroxide, and never taste anything.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Results table</h2>
+    <div class="ax-scroll"><table class="bt-tab"><thead><tr><th>Sample</th><th>Iodine</th><th>Benedict's</th><th>Biuret</th><th>Sudan III</th></tr></thead><tbody></tbody></table></div>
+    <p class="ax-help">Fills in as you test. Kept on this page only, and cleared when you leave it.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Mystery sample</h2>
+    <p style="margin:0 0 8px">Press the button, test the mystery sample above with all four tests, then tick what it contains.</p>
+    <button type="button" class="btn secondary small bt-myst">New mystery sample</button>
+    <div class="ax-row bt-ans" style="margin-top:10px">
+      <label class="ax-check"><input type="checkbox" value="starch" /> Starch</label>
+      <label class="ax-check"><input type="checkbox" value="reducing" /> Reducing sugar</label>
+      <label class="ax-check"><input type="checkbox" value="protein" /> Protein</label>
+      <label class="ax-check"><input type="checkbox" value="fat" /> Fat</label>
+    </div>
+    <button type="button" class="btn small bt-check" style="margin-top:8px">Check my answer</button>
+    <p class="bt-mres" style="margin:8px 0 0" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Always test the water control first: it shows what "no change" looks like for each test.</li>
+      <li>Benedict's: add the reagent and nothing happens. It only changes colour when heated.</li>
+      <li>Slide the glucose strength from 0 to 2.5 % and heat each time: blue, green, yellow, orange, brick red.</li>
+      <li>Sucrose stays blue with Benedict's. Tick "boil with dilute acid" and try again (Class 11: it splits into glucose and fructose).</li>
+      <li>Test milk with all four. Which nutrients does it have?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card bt-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .bmt .bt-big { font-size: clamp(18px, 4.6vw, 24px); }
+  .bmt .bt-tab td i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; border: 1px solid var(--line); }
+</style>
+
+<script>
+  import { SAMPLES, TESTS, result, verdict, soluteGrams, type TestId, type Sample, type Result } from '../../lib/sci/biomolecule-tests';
+  import { mountQuiz, pick, one, r, fitCanvas, type QItem } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.bmt')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const cv = q<HTMLCanvasElement>('.bt-cv'), sel = q<HTMLSelectElement>('.bt-sam');
+  const BASE: Record<string, string> = { water: '#e3eef8', glucose: '#e3eef8', sucrose: '#e3eef8', starch: '#ecebe4', egg: '#efe9cf', oil: '#e6c54a', milk: '#f6f6f0', potato: '#e8dcbc', peanut: '#e0cda6' };
+  let test: TestId = 'iodine', mystery: Sample | null = null, phase: 'idle' | 'added' | 'heated' = 'idle', mix = 0, from = '', to = '', raf = 0, last = 0, res: Result | null = null;
+  const table = new Map<string, Partial<Record<TestId, Result>>>();
+  const mysteryDone: Partial<Record<TestId, boolean>> = {};
+
+  for (const s of SAMPLES) sel.add(new Option(s.name, s.id));
+  sel.add(new Option('Mystery sample', 'mystery'));
+  const sample = (): Sample => (sel.value === 'mystery' && mystery ? mystery : SAMPLES.find((s) => s.id === sel.value) ?? SAMPLES[0]);
+  const label = () => (sel.value === 'mystery' ? 'Mystery sample' : sample().name);
+  const hex = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const lerp = (a: string, b: string, t: number) => { const A = hex(a), B = hex(b); return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(',')})`; };
+  const redify = (c: string, red: boolean) => { if (!red) return c; const m = c.match(/\d+/g)!.map(Number); return `rgb(${Math.round(0.3 * m[0] + 0.55 * m[1] + 0.15 * m[2])},0,0)`; };
+  const toRgb = (h: string) => (h.startsWith('#') ? `rgb(${hex(h).join(',')})` : h);
+  const opts = () => ({ heated: phase === 'heated', sugar: sample().id === 'glucose' ? +q<HTMLInputElement>('.bt-g').value : undefined, hydrolysed: q<HTMLInputElement>('.bt-hy').checked });
+
+  function draw() {
+    const pal = pagePalette(), { ctx: c, W } = fitCanvas(cv, 230), cx = W / 2, top = 20, h = 180, w = 46;
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, 230);
+    if (phase === 'heated' || (test === 'benedict' && raf && to && phase !== 'added')) {
+      c.fillStyle = redify('rgb(150,190,230)', pal.red); c.globalAlpha = 0.35; c.fillRect(cx - 80, 90, 160, 120); c.globalAlpha = 1;
+      c.strokeStyle = pal.muted; c.lineWidth = 2; c.strokeRect(cx - 80, 90, 160, 120);
+      c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'left'; c.fillText('hot water bath', cx - 76, 224);
+    }
+    const s = sample(), oil = s.id === 'oil';
+    const liquidTop = top + 70, col = phase === 'idle' ? toRgb(BASE[s.id] ?? BASE.water) : lerp(from, to, mix);
+    c.save(); c.beginPath(); c.moveTo(cx - w / 2, top); c.lineTo(cx - w / 2, top + h - w / 2); c.arc(cx, top + h - w / 2, w / 2, Math.PI, 0, true); c.lineTo(cx + w / 2, top); c.clip();
+    c.fillStyle = redify(col, pal.red); c.fillRect(cx - w / 2, liquidTop, w, h);
+    if (res?.layer && mix > 0.5) { c.fillStyle = redify('rgb(210,60,50)', pal.red); c.fillRect(cx - w / 2, liquidTop, w, 22); }
+    if (oil && phase === 'idle') { c.fillStyle = redify('rgb(230,197,74)', pal.red); c.fillRect(cx - w / 2, liquidTop, w, h); }
+    c.restore();
+    c.strokeStyle = pal.ink; c.lineWidth = 2; c.beginPath(); c.moveTo(cx - w / 2, top); c.lineTo(cx - w / 2, top + h - w / 2); c.arc(cx, top + h - w / 2, w / 2, Math.PI, 0, true); c.lineTo(cx + w / 2, top); c.stroke();
+    if (raf && phase === 'added' && mix < 0.6) { c.fillStyle = redify(toRgb(TESTS.find((t) => t.id === test)!.start), pal.red); for (let k = 0; k < 3; k++) { c.beginPath(); c.arc(cx, top + 10 + ((mix * 200 + k * 20) % 60), 4, 0, Math.PI * 2); c.fill(); } }
+    c.fillStyle = pal.ink; c.font = '12px system-ui, sans-serif'; c.textAlign = 'left'; c.fillText(label(), 8, 14);
+  }
+  function animate(t: number) {
+    const dt = last ? Math.min(0.05, (t - last) / 1000) : 0; last = t;
+    mix = Math.min(1, mix + dt / (phase === 'heated' ? 2 : 0.9));
+    draw();
+    if (mix < 1) raf = requestAnimationFrame(animate); else { raf = 0; last = 0; done(); }
+  }
+  const start = () => { mix = 0; if (!raf) raf = requestAnimationFrame(animate); };
+  function done() {
+    if (!res) return;
+    q('.bt-big').textContent = `${TESTS.find((t) => t.id === test)!.name}: ${res.name}` + (res.positive ? ', positive' : '');
+    q('.bt-note').textContent = res.note ?? (res.positive ? `This sample contains ${TESTS.find((t) => t.id === test)!.finds.split(' (')[0]}.` : 'Negative: no colour change of the kind that shows it.');
+    if (test === 'benedict' && phase === 'added') return;
+    const key = label() + (sample().id === 'glucose' ? ` (${q<HTMLInputElement>('.bt-g').value} %)` : '') + (sample().id === 'sucrose' && q<HTMLInputElement>('.bt-hy').checked ? ' (acid-boiled)' : '');
+    const row = table.get(key) ?? {}; row[test] = res; table.set(key, row);
+    if (sel.value === 'mystery') mysteryDone[test] = res.positive;
+    renderTable();
+  }
+  function renderTable() {
+    const body = q('.bt-tab tbody'); body.replaceChildren();
+    for (const [name, row] of table) {
+      const tr = document.createElement('tr'), th = document.createElement('td'); th.textContent = name; tr.append(th);
+      for (const t of ['iodine', 'benedict', 'biuret', 'sudan'] as TestId[]) {
+        const td = document.createElement('td'), x = row[t];
+        if (x) { const i = document.createElement('i'); i.style.background = x.colour; td.append(i, x.positive ? '+ ' : '− ', x.name.split(' (')[0]); } else td.textContent = '·';
+        tr.append(td);
+      }
+      body.append(tr);
+    }
+  }
+  function fresh() {
+    phase = 'idle'; res = null; mix = 0;
+    const t = TESTS.find((x) => x.id === test)!;
+    q('.bt-how').textContent = `${t.name} finds ${t.finds}. Add ${t.reagent}.`;
+    q<HTMLElement>('.bt-heat').hidden = test !== 'benedict'; q<HTMLButtonElement>('.bt-heat').disabled = true;
+    q<HTMLElement>('.bt-glw').hidden = sample().id !== 'glucose' || sel.value === 'mystery';
+    q<HTMLElement>('.bt-hyw').hidden = !(sample().id === 'sucrose' && test === 'benedict' && sel.value !== 'mystery');
+    q('.bt-gv').textContent = `${(+q<HTMLInputElement>('.bt-g').value).toFixed(1)} %`;
+    q<HTMLButtonElement>('.bt-add').disabled = false;
+    q('.bt-big').textContent = 'Ready: add the reagent'; q('.bt-note').textContent = '';
+    draw();
+  }
+  q('.bt-add').addEventListener('click', () => {
+    if (phase !== 'idle') return;
+    phase = 'added'; res = result(sample(), test, opts());
+    from = BASE[sample().id] ?? BASE.water; to = test === 'benedict' ? TESTS[1].start : res.colour;
+    q<HTMLButtonElement>('.bt-add').disabled = true; q<HTMLButtonElement>('.bt-heat').disabled = false;
+    start();
+  });
+  q('.bt-heat').addEventListener('click', () => {
+    if (phase !== 'added') return;
+    phase = 'heated'; res = result(sample(), test, opts()); from = TESTS[1].start; to = res.colour;
+    q<HTMLButtonElement>('.bt-heat').disabled = true; q('.bt-big').textContent = 'Heating…'; start();
+  });
+  q('.bt-new').addEventListener('click', fresh);
+  sel.addEventListener('change', fresh);
+  q('.bt-g').addEventListener('input', fresh);
+  q('.bt-hy').addEventListener('change', fresh);
+  q('.bt-test').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (!b) return; test = b.dataset.t as TestId; q('.bt-test').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); fresh(); });
+  q('.bt-myst').addEventListener('click', () => {
+    const pool = SAMPLES.filter((s) => s.id !== 'water' && s.id !== 'sucrose');
+    let m = pool[Math.floor(Math.random() * pool.length)]; if (mystery && pool.length > 1) while (m.id === mystery.id) m = pool[Math.floor(Math.random() * pool.length)];
+    mystery = m; for (const k of Object.keys(mysteryDone)) delete mysteryDone[k as TestId]; table.delete('Mystery sample'); renderTable();
+    root.querySelectorAll<HTMLInputElement>('.bt-ans input').forEach((i) => (i.checked = false));
+    sel.value = 'mystery'; q('.bt-mres').textContent = 'A new mystery sample is in the tube above. Test it.'; fresh();
+    q('.bt-sam').scrollIntoView({ block: 'center' });
+  });
+  q('.bt-check').addEventListener('click', () => {
+    if (!mystery) { q('.bt-mres').textContent = 'Press New mystery sample first.'; return; }
+    const ticked = [...root.querySelectorAll<HTMLInputElement>('.bt-ans input:checked')].map((i) => i.value).sort();
+    const truth = mystery.has.filter((n) => n !== 'sucrose').sort();
+    const missing = (['iodine', 'benedict', 'biuret', 'sudan'] as TestId[]).filter((t) => mysteryDone[t] === undefined);
+    const ok = ticked.join() === truth.join();
+    q('.bt-mres').textContent = (ok ? `Right! It was ${mystery.name.toLowerCase()}, with ${truth.length ? verdict(Object.fromEntries((['iodine', 'benedict', 'biuret', 'sudan'] as TestId[]).map((t) => [t, result(mystery!, t, { heated: true }).positive]))).join(', ') : 'nothing'}.` : 'Not quite. Look again at your results table.') + (missing.length ? ` (You have not done ${missing.length} of the tests yet.)` : '');
+    q('.bt-mres').className = 'bt-mres ' + (ok ? 'lq-ok' : 'lq-no');
+  });
+  new ResizeObserver(draw).observe(cv);
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+  fresh();
+
+  mountQuiz(q('.bt-quiz'), (): QItem[] => {
+    const pc = pick(1, 5), mL = pick(20, 200, 10);
+    return [
+      one<QItem>([
+        { q: 'Iodine solution turns blue-black. What is present?', ans: 0, choices: ['Starch', 'Glucose', 'Protein', 'Fat'], work: 'Iodine fits inside the coiled starch molecule and turns blue-black. With no starch it stays orange-brown.' },
+        { q: 'A sample turns violet in the biuret test. What does it contain?', ans: 2, choices: ['Starch', 'Reducing sugar', 'Protein', 'Fat'], work: 'Copper ions in alkali bind to the peptide bonds of proteins and turn violet.' },
+        { q: 'Which test needs heating?', ans: 1, choices: ['Iodine', "Benedict's", 'Biuret', 'Sudan III'], work: "Benedict's solution only reacts with reducing sugars when it is heated in a hot water bath." },
+      ]),
+      one<QItem>([
+        { q: "After heating with Benedict's, a sample turns brick red. What does that tell you?", ans: 3, choices: ['No reducing sugar', 'A trace of reducing sugar', 'Starch is present', 'A lot of reducing sugar'], work: 'The colour goes blue → green → yellow → orange → brick red as there is more reducing sugar.' },
+        { q: "Why does sucrose stay blue in Benedict's test?", ans: 1, choices: ['It is a protein', 'It is not a reducing sugar', 'It was not heated enough', 'It is a fat'], work: 'In sucrose the reducing ends of glucose and fructose are joined. Boiling with acid splits it, and then the test is positive.' },
+        { q: 'Sudan III gives a red layer floating on top. What is present?', ans: 1, choices: ['Protein', 'Fat or oil', 'Starch', 'Glucose'], work: 'Sudan III dissolves in fat, so the fat or oil layer is stained red and floats on the water.' },
+      ]),
+      { q: `How many grams of glucose do you dissolve to make ${mL} mL of a ${pc} % glucose solution?`, ans: soluteGrams(pc, mL), unit: 'g', work: `${pc} % means ${pc} g in every 100 mL: ${pc} × ${mL} ÷ 100 = ${r(soluteGrams(pc, mL))} g.` },
+      { q: 'Why do we test distilled water as well?', ans: 2, choices: ['To clean the tube', 'To make the reagent work', 'As a control, to see the colour with no nutrient', 'To dilute the sample'], work: 'The control shows what a negative result looks like, so you can tell a real change from the reagent\'s own colour.' },
+    ];
+  });
+</script>

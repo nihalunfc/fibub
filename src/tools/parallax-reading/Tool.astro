@@ -1,0 +1,153 @@
+---
+// Measurement and parallax (Learn): read a ruler, thermometer or measuring cylinder, with the eye straight on or at
+// an angle. Readings taken at an angle are off by d·tanθ. Class 9 adds least count, uncertainty and percentage error.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+import { INSTRUMENTS } from '../../lib/sci/learnj-measure';
+---
+<div class="ax lrn plx">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="8" aria-pressed="true">Class 8</button><button type="button" data-level="9" aria-pressed="false">Class 9 and up</button></div>
+    <div class="ax-seg px-inst" role="group" aria-label="Instrument" style="margin-top:10px">{INSTRUMENTS.map((m, i) => <button type="button" data-i={m.id} aria-pressed={String(i === 0)}>{m.name}</button>)}</div>
+    <div class="px-views">
+      <canvas class="lrn-cv px-cv" aria-label="The scale as your eye sees it, with the object lined up against it"></canvas>
+      <canvas class="lrn-cv px-side" aria-label="Seen from the side: your eye, the scale and the object, with the line of sight"></canvas>
+    </div>
+    <label class="lrn-sl" style="margin-top:8px">Where your eye is <b class="px-ev"></b><input type="range" class="px-e" min="-40" max="40" step="5" value="0" aria-label="Eye angle in degrees" /></label>
+    <div class="ax-row" style="margin-top:8px;align-items:center">
+      <label>Your reading <input class="px-in" inputmode="decimal" autocomplete="off" style="width:7em;min-height:44px;font-size:16px" /></label> <span class="px-unit"></span>
+      <button type="button" class="btn small px-check">Check</button>
+      <button type="button" class="btn secondary small px-new">New object</button>
+    </div>
+    <p class="ax-big px-big" style="margin:10px 0 0" aria-live="polite"></p>
+    <p class="ax-help px-note"></p>
+    <dl class="ax-facts px-facts" style="margin-top:10px" data-only="9" hidden></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Read the scale with your eye straight on (0°) and check it. Then move your eye to 30° and read again: the reading changes, though nothing moved.</li>
+      <li>Which way is the error when your eye is above the mark? And below?</li>
+      <li>The measuring cylinder's error is biggest: the water surface is far behind the scale marks, in the middle of the cylinder.</li>
+      <li>Class 9 and up: compare the percentage error of reading 2 mL wrong in 10 mL and in 90 mL.</li>
+    </ul>
+    <p class="ax-help">Sizes are rounded, typical values for school instruments. The page draws the view; no camera is used.</p>
+  </div>
+
+  <div class="ax-card px-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .plx .px-views { display: grid; grid-template-columns: 1fr 110px; gap: 8px; margin-top: 10px; }
+  .plx .ax-seg button { min-height: 44px; }
+  .plx .ax-seg { flex-wrap: wrap; }
+</style>
+
+<script>
+  import { INSTRUMENTS, apparent, parallaxError, toMark, pctError, type Instrument } from '../../lib/sci/learnj-measure';
+  import { mountQuiz, pick, one, r, fitCanvas, wireLevel } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.plx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let inst: Instrument = INSTRUMENTS[0], truth = 0, start = 0, level = '8', checked = '';
+  const SPAN: Record<string, number> = { ruler: 3, thermo: 16, cylinder: 30 };
+  const MAJOR: Record<string, number> = { ruler: 1, thermo: 5, cylinder: 10 };
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const fmt = (x: number) => (inst.least < 1 ? x.toFixed(1) : String(Math.round(x)));
+  const theta = () => +q<HTMLInputElement>('.px-e').value;
+
+  function newObject(seed?: number) {
+    const steps = Math.round((inst.max - inst.min) / inst.least), lo = Math.ceil(steps * 0.15), hi = Math.floor(steps * 0.85);
+    truth = +(inst.min + inst.least * (seed ?? lo + Math.floor(Math.random() * (hi - lo)))).toFixed(2);
+    const sp = SPAN[inst.id]; start = Math.max(inst.min, Math.min(inst.max - sp, Math.floor((truth - sp * (0.3 + 0.4 * Math.random())) / inst.least) * inst.least));
+    q('.px-cv').dataset.truth = String(truth); checked = ''; q<HTMLInputElement>('.px-in').value = ''; render();
+  }
+
+  function render() {
+    const pal = pagePalette(), th = theta(), app = apparent(truth, th, inst), sp = SPAN[inst.id], vert = inst.vertical;
+    q('.px-ev').textContent = th === 0 ? 'straight on (0°)' : `${Math.abs(th)}° ${vert ? (th > 0 ? 'above' : 'below') : th > 0 ? 'to the right' : 'to the left'}`;
+    q('.px-unit').textContent = inst.unit;
+    // Front view
+    { const H = 260, { ctx: c, W } = fitCanvas(q<HTMLCanvasElement>('.px-cv'), H);
+      c.fillStyle = pal.bg; c.fillRect(0, 0, W, H); c.strokeStyle = pal.ink; c.fillStyle = pal.ink; c.font = '12px system-ui, sans-serif';
+      const n = Math.round(sp / inst.least);
+      if (!vert) {
+        const x0 = 20, x1 = W - 20, P = (v: number) => x0 + ((v - start) / sp) * (x1 - x0), y = 150;
+        c.fillStyle = pal.red ? '#200000' : '#f3e2b3'; c.fillRect(x0 - 10, y, x1 - x0 + 20, 50); c.strokeRect(x0 - 10, y, x1 - x0 + 20, 50);
+        c.strokeStyle = pal.ink; c.fillStyle = pal.ink; c.lineWidth = 1; c.textAlign = 'center';
+        for (let k = 0; k <= n; k++) { const v = start + k * inst.least, isMaj = Math.abs(v / MAJOR.ruler - Math.round(v / MAJOR.ruler)) < 1e-6, half = Math.abs(v * 2 - Math.round(v * 2)) < 1e-6; const L = isMaj ? 18 : half ? 12 : 7; c.beginPath(); c.moveTo(P(v), y); c.lineTo(P(v), y + L); c.stroke(); if (isMaj) c.fillText(String(Math.round(v)), P(v), y + 32); }
+        // pencil ending at the apparent position
+        const e = P(app); c.fillStyle = pal.red ? '#5a0000' : '#f2b705'; c.fillRect(0, y - 30, e - 14, 20); c.fillStyle = pal.red ? '#3a0000' : '#e8c48a'; c.beginPath(); c.moveTo(e - 14, y - 30); c.lineTo(e, y - 20); c.lineTo(e - 14, y - 10); c.closePath(); c.fill(); c.fillStyle = pal.ink; c.beginPath(); c.moveTo(e - 4, y - 23); c.lineTo(e, y - 20); c.lineTo(e - 4, y - 17); c.fill();
+        c.fillStyle = pal.muted; c.textAlign = 'left'; c.fillText('cm', x0 - 8, y + 46);
+      } else {
+        const y0 = H - 16, y1 = 16, P = (v: number) => y0 - ((v - start) / sp) * (y0 - y1), cx = W / 2;
+        const tw = inst.id === 'thermo' ? 14 : 70;
+        c.strokeStyle = pal.ink; c.lineWidth = 1.5; c.strokeRect(cx - tw / 2, y1 - 8, tw, y0 - y1 + 16);
+        const lv = P(app);
+        if (inst.id === 'thermo') { c.fillStyle = pal.red ? '#a30000' : '#d32f2f'; c.fillRect(cx - 3, lv, 6, y0 + 8 - lv); }
+        else { c.fillStyle = pal.red ? '#300000' : 'rgba(80,150,220,0.35)'; c.beginPath(); c.moveTo(cx - tw / 2 + 1, lv - 6); c.quadraticCurveTo(cx, lv + 6, cx + tw / 2 - 1, lv - 6); c.lineTo(cx + tw / 2 - 1, y0 + 8); c.lineTo(cx - tw / 2 + 1, y0 + 8); c.closePath(); c.fill(); c.strokeStyle = pal.red ? pal.ink : '#1565c0'; c.beginPath(); c.moveTo(cx - tw / 2 + 1, lv - 6); c.quadraticCurveTo(cx, lv + 6, cx + tw / 2 - 1, lv - 6); c.stroke(); }
+        c.strokeStyle = pal.ink; c.fillStyle = pal.ink; c.lineWidth = 1; c.textAlign = 'left';
+        const sx = cx + tw / 2 + 6;
+        for (let k = 0; k <= n; k++) { const v = start + k * inst.least, isMaj = Math.abs(v / MAJOR[inst.id] - Math.round(v / MAJOR[inst.id])) < 1e-6, mid = Math.abs((v * 2) / MAJOR[inst.id] - Math.round((v * 2) / MAJOR[inst.id])) < 1e-6; const L = isMaj ? 18 : mid ? 12 : 7; c.beginPath(); c.moveTo(sx, P(v)); c.lineTo(sx + L, P(v)); c.stroke(); if (isMaj) c.fillText(String(Math.round(v)), sx + 22, P(v) + 4); }
+        c.fillStyle = pal.muted; c.fillText(inst.unit, sx + 22, y1 - 2);
+      }
+    }
+    // Side view: eye, scale plane, object plane, line of sight
+    { const { ctx: c, W, H } = fitCanvas(q<HTMLCanvasElement>('.px-side'), 260);
+      c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+      const sY = H / 2, scaleX = 40, objX = 40 + 26, rad = (th * Math.PI) / 180;
+      c.strokeStyle = pal.ink; c.lineWidth = 3; c.beginPath(); c.moveTo(scaleX, 30); c.lineTo(scaleX, H - 30); c.stroke();
+      c.strokeStyle = pal.red ? pal.muted : pal.accent2; c.beginPath(); c.moveTo(objX, sY); c.lineTo(objX + 30, sY); c.stroke();
+      const ex = 8, ey = sY - Math.tan(rad) * (objX - ex) * 1; // eye to the left looking right; + angle = eye above
+      const eyY = Math.max(14, Math.min(H - 14, ey));
+      c.strokeStyle = pal.red ? pal.ink : pal.bad; c.lineWidth = 1.5; c.setLineDash([4, 3]); c.beginPath(); c.moveTo(ex, eyY); c.lineTo(objX, sY); c.stroke(); c.setLineDash([]);
+      c.fillStyle = pal.ink; c.beginPath(); c.ellipse(ex, eyY, 7, 5, 0, 0, 7); c.fill();
+      c.font = '10px system-ui, sans-serif'; c.textAlign = 'center'; c.fillStyle = pal.muted;
+      c.fillText('scale', scaleX, 22); c.fillText(inst.id === 'ruler' ? 'pencil' : 'level', objX + 18, sY - 8); c.fillText('side view', W / 2, H - 6);
+      if (inst.id === 'ruler') c.fillText(th > 0 ? '(eye right)' : th < 0 ? '(eye left)' : '', W / 2, H - 18);
+    }
+    const ok = checked;
+    q('.px-big').textContent = ok;
+    q('.px-note').textContent = `${inst.name}: you are reading ${inst.what}. Smallest mark: ${inst.least} ${inst.unit}.`;
+    const err = parallaxError(th, inst);
+    q('.px-facts').replaceChildren(
+      fact('Least count', `${inst.least} ${inst.unit}`, `the smallest division; read to ± ${inst.least / 2} ${inst.unit}`),
+      fact('Parallax error now', `${err >= 0 ? '+' : '−'}${r(Math.abs(err), 3)} ${inst.unit}`, `d·tanθ = ${inst.gapMm} mm × tan ${th}° = ${r(inst.gapMm * Math.tan((th * Math.PI) / 180), 3)} mm on the scale`),
+      fact('Reading at this angle', `${fmt(toMark(app, inst.least))} ${inst.unit}`, 'to the nearest mark'));
+  }
+
+  function check() {
+    const v = Number(q<HTMLInputElement>('.px-in').value.trim().replace(',', '.'));
+    if (!Number.isFinite(v) || q<HTMLInputElement>('.px-in').value.trim() === '') { checked = `Type a number in ${inst.unit}.`; return render(); }
+    const th = theta(), good = Math.abs(v - truth) <= inst.least / 2 + 1e-9, pe = pctError(v, truth);
+    checked = good ? `Right: it is ${fmt(truth)} ${inst.unit}.` + (th !== 0 ? ' Well done, even at an angle.' : '')
+      : th !== 0 ? `The real value is ${fmt(truth)} ${inst.unit}. Your eye was at ${Math.abs(th)}°, so the scale looked ${parallaxError(th, inst) > 0 ? 'higher' : 'lower'} than it is: a parallax error. Put your eye straight in line and try again.`
+      : `Not quite: the real value is ${fmt(truth)} ${inst.unit}. Count the small marks from the nearest number.`;
+    if (level === '9' && !good) checked += ` Your error: ${r(Math.abs(v - truth), 3)} ${inst.unit} (${r(pe, 3)} %).`;
+    render();
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.px-inst button').forEach((b) => b.addEventListener('click', () => { inst = INSTRUMENTS.find((m) => m.id === b.dataset.i)!; root.querySelectorAll('.px-inst button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); newObject(); }));
+  q('.px-e').addEventListener('input', () => { checked = ''; render(); });
+  q('.px-check').addEventListener('click', check);
+  q('.px-in').addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter') check(); });
+  q('.px-new').addEventListener('click', () => newObject());
+  addEventListener('resize', render);
+  newObject();
+  wireLevel(root, (l) => { level = l; render(); });
+
+  mountQuiz(q('.px-quiz'), () => {
+    const lc = one([0.1, 0.5, 1, 2]), err = one([1, 2, 0.5]), val = one([10, 20, 25, 50, 80]), d = one([2, 3, 4]), ang = one([30, 45]);
+    return [
+      { q: `A scale's smallest division is ${lc}. What is the uncertainty of a careful reading (half the least count)?`, ans: lc / 2, unit: '', work: `Half of ${lc} = ${lc / 2}` },
+      { q: `A reading is ${err} mL too high when the real volume is ${val} mL. What is the percentage error?`, ans: (100 * err) / val, unit: '%', work: `${err} ÷ ${val} × 100 = ${r((100 * err) / val)} %` },
+      { q: `The liquid is ${d} mm behind the scale and your eye is ${ang}° above. How far (mm) does the scale seem to shift? (tan 30° ≈ 0.577, tan 45° = 1)`, ans: d * Math.tan((ang * Math.PI) / 180), unit: 'mm', work: `shift = d·tanθ = ${d} × ${r(Math.tan((ang * Math.PI) / 180))} = ${r(d * Math.tan((ang * Math.PI) / 180))} mm` },
+      { q: 'Where should your eye be when you read a measuring cylinder?', ans: 2, choices: ['Above the water surface', 'Below the water surface', 'Level with the bottom of the curved water surface'], work: 'Bring your eye level with the bottom of the meniscus, so the line of sight is at right angles to the scale.' },
+      { q: 'Your eye is above the mark when reading a thermometer. Will the reading be too high or too low?', ans: 0, choices: ['Too high', 'Too low', 'Exactly right'], work: 'Looking down at the thread behind the scale lines it up with a higher mark, so the reading comes out too high.' },
+    ];
+  });
+</script>

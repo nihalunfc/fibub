@@ -1,0 +1,135 @@
+---
+// Heating effect and fuse (Learn): turn up the current through a wire and watch it warm, glow and (for a fuse wire)
+// melt; then switch on appliances at home until the fuse blows. Class 10 adds H = I²Rt and P = VI.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+import { WIRES, APPLIANCES } from '../../lib/sci/learnj-fuse';
+---
+<div class="ax lrn fzh">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="8" aria-pressed="true">Class 8</button><button type="button" data-level="10" aria-pressed="false">Class 10</button></div>
+    <h2 style="margin-top:12px">1. Current heats a wire</h2>
+    <div class="ax-seg fz-wire" role="group" aria-label="Wire">{WIRES.map((w, i) => <button type="button" data-w={w.id} aria-pressed={String(i === 0)}>{w.name}</button>)}</div>
+    <canvas class="lrn-cv fz-cv" style="margin-top:10px" aria-label="A wire between two terminals; it glows as it gets hot and breaks when it melts"></canvas>
+    <label class="lrn-sl" style="margin-top:8px">Current <b class="fz-Iv"></b><input type="range" class="fz-I" min="0" max="30" step="0.5" value="2" aria-label="Current in amperes" /></label>
+    <div class="ax-row"><button type="button" class="btn secondary small fz-new">Fit a new wire</button></div>
+    <p class="ax-big fz-big" style="margin:10px 0 0"></p>
+    <p class="ax-help fz-note"></p>
+    <p class="lrn-eq fz-eq" data-only="10" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>2. Fuse in a home circuit</h2>
+    <label>Fuse rating <select class="fz-rate"><option value="5">5 A</option><option value="10" selected>10 A</option><option value="15">15 A</option></select></label>
+    <div class="fz-apps">{APPLIANCES.map((a) => <button type="button" class="fz-app" data-a={a.id} aria-pressed="false">{a.name} <small>{a.watts} W</small></button>)}</div>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small fz-short">Short circuit</button>
+      <button type="button" class="btn secondary small fz-fix">Replace the fuse</button>
+    </div>
+    <canvas class="lrn-cv fz-meter" style="margin-top:10px" aria-label="A meter of the current drawn, with the fuse rating marked"></canvas>
+    <p class="ax-big fz-hbig" style="margin:10px 0 0"></p>
+    <p class="lrn-eq fz-heq"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Double the current through the nichrome coil. The temperature rise goes up four times, because heat grows with the current squared.</li>
+      <li>Find the current where the fuse wire melts, then try the same current on thin copper wire.</li>
+      <li>At home, switch on the kettle and the heater together with a 10 A fuse. What happens, and why is that a good thing?</li>
+      <li>Press Short circuit: the current would be huge, so the fuse blows at once.</li>
+    </ul>
+    <p class="ax-help">A teaching model: wire temperatures use made-up constants so each wire behaves as described, and real fuses take a moment to melt. Never open a fuse box or touch mains wiring; that is a job for a qualified electrician.</p>
+  </div>
+
+  <div class="ax-card fz-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .fzh .ax-seg { flex-wrap: wrap; }
+  .fzh .ax-seg button { min-height: 44px; }
+  .fzh select { min-height: 44px; font-size: 16px; }
+  .fzh .fz-apps { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .fzh .fz-app { min-height: 44px; padding: 6px 12px; font: inherit; font-size: 15px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); cursor: pointer; }
+  .fzh .fz-app small { color: var(--muted); }
+  .fzh .fz-app[aria-pressed=true] { border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }
+</style>
+
+<script>
+  import { WIRES, APPLIANCES, wireTemp, meltCurrent, glowOf, homeCurrent, heat, MAINS_V, ROOM } from '../../lib/sci/learnj-fuse';
+  import { mountQuiz, pick, one, r, fitCanvas, wireLevel } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.fzh')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let wire = WIRES[0], melted = false, blown = false, shorted = false, level = '8';
+  const on = new Set<string>();
+  const glowRGB = (T: number) => T < 500 ? null : T < 700 ? '#8b1a1a' : T < 900 ? '#c62828' : T < 1100 ? '#ef6c00' : T < 1300 ? '#fbc02d' : '#fffde7';
+
+  function renderWire() {
+    const pal = pagePalette(), I = +q<HTMLInputElement>('.fz-I').value, Im = meltCurrent(wire);
+    if (I > Im + 1e-9) melted = true;
+    const flowing = melted ? 0 : I, T = melted ? ROOM : wireTemp(wire, I);
+    q('.fz-Iv').textContent = `${I} A`;
+    const { ctx: c, W, H } = fitCanvas(q<HTMLCanvasElement>('.fz-cv'), 130);
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    const y = 60, x0 = 30, x1 = W - 30;
+    c.fillStyle = pal.ink; c.fillRect(x0 - 14, y - 16, 14, 32); c.fillRect(x1, y - 16, 14, 32);
+    const g = glowRGB(T), col = pal.red ? (g ? '#a30000' : '#5a0000') : g ?? (wire.id === 'copper' ? '#b87333' : wire.id === 'nichrome' ? '#7a7a7a' : '#a0a0a0');
+    if (g && !pal.red) { c.strokeStyle = g; c.globalAlpha = 0.3; c.lineWidth = 16; c.beginPath(); c.moveTo(x0, y); c.lineTo(x1, y); c.stroke(); c.globalAlpha = 1; }
+    c.strokeStyle = col; c.lineWidth = 4; c.lineCap = 'round';
+    if (melted) { const mx = (x0 + x1) / 2; c.beginPath(); c.moveTo(x0, y); c.lineTo(mx - 14, y + 4); c.moveTo(mx + 14, y - 4); c.lineTo(x1, y); c.stroke(); c.fillStyle = col; c.beginPath(); c.arc(mx - 14, y + 6, 4, 0, 7); c.arc(mx + 14, y - 2, 4, 0, 7); c.fill(); }
+    else { c.beginPath(); c.moveTo(x0, y); c.lineTo(x1, y); c.stroke(); }
+    // thermometer bar
+    const frac = Math.min(1, T / 1500); c.fillStyle = pal.grid; c.fillRect(x0, 100, x1 - x0, 10); c.fillStyle = pal.red ? pal.ink : T >= wire.melt * 0.8 ? pal.bad : pal.accent2; c.fillRect(x0, 100, (x1 - x0) * frac, 10);
+    c.strokeStyle = pal.ink; c.lineWidth = 2; const mxp = x0 + (x1 - x0) * Math.min(1, wire.melt / 1500); c.beginPath(); c.moveTo(mxp, 95); c.lineTo(mxp, 115); c.stroke();
+    c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(`melts at ${wire.melt} °C`, Math.min(W - 50, Math.max(50, mxp)), 128);
+    c.textAlign = 'left'; c.fillText(melted ? 'no current' : `${flowing} A →`, x0, 20);
+    q('.fz-big').textContent = melted ? `Melted at ${r(Im, 3)} A: the wire broke and the circuit is open.` : `${Math.round(T)} °C, ${glowOf(T)}`;
+    q('.fz-note').textContent = `${wire.name}: ${wire.note}. It melts above about ${r(Im, 3)} A.`;
+    const R = 0.5;
+    q('.fz-eq').textContent = `Heat made each second = I²R. For a 0.5 Ω wire: ${flowing}² × ${R} = ${r(heat(flowing, R, 1), 3)} J every second (H = I²Rt). Twice the current makes four times the heat.`;
+    q('.fz-eq').hidden = level !== '10';
+  }
+
+  function renderHome() {
+    const pal = pagePalette(), rate = +q<HTMLSelectElement>('.fz-rate').value;
+    const watts = APPLIANCES.filter((a) => on.has(a.id)).map((a) => a.watts), Iload = shorted ? 1000 : homeCurrent(watts);
+    if (Iload > rate) blown = true;
+    root.querySelectorAll<HTMLButtonElement>('.fz-app').forEach((b) => b.setAttribute('aria-pressed', String(on.has(b.dataset.a!))));
+    const { ctx: c, W, H } = fitCanvas(q<HTMLCanvasElement>('.fz-meter'), 70), max = 25, gx = 10, gw = W - 20, X = (v: number) => gx + Math.min(1, v / max) * gw;
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    c.fillStyle = pal.grid; c.fillRect(gx, 20, gw, 18);
+    c.fillStyle = pal.red ? pal.ink : blown ? pal.bad : Iload > 0.8 * rate ? pal.warn : pal.good; c.fillRect(gx, 20, X(blown ? Iload : Iload) - gx, 18);
+    c.strokeStyle = pal.ink; c.lineWidth = 2; c.beginPath(); c.moveTo(X(rate), 12); c.lineTo(X(rate), 46); c.stroke();
+    c.fillStyle = pal.ink; c.font = '11px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(`fuse ${rate} A`, Math.min(W - 30, X(rate)), 60);
+    c.textAlign = 'left'; c.fillStyle = pal.muted; c.fillText(shorted ? 'short circuit: huge current' : `${r(Iload, 3)} A drawn`, gx, 12);
+    q('.fz-hbig').textContent = blown ? `The fuse has blown: ${shorted ? 'a short circuit' : `${r(Iload, 3)} A is more than ${rate} A`}. Everything is off and the wiring is safe.` : on.size ? `${r(Iload, 3)} A of ${rate} A: the fuse holds.` : 'Switch on some appliances.';
+    const P = watts.reduce((s, w) => s + w, 0);
+    q('.fz-heq').textContent = shorted ? 'A short circuit joins the live and neutral wires with almost no resistance, so I = V/R is enormous.' : `I = P ÷ V = ${P} W ÷ ${MAINS_V} V = ${r(Iload, 3)} A`;
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.fz-wire button').forEach((b) => b.addEventListener('click', () => { wire = WIRES.find((w) => w.id === b.dataset.w)!; melted = false; root.querySelectorAll('.fz-wire button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); renderWire(); }));
+  q('.fz-I').addEventListener('input', renderWire);
+  q('.fz-new').addEventListener('click', () => { melted = false; q<HTMLInputElement>('.fz-I').value = '2'; renderWire(); });
+  root.querySelectorAll<HTMLButtonElement>('.fz-app').forEach((b) => b.addEventListener('click', () => { if (blown) return; const id = b.dataset.a!; on.has(id) ? on.delete(id) : on.add(id); renderHome(); }));
+  q('.fz-rate').addEventListener('change', renderHome);
+  q('.fz-short').addEventListener('click', () => { shorted = true; renderHome(); });
+  q('.fz-fix').addEventListener('click', () => { blown = false; shorted = false; on.clear(); renderHome(); });
+  addEventListener('resize', () => { renderWire(); renderHome(); });
+  wireLevel(root, (l) => { level = l; renderWire(); renderHome(); });
+
+  mountQuiz(q('.fz-quiz'), () => {
+    const P = one([1000, 1500, 2000, 2300]), I = pick(2, 10), R = pick(2, 20), t = one([10, 30, 60]), k = one([2, 3]), apps = [one([100, 200]), one([1000, 1500]), one([750, 1150])];
+    const tot = apps.reduce((a, b) => a + b, 0);
+    return [
+      { q: `An appliance of ${P} W runs on ${MAINS_V} V. What current does it draw?`, ans: P / MAINS_V, unit: 'A', work: `I = P ÷ V = ${P} ÷ ${MAINS_V} = ${r(P / MAINS_V)} A` },
+      { q: `Appliances of ${apps.join(' W, ')} W are on together at ${MAINS_V} V. Will a 10 A fuse hold? Type the current.`, ans: tot / MAINS_V, unit: 'A', work: `Total ${tot} W ÷ ${MAINS_V} V = ${r(tot / MAINS_V)} A: ${tot / MAINS_V > 10 ? 'more than 10 A, so the fuse blows' : 'under 10 A, so the fuse holds'}.` },
+      { q: `Class 10: a current of ${I} A flows through ${R} Ω for ${t} s. How much heat is made?`, ans: I * I * R * t, unit: 'J', work: `H = I²Rt = ${I}² × ${R} × ${t} = ${I * I * R * t} J` },
+      { q: `If the current through a wire is made ${k} times bigger, how many times more heat is made each second?`, ans: k * k, unit: 'times', work: `Heat goes as I², so ${k}² = ${k * k} times.` },
+      { q: 'Why is a fuse wire made of a metal with a low melting point?', ans: 0, choices: ['So it melts and breaks the circuit before the house wiring gets dangerously hot', 'So it is cheap', 'So it glows like a bulb'], work: 'If too much current flows, the fuse wire melts first and cuts the current, protecting the wiring and appliances from overheating and fire.' },
+    ];
+  });
+</script>

@@ -1,0 +1,198 @@
+---
+// Combined solids: pick a shape made of two or three simple solids, slide its sizes, and see its surface area
+// (with the hidden joins left out) and its volume added up part by part. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm cb">
+  <div class="ax-card">
+    <h2>Pick a shape</h2>
+    <div class="cb-pick" role="group" aria-label="Shape">
+      <button type="button" data-s="icecream" aria-pressed="true">Cone on a hemisphere</button>
+      <button type="button" data-s="capsule" aria-pressed="false">Capsule</button>
+      <button type="button" data-s="rocket" aria-pressed="false">Cylinder with a cone</button>
+      <button type="button" data-s="dome" aria-pressed="false">Cylinder with a dome</button>
+      <button type="button" data-s="cubedome" aria-pressed="false">Cube with a dome</button>
+    </div>
+    <svg class="sm-fig cb-fig" viewBox="0 0 340 300" role="img" aria-label="Side view of the combined solid with its hidden joins dashed"></svg>
+    <p class="ax-help">Coloured parts are painted (counted in the surface area). The dashed red ring is a hidden join: it is inside the solid, so it is not counted.</p>
+    <div class="sm-sl cb-row" data-k="r"><b>r</b><input type="range" class="cb-rr" min="0.5" max="20" step="0.5" value="3.5" aria-label="Radius slider" /><input type="number" class="cb-r" min="0.1" step="0.5" value="3.5" inputmode="decimal" aria-label="Radius r (cm)" /></div>
+    <div class="sm-sl cb-row" data-k="h"><b>h</b><input type="range" class="cb-hr" min="0.5" max="40" step="0.5" value="10" aria-label="Cylinder height slider" /><input type="number" class="cb-h" min="0.1" step="0.5" value="10" inputmode="decimal" aria-label="Cylinder height h (cm)" /></div>
+    <div class="sm-sl cb-row" data-k="H"><b>H</b><input type="range" class="cb-Hr" min="0.5" max="40" step="0.5" value="12" aria-label="Cone height slider" /><input type="number" class="cb-H" min="0.1" step="0.5" value="12" inputmode="decimal" aria-label="Cone height H (cm)" /></div>
+    <div class="sm-sl cb-row" data-k="a"><b>a</b><input type="range" class="cb-ar" min="1" max="40" step="0.5" value="10" aria-label="Cube side slider" /><input type="number" class="cb-a" min="0.1" step="0.5" value="10" inputmode="decimal" aria-label="Cube side a (cm)" /></div>
+    <p class="ax-help cb-key"></p>
+    <div class="ax-row">
+      <span class="ax-help" style="margin:0">Use π =</span>
+      <div class="ax-seg cb-pi" role="group" aria-label="Value of pi">
+        <button type="button" data-p="22/7" aria-pressed="true">22/7</button>
+        <button type="button" data-p="3.14" aria-pressed="false">3.14</button>
+        <button type="button" data-p="pi" aria-pressed="false">π (exact)</button>
+      </div>
+    </div>
+    <p class="ax-err cb-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Surface area</h2>
+    <ul class="sm-steps cb-area"></ul>
+    <p class="sm-f cb-atot"></p>
+    <h2 style="margin-top:14px">Volume</h2>
+    <ul class="sm-steps cb-vol"></ul>
+    <p class="sm-f cb-vtot"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Make the capsule's h = 0. It becomes a sphere: area 4πr² and volume ⁴⁄₃πr³.</li>
+      <li>On the cylinder with a dome, compare the total area with a plain cylinder of the same size. Why is it 2πr² − πr² = πr² more, not 2πr² more?</li>
+      <li>On the cube with a dome, make 2r bigger than a. Why can it no longer sit on the face?</li>
+      <li>Double every size. The area goes up 4 times and the volume 8 times. Check it.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Use π = 22/7 and give answers to 2 decimal places where needed. Nothing is saved.</p>
+    <div class="cb-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .cb .cb-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); gap: 6px; margin-bottom: 10px; }
+  .cb .cb-pick button { min-height: 44px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); font: inherit; font-size: 14px; padding: 6px 8px; cursor: pointer; }
+  .cb .cb-pick button[aria-pressed=true] { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+  .cb svg .cb-p1 { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+  .cb svg .cb-p2 { fill: var(--good-soft); stroke: var(--good); stroke-width: 2; }
+  .cb svg .cb-p3 { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 2; }
+  .cb svg .cb-hid { fill: none; stroke: var(--bad); stroke-width: 2; stroke-dasharray: 6 4; }
+  .cb svg .cb-dim { stroke: var(--muted); stroke-width: 1.2; }
+  .cb .cb-hidli { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--bad); }
+</style>
+
+<script>
+  import { solid, invalid, slant, SHAPES, type ShapeId, type Dims } from '../../lib/sci/combined-solids';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, pair, val, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.cb')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.cb-fig');
+  const box = { r: q<HTMLInputElement>('.cb-r'), h: q<HTMLInputElement>('.cb-h'), H: q<HTMLInputElement>('.cb-H'), a: q<HTMLInputElement>('.cb-a') };
+  for (const k of ['r', 'h', 'H', 'a'] as const) pair(q(`.cb-${k}r`), box[k], draw);
+  const PIS: Record<string, number> = { '22/7': 22 / 7, '3.14': 3.14, pi: Math.PI };
+  let shape: ShapeId = 'icecream', piKey = '22/7';
+  const li = (t: string, cls?: string) => Object.assign(document.createElement('li'), { textContent: t, className: cls ?? '' });
+
+  // Drawing helpers: a side view with ellipses for the round faces (depth squash k).
+  const K = 0.28;
+  function ell(cx: number, cy: number, R: number, cls: string, half?: 'front' | 'back') {
+    const ry = R * K;
+    if (!half) return S('ellipse', { cx, cy, rx: R, ry, class: cls }, fig);
+    return S('path', { d: `M${cx - R},${cy} A${R},${ry} 0 0 ${half === 'front' ? 0 : 1} ${cx + R},${cy}`, class: cls }, fig);
+  }
+  function cylinder(cx: number, yb: number, yt: number, R: number, cls: string) {
+    const ry = R * K;
+    S('path', { d: `M${cx - R},${yt} L${cx - R},${yb} A${R},${ry} 0 0 0 ${cx + R},${yb} L${cx + R},${yt} A${R},${ry} 0 0 0 ${cx - R},${yt} Z`, class: cls }, fig);
+  }
+  function dome(cx: number, y: number, R: number, cls: string, down = false) {
+    const ry = R * K;
+    if (down) S('path', { d: `M${cx - R},${y} A${R},${R} 0 0 0 ${cx + R},${y} A${R},${ry} 0 0 0 ${cx - R},${y} Z`, class: cls }, fig);
+    else S('path', { d: `M${cx - R},${y} A${R},${ry} 0 0 0 ${cx + R},${y} A${R},${R} 0 0 0 ${cx - R},${y} Z`, class: cls }, fig);
+  }
+  function cone(cx: number, y: number, R: number, Hp: number, cls: string, down = false) {
+    const ry = R * K, tip = down ? y + Hp : y - Hp;
+    S('path', { d: `M${cx - R},${y} L${cx},${tip} L${cx + R},${y} A${R},${ry} 0 0 ${down ? 0 : 1} ${cx - R},${y} Z`, class: cls }, fig);
+  }
+  const label = (x: number, y: number, t: string, anchor = 'start') => S('text', { x, y, 'text-anchor': anchor, class: 'sm-tick', style: 'font-size:12px' }, fig, t);
+
+  function picture(d: Dims, sol: { height: number; width: number }) {
+    fig.replaceChildren();
+    const s = Math.min(230 / sol.height, 190 / sol.width), cx = 150, base = 280, R = d.r * s;
+    const dimLine = (x: number, y1: number, y2: number, t: string) => {
+      S('line', { x1: x, y1, x2: x, y2, class: 'cb-dim' }, fig);
+      for (const y of [y1, y2]) S('line', { x1: x - 4, y1: y, x2: x + 4, y2: y, class: 'cb-dim' }, fig);
+      label(x + 7, (y1 + y2) / 2 + 4, t);
+    };
+    const rLine = (y: number) => { S('line', { x1: cx, y1: y, x2: cx + R, y2: y, class: 'sm-dash' }, fig); label(cx + R / 2, y - 4, 'r', 'middle'); };
+    const right = cx + Math.max(R, (d.a * s) / 2) + 14;
+    if (shape === 'icecream') {
+      const Hp = d.H * s, yj = base - Hp;          // cone tip at the bottom, hemisphere on top
+      cone(cx, yj, R, Hp, 'cb-p3', true); dome(cx, yj, R, 'cb-p2'); ell(cx, yj, R, 'cb-hid');
+      rLine(yj); dimLine(right, yj, base, `H = ${fmt(d.H, 2)}`);
+    } else if (shape === 'capsule') {
+      const hp = d.h * s, y0 = base - R, y1 = y0 - hp;
+      dome(cx, y0, R, 'cb-p2', true); cylinder(cx, y0, y1, R, 'cb-p1'); dome(cx, y1, R, 'cb-p2');
+      ell(cx, y0, R, 'cb-hid'); ell(cx, y1, R, 'cb-hid');
+      rLine(y1); dimLine(right, y1, y0, `h = ${fmt(d.h, 2)}`);
+    } else if (shape === 'rocket' || shape === 'dome') {
+      const hp = d.h * s, y1 = base - hp;
+      cylinder(cx, base, y1, R, 'cb-p1');
+      if (shape === 'rocket') { cone(cx, y1, R, d.H * s, 'cb-p3'); dimLine(right, y1 - d.H * s, y1, `H = ${fmt(d.H, 2)}`); }
+      else dome(cx, y1, R, 'cb-p2');
+      ell(cx, y1, R, 'cb-hid'); rLine(base); dimLine(right, y1, base, `h = ${fmt(d.h, 2)}`);
+    } else {
+      const A = d.a * s, top = base - A;
+      S('rect', { x: cx - A / 2, y: top, width: A, height: A, class: 'cb-p1' }, fig);
+      S('path', { d: `M${cx - A / 2},${top} L${cx - A / 2 + A * 0.18},${top - A * 0.18} L${cx + A / 2 + A * 0.18},${top - A * 0.18} L${cx + A / 2 + A * 0.18},${top + A - A * 0.18} L${cx + A / 2},${base} L${cx + A / 2},${top} Z`, class: 'cb-p1', style: 'fill-opacity:.6' }, fig);
+      const yc = top - A * 0.09, xc = cx + A * 0.09;
+      if (R <= A / 2 + 0.01) { dome(xc, yc, R, 'cb-p2'); ell(xc, yc, R, 'cb-hid'); }
+      dimLine(cx - A / 2 - 14, top, base, '');
+      label(cx - A / 2 - 10, base + 16, `a = ${fmt(d.a, 2)}`, 'start');
+      S('line', { x1: xc, y1: yc, x2: xc + R, y2: yc, class: 'sm-dash' }, fig); label(xc + R / 2, yc - 4, 'r', 'middle');
+    }
+  }
+
+  function draw() {
+    const d: Dims = { r: val(box.r, 3.5), h: val(box.h, 10), H: val(box.H, 12), a: val(box.a, 10) };
+    const uses = SHAPES.find((x) => x.id === shape)!.uses;
+    root.querySelectorAll<HTMLElement>('.cb-row').forEach((row) => { row.hidden = !uses.includes(row.dataset.k as 'r'); });
+    const names: Record<string, string> = { r: 'r = radius of the round parts', h: 'h = height of the cylinder', H: 'H = height of the cone', a: 'a = side of the cube' };
+    q('.cb-key').textContent = uses.map((k) => names[k]).join('; ') + ' (all in cm).';
+    const err = q('.cb-err'), bad = invalid(shape, d);
+    err.hidden = !bad; err.textContent = bad ?? '';
+    const pi = PIS[piKey], P = piKey === 'pi' ? 'π' : piKey, sol = solid(shape, d, pi), f = (x: number) => fmt(x, 2);
+    if (bad) { fig.replaceChildren(); q('.cb-area').replaceChildren(); q('.cb-vol').replaceChildren(); q('.cb-atot').textContent = ''; q('.cb-vtot').textContent = ''; return; }
+    picture(d, sol);
+    const l = slant(d.r, d.H);
+    const fill = (formula: string) => formula
+      .replace('2 × 2πr²', `2 × 2 × ${P} × ${f(d.r)}²`).replace('2πrh', `2 × ${P} × ${f(d.r)} × ${f(d.h)}`).replace('2πr²', `2 × ${P} × ${f(d.r)}²`)
+      .replace('πrl', `${P} × ${f(d.r)} × ${f(l)}`).replace('− πr²', `− ${P} × ${f(d.r)}²`).replace(/^πr²$/, `${P} × ${f(d.r)}²`).replace('6a²', `6 × ${f(d.a)}²`)
+      .replace('πr²h', `${P} × ${f(d.r)}² × ${f(d.h)}`).replace('⁴⁄₃πr³', `⁴⁄₃ × ${P} × ${f(d.r)}³`).replace('⅔πr³', `⅔ × ${P} × ${f(d.r)}³`)
+      .replace('⅓πr²H', `⅓ × ${P} × ${f(d.r)}² × ${f(d.H)}`).replace(/^a³$/, `${f(d.a)}³`);
+    const rows: HTMLLIElement[] = [];
+    if (sol.surfaces.some((p) => p.formula === 'πrl')) rows.push(li(`Slant height l = √(r² + H²) = √(${f(d.r)}² + ${f(d.H)}²) = ${f(l)} cm`));
+    for (const p of sol.surfaces) rows.push(li(`${p.name}: ${p.formula} = ${fill(p.formula)} = ${f(p.value)} cm²`));
+    for (const p of sol.hidden) rows.push(li(`${p.name}: hidden inside, not counted`, 'cb-hidli'));
+    q('.cb-area').replaceChildren(...rows);
+    q('.cb-atot').innerHTML = '';
+    q('.cb-atot').append('Total surface area = ', Object.assign(document.createElement('span'), { className: 'v cb-A', textContent: `${f(sol.area)} cm²` }));
+    q('.cb-vol').replaceChildren(...sol.volumes.map((p) => li(`${p.name}: ${p.formula} = ${fill(p.formula)} = ${f(p.value)} cm³`)));
+    q('.cb-vtot').innerHTML = '';
+    q('.cb-vtot').append('Total volume = ', Object.assign(document.createElement('span'), { className: 'v cb-V', textContent: `${f(sol.volume)} cm³` }));
+  }
+
+  const preset: Record<ShapeId, Partial<Dims>> = { icecream: { r: 3.5, H: 12 }, capsule: { r: 2.5, h: 10 }, rocket: { r: 3, h: 10, H: 4 }, dome: { r: 7, h: 14 }, cubedome: { a: 10, r: 3.5 } };
+  root.querySelectorAll<HTMLButtonElement>('.cb-pick button').forEach((b) => b.addEventListener('click', () => {
+    shape = b.dataset.s as ShapeId;
+    root.querySelectorAll('.cb-pick button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    for (const [k, v] of Object.entries(preset[shape])) { box[k as 'r'].value = String(v); q<HTMLInputElement>(`.cb-${k}r`).value = String(v); }
+    draw();
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.cb-pi button').forEach((b) => b.addEventListener('click', () => { piKey = b.dataset.p!; root.querySelectorAll('.cb-pi button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); draw(); }));
+  draw();
+
+  const r2 = (x: number) => Math.round(x * 100) / 100, PI = 22 / 7;
+  quiz(q('.cb-quiz'), () => {
+    const out: Question[] = [];
+    { const r = randInt(1, 3) * 3.5, h = randInt(2, 8) * 2, A = 2 * PI * r * h + 4 * PI * r * r;
+      out.push({ q: `A capsule is a cylinder ${h} cm long with a hemisphere of radius ${r} cm on each end. Find its total surface area.`, want: [r2(A)], tol: 0.002, hint: 'cm²', work: `2πrh + 2 × 2πr² = 2 × 22/7 × ${r} × ${h} + 4 × 22/7 × ${r}² = ${fmt(A, 2)} cm².` }); }
+    { const r = randInt(1, 2) * 3.5, H = randInt(2, 5) * 3, V = (1 / 3) * PI * r * r * H + (2 / 3) * PI * r ** 3;
+      out.push({ q: `An ice-cream cone of radius ${r} cm and height ${H} cm is filled and topped with a hemisphere of ice cream. Find the total volume of ice cream.`, want: [r2(V)], tol: 0.002, hint: 'cm³', work: `⅓πr²H + ⅔πr³ = ⅓ × 22/7 × ${r}² × ${H} + ⅔ × 22/7 × ${r}³ = ${fmt(V, 2)} cm³.` }); }
+    { const k = randInt(1, 4), r = 3 * k, H = 4 * k, h = randInt(2, 6) * 2, A = PI * r * r + 2 * PI * r * h + PI * r * 5 * k;
+      out.push({ q: `A toy rocket is a cylinder (radius ${r} cm, height ${h} cm) with a cone of height ${H} cm on top. The flat base is painted too. Find the area painted.`, want: [r2(A)], tol: 0.002, hint: 'cm²', work: `l = √(${r}² + ${H}²) = ${5 * k}. Area = πr² + 2πrh + πrl = 22/7 × (${r * r} + ${2 * r * h} + ${r * 5 * k}) = ${fmt(A, 2)} cm².` }); }
+    { const r = randInt(1, 4) * 3.5, a = 2 * r + randInt(1, 4) * 2, extra = PI * r * r;
+      out.push({ q: `A hemisphere of radius ${r} cm is fixed on top of a cube of side ${a} cm. By how much is the total surface area bigger than the cube's alone?`, want: [r2(extra)], tol: 0.002, hint: 'cm²', work: `The dome adds 2πr² and covers πr² of the cube, so the change is 2πr² − πr² = πr² = 22/7 × ${r}² = ${fmt(extra, 2)} cm².` }); }
+    return out;
+  });
+</script>

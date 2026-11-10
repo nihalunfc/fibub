@@ -1,0 +1,201 @@
+---
+// Chain rule gears: y = f(g(x)) as linked gears, each turning by its own rate; dy/dx is the product of the
+// rates. Two links (Class 11/12) or three links (Class 12). Maths in src/lib/sci/chain-rule.ts.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+const opts = [['k', 'k × (inside)'], ['sq', '(inside)²'], ['cube', '(inside)³'], ['sin', 'sin(inside)'], ['cos', 'cos(inside)'], ['exp', 'e^(inside)'], ['ln', 'ln(inside)'], ['sqrt', '√(inside)']];
+const ks = [-3, -2, -1, 2, 3, 4, 5];
+const rows = [
+  { cls: 'cr-l2', name: 'Outer link y = f(…)', def: 'sin', k: 2 },
+  { cls: 'cr-l1', name: 'Middle link v = …', def: 'sq', k: 2 },
+  { cls: 'cr-l0', name: 'Inner link u = g(x)', def: 'k', k: 3 },
+];
+---
+<div class="ax crl">
+  <div class="ax-card">
+    <h2>Build the chain</h2>
+    <div class="ax-row cr-lv"><span class="ax-help">Level</span>
+      <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-lv="2" aria-pressed="true">Two links</button><button type="button" data-lv="3" aria-pressed="false">Three links</button></div>
+    </div>
+    <div class="cr-links">
+      {rows.map((r) => (
+        <div class={`cr-link ${r.cls}`} hidden={r.cls === 'cr-l1'}>
+          <label>{r.name} <select class="cr-fn">{opts.map(([v, t]) => <option value={v} selected={v === r.def}>{t}</option>)}</select></label>
+          <label class="cr-kl">k <select class="cr-k">{ks.map((k) => <option value={k} selected={k === r.k}>{String(k).replace('-', '−')}</option>)}</select></label>
+        </div>
+      ))}
+    </div>
+    <p class="cr-fx"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Linked gears</h2>
+    <canvas class="ax-fig cr-gears" role="img"></canvas>
+    <p class="ax-help">Each gear's pointer shows its own number (a quarter turn for every 1). Between two gears: how far the right one turns for each small turn of the left one, right now.</p>
+    <label class="cr-xl">x = <b class="cr-xv"></b><input class="cr-x" type="range" min="-3" max="3" step="0.01" value="0.5" /></label>
+    <div class="ax-row"><button type="button" class="btn small cr-go">Turn the x gear</button><span class="ax-help">or drag the x gear round</span></div>
+    <p class="cr-formula"></p>
+    <dl class="ax-facts cr-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check it with a small nudge</h2>
+    <div class="ax-scroll"><table class="cr-tab"><thead><tr><th class="r">Δx</th><th class="r">Δy</th><th class="r">Δy ÷ Δx</th></tr></thead><tbody></tbody></table></div>
+    <p class="ax-help cr-tnote"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The graph of y against x</h2>
+    <canvas class="ax-fig cr-graph" role="img"></canvas>
+    <p class="ax-help">Dashed: the tangent at the current x. Its slope is the product of the gear rates.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="cr-try">
+      <li>Keep <b>sin</b> outside and <b>3 × x</b> inside. The middle number is always 3: the u gear turns three times as far as x. So the slope of sin(3x) is 3 cos(3x).</li>
+      <li>Move x until cos(3x) is 0 (about x = 0.52). The y gear stops turning for a moment, so the slope is 0: the top of the wave.</li>
+      <li>Set the inner link to <b>(inside)²</b> and slide x through 0. The first gear rate 2x changes sign, and the y gear swaps its turning direction.</li>
+      <li>Choose <b>Three links</b>. Now dy/dx = dy/dv × dv/du × du/dx: three rates multiply.</li>
+      <li>Put <b>ln</b> outside and <b>e^(inside)</b> inside: ln(eˣ) = x, so the rates always multiply to 1.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="cr-quiz" />
+</div>
+
+<script>
+  import { values, rates, chainSlope, chainText, rateTexts, type Chain } from '../../lib/sci/chain-rule';
+  import { paint, pagePalette, type Figure } from '../../lib/report';
+  import { view, axes, curve, line, dot, pointer, fmt } from '../../lib/sm-graph';
+  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.crl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380, H = 190, H2 = 230;
+  const xIn = q<HTMLInputElement>('.cr-x');
+  let links = 2, anim = 0;
+  const NAMES = (n: number) => (n === 2 ? ['x', 'u', 'y'] : ['x', 'u', 'v', 'y']);
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+  const rd = (s: HTMLElement) => ({ id: s.querySelector<HTMLSelectElement>('.cr-fn')!.value, k: +s.querySelector<HTMLSelectElement>('.cr-k')!.value });
+
+  function chain(): Chain {
+    root.querySelectorAll<HTMLElement>('.cr-link').forEach((r) => { r.querySelector<HTMLElement>('.cr-kl')!.hidden = r.querySelector<HTMLSelectElement>('.cr-fn')!.value !== 'k'; });
+    q('.cr-l1').hidden = links === 2;
+    return links === 2 ? [rd(q('.cr-l0')), rd(q('.cr-l2'))] : [rd(q('.cr-l0')), rd(q('.cr-l1')), rd(q('.cr-l2'))];
+  }
+
+  function gear(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, ang: number, col: string, bg: string, ink: string) {
+    const teeth = 12;
+    ctx.beginPath();
+    for (let i = 0; i < teeth * 2; i++) {
+      const a0 = ang + (i * Math.PI) / teeth, a1 = ang + ((i + 1) * Math.PI) / teeth, rr = i % 2 ? r : r + 6;
+      ctx.lineTo(cx + rr * Math.cos(a0), cy + rr * Math.sin(a0)); ctx.lineTo(cx + rr * Math.cos(a1), cy + rr * Math.sin(a1));
+    }
+    ctx.closePath(); ctx.fillStyle = bg; ctx.fill(); ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy, 4, 0, 7); ctx.fillStyle = col; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + (r - 4) * Math.cos(ang), cy + (r - 4) * Math.sin(ang)); ctx.strokeStyle = ink; ctx.lineWidth = 3; ctx.stroke();
+  }
+
+  let gx = 0, gy = 0, gr = 0;
+  function draw() {
+    const c = chain(), x = +xIn.value, v = values(c, x), r = rates(c, x), slope = chainSlope(c, x), nm = NAMES(links), pal = pagePalette();
+    q('.cr-xv').textContent = fmt(x, 2);
+    const yText = chainText(c), rt = rateTexts(c);
+    q('.cr-fx').textContent = `y = ${yText}`;
+    const n = nm.length, gap = W / n; gr = Math.min(34, gap / 2 - 10); gy = 96; gx = gap / 2;
+    const fig: Figure = { w: W, h: H, alt: `Gears for ${nm.join(', ')}: rates ${r.map((z) => fmt(z)).join(', ')}; dy/dx = ${fmt(slope)}`, draw: (ctx, w, h, pl) => {
+      ctx.font = '13px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      for (let i = 0; i < n; i++) {
+        const cx = gap / 2 + i * gap, ok = Number.isFinite(v[i]);
+        gear(ctx, cx, gy, gr, ok ? -Math.PI / 2 + v[i] * (Math.PI / 2) : -Math.PI / 2, i === 0 ? pl.accent2 : i === n - 1 ? pl.accent : pl.ink, pl.bg, pl.ink);
+        ctx.fillStyle = pl.ink; ctx.font = 'bold 15px system-ui, sans-serif'; ctx.fillText(nm[i], cx, 22);
+        ctx.font = '13px system-ui, sans-serif'; ctx.fillText(ok ? fmt(v[i], 3) : 'undefined', cx, gy + gr + 22);
+        if (i < n - 1) {
+          const mx = cx + gap / 2, ok2 = Number.isFinite(r[i]);
+          ctx.fillStyle = ok2 && Math.abs(r[i]) < 1e-9 ? pl.bad : pl.muted; ctx.fillText(`d${nm[i + 1]}/d${nm[i]}`, mx, gy - 22);
+          ctx.fillStyle = pl.ink; ctx.font = 'bold 13px system-ui, sans-serif'; ctx.fillText(ok2 ? `× ${fmt(r[i], 2)}` : '×?', mx, gy);
+          ctx.font = '13px system-ui, sans-serif';
+        }
+      }
+    } };
+    paint(q<HTMLCanvasElement>('.cr-gears'), fig, pal);
+    // Formula, outer rate first as written in books: f′(g(x)) · g′(x).
+    const names = r.map((_, i) => `d${nm[i + 1]}/d${nm[i]}`).reverse(), texts = [...rt].reverse(), nums = [...r].reverse();
+    q('.cr-formula').textContent = Number.isFinite(slope)
+      ? `dy/dx = ${names.join(' × ')} = ${texts.join(' × ')}. At x = ${fmt(x, 2)}: ${nums.map((z) => (z < 0 ? `(${fmt(z, 4)})` : fmt(z, 4))).join(' × ')} = ${fmt(slope, 4)}`
+      : `y = ${yText} is not defined (or has no slope) at x = ${fmt(x, 2)}: move x.`;
+    const facts = nm.slice(0, -1).map((z, i) => fact(`Rate d${nm[i + 1]}/d${z}`, fmt(r[i], 4), `${nm[i + 1]} = ${chainText(c.slice(i, i + 1), z === 'x' ? 'x' : z)}`));
+    facts.push(fact('dy/dx (product)', fmt(slope, 4), slope > 0 ? 'y goes up as x goes up' : slope < 0 ? 'y goes down as x goes up' : 'y is flat here'));
+    q('.cr-facts').replaceChildren(...facts);
+    // Nudge table.
+    const y0 = v.at(-1)!;
+    q('.cr-tab tbody').replaceChildren(...[0.1, 0.01, 0.001, 0.0001].map((dx) => { const dy = values(c, x + dx).at(-1)! - y0, tr = document.createElement('tr'); [String(dx), fmt(dy, 6), fmt(dy / dx, 4)].forEach((t) => { const td = document.createElement('td'); td.className = 'r'; td.textContent = t; tr.append(td); }); return tr; }));
+    q('.cr-tnote').textContent = Number.isFinite(slope) ? `As Δx shrinks, Δy ÷ Δx heads for the product of the rates, ${fmt(slope, 4)}.` : 'No slope at this x.';
+    // Graph.
+    const f = (t: number) => values(c, t).at(-1)!, ys: number[] = [];
+    for (let i = 0; i <= 120; i++) { const yv = f(-3 + i / 20); if (Number.isFinite(yv)) ys.push(yv); }
+    ys.sort((a, b) => a - b);
+    const lo = ys.length ? ys[Math.floor(ys.length * 0.04)] : -2, hi = ys.length ? ys[Math.ceil(ys.length * 0.96) - 1] : 2, pad = Math.max(0.5, (hi - lo) * 0.12);
+    const gv = view(-3, 3, Math.max(-60, lo - pad), Math.min(60, hi + pad), W, H2);
+    paint(q<HTMLCanvasElement>('.cr-graph'), { w: W, h: H2, alt: `Graph of y = ${yText} with the tangent at x = ${fmt(x, 2)}, slope ${fmt(slope)}`, draw: (ctx, w, h, pl) => {
+      axes(ctx, gv, pl, { xName: 'x', yName: 'y' }); curve(ctx, gv, f, pl.ink, 2.2);
+      if (Number.isFinite(slope) && Number.isFinite(y0)) { line(ctx, gv, -3, y0 + slope * (-3 - x), 3, y0 + slope * (3 - x), pl.accent2, 1.6, [6, 4]); dot(ctx, gv, x, y0, pl.accent, 5.5); }
+    } }, pal);
+  }
+
+  root.querySelectorAll('select').forEach((s) => s.addEventListener('change', draw));
+  xIn.addEventListener('input', () => { cancelAnimationFrame(anim); draw(); });
+  root.querySelectorAll<HTMLButtonElement>('.cr-lv button').forEach((b) => b.addEventListener('click', () => { links = +b.dataset.lv!; root.querySelectorAll('.cr-lv button').forEach((z) => z.setAttribute('aria-pressed', String(z === b))); draw(); }));
+  q('.cr-go').addEventListener('click', () => {
+    cancelAnimationFrame(anim);
+    const a = +xIn.value, b = a + 1 > 3 ? a - 1 : a + 1, t0 = performance.now();
+    const step = (t: number) => { const k = Math.min(1, (t - t0) / 1800); xIn.value = (a + (b - a) * k).toFixed(2); draw(); if (k < 1) anim = requestAnimationFrame(step); };
+    anim = requestAnimationFrame(step);
+  });
+  // Drag the x gear round: the angle of the pointer sets x (a quarter turn per unit).
+  const cv = q<HTMLCanvasElement>('.cr-gears');
+  let dragging = false, lastA = 0;
+  const angAt = (e: PointerEvent) => { const { X, Y } = pointer(cv, e, W, H); return Math.atan2(Y - gy, X - gx); };
+  cv.addEventListener('pointerdown', (e) => { const { X, Y } = pointer(cv, e, W, H); if (Math.hypot(X - gx, Y - gy) > gr + 16) return; dragging = true; lastA = angAt(e); cv.setPointerCapture(e.pointerId); cancelAnimationFrame(anim); });
+  cv.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const a = angAt(e); let d = a - lastA; if (d > Math.PI) d -= 2 * Math.PI; if (d < -Math.PI) d += 2 * Math.PI; lastA = a;
+    xIn.value = String(Math.min(3, Math.max(-3, +xIn.value + d / (Math.PI / 2)))); draw();
+  });
+  const end = () => { dragging = false; };
+  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+  document.addEventListener('fibub:theme', draw);
+  draw();
+
+  const sup = (n: number) => String(n).split('').map((d) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+d]).join('');
+  quiz(q('.cr-quiz'), (): Question[] => {
+    const a = rint(2, 5), b = rint(1, 4), n = rint(2, 4), x0 = rint(0, 2);
+    const k = rint(2, 6), r1 = rint(2, 5), r2 = rint(-4, 4, true);
+    const m = rint(2, 5), p = rint(1, 3), c = rint(1, 5);
+    const val = n * a * (a * x0 + b) ** (n - 1);
+    return [
+      { text: `The u gear turns ${r1} times as fast as x, and the y gear turns ${r2 < 0 ? `${-r2} times as fast as u, the other way (rate ${fmt(r2)})` : `${r2} times as fast as u`}. What is dy/dx?`, answer: r1 * r2, worked: `dy/dx = dy/du × du/dx = ${fmt(r2)} × ${r1} = ${fmt(r1 * r2)}.` },
+      { text: `y = (${a}x + ${b})${sup(n)}. What is dy/dx at x = ${x0}?`, answer: val, worked: `Let u = ${a}x + ${b}, so y = u${sup(n)}. dy/du = ${n}u${sup(n - 1)} and du/dx = ${a}. At x = ${x0}, u = ${a * x0 + b}, so dy/dx = ${n} × ${a * x0 + b}${sup(n - 1)} × ${a} = ${val}.` },
+      { text: `y = sin(${k}x). What is dy/dx at x = 0?`, answer: k, worked: `dy/dx = cos(${k}x) × ${k}. At x = 0, cos 0 = 1, so dy/dx = ${k}.` },
+      { text: `y = e^(${m}x). What is dy/dx at x = 0?`, answer: m, worked: `dy/dx = e^(${m}x) × ${m}. At x = 0, e⁰ = 1, so dy/dx = ${m}.` },
+      pick([
+        { text: `y = ln(${c}x + ${p}). What is dy/dx at x = 0?`, answer: c / p, worked: `dy/dx = 1/(${c}x + ${p}) × ${c}. At x = 0 that is ${c}/${p}${c % p ? ` ≈ ${fmt(c / p, 4)}` : ` = ${c / p}`}.` },
+        { text: 'For y = sin(x²), which is dy/dx?', choices: ['cos(x²)', '2x cos(x²)', 'cos(2x)', '2x cos x'], correct: 1, worked: 'Outer link sin u with u = x²: dy/du = cos u = cos(x²); du/dx = 2x. Multiply: 2x cos(x²).' },
+      ] as Question[]),
+    ];
+  });
+</script>
+
+<style is:inline>
+  .crl .cr-links { display: grid; gap: 10px; margin: 10px 0; }
+  .crl .cr-link { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: end; }
+  .crl .cr-link select { min-height: 44px; }
+  .crl .cr-fx { font-size: 20px; font-weight: 600; margin: 6px 0 0; overflow-wrap: anywhere; }
+  .crl .cr-xl { display: block; margin: 10px 0; color: var(--ink); font-size: 15px; }
+  .crl .cr-xl input { width: 100%; height: 32px; accent-color: var(--accent); }
+  .crl canvas.cr-gears { touch-action: pan-y; cursor: grab; }
+  .crl .cr-formula { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; margin: 10px 0; }
+  .crl .cr-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+  .crl .ax-seg button { min-height: 40px; }
+</style>

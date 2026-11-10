@@ -1,0 +1,233 @@
+---
+// Dissolving lab: spoon salt, sugar or potassium nitrate into water at a chosen temperature until it stops
+// dissolving (saturation), read the point on the solubility curve, cool it to grow crystals, and see how much oxygen
+// and carbon dioxide water holds as it warms (fish and fizzy drinks). Rounded teaching fits. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm dl">
+  <p class="ax-help">A teaching model: the curves are smooth rounded fits, so a real experiment may differ by a few percent.</p>
+  <div class="ax-card">
+    <div class="ax-row"><span class="dl-lab">Level</span>
+      <div class="ax-seg dl-level" role="group" aria-label="Level"><button type="button" data-v="8" aria-pressed="true">Class 8</button><button type="button" data-v="9" aria-pressed="false">Class 9 to 12</button></div></div>
+    <div class="ax-row dl-gap"><span class="dl-lab">Dissolve</span>
+      <div class="ax-seg dl-mode" role="group" aria-label="What to dissolve"><button type="button" data-v="solid" aria-pressed="true">A solid</button><button type="button" data-v="gas" aria-pressed="false">A gas</button></div></div>
+  </div>
+
+  <div class="dl-solid">
+    <div class="ax-card">
+      <h2>Your beaker</h2>
+      <div class="ax-row"><span class="dl-lab">Solid</span>
+        <div class="ax-seg dl-sol" role="group" aria-label="Solid"><button type="button" data-v="salt" aria-pressed="true">Salt</button><button type="button" data-v="sugar" aria-pressed="false">Sugar</button><button type="button" data-v="kno3" aria-pressed="false">KNO₃</button></div></div>
+      <div class="ax-row dl-gap"><span class="dl-lab">Water</span>
+        <div class="ax-seg dl-water" role="group" aria-label="Water"><button type="button" data-v="50" aria-pressed="false">50 g</button><button type="button" data-v="100" aria-pressed="true">100 g</button><button type="button" data-v="200" aria-pressed="false">200 g</button></div></div>
+      <div class="sm-sl"><b>T</b><input type="range" class="dl-tr" min="0" max="100" step="1" value="20" aria-label="Temperature, °C" /><input type="number" class="dl-t" min="0" max="100" step="1" value="20" aria-label="Temperature in °C" /></div>
+      <p class="ax-help">Temperature of the water in °C (0 to 100). Heating the beaker dissolves more; cooling it brings crystals back.</p>
+      <div class="ax-row dl-gap">
+        <button type="button" class="btn small dl-add1">Add 1 spoon (5 g)</button>
+        <button type="button" class="btn secondary small dl-add5">Add 5 spoons</button>
+        <button type="button" class="btn secondary small dl-empty">Empty</button>
+      </div>
+      <label class="dl-gap" style="display:block">Solid added, g <input type="number" class="dl-g" min="0" max="2000" step="1" value="0" inputmode="decimal" /></label>
+      <p class="ax-err dl-err" hidden></p>
+      <svg class="sm-fig dl-beaker" viewBox="0 0 320 230" role="img" aria-label="Beaker of water with the dissolved solid shown as colour and any undissolved solid as crystals at the bottom"></svg>
+      <p class="ax-big dl-state"></p>
+      <p class="sm-f dl-f1"></p>
+      <p class="sm-f dl-f2"></p>
+      <p class="sm-f dl-f3" data-only="9"></p>
+      <p class="sm-f dl-f4" data-only="9"></p>
+    </div>
+    <div class="ax-card">
+      <h2>Solubility curve</h2>
+      <svg class="sm-fig dl-curve" viewBox="0 0 340 240" role="img" aria-label="Solubility curve: grams that dissolve in 100 g of water against temperature, with your beaker as a dot"></svg>
+      <p class="ax-help">The line is the most that dissolves in 100 g of water. Your beaker is the dot: below the line there is room for more; on the line it is saturated, and anything above it sits at the bottom.</p>
+      <p class="sm-f dl-cool"></p>
+    </div>
+  </div>
+
+  <div class="dl-gas" hidden>
+    <div class="ax-card">
+      <h2>Gas in warming water</h2>
+      <div class="sm-sl"><b>T</b><input type="range" class="dl-gtr" min="0" max="40" step="1" value="5" aria-label="Water temperature, °C" /><input type="number" class="dl-gt" min="0" max="40" step="1" value="5" aria-label="Water temperature in °C" /></div>
+      <p class="ax-help">Water temperature in °C (0 to 40), like a pond through the year or a drink taken out of the fridge.</p>
+      <svg class="sm-fig dl-tank" viewBox="0 0 320 170" role="img" aria-label="Fish tank and a fizzy drink: fewer dissolved gas dots in warmer water"></svg>
+      <p class="ax-big dl-gstate"></p>
+      <p class="sm-f dl-o2"></p>
+      <p class="sm-f dl-co2"></p>
+      <svg class="sm-fig dl-gcurve" viewBox="0 0 340 220" role="img" aria-label="Oxygen and carbon dioxide that water can hold, falling as the water warms"></svg>
+      <p class="ax-help">Oxygen: water in contact with air at sea level. Carbon dioxide: under 1 atmosphere of pure CO₂, the gas pressed into a fizzy drink (bottles hold a few times more, under pressure).</p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Add salt to 100 g of water at 20 °C one spoon at a time. Which spoon is the first that will not dissolve?</li>
+      <li>Fill the beaker with potassium nitrate at 80 °C until it is saturated, then slide the temperature down to 20 °C. Crystals come back: this is how pure crystals are grown.</li>
+      <li>Do the same with salt. Why do salt crystals hardly come back on cooling? (Look at how flat its curve is.)</li>
+      <li>Switch to 200 g of water. Does the solubility change, or only how much you can add?</li>
+      <li>Open <b>A gas</b> and warm the water from 5 °C to 30 °C. Why do fish crowd near the surface on a hot day, and why does a warm drink go flat?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="dl-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .dl .dl-lab { min-width: 5.5em; font-weight: 600; }
+  .dl .dl-gap { margin-top: 8px; }
+  .dl input.dl-g { width: 7em; min-height: 40px; margin-left: 6px; }
+  .dl svg .dl-glass { fill: none; stroke: var(--ink); stroke-width: 2.5; }
+  .dl svg .dl-liq { fill: var(--accent); }
+  .dl svg .dl-xtal { fill: var(--surface); stroke: var(--ink); stroke-width: 1; }
+  .dl svg .dl-merc { fill: var(--bad); }
+  .dl svg .dl-dot { stroke: var(--surface); stroke-width: 2; }
+  .dl svg .dl-ok { fill: var(--good); }
+  .dl svg .dl-over { fill: var(--bad); }
+  .dl svg .dl-o2 { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+  .dl svg .dl-c2 { fill: none; stroke: var(--warn); stroke-width: 2.5; stroke-dasharray: 7 4; }
+  .dl svg .dl-bub { fill: none; stroke: var(--accent); stroke-width: 1.3; }
+  .dl svg .dl-fish { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1.5; }
+</style>
+
+<script>
+  import { SOLUTES, mix, capacity, crystalsOnCooling, oxygen, carbonDioxide, type SoluteId } from '../../lib/sci/dissolving-j2';
+  import { S, pair, val, quiz, type Question } from '../../lib/smath-ui';
+  import { randInt } from '../../lib/sci/smath';
+
+  const root = document.querySelector<HTMLElement>('.dl')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const f1 = (x: number) => (Math.round(x * 10) / 10).toLocaleString('en');
+  const f2 = (x: number) => (Math.round(x * 100) / 100).toLocaleString('en');
+  let level = '8', solute: SoluteId = 'salt', water = 100;
+
+  const seg = (sel: string, on: (v: string) => void) => {
+    const bs = [...root.querySelectorAll<HTMLButtonElement>(`${sel} button`)];
+    bs.forEach((b) => b.addEventListener('click', () => { bs.forEach((x) => x.setAttribute('aria-pressed', String(x === b))); on(b.dataset.v!); }));
+  };
+  const T = q<HTMLInputElement>('.dl-t'), G = q<HTMLInputElement>('.dl-g'), GT = q<HTMLInputElement>('.dl-gt');
+  pair(q('.dl-tr'), T, draw);
+  pair(q('.dl-gtr'), GT, drawGas);
+
+  function readAdded(): number | null {
+    const v = Number(G.value);
+    return G.value.trim() !== '' && Number.isFinite(v) && v >= 0 && v <= 2000 ? v : null;
+  }
+
+  function beaker(dissolved: number, left: number, cap: number, t: number) {
+    const svg = q<SVGSVGElement>('.dl-beaker'); svg.replaceChildren();
+    const x0 = 70, x1 = 230, top = 30, bot = 205, wl = 70 + (1 - Math.min(1, water / 200)) * 50;
+    S('rect', { x: x0, y: wl, width: x1 - x0, height: bot - wl, class: 'dl-liq', 'fill-opacity': (0.08 + 0.55 * Math.min(1, dissolved / Math.max(cap, 1e-9))).toFixed(3) }, svg);
+    // Crystals at the bottom: one per gram up to 120, in a heap.
+    const n = Math.min(120, Math.round(left)), per = 26;
+    for (let i = 0; i < n; i++) {
+      const r = Math.floor(i / per), c = i % per, inset = r * 4;
+      const cx = x0 + 6 + inset + c * ((x1 - x0 - 12 - 2 * inset) / per), cy = bot - 5 - r * 6;
+      S('rect', { x: cx, y: cy, width: 5, height: 5, class: 'dl-xtal', transform: `rotate(${(i * 37) % 90} ${cx + 2.5} ${cy + 2.5})` }, svg);
+    }
+    S('path', { d: `M${x0 - 6} ${top} L${x0} ${top + 6} L${x0} ${bot} Q${x0} ${bot + 8} ${x0 + 8} ${bot + 8} L${x1 - 8} ${bot + 8} Q${x1} ${bot + 8} ${x1} ${bot} L${x1} ${top}`, class: 'dl-glass' }, svg);
+    S('text', { x: (x0 + x1) / 2, y: wl - 8, 'text-anchor': 'middle', class: 'sm-tick' }, svg, `${water} g water`);
+    // Thermometer.
+    const tx = 272, ty0 = 40, ty1 = 190, h = ((ty1 - ty0) * t) / 100;
+    S('rect', { x: tx - 6, y: ty0, width: 12, height: ty1 - ty0, rx: 6, class: 'dl-glass' }, svg);
+    S('rect', { x: tx - 3, y: ty1 - h, width: 6, height: h, class: 'dl-merc' }, svg);
+    S('circle', { cx: tx, cy: ty1 + 8, r: 9, class: 'dl-merc' }, svg);
+    S('text', { x: tx, y: 28, 'text-anchor': 'middle', style: 'font-weight:700' }, svg, `${f1(t)} °C`);
+    S('text', { x: 30, y: 120, 'text-anchor': 'middle', class: 'sm-tick' }, svg, left > 0 ? 'crystals' : '');
+    if (left > 0) S('text', { x: 30, y: 134, 'text-anchor': 'middle', class: 'sm-tick' }, svg, 'at bottom');
+  }
+
+  function curve(t: number, perHundredAdded: number) {
+    const svg = q<SVGSVGElement>('.dl-curve'); svg.replaceChildren();
+    const s = SOLUTES[solute], top = Math.ceil((s.s(100) * 1.15) / 50) * 50;
+    const L = 46, R = 325, Tp = 14, B = 205, X = (x: number) => L + ((R - L) * x) / 100, Y = (y: number) => B - ((B - Tp) * Math.min(top, y)) / top;
+    for (let x = 0; x <= 100; x += 20) { S('line', { x1: X(x), y1: Tp, x2: X(x), y2: B, class: 'sm-grid' }, svg); S('text', { x: X(x), y: B + 15, 'text-anchor': 'middle', class: 'sm-tick' }, svg, String(x)); }
+    const step = top / 5;
+    for (let y = 0; y <= top + 1e-9; y += step) { S('line', { x1: L, y1: Y(y), x2: R, y2: Y(y), class: 'sm-grid' }, svg); S('text', { x: L - 5, y: Y(y) + 4, 'text-anchor': 'end', class: 'sm-tick' }, svg, String(Math.round(y))); }
+    S('text', { x: (L + R) / 2, y: 236, 'text-anchor': 'middle', class: 'sm-tick' }, svg, 'temperature, °C');
+    S('text', { x: 12, y: 110, 'text-anchor': 'middle', class: 'sm-tick', transform: 'rotate(-90 12 110)' }, svg, 'g per 100 g water');
+    let d = ''; for (let x = 0; x <= 100; x += 2) d += `${x ? 'L' : 'M'}${X(x).toFixed(1)} ${Y(s.s(x)).toFixed(1)}`;
+    S('path', { d, class: 'sm-curve' }, svg);
+    S('text', { x: R - 4, y: Y(s.s(100)) - 6, 'text-anchor': 'end', style: 'font-weight:600' }, svg, s.formula);
+    const over = perHundredAdded > s.s(t) + 1e-9;
+    S('circle', { cx: X(t), cy: Y(perHundredAdded), r: 7, class: `dl-dot ${over ? 'dl-over' : 'dl-ok'}` }, svg);
+    if (over) S('circle', { cx: X(t), cy: Y(s.s(t)), r: 4, class: 'sm-handle' }, svg);
+  }
+
+  function draw() {
+    const t = val(T, 20, 0, 100), a = readAdded(), err = q('.dl-err');
+    if (a === null) { err.textContent = 'Type the grams added, from 0 to 2,000.'; err.hidden = false; return; }
+    err.hidden = true;
+    const s = SOLUTES[solute], m = mix(solute, a, water, t);
+    beaker(m.dissolved, m.left, m.cap, t);
+    curve(t, (100 * a) / water);
+    q('.dl-state').textContent = a === 0 ? 'Plain water: add a spoon' : m.left > 1e-9 ? `Saturated: ${f1(m.left)} g will not dissolve` : Math.abs(a - m.cap) < 0.05 ? 'Just saturated' : `Unsaturated: room for ${f1(m.cap - a)} g more`;
+    q('.dl-f1').textContent = `Solubility of ${s.name.toLowerCase()} at ${f1(t)} °C ≈ ${f1(s.s(t))} g per 100 g of water, so ${water} g of water can hold ${f1(s.s(t))} × ${water} / 100 = ${f1(m.cap)} g.`;
+    q('.dl-f2').textContent = `Dissolved = smaller of (added ${f1(a)} g, most ${f1(m.cap)} g) = ${f1(m.dissolved)} g; left at the bottom = ${f1(m.left)} g.`;
+    q('.dl-f3').textContent = `Mass percent = solute ÷ (solute + water) × 100 = ${f1(m.dissolved)} ÷ (${f1(m.dissolved)} + ${water}) × 100 = ${f1(m.massPct)}%.`;
+    q('.dl-f4').textContent = `Molality = moles of solute ÷ kg of water = (${f1(m.dissolved)} ÷ ${s.molar}) ÷ ${water / 1000} = ${f2(m.molality)} mol/kg.`;
+    const t2 = Math.max(0, t - 40), xs = crystalsOnCooling(solute, water, t, t2);
+    q('.dl-cool').textContent = t > 0 ? `Cooling a saturated beaker from ${f1(t)} °C to ${f1(t2)} °C: ${f1(capacity(solute, t, water))} g − ${f1(capacity(solute, t2, water))} g = ${f1(xs)} g of crystals come out.` : 'Warm the beaker above 0 °C to see what cooling it would do.';
+  }
+
+  function drawGas() {
+    const t = val(GT, 5, 0, 40), o = oxygen(t), c = carbonDioxide(t), o5 = oxygen(5), c5 = carbonDioxide(5);
+    const svg = q<SVGSVGElement>('.dl-tank'); svg.replaceChildren();
+    // Fish tank with dots for dissolved oxygen.
+    S('rect', { x: 10, y: 30, width: 180, height: 120, class: 'dl-liq', 'fill-opacity': 0.12 }, svg);
+    S('rect', { x: 10, y: 20, width: 180, height: 130, class: 'dl-glass' }, svg);
+    let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const nO = Math.round(o * 4);
+    for (let i = 0; i < nO; i++) S('circle', { cx: 18 + rnd() * 164, cy: 36 + rnd() * 106, r: 2.2, class: 'dl-bub' }, svg);
+    const fy = o < 6 ? 44 : 100;
+    S('path', { d: `M60 ${fy} q22 -14 44 0 q-22 14 -44 0 Z M104 ${fy} l12 -9 v18 Z`, class: 'dl-fish' }, svg);
+    S('text', { x: 100, y: 14, 'text-anchor': 'middle', class: 'sm-tick' }, svg, o < 6 ? 'fish gasp near the top' : 'fish swim freely');
+    // Drink bottle with CO₂ dots.
+    S('path', { d: 'M240 20 h24 v18 q16 8 16 26 v84 h-56 v-84 q0 -18 16 -26 Z', class: 'dl-glass' }, svg);
+    const nC = Math.round(c * 22);
+    for (let i = 0; i < nC; i++) S('circle', { cx: 230 + rnd() * 44, cy: 70 + rnd() * 74, r: 2, class: 'dl-bub', style: 'stroke:var(--warn)' }, svg);
+    S('text', { x: 252, y: 165, 'text-anchor': 'middle', class: 'sm-tick' }, svg, 'fizzy drink');
+    q('.dl-gstate').textContent = `${f1(t)} °C: water holds ${Math.round((100 * o) / o5)}% of the oxygen and ${Math.round((100 * c) / c5)}% of the CO₂ it holds at 5 °C`;
+    q('.dl-o2').textContent = `Oxygen from the air: about ${f1(o)} mg per litre${o < 6 ? ' (getting low for many fish)' : ''}.`;
+    q('.dl-co2').textContent = `Carbon dioxide (1 atm of CO₂): about ${f2(c)} g per litre. Warming from 5 °C to ${f1(t)} °C lets ${f2(Math.max(0, c5 - c))} g per litre fizz out.`;
+    const g = q<SVGSVGElement>('.dl-gcurve'); g.replaceChildren();
+    const L = 40, R = 300, Tp = 14, B = 190, X = (x: number) => L + ((R - L) * x) / 40, Yo = (y: number) => B - ((B - Tp) * y) / 15, Yc = (y: number) => B - ((B - Tp) * y) / 3.75;
+    for (let x = 0; x <= 40; x += 10) { S('line', { x1: X(x), y1: Tp, x2: X(x), y2: B, class: 'sm-grid' }, g); S('text', { x: X(x), y: B + 15, 'text-anchor': 'middle', class: 'sm-tick' }, g, `${x} °C`); }
+    for (let y = 0; y <= 15; y += 5) { S('line', { x1: L, y1: Yo(y), x2: R, y2: Yo(y), class: 'sm-grid' }, g); S('text', { x: L - 5, y: Yo(y) + 4, 'text-anchor': 'end', class: 'sm-tick' }, g, String(y)); S('text', { x: R + 5, y: Yo(y) + 4, class: 'sm-tick' }, g, String(y / 4)); }
+    let d1 = '', d2 = ''; for (let x = 0; x <= 40; x++) { d1 += `${x ? 'L' : 'M'}${X(x).toFixed(1)} ${Yo(oxygen(x)).toFixed(1)}`; d2 += `${x ? 'L' : 'M'}${X(x).toFixed(1)} ${Yc(carbonDioxide(x)).toFixed(1)}`; }
+    S('path', { d: d1, class: 'dl-o2' }, g); S('path', { d: d2, class: 'dl-c2' }, g);
+    S('circle', { cx: X(t), cy: Yo(o), r: 6, class: 'sm-handle' }, g); S('circle', { cx: X(t), cy: Yc(c), r: 6, class: 'sm-handle', style: 'fill:var(--warn)' }, g);
+    S('text', { x: L + 4, y: 210, class: 'sm-tick' }, g, 'solid: O₂ mg/L (left)   dashed: CO₂ g/L (right)');
+  }
+
+  seg('.dl-level', (v) => { level = v; root.querySelectorAll<HTMLElement>('[data-only]').forEach((e) => { e.hidden = e.dataset.only !== level; }); });
+  seg('.dl-mode', (v) => { q('.dl-solid').hidden = v !== 'solid'; q('.dl-gas').hidden = v !== 'gas'; if (v === 'gas') drawGas(); });
+  seg('.dl-sol', (v) => { solute = v as SoluteId; draw(); });
+  seg('.dl-water', (v) => { water = Number(v); draw(); });
+  const add = (g: number) => { G.value = String(Math.min(2000, (readAdded() ?? 0) + g)); draw(); };
+  q('.dl-add1').addEventListener('click', () => add(5));
+  q('.dl-add5').addEventListener('click', () => add(25));
+  q('.dl-empty').addEventListener('click', () => { G.value = '0'; draw(); });
+  G.addEventListener('input', draw);
+  root.querySelectorAll<HTMLElement>('[data-only]').forEach((e) => { e.hidden = e.dataset.only !== level; });
+  draw(); drawGas();
+
+  quiz(q('.dl-quiz'), () => {
+    const out: Question[] = [];
+    const s1 = randInt(20, 90), w1 = [50, 150, 200, 250][randInt(0, 3)];
+    out.push({ q: `At some temperature, ${s1} g of a solid dissolves in 100 g of water. How many grams dissolve in ${w1} g of water?`, want: [(s1 * w1) / 100], work: `Solubility is per 100 g of water, so ${s1} × ${w1} / 100 = ${(s1 * w1) / 100} g.` });
+    const cap = randInt(30, 60), added = cap + randInt(3, 20);
+    out.push({ q: `You stir ${added} g of salt into some water that can hold at most ${cap} g. How many grams stay at the bottom?`, want: [added - cap], work: `Only ${cap} g can dissolve, so ${added} − ${cap} = ${added - cap} g is left as crystals.` });
+    const hi = randInt(80, 120), lo = randInt(20, 45);
+    out.push({ q: `100 g of water saturated with a salt at 60 °C holds ${hi} g of it. At 20 °C the same water can hold only ${lo} g. How many grams of crystals form when it cools to 20 °C?`, want: [hi - lo], work: `The water lets go of what it can no longer hold: ${hi} − ${lo} = ${hi - lo} g of crystals.` });
+    const d = [10, 15, 20, 25, 30][randInt(0, 4)], w = [40, 60, 80, 100, 120][randInt(0, 4)];
+    out.push({ q: `${d} g of sugar is dissolved in ${w} g of water. What is the mass percent of sugar in the solution? (%)`, want: [(100 * d) / (d + w)], work: `Mass percent = ${d} ÷ (${d} + ${w}) × 100 = ${(Math.round((1000 * d) / (d + w)) / 10)}%. Divide by the whole solution, not just the water.` });
+    const mol = randInt(1, 5) / 2, wk = [0.25, 0.5, 1][randInt(0, 2)];
+    out.push({ q: `${f2(mol * 58.44)} g of salt (NaCl, 58.44 g/mol) is dissolved in ${wk * 1000} g of water. What is the molality? (mol/kg; Class 12)`, want: [mol / wk], work: `Moles = ${f2(mol * 58.44)} ÷ 58.44 = ${mol}; molality = ${mol} ÷ ${wk} kg = ${mol / wk} mol/kg.` });
+    return out;
+  });
+</script>

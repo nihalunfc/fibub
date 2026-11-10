@@ -1,0 +1,177 @@
+---
+// ΔG = ΔH − TΔS explorer: slide ΔH, ΔS and T, see ΔG as a straight line against temperature, the
+// spontaneous region shaded, the crossover temperature ΔH/ΔS, the four sign cases, and (Class 12 level)
+// K = e^(−ΔG°/RT) and E° = −ΔG°/nF. Class 11 chemistry, thermodynamics.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax gbx">
+  <div class="ax-card">
+    <div class="ax-row">
+      <div class="ax-seg gb-lv" role="group" aria-label="Level">
+        <button type="button" data-l="11" aria-pressed="true">Class 11</button><button type="button" data-l="12" aria-pressed="false">Class 12: K and E°</button>
+      </div>
+    </div>
+    <label class="gb-pre-l">Start from
+      <select class="gb-pre">
+        <option value="ice">Ice melting (H₂O(s) → H₂O(l))</option>
+        <option value="nh3" selected>Making ammonia (N₂ + 3H₂ → 2NH₃)</option>
+        <option value="caco3">Heating limestone (CaCO₃ → CaO + CO₂)</option>
+        <option value="h2o2">Hydrogen peroxide breaking down (2H₂O₂ → 2H₂O + O₂)</option>
+        <option value="o3">Making ozone from oxygen (3O₂ → 2O₃)</option>
+        <option value="own">My own numbers</option>
+      </select>
+    </label>
+    <p class="ax-big gb-big" aria-live="polite"></p>
+    <p class="gb-eq"></p>
+    <canvas class="ax-fig gb-fig" role="img"></canvas>
+    <div class="gb-sls">
+      <label class="gb-sl"><span>Enthalpy change ΔH (kJ/mol) <input class="gb-hn" type="number" step="0.01" min="-300" max="300" inputmode="decimal" aria-label="ΔH in kJ/mol" /></span><input class="gb-h" type="range" min="-300" max="300" step="0.01" aria-label="ΔH slider" /></label>
+      <label class="gb-sl"><span>Entropy change ΔS (J/(K·mol)) <input class="gb-sn" type="number" step="0.1" min="-400" max="400" inputmode="decimal" aria-label="ΔS in J per kelvin per mol" /></span><input class="gb-s" type="range" min="-400" max="400" step="0.1" aria-label="ΔS slider" /></label>
+      <label class="gb-sl"><span>Temperature T (K) <input class="gb-tn" type="number" step="1" min="1" max="1500" inputmode="decimal" aria-label="Temperature in kelvin" /></span><input class="gb-t" type="range" min="1" max="1500" step="1" aria-label="Temperature slider" /></label>
+      <label class="gb-for12">Electrons moved, n <select class="gb-n"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>6</option></select></label>
+    </div>
+    <p class="ax-err gb-err" hidden></p>
+    <dl class="ax-facts gb-facts"></dl>
+    <p class="ax-help gb-src"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The four sign cases</h2>
+    <div class="ax-scroll"><table class="gb-cases">
+      <thead><tr><th>ΔH</th><th>ΔS</th><th>ΔG = ΔH − TΔS</th><th>Spontaneous?</th></tr></thead>
+      <tbody>
+        <tr data-c="always"><td>−</td><td>+</td><td>always −</td><td>Always</td></tr>
+        <tr data-c="low"><td>−</td><td>−</td><td>− when T is small</td><td>Below ΔH/ΔS</td></tr>
+        <tr data-c="high"><td>+</td><td>+</td><td>− when T is large</td><td>Above ΔH/ΔS</td></tr>
+        <tr data-c="never"><td>+</td><td>−</td><td>always +</td><td>Never</td></tr>
+      </tbody>
+    </table></div>
+    <p class="ax-help">ΔH − means heat is given out; ΔS + means more disorder. In the "never" row, the reverse change is the spontaneous one. "Spontaneous" means the change can happen by itself at that temperature. It says nothing about speed: diamond turning into graphite has ΔG &lt; 0 but takes longer than the age of the universe.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="gb-try">
+      <li>Ice melting: slide T across 273 K. ΔG changes sign right where ice and water are at equilibrium.</li>
+      <li>Ammonia: ΔG is negative at room temperature but turns positive above about 464 K. Why do factories still run hot? (Speed: look up the Haber process.)</li>
+      <li>Make ΔS zero. The line goes flat: temperature no longer matters.</li>
+      <li>Pick each row of the table by setting the signs of ΔH and ΔS. Which one can never go by itself?</li>
+      <li>Class 12: make ΔG° about −5.7 kJ/mol at 298 K. K comes out near 10. Every −5.7 kJ/mol multiplies K by ten.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="gb-quiz" />
+</div>
+
+<script>
+  import { gibbs, crossover, caseOf, kFromG, verdict, R } from '../../lib/sci/gibbs-explorer';
+  import { paint, type Figure } from '../../lib/report';
+  import { view, axes, line, dot, label, px, py, fmt } from '../../lib/sm-graph';
+  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.gbx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const F = 96485.33212; // Faraday constant, C/mol (CODATA 2018)
+  const PRE: Record<string, [number, number, number, string]> = {
+    ice: [6.01, 22.0, 263, 'Rounded values for 1 mol of ice melting near 0 °C.'],
+    nh3: [-92.2, -198.7, 298, 'Rounded standard values at 298 K for the equation as written.'],
+    caco3: [178.3, 160.5, 1000, 'Rounded standard values at 298 K; ΔH and ΔS are treated as fixed as T changes.'],
+    h2o2: [-196.1, 125.8, 298, 'Rounded standard values at 298 K for the equation as written.'],
+    o3: [285.4, -137.6, 298, 'Rounded standard values at 298 K for the equation as written.'],
+  };
+  let lv = '11';
+  const W = 380, H = 260;
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+  const int = (x: number) => String(Math.round(x)).replace('-', '−');
+  const sgn = (x: number, d = 2) => (x < 0 ? '− ' : '+ ') + fmt(Math.abs(x), d);
+  const sci = (k: number) => { if (!Number.isFinite(k)) return k > 0 ? 'too big to show' : '0'; if (k === 0) return 'about 0'; const e = Math.floor(Math.log10(k)); return e >= -2 && e <= 4 ? fmt(k, 3) : `${fmt(k / 10 ** e, 2)} × 10^${e}`.replace('^-', '^−'); };
+  const pairs: [string, string][] = [['.gb-h', '.gb-hn'], ['.gb-s', '.gb-sn'], ['.gb-t', '.gb-tn']];
+  const setv = (i: number, v: number) => { q<HTMLInputElement>(pairs[i][0]).value = String(v); q<HTMLInputElement>(pairs[i][1]).value = String(v); };
+  const getv = (i: number) => +q<HTMLInputElement>(pairs[i][0]).value;
+
+  function run() {
+    const dH = getv(0), dS = getv(1), T = getv(2), dG = gibbs(dH, dS, T), Tx = crossover(dH, dS), c = caseOf(dH, dS), v = verdict(dG);
+    q('.gb-big').textContent = `ΔG = ${fmt(dG, 2)} kJ/mol: ${v === 'equilibrium' ? 'at equilibrium' : v}`;
+    q('.gb-big').style.color = v === 'spontaneous' ? 'var(--good)' : v === 'equilibrium' ? 'var(--warn)' : 'var(--bad)';
+    q('.gb-eq').textContent = `ΔG = ΔH − TΔS = ${fmt(dH, 2)} − ${int(T)} × (${fmt(dS, 1)} ÷ 1000) = ${fmt(dH, 2)} ${sgn(-T * dS / 1000)} = ${fmt(dG, 2)} kJ/mol`;
+    const T1 = 1500, gs = [gibbs(dH, dS, 0), gibbs(dH, dS, T1)], lo = Math.min(-20, ...gs), hi = Math.max(20, ...gs), padY = (hi - lo) * 0.08;
+    const vw = view(0, T1, lo - padY, hi + padY, W, H, { l: 44, r: 10, t: 12, b: 26 });
+    const fig: Figure = { w: W, h: H, alt: `ΔG against temperature from 0 to 1500 K: a straight line starting at ΔH = ${fmt(dH, 2)} kJ/mol with slope −ΔS. At ${int(T)} K, ΔG = ${fmt(dG, 2)} kJ/mol.`, draw: (ctx, w, h, pl) => {
+      // Spontaneous region (ΔG < 0) shaded green.
+      ctx.save(); ctx.globalAlpha = 0.12; ctx.fillStyle = pl.good; const y0 = py(vw, 0); ctx.fillRect(vw.l, Math.max(vw.t, y0), w - vw.l - vw.r, Math.max(0, h - vw.b - Math.max(vw.t, y0))); ctx.restore();
+      axes(ctx, vw, pl, { xName: 'T (K)', yName: 'ΔG (kJ/mol)' });
+      label(ctx, vw, 1490, 0, 'spontaneous below this line', pl.good, 0, 16, 'right');
+      line(ctx, vw, 0, gs[0], T1, gs[1], pl.accent, 3);
+      if (Number.isFinite(Tx) && Tx <= T1) { dot(ctx, vw, Tx, 0, pl.warn, 5); label(ctx, vw, Tx, 0, `T = ${int(Tx)} K`, pl.warn, 6, -6); }
+      line(ctx, vw, T, vw.y0, T, vw.y1, pl.muted, 1, [4, 4]);
+      dot(ctx, vw, T, dG, v === 'spontaneous' ? pl.good : pl.bad, 6.5);
+    } };
+    paint(q<HTMLCanvasElement>('.gb-fig'), fig);
+    root.querySelectorAll<HTMLElement>('.gb-cases tbody tr').forEach((r) => r.classList.toggle('gb-on', r.dataset.c === c));
+    const facts = [
+      fact('ΔH (enthalpy)', `${fmt(dH, 2)} kJ/mol`, dH < 0 ? 'exothermic: gives out heat' : dH > 0 ? 'endothermic: takes in heat' : 'no heat change'),
+      fact('−TΔS (entropy part)', `${fmt(-T * dS / 1000, 2)} kJ/mol`, dS > 0 ? 'more disorder helps' : dS < 0 ? 'less disorder works against it' : 'no entropy change'),
+      fact('Turns over at', Number.isFinite(Tx) ? `${fmt(Tx, 1)} K` : 'never', Number.isFinite(Tx) ? `T = ΔH/ΔS = ${int(dH * 1000)} ÷ ${fmt(dS, 1)} (${fmt(Tx - 273.15, 1)} °C)` : c === 'always' ? 'ΔG < 0 at every temperature' : 'ΔG > 0 at every temperature'),
+      fact('Case', { always: 'Always spontaneous', never: 'Never spontaneous', low: 'Spontaneous when cold', high: 'Spontaneous when hot' }[c]),
+    ];
+    if (lv === '12') {
+      const K = kFromG(dG, T), n = +q<HTMLSelectElement>('.gb-n').value, E = (-dG * 1000) / (n * F);
+      facts.push(fact('Equilibrium constant K', sci(K), `K = e^(−ΔG°/RT) = e^(${fmt((-dG * 1000) / (R * T), 3)})`));
+      facts.push(fact('Cell voltage E°', `${fmt(E, 3)} V`, `E° = −ΔG°/(nF), n = ${n}, F = 96 485 C/mol`));
+    }
+    q('.gb-facts').replaceChildren(...facts);
+  }
+
+  function preset() {
+    const k = q<HTMLSelectElement>('.gb-pre').value, p = PRE[k];
+    if (p) { setv(0, p[0]); setv(1, p[1]); setv(2, p[2]); }
+    q('.gb-src').textContent = p ? `${p[3]} Real ΔH and ΔS change a little with temperature; here they are held fixed, as in school problems.` : 'Your own numbers. ΔH and ΔS are held fixed as T changes.';
+    run();
+  }
+
+  pairs.forEach(([s, n], i) => {
+    q(s).addEventListener('input', () => { q<HTMLInputElement>(n).value = q<HTMLInputElement>(s).value; q<HTMLSelectElement>('.gb-pre').value = 'own'; q('.gb-src').textContent = 'Your own numbers. ΔH and ΔS are held fixed as T changes.'; run(); });
+    q(n).addEventListener('input', () => {
+      const el = q<HTMLInputElement>(n), x = +el.value, lo = +el.min, hi = +el.max, bad = el.value.trim() === '' || !Number.isFinite(x) || x < lo || x > hi;
+      q('.gb-err').hidden = !bad; q('.gb-err').textContent = bad ? `Type a number from ${fmt(lo)} to ${fmt(hi)}.` : '';
+      if (bad) return;
+      q<HTMLInputElement>(s).value = String(x); q<HTMLSelectElement>('.gb-pre').value = 'own'; run();
+    });
+  });
+  q('.gb-pre').addEventListener('change', preset);
+  q('.gb-n').addEventListener('change', run);
+  root.querySelectorAll<HTMLButtonElement>('.gb-lv button').forEach((b) => b.addEventListener('click', () => { lv = b.dataset.l!; root.querySelectorAll('.gb-lv button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); q('.gb-for12').hidden = lv !== '12'; run(); }));
+  q('.gb-for12').hidden = true;
+  document.addEventListener('fibub:theme', run);
+  preset();
+
+  quiz(q('.gb-quiz'), (): Question[] => {
+    const h1 = -rint(20, 180), s1 = -rint(50, 300), t1 = pick([250, 298, 300, 350, 400, 500]);
+    const h2 = rint(20, 200), s2 = rint(40, 300);
+    const g3 = -pick([5.7, 11.4, 17.1]), k3 = Math.round(kFromG(g3, 298));
+    const signs = pick([[-1, 1, 0], [1, -1, 3], [-1, -1, 1], [1, 1, 2]]);
+    return [
+      { text: `ΔH = ${fmt(h1)} kJ/mol and ΔS = ${fmt(s1)} J/(K·mol). What is ΔG at ${t1} K, in kJ/mol?`, answer: gibbs(h1, s1, t1), tol: 0.05, worked: `Change ΔS to kJ: ${s1} ÷ 1000 = ${fmt(s1 / 1000, 3)} kJ/(K·mol). ΔG = ${h1} − ${t1} × (${fmt(s1 / 1000, 3)}) = ${fmt(gibbs(h1, s1, t1), 2)} kJ/mol.` },
+      { text: `A reaction has ΔH = +${h2} kJ/mol and ΔS = +${s2} J/(K·mol). Above what temperature (K) is it spontaneous?`, answer: crossover(h2, s2), tol: 0.6, worked: `ΔG = 0 when T = ΔH/ΔS = ${h2 * 1000} J/mol ÷ ${s2} J/(K·mol) = ${fmt(crossover(h2, s2), 1)} K. Above that, −TΔS outweighs ΔH.` },
+      { text: `ΔH is ${signs[0] < 0 ? 'negative' : 'positive'} and ΔS is ${signs[1] < 0 ? 'negative' : 'positive'}. When is the change spontaneous?`, choices: ['At every temperature', 'Only at low temperature', 'Only at high temperature', 'Never'], correct: signs[2], worked: 'ΔG = ΔH − TΔS. With ΔH < 0 and ΔS > 0 both parts are negative (always). ΔH > 0 and ΔS < 0: both positive (never). Same signs: the TΔS part wins when T is large, so the sign of ΔS decides whether high or low T helps.' },
+      { text: `ΔG° = ${g3} kJ/mol at 298 K. What is K, to the nearest whole number?`, answer: k3, tol: 0.6, worked: `K = e^(−ΔG°/RT) = e^(${-g3 * 1000} ÷ (8.314 × 298)) = e^${fmt((-g3 * 1000) / (R * 298), 3)} ≈ ${k3}.` },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .gbx .gb-sls { display: grid; gap: 6px; margin-top: 8px; }
+  .gbx .gb-sl { display: grid; gap: 4px; color: var(--ink); font-size: 15px; }
+  .gbx .gb-sl > span { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: space-between; }
+  .gbx .gb-sl input[type=number] { max-width: 110px; min-height: 40px; }
+  .gbx .gb-sl input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .gbx .ax-seg button { min-height: 44px; }
+  .gbx .gb-pre-l { margin-top: 10px; }
+  .gbx .gb-big { margin: 12px 0 4px; }
+  .gbx .gb-eq { margin: 0 0 8px; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+  .gbx .gb-facts { margin-top: 12px; }
+  .gbx .gb-cases tr.gb-on td { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .gbx .gb-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+  .gbx .gb-for12 { max-width: 220px; }
+</style>

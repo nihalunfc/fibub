@@ -1,0 +1,134 @@
+---
+// Earth's energy budget (Learn): sunlight in, some reflected by clouds, ice and snow (albedo), the rest warms the
+// ground; the ground glows infrared and a one-layer atmosphere sends part of it back (greenhouse effect). Two
+// sliders, arrows sized by the flows, and the surface temperature. Teaching model; nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm eb">
+  <div class="ax-card">
+    <h2>Energy in and out</h2>
+    <div class="ax-seg eb-lvl" role="group" aria-label="Level">
+      <button type="button" data-l="9" aria-pressed="true">Class 9 (simple)</button>
+      <button type="button" data-l="11" aria-pressed="false">Class 11 (numbers)</button>
+    </div>
+    <svg class="sm-fig eb-fig" viewBox="0 0 340 300" role="img" aria-label="Arrows for sunlight in, sunlight reflected, heat glowing up from the ground, and heat sent back down by the air" style="margin-top:10px"></svg>
+    <p class="ax-big eb-big" aria-live="polite" style="margin:10px 0 0"></p>
+    <div class="sm-sl"><b>α</b><input type="range" class="eb-ar" min="0" max="0.9" step="0.01" value="0.3" aria-label="Albedo slider" /><input type="number" class="eb-a" min="0" max="0.99" step="0.01" value="0.3" inputmode="decimal" aria-label="Albedo, the share of sunlight reflected" /></div>
+    <p class="ax-help">Albedo: the share of sunlight bounced straight back to space by clouds, ice, snow and deserts (today about 0.3).</p>
+    <div class="sm-sl"><b>ε</b><input type="range" class="eb-er" min="0" max="1" step="0.01" value="0.78" aria-label="Greenhouse slider" /><input type="number" class="eb-e" min="0" max="1" step="0.01" value="0.78" inputmode="decimal" aria-label="Share of the ground's heat glow the air absorbs" /></div>
+    <p class="ax-help">Greenhouse strength: the share of the ground's heat glow that water vapour, CO₂ and other gases in the air soak up.</p>
+    <div class="ax-row eb-pre" style="margin-top:8px">
+      <button type="button" class="btn secondary small" data-a="0.3" data-e="0.78">Today</button>
+      <button type="button" class="btn secondary small" data-a="0.3" data-e="0">No greenhouse</button>
+      <button type="button" class="btn secondary small" data-a="0.3" data-e="0.84">More CO₂</button>
+      <button type="button" class="btn secondary small" data-a="0.6" data-e="0.78">Snowball Earth</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>With your numbers</h2>
+    <ol class="sm-steps eb-steps"></ol>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Press No greenhouse. How cold would Earth be without any greenhouse gases?</li>
+      <li>Press More CO₂. A small change in ε warms the surface by a few degrees.</li>
+      <li>Press Snowball Earth: more ice reflects more sunlight, which makes it colder, which makes more ice. That is a feedback.</li>
+      <li>Find the albedo that keeps the surface at 15 °C when ε is 0.84. (Hint: a little higher than 0.3.)</li>
+    </ul>
+    <p class="ax-help">A teaching model: one number for the whole planet, an atmosphere as a single layer, and no winds, oceans or seasons. Real climate models are far more detailed.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="eb-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .eb svg .eb-space { fill: var(--bg); }
+  .eb svg .eb-air { fill: var(--accent-soft); opacity: .7; }
+  .eb svg .eb-ground { fill: var(--good-soft); stroke: var(--good); stroke-width: 1.5; }
+  .eb svg .eb-sun { stroke: var(--warn); fill: none; stroke-linecap: round; }
+  .eb svg .eb-ir { stroke: var(--bad); fill: none; stroke-linecap: round; }
+  .eb svg .eb-lab { font-size: 11px; font-weight: 600; paint-order: stroke; stroke: var(--surface); stroke-width: 3px; }
+</style>
+
+<script>
+  import { budget, toC, SIGMA, S0 } from '../../lib/sci/earth-energy';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, pair, val, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.eb')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.eb-fig'), A = q<HTMLInputElement>('.eb-a'), E = q<HTMLInputElement>('.eb-e');
+  const setA = pair(q('.eb-ar'), A, draw), setE = pair(q('.eb-er'), E, draw);
+  let level = 9;
+  for (const b of root.querySelectorAll<HTMLButtonElement>('.eb-lvl button')) b.addEventListener('click', () => {
+    level = Number(b.dataset.l);
+    for (const o of root.querySelectorAll('.eb-lvl button')) o.setAttribute('aria-pressed', String(o === b));
+    draw();
+  });
+  for (const b of root.querySelectorAll<HTMLButtonElement>('.eb-pre button')) b.addEventListener('click', () => { setA(Number(b.dataset.a)); setE(Number(b.dataset.e)); draw(); });
+
+  function arrow(x1: number, y1: number, x2: number, y2: number, v: number, cls: string, lab: string, lx: number, ly: number, anchor = 'middle') {
+    if (v < 0.5) return;
+    const w = Math.max(1.5, v / 18), a = Math.atan2(y2 - y1, x2 - x1), hx = x2 - Math.cos(a) * (6 + w), hy = y2 - Math.sin(a) * (6 + w);
+    S('line', { x1, y1, x2: hx, y2: hy, class: cls, 'stroke-width': w }, fig);
+    const col = cls === 'eb-sun' ? 'var(--warn)' : 'var(--bad)', s = 4 + w * 0.7;
+    S('polygon', { points: `${x2},${y2} ${hx - Math.sin(a) * s},${hy + Math.cos(a) * s} ${hx + Math.sin(a) * s},${hy - Math.cos(a) * s}`, style: `fill:${col}` }, fig);
+    S('text', { x: lx, y: ly, 'text-anchor': anchor, class: 'eb-lab' }, fig, level === 11 ? `${lab} ${fmt(v, 0)} W/m²` : lab);
+  }
+
+  const li = (t: string) => Object.assign(document.createElement('li'), { textContent: t });
+  function draw() {
+    const al = val(A, 0.3, 0, 0.99), ep = val(E, 0.78, 0, 1), b = budget(al, ep);
+    fig.replaceChildren();
+    S('rect', { x: 0, y: 0, width: 340, height: 300, class: 'eb-space' }, fig);
+    S('rect', { x: 0, y: 112, width: 340, height: 44, class: 'eb-air' }, fig);
+    S('rect', { x: 0, y: 252, width: 340, height: 48, class: 'eb-ground' }, fig);
+    S('text', { x: 8, y: 16, style: 'font-weight:700' }, fig, 'Space');
+    S('text', { x: 8, y: 128, style: 'font-weight:700' }, fig, level === 11 ? `Air (absorbs ${fmt(ep * 100, 0)}% of IR)` : 'Air with greenhouse gases');
+    S('text', { x: 8, y: 292, style: 'font-weight:700' }, fig, `Ground ${fmt(toC(b.Ts), 1)} °C`);
+    // Sunlight: in, reflected, absorbed.
+    arrow(30, 22, 92, 250, b.absorbed, 'eb-sun', 'sunlight absorbed', 64, 196, 'start');
+    S('text', { x: 40, y: 40, class: 'eb-lab' }, fig, level === 11 ? `sunlight in ${fmt(b.incoming, 0)} W/m²` : 'sunlight in');
+    arrow(108, 112, 150, 30, b.reflected, 'eb-sun', 'reflected', 150, 72, 'start');
+    // Heat glow (infrared).
+    arrow(210, 250, 210, 158, b.airAbsorbs, 'eb-ir', 'heat glow up', 214, 236, 'start');
+    arrow(290, 250, 300, 30, b.windowIR, 'eb-ir', 'straight out', 300, 92, 'end');
+    arrow(250, 112, 258, 30, b.airUp, 'eb-ir', 'air glows out', 244, 60, 'end');
+    arrow(250, 158, 250, 250, b.airDown, 'eb-ir', 'sent back down', 244, 200, 'end');
+    q('.eb-big').textContent = `Surface ${fmt(toC(b.Ts), 1)} °C`;
+    const steps = level === 9 ? [
+      `Sunlight arriving: share reflected ${fmt(al * 100, 0)}%, share that warms the planet ${fmt((1 - al) * 100, 0)}%.`,
+      ep === 0 ? 'With no greenhouse gases, all the ground\'s heat glow escapes to space.' : `The air soaks up ${fmt(ep * 100, 0)}% of the ground's heat glow and sends about half of it back down, so the ground ends up warmer.`,
+      `Without the greenhouse effect the planet would sit at about ${fmt(toC(b.Te), 1)} °C; with it, ${fmt(toC(b.Ts), 1)} °C: ${fmt(b.Ts - b.Te, 1)} degrees warmer.`,
+      'Energy in = energy out: the temperature settles where the glow to space balances the sunlight absorbed.',
+    ] : [
+      `Average sunlight on each square metre: S/4 = ${S0}/4 = ${fmt(b.incoming, 2)} W/m² (a sphere has 4 times the area of the disc that catches the light).`,
+      `Reflected: α × S/4 = ${fmt(al, 2)} × ${fmt(b.incoming, 2)} = ${fmt(b.reflected, 2)} W/m². Absorbed: ${fmt(b.absorbed, 2)} W/m².`,
+      `No greenhouse: σTₑ⁴ = ${fmt(b.absorbed, 2)}, so Tₑ = (${fmt(b.absorbed, 2)} / ${SIGMA.toExponential(4)})^¼ = ${fmt(b.Te, 1)} K = ${fmt(toC(b.Te), 1)} °C.`,
+      `One-layer greenhouse: Tₛ = Tₑ × (2/(2 − ε))^¼ = ${fmt(b.Te, 1)} × (2/${fmt(2 - ep, 2)})^¼ = ${fmt(b.Ts, 1)} K = ${fmt(toC(b.Ts), 1)} °C.`,
+      `Check the top of the air: ${fmt(b.windowIR, 1)} (straight out) + ${fmt(b.airUp, 1)} (air's glow) = ${fmt(b.windowIR + b.airUp, 1)} W/m² out, equal to the ${fmt(b.absorbed, 1)} W/m² absorbed.`,
+    ];
+    q('.eb-steps').replaceChildren(...steps.map(li));
+  }
+  draw();
+
+  quiz(q('.eb-quiz'), () => {
+    const out: Question[] = [];
+    const S = [1361, 590, 2600, 1200][randInt(0, 3)];
+    out.push({ q: `Sunlight of ${S} W/m² falls on a planet. Spread over the whole sphere, what is the average on each square metre?`, want: [S / 4], hint: 'W/m²', work: `A sphere's area is 4 times the disc that catches the light, so ${S} ÷ 4 = ${fmt(S / 4, 2)} W/m².` });
+    const al = randInt(2, 6) / 10, inc = 340;
+    out.push({ q: `${inc} W/m² of sunlight arrives and the albedo is ${al}. How much is reflected?`, want: [al * inc], hint: 'W/m²', work: `${al} × ${inc} = ${fmt(al * inc, 1)} W/m².` });
+    out.push({ q: `With the same numbers (${inc} W/m², albedo ${al}), how much sunlight is absorbed?`, want: [(1 - al) * inc], hint: 'W/m²', work: `(1 − ${al}) × ${inc} = ${fmt((1 - al) * inc, 1)} W/m².` });
+    const b = budget(0.3, 0.78), lo = Math.round(toC(b.Te)), hi = Math.round(toC(b.Ts));
+    out.push({ q: `In this model Earth would be about ${lo} °C with no greenhouse effect and is about ${hi} °C with it. How many degrees warmer does the greenhouse effect make it?`, want: [hi - lo], hint: 'degrees', work: `${hi} − (${fmt(lo)}) = ${hi - lo} degrees.` });
+    return out;
+  });
+</script>

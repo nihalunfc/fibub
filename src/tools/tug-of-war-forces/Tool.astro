@@ -1,0 +1,133 @@
+---
+// Balanced and unbalanced forces (Learn): a tug-of-war. Add pullers to each side; their forces add as arrows and
+// the rope moves only when the forces do not balance. Class 9 adds a = F/m.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn tow">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="8" aria-pressed="true">Class 8</button><button type="button" data-level="9" aria-pressed="false">Class 9</button></div>
+    <canvas class="lrn-cv tw-cv" style="margin-top:10px" aria-label="A tug-of-war: pullers on each side with force arrows, and the net force arrow in the middle"></canvas>
+    <div class="tw-sides">
+      <div><h3>Left team <b class="tw-Lsum"></b></h3>
+        <div class="ax-row"><button type="button" class="btn secondary small" data-side="L" data-f="100">+ Child 100 N</button><button type="button" class="btn secondary small" data-side="L" data-f="250">+ Adult 250 N</button><button type="button" class="btn secondary small" data-side="L" data-f="0">Remove one</button></div></div>
+      <div><h3>Right team <b class="tw-Rsum"></b></h3>
+        <div class="ax-row"><button type="button" class="btn secondary small" data-side="R" data-f="100">+ Child 100 N</button><button type="button" class="btn secondary small" data-side="R" data-f="250">+ Adult 250 N</button><button type="button" class="btn secondary small" data-side="R" data-f="0">Remove one</button></div></div>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn small tw-go">Pull!</button><button type="button" class="btn secondary small tw-reset">Back to the start</button></div>
+    <p class="ax-big tw-big" style="margin:10px 0 0"></p>
+    <p class="lrn-eq tw-eq"></p>
+    <dl class="ax-facts tw-facts" style="margin-top:10px" data-only="9" hidden></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Put one adult on each side. The forces are equal and opposite, so the rope does not move: balanced forces.</li>
+      <li>Can five children beat two adults? Add them up before you press Pull.</li>
+      <li>Make the teams differ by only 50 N, then by 300 N. Class 9: the bigger the net force, the faster they speed up.</li>
+      <li>Balanced does not mean no forces: both teams are pulling hard, the forces just cancel.</li>
+    </ul>
+    <p class="ax-help">A simple model: only the pulls on the rope are counted. In a real tug-of-war, grip on the ground matters too, because each team's feet push against the ground.</p>
+  </div>
+
+  <div class="ax-card tw-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .tow .tw-sides { display: grid; gap: 10px; margin-top: 10px; }
+  @media (min-width: 640px) { .tow .tw-sides { grid-template-columns: 1fr 1fr; } }
+  .tow h3 { margin: 0 0 6px; font-size: 16px; }
+  .tow .ax-row { flex-wrap: wrap; }
+</style>
+
+<script>
+  import { netForce, accel, distance, timeTo } from '../../lib/sci/learnj-forces';
+  import { mountQuiz, pick, one, r, fitCanvas, wireLevel } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.tow')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const MASS = { 100: 35, 250: 65 } as Record<number, number>; // kg of a child and an adult (rounded)
+  const L: number[] = [250], Rt: number[] = [250];
+  let x = 0, v = 0, t = 0, timer = 0, level = '8', done = '';
+  const WIN = 2; // metres to the winning line
+  const fact = (k: string, val: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = val; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const mass = () => [...L, ...Rt].reduce((s, f) => s + MASS[f], 0) + 5;
+
+  function stop() { if (timer) { cancelAnimationFrame(timer); timer = 0; } }
+  function reset() { stop(); x = 0; v = 0; t = 0; done = ''; render(); }
+  function go() {
+    stop(); const F = netForce(L, Rt), a = accel(F, mass());
+    if (F === 0) { done = 'balanced'; render(); return; }
+    let last = 0;
+    const tick = (now: number) => {
+      const dt = last ? Math.min(0.05, (now - last) / 1000) : 0; last = now; t += dt; v += a * dt; x += v * dt;
+      if (Math.abs(x) >= WIN) { x = Math.sign(x) * WIN; done = x > 0 ? 'right' : 'left'; render(); timer = 0; return; }
+      render(); timer = requestAnimationFrame(tick);
+    };
+    timer = requestAnimationFrame(tick);
+  }
+
+  function arrow(c: CanvasRenderingContext2D, x0: number, y: number, len: number, col: string, w = 4) {
+    if (Math.abs(len) < 1) return; const d = Math.sign(len), h = Math.min(12, Math.abs(len));
+    c.strokeStyle = col; c.fillStyle = col; c.lineWidth = w; c.beginPath(); c.moveTo(x0, y); c.lineTo(x0 + len - d * h, y); c.stroke();
+    c.beginPath(); c.moveTo(x0 + len, y); c.lineTo(x0 + len - d * h, y - h * 0.6); c.lineTo(x0 + len - d * h, y + h * 0.6); c.closePath(); c.fill();
+  }
+
+  function render() {
+    const pal = pagePalette(), F = netForce(L, Rt), Ls = L.reduce((s, f) => s + f, 0), Rs = Rt.reduce((s, f) => s + f, 0), m = mass(), a = accel(F, m);
+    q('.tw-Lsum').textContent = `${Ls} N`; q('.tw-Rsum').textContent = `${Rs} N`;
+    const { ctx: c, W, H } = fitCanvas(q<HTMLCanvasElement>('.tw-cv'), 220), cx = W / 2, sc = (W / 2 - 20) / 4, off = x * sc, ropeY = 70;
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    // ground and win lines
+    c.strokeStyle = pal.line; c.lineWidth = 1; c.beginPath(); c.moveTo(0, ropeY + 40); c.lineTo(W, ropeY + 40); c.stroke();
+    c.strokeStyle = pal.muted; c.setLineDash([4, 3]); for (const s of [-1, 1]) { c.beginPath(); c.moveTo(cx + s * WIN * sc, ropeY - 40); c.lineTo(cx + s * WIN * sc, ropeY + 40); c.stroke(); } c.beginPath(); c.moveTo(cx, ropeY - 40); c.lineTo(cx, ropeY + 40); c.stroke(); c.setLineDash([]);
+    // rope
+    c.strokeStyle = pal.red ? pal.muted : '#a1887f'; c.lineWidth = 4; c.beginPath(); c.moveTo(8, ropeY); c.lineTo(W - 8, ropeY); c.stroke();
+    c.fillStyle = pal.red ? pal.ink : pal.bad; c.fillRect(cx + off - 3, ropeY - 14, 6, 28);
+    // pullers as stick figures, size by strength
+    const person = (px: number, f: number, side: number) => { const h = f >= 250 ? 34 : 24, y0 = ropeY + 40; c.strokeStyle = pal.ink; c.lineWidth = 2.5; c.beginPath(); c.arc(px - side * 4, y0 - h - 6, 6, 0, 7); c.moveTo(px - side * 4, y0 - h); c.lineTo(px, y0 - h * 0.45); c.lineTo(px + side * 6, y0); c.moveTo(px, y0 - h * 0.45); c.lineTo(px - side * 6, y0); c.moveTo(px - side * 3, y0 - h * 0.8); c.lineTo(px + side * 10, ropeY); c.stroke(); };
+    const gap = Math.min(30, (W / 2 - 40) / Math.max(1, Math.max(L.length, Rt.length)));
+    L.forEach((f, i) => person(cx + off - 40 - i * gap, f, -1)); Rt.forEach((f, i) => person(cx + off + 40 + i * gap, f, 1));
+    // force arrows (scale: 1 px per 4 N, capped)
+    const fs = Math.min(0.25, (W / 2 - 30) / Math.max(1, Ls, Rs));
+    let y = 140; c.font = '11px system-ui, sans-serif';
+    arrow(c, cx, y, -Ls * fs, pal.red ? pal.ink : pal.accent); arrow(c, cx, y, Rs * fs, pal.red ? pal.ink : pal.accent2);
+    c.fillStyle = pal.muted; c.textAlign = 'right'; c.fillText(`left ${Ls} N`, cx - 6, y - 8); c.textAlign = 'left'; c.fillText(`right ${Rs} N`, cx + 6, y - 8);
+    y = 185; arrow(c, cx, y, F * fs, pal.red ? pal.ink : pal.bad, 6);
+    c.fillStyle = pal.ink; c.textAlign = 'center'; c.font = 'bold 12px system-ui, sans-serif'; c.fillText(F === 0 ? 'net force 0 N: balanced' : `net force ${Math.abs(F)} N to the ${F > 0 ? 'right' : 'left'}`, cx, y + 26);
+
+    q('.tw-big').textContent = done === 'balanced' ? 'Balanced: both teams pull equally hard, so the rope stays still.' : done ? `The ${done} team wins!` : timer ? 'Pulling…' : F === 0 ? 'Balanced forces: press Pull to see what happens.' : `Unbalanced: the rope will move to the ${F > 0 ? 'right' : 'left'}.`;
+    q('.tw-eq').textContent = `Net force = right − left = ${Rs} − ${Ls} = ${F} N` + (F === 0 ? ' (balanced)' : ` → ${Math.abs(F)} N to the ${F > 0 ? 'right' : 'left'} (unbalanced)`);
+    q('.tw-facts').replaceChildren(
+      fact('Total mass moving', `${m} kg`, 'people (child 35 kg, adult 65 kg) and rope 5 kg'),
+      fact('Acceleration', `${r(Math.abs(a), 3)} m/s²`, `a = F/m = ${Math.abs(F)} ÷ ${m}`),
+      fact('Time to the winning line', F === 0 ? 'never' : `${r(timeTo(WIN, a), 3)} s`, `s = ½at², with s = ${WIN} m`),
+      fact('Speed now', `${r(Math.abs(v), 3)} m/s`, `after ${r(t, 2)} s; ${r(Math.abs(distance(a, t)), 3)} m moved`));
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.tw-sides button').forEach((b) => b.addEventListener('click', () => {
+    const arr = b.dataset.side === 'L' ? L : Rt, f = +b.dataset.f!;
+    if (f === 0) arr.pop(); else if (arr.length < 6) arr.push(f);
+    reset();
+  }));
+  q('.tw-go').addEventListener('click', () => { if (done) { x = 0; v = 0; t = 0; done = ''; } go(); });
+  q('.tw-reset').addEventListener('click', reset);
+  addEventListener('resize', render);
+  wireLevel(root, (l) => { level = l; render(); });
+
+  mountQuiz(q('.tw-quiz'), () => {
+    const a = pick(2, 6) * 50, b = pick(2, 6) * 50, n = pick(3, 6), m = pick(4, 12) * 10, F = pick(2, 10) * 20;
+    const right = b > a ? 2 : a > b ? 1 : 0;
+    return [
+      { q: `The left team pulls with ${a} N and the right team with ${b} N. What is the size of the net force?`, ans: Math.abs(b - a), unit: 'N', work: `Opposite forces subtract: |${b} − ${a}| = ${Math.abs(b - a)} N` },
+      { q: `Left ${a} N, right ${b} N. Which way does the rope move?`, ans: right, choices: ['It stays still', 'To the left', 'To the right'], work: right === 0 ? 'The forces are equal and opposite: balanced, so no movement.' : `The bigger pull is on the ${right === 2 ? 'right' : 'left'}, so the rope moves that way.` },
+      { q: `${n} children each push a cart the same way with 60 N. What is the total force?`, ans: 60 * n, unit: 'N', work: `Forces in the same direction add: ${n} × 60 = ${60 * n} N` },
+      { q: `Class 9: a net force of ${F} N acts on a ${m} kg trolley. What is its acceleration?`, ans: F / m, unit: 'm/s²', work: `a = F ÷ m = ${F} ÷ ${m} = ${r(F / m)} m/s²` },
+      { q: 'A book rests on a table. Which is true?', ans: 1, choices: ['No forces act on it', 'Gravity pulls it down and the table pushes it up equally: balanced forces', 'Only gravity acts, so it is unbalanced'], work: 'Two equal and opposite forces act. They balance, so the book stays still.' },
+    ];
+  });
+</script>
