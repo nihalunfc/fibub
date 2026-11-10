@@ -12,7 +12,7 @@ order: 2015
 icon: calculator
 works: offline
 updated: 2026-11-10
-related: [cups-to-grams, pan-size-converter, recipe-nutrition-calculator]
+related: [cups-to-grams, pan-size-converter, recipe-nutrition-calculator, ingredient-swaps, meal-planner]
 sources:
   - "Grams per cup from USDA FoodData Central household measures (US public domain), as used by the Cups to grams converter, checked 2026-11-10. Egg weight about 50 g (a large egg without shell) is a rule of thumb. Fraction rounding is fibub's own working."
 flow:
