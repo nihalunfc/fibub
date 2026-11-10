@@ -1,0 +1,210 @@
+---
+// Matter sorter (Learn): drag everyday things into Element, Compound or Mixture bins; a particle picture of
+// each thing shows why. Class 9 splits mixtures into homogeneous and heterogeneous.
+// Data and the rule in src/lib/sci/j3-matter.ts.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn msr">
+  <div class="ax-card">
+    <div class="ax-row" style="margin-bottom:10px">
+      <span class="msr-lab">Level</span>
+      <div class="ax-seg" role="group" aria-label="Level">
+        <button type="button" data-level="8" aria-pressed="true">Class 8</button>
+        <button type="button" data-level="9" aria-pressed="false">Class 9</button>
+      </div>
+    </div>
+    <p class="ax-help" style="margin:0 0 8px">Drag each thing into its bin, or tap it and then tap a bin. Tapping a thing also shows its particles below.</p>
+    <div class="msr-tray" aria-label="Things to sort"></div>
+    <div class="msr-bins"></div>
+    <p class="ax-big msr-score" style="margin:10px 0 0"></p>
+    <p class="msr-fb" aria-live="polite"></p>
+    <div class="ax-row"><button type="button" class="btn secondary small msr-new">New set</button><button type="button" class="btn secondary small msr-all">Use all things</button></div>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="msr-h">Look at the particles</h2>
+    <canvas class="lrn-cv msr-cv" aria-label="Particle picture"></canvas>
+    <p class="msr-why"></p>
+    <div class="msr-key ax-help"></div>
+    <p class="ax-help">Particles are drawn far bigger than real and only a few are shown. Atom colours are made up so you can tell them apart; big molecules are simplified.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The rule</h2>
+    <ul class="lrn-try">
+      <li><b>Element:</b> only one kind of particle, made of only one kind of atom. Two oxygen atoms joined as O₂ is still an element.</li>
+      <li><b>Compound:</b> only one kind of particle, but each has two or more kinds of atom joined in a fixed ratio, like H₂O.</li>
+      <li><b>Mixture:</b> two or more kinds of particle, mixed but not joined, in any amounts.</li>
+      <li data-only="9" hidden><b>Homogeneous mixture</b> (a solution or an alloy) looks the same all through; a <b>heterogeneous</b> one has parts you can see or that settle out.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Sort pure water and tap water. Why do they go in different bins?</li>
+      <li>Compare iron filings and sulphur with iron sulphide. The same two atoms, but one is a mixture and one is a compound.</li>
+      <li>Look at air and at oxygen gas. Air has oxygen in it, so why is air not an element?</li>
+      <li>At Class 9, decide whether brass, sea water and muddy water look the same all through.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card msr-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { THINGS, SPECIES, ATOM_COLOUR, binOf, why, dealSet, questions, kindOf, type Thing, type Bin } from '../../lib/sci/j3-matter';
+  import { mountQuiz, fitCanvas, wireLevel } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.msr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let split = false, set: Thing[] = [], placed = new Map<string, Bin>(), tries = 0, selected: Thing | null = null, shown: Thing = THINGS[0], all = false;
+  const BIN_NAMES: Record<Bin, string> = { element: 'Element', compound: 'Compound', mixture: 'Mixture', 'mix-same': 'Mixture, same all through', 'mix-diff': 'Mixture, not the same all through' };
+  const bins = (): Bin[] => (split ? ['element', 'compound', 'mix-same', 'mix-diff'] : ['element', 'compound', 'mixture']);
+
+  function deal() {
+    set = all ? [...THINGS].sort(() => Math.random() - 0.5) : dealSet(9, Math.random, split);
+    placed = new Map(); tries = 0; selected = null; q('.msr-fb').textContent = ''; render();
+  }
+  function chip(t: Thing) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'msr-chip'; b.textContent = t.name; b.dataset.id = t.id;
+    b.setAttribute('aria-pressed', String(selected?.id === t.id));
+    b.addEventListener('pointerdown', (e) => startDrag(e, t, b));
+    b.addEventListener('click', () => { if (dragged) return; selected = selected?.id === t.id ? null : t; shown = t; render(); });
+    return b;
+  }
+  function render() {
+    const tray = q('.msr-tray');
+    const left = set.filter((t) => !placed.has(t.id));
+    tray.replaceChildren(...left.map(chip));
+    if (!left.length) { const p = document.createElement('p'); p.className = 'ax-help'; p.textContent = 'All sorted. Press New set for more.'; tray.append(p); }
+    q('.msr-bins').replaceChildren(...bins().map((b) => {
+      const box = document.createElement('div'); box.className = 'msr-bin'; box.dataset.bin = b; box.tabIndex = 0; box.setAttribute('role', 'button');
+      const h = document.createElement('p'); h.className = 'msr-bh'; h.textContent = BIN_NAMES[b]; box.append(h);
+      for (const t of set.filter((x) => placed.get(x.id) === b)) { const s = document.createElement('button'); s.type = 'button'; s.className = 'msr-done'; s.textContent = `✓ ${t.name}`; s.addEventListener('click', (e) => { e.stopPropagation(); shown = t; drawPic(); }); box.append(s); }
+      const go = () => { if (selected) drop(selected, b); };
+      box.addEventListener('click', go); box.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+      return box;
+    }));
+    q('.msr-score').textContent = `${placed.size} of ${set.length} sorted${tries ? `, ${tries} ${tries === 1 ? 'try' : 'tries'} missed` : ''}`;
+    drawPic();
+  }
+  function drop(t: Thing, b: Bin) {
+    const right = binOf(t, split), fb = q('.msr-fb');
+    shown = t;
+    if (right === b) { placed.set(t.id, b); selected = null; fb.className = 'msr-fb msr-ok'; fb.textContent = `Right: ${t.name} → ${BIN_NAMES[b]}.`; }
+    else { tries++; fb.className = 'msr-fb msr-no'; fb.textContent = `Not ${BIN_NAMES[b].toLowerCase()}. Look at its particles below and try again.`; }
+    render();
+  }
+
+  // Drag a chip onto a bin (pointer events: mouse, pen and touch).
+  let dragged = false;
+  function startDrag(e: PointerEvent, t: Thing, el: HTMLElement) {
+    const x0 = e.clientX, y0 = e.clientY; let ghost: HTMLElement | null = null; dragged = false;
+    const move = (ev: PointerEvent) => {
+      if (!ghost && Math.hypot(ev.clientX - x0, ev.clientY - y0) > 8) { ghost = el.cloneNode(true) as HTMLElement; ghost.className = 'msr-chip msr-ghost'; document.body.append(ghost); dragged = true; shown = t; drawPic(); }
+      if (ghost) { ghost.style.left = `${ev.clientX - 40}px`; ghost.style.top = `${ev.clientY - 22}px`; ev.preventDefault(); }
+    };
+    const up = (ev: PointerEvent) => {
+      removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
+      if (ghost) { ghost.remove(); const bin = (document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null)?.closest<HTMLElement>('.msr-bin'); if (bin) drop(t, bin.dataset.bin as Bin); setTimeout(() => { dragged = false; }, 0); }
+    };
+    addEventListener('pointermove', move, { passive: false }); addEventListener('pointerup', up); addEventListener('pointercancel', up);
+  }
+
+  // The particle picture: a box of particles; a heterogeneous mixture keeps its parts in clumps.
+  function drawPic() {
+    const pal = pagePalette(), { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.msr-cv'), 230), t = shown;
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.strokeRect(6, 6, W - 12, H - 12);
+    const r = 7, gap = 2 * r + 1;
+    let seed = [...t.id].reduce((a, c) => a * 31 + c.charCodeAt(0), 7) % 2147483647 || 1;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const atom = (x: number, y: number, s: string, rr = r) => {
+      ctx.fillStyle = pal.red ? (s === 'H' ? pal.muted : pal.ink) : ATOM_COLOUR[s] ?? pal.muted; ctx.beginPath(); ctx.arc(x, y, rr, 0, 7); ctx.fill();
+      ctx.strokeStyle = pal.red ? pal.bg : '#111'; ctx.lineWidth = 1; ctx.stroke();
+    };
+    const OFF: [number, number][][] = [[[0, 0]], [[-0.5, 0], [0.5, 0]], [[0, 0], [-0.8, 0.6], [0.8, 0.6]], [[0, 0], [-0.9, 0.5], [0.9, 0.5], [0, -1]], [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]], [[-1, -0.5], [0, -1], [1, -0.5], [1, 0.6], [0, 1.1], [-1, 0.6]]];
+    const molecule = (x: number, y: number, pic: string[], ang: number) => {
+      const off = OFF[Math.min(pic.length, 6) - 1], c = Math.cos(ang), s = Math.sin(ang);
+      const pts = off.map(([a, b]) => [x + (a * c - b * s) * r * 1.5, y + (a * s + b * c) * r * 1.5]);
+      // middle atom last so it sits on top
+      pic.slice(0, 6).map((sym, i) => ({ sym, p: pts[i], i })).sort((a, b) => (a.i === 0 ? 1 : 0) - (b.i === 0 ? 1 : 0)).forEach((o) => atom(o.p[0], o.p[1], o.sym, o.sym === 'H' ? r * 0.7 : r));
+    };
+    const inner = { x: 14, y: 14, w: W - 28, h: H - 28 };
+    const parts = t.parts, hetero = parts.length > 1 && !t.same;
+    // decide how many of each particle (at least 2 of a minor part so it can be seen)
+    const solidLike = parts.every((p) => SPECIES[p.s].look === 'lattice');
+    if (solidLike) {
+      // a crystal / metal: a grid, atoms or formula units on the sites
+      const step = parts.length === 1 && SPECIES[parts[0].s].pic.length > 2 ? 4.2 * r : gap + 3;
+      const cols = Math.floor(inner.w / step), rows = Math.floor(inner.h / step);
+      const minor = parts.length > 1 ? parts.slice(1) : [];
+      for (let i = 0; i < rows; i++) for (let j = 0; j < cols; j++) {
+        const x = inner.x + step / 2 + j * step, y = inner.y + step / 2 + i * step;
+        let sp = SPECIES[parts[0].s];
+        if (minor.length) { const frac = hetero ? (j > cols * parts[0].share ? 1 : 0) : rnd() < Math.max(0.12, 1 - parts[0].share) ? 1 : 0; if (frac) sp = SPECIES[minor[0].s]; }
+        if (sp.pic.length <= 2 && parts.length === 1) atom(x, y, sp.pic[(i + j) % sp.pic.length]);
+        else if (sp.pic.length <= 1 || parts.length > 1 && sp.pic.length <= 2) atom(x, y, sp.pic[sp.pic.length === 2 ? (i + j) % 2 : 0]);
+        else molecule(x, y, sp.pic, 0);
+      }
+    } else {
+      // molecules scattered; clumps or layers for a heterogeneous mixture
+      const n = Math.max(10, Math.min(26, Math.floor((inner.w * inner.h) / 1500)));
+      const counts = parts.map((p, i) => (i === 0 ? 0 : Math.max(2, Math.round(n * p.share))));
+      counts[0] = Math.max(3, n - counts.slice(1).reduce((a, b) => a + b, 0));
+      const placedPts: [number, number][] = [];
+      const free = (x: number, y: number) => placedPts.every(([a, b]) => Math.hypot(a - x, b - y) > 4.2 * r);
+      parts.forEach((p, k) => {
+        const sp = SPECIES[p.s];
+        for (let m = 0; m < counts[k]; m++) {
+          for (let tries = 0; tries < 60; tries++) {
+            let x = inner.x + 3 * r + rnd() * (inner.w - 6 * r), y = inner.y + 3 * r + rnd() * (inner.h - 6 * r);
+            if (hetero) { if (sp.look === 'lattice') { y = inner.y + inner.h - 3 * r - rnd() * inner.h * 0.3; } else if (k === 1) { y = inner.y + 3 * r + rnd() * inner.h * 0.3; } else if (parts.length > 1 && SPECIES[parts[1].s].look !== 'lattice') { y = inner.y + inner.h * 0.45 + rnd() * (inner.h * 0.55 - 3 * r); } }
+            if (free(x, y) || tries === 59) { placedPts.push([x, y]); if (sp.look === 'molecule' || sp.look === 'atom') molecule(x, y, sp.pic, rnd() * 6.28); else { for (const [dx, dy] of [[0, 0], [gap, 0], [0, gap], [gap, gap]]) atom(x + dx - gap / 2, y + dy - gap / 2, sp.pic[(dx + dy) / gap % sp.pic.length]); } break; }
+          }
+        }
+      });
+    }
+    // key and text
+    const syms = [...new Set(parts.flatMap((p) => Object.keys(SPECIES[p.s].atoms)))];
+    q('.msr-h').textContent = `Look at the particles: ${t.name}`;
+    q('.msr-key').textContent = `Particles: ${parts.map((p) => `${SPECIES[p.s].name} ${SPECIES[p.s].formula}`).join(' + ')}. Atoms: ${syms.join(', ')}.`;
+    const done = placed.has(t.id);
+    q('.msr-why').textContent = done ? why(t, split) : `${parts.length === 1 ? 'One kind of particle' : `${parts.length} kinds of particle`}, with ${syms.length} kind${syms.length === 1 ? '' : 's'} of atom in all. Which bin?`;
+    q('.msr-cv').setAttribute('aria-label', `Particles of ${t.name}: ${q('.msr-key').textContent}`);
+  }
+
+  wireLevel(root, (l) => { split = l === '9'; all = false; deal(); });
+  q('.msr-new').addEventListener('click', () => { all = false; deal(); });
+  q('.msr-all').addEventListener('click', () => { all = true; deal(); });
+  const quizBox = document.createElement('div'); q('.msr-quiz').append(quizBox);
+  mountQuiz(quizBox, () => questions(split));
+  document.addEventListener('fibub:theme', drawPic);
+  const cv = q<HTMLCanvasElement>('.msr-cv'); let rw = 0;
+  new ResizeObserver(() => { const w = cv.clientWidth; if (w !== rw) { rw = w; drawPic(); } }).observe(cv);
+  void kindOf;
+</script>
+
+<style is:inline>
+  .msr .msr-lab { font-size: 14px; color: var(--muted); margin-right: 8px; }
+  .msr .ax-seg button { min-height: 44px; }
+  .msr .msr-tray { display: flex; flex-wrap: wrap; gap: 8px; min-height: 48px; margin-bottom: 12px; }
+  .msr-chip { min-height: 44px; padding: 8px 12px; font: inherit; font-size: 15px; border: 1px solid var(--ink); border-radius: 999px; background: var(--bg); color: var(--ink); cursor: grab; touch-action: none; user-select: none; }
+  .msr-chip[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .msr-ghost { position: fixed; z-index: 50; pointer-events: none; opacity: 0.9; }
+  .msr .msr-bins { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)); gap: 8px; }
+  .msr .msr-bin { border: 2px dashed var(--line); border-radius: 12px; padding: 8px; min-height: 92px; cursor: pointer; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+  .msr .msr-bin:focus-visible { outline: 3px solid var(--accent); }
+  .msr .msr-bh { margin: 0 0 4px; font-weight: 700; font-size: 14px; }
+  .msr .msr-done { border: 0; background: none; color: var(--good); font: inherit; font-size: 14px; padding: 2px 0; text-align: left; cursor: pointer; }
+  .msr .msr-fb { min-height: 1.4em; font-weight: 600; margin: 6px 0; }
+  .msr .msr-ok { color: var(--good); }
+  .msr .msr-no { color: var(--bad); }
+  .msr .msr-why { font-size: 15px; margin: 8px 0 4px; }
+  .msr [hidden] { display: none !important; }
+</style>
