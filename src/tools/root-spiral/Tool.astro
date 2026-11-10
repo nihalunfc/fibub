@@ -1,0 +1,149 @@
+---
+// Square root spiral (Learn): the spiral of Theodorus, built one right triangle at a time (legs √k and 1, so the
+// hypotenuse is √(k + 1)), and the semicircle construction that puts √x on the number line. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm rs">
+  <div class="ax-card">
+    <h2>Build square roots with a ruler</h2>
+    <div class="ax-seg rs-mode" role="group" aria-label="Construction">
+      <button type="button" data-m="spiral" aria-pressed="true">Square root spiral</button>
+      <button type="button" data-m="line" aria-pressed="false">√x on the number line</button>
+    </div>
+    <svg class="sm-fig rs-fig" viewBox="0 0 340 340" role="img" aria-label="The construction drawn to scale" style="margin-top:10px"></svg>
+    <div class="rs-sp">
+      <div class="sm-sl"><b>n</b><input type="range" class="rs-nr" min="1" max="30" step="1" value="5" aria-label="Number of triangles slider" /><input type="number" class="rs-n" min="1" max="30" step="1" value="5" inputmode="numeric" aria-label="Number of triangles" /></div>
+      <p class="ax-help">The number of right triangles in the spiral.</p>
+    </div>
+    <div class="rs-ln" hidden>
+      <div class="sm-sl"><b>x</b><input type="range" class="rs-xr" min="0.5" max="16" step="0.1" value="3.5" aria-label="x slider" /><input type="number" class="rs-x" min="0.1" max="100" step="0.1" value="3.5" inputmode="decimal" aria-label="The number x whose square root you want" /></div>
+      <p class="ax-help">The number whose square root you want to mark.</p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Why it works</h2>
+    <ol class="sm-steps rs-steps"></ol>
+    <p class="ax-big rs-big" style="margin:10px 0 0"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Build the spiral to 16 triangles, then 17. When does it first go all the way round?</li>
+      <li>Which spokes have whole-number lengths? (√4, √9, √16, √25 …)</li>
+      <li>On the number line, set x = 9. The semicircle method gives BD = 3. Try x = 2 and compare with the spiral's first spoke.</li>
+      <li>Set x = 0.5. Is √0.5 bigger or smaller than 0.5?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Give decimals to 2 places. Nothing is saved.</p>
+    <div class="rs-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .rs svg .rs-t0 { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.2; }
+  .rs svg .rs-t1 { fill: var(--good-soft); stroke: var(--good); stroke-width: 1.2; }
+  .rs svg .rs-new { stroke: var(--bad); stroke-width: 3; }
+  .rs svg .rs-lab { font-size: 11px; font-weight: 700; paint-order: stroke; stroke: var(--surface); stroke-width: 3px; }
+  .rs svg .rs-arc { fill: none; stroke: var(--warn); stroke-width: 2; stroke-dasharray: 5 4; }
+  .rs svg .rs-bd { stroke: var(--bad); stroke-width: 3; }
+</style>
+
+<script>
+  import { spiral, centreAngle, totalTurn, semicircle, surd } from '../../lib/sci/root-spiral';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, pair, val, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.rs')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.rs-fig'), Nn = q<HTMLInputElement>('.rs-n'), Xx = q<HTMLInputElement>('.rs-x');
+  pair(q('.rs-nr'), Nn, draw); pair(q('.rs-xr'), Xx, draw);
+  let mode: 'spiral' | 'line' = 'spiral';
+  const rt = (k: number) => { const s = surd(k); return /√/.test(s) ? `√${k}` : `√${k} = ${s}`; };
+  const li = (t: string) => Object.assign(document.createElement('li'), { textContent: t });
+
+  for (const b of root.querySelectorAll<HTMLButtonElement>('.rs-mode button')) b.addEventListener('click', () => {
+    mode = b.dataset.m as 'spiral' | 'line';
+    for (const o of root.querySelectorAll('.rs-mode button')) o.setAttribute('aria-pressed', String(o === b));
+    q('.rs-sp').hidden = mode !== 'spiral'; q('.rs-ln').hidden = mode !== 'line';
+    draw();
+  });
+
+  function drawSpiral() {
+    const n = Math.round(val(Nn, 5, 1, 30)), { pts } = spiral(n), R = Math.sqrt(n + 1), k = 150 / R;
+    fig.setAttribute('viewBox', '0 0 340 340');
+    const X = (p: number[]) => 170 + p[0] * k, Y = (p: number[]) => 170 - p[1] * k;
+    for (let i = 1; i <= n; i++) {
+      const a = pts[i - 1], b = pts[i];
+      S('polygon', { points: `170,170 ${X(a)},${Y(a)} ${X(b)},${Y(b)}`, class: i % 2 ? 'rs-t0' : 'rs-t1' }, fig);
+    }
+    const b = pts[n];
+    S('line', { x1: 170, y1: 170, x2: X(b), y2: Y(b), class: 'rs-new' }, fig);
+    // Label the spokes (all when few, then every few).
+    const step = n <= 12 ? 1 : n <= 20 ? 2 : 3;
+    for (let i = 0; i <= n; i++) if (i === n || i % step === 0) {
+      const p = pts[i], d = Math.hypot(p[0], p[1]);
+      S('text', { x: X([p[0] * (1 + 0.6 / d), 0]), y: Y([0, p[1] * (1 + 0.6 / d)]) + 4, 'text-anchor': 'middle', class: 'rs-lab' }, fig, surd(i + 1).includes('√') ? `√${i + 1}` : surd(i + 1));
+    }
+    S('circle', { cx: 170, cy: 170, r: 3, style: 'fill:var(--ink)' }, fig);
+    S('text', { x: 162, y: 166, 'text-anchor': 'end', class: 'rs-lab' }, fig, 'O');
+    const turn = totalTurn(n);
+    q('.rs-steps').replaceChildren(
+      li('Start with a right triangle with both short sides 1: its long side is √(1² + 1²) = √2.'),
+      li('Stand a side of length 1 at right angles on the end of the last long side, and join it to O.'),
+      li(`Triangle ${n} has legs √${n} and 1, so by Pythagoras its long side is √((√${n})² + 1²) = √(${n} + 1) = ${rt(n + 1)}${surd(n + 1).includes('√') ? ` ≈ ${fmt(Math.sqrt(n + 1), 4)}` : ''}.`),
+      li(`Its angle at O is tan⁻¹(1/√${n}) = ${fmt(centreAngle(n), 2)}°. All ${n} triangles together turn ${fmt(turn, 2)}°${turn >= 360 ? ', more than one full turn' : ''}.`),
+    );
+    q('.rs-big').textContent = `Newest spoke: ${rt(n + 1)}${surd(n + 1).includes('√') ? ` ≈ ${fmt(Math.sqrt(n + 1), 4)}` : ''}`;
+  }
+
+  function drawLine() {
+    const x = val(Xx, 3.5, 0.1, 100), g = semicircle(x), rx = Math.sqrt(x);
+    const lo = -x, hi = Math.max(1, rx), k = Math.min(300 / (hi - lo), 150 / g.r);
+    const h = 40 + g.r * k + 50;
+    fig.setAttribute('viewBox', `0 0 340 ${Math.round(h)}`);
+    const base = 30 + g.r * k, X = (t: number) => 20 + (t - lo) * k + (300 - (hi - lo) * k) / 2, Y = (y: number) => base - y * k;
+    // Number line with B at 0.
+    S('line', { x1: 10, x2: 330, y1: base, y2: base, class: 'sm-axis' }, fig);
+    for (let t = Math.ceil(lo); t <= Math.floor(hi); t++) if (k >= 12 || t % 2 === 0) { S('line', { x1: X(t), x2: X(t), y1: base - 4, y2: base + 4, class: 'sm-axis' }, fig); S('text', { x: X(t), y: base + 16, 'text-anchor': 'middle', class: 'sm-tick' }, fig, fmt(t)); }
+    // Semicircle on AC (A at −x, C at 1), centre at (1 − x)/2.
+    const cx = (1 - x) / 2;
+    S('path', { d: `M${X(-x)},${base} A${g.r * k},${g.r * k} 0 0 1 ${X(1)},${base}`, class: 'sm-line' }, fig);
+    S('line', { x1: X(0), y1: base, x2: X(0), y2: Y(g.bd), class: 'rs-bd' }, fig);
+    // Arc from D down to the line: centre B, radius BD.
+    S('path', { d: `M${X(0)},${Y(g.bd)} A${g.bd * k},${g.bd * k} 0 0 1 ${X(g.bd)},${base}`, class: 'rs-arc' }, fig);
+    for (const [t, y, name] of [[-x, 0, 'A'], [0, 0, 'B'], [1, 0, 'C'], [cx, 0, 'O'], [0, g.bd, 'D'], [g.bd, 0, 'E']] as [number, number, string][]) {
+      S('circle', { cx: X(t), cy: Y(y), r: 3.5, style: 'fill:var(--ink)' }, fig);
+      S('text', { x: X(t) + (name === 'D' ? -8 : 0), y: Y(y) + (y > 0 ? -6 : name === 'O' || name === 'E' ? -8 : 30), 'text-anchor': name === 'D' ? 'end' : 'middle', class: 'rs-lab' }, fig, name);
+    }
+    S('text', { x: X(g.bd), y: base + 30, 'text-anchor': 'middle', class: 'rs-lab', style: 'fill:var(--bad)' }, fig, `√${fmt(x, 2)}`);
+    q('.rs-steps').replaceChildren(
+      li(`Mark AB = ${fmt(x, 2)} and then BC = 1 on a straight line, so AC = ${fmt(x + 1, 2)}.`),
+      li(`Find the midpoint O of AC and draw a semicircle with radius OC = ${fmt(g.r, 3)}.`),
+      li(`Draw a line at right angles to AC at B; it meets the semicircle at D. In triangle OBD: OB = ${fmt(Math.abs(x - g.r), 3)}, so BD² = OD² − OB² = ${fmt(g.r * g.r, 4)} − ${fmt((x - g.r) ** 2, 4)} = ${fmt(g.bd * g.bd, 4)}.`),
+      li(`So BD = √${fmt(x, 2)}. Take B as 0: an arc with centre B and radius BD marks E on the number line at √${fmt(x, 2)}.`),
+    );
+    q('.rs-big').textContent = `√${fmt(x, 2)} ${Math.abs(rx * 1e4 - Math.round(rx * 1e4)) < 1e-6 ? '=' : '≈'} ${fmt(rx, 4)}`;
+  }
+
+  function draw() { fig.replaceChildren(); if (mode === 'spiral') drawSpiral(); else drawLine(); }
+  draw();
+
+  quiz(q('.rs-quiz'), () => {
+    const out: Question[] = [];
+    const n = randInt(2, 20);
+    out.push({ q: `In the square root spiral, triangle ${n} has legs √${n} and 1. How long is its long side (2 decimal places)?`, want: [Math.round(Math.sqrt(n + 1) * 100) / 100], tol: 0.003, work: `√(${n} + 1) = √${n + 1} ≈ ${fmt(Math.sqrt(n + 1), 2)}.` });
+    const w = randInt(3, 7);
+    out.push({ q: `Which triangle of the spiral has a long side of exactly ${w}?`, want: [w * w - 1], work: `The long side of triangle k is √(k + 1). √(k + 1) = ${w} means k + 1 = ${w * w}, so k = ${w * w - 1}.` });
+    const [a, b] = [[2, 3], [3, 2], [2, 5], [4, 2], [3, 3], [2, 7], [5, 2], [4, 3]][randInt(0, 7)];
+    out.push({ q: `Write √${a * a * b} in simplest form a√b. Type a and b.`, want: [a, b], ordered: true, hint: 'a, b', work: `${a * a * b} = ${a * a} × ${b}, so √${a * a * b} = √${a * a} × √${b} = ${a}√${b}.` });
+    const x = [4, 9, 16, 25, 36][randInt(0, 4)];
+    out.push({ q: `To mark √${x}: AB = ${x}, BC = 1, semicircle on AC. What is the radius of the semicircle?`, want: [(x + 1) / 2], work: `AC = ${x + 1}, so the radius is ${x + 1} ÷ 2 = ${fmt((x + 1) / 2)}; BD then comes out as √${x} = ${Math.sqrt(x)}.` });
+    return out;
+  });
+</script>
