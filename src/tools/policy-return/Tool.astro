@@ -1,0 +1,153 @@
+---
+// #T833 Endowment, money-back and ULIP return (IRR)
+import InsuranceNote from '../../components/InsuranceNote.astro';
+---
+<div class="tool-ui pr">
+  <InsuranceNote />
+  <section class="panel">
+    <h2>The policy</h2>
+    <p class="pr-hint">Example numbers: change them to yours. Copy the payouts from the benefit illustration the seller gives you. Years are counted from the day you start (year 0), and each premium is paid at the start of its year.</p>
+    <div class="pr-grid">
+      <label>Currency <select class="pr-cur" data-k="cur"></select></label>
+      <label>Premium each year <input data-k="prem" inputmode="decimal" /></label>
+      <label>Years you pay <input data-k="pay" inputmode="decimal" /></label>
+      <label>Sum assured (life cover) <input data-k="sa" inputmode="decimal" /></label>
+    </div>
+    <h2 style="margin-top:16px">Payouts you get</h2>
+    <div class="pr-rows"></div>
+    <button type="button" class="btn secondary pr-add">Add a payout</button>
+    <h2 style="margin-top:16px">Compare with term cover plus investing</h2>
+    <div class="pr-grid">
+      <label>Term premium for the same cover <input data-k="term" inputmode="decimal" /></label>
+      <label>Return you assume on investing <span class="pr-suf"><input data-k="rate" inputmode="decimal" /><i>% a year</i></span></label>
+    </div>
+    <p class="note bad pr-err" role="alert" hidden></p>
+  </section>
+  <section class="pr-res" aria-live="polite">
+    <div class="pr-stats">
+      <div><span>Policy return (IRR)</span><b class="pr-s-irr"></b></div>
+      <div><span>Total paid in</span><b class="pr-s-paid"></b></div>
+      <div><span>Term and invest, at the end</span><b class="pr-s-inv"></b></div>
+      <div><span>Policy payouts, valued at the end</span><b class="pr-s-pol"></b></div>
+      <div><span>Break-even return</span><b class="pr-s-be"></b></div>
+    </div>
+    <p class="pr-line pr-words"></p>
+    <figure class="pr-chart panel">
+      <figcaption>Value over time: <span class="pr-leg"></span></figcaption>
+      <div class="pr-svg"></div>
+    </figure>
+    <details class="panel" open>
+      <summary>Year by year</summary>
+      <div class="pr-wrap"><table>
+        <thead><tr><th>Year</th><th>Premium</th><th>Payout</th><th>Net</th><th>Term and invest</th><th>Policy payouts</th></tr></thead>
+        <tbody class="pr-body"></tbody>
+      </table></div>
+      <button type="button" class="btn secondary pr-csv" style="margin-top:12px">Download the table (CSV)</button>
+    </details>
+  </section>
+  <p class="pr-fine">How it is worked out: the policy return is the rate that makes the premiums and payouts add up to zero (IRR). "Term and invest" puts the difference between this premium and the term premium into an investment each year at the return you assume; the policy's payouts are grown at the same return to the final year, so the two can be compared. The break-even return is the investing return at which both are equal. Tax, charges, bonuses that are not guaranteed and the value of the life cover itself are left out. Not financial advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .pr { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .pr > *, .pr-res > * { min-width: 0; }
+  .pr h2 { margin: 0 0 12px; font-size: 18px; }
+  .pr .panel { padding: 16px; }
+  .pr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .pr label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .pr input, .pr select, .pr textarea { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .pr input:focus, .pr select:focus, .pr textarea:focus { border-color: var(--accent); outline: none; }
+  .pr-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .pr-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .pr-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .pr-stats span { font-size: 13px; color: var(--muted); }
+  .pr-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
+  .pr-line { margin: 0; font-size: 15px; }
+  .pr-line:empty { display: none; }
+  .pr-fine, .pr-hint { margin: 0; color: var(--muted); font-size: 13px; }
+  .pr-err { margin: 10px 0 0; }
+  .pr-wrap { overflow-x: auto; }
+  .pr table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .pr th, .pr td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .pr th:first-child, .pr td:first-child { text-align: left; }
+  .pr th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .pr details summary { cursor: pointer; font-weight: 700; margin-bottom: 8px; }
+  .pr-suf { position: relative; display: block; }
+  .pr-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .pr-suf input { padding-right: 84px; }
+  .pr-rows { display: grid; gap: 8px; margin-bottom: 10px; }
+  .pr-row { display: grid; grid-template-columns: 1fr 2fr auto; gap: 8px; align-items: end; }
+  .pr-chart { margin: 0; }
+  .pr-chart figcaption { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+  .pr-leg { display: inline-flex; flex-wrap: wrap; gap: 4px 14px; font-weight: 500; color: var(--muted); }
+  .pr-leg .lg { display: inline-flex; gap: 6px; align-items: center; }
+  .pr-svg text { font-family: system-ui, sans-serif; }
+</style>
+
+<script>
+  import { policyFlows, irr, investDifference } from '../../lib/money/insurance';
+  import { lineSvg, legend, downloadCsv } from '../../lib/money/chart';
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.pr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const cur = defaultCurrency();
+  q('.pr-cur').innerHTML = currencyOptions(cur);
+  const big = cur === 'INR';
+  f('prem').value = big ? '1,00,000' : '5,000'; f('pay').value = '10'; f('sa').value = big ? '10,00,000' : '50,000';
+  f('term').value = big ? '8,000' : '400'; f('rate').value = '8';
+  const rowsEl = q('.pr-rows');
+  function addRow(year: string, amount: string) {
+    const d = document.createElement('div'); d.className = 'pr-row';
+    d.innerHTML = `<label>Year <input class="pr-by" inputmode="decimal" aria-label="Payout year" value="${year}" /></label><label>Amount <input class="pr-ba" inputmode="decimal" aria-label="Payout amount" value="${amount}" /></label><button type="button" class="btn secondary pr-del" aria-label="Remove this payout">Remove</button>`;
+    rowsEl.appendChild(d);
+  }
+  addRow('10', big ? '13,50,000' : '67,500');
+  q('.pr-add').addEventListener('click', () => { addRow('', ''); run(); });
+  rowsEl.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('.pr-del'); if (b && rowsEl.children.length > 1) { b.parentElement!.remove(); run(); } });
+  const $ = (n: number) => money(n, f('cur').value, 0);
+  const pct = (v: number) => (Number.isFinite(v) ? (v * 100).toFixed(2) + '%' : 'n/a');
+  let table: (string | number)[][] = [];
+  const polValue = (bens: { year: number; amount: number }[], r: number, at: number) => bens.reduce((s, b) => (b.year <= at ? s + b.amount * Math.pow(1 + r / 100, at - b.year) : s), 0);
+  function run() {
+    const prem = num(f('prem').value), pay = Math.round(num(f('pay').value)), term = num(f('term').value), rate = num(f('rate').value);
+    const bens = [...rowsEl.querySelectorAll('.pr-row')].map((r) => ({ year: Math.round(num((r.querySelector('.pr-by') as HTMLInputElement).value)), amount: num((r.querySelector('.pr-ba') as HTMLInputElement).value) })).filter((b) => b.amount > 0);
+    const last = Math.max(pay, ...bens.map((b) => b.year));
+    const bad = !(prem > 0) ? 'Enter the premium you pay each year.' : !(pay >= 1 && pay <= 60) ? 'Enter how many years you pay, from 1 to 60.' : !bens.length ? 'Add at least one payout with a year and an amount.' : bens.some((b) => b.year < 1 || b.year > 80) ? 'Payout years must be from 1 to 80.' : term < 0 || rate < -20 || rate > 60 ? 'Enter a term premium of 0 or more and a yearly return such as 8.' : '';
+    q('.pr-err').hidden = !bad; q('.pr-err').textContent = bad; q('.pr-res').hidden = !!bad;
+    if (bad) return;
+    const flows = policyFlows({ premium: prem, payYears: pay, benefits: bens });
+    const r = irr(flows);
+    const paid = prem * pay;
+    const inv = investDifference(prem, term, pay, rate, last);
+    const pol = polValue(bens, rate, last);
+    // break-even: investing return where term-and-invest equals the policy payouts grown at the same return
+    const g = (x: number) => investDifference(prem, term, pay, x, last) - polValue(bens, x, last);
+    let lo = -50, hi = 100, be = NaN;
+    if (g(lo) * g(hi) < 0) { for (let i = 0; i < 100; i++) { const m = (lo + hi) / 2; if ((g(m) < 0) === (g(lo) < 0)) lo = m; else hi = m; } be = (lo + hi) / 2; }
+    q('.pr-s-irr').textContent = pct(r);
+    q('.pr-s-paid').textContent = $(paid);
+    q('.pr-s-inv').textContent = $(inv);
+    q('.pr-s-pol').textContent = $(pol);
+    q('.pr-s-be').textContent = Number.isFinite(be) ? be.toFixed(2) + '% a year' : 'none in range';
+    const winner = inv > pol ? 'Term and invest ends higher' : 'The policy ends higher';
+    q('.pr-words').innerHTML = `The policy returns about <b>${pct(r)}</b> a year on what you pay in. At ${rate}% a year, ${winner.toLowerCase()} in year ${last}: ${$(inv)} against ${$(pol)}. ${Number.isFinite(be) ? `The two are equal if investing earns <b>${be.toFixed(2)}%</b> a year.` : ''} The policy also gives life cover of ${$(num(f('sa').value))}, which this return does not count.`;
+    const xs: number[] = [], pv: number[] = [], iv: number[] = [];
+    table = [['Year', 'Premium', 'Payout', 'Net', 'Term and invest', 'Policy payouts']];
+    let body = '';
+    for (let y = 0; y <= last; y++) {
+      const p = y < pay ? prem : 0, b = bens.filter((x) => x.year === y).reduce((s, x) => s + x.amount, 0);
+      const a = investDifference(prem, term, pay, rate, y), c = polValue(bens, rate, y);
+      xs.push(y); iv.push(a); pv.push(c);
+      table.push([y, p, b, b - p, Math.round(a), Math.round(c)]);
+      body += `<tr><td>${y}</td><td>${$(p)}</td><td>${$(b)}</td><td>${$(b - p)}</td><td>${$(a)}</td><td>${$(c)}</td></tr>`;
+    }
+    q('.pr-body').innerHTML = body;
+    const series = [{ label: 'Term and invest', ys: iv, color: 'var(--accent)' }, { label: 'Policy payouts', ys: pv, color: 'var(--muted)', dash: true }];
+    q('.pr-svg').innerHTML = lineSvg(series, xs, 'Term and invest compared with the policy payouts, year by year');
+    q('.pr-leg').innerHTML = legend(series);
+  }
+  q('.pr-csv').addEventListener('click', () => downloadCsv('policy-return.csv', table));
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

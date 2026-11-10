@@ -1,0 +1,120 @@
+---
+// #T835 Fair price of a term life quote
+import InsuranceNote from '../../components/InsuranceNote.astro';
+---
+<div class="tool-ui tf">
+  <InsuranceNote />
+  <section class="panel">
+    <h2>The quote</h2>
+    <p class="tf-hint">Example numbers: change them to yours.</p>
+    <div class="tf-grid">
+      <label>Currency <select class="tf-cur" data-k="cur"></select></label>
+      <label>Sum assured <input data-k="sa" inputmode="decimal" /></label>
+      <label>Interest (return on the insurer's money) <span class="tf-suf"><input data-k="rate" inputmode="decimal" /><i>% a year</i></span></label>
+      <label>Quote you were given, per year (optional) <input data-k="quote" inputmode="decimal" /></label>
+    </div>
+    <h2 style="margin-top:16px">Chance of dying each year</h2>
+    <div class="tf-grid">
+      <label>How to give it
+        <select data-k="mode"><option value="one">One number for my age, then it rises</option><option value="col">Paste a column, one number per year</option></select>
+      </label>
+    </div>
+    <div class="tf-one tf-grid" style="margin-top:12px">
+      <label>Death chance at your age (q, a decimal like 0.0021) <input data-k="q0" inputmode="decimal" /></label>
+      <label>It rises each year by <span class="tf-suf"><input data-k="growth" inputmode="decimal" /><i>% a year</i></span></label>
+      <label>Term <span class="tf-suf"><input data-k="term" inputmode="decimal" /><i>years</i></span></label>
+    </div>
+    <div class="tf-col" hidden style="margin-top:12px">
+      <label>q values, one per year, from your age onward (the number of values is the term) <textarea data-k="col" rows="5"></textarea></label>
+    </div>
+    <p class="tf-hint" style="margin-top:10px">Copy q for your age and sex from an official life table: <a href="https://www.ssa.gov/oact/STATS/table4c6.html" rel="noopener">US Social Security period life table</a>, <a href="https://www150.statcan.gc.ca/n1/en/catalogue/84-537-X" rel="noopener">Statistics Canada life tables</a>, or the India SRS abridged life tables from the Registrar General (checked 2026-11-10; check the official source). Adults' death rates roughly double every 8 years (Gompertz law), which is about 9% a year, and that is the default rise.</p>
+    <p class="note bad tf-err" role="alert" hidden></p>
+  </section>
+  <section class="tf-res" aria-live="polite">
+    <div class="tf-stats">
+      <div><span>Fair price per year</span><b class="tf-s-fair"></b></div>
+      <div class="tf-ld"><span>Your quote divided by fair price</span><b class="tf-s-load"></b></div>
+      <div><span>Chance the policy pays out</span><b class="tf-s-claim"></b></div>
+      <div><span>Chance it does not</span><b class="tf-s-none"></b></div>
+    </div>
+    <p class="tf-line tf-words"></p>
+    <p class="tf-line">Insured people die less often than the whole population in the first years, because they pass medical checks. So the fair price for an insured person is lower than shown here, and the true loading on your quote is higher than the figure above.</p>
+  </section>
+  <p class="tf-fine">How it is worked out: the fair price P is paid at the start of each year while you are alive and equals the expected death benefit, paid at the end of the year of death: P = SA x sum of v^(k+1) x (chance alive at k) x q(k) divided by the sum of v^k x (chance alive at k), with v = 1 / (1 + interest). Insurer costs, profit, tax and medical selection are left out. Not financial or insurance advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .tf { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .tf > *, .tf-res > * { min-width: 0; }
+  .tf h2 { margin: 0 0 12px; font-size: 18px; }
+  .tf .panel { padding: 16px; }
+  .tf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .tf label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .tf input, .tf select, .tf textarea { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .tf input:focus, .tf select:focus, .tf textarea:focus { border-color: var(--accent); outline: none; }
+  .tf-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .tf-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .tf-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .tf-stats span { font-size: 13px; color: var(--muted); }
+  .tf-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
+  .tf-line { margin: 0; font-size: 15px; }
+  .tf-line:empty { display: none; }
+  .tf-fine, .tf-hint { margin: 0; color: var(--muted); font-size: 13px; }
+  .tf-err { margin: 10px 0 0; }
+  .tf-wrap { overflow-x: auto; }
+  .tf table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .tf th, .tf td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .tf th:first-child, .tf td:first-child { text-align: left; }
+  .tf th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .tf details summary { cursor: pointer; font-weight: 700; margin-bottom: 8px; }
+  .tf-suf { position: relative; display: block; }
+  .tf-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .tf-suf input { padding-right: 84px; }
+  .tf [hidden] { display: none !important; }
+</style>
+
+<script>
+  import { gompertz, fairTerm } from '../../lib/money/insurance';
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.tf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const cur = defaultCurrency();
+  q('.tf-cur').innerHTML = currencyOptions(cur);
+  const big = cur === 'INR';
+  f('sa').value = big ? '1,00,00,000' : '500,000'; f('rate').value = '4'; f('quote').value = big ? '14,000' : '600';
+  f('q0').value = '0.0021'; f('growth').value = '9'; f('term').value = '20';
+  const $ = (n: number, d = 0) => money(n, f('cur').value, d);
+  const pc = (v: number) => (v * 100 < 10 ? (v * 100).toFixed(1) : Math.round(v * 100)) + '%';
+  function run() {
+    const col = f('mode').value === 'col';
+    q('.tf-one').hidden = col; q('.tf-col').hidden = !col;
+    const sa = num(f('sa').value), rate = num(f('rate').value), quote = num(f('quote').value);
+    let qs: number[] = [];
+    let bad = '';
+    if (col) {
+      const parts = f('col').value.split(/[\s,;]+/).filter(Boolean);
+      qs = parts.map((p) => Number(p));
+      if (!qs.length || qs.some((x) => !Number.isFinite(x) || x < 0 || x > 1)) bad = 'Paste death chances as decimals between 0 and 1, one per year (for example 0.0021).';
+    } else {
+      const q0 = Number(f('q0').value), term = Math.round(num(f('term').value)), g = num(f('growth').value);
+      if (!(q0 > 0 && q0 <= 1)) bad = 'Enter the death chance at your age as a decimal, for example 0.0021.';
+      else if (!(term >= 1 && term <= 70)) bad = 'Enter a term from 1 to 70 years.';
+      else if (g < -10 || g > 30) bad = 'Enter a yearly rise such as 9.';
+      else qs = gompertz(q0, g, term);
+    }
+    if (!bad && !(sa > 0)) bad = 'Enter the sum assured.';
+    if (!bad && (rate < -5 || rate > 30)) bad = 'Enter an interest rate such as 4.';
+    q('.tf-err').hidden = !bad; q('.tf-err').textContent = bad; q('.tf-res').hidden = !!bad;
+    if (bad) return;
+    const r = fairTerm(qs, sa, rate);
+    q('.tf-s-fair').textContent = $(r.premium, 2);
+    q('.tf-s-claim').textContent = pc(r.chanceOfClaim);
+    q('.tf-s-none').textContent = pc(r.survive);
+    const ld = q('.tf-ld'); ld.hidden = !(quote > 0);
+    q('.tf-s-load').textContent = quote > 0 ? (quote / r.premium).toFixed(2) + ' times' : '';
+    q('.tf-words').innerHTML = `If the whole population were insured, a fair price for ${$(sa)} over ${qs.length} years is about <b>${$(r.premium, 2)}</b> a year. ${quote > 0 ? `Your quote of ${$(quote)} is ${(quote / r.premium).toFixed(2)} times that${quote > r.premium ? `, so about ${Math.round((1 - r.premium / quote) * 100)}% of it is above the fair price (costs, profit and tax are part of this).` : '.'}` : ''}`;
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

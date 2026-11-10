@@ -1,0 +1,109 @@
+---
+import InsuranceNote from '../../components/InsuranceNote.astro';
+// #T824 Insurance terms explained: a searchable plain-English glossary.
+---
+<div class="tool-ui it">
+  <InsuranceNote />
+  <section class="panel">
+    <div class="it-grid">
+      <label>Search a word <input class="it-q" type="search" placeholder="for example deductible" autocomplete="off" /></label>
+      <label>Country <select class="it-region"><option value="">All</option><option value="IN">India</option><option value="CA">Canada</option><option value="US">United States</option><option value="UK">United Kingdom</option></select></label>
+      <label>Type of cover <select class="it-kind"><option value="">All</option><option value="health">Health</option><option value="dental">Dental</option><option value="car">Car</option><option value="life">Life</option><option value="home">Home</option><option value="general">General</option></select></label>
+    </div>
+    <p class="it-count" aria-live="polite"></p>
+  </section>
+  <div class="it-list"></div>
+  <p class="note it-none" hidden>No term matches. Try a shorter word, or set Country and Type of cover to All.</p>
+  <p class="it-fine">The examples are made-up numbers to show the idea. Your policy wording decides what applies to you. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .it { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .it > * { min-width: 0; }
+  .it .panel { padding: 16px; }
+  .it-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .it label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .it input, .it select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .it input:focus, .it select:focus { border-color: var(--accent); outline: none; }
+  .it-count { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+  .it-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+  .it-card { border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: var(--surface); display: grid; gap: 6px; align-content: start; }
+  .it-card h3 { margin: 0; font-size: 16px; overflow-wrap: anywhere; }
+  .it-card p { margin: 0; font-size: 14px; }
+  .it-eg { color: var(--muted); }
+  .it-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .it-tags span { font-size: 12px; border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; color: var(--muted); }
+  .it-tags .it-rg { color: var(--accent); border-color: var(--accent); font-weight: 600; }
+  .it-fine { margin: 0; color: var(--muted); font-size: 13px; }
+</style>
+
+<script>
+  type Term = { t: string; k: string[]; r: string[]; m: string; e: string; a?: string };
+  const H = 'health', D = 'dental', C = 'car', L = 'life', O = 'home', G = 'general';
+  const TERMS: Term[] = [
+    { t: 'Premium', k: [G], r: [], m: 'The price you pay for the cover, monthly or yearly.', e: 'A yearly premium of 600 is 50 a month.' },
+    { t: 'Deductible', a: 'excess', k: [H, C, O, G], r: ['US', 'CA'], m: 'The part of a covered loss you pay yourself before the policy pays. In the UK and India it is usually called the excess.', e: 'Loss 5,000, deductible 1,000: the policy pays 4,000.' },
+    { t: 'Excess', a: 'deductible', k: [C, O, G], r: ['UK', 'IN'], m: 'The amount you pay towards each claim. Same idea as a deductible.', e: 'Repair 800, excess 250: you pay 250 and the policy pays 550.' },
+    { t: 'Copay', a: 'co-payment', k: [H, D], r: ['US', 'CA', 'UK'], m: 'A fixed fee you pay for a service, such as a visit.', e: 'A 30 fee per doctor visit, whatever the doctor charges.' },
+    { t: 'Coinsurance', k: [H, D], r: ['US', 'CA'], m: 'A percentage of the bill you share with the plan after the deductible.', e: 'Bill 4,000 after the deductible, 20% coinsurance: you pay 800.' },
+    { t: 'Co-payment (India)', a: 'copay', k: [H], r: ['IN'], m: 'A percentage of every claim you pay, often higher for older people or certain hospitals.', e: 'Claim 100,000 with 10% co-payment: you pay 10,000.' },
+    { t: 'Out-of-pocket maximum', a: 'oop', k: [H, D], r: ['US'], m: 'The most you pay in a year for covered care. After it, the plan pays the covered rest.', e: 'Maximum 6,000: after you have paid 6,000 your covered bills are paid in full.' },
+    { t: 'Sum insured', k: [H, O, G], r: [], m: 'The most the policy will pay for a claim or a year.', e: 'Sum insured 500,000 and a bill of 120,000: the policy can pay up to 120,000.' },
+    { t: 'Sum assured', k: [L], r: ['IN', 'UK'], m: 'The amount a life policy pays on death or maturity.', e: 'Sum assured 5,000,000: your family receives 5,000,000.' },
+    { t: 'Annual maximum', k: [D, H], r: ['US', 'CA'], m: 'The most the plan pays in one year. After that, you pay the whole bill.', e: 'Annual maximum 1,500 and treatments of 2,200: you pay at least 700.' },
+    { t: 'IDV (insured declared value)', a: 'idv', k: [C], r: ['IN'], m: 'The most a car policy will pay if the car is stolen or written off. It falls as the car ages.', e: 'A car worth 800,000 new may carry an IDV of 640,000 after a year.' },
+    { t: 'No-claim bonus', a: 'ncb', k: [C], r: ['IN', 'UK'], m: 'A discount on your premium for each year without a claim. A claim usually reduces it.', e: 'Premium 10,000 with a 25% bonus: you pay 7,500.' },
+    { t: 'Sub-limit', k: [H], r: ['IN'], m: 'A cap on one item inside the policy, lower than the sum insured.', e: 'Sum insured 500,000 but cataract sub-limit 40,000: the plan pays at most 40,000 for that.' },
+    { t: 'Room-rent cap', k: [H], r: ['IN'], m: 'A daily limit on the hospital room. Going above it can cut other charges too.', e: 'Cap 5,000 a day, room 10,000 a day: you pay the extra 5,000 a day, and often more.' },
+    { t: 'Proportionate deduction', k: [H], r: ['IN'], m: 'If your room costs more than the cap, the claim is cut by the same share.', e: 'Room 10,000 vs cap 5,000 is half: a 200,000 bill may be paid at about 100,000.' },
+    { t: 'Waiting period', k: [H, L, D], r: [], m: 'A time after you start the policy when some claims are not paid.', e: 'A 2-year waiting period for a knee surgery: a claim in month 10 is refused.' },
+    { t: 'Pre-existing disease', k: [H], r: ['IN', 'US', 'UK', 'CA'], m: 'A condition you had before the policy began. Cover for it may be delayed or excluded.', e: 'Diabetes diagnosed last year may only be covered after the waiting period.' },
+    { t: 'Moratorium (India, 5 years)', k: [H], r: ['IN'], m: 'After 5 years of continuous cover, an insurer generally cannot refuse a claim for not disclosing an old condition, apart from fraud. Check the official rule.', e: 'Policy renewed without a break for 5 years: the old non-disclosure usually can no longer be used.' },
+    { t: 'Free-look period', k: [L, H], r: ['IN', 'UK', 'CA', 'US'], m: 'A short time after buying when you can cancel and get most of your money back.', e: 'Free look 15 days: cancel on day 10 and get the premium back less small charges.' },
+    { t: 'Grace period', k: [L, H], r: [], m: 'Extra days after the due date when you can still pay and keep the policy.', e: 'Due on 1 March with 30 days of grace: pay by 31 March and cover continues.' },
+    { t: 'Rider', a: 'add-on', k: [L, H], r: [], m: 'An optional extra added to a policy for an extra price.', e: 'A critical illness rider adds 2,000 a year for an extra payout.' },
+    { t: 'Exclusion', k: [G], r: [], m: 'Something the policy will not pay for.', e: 'A policy that excludes cosmetic surgery pays nothing towards a 30,000 procedure.' },
+    { t: 'Network and cashless', k: [H], r: ['IN', 'US', 'UK'], m: 'In-network providers have agreed prices with the insurer. Cashless means the insurer pays them directly.', e: 'A network hospital bills the insurer 80,000 and you pay only your share.' },
+    { t: 'Reimbursement', k: [H, G], r: [], m: 'You pay first, send the bills, and are repaid later.', e: 'Pay 50,000, claim, and receive 50,000 back less your share.' },
+    { t: 'Claim settlement ratio', k: [L, H], r: ['IN'], m: 'The share of claims an insurer paid out of those it received. High is good but does not show how fairly each was handled.', e: '95 paid out of 100 received: ratio 95%.' },
+    { t: 'Incurred claim ratio', a: 'loss ratio', k: [H, G], r: ['IN'], m: 'Claims paid divided by premiums collected.', e: 'Claims 70 for every 100 premium: ratio 70%.' },
+    { t: 'Loss ratio', a: 'incurred claim ratio', k: [G], r: ['US', 'CA', 'UK'], m: 'Claims paid plus costs of settling them, divided by premiums earned.', e: 'Paid and costs 85 on premiums of 100: loss ratio 85%.' },
+    { t: 'Surrender value', k: [L], r: [], m: 'What you get if you end a savings-type life policy early. Often less than you paid in.', e: 'Paid 100,000 in, surrender after 3 years: you may get 60,000.' },
+    { t: 'Paid-up value', k: [L], r: ['IN'], m: 'If you stop paying, the policy stays with a lower payout instead of ending.', e: 'A 1,000,000 cover paid for 5 of 10 years may become about 500,000 paid-up.' },
+    { t: 'Cash value', k: [L], r: ['US', 'CA'], m: 'The savings part inside a permanent life policy that you can borrow against or withdraw.', e: 'Cash value 12,000 lets you borrow part of that amount.' },
+    { t: 'Contestability period', k: [L], r: ['US', 'CA'], m: 'A first period (often 2 years) when the insurer may check the application and refuse a claim for a wrong answer.', e: 'A death in year 1 with a hidden illness can be investigated closely.' },
+    { t: 'Underwriting', k: [L, H, C, O], r: [], m: 'How the insurer judges your risk and decides the price or whether to cover you.', e: 'A smoker and a non-smoker of the same age usually get different prices.' },
+    { t: 'Subrogation', k: [C, H, O], r: [], m: 'After paying you, the insurer can claim back from whoever caused the loss.', e: 'The insurer pays your 4,000 repair then recovers it from the other driver.' },
+    { t: 'Actual cash value vs replacement cost', k: [O, C], r: ['US', 'CA', 'UK'], m: 'Actual cash value pays what the item is worth now. Replacement cost pays to buy a new one.', e: 'A 5-year-old sofa: cash value 300, replacement cost 900.' },
+    { t: 'Average clause (coinsurance clause)', a: 'underinsurance', k: [O, G], r: ['IN', 'UK', 'US', 'CA'], m: 'If you insured for less than the real value, a part loss is paid in proportion.', e: 'Insured 50,000 for a 100,000 house: a 20,000 loss pays about 10,000.' },
+    { t: 'Depreciation', k: [C, O], r: [], m: 'The drop in value of an item with age and use. Insurers often deduct it from parts claims.', e: 'A 10,000 part with 30% depreciation: you bear 3,000.' },
+    { t: 'Zero-depreciation add-on', a: 'zero dep', k: [C], r: ['IN'], m: 'An optional cover so that parts are paid at full price, not reduced for age.', e: 'On a 10,000 part, the add-on pays 10,000, not 7,000.' },
+    { t: 'Third-party, own damage and comprehensive', k: [C], r: ['IN', 'UK', 'CA', 'US'], m: 'Third-party pays others for harm you cause. Own damage pays for your car. Comprehensive includes both.', e: 'You hit a wall: third-party pays nothing for your car, comprehensive does.' },
+    { t: 'Liability limits 25/50/25', k: [C], r: ['US'], m: 'Per-person injury, per-accident injury and property damage limits, in thousands.', e: '25/50/25 pays up to 25,000 for one person, 50,000 per accident and 25,000 for property.' },
+    { t: 'Umbrella policy', k: [G, C, O], r: ['US', 'CA'], m: 'Extra liability cover that begins when your basic limits are used up.', e: 'A 1,000,000 umbrella on top of a 250,000 liability limit.' },
+    { t: 'Beneficiary and nominee', k: [L], r: ['IN', 'US', 'CA', 'UK'], m: 'The person who receives the payout. A beneficiary is the legal owner of the money in many places; a nominee in India may only receive it for the legal heirs.', e: 'Name your spouse and keep it up to date after major life events.' },
+    { t: 'Term life', k: [L], r: [], m: 'Cover for a set number of years that pays only if you die in that time.', e: '1,000,000 cover for 20 years at a low premium, with no payout if you outlive it.' },
+    { t: 'Endowment', k: [L], r: ['IN', 'UK'], m: 'A policy that pays a lump sum at the end of the term or on earlier death.', e: 'A 15-year plan that pays 1,500,000 at the end or to the family before.' },
+    { t: 'ULIP (unit-linked)', a: 'ulip', k: [L], r: ['IN'], m: 'Insurance plus investment in funds. Charges apply and the value can go up or down.', e: 'Premium 100,000: part is charges, part buys units that change price.' },
+    { t: 'Whole life', k: [L], r: ['US', 'CA', 'UK'], m: 'Cover for your whole life, usually with a cash value, at a higher price than term.', e: 'A permanent policy paying 200,000 whenever you die.' },
+    { t: 'HSA and HDHP', a: 'health savings account high deductible', k: [H], r: ['US'], m: 'A high-deductible health plan pairs with a tax-advantaged health savings account for medical costs.', e: 'Put 3,000 in the HSA to pay your first 3,000 of bills.' },
+    { t: 'Provincial plan', a: 'medicare', k: [H], r: ['CA'], m: 'Each Canadian province runs public cover for basic hospital and doctor care. Private plans add extras like dental and drugs.', e: 'Public pays a doctor visit; a private plan may pay 80% of glasses.' },
+  ];
+  const root = document.querySelector('.it') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const KIND: Record<string, string> = { health: 'Health', dental: 'Dental', car: 'Car', life: 'Life', home: 'Home', general: 'General' };
+  const RN: Record<string, string> = { IN: 'India', CA: 'Canada', US: 'US', UK: 'UK' };
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  function run() {
+    const text = q<HTMLInputElement>('.it-q').value.trim().toLowerCase();
+    const rg = q<HTMLSelectElement>('.it-region').value, kd = q<HTMLSelectElement>('.it-kind').value;
+    const hits = TERMS.filter((x) => (!rg || !x.r.length || x.r.includes(rg)) && (!kd || x.k.includes(kd)) && (!text || x.t.toLowerCase().includes(text) || (x.a || '').toLowerCase().includes(text) || x.m.toLowerCase().includes(text)));
+    q('.it-list').innerHTML = hits.map((x) => `<article class="it-card"><h3>${esc(x.t)}</h3><p>${esc(x.m)}</p><p class="it-eg">Example: ${esc(x.e)}</p><div class="it-tags">${x.r.length && x.r.length < 4 ? x.r.map((r) => `<span class="it-rg">${RN[r]}</span>`).join('') : ''}${x.k.map((k) => `<span>${KIND[k]}</span>`).join('')}</div></article>`).join('');
+    q('.it-none').hidden = hits.length > 0;
+    q('.it-count').textContent = `${hits.length} of ${TERMS.length} terms`;
+    try { const u = new URL(location.href); if (text) u.searchParams.set('q', text); else u.searchParams.delete('q'); history.replaceState(null, '', u); } catch {}
+  }
+  try { q<HTMLInputElement>('.it-q').value = new URLSearchParams(location.search).get('q') || ''; } catch {}
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

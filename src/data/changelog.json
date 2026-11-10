@@ -1,5 +1,157 @@
 [
  {
+  "sha": "b5ab04ed7775",
+  "date": "2026-11-10T14:33:09+00:00",
+  "title": "Insurance tools take the next free codes, #T824 to #T835",
+  "tools": [
+   "claim-or-pay",
+   "health-plan-comparer",
+   "idv-ncb",
+   "insurance-deductible",
+   "insurance-terms",
+   "life-cover-needed",
+   "policy-fine-print",
+   "policy-return",
+   "room-rent-cap",
+   "should-i-insure",
+   "term-fair-price",
+   "underinsurance-check"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b96f80f4f2a1",
+  "date": "2026-11-10T14:29:37+00:00",
+  "title": "Insurance tools: cross-links between the 12 tools and their share images",
+  "tools": [
+   "claim-or-pay",
+   "health-plan-comparer",
+   "insurance-deductible",
+   "policy-fine-print",
+   "policy-return",
+   "room-rent-cap",
+   "should-i-insure",
+   "term-fair-price",
+   "underinsurance-check"
+  ],
+  "site": false
+ },
+ {
+  "sha": "dde590edb5b7",
+  "date": "2026-11-10T14:27:03+00:00",
+  "title": "Add policy-fine-print insurance tool",
+  "tools": [
+   "policy-fine-print"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a3479110722d",
+  "date": "2026-11-10T14:27:03+00:00",
+  "title": "Add should-i-insure insurance tool",
+  "tools": [
+   "should-i-insure"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8a35fc15bc0e",
+  "date": "2026-11-10T14:27:03+00:00",
+  "title": "Add insurance-terms insurance tool",
+  "tools": [
+   "insurance-terms"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1b5a2021bac9",
+  "date": "2026-11-10T14:23:27+00:00",
+  "title": "Add idv-ncb tool",
+  "tools": [
+   "idv-ncb"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4b22d40ae4aa",
+  "date": "2026-11-10T14:23:26+00:00",
+  "title": "Add claim-or-pay tool",
+  "tools": [
+   "claim-or-pay"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d76caf2c47c9",
+  "date": "2026-11-10T14:23:26+00:00",
+  "title": "Add insurance-deductible tool",
+  "tools": [
+   "insurance-deductible"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e1bf82c392d3",
+  "date": "2026-11-10T14:20:58+00:00",
+  "title": "Add underinsurance-check tool",
+  "tools": [
+   "underinsurance-check"
+  ],
+  "site": false
+ },
+ {
+  "sha": "cfa634465d7e",
+  "date": "2026-11-10T14:20:58+00:00",
+  "title": "Add room-rent-cap tool",
+  "tools": [
+   "room-rent-cap"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7edc57e1fe61",
+  "date": "2026-11-10T14:20:58+00:00",
+  "title": "Add health-plan-comparer tool",
+  "tools": [
+   "health-plan-comparer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "178da075a386",
+  "date": "2026-11-10T14:18:05+00:00",
+  "title": "Add term-fair-price tool",
+  "tools": [
+   "term-fair-price"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2c03402c1694",
+  "date": "2026-11-10T14:18:05+00:00",
+  "title": "Add life-cover-needed tool",
+  "tools": [
+   "life-cover-needed"
+  ],
+  "site": false
+ },
+ {
+  "sha": "102683c80b09",
+  "date": "2026-11-10T14:18:04+00:00",
+  "title": "Add policy-return tool",
+  "tools": [
+   "policy-return"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1eb0421f0ef9",
+  "date": "2026-11-10T14:06:07+00:00",
+  "title": "Insurance category and shared insurance maths, checked against hand-worked examples",
+  "tools": [],
+  "site": true
+ },
+ {
   "sha": "9909207f948d",
   "date": "2026-11-10T11:09:26+00:00",
   "title": "Codes, cross-links and share images for batches 2 and 3",

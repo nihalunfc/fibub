@@ -1,0 +1,110 @@
+---
+// #T830 Car insurance deductible chooser: lower premium with a higher deductible, or the other way round?
+import InsuranceNote from '../../components/InsuranceNote.astro';
+---
+<div class="tool-ui ded">
+  <InsuranceNote />
+  <section class="panel">
+    <h2>Your two quotes</h2>
+    <p class="ded-hint">Example numbers: change them to yours. Works for car, home and health deductibles (excess).</p>
+    <div class="ded-grid">
+      <label>Currency <select class="ded-cur" data-k="cur"></select></label>
+      <label>Quote A: premium a year <input data-k="pa" inputmode="decimal" /></label>
+      <label>Quote A: deductible <input data-k="da" inputmode="decimal" /></label>
+      <label>Quote B: premium a year <input data-k="pb" inputmode="decimal" /></label>
+      <label>Quote B: deductible <input data-k="db" inputmode="decimal" /></label>
+    </div>
+    <h2>What claims look like</h2>
+    <div class="ded-grid">
+      <label>Claims a year <input data-k="lam" inputmode="decimal" /></label>
+      <label>Or: 1 claim every N years <input data-k="every" inputmode="decimal" placeholder="10" /></label>
+      <label>Typical claim (the middle one) <input data-k="med" inputmode="decimal" /></label>
+      <label>1 in 10 claims is bigger than <input data-k="p90" inputmode="decimal" /></label>
+      <label>Years to look at <input data-k="years" inputmode="decimal" /></label>
+    </div>
+    <p class="note bad ded-err" role="alert" hidden></p>
+  </section>
+  <section class="ded-res" aria-live="polite">
+    <div class="ded-stats">
+      <div><span>Yearly saving, high deductible</span><b class="ded-s-save"></b></div>
+      <div><span>Years of saving one full claim uses up</span><b class="ded-s-rec"></b></div>
+      <div><span>Break-even claims a year</span><b class="ded-s-be"></b></div>
+      <div><span>Expected saving over the years</span><b class="ded-s-exp"></b></div>
+      <div><span>Chance the high deductible comes out ahead</span><b class="ded-s-win"></b></div>
+    </div>
+    <p class="ded-line ded-words"></p>
+    <div class="panel"><h2>10,000 imagined runs</h2>
+      <table><thead><tr><th>Outcome</th><th>Saving (loss if negative)</th></tr></thead><tbody class="ded-sim"></tbody></table>
+      <p class="ded-hint">Worse luck (10th percentile), middle (50th) and good luck (90th). A negative number means the high deductible cost you more.</p>
+    </div>
+  </section>
+  <p class="ded-fine">How it is worked out: claims arrive at random (Poisson) at your yearly rate; sizes follow a lognormal curve fitted to your typical and 1-in-10 claim. Each claim costs you the smaller of the claim and the deductible. Expected extra cost per claim is E[min(X, high)] minus E[min(X, low)]. The runs use a fixed seed, so the same numbers give the same answer. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ded { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .ded > *, .ded-res > * { min-width: 0; }
+  .ded h2 { margin: 0 0 12px; font-size: 18px; }
+  .ded h2:not(:first-child) { margin-top: 16px; }
+  .ded .panel { padding: 16px; }
+  .ded-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .ded label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ded input, .ded select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ded input:focus, .ded select:focus { border-color: var(--accent); outline: none; }
+  .ded-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .ded-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 10px; }
+  .ded-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); align-content: start; }
+  .ded-stats span { font-size: 13px; color: var(--muted); }
+  .ded-stats b { font-size: clamp(17px, 3.4vw, 22px); overflow-wrap: anywhere; }
+  .ded-line { margin: 0; font-size: 15px; }
+  .ded-hint, .ded-fine { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+  .ded table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .ded th, .ded td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); }
+  .ded th:first-child, .ded td:first-child { text-align: left; }
+  .ded th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .ded-err { margin: 10px 0 0; }
+</style>
+
+<script>
+  import { deductibleChoice } from '../../lib/money/insurance';
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.ded')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const cur = defaultCurrency();
+  q('.ded-cur').innerHTML = currencyOptions(cur);
+  const def: Record<string, string> = { pa: '1200', da: '500', pb: '1000', db: '2500', lam: '0.1', every: '', med: '100000', p90: '200000', years: '10' };
+  for (const k in def) f(k).value = def[k];
+  const $ = (n: number) => money(n, f('cur').value, 0);
+  const fmt = (n: number) => (Number.isFinite(n) ? (Math.round(n * 100) / 100).toLocaleString('en') : 'never');
+  let timer = 0;
+  function run(e?: Event) {
+    const t = e?.target as HTMLElement | undefined;
+    if (t && t.dataset.k === 'every') { const n = num(f('every').value); if (n > 0) f('lam').value = String(Math.round((1 / n) * 10000) / 10000); }
+    else if (t && t.dataset.k === 'lam') f('every').value = '';
+    const lam = num(f('lam').value), med = num(f('med').value), p90 = num(f('p90').value), years = num(f('years').value);
+    const a = { p: num(f('pa').value), d: num(f('da').value) }, b = { p: num(f('pb').value), d: num(f('db').value) };
+    const [lo, hi] = a.d <= b.d ? [a, b] : [b, a];
+    const bad = a.p <= 0 || b.p <= 0 ? 'Enter both premiums.' : a.d === b.d ? 'The two deductibles must be different.' : lo.p <= hi.p ? 'The quote with the higher deductible should cost less a year, otherwise it is not worth comparing.' : !(lam > 0 && lam <= 10) ? 'Enter claims a year above 0, for example 0.1 (one claim in ten years).' : med <= 0 || p90 <= med ? 'The "1 in 10" claim must be bigger than the typical claim.' : !(years >= 1 && years <= 50) ? 'Enter years from 1 to 50.' : '';
+    q('.ded-err').hidden = !bad; q('.ded-err').textContent = bad; q('.ded-res').hidden = !!bad;
+    clearTimeout(timer);
+    if (bad) return;
+    const inp = { lambda: lam, median: med, p90, premLow: lo.p, premHigh: hi.p, dLow: lo.d, dHigh: hi.d, years };
+    const r = deductibleChoice({ ...inp, runs: 1 });
+    q('.ded-s-save').textContent = $(r.saving);
+    q('.ded-s-rec').textContent = fmt(r.yearsToRecover) + ' years';
+    q('.ded-s-be').textContent = fmt(r.breakEvenRate);
+    q('.ded-s-exp').textContent = $(r.expectedTotal);
+    q('.ded-s-win').textContent = '…';
+    q('.ded-sim').innerHTML = '<tr><td colspan="2">Working it out…</td></tr>';
+    const lower = lam < r.breakEvenRate;
+    q('.ded-words').innerHTML = `You save <b>${$(r.saving)}</b> a year with the higher deductible (${$(hi.d)} instead of ${$(lo.d)}). One full claim costs you up to <b>${$(r.gap)}</b> more, which is ${fmt(r.yearsToRecover)} years of savings. At ${fmt(lam)} claims a year (break-even: ${fmt(r.breakEvenRate)}), the higher deductible ${lower ? 'costs less' : 'costs more'} on average.`;
+    timer = window.setTimeout(() => {
+      const s = deductibleChoice({ ...inp, runs: 10000 });
+      q('.ded-s-win').textContent = `${Math.round(s.chanceHighWins * 100)}%`;
+      q('.ded-sim').innerHTML = [['Worse luck (10th)', s.p10], ['Middle (50th)', s.p50], ['Good luck (90th)', s.p90]].map(([n, v]) => `<tr><td>${n}</td><td>${$(v as number)}</td></tr>`).join('');
+    }, 300);
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>
