@@ -12,7 +12,7 @@ order: 2051
 icon: calendar
 works: offline
 updated: 2026-11-10
-related: [date-calculator, bill-calendar]
+related: [date-calculator, bill-calendar, citizenship-days]
 sources:
   - "Calendar file: iCalendar format, RFC 5545 (IETF), with one VEVENT and one VALARM per document."
   - "Suggested reminder times are fibub's own: many countries ask for a passport valid for 6 months after you arrive, and renewals often take weeks. Check the official source for each document."

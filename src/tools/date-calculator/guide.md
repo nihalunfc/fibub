@@ -12,7 +12,7 @@ order: 2050
 icon: calendar
 works: offline
 updated: 2026-11-10
-related: [document-expiry, timestamp-converter, jet-lag-planner]
+related: [document-expiry, timestamp-converter, jet-lag-planner, citizenship-days]
 sources:
   - "Gregorian calendar arithmetic; the month-end rule (31 January plus 1 month is 28 February) is the common convention used by spreadsheets and most date libraries. fibub's own working."
 flow:

@@ -12,7 +12,7 @@ order: 2034
 icon: flask
 works: offline
 updated: 2026-11-10
-related: [sleep-calculator, body-measures, heart-rate-zones]
+related: [sleep-calculator, body-measures, heart-rate-zones, calorie-calculator]
 sources:
   - "EFSA Panel on Dietetic Products, Nutrition and Allergies (2010), Scientific Opinion on Dietary Reference Values for water, EFSA Journal 8(3):1459: adequate total water intake 2.0 L women, 2.5 L men, +0.3 L pregnancy, +0.7 L breastfeeding (checked 2026-11-10)."
   - "Institute of Medicine, US National Academies (2004), Dietary Reference Intakes for Water, Potassium, Sodium, Chloride, and Sulfate: adequate total water 2.7 L women, 3.7 L men, 3.0 L pregnancy, 3.8 L breastfeeding; about 80% from drinks (checked 2026-11-10)."

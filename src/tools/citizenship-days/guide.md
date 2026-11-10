@@ -12,7 +12,7 @@ order: 2049
 icon: calendar
 works: offline
 updated: 2026-11-10
-related: [crs-calculator, tax-residency-days]
+related: [crs-calculator, tax-residency-days, date-calculator]
 sources:
   - "IRCC, Check if you are eligible to apply for citizenship, https://www.canada.ca/en/immigration-refugees-citizenship/services/canadian-citizenship/adult-minor/who/check-adult-eligibility.html (modified 2025-09-11, checked 2026-11-10): 1,095 days in the 5 years before applying; temporary resident or protected person days before PR count as half days, up to 365."
   - "IRCC, Physical presence calculator form CIT 0407, https://www.canada.ca/content/dam/ircc/documents/pdf/english/kits/forms/cit0407/01-05-2019/cit0407e.pdf (checked 2026-11-10): only full days outside Canada are absences; the signing date is not counted. fibub is not affiliated with IRCC: check the official source."

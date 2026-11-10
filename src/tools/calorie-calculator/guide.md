@@ -12,7 +12,7 @@ order: 2033
 icon: calculator
 works: offline
 updated: 2026-11-10
-related: [body-measures, one-rep-max, pace-calculator, steps-to-distance]
+related: [body-measures, one-rep-max, pace-calculator, steps-to-distance, water-intake]
 sources:
   - "Mifflin MD, St Jeor ST et al. (1990). A new predictive equation for resting energy expenditure in healthy individuals. Am J Clin Nutr 51(2): 241–247 (the BMR formula)."
   - "Activity factors 1.2 to 1.9 and about 7,700 kcal per kg of body weight are common rules of thumb; both are editable."
