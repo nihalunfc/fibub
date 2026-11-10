@@ -2,6 +2,7 @@
 name: CSV profiler
 num: 568
 shelf: science
+code: T396
 section: data-science-and-machine-learning
 title: "CSV profiler"
 summary: "Open a CSV or Excel file and see every column at a glance: its type, missing values, unique values, mean, median, SD, quartiles, outliers, histogram or most common values, plus a correlation heatmap. Download the report as a web page, PDF or Word file. Nothing is uploaded."

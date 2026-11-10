@@ -290,6 +290,19 @@ export const sectionLabel = (s: { name: string; subject?: string }, shelf = 'sci
   return sj ? `${sj.name}: ${s.name.toLowerCase()}` : s.name;
 };
 
+/**
+ * Tool ID codes (nihal, 2026-11-10): one capital letter per area, counted without gaps (#T1, #T2 ...,
+ * #L1, #L2 ...). A new area gets a free letter that cannot be mixed up with another (never I or O);
+ * when its letter is taken, it gets a short code of a few letters instead (Teaching would be TCH).
+ * Old plain numbers (#3, #1211) stay as search aliases. scripts/renumber.mjs and new-tool.mjs follow this.
+ */
+export const CODES = [
+  { prefix: 'T', name: 'Tools', shelves: ['science', 'documents', 'money', 'everyday', 'collecting'], text: 'Everything on the Tools tab: Science, Documents, Money, Everyday and Collecting.' },
+  { prefix: 'L', name: 'Learn', shelves: ['learn'], text: 'School science and maths activities, Class 8 to 12.' },
+] as const;
+export const codePrefix = (shelf: string) => CODES.find((c) => (c.shelves as readonly string[]).includes(shelf))?.prefix ?? 'T';
+
+
 // Learn tools (school science and maths, following the NCERT topics for Class 8 to 12) are a shelf of
 // their own so they live at /learn/<id>/ and fill the Learn area, but they are kept out of SHELVES so the
 // Tools menus, the home page and /tools/ stay as they are. Class pages (/learn/class-8/ ...) list them by

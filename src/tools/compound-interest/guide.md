@@ -2,6 +2,7 @@
 name: Compound interest
 num: 1723
 shelf: money
+code: T757
 section: interest
 title: "Compound interest calculator: see how savings grow with regular deposits"
 summary: "Work out how a start amount and regular deposits grow with compound interest, after fees and in today's money, with a chart and a year-by-year table."

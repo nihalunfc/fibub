@@ -2,6 +2,7 @@
 name: Period finder
 num: 48
 shelf: science
+code: T48
 section: stellar-astrophysics
 title: "Period finder"
 summary: "Paste times and brightness measurements, even with gaps and uneven spacing, and find the period with a Lomb-Scargle periodogram, false alarm probabilities, alias checks and a folded light curve."

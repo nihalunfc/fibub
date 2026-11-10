@@ -2,6 +2,7 @@
 name: Bullion premium
 num: 1609
 shelf: collecting
+code: T729
 section: metals
 title: "Bullion premium calculator: compare gold and silver coins and bars"
 seoTitle: "Bullion premium over spot calculator"

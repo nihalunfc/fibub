@@ -2,6 +2,7 @@
 name: Cipher lab
 num: 581
 shelf: science
+code: T409
 section: information-theory-and-cryptography
 title: "Cipher lab"
 summary: "Encrypt and decrypt with the classical ciphers (Caesar, Vigenère, affine, Atbash, rail fence) and see the working and the letter frequencies of your text. Then follow SHA-256 through padding, the message schedule and all 64 rounds, and watch one flipped bit change about half the hash."

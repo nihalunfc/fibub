@@ -2,6 +2,7 @@
 name: Polygon angles
 num: 1238
 shelf: learn
+code: L123
 section: school-maths
 title: "Angle sum of a polygon: split any shape into triangles and see (n − 2) × 180°"
 summary: "Drag the corners of a polygon with 3 to 10 sides. It splits into triangles, every angle is measured live, and they always add to (n − 2) × 180°, even with a dent. Turn on exterior angles to see them add to 360°."

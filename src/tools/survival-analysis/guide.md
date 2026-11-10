@@ -2,6 +2,7 @@
 name: Survival analysis
 num: 467
 shelf: science
+code: T318
 section: biostatistics
 title: "Survival analysis"
 summary: "Paste time, event and group to draw Kaplan-Meier curves with Greenwood intervals, median survival with its interval, a number-at-risk table, the log-rank test for two or more groups and a Cox proportional hazards model with hazard ratios. Matches lifelines and statsmodels."

@@ -2,6 +2,7 @@
 name: Polymer molar mass
 num: 100
 shelf: science
+code: T100
 section: polymer-chemistry
 title: "Polymer molar mass"
 summary: "Number- and weight-average molar mass, Mz, Mp, dispersity (PDI) and degree of polymerisation from a GPC/SEC trace with a calibration fitted to your standards, or from a list of chain masses. Paste the data or open a CSV or Excel file; see the distribution and the integration baseline."

@@ -2,6 +2,7 @@
 name: Soil test interpreter
 num: 382
 shelf: science
+code: T270
 section: agronomy-and-soil-science
 title: "Soil test interpreter: lime requirement to raise pH, and nutrient results against your lab's ranges"
 summary: "Work out how much lime raises your soil's pH, from CEC and base saturation, from a buffer capacity, or from your lab's lime factor, scaled to your depth and to your lime's neutralising value and fineness. Then see which nutrients are low, in range or high against the ranges you type."

@@ -2,6 +2,7 @@
 name: Weather station
 num: 897
 shelf: science
+code: T632
 section: meteorology
 title: "Weather station"
 summary: "Open a weather station or data logger CSV with time, temperature, humidity, pressure, wind speed and direction, and rain. Get the recording step, a gaps report, a chart of each variable, a 16-sector wind rose with speed classes and calms, and daily and monthly min, mean, max and rain totals, all as CSV."

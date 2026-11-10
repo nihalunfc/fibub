@@ -2,6 +2,7 @@
 name: Fish length-weight
 num: 331
 shelf: science
+code: T246
 section: marine-and-freshwater-biology
 title: "Fish length-weight relationship calculator: W = aL^b, isometry test, Fulton's K and relative condition Kn"
 summary: "Paste lengths and weights of fish and fit the length-weight relationship W = aL^b on log scales, with an optional bias correction, a t test of b against 3 (isometric growth), Fulton's condition factor K and Le Cren's relative condition Kn for every fish, plots and CSV."

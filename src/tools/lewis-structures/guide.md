@@ -2,6 +2,7 @@
 name: Lewis structures
 num: 1102
 shelf: learn
+code: L47
 section: school-chemistry
 title: "Lewis structures"
 summary: "Count the valence electrons, tap bonds to make them single, double or triple, and watch the lone pairs, formal charges and octets update. Get the best Lewis structure and every resonance form for 29 molecules and ions (H₂O, CO₂, O₃, NO₃⁻, CO₃²⁻, SO₄²⁻, CO, N₂O …) or build your own, with the steps written out."

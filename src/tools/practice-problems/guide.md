@@ -2,6 +2,7 @@
 name: Practice problem generator
 num: 825
 shelf: science
+code: T561
 section: teaching-and-outreach
 title: "Practice problem generator: numeric science problems with worked steps, answer checking and a printable worksheet"
 summary: "Pick topics (unit conversion, motion, free fall, energy, Ohm's law, waves, gas law, molarity, dilution, half-life, pH, density, mean and SD) and get a set of numeric problems. Check each answer with a tolerance and a significant-figure hint, open the worked steps, share the set with a code, and print a worksheet and answer key as PDF or Word."

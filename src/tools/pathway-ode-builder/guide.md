@@ -2,6 +2,7 @@
 name: Pathway ODE builder
 num: 986
 shelf: science
+code: T718
 section: systems-biology
 title: "Pathway ODE model builder: write reactions, simulate (mass action, Michaelis-Menten, Hill) and fit rate constants to data"
 summary: "Type a pathway as reactions (mass action, reversible, Michaelis-Menten or Hill) and get its differential equations, a simulated time course from an adaptive Runge-Kutta solver, and a least-squares fit of chosen rate constants to your own measured time courses, with standard errors."

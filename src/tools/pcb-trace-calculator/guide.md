@@ -2,6 +2,7 @@
 name: PCB trace
 num: 624
 shelf: science
+code: T421
 section: electrical-and-electronics
 title: "PCB trace"
 summary: "Work out the minimum PCB trace width for a current and temperature rise with the IPC-2221 formula, with the trace's resistance, voltage drop and heat; and the characteristic impedance, effective permittivity and delay of a microstrip or stripline, or the width for 50 Ω. Millimetres or mils."

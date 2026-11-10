@@ -2,6 +2,7 @@
 name: Mixing model calculator
 num: 123
 shelf: science
+code: T123
 section: geochemistry-and-geochronology
 title: "End-member mixing model calculator: source fractions from tracers and isotopes (2 or 3 sources)"
 summary: "Unmix water, sediment or rock samples into two or three sources (end-members) from several tracers at once, including δ isotope values weighted by concentration. Least-squares fractions that stay between 0 and 100 %, a misfit check and a tracer plot with curved mixing lines."

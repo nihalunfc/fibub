@@ -2,6 +2,7 @@
 name: CIPW norm calculator
 num: 871
 shelf: science
+code: T607
 section: mineralogy-and-petrology
 title: "CIPW norm calculator: normative minerals from a rock's major-oxide analysis"
 summary: "Paste or open whole-rock major-oxide analyses, one or many. Get the CIPW norm in wt% (quartz, feldspars, feldspathoids, pyroxenes, olivine, oxides, apatite), the differentiation index, plagioclase An, colour index and silica saturation, with Le Maitre or fixed-ratio Fe2O3/FeO adjustment and a check that the norm adds up to the analysis."

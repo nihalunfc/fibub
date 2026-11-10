@@ -2,6 +2,7 @@
 name: Pump test analyser
 num: 126
 shelf: science
+code: T126
 section: hydrogeology
 title: "Aquifer pump test analysis: Theis curve fit, Cooper-Jacob, recovery and distance-drawdown (transmissivity and storativity)"
 summary: "Paste or open time–drawdown readings from a pumping test. Get transmissivity T and storativity S from a Theis curve fit and the Cooper-Jacob straight line (with a check that it applies), T from recovery data, and T and S from several observation wells. Log plots, PNG, PDF and Word downloads."

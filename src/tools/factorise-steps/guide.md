@@ -2,6 +2,7 @@
 name: Factorising steps
 num: 1284
 shelf: learn
+code: L165
 section: school-maths
 title: "Factorising steps"
 summary: "Type whole-number coefficients and watch the expression factorised step by step: the common factor, the identity that fits (a² − b², (a ± b)², a³ ± b³) or the split middle term, an area picture of the two brackets, and a check by expanding and by putting in a number."

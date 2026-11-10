@@ -2,6 +2,7 @@
 name: Voting power indices
 num: 752
 shelf: science
+code: T520
 section: political-science
 title: "Shapley-Shubik and Banzhaf power index calculator for weighted voting (free)"
 summary: "Measure who really holds power in a weighted vote [q; w1, …, wn]: exact Shapley-Shubik and Banzhaf indices for up to 60 players, swing and pivot counts, veto players and dummies, plus Deegan-Packel, Holler and Johnston for up to 20."

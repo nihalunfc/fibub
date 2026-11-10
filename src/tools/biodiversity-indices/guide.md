@@ -2,6 +2,7 @@
 name: Biodiversity indices
 num: 39
 shelf: science
+code: T39
 section: ecology
 title: "Biodiversity index calculator: Shannon, Simpson, Chao1 and rarefaction (free)"
 summary: "Paste species counts for one or more sites and get Shannon, Simpson, evenness, Chao1 richness, rarefaction curves and Bray-Curtis similarity in one table. Runs in your browser."

@@ -2,6 +2,7 @@
 name: Audio spectrum analyser
 num: 940
 shelf: science
+code: T675
 section: acoustics-and-wave-physics
 title: "Audio spectrum analyser: live microphone FFT, spectrogram and peak frequency (or open an audio file)"
 summary: "See the frequencies in a sound: a live spectrum and scrolling spectrogram from your microphone, or the averaged spectrum of an audio file, with the strongest peaks found to a fraction of a hertz and named as musical notes. Choose the FFT size and window, and download the spectrum as CSV. The sound stays on your device."

@@ -2,6 +2,7 @@
 name: Nutrient planner
 num: 485
 shelf: science
+code: T336
 section: nutrition-and-dietetics
 title: "Nutrient planner: daily totals, macro energy split and % of your targets from food labels"
 summary: "Plan a meal or a day from your own food label values: energy, protein, fat, carbohydrate, fibre, sugars and sodium per 100 g or per serving. Totals by meal and day, the energy split from macronutrients, and percent of your own targets. CSV in and out."

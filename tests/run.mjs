@@ -780,8 +780,16 @@ try {
     await page.waitForSelector('.hits:not([hidden]) .hits-list .ti');
     const byNum = await page.$$eval('.hits-list .ti .nm', (els) => els.map((e) => e.textContent));
     check(byNum.length === 1 && byNum[0] === 'ZIP checker', `tool numbers: home search "#3" -> ${byNum.join(', ')}`);
+    await page.fill('.find input', '#T3');
+    await page.waitForFunction(() => document.querySelectorAll('.hits-list .ti').length === 1);
+    check((await page.textContent('.hits-list .ti .nm')) === 'ZIP checker', 'tool IDs: home search "#T3" finds ZIP checker');
+    await page.fill('.find input', '#L1');
+    await page.waitForFunction(() => document.querySelectorAll('.hits-list .ti').length === 1);
+    check((await page.textContent('.hits-list .ti .num')) === '#L1', 'tool IDs: home search "#L1" finds Learn tool L1');
     await page.goto(`${BASE}/documents/zip-checker/`);
-    check((await page.textContent('.tool-num')) === 'Tool #3', 'tool numbers: the tool page shows Tool #3');
+    check((await page.textContent('.tool-num')) === 'Tool #T3', 'tool IDs: the tool page shows Tool #T3');
+    await page.goto(`${BASE}/tools/`);
+    check(await page.$$eval('#ids .tm-legend tbody tr', (r) => r.length) >= 2 && await page.$$eval('#ids .tm-chart li', (r) => r.length) > 10, 'tool IDs: /tools/ has the ID legend and the tools-per-subject chart');
   }
 
   // 6g. Share images and icons: every live tool has its own 1200x630 image.
@@ -933,8 +941,8 @@ try {
   // Science is grouped by subject: the shelf page lists subjects, each subject has its own page.
   {
     const idx = JSON.parse(await (await fetch(BASE + '/tools.json')).text());
-    const nums = idx.map((e) => e.k);
-    check(idx.length >= 24 && new Set(nums).size === nums.length && nums.every((n) => n > 0), `search index: ${idx.length} live tools, each with its own #number`);
+    const codes = idx.map((e) => e.k);
+    check(idx.length >= 24 && new Set(codes).size === codes.length && codes.every((c) => /^[A-Z]+[1-9]\d*$/.test(c)), `search index: ${idx.length} live tools, each with its own ID code`);
     await page.goto(BASE + '/science/');
     check(await page.isVisible('.sj-grid a[href="/science/astronomy/"]'), 'science shelf: lists its subjects');
     await page.goto(BASE + '/science/astronomy/');

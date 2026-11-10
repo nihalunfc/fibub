@@ -2,6 +2,7 @@
 name: Dichotomous key builder
 num: 321
 shelf: science
+code: T236
 section: entomology
 title: "Dichotomous key maker: build, check and test an identification key (free)"
 summary: "Write an identification key as couplets for any group of organisms, check it for loops, dead ends and unreached couplets or taxa, try it step by step, and save it as JSON or printable text. Runs in your browser."

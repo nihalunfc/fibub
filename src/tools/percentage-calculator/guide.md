@@ -2,6 +2,7 @@
 name: Percentage calculator
 num: 1716
 shelf: money
+code: T750
 section: shopping
 title: "Percentage calculator: percent of a number, change, discounts, markup and margin"
 summary: "Work out X% of Y, what percent one number is of another, percent change, add or remove a percent, stacked discounts and markup versus margin."

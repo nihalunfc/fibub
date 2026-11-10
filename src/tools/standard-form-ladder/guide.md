@@ -2,6 +2,7 @@
 name: Standard form
 num: 1237
 shelf: learn
+code: L122
 section: school-maths
 title: "Standard form (scientific notation) converter with a powers-of-ten ladder from atoms to galaxies"
 summary: "Type any number and watch the decimal point hop to write it as a × 10ⁿ, then go back again. Place it on a ladder of sizes from a proton to the observable universe, and compare two sizes with the laws of exponents."

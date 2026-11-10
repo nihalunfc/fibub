@@ -2,6 +2,7 @@
 name: Sky events calendar
 num: 16
 shelf: science
+code: T16
 section: observing
 title: "Astronomy calendar: Moon phases, meteor showers, eclipses and planet events by month"
 summary: "A month-by-month sky calendar for your place: Moon phases and how much is lit each night, meteor shower peaks, eclipses you can see, planet oppositions and elongations, and equinoxes, with a one-tap calendar file."

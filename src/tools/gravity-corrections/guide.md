@@ -2,6 +2,7 @@
 name: Gravity survey corrections
 num: 880
 shelf: science
+code: T615
 section: geophysics-and-seismology
 title: "Gravity corrections: drift, latitude (normal gravity), free-air, Bouguer and terrain corrections, with free-air and Bouguer anomalies"
 summary: "Paste a day of gravity meter readings with base station repeats. Get drift-corrected observed gravity, normal gravity from GRS80 or WGS84, free-air and Bouguer slab corrections at your density, ring terrain corrections, and free-air, simple and complete Bouguer anomalies as a table, a profile plot and a CSV."

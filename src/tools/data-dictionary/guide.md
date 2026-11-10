@@ -2,6 +2,7 @@
 name: Data dictionary generator
 num: 817
 shelf: science
+code: T553
 section: data-management
 title: "Data dictionary generator from a CSV or Excel file: column types, missing values, ranges and a Frictionless Table Schema"
 summary: "Open a CSV or Excel file and get a data dictionary: each column's type, missing values, distinct values, range, mean, SD and median, examples and allowed values. Add titles, descriptions and units, then export Markdown, CSV or a Frictionless Table Schema (JSON). The file stays in your browser."

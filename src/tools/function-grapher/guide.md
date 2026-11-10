@@ -2,6 +2,7 @@
 name: Graphing calculator
 num: 541
 shelf: science
+code: T369
 section: pure-mathematics
 title: "Graphing calculator: plot functions, equations, polar and parametric curves and 3D surfaces (free)"
 summary: "Plot y = f(x), any equation in x and y, polar r(θ) and parametric (x(t), y(t)) curves together, with sliders, zoom, tap-to-trace, roots, turning points and crossings, plus 3D surfaces z = f(x, y). Download PNG, SVG or CSV. Runs in your browser."

@@ -2,6 +2,7 @@
 name: Circle area
 num: 1253
 shelf: learn
+code: L138
 section: school-maths
 title: "Circle area"
 summary: "Cut a circle into 4 to 200 equal slices and watch them unroll into a row that looks more and more like a rectangle πr wide and r tall. Live numbers show width × height closing in on πr²."

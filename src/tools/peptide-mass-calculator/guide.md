@@ -2,6 +2,7 @@
 name: Peptide mass
 num: 179
 shelf: science
+code: T179
 section: proteomics-and-protein-science
 title: "Peptide mass"
 summary: "Digest a protein with trypsin or another enzyme, list every peptide's mass and m/z, match your measured peaks to them (peptide mass fingerprint) with sequence coverage, and get the b, y and a fragment ions of any peptide. Nothing is uploaded."

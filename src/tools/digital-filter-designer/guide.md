@@ -2,6 +2,7 @@
 name: FIR/IIR filter designer
 num: 629
 shelf: science
+code: T426
 section: signal-processing
 title: "Digital filter designer: FIR windowed sinc, Butterworth and Chebyshev IIR, with C coefficients"
 summary: "Design a low-pass, high-pass, band-pass or band-stop digital filter: FIR by the window method (Hamming, Hann, Blackman, Kaiser) or IIR Butterworth and Chebyshev type I by the bilinear transform. See the gain, phase and group delay, the poles and zeros, and copy the coefficients as C arrays, second-order sections or CSV."

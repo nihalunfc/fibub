@@ -2,6 +2,7 @@
 name: Formula writer
 num: 1084
 shelf: learn
+code: L39
 section: school-chemistry
 title: "Chemical formula writer: criss-cross valencies, names and formula unit mass"
 summary: "Pick a positive and a negative ion and watch their valencies cross over to make the formula, with brackets and simplifying explained, a picture of the charges balancing, the compound's name and its formula unit mass in rounded or exact atomic masses. Ends with fresh practice questions."

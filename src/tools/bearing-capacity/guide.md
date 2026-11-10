@@ -2,6 +2,7 @@
 name: Bearing capacity calculator
 num: 656
 shelf: science
+code: T453
 section: geotechnical-engineering
 title: "Bearing capacity calculator: Terzaghi, Meyerhof and Hansen for strip, square, circular and rectangular footings"
 summary: "Ultimate and allowable bearing capacity of a shallow footing by Terzaghi, Meyerhof and Hansen, with the factors Nc, Nq and Nγ from their formulas, shape and depth factors, a water table correction, gross or net factor of safety and the allowable load, plus a side-by-side comparison."

@@ -2,6 +2,7 @@
 name: Unsaturation
 num: 836
 shelf: science
+code: T572
 section: organic-chemistry
 title: "Unsaturation"
 summary: "Type a molecular formula (C8H10N4O2, C5H6N+) or paste a SMILES string and get the rings plus double bonds (double bond equivalents), whether the formula has an even number of electrons, the nitrogen rule, the monoisotopic, nominal and average masses, and every combination of rings, double and triple bonds that fits. Handles halogens, N, P, S, O, Si, B, charges and isotope labels."

@@ -2,6 +2,7 @@
 name: FITS viewer
 num: 21
 shelf: science
+code: T21
 section: astrophotography
 title: "FITS viewer"
 summary: "Open a FITS image to view it with a proper stretch, read pixel values and sky coordinates, and see its full header. Or drop a whole night's files to list exposure, filter and temperature and total your time per filter. Nothing is uploaded."

@@ -2,6 +2,7 @@
 name: Faraday induction
 num: 1045
 shelf: learn
+code: L20
 section: school-physics
 title: "Faraday induction"
 summary: "Push a bar magnet into a coil and pull it out, and watch the galvanometer swing and the emf graph. See why only a changing flux makes a current, which way the current flows (Lenz's law), and how an AC generator coil makes a sine-wave emf, with its peak and rms values."

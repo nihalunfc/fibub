@@ -2,6 +2,7 @@
 name: Stereonet plotter
 num: 33
 shelf: science
+code: T33
 section: structural-geology
 title: "Stereonet plotter: strike and dip, poles, Fisher mean and rose diagrams (free, online)"
 summary: "Plot planes and lines on an equal-area (Schmidt) or equal-angle (Wulff) stereonet. Get great circles, poles, the mean orientation with its 95 % cone and a rose diagram, and download SVG or PNG."

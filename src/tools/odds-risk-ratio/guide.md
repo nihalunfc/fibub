@@ -2,6 +2,7 @@
 name: Odds and risk ratio
 num: 466
 shelf: science
+code: T317
 section: epidemiology
 title: "Odds and risk ratio"
 summary: "Odds ratio and risk ratio from a 2 × 2 table with Woolf, exact and mid-p intervals, chi-square and Fisher exact tests, or several strata pooled by Mantel-Haenszel with the Breslow-Day test and a forest plot. Case-control or cohort."

@@ -2,6 +2,7 @@
 name: Luminescence age calculator
 num: 411
 shelf: science
+code: T299
 section: dating-methods
 title: "Luminescence (OSL/TL) age calculator: central age model, dose rate from K, U and Th, water correction and uncertainty"
 summary: "Work out an OSL or TL age as equivalent dose ÷ dose rate. Combine aliquot doses with the central age model or a weighted mean, build the dose rate from K, U and Th with your own conversion factors (or from alpha, beta and gamma parts), correct for water, and see the uncertainty budget. Nothing is uploaded."

@@ -2,6 +2,7 @@
 name: Optical tweezers calibration
 num: 974
 shelf: science
+code: T709
 section: biophysics-and-medical-physics
 title: "Optical tweezers calibration: trap stiffness from the power spectrum (Lorentzian fit) and equipartition"
 summary: "Paste a trapped bead's position record and get the trap stiffness two ways: from the corner frequency of a Lorentzian fitted to the power spectrum (with the aliasing correction for sampled data and Faxén's correction near a surface), and from equipartition. Works in volts too, giving the detector's nm per volt."

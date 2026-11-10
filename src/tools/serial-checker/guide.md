@@ -2,6 +2,7 @@
 name: Serial checker
 num: 1612
 shelf: collecting
+code: T732
 section: coins-notes
 title: "Serial checker: find fancy banknote serial numbers"
 seoTitle: "Banknote serial number checker: ladder, radar, solid"

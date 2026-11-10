@@ -2,6 +2,7 @@
 name: Respirometry calculator
 num: 342
 shelf: science
+code: T257
 section: physiology
 title: "Respirometry calculator: VO2, VCO2, RQ and metabolic rate from flow-through or closed-chamber readings"
 summary: "Work out oxygen uptake (V̇O₂), CO₂ output (V̇CO₂), the respiratory quotient and metabolic rate in watts and kJ per day from flow-through gas readings (with the Haldane transformation) or from the fall of O₂ in a closed chamber of air or water. For study and teaching, not for clinical use."

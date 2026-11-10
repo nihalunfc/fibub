@@ -2,6 +2,7 @@
 name: Evapotranspiration calculator
 num: 143
 shelf: science
+code: T143
 section: hydrology-and-water-resources
 title: "Evapotranspiration calculator: FAO-56 Penman-Monteith ET0 and crop water use from daily weather"
 summary: "Work out daily reference evapotranspiration (ET0) with the FAO-56 Penman-Monteith equation from temperature, humidity, wind and sunshine or radiation, with shortcuts when humidity or radiation is missing, Hargreaves for comparison, crop water use with your own Kc, and a daily table you paste or open for a month or years of weather."

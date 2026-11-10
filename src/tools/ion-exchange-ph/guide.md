@@ -2,6 +2,7 @@
 name: Ion exchange pH
 num: 184
 shelf: science
+code: T184
 section: biochemistry
 title: "Ion exchange pH"
 summary: "Paste one or more protein sequences to get each pI and charge curve on one plot, a buffer pH for anion exchange (above the pI) and cation exchange (below it) with the charge there, the pH where your proteins differ most in charge on each resin, and where each one stops on an isoelectric focusing strip. Nothing is uploaded."

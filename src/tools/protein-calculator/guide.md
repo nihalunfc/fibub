@@ -2,6 +2,7 @@
 name: Protein parameter calculator
 num: 178
 shelf: science
+code: T178
 section: proteomics-and-protein-science
 title: "Protein calculator: molecular weight, pI, extinction coefficient and charge at any pH from a sequence"
 summary: "Paste a protein sequence or open a FASTA file to get its molecular weight (average and monoisotopic), formula, isoelectric point, net charge at any pH with a charge curve, extinction coefficient at 280 nm and the concentration from an A280 reading. Nothing is uploaded."

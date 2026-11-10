@@ -2,6 +2,7 @@
 name: "Historic calendar converter"
 num: 415
 shelf: science
+code: T303
 section: digital-humanities
 title: "Historic calendar converter: Julian, Gregorian, Hijri, Hebrew, Julian Day Number and weekday"
 summary: "Convert a date between the Julian and Gregorian calendars (with the 1582 switch), the tabular Islamic (Hijri) calendar, the Hebrew calendar and the Julian Day Number, and find its day of the week. Convert a whole list and download it as CSV."

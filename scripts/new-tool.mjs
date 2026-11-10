@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 // Scaffold a new tool so builders only write what is specific to it.
-//   npm run new-tool -- <id> --name "Lens lab" --shelf learn --section school-physics [--num 1234 | --from 1211 --to 1240] [--related a,b,c] [--engine learn|plain]
+//   npm run new-tool -- <id> --name "Lens lab" --shelf learn --section school-physics [--code L320] [--related a,b,c] [--engine learn|plain]
+// The tool gets the next free ID code in its letter (#T..., #L...; see CODES in src/site.ts). When several builders work
+// at the same time, give each one its own codes with --code (or --code-from L320) so they never collide.
+// `num` (the old plain number, now only the order tools were added in) is the next free one; --num or --from/--to still work.
 // --engine learn (the default on the learn shelf): a Class level switch, a canvas and a "Check yourself" quiz wired to
 // src/lib/learn/quiz.ts and src/lib/learn/sim.ts, so a builder writes only the drawing, the maths and the questions.
 // Writes src/tools/<id>/guide.md, src/tools/<id>/Tool.astro and tests/tools/<id>.mjs (tests are picked up automatically).
@@ -27,12 +30,32 @@ let num = opt('num') ? +opt('num') : 0;
 if (num && nums.has(num)) die(`#${num} is already used`);
 if (!num) {
   const from = +opt('from', 0), to = +opt('to', 0);
-  if (!from) die('give --num, or --from/--to for your number block');
-  for (let n = from; n <= (to || from + 999); n++) if (!nums.has(n)) { num = n; break; }
-  if (!num) die(`no free number in ${from}-${to}`);
+  if (from) {
+    for (let n = from; n <= (to || from + 999); n++) if (!nums.has(n)) { num = n; break; }
+    if (!num) die(`no free number in ${from}-${to}`);
+  } else num = Math.max(0, ...nums) + 1;
 }
 
 const shelf = opt('shelf', 'learn');
+// ID code: the letter comes from the shelf (keep in step with CODES in src/site.ts).
+const prefix = shelf === 'learn' ? 'L' : 'T';
+const codes = new Set();
+for (const t of readdirSync('src/tools')) {
+  const g = `src/tools/${t}/guide.md`;
+  if (!existsSync(g)) continue;
+  const m = readFileSync(g, 'utf8').match(/^code:\s*([A-Z]+\d+)/m);
+  if (m) codes.add(m[1]);
+}
+const free = (n) => !codes.has(prefix + n);
+let code = opt('code', '');
+if (code) {
+  if (!new RegExp(`^${prefix}[1-9]\\d*$`).test(code)) die(`--code must look like ${prefix}12 for the ${shelf} shelf`);
+  if (codes.has(code)) die(`#${code} is already used`);
+} else {
+  let n = opt('code-from') ? +opt('code-from').replace(/^[A-Z]+/, '') : Math.max(0, ...[...codes].filter((c) => c.replace(/\d+$/, '') === prefix).map((c) => +c.slice(prefix.length))) + 1;
+  while (!free(n)) n++;
+  code = prefix + n;
+}
 const section = opt('section', '');
 const name = opt('name', 'TODO name');
 const related = (opt('related', '') || '').split(',').filter(Boolean);
@@ -45,6 +68,7 @@ writeFileSync(`${dir}/guide.md`, `---
 name: ${name}
 num: ${num}
 shelf: ${shelf}
+code: ${code}
 ${section ? `section: ${section}\n` : ''}title: "${name}: TODO what people search for"
 summary: "TODO one or two plain sentences on what it does."
 status: live
@@ -85,7 +109,7 @@ TODO a short example with real numbers that the test also checks.
 
 const engine = opt('engine', shelf === 'learn' ? 'learn' : 'plain');
 const learnUi = `---
-// #${num} ${name}. Engine: src/lib/learn/ (quiz.ts, sim.ts). Maths in src/lib/sci/ with checks in tests/sci.mjs.
+// #${code} ${name}. Engine: src/lib/learn/ (quiz.ts, sim.ts). Maths in src/lib/sci/ with checks in tests/sci.mjs.
 import '../../styles/astro.css';
 import '../../styles/learnquiz-d.css';
 ---
@@ -136,7 +160,7 @@ import '../../styles/learnquiz-d.css';
 </script>
 `;
 writeFileSync(`${dir}/Tool.astro`, engine === 'learn' ? learnUi : `---
-// #${num} ${name}
+// #${code} ${name}
 ---
 <div class="tool-ui ${cls}">
   <label>TODO input <input class="${cls}-in" type="number" value="1" step="any" /></label>
@@ -158,7 +182,7 @@ writeFileSync(`${dir}/Tool.astro`, engine === 'learn' ? learnUi : `---
 </script>
 `);
 
-writeFileSync(`tests/tools/${id}.mjs`, `// #${num} ${name}
+writeFileSync(`tests/tools/${id}.mjs`, `// #${code} ${name}
 export const path = '/${base}/${id}/';
 export default async ({ page, check, BASE }) => {
   await page.goto(\`\${BASE}/${base}/${id}/\`); await page.waitForTimeout(300);
@@ -169,5 +193,5 @@ export default async ({ page, check, BASE }) => {
 };
 `);
 
-console.log(`#${num} ${id}: wrote ${dir}/guide.md, ${dir}/Tool.astro, tests/tools/${id}.mjs
+console.log(`#${code} ${id}: wrote ${dir}/guide.md, ${dir}/Tool.astro, tests/tools/${id}.mjs
 Next: fill the TODOs, run \`PORT=<port> node tests/one.mjs ${id}\`, then \`npm run images\` for public/og/${id}.png.`);

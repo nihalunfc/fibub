@@ -2,6 +2,7 @@
 name: Knot drawer
 num: 546
 shelf: science
+code: T374
 section: geometry-and-topology
 title: "Knot drawer"
 summary: "Type a braid word such as σ1 σ2^-1 σ1 σ2^-1 and see the braid drawn, with its closure as a knot or link. Get the crossing count, writhe, permutation, number of components, linking numbers and the Alexander polynomial, worked out exactly from the Burau representation."

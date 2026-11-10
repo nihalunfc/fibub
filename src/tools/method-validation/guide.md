@@ -2,6 +2,7 @@
 name: Method validation statistics
 num: 87
 shelf: science
+code: T87
 section: analytical-chemistry
 title: "Method validation statistics: RSD, recovery, Grubbs outlier test, repeatability and intermediate precision"
 summary: "Paste replicate results by day, analyst or instrument: mean, SD, RSD and confidence interval, the Grubbs outlier test, bias and recovery against a true value, repeatability and intermediate precision by ANOVA, and the Horwitz ratio."

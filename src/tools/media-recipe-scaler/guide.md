@@ -2,6 +2,7 @@
 name: Media scaler
 num: 183
 shelf: science
+code: T183
 section: biochemistry
 title: "Media scaler"
 summary: "Type a recipe once, as final concentrations or amounts per litre, and scale it to any volume or to a 5× or 10× stock. Get the mass to weigh for every solid (from molarity and molar mass), the volume of every stock to add, a warning when a stock is too dilute, and a printable recipe card."

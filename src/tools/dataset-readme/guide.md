@@ -2,6 +2,7 @@
 name: Dataset README builder
 num: 819
 shelf: science
+code: T555
 section: data-management
 title: "Dataset README builder: write a FAIR README for research data, with licence, files and variables, as Markdown or text"
 summary: "Fill in a form and get a README for your dataset: authors, description, licence, citation, a file list (pick the files to add their names and sizes), methods and a table of variables. Live preview, a checklist of what is missing, and Markdown or plain-text downloads."

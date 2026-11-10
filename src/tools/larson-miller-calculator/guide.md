@@ -2,6 +2,7 @@
 name: Larson-Miller creep calculator
 num: 849
 shelf: science
+code: T585
 section: mechanical-behaviour
 title: "Larson-Miller calculator: creep-rupture master curve, rupture life, Sherby-Dorn, Manson-Haferd and Norton creep law"
 summary: "Paste or open creep-rupture tests (temperature, stress, hours) and fit a Larson-Miller master curve with C = 20 or your own C. Predict rupture life and the stress for a design life, compare with Sherby-Dorn and Manson-Haferd, and fit Norton's creep law (n and Q) from minimum creep rates."

@@ -2,6 +2,7 @@
 name: Canada tax
 num: 1725
 shelf: money
+code: T759
 section: income-tax
 title: "Canada income tax calculator 2026: take-home pay by province"
 summary: "Work out your 2026 federal and provincial income tax, CPP, EI and take-home pay for any province or territory, with your marginal and average tax rate."

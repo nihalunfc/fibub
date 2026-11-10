@@ -2,6 +2,7 @@
 name: Piper diagram maker
 num: 125
 shelf: science
+code: T125
 section: hydrogeology
 title: "Piper diagram and Stiff diagram maker: water chemistry plots, meq/L conversion, ion balance and water type"
 summary: "Paste or open major-ion analyses in mg/L, meq/L or mmol/L. Get a Piper diagram with groups, Stiff diagrams, the ion balance error for each sample, the water type (such as Ca-HCO₃ or Na-Cl), the diamond field and total hardness. Download as PNG, PDF or Word."

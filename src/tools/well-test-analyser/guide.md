@@ -2,6 +2,7 @@
 name: Pressure buildup analyser
 num: 688
 shelf: science
+code: T484
 section: petroleum-engineering
 title: "Pressure buildup test analysis: Horner plot, MDH, permeability, skin, p* and Bourdet derivative"
 summary: "Paste or open shut-in pressures from a buildup test and get permeability, skin, p*, the pressure drop from skin and the radius of investigation from a Horner or MDH straight line (picked automatically or by you), with a log-log Bourdet derivative plot to spot wellbore storage, radial flow and boundaries."

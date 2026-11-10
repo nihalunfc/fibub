@@ -2,6 +2,7 @@
 name: Dendrochronology cross-dating helper
 num: 410
 shelf: science
+code: T298
 section: dating-methods
 title: "Tree-ring cross-dating online: Baillie-Pilcher and Hollstein t-values and Gleichläufigkeit against a master chronology"
 summary: "Paste or open a dated master (Tucson .rwl or a year table) and an undated ring-width series, and slide one along the other: t-values after Baillie-Pilcher and Hollstein standardisation, Gleichläufigkeit with its significance, a best-matches table and an overlay plot. Nothing is uploaded."

@@ -2,6 +2,7 @@
 name: Specific gravity
 num: 1604
 shelf: collecting
+code: T724
 section: vetting
 title: "Specific gravity calculator: density test for coins and metal"
 summary: "Weigh a coin or bar in air and hanging in water to get its specific gravity and density, then see which common metals and alloys it is closest to, and a rough gold share."

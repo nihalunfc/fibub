@@ -2,6 +2,7 @@
 name: Heart rate zones
 num: 490
 shelf: science
+code: T341
 section: exercise-and-sport-science
 title: "Heart rate zones"
 summary: "Estimate maximum heart rate with four published equations, then get training zones as % of max or % of heart rate reserve (Karvonen), with editable boundaries. Add cycling power zones from FTP. Table, bar picture and CSV."

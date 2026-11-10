@@ -2,6 +2,7 @@
 name: Level book reducer
 num: 133
 shelf: science
+code: T133
 section: geodesy-and-surveying
 title: "Level book reducer: rise and fall, height of collimation, arithmetic checks and misclosure adjustment"
 summary: "Paste or open a levelling field book (back, intermediate and fore sights). Get reduced levels by both rise-and-fall and height of collimation, every arithmetic check, the closing error against a benchmark or loop, the allowed misclosure from your own k, adjusted levels and a profile."

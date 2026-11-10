@@ -2,6 +2,7 @@
 name: Bland-Altman agreement plot
 num: 471
 shelf: science
+code: T322
 section: biostatistics
 title: "Bland-Altman plot calculator: bias, limits of agreement with confidence intervals and Lin's CCC"
 summary: "Paste paired results from two methods and get the Bland-Altman plot, the bias and limits of agreement with exact or approximate confidence intervals, a proportional bias test, percentage or ratio scales, and Lin's concordance correlation coefficient."

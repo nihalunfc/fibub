@@ -2,6 +2,7 @@
 name: Graph digitiser
 num: 26
 shelf: science
+code: T26
 section: figures-and-data-presentation
 title: "Graph digitizer: extract data points from a plot image (free, works offline)"
 summary: "Open a picture or screenshot of a graph, mark the axes, then click the points or let it trace a curve by colour. Get the numbers as a table to copy or download. The image never leaves your device."

@@ -2,6 +2,7 @@
 name: PIV lite
 num: 961
 shelf: science
+code: T696
 section: fluid-dynamics
 title: "PIV lite: particle image velocimetry from two images, cross-correlation vector field in the browser"
 summary: "Open two frames of a seeded flow and get the velocity vector field by FFT cross-correlation of interrogation windows, with sub-pixel peaks, a second pass, outlier detection and replacement, speeds in m/s from the pixel size and frame interval, and a CSV of the vectors. Your images never leave your device."

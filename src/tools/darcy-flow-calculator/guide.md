@@ -2,6 +2,7 @@
 name: Darcy flow calculator
 num: 128
 shelf: science
+code: T128
 section: hydrogeology
 title: "Darcy's law calculator: groundwater flow, seepage velocity, travel time, three-point gradient and Hazen K from grain size"
 summary: "Groundwater flow from Darcy's law: flux, discharge, seepage velocity and travel time. Find the hydraulic gradient and flow direction from three or more wells, convert K to intrinsic permeability, and estimate K from a sieve curve (d10, Cu, Cc and Hazen)."

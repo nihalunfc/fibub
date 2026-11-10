@@ -2,6 +2,7 @@
 name: Mail merge
 num: 1710
 shelf: documents
+code: T744
 section: templates
 title: "Mail merge: fill a Word letter or email from a CSV list, one file per person"
 summary: "Fill a Word template or a text message from a CSV list and get one finished letter per row in a ZIP. Preview the first row first. Your list never leaves your device."

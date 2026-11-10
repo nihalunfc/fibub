@@ -2,6 +2,7 @@
 name: Bird song spectrogram
 num: 318
 shelf: science
+code: T233
 section: zoology-and-animal-behaviour
 title: "Bird song spectrogram: see a WAV recording, measure peak frequency, bandwidth and note lengths (free, no upload)"
 summary: "Open a WAV recording of a bird, frog, bat (if your recorder captures it) or insect and see its spectrogram. Set the FFT size, window, overlap, frequency range and contrast, then drag over a phrase to get its peak frequency, bandwidth and the length of every note. Your recording never leaves your device."

@@ -2,6 +2,7 @@
 name: Probability tree
 num: 1191
 shelf: learn
+code: L94
 section: school-maths
 title: "Probability tree"
 summary: "Set P(A), P(B | A) and P(B | A′) with sliders and see the tree, the four path probabilities, P(B) by total probability, P(A | B) by Bayes' theorem and an independence check. 1000 dots show the same numbers as people, which makes it clear why a positive result on a test for something rare is often a false alarm."

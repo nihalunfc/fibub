@@ -2,6 +2,7 @@
 name: Membrane potential calculator
 num: 345
 shelf: science
+code: T260
 section: neuroscience
 title: "Membrane potential calculator: Nernst potentials and the Goldman-Hodgkin-Katz (GHK) equation with I-V curves"
 summary: "Equilibrium (Nernst) potentials for K⁺, Na⁺, Cl⁻ and Ca²⁺ and the resting membrane potential from the Goldman-Hodgkin-Katz equation, with editable concentrations, permeability ratios and temperature, driving forces and GHK current-voltage curves. For study and teaching, not for clinical use."

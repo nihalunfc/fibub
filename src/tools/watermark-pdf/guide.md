@@ -2,6 +2,7 @@
 name: Watermark PDF
 num: 1703
 shelf: documents
+code: T737
 section: pdf-edit
 title: "Watermark a PDF or image: DRAFT, CONFIDENTIAL, Received, Paid, free"
 summary: "Add a diagonal text watermark or a dated stamp such as Received, Approved or Paid to a PDF, JPG or PNG. Done on your device; nothing is uploaded or kept."

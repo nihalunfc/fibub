@@ -2,6 +2,7 @@
 name: Microscope and telescope
 num: 1006
 shelf: learn
+code: L6
 section: school-physics
 title: "Microscope and telescope: magnifying glass, compound microscope and refracting telescope ray diagrams and magnification"
 summary: "Set the focal lengths of a magnifying glass, a compound microscope or a refracting telescope and see the rays, the images and the magnification, with the final image at infinity (normal adjustment) or at the near point."

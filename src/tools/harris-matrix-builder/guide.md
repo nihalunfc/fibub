@@ -2,6 +2,7 @@
 name: Harris matrix builder
 num: 403
 shelf: science
+code: T291
 section: archaeology
 title: "Harris matrix builder: stratigraphic sequence from context relations, with loop checks (free, in your browser)"
 summary: "Type or open your context relations (above, below, cuts, same as, contemporary with), find impossible loops and contradictions, drop redundant relations, and get a layered Harris matrix as SVG, PNG, PDF or CSV. Nothing is uploaded."

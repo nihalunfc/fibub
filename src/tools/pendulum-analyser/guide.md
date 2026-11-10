@@ -2,6 +2,7 @@
 name: Pendulum lab analyser
 num: 902
 shelf: science
+code: T637
 section: classical-mechanics
 title: "Pendulum g calculator: fit g from period and length data, with the large-angle correction"
 summary: "Paste your pendulum lengths and periods (or times for 10 swings) and get g with its uncertainty from a straight-line fit of T² against L, the exact correction for large swings, an optional unknown-length offset, residuals, and how far the small-angle formula is off at any amplitude."

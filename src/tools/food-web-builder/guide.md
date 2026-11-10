@@ -2,6 +2,7 @@
 name: Food web builder
 num: 1129
 shelf: learn
+code: L63
 section: school-biology
 title: "Food web builder: who eats whom, food chains, removing a species and the 10 % energy pyramid"
 summary: "Explore a forest or pond food web drawn by trophic level. Tap to add or remove who eats whom, remove a species and see who dies out or increases, count the food chains, and read the energy pyramid with the 10 % rule."

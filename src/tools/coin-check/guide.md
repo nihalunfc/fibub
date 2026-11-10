@@ -2,6 +2,7 @@
 name: Coin check
 num: 1603
 shelf: collecting
+code: T723
 section: vetting
 title: "Coin check: compare a coin's weight and size with the official figures"
 summary: "Weigh and measure a coin, pick it from the list of common ones, and see how far its weight and width are from the mint's published figures. Plain pass or check pills, in grams, millimetres and per cent."

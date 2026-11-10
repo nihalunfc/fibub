@@ -2,6 +2,7 @@
 name: Trench sheet
 num: 406
 shelf: science
+code: T294
 section: archaeology
 title: "Trench sheet"
 summary: "Set up a site grid and a trench, then record finds, samples and levels by grid coordinates, tape offsets from a peg or a baseline, with heights from a level and staff. Get grid squares, latitude and longitude, a plan, a printable PDF sheet and a CSV. Your location is used only if you press the GPS button, and nothing is saved or sent."

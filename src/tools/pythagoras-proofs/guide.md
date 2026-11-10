@@ -2,6 +2,7 @@
 name: Pythagoras proof playground
 num: 1152
 shelf: learn
+code: L69
 section: school-maths
 title: "Pythagoras theorem playground: drag a right triangle, see four proofs and make Pythagorean triples"
 summary: "Drag a right triangle and watch the squares on its sides add up. Slide through four visual proofs (rearrangement, Bhaskara, similar triangles, Baudhayana) with your own side lengths, and list Pythagorean triples."

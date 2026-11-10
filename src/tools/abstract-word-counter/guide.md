@@ -2,6 +2,7 @@
 name: Abstract word counter
 num: 806
 shelf: science
+code: T542
 section: writing-and-publishing
 title: "Abstract word counter: words, characters and sentences against your journal's limit, with LaTeX removed"
 summary: "Paste an abstract (plain text or LaTeX) and see its words, characters with and without spaces, sentences and keywords against a limit you set. The part over the limit is marked, LaTeX commands, citations and comments can be left out of the count, and the most repeated words are listed."

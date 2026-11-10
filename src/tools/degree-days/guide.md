@@ -2,6 +2,7 @@
 name: Degree days calculator
 num: 216
 shelf: science
+code: T215
 section: climatology
 title: "Degree days calculator: heating, cooling and growing degree days from daily temperatures (free)"
 summary: "Paste or open daily minimum and maximum temperatures and get heating, cooling and growing degree days by the mean, modified average, single sine or single triangle method, with your own bases, an upper cutoff, missing-day filling, and daily, monthly and running totals. Runs in your browser."

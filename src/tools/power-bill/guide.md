@@ -2,6 +2,7 @@
 name: Power and bills
 num: 1486
 shelf: learn
+code: L317
 section: school-physics
 title: "Power and bills: stair race and electricity cost in kWh"
 summary: "Race two runners up stairs to see power as work divided by time, then work out kWh and a bill for home appliances, with a short quiz."

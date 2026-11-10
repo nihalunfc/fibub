@@ -2,6 +2,7 @@
 name: HR diagram
 num: 830
 shelf: science
+code: T566
 section: stellar-astrophysics
 title: "HR diagram"
 summary: "Paste or open a star list (colour, apparent magnitude, parallax or distance, optional extinction) and get absolute magnitudes and a colour-magnitude diagram, or an HR diagram of luminosity against temperature from a black-body colour relation. Works with Gaia BP − RP and G, B − V and V, g − r, or bands of your own."

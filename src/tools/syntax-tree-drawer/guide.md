@@ -2,6 +2,7 @@
 name: Syntax tree drawer
 num: 734
 shelf: science
+code: T502
 section: linguistics-and-phonetics
 title: "Syntax tree drawer: labelled bracket notation to a tree, with triangles, movement arrows, SVG/PNG and LaTeX (forest, qtree)"
 summary: "Type a sentence in labelled brackets such as [S [NP the dog] [VP barked]] and get a clean syntax tree with triangles, subscripts and movement arrows. Download SVG or PNG, or copy LaTeX for forest or qtree. Clear messages for unbalanced brackets."

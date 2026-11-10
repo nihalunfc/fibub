@@ -2,6 +2,7 @@
 name: India tax
 num: 1726
 shelf: money
+code: T760
 section: income-tax
 title: "India income tax calculator FY 2026-27: new vs old regime"
 summary: "Compare your FY 2026-27 income tax under the new and old regimes side by side: slabs, standard deduction, 87A rebate, surcharge and 4% cess, with 80C, 80D, HRA and home loan interest."

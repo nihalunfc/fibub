@@ -2,6 +2,7 @@
 name: Pick's theorem
 num: 1252
 shelf: learn
+code: L137
 section: school-maths
 title: "Pick's theorem"
 summary: "Tap dots on a grid to make any polygon. The page colours the dots inside and on the edges, works out I + B/2 − 1 and checks it against the area from the corners. Drag corners to explore."

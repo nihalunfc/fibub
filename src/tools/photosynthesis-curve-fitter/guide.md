@@ -2,6 +2,7 @@
 name: Photosynthesis curve fitter
 num: 325
 shelf: science
+code: T240
 section: botany-and-plant-science
 title: "Photosynthesis light response and A/Ci curve fitting: Amax, quantum yield, Vcmax, Jmax and Rd online"
 summary: "Fit leaf gas exchange curves in your browser. Light response curves get a non-rectangular hyperbola with Amax, quantum yield, curvature, dark respiration, light compensation and saturation points. A/Ci curves get the Farquhar-von Caemmerer-Berry model with Vcmax, J, Jmax and Rd, the Rubisco and RuBP-limited parts, and the transition Ci."

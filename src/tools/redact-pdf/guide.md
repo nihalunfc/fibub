@@ -2,6 +2,7 @@
 name: Redact PDF
 num: 1706
 shelf: documents
+code: T740
 section: privacy-clean
 title: "Redact PDF: black out text in a PDF for good, free"
 summary: "Black out names, numbers and areas in a PDF. Redacted pages become pictures, so the hidden text is truly gone. Nothing is uploaded."

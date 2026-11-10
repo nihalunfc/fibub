@@ -2,6 +2,7 @@
 name: Spring designer
 num: 644
 shelf: science
+code: T441
 section: mechanical-engineering
 title: "Spring calculator: helical compression, extension and torsion spring rate, stress, solid height and buckling"
 summary: "Design a round-wire helical spring. Compression: rate, Wahl-corrected shear stress, solid height and force for four end types, buckling limit and surge frequency. Extension: initial tension, hook bending and torsion stresses. Torsion: rate per turn and per degree, bending stress and the coil diameter under load. You enter the material values; examples are labelled."

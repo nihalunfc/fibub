@@ -2,6 +2,7 @@
 name: Graph algorithms
 num: 556
 shelf: science
+code: T384
 section: discrete-maths-and-graph-theory
 title: "Graph algorithms"
 summary: "Draw a graph or paste an edge list (weighted, directed or not) and run Dijkstra, Bellman-Ford, breadth- and depth-first search, Kruskal and Prim spanning trees, maximum flow with the minimum cut, greedy and DSatur colouring, degree, betweenness and closeness centrality, or a topological order. Results are highlighted on the drawing. Checked against networkx."

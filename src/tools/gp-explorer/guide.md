@@ -2,6 +2,7 @@
 name: GP explorer
 num: 1377
 shelf: learn
+code: L235
 section: school-maths
 title: "Geometric progression explorer: nth term, sum of n terms, sum to infinity and AM ≥ GM, drawn"
 summary: "Slide the first term and the common ratio of a geometric progression and watch the terms as bars and the running sum settle on a/(1 − r) when |r| < 1. AM ≥ GM is drawn in a semicircle, and compound interest and depreciation are shown as the GPs they are."

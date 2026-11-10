@@ -2,6 +2,7 @@
 name: Page numbers
 num: 1702
 shelf: documents
+code: T736
 section: pdf-edit
 title: "Add page numbers to a PDF: Page 1 of N, Bates numbers, header and footer, free"
 summary: "Number the pages of a PDF, with Bates numbers for legal files and optional header and footer text. It runs on your device; nothing is uploaded."

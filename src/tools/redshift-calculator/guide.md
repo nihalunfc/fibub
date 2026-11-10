@@ -2,6 +2,7 @@
 name: Redshift calculator
 num: 55
 shelf: science
+code: T55
 section: galactic-and-extragalactic-astronomy
 title: "Redshift calculator: z to velocity (relativistic, optical, radio) and where spectral lines land"
 summary: "Convert between redshift, velocity in the relativistic, optical and radio conventions, and observed wavelength or frequency of any common spectral line, with the cosmological recession velocity."

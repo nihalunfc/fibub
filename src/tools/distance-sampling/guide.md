@@ -2,6 +2,7 @@
 name: Distance sampling
 num: 305
 shelf: science
+code: T220
 section: ecology
 title: "Distance sampling calculator: line and point transect density with half-normal and hazard-rate detection functions"
 summary: "Estimate animal density from line or point transect distances. Fits half-normal and hazard-rate detection functions by maximum likelihood, picks the best by AIC, and gives the effective strip width or detection radius, density per km² and hectare, and a confidence interval."

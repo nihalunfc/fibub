@@ -2,6 +2,7 @@
 name: Factor analysis
 num: 724
 shelf: science
+code: T492
 section: psychology-and-psychometrics
 title: "Exploratory factor analysis online: KMO, parallel analysis, varimax and promax (free)"
 summary: "Run an exploratory factor analysis in your browser: correlation matrix, KMO and Bartlett's test, scree plot with parallel analysis, principal axis or maximum likelihood extraction, varimax or promax rotation, loadings and communalities. Matches Python's factor_analyzer."

@@ -2,6 +2,7 @@
 name: Spectral index calculator
 num: 135
 shelf: science
+code: T135
 section: remote-sensing-and-gis
 title: "NDVI and spectral index calculator for your own GeoTIFF: NDWI, MNDWI, NBR, EVI, SAVI, NDBI, in the browser"
 summary: "Open your own multiband GeoTIFF or one file per band. Map the bands, apply the product's scale and offset, and get NDVI, NDWI, MNDWI, NBR, EVI, SAVI, NDBI or your own normalised difference, with a coloured map, histogram, statistics, a threshold area and downloads as GeoTIFF or CSV. Files never leave your device."

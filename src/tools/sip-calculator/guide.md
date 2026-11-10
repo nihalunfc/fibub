@@ -2,6 +2,7 @@
 name: SIP calculator
 num: 1724
 shelf: money
+code: T758
 section: investing
 title: "SIP calculator: future value of a monthly investment plan"
 summary: "Work out what a monthly SIP could grow to at an expected return, with an optional yearly step-up and lumpsum, shown with a chart and year-by-year table."

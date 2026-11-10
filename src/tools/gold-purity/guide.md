@@ -2,6 +2,7 @@
 name: Gold purity
 num: 1607
 shelf: collecting
+code: T727
 section: metals
 title: "Gold purity: karat to fineness and per cent, with today's price per gram"
 seoTitle: "Gold karat to fineness and per cent converter"

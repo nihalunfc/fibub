@@ -2,6 +2,7 @@
 name: Beer–Lambert calculator
 num: 84
 shelf: science
+code: T84
 section: analytical-chemistry
 title: "Beer–Lambert law calculator and UV-Vis spectrum viewer: absorbance, ε, concentration"
 summary: "Solve A = εlc for absorbance, molar absorptivity, path length or concentration, convert to transmittance, check the reading is in the reliable range, and view UV-Vis spectra with their maxima."

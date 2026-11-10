@@ -2,6 +2,7 @@
 name: SAR table builder
 num: 213
 shelf: science
+code: T212
 section: medicinal-chemistry
 title: "SAR table builder: R-group potency matrix, matched pairs, pIC50, ligand efficiency and LLE"
 summary: "Paste a compound series with R-group columns and IC50, Ki or EC50 values. Get pIC50 for every compound, an R1 × R2 potency heatmap, matched pairs with the average effect of each substituent change, the best and worst group at each position, and ligand efficiency and LLE when you add heavy atoms and logP. Nothing is uploaded."

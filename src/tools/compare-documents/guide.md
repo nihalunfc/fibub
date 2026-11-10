@@ -2,6 +2,7 @@
 name: Compare documents
 num: 1713
 shelf: documents
+code: T747
 section: doc-checks
 title: "Compare documents: see what changed between two versions, free"
 summary: "Compare two versions of a PDF, Word file, text file or pasted text. New words are underlined in green, removed words struck through in red. Nothing is uploaded."

@@ -2,6 +2,7 @@
 name: Sign PDF
 num: 1704
 shelf: documents
+code: T738
 section: pdf-sign
 title: "Sign PDF: add your signature to a PDF online, free"
 summary: "Draw, type or upload your signature, tap the page to place it, add the date and initials, and download the signed PDF. Nothing is uploaded."

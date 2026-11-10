@@ -2,6 +2,7 @@
 name: Seismogram viewer
 num: 879
 shelf: science
+code: T614
 section: geophysics-and-seismology
 title: "Seismogram viewer: open SAC and miniSEED, filter, spectrogram and pick P and S arrivals"
 summary: "Open SAC and miniSEED seismogram files (Steim-1, Steim-2, integers and floats) in your browser. See several traces at once with zoom and pan, remove the trend, taper, apply a Butterworth bandpass (one pass or zero phase), see the amplitude spectrum and a spectrogram, tap to pick P and S, and download CSV."

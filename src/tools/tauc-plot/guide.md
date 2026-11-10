@@ -2,6 +2,7 @@
 name: Tauc plot
 num: 863
 shelf: science
+code: T599
 section: semiconductors-and-electronics-materials
 title: "Tauc plot"
 summary: "Open a UV-Vis spectrum and get the optical band gap from a Tauc plot: absorbance, transmittance or diffuse reflectance (Kubelka-Munk) turned into (αhν)^n for direct or indirect transitions, the straight part of the edge found for you or chosen by hand, the gap where the line meets zero or a baseline, with its error and window spread, plus the Urbach energy."

@@ -2,6 +2,7 @@
 name: Titration curve simulator
 num: 82
 shelf: science
+code: T82
 section: analytical-chemistry
 title: "Titration curve simulator and end point finder: pH curves, equivalence points and indicators"
 summary: "Draw the exact pH curve for strong, weak and polyprotic acids and bases, see the equivalence points and the right indicator, and find the end point of your own measured titration from its derivatives."

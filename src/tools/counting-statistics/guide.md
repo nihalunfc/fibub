@@ -2,6 +2,7 @@
 name: Counting statistics helper
 num: 950
 shelf: science
+code: T685
 section: nuclear-and-particle-physics
 title: "Radiation counting statistics: net count rate, Currie detection limit, MDA, dead time and counting time"
 summary: "For Geiger, scintillation and gamma counting: subtract the background with the right uncertainty, decide whether anything was detected (Currie's decision threshold L_C and detection limit L_D), get the activity and minimum detectable activity, exact Poisson limits, dead-time corrections for both detector models, and the best split of counting time."

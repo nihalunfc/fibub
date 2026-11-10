@@ -2,6 +2,7 @@
 name: Rent or buy
 num: 1721
 shelf: money
+code: T755
 section: mortgages
 title: "Rent or buy calculator: when does buying a home beat renting?"
 summary: "Compare buying a home with renting and investing the difference, year by year, and see the year buying pulls ahead, counting tax, upkeep, insurance and selling costs."

@@ -2,6 +2,7 @@
 name: Related rates
 num: 1469
 shelf: learn
+code: L306
 section: school-maths
 title: "Related rates: a ladder sliding down a wall, a balloon and a filling cone, animated with the working"
 summary: "Play three classic related-rates stories (a ladder sliding down a wall, a balloon being blown up, a cone-shaped tank filling with water), change the sizes and speeds, and see the link equation differentiated with respect to time with your numbers filled in, plus a graph of the unknown rate as time goes on."

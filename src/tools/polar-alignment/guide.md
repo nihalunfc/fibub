@@ -2,6 +2,7 @@
 name: Polar alignment helper
 num: 15
 shelf: science
+code: T15
 section: observing
 title: "Polar alignment: where to put Polaris in your polar scope right now"
 summary: "See the clock position of Polaris (or Sigma Octantis in the south) for your place and time, drawn on a polar scope reticle, so you can line up your equatorial mount in a minute."

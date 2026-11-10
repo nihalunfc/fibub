@@ -2,6 +2,7 @@
 name: Capillary rise
 num: 1344
 shelf: learn
+code: L206
 section: school-physics
 title: "Capillary rise calculator: how high water climbs in a thin tube, surface tension, contact angle and Jurin's law, with mercury falling"
 summary: "Dip a glass tube in water, soapy water, alcohol or mercury and see the liquid climb (or sink) by h = 2T cos θ/(rρg). Change the tube's radius and watch h follow Jurin's law, see the meniscus curve, the pressure step under it, and what happens in a tube that is too short."

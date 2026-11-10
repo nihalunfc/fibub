@@ -2,6 +2,7 @@
 name: Quantum statistics plotter
 num: 921
 shelf: science
+code: T656
 section: thermodynamics-and-statistical-physics
 title: "Fermi-Dirac, Bose-Einstein and Maxwell-Boltzmann distributions: plotter and ideal quantum gas calculator"
 summary: "Plot the Maxwell-Boltzmann, Fermi-Dirac and Bose-Einstein occupation numbers for any temperature and chemical potential, then solve an ideal quantum gas: chemical potential from density, Fermi energy, Bose-Einstein condensation temperature and condensate fraction, mean energy and pressure."

@@ -2,6 +2,7 @@
 name: Fertiliser blend calculator
 num: 381
 shelf: science
+code: T269
 section: agronomy-and-soil-science
 title: "Fertiliser blend calculator: turn N, P2O5 and K2O needs into kg of each product, with cost"
 summary: "Type the nitrogen, phosphate, potash (and sulphur) your field needs and the fertiliser grades you can buy, such as 46-0-0, 18-46-0 and 0-0-60. Get the amount of each product per hectare or acre, what is over or under supplied, totals and bags for the field, and the cost if you type prices."

@@ -2,6 +2,7 @@
 name: Anomalous Hall checker
 num: 146
 shelf: science
+code: T146
 section: condensed-matter-physics
 title: "Anomalous Hall checker: which Hall components does a magnet's symmetry allow for a given Néel vector?"
 summary: "Enter a magnetic crystal and the direction its moments point. The tool finds the magnetic symmetry with spin–orbit coupling and tells you whether an anomalous Hall effect is allowed, along which direction the Hall vector can point, and which conductivity components can be non-zero, with a map over all moment directions."

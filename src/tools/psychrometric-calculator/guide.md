@@ -2,6 +2,7 @@
 name: Psychrometrics
 num: 34
 shelf: science
+code: T34
 section: meteorology
 title: "Psychrometrics"
 summary: "From the air temperature and humidity (or dew point, or wet bulb), get every moist air property with the ASHRAE equations, a psychrometric chart, the heat index and the humidex."

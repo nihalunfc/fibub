@@ -2,6 +2,7 @@
 name: Particle drift simulator
 num: 953
 shelf: science
+code: T688
 section: plasma-physics
 title: "Particle drift simulator: E × B, grad-B, curvature and gravity drifts with a Boris pusher animation"
 summary: "Watch a proton, electron or any ion spiral in a magnetic field and drift sideways when there is an electric field, a field gradient, curved field lines or a steady force. The path is worked out step by step with the Boris method and compared with guiding-centre theory."

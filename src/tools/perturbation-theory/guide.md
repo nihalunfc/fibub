@@ -2,6 +2,7 @@
 name: Perturbation theory checker
 num: 928
 shelf: science
+code: T663
 section: quantum-mechanics
 title: "Perturbation theory checker: first, second and third order corrections against exact diagonalisation"
 summary: "Type or paste a Hamiltonian H₀ and a perturbation V as matrices (real or complex, up to 40 × 40), choose λ, and get every level's first, second and third order corrections, degenerate levels included, side by side with the exact eigenvalues of H₀ + λV, a convergence warning and a plot of the exact levels against the second-order curves."

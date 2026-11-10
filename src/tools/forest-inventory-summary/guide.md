@@ -2,6 +2,7 @@
 name: Forest inventory summary
 num: 336
 shelf: science
+code: T251
 section: forestry
 title: "Forest inventory plot summary: stems per hectare, basal area per hectare, quadratic mean diameter and diameter distribution by species"
 summary: "Turn a plot tally (plot, species, DBH, and height if measured) into a stand summary: stems and basal area per hectare or acre with standard errors across plots, quadratic mean diameter, Lorey's mean height, a table by species and a diameter class chart. Paste it or open a CSV or Excel file."

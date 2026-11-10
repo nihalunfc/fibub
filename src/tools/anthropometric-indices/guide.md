@@ -2,6 +2,7 @@
 name: Anthropometric indices
 num: 762
 shelf: science
+code: T530
 section: anthropology
 title: "Anthropometric index calculator: BMI, cephalic, nasal, Cormic, intermembral and crural index (free)"
 summary: "Body and skeletal indices from your measurements: BMI, waist-to-hip and waist-to-height ratios, cephalic and nasal index, Cormic and skelic index, and the intermembral, brachial, crural and humerofemoral indices. One person or a whole table, with summary statistics."

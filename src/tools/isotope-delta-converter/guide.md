@@ -2,6 +2,7 @@
 name: Isotope delta converter
 num: 122
 shelf: science
+code: T122
 section: geochemistry-and-geochronology
 title: "Isotope delta converter: δ to ratio, VPDB to VSMOW, fractionation, Δ17O and mixing"
 summary: "Convert stable isotope δ values (δ²H, δ¹³C, δ¹⁵N, δ¹⁷O, δ¹⁸O, δ³⁴S, δ¹¹B, δ³⁷Cl) to and from isotope ratios, move δ¹⁸O between the VPDB and VSMOW scales exactly, work out α, ε and 1000 ln α, triple-oxygen Δ′¹⁷O, and two-source mixing with different concentrations."

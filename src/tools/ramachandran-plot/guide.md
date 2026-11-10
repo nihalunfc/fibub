@@ -2,6 +2,7 @@
 name: Ramachandran plot
 num: 186
 shelf: science
+code: T186
 section: structural-biology
 title: "Ramachandran plot generator: phi and psi angles from a PDB or mmCIF file, in your browser"
 summary: "Open a protein structure (PDB or mmCIF) and get every residue's backbone phi, psi and omega angles, plotted on a Ramachandran plot with glycine and proline marked, broad guide regions for helix and sheet, a list of residues outside them and of cis peptides, and CSV, image, PDF or Word downloads. The file is never uploaded."

@@ -2,6 +2,7 @@
 name: Mendel's pea garden
 num: 1124
 shelf: learn
+code: L58
 section: school-biology
 title: "Mendel's pea garden: monohybrid and dihybrid crosses with random offspring, 3:1 and 9:3:3:1"
 summary: "Cross tall and short pea plants, or round yellow and wrinkled green seeds, and grow 20, 100 or 1000 random children. Compare the counts with 3 : 1 and 9 : 3 : 3 : 1, see the Punnett square, and at Class 12 level add incomplete dominance, codominance (ABO) and a chi-square check."

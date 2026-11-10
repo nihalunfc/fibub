@@ -2,6 +2,7 @@
 name: Chromatography calculator
 num: 86
 shelf: science
+code: T86
 section: analytical-chemistry
 title: "Chromatography calculator: resolution, plate count, retention factor and HPLC method transfer"
 summary: "Resolution, retention factor, selectivity, plate number and HETP for two peaks, the plates needed for a target resolution, and moving an HPLC method to a shorter, narrower column (flow, injection, gradient times, USP <621> L/dp check)."

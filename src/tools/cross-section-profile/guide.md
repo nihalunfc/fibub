@@ -2,6 +2,7 @@
 name: Cross-section profile
 num: 509
 shelf: science
+code: T360
 section: structural-geology
 title: "Cross-section profile"
 summary: "Draw a topographic profile from a DEM (GeoTIFF or ASCII grid) along a line you tap on the map, or from typed distance and elevation pairs, with vertical exaggeration. Add contacts by strike and dip: each is drawn at its apparent dip in the section's direction and the units between them are filled. Download SVG, PNG, PDF or CSV."

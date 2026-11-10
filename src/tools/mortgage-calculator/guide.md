@@ -2,6 +2,7 @@
 name: Mortgage calculator
 num: 1720
 shelf: money
+code: T754
 section: mortgages
 title: "Mortgage calculator: payment, interest and payoff date, with Canada mode"
 summary: "Work out your mortgage payment for any price, down payment, rate and amortisation, with weekly or biweekly options, extra payments and CMHC insurance for Canada."

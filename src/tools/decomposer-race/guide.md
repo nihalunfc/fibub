@@ -2,6 +2,7 @@
 name: Decomposer race
 num: 1233
 shelf: learn
+code: L118
 section: school-biology
 title: "Decomposer race: how warmth, moisture and earthworms make leaf litter and waste rot faster"
 summary: "Three compost heaps race to break down. Choose leaves, peel, straw, paper or a plastic bag, set the temperature and moisture, add earthworms or not, and watch the grams left fall day by day, with the half-life of each heap."

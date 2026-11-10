@@ -2,6 +2,7 @@
 name: BMD calculator
 num: 475
 shelf: science
+code: T326
 section: toxicology
 title: "BMD calculator"
 summary: "Fit five dose-response models to quantal (yes/no) toxicity data by maximum likelihood, get the benchmark dose at a chosen extra risk and its lower limit (BMDL) by profile likelihood, compare models by AIC and goodness of fit, and plot them."

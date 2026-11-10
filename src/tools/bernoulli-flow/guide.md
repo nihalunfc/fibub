@@ -2,6 +2,7 @@
 name: Bernoulli flow
 num: 1342
 shelf: learn
+code: L204
 section: school-physics
 title: "Bernoulli flow"
 summary: "Watch water or air speed up where a pipe narrows while water columns show its pressure falling, with continuity and Bernoulli's equation worked out live. Then open a hole in a tank: the jet's speed √(2gh), where it lands and how long the tank takes to drain."

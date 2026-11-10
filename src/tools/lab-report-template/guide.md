@@ -2,6 +2,7 @@
 name: Lab report
 num: 826
 shelf: science
+code: T562
 section: teaching-and-outreach
 title: "Lab report"
 summary: "Build a lab report skeleton with prompts for every section and a checklist for figures and tables, then a marking rubric of criteria and levels with weights. Mark a report and get the weighted score. Download the template or the rubric as Word, PDF or Markdown, and save a rubric to use again."

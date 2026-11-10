@@ -2,6 +2,7 @@
 name: CubeSat power budget
 num: 510
 shelf: science
+code: T361
 section: spaceflight-and-astrodynamics
 title: "CubeSat power budget calculator: eclipse time, solar array power, loads by mode and battery depth of discharge"
 summary: "Work out a small satellite's orbit-average power: eclipse time from altitude and beta angle, solar panel output by attitude (nadir, Sun pointing or tumbling) with efficiency, packing, temperature and ageing, loads with duty cycles in each operating mode, and a battery simulation over several orbits with depth of discharge."

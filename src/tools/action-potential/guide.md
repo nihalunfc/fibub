@@ -2,6 +2,7 @@
 name: Nerve impulse lab
 num: 1128
 shelf: learn
+code: L62
 section: school-biology
 title: "Nerve impulse lab: resting potential, the all-or-none spike, myelinated axons and your reaction time"
 summary: "Push a nerve membrane past threshold and watch an all-or-none spike, see Na⁺ rush in and K⁺ flow out, race an impulse along an axon with and without myelin, and test your own reaction time. Class 10 and Class 11 levels."

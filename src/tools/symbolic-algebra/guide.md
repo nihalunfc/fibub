@@ -2,6 +2,7 @@
 name: Symbolic algebra
 num: 542
 shelf: science
+code: T370
 section: pure-mathematics
 title: "Symbolic algebra"
 summary: "Type an expression and simplify, expand or factor it, differentiate it, integrate it (with definite integrals), or substitute values. Exact fractions, answers you can copy as SymPy or LaTeX, and an honest 'could not integrate' when it is out of reach. Checked against sympy."

@@ -2,6 +2,7 @@
 name: Rotation curve
 num: 69
 shelf: science
+code: T69
 section: galactic-and-extragalactic-astronomy
 title: "Rotation curve"
 summary: "Paste a galaxy's rotation curve and fit a bulge, an exponential disc and a dark halo: masses with uncertainties, how much of the galaxy is dark matter, and the halo's total mass."

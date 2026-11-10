@@ -2,6 +2,7 @@
 name: Detention pond router
 num: 155
 shelf: science
+code: T155
 section: environmental-engineering
 title: "Stormwater detention pond sizing: route a storm through a pond with an orifice and overflow weir, and size the orifice"
 summary: "Size a stormwater detention pond. Build the inflow with the modified rational method or paste a hydrograph, set the pond shape, orifice and overflow weir, and route the storm through it. See the peak outflow, how much it is cut, the highest water level, storage used and drain time. The tool can also find the orifice size that meets a target peak outflow."

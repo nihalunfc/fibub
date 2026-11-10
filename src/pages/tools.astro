@@ -3,6 +3,7 @@
 import Base from '../layouts/Base.astro';
 import { SHELVES, SUBJECTS } from '../site';
 import { allTools, bySubject, toolUrl } from '../lib/tools';
+import ToolMap from '../components/ToolMap.astro';
 import '../styles/area.css';
 const tools = await allTools();
 const live = tools.filter((t) => t.data.status === 'live');
@@ -25,12 +26,13 @@ const shelves = SHELVES.map((s) => {
         {subjects ? (
           <ul class="ar-list ar-cols">{subjects.map((sj) => <li><a href={sj.url}>{sj.name}</a> <span>{sj.count}</span></li>)}</ul>
         ) : (
-          <ul class="ar-list">{first.map((t) => <li><a href={toolUrl(t)}>{t.data.name}</a> <span>#{t.data.num}</span></li>)}</ul>
+          <ul class="ar-list">{first.map((t) => <li><a href={toolUrl(t)}>{t.data.name}</a> <span>#{t.data.code}</span></li>)}</ul>
         )}
         <a class="ar-go" href={`/${shelf.id}/`}>All {shelf.name.toLowerCase()} tools →</a>
       </section>
     ))}
   </div>
+  <ToolMap tools={tools} />
 </Base>
 <style>
   .ar-card h2 a { color: var(--ink); text-decoration: none; }

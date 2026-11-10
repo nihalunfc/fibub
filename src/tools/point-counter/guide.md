@@ -2,6 +2,7 @@
 name: Point counter
 num: 873
 shelf: science
+code: T609
 section: mineralogy-and-petrology
 title: "Point counter"
 summary: "Open a thin-section photo or any image, lay a grid or seeded random points over it and count each point into your own classes with number keys or buttons. Get modal percentages with binomial standard errors, Van der Plas and Tobi 2σ, exact 95 % ranges and CSV files. Works as a plain tally counter without an image."

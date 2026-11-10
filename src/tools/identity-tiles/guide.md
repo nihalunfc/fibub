@@ -2,6 +2,7 @@
 name: Algebraic identity tiles
 num: 1158
 shelf: learn
+code: L75
 section: school-maths
 title: "Algebraic identities as area models: (a + b)², (a − b)², a² − b², (x + a)(x + b) and (a + b)³ blocks"
 summary: "See each algebraic identity as a picture: slide a and b and the square or rectangle splits into its pieces with the identity filled in. Watch a² − b² turn into (a + b)(a − b), and pull the cube (a + b)³ apart into eight blocks."

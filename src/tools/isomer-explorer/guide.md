@@ -2,6 +2,7 @@
 name: Isomer explorer
 num: 1106
 shelf: learn
+code: L51
 section: school-chemistry
 title: "Isomer explorer: every structural isomer of C₄H₁₀, C₅H₁₂, C₄H₁₀O and more, named, with chain, position, functional and metamer isomerism"
 summary: "Pick a molecular formula (C₄H₁₀ to C₇H₁₆, C₄H₈, C₅H₁₀, C₂H₆O to C₅H₁₂O, C₃H₆O to C₅H₁₀O, C₂H₄O₂ to C₄H₈O₂) and see every open-chain structural isomer with its IUPAC name and condensed formula. Tap two to learn whether they are chain, position or functional isomers or metamers, spot cis–trans and chiral ones, and test yourself."

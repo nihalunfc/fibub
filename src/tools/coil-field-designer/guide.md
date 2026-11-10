@@ -2,6 +2,7 @@
 name: Coil field designer
 num: 910
 shelf: science
+code: T645
 section: electromagnetism
 title: "Helmholtz and Maxwell coil designer: magnetic field, uniformity along the axis and field map (Biot-Savart)"
 summary: "Design Helmholtz, Maxwell, anti-Helmholtz or your own set of round coils. Get the exact field at the centre, how long and how wide the uniform region is, a map of the uniformity, the current for a target field, and the wire length, resistance and heat."

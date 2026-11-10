@@ -2,6 +2,7 @@
 name: BER simulator
 num: 634
 shelf: science
+code: T431
 section: rf-and-communications
 title: "BER simulator"
 summary: "Send Gray-coded BPSK, QPSK, 8-PSK, 16-QAM or 64-QAM symbols through seeded white Gaussian noise at your Eb/N0 and see the noisy constellation. Count the bit and symbol errors with a 95 % interval and compare them with the theoretical rates. Sweep Eb/N0 to plot the simulated bit error rate against the theory curves of all five schemes, and download the sweep as CSV."

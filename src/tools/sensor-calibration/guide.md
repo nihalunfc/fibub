@@ -2,6 +2,7 @@
 name: Sensor calibration
 num: 870
 shelf: science
+code: T606
 section: atmospheric-chemistry-and-air-quality
 title: "Low-cost air sensor calibration against a reference: clean spikes and stuck values, fit linear, RH-corrected or Deming models"
 summary: "Paste or open a low-cost sensor's readings (with humidity and temperature if you have them) and a co-located reference. The page removes out-of-range, stuck and spike readings (Hampel filter), averages both to the same periods, fits a linear, multilinear (RH, T) or Deming calibration, reports R², RMSE, MAE and bias on fit and test periods, and applies the calibration to new data. CSV in and out."

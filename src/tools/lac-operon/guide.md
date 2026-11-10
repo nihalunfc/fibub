@@ -2,6 +2,7 @@
 name: lac operon switch
 num: 1447
 shelf: learn
+code: L291
 section: school-biology
 title: "lac operon: how lactose switches genes on, repressor and operator, i⁻ and Oᶜ mutants, CAP and glucose"
 summary: "Add or remove lactose and watch the repressor leave or grip the operator, and RNA polymerase copy (or not) the z, y and a genes. Try bacteria with no repressor or a faulty operator, add glucose and CAP as an extension, and follow a culture that eats glucose first and then switches on the lac genes."

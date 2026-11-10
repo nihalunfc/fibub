@@ -2,6 +2,7 @@
 name: Spike train analyser
 num: 348
 shelf: science
+code: T263
 section: neuroscience
 title: "Spike train analyser: firing rate, ISI histogram, CV, Fano factor, PSTH, raster plot and autocorrelogram (free)"
 summary: "Paste spike times for one or more trials or cells and get the firing rate, inter-spike interval histogram, coefficient of variation, Fano factor, a peri-stimulus time histogram, a raster plot and an autocorrelogram, with CSV and report downloads. Runs in your browser."

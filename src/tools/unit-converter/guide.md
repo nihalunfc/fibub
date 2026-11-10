@@ -2,6 +2,7 @@
 name: Engineering unit converter
 num: 692
 shelf: science
+code: T488
 section: metrology-and-quality
 title: "Engineering unit converter: SI and imperial units, pressure, energy, flow, viscosity, with a free-form expression converter"
 summary: "Convert between SI, metric and US/imperial units for length, area, volume, mass, force, pressure, energy, power, temperature, flow, viscosity, density, torque, heat transfer and more, or type any expression such as 3 kN*m to lbf*ft and get the answer with a dimension check that catches impossible conversions."

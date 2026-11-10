@@ -2,6 +2,7 @@
 name: Bayesian A/B test
 num: 564
 shelf: science
+code: T392
 section: statistics
 title: "Bayesian A/B test"
 summary: "Compare two conversion rates the Bayesian way: the chance B beats A (exact), expected loss, credible intervals for each rate, the difference and the lift. Also update beta, gamma and normal priors with your data and plot prior against posterior."

@@ -2,6 +2,7 @@
 name: Phase diagram
 num: 108
 shelf: science
+code: T108
 section: physical-chemistry
 title: "Phase diagram"
 summary: "Draw the phase diagram of a two-component mixture from the melting points and enthalpies of fusion (complete solid solution like Cu–Ni, or a simple eutectic like Bi–Cd), find the phases, their compositions and amounts at any temperature, and use the lever rule on compositions read off any real diagram, in wt % or mol %."

@@ -2,6 +2,7 @@
 name: Pharmacokinetics simulator (teaching)
 num: 473
 shelf: science
+code: T324
 section: pharmacology
 title: "Pharmacokinetics simulator: one- and two-compartment concentration-time curves, repeated administration and steady-state accumulation"
 summary: "See what a regimen does to an invented drug: one- or two-compartment model, IV bolus, IV infusion or oral absorption, repeated at an interval. Draws the concentration-time curve and gives Cmax and Cmin at steady state, the average level, the accumulation ratio and the half-lives. A teaching tool: it never works out an amount to give."

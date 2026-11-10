@@ -2,6 +2,7 @@
 name: Lagrangian helper
 num: 908
 shelf: science
+code: T643
 section: classical-mechanics
 title: "Euler-Lagrange equation calculator: type T and V, get the equations of motion, momenta and energy"
 summary: "Type the kinetic and potential energy of a system in your own coordinates and get the Lagrangian, the generalised momenta, every Euler-Lagrange equation (simplified, with sin² + cos² = 1), the accelerations or the mass-matrix form, the energy function, and a numerical run that checks energy conservation."

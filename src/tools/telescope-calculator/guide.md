@@ -2,6 +2,7 @@
 name: Telescope calculator
 num: 19
 shelf: science
+code: T19
 section: astrophotography
 title: "Telescope calculator"
 summary: "Enter your telescope, eyepieces and camera to see magnification, true field, exit pupil, faintest stars, image scale and whether your camera suits your seeing, with a picture of what fits in the view."

@@ -2,6 +2,7 @@
 name: Aliasing explorer
 num: 630
 shelf: science
+code: T427
 section: signal-processing
 title: "Aliasing explorer"
 summary: "Type a signal frequency and a sample rate and see what the samples really record: the apparent (alias) frequency, the Nyquist zone, the alias sine drawn through the samples, a folding diagram and the ideal sinc reconstruction. Includes the wagon-wheel effect and audio examples."

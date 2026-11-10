@@ -2,6 +2,7 @@
 name: Nash equilibrium solver
 num: 740
 shelf: science
+code: T508
 section: economics
 title: "Nash equilibrium calculator for 2-player games: pure and mixed strategies, dominated strategies, best responses, zero-sum value"
 summary: "Type in a two-player game of up to 6 × 6 strategies and get every Nash equilibrium, pure and mixed, with each player's payoff. Best replies are marked in the payoff table, dominated strategies are removed step by step, and zero-sum games get their value and the safest mixes. Matches nashpy."

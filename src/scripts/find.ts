@@ -1,6 +1,7 @@
 // Site-wide tool search. The list of every live tool is one small file (/tools.json), loaded the
 // first time someone searches or has starred tools, and kept for the rest of the visit.
-export type Entry = { id: string; n: string; s: string; k?: number; u: string; p: string };
+// k: the tool's ID code (T12, L3); a: its old plain number, still found by "#12" and "12".
+export type Entry = { id: string; n: string; s: string; k?: string; a?: number; u: string; p: string };
 
 let index: Promise<Entry[]> | null = null;
 export function loadIndex(): Promise<Entry[]> {
@@ -12,8 +13,8 @@ const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,
 export const words = (q: string) => norm(q).split(/[\s,]+/).filter(Boolean);
 
 /**
- * Tools that match every word, best first. "#3" finds tool number 3 only; a bare number finds that
- * tool first, then any tool with the number in its text. Name matches rank above summary matches.
+ * Tools that match every word, best first. "#T3" (or "T3") finds tool T3 only; "#3" finds the tool
+ * whose old number was 3; a bare number finds that tool first, then any tool with the number in its text. Name matches rank above summary matches.
  */
 export function rank(list: Entry[], q: string): Entry[] {
   const ws = words(q);
@@ -23,8 +24,10 @@ export function rank(list: Entry[], q: string): Entry[] {
     const name = norm(e.n), hay = `${name} ${norm(e.s)} ${norm(e.p)}`;
     let score = 0, ok = true;
     for (const w of ws) {
-      if (/^#\d+$/.test(w)) { if (String(e.k) === w.slice(1)) score += 100; else { ok = false; break; } continue; }
-      if (/^\d+$/.test(w) && String(e.k) === w) { score += 50; continue; }
+      if (/^#?[a-z]+\d+$/.test(w) && w.replace('#', '') === e.k?.toLowerCase()) { score += 100; continue; }
+      if (/^#[a-z]+\d+$/.test(w)) { ok = false; break; }
+      if (/^#\d+$/.test(w)) { if (String(e.a) === w.slice(1)) score += 100; else { ok = false; break; } continue; }
+      if (/^\d+$/.test(w) && String(e.a) === w) { score += 50; continue; }
       const at = name.indexOf(w);
       if (at === 0) score += 6;
       else if (at > 0) score += name[at - 1] === ' ' ? 4 : 2;
@@ -33,7 +36,7 @@ export function rank(list: Entry[], q: string): Entry[] {
     }
     if (ok) out.push({ e, score });
   }
-  return out.sort((a, b) => b.score - a.score || (a.e.k ?? 1e9) - (b.e.k ?? 1e9)).map((x) => x.e);
+  return out.sort((a, b) => b.score - a.score || (a.e.a ?? 1e9) - (b.e.a ?? 1e9)).map((x) => x.e);
 }
 
 const STAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z"/></svg>';
@@ -41,7 +44,7 @@ const STAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 /** One tool row, the same markup as the server-rendered rows: name, where it sits, #number, star. */
 export function row(e: Entry, opts: { star?: boolean; pinned?: boolean; place?: boolean } = {}) {
   const li = document.createElement('li');
-  li.className = 'ti'; li.dataset.id = e.id; if (e.k) li.dataset.num = String(e.k);
+  li.className = 'ti'; li.dataset.id = e.id; if (e.k) li.dataset.num = e.k;
   const a = document.createElement('a'); a.href = e.u;
   const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = e.n;
   const sm = document.createElement('span'); sm.className = 'sm'; sm.textContent = opts.place ? e.p : e.s;

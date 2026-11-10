@@ -2,6 +2,7 @@
 name: Wind tunnel
 num: 957
 shelf: science
+code: T692
 section: fluid-dynamics
 title: "Wind tunnel"
 summary: "A live 2D wind tunnel in the browser: pick a cylinder, square, plate or airfoil, or draw your own shape, set the Reynolds number and watch the wake form and shed a Kármán vortex street, with drag, lift and Strouhal number measured as it runs."

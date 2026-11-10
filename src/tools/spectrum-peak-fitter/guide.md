@@ -2,6 +2,7 @@
 name: Spectrum peak fitter
 num: 951
 shelf: science
+code: T686
 section: nuclear-and-particle-physics
 title: "Spectrum peak fitter: Gaussian peaks on a background, net areas, FWHM and energy calibration for gamma and other spectra"
 summary: "Paste or open a spectrum or histogram (counts per channel), mark a region, find or type the peaks, and fit Gaussians on a constant, straight or quadratic background with Poisson weights: centroid, FWHM, net area and their uncertainties, χ²/ν and residuals. Then calibrate channel to energy from known peaks."

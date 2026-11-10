@@ -2,6 +2,7 @@
 name: Stress-strain curve analyser
 num: 846
 shelf: science
+code: T582
 section: mechanical-behaviour
 title: "Stress-strain curve analyser: Young's modulus, 0.2 % yield, UTS, elongation and toughness from a tensile test"
 summary: "Paste or open force-extension or stress-strain data from a tensile test. Get Young's modulus from a straight-line fit, the 0.2 % offset yield strength, tensile strength, uniform and fracture elongation, toughness, resilience, true stress-strain to the UTS and the strain-hardening exponent, with a plot and CSV."

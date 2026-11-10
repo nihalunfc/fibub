@@ -2,6 +2,7 @@
 name: Herd immunity
 num: 493
 shelf: science
+code: T344
 section: public-health
 title: "Herd immunity"
 summary: "Work out the herd immunity threshold from R0, the vaccine coverage needed for a vaccine of a given effectiveness, and the effective R at your coverage, with a chart of the threshold against R0."

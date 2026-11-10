@@ -2,6 +2,7 @@
 name: Debt payoff
 num: 1722
 shelf: money
+code: T756
 section: debt
 title: "Debt snowball vs avalanche calculator: your fastest way out of debt"
 summary: "List your debts, add what you can pay extra, and compare the snowball and avalanche methods side by side: months to debt-free, interest paid and payoff order."

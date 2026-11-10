@@ -2,6 +2,7 @@
 name: Gratuity
 num: 1729
 shelf: money
+code: T763
 section: pay
 title: "Gratuity calculator: India, UAE and Saudi end-of-service pay"
 summary: "Work out the gratuity you are owed when you leave a job: India under the Payment of Gratuity Act with the Rs 20 lakh tax-free limit, UAE private-sector end-of-service pay, and Saudi Arabia's end-of-service award."

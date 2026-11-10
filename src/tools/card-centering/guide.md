@@ -2,6 +2,7 @@
 name: Card centering
 num: 1606
 shelf: collecting
+code: T726
 section: vetting
 title: "Card centering calculator: 60/40 and 55/45 from border widths"
 summary: "Type the left, right, top and bottom borders of a trading card, front and back, and see the centring split such as 55/45, with a drawing of the card to show how far off-centre the picture sits."

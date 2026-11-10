@@ -2,6 +2,7 @@
 name: Catchment buffers
 num: 760
 shelf: science
+code: T528
 section: human-geography-and-urban-studies
 title: "Catchment and buffer calculator: share of people within X m of a facility, nearest-facility distances and walkability (straight line, free)"
 summary: "Open your own facilities, population points or areas (CSV or GeoJSON) and amenities. See what share of people live within a chosen straight-line distance of a facility, nearest-facility distances, each facility's catchment population and a simple walkability score. Runs in your browser; nothing is uploaded."

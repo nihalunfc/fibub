@@ -2,6 +2,7 @@
 name: Beats lab
 num: 1354
 shelf: learn
+code: L216
 section: school-physics
 title: "Beats generator: hear and see beats between two close frequencies, beat frequency |f₁ − f₂|, and find an unknown tuning fork with wax"
 summary: "Play two tones a few hertz apart and hear the sound swell and fade. See each wave and their sum with its envelope, read the beat frequency, the beat period and the pitch you hear, then solve the classic puzzle: find an unknown tuning fork's frequency from beats and a blob of wax."

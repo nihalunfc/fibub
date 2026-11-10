@@ -2,6 +2,7 @@
 name: Heat engine cycles
 num: 917
 shelf: science
+code: T652
 section: thermodynamics-and-statistical-physics
 title: "Heat engine cycle calculator: Carnot, Otto, Diesel, Brayton and Stirling on P-V and T-s diagrams"
 summary: "Draw the air-standard Carnot, Otto, Diesel, Brayton and Stirling cycles on pressure-volume and temperature-entropy diagrams, with every state, the heat and work of each process, net work, mean effective pressure and efficiency against the Carnot limit."

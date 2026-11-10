@@ -2,6 +2,7 @@
 name: Electron configuration filler
 num: 1082
 shelf: learn
+code: L37
 section: school-chemistry
 title: "Electron configuration with orbital boxes: Aufbau, Pauli, Hund, quantum numbers and the Cr and Cu exceptions"
 summary: "Watch electrons fill orbital boxes from 1s to 4p one at a time, or fill them yourself and see which rule (Aufbau, Pauli or Hund) a wrong tap breaks. Tap any arrow for its four quantum numbers. Chromium and copper explained. Ends with fresh practice questions."

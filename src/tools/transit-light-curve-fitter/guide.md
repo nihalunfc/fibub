@@ -2,6 +2,7 @@
 name: Transit fitter
 num: 71
 shelf: science
+code: T71
 section: exoplanets
 title: "Transit fitter"
 summary: "Paste an exoplanet transit light curve and fit a limb-darkened model: the planet's size relative to its star, depth, duration, impact parameter, inclination and the star's density."

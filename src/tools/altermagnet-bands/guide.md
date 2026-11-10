@@ -2,6 +2,7 @@
 name: Altermagnet band explorer
 num: 145
 shelf: science
+code: T145
 section: condensed-matter-physics
 title: "Altermagnet band explorer: spin-split bands, Fermi surfaces and d- or g-wave splitting in a tight-binding model"
 summary: "Play with minimal two-dimensional tight-binding models of an altermagnet: see the spin-up and spin-down bands split along some directions and meet along others, the two spins' Fermi contours, a map of the d- or g-wave spin splitting over the Brillouin zone, and the spin-resolved density of states that shows the net moment stays zero."

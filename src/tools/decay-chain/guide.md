@@ -2,6 +2,7 @@
 name: Decay chain simulator
 num: 945
 shelf: science
+code: T680
 section: nuclear-and-particle-physics
 title: "Decay chain calculator: Bateman equations, daughter ingrowth, secular and transient equilibrium"
 summary: "Follow a radioactive parent and up to seven daughters through time with the Bateman equations: activity of every member at any time, when each daughter peaks, whether the chain reaches secular or transient equilibrium and how long that takes. Branching, any starting activities, and a chart and CSV of the ingrowth."

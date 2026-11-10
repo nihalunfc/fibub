@@ -2,6 +2,7 @@
 name: Enzyme kinetics fitter
 num: 112
 shelf: science
+code: T112
 section: biochemistry
 title: "Enzyme kinetics fitter: Michaelis–Menten Km and Vmax, inhibition type and Ki"
 summary: "Paste substrate concentrations and initial rates, with or without an inhibitor, and fit Michaelis–Menten, substrate inhibition, Hill, or competitive, uncompetitive, non-competitive and mixed inhibition by non-linear least squares. Get Km, Vmax, Ki, kcat and kcat/Km with errors, a model comparison by AICc, and the Lineweaver–Burk, Eadie–Hofstee and Hanes–Woolf values side by side."

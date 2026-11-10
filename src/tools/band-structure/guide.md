@@ -2,6 +2,7 @@
 name: Band structure explorer
 num: 962
 shelf: science
+code: T697
 section: condensed-matter-physics
 title: "Band structure explorer: tight-binding chain, square lattice, graphene and Kronig-Penney bands with density of states"
 summary: "See how electron bands form in the classic toy models of solid state physics: a tight-binding chain, a diatomic chain with a gap, the square lattice, graphene's Dirac cones and the Kronig-Penney row of square wells. Get band edges, gaps, the Fermi level for any filling, effective mass, Fermi velocity and the density of states, with charts and CSV downloads."

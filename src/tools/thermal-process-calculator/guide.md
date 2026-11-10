@@ -2,6 +2,7 @@
 name: F-value calculator
 num: 393
 shelf: science
+code: T281
 section: food-science
 title: "F-value calculator"
 summary: "Fit a D-value to survivor counts and a z-value to D-values at several temperatures, work out the F needed for a log reduction, and add up lethal rates over a pasted time-temperature profile to get F0 or any F by the general method. For study. Nothing is uploaded."

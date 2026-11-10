@@ -2,6 +2,7 @@
 name: Embedding visualiser
 num: 572
 shelf: science
+code: T400
 section: data-science-and-machine-learning
 title: "Embedding visualiser"
 summary: "Turn a table of numbers (up to 2,000 rows) into a two-dimensional map with PCA and exact t-SNE, coloured by a label column. See the explained variance, loadings, scree plot, KL divergence and how well neighbours are kept. Matches scikit-learn. Nothing is uploaded."

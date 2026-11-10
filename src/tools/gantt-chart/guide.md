@@ -2,6 +2,7 @@
 name: Gantt chart
 num: 823
 shelf: science
+code: T559
 section: ethics-and-planning
 title: "Gantt chart"
 summary: "Type or open your project's tasks with starts, durations and dependencies, and get a Gantt chart with work packages, milestones, float and the critical path worked out for you. Download it as SVG, PNG, PDF or Word, and the schedule as CSV."

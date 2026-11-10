@@ -2,6 +2,7 @@
 name: Algorithm stepper
 num: 1287
 shelf: learn
+code: L168
 section: school-maths
 title: "Algorithm stepper: bubble sort, binary search and Euclid's HCF, one step at a time"
 summary: "Watch bubble sort put a list in order, binary search halve a sorted list to find a number, and Euclid's algorithm cut a rectangle into squares to find the HCF. Step forwards and back, count the comparisons, and see how the step counts grow from 8 items to a million."

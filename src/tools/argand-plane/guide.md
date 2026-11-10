@@ -2,6 +2,7 @@
 name: Argand plane
 num: 1187
 shelf: learn
+code: L90
 section: school-maths
 title: "Argand plane interactive: add, multiply and divide complex numbers, modulus, argument, powers of i, complex roots"
 summary: "Drag two complex numbers z and w on the Argand plane and see z + w as a parallelogram, z × w as stretch-and-turn, the conjugate as a reflection, modulus, argument and polar form, powers of i as quarter turns, and the complex roots of a quadratic appearing when the parabola misses the x-axis."

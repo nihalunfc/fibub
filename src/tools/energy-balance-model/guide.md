@@ -2,6 +2,7 @@
 name: Climate balance model
 num: 834
 shelf: science
+code: T570
 section: climatology
 title: "Climate balance model"
 summary: "Move sliders for the solar constant, albedo, emissivity, CO₂, the climate feedback parameter and the ocean's heat capacity, and see the planet's equilibrium temperature, how fast it warms, the ice-albedo feedback with its two stable climates and hysteresis, and the one-layer greenhouse model."

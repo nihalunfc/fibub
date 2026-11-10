@@ -2,6 +2,7 @@
 name: Gear trains
 num: 643
 shelf: science
+code: T440
 section: mechanical-engineering
 title: "Gear trains"
 summary: "Work out the speeds, directions, torques and power of each shaft in a simple, idler or compound gear train with mesh efficiencies and centre distances; solve a planetary gear set with the Willis equation (any member held or driven, assembly checks, torque split); and find the belt length, wrap angles and driven speed of an open or crossed belt drive, or the centre distance for a belt length."

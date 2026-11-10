@@ -2,6 +2,7 @@
 name: Hydrogen line analyser
 num: 73
 shelf: science
+code: T73
 section: radio-astronomy
 title: "Hydrogen 21 cm line analyser: LSR velocity, terminal velocity and the Milky Way rotation curve"
 summary: "Paste a 21 cm hydrogen spectrum from a backyard radio telescope and get LSR velocities, the terminal velocity, kinematic distances, column density and the Milky Way's rotation curve."

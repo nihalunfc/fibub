@@ -2,6 +2,7 @@
 name: Flood frequency analysis
 num: 142
 shelf: science
+code: T142
 section: hydrology-and-water-resources
 title: "Flood frequency analysis: 100-year flood from annual peaks with GEV, log-Pearson III and Gumbel"
 summary: "Fit GEV, log-Pearson type III and Gumbel distributions to a record of annual peak flows to estimate the 10-, 100- or any-year flood, with bootstrap ranges, the return period of a given flow, the chance of a flood over a span of years, plotting positions and a Grubbs-Beck outlier screen. Paste or open a file."

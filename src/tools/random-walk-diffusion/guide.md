@@ -2,6 +2,7 @@
 name: Random walk
 num: 922
 shelf: science
+code: T657
 section: thermodynamics-and-statistical-physics
 title: "Random walk"
 summary: "Simulate lattice or Gaussian random walks in 1, 2 or 3 dimensions and watch the mean square displacement grow as 2dDt, or paste your own particle tracks to fit the diffusion coefficient, localisation error and anomalous exponent from the time-averaged MSD."
