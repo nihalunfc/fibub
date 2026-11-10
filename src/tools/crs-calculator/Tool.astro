@@ -1,0 +1,163 @@
+---
+// #T931 CRS calculator
+---
+<div class="tool-ui crs">
+  <section class="panel">
+    <h3>You</h3>
+    <div class="crs-grid">
+      <label>Spouse or partner
+        <select data-k="spouse">
+          <option value="no">No spouse or partner</option>
+          <option value="yes">Yes, and they are coming with me</option>
+          <option value="cdn">Yes, but they are a Canadian citizen or PR, or not coming</option>
+        </select>
+      </label>
+      <label>Age <input data-k="age" type="number" inputmode="numeric" min="16" max="70" value="29" /></label>
+      <label>Highest education <select data-k="edu" class="crs-edu"></select></label>
+      <label>Years of skilled foreign work
+        <select data-k="foreign"><option value="0">None or under 1 year</option><option value="1">1 or 2 years</option><option value="3">3 years or more</option></select>
+      </label>
+      <label class="crs-check"><input data-k="cert" type="checkbox" /> I have a Canadian certificate of qualification in a trade</label>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h3>Languages</h3>
+    <p class="crs-hint">Use your CLB level for each skill (NCLC for French). Your test results convert to CLB on IRCC's language test pages.</p>
+    <label class="crs-one">First official language
+      <select data-k="firstLang"><option value="en">English</option><option value="fr">French</option></select>
+    </label>
+    <div class="crs-clb" data-g="first"></div>
+    <label class="crs-check"><input data-k="hasSecond" type="checkbox" /> I also have test results in the other official language</label>
+    <div class="crs-clb" data-g="second" hidden></div>
+  </section>
+
+  <section class="panel">
+    <h3>Work in Canada and job offer</h3>
+    <div class="crs-grid">
+      <label>Years of skilled work in Canada
+        <select data-k="cdn"><option value="0">None or under 1 year</option><option value="1">1 year</option><option value="2">2 years</option><option value="3">3 years</option><option value="4">4 years</option><option value="5">5 years or more</option></select>
+      </label>
+      <label>12 months or more in a high-wage occupation
+        <select data-k="hw"><option value="none">No</option><option value="1.3">Yes, at 1.3 times the median wage or more</option><option value="1.5">Yes, at 1.5 times or more</option><option value="2">Yes, at 2 times or more</option></select>
+      </label>
+      <label>Valid job offer in a high-wage occupation
+        <select data-k="offer"><option value="none">No</option><option value="1.3">Yes, 1.3 to under 1.5 times the median wage</option><option value="1.5">Yes, 1.5 to under 2 times</option><option value="2">Yes, 2 times or more</option></select>
+      </label>
+    </div>
+    <p class="crs-hint">You get points for Canadian work or the job offer, whichever is higher, not both. IRCC's high-wage occupations page says which jobs count.</p>
+  </section>
+
+  <section class="panel crs-sp" hidden>
+    <h3>Spouse or partner</h3>
+    <div class="crs-grid">
+      <label>Their highest education <select data-k="sEdu" class="crs-edu"></select></label>
+      <label>Their years of skilled work in Canada
+        <select data-k="sCdn"><option value="0">None or under 1 year</option><option value="1">1 year</option><option value="2">2 years</option><option value="3">3 years</option><option value="4">4 years</option><option value="5">5 years or more</option></select>
+      </label>
+    </div>
+    <label class="crs-check"><input data-k="sHasLang" type="checkbox" /> They have a language test (first official language)</label>
+    <div class="crs-clb" data-g="spouse" hidden></div>
+  </section>
+
+  <section class="panel">
+    <h3>Additional points</h3>
+    <div class="crs-grid">
+      <label>Study in Canada (post-secondary)
+        <select data-k="study"><option value="none">None</option><option value="short">Credential of 1 or 2 years</option><option value="long">Credential of 3 years or longer</option></select>
+      </label>
+      <label class="crs-check"><input data-k="sib" type="checkbox" /> Brother or sister in Canada (18+, citizen or PR)</label>
+      <label class="crs-check"><input data-k="pnp" type="checkbox" /> Provincial or territorial nomination</label>
+    </div>
+  </section>
+
+  <section class="panel crs-res" aria-live="polite">
+    <p class="crs-big"></p>
+    <table class="crs-tab"><tbody></tbody></table>
+    <button type="button" class="crs-reset">Reset to the example</button>
+  </section>
+  <p class="crs-fine">Not affiliated with IRCC. Points grid from IRCC's <a href="https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/express-entry/check-score/crs-criteria.html" rel="noopener">CRS criteria page</a> (updated 2026-11-03, checked 2026-11-10), including the Labour Market Integration change of 2026-11-03. Rules change: check the official source and IRCC's own score tool. Nothing you choose leaves this page, and no ID numbers are asked for.</p>
+</div>
+
+<style is:inline>
+  .crs { display: grid; gap: 14px; margin-bottom: 32px; }
+  .crs .panel { padding: 16px; }
+  .crs h3 { margin: 0 0 10px; font-size: 17px; }
+  .crs-grid, .crs-clb { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+  .crs-clb { grid-template-columns: repeat(auto-fill, minmax(min(100%, 130px), 1fr)); margin: 10px 0; }
+  .crs label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .crs label.crs-check { display: flex; gap: 8px; align-items: center; color: var(--ink); margin: 6px 0; }
+  .crs-one { max-width: 260px; }
+  .crs select, .crs input[type=number] { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .crs select:focus, .crs input:focus { border-color: var(--accent); outline: none; }
+  .crs-hint, .crs-fine { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+  .crs-fine { margin: 0; }
+  .crs-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
+  .crs-tab { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .crs-tab td { padding: 5px 4px; border-bottom: 1px solid var(--line); }
+  .crs-tab td:last-child { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .crs-tab tr.sub td { font-weight: 700; }
+  .crs-tab tr.part td:first-child { padding-left: 16px; color: var(--muted); }
+  .crs-reset { margin-top: 12px; font: inherit; padding: 8px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+</style>
+
+<script>
+  import { EDUCATION, score } from './grid';
+  const root = document.querySelector('.crs') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const el = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  root.querySelectorAll('.crs-edu').forEach((s) => { for (const e of EDUCATION) { const o = document.createElement('option'); o.value = e.id; o.textContent = e.label; s.append(o); } });
+  const SKILLS = ['Reading', 'Writing', 'Speaking', 'Listening'];
+  const LV: [string, string][] = [['3', 'Below CLB 4'], ['4', 'CLB 4'], ['5', 'CLB 5'], ['6', 'CLB 6'], ['7', 'CLB 7'], ['8', 'CLB 8'], ['9', 'CLB 9'], ['10', 'CLB 10 or more']];
+  root.querySelectorAll('.crs-clb').forEach((g) => {
+    const name = (g as HTMLElement).dataset.g;
+    SKILLS.forEach((s, i) => {
+      const lab = document.createElement('label'); lab.append(s);
+      const sel = document.createElement('select'); sel.dataset.k = `${name}${i}`;
+      for (const [v, t] of LV) { const o = document.createElement('option'); o.value = v; o.textContent = t; sel.append(o); }
+      lab.append(sel); g.append(lab);
+    });
+  });
+  const clb = (g: string) => [0, 1, 2, 3].map((i) => +el(g + i).value);
+  const body = q<HTMLElement>('.crs-tab tbody');
+  const row = (label: string, v: number, cls = '') => { const tr = document.createElement('tr'); if (cls) tr.className = cls; const a = document.createElement('td'); a.textContent = label; const b = document.createElement('td'); b.textContent = String(v); tr.append(a, b); body.append(tr); };
+
+  const calc = () => {
+    const sp = el('spouse').value === 'yes';
+    const hasSecond = el('hasSecond').checked, sLang = el('sHasLang').checked;
+    q<HTMLElement>('[data-g="second"]').hidden = !hasSecond;
+    q<HTMLElement>('.crs-sp').hidden = !sp;
+    q<HTMLElement>('[data-g="spouse"]').hidden = !sLang;
+    const age = Math.round(+el('age').value);
+    if (!Number.isFinite(age) || el('age').value.trim() === '') { q<HTMLElement>('.crs-big').textContent = 'Type your age.'; body.innerHTML = ''; return; }
+    const s = score({
+      spouse: sp, age, edu: el('edu').value, firstIsFrench: el('firstLang').value === 'fr', first: clb('first'), second: hasSecond ? clb('second') : null,
+      cdnYears: +el('cdn').value, highWage: el('hw').value, offer: el('offer').value, foreignYears: +el('foreign').value, certificate: el('cert').checked,
+      spouseEdu: el('sEdu').value, spouseLang: sLang ? clb('spouse') : null, spouseYears: +el('sCdn').value,
+      sibling: el('sib').checked, study: el('study').value, nomination: el('pnp').checked,
+    });
+    q<HTMLElement>('.crs-big').textContent = `${s.total} points`;
+    q<HTMLElement>('.crs-big').dataset.total = String(s.total);
+    body.innerHTML = '';
+    row(`Core human capital (max ${sp ? 530 : 570})`, s.core, 'sub');
+    row('Age', s.age, 'part'); row('Education', s.edu, 'part'); row('First official language', s.first, 'part'); row('Second official language', s.second, 'part');
+    row(s.offer > s.cdnWork ? 'Job offer (higher than Canadian work)' : 'Canadian work experience', s.lmi, 'part');
+    if (sp) { row('Spouse or partner (max 40)', s.spouse, 'sub'); row('Their education', s.sEdu, 'part'); row('Their language', s.sLang, 'part'); row('Their Canadian work', s.sWork, 'part'); }
+    row('Skill transferability (max 100)', s.transfer, 'sub');
+    row('Education with language or Canadian work (max 50)', s.tEdu, 'part'); row('Foreign work with language or Canadian work (max 50)', s.tFor, 'part'); row('Certificate of qualification (max 50)', s.tCert, 'part');
+    row('Additional points (max 600)', s.additional, 'sub');
+    row('Provincial nomination', s.aNom, 'part'); row('French language skills', s.aFrench, 'part'); row('Study in Canada', s.aStudy, 'part'); row('Brother or sister in Canada', s.aSibling, 'part');
+    row('Total (max 1,200)', s.total, 'sub');
+    body.querySelectorAll('tr').forEach((tr, i) => (tr.dataset.i = String(i)));
+  };
+  const reset = () => {
+    root.querySelectorAll('select').forEach((s) => (s.selectedIndex = 0));
+    root.querySelectorAll('input[type=checkbox]').forEach((c) => ((c as HTMLInputElement).checked = false));
+    el('age').value = '29'; el('edu').value = 'mast';
+    for (let i = 0; i < 4; i++) { el('first' + i).value = '9'; el('second' + i).value = '7'; el('spouse' + i).value = '7'; }
+    calc();
+  };
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  q<HTMLButtonElement>('.crs-reset').addEventListener('click', reset);
+  reset();
+</script>
