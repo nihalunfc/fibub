@@ -1,0 +1,113 @@
+---
+// #T919 Due date
+---
+<div class="tool-ui ddc">
+  <section class="panel">
+    <div class="ddc-grid">
+      <label>Work it out from
+        <select class="ddc-how">
+          <option value="lmp">First day of last period</option>
+          <option value="con">Conception date</option>
+          <option value="d3">IVF transfer, day-3 embryo</option>
+          <option value="d5">IVF transfer, day-5 embryo</option>
+        </select>
+      </label>
+      <label><span class="ddc-dlab">First day of last period</span>
+        <input class="ddc-date" type="date" value="2026-01-01" />
+      </label>
+      <label class="ddc-cl">Usual cycle length (days)
+        <input class="ddc-cyc" type="number" inputmode="numeric" min="20" max="45" step="1" value="28" />
+      </label>
+      <label>Today's date (for the week count)
+        <input class="ddc-today" type="date" />
+      </label>
+    </div>
+    <p class="ddc-big" aria-live="polite"></p>
+    <p class="ddc-now" aria-live="polite"></p>
+    <p class="ddc-say"></p>
+    <div class="ddc-scroll">
+      <table class="ddc-tbl">
+        <thead><tr><th>Week</th><th>Starts on</th><th>What it means</th></tr></thead>
+        <tbody class="ddc-rows"></tbody>
+      </table>
+    </div>
+    <button type="button" class="ddc-reset">Reset</button>
+  </section>
+  <p class="ddc-fine">An estimate, not medical advice. Only about 1 baby in 25 arrives on the due date itself. An early ultrasound scan dates a pregnancy more accurately than a period date, so if your scan gives a different date, go by the scan and your midwife or doctor. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ddc { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ddc .panel { padding: 16px; }
+  .ddc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .ddc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ddc input, .ddc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ddc input:focus, .ddc select:focus { border-color: var(--accent); outline: none; }
+  .ddc button { font: inherit; font-size: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; margin-top: 12px; }
+  .ddc-big { font-size: 24px; font-weight: 700; margin: 14px 0 4px; overflow-wrap: anywhere; }
+  .ddc-now { font-size: 17px; font-weight: 600; margin: 0 0 4px; }
+  .ddc-say { color: var(--muted); font-size: 15px; margin: 0 0 10px; }
+  .ddc-scroll { overflow-x: auto; }
+  .ddc-tbl { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .ddc-tbl th, .ddc-tbl td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .ddc-tbl th { color: var(--muted); }
+  .ddc-tbl tr.past td { color: var(--muted); }
+  .ddc-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  const root = document.querySelector('.ddc') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const how = q<HTMLSelectElement>('.ddc-how'), date = q<HTMLInputElement>('.ddc-date'), cyc = q<HTMLInputElement>('.ddc-cyc'), today = q<HTMLInputElement>('.ddc-today');
+  const DAY = 86400000;
+  const parse = (s: string) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) : NaN; };
+  const iso = (t: number) => new Date(t).toISOString().slice(0, 10);
+  const nice = (t: number) => new Date(t).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const short = (t: number) => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  // Days from the known date to the due date: Naegele's rule (LMP + 280, shifted by cycle length - 28),
+  // conception + 266, IVF day-3 transfer + 263, day-5 transfer + 261.
+  const ADD: Record<string, number> = { lmp: 280, con: 266, d3: 263, d5: 261 };
+  const LAB: Record<string, string> = { lmp: 'First day of last period', con: 'Conception date', d3: 'Transfer date', d5: 'Transfer date' };
+  const KEY: [number, string][] = [
+    [12, 'Around the first scan (usually 11 to 14 weeks)'],
+    [14, 'Second trimester begins'],
+    [20, 'Halfway; the mid-pregnancy scan is usually 18 to 21 weeks'],
+    [28, 'Third trimester begins'],
+    [37, 'Early term begins'],
+    [40, 'Due date'],
+    [42, 'Post-term begins; most care teams offer induction before this'],
+  ];
+  const localToday = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const calc = () => {
+    const h = how.value;
+    q('.ddc-dlab').textContent = LAB[h];
+    q('.ddc-cl').hidden = h !== 'lmp';
+    const t = parse(date.value);
+    let c = parseInt(cyc.value, 10);
+    if (!Number.isFinite(t)) { q('.ddc-big').textContent = 'Pick a date above.'; q('.ddc-now').textContent = ''; q('.ddc-say').textContent = ''; q('.ddc-rows').innerHTML = ''; return; }
+    let note = '';
+    if (h === 'lmp') {
+      if (!Number.isFinite(c)) c = 28;
+      if (c < 20 || c > 45) { note = ' Cycle lengths outside 20 to 45 days make a period date unreliable, so 28 days is used; a scan will date it better.'; c = 28; }
+    }
+    const due = t + (ADD[h] + (h === 'lmp' ? c - 28 : 0)) * DAY;
+    const start = due - 280 * DAY; // the date pregnancy weeks are counted from
+    const big = q('.ddc-big'); big.textContent = `Estimated due date: ${nice(due)}`; big.dataset.iso = iso(due);
+    const now = parse(today.value || localToday());
+    const ga = Math.floor((now - start) / DAY);
+    const nowEl = q('.ddc-now');
+    if (ga < 0) nowEl.textContent = 'By the date above the pregnancy weeks have not started yet.';
+    else if (ga > 44 * 7) nowEl.textContent = 'The date above is well past the due date.';
+    else {
+      const w = Math.floor(ga / 7), d = ga % 7, tri = w < 14 ? 'first' : w < 28 ? 'second' : 'third';
+      nowEl.textContent = `On ${short(now)}: ${w} weeks ${d} day${d === 1 ? '' : 's'} (${w}+${d}), ${tri} trimester.` + (due >= now ? ` ${Math.round((due - now) / DAY)} days to go.` : '');
+      nowEl.dataset.ga = `${w}+${d}`;
+    }
+    q('.ddc-say').textContent = (h === 'lmp' ? `Naegele's rule: first day of last period + 280 days${c !== 28 ? `, plus ${c - 28} days for a ${c}-day cycle` : ''}.` : h === 'con' ? 'Conception date + 266 days (38 weeks).' : `Transfer date + ${ADD[h]} days for a day-${h === 'd3' ? 3 : 5} embryo.`) + ' Weeks are counted from ' + short(start) + ', two weeks before conception.' + note;
+    q('.ddc-rows').innerHTML = KEY.map(([w, s]) => { const at = start + w * 7 * DAY; return `<tr data-w="${w}"${at < now ? ' class="past"' : ''}><td>${w}</td><td>${short(at)}</td><td>${s}</td></tr>`; }).join('');
+  };
+  [how, date, cyc, today].forEach((el) => el.addEventListener('input', calc));
+  q('.ddc-reset').addEventListener('click', () => { how.value = 'lmp'; date.value = '2026-01-01'; cyc.value = '28'; today.value = localToday(); calc(); });
+  today.value = localToday();
+  calc();
+</script>

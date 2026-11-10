@@ -1,0 +1,125 @@
+---
+// #T917 Water intake
+---
+<div class="tool-ui wi">
+  <section class="panel">
+    <div class="wi-grid">
+      <label>Who
+        <select class="wi-who">
+          <option value="w">Woman</option>
+          <option value="m" selected>Man</option>
+          <option value="p">Pregnant</option>
+          <option value="b">Breastfeeding</option>
+        </select>
+      </label>
+      <label>Units
+        <select class="wi-unit"><option value="l">Litres</option><option value="oz">US fluid ounces</option></select>
+      </label>
+      <label>Exercise today (minutes)
+        <input class="wi-ex" type="number" inputmode="decimal" min="0" step="5" value="0" />
+      </label>
+      <label>Extra per 30 min of exercise (L)
+        <input class="wi-per" type="number" inputmode="decimal" min="0" step="0.1" value="0.5" />
+      </label>
+      <label>Share from drinks (%)
+        <input class="wi-share" type="number" inputmode="decimal" min="1" max="100" step="5" value="80" />
+      </label>
+      <label>Glass size (mL)
+        <input class="wi-glass" type="number" inputmode="decimal" min="50" step="50" value="250" />
+      </label>
+    </div>
+    <label class="wi-check"><input type="checkbox" class="wi-hot" /> Hot weather or a hot room today</label>
+    <p class="wi-big" aria-live="polite"></p>
+    <div class="wi-scroll">
+      <table class="wi-tbl">
+        <thead><tr><th>Source</th><th>Total water a day</th><th>From drinks</th><th>Exercise</th><th>Drinks today</th><th>Glasses</th></tr></thead>
+        <tbody class="wi-rows"></tbody>
+      </table>
+    </div>
+    <p class="wi-say" aria-live="polite"></p>
+    <p class="wi-note"></p>
+  </section>
+  <section class="panel">
+    <h2>Today's glasses</h2>
+    <div class="wi-track">
+      <button type="button" class="wi-minus" aria-label="Take off one glass">−</button>
+      <span class="wi-count" aria-live="polite">0</span>
+      <button type="button" class="wi-plus" aria-label="Add one glass">+ Glass</button>
+    </div>
+    <div class="wi-bar" aria-hidden="true"><div class="wi-fill"></div></div>
+    <p class="wi-prog" aria-live="polite"></p>
+    <label class="wi-check"><input type="checkbox" class="wi-remember" /> Remember today's count on this device</label>
+    <button type="button" class="wi-clear">Clear</button>
+  </section>
+  <p class="wi-fine">Estimates for healthy adults, not medical advice. If a doctor has told you to limit or increase fluids, follow that. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .wi { display: grid; gap: 14px; margin-bottom: 32px; }
+  .wi .panel { padding: 16px; }
+  .wi h2 { font-size: 17px; margin: 0 0 10px; }
+  .wi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .wi label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .wi label.wi-check { display: flex; gap: 8px; align-items: center; margin-top: 12px; color: var(--ink); }
+  .wi input[type=number], .wi select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .wi input:focus, .wi select:focus { border-color: var(--accent); outline: none; }
+  .wi button { font: inherit; font-size: 15px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .wi .wi-plus { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .wi-big { font-size: 24px; font-weight: 700; margin: 14px 0 8px; overflow-wrap: anywhere; }
+  .wi-scroll { overflow-x: auto; }
+  .wi-tbl { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .wi-tbl th, .wi-tbl td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .wi-tbl th { color: var(--muted); font-weight: 600; }
+  .wi-say, .wi-note, .wi-prog { margin: 10px 0 0; color: var(--muted); font-size: 15px; }
+  .wi-track { display: flex; gap: 12px; align-items: center; }
+  .wi-count { font-size: 28px; font-weight: 700; min-width: 2ch; text-align: center; }
+  .wi-bar { height: 10px; border: 1px solid var(--line); border-radius: 6px; margin-top: 12px; overflow: hidden; }
+  .wi-fill { height: 100%; width: 0; background: var(--accent); }
+  .wi .wi-clear { margin-top: 10px; }
+  .wi-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  // Adequate intakes of total water (food + drinks), litres a day, adults.
+  // EFSA 2010 (EFSA Journal 8(3):1459): women 2.0, men 2.5, pregnancy +0.3, breastfeeding +0.7.
+  // US National Academies (IOM 2004): women 2.7, men 3.7, pregnancy 3.0, breastfeeding 3.8.
+  const AI: Record<string, [number, number]> = { w: [2.0, 2.7], m: [2.5, 3.7], p: [2.3, 3.0], b: [2.7, 3.8] };
+  const KEY = 'fibub-water-v1';
+  const root = document.querySelector('.wi') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const num = (s: string, d: number) => { const v = parseFloat(q<HTMLInputElement>(s).value); return Number.isFinite(v) && v >= 0 ? v : d; };
+  const unit = () => q<HTMLSelectElement>('.wi-unit').value;
+  const vol = (l: number) => unit() === 'oz' ? `${Math.round(l * 33.814)} fl oz` : `${l.toFixed(1)} L`;
+  let count = 0, target = 0;
+  const today = () => new Date().toISOString().slice(0, 10);
+  const store = () => { try { if (q<HTMLInputElement>('.wi-remember').checked) localStorage.setItem(KEY, JSON.stringify({ d: today(), n: count })); } catch {} };
+  const track = () => {
+    const g = num('.wi-glass', 250) / 1000;
+    q('.wi-count').textContent = String(count);
+    const had = count * g;
+    q<HTMLElement>('.wi-fill').style.width = target > 0 ? Math.min(100, (had / target) * 100) + '%' : '0';
+    q('.wi-prog').textContent = `${count} glass${count === 1 ? '' : 'es'} of ${Math.round(g * 1000)} mL = ${vol(had)} so far, of about ${vol(target)} from drinks (lower EFSA figure).`;
+  };
+  const calc = () => {
+    const who = q<HTMLSelectElement>('.wi-who').value;
+    const ex = num('.wi-ex', 0), per = num('.wi-per', 0.5), share = Math.min(100, Math.max(1, num('.wi-share', 80))) / 100, glass = num('.wi-glass', 250) / 1000;
+    const add = (ex / 30) * per;
+    const rows = [['EFSA (Europe)', AI[who][0]], ['US National Academies', AI[who][1]]] as [string, number][];
+    const drinks = rows.map(([, t]) => t * share + add);
+    q('.wi-rows').innerHTML = rows.map(([n, t], i) => `<tr data-src="${i ? 'nasem' : 'efsa'}"><td>${n}</td><td>${vol(t)}</td><td>${vol(t * share)}</td><td>+${vol(add)}</td><td><b>${vol(drinks[i])}</b></td><td>${glass > 0 ? Math.ceil(drinks[i] / glass - 1e-9) : '–'}</td></tr>`).join('');
+    q('.wi-big').textContent = `About ${vol(drinks[0])} to ${vol(drinks[1])} from drinks today`;
+    q('.wi-say').textContent = `Total water counts food too. About ${Math.round(share * 100)}% usually comes from drinks (water, tea, coffee, milk, juice) and the rest from food.` + (add > 0 ? ` ${Math.round(ex)} min of exercise adds about ${vol(add)} (rule of thumb: ${per} L per 30 min).` : '');
+    q('.wi-note').textContent = q<HTMLInputElement>('.wi-hot').checked
+      ? 'Hot weather: you sweat more, so drink more than this and drink before you feel very thirsty. Pale yellow urine is a simple sign you are drinking enough.'
+      : 'Thirst and pale yellow urine are good everyday guides. Needs go up in hot weather, at altitude, with fever, and during long exercise.';
+    target = drinks[0];
+    track();
+  };
+  root.querySelectorAll('input[type=number], select, .wi-hot').forEach((el) => el.addEventListener('input', calc));
+  q('.wi-plus').addEventListener('click', () => { count++; track(); store(); });
+  q('.wi-minus').addEventListener('click', () => { count = Math.max(0, count - 1); track(); store(); });
+  q('.wi-remember').addEventListener('change', () => { if (q<HTMLInputElement>('.wi-remember').checked) store(); else { try { localStorage.removeItem(KEY); } catch {} } });
+  q('.wi-clear').addEventListener('click', () => { count = 0; q<HTMLInputElement>('.wi-remember').checked = false; try { localStorage.removeItem(KEY); } catch {} track(); });
+  try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && typeof s.n === 'number') { q<HTMLInputElement>('.wi-remember').checked = true; if (s.d === today()) count = s.n; } } catch {}
+  calc();
+</script>

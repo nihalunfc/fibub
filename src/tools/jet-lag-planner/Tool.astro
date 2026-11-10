@@ -1,0 +1,121 @@
+---
+// #T935 Jet lag planner
+---
+<div class="tool-ui jl">
+  <section class="panel">
+    <div class="jl-grid">
+      <label>Flying from (time zone) <select class="jl-from"></select></label>
+      <label>Flying to (time zone) <select class="jl-to"></select></label>
+      <label>Flight date <input class="jl-date" type="date" /></label>
+      <label>Usual bedtime <input class="jl-bed" type="time" value="23:00" /></label>
+      <label>Usual wake-up time <input class="jl-wake" type="time" value="07:00" /></label>
+      <label>Shift per day (minutes) <input class="jl-step" type="number" inputmode="numeric" min="30" max="120" step="15" value="60" /></label>
+      <label>No caffeine for (hours before bed) <input class="jl-caf" type="number" inputmode="decimal" min="0" max="12" step="1" value="6" /></label>
+    </div>
+    <p class="jl-big" aria-live="polite"></p>
+    <p class="jl-say" aria-live="polite"></p>
+    <div class="jl-row">
+      <button type="button" class="jl-swap">Swap directions</button>
+      <button type="button" class="jl-reset">Reset</button>
+    </div>
+  </section>
+  <section class="panel jl-plan">
+    <h2>Your plan</h2>
+    <div class="jl-scroll">
+      <table class="jl-tbl">
+        <thead><tr><th>Day</th><th>Bed</th><th>Wake</th><th>Seek bright light</th><th>Avoid bright light</th><th>Last caffeine</th></tr></thead>
+        <tbody class="jl-rows"></tbody>
+      </table>
+    </div>
+    <p class="jl-fine jl-left"></p>
+  </section>
+  <p class="jl-fine">General guidance for healthy adults, not medical advice. Ask a doctor or pharmacist before using melatonin or sleep medicine. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .jl { display: grid; gap: 14px; margin-bottom: 32px; }
+  .jl .panel { padding: 16px; }
+  .jl h2 { font-size: 18px; margin: 0 0 10px; }
+  .jl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .jl label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .jl input, .jl select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .jl input:focus, .jl select:focus { border-color: var(--accent); outline: none; }
+  .jl button { font: inherit; font-size: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .jl-big { font-size: 24px; font-weight: 700; margin: 14px 0 4px; overflow-wrap: anywhere; }
+  .jl-say { margin: 0; color: var(--muted); font-size: 15px; }
+  .jl-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .jl-scroll { overflow-x: auto; }
+  .jl-tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .jl-tbl th, .jl-tbl td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .jl-tbl td { font-variant-numeric: tabular-nums; }
+  .jl-tbl tr.jl-travel td { background: var(--accent-soft); }
+  .jl-fine { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+</style>
+
+<script>
+  const root = document.querySelector('.jl') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLInputElement>(s: string) => root.querySelector(s) as T;
+  const from = q<HTMLSelectElement>('.jl-from'), to = q<HTMLSelectElement>('.jl-to');
+  let zones: string[] = [];
+  try { zones = (Intl as any).supportedValuesOf('timeZone'); } catch { /* older browser */ }
+  if (!zones.length) zones = ['America/Los_Angeles', 'America/New_York', 'America/Toronto', 'America/Vancouver', 'Europe/London', 'Europe/Paris', 'Asia/Dubai', 'Asia/Kolkata', 'Asia/Singapore', 'Asia/Tokyo', 'Australia/Sydney'];
+  for (const z of ['UTC', 'America/Toronto', 'Europe/London', 'Asia/Dubai', 'Asia/Kolkata']) if (!zones.includes(z)) zones.push(z);
+  zones = [...new Set(zones)].sort((a, b) => a.localeCompare(b));
+  for (const sel of [from, to]) for (const z of zones) { const o = document.createElement('option'); o.value = z; o.textContent = z.replace(/_/g, ' '); sel.append(o); }
+
+  const DAY = 86400000;
+  // Minutes a zone is ahead of UTC at instant t.
+  const offset = (z: string, t: number) => {
+    const p: Record<string, number> = {};
+    for (const x of new Intl.DateTimeFormat('en-US', { timeZone: z, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' }).formatToParts(t)) if (x.type !== 'literal') p[x.type] = +x.value;
+    return Math.round((Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute) - Math.floor(t / 60000) * 60000) / 60000);
+  };
+  const mins = (s: string) => { const m = /^(\d{1,2}):(\d{2})/.exec(s); return m ? +m[1] * 60 + +m[2] : NaN; };
+  const hm = (m: number) => { const x = ((Math.round(m) % 1440) + 1440) % 1440; return `${String(Math.floor(x / 60)).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}`; };
+  const hrs = (m: number) => { const h = Math.floor(m / 60), r = m % 60; return (h ? `${h} hour${h === 1 ? '' : 's'}` : '') + (h && r ? ' ' : '') + (r ? `${r} minutes` : ''); };
+  const short = (t: number) => new Date(t).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+  const parse = (s: string) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) : NaN; };
+  const city = (z: string) => z.split('/').pop()!.replace(/_/g, ' ');
+  const DEF = () => { const d = new Date(Date.now() + 14 * DAY); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+
+  const calc = () => {
+    const big = q<HTMLElement>('.jl-big'), say = q<HTMLElement>('.jl-say'), body = q<HTMLElement>('.jl-rows'), left = q<HTMLElement>('.jl-left');
+    const day = parse(q('.jl-date').value), bed = mins(q('.jl-bed').value), wake = mins(q('.jl-wake').value);
+    const step = Math.min(120, Math.max(30, +q('.jl-step').value || 60)), caf = Math.min(12, Math.max(0, Number.isFinite(+q('.jl-caf').value) ? +q('.jl-caf').value : 6)) * 60;
+    big.dataset.diff = ''; body.innerHTML = ''; left.textContent = '';
+    if (!Number.isFinite(day) || !Number.isFinite(bed) || !Number.isFinite(wake)) { big.textContent = ''; say.textContent = 'Pick the flight date and your usual times.'; q<HTMLElement>('.jl-plan').hidden = true; return; }
+    const noon = day + DAY / 2;
+    let d = offset(to.value, noon) - offset(from.value, noon);
+    // Over 12 hours one way is under 12 the other way; shifting the short way round is quicker.
+    if (d > 720) d -= 1440; if (d <= -720) d += 1440;
+    big.dataset.diff = String(d);
+    const A = city(from.value), B = city(to.value);
+    if (d === 0) { big.textContent = 'No plan needed'; say.textContent = `${B} keeps the same clock time as ${A} on that date, so your body clock does not need to move. Keep your usual times.`; q<HTMLElement>('.jl-plan').hidden = true; return; }
+    q<HTMLElement>('.jl-plan').hidden = false;
+    const east = d > 0, s = east ? -1 : 1, T = Math.abs(d), P = Math.min(T, 3 * step);
+    big.textContent = `${B} is ${hrs(T)} ${east ? 'ahead' : 'behind'}: ${east ? 'earlier' : 'later'} nights`;
+    say.textContent = east
+      ? `Flying east makes the day start sooner, so move your sleep earlier by ${hrs(step)} a day: before the flight on ${A} time, then on ${B} time once you land.`
+      : `Flying west makes the day longer, so move your sleep later by ${hrs(step)} a day: before the flight on ${A} time, then on ${B} time once you land.`;
+    const row = (label: string, k: number, zone: string, cls = '') => {
+      // k: how far this day's sleep is moved from the usual times, in minutes (negative = earlier).
+      const b = bed + k, w = wake + k, moved = k !== 0;
+      const seek = east ? `${hm(w)}–${hm(w + 180)}` : `${hm(b - 180)}–${hm(b)}`;
+      const avoid = !moved ? '—' : east ? `${hm(b - 180)}–${hm(b)}` : `${hm(w)}–${hm(w + 180)}`;
+      return `<tr class="${cls}" data-bed="${hm(b)}" data-wake="${hm(w)}"><td>${label}<br><small>${zone} time</small></td><td>${hm(b)}</td><td>${hm(w)}</td><td>${moved ? seek : 'Daylight in the morning'}</td><td>${avoid}</td><td>${hm(b - caf)}</td></tr>`;
+    };
+    let h = '';
+    for (let i = 3; i >= 1; i--) { const k = Math.max(0, P - (i - 1) * step); h += row(`${short(day - i * DAY)} (${i} day${i === 1 ? '' : 's'} before)`, s * Math.min(k, P), A, 'jl-pre'); }
+    h += `<tr class="jl-travel"><td>${short(day)}: flight</td><td colspan="5">Set your watch to ${B} time when you board. Sleep on the plane only if it is night in ${B}; drink water and go easy on alcohol and caffeine.</td></tr>`;
+    for (let j = 1; j <= 3; j++) { const rem = Math.max(0, T - P - j * step); h += row(`Day ${j} in ${B}`, -s * rem, B, 'jl-post'); }
+    body.innerHTML = h;
+    const still = T - P - 3 * step;
+    if (still > 0) left.textContent = `After day 3 your body clock is still about ${hrs(still)} behind ${B} time: keep moving ${hrs(step)} a day until bed and wake are back at ${hm(bed)} and ${hm(wake)}.`;
+    else left.textContent = `By the end of the plan you are back on your usual ${hm(bed)} to ${hm(wake)}, now on ${B} time. Light times are for when you are awake: never cut sleep short to get light.`;
+  };
+  const reset = () => { from.value = 'America/Toronto'; to.value = 'Europe/London'; q('.jl-date').value = DEF(); q('.jl-bed').value = '23:00'; q('.jl-wake').value = '07:00'; q('.jl-step').value = '60'; q('.jl-caf').value = '6'; calc(); };
+  root.querySelectorAll('input, select').forEach((el) => { el.addEventListener('input', calc); el.addEventListener('change', calc); });
+  q('.jl-swap').addEventListener('click', () => { const a = from.value; from.value = to.value; to.value = a; calc(); });
+  q('.jl-reset').addEventListener('click', reset);
+  reset();
+</script>
