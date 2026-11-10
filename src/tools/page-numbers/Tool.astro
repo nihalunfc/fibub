@@ -1,0 +1,76 @@
+---
+// #1702 Page numbers
+---
+<div class="tool-ui pn">
+  <label class="pn-drop">Choose a PDF <input class="pn-file" type="file" accept="application/pdf,.pdf" /></label>
+  <div class="pn-form">
+    <label>Type
+      <select class="pn-mode"><option value="numbers">Page numbers</option><option value="bates">Bates numbers (legal)</option></select></label>
+    <label>Position
+      <select class="pn-pos">
+        <option value="bc">Bottom centre</option><option value="br">Bottom right</option><option value="bl">Bottom left</option>
+        <option value="tc">Top centre</option><option value="tr">Top right</option><option value="tl">Top left</option></select></label>
+    <label class="pn-num">Style
+      <select class="pn-style"><option value="n">1</option><option value="page">Page 1</option><option value="pageof">Page 1 of N</option></select></label>
+    <label class="pn-bates" hidden>Prefix <input class="pn-prefix" type="text" value="ABC-" maxlength="20" /></label>
+    <label class="pn-bates" hidden>Digits <input class="pn-digits" type="number" min="1" max="10" value="6" /></label>
+    <label>Start at <input class="pn-start" type="number" min="0" value="1" /></label>
+    <label>Skip first pages <input class="pn-skip" type="number" min="0" value="0" /></label>
+    <label>Font size <input class="pn-size" type="number" min="6" max="40" value="11" /></label>
+    <label>Header text <input class="pn-header" type="text" placeholder="e.g. &#123;file&#125;" maxlength="80" /></label>
+    <label>Footer text <input class="pn-footer" type="text" placeholder="e.g. Printed &#123;date&#125;" maxlength="80" /></label>
+  </div>
+  <p class="pn-hint">In header and footer text, <code>&#123;date&#125;</code> becomes today's date and <code>&#123;file&#125;</code> the file name.</p>
+  <p class="pn-preview" aria-live="polite"></p>
+  <button class="btn pn-go" type="button" disabled>Add and download</button>
+  <p class="pn-msg" role="status" aria-live="polite"></p>
+</div>
+
+<style is:inline>
+  .pn { display: grid; gap: .75rem; }
+  .pn-drop { display: grid; gap: .4rem; padding: 1rem; border: 2px dashed var(--line); border-radius: var(--radius); font-weight: 600; }
+  .pn-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .6rem; }
+  .pn-form label { display: grid; gap: .25rem; font-weight: 600; }
+  .pn-form [hidden] { display: none; }
+  .pn-hint, .pn-msg, .pn-preview { margin: 0; font-size: 15px; }
+  .pn-msg.err { color: var(--warn); }
+</style>
+
+<script>
+  import { addPageNumbers, labelFor, download, baseName, pageCount, type NumberOpts, type NumPos } from '../../lib/docs/pdfpages';
+  const root = document.querySelector('.pn') as HTMLElement;
+  const $ = <T extends Element>(s: string) => root.querySelector(s) as T;
+  const v = (s: string) => $<HTMLInputElement>(s).value;
+  const msg = $<HTMLElement>('.pn-msg'), go = $<HTMLButtonElement>('.pn-go');
+  let bytes: Uint8Array | null = null, name = 'document', pages = 0;
+  const opts = (): NumberOpts => ({
+    mode: v('.pn-mode') as NumberOpts['mode'], pos: v('.pn-pos') as NumPos, style: v('.pn-style') as NumberOpts['style'],
+    start: Math.max(0, Math.floor(Number(v('.pn-start')) || 0)), skip: Math.max(0, Math.floor(Number(v('.pn-skip')) || 0)),
+    size: Math.min(40, Math.max(6, Number(v('.pn-size')) || 11)), header: v('.pn-header'), footer: v('.pn-footer'),
+    file: name, date: new Date().toISOString().slice(0, 10), prefix: v('.pn-prefix'), digits: Math.min(10, Math.max(1, Math.floor(Number(v('.pn-digits')) || 6))),
+  });
+  function update() {
+    const bates = v('.pn-mode') === 'bates';
+    root.querySelectorAll<HTMLElement>('.pn-bates').forEach((e) => (e.hidden = !bates));
+    $<HTMLElement>('.pn-num').hidden = bates;
+    const o = opts(), n = Math.max(0, pages - o.skip), last = o.start + n - 1;
+    $('.pn-preview').textContent = pages ? (n ? `${pages} pages. The first numbered page will read "${labelFor(o, o.start, last)}" and the last "${labelFor(o, last, last)}".` : 'Every page is skipped. Lower "Skip first pages".') : '';
+  }
+  root.addEventListener('input', update);
+  $<HTMLInputElement>('.pn-file').addEventListener('change', async (e) => {
+    const f = (e.target as HTMLInputElement).files?.[0]; if (!f) return;
+    try {
+      bytes = new Uint8Array(await f.arrayBuffer()); pages = await pageCount(bytes); name = baseName(f.name);
+      go.disabled = false; msg.textContent = `${f.name} is ready.`; msg.classList.remove('err');
+    } catch { bytes = null; pages = 0; go.disabled = true; msg.textContent = 'That PDF could not be opened. It may be damaged or locked with a password.'; msg.classList.add('err'); }
+    update();
+  });
+  go.addEventListener('click', async () => {
+    if (!bytes) return;
+    try {
+      download(await addPageNumbers(bytes, opts()), `${name}-numbered.pdf`);
+      msg.textContent = 'Done. Your numbered copy has downloaded; the original is untouched.'; msg.classList.remove('err');
+    } catch (e: any) { msg.textContent = e.message || 'Something went wrong.'; msg.classList.add('err'); }
+  });
+  update();
+</script>
