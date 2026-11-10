@@ -1,0 +1,160 @@
+---
+// #1751 Statement analyser
+---
+<div class="tool-ui sa">
+  <p class="sa-note">Your statement stays on this device. Nothing is uploaded, and nothing is saved unless you tick the box for your own category rules.</p>
+  <div class="sa-in">
+    <label>Bank or card export (CSV, OFX or QIF) <input class="sa-file" type="file" accept=".csv,.ofx,.qfx,.qif,.txt,text/csv,text/plain" /></label>
+    <label>or paste it here <textarea class="sa-text" rows="5" placeholder="Date,Description,Amount"></textarea></label>
+    <div class="sa-row"><button class="btn sa-go" type="button">Analyse</button><button class="btn secondary sa-ex" type="button">Try an example</button></div>
+  </div>
+  <p class="sa-msg" role="status" aria-live="polite"></p>
+  <div class="sa-map" hidden>
+    <h3>Which column is which?</h3>
+    <div class="sa-grid">
+      <label>Date <select class="sa-c-date"></select></label>
+      <label>Description <select class="sa-c-desc"></select></label>
+      <label>Amount <select class="sa-c-amount"></select></label>
+      <label>or Money out <select class="sa-c-debit"></select></label>
+      <label>and Money in <select class="sa-c-credit"></select></label>
+      <label>Dates are <select class="sa-order"><option value="dmy">day / month / year</option><option value="mdy">month / day / year</option></select></label>
+    </div>
+    <label class="sa-chk"><input class="sa-flip" type="checkbox" /> My card shows spending as positive numbers</label>
+  </div>
+  <details class="sa-rules"><summary>Categories and keywords (edit them)</summary>
+    <p class="sa-hint">One category per line: a name, a colon, then words to look for in the description. The first line that matches wins. Money out with no match is "Other"; money in is "Income".</p>
+    <textarea class="sa-rules-t" rows="12" spellcheck="false"></textarea>
+    <div class="sa-row"><button class="btn secondary sa-reset" type="button">Back to the standard list</button></div>
+    <label class="sa-chk"><input class="sa-keep" type="checkbox" /> Remember my category rules on this device (only the rules, never the statement)</label>
+  </details>
+  <div class="sa-out" hidden>
+    <div class="sa-facts"></div>
+    <h3>Spending by category</h3><div class="sa-cats"></div>
+    <h3>Month by month</h3><div class="sa-months"></div>
+    <h3>Top places you spent at</h3><div class="sa-mer"></div>
+    <h3>Repeating charges</h3><p class="sa-hint">Same shop, about the same amount, about the same gap each time.</p><div class="sa-rep"></div>
+    <div class="sa-row"><button class="btn sa-dl" type="button">Download categorised CSV</button></div>
+  </div>
+</div>
+
+<style is:inline>
+  .sa { display: grid; gap: .75rem; }
+  .sa-note, .sa-msg, .sa-hint { margin: 0; } .sa-hint { font-size: .9rem; } .sa-msg { min-height: 1.3em; } .sa-msg.err { color: var(--warn); }
+  .sa-in { display: grid; gap: .6rem; } .sa label { display: grid; gap: .25rem; font-weight: 600; }
+  .sa-text, .sa-rules-t { width: 100%; box-sizing: border-box; font: inherit; }
+  .sa-rules-t { font-size: .85rem; }
+  .sa-row { display: flex; flex-wrap: wrap; gap: .75rem; }
+  .sa-map[hidden], .sa-out[hidden] { display: none; }
+  .sa-map { display: grid; gap: .5rem; } .sa-map h3, .sa-out h3 { margin: .5rem 0 0; }
+  .sa-grid { display: grid; gap: .5rem; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .sa label.sa-chk { display: flex; gap: .5rem; align-items: center; font-weight: 400; }
+  .sa-out { display: grid; gap: .5rem; }
+  .sa-facts { display: grid; gap: .5rem; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+  .sa-fact { border: 1px solid var(--line); border-radius: 8px; padding: .5rem .75rem; } .sa-fact b { display: block; font-size: 1.2rem; } .sa-fact span { font-size: .85rem; }
+  .sa-tbl { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  .sa-tbl th, .sa-tbl td { padding: .3rem .4rem; border-bottom: 1px solid var(--line); text-align: left; }
+  .sa-tbl .n { text-align: right; font-variant-numeric: tabular-nums; }
+  .sa-bar { display: block; height: .5rem; background: var(--accent); border-radius: 3px; min-width: 2px; }
+  .sa-barcell { width: 35%; }
+  .sa-scroll { overflow-x: auto; }
+</style>
+
+<script>
+  import { parseCsv, guessMapping, rowsToTxns, parseOfx, parseQif, sniff, dateOrder, DEFAULT_RULES, parseRules, categorise, summarise, toCsv, type Txn, type Mapping } from '../../lib/money/statement';
+  const root = document.querySelector('.sa') as HTMLElement;
+  const $ = <T extends Element>(s: string) => root.querySelector(s) as T;
+  const KEY = 'fibub-statement-rules-v1';
+  const msg = $<HTMLElement>('.sa-msg'), rulesT = $<HTMLTextAreaElement>('.sa-rules-t'), keep = $<HTMLInputElement>('.sa-keep');
+  const say = (t: string, err = false) => { msg.textContent = t; msg.classList.toggle('err', err); };
+  let rows: string[][] = [], kind: 'csv' | 'ofx' | 'qif' = 'csv', direct: Txn[] = [], txns: Txn[] = [];
+
+  rulesT.value = DEFAULT_RULES;
+  try { const s = localStorage.getItem(KEY); if (s) { rulesT.value = s; keep.checked = true; } } catch {}
+  const saveRules = () => { try { if (keep.checked) localStorage.setItem(KEY, rulesT.value); else localStorage.removeItem(KEY); } catch {} };
+
+  const sels = ['date', 'desc', 'amount', 'debit', 'credit'] as const;
+  const sel = (k: string) => $<HTMLSelectElement>('.sa-c-' + k);
+  const money = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  function cell(tr: HTMLTableRowElement, v: string, cls = '', tag = 'td') { const c = document.createElement(tag); c.textContent = v; if (cls) c.className = cls; tr.appendChild(c); return c; }
+  function table(head: string[], body: (string | { bar: number })[][], numFrom = 1) {
+    const w = document.createElement('div'); w.className = 'sa-scroll'; const t = document.createElement('table'); t.className = 'sa-tbl'; w.appendChild(t);
+    const h = t.insertRow(); head.forEach((x, i) => cell(h, x, i >= numFrom ? 'n' : '', 'th'));
+    for (const r of body) { const tr = t.insertRow(); r.forEach((v, i) => { if (typeof v === 'string') cell(tr, v, i >= numFrom ? 'n' : ''); else { const c = cell(tr, '', 'sa-barcell'); const b = document.createElement('i'); b.className = 'sa-bar'; b.style.width = Math.max(1, v.bar * 100) + '%'; c.appendChild(b); } }); }
+    return w;
+  }
+  function fillSelects(m: Mapping, n: number) {
+    for (const k of sels) {
+      const s = sel(k); s.textContent = '';
+      const none = new Option('(none)', '-1'); s.add(none);
+      for (let i = 0; i < n; i++) s.add(new Option((m.header ? rows[0][i] : '') ? `${i + 1}: ${rows[0][i]}` : `Column ${i + 1}`, String(i)));
+      s.value = String((m as any)[k]);
+    }
+  }
+  function readMapping(): Mapping { const m: any = { header: guessMapping(rows).header }; for (const k of sels) m[k] = +sel(k).value; return m; }
+
+  function load(text: string) {
+    text = text.trim(); if (!text) { say('Choose a file or paste the export first.', true); return false; }
+    kind = sniff(text); $<HTMLElement>('.sa-map').hidden = kind !== 'csv';
+    if (kind === 'ofx') direct = parseOfx(text); else if (kind === 'qif') direct = parseQif(text);
+    else {
+      rows = parseCsv(text); if (rows.length < 2) { say('That does not look like a statement export. It needs a heading line and some rows.', true); return false; }
+      const m = guessMapping(rows); fillSelects(m, Math.max(...rows.slice(0, 20).map((r) => r.length)));
+      $<HTMLSelectElement>('.sa-order').value = dateOrder(rows.slice(m.header ? 1 : 0).map((r) => r[m.date] || ''));
+    }
+    return true;
+  }
+  function analyse() {
+    let t: Txn[];
+    if (kind === 'csv') {
+      const m = readMapping();
+      if (m.date < 0 || (m.amount < 0 && m.debit < 0 && m.credit < 0)) { say('Pick the date column and the amount column (or money out and money in).', true); return; }
+      t = rowsToTxns(rows, m, $<HTMLSelectElement>('.sa-order').value as 'dmy' | 'mdy', $<HTMLInputElement>('.sa-flip').checked);
+    } else t = direct.map((x) => ({ ...x }));
+    if (!t.length) { say('No transactions were found. Check the column choices above.', true); return; }
+    const rules = parseRules(rulesT.value);
+    for (const x of t) x.cat = categorise(x, rules);
+    txns = t; say(`${t.length} transactions read.`); render();
+  }
+  function render() {
+    const s = summarise(txns), out = $<HTMLElement>('.sa-out'); out.hidden = false;
+    const facts = $<HTMLElement>('.sa-facts'); facts.textContent = '';
+    for (const [v, l] of [[money(s.income), 'Money in'], [money(s.spending), 'Spending'], [money(s.net), 'Left over'], [`${s.from} to ${s.to}`, `${s.count} transactions`]] as const) {
+      const d = document.createElement('div'); d.className = 'sa-fact'; const b = document.createElement('b'); b.textContent = v; const sp = document.createElement('span'); sp.textContent = l; d.append(b, sp); facts.appendChild(d);
+    }
+    const top = s.cats[0]?.total || 1;
+    const cats = $<HTMLElement>('.sa-cats'); cats.textContent = ''; cats.appendChild(table(['Category', 'Total', '% of spending', ''], s.cats.map((c) => [c.cat, money(c.total), (c.share * 100).toFixed(1) + '%', { bar: c.total / top }]), 1));
+    const mt = Math.max(1, ...s.months.map((m) => s.monthSpend[m] || 0));
+    const mo = $<HTMLElement>('.sa-months'); mo.textContent = ''; mo.appendChild(table(['Month', 'Money in', 'Spending', ''], s.months.map((m) => [m, money(s.monthIncome[m] || 0), money(s.monthSpend[m] || 0), { bar: (s.monthSpend[m] || 0) / mt }]), 1));
+    const me = $<HTMLElement>('.sa-mer'); me.textContent = ''; me.appendChild(table(['Place', 'Total', 'Times'], s.merchants.map((x) => [x.name, money(x.total), String(x.count)])));
+    const rp = $<HTMLElement>('.sa-rep'); rp.textContent = '';
+    if (!s.repeats.length) { const p = document.createElement('p'); p.textContent = 'None found. A charge needs to repeat at least three times (twice for yearly or quarterly).'; rp.appendChild(p); }
+    else {
+      rp.appendChild(table(['Charge', 'Amount', 'How often', 'Times', 'Per year'], s.repeats.map((r) => [r.merchant, money(r.amount), r.every, String(r.times), money(r.yearly)])));
+      const p = document.createElement('p'); p.className = 'sa-total'; p.textContent = `Together these cost about ${money(s.repeats.reduce((a, r) => a + r.yearly, 0))} a year.`; rp.appendChild(p);
+    }
+  }
+
+  $<HTMLInputElement>('.sa-file').addEventListener('change', async (e) => {
+    const input = e.target as HTMLInputElement, f = input.files?.[0]; input.value = ''; if (!f) return;
+    try { const bytes = new Uint8Array(await f.arrayBuffer()); if ((bytes[0] === 0x25 && bytes[1] === 0x50) || (bytes[0] === 0x50 && bytes[1] === 0x4b)) { say('That is a PDF or Office file. Use Statement to CSV for PDFs, or export a CSV from your bank.', true); return; }
+      const t = new TextDecoder().decode(bytes); $<HTMLTextAreaElement>('.sa-text').value = t.length > 200000 ? '' : t; if (load(t)) analyse(); }
+    catch { say(`${f.name} could not be read.`, true); }
+  });
+  $('.sa-go').addEventListener('click', () => { if (load($<HTMLTextAreaElement>('.sa-text').value)) analyse(); });
+  for (const k of sels) sel(k).addEventListener('change', analyse);
+  for (const c of ['.sa-order', '.sa-flip']) $(c).addEventListener('change', analyse);
+  rulesT.addEventListener('input', () => { saveRules(); if (txns.length) analyse(); });
+  keep.addEventListener('change', saveRules);
+  $('.sa-reset').addEventListener('click', () => { rulesT.value = DEFAULT_RULES; saveRules(); if (txns.length) analyse(); });
+  $('.sa-ex').addEventListener('click', () => {
+    const L = ['Date,Description,Amount'];
+    for (const [d, de, a] of [['2026-01-02', 'ACME PAYROLL', '3000.00'], ['2026-01-03', 'NETFLIX.COM', '-15.99'], ['2026-01-04', 'GREEN GROCER #12', '-86.40'], ['2026-01-09', 'CITY TRANSIT', '-45.00'], ['2026-01-15', 'RENT JAN', '-1100.00'],
+      ['2026-02-02', 'ACME PAYROLL', '3000.00'], ['2026-02-03', 'NETFLIX.COM', '-15.99'], ['2026-02-06', 'GREEN GROCER #12', '-92.10'], ['2026-02-10', 'LUNCH CAFE', '-12.50'], ['2026-02-15', 'RENT FEB', '-1100.00'],
+      ['2026-03-02', 'ACME PAYROLL', '3000.00'], ['2026-03-03', 'NETFLIX.COM', '-15.99'], ['2026-03-05', 'GREEN GROCER #12', '-78.25'], ['2026-03-15', 'RENT MAR', '-1100.00']]) L.push(`${d},${de},${a}`);
+    $<HTMLTextAreaElement>('.sa-text').value = L.join('\n'); if (load(L.join('\n'))) analyse();
+  });
+  $('.sa-dl').addEventListener('click', () => {
+    const csv = toCsv([['Date', 'Description', 'Amount', 'Category'], ...txns.map((t) => [t.date, t.desc, t.amount.toFixed(2), t.cat || ''])]);
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })); a.download = 'statement-categorised.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  });
+</script>

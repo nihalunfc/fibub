@@ -140,7 +140,7 @@ export function parseQif(text: string): Txn[] {
 export const sniff = (text: string): 'ofx' | 'qif' | 'csv' => /<STMTTRN>|<OFX>/i.test(text) ? 'ofx' : /^!Type:/im.test(text) ? 'qif' : 'csv';
 
 // ---- categories ----
-export const DEFAULT_RULES = `Groceries: grocery, supermarket, walmart, costco, tesco, aldi, lidl, loblaws, kroger, safeway, whole foods, carrefour, lulu, big basket, bigbasket, dmart, no frills
+export const DEFAULT_RULES = `Groceries: grocer, grocery, supermarket, walmart, costco, tesco, aldi, lidl, loblaws, kroger, safeway, whole foods, carrefour, lulu, big basket, bigbasket, dmart, no frills
 Eating out: restaurant, cafe, coffee, starbucks, mcdonald, burger, pizza, kfc, subway, tim hortons, uber eats, doordash, deliveroo, zomato, swiggy, domino
 Transport: uber, lyft, taxi, fuel, petrol, gas station, shell, esso, transit, metro, train, bus, parking, ola, careem, railway
 Housing: rent, mortgage, landlord, property tax, hoa
@@ -184,7 +184,7 @@ export function findRepeats(txns: Txn[]): Repeat[] {
   for (const [k, list] of by) {
     // group by amount within 10% (or 1.00) of the group's first charge
     const groups: Txn[][] = [];
-    for (const t of list) { const g = groups.find((g) => Math.abs(Math.abs(g[0].amount) - Math.abs(t.amount)) <= Math.max(1, Math.abs(g[0].amount) * 0.1)); g ? g.push(t) : groups.push([t]); }
+    for (const t of list) { const g = groups.find((g) => Math.abs(Math.abs(g[0].amount) - Math.abs(t.amount)) <= Math.max(0.5, Math.abs(g[0].amount) * 0.05)); g ? g.push(t) : groups.push([t]); }
     for (const g of groups) {
       const days = g.map((t) => dayNum(t.date)).sort((a, b) => a - b);
       if (g.length < 2) continue;
