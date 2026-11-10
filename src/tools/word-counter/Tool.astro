@@ -1,0 +1,111 @@
+---
+// #1768 Word counter. Maths in src/lib/docs/textutil.ts.
+import { LIMITS } from '../../lib/docs/textutil';
+---
+<div class="tool-ui wdc">
+  <div class="wdc-card">
+    <label>Your text
+      <textarea class="wdc-in" placeholder="Type or paste your text here" spellcheck="true"></textarea>
+    </label>
+    <div class="wdc-row"><button type="button" class="btn wdc-clear">Clear</button></div>
+    <p class="wdc-hint">Your text stays on this device. It is never sent anywhere.</p>
+  </div>
+  <div class="wdc-card">
+    <h2>Counts</h2>
+    <dl class="wdc-stats">
+      <div><dt>Words</dt><dd class="wdc-words">0</dd></div>
+      <div><dt>Characters</dt><dd class="wdc-chars">0</dd></div>
+      <div><dt>Without spaces</dt><dd class="wdc-nosp">0</dd></div>
+      <div><dt>Sentences</dt><dd class="wdc-sent">0</dd></div>
+      <div><dt>Paragraphs</dt><dd class="wdc-para">0</dd></div>
+      <div><dt>Reading time</dt><dd class="wdc-read">0 sec</dd></div>
+      <div><dt>Speaking time</dt><dd class="wdc-speak">0 sec</dd></div>
+    </dl>
+    <p class="wdc-hint">Reading time uses 238 words a minute, speaking time 150 words a minute. Both are averages.</p>
+  </div>
+  <div class="wdc-card">
+    <h2>Check a limit</h2>
+    <div class="wdc-grid">
+      <label>Preset
+        <select class="wdc-preset"><option value="">No limit</option>{LIMITS.map((l) => <option value={l.id}>{l.label}</option>)}<option value="custom">My own limit</option></select>
+      </label>
+      <label class="wdc-cust" hidden>Limit
+        <span class="wdc-grid"><input class="wdc-n" type="number" min="1" value="100" inputmode="numeric" aria-label="Limit number" /><select class="wdc-unit" aria-label="Limit unit"><option value="words">words</option><option value="chars">characters</option></select></span>
+      </label>
+    </div>
+    <p class="wdc-lim" aria-live="polite"></p>
+    <div class="wdc-over" hidden>
+      <p class="wdc-hint">The part over the limit:</p>
+      <pre class="wdc-pre wdc-over-t"></pre>
+    </div>
+  </div>
+  <div class="wdc-card">
+    <h2>Most used words</h2>
+    <label class="wdc-chk"><input type="checkbox" class="wdc-skip" checked /> <span>Leave out common words (the, and, of ...)<small>Turn this off to count every word.</small></span></label>
+    <table class="wdc-kw"><thead><tr><th>Word</th><th>Times</th><th>Share</th></tr></thead><tbody></tbody></table>
+    <p class="wdc-hint wdc-kw-empty">Type some text to see the words you use most.</p>
+  </div>
+</div>
+<style is:inline>
+  .wdc { display: grid; gap: 14px; margin-bottom: 28px; }
+  .wdc-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; display: grid; gap: 10px; min-width: 0; }
+  .wdc-card h2 { margin: 0; font-size: 18px; }
+  .wdc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .wdc textarea, .wdc input[type=text], .wdc input[type=number], .wdc select { font: inherit; font-size: 16px; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .wdc textarea { min-height: 180px; resize: vertical; }
+  .wdc .wdc-chk { display: flex; align-items: flex-start; gap: 8px; color: var(--ink); }
+  .wdc .wdc-chk input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent); flex: none; }
+  .wdc .wdc-chk small { display: block; color: var(--muted); font-size: 13px; }
+  .wdc-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .wdc-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .wdc-hint { margin: 0; font-size: 13px; color: var(--muted); }
+  .wdc .btn { justify-self: start; }
+  .wdc mark { background: color-mix(in srgb, var(--bad) 25%, transparent); color: inherit; border-radius: 3px; }
+  .wdc-pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; padding: 10px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); max-height: 320px; overflow: auto; }
+  @media (max-width: 480px) { .wdc-grid { grid-template-columns: minmax(0, 1fr); } }
+  .wdc-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 0; }
+  .wdc-stats div { border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+  .wdc-stats dt { font-size: 13px; color: var(--muted); }
+  .wdc-stats dd { margin: 2px 0 0; font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .wdc-lim { margin: 0; font-weight: 600; }
+  .wdc-lim.bad { color: var(--bad); }
+  .wdc-kw { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  .wdc-kw th, .wdc-kw td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+</style>
+
+<script>
+  import { countText, fmtMinutes, keywordDensity, overLimitIndex, LIMITS } from '../../lib/docs/textutil';
+  const root = document.querySelector('.wdc') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
+  const inp = q<HTMLTextAreaElement>('.wdc-in'), preset = q<HTMLSelectElement>('.wdc-preset'), num = q<HTMLInputElement>('.wdc-n'),
+    unitSel = q<HTMLSelectElement>('.wdc-unit'), skip = q<HTMLInputElement>('.wdc-skip');
+  const fmt = (n: number) => n.toLocaleString('en');
+  const update = () => {
+    const t = inp.value, c = countText(t);
+    q('.wdc-words').textContent = fmt(c.words); q('.wdc-chars').textContent = fmt(c.chars); q('.wdc-nosp').textContent = fmt(c.charsNoSpaces);
+    q('.wdc-sent').textContent = fmt(c.sentences); q('.wdc-para').textContent = fmt(c.paragraphs);
+    q('.wdc-read').textContent = fmtMinutes(c.readMin); q('.wdc-speak').textContent = fmtMinutes(c.speakMin);
+    // limit
+    q('.wdc-cust').hidden = preset.value !== 'custom';
+    let unit: 'words' | 'chars' = unitSel.value as 'words' | 'chars', limit = Number(num.value);
+    const p = LIMITS.find((l) => l.id === preset.value);
+    if (p) { unit = p.unit; limit = p.n; }
+    const lim = q('.wdc-lim'), over = q('.wdc-over');
+    if (!preset.value || !(limit > 0)) { lim.textContent = ''; lim.classList.remove('bad'); over.hidden = true; }
+    else {
+      const used = unit === 'words' ? c.words : c.chars, name = unit === 'words' ? 'words' : 'characters';
+      const i = overLimitIndex(t, unit, limit);
+      if (i < 0) { lim.textContent = `${fmt(used)} of ${fmt(limit)} ${name}. ${fmt(limit - used)} left.`; lim.classList.remove('bad'); over.hidden = true; }
+      else { lim.textContent = `${fmt(used)} of ${fmt(limit)} ${name}. ${fmt(used - limit)} over.`; lim.classList.add('bad'); over.hidden = false; q('.wdc-over-t').innerHTML = ''; const m = document.createElement('mark'); m.textContent = t.slice(i); q('.wdc-over-t').append(m); }
+    }
+    // keywords
+    const kw = keywordDensity(t, 10, skip.checked), body = q('.wdc-kw tbody');
+    body.innerHTML = '';
+    for (const k of kw) { const tr = document.createElement('tr'); for (const v of [k.word, String(k.count), k.pct.toFixed(1) + '%']) { const td = document.createElement('td'); td.textContent = v; tr.append(td); } body.append(tr); }
+    q('.wdc-kw').hidden = !kw.length; q('.wdc-kw-empty').hidden = !!kw.length;
+  };
+  [inp, num, skip].forEach((e) => e.addEventListener('input', update));
+  [preset, unitSel].forEach((e) => e.addEventListener('change', update));
+  q('.wdc-clear').addEventListener('click', () => { inp.value = ''; update(); inp.focus(); });
+  update();
+</script>
