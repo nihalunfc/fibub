@@ -1,0 +1,66 @@
+---
+// #T892 E-way bill validity
+---
+<div class="tool-ui ew">
+  <section class="panel">
+    <div class="ew-grid">
+      <label>Distance (km) <input data-k="km" inputmode="decimal" value="450" /></label>
+      <label>Cargo <select data-k="cargo"><option value="normal">Normal cargo</option><option value="odc">Over-dimensional cargo (ODC)</option></select></label>
+      <label>Vehicle details (Part B) first entered on <input data-k="date" type="date" value="2026-11-10" /></label>
+      <label>Consignment value (rupees) <input data-k="value" inputmode="decimal" value="75000" /></label>
+      <label>Movement <select data-k="move"><option value="inter">Between states (inter-state)</option><option value="intra">Within one state (intra-state)</option></select></label>
+    </div>
+    <p class="ew-fine">Over-dimensional cargo is a load bigger than the legal size limits for the vehicle (for example a machine that overhangs the body). Validity is counted from the moment the vehicle details are first entered, not from when Part A was filled.</p>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="ew-big"></p>
+    <dl class="ew-rows"></dl>
+    <p class="ew-need"></p>
+    <p class="ew-warn" role="alert"></p>
+  </section>
+  <p class="ew-fine">Based on Rule 138 of the CGST Rules, 2017 and the e-way bill portal's FAQ, checked 2026-11-10. Not legal advice; check the official source. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ew { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ew .panel { padding: 16px; }
+  .ew-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .ew label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ew input, .ew select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ew input:focus, .ew select:focus { border-color: var(--accent); outline: none; }
+  .ew-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
+  .ew-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
+  .ew-rows dt { color: var(--muted); } .ew-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .ew-need { margin: 12px 0 0; }
+  .ew-warn { color: var(--bad); margin: 10px 0 0; } .ew-warn:empty { display: none; }
+  .ew-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+</style>
+
+<script>
+  import { ewayDays, ewayExpiry, EWB_LIMIT } from '../../lib/money/vehicle-india';
+  const root = document.querySelector('.ew') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const show = ([y, m, d]: number[]) => `${d} ${MON[m - 1]} ${y}`;
+  const calc = () => {
+    const km = parseFloat(q('km').value.replace(/,/g, '')), odc = q('cargo').value === 'odc';
+    const [y, m, d] = q('date').value.split('-').map(Number);
+    const value = parseFloat(q('value').value.replace(/,/g, '')) || 0, intra = q('move').value === 'intra';
+    const need = value > EWB_LIMIT
+      ? `A consignment over ${EWB_LIMIT.toLocaleString('en-IN')} rupees needs an e-way bill${intra ? ', unless your state has set a higher limit for movement within the state (many have: check your state GST website)' : ''}.`
+      : `At ${value.toLocaleString('en-IN')} rupees an e-way bill is usually not required (the limit is over ${EWB_LIMIT.toLocaleString('en-IN')}), but some cases need one whatever the value, such as job work sent to another state and handicraft goods.`;
+    $('.ew-need').textContent = need;
+    if (!(km > 0) || !(y > 0)) { $('.ew-big').textContent = ''; $('.ew-rows').innerHTML = ''; $('.ew-warn').textContent = 'Type the distance in km and the date.'; return; }
+    const days = ewayDays(km, odc), last = ewayExpiry(y, m, d, days);
+    $('.ew-warn').textContent = km > 4000 ? 'The portal accepts distances up to 4,000 km.' : '';
+    $('.ew-big').textContent = `${days} day${days === 1 ? '' : 's'} valid`;
+    const line = (a: string, b: string) => `<dt>${a}</dt><dd>${b}</dd>`;
+    $('.ew-rows').innerHTML = line('Rule used', odc ? '1 day per 20 km or part' : '1 day per 200 km or part') +
+      line('Day 1 ends', `midnight at the end of ${show(ewayExpiry(y, m, d, 1))}`) +
+      line('Valid until', `midnight at the end of ${show(last)}`) +
+      line('Extension can be asked', `from 4 pm on ${show(last)} to 8 am on ${show(ewayExpiry(y, m, d, days + 1))}`);
+  };
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  calc();
+</script>

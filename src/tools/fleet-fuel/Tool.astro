@@ -1,0 +1,131 @@
+---
+// #T909 Fleet fuel
+---
+<div class="tool-ui ff">
+  <section class="panel">
+    <div class="ff-row">
+      <button type="button" class="btn ff-open">Open a fuel-card CSV</button>
+      <button type="button" class="btn secondary ff-ex">Try an example</button>
+      <input type="file" class="ff-file" accept=".csv,.tsv,.txt,text/csv,text/plain" hidden />
+    </div>
+    <p class="ff-fine">The file is read on this device and never uploaded. Up to 15 MB and 50,000 rows. First row = column names.</p>
+    <p class="ff-err" role="alert"></p>
+    <div class="ff-map" hidden>
+      <h2 class="ff-h">Which column is which?</h2>
+      <div class="ff-grid">
+        <label>Vehicle <select data-m="vehicle"></select></label>
+        <label>Odometer <select data-m="odo"></select></label>
+        <label>Fuel quantity <select data-m="qty"></select></label>
+        <label>Amount paid <select data-m="amount"></select></label>
+        <label>Date <select data-m="date"></select></label>
+      </div>
+      <h2 class="ff-h">Units and flags</h2>
+      <div class="ff-grid">
+        <label>Odometer is in <select data-k="du"><option value="km">Kilometres</option><option value="mi">Miles</option></select></label>
+        <label>Fuel is in <select data-k="vu"><option value="L">Litres</option><option value="gal">US gallons</option><option value="ukgal">UK gallons</option></select></label>
+        <label>Tank size, any vehicle (<span class="u-v">litres</span>) <input data-k="tank" inputmode="decimal" value="300" /></label>
+        <label>Two fills closer than (<span class="u-d">km</span>) <input data-k="close" inputmode="decimal" value="50" /></label>
+        <label>Economy worse than usual by (%) <input data-k="worse" inputmode="decimal" value="25" /></label>
+      </div>
+      <label class="ff-wide">Tank sizes for particular vehicles, one a line, like <code>TRK-1=200</code> (optional)
+        <textarea data-k="tanks" rows="2" spellcheck="false"></textarea></label>
+    </div>
+  </section>
+  <section class="panel ff-out" hidden aria-live="polite">
+    <p class="ff-big"></p>
+    <div class="ff-scroll"><table class="ff-tab"><thead></thead><tbody class="ff-sum"></tbody></table></div>
+    <h2 class="ff-h">Fills to look at</h2>
+    <p class="ff-none">None.</p>
+    <ul class="ff-flags"></ul>
+    <p class="ff-fine">A flag is a reason to check, not proof of a leak or theft. The method assumes every fill filled the tank; part fills make economy look better or worse. Economy is worked out from the second fill onward.</p>
+    <h2 class="ff-h">Economy for each fill</h2>
+    <div class="ff-charts"></div>
+    <p class="ff-fine">Dashed line = the vehicle's usual (median) economy. Red dots are fills flagged as much worse than usual.</p>
+  </section>
+</div>
+
+<style is:inline>
+  .ff { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ff .panel { padding: 16px; }
+  .ff-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ff-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .ff label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ff label.ff-wide { margin-top: 12px; }
+  .ff input, .ff select, .ff textarea { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .ff input:focus, .ff select:focus, .ff textarea:focus { border-color: var(--accent); outline: none; }
+  .ff-h { font-size: 15px; margin: 16px 0 8px; }
+  .ff-big { font-size: 20px; font-weight: 700; margin: 0 0 10px; }
+  .ff-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+  .ff-err { color: var(--bad); margin: 8px 0 0; } .ff-err:empty { display: none; }
+  .ff-scroll { overflow-x: auto; }
+  .ff-tab { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .ff-tab th, .ff-tab td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .ff-tab th:first-child, .ff-tab td:first-child { text-align: left; }
+  .ff-flags { margin: 0; padding-left: 18px; display: grid; gap: 4px; } .ff-flags:empty + * { }
+  .ff-flags li { color: var(--bad); } .ff-flags li span { color: var(--ink); }
+  .ff-none { margin: 0; color: var(--muted); }
+  .ff-charts { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+  .ff-charts h3 { font-size: 14px; margin: 0 0 4px; }
+</style>
+
+<script>
+  import { parseCsv, guessColumns, rowsToFills, analyse, econChart, toNum, type Field } from '../../lib/money/fleetfuel';
+  const root = document.querySelector('.ff') as HTMLElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const m = (k: string) => root.querySelector(`[data-m="${k}"]`) as HTMLSelectElement;
+  const FIELDS: Field[] = ['vehicle', 'odo', 'qty', 'amount', 'date'];
+  const EXAMPLE = 'Date,Vehicle,Odometer,Litres,Amount\n2026-10-01,TRK-1,100000,250,300\n2026-10-05,TRK-1,100800,200,240\n2026-10-09,TRK-1,101600,200,240\n2026-10-13,TRK-1,102400,200,240\n2026-10-17,TRK-1,103000,200,240\n2026-10-02,TRK-2,50000,100,120\n2026-10-09,TRK-2,50500,400,480\n2026-10-17,TRK-2,51500,250,300\n';
+  let rows: string[][] = [];
+  const num = (k: string) => parseFloat(q(k).value.replace(/,/g, '')) || 0;
+  const f2 = (v: number, d = 2) => (Number.isFinite(v) ? v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }) : '-');
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+
+  const load = (text: string) => {
+    $('.ff-err').textContent = '';
+    rows = parseCsv(text);
+    if (rows.length < 2 || rows[0].length < 3) { $('.ff-err').textContent = 'That does not look like a table with a header row and at least 3 columns.'; return; }
+    if (rows.length > 50001) { $('.ff-err').textContent = 'More than 50,000 rows. Split the file first.'; rows = []; return; }
+    const head = rows[0], guess = guessColumns(head);
+    for (const f of FIELDS) {
+      const none = f === 'amount' || f === 'date' || f === 'vehicle' ? '<option value="-1">(none)</option>' : '';
+      m(f).innerHTML = none + head.map((h, i) => `<option value="${i}">${esc(h || 'Column ' + (i + 1))}</option>`).join('');
+      m(f).value = String(guess[f] >= 0 ? guess[f] : (none ? -1 : 0));
+    }
+    $('.ff-map').hidden = false; calc();
+  };
+
+  const calc = () => {
+    if (!rows.length) return;
+    const km = q('du').value === 'km', vu = q('vu').value;
+    const vname = vu === 'L' ? 'litres' : vu === 'gal' ? 'US gallons' : 'UK gallons', dname = km ? 'km' : 'miles';
+    root.querySelectorAll('.u-v').forEach((e) => (e.textContent = vname)); root.querySelectorAll('.u-d').forEach((e) => (e.textContent = dname));
+    const map = {} as Record<Field, number>; for (const f of FIELDS) map[f] = Number(m(f).value);
+    const { fills, skipped } = rowsToFills(rows.slice(1), map);
+    const tankBy: Record<string, number> = {};
+    for (const l of (root.querySelector('[data-k="tanks"]') as HTMLTextAreaElement).value.split('\n')) { const p = l.split('='); if (p.length === 2 && toNum(p[1]) > 0) tankBy[p[0].trim()] = toNum(p[1]); }
+    const { stats, flags } = analyse(fills, { tank: num('tank'), tankBy, closeDist: num('close'), worsePct: num('worse') });
+    const ecoUnit = km && vu === 'L' ? 'km/L' : !km && vu === 'gal' ? 'mpg (US)' : !km && vu === 'ukgal' ? 'mpg (UK)' : `${dname}/${vu === 'L' ? 'L' : 'gal'}`;
+    const out = $('.ff-out'); out.hidden = !fills.length;
+    if (!fills.length) { $('.ff-err').textContent = 'No usable rows. Check that the vehicle, odometer and quantity columns are right.'; return; }
+    $('.ff-big').textContent = `${fills.length} fills, ${stats.length} vehicle${stats.length === 1 ? '' : 's'}, ${flags.length} flag${flags.length === 1 ? '' : 's'}` + (skipped ? ` (${skipped} rows skipped: missing vehicle, odometer or quantity)` : '');
+    const hasCost = stats.some((s) => Number.isFinite(s.costPerDist));
+    const l100 = km && vu === 'L';
+    $('.ff-tab thead').innerHTML = `<tr><th>Vehicle</th><th>Fills</th><th>Distance (${dname})</th><th>Fuel (${vname})</th><th>${ecoUnit}</th>${l100 ? '<th>L/100 km</th>' : ''}${hasCost ? `<th>Cost per ${km ? 'km' : 'mile'}</th>` : ''}<th>Flags</th></tr>`;
+    $('.ff-sum').innerHTML = stats.map((s) => `<tr><td>${esc(s.vehicle)}</td><td>${s.fills}</td><td>${f2(s.distance, 0)}</td><td>${f2(s.qty, 1)}</td><td>${f2(s.economy)}</td>${l100 ? `<td>${f2(100 / s.economy)}</td>` : ''}${hasCost ? `<td>${f2(s.costPerDist, 3)}</td>` : ''}<td>${s.flags}</td></tr>`).join('');
+    $('.ff-none').hidden = flags.length > 0;
+    const label = { big: 'Bigger than the tank', close: 'Two fills close together', economy: 'Economy much worse than usual' } as const;
+    $('.ff-flags').innerHTML = flags.map((f) => `<li>${esc(f.vehicle)}, ${esc(f.date || 'odometer ' + f.odo)}: ${label[f.kind]} <span>(${esc(f.text)})</span></li>`).join('');
+    $('.ff-charts').innerHTML = stats.filter((s) => s.points.length >= 2).map((s) => `<div><h3>${esc(s.vehicle)} (${ecoUnit})</h3>${econChart(s, ecoUnit)}</div>`).join('');
+  };
+
+  const file = $('.ff-file') as HTMLInputElement;
+  $('.ff-open').addEventListener('click', () => file.click());
+  $('.ff-ex').addEventListener('click', () => { q('tank').value = '300'; load(EXAMPLE); });
+  file.addEventListener('change', async () => {
+    const f = file.files?.[0]; if (!f) return;
+    if (f.size > 15e6) { $('.ff-err').textContent = 'That file is over 15 MB.'; return; }
+    load(await f.text());
+  });
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+</script>

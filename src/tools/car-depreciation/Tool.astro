@@ -1,0 +1,98 @@
+---
+// #T895 Car depreciation
+---
+<div class="tool-ui cd">
+  <section class="panel">
+    <div class="cd-grid">
+      <label>Vehicle
+        <select data-k="vehicle"><option value="car">Car</option><option value="bike">Two-wheeler</option><option value="truck">Truck</option></select>
+      </label>
+      <label>Price you pay <input data-k="price" inputmode="decimal" value="20000" /></label>
+      <label>Years to keep it <input data-k="years" inputmode="decimal" value="3" /></label>
+      <label>Method
+        <select data-k="mode"><option value="declining">Same percent each year</option><option value="curve">Typical curve (year by year)</option></select>
+      </label>
+      <label class="cd-rate">Loss each year (%) <input data-k="rate" inputmode="decimal" value="15" /></label>
+      <label>Km you drive a year (optional) <input data-k="km" inputmode="decimal" value="" placeholder="e.g. 15000" /></label>
+      <label>Typical km a year <input data-k="typ" inputmode="decimal" value="15000" /></label>
+      <label>Extra loss per 10,000 km above typical (points) <input data-k="adj" inputmode="decimal" value="1" /></label>
+    </div>
+    <div class="cd-curve" hidden>
+      <p class="cd-fine">Percent of the value lost in each year. These are rough typical shapes (estimate, not data from any maker); change any of them. After year 10 the last figure repeats.</p>
+      <div class="cd-cgrid"></div>
+    </div>
+    <p class="cd-fine">Depreciation is how much value a vehicle loses. It is usually your biggest cost of owning one and it is biggest in the first year. Leave "Km you drive a year" empty to ignore mileage.</p>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="cd-big"></p>
+    <dl class="cd-rows"></dl>
+    <p class="cd-warn" role="alert"></p>
+    <div class="cd-leg"></div>
+    <div class="cd-chart"></div>
+    <div class="cd-scroll"><table class="cd-tab"><thead><tr><th>Year</th><th>Loss that year</th><th>Value at end</th><th>Lost so far</th></tr></thead><tbody></tbody></table></div>
+  </section>
+  <p class="cd-fine">Estimates only. Real resale values depend on condition, demand and the market, so compare with ads for the same model. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .cd { display: grid; gap: 14px; margin-bottom: 32px; }
+  .cd .panel { padding: 16px; }
+  .cd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .cd-cgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; }
+  .cd label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .cd input, .cd select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .cd input:focus, .cd select:focus { border-color: var(--accent); outline: none; }
+  .cd-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
+  .cd-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
+  .cd-rows dt { color: var(--muted); } .cd-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .cd-warn { color: var(--bad); margin: 10px 0 0; } .cd-warn:empty { display: none; }
+  .cd-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+  .cd-leg { margin-top: 12px; font-size: 13px; color: var(--muted); }
+  .cd-scroll { overflow-x: auto; margin-top: 12px; }
+  .cd-tab { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .cd-tab th, .cd-tab td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .cd-tab th:first-child, .cd-tab td:first-child { text-align: left; }
+</style>
+
+<script>
+  import { depreciation, TYPICAL_CURVES } from '../../lib/money/vehicles';
+  import { lineSvg, legend } from '../../lib/money/chart';
+  const root = document.querySelector('.cd') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const num = (k: string) => parseFloat(q(k).value.replace(/,/g, '')) || 0;
+  const m2 = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const cgrid = $('.cd-cgrid');
+  const fillCurve = () => {
+    const c = TYPICAL_CURVES[q('vehicle').value];
+    cgrid.innerHTML = c.map((v, i) => `<label>Year ${i + 1}<input data-y="${i}" inputmode="decimal" value="${v}" /></label>`).join('');
+  };
+  const calc = () => {
+    const price = num('price'), years = Math.round(num('years')), mode = q('mode').value as 'declining' | 'curve';
+    ($('.cd-curve') as HTMLElement).hidden = mode !== 'curve';
+    ($('.cd-rate') as HTMLElement).hidden = mode === 'curve';
+    const warn = $('.cd-warn');
+    if (!(price > 0) || !(years >= 1 && years <= 30) || (mode === 'declining' && !(num('rate') >= 0 && num('rate') <= 95))) {
+      $('.cd-big').textContent = ''; $('.cd-rows').innerHTML = ''; $('.cd-chart').innerHTML = ''; $('.cd-leg').innerHTML = ''; $('.cd-tab tbody').innerHTML = '';
+      warn.textContent = 'Type a price, 1 to 30 years, and a yearly loss of 0 to 95%.'; return;
+    }
+    warn.textContent = '';
+    const curve = [...cgrid.querySelectorAll('input')].map((i) => parseFloat((i as HTMLInputElement).value) || 0);
+    const km = num('km');
+    const { values, ratesUsed } = depreciation({ price, years, mode, ratePct: num('rate'), curve, kmPerYear: km, typicalKm: num('typ'), adjPer10k: num('adj') });
+    const end = values[years], lost = price - end;
+    $('.cd-big').textContent = `Worth ${m2(end)} after ${years} year${years === 1 ? '' : 's'}`;
+    const line = (a: string, b: string) => `<dt>${a}</dt><dd>${b}</dd>`;
+    let h = line('Total value lost', `${m2(lost)} (${((lost / price) * 100).toFixed(1)}%)`) + line('Lost per year on average', m2(lost / years)) + line('Lost per month on average', m2(lost / years / 12));
+    if (km > 0) h += line('Distance in total', `${Math.round(km * years).toLocaleString('en-US')} km`) + line('Value lost per km', m2(lost / (km * years)));
+    $('.cd-rows').innerHTML = h;
+    const s = [{ label: 'Value', ys: values, color: 'var(--accent)' }];
+    $('.cd-chart').innerHTML = lineSvg(s, values.map((_, i) => i), 'Vehicle value by year');
+    $('.cd-leg').innerHTML = legend(s) + ' years from today on the bottom';
+    $('.cd-tab tbody').innerHTML = values.map((v, i) => `<tr><td>${i}</td><td>${i ? ratesUsed[i - 1].toFixed(1) + '% (' + m2(values[i - 1] - v) + ')' : '-'}</td><td>${m2(v)}</td><td>${m2(price - v)}</td></tr>`).join('');
+  };
+  q('vehicle').addEventListener('change', fillCurve);
+  fillCurve();
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  calc();
+</script>

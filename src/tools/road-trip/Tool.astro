@@ -1,0 +1,103 @@
+---
+// #T897 Road trip
+---
+<div class="tool-ui rt">
+  <section class="panel">
+    <div class="rt-grid">
+      <label>Distance in
+        <select data-k="unit"><option value="km">Kilometres (km/h)</option><option value="mi">Miles (mph)</option></select>
+      </label>
+      <label>Start (your local time) <input data-k="start" type="datetime-local" value="2026-11-14T08:00" /></label>
+    </div>
+    <h3 class="rt-h">Legs</h3>
+    <p class="rt-fine">Split the trip into legs where your average speed differs, for example a motorway leg and a town leg.</p>
+    <div class="rt-legs"></div>
+    <button type="button" class="rt-add">Add a leg</button>
+    <div class="rt-grid">
+      <label>Break every (hours of driving) <input data-k="every" inputmode="decimal" value="2" /></label>
+      <label>Break length (minutes) <input data-k="bmin" inputmode="decimal" value="15" /></label>
+    </div>
+    <h3 class="rt-h">Fuel</h3>
+    <div class="rt-grid">
+      <label>Fuel economy in
+        <select data-k="eco"><option value="l100">L per 100 km</option><option value="kml">km per litre</option><option value="us">miles per US gallon</option><option value="uk">miles per UK gallon</option></select>
+      </label>
+      <label>Economy <input data-k="econ" inputmode="decimal" value="7" /></label>
+      <label>Tank size (<span class="rt-vu">litres</span>) <input data-k="tank" inputmode="decimal" value="50" /></label>
+      <label>Keep in reserve (% of tank) <input data-k="res" inputmode="decimal" value="10" /></label>
+      <label>Price per <span class="rt-vu1">litre</span> <input data-k="price" inputmode="decimal" value="1.5" /></label>
+      <label>Minutes per fuel stop <input data-k="smin" inputmode="decimal" value="10" /></label>
+      <label>Tolls you will pay (total) <input data-k="tolls" inputmode="decimal" value="0" /></label>
+    </div>
+    <p class="rt-fine">Fuel stops assume you start with a full tank and refill when only the reserve is left. A fuel stop that you make during a break still adds the minutes here, so lower them to zero if you refuel on your break. For the cost of one drive see <a href="/money/fuel-cost/">Fuel cost</a>.</p>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="rt-big"></p>
+    <dl class="rt-rows"></dl>
+    <p class="rt-warn" role="alert"></p>
+  </section>
+  <p class="rt-fine">Estimates only: traffic, weather, roadworks and rest rules for professional drivers will change real times. Take a break whenever you feel tired. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .rt { display: grid; gap: 14px; margin-bottom: 32px; }
+  .rt .panel { padding: 16px; }
+  .rt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; margin-top: 10px; }
+  .rt label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .rt input, .rt select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .rt input:focus, .rt select:focus { border-color: var(--accent); outline: none; }
+  .rt-h { font-size: 16px; margin: 16px 0 4px; }
+  .rt-leg { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end; margin-top: 8px; }
+  .rt-add, .rt-x { font: inherit; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); cursor: pointer; margin-top: 8px; }
+  .rt-x { margin-top: 0; }
+  .rt-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
+  .rt-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
+  .rt-rows dt { color: var(--muted); } .rt-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .rt-warn { color: var(--bad); margin: 10px 0 0; } .rt-warn:empty { display: none; }
+  .rt-fine { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+</style>
+
+<script>
+  import { trip, hm, KM_PER_MI, L_PER_USGAL, L_PER_UKGAL } from '../../lib/money/vehicles';
+  const root = document.querySelector('.rt') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const num = (k: string) => parseFloat(q(k).value.replace(/,/g, '')) || 0;
+  const m2 = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const legs = $('.rt-legs');
+  const addLeg = (d = '', s = '') => legs.insertAdjacentHTML('beforeend', `<div class="rt-leg"><label>Distance<input data-l="d" inputmode="decimal" value="${d}" /></label><label>Average speed<input data-l="s" inputmode="decimal" value="${s}" /></label><button type="button" class="rt-x" aria-label="Remove this leg">x</button></div>`);
+  const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const p2 = (v: number) => String(v).padStart(2, '0');
+  const calc = () => {
+    const eco = q('eco').value, e = num('econ');
+    const unit = q('unit').value as 'km' | 'mi';
+    const lv = eco === 'us' ? L_PER_USGAL : eco === 'uk' ? L_PER_UKGAL : 1;
+    $('.rt-vu').textContent = eco === 'us' ? 'US gallons' : eco === 'uk' ? 'UK gallons' : 'litres';
+    $('.rt-vu1').textContent = eco === 'us' ? 'US gallon' : eco === 'uk' ? 'UK gallon' : 'litre';
+    const l100 = !(e > 0) ? 0 : eco === 'l100' ? e : eco === 'kml' ? 100 / e : (100 * lv) / (KM_PER_MI * e);
+    const ls = [...legs.querySelectorAll('.rt-leg')].map((r) => ({ dist: parseFloat((r.querySelector('[data-l="d"]') as HTMLInputElement).value) || 0, speed: parseFloat((r.querySelector('[data-l="s"]') as HTMLInputElement).value) || 0 }));
+    const warn = $('.rt-warn');
+    if (!ls.some((l) => l.dist > 0 && l.speed > 0) || !(l100 > 0)) {
+      $('.rt-big').textContent = ''; $('.rt-rows').innerHTML = ''; warn.textContent = 'Type a distance and an average speed for at least one leg, and your fuel economy.'; return;
+    }
+    const t = trip({ legs: ls, distUnit: unit, breakEveryH: num('every'), breakMin: num('bmin'), litresPer100km: l100, tankL: num('tank') * lv, reservePct: Math.min(99, num('res')), stopMin: num('smin'), pricePerL: num('price') / lv, tolls: num('tolls') });
+    const line = (a: string, b: string) => `<dt>${a}</dt><dd>${b}</dd>`;
+    $('.rt-big').textContent = `Total time ${hm(t.totalH)}`;
+    let h = line('Distance', `${m2(t.dist)} ${unit}`) + line('Driving time', hm(t.driveH)) + line('Breaks', `${t.breaks} x ${num('bmin')} min = ${hm(t.breakH)}`) +
+      line('Fuel stops', `${t.fuelStops}${t.fuelStops ? ` (${hm(t.stopH)})` : ''}`) + line('Fuel needed', `${m2(t.fuelL / lv)} ${eco === 'us' ? 'US gal' : eco === 'uk' ? 'UK gal' : 'L'}`) + line('Fuel cost', m2(t.fuelCost));
+    if (num('tolls') > 0) h += line('Tolls', m2(num('tolls')));
+    h += line('Total cost (fuel + tolls)', m2(t.totalCost));
+    const sv = q('start').value, m = /^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d)/.exec(sv);
+    if (m) {
+      const a = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) + Math.round(t.totalH * 3600000));
+      h += line('Arrive', `${DAYS[a.getUTCDay()]} ${a.getUTCDate()} ${MON[a.getUTCMonth()]}, ${p2(a.getUTCHours())}:${p2(a.getUTCMinutes())}`);
+    }
+    $('.rt-rows').innerHTML = h;
+    warn.textContent = num('every') > 0 && num('every') < 0.5 ? 'A break every half hour or less makes for a very long trip.' : '';
+  };
+  legs.addEventListener('click', (ev) => { const b = (ev.target as HTMLElement).closest('.rt-x'); if (b && legs.children.length > 1) { b.closest('.rt-leg')!.remove(); calc(); } });
+  $('.rt-add').addEventListener('click', () => { addLeg(); calc(); });
+  addLeg('600', '80');
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  calc();
+</script>

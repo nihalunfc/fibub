@@ -3,7 +3,7 @@ name: EV vs petrol
 num: 1780
 shelf: money
 code: T814
-section: shopping
+section: vehicle-running
 title: "EV vs petrol: total cost of ownership, break-even and CO2"
 summary: "Compare an electric car, a petrol car and a hybrid over the years you keep it: price, incentives, energy, upkeep, insurance, resale, break-even and rough CO2."
 status: live

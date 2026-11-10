@@ -1,0 +1,166 @@
+---
+// #T893 Trip sheet
+---
+<div class="tool-ui ts">
+  <section class="panel">
+    <h2 class="ts-h">Trip</h2>
+    <div class="ts-grid">
+      <label>Vehicle number <input data-k="veh" data-t value="" placeholder="e.g. KA 01 AB 1234" /></label>
+      <label>Driver <input data-k="driver" data-t value="" /></label>
+      <label>From <input data-k="from" data-t value="" /></label>
+      <label>To <input data-k="to" data-t value="" /></label>
+      <label>Start date <input data-k="d1" type="date" value="2026-11-10" /></label>
+      <label>End date <input data-k="d2" type="date" value="2026-11-12" /></label>
+      <label>Odometer at start (km) <input data-k="odo1" inputmode="decimal" value="100000" /></label>
+      <label>Odometer at end (km) <input data-k="odo2" inputmode="decimal" value="100900" /></label>
+    </div>
+    <h2 class="ts-h">Money</h2>
+    <div class="ts-grid">
+      <label>Freight (what the party pays) <input data-k="freight" inputmode="decimal" value="40000" /></label>
+      <label>Advance given to the driver <input data-k="adv" inputmode="decimal" value="10000" /></label>
+      <label>Tolls <input data-k="tolls" inputmode="decimal" value="2500" /></label>
+      <label>Driver bata per day <input data-k="bata" inputmode="decimal" value="500" /></label>
+      <label>Bata days <input data-k="days" inputmode="decimal" value="3" /></label>
+      <label>Loading and unloading <input data-k="load" inputmode="decimal" value="0" /></label>
+      <label>Other (police, parking, repairs) <input data-k="oth" inputmode="decimal" value="0" /></label>
+    </div>
+    <h2 class="ts-h">Diesel fills</h2>
+    <div class="ts-fills"></div>
+    <p><button type="button" data-a="addfill">Add a fill</button></p>
+    <fieldset class="ts-paid"><legend>Paid by the driver out of the advance</legend>
+      <label class="ts-check"><input type="checkbox" data-k="pd" /> Diesel</label>
+      <label class="ts-check"><input type="checkbox" data-k="pt" checked /> Tolls</label>
+      <label class="ts-check"><input type="checkbox" data-k="pl" checked /> Loading</label>
+      <label class="ts-check"><input type="checkbox" data-k="po" checked /> Other</label>
+    </fieldset>
+    <label class="ts-check"><input type="checkbox" data-k="keep" /> Keep this trip sheet in this browser so it is here next time</label>
+    <p class="ts-fine">Off by default. When ticked, the sheet is saved on this device only and never sent anywhere. Untick it or press Clear to delete it.</p>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="ts-big"></p>
+    <dl class="ts-rows ts-out"></dl>
+    <p class="ts-warn" role="alert"></p>
+    <p class="ts-btns"><button type="button" data-a="print">Print</button> <button type="button" data-a="pdf">Download PDF</button> <button type="button" data-a="clear">Clear</button></p>
+  </section>
+  <div class="ts-sheet" aria-hidden="true"></div>
+  <p class="ts-fine">Bata is the daily allowance paid to the driver for food and stay. Balance due to the driver = bata + expenses the driver paid − advance; a minus figure means the driver gives that much back. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ts { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ts .panel { padding: 16px; }
+  .ts-h { font-size: 16px; margin: 4px 0 8px; }
+  .ts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 12px; margin-bottom: 12px; }
+  .ts label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ts input:not([type=checkbox]) { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ts input:focus { border-color: var(--accent); outline: none; }
+  .ts-fill { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end; margin-bottom: 8px; }
+  .ts button { font: inherit; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); cursor: pointer; }
+  .ts button:hover { border-color: var(--accent); }
+  .ts-paid { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; margin: 0 0 12px; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+  .ts-paid legend { font-size: 14px; color: var(--muted); padding: 0 4px; }
+  .ts label.ts-check { display: flex; gap: 8px; align-items: center; color: var(--ink); }
+  .ts input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .ts-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
+  .ts-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
+  .ts-rows dt { color: var(--muted); } .ts-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .ts-warn { color: var(--bad); margin: 10px 0 0; } .ts-warn:empty { display: none; }
+  .ts-fine { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+  .ts-btns { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; }
+  .ts-sheet { display: none; }
+  @media print {
+    body * { visibility: hidden; }
+    .ts-sheet, .ts-sheet * { visibility: visible; }
+    .ts-sheet { display: block; position: absolute; left: 0; top: 0; width: 100%; color: #000; background: #fff; font: 12pt/1.4 system-ui, sans-serif; }
+    .ts-sheet table { border-collapse: collapse; width: 100%; margin-bottom: 12pt; }
+    .ts-sheet td, .ts-sheet th { border: 1px solid #000; padding: 4pt 6pt; text-align: left; }
+    .ts-sheet td.n { text-align: right; }
+  }
+</style>
+
+<script>
+  import { tripTotals, type Trip } from '../../lib/money/vehicle-india';
+  const KEY = 'fibub-tripsheet-v1';
+  const root = document.querySelector('.ts') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const n = (v: string) => parseFloat(v.replace(/,/g, '')) || 0;
+  const num = (k: string) => n(q(k).value);
+  const fmt = (v: number, d = 0) => v.toLocaleString('en-IN', { minimumFractionDigits: d, maximumFractionDigits: 2 });
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+  const FIELDS = ['veh', 'driver', 'from', 'to', 'd1', 'd2', 'odo1', 'odo2', 'freight', 'adv', 'tolls', 'bata', 'days', 'load', 'oth'];
+  const BOXES = ['pd', 'pt', 'pl', 'po'];
+
+  const addFill = (l = '', p = '') => {
+    const row = document.createElement('div'); row.className = 'ts-fill';
+    row.innerHTML = `<label>Litres <input class="fl" inputmode="decimal" value="${esc(l)}" /></label><label>Price per litre <input class="fp" inputmode="decimal" value="${esc(p)}" /></label><button type="button" data-a="rmfill" aria-label="Remove this fill">×</button>`;
+    $('.ts-fills').append(row);
+  };
+  const fills = () => [...root.querySelectorAll('.ts-fill')].map((r) => ({ litres: n((r.querySelector('.fl') as HTMLInputElement).value), price: n((r.querySelector('.fp') as HTMLInputElement).value) }));
+  const trip = (): Trip => ({ odoStart: num('odo1'), odoEnd: num('odo2'), freight: num('freight'), advance: num('adv'), fills: fills(), tolls: num('tolls'), bataPerDay: num('bata'), days: num('days'), loading: num('load'), other: num('oth'), driverPays: { diesel: q('pd').checked, tolls: q('pt').checked, loading: q('pl').checked, other: q('po').checked } });
+
+  const rowsOf = () => {
+    const t = trip(), r = tripTotals(t);
+    const bal = r.driverBalance >= 0 ? ['Balance due to the driver', fmt(r.driverBalance)] : ['Driver gives back', fmt(-r.driverBalance)];
+    return { r, list: [
+      ['Km run', fmt(r.km)], ['Diesel', `${fmt(r.litres)} L, ${fmt(r.diesel)}`], ['Km per litre', r.kmpl ? fmt(Math.round(r.kmpl * 100) / 100, 2) : '-'],
+      ['Tolls', fmt(t.tolls)], ['Driver bata', `${fmt(t.days)} days × ${fmt(t.bataPerDay)} = ${fmt(r.bata)}`], ['Loading and unloading', fmt(t.loading)], ['Other', fmt(t.other)],
+      ['Total cost', fmt(r.cost)], ['Freight', fmt(t.freight)], [r.profit >= 0 ? 'Profit' : 'Loss', fmt(Math.abs(r.profit))], ['Advance to driver', fmt(t.advance)], bal,
+    ] };
+  };
+  const save = () => { try { if (q('keep').checked) localStorage.setItem(KEY, JSON.stringify({ f: Object.fromEntries(FIELDS.map((k) => [k, q(k).value])), b: BOXES.map((k) => q(k).checked), fills: fills() })); } catch {} };
+  const calc = () => {
+    const { r, list } = rowsOf();
+    $('.ts-big').textContent = `${r.profit >= 0 ? 'Profit' : 'Loss'} ${fmt(Math.abs(r.profit))}`;
+    $('.ts-rows').innerHTML = list.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join('');
+    $('.ts-warn').textContent = num('odo2') && num('odo2') < num('odo1') ? 'The end odometer reading is lower than the start.' : r.kmpl > 15 ? 'Over 15 km per litre is unusual for a loaded truck: check the litres and odometer.' : '';
+    save();
+  };
+  const head = () => [['Vehicle', q('veh').value], ['Driver', q('driver').value], ['From', q('from').value], ['To', q('to').value], ['Dates', `${q('d1').value} to ${q('d2').value}`], ['Odometer', `${q('odo1').value} to ${q('odo2').value}`]];
+  const sheet = () => {
+    const { list } = rowsOf();
+    $('.ts-sheet').innerHTML = `<h1>Trip sheet</h1><table>${head().map(([a, b]) => `<tr><th>${a}</th><td>${esc(b)}</td></tr>`).join('')}</table><table><tr><th>Diesel fill</th><th>Litres</th><th>Price per litre</th><th>Amount</th></tr>${fills().map((f, i) => `<tr><td>${i + 1}</td><td class="n">${fmt(f.litres)}</td><td class="n">${fmt(f.price, 2)}</td><td class="n">${fmt(f.litres * f.price, 2)}</td></tr>`).join('')}</table><table>${list.map(([a, b]) => `<tr><th>${a}</th><td class="n">${b}</td></tr>`).join('')}</table><p>Driver's signature: ____________________ &nbsp; Owner's signature: ____________________</p>`;
+  };
+  const pdf = async () => {
+    const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
+    const { pdfSafe } = await import('../../lib/resume/pdf');
+    const doc = await PDFDocument.create(); doc.setTitle('Trip sheet'); doc.setCreator('fibub.com');
+    const f = await doc.embedFont(StandardFonts.Helvetica), b = await doc.embedFont(StandardFonts.HelveticaBold);
+    const page = doc.addPage([595.28, 841.89]); let y = 800;
+    const t = (s: string) => pdfSafe(s.replace(/×/g, 'x')).text;
+    const row = (a: string, v: string, bold = false) => { page.drawText(t(a), { x: 50, y, size: 11, font: bold ? b : f, color: rgb(0, 0, 0) }); const w = f.widthOfTextAtSize(t(v), 11); page.drawText(t(v), { x: 545 - w, y, size: 11, font: bold ? b : f }); page.drawLine({ start: { x: 50, y: y - 4 }, end: { x: 545, y: y - 4 }, thickness: 0.4, color: rgb(0.7, 0.7, 0.7) }); y -= 20; };
+    page.drawText('Trip sheet', { x: 50, y, size: 18, font: b }); y -= 30;
+    head().forEach(([a, v]) => row(a, v));
+    y -= 10; fills().forEach((x, i) => row(`Diesel fill ${i + 1}: ${fmt(x.litres)} L x ${fmt(x.price, 2)}`, fmt(x.litres * x.price, 2)));
+    y -= 10; rowsOf().list.forEach(([a, v]) => row(a, v, /Total|Profit|Loss|Balance|gives/.test(a)));
+    y -= 30; page.drawText("Driver's signature: ____________________     Owner's signature: ____________________", { x: 50, y, size: 10, font: f });
+    const blob = new Blob([await doc.save()], { type: 'application/pdf' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'trip-sheet.pdf'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  };
+  const setDays = () => { const a = Date.parse(q('d1').value), z = Date.parse(q('d2').value); if (a && z && z >= a) q('days').value = String(Math.round((z - a) / 864e5) + 1); };
+
+  root.addEventListener('input', calc);
+  root.addEventListener('change', (e) => {
+    const k = (e.target as HTMLElement).dataset.k;
+    if (k === 'd1' || k === 'd2') setDays();
+    if (k === 'keep' && !q('keep').checked) { try { localStorage.removeItem(KEY); } catch {} }
+    calc();
+  });
+  root.addEventListener('click', (e) => {
+    const a = (e.target as HTMLElement).closest('button')?.dataset.a;
+    if (a === 'addfill') { addFill(); calc(); }
+    if (a === 'rmfill') { (e.target as HTMLElement).closest('.ts-fill')?.remove(); calc(); }
+    if (a === 'print') { sheet(); window.print(); }
+    if (a === 'pdf') pdf();
+    if (a === 'clear') {
+      try { localStorage.removeItem(KEY); } catch {}
+      q('keep').checked = false;
+      FIELDS.forEach((k) => { if (!/^d[12]$/.test(k)) q(k).value = ''; });
+      $('.ts-fills').innerHTML = ''; addFill(); calc();
+    }
+  });
+  let loaded = false;
+  try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s) { FIELDS.forEach((k) => { if (s.f?.[k] != null) q(k).value = s.f[k]; }); BOXES.forEach((k, i) => { q(k).checked = !!s.b?.[i]; }); (s.fills || []).forEach((x: { litres: number; price: number }) => addFill(String(x.litres), String(x.price))); q('keep').checked = true; loaded = true; } } catch {}
+  if (!loaded || !root.querySelector('.ts-fill')) addFill('150', '95');
+  calc();
+</script>

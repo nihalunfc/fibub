@@ -1,0 +1,132 @@
+---
+// #T908 Pallet planner
+---
+<div class="tool-ui pp">
+  <section class="panel">
+    <div class="pp-grid">
+      <label>Units <select data-k="unit"><option value="in">Inches and pounds</option><option value="mm">Millimetres and kilograms</option></select></label>
+      <label>Trailer or body <select data-k="tr">
+        <optgroup label="United States"><option value="us53">53 ft trailer</option><option value="us48">48 ft trailer</option></optgroup>
+        <optgroup label="India (typical inside sizes, estimate)"><option value="in20">20 ft body</option><option value="in22">22 ft body</option><option value="in24">24 ft body</option><option value="in32">32 ft body</option></optgroup>
+        <option value="custom">Custom</option></select></label>
+      <label>Inside length (<span class="u-l">in</span>) <input data-k="tl" inputmode="decimal" /></label>
+      <label>Inside width (<span class="u-l">in</span>) <input data-k="tw" inputmode="decimal" /></label>
+      <label>Inside height (<span class="u-l">in</span>) <input data-k="th" inputmode="decimal" /></label>
+      <label>Payload (<span class="u-w">lb</span>) <input data-k="pay" inputmode="decimal" /></label>
+    </div>
+    <h2 class="pp-h">Pallets</h2>
+    <div class="pp-grid">
+      <label>Pallet size <select data-k="pal">
+        <option value="us">48 x 40 in (US standard)</option><option value="eur">1200 x 800 mm (EUR)</option><option value="e2">1200 x 1000 mm</option><option value="custom">Custom</option></select></label>
+      <label>Pallet length (<span class="u-l">in</span>) <input data-k="pl" inputmode="decimal" /></label>
+      <label>Pallet width (<span class="u-l">in</span>) <input data-k="pw" inputmode="decimal" /></label>
+      <label>Loaded pallet height (<span class="u-l">in</span>) <input data-k="ph" inputmode="decimal" value="48" /></label>
+      <label>Weight of one loaded pallet (<span class="u-w">lb</span>) <input data-k="wt" inputmode="decimal" value="1200" /></label>
+      <label>Pallets stacked on each other (1 = no stacking) <input data-k="stack" inputmode="decimal" value="1" /></label>
+      <label>Pattern <select data-k="pat">
+        <option value="along">Straight, long side along the trailer</option><option value="across">Straight, long side across the trailer</option><option value="mix">Pinwheel (best mix of both)</option></select></label>
+    </div>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="pp-big"></p>
+    <dl class="pp-rows"></dl>
+    <p class="pp-warn" role="alert"></p>
+    <div class="pp-fig" role="img" aria-label="Top view of the trailer with the pallets drawn in it"></div>
+    <p class="pp-key"><span class="k1"></span> pallet <span class="k2"></span> pallet turned the other way</p>
+    <p class="pp-note"></p>
+  </section>
+  <p class="pp-fine">Trailer sizes and payloads are typical figures (India sizes are estimates). Use the inside size of your own body and check the payload on its plate. Pallets are placed in single rows with no gaps; real loads need room to load and strap. Not a loading or legal weight check. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .pp { display: grid; gap: 14px; margin-bottom: 32px; }
+  .pp .panel { padding: 16px; }
+  .pp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .pp label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .pp input, .pp select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .pp input:focus, .pp select:focus { border-color: var(--accent); outline: none; }
+  .pp-h { font-size: 15px; margin: 16px 0 8px; }
+  .pp-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
+  .pp-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0 0 12px; }
+  .pp-rows dt { color: var(--muted); } .pp-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .pp-warn { color: var(--bad); margin: 0 0 10px; } .pp-warn:empty { display: none; }
+  .pp-fig svg { width: 100%; height: auto; display: block; }
+  .pp-key { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+  .pp-key span { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -1px; margin: 0 4px 0 10px; }
+  .pp-key .k1 { background: var(--accent); margin-left: 0; } .pp-key .k2 { background: var(--muted); }
+  .pp-note { color: var(--muted); font-size: 13px; margin: 6px 0 0; } .pp-note:empty { display: none; }
+  .pp-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  import { straightLayout, mixedLayout } from '../../lib/money/trucking';
+  const root = document.querySelector('.pp') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const num = (k: string) => parseFloat(q(k).value.replace(/,/g, '')) || 0;
+  const IN = 25.4, LB = 0.45359237, FT = 12 * IN;
+  // Trailer presets in mm and kg: [length, width, height, payload]. US: 100 in wide, 110 in high, 45,000 lb. India sizes are estimates.
+  const TR: Record<string, number[]> = {
+    us53: [53 * FT, 100 * IN, 110 * IN, 45000 * LB], us48: [48 * FT, 100 * IN, 110 * IN, 45000 * LB],
+    in20: [6100, 2300, 2300, 7000], in22: [6700, 2400, 2400, 9000], in24: [7300, 2400, 2400, 10000], in32: [9750, 2450, 2450, 15000],
+  };
+  const PAL: Record<string, number[]> = { us: [48 * IN, 40 * IN], eur: [1200, 800], e2: [1200, 1000] };
+  const TRK = ['tl', 'tw', 'th'], PK = ['pl', 'pw', 'ph'];
+  let unit = 'in';
+  const lf = () => (unit === 'in' ? IN : 1), wf = () => (unit === 'in' ? LB : 1);
+  const show = (v: number, f: number, d: number) => String(+(v / f).toFixed(d));
+  const fillTrailer = () => { const p = TR[q('tr').value]; if (!p) return; const d = unit === 'in' ? 1 : 0; [0, 1, 2].forEach((i) => (q(TRK[i]).value = show(p[i], lf(), d))); q('pay').value = show(p[3], wf(), 0); };
+  const fillPallet = () => { const p = PAL[q('pal').value]; if (!p) return; const d = unit === 'in' ? 1 : 0; q('pl').value = show(p[0], lf(), d); q('pw').value = show(p[1], lf(), d); };
+  const labels = () => { root.querySelectorAll('.u-l').forEach((e) => (e.textContent = unit)); root.querySelectorAll('.u-w').forEach((e) => (e.textContent = unit === 'in' ? 'lb' : 'kg')); };
+  const toCustom = (sel: string) => { if (q(sel).value !== 'custom') q(sel).value = 'custom'; };
+  const n1 = (v: number) => v.toLocaleString('en-US', { maximumFractionDigits: 1 });
+
+  const calc = () => {
+    const f = lf(), wfac = wf();
+    const L = num('tl') * f, W = num('tw') * f, H = num('th') * f, pl = num('pl') * f, pw = num('pw') * f, ph = num('ph') * f;
+    const want = Math.max(1, Math.floor(num('stack')) || 1);
+    if (!(L > 0 && W > 0 && pl > 0 && pw > 0)) { $('.pp-big').textContent = ''; $('.pp-rows').innerHTML = ''; $('.pp-fig').innerHTML = ''; $('.pp-warn').textContent = 'Type the trailer length and width and the pallet length and width.'; return; }
+    const pat = q('pat').value;
+    const lay = pat === 'mix' ? mixedLayout(L, W, pl, pw) : straightLayout(L, W, pl, pw, pat === 'along');
+    const heightOk = !(H > 0 && ph > 0) || want * ph <= H + 1e-6;
+    const levels = want;
+    const total = lay.count * levels;
+    const weight = total * num('wt') * wfac; // kg
+    const payload = num('pay') * wfac;
+    const wu = unit === 'in' ? 'lb' : 'kg', wdisp = (kg: number) => n1(unit === 'in' ? kg / LB : kg);
+    $('.pp-big').textContent = `${total} pallet${total === 1 ? '' : 's'}`;
+    const line = (a: string, b: string) => `<dt>${a}</dt><dd>${b}</dd>`;
+    const floorArea = L * W, used = lay.count * pl * pw;
+    $('.pp-rows').innerHTML = line('Pallets on the floor', String(lay.count)) + line('Levels', String(levels)) + line('Floor space used', `${Math.round((used / floorArea) * 100)}%`) +
+      line('Load weight', `${wdisp(weight)} ${wu}`) + (payload > 0 ? line('Payload', `${wdisp(payload)} ${wu}`) + line(payload - weight >= 0 ? 'Room left under payload' : 'Over the payload by', `${wdisp(Math.abs(payload - weight))} ${wu}`) : '') +
+      (payload > 0 && num('wt') > 0 ? line('Pallets the payload allows', String(Math.floor(payload / (num('wt') * wfac)))) : '');
+    const warns: string[] = [];
+    if (payload > 0 && weight > payload) warns.push('The load is over the payload, so you would run out of weight before space.');
+    if (!heightOk) warns.push('Stacked pallets are taller than the inside height.');
+    $('.pp-warn').textContent = warns.join(' ');
+    $('.pp-note').textContent = lay.note || '';
+    // Top view: trailer length runs left to right.
+    const pad = 4, sw = 1000, sc = (sw - 2 * pad) / L, sh = W * sc + 2 * pad;
+    const rects = lay.rects.map((r) => `<rect x="${(pad + r.x * sc + 1).toFixed(1)}" y="${(pad + r.y * sc + 1).toFixed(1)}" width="${(r.w * sc - 2).toFixed(1)}" height="${(r.h * sc - 2).toFixed(1)}" fill="${r.turned ? 'var(--muted)' : 'var(--accent)'}" fill-opacity=".75" stroke="var(--bg)"/>`).join('');
+    $('.pp-fig').innerHTML = `<svg viewBox="0 0 ${sw} ${sh.toFixed(1)}"><rect x="${pad}" y="${pad}" width="${(L * sc).toFixed(1)}" height="${(W * sc).toFixed(1)}" fill="none" stroke="var(--ink)" stroke-width="2"/>${rects}<text x="${pad + 8}" y="${sh - pad - 8}" font-size="26" fill="var(--ink)">front of the trailer is on the left</text></svg>`;
+  };
+  root.addEventListener('input', (e) => {
+    const k = (e.target as HTMLElement).dataset.k || '';
+    if (TRK.includes(k) || k === 'pay') toCustom('tr'); if (k === 'pl' || k === 'pw') toCustom('pal');
+    calc();
+  });
+  root.addEventListener('change', (e) => {
+    const k = (e.target as HTMLElement).dataset.k || '';
+    if (k === 'unit') {
+      const old = unit, nu = q('unit').value, of = old === 'in' ? IN : 1, nf = nu === 'in' ? IN : 1, ow = old === 'in' ? LB : 1, nw = nu === 'in' ? LB : 1;
+      unit = nu; labels();
+      const d = nu === 'in' ? 1 : 0;
+      [...TRK, 'pl', 'pw', 'ph'].forEach((id) => { if (q(id).value) q(id).value = show(num(id) * of, nf, d); });
+      ['pay', 'wt'].forEach((id) => { if (q(id).value) q(id).value = show(num(id) * ow, nw, 0); });
+    }
+    if (k === 'tr') fillTrailer();
+    if (k === 'pal') fillPallet();
+    calc();
+  });
+  labels(); fillTrailer(); fillPallet(); calc();
+</script>
