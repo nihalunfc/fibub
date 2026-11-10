@@ -1,0 +1,188 @@
+---
+// Divisibility test machine: type a whole number and every rule from 2 to 11 is worked on its digits, with the
+// true remainder alongside. A place value picture shows why the 3, 9 and 11 rules work (10ᵏ = a multiple + 1 or − 1)
+// and why 2, 4, 5, 8 and 10 only need the last digits. Digital roots and casting out nines too. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm dv">
+  <div class="ax-card">
+    <h2>Type a whole number</h2>
+    <label class="dv-in">Number <input type="text" class="dv-x" value="98736" inputmode="numeric" autocomplete="off" spellcheck="false" /></label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small dv-pre" data-n="98736">98736</button>
+      <button type="button" class="btn secondary small dv-pre" data-n="123456789">123456789</button>
+      <button type="button" class="btn secondary small dv-pre" data-n="918082">918082</button>
+      <button type="button" class="btn secondary small dv-pre" data-n="2520">2520</button>
+    </div>
+    <p class="ax-help">Up to 30 digits. Commas and spaces are ignored.</p>
+    <p class="ax-err dv-err" hidden></p>
+    <div class="dv-chips" role="group" aria-label="Divisors"></div>
+    <p class="ax-help">Tap a divisor to see its rule worked out. ✓ means it divides exactly.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="dv-h"></h2>
+    <p class="sm-f dv-why"></p>
+    <p class="sm-f dv-rem"></p>
+    <svg class="sm-fig dv-fig" role="img" aria-label="Place value picture: the part of each digit's value that is surely a multiple, and the part the rule tests"></svg>
+    <p class="sm-f dv-cap"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Digital root and remainders</h2>
+    <p class="sm-f dv-dr"></p>
+    <p class="ax-help">Add the digits, then add the digits of the answer, until one digit is left. That digit is the remainder on dividing by 9 (with 9 standing for 0).</p>
+    <label class="dv-in">Multiply by <input type="text" class="dv-y" value="457" inputmode="numeric" autocomplete="off" /></label>
+    <p class="ax-err dv-yerr" hidden></p>
+    <p class="sm-f dv-c9"></p>
+    <div class="ax-scroll"><table class="dv-tab"></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Shuffle the digits of a number (98736 → 63879). Which ✓ marks stay the same? Why do 3, 9 and 11 behave differently?</li>
+      <li>Find the smallest number with a ✓ for every divisor from 2 to 10. (Hint: try 2520.)</li>
+      <li>Type a number, then add 9 to it again and again. What happens to the digital root?</li>
+      <li>Type a 6-digit number made of a 3-digit number written twice, like 918918. Which divisors pass? (1001 = 7 × 11 × 13.)</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="dv-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .dv .dv-in { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 8px 0 0; }
+  .dv .dv-in input { flex: 1 1 10em; min-width: 0; min-height: 40px; font-variant-numeric: tabular-nums; }
+  .dv .dv-chips { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 10px; }
+  .dv .dv-chips button { min-height: 48px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
+  .dv .dv-chips button.yes { border-color: var(--good); color: var(--good); }
+  .dv .dv-chips button.no { color: var(--muted); }
+  .dv .dv-chips button[aria-pressed=true] { outline: 3px solid var(--accent); outline-offset: 1px; }
+  .dv svg .dv-big { fill: var(--line); }
+  .dv svg .dv-sure { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1; }
+  .dv svg .dv-test { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1.5; }
+  .dv svg .dv-plus { fill: var(--good); }
+  .dv svg .dv-minus { fill: var(--bad); }
+  .dv svg text.dv-s { font-size: 10.5px; }
+  .dv svg text.dv-dg { font-size: 16px; font-weight: 700; }
+  .dv table td.r { text-align: right; }
+</style>
+
+<script>
+  import { DIVISORS, cleanDigits, digitSum, altSum, digitSumChain, digitalRoot, rule, nineSplit, elevenSplit } from '../../lib/sci/divis-j4';
+  import { group3, sup } from '../../lib/sci/school-j4';
+  import { randInt } from '../../lib/sci/smath';
+  import { S, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.dv')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const X = q<HTMLInputElement>('.dv-x'), Y = q<HTMLInputElement>('.dv-y');
+  let sel = 9;
+  const chips = q('.dv-chips');
+  for (const d of DIVISORS) {
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.d = String(d); b.setAttribute('aria-pressed', String(d === sel));
+    b.addEventListener('click', () => { sel = d; draw(); });
+    chips.append(b);
+  }
+
+  function picture(s: string) {
+    const svg = q<SVGSVGElement>('.dv-fig'); svg.replaceChildren();
+    const n = s.length, cw = Math.min(56, 332 / n), x0 = 170 - (n * cw) / 2, fs = Math.min(1, cw / 40);
+    const cap = q('.dv-cap');
+    if (sel === 7 || sel === 6) { svg.setAttribute('viewBox', '0 0 340 10'); svg.style.display = 'none'; cap.textContent = sel === 7 ? 'Why it works: the number is 10a + b. Then 10 × (a − 2b) = (10a + b) − 21b, and 21b is a multiple of 7, so the two numbers are both multiples of 7 or both not.' : 'Why it works: 6 = 2 × 3, and 2 and 3 share no factor, so a number is a multiple of 6 exactly when it is a multiple of 2 and of 3.'; return; }
+    svg.style.display = '';
+    const H = 150; svg.setAttribute('viewBox', `0 0 340 ${H}`);
+    s.split('').forEach((c, i) => {
+      const k = n - 1 - i, x = x0 + i * cw;
+      S('text', { x: x + cw / 2, y: 18, 'text-anchor': 'middle', class: 'dv-dg' }, svg, c);
+      S('text', { x: x + cw / 2, y: 32, 'text-anchor': 'middle', class: 'dv-s', style: `font-size:${10.5 * Math.max(0.7, fs)}px` }, svg, k === 0 ? '1s' : `10${sup(k)}`);
+    });
+    if (sel === 3 || sel === 9 || sel === 11) {
+      const parts = sel === 11 ? elevenSplit(s).map((p) => ({ ...p, lab: p.sign > 0 ? '+' : '−' })) : nineSplit(s).map((p) => ({ ...p, sign: 1, lab: '+' }));
+      parts.forEach((p, i) => {
+        const x = x0 + i * cw;
+        if (p.k > 0) {
+          S('rect', { x: x + 2, y: 40, width: cw - 4, height: 40, rx: 4, class: 'dv-sure' }, svg);
+          S('text', { x: x + cw / 2, y: 64, 'text-anchor': 'middle', class: 'dv-s', style: `font-size:${10 * Math.max(0.6, fs)}px` }, svg, sel === 11 ? '11s' : `${p.d}×${'9'.repeat(Math.min(p.k, 3))}${p.k > 3 ? '…' : ''}`);
+        }
+        for (let j = 0; j < p.d; j++) {
+          const r = Math.max(2.2, Math.min(4.5, cw / 9)), per = Math.max(1, Math.floor((cw - 4) / (2 * r + 2))), cx = x + 2 + r + (j % per) * (2 * r + 2), cy = 92 + r + Math.floor(j / per) * (2 * r + 2);
+          S('circle', { cx, cy, r, class: p.sign > 0 ? 'dv-plus' : 'dv-minus' }, svg);
+        }
+        if (sel === 11) S('text', { x: x + cw / 2, y: 146, 'text-anchor': 'middle', class: 'dv-s', style: 'font-weight:700' }, svg, p.lab);
+      });
+      const ds = digitSum(s), as = altSum(s);
+      cap.textContent = sel === 11
+        ? `Why it works: 10 = 11 − 1, 100 = 99 + 1, 1000 = 1001 − 1, … Each place is a multiple of 11 (blue) plus or minus 1. Take away the multiples of 11 and what is left is the digits with signs + − + … from the right (green +, red −): ${as}.`
+        : `Why it works: 10 = 9 + 1, 100 = 99 + 1, 1000 = 999 + 1, … Each digit's value is a multiple of 9 (blue, also a multiple of 3) plus the digit itself (dots). Take away the multiples of 9 and the dots are left: the digit sum, ${ds}. So the number and its digit sum leave the same remainder on dividing by ${sel}.`;
+    } else {
+      const keep = sel === 4 ? 2 : sel === 8 ? 3 : 1;
+      s.split('').forEach((_, i) => {
+        const x = x0 + i * cw, tail = i >= n - keep;
+        S('rect', { x: x + 2, y: 40, width: cw - 4, height: 60, rx: 4, class: tail ? 'dv-test' : 'dv-sure' }, svg);
+      });
+      S('text', { x: 170, y: 124, 'text-anchor': 'middle', class: 'dv-s', style: 'font-size:12px' }, svg, `blue: already a multiple of ${sel} · orange: the part to test`);
+      const p = keep === 1 ? '10' : keep === 2 ? '100' : '1000', f = sel === 4 ? '4 × 25' : sel === 8 ? '8 × 125' : sel === 2 ? '2 × 5' : sel === 5 ? '5 × 2' : '10 × 1';
+      cap.textContent = `Why it works: ${p} = ${f}, so every place from the ${p}s up is already a multiple of ${sel}. Only the last ${keep === 1 ? 'digit' : `${keep} digits`} can leave a remainder.`;
+    }
+  }
+
+  function draw() {
+    const s = cleanDigits(X.value), err = q('.dv-err');
+    if (!s || s.length > 30) { err.textContent = 'Type a whole number with up to 30 digits.'; err.hidden = false; return; }
+    err.hidden = true;
+    chips.querySelectorAll<HTMLButtonElement>('button').forEach((b) => {
+      const d = Number(b.dataset.d), v = rule(s, d);
+      b.textContent = `${d} ${v.yes ? '✓' : '✗'}`; b.className = v.yes ? 'yes' : 'no'; b.setAttribute('aria-pressed', String(d === sel));
+      b.setAttribute('aria-label', `${d}: ${v.yes ? 'divides exactly' : 'does not divide'}`);
+    });
+    const v = rule(s, sel);
+    q('.dv-h').textContent = `Is ${group3(s)} divisible by ${sel}? ${v.yes ? 'Yes' : 'No'}`;
+    q('.dv-why').textContent = v.why;
+    const quo = BigInt(s) / BigInt(sel);
+    q('.dv-rem').textContent = `Check by dividing: ${group3(s)} = ${sel} × ${group3(quo)} + ${v.rem}. Remainder ${v.rem}.`;
+    picture(s);
+    // Digital root.
+    const ch = digitSumChain(s), dr = digitalRoot(s);
+    q('.dv-dr').textContent = `${group3(s)}${ch.map((c) => ` → ${c}`).join('')}. Digital root ${dr}; remainder on dividing by 9: ${Number(BigInt(s) % 9n)}.`;
+    const t = cleanDigits(Y.value), yerr = q('.dv-yerr');
+    if (!t || t.length > 30) { yerr.textContent = 'Type a whole number with up to 30 digits.'; yerr.hidden = false; }
+    else {
+      yerr.hidden = true;
+      const p = (BigInt(s) * BigInt(t)).toString(), d1 = digitalRoot(s), d2 = digitalRoot(t), dp = digitalRoot(p), dd = digitalRoot(String(d1 * d2));
+      q('.dv-c9').textContent = `Casting out nines: ${group3(s)} × ${group3(t)} = ${group3(p)}. Digital roots: ${d1} × ${d2} = ${d1 * d2}, whose digital root is ${dd}; the product's digital root is ${dp} ${dd === dp ? '✓ (they match, as they always must)' : '✗'}.`;
+    }
+    const tab = q<HTMLTableElement>('.dv-tab'); tab.replaceChildren();
+    const h = tab.insertRow(); for (const x of ['Divide by', 'Remainder', 'Divides?']) { const e = document.createElement('th'); e.textContent = x; h.append(e); }
+    for (const d of DIVISORS) { const r = tab.insertRow(), w = rule(s, d); r.insertCell().textContent = String(d); const c = r.insertCell(); c.textContent = String(w.rem); c.className = 'r'; r.insertCell().textContent = w.yes ? '✓' : '✗'; }
+  }
+  X.addEventListener('input', draw); Y.addEventListener('input', draw);
+  root.querySelectorAll<HTMLButtonElement>('.dv-pre').forEach((b) => b.addEventListener('click', () => { X.value = b.dataset.n!; draw(); }));
+  draw();
+
+  quiz(q('.dv-quiz'), () => {
+    const out: Question[] = [];
+    const n1 = String(randInt(10000, 999999));
+    out.push({ q: `What is the remainder when ${n1} is divided by 9? (Use the digit sum.)`, want: [Number(BigInt(n1) % 9n)], tol: 1e-9,
+      work: `Digit sum ${n1.split('').join(' + ')} = ${digitSum(n1)}; ${digitSum(n1)} ÷ 9 leaves ${digitSum(n1) % 9}. The remainder is ${Number(BigInt(n1) % 9n)}.` });
+    const n2 = String(randInt(100000, 9999999));
+    out.push({ q: `What is the digital root of ${n2}?`, want: [digitalRoot(n2)], tol: 1e-9, work: `${n2}${digitSumChain(n2).map((c) => ` → ${c}`).join('')}. The digital root is ${digitalRoot(n2)}.` });
+    let a: number, b: number, c: number, miss: number;
+    do { a = randInt(1, 9); b = randInt(0, 9); c = randInt(0, 9); miss = (9 - ((a + b + c) % 9)) % 9; } while (miss === 0);
+    out.push({ q: `Which digit goes in the gap so that ${a}${b}_${c} is divisible by 9?`, want: [miss], tol: 1e-9,
+      work: `${a} + ${b} + ${c} = ${a + b + c}. The next multiple of 9 is ${a + b + c + miss}, so the digit is ${miss}.` });
+    const n4 = String(randInt(10000, 999999));
+    out.push({ q: `Work out the alternating digit sum of ${n4}: ones − tens + hundreds − … What is it?`, want: [altSum(n4)], tol: 1e-9,
+      work: `${n4.split('').reverse().map((d, i) => (i ? (i % 2 ? ' − ' : ' + ') : '') + d).join('')} = ${altSum(n4)}. ${altSum(n4) % 11 === 0 ? 'A multiple of 11, so 11 divides it.' : 'Not a multiple of 11.'} The answer is ${altSum(n4)}.` });
+    const x = randInt(11, 99), y = randInt(11, 99), dx = digitalRoot(String(x)), dy = digitalRoot(String(y));
+    out.push({ q: `Without multiplying, what is the digital root of ${x} × ${y}?`, want: [digitalRoot(String(dx * dy))], tol: 1e-9,
+      work: `Digital roots ${dx} and ${dy}; ${dx} × ${dy} = ${dx * dy}, digital root ${digitalRoot(String(dx * dy))}. (Check: ${x} × ${y} = ${x * y}.) The answer is ${digitalRoot(String(dx * dy))}.` });
+    return out;
+  });
+</script>

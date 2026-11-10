@@ -1,0 +1,234 @@
+---
+// Kaprekar's routine (6174 for 4 digits, 495 for 3) with the step-count chart for every start, and a magic square
+// maker: the up-and-right method for odd sizes and the diagonal swap for 4 × 4, built one number at a time, with
+// any start and step, live line sums, and tap-two-cells-to-swap. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm km">
+  <div class="ax-card">
+    <div class="ax-seg km-mode" role="group" aria-label="Machine">
+      <button type="button" data-m="k" aria-pressed="true">Kaprekar 6174</button>
+      <button type="button" data-m="m" aria-pressed="false">Magic squares</button>
+    </div>
+  </div>
+
+  <div class="km-kp">
+    <div class="ax-card">
+      <h2>Kaprekar's routine</h2>
+      <div class="ax-row">
+        <div class="ax-seg km-w" role="group" aria-label="Digits">
+          <button type="button" data-w="4" aria-pressed="true">4 digits</button>
+          <button type="button" data-w="3" aria-pressed="false">3 digits</button>
+        </div>
+      </div>
+      <label class="km-in">Start number <input type="text" class="km-x" value="3524" inputmode="numeric" autocomplete="off" /></label>
+      <div class="ax-row"><button type="button" class="btn secondary small km-rnd">Random number</button></div>
+      <p class="ax-help">Arrange the digits biggest first and smallest first, take the smaller from the bigger, and repeat. Keep zeros: 999 as a 4-digit number is 0999. The digits must not all be the same.</p>
+      <p class="ax-err km-err" hidden></p>
+      <p class="ax-big km-big" aria-live="polite"></p>
+      <ol class="sm-steps km-steps"></ol>
+      <svg class="sm-fig km-hist" viewBox="0 0 340 200" role="img" aria-label="Bar chart: how many starting numbers need each number of steps; your number's bar is highlighted"></svg>
+      <p class="sm-f km-hf"></p>
+    </div>
+  </div>
+
+  <div class="km-mp" hidden>
+    <div class="ax-card">
+      <h2>Magic square maker</h2>
+      <div class="ax-row">
+        <div class="ax-seg km-n" role="group" aria-label="Size">
+          <button type="button" data-n="3" aria-pressed="true">3 × 3</button>
+          <button type="button" data-n="4" aria-pressed="false">4 × 4</button>
+          <button type="button" data-n="5" aria-pressed="false">5 × 5</button>
+        </div>
+      </div>
+      <div class="sm-sl"><b>k</b><input type="range" class="km-kr" min="0" max="9" step="1" value="9" aria-label="Build step slider" /><input type="number" class="km-k" min="0" max="9" step="1" value="9" inputmode="numeric" aria-label="Build step" /></div>
+      <p class="sm-f km-how"></p>
+      <svg class="sm-fig km-grid" viewBox="0 0 340 320" role="img" aria-label="The magic square with the sum of each row, column and diagonal"></svg>
+      <p class="ax-help">When the square is full, tap two cells to swap them and watch the sums break. Green sums match the magic constant.</p>
+      <div class="ax-grid">
+        <label>Start with <input type="number" class="km-a" value="1" step="1" inputmode="numeric" /></label>
+        <label>Go up in steps of <input type="number" class="km-d" value="1" step="1" inputmode="numeric" /></label>
+      </div>
+      <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small km-reset">Reset the square</button></div>
+      <p class="ax-err km-merr" hidden></p>
+      <p class="sm-f km-mf1"></p>
+      <p class="sm-f km-mf2"></p>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Find a 4-digit start that needs the most steps to reach 6174. (The chart says 7 is the most.)</li>
+      <li>Try 2111. Why does keeping the zero in 0999 matter?</li>
+      <li>Build the 3 × 3 square one number at a time. When does the up-and-right move get blocked, and what happens then?</li>
+      <li>Change "Start with" and "steps of". Is the square still magic? What is the new constant?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="km-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .km .km-in { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 8px 0; }
+  .km .km-in input { width: 8em; min-height: 40px; font-variant-numeric: tabular-nums; }
+  .km .ax-grid input { min-height: 40px; }
+  .km svg .km-bar { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1; }
+  .km svg .km-me { fill: var(--accent); }
+  .km svg .km-cell { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; cursor: pointer; }
+  .km svg .km-new { fill: var(--warn-soft); }
+  .km svg .km-pick { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 3; }
+  .km svg .km-diag { fill: var(--good-soft); }
+  .km svg text.km-v { font-size: 17px; font-weight: 700; pointer-events: none; }
+  .km svg text.km-ok { fill: var(--good); font-weight: 700; }
+  .km svg text.km-bad { fill: var(--bad); font-weight: 700; }
+  .km svg .km-arrow { stroke: var(--warn); stroke-width: 2; fill: none; }
+</style>
+
+<script>
+  import { kChain, repdigit, stepCounts, siamese, four, magicConstant, lineSums } from '../../lib/sci/numplay-j4';
+  import { group3 } from '../../lib/sci/school-j4';
+  import { randInt } from '../../lib/sci/smath';
+  import { S, pair, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.km')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const seg = (sel: string, el: HTMLButtonElement) => root.querySelectorAll(sel + ' button').forEach((x) => x.setAttribute('aria-pressed', String(x === el)));
+
+  // ----- Kaprekar -----
+  const X = q<HTMLInputElement>('.km-x');
+  let w = 4;
+  const counts: Record<number, number[]> = {};
+  const pad = (n: number) => String(n).padStart(w, '0');
+  function drawK() {
+    const t = X.value.trim(), err = q('.km-err'), n = Number(t);
+    if (!/^\d+$/.test(t) || t.length > w || repdigit(n, w)) {
+      err.textContent = `Type a number with up to ${w} digits whose digits are not all the same.`; err.hidden = false; return;
+    }
+    err.hidden = true;
+    const target = w === 4 ? 6174 : 495, ch = kChain(n, w);
+    const steps = ch.findIndex((s) => s.n === target);
+    const k = steps < 0 ? ch.length : steps;
+    q('.km-big').textContent = n === target ? `${target} already: ${pad(ch[0].big)} − ${pad(ch[0].small)} = ${target}` : `${pad(n)} reaches ${target} in ${k} step${k === 1 ? '' : 's'}`;
+    const ol = q('.km-steps'); ol.replaceChildren();
+    for (const s of ch) { const li = document.createElement('li'); li.textContent = `${pad(s.big)} − ${pad(s.small)} = ${pad(s.diff)}${s.diff === s.n ? ' (it stays the same from now on)' : ''}`; ol.append(li); }
+    const c = counts[w] ??= stepCounts(w), total = c.reduce((a, b) => a + b, 0), max = Math.max(...c);
+    const svg = q<SVGSVGElement>('.km-hist'); svg.replaceChildren();
+    const bw = 300 / c.length;
+    c.forEach((v, i) => {
+      const h = (v / max) * 140, x = 30 + i * bw;
+      S('rect', { x: x + 3, y: 165 - h, width: bw - 6, height: h, class: i === k ? 'km-me' : 'km-bar' }, svg);
+      S('text', { x: x + bw / 2, y: 160 - h, 'text-anchor': 'middle', class: 'sm-tick' }, svg, group3(v));
+      S('text', { x: x + bw / 2, y: 182, 'text-anchor': 'middle' }, svg, String(i));
+    });
+    S('text', { x: 170, y: 198, 'text-anchor': 'middle', class: 'sm-tick' }, svg, 'steps to reach ' + target);
+    S('line', { x1: 28, x2: 332, y1: 165, y2: 165, class: 'sm-axis' }, svg);
+    q('.km-hf').textContent = `Of all ${group3(total)} starts from ${pad(0)} to ${'9'.repeat(w)} (leaving out ${w === 4 ? '1111, 2222, …' : '111, 222, …'}), ${group3(c[k])} need ${k} step${k === 1 ? '' : 's'}, like yours. Every one gets there in at most ${c.length - 1}.`;
+  }
+  X.addEventListener('input', drawK);
+  root.querySelectorAll<HTMLButtonElement>('.km-w button').forEach((b) => b.addEventListener('click', () => {
+    w = Number(b.dataset.w); seg('.km-w', b); X.value = w === 4 ? '3524' : '352'; drawK();
+  }));
+  q('.km-rnd').addEventListener('click', () => { let n: number; do { n = randInt(10 ** (w - 1), 10 ** w - 1); } while (repdigit(n, w)); X.value = String(n); drawK(); });
+
+  // ----- Magic squares -----
+  const KB = q<HTMLInputElement>('.km-k'), KR = q<HTMLInputElement>('.km-kr'), A = q<HTMLInputElement>('.km-a'), D = q<HTMLInputElement>('.km-d');
+  let n = 3, grid: number[][] = [], pick: [number, number] | null = null, swapped = false;
+  const setK = pair(KR, KB, () => { swapped = false; pick = null; drawM(); });
+  const full = () => (n === 4 ? 17 : n * n);
+  function base(): number[][] { return n === 4 ? four().grid : siamese(n).grid; }
+  function resetM() { grid = base().map((r) => [...r]); swapped = false; pick = null; KR.max = KB.max = String(full()); setK(full()); drawM(); }
+
+  function drawM() {
+    const k = Number(KB.value), a = Number(A.value), d = Number(D.value), err = q('.km-merr');
+    if (!Number.isInteger(k) || k < 0 || k > full() || !Number.isInteger(a) || !Number.isInteger(d) || d === 0 || Math.abs(a) > 9999 || Math.abs(d) > 999) {
+      err.textContent = `Build step: 0 to ${full()}. Start and step: whole numbers (the step not 0).`; err.hidden = false; return;
+    }
+    err.hidden = true;
+    const val = (v: number) => a + (v - 1) * d;
+    // What is shown at step k.
+    let shown: (number | null)[][];
+    let newest: [number, number] | null = null, prev: [number, number] | null = null;
+    const done = k === full();
+    if (done) shown = grid.map((r) => [...r]);
+    else if (n === 4) { const p = four().plain; shown = p.map((r) => r.map((v) => (v <= k ? v : null))); }
+    else { const s = siamese(n); shown = s.grid.map((r) => r.map((v) => (v <= k ? v : null))); if (k) newest = s.order[k - 1]; if (k > 1) prev = s.order[k - 2]; }
+    if (n === 4 && !done && k) { newest = [Math.floor((k - 1) / 4), (k - 1) % 4]; }
+    const svg = q<SVGSVGElement>('.km-grid'); svg.replaceChildren();
+    const cs = Math.min(56, 250 / n), x0 = 20, y0 = 30;
+    svg.setAttribute('viewBox', `0 0 340 ${y0 + n * cs + 50}`);
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+      const v = shown[r][c], isNew = newest && newest[0] === r && newest[1] === c, isPick = pick && pick[0] === r && pick[1] === c;
+      const diag = n === 4 && k === full() - 1 && (r === c || r + c === 3);
+      const rect = S('rect', { x: x0 + c * cs, y: y0 + r * cs, width: cs, height: cs, class: `km-cell${isNew ? ' km-new' : ''}${isPick ? ' km-pick' : ''}${diag ? ' km-diag' : ''}`, 'data-r': r, 'data-c': c }, svg);
+      rect.addEventListener('click', () => tap(r, c));
+      if (v !== null) S('text', { x: x0 + c * cs + cs / 2, y: y0 + r * cs + cs / 2 + 6, 'text-anchor': 'middle', class: 'km-v', style: String(val(v)).length > 3 ? 'font-size:12px' : '' }, svg, String(val(v)));
+    }
+    if (newest && prev && n !== 4) {
+      const p1 = { x: x0 + prev[1] * cs + cs / 2, y: y0 + prev[0] * cs + cs / 2 }, p2 = { x: x0 + newest[1] * cs + cs / 2, y: y0 + newest[0] * cs + cs / 2 };
+      S('line', { x1: p1.x, y1: p1.y + 8, x2: p2.x, y2: p2.y + 8, class: 'km-arrow' }, svg);
+    }
+    const M = n * a + (d * n * (n * n - 1)) / 2;
+    if (!shown.some((r) => r.includes(null))) {
+      const vg = shown.map((r) => r.map((v) => val(v!))), s = lineSums(vg);
+      const lab = (x: number, y: number, v: number, anchor = 'start') => S('text', { x, y, 'text-anchor': anchor, class: v === M ? 'km-ok' : 'km-bad', style: 'font-size:12px' }, svg, String(v));
+      s.rows.forEach((v, r) => lab(x0 + n * cs + 6, y0 + r * cs + cs / 2 + 4, v));
+      s.cols.forEach((v, c) => lab(x0 + c * cs + cs / 2, y0 + n * cs + 16, v, 'middle'));
+      lab(x0 + n * cs + 6, y0 + n * cs + 16, s.diag);
+      lab(x0 + n * cs + 6, y0 - 8, s.anti);
+      const all = [...s.rows, ...s.cols, s.diag, s.anti], good = all.filter((v) => v === M).length;
+      q('.km-mf2').textContent = good === all.length ? `All ${all.length} lines (${n} rows, ${n} columns, 2 diagonals) add to ${M}: it is magic.` : `${good} of ${all.length} lines add to ${M}. ${swapped ? 'The swap broke it; swap back or reset.' : ''}`;
+    } else q('.km-mf2').textContent = '';
+    const how = q('.km-how');
+    if (n === 4) how.textContent = k === full() ? 'Done: 1 to 16 written in order, then each number on the two diagonals swapped for 17 minus it.' : k === full() - 1 ? 'Step 2: the numbers on the two diagonals (green) are each about to be swapped for 17 minus themselves. Move to the end.' : `Step 1: write the numbers in order, row by row (${k} of 16).`;
+    else how.textContent = k === full() ? 'Done. Start in the middle of the top row; move up and right (wrapping round the edges); if that cell is taken, move down one instead.' : k === 0 ? 'Start: the 1 goes in the middle of the top row.' : `Number ${k} placed${k > 1 ? (siamese(n).order[k - 1][0] === (siamese(n).order[k - 2][0] + 1) % n && siamese(n).order[k - 1][1] === siamese(n).order[k - 2][1] ? ': up-and-right was taken, so it went down one.' : ': one up and one right (wrapping round the edges).') : ' in the middle of the top row.'}`;
+    q('.km-mf1').textContent = `Magic constant: n × start + step × n(n² − 1)/2 = ${n} × ${a} + ${d} × ${(n * (n * n - 1)) / 2} = ${M}${a === 1 && d === 1 ? ` (for 1 to ${n * n} that is n(n² + 1)/2 = ${magicConstant(n)})` : ''}.`;
+  }
+  function tap(r: number, c: number) {
+    if (Number(KB.value) !== full()) return;
+    if (!pick) { pick = [r, c]; drawM(); return; }
+    if (pick[0] !== r || pick[1] !== c) { const t = grid[r][c]; grid[r][c] = grid[pick[0]][pick[1]]; grid[pick[0]][pick[1]] = t; swapped = true; }
+    pick = null; drawM();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.km-n button').forEach((b) => b.addEventListener('click', () => { n = Number(b.dataset.n); seg('.km-n', b); resetM(); }));
+  q('.km-reset').addEventListener('click', resetM);
+  A.addEventListener('input', drawM); D.addEventListener('input', drawM);
+
+  root.querySelectorAll<HTMLButtonElement>('.km-mode button').forEach((b) => b.addEventListener('click', () => {
+    seg('.km-mode', b); q('.km-kp').hidden = b.dataset.m !== 'k'; q('.km-mp').hidden = b.dataset.m !== 'm';
+  }));
+  drawK(); resetM();
+
+  quiz(q('.km-quiz'), () => {
+    const out: Question[] = [];
+    let s1: number; do { s1 = randInt(1000, 9999); } while (repdigit(s1, 4));
+    const st = kChain(s1, 4)[0];
+    out.push({ q: `Do one Kaprekar step on ${s1}: biggest arrangement minus smallest. What do you get?`, want: [st.diff], tol: 1e-9,
+      work: `${String(st.big).padStart(4, '0')} − ${String(st.small).padStart(4, '0')} = ${st.diff}. The answer is ${st.diff}.` });
+    let s2: number; do { s2 = randInt(100, 999); } while (repdigit(s2, 3));
+    const st2 = kChain(s2, 3)[0];
+    out.push({ q: `Do one step of the 3-digit routine on ${s2}. What do you get?`, want: [st2.diff], tol: 1e-9,
+      work: `${String(st2.big).padStart(3, '0')} − ${String(st2.small).padStart(3, '0')} = ${st2.diff}. The answer is ${st2.diff}.` });
+    const n3 = randInt(3, 8);
+    out.push({ q: `A ${n3} × ${n3} magic square uses 1 to ${n3 * n3}. What does each row add up to?`, want: [magicConstant(n3)], tol: 1e-9,
+      work: `All the numbers add to ${n3 * n3} × ${n3 * n3 + 1} ÷ 2 = ${(n3 * n3 * (n3 * n3 + 1)) / 2}, shared by ${n3} rows: ${magicConstant(n3)}. The answer is ${magicConstant(n3)}.` });
+    // A rotated or reflected Lo Shu square with one gap.
+    let g = siamese(3).grid;
+    for (let t = randInt(0, 3); t > 0; t--) g = g[0].map((_, c) => g.map((r) => r[c]).reverse());
+    if (randInt(0, 1)) g = g.map((r) => [...r].reverse());
+    const gr = randInt(0, 2), gc = randInt(0, 2), miss = g[gr][gc];
+    const rowText = g.map((r, i) => r.map((v, j) => (i === gr && j === gc ? '?' : v)).join(' ')).join(' / ');
+    out.push({ q: `This 3 × 3 magic square (rows split by /) uses 1 to 9: ${rowText}. What is the missing number?`, want: [miss], tol: 1e-9,
+      work: `Each row adds to 15. The row with the gap has ${g[gr].filter((_, j) => j !== gc).join(' + ')} = ${15 - miss}, so the missing number is ${miss}.` });
+    const a5 = randInt(2, 20);
+    out.push({ q: `A 3 × 3 magic square uses the nine numbers ${a5} to ${a5 + 8}. What does each row add up to?`, want: [3 * a5 + 12], tol: 1e-9,
+      work: `They add to 9 × ${a5} + 36 = ${9 * a5 + 36}, shared by 3 rows: ${3 * a5 + 12}. The answer is ${3 * a5 + 12}.` });
+    return out;
+  });
+</script>
