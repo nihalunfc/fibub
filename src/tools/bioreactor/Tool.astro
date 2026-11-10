@@ -1,0 +1,164 @@
+---
+// Bioreactor: a stirred-tank batch culture with temperature, pH and dissolved-oxygen control loops that can
+// be switched off, a tank picture with gauges at any hour, and graphs of growth and of each controlled value.
+// Class 12 Biology, biotechnology principles and processes (bioreactors, downstream processing). Teaching model.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax bre">
+  <p class="ax-help">A teaching model with round, made-up numbers: bacteria growing on sugar in a 24-hour batch.</p>
+  <div class="ax-card">
+    <h2>Run the tank</h2>
+    <div class="ax-grid">
+      <div class="br-loop"><label class="ax-check"><input type="checkbox" class="br-ton" checked /> Temperature control</label>
+        <label>Set to <b class="br-tv"></b><input type="range" class="br-ts" min="25" max="45" step="0.5" value="37" aria-label="Temperature set point" /></label></div>
+      <div class="br-loop"><label class="ax-check"><input type="checkbox" class="br-pon" checked /> pH control (adds base)</label>
+        <label>Set to <b class="br-pv"></b><input type="range" class="br-ps" min="5.5" max="8.5" step="0.1" value="7" aria-label="pH set point" /></label></div>
+      <div class="br-loop"><label class="ax-check"><input type="checkbox" class="br-don" checked /> Oxygen control (stirrer speeds up)</label>
+        <label class="br-dsl">Keep oxygen above <b class="br-dv"></b><input type="range" class="br-ds" min="5" max="60" step="1" value="30" aria-label="Dissolved oxygen set point" /></label>
+        <label class="br-stl" hidden>Fixed stirring (kLa): <b class="br-sv"></b><input type="range" class="br-st" min="1" max="20" step="0.5" value="2" aria-label="Fixed stirring" /></label></div>
+    </div>
+    <div class="br-tankrow">
+      <svg class="br-tank" viewBox="0 0 160 200" role="img" aria-label="Stirred tank">
+        <path class="br-wall" d="M30 20 V170 Q30 190 50 190 H110 Q130 190 130 170 V20" />
+        <rect class="br-broth" x="32" y="60" width="96" height="128" rx="10" />
+        <line class="br-shaft" x1="80" y1="6" x2="80" y2="160" />
+        <g class="br-imp"><rect x="62" y="156" width="36" height="6" rx="2" /><rect x="62" y="116" width="36" height="6" rx="2" /></g>
+        <path class="br-jacket" d="M24 70 V170 Q24 196 50 196 H110 Q136 196 136 170 V70" />
+        <circle class="br-bub" cx="70" cy="176" r="3" /><circle class="br-bub" cx="90" cy="168" r="2.5" /><circle class="br-bub" cx="76" cy="150" r="2" />
+        <text x="80" y="54" text-anchor="middle" class="br-lbl">broth</text>
+      </svg>
+      <dl class="ax-facts br-gauges"></dl>
+    </div>
+    <label class="br-gap">Hour: <b class="br-hv"></b><input type="range" class="br-h" min="0" max="24" step="0.1" value="8" aria-label="Hour" /></label>
+    <p class="br-say" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Growth</h2>
+    <canvas class="ax-fig br-fig" role="img"></canvas>
+    <div class="ax-legend"><span><i class="br-kx"></i>bacteria (g/L)</span><span><i class="br-ks"></i>sugar (g/L)</span></div>
+    <dl class="ax-facts br-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>The three controlled values</h2>
+    <canvas class="ax-fig br-ctl" role="img"></canvas>
+    <p class="ax-help">Dashed lines: the set points. A control loop measures the value and acts (cooling water, a base pump, a faster stirrer) to pull it back.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="br-try">
+      <li>Switch off temperature control. Growing bacteria give off heat: what happens to the temperature, and to the growth?</li>
+      <li>Switch off pH control. The bacteria make acid as they grow. How low does the pH fall, and how much sugar is left?</li>
+      <li>Switch off oxygen control and set the fixed stirring low. Watch the oxygen crash and growth slow to a crawl.</li>
+      <li>Set the temperature to 30 °C. The tank is well controlled, but at the wrong value for these bacteria.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="br-quiz" />
+</div>
+
+<script>
+  import { simulate, sugarGone, type Setup, type Run } from '../../lib/sci/bioreactor-r';
+  import { paint, type Palette } from '../../lib/report';
+  import { view, axes, line, px, py, fmt } from '../../lib/sm-graph';
+  import { quiz, pick, rint, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.bre')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const n = (c: string) => +q<HTMLInputElement>(c).value, on = (c: string) => q<HTMLInputElement>(c).checked;
+  let run: Run, s: Setup;
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const x = document.createElement('small'); x.textContent = sm; el.querySelector('dd')!.append(x); } return el; };
+  const path = (ctx: CanvasRenderingContext2D, v: ReturnType<typeof view>, xs: number[], ys: number[], color: string, w = 2.2) => {
+    ctx.save(); ctx.beginPath(); ctx.rect(v.l, v.t, v.W - v.l - v.r, v.H - v.t - v.b); ctx.clip();
+    ctx.strokeStyle = color; ctx.lineWidth = w; ctx.beginPath(); xs.forEach((x, i) => { const X = px(v, x), Y = py(v, ys[i]); if (i) ctx.lineTo(X, Y); else ctx.moveTo(X, Y); }); ctx.stroke(); ctx.restore();
+  };
+
+  function compute() {
+    s = { tempOn: on('.br-ton'), tSet: n('.br-ts'), phOn: on('.br-pon'), phSet: n('.br-ps'), doOn: on('.br-don'), doSet: n('.br-ds'), stir: n('.br-st'), S0: 20, X0: 0.1 };
+    q('.br-tv').textContent = `${fmt(s.tSet, 1)} °C`; q('.br-pv').textContent = fmt(s.phSet, 1); q('.br-dv').textContent = `${s.doSet} %`; q('.br-sv').textContent = `${fmt(s.stir, 1)} per hour`;
+    q('.br-dsl').hidden = !s.doOn; q('.br-stl').hidden = s.doOn;
+    run = simulate(s);
+    const L = run.t.length - 1, sg = sugarGone(run, 20);
+    q('.br-facts').replaceChildren(
+      fact('Bacteria at 24 h', `${fmt(run.X[L], 2)} g/L`, `started at ${s.X0} g/L`),
+      fact('Sugar used up', Number.isFinite(sg) ? `after ${fmt(sg, 1)} h` : 'not in 24 h', `${fmt(run.S[L], 2)} g/L left`),
+      fact('Highest temperature', `${fmt(Math.max(...run.T), 1)} °C`), fact('Lowest pH', fmt(Math.min(...run.pH), 2)), fact('Lowest oxygen', `${fmt(Math.min(...run.DO), 1)} %`),
+    );
+    const W2 = 380;
+    paint(q<HTMLCanvasElement>('.br-fig'), { w: W2, h: 220, alt: `Bacteria reach ${fmt(run.X[L], 1)} g/L in 24 hours`, draw: (ctx, w, h, pl: Palette) => {
+      const v = view(0, 24, 0, 22, w, h); axes(ctx, v, pl, { xName: 'hours', yName: 'g/L' });
+      path(ctx, v, run.t, run.X, pl.accent); path(ctx, v, run.t, run.S, pl.accent2, 2);
+      line(ctx, v, n('.br-h'), 0, n('.br-h'), 22, pl.muted, 1, [2, 3]);
+    } });
+    paint(q<HTMLCanvasElement>('.br-ctl'), { w: W2, h: 302, alt: 'Temperature, pH and oxygen over 24 hours', draw: (ctx, w, h, pl: Palette) => {
+      const rows: [string, number[], number, number, number, string][] = [
+        ['°C', run.T, 25, 50, s.tSet, pl.bad], ['pH', run.pH, 5, 8, s.phSet, pl.accent2], ['O₂ %', run.DO, 0, 100, s.doOn ? s.doSet : NaN, pl.accent]];
+      rows.forEach(([name, ys, lo, hi, set, col], i) => {
+        const v = view(0, 24, lo, hi, w, i === 2 ? 110 : 96, { l: 40, r: 10, t: 8, b: i === 2 ? 22 : 10 });
+        ctx.save(); ctx.translate(0, i * 96);
+        axes(ctx, v, pl, { xName: i === 2 ? 'hours' : undefined, yName: name, xLabels: i === 2 ? undefined : Array(30).fill('') });
+        if (Number.isFinite(set)) line(ctx, v, 0, set, 24, set, pl.muted, 1.2, [5, 4]);
+        path(ctx, v, run.t, ys, col);
+        ctx.restore();
+      });
+    } });
+    draw();
+  }
+
+  function draw() {
+    const h = n('.br-h'), i = Math.min(run.t.length - 1, Math.round(h / (run.t[1] - run.t[0])));
+    q('.br-hv').textContent = fmt(run.t[i], 1);
+    const X = run.X[i], T = run.T[i], pH = run.pH[i], DO = run.DO[i];
+    q('.br-gauges').replaceChildren(fact('Temperature', `${fmt(T, 1)} °C`), fact('pH', fmt(pH, 2)), fact('Oxygen', `${String(Math.round(DO))} %`), fact('Bacteria', `${fmt(X, 2)} g/L`), fact('Sugar', `${fmt(run.S[i], 2)} g/L`));
+    const broth = root.querySelector<SVGRectElement>('.br-broth')!;
+    broth.style.fillOpacity = String(0.1 + 0.6 * Math.min(1, X / 10));
+    root.querySelectorAll<SVGCircleElement>('.br-bub').forEach((b) => { b.style.opacity = DO > 5 ? '1' : '0.2'; });
+    const bad: string[] = [];
+    if (T > 40) bad.push('too hot: the heat from growth is not being removed'); else if (T < 33) bad.push('too cold for these bacteria');
+    if (pH < 6.3) bad.push('too acid: the bacteria\'s own acid is building up'); else if (pH > 7.7) bad.push('too alkaline');
+    if (DO < 5 && run.S[i] > 0.2) bad.push('short of oxygen: stirring cannot dissolve it fast enough');
+    q('.br-say').textContent = run.S[i] < 0.2 ? `Hour ${fmt(run.t[i], 1)}: the sugar is used up, so growth has stopped. Time to harvest and start downstream processing.` : bad.length ? `Hour ${fmt(run.t[i], 1)}: ${bad.join('; ')}. Growth slows.` : `Hour ${fmt(run.t[i], 1)}: conditions are close to the best for growth.`;
+  }
+
+  root.querySelectorAll('.br-ton, .br-pon, .br-don').forEach((e) => e.addEventListener('change', compute));
+  root.querySelectorAll('.br-ts, .br-ps, .br-ds, .br-st').forEach((e) => e.addEventListener('input', compute));
+  q('.br-h').addEventListener('input', compute);
+  document.addEventListener('fibub:theme', compute);
+  compute();
+
+  const shuffle = <T,>(a: T[]) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const mc = (text: string, right: string, wrong: string[], worked: string): Question => { const ch = shuffle([right, ...wrong]); return { text, choices: ch, correct: ch.indexOf(right), worked }; };
+  quiz(q('.br-quiz'), (): Question[] => {
+    const S0 = rint(10, 40), Y = pick([0.4, 0.5]), X0 = pick([0.1, 0.2, 0.5]);
+    const vol = pick([100, 500, 1000]), c = rint(2, 9);
+    return [
+      { text: `Each gram of sugar makes ${Y} g of bacteria. A batch starts with ${X0} g/L of bacteria and ${S0} g/L of sugar. How many g/L of bacteria are there when the sugar is used up?`, answer: X0 + Y * S0, tol: 1e-6, worked: `${X0} + ${Y} × ${S0} = ${fmt(X0 + Y * S0, 3)} g/L.` },
+      { text: `A ${vol}-litre tank ends with ${c} g/L of bacteria. How many kilograms of bacteria is that?`, answer: (vol * c) / 1000, tol: 1e-6, worked: `${vol} L × ${c} g/L = ${vol * c} g = ${fmt((vol * c) / 1000, 3)} kg.` },
+      mc('Why does a bioreactor need cooling while bacteria grow?', 'Growing cells give off heat', ['Sugar is cold', 'The stirrer freezes', 'Oxygen is hot'], 'Respiration releases heat; without cooling the broth warms past the best temperature.'),
+      mc('Why must a bioreactor be stirred and aerated?', 'To dissolve enough oxygen and mix food and cells', ['To kill the bacteria', 'To cool the motor', 'To make the broth acid'], 'Oxygen dissolves slowly; stirring and sparged air keep it reaching every cell, and mix nutrients evenly.'),
+      mc('What is downstream processing?', 'Separating and purifying the product after growth', ['Adding more sugar', 'Sterilising the tank before use', 'Choosing the bacteria'], 'After the batch, the product is separated, purified, tested and formulated with preservatives.'),
+    ];
+  });
+</script>
+
+<style is:inline>
+  .bre input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .bre .br-loop { display: grid; gap: 6px; align-content: start; }
+  .bre .br-gap { margin-top: 10px; }
+  .bre .br-tankrow { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 12px; align-items: center; margin-top: 12px; }
+  .bre .br-tank { width: 120px; }
+  .bre .br-wall { fill: none; stroke: var(--ink); stroke-width: 3; }
+  .bre .br-jacket { fill: none; stroke: var(--accent); stroke-width: 2; stroke-dasharray: 4 3; }
+  .bre .br-broth { fill: var(--warn); fill-opacity: 0.2; }
+  .bre .br-shaft { stroke: var(--muted); stroke-width: 3; }
+  .bre .br-imp rect { fill: var(--muted); }
+  .bre .br-bub { fill: none; stroke: var(--accent); stroke-width: 1.5; }
+  .bre .br-lbl { fill: var(--muted); font-size: 12px; }
+  .bre .br-gauges { grid-template-columns: repeat(auto-fill, minmax(min(100%, 100px), 1fr)); }
+  .bre .br-kx { background: var(--accent); } .bre .br-ks { background: var(--warn); }
+  .bre .br-say { font-weight: 600; margin: 10px 0 0; }
+  .bre .br-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+</style>
