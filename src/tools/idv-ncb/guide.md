@@ -2,7 +2,7 @@
 name: IDV and NCB calculator (India)
 num: 1958
 shelf: money
-code: T858
+code: T832
 section: car-insurance
 title: "IDV and NCB calculator (India): car insured value, no-claim bonus, claim payout"
 summary: "Work out your car's insured declared value (IDV), your no-claim bonus and what a repair claim pays with and without a zero-depreciation add-on, for private cars in India."

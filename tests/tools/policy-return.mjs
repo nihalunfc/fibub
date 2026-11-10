@@ -1,4 +1,4 @@
-// #T859 Endowment, money-back and ULIP return (IRR)
+// #T833 Endowment, money-back and ULIP return (IRR)
 export const path = '/money/policy-return/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/policy-return/`); await page.waitForTimeout(300);

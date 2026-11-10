@@ -2,7 +2,7 @@
 name: Room rent limit and proportionate deduction (India)
 num: 1954
 shelf: money
-code: T854
+code: T828
 section: health-insurance
 title: "Room rent limit and proportionate deduction (India): what your insurer will cut"
 summary: "Enter your sum insured, the room rent limit, the room you chose and the bill, and see what the insurer pays and how much the room choice costs you."
