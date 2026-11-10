@@ -1,5 +1,6 @@
 ---
 title: "Free fall: why a stone and a feather land together without air"
+seoTitle: "Why a stone and a feather fall together | fibub"
 summary: "Why every object falls with the same acceleration in a vacuum, how to use v = gt and s = ½gt², and how air drag and terminal speed change the picture."
 tools: [free-fall, projectile-launcher, motion-graphs, equations-of-motion]
 updated: 2026-11-10
