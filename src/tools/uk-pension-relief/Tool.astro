@@ -1,0 +1,137 @@
+---
+// #1788 Pension tax relief (UK 2026/27): relief at source vs net pay vs salary sacrifice, annual allowance, taper, carry-forward.
+---
+<div class="tool-ui upr">
+  <section class="panel">
+    <h2>Your income and pension in 2026/27</h2>
+    <div class="upr-grid">
+      <label>Where you live <select class="upr-reg">
+        <option value="ruk" selected>England, Wales or Northern Ireland</option>
+        <option value="scot">Scotland</option>
+      </select></label>
+      <label>Salary a year (before pension) <input class="upr-sal" inputmode="decimal" value="60,000" /></label>
+      <label>Other taxable income (rent profit, a pension) <input class="upr-oth" inputmode="decimal" value="0" /></label>
+      <label>Into your pot a year, including tax relief <input class="upr-g" inputmode="decimal" value="5,000" /></label>
+      <label>Your employer puts in a year <input class="upr-e" inputmode="decimal" value="0" /></label>
+    </div>
+  </section>
+
+  <section class="upr-res" aria-live="polite">
+    <div class="upr-stats">
+      <div class="good"><span>Tax relief (relief at source)</span><b class="upr-rel"></b></div>
+      <div><span>Real cost to you</span><b class="upr-cost"></b></div>
+      <div><span>Higher-rate relief to claim back</span><b class="upr-claim"></b></div>
+      <div><span>Relief rate</span><b class="upr-rate"></b></div>
+    </div>
+    <p class="upr-line"></p>
+    <div class="panel upr-tw">
+      <h2>How your scheme gives relief</h2>
+      <table>
+        <thead><tr><th>Method</th><th>You pay from take-home</th><th>Added to pot</th><th>Claim back / NI saved</th><th>Real cost</th><th>Relief</th></tr></thead>
+        <tbody class="upr-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Annual allowance</h2>
+    <div class="upr-grid">
+      <label>Unused allowance from 2023/24 <input class="upr-u0" inputmode="decimal" value="0" /></label>
+      <label>Unused from 2024/25 <input class="upr-u1" inputmode="decimal" value="0" /></label>
+      <label>Unused from 2025/26 <input class="upr-u2" inputmode="decimal" value="0" /></label>
+    </div>
+    <label class="upr-chk"><input type="checkbox" class="upr-flexi" /> I have already taken taxable money flexibly from a pension (the £10,000 money purchase allowance applies)</label>
+    <p class="upr-hint">Unused allowance for a year is that year's allowance (£60,000 unless tapered) minus everything paid in, and only counts if you were in a registered pension scheme that year. Your pension provider can tell you.</p>
+    <div class="upr-aa" aria-live="polite"></div>
+  </section>
+
+  <section class="panel">
+    <h2>State Pension age</h2>
+    <label class="upr-dobl">Your date of birth (optional) <input class="upr-dob" type="date" /></label>
+    <p class="upr-spa">The State Pension age is 66 now and rises to 67 between 2026 and 2028 for people born from 6 April 1960; it is 67 for people born from 6 March 1961 to 5 April 1977, and is planned to reach 68 between 2044 and 2046.</p>
+  </section>
+  <p class="upr-fine">Estimate for 6 April 2026 to 5 April 2027, standard tax code, NI category A. Rules from GOV.UK, checked 10 November 2026: relief at up to 100% of your earnings (or £3,600 gross if you earn less); annual allowance £60,000, tapered by £1 for every £2 of adjusted income over £260,000 when threshold income is over £200,000, down to £10,000; carry forward from the 3 previous tax years. The annual allowance charge shown is an estimate. Not financial or tax advice: check the official source (GOV.UK) or HMRC. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .upr { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .upr > *, .upr-res > * { min-width: 0; }
+  .upr h2 { margin: 0 0 12px; font-size: 18px; }
+  .upr .panel { padding: 16px; }
+  .upr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+  .upr label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); align-content: end; }
+  .upr input:not([type=checkbox]), .upr select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .upr input:focus, .upr select:focus { border-color: var(--accent); outline: none; }
+  .upr .upr-chk { display: flex; align-items: flex-start; gap: 8px; margin-top: 12px; color: var(--ink); }
+  .upr-chk input { width: 18px; height: 18px; flex: none; accent-color: var(--accent); }
+  .upr-hint { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+  .upr-aa { margin-top: 12px; font-size: 15px; }
+  .upr-aa p { margin: 0 0 6px; }
+  .upr-aa .bad { color: var(--bad); font-weight: 600; }
+  .upr-dobl { max-width: 260px; }
+  .upr-spa { margin: 10px 0 0; font-size: 15px; }
+  .upr-res { display: grid; gap: 12px; }
+  .upr-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .upr-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .upr-stats span { font-size: 13px; color: var(--muted); }
+  .upr-stats b { font-size: clamp(17px, 3.4vw, 22px); overflow-wrap: anywhere; }
+  .upr-stats .good b { color: var(--good); }
+  .upr-line { margin: 0; font-size: 15px; }
+  .upr-tw { overflow-x: auto; }
+  .upr table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .upr th, .upr td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); }
+  .upr td { white-space: nowrap; }
+  .upr th:first-child, .upr td:first-child { text-align: left; white-space: normal; }
+  .upr th { font-size: 12px; color: var(--muted); }
+  .upr-fine { color: var(--muted); font-size: 13px; margin: 0; }
+  @media (max-width: 640px) { .upr-stats { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<script>
+  import { relief, statePensionAge, AA } from '../../lib/money/uk-pension-relief.ts';
+  import { num } from '../../lib/money';
+  const root = document.querySelector('.upr') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
+  const v = (s: string) => num(q<HTMLInputElement>(s).value);
+  const $ = (n: number) => n.toLocaleString('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0, minimumFractionDigits: 0 });
+  const pct = (x: number) => `${Math.round(x * 1000) / 10}%`;
+
+  const update = () => {
+    const G = v('.upr-g');
+    const r = relief({
+      region: q<HTMLSelectElement>('.upr-reg').value as 'ruk' | 'scot', salary: v('.upr-sal'), other: v('.upr-oth'), gross: G, employer: v('.upr-e'),
+      unused: [v('.upr-u0'), v('.upr-u1'), v('.upr-u2')], flexi: q<HTMLInputElement>('.upr-flexi').checked,
+    });
+    q('.upr-rel').textContent = $(r.ras.relief);
+    q('.upr-cost').textContent = $(r.ras.cost);
+    q('.upr-claim').textContent = r.ras.claim > 0 ? $(r.ras.claim) : 'None';
+    q('.upr-rate').textContent = pct(r.ras.rate);
+    const lines: string[] = [];
+    lines.push(`With relief at source you pay ${$(G * 0.8)}, your provider adds ${$(r.ras.providerAdds)} of basic-rate relief${r.ras.claim > 0 ? `, and you claim ${$(r.ras.claim)} more through Self Assessment or from HMRC` : ''}.`);
+    if (r.netpay.relief < r.ras.relief - 0.5) lines.push(`Net pay gives less here (${$(r.netpay.relief)}) because part of your income is not taxed anyway.`);
+    if (r.capped) lines.push(`Relief is only given on up to 100% of your earnings (or £3,600 if you earn less), so ${$(G - r.relievable)} gets none.`);
+    q('.upr-line').textContent = lines.join(' ');
+    const row = (n: string, m: typeof r.ras, pay: number, extra: string) => `<tr><td>${n}</td><td>${$(pay)}</td><td>${$(G)}</td><td>${extra}</td><td>${$(m.cost)}</td><td>${$(m.relief)} (${pct(m.rate)})</td></tr>`;
+    q('.upr-body').innerHTML = row('Relief at source (personal pensions, many workplace schemes)', r.ras, G * 0.8, r.ras.claim > 0 ? `claim ${$(r.ras.claim)}` : '-')
+      + row('Net pay (taken before tax)', r.netpay, r.netpay.cost, '-')
+      + row('Salary sacrifice (before tax and NI)', r.sacrifice, r.sacrifice.cost, r.sacrifice.niSaved > 0 ? `NI ${$(r.sacrifice.niSaved)}` : '-');
+    const aa: string[] = [];
+    aa.push(`<p>Your allowance this year: <b>${$(r.allowance)}</b>${r.tapered ? ` (tapered from ${$(AA)}: threshold income ${$(r.threshold)}, adjusted income ${$(r.adjusted)})` : q<HTMLInputElement>('.upr-flexi').checked ? ' (money purchase annual allowance; carry-forward cannot be used)' : ''}.</p>`);
+    aa.push(`<p>Going in this year, yours and your employer's: <b>${$(r.input)}</b>.</p>`);
+    if (r.over <= 0) aa.push(`<p>You are within the allowance, with ${$(r.allowance - r.input)} to spare.</p>`);
+    else {
+      if (r.carryUsed > 0) aa.push(`<p>You are ${$(r.over)} over; ${$(r.carryUsed)} is covered by unused allowance carried forward.</p>`);
+      aa.push(r.excess > 0 ? `<p class="bad">${$(r.excess)} is over the allowance. Estimated annual allowance charge: ${$(r.charge)}, added to your tax bill.</p>` : '<p>Carry-forward covers it: no charge.</p>');
+    }
+    q('.upr-aa').innerHTML = aa.join('');
+    const dob = q<HTMLInputElement>('.upr-dob').value;
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dob);
+    if (m) {
+      const s = statePensionAge(+m[1], +m[2], +m[3]);
+      q('.upr-spa').textContent = `Your State Pension age: ${s.note && s.years === 67 ? s.note : `${s.years}${s.months ? ` and ${s.months} month${s.months > 1 ? 's' : ''}` : ''}${s.note ? ` (${s.note})` : ''}`}. Check your exact date at gov.uk/state-pension-age.`;
+    }
+  };
+  root.addEventListener('input', update);
+  root.addEventListener('change', update);
+  update();
+</script>
