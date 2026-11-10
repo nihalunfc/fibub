@@ -1,0 +1,135 @@
+---
+// #1727 UK tax: 2026/27 income tax, employee NI, student loans, pension and take-home pay.
+---
+<div class="tool-ui uit">
+  <section class="panel">
+    <h2>Your pay in 2026/27</h2>
+    <div class="uit-grid">
+      <label>Where you live <select class="uit-reg">
+        <option value="ruk" selected>England, Wales or Northern Ireland</option>
+        <option value="scot">Scotland</option>
+      </select></label>
+      <label>Salary a year (before anything comes off) <input class="uit-sal" inputmode="decimal" value="50,000" /></label>
+      <label>Other taxable income (rent profit, a pension) <input class="uit-oth" inputmode="decimal" value="0" /></label>
+    </div>
+    <h3>Pension</h3>
+    <div class="uit-grid">
+      <label>How you pay in <select class="uit-ptype">
+        <option value="none" selected>No pension</option>
+        <option value="ras">Relief at source (you pay 80%, 20% is added)</option>
+        <option value="netpay">Net pay (taken before tax)</option>
+        <option value="sacrifice">Salary sacrifice (before tax and NI)</option>
+      </select></label>
+      <label>Into your pot <span class="uit-suf"><input class="uit-pen" inputmode="decimal" value="5" /><select class="uit-punit" aria-label="Percent of salary or pounds a year"><option value="pct" selected>% of salary</option><option value="gbp">£ a year</option></select></span></label>
+    </div>
+    <fieldset class="uit-loans">
+      <legend>Student loans</legend>
+      <label><input type="checkbox" value="plan1" /> Plan 1</label>
+      <label><input type="checkbox" value="plan2" /> Plan 2</label>
+      <label><input type="checkbox" value="plan4" /> Plan 4 (Scotland)</label>
+      <label><input type="checkbox" value="plan5" /> Plan 5</label>
+      <label><input type="checkbox" value="pg" /> Postgraduate</label>
+    </fieldset>
+  </section>
+
+  <section class="uit-res" aria-live="polite">
+    <div class="uit-stats">
+      <div class="good"><span>Take-home a year</span><b class="uit-year"></b></div>
+      <div><span>A month</span><b class="uit-month"></b></div>
+      <div><span>A week</span><b class="uit-week"></b></div>
+      <div><span>Marginal / average rate</span><b class="uit-rates"></b></div>
+    </div>
+    <p class="uit-note"></p>
+    <figure class="panel uit-fig">
+      <figcaption>Where your money goes</figcaption>
+      <div class="uit-bar" role="img"></div>
+      <ul class="uit-key"></ul>
+    </figure>
+    <div class="panel uit-tw">
+      <table>
+        <thead><tr><th>Item</th><th>A year</th><th>A month</th></tr></thead>
+        <tbody class="uit-body"></tbody>
+      </table>
+    </div>
+  </section>
+  <p class="uit-fine">Estimate for 6 April 2026 to 5 April 2027 with the standard tax code (1257L) and NI category A. Savings interest and dividends have their own allowances and are not included. Not financial or tax advice: check the official source (GOV.UK) or HMRC. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .uit { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .uit h2 { margin: 0 0 12px; font-size: 18px; }
+  .uit h3 { margin: 16px 0 10px; font-size: 16px; }
+  .uit .panel { padding: 16px; }
+  .uit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 12px; }
+  .uit label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .uit input:not([type=checkbox]), .uit select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .uit-suf { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+  .uit-suf select { width: auto; }
+  .uit-loans { border: 0; padding: 0; margin: 16px 0 0; display: flex; flex-wrap: wrap; gap: 8px 16px; }
+  .uit-loans legend { font-weight: 600; font-size: 16px; padding-bottom: 8px; color: var(--ink); }
+  .uit-loans label { display: flex; align-items: center; gap: 6px; color: var(--ink); }
+  .uit-loans input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .uit-res { display: grid; gap: 12px; min-width: 0; }
+  .uit-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .uit-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .uit-stats span { font-size: 13px; color: var(--muted); }
+  .uit-stats b { font-size: 20px; }
+  .uit-stats .good b { color: var(--good); }
+  .uit-note { margin: 0; font-size: 14px; }
+  .uit-note:empty { display: none; }
+  .uit-fig { margin: 0; }
+  .uit-fig figcaption { font-weight: 600; margin-bottom: 10px; }
+  .uit-bar { display: flex; height: 28px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+  .uit-bar i { display: block; height: 100%; }
+  .uit-key { list-style: none; padding: 0; margin: 10px 0 0; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; }
+  .uit-key i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  .uit-tw { overflow-x: auto; }
+  .uit table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .uit th, .uit td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); }
+  .uit th:first-child, .uit td:first-child { text-align: left; }
+  .uit th { font-size: 12px; color: var(--muted); }
+  .uit tr.tot td { font-weight: 700; }
+  .uit-fine { color: var(--muted); font-size: 14px; margin: 0; }
+  @media (max-width: 640px) { .uit-stats { grid-template-columns: 1fr 1fr; } .uit-stats b { font-size: 17px; } }
+</style>
+
+<script>
+  import { ukTax, LOANS, type PensionType } from '../../lib/money/uk-income-tax.ts';
+  const root = document.querySelector('.uit') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const num = (s: string) => { const n = parseFloat(String(s).replace(/[^0-9.\-]/g, '')); return isFinite(n) ? n : 0; };
+  const $ = (n: number) => n.toLocaleString('en-GB', { style: 'currency', currency: 'GBP' });
+  const pct = (n: number) => `${(Math.round(n * 1000) / 10).toFixed(1)}%`;
+
+  const update = () => {
+    const salary = num(q<HTMLInputElement>('.uit-sal').value);
+    const type = q<HTMLSelectElement>('.uit-ptype').value as PensionType;
+    const pv = num(q<HTMLInputElement>('.uit-pen').value);
+    const pension = q<HTMLSelectElement>('.uit-punit').value === 'pct' ? salary * pv / 100 : pv;
+    const loans = [...root.querySelectorAll<HTMLInputElement>('.uit-loans input:checked')].map((i) => i.value);
+    const r = ukTax({ region: q<HTMLSelectElement>('.uit-reg').value as 'ruk' | 'scot', salary, other: num(q<HTMLInputElement>('.uit-oth').value), pension, pensionType: type, loans });
+    q('.uit-year').textContent = $(r.takeHome);
+    q('.uit-month').textContent = $(r.takeHome / 12);
+    q('.uit-week').textContent = $(r.takeHome / 52);
+    q('.uit-rates').textContent = `${pct(r.marginal)} / ${pct(r.average)}`;
+    const notes: string[] = [];
+    if (r.allowance < 12570) notes.push(`Your personal allowance is cut to ${$(r.allowance)} because income over £100,000 loses £1 of allowance for every £2.`);
+    if (type !== 'none' && r.pensionGross > 0) notes.push(`${$(r.pensionGross)} goes into your pension a year${type === 'ras' ? `: you pay ${$(r.pensionCost)} and your provider claims ${$(r.reliefAdded)} from HMRC. Any higher-rate relief is shown here as lower tax; you claim it through Self Assessment or by contacting HMRC` : ''}.`);
+    q('.uit-note').textContent = notes.join(' ');
+    const rows: [string, number, string][] = [['Income Tax', r.tax, 'var(--accent)'], ['National Insurance', r.ni, 'var(--warn)']];
+    for (const [k, v] of Object.entries(r.loanParts)) rows.push([LOANS[k].name + (k === 'pg' ? '' : ' student loan'), v, 'var(--bad)']);
+    if (r.pensionCost) rows.push(['Your pension payments', r.pensionCost, 'var(--ink)']);
+    const parts: [string, number, string][] = [['Take-home', r.takeHome, 'var(--good)'], ...rows];
+    const total = Math.max(r.gross, 1);
+    q('.uit-bar').innerHTML = parts.filter((p) => p[1] > 0).map(([l, v, c]) => `<i title="${l}" style="width:${(v / total) * 100}%;background:${c}"></i>`).join('');
+    q('.uit-bar').setAttribute('aria-label', parts.map(([l, v]) => `${l} ${pct(v / total)}`).join(', '));
+    q('.uit-key').innerHTML = parts.map(([l, v, c]) => `<li><i style="background:${c}"></i>${l} ${pct(v / total)}</li>`).join('');
+    q('.uit-body').innerHTML = [
+      ['Total income', r.gross], ['Personal allowance', r.allowance], ['Taxable income', r.taxable], ...rows.map(([l, v]) => [l, -v] as [string, number]),
+    ].map(([l, v]) => `<tr><td>${l}</td><td>${$(v as number)}</td><td>${$((v as number) / 12)}</td></tr>`).join('')
+      + `<tr class="tot"><td>Take-home pay</td><td>${$(r.takeHome)}</td><td>${$(r.takeHome / 12)}</td></tr>`;
+  };
+  root.addEventListener('input', update);
+  root.addEventListener('change', update);
+  update();
+</script>
