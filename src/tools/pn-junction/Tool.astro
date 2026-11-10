@@ -1,0 +1,189 @@
+---
+// p-n junction: the depletion layer narrows in forward bias and widens in reverse bias, the V-I curve of a
+// silicon, germanium or Zener diode with the working point marked, and a Zener voltage regulator.
+import '../../styles/astro.css';
+import '../../styles/chemquiz.css';
+---
+<div class="ax pn">
+  <div class="ax-card">
+    <div class="ax-seg pn-d" role="group" aria-label="Diode"><button type="button" data-d="si" aria-pressed="true">Silicon</button><button type="button" data-d="ge" aria-pressed="false">Germanium</button><button type="button" data-d="zener" aria-pressed="false">Zener 5.1 V</button></div>
+    <label class="pn-rl"><span>V</span><input type="range" class="pn-v" min="-8" max="0.8" step="0.01" value="0" aria-label="Bias voltage" /><output class="pn-ov"></output></label>
+    <div class="ax-row pn-quick" style="margin-top:8px"><button type="button" class="btn secondary small" data-v="-5">−5 V</button><button type="button" class="btn secondary small" data-v="0">0 V</button><button type="button" class="btn secondary small" data-v="0.3">0.3 V</button><button type="button" class="btn secondary small" data-v="0.7">0.7 V</button></div>
+    <p class="ax-big pn-big" style="margin:12px 0 2px"></p>
+    <p class="pn-sub" style="margin:0 0 6px"></p>
+    <svg class="pn-j" viewBox="0 0 320 170" role="img" aria-label="Junction"></svg>
+    <dl class="ax-facts pn-facts"></dl>
+    <h3 style="margin:16px 0 4px;font-size:16px">V-I characteristic</h3>
+    <svg class="pn-iv" viewBox="0 0 320 210" role="img" aria-label="V-I curve"></svg>
+    <p class="lx-eq pn-eq"></p>
+    <p class="ax-help">Like the textbook graph, the forward and reverse halves of the voltage axis use different scales. The diodes are teaching models at 300 K: I = Is (e^(V/V_T) − 1) with V_T = kT/e = 25.85 mV, Is = 10⁻¹⁴ A (silicon) or 10⁻⁸ A (germanium). The depletion width uses a 0.5 µm example at zero bias.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Zener diode as a voltage regulator</h2>
+    <p class="ax-help" style="margin-top:0">A Zener diode in reverse bias holds about 5.1 V across the load while the input changes; the series resistor R takes up the rest.</p>
+    <label class="pn-rl"><span>Vin</span><input type="range" class="pn-vin" min="0" max="20" step="0.5" value="12" aria-label="Input voltage" /><output class="pn-ovin"></output></label>
+    <label class="pn-rl"><span>R</span><input type="range" class="pn-r" min="100" max="1000" step="10" value="220" aria-label="Series resistor" /><output class="pn-or"></output></label>
+    <label class="pn-rl"><span>RL</span><input type="range" class="pn-rload" min="100" max="5000" step="50" value="1000" aria-label="Load resistor" /><output class="pn-orl"></output></label>
+    <p class="ax-big pn-zbig" style="margin:12px 0 2px"></p>
+    <dl class="ax-facts pn-zfacts"></dl>
+    <p class="lx-eq pn-zeq"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lx-try">
+      <li>Silicon: slide V from 0 up to 0.8 V. Where does the current really start? That is the knee (cut-in) voltage.</li>
+      <li>Do the same for germanium. Why is its knee lower?</li>
+      <li>Give 5 V of reverse bias. What happens to the depletion layer and the barrier? How much current flows?</li>
+      <li>Pick the Zener diode and go past −5.1 V. Why doesn't the voltage across it rise much further?</li>
+      <li>In the regulator, move Vin from 8 V to 20 V. Does the output change? When does the Zener stop regulating?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cq">
+    <h2>Check yourself</h2>
+    <ol class="cq-list"></ol>
+    <button type="button" class="btn secondary small cq-new">New questions</button>
+  </div>
+</div>
+
+<style is:inline>
+  .pn-rl { display: grid !important; grid-template-columns: 34px 1fr 96px; align-items: center; gap: 10px !important; margin-top: 12px; color: var(--ink) !important; }
+  .pn-rl input { height: 36px; accent-color: var(--accent); }
+  .pn-rl output { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; font-size: 14px; }
+  .pn-j, .pn-iv { display: block; width: 100%; max-width: 460px; margin: 6px auto 10px; }
+  .pn .pr { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+  .pn .dz { fill: var(--line); stroke: var(--ink); stroke-width: 1; stroke-dasharray: 4 3; }
+  .pn .el { fill: var(--accent); }
+  .pn .ho { fill: var(--surface); stroke: var(--ink); stroke-width: 1.4; }
+  .pn .ion { fill: var(--ink); font: 700 13px system-ui, sans-serif; }
+  .pn .wire { fill: none; stroke: var(--ink); stroke-width: 1.6; }
+  .pn .axl { fill: none; stroke: var(--muted); stroke-width: 1; }
+  .pn .cv { fill: none; stroke: var(--ink); stroke-width: 2.4; }
+  .pn .pt { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+  .pn .tx { fill: var(--muted); font: 11px system-ui, sans-serif; }
+  .pn .tb { fill: var(--ink); font: 600 13px system-ui, sans-serif; }
+  .pn .flow { fill: var(--accent); font: 700 13px system-ui, sans-serif; }
+</style>
+
+<script>
+  import { DIODES, barrier, bias, current, dynamicResistance, regulator, width, type Diode } from '../../lib/sci/pnjunction';
+  import { mountQuiz, near, same, pickOne, rint, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.pn')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const NS = 'http://www.w3.org/2000/svg';
+  const sv = (tag: string, attrs: Record<string, string | number>, text?: string) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, String(v)); if (text != null) n.textContent = text; return n; };
+  const amps = (i: number) => {
+    const a = Math.abs(i), s = i < 0 ? '−' : '';
+    if (a === 0) return '0 A';
+    for (const [f, u] of [[1, 'A'], [1e-3, 'mA'], [1e-6, 'µA'], [1e-9, 'nA'], [1e-12, 'pA'], [1e-15, 'fA']] as const) if (a >= f * 0.9995 || u === 'fA') return `${s}${Number((a / f).toPrecision(3))} ${u}`;
+    return '';
+  };
+  const ohms = (r: number) => (r >= 1e6 ? 'over 1 MΩ' : r >= 1000 ? `${Number((r / 1000).toPrecision(3))} kΩ` : `${Number(r.toPrecision(3))} Ω`);
+  let d: Diode = DIODES.si;
+  const spots = Array.from({ length: 24 }, (_, i) => [((i * 0.6180339887) % 1), ((i * 0.7548776662 + 0.2) % 1)]);
+
+  function drawJunction(V: number) {
+    const svg = q<SVGSVGElement>('.pn-j'); svg.replaceChildren();
+    const W = width(d, V), wpx = Math.max(4, Math.min(150, W * 70)), X0 = 30, X1 = 290, mid = 160, top = 20, bot = 90;
+    svg.append(sv('rect', { x: X0, y: top, width: X1 - X0, height: bot - top, class: 'pr' }));
+    svg.append(sv('rect', { x: mid - wpx / 2, y: top, width: wpx, height: bot - top, class: 'dz' }));
+    svg.append(sv('text', { x: X0 + 6, y: top + 16, class: 'tb' }, 'p'), sv('text', { x: X1 - 14, y: top + 16, class: 'tb' }, 'n'));
+    // fixed ions in the depletion layer: negative acceptor ions on the p side, positive donor ions on the n side
+    const per = Math.floor((wpx / 2 - 2) / 11);
+    for (let k = 0; k < per; k++) for (const yy of [top + 30, top + 56]) svg.append(sv('text', { x: mid - wpx / 2 + 2 + k * 11, y: yy, class: 'ion' }, '−'), sv('text', { x: mid + 2 + k * 11, y: yy, class: 'ion' }, '+'));
+    for (let i = 0; i < 12; i++) {
+      const hx = X0 + 18 + spots[i][0] * (mid - wpx / 2 - X0 - 26), ex = mid + wpx / 2 + 8 + spots[i + 12][0] * (X1 - mid - wpx / 2 - 22);
+      svg.append(sv('circle', { cx: hx, cy: top + 26 + spots[i][1] * 36, r: 4, class: 'ho' }), sv('circle', { cx: ex, cy: top + 26 + spots[i + 12][1] * 36, r: 4, class: 'el' }));
+    }
+    svg.append(sv('text', { x: mid, y: bot + 14, class: 'tx', 'text-anchor': 'middle' }, `depletion layer ${W.toFixed(2)} µm`));
+    // battery and wires
+    svg.append(sv('path', { d: `M${X0} 55 H12 V150 H140 M180 150 H308 V55 H${X1}`, class: 'wire' }));
+    if (V !== 0) {
+      // the left terminal is wired to the p side: long plate (+) there in forward bias, short plate (−) in reverse
+      const fwd = V > 0, longX = fwd ? 146 : 174, shortX = fwd ? 174 : 146;
+      svg.append(sv('line', { x1: longX, y1: 136, x2: longX, y2: 164, class: 'wire' }), sv('line', { x1: shortX, y1: 142, x2: shortX, y2: 158, class: 'wire', 'stroke-width': 4 }));
+      svg.append(sv('path', { d: 'M140 150 H146 M174 150 H180', class: 'wire' }));
+      svg.append(sv('text', { x: 130, y: 136, class: 'tb bt-l' }, fwd ? '+' : '−'), sv('text', { x: 184, y: 136, class: 'tb bt-r' }, fwd ? '−' : '+'));
+    } else svg.append(sv('line', { x1: 140, y1: 150, x2: 180, y2: 150, class: 'wire', 'stroke-dasharray': '3 3' }));
+    svg.append(sv('text', { x: 196, y: 168, class: 'tx' }, V === 0 ? 'no battery' : `${Math.abs(V).toFixed(2)} V battery`));
+    const I = current(d, V);
+    if (I > 1e-4) svg.append(sv('text', { x: 60, y: 118, class: 'flow' }, `current ${amps(I)} →`));
+    if (I < -1e-4) svg.append(sv('text', { x: 60, y: 118, class: 'flow' }, `← breakdown current ${amps(-I)}`));
+    svg.setAttribute('aria-label', `p-n junction, ${bias(V)} bias, depletion layer ${W.toFixed(2)} micrometres`);
+  }
+
+  function drawIV(V: number) {
+    const svg = q<SVGSVGElement>('.pn-iv'); svg.replaceChildren();
+    const ox = 190, oy = 110, RX = 150, FX = 120; // reverse half 8 V over 150 px; forward half 1 V over 120 px
+    const xOf = (v: number) => (v >= 0 ? ox + v * FX : ox + (v / 8) * RX);
+    const IMAX = 20e-3, yOf = (i: number) => (i >= 0 ? oy - Math.min(i, IMAX) / IMAX * 95 : oy + Math.min(-i, 40e-3) / 40e-3 * 90);
+    svg.append(sv('path', { d: `M${ox - RX} ${oy} H${ox + FX} M${ox} 10 V200`, class: 'axl' }));
+    svg.append(sv('text', { x: ox + FX, y: oy + 14, class: 'tx', 'text-anchor': 'end' }, '1 V'), sv('text', { x: ox - RX, y: oy - 4, class: 'tx' }, '−8 V'));
+    svg.append(sv('text', { x: ox + 4, y: 18, class: 'tx' }, 'I (mA), 20 at top'), sv('text', { x: ox + 4, y: 206, class: 'tx' }, '−40 mA'));
+    const pts: string[] = [];
+    for (let k = 0; k <= 400; k++) { const v = -8 + (k / 400) * 8.8; pts.push(`${xOf(v).toFixed(1)},${yOf(current(d, v)).toFixed(1)}`); }
+    svg.append(sv('polyline', { points: pts.join(' '), class: 'cv' }));
+    svg.append(sv('circle', { cx: xOf(V), cy: yOf(current(d, V)), r: 6, class: 'pt' }));
+    svg.append(sv('text', { x: ox - RX + 4, y: oy + 16, class: 'tx' }, 'reverse'), sv('text', { x: ox + FX - 4, y: oy - 6, class: 'tx', 'text-anchor': 'end' }, 'forward'));
+  }
+
+  function update() {
+    root.querySelectorAll<HTMLButtonElement>('.pn-d button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.d === d.id)));
+    const V = Number(q<HTMLInputElement>('.pn-v').value), I = current(d, V), b = bias(V);
+    q('.pn-ov').textContent = `${V > 0 ? '+' : V < 0 ? '−' : ''}${Math.abs(V).toFixed(2)} V`;
+    drawJunction(V); drawIV(V);
+    q('.pn-big').textContent = `I = ${amps(I)}`;
+    q('.pn-sub').textContent = b === 'none'
+      ? `No battery: electrons and holes near the joint have met and cancelled, leaving a depletion layer of fixed ions and a ${d.v0} V barrier.`
+      : b === 'forward'
+        ? (V < d.v0 * 0.85 ? `Forward bias: the barrier drops to ${barrier(d, V).toFixed(2)} V and the layer thins, but few carriers can climb it yet.` : 'Forward bias past the knee: the barrier is almost gone and the current shoots up.')
+        : d.vz && V < -d.vz ? `Zener breakdown: the strong field pulls electrons straight out of their bonds, so a large reverse current flows while the voltage stays near ${d.vz} V.` : `Reverse bias: the barrier grows to ${barrier(d, V).toFixed(2)} V and the depletion layer widens. Only a tiny leakage current flows.`;
+    const f = q('.pn-facts'); f.replaceChildren();
+    const fact = (k: string, v: string, s = '') => { const dv = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; dd.append(sm); } dv.append(dt, dd); f.append(dv); };
+    fact('Bias', b === 'none' ? 'none' : b, b === 'forward' ? 'p side to +' : b === 'reverse' ? 'p side to −' : '');
+    fact('Barrier height', `${barrier(d, V).toFixed(2)} V`, `${d.v0} V with no bias`);
+    fact('Depletion layer', `${width(d, V).toFixed(2)} µm`);
+    fact('Dynamic resistance', ohms(dynamicResistance(d, V)), 'ΔV / ΔI here');
+    const eq = q('.pn-eq'); eq.replaceChildren();
+    [`I = Is (e^(V / V_T) − 1) = ${d.is.toExponential(0).replace('e-', ' × 10^−')} × (e^(${V.toFixed(2)} / 0.02585) − 1) = ${amps(current(d, V) + (d.vz && V < -d.vz ? (-V - d.vz) / 5 : 0))}`, ...(d.vz && V < -d.vz ? [`plus breakdown current (|V| − Vz) / rz = (${(-V).toFixed(2)} − ${d.vz}) / 5 Ω = ${amps((-V - d.vz) / 5)}`] : []), `Barrier = V₀ − V = ${d.v0} − (${V.toFixed(2)}) = ${barrier(d, V).toFixed(2)} V`].forEach((t, i) => { if (i) eq.append(document.createElement('br')); eq.append(t); });
+  }
+
+  function updZ() {
+    const vin = Number(q<HTMLInputElement>('.pn-vin').value), R = Number(q<HTMLInputElement>('.pn-r').value), RL = Number(q<HTMLInputElement>('.pn-rload').value);
+    q('.pn-ovin').textContent = `${vin} V`; q('.pn-or').textContent = `${R} Ω`; q('.pn-orl').textContent = `${RL} Ω`;
+    const r = regulator(vin, 5.1, R, RL);
+    q('.pn-zbig').textContent = `Vout = ${r.vout.toFixed(2)} V ${r.regulating ? '(regulated)' : '(not regulating)'}`;
+    const f = q('.pn-zfacts'); f.replaceChildren();
+    const fact = (k: string, v: string) => { const dv = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; dv.append(dt, dd); f.append(dv); };
+    fact('Through R', `${(r.iR * 1000).toFixed(1)} mA`); fact('Through load', `${(r.iL * 1000).toFixed(1)} mA`); fact('Through Zener', `${(r.iZ * 1000).toFixed(1)} mA`);
+    const eq = q('.pn-zeq'); eq.replaceChildren();
+    const ls = r.regulating
+      ? [`I_R = (Vin − Vz) / R = (${vin} − 5.1) / ${R} = ${(r.iR * 1000).toFixed(1)} mA`, `I_L = Vz / RL = 5.1 / ${RL} = ${(r.iL * 1000).toFixed(1)} mA`, `I_Z = I_R − I_L = ${(r.iZ * 1000).toFixed(1)} mA`]
+      : [`Vin × RL / (R + RL) = ${r.vout.toFixed(2)} V is below 5.1 V,`, 'so the Zener is not in breakdown and passes no current.'];
+    ls.forEach((t, i) => { if (i) eq.append(document.createElement('br')); eq.append(t); });
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.pn-d button').forEach((b) => b.addEventListener('click', () => { d = DIODES[b.dataset.d as Diode['id']]; update(); }));
+  root.querySelectorAll<HTMLButtonElement>('.pn-quick button').forEach((b) => b.addEventListener('click', () => { q<HTMLInputElement>('.pn-v').value = b.dataset.v!; update(); }));
+  q('.pn-v').addEventListener('input', update);
+  ['.pn-vin', '.pn-r', '.pn-rload'].forEach((s) => q(s).addEventListener('input', updZ));
+  update(); updZ();
+
+  mountQuiz(q('.cq'), (): Question[] => {
+    const vin = rint(10, 18), R = pickOne([200, 250, 400, 500]), RL = pickOne([1000, 2000, 5000]), iz = ((vin - 5) / R - 5 / RL) * 1000;
+    const pos = pickOne(['p', 'n']), b2 = pos === 'p' ? 'forward' : 'reverse';
+    const i1 = rint(1, 4) * 5, i2 = i1 + rint(1, 4) * 10, rd = 0.1 / ((i2 - i1) / 1000);
+    const fw = pickOne([0.1, 0.2, 0.3, 0.4]), rv = rint(1, 6), sgn = pickOne([1, -1]), bar = sgn > 0 ? 0.7 - fw : 0.7 + rv;
+    const vin5 = rint(9, 15), iz5 = pickOne([10, 20, 25, 50]), R5 = (vin5 - 5) / (iz5 / 1000);
+    return [
+      { q: `A 5 V Zener diode, a ${R} Ω series resistor and a ${RL} Ω load are fed from ${vin} V. What current flows through the Zener, in mA? (1 decimal place)`, hint: 'a number', answer: iz.toFixed(1), ok: near(iz, 0.01), worked: `I_R = (${vin} − 5) / ${R} = ${((vin - 5) / R * 1000).toFixed(1)} mA, I_L = 5 / ${RL} = ${(5 / RL * 1000).toFixed(1)} mA, so I_Z = ${iz.toFixed(1)} mA.` },
+      { q: `The positive terminal of a battery is joined to the ${pos} side of a diode. Is it forward or reverse biased?`, hint: 'forward or reverse', answer: b2, ok: same(b2, b2 + ' bias', b2 + ' biased'), worked: `Forward bias means p to + and n to −. Here + goes to the ${pos} side, so it is ${b2} biased.` },
+      { q: `In forward bias the current rises from ${i1} mA at 0.70 V to ${i2} mA at 0.80 V. What is the dynamic resistance, in ohms?`, hint: 'a number', answer: String(Number(rd.toPrecision(3))), ok: near(rd, 0.01), worked: `r = ΔV / ΔI = 0.10 V / ${(i2 - i1) / 1000} A = ${Number(rd.toPrecision(3))} Ω.` },
+      { q: `A silicon junction has a 0.7 V barrier. What is the barrier height with ${sgn > 0 ? `${fw} V forward` : `${rv} V reverse`} bias, in volts?`, hint: 'a number', answer: String(Number(bar.toFixed(2))), ok: near(bar, 0.01), worked: `${sgn > 0 ? 'Forward bias lowers' : 'Reverse bias raises'} the barrier: 0.7 ${sgn > 0 ? '−' : '+'} ${sgn > 0 ? fw : rv} = ${Number(bar.toFixed(2))} V.` },
+      { q: `With no load, what series resistor lets ${iz5} mA flow through a 5 V Zener from a ${vin5} V supply, in ohms?`, hint: 'a number', answer: String(Number(R5.toPrecision(4))), ok: near(R5, 0.01), worked: `R = (Vin − Vz) / I = (${vin5} − 5) / ${iz5 / 1000} = ${Number(R5.toPrecision(4))} Ω.` },
+    ];
+  });
+</script>

@@ -1,0 +1,130 @@
+---
+// Geological time: Earth's 4.54 billion years with eons, eras and periods, when major forms of life appeared,
+// a linear or log scale, and the whole story squeezed into one year or one day.
+import '../../styles/astro.css';
+import '../../styles/chemquiz.css';
+---
+<div class="ax gt">
+  <div class="ax-card">
+    <div class="gt-segs">
+      <div class="ax-seg gt-sc" role="group" aria-label="Scale"><button type="button" data-s="lin" aria-pressed="true">Even scale</button><button type="button" data-s="log" aria-pressed="false">Zoom to recent</button></div>
+      <div class="ax-seg gt-sq" role="group" aria-label="Squeeze into"><button type="button" data-q="year" aria-pressed="true">As one year</button><button type="button" data-q="day" aria-pressed="false">As one day</button></div>
+    </div>
+    <label class="gt-rl"><span>Age</span><input type="range" class="gt-a" min="-1" max="3.657" step="0.001" value="2.367" aria-label="Millions of years ago (log scale)" /><output class="gt-oa"></output></label>
+    <p class="ax-big gt-big" style="margin:12px 0 2px"></p>
+    <p class="gt-sub" style="margin:0 0 6px"></p>
+    <dl class="ax-facts gt-facts"></dl>
+    <svg class="gt-svg" viewBox="0 0 320 560" role="img" aria-label="Geological time scale"></svg>
+    <p class="ax-help">Top: Earth forms. Bottom: today. Columns: eons, eras (Phanerozoic only) and periods. Tap an event to jump to it. Ages are rounded, in millions of years ago (Ma); scientists' estimates vary, especially for the oldest events.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lx-try">
+      <li>On the even scale, how much of the bar is the Phanerozoic, the eon of animals and plants you can see?</li>
+      <li>Squeeze Earth's history into one year. On what date do the first dinosaurs appear? And modern humans?</li>
+      <li>For how much of Earth's history was life only single cells?</li>
+      <li>Switch to "Zoom to recent". Why is that scale more useful for the last 500 million years?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cq">
+    <h2>Check yourself</h2>
+    <ol class="cq-list"></ol>
+    <button type="button" class="btn secondary small cq-new">New questions</button>
+  </div>
+</div>
+
+<style is:inline>
+  .gt-segs { display: flex; flex-wrap: wrap; gap: 8px; }
+  .gt-rl { display: grid !important; grid-template-columns: 34px 1fr 110px; align-items: center; gap: 10px !important; margin-top: 12px; color: var(--ink) !important; }
+  .gt-rl input { height: 36px; accent-color: var(--accent); }
+  .gt-rl output { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; font-size: 14px; }
+  .gt-svg { display: block; width: 100%; max-width: 460px; margin: 10px auto 4px; }
+  .gt .sp { stroke: var(--ink); stroke-width: 0.8; }
+  .gt .sp.a { fill: var(--line); }
+  .gt .sp.b { fill: var(--surface); }
+  .gt .tx { fill: var(--ink); font: 10px system-ui, sans-serif; pointer-events: none; }
+  .gt .ev { fill: var(--muted); font: 11px system-ui, sans-serif; cursor: pointer; }
+  .gt .ev.on { fill: var(--accent); font-weight: 700; }
+  .gt .ld { stroke: var(--muted); stroke-width: 0.8; }
+  .gt .now { stroke: var(--accent); stroke-width: 3; }
+  .gt .hit { fill: transparent; cursor: pointer; }
+</style>
+
+<script>
+  import { EARTH_AGE, EVENTS, SPANS, elapsed, onCalendar, onClock, placeOf } from '../../lib/sci/geotime';
+  import { mountQuiz, near, same, pickOne, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.gt')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const NS = 'http://www.w3.org/2000/svg';
+  const sv = (tag: string, attrs: Record<string, string | number>, text?: string) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, String(v)); if (text != null) n.textContent = text; return n; };
+  let scale: 'lin' | 'log' = 'lin', squeeze: 'year' | 'day' = 'year';
+  const slider = q<HTMLInputElement>('.gt-a');
+  let pinned: number | null = null;
+  const maOf = () => { if (pinned != null) return pinned; const v = 10 ** Number(slider.value); return Math.min(EARTH_AGE, v >= 10 ? Math.round(v) : Math.round(v * 10) / 10); };
+  const setMa = (ma: number) => { pinned = ma; slider.value = String(Math.log10(Math.max(0.1, ma))); };
+  const fmt = (ma: number) => (ma >= 1000 ? `${(ma / 1000).toFixed(ma % 1000 ? 2 : 1).replace(/\.?0+$/, '')} billion` : `${ma} million`);
+  const TOP = 14, BOT = 546;
+  const yOf = (ma: number) => scale === 'lin' ? TOP + ((EARTH_AGE - ma) / EARTH_AGE) * (BOT - TOP) : TOP + ((Math.log10(EARTH_AGE) - Math.log10(Math.max(ma, 0.1))) / (Math.log10(EARTH_AGE) + 1)) * (BOT - TOP);
+
+  function update() {
+    root.querySelectorAll<HTMLButtonElement>('.gt-sc button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.s === scale)));
+    root.querySelectorAll<HTMLButtonElement>('.gt-sq button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.q === squeeze)));
+    const ma = maOf(), place = placeOf(ma), ev = EVENTS.find((e) => e.ma === ma);
+    q('.gt-oa').textContent = `${ma} Ma`;
+    q('.gt-big').textContent = ev ? `${ev.label}: ${fmt(ma)} years ago` : `${fmt(ma)} years ago`;
+    const c = onCalendar(ma), k = onClock(ma);
+    q('.gt-sub').textContent = squeeze === 'year'
+      ? `If all of Earth's history were one year, this would be ${c.date} at ${c.time}${c.daysBefore < 1 ? `, only ${Math.round(c.daysBefore * 1440)} minutes before midnight on New Year's Eve` : `, ${c.daysBefore.toFixed(1)} days before the year ends`}.`
+      : `If all of Earth's history were one day, this would be ${k.time}${k.secondsBefore < 60 ? `, just ${k.secondsBefore.toFixed(1)} seconds before midnight` : k.secondsBefore < 3600 ? `, ${(k.secondsBefore / 60).toFixed(1)} minutes before midnight` : ''}.`;
+    const f = q('.gt-facts'); f.replaceChildren();
+    const fact = (kk: string, v: string) => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = kk; const dd = document.createElement('dd'); dd.textContent = v; d.append(dt, dd); f.append(d); };
+    fact('Eon', place.eon ?? '–'); fact('Era', place.era ?? 'before the eras'); fact('Period', place.period ?? 'before the periods');
+    fact("Earth's history passed", `${(elapsed(ma) * 100).toFixed(1)} %`);
+    // timeline
+    const svg = q<SVGSVGElement>('.gt-svg'); svg.replaceChildren();
+    const cols = { eon: [6, 44], era: [46, 84], period: [86, 124] } as const;
+    for (const rank of ['eon', 'era', 'period'] as const) {
+      SPANS.filter((s) => s.rank === rank).forEach((s, i) => {
+        const y1 = yOf(s.from), y2 = yOf(s.to), [x1, x2] = cols[rank];
+        svg.append(sv('rect', { x: x1, y: y1, width: x2 - x1, height: Math.max(0.5, y2 - y1), class: `sp ${i % 2 ? 'b' : 'a'}`, 'data-name': s.name }));
+        if (y2 - y1 >= 11) svg.append(sv('text', { x: (x1 + x2) / 2, y: (y1 + y2) / 2 + 3, class: 'tx', 'text-anchor': 'middle' }, s.name.length > 8 && x2 - x1 < 40 ? s.name.slice(0, 6) + '.' : s.name));
+      });
+    }
+    // event labels, pushed apart so they don't overlap
+    const ys = EVENTS.map((e) => yOf(e.ma)), lab: number[] = [];
+    ys.forEach((y, i) => { lab[i] = Math.max(y, i ? lab[i - 1] + 13 : TOP + 4); });
+    for (let i = lab.length - 1; i >= 0; i--) { const max = i === lab.length - 1 ? BOT : lab[i + 1] - 13; if (lab[i] > max) lab[i] = max; }
+    EVENTS.forEach((e, i) => {
+      svg.append(sv('line', { x1: 124, y1: ys[i], x2: 150, y2: lab[i], class: 'ld' }));
+      const t = sv('text', { x: 154, y: lab[i] + 4, class: `ev${e.ma === ma ? ' on' : ''}`, 'data-ma': e.ma }, `${e.label.length > 30 ? e.label.slice(0, 29) + '…' : e.label}`);
+      const hit = sv('rect', { x: 150, y: lab[i] - 7, width: 170, height: 13, class: 'hit', 'data-ma': e.ma, role: 'button', 'aria-label': e.label });
+      hit.addEventListener('click', () => { setMa(e.ma); update(); });
+      svg.append(t, hit);
+    });
+    svg.append(sv('line', { x1: 2, y1: yOf(ma), x2: 128, y2: yOf(ma), class: 'now' }));
+    svg.setAttribute('aria-label', `Geological time scale on ${scale === 'lin' ? 'an even' : 'a log'} scale, marker at ${ma} million years ago`);
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.gt-sc button').forEach((b) => b.addEventListener('click', () => { scale = b.dataset.s as typeof scale; update(); }));
+  root.querySelectorAll<HTMLButtonElement>('.gt-sq button').forEach((b) => b.addEventListener('click', () => { squeeze = b.dataset.q as typeof squeeze; update(); }));
+  slider.addEventListener('input', () => { pinned = null; update(); });
+  setMa(233); update();
+
+  mountQuiz(q('.cq'), (): Question[] => {
+    const e1 = pickOne(EVENTS.filter((e) => e.ma >= 66 && e.ma <= 540)), d1 = (e1.ma / EARTH_AGE) * 365;
+    const [g2, a2] = pickOne([['dinosaurs', 'Mesozoic'], ['the first land plants', 'Paleozoic'], ['modern humans', 'Cenozoic'], ['the first fish', 'Paleozoic'], ['the first flowering plants', 'Mesozoic']] as const);
+    const e3 = pickOne(EVENTS.filter((e) => e.ma > 300 && e.ma < 4540)), p3 = elapsed(e3.ma) * 100;
+    const [x, y] = [...pickOne([[EVENTS[6], EVENTS[13]], [EVENTS[7], EVENTS[11]], [EVENTS[12], EVENTS[14]], [EVENTS[3], EVENTS[5]]])].sort(() => Math.random() - 0.5), first = x.ma > y.ma ? x : y;
+    const s5 = pickOne([0.3, 7, 66]), sec5 = (s5 / EARTH_AGE) * 86400;
+    return [
+      { q: `If Earth's 4540 million years were squeezed into one 365-day year, about how many days before the end of the year would "${e1.label.toLowerCase()}" (${e1.ma} Ma) fall? (1 decimal place)`, hint: 'a number', answer: d1.toFixed(1), ok: near(d1, 0.02), worked: `${e1.ma} / 4540 × 365 = ${d1.toFixed(1)} days.` },
+      { q: `In which era did ${g2} first appear: Paleozoic, Mesozoic or Cenozoic?`, hint: 'era name', answer: a2, ok: same(a2), worked: `${g2[0].toUpperCase() + g2.slice(1)} first appear in the ${a2} era.` },
+      { q: `What percentage of Earth's history had passed by "${e3.label.toLowerCase()}" (${e3.ma} Ma)? (1 decimal place)`, hint: 'a number', answer: p3.toFixed(1), ok: near(p3, 0.005), worked: `(4540 − ${e3.ma}) / 4540 × 100 = ${p3.toFixed(1)} %.` },
+      { q: `Which came first: "${x.label.toLowerCase()}" or "${y.label.toLowerCase()}"? (type the one that came first, as written)`, hint: 'copy one', answer: first.label.toLowerCase(), ok: same(first.label.toLowerCase(), first.label), worked: `${first.label}: about ${first.ma} Ma, older than ${(first === x ? y : x).ma} Ma.` },
+      { q: `On a one-day clock of Earth's history, how many seconds before midnight is ${s5} million years ago? (1 decimal place)`, hint: 'a number', answer: sec5.toFixed(1), ok: near(sec5, 0.01), worked: `${s5} / 4540 × 86 400 s = ${sec5.toFixed(1)} s.` },
+    ];
+  });
+</script>

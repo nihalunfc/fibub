@@ -1,0 +1,141 @@
+---
+// Pedigree analyser: a three-generation family; tap people to mark them affected (or change a child's sex) and see
+// which inheritance patterns fit, the rule each other pattern breaks, and who must be a carrier.
+import '../../styles/astro.css';
+import '../../styles/chemquiz.css';
+---
+<div class="ax pa">
+  <div class="ax-card">
+    <p style="margin:0 0 6px;font-weight:650">Example families</p>
+    <div class="pa-pre"></div>
+    <div class="ax-seg pa-tap" role="group" aria-label="What a tap changes" style="margin-top:10px"><button type="button" data-t="aff" aria-pressed="true">Tap: affected</button><button type="button" data-t="sex" aria-pressed="false">Tap: boy or girl</button></div>
+    <svg class="pa-svg" viewBox="0 0 340 250" role="img" aria-label="Pedigree"></svg>
+    <p class="ax-help pa-key">■ ● affected · □ ○ unaffected · square = male, circle = female · a dot inside = must be a carrier (for the pattern you pick below). Only the children's sex can be changed; partners who married in are II-2 and II-4.</p>
+  </div>
+
+  <div class="ax-card" aria-live="polite">
+    <h2>Which patterns fit?</h2>
+    <ul class="pa-res"></ul>
+    <p class="pa-note ax-help"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lx-try">
+      <li>Load "Skips a generation". Why can it not be dominant?</li>
+      <li>Load "Sons of carrier mothers". Who must be a carrier for X-linked recessive? Now make III-3 a girl.</li>
+      <li>Load "In every generation". Two patterns fit; which is more likely for a rare trait, and why?</li>
+      <li>Make one woman affected in "Father to son". Which pattern drops out?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cq">
+    <h2>Check yourself</h2>
+    <ol class="cq-list"></ol>
+    <button type="button" class="btn secondary small cq-new">New questions</button>
+  </div>
+</div>
+
+<style is:inline>
+  .pa-pre { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pa-svg { display: block; width: 100%; max-width: 480px; margin: 10px auto 4px; touch-action: manipulation; }
+  .pa .ln { fill: none; stroke: var(--ink); stroke-width: 1.6; }
+  .pa .sym { fill: var(--surface); stroke: var(--ink); stroke-width: 2; cursor: pointer; }
+  .pa .sym.aff { fill: var(--ink); }
+  .pa .hit { fill: transparent; cursor: pointer; }
+  .pa .dot { fill: var(--accent); pointer-events: none; }
+  .pa .tx { fill: var(--muted); font: 11px system-ui, sans-serif; pointer-events: none; }
+  .pa .ed { fill: var(--accent); font: 700 11px system-ui, sans-serif; pointer-events: none; }
+  .pa-res { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .pa-res li { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; cursor: pointer; }
+  .pa-res li.on { border-color: var(--accent); border-width: 2px; }
+  .pa-res b { display: block; }
+  .pa-res .ok { color: var(--good); }
+  .pa-res .no { color: var(--bad); }
+  .pa-res small { display: block; color: var(--muted); font-size: 14px; margin-top: 2px; }
+</style>
+
+<script>
+  import { LAYOUT, MODES, PRESETS, family, fit, reason, type Mode, type Sex } from '../../lib/sci/pedigreefit';
+  import { mountQuiz, near, same, pickOne, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.pa')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const NS = 'http://www.w3.org/2000/svg';
+  const sv = (tag: string, attrs: Record<string, string | number>, text?: string) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, String(v)); if (text != null) n.textContent = text; return n; };
+  const POS: Record<string, [number, number]> = { 'I-1': [130, 30], 'I-2': [210, 30], 'II-1': [40, 115], 'II-2': [100, 115], 'II-3': [190, 115], 'II-4': [250, 115], 'II-5': [310, 115], 'III-1': [40, 205], 'III-2': [100, 205], 'III-3': [190, 205], 'III-4': [250, 205] };
+  let affected = new Set<string>(PRESETS[0].affected), sex: Record<string, Sex> = {}, tap: 'aff' | 'sex' = 'aff', pick: Mode = 'AR';
+
+  for (const p of PRESETS) { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary small'; b.dataset.p = p.id; b.textContent = p.label; b.addEventListener('click', () => { affected = new Set(p.affected); sex = { ...(p.sex ?? {}) }; const first = MODES.find((m) => fit(family([...affected], sex), m.id).fits); pick = first?.id ?? 'AD'; render(); }); q('.pa-pre').append(b); }
+
+  function render() {
+    root.querySelectorAll<HTMLButtonElement>('.pa-tap button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.t === tap)));
+    const fam = family([...affected], sex), results = MODES.map((m) => ({ ...m, f: fit(fam, m.id), why: reason(fam, m.id) }));
+    const chosen = results.find((r) => r.id === pick)!;
+    const svg = q<SVGSVGElement>('.pa-svg'); svg.replaceChildren();
+    const S = 13;
+    // lines: couples, drops and sibships
+    const couple = (a: string, b: string) => { const [x1, y] = POS[a], [x2] = POS[b]; svg.append(sv('line', { x1: Math.min(x1, x2) + S, y1: y, x2: Math.max(x1, x2) - S, y2: y, class: 'ln' })); return (x1 + x2) / 2; };
+    const kids = (mid: number, y: number, ids: string[]) => { const xs = ids.map((i) => POS[i][0]), ky = POS[ids[0]][1]; svg.append(sv('path', { d: `M${mid} ${y} V${ky - 35} M${Math.min(...xs, mid)} ${ky - 35} H${Math.max(...xs, mid)}`, class: 'ln' })); for (const x of xs) svg.append(sv('line', { x1: x, y1: ky - 35, x2: x, y2: ky - S, class: 'ln' })); };
+    kids(couple('I-1', 'I-2'), 30, ['II-1', 'II-3', 'II-5']);
+    kids(couple('II-1', 'II-2'), 115, ['III-1', 'III-2']);
+    kids(couple('II-3', 'II-4'), 115, ['III-3', 'III-4']);
+    for (const p of fam) {
+      const [x, y] = POS[p.id], cls = `sym${p.affected ? ' aff' : ''}`;
+      const g = sv('g', { 'data-id': p.id, role: 'button', tabindex: 0, 'aria-label': `${p.id}, ${p.sex === 'M' ? 'male' : 'female'}, ${p.affected ? 'affected' : 'unaffected'}` });
+      g.append(p.sex === 'M' ? sv('rect', { x: x - S, y: y - S, width: 2 * S, height: 2 * S, class: cls }) : sv('circle', { cx: x, cy: y, r: S, class: cls }));
+      if (chosen.f.fits && chosen.f.carriers.includes(p.id)) g.append(sv('circle', { cx: x, cy: y, r: 4.5, class: 'dot' }));
+      g.append(sv('rect', { x: x - 22, y: y - 22, width: 44, height: 44, class: 'hit' }));
+      const editable = !LAYOUT.find((l) => l.id === p.id)!.sexFixed;
+      svg.append(g, sv('text', { x, y: y + S + 13, class: tap === 'sex' && editable ? 'ed' : 'tx', 'text-anchor': 'middle' }, p.id));
+      const act = () => {
+        if (tap === 'aff') { affected.has(p.id) ? affected.delete(p.id) : affected.add(p.id); }
+        else if (editable) sex[p.id] = p.sex === 'M' ? 'F' : 'M';
+        render();
+      };
+      g.addEventListener('click', act);
+      g.addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter' || (e as KeyboardEvent).key === ' ') { e.preventDefault(); act(); } });
+    }
+    const ul = q('.pa-res'); ul.replaceChildren();
+    for (const r of results) {
+      const li = document.createElement('li'); li.dataset.m = r.id; if (r.id === pick) li.className = 'on';
+      const b = document.createElement('b'); const mark = document.createElement('span'); mark.className = r.f.fits ? 'ok' : 'no'; mark.textContent = r.f.fits ? '✓ Fits' : '✗ Ruled out'; b.append(mark, ` · ${r.name}`);
+      const sm = document.createElement('small');
+      sm.textContent = r.f.fits
+        ? (r.f.carriers.length ? `Needs carrier${r.f.carriers.length > 1 ? 's' : ''}: ${r.f.carriers.join(', ')}.` : (r.id === 'AR' || r.id === 'XR') ? 'Carriers may be present but none is certain.' : 'No hidden carriers in a dominant or Y-linked pattern.')
+        : (r.why ?? 'No set of genotypes fits every parent and child.');
+      li.append(b, sm); li.addEventListener('click', () => { pick = r.id; render(); }); ul.append(li);
+    }
+    const fitsN = results.filter((r) => r.f.fits);
+    const outside = (r: typeof results[number]) => r.f.carriers.filter((c) => c === 'II-2' || c === 'II-4').length;
+    q('.pa-note').textContent = fitsN.length === 0 ? 'Nothing fits: with full penetrance and one gene, this family is impossible. Check the symbols.'
+      : fitsN.length === 1 ? `Only ${fitsN[0].name.toLowerCase()} fits.`
+      : `${fitsN.length} patterns fit. For a rare trait, prefer the one that needs the fewest unrelated carriers marrying in${fitsN.some((r) => outside(r) > 0) ? ` (${fitsN.map((r) => `${r.id}: ${outside(r)}`).join(', ')})` : ''}. Bigger families tell them apart.`;
+  }
+  root.querySelectorAll<HTMLButtonElement>('.pa-tap button').forEach((b) => b.addEventListener('click', () => { tap = b.dataset.t as typeof tap; render(); }));
+  render();
+
+  mountQuiz(q('.cq'), (): Question[] => {
+    const probs = [
+      ['Two carrier parents (Aa × Aa) of an autosomal recessive trait have a child. What is the chance it is affected? (a decimal)', 0.25, 'Aa × Aa gives AA : Aa : aa = 1 : 2 : 1, so 1/4 = 0.25 are aa.'],
+      ['A man with an autosomal dominant trait (Aa) and an unaffected woman (aa) have a child. What is the chance it is affected? (a decimal)', 0.5, 'Aa × aa gives Aa : aa = 1 : 1, so 0.5.'],
+      ['A carrier mother (XᴬXᵃ) and an unaffected father (XᴬY) have a son. What is the chance he has an X-linked recessive trait? (a decimal)', 0.5, 'A son gets his only X from his mother: Xᵃ half the time, so 0.5.'],
+      ['A carrier mother (XᴬXᵃ) and an unaffected father (XᴬY) have a daughter. What is the chance she is affected by the X-linked recessive trait? (a decimal)', 0, 'She always gets Xᴬ from her father, so she cannot be XᵃXᵃ: 0.'],
+      ['A father with an X-linked dominant trait and an unaffected mother have a daughter. What is the chance she is affected? (a decimal)', 1, 'He gives his only X, which carries the trait, to every daughter: 1.'],
+    ] as const;
+    const pr = [...probs].sort(() => Math.random() - 0.5).slice(0, 3);
+    const [rq, ra, rw] = pickOne([
+      ['Two unaffected parents have an affected child. Is the trait dominant or recessive?', 'recessive', 'A dominant trait shows in anyone who carries it, so an affected child of two unaffected parents means a recessive allele carried silently by both.'],
+      ['Two affected parents have an unaffected child. Is the trait dominant or recessive?', 'dominant', 'If it were recessive both parents would be aa and every child aa too; so it is dominant and both parents are Aa.'],
+    ] as const);
+    const [yq, ya, yw] = pickOne([
+      ['An affected father has an unaffected son. Which one pattern does this rule out: AD, AR, XR or Y?', 'Y', 'A Y chromosome goes from father to every son unchanged, so father and son would match.'],
+      ['An affected mother has an unaffected son. Which one pattern does this rule out: AD, AR, XR or Y?', 'XR', 'An affected mother has the allele on both X chromosomes, and every son gets one of them.'],
+    ] as const);
+    return [
+      ...pr.map(([qq, a, w]) => ({ q: qq, hint: 'like 0.25', answer: String(a), ok: near(a, 0.001), worked: w })),
+      { q: rq, hint: 'dominant or recessive', answer: ra, ok: same(ra), worked: rw },
+      { q: yq, hint: 'AD, AR, XR or Y', answer: ya, ok: same(ya, ya === 'Y' ? 'Y-linked' : 'X-linked recessive'), worked: yw },
+    ];
+  });
+</script>

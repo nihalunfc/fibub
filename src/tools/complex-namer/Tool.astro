@@ -1,0 +1,158 @@
+---
+// Coordination compound namer: pick a metal, its oxidation state, ligands and a counter ion; get the formula,
+// IUPAC name, coordination number, charge, shape, ions in water and Werner's silver chloride test.
+import '../../styles/astro.css';
+import '../../styles/chemquiz.css';
+---
+<div class="ax cx">
+  <div class="ax-card">
+    <p style="margin:0 0 6px;font-weight:650">Examples</p>
+    <div class="cx-pre"></div>
+    <div class="cx-top">
+      <label>Metal <select class="cx-m" aria-label="Metal"></select></label>
+      <div class="ax-seg cx-ox" role="group" aria-label="Oxidation state"></div>
+    </div>
+    <p style="margin:12px 0 6px;font-weight:650">Ligands <span class="cx-cnnow"></span></p>
+    <div class="cx-ligs"></div>
+    <div class="cx-cwrap">
+      <p style="margin:12px 0 6px;font-weight:650">Counter ion</p>
+      <div class="ax-seg cx-ctr" role="group" aria-label="Counter ion"></div>
+    </div>
+  </div>
+
+  <div class="ax-card cx-out" aria-live="polite">
+    <p class="cx-formula"></p>
+    <p class="ax-big cx-name" style="margin:4px 0 10px"></p>
+    <p class="cx-err"></p>
+    <dl class="ax-facts cx-facts"></dl>
+    <p class="lx-eq cx-eq"></p>
+    <p class="cx-werner ax-help"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>How the name is built</h2>
+    <ol class="lx-try">
+      <li>The cation is named first, then the anion, as for any salt.</li>
+      <li>Inside the complex, ligands come first in alphabetical order (ignore di-, tri- …), then the metal.</li>
+      <li>Anionic ligands end in -ido (chlorido, cyanido); water is aqua, ammonia ammine, CO carbonyl.</li>
+      <li>Numbers: di, tri, tetra …; for ligands whose names already contain numbers, such as ethane-1,2-diamine, use bis, tris … with brackets.</li>
+      <li>The oxidation state of the metal is shown in Roman numerals. In a negative complex the metal ends in -ate (ferrate, cuprate, argentate).</li>
+      <li>In the formula, the metal comes first and the ligands follow in alphabetical order of their symbols, with polyatomic ligands in brackets. (Some older books order them differently.)</li>
+    </ol>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lx-try">
+      <li>Tap Werner's three cobalt examples. How many moles of AgCl does each give with silver nitrate, and why?</li>
+      <li>Compare K₃[Fe(CN)₆] and K₄[Fe(CN)₆]. Which part of the name changes?</li>
+      <li>Make [Co(NH₃)₆]³⁺ with sulfate as the counter ion. Why are there two complex ions in the formula?</li>
+      <li>Swap ammonia for ethane-1,2-diamine. How many en ligands give coordination number 6?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cq">
+    <h2>Check yourself</h2>
+    <ol class="cq-list"></ol>
+    <button type="button" class="btn secondary small cq-new">New questions</button>
+  </div>
+</div>
+
+<style is:inline>
+  .cx-pre { display: flex; flex-wrap: wrap; gap: 6px; }
+  .cx-top { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 12px; }
+  .cx-top label { display: flex; gap: 8px; align-items: center; font-weight: 650; }
+  .cx select { font: inherit; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+  .cx-ligs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 6px; }
+  .cx-lig { display: grid; grid-template-columns: 1fr 40px 28px 40px; align-items: center; gap: 4px; border: 1px solid var(--line); border-radius: 10px; padding: 4px 6px 4px 10px; }
+  .cx-lig.on { border-color: var(--accent); }
+  .cx-lig span small { display: block; color: var(--muted); font-size: 12px; }
+  .cx-lig button { min-height: 40px; font: 700 18px system-ui, sans-serif; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .cx-lig button:disabled { opacity: 0.35; cursor: default; }
+  .cx-lig output { text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .cx-formula { font: 700 26px/1.3 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; margin: 0; overflow-wrap: anywhere; }
+  .cx-name { overflow-wrap: anywhere; }
+  .cx-err { color: var(--bad); font-weight: 650; margin: 0; }
+  .cx-err:empty { display: none; }
+  .cx-cwrap[hidden] { display: none; }
+</style>
+
+<script>
+  import { COUNTERS, LIGANDS, METAL, METALS, PRESETS, analyse, type Spec } from '../../lib/sci/coordname';
+  import { mountQuiz, near, same, pickOne, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.cx')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const ROMAN = ['0', 'I', 'II', 'III', 'IV'];
+  const spec: Spec = { metal: 'Co', ox: 3, ligands: { NH3: 5, Cl: 1 }, counter: 'Cl' };
+  const sel = q<HTMLSelectElement>('.cx-m');
+  for (const m of METALS) sel.append(new Option(`${m.sym} (${m.name})`, m.sym));
+
+  for (const p of PRESETS) { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn secondary small'; b.textContent = p.label; b.addEventListener('click', () => { Object.assign(spec, JSON.parse(JSON.stringify(p.spec))); if (!p.spec.counter) spec.counter = undefined; render(); }); q('.cx-pre').append(b); }
+  const ligBox = q('.cx-ligs');
+  for (const l of LIGANDS) {
+    const row = document.createElement('div'); row.className = 'cx-lig'; row.dataset.l = l.id;
+    const lab = document.createElement('span'); lab.textContent = l.formula === 'en' || l.formula === 'ox' ? l.formula : l.formula + (l.charge ? (l.charge === -2 ? '²⁻' : '⁻') : '');
+    const sm = document.createElement('small'); sm.textContent = `${l.name}${l.dent > 1 ? ', bidentate' : ''}`; lab.append(sm);
+    const minus = document.createElement('button'); minus.type = 'button'; minus.textContent = '−'; minus.className = 'cx-minus'; minus.setAttribute('aria-label', `Remove one ${l.name}`);
+    const out = document.createElement('output'); out.textContent = '0';
+    const plus = document.createElement('button'); plus.type = 'button'; plus.textContent = '+'; plus.className = 'cx-plus'; plus.setAttribute('aria-label', `Add one ${l.name}`);
+    minus.addEventListener('click', () => { spec.ligands[l.id] = Math.max(0, (spec.ligands[l.id] ?? 0) - 1); render(); });
+    plus.addEventListener('click', () => { spec.ligands[l.id] = (spec.ligands[l.id] ?? 0) + 1; render(); });
+    row.append(lab, minus, out, plus); ligBox.append(row);
+  }
+  for (const c of COUNTERS) { const b = document.createElement('button'); b.type = 'button'; b.dataset.c = c.id; b.textContent = c.formula + (c.charge === -2 ? '²⁻' : c.charge < 0 ? '⁻' : '⁺'); b.addEventListener('click', () => { spec.counter = c.id; render(); }); q('.cx-ctr').append(b); }
+  sel.addEventListener('change', () => { spec.metal = sel.value; if (!METAL[spec.metal].ox.includes(spec.ox)) spec.ox = METAL[spec.metal].ox.at(-1)!; render(); });
+
+  function render() {
+    sel.value = spec.metal;
+    const ox = q('.cx-ox'); ox.replaceChildren();
+    for (const o of METAL[spec.metal].ox) { const b = document.createElement('button'); b.type = 'button'; b.dataset.o = String(o); b.textContent = `${spec.metal}(${ROMAN[o]})`; b.setAttribute('aria-pressed', String(o === spec.ox)); b.addEventListener('click', () => { spec.ox = o; render(); }); ox.append(b); }
+    const cn = LIGANDS.reduce((a, l) => a + l.dent * (spec.ligands[l.id] ?? 0), 0);
+    q('.cx-cnnow').textContent = `(coordination number so far: ${cn})`;
+    root.querySelectorAll<HTMLElement>('.cx-lig').forEach((row) => {
+      const l = LIGANDS.find((x) => x.id === row.dataset.l)!, n = spec.ligands[l.id] ?? 0;
+      row.querySelector('output')!.textContent = String(n); row.classList.toggle('on', n > 0);
+      row.querySelector<HTMLButtonElement>('.cx-minus')!.disabled = n === 0;
+      row.querySelector<HTMLButtonElement>('.cx-plus')!.disabled = cn + l.dent > 6;
+    });
+    const charge = spec.ox + LIGANDS.reduce((a, l) => a + l.charge * (spec.ligands[l.id] ?? 0), 0);
+    // keep a sensible counter ion for the sign of the complex
+    if (charge > 0 && (!spec.counter || COUNTERS.find((c) => c.id === spec.counter)!.charge > 0)) spec.counter = 'Cl';
+    if (charge < 0 && (!spec.counter || COUNTERS.find((c) => c.id === spec.counter)!.charge < 0)) spec.counter = 'K';
+    q('.cx-cwrap').hidden = charge === 0;
+    root.querySelectorAll<HTMLButtonElement>('.cx-ctr button').forEach((b) => { const c = COUNTERS.find((x) => x.id === b.dataset.c)!; b.hidden = charge === 0 || Math.sign(c.charge) === Math.sign(charge); b.setAttribute('aria-pressed', String(b.dataset.c === spec.counter)); });
+    const f = q('.cx-facts'); f.replaceChildren();
+    const fact = (k: string, v: string, s = '') => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; dd.append(sm); } d.append(dt, dd); f.append(d); };
+    q('.cx-err').textContent = ''; q('.cx-eq').textContent = ''; q('.cx-werner').textContent = '';
+    let a;
+    try { a = analyse({ ...spec, counter: charge === 0 ? undefined : spec.counter }); } catch (e) { q('.cx-formula').textContent = ''; q('.cx-name').textContent = ''; q('.cx-err').textContent = (e as Error).message; return; }
+    q('.cx-formula').textContent = a.formula;
+    q('.cx-name').textContent = a.name;
+    fact('Coordination number', String(a.cn), a.geometry);
+    fact('Charge on the complex', a.charge === 0 ? '0 (neutral)' : a.ionCharge, `${a.ion}${a.ionCharge ? a.ionCharge.replace('−', '⁻').replace('+', '⁺').replace(/\d/, (d) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[Number(d)]) : ''}`);
+    fact('Ions in water', a.charge === 0 ? 'none' : String(a.ionsInWater), a.charge === 0 ? 'a neutral complex does not ionise' : `${a.nComplex} complex + ${a.nCounter} counter`);
+    if (a.cn !== 2 && a.cn !== 4 && a.cn !== 6) q('.cx-err').textContent = `Coordination number ${a.cn} is unusual; school examples use 2, 4 or 6.`;
+    const ligSum = LIGANDS.filter((l) => (spec.ligands[l.id] ?? 0) > 0 && l.charge).map((l) => `${spec.ligands[l.id]} × (${l.charge})`);
+    q('.cx-eq').textContent = `Charge = oxidation state + ligand charges = ${spec.ox}${ligSum.length ? ' + ' + ligSum.join(' + ') : ' + 0'} = ${a.charge}`.replace(/-/g, '−');
+    q('.cx-werner').textContent = a.charge > 0 && spec.counter === 'Cl'
+      ? `Werner's test: silver nitrate precipitates only the chloride ions outside the brackets, so 1 mol of this compound gives ${a.agclPerMole} mol of AgCl. Chlorides bound to the metal stay in the complex.`
+      : a.charge === 0 ? 'Werner\'s test: no free ions, so silver nitrate gives no precipitate and the solution hardly conducts.' : '';
+  }
+  render();
+
+  mountQuiz(q('.cq'), (): Question[] => {
+    const p1 = pickOne(PRESETS), a1 = analyse(p1.spec);
+    const p2 = pickOne(PRESETS.filter((p) => p.spec.ox > 0)), a2 = analyse(p2.spec);
+    const p3 = pickOne(PRESETS.slice(0, 3)), a3 = analyse(p3.spec);
+    const p4 = pickOne(PRESETS.filter((p) => p.label !== '[Ni(CO)₄]' && p.label !== '[PtCl₂(NH₃)₂]')), a4 = analyse(p4.spec);
+    const p5 = pickOne(PRESETS), a5 = analyse(p5.spec);
+    return [
+      { q: `What is the coordination number of the metal in ${a1.formula}?`, hint: 'a whole number', answer: String(a1.cn), ok: same(String(a1.cn)), worked: `Count the donor atoms: ${LIGANDS.filter((l) => (p1.spec.ligands[l.id] ?? 0) > 0).map((l) => `${p1.spec.ligands[l.id]} ${l.formula}${l.dent > 1 ? ' × 2 (bidentate)' : ''}`).join(' + ')} = ${a1.cn}.` },
+      { q: `What is the oxidation state of ${p2.spec.metal} in ${a2.formula}?`, hint: 'a number like 3', answer: String(p2.spec.ox), ok: near(p2.spec.ox, 0.001), worked: `The complex ion ${a2.ion} carries ${a2.ionCharge || '0'}. Oxidation state = complex charge − ligand charges = ${a2.charge} − (${LIGANDS.reduce((s, l) => s + l.charge * (p2.spec.ligands[l.id] ?? 0), 0)}) = ${p2.spec.ox}.` },
+      { q: `How many moles of AgCl precipitate when 1 mol of ${a3.formula} reacts with excess silver nitrate?`, hint: 'a whole number', answer: String(a3.agclPerMole), ok: same(String(a3.agclPerMole)), worked: `Only the ${a3.agclPerMole} chloride ion${a3.agclPerMole > 1 ? 's' : ''} outside the brackets ${a3.agclPerMole > 1 ? 'are' : 'is'} free to react.` },
+      { q: `How many ions does one formula unit of ${a4.formula} give in water?`, hint: 'a whole number', answer: String(a4.ionsInWater), ok: same(String(a4.ionsInWater)), worked: `${a4.nComplex} complex ion${a4.nComplex > 1 ? 's' : ''} + ${a4.nCounter} counter ion${a4.nCounter > 1 ? 's' : ''} = ${a4.ionsInWater}.` },
+      { q: `Write the IUPAC name of ${a5.formula}.`, hint: 'the name', answer: a5.name, ok: same(a5.name, a5.name.replace('ethane-1,2-diamine', 'ethylenediamine')), worked: `Ligands in alphabetical order, then the metal${a5.charge < 0 ? ' with -ate' : ''} and its oxidation state.` },
+    ];
+  });
+</script>
