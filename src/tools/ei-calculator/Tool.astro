@@ -1,0 +1,424 @@
+---
+// #T848 EI Calculator: Canadian Employment Insurance regular benefits after a layoff. Maths in src/lib/money/ei.ts.
+---
+<div class="tool-ui ec">
+  <details class="panel ec-need" open>
+    <summary><b>Before you start: what you need</b></summary>
+    <p class="ec-hint">EI is for anyone who worked in insurable employment in Canada: citizens, permanent residents, students with a job, and work-permit holders, including PGWP and open work permits. You can answer with rough numbers first and fill in exact ones later. The more of these you have, the closer the estimate.</p>
+    <ul class="ec-list">
+      <li><b>Record of Employment (ROE)</b> for every job in the last 52 weeks. Your employer files it; you can see it in My Service Canada Account. Box 15A has your insurable hours, 15B or 15C your insurable earnings, box 16 the reason the job ended.</li>
+      <li><b>Pay stubs</b> for the last 52 weeks, if you do not have the ROE yet (hours and gross pay for each pay period).</li>
+      <li><b>Your postal code</b>, to find your EI economic region and its unemployment rate.</li>
+      <li><b>Your last day of work</b> and <b>why the job ended</b> (layoff, end of contract, quit, dismissal).</li>
+      <li><b>Social Insurance Number (SIN)</b>. If you are on a work permit (including a PGWP), your SIN starts with 9 and your permit or status should still be valid.</li>
+      <li><b>Any money paid when you left</b>: severance, vacation pay, pay in lieu of notice.</li>
+      <li>For the application itself: bank details for direct deposit, and the dates you will be away or in school.</li>
+    </ul>
+    <p class="ec-hint">Three ways to give your pay and hours, pick whichever you have: type the totals, add your pay stubs one by one, or open your ROE or pay stub files (PDF or photo) and the tool reads them on your device.</p>
+  </details>
+
+  <section class="panel">
+    <h2>1. Where you live and when you claim</h2>
+    <div class="ec-grid">
+      <label>EI economic region <select class="ec-region"></select></label>
+      <label>Regional unemployment rate (%) <input class="ec-rate" inputmode="decimal" value="7.2" /></label>
+      <label>Claim start date <input class="ec-date" type="date" /></label>
+      <label>Type of work
+        <select class="ec-work">
+          <option value="employee" selected>Employee (any job, any status)</option>
+          <option value="seasonal">Seasonal worker</option>
+          <option value="teacher">Teacher</option>
+          <option value="apprentice">Apprentice in training</option>
+          <option value="fisher">Self-employed fisher</option>
+          <option value="self">Self-employed (other)</option>
+        </select>
+      </label>
+    </div>
+    <p class="ec-hint">Rates are for <span class="ec-period"></span> and change every month. Not sure of your region? Look it up by postal code on the <a href="https://srv129.services.gc.ca/rbin/eng/rates_cur.aspx" rel="noopener" target="_blank">official EI rates page</a> and type the rate here.</p>
+  </section>
+
+  <section class="panel">
+    <h2>2. Your hours and pay</h2>
+    <div class="ec-tabs" role="tablist">
+      <button type="button" class="btn secondary small" role="tab" data-mode="type" aria-selected="true">Type totals</button>
+      <button type="button" class="btn secondary small" role="tab" data-mode="stubs" aria-selected="false">Pay stubs</button>
+      <button type="button" class="btn secondary small" role="tab" data-mode="files" aria-selected="false">Open ROE or stubs</button>
+    </div>
+
+    <div class="ec-mode" data-for="type">
+      <div class="ec-grid">
+        <label>Insurable hours in the last 52 weeks <input class="ec-hours" inputmode="decimal" value="1500" /></label>
+        <label>How do you know your pay?
+          <select class="ec-paymode">
+            <option value="usual" selected>My usual pay</option>
+            <option value="total">A total over a number of weeks (ROE box 15B)</option>
+            <option value="best">The total of my best weeks</option>
+          </select>
+        </label>
+        <label class="ec-pm" data-pm="usual">Pay before tax <input class="ec-pay" inputmode="decimal" value="1000" /></label>
+        <label class="ec-pm" data-pm="usual">Per
+          <select class="ec-per">
+            <option value="hour">Hour</option><option value="week" selected>Week</option><option value="2week">Two weeks</option>
+            <option value="month">Month</option><option value="year">Year</option>
+          </select>
+        </label>
+        <label class="ec-pm" data-pm="usual" data-hour>Hours a week <input class="ec-hpw" inputmode="decimal" value="37.5" /></label>
+        <label class="ec-pm" data-pm="total" hidden>Total insurable earnings <input class="ec-tot" inputmode="decimal" value="52000" /></label>
+        <label class="ec-pm" data-pm="total" hidden>Over how many weeks <input class="ec-totw" inputmode="decimal" value="52" /></label>
+        <label class="ec-pm" data-pm="best" hidden>Earnings in your best <span class="ec-bn"></span> weeks <input class="ec-best" inputmode="decimal" value="20000" /></label>
+      </div>
+      <p class="ec-hint">Insurable hours are the paid hours on your ROE: work, paid vacation and paid leave. Overtime counts as the hours paid.</p>
+    </div>
+
+    <div class="ec-mode" data-for="stubs" hidden>
+      <p class="ec-hint">One row per pay stub. Only stubs that end in the 52 weeks before your claim date count. Use gross pay (before tax).</p>
+      <div class="ec-tw">
+        <table class="ec-stubs">
+          <thead><tr><th>Period ends</th><th>Pay period</th><th>Hours</th><th>Gross pay</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="ec-row">
+        <button type="button" class="btn secondary small ec-add">Add a stub</button>
+        <button type="button" class="btn secondary small ec-fill">Fill 26 two-week stubs</button>
+        <button type="button" class="btn secondary small ec-clear">Clear</button>
+      </div>
+      <p class="ec-stubsum ec-hint" aria-live="polite"></p>
+    </div>
+
+    <div class="ec-mode" data-for="files" hidden>
+      <p class="ec-hint">Open your ROE or pay stubs (PDF, JPG or PNG; several at once is fine). The text is read on this device; nothing is uploaded. Photos need the text reader (about 7 MB the first time). Check every number it finds.</p>
+      <input class="ec-file" type="file" accept="application/pdf,image/*" multiple />
+      <p class="ec-fstat ec-hint" aria-live="polite"></p>
+      <ul class="ec-found"></ul>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>3. Why your job ended</h2>
+    <div class="ec-grid">
+      <label>Reason <select class="ec-reason"></select></label>
+      <label class="ec-fish" hidden>Fishing earnings in the qualifying period <input class="ec-fishe" inputmode="decimal" value="5000" /></label>
+    </div>
+    <p class="ec-rnote ec-hint"></p>
+    <div class="ec-checks">
+      <label class="ec-ck"><input type="checkbox" class="ec-seven" checked /> I have had (or will have) 7 days in a row with no work and no pay</label>
+      <label class="ec-ck"><input type="checkbox" class="ec-long" /> I am a long-tenured worker: paid EI premiums for 7 of the last 10 years and got fewer than 36 weeks of regular benefits in the last 3 years</label>
+      <label class="ec-ck ec-seasonal" hidden><input type="checkbox" class="ec-seas" /> I had 3 or more claims in the last 5 years, at least 2 starting around this time of year</label>
+    </div>
+    <details class="ec-more">
+      <summary>Less common: past EI violations</summary>
+      <label>Notice of violation on an earlier claim
+        <select class="ec-viol"></select>
+      </label>
+      <p class="ec-hint">A violation (from a false or misleading claim) raises the hours you need by a quarter to double.</p>
+    </details>
+  </section>
+
+  <section class="ec-res" aria-live="polite">
+    <p class="ec-verdict"></p>
+    <div class="ec-stats">
+      <div><span>Weekly benefit (before tax)</span><b class="ec-weekly"></b></div>
+      <div><span>Weeks of benefits</span><b class="ec-weeks"></b></div>
+      <div><span>Total over the claim</span><b class="ec-total"></b></div>
+      <div><span>Hours: you have / needed</span><b class="ec-hrs"></b></div>
+    </div>
+    <div class="panel ec-tw">
+      <table><tbody class="ec-body"></tbody></table>
+    </div>
+    <ul class="ec-notes"></ul>
+  </section>
+
+  <details class="panel ec-custom">
+    <summary><b>Change the rules (custom values)</b></summary>
+    <p class="ec-hint">The defaults are the official values checked on <span class="ec-checked"></span>. If the rules change before this tool is updated, type the new values here. They are used only on this page and are not saved.</p>
+    <div class="ec-grid">
+      <label>Benefit rate (% of average weekly earnings) <input class="ec-c" data-k="rate" data-pct inputmode="decimal" /></label>
+      <label>Maximum insurable earnings a year <input class="ec-c" data-k="mie" inputmode="decimal" /></label>
+      <label>Maximum weekly benefit <input class="ec-c" data-k="maxWeekly" inputmode="decimal" /></label>
+      <label>Most weeks in a claim <input class="ec-c" data-k="maxWeeks" inputmode="decimal" /></label>
+      <label>Unpaid waiting weeks <input class="ec-c" data-k="waitingWeeks" inputmode="decimal" /></label>
+      <label>Extra weeks (any other measure) <input class="ec-extra" inputmode="decimal" value="0" /></label>
+    </div>
+    <div class="ec-tw">
+      <table class="ec-ctab">
+        <thead><tr><th>Regional rate</th><th>Hours needed</th><th>Best weeks</th><th>Fishing earnings</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <h3>Temporary measures (claim start dates)</h3>
+    <div class="ec-grid">
+      <label>No waiting week from <input class="ec-c" data-k="waiverFrom" type="date" /></label>
+      <label>to <input class="ec-c" data-k="waiverTo" type="date" /></label>
+      <label>Long-tenured extra weeks from <input class="ec-c" data-k="longFrom" type="date" /></label>
+      <label>to <input class="ec-c" data-k="longTo" type="date" /></label>
+      <label>Long-tenured extra weeks <input class="ec-c" data-k="longExtra" inputmode="decimal" /></label>
+      <label>Long-tenured most weeks <input class="ec-c" data-k="longMax" inputmode="decimal" /></label>
+      <label>Seasonal extra weeks from <input class="ec-c" data-k="seasonalFrom" type="date" /></label>
+      <label>to <input class="ec-c" data-k="seasonalTo" type="date" /></label>
+      <label>Seasonal extra weeks <input class="ec-c" data-k="seasonalExtra" inputmode="decimal" /></label>
+    </div>
+    <button type="button" class="btn secondary small ec-reset">Back to official values</button>
+  </details>
+
+  <p class="ec-fine">An estimate for EI regular benefits only, not official advice and not a decision. Service Canada decides who qualifies and how much is paid. EI benefits are taxable income. Check the official source at canada.ca/ei or call Service Canada. Nothing you type or open leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ec { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .ec h2 { margin: 0 0 12px; font-size: 18px; }
+  .ec h3 { margin: 14px 0 8px; font-size: 15px; }
+  .ec .panel { padding: 16px; min-width: 0; }
+  .ec summary { cursor: pointer; }
+  .ec-list { margin: 8px 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .ec-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+  .ec label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ec input, .ec select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ec input[type=checkbox] { width: auto; padding: 0; }
+  .ec input[type=file] { padding: 8px; }
+  .ec-hint, .ec-fine { color: var(--muted); font-size: 14px; margin: 10px 0 0; }
+  .ec-tabs, .ec-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .ec-row { margin: 10px 0 0; }
+  .ec-tabs [aria-selected=true] { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .ec-checks { display: grid; gap: 8px; margin-top: 12px; }
+  .ec label.ec-ck { display: flex; gap: 8px; align-items: flex-start; color: var(--ink); font-size: 14px; }
+  .ec label.ec-ck input { margin-top: 3px; flex: none; }
+  .ec-more { margin-top: 12px; }
+  .ec-more label { margin-top: 8px; max-width: 320px; }
+  .ec-res { display: grid; gap: 12px; min-width: 0; }
+  .ec-verdict { margin: 0; padding: 12px 14px; border-radius: 12px; border: 2px solid var(--line); font-weight: 600; }
+  .ec-verdict.good { border-color: var(--good); }
+  .ec-verdict.warn { border-color: var(--warn); }
+  .ec-verdict.bad { border-color: var(--bad); }
+  .ec-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .ec-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .ec-stats span { font-size: 13px; color: var(--muted); }
+  .ec-stats b { font-size: 20px; }
+  .ec-tw { overflow-x: auto; }
+  .ec table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .ec th, .ec td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  .ec td:last-child { text-align: right; }
+  .ec th { font-size: 12px; color: var(--muted); }
+  .ec-stubs input, .ec-stubs select, .ec-ctab input { padding: 6px 8px; min-width: 70px; }
+  .ec-stubs td:last-child, .ec-ctab td:last-child { text-align: left; }
+  .ec-notes { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 14px; }
+  .ec-found { margin: 8px 0 0; padding-left: 20px; font-size: 14px; display: grid; gap: 4px; }
+  @media (max-width: 640px) { .ec-stats { grid-template-columns: 1fr 1fr; } .ec-stats b { font-size: 17px; } }
+</style>
+
+<script>
+  import { DEFAULTS, BANDS, REASONS, VIOLATION_NAMES, REGIONS, RATES_PERIOD, SEASONAL_REGIONS, PROVINCE_NAMES, CHECKED, PERIODS, ROE_CODES,
+    ei, band, fromStubs, readDocText, type Rules, type Reason, type Stub } from '../../lib/money/ei.ts';
+  const root = document.querySelector('.ec') as HTMLElement;
+  const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector(s) as T;
+  const qa = <T extends HTMLElement = HTMLElement>(s: string) => [...root.querySelectorAll(s)] as T[];
+  const num = (s: string) => { const n = parseFloat(String(s).replace(/[^0-9.\-]/g, '')); return isFinite(n) ? n : 0; };
+  const $ = (n: number) => n.toLocaleString('en-CA', { style: 'currency', currency: 'CAD' });
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+  const fmtDate = (d: string) => new Date(d + 'T12:00:00Z').toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+  const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+
+  // ----- set up controls -----
+  const region = q<HTMLSelectElement>('.ec-region'), rate = q<HTMLInputElement>('.ec-rate');
+  const provs = [...new Set(REGIONS.map((r) => r[0]))];
+  region.innerHTML = provs.map((p) => `<optgroup label="${PROVINCE_NAMES[p]}">${REGIONS.filter((r) => r[0] === p)
+    .map((r) => `<option value="${r[1]}"${r[1] === '27' ? ' selected' : ''}>${esc(r[2])} (${r[3]}%)</option>`).join('')}</optgroup>`).join('')
+    + '<option value="custom">Other: I will type the rate</option>';
+  q('.ec-period').textContent = RATES_PERIOD;
+  q('.ec-checked').textContent = fmtDate(CHECKED);
+  q<HTMLInputElement>('.ec-date').value = today();
+  q('.ec-reason').innerHTML = Object.entries(REASONS).map(([k, r]) => `<option value="${k}">${r.name}</option>`).join('');
+  q('.ec-viol').innerHTML = VIOLATION_NAMES.map((n, i) => `<option value="${i}">${n}</option>`).join('');
+  region.addEventListener('change', () => { const r = REGIONS.find((x) => x[1] === region.value); if (r) rate.value = String(r[3]); });
+  rate.addEventListener('input', () => { const r = REGIONS.find((x) => x[1] === region.value); if (r && num(rate.value) !== r[3]) region.value = 'custom'; });
+
+  // ----- custom rules -----
+  let rules: Rules = structuredClone(DEFAULTS);
+  const ctab = q('.ec-ctab tbody');
+  const drawRules = () => {
+    qa<HTMLInputElement>('.ec-c').forEach((el) => { const v = (rules as any)[el.dataset.k!]; el.value = el.hasAttribute('data-pct') ? String(Math.round(v * 10000) / 100) : String(v); });
+    ctab.innerHTML = BANDS.map((b, i) => `<tr><td>${b}</td><td><input data-t="hours" data-i="${i}" inputmode="decimal" value="${rules.hours[i]}" aria-label="Hours needed, ${b}"></td>`
+      + `<td><input data-t="bestWeeks" data-i="${i}" inputmode="decimal" value="${rules.bestWeeks[i]}" aria-label="Best weeks, ${b}"></td>`
+      + `<td><input data-t="fishing" data-i="${i}" inputmode="decimal" value="${rules.fishing[i]}" aria-label="Fishing earnings, ${b}"></td></tr>`).join('');
+  };
+  drawRules();
+  q('.ec-custom').addEventListener('input', (e) => {
+    const el = e.target as HTMLInputElement;
+    if (el.dataset.t) (rules as any)[el.dataset.t][+el.dataset.i!] = num(el.value);
+    else if (el.dataset.k) (rules as any)[el.dataset.k] = el.type === 'date' ? el.value : el.hasAttribute('data-pct') ? num(el.value) / 100 : num(el.value);
+  });
+  q('.ec-reset').addEventListener('click', () => { rules = structuredClone(DEFAULTS); q<HTMLInputElement>('.ec-extra').value = '0'; drawRules(); update(); });
+
+  // ----- modes -----
+  let mode = 'type';
+  const setMode = (m: string) => {
+    mode = m;
+    qa('.ec-tabs [role=tab]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.mode === m)));
+    qa('.ec-mode').forEach((d) => (d.hidden = d.dataset.for !== m));
+    update();
+  };
+  qa('.ec-tabs [role=tab]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode!)));
+  const payMode = q<HTMLSelectElement>('.ec-paymode'), per = q<HTMLSelectElement>('.ec-per');
+  const showPay = () => qa('.ec-pm').forEach((el) => { el.hidden = el.dataset.pm !== payMode.value || (el.hasAttribute('data-hour') && per.value !== 'hour'); });
+
+  // ----- pay stubs -----
+  const stubBody = q('.ec-stubs tbody');
+  const perOpts = (sel: number) => Object.entries(PERIODS).map(([k, p]) => `<option value="${k}"${Math.abs(p.days - sel) < 0.5 ? ' selected' : ''}>${p.name}</option>`).join('');
+  const addStub = (s: Partial<Stub> = {}) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><input type="date" class="s-end" value="${s.end ?? ''}" aria-label="Period ends"></td>`
+      + `<td><select class="s-per" aria-label="Pay period">${perOpts(s.days ?? 14)}</select></td>`
+      + `<td><input class="s-h" inputmode="decimal" value="${s.hours ?? ''}" aria-label="Hours"></td>`
+      + `<td><input class="s-e" inputmode="decimal" value="${s.earnings ?? ''}" aria-label="Gross pay"></td>`
+      + `<td><button type="button" class="btn secondary small s-del" aria-label="Remove this stub">×</button></td>`;
+    stubBody.append(tr);
+  };
+  const readStubs = (): Stub[] => [...stubBody.querySelectorAll('tr')].map((tr) => ({
+    end: (tr.querySelector('.s-end') as HTMLInputElement).value,
+    days: PERIODS[(tr.querySelector('.s-per') as HTMLSelectElement).value].days,
+    hours: num((tr.querySelector('.s-h') as HTMLInputElement).value),
+    earnings: num((tr.querySelector('.s-e') as HTMLInputElement).value),
+  }));
+  stubBody.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('.s-del'); if (b) { b.closest('tr')!.remove(); update(); } });
+  q('.ec-add').addEventListener('click', () => { addStub(); update(); });
+  q('.ec-clear').addEventListener('click', () => { stubBody.innerHTML = ''; update(); });
+  q('.ec-fill').addEventListener('click', () => {
+    const d = new Date(q<HTMLInputElement>('.ec-date').value + 'T00:00:00Z');
+    for (let i = 1; i <= 26; i++) { const x = new Date(d.getTime() - i * 14 * 86400000); addStub({ end: x.toISOString().slice(0, 10), days: 14, hours: 75, earnings: 2000 }); }
+    update();
+  });
+  addStub();
+
+  // ----- files (ROE or pay stubs), read on this device -----
+  const fstat = q('.ec-fstat'), found = q('.ec-found');
+  const say = (s: string) => { const li = document.createElement('li'); li.textContent = s; found.append(li); };
+  async function textOf(file: File): Promise<string> {
+    if (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)) {
+      const { loadPdfJs } = await import('../../lib/compress/pdf.ts');
+      const pdfjs = await loadPdfJs();
+      const doc = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false }).promise;
+      let text = '';
+      for (let p = 1; p <= Math.min(doc.numPages, 10); p++) {
+        const c = await (await doc.getPage(p)).getTextContent();
+        text += c.items.map((it: any) => it.str + (it.hasEOL ? '\n' : ' ')).join('') + '\n';
+      }
+      if (text.replace(/\s/g, '').length > 40) return text;
+      // A scanned PDF: draw the first page and read it with OCR.
+      const page = await doc.getPage(1), vp = page.getViewport({ scale: 2 });
+      const cv = document.createElement('canvas'); cv.width = vp.width; cv.height = vp.height;
+      await page.render({ canvasContext: cv.getContext('2d')!, viewport: vp }).promise;
+      const { recognise } = await import('../../lib/ocr.ts');
+      return (await recognise(cv, 'eng', (p) => (fstat.textContent = `Reading ${file.name}: ${Math.round(p * 100)}%`))).text;
+    }
+    const { recognise } = await import('../../lib/ocr.ts');
+    return (await recognise(file, 'eng', (p) => (fstat.textContent = `Reading ${file.name}: ${Math.round(p * 100)}%`))).text;
+  }
+  q('.ec-file').addEventListener('change', async (e) => {
+    const files = [...((e.target as HTMLInputElement).files ?? [])];
+    found.innerHTML = '';
+    let stubs = 0, roes = 0;
+    for (const f of files) {
+      fstat.textContent = `Reading ${f.name}...`;
+      try {
+        const r = readDocText(await textOf(f));
+        if (r.kind === 'roe') {
+          roes++;
+          if (r.hours) { q<HTMLInputElement>('.ec-hours').value = String(r.hours); }
+          if (r.earnings) { payMode.value = 'total'; q<HTMLInputElement>('.ec-tot').value = String(r.earnings); }
+          const code = r.reasonCode ? ROE_CODES[r.reasonCode] : undefined;
+          if (code?.reason) q<HTMLSelectElement>('.ec-reason').value = code.reason;
+          say(`${f.name}: ROE. Insurable hours ${r.hours ?? 'not found'}, insurable earnings ${r.earnings ? $(r.earnings) : 'not found'}${code ? `, reason code ${r.reasonCode} (${code.name})` : ''}. Set "Over how many weeks" to the weeks the ROE covers.`);
+        } else if (r.kind === 'stub' && r.stub) {
+          if (!stubs && readStubs().every((s) => !s.end && !s.earnings)) stubBody.innerHTML = '';
+          addStub(r.stub); stubs++;
+          say(`${f.name}: pay stub ending ${r.stub.end || '(date not found)'}, ${r.stub.hours} hours, ${$(r.stub.earnings)} gross.`);
+        } else say(`${f.name}: no hours or pay found. Type the numbers instead.`);
+      } catch (err) { say(`${f.name}: could not be read (${(err as Error).message}).`); }
+    }
+    fstat.textContent = files.length ? `Done. Check the numbers below${stubs ? '; stubs were added to the Pay stubs tab' : ''}${roes && stubs ? ' (the result uses the ROE totals)' : ''}.` : '';
+    showPay();
+    // An ROE has the totals Service Canada uses, so it wins over pay stubs opened with it.
+    setMode(roes ? 'type' : stubs ? 'stubs' : files.length ? 'type' : mode);
+  });
+
+  // ----- work it out -----
+  const weeklyPay = () => {
+    const p = num(q<HTMLInputElement>('.ec-pay').value);
+    return { hour: p * num(q<HTMLInputElement>('.ec-hpw').value), week: p, '2week': p / 2, month: (p * 12) / 52, year: p / 52 }[per.value] ?? p;
+  };
+  function update() {
+    showPay();
+    const r0 = num(rate.value), date = q<HTMLInputElement>('.ec-date').value;
+    const work = q<HTMLSelectElement>('.ec-work').value as any;
+    const bestN = rules.bestWeeks[band(r0)];
+    q('.ec-bn').textContent = String(bestN);
+    let hours = num(q<HTMLInputElement>('.ec-hours').value), bestTotal = 0, stubNote = '';
+    if (mode === 'stubs') {
+      const s = fromStubs(readStubs(), date, bestN, rules.mie);
+      hours = s.hours; bestTotal = s.bestTotal;
+      stubNote = `${s.used} stub${s.used === 1 ? '' : 's'} in the 52 weeks before ${date}: ${s.hours.toLocaleString('en-CA')} hours, ${$(s.earnings)} gross, ${s.weeksOfPay} weeks of pay.`
+        + (s.short ? ` That is ${s.short} weeks short of your ${bestN} best weeks, so those count as zero and lower the average.` : '');
+      q('.ec-stubsum').textContent = stubNote;
+    } else if (payMode.value === 'usual') bestTotal = Math.min(weeklyPay(), rules.mie / 52) * bestN;
+    else if (payMode.value === 'total') bestTotal = Math.min(rules.mie / 52, num(q<HTMLInputElement>('.ec-tot').value) / Math.max(1, num(q<HTMLInputElement>('.ec-totw').value))) * bestN;
+    else bestTotal = num(q<HTMLInputElement>('.ec-best').value);
+
+    const reg = region.value;
+    q('.ec-seasonal').hidden = !(work === 'seasonal' || SEASONAL_REGIONS.includes(reg));
+    q('.ec-fish').hidden = work !== 'fisher';
+    const reason = q<HTMLSelectElement>('.ec-reason').value as Reason;
+    const r = ei({
+      rate: r0, hours, bestTotal, reason, work, claimDate: date,
+      violation: +q<HTMLSelectElement>('.ec-viol').value,
+      sevenDays: q<HTMLInputElement>('.ec-seven').checked,
+      longTenured: q<HTMLInputElement>('.ec-long').checked,
+      seasonal: q<HTMLInputElement>('.ec-seas').checked && (work === 'seasonal' || SEASONAL_REGIONS.includes(reg)),
+      seasonalRegion: SEASONAL_REGIONS.includes(reg),
+      fishingEarnings: num(q<HTMLInputElement>('.ec-fishe').value),
+      extraWeeks: num(q<HTMLInputElement>('.ec-extra').value), rules,
+    });
+    q('.ec-rnote').textContent = REASONS[reason].note + (r.lastSepOnly && REASONS[reason].ok ? ' For claims from 11 October 2026 to 9 October 2027, only your most recent job loss is looked at, so an earlier quit does not stop the claim.' : '');
+
+    const v = q('.ec-verdict');
+    const why: string[] = [];
+    if (work === 'self') why.push('self-employed people cannot get regular benefits');
+    if (!r.hoursOk) why.push(work === 'fisher' ? `you need ${$(r.fishingNeeded)} of fishing earnings` : `you need ${r.needed.toLocaleString('en-CA')} insurable hours and have ${Math.round(hours).toLocaleString('en-CA')}`);
+    if (!q<HTMLInputElement>('.ec-seven').checked) why.push('you need 7 days in a row without work and pay first');
+    if (r.reasonOk === false) why.push('the reason your job ended usually rules out regular benefits');
+    v.className = 'ec-verdict ' + (r.eligible === true ? 'good' : r.eligible === null ? 'warn' : 'bad');
+    v.textContent = r.eligible === true ? 'You are likely to qualify for EI regular benefits. Apply as soon as you stop working, within 4 weeks of your last day.'
+      : r.eligible === null ? 'You may qualify, if Service Canada accepts that you had just cause to leave. The numbers below assume it does.'
+      : `You are unlikely to qualify right now: ${why.join('; ')}.`;
+
+    const show = r.eligible !== false;
+    q('.ec-weekly').textContent = show ? $(r.weekly) : '–';
+    q('.ec-weeks').textContent = show ? String(r.weeks) : '–';
+    q('.ec-total').textContent = show ? $(r.total) : '–';
+    q('.ec-hrs').textContent = work === 'fisher' ? 'earnings based' : `${Math.round(hours).toLocaleString('en-CA')} / ${r.needed.toLocaleString('en-CA')}`;
+    const rows: [string, string][] = [
+      ['Regional unemployment rate', `${r0}% (${BANDS[r.band]})`],
+      [work === 'fisher' ? 'Fishing earnings needed' : 'Insurable hours needed', work === 'fisher' ? $(r.fishingNeeded) : r.needed.toLocaleString('en-CA')],
+      ['Best weeks used for your average', String(r.bestWeeks)],
+      ['Average insurable weekly earnings', `${$(r.avgWeekly)} (most counted: ${$(rules.mie / 52)})`],
+      [`Weekly benefit: ${Math.round(rules.rate * 1000) / 10}%, at most ${$(rules.maxWeekly)}`, $(r.weekly)],
+      ['Weeks from the hours and rate table', String(r.baseWeeks)],
+    ];
+    if (r.longApplies) rows.push(['Extra weeks for long-tenured workers (temporary)', `+${rules.longExtra}`]);
+    if (r.seasonalApplies) rows.push(['Extra weeks for seasonal workers (pilot)', `+${rules.seasonalExtra}`]);
+    if (num(q<HTMLInputElement>('.ec-extra').value) > 0) rows.push(['Custom extra weeks', `+${num(q<HTMLInputElement>('.ec-extra').value)}`]);
+    rows.push(['Unpaid waiting week', r.waived ? 'Waived for claims starting 30 March 2025 to 9 October 2027' : `${r.waiting} week`]);
+    q('.ec-body').innerHTML = rows.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('');
+
+    const notes = [...r.notes];
+    if (q<HTMLInputElement>('.ec-long').checked && !r.longApplies && work !== 'fisher') notes.push(`The 20 extra weeks for long-tenured workers apply to claims starting ${fmtDate(rules.longFrom)} to ${fmtDate(rules.longTo)}.`);
+    if (q<HTMLInputElement>('.ec-seas').checked && !r.seasonalApplies) notes.push(`The seasonal pilot (up to ${rules.seasonalExtra} extra weeks) covers 13 regions for claims starting by ${fmtDate(rules.seasonalTo)}; if it has been extended, change its end date under "Change the rules".`);
+    if (r.avgWeekly * rules.rate > rules.maxWeekly) notes.push(`Your pay is above the maximum insurable earnings (${$(rules.mie)} a year), so you get the maximum weekly benefit.`);
+    notes.push('Low income with children? The Family Supplement can raise the rate up to 80% if your net family income is $25,921 or less and you get the Canada Child Benefit.');
+    notes.push('While on EI you can work part-time: you keep 50 cents of each dollar you earn, until you reach 90% of your previous weekly earnings.');
+    notes.push('Severance, vacation pay and pay in lieu of notice do not delay or reduce benefits for claims starting by 9 October 2027 (temporary measure).');
+    q('.ec-notes').innerHTML = notes.map((n) => `<li>${esc(n)}</li>`).join('');
+  }
+  root.addEventListener('input', update);
+  root.addEventListener('change', update);
+  update();
+</script>
