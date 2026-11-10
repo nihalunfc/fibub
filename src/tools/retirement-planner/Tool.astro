@@ -1,0 +1,111 @@
+---
+// #1734 Retirement planner: will the money last, and by how much do you fall short or have spare.
+---
+<div class="tool-ui rp">
+  <section class="panel">
+    <h2>Your plan</h2>
+    <div class="rp-grid">
+      <label>Currency <select class="rp-cur" data-k="cur"></select></label>
+      <label>Your age now <input data-k="now" inputmode="decimal" /></label>
+      <label>Age you want to retire <input data-k="retire" inputmode="decimal" /></label>
+      <label>Plan to live until age <input data-k="planto" inputmode="decimal" /></label>
+      <label>Saved so far <input data-k="saved" inputmode="decimal" /></label>
+      <label>You save each month <input data-k="monthly" inputmode="decimal" /></label>
+      <label>Return before retiring <span class="rp-suf"><input data-k="before" inputmode="decimal" /><i>% a year</i></span></label>
+      <label>Return after retiring <span class="rp-suf"><input data-k="after" inputmode="decimal" /><i>% a year</i></span></label>
+      <label>Inflation <span class="rp-suf"><input data-k="infl" inputmode="decimal" /><i>% a year</i></span></label>
+      <label>Spending a month in retirement <input data-k="spend" inputmode="decimal" /></label>
+      <label>Pension or other income a month <input data-k="other" inputmode="decimal" /></label>
+    </div>
+    <p class="rp-hint">Enter spending and pension in today's prices. Results are in today's money too, so they are easy to judge. Your monthly saving is assumed to rise with prices.</p>
+    <p class="note bad rp-err" role="alert" hidden></p>
+  </section>
+  <section class="rp-res" aria-live="polite">
+    <div class="rp-stats">
+      <div><span>Money lasts until age</span><b class="rp-until"></b></div>
+      <div><span>Pot when you retire</span><b class="rp-pot"></b></div>
+      <div class="rp-gapbox"><span class="rp-gapl"></span><b class="rp-gap"></b></div>
+    </div>
+    <p class="rp-line rp-msg"></p>
+    <figure class="rp-chart panel">
+      <figcaption>Your savings by age (today's money) <span class="rp-leg"></span></figcaption>
+      <div class="rp-svg"></div>
+    </figure>
+  </section>
+  <p class="rp-fine">An estimate with fixed returns, taken month by month; real life varies year to year. Withdrawals are taken at the end of each month. Tax, fees and changes in spending with age are not included. Not financial or tax advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .rp { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .rp > *, .rp-res > * { min-width: 0; }
+  .rp h2 { margin: 0 0 12px; font-size: 18px; }
+  .rp .panel { padding: 16px; }
+  .rp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .rp label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .rp input, .rp select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .rp input:focus, .rp select:focus { border-color: var(--accent); outline: none; }
+  .rp input[type=checkbox] { width: auto; }
+  .rp-suf { position: relative; display: block; }
+  .rp-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .rp-suf input { padding-right: 84px; }
+  .rp-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .rp-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .rp-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .rp-stats span { font-size: 13px; color: var(--muted); }
+  .rp-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
+  .rp-stats .good b { color: var(--good); }
+  .rp-stats .bad b { color: var(--bad); }
+  .rp-line { margin: 0; font-size: 15px; }
+  .rp-line:empty { display: none; }
+  .rp-chart { margin: 0; }
+  .rp-chart figcaption { font-weight: 600; font-size: 14px; display: flex; flex-wrap: wrap; gap: 6px 14px; margin-bottom: 8px; }
+  .rp-chart .lg { font-weight: 500; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
+  .rp-wrap { overflow-x: auto; }
+  .rp table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .rp th, .rp td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .rp th:first-child, .rp td:first-child { text-align: left; }
+  .rp th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .rp-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .rp-err { margin: 10px 0 0; }
+  .rp-hint { margin: 0; font-size: 13px; color: var(--muted); }
+  @media (max-width: 720px) { .rp-stats { grid-template-columns: 1fr; } }
+</style>
+
+<script>
+  import { retirement } from '../../lib/money/goals';
+  import { lineSvg, legend } from '../../lib/money/chart';
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.rp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const cur = defaultCurrency();
+  q('.rp-cur').innerHTML = currencyOptions(cur);
+  const india = cur === 'INR';
+  f('now').value = '35'; f('retire').value = '60'; f('planto').value = '90';
+  f('saved').value = india ? '5,00,000' : '30,000'; f('monthly').value = india ? '20,000' : '600';
+  f('before').value = '7'; f('after').value = '4'; f('infl').value = '3';
+  f('spend').value = india ? '60,000' : '2,500'; f('other').value = india ? '10,000' : '600';
+  const $ = (n: number) => money(n, f('cur').value, 0);
+  const ageText = (a: number) => { const y = Math.floor(a + 1e-9), m = Math.floor((a - y) * 12 + 1e-9); return m ? `${y} and ${m} month${m > 1 ? 's' : ''}` : String(y); };
+  function run() {
+    const a = { now: num(f('now').value), retire: num(f('retire').value), planTo: num(f('planto').value), savings: num(f('saved').value), monthly: num(f('monthly').value), before: num(f('before').value), after: num(f('after').value), inflation: num(f('infl').value), spend: num(f('spend').value), other: num(f('other').value) };
+    const bad = !(a.now >= 16 && a.now < a.retire && a.retire < a.planTo && a.planTo <= 120) ? 'Check the ages: now, then retirement, then the age you plan to live until (up to 120).' : a.savings < 0 || a.monthly < 0 || a.spend < 0 || a.other < 0 ? 'Amounts cannot be negative.' : [a.before, a.after, a.inflation].some((v) => v < -10 || v > 30) ? 'Enter returns and inflation between -10 and 30.' : '';
+    q('.rp-err').hidden = !bad; q('.rp-err').textContent = bad; q('.rp-res').hidden = !!bad;
+    if (bad) return;
+    const r = retirement(a);
+    const ok = r.lastsUntil === null;
+    q('.rp-until').textContent = ok ? `${a.planTo}+` : ageText(r.lastsUntil!);
+    q('.rp-pot').textContent = $(r.potAtRetire);
+    q('.rp-gapl').textContent = r.gap >= 0 ? 'Spare at retirement' : 'Short at retirement';
+    q('.rp-gap').textContent = $(Math.abs(r.gap));
+    q('.rp-gapbox').classList.toggle('good', r.gap >= 0); q('.rp-gapbox').classList.toggle('bad', r.gap < 0);
+    q('.rp-msg').textContent = ok
+      ? `Your money lasts to age ${a.planTo}. You would have about ${$(r.endBalance)} left then, and ${$(r.gap)} more than you need at ${a.retire}.`
+      : `Your money runs out at about age ${ageText(r.lastsUntil!)}, before age ${a.planTo}. To last, you need ${$(r.needed)} at ${a.retire} and have ${$(r.potAtRetire)}, so you are short by ${$(-r.gap)}.`;
+    const series = [{ label: 'Savings', ys: r.balance, color: 'var(--accent)' }];
+    q('.rp-svg').innerHTML = lineSvg(series, r.ages.map((x) => Math.round(x)), 'Savings by age in today\'s money');
+    q('.rp-leg').innerHTML = legend(series);
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>
