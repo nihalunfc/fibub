@@ -1,0 +1,201 @@
+---
+// Probability spinner designer: choose how many equal shares each colour gets, see the spinner, the theoretical
+// probabilities and angles, spin once (animated) or many times, and compare experiment with theory. A challenge mode
+// asks for a spinner that meets given probabilities. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+const COLOURS = ['Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange'];
+const START = [2, 3, 1, 0, 0, 0];
+---
+<div class="ax sm sp">
+  <div class="ax-card">
+    <h2>Design the spinner</h2>
+    <p class="ax-help" style="margin-top:0">Give each colour a number of equal shares. A colour with 0 shares is left off.</p>
+    <div class="sp-rows">
+      {COLOURS.map((c, i) => (
+        <div class="sp-row">
+          <span class={`sp-sw sp-c${i}`} aria-hidden="true"></span><span class="sp-name">{c}</span>
+          <button type="button" class="btn secondary small sp-minus" data-i={i} aria-label={`Fewer ${c} shares`}>−</button>
+          <input type="number" class="sp-share" data-i={i} min="0" max="24" step="1" value={START[i]} inputmode="numeric" aria-label={`${c} shares`} />
+          <button type="button" class="btn secondary small sp-plus" data-i={i} aria-label={`More ${c} shares`}>+</button>
+          <span class="sp-p" data-i={i}></span>
+        </div>
+      ))}
+    </div>
+    <p class="ax-err sp-err" hidden>Give at least one colour 1 share or more.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Spin it</h2>
+    <svg class="sm-fig sp-fig" viewBox="0 0 340 250" role="img" aria-label="The spinner with a pointer at the top"><g class="sp-wheel"></g><polygon class="sp-ptr" points="160,8 180,8 170,30" /></svg>
+    <p class="ax-big sp-big" aria-live="polite">Press Spin.</p>
+    <div class="ax-row">
+      <button type="button" class="btn sp-one">Spin</button>
+      <button type="button" class="btn secondary small sp-many" data-n="10">10 spins</button>
+      <button type="button" class="btn secondary small sp-many" data-n="100">100 spins</button>
+      <button type="button" class="btn secondary small sp-many" data-n="1000">1000 spins</button>
+      <button type="button" class="btn secondary small sp-reset">Reset</button>
+    </div>
+    <svg class="sm-fig sp-bars" viewBox="0 0 340 200" role="img" aria-label="Experimental against theoretical probability for each colour" style="margin-top:10px"></svg>
+    <p class="ax-legend"><span><i class="sp-lex"></i>From your spins</span> <span><i class="sp-lth"></i>Theory</span></p>
+    <div class="ax-scroll sp-tab"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Challenge</h2>
+    <p class="sm-f sp-goal"></p>
+    <div class="ax-row"><button type="button" class="btn small sp-gcheck">Check my spinner</button><button type="button" class="btn secondary small sp-gnew">New challenge</button></div>
+    <p class="sp-gres" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Make every colour 1 share: a fair spinner. Spin 10 times, then 1000. Which gets closer to the theory?</li>
+      <li>Red 1, Blue 1 and Red 2, Blue 2 look different but give the same probabilities. Why?</li>
+      <li>Add up all the probabilities in the table. What do you always get?</li>
+      <li>Can you make a spinner where Green is three times as likely as Red?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Fractions like 1/4 are fine. Nothing is saved.</p>
+    <div class="sp-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .sp .sp-row { display: grid; grid-template-columns: 18px 4.2em 40px 4.2em 40px 1fr; gap: 6px; align-items: center; margin: 4px 0; }
+  .sp .sp-row .btn { min-width: 40px; padding: 0; }
+  .sp .sp-row input { min-height: 40px; text-align: center; }
+  .sp .sp-sw { width: 18px; height: 18px; border-radius: 4px; display: inline-block; }
+  .sp .sp-p { font-variant-numeric: tabular-nums; text-align: right; font-weight: 650; }
+  .sp .sp-c0 { background: #d64545; fill: #d64545; } .sp .sp-c1 { background: #2f6fdb; fill: #2f6fdb; } .sp .sp-c2 { background: #2e9e5b; fill: #2e9e5b; }
+  .sp .sp-c3 { background: #e0b020; fill: #e0b020; } .sp .sp-c4 { background: #8a4fd0; fill: #8a4fd0; } .sp .sp-c5 { background: #e07a20; fill: #e07a20; }
+  .sp svg .sp-sec { stroke: var(--surface); stroke-width: 2; }
+  .sp svg.sm-fig text.sp-lab { fill: #fff; stroke: #111; stroke-width: 3px; paint-order: stroke; font-weight: 700; }
+  html.red-mode .sp svg.sm-fig text.sp-lab { fill: #000; stroke: #c00000; }
+  .sp svg .sp-ptr { fill: var(--ink); }
+  .sp svg .sp-th { fill: none; stroke: var(--ink); stroke-width: 2; stroke-dasharray: 5 3; }
+  .sp .sp-lex { background: var(--accent); }
+  .sp .sp-lth { background: none; border: 2px dashed var(--ink); }
+  .sp .sp-gres.good { color: var(--good); font-weight: 650; }
+  .sp .sp-gres.bad { color: var(--bad); }
+  html.red-mode .sp .sp-c0 { background: #c00000; fill: #c00000; } html.red-mode .sp .sp-c1 { background: #3a0000; fill: #3a0000; } html.red-mode .sp .sp-c2 { background: #800000; fill: #800000; }
+  html.red-mode .sp .sp-c3 { background: #5a0000; fill: #5a0000; } html.red-mode .sp .sp-c4 { background: #a30000; fill: #a30000; } html.red-mode .sp .sp-c5 { background: #240000; fill: #240000; }
+  @media (max-width: 380px) { .sp .sp-row { grid-template-columns: 16px 3.6em 40px 3.4em 40px 1fr; gap: 4px; } }
+</style>
+
+<script>
+  import { total, probs, fracText, angles, sectorAt, spin, meets, type Sector } from '../../lib/sci/spinner-school';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.sp')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const NAMES = ['Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange'];
+  const boxes = [...root.querySelectorAll<HTMLInputElement>('.sp-share')];
+  const wheel = q<SVGGElement>('.sp-wheel'), bars = q<SVGSVGElement>('.sp-bars');
+  let counts = NAMES.map(() => 0), turn = 0, busy = false, goal: [number, number][] = [];
+  const CX = 170, CY = 135, RAD = 100;
+
+  const sectors = (): Sector[] => boxes.map((b, i) => ({ name: NAMES[i], share: Math.max(0, Math.min(24, Math.round(Number(b.value) || 0))) }));
+  const pt = (deg: number, r = RAD) => [CX + r * Math.sin((deg * Math.PI) / 180), CY - r * Math.cos((deg * Math.PI) / 180)];
+
+  function drawWheel() {
+    const s = sectors(), ang = angles(s), T = total(s);
+    wheel.replaceChildren();
+    q('.sp-err').hidden = T > 0;
+    ang.forEach(([a, b], i) => {
+      if (s[i].share === 0) return;
+      if (b - a >= 359.999) { S('circle', { cx: CX, cy: CY, r: RAD, class: `sp-sec sp-c${i}` }, wheel); return; }
+      const [x1, y1] = pt(a), [x2, y2] = pt(b);
+      S('path', { d: `M${CX},${CY} L${x1.toFixed(2)},${y1.toFixed(2)} A${RAD},${RAD} 0 ${b - a > 180 ? 1 : 0} 1 ${x2.toFixed(2)},${y2.toFixed(2)} Z`, class: `sp-sec sp-c${i}` }, wheel);
+      const [lx, ly] = pt((a + b) / 2, RAD * 0.62);
+      if (b - a > 18) S('text', { x: lx, y: ly + 4, 'text-anchor': 'middle', class: 'sp-lab' }, wheel, fracText(s[i].share, T));
+    });
+    S('circle', { cx: CX, cy: CY, r: 6, style: 'fill:var(--ink)' }, wheel);
+    wheel.setAttribute('transform', `rotate(${turn % 360} ${CX} ${CY})`);
+    root.querySelectorAll<HTMLElement>('.sp-p').forEach((el, i) => { el.textContent = s[i].share ? `${fracText(s[i].share, T)} = ${fmt((100 * s[i].share) / T, 1)}%` : '—'; });
+  }
+
+  function drawBars() {
+    const s = sectors(), p = probs(s), n = counts.reduce((a, b) => a + b, 0);
+    const shown = s.map((x, i) => i).filter((i) => s[i].share > 0 || counts[i] > 0);
+    bars.replaceChildren();
+    const L = 36, B = 170, Tp = 12, W = 340 - L - 8, bw = W / Math.max(1, shown.length), Y = (v: number) => B - (B - Tp) * v;
+    for (let k = 0; k <= 4; k++) { S('line', { x1: L, y1: Y(k / 4), x2: 336, y2: Y(k / 4), class: 'sm-grid' }, bars); S('text', { x: L - 4, y: Y(k / 4) + 4, 'text-anchor': 'end', class: 'sm-tick' }, bars, fmt(k / 4, 2)); }
+    shown.forEach((i, j) => {
+      const x = L + j * bw + bw * 0.2, w = bw * 0.6, ex = n ? counts[i] / n : 0;
+      S('rect', { x, y: Y(ex), width: w, height: B - Y(ex), class: `sp-c${i}` }, bars);
+      S('line', { x1: x - 4, y1: Y(p[i]), x2: x + w + 4, y2: Y(p[i]), class: 'sp-th' }, bars);
+      S('text', { x: x + w / 2, y: B + 16, 'text-anchor': 'middle', class: 'sm-tick' }, bars, NAMES[i]);
+    });
+    S('line', { x1: L, y1: B, x2: 336, y2: B, class: 'sm-axis' }, bars);
+    const t = document.createElement('table');
+    t.innerHTML = '<thead><tr><th>Colour</th><th class="r">Count</th><th class="r">Experiment</th><th class="r">Theory</th></tr></thead>';
+    const tb = document.createElement('tbody');
+    shown.forEach((i) => { const tr = document.createElement('tr'); [NAMES[i], String(counts[i]), n ? fmt(counts[i] / n, 3) : '—', fmt(p[i], 3)].forEach((v, j) => { const td = document.createElement('td'); td.textContent = v; if (j) td.className = 'r'; tr.append(td); }); tb.append(tr); });
+    t.append(tb); q('.sp-tab').replaceChildren(t);
+  }
+
+  function changed() { counts = NAMES.map(() => 0); q('.sp-big').textContent = 'Press Spin.'; drawWheel(); drawBars(); }
+  boxes.forEach((b) => b.addEventListener('input', changed));
+  root.querySelectorAll<HTMLButtonElement>('.sp-minus, .sp-plus').forEach((btn) => btn.addEventListener('click', () => {
+    const b = boxes[Number(btn.dataset.i)]; b.value = String(Math.max(0, Math.min(24, (Number(b.value) || 0) + (btn.classList.contains('sp-plus') ? 1 : -1)))); changed();
+  }));
+
+  q('.sp-one').addEventListener('click', () => {
+    if (busy || total(sectors()) <= 0) return;
+    busy = true;
+    const start = turn, end = turn + 720 + Math.random() * 360, t0 = performance.now(), dur = 900;
+    const step = (now: number) => {
+      const f = Math.min(1, (now - t0) / dur), e = 1 - (1 - f) ** 3;
+      turn = start + (end - start) * e; wheel.setAttribute('transform', `rotate(${turn % 360} ${CX} ${CY})`);
+      if (f < 1) { requestAnimationFrame(step); return; }
+      const s = sectors(); let i = sectorAt(s, turn); if (s[i].share === 0) i = s.findIndex((x) => x.share > 0);
+      counts[i]++; busy = false;
+      q('.sp-big').textContent = `${NAMES[i]}! (${counts.reduce((a, b) => a + b, 0)} spins so far)`;
+      drawBars();
+    };
+    requestAnimationFrame(step);
+  });
+  root.querySelectorAll<HTMLButtonElement>('.sp-many').forEach((b) => b.addEventListener('click', () => {
+    const s = sectors(); if (total(s) <= 0) return;
+    const c = spin(s, Number(b.dataset.n), Math.random); counts = counts.map((v, i) => v + c[i]);
+    q('.sp-big').textContent = `${counts.reduce((a, b2) => a + b2, 0)} spins so far`;
+    drawBars();
+  }));
+  q('.sp-reset').addEventListener('click', changed);
+
+  const GOALS: [number, number][][] = [
+    [[1, 2], [1, 4], [1, 4]], [[1, 3], [1, 3], [1, 3]], [[1, 6], [1, 2], [1, 3]], [[1, 4], [1, 4], [1, 4], [1, 4]], [[3, 8], [1, 8], [1, 2]],
+    [[2, 5], [2, 5], [1, 5]], [[1, 12], [1, 4], [2, 3]], [[1, 2], [1, 3], [1, 6]], [[3, 10], [1, 2], [1, 5]],
+  ];
+  function newGoal() {
+    goal = GOALS[randInt(0, GOALS.length - 1)];
+    q('.sp-goal').textContent = `Make a spinner where ${goal.map(([p, qq], i) => `P(${NAMES[i]}) = ${p}/${qq}`).join(', ')}${goal.length < 6 ? `, and the other colours have 0 shares` : ''}.`;
+    q('.sp-gres').textContent = '';
+  }
+  q('.sp-gnew').addEventListener('click', newGoal);
+  q('.sp-gcheck').addEventListener('click', () => {
+    const s = sectors(), want = [...goal, ...NAMES.slice(goal.length).map((): [number, number] => [0, 1])], ok = meets(s, want), res = q('.sp-gres');
+    const L = goal.reduce((a, [, d]) => (a * d) / gcd2(a, d), 1);
+    res.textContent = ok ? 'Right! Your spinner gives exactly those probabilities.' : `Not yet. Hint: use ${L} shares in all (the lowest common denominator), so ${goal.map(([p, d], i) => `${NAMES[i]} gets ${(p * L) / d}`).join(', ')}.`;
+    res.className = `sp-gres ${ok ? 'good' : 'bad'}`;
+  });
+  const gcd2 = (a: number, b: number): number => (b ? gcd2(b, a % b) : a);
+  newGoal(); drawWheel(); drawBars();
+
+  quiz(q('.sp-quiz'), () => {
+    const r = randInt(1, 5), b = randInt(1, 5), g = randInt(1, 5), T = r + b + g, out: Question[] = [];
+    out.push({ q: `A spinner has ${r} red, ${b} blue and ${g} green equal sectors. What is P(blue)?`, want: [b / T], work: `P(blue) = blue sectors ÷ all sectors = ${b}/${T}${fracText(b, T) !== `${b}/${T}` ? ` = ${fracText(b, T)}` : ''}.` });
+    out.push({ q: `Same spinner. What is P(not red)?`, want: [1 - r / T], work: `P(not red) = 1 − P(red) = 1 − ${r}/${T} = ${T - r}/${T}${fracText(T - r, T) !== `${T - r}/${T}` ? ` = ${fracText(T - r, T)}` : ''}.` });
+    const n = T * randInt(5, 30);
+    out.push({ q: `Same spinner, spun ${n} times. About how many greens do you expect?`, want: [(n * g) / T], work: `Expected count = P(green) × number of spins = ${g}/${T} × ${n} = ${fmt((n * g) / T, 2)}.` });
+    const d = [[1, 4], [1, 3], [1, 6], [3, 8], [5, 12], [2, 9]][randInt(0, 5)];
+    out.push({ q: `How many degrees should a sector have so that P(it) = ${d[0]}/${d[1]}?`, want: [(360 * d[0]) / d[1]], work: `Angle = probability × 360° = ${d[0]}/${d[1]} × 360° = ${fmt((360 * d[0]) / d[1], 2)}°.` });
+    return out;
+  });
+</script>
