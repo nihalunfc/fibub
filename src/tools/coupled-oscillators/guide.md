@@ -2,6 +2,7 @@
 name: Coupled oscillators
 num: 907
 shelf: science
+code: T642
 section: classical-mechanics
 title: "Coupled oscillators"
 summary: "Line up to 12 masses joined by springs, between walls or floating free, and get every normal mode: its frequency, period and shape. Watch a single mode or any starting push move, see how the energy is shared between the modes, and download the motion."

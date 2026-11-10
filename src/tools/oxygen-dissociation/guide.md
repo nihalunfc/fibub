@@ -2,6 +2,7 @@
 name: Oxygen dissociation curve
 num: 1130
 shelf: learn
+code: L64
 section: school-biology
 title: "Oxygen dissociation curve: haemoglobin, the Bohr shift with CO₂, pH and temperature, and lung volumes"
 summary: "Slide the oxygen level and watch haemoglobin load and unload along the S-shaped curve. Change pH, carbon dioxide and temperature to see the Bohr shift, compare fetal haemoglobin, and draw a spirogram of tidal volume, vital capacity and total lung capacity."

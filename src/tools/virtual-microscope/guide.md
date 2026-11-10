@@ -2,6 +2,7 @@
 name: Virtual microscope
 num: 1212
 shelf: learn
+code: L98
 section: school-biology
 title: "Virtual microscope: focus, objective lenses and total magnification on onion peel, cheek cells and pond water"
 summary: "Look down a drawn school microscope at onion peel, cheek cells or pond water. Turn the focus knob, swap the 4×, 10× and 40× objectives, add a stain, and see total magnification = eyepiece × objective worked out."

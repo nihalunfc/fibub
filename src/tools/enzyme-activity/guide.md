@@ -2,6 +2,7 @@
 name: Enzyme activity lab
 num: 1131
 shelf: learn
+code: L65
 section: school-biology
 title: "Enzyme activity lab: temperature, pH, substrate and inhibitors with a starch-iodine spot test"
 summary: "Digest starch with amylase or egg white with pepsin and trypsin, and time it with a virtual spot tile. Change temperature, pH, substrate and inhibitors, record your runs and see rate graphs. For Class 10 and 11 biology."

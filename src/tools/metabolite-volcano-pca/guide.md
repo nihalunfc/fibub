@@ -2,6 +2,7 @@
 name: Volcano and PCA
 num: 985
 shelf: science
+code: T717
 section: metabolomics-and-lipidomics
 title: "Volcano and PCA"
 summary: "Paste or open a metabolite table (peak areas or concentrations, samples in columns) and compare two groups: fold changes, Welch's t-tests, Benjamini-Hochberg FDR q-values and a labelled volcano plot, plus a PCA of all samples with scores, explained variance and the top loadings. Log transforms, missing-value handling and autoscaling or Pareto scaling. Your data stay on your device."

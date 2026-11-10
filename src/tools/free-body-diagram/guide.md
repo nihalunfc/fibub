@@ -2,6 +2,7 @@
 name: Free-body diagram builder
 num: 1333
 shelf: learn
+code: L195
 section: school-physics
 title: "Free-body diagram practice: tick the forces, check them, then solve for acceleration and tension (Atwood machine, lift, pulleys)"
 summary: "Pick a set-up (a box pulled along the floor, a block on a slope, scales in a lift, two blocks pushed together, a block on a table pulled over a pulley, or an Atwood machine), tick the forces you think act on each body, check your diagram, then see it drawn to scale and solved for the acceleration, tension and normal force."

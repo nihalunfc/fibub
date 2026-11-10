@@ -2,6 +2,7 @@
 name: Autoclave F0
 num: 196
 shelf: science
+code: T196
 section: microbiology
 title: "Autoclave F0"
 summary: "Paste or open an autoclave temperature log (one or more probes) and get the F0 value, the running F0 curve, time at the hold temperature and the equivalent minutes at another temperature. Then type an organism's D- and z-values to see the log reduction, the chance of a survivor and the hold time needed for a target sterility assurance level. Your log stays in your browser."

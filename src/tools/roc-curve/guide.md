@@ -2,6 +2,7 @@
 name: ROC curve
 num: 468
 shelf: science
+code: T319
 section: biostatistics
 title: "ROC curve"
 summary: "Paste a true outcome and one or two marker values to draw the ROC curve, get the AUC with its DeLong confidence interval, the Youden cut-off, sensitivity, specificity, PPV, NPV and likelihood ratios at every cut-off, and DeLong's test of two markers on the same subjects. Matches scikit-learn."

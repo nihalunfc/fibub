@@ -2,6 +2,7 @@
 name: Buckingham Pi
 num: 551
 shelf: science
+code: T379
 section: applied-mathematics
 title: "Buckingham Pi"
 summary: "List your variables with their dimensions (M L T Θ I N J) and get the dimension matrix, its rank, an integer null-space basis and the dimensionless Π groups for the repeating variables you choose. Exact arithmetic, in your browser."

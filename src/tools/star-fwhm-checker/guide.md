@@ -2,6 +2,7 @@
 name: Star FWHM checker
 num: 72
 shelf: science
+code: T72
 section: astrophotography
 title: "Star FWHM and HFR checker: focus, tilt, field curvature and tracking from one image"
 summary: "Open a star image and measure every star's FWHM, half-flux radius and elongation, with a map across the field that shows focus, sensor tilt, field curvature and tracking errors."

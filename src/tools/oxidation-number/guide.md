@@ -2,6 +2,7 @@
 name: Oxidation number finder
 num: 1088
 shelf: learn
+code: L43
 section: school-chemistry
 title: "Oxidation number calculator with the rules used, and redox balancing by the half-reaction method"
 summary: "Type a formula such as K2Cr2O7 or SO4^2- and see the oxidation number of every element, which rule gave it and the sum that checks it. Then balance a redox reaction in acidic or basic solution by the half-reaction (ion-electron) method, step by step. Ends with fresh practice questions."

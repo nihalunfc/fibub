@@ -2,6 +2,7 @@
 name: Polling average
 num: 753
 shelf: science
+code: T521
 section: political-science
 title: "Poll average and margin of error calculator, with lead MoE and trend line (free)"
 summary: "Paste opinion polls and get a weighted average by sample size and recency, the margin of error of every poll and of the lead between two parties, and a LOESS or exponential trend with a sampling band, plus a plain account of what the margin of error leaves out."

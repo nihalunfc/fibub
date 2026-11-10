@@ -2,6 +2,7 @@
 name: Hydraulic lift
 num: 1341
 shelf: learn
+code: L203
 section: school-physics
 title: "Hydraulic lift simulator: Pascal's law, small and big pistons, force multiplied and distance divided, with the pressure and work"
 summary: "Push the small piston of a hydraulic lift and watch the big one raise a car. Change the piston sizes and the load to see the force needed, the pressure in the oil, how far the load rises and why the work in equals the work out."

@@ -2,6 +2,7 @@
 name: Snell's law
 num: 1003
 shelf: learn
+code: L3
 section: school-physics
 title: "Snell's law"
 summary: "Aim a ray of light at the boundary between air, water, glass or diamond and see it bend by Snell's law, find the critical angle and total internal reflection, the sideways shift through a glass slab, and why a pool looks shallower than it is."

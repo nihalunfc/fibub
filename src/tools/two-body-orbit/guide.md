@@ -2,6 +2,7 @@
 name: Two-body orbit sandbox
 num: 903
 shelf: science
+code: T638
 section: classical-mechanics
 title: "Two-body orbit simulator: masses and velocities to an animated orbit, period, eccentricity, energy and angular momentum"
 summary: "Give two bodies a mass, a starting position and a velocity and watch them orbit their centre of mass. Get the shape, eccentricity, semi-major axis, closest and farthest approach and period, with an independent numerical check that energy and angular momentum are conserved."

@@ -2,6 +2,7 @@
 name: Pole placement
 num: 638
 shelf: science
+code: T435
 section: control-and-robotics
 title: "Pole placement"
 summary: "Enter the state-space matrices A, B, C and D to get controllability and observability (matrices and ranks), the open-loop eigenvalues, the state-feedback gain K that places your chosen poles (Ackermann), an observer gain L by duality, and the closed-loop step response. Nothing is uploaded."

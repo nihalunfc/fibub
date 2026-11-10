@@ -2,6 +2,7 @@
 name: Backfocus calculator
 num: 43
 shelf: science
+code: T43
 section: astrophotography
 title: "Backfocus calculator: spacers for a reducer or flattener (55 mm and others)"
 summary: "Add up your camera, filter wheel, off-axis guider and adapters, allow for the filter's thickness, and get the exact spacer stack to hit your reducer's or flattener's backfocus from the spacers you own."

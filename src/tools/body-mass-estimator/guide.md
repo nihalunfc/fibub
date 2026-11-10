@@ -2,6 +2,7 @@
 name: Body mass estimator
 num: 407
 shelf: science
+code: T295
 section: paleontology
 title: "Body mass estimator"
 summary: "Fit log M = a + b log X to your own reference specimens, or type a published equation's a and b, and estimate body masses of fossils with prediction intervals, %PE, %SEE and a smearing or QMLE bias correction. Plot, CSV and report downloads. Nothing is uploaded."

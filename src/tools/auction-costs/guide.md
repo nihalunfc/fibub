@@ -2,6 +2,7 @@
 name: Auction fees
 num: 1614
 shelf: collecting
+code: T734
 section: any-collection
 title: "Auction fees: buyer's premium, tax and seller's commission calculator"
 seoTitle: "Auction fee calculator: buyer's premium and commission"

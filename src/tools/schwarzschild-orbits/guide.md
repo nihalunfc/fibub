@@ -2,6 +2,7 @@
 name: Schwarzschild orbit plotter
 num: 968
 shelf: science
+code: T703
 section: relativity-and-gravitation
 title: "Schwarzschild orbit plotter: black hole ISCO, photon sphere, precessing orbits and light bending"
 summary: "Pick a black hole mass and follow a particle or a light ray around it using the exact Schwarzschild geodesics. Get the horizon, photon sphere, ISCO and shadow radius in kilometres, the periapsis advance of any bound orbit (compared with the weak-field formula), its energy and angular momentum and effective potential, or a light ray's bending angle, closest approach or capture, all drawn to scale."

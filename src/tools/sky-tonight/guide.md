@@ -2,6 +2,7 @@
 name: Sky tonight
 num: 13
 shelf: science
+code: T13
 section: observing
 title: "What's in the sky tonight: planets, Moon phase, dark hours and best objects to see"
 summary: "For your place and date: sunset, when it gets properly dark, the Moon's phase and rise and set times, where each planet is, and the best galaxies, clusters and nebulae for your eyes, binoculars or telescope."

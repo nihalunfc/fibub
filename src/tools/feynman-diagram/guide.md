@@ -2,6 +2,7 @@
 name: Feynman diagram drawer
 num: 949
 shelf: science
+code: T684
 section: nuclear-and-particle-physics
 title: "Feynman diagram maker: draw particle physics diagrams, download SVG or PNG, export TikZ-Feynman code"
 summary: "Type the vertices and lines of a Feynman diagram (fermions, photons, gluons, W, Z, Higgs, ghosts, bent loops, momentum arrows) and get a clean drawing to download as SVG or PNG, plus TikZ-Feynman code for LaTeX. Eight textbook examples to start from."

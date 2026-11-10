@@ -2,6 +2,7 @@
 name: Interferometer uv-coverage
 num: 67
 shelf: science
+code: T67
 section: radio-astronomy
 title: "Radio interferometer uv-coverage planner: baselines, resolution and the dirty beam"
 summary: "Lay out an array of radio dishes, pick a source and an observing time, and see the uv tracks Earth's rotation sweeps out, the resolution, the largest scale you can image and the dirty beam."

@@ -2,6 +2,7 @@
 name: Snow load
 num: 512
 shelf: science
+code: T363
 section: glaciology-and-cryosphere
 title: "Snow load"
 summary: "Snow water equivalent from depth and density, snow tube weighings or layers; ground and roof snow load with your own factor; slope angle from map contours, your phone's tilt sensor or two GPS points, shown against the general 30 to 45° avalanche starting band. Not an avalanche or safety forecast."

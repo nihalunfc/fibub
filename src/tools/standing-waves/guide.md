@@ -2,6 +2,7 @@
 name: Standing waves calculator
 num: 941
 shelf: science
+code: T676
 section: acoustics-and-wave-physics
 title: "Standing waves calculator: string harmonics and tension, pipe resonances with end corrections, and tuning to a note"
 summary: "Work out the notes a stretched string or an air column plays: the harmonic series with note names and cents, wavelengths and a picture of the first three standing waves. For pipes open at both ends, closed at one or closed at both, with end corrections. Or go the other way and find the string tension or pipe length for a target note."

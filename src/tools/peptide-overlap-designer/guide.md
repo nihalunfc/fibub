@@ -2,6 +2,7 @@
 name: Peptide library
 num: 201
 shelf: science
+code: T201
 section: virology-and-immunology
 title: "Peptide library"
 summary: "Paste a protein and cut it into overlapping peptides of any length and overlap, with their masses and flags for peptides that are often hard to make. Lay them out in matrix pools so each peptide is in two pools, then tap the positive pools to see which peptides could explain them. Download an order list as CSV. Nothing is uploaded."

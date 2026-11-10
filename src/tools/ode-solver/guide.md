@@ -2,6 +2,7 @@
 name: ODE solver
 num: 548
 shelf: science
+code: T376
 section: applied-mathematics
 title: "ODE solver"
 summary: "Type a system of differential equations and solve it in your browser with RK4 or adaptive RK45 (as SciPy). Time plots, phase portrait with direction field and nullclines, equilibria with eigenvalues, a bifurcation diagram, and a heat and wave equation playground."

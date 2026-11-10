@@ -2,6 +2,7 @@
 name: Tyndall effect
 num: 1259
 shelf: learn
+code: L144
 section: school-chemistry
 title: "Tyndall effect"
 summary: "Shine a torch through salt water, milk, starch, fog or muddy water and see whether the beam shows (the Tyndall effect). Leave it to stand, filter it, slide the particle size from 0.1 nm to 100 µm, and work out the mass percentage of a solution."

@@ -2,6 +2,7 @@
 name: Magnetic field mapper
 num: 1043
 shelf: learn
+code: L18
 section: school-physics
 title: "Magnetic field lines of a bar magnet, a wire, a loop and a solenoid, with a compass you can drag"
 summary: "See the magnetic field lines of a bar magnet, a straight current-carrying wire, a circular loop and a solenoid. Drag a compass around to see which way its needle points and how strong the field is there, and learn the right-hand thumb rule. Class 12 level adds B = μ₀I/2πr, μ₀NI/2a and μ₀nI with your numbers."

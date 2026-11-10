@@ -2,6 +2,7 @@
 name: Osmosis lab
 num: 1121
 shelf: learn
+code: L55
 section: school-biology
 title: "Osmosis lab: potato, raisin and cells in hypotonic, isotonic and hypertonic solutions"
 summary: "Drop a potato piece, a raisin, an onion cell or a red blood cell into sugar or salt water and watch water move in or out. See plasmolysis, a % mass change graph, water potential at Class 11 level, a virtual practical and quick questions."

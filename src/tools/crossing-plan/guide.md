@@ -2,6 +2,7 @@
 name: Crossing planner
 num: 388
 shelf: science
+code: T276
 section: horticulture-and-plant-breeding
 title: "Crossing planner"
 summary: "Enter plants and their parents, and planned crosses. The tool checks the pedigree for loops and mistakes, works out every plant's inbreeding coefficient and the coancestry of any two plants (the inbreeding their offspring would have), draws the pedigree, and saves a crossing plan as CSV. Nothing is uploaded."

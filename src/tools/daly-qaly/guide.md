@@ -2,6 +2,7 @@
 name: DALY and QALY
 num: 492
 shelf: science
+code: T343
 section: public-health
 title: "DALY and QALY"
 summary: "Work out disability-adjusted life years (DALY = YLL + YLD) with optional discounting, QALYs from utilities you enter, and the incremental cost-effectiveness ratio per QALY gained and per DALY averted."

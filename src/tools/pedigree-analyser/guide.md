@@ -2,6 +2,7 @@
 name: Pedigree analyser
 num: 1444
 shelf: learn
+code: L288
 section: school-biology
 title: "Pedigree analysis practice: which inheritance pattern fits, autosomal or X-linked, dominant or recessive"
 summary: "Tap the people in a three-generation family tree to mark who has a trait, and see at once which inheritance patterns fit: autosomal dominant or recessive, X-linked dominant or recessive, or Y-linked. Each ruled-out pattern gives the family that breaks it, and the tree marks who must be a carrier. Made-up teaching families only."

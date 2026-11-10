@@ -2,6 +2,7 @@
 name: Fick cardiac output
 num: 343
 shelf: science
+code: T258
 section: physiology
 title: "Fick cardiac output"
 summary: "Cardiac output from oxygen uptake and the arterial and mixed venous O₂ content (from haemoglobin, saturation and PO₂), with stroke volume, O₂ delivery and extraction. Plus two teaching calculators: Fick's law of diffusion across a membrane and Poiseuille flow in a tube. For study and teaching, not for clinical use."

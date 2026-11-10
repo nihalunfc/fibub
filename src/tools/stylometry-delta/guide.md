@@ -2,6 +2,7 @@
 name: "Stylometry: Burrows' Delta"
 num: 413
 shelf: science
+code: T301
 section: digital-humanities
 title: "Stylometry with Burrows' Delta: authorship attribution from word frequencies, in your browser"
 summary: "Paste or open several texts, compare them on their most frequent words with Burrows' Delta, see a clustered heat map of the distances, and find the closest candidate author for a disputed text. Nothing is uploaded."

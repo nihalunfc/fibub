@@ -2,6 +2,7 @@
 name: Water cycle simulator
 num: 1228
 shelf: learn
+code: L113
 section: school-earth
 title: "Water cycle simulator: sun, temperature and wind drive evaporation, clouds, rain and runoff"
 summary: "A coast with sea, hills, a river and the ground under it. Turn up the sun, warm the air, change the wind and the ground (forest, fields or city) and watch water evaporate, form cloud over the hills, rain, run off or soak in. A water budget counts every drop."

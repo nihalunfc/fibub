@@ -2,6 +2,7 @@
 name: CT reconstruction demo
 num: 972
 shelf: science
+code: T707
 section: biophysics-and-medical-physics
 title: "CT reconstruction demo: sinogram and filtered back-projection with ramp, Shepp-Logan, cosine and Hann filters"
 summary: "See how a CT scanner turns X-ray projections into a slice: make the sinogram of a made-up object, rebuild it by filtered back-projection, and watch what too few angles, a limited angular range, noise and the choice of filter do to the image."

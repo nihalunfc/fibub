@@ -2,6 +2,7 @@
 name: Sunspot counter
 num: 75
 shelf: science
+code: T75
 section: solar-physics
 title: "Sunspot counter: Wolf number, groups and spot areas from your own photo of the Sun"
 summary: "Open a white-light photo of the Sun and the tool finds the disc, the spots and the groups, and gives the relative sunspot (Wolf) number with spot areas. Tap to correct anything it got wrong."

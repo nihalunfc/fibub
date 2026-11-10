@@ -2,6 +2,7 @@
 name: Noise dose calculator
 num: 944
 shelf: science
+code: T679
 section: acoustics-and-wave-physics
 title: "Noise dose calculator: daily noise exposure from levels and durations, % dose, 8-hour TWA and LEX,8h (3 dB and 5 dB exchange rates)"
 summary: "List the noise levels a person is exposed to and for how long, and get the daily noise dose in per cent, the 8-hour time-weighted average, LEX,8h, the allowed time at each level and the time left at the loudest task, for a criterion level, exchange rate and threshold you choose (presets follow NIOSH, US OSHA and the EU and UK rules)."

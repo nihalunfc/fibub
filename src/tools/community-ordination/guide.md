@@ -2,6 +2,7 @@
 name: Community ordination
 num: 306
 shelf: science
+code: T221
 section: ecology
 title: "Community ordination online: PCA, NMDS (Bray-Curtis) and cluster dendrogram for species-by-site data"
 summary: "Paste a species-by-site table and get a PCA (with the Hellinger transform), an NMDS on Bray-Curtis with its stress and Shepard plot, and a cluster dendrogram (UPGMA, Ward, single or complete linkage). Download the scores, the dissimilarities and the tree. Runs in your browser."

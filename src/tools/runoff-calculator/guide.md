@@ -2,6 +2,7 @@
 name: Rainfall runoff calculator
 num: 141
 shelf: science
+code: T141
 section: hydrology-and-water-resources
 title: "Rational method and SCS curve number calculator: storm runoff, peak flow and time of concentration"
 summary: "Estimate the peak flow from a small catchment with the rational method (Q = CiA, Kirpich time of concentration, your own rainfall intensity curve) and the runoff depth, volume and triangular hydrograph from the SCS (NRCS) curve number method, with dry, average and wet ground. Area-weighted C and CN for mixed land use. SI or US units."

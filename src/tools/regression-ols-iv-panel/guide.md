@@ -2,6 +2,7 @@
 name: Regression panel
 num: 744
 shelf: science
+code: T512
 section: econometrics
 title: "Regression panel"
 summary: "Run OLS with classical, robust (HC0 to HC3) or clustered standard errors, two-stage least squares with the first-stage F, or panel fixed effects with entity and time effects, from a CSV. Coefficients, t, p, confidence intervals and R², matching statsmodels and linearmodels."

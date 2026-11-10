@@ -2,6 +2,7 @@
 name: Central dogma lab
 num: 1125
 shelf: learn
+code: L59
 section: school-biology
 title: "Central dogma lab: DNA to mRNA to protein, and what a mutation does"
 summary: "See a gene's coding strand, template strand, mRNA and amino acids codon by codon with the standard genetic code. Tap a base to change, insert or delete it, and find out whether the change is silent, missense, nonsense or a frameshift."

@@ -2,6 +2,7 @@
 name: Shelf life
 num: 392
 shelf: science
+code: T280
 section: food-science
 title: "Shelf life"
 summary: "Work out shelf life at another storage temperature with a Q10, fit Q10 and the Arrhenius activation energy to two or more accelerated shelf-life tests, and get water activity from equilibrium relative humidity or a Norrish-type equation. For study and planning. Nothing is uploaded."

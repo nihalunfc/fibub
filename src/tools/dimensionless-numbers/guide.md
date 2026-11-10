@@ -2,6 +2,7 @@
 name: Dimensionless numbers calculator
 num: 956
 shelf: science
+code: T691
 section: fluid-dynamics
 title: "Dimensionless numbers calculator: Reynolds, Mach, Froude, Weber, Prandtl, Rayleigh, Strouhal and Knudsen with regime notes"
 summary: "Give a fluid, a speed and a length and get the Reynolds, Mach, Froude, Weber, capillary, Bond, Ohnesorge, Prandtl, Péclet, Grashof, Rayleigh, Richardson, Strouhal and Knudsen numbers, each with a plain note on what regime the flow is in."

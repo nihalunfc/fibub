@@ -2,6 +2,7 @@
 name: Laminate calculator
 num: 850
 shelf: science
+code: T586
 section: mechanical-behaviour
 title: "Composite laminate calculator: rule of mixtures, ABD matrix, ply stresses and Tsai-Wu first-ply failure"
 summary: "Get ply properties from fibre and matrix (rule of mixtures, Reuss or Halpin-Tsai), then use classical lamination theory for any stacking such as [0/±45/90]s: Q and Q-bar, the A, B and D matrices, effective laminate moduli, ply stresses and strains under in-plane forces and moments, and first-ply failure by maximum stress and Tsai-Wu."

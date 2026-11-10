@@ -2,6 +2,7 @@
 name: Binding curve fitter
 num: 114
 shelf: science
+code: T114
 section: biochemistry
 title: "Binding curve fitter: Kd and Bmax from saturation binding, Hill, two sites, Scatchard and Cheng–Prusoff Ki"
 summary: "Paste ligand concentrations with total and non-specific binding, or a titration signal, and fit one site, one site with non-specific binding, two sites, Hill or tight binding with ligand depletion. Get Kd, Bmax and the Hill coefficient with errors, a model comparison by AICc, the Scatchard plot and an IC50 to Ki converter."

@@ -2,6 +2,7 @@
 name: Compound angle proof
 num: 1370
 shelf: learn
+code: L230
 section: school-maths
 title: "Sum and difference formulae: a visual proof of sin(A + B) and cos(A + B) from stacked right triangles"
 seoTitle: "sin(A + B) visual proof: compound angle formulae"

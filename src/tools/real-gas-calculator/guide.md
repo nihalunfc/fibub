@@ -2,6 +2,7 @@
 name: Real gas calculator
 num: 916
 shelf: science
+code: T651
 section: thermodynamics-and-statistical-physics
 title: "Real gas calculator: compressibility factor Z from van der Waals, Redlich-Kwong, Soave and Peng-Robinson"
 summary: "Compare the ideal gas law with four cubic equations of state for any gas: compressibility factor Z, molar volume, density and fugacity side by side, the saturation pressure each equation predicts, and charts of Z against pressure, the P-V isotherm and a generalised Z chart."

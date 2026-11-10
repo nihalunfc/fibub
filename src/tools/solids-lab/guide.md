@@ -2,6 +2,7 @@
 name: Solids lab
 num: 1290
 shelf: learn
+code: L171
 section: school-maths
 title: "Solids lab: surface area and volume of a cube, cuboid, cylinder, cone, sphere and hemisphere"
 summary: "Pick a cube, cuboid, cylinder, cone, sphere or hemisphere and set its size. Turn it in 3D, unfold it into its net, or pour it into a cylinder to see why a cone is a third and a sphere two thirds of its cylinder. Every formula updates with your numbers. Ends with fresh practice questions."

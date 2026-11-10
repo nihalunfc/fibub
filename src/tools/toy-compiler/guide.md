@@ -2,6 +2,7 @@
 name: Compiler stage visualiser
 num: 577
 shelf: science
+code: T405
 section: computer-science
 title: "Compiler stage visualiser: see tokens, the syntax tree, stack bytecode and a step-by-step virtual machine for a tiny language"
 summary: "Write a short program in a tiny language (variables, whole-number arithmetic, if, while, print) and watch each stage of a compiler: the lexer's tokens, the parser's syntax tree drawn as a picture, the stack-machine bytecode, and a virtual machine you can step through one instruction at a time."

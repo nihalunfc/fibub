@@ -2,6 +2,7 @@
 name: Cross-tab and chi-square
 num: 747
 shelf: science
+code: T515
 section: sociology-and-survey-research
 title: "Cross-tab and chi-square test calculator with weights, Cramér's V and Fisher's exact test (free)"
 summary: "Turn raw survey answers into a cross-tabulation with row, column and total percentages, then test it: Pearson chi-square, likelihood-ratio G², Cramér's V, adjusted residuals, Fisher's exact test for 2 × 2, and a design-effect correction for weighted data. Matches scipy."

@@ -2,6 +2,7 @@
 name: Population growth
 num: 1452
 shelf: learn
+code: L294
 section: school-biology
 title: "Population growth: exponential and logistic curves, r and K, dN/dt and age pyramids"
 summary: "Slide the growth rate r and the carrying capacity K and watch a J-shaped exponential curve race away while the S-shaped logistic curve levels off at K. See dN/dt against N, the doubling time, where growth is fastest, and expanding, stable and declining age pyramids."

@@ -2,6 +2,7 @@
 name: Insolation calculator
 num: 840
 shelf: science
+code: T576
 section: paleoclimatology
 title: "Insolation calculator: daily and instantaneous sunlight at the top of the atmosphere for any orbit (Milankovitch forcing)"
 summary: "Type an orbit (eccentricity, obliquity, longitude of perihelion, solar constant) and get the daily-mean and instantaneous insolation at any latitude and day of year or true solar longitude, with the seasonal cycle, latitude profiles, a latitude-by-season map, Milankovitch's caloric summer and winter half-years and summer energy above a threshold. Compare two orbits, such as a glacial and an interglacial setting. Download CSV, PNG, PDF or Word."

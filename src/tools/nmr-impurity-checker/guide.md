@@ -2,6 +2,7 @@
 name: NMR impurities
 num: 106
 shelf: science
+code: T106
 section: analytical-chemistry
 title: "NMR impurities"
 summary: "Paste a peak list (even a journal-style one) and see which peaks are residual solvent, water, grease or common lab solvents such as ethyl acetate, DCM and ether, in CDCl₃, DMSO-d₆, CD₃OD, D₂O and six more, for ¹H and ¹³C."

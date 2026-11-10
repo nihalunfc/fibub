@@ -2,6 +2,7 @@
 name: NNT calculator
 num: 465
 shelf: science
+code: T316
 section: epidemiology
 title: "Number needed to treat (NNT) and NNH calculator with confidence interval, ARR, RR and RRR"
 summary: "Number needed to treat or harm from events in a treated and a control group, with the absolute risk reduction, relative risk, relative risk reduction and odds ratio, all with 95 % intervals. Shows the NNT interval the Altman way when it crosses zero."

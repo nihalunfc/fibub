@@ -2,6 +2,7 @@
 name: Coordinate treasure hunt
 num: 1272
 shelf: learn
+code: L153
 section: school-maths
 title: "Coordinate treasure hunt: plot points, read points, find hidden treasure and sink ships on a grid"
 summary: "Four quick games on the coordinate plane: tap a point from its coordinates, read the coordinates of a point, hunt buried treasure using distance clues, and sink three hidden ships. Learn the quadrants, the signs of x and y, and the distance formula as you play."

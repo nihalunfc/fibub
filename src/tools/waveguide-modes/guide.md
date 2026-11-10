@@ -2,6 +2,7 @@
 name: Waveguide mode calculator
 num: 913
 shelf: science
+code: T648
 section: electromagnetism
 title: "Waveguide cutoff frequency and mode chart: rectangular and circular guides, TE and TM modes"
 summary: "Give a rectangular or circular waveguide's size and filling to get the cutoff frequency of every TE and TM mode, the single-mode band, and at your frequency which modes propagate, the guide wavelength, phase and group speed, wave impedance and wall loss."

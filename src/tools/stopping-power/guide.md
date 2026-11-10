@@ -2,6 +2,7 @@
 name: Stopping power
 num: 948
 shelf: science
+code: T683
 section: nuclear-and-particle-physics
 title: "Stopping power"
 summary: "Energy loss (stopping power, LET) and CSDA range of protons, deuterons, alphas, carbon ions, your own ion, muons and pions in water, air, PMMA, aluminium, silicon, copper, lead or your own material, from the Bethe-Bloch formula. Plots stopping power against energy and the Bragg curve, and gives the energy left after any thickness."

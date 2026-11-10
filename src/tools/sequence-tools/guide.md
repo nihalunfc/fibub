@@ -2,6 +2,7 @@
 name: DNA sequence tools
 num: 163
 shelf: science
+code: T163
 section: molecular-biology
 title: "DNA sequence tools: reverse complement, translate in six frames, find open reading frames (ORFs), GC content and codon usage"
 summary: "Paste a DNA or RNA sequence or open a FASTA file. Get the length and GC content, the reverse complement, the protein in any of the six reading frames, every open reading frame above a length you choose drawn on a map, and a codon usage table. Runs in your browser; your sequence never leaves the device."

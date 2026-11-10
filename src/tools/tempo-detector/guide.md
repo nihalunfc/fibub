@@ -2,6 +2,7 @@
 name: Tempo detector
 num: 423
 shelf: science
+code: T311
 section: musicology-and-music-acoustics
 title: "Tempo detector"
 summary: "Open a recording and get its tempo in beats per minute with a list of other candidate tempos, the time of every beat and every onset (CSV), and charts of the onset strength and its autocorrelation. Works offline; the sound never leaves your device."

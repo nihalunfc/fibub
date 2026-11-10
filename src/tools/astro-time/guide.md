@@ -2,6 +2,7 @@
 name: Astronomy time converter
 num: 22
 shelf: science
+code: T22
 section: research
 title: "Julian Date, MJD and sidereal time converter (with BJD and HJD)"
 summary: "Convert any moment between UTC, your local time, Julian Date, Modified Julian Date and Unix time, and see sidereal time, ΔT and light-time corrected BJD for a star."

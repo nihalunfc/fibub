@@ -2,6 +2,7 @@
 name: Table converter
 num: 804
 shelf: science
+code: T540
 section: writing-and-publishing
 title: "Table converter"
 summary: "Paste cells from Excel, Google Sheets or LibreOffice, or open a CSV or Excel file, and get a LaTeX table (booktabs rules, caption and label, siunitx decimal alignment), a Markdown table or an HTML table. Special characters are escaped and numbers can be rounded the way you would on paper."

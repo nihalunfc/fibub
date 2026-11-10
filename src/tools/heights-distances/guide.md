@@ -2,6 +2,7 @@
 name: Heights and distances
 num: 1154
 shelf: learn
+code: L71
 section: school-maths
 title: "Heights and distances: angle of elevation and depression problems solved with steps"
 summary: "A tower, one or two observers and their lines of sight. Drag the person, set the angles, and get the height, the distance or the angle of elevation with every step of the trigonometry shown."

@@ -2,6 +2,7 @@
 name: Rain gauge average
 num: 150
 shelf: science
+code: T150
 section: hydrology-and-water-resources
 title: "Rain gauge average"
 summary: "Turn point rain gauge readings into one rainfall figure for a whole catchment. Each gauge stands for the part of the catchment closest to it (its Thiessen polygon). Paste or open the boundary and the gauges, with any number of storms or days as columns. Get the areal rainfall, each gauge's area and weight, a map, and a comparison with the plain average. Missing readings redraw the polygons."

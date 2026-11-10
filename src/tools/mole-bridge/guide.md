@@ -2,6 +2,7 @@
 name: Mole bridge
 num: 1085
 shelf: learn
+code: L40
 section: school-chemistry
 title: "Mole concept: grams to moles to particles to gas volume, empirical formula and limiting reactant"
 summary: "Type an amount of any substance in grams, moles, particles or litres of gas and see the other three, with the path across the mole bridge drawn and every step written out. Work out an empirical and molecular formula from percentages, and see which reactant runs out first. Ends with fresh practice questions."

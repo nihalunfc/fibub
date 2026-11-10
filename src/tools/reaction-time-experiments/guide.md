@@ -2,6 +2,7 @@
 name: Reaction time experiments
 num: 722
 shelf: science
+code: T490
 section: psychology-and-psychometrics
 title: "Stroop test, flanker task and n-back online: reaction time experiment with CSV download (free)"
 summary: "Run a Stroop, Eriksen flanker or n-back task in your browser with keys or touch. Get mean and median reaction times on correct trials, accuracy, the congruency effect or n-back d′, with trimming rules and a CSV of every trial."

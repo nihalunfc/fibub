@@ -2,6 +2,7 @@
 name: Fair test planner
 num: 1211
 shelf: learn
+code: L97
 section: school-physics
 title: "Fair test planner: plan a science experiment, change one thing, keep the rest the same and measure"
 summary: "Pick a question such as \"does salt make water boil sooner?\", choose the one thing to change, what to keep the same and what to measure. The page warns when two things change at once, then averages your repeats."

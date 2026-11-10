@@ -2,6 +2,7 @@
 name: Mirror ray diagram
 num: 1001
 shelf: learn
+code: L1
 section: school-physics
 title: "Spherical mirror ray diagram: concave and convex mirrors, image position and the mirror formula"
 summary: "Drag an object in front of a concave or convex mirror and watch the principal rays find the image: where it forms, how big it is, real or virtual, with the mirror formula and magnification worked out with signs."

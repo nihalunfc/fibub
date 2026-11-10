@@ -2,6 +2,7 @@
 name: Consolidation settlement
 num: 657
 shelf: science
+code: T454
 section: geotechnical-engineering
 title: "Consolidation settlement"
 summary: "Primary consolidation settlement of layered clay under a wide fill or a footing, for normally and over-consolidated layers, and how long it takes: Terzaghi's degree of consolidation from its series, time to any percent, a settlement-time curve, isochrones and cv from a lab t50 or t90."

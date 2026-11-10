@@ -2,6 +2,7 @@
 name: Density altitude calculator
 num: 898
 shelf: science
+code: T633
 section: meteorology
 title: "Density altitude and pressure altitude calculator with air density (feet or metres, hPa or inHg)"
 summary: "From the altimeter setting or station pressure, the elevation, the temperature and the dew point, get the pressure altitude, the density altitude (moist and dry), the air density and the standard-atmosphere temperature, with a chart and a table over a range of temperatures."

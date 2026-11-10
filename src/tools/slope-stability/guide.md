@@ -2,6 +2,7 @@
 name: Slope stability
 num: 658
 shelf: science
+code: T455
 section: geotechnical-engineering
 title: "Slope stability"
 summary: "Factor of safety of a simple soil slope on circular slip surfaces by Bishop's simplified method (iterated) and the ordinary method of slices, with one or two soil layers, a pore pressure ratio ru or a water table, a grid search for the critical circle, a drawing and a slice table."

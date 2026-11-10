@@ -2,6 +2,7 @@
 name: Buffer recipe calculator
 num: 113
 shelf: science
+code: T113
 section: biochemistry
 title: "Buffer recipe calculator: Henderson–Hasselbalch with temperature-adjusted pKa (Tris, HEPES, phosphate, MES and more)"
 summary: "Choose a buffer, pH, concentration and volume, and get a recipe: grams to weigh and mL of NaOH or HCl to add, or how much of two forms to mix. Solves the full charge balance with pKa adjusted for temperature and ionic strength, and shows buffer capacity, species and the pH at the temperature you will use it."

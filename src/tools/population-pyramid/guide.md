@@ -2,6 +2,7 @@
 name: Population pyramid
 num: 755
 shelf: science
+code: T523
 section: demography
 title: "Population pyramid maker with dependency ratio, median age and sex ratio (free)"
 summary: "Draw a population pyramid from male and female counts by age group, as counts or percentages, with a second year or area as an outline, and get dependency ratios, interpolated median age and sex ratios. Download PNG, SVG or CSV."

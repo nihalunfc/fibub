@@ -2,6 +2,7 @@
 name: Weather observer's log
 num: 899
 shelf: science
+code: T634
 section: meteorology
 title: "Weather log for home observers: daily max/min temperature, rain, snow, wind, pressure and cloud, with monthly summaries and records"
 summary: "Keep a daily weather diary in your browser: maximum and minimum temperature, rain, snow, wind, pressure, cloud and notes. See each month's averages, totals, rain days and frost days, charts, and your all-time records, and import or export it all as CSV. Your log never leaves this device."

@@ -2,6 +2,7 @@
 name: Galaxy morphology practice
 num: 214
 shelf: science
+code: T213
 section: galactic-and-extragalactic-astronomy
 title: "Galaxy classification practice: Hubble types E0 to E7, S0, Sa to Sc and barred SBa to SBc, with a quiz and explanations"
 summary: "Practise sorting galaxies into Hubble types on pictures the page draws for you: ellipticals E0 to E7, lenticulars, spirals and barred spirals, and irregulars. A quiz explains every answer (bulge size, how tightly the arms wind, the bar, ellipticity 10(1 − b/a)), and an explorer has a slider for each setting."

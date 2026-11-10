@@ -2,6 +2,7 @@
 name: Skew-T sounding plotter
 num: 136
 shelf: science
+code: T136
 section: meteorology
 title: "Skew-T log-P plotter: CAPE, CIN, LCL, LFC and stability indices from a weather balloon sounding"
 summary: "Paste a radiosonde sounding (or the University of Wyoming text list) and get a skew-T log-P diagram with the lifted parcel, CAPE and CIN shading, LCL, LFC and EL, lifted index, Showalter, K index, total totals, precipitable water, freezing level, wind barbs and bulk shear."

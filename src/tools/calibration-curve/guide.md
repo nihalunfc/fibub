@@ -2,6 +2,7 @@
 name: Calibration curve
 num: 28
 shelf: science
+code: T28
 section: analytical-chemistry
 title: "Calibration curve"
 summary: "Paste your standards and get the calibration line, R², limits of detection and quantitation (ICH Q2), and the concentration of each unknown with a 95 % interval."

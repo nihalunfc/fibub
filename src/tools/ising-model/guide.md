@@ -2,6 +2,7 @@
 name: Ising model playground
 num: 918
 shelf: science
+code: T653
 section: thermodynamics-and-statistical-physics
 title: "Ising model simulator: 2D Metropolis Monte Carlo with magnetisation, heat capacity and Onsager's exact solution"
 summary: "Watch a 2D Ising magnet order and disorder as you move the temperature, then scan a range of temperatures for magnetisation, energy, heat capacity, susceptibility and the Binder cumulant with error bars, compared with Onsager's exact result."

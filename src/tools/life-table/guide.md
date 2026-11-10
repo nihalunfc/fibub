@@ -2,6 +2,7 @@
 name: Life table
 num: 754
 shelf: science
+code: T522
 section: demography
 title: "Life table calculator: life expectancy from death rates, abridged or complete (free)"
 summary: "Build a period life table from age-specific death rates or from deaths and population: nMx, nax (half-interval, Coale-Demeny or Andreev-Kingkade), nqx, lx, ndx, nLx, Tx and life expectancy ex, with charts and CSV."

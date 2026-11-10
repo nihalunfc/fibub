@@ -2,6 +2,7 @@
 name: Simple machines lab
 num: 1026
 shelf: learn
+code: L13
 section: school-physics
 title: "Simple machines: levers (class 1, 2, 3), pulleys, inclined plane, wheel and axle; mechanical advantage, velocity ratio and efficiency"
 summary: "Lift a load with a lever, a pulley system of 1 to 4 strands, a ramp or a wheel and axle; see the effort you need, the mechanical advantage, the velocity ratio and the efficiency, and check that work out is never more than work in."

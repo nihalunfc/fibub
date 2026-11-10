@@ -2,6 +2,7 @@
 name: 3D vector lab
 num: 1190
 shelf: learn
+code: L93
 section: school-maths
 title: "3D vector visualiser: add vectors, dot product as projection, cross product as area, shortest distance between lines"
 summary: "Type two vectors in 3D and turn the picture round to see a + b, the dot product as the shadow of one vector on the other, and the cross product standing square to both with the parallelogram's area. Then put two lines in space and find the angle and the shortest distance between them, with the closest points marked."

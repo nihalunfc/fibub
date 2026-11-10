@@ -2,6 +2,7 @@
 name: Thin film
 num: 865
 shelf: science
+code: T601
 section: semiconductors-and-electronics-materials
 title: "Thin film"
 summary: "Work out a thin film's thickness from the interference fringes in its transmittance or reflectance spectrum: Swanepoel's envelope method gives the refractive index at every fringe and the thickness from whole-number orders; with a known index (constant or Cauchy) the fringe positions are enough; or count fringes between two wavelengths."

@@ -2,6 +2,7 @@
 name: Bomb calorimeter
 num: 1367
 shelf: learn
+code: L227
 section: school-chemistry
 title: "Bomb calorimeter"
 summary: "A virtual bomb calorimeter: calibrate it by burning benzoic acid, then burn glucose, sucrose, naphthalene or urea and read the temperature rise off a live thermometer trace. Work out q = CΔT, the internal energy change ΔU per mole, and ΔH = ΔU + Δn(gas)RT, with every step shown."

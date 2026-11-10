@@ -2,6 +2,7 @@
 name: GPS track analyser
 num: 134
 shelf: science
+code: T134
 section: geodesy-and-surveying
 title: "GPS track analyser: GPX distance, moving time, pace, elevation gain and splits, read in your browser"
 summary: "Open a GPX file or paste a CSV of time, latitude, longitude and elevation. Get the distance on the WGS84 ellipsoid, moving and stopped time, average and top speed, climbing with a noise threshold, splits per km or mile, a plan, an elevation profile and a speed chart. The file never leaves your device."

@@ -2,6 +2,7 @@
 name: Noise barrier calculator
 num: 160
 shelf: science
+code: T160
 section: environmental-engineering
 title: "Noise barrier attenuation calculator: insertion loss of a wall or fence by octave band (Maekawa, Fresnel number) and the dB(A) reduction"
 summary: "Work out how much a noise barrier cuts the sound at a receiver. Give the heights and distances of the source, barrier and receiver and the sound spectrum without the barrier, and see the path difference, Fresnel number and insertion loss in each octave band, the A-weighted level before and after, and a drawing of the cross-section."

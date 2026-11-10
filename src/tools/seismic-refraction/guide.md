@@ -2,6 +2,7 @@
 name: Seismic refraction interpreter
 num: 882
 shelf: science
+code: T617
 section: geophysics-and-seismology
 title: "Seismic refraction: layer speeds and depths from first-arrival picks by intercept-time and crossover methods, dipping layers and travel-time curves"
 summary: "Paste first-arrival picks from a forward shot and, if you have one, a reverse shot. The page splits them into 2 or 3 layers, fits each line, and gives speeds, depths by the intercept-time and crossover methods, a dipping-layer solution from the two shots, reciprocal time check and a forward model to compare."

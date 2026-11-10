@@ -2,6 +2,7 @@
 name: Relativistic kinematics calculator
 num: 947
 shelf: science
+code: T682
 section: nuclear-and-particle-physics
 title: "Relativistic kinematics calculator: invariant mass, two-body decay, Lorentz boost and threshold energy"
 summary: "Four special-relativity calculators in one page, in MeV or GeV with c = 1: the invariant mass of any set of particles, the momenta and lab energy ranges in a two-body decay, a Lorentz boost of a four-momentum in any direction, and the threshold energy of a reaction on a fixed target or in a collider. Type particle names instead of masses."

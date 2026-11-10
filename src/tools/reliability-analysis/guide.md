@@ -2,6 +2,7 @@
 name: Reliability and agreement
 num: 40
 shelf: science
+code: T40
 section: psychology-and-psychometrics
 title: "Cronbach's alpha, Cohen's kappa, Fleiss' kappa and ICC calculator (free)"
 summary: "Check a questionnaire scale with Cronbach's alpha and item statistics, or rater agreement with Cohen's kappa (weighted too), Fleiss' kappa and all six intraclass correlations with 95 % intervals. Matches R's psych package."

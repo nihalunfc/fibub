@@ -2,6 +2,7 @@
 name: Breeder's equation calculator
 num: 389
 shelf: science
+code: T277
 section: horticulture-and-plant-breeding
 title: "Breeder's equation calculator: response to selection R = h²S, selection intensity, gain per year and heritability"
 summary: "Predict the response to selection from heritability and the selection differential, or from the proportion selected (selection intensity) and the phenotypic standard deviation, per generation and per year. Estimate heritability from parent-offspring pairs or from families, lines or clones. Nothing is uploaded."

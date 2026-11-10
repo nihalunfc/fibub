@@ -2,6 +2,7 @@
 name: Soil texture triangle
 num: 322
 shelf: science
+code: T237
 section: botany-and-plant-science
 title: "Soil texture triangle calculator: USDA texture class from sand, silt and clay %, for one sample or hundreds"
 summary: "Type sand, silt and clay percentages and get the USDA soil texture class (sand, loam, silty clay and the rest of the 12). Paste or open a table of many samples to plot them all on the texture triangle, count them by class and download the classes as CSV."

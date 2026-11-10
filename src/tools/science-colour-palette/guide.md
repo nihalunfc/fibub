@@ -2,6 +2,7 @@
 name: Science colour palette
 num: 808
 shelf: science
+code: T544
 section: figures-and-data-presentation
 title: "Science colour palette maker: perceptually even, colour-blind safe palettes for plots"
 summary: "Build sequential, diverging and qualitative colour palettes in OKLCH, a colour space where equal steps look equal. See the smallest colour difference for three kinds of colour blindness and in greyscale, check contrast with the background, preview bars and a heatmap, and copy the palette for CSS, matplotlib, R or JSON."

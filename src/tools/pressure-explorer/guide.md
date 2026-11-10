@@ -2,6 +2,7 @@
 name: Pressure explorer
 num: 1219
 shelf: learn
+code: L105
 section: school-physics
 title: "Pressure explorer: why a needle goes in and a palm does not, pressure = force ÷ area with a pressure-area graph"
 summary: "Press a needle and a flat palm into soft clay with the same force and see why one goes in. Pressure = force ÷ area is worked out with your numbers, a graph shows pressure against area, and Class 11 adds thrust from a resting mass."

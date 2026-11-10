@@ -2,6 +2,7 @@
 name: Home range analyser
 num: 316
 shelf: science
+code: T231
 section: zoology-and-animal-behaviour
 title: "Home range calculator: MCP and kernel density from GPS collar data (free)"
 summary: "Paste or open GPS collar fixes (time, latitude, longitude) and get 100 % and 95 % minimum convex polygons, kernel density home ranges (95 % and 50 % core), step lengths and turning angles, with a map. Runs in your browser."

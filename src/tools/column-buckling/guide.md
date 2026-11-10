@@ -2,6 +2,7 @@
 name: Column buckling calculator
 num: 652
 shelf: science
+code: T449
 section: civil-and-structural-engineering
 title: "Column buckling calculator: Euler critical load, effective length, slenderness and the Johnson parabola"
 summary: "Work out the buckling load of a straight column from its section (I or H, rectangle, solid circle or round tube), length, end conditions and material: section properties, slenderness KL/r, Euler's critical load for slender columns and the Johnson parabola for intermediate ones, with a column curve and an optional load check."

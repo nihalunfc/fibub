@@ -2,6 +2,7 @@
 name: R/S checker
 num: 1107
 shelf: learn
+code: L52
 section: school-chemistry
 title: "R/S checker"
 summary: "Turn a carbon with four groups in 3D, see whether it is chiral, rank the groups by CIP priority with each step explained, and read R or S with the lowest-priority group put at the back and a curved arrow. Flip to the mirror image, swap two groups, build your own from 19 groups, and test yourself."

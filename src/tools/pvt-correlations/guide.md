@@ -2,6 +2,7 @@
 name: PVT correlations
 num: 687
 shelf: science
+code: T483
 section: petroleum-engineering
 title: "PVT correlations"
 summary: "Estimate black-oil and natural gas properties from API gravity, gas gravity, GOR, temperature and pressure: Standing and Vasquez-Beggs bubble point, Rs and Bo, Beggs-Robinson viscosity, Z-factor by Dranchuk-Abou-Kassem or Hall-Yarborough with Sutton pseudo-criticals, Bg, gas density and Lee-Gonzalez-Eakin viscosity, with curves against pressure."

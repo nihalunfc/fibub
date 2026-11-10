@@ -2,6 +2,7 @@
 name: Input-output multipliers
 num: 741
 shelf: science
+code: T509
 section: economics
 title: "Leontief input-output calculator: technical coefficients, Leontief inverse, output, income and employment multipliers"
 summary: "Paste an input-output table of flows between sectors and final demand. Get the technical coefficients, the Leontief inverse, output multipliers, backward and forward linkages and key sectors, Type I income or job multipliers, and the knock-on effect of any change in final demand."

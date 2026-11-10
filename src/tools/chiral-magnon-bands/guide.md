@@ -2,6 +2,7 @@
 name: Chiral magnon bands
 num: 148
 shelf: science
+code: T148
 section: condensed-matter-physics
 title: "Chiral magnon bands: split spin waves of left- and right-handed chirality in an altermagnet (linear spin-wave theory)"
 summary: "See how the two kinds of spin wave in an altermagnet, which turn the spins in opposite senses, get different energies in a d-wave pattern. A toy spin model with couplings you set, solved by linear spin-wave theory. It shows the magnon bands along Y–Γ–X–M–Γ, a map of the chirality splitting over the zone, the gap at Γ, and a stability check."

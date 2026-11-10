@@ -2,6 +2,7 @@
 name: Mosaic planner
 num: 49
 shelf: science
+code: T49
 section: astrophotography
 title: "Astrophotography mosaic planner: panels, overlap and panel centres"
 summary: "Work out how many panels you need to cover a big target such as the Andromeda Galaxy with your telescope and camera, with the overlap you choose, a picture of the layout, and RA/Dec for every panel centre as a CSV."

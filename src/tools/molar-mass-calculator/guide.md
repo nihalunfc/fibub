@@ -2,6 +2,7 @@
 name: Molar mass calculator
 num: 78
 shelf: science
+code: T78
 section: general-and-lab-chemistry
 title: "Molar mass calculator: formula weight, percent composition and grams to moles"
 summary: "Type any formula, including brackets, hydrates, isotope labels and charges, for its molar mass, exact mass, percentage of each element, and a grams, moles and particles converter."

@@ -2,6 +2,7 @@
 name: Oscilloscope CSV viewer
 num: 979
 shelf: science
+code: T714
 section: general-physics-lab-helpers
 title: "Oscilloscope CSV viewer: plot scope exports and measure frequency, rise time, duty cycle and phase between channels"
 summary: "Open the CSV your oscilloscope saves and get the measurements a scope makes: frequency and period, 10-90 % rise and fall time, top, base, peak to peak, RMS, duty cycle, and the delay and phase between two channels, with a plot of every channel and a zoom on the first edge."

@@ -2,6 +2,7 @@
 name: Drug-likeness
 num: 212
 shelf: science
+code: T211
 section: medicinal-chemistry
 title: "Drug-likeness"
 summary: "Paste a SMILES string (or a whole list) and get the molecular formula, average and monoisotopic mass, H-bond donors and acceptors, rotatable bonds, rings and charge, with a pass or fail for Lipinski's rule of five and Veber's rules. Nothing is uploaded."

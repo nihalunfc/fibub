@@ -2,6 +2,7 @@
 name: Neural network toys
 num: 729
 shelf: science
+code: T497
 section: cognitive-science
 title: "Perceptron and Hopfield network simulator: watch a neuron learn AND, OR and fail on XOR (free)"
 summary: "Two classic neural network models to play with in the browser. Click points and watch a perceptron move its decision line epoch by epoch, converging on AND and OR and failing on XOR. Draw small black-and-white patterns, store them in a Hopfield network and recall them from a noisy cue while the energy falls."

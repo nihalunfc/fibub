@@ -2,6 +2,7 @@
 name: Conic explorer
 num: 1188
 shelf: learn
+code: L91
 section: school-maths
 title: "Conic sections explorer: ellipse, parabola and hyperbola with foci, directrix, eccentricity and latus rectum"
 summary: "Slide the numbers in the equation of a circle, ellipse, parabola or hyperbola and watch the curve change, with its foci, directrices, eccentricity and latus rectum marked. Move a point P to see the focus distances that define each curve, and tilt a plane through a double cone to see where all four come from."

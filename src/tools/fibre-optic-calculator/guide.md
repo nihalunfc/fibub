@@ -2,6 +2,7 @@
 name: Fibre optic calculator
 num: 934
 shelf: science
+code: T669
 section: optics-and-photonics
 title: "Fibre optic calculator: numerical aperture, V-number, modes, dispersion and link loss budget"
 summary: "From a fibre's core and cladding indices, core size and wavelength, get the numerical aperture, acceptance angle, V-number, single-mode cut-off, the guided LP modes, effective index and mode-field diameter, then pulse spreading, bandwidth and a full link power budget."

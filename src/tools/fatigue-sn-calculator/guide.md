@@ -2,6 +2,7 @@
 name: Fatigue S-N calculator
 num: 847
 shelf: science
+code: T583
 section: mechanical-behaviour
 title: "Fatigue S-N calculator: Basquin fit, endurance limit, Goodman, Gerber, Soderberg and Morrow, Miner's rule"
 summary: "Paste or open stress-life (S-N) test results and fit Basquin's law on log-log axes, with run-outs left out. Estimate the endurance strength, correct for mean stress with Goodman, Gerber, Soderberg or Morrow on a Haigh diagram, and add up fatigue damage for a load spectrum with Miner's rule."

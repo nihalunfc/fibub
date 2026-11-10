@@ -2,6 +2,7 @@
 name: Molecular clock calculator
 num: 309
 shelf: science
+code: T224
 section: evolutionary-biology-and-phylogenetics
 title: "Molecular clock calculator: divergence time from genetic distance and rate (T = d/2r), with Jukes-Cantor, K2P and a relative rate test"
 summary: "Estimate when two species or genes split from their genetic distance and a substitution rate (T = d / 2r), or work out the rate from a known split. Distances from two aligned sequences or site counts with Jukes-Cantor or Kimura 2-parameter correction, error ranges, and Tajima's relative rate test with an outgroup. Runs in your browser."

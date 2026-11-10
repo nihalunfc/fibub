@@ -2,6 +2,7 @@
 name: Sun position calculator
 num: 61
 shelf: science
+code: T61
 section: solar-physics
 title: "Sun position calculator: altitude, azimuth, shadow length, sunrise, sunset and sun path"
 summary: "Find where the Sun is at any place and moment: its altitude and azimuth, how long shadows are, sunrise, sunset, solar noon, twilight, a sun path diagram and a year of day lengths."

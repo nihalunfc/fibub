@@ -2,6 +2,7 @@
 name: Spectral line identifier
 num: 70
 shelf: science
+code: T70
 section: stellar-astrophysics
 title: "Spectral line identifier: match spectrum lines and find the redshift"
 summary: "Paste a spectrum or a list of wavelengths and match each line to hydrogen, helium, metals, nebular lines, lamps, light pollution or the atmosphere, and find the redshift where several lines agree."

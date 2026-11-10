@@ -2,6 +2,7 @@
 name: Measurement and parallax
 num: 1218
 shelf: learn
+code: L104
 section: school-physics
 title: "Measurement and parallax error: read a ruler, thermometer and measuring cylinder with your eye at an angle"
 summary: "Read a ruler, a thermometer and a measuring cylinder, then move your eye off to one side and watch the reading change: parallax error. Type your reading to check it. Class 9 adds least count, uncertainty and percentage error."

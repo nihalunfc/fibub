@@ -2,6 +2,7 @@
 name: Geological time
 num: 1448
 shelf: learn
+code: L292
 section: school-biology
 title: "Geological time scale: eons, eras, periods and the history of life squeezed into one year"
 summary: "Move through Earth's 4.54 billion years and see the eon, era and period of any age, when major forms of life first appeared, and where each event would fall if all of Earth's history were one calendar year or one 24-hour day."

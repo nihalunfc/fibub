@@ -2,6 +2,7 @@
 name: Resistor colour code
 num: 622
 shelf: science
+code: T419
 section: electrical-and-electronics
 title: "Resistor colour code calculator: 4, 5 and 6 bands both ways, nearest E-series value and voltage divider designer"
 summary: "Read a resistor's colour bands (3 to 6 bands) as ohms, tolerance and temperature coefficient, or turn a value into its colour bands; find the nearest standard value in E6 to E192; and design a voltage divider from a pair of standard resistors with worst-case output, current and power."

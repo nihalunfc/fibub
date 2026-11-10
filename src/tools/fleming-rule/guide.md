@@ -2,6 +2,7 @@
 name: Fleming's rule
 num: 1044
 shelf: learn
+code: L19
 section: school-physics
 title: "Fleming's rule"
 summary: "Turn a 3D picture of a wire between magnet poles and see the field, current and force arrows of Fleming's left-hand rule. Change the field, current, length and angle and watch F = BIL sin θ. Then watch a DC motor coil turn, with and without its split-ring commutator."

@@ -2,6 +2,7 @@
 name: Radian ruler
 num: 1373
 shelf: learn
+code: L233
 section: school-maths
 title: "Radian ruler: what one radian is, degrees to radians and back, arc length s = rθ and sector area"
 seoTitle: "Radian ruler: degrees to radians and arc length"

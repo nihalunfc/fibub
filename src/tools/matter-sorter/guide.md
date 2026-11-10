@@ -2,6 +2,7 @@
 name: Matter sorter
 num: 1220
 shelf: learn
+code: L106
 section: school-chemistry
 title: "Element, compound or mixture? Sort everyday things into bins and see their particles"
 summary: "Drag air, salt, brass, rust, tap water and more into Element, Compound and Mixture bins. A particle picture of each thing shows why it belongs where it does, and Class 9 splits mixtures into homogeneous and heterogeneous."

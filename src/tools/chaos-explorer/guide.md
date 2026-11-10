@@ -2,6 +2,7 @@
 name: Chaos explorer
 num: 552
 shelf: science
+code: T380
 section: applied-mathematics
 title: "Chaos explorer: logistic map cobweb and bifurcation diagram, Lorenz attractor in 3D, Hénon map, Lyapunov exponents"
 summary: "Explore chaos in your browser: the logistic map (or any typed map) with cobweb, orbit diagram, Lyapunov exponent and Feigenbaum period-doubling points; the Lorenz and Rössler attractors in a 3D view you can turn, with their Lyapunov spectrum; and the Hénon map."

@@ -2,6 +2,7 @@
 name: Home battery
 num: 675
 shelf: science
+code: T472
 section: energy-and-power-systems
 title: "Home battery"
 summary: "Simulate a home battery hour by hour with your load and solar data (or a made-up template year), sweep battery sizes, and see self-consumption, grid import and export, cycles, backup hours and a recommended size. Nothing is uploaded."

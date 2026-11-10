@@ -2,6 +2,7 @@
 name: PCR master mix
 num: 31
 shelf: science
+code: T31
 section: molecular-biology
 title: "PCR master mix"
 summary: "Type your stocks and final concentrations, the reaction volume and the number of reactions. Get the volume of every component for one reaction and for the whole mix with spare, plus water, as a tick-off list."

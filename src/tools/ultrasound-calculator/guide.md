@@ -2,6 +2,7 @@
 name: Ultrasound calculator
 num: 973
 shelf: science
+code: T708
 section: biophysics-and-medical-physics
 title: "Ultrasound calculator: acoustic impedance, reflection, attenuation, axial resolution, near field and Doppler shift"
 summary: "Work out what happens to an ultrasound pulse: acoustic impedance, how much reflects and transmits at a boundary (also at an angle), attenuation and penetration depth, wavelength and axial resolution, near-field length and beam spread, echo timing, and the Doppler shift with its aliasing limit."

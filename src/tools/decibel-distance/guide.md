@@ -2,6 +2,7 @@
 name: Decibel distance calculator
 num: 939
 shelf: science
+code: T674
 section: acoustics-and-wave-physics
 title: "Decibel distance calculator: sound level at a distance (inverse square law) with air absorption, and adding decibels"
 summary: "Find how loud a sound is further away: spreading from a point, line or flat source, plus the sound absorbed by the air for the temperature and humidity (ISO 9613-1 formula), for one frequency or a whole octave band spectrum in dB(A). It also finds the distance where the sound falls to a target level, and adds, averages or subtracts decibel levels."

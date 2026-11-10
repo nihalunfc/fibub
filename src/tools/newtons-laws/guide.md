@@ -2,6 +2,7 @@
 name: Newton's laws sandbox
 num: 1023
 shelf: learn
+code: L10
 section: school-physics
 title: "Newton's laws of motion simulator: push a trolley (F = ma, friction, inertia), action and reaction, momentum and impulse"
 summary: "Push a trolley with a force and mass you choose on ice, a smooth floor or carpet and watch a = F/m and friction at work; push two trolleys apart to see equal and opposite forces and momentum conserved; and catch a ball to see why a longer stopping time means a smaller force."

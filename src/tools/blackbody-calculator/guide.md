@@ -2,6 +2,7 @@
 name: Blackbody calculator
 num: 56
 shelf: science
+code: T56
 section: stellar-astrophysics
 title: "Blackbody calculator: Planck spectrum, Wien peak, luminosity and star magnitudes from temperature"
 summary: "Type a temperature, a B − V colour or a peak wavelength to get the Planck spectrum, Wien peak, power per square metre and how it splits into UV, visible and infrared; add a radius and distance for a star's luminosity, bolometric correction and magnitudes."

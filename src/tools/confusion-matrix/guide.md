@@ -2,6 +2,7 @@
 name: Confusion matrix
 num: 570
 shelf: science
+code: T398
 section: data-science-and-machine-learning
 title: "Confusion matrix"
 summary: "Type four counts, paste a confusion matrix, or open a file of actual and predicted classes. Get accuracy, precision, recall, F1 (macro, micro and weighted), specificity, balanced accuracy, MCC and Cohen's kappa, with 95 % confidence intervals. Matches scikit-learn. Nothing is uploaded."

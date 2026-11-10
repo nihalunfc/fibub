@@ -2,6 +2,7 @@
 name: Trig ratio explorer
 num: 1153
 shelf: learn
+code: L70
 section: school-maths
 title: "Trigonometric ratios explorer: sin, cos and tan on a right triangle and the unit circle"
 summary: "Drag the angle of a right triangle and see sin, cos and tan as ratios of its sides, with the exact values at 0°, 30°, 45°, 60° and 90°, the identities checked live, and the full unit circle for Class 11."

@@ -35,7 +35,7 @@ const PER_SECTION = 3;
                             <a class="dd-h dd-sec" href={`${sj.url}#${g.id}`}>{g.name}</a>
                             {g.tools.slice(0, PER_SECTION).map((t) => (
                               <a class="dd-item" role="menuitem" href={toolUrl(t)}>
-                                <span>{t.data.name} <small class="num">#{t.data.num}</small></span>
+                                <span>{t.data.name} <small class="num">#{t.data.code}</small></span>
                               </a>
                             ))}
                             {g.tools.length > PER_SECTION && <a class="dd-more" href={`${sj.url}#${g.id}`}>{g.tools.length - PER_SECTION} more</a>}
@@ -55,7 +55,7 @@ const PER_SECTION = 3;
                         {g.tools.map((t) => (
                           <a class="dd-item" role="menuitem" href={toolUrl(t)}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS[t.data.icon]} />
-                            <span>{t.data.name} <small class="num">#{t.data.num}</small></span>
+                            <span>{t.data.name} <small class="num">#{t.data.code}</small></span>
                           </a>
                         ))}
                       </div>
@@ -74,7 +74,7 @@ const PER_SECTION = 3;
                       {sj.groups.map((g) => (
                         <div class="at-group">
                           <b class="at-sub">{g.name}</b>
-                          {g.tools.map((t) => <a class="at-item" href={toolUrl(t)} data-id={t.id}><span>{t.data.name}</span><small class="num">#{t.data.num}</small></a>)}
+                          {g.tools.map((t) => <a class="at-item" href={toolUrl(t)} data-id={t.id}><span>{t.data.name}</span><small class="num">#{t.data.code}</small></a>)}
                         </div>
                       ))}
                       <a class="at-all" href={sj.url}>{sj.name} page →</a>
@@ -86,7 +86,7 @@ const PER_SECTION = 3;
                   {g.tools.map((t) => (
                     <a class="at-item" href={toolUrl(t)} data-id={t.id}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS[t.data.icon]} />
-                      <span>{t.data.name}</span><small class="num">#{t.data.num}</small>
+                      <span>{t.data.name}</span><small class="num">#{t.data.code}</small>
                     </a>
                   ))}
                 </div>

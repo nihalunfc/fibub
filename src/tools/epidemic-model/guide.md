@@ -2,6 +2,7 @@
 name: Epidemic model
 num: 462
 shelf: science
+code: T313
 section: epidemiology
 title: "Epidemic model"
 summary: "Simulate an outbreak with the SIR, SEIR or SEIRS model: set R0, the latent and infectious periods, the population, vaccination and contact cuts, and see the curve, the peak day, the peak size and the final size. A teaching model, not a forecast."

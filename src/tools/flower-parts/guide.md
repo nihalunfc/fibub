@@ -2,6 +2,7 @@
 name: Flower parts
 num: 1488
 shelf: learn
+code: L319
 section: school-biology
 title: "Flower parts: peel a flower to see sepals, petals, stamens and carpel, and how pollen reaches the stigma"
 summary: "Tap a drawn flower to peel off its sepals, petals and stamens, leaving the carpel. Label every part, move pollen to the stigma and answer a short quiz on what each part does."

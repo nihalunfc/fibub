@@ -2,6 +2,7 @@
 name: Hot spot density
 num: 768
 shelf: science
+code: T536
 section: criminology-and-legal-studies
 title: "Hot spot map: kernel density (quartic or Gaussian) and Clark–Evans nearest neighbour index for your own points (free)"
 summary: "Turn your own point data (x, y or latitude, longitude) into a hot spot map with kernel density estimation. Choose a quartic or Gaussian kernel, a rule-of-thumb or own bandwidth and the cell size; see contours, the top cells or separate peaks, and test for clustering with the Clark–Evans nearest neighbour index. Runs in your browser."

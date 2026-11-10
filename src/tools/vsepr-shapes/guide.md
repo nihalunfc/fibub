@@ -2,6 +2,7 @@
 name: VSEPR shape viewer
 num: 1101
 shelf: learn
+code: L46
 section: school-chemistry
 title: "VSEPR shape viewer: bond pairs and lone pairs to 3D molecule shapes, bond angles and hybridisation"
 summary: "Add bonded atoms and lone pairs to a central atom and watch the 3D shape change: linear, bent, trigonal planar, pyramidal, tetrahedral, see-saw, T-shaped, square planar and octahedral. Turn it with your finger, read the ideal bond angle and the hybridisation, count the pairs from any formula, and test yourself."

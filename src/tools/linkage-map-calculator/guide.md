@@ -2,6 +2,7 @@
 name: Linkage map calculator
 num: 204
 shelf: science
+code: T204
 section: genetics
 title: "Linkage map calculator: recombination frequency to cM (Haldane, Kosambi), gene order from RFs, and three-point testcross"
 summary: "Convert recombination frequencies to map distances with the Haldane and Kosambi mapping functions (and back), order loci and draw a linkage map from a table of pairwise recombination frequencies, and solve a three-point testcross: gene order, recombination frequencies, coefficient of coincidence and interference. Runs in your browser."

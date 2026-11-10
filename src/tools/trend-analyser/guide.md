@@ -2,6 +2,7 @@
 name: Trend analyser
 num: 138
 shelf: science
+code: T138
 section: climatology
 title: "Trend analyser"
 summary: "Paste or open a time series (yearly, monthly or any steps) and test for a trend with Mann-Kendall, the Hamed-Rao autocorrelation correction or the seasonal test, get Sen's slope with its confidence interval, a Pettitt change point and anomalies from a baseline period."

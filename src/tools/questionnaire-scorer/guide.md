@@ -2,6 +2,7 @@
 name: Questionnaire scorer
 num: 723
 shelf: science
+code: T491
 section: psychology-and-psychometrics
 title: "Questionnaire and survey scale scorer: reverse items, subscales, missing answers (free)"
 summary: "Score a questionnaire in your browser: reverse-keyed items, subscale sums or means, a clear rule for missing answers with prorating, Cronbach's alpha for each subscale and a CSV of everyone's scores."

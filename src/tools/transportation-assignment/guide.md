@@ -2,6 +2,7 @@
 name: Transportation solver
 num: 583
 shelf: science
+code: T411
 section: operations-research
 title: "Transportation solver"
 summary: "Solve a transportation problem from a starting plan (northwest corner, least cost or Vogel's approximation) to the optimum with the MODI method, showing every step, the u and v potentials and dummy rows for unbalanced problems. Or solve an assignment problem with the Hungarian method, minimising cost or maximising profit. Checked against scipy."

@@ -2,6 +2,7 @@
 name: Genome browser lite
 num: 211
 shelf: science
+code: T210
 section: genomics-and-bioinformatics
 title: "Genome browser lite: view your own FASTA with GFF3, GTF, BED and VCF tracks in the browser"
 summary: "A small genome browser for your own files. Open a FASTA (a bacterial genome or a few contigs) with gene annotation, BED regions and VCF variants, then zoom, pan and jump to a region or a gene name. See the ruler, the bases, GC % in windows, genes with exons and CDS, and variants. Tap a gene to copy its spliced, coding or protein sequence, and save the view as PNG or SVG. Nothing is uploaded."

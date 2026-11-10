@@ -2,6 +2,7 @@
 name: Similar triangles
 num: 1159
 shelf: learn
+code: L76
 section: school-maths
 title: "Similar triangles: basic proportionality theorem, AA, SSS and SAS tests, and heights from shadows"
 summary: "Drag a line parallel to one side of a triangle and watch AD/DB = AE/EC hold. Test two triangles for similarity with AA, SSS or SAS, and find a tree's height from its shadow."

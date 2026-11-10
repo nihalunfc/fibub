@@ -2,6 +2,7 @@
 name: IPA feature matrix
 num: 731
 shelf: science
+code: T499
 section: linguistics-and-phonetics
 title: "Distinctive feature matrix for IPA segments, natural classes and minimal feature sets (free)"
 summary: "Type IPA segments and get their distinctive features (+, −, 0 for syllabic, consonantal, sonorant, continuant, nasal, voice, labial, coronal, dorsal, high, back, round and more). Find the features a set of sounds shares and the smallest set that picks it out. Export LaTeX or CSV."

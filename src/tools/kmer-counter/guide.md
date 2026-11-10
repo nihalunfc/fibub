@@ -2,6 +2,7 @@
 name: K-mer counter
 num: 176
 shelf: science
+code: T176
 section: genomics-and-bioinformatics
 title: "K-mer counter"
 summary: "Count every k-letter word in FASTA or FASTQ files (gzip too, any size), with reverse complements together. See the k-mer spectrum, the most common k-mers, a look-up box and a rough genome size from the spectrum's peak. Download the spectrum as CSV. Nothing is uploaded."

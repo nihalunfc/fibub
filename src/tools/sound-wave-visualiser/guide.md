@@ -2,6 +2,7 @@
 name: Sound wave visualiser
 num: 1061
 shelf: learn
+code: L25
 section: school-physics
 title: "Sound wave visualiser: see compressions and rarefactions, wavelength = v/f, hear the note, echoes and SONAR"
 summary: "Watch air particles bunch into compressions and spread into rarefactions as a sound passes. Slide the frequency and amplitude, switch to water or steel, hear the note, and work out echo distances and sea depth with SONAR."

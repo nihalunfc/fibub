@@ -2,6 +2,7 @@
 name: Copying errors
 num: 1487
 shelf: learn
+code: L318
 section: school-biology
 title: "Copying errors: how mistakes in copying DNA create variation over generations"
 summary: "Copy a 60-base DNA string again and again with a small chance of a wrong base each time, and watch the changes pile up. Compare the average with length times rate times generations."

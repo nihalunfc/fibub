@@ -2,6 +2,7 @@
 name: Operator algebra helper
 num: 929
 shelf: science
+code: T664
 section: quantum-mechanics
 title: "Commutator and operator algebra helper: Pauli, spin, ladder operators, commutators and eigenvalues"
 summary: "Work with quantum operators as matrices: Pauli matrices, spin-j angular momentum (Jx, Jy, Jz, J±, J²) up to j = 5, two spin-½ particles, and the truncated harmonic oscillator (a, a†, n, x, p). Type any expression with products, powers, commutators, anticommutators and daggers, and get the matrix, whether it is Hermitian or unitary, its eigenvalues, trace and determinant, and a check against what you expect."

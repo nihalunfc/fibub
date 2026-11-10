@@ -2,6 +2,7 @@
 name: Dilution calculator
 num: 30
 shelf: science
+code: T30
 section: general-and-lab-chemistry
 title: "Dilution calculator"
 summary: "Work out how much to weigh for a solution in M, mM, mg/mL, % w/v or ppm, how much stock to dilute, and a full serial dilution plan with volumes for every tube."

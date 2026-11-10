@@ -2,6 +2,7 @@
 name: Pitch contour tracker
 num: 735
 shelf: science
+code: T503
 section: linguistics-and-phonetics
 title: "Pitch tracker: F0 contour of a voice recording in Hz and semitones, by YIN or autocorrelation (free)"
 summary: "Open a WAV recording and track its pitch (F0) every 10 ms with the YIN method or autocorrelation. Set the pitch range, voicing threshold and smoothing; see the contour in Hz and semitones with mean, range and SD; download CSV. Nothing is uploaded."

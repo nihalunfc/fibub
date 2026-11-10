@@ -2,6 +2,7 @@
 name: Coalescent simulator
 num: 314
 shelf: science
+code: T229
 section: population-genetics
 title: "Coalescent simulator: draw gene genealogies, mutations, TMRCA and Watterson's theta (Kingman coalescent)"
 summary: "Simulate the family tree of a sample of gene copies back to their most recent common ancestor under the Kingman coalescent. See the tree with its mutations, then compare thousands of genealogies with the expected time to the common ancestor, total branch length, number of segregating sites and Watterson's estimate of θ. Seeded random numbers, so every tree can be repeated."

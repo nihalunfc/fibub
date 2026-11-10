@@ -2,6 +2,7 @@
 name: Instrument harmonics analyser
 num: 422
 shelf: science
+code: T310
 section: musicology-and-music-acoustics
 title: "Instrument harmonics analyser: spectrum, fundamental, harmonic levels, inharmonicity and spectral centroid from a sound file"
 summary: "Open a recording of one note (or record it with your microphone after pressing a button) and get its spectrum, fundamental frequency and nearest note, the level and tuning of each harmonic, the inharmonicity of stiff strings and the spectral centroid, with charts and CSV. The sound never leaves your device."

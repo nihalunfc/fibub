@@ -2,6 +2,7 @@
 name: Project scheduler
 num: 585
 shelf: science
+code: T413
 section: operations-research
 title: "Project scheduler"
 summary: "List your tasks, durations and predecessors (finish-to-start, start-to-start, finish-to-finish, with lags) and get the critical path, earliest and latest dates, float, a Gantt chart, and with three-point estimates the PERT chance of finishing by a date, checked by simulation. Runs in your browser."

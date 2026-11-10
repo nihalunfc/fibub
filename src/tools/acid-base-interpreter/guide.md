@@ -2,6 +2,7 @@
 name: Blood gas interpreter
 num: 480
 shelf: science
+code: T331
 section: clinical-calculators
 title: "Blood gas interpreter"
 summary: "Interpret an arterial blood gas step by step: acidaemia or alkalaemia, the primary disorder, expected compensation (Winter's formula and the acute and chronic respiratory rules), the anion gap corrected for albumin, the delta ratio, lactate and the osmolar gap, with an acid-base map."

@@ -2,6 +2,7 @@
 name: CPUE trend calculator
 num: 339
 shelf: science
+code: T254
 section: fisheries-science
 title: "CPUE calculator: catch per unit effort by year, standardised CPUE index (log-linear GLM) and stock trend"
 summary: "Work out catch per unit effort (CPUE) from catch and effort records: nominal CPUE by year, a standardised index from a log-linear model with year plus factors such as vessel, area or gear, 95 % intervals, factor effects and the yearly trend, with a chart. Paste records or open a CSV or Excel file."

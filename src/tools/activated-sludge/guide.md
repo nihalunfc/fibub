@@ -2,6 +2,7 @@
 name: Activated sludge sizer
 num: 157
 shelf: science
+code: T157
 section: environmental-engineering
 title: "Activated sludge sizing: aeration tank volume, F/M ratio, sludge production, oxygen demand and air flow from SRT and MLSS"
 summary: "Size an activated sludge aeration tank for BOD removal. Give the flow, influent BOD, sludge age (SRT), MLSS and kinetic coefficients, and see the effluent BOD, tank volume and detention time, F/M ratio, sludge production, oxygen demand, air flow, return and waste sludge flows, and how they all change with sludge age."

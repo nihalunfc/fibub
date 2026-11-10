@@ -2,6 +2,7 @@
 name: Train-test split
 num: 571
 shelf: science
+code: T399
 section: data-science-and-machine-learning
 title: "Train-test split"
 summary: "Split a CSV or Excel table into training, test and validation sets: random, stratified by class, grouped (whole patients or sites together) or by time, or give every row a k-fold number. Set a seed, check the class balance and download each part as CSV. Nothing is uploaded."

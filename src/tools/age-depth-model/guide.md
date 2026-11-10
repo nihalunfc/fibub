@@ -2,6 +2,7 @@
 name: Age-depth model
 num: 884
 shelf: science
+code: T619
 section: paleoclimatology
 title: "Age-depth model builder for sediment and ice cores: linear, smoothing spline and Monte Carlo with 95 % envelopes"
 summary: "Paste or open your dated levels (depth, age, 1σ) and get an age-depth model three ways: linear interpolation, a smoothing spline fitted within the errors, and a Monte Carlo model that never lets ages go backwards, with its median and 95 % envelope. See deposition time or accumulation rate down the core, ages at any depths, and dates flagged as outliers or reversals. CSV in and out; your data stays on your device."

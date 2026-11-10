@@ -2,6 +2,7 @@
 name: UV index estimator
 num: 504
 shelf: science
+code: T355
 section: atmospheric-chemistry-and-air-quality
 title: "UV index estimator: clear-sky UV index from Sun angle and ozone, daily curve, peak time and time to an erythemal dose"
 summary: "Estimate the clear-sky UV index for any place, date and time from the Sun's zenith angle and the ozone column, with factors for height, snow or sand and cloud. See the curve through the day, the peak at solar noon, the hours above each UV band and how long a chosen erythemal dose takes. An estimate: check your local UV forecast."

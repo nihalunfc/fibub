@@ -2,6 +2,7 @@
 name: Mineral identification key
 num: 515
 shelf: science
+code: T366
 section: mineralogy-and-petrology
 title: "Mineral identification key: identify common minerals by hardness, streak, lustre, cleavage and simple tests"
 summary: "An interactive key to about 50 common rock-forming and ore minerals. Enter what you see (Mohs hardness or scratch tests, specific gravity, lustre, streak, cleavage, colour, acid fizz, magnetism and other simple tests) and get ranked matches with the reasons for and against each, adjustable tolerances, and a printable property table."
