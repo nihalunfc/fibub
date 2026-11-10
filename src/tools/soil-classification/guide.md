@@ -1,9 +1,9 @@
 ---
-name: Soil classification (USCS, AASHTO)
+name: Soil classification
 num: 655
 shelf: science
 section: geotechnical-engineering
-title: "Soil classification calculator: USCS group symbol and AASHTO group index from sieve analysis and Atterberg limits"
+title: "Soil classification"
 summary: "Classify a soil from lab data. Paste a grading curve or type the key percentages, add the liquid and plastic limits, and get the USCS group symbol and name with every step explained, the AASHTO group and group index, D10, D30, D60, Cu and Cc, a grading curve and a plasticity chart."
 status: live
 ads: true

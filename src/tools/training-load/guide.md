@@ -1,9 +1,9 @@
 ---
-name: Training load tracker (ACWR, TRIMP, monotony)
+name: Training load
 num: 488
 shelf: science
 section: exercise-and-sport-science
-title: "Training load calculator: session RPE, TRIMP, acute:chronic workload ratio (ACWR), monotony and strain"
+title: "Training load"
 summary: "Log training sessions and get session RPE load, Banister and Edwards TRIMP, the acute:chronic workload ratio (rolling 7/28 days and EWMA), and weekly monotony and strain, with charts. Import and export CSV; kept only in your browser if you choose."
 status: live
 ads: false

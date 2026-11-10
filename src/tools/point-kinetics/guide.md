@@ -1,9 +1,9 @@
 ---
-name: Reactor point kinetics simulator
+name: Point kinetics
 num: 677
 shelf: science
 section: nuclear-engineering
-title: "Reactor point kinetics simulator: six delayed-neutron groups, step and ramp reactivity, prompt jump and inhour period"
+title: "Point kinetics"
 summary: "Simulate how a reactor's power responds to a step or ramp of reactivity with the six-group point kinetics equations, solved with a stiff implicit method. See the prompt jump, the stable period from the inhour equation, and scrams. For study. Nothing is uploaded."
 status: live
 ads: true

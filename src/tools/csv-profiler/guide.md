@@ -1,9 +1,9 @@
 ---
-name: CSV and Excel data profiler
+name: CSV profiler
 num: 568
 shelf: science
 section: data-science-and-machine-learning
-title: "CSV and Excel data profiler: column types, missing values, statistics, histograms and correlation heatmap"
+title: "CSV profiler"
 summary: "Open a CSV or Excel file and see every column at a glance: its type, missing values, unique values, mean, median, SD, quartiles, outliers, histogram or most common values, plus a correlation heatmap. Download the report as a web page, PDF or Word file. Nothing is uploaded."
 status: live
 ads: false

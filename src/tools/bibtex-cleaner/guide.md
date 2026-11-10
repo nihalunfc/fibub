@@ -1,9 +1,9 @@
 ---
-name: BibTeX cleaner and reference formatter
+name: BibTeX cleaner
 num: 802
 shelf: science
 section: writing-and-publishing
-title: "BibTeX cleaner: fix ADS exports, merge duplicates, expand \\apj journal macros, protect capitals, export RIS, CSL-JSON or a formatted reference list"
+title: "BibTeX cleaner"
 summary: "Paste or open a .bib file and get it back clean: duplicates merged by DOI or title, journal macros such as \\apj and \\mnras written out, acronyms protected, page dashes, months and DOIs tidied, fields you don't want removed and entries sorted. Export the clean .bib, an APA-like, numbered or AAS-like reference list, RIS or CSL-JSON."
 status: live
 ads: true

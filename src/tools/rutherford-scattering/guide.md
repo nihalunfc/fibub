@@ -1,9 +1,9 @@
 ---
-name: Rutherford gold foil simulator
+name: Rutherford scattering
 num: 1069
 shelf: learn
 section: school-physics
-title: "Rutherford gold foil experiment simulator: alpha particles, nucleus vs plum pudding, impact parameter, scattering angle and closest approach"
+title: "Rutherford scattering"
 summary: "Fire alpha particles at a gold atom. With the plum pudding model they all go straight through; with a tiny nucleus most still do, but a few bounce right back. Then aim one particle and see its scattering angle and how close it gets to the nucleus."
 status: live
 ads: false

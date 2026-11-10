@@ -1,9 +1,9 @@
 ---
-name: BED, GFF and GTF interval tools
+name: Interval tools
 num: 175
 shelf: science
 section: genomics-and-bioinformatics
-title: "BED, GFF and GTF viewer: merge, intersect and subtract genomic intervals in your browser"
+title: "Interval tools"
 summary: "Open a BED, GFF3 or GTF file (gzip too) and see intervals per chromosome and feature type, bases covered and lengths. Merge overlapping intervals, find where two files overlap, keep or drop overlaps, or cut one file out of another, with bedtools rules. Download the result as BED. Nothing is uploaded."
 status: live
 ads: false

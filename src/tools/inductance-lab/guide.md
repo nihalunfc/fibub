@@ -1,9 +1,9 @@
 ---
-name: Self and mutual inductance
+name: Inductance lab
 num: 1415
 shelf: learn
 section: school-physics
-title: "Self and mutual inductance of solenoids: L = µ₀N²A/ℓ, M for coaxial coils, and the emfs they induce"
+title: "Inductance lab"
 summary: "Put one solenoid inside another and work out the self-inductance of each and their mutual inductance from the turns, radii and length. Ramp the current in the inner coil up and down and see the self-induced emf in it and the emf it induces in the outer coil, with the coupling and the stored energy."
 status: live
 ads: false

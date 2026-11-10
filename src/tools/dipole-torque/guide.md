@@ -1,9 +1,9 @@
 ---
-name: Electric dipole in a field
+name: Dipole torque
 num: 1401
 shelf: learn
 section: school-physics
-title: "Electric dipole in a uniform field: torque τ = pE sin θ, potential energy and work to turn it"
+title: "Dipole torque"
 summary: "Turn an electric dipole in a uniform field and see the two equal and opposite forces, the torque τ = pE sin θ and the potential energy U = −pE cos θ, with your numbers and a graph of both against angle. Let it go and watch it swing about the field direction."
 status: live
 ads: false

@@ -1,9 +1,9 @@
 ---
-name: Tree height and basal area calculator
+name: Tree basal area
 num: 334
 shelf: science
 section: forestry
-title: "Tree height calculator (clinometer, tangent and sine methods) and basal area calculator from DBH, plot or prism"
+title: "Tree basal area"
 summary: "Work out a tree's height from clinometer readings in degrees or percent, on level or sloping ground, by the tangent method or the laser sine method. Then get basal area from trunk diameters: for one tree, per hectare or acre from a fixed-area plot, or from a prism (angle-gauge) sweep with any basal area factor."
 status: live
 ads: true

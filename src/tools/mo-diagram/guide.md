@@ -1,9 +1,9 @@
 ---
-name: MO diagram for diatomic molecules
+name: MO diagram
 num: 1103
 shelf: learn
 section: school-chemistry
-title: "MO diagram maker for H₂ to Ne₂: fill molecular orbitals, bond order and paramagnetism"
+title: "MO diagram"
 summary: "Pick a diatomic molecule or ion from H₂ to Ne₂ (O₂, O₂⁺, O₂⁻, N₂, B₂ …) and fill its molecular orbitals one electron at a time. See the energy diagram, the bond order with the working, unpaired electrons, whether it is paramagnetic, and what s–p mixing changes. With a table across the period and practice questions."
 status: live
 ads: false

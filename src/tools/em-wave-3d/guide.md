@@ -1,9 +1,9 @@
 ---
-name: Electromagnetic wave in 3D
+name: EM wave 3D
 num: 1418
 shelf: learn
 section: school-physics
-title: "Electromagnetic wave in 3D: E and B fields at right angles, in phase, travelling at the speed of light"
+title: "EM wave 3D"
 summary: "Watch an electromagnetic wave travel: the electric field waves up and down, the magnetic field side to side, both at right angles to the direction of travel and in step. Change the wavelength from gamma rays to radio and the field strength, turn the view, and get the frequency, B₀ = E₀/c, the intensity and c = 1/√(µ₀ε₀)."
 status: live
 ads: false

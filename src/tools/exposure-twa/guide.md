@@ -1,9 +1,9 @@
 ---
-name: Exposure TWA calculator (8-hour TWA, STEL, long shifts)
+name: Exposure TWA
 num: 477
 shelf: science
 section: toxicology
-title: "8-hour TWA calculator: time-weighted average exposure, 15-minute STEL, excursion check and Brief and Scala long-shift adjustment"
+title: "Exposure TWA"
 summary: "Work out a worker's 8-hour time-weighted average from sampled periods (unsampled time as zero or at the sampled average), the highest 15-minute average for a STEL, an excursion check, and a reduced limit for long shifts by Brief and Scala or the OSHA model, against limits you type in."
 status: live
 ads: false

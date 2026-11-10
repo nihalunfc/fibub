@@ -1,9 +1,9 @@
 ---
-name: Grouped data mean, median and mode
+name: Grouped data
 num: 1163
 shelf: learn
 section: school-maths
-title: "Mean, median and mode of grouped data with every step: direct, assumed mean and step deviation, plus ogives"
+title: "Grouped data"
 summary: "Type class intervals and frequencies and get the mean by the direct, assumed-mean and step-deviation methods, the median and the mode with the formulas filled in, and a histogram with less-than and more-than ogives."
 status: live
 ads: false

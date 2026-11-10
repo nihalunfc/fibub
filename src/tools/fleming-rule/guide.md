@@ -1,9 +1,9 @@
 ---
-name: Fleming's left-hand rule and DC motor
+name: Fleming's rule
 num: 1044
 shelf: learn
 section: school-physics
-title: "Fleming's left-hand rule: force on a current-carrying wire in a magnetic field, and how a DC motor turns"
+title: "Fleming's rule"
 summary: "Turn a 3D picture of a wire between magnet poles and see the field, current and force arrows of Fleming's left-hand rule. Change the field, current, length and angle and watch F = BIL sin θ. Then watch a DC motor coil turn, with and without its split-ring commutator."
 status: live
 ads: false

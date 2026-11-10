@@ -1,9 +1,9 @@
 ---
-name: NMR solvent and impurity peak checker
+name: NMR impurities
 num: 106
 shelf: science
 section: analytical-chemistry
-title: "NMR impurity checker: match your ¹H or ¹³C peaks to residual solvents, water and grease in 10 deuterated solvents"
+title: "NMR impurities"
 summary: "Paste a peak list (even a journal-style one) and see which peaks are residual solvent, water, grease or common lab solvents such as ethyl acetate, DCM and ether, in CDCl₃, DMSO-d₆, CD₃OD, D₂O and six more, for ¹H and ¹³C."
 status: live
 ads: true

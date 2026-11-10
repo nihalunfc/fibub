@@ -1,9 +1,9 @@
 ---
-name: eˣ and ln x
+name: e and ln
 num: 1468
 shelf: learn
 section: school-maths
-title: "eˣ and ln x: why e is special, where slope = height (interactive, Class 11 and 12)"
+title: "e and ln"
 summary: "Slide the base of y = aˣ and watch slope ÷ height stay the same at every point; find the one base, e = 2.718…, where the slope equals the height. Meet the same e in compound interest and in 1 + 1 + 1/2! + …, and see ln x as the mirror of eˣ with slope 1/x."
 status: live
 ads: false

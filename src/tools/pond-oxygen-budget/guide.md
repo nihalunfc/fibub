@@ -1,9 +1,9 @@
 ---
-name: Pond oxygen budget estimator
+name: Pond oxygen
 num: 402
 shelf: science
 section: aquaculture
-title: "Pond oxygen budget: DO saturation, night-time oxygen drop and aeration needed by dawn"
+title: "Pond oxygen"
 summary: "Work out dissolved oxygen saturation from temperature, salinity and altitude, then follow a fish pond's oxygen from dusk to dawn with your own fish, plankton and sediment rates and surface reaeration, and see how much aeration keeps the DO above your chosen minimum. Nothing is uploaded."
 status: live
 ads: true

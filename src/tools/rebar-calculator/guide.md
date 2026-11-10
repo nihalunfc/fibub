@@ -1,9 +1,9 @@
 ---
-name: Rebar quantity and weight
+name: Rebar calculator
 num: 650
 shelf: science
 section: civil-and-structural-engineering
-title: "Rebar calculator: number of bars, length, weight and cut list for a slab, wall or footing"
+title: "Rebar calculator"
 summary: "Count the reinforcing bars at your spacing over a slab, wall or footing, split long bars into stock lengths with your lap length, and get the total length, the weight from the steel density, the stock bars to order and a cut list to download."
 status: live
 ads: true

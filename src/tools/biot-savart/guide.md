@@ -1,9 +1,9 @@
 ---
-name: Biot–Savart field builder and Ampère's law
+name: Biot–Savart lab
 num: 1409
 shelf: learn
 section: school-physics
-title: "Biot–Savart law: build the magnetic field of a wire, loop and solenoid piece by piece, plus Ampère's law"
+title: "Biot–Savart lab"
 summary: "Add up the magnetic field of a straight wire, a circular loop or a solenoid from small pieces of current, as the Biot–Savart law says, and compare with the exact formula. Graph the field along the axis. Then drag a loop among three long wires and see Ampère's law: the total of B round the loop is μ₀ times the current inside."
 status: live
 ads: false

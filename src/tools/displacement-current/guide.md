@@ -1,9 +1,9 @@
 ---
-name: Charging capacitor and displacement current
+name: Displacement current
 num: 1420
 shelf: learn
 section: school-physics
-title: "Displacement current: charging capacitor, Ampère–Maxwell law and the magnetic field between the plates"
+title: "Displacement current"
 summary: "Charge a round parallel-plate capacitor through a resistor and watch the current fall while the field between the plates grows. See why Maxwell added the displacement current I_d = ε₀ dΦ_E/dt, and why the magnetic field on a loop comes out the same whichever surface you pick."
 status: live
 ads: false

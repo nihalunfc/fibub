@@ -1,9 +1,9 @@
 ---
-name: Heating curve of water
+name: Heating curve
 num: 1065
 shelf: learn
 section: school-physics
-title: "Heating curve of water: why the temperature stops while ice melts and water boils, latent heat, Q = mcΔT, and mixing"
+title: "Heating curve"
 summary: "Heat ice at a steady rate and watch the temperature climb, stop while it melts, climb again and stop while it boils. See the heat and time for each stage, and use the mixer to find the final temperature when hot and cold things, or ice and water, are mixed."
 status: live
 ads: false

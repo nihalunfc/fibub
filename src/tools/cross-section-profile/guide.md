@@ -1,9 +1,9 @@
 ---
-name: Cross-section and topographic profile
+name: Cross-section profile
 num: 509
 shelf: science
 section: structural-geology
-title: "Geological cross-section maker: topographic profile from a DEM, apparent dip and units, SVG and PDF"
+title: "Cross-section profile"
 summary: "Draw a topographic profile from a DEM (GeoTIFF or ASCII grid) along a line you tap on the map, or from typed distance and elevation pairs, with vertical exaggeration. Add contacts by strike and dip: each is drawn at its apparent dip in the section's direction and the units between them are filled. Download SVG, PNG, PDF or CSV."
 status: live
 ads: false

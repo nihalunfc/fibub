@@ -1,9 +1,9 @@
 ---
-name: Vehicle routing for small instances
+name: Vehicle routing
 num: 586
 shelf: science
 section: operations-research
-title: "Vehicle routing problem solver (CVRP): Clarke-Wright savings, 2-opt, or-opt and exact routes for up to 12 customers"
+title: "Vehicle routing"
 summary: "Plan delivery routes from one depot: give the customers as map coordinates or a distance table, their demands, the vehicle capacity and the number of vehicles. Clarke-Wright savings with 2-opt and or-opt improvement, the exact shortest plan for up to 12 customers, a route map and a stop-by-stop table. Checked against brute force and an integer program."
 status: live
 ads: true

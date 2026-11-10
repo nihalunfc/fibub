@@ -1,9 +1,9 @@
 ---
-name: Total internal reflection and optical fibre
+name: Optical fibre
 num: 1421
 shelf: learn
 section: school-physics
-title: "Optical fibre and total internal reflection: critical angle, bent fibre, acceptance angle"
+title: "Optical fibre"
 summary: "Send a ray of light into a glass fibre and watch it bounce along the core by total internal reflection. Bend the fibre tighter, change the core and cladding, and see when light leaks out, with the critical angle, numerical aperture and acceptance angle worked out."
 status: live
 ads: false

@@ -1,9 +1,9 @@
 ---
-name: Propeller and rotor thrust
+name: Propeller thrust
 num: 669
 shelf: science
 section: aerospace-engineering
-title: "Propeller thrust calculator: static thrust from power, hover power, figure of merit and blade element momentum"
+title: "Propeller thrust"
 summary: "Work out a rotor's static thrust from its shaft power (or the power for a thrust) with actuator-disc momentum theory and a figure of merit, the induced velocity, disc and power loading, a figure of merit from a test, and a blade element momentum model of your own propeller with thrust, torque, efficiency and CT and CP against advance ratio."
 status: live
 ads: true

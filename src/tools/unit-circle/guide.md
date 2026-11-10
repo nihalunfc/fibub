@@ -1,9 +1,9 @@
 ---
-name: Unit circle to wave
+name: Unit circle
 num: 1183
 shelf: learn
 section: school-maths
-title: "Unit circle interactive: sin, cos and tan traced as waves, radians, ASTC, a sin(bx + c) + d and inverse trig"
+title: "Unit circle"
 summary: "Drag a point round the unit circle and watch sin, cos and tan drawn as waves. Angles in degrees and radians, exact values at 30°, 45° and 60°, the ASTC quadrant signs, sliders for y = a sin(bx + c) + d, and the inverse trig functions as the mirror image of the principal branch."
 status: live
 ads: false

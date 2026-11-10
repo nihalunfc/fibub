@@ -1,9 +1,9 @@
 ---
-name: Radial velocity orbit fitter
+name: Radial velocity
 num: 64
 shelf: science
 section: stellar-astrophysics
-title: "Radial velocity orbit fitter: period, eccentricity and mass function for binary stars and exoplanets"
+title: "Radial velocity"
 summary: "Paste a star's radial velocities and fit a Keplerian orbit: period, semi-amplitude, eccentricity, periastron, systemic velocity with uncertainties, the mass function and the companion's minimum mass."
 status: live
 ads: true

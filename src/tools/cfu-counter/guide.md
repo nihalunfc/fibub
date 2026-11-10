@@ -1,9 +1,9 @@
 ---
-name: CFU counter and plate count calculator
+name: CFU counter
 num: 195
 shelf: science
 section: microbiology
-title: "CFU counter: count colonies on a plate photo and work out CFU/mL from your dilutions"
+title: "CFU counter"
 summary: "Count bacterial or yeast colonies on a photo of an agar plate (found automatically, touching colonies split, then fixed by tapping) and turn the counts from your dilution plates into CFU per mL or per g, with an exact Poisson confidence interval and a check that the plates agree. The photo stays in your browser."
 status: live
 ads: false

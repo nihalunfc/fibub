@@ -1,9 +1,9 @@
 ---
-name: Quadrat and transect analyser
+name: Quadrat transect
 num: 302
 shelf: science
 section: ecology
-title: "Quadrat and line transect calculator: density, frequency, cover and importance value per species"
+title: "Quadrat transect"
 summary: "Paste quadrat counts and cover, or line-intercept transect measurements, and get density, frequency, cover, relative values and the importance value for every species, with a chart and downloads. Runs in your browser."
 status: live
 ads: true

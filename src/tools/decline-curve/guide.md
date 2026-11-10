@@ -1,9 +1,9 @@
 ---
-name: Decline curve analysis (Arps)
+name: Decline curve
 num: 686
 shelf: science
 section: petroleum-engineering
-title: "Decline curve analysis: Arps exponential, hyperbolic and harmonic fit, EUR and remaining reserves"
+title: "Decline curve"
 summary: "Paste or open a well's rate-time history, fit Arps exponential, hyperbolic and harmonic declines by least squares, and forecast to the economic limit with EUR, remaining reserves, an optional terminal decline, and plots on linear and log axes."
 status: live
 ads: true

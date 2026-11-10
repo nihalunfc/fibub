@@ -1,9 +1,9 @@
 ---
-name: Why the sky is blue
+name: Sky colour
 num: 1007
 shelf: learn
 section: school-physics
-title: "Why the sky is blue and sunsets are red: scattering of light, Rayleigh's 1/λ⁴ law and the Tyndall effect"
+title: "Sky colour"
 summary: "Move the sun from overhead to the horizon and see why the sky is blue, why the sun turns red at sunset, why clouds are white and why the Moon's sky is black, with the scattering law worked out."
 status: live
 ads: false

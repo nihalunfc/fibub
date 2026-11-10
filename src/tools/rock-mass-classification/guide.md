@@ -1,9 +1,9 @@
 ---
-name: Rock mass classification (Q, RMR, RQD)
+name: Rock mass rating
 num: 514
 shelf: science
 section: mining-and-economic-geology
-title: "Rock mass classification calculator: RQD from core, Q-system, RMR sum, RMR–Q correlation and GSI estimate"
+title: "Rock mass rating"
 summary: "Work out RQD from core piece lengths (Deere), Barton's Q = (RQD/Jn)(Jr/Ja)(Jw/SRF) and Bieniawski's RMR as a sum of the ratings you read from the published tables, then compare them with an editable RMR = A ln Q + B correlation and get GSI estimates. Arithmetic only: no rating tables are bundled."
 status: live
 ads: true

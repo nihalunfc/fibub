@@ -1,9 +1,9 @@
 ---
-name: Paleostress inversion (fault-slip data)
+name: Paleostress inversion
 num: 869
 shelf: science
 section: structural-geology
-title: "Paleostress inversion: stress axes and stress ratio from fault-slip data, Michael method with bootstrap (free)"
+title: "Paleostress inversion"
 summary: "Find the principal stress directions σ1, σ2, σ3 and the stress ratio from faults with striations by Michael's linear least-squares method, with bootstrap confidence, the misfit of every fault, P and T axes and a stereonet."
 status: live
 ads: true

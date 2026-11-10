@@ -1,9 +1,9 @@
 ---
-name: Big-O and runtime comparison plotter
+name: Big-O plotter
 num: 574
 shelf: science
 section: computer-science
-title: "Big-O plotter: compare O(1), O(log n), O(n), O(n log n), O(n²), O(2ⁿ), O(n!) and fit your timings to a complexity class"
+title: "Big-O plotter"
 summary: "Draw how each complexity class grows, add your own formulas in n, and see how long each takes at any input size. Paste measured run times (or open a file, or time built-in algorithms in your browser) and a least-squares fit picks the best Big-O class."
 status: live
 ads: true

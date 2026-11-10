@@ -1,9 +1,9 @@
 ---
-name: Circle sectors and tangents
+name: Circle sectors
 num: 1161
 shelf: learn
 section: school-maths
-title: "Sector and segment area, arc length and tangents to a circle, with a draggable circle"
+title: "Circle sectors"
 summary: "Drag the edge of a sector to change its angle and get the sector area, arc length, perimeter and segment area with π = 22/7, 3.14 or exact. Drag a point outside a circle to see its two equal tangents meet the radii at right angles."
 status: live
 ads: false

@@ -1,11 +1,10 @@
 ---
-name: Permafrost active layer (Stefan) estimator
+name: Active layer
 num: 209
 shelf: science
 section: glaciology-and-cryosphere
-title: "Permafrost active layer and frost depth calculator: Stefan equation from degree-days or daily temperatures"
+title: "Active layer"
 summary: "Estimate how deep the ground thaws above permafrost in summer (the active layer), or how deep it freezes in winter, with the Stefan equation: thawing or freezing index from daily air temperatures and an n-factor, one to three soil layers, the thaw curve through the season and a sensitivity table."
-seoTitle: "Permafrost active layer and frost depth (Stefan) calculator"
 status: live
 ads: true
 order: 209

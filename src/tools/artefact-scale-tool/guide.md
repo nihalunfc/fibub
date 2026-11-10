@@ -1,9 +1,9 @@
 ---
-name: Artefact measurement scale tool
+name: Artefact scale
 num: 404
 shelf: science
 section: archaeology
-title: "Measure artefacts on a photo with a scale bar: lengths, angles and areas in mm (free, nothing uploaded)"
+title: "Artefact scale"
 summary: "Open a photo of a find with a scale bar in it, tap both ends of the bar and type its length, then measure lengths, edge angles and outline areas in millimetres. Includes a perspective check, click uncertainty, an annotated PNG and a CSV. The photo never leaves your device."
 status: live
 ads: false

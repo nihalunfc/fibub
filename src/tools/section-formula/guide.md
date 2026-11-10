@@ -1,9 +1,9 @@
 ---
-name: Distance and section formula
+name: Section formula
 num: 1160
 shelf: learn
 section: school-maths
-title: "Distance, section and midpoint formula with draggable points, plus centroid and area of a triangle"
+title: "Section formula"
 summary: "Drag two points on a grid and see the distance formula, the point that divides the segment in any ratio m : n, and the midpoint, worked with your numbers. Add a third point for the centroid and the area of the triangle."
 status: live
 ads: false

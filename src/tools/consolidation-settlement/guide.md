@@ -1,9 +1,9 @@
 ---
-name: Consolidation settlement and time
+name: Consolidation settlement
 num: 657
 shelf: science
 section: geotechnical-engineering
-title: "Consolidation settlement calculator: layered clay with Cc, Cr and preconsolidation pressure, and time to 50 % or 90 % by Terzaghi"
+title: "Consolidation settlement"
 summary: "Primary consolidation settlement of layered clay under a wide fill or a footing, for normally and over-consolidated layers, and how long it takes: Terzaghi's degree of consolidation from its series, time to any percent, a settlement-time curve, isochrones and cv from a lab t50 or t90."
 status: live
 ads: true

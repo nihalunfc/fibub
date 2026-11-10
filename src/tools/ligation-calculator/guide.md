@@ -1,9 +1,9 @@
 ---
-name: Ligation and assembly calculator
+name: Ligation calculator
 num: 166
 shelf: science
 section: molecular-biology
-title: "Ligation and Gibson assembly calculator: insert to vector molar ratio, ng and pmol of each fragment, and pipetting volumes"
+title: "Ligation calculator"
 summary: "Set up a ligation or a multi-fragment assembly. Enter the vector and inserts with their lengths, concentrations and molar ratios, and get the ng, fmol and µL of each, the buffer, enzyme and water volumes, a check that it all fits, and the insert amount at other ratios."
 status: live
 ads: true

@@ -1,9 +1,9 @@
 ---
-name: Telescope and camera calculator
+name: Telescope calculator
 num: 19
 shelf: science
 section: astrophotography
-title: "Telescope calculator: magnification, field of view, exit pupil and camera sampling"
+title: "Telescope calculator"
 summary: "Enter your telescope, eyepieces and camera to see magnification, true field, exit pupil, faintest stars, image scale and whether your camera suits your seeing, with a picture of what fits in the view."
 status: live
 ads: true

@@ -1,9 +1,9 @@
 ---
-name: Road gradient and curve helper
+name: Road curve
 num: 654
 shelf: science
 section: civil-and-structural-engineering
-title: "Road curve calculator: minimum radius, curve elements, setting out, stopping sight distance and crest and sag vertical curves"
+title: "Road curve"
 summary: "Work out the smallest safe radius for a speed from your superelevation and side friction, the elements and chainages of a circular curve with a setting-out table, the stopping sight distance, and the length of a crest or sag vertical curve from sight distance or K, with its levels, high or low point and a profile plot."
 status: live
 ads: true

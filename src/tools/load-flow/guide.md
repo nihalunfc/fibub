@@ -1,9 +1,9 @@
 ---
-name: Load flow for small networks
+name: Load flow
 num: 674
 shelf: science
 section: energy-and-power-systems
-title: "Load flow (power flow) calculator: Newton-Raphson and Gauss-Seidel for small power networks, in your browser"
+title: "Load flow"
 summary: "Type or open bus and line tables, and solve the AC power flow in per unit by Newton-Raphson or Gauss-Seidel. Get every bus voltage and angle, line flows at both ends, losses and a single-line diagram. Nothing is uploaded."
 status: live
 ads: true

@@ -1,9 +1,9 @@
 ---
-name: Malaria parasite life cycle
+name: Malaria life cycle
 num: 1454
 shelf: learn
 section: school-biology
-title: "Life cycle of Plasmodium: the malaria parasite in humans and the Anopheles mosquito, step by step"
+title: "Malaria life cycle"
 summary: "Step round the life cycle of the malaria parasite: sporozoites from a mosquito bite, multiplying in the liver and red blood cells, gametocytes, fertilisation in the mosquito's gut and back to its salivary glands. See why the fever returns every 48 or 72 hours. A teaching diagram."
 status: live
 ads: false

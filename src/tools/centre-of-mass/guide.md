@@ -1,9 +1,9 @@
 ---
-name: Centre of mass finder
+name: Centre of mass
 num: 1336
 shelf: learn
 section: school-physics
-title: "Centre of mass and the principle of moments: balance a seesaw, find the centre of point masses and of a flat shape"
+title: "Centre of mass"
 summary: "Slide children along a seesaw and see the clockwise and anticlockwise moments, whether it tips and where it would balance; drag point masses around a grid and watch their centre of mass move; or build a flat shape from squares and find the point you could balance it on."
 status: live
 ads: false

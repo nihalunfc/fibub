@@ -1,9 +1,9 @@
 ---
-name: Glacier mass balance and ice flow
+name: Glacier mass balance
 num: 828
 shelf: science
 section: glaciology-and-cryosphere
-title: "Glacier mass balance, ELA and AAR from stakes, Glen's flow law ice velocity, and active-layer thaw depth"
+title: "Glacier mass balance"
 summary: "Turn stake readings and elevation bands into a glacier's mass balance, equilibrium-line altitude and accumulation-area ratio; work out basal shear stress and the speed through the ice with Glen's flow law; and estimate permafrost active-layer depth with Stefan's equation."
 status: live
 ads: true

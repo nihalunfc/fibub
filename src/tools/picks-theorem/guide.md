@@ -1,9 +1,9 @@
 ---
-name: Pick's theorem on a dot grid
+name: Pick's theorem
 num: 1252
 shelf: learn
 section: school-maths
-title: "Pick's theorem: find the area of a grid polygon by counting dots"
+title: "Pick's theorem"
 summary: "Tap dots on a grid to make any polygon. The page colours the dots inside and on the edges, works out I + B/2 − 1 and checks it against the area from the corners. Drag corners to explore."
 status: live
 ads: false

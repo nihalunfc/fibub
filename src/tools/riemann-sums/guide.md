@@ -1,9 +1,9 @@
 ---
-name: Riemann sums to integral
+name: Riemann sums
 num: 1182
 shelf: learn
 section: school-maths
-title: "Riemann sums visualiser: left, right, midpoint and trapezium sums, antiderivative + C, area between curves"
+title: "Riemann sums"
 summary: "See the area under a curve filled with strips. Pick left, right, midpoint or trapezium sums, slide the number of strips n and watch the sum close in on the exact integral, with the error. Then see why ∫ f dx has a + C, and shade the area between two curves with the crossing points found for you."
 status: live
 ads: false

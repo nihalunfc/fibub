@@ -1,9 +1,9 @@
 ---
-name: Moment of inertia builder
+name: Moment of inertia
 num: 904
 shelf: science
 section: classical-mechanics
-title: "Moment of inertia calculator: combine rods, discs, rings, spheres, tubes and boxes with the parallel-axis theorem"
+title: "Moment of inertia"
 summary: "Build a body from simple uniform parts (rod, disc or cylinder, tube, ring, sphere, shell, box, point mass, and holes), place each one relative to the axis, and get the total moment of inertia with every step shown, the radius of gyration, the centre of mass, the moment about it and the spin energy at any rpm."
 status: live
 ads: true

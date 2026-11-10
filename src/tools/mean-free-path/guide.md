@@ -1,9 +1,9 @@
 ---
-name: Mean free path of gas molecules
+name: Mean free path
 num: 1350
 shelf: learn
 section: school-physics
-title: "Mean free path: how far a gas molecule flies between collisions, λ = kT / (√2 π d² p), with pressure and molecule size"
+title: "Mean free path"
 summary: "Watch molecules bounce in a box while one leaves a zig-zag trail, and measure the average flight between collisions as you crowd them or make them bigger. Then get the real mean free path, number of molecules, mean speed and collisions per second for air, helium or CO₂ from sea level to deep vacuum."
 status: live
 ads: false

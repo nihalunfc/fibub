@@ -1,9 +1,9 @@
 ---
-name: DEM slope, aspect and hillshade
+name: DEM terrain
 num: 888
 shelf: science
 section: geomorphology
-title: "DEM terrain analysis: slope, aspect, hillshade and curvature from a GeoTIFF or ASCII grid, in the browser"
+title: "DEM terrain"
 summary: "Open a digital elevation model (GeoTIFF or ESRI ASCII grid) and get slope (Horn's method), aspect, hillshade with your own sun position, and general, profile and plan curvature, as coloured maps with statistics, slope classes and an aspect breakdown. Degree grids such as SRTM are handled with the cell size worked out for each latitude. Download PNG, GeoTIFF or ASCII grid. Files never leave your device."
 status: live
 ads: false

@@ -1,9 +1,9 @@
 ---
-name: Molecular point group finder
+name: Point group
 num: 110
 shelf: science
 section: inorganic-and-coordination-chemistry
-title: "Point group finder: molecular symmetry from XYZ coordinates or the flowchart"
+title: "Point group"
 summary: "Paste a molecule's XYZ coordinates or open an .xyz file to get its point group (C₂ᵥ, D₃h, T_d, O_h, I_h and the rest), every symmetry element, the group order, and whether the molecule can be chiral or polar. No coordinates? Answer the flowchart questions instead. 23 example molecules."
 status: live
 ads: true

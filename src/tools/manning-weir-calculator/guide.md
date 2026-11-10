@@ -1,9 +1,9 @@
 ---
-name: Manning and weir flow calculator
+name: Manning weir
 num: 140
 shelf: science
 section: hydrology-and-water-resources
-title: "Manning's equation calculator: channel and part-full pipe flow, normal and critical depth, plus weir discharge"
+title: "Manning weir"
 summary: "Work out the discharge or normal depth in a rectangular, trapezoidal or triangular channel or a part-full pipe with Manning's equation, with velocity, Froude number, critical depth, specific energy, bed shear and a rating curve; and the flow over sharp-crested, V-notch, broad-crested or Cipolletti weirs, or the head for a given flow. SI or US units."
 status: live
 ads: true

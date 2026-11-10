@@ -1,9 +1,9 @@
 ---
-name: Calibration interval and drift tracker
+name: Calibration drift
 num: 691
 shelf: science
 section: metrology-and-quality
-title: "Calibration interval calculator: instrument drift rate, prediction interval and next due date from calibration history"
+title: "Calibration drift"
 summary: "Paste or open an instrument's calibration history (date, as-found error, uncertainty) and get the drift rate by regression with its confidence interval, a prediction band, the date the error is expected to reach the tolerance limit, and a calibration interval that meets your reliability target, with optional guard banding."
 status: live
 ads: true

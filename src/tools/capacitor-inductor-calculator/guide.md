@@ -1,9 +1,9 @@
 ---
-name: Capacitor and inductor calculator
+name: Capacitor inductor calculator
 num: 911
 shelf: science
 section: electromagnetism
-title: "Capacitance and inductance calculator: parallel plates, coax, spheres, wires, solenoids and toroids, with dielectrics"
+title: "Capacitor inductor calculator"
 summary: "Work out the capacitance or inductance of parallel plates (with one or two dielectric layers), coaxial cable, spheres, twin wires, a wire over a ground plane, solenoids and toroids. Get the charge, stored energy, fields, characteristic impedance and signal speed too."
 status: live
 ads: true

@@ -1,9 +1,9 @@
 ---
-name: Probability tree and Bayes
+name: Probability tree
 num: 1191
 shelf: learn
 section: school-maths
-title: "Probability tree diagram: conditional probability, total probability and Bayes' theorem with 1000 dots"
+title: "Probability tree"
 summary: "Set P(A), P(B | A) and P(B | A′) with sliders and see the tree, the four path probabilities, P(B) by total probability, P(A | B) by Bayes' theorem and an independence check. 1000 dots show the same numbers as people, which makes it clear why a positive result on a test for something rare is often a false alarm."
 status: live
 ads: false

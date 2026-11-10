@@ -1,9 +1,9 @@
 ---
-name: Factorising with identities, step by step
+name: Factorising steps
 num: 1284
 shelf: learn
 section: school-maths
-title: "Factorise step by step: splitting the middle term, a² − b², perfect squares and sums of cubes"
+title: "Factorising steps"
 summary: "Type whole-number coefficients and watch the expression factorised step by step: the common factor, the identity that fits (a² − b², (a ± b)², a³ ± b³) or the split middle term, an area picture of the two brackets, and a check by expanding and by putting in a number."
 status: live
 ads: false

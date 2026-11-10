@@ -1,9 +1,9 @@
 ---
-name: Electric field line plotter
+name: Field lines
 num: 909
 shelf: science
 section: electromagnetism
-title: "Electric field line and equipotential plotter: drag point charges, line charges and dipoles"
+title: "Field lines"
 summary: "Place point charges, line charges and dipoles, drag them around, and watch the field lines and equipotentials redraw. Tap anywhere to read the field strength, direction and potential there, and see the force on every charge."
 status: live
 ads: true

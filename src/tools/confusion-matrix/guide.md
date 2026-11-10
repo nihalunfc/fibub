@@ -1,9 +1,9 @@
 ---
-name: Confusion matrix and metrics calculator
+name: Confusion matrix
 num: 570
 shelf: science
 section: data-science-and-machine-learning
-title: "Confusion matrix calculator: accuracy, precision, recall, F1, specificity, MCC and Cohen's kappa with confidence intervals"
+title: "Confusion matrix"
 summary: "Type four counts, paste a confusion matrix, or open a file of actual and predicted classes. Get accuracy, precision, recall, F1 (macro, micro and weighted), specificity, balanced accuracy, MCC and Cohen's kappa, with 95 % confidence intervals. Matches scikit-learn. Nothing is uploaded."
 status: live
 ads: false

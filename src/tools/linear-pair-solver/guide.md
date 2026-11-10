@@ -1,9 +1,9 @@
 ---
-name: Pair of linear equations
+name: Linear pairs
 num: 1157
 shelf: learn
 section: school-maths
-title: "Pair of linear equations solver: graph, ratio test, substitution and elimination steps"
+title: "Linear pairs"
 summary: "Type two equations and see their lines cross, run parallel or lie on top of each other. The ratio test says how many solutions there are, and the substitution and elimination methods are worked step by step with exact fractions."
 status: live
 ads: false

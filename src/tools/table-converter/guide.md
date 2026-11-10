@@ -1,9 +1,9 @@
 ---
-name: Table converter (LaTeX, Markdown, HTML)
+name: Table converter
 num: 804
 shelf: science
 section: writing-and-publishing
-title: "Excel and CSV to LaTeX table converter (booktabs, siunitx), plus Markdown and HTML tables"
+title: "Table converter"
 summary: "Paste cells from Excel, Google Sheets or LibreOffice, or open a CSV or Excel file, and get a LaTeX table (booktabs rules, caption and label, siunitx decimal alignment), a Markdown table or an HTML table. Special characters are escaped and numbers can be rounded the way you would on paper."
 status: live
 ads: false

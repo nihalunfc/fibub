@@ -1,9 +1,9 @@
 ---
-name: Gel and western blot densitometry
+name: Gel densitometry
 num: 180
 shelf: science
 section: proteomics-and-protein-science
-title: "Gel and western blot densitometry: band volumes, background and loading-control normalisation"
+title: "Gel densitometry"
 summary: "Open a photo of an SDS-PAGE gel, a DNA gel or a western blot and measure every band: lane profiles, a straight-line or rolling background, band volumes, amounts relative to a reference lane and divided by a loading control, with a warning for saturated bands. The photo stays in your browser."
 status: live
 ads: false

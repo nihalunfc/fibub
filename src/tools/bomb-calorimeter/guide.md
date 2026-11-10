@@ -1,10 +1,9 @@
 ---
-name: Bomb calorimeter virtual practical
+name: Bomb calorimeter
 num: 1367
 shelf: learn
 section: school-chemistry
-title: "Bomb calorimeter virtual practical: calibrate, burn a sample, find ΔU and ΔH of combustion"
-seoTitle: "Bomb calorimeter virtual lab: ΔU and ΔH of combustion"
+title: "Bomb calorimeter"
 summary: "A virtual bomb calorimeter: calibrate it by burning benzoic acid, then burn glucose, sucrose, naphthalene or urea and read the temperature rise off a live thermometer trace. Work out q = CΔT, the internal energy change ΔU per mole, and ΔH = ΔU + Δn(gas)RT, with every step shown."
 status: live
 ads: false

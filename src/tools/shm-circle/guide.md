@@ -1,9 +1,9 @@
 ---
-name: SHM as a shadow of circular motion
+name: SHM circle
 num: 1062
 shelf: learn
 section: school-physics
-title: "SHM and circular motion: x = A cos(ωt + φ), velocity and acceleration graphs, phase, energy, spring and pendulum period"
+title: "SHM circle"
 summary: "A point goes round a circle at a steady speed; its shadow moves in simple harmonic motion. Change the amplitude, period and phase, watch the x, v and a graphs and the energy bars, and turn the same motion into a mass on a spring or a pendulum."
 status: live
 ads: false

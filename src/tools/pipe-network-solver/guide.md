@@ -1,9 +1,9 @@
 ---
-name: Pipe network pressure drop
+name: Pipe network
 num: 660
 shelf: science
 section: thermal-and-fluid-engineering
-title: "Pipe pressure drop and pipe network solver: Darcy-Weisbach with Colebrook, minor losses, Hardy Cross and Newton"
+title: "Pipe network"
 summary: "Work out the head loss and pressure drop in a pipe with the Darcy-Weisbach equation, the Colebrook-White or Swamee-Jain friction factor and minor losses (K), or the flow a given head will push. Then solve a looped pipe network with reservoirs, tanks and demands by Newton's method or Hardy Cross, with flows, velocities, head losses and pressures at every node."
 status: live
 ads: true

@@ -1,9 +1,9 @@
 ---
-name: Binomial expansion with Pascal
+name: Binomial expansion
 num: 1192
 shelf: learn
 section: school-maths
-title: "Binomial expansion calculator: Pascal's triangle, general term, middle term and a Galton board"
+title: "Binomial expansion"
 summary: "Expand (ax + b)ⁿ with exact coefficients, read them off Pascal's triangle, find the general term T(r+1) and the middle term(s), and drop balls through a Galton board to watch the same numbers turn into chances."
 status: live
 ads: false

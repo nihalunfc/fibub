@@ -1,9 +1,9 @@
 ---
-name: Stress-strain tester and Searle's experiment
+name: Stress-strain
 num: 1340
 shelf: learn
 section: school-physics
-title: "Stress-strain curve simulator: pull a steel, copper, aluminium or rubber wire, find the elastic limit, Young's modulus and Searle's experiment"
+title: "Stress-strain"
 summary: "Hang loads on a wire of steel, copper, aluminium or rubber and follow its stress-strain curve: Hooke's law, the elastic limit, plastic stretch, the permanent set and the breaking point. Then do Searle's experiment with micrometer readings and work out Young's modulus from the slope, even for a mystery wire."
 status: live
 ads: false

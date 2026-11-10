@@ -1,9 +1,9 @@
 ---
-name: Sample size and power calculator
+name: Sample size
 num: 32
 shelf: science
 section: statistics
-title: "Sample size and power calculator with power curves (t test, proportions, surveys)"
+title: "Sample size"
 summary: "How many subjects, samples or survey responses do you need? Sample size for comparing two means, paired data, two proportions, or a survey's margin of error, with power curves. Matches R and G*Power."
 status: live
 ads: true

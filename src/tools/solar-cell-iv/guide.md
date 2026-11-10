@@ -1,9 +1,9 @@
 ---
-name: Solar cell I-V analyser
+name: Solar cell IV
 num: 864
 shelf: science
 section: semiconductors-and-electronics-materials
-title: "Solar cell I-V curve analyser: Voc, Jsc, fill factor, efficiency, series and shunt resistance, single-diode fit"
+title: "Solar cell IV"
 summary: "Open or paste a solar cell's I-V curve and get the open-circuit voltage, short-circuit current and current density, maximum power point, fill factor and efficiency, series and shunt resistance from the slopes, and a single-diode model fit (solved exactly with the Lambert W function) for the ideality factor, saturation current, Rs and Rsh with standard errors."
 status: live
 ads: false

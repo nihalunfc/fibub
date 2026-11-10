@@ -1,9 +1,9 @@
 ---
-name: Light curve period finder
+name: Period finder
 num: 48
 shelf: science
 section: stellar-astrophysics
-title: "Period finder: Lomb-Scargle periodogram and phase folding for variable stars"
+title: "Period finder"
 summary: "Paste times and brightness measurements, even with gaps and uneven spacing, and find the period with a Lomb-Scargle periodogram, false alarm probabilities, alias checks and a folded light curve."
 status: live
 ads: true

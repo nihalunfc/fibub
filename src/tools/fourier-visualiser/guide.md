@@ -1,9 +1,9 @@
 ---
-name: Fourier series and FFT visualiser
+name: Fourier visualiser
 num: 549
 shelf: science
 section: applied-mathematics
-title: "Fourier series visualiser with Gibbs phenomenon, epicycles drawing and FFT spectrum (amplitude, phase, windows)"
+title: "Fourier visualiser"
 summary: "See how sines and cosines build a square, sawtooth or any typed wave, watch the Gibbs overshoot, draw shapes with epicycles, and take the FFT of a formula or your own data with Hann, Hamming, Blackman or flat-top windows. All in your browser."
 status: live
 ads: true

@@ -1,9 +1,9 @@
 ---
-name: Maxima and minima finder
+name: Maxima and minima
 num: 1184
 shelf: learn
 section: school-maths
-title: "Maxima and minima finder: f, f′ and f″ stacked, first and second derivative tests, optimisation problems"
+title: "Maxima and minima"
 summary: "See a function, its slope f′ and its bending f″ stacked one above the other, with every turning point found and tested by the first and second derivative tests, the absolute maximum and minimum on an interval, and three optimisation stories (open box, fence by a river, closed can) with the working."
 status: live
 ads: false

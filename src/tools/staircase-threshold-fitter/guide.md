@@ -1,9 +1,9 @@
 ---
-name: Staircase and threshold fitter
+name: Threshold fitter
 num: 725
 shelf: science
 section: psychology-and-psychometrics
-title: "Psychometric function fitter and adaptive staircase simulator: threshold with bootstrap CI (free)"
+title: "Threshold fitter"
 summary: "Simulate or run 1-up-2-down, 1-up-3-down and weighted staircases, then fit a logistic, Weibull or cumulative normal psychometric function with guess and lapse rates by maximum likelihood. Get the threshold with a bootstrap 95 % interval."
 status: live
 ads: true

@@ -1,9 +1,9 @@
 ---
-name: Spin and Bloch sphere
+name: Bloch sphere
 num: 926
 shelf: science
 section: quantum-mechanics
-title: "Bloch sphere: apply qubit gates and rotations, and simulate Rabi oscillations with T1 and T2"
+title: "Bloch sphere"
 summary: "Start a spin-½ or qubit in any state, apply H, X, Y, Z, S, T and rotations about any axis, and watch its path on a turnable Bloch sphere with the final amplitudes and probabilities. Drive it with a Rabi frequency and detuning, add T1 and T2 relaxation, and see the oscillation, the π-pulse length and the steady state."
 status: live
 ads: true

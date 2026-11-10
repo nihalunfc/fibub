@@ -1,9 +1,9 @@
 ---
-name: Amino acid racemisation age estimator
+name: Racemisation age
 num: 412
 shelf: science
 section: dating-methods
-title: "Amino acid racemisation (AAR) age calculator: D/L ratio to age with reversible kinetics, Arrhenius temperature and Monte Carlo"
+title: "Racemisation age"
 summary: "Turn a D/L (or A/I) ratio into an age with reversible first-order kinetics. Type the rate constant or calibrate it from a sample of known age, adjust it to your sample's temperature with the Arrhenius equation, and get the uncertainty by propagation and Monte Carlo. Nothing is uploaded."
 status: live
 ads: true

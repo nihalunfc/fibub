@@ -1,9 +1,9 @@
 ---
-name: Snow water, snow load and slope angle
+name: Snow load
 num: 512
 shelf: science
 section: glaciology-and-cryosphere
-title: "Snow water equivalent, roof snow load and slope angle calculator (snow tube, layers, map contours, phone inclinometer, GPS)"
+title: "Snow load"
 summary: "Snow water equivalent from depth and density, snow tube weighings or layers; ground and roof snow load with your own factor; slope angle from map contours, your phone's tilt sensor or two GPS points, shown against the general 30 to 45° avalanche starting band. Not an avalanche or safety forecast."
 status: live
 ads: true

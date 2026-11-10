@@ -1,9 +1,9 @@
 ---
-name: Solutions on a line
+name: Line solutions
 num: 1289
 shelf: learn
 section: school-maths
-title: "Linear equations in two variables: see every solution of ax + by = c as a point on its line"
+title: "Line solutions"
 summary: "Set a, b and c in ax + by = c and watch its line move. Whole-number solutions show as dots; tap any grid point or type one to test it, with the sum worked out. A table of solutions, where the line crosses the axes, and lines parallel to the axes. Ends with fresh practice questions."
 status: live
 ads: false

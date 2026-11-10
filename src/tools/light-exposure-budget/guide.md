@@ -1,9 +1,9 @@
 ---
-name: Light exposure budget for museum objects
+name: Light exposure
 num: 419
 shelf: science
 section: heritage-conservation
-title: "Light exposure budget calculator for museum objects: lux-hours per year, display time allowed and UV dose"
+title: "Light exposure"
 summary: "Work out the lux-hours an object gets from lux × hours a day × days, how much of the yearly budget your institution sets that uses, how long or how brightly it can be shown, the UV it receives from the light's µW/lm, and a plan of display periods with the budget left. Nothing is uploaded."
 status: live
 ads: false

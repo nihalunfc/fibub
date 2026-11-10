@@ -1,9 +1,9 @@
 ---
-name: k-mer counter and spectrum
+name: K-mer counter
 num: 176
 shelf: science
 section: genomics-and-bioinformatics
-title: "k-mer counter: k-mer spectrum, most common k-mers and a rough genome size from FASTA or FASTQ, in your browser"
+title: "K-mer counter"
 summary: "Count every k-letter word in FASTA or FASTQ files (gzip too, any size), with reverse complements together. See the k-mer spectrum, the most common k-mers, a look-up box and a rough genome size from the spectrum's peak. Download the spectrum as CSV. Nothing is uploaded."
 status: live
 ads: false

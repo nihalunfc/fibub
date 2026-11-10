@@ -1,9 +1,9 @@
 ---
-name: Bootstrap and permutation test tool
+name: Bootstrap test
 num: 562
 shelf: science
 section: statistics
-title: "Bootstrap confidence interval and permutation test calculator (BCa, percentile, seeded)"
+title: "Bootstrap test"
 summary: "Bootstrap confidence intervals (percentile and BCa) for a mean, median, standard deviation, correlation or difference, and permutation tests for two groups, paired data and correlations. Seeded so results repeat, with histograms. Matches scipy."
 status: live
 ads: true

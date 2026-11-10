@@ -1,10 +1,9 @@
 ---
-name: ΔG = ΔH − TΔS explorer
+name: Gibbs explorer
 num: 1361
 shelf: learn
 section: school-chemistry
-title: "Gibbs energy explorer: ΔG = ΔH − TΔS, the four sign cases and when a reaction becomes spontaneous"
-seoTitle: "Gibbs energy ΔG = ΔH − TΔS explorer"
+title: "Gibbs explorer"
 summary: "Slide ΔH, ΔS and the temperature and watch ΔG = ΔH − TΔS change as a straight line against temperature, with the spontaneous region shaded, the turn-over temperature T = ΔH/ΔS marked and the four sign cases sorted. A Class 12 level adds K = e^(−ΔG°/RT) and E° = −ΔG°/nF."
 status: live
 ads: false

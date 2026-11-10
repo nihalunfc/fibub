@@ -1,9 +1,9 @@
 ---
-name: Notch filter and PSD
+name: Notch filter
 num: 346
 shelf: science
 section: neuroscience
-title: "Line-noise notch filter for EEG and patch-clamp traces: 50/60 Hz and harmonics, zero-phase, Welch PSD and band powers (free)"
+title: "Notch filter"
 summary: "Paste or open an EEG, LFP or patch-clamp trace (CSV, text, Excel or WAV) and remove 50 or 60 Hz mains hum and its harmonics with IIR notch filters run forwards and backwards. See the Welch power spectrum before and after, band powers (delta to gamma or your own bands), and download the filtered trace as CSV."
 status: live
 ads: false

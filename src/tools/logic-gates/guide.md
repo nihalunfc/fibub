@@ -1,9 +1,9 @@
 ---
-name: Logic gates and truth tables
+name: Logic gates
 num: 1432
 shelf: learn
 section: school-physics
-title: "Logic gates: AND, OR, NOT, NAND, NOR, XOR truth tables, universal gates and gate circuits"
+title: "Logic gates"
 summary: "Tap the inputs of an AND, OR, NOT, NAND, NOR, XOR or XNOR gate and watch the output lamp and its row of the truth table light up. Build NOT, AND and OR from NAND or NOR gates only, and chain two gates into a three-input circuit with its full truth table."
 status: live
 ads: false

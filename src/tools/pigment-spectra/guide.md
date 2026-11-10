@@ -1,9 +1,9 @@
 ---
-name: Absorption and action spectrum
+name: Pigment spectra
 num: 1392
 shelf: learn
 section: school-biology
-title: "Absorption and action spectrum: chlorophyll a, chlorophyll b, carotenoids and Engelmann's experiment"
+title: "Pigment spectra"
 summary: "Slide a colour of light from violet to red and see how much chlorophyll a, chlorophyll b and the carotenoids absorb, and how fast photosynthesis goes in that colour. Replay Engelmann's bacteria experiment and work out photon energies. Class 10 and Class 11 levels, with quick questions."
 status: live
 ads: false

@@ -1,9 +1,9 @@
 ---
-name: Odds ratio and risk ratio calculator
+name: Odds and risk ratio
 num: 466
 shelf: science
 section: epidemiology
-title: "Odds ratio and relative risk calculator with 95 % CI, Fisher exact, Mantel-Haenszel and Breslow-Day"
+title: "Odds and risk ratio"
 summary: "Odds ratio and risk ratio from a 2 × 2 table with Woolf, exact and mid-p intervals, chi-square and Fisher exact tests, or several strata pooled by Mantel-Haenszel with the Breslow-Day test and a forest plot. Case-control or cohort."
 status: live
 ads: false

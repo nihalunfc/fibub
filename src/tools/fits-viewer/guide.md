@@ -1,9 +1,9 @@
 ---
-name: FITS viewer and header inspector
+name: FITS viewer
 num: 21
 shelf: science
 section: astrophotography
-title: "FITS viewer online: open, stretch and inspect FITS images and headers in your browser"
+title: "FITS viewer"
 summary: "Open a FITS image to view it with a proper stretch, read pixel values and sky coordinates, and see its full header. Or drop a whole night's files to list exposure, filter and temperature and total your time per filter. Nothing is uploaded."
 status: live
 ads: false

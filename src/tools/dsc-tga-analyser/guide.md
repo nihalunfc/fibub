@@ -1,9 +1,9 @@
 ---
-name: DSC and TGA curve analyser
+name: DSC TGA analyser
 num: 103
 shelf: science
 section: polymer-chemistry
-title: "DSC and TGA analyser: glass transition, melting enthalpy, crystallinity and mass loss steps from your data"
+title: "DSC TGA analyser"
 summary: "Paste or open a DSC scan to get Tg (onset, midpoint, end, ΔCp), melting and crystallisation peaks with onset and enthalpy, and percent crystallinity. Paste a TGA run for the mass loss steps, DTG peaks, T at 5 % loss, residue and which molecule each step lost."
 status: live
 ads: true

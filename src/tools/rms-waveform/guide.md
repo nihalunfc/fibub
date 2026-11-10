@@ -1,9 +1,9 @@
 ---
-name: RMS from a waveform
+name: RMS waveform
 num: 1416
 shelf: learn
 section: school-physics
-title: "RMS value of AC: why 230 V mains peaks at 325 V, for sine, square, triangle and rectified waves"
+title: "RMS waveform"
 summary: "Pick a waveform and its peak and see v and v² over a cycle, the mean of v² and the root-mean-square value, worked out slice by slice and compared with the exact formula. Learn why India's 230 V mains actually swings up to 325 V, and why the mean of AC is zero but its heating is not."
 status: live
 ads: false

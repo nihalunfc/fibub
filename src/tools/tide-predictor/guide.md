@@ -1,9 +1,9 @@
 ---
-name: Tide predictor and harmonic analyser
+name: Tide predictor
 num: 832
 shelf: science
 section: physical-oceanography
-title: "Tide predictor: water levels, high and low tides and draft windows from harmonic constituents, plus harmonic analysis of a record"
+title: "Tide predictor"
 summary: "Type or paste tidal constituents (amplitude and phase) and get the predicted water level, the times and heights of high and low water and the windows when the water is deep enough, with nodal corrections for the 18.6-year lunar cycle. Paste a water-level record to get its constituents back by least squares. Not for navigation."
 status: live
 ads: true

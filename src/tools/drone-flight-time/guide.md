@@ -1,9 +1,9 @@
 ---
-name: Drone flight time calculator
+name: Drone flight time
 num: 671
 shelf: science
 section: aerospace-engineering
-title: "Drone flight time calculator: hover and cruise time, range, power and thrust-to-weight for multirotors"
+title: "Drone flight time"
 summary: "From the all-up weight, propeller size and battery, estimate a multirotor's hover power and flight time with momentum theory (or from your measured hover current), the time and range at a cruise speed, the speeds for the longest flight and the longest range, current draw, C-rate and thrust-to-weight."
 status: live
 ads: true
