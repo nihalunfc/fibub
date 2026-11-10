@@ -1,0 +1,154 @@
+---
+// #T894 Real mileage
+---
+<div class="tool-ui rm">
+  <section class="panel">
+    <div class="rm-grid">
+      <label>Vehicle
+        <select data-k="vehicle"><option value="car">Car</option><option value="bike">Two-wheeler</option><option value="truck">Truck</option></select>
+      </label>
+      <label>Distance in
+        <select data-k="dist"><option value="1">Kilometres</option><option value="1.609344">Miles</option></select>
+      </label>
+      <label>Fuel in
+        <select data-k="vol"><option value="1">Litres</option><option value="3.785411784">US gallons</option><option value="4.54609">UK gallons</option><option value="kwh">kWh (electric)</option></select>
+      </label>
+      <label>Tank or battery size <input data-k="tank" inputmode="decimal" value="45" /></label>
+      <label>Tank level now (%) <input data-k="level" inputmode="decimal" value="100" /></label>
+    </div>
+    <p class="rm-fine">Full-tank method: fill the tank completely each time and tick "Full". The fuel you add at a full fill is what the distance since the last full fill used. Part fills in between (tick off "Full") are added up with the next full one.</p>
+    <div class="rm-scroll">
+      <table class="rm-tab" aria-label="Fill-ups">
+        <thead><tr><th>Date</th><th>Odometer</th><th>Fuel added</th><th>Price per unit</th><th>Full</th><th></th></tr></thead>
+        <tbody class="rm-body"></tbody>
+      </table>
+    </div>
+    <div class="rm-btns">
+      <button type="button" class="rm-add">Add a fill-up</button>
+      <button type="button" class="rm-csv">Download CSV</button>
+      <button type="button" class="rm-clear">Clear all rows</button>
+    </div>
+    <label class="rm-check"><input type="checkbox" class="rm-keep" /> Keep my log on this device (off by default; it never leaves your browser)</label>
+    <button type="button" class="rm-forget" hidden>Clear saved log</button>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="rm-big"></p>
+    <dl class="rm-rows"></dl>
+    <p class="rm-warn" role="alert"></p>
+    <div class="rm-leg"></div>
+    <div class="rm-chart"></div>
+  </section>
+  <p class="rm-fine">Typical results are for guidance only; the dashboard fuel gauge and the odometer can be a little off, so real mileage often differs from the maker's figure. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .rm { display: grid; gap: 14px; margin-bottom: 32px; }
+  .rm .panel { padding: 16px; }
+  .rm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 12px; }
+  .rm label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .rm input:not([type=checkbox]), .rm select { font: inherit; color: var(--ink); padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .rm input:focus, .rm select:focus { border-color: var(--accent); outline: none; }
+  .rm label.rm-check { display: flex; gap: 8px; align-items: center; color: var(--ink); margin-top: 12px; }
+  .rm input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .rm-scroll { overflow-x: auto; margin-top: 10px; }
+  .rm-tab { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 520px; }
+  .rm-tab th { text-align: left; color: var(--muted); font-weight: 500; padding: 4px 4px; }
+  .rm-tab td { padding: 3px 4px; }
+  .rm-tab td:nth-child(5) { text-align: center; }
+  .rm-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .rm-btns button, .rm-forget, .rm-x { font: inherit; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); cursor: pointer; }
+  .rm-forget { margin-top: 8px; }
+  .rm-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
+  .rm-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
+  .rm-rows dt { color: var(--muted); } .rm-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .rm-warn { color: var(--bad); margin: 10px 0 0; } .rm-warn:empty { display: none; }
+  .rm-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+  .rm-leg { margin-top: 12px; font-size: 13px; color: var(--muted); } .rm-leg:empty { display: none; }
+</style>
+
+<script>
+  import { mileage, TYPICAL_TANKS_L } from '../../lib/money/vehicles';
+  import { lineSvg, legend, downloadCsv } from '../../lib/money/chart';
+  const root = document.querySelector('.rm') as HTMLElement;
+  const q = (k: string) => root.querySelector(`[data-k="${k}"]`) as HTMLInputElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const body = $('.rm-body');
+  const KEY = 'fibub-real-mileage-v1';
+  const n = (v: string) => parseFloat(v.replace(/,/g, '')) || 0;
+  const f2 = (v: number, d = 2) => v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const rowHtml = (d = '', odo = '', amt = '', price = '', full = true) =>
+    `<tr><td><input data-c="date" value="${d}" placeholder="date" aria-label="Date" /></td><td><input data-c="odo" inputmode="decimal" value="${odo}" aria-label="Odometer" /></td><td><input data-c="amt" inputmode="decimal" value="${amt}" aria-label="Fuel added" /></td><td><input data-c="price" inputmode="decimal" value="${price}" aria-label="Price per unit" /></td><td><input type="checkbox" data-c="full" ${full ? 'checked' : ''} aria-label="Full tank" /></td><td><button type="button" class="rm-x" aria-label="Remove this row">x</button></td></tr>`;
+  const addRow = (...a: Parameters<typeof rowHtml>) => body.insertAdjacentHTML('beforeend', rowHtml(...a));
+  const rows = () => [...body.querySelectorAll('tr')].map((tr) => {
+    const g = (c: string) => tr.querySelector(`[data-c="${c}"]`) as HTMLInputElement;
+    return { date: g('date').value, odo: n(g('odo').value), amount: n(g('amt').value), price: n(g('price').value), full: g('full').checked };
+  });
+  const isKwh = () => q('vol').value === 'kwh';
+  const calc = () => {
+    const kwh = isKwh(), df = n(q('dist').value) || 1, vf = kwh ? 1 : n(q('vol').value) || 1;
+    const rs = rows(), r = mileage(rs, df, vf);
+    const warn = $('.rm-warn'), big = $('.rm-big'), dl = $('.rm-rows');
+    const useMi = df > 1.5, vu = kwh ? 'kWh' : vf === 1 ? 'L' : 'gal';
+    if (!r.segments.length) {
+      big.textContent = ''; dl.innerHTML = ''; $('.rm-chart').innerHTML = ''; $('.rm-leg').innerHTML = '';
+      warn.textContent = 'Enter at least two full fill-ups with a higher odometer reading each time and the fuel added at the second one.'; return;
+    }
+    warn.textContent = r.skipped ? `${r.skipped} fill-up(s) were left out because the odometer did not go up or no fuel was entered.` : '';
+    const line = (a: string, b: string) => `<dt>${a}</dt><dd>${b}</dd>`;
+    const dUnit = useMi ? 'mi' : 'km';
+    const perDist = r.costPerKm * df;
+    let h = '';
+    if (kwh) {
+      big.textContent = useMi ? `${f2(r.kmPerL * df)} mi/kWh` : `${f2(r.kmPerL)} km/kWh`;
+      h += line('kWh per 100 km', f2(r.lPer100)) + line('km per kWh', f2(r.kmPerL)) + line('Miles per kWh', f2(r.kmPerL / 1.609344));
+    } else {
+      big.textContent = useMi ? `${f2(r.mpgUS)} mpg (US)` : `${f2(r.kmPerL)} km/L`;
+      h += line('km per litre', f2(r.kmPerL)) + line('Litres per 100 km', f2(r.lPer100)) + line('Miles per US gallon', f2(r.mpgUS)) + line('Miles per UK gallon', f2(r.mpgUK));
+    }
+    if (r.cost > 0) h += line(`Cost per ${dUnit}`, f2(perDist, 3));
+    h += line('Distance counted', `${f2(r.km / df, 0)} ${dUnit}`) + line('Fuel counted', `${f2(r.litres / vf)} ${vu}`);
+    if (r.cost > 0) h += line('Fuel cost counted', f2(r.cost));
+    const tank = n(q('tank').value), lvl = Math.min(100, Math.max(0, n(q('level').value)));
+    if (tank > 0) h += line('Range left from the tank level', `${f2((tank * vf * lvl / 100 * r.kmPerL) / df, 0)} ${dUnit}`);
+    dl.innerHTML = h;
+    if (r.segments.length >= 2) {
+      const s = [{ label: kwh ? 'km per kWh' : 'km per litre', ys: r.segments.map((x) => x.kmPerL), color: 'var(--accent)' }];
+      $('.rm-chart').innerHTML = lineSvg(s, r.segments.map((_, i) => i + 1), 'Efficiency for each tank');
+      $('.rm-leg').innerHTML = legend(s) + ' per tank, in order';
+    } else { $('.rm-chart').innerHTML = ''; $('.rm-leg').innerHTML = 'Add a third fill-up to see the trend.'; }
+  };
+  // vehicle defaults
+  const setTank = () => {
+    const l = TYPICAL_TANKS_L[q('vehicle').value] || 45;
+    q('tank').value = String(isKwh() ? { car: 60, bike: 4, truck: 200 }[q('vehicle').value] : Math.round((l / (n(q('vol').value) || 1)) * 10) / 10);
+  };
+  // saving (opt-in)
+  const keep = $('.rm-keep') as HTMLInputElement, forget = $('.rm-forget') as HTMLButtonElement;
+  const save = () => {
+    forget.hidden = !keep.checked;
+    try { if (keep.checked) localStorage.setItem(KEY, JSON.stringify({ rows: rows(), v: q('vehicle').value, d: q('dist').value, u: q('vol').value, t: q('tank').value, l: q('level').value })); } catch {}
+  };
+  const load = () => {
+    try {
+      const s = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (!s || !Array.isArray(s.rows)) return false;
+      body.innerHTML = ''; s.rows.forEach((x: any) => addRow(x.date, x.odo || '', x.amount || '', x.price || '', !!x.full));
+      q('vehicle').value = s.v; q('dist').value = s.d; q('vol').value = s.u; q('tank').value = s.t; q('level').value = s.l;
+      keep.checked = true; return true;
+    } catch { return false; }
+  };
+  forget.addEventListener('click', () => { try { localStorage.removeItem(KEY); } catch {} keep.checked = false; forget.hidden = true; });
+  keep.addEventListener('change', () => { if (!keep.checked) { try { localStorage.removeItem(KEY); } catch {} } save(); });
+  q('vehicle').addEventListener('change', setTank); q('vol').addEventListener('change', setTank);
+  $('.rm-add').addEventListener('click', () => { addRow(); calc(); save(); });
+  $('.rm-clear').addEventListener('click', () => { body.innerHTML = ''; addRow(); addRow(); calc(); save(); });
+  body.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('.rm-x'); if (b) { b.closest('tr')!.remove(); calc(); save(); } });
+  $('.rm-csv').addEventListener('click', () => {
+    const rs = rows(), out: (string | number)[][] = [['Date', 'Odometer', 'Fuel added', 'Price per unit', 'Full tank']];
+    rs.forEach((x) => out.push([x.date, x.odo, x.amount, x.price, x.full ? 'yes' : 'no']));
+    downloadCsv('fill-ups.csv', out);
+  });
+  root.addEventListener('input', () => { calc(); save(); }); root.addEventListener('change', () => { calc(); save(); });
+  if (!load()) { addRow('', '10000', '', '', true); addRow('', '10450', '30', '', true); }
+  calc(); forget.hidden = !keep.checked;
+</script>
