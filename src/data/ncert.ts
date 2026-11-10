@@ -139,7 +139,7 @@ export const CLASSES: SchoolClass[] = [
       ] },
       { id: 'chemistry', name: 'Chemistry', chapters: [
         c(1, 'Some Basic Concepts of Chemistry', 'Mole concept, empirical formula, stoichiometry, concentration', ['mole-bridge', 'molar-mass-calculator', 'concentration-converter', 'reaction-equivalents']),
-        c(2, 'Structure of Atom', 'Atomic models, spectra, Bohr model, orbitals, configuration', ['electron-configuration', 'hydrogen-spectrum', 'hydrogen-orbitals', 'photoelectric-lab']),
+        c(2, 'Structure of Atom', 'Atomic models, spectra, Bohr model, orbitals, configuration', ['electron-configuration', 'hydrogen-spectrum', 'hydrogen-orbitals', 'photoelectric-lab', 'em-spectrum']),
         c(3, 'Classification of Elements and Periodicity in Properties', 'Periodic table, periodic trends', ['periodic-table', 'electron-configuration']),
         c(4, 'Chemical Bonding and Molecular Structure', 'Lewis structures, VSEPR, hybridisation, MO theory', ['vsepr-shapes', 'lewis-structures', 'mo-diagram', 'dipole-polarity', 'molecule-viewer']),
         c(5, 'Thermodynamics', 'Enthalpy, Hess\'s law, entropy, Gibbs energy', ['thermochemistry-calculator']),
@@ -191,14 +191,14 @@ export const CLASSES: SchoolClass[] = [
     id: 'class-12', n: 12, name: 'Class 12', blurb: 'Physics, chemistry, biology and maths.',
     subjects: [
       { id: 'physics', name: 'Physics', chapters: [
-        c(1, 'Electric Charges and Fields', 'Coulomb\'s law, electric field, dipoles, Gauss\'s law', ['field-line-plotter', 'electrostatics-solver']),
-        c(2, 'Electrostatic Potential and Capacitance', 'Potential, equipotentials, capacitors, dielectrics', ['capacitor-lab', 'capacitor-inductor-calculator', 'electrostatics-solver']),
+        c(1, 'Electric Charges and Fields', 'Coulomb\'s law, electric field, dipoles, Gauss\'s law', ['field-line-plotter', 'electrostatics-solver', 'coulomb-forces', 'gauss-law', 'dipole-torque']),
+        c(2, 'Electrostatic Potential and Capacitance', 'Potential, equipotentials, capacitors, dielectrics', ['capacitor-lab', 'capacitor-inductor-calculator', 'electrostatics-solver', 'potential-map', 'capacitor-network', 'faraday-cage']),
         c(3, 'Current Electricity', 'Ohm\'s law, resistivity, cells, Kirchhoff\'s rules, Wheatstone bridge', ['ohms-law-lab', 'wheatstone-bridge', 'circuit-simulator']),
         c(4, 'Moving Charges and Magnetism', 'Lorentz force, Biot-Savart, Ampere\'s law, galvanometer', ['fleming-rule', 'magnetic-field-mapper', 'coil-field-designer', 'particle-drifts']),
         c(5, 'Magnetism and Matter', 'Bar magnet, magnetic materials', ['magnetic-field-mapper', 'magnetic-circuit']),
-        c(6, 'Electromagnetic Induction', 'Faraday\'s and Lenz\'s laws, inductance, AC generator', ['faraday-induction', 'capacitor-inductor-calculator']),
-        c(7, 'Alternating Current', 'Phasors, LCR circuits, resonance, power factor, transformers', ['lcr-phasors', 'circuit-simulator']),
-        c(8, 'Electromagnetic Waves', 'Displacement current, EM spectrum', ['blackbody-calculator', 'travelling-wave']),
+        c(6, 'Electromagnetic Induction', 'Faraday\'s and Lenz\'s laws, inductance, AC generator', ['faraday-induction', 'capacitor-inductor-calculator', 'motional-emf', 'inductance-lab']),
+        c(7, 'Alternating Current', 'Phasors, LCR circuits, resonance, power factor, transformers', ['lcr-phasors', 'circuit-simulator', 'rms-waveform', 'transformer-calculator']),
+        c(8, 'Electromagnetic Waves', 'Displacement current, EM spectrum', ['blackbody-calculator', 'travelling-wave', 'em-wave-3d', 'em-spectrum', 'displacement-current']),
         c(9, 'Ray Optics and Optical Instruments', 'Mirrors, refraction, total internal reflection, lenses, prisms, instruments', ['mirror-ray-diagram', 'lens-ray-diagram', 'snell-law', 'microscope-telescope', 'lens-ray-tracer']),
         c(10, 'Wave Optics', 'Huygens principle, interference, diffraction, polarisation', ['diffraction-patterns', 'polarisation-calculator']),
         c(11, 'Dual Nature of Radiation and Matter', 'Photoelectric effect, photons, de Broglie waves', ['photoelectric-lab']),
