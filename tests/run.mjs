@@ -3491,7 +3491,7 @@ try {
     await page.waitForSelector('.top:not([hidden]) .top-list li');
     const topRows = await page.$$eval('.top-list li', (els) => els.map((e) => e.textContent.replace(/\s+/g, ' ').trim()));
     check(topRows.length === 2 && /Loan.*30 uses.*120 views/.test(topRows[0]) && /12 uses.*50 views/.test(topRows[1]), `home: most used tools list, unknown ids dropped (${topRows.join(' | ')})`);
-    const statTxt = await page.innerText('.stats');
+    const statTxt = await page.innerText('.nums, .stats'); // v2 home: .nums; v1: .stats
     check(/activities and simulations for students/.test(statTxt) && /school curriculum covered/.test(statTxt) && !/free courses?\b/.test(statTxt), `home: site totals from the files, zero totals left out (${statTxt.replace(/\s+/g, ' ')})`);
     await page.goto(BASE + '/money/loan-payoff-planner/');
     await page.waitForSelector('.tool-counts:not([hidden])');
