@@ -2,6 +2,7 @@
 name: Salary converter
 num: 1728
 shelf: money
+code: T762
 section: pay
 title: "Hourly to salary calculator: convert hourly, weekly, monthly and yearly pay"
 summary: "Convert between hourly, daily, weekly, biweekly, monthly and yearly pay before tax, with your hours, paid weeks and overtime."

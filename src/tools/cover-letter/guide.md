@@ -2,6 +2,7 @@
 name: Cover letter
 num: 1714
 shelf: documents
+code: T748
 section: jobs
 title: "Cover letter builder: free ATS-friendly cover letter in Word, PDF or text"
 summary: "Write a cover letter with a simple form and example phrasing for the opening, middle and closing. Download Word, PDF or plain text. It all happens on your device."

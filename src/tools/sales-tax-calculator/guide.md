@@ -2,6 +2,7 @@
 name: Sales tax
 num: 1731
 shelf: money
+code: T765
 section: shopping
 title: "Sales tax calculator: add or remove GST, HST, VAT and US sales tax"
 summary: "Add tax to a price or take it out of a tax-inclusive total: Canada GST/HST/PST/QST by province, US state plus local sales tax, UK VAT, India GST with the CGST/SGST or IGST split, and Gulf VAT."

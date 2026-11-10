@@ -2,6 +2,7 @@
 name: Organise PDF
 num: 1701
 shelf: documents
+code: T735
 section: pdf-pages
 title: "Organise PDF: merge, split, reorder, rotate and delete pages, free"
 summary: "Merge PDFs, split one into parts, reorder, rotate or delete pages and pull out the pages you need. It all happens on your device; nothing is uploaded."

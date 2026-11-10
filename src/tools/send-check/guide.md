@@ -2,6 +2,7 @@
 name: Pre-send check
 num: 1715
 shelf: documents
+code: T749
 section: doc-checks
 title: "Pre-send check: find comments, hidden text and metadata before you send"
 summary: "Check a Word, Excel, PowerPoint or PDF file for comments, tracked changes, hidden text, hidden sheets, notes, embedded files and size before you send it. Nothing is uploaded."

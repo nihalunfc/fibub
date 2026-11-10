@@ -2,6 +2,7 @@
 name: Unit price
 num: 1719
 shelf: money
+code: T753
 section: shopping
 title: "Unit price calculator: which size or brand is the better deal per 100 g or per litre"
 summary: "Compare two to six products by price per 100 g, per litre or per item, across grams, kilos, ounces, pounds, millilitres, litres, fluid ounces, counts and sheets."

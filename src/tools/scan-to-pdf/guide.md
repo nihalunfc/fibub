@@ -2,6 +2,7 @@
 name: Scan to PDF
 num: 1708
 shelf: documents
+code: T742
 section: images-scans
 title: "Scan to PDF: turn phone photos of paper into a clean PDF, free"
 summary: "Photograph a page, let the tool find its edges, straighten it, clean it up and save one or many pages as a PDF. Nothing leaves your device."

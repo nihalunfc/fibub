@@ -2,6 +2,7 @@
 name: UK tax
 num: 1727
 shelf: money
+code: T761
 section: income-tax
 title: "UK income tax calculator 2026/27: take-home pay after tax, NI and student loan"
 summary: "Work out your 2026/27 Income Tax, National Insurance, student loan and pension, for England, Wales, Northern Ireland or Scotland, and see your take-home pay."

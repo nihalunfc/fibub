@@ -2,6 +2,7 @@
 name: Metadata cleaner
 num: 1707
 shelf: documents
+code: T741
 section: privacy-clean
 title: "Metadata cleaner: remove author, GPS and hidden details from files, free"
 summary: "See and remove the hidden details in PDF, Word, Excel, PowerPoint, JPG and PNG files: author, company, edit history and photo location. Nothing is uploaded."

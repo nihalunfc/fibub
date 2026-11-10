@@ -2,6 +2,7 @@
 name: Tip calculator
 num: 1717
 shelf: money
+code: T751
 section: shopping
 title: "Tip calculator: work out the tip and split the bill between friends"
 summary: "Add a tip to a restaurant or taxi bill, choose whether it is worked out before or after tax, split it between people and round up what each person pays."

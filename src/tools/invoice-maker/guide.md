@@ -2,6 +2,7 @@
 name: Invoice maker
 num: 1711
 shelf: documents
+code: T745
 section: templates
 title: "Invoice maker: free invoice, quote, receipt and rent receipt PDF with GST or VAT"
 summary: "Make an invoice, quote, receipt or rent receipt with your logo, tax lines (GST, HST, VAT, CGST/SGST/IGST) and the total in words. Download a PDF or print it. Nothing is uploaded."

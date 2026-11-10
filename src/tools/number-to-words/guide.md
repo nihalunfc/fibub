@@ -2,6 +2,7 @@
 name: Number to words
 num: 1712
 shelf: documents
+code: T746
 section: text-tools
 title: "Number to words: Indian lakh and crore, cheque amounts, free converter"
 summary: "Write any number or amount in words, the Indian way (lakh, crore) or the international way (million, billion), with cheque style for rupees, dollars, pounds, dirhams and riyals."
