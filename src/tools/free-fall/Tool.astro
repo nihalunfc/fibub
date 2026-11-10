@@ -1,22 +1,28 @@
 ---
-// #1485 Free fall. Engine: src/lib/learn/ (quiz.ts, sim.ts). Maths in src/lib/sci/ with checks in tests/sci.mjs.
+// #1485 Free fall. A teaching model: g = 9.8 m/s², drag simple and proportional to speed. Engine: src/lib/learn/.
 import '../../styles/astro.css';
 import '../../styles/learnquiz-d.css';
 ---
 <div class="tool-ui ax lrn ff">
   <div class="ax-card">
-    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="10" aria-pressed="true">Class 10</button><button type="button" data-level="11" aria-pressed="false">Class 11</button></div>
-    <h2>TODO</h2>
-    <canvas class="lrn-cv ff-cv" aria-label="TODO describe the picture"></canvas>
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="9" aria-pressed="true">Class 9</button><button type="button" data-level="11" aria-pressed="false">Class 11</button></div>
+    <p class="ax-help">A teaching model: a stone and a feather dropped together. With air, drag grows with speed until it balances weight.</p>
+    <canvas class="lrn-cv ff-cv" aria-label="A stone and a feather falling side by side"></canvas>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn small ff-drop">Drop again</button><button type="button" class="btn secondary small ff-play">Pause</button></div>
+    <div class="ax-seg ff-air" role="group" aria-label="Air" style="margin-top:8px">
+      <button type="button" data-air="0" aria-pressed="true">No air (vacuum)</button>
+      <button type="button" data-air="1" aria-pressed="false">With air</button>
+    </div>
     <div class="ax-grid" style="margin-top:10px">
-      <label>TODO input <input class="ff-in" type="range" min="1" max="10" step="1" value="5" /></label>
+      <label>Drop height: <b class="ff-hv"></b> m <input class="ff-h" type="range" min="5" max="80" step="5" value="20" /></label>
     </div>
     <p class="ax-big ff-out" aria-live="polite"></p>
-    <p class="ax-help" data-only="11" hidden>TODO extra for Class 11, or delete.</p>
+    <p class="ax-help ff-one"></p>
+    <p class="ax-help" data-only="11" hidden>Class 11: with drag, v = v<sub>t</sub> tanh(gt ÷ v<sub>t</sub>) and the fall time is (v<sub>t</sub> ÷ g) × arccosh(e<sup>gh ÷ v<sub>t</sub>²</sup>). Terminal speed v<sub>t</sub> is where drag equals weight (here 50 m/s for the stone, 2 m/s for the feather).</p>
   </div>
   <div class="ax-card">
     <h2>Try this</h2>
-    <ul><li>TODO two or three things to try.</li></ul>
+    <ul><li>With no air, drop from different heights. Do they always land together?</li><li>Turn air on and watch the feather stop speeding up.</li><li>Check that after 1 s with no air the fall is 4.9 m.</li></ul>
   </div>
   <div class="ax-card ff-quiz">
     <h2>Check yourself</h2>
@@ -29,22 +35,54 @@ import '../../styles/learnquiz-d.css';
 
 <script>
   import { mountQuiz, pick, r } from '../../lib/learn/quiz';
-  import { fitCanvas, wireLevel, pagePalette } from '../../lib/learn/sim';
+  import { fitCanvas, wireLevel, loop, pagePalette } from '../../lib/learn/sim';
   const root = document.querySelector('.ff') as HTMLElement;
-  const input = root.querySelector('.ff-in') as HTMLInputElement;
-  const out = root.querySelector('.ff-out') as HTMLElement;
-  const cv = root.querySelector('.ff-cv') as HTMLCanvasElement;
-  let level = '10';
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const cv = $<HTMLCanvasElement>('.ff-cv'), out = $('.ff-out');
+  const G = 9.8, VT = { stone: 50, feather: 2 }; // terminal speeds (m/s), made-up round values
+  let air = false, h = 20, t = 0;
+  // Distance fallen and speed after time t, with or without air (vt = Infinity means no air).
+  const dist = (tt: number, vt: number) => (Number.isFinite(vt) ? (vt * vt / G) * Math.log(Math.cosh(G * tt / vt)) : 0.5 * G * tt * tt);
+  const speed = (tt: number, vt: number) => (Number.isFinite(vt) ? vt * Math.tanh(G * tt / vt) : G * tt);
+  const fallTime = (hh: number, vt: number) => (Number.isFinite(vt) ? (vt / G) * Math.acosh(Math.exp(G * hh / (vt * vt))) : Math.sqrt(2 * hh / G));
+  const vts = () => ({ stone: air ? VT.stone : Infinity, feather: air ? VT.feather : Infinity });
   const draw = () => {
-    const { ctx, W, H } = fitCanvas(cv, 220), pal = pagePalette();
-    ctx.clearRect(0, 0, W, H); ctx.fillStyle = pal.ink; ctx.fillText('TODO drawing', 10, 20);
-    out.textContent = 'TODO result for ' + input.value;
+    const { ctx, W, H } = fitCanvas(cv, 240), pal = pagePalette(), v = vts();
+    ctx.clearRect(0, 0, W, H); ctx.font = '13px system-ui,sans-serif'; ctx.fillStyle = pal.ink; ctx.strokeStyle = pal.line;
+    const top = 20, ground = H - 24, span = ground - top;
+    ctx.beginPath(); ctx.moveTo(10, ground); ctx.lineTo(W - 10, ground); ctx.stroke();
+    ([['stone', W * 0.3, pal.accent], ['feather', W * 0.7, pal.accent2]] as const).forEach(([k, x, col]) => {
+      const d = Math.min(h, dist(t, v[k])), y = top + (d / h) * span;
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, k === 'stone' ? 9 : 6, 0, 7); ctx.fill();
+      ctx.fillStyle = pal.ink; ctx.fillText(`${k}: ${speed(Math.min(t, fallTime(h, v[k])), v[k]).toFixed(1)} m/s`, x - 45, ground + 16);
+    });
   };
-  input.addEventListener('input', draw);
+  const readout = () => {
+    $('.ff-hv').textContent = String(h);
+    const v = vts(), ts = fallTime(h, v.stone), tf = fallTime(h, v.feather);
+    out.textContent = air ? `Stone lands after ${r(ts)} s, feather after ${r(tf)} s.` : `Both land after ${r(ts)} s, together.`;
+    out.dataset.ts = ts.toFixed(4); out.dataset.tf = tf.toFixed(4);
+    out.dataset.s1 = dist(1, v.stone).toFixed(3); out.dataset.v1 = speed(1, v.stone).toFixed(3);
+    out.dataset.vtf = speed(60, v.feather).toFixed(3); // speed after a long fall: terminal speed with air
+    $('.ff-one').textContent = `After 1 s (stone): speed ${speed(1, v.stone).toFixed(1)} m/s, fallen ${dist(1, v.stone).toFixed(1)} m. With no air, v = gt and s = ½gt².`;
+  };
+  const ctl = loop((dt) => { t += dt; if (t > Math.max(fallTime(h, vts().feather), fallTime(h, vts().stone)) + 0.8) t = 0; draw(); }, $<HTMLButtonElement>('.ff-play'));
+  $('.ff-drop').addEventListener('click', () => { t = 0; ctl.redraw(); });
+  $('.ff-h').addEventListener('input', (e) => { h = +(e.target as HTMLInputElement).value; t = 0; readout(); ctl.redraw(); });
+  root.querySelectorAll<HTMLButtonElement>('.ff-air button').forEach((b) => b.addEventListener('click', () => {
+    air = b.dataset.air === '1'; root.querySelectorAll('.ff-air button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); t = 0; readout(); ctl.redraw();
+  }));
   addEventListener('resize', draw);
-  wireLevel(root, (l) => { level = l; draw(); });
-  mountQuiz(root.querySelector('.ff-quiz') as HTMLElement, () => {
-    const a = pick(2, 9);
-    return [{ q: `TODO question with ${a}`, ans: a * 2, unit: '', work: `TODO working: 2 × ${a} = ${r(a * 2)}` }];
+  wireLevel(root, () => {});
+  readout();
+  mountQuiz($('.ff-quiz'), () => {
+    const s = pick(2, 6), hh = pick(5, 45, 5);
+    const qs = [
+      { q: `With no air, how far does a stone fall in ${s} s? (g = 9.8 m/s², start from rest)`, ans: 0.5 * G * s * s, unit: 'm', work: `s = ½gt² = ½ × 9.8 × ${s}² = ${r(0.5 * G * s * s)} m.` },
+      { q: `With no air, what is the speed after ${s} s?`, ans: G * s, unit: 'm/s', work: `v = gt = 9.8 × ${s} = ${r(G * s)} m/s.` },
+      { q: `A stone is dropped from ${hh} m with no air. How long to land?`, ans: Math.sqrt(2 * hh / G), unit: 's', work: `t = √(2h ÷ g) = √(2 × ${hh} ÷ 9.8) = ${r(Math.sqrt(2 * hh / G))} s.` },
+      { q: 'In a vacuum, a feather and a stone are dropped together. Which lands first?', choices: ['The stone', 'The feather', 'They land together'], ans: 2, work: 'With no air, every object has the same acceleration g, whatever its mass.' },
+    ];
+    return [qs[0], qs[1 + Math.floor(Math.random() * 2)], qs[3]];
   });
 </script>
