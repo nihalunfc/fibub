@@ -961,7 +961,7 @@ try {
     await page.goto(BASE + '/science/sky-tonight/');
     check((await page.locator('#changes .cl li').count()) === Math.min(10, log.filter((c) => c.tools.includes('sky-tonight')).length), 'change log: a tool page lists its own changes');
     await page.goto(BASE + '/');
-    check(Number((await page.textContent('.total b')).trim()) === JSON.parse(await (await fetch(BASE + '/tools.json')).text()).length, 'home: the number of tools is shown as a figure');
+    check(Number((await page.textContent('.total b')).replace(/[^0-9]/g, '')) === JSON.parse(await (await fetch(BASE + '/tools.json')).text()).length, 'home: the number of tools is shown as a figure');
     await page.goto(BASE + '/science/sky-tonight/');
     await page.click('.find-btn');
     await page.keyboard.type('#13');
