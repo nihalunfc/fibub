@@ -3577,6 +3577,19 @@ ORIGIN
   near('ins: 1,000 a year for 2 years at 10% = 2,310', I.investDifference(1000, 0, 2, 10, 2), 2310, 1e-9);
   near('ins: fair level premium for q = 0.1, 0.1 is 100 per 1,000', I.fairTerm([0.1, 0.1], 1000, 0).premium, 100, 1e-9);
   near('ins: no growth, no discount: PV of 5 x 100 = 500', I.pvGrowing(100, 0, 0, 5), 500, 1e-9);
+  const bills = [300000, 300000, 300000];
+  check('ins: plain top-up with 5 lakh deductible pays nothing on three 3 lakh bills', I.topUp(bills, 500000, 1000000, 'topup').paid === 0);
+  check('ins: super top-up pays 4 lakh on the same bills', I.topUp(bills, 500000, 1000000, 'super').paid === 400000);
+  const dItems = [{ cls: 'preventive', cost: 200, month: 0 }, { cls: 'basic', cost: 500, month: 1 }, { cls: 'basic', cost: 300, month: 4 }, { cls: 'major', cost: 2000, month: 6 }];
+  const dBase = { premium: 400, deductible: 50, annualMax: 1500, pays: { preventive: 1, basic: 0.8, major: 0.5 }, wait: { preventive: 0, basic: 3, major: 12 }, deductibleOnPreventive: false, items: dItems };
+  near('ins: dental 100/80/50 with waiting periods pays 400', I.dentalYear(dBase).planPays, 400, 1e-9);
+  near('ins: dental annual maximum of 1,000 caps the plan', I.dentalYear({ ...dBase, annualMax: 1000, wait: { preventive: 0, basic: 3, major: 0 } }).planPays, 1000, 1e-9);
+  near('ins: own-damage with no deductible on a priceless car pays rate x mean claim', I.odPayout(1e12, 0, 0.1, Math.log(1000), 0.5), 100 * Math.exp(0.125), 1e-6);
+  near('ins: 1,20,000 over 10 years at 0% leaves 1,08,000 after a year', I.loanBalances(120000, 0, 10).balances[1], 108000, 1e-6);
+  const cv = I.creditorVsTerm([100, 50], [10, 10], 8, 100);
+  check('ins: creditor cover averages 75 and costs 133.33 per 1,000; term 80', Math.abs(cv.credCover - 75) < 1e-9 && Math.abs(cv.credPer1000 - 133.333333) < 1e-4 && Math.abs(cv.termPer1000 - 80) < 1e-9);
+  near('ins: keeping a policy worth 1,000 now that pays 1,100 next year returns 10%', I.keepReturn(1000, 0, 0, [{ year: 1, amount: 1100 }]).irr, 0.1, 1e-9);
+  near('ins: surrender 1,000 invested at 10% for a year = 1,100', I.surrenderInvest(1000, 0, 0, 10, 1), 1100, 1e-9);
 }
 console.log(`sci: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);
