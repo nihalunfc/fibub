@@ -215,7 +215,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Particle size', subtitle: q('.ps-big').textContent ?? '', file: `${fileSafe(M.name)}-particles`, sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .psi .mg-canvas { display: block; width: 100%; height: auto; margin-top: 10px; border: 1px solid var(--line); cursor: crosshair; }
   .psi .mg-cal { margin-top: 14px; }
   .psi .mg-cal h3 { margin: 0 0 8px; font-size: 15px; }

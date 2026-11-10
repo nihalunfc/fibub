@@ -108,6 +108,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Flat plate boundary layer', subtitle: q('.bl-big').textContent ?? '', file: 'boundary-layer', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .blc canvas.ax-fig { margin-top: 12px; }
 </style>

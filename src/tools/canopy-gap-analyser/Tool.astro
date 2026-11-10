@@ -173,7 +173,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Canopy gap analysis', subtitle: q('.cg-big').textContent ?? '', file: `${fileSafe(name)}-canopy`, sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .cga .cg-photo { display: block; width: 100%; max-width: 640px; height: auto; margin: 10px auto 0; border: 1px solid var(--line, #ddd); cursor: crosshair; touch-action: manipulation; }
   .cga .cg-ks { background: #f0e442; border: 1px solid #999; }
   .cga .cg-kc { background: #d55e00; }

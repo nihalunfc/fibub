@@ -207,7 +207,7 @@ C, 3, 3</textarea>
   wireDownloads(q('.dl'), () => ({ title: 'Spacetime diagram', subtitle: q('.sd-big').textContent ?? '', file: `spacetime-${sel('.sd-mode')}`, sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .std select, .std input, .std textarea { max-width: 100%; }
   .std input[type=range] { width: 100%; }
 </style>

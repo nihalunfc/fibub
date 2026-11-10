@@ -120,7 +120,7 @@ import DataFile from '../../components/DataFile.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Langmuir probe analysis', subtitle: q('.lp-big').textContent ?? '', file: 'langmuir-probe', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .lpa textarea { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
   .lpa canvas.ax-fig { margin-top: 12px; }
 </style>

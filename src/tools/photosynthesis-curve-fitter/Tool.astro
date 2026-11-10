@@ -179,7 +179,7 @@ const aci = 'Ci (µmol mol-1)\tA (µmol m-2 s-1)\n60\t0.4\n100\t3.47\n150\t7.52\
   wireDownloads(q('.dl'), () => ({ title: 'Photosynthesis curve fits', subtitle: [q('.ps-lbig').textContent, q('.ps-abig').textContent].filter(Boolean).join('; '), file: 'photosynthesis-curves', sections: [...(lsec ? [lsec] : []), ...asec] }));
 </script>
 
-<style is:global>
+<style is:inline>
   .psc select { max-width: 100%; }
   .psc textarea { width: 100%; }
   .psc td { white-space: nowrap; }

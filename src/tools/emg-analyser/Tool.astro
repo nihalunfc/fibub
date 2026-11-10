@@ -192,7 +192,7 @@ import DataFile from '../../components/DataFile.astro';
   wireDownloads(q('.dl'), () => ({ title: 'EMG envelope and fatigue', subtitle: q('.em-big').textContent ?? '', file: 'emg-analysis', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .emga select, .emga input[type=text] { max-width: 100%; }
   .emga textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 13px; }
 </style>

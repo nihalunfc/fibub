@@ -176,7 +176,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Optical fibre', subtitle: q('.fo-big').textContent ?? '', file: 'fibre', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .foc h3 { margin: 16px 0 8px; font-size: 15px; }
   .foc .fo-verdict { font-size: 14px; padding: 4px 10px; margin: 0 0 10px; display: inline-block; }
 </style>

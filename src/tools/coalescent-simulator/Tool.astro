@@ -143,6 +143,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Coalescent simulation', subtitle: q('.co-big').textContent ?? '', file: 'coalescent', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .cls select { max-width: 100%; }
 </style>

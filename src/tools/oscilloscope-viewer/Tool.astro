@@ -150,7 +150,7 @@ import DataFile from '../../components/DataFile.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Oscilloscope measurements', subtitle: q('.os-big').textContent ?? '', file: 'scope-measurements', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .osc .os-phase { margin: 4px 0 10px; font-weight: 600; }
   .osc .os-tab td.r { white-space: nowrap; }
 </style>

@@ -137,7 +137,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'LED resistor', subtitle: q('.lr-big').textContent ?? '', file: 'led-resistor', sections: sec.filter((s): s is Section => !!s) }));
 </script>
 
-<style is:global>
+<style is:inline>
   .ledr select, .ledr input { max-width: 100%; }
   .ledr .lr-tab td { white-space: nowrap; }
 </style>

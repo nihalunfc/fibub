@@ -283,7 +283,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.gp-out > .dl:last-child'), () => ({ title: 'GPR radargram', subtitle: name, file: `${fileSafe(name.replace(/\.\w+$/, ''))}-gpr`, sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .gpr h3 { margin: 16px 0 6px; font-size: 1rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .gpr h3 input { padding: 4px 6px; }
   .gpr .gp-btnw { display: flex; align-items: flex-end; }

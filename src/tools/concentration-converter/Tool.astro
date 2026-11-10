@@ -269,7 +269,7 @@ import DataFile from '../../components/DataFile.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Concentration converter', subtitle: q('.cc-big').textContent ?? '', file: 'concentration', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .concconv h3 { margin: 18px 0 8px; font-size: 15px; }
   .concconv select { max-width: 100%; }
   .concconv .cc-big { font-size: clamp(19px, 4.6vw, 26px); overflow-wrap: anywhere; }

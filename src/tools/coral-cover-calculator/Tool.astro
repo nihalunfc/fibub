@@ -210,7 +210,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Coral cover (point count)', subtitle: q('.cc-big').textContent ?? '', file: `coral-cover-${fileSafe(photos[0]?.name ?? 'photos')}`, sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .ccv .cc-photo { display: block; width: 100%; height: auto; margin-top: 10px; border: 1px solid var(--line, #ddd); cursor: pointer; touch-action: manipulation; }
   .ccv .cc-pl { flex: 1 1 200px; }
   .ccv .cc-where { font-weight: 600; margin: 8px 0; }

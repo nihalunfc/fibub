@@ -103,6 +103,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Paschen curve', subtitle: q('.pc-big').textContent ?? '', file: 'paschen-curve', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .pcc canvas.ax-fig { margin-top: 12px; }
 </style>

@@ -256,7 +256,7 @@ const recs = `year,catch (kg),effort (hours),vessel,area
   wireDownloads(q('.dl'), () => ({ title: 'CPUE index', subtitle: q('.cp-big').textContent ?? '', file: 'cpue-index', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .cpu select { max-width: 100%; }
   .cpu textarea { width: 100%; }
   .cpu h3 { margin: 18px 0 8px; font-size: 16px; }

@@ -212,7 +212,7 @@ const demo = 'time (s)\tsignal\n' + Array.from({ length: 400 }, (_, i) => { cons
   wireDownloads(q('.dl'), () => ({ title: 'Wavelet transform', subtitle: q('.wv-big').textContent ?? '', file: 'wavelet', sections: report.filter(Boolean) }));
 </script>
 
-<style is:global>
+<style is:inline>
   .wvv select, .wvv input { max-width: 100%; }
   .wvv textarea { width: 100%; }
 </style>

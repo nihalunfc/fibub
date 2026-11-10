@@ -132,6 +132,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Superconductor', subtitle: `T_c = ${q<HTMLInputElement>('.sc-tc').value} K`, file: 'superconductor', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .scc select, .scc input { max-width: 100%; }
 </style>

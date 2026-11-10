@@ -260,7 +260,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: '2D electrostatics', subtitle: `${q<HTMLSelectElement>('.es-pre').selectedOptions[0].text}, box ${q<HTMLInputElement>('.es-L').value} cm`, file: 'electrostatics', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .esv .es-fig { touch-action: none; cursor: crosshair; border: 1px solid var(--line); margin-top: 4px; }
   .esv code { font-size: 13px; }
   .esv select, .esv input { max-width: 100%; }

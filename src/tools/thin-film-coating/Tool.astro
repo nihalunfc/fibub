@@ -140,7 +140,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Thin-film coating', subtitle: q<HTMLTextAreaElement>('.tf-lay').value.split('\n').join(' | ').slice(0, 120), file: 'thin-film', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .tfc h3 { margin: 18px 0 8px; font-size: 15px; }
   .tfc code { font-size: 13px; }
 </style>

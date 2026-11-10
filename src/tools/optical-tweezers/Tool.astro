@@ -168,6 +168,6 @@ import DataFile from '../../components/DataFile.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Optical tweezers calibration', subtitle: q('.ot-big').textContent ?? '', file: 'tweezers-calibration', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .otc h3 { margin: 18px 0 8px; font-size: 15px; }
 </style>

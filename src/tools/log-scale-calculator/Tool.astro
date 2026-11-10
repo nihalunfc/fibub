@@ -126,7 +126,7 @@ const logs = 'log,small end,length,large end,middle\nL1,12,16,14,13\nL2,16,16,19
   wireDownloads(q('.dl'), () => ({ title: 'Log scale', subtitle: q('.ls-big').textContent ?? '', file: 'log-scale', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .lgs select { max-width: 100%; }
   .lgs textarea { width: 100%; }
   .lgs .ls-sd { margin-top: 14px; }

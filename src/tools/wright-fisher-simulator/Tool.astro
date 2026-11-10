@@ -145,6 +145,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Wright-Fisher simulation', subtitle: q('.wf-big').textContent ?? '', file: 'wright-fisher', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .wfs select { max-width: 100%; }
 </style>

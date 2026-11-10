@@ -197,7 +197,7 @@ import DataFile from '../../components/DataFile.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Inverse kinematics', subtitle: q('.ik-big').textContent ?? '', file: 'inverse-kinematics', sections: [...main, ...(many ? [many] : [])] }));
 </script>
 
-<style is:global>
+<style is:inline>
   .iks select, .iks input { max-width: 100%; }
   .iks label.ik-chk { display: flex; gap: 8px; align-items: center; margin: 12px 0 4px; color: var(--ink); }
   .iks textarea { margin-top: 4px; }

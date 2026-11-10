@@ -197,7 +197,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Digital filter design', subtitle: q('.fd-big').textContent ?? '', file: name, sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .dfd select, .dfd input { max-width: 100%; }
   .dfd textarea { width: 100%; font-size: 12.5px; }
   .dfd canvas.fd-pz { max-width: 300px; margin: 0 auto; }

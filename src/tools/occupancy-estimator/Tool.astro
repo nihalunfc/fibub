@@ -131,7 +131,7 @@ const example = 'site\tsurvey 1\tsurvey 2\tsurvey 3\tsurvey 4\nSite 1\t0\t0\t0\t
   wireDownloads(q('.dl'), () => ({ title: 'Site occupancy estimate', subtitle: q('.oc-big').textContent ?? '', file: 'occupancy', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .occ select { max-width: 100%; }
   .occ .oc-out h3 { margin: 18px 0 8px; }
 </style>

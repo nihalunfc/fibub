@@ -112,6 +112,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'GPS relativity', subtitle: `Orbit radius ${q<HTMLInputElement>('.gp-a').value} km`, file: 'gps-relativity', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .gpr select, .gpr input { max-width: 100%; }
 </style>

@@ -166,6 +166,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Schwarzschild orbit', subtitle: `${q<HTMLInputElement>('.sw-m').value} solar masses`, file: `schwarzschild-${sel('.sw-mode')}`, sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .swo select, .swo input { max-width: 100%; }
 </style>

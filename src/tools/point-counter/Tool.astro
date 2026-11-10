@@ -348,7 +348,7 @@ const classes = '1 Quartz\n2 Feldspar\n3 Lithic fragments\n4 Matrix\n5 Cement\n6
   wireDownloads(q('.pc-out > .dl:last-child'), () => ({ title: 'Point count', subtitle: q('.pc-big').textContent ?? '', file: 'point-count', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .pcn textarea { width: 100%; }
   .pcn .pc-wrap { margin-top: 12px; max-height: 75vh; overflow: auto; border: 1px solid var(--line); border-radius: 8px; -webkit-overflow-scrolling: touch; }
   .pcn .pc-cv { display: block; cursor: crosshair; touch-action: manipulation; }

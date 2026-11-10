@@ -178,7 +178,7 @@ const multi = 'Genotype\tCount\nA/A\t20\nA/B\t25\nA/C\t15\nB/B\t12\nB/C\t18\nC/C
   wireDownloads(q('.dl'), () => ({ title: 'Hardy-Weinberg test', subtitle: q('.hw-big').textContent ?? '', file: 'hardy-weinberg', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .hwt .hw-tab td, .hwt .hw-tab th { white-space: nowrap; }
   .hwt canvas.hw-tri { max-width: 520px; margin: 0 auto; }
 </style>

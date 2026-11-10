@@ -259,7 +259,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Stomatal density', subtitle: q('.sd-big').textContent ?? '', file: `${fileSafe(name)}-stomatal-density`, sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .sdc .sd-photo { display: block; width: 100%; height: auto; margin-top: 10px; border: 1px solid var(--line, #ddd); cursor: crosshair; touch-action: manipulation; }
   .sdc .sd-lab { font-size: 15px; }
   .sdc .sd-ks { border: 2px solid #d55e00; background: transparent; border-radius: 50% !important; }

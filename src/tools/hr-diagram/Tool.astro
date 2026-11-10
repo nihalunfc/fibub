@@ -184,7 +184,7 @@ import DataFile from '../../components/DataFile.astro';
   wireDownloads(q('.dl'), () => ({ title: 'HR diagram', subtitle: q('.hr-big').textContent ?? '', file: 'hr-diagram', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .hrd h3 { margin: 20px 0 8px; font-size: 15px; }
   .hrd select { max-width: 100%; }
   .hrd textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 13px; }

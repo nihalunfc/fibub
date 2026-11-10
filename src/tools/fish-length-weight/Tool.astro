@@ -125,7 +125,7 @@ const example = 'fish\tlength (cm)\tweight (g)\n1\t10.8\t15.9\n2\t19.0\t87.2\n3\
   wireDownloads(q('.dl'), () => ({ title: 'Fish length-weight relationship', subtitle: q('.fl-big').textContent ?? '', file: 'fish-length-weight', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .flw select { max-width: 100%; }
   .flw textarea { width: 100%; }
   .flw .fl-log { margin-top: 12px; }

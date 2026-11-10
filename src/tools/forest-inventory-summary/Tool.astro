@@ -173,7 +173,7 @@ const tally = 'plot,species,DBH,height\n1,Birch,12.9,9.7\n1,Pine,21.1,12.9\n1,Bi
   wireDownloads(q('.dl'), () => ({ title: 'Forest inventory summary', subtitle: q('.fi-big').textContent ?? '', file: 'forest-inventory', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .fis select { max-width: 100%; }
   .fis textarea { width: 100%; }
   .fis h3 { margin: 18px 0 8px; font-size: 16px; }

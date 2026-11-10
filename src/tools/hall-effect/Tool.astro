@@ -155,6 +155,6 @@ import DataFile from '../../components/DataFile.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Hall effect and van der Pauw', subtitle: q('.hl-big').textContent ?? '', file: 'hall-effect', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .hle select, .hle input { max-width: 100%; }
 </style>

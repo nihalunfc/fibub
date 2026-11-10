@@ -341,7 +341,7 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Orbit elements', subtitle: q('.oe-big').textContent ?? '', file: 'orbit-elements', sections }));
 </script>
 
-<style is:global>
+<style is:inline>
   .orbel h3 { margin: 20px 0 8px; font-size: 15px; }
   .orbel select { max-width: 100%; }
   .orbel textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 12px; }

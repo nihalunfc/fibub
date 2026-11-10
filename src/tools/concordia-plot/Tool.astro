@@ -174,7 +174,7 @@ const CON = 'Label\t207Pb/235U\t2σ\t206Pb/238U\t2σ\trho\nA1\t0.50651\t0.0122\t
   wireDownloads(q('.dl'), () => ({ title: 'Concordia plot', subtitle: q('.cc-big').textContent ?? '', file: 'concordia', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .cnc select { max-width: 100%; }
   .cnc textarea { width: 100%; }
   .cnc td { white-space: nowrap; }

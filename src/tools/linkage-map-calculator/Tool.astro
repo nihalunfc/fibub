@@ -241,7 +241,7 @@ const tp = '+ + +\t366\na b c\t356\na + +\t68\n+ b c\t72\n+ b +\t61\na + c\t57\n
   wireDownloads(q('.dl'), () => ({ title: 'Linkage map calculator', subtitle: q('.lk-mbig').textContent ?? '', file: 'linkage-map', sections: [...secs.c, ...secs.m, ...secs.t] }));
 </script>
 
-<style is:global>
+<style is:inline>
   .lkm select { max-width: 100%; }
   .lkm .lk-ttab td:nth-child(-n+3) { white-space: nowrap; }
   .lkm .lk-tp, .lkm .lk-pairs { font-family: ui-monospace, Menlo, Consolas, monospace; }

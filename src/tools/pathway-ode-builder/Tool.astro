@@ -212,7 +212,7 @@ const data = `t	I	P
   wireDownloads(q('.dl'), () => ({ title: 'Pathway ODE model', subtitle: q('.po-big').textContent ?? '', file: 'pathway-model', sections: [simSection, fitSection].filter(Boolean) as Section[] }));
 </script>
 
-<style is:global>
+<style is:inline>
   .pob .po-eq { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.88rem; padding-left: 1.4em; overflow-wrap: anywhere; }
   .pob .po-eq li { margin: 2px 0; }
   .pob fieldset { border: 1px solid var(--line, #ccc); border-radius: 8px; margin: 10px 0 0; padding: 6px 10px 8px; }

@@ -194,7 +194,7 @@ import DataFile from '../../components/DataFile.astro';
   wireDownloads(q('.dl'), () => ({ title: 'ECG and heart rate variability', subtitle: q('.eg-big').textContent ?? '', file: 'ecg-hrv', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .egv select, .egv input[type=text] { max-width: 100%; }
   .egv textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 13px; }
   .egv input[type=range] { width: 100%; }

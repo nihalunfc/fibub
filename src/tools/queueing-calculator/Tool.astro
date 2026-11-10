@@ -213,6 +213,6 @@ import Downloads from '../../components/Downloads.astro';
   wireDownloads(q('.dl'), () => ({ title: 'Queueing calculator', subtitle: q('.qc-big').textContent ?? '', file: 'queue', sections: report }));
 </script>
 
-<style is:global>
+<style is:inline>
   .qcs tr.qc-hi td { background: var(--accent-soft); font-weight: 700; }
 </style>
