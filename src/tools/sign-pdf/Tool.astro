@@ -1,0 +1,309 @@
+---
+// #1704 Sign PDF: draw, type or upload a signature, tap the page to place it, download a flattened PDF.
+---
+<div class="tool-ui sg" data-state="empty">
+  <label class="sg-drop">
+    <input class="sg-file visually-hidden" type="file" accept=".pdf,application/pdf" />
+    <strong>Choose a PDF to sign</strong>
+    <span>or drop it here. It stays on your device.</span>
+  </label>
+  <p class="note bad sg-err" role="alert" hidden></p>
+
+  <div class="sg-work" hidden>
+    <section class="panel sg-make" aria-label="Make your signature">
+      <div class="sg-tabs" role="tablist">
+        <button type="button" role="tab" class="sg-tab" data-t="draw" aria-selected="true">Draw</button>
+        <button type="button" role="tab" class="sg-tab" data-t="type" aria-selected="false">Type</button>
+        <button type="button" role="tab" class="sg-tab" data-t="upload" aria-selected="false">Upload picture</button>
+      </div>
+      <div class="sg-pane" data-t="draw">
+        <canvas class="sg-pad" width="720" height="240" aria-label="Draw your signature here with a finger, pen or mouse"></canvas>
+        <button type="button" class="btn secondary sg-clear">Clear</button>
+      </div>
+      <div class="sg-pane" data-t="type" hidden>
+        <label>Your name <input class="sg-name" type="text" autocomplete="off" placeholder="Type your name" /></label>
+        <div class="sg-styles" role="radiogroup" aria-label="Writing style"></div>
+      </div>
+      <div class="sg-pane" data-t="upload" hidden>
+        <label>A photo or scan of your signature <input class="sg-up" type="file" accept="image/*" /></label>
+        <label class="sg-check"><input class="sg-white" type="checkbox" checked /> Make the white background clear</label>
+      </div>
+      <canvas class="sg-prev" hidden></canvas>
+      <label>Your initials <input class="sg-ini" type="text" maxlength="5" autocomplete="off" placeholder="e.g. AB" /></label>
+    </section>
+
+    <section class="sg-place panel" aria-label="Put things on the page">
+      <p class="sg-help"><b>1.</b> Pick what to add. <b>2.</b> Tap the page where it goes. <b>3.</b> Drag it, or pull the square corner to resize.</p>
+      <div class="sg-btns">
+        <button type="button" class="btn sg-add" data-k="sig">Add signature</button>
+        <button type="button" class="btn secondary sg-add" data-k="initials">Add initials</button>
+        <button type="button" class="btn secondary sg-add" data-k="date">Add date</button>
+        <button type="button" class="btn secondary sg-add" data-k="text">Add text</button>
+      </div>
+      <div class="sg-row">
+        <label>Date text <input class="sg-date" type="text" /></label>
+        <label>Other text <input class="sg-text" type="text" placeholder="e.g. Approved" /></label>
+      </div>
+      <label class="sg-check"><input class="sg-every" type="checkbox" /> Put my initials on every page (same spot as the first one I place)</label>
+      <p class="sg-status" role="status" aria-live="polite"></p>
+    </section>
+
+    <div class="pv-pages sg-pages"></div>
+
+    <div class="sg-done panel">
+      <p class="note">This adds a <b>simple electronic signature</b>: a picture of your signature on the page. It is not a digital certificate signature, so it does not lock the file or prove who signed. Most forms, leases and permission slips accept it; if yours needs a certificate signature, ask the sender.</p>
+      <div class="sg-btns">
+        <button type="button" class="btn sg-save">Download signed PDF</button>
+        <button type="button" class="btn secondary sg-other">Choose another PDF</button>
+      </div>
+      <p class="sg-saved note good" hidden></p>
+    </div>
+  </div>
+</div>
+
+<style is:inline>
+  .sg { display: grid; gap: 14px; margin-bottom: 32px; }
+  .sg-drop { display: grid; place-items: center; gap: 4px; text-align: center; padding: 36px 16px; border: 2px dashed var(--line); border-radius: var(--radius); cursor: pointer; background: var(--bg); }
+  .sg-drop strong { font-size: 19px; color: var(--accent); }
+  .sg-drop span { color: var(--muted); font-size: 14px; }
+  .sg-drop.over, .sg-drop:focus-within { border-color: var(--accent); background: var(--accent-soft); }
+  .sg:not([data-state="empty"]) .sg-drop { display: none; }
+  .sg-work { display: grid; gap: 14px; }
+  .sg-make, .sg-place, .sg-done { display: grid; gap: 10px; }
+  .sg-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .sg-tab { font: inherit; padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .sg-tab[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .sg-pane { display: grid; gap: 8px; justify-items: start; }
+  .sg-pane[hidden] { display: none; }
+  .sg-pad { width: 100%; max-width: 520px; aspect-ratio: 3 / 1; border: 1px solid var(--line); border-radius: 8px; background: #fff; touch-action: none; cursor: crosshair; }
+  .sg-prev { max-width: 260px; max-height: 90px; background: #fff; border: 1px solid var(--line); border-radius: 6px; }
+  .sg label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .sg input[type=text] { font: inherit; color: var(--ink); padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); width: 100%; min-width: 0; }
+  .sg label.sg-check { display: flex; gap: 8px; align-items: center; color: var(--ink); }
+  .sg-styles { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sg-styles button { font-size: 26px; padding: 6px 14px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: #000; cursor: pointer; min-width: 120px; }
+  .sg-styles button[aria-checked="true"] { border-color: var(--accent); outline: 2px solid var(--accent); }
+  .sg-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sg-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+  .sg-help { margin: 0; font-size: 14.5px; }
+  .sg-status { margin: 0; color: var(--muted); font-size: 14px; }
+  .sg-status:empty { display: none; }
+  .sg.placing .pv-layer { cursor: crosshair; outline: 2px dashed var(--accent); outline-offset: -2px; }
+  .sg-add[aria-pressed="true"] { outline: 3px solid var(--accent); }
+  .sg-sig-text { position: absolute; left: 0; top: 0; white-space: nowrap; line-height: 1; color: #000; font-family: Helvetica, Arial, sans-serif; pointer-events: none; }
+  .pv-pages { display: grid; gap: 14px; justify-items: center; }
+  .pv-page { position: relative; background: #fff; box-shadow: 0 0 0 1px var(--line); max-width: 100%; margin-top: 18px; }
+  .pv-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .pv-layer { position: absolute; inset: 0; }
+  .pv-num { position: absolute; left: 6px; top: -1px; transform: translateY(-100%); font-size: 12px; color: var(--muted); }
+  .pv-item { position: absolute; cursor: move; outline: 1.5px dashed var(--accent); touch-action: none; user-select: none; }
+  .pv-item:focus-visible { outline-style: solid; outline-width: 2px; }
+  .pv-item img { width: 100%; height: 100%; display: block; pointer-events: none; }
+  .pv-x { position: absolute; top: -12px; right: -12px; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 700 16px/1 system-ui, sans-serif; cursor: pointer; padding: 0; }
+  .pv-grip { position: absolute; right: -9px; bottom: -9px; width: 18px; height: 18px; border-radius: 4px; background: var(--accent); border: 2px solid var(--surface); cursor: nwse-resize; touch-action: none; }
+</style>
+
+<script>
+  import { openPdfJs, showPages, mountItem, downloadBytes, readFile, outName, type Item, type PageView } from '../../lib/docs/pdfview';
+
+  const root = document.querySelector<HTMLElement>('.sg')!;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector<T>(s)!;
+  const idle = (window as any).requestIdleCallback ?? ((f: () => void) => setTimeout(f, 1500));
+  // Fetch the PDF reader early so the tool keeps working offline once the page is open.
+  idle(() => import('../../lib/compress/pdf').then((m) => m.warmUp()).catch(() => {}));
+
+  let bytes: Uint8Array | null = null, fileName = 'document.pdf', views: PageView[] = [], items: Item[] = [], nextId = 1;
+  let pending: { kind: string } | null = null;
+  const STYLES = [
+    { name: 'Script', font: '"Segoe Script","Brush Script MT","Snell Roundhand","Apple Chancery",cursive', italic: false },
+    { name: 'Pen', font: '"Lucida Handwriting","Bradley Hand","Comic Sans MS","Chalkboard SE",cursive', italic: false },
+    { name: 'Classic', font: 'Georgia,"Times New Roman",serif', italic: true },
+  ];
+  let styleIx = 0, tab = 'draw', uploadImg: HTMLImageElement | null = null;
+  const err = (m = '') => { const e = $('.sg-err'); e.textContent = m; e.hidden = !m; };
+  const status = (m = '') => { $('.sg-status').textContent = m; };
+
+  /* ---------- signature pad ---------- */
+  const pad = $<HTMLCanvasElement>('.sg-pad'), pg = pad.getContext('2d')!;
+  let drawn = false, pts: { x: number; y: number }[] = [];
+  const padXY = (e: PointerEvent) => { const r = pad.getBoundingClientRect(); return { x: ((e.clientX - r.left) / r.width) * pad.width, y: ((e.clientY - r.top) / r.height) * pad.height }; };
+  const initPad = () => { pg.clearRect(0, 0, pad.width, pad.height); pg.lineWidth = 5; pg.lineCap = 'round'; pg.lineJoin = 'round'; pg.strokeStyle = '#000'; drawn = false; };
+  initPad();
+  pad.addEventListener('pointerdown', (e) => { e.preventDefault(); pad.setPointerCapture(e.pointerId); pts = [padXY(e)]; pg.beginPath(); const p = pts[0]; pg.moveTo(p.x, p.y); pg.lineTo(p.x + 0.1, p.y + 0.1); pg.stroke(); drawn = true; });
+  pad.addEventListener('pointermove', (e) => {
+    if (!pts.length) return;
+    const p = padXY(e), q = pts[pts.length - 1], mid = { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 };
+    // A curve through the midpoints of the points gives a smooth line, not a jagged one.
+    const prev = pts.length > 1 ? { x: (q.x + pts[pts.length - 2].x) / 2, y: (q.y + pts[pts.length - 2].y) / 2 } : q;
+    pg.beginPath(); pg.moveTo(prev.x, prev.y); pg.quadraticCurveTo(q.x, q.y, mid.x, mid.y); pg.stroke(); pts.push(p);
+  });
+  const endStroke = () => { pts = []; refreshPreview(); };
+  pad.addEventListener('pointerup', endStroke); pad.addEventListener('pointercancel', endStroke);
+  $('.sg-clear').addEventListener('click', () => { initPad(); refreshPreview(); });
+
+  /* ---------- typed style buttons ---------- */
+  const styleBox = $('.sg-styles');
+  STYLES.forEach((s, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'radio'); b.dataset.i = String(i);
+    b.style.fontFamily = s.font; if (s.italic) b.style.fontStyle = 'italic'; b.textContent = 'Signed'; b.title = s.name;
+    b.addEventListener('click', () => { styleIx = i; markStyle(); refreshPreview(); });
+    styleBox.append(b);
+  });
+  const markStyle = () => styleBox.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-checked', String(i === styleIx)));
+  markStyle();
+  const nameIn = $<HTMLInputElement>('.sg-name'), iniIn = $<HTMLInputElement>('.sg-ini');
+  const typedLabel = (b: HTMLElement) => { b.textContent = nameIn.value.trim() || 'Signed'; };
+  nameIn.addEventListener('input', () => { styleBox.querySelectorAll('button').forEach((b) => typedLabel(b as HTMLElement)); if (!iniIn.dataset.touched) iniIn.value = initialsOf(nameIn.value); refreshPreview(); });
+  iniIn.addEventListener('input', () => { iniIn.dataset.touched = '1'; });
+  const initialsOf = (n: string) => n.trim().split(/\s+/).filter(Boolean).map((w) => w[0].toUpperCase()).join('').slice(0, 4);
+
+  /* ---------- upload ---------- */
+  $<HTMLInputElement>('.sg-up').addEventListener('change', (e) => {
+    const f = (e.target as HTMLInputElement).files?.[0]; if (!f) return;
+    const url = URL.createObjectURL(f), im = new Image();
+    im.onload = () => { uploadImg = im; refreshPreview(); URL.revokeObjectURL(url); };
+    im.onerror = () => { status('That picture could not be opened.'); };
+    im.src = url;
+  });
+  $('.sg-white').addEventListener('change', refreshPreview);
+
+  /* ---------- make the signature picture: cropped to the ink, clear background ---------- */
+  function cropToInk(src: HTMLCanvasElement): HTMLCanvasElement | null {
+    const g = src.getContext('2d')!, { width: w, height: h } = src, d = g.getImageData(0, 0, w, h).data;
+    let x0 = w, y0 = h, x1 = -1, y1 = -1;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 20) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 < 0) return null;
+    const m = 6, out = document.createElement('canvas');
+    out.width = x1 - x0 + 1 + m * 2; out.height = y1 - y0 + 1 + m * 2;
+    out.getContext('2d')!.drawImage(src, x0, y0, x1 - x0 + 1, y1 - y0 + 1, m, m, x1 - x0 + 1, y1 - y0 + 1);
+    return out;
+  }
+  function typedCanvas(text: string): HTMLCanvasElement {
+    const s = STYLES[styleIx], c = document.createElement('canvas'), g = c.getContext('2d')!;
+    const font = `${s.italic ? 'italic ' : ''}110px ${s.font}`;
+    g.font = font; c.width = Math.ceil(g.measureText(text).width) + 40; c.height = 190;
+    g.font = font; g.fillStyle = '#000'; g.textBaseline = 'alphabetic'; g.fillText(text, 20, 130);
+    return c;
+  }
+  function uploadCanvas(): HTMLCanvasElement | null {
+    if (!uploadImg) return null;
+    const k = Math.min(1, 900 / uploadImg.naturalWidth), c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(uploadImg.naturalWidth * k)); c.height = Math.max(1, Math.round(uploadImg.naturalHeight * k));
+    const g = c.getContext('2d')!; g.drawImage(uploadImg, 0, 0, c.width, c.height);
+    if ($<HTMLInputElement>('.sg-white').checked) {
+      const im = g.getImageData(0, 0, c.width, c.height), d = im.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const lum = 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2];
+        if (lum > 215) d[i + 3] = 0; else if (lum > 150) d[i + 3] = Math.round(((215 - lum) / 65) * d[i + 3]);
+      }
+      g.putImageData(im, 0, 0);
+    }
+    return c;
+  }
+  function signatureCanvas(): HTMLCanvasElement | null {
+    if (tab === 'draw') return drawn ? cropToInk(pad) : null;
+    if (tab === 'type') return nameIn.value.trim() ? cropToInk(typedCanvas(nameIn.value.trim())) : null;
+    const u = uploadCanvas(); return u ? cropToInk(u) : null;
+  }
+  function refreshPreview() {
+    const prev = $<HTMLCanvasElement>('.sg-prev'), c = signatureCanvas();
+    if (!c) { prev.hidden = true; return; }
+    prev.hidden = false; prev.width = c.width; prev.height = c.height; prev.getContext('2d')!.drawImage(c, 0, 0);
+  }
+  document.querySelectorAll<HTMLElement>('.sg-tab').forEach((b) => b.addEventListener('click', () => {
+    tab = b.dataset.t!;
+    root.querySelectorAll<HTMLElement>('.sg-tab').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
+    root.querySelectorAll<HTMLElement>('.sg-pane').forEach((p) => { p.hidden = p.dataset.t !== tab; });
+    refreshPreview();
+  }));
+
+  /* ---------- placing ---------- */
+  function addItemEl(v: PageView, it: Item) {
+    let body: HTMLElement; let fixed = true;
+    if (it.src) { const im = new Image(); im.src = it.src; im.alt = it.kind === 'initials' ? 'Your initials' : 'Your signature'; body = im; }
+    else {
+      fixed = false; const s = document.createElement('span'); s.className = 'sg-sig-text'; s.textContent = it.text || '';
+      body = s; const fit = () => { s.style.fontSize = `calc(var(--ph, 800px) * ${it.fh} * 0.8)`; }; fit(); (s as any)._fit = fit;
+    }
+    mountItem(v, it, body, { fixedRatio: fixed, label: it.kind, onChange: () => { (body as any)._fit?.(); }, onRemove: (x) => { items = items.filter((y) => y !== x); } });
+    (body as any)._fit?.();
+  }
+  root.addEventListener('click', (e) => {
+    if (!pending) return;
+    const layer = (e.target as HTMLElement).closest<HTMLElement>('.pv-layer'); if (!layer) return;
+    if ((e.target as HTMLElement).closest('.pv-item')) return;
+    const v = views.find((x) => x.layer === layer)!, r = layer.getBoundingClientRect();
+    const cx = (e.clientX - r.left) / r.width, cy = (e.clientY - r.top) / r.height, ratioPage = r.width / r.height;
+    const k = pending.kind;
+    let it: Item;
+    if (k === 'sig' || k === 'initials') {
+      const c = k === 'sig' ? signatureCanvas() : initialsCanvas(); if (!c) return;
+      const fw = k === 'sig' ? 0.3 : 0.1, fh = (fw * c.height) / c.width * ratioPage;
+      it = { id: nextId++, page: v.index, kind: k, fx: 0, fy: 0, fw, fh, src: c.toDataURL('image/png') };
+    } else {
+      const text = k === 'date' ? $<HTMLInputElement>('.sg-date').value : $<HTMLInputElement>('.sg-text').value;
+      if (!text.trim()) { status('Type the text first.'); return; }
+      const fh = 0.022; it = { id: nextId++, page: v.index, kind: k, fx: 0, fy: 0, fw: 0.2, fh, text };
+    }
+    it.fx = Math.min(Math.max(0, cx - it.fw / 2), 1 - it.fw); it.fy = Math.min(Math.max(0, cy - it.fh / 2), 1 - it.fh);
+    items.push(it); addItemEl(v, it); stopPlacing();
+    status(`Added on page ${v.index + 1}. Drag to move it, or pull the square corner to resize.`);
+  });
+  function initialsCanvas(): HTMLCanvasElement | null {
+    const t = iniIn.value.trim(); if (!t) return null;
+    const keep = tab; const c = cropToInk(typedCanvas(t)); void keep; return c;
+  }
+  function startPlacing(k: string) {
+    if (k === 'sig' && !signatureCanvas()) { status('Make your signature first (draw, type or upload one above).'); return; }
+    if (k === 'initials' && !initialsCanvas()) { status('Type your initials first.'); return; }
+    if (k === 'date' && !$<HTMLInputElement>('.sg-date').value.trim()) { status('Type the date text first.'); return; }
+    if (k === 'text' && !$<HTMLInputElement>('.sg-text').value.trim()) { status('Type the text first.'); return; }
+    pending = { kind: k }; root.classList.add('placing');
+    root.querySelectorAll<HTMLElement>('.sg-add').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.k === k)));
+    status('Now tap the page where it should go.');
+  }
+  function stopPlacing() { pending = null; root.classList.remove('placing'); root.querySelectorAll('.sg-add').forEach((b) => b.setAttribute('aria-pressed', 'false')); }
+  root.querySelectorAll<HTMLElement>('.sg-add').forEach((b) => b.addEventListener('click', () => startPlacing(b.dataset.k!)));
+
+  /* ---------- open and save ---------- */
+  async function open(f: File) {
+    err();
+    try {
+      const b = await readFile(f);
+      const doc = await openPdfJs(b);
+      bytes = b; fileName = f.name; items = []; stopPlacing(); status();
+      root.dataset.state = 'ready'; $('.sg-work').hidden = false;
+      views = await showPages(doc, $('.sg-pages'));
+    } catch (e: any) {
+      root.dataset.state = 'empty'; $('.sg-work').hidden = true;
+      err(/password|encrypt/i.test(String(e?.message || e?.name)) ? 'This PDF is locked with a password. Unlock it first, then come back.' : 'That file could not be opened as a PDF.');
+    }
+  }
+  $<HTMLInputElement>('.sg-file').addEventListener('change', (e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) open(f); });
+  const drop = $('.sg-drop');
+  ['dragenter', 'dragover'].forEach((n) => drop.addEventListener(n, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach((n) => drop.addEventListener(n, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', (e) => { const f = (e as DragEvent).dataTransfer?.files?.[0]; if (f) open(f); });
+  $('.sg-other').addEventListener('click', () => { root.dataset.state = 'empty'; $('.sg-work').hidden = true; $<HTMLInputElement>('.sg-file').value = ''; bytes = null; $('.sg-pages').textContent = ''; items = []; $('.sg-saved').hidden = true; });
+  $<HTMLInputElement>('.sg-date').value = new Date().toLocaleDateString('en-CA');
+
+  $('.sg-save').addEventListener('click', async () => {
+    if (!bytes) return;
+    if (!items.length) { status('Nothing to save yet. Add your signature to the page first.'); return; }
+    const { loadForEdit, drawItems, EncryptedError } = await import('../../lib/docs/stamp');
+    try {
+      const doc = await loadForEdit(bytes);
+      let all = items.slice();
+      if ($<HTMLInputElement>('.sg-every').checked) {
+        const ini = items.find((i) => i.kind === 'initials');
+        if (ini) for (let p = 0; p < doc.getPageCount(); p++) if (p !== ini.page) all.push({ ...ini, id: 0, page: p });
+      }
+      await drawItems(doc, all);
+      const out = await doc.save();
+      downloadBytes(out, outName(fileName, '-signed'));
+      const s = $('.sg-saved'); s.hidden = false; s.textContent = `Saved ${all.length} mark${all.length === 1 ? '' : 's'} on ${new Set(all.map((i) => i.page)).size} page(s). Open the file to check it before you send it.`;
+    } catch (e: any) {
+      err(e instanceof EncryptedError ? 'This PDF is locked with a password. Unlock it first.' : 'Could not save this PDF: ' + (e?.message || e));
+    }
+  });
+</script>
