@@ -1,0 +1,118 @@
+---
+// #T869 Wallpaper calculator
+---
+<div class="tool-ui wpc">
+  <section class="panel">
+    <div class="wpc-grid">
+      <label>Units
+        <select data-k="units"><option value="m">Metric (m, cm)</option><option value="ft">Imperial (ft, inches)</option></select>
+      </label>
+      <label>Wall height <span data-u="len"></span><input data-k="h" inputmode="decimal" /></label>
+    </div>
+    <p class="wpc-h">Width of each wall you will paper:</p>
+    <div class="wpc-list"></div>
+    <button type="button" class="wpc-btn wpc-add">Add a wall</button>
+  </section>
+  <section class="panel wpc-grid">
+    <label>Roll width <span data-u="rw"></span><input data-k="rw" inputmode="decimal" /></label>
+    <label>Roll length <span data-u="len"></span><input data-k="rl" inputmode="decimal" /></label>
+    <label>Pattern repeat (0 for none) <span data-u="rep"></span><input data-k="rep" inputmode="decimal" /></label>
+    <label>Pattern match
+      <select data-k="match"><option value="s">Straight match</option><option value="d">Half-drop match</option></select>
+    </label>
+    <label>Trim allowance per strip <span data-u="rep"></span><input data-k="trim" inputmode="decimal" /></label>
+    <label>Doors and windows to leave out (total width) <span data-u="len"></span><input data-k="open" inputmode="decimal" /></label>
+  </section>
+  <section class="panel">
+    <p class="wpc-big" aria-live="polite"></p>
+    <p class="wpc-spare" aria-live="polite"></p>
+    <ul class="wpc-lines"></ul>
+    <button type="button" class="wpc-btn wpc-reset">Reset to the example</button>
+  </section>
+  <p class="wpc-fine">Roll sizes differ by brand: check the label. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .wpc { display: grid; gap: 14px; margin-bottom: 32px; }
+  .wpc .panel { padding: 16px; display: grid; gap: 12px; }
+  .wpc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .wpc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .wpc input, .wpc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .wpc input:focus, .wpc select:focus { border-color: var(--accent); outline: none; }
+  .wpc-h { margin: 0; font-size: 14px; color: var(--muted); }
+  .wpc-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 8px; }
+  .wpc-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: end; }
+  .wpc-btn { font: inherit; font-size: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; justify-self: start; }
+  .wpc-btn:hover { border-color: var(--accent); }
+  .wpc-big { font-size: 26px; font-weight: 700; margin: 0; overflow-wrap: anywhere; }
+  .wpc-spare { margin: 0; font-weight: 600; }
+  .wpc-lines { margin: 0; padding-left: 18px; color: var(--muted); font-size: 15px; display: grid; gap: 2px; }
+  .wpc-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  const root = document.querySelector('.wpc') as HTMLElement;
+  const $ = (s: string) => root.querySelector(s) as HTMLElement;
+  const k = (key: string) => root.querySelector(`[data-k="${key}"]`) as HTMLInputElement;
+  const list = $('.wpc-list');
+  const EX: Record<string, Record<string, string>> = {
+    m: { h: '2.5', rw: '53', rl: '10.05', rep: '0', trim: '0', open: '0' },
+    ft: { h: '8', rw: '20.5', rl: '33', rep: '0', trim: '0', open: '0' },
+  };
+  const WALLS: Record<string, string[]> = { m: ['4', '3', '4', '3'], ft: ['12', '10', '12', '10'] };
+  const U: Record<string, Record<string, string>> = {
+    m: { len: '(m)', rw: '(cm)', rep: '(cm)', l: 'm', s: 'cm' },
+    ft: { len: '(ft)', rw: '(in)', rep: '(in)', l: 'ft', s: 'in' },
+  };
+  const num = (s: string) => (s.trim() === '' ? NaN : Number(s));
+  const f = (v: number, d: number) => v.toLocaleString('en-US', { maximumFractionDigits: d });
+  const addWall = (w = '') => {
+    const row = document.createElement('div'); row.className = 'wpc-row';
+    row.innerHTML = `<label>Wall <span data-u="len"></span><input class="wpc-w" inputmode="decimal" /></label><button type="button" class="wpc-btn" aria-label="Remove this wall">×</button>`;
+    (row.querySelector('input') as HTMLInputElement).value = w;
+    (row.querySelector('input') as HTMLInputElement).addEventListener('input', calc);
+    (row.querySelector('button') as HTMLElement).addEventListener('click', () => { row.remove(); calc(); });
+    list.append(row);
+  };
+  const big = $('.wpc-big'), spare = $('.wpc-spare'), lines = $('.wpc-lines');
+  function calc() {
+    const u = k('units').value, un = U[u];
+    root.querySelectorAll('[data-u]').forEach((s) => { s.textContent = un[(s as HTMLElement).dataset.u!]; });
+    // Work in the long unit (m or ft); small inputs (cm or in) are converted.
+    const small = u === 'm' ? 100 : 12;
+    let W = 0; list.querySelectorAll('.wpc-w').forEach((i) => { W += num((i as HTMLInputElement).value); });
+    const h = num(k('h').value), rw = num(k('rw').value) / small, rl = num(k('rl').value);
+    const rep = num(k('rep').value || '0') / small, trim = num(k('trim').value || '0') / small, open = num(k('open').value || '0');
+    const fail = (m: string) => { big.textContent = ''; spare.textContent = m; lines.innerHTML = ''; };
+    if (![W, h, rw, rl, rep, trim, open].every(Number.isFinite) || W <= 0 || h <= 0 || rw <= 0 || rl <= 0 || rep < 0 || trim < 0 || open < 0) return fail('Type the sizes above (numbers above zero).');
+    const width = Math.max(0, W - open);
+    const strips = Math.ceil(width / rw - 1e-9);
+    let drop = h + trim;
+    if (rep > 0) { drop = Math.ceil(drop / rep - 1e-9) * rep; if (k('match').value === 'd') drop += rep / 2; }
+    const per = Math.floor(rl / drop + 1e-9);
+    if (per < 1) return fail(`Each strip (${f(drop, 2)} ${un.l}) is longer than a roll. Check the roll length.`);
+    const rolls = Math.ceil(strips / per - 1e-9);
+    big.textContent = `${rolls} roll${rolls === 1 ? '' : 's'}`;
+    spare.textContent = `Buy ${rolls + 1} to keep one spare from the same batch number.`;
+    const li = [
+      `Walls ${f(W, 2)} ${un.l} wide${open > 0 ? `, minus ${f(open, 2)} ${un.l} of doors and windows = ${f(width, 2)} ${un.l}` : ''}.`,
+      `${f(width, 2)} ${un.l} ÷ roll width ${f(rw * small, 2)} ${un.s} = ${f(width / rw, 2)}, rounded up to ${strips} strips.`,
+      rep > 0 ? `Each strip: height${trim > 0 ? ' plus trim' : ''} ${f(h + trim, 2)} ${un.l}, rounded up to whole repeats${k('match').value === 'd' ? ' plus half a repeat for the half-drop' : ''} = ${f(drop, 2)} ${un.l}.` : `Each strip is ${f(drop, 2)} ${un.l} long.`,
+      `A ${f(rl, 2)} ${un.l} roll gives ${per} strip${per === 1 ? '' : 's'} (leftover pieces are not joined).`,
+      `${strips} strips ÷ ${per} per roll = ${rolls} rolls, rounded up.`,
+    ];
+    lines.innerHTML = ''; for (const s of li) { const e = document.createElement('li'); e.textContent = s; lines.append(e); }
+  }
+  const load = (u: string) => {
+    for (const [key, v] of Object.entries(EX[u])) k(key).value = v;
+    k('match').value = 's';
+    list.innerHTML = ''; for (const w of WALLS[u]) addWall(w);
+    calc();
+  };
+  k('units').addEventListener('change', () => load(k('units').value));
+  k('match').addEventListener('change', calc);
+  for (const key of ['h', 'rw', 'rl', 'rep', 'trim', 'open']) k(key).addEventListener('input', calc);
+  $('.wpc-add').addEventListener('click', () => { addWall(); calc(); });
+  $('.wpc-reset').addEventListener('click', () => { k('units').value = 'm'; load('m'); });
+  load('m');
+</script>
