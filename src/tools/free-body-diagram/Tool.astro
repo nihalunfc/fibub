@@ -1,0 +1,267 @@
+---
+// Free-body diagram builder: pick a set-up, tick the forces you think act on a body, check, and see the
+// acceleration, tension and normal force worked out. Maths in src/lib/sci/free-body.ts.
+import '../../styles/astro.css';
+---
+<div class="ax fb">
+  <div class="ax-card">
+    <label class="fb-setrow">Set-up <select class="fb-set">
+      <option value="floor" selected>Pulling a box along the floor</option>
+      <option value="slope">A block on a rough slope</option>
+      <option value="lift">Standing on scales in a lift</option>
+      <option value="push2">Pushing two blocks together</option>
+      <option value="table">Block on a table, pulled by a hanging block</option>
+      <option value="atwood">Atwood machine: two blocks over a pulley</option>
+    </select></label>
+    <canvas class="fb-scene" aria-label="The set-up"></canvas>
+    <div class="fb-ctl">
+      <label data-k="m1"><span class="fb-m1l">Mass</span>: <b class="fb-m1v"></b><input class="fb-m1" type="range" min="1" max="20" step="1" value="5" /></label>
+      <label data-k="m2">Mass of B: <b class="fb-m2v"></b><input class="fb-m2" type="range" min="1" max="20" step="1" value="3" /></label>
+      <label data-k="F"><span class="fb-Fl">Pull</span>: <b class="fb-Fv"></b><input class="fb-F" type="range" min="0" max="100" step="1" value="30" /></label>
+      <label data-k="angle"><span class="fb-al">Angle</span>: <b class="fb-av"></b><input class="fb-a" type="range" min="0" max="60" step="1" value="30" /></label>
+      <label data-k="mu">Friction coefficient μ: <b class="fb-muv"></b><input class="fb-mu" type="range" min="0" max="1" step="0.05" value="0.2" /></label>
+      <label data-k="liftA">Lift's acceleration (+ up): <b class="fb-lav"></b><input class="fb-la" type="range" min="-9.8" max="5" step="0.2" value="2" /></label>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Draw the free-body diagram</h2>
+    <div class="ax-row fb-bodyrow">
+      <span class="fb-lab">Body</span>
+      <div class="ax-seg fb-body" role="group" aria-label="Which body"></div>
+    </div>
+    <p class="ax-help">Tick every force acting <b>on</b> this body. Only real pushes and pulls from something touching it, or gravity, count.</p>
+    <div class="fb-checks">
+      <label><input type="checkbox" value="weight" /> Weight (gravity pulls it down)</label>
+      <label><input type="checkbox" value="normal" /> Normal force (a surface pushes on it)</label>
+      <label><input type="checkbox" value="friction" /> Friction (along the surface)</label>
+      <label><input type="checkbox" value="tension" /> Tension (a string pulls it)</label>
+      <label><input type="checkbox" value="applied" /> Your push or pull</label>
+      <label><input type="checkbox" value="contact" /> A push from the other block</label>
+      <label><input type="checkbox" value="motion" /> A "force of motion" that keeps it going</label>
+      <label><input type="checkbox" value="ma" /> The force ma</label>
+    </div>
+    <div class="ax-row fb-btns"><button type="button" class="btn small fb-check">Check my diagram</button><button type="button" class="btn secondary small fb-show">Show the answer</button></div>
+    <p class="fb-res" hidden></p>
+    <canvas class="fb-fbd" aria-label="Your free-body diagram"></canvas>
+  </div>
+
+  <div class="ax-card">
+    <h2>Solve it</h2>
+    <p><span class="ax-pill fb-pill"></span></p>
+    <dl class="ax-facts fb-facts"></dl>
+    <div class="fb-eq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="fb-try">
+      <li>Pull the box at a steeper angle. The normal force drops, so friction drops too: a slight upward pull is easier.</li>
+      <li>In the lift, set the acceleration to −9.8 m/s². The scales read zero: the lift is falling freely and you feel weightless.</li>
+      <li>Push two blocks: the push between them is smaller than your push, because it only has to speed up the front block.</li>
+      <li>In the Atwood machine, make the masses equal. Nothing accelerates, and the tension equals each weight.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="fb-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { solve, net, questions, G, type Setup, type Solution, type ForceKey } from '../../lib/sci/free-body';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { setupCanvas, arrow, text, f, fact, para, keepDrawn, type Palette } from '../../lib/school-n';
+
+  const root = document.querySelector<HTMLElement>('.fb')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const val = (c: string) => Number(q<HTMLInputElement>(c).value);
+  const SHOW: Record<Setup, string[]> = { floor: ['m1', 'F', 'angle', 'mu'], slope: ['m1', 'angle', 'mu'], lift: ['m1', 'liftA'], push2: ['m1', 'm2', 'F'], table: ['m1', 'm2', 'mu'], atwood: ['m1', 'm2'] };
+  const NAMES: Record<string, string> = { weight: 'weight', normal: 'normal force', friction: 'friction', tension: 'tension', applied: 'your push or pull', contact: 'push from the other block', motion: '"force of motion"', ma: 'ma' };
+  let body = 0, checked = false;
+
+  const setup = () => q<HTMLSelectElement>('.fb-set').value as Setup;
+  const params = () => ({ m1: val('.fb-m1'), m2: val('.fb-m2'), F: val('.fb-F'), angle: val('.fb-a'), mu: val('.fb-mu'), liftA: val('.fb-la') });
+  const ticked = () => [...root.querySelectorAll<HTMLInputElement>('.fb-checks input:checked')].map((i) => i.value);
+
+  function box(ctx: CanvasRenderingContext2D, pal: Palette, cx: number, cy: number, w: number, h: number, label: string, rot = 0) {
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot); ctx.fillStyle = pal.grid; ctx.strokeStyle = pal.ink; ctx.lineWidth = 2;
+    ctx.fillRect(-w / 2, -h / 2, w, h); ctx.strokeRect(-w / 2, -h / 2, w, h);
+    ctx.fillStyle = pal.ink; ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(label, 0, 4); ctx.restore();
+  }
+
+  function drawScene(sol: Solution) {
+    const s = setup(), p = params(), c = q<HTMLCanvasElement>('.fb-scene'), H = 200, { ctx, w, pal } = setupCanvas(c, H);
+    const ground = (y: number) => { ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); };
+    const cx = w / 2;
+    if (s === 'floor') {
+      ground(160); box(ctx, pal, cx - 30, 135, 70, 50, `${p.m1} kg`);
+      const r = (p.angle * Math.PI) / 180; ctx.strokeStyle = pal.muted; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx + 5, 135); ctx.lineTo(cx + 5 + 90 * Math.cos(r), 135 - 90 * Math.sin(r)); ctx.stroke();
+      if (p.F > 0) arrow(ctx, cx + 5 + 90 * Math.cos(r), 135 - 90 * Math.sin(r), 40 * Math.cos(r), -40 * Math.sin(r), pal.accent, `${p.F} N`);
+      text(ctx, `μ = ${f(p.mu)}`, 12, 186, pal.muted);
+    } else if (s === 'slope') {
+      const r = (p.angle * Math.PI) / 180, x0 = 30, yB = 180, L = Math.min(w - 60, 320), xT = x0 + L * Math.cos(r), yT = yB - L * Math.sin(r);
+      ctx.fillStyle = pal.grid; ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x0, yB); ctx.lineTo(xT, yT); ctx.lineTo(xT, yB); ctx.closePath(); ctx.fill(); ctx.stroke();
+      const bx = x0 + L * 0.55 * Math.cos(r), by = yB - L * 0.55 * Math.sin(r);
+      box(ctx, pal, bx - 20 * Math.sin(r), by - 20 * Math.cos(r), 56, 40, `${p.m1} kg`, -r);
+      text(ctx, `${p.angle}°`, x0 + 44, yB - 6, pal.ink); text(ctx, `μ = ${f(p.mu)}`, w - 12, yB + 16, pal.muted, 'right');
+    } else if (s === 'lift') {
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.strokeRect(cx - 70, 20, 140, 160);
+      ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, 20); ctx.stroke();
+      ctx.fillStyle = pal.muted; ctx.fillRect(cx - 30, 165, 60, 10);
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx, 70, 12, 0, Math.PI * 2); ctx.moveTo(cx, 82); ctx.lineTo(cx, 125); ctx.moveTo(cx - 20, 100); ctx.lineTo(cx + 20, 100); ctx.moveTo(cx, 125); ctx.lineTo(cx - 14, 163); ctx.moveTo(cx, 125); ctx.lineTo(cx + 14, 163); ctx.stroke();
+      text(ctx, `scale reads ${f((sol.N ?? 0) / G, 1)} kg`, cx, 196, pal.ink, 'center', 12, 600);
+      if (p.liftA !== 0) arrow(ctx, cx + 100, 100, 0, -Math.sign(p.liftA) * 40, pal.accent2, `a ${f(Math.abs(p.liftA), 1)}`);
+    } else if (s === 'push2') {
+      ground(160); box(ctx, pal, cx - 30, 135, 60, 50, `A ${p.m1} kg`); box(ctx, pal, cx + 30, 135, 60, 50, `B ${p.m2} kg`);
+      if (p.F > 0) arrow(ctx, cx - 120, 135, 58, 0, pal.accent, `${p.F} N`);
+      text(ctx, 'smooth floor', 12, 186, pal.muted);
+    } else if (s === 'table') {
+      const tx = Math.min(w - 50, cx + 90);
+      ctx.fillStyle = pal.grid; ctx.fillRect(10, 90, tx - 10, 10); ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.strokeRect(10, 90, tx - 10, 10);
+      box(ctx, pal, tx - 110, 70, 60, 40, `A ${p.m1} kg`);
+      ctx.beginPath(); ctx.arc(tx + 10, 85, 10, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = pal.muted; ctx.beginPath(); ctx.moveTo(tx - 80, 75); ctx.lineTo(tx + 10, 75); ctx.moveTo(tx + 20, 85); ctx.lineTo(tx + 20, 140); ctx.stroke();
+      box(ctx, pal, tx + 20, 160, 40, 40, `B ${p.m2}`);
+      text(ctx, `μ = ${f(p.mu)}`, 16, 118, pal.muted);
+    } else {
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx - 60, 10); ctx.lineTo(cx + 60, 10); ctx.moveTo(cx, 10); ctx.lineTo(cx, 30); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, 45, 22, 0, Math.PI * 2); ctx.stroke();
+      const dy = Math.max(-40, Math.min(40, (p.m2 - p.m1) * 6));
+      ctx.strokeStyle = pal.muted; ctx.beginPath(); ctx.moveTo(cx - 22, 45); ctx.lineTo(cx - 22, 105 - dy); ctx.moveTo(cx + 22, 45); ctx.lineTo(cx + 22, 105 + dy); ctx.stroke();
+      box(ctx, pal, cx - 22, 125 - dy, 40, 40, `A ${p.m1}`); box(ctx, pal, cx + 22, 125 + dy, 40, 40, `B ${p.m2}`);
+    }
+    c.setAttribute('aria-label', q<HTMLSelectElement>('.fb-set').selectedOptions[0].textContent || 'The set-up');
+  }
+
+  function drawFbd(sol: Solution, reveal: boolean) {
+    const b = sol.bodies[Math.min(body, sol.bodies.length - 1)], c = q<HTMLCanvasElement>('.fb-fbd'), H = 250, { ctx, w, pal } = setupCanvas(c, H);
+    const cx = w / 2, cy = H / 2, keys = reveal ? b.forces.map((x) => x.key as string) : ticked();
+    const big = Math.max(1, ...b.forces.map((x) => x.mag)), k = 90 / big;
+    ctx.fillStyle = pal.grid; ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.fillRect(cx - 18, cy - 18, 36, 36); ctx.strokeRect(cx - 18, cy - 18, 36, 36);
+    for (const key of keys) {
+      const fo = b.forces.find((x) => x.key === key);
+      if (fo) { const r = (fo.dir * Math.PI) / 180, L = Math.max(16, fo.mag * k); arrow(ctx, cx, cy, Math.cos(r) * L, -Math.sin(r) * L, key === 'weight' ? pal.ink : key === 'friction' ? pal.accent2 : pal.accent, `${fo.label} ${f(fo.mag, 1)} N`); }
+      else if (key === 'motion' || key === 'ma') { const r = (b.aDir * Math.PI) / 180; arrow(ctx, cx + 24 * Math.cos(r), cy - 24 * Math.sin(r), Math.cos(r) * 50, -Math.sin(r) * 50, checked ? pal.bad : pal.muted, checked ? '✗ not a force' : NAMES[key], { dash: true }); }
+    }
+    if (reveal && b.a > 1e-9) text(ctx, `a = ${f(b.a, 2)} m/s² ${dirWord(b.aDir)}`, 8, H - 8, pal.good, 'left', 13, 600);
+    text(ctx, b.name, 8, 16, pal.muted, 'left', 12, 600);
+    c.setAttribute('aria-label', `Free-body diagram of ${b.name}: ${keys.map((x) => NAMES[x]).join(', ') || 'no forces ticked yet'}`);
+  }
+  const dirWord = (d: number) => (d === 0 ? 'to the right' : d === 90 ? 'up' : d === 270 ? 'down' : d === 180 ? 'to the left' : 'down the slope');
+
+  let reveal = false;
+  function draw() {
+    const s = setup(), p = params(), sol = solve(s, p);
+    for (const l of root.querySelectorAll<HTMLElement>('.fb-ctl label')) l.hidden = !SHOW[s].includes(l.dataset.k!);
+    q('.fb-m1l').textContent = s === 'lift' ? 'Mass of the person' : ['push2', 'table', 'atwood'].includes(s) ? 'Mass of A' : 'Mass of the block';
+    q('.fb-Fl').textContent = s === 'push2' ? 'Your push on A' : 'Your pull';
+    q('.fb-al').textContent = s === 'slope' ? 'Slope angle' : 'Angle of the pull above the floor';
+    q('.fb-m1v').textContent = `${p.m1} kg`; q('.fb-m2v').textContent = `${p.m2} kg`; q('.fb-Fv').textContent = `${p.F} N`; q('.fb-av').textContent = `${p.angle}°`; q('.fb-muv').textContent = f(p.mu); q('.fb-lav').textContent = `${f(p.liftA, 1)} m/s²`;
+    // body buttons
+    const seg = q('.fb-body'), names = sol.bodies.map((b) => b.name);
+    if (seg.dataset.names !== names.join('|')) {
+      seg.dataset.names = names.join('|'); body = 0;
+      seg.replaceChildren(...names.map((nm, i) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = nm; b.setAttribute('aria-pressed', String(i === 0)); b.addEventListener('click', () => { body = i; seg.querySelectorAll('button').forEach((o, j) => o.setAttribute('aria-pressed', String(j === i))); resetChecks(); draw(); }); return b; }));
+    }
+    q('.fb-bodyrow').hidden = names.length < 2;
+    drawScene(sol); drawFbd(sol, reveal);
+    // results
+    const pill = q('.fb-pill');
+    pill.textContent = sol.note === 'lifts off' ? 'The pull lifts the box off the floor' : sol.note === 'weightless' ? 'Free fall: the scales read zero' : sol.moving ? `Accelerates at ${f(sol.a, 2)} m/s²` : 'Stays still: the forces balance';
+    pill.className = `ax-pill ${sol.moving ? 'warn' : 'good'} fb-pill`;
+    const facts = [fact('Acceleration', `${f(sol.a, 2)} m/s²`)];
+    if (sol.T !== undefined) facts.push(fact('Tension T', `${f(sol.T, 2)} N`));
+    if (sol.N !== undefined) facts.push(fact(s === 'lift' ? 'Scale push N' : 'Normal force N', `${f(sol.N, 2)} N`, s === 'lift' ? `reads as ${f(sol.N / G, 1)} kg` : ''));
+    if (sol.friction !== undefined) facts.push(fact('Friction', `${f(sol.friction, 2)} N`, sol.moving ? 'sliding: μN' : 'holding, up to μN'));
+    if (sol.contact !== undefined) facts.push(fact('Push between the blocks', `${f(sol.contact, 2)} N`));
+    q('.fb-facts').replaceChildren(...facts);
+    const W1 = f(p.m1 * G, 1), eq: HTMLElement[] = [];
+    if (s === 'floor') {
+      eq.push(para([['Up and down: '], `N + F sin θ = mg, so N = ${W1} − ${p.F} × sin ${p.angle}° = ${f(sol.N!, 2)} N.`]));
+      eq.push(para([['Along the floor: '], `F cos θ = ${f(p.F * Math.cos((p.angle * Math.PI) / 180), 2)} N against friction of up to μN = ${f(p.mu)} × ${f(sol.N!, 2)} = ${f(p.mu * sol.N!, 2)} N. `, sol.moving ? `a = (${f(p.F * Math.cos((p.angle * Math.PI) / 180), 2)} − ${f(sol.friction!, 2)}) ÷ ${p.m1} = ${f(sol.a, 2)} m/s².` : 'Friction holds it, so a = 0.']));
+    } else if (s === 'slope') {
+      eq.push(para([['Along the slope: '], `mg sin θ = ${f(p.m1 * G * Math.sin((p.angle * Math.PI) / 180), 2)} N down; friction up to μ mg cos θ = ${f(p.mu * sol.N!, 2)} N. `, sol.moving ? `a = g(sin θ − μ cos θ) = ${f(sol.a, 2)} m/s² down the slope.` : 'Friction holds it.']));
+      eq.push(para([['Across the slope: '], `N = mg cos θ = ${f(sol.N!, 2)} N.`]));
+    } else if (s === 'lift') {
+      eq.push(para([['Newton\'s second law, up as +: '], `N − mg = ma, so N = m(g + a) = ${p.m1} × (9.8 + ${f(p.liftA, 1)}) = ${f(sol.N!, 2)} N. The scales show N ÷ g = ${f(sol.N! / G, 1)} kg, though the mass is ${p.m1} kg.`]));
+    } else if (s === 'push2') {
+      eq.push(para([['Both blocks together: '], `a = F ÷ (m_A + m_B) = ${p.F} ÷ ${p.m1 + p.m2} = ${f(sol.a, 2)} m/s².`]));
+      eq.push(para([['Block B alone: '], `the only sideways force on it is A's push, so C = m_B a = ${p.m2} × ${f(sol.a, 2)} = ${f(sol.contact!, 2)} N. By Newton's third law B pushes back on A with the same ${f(sol.contact!, 2)} N.`]));
+    } else if (s === 'table') {
+      eq.push(para([['Block B: '], 'm_B g − T = m_B a. ', ['Block A: '], 'T − μ m_A g = m_A a.']));
+      eq.push(para([['Add them: '], sol.moving ? `a = (m_B − μ m_A) g ÷ (m_A + m_B) = (${p.m2} − ${f(p.mu)} × ${p.m1}) × 9.8 ÷ ${p.m1 + p.m2} = ${f(sol.a, 2)} m/s², and T = m_B(g − a) = ${f(sol.T!, 2)} N.` : `the hanging weight ${f(p.m2 * G, 1)} N is not more than the friction limit ${f(p.mu * p.m1 * G, 1)} N, so nothing moves and T = ${f(sol.T!, 1)} N.`]));
+    } else {
+      eq.push(para([['Block A: '], 'T − m_A g = m_A a. ', ['Block B: '], 'm_B g − T = m_B a.']));
+      eq.push(para([['Add them: '], `a = (m_B − m_A) g ÷ (m_A + m_B) = (${p.m2} − ${p.m1}) × 9.8 ÷ ${p.m1 + p.m2} = ${f(((p.m2 - p.m1) * G) / (p.m1 + p.m2), 2)} m/s²${p.m2 < p.m1 ? ' (minus: A goes down)' : ''}; T = 2m_A m_B g ÷ (m_A + m_B) = ${f(sol.T!, 2)} N.`]));
+    }
+    const b = sol.bodies[Math.min(body, sol.bodies.length - 1)], nf = net(b);
+    eq.push(para([['Check on ' + b.name + ': '], `the forces add up to ${f(Math.hypot(nf.x, nf.y), 2)} N = m a = ${b.m} × ${f(b.a, 2)}.`]));
+    q('.fb-eq').replaceChildren(...eq);
+    return sol;
+  }
+
+  function resetChecks() { root.querySelectorAll<HTMLInputElement>('.fb-checks input').forEach((i) => { i.checked = false; }); checked = false; reveal = false; q('.fb-res').hidden = true; }
+
+  q('.fb-check').addEventListener('click', () => {
+    const sol = solve(setup(), params()), b = sol.bodies[Math.min(body, sol.bodies.length - 1)];
+    const want = new Set<string>(b.forces.map((x) => x.key)), got = new Set(ticked());
+    const missing = [...want].filter((k) => !got.has(k)), extra = [...got].filter((k) => !want.has(k));
+    checked = true; reveal = false;
+    const res = q('.fb-res'); res.hidden = false;
+    if (!missing.length && !extra.length) { res.textContent = `Right! ${b.forces.length} forces act on ${b.name.toLowerCase()}.`; res.dataset.ok = '1'; }
+    else {
+      const parts: string[] = [];
+      if (missing.length) parts.push(`Missing: ${missing.map((k) => NAMES[k]).join(', ')}.`);
+      const fake = extra.filter((k) => k === 'motion' || k === 'ma'), absent = extra.filter((k) => k !== 'motion' && k !== 'ma');
+      if (absent.length) parts.push(`Not here: ${absent.map((k) => NAMES[k]).join(', ')} (nothing in this set-up gives it).`);
+      if (fake.length) parts.push(`Not a force: ${fake.map((k) => NAMES[k]).join(', ')}. ma is the result of the forces, not one of them, and nothing is needed to keep a body moving.`);
+      res.textContent = parts.join(' '); res.dataset.ok = '0';
+    }
+    draw();
+  });
+  q('.fb-show').addEventListener('click', () => {
+    const sol = solve(setup(), params()), keys = new Set<string>(sol.bodies[Math.min(body, sol.bodies.length - 1)].forces.map((x) => x.key));
+    root.querySelectorAll<HTMLInputElement>('.fb-checks input').forEach((i) => { i.checked = keys.has(i.value as ForceKey); });
+    reveal = true; checked = false; const res = q('.fb-res'); res.hidden = false; res.dataset.ok = ''; res.textContent = 'Here are the forces, drawn to scale.'; draw();
+  });
+  root.querySelectorAll('.fb-checks input').forEach((i) => i.addEventListener('change', () => { checked = false; reveal = false; q('.fb-res').hidden = true; draw(); }));
+  q('.fb-set').addEventListener('change', () => { resetChecks(); draw(); });
+  root.querySelectorAll('.fb-ctl input').forEach((i) => i.addEventListener('input', () => draw()));
+  mountQuiz(q('.fb-quiz'), () => questions());
+  draw();
+  keepDrawn(q('.fb-scene'), draw);
+</script>
+
+<style is:inline>
+  .fb .fb-setrow { display: grid; gap: 4px; margin-bottom: 10px; }
+  .fb select { min-height: 44px; max-width: 100%; }
+  .fb canvas { display: block; width: 100%; }
+  .fb .fb-ctl { display: grid; gap: 10px; margin-top: 12px; }
+  .fb .fb-ctl label[hidden], .fb .fb-bodyrow[hidden] { display: none; }
+  .fb input[type=range] { width: 100%; height: 32px; accent-color: var(--ink); }
+  .fb label b { color: var(--ink); }
+  .fb .fb-lab { font-size: 14px; color: var(--muted); }
+  .fb .ax-seg button { min-height: 44px; }
+  .fb .fb-checks { display: grid; gap: 2px; margin: 10px 0; }
+  .fb .fb-checks label { display: flex; gap: 10px; align-items: center; min-height: 40px; }
+  .fb .fb-checks input { width: 22px; height: 22px; flex: none; }
+  .fb .btn.small { min-height: 44px; }
+  .fb .fb-res { font-weight: 600; margin: 10px 0; }
+  .fb .fb-res[data-ok="1"] { color: var(--good); }
+  .fb .fb-res[data-ok="0"] { color: var(--bad); }
+  .fb .fb-pill { font-size: 14px; white-space: normal; }
+  .fb .fb-eq p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .fb .fb-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>
