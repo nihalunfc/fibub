@@ -1,4 +1,4 @@
-// #T824 Image to text
+// #T836 Image to text
 import { saved } from '../lib/pdfkit.mjs';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
