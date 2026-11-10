@@ -12,7 +12,7 @@ order: 1955
 icon: scale
 works: offline
 updated: 2026-11-10
-related: [mortgage-calculator, budget-calculator, should-i-insure, insurance-terms]
+related: [mortgage-calculator, budget-calculator, should-i-insure, insurance-terms, home-inventory]
 sources:
   - "India: the condition of average in fire and home policies pays a claim in the ratio sum insured / full value. Checked 2026-11-10, check the official source and your policy wording."
   - "US and Canada: many home policies use a coinsurance or insurance-to-value clause, often 80%, set by each policy. Checked 2026-11-10, check the official source and your policy wording."

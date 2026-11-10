@@ -12,7 +12,7 @@ order: 1960
 icon: sliders
 works: offline
 updated: 2026-11-10
-related: [term-fair-price, policy-return, loan-payoff-planner]
+related: [term-fair-price, policy-return, loan-payoff-planner, creditor-insurance]
 sources:
   - "Present value of a growing payment, PV = sum of A x (1+g)^t / (1+i)^t for t = 0 to n-1; DIME (debt, income, mortgage, education) and needs-analysis are common planning methods. Checked: income 100,000 for 5 years with no growth or discount gives 500,000. Checked 2026-11-10; check the official source for tax rules where you live."
 flow:

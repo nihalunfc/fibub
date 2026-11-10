@@ -12,7 +12,7 @@ order: 2102
 icon: calendar
 works: offline
 updated: 2026-11-10
-related: [policy-fine-print, insurance-terms, room-rent-cap]
+related: [policy-fine-print, insurance-terms, room-rent-cap, super-top-up]
 sources:
   - "India: IRDAI (Protection of Policyholders' Interests) health insurance master circular, 2024. Waiting periods for pre-existing and specific diseases are capped at 36 months, the initial waiting period at 30 days (not for accidents), and after 60 months of continuous cover a claim cannot be contested except for fraud (the moratorium). Months already served on a policy you port count towards waiting periods, up to the old sum insured. Maternity waiting periods are each insurer's own. Checked 2026-11-10, check the official source (irdai.gov.in)."
   - "US and Canada dental: plans set their own waiting periods for basic and major work, so you type the months from your plan booklet."

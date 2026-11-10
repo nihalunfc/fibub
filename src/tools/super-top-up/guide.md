@@ -12,7 +12,7 @@ order: 2101
 icon: sliders
 works: offline
 updated: 2026-11-10
-related: [room-rent-cap, health-plan-comparer, policy-fine-print]
+related: [room-rent-cap, health-plan-comparer, policy-fine-print, waiting-periods, health-cover-needed]
 sources:
   - "How the two kinds pay: a top-up pays each claim above its deductible, a super top-up pays once the year's claims add up past it. This is the usual way India's health insurers describe them. Policy wording differs, so read yours. Checked 2026-11-10, check the official source (IRDAI, irdai.gov.in)."
 flow:

@@ -12,7 +12,7 @@ order: 2103
 icon: coin
 works: offline
 updated: 2026-11-10
-related: [health-plan-comparer, room-rent-cap, inflation-calculator]
+related: [health-plan-comparer, room-rent-cap, inflation-calculator, super-top-up]
 sources:
   - "Medical price rise: no figure is bundled, because it changes. Look up the official health price series for your country: India, MoSPI consumer price index (health), mospi.gov.in; US, Bureau of Labor Statistics CPI medical care, bls.gov/cpi; Canada, Statistics Canada CPI health and personal care, statcan.gc.ca. The 7% shown is only an example. Checked 2026-11-10, check the official source."
 flow:

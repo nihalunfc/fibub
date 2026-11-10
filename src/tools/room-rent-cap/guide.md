@@ -12,7 +12,7 @@ order: 1954
 icon: scale
 works: offline
 updated: 2026-11-10
-related: [health-plan-comparer, budget-calculator, policy-fine-print, insurance-terms]
+related: [health-plan-comparer, budget-calculator, policy-fine-print, insurance-terms, super-top-up]
 sources:
   - "IRDAI master circular on health insurance business (2024), on proportionate deduction: not applied to medicines, implants, consumables and diagnostics. Checked 2026-11-10, check the official source and your policy wording."
 flow:
