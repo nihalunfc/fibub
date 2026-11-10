@@ -1,0 +1,140 @@
+---
+// Ionic bond builder: pick a metal and a non-metal, move the metal's outer electrons (crosses) one at a time to
+// the non-metal atoms (dots) and watch the ions form, with shells, charges, the formula and the name. Nothing is
+// stored or sent.
+import '../../styles/astro.css';
+import '../../styles/chemquiz.css';
+import { METALS, NONMETALS } from '../../lib/sci/ionic-school';
+---
+<div class="ax ib">
+  <div class="ax-card">
+    <h2>Make an ionic compound</h2>
+    <div class="ax-grid">
+      <label>Metal <select class="ib-m">{METALS.map((m) => <option value={m.sym} selected={m.sym === 'Mg'}>{m.sym}: {m.name}</option>)}</select></label>
+      <label>Non-metal <select class="ib-n">{NONMETALS.map((n) => <option value={n.sym} selected={n.sym === 'Cl'}>{n.sym}: {n.name}</option>)}</select></label>
+    </div>
+    <svg class="ib-fig" viewBox="0 0 340 250" role="img" aria-label="Dot-and-cross picture: metal atoms on top, non-metal atoms below"></svg>
+    <p class="ax-help">× = an electron from the metal, • = an electron of the non-metal. Only the outer shell is drawn.</p>
+    <div class="ax-row"><button type="button" class="btn ib-one">Move one electron</button><button type="button" class="btn secondary small ib-all">Move them all</button><button type="button" class="btn secondary small ib-reset">Start again</button></div>
+    <p class="ax-big ib-big" aria-live="polite"></p>
+    <ol class="lx-try ib-steps"></ol>
+  </div>
+
+  <div class="ax-card">
+    <h2>The compound</h2>
+    <dl class="ax-facts ib-facts"></dl>
+    <p class="lx-eq ib-eq"></p>
+    <h3 style="margin:12px 0 4px">What ionic compounds are like</h3>
+    <ul class="lx-try">
+      <li>Hard, brittle solids: the + and − ions hold each other tightly in a lattice.</li>
+      <li>High melting and boiling points: a lot of energy is needed to pull the ions apart.</li>
+      <li>Conduct electricity when melted or dissolved in water (the ions can move), but not as solids.</li>
+      <li>Usually soluble in water, not in kerosene or petrol.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lx-try">
+      <li>Sodium and chlorine need one move. Aluminium and oxygen need six. Why?</li>
+      <li>Compare Mg²⁺ (2, 8) with Ne (2, 8) and O²⁻ (2, 8). What do these ions have in common with a noble gas?</li>
+      <li>Find a pair that gives a formula with a 3 in it.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="cq"><ol class="cq-list"></ol><button type="button" class="btn secondary small cq-new">New questions</button></div>
+  </div>
+</div>
+
+<style is:inline>
+  .ib .ib-fig { display: block; width: 100%; height: auto; margin: 12px 0 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+  .ib .ib-fig text { font: 13px system-ui, sans-serif; fill: var(--ink); }
+  .ib .ib-fig .ib-sym { font-size: 20px; font-weight: 750; }
+  .ib .ib-fig .ib-ring { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+  .ib .ib-fig .ib-ring.ib-full { stroke: var(--good); stroke-width: 2.5; }
+  .ib .ib-fig .ib-core { fill: var(--bg); stroke: var(--line); }
+  .ib .ib-fig .ib-x { stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; }
+  .ib .ib-fig .ib-dot { fill: var(--ink); }
+  .ib .ib-fig .ib-chg { font-size: 15px; font-weight: 750; fill: var(--accent); }
+  .ib .ib-fig .ib-move { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 3; fill: none; }
+</style>
+
+<script>
+  import { METALS, NONMETALS, shells, gives, takes, counts, formula, plainFormula, cation, anion, ionShells, moves, compoundName, type Atom } from '../../lib/sci/ionic-school';
+  import { mountQuiz, same, near, pickOne, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.ib')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const NS = 'http://www.w3.org/2000/svg';
+  const fig = q<SVGSVGElement>('.ib-fig'), Ms = q<HTMLSelectElement>('.ib-m'), Ns = q<HTMLSelectElement>('.ib-n');
+  let m: Atom = METALS[3], n: Atom = NONMETALS[1], step = 0, plan: [number, number][] = [];
+  const el = (tag: string, a: Record<string, string | number>, text?: string) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(a)) e.setAttribute(k, String(v)); if (text !== undefined) e.textContent = text; fig.append(e); return e; };
+  const RING = 34;
+  const xs = (k: number) => Array.from({ length: k }, (_, i) => 170 + (i - (k - 1) / 2) * 100);
+  const slot = (cx: number, cy: number, i: number, total: number) => {
+    // Pairs on the four sides (top, right, bottom, left), like a Lewis picture.
+    const side = Math.floor(i / 2) % 4, inPair = i % 2, off = total === 1 ? 0 : (inPair ? 6 : -6);
+    const a = [[-Math.PI / 2], [0], [Math.PI / 2], [Math.PI]][side][0];
+    return [cx + RING * Math.cos(a) + (side % 2 === 0 ? off : 0), cy + RING * Math.sin(a) + (side % 2 === 1 ? off : 0)];
+  };
+  const cross = (x: number, y: number) => { el('line', { x1: x - 4, y1: y - 4, x2: x + 4, y2: y + 4, class: 'ib-x' }); el('line', { x1: x - 4, y1: y + 4, x2: x + 4, y2: y - 4, class: 'ib-x' }); };
+
+  function draw() {
+    const c = counts(m, n), done = plan.slice(0, step), mx = xs(c.metal), nx = xs(c.non), my = 62, ny = 182;
+    const left = mx.map(() => gives(m)), got = nx.map(() => 0);
+    done.forEach(([i, j]) => { left[i]--; got[j]++; });
+    fig.replaceChildren();
+    if (step > 0) { const [i, j] = done[done.length - 1]; el('line', { x1: mx[i], y1: my + RING, x2: nx[j], y2: ny - RING, class: 'ib-move' }); }
+    mx.forEach((x, i) => {
+      const full = left[i] === 0, inner = shells(m.Z).slice(0, -1).reduce((a, b) => a + b, 0);
+      el('circle', { cx: x, cy: my, r: RING - 10, class: 'ib-core' });
+      el('circle', { cx: x, cy: my, r: RING, class: `ib-ring${full ? ' ib-full' : ''}`, 'stroke-dasharray': full ? '5 4' : '' });
+      el('text', { x, y: my + 7, 'text-anchor': 'middle', class: 'ib-sym' }, m.sym);
+      for (let e = 0; e < left[i]; e++) { const [ex, ey] = slot(x, my, e, left[i]); cross(ex, ey); }
+      if (full) el('text', { x: x + RING + 2, y: my - RING + 8, class: 'ib-chg' }, cation(m).slice(m.sym.length));
+      el('text', { x, y: my - RING - 6, 'text-anchor': 'middle' }, full ? `(${ionShells(m, true).join(', ')})` : `(${shells(m.Z).join(', ')})`);
+      void inner;
+    });
+    nx.forEach((x, j) => {
+      const own = 8 - takes(n), full = got[j] === takes(n);
+      el('circle', { cx: x, cy: ny, r: RING, class: `ib-ring${full ? ' ib-full' : ''}` });
+      el('text', { x, y: ny + 7, 'text-anchor': 'middle', class: 'ib-sym' }, n.sym);
+      const total = own + got[j];
+      for (let e = 0; e < total; e++) { const [ex, ey] = slot(x, ny, e, total); if (e < own) el('circle', { cx: ex, cy: ey, r: 3.5, class: 'ib-dot' }); else cross(ex, ey); }
+      if (full) el('text', { x: x + RING + 2, y: ny - RING + 8, class: 'ib-chg' }, anion(n).slice(n.sym.length));
+      el('text', { x, y: ny + RING + 16, 'text-anchor': 'middle' }, full ? `(${ionShells(n, false).join(', ')})` : `(${[...shells(n.Z).slice(0, -1), shells(n.Z).slice(-1)[0] + got[j]].join(', ')})`);
+    });
+    const all = step === plan.length;
+    q('.ib-big').textContent = all ? `${formula(m, n)}: ${compoundName(m, n)}` : step === 0 ? `${c.metal} ${m.sym} and ${c.non} ${n.sym}: ${plan.length} electron${plan.length > 1 ? 's' : ''} to move` : `${step} of ${plan.length} electrons moved`;
+    q<HTMLButtonElement>('.ib-one').disabled = all; q<HTMLButtonElement>('.ib-all').disabled = all;
+    const li = (t: string) => Object.assign(document.createElement('li'), { textContent: t });
+    q('.ib-steps').replaceChildren(
+      li(`${m.sym} (${shells(m.Z).join(', ')}) has ${gives(m)} outer electron${gives(m) > 1 ? 's' : ''}; losing ${gives(m) > 1 ? 'them' : 'it'} leaves a full shell: ${cation(m)} (${ionShells(m, true).join(', ')}).`),
+      li(`${n.sym} (${shells(n.Z).join(', ')}) needs ${takes(n)} more to make 8: ${anion(n)} (${ionShells(n, false).join(', ')}).`),
+      li(`Electrons given must equal electrons taken: ${c.metal} × ${gives(m)} = ${c.non} × ${takes(n)} = ${c.electrons}. So ${c.metal} ${m.sym} for every ${c.non} ${n.sym}.`),
+    );
+    const f = q('.ib-facts'); f.replaceChildren();
+    for (const [k, v] of [['Formula', formula(m, n)], ['Name', compoundName(m, n)], ['Ions', `${c.metal > 1 ? c.metal : ''}${cation(m)} and ${c.non > 1 ? c.non : ''}${anion(n)}`], ['Electrons moved', String(c.electrons)]]) {
+      const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; d.append(dt, dd); f.append(d);
+    }
+    q('.ib-eq').textContent = `${c.metal > 1 ? c.metal : ''}${m.sym} + ${c.non > 1 ? c.non : ''}${n.sym} → ${c.metal > 1 ? c.metal : ''}${cation(m)} + ${c.non > 1 ? c.non : ''}${anion(n)} → ${formula(m, n)}`;
+  }
+  function reset() { m = METALS.find((x) => x.sym === Ms.value)!; n = NONMETALS.find((x) => x.sym === Ns.value)!; plan = moves(m, n); step = 0; draw(); }
+  Ms.addEventListener('change', reset); Ns.addEventListener('change', reset);
+  q('.ib-one').addEventListener('click', () => { if (step < plan.length) { step++; draw(); } });
+  q('.ib-all').addEventListener('click', () => { step = plan.length; draw(); });
+  q('.ib-reset').addEventListener('click', () => { step = 0; draw(); });
+  reset();
+
+  mountQuiz(q('.cq'), () => {
+    const a = pickOne(METALS), b = pickOne(NONMETALS), c = pickOne(METALS), d = pickOne(NONMETALS), e = pickOne([...METALS.map((x) => [x, true] as const), ...NONMETALS.map((x) => [x, false] as const)]);
+    const out: Question[] = [
+      { q: `Write the formula of the compound of ${a.name} and ${b.name}.`, answer: formula(a, b), ok: same(formula(a, b), plainFormula(a, b)), worked: `${a.sym} forms ${cation(a)} and ${b.sym} forms ${anion(b)}; the charges balance with ${counts(a, b).metal} ${a.sym} and ${counts(a, b).non} ${b.sym}.`, hint: 'like MgCl2' },
+      { q: `How many electrons move to make one formula unit of ${formula(c, d)}?`, answer: String(counts(c, d).electrons), ok: near(counts(c, d).electrons, 0), worked: `${counts(c, d).metal} ${c.sym} each give ${gives(c)}: ${counts(c, d).metal} × ${gives(c)} = ${counts(c, d).electrons}.`, hint: 'a whole number' },
+      { q: `Write the electron arrangement (shells) of the ${e[1] ? cation(e[0]) : anion(e[0])} ion.`, answer: ionShells(e[0], e[1]).join(','), ok: same(ionShells(e[0], e[1]).join(','), ionShells(e[0], e[1]).join(', ')), worked: `${e[0].sym} is (${shells(e[0].Z).join(', ')}); it ${e[1] ? `loses ${gives(e[0])}` : `gains ${takes(e[0])}`} electron${(e[1] ? gives(e[0]) : takes(e[0])) > 1 ? 's' : ''}.`, hint: 'like 2,8' },
+    ];
+    return out;
+  });
+</script>
