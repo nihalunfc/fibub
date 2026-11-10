@@ -1,0 +1,132 @@
+---
+// Life cycle wheel: alternation of generations for algae, bryophytes, pteridophytes, gymnosperms and
+// angiosperms (and humans for comparison) drawn as a wheel coloured by ploidy, with meiosis and fertilisation
+// marked and a pointer you step round the cycle.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax lcw">
+  <div class="ax-card">
+    <h2>Pick a group</h2>
+    <div class="lc-groups" role="group" aria-label="Plant group"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="lc-title"></h2>
+    <svg class="lc-wheel" viewBox="0 0 320 320" role="img"></svg>
+    <p class="ax-legend"><span><i class="lc-k1"></i>haploid (n)</span><span><i class="lc-k2"></i>diploid (2n)</span><span><b>M</b> meiosis</span><span><b>F</b> fertilisation</span></p>
+    <div class="ax-row"><button type="button" class="btn small secondary lc-prev">Back</button><button type="button" class="btn small lc-next">Next stage</button></div>
+    <p class="lc-stage" aria-live="polite"></p>
+    <dl class="ax-facts lc-facts"></dl>
+    <p class="ax-help lc-extra"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>All the groups at a glance</h2>
+    <div class="ax-scroll"><table class="lc-tab"><thead><tr><th>Group</th><th>Pattern</th><th>Main plant body</th><th class="r">n share</th></tr></thead><tbody></tbody></table></div>
+    <p class="ax-help">Shares of the wheel are rough, to show which phase dominates, not measured times.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lc-try">
+      <li>Go from the <b>green alga</b> to the <b>angiosperm</b>: the blue (haploid) part of the wheel shrinks from most of the cycle to a sliver.</li>
+      <li>In the <b>moss</b>, step to the sporophyte: it is diploid, but it sits on the haploid plant and lives off it.</li>
+      <li>Compare the <b>fern</b>: both generations live on their own, but the diploid fern is the big one.</li>
+      <li>Look at the <b>human</b> wheel: meiosis makes the gametes directly, with no haploid plant in between.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="lc-quiz" />
+</div>
+
+<script>
+  import { GROUPS, phaseShare } from '../../lib/sci/school-lifecycle';
+  import { S } from '../../lib/smath-ui';
+  import { quiz, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.lcw')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let gi = 1, at = 0;
+  q('.lc-groups').replaceChildren(...GROUPS.map((g, i) => { const b = document.createElement('button'); b.type = 'button'; b.dataset.i = String(i); b.textContent = g.label; b.setAttribute('aria-pressed', String(i === gi)); return b; }));
+  root.querySelectorAll<HTMLButtonElement>('.lc-groups button').forEach((b) => b.addEventListener('click', () => { gi = +b.dataset.i!; at = 0; root.querySelectorAll('.lc-groups button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); draw(); }));
+  const fact = (k: string, v: string) => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; return el; };
+  const PAT = { haplontic: 'Haplontic: only the zygote is diploid', diplontic: 'Diplontic: the diploid body dominates; the haploid stage is reduced to a few cells or to gametes', 'haplo-diplontic': 'Haplo-diplontic: both generations are many-celled' };
+  const pct = (x: number) => `${Math.round(x * 100)} %`;
+
+  function draw() {
+    const g = GROUPS[gi], st = g.stages, cx = 160, cy = 160, R = 120, r = 74;
+    q('.lc-title').textContent = `${g.label} (${g.example})`;
+    const svg = root.querySelector<SVGSVGElement>('.lc-wheel')!; svg.replaceChildren();
+    svg.setAttribute('aria-label', `${g.label} life cycle: ${st.map((s) => `${s.name} (${s.ploidy === 1 ? 'n' : '2n'})${s.end ? ', then ' + s.end : ''}`).join('; ')}.`);
+    let a = -Math.PI / 2;
+    const P = (ang: number, rad: number) => `${cx + rad * Math.cos(ang)} ${cy + rad * Math.sin(ang)}`;
+    st.forEach((s, i) => {
+      const a1 = a + s.share * 2 * Math.PI, big = a1 - a > Math.PI ? 1 : 0;
+      S('path', { d: `M${P(a, R)} A${R} ${R} 0 ${big} 1 ${P(a1, R)} L${P(a1, r)} A${r} ${r} 0 ${big} 0 ${P(a, r)} Z`, class: `lc-seg lc-p${s.ploidy}${i === at ? ' lc-cur' : ''}`, 'data-i': i }, svg);
+      const m = (a + a1) / 2;
+      S('text', { x: (cx + ((R + r) / 2) * Math.cos(m)), y: (cy + ((R + r) / 2) * Math.sin(m)) + 4, 'text-anchor': 'middle', class: 'lc-n' }, svg, s.share >= 0.07 ? String(i + 1) : '');
+      if (s.end) {
+        S('line', { x1: cx + (r - 6) * Math.cos(a1), y1: cy + (r - 6) * Math.sin(a1), x2: cx + (R + 6) * Math.cos(a1), y2: cy + (R + 6) * Math.sin(a1), class: 'lc-ev' }, svg);
+        S('circle', { cx: cx + (R + 16) * Math.cos(a1), cy: cy + (R + 16) * Math.sin(a1), r: 10, class: 'lc-evc' }, svg);
+        S('text', { x: cx + (R + 16) * Math.cos(a1), y: cy + (R + 16) * Math.sin(a1) + 4, 'text-anchor': 'middle', class: 'lc-evt' }, svg, s.end === 'meiosis' ? 'M' : 'F');
+      }
+      a = a1;
+    });
+    const s = st[at];
+    S('text', { x: cx, y: cy - 6, 'text-anchor': 'middle', class: 'lc-c1' }, svg, s.ploidy === 1 ? 'n' : '2n');
+    S('text', { x: cx, y: cy + 14, 'text-anchor': 'middle', class: 'lc-c2' }, svg, `stage ${at + 1} of ${st.length}`);
+    q('.lc-stage').textContent = `${at + 1}. ${s.name} (${s.ploidy === 1 ? 'haploid, n' : 'diploid, 2n'}). ${s.note}${s.end ? ` Then ${s.end === 'meiosis' ? 'meiosis halves the chromosome number (2n → n).' : 'fertilisation joins two gametes (n + n → 2n).'}` : ''}`;
+    const ps = phaseShare(g);
+    q('.lc-facts').replaceChildren(
+      fact('Pattern', PAT[g.pattern]),
+      fact('Main plant body', g.dominant === 'gametophyte' ? 'Gametophyte (n)' : 'Sporophyte (2n)'),
+      fact('Water needed for fertilisation?', g.water ? 'Yes: sperm swim' : 'No: pollen tubes or internal fertilisation'),
+      fact('Wheel share', `n ${pct(ps.n)}, 2n ${pct(ps.dn)}`),
+    );
+    q('.lc-extra').textContent = g.extra ?? '';
+  }
+  q('.lc-next').addEventListener('click', () => { at = (at + 1) % GROUPS[gi].stages.length; draw(); });
+  q('.lc-prev').addEventListener('click', () => { const n = GROUPS[gi].stages.length; at = (at + n - 1) % n; draw(); });
+  q('.lc-wheel').addEventListener('click', (e) => { const i = (e.target as Element).getAttribute?.('data-i'); if (i !== null && i !== undefined) { at = +i; draw(); } });
+  q('.lc-tab tbody').replaceChildren(...GROUPS.map((g) => { const tr = document.createElement('tr'); [g.label, g.pattern, g.dominant === 'gametophyte' ? 'gametophyte (n)' : 'sporophyte (2n)', pct(phaseShare(g).n)].forEach((t, i) => { const td = document.createElement('td'); td.textContent = t; if (i === 3) td.className = 'r'; tr.append(td); }); return tr; }));
+  draw();
+
+  quiz(q('.lc-quiz'), (): Question[] => {
+    const items: [string, number, string][] = [['a moss protonema', 0, 'It grows from a spore by mitosis, so it is haploid.'], ['a moss capsule', 1, 'The capsule is part of the sporophyte, which grows from the zygote: diploid.'], ['a fern prothallus', 0, 'The prothallus is the gametophyte, grown from a spore: haploid.'], ['a fern leaf', 1, 'The fern plant is the sporophyte: diploid.'], ['a pollen grain', 0, 'Pollen grains come from microspores made by meiosis: haploid.'], ['a Chlamydomonas cell', 0, 'In haplontic algae the plant body is haploid.']];
+    const [what, ans, why] = pick(items);
+    return [
+      { text: `Is ${what} haploid (n) or diploid (2n)?`, choices: ['Haploid (n)', 'Diploid (2n)'], correct: ans, worked: why },
+      { text: 'In which group is the gametophyte the main, long-lived plant?', choices: ['Bryophytes', 'Pteridophytes', 'Angiosperms'], correct: 0, worked: 'In mosses and liverworts the green plant is the gametophyte; the sporophyte stays small and attached.' },
+      { text: 'What is the ploidy of the endosperm in a flowering plant seed?', choices: ['n', '2n', '3n'], correct: 2, worked: 'Two polar nuclei (n + n) fuse with a male gamete (n): 3n.' },
+      { text: 'Which life cycle pattern has only the zygote diploid?', choices: ['Haplontic', 'Diplontic', 'Haplo-diplontic'], correct: 0, worked: 'Haplontic: meiosis happens in the zygote, so every other stage is haploid.' },
+      pick([
+        { text: 'Why do ferns need water to reproduce?', choices: ['Their seeds float', 'Their sperm swim to the egg', 'Their spores open in water'], correct: 1, worked: 'Fern sperm have flagella and must swim through a film of water to reach the egg on the prothallus.' },
+        { text: 'In a moss, where does meiosis happen?', choices: ['In the capsule', 'In the antheridium', 'In the protonema'], correct: 0, worked: 'Spore mother cells in the capsule of the sporophyte divide by meiosis to make haploid spores.' },
+      ] as Question[]),
+    ];
+  });
+</script>
+
+<style is:inline>
+  .lcw .lc-groups { display: flex; flex-wrap: wrap; gap: 6px; }
+  .lcw .lc-groups button { min-height: 44px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font: inherit; cursor: pointer; }
+  .lcw .lc-groups button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .lcw .lc-wheel { width: 100%; max-width: 360px; height: auto; display: block; margin: 0 auto; }
+  .lcw .lc-seg { stroke: var(--bg); stroke-width: 2; cursor: pointer; }
+  .lcw .lc-p1 { fill: var(--accent); opacity: 0.45; }
+  .lcw .lc-p2 { fill: var(--warn); opacity: 0.45; }
+  .lcw .lc-cur { opacity: 1; stroke: var(--ink); stroke-width: 3; }
+  .lcw .lc-n { font-size: 13px; font-weight: 700; fill: var(--ink); pointer-events: none; }
+  .lcw .lc-ev { stroke: var(--ink); stroke-width: 2.5; }
+  .lcw .lc-evc { fill: var(--bg); stroke: var(--ink); stroke-width: 1.5; }
+  .lcw .lc-evt { font-size: 12px; font-weight: 700; fill: var(--ink); }
+  .lcw .lc-c1 { font-size: 30px; font-weight: 700; fill: var(--ink); }
+  .lcw .lc-c2 { font-size: 12px; fill: var(--muted); }
+  .lcw .ax-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+  .lcw i.lc-k1 { background: var(--accent); opacity: 0.6; } .lcw i.lc-k2 { background: var(--warn); opacity: 0.6; }
+  .lcw .ax-row { margin-top: 10px; gap: 8px; }
+  .lcw .lc-stage { font-weight: 600; margin: 10px 0; }
+  .lcw .lc-tab td, .lcw .lc-tab th { font-size: 14px; }
+  .lcw .lc-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+</style>
