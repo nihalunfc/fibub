@@ -1,0 +1,154 @@
+---
+// #T920 Ovulation calendar
+---
+<div class="tool-ui oc">
+  <section class="panel">
+    <div class="oc-grid">
+      <label>First day of last period
+        <input class="oc-start" type="date" value="2026-11-01" />
+      </label>
+      <label>Usual cycle length (days)
+        <input class="oc-cyc" type="number" inputmode="numeric" min="21" max="45" step="1" value="28" />
+      </label>
+      <label>Period length (days)
+        <input class="oc-per" type="number" inputmode="numeric" min="1" max="10" step="1" value="5" />
+      </label>
+    </div>
+    <p class="oc-big" aria-live="polite"></p>
+    <p class="oc-say" aria-live="polite"></p>
+  </section>
+  <section class="panel">
+    <div class="oc-head">
+      <button type="button" class="oc-prev" aria-label="Previous month">‹</button>
+      <h2 class="oc-month"></h2>
+      <button type="button" class="oc-next" aria-label="Next month">›</button>
+    </div>
+    <div class="oc-cal" role="grid" aria-label="Month calendar"></div>
+    <p class="oc-key"><span class="k per">P</span> Period <span class="k fer">F</span> Fertile window <span class="k ovu">O</span> Estimated ovulation</p>
+  </section>
+  <section class="panel">
+    <h2>Next 6 cycles</h2>
+    <div class="oc-scroll">
+      <table class="oc-tbl">
+        <thead><tr><th>Period</th><th>Fertile window</th><th>Ovulation</th><th>Next period</th></tr></thead>
+        <tbody class="oc-rows"></tbody>
+      </table>
+    </div>
+    <div class="oc-btns">
+      <button type="button" class="oc-ics">Download calendar (.ics)</button>
+      <button type="button" class="oc-reset">Reset</button>
+    </div>
+    <label class="oc-check"><input type="checkbox" class="oc-remember" /> Remember these three numbers on this device</label>
+    <button type="button" class="oc-clear">Clear saved</button>
+    <p class="oc-saved" aria-live="polite"></p>
+  </section>
+  <p class="oc-fine">An estimate from your usual cycle, not medical advice and not a form of contraception. Cycles vary, and ovulation can come earlier or later than shown. Nothing you type leaves this page; the .ics file is made on your device.</p>
+</div>
+
+<style is:inline>
+  .oc { display: grid; gap: 14px; margin-bottom: 32px; }
+  .oc .panel { padding: 16px; }
+  .oc h2 { font-size: 17px; margin: 0 0 10px; }
+  .oc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 12px; }
+  .oc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .oc label.oc-check { display: flex; gap: 8px; align-items: center; margin-top: 12px; color: var(--ink); }
+  .oc input[type=number], .oc input[type=date] { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .oc input:focus { border-color: var(--accent); outline: none; }
+  .oc button { font: inherit; font-size: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .oc .oc-ics { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .oc-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .oc .oc-clear { margin-top: 8px; }
+  .oc-big { font-size: 22px; font-weight: 700; margin: 14px 0 4px; overflow-wrap: anywhere; }
+  .oc-say, .oc-saved { color: var(--muted); font-size: 15px; margin: 6px 0 0; }
+  .oc-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .oc-head h2 { margin: 0; text-align: center; }
+  .oc-cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+  .oc-cal .dow { font-size: 12px; color: var(--muted); text-align: center; padding: 2px 0; }
+  .oc-cal .d { border: 1px solid var(--line); border-radius: 8px; min-height: 40px; padding: 3px; font-size: 13px; display: flex; flex-direction: column; justify-content: space-between; }
+  .oc-cal .d small { font-size: 11px; font-weight: 700; align-self: flex-end; }
+  .oc-cal .d.per, .oc-key .per { background: var(--bad-soft); border-color: var(--bad); }
+  .oc-cal .d.fer, .oc-key .fer { background: var(--good-soft); border-color: var(--good); }
+  .oc-cal .d.ovu, .oc-key .ovu { background: var(--good-soft); border: 2px solid var(--good); font-weight: 700; }
+  .oc-cal .d.today { outline: 2px solid var(--ink); outline-offset: -2px; }
+  .oc-key { font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 10px 0 0; }
+  .oc-key .k { display: inline-block; width: 20px; text-align: center; border: 1px solid; border-radius: 5px; font-size: 11px; font-weight: 700; color: var(--ink); margin-left: 6px; }
+  .oc-scroll { overflow-x: auto; }
+  .oc-tbl { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .oc-tbl th, .oc-tbl td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .oc-tbl th { color: var(--muted); }
+  .oc-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  const KEY = 'fibub-cycle-v1';
+  const DAY = 86400000;
+  const root = document.querySelector('.oc') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const start = q<HTMLInputElement>('.oc-start'), cyc = q<HTMLInputElement>('.oc-cyc'), per = q<HTMLInputElement>('.oc-per'), remember = q<HTMLInputElement>('.oc-remember');
+  const parse = (s: string) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) : NaN; };
+  const iso = (t: number) => new Date(t).toISOString().slice(0, 10);
+  const short = (t: number) => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+  const long = (t: number) => new Date(t).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  const clampInt = (el: HTMLInputElement, lo: number, hi: number, d: number) => { const v = parseInt(el.value, 10); return Number.isFinite(v) && v >= lo && v <= hi ? v : d; };
+  type Cycle = { p0: number; p1: number; f0: number; f1: number; ov: number; next: number };
+  let cycles: Cycle[] = [], month = 0;
+  // Ovulation is estimated 14 days before the next period; the fertile window is the 5 days before it and the day after.
+  const plan = (s: number, c: number, p: number): Cycle[] => Array.from({ length: 6 }, (_, i) => {
+    const p0 = s + i * c * DAY, ov = p0 + (c - 14) * DAY;
+    return { p0, p1: p0 + (p - 1) * DAY, f0: ov - 5 * DAY, f1: ov + DAY, ov, next: p0 + c * DAY };
+  });
+  const kind = (t: number) => {
+    for (const k of cycles) { if (t === k.ov) return 'ovu'; if (t >= k.p0 && t <= k.p1) return 'per'; if (t >= k.f0 && t <= k.f1) return 'fer'; }
+    const last = cycles[cycles.length - 1];
+    if (last && t >= last.next && t < last.next + (last.p1 - last.p0) + DAY) return 'per';
+    return '';
+  };
+  const localToday = () => { const d = new Date(); return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()); };
+  const drawMonth = () => {
+    const d = new Date(month), y = d.getUTCFullYear(), m = d.getUTCMonth();
+    q('.oc-month').textContent = d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+    const first = Date.UTC(y, m, 1), days = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(), lead = (new Date(first).getUTCDay() + 6) % 7, now = localToday();
+    let h = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((w) => `<div class="dow">${w}</div>`).join('') + '<div></div>'.repeat(lead);
+    for (let i = 1; i <= days; i++) {
+      const t = Date.UTC(y, m, i), k = kind(t);
+      h += `<div class="d ${k}${t === now ? ' today' : ''}" data-d="${iso(t)}" data-k="${k}">${i}<small>${k === 'per' ? 'P' : k === 'fer' ? 'F' : k === 'ovu' ? 'O' : ''}</small></div>`;
+    }
+    q('.oc-cal').innerHTML = h;
+  };
+  const store = () => { try { if (remember.checked) localStorage.setItem(KEY, JSON.stringify({ s: start.value, c: cyc.value, p: per.value })); } catch {} };
+  const calc = (keepMonth = false) => {
+    const s = parse(start.value);
+    if (!Number.isFinite(s)) { q('.oc-big').textContent = 'Pick the first day of your last period.'; q('.oc-say').textContent = ''; q('.oc-rows').innerHTML = ''; cycles = []; drawMonth(); return; }
+    const c = clampInt(cyc, 21, 45, 28), p = clampInt(per, 1, 10, 5);
+    cycles = plan(s, c, p);
+    const k = cycles[0];
+    const big = q('.oc-big'); big.textContent = `Estimated ovulation: ${long(k.ov)}`; big.dataset.ov = iso(k.ov); big.dataset.f0 = iso(k.f0); big.dataset.f1 = iso(k.f1); big.dataset.next = iso(k.next);
+    q('.oc-say').textContent = `Fertile window ${short(k.f0)} to ${short(k.f1)}. Next period about ${long(k.next)}. Ovulation is taken as 14 days before the next period: day ${c - 13} of a ${c}-day cycle.` + (String(c) !== cyc.value.trim() || String(p) !== per.value.trim() ? ' (Values outside 21–45 or 1–10 days use 28 and 5.)' : '');
+    q('.oc-rows').innerHTML = cycles.map((x, i) => `<tr data-i="${i}"><td>${short(x.p0)} – ${short(x.p1)}</td><td>${short(x.f0)} – ${short(x.f1)}</td><td>${short(x.ov)}</td><td>${short(x.next)}</td></tr>`).join('');
+    if (!keepMonth) { const d = new Date(s); month = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1); }
+    drawMonth();
+    store();
+  };
+  const ics = () => {
+    const ymd = (t: number) => iso(t).replace(/-/g, '');
+    const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
+    const ev = (a: number, b: number, title: string, n: number) => ['BEGIN:VEVENT', `UID:${ymd(a)}-${n}@fibub.com`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${ymd(a)}`, `DTEND;VALUE=DATE:${ymd(b + DAY)}`, `SUMMARY:${title}`, 'DESCRIPTION:Estimate from fibub.com ovulation calendar. Not contraception.', 'TRANSP:TRANSPARENT', 'END:VEVENT'];
+    const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//fibub.com//Ovulation calendar//EN', 'CALSCALE:GREGORIAN'];
+    cycles.forEach((x, i) => lines.push(...ev(x.p0, x.p1, 'Period (estimate)', i * 3), ...ev(x.f0, x.f1, 'Fertile window (estimate)', i * 3 + 1), ...ev(x.ov, x.ov, 'Ovulation (estimate)', i * 3 + 2)));
+    lines.push('END:VCALENDAR');
+    return lines.join('\r\n') + '\r\n';
+  };
+  q('.oc-ics').addEventListener('click', () => {
+    if (!cycles.length) return;
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([ics()], { type: 'text/calendar' })); a.download = 'ovulation-calendar.ics';
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  });
+  [start, cyc, per].forEach((el) => el.addEventListener('input', () => calc()));
+  q('.oc-prev').addEventListener('click', () => { const d = new Date(month); month = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - 1, 1); drawMonth(); });
+  q('.oc-next').addEventListener('click', () => { const d = new Date(month); month = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1); drawMonth(); });
+  remember.addEventListener('change', () => { if (remember.checked) { store(); q('.oc-saved').textContent = 'Saved in this browser only.'; } else { try { localStorage.removeItem(KEY); } catch {} q('.oc-saved').textContent = 'Not saved.'; } });
+  q('.oc-clear').addEventListener('click', () => { try { localStorage.removeItem(KEY); } catch {} remember.checked = false; q('.oc-saved').textContent = 'Saved numbers deleted from this browser.'; });
+  q('.oc-reset').addEventListener('click', () => { start.value = '2026-11-01'; cyc.value = '28'; per.value = '5'; calc(); });
+  try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && s.s) { start.value = s.s; cyc.value = s.c; per.value = s.p; remember.checked = true; q('.oc-saved').textContent = 'Loaded from this browser.'; } } catch {}
+  calc();
+</script>
