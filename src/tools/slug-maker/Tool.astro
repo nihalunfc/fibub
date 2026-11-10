@@ -1,0 +1,99 @@
+---
+// #T877 Slug maker
+---
+<div class="tool-ui sm">
+  <section class="panel">
+    <label class="sm-lab">Titles or names, one per line
+      <textarea class="sm-in" rows="5" spellcheck="false">Héllo Wörld: 10 Tips &amp; Tricks!</textarea>
+    </label>
+    <div class="sm-fields">
+      <label>Make<select data-k="kind"><option value="url">URL slug</option><option value="file">File name</option></select></label>
+      <label>Separator<select data-k="sep"><option value="-">Hyphen ( - )</option><option value="_">Underscore ( _ )</option></select></label>
+      <label>Max length (0 = no limit)<input data-k="max" type="number" min="0" step="1" value="0" inputmode="numeric" /></label>
+      <label class="sm-check"><input data-k="lower" type="checkbox" checked /> Lower case</label>
+      <label class="sm-check"><input data-k="stop" type="checkbox" /> Drop little words (a, the, and ...)</label>
+    </div>
+  </section>
+  <section class="panel">
+    <label class="sm-lab">Result
+      <textarea class="sm-out" rows="5" readonly spellcheck="false"></textarea>
+    </label>
+    <p class="sm-say" aria-live="polite"></p>
+    <div class="sm-acts">
+      <button type="button" class="sm-copy sm-main">Copy</button>
+      <button type="button" class="sm-dl">Download .txt</button>
+      <button type="button" class="sm-clear">Clear</button>
+    </div>
+  </section>
+  <p class="sm-fine">Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .sm { display: grid; gap: 14px; margin-bottom: 32px; }
+  .sm .panel { padding: 16px; }
+  .sm label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .sm .sm-check { display: flex; align-items: center; gap: 8px; color: var(--ink); }
+  .sm textarea { width: 100%; font: 15px ui-monospace, monospace; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); resize: vertical; }
+  .sm select, .sm input[type="number"] { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .sm textarea:focus, .sm select:focus, .sm input:focus { border-color: var(--accent); outline: none; }
+  .sm-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 12px; margin-top: 12px; align-items: end; }
+  .sm button { font: inherit; font-size: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .sm .sm-main { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .sm-say { margin: 8px 0; color: var(--muted); font-size: 14px; }
+  .sm-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sm-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  const STOP = new Set('a an the and or but nor of to in on at by for with from as is are was be into onto over vs via'.split(' '));
+  // Letters that NFKD does not split into a plain letter plus an accent.
+  const EXTRA: Record<string, string> = { ß: 'ss', æ: 'ae', Æ: 'AE', ø: 'o', Ø: 'O', œ: 'oe', Œ: 'OE', ł: 'l', Ł: 'L', đ: 'd', Đ: 'D', þ: 'th', Þ: 'Th', ð: 'd', Ð: 'D', ı: 'i' };
+  const root = document.querySelector('.sm') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const inp = q<HTMLTextAreaElement>('.sm-in'), out = q<HTMLTextAreaElement>('.sm-out'), say = q<HTMLElement>('.sm-say');
+  const k = <T extends HTMLElement>(n: string) => q<T>(`[data-k="${n}"]`);
+  const words = (s: string, lower: boolean) => {
+    s = s.replace(/[ßæÆøØœŒłŁđĐþÞðÐı]/g, (c) => EXTRA[c]).normalize('NFKD').replace(/\p{M}/gu, '');
+    s = s.replace(/['’`]/g, ''); // don't -> dont
+    if (lower) s = s.toLowerCase();
+    return s.split(/[^A-Za-z0-9]+/).filter(Boolean);
+  };
+  const cut = (ws: string[], sep: string, max: number) => {
+    let s = ws.join(sep);
+    if (!max || s.length <= max) return s;
+    s = '';
+    for (const w of ws) { const t = s ? s + sep + w : w; if (t.length > max) break; s = t; }
+    return s || ws[0].slice(0, max); // a first word longer than the limit is cut inside the word
+  };
+  const slug = (line: string) => {
+    const sep = k<HTMLSelectElement>('sep').value, max = Math.max(0, Math.floor(+k<HTMLInputElement>('max').value || 0));
+    const lower = k<HTMLInputElement>('lower').checked, file = k<HTMLSelectElement>('kind').value === 'file';
+    let stem = line.trim(), ext = '';
+    if (file) { const m = stem.match(/^(.*\S)\.([A-Za-z0-9]{1,5})$/); if (m) { stem = m[1]; ext = '.' + m[2].toLowerCase(); } }
+    let ws = words(stem, lower);
+    if (k<HTMLInputElement>('stop').checked) { const kept = ws.filter((w) => !STOP.has(w.toLowerCase())); if (kept.length) ws = kept; }
+    if (!ws.length) return '';
+    return cut(ws, sep, max ? Math.max(1, max - ext.length) : 0) + ext;
+  };
+  const run = () => {
+    const lines = inp.value.split(/\r?\n/);
+    const res = lines.map((l) => (l.trim() ? slug(l) : ''));
+    while (res.length && res[res.length - 1] === '' && !lines[res.length - 1].trim()) { res.pop(); lines.pop(); }
+    out.value = res.join('\n');
+    const n = res.filter(Boolean).length, empty = lines.filter((l, i) => l.trim() && !res[i]).length;
+    say.textContent = n ? `${n} ${k<HTMLSelectElement>('kind').value === 'file' ? 'file name' : 'slug'}${n === 1 ? '' : 's'}.${empty ? ` ${empty} line${empty === 1 ? '' : 's'} had no letters or numbers and gave nothing.` : ''}` : 'Type a title above.';
+  };
+  inp.addEventListener('input', run);
+  root.querySelectorAll('.sm-fields input, .sm-fields select').forEach((el) => el.addEventListener('input', run));
+  q('.sm-copy').addEventListener('click', async (e) => {
+    const b = e.currentTarget as HTMLButtonElement;
+    try { await navigator.clipboard.writeText(out.value); b.textContent = 'Copied'; } catch { out.select(); b.textContent = 'Press Ctrl+C'; }
+    setTimeout(() => (b.textContent = 'Copy'), 1500);
+  });
+  q('.sm-dl').addEventListener('click', () => {
+    const u = URL.createObjectURL(new Blob([out.value + '\n'], { type: 'text/plain' }));
+    const a = document.createElement('a'); a.href = u; a.download = 'slugs.txt'; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000);
+  });
+  q('.sm-clear').addEventListener('click', () => { inp.value = ''; run(); inp.focus(); });
+  run();
+</script>
