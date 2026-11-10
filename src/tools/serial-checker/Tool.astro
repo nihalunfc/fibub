@@ -1,0 +1,83 @@
+---
+// #1612 Serial checker. Engine: src/lib/collect/maths.ts (serialPatterns).
+import '../../styles/astro.css';
+import '../../styles/collect.css';
+---
+<div class="tool-ui ax sc">
+  <div class="ax-card">
+    <h2>1. Serial numbers</h2>
+    <label>One per line. Letters are ignored, only the digits are checked.
+      <textarea class="sc-in" rows="5" spellcheck="false" autocapitalize="characters" placeholder="12345678&#10;12344321&#10;77777777">12345678
+12344321
+77777777</textarea>
+    </label>
+    <label class="ax-check" style="margin-top:10px"><input type="checkbox" class="sc-star" /> My note has a star or replacement mark (I set this myself)</label>
+    <p class="ax-help">Replacement and star notes are marked by the printer in ways that differ by country. This tool cannot tell, so you tick the box yourself.</p>
+  </div>
+  <div class="ax-card">
+    <h2>2. Patterns found</h2>
+    <div class="ax-scroll">
+      <table class="sc-tab">
+        <thead><tr><th>Serial</th><th>Patterns</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="ax-big sc-sum" aria-live="polite"></p>
+    <p class="ax-help">Collectors like these patterns, but how much extra a note is worth varies. If you think you have one, ask a dealer or a collectors' club.</p>
+  </div>
+  <div class="ax-card">
+    <h2>What the patterns mean</h2>
+    <ul class="sc-list">
+      <li><strong>Solid</strong>: every digit is the same, such as 77777777.</li>
+      <li><strong>Ladder</strong>: digits count up or down in order, such as 12345678.</li>
+      <li><strong>Radar</strong>: reads the same forwards and backwards, such as 12344321.</li>
+      <li><strong>Super radar</strong>: the middle digits are all the same and the end digits match, such as 25555552.</li>
+      <li><strong>Repeater</strong>: a short group repeats, such as 12341234.</li>
+      <li><strong>Binary</strong>: only 0s and 1s, such as 10011010.</li>
+      <li><strong>Two digits only</strong>: just two different digits, such as 33533533.</li>
+      <li><strong>Low number</strong>: 100 or under (or 1000 or under). Early numbers in a series.</li>
+      <li><strong>Round number</strong>: one digit then all zeros, such as 50000000.</li>
+      <li><strong>Run</strong>: starts with four or more of the same digit, such as 77770123.</li>
+    </ul>
+  </div>
+</div>
+
+<style is:inline>
+  .sc .sc-in { width: 100%; font-family: ui-monospace, monospace; font-size: 16px; }
+  .sc .sc-tab td:first-child { font-family: ui-monospace, monospace; white-space: nowrap; }
+  .sc .sc-list { margin: 0; padding-left: 18px; font-size: 14px; }
+  .sc .sc-list li { margin: 3px 0; }
+  .sc .ax-pill { margin: 2px 4px 2px 0; }
+</style>
+
+<script>
+  import { serialPatterns } from '../../lib/collect/maths';
+
+  const root = document.querySelector('.sc') as HTMLElement;
+  const input = root.querySelector('.sc-in') as HTMLTextAreaElement;
+  const star = root.querySelector('.sc-star') as HTMLInputElement;
+  const body = root.querySelector('.sc-tab tbody') as HTMLElement;
+  const sum = root.querySelector('.sc-sum') as HTMLElement;
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+
+  const update = () => {
+    const lines = input.value.split('\n').map((l) => l.trim()).filter(Boolean);
+    const counts: Record<string, number> = {};
+    let withPattern = 0, rows = '';
+    for (const l of lines) {
+      const hits = serialPatterns(l);
+      if (hits.length) withPattern++;
+      hits.forEach((h) => { const n = h.name.split(':')[0]; counts[n] = (counts[n] || 0) + 1; });
+      let cell = hits.length ? hits.map((h) => `<span class="ax-pill good">${esc(h.name)}</span>`).join('') : '<span class="ax-pill">No pattern found</span>';
+      if (l.replace(/\D/g, '').length < 4) cell = '<span class="ax-pill warn">Needs at least 4 digits</span>';
+      if (star.checked) cell += '<span class="ax-pill warn">Star or replacement (your note)</span>';
+      rows += `<tr><td>${esc(l)}</td><td>${cell}</td></tr>`;
+    }
+    body.innerHTML = rows || '<tr><td colspan="2">Type or paste a serial number above.</td></tr>';
+    const parts = Object.entries(counts).map(([k, n]) => `${k} ${n}`);
+    sum.textContent = lines.length ? `${withPattern} of ${lines.length} with a pattern${parts.length ? ': ' + parts.join(', ') : ''}` : '';
+  };
+  input.addEventListener('input', update);
+  star.addEventListener('change', update);
+  update();
+</script>

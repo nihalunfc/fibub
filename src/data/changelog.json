@@ -1,10 +1,4327 @@
 [
  {
+  "sha": "2d4487f16183",
+  "date": "2026-11-10T05:49:24+00:00",
+  "title": "Add the Collecting shelf: shared engine, live metal prices, Melt value (#1601) and Collection catalogue (#1602)",
+  "tools": [
+   "collection-catalogue",
+   "melt-value"
+  ],
+  "site": true
+ },
+ {
+  "sha": "798db8670271",
+  "date": "2026-11-10T04:05:03+00:00",
+  "title": "Add static-charge (#1483), Class 8 Science",
+  "tools": [
+   "static-charge"
+  ],
+  "site": false
+ },
+ {
+  "sha": "bd890a306ce9",
+  "date": "2026-11-10T04:05:03+00:00",
+  "title": "Add electric-bell (#1482), Class 8 Science",
+  "tools": [
+   "electric-bell"
+  ],
+  "site": false
+ },
+ {
+  "sha": "63f3ce877edb",
+  "date": "2026-11-10T04:05:03+00:00",
+  "title": "Add hand-washing (#1481), Class 8 Science",
+  "tools": [
+   "hand-washing"
+  ],
+  "site": false
+ },
+ {
+  "sha": "643f3691cad4",
+  "date": "2026-11-10T04:02:43+00:00",
+  "title": "Add rolling-race (Class 11 Physics)",
+  "tools": [
+   "rolling-race"
+  ],
+  "site": false
+ },
+ {
+  "sha": "216f988e451e",
+  "date": "2026-11-10T04:02:43+00:00",
+  "title": "Add spinning-skater (Class 11 Physics)",
+  "tools": [
+   "spinning-skater"
+  ],
+  "site": false
+ },
+ {
+  "sha": "cf1e3500cd51",
+  "date": "2026-11-10T04:02:43+00:00",
+  "title": "Add spring-energy (Class 11 Physics)",
+  "tools": [
+   "spring-energy"
+  ],
+  "site": false
+ },
+ {
+  "sha": "18abdf98b0ff",
+  "date": "2026-11-10T04:02:31+00:00",
+  "title": "Add #1489 Sex determination",
+  "tools": [
+   "sex-determination"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d902aae3e297",
+  "date": "2026-11-10T04:02:31+00:00",
+  "title": "Add #1488 Flower parts",
+  "tools": [
+   "flower-parts"
+  ],
+  "site": false
+ },
+ {
+  "sha": "43f4a4f2343f",
+  "date": "2026-11-10T04:02:31+00:00",
+  "title": "Add #1487 Copying errors",
+  "tools": [
+   "copy-errors"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6f7e98be5de7",
+  "date": "2026-11-10T04:02:17+00:00",
+  "title": "Add power-bill (#1486), Class 9 science",
+  "tools": [
+   "power-bill"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e1ecbb32bc47",
+  "date": "2026-11-10T04:02:17+00:00",
+  "title": "Add free-fall (#1485), Class 9 science",
+  "tools": [
+   "free-fall"
+  ],
+  "site": false
+ },
+ {
+  "sha": "754be8a9a903",
+  "date": "2026-11-10T04:02:17+00:00",
+  "title": "Add inertia-demos (#1484), Class 9 science",
+  "tools": [
+   "free-fall",
+   "inertia-demos",
+   "power-bill"
+  ],
+  "site": false
+ },
+ {
+  "sha": "daa0e3355f7c",
+  "date": "2026-11-10T03:40:25+00:00",
+  "title": "Shorten 400 tool names and page titles for search (URLs and numbers unchanged)",
+  "tools": [
+   "acid-base-interpreter",
+   "adduct-calculator",
+   "adiabatic-temperature-rise",
+   "aliasing-demo",
+   "antibiotic-zones",
+   "antibody-dilution",
+   "apparent-dip",
+   "artefact-scale-tool",
+   "atterberg-compaction",
+   "author-list-formatter",
+   "balance-scale",
+   "banked-curve",
+   "battery-cycling-analyser",
+   "battery-solar-sizing",
+   "bayesian-ab-test",
+   "benchmark-dose",
+   "bernoulli-flow",
+   "bibtex-cleaner",
+   "big-o-plotter",
+   "binding-energy",
+   "binomial-expansion",
+   "biot-savart",
+   "bloch-sphere",
+   "body-mass-estimator",
+   "body-measures",
+   "bolt-torque-calculator",
+   "bomb-calorimeter",
+   "bootstrap-permutation",
+   "boundary-layer",
+   "brine-calculator",
+   "buckingham-pi",
+   "cache-simulator",
+   "calibration-curve",
+   "calibration-drift",
+   "calibration-frames",
+   "calvin-c4",
+   "canopy-gap-analyser",
+   "capacitor-inductor-calculator",
+   "carbon-chain-namer",
+   "carbonate-system",
+   "cardiac-cycle",
+   "carnot-engine",
+   "carrier-concentration",
+   "carrier-risk",
+   "cell-doubling-time",
+   "centre-of-mass",
+   "cfu-counter",
+   "chirality-checker",
+   "cipher-teacher",
+   "circle-sector",
+   "circle-slices",
+   "clinical-scores",
+   "colour-difference-calculator",
+   "confusion-matrix",
+   "consolidation-settlement",
+   "constant-proportions",
+   "constellation-ber",
+   "contrast-checker",
+   "control-charts",
+   "converse-checker",
+   "coord-triangle",
+   "copolymer-composition",
+   "coral-cover-calculator",
+   "coulomb-forces",
+   "coupled-oscillators",
+   "cross-section-profile",
+   "crossing-plan",
+   "cryo-em-calculator",
+   "cryovial-inventory",
+   "crystal-field-calculator",
+   "csv-profiler",
+   "daly-qaly",
+   "data-management-plan",
+   "decay-calculator",
+   "decline-curve",
+   "dem-terrain",
+   "derivative-slope",
+   "derivative-steps",
+   "dipole-polarity",
+   "dipole-torque",
+   "displacement-current",
+   "dissolved-oxygen",
+   "doppler-beats",
+   "dose-response",
+   "double-slit",
+   "drift-velocity",
+   "drone-flight-time",
+   "drug-release-fitter",
+   "drug-synergy",
+   "dsc-tga-analyser",
+   "e-and-ln",
+   "earthquake-locator",
+   "ecg-viewer",
+   "echo-sonar",
+   "effect-size-learning-gain",
+   "effective-population-size",
+   "electron-count-calculator",
+   "electroplating-calculator",
+   "element-temp-name",
+   "em-wave-3d",
+   "embedding-visualiser",
+   "emg-analyser",
+   "energy-balance-model",
+   "entropy-calculator",
+   "epi-curve",
+   "epidemic-model",
+   "equation-converter",
+   "equations-of-motion",
+   "equipartition",
+   "eruption-column",
+   "esterification",
+   "experiment-design",
+   "exposure-twa",
+   "eye-defects",
+   "f0-calculator",
+   "factorise-steps",
+   "faraday-cage",
+   "faraday-induction",
+   "fastq-inspector",
+   "fcs-viewer",
+   "fick-cardiac-output",
+   "field-area",
+   "field-form-builder",
+   "field-line-plotter",
+   "fire-weather-index",
+   "fits-viewer",
+   "flashcards",
+   "fleming-rule",
+   "float-inspector",
+   "floral-formula",
+   "flower-pollination",
+   "fold-axis-fit",
+   "forced-oscillations",
+   "fourier-visualiser",
+   "friction-ramp",
+   "fume-hood-ventilation",
+   "function-type",
+   "fuse-heating",
+   "gait-cadence",
+   "galvanometer-conversion",
+   "gantt-chart",
+   "gear-train-calculator",
+   "gel-band-sizer",
+   "gel-densitometry",
+   "gibbs-explorer",
+   "gini-lorenz",
+   "glacier-ice",
+   "glass-transition-calculator",
+   "grain-size-intercept",
+   "grain-size-stats",
+   "gram-stain-key",
+   "graph-algorithms",
+   "gravity-height-depth",
+   "green-chemistry-metrics",
+   "greenhouse-heating",
+   "grouped-data-stats",
+   "growth-curve-od600",
+   "growth-curve-tracker",
+   "gw-chirp",
+   "hall-effect",
+   "hcf-lcm-venn",
+   "heart-rate-zones",
+   "heating-curve",
+   "henrys-law",
+   "herd-immunity",
+   "heritage-climate-checker",
+   "histogram-builder",
+   "home-battery-sizing",
+   "hormone-feedback",
+   "hr-diagram",
+   "huffman-coding",
+   "hvac-room-load",
+   "hydrogen-bonding",
+   "hydrogen-spectrum",
+   "hydropathy-plot",
+   "hypothesis-tests",
+   "impedance-fitter",
+   "inductance-lab",
+   "infection-spread-sim",
+   "infinite-slope",
+   "internal-resistance",
+   "interval-tools",
+   "inverse-kinematics",
+   "inverse-trig",
+   "ion-exchange-ph",
+   "ir-band-finder",
+   "irrational-proof",
+   "jump-height",
+   "kepler-orbits",
+   "kidney-function",
+   "kinetic-theory",
+   "kmer-counter",
+   "knot-braid-drawer",
+   "kohlrausch-law",
+   "lab-report-template",
+   "lattice-boltzmann",
+   "lattice-fft",
+   "lca-compare",
+   "lcoe-calculator",
+   "lcr-phasors",
+   "leaf-area-analyser",
+   "lewis-structures",
+   "lexical-diversity-readability",
+   "ligation-calculator",
+   "light-exposure-budget",
+   "linear-pair-solver",
+   "linear-word-problems",
+   "load-flow",
+   "location-quotient-shift-share",
+   "logic-gates",
+   "logic-simplifier",
+   "lorentz-motion",
+   "lp-solver",
+   "magnetic-materials",
+   "magnitude-flux-converter",
+   "malaria-life-cycle",
+   "manning-weir-calculator",
+   "map-scale",
+   "margin-of-exposure",
+   "mass-balance-solver",
+   "matrix-transform",
+   "maxima-minima",
+   "mean-free-path",
+   "media-recipe-scaler",
+   "memory-attention-tasks",
+   "meta-analysis",
+   "metabolite-volcano-pca",
+   "mo-diagram",
+   "model-rocket-simulator",
+   "molecule-viewer",
+   "moment-of-inertia",
+   "motional-emf",
+   "multiplication-area",
+   "natural-selection",
+   "nca-pk",
+   "nernst-calculator",
+   "neutron-diffusion",
+   "nitrogen-estimation",
+   "nmr-impurity-checker",
+   "notch-filter-psd",
+   "npv-irr-calculator",
+   "nucleic-acid-concentration",
+   "odds-risk-ratio",
+   "ode-solver",
+   "optical-fibre",
+   "orbit-elements",
+   "order-graphs",
+   "paleostress-inversion",
+   "particle-size-image",
+   "pcb-trace-calculator",
+   "pcr-master-mix",
+   "peptide-mass-calculator",
+   "peptide-overlap-designer",
+   "period-finder",
+   "permafrost-active-layer",
+   "phase-diagram-calculator",
+   "phase-fraction",
+   "picks-theorem",
+   "pigment-spectra",
+   "pipe-network-solver",
+   "planner",
+   "plasmid-map",
+   "pn-junction",
+   "point-counter",
+   "point-group-finder",
+   "point-kinetics",
+   "pole-placement",
+   "polyhedron-viewer",
+   "polymer-molar-mass",
+   "polynomial-zeros",
+   "pond-oxygen-budget",
+   "potential-map",
+   "predator-prey",
+   "probability-tree",
+   "procrustes-morphometrics",
+   "project-scheduler",
+   "projectile-drag",
+   "propeller-thrust",
+   "proportion-grapher",
+   "protein-assay",
+   "psychrometric-calculator",
+   "pump-system-curve",
+   "punnett-square",
+   "pvt-correlations",
+   "qc-output-parser",
+   "quadrat-transect-analyser",
+   "quantum-dot-size",
+   "race-track",
+   "racemisation-age",
+   "radial-velocity-fitter",
+   "rain-gauge-average",
+   "random-walk-diffusion",
+   "range-chart-plotter",
+   "rate-standardisation",
+   "reaction-time-test",
+   "reactor-design",
+   "rebar-calculator",
+   "regex-fsm-visualiser",
+   "regression-ols-iv-panel",
+   "respiration-pathways",
+   "reviewer-response",
+   "riemann-sums",
+   "ring-directors",
+   "rms-waveform",
+   "road-curve-design",
+   "roc-curve",
+   "rock-mass-classification",
+   "rocket-equation",
+   "rotation-curve-fitter",
+   "rutherford-scattering",
+   "sales-tax-calculator",
+   "sample-size",
+   "satellite-tracker",
+   "scope-emissions",
+   "section-formula",
+   "sensory-difference-test",
+   "sequence-explorer",
+   "seriation-analyser",
+   "series-parallel",
+   "shaft-bearing-life",
+   "shelf-life-estimator",
+   "shm-circle",
+   "signal-timing",
+   "sky-colour",
+   "slope-field",
+   "slope-stability",
+   "smiles-checker",
+   "sn1-sn2",
+   "snell-law",
+   "snow-slope-tools",
+   "soil-classification",
+   "solar-cell-iv",
+   "solar-pv-yield",
+   "solution-calculator",
+   "spring-mass",
+   "sql-playground",
+   "square-cube-builder",
+   "staircase-threshold-fitter",
+   "star-trail-exposure",
+   "states-of-matter",
+   "station-data-viewer",
+   "steam-tables",
+   "stocking-density-calculator",
+   "stokes-terminal-velocity",
+   "stopping-power",
+   "stream-profile",
+   "stress-strain-test",
+   "survey-weighting",
+   "survival-analysis",
+   "symbolic-algebra",
+   "table-converter",
+   "tafel-corrosion-rate",
+   "tauc-plot",
+   "tcid50-calculator",
+   "telescope-calculator",
+   "temperature-scales",
+   "tempo-detector",
+   "tephra-volume",
+   "ternary-plot-maker",
+   "tessellation-studio",
+   "thermal-expansion",
+   "thermal-mismatch-stress",
+   "thermal-process-calculator",
+   "thin-film-thickness",
+   "tide-predictor",
+   "time-series-analyser",
+   "time-zone-planner",
+   "train-test-splitter",
+   "training-load",
+   "transfection-planner",
+   "transit-light-curve-fitter",
+   "transportation-assignment",
+   "tree-height-basal-area",
+   "trench-recording-sheet",
+   "trend-analyser",
+   "truss-solver",
+   "tug-of-war-forces",
+   "tuning-calculator",
+   "two-variable-line",
+   "tyndall-effect",
+   "unit-circle",
+   "unit-root-cointegration",
+   "unsaturation-calculator",
+   "utm-converter",
+   "vapour-pressure-calculator",
+   "variable-force-work",
+   "vcf-viewer",
+   "vehicle-routing",
+   "vertical-circle",
+   "ves-inversion",
+   "vo2max-estimator",
+   "von-bertalanffy-fitter",
+   "walter-lieth",
+   "water-of-crystallisation",
+   "westgard-qc",
+   "wheatstone-bridge",
+   "wind-chill-heat-index",
+   "wind-energy-yield",
+   "yield-per-recruit",
+   "yield-trial-anova"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7d1172a79643",
+  "date": "2026-11-10T01:45:56+00:00",
+  "title": "Learn school page: list Learn tools by name so the page stays under 120 KB",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "69eef1b4c820",
+  "date": "2026-11-10T01:15:49+00:00",
+  "title": "Learn school page: list Learn tools by name so the page stays under 120 KB",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "8e84d7811340",
+  "date": "2026-11-10T01:11:50+00:00",
+  "title": "Add #1391 Fluid mosaic membrane",
+  "tools": [
+   "cell-membrane"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a864ba6de12e",
+  "date": "2026-11-10T01:10:29+00:00",
+  "title": "Add #1353 Damped and forced oscillations",
+  "tools": [
+   "forced-oscillations"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c48540686193",
+  "date": "2026-11-10T01:09:50+00:00",
+  "title": "Add #1274 Number line zoom",
+  "tools": [
+   "number-line-zoom"
+  ],
+  "site": false
+ },
+ {
+  "sha": "530ec672b32b",
+  "date": "2026-11-10T01:09:50+00:00",
+  "title": "Add #1272 Coordinate treasure hunt",
+  "tools": [
+   "coordinate-hunt"
+  ],
+  "site": false
+ },
+ {
+  "sha": "19a2c8a802f0",
+  "date": "2026-11-10T01:08:30+00:00",
+  "title": "Add #1380 Parabolic dish",
+  "tools": [
+   "parabolic-dish"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6167de3ff780",
+  "date": "2026-11-10T01:08:30+00:00",
+  "title": "Add #1379 3D point plotter",
+  "tools": [
+   "points-3d"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9c7462a9fbf6",
+  "date": "2026-11-10T01:08:30+00:00",
+  "title": "Add #1378 Line forms converter",
+  "tools": [
+   "line-forms"
+  ],
+  "site": false
+ },
+ {
+  "sha": "bf8906988079",
+  "date": "2026-11-10T01:08:30+00:00",
+  "title": "Add #1377 GP explorer",
+  "tools": [
+   "gp-explorer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2853784305d6",
+  "date": "2026-11-10T01:08:30+00:00",
+  "title": "Add #1376 Counting machine",
+  "tools": [
+   "counting-machine"
+  ],
+  "site": false
+ },
+ {
+  "sha": "956dfe8282f8",
+  "date": "2026-11-10T01:06:43+00:00",
+  "title": "Add #1307 Phototropism plant",
+  "tools": [
+   "phototropism"
+  ],
+  "site": false
+ },
+ {
+  "sha": "af43adeb091c",
+  "date": "2026-11-10T01:06:43+00:00",
+  "title": "Add #1352 Springs in series and parallel",
+  "tools": [
+   "spring-mass"
+  ],
+  "site": false
+ },
+ {
+  "sha": "16056eddf18a",
+  "date": "2026-11-10T01:06:43+00:00",
+  "title": "Add #1351 Pendulum lab",
+  "tools": [
+   "pendulum-lab"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7c8fc1f275d7",
+  "date": "2026-11-10T01:06:43+00:00",
+  "title": "Add #1350 Mean free path of gas molecules",
+  "tools": [
+   "mean-free-path"
+  ],
+  "site": false
+ },
+ {
+  "sha": "89c59bbafb43",
+  "date": "2026-11-10T01:06:43+00:00",
+  "title": "Add #1349 Equipartition of energy and γ",
+  "tools": [
+   "equipartition"
+  ],
+  "site": false
+ },
+ {
+  "sha": "97171c7920f0",
+  "date": "2026-11-10T01:06:43+00:00",
+  "title": "Add #1348 Carnot engine and refrigerator",
+  "tools": [
+   "carnot-engine"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0da2f571d1b6",
+  "date": "2026-11-10T01:06:43+00:00",
+  "title": "Add #1347 Thermal expansion of rails and bridges",
+  "tools": [
+   "thermal-expansion"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0e9524770ad4",
+  "date": "2026-11-10T01:06:43+00:00",
+  "title": "Add #1346 Temperature scales and absolute zero",
+  "tools": [
+   "temperature-scales"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e4bed1d8dd14",
+  "date": "2026-11-10T01:02:43+00:00",
+  "title": "Add #1413 Galvanometer to ammeter and voltmeter",
+  "tools": [
+   "galvanometer-conversion"
+  ],
+  "site": false
+ },
+ {
+  "sha": "41adafab3c0e",
+  "date": "2026-11-10T01:02:43+00:00",
+  "title": "Add #1411 Internal resistance and terminal voltage",
+  "tools": [
+   "internal-resistance"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d9371368dd23",
+  "date": "2026-11-10T01:02:43+00:00",
+  "title": "Add #1410 Dia, para and ferro magnetism",
+  "tools": [
+   "magnetic-materials"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a02ef9a8e53e",
+  "date": "2026-11-10T01:02:42+00:00",
+  "title": "Add #1409 Biot–Savart field builder and Ampère's law",
+  "tools": [
+   "biot-savart"
+  ],
+  "site": false
+ },
+ {
+  "sha": "13225be34e80",
+  "date": "2026-11-10T01:02:42+00:00",
+  "title": "Add #1407 Kirchhoff's rules solver",
+  "tools": [
+   "kirchhoff-solver"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b5c17eac7979",
+  "date": "2026-11-10T01:02:37+00:00",
+  "title": "Add #1438 Double fertilisation stepper",
+  "tools": [
+   "double-fertilisation"
+  ],
+  "site": false
+ },
+ {
+  "sha": "bd6fcabf4aa5",
+  "date": "2026-11-10T01:02:37+00:00",
+  "title": "Add #1437 Glucose ring flipper",
+  "tools": [
+   "sugar-structures"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c86412713816",
+  "date": "2026-11-10T00:58:32+00:00",
+  "title": "Add #1278 Earth's energy budget",
+  "tools": [
+   "earth-energy-budget"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c7924d7758d5",
+  "date": "2026-11-10T00:58:31+00:00",
+  "title": "Add #1277 Rationalise the denominator",
+  "tools": [
+   "rationalise-denominator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "df74e83fb9c5",
+  "date": "2026-11-10T00:58:31+00:00",
+  "title": "Add #1276 Square root spiral",
+  "tools": [
+   "root-spiral"
+  ],
+  "site": false
+ },
+ {
+  "sha": "77d204ff900c",
+  "date": "2026-11-10T00:58:31+00:00",
+  "title": "Add #1275 Nitrogen cycle game",
+  "tools": [
+   "nitrogen-cycle"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3522c3a707b5",
+  "date": "2026-11-10T00:58:31+00:00",
+  "title": "Add #1273 Linear function explorer",
+  "tools": [
+   "linear-explorer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8ea632d7feaf",
+  "date": "2026-11-10T00:58:27+00:00",
+  "title": "Speed up #1212 Virtual microscope on phones (blur once)",
+  "tools": [
+   "virtual-microscope"
+  ],
+  "site": false
+ },
+ {
+  "sha": "592f010274f0",
+  "date": "2026-11-10T00:56:47+00:00",
+  "title": "Add #1308 Hormones and blood sugar feedback",
+  "tools": [
+   "hormone-feedback"
+  ],
+  "site": false
+ },
+ {
+  "sha": "91b33680f2f3",
+  "date": "2026-11-10T00:56:47+00:00",
+  "title": "Add #1305 Kidney nephron filter",
+  "tools": [
+   "nephron-filter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f781def123a3",
+  "date": "2026-11-10T00:56:09+00:00",
+  "title": "Add #1368 Hydrogen bonding in water and ice",
+  "tools": [
+   "hydrogen-bonding"
+  ],
+  "site": false
+ },
+ {
+  "sha": "58f0479bf111",
+  "date": "2026-11-10T00:53:53+00:00",
+  "title": "Add #1259 Solution, colloid or suspension",
+  "tools": [
+   "tyndall-effect"
+  ],
+  "site": false
+ },
+ {
+  "sha": "147ddd1ca77d",
+  "date": "2026-11-10T00:53:53+00:00",
+  "title": "Add #1258 Distance and displacement",
+  "tools": [
+   "distance-displacement"
+  ],
+  "site": false
+ },
+ {
+  "sha": "13635f9bb299",
+  "date": "2026-11-10T00:53:53+00:00",
+  "title": "Add #1257 Collision carts",
+  "tools": [
+   "collision-carts"
+  ],
+  "site": false
+ },
+ {
+  "sha": "34de5f2b4c8e",
+  "date": "2026-11-10T00:53:44+00:00",
+  "title": "Add #1288 Mid-point theorem",
+  "tools": [
+   "midpoint-theorem"
+  ],
+  "site": false
+ },
+ {
+  "sha": "145ce7426dfa",
+  "date": "2026-11-10T00:53:44+00:00",
+  "title": "Add #1287 Algorithm stepper",
+  "tools": [
+   "algorithm-stepper"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ddd09033a741",
+  "date": "2026-11-10T00:53:15+00:00",
+  "title": "Add #1420 Displacement current",
+  "tools": [
+   "displacement-current"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7316da1c1604",
+  "date": "2026-11-10T00:53:15+00:00",
+  "title": "Add #1419 Electromagnetic spectrum explorer",
+  "tools": [
+   "em-spectrum"
+  ],
+  "site": false
+ },
+ {
+  "sha": "309b81052d9d",
+  "date": "2026-11-10T00:53:15+00:00",
+  "title": "Add #1418 Electromagnetic wave in 3D",
+  "tools": [
+   "em-wave-3d"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d5036ca043d7",
+  "date": "2026-11-10T00:53:15+00:00",
+  "title": "Add #1417 Transformer and power line calculator",
+  "tools": [
+   "transformer-calculator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "cccd111e32a1",
+  "date": "2026-11-10T00:53:15+00:00",
+  "title": "Add #1416 RMS of AC waveforms",
+  "tools": [
+   "rms-waveform"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3415c10de142",
+  "date": "2026-11-10T00:53:15+00:00",
+  "title": "Add #1415 Self and mutual inductance lab",
+  "tools": [
+   "inductance-lab"
+  ],
+  "site": false
+ },
+ {
+  "sha": "14699b75ea1b",
+  "date": "2026-11-10T00:53:14+00:00",
+  "title": "Add #1414 Rod on rails (motional emf)",
+  "tools": [
+   "motional-emf"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4ee5566581c3",
+  "date": "2026-11-10T00:53:14+00:00",
+  "title": "Add #1404 Faraday cage and shielding",
+  "tools": [
+   "faraday-cage"
+  ],
+  "site": false
+ },
+ {
+  "sha": "bbe8748dd69b",
+  "date": "2026-11-10T00:53:14+00:00",
+  "title": "Add #1403 Capacitor network reducer",
+  "tools": [
+   "capacitor-network"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0a92cb923070",
+  "date": "2026-11-10T00:53:14+00:00",
+  "title": "Add #1402 Equipotentials and potential hills",
+  "tools": [
+   "potential-map"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c194977ac513",
+  "date": "2026-11-10T00:53:14+00:00",
+  "title": "Add #1401 Electric dipole in a field",
+  "tools": [
+   "dipole-torque"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a7af829d8777",
+  "date": "2026-11-10T00:53:14+00:00",
+  "title": "Add #1400 Gauss's law",
+  "tools": [
+   "gauss-law"
+  ],
+  "site": false
+ },
+ {
+  "sha": "16537f3fa54c",
+  "date": "2026-11-10T00:53:14+00:00",
+  "title": "Add #1399 Coulomb's law and superposition",
+  "tools": [
+   "coulomb-forces"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c96541bf277c",
+  "date": "2026-11-10T00:52:19+00:00",
+  "title": "Add #1293 Flowchart runner",
+  "tools": [
+   "flowchart-runner"
+  ],
+  "site": false
+ },
+ {
+  "sha": "216374bdf4f3",
+  "date": "2026-11-10T00:52:19+00:00",
+  "title": "Add #1292 Rusting lab",
+  "tools": [
+   "rusting-lab"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0c9bfc734d2f",
+  "date": "2026-11-10T00:52:18+00:00",
+  "title": "Add #1291 Reaction type sorter",
+  "tools": [
+   "reaction-type-sorter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "fb7abce8730f",
+  "date": "2026-11-10T00:52:18+00:00",
+  "title": "Add #1290 Solids lab",
+  "tools": [
+   "solids-lab"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8ae7582c23b5",
+  "date": "2026-11-10T00:52:18+00:00",
+  "title": "Add #1289 Solutions on a line",
+  "tools": [
+   "two-variable-line"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a0692a4fed3b",
+  "date": "2026-11-10T00:52:18+00:00",
+  "title": "Add #1286 Histogram and frequency polygon builder",
+  "tools": [
+   "histogram-builder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d1a8d13eed66",
+  "date": "2026-11-10T00:51:42+00:00",
+  "title": "Add #1398 Respiration ATP ledger",
+  "tools": [
+   "respiration-atp"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8d542ae9c462",
+  "date": "2026-11-10T00:51:42+00:00",
+  "title": "Add #1358 Mendeleev's predictions",
+  "tools": [
+   "mendeleev-predictor"
+  ],
+  "site": false
+ },
+ {
+  "sha": "452a9fcc2e6c",
+  "date": "2026-11-10T00:51:42+00:00",
+  "title": "Add #1397 Calvin cycle and C4 comparer",
+  "tools": [
+   "calvin-c4"
+  ],
+  "site": false
+ },
+ {
+  "sha": "899cca7a1055",
+  "date": "2026-11-10T00:51:42+00:00",
+  "title": "Add #1357 Names for new elements (Z > 100)",
+  "tools": [
+   "element-temp-name"
+  ],
+  "site": false
+ },
+ {
+  "sha": "59399f24f390",
+  "date": "2026-11-10T00:51:42+00:00",
+  "title": "Add #1396 Biomolecule test lab",
+  "tools": [
+   "biomolecule-tests"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3581afa0f198",
+  "date": "2026-11-10T00:51:42+00:00",
+  "title": "Add #1356 Periodic trends",
+  "tools": [
+   "periodic-trends"
+  ],
+  "site": false
+ },
+ {
+  "sha": "81f91299af51",
+  "date": "2026-11-10T00:51:42+00:00",
+  "title": "Add #1395 Protein structure levels",
+  "tools": [
+   "protein-structure"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d889490f8586",
+  "date": "2026-11-10T00:51:42+00:00",
+  "title": "Add #1355 Resonance tube practical",
+  "tools": [
+   "resonance-tube"
+  ],
+  "site": false
+ },
+ {
+  "sha": "752a2fe73aae",
+  "date": "2026-11-10T00:51:42+00:00",
+  "title": "Add #1394 Sliding filament",
+  "tools": [
+   "sliding-filament"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9a1fe31b738f",
+  "date": "2026-11-10T00:51:42+00:00",
+  "title": "Add #1354 Beats lab",
+  "tools": [
+   "beats-lab"
+  ],
+  "site": false
+ },
+ {
+  "sha": "60fc672a1378",
+  "date": "2026-11-10T00:51:42+00:00",
+  "title": "Add #1393 Z-scheme stepper",
+  "tools": [
+   "z-scheme"
+  ],
+  "site": false
+ },
+ {
+  "sha": "10c37712424b",
+  "date": "2026-11-10T00:51:42+00:00",
+  "title": "Add #1392 Absorption and action spectrum",
+  "tools": [
+   "pigment-spectra"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f480c416503c",
+  "date": "2026-11-10T00:51:12+00:00",
+  "title": "Fix #1267 population inputs clashing with nucleus class",
+  "tools": [
+   "reproduction-modes"
+  ],
+  "site": false
+ },
+ {
+  "sha": "05159dd1d9cf",
+  "date": "2026-11-10T00:50:31+00:00",
+  "title": "Ping IndexNow after deploys; keep tool CSS on its own page",
+  "tools": [
+   "adduct-calculator",
+   "adiabatic-temperature-rise",
+   "afm-roughness",
+   "agent-based-models",
+   "airfoil-calculator",
+   "algorithm-visualiser",
+   "aliasing-demo",
+   "allele-frequency-calculator",
+   "antenna-calculator",
+   "anthropometric-indices",
+   "band-combiner",
+   "band-structure",
+   "batch-airmass",
+   "battery-solar-sizing",
+   "bayesian-ab-test",
+   "big-o-plotter",
+   "bird-song-spectrogram",
+   "bloch-sphere",
+   "boundary-layer",
+   "brillouin-zone",
+   "buckingham-pi",
+   "cache-simulator",
+   "calcium-imaging-dff",
+   "calibration-drift",
+   "calibration-frames",
+   "camera-trap-tagger",
+   "canopy-gap-analyser",
+   "carbon-footprint",
+   "carbonate-system",
+   "catchment-buffer",
+   "cellular-automata",
+   "cipw-norm",
+   "coalescent-simulator",
+   "cohort-component-projection",
+   "community-ordination",
+   "concentration-converter",
+   "concordia-plot",
+   "constellation-ber",
+   "control-charts",
+   "coral-cover-calculator",
+   "corpus-concordancer",
+   "counting-statistics",
+   "cpue-trend",
+   "crosstab-chi-square",
+   "curve-fitter",
+   "decay-chain",
+   "decay-heat",
+   "decline-curve",
+   "dem-terrain",
+   "dichotomous-key-builder",
+   "difference-in-differences",
+   "digital-filter-designer",
+   "dimensional-analysis",
+   "dimensionless-numbers",
+   "disease-progress-audpc",
+   "dissolved-oxygen",
+   "distance-sampling",
+   "dls-analyser",
+   "dnds-calculator",
+   "drake-equation",
+   "drone-flight-time",
+   "drug-release-fitter",
+   "ecg-viewer",
+   "effect-size-learning-gain",
+   "effective-population-size",
+   "electrostatics-solver",
+   "embedding-visualiser",
+   "embryo-development-timer",
+   "emg-analyser",
+   "energy-balance-model",
+   "ethogram-logger",
+   "experiment-design",
+   "eye-tracking-heatmap",
+   "factor-analysis",
+   "fertility-rates",
+   "feynman-diagram",
+   "fft-workbench",
+   "fibre-optic-calculator",
+   "fick-cardiac-output",
+   "field-note-organiser",
+   "fire-weather-index",
+   "fish-length-weight",
+   "float-inspector",
+   "forest-inventory-summary",
+   "fume-hood-ventilation",
+   "gamma-shielding",
+   "gauge-rr",
+   "gaussian-beam",
+   "gene-network-viewer",
+   "genetic-circuit-designer",
+   "geometry-construction",
+   "gillespie-simulator",
+   "gini-lorenz",
+   "glacier-ice",
+   "gpr-viewer",
+   "gps-relativity",
+   "grain-size-intercept",
+   "grain-size-stats",
+   "gravity-model",
+   "gw-chirp",
+   "hall-effect",
+   "hardy-weinberg-tester",
+   "heat-capacity-fitter",
+   "herbarium-label-maker",
+   "hodgkin-huxley-simulator",
+   "home-battery-sizing",
+   "home-range-analyser",
+   "hotspot-density",
+   "hr-diagram",
+   "hydrogen-orbitals",
+   "inflation-calculator",
+   "insect-degree-days",
+   "interlinear-gloss",
+   "inverse-kinematics",
+   "ipa-feature-matrix",
+   "ipa-keyboard",
+   "irt-item-analysis",
+   "item-analysis",
+   "kalman-filter-playground",
+   "kinship-diagram",
+   "langmuir-probe",
+   "lattice-boltzmann",
+   "lattice-fft",
+   "lcoe-calculator",
+   "leaf-area-analyser",
+   "leaf-disease-severity",
+   "led-resistor-calculator",
+   "lens-ray-tracer",
+   "leontief-multipliers",
+   "lexical-diversity-readability",
+   "life-table",
+   "likert-chart",
+   "linkage-map-calculator",
+   "load-flow",
+   "location-quotient-shift-share",
+   "log-scale-calculator",
+   "logic-simplifier",
+   "lotka-volterra-simulator",
+   "lp-solver",
+   "mark-recapture",
+   "mass-balance-solver",
+   "membrane-potential",
+   "memory-attention-tasks",
+   "mendelian-chi-square",
+   "metabolite-volcano-pca",
+   "mineral-formula",
+   "mineral-id-key",
+   "model-rocket-simulator",
+   "molecular-clock",
+   "molecule-viewer",
+   "mri-bloch-simulator",
+   "nash-equilibrium-solver",
+   "neural-network-toys",
+   "neutron-diffusion",
+   "npv-irr-calculator",
+   "occupancy-estimator",
+   "ocean-currents",
+   "operator-algebra",
+   "optical-tweezers",
+   "orbit-elements",
+   "oscilloscope-viewer",
+   "osmolarity-calculator",
+   "particle-drifts",
+   "particle-size-image",
+   "paschen-curve",
+   "path-planner",
+   "pathway-ode-builder",
+   "pedigree-drawing-tool",
+   "periodic-table",
+   "phase-fraction",
+   "phone-clinometer",
+   "phone-seismometer",
+   "photosynthesis-curve-fitter",
+   "physical-constants",
+   "pid-simulator",
+   "piv-lite",
+   "plant-growth-analysis",
+   "plasma-parameters",
+   "point-counter",
+   "point-kinetics",
+   "polarisation-calculator",
+   "pole-placement",
+   "polling-average",
+   "polyhedron-viewer",
+   "population-growth-models",
+   "population-pyramid",
+   "potential-flow",
+   "power-indices",
+   "project-scheduler",
+   "propeller-thrust",
+   "pvt-correlations",
+   "qc-output-parser",
+   "quadrat-transect-analyser",
+   "qualitative-coding",
+   "quantum-circuit",
+   "questionnaire-scorer",
+   "queueing-calculator",
+   "reaction-time-experiments",
+   "reactor-design",
+   "regression-ols-iv-panel",
+   "relativistic-kinematics",
+   "respirometry-calculator",
+   "rock-mass-classification",
+   "rubric-grade-calculator",
+   "schrodinger-solver",
+   "schwarzschild-orbits",
+   "scope-emissions",
+   "seismogram-viewer",
+   "sellmeier-fitter",
+   "sensor-calibration",
+   "sig-fig-checker",
+   "signal-detection-calculator",
+   "signal-timing",
+   "smith-chart",
+   "snow-slope-tools",
+   "social-network-analysis",
+   "soil-texture-triangle",
+   "solar-pv-yield",
+   "spacetime-diagram",
+   "spectrometer-calibration",
+   "spectrum-peak-fitter",
+   "spore-size-measurer",
+   "staircase-threshold-fitter",
+   "stereotaxic-helper",
+   "stomatal-density-counter",
+   "stopping-power",
+   "strat-column",
+   "stream-profile",
+   "superconductor-calculator",
+   "supply-demand",
+   "syntax-tree-drawer",
+   "tanabe-sugano",
+   "thin-film-coating",
+   "tide-predictor",
+   "tissot-explorer",
+   "toy-compiler",
+   "traffic-flow",
+   "trap-count-index",
+   "tree-builder",
+   "tree-height-basal-area",
+   "truss-solver",
+   "ultrasound-calculator",
+   "unit-converter",
+   "unit-root-cointegration",
+   "unsaturation-calculator",
+   "utm-converter",
+   "uv-index-estimator",
+   "vector-map-viewer",
+   "video-motion-tracker",
+   "von-bertalanffy-fitter",
+   "voting-systems",
+   "watershed-delineation",
+   "wave-packet",
+   "wavelet-viewer",
+   "weather-log",
+   "well-test-analyser",
+   "wind-energy-yield",
+   "wright-fisher-simulator",
+   "yield-per-recruit",
+   "zooplankton-biomass"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7628625cddb2",
+  "date": "2026-11-10T00:48:16+00:00",
+  "title": "Add #1458 Decomposition rate",
+  "tools": [
+   "decomposition"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0203d2413909",
+  "date": "2026-11-10T00:48:15+00:00",
+  "title": "Add #1456 Recombinant insulin",
+  "tools": [
+   "recombinant-insulin"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c5134f57ea67",
+  "date": "2026-11-10T00:48:15+00:00",
+  "title": "Add #1457 Bioreactor",
+  "tools": [
+   "bioreactor"
+  ],
+  "site": false
+ },
+ {
+  "sha": "11edf4ff2013",
+  "date": "2026-11-10T00:48:15+00:00",
+  "title": "Add #1455 Antibiotic zones of inhibition",
+  "tools": [
+   "antibiotic-zones"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5869c389c139",
+  "date": "2026-11-10T00:48:15+00:00",
+  "title": "Add #1454 Malaria parasite life cycle",
+  "tools": [
+   "malaria-life-cycle"
+  ],
+  "site": false
+ },
+ {
+  "sha": "bb1d0c9e58e1",
+  "date": "2026-11-10T00:48:15+00:00",
+  "title": "Add #1453 Predator and prey cycles",
+  "tools": [
+   "predator-prey"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3504dada8367",
+  "date": "2026-11-10T00:48:15+00:00",
+  "title": "Add #1452 Population growth",
+  "tools": [
+   "population-growth"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1c9b41e86bcc",
+  "date": "2026-11-10T00:48:15+00:00",
+  "title": "Add #1451 Immune response timeline",
+  "tools": [
+   "immune-response"
+  ],
+  "site": false
+ },
+ {
+  "sha": "45da8bcc6c46",
+  "date": "2026-11-10T00:46:58+00:00",
+  "title": "Fix #1466 and #1470 after browser tests; share images for #1466 to #1471",
+  "tools": [
+   "chain-rule",
+   "integral-properties"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a818f987214f",
+  "date": "2026-11-10T00:46:06+00:00",
+  "title": "Add #1270 Classification tree",
+  "tools": [
+   "classification-tree"
+  ],
+  "site": false
+ },
+ {
+  "sha": "45b63e79585b",
+  "date": "2026-11-10T00:42:32+00:00",
+  "title": "Add #1248 Fractal builder",
+  "tools": [
+   "fractal-builder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "853bb0ebd1d0",
+  "date": "2026-11-10T00:42:31+00:00",
+  "title": "Add #1247 Time, speed and distance race track",
+  "tools": [
+   "race-track"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6325c38d9df1",
+  "date": "2026-11-10T00:42:31+00:00",
+  "title": "Add #1246 Map scale and recipe scaler",
+  "tools": [
+   "map-scale"
+  ],
+  "site": false
+ },
+ {
+  "sha": "504cab828772",
+  "date": "2026-11-10T00:42:31+00:00",
+  "title": "Add #1245 Mental multiplication with the area picture",
+  "tools": [
+   "multiplication-area"
+  ],
+  "site": false
+ },
+ {
+  "sha": "01f86d3acc30",
+  "date": "2026-11-10T00:42:31+00:00",
+  "title": "Add #1244 Tessellation and symmetry studio",
+  "tools": [
+   "tessellation-studio"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3587e752a3cf",
+  "date": "2026-11-10T00:42:31+00:00",
+  "title": "Add #1243 Direct and inverse proportion grapher",
+  "tools": [
+   "proportion-grapher"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d479f4cd45da",
+  "date": "2026-11-10T00:42:31+00:00",
+  "title": "Add #1242 Percentage bar",
+  "tools": [
+   "percentage-bar"
+  ],
+  "site": false
+ },
+ {
+  "sha": "21656ebb5d7a",
+  "date": "2026-11-10T00:42:31+00:00",
+  "title": "Add #1241 Ratio mixer",
+  "tools": [
+   "ratio-mixer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1c5ef278122e",
+  "date": "2026-11-10T00:42:13+00:00",
+  "title": "Add #1269 Dichotomous key explorer",
+  "tools": [
+   "dichotomous-key"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f1d114e260ad",
+  "date": "2026-11-10T00:41:32+00:00",
+  "title": "Add #1390 Life cycle wheel",
+  "tools": [
+   "life-cycle-wheel"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c7a4f9c4955c",
+  "date": "2026-11-10T00:41:32+00:00",
+  "title": "Add #1389 Taxonomy ladder",
+  "tools": [
+   "taxonomy-ladder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "da56d331eba3",
+  "date": "2026-11-10T00:41:32+00:00",
+  "title": "Add #1388 Floral formula and diagram maker",
+  "tools": [
+   "floral-formula"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9b4224cf567f",
+  "date": "2026-11-10T00:41:31+00:00",
+  "title": "Add #1387 Animal classification key",
+  "tools": [
+   "animal-key"
+  ],
+  "site": false
+ },
+ {
+  "sha": "aad93ff78485",
+  "date": "2026-11-10T00:41:31+00:00",
+  "title": "Add #1386 Five-kingdom sorter",
+  "tools": [
+   "five-kingdoms"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b058497f9003",
+  "date": "2026-11-10T00:41:19+00:00",
+  "title": "Add #1304 Aerobic and anaerobic respiration",
+  "tools": [
+   "respiration-pathways"
+  ],
+  "site": false
+ },
+ {
+  "sha": "71f91300bba1",
+  "date": "2026-11-10T00:38:18+00:00",
+  "title": "Add #1268 Flower parts and pollination",
+  "tools": [
+   "flower-pollination"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7cd160c4fc80",
+  "date": "2026-11-10T00:37:11+00:00",
+  "title": "Add #1299 Alloy mixer",
+  "tools": [
+   "alloy-mixer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d08d6ee217ed",
+  "date": "2026-11-10T00:37:10+00:00",
+  "title": "Add #1298 Esterification and ester names",
+  "tools": [
+   "esterification"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8ec76e2a7202",
+  "date": "2026-11-10T00:37:10+00:00",
+  "title": "Add #1297 How soap cleans",
+  "tools": [
+   "soap-micelle"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e3f09e792f57",
+  "date": "2026-11-10T00:37:10+00:00",
+  "title": "Add #1296 Chlor-alkali process",
+  "tools": [
+   "chlor-alkali"
+  ],
+  "site": false
+ },
+ {
+  "sha": "317487be6fdb",
+  "date": "2026-11-10T00:37:10+00:00",
+  "title": "Add #1295 Water of crystallisation lab",
+  "tools": [
+   "water-of-crystallisation"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8ee7f13a1267",
+  "date": "2026-11-10T00:37:10+00:00",
+  "title": "Add #1294 Ionic bond builder",
+  "tools": [
+   "ionic-bond-dots"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f57cdda9e016",
+  "date": "2026-11-10T00:35:37+00:00",
+  "title": "Add #1367 Bomb calorimeter virtual practical",
+  "tools": [
+   "bomb-calorimeter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3225d892aed5",
+  "date": "2026-11-10T00:35:37+00:00",
+  "title": "Add #1366 Ortho, para and meta directors",
+  "tools": [
+   "ring-directors"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8f736a6de3cb",
+  "date": "2026-11-10T00:35:37+00:00",
+  "title": "Add #1365 Markovnikov addition predictor",
+  "tools": [
+   "markovnikov-addition"
+  ],
+  "site": false
+ },
+ {
+  "sha": "20d9861746d0",
+  "date": "2026-11-10T00:35:19+00:00",
+  "title": "Add #1267 Asexual reproduction explorer",
+  "tools": [
+   "reproduction-modes"
+  ],
+  "site": false
+ },
+ {
+  "sha": "659238202e72",
+  "date": "2026-11-10T00:35:19+00:00",
+  "title": "Hearing range: wavelength to 3 or 5 decimals",
+  "tools": [
+   "hearing-range"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0621f950f68d",
+  "date": "2026-11-10T00:33:39+00:00",
+  "title": "Add #1233 Decomposer race",
+  "tools": [
+   "decomposer-race"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4f6b12a63586",
+  "date": "2026-11-10T00:33:38+00:00",
+  "title": "Add #1232 Square root finder",
+  "tools": [
+   "square-root-finder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d5b55d34fdbb",
+  "date": "2026-11-10T00:33:38+00:00",
+  "title": "Add #1231 Calendar maker",
+  "tools": [
+   "calendar-maker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b7fe73e0a349",
+  "date": "2026-11-10T00:33:38+00:00",
+  "title": "Add #1230 Plane mirror lab",
+  "tools": [
+   "plane-mirror-lab"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e64a4f1adeaa",
+  "date": "2026-11-10T00:33:38+00:00",
+  "title": "Add #1229 Square and cube builder",
+  "tools": [
+   "square-cube-builder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "046c9ec27d32",
+  "date": "2026-11-10T00:33:38+00:00",
+  "title": "Add #1228 Water cycle simulator",
+  "tools": [
+   "water-cycle-sim"
+  ],
+  "site": false
+ },
+ {
+  "sha": "32791e01b488",
+  "date": "2026-11-10T00:33:38+00:00",
+  "title": "Add #1227 Moon phase simulator",
+  "tools": [
+   "moon-phase-simulator"
+  ],
+  "site": false
+ },
+ {
+  "sha": "77b36c299478",
+  "date": "2026-11-10T00:33:38+00:00",
+  "title": "Add #1226 Dissolving lab",
+  "tools": [
+   "dissolving-lab"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2cb5ee351b9a",
+  "date": "2026-11-10T00:32:34+00:00",
+  "title": "Add #1266 Hearing range explorer",
+  "tools": [
+   "hearing-range"
+  ],
+  "site": false
+ },
+ {
+  "sha": "20ef1a0b69f0",
+  "date": "2026-11-10T00:32:22+00:00",
+  "title": "Add #1448 Geological time",
+  "tools": [
+   "geological-time"
+  ],
+  "site": false
+ },
+ {
+  "sha": "896a2b2590a2",
+  "date": "2026-11-10T00:32:22+00:00",
+  "title": "Add #1447 lac operon switch",
+  "tools": [
+   "lac-operon"
+  ],
+  "site": false
+ },
+ {
+  "sha": "fc6f3cd13989",
+  "date": "2026-11-10T00:30:47+00:00",
+  "title": "Add #1412 Potentiometer virtual practical",
+  "tools": [
+   "potentiometer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "48a686674fa9",
+  "date": "2026-11-10T00:30:47+00:00",
+  "title": "Add #1408 Charged particle in electric and magnetic fields",
+  "tools": [
+   "lorentz-motion"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6882f667fb59",
+  "date": "2026-11-10T00:30:47+00:00",
+  "title": "Add #1406 Drift velocity of electrons",
+  "tools": [
+   "drift-velocity"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0f043376a51c",
+  "date": "2026-11-10T00:30:07+00:00",
+  "title": "Add #1265 Echo and SONAR depth finder",
+  "tools": [
+   "echo-sonar"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2962ad24e4d9",
+  "date": "2026-11-10T00:29:52+00:00",
+  "title": "Add #1345 Floating and buoyancy",
+  "tools": [
+   "buoyancy-lab"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9f07e707eaa8",
+  "date": "2026-11-10T00:29:52+00:00",
+  "title": "Add #1344 Capillary rise",
+  "tools": [
+   "capillary-rise"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0e5ddf0194af",
+  "date": "2026-11-10T00:29:52+00:00",
+  "title": "Add #1343 Terminal velocity in oil (Stokes' law)",
+  "tools": [
+   "stokes-terminal-velocity"
+  ],
+  "site": false
+ },
+ {
+  "sha": "51b506a1b23a",
+  "date": "2026-11-10T00:29:52+00:00",
+  "title": "Add #1342 Bernoulli, Venturi and Torricelli",
+  "tools": [
+   "bernoulli-flow"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9b43a02f1644",
+  "date": "2026-11-10T00:29:52+00:00",
+  "title": "Add #1341 Hydraulic lift",
+  "tools": [
+   "hydraulic-lift"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e0ca9c1722e0",
+  "date": "2026-11-10T00:29:51+00:00",
+  "title": "Add #1340 Stress-strain tester and Searle's experiment",
+  "tools": [
+   "stress-strain-test"
+  ],
+  "site": false
+ },
+ {
+  "sha": "23a4c3524b5c",
+  "date": "2026-11-10T00:29:51+00:00",
+  "title": "Add #1339 g with height, depth and satellites",
+  "tools": [
+   "gravity-height-depth"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2f9489d5358a",
+  "date": "2026-11-10T00:27:29+00:00",
+  "title": "Add #1423 Huygens wavelets",
+  "tools": [
+   "huygens-wavelets"
+  ],
+  "site": false
+ },
+ {
+  "sha": "dc5e5cc86aa9",
+  "date": "2026-11-10T00:27:29+00:00",
+  "title": "Add #1422 Young's double slit and single slit",
+  "tools": [
+   "double-slit"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9ecc6e72489a",
+  "date": "2026-11-10T00:27:29+00:00",
+  "title": "Add #1421 Total internal reflection and optical fibre",
+  "tools": [
+   "optical-fibre"
+  ],
+  "site": false
+ },
+ {
+  "sha": "34851604c017",
+  "date": "2026-11-10T00:27:28+00:00",
+  "title": "Add #1264 Law of constant proportions lab",
+  "tools": [
+   "constant-proportions"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ce30ccc897ee",
+  "date": "2026-11-10T00:25:26+00:00",
+  "title": "Add #1306 Brain map",
+  "tools": [
+   "brain-map"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f0b8ec88c239",
+  "date": "2026-11-10T00:25:25+00:00",
+  "title": "Add #1303 Reflex arc and reaction time",
+  "tools": [
+   "reaction-time-test"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9d6f226e1942",
+  "date": "2026-11-10T00:25:25+00:00",
+  "title": "Add #1302 Double circulation",
+  "tools": [
+   "heart-circulation"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3cb3e3f217ea",
+  "date": "2026-11-10T00:25:25+00:00",
+  "title": "Add #1301 Digestion journey",
+  "tools": [
+   "digestion-journey"
+  ],
+  "site": false
+ },
+ {
+  "sha": "277045a1372f",
+  "date": "2026-11-10T00:24:58+00:00",
+  "title": "Add #1385 Event algebra",
+  "tools": [
+   "event-algebra"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e72e8e10f2b9",
+  "date": "2026-11-10T00:24:58+00:00",
+  "title": "Add #1384 Spread explorer",
+  "tools": [
+   "spread-explorer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8c69cea75eb1",
+  "date": "2026-11-10T00:24:38+00:00",
+  "title": "Add #1446 Meselson-Stahl experiment",
+  "tools": [
+   "meselson-stahl"
+  ],
+  "site": false
+ },
+ {
+  "sha": "28b03b23efa7",
+  "date": "2026-11-10T00:24:37+00:00",
+  "title": "Add #1445 Polygenic traits",
+  "tools": [
+   "polygenic-traits"
+  ],
+  "site": false
+ },
+ {
+  "sha": "445217fd847a",
+  "date": "2026-11-10T00:24:37+00:00",
+  "title": "Add #1444 Pedigree analyser",
+  "tools": [
+   "pedigree-analyser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d382dffee00a",
+  "date": "2026-11-10T00:24:37+00:00",
+  "title": "Add #1435 Henry's law: soda bottles and divers",
+  "tools": [
+   "henrys-law"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9b2a7f0375c4",
+  "date": "2026-11-10T00:24:37+00:00",
+  "title": "Add #1434 Coordination compound namer",
+  "tools": [
+   "complex-namer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a9fba51a5395",
+  "date": "2026-11-10T00:24:37+00:00",
+  "title": "Add #1433 Molar conductivity and Kohlrausch's law",
+  "tools": [
+   "kohlrausch-law"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d870cdf405c6",
+  "date": "2026-11-10T00:24:37+00:00",
+  "title": "Add #1432 Logic gates and truth tables",
+  "tools": [
+   "logic-gates"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e216ceb2d975",
+  "date": "2026-11-10T00:24:37+00:00",
+  "title": "Add #1431 Rectifier lab",
+  "tools": [
+   "rectifier-lab"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b7254fd71beb",
+  "date": "2026-11-10T00:24:37+00:00",
+  "title": "Add #1430 p-n junction and diode curve",
+  "tools": [
+   "pn-junction"
+  ],
+  "site": false
+ },
+ {
+  "sha": "704d4b71de6a",
+  "date": "2026-11-10T00:24:36+00:00",
+  "title": "Add #1429 Energy bands",
+  "tools": [
+   "energy-bands"
+  ],
+  "site": false
+ },
+ {
+  "sha": "be75320d52f8",
+  "date": "2026-11-10T00:24:19+00:00",
+  "title": "Add #1284 Factorising with identities, step by step",
+  "tools": [
+   "factorise-steps"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5add2e5047e7",
+  "date": "2026-11-10T00:24:19+00:00",
+  "title": "Add #1283 Field area by triangles",
+  "tools": [
+   "field-area"
+  ],
+  "site": false
+ },
+ {
+  "sha": "683a831f0e83",
+  "date": "2026-11-10T00:24:19+00:00",
+  "title": "Add #1282 Probability spinner designer",
+  "tools": [
+   "spinner-designer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "31e2f8aaa39d",
+  "date": "2026-11-10T00:24:19+00:00",
+  "title": "Add #1281 Statement and converse checker",
+  "tools": [
+   "converse-checker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ce76f5731dc0",
+  "date": "2026-11-10T00:24:14+00:00",
+  "title": "Add #1255 Tissue identifier",
+  "tools": [
+   "area-shear",
+   "circle-slices",
+   "tissue-identifier"
+  ],
+  "site": false
+ },
+ {
+  "sha": "58869a3808f2",
+  "date": "2026-11-10T00:23:09+00:00",
+  "title": "Add #1476 Random variable builder",
+  "tools": [
+   "random-variable"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7fa4d8d76d4c",
+  "date": "2026-11-10T00:23:09+00:00",
+  "title": "Add #1475 LPP graphical solver",
+  "tools": [
+   "lpp-solver"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e98789d22abe",
+  "date": "2026-11-10T00:23:09+00:00",
+  "title": "Add #1474 Slope field and solutions",
+  "tools": [
+   "slope-field"
+  ],
+  "site": false
+ },
+ {
+  "sha": "cf20dd608455",
+  "date": "2026-11-10T00:23:09+00:00",
+  "title": "Add #1460 Inverse trig by reflection",
+  "tools": [
+   "inverse-trig"
+  ],
+  "site": false
+ },
+ {
+  "sha": "acc7085cb98a",
+  "date": "2026-11-10T00:23:09+00:00",
+  "title": "Add #1459 One-one and onto tester",
+  "tools": [
+   "function-type"
+  ],
+  "site": false
+ },
+ {
+  "sha": "680b903b0924",
+  "date": "2026-11-10T00:22:38+00:00",
+  "title": "Add #1338 Circular motion and the vertical loop",
+  "tools": [
+   "vertical-circle"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9b040bc15a3e",
+  "date": "2026-11-10T00:22:38+00:00",
+  "title": "Add #1337 River crossing boat",
+  "tools": [
+   "river-crossing"
+  ],
+  "site": false
+ },
+ {
+  "sha": "84c872121eb2",
+  "date": "2026-11-10T00:22:38+00:00",
+  "title": "Add #1336 Centre of mass finder",
+  "tools": [
+   "centre-of-mass"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c9ef3c642d75",
+  "date": "2026-11-10T00:22:38+00:00",
+  "title": "Add #1335 Collision lab",
+  "tools": [
+   "collision-lab"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5a88d120b163",
+  "date": "2026-11-10T00:22:38+00:00",
+  "title": "Add #1334 Work as area under a force graph",
+  "tools": [
+   "variable-force-work"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6c0656888fde",
+  "date": "2026-11-10T00:22:38+00:00",
+  "title": "Add #1333 Free-body diagram builder",
+  "tools": [
+   "free-body-diagram"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b34ed39b7f61",
+  "date": "2026-11-10T00:22:38+00:00",
+  "title": "Add #1332 Projectile launcher",
+  "tools": [
+   "projectile-launcher"
+  ],
+  "site": false
+ },
+ {
+  "sha": "095892df3fa0",
+  "date": "2026-11-10T00:22:38+00:00",
+  "title": "Add #1331 Vector adder",
+  "tools": [
+   "vector-adder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5904cbcc27b7",
+  "date": "2026-11-10T00:17:29+00:00",
+  "title": "Add #1373 Radian ruler",
+  "tools": [
+   "radian-ruler"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6a1bd4999b3f",
+  "date": "2026-11-10T00:17:29+00:00",
+  "title": "Add #1372 Power set builder",
+  "tools": [
+   "power-set"
+  ],
+  "site": false
+ },
+ {
+  "sha": "cd3decc10324",
+  "date": "2026-11-10T00:17:29+00:00",
+  "title": "Add #1371 Inequality shader",
+  "tools": [
+   "inequality-shader"
+  ],
+  "site": false
+ },
+ {
+  "sha": "934ed2d04522",
+  "date": "2026-11-10T00:17:29+00:00",
+  "title": "Add #1370 Compound angle proof",
+  "tools": [
+   "compound-angle"
+  ],
+  "site": false
+ },
+ {
+  "sha": "fecdd47785de",
+  "date": "2026-11-10T00:17:29+00:00",
+  "title": "Add #1369 Function gallery",
+  "tools": [
+   "function-gallery"
+  ],
+  "site": false
+ },
+ {
+  "sha": "307d20a8ee43",
+  "date": "2026-11-10T00:17:10+00:00",
+  "title": "Add #1254 SI prefixes trainer",
+  "tools": [
+   "si-unit-converter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7bd6e032e426",
+  "date": "2026-11-10T00:16:59+00:00",
+  "title": "Add #1256 Separation lab",
+  "tools": [
+   "separation-lab"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0e588f715c4b",
+  "date": "2026-11-10T00:15:49+00:00",
+  "title": "Add #1285 Clock hand angles",
+  "tools": [
+   "clock-angles"
+  ],
+  "site": false
+ },
+ {
+  "sha": "38bc14e57f44",
+  "date": "2026-11-10T00:15:49+00:00",
+  "title": "Add #1280 Growing patterns and sequences",
+  "tools": [
+   "sequence-explorer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4b8192743bb1",
+  "date": "2026-11-10T00:15:49+00:00",
+  "title": "Add #1279 Ferris wheel height",
+  "tools": [
+   "ferris-wheel"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2373a5986bd2",
+  "date": "2026-11-10T00:15:07+00:00",
+  "title": "Add #1218 Measurement and parallax",
+  "tools": [
+   "parallax-reading"
+  ],
+  "site": false
+ },
+ {
+  "sha": "56dbbaaf7903",
+  "date": "2026-11-10T00:15:07+00:00",
+  "title": "Add #1217 Balanced and unbalanced forces",
+  "tools": [
+   "tug-of-war-forces"
+  ],
+  "site": false
+ },
+ {
+  "sha": "671c309313a8",
+  "date": "2026-11-10T00:15:07+00:00",
+  "title": "Add #1216 Heating effect and fuse",
+  "tools": [
+   "fuse-heating"
+  ],
+  "site": false
+ },
+ {
+  "sha": "36f2968c19d9",
+  "date": "2026-11-10T00:15:07+00:00",
+  "title": "Add #1215 Simple circuit lab",
+  "tools": [
+   "simple-circuit-lab"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f98f3aec9d81",
+  "date": "2026-11-10T00:15:07+00:00",
+  "title": "Add #1214 How an infection spreads",
+  "tools": [
+   "infection-spread-sim"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5fb85cb671b1",
+  "date": "2026-11-10T00:15:06+00:00",
+  "title": "Add #1213 Microbe growth simulator",
+  "tools": [
+   "microbe-growth"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9a2532a6097e",
+  "date": "2026-11-10T00:15:06+00:00",
+  "title": "Add #1212 Virtual microscope",
+  "tools": [
+   "virtual-microscope"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a5c9efb42e7c",
+  "date": "2026-11-10T00:15:06+00:00",
+  "title": "Add #1211 Fair test planner",
+  "tools": [
+   "fair-test-planner"
+  ],
+  "site": false
+ },
+ {
+  "sha": "30f982f34c92",
+  "date": "2026-11-10T00:14:13+00:00",
+  "title": "Add #1436 Organic reaction map",
+  "tools": [
+   "organic-reaction-map"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e6be8775ad39",
+  "date": "2026-11-10T00:13:52+00:00",
+  "title": "Add #1253 Area of a circle by slicing",
+  "tools": [
+   "circle-slices"
+  ],
+  "site": false
+ },
+ {
+  "sha": "750ce9c40cc8",
+  "date": "2026-11-10T00:11:02+00:00",
+  "title": "Add #1471 Integration technique coach",
+  "tools": [
+   "integration-coach"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f77b3b81749e",
+  "date": "2026-11-10T00:11:02+00:00",
+  "title": "Add #1470 Definite integral properties",
+  "tools": [
+   "integral-properties"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2daaab6f4e49",
+  "date": "2026-11-10T00:11:02+00:00",
+  "title": "Add #1469 Related rates",
+  "tools": [
+   "related-rates"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9fc65f49d37c",
+  "date": "2026-11-10T00:11:01+00:00",
+  "title": "Add #1468 eˣ and ln x",
+  "tools": [
+   "e-and-ln"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8bd5eee239b8",
+  "date": "2026-11-10T00:11:01+00:00",
+  "title": "Add #1467 Derivative calculator with steps",
+  "tools": [
+   "derivative-steps"
+  ],
+  "site": false
+ },
+ {
+  "sha": "aaf40f13fbd6",
+  "date": "2026-11-10T00:11:01+00:00",
+  "title": "Add #1466 Chain rule gears",
+  "tools": [
+   "chain-rule"
+  ],
+  "site": false
+ },
+ {
+  "sha": "75b09f0fd4a8",
+  "date": "2026-11-10T00:10:49+00:00",
+  "title": "Add #1252 Pick's theorem on a dot grid",
+  "tools": [
+   "area-shear",
+   "picks-theorem"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6d9d0b308b22",
+  "date": "2026-11-10T00:09:33+00:00",
+  "title": "Add #1364 Nitrogen estimation (Dumas and Kjeldahl)",
+  "tools": [
+   "nitrogen-estimation"
+  ],
+  "site": false
+ },
+ {
+  "sha": "401a25ba5e14",
+  "date": "2026-11-10T00:09:33+00:00",
+  "title": "Add #1363 Ksp precipitation predictor",
+  "tools": [
+   "ksp-precipitation"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6f90691fb29d",
+  "date": "2026-11-10T00:09:33+00:00",
+  "title": "Add #1362 Bond enthalpy estimator",
+  "tools": [
+   "bond-enthalpy"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d45b3a2ddf4b",
+  "date": "2026-11-10T00:09:32+00:00",
+  "title": "Add #1361 ΔG = ΔH − TΔS explorer",
+  "tools": [
+   "gibbs-explorer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "bf7de3ccf75e",
+  "date": "2026-11-10T00:09:07+00:00",
+  "title": "Add #1251 Shear and area",
+  "tools": [
+   "area-shear"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9b7af9bb9ec8",
+  "date": "2026-11-10T00:09:07+00:00",
+  "title": "Add #1250 Balance scale equation solver",
+  "tools": [
+   "balance-scale"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6f72a0a78773",
+  "date": "2026-11-10T00:04:58+00:00",
+  "title": "Add #1319 Linear equation word problems",
+  "tools": [
+   "linear-word-problems"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3841cd367c10",
+  "date": "2026-11-10T00:04:58+00:00",
+  "title": "Add #1318 Why √2 is irrational",
+  "tools": [
+   "irrational-proof"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ff4a10baa72f",
+  "date": "2026-11-10T00:04:57+00:00",
+  "title": "Add #1317 Triangle type from coordinates",
+  "tools": [
+   "coord-triangle"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5ce415b0f266",
+  "date": "2026-11-10T00:04:57+00:00",
+  "title": "Add #1316 Combined solids",
+  "tools": [
+   "combined-solids"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3b181313f324",
+  "date": "2026-11-10T00:02:15+00:00",
+  "title": "Add #1249 Number trick decoder",
+  "tools": [
+   "algebra-tricks"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2193eecbeb6a",
+  "date": "2026-11-09T23:59:04+00:00",
+  "title": "Add #1271 Carbon cycle sandbox",
+  "tools": [
+   "carbon-cycle"
+  ],
+  "site": false
+ },
+ {
+  "sha": "77e0c6144ffa",
+  "date": "2026-11-09T23:18:57+00:00",
+  "title": "Add #1109 Dipole moment and polarity",
+  "tools": [
+   "dipole-polarity"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ae595d29332a",
+  "date": "2026-11-09T23:18:57+00:00",
+  "title": "Add #1108 SN1 vs SN2 race",
+  "tools": [
+   "sn1-sn2"
+  ],
+  "site": false
+ },
+ {
+  "sha": "08624c56f8d8",
+  "date": "2026-11-09T23:18:56+00:00",
+  "title": "Add #1107 Chirality and R/S checker",
+  "tools": [
+   "chirality-checker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d73abee8a50c",
+  "date": "2026-11-09T23:18:56+00:00",
+  "title": "Add #1106 Isomer explorer",
+  "tools": [
+   "isomer-explorer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1b49581b6709",
+  "date": "2026-11-09T23:18:56+00:00",
+  "title": "Add #1105 Newman projection spinner",
+  "tools": [
+   "conformation-spinner"
+  ],
+  "site": false
+ },
+ {
+  "sha": "319a649258e3",
+  "date": "2026-11-09T23:18:56+00:00",
+  "title": "Add #1104 Carbon chain builder and IUPAC namer",
+  "tools": [
+   "carbon-chain-namer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5513f0a1f87a",
+  "date": "2026-11-09T23:18:56+00:00",
+  "title": "Add #1103 MO diagram for diatomic molecules",
+  "tools": [
+   "mo-diagram"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2ef1cbbbcb65",
+  "date": "2026-11-09T23:18:56+00:00",
+  "title": "Add #1102 Lewis structures and formal charge",
+  "tools": [
+   "lewis-structures"
+  ],
+  "site": false
+ },
+ {
+  "sha": "17d93e4fba98",
+  "date": "2026-11-09T23:18:56+00:00",
+  "title": "Add #1101 VSEPR shape viewer",
+  "tools": [
+   "vsepr-shapes"
+  ],
+  "site": false
+ },
+ {
+  "sha": "92137ddb8304",
+  "date": "2026-11-09T23:08:39+00:00",
+  "title": "Add #1193 Relation checker",
+  "tools": [
+   "relation-checker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "816c4b4acee8",
+  "date": "2026-11-09T23:08:39+00:00",
+  "title": "Add #1192 Binomial expansion with Pascal",
+  "tools": [
+   "binomial-expansion"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7037fc156914",
+  "date": "2026-11-09T23:08:39+00:00",
+  "title": "Add #1191 Probability tree and Bayes",
+  "tools": [
+   "probability-tree"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5d469b8b75b3",
+  "date": "2026-11-09T23:08:39+00:00",
+  "title": "Add #1190 3D vector lab",
+  "tools": [
+   "vector-lab-3d"
+  ],
+  "site": false
+ },
+ {
+  "sha": "42226a0dc457",
+  "date": "2026-11-09T23:08:39+00:00",
+  "title": "Add #1189 Matrix as a transformation",
+  "tools": [
+   "matrix-transform"
+  ],
+  "site": false
+ },
+ {
+  "sha": "eac0bd52ab8c",
+  "date": "2026-11-09T23:08:39+00:00",
+  "title": "Add #1188 Conic explorer",
+  "tools": [
+   "conic-explorer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6393bcd58ab2",
+  "date": "2026-11-09T23:08:39+00:00",
+  "title": "Add #1187 Argand plane",
+  "tools": [
+   "argand-plane"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0595337b4ebd",
+  "date": "2026-11-09T23:08:38+00:00",
+  "title": "Add #1186 Venn diagram calculator",
+  "tools": [
+   "venn-diagram"
+  ],
+  "site": false
+ },
+ {
+  "sha": "aa9be43a2f66",
+  "date": "2026-11-09T23:08:38+00:00",
+  "title": "Add #1185 Limit zoom",
+  "tools": [
+   "limit-zoom"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a6515a837943",
+  "date": "2026-11-09T23:08:38+00:00",
+  "title": "Add #1184 Maxima and minima finder",
+  "tools": [
+   "maxima-minima"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b89c1b14e05a",
+  "date": "2026-11-09T23:08:38+00:00",
+  "title": "Add #1183 Unit circle to wave",
+  "tools": [
+   "unit-circle"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2fc33f0fc27d",
+  "date": "2026-11-09T23:08:38+00:00",
+  "title": "Add #1182 Riemann sums to integral",
+  "tools": [
+   "riemann-sums"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c6bd71ddb919",
+  "date": "2026-11-09T23:08:38+00:00",
+  "title": "Add #1181 Derivative as a slope",
+  "tools": [
+   "derivative-slope"
+  ],
+  "site": true
+ },
+ {
+  "sha": "1855283689ef",
+  "date": "2026-11-09T23:08:34+00:00",
+  "title": "Keep labels inside the pictures on phones (#1023, #1026-#1028)",
+  "tools": [
+   "banked-curve",
+   "kepler-orbits",
+   "newtons-laws",
+   "simple-machines"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7181525ca588",
+  "date": "2026-11-09T23:08:34+00:00",
+  "title": "Add #1028 Banked road and friction",
+  "tools": [
+   "banked-curve"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ebebfd094406",
+  "date": "2026-11-09T23:08:33+00:00",
+  "title": "Add #1027 Kepler's laws orbit lab",
+  "tools": [
+   "kepler-orbits"
+  ],
+  "site": false
+ },
+ {
+  "sha": "09bb34df9488",
+  "date": "2026-11-09T23:08:33+00:00",
+  "title": "Fix whole-number labels in #1021-#1026 (100 % showed as 1 %)",
+  "tools": [
+   "energy-track",
+   "equations-of-motion",
+   "friction-ramp",
+   "motion-graphs",
+   "newtons-laws",
+   "simple-machines"
+  ],
+  "site": false
+ },
+ {
+  "sha": "07f11cc55ff3",
+  "date": "2026-11-09T23:08:33+00:00",
+  "title": "Add #1026 Simple machines lab",
+  "tools": [
+   "simple-machines"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2ef376e26739",
+  "date": "2026-11-09T23:08:33+00:00",
+  "title": "Add #1025 Energy skate track",
+  "tools": [
+   "energy-track"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4a59b687e06a",
+  "date": "2026-11-09T23:08:33+00:00",
+  "title": "Add #1024 Force and friction ramp",
+  "tools": [
+   "friction-ramp"
+  ],
+  "site": false
+ },
+ {
+  "sha": "30b7c80040c6",
+  "date": "2026-11-09T23:08:33+00:00",
+  "title": "Add #1023 Newton's laws sandbox",
+  "tools": [
+   "newtons-laws"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7f2dc8b3e1bc",
+  "date": "2026-11-09T23:08:33+00:00",
+  "title": "Add #1022 Equations of motion from the v-t graph",
+  "tools": [
+   "equations-of-motion"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5df9ded84da9",
+  "date": "2026-11-09T23:08:33+00:00",
+  "title": "Add #1021 Motion graphs live",
+  "tools": [
+   "motion-graphs"
+  ],
+  "site": false
+ },
+ {
+  "sha": "67080eb33894",
+  "date": "2026-11-09T22:57:24+00:00",
+  "title": "Keep class page search titles under 60 characters",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "53c3baf0cfae",
+  "date": "2026-11-09T22:46:43+00:00",
+  "title": "Fix pictures in #1082, #1084, #1085, #1087, #1089, #1090",
+  "tools": [
+   "electron-configuration",
+   "formula-writer",
+   "galvanic-cell",
+   "le-chatelier",
+   "mole-bridge",
+   "order-graphs"
+  ],
+  "site": false
+ },
+ {
+  "sha": "668d72bfbeca",
+  "date": "2026-11-09T22:46:43+00:00",
+  "title": "Add #1088 Oxidation number finder",
+  "tools": [
+   "oxidation-number"
+  ],
+  "site": false
+ },
+ {
+  "sha": "d3d454fdd6aa",
+  "date": "2026-11-09T22:46:43+00:00",
+  "title": "Add #1089 Galvanic cell builder",
+  "tools": [
+   "galvanic-cell"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5ac590831e69",
+  "date": "2026-11-09T22:46:42+00:00",
+  "title": "Add #1086 Reactivity series lab",
+  "tools": [
+   "reactivity-series"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1784dfd5dd2e",
+  "date": "2026-11-09T22:46:42+00:00",
+  "title": "Add #1083 pH scale explorer",
+  "tools": [
+   "ph-scale-explorer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "21b0ae26a124",
+  "date": "2026-11-09T22:46:42+00:00",
+  "title": "Add #1090 Order of reaction graphs",
+  "tools": [
+   "order-graphs"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e1632493855e",
+  "date": "2026-11-09T22:46:42+00:00",
+  "title": "Add #1087 Le Chatelier sandbox",
+  "tools": [
+   "le-chatelier"
+  ],
+  "site": false
+ },
+ {
+  "sha": "98428b99096c",
+  "date": "2026-11-09T22:46:42+00:00",
+  "title": "Add #1085 Mole bridge",
+  "tools": [
+   "mole-bridge"
+  ],
+  "site": false
+ },
+ {
+  "sha": "056d238773c9",
+  "date": "2026-11-09T22:46:42+00:00",
+  "title": "Add #1084 Formula writer",
+  "tools": [
+   "formula-writer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1966cbd8d562",
+  "date": "2026-11-09T22:46:42+00:00",
+  "title": "Add #1082 Electron configuration filler",
+  "tools": [
+   "electron-configuration"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ced5e0d89dd5",
+  "date": "2026-11-09T22:46:42+00:00",
+  "title": "Add #1081 Build an atom",
+  "tools": [
+   "build-an-atom"
+  ],
+  "site": true
+ },
+ {
+  "sha": "738d1db8a294",
+  "date": "2026-11-09T22:46:42+00:00",
+  "title": "Fix #1126 drift in the soot story",
+  "tools": [
+   "natural-selection"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6038f1f34cd5",
+  "date": "2026-11-09T22:46:42+00:00",
+  "title": "Add #1133 Transpiration lab",
+  "tools": [
+   "transpiration-lab"
+  ],
+  "site": false
+ },
+ {
+  "sha": "075d76c179ee",
+  "date": "2026-11-09T22:46:42+00:00",
+  "title": "Add #1132 Cell division",
+  "tools": [
+   "cell-division"
+  ],
+  "site": false
+ },
+ {
+  "sha": "461d0a7ceb8c",
+  "date": "2026-11-09T22:46:41+00:00",
+  "title": "Add #1131 Enzyme activity lab",
+  "tools": [
+   "enzyme-activity"
+  ],
+  "site": false
+ },
+ {
+  "sha": "46715d3bdb58",
+  "date": "2026-11-09T22:46:41+00:00",
+  "title": "Add #1130 Oxygen dissociation curve",
+  "tools": [
+   "oxygen-dissociation"
+  ],
+  "site": false
+ },
+ {
+  "sha": "436000671cef",
+  "date": "2026-11-09T22:46:41+00:00",
+  "title": "Add #1129 Food web builder",
+  "tools": [
+   "food-web-builder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "aa88d44db08c",
+  "date": "2026-11-09T22:46:41+00:00",
+  "title": "Add #1128 Nerve impulse lab",
+  "tools": [
+   "action-potential"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6a0817d3a15b",
+  "date": "2026-11-09T22:46:41+00:00",
+  "title": "Add #1127 Cardiac cycle and ECG",
+  "tools": [
+   "cardiac-cycle"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1214d2b13bc8",
+  "date": "2026-11-09T22:46:41+00:00",
+  "title": "Add #1126 Natural selection with peppered moths",
+  "tools": [
+   "natural-selection"
+  ],
+  "site": false
+ },
+ {
+  "sha": "63eb08009343",
+  "date": "2026-11-09T22:46:41+00:00",
+  "title": "Add #1125 Central dogma lab",
+  "tools": [
+   "central-dogma"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b2e21f12a82f",
+  "date": "2026-11-09T22:46:41+00:00",
+  "title": "Add #1124 Mendel's pea garden",
+  "tools": [
+   "mendel-peas"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f71188cbf227",
+  "date": "2026-11-09T22:46:41+00:00",
+  "title": "Add #1123 Cell explorer",
+  "tools": [
+   "cell-explorer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "bfd0613422b2",
+  "date": "2026-11-09T22:46:41+00:00",
+  "title": "Add #1122 Photosynthesis lab",
+  "tools": [
+   "photosynthesis-lab"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4879f904dd01",
+  "date": "2026-11-09T22:46:40+00:00",
+  "title": "Add #1121 Osmosis lab",
+  "tools": [
+   "osmosis-lab"
+  ],
+  "site": false
+ },
+ {
+  "sha": "546547566adb",
+  "date": "2026-11-09T22:46:40+00:00",
+  "title": "Polish pictures of #1061, #1064, #1068 and #1070",
+  "tools": [
+   "binding-energy",
+   "hydrogen-spectrum",
+   "sound-wave-visualiser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "40d369e13e75",
+  "date": "2026-11-09T22:46:40+00:00",
+  "title": "Add #1071 Radioactive decay dice",
+  "tools": [
+   "decay-dice"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4222bc03b62d",
+  "date": "2026-11-09T22:46:40+00:00",
+  "title": "Add #1070 Binding energy per nucleon",
+  "tools": [
+   "binding-energy"
+  ],
+  "site": false
+ },
+ {
+  "sha": "22786bb370fa",
+  "date": "2026-11-09T22:46:40+00:00",
+  "title": "Add #1069 Rutherford gold foil simulator",
+  "tools": [
+   "rutherford-scattering"
+  ],
+  "site": false
+ },
+ {
+  "sha": "80644324a86c",
+  "date": "2026-11-09T22:46:40+00:00",
+  "title": "Add #1068 Hydrogen spectrum and Bohr levels",
+  "tools": [
+   "hydrogen-spectrum"
+  ],
+  "site": false
+ },
+ {
+  "sha": "06e1fcaef042",
+  "date": "2026-11-09T22:46:40+00:00",
+  "title": "Add #1067 Photoelectric effect lab",
+  "tools": [
+   "photoelectric-lab"
+  ],
+  "site": false
+ },
+ {
+  "sha": "4025211ed8f5",
+  "date": "2026-11-09T22:46:40+00:00",
+  "title": "Add #1066 Gas in a box",
+  "tools": [
+   "kinetic-theory",
+   "states-of-matter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "394e2a9acf3e",
+  "date": "2026-11-09T22:46:40+00:00",
+  "title": "Add #1065 Heating curve of water",
+  "tools": [
+   "heating-curve"
+  ],
+  "site": false
+ },
+ {
+  "sha": "25b07166a4f6",
+  "date": "2026-11-09T22:46:40+00:00",
+  "title": "Add #1064 States of matter particle box",
+  "tools": [
+   "states-of-matter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8ded74a6a698",
+  "date": "2026-11-09T22:46:40+00:00",
+  "title": "Add #1063 Travelling wave",
+  "tools": [
+   "travelling-wave"
+  ],
+  "site": false
+ },
+ {
+  "sha": "2aba23ea7268",
+  "date": "2026-11-09T22:46:39+00:00",
+  "title": "Add #1062 SHM as a shadow of circular motion",
+  "tools": [
+   "shm-circle"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b27f728f523e",
+  "date": "2026-11-09T22:46:39+00:00",
+  "title": "Add #1061 Sound wave visualiser",
+  "tools": [
+   "sound-wave-visualiser"
+  ],
+  "site": true
+ },
+ {
+  "sha": "18239d7ec3e6",
+  "date": "2026-11-09T22:30:42+00:00",
+  "title": "Add #1049 Electromagnet builder",
+  "tools": [
+   "electromagnet-builder"
+  ],
+  "site": false
+ },
+ {
+  "sha": "1f10b8186541",
+  "date": "2026-11-09T22:30:42+00:00",
+  "title": "Add #1048 Wheatstone and metre bridge",
+  "tools": [
+   "wheatstone-bridge"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8fead61462f0",
+  "date": "2026-11-09T22:30:42+00:00",
+  "title": "Add #1047 Parallel-plate capacitor lab",
+  "tools": [
+   "capacitor-lab"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9f31a0f14df3",
+  "date": "2026-11-09T22:30:42+00:00",
+  "title": "Add #1046 Phasor diagram and LCR circuit",
+  "tools": [
+   "lcr-phasors"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b05b31d8d6a6",
+  "date": "2026-11-09T22:30:42+00:00",
+  "title": "Add #1045 Faraday's magnet and coil",
+  "tools": [
+   "faraday-induction"
+  ],
+  "site": false
+ },
+ {
+  "sha": "cf6fb6e57328",
+  "date": "2026-11-09T22:30:42+00:00",
+  "title": "Add #1044 Fleming's left-hand rule and DC motor",
+  "tools": [
+   "fleming-rule"
+  ],
+  "site": false
+ },
+ {
+  "sha": "05372ade6f21",
+  "date": "2026-11-09T22:30:42+00:00",
+  "title": "Add #1043 Magnetic field mapper",
+  "tools": [
+   "magnetic-field-mapper"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f4c3388b8b40",
+  "date": "2026-11-09T22:30:42+00:00",
+  "title": "Add #1042 Series and parallel circuit builder",
+  "tools": [
+   "series-parallel"
+  ],
+  "site": false
+ },
+ {
+  "sha": "8beffc4a8aad",
+  "date": "2026-11-09T22:30:42+00:00",
+  "title": "Add #1041 Ohm's law lab",
+  "tools": [
+   "ohms-law-lab"
+  ],
+  "site": false
+ },
+ {
+  "sha": "fb64eb07171c",
+  "date": "2026-11-09T22:24:53+00:00",
+  "title": "Add #1166 Quadrilateral explorer",
+  "tools": [
+   "quadrilateral-explorer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5bb965bedc2e",
+  "date": "2026-11-09T22:24:53+00:00",
+  "title": "Add #1165 Sample space builder",
+  "tools": [
+   "sample-space"
+  ],
+  "site": false
+ },
+ {
+  "sha": "6a27f078aeab",
+  "date": "2026-11-09T22:24:53+00:00",
+  "title": "Add #1164 Heron's formula explorer",
+  "tools": [
+   "herons-formula"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b3eb71f952ae",
+  "date": "2026-11-09T22:24:53+00:00",
+  "title": "Add #1161 Circle sectors and tangents",
+  "tools": [
+   "circle-sector"
+  ],
+  "site": false
+ },
+ {
+  "sha": "3f9d8166f27c",
+  "date": "2026-11-09T22:24:53+00:00",
+  "title": "Add #1160 Distance and section formula",
+  "tools": [
+   "section-formula"
+  ],
+  "site": false
+ },
+ {
+  "sha": "825225bddea9",
+  "date": "2026-11-09T22:24:53+00:00",
+  "title": "Add #1159 Similar triangles",
+  "tools": [
+   "similar-triangles"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9d6b4c08c378",
+  "date": "2026-11-09T22:24:53+00:00",
+  "title": "Add #1163 Grouped data mean, median and mode",
+  "tools": [
+   "grouped-data-stats"
+  ],
+  "site": false
+ },
+ {
+  "sha": "22dacb7a298d",
+  "date": "2026-11-09T22:24:52+00:00",
+  "title": "Add #1162 Arithmetic progression staircase",
+  "tools": [
+   "ap-explorer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "88dda4454bd3",
+  "date": "2026-11-09T22:24:52+00:00",
+  "title": "Add #1158 Algebraic identity tiles",
+  "tools": [
+   "identity-tiles"
+  ],
+  "site": false
+ },
+ {
+  "sha": "daf810164965",
+  "date": "2026-11-09T22:24:52+00:00",
+  "title": "Add #1157 Pair of linear equations",
+  "tools": [
+   "linear-pair-solver"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e370024fe49a",
+  "date": "2026-11-09T22:24:52+00:00",
+  "title": "Add #1156 Zeros of a polynomial",
+  "tools": [
+   "polynomial-zeros"
+  ],
+  "site": false
+ },
+ {
+  "sha": "7d0f93da7915",
+  "date": "2026-11-09T22:24:52+00:00",
+  "title": "Add #1155 HCF and LCM with factor trees",
+  "tools": [
+   "hcf-lcm-venn"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5fa3319de491",
+  "date": "2026-11-09T22:24:52+00:00",
+  "title": "Add #1154 Heights and distances",
+  "tools": [
+   "heights-distances"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c3acb60e4b83",
+  "date": "2026-11-09T22:24:52+00:00",
+  "title": "Add #1153 Trig ratio explorer",
+  "tools": [
+   "trig-ratios"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f0bbe5b94022",
+  "date": "2026-11-09T22:24:52+00:00",
+  "title": "Add #1152 Pythagoras proof playground",
+  "tools": [
+   "pythagoras-proofs"
+  ],
+  "site": false
+ },
+ {
+  "sha": "a2d33ebe3700",
+  "date": "2026-11-09T22:24:51+00:00",
+  "title": "Add #1151 Quadratic explorer",
+  "tools": [
+   "quadratic-explorer"
+  ],
+  "site": true
+ },
+ {
+  "sha": "b58679019f57",
+  "date": "2026-11-09T22:24:51+00:00",
+  "title": "Add #1007 Why the sky is blue",
+  "tools": [
+   "sky-colour"
+  ],
+  "site": false
+ },
+ {
+  "sha": "681c9147a831",
+  "date": "2026-11-09T22:24:51+00:00",
+  "title": "Add #1006 Microscope and telescope",
+  "tools": [
+   "microscope-telescope"
+  ],
+  "site": false
+ },
+ {
+  "sha": "382ac7d4628b",
+  "date": "2026-11-09T22:24:51+00:00",
+  "title": "Add #1005 Eye defects and glasses",
+  "tools": [
+   "eye-defects"
+  ],
+  "site": false
+ },
+ {
+  "sha": "9d556ad8ee11",
+  "date": "2026-11-09T22:24:51+00:00",
+  "title": "Add #1004 Prism and dispersion",
+  "tools": [
+   "prism-dispersion"
+  ],
+  "site": false
+ },
+ {
+  "sha": "f674403c05b4",
+  "date": "2026-11-09T22:24:51+00:00",
+  "title": "Add #1003 Refraction and Snell's law",
+  "tools": [
+   "snell-law"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c5022341a259",
+  "date": "2026-11-09T22:24:51+00:00",
+  "title": "Add #1002 Lens ray diagram",
+  "tools": [
+   "lens-ray-diagram"
+  ],
+  "site": false
+ },
+ {
+  "sha": "63f4d8ec64b3",
+  "date": "2026-11-09T22:24:51+00:00",
+  "title": "Add #1001 Mirror ray diagram",
+  "tools": [
+   "mirror-ray-diagram"
+  ],
+  "site": false
+ },
+ {
+  "sha": "bb47360d9573",
+  "date": "2026-11-09T21:56:55+00:00",
+  "title": "Add #213 SAR table builder",
+  "tools": [
+   "sar-table"
+  ],
+  "site": false
+ },
+ {
+  "sha": "002161c6d698",
+  "date": "2026-11-09T21:55:55+00:00",
+  "title": "Add #214 Galaxy morphology practice",
+  "tools": [
+   "galaxy-morphology-practice"
+  ],
+  "site": false
+ },
+ {
+  "sha": "74ff540200ff",
+  "date": "2026-11-09T21:52:39+00:00",
+  "title": "Add #208 CTD cast viewer",
+  "tools": [
+   "ctd-cast-viewer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ac5fe920c44a",
+  "date": "2026-11-09T21:51:30+00:00",
+  "title": "Add #215 Solar cycle fitter",
+  "tools": [
+   "solar-cycle-fitter"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e9e3bc462e2b",
+  "date": "2026-11-09T21:49:58+00:00",
+  "title": "Add #211 Genome browser lite",
+  "tools": [
+   "genome-browser-lite"
+  ],
+  "site": false
+ },
+ {
+  "sha": "e9a086b3f3e7",
+  "date": "2026-11-09T21:49:01+00:00",
+  "title": "Add #216 Degree days calculator",
+  "tools": [
+   "degree-days"
+  ],
+  "site": false
+ },
+ {
+  "sha": "ad28ea673cea",
+  "date": "2026-11-09T21:47:54+00:00",
+  "title": "Add #212 Drug-likeness checker (Lipinski and Veber)",
+  "tools": [
+   "smiles-checker"
+  ],
+  "site": false
+ },
+ {
+  "sha": "0e2ce318035f",
+  "date": "2026-11-09T21:44:09+00:00",
+  "title": "Add #209 Permafrost active layer (Stefan) estimator",
+  "tools": [
+   "permafrost-active-layer"
+  ],
+  "site": false
+ },
+ {
+  "sha": "5fc85e1bc4fc",
+  "date": "2026-11-09T21:43:24+00:00",
+  "title": "Add #207 Fold axis and cylindrical best fit",
+  "tools": [
+   "fold-axis-fit"
+  ],
+  "site": false
+ },
+ {
+  "sha": "50b7f83ea4c7",
+  "date": "2026-11-09T21:32:37+00:00",
+  "title": "Link the CSV profiler instead of the unbuilt data cleaner in six guides",
+  "tools": [
+   "eye-tracking-heatmap",
+   "field-form-builder",
+   "regression-ols-iv-panel",
+   "regression-workbench",
+   "table-converter",
+   "time-series-analyser"
+  ],
+  "site": false
+ },
+ {
+  "sha": "c6ae6a3c3495",
+  "date": "2026-11-09T21:27:56+00:00",
+  "title": "Add Class 8 to 12 chapter pages to Learn",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "2b9a2090696d",
+  "date": "2026-11-09T21:22:16+00:00",
+  "title": "Cross-link the new tools and make saving opt-in on five more tools",
+  "tools": [
+   "abstract-word-counter",
+   "activated-sludge",
+   "adduct-calculator",
+   "adiabatic-temperature-rise",
+   "afm-roughness",
+   "age-depth-model",
+   "agent-based-models",
+   "aircraft-performance",
+   "airfoil-calculator",
+   "algorithm-visualiser",
+   "aliasing-demo",
+   "allele-frequency-calculator",
+   "allometry-calculator",
+   "anaesthesia-monitoring-log",
+   "anomalous-hall-checker",
+   "antenna-calculator",
+   "anthropometric-indices",
+   "antibody-dilution",
+   "apparent-dip",
+   "ats-resume-checker",
+   "atterberg-compaction",
+   "audio-spectrum-analyser",
+   "audiogram",
+   "author-list-formatter",
+   "backfocus-calculator",
+   "band-combiner",
+   "band-structure",
+   "batch-airmass",
+   "battery-solar-sizing",
+   "bayesian-ab-test",
+   "beam-calculator",
+   "bearing-capacity",
+   "benchmark-dose",
+   "bibtex-cleaner",
+   "big-o-plotter",
+   "bioaccumulation-factor",
+   "bird-song-spectrogram",
+   "bland-altman",
+   "bloch-sphere",
+   "bolt-torque-calculator",
+   "bootstrap-permutation",
+   "boundary-layer",
+   "breeding-calendar",
+   "brillouin-zone",
+   "brine-calculator",
+   "buckingham-pi",
+   "cache-simulator",
+   "calcium-imaging-dff",
+   "calibration-drift",
+   "calibration-frames",
+   "camera-trap-tagger",
+   "canopy-gap-analyser",
+   "capacitor-inductor-calculator",
+   "carbon-footprint",
+   "carbonate-system",
+   "carrier-concentration",
+   "carrier-risk",
+   "catchment-buffer",
+   "cellular-automata",
+   "cfu-counter",
+   "chaos-explorer",
+   "checksum-checker",
+   "chiral-magnon-bands",
+   "cif-viewer",
+   "cipher-teacher",
+   "cipw-norm",
+   "circuit-simulator",
+   "coalescent-simulator",
+   "cohort-component-projection",
+   "coil-field-designer",
+   "collision-calculator",
+   "colour-difference-calculator",
+   "colour-vision-simulator",
+   "column-buckling",
+   "combinatorics-calculator",
+   "community-ordination",
+   "concentration-converter",
+   "concordia-plot",
+   "concrete-mix-design",
+   "confusion-matrix",
+   "consolidation-settlement",
+   "constellation-ber",
+   "contrast-checker",
+   "control-charts",
+   "copolymer-composition",
+   "coral-cover-calculator",
+   "corpus-concordancer",
+   "correspondence-network",
+   "counting-statistics",
+   "coupled-oscillators",
+   "cpue-trend",
+   "crime-rate-calculator",
+   "cross-section-profile",
+   "crossing-plan",
+   "crosstab-chi-square",
+   "cryo-em-calculator",
+   "cryovial-inventory",
+   "crystallisation-screen",
+   "csv-profiler",
+   "ct-reconstruction",
+   "cubesat-power-budget",
+   "curve-fitter",
+   "data-dictionary",
+   "data-management-plan",
+   "dataset-readme",
+   "decay-chain",
+   "decay-heat",
+   "decibel-distance",
+   "decline-curve",
+   "dem-terrain",
+   "density-altitude",
+   "dental-chart",
+   "detention-pond",
+   "dh-kinematics",
+   "dichotomous-key-builder",
+   "dicom-anonymiser",
+   "difference-in-differences",
+   "diffraction-patterns",
+   "diffusion-calculator",
+   "digital-filter-designer",
+   "dimensional-analysis",
+   "dimensionless-numbers",
+   "disease-progress-audpc",
+   "dissolved-oxygen",
+   "distance-sampling",
+   "distribution-explorer",
+   "dls-analyser",
+   "dnds-calculator",
+   "doppler-beats",
+   "drake-equation",
+   "drone-flight-time",
+   "drug-release-fitter",
+   "drug-synergy",
+   "earthquake-locator",
+   "ecg-viewer",
+   "effect-size-converter",
+   "effect-size-learning-gain",
+   "effective-population-size",
+   "electron-diffraction-indexer",
+   "electrostatics-solver",
+   "embedding-visualiser",
+   "embryo-development-timer",
+   "emg-analyser",
+   "energy-balance-model",
+   "entropy-calculator",
+   "epi-curve",
+   "equation-converter",
+   "equipment-booking",
+   "error-correcting-codes",
+   "eruption-column",
+   "ethogram-logger",
+   "experiment-design",
+   "eye-tracking-heatmap",
+   "f0-calculator",
+   "factor-analysis",
+   "fatigue-sn-calculator",
+   "fcs-viewer",
+   "feed-ration-balancer",
+   "fertiliser-blend-calculator",
+   "fertility-rates",
+   "feynman-diagram",
+   "fft-workbench",
+   "fibre-optic-calculator",
+   "fick-cardiac-output",
+   "field-form-builder",
+   "field-line-plotter",
+   "field-note-organiser",
+   "figure-checker",
+   "filter-designer",
+   "fire-weather-index",
+   "fish-length-weight",
+   "flashcards",
+   "float-inspector",
+   "fluorescence-image-analyser",
+   "forest-inventory-summary",
+   "fourier-visualiser",
+   "fractal-explorer",
+   "fracture-toughness-calculator",
+   "fume-hood-ventilation",
+   "function-grapher",
+   "gait-cadence",
+   "gamma-shielding",
+   "gantt-chart",
+   "gauge-rr",
+   "gaussian-beam",
+   "gear-train-calculator",
+   "gene-network-viewer",
+   "genetic-circuit-designer",
+   "geometry-construction",
+   "gillespie-simulator",
+   "gini-lorenz",
+   "glacier-ice",
+   "glycaemic-load",
+   "gpr-viewer",
+   "gps-relativity",
+   "grade-tonnage-calculator",
+   "grain-size-intercept",
+   "grain-size-stats",
+   "gram-stain-key",
+   "grant-budget",
+   "graph-algorithms",
+   "gravity-corrections",
+   "gravity-model",
+   "green-chemistry-metrics",
+   "greenhouse-heating",
+   "group-explorer",
+   "growth-curve-od600",
+   "gw-chirp",
+   "habitat-connectivity",
+   "haccp-plan-builder",
+   "hall-effect",
+   "hardy-weinberg-tester",
+   "harmonics-analyser",
+   "heart-rate-zones",
+   "heat-capacity-fitter",
+   "heat-conduction",
+   "heat-engine-cycles",
+   "heat-exchanger-sizing",
+   "herbarium-label-maker",
+   "heritage-climate-checker",
+   "historic-calendar-converter",
+   "hodgkin-huxley-simulator",
+   "home-battery-sizing",
+   "home-range-analyser",
+   "hotspot-density",
+   "hr-diagram",
+   "huffman-coding",
+   "hvac-room-load",
+   "hydrogen-line-analyser",
+   "hydrogen-orbitals",
+   "hydropathy-plot",
+   "hypothesis-tests",
+   "infinite-slope",
+   "inflation-calculator",
+   "insect-degree-days",
+   "insolation-calculator",
+   "interlinear-gloss",
+   "inverse-kinematics",
+   "ion-exchange-ph",
+   "ipa-feature-matrix",
+   "ipa-keyboard",
+   "irrigation-scheduler",
+   "irt-item-analysis",
+   "ising-model",
+   "item-analysis",
+   "jump-height",
+   "kalman-filter-playground",
+   "kinship-diagram",
+   "knot-braid-drawer",
+   "lab-report-template",
+   "lagrangian-helper",
+   "laminate-calculator",
+   "langmuir-probe",
+   "larson-miller-calculator",
+   "lattice-boltzmann",
+   "lattice-fft",
+   "lcoe-calculator",
+   "leaf-area-analyser",
+   "leaf-disease-severity",
+   "led-resistor-calculator",
+   "lens-ray-tracer",
+   "leontief-multipliers",
+   "lexical-diversity-readability",
+   "life-table",
+   "light-exposure-budget",
+   "light-pollution-calculator",
+   "likert-chart",
+   "linkage-map-calculator",
+   "linkedin-post-formatter",
+   "load-combination-helper",
+   "load-flow",
+   "loan-payoff-planner",
+   "location-quotient-shift-share",
+   "log-scale-calculator",
+   "logic-simplifier",
+   "lotka-volterra-simulator",
+   "lp-solver",
+   "luminescence-age-calculator",
+   "magnetic-anomaly",
+   "magnetic-circuit",
+   "manuscript-annotator",
+   "mark-recapture",
+   "mass-balance-solver",
+   "matrix-calculator",
+   "mccabe-thiele-calculator",
+   "membrane-potential",
+   "memory-attention-tasks",
+   "mendelian-chi-square",
+   "metabolite-volcano-pca",
+   "metadata-builder",
+   "meteor-shower-planner",
+   "miller-index-calculator",
+   "mineral-formula",
+   "mineral-id-key",
+   "model-rocket-simulator",
+   "moi-calculator",
+   "molecular-clock",
+   "molecule-viewer",
+   "moment-of-inertia",
+   "mosaic-planner",
+   "mri-bloch-simulator",
+   "nanoparticle-calculator",
+   "nash-equilibrium-solver",
+   "nca-pk",
+   "network-metrics",
+   "neural-network-toys",
+   "neutron-diffusion",
+   "noise-dose",
+   "notch-filter-psd",
+   "npv-irr-calculator",
+   "number-theory-toolkit",
+   "numerical-methods",
+   "nutrient-planner",
+   "occupancy-estimator",
+   "ocean-currents",
+   "ode-solver",
+   "op-amp-calculator",
+   "operator-algebra",
+   "optical-tweezers",
+   "orbit-elements",
+   "oscilloscope-viewer",
+   "osmolarity-calculator",
+   "paleostress-inversion",
+   "particle-drifts",
+   "particle-size-image",
+   "partition-function",
+   "paschen-curve",
+   "path-planner",
+   "pathway-ode-builder",
+   "pcb-trace-calculator",
+   "pdb-viewer",
+   "pedigree-drawing-tool",
+   "pendulum-analyser",
+   "peptide-overlap-designer",
+   "periodic-table",
+   "perturbation-theory",
+   "phase-fraction",
+   "phone-clinometer",
+   "phone-seismometer",
+   "photosynthesis-curve-fitter",
+   "physical-constants",
+   "pid-simulator",
+   "pipe-network-solver",
+   "pitch-contour-tracker",
+   "piv-lite",
+   "pk-simulator",
+   "plant-growth-analysis",
+   "plasma-parameters",
+   "poincare-disk",
+   "point-counter",
+   "point-kinetics",
+   "polar-alignment",
+   "polarisation-calculator",
+   "pole-placement",
+   "polling-average",
+   "polyhedron-viewer",
+   "pond-oxygen-budget",
+   "population-growth-models",
+   "population-pyramid",
+   "poster-layout",
+   "potential-flow",
+   "power-indices",
+   "practice-problems",
+   "project-scheduler",
+   "projectile-drag",
+   "prompt-pruner",
+   "propeller-thrust",
+   "protocol-timer",
+   "proxy-stacker",
+   "pump-system-curve",
+   "punnett-square",
+   "pvt-correlations",
+   "qc-output-parser",
+   "quadrat-transect-analyser",
+   "qualitative-coding",
+   "quantum-circuit",
+   "quantum-dot-size",
+   "quantum-statistics",
+   "questionnaire-scorer",
+   "queueing-calculator",
+   "racemisation-age",
+   "ramachandran-plot",
+   "random-walk-diffusion",
+   "randomisation-list",
+   "rating-curve",
+   "reaction-time-experiments",
+   "reactor-design",
+   "readability-checker",
+   "reagent-inventory",
+   "real-gas-calculator",
+   "rebar-calculator",
+   "reference-interval",
+   "regex-fsm-visualiser",
+   "regression-ols-iv-panel",
+   "regression-workbench",
+   "relativistic-kinematics",
+   "resistor-colour-code",
+   "respirometry-calculator",
+   "resume-builder",
+   "retaining-wall-check",
+   "reviewer-response",
+   "road-curve-design",
+   "rock-mass-classification",
+   "room-acoustics",
+   "rubric-grade-calculator",
+   "sample-label-maker",
+   "schrodinger-solver",
+   "schwarzschild-orbits",
+   "science-colour-palette",
+   "science-file-converter",
+   "scientific-notation-formatter",
+   "scope-emissions",
+   "seeding-rate-calculator",
+   "seismic-refraction",
+   "seismogram-viewer",
+   "sellmeier-fitter",
+   "sensor-calibration",
+   "sensory-difference-test",
+   "seriation-analyser",
+   "shaft-bearing-life",
+   "shift-scheduler",
+   "sig-fig-checker",
+   "signal-detection-calculator",
+   "signal-timing",
+   "skin-depth-calculator",
+   "slope-stability",
+   "small-model-trainer",
+   "smith-chart",
+   "snow-slope-tools",
+   "social-network-analysis",
+   "soil-classification",
+   "soil-test-interpreter",
+   "soil-texture-triangle",
+   "solar-cell-iv",
+   "solar-pv-yield",
+   "spacetime-diagram",
+   "speaker-box-designer",
+   "spectrometer-calibration",
+   "spectrum-peak-fitter",
+   "spike-train-analyser",
+   "spin-splitter-conductivity",
+   "spore-size-measurer",
+   "sprayer-calibration",
+   "spring-designer",
+   "staircase-threshold-fitter",
+   "standard-atmosphere",
+   "standing-waves",
+   "star-trail-exposure",
+   "station-data-viewer",
+   "steam-tables",
+   "stereotaxic-helper",
+   "stocking-density-calculator",
+   "stomatal-density-counter",
+   "stopping-power",
+   "strat-column",
+   "stream-profile",
+   "stress-strain-analyser",
+   "stylometry-delta",
+   "sunspot-counter",
+   "superconductor-calculator",
+   "supply-demand",
+   "survey-weighting",
+   "symbolic-algebra",
+   "syntax-tree-drawer",
+   "table-converter",
+   "tafel-corrosion-rate",
+   "tanabe-sugano",
+   "tauc-plot",
+   "tcid50-calculator",
+   "tempo-detector",
+   "tephra-volume",
+   "thermal-mismatch-stress",
+   "thermal-process-calculator",
+   "thin-film-coating",
+   "thin-film-thickness",
+   "tide-predictor",
+   "time-series-analyser",
+   "tissot-explorer",
+   "tlc-rf-calculator",
+   "tolerance-stackup",
+   "topic-modeller",
+   "toy-compiler",
+   "traffic-flow",
+   "train-test-splitter",
+   "training-load",
+   "transfection-planner",
+   "transportation-assignment",
+   "trap-count-index",
+   "tree-builder",
+   "tree-height-basal-area",
+   "trench-recording-sheet",
+   "truss-solver",
+   "tuning-calculator",
+   "turing-pattern-simulator",
+   "two-body-orbit",
+   "ultrasound-calculator",
+   "unit-converter",
+   "unit-root-cointegration",
+   "unsaturation-calculator",
+   "utm-converter",
+   "uv-index-estimator",
+   "vector-map-viewer",
+   "vehicle-routing",
+   "ves-inversion",
+   "video-motion-tracker",
+   "vo2max-estimator",
+   "von-bertalanffy-fitter",
+   "voting-systems",
+   "vowel-formant-chart",
+   "walter-lieth",
+   "watershed-delineation",
+   "wave-packet",
+   "waveguide-modes",
+   "wavelet-viewer",
+   "weather-log",
+   "well-field-drawdown",
+   "well-test-analyser",
+   "westgard-qc",
+   "wind-chill-heat-index",
+   "wind-energy-yield",
+   "wright-fisher-simulator",
+   "xrd-peak-calculator",
+   "yield-per-recruit",
+   "yield-trial-anova",
+   "zip-checker",
+   "zooplankton-biomass"
+  ],
+  "site": false
+ },
+ {
+  "sha": "b0c4920ce8de",
+  "date": "2026-11-09T21:18:43+00:00",
+  "title": "Add a Learn shelf for school tools at /learn/<id>/",
+  "tools": [],
+  "site": true
+ },
+ {
+  "sha": "dca02df93b5e",
+  "date": "2026-11-09T21:16:15+00:00",
+  "title": "Fix main's failing checks: unique regression title, lighter subject pages, fresh browser per 40 tool tests, stray test files",
+  "tools": [
+   "regression-ols-iv-panel"
+  ],
+  "site": true
+ },
+ {
   "sha": "2d5d8a4322b6",
   "date": "2026-11-09T17:01:37+00:00",
   "title": "Add #727 Memory and attention tasks",
   "tools": [
    "memory-attention-tasks"
+  ],
+  "site": false
+ },
+ {
+  "sha": "164c93773f17",
+  "date": "2026-11-09T16:31:05+00:00",
+  "title": "Cross-link the section 9 and genetics tools",
+  "tools": [
+   "allele-frequency-calculator",
+   "allometry-calculator",
+   "bird-song-spectrogram",
+   "calcium-imaging-dff",
+   "canopy-gap-analyser",
+   "coalescent-simulator",
+   "community-ordination",
+   "coral-cover-calculator",
+   "cpue-trend",
+   "dichotomous-key-builder",
+   "disease-progress-audpc",
+   "distance-sampling",
+   "dnds-calculator",
+   "drake-equation",
+   "effective-population-size",
+   "embryo-development-timer",
+   "ethogram-logger",
+   "fick-cardiac-output",
+   "fire-weather-index",
+   "fish-length-weight",
+   "forest-inventory-summary",
+   "hardy-weinberg-tester",
+   "herbarium-label-maker",
+   "hodgkin-huxley-simulator",
+   "home-range-analyser",
+   "insect-degree-days",
+   "leaf-area-analyser",
+   "leaf-disease-severity",
+   "linkage-map-calculator",
+   "log-scale-calculator",
+   "lotka-volterra-simulator",
+   "mark-recapture",
+   "membrane-potential",
+   "mendelian-chi-square",
+   "molecular-clock",
+   "notch-filter-psd",
+   "occupancy-estimator",
+   "osmolarity-calculator",
+   "pedigree-drawing-tool",
+   "photosynthesis-curve-fitter",
+   "plant-growth-analysis",
+   "population-growth-models",
+   "quadrat-transect-analyser",
+   "respirometry-calculator",
+   "soil-texture-triangle",
+   "spike-train-analyser",
+   "spore-size-measurer",
+   "stereotaxic-helper",
+   "stomatal-density-counter",
+   "trap-count-index",
+   "tree-builder",
+   "tree-height-basal-area",
+   "turing-pattern-simulator",
+   "von-bertalanffy-fitter",
+   "wright-fisher-simulator",
+   "yield-per-recruit",
+   "zooplankton-biomass"
   ],
   "site": false
  },

@@ -1,0 +1,104 @@
+---
+// #1603 Coin check. Engine: src/lib/collect/maths.ts (tolerance, discVolume, alloyDensity, ALLOYS).
+import '../../styles/astro.css';
+import '../../styles/collect.css';
+---
+<div class="tool-ui ax cc">
+  <div class="ax-card">
+    <h2>1. The official figures</h2>
+    <label>Pick a common coin <select class="cc-preset"></select></label>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Official weight (g) <input class="cc-sw" type="number" min="0" step="any" inputmode="decimal" /></label>
+      <label>Official diameter (mm) <input class="cc-sd" type="number" min="0" step="any" inputmode="decimal" /></label>
+      <label>Official thickness (mm, optional) <input class="cc-st" type="number" min="0" step="any" inputmode="decimal" /></label>
+      <label>Metal (optional) <select class="cc-metal"></select></label>
+    </div>
+    <p class="ax-help">The weight, width and thickness come from the issuing mint's published specification. You can type your own for any coin.</p>
+  </div>
+  <div class="ax-card">
+    <h2>2. What you measured</h2>
+    <div class="ax-grid">
+      <label>Weight (g) <input class="cc-mw" type="number" min="0" step="any" inputmode="decimal" value="26.20" /></label>
+      <label>Diameter (mm) <input class="cc-md" type="number" min="0" step="any" inputmode="decimal" value="38.10" /></label>
+      <label>Thickness (mm, optional) <input class="cc-mt" type="number" min="0" step="any" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-help">Use a scale that reads to 0.01 g and callipers for the width. Measure across the widest part, not the rim edge at an angle.</p>
+    <div class="ax-grid" style="margin-top:10px">
+      <label>Weight allowance (%) <input class="cc-tw" type="number" min="0" step="any" inputmode="decimal" value="1" /></label>
+      <label>Diameter allowance (%) <input class="cc-td" type="number" min="0" step="any" inputmode="decimal" value="0.5" /></label>
+    </div>
+    <p class="ax-help">How far off you will accept before it is flagged. Mints publish their own tolerances for new coins, and worn coins lose weight, so treat these as a guide.</p>
+  </div>
+  <div class="ax-card">
+    <h2>3. Result</h2>
+    <p class="ax-big cc-out" aria-live="polite">…</p>
+    <dl class="ax-facts cc-facts"></dl>
+    <p class="cl-flag cc-note">If a figure is far off, ask an expert or a dealer to check the coin. This tool compares numbers only; it can't tell you whether a coin is genuine.</p>
+  </div>
+</div>
+
+<style is:inline>
+  .cc label { display: grid; gap: 4px; font-size: 14px; }
+  .cc input, .cc select { width: 100%; box-sizing: border-box; }
+  .cc .cc-pill { margin-top: 4px; }
+</style>
+
+<script>
+  import { tolerance, discVolume, alloyDensity, ALLOYS } from '../../lib/collect/maths';
+
+  type P = { name: string; w: number; d: number; t?: number; alloy: string };
+  // Weights and sizes as published by the issuing mints (general facts).
+  const PRESETS: P[] = [
+    { name: 'US Morgan silver dollar (900 silver)', w: 26.73, d: 38.1, alloy: 'silver-900' },
+    { name: 'US silver quarter, to 1964', w: 6.25, d: 24.26, alloy: 'silver-900' },
+    { name: '1 oz American Silver Eagle', w: 31.103, d: 40.6, alloy: 'silver-999' },
+    { name: '1 oz Canada Silver Maple Leaf', w: 31.11, d: 38, alloy: 'silver-999' },
+    { name: '1 oz Krugerrand (gold)', w: 33.93, d: 32.77, alloy: 'gold-917' },
+    { name: 'UK gold sovereign', w: 7.988, d: 22.05, alloy: 'gold-917' },
+    { name: '1 oz American Gold Eagle', w: 33.93, d: 32.7, alloy: 'gold-917' },
+    { name: '1 oz Canada Gold Maple Leaf', w: 31.11, d: 30, alloy: 'gold-999' },
+    { name: 'India silver rupee, 1862 to 1939', w: 11.66, d: 30.5, alloy: 'silver-925' },
+  ];
+  const root = document.querySelector('.cc') as HTMLElement;
+  const $ = (c: string) => root.querySelector(c) as HTMLInputElement;
+  const preset = $('.cc-preset') as unknown as HTMLSelectElement, metal = $('.cc-metal') as unknown as HTMLSelectElement;
+  preset.innerHTML = '<option value="">My own figures</option>' + PRESETS.map((p, i) => `<option value="${i}">${p.name}</option>`).join('');
+  metal.innerHTML = '<option value="">Not set</option>' + Object.entries(ALLOYS).map(([k, a]) => `<option value="${k}">${a.name}</option>`).join('');
+  const num = (el: HTMLInputElement) => (el.value.trim() === '' ? NaN : parseFloat(el.value));
+  const sgn = (n: number, dp: number) => (n > 0 ? '+' : '') + n.toFixed(dp);
+  const pill = (ok: boolean, t: string) => `<span class="ax-pill ${ok ? 'good' : 'warn'} cc-pill">${t}</span>`;
+
+  const loadPreset = () => {
+    const p = PRESETS[+preset.value]; if (!p) return;
+    $('.cc-sw').value = String(p.w); $('.cc-sd').value = String(p.d); $('.cc-st').value = p.t ? String(p.t) : ''; metal.value = p.alloy;
+  };
+  const calc = () => {
+    const out = $('.cc-out'), facts = root.querySelector('.cc-facts') as HTMLElement;
+    const sw = num($('.cc-sw')), sd = num($('.cc-sd')), mw = num($('.cc-mw')), md = num($('.cc-md'));
+    const lines: string[] = [];
+    let bad = 0, n = 0;
+    if (sw > 0 && mw > 0) {
+      const r = tolerance(mw, sw, num($('.cc-tw')) || 0); n++; if (!r.within) bad++;
+      lines.push(`<div><dt>Weight</dt><dd class="cc-w">${sgn(r.pct, 2)}%<small>${sgn(r.diff, 2)} g · ${mw} g against ${sw} g</small>${pill(r.within, r.within ? 'Within allowance' : 'Outside allowance')}</dd></div>`);
+    }
+    if (sd > 0 && md > 0) {
+      const r = tolerance(md, sd, num($('.cc-td')) || 0); n++; if (!r.within) bad++;
+      lines.push(`<div><dt>Diameter</dt><dd class="cc-d">${sgn(r.pct, 2)}%<small>${sgn(r.diff, 2)} mm · ${md} mm against ${sd} mm</small>${pill(r.within, r.within ? 'Within allowance' : 'Outside allowance')}</dd></div>`);
+    }
+    const st = num($('.cc-st')), mt = num($('.cc-mt'));
+    if (st > 0 && mt > 0) {
+      const r = tolerance(mt, st, 3); n++; if (!r.within) bad++;
+      lines.push(`<div><dt>Thickness</dt><dd class="cc-t">${sgn(r.pct, 1)}%<small>${sgn(r.diff, 2)} mm · allowance 3%</small>${pill(r.within, r.within ? 'Within allowance' : 'Outside allowance')}</dd></div>`);
+    }
+    const alloy = ALLOYS[metal.value];
+    if (alloy && md > 0 && mt > 0 && mw > 0) {
+      const dens = alloyDensity(alloy.parts), plain = discVolume(md, mt) * dens;
+      lines.push(`<div><dt>Smooth disc of that size</dt><dd class="cc-disc">${plain.toFixed(2)} g<small>${alloy.name} at ${dens.toFixed(2)} g/cm³, no design. Real coins weigh a little less. You measured ${mw} g (${sgn(((mw - plain) / plain) * 100, 1)}%).</small></dd></div>`);
+    }
+    facts.innerHTML = lines.join('');
+    out.textContent = !n ? 'Type the official and measured figures.' : bad ? `${bad} of ${n} measurements outside your allowance` : `All ${n} measurements within your allowance`;
+  };
+  preset.addEventListener('change', () => { loadPreset(); calc(); });
+  root.addEventListener('input', (e) => { if (e.target !== preset) calc(); });
+  preset.value = '0'; loadPreset(); calc();
+</script>

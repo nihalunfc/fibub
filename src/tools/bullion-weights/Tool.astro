@@ -1,0 +1,61 @@
+---
+// #1608 Bullion weights. Engine: src/lib/collect/maths.ts (UNITS, convertWeight).
+import '../../styles/astro.css';
+import '../../styles/collect.css';
+---
+<div class="tool-ui ax bw">
+  <div class="ax-card">
+    <h2>1. Type a weight</h2>
+    <div class="ax-grid">
+      <label>Amount <input class="bw-in" type="number" min="0" step="any" inputmode="decimal" value="1" /></label>
+      <label>Unit <select class="bw-unit"></select></label>
+    </div>
+    <p class="ax-big bw-out" aria-live="polite"></p>
+  </div>
+  <div class="ax-card">
+    <h2>2. The same weight in every unit</h2>
+    <div class="ax-scroll">
+      <table class="bw-tab">
+        <thead><tr><th>Unit</th><th class="r">Amount</th><th>Where it is used</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="ax-help">A troy ounce (31.1035 g) is the unit for gold, silver, platinum and palladium prices. An ordinary ounce (28.35 g) is lighter, so never mix them up.</p>
+  </div>
+</div>
+
+<style is:inline>
+  .bw .bw-tab td.r { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .bw .bw-tab tr.bw-cur { font-weight: 600; }
+  .bw .bw-note { color: var(--muted); font-size: 13px; }
+</style>
+
+<script>
+  import { UNITS, convertWeight } from '../../lib/collect/maths';
+
+  const root = document.querySelector('.bw') as HTMLElement;
+  const q = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const input = q<HTMLInputElement>('.bw-in'), sel = q<HTMLSelectElement>('.bw-unit'), out = q('.bw-out'), body = q('.bw-tab tbody');
+  const ids = Object.keys(UNITS);
+  // Short uses for units that have no note of their own (general facts).
+  const USE: Record<string, string> = {
+    g: 'Everywhere; small bars and jewellery', kg: 'Large bars and bulk silver',
+    ozt: 'Spot prices and most bullion coins and bars', oz: 'Everyday goods; not used for precious metals',
+    gr: 'Old coin and bullion weights', dwt: 'Jewellery and old coin weights; 24 grains',
+  };
+  sel.innerHTML = ids.map((u) => `<option value="${u}">${UNITS[u].name}</option>`).join('');
+  sel.value = 'g';
+  const fmt = (v: number) => (Number.isFinite(v) ? v.toLocaleString('en-US', { maximumSignificantDigits: 7, useGrouping: v >= 10000 }) : '–');
+
+  const update = () => {
+    const v = parseFloat(input.value), u = sel.value;
+    body.innerHTML = ids.map((id) => `<tr data-u="${id}" class="${id === u ? 'bw-cur' : ''}"><th>${UNITS[id].name}</th>
+      <td class="r bw-v">${fmt(convertWeight(v, u, id))}</td><td class="bw-note">${UNITS[id].note ?? USE[id] ?? ''}</td></tr>`).join('');
+    out.textContent = Number.isFinite(v) && v >= 0
+      ? `${fmt(v)} ${UNITS[u].name} = ${fmt(convertWeight(v, u, 'g'))} g = ${fmt(convertWeight(v, u, 'ozt'))} troy oz`
+      : 'Type an amount of 0 or more.';
+  };
+  input.addEventListener('input', update);
+  sel.addEventListener('change', update);
+  update();
+</script>
