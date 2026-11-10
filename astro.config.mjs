@@ -15,7 +15,17 @@ function lastChanged() {
     const m = readFileSync(`src/tools/${id}/guide.md`, 'utf8').match(/^updated:\s*(\S+)/m);
     if (m) byTool.set(id, m[1]);
   }
-  return { byTool, newest: log[0]?.date };
+  // Blog articles (/blog/<kind>/<slug>/) use their own `updated` date.
+  const byArticle = new Map();
+  if (existsSync('src/blog')) for (const kind of readdirSync('src/blog')) {
+    if (!existsSync(`src/blog/${kind}`) || kind.includes('.')) continue;
+    for (const f of readdirSync(`src/blog/${kind}`)) {
+      if (!f.endsWith('.md')) continue;
+      const m = readFileSync(`src/blog/${kind}/${f}`, 'utf8').match(/^updated:\s*(\S+)/m);
+      if (m) byArticle.set(`${kind}/${f.slice(0, -3)}`, m[1]);
+    }
+  }
+  return { byTool, byArticle, newest: log[0]?.date };
 }
 const changed = lastChanged();
 
@@ -31,7 +41,8 @@ export default defineConfig({
     filter: (page) => !/\/nav\/$/.test(page) && !/\/home\/v[\d.]+\/$/.test(page),
     serialize(item) {
       const path = new URL(item.url).pathname.split('/').filter(Boolean);
-      const date = path.length === 2 ? changed.byTool.get(path[1]) : undefined;
+      const date = path[0] === 'blog' && path.length === 3 ? changed.byArticle.get(`${path[1]}/${path[2]}`)
+        : path.length === 2 ? changed.byTool.get(path[1]) : undefined;
       const lastmod = date ?? (path.length <= 2 && !['about', 'privacy', 'terms', 'contact'].includes(path[0]) ? changed.newest : undefined);
       if (lastmod) item.lastmod = new Date(lastmod).toISOString();
       return item;
