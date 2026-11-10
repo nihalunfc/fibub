@@ -1,0 +1,118 @@
+---
+// #T855 Home insurance underinsurance check
+import InsuranceNote from '../../components/InsuranceNote.astro';
+---
+<div class="tool-ui ui">
+  <InsuranceNote />
+  <section class="panel">
+    <h2>Your home and policy</h2>
+    <p class="ui-hint">Example numbers: change them to yours. Use what it would cost to rebuild, not what the home would sell for.</p>
+    <div class="ui-grid">
+      <label>Currency <select class="ui-cur" data-k="cur"></select></label>
+      <label>I know the rebuild cost as <select data-k="how"><option value="total">one number</option><option value="area">area × cost per area</option></select></label>
+      <label class="ui-t">Rebuild cost <input data-k="rebuild" inputmode="decimal" /></label>
+      <label class="ui-a" hidden>Floor area <input data-k="area" inputmode="decimal" /></label>
+      <label class="ui-a" hidden>Area unit <select data-k="unit"><option value="m²">square metres</option><option value="ft²">square feet</option></select></label>
+      <label class="ui-a" hidden>Rebuild cost per <span class="ui-un">m²</span> <input data-k="rate" inputmode="decimal" /></label>
+      <label>Contents value (0 if not covered) <input data-k="contents" inputmode="decimal" /></label>
+      <label>Sum insured <input data-k="si" inputmode="decimal" /></label>
+      <label>Policy clause <select data-k="clause">
+        <option value="1">India average: full value</option>
+        <option value="0.8" selected>80% coinsurance</option>
+        <option value="0.9">90% coinsurance</option>
+        <option value="1">100% coinsurance</option>
+        <option value="0">No clause</option>
+      </select></label>
+      <label>Loss (cost of the damage) <input data-k="loss" inputmode="decimal" /></label>
+      <label>Deductible (excess) <input data-k="ded" inputmode="decimal" /></label>
+    </div>
+    <p class="ui-clausehelp note"></p>
+    <p class="note bad ui-err" role="alert" hidden></p>
+  </section>
+  <section class="ui-res" aria-live="polite">
+    <div class="ui-stats">
+      <div class="good"><span>Insurer pays</span><b class="ui-s-pay"></b></div>
+      <div><span>Share of the loss paid</span><b class="ui-s-share"></b></div>
+      <div><span>You pay</span><b class="ui-s-you"></b></div>
+      <div><span>Shortfall in cover</span><b class="ui-s-short"></b></div>
+      <div><span>Sum insured to avoid the cut</span><b class="ui-s-need"></b></div>
+    </div>
+    <p class="ui-line ui-words"></p>
+    <figure class="panel ui-chart">
+      <figcaption>The loss and what is paid</figcaption>
+      <svg class="ui-svg" viewBox="0 0 640 120" role="img" aria-label="Bars for the loss, what the insurer pays and what you pay"></svg>
+    </figure>
+  </section>
+  <p class="ui-fine">How it is worked out: payout = loss × the smaller of 1 and (sum insured ÷ (clause share × true value)), less the deductible, never above the sum insured. Clauses differ by country and policy: India's average clause uses the full value, and many US and Canadian policies use 80%. Check your policy wording and the official source (checked 2026-11-10). Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ui { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .ui > *, .ui-res > * { min-width: 0; }
+  .ui h2 { margin: 0 0 10px; font-size: 18px; }
+  .ui .panel { padding: 16px; }
+  .ui-hint { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
+  .ui-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .ui label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+  .ui label[hidden] { display: none; }
+  .ui input, .ui select { font: inherit; color: var(--ink); padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ui input:focus, .ui select:focus { border-color: var(--accent); outline: none; }
+  .ui-clausehelp { margin: 12px 0 0; }
+  .ui-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .ui-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .ui-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .ui-stats span { font-size: 13px; color: var(--muted); }
+  .ui-stats b { font-size: clamp(17px, 3.4vw, 22px); overflow-wrap: anywhere; }
+  .ui-stats .good b { color: var(--good); }
+  .ui-line { margin: 0; font-size: 15px; }
+  .ui-chart { margin: 0; }
+  .ui-chart figcaption { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+  .ui-svg { width: 100%; height: auto; display: block; }
+  .ui-svg text { font: 12px system-ui, sans-serif; fill: var(--ink); }
+  .ui-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .ui-err { margin: 10px 0 0; }
+</style>
+
+<script>
+  import { averageClause } from '../../lib/money/insurance';
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.ui')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const cur = defaultCurrency();
+  q('.ui-cur').innerHTML = currencyOptions(cur);
+  f('ded').value = '1,000';
+  f('rebuild').value = '800,000'; f('area').value = '100'; f('rate').value = '8,000'; f('contents').value = '200,000'; f('si').value = '600,000'; f('loss').value = '200,000';
+  const $ = (n: number) => money(n, f('cur').value, 0);
+  const HELP: Record<string, string> = {
+    '1': 'Full value: if the sum insured is below the full value of what is insured, every claim is cut in the same proportion.',
+    '0.8': 'Coinsurance: the policy asks you to insure at least this share of the full value. Below it, every claim is cut in proportion.',
+    '0': 'No clause: the policy pays the loss up to the sum insured, whatever the full value is. Check your wording, since this is uncommon.',
+  };
+  const BARS = ['var(--muted)', 'var(--good)', 'var(--bad, #b91c1c)'];
+  function run() {
+    const area = f('how').value === 'area';
+    root.querySelectorAll<HTMLElement>('.ui-a').forEach((e) => (e.hidden = !area));
+    q('.ui-t').hidden = area; q('.ui-un').textContent = f('unit').value;
+    const rebuild = area ? num(f('area').value) * num(f('rate').value) : num(f('rebuild').value);
+    const contents = num(f('contents').value), si = num(f('si').value), loss = num(f('loss').value), ded = num(f('ded').value);
+    const req = Number(f('clause').value), value = rebuild + contents;
+    q('.ui-clausehelp').textContent = (req > 0 && req < 1 ? HELP['0.8'].replace('this share', `${Math.round(req * 100)}%`) : HELP[String(req)] || HELP['0.8']);
+    const bad = !(value > 0) ? 'Enter the rebuild cost of the home.' : !(si > 0) ? 'Enter the sum insured.' : !(loss > 0) ? 'Enter the cost of the damage.' : ded < 0 || contents < 0 ? 'Amounts cannot be negative.' : '';
+    q('.ui-err').hidden = !bad; q('.ui-err').textContent = bad; q('.ui-res').hidden = !!bad;
+    if (bad) return;
+    const r = averageClause(loss, si, value, req, ded);
+    q('.ui-s-pay').textContent = $(r.payout);
+    q('.ui-s-share').textContent = `${Math.round(r.factor * 100)}%`;
+    q('.ui-s-you').textContent = $(r.youPay);
+    q('.ui-s-short').textContent = r.shortBy > 0 ? $(r.shortBy) : 'None';
+    q('.ui-s-need').textContent = req > 0 ? $(Math.max(si, req * value)) : 'No cut applies';
+    q('.ui-words').innerHTML = r.factor < 1
+      ? `Your sum insured covers <b>${Math.round(r.factor * 100)}%</b> of what the clause asks for (${$(req * value)}), so the insurer pays only that share of the loss, then takes off the deductible. Insuring for <b>${$(req * value)}</b> would avoid the cut: it would have paid ${$(r.fullPayout)}.`
+      : `Your sum insured meets what the clause asks for, so the loss is paid in full (up to the sum insured), less the deductible.`;
+    const W = 560, vals = [loss, r.payout, r.youPay], names = ['Loss', 'Insurer pays', 'You pay'];
+    q('.ui-svg').innerHTML = vals.map((v, i) => `<rect x="90" y="${8 + i * 36}" width="${Math.max(2, (v / loss) * W * 0.8).toFixed(1)}" height="24" rx="4" fill="${BARS[i]}"/><text x="84" y="${25 + i * 36}" text-anchor="end">${names[i]}</text><text x="${(90 + Math.max(2, (v / loss) * W * 0.8) + 6).toFixed(1)}" y="${25 + i * 36}">${$(v)}</text>`).join('');
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>
