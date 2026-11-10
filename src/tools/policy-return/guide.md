@@ -2,7 +2,7 @@
 name: Endowment, money-back and ULIP return (IRR)
 num: 1959
 shelf: money
-code: T834
+code: T833
 section: life-insurance
 title: "Endowment, money-back and ULIP return (IRR) calculator"
 summary: "Find the real yearly return (IRR) of an endowment, money-back or ULIP policy from its premiums and payouts, and compare it with buying term cover and investing the rest."

@@ -2,7 +2,7 @@
 name: Insurance terms explained
 num: 1950
 shelf: money
-code: T825
+code: T824
 section: insurance-basics
 title: "Insurance terms explained: premium, deductible, copay and more"
 summary: "Search about 40 insurance words in plain English, each with a tiny worked number, and filter by country and type of cover."

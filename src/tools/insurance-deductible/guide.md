@@ -2,7 +2,7 @@
 name: Car insurance deductible chooser
 num: 1956
 shelf: money
-code: T831
+code: T830
 section: car-insurance
 title: "Car insurance deductible chooser: higher deductible or lower premium?"
 summary: "Compare two insurance quotes with different deductibles. See the break-even claim rate, the expected saving and the chance the higher deductible wins."

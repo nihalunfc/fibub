@@ -1,4 +1,4 @@
-// #T833 IDV and NCB calculator (India)
+// #T832 IDV and NCB calculator (India)
 export const path = '/money/idv-ncb/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/idv-ncb/`); await page.waitForTimeout(300);

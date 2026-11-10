@@ -1,4 +1,4 @@
-// #T836 Fair price of a term life quote
+// #T835 Fair price of a term life quote
 export const path = '/money/term-fair-price/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/term-fair-price/`); await page.waitForTimeout(300);

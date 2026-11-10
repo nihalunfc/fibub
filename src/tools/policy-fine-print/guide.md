@@ -2,7 +2,7 @@
 name: Policy fine-print finder
 num: 1952
 shelf: money
-code: T827
+code: T826
 section: insurance-basics
 title: "Policy fine-print finder: highlight waiting periods, caps and exclusions"
 summary: "Paste policy wording or open a text or PDF file and see the clauses that most often surprise people, highlighted with the numbers inside them and a question to ask."

@@ -2,7 +2,7 @@
 name: Home insurance underinsurance check
 num: 1955
 shelf: money
-code: T830
+code: T829
 section: home-insurance
 title: "Home insurance underinsurance check: will a claim be cut?"
 summary: "Enter the rebuild cost, contents, sum insured and your policy's average or coinsurance clause, and see what a claim pays and the sum insured that avoids a cut."

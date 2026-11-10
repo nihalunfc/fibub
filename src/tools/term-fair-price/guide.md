@@ -2,7 +2,7 @@
 name: Fair price of a term life quote
 num: 1961
 shelf: money
-code: T836
+code: T835
 section: life-insurance
 title: "Fair price of a term life quote: is it too high?"
 summary: "Work out the fair yearly price of a term life policy from death chances and compare it with the quote you were given."

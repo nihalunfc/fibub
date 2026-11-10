@@ -1,4 +1,4 @@
-// #T829 Room rent limit and proportionate deduction (India)
+// #T828 Room rent limit and proportionate deduction (India)
 export const path = '/money/room-rent-cap/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/room-rent-cap/`); await page.waitForTimeout(300);
