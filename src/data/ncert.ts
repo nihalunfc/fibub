@@ -41,8 +41,8 @@ export const CLASSES: SchoolClass[] = [
         c(10, 'Proportional Reasoning – 2', 'Inverse proportion, speed, work', []),
         c(11, 'Exploring Some Geometric Themes', 'Symmetry, tessellations, fractals, solids', ['fractal-explorer', 'polyhedron-viewer']),
         c(12, 'Tales by Dots and Lines', 'Graphs and charts, mean, median, mode', ['plot-maker', 'grouped-data-stats']),
-        c(13, 'Algebra Play', 'Expressions, equations, number tricks', ['symbolic-algebra']),
-        c(14, 'Area', 'Areas of triangles, parallelograms, trapeziums, circles', ['herons-formula', 'geometry-construction']),
+        c(13, 'Algebra Play', 'Expressions, equations, number tricks', ['symbolic-algebra', 'algebra-tricks', 'balance-scale']),
+        c(14, 'Area', 'Areas of triangles, parallelograms, trapeziums, circles', ['herons-formula', 'geometry-construction', 'area-shear', 'picks-theorem', 'circle-slices']),
       ] },
     ],
   },
@@ -50,18 +50,18 @@ export const CLASSES: SchoolClass[] = [
     id: 'class-9', n: 9, name: 'Class 9', blurb: 'Science (Exploration) and maths (Ganita Manjari).',
     subjects: [
       { id: 'science', name: 'Science', book: 'Exploration', chapters: [
-        c(1, 'Exploration: Entering the World of Secondary Science', 'Scientific method, SI units, significant figures, graphs', ['sig-fig-checker', 'dimensional-analysis', 'uncertainty-calculator']),
+        c(1, 'Exploration: Entering the World of Secondary Science', 'Scientific method, SI units, significant figures, graphs', ['sig-fig-checker', 'dimensional-analysis', 'uncertainty-calculator', 'si-unit-converter']),
         c(2, 'Cell: The Building Block of Life', 'Cell theory, organelles, osmosis and diffusion', ['cell-explorer', 'osmosis-lab']),
-        c(3, 'Tissues in Action', 'Plant and animal tissues', ['cell-explorer']),
+        c(3, 'Tissues in Action', 'Plant and animal tissues', ['cell-explorer', 'tissue-identifier']),
         c(4, 'Describing Motion Around Us', 'Distance, velocity, acceleration, motion graphs, equations of motion', ['motion-graphs', 'equations-of-motion', 'video-motion-tracker']),
         c(5, 'Exploring Mixtures and their Separation', 'Solutions, colloids, suspensions, separation methods', ['states-of-matter', 'tlc-rf-calculator', 'centrifuge-calculator']),
         c(6, 'How Forces Affect Motion', 'Newton\'s laws, momentum, conservation of momentum', ['newtons-laws', 'collision-calculator']),
         c(7, 'Work, Energy, and Simple Machines', 'Work, kinetic and potential energy, power, machines', ['energy-track', 'simple-machines']),
         c(8, 'Journey Inside the Atom', 'Atomic models, atomic number, isotopes, shells, valency', ['build-an-atom', 'rutherford-scattering', 'periodic-table']),
-        c(9, 'Atomic Foundations of Matter', 'Laws of combination, formulae, molecular mass, the mole', ['formula-writer', 'mole-bridge', 'molar-mass-calculator']),
-        c(10, 'Sound Waves: Characteristics and Applications', 'Sound waves, frequency, pitch, echo, ultrasound, SONAR', ['sound-wave-visualiser', 'decibel-distance', 'audio-spectrum-analyser']),
-        c(11, 'Reproduction: How Life Continues', 'Asexual and sexual reproduction', ['cell-division']),
-        c(12, 'Patterns in Life: Diversity and Classification', 'Classification, kingdoms, keys, names', ['dichotomous-key-builder']),
+        c(9, 'Atomic Foundations of Matter', 'Laws of combination, formulae, molecular mass, the mole', ['formula-writer', 'mole-bridge', 'molar-mass-calculator', 'constant-proportions']),
+        c(10, 'Sound Waves: Characteristics and Applications', 'Sound waves, frequency, pitch, echo, ultrasound, SONAR', ['sound-wave-visualiser', 'decibel-distance', 'audio-spectrum-analyser', 'echo-sonar', 'hearing-range']),
+        c(11, 'Reproduction: How Life Continues', 'Asexual and sexual reproduction', ['cell-division', 'reproduction-modes', 'flower-pollination']),
+        c(12, 'Patterns in Life: Diversity and Classification', 'Classification, kingdoms, keys, names', ['dichotomous-key-builder', 'dichotomous-key', 'classification-tree']),
         c(13, 'Earth as a System: Energy, Matter, and Life', 'Earth\'s spheres, carbon and nitrogen cycles, climate', ['energy-balance-model', 'carbon-footprint']),
       ] },
       { id: 'maths', name: 'Maths', book: 'Ganita Manjari', chapters: [
@@ -122,7 +122,7 @@ export const CLASSES: SchoolClass[] = [
     id: 'class-11', n: 11, name: 'Class 11', blurb: 'Physics, chemistry, biology and maths.',
     subjects: [
       { id: 'physics', name: 'Physics', chapters: [
-        c(1, 'Units and Measurement', 'SI units, significant figures, dimensions', ['dimensional-analysis', 'sig-fig-checker', 'uncertainty-calculator', 'physical-constants']),
+        c(1, 'Units and Measurement', 'SI units, significant figures, dimensions', ['dimensional-analysis', 'sig-fig-checker', 'uncertainty-calculator', 'physical-constants', 'si-unit-converter']),
         c(2, 'Motion in a Straight Line', 'Velocity, acceleration, kinematic equations', ['motion-graphs', 'equations-of-motion']),
         c(3, 'Motion in a Plane', 'Vectors, projectile motion, circular motion', ['projectile-drag', 'vector-lab-3d']),
         c(4, 'Laws of Motion', 'Newton\'s laws, momentum, friction, circular motion', ['newtons-laws', 'friction-ramp', 'banked-curve']),
@@ -138,7 +138,7 @@ export const CLASSES: SchoolClass[] = [
         c(14, 'Waves', 'Travelling waves, superposition, standing waves, beats', ['travelling-wave', 'standing-waves', 'doppler-beats']),
       ] },
       { id: 'chemistry', name: 'Chemistry', chapters: [
-        c(1, 'Some Basic Concepts of Chemistry', 'Mole concept, empirical formula, stoichiometry, concentration', ['mole-bridge', 'molar-mass-calculator', 'concentration-converter', 'reaction-equivalents']),
+        c(1, 'Some Basic Concepts of Chemistry', 'Mole concept, empirical formula, stoichiometry, concentration', ['mole-bridge', 'molar-mass-calculator', 'concentration-converter', 'reaction-equivalents', 'constant-proportions']),
         c(2, 'Structure of Atom', 'Atomic models, spectra, Bohr model, orbitals, configuration', ['electron-configuration', 'hydrogen-spectrum', 'hydrogen-orbitals', 'photoelectric-lab']),
         c(3, 'Classification of Elements and Periodicity in Properties', 'Periodic table, periodic trends', ['periodic-table', 'electron-configuration']),
         c(4, 'Chemical Bonding and Molecular Structure', 'Lewis structures, VSEPR, hybridisation, MO theory', ['vsepr-shapes', 'lewis-structures', 'mo-diagram', 'dipole-polarity', 'molecule-viewer']),
@@ -149,7 +149,7 @@ export const CLASSES: SchoolClass[] = [
         c(9, 'Hydrocarbons', 'Alkanes, alkenes, alkynes, aromatic compounds', ['conformation-spinner', 'unsaturation-calculator']),
       ] },
       { id: 'biology', name: 'Biology', chapters: [
-        c(1, 'The Living World', 'Living things, naming and taxonomy', ['dichotomous-key-builder']),
+        c(1, 'The Living World', 'Living things, naming and taxonomy', ['dichotomous-key-builder', 'classification-tree', 'dichotomous-key']),
         c(2, 'Biological Classification', 'Five kingdoms, viruses, lichens', ['dichotomous-key-builder']),
         c(3, 'Plant Kingdom', 'Algae to angiosperms, life cycles', []),
         c(4, 'Animal Kingdom', 'Basis of classification, animal phyla', ['dichotomous-key-builder']),
@@ -219,7 +219,7 @@ export const CLASSES: SchoolClass[] = [
         c(10, 'Biomolecules', 'Carbohydrates, proteins, enzymes, nucleic acids', ['protein-calculator', 'central-dogma']),
       ] },
       { id: 'biology', name: 'Biology', chapters: [
-        c(1, 'Sexual Reproduction in Flowering Plants', 'Pollination, double fertilisation, seeds and fruits', []),
+        c(1, 'Sexual Reproduction in Flowering Plants', 'Pollination, double fertilisation, seeds and fruits', ['flower-pollination']),
         c(2, 'Human Reproduction', 'Reproductive systems, gametogenesis, cycle, development', ['cell-division']),
         c(3, 'Reproductive Health', 'Population, birth control, infections', ['population-pyramid']),
         c(4, 'Principles of Inheritance and Variation', 'Mendel\'s laws, linkage, sex determination, pedigrees', ['mendel-peas', 'punnett-square', 'mendelian-chi-square', 'pedigree-drawing-tool', 'linkage-map-calculator']),
