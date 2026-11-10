@@ -1,4 +1,4 @@
-// #T831 Claim or pay for the repair yourself?
+// #T832 Claim or pay for the repair yourself?
 export const path = '/money/claim-or-pay/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/claim-or-pay/`); await page.waitForTimeout(300);

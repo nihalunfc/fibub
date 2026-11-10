@@ -1,4 +1,4 @@
-// #T827 Health plan cost comparer
+// #T828 Health plan cost comparer
 export const path = '/money/health-plan-comparer/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/health-plan-comparer/`); await page.waitForTimeout(300);

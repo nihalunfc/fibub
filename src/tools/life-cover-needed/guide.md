@@ -2,7 +2,7 @@
 name: How much life insurance do I need?
 num: 1960
 shelf: money
-code: T834
+code: T835
 section: life-insurance
 title: "How much life insurance do I need? Cover calculator"
 summary: "Estimate how much life cover your family needs with three standard methods side by side: the needs approach, human life value and DIME."

@@ -1,4 +1,4 @@
-// #T834 How much life insurance do I need?
+// #T835 How much life insurance do I need?
 export const path = '/money/life-cover-needed/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/life-cover-needed/`); await page.waitForTimeout(300);

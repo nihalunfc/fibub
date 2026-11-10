@@ -2,7 +2,7 @@
 name: Should I insure this?
 num: 1951
 shelf: money
-code: T825
+code: T826
 section: insurance-basics
 title: "Should I insure this? Is the cover worth its price"
 summary: "Compare a cover's price with the chance and size of the loss, and see the most it is worth paying for you, based on how much risk you can take."

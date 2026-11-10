@@ -1,4 +1,4 @@
-// #T830 Car insurance deductible chooser
+// #T831 Car insurance deductible chooser
 export const path = '/money/insurance-deductible/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/insurance-deductible/`); await page.waitForTimeout(300);

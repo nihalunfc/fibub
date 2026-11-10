@@ -1,4 +1,4 @@
-// #T829 Home insurance underinsurance check
+// #T830 Home insurance underinsurance check
 export const path = '/money/underinsurance-check/';
 export default async ({ page, check, BASE }) => {
   await page.goto(`${BASE}/money/underinsurance-check/`); await page.waitForTimeout(300);

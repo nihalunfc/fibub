@@ -2,7 +2,7 @@
 name: Claim or pay for the repair yourself?
 num: 1957
 shelf: money
-code: T831
+code: T832
 section: car-insurance
 title: "Claim or pay for the repair yourself? No-claim discount calculator"
 summary: "Work out whether a small car repair is worth claiming, by comparing what the claim pays with the extra premiums from losing your no-claim discount."
