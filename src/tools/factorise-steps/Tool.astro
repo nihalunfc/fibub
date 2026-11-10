@@ -1,0 +1,157 @@
+---
+// Factorising with identities, step by step: type whole-number coefficients and see the identity that fits, the
+// steps, an area picture for quadratics, and a check by expanding and by putting in a number. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm fs">
+  <div class="ax-card">
+    <div class="ax-seg fs-mode" role="group" aria-label="Kind of expression"><button type="button" data-m="q" aria-pressed="true">ax² + bx + c</button><button type="button" data-m="d" aria-pressed="false">a² − b²</button><button type="button" data-m="c" aria-pressed="false">a³ ± b³</button></div>
+    <div class="ax-grid fs-in fs-q" style="margin-top:10px">
+      <label>a (x²) <input type="number" class="fs-a" step="1" value="6" inputmode="numeric" /></label>
+      <label>b (x) <input type="number" class="fs-b" step="1" value="-5" inputmode="numeric" /></label>
+      <label>c (number) <input type="number" class="fs-c" step="1" value="-6" inputmode="numeric" /></label>
+    </div>
+    <div class="ax-grid fs-in fs-d" style="margin-top:10px" hidden>
+      <label>p in px² − q <input type="number" class="fs-dp" min="1" step="1" value="49" inputmode="numeric" /></label>
+      <label>q <input type="number" class="fs-dq" min="1" step="1" value="16" inputmode="numeric" /></label>
+    </div>
+    <div class="ax-grid fs-in fs-c3" style="margin-top:10px" hidden>
+      <label>p in px³ ± q <input type="number" class="fs-cp" min="1" step="1" value="8" inputmode="numeric" /></label>
+      <label>Sign <select class="fs-cs"><option value="+">+ (sum of cubes)</option><option value="-">− (difference of cubes)</option></select></label>
+      <label>q <input type="number" class="fs-cq" min="1" step="1" value="27" inputmode="numeric" /></label>
+    </div>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn secondary small fs-rand">New example</button></div>
+    <p class="ax-big fs-expr" aria-live="polite" style="margin:10px 0 2px"></p>
+    <p class="ax-big fs-ans" style="margin:0 0 6px"></p>
+    <p class="ax-err fs-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Step by step</h2>
+    <ol class="sm-steps fs-steps"></ol>
+    <p class="sm-f fs-num"></p>
+  </div>
+
+  <div class="ax-card fs-piccard">
+    <h2>As an area</h2>
+    <svg class="sm-fig fs-fig" viewBox="0 0 340 220" role="img" aria-label="The product of the two brackets drawn as a rectangle split into four parts"></svg>
+    <p class="ax-help">Each bracket is one side of a rectangle; the four parts add up to the whole expression. (Not to scale; negative parts are shaded differently.)</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Try a = 1, b = 1, c = 1. Why can't x² + x + 1 be split?</li>
+      <li>Make a perfect square: a = 9, b = 12, c = 4. The page spots the identity (a + b)².</li>
+      <li>Use a² − b² with p = 1, q = 9: x² − 9. Then put x = 100 to see why 100² − 3² = 103 × 97.</li>
+      <li>8x³ + 27 and 8x³ − 27 differ only in signs. Compare their second brackets.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="fs-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .fs svg .fs-pos { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+  .fs svg .fs-neg { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1.5; }
+  .fs svg .fs-l { font: 600 14px system-ui, sans-serif; fill: var(--ink); }
+  .fs svg .fs-side { font: 600 13px system-ui, sans-serif; fill: var(--muted); }
+</style>
+
+<script>
+  import { quadratic, diffSquares, cubes, polyText, term, type Fact } from '../../lib/sci/factorise-school';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.fs')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.fs-fig');
+  let mode = 'q';
+  const int = (c: string, lo: number, hi: number) => { const v = Number(q<HTMLInputElement>(c).value); return Number.isInteger(v) && v >= lo && v <= hi ? v : null; };
+  const ev = (cs: number[], x: number) => cs.reduce((t, k) => t * x + k, 0);
+
+  function picture(f: Fact) {
+    fig.replaceChildren();
+    const show = f.ok && f.factors.length === 2;
+    q('.fs-piccard').hidden = !show;
+    if (!show) return;
+    const [[p, qq], [r, s]] = f.factors;
+    const W = 230, H = 160, x0 = 80, y0 = 40, cw = qq === 0 ? W : W * 0.66, ch = s === 0 ? H : H * 0.62;
+    const cells: [number, number, number, number, number, string][] = [
+      [x0, y0, cw, ch, p * r, term(p * r, 2)],
+      [x0 + cw, y0, W - cw, ch, qq * r, term(qq * r, 1)],
+      [x0, y0 + ch, cw, H - ch, p * s, term(p * s, 1)],
+      [x0 + cw, y0 + ch, W - cw, H - ch, qq * s, term(qq * s, 0)],
+    ];
+    for (const [x, y, w, h, k, t] of cells) { if (w < 1 || h < 1 || k === 0) continue; S('rect', { x, y, width: w, height: h, class: k < 0 ? 'fs-neg' : 'fs-pos' }, fig); S('text', { x: x + w / 2, y: y + h / 2 + 5, 'text-anchor': 'middle', class: 'fs-l' }, fig, t); }
+    S('text', { x: x0 + cw / 2, y: y0 - 10, 'text-anchor': 'middle', class: 'fs-side' }, fig, term(p, 1));
+    if (qq) S('text', { x: x0 + cw + (W - cw) / 2, y: y0 - 10, 'text-anchor': 'middle', class: 'fs-side' }, fig, term(qq, 0));
+    S('text', { x: x0 - 8, y: y0 + ch / 2 + 5, 'text-anchor': 'end', class: 'fs-side' }, fig, term(r, 1));
+    if (s) S('text', { x: x0 - 8, y: y0 + ch + (H - ch) / 2 + 5, 'text-anchor': 'end', class: 'fs-side' }, fig, term(s, 0));
+    const g = f.g === 1 ? '' : `${f.g === -1 ? '−' : String(f.g).replace('-', '−')} × `;
+    S('text', { x: 170, y: 18, 'text-anchor': 'middle', class: 'fs-side' }, fig, `${g}(${polyText([p, qq])}) × (${polyText([r, s])})`);
+  }
+
+  function draw() {
+    let f: Fact | null = null, orig: number[] = [];
+    const err = q('.fs-err'); err.hidden = true;
+    if (mode === 'q') {
+      const a = int('.fs-a', -99, 99), b = int('.fs-b', -999, 999), c = int('.fs-c', -9999, 9999);
+      if (a === null || b === null || c === null || a === 0) { err.hidden = false; err.textContent = 'Use whole numbers: a from −99 to 99 (not 0), b and c of a sensible size.'; }
+      else { f = quadratic(a, b, c); orig = [a, b, c]; }
+    } else if (mode === 'd') {
+      const p = int('.fs-dp', 1, 9999), qq = int('.fs-dq', 1, 99999);
+      if (p === null || qq === null) { err.hidden = false; err.textContent = 'Use whole numbers of 1 or more.'; }
+      else { f = diffSquares(p, qq); orig = [p, 0, -qq]; }
+    } else {
+      const p = int('.fs-cp', 1, 9999), qq = int('.fs-cq', 1, 99999), plus = q<HTMLSelectElement>('.fs-cs').value === '+';
+      if (p === null || qq === null) { err.hidden = false; err.textContent = 'Use whole numbers of 1 or more.'; }
+      else { f = cubes(p, qq, plus); orig = [p, 0, 0, plus ? qq : -qq]; }
+    }
+    if (!f) { q('.fs-expr').textContent = ''; q('.fs-ans').textContent = ''; q('.fs-steps').replaceChildren(); q('.fs-num').textContent = ''; picture({ ok: false } as Fact); return; }
+    q('.fs-expr').textContent = polyText(orig);
+    q('.fs-ans').textContent = f.ok ? `= ${f.text}` : 'Does not factorise with whole numbers';
+    q('.fs-steps').replaceChildren(...f.steps.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+    if (f.ok) {
+      const x = 2, left = ev(orig, x);
+      let right = f.g;
+      for (const [p, qq] of f.factors) right *= p * x + qq;
+      const quad = (f as Fact & { quad?: number[] }).quad;
+      if (quad && quad.length) right *= ev(quad, x);
+      q('.fs-num').textContent = `Number check with x = 2: ${polyText(orig)} gives ${fmt(left, 0)}, and ${f.text} gives ${fmt(right, 0)}. ${left === right ? 'They agree.' : 'They do not agree.'}`;
+    } else q('.fs-num').textContent = '';
+    picture(f);
+  }
+  root.querySelectorAll('.fs-in input, .fs-in select').forEach((e) => e.addEventListener('input', draw));
+  root.querySelectorAll<HTMLButtonElement>('.fs-mode button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m!;
+    root.querySelectorAll('.fs-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.fs-q').hidden = mode !== 'q'; q('.fs-d').hidden = mode !== 'd'; q('.fs-c3').hidden = mode !== 'c'; draw();
+  }));
+  const setv = (c: string, v: number) => { q<HTMLInputElement>(c).value = String(v); };
+  q('.fs-rand').addEventListener('click', () => {
+    if (mode === 'q') { const p = randInt(1, 3), qq = randInt(-7, 7, true), r = randInt(1, 3), s = randInt(-7, 7, true), g = [1, 1, 1, 2, -1][randInt(0, 4)]; setv('.fs-a', g * p * r); setv('.fs-b', g * (p * s + qq * r)); setv('.fs-c', g * qq * s); }
+    else if (mode === 'd') { const k = randInt(1, 9), m = randInt(1, 12), g = [1, 1, 2, 3][randInt(0, 3)]; setv('.fs-dp', g * k * k); setv('.fs-dq', g * m * m); }
+    else { const k = randInt(1, 4), m = randInt(1, 5); setv('.fs-cp', k ** 3); setv('.fs-cq', m ** 3); q<HTMLSelectElement>('.fs-cs').value = randInt(0, 1) ? '+' : '-'; }
+    draw();
+  });
+  draw();
+
+  quiz(q('.fs-quiz'), () => {
+    const out: Question[] = [];
+    const m = randInt(1, 9), n = randInt(-9, 9, true);
+    out.push({ q: `${polyText([1, m + n, m * n])} = (x + m)(x + n). Type m and n.`, want: [m, n], hint: 'two numbers', work: `Two numbers with product ${m * n} and sum ${m + n}: ${m} and ${n}. So it is ${quadratic(1, m + n, m * n).text}.`.replace(/-/g, '−') });
+    const a = randInt(40, 90), b = randInt(1, 9);
+    out.push({ q: `Use a² − b² = (a + b)(a − b) to work out ${a + b}² − ${a - b}².`, want: [(2 * a) * (2 * b)], work: `(${a + b} + ${a - b})(${a + b} − ${a - b}) = ${2 * a} × ${2 * b} = ${4 * a * b}.` });
+    const c = randInt(1, 9), base = [100, 1000][randInt(0, 1)], sg = randInt(0, 1) ? 1 : -1, v = base + sg * c;
+    out.push({ q: `Use (a ${sg > 0 ? '+' : '−'} b)² = a² ${sg > 0 ? '+' : '−'} 2ab + b² to work out ${v}².`, want: [v * v], work: `${base}² ${sg > 0 ? '+' : '−'} 2 × ${base} × ${c} + ${c}² = ${base * base} ${sg > 0 ? '+' : '−'} ${2 * base * c} + ${c * c} = ${v * v}.` });
+    const k = randInt(1, 4), mm = randInt(2, 5);
+    out.push({ q: `${polyText([k ** 3, 0, 0, -(mm ** 3)])} = (${polyText([k, -mm])})(${term(k * k, 2)} + Kx + ${mm * mm}). What is K?`, want: [k * mm], work: `a³ − b³ = (a − b)(a² + ab + b²) with a = ${term(k, 1)} and b = ${mm}: ab = ${term(k * mm, 1)}, so K = ${k * mm}.` });
+    return out;
+  });
+</script>

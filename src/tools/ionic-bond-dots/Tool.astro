@@ -1,0 +1,144 @@
+---
+// Ionic bond builder: pick a metal and a non-metal; outer electrons are drawn as crosses (metal) and dots
+// (non-metal) and move one at a time until every ion has a full outer shell. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+import '../../styles/chemquiz.css';
+import { METALS, NONMETALS } from '../../lib/sci/ionic-school';
+---
+<div class="ax sm ib">
+  <div class="ax-card">
+    <div class="ax-grid">
+      <label>Metal <select class="ib-m">{METALS.map((e) => <option value={e.sym} selected={e.sym === 'Mg'}>{e.name} ({e.sym}, Z = {e.z})</option>)}</select></label>
+      <label>Non-metal <select class="ib-x">{NONMETALS.map((e) => <option value={e.sym} selected={e.sym === 'Cl'}>{e.name} ({e.sym}, Z = {e.z})</option>)}</select></label>
+    </div>
+    <svg class="sm-fig ib-fig" viewBox="0 0 340 300" role="img" aria-label="Atoms with their outer electrons; electrons move from the metal to the non-metal" style="margin-top:10px"></svg>
+    <p class="ax-big ib-big" aria-live="polite" style="margin:8px 0 2px"></p>
+    <p class="ib-step" style="margin:0 0 8px"></p>
+    <div class="ax-row">
+      <button type="button" class="btn small ib-next">Move one electron</button>
+      <button type="button" class="btn secondary small ib-all">Move them all</button>
+      <button type="button" class="btn secondary small ib-reset">Start again</button>
+    </div>
+    <p class="ax-help">× = an outer electron of the metal, • = an outer electron of the non-metal. Inner shells are full and are not drawn.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>What happened</h2>
+    <ul class="sm-steps ib-out"></ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Sodium and chlorine need one electron to move. Magnesium and chlorine need two chlorine atoms. Why?</li>
+      <li>Find the pair that needs the most electrons moved. (Hint: aluminium.)</li>
+      <li>Compare the shells of Na⁺, Mg²⁺, F⁻ and O²⁻. They all end up with 2, 8, like the noble gas neon.</li>
+      <li>Ionic compounds are made of ions held by attraction. That is why they have high melting points and conduct when melted or dissolved.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cq">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <ol class="cq-list"></ol>
+    <button type="button" class="btn secondary small cq-new">New questions</button>
+  </div>
+</div>
+
+<style is:inline>
+  .ib select { font-size: 16px; }
+  .ib svg .ib-shell { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+  .ib svg .ib-core { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+  .ib svg .ib-sym { font: 700 15px system-ui, sans-serif; fill: var(--ink); }
+  .ib svg .ib-dot { fill: var(--ink); }
+  .ib svg .ib-x { stroke: var(--accent); stroke-width: 2.4; stroke-linecap: round; }
+  .ib svg .ib-arrow { stroke: var(--warn); stroke-width: 2.5; fill: none; }
+  .ib svg .ib-head { fill: var(--warn); }
+  .ib svg .ib-br { fill: none; stroke: var(--ink); stroke-width: 1.8; }
+  .ib svg .ib-q { font: 700 14px system-ui, sans-serif; fill: var(--accent); }
+  .ib svg .ib-qn { font: 700 14px system-ui, sans-serif; fill: var(--bad); }
+</style>
+
+<script>
+  import { METALS, NONMETALS, shells, charge, ionShells, ratio, formula, transfers, ionText, compoundName, type El } from '../../lib/sci/ionic-school';
+  import { mountQuiz, near, same, pickOne, type Question } from '../../lib/chemquiz';
+  import { S } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.ib')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.ib-fig');
+  const mSel = q<HTMLSelectElement>('.ib-m'), xSel = q<HTMLSelectElement>('.ib-x');
+  let moved = 0;
+  const M = () => METALS.find((e) => e.sym === mSel.value)!, X = () => NONMETALS.find((e) => e.sym === xSel.value)!;
+  const ascii = (f: string) => f.replace(/[₀-₉]/g, (d) => String('₀₁₂₃₄₅₆₇₈₉'.indexOf(d)));
+
+  function atomPos(n: number, i: number, x: number) { const gap = 300 / n; return [x, gap * i + gap / 2]; }
+
+  function draw() {
+    const m = M(), x = X(), r = ratio(m, x), tr = transfers(m, x), total = tr.length;
+    moved = Math.min(moved, total);
+    const lose = charge(m.z, true), gain = -charge(x.z, false), vm = shells(m.z).at(-1)!, vx = shells(x.z).at(-1)!;
+    fig.replaceChildren();
+    const R = Math.min(42, 300 / Math.max(r.nm, r.nx) / 2 - 8);
+    const mx = 80, xx = 255;
+    // How many electrons each atom has lost or gained so far.
+    const lost = Array(r.nm).fill(0), got: { from: number }[][] = Array.from({ length: r.nx }, () => []);
+    tr.slice(0, moved).forEach((t) => { lost[t.from]++; got[t.to].push({ from: t.from }); });
+    const ePos = (cx: number, cy: number, k: number, n: number) => { const a = -Math.PI / 2 + (2 * Math.PI * k) / n; return [cx + R * Math.cos(a), cy + R * Math.sin(a)]; };
+    const cross = (x0: number, y0: number) => { const s = 4.5; S('line', { x1: x0 - s, y1: y0 - s, x2: x0 + s, y2: y0 + s, class: 'ib-x' }, fig); S('line', { x1: x0 - s, y1: y0 + s, x2: x0 + s, y2: y0 - s, class: 'ib-x' }, fig); };
+    const done = moved === total;
+    for (let i = 0; i < r.nm; i++) {
+      const [cx, cy] = atomPos(r.nm, i, mx), left = vm - lost[i];
+      if (left > 0) S('circle', { cx, cy, r: R, class: 'ib-shell' }, fig);
+      S('circle', { cx, cy, r: Math.max(13, R * 0.42), class: 'ib-core' }, fig);
+      S('text', { x: cx, y: cy + 5, 'text-anchor': 'middle', class: 'ib-sym' }, fig, m.sym);
+      for (let k = 0; k < left; k++) { const [ex, ey] = ePos(cx, cy, k, Math.max(vm, 2) * 2); cross(ex, ey); }
+      if (lost[i] === lose) { S('path', { d: `M ${cx - R * 0.62} ${cy - R * 0.7} h -6 v ${R * 1.4} h 6 M ${cx + R * 0.62} ${cy - R * 0.7} h 6 v ${R * 1.4} h -6`, class: 'ib-br' }, fig); S('text', { x: cx + R * 0.62 + 10, y: cy - R * 0.7 + 4, class: 'ib-q' }, fig, lose === 1 ? '+' : `${lose}+`); }
+    }
+    for (let j = 0; j < r.nx; j++) {
+      const [cx, cy] = atomPos(r.nx, j, xx), n = vx + got[j].length;
+      S('circle', { cx, cy, r: R, class: 'ib-shell' }, fig);
+      S('circle', { cx, cy, r: Math.max(13, R * 0.42), class: 'ib-core' }, fig);
+      S('text', { x: cx, y: cy + 5, 'text-anchor': 'middle', class: 'ib-sym' }, fig, x.sym);
+      for (let k = 0; k < vx; k++) { const [ex, ey] = ePos(cx, cy, k, 8); S('circle', { cx: ex, cy: ey, r: 3.6, class: 'ib-dot' }, fig); }
+      got[j].forEach((_, k) => { const [ex, ey] = ePos(cx, cy, vx + k, 8); cross(ex, ey); });
+      if (n === 8) { S('path', { d: `M ${cx - R - 4} ${cy - R - 2} h -6 v ${2 * R + 4} h 6 M ${cx + R + 4} ${cy - R - 2} h 6 v ${2 * R + 4} h -6`, class: 'ib-br' }, fig); S('text', { x: cx + R + 12, y: cy - R + 6, class: 'ib-qn' }, fig, gain === 1 ? '−' : `${gain}−`); }
+    }
+    if (!done) {
+      const t = tr[moved], [ax, ay] = atomPos(r.nm, t.from, mx), [bx, by] = atomPos(r.nx, t.to, xx);
+      const x1 = ax + R + 4, x2 = bx - R - 8, my = (ay + by) / 2 - 18;
+      S('path', { d: `M ${x1} ${ay} Q ${(x1 + x2) / 2} ${my} ${x2} ${by}`, class: 'ib-arrow' }, fig);
+      S('polygon', { points: `${x2 + 7},${by} ${x2 - 3},${by - 6} ${x2 - 3},${by + 6}`, class: 'ib-head' }, fig);
+    }
+    const f = formula(m, x);
+    q('.ib-big').textContent = done ? `${f}: ${compoundName(m, x)}` : `${moved} of ${total} electron${total === 1 ? '' : 's'} moved`;
+    q('.ib-step').textContent = done ? `All ${total} electron${total === 1 ? '' : 's'} moved. Every ion now has a full outer shell.` : `Next: an electron goes from ${m.sym}${r.nm > 1 ? ` atom ${tr[moved].from + 1}` : ''} to ${x.sym}${r.nx > 1 ? ` atom ${tr[moved].to + 1}` : ''}.`;
+    q<HTMLButtonElement>('.ib-next').disabled = done; q<HTMLButtonElement>('.ib-all').disabled = done;
+    const lines = [
+      `${m.name} (Z = ${m.z}) has shells ${shells(m.z).join(', ')}: ${vm} outer electron${vm === 1 ? '' : 's'}. Losing ${lose === 1 ? 'it' : `all ${lose}`} leaves the full shell below: ${ionText(m.sym, lose)} is ${ionShells(m.z, true).join(', ')}.`,
+      `${x.name} (Z = ${x.z}) has shells ${shells(x.z).join(', ')}: ${vx} outer electrons. Gaining ${gain} makes 8: ${ionText(x.sym, -gain)} is ${ionShells(x.z, false).join(', ')}.`,
+      `Electrons lost must equal electrons gained. The smallest numbers that balance are ${r.nm} ${m.sym} (giving ${r.nm} × ${lose} = ${r.electrons}) and ${r.nx} ${x.sym} (taking ${r.nx} × ${gain} = ${r.electrons}).`,
+      `So the formula is ${f}, made of ${r.nm} ${ionText(m.sym, lose)} ion${r.nm > 1 ? 's' : ''} and ${r.nx} ${ionText(x.sym, -gain)} ion${r.nx > 1 ? 's' : ''}; the charges add to zero. The ions are held together by the attraction between opposite charges: an ionic bond.`,
+    ];
+    q('.ib-out').replaceChildren(...lines.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+  }
+  mSel.addEventListener('change', () => { moved = 0; draw(); }); xSel.addEventListener('change', () => { moved = 0; draw(); });
+  q('.ib-next').addEventListener('click', () => { moved++; draw(); });
+  q('.ib-all').addEventListener('click', () => { moved = 99; draw(); });
+  q('.ib-reset').addEventListener('click', () => { moved = 0; draw(); });
+  draw();
+
+  mountQuiz(q('.cq'), (): Question[] => {
+    const a = pickOne(METALS), b = pickOne(NONMETALS), f = formula(a, b);
+    const c = pickOne(METALS), d = pickOne(NONMETALS.filter((e) => e.sym !== b.sym)), r2 = ratio(c, d);
+    const e = pickOne([...METALS, ...NONMETALS]), isM = METALS.includes(e as El);
+    const g = pickOne([...METALS, ...NONMETALS]), gM = METALS.includes(g as El), ch = charge(g.z, gM);
+    return [
+      { q: `Write the formula of the compound of ${a.name.toLowerCase()} and ${b.name.toLowerCase()}. (Type numbers as normal digits, e.g. MgCl2.)`, hint: 'a formula', answer: ascii(f), ok: same(f, ascii(f)), worked: `${a.sym} loses ${charge(a.z, true)} and ${b.sym} gains ${-charge(b.z, false)}; balancing gives ${ratio(a, b).nm} : ${ratio(a, b).nx}.` },
+      { q: `How many electrons move in total to make one formula unit of ${formula(c, d)}?`, hint: 'a whole number', answer: String(r2.electrons), ok: near(r2.electrons, 0), worked: `${r2.nm} ${c.sym} atom${r2.nm > 1 ? 's' : ''} each lose ${charge(c.z, true)}: ${r2.nm} × ${charge(c.z, true)} = ${r2.electrons}.` },
+      { q: `Write the shells of the ${isM ? 'ion' : 'ion'} formed by ${e.name.toLowerCase()} (Z = ${e.z}), like 2,8.`, hint: 'like 2,8', answer: ionShells(e.z, isM).join(','), ok: same(ionShells(e.z, isM).join(','), ionShells(e.z, isM).join(', ')), worked: `${e.name} is ${shells(e.z).join(', ')}; it ${isM ? `loses its ${shells(e.z).at(-1)} outer electron${shells(e.z).at(-1)! > 1 ? 's' : ''}` : `gains ${8 - shells(e.z).at(-1)!} to make 8`}.` },
+      { q: `What is the charge on the ion that ${g.name.toLowerCase()} forms? (Type e.g. 2 or -1.)`, hint: 'a number with its sign', answer: String(ch), ok: near(ch, 0), worked: `${g.name} has ${shells(g.z).at(-1)} outer electron${shells(g.z).at(-1)! > 1 ? 's' : ''}, so it ${gM ? `loses ${ch}` : `gains ${-ch}`}: ${ionText(g.sym, ch)}.` },
+    ];
+  });
+</script>
