@@ -1,0 +1,16 @@
+---
+// Page 2 onward of a Blog kind's list.
+import KindPage from '../../../../components/KindPage.astro';
+import { allArticles, KINDS, kindOf } from '../../../../lib/blog';
+import { PER_PAGE } from '../../../../lib/blog-pages';
+export async function getStaticPaths() {
+  const all = await allArticles();
+  return KINDS.flatMap((k) => {
+    const list = all.filter((a) => kindOf(a) === k.id);
+    const pages = Math.ceil(list.length / PER_PAGE);
+    return Array.from({ length: Math.max(0, pages - 1) }, (_, i) => ({ params: { kind: k.id, n: String(i + 2) }, props: { kind: k, list, page: i + 2 } }));
+  });
+}
+const { kind, list, page } = Astro.props;
+---
+<KindPage kind={kind} list={list} page={page} />

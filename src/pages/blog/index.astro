@@ -4,6 +4,7 @@
 import Base from '../../layouts/Base.astro';
 import ToolCard from '../../components/ToolCard.astro';
 import ArticleList from '../../components/ArticleList.astro';
+import BlogFilter from '../../components/BlogFilter.astro';
 import { allTools } from '../../lib/tools';
 import { allArticles, KINDS, kindOf } from '../../lib/blog';
 import '../../styles/area.css';
@@ -25,8 +26,12 @@ const count = (k: string) => articles.filter((a) => kindOf(a) === k).length;
     ))}
   </div>
   {articles.length > 0 && <>
-    <h2 class="ar-h">Latest articles</h2>
-    <ArticleList articles={articles.slice(0, 12)} />
+    <h2 class="ar-h">Find an article</h2>
+    <BlogFilter />
+    <div data-bf-plain>
+      <h2 class="ar-h">Latest articles</h2>
+      <ArticleList articles={articles.slice(0, 12)} />
+    </div>
   </>}
   <h2 class="ar-h">Site news</h2>
   <div class="ar-cards">

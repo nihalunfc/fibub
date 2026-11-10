@@ -1,0 +1,45 @@
+---
+// One page of a Blog kind's list (newest first), with search and filters on top and page links below.
+import Base from '../layouts/Base.astro';
+import ArticleList from './ArticleList.astro';
+import BlogFilter from './BlogFilter.astro';
+import { collectionLd } from '../lib/seo';
+import { PER_PAGE, pageUrl } from '../lib/blog-pages';
+import type { Article } from '../lib/blog';
+import '../styles/area.css';
+interface Props { kind: { id: string; name: string; blurb: string }; list: Article[]; page: number }
+const { kind, list, page } = Astro.props;
+const pages = Math.max(1, Math.ceil(list.length / PER_PAGE));
+const items = list.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+const url = pageUrl(kind.id, page);
+const title = page > 1 ? `${kind.name}, page ${page} | Blog` : `${kind.name} | Blog`;
+---
+<Base title={title} description={kind.blurb} ld={collectionLd(kind.name, kind.blurb, url, [{ name: 'Home', url: '/' }, { name: 'Blog', url: '/blog/' }, { name: kind.name, url: pageUrl(kind.id, 1) }])}>
+  <div class="crumbs"><a href="/">Home</a> / <a href="/blog/">Blog</a> / {page > 1 ? <><a href={pageUrl(kind.id, 1)}>{kind.name}</a> / Page {page}</> : kind.name}</div>
+  <div class="ar-head">
+    <h1>{kind.name}{page > 1 && <small class="ar-page"> page {page} of {pages}</small>}</h1>
+    <p class="lead">{kind.blurb}</p>
+  </div>
+  {list.length ? <>
+    <BlogFilter kind={kind.id} />
+    <div data-bf-plain>
+      <p class="ar-count">{list.length} articles{pages > 1 && `, ${PER_PAGE} per page`}.</p>
+      <ArticleList articles={items} showKind={false} />
+      {pages > 1 && (
+        <nav class="pager" aria-label="Pages">
+          {page > 1 && <a href={pageUrl(kind.id, page - 1)} rel="prev">← Newer</a>}
+          {Array.from({ length: pages }, (_, i) => i + 1).map((n) => n === page ? <span aria-current="page">{n}</span> : <a href={pageUrl(kind.id, n)}>{n}</a>)}
+          {page < pages && <a href={pageUrl(kind.id, page + 1)} rel="next">Older →</a>}
+        </nav>
+      )}
+    </div>
+  </> : <p class="ar-note">The first articles are on their way.</p>}
+</Base>
+<style>
+  .ar-count { font-size: 14px; color: var(--muted); margin: 0 0 6px; }
+  .ar-page { font-size: 16px; font-weight: 400; color: var(--muted); }
+  .pager { display: flex; flex-wrap: wrap; gap: 6px; margin: 22px 0 8px; max-width: 760px; }
+  .pager a, .pager span { min-width: 38px; text-align: center; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 15px; text-decoration: none; color: var(--ink); background: var(--surface); }
+  .pager a:hover { border-color: var(--accent); color: var(--accent); }
+  .pager span { background: var(--accent); border-color: var(--accent); color: var(--bg, #fff); font-weight: 700; }
+</style>
