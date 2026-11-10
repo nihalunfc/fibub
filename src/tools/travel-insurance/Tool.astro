@@ -1,0 +1,135 @@
+---
+import InsuranceNote from '../../components/InsuranceNote.astro';
+// #T889 Do I need travel insurance?
+---
+<div class="tool-ui ti">
+  <InsuranceNote />
+  <section class="panel">
+    <h2>Your trip</h2>
+    <p class="ti-hint">Example numbers: change them to yours.</p>
+    <div class="ti-grid">
+      <label>Currency <select class="ti-cur" data-k="cur"></select></label>
+      <label>Trip cost you can't get back <input data-k="trip" inputmode="decimal" /></label>
+      <label>Trip days <input data-k="days" inputmode="decimal" /></label>
+      <label>Savings you could use <input data-k="wealth" inputmode="decimal" /></label>
+      <label>Policy price for the trip <input data-k="price" inputmode="decimal" /></label>
+      <label>Policy deductible (you pay first) <input data-k="ded" inputmode="decimal" /></label>
+      <label>Risk attitude (0 to 4) <input data-k="gamma" inputmode="decimal" /><small>0 = only averages count, 1 = typical, 4 = very cautious.</small></label>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>What could go wrong</h2>
+    <p class="ti-hint">One row per risk. The chance is your own guess for this trip. Cover you already have (a credit card, an employer, a home health plan) comes off the cost the policy would face.</p>
+    <div class="ti-rows"></div>
+    <button type="button" class="btn secondary ti-add">Add a risk</button>
+    <ul class="ti-links">
+      <li>Check your own government's travel advice for the country you are visiting before you guess the chances.</li>
+      <li>Check your home health plan's rules for care outside your area or country. Canadian provincial plans pay little outside the province, and India has no public health cover abroad.</li>
+    </ul>
+    <p class="note bad ti-err" role="alert" hidden></p>
+  </section>
+  <section class="ti-res" aria-live="polite">
+    <div class="ti-stats">
+      <div><span>Expected loss without the policy</span><b class="ti-s-no"></b></div>
+      <div><span>Expected cost with the policy</span><b class="ti-s-with"></b></div>
+      <div><span>Fair price (expected payout)</span><b class="ti-s-fair"></b></div>
+      <div><span>Most it is worth paying for you</span><b class="ti-s-max"></b></div>
+    </div>
+    <div class="ti-stats">
+      <div><span>Largest loss without the policy</span><b class="ti-s-lg0"></b></div>
+      <div><span>Largest loss with the policy</span><b class="ti-s-lg1"></b></div>
+      <div><span>Price per trip day</span><b class="ti-s-day"></b></div>
+      <div><span>Price as share of trip cost</span><b class="ti-s-share"></b></div>
+    </div>
+    <p class="ti-verdict"></p>
+    <p class="note warn ti-ruin" hidden></p>
+    <div class="panel"><h2>Risk by risk</h2>
+      <div class="ti-wrap"><table><thead><tr><th>Risk</th><th>Loss after your cover</th><th>Expected loss</th><th>Fair price</th><th>Most worth paying</th></tr></thead><tbody class="ti-body"></tbody></table></div>
+    </div>
+  </section>
+  <p class="ti-fine">How it's worked out: for each risk, expected loss = chance x loss after your existing cover, fair price = chance x (loss after cover - policy deductible), and the most worth paying is the price at which your expected utility with the policy equals that without it (the same method as the "Should I insure this?" tool), added up across risks. Chances are your own estimates, and a policy's real wording may exclude things: read it. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ti { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .ti > *, .ti-res > * { min-width: 0; }
+  .ti h2 { margin: 0 0 12px; font-size: 18px; }
+  .ti .panel { padding: 16px; }
+  .ti-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .ti label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); align-content: start; }
+  .ti small { font-size: 12px; }
+  .ti input, .ti select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ti input:focus, .ti select:focus { border-color: var(--accent); outline: none; }
+  .ti-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); gap: 8px; align-items: end; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .ti-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .ti-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 10px; }
+  .ti-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); align-content: start; }
+  .ti-stats span { font-size: 13px; color: var(--muted); }
+  .ti-stats b { font-size: clamp(17px, 3.4vw, 22px); overflow-wrap: anywhere; }
+  .ti-verdict, .ti-ruin { margin: 0; font-size: 15px; }
+  .ti-hint, .ti-fine { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+  .ti-links { margin: 12px 0 0; padding-left: 18px; font-size: 13px; color: var(--muted); }
+  .ti-wrap { overflow-x: auto; }
+  .ti table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .ti th, .ti td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .ti th:first-child, .ti td:first-child { text-align: left; }
+  .ti th { font-size: 12px; color: var(--muted); font-weight: 600; }
+</style>
+
+<script>
+  import { shouldInsure } from '../../lib/money/insurance';
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.ti')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  q('.ti-cur').innerHTML = currencyOptions(defaultCurrency());
+  const def: Record<string, string> = { trip: '3,000', days: '10', wealth: '10,000', price: '120', ded: '0', gamma: '1' };
+  for (const k in def) f(k).value = def[k];
+  const $ = (n: number) => money(n, f('cur').value, 0);
+  const rows = q('.ti-rows');
+  function addRow(label: string, p: string, loss: string, card: string) {
+    const d = document.createElement('div'); d.className = 'ti-row';
+    d.innerHTML = `<label>Risk <input class="ti-label" /></label><label>Chance, % <input class="ti-p" inputmode="decimal" /></label><label>Cost if it happens <input class="ti-loss" inputmode="decimal" /></label><label>Already covered up to <input class="ti-card" inputmode="decimal" /></label><button type="button" class="btn secondary ti-rm" aria-label="Remove this risk">Remove</button>`;
+    (d.querySelector('.ti-label') as HTMLInputElement).value = label; (d.querySelector('.ti-p') as HTMLInputElement).value = p;
+    (d.querySelector('.ti-loss') as HTMLInputElement).value = loss; (d.querySelector('.ti-card') as HTMLInputElement).value = card;
+    rows.appendChild(d);
+  }
+  addRow('Medical emergency abroad', '2', '20,000', '0');
+  addRow('Trip cancellation', '3', '3,000', '0');
+  addRow('Lost bags', '5', '500', '0');
+  q('.ti-add').addEventListener('click', () => { addRow('', '', '', '0'); run(); });
+  rows.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('.ti-rm'); if (b) { b.parentElement!.remove(); run(); } });
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+  function run() {
+    const price = num(f('price').value), ded = num(f('ded').value), wealth = num(f('wealth').value), gamma = num(f('gamma').value), trip = num(f('trip').value), days = num(f('days').value);
+    const rs = [...rows.querySelectorAll<HTMLElement>('.ti-row')].map((r) => ({ label: (r.querySelector('.ti-label') as HTMLInputElement).value || 'Risk', p: num((r.querySelector('.ti-p') as HTMLInputElement).value) / 100, loss: num((r.querySelector('.ti-loss') as HTMLInputElement).value), card: num((r.querySelector('.ti-card') as HTMLInputElement).value) }));
+    const bad = !rs.length ? 'Add at least one risk.' : rs.some((r) => !(r.p > 0 && r.p < 1)) ? 'Each risk needs a chance between 0 and 100 (for example 1).' : rs.some((r) => !(r.loss > 0) || r.card < 0) ? 'Each risk needs a cost above 0, and cover you already have of 0 or more.' : !(price >= 0) ? 'Enter the policy price.' : ded < 0 ? 'The deductible must be 0 or more.' : !(wealth > 0) ? 'Enter the savings you could use (more than 0).' : !(gamma >= 0 && gamma <= 4) ? 'Enter a risk attitude from 0 to 4.' : '';
+    q('.ti-err').hidden = !bad; q('.ti-err').textContent = bad; q('.ti-res').hidden = !!bad;
+    if (bad) return;
+    let exp = 0, fair = 0, max = 0, lg0 = 0, lg1 = 0, ruin = false, withDed = 0;
+    const body = rs.map((r) => {
+      const net = Math.max(0, r.loss - r.card);
+      const d = Math.min(ded, net);
+      if (net <= 0) return `<tr><td>${esc(r.label)}</td><td>${$(0)}</td><td>${$(0)}</td><td>${$(0)}</td><td>${$(0)}</td></tr>`;
+      const s = shouldInsure({ wealth, loss: net, p: r.p, premium: price, deductible: d, gamma });
+      exp += s.expLoss; fair += s.expPayout; max += s.maxPremium; withDed += r.p * d;
+      lg0 = Math.max(lg0, net); lg1 = Math.max(lg1, d); ruin = ruin || net >= wealth;
+      return `<tr><td>${esc(r.label)}</td><td>${$(net)}</td><td>${$(s.expLoss)}</td><td>${$(s.expPayout)}</td><td>${$(s.maxPremium)}</td></tr>`;
+    }).join('');
+    const withCost = price + withDed;
+    q('.ti-s-no').textContent = $(exp); q('.ti-s-with').textContent = $(withCost);
+    q('.ti-s-fair').textContent = $(fair); q('.ti-s-max').textContent = $(max);
+    q('.ti-s-lg0').textContent = $(lg0); q('.ti-s-lg1').textContent = $(lg1);
+    q('.ti-s-day').textContent = days > 0 ? $(price / days) : 'Enter trip days';
+    q('.ti-s-share').textContent = trip > 0 ? `${Math.round((price / trip) * 1000) / 10}%` : 'Enter trip cost';
+    q('.ti-body').innerHTML = body;
+    q('.ti-verdict').innerHTML = (price <= max
+      ? `The price of <b>${$(price)}</b> is at or below the most the cover is worth to you (${$(max)}), so on these numbers it costs less than the worry it removes.`
+      : `The price of <b>${$(price)}</b> is above the most the cover is worth to you (${$(max)}), so on these numbers you may do as well carrying the risk yourself.`)
+      + ` The price is ${price > fair ? Math.round((price / Math.max(fair, 1e-9) - 1) * 100) + '% above' : 'at or below'} the fair price of ${$(fair)}. This depends on the chances you guessed.`;
+    q('.ti-ruin').hidden = !ruin;
+    q('.ti-ruin').textContent = ruin ? `At least one loss is as big as your savings of ${$(wealth)}, so without cover it could leave you with nothing to fall back on. Weigh this alongside the numbers.` : '';
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>

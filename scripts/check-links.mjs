@@ -20,7 +20,7 @@ for (const id of readdirSync(root)) {
 // Blog articles (src/blog/<kind>/<slug>.md): their [[tool-id]] and [[blog:<kind>/<slug>]] links, the
 // `tools:` list, and the frontmatter every article needs. `node scripts/check-links.mjs <files>` checks
 // just those articles (quick checks while writing).
-const KINDS = ['guides', 'together', 'kids', 'discoveries'];
+const KINDS = ['guides', 'howto', 'together', 'kids', 'discoveries'];
 const blogRoot = new URL('../src/blog/', import.meta.url).pathname;
 const articles = blogIds();
 const only = process.argv.slice(2).map((f) => f.replace(/^.*src\/blog\//, '').replace(/\.md$/, ''));
