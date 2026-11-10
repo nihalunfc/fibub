@@ -14,7 +14,7 @@ updated: 2026-11-09
 related: [herons-formula, picks-theorem, circle-slices, quadrilateral-explorer]
 sources:
   - "Area of a parallelogram, triangle and trapezium, and the shear (Cavalieri) argument, are standard school geometry. Pictures and questions written for fibub."
-  - "Checked: the formula areas equal the shoelace area of the drawn corners for 2 000 random shapes, in Python and in tests/sci-tools/area-shear.mjs."
+  - "Checked: the formula areas equal the shoelace area of the drawn corners for 2 000 random shapes (tests/sci-tools/area-shear.mjs) and by hand for the worked examples."
 flow:
   - { icon: ruler, label: "Shape" }
   - { icon: pointer, label: "Slide top" }

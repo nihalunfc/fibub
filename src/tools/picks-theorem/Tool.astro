@@ -1,0 +1,126 @@
+---
+// Pick's theorem on a dot grid: tap dots to make a polygon, drag corners to change it. Interior and edge dots are
+// counted and coloured, and I + B/2 − 1 is compared with the area from the corners. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm pk">
+  <div class="ax-card">
+    <h2>Dot grid</h2>
+    <div class="ax-row pk-pre">
+      <span class="ax-help" style="margin:0">Start from:</span>
+      <button type="button" class="btn small secondary" data-p="rect">Rectangle</button>
+      <button type="button" class="btn small secondary" data-p="tri">Triangle</button>
+      <button type="button" class="btn small secondary" data-p="ell">L shape</button>
+      <button type="button" class="btn small secondary" data-p="arrow">Arrow</button>
+    </div>
+    <svg class="sm-fig pk-fig" viewBox="0 0 340 280" role="img" aria-label="A dot grid with your polygon"></svg>
+    <p class="ax-help">Tap dots in order to place corners; the last corner joins back to the first. Drag a corner to move it.</p>
+    <div class="ax-row"><button type="button" class="btn small secondary pk-undo">Undo</button><button type="button" class="btn small secondary pk-clear">Clear</button></div>
+    <div class="ax-legend"><span><i style="background:var(--good)"></i>Inside (I)</span><span><i style="background:var(--warn)"></i>On the edge (B)</span></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Count and compare</h2>
+    <p class="ax-err pk-err" aria-live="polite" hidden></p>
+    <dl class="ax-facts pk-facts">
+      <div><dt>Dots inside, I</dt><dd class="pk-i">–</dd></div>
+      <div><dt>Dots on the edge, B</dt><dd class="pk-b">–</dd></div>
+      <div><dt>Pick: I + B/2 − 1</dt><dd class="pk-p">–</dd></div>
+      <div><dt>Area from the corners</dt><dd class="pk-a">–</dd></div>
+    </dl>
+    <p class="sm-f pk-f" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Make a rectangle 5 wide and 3 tall. Count: I = 8, B = 16, so the area is 8 + 8 − 1 = 15. Check: 5 × 3.</li>
+      <li>Make the smallest triangle you can with no dots inside and none on the edges except the corners. Its area is always ½.</li>
+      <li>Drag one corner of a triangle along a line parallel to the opposite side. I and B change, but does the area?</li>
+      <li>Try to cross two edges. Why does the page refuse?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="pk-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .pk .pk-pre { margin-bottom: 8px; }
+  .pk svg .pk-dot { fill: var(--muted); }
+  .pk svg .pk-in { fill: var(--good); }
+  .pk svg .pk-on { fill: var(--warn); }
+  .pk svg .pk-poly { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+  .pk svg .pk-poly.bad { fill: var(--bad-soft); stroke: var(--bad); }
+  .pk svg .pk-open { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+  .pk [hidden] { display: none !important; }
+</style>
+
+<script>
+  import { PRESETS, count, problem, type P } from '../../lib/sci/picks';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, dragOn, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.pk')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.pk-fig');
+  const W = 10, Hh = 8, k = 30, ox = 20, oy = 260;
+  const X = (x: number) => ox + x * k, Y = (y: number) => oy - y * k;
+  let pts: P[] = PRESETS.rect.map((p) => [...p] as P);
+
+  root.querySelectorAll<HTMLButtonElement>('.pk-pre button').forEach((b) => b.addEventListener('click', () => { pts = PRESETS[b.dataset.p!].map((p) => [...p] as P); draw(); }));
+  q('.pk-undo').addEventListener('click', () => { pts.pop(); draw(); });
+  q('.pk-clear').addEventListener('click', () => { pts = []; draw(); });
+
+  function draw() {
+    fig.replaceChildren();
+    const err = problem(pts), c = err ? null : count(pts);
+    if (pts.length >= 3) S('polygon', { points: pts.map(([x, y]) => `${X(x)},${Y(y)}`).join(' '), class: 'pk-poly' + (err ? ' bad' : '') }, fig);
+    else if (pts.length === 2) S('polyline', { points: pts.map(([x, y]) => `${X(x)},${Y(y)}`).join(' '), class: 'pk-open' }, fig);
+    const inSet = new Set(c?.inner.map((p) => p.join(',')) ?? []), onSet = new Set(c?.edge.map((p) => p.join(',')) ?? []);
+    for (let x = 0; x <= W; x++) for (let y = 0; y <= Hh; y++) {
+      const key = `${x},${y}`, cls = inSet.has(key) ? 'pk-in' : onSet.has(key) ? 'pk-on' : 'pk-dot';
+      S('circle', { cx: X(x), cy: Y(y), r: cls === 'pk-dot' ? 3 : 5.5, class: cls }, fig);
+    }
+    pts.forEach(([x, y], i) => { S('circle', { cx: X(x), cy: Y(y), r: 8, class: 'sm-handle' }, fig); if (i === 0) S('text', { x: X(x) - 12, y: Y(y) - 10, class: 'sm-tick' }, fig, 'start'); });
+    const e = q('.pk-err');
+    e.hidden = !err; e.textContent = err ?? '';
+    q('.pk-i').textContent = c ? String(c.I) : '–'; q('.pk-b').textContent = c ? String(c.B) : '–';
+    q('.pk-p').textContent = c ? fmt(c.pick, 2) : '–'; q('.pk-a').textContent = c ? fmt(c.area, 2) : '–';
+    q('.pk-f').textContent = c ? `Area = I + B/2 − 1 = ${c.I} + ${c.B}/2 − 1 = ${c.I} + ${fmt(c.B / 2, 1)} − 1 = ${fmt(c.pick, 2)} square units. The shoelace area from the ${pts.length} corners is ${fmt(c.area, 2)}: ${Math.abs(c.pick - c.area) < 1e-9 ? 'they agree.' : 'they differ!'}` : '';
+  }
+
+  const near = (x: number, y: number): P | null => {
+    const gx = Math.round((x - ox) / k), gy = Math.round((oy - y) / k);
+    return gx >= 0 && gx <= W && gy >= 0 && gy <= Hh && Math.hypot(X(gx) - x, Y(gy) - y) < 15 ? [gx, gy] : null;
+  };
+  dragOn(fig, (x, y) => {
+    const g = near(x, y); if (!g) return null;
+    const i = pts.findIndex((p) => p[0] === g[0] && p[1] === g[1]);
+    if (i >= 0) return 'c' + i;
+    if (pts.length >= 20) return null;
+    pts.push(g); draw(); return null;
+  }, (id, x, y) => {
+    const i = Number(id.slice(1)), g = near(x, y);
+    if (g && !pts.some((p, j) => j !== i && p[0] === g[0] && p[1] === g[1]) && (pts[i][0] !== g[0] || pts[i][1] !== g[1])) { pts[i] = g; draw(); }
+  });
+  draw();
+
+  quiz(q('.pk-quiz'), () => {
+    const out: Question[] = [];
+    const I = randInt(2, 15), B = 2 * randInt(2, 8);
+    out.push({ q: `A grid polygon has ${I} dots inside and ${B} dots on its edges. What is its area?`, want: [I + B / 2 - 1], work: `Area = I + B/2 − 1 = ${I} + ${B / 2} − 1 = ${I + B / 2 - 1}.` });
+    const w = randInt(2, 7), h = randInt(2, 6);
+    out.push({ q: `A ${w} × ${h} rectangle sits on the grid. How many dots are on its edges (B)?`, want: [2 * (w + h)], work: `Each side of length L has L steps, so B = 2 × (${w} + ${h}) = ${2 * (w + h)}. (Inside: I = (${w} − 1)(${h} − 1) = ${(w - 1) * (h - 1)}; area = ${(w - 1) * (h - 1)} + ${w + h} − 1 = ${w * h}.)` });
+    const A = randInt(5, 20), B3 = 2 * randInt(2, 6);
+    out.push({ q: `A grid polygon has area ${A} and ${B3} dots on its edges. How many dots are inside?`, want: [A - B3 / 2 + 1], work: `I = area − B/2 + 1 = ${A} − ${B3 / 2} + 1 = ${A - B3 / 2 + 1}.` });
+    const b = randInt(2, 8), ht = randInt(2, 6);
+    out.push({ q: `A triangle has corners (0, 0), (${b}, 0) and (0, ${ht}). What is its area?`, want: [(b * ht) / 2], work: `½ × ${b} × ${ht} = ${(b * ht) / 2}. With Pick: B = ${b} + ${ht} + ${gcdN(b, ht)} = ${b + ht + gcdN(b, ht)}, so I = ${(b * ht) / 2} − ${(b + ht + gcdN(b, ht)) / 2} + 1 = ${(b * ht) / 2 - (b + ht + gcdN(b, ht)) / 2 + 1}.` });
+    return out;
+  });
+  function gcdN(a: number, b: number): number { while (b) [a, b] = [b, a % b]; return a; }
+</script>
