@@ -1,0 +1,108 @@
+---
+// #1777 Meeting cost: people x hourly cost x time, a running timer and the yearly cost of a recurring meeting.
+---
+<div class="tool-ui mc">
+  <section class="panel">
+    <h2>The meeting</h2>
+    <div class="mc-grid">
+      <label>People <input data-k="n" inputmode="numeric" /></label>
+      <label>Length <span class="mc-suf"><input data-k="min" inputmode="decimal" /><i>minutes</i></span></label>
+      <label>Currency <select class="mc-cur" data-k="cur"></select></label>
+      <label>I know their average <select data-k="unit"><option value="hour">hourly pay</option><option value="year">yearly salary</option></select></label>
+      <label>Amount <input data-k="amt" inputmode="decimal" /></label>
+      <label class="mc-hy" hidden>Working hours a year <span class="mc-suf"><input data-k="hy" inputmode="decimal" /><i>hours</i></span></label>
+      <label>Extra on top of pay (benefits, space) <span class="mc-suf"><input data-k="oh" inputmode="decimal" /><i>percent</i></span></label>
+      <label>How often it repeats <select data-k="freq"><option value="0">One time</option><option value="5">Every day</option><option value="1" selected>Every week</option><option value="0.5">Every two weeks</option><option value="0.23">Every month</option></select></label>
+      <label class="mc-wk">Weeks held a year <span class="mc-suf"><input data-k="weeks" inputmode="decimal" /><i>weeks</i></span></label>
+    </div>
+    <p class="note bad mc-err" role="alert" hidden></p>
+  </section>
+  <section class="mc-res" aria-live="polite">
+    <div class="mc-stats">
+      <div><span>Cost per hour of everyone</span><b class="mc-s-hr"></b></div>
+      <div class="good"><span>This meeting</span><b class="mc-s-one"></b></div>
+      <div><span>Per person</span><b class="mc-s-pp"></b></div>
+      <div><span class="mc-s-yl">Per year</span><b class="mc-s-year"></b></div>
+    </div>
+    <p class="mc-line"></p>
+  </section>
+  <section class="panel mc-timer">
+    <h2>Live meter</h2>
+    <p class="mc-clock" aria-live="off"><span class="mc-t">0:00</span> <b class="mc-tc"></b></p>
+    <div class="mc-actions"><button type="button" class="btn mc-go">Start</button> <button type="button" class="btn secondary mc-reset">Reset</button></div>
+    <p class="mc-help">Press Start when the meeting begins and watch the cost add up. The meter uses the people and pay above.</p>
+  </section>
+  <p class="mc-fine">An estimate, not an accounting figure: it shows what the time is worth at pay rates, not extra cash spent. Many meetings are worth far more than they cost. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .mc { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .mc > *, .mc-res > * { min-width: 0; }
+  .mc h2 { margin: 0 0 12px; font-size: 18px; }
+  .mc .panel { padding: 16px; }
+  .mc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .mc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .mc label[hidden] { display: none; }
+  .mc input, .mc select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .mc input:focus, .mc select:focus { border-color: var(--accent); outline: none; }
+  .mc-suf { position: relative; display: block; }
+  .mc-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .mc-suf input { padding-right: 76px; }
+  .mc-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .mc-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .mc-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .mc-stats span { font-size: 13px; color: var(--muted); }
+  .mc-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
+  .mc-stats .good b { color: var(--good); }
+  .mc-line { margin: 0; font-size: 15px; }
+  .mc-line:empty { display: none; }
+  .mc-clock { margin: 0 0 10px; display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: baseline; font-size: 28px; font-variant-numeric: tabular-nums; }
+  .mc-clock b { color: var(--good); }
+  .mc-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .mc-help, .mc-fine { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+  .mc-err { margin: 10px 0 0; }
+  @media (max-width: 720px) { .mc-stats { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<script>
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.mc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  q('.mc-cur').innerHTML = currencyOptions(defaultCurrency());
+  f('n').value = '6'; f('min').value = '60'; f('amt').value = '50'; f('hy').value = '2080'; f('oh').value = '0'; f('weeks').value = '48';
+  let perMin = 0, elapsed = 0, startedAt = 0, timer: number | undefined;
+  const $ = (n: number, d = 0) => money(n, f('cur').value, d);
+  const fmtT = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+  function meter() {
+    const s = elapsed + (startedAt ? (Date.now() - startedAt) / 1000 : 0);
+    q('.mc-t').textContent = fmtT(s); q('.mc-tc').textContent = $((perMin / 60) * s, 2);
+  }
+  function run() {
+    const n = num(f('n').value), min = num(f('min').value), amt = num(f('amt').value), hy = num(f('hy').value), oh = num(f('oh').value), per = num(f('freq').value), weeks = num(f('weeks').value);
+    const year = f('unit').value === 'year';
+    q('.mc-hy').hidden = !year; q('.mc-wk').hidden = per === 0;
+    const bad = !(n >= 1) ? 'Enter how many people are in the meeting.' : !(min > 0) ? 'Enter the length in minutes.' : !(amt > 0) ? 'Enter their average pay.' : year && !(hy > 0) ? 'Enter the working hours in a year.' : oh < 0 ? 'The extra cannot be negative.' : per > 0 && !(weeks > 0 && weeks <= 52) ? 'Weeks held a year must be from 1 to 52.' : '';
+    q('.mc-err').hidden = !bad; q('.mc-err').textContent = bad; q('.mc-res').hidden = !!bad;
+    if (bad) { perMin = 0; return; }
+    const hourly = (year ? amt / hy : amt) * (1 + oh / 100);
+    const everyoneHour = hourly * n, one = (everyoneHour * min) / 60;
+    perMin = everyoneHour / 60;
+    const times = per * weeks, yearly = one * times;
+    q('.mc-s-hr').textContent = $(everyoneHour, 2);
+    q('.mc-s-one').textContent = $(one, 2);
+    q('.mc-s-pp').textContent = $(one / n, 2);
+    q('.mc-s-yl').textContent = per > 0 ? 'Per year' : 'Per year (one time)';
+    q('.mc-s-year').textContent = per > 0 ? $(yearly) : '-';
+    q('.mc-line').textContent = per > 0 ? `Held ${Math.round(times * 10) / 10} times a year, this meeting costs ${$(yearly)} in time, or ${Math.round((n * min * times) / 60)} person-hours.` : '';
+    meter();
+  }
+  q('.mc-go').addEventListener('click', () => {
+    if (startedAt) { elapsed += (Date.now() - startedAt) / 1000; startedAt = 0; clearInterval(timer); q('.mc-go').textContent = 'Resume'; }
+    else { startedAt = Date.now(); timer = window.setInterval(meter, 250); q('.mc-go').textContent = 'Pause'; }
+    meter();
+  });
+  q('.mc-reset').addEventListener('click', () => { elapsed = 0; startedAt = 0; clearInterval(timer); q('.mc-go').textContent = 'Start'; meter(); });
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>
