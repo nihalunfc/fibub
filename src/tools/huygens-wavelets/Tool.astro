@@ -1,0 +1,164 @@
+---
+// Huygens' wavelets for school (Class 12 wave optics): a plane wavefront meets a boundary, each point it touches
+// sends out a wavelet, and their common tangent is the refracted (or reflected) wavefront; Snell's law falls out
+// of the geometry. Maths in src/lib/sci/q-huygens.ts.
+import '../../styles/astro.css';
+const MEDIA = [['Air', '1.00'], ['Water', '1.33'], ['Glass', '1.50'], ['Diamond', '2.42']];
+---
+<div class="ax hyg">
+  <div class="ax-card">
+    <div class="ax-row hyg-top">
+      <div class="ax-seg hyg-mode" role="group" aria-label="What happens at the boundary">
+        <button type="button" data-m="refract" aria-pressed="true">Refraction</button><button type="button" data-m="reflect" aria-pressed="false">Reflection</button>
+      </div>
+      <button type="button" class="btn secondary small hyg-play">Play</button>
+    </div>
+    <canvas class="ax-fig hyg-fig" aria-label="Wavefront and Huygens wavelets at a boundary"></canvas>
+    <div class="ax-grid">
+      <label>Time: <b class="hyg-tv"></b><input class="hyg-t" type="range" min="0" max="1" step="0.01" value="1" /></label>
+      <label>Angle of incidence i: <b class="hyg-iv"></b><input class="hyg-i" type="range" min="5" max="80" step="1" value="40" /></label>
+      <label>Top medium <select class="hyg-m1">{MEDIA.map(([n, v]) => <option value={v} selected={n === 'Air'}>{n} (n = {v})</option>)}</select></label>
+      <label>Bottom medium <select class="hyg-m2">{MEDIA.map(([n, v]) => <option value={v} selected={n === 'Glass'}>{n} (n = {v})</option>)}</select></label>
+      <label>Wavelets drawn: <b class="hyg-nv"></b><input class="hyg-n" type="range" min="2" max="12" step="1" value="6" /></label>
+    </div>
+    <p class="ax-help">Light is slower in a denser medium: v = c / n. Each wavelet grows at the speed of the medium it is in.</p>
+  </div>
+
+  <div class="ax-card hyg-out">
+    <p class="ax-big hyg-big"></p>
+    <p class="ax-err hyg-err" hidden></p>
+    <dl class="ax-facts hyg-facts"></dl>
+    <pre class="hyg-formula"></pre>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="hyg-try">
+      <li>Press <b>Play</b> and watch: the left end of the wavefront reaches the glass first and its wavelet has longer to grow, while the right end is still in the air.</li>
+      <li>Change the number of wavelets. However many you draw, one straight line touches them all: that line is the new wavefront.</li>
+      <li>Put water on top and air below and make i big. The wavelets in air grow so fast that no line from the contact point can touch them: no refracted wave, total internal reflection.</li>
+      <li>Switch to <b>Reflection</b>: the wavelets grow at the same speed as the incoming wave, so the angle of reflection equals the angle of incidence.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh numbers each time. Speeds in units of 10⁸ m/s, angles in degrees. Nothing is saved.</p>
+    <div class="hyg-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .hyg input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; }
+  .hyg-top { justify-content: space-between; margin-bottom: 8px; }
+  .hyg .ax-seg button, .hyg-play { min-height: 40px; }
+  .hyg-fig { border: 1px solid var(--line); margin: 4px auto; max-width: 520px; }
+  .hyg-formula { font: 15px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; margin: 12px 0 0; padding: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
+  .hyg-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+</style>
+
+<script>
+  import { refractedAngle, wavelets, envelope, contact } from '../../lib/sci/q-huygens';
+  import { paint, type Figure } from '../../lib/report';
+  import { mountQuiz, pick, randInt, type Question } from '../../lib/school-quiz';
+
+  const root = document.querySelector<HTMLElement>('.hyg')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const st = { mode: 'refract' };
+  const num = (c: string) => Number(q<HTMLInputElement>(c).value);
+  const sig = (x: number, n = 3) => String(Number(x.toPrecision(n)));
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const C = 2.998; // speed of light, 10⁸ m/s
+  const W = 220, R2D = 180 / Math.PI;
+
+  function fig(i: number, v1: number, v2: number, t: number, n: number, reflect: boolean): Figure {
+    const Wd = 400, H = 320;
+    return { w: Wd, h: H, alt: `Wavefront meeting a boundary at ${i}°`, draw: (ctx, w, h, pal) => {
+      const ox = 70, oy = 165, X = (x: number, y: number): [number, number] => [ox + x, oy + y];
+      ctx.globalAlpha = 0.12; ctx.fillStyle = pal.accent; ctx.fillRect(0, oy, Wd, H - oy); ctx.globalAlpha = 1;
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, oy); ctx.lineTo(Wd, oy); ctx.stroke();
+      const ri = i / R2D, d: [number, number] = [Math.sin(ri), Math.cos(ri)];
+      ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.fillText(`v₁ = ${sig(v1, 4)} × 10⁸ m/s`, 6, 6); ctx.textBaseline = 'bottom'; ctx.fillText(`v₂ = ${sig(v2, 4)} × 10⁸ m/s`, 6, H - 6);
+      // Incident rays through A and C (dashed) and the incident wavefront still in medium 1: from P along (cos i, −sin i).
+      const line = (a: [number, number], b: [number, number], col: string, wd: number, dash: number[] = []) => { ctx.setLineDash(dash); ctx.strokeStyle = col; ctx.lineWidth = wd; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); ctx.setLineDash([]); };
+      for (const x0 of [0, W]) line(X(x0 - 150 * d[0], -150 * d[1]), X(x0, 0), pal.muted, 1, [4, 4]);
+      const P = contact(W, t), L = (1 - t) * W * Math.cos(ri);
+      if (t < 1) line(X(P, 0), X(P + L * Math.cos(ri), -L * Math.sin(ri)), pal.bad, 3);
+      // Earlier position of the whole incident wavefront (t = 0): A to B.
+      line(X(0, 0), X(W * Math.cos(ri) ** 2, -W * Math.cos(ri) * Math.sin(ri)), pal.muted, 1);
+      ctx.fillStyle = pal.ink; ctx.font = '600 13px system-ui, sans-serif'; ctx.textBaseline = 'top'; ctx.textAlign = 'center';
+      ctx.fillText('A', ...X(-6, 4)); ctx.fillText('C', ...X(W + 6, 4)); ctx.textBaseline = 'bottom'; ctx.fillText('B', ...X(W * Math.cos(ri) ** 2 - 4, -W * Math.cos(ri) * Math.sin(ri) - 2));
+      // Wavelets.
+      const v = reflect ? v1 : v2, below = !reflect;
+      ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.3;
+      for (const wl of wavelets(W, i, v1, v, t, n)) { if (wl.r <= 0) continue; const [cx, cy] = X(wl.x, 0); ctx.beginPath(); ctx.arc(cx, cy, wl.r, below ? 0 : Math.PI, below ? Math.PI : 2 * Math.PI); ctx.stroke(); ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(cx, cy, 2.5, 0, 2 * Math.PI); ctx.fill(); }
+      const env = envelope(W, i, v1, v, t, below);
+      if (env) {
+        line(X(P, 0), X(env.tangent[0], env.tangent[1]), pal.good, 3);
+        const rr = env.angle / R2D, dirn: [number, number] = [Math.sin(rr), below ? Math.cos(rr) : -Math.cos(rr)];
+        line(X(0, 0), X(170 * dirn[0], 170 * dirn[1]), pal.good, 1.2, [5, 4]);
+        line(X(0, -60), X(0, 60), pal.muted, 1, [2, 3]);
+      }
+    } };
+  }
+
+  let figs: [HTMLCanvasElement, Figure][] = [];
+  function draw() {
+    const i = num('.hyg-i'), t = num('.hyg-t'), n = num('.hyg-n'), n1 = num('.hyg-m1'), n2 = num('.hyg-m2');
+    const v1 = C / n1, v2 = C / n2, reflect = st.mode === 'reflect';
+    q('.hyg-tv').textContent = `${Math.round(t * 100)}% of τ`; q('.hyg-iv').textContent = `${i}°`; q('.hyg-nv').textContent = String(n + 1);
+    figs = [[q('.hyg-fig'), fig(i, v1, v2, t, n, reflect)]];
+    for (const [c, f] of figs) paint(c, f);
+    const err = q('.hyg-err'), F: HTMLElement[] = [], L: string[] = [];
+    const BC = sig(v1, 4);
+    if (reflect) {
+      q('.hyg-big').textContent = `Angle of reflection r = ${i}° = i`;
+      err.hidden = true;
+      F.push(fact('Speed in the top medium v₁', `${sig(v1, 4)} × 10⁸ m/s`), fact('Angle of reflection', `${i}°`, 'equals the angle of incidence'));
+      L.push(`In time τ the far end B moves BC = v₁τ, and the wavelet from A grows to AE = v₁τ.`, `So BC = AE: triangles ABC and AEC are congruent (same AC, right angles at B and E)`, `→ r = i = ${i}°`);
+    } else {
+      const r = refractedAngle(i, v1, v2);
+      F.push(fact('Speed above v₁', `${sig(v1, 4)} × 10⁸ m/s`, `c / ${n1.toFixed(2)}`), fact('Speed below v₂', `${sig(v2, 4)} × 10⁸ m/s`, `c / ${n2.toFixed(2)}`));
+      L.push(`In time τ: BC = v₁τ and the wavelet from A grows to AE = v₂τ`, `sin i = BC / AC and sin r = AE / AC, so sin i / sin r = v₁ / v₂ = n₂ / n₁`);
+      if (r === null) {
+        err.hidden = false; err.textContent = `The wavelets in the bottom medium grow faster than the contact point moves along the boundary, so no single line touches them: there is no refracted wavefront. This is total internal reflection.`;
+        q('.hyg-big').textContent = 'No refracted wave: totally reflected';
+        L.push(`sin r = (v₂ / v₁) sin ${i}° = ${sig((v2 / v1) * Math.sin(i / R2D), 4)} > 1: impossible`);
+        F.push(fact('Critical angle', `${sig(Math.asin(v1 / v2) * R2D)}°`, 'sin C = v₁ / v₂'));
+      } else {
+        err.hidden = true;
+        q('.hyg-big').textContent = `Refracted wavefront at r = ${sig(r)}°`;
+        F.push(fact('Angle of refraction r', `${sig(r)}°`, r < i ? 'bent towards the normal' : r > i ? 'bent away from the normal' : 'not bent'), fact('Wavelength below', `${sig(v2 / v1)} × wavelength above`, 'frequency stays the same'));
+        L.push(`sin r = (v₂ / v₁) sin i = (${sig(v2, 4)} / ${BC}) × sin ${i}° = ${sig((v2 / v1) * Math.sin(i / R2D), 4)}`, `r = ${sig(r)}°   (Snell's law: ${n1.toFixed(2)} sin ${i}° = ${n2.toFixed(2)} sin ${sig(r)}°)`);
+      }
+    }
+    q('.hyg-facts').replaceChildren(...F);
+    q('.hyg-formula').textContent = L.join('\n');
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.hyg-mode button').forEach((b) => b.addEventListener('click', () => {
+    st.mode = b.dataset.m!; root.querySelectorAll<HTMLButtonElement>('.hyg-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); draw();
+  }));
+  for (const c of ['.hyg-t', '.hyg-i', '.hyg-n']) q(c).addEventListener('input', draw);
+  for (const c of ['.hyg-m1', '.hyg-m2']) q(c).addEventListener('change', draw);
+  let raf = 0;
+  q('.hyg-play').addEventListener('click', () => {
+    if (raf) { cancelAnimationFrame(raf); raf = 0; q('.hyg-play').textContent = 'Play'; return; }
+    const tIn = q<HTMLInputElement>('.hyg-t'); let start = 0;
+    q('.hyg-play').textContent = 'Stop';
+    const step = (ts: number) => { if (!start) start = ts; const f = Math.min(1, (ts - start) / 4000); tIn.value = String(Math.round(f * 100) / 100); draw(); if (f < 1) raf = requestAnimationFrame(step); else { raf = 0; q('.hyg-play').textContent = 'Play'; } };
+    raf = requestAnimationFrame(step);
+  });
+  document.addEventListener('fibub:theme', () => { for (const [c, f] of figs) paint(c, f); });
+
+  const make = (): Question => {
+    const t = pick(['r', 'v', 'lam', 'n']);
+    if (t === 'r') { const i = randInt(20, 70), n2 = pick([1.33, 1.5, 1.6]); const r = Math.asin(Math.sin(i / R2D) / n2) * R2D; return { text: `A plane wavefront in air meets a flat surface of a material with n = ${n2} at i = ${i}°. At what angle does the refracted wavefront travel (1 decimal place)?`, unit: '°', answer: Math.round(r * 10) / 10, tol: 0.15, work: [`sin r = sin i / n = sin ${i}° / ${n2} = ${sig(Math.sin(i / R2D) / n2, 4)}`, `r = ${(Math.round(r * 10) / 10).toFixed(1)}`] }; }
+    if (t === 'v') { const n = pick([1.25, 1.33, 1.5, 1.6, 2]); const v = Math.round((3 / n) * 100) / 100; return { text: `Taking c = 3 × 10⁸ m/s, what is the speed of light in a medium of refractive index ${n}? Answer in units of 10⁸ m/s (2 decimal places).`, answer: v, tol: 0.011, work: [`v = c / n = 3 / ${n}`, `v = ${v.toFixed(2)}`] }; }
+    if (t === 'lam') { const L = pick([450, 500, 600, 640]), n = pick([1.25, 1.5, 1.6]); const l2 = Math.round(L / n); return { text: `Light of wavelength ${L} nm in air enters glass with n = ${n}. What is its wavelength in the glass, to the nearest nm?`, unit: 'nm', answer: l2, tol: 1, work: [`The frequency does not change, so λ = λ₀ / n = ${L} / ${n}`, `λ = ${l2}`] }; }
+    const i = randInt(30, 60), r = randInt(15, i - 8); const n = Math.round((Math.sin(i / R2D) / Math.sin(r / R2D)) * 100) / 100; return { text: `A wavefront crosses from air into a liquid with i = ${i}° and r = ${r}°. Find the refractive index of the liquid (2 decimal places).`, answer: n, tol: 0.011, work: [`n = sin i / sin r = ${sig(Math.sin(i / R2D), 4)} / ${sig(Math.sin(r / R2D), 4)}`, `n = ${n.toFixed(2)}`] };
+  };
+  mountQuiz(q('.hyg-quiz'), make, 4);
+  draw();
+</script>
