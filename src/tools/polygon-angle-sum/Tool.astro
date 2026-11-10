@@ -1,0 +1,189 @@
+---
+// Polygon angle sum by triangles: drag the corners of a polygon (3 to 10 sides); it is split into n − 2 triangles
+// (ear clipping, so concave shapes work too), every interior angle is measured live and they add to (n − 2) × 180°.
+// Optional exterior (turning) angles add to 360°. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm pa">
+  <div class="ax-card">
+    <h2>Drag the corners</h2>
+    <p class="ax-big pa-big" aria-live="polite"></p>
+    <svg class="sm-fig pa-fig" viewBox="0 0 340 300" role="img" aria-label="A polygon split into triangles, with each corner's angle in degrees. Drag the blue dots to change it."></svg>
+    <p class="ax-err pa-err" hidden></p>
+    <div class="sm-sl"><b>n</b><input type="range" class="pa-nr" min="3" max="10" step="1" value="5" aria-label="Number of sides slider" /><input type="number" class="pa-n" min="3" max="10" step="1" value="5" inputmode="numeric" aria-label="Number of sides" /></div>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small pa-reg">Make it regular</button>
+      <button type="button" class="btn secondary small pa-rnd">Random shape</button>
+      <button type="button" class="btn secondary small pa-dent">Push a corner in</button>
+      <label class="ax-check"><input type="checkbox" class="pa-ext" /> Show exterior angles</label>
+    </div>
+    <p class="sm-f pa-f1"></p>
+    <p class="sm-f pa-f2"></p>
+    <p class="sm-f pa-f3"></p>
+    <p class="sm-f pa-f4" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The pattern</h2>
+    <div class="ax-scroll"><table class="pa-tab"></table></div>
+    <p class="ax-help">Each extra side adds one more triangle, so 180° more.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Drag one corner a long way. The angles all change, but does the total?</li>
+      <li>Press "Push a corner in" to make a dent. One angle is now more than 180°. Does the rule still work?</li>
+      <li>Turn on exterior angles. Walk once around the shape: how far have you turned?</li>
+      <li>Drag a corner across a side so two sides cross. Why does the rule stop working?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="pa-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .pa svg .pa-t0 { fill: var(--accent-soft); }
+  .pa svg .pa-t1 { fill: var(--good-soft); }
+  .pa svg .pa-t2 { fill: var(--warn-soft); }
+  .pa svg .pa-edge { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; }
+  .pa svg .pa-bad { stroke: var(--bad); }
+  .pa svg .pa-diag { stroke: var(--muted); stroke-width: 1.3; stroke-dasharray: 5 4; }
+  .pa svg .pa-arc { fill: none; stroke: var(--accent); stroke-width: 1.6; }
+  .pa svg .pa-xl { stroke: var(--warn); stroke-width: 1.5; stroke-dasharray: 4 3; }
+  .pa svg .pa-earc { fill: none; stroke: var(--warn); stroke-width: 1.6; }
+  .pa svg text.pa-a { font-size: 11.5px; font-weight: 700; }
+  .pa svg text.pa-e { font-size: 11px; fill: var(--warn); font-weight: 600; }
+  .pa table td.r { text-align: right; }
+</style>
+
+<script>
+  import { isSimple, interiorAngles, exteriorAngles, triangulate, regular, angleSum, type Pt } from '../../lib/sci/polygon-j4';
+  import { nice } from '../../lib/sci/school-j4';
+  import { randInt } from '../../lib/sci/smath';
+  import { S, pair, dragOn, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.pa')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const svg = q<SVGSVGElement>('.pa-fig'), NB = q<HTMLInputElement>('.pa-n'), EXT = q<HTMLInputElement>('.pa-ext');
+  const CX = 170, CY = 150, RR = 115;
+  let pts: Pt[] = regular(5, CX, CY, RR);
+  const setN = pair(q('.pa-nr'), NB, () => { const n = Number(NB.value); if (Number.isInteger(n) && n >= 3 && n <= 10) { pts = regular(n, CX, CY, RR); draw(); } else draw(); });
+
+  const inPoly = (p: Pt, poly: Pt[]) => {
+    let c = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const a = poly[i], b = poly[j];
+      if ((a.y > p.y) !== (b.y > p.y) && p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x) c = !c;
+    }
+    return c;
+  };
+  const deg = (r: number) => (r * 180) / Math.PI;
+
+  function draw() {
+    svg.replaceChildren();
+    const n = pts.length, err = q('.pa-err'), nv = Number(NB.value);
+    if (!Number.isInteger(nv) || nv < 3 || nv > 10) { err.textContent = 'Pick from 3 to 10 sides.'; err.hidden = false; return; }
+    const simple = isSimple(pts);
+    const outline = S('polygon', { points: pts.map((p) => `${p.x},${p.y}`).join(' '), class: 'pa-edge' + (simple ? '' : ' pa-bad') }, svg);
+    if (!simple) {
+      err.textContent = 'Two sides cross (or a corner sits on a side), so this is not a simple polygon. The angle-sum rule is for shapes whose sides do not cross. Drag a corner back.'; err.hidden = false;
+      for (const [i, p] of pts.entries()) { S('circle', { cx: p.x, cy: p.y, r: 22, class: 'sm-hit', 'data-i': i }, svg); S('circle', { cx: p.x, cy: p.y, r: 9, class: 'sm-handle' }, svg); }
+      q('.pa-big').textContent = 'Not a simple polygon'; for (const c of ['.pa-f1', '.pa-f2', '.pa-f3']) q(c).textContent = ''; q('.pa-f4').hidden = true;
+      return;
+    }
+    err.hidden = true;
+    const tris = triangulate(pts);
+    tris.forEach((t, k) => S('polygon', { points: t.map((i) => `${pts[i].x},${pts[i].y}`).join(' '), class: `pa-t${k % 3}` }, svg));
+    svg.append(outline);
+    // Diagonals: triangle sides that are not polygon sides.
+    const seen = new Set<string>();
+    for (const t of tris) for (let e = 0; e < 3; e++) {
+      const a = t[e], b = t[(e + 1) % 3], key = a < b ? `${a}-${b}` : `${b}-${a}`;
+      if (seen.has(key) || (Math.abs(a - b) === 1 || Math.abs(a - b) === n - 1)) continue;
+      seen.add(key);
+      S('line', { x1: pts[a].x, y1: pts[a].y, x2: pts[b].x, y2: pts[b].y, class: 'pa-diag' }, svg);
+    }
+    const ang = interiorAngles(pts), ext = exteriorAngles(pts);
+    pts.forEach((b, i) => {
+      const a = pts[(i + n - 1) % n], c = pts[(i + 1) % n];
+      const ta = Math.atan2(a.y - b.y, a.x - b.x), A = (ang[i] * Math.PI) / 180;
+      // Sweep from the direction of the previous corner by the interior angle, whichever way goes inside.
+      let s = 1; const mid = (sg: number) => ({ x: b.x + 6 * Math.cos(ta + sg * A / 2), y: b.y + 6 * Math.sin(ta + sg * A / 2) });
+      if (!inPoly(mid(1), pts)) s = -1;
+      const r = 17; let d = '';
+      for (let k = 0; k <= 16; k++) { const t = ta + (s * A * k) / 16; d += `${k ? 'L' : 'M'}${(b.x + r * Math.cos(t)).toFixed(1)} ${(b.y + r * Math.sin(t)).toFixed(1)} `; }
+      S('path', { d, class: 'pa-arc' }, svg);
+      const tm = ta + (s * A) / 2;
+      S('text', { x: b.x + 33 * Math.cos(tm), y: b.y + 33 * Math.sin(tm) + 4, 'text-anchor': 'middle', class: 'pa-a' }, svg, `${Math.round(ang[i])}°`);
+      if (EXT.checked) {
+        // Carry the incoming side on past the corner; the turn from it to the next side is the exterior angle.
+        const tin = Math.atan2(b.y - a.y, b.x - a.x), tout = Math.atan2(c.y - b.y, c.x - b.x);
+        S('line', { x1: b.x, y1: b.y, x2: b.x + 34 * Math.cos(tin), y2: b.y + 34 * Math.sin(tin), class: 'pa-xl' }, svg);
+        let turn = tout - tin; while (turn > Math.PI) turn -= 2 * Math.PI; while (turn <= -Math.PI) turn += 2 * Math.PI;
+        let de = ''; for (let k = 0; k <= 12; k++) { const t = tin + (turn * k) / 12; de += `${k ? 'L' : 'M'}${(b.x + 26 * Math.cos(t)).toFixed(1)} ${(b.y + 26 * Math.sin(t)).toFixed(1)} `; }
+        S('path', { d: de, class: 'pa-earc' }, svg);
+        S('text', { x: b.x + 44 * Math.cos(tin + turn / 2), y: b.y + 44 * Math.sin(tin + turn / 2) + 4, 'text-anchor': 'middle', class: 'pa-e' }, svg, `${Math.round(ext[i])}°`);
+      }
+    });
+    for (const [i, p] of pts.entries()) { S('circle', { cx: p.x, cy: p.y, r: 22, class: 'sm-hit', 'data-i': i }, svg); S('circle', { cx: p.x, cy: p.y, r: 9, class: 'sm-handle' }, svg); }
+    const sum = ang.reduce((x, y) => x + y, 0), names = ['', '', '', 'triangle', 'quadrilateral', 'pentagon', 'hexagon', 'heptagon', 'octagon', 'nonagon', 'decagon'];
+    q('.pa-big').textContent = `${n} sides: ${n - 2} triangle${n - 2 > 1 ? 's' : ''}, ${angleSum(n)}°`;
+    q('.pa-f1').textContent = `Angles: ${ang.map((a) => `${nice(a, 1)}°`).join(' + ')} = ${nice(sum, 1)}°`;
+    q('.pa-f2').textContent = `A ${names[n]} splits into n − 2 = ${n} − 2 = ${n - 2} triangle${n - 2 > 1 ? 's' : ''}, and each triangle's angles add to 180°, so the angle sum is (${n} − 2) × 180° = ${angleSum(n)}°.`;
+    const reflex = ang.filter((a) => a > 180.05).length, spread = Math.max(...ang) - Math.min(...ang);
+    q('.pa-f3').textContent = reflex ? `This shape is concave: ${reflex} corner${reflex > 1 ? 's are' : ' is'} more than 180° (a reflex angle). It still splits into ${n - 2} triangles.`
+      : spread < 0.5 ? `It is regular (equal angles${n > 3 ? ' here' : ''}): each angle is ${angleSum(n)}° ÷ ${n} = ${nice(angleSum(n) / n, 2)}°.` : 'All corners are less than 180°, so it is convex.';
+    const f4 = q('.pa-f4'); f4.hidden = !EXT.checked;
+    f4.textContent = `Exterior (turning) angles: ${ext.map((e) => `${e < 0 ? '(' : ''}${nice(e, 1)}°${e < 0 ? ')' : ''}`).join(' + ')} = ${nice(ext.reduce((x, y) => x + y, 0), 1)}°. Walking once around, you turn one full turn: 360°.${reflex ? ' At a dent you turn the other way, so that angle counts as negative.' : ''}`;
+  }
+
+  dragOn(svg, (x, y) => {
+    let best = -1, bd = 26;
+    pts.forEach((p, i) => { const d = Math.hypot(p.x - x, p.y - y); if (d < bd) { bd = d; best = i; } });
+    return best < 0 ? null : String(best);
+  }, (id, x, y) => { pts[Number(id)] = { x: Math.max(10, Math.min(330, x)), y: Math.max(10, Math.min(290, y)) }; draw(); });
+
+  q('.pa-reg').addEventListener('click', () => { pts = regular(pts.length, CX, CY, RR); draw(); });
+  q('.pa-rnd').addEventListener('click', () => {
+    const n = pts.length, cuts = Array.from({ length: n }, () => Math.random()).sort((a, b) => a - b);
+    pts = cuts.map((c, i) => { const t = 2 * Math.PI * ((i + c) / n), r = 60 + Math.random() * 70; return { x: CX + r * Math.sin(t), y: CY - r * Math.cos(t) }; });
+    draw();
+  });
+  q('.pa-dent').addEventListener('click', () => {
+    if (pts.length < 4) { pts = regular(4, CX, CY, RR); setN(4); }
+    pts = regular(pts.length, CX, CY, RR);
+    const m = { x: (pts[1].x + pts[pts.length - 1].x) / 2, y: (pts[1].y + pts[pts.length - 1].y) / 2 };
+    pts[0] = { x: m.x, y: m.y + (CY - pts[0].y) * 0.25 }; draw();
+  });
+  EXT.addEventListener('change', draw);
+
+  // The pattern table.
+  {
+    const t = q<HTMLTableElement>('.pa-tab');
+    const h = t.insertRow(); for (const x of ['Sides', 'Triangles', 'Angle sum', 'Each angle if regular']) { const e = document.createElement('th'); e.textContent = x; h.append(e); }
+    for (let n = 3; n <= 10; n++) { const r = t.insertRow(); r.insertCell().textContent = String(n); r.insertCell().textContent = String(n - 2); const c = r.insertCell(); c.textContent = `${angleSum(n)}°`; c.className = 'r'; const d = r.insertCell(); d.textContent = `${nice(angleSum(n) / n, 2)}°`; d.className = 'r'; }
+  }
+  draw();
+
+  quiz(q('.pa-quiz'), () => {
+    const out: Question[] = [];
+    const n1 = randInt(5, 15);
+    out.push({ q: `What do the angles of a ${n1}-sided polygon add up to, in degrees?`, want: [angleSum(n1)], tol: 1e-9, work: `(${n1} − 2) × 180° = ${n1 - 2} × 180° = ${angleSum(n1)}°.` });
+    const n2 = [5, 6, 8, 9, 10, 12][randInt(0, 5)];
+    out.push({ q: `Each angle of a regular ${n2}-sided polygon is how many degrees?`, want: [angleSum(n2) / n2], tol: 1e-6, work: `Angle sum (${n2} − 2) × 180° = ${angleSum(n2)}°, shared by ${n2} equal angles: ${angleSum(n2)}° ÷ ${n2} = ${nice(angleSum(n2) / n2, 2)}°.` });
+    const n3 = randInt(5, 6), given = Array.from({ length: n3 - 1 }, () => randInt(95, 140)), last = angleSum(n3) - given.reduce((a, b) => a + b, 0);
+    out.push({ q: `${n3 === 5 ? 'A pentagon' : 'A hexagon'} has angles ${given.join('°, ')}° and one more. What is the last angle?`, want: [last], tol: 1e-9,
+      work: `The angles add to ${angleSum(n3)}°. ${angleSum(n3)}° − (${given.join(' + ')})° = ${angleSum(n3)}° − ${given.reduce((a, b) => a + b, 0)}° = ${last}°.${last > 180 ? ' (More than 180°, so that corner is a dent.)' : ''}` });
+    const n4 = randInt(7, 20);
+    out.push({ q: `A polygon's angles add up to ${angleSum(n4)}°. How many sides does it have?`, want: [n4], tol: 1e-9, work: `${angleSum(n4)}° ÷ 180° = ${n4 - 2} triangles, and sides = triangles + 2 = ${n4}.` });
+    const n5 = [5, 6, 8, 9, 10, 12, 15, 18, 20][randInt(0, 8)];
+    out.push({ q: `Each exterior angle of a regular ${n5}-sided polygon is how many degrees?`, want: [360 / n5], tol: 1e-9, work: `The exterior angles add to 360°, so each is 360° ÷ ${n5} = ${360 / n5}°.` });
+    return out;
+  });
+</script>
