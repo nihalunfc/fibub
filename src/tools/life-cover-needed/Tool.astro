@@ -1,0 +1,93 @@
+---
+// #T860 How much life insurance do I need?
+import InsuranceNote from '../../components/InsuranceNote.astro';
+---
+<div class="tool-ui lc">
+  <InsuranceNote />
+  <section class="panel">
+    <h2>Your family's needs</h2>
+    <p class="lc-hint">Example numbers: change them to yours. Leave anything that does not apply at 0.</p>
+    <div class="lc-grid">
+      <label>Currency <select class="lc-cur" data-k="cur"></select></label>
+      <label>Yearly income (after tax) <input data-k="income" inputmode="decimal" /></label>
+      <label>Share you spend on yourself <span class="lc-suf"><input data-k="own" inputmode="decimal" /><i>%</i></span></label>
+      <label>Years your family needs support <span class="lc-suf"><input data-k="years" inputmode="decimal" /><i>years</i></span></label>
+      <label>Income growth <span class="lc-suf"><input data-k="growth" inputmode="decimal" /><i>% a year</i></span></label>
+      <label>Return on money, as a discount rate <span class="lc-suf"><input data-k="disc" inputmode="decimal" /><i>% a year</i></span></label>
+      <label>Debts, including the mortgage <input data-k="debts" inputmode="decimal" /></label>
+      <label>Goals, for example education <input data-k="goals" inputmode="decimal" /></label>
+      <label>Funeral and final costs <input data-k="funeral" inputmode="decimal" /></label>
+      <label>Savings and investments <input data-k="assets" inputmode="decimal" /></label>
+      <label>Cover you already have <input data-k="existing" inputmode="decimal" /></label>
+    </div>
+    <p class="note bad lc-err" role="alert" hidden></p>
+  </section>
+  <section class="lc-res" aria-live="polite">
+    <div class="lc-stats">
+      <div><span>Needs approach</span><b class="lc-s-needs"></b></div>
+      <div><span>Human life value</span><b class="lc-s-hlv"></b></div>
+      <div><span>DIME</span><b class="lc-s-dime"></b></div>
+      <div><span>10 times income (comparison only)</span><b class="lc-s-mult"></b></div>
+    </div>
+    <p class="lc-line lc-words"></p>
+    <p class="lc-line">Why they differ: the needs approach starts from the future income your family would miss and then takes off what you already have. Human life value is only that future income in today's money. DIME adds up debt, income for the years, mortgage and education without discounting, so it is usually higher when the years are many. The "10 times income" rule ignores your family's situation.</p>
+  </section>
+  <p class="lc-fine">How it is worked out: the family's yearly amount is income x (1 - your own share). Its present value is the sum over each year of amount x (1+growth)^t / (1+discount)^t. Needs = that + debts + goals + final costs - savings - existing cover (never below 0). DIME = debts + final costs + income x years + goals - existing cover. Tax, inflation beyond your growth figure and the cover's own cost are left out. Not financial or insurance advice. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .lc { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .lc > *, .lc-res > * { min-width: 0; }
+  .lc h2 { margin: 0 0 12px; font-size: 18px; }
+  .lc .panel { padding: 16px; }
+  .lc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .lc label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .lc input, .lc select, .lc textarea { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .lc input:focus, .lc select:focus, .lc textarea:focus { border-color: var(--accent); outline: none; }
+  .lc-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .lc-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .lc-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; background: var(--surface); }
+  .lc-stats span { font-size: 13px; color: var(--muted); }
+  .lc-stats b { font-size: clamp(17px, 3.4vw, 24px); overflow-wrap: anywhere; }
+  .lc-line { margin: 0; font-size: 15px; }
+  .lc-line:empty { display: none; }
+  .lc-fine, .lc-hint { margin: 0; color: var(--muted); font-size: 13px; }
+  .lc-err { margin: 10px 0 0; }
+  .lc-wrap { overflow-x: auto; }
+  .lc table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .lc th, .lc td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .lc th:first-child, .lc td:first-child { text-align: left; }
+  .lc th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .lc details summary { cursor: pointer; font-weight: 700; margin-bottom: 8px; }
+  .lc-suf { position: relative; display: block; }
+  .lc-suf i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .lc-suf input { padding-right: 84px; }
+</style>
+
+<script>
+  import { lifeNeed } from '../../lib/money/insurance';
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.lc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const cur = defaultCurrency();
+  q('.lc-cur').innerHTML = currencyOptions(cur);
+  const big = cur === 'INR';
+  const d: Record<string, string> = { income: big ? '12,00,000' : '60,000', own: '30', years: '20', growth: '3', disc: '6', debts: big ? '30,00,000' : '100,000', goals: big ? '25,00,000' : '50,000', funeral: big ? '2,00,000' : '10,000', assets: big ? '15,00,000' : '40,000', existing: '0' };
+  for (const k in d) f(k).value = d[k];
+  const $ = (n: number) => money(n, f('cur').value, 0);
+  function run() {
+    const v = (k: string) => num(f(k).value);
+    const bad = !(v('income') > 0) ? 'Enter your yearly income.' : v('own') < 0 || v('own') > 100 ? 'Enter your own share as a percent from 0 to 100.' : !(v('years') >= 1 && v('years') <= 60) ? 'Enter the years of support, from 1 to 60.' : v('growth') < -10 || v('growth') > 30 || v('disc') < -10 || v('disc') > 40 ? 'Enter growth and discount rates such as 3 and 6.' : ['debts', 'goals', 'funeral', 'assets', 'existing'].some((k) => v(k) < 0) ? 'Amounts cannot be negative.' : '';
+    q('.lc-err').hidden = !bad; q('.lc-err').textContent = bad; q('.lc-res').hidden = !!bad;
+    if (bad) return;
+    const r = lifeNeed({ income: v('income'), ownShare: v('own'), years: Math.round(v('years')), growth: v('growth'), discount: v('disc'), debts: v('debts'), goals: v('goals'), assets: v('assets'), existing: v('existing'), funeral: v('funeral') });
+    q('.lc-s-needs').textContent = $(r.needs);
+    q('.lc-s-hlv').textContent = $(r.hlv);
+    q('.lc-s-dime').textContent = $(r.dime);
+    q('.lc-s-mult').textContent = $(r.multiple);
+    q('.lc-words').innerHTML = `Your family would miss about <b>${$(r.familyYearly)}</b> a year. After debts, goals, final costs, your savings and existing cover, the needs approach gives <b>${$(r.needs)}</b>.`;
+  }
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>
