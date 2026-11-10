@@ -1,0 +1,210 @@
+---
+// Vector adder: drag two arrows, see the triangle and parallelogram laws and components; three forces in
+// balance (Lami's theorem). Maths in src/lib/sci/vector-adder.ts.
+import '../../styles/astro.css';
+---
+<div class="ax va">
+  <div class="ax-card">
+    <div class="ax-row va-top">
+      <span class="va-lab">Show</span>
+      <div class="ax-seg va-mode" role="group" aria-label="Way of adding">
+        <button type="button" data-v="tri" aria-pressed="true">Triangle</button>
+        <button type="button" data-v="par" aria-pressed="false">Parallelogram</button>
+        <button type="button" data-v="comp" aria-pressed="false">Components</button>
+      </div>
+    </div>
+    <canvas class="va-c" aria-label="Two vectors and their resultant"></canvas>
+    <p class="ax-help va-hint">Drag the round handles at the tips of A and B.</p>
+    <div class="ax-row va-btns">
+      <label class="va-chk"><input type="checkbox" class="va-sub" /> Also show A − B</label>
+      <button type="button" class="btn secondary small va-reset">Reset</button>
+    </div>
+    <div class="va-ctl">
+      <label>A: size <b class="va-amv"></b><input class="va-am" type="range" min="0" max="10" step="0.5" value="6" /></label>
+      <label>A: direction <b class="va-aav"></b><input class="va-aa" type="range" min="0" max="359" step="1" value="0" /></label>
+      <label>B: size <b class="va-bmv"></b><input class="va-bm" type="range" min="0" max="10" step="0.5" value="4" /></label>
+      <label>B: direction <b class="va-bav"></b><input class="va-ba" type="range" min="0" max="359" step="1" value="60" /></label>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>The resultant R = A + B</h2>
+    <dl class="ax-facts va-facts"></dl>
+    <div class="va-eq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Three forces in balance (Lami's theorem)</h2>
+    <p class="ax-help">A weight hangs from two strings tied to a ceiling. Change the weight and the string angles and see the tension in each string.</p>
+    <canvas class="va-l" aria-label="A weight hanging from two strings"></canvas>
+    <div class="va-ctl">
+      <label>Weight W: <b class="va-wv"></b><input class="va-w" type="range" min="10" max="200" step="10" value="100" /></label>
+      <label>Left string angle to the ceiling: <b class="va-t1v"></b><input class="va-t1" type="range" min="5" max="85" step="1" value="30" /></label>
+      <label>Right string angle to the ceiling: <b class="va-t2v"></b><input class="va-t2" type="range" min="5" max="85" step="1" value="60" /></label>
+    </div>
+    <dl class="ax-facts va-lfacts"></dl>
+    <div class="va-leq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="va-try">
+      <li>Point B the same way as A. The resultant is simply A + B, the biggest it can be. Turn B right round: now it is A − B, the smallest.</li>
+      <li>Set A = 3 and B = 4 at 90° to each other. The resultant is exactly 5.</li>
+      <li>Switch between Triangle and Parallelogram. The red resultant is the same arrow both ways.</li>
+      <li>In Components, watch Rx = Ax + Bx and Ry = Ay + By. Adding the parts is how you add any number of vectors.</li>
+      <li>Make both strings nearly flat. The tension becomes much larger than the weight, which is why a washing line can never be pulled perfectly straight.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="va-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { fromPolar, add, lami, questions, type Vec } from '../../lib/sci/vector-adder';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { setupCanvas, arrow, text, f, fact, para, seg, keepDrawn, drag } from '../../lib/school-n';
+
+  const root = document.querySelector<HTMLElement>('.va')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => Number(inp(c).value);
+  let mode = 'tri';
+  const H = 300;
+  let geo = { ox: 0, oy: 0, s: 1 };
+
+  const vecs = () => ({ a: fromPolar(val('.va-am'), val('.va-aa')), b: fromPolar(val('.va-bm'), val('.va-ba')) });
+
+  function draw() {
+    const { a, b } = vecs(), r = add(a, b), sub = inp('.va-sub').checked;
+    const c = q<HTMLCanvasElement>('.va-c'), { ctx, w, pal } = setupCanvas(c, H);
+    const s = Math.min(w / 2 - 14, H / 2 - 14) / 11, ox = w / 2, oy = H / 2;
+    geo = { ox, oy, s };
+    ctx.strokeStyle = pal.grid; ctx.lineWidth = 1;
+    for (let i = -20; i <= 20; i++) { const x = ox + i * s, y = oy + i * s; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+    ctx.strokeStyle = pal.line; ctx.beginPath(); ctx.moveTo(0, oy); ctx.lineTo(w, oy); ctx.moveTo(ox, 0); ctx.lineTo(ox, H); ctx.stroke();
+    const P = (v: Vec) => [ox + v.x * s, oy - v.y * s] as const;
+    const [ax, ay] = P(a), [rx, ry] = P(r.r), [bx, by] = P(b);
+    if (mode === 'par') {
+      ctx.save(); ctx.setLineDash([5, 4]); ctx.strokeStyle = pal.muted; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(rx, ry); ctx.lineTo(bx, by); ctx.stroke(); ctx.restore();
+    }
+    if (mode === 'comp') {
+      ctx.save(); ctx.setLineDash([4, 4]); ctx.lineWidth = 1.5;
+      ctx.strokeStyle = pal.accent; ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ax, oy); ctx.lineTo(ax, ay); ctx.stroke();
+      ctx.strokeStyle = pal.accent2; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(rx, ay); ctx.lineTo(rx, ry); ctx.stroke();
+      ctx.restore();
+      text(ctx, `Rx = ${f(r.r.x, 1)}`, rx, oy + (r.r.y >= 0 ? 16 : -8), pal.bad, 'center');
+      text(ctx, `Ry = ${f(r.r.y, 1)}`, rx + (r.r.x >= 0 ? 6 : -6), (oy + ry) / 2, pal.bad, r.r.x >= 0 ? 'left' : 'right');
+    }
+    arrow(ctx, ox, oy, a.x * s, -a.y * s, pal.accent, 'A');
+    if (mode === 'par') arrow(ctx, ox, oy, b.x * s, -b.y * s, pal.accent2, 'B');
+    else arrow(ctx, ax, ay, b.x * s, -b.y * s, pal.accent2, 'B');
+    if (sub) arrow(ctx, ox, oy, r.diff.x * s, -r.diff.y * s, pal.muted, 'A − B', { dash: true });
+    arrow(ctx, ox, oy, r.r.x * s, -r.r.y * s, pal.bad, 'R', { width: 3.5 });
+    // handles
+    const hb = mode === 'par' ? [bx, by] : [rx, ry];
+    for (const [hx, hy, col] of [[ax, ay, pal.accent], [hb[0], hb[1], pal.accent2]] as [number, number, string][]) {
+      ctx.beginPath(); ctx.arc(hx, hy, 9, 0, Math.PI * 2); ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.stroke();
+    }
+    c.setAttribute('aria-label', `A is ${f(r.A, 1)} at ${val('.va-aa')}°, B is ${f(r.B, 1)} at ${val('.va-ba')}°, the resultant is ${f(r.R, 2)} at ${f(r.dir, 1)}°`);
+
+    q('.va-amv').textContent = f(r.A, 1); q('.va-bmv').textContent = f(r.B, 1);
+    q('.va-aav').textContent = `${val('.va-aa')}°`; q('.va-bav').textContent = `${val('.va-ba')}°`;
+    q('.va-facts').replaceChildren(
+      fact('Size of R', f(r.R, 2), 'units of the grid'),
+      fact('Direction of R', `${f(r.dir, 1)}°`, 'anticlockwise from →'),
+      fact('Angle between A and B', `${f(r.theta, 1)}°`),
+      fact('Angle of R from A', `${f(r.alpha, 1)}°`),
+      fact('Components of R', `(${f(r.r.x, 2)}, ${f(r.r.y, 2)})`, 'Rx, Ry'),
+      ...(sub ? [fact('Size of A − B', f(Math.hypot(r.diff.x, r.diff.y), 2))] : []),
+    );
+    const th = f(r.theta, 1);
+    q('.va-eq').replaceChildren(
+      para([['Law of cosines: '], `R = √(A² + B² + 2AB cos θ) = √(${f(r.A, 1)}² + ${f(r.B, 1)}² + 2 × ${f(r.A, 1)} × ${f(r.B, 1)} × cos ${th}°) = ${f(r.law, 2)}.`]),
+      para([['Direction: '], `tan α = B sin θ ÷ (A + B cos θ), so R points ${f(r.alpha, 1)}° away from A.`]),
+      para([['Components: '], `Rx = Ax + Bx = ${f(a.x, 2)} + ${f(b.x, 2)} = ${f(r.r.x, 2)}; Ry = Ay + By = ${f(a.y, 2)} + ${f(b.y, 2)} = ${f(r.r.y, 2)}; R = √(Rx² + Ry²) = ${f(r.R, 2)}.`]),
+    );
+  }
+
+  function drawLami() {
+    const W = val('.va-w'), t1 = val('.va-t1'), t2 = val('.va-t2'), L = lami(W, t1, t2);
+    const c = q<HTMLCanvasElement>('.va-l'), { ctx, w, pal } = setupCanvas(c, 240);
+    const yC = 20, kx = w / 2;
+    // knot below the ceiling: strings of equal height drop
+    const hDrop = 80, x1 = kx - hDrop / Math.tan((t1 * Math.PI) / 180), x2 = kx + hDrop / Math.tan((t2 * Math.PI) / 180);
+    const ky = yC + hDrop;
+    ctx.fillStyle = pal.grid; ctx.fillRect(0, 0, w, yC); ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, yC); ctx.lineTo(w, yC); ctx.stroke();
+    ctx.lineWidth = 1.5; ctx.strokeStyle = pal.muted;
+    ctx.beginPath(); ctx.moveTo(Math.max(-500, x1), yC); ctx.lineTo(kx, ky); ctx.lineTo(Math.min(w + 500, x2), yC); ctx.moveTo(kx, ky); ctx.lineTo(kx, ky + 50); ctx.stroke();
+    ctx.fillStyle = pal.ink; ctx.fillRect(kx - 18, ky + 50, 36, 28);
+    text(ctx, `${W} N`, kx + 24, ky + 70, pal.ink);
+    const big = Math.max(L.T1, L.T2, W), k = 80 / big, r1 = (L.d1 * Math.PI) / 180, r2 = (L.d2 * Math.PI) / 180;
+    arrow(ctx, kx, ky, Math.cos(r1) * L.T1 * k, -Math.sin(r1) * L.T1 * k, pal.accent, `T₁ ${f(L.T1, 1)} N`);
+    arrow(ctx, kx, ky, Math.cos(r2) * L.T2 * k, -Math.sin(r2) * L.T2 * k, pal.accent2, `T₂ ${f(L.T2, 1)} N`);
+    arrow(ctx, kx - 40, ky, 0, W * k, pal.bad, 'W', { width: 2 });
+    q('.va-wv').textContent = `${W} N`; q('.va-t1v').textContent = `${t1}°`; q('.va-t2v').textContent = `${t2}°`;
+    q('.va-lfacts').replaceChildren(
+      fact('Left tension T₁', `${f(L.T1, 1)} N`), fact('Right tension T₂', `${f(L.T2, 1)} N`),
+      fact('Angle between the strings', `${f(L.aW, 0)}°`, 'opposite W'),
+    );
+    q('.va-leq').replaceChildren(
+      para([['Lami: '], `T₁ ÷ sin ${f(L.a1, 0)}° = T₂ ÷ sin ${f(L.a2, 0)}° = W ÷ sin ${f(L.aW, 0)}° = ${f(W / Math.sin((L.aW * Math.PI) / 180), 1)} N. Each force over the sine of the angle between the other two.`]),
+      para([['Check: '], `across, T₁ cos ${t1}° = ${f(L.T1 * Math.cos((t1 * Math.PI) / 180), 1)} N and T₂ cos ${t2}° = ${f(L.T2 * Math.cos((t2 * Math.PI) / 180), 1)} N cancel; up, T₁ sin ${t1}° + T₂ sin ${t2}° = ${f(L.T1 * Math.sin((t1 * Math.PI) / 180) + L.T2 * Math.sin((t2 * Math.PI) / 180), 1)} N holds the weight.`]),
+    );
+  }
+
+  // Dragging the tips
+  const cv = q<HTMLCanvasElement>('.va-c');
+  let which: 'a' | 'b' | '' = '';
+  const setV = (pre: string, x: number, y: number) => {
+    const m = Math.min(10, Math.round(Math.hypot(x, y) * 2) / 2), d = Math.round(((Math.atan2(y, x) * 180) / Math.PI + 360) % 360);
+    inp(`.va-${pre}m`).value = String(m); if (m > 0) inp(`.va-${pre}a`).value = String(d % 360);
+  };
+  drag(cv, (px, py, first) => {
+    const x = (px - geo.ox) / geo.s, y = (geo.oy - py) / geo.s, { a, b } = vecs();
+    const tipB = mode === 'par' ? b : { x: a.x + b.x, y: a.y + b.y };
+    if (first) which = Math.hypot(x - tipB.x, y - tipB.y) < Math.hypot(x - a.x, y - a.y) ? 'b' : 'a';
+    if (which === 'a') setV('a', x, y); else setV('b', mode === 'par' ? x : x - a.x, mode === 'par' ? y : y - a.y);
+    draw();
+  }, () => { which = ''; });
+
+  seg(q('.va-mode'), (v) => { mode = v; draw(); });
+  root.querySelectorAll('.va-c ~ .va-ctl input, .va-sub').forEach((i) => i.addEventListener('input', draw));
+  root.querySelectorAll('.va-l ~ .va-ctl input').forEach((i) => i.addEventListener('input', drawLami));
+  q('.va-reset').addEventListener('click', () => { inp('.va-am').value = '6'; inp('.va-aa').value = '0'; inp('.va-bm').value = '4'; inp('.va-ba').value = '60'; inp('.va-sub').checked = false; draw(); });
+  mountQuiz(q('.va-quiz'), () => questions());
+  draw(); drawLami();
+  keepDrawn(cv, () => { draw(); drawLami(); });
+</script>
+
+<style is:inline>
+  .va .va-top { margin-bottom: 10px; }
+  .va .va-lab { font-size: 14px; color: var(--muted); }
+  .va .ax-seg button { min-height: 44px; }
+  .va canvas { display: block; width: 100%; touch-action: none; }
+  .va .va-l { touch-action: pan-y; margin: 8px 0; }
+  .va .va-btns { margin-top: 8px; }
+  .va .va-chk { display: inline-flex; gap: 8px; align-items: center; min-height: 44px; }
+  .va .va-chk input { width: 22px; height: 22px; }
+  .va .va-ctl { display: grid; gap: 10px; margin-top: 12px; }
+  .va input[type=range] { width: 100%; height: 32px; accent-color: var(--ink); }
+  .va label b { color: var(--ink); }
+  .va .btn.small { min-height: 44px; }
+  .va .va-eq p, .va .va-leq p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .va .va-lfacts { margin-top: 12px; }
+  .va .va-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>

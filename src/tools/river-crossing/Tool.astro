@@ -1,0 +1,146 @@
+---
+// River crossing: relative velocity in 2D. Aim a boat across a flowing river and see where it lands, how long it
+// takes, and the headings for the fastest crossing and for no drift. Maths in src/lib/sci/river-crossing.ts.
+import '../../styles/astro.css';
+---
+<div class="ax rc">
+  <div class="ax-card">
+    <canvas class="rc-c" aria-label="A boat crossing a river, seen from above"></canvas>
+    <p class="rc-state"><span class="ax-pill rc-pill"></span></p>
+    <div class="ax-row"><button type="button" class="btn small rc-go">Cross</button><button type="button" class="btn secondary small rc-fast">Fastest crossing</button><button type="button" class="btn secondary small rc-opp">Land straight opposite</button></div>
+    <div class="rc-ctl">
+      <label>Where the boat points: <b class="rc-tv"></b><input class="rc-t" type="range" min="-60" max="85" step="0.1" value="0" /></label>
+      <label>Boat speed through the water: <b class="rc-bv"></b><input class="rc-b" type="range" min="0.5" max="6" step="0.1" value="4" /></label>
+      <label>River speed: <b class="rc-rv"></b><input class="rc-r" type="range" min="0" max="5" step="0.1" value="3" /></label>
+      <label>River width: <b class="rc-dv"></b><input class="rc-d" type="range" min="20" max="200" step="10" value="100" /></label>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>The crossing</h2>
+    <dl class="ax-facts rc-facts"></dl>
+    <div class="rc-eq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="rc-try">
+      <li>Point straight across and change the river speed. The crossing time never changes; only where you land does.</li>
+      <li>Press Land straight opposite. You must aim upstream, and the crossing takes longer.</li>
+      <li>Make the river faster than the boat. Now no heading can land opposite; the page finds the heading that drifts least.</li>
+      <li>Aim downstream (a negative angle). You land further down, and sooner than you might think: the time depends only on the part of the velocity across.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="rc-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { cross, best, questions } from '../../lib/sci/river-crossing';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { setupCanvas, arrow, text, f, fact, para, keepDrawn } from '../../lib/school-n';
+
+  const root = document.querySelector<HTMLElement>('.rc')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => Number(inp(c).value);
+  const H = 280;
+  let prog = -1, raf = 0;
+  const p = () => ({ th: val('.rc-t'), vb: val('.rc-b'), vr: val('.rc-r'), d: val('.rc-d') });
+
+  function scene() {
+    const P = p(), r = cross(P.d, P.vr, P.vb, P.th), c = q<HTMLCanvasElement>('.rc-c'), { ctx, w, pal } = setupCanvas(c, H);
+    const top = 40, bot = H - 40, s = (bot - top) / P.d; // pixels per metre (across)
+    const drift = Number.isFinite(r.drift) ? r.drift : 0, x0 = Math.min(w - 60, Math.max(60, w / 2 - (drift * s) / 2));
+    // water and banks
+    ctx.fillStyle = pal.day; ctx.fillRect(0, top, w, bot - top);
+    ctx.fillStyle = pal.grid; ctx.fillRect(0, 0, w, top); ctx.fillRect(0, bot, w, H - bot);
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, top); ctx.lineTo(w, top); ctx.moveTo(0, bot); ctx.lineTo(w, bot); ctx.stroke();
+    if (P.vr > 0) for (let i = 0; i < 4; i++) arrow(ctx, 14 + ((i * 97) % Math.max(60, w - 80)), top + ((i + 0.6) * (bot - top)) / 4.2, 18 + P.vr * 6, 0, pal.muted, '', { width: 1.5, head: 7 });
+    text(ctx, `river ${f(P.vr, 1)} m/s →`, w - 8, top + 14, pal.muted, 'right', 11);
+    // target opposite and path
+    ctx.fillStyle = pal.good; ctx.beginPath(); ctx.arc(x0, top, 5, 0, Math.PI * 2); ctx.fill(); text(ctx, 'opposite', x0, top - 8, pal.good, 'center', 11);
+    if (Number.isFinite(r.t)) {
+      const xl = x0 + drift * s;
+      ctx.save(); ctx.setLineDash([6, 5]); ctx.strokeStyle = pal.bad; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x0, bot); ctx.lineTo(xl, top); ctx.stroke(); ctx.restore();
+      if (xl > 0 && xl < w) { ctx.fillStyle = pal.bad; ctx.beginPath(); ctx.arc(xl, top, 5, 0, Math.PI * 2); ctx.fill(); }
+      const fr = prog < 0 ? 0 : prog, bx = x0 + drift * s * fr, by = bot - (bot - top) * fr;
+      // boat pointing along its heading
+      const hd = (-P.th * Math.PI) / 180; // canvas: up is −y; heading tilted upstream (left) for positive θ
+      ctx.save(); ctx.translate(bx, by); ctx.rotate(hd); ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.moveTo(0, -14); ctx.lineTo(7, 8); ctx.lineTo(-7, 8); ctx.closePath(); ctx.fill(); ctx.restore();
+      if (prog < 0) {
+        const k = 22, ox = x0, oy = bot - 4;
+        const bxv = -Math.sin((P.th * Math.PI) / 180) * P.vb * k, byv = -Math.cos((P.th * Math.PI) / 180) * P.vb * k;
+        arrow(ctx, ox, oy, bxv, byv, pal.accent, 'boat', { width: 2.5 });
+        arrow(ctx, ox + bxv, oy + byv, P.vr * k, 0, pal.muted, 'river', { width: 2 });
+        arrow(ctx, ox, oy, bxv + P.vr * k, byv, pal.bad, 'ground', { width: 2.5 });
+      }
+    } else text(ctx, 'The boat never gets across', w / 2, (top + bot) / 2, pal.bad, 'center', 14, 600);
+    c.setAttribute('aria-label', Number.isFinite(r.t) ? `The boat crosses in ${f(r.t, 1)} s and lands ${f(Math.abs(r.drift), 1)} m ${r.drift >= 0 ? 'downstream' : 'upstream'}` : 'The boat cannot cross');
+  }
+
+  function draw() {
+    const P = p(), r = cross(P.d, P.vr, P.vb, P.th), b = best(P.d, P.vr, P.vb);
+    q('.rc-tv').textContent = P.th === 0 ? 'straight across' : `${f(Math.abs(P.th), 1)}° ${P.th > 0 ? 'upstream' : 'downstream'}`;
+    q('.rc-bv').textContent = `${f(P.vb, 1)} m/s`; q('.rc-rv').textContent = `${f(P.vr, 1)} m/s`; q('.rc-dv').textContent = `${P.d} m`;
+    q('.rc-opp').textContent = b.can ? 'Land straight opposite' : 'Drift as little as possible';
+    scene();
+    const pill = q('.rc-pill');
+    if (!Number.isFinite(r.t)) { pill.textContent = 'Pointing this way it never gets across'; pill.className = 'ax-pill bad rc-pill'; }
+    else { const dr = Math.abs(r.drift) < 0.05; pill.textContent = dr ? `Lands straight opposite after ${f(r.t, 1)} s` : `Lands ${f(Math.abs(r.drift), 1)} m ${r.drift > 0 ? 'downstream' : 'upstream'} after ${f(r.t, 1)} s`; pill.className = `ax-pill ${dr ? 'good' : 'warn'} rc-pill`; }
+    q('.rc-facts').replaceChildren(
+      fact('Time to cross', Number.isFinite(r.t) ? `${f(r.t, 1)} s` : '–'),
+      fact('Drift', Number.isFinite(r.drift) ? `${f(Math.abs(r.drift), 1)} m` : '–', Number.isFinite(r.drift) ? (r.drift >= 0 ? 'downstream' : 'upstream') : ''),
+      fact('Speed over the ground', `${f(r.speed, 2)} m/s`, `${f(Math.abs(r.course), 1)}° ${r.course >= 0 ? 'downstream' : 'upstream'} of straight across`),
+      fact('Fastest crossing', `${f(b.fast.t, 1)} s`, `point straight across; drift ${f(b.fast.drift, 1)} m`),
+      fact(b.can ? 'To land opposite' : 'Least drift', b.can ? `point ${f(b.theta, 1)}° upstream` : `${f(b.least, 1)} m`, b.can ? `takes ${f(b.t, 1)} s` : `point ${f(b.leastTheta, 1)}° upstream`),
+    );
+    const th = f(P.th, 1);
+    q('.rc-eq').replaceChildren(
+      para([['Add the velocities: '], 'velocity over the ground = boat\'s velocity through the water + water\'s velocity over the ground.']),
+      para([['Across: '], `vb cos θ = ${f(P.vb, 1)} × cos ${th}° = ${f(r.across, 2)} m/s, so t = ${P.d} ÷ ${f(r.across, 2)} = ${Number.isFinite(r.t) ? f(r.t, 1) : '∞'} s.`]),
+      para([['Along the river: '], `vr − vb sin θ = ${f(P.vr, 1)} − ${f(P.vb, 1)} × sin ${th}° = ${f(r.along, 2)} m/s, so the drift is ${f(r.along, 2)} × ${Number.isFinite(r.t) ? f(r.t, 1) : '∞'} = ${Number.isFinite(r.drift) ? f(r.drift, 1) : '∞'} m.`]),
+      para([['No drift: '], b.can ? `the upstream part must cancel the river: vb sin θ = vr, sin θ = ${f(P.vr / P.vb, 3)}, θ = ${f(b.theta, 1)}°.` : `impossible: the boat (${f(P.vb, 1)} m/s) is slower than the river (${f(P.vr, 1)} m/s).`]),
+    );
+  }
+
+  function stop() { cancelAnimationFrame(raf); raf = 0; q<HTMLButtonElement>('.rc-go').disabled = false; }
+  q('.rc-go').addEventListener('click', () => {
+    const r = cross(val('.rc-d'), val('.rc-r'), val('.rc-b'), val('.rc-t')); if (!Number.isFinite(r.t)) return;
+    stop(); q<HTMLButtonElement>('.rc-go').disabled = true; const t0 = performance.now(), dur = Math.min(4000, Math.max(1500, r.t * 40));
+    const tick = (now: number) => { prog = Math.min(1, (now - t0) / dur); draw(); if (prog >= 1) { stop(); prog = 1; draw(); return; } raf = requestAnimationFrame(tick); };
+    raf = requestAnimationFrame(tick);
+  });
+  const set = (th: number) => { inp('.rc-t').value = String(Math.round(th * 10) / 10); stop(); prog = -1; draw(); };
+  q('.rc-fast').addEventListener('click', () => set(0));
+  q('.rc-opp').addEventListener('click', () => { const b = best(val('.rc-d'), val('.rc-r'), val('.rc-b')); set(b.can ? b.theta : b.leastTheta); });
+  root.querySelectorAll('.rc-ctl input').forEach((i) => i.addEventListener('input', () => { stop(); prog = -1; draw(); }));
+  mountQuiz(q('.rc-quiz'), () => questions());
+  draw();
+  keepDrawn(q('.rc-c'), draw);
+</script>
+
+<style is:inline>
+  .rc canvas { display: block; width: 100%; }
+  .rc .rc-state { margin: 8px 0; }
+  .rc .rc-pill { font-size: 14px; white-space: normal; }
+  .rc .rc-ctl { display: grid; gap: 10px; margin-top: 12px; }
+  .rc input[type=range] { width: 100%; height: 32px; accent-color: var(--ink); }
+  .rc label b { color: var(--ink); }
+  .rc .btn.small { min-height: 44px; }
+  .rc .rc-eq p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .rc .rc-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>

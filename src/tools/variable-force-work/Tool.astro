@@ -1,0 +1,159 @@
+---
+// Work as the area under a force-displacement graph: drag the graph into any shape, choose a stretch of x,
+// and see the area (the work) and the speed it gives a cart. Maths in src/lib/sci/force-work.ts.
+import '../../styles/astro.css';
+---
+<div class="ax vw">
+  <div class="ax-card">
+    <div class="ax-row vw-top">
+      <span class="vw-lab">Level</span>
+      <div class="ax-seg vw-level" role="group" aria-label="Level">
+        <button type="button" data-v="9" aria-pressed="false">Class 9</button>
+        <button type="button" data-v="11" aria-pressed="true">Class 11</button>
+      </div>
+    </div>
+    <label class="vw-prow">Force graph <select class="vw-preset">
+      <option value="const">Steady force</option>
+      <option value="spring" selected>Spring: F = kx</option>
+      <option value="ramp">Force that fades away</option>
+      <option value="step">Push, ease off, then pull back</option>
+      <option value="own">My own shape (drag the graph)</option>
+    </select></label>
+    <canvas class="vw-c" aria-label="Force against displacement with the area shaded"></canvas>
+    <p class="ax-help">Drag up and down on the graph to reshape the force at each metre.</p>
+    <div class="vw-ctl">
+      <label>Biggest force: <b class="vw-sv"></b><input class="vw-s" type="range" min="5" max="50" step="5" value="40" /></label>
+      <label>From x = <b class="vw-av"></b><input class="vw-a" type="range" min="0" max="10" step="0.5" value="0" /></label>
+      <label>To x = <b class="vw-bv"></b><input class="vw-b" type="range" min="0" max="10" step="0.5" value="6" /></label>
+      <label>Mass of the cart (for the speed): <b class="vw-mv"></b><input class="vw-m" type="range" min="1" max="20" step="1" value="2" /></label>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>The work done</h2>
+    <p><span class="ax-pill vw-pill"></span></p>
+    <dl class="ax-facts vw-facts"></dl>
+    <div class="vw-eq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="vw-try">
+      <li>Pick the steady force. The area is a rectangle: work = force × distance.</li>
+      <li>Pick the spring and go from 0 to 6 m, then from 0 to 3 m. Half the stretch takes only a quarter of the work, because W = ½kx².</li>
+      <li>Pick "push, ease off, then pull back" and go all the way to 10 m. The red area below the axis is negative work: the force slows the cart.</li>
+      <li>Draw your own shape. Can you make the total work zero over 10 m?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="vw-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { forceAt, work, preset, speedFrom, questions, type Pt } from '../../lib/sci/force-work';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { setupCanvas, text, f, fact, para, seg, keepDrawn, drag } from '../../lib/school-n';
+
+  const root = document.querySelector<HTMLElement>('.vw')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => Number(inp(c).value);
+  let level: '9' | '11' = '11', pts: Pt[] = preset('spring', 40), quizRender = () => {};
+  const H = 280, FMAX = 50;
+  let geo = { L: 0, T: 0, sx: 1, sy: 1, y0: 0 };
+
+  function graph() {
+    const c = q<HTMLCanvasElement>('.vw-c'), { ctx, w, pal } = setupCanvas(c, H);
+    const L = 40, R = w - 12, T = 12, B = H - 28, sx = (R - L) / 10, sy = (B - T) / (2 * FMAX), y0 = T + FMAX * sy;
+    geo = { L, T, sx, sy, y0 };
+    const X = (x: number) => L + x * sx, Y = (F: number) => y0 - F * sy;
+    ctx.strokeStyle = pal.grid; ctx.lineWidth = 1;
+    for (let x = 0; x <= 10; x++) { ctx.beginPath(); ctx.moveTo(X(x), T); ctx.lineTo(X(x), B); ctx.stroke(); text(ctx, String(x), X(x), B + 14, pal.muted, 'center', 11); }
+    for (let F = -FMAX; F <= FMAX; F += 10) { ctx.beginPath(); ctx.moveTo(L, Y(F)); ctx.lineTo(R, Y(F)); ctx.stroke(); text(ctx, String(F).replace('-', '−'), L - 4, Y(F) + 4, pal.muted, 'right', 11); }
+    text(ctx, 'x (m)', R, B + 26, pal.muted, 'right', 11); text(ctx, 'F (N)', L + 4, T + 10, pal.muted, 'left', 11);
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(L, y0); ctx.lineTo(R, y0); ctx.moveTo(L, T); ctx.lineTo(L, B); ctx.stroke();
+    // shaded area between a and b, coloured by sign
+    const a = Math.min(val('.vw-a'), val('.vw-b')), b = Math.max(val('.vw-a'), val('.vw-b')), N = 200;
+    for (let i = 0; i < N; i++) {
+      const x0 = a + ((b - a) * i) / N, x1 = a + ((b - a) * (i + 1)) / N, F0 = forceAt(pts, x0), F1 = forceAt(pts, x1);
+      ctx.fillStyle = (F0 + F1) / 2 >= 0 ? pal.good : pal.bad; ctx.globalAlpha = 0.28;
+      ctx.beginPath(); ctx.moveTo(X(x0), y0); ctx.lineTo(X(x0), Y(F0)); ctx.lineTo(X(x1), Y(F1)); ctx.lineTo(X(x1), y0); ctx.closePath(); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = 2.5; ctx.beginPath(); pts.forEach(([x, F], i) => (i ? ctx.lineTo(X(x), Y(F)) : ctx.moveTo(X(x), Y(F)))); ctx.stroke();
+    ctx.fillStyle = pal.accent; for (const [x, F] of pts) { ctx.beginPath(); ctx.arc(X(x), Y(F), 4.5, 0, Math.PI * 2); ctx.fill(); }
+    ctx.strokeStyle = pal.ink; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+    for (const x of [a, b]) { ctx.beginPath(); ctx.moveTo(X(x), T); ctx.lineTo(X(x), B); ctx.stroke(); }
+    ctx.setLineDash([]);
+    const W = work(pts, a, b).W;
+    c.setAttribute('aria-label', `Force against displacement; the work from ${a} m to ${b} m is ${f(W, 1)} joules`);
+  }
+
+  function draw() {
+    const a = val('.vw-a'), b = val('.vw-b'), m = val('.vw-m'), kind = q<HTMLSelectElement>('.vw-preset').value, S = val('.vw-s');
+    q('.vw-sv').textContent = `${S} N`; q('.vw-av').textContent = `${a} m`; q('.vw-bv').textContent = `${b} m`; q('.vw-mv').textContent = `${m} kg`;
+    graph();
+    const r = work(pts, a, b), v = speedFrom(r.W, m);
+    const pill = q('.vw-pill');
+    pill.textContent = `Work from ${a} m to ${b} m: ${f(r.W, 2)} J`; pill.className = `ax-pill ${r.W >= 0 ? 'good' : 'bad'} vw-pill`;
+    q('.vw-facts').replaceChildren(
+      fact('Work done', `${f(r.W, 2)} J`, 'the signed area'),
+      fact('Area above the axis', `${f(r.pos, 2)} J`, 'force with the motion'),
+      fact('Area below the axis', `${f(r.neg, 2)} J`, 'force against the motion'),
+      fact('Force at the start and end', `${f(forceAt(pts, a), 1)} N, ${f(forceAt(pts, b), 1)} N`),
+      fact('Speed of the cart from rest', Number.isFinite(v) ? `${f(v, 2)} m/s` : 'none', Number.isFinite(v) ? '½mv² = W' : 'negative work cannot start it'),
+    );
+    const eq: HTMLElement[] = [];
+    const d = f(Math.abs(b - a), 2);
+    if (kind === 'const') eq.push(para([['Rectangle: '], `W = F × s = ${f(S)} × ${d} = ${f(r.W, 2)} J.`]));
+    else if (kind === 'spring') eq.push(para([['Triangle: '], `F = kx with k = ${f(S / 10, 1)} N/m, so W = ½k(x₂² − x₁²) = ½ × ${f(S / 10, 1)} × (${f(b)}² − ${f(a)}²) = ${f((S / 20) * (b * b - a * a), 2)} J.`]));
+    else eq.push(para([['Add the pieces: '], 'between each pair of dots the force changes in a straight line, so each strip is a trapezium: width × average height. Strips above the axis add, strips below subtract.']));
+    if (level === '11') eq.push(para([['In general: '], `W = ∫ F dx from ${a} m to ${b} m, the area under the F-x graph. When F is constant this is just F × s.`]));
+    else eq.push(para([['Remember: '], 'work = force × distance moved in the direction of the force. 1 joule is 1 newton pushing through 1 metre.']));
+    if (Number.isFinite(v)) eq.push(para([['Work-energy: '], `a ${m} kg cart starting at rest on a smooth track gains ½mv² = ${f(r.W, 2)} J, so v = √(2 × ${f(r.W, 2)} ÷ ${m}) = ${f(v, 2)} m/s.`]));
+    q('.vw-eq').replaceChildren(...eq);
+  }
+
+  const cv = q<HTMLCanvasElement>('.vw-c');
+  drag(cv, (px, py) => {
+    const i = Math.round((px - geo.L) / geo.sx); if (i < 0 || i > 10) return;
+    const F = Math.max(-FMAX, Math.min(FMAX, Math.round((geo.y0 - py) / geo.sy)));
+    pts = pts.map((p, j) => (j === i ? [p[0], F] : p));
+    q<HTMLSelectElement>('.vw-preset').value = 'own'; draw();
+  });
+  q('.vw-preset').addEventListener('change', () => { const k = q<HTMLSelectElement>('.vw-preset').value; if (k !== 'own') pts = preset(k, val('.vw-s')); draw(); });
+  inp('.vw-s').addEventListener('input', () => { const k = q<HTMLSelectElement>('.vw-preset').value; if (k !== 'own') pts = preset(k, val('.vw-s')); draw(); });
+  root.querySelectorAll('.vw-a, .vw-b, .vw-m').forEach((i) => i.addEventListener('input', draw));
+  seg(q('.vw-level'), (v) => { level = v as '9' | '11'; quizRender(); draw(); });
+  quizRender = mountQuiz(q('.vw-quiz'), () => questions(level));
+  draw();
+  keepDrawn(cv, draw);
+</script>
+
+<style is:inline>
+  .vw .vw-top { margin-bottom: 10px; }
+  .vw .vw-lab { font-size: 14px; color: var(--muted); }
+  .vw .ax-seg button { min-height: 44px; }
+  .vw .vw-prow { display: grid; gap: 4px; margin-bottom: 10px; }
+  .vw select { min-height: 44px; max-width: 100%; }
+  .vw canvas { display: block; width: 100%; touch-action: none; }
+  .vw .vw-ctl { display: grid; gap: 10px; margin-top: 12px; }
+  .vw input[type=range] { width: 100%; height: 32px; accent-color: var(--ink); }
+  .vw label b { color: var(--ink); }
+  .vw .vw-pill { font-size: 14px; white-space: normal; }
+  .vw .vw-eq p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .vw .vw-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>
