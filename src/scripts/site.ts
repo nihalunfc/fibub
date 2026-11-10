@@ -70,7 +70,7 @@ export function loadNav() {
 }
 
 // The menu panel (Menu tab in the bottom bar, or the search button in the header): search every tool,
-// My tools, then Learn, Tools (shelves, Science opens to its subjects), News and About, all folded.
+// My tools, then Learn, Tools (shelves, Science opens to its subjects), Blog and About, all folded.
 const btn = document.querySelector<HTMLButtonElement>('.tab-menu');
 const panel = document.querySelector<HTMLElement>('#all-tools');
 

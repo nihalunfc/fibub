@@ -1,0 +1,77 @@
+---
+// One Blog article. Guides link back to their tool (and the tool page links here), every tool the
+// article covers is listed as a card, and the sources, with a removal-request link, close the page.
+import Base from '../../../layouts/Base.astro';
+import ToolCard from '../../../components/ToolCard.astro';
+import ArticleList from '../../../components/ArticleList.astro';
+import { render } from 'astro:content';
+import { allArticles, KINDS, kindOf, slugOf, articleUrl, mentions } from '../../../lib/blog';
+import { allTools, toolUrl } from '../../../lib/tools';
+import { articleLd, metaDescription } from '../../../lib/seo';
+export async function getStaticPaths() {
+  const all = await allArticles();
+  const tools = await allTools();
+  const live = new Map(tools.filter((t) => t.data.status === 'live').map((t) => [t.id, t]));
+  return all.map((a) => {
+    for (const id of a.data.tools) if (!live.has(id)) throw new Error(`src/blog/${a.id}.md: tools lists "${id}", which is not a live tool id`);
+    if (KINDS.some((k) => k.id === slugOf(a))) throw new Error(`src/blog/${a.id}.md: a slug may not be a kind name`);
+    return { params: { kind: kindOf(a), slug: slugOf(a) }, props: { a, all, live } };
+  });
+}
+const { a, all, live } = Astro.props as any;
+const kind = KINDS.find((k) => k.id === kindOf(a))!;
+const { Content } = await render(a);
+const covered = a.data.tools.map((id: string) => live.get(id));
+const main = kind.id === 'guides' ? covered[0] : null;
+const url = articleUrl(a);
+const day = a.data.updated.toISOString().slice(0, 10);
+// More reading: other articles that share a tool with this one, then the newest of the same kind.
+const mine = mentions(a);
+const shared = all.filter((b: any) => b !== a && [...mentions(b)].some((id) => mine.has(id)));
+const more = [...shared, ...all.filter((b: any) => b !== a && kindOf(b) === kind.id && !shared.includes(b))].slice(0, 5);
+const p = a.data.paper;
+---
+<Base title={a.data.title} docTitle={a.data.seoTitle ? `${a.data.seoTitle}` : undefined} description={a.data.seoDescription ?? metaDescription(a.data.summary)} ld={articleLd({ title: a.data.title, summary: a.data.summary, url, updated: a.data.updated, kindName: kind.name, kindUrl: `/blog/${kind.id}/`, tech: kind.id === 'guides', about: covered.map((t: any) => toolUrl(t)) })} image={main ? `/og/${main.id}.png` : undefined}>
+  <div class="crumbs"><a href="/">Home</a> / <a href="/blog/">Blog</a> / <a href={`/blog/${kind.id}/`}>{kind.name}</a></div>
+  <article class="prose post">
+    <h1>{a.data.title}</h1>
+    <p class="post-meta">{kind.one} · Updated <time datetime={day}>{day}</time>{a.data.level && <> · For {a.data.level}</>}</p>
+    <p class="lead">{a.data.summary}</p>
+    {main && <p class="post-open"><a class="btn" href={toolUrl(main)}>Open the {main.data.name}</a> <span>Free, in your browser, nothing uploaded.</span></p>}
+    {p && (
+      <aside class="paper panel">
+        <b>The research</b>
+        <span>{p.authors}, “{p.title}”, <i>{p.journal}</i> ({p.year}). <a href={p.url} rel="nofollow noopener">Read the paper</a>{p.doi && <> · DOI {p.doi}</>} · Licence: {p.licence}</span>
+        {!p.reviewed && <span class="warn">This is a preprint: it has not yet been checked by other scientists (peer review). Its findings may change.</span>}
+        <span>Written in our own words; no tables or figures are copied. The numbers in our examples are our own, rounded or made up for practice.</span>
+      </aside>
+    )}
+    <Content />
+    {(a.data.sources.length > 0 || p) && (
+      <section class="sources" id="sources">
+        <h2>Sources</h2>
+        {a.data.sources.length > 0 && <ul>{a.data.sources.map((x: string) => <li>{x}</li>)}</ul>}
+        <p>If you are an author or publisher and want a credit or a passage changed or removed, <a href={`/contact/?about=rights-blog-${slugOf(a)}#rights`}>tell us</a> and we will act quickly.</p>
+      </section>
+    )}
+  </article>
+  {covered.length > 0 && (
+    <section>
+      <h2>{covered.length === 1 ? 'The tool in this article' : 'Tools in this article'}</h2>
+      <div class="grid">{covered.map((t: any) => <ToolCard tool={t} />)}</div>
+    </section>
+  )}
+  {more.length > 0 && (
+    <section>
+      <h2>Read next</h2>
+      <ArticleList articles={more} />
+    </section>
+  )}
+</Base>
+<style>
+  .post-meta { color: var(--muted); font-size: 14px; margin: -6px 0 10px; }
+  .post-open { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .post-open span { color: var(--muted); font-size: 14px; }
+  .paper { display: grid; gap: 6px; margin: 16px 0; font-size: 15px; }
+  .paper .warn { color: var(--warn, #9a3412); font-weight: 600; }
+</style>

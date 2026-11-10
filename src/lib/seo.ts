@@ -102,3 +102,21 @@ export const toolLd = (t: Tool) => [
   },
   breadcrumbs(toolCrumbs(t)),
 ];
+
+/** A Blog article: an Article (a TechArticle for tool guides) and its place in the Blog. */
+export const articleLd = (a: { title: string; summary: string; url: string; updated: Date; kindName: string; kindUrl: string; tech: boolean; about?: string[] }) => [
+  {
+    '@type': a.tech ? 'TechArticle' : 'Article',
+    headline: a.title.slice(0, 110),
+    description: a.summary,
+    url: abs(a.url),
+    dateModified: a.updated.toISOString().slice(0, 10),
+    inLanguage: 'en',
+    isAccessibleForFree: true,
+    author: { '@id': ORG_ID },
+    publisher: { '@id': ORG_ID },
+    isPartOf: { '@id': `${SITE.url}/#site` },
+    ...(a.about?.length ? { about: a.about.map((u) => ({ '@id': `${abs(u)}#app` })) } : {}),
+  },
+  breadcrumbs([{ name: 'Home', url: '/' }, { name: 'Blog', url: '/blog/' }, { name: a.kindName, url: a.kindUrl }, { name: a.title, url: a.url }]),
+];
