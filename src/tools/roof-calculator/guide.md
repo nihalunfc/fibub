@@ -12,7 +12,7 @@ order: 2026
 icon: mountain
 works: offline
 updated: 2026-11-10
-related: [stair-calculator, deck-calculator]
+related: [stair-calculator, deck-calculator, gravel-calculator]
 sources:
   - "Pitch conversions and the pitch factor √(1 + (rise ÷ run)²) are standard trigonometry; fibub's own working."
   - "A roofing square is 100 sq ft. Three bundles per square is typical for standard asphalt shingles, but the wrapper gives the true coverage."
