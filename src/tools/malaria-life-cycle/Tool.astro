@@ -1,0 +1,149 @@
+---
+// Life cycle of Plasmodium: a stepper round the two hosts (human: liver and red blood cells; female Anopheles:
+// gut, stomach wall and salivary glands), with the fever rhythm from red blood cells bursting together.
+// Class 12 Biology, human health and disease (malaria). Teaching diagram.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax mlc">
+  <p class="ax-help">A simplified teaching diagram of the malaria parasite's life cycle. Not medical advice: anyone with a fever in a malaria area should see a doctor quickly.</p>
+  <div class="ax-card">
+    <h2>Follow the parasite</h2>
+    <svg class="ml-svg" viewBox="0 0 360 330" role="img" aria-label="Life cycle of the malaria parasite in two hosts">
+      <rect class="ml-hum" x="4" y="24" width="174" height="300" rx="14" />
+      <rect class="ml-mos" x="182" y="24" width="174" height="300" rx="14" />
+      <text class="ml-ht" x="91" y="16" text-anchor="middle">Human (secondary host)</text>
+      <text class="ml-ht" x="269" y="16" text-anchor="middle">Mosquito (primary host)</text>
+      <path class="ml-loop" d="M 180 52 C 70 52, 40 120, 52 170 C 62 230, 110 300, 180 300 C 260 300, 316 230, 312 170 C 308 110, 270 52, 180 52 Z" />
+      <g class="ml-nodes"></g>
+    </svg>
+    <div class="ax-row ml-nav">
+      <button type="button" class="btn secondary small ml-prev" aria-label="Previous stage">◀ Back</button>
+      <span class="ml-step" aria-live="polite"></span>
+      <button type="button" class="btn small ml-next" aria-label="Next stage">Next ▶</button>
+    </div>
+    <h3 class="ml-name"></h3>
+    <p class="ml-where"></p>
+    <p class="ml-text"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Why the fever comes and goes</h2>
+    <p class="ax-help">Infected red blood cells burst at about the same time, so the chills and fever come back in a rhythm.</p>
+    <div class="ax-seg ml-sp" role="group" aria-label="Species"><button type="button" data-v="vivax" aria-pressed="true">P. vivax (every 48 h)</button><button type="button" data-v="malariae" aria-pressed="false">P. malariae (every 72 h)</button></div>
+    <canvas class="ax-fig ml-fig" role="img"></canvas>
+    <p class="ml-fsay"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="ml-try">
+      <li>Step round the whole loop. In which host do the gametes fuse? That host is called the primary host.</li>
+      <li>Count the stages inside the human. Which one makes the person feel ill?</li>
+      <li>Compare the two fever rhythms over 12 days. On which days does P. vivax cause fever?</li>
+      <li>Think: how do bed nets, draining standing water and treating patients each break the loop?</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="ml-quiz" />
+</div>
+
+<script>
+  import { STAGES, RHYTHM, feverDays } from '../../lib/sci/malaria-r';
+  import { paint, type Palette } from '../../lib/report';
+  import { FONT } from '../../lib/sm-graph';
+  import { quiz, pick, rint, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.mlc')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const NS = 'http://www.w3.org/2000/svg';
+  // Positions round the loop: human side on the left (top to bottom), mosquito side on the right (bottom to top).
+  const POS: [number, number][] = [[112, 58], [62, 112], [50, 172], [70, 236], [140, 296], [222, 296], [296, 236], [312, 172], [292, 106]];
+  const RIGHT = [false, true, true, true, false, true, false, false, false]; // label side for each node
+  let at = 0, sp = 'vivax';
+  const nodes = q<SVGGElement>('.ml-nodes');
+  STAGES.forEach((s, i) => {
+    const g = document.createElementNS(NS, 'g'); g.setAttribute('class', `ml-node ml-${s.host}`); g.setAttribute('tabindex', '0'); g.setAttribute('role', 'button'); g.setAttribute('aria-label', `Stage ${i + 1}: ${s.name}`); g.dataset.i = String(i);
+    const c = document.createElementNS(NS, 'circle'); c.setAttribute('cx', String(POS[i][0])); c.setAttribute('cy', String(POS[i][1])); c.setAttribute('r', '17');
+    const t = document.createElementNS(NS, 'text'); t.setAttribute('x', String(POS[i][0])); t.setAttribute('y', String(POS[i][1] + 5)); t.setAttribute('text-anchor', 'middle'); t.textContent = String(i + 1);
+    const lab = document.createElementNS(NS, 'text'); lab.setAttribute('class', 'ml-pl'); const right = RIGHT[i]; lab.setAttribute('x', String(right ? POS[i][0] + 24 : POS[i][0] - 24)); lab.setAttribute('y', String(POS[i][1] + 4)); lab.setAttribute('text-anchor', right ? 'start' : 'end'); lab.textContent = s.place;
+    g.append(c, t, lab); nodes.append(g);
+    const go = () => { at = i; show(); };
+    g.addEventListener('click', go); g.addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter' || (e as KeyboardEvent).key === ' ') { e.preventDefault(); go(); } });
+  });
+
+  function show() {
+    const s = STAGES[at];
+    nodes.querySelectorAll<SVGGElement>('.ml-node').forEach((g, i) => g.classList.toggle('on', i === at));
+    q('.ml-step').textContent = `Stage ${at + 1} of ${STAGES.length}`;
+    q('.ml-name').textContent = s.name;
+    q('.ml-where').textContent = `Where: ${s.host === 'human' ? 'in the human' : 'in the female Anopheles mosquito'}, ${s.place}.`;
+    q('.ml-text').textContent = s.text;
+  }
+  q('.ml-next').addEventListener('click', () => { at = (at + 1) % STAGES.length; show(); });
+  q('.ml-prev').addEventListener('click', () => { at = (at + STAGES.length - 1) % STAGES.length; show(); });
+  show();
+
+  function fever() {
+    const every = RHYTHM[sp], days = 12, fd = feverDays(every, days), W = 380, H = 150;
+    paint(q<HTMLCanvasElement>('.ml-fig'), { w: W, h: H, alt: `Fever days over ${days} days: ${fd.join(', ')}`, draw: (ctx, w, h, pl: Palette) => {
+      const l = 30, r = 8, cw = (w - l - r) / days, base = h - 30, top = 18;
+      ctx.font = FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (let d = 1; d <= days; d++) {
+        const x = l + (d - 1) * cw, hot = fd.includes(d);
+        ctx.fillStyle = hot ? pl.bad : pl.grid; ctx.fillRect(x + 2, hot ? top : base - 18, cw - 4, hot ? base - top : 18);
+        ctx.fillStyle = pl.muted; ctx.fillText(String(d), x + cw / 2, base + 6);
+      }
+      ctx.textAlign = 'left'; ctx.fillStyle = pl.ink; ctx.textBaseline = 'top'; ctx.fillText('fever', 2, top);
+      ctx.fillStyle = pl.muted; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText('day', w - r, h);
+    } });
+    q('.ml-fsay').textContent = `With a ${every}-hour cycle, starting on day 1, the fever returns on days ${fd.join(', ')}: ${every === 48 ? 'every third day counting the first, which is why it was called tertian fever' : 'every fourth day counting the first, called quartan fever'}.`;
+  }
+  root.querySelectorAll<HTMLButtonElement>('.ml-sp button').forEach((b) => b.addEventListener('click', () => { sp = b.dataset.v!; root.querySelectorAll('.ml-sp button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); fever(); }));
+  document.addEventListener('fibub:theme', fever);
+  fever();
+
+  const shuffle = <T,>(a: T[]) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const mc = (text: string, right: string, wrong: string[], worked: string): Question => { const ch = shuffle([right, ...wrong]); return { text, choices: ch, correct: ch.indexOf(right), worked }; };
+  quiz(q('.ml-quiz'), (): Question[] => {
+    const bank = [
+      mc('Which stage of the parasite enters a person when a mosquito bites?', 'Sporozoites', ['Gametocytes', 'Merozoites', 'Zygotes'], 'Sporozoites in the mosquito\'s saliva enter the blood and go to the liver.'),
+      mc('Where in the human does the parasite first multiply?', 'Liver cells', ['Red blood cells', 'Stomach', 'Lungs'], 'Sporozoites multiply in liver cells first; only then do merozoites invade red blood cells.'),
+      mc('What causes the chills and high fever?', 'Haemozoin released when red blood cells burst', ['The mosquito\'s saliva', 'Liver cells dividing', 'Gametocytes forming'], 'Red blood cells burst together and release the toxin haemozoin, which brings on chills and fever.'),
+      mc('Where does fertilisation of the parasite\'s gametes happen?', 'In the mosquito\'s gut', ['In human red blood cells', 'In the human liver', 'In the mosquito\'s salivary glands'], 'Gametocytes taken in with blood fuse in the mosquito\'s gut, so the mosquito is the primary host.'),
+      mc('Which mosquito spreads malaria?', 'Female Anopheles', ['Male Anopheles', 'Female Aedes', 'Male Culex'], 'Only female Anopheles mosquitoes feed on blood and carry Plasmodium.'),
+    ];
+    const every = pick([48, 72]), first = rint(1, 5), k = rint(2, 4);
+    return [
+      ...shuffle(bank).slice(0, 4),
+      { text: `Red blood cells burst every ${every} hours. The first fever is on day ${first}. On which day is attack number ${k + 1}?`, answer: first + (k * every) / 24, tol: 0, worked: `${k} more cycles of ${every} h = ${k * every} h = ${(k * every) / 24} days later: day ${first} + ${(k * every) / 24} = ${first + (k * every) / 24}.` },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .mlc .ml-svg { width: 100%; max-width: 440px; display: block; margin: 0 auto; }
+  .mlc .ml-hum { fill: var(--accent); fill-opacity: 0.07; stroke: var(--line); }
+  .mlc .ml-mos { fill: var(--warn); fill-opacity: 0.08; stroke: var(--line); }
+  .mlc .ml-ht { fill: var(--ink); font-size: 12.5px; font-weight: 600; }
+  .mlc .ml-loop { fill: none; stroke: var(--muted); stroke-width: 2; stroke-dasharray: 6 5; }
+  .mlc .ml-node { cursor: pointer; }
+  .mlc .ml-node circle { fill: var(--bg); stroke: var(--accent); stroke-width: 2.5; }
+  .mlc .ml-mosquito circle { stroke: var(--warn); }
+  .mlc .ml-node text { fill: var(--ink); font-size: 14px; font-weight: 700; }
+  .mlc .ml-node .ml-pl { font-size: 11px; font-weight: 400; fill: var(--muted); }
+  .mlc .ml-node.on circle { fill: var(--bad); stroke: var(--bad); }
+  .mlc .ml-node.on text:not(.ml-pl) { fill: var(--bg); }
+  .mlc .ml-node.on .ml-pl { fill: var(--ink); font-weight: 600; }
+  .mlc .ml-node:focus { outline: none; }
+  .mlc .ml-node:focus-visible circle { stroke-width: 4; }
+  .mlc .ml-nav { justify-content: space-between; margin-top: 10px; }
+  .mlc .ml-nav .btn { min-height: 44px; }
+  .mlc .ml-step { font-weight: 600; }
+  .mlc .ml-name { margin: 12px 0 4px; font-size: 18px; }
+  .mlc .ml-where { margin: 0; color: var(--muted); }
+  .mlc .ml-text { margin: 6px 0 0; }
+  .mlc .ml-sp { margin-bottom: 10px; }
+  .mlc .ml-fsay { font-weight: 600; margin: 10px 0 0; }
+  .mlc .ml-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+</style>
