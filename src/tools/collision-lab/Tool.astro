@@ -1,0 +1,201 @@
+---
+// Collision lab: two trolleys on a track, or two balls at a glancing angle, with any coefficient of
+// restitution; momentum and kinetic energy before and after. Maths in src/lib/sci/collision-lab.ts.
+import '../../styles/astro.css';
+---
+<div class="ax cl">
+  <div class="ax-card">
+    <div class="ax-row cl-top">
+      <div class="ax-seg cl-mode" role="group" aria-label="Kind of collision">
+        <button type="button" data-v="1d" aria-pressed="true">In a line</button>
+        <button type="button" data-v="2d" aria-pressed="false">Glancing (2D)</button>
+      </div>
+    </div>
+    <canvas class="cl-c" aria-label="The collision"></canvas>
+    <div class="ax-row cl-btns"><button type="button" class="btn small cl-go">Play</button><button type="button" class="btn secondary small cl-reset">Reset</button><span class="ax-help cl-msg"></span></div>
+    <div class="cl-ctl">
+      <label>Mass of 1 (blue): <b class="cl-m1v"></b><input class="cl-m1" type="range" min="0.5" max="10" step="0.5" value="2" /></label>
+      <label>Velocity of 1: <b class="cl-u1v"></b><input class="cl-u1" type="range" min="-10" max="10" step="0.5" value="4" /></label>
+      <label>Mass of 2 (orange): <b class="cl-m2v"></b><input class="cl-m2" type="range" min="0.5" max="10" step="0.5" value="1" /></label>
+      <label class="cl-u2row">Velocity of 2: <b class="cl-u2v"></b><input class="cl-u2" type="range" min="-10" max="10" step="0.5" value="0" /></label>
+      <label class="cl-offrow" hidden>How far off-centre ball 1 hits: <b class="cl-offv"></b><input class="cl-off" type="range" min="0" max="0.95" step="0.05" value="0.5" /></label>
+      <label>Bounciness e: <b class="cl-ev"></b><input class="cl-e" type="range" min="0" max="1" step="0.05" value="1" /></label>
+      <div class="ax-row"><button type="button" class="btn secondary small cl-e1">Elastic (e = 1)</button><button type="button" class="btn secondary small cl-e0">Stick together (e = 0)</button></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Before and after</h2>
+    <p><span class="ax-pill cl-pill"></span></p>
+    <dl class="ax-facts cl-facts"></dl>
+    <div class="cl-eq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="cl-try">
+      <li>Make the masses equal, set e = 1 and park trolley 2. Trolley 1 stops dead and trolley 2 takes all its speed, like a Newton's cradle.</li>
+      <li>Set e = 0. The trolleys stick together. Momentum is still the same; kinetic energy is not.</li>
+      <li>Send a light trolley into a heavy one at rest. The light one bounces back.</li>
+      <li>In Glancing, keep the masses equal and e = 1, and change the offset. The two balls always leave at 90° to each other: the snooker player's rule.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="cl-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { collide1d, collide2d, questions } from '../../lib/sci/collision-lab';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { setupCanvas, arrow, text, f, fact, para, seg, keepDrawn } from '../../lib/school-n';
+
+  const root = document.querySelector<HTMLElement>('.cl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => Number(inp(c).value);
+  let mode = '1d', t = 0, raf = 0;
+  const H = 230, TRACK = 10; // track length in metres
+  const p = () => ({ m1: val('.cl-m1'), u1: val('.cl-u1'), m2: val('.cl-m2'), u2: val('.cl-u2'), e: val('.cl-e'), off: val('.cl-off') });
+
+  // 1D: carts' half-widths in metres grow with mass; positions over time with one collision.
+  const half = (m: number) => 0.25 + 0.06 * Math.sqrt(m);
+  function plan1d() {
+    const P = p(), r = collide1d(P.m1, P.u1, P.m2, P.u2, P.e), x1 = 2.5, x2 = 6, gap = x2 - x1 - half(P.m1) - half(P.m2);
+    const tc = P.u1 > P.u2 ? gap / (P.u1 - P.u2) : Infinity;
+    const at = (tt: number) => tt <= tc ? [x1 + P.u1 * tt, x2 + P.u2 * tt] : [x1 + P.u1 * tc + r.v1 * (tt - tc), x2 + P.u2 * tc + r.v2 * (tt - tc)];
+    const end = Number.isFinite(tc) ? tc + Math.min(3, 6 / Math.max(0.5, Math.abs(r.v1), Math.abs(r.v2))) : 3;
+    return { r, tc, at, end };
+  }
+  function plan2d() {
+    const P = p(), u = Math.max(0.5, Math.abs(P.u1)), r = collide2d(P.m1, P.m2, u, P.e, P.off), R = 0.3;
+    const phi = (r.phi * Math.PI) / 180, cx = -2 * R * Math.cos(phi), cy = 2 * R * Math.sin(phi), start = -4.5, tc = (cx - start) / u;
+    const at = (tt: number) => tt <= tc ? [[start + u * tt, cy], [0, 0]] : [[cx + r.v1.x * (tt - tc), cy + r.v1.y * (tt - tc)], [r.v2.x * (tt - tc), r.v2.y * (tt - tc)]];
+    return { r, tc, at, end: tc + 4 / u, R, u };
+  }
+
+  function scene() {
+    const c = q<HTMLCanvasElement>('.cl-c'), { ctx, w, pal } = setupCanvas(c, H), P = p();
+    if (mode === '1d') {
+      const pl = plan1d(), [a, b] = pl.at(Math.min(t, pl.end)), s = (w - 20) / TRACK, X = (x: number) => 10 + x * s, yT = 120;
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, yT); ctx.lineTo(w, yT); ctx.stroke();
+      const cart = (x: number, m: number, col: string, v: number) => {
+        const hw = half(m) * s, hh = 14 + 3 * Math.sqrt(m);
+        ctx.fillStyle = col; ctx.fillRect(X(x) - hw, yT - hh - 6, 2 * hw, hh); ctx.fillStyle = pal.ink;
+        ctx.beginPath(); ctx.arc(X(x) - hw * 0.6, yT - 4, 4, 0, Math.PI * 2); ctx.arc(X(x) + hw * 0.6, yT - 4, 4, 0, Math.PI * 2); ctx.fill();
+        text(ctx, `${f(m, 1)} kg`, X(x), yT - hh / 2 - 2, pal.bg, 'center', 11, 600);
+        if (Math.abs(v) > 0.01) arrow(ctx, X(x), yT - hh - 18, v * 6, 0, col, `${f(v, 2)} m/s`);
+      };
+      const after = t > pl.tc;
+      cart(a, P.m1, pal.accent, after ? pl.r.v1 : P.u1); cart(b, P.m2, pal.accent2, after ? pl.r.v2 : P.u2);
+      // energy bars
+      const k0 = pl.r.KE0, k1 = pl.r.KE1, mx = Math.max(k0, 1e-9), bw = (w - 140) / 1;
+      text(ctx, 'KE before', 8, 168, pal.muted, 'left', 12); text(ctx, 'KE after', 8, 198, pal.muted, 'left', 12);
+      ctx.fillStyle = pal.ink; ctx.fillRect(80, 156, (bw * k0) / mx, 14); ctx.fillStyle = pal.good; ctx.fillRect(80, 186, (bw * k1) / mx, 14);
+      text(ctx, `${f(k0, 1)} J`, 84 + (bw * k0) / mx, 168, pal.ink, 'left', 11); text(ctx, `${f(k1, 1)} J`, 84 + (bw * k1) / mx, 198, pal.ink, 'left', 11);
+      c.setAttribute('aria-label', `Trolley 1 (${P.m1} kg, ${P.u1} m/s) and trolley 2 (${P.m2} kg, ${P.u2} m/s); after: ${f(pl.r.v1, 2)} and ${f(pl.r.v2, 2)} m/s`);
+    } else {
+      const pl = plan2d(), s = Math.min(w / 10, H / 5), ox = w / 2, oy = H / 2, X = (x: number) => ox + x * s, Y = (y: number) => oy - y * s;
+      ctx.fillStyle = pal.grid; ctx.fillRect(0, 0, w, H);
+      const [[x1, y1], [x2, y2]] = pl.at(Math.min(t, pl.end));
+      // trails after impact (full paths when not playing)
+      const r = pl.r, phi = (r.phi * Math.PI) / 180, cx = -2 * pl.R * Math.cos(phi), cy = 2 * pl.R * Math.sin(phi);
+      ctx.save(); ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5;
+      ctx.strokeStyle = pal.accent; ctx.beginPath(); ctx.moveTo(X(-6), Y(cy)); ctx.lineTo(X(cx), Y(cy)); if (r.s1 > 1e-6) ctx.lineTo(X(cx + (r.v1.x / r.s1) * 6), Y(cy + (r.v1.y / r.s1) * 6)); ctx.stroke();
+      ctx.strokeStyle = pal.accent2; if (r.s2 > 1e-6) { ctx.beginPath(); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X((r.v2.x / r.s2) * 6), Y((r.v2.y / r.s2) * 6)); ctx.stroke(); }
+      ctx.restore();
+      const ball = (x: number, y: number, col: string, m: number) => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(X(x), Y(y), pl.R * s, 0, Math.PI * 2); ctx.fill(); text(ctx, f(m, 1), X(x), Y(y) + 4, pal.bg, 'center', 11, 600); };
+      ball(x2, y2, pal.accent2, P.m2); ball(x1, y1, pal.accent, P.m1);
+      if (t > pl.tc || t === 0) {
+        text(ctx, `${f(r.a1, 1)}°`, X(cx) + 30, Y(cy) - 14, pal.accent, 'left', 12, 600);
+        if (r.s2 > 1e-6) text(ctx, `${f(r.a2, 1)}°`, X(0) + 30, Y(0) + 26, pal.accent2, 'left', 12, 600);
+      }
+      text(ctx, 'seen from above', 8, H - 8, pal.muted, 'left', 11);
+      c.setAttribute('aria-label', `Ball 1 leaves at ${f(r.a1, 1)}°, ball 2 at ${f(r.a2, 1)}°`);
+    }
+  }
+
+  function draw() {
+    const P = p();
+    q('.cl-m1v').textContent = `${P.m1} kg`; q('.cl-m2v').textContent = `${P.m2} kg`; q('.cl-u1v').textContent = mode === '2d' ? `${f(Math.max(0.5, Math.abs(P.u1)), 1)} m/s (speed)` : `${f(P.u1, 1)} m/s`;
+    q('.cl-u2v').textContent = `${f(P.u2, 1)} m/s`; q('.cl-ev').textContent = f(P.e); q('.cl-offv').textContent = `${Math.round(P.off * 100)}% of the two radii`;
+    q('.cl-u2row').hidden = mode !== '1d'; q('.cl-offrow').hidden = mode !== '2d';
+    scene();
+    const pill = q('.cl-pill'), eq: HTMLElement[] = [];
+    if (mode === '1d') {
+      const r = collide1d(P.m1, P.u1, P.m2, P.u2, P.e);
+      q('.cl-msg').textContent = r.approach ? '' : 'They never meet: trolley 1 is not catching up with trolley 2.';
+      const pct = r.KE0 > 0 ? (100 * r.lost) / r.KE0 : 0;
+      pill.textContent = !r.approach ? 'No collision' : P.e === 1 ? 'Elastic: no kinetic energy lost' : P.e === 0 ? `They stick together; ${f(pct, 1)}% of the kinetic energy is lost` : `${f(pct, 1)}% of the kinetic energy is lost`;
+      pill.className = `ax-pill ${P.e === 1 || !r.approach ? 'good' : 'warn'} cl-pill`;
+      q('.cl-facts').replaceChildren(
+        fact('Velocity of 1 after', `${f(r.v1, 2)} m/s`), fact('Velocity of 2 after', `${f(r.v2, 2)} m/s`),
+        fact('Momentum before', `${f(r.p0, 2)} kg m/s`), fact('Momentum after', `${f(r.p1, 2)} kg m/s`, 'always the same'),
+        fact('Kinetic energy before', `${f(r.KE0, 2)} J`), fact('Kinetic energy after', `${f(r.KE1, 2)} J`, `${f(r.lost, 2)} J lost`),
+        fact('Impulse on 2', `${f(r.impulse, 2)} N s`, 'and the opposite on 1'),
+      );
+      eq.push(para([['Momentum: '], `m₁u₁ + m₂u₂ = ${P.m1} × ${f(P.u1, 1)} + ${P.m2} × ${f(P.u2, 1)} = ${f(r.p0, 2)} kg m/s = m₁v₁ + m₂v₂.`]));
+      eq.push(para([['Bounce: '], `v₂ − v₁ = e(u₁ − u₂) = ${f(P.e)} × ${f(P.u1 - P.u2, 1)} = ${f(P.e * (P.u1 - P.u2), 2)} m/s.`]));
+      eq.push(para([['Solve both: '], `v₁ = (m₁u₁ + m₂u₂ − m₂e(u₁ − u₂)) ÷ (m₁ + m₂) = ${f(r.v1, 2)} m/s; v₂ = (m₁u₁ + m₂u₂ + m₁e(u₁ − u₂)) ÷ (m₁ + m₂) = ${f(r.v2, 2)} m/s.`]));
+    } else {
+      const u = Math.max(0.5, Math.abs(P.u1)), r = collide2d(P.m1, P.m2, u, P.e, P.off);
+      q('.cl-msg').textContent = '';
+      const pct = (100 * r.lost) / r.KE0;
+      pill.textContent = Number.isFinite(r.between) ? `They leave ${f(r.between, 1)}° apart; ${f(pct, 1)}% of the kinetic energy lost` : `Ball ${r.s1 < 1e-9 ? 1 : 2} stops; ${f(pct, 1)}% of the kinetic energy lost`;
+      pill.className = `ax-pill ${P.e === 1 ? 'good' : 'warn'} cl-pill`;
+      q('.cl-facts').replaceChildren(
+        fact('Ball 1 after', `${f(r.s1, 2)} m/s`, `at ${f(r.a1, 1)}°`), fact('Ball 2 after', `${f(r.s2, 2)} m/s`, `at ${f(r.a2, 1)}°`),
+        fact('Angle between their paths', Number.isFinite(r.between) ? `${f(r.between, 1)}°` : '–'),
+        fact('Momentum before (x, y)', `(${f(P.m1 * u, 2)}, 0)`), fact('Momentum after (x, y)', `(${f(r.px, 2)}, ${f(r.py, 2)})`, 'the same'),
+        fact('Kinetic energy', `${f(r.KE0, 2)} → ${f(r.KE1, 2)} J`),
+      );
+      eq.push(para([['Line of centres: '], `ball 1 strikes ${Math.round(P.off * 100)}% off-centre, so the push between the balls acts at ${f(r.phi, 1)}° to ball 1's path (sin φ = ${f(P.off)}). Ball 2 can only be pushed along that line, so it leaves at −${f(r.phi, 1)}°.`]));
+      eq.push(para([['Split ball 1\'s velocity: '], `along the line ${f(u * Math.cos((r.phi * Math.PI) / 180), 2)} m/s, which collides as in a straight line; across it ${f(u * Math.sin((r.phi * Math.PI) / 180), 2)} m/s, which nothing changes.`]));
+      if (P.m1 === P.m2 && P.e === 1) eq.push(para([['Equal masses, elastic: '], 'ball 1 passes all of its along-the-line speed to ball 2 and keeps only the across part, so the two paths are at right angles.']));
+    }
+    q('.cl-eq').replaceChildren(...eq);
+  }
+
+  function stop() { cancelAnimationFrame(raf); raf = 0; q<HTMLButtonElement>('.cl-go').disabled = false; }
+  q('.cl-go').addEventListener('click', () => {
+    stop(); const pl = mode === '1d' ? plan1d() : plan2d(), dur = Math.min(4000, Math.max(1500, pl.end * 700)), t0 = performance.now();
+    q<HTMLButtonElement>('.cl-go').disabled = true;
+    const tick = (now: number) => { t = Math.max(1e-6, ((now - t0) / dur) * pl.end); if (t >= pl.end) { t = pl.end; draw(); stop(); return; } draw(); raf = requestAnimationFrame(tick); };
+    raf = requestAnimationFrame(tick);
+  });
+  q('.cl-reset').addEventListener('click', () => { stop(); t = 0; draw(); });
+  q('.cl-e1').addEventListener('click', () => { inp('.cl-e').value = '1'; stop(); t = 0; draw(); });
+  q('.cl-e0').addEventListener('click', () => { inp('.cl-e').value = '0'; stop(); t = 0; draw(); });
+  seg(q('.cl-mode'), (v) => { mode = v; stop(); t = 0; draw(); });
+  root.querySelectorAll('.cl-ctl input').forEach((i) => i.addEventListener('input', () => { stop(); t = 0; draw(); }));
+  mountQuiz(q('.cl-quiz'), () => questions());
+  draw();
+  keepDrawn(q('.cl-c'), draw);
+</script>
+
+<style is:inline>
+  .cl .cl-top { margin-bottom: 10px; }
+  .cl .ax-seg button { min-height: 44px; }
+  .cl canvas { display: block; width: 100%; }
+  .cl .cl-btns { margin-top: 8px; }
+  .cl .cl-ctl { display: grid; gap: 10px; margin-top: 12px; }
+  .cl .cl-ctl label[hidden] { display: none; }
+  .cl input[type=range] { width: 100%; height: 32px; accent-color: var(--ink); }
+  .cl label b { color: var(--ink); }
+  .cl .btn.small { min-height: 44px; }
+  .cl .cl-pill { font-size: 14px; white-space: normal; }
+  .cl .cl-eq p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .cl .cl-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>
