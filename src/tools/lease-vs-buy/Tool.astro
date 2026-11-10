@@ -1,0 +1,76 @@
+---
+// #1782 Lease or buy
+---
+<div class="tool-ui lb">
+  <section class="panel">
+    <h2>Lease</h2>
+    <div class="lb-grid">
+      <label>Monthly payment <input data-k="lp" inputmode="decimal" value="450" /></label>
+      <label>Paid at signing (down payment) <input data-k="ld" inputmode="decimal" value="2000" /></label>
+      <label>Term (months) <input data-k="term" inputmode="decimal" value="36" /></label>
+      <label>Fees (acquisition, disposition) <input data-k="lf" inputmode="decimal" value="800" /></label>
+      <label>Kilometre limit a year <input data-k="lim" inputmode="decimal" value="20000" /></label>
+      <label>Charge per extra km <input data-k="ex" inputmode="decimal" value="0.20" /></label>
+      <label>Kilometres you will drive a year <input data-k="kmy" inputmode="decimal" value="25000" /></label>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>Buy with a loan</h2>
+    <div class="lb-grid">
+      <label>Price (with taxes and fees) <input data-k="price" inputmode="decimal" value="38000" /></label>
+      <label>Down payment <input data-k="bd" inputmode="decimal" value="2000" /></label>
+      <label>Interest rate a year (%) <input data-k="rate" inputmode="decimal" value="6" /></label>
+      <label>Loan length (months) <input data-k="loan" inputmode="decimal" value="60" /></label>
+      <label>Value of the car at the end of the lease term <input data-k="res" inputmode="decimal" value="22000" /></label>
+    </div>
+    <p class="lb-fine">Both are compared over the same period, the lease term. For the purchase, what you still owe on the loan at that point is counted as paid and the car's value is taken off, as if you sold it then. Ask a dealer or an online valuation for the car's likely value.</p>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="lb-big"></p>
+    <dl class="lb-rows"></dl>
+  </section>
+  <p class="lb-fine">Not financial advice. Insurance, repairs and tax treatment (for example business use) can differ; this compares the payments and the value left. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .lb { display: grid; gap: 14px; margin-bottom: 32px; }
+  .lb .panel { padding: 16px; }
+  .lb h2 { margin: 0 0 12px; font-size: 18px; }
+  .lb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .lb label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .lb input:not([type=checkbox]), .lb select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .lb input:focus, .lb select:focus { border-color: var(--accent); outline: none; }
+  .lb label.lb-check { display: flex; gap: 8px; align-items: center; color: var(--ink); margin-top: 12px; }
+  .lb input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .lb-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
+  .lb-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
+  .lb-rows dt { color: var(--muted); } .lb-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .lb-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+  .lb-scroll { overflow-x: auto; }
+  .lb-tab { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .lb-tab th, .lb-tab td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .lb-tab th:first-child, .lb-tab td:first-child { text-align: left; }
+  .lb-tab td input, .lb-tab td select { padding: 6px 8px; min-width: 70px; }
+  .lb button { font: inherit; padding: 9px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+  .lb button.lb-main { background: var(--accent); color: #fff; border-color: var(--accent); }
+</style>
+
+<script>
+  import { leaseVsBuy } from '../../lib/money/household';
+  import { fmt, num, rowsHtml } from '../../lib/money/ui';
+  const root = document.querySelector('.lb') as HTMLElement;
+  const big = root.querySelector('.lb-big') as HTMLElement, rows = root.querySelector('.lb-rows') as HTMLElement;
+  const calc = () => {
+    const term = num(root, 'term');
+    if (term < 1 || num(root, 'loan') < 1) { big.textContent = 'Enter the lease term and the loan length.'; rows.innerHTML = ''; return; }
+    const r = leaseVsBuy({ leasePay: num(root, 'lp'), leaseDown: num(root, 'ld'), term, leaseFees: num(root, 'lf'), kmLimit: num(root, 'lim'), kmYear: num(root, 'kmy'), excess: num(root, 'ex'),
+      price: num(root, 'price'), down: num(root, 'bd'), ratePct: num(root, 'rate'), loanMonths: num(root, 'loan'), resale: num(root, 'res') });
+    big.textContent = r.diff > 0 ? `Buying costs ${fmt(r.diff, 0)} less over ${fmt(term, 0)} months` : r.diff < 0 ? `Leasing costs ${fmt(-r.diff, 0)} less over ${fmt(term, 0)} months` : 'Both cost the same';
+    rows.innerHTML = rowsHtml([
+      ['Lease: paid in total', fmt(r.leaseTotal, 0)], ['Lease: excess km charge', fmt(r.excessCost, 0) + ` (${fmt(r.excessKm, 0)} km)`], ['Lease: net cost a month', fmt(r.leaseMonthly)],
+      ['Loan payment a month', fmt(r.pay)], ['Buy: still owed at the end', fmt(r.balance, 0)], ['Buy: interest paid in the period', fmt(r.interest, 0)],
+      ['Buy: net cost (paid + owed - car value)', fmt(r.buyNet, 0)], ['Buy: net cost a month', fmt(r.buyMonthly)]]);
+  };
+  root.addEventListener('input', calc);
+  calc();
+</script>

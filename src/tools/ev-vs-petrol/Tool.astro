@@ -1,0 +1,98 @@
+---
+// #1780 EV vs petrol
+---
+<div class="tool-ui ev">
+  <section class="panel">
+    <h2>The three vehicles</h2>
+    <p class="ev-fine">Fill each column with a real quote or a similar model. Fuel economy in litres per 100 km, electric use in kWh per 100 km (both on the car's sticker or spec sheet). Money is in your own currency.</p>
+    <div class="ev-scroll"><table class="ev-tab">
+      <thead><tr><th></th><th>Petrol</th><th>Electric</th><th><label class="ev-hy"><input type="checkbox" data-k="hyOn" checked /> Hybrid</label></th></tr></thead>
+      <tbody>
+        <tr><td>Purchase price</td><td><input data-k="pPrice" inputmode="decimal" value="32000" /></td><td><input data-k="ePrice" inputmode="decimal" value="45000" /></td><td><input data-k="hPrice" inputmode="decimal" value="36000" /></td></tr>
+        <tr><td>Incentive or rebate</td><td><input data-k="pInc" inputmode="decimal" value="0" /></td><td><input data-k="eInc" inputmode="decimal" value="5000" /></td><td><input data-k="hInc" inputmode="decimal" value="0" /></td></tr>
+        <tr><td>Litres per 100 km</td><td><input data-k="pL" inputmode="decimal" value="8" /></td><td>-</td><td><input data-k="hL" inputmode="decimal" value="5" /></td></tr>
+        <tr><td>kWh per 100 km</td><td>-</td><td><input data-k="eK" inputmode="decimal" value="17" /></td><td>-</td></tr>
+        <tr><td>Maintenance a year</td><td><input data-k="pM" inputmode="decimal" value="1000" /></td><td><input data-k="eM" inputmode="decimal" value="600" /></td><td><input data-k="hM" inputmode="decimal" value="800" /></td></tr>
+        <tr><td>Insurance a year</td><td><input data-k="pI" inputmode="decimal" value="1800" /></td><td><input data-k="eI" inputmode="decimal" value="2000" /></td><td><input data-k="hI" inputmode="decimal" value="1900" /></td></tr>
+        <tr><td>Resale value at the end (% of price)</td><td><input data-k="pR" inputmode="decimal" value="45" /></td><td><input data-k="eR" inputmode="decimal" value="40" /></td><td><input data-k="hR" inputmode="decimal" value="45" /></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+  <section class="panel">
+    <h2>How you drive and what energy costs</h2>
+    <div class="ev-grid">
+      <label>Kilometres a year <input data-k="km" inputmode="decimal" value="15000" /></label>
+      <label>Years you keep it <input data-k="years" inputmode="decimal" value="8" /></label>
+      <label>Petrol price per litre <input data-k="fuel" inputmode="decimal" value="1.60" /></label>
+      <label>Share of charging at home (%) <input data-k="home" inputmode="decimal" value="85" /></label>
+      <label>Home electricity per kWh <input data-k="eHome" inputmode="decimal" value="0.15" /></label>
+      <label>Public charging per kWh <input data-k="ePub" inputmode="decimal" value="0.45" /></label>
+      <label>Grid CO2 (kg per kWh) <input data-k="grid" inputmode="decimal" value="0.4" /></label>
+    </div>
+    <p class="ev-fine">CO2 factors: petrol 2.35 kg per litre (from 8.887 kg per US gallon, US EPA). The grid figure is only a starting point: 0.39 kg per kWh is the US average (EPA eGRID); Canada, the UK, India and the Gulf differ a lot and change every year, so check your own grid's figure at the official source.</p>
+  </section>
+  <section class="panel" aria-live="polite">
+    <p class="ev-big"></p>
+    <div class="ev-scroll"><table class="ev-tab ev-out"></table></div>
+    <p class="ev-say"></p>
+  </section>
+  <p class="ev-fine">Estimates, not financial advice. Prices, incentives, resale values and tailpipe-versus-grid emissions vary; check the official source for rebates. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ev { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ev .panel { padding: 16px; }
+  .ev h2 { margin: 0 0 12px; font-size: 18px; }
+  .ev-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; }
+  .ev label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ev input:not([type=checkbox]), .ev select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ev input:focus, .ev select:focus { border-color: var(--accent); outline: none; }
+  .ev label.ev-check { display: flex; gap: 8px; align-items: center; color: var(--ink); margin-top: 12px; }
+  .ev input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .ev-big { font-size: 28px; font-weight: 700; margin: 0 0 10px; }
+  .ev-rows { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; }
+  .ev-rows dt { color: var(--muted); } .ev-rows dd { margin: 0; text-align: right; font-weight: 600; }
+  .ev-fine { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+  .ev-scroll { overflow-x: auto; }
+  .ev-tab { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .ev-tab th, .ev-tab td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .ev-tab th:first-child, .ev-tab td:first-child { text-align: left; }
+  .ev-tab td input, .ev-tab td select { padding: 6px 8px; min-width: 70px; }
+  .ev button { font: inherit; padding: 9px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+  .ev button.ev-main { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .ev-tab td:first-child { white-space: normal; min-width: 120px; }
+  .ev-hy { display: flex !important; gap: 6px; align-items: center; justify-content: flex-end; color: var(--ink) !important; font-weight: 700; }
+  .ev-say { margin: 10px 0 0; color: var(--muted); }
+</style>
+
+<script>
+  import { tco, breakEven, petrolYear, evYear, co2Petrol, co2Ev, type Veh } from '../../lib/money/household';
+  import { fmt, num, on } from '../../lib/money/ui';
+  const root = document.querySelector('.ev') as HTMLElement;
+  const big = root.querySelector('.ev-big') as HTMLElement, out = root.querySelector('.ev-out') as HTMLElement, say = root.querySelector('.ev-say') as HTMLElement;
+  const calc = () => {
+    const km = num(root, 'km'), years = Math.max(1, num(root, 'years'));
+    const veh = (p: string, energy: number): Veh => ({ price: num(root, p + 'Price'), incentive: num(root, p + 'Inc'), perYearEnergy: energy, maintenance: num(root, p + 'M'), insurance: num(root, p + 'I'), resalePct: num(root, p + 'R') });
+    const pe = petrolYear(km, num(root, 'pL'), num(root, 'fuel')), he = petrolYear(km, num(root, 'hL'), num(root, 'fuel'));
+    const ee = evYear(km, num(root, 'eK'), num(root, 'home'), num(root, 'eHome'), num(root, 'ePub'));
+    const hy = on(root, 'hyOn');
+    const opts = [{ n: 'Petrol', v: veh('p', pe), co2: co2Petrol(km, num(root, 'pL')), en: pe }, { n: 'Electric', v: veh('e', ee), co2: co2Ev(km, num(root, 'eK'), num(root, 'grid')), en: ee }];
+    if (hy) opts.push({ n: 'Hybrid', v: veh('h', he), co2: co2Petrol(km, num(root, 'hL')), en: he });
+    const res = opts.map((o) => ({ ...o, t: tco(o.v, years) }));
+    const best = res.reduce((a, b) => (b.t.total < a.t.total ? b : a));
+    big.textContent = `${best.n} costs least: ${fmt(best.t.total, 0)} over ${fmt(years, 0)} years`;
+    const r = (label: string, f: (x: typeof res[number]) => string) => `<tr><td>${label}</td>${res.map((x) => `<td>${f(x)}</td>`).join('')}</tr>`;
+    out.innerHTML = `<thead><tr><th></th>${res.map((x) => `<th>${x.n}</th>`).join('')}</tr></thead><tbody>` +
+      r('Paid up front (after incentive)', (x) => fmt(x.t.upfront, 0)) + r('Energy a year', (x) => fmt(x.en, 0)) +
+      r('Running costs a year (energy, upkeep, insurance)', (x) => fmt(x.t.annual, 0)) + r('Resale at the end', (x) => fmt(x.t.resale, 0)) +
+      r('Total cost of ownership', (x) => `<b>${fmt(x.t.total, 0)}</b>`) + r('Per year', (x) => fmt(x.t.perYear, 0)) +
+      r('CO2 a year (kg, rough)', (x) => fmt(x.co2, 0)) + '</tbody>';
+    const ev = res[1], pt = res[0];
+    const be = breakEven(ev.v, pt.v);
+    say.textContent = be === 0 ? 'The electric car costs no more to buy than the petrol one, so it is ahead from day one.'
+      : be === null ? 'With these numbers the electric car never earns back its higher price in running costs.'
+      : `Break-even against petrol: after about ${fmt(be, 1)} years of driving (cash spent, before resale)` + (be > years ? `, which is longer than the ${fmt(years, 0)} years you plan to keep it.` : '.');
+  };
+  root.addEventListener('input', calc); root.addEventListener('change', calc);
+  calc();
+</script>
