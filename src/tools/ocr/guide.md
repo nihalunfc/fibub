@@ -2,7 +2,7 @@
 name: Image to text
 num: 1789
 shelf: documents
-code: T824
+code: T836
 section: images-scans
 title: "Image to text (OCR): copy text from a photo, screenshot or scanned PDF, free"
 seoTitle: "Image to text (OCR): free, private, in your browser"
