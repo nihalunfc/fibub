@@ -1,0 +1,162 @@
+---
+// #T853 Health plan cost comparer
+import InsuranceNote from '../../components/InsuranceNote.astro';
+---
+<div class="tool-ui hp">
+  <InsuranceNote />
+  <section class="panel">
+    <h2>Your plans</h2>
+    <p class="hp-hint">Example numbers: change them to yours. Use the figures from each plan's summary page.</p>
+    <div class="hp-top">
+      <label>Currency <select class="hp-cur" data-k="cur"></select></label>
+      <label>Where you are <select data-k="region"><option value="US">United States</option><option value="CA">Canada</option><option value="IN">India</option><option value="UK">United Kingdom</option></select></label>
+      <label>Plans to compare <select data-k="n"><option>2</option><option>3</option><option>4</option></select></label>
+    </div>
+    <p class="hp-region note"></p>
+    <div class="hp-plans"></div>
+  </section>
+  <section class="panel">
+    <h2>Care you might need</h2>
+    <p class="hp-hint">The total cost of covered care in a year, before any plan pays. Pick a low year, a typical year and a bad year.</p>
+    <div class="hp-top">
+      <label>Low year <input data-k="s0" inputmode="decimal" /></label>
+      <label>Typical year <input data-k="s1" inputmode="decimal" /></label>
+      <label>Bad year <input data-k="s2" inputmode="decimal" /></label>
+      <label>Chart goes up to <input data-k="max" inputmode="decimal" /></label>
+    </div>
+    <p class="note bad hp-err" role="alert" hidden></p>
+  </section>
+  <section class="hp-res" aria-live="polite">
+    <div class="panel">
+      <h2>Total cost in a year (premium plus what you pay)</h2>
+      <div class="hp-wrap"><table>
+        <thead class="hp-head"></thead>
+        <tbody class="hp-body"></tbody>
+      </table></div>
+      <p class="hp-line hp-be"></p>
+    </div>
+    <figure class="panel hp-chart">
+      <figcaption>Total yearly cost against care spent <span class="hp-lg"></span></figcaption>
+      <div class="hp-svg"></div>
+    </figure>
+    <button type="button" class="btn secondary hp-csv">Download the table (CSV)</button>
+  </section>
+  <p class="hp-fine">How it is worked out: you pay the whole bill up to the deductible, then your share of what is left, until you reach the out-of-pocket maximum. Anything above the plan maximum is also yours. Total = premium + what you pay + expected copays (minus employer HSA money, if any). This treats the care as covered and in network, and ignores tax. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .hp { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 32px; }
+  .hp > *, .hp-res > * { min-width: 0; }
+  .hp h2 { margin: 0 0 10px; font-size: 18px; }
+  .hp .panel { padding: 16px; }
+  .hp-hint { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
+  .hp-top { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 12px; }
+  .hp-plans { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 12px; margin-top: 12px; }
+  .hp-plan { border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 8px; background: var(--surface); }
+  .hp-plan h3 { margin: 0; font-size: 15px; }
+  .hp label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+  .hp input, .hp select { font: inherit; color: var(--ink); padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .hp input:focus, .hp select:focus { border-color: var(--accent); outline: none; }
+  .hp-res { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .hp-wrap { overflow-x: auto; }
+  .hp table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .hp th, .hp td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .hp th:first-child, .hp td:first-child { text-align: left; }
+  .hp th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .hp td.low { color: var(--good); font-weight: 700; }
+  .hp-line { margin: 10px 0 0; font-size: 15px; }
+  .hp-line:empty { display: none; }
+  .hp-chart { margin: 0; }
+  .hp-chart figcaption { font-weight: 600; font-size: 14px; margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+  .hp-lg { display: inline-flex; flex-wrap: wrap; gap: 6px 14px; font-weight: 500; color: var(--muted); }
+  .hp-lg .lg { display: inline-flex; gap: 6px; align-items: center; }
+  .hp-fine { margin: 0; color: var(--muted); font-size: 13px; }
+  .hp-err { margin: 10px 0 0; }
+</style>
+
+<script>
+  import { planCost, breakEvens, type Plan } from '../../lib/money/insurance';
+  import { lineSvg, legend, downloadCsv } from '../../lib/money/chart';
+  import { defaultCurrency, money, num, currencyOptions } from '../../lib/money';
+  const root = document.querySelector<HTMLElement>('.hp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const f = (k: string) => q<HTMLInputElement>(`[data-k="${k}"]`);
+  const cur = defaultCurrency();
+  q('.hp-cur').innerHTML = currencyOptions(cur);
+  const REG: Record<string, { share: string; shareHelp: string; oop: string; cap: string; capHelp: string; note: string; hsa: boolean }> = {
+    US: { share: 'Your share after the deductible (coinsurance, %)', shareHelp: '', oop: 'Out-of-pocket maximum', cap: 'Plan maximum (0 = none)', capHelp: '', hsa: true,
+      note: 'US: the out-of-pocket maximum is the most you pay in a year for covered, in-network care (premiums not counted). If your employer puts money in a health savings account (HSA), enter it to lower the total.' },
+    CA: { share: 'Your share after the deductible (%)', shareHelp: '', oop: 'Most you pay in a year (0 = no limit)', cap: 'Plan maximum for the year (0 = none)', capHelp: '', hsa: false,
+      note: 'Canada: provincial plans cover hospital and doctor visits. Supplementary plans (dental, drugs, vision) usually have a yearly plan maximum on top of that. Enter only the care a plan would pay for.' },
+    IN: { share: 'Co-pay (% you pay of each claim)', shareHelp: '', oop: 'Most you pay in a year (0 = no limit)', cap: 'Sum insured (0 = none)', capHelp: '', hsa: false,
+      note: 'India: a co-pay is the percentage of each claim you pay. The sum insured is the most the policy pays in a year. Many plans have no deductible: enter 0.' },
+    UK: { share: 'Your share after the excess (%)', shareHelp: '', oop: 'Most you pay in a year (0 = no limit)', cap: 'Yearly benefit limit (0 = none)', capHelp: '', hsa: false,
+      note: 'UK: private medical insurance sits beside the NHS. The deductible is called the excess here. Enter 0 for no limit on the yearly benefit.' },
+  };
+  const COLORS = ['var(--accent)', '#c2410c', '#15803d', '#7c3aed'];
+  const DEF = [
+    { name: 'Plan A', prem: '5,000', ded: '1,000', share: '10', oop: '3,000', cap: '0', fixed: '0', hsa: '0' },
+    { name: 'Plan B', prem: '2,000', ded: '4,000', share: '30', oop: '8,000', cap: '0', fixed: '0', hsa: '0' },
+    { name: 'Plan C', prem: '3,500', ded: '2,500', share: '20', oop: '5,000', cap: '0', fixed: '0', hsa: '0' },
+    { name: 'Plan D', prem: '1,000', ded: '6,000', share: '40', oop: '9,000', cap: '0', fixed: '0', hsa: '0' },
+  ];
+  q('.hp-plans').innerHTML = DEF.map((d, i) => `<div class="hp-plan" data-i="${i}">
+    <h3><input data-k="p${i}-name" value="${d.name}" aria-label="Plan ${i + 1} name" /></h3>
+    <label>Premium for the year <input data-k="p${i}-prem" inputmode="decimal" value="${d.prem}" /></label>
+    <label>Deductible <input data-k="p${i}-ded" inputmode="decimal" value="${d.ded}" /></label>
+    <label><span class="hp-l-share"></span><input data-k="p${i}-share" inputmode="decimal" value="${d.share}" /></label>
+    <label><span class="hp-l-oop"></span><input data-k="p${i}-oop" inputmode="decimal" value="${d.oop}" /></label>
+    <label><span class="hp-l-cap"></span><input data-k="p${i}-cap" inputmode="decimal" value="${d.cap}" /></label>
+    <label>Copays you expect in the year <input data-k="p${i}-fixed" inputmode="decimal" value="${d.fixed}" /></label>
+    <label class="hp-hsa">Employer HSA money <input data-k="p${i}-hsa" inputmode="decimal" value="${d.hsa}" /></label>
+  </div>`).join('');
+  f('cur').value = cur;
+  f('region').value = cur === 'INR' ? 'IN' : cur === 'CAD' ? 'CA' : cur === 'GBP' ? 'UK' : 'US';
+  f('s0').value = '1,000'; f('s1').value = '5,000'; f('s2').value = '30,000'; f('max').value = '20,000';
+  const $ = (n: number) => money(n, f('cur').value, 0);
+  let table: (string | number)[][] = [];
+  function run() {
+    const r = REG[f('region').value];
+    q('.hp-region').textContent = r.note;
+    root.querySelectorAll('.hp-l-share').forEach((e) => (e.textContent = r.share));
+    root.querySelectorAll('.hp-l-oop').forEach((e) => (e.textContent = r.oop));
+    root.querySelectorAll('.hp-l-cap').forEach((e) => (e.textContent = r.cap));
+    root.querySelectorAll<HTMLElement>('.hp-hsa').forEach((e) => (e.hidden = !r.hsa));
+    const n = Number(f('n').value);
+    root.querySelectorAll<HTMLElement>('.hp-plan').forEach((e, i) => (e.hidden = i >= n));
+    const plans: Plan[] = [], names: string[] = [];
+    for (let i = 0; i < n; i++) {
+      const g = (k: string) => num(f(`p${i}-${k}`).value);
+      plans.push({ premium: g('prem'), deductible: g('ded'), coins: g('share') / 100, oopMax: g('oop'), cap: g('cap'), fixed: g('fixed') - (r.hsa ? g('hsa') : 0) });
+      names.push(f(`p${i}-name`).value.trim() || `Plan ${i + 1}`);
+    }
+    const sp = [num(f('s0').value), num(f('s1').value), num(f('s2').value)], max = num(f('max').value);
+    const bad = plans.some((p) => p.premium < 0 || p.deductible < 0 || p.oopMax < 0 || p.cap < 0 || p.coins < 0 || p.coins > 1) ? 'Check the plan numbers: none can be negative and the share must be between 0 and 100.' : sp.some((s) => s < 0) ? 'Care amounts cannot be negative.' : !(max > 0) ? 'Enter how far up the chart should go, for example 20,000.' : '';
+    q('.hp-err').hidden = !bad; q('.hp-err').textContent = bad; q('.hp-res').hidden = !!bad;
+    if (bad) return;
+    // table: one row per spend, one column per plan
+    q('.hp-head').innerHTML = `<tr><th>Care spent in the year</th>${names.map((x) => `<th>${x.replace(/</g, '&lt;')}</th>`).join('')}</tr>`;
+    table = [['Care spent', ...names]];
+    const labels = ['Low year', 'Typical year', 'Bad year'];
+    q('.hp-body').innerHTML = sp.map((s, k) => {
+      const tot = plans.map((p) => planCost(p, s).total), lo = Math.min(...tot);
+      table.push([`${labels[k]} (${Math.round(s)})`, ...tot.map((t) => Math.round(t))]);
+      return `<tr><td>${labels[k]}: ${$(s)}</td>${tot.map((t) => `<td class="${t - lo < 0.005 ? 'low' : ''}">${$(t)}${t - lo < 0.005 && n > 1 ? ' (lowest)' : ''}</td>`).join('')}</tr>`;
+    }).join('');
+    // break-evens for every pair
+    const parts: string[] = [];
+    for (let a = 0; a < n; a++) for (let b = a + 1; b < n; b++) {
+      const be = breakEvens(plans[a], plans[b], max);
+      if (be.length) parts.push(`${names[a]} and ${names[b]} cost the same at ${be.map((v) => `<b>${$(Math.round(v))}</b>`).join(' and ')} of care`);
+      else parts.push(`${names[a]} and ${names[b]} never cost the same up to ${$(max)} (one costs less all the way)`);
+    }
+    q('.hp-be').innerHTML = `Break-even spends: ${parts.join('; ')}.`;
+    const xs = Array.from({ length: 21 }, (_, k) => Math.round((max * k) / 20));
+    const series = plans.map((p, i) => ({ label: names[i], ys: xs.map((s) => planCost(p, s).total), color: COLORS[i], dash: i % 2 === 1 }));
+    q('.hp-svg').innerHTML = lineSvg(series, xs, 'Total yearly cost of each plan against care spent');
+    q('.hp-lg').innerHTML = legend(series);
+  }
+  q('.hp-csv').addEventListener('click', () => downloadCsv('health-plan-comparison.csv', table));
+  root.addEventListener('input', run); root.addEventListener('change', run);
+  run();
+</script>
