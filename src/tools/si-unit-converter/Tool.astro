@@ -1,0 +1,149 @@
+---
+// SI prefixes trainer: convert between pico and tera by moving the decimal point (exactly, on the digits), see the
+// jump on a prefix ladder, add two measurements only when they measure the same thing, and practise.
+// Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax sm si">
+  <div class="ax-card">
+    <h2>Convert</h2>
+    <div class="si-row">
+      <input type="text" class="si-v" value="2.5" inputmode="decimal" aria-label="Value" />
+      <select class="si-p1" aria-label="From prefix"></select>
+      <select class="si-u" aria-label="Unit"></select>
+      <span class="si-to">to</span>
+      <select class="si-p2" aria-label="To prefix"></select><span class="si-u2">m</span>
+    </div>
+    <p class="ax-err si-err" hidden></p>
+    <p class="ax-big si-big" aria-live="polite"></p>
+    <ol class="sm-steps si-steps"></ol>
+    <p class="ax-help si-note"></p>
+    <svg class="sm-fig si-fig" viewBox="0 0 340 300" role="img" aria-label="The prefix ladder, with the jump from one prefix to the other"></svg>
+  </div>
+
+  <div class="ax-card">
+    <h2>Add two measurements</h2>
+    <p class="ax-help">You can only add things that measure the same quantity. Change both to the same prefix first.</p>
+    <div class="si-row"><input type="text" class="si-a" value="1.2" inputmode="decimal" aria-label="First value" /><select class="si-ap" aria-label="First prefix"></select><select class="si-au" aria-label="First unit"></select></div>
+    <div class="si-row"><span class="si-plus">+</span><input type="text" class="si-b" value="350" inputmode="decimal" aria-label="Second value" /><select class="si-bp" aria-label="Second prefix"></select><select class="si-bu" aria-label="Second unit"></select></div>
+    <p class="sm-f si-sum" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The seven SI base units</h2>
+    <div class="ax-scroll"><table class="si-base"><thead><tr><th>Quantity</th><th>Unit</th><th>Symbol</th></tr></thead><tbody></tbody></table></div>
+    <p class="ax-help">Every other unit is made from these, for example the newton is kg·m/s². Prefix symbols are case-sensitive: m is milli, M is mega.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>How many millimetres are in a kilometre? Count the steps on the ladder from k to m.</li>
+      <li>A virus is about 100 nm across. Write that in micrometres, then in metres.</li>
+      <li>Add 1.2 km and 350 m. Then try adding 2 m and 3 s.</li>
+      <li>Your phone's processor runs at about 3 GHz. How many hertz is that?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card si-quiz">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Numbers like 4.5e-7 or 4.5 × 10^-7 are fine.</p>
+  </div>
+</div>
+
+<style is:inline>
+  .si .si-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0; }
+  .si .si-row input { width: 7em !important; min-height: 44px; font-size: 17px; }
+  .si .si-row select { width: auto !important; min-height: 44px; font-size: 16px; }
+  .si .si-to, .si .si-plus, .si .si-u2 { font-weight: 700; }
+  .si svg .si-rung { fill: var(--bg); stroke: var(--line); }
+  .si svg .si-from { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+  .si svg .si-dest { fill: var(--good-soft); stroke: var(--good); stroke-width: 2; }
+  .si svg .si-arrow { stroke: var(--accent); stroke-width: 3; fill: none; }
+  .si svg .si-head { fill: var(--accent); }
+  .si [hidden] { display: none !important; }
+</style>
+
+<script>
+  import { PREFIXES, UNITS, BASE, convert, addUp, sci, pow10, readDecimal } from '../../lib/sci/si-prefixes';
+  import { S } from '../../lib/smath-ui';
+  import { mountQuiz, one, type QItem } from '../../lib/learnquiz-d';
+
+  const root = document.querySelector<HTMLElement>('.si')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fillP = (sel: HTMLSelectElement, exp: number) => { sel.replaceChildren(...PREFIXES.map((p) => new Option(p.sym ? `${p.sym} (${p.name}, ${pow10(p.exp)})` : `no prefix (10⁰)`, String(p.exp), false, p.exp === exp))); };
+  const fillU = (sel: HTMLSelectElement, u: string) => { sel.replaceChildren(...UNITS.map((x) => new Option(`${x.sym} (${x.name})`, x.sym, false, x.sym === u))); };
+  fillP(q('.si-p1'), 3); fillP(q('.si-p2'), -2); fillU(q('.si-u'), 'm');
+  fillP(q('.si-ap'), 3); fillP(q('.si-bp'), 0); fillU(q('.si-au'), 'm'); fillU(q('.si-bu'), 'm');
+  const sym = (e: number) => PREFIXES.find((p) => p.exp === e)!.sym;
+  /** Group digits in threes with thin spaces: 250000 → 250 000. */
+  const group = (s: string) => { const [i, f] = s.split('.'); const g = i.replace(/\B(?=(\d{3})+(?!\d))/g, ' '); return f ? `${g}.${f}` : g; };
+
+  q('.si-base tbody').replaceChildren(...BASE.map((r) => { const tr = document.createElement('tr'); r.forEach((c) => { const td = document.createElement('td'); td.textContent = c; tr.append(td); }); return tr; }));
+
+  function ladder(e1: number, e2: number) {
+    const fig = q<SVGSVGElement>('.si-fig'); fig.replaceChildren();
+    const y = (i: number) => 8 + i * 22;
+    PREFIXES.forEach((p, i) => {
+      const cls = p.exp === e1 ? 'si-from' : p.exp === e2 ? 'si-dest' : 'si-rung';
+      S('rect', { x: 20, y: y(i), width: 170, height: 19, rx: 5, class: cls }, fig);
+      S('text', { x: 30, y: y(i) + 14 }, fig, p.sym ? `${p.sym}  ${p.name}` : '(no prefix)');
+      S('text', { x: 182, y: y(i) + 14, 'text-anchor': 'end', class: 'sm-tick' }, fig, pow10(p.exp));
+    });
+    const i1 = PREFIXES.findIndex((p) => p.exp === e1), i2 = PREFIXES.findIndex((p) => p.exp === e2);
+    if (i1 !== i2) {
+      const y1 = y(i1) + 9.5, y2 = y(i2) + 9.5, x = 205;
+      S('path', { d: `M190,${y1} C${x + 40},${y1} ${x + 40},${y2} 196,${y2}`, class: 'si-arrow' }, fig);
+      S('polygon', { points: `190,${y2} 200,${y2 - 5} 200,${y2 + 5}`, class: 'si-head' }, fig);
+      const k = e1 - e2;
+      S('text', { x: 250, y: (y1 + y2) / 2 - 4, style: 'font-weight:700' }, fig, `× ${pow10(k)}`);
+      S('text', { x: 250, y: (y1 + y2) / 2 + 14, class: 'sm-tick' }, fig, `point ${Math.abs(k)} ${k > 0 ? 'right' : 'left'}`);
+    }
+  }
+
+  function draw() {
+    const v = q<HTMLInputElement>('.si-v').value, e1 = Number(q<HTMLSelectElement>('.si-p1').value), e2 = Number(q<HTMLSelectElement>('.si-p2').value), u = q<HTMLSelectElement>('.si-u').value;
+    q('.si-u2').textContent = u;
+    ladder(e1, e2);
+    const err = q('.si-err');
+    if (!readDecimal(v)) { err.textContent = 'Type a plain number, like 2.5, 0.04 or 1200.'; err.hidden = false; q('.si-big').textContent = ''; q('.si-steps').replaceChildren(); return; }
+    err.hidden = true;
+    const c = convert(v, e1, e2), s1 = sym(e1), s2 = sym(e2), sc = sci(c.out);
+    q('.si-big').textContent = `${group(v.trim().replace('-', '−'))} ${s1}${u} = ${group(c.out)} ${s2}${u}`;
+    q('.si-steps').replaceChildren(...[
+      `1 ${s1}${u} = ${pow10(e1)} ${u}, and 1 ${s2}${u} = ${pow10(e2)} ${u}.`,
+      `So 1 ${s1}${u} = ${pow10(e1)} ÷ ${pow10(e2)} = ${pow10(c.k)} ${s2}${u}.`,
+      c.words,
+      sc ? `In standard form: ${sc.m} × ${pow10(sc.e)} ${s2}${u}.` : '',
+    ].filter(Boolean).map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+    q('.si-note').textContent = u === 'g' ? 'The SI base unit of mass is the kilogram (kg), but prefixes are put on the gram: 1 mg is a milligram, not a "microkilogram".' : u === 'L' ? 'The litre is not an SI unit but is used with SI: 1 L = 1 dm³ and 1 mL = 1 cm³.' : '';
+  }
+  function sum() {
+    const g = (c: string) => q<HTMLInputElement>(c).value;
+    const r = addUp(g('.si-a'), Number(g('.si-ap')), g('.si-au'), g('.si-b'), Number(g('.si-bp')), g('.si-bu')), out = q('.si-sum');
+    if (!r.ok) { out.textContent = r.why; out.classList.add('ax-err'); return; }
+    out.classList.remove('ax-err');
+    const s = sym(r.e) + g('.si-au');
+    out.textContent = `In ${s}: ${group(r.a)} + ${group(r.b)} = ${group(r.out)} ${s}.`;
+  }
+  root.querySelectorAll('.si-v, .si-p1, .si-p2, .si-u').forEach((e) => { e.addEventListener('input', draw); e.addEventListener('change', draw); });
+  root.querySelectorAll('.si-a, .si-b, .si-ap, .si-bp, .si-au, .si-bu').forEach((e) => { e.addEventListener('input', sum); e.addEventListener('change', sum); });
+  draw(); sum();
+
+  const P = (s: string) => PREFIXES.find((p) => p.sym === s)!;
+  mountQuiz(q('.si-quiz'), () => {
+    const out: QItem[] = [];
+    const pairs: [string, string, string][] = [['k', 'm', ''], ['', 'm', 'c'], ['m', 'm', 'µ'], ['G', 'Hz', 'M'], ['n', 'm', 'µ'], ['k', 'g', ''], ['m', 'A', ''], ['M', 'W', 'k'], ['µ', 's', 'n']];
+    for (let i = 0; i < 3; i++) {
+      const [a, u, b] = one(pairs), v = one(['2.5', '0.4', '12', '350', '7.25', '0.06', '45']), c = convert(v, P(a).exp, P(b).exp);
+      out.push({ q: `Convert ${v} ${a}${u} to ${b}${u}.`, ans: Number(c.out.replace('−', '-')), unit: `${b}${u}`, tol: 1e-6, work: `1 ${a}${u} = ${pow10(c.k)} ${b}${u}. ${c.words} ${v} ${a}${u} = ${c.out} ${b}${u}.` });
+    }
+    const ex = one([[-9, 'nano'], [6, 'mega'], [-3, 'milli'], [9, 'giga'], [-6, 'micro'], [3, 'kilo']] as [number, string][]);
+    const opts = [ex[0], -ex[0], ex[0] + (ex[0] > 0 ? 3 : -3)].sort(() => Math.random() - 0.5);
+    out.push({ q: `Which power of ten does the prefix ${ex[1]} stand for?`, ans: opts.indexOf(ex[0]), choices: opts.map(pow10), work: `${ex[1]} = ${pow10(ex[0])}.` });
+    out.push({ q: 'Which of these can be added together directly after a prefix change?', ans: 1, choices: ['3 m and 2 s', '1.5 km and 300 m', '2 kg and 4 L'], work: 'Only quantities of the same kind add: 1.5 km + 300 m = 1500 m + 300 m = 1800 m.' });
+    return out;
+  });
+</script>

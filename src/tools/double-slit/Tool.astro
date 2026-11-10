@@ -1,0 +1,169 @@
+---
+// Young's double slit and single-slit diffraction for school (Class 12 wave optics): the fringes on the screen as a
+// coloured strip, the intensity graph, fringe width β = λD/d, the central maximum 2λD/a, the path difference at a
+// chosen point and white-light fringes. Maths in src/lib/sci/q-slits.ts.
+import '../../styles/astro.css';
+---
+<div class="ax dsl">
+  <div class="ax-card">
+    <div class="ax-row dsl-top">
+      <div class="ax-seg dsl-kind" role="group" aria-label="Slits">
+        <button type="button" data-k="double" aria-pressed="true">Double slit</button><button type="button" data-k="single" aria-pressed="false">Single slit</button>
+      </div>
+      <div class="ax-seg dsl-light" role="group" aria-label="Light">
+        <button type="button" data-w="one" aria-pressed="true">One colour</button><button type="button" data-w="white" aria-pressed="false">White light</button>
+      </div>
+    </div>
+    <canvas class="ax-fig dsl-strip" aria-label="Fringes on the screen"></canvas>
+    <canvas class="ax-fig dsl-chart" aria-label="Intensity across the screen"></canvas>
+    <div class="ax-grid">
+      <label class="dsl-lwrap">Wavelength λ: <b class="dsl-lv"></b><input class="dsl-l" type="range" min="400" max="700" step="5" value="600" /></label>
+      <label class="dsl-dwrap">Slit separation d: <b class="dsl-dv"></b><input class="dsl-d" type="range" min="0.10" max="1.00" step="0.01" value="0.25" /></label>
+      <label>Slit width a: <b class="dsl-av"></b><input class="dsl-a" type="range" min="0.02" max="0.20" step="0.01" value="0.05" /></label>
+      <label>Slits to screen D: <b class="dsl-Dv"></b><input class="dsl-D" type="range" min="0.5" max="3" step="0.1" value="1" /></label>
+      <label>Point P on the screen x: <b class="dsl-xv"></b><input class="dsl-x" type="range" min="-30" max="30" step="0.1" value="3.6" /></label>
+    </div>
+    <label class="ax-check dsl-cmpwrap"><input type="checkbox" class="dsl-cmp" /> Also show the other pattern (dashed)</label>
+  </div>
+
+  <div class="ax-card dsl-out">
+    <p class="ax-big dsl-big"></p>
+    <dl class="ax-facts dsl-facts"></dl>
+    <pre class="dsl-formula"></pre>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="dsl-try">
+      <li>Move the slits closer together (smaller d). The fringes spread out: β = λD/d gets bigger.</li>
+      <li>Change the colour from violet to red. Red light has a longer wavelength, so its fringes are wider.</li>
+      <li>Slide P onto a bright fringe and read the path difference: it is a whole number of wavelengths. On a dark fringe it is a half number.</li>
+      <li>Switch to white light. The centre stays white, but the next fringes have violet inside and red outside, and after a few fringes the colours wash out.</li>
+      <li>Switch to a single slit and make it narrower: the central bright band gets wider, the opposite of what you might expect.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh numbers each time. Nothing is saved.</p>
+    <div class="dsl-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .dsl input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; }
+  .dsl-top { justify-content: space-between; margin-bottom: 8px; }
+  .dsl .ax-seg button { min-height: 40px; }
+  .dsl-strip, .dsl-chart { border: 1px solid var(--line); margin: 4px auto; max-width: 520px; }
+  .dsl-cmpwrap { margin-top: 8px; }
+  .dsl-formula { font: 15px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; margin: 12px 0 0; padding: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
+  .dsl-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+</style>
+
+<script>
+  import { fringeWidth, brightAt, darkAt, angularWidth, singleMin, centralWidth, pathDiff, intensity, wavelengthRGB } from '../../lib/sci/q-slits';
+  import { paint, type Figure } from '../../lib/report';
+  import { chartFigure } from '../../lib/sci/plot';
+  const sig = (x: number, n = 3) => String(Number(x.toPrecision(n)));
+  import { mountQuiz, pick, randInt, type Question } from '../../lib/school-quiz';
+
+  const root = document.querySelector<HTMLElement>('.dsl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const st = { kind: 'double' as 'double' | 'single', light: 'one' };
+  const num = (c: string) => Number(q<HTMLInputElement>(c).value);
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const mm = (m: number) => `${sig(m * 1000, 3)} mm`;
+  const WHITE = Array.from({ length: 31 }, (_, i) => 400 + 10 * i);
+  // Average of the white-light colour weights, so a fully bright point shows as white.
+  const NORM = WHITE.reduce((s, nm) => { const c = wavelengthRGB(nm); return [s[0] + c[0], s[1] + c[1], s[2] + c[2]]; }, [0, 0, 0]);
+
+  function colourAt(x: number, p: { L: number; D: number; d: number; a: number }, white: boolean): [number, number, number] {
+    if (!white) { const I = intensity(st.kind, x, p.L, p.D, p.d, p.a), c = wavelengthRGB(p.L * 1e9); return [c[0] * I, c[1] * I, c[2] * I]; }
+    const s = [0, 0, 0];
+    for (const nm of WHITE) { const I = intensity(st.kind, x, nm * 1e-9, p.D, p.d, p.a), c = wavelengthRGB(nm); s[0] += c[0] * I; s[1] += c[1] * I; s[2] += c[2] * I; }
+    return [s[0] / NORM[0], s[1] / NORM[1], s[2] / NORM[2]];
+  }
+
+  function stripFig(p: { L: number; D: number; d: number; a: number }, half: number, xP: number, white: boolean): Figure {
+    const W = 400, H = 92;
+    return { w: W, h: H, alt: 'The pattern of light on the screen', draw: (ctx, w, h, pal) => {
+      const y0 = 8, y1 = 64, xs = (x: number) => 8 + ((x + half) / (2 * half)) * (W - 16);
+      ctx.fillStyle = '#000'; ctx.fillRect(8, y0, W - 16, y1 - y0);
+      for (let px = 8; px < W - 8; px++) {
+        const x = -half + ((px - 8 + 0.5) / (W - 16)) * 2 * half;
+        let [r, g, b] = colourAt(x, p, white);
+        if (pal.red) { const v = (r + g + b) / 3; r = v; g = 0; b = 0; }
+        const gam = (v: number) => Math.round(255 * Math.min(1, v) ** (1 / 2.2));
+        ctx.fillStyle = `rgb(${gam(r)},${gam(g)},${gam(b)})`; ctx.fillRect(px, y0, 1, y1 - y0);
+      }
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(8, y0, W - 16, y1 - y0);
+      // Marker for P and the centre.
+      ctx.fillStyle = pal.ink; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      const c = xs(0); ctx.fillRect(c - 0.5, y1, 1, 6); ctx.fillText('0', c, y1 + 8);
+      if (Math.abs(xP) <= half) { const px = xs(xP); ctx.fillStyle = pal.bad; ctx.beginPath(); ctx.moveTo(px, y1 + 1); ctx.lineTo(px - 6, y1 + 12); ctx.lineTo(px + 6, y1 + 12); ctx.closePath(); ctx.fill(); ctx.fillText('P', px, y1 + 13); }
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText(`−${sig(half * 1000, 3)} mm`, 8, y1 + 8); ctx.textAlign = 'right'; ctx.fillText(`+${sig(half * 1000, 3)} mm`, W - 8, y1 + 8);
+    } };
+  }
+
+  let figs: [HTMLCanvasElement, Figure][] = [];
+  function draw() {
+    const L = num('.dsl-l') * 1e-9, d = num('.dsl-d') * 1e-3, a = num('.dsl-a') * 1e-3, D = num('.dsl-D'), xP = num('.dsl-x') * 1e-3;
+    const white = st.light === 'white', dbl = st.kind === 'double';
+    q('.dsl-lv').textContent = white ? 'white (400 to 700 nm)' : `${num('.dsl-l')} nm`; q('.dsl-dv').textContent = `${num('.dsl-d').toFixed(2)} mm`; q('.dsl-av').textContent = `${num('.dsl-a').toFixed(2)} mm`; q('.dsl-Dv').textContent = `${num('.dsl-D').toFixed(1)} m`; q('.dsl-xv').textContent = `${num('.dsl-x').toFixed(1)} mm`;
+    q('.dsl-dwrap').hidden = !dbl;
+    const p = { L, D, d, a };
+    const lRef = white ? 550e-9 : L;
+    const half = Math.min(0.04, Math.max(0.004, 1.25 * centralWidth(lRef, D, a), 0), dbl ? Math.max(0.004, 8 * fringeWidth(lRef, D, d)) : 1);
+    const xs: number[] = [], ys: number[] = [], ys2: number[] = [];
+    const other = dbl ? 'single' : 'double';
+    for (let k = 0; k <= 800; k++) {
+      const x = -half + (k / 800) * 2 * half; xs.push(x * 1000);
+      if (white) { const c = colourAt(x, p, true); ys.push((c[0] + c[1] + c[2]) / 3); }
+      else ys.push(intensity(st.kind, x, L, D, d, a));
+      ys2.push(intensity(other, x, L, D, d, a));
+    }
+    const series: any[] = [{ name: dbl ? 'Double slit' : 'Single slit', x: xs, y: ys, mode: 'line', width: 2 }];
+    if (q<HTMLInputElement>('.dsl-cmp').checked && !white) series.push({ name: dbl ? 'Single slit' : 'Double slit', x: xs, y: ys2, mode: 'line', width: 1.5, dash: [5, 4] });
+    const cf = chartFigure({ w: 400, h: 220, xLabel: 'Position on screen x (mm)', yLabel: 'Brightness', legend: series.length > 1 ? 'below' : 'none', series, xMin: -half * 1000, xMax: half * 1000, yMin: 0, yMax: 1.05, marks: [{ kind: 'vline', at: xP * 1000, dash: [3, 3], label: 'P' }] }, 'Intensity across the screen');
+    figs = [[q('.dsl-strip'), stripFig(p, half, xP, white)], [q('.dsl-chart'), cf]];
+    for (const [c, f] of figs) paint(c, f);
+    const F: HTMLElement[] = [], Lines: string[] = [];
+    const lnm = sig(L * 1e9, 3), dmm = (d * 1000).toFixed(2), amm = (a * 1000).toFixed(2);
+    if (dbl) {
+      const beta = fringeWidth(L, D, d), pd = pathDiff(xP, D, d), nw = pd / L;
+      const near = Math.round(nw), state = Math.abs(nw - near) < 0.1 ? `bright (fringe ${near})` : Math.abs(Math.abs(nw - Math.trunc(nw)) - 0.5) < 0.1 ? 'dark' : 'in between';
+      q('.dsl-big').textContent = white ? `Fringe width for green light (550 nm): β = ${mm(fringeWidth(550e-9, D, d))}` : `Fringe width β = ${mm(beta)}`;
+      F.push(fact('Fringe width β', mm(beta), white ? 'for the λ on the slider' : 'bright to bright'), fact('3rd bright fringe', mm(brightAt(3, L, D, d)), 'from the centre'), fact('1st dark fringe', mm(darkAt(1, L, D, d))), fact('Angular fringe width', `${sig(angularWidth(L, d) * 180 / Math.PI, 3)}°`, `λ/d = ${sig(angularWidth(L, d), 3)} rad`));
+      if (!white) F.push(fact('Path difference at P', `${sig(nw, 3)} λ`, state));
+      Lines.push(`β = λD / d = ${lnm} × 10⁻⁹ m × ${D.toFixed(1)} m / ${dmm} × 10⁻³ m = ${mm(beta)}`, `Bright fringes at x = nβ, dark ones at x = (n − ½)β`);
+      if (!white) Lines.push(`At P: path difference ≈ d x / D = ${dmm} mm × ${(xP * 1000).toFixed(1)} mm / ${D.toFixed(1)} m = ${sig(pd * 1e9, 4)} nm = ${sig(nw, 3)} λ`);
+      Lines.push(`Fringes inside the central maximum of each slit ≈ 2d / a = ${sig((2 * d) / a, 3)}`);
+    } else {
+      const cw = centralWidth(L, D, a), m1 = singleMin(1, L, D, a), m2 = singleMin(2, L, D, a);
+      q('.dsl-big').textContent = white ? `Central maximum for green light (550 nm): ${mm(centralWidth(550e-9, D, a))} wide` : `Central maximum ${mm(cw)} wide`;
+      F.push(fact('Central maximum width', mm(cw), '≈ 2λD/a'), fact('1st minimum', m1 === null ? 'none' : mm(m1), 'a sin θ = λ'), fact('2nd minimum', m2 === null ? 'none' : mm(m2), 'a sin θ = 2λ'), fact('Angle to 1st minimum', `${sig(Math.asin(L / a) * 180 / Math.PI, 3)}°`));
+      Lines.push(`Minima where a sin θ = nλ: sin θ₁ = ${lnm} × 10⁻⁹ / ${amm} × 10⁻³ = ${sig(L / a, 3)}`, `Central maximum ≈ 2λD / a = 2 × ${lnm} × 10⁻⁹ × ${D.toFixed(1)} / ${amm} × 10⁻³ = ${mm((2 * L * D) / a)}`, `Secondary maxima are much fainter (about 4.5% and 1.6% of the centre)`);
+    }
+    q('.dsl-facts').replaceChildren(...F);
+    q('.dsl-formula').textContent = Lines.join('\n');
+  }
+
+  const segs = (sel: string, key: 'kind' | 'light', attr: string) => root.querySelectorAll<HTMLButtonElement>(`${sel} button`).forEach((b) => b.addEventListener('click', () => {
+    (st as any)[key] = b.dataset[attr]!; root.querySelectorAll<HTMLButtonElement>(`${sel} button`).forEach((x) => x.setAttribute('aria-pressed', String(x === b))); draw();
+  }));
+  segs('.dsl-kind', 'kind', 'k'); segs('.dsl-light', 'light', 'w');
+  for (const c of ['.dsl-l', '.dsl-d', '.dsl-a', '.dsl-D', '.dsl-x']) q(c).addEventListener('input', draw);
+  q('.dsl-cmp').addEventListener('change', draw);
+  document.addEventListener('fibub:theme', () => { for (const [c, f] of figs) paint(c, f); });
+
+  const r2 = (x: number) => Math.round(x * 100) / 100;
+  const make = (): Question => {
+    const t = pick(['beta', 'lambda', 'nth', 'central']);
+    if (t === 'beta') { const L = pick([450, 500, 550, 589, 600, 650]), d = pick([0.2, 0.25, 0.4, 0.5, 1]), D = pick([1, 1.2, 1.5, 2]); const b = r2(L * 1e-9 * D / (d * 1e-3) * 1000); return { text: `In Young's experiment, λ = ${L} nm, d = ${d} mm and D = ${D} m. Find the fringe width in mm (2 decimal places).`, unit: 'mm', answer: b, tol: 0.011, work: [`β = λD/d = ${L} × 10⁻⁹ × ${D} / (${d} × 10⁻³) m`, `β = ${b.toFixed(2)}`] }; }
+    if (t === 'lambda') { const L = randInt(45, 70) * 10, d = pick([0.2, 0.5, 1]), D = pick([1, 2]); const b = L * 1e-9 * D / (d * 1e-3) * 1000; return { text: `Fringes ${sig(b, 4)} mm apart are seen with slits ${d} mm apart and a screen ${D} m away. What is the wavelength in nm?`, unit: 'nm', answer: L, tol: 1, work: [`λ = βd/D = ${sig(b, 4)} × 10⁻³ × ${d} × 10⁻³ / ${D} m`, `λ = ${L}`] }; }
+    if (t === 'nth') { const n = randInt(2, 6), L = pick([500, 600]), d = pick([0.25, 0.5]), D = 1; const b = L * 1e-9 * D / (d * 1e-3) * 1000; return { text: `With λ = ${L} nm, d = ${d} mm and D = 1 m, how far from the centre is the ${n}th bright fringe, in mm (2 decimal places)?`, unit: 'mm', answer: r2(n * b), tol: 0.011, work: [`β = λD/d = ${sig(b, 4)} mm`, `x = nβ = ${n} × ${sig(b, 4)} = ${r2(n * b).toFixed(2)}`] }; }
+    const L = pick([500, 600, 650]), a = pick([0.05, 0.1, 0.2]), D = pick([1, 2]); const w = r2(2 * L * 1e-9 * D / (a * 1e-3) * 1000); return { text: `Light of ${L} nm falls on a slit ${a} mm wide. How wide is the central maximum on a screen ${D} m away, in mm (2 decimal places)?`, unit: 'mm', answer: w, tol: 0.02, work: [`width ≈ 2λD/a = 2 × ${L} × 10⁻⁹ × ${D} / (${a} × 10⁻³) m`, `width = ${w.toFixed(2)}`] };
+  };
+  mountQuiz(q('.dsl-quiz'), make, 4);
+  draw();
+</script>

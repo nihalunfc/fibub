@@ -1,0 +1,237 @@
+---
+// One-one and onto tester: a function on a chosen domain and codomain, the horizontal line test, the range, and
+// whether the function is one-one, onto and so invertible (with its inverse drawn as a reflection). Class 11 and
+// 12 maths, relations and functions.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax fty">
+  <div class="ax-card">
+    <h2>Pick a function</h2>
+    <div class="ax-grid">
+      <label>f(x) = <select class="ft-fn">
+        <option value="lin">2x + 1</option><option value="sq" selected>x²</option><option value="cube">x³</option><option value="cubic">x³ − 3x</option>
+        <option value="abs">|x|</option><option value="exp">eˣ</option><option value="ln">ln x</option><option value="sin">sin x</option><option value="recip">1/x</option><option value="own">My own…</option>
+      </select></label>
+      <label class="ft-ownl" hidden>Type f(x) <input class="ft-own" type="text" value="x^2 - 2x" autocomplete="off" spellcheck="false" /></label>
+      <label>Domain (the x you may use) <select class="ft-dom">
+        <option value="R" selected>ℝ, all real numbers</option><option value="p0">[0, ∞)</option><option value="pp">(0, ∞)</option><option value="n0">(−∞, 0]</option>
+        <option value="hp">[−π/2, π/2]</option><option value="zp">[0, π]</option><option value="ab">[a, b], my own ends</option>
+      </select></label>
+      <label>Codomain (where answers may land) <select class="ft-cod">
+        <option value="R" selected>ℝ</option><option value="p0">[0, ∞)</option><option value="pp">(0, ∞)</option><option value="m1">[−1, 1]</option><option value="rg">its range (exactly the values it takes)</option>
+      </select></label>
+    </div>
+    <div class="ax-row ft-abl" hidden>
+      <label>a <input class="ft-a" type="number" value="-2" step="any" /></label>
+      <label>b <input class="ft-b" type="number" value="3" step="any" /></label>
+    </div>
+    <p class="ax-err ft-err" hidden></p>
+    <p class="ax-help ft-note"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The horizontal line test</h2>
+    <canvas class="ax-fig ft-fig" role="img"></canvas>
+    <p class="ax-help">Drag up and down on the picture (or use the slider) to move the line y = k. Solid curve: the function on your domain. The thick bar on the y-axis is the range; the shaded band is the codomain.</p>
+    <label class="ft-sl">Line y = k, k = <b class="ft-kv"></b><input class="ft-k" type="range" min="-6" max="6" step="0.05" value="2" /></label>
+    <p class="ft-hit"></p>
+    <dl class="ax-facts ft-facts"></dl>
+    <p class="ft-say"></p>
+    <div class="ax-row">
+      <button type="button" class="btn small secondary ft-fix1">Make it one-one</button>
+      <button type="button" class="btn small secondary ft-fix2">Make it onto</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>The inverse</h2>
+    <canvas class="ax-fig ft-inv" role="img"></canvas>
+    <p class="ax-help ft-invnote"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="ft-try">
+      <li>x² on ℝ fails both tests: y = 4 meets it twice (x = −2 and 2), and y = −1 never. Restrict the domain to [0, ∞) and the codomain to [0, ∞): now every line meets it exactly once, and the inverse is √x.</li>
+      <li>x³ − 3x is onto ℝ but not one-one: the line y = 0 meets it three times.</li>
+      <li>eˣ is one-one, and onto (0, ∞) but not onto [0, ∞): nothing maps to 0. Its inverse is ln x.</li>
+      <li>1/x is one-one but misses 0, so it is not onto ℝ.</li>
+      <li>sin x on [−π/2, π/2] onto [−1, 1] is a bijection: this is how sin⁻¹ x is built.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="ft-quiz" />
+</div>
+
+<script>
+  import { PRESETS, analyse, intersect, segments, crossings, numericPreset, showSet, niceNum, type Interval, type Preset } from '../../lib/sci/school-r-functions';
+  import { parse, compile, variables } from '../../lib/sci/expr';
+  import { paint, type Palette } from '../../lib/report';
+  import { view, px, py, wy, axes, curve, line, dot, label, pointer, fmt, type View } from '../../lib/sm-graph';
+  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.fty')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380, H = 300;
+  const I = (lo: number, hi: number, loC: boolean, hiC: boolean): Interval => ({ lo, hi, loC, hiC });
+  const DOMS: Record<string, Interval> = { R: I(-Infinity, Infinity, false, false), p0: I(0, Infinity, true, false), pp: I(0, Infinity, false, false), n0: I(-Infinity, 0, false, true), hp: I(-Math.PI / 2, Math.PI / 2, true, true), zp: I(0, Math.PI, true, true) };
+  const CODS: Record<string, Interval> = { R: DOMS.R, p0: DOMS.p0, pp: DOMS.pp, m1: I(-1, 1, true, true) };
+  const kIn = q<HTMLInputElement>('.ft-k');
+  let P: Preset | null = null, dom: Interval = DOMS.R, cod: Interval | 'range' = DOMS.R, V: View = view(-4, 4, -4, 4, W, H);
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+  const n4 = (x: number) => niceNum(Math.abs(x) < 1e-9 ? 0 : x);
+
+  function setup() {
+    const fn = q<HTMLSelectElement>('.ft-fn').value, dv = q<HTMLSelectElement>('.ft-dom').value, cv = q<HTMLSelectElement>('.ft-cod').value;
+    q('.ft-ownl').hidden = fn !== 'own'; q('.ft-abl').hidden = dv !== 'ab' && fn !== 'own';
+    const err = q('.ft-err'); err.hidden = true;
+    const a = Number(q<HTMLInputElement>('.ft-a').value), b = Number(q<HTMLInputElement>('.ft-b').value);
+    const fail = (m: string) => { err.textContent = m; err.hidden = false; P = null; draw(); };
+    if ((dv === 'ab' || fn === 'own') && !(Number.isFinite(a) && Number.isFinite(b) && a < b)) return fail('Give two numbers with a smaller than b.');
+    dom = dv === 'ab' ? I(a, b, true, true) : DOMS[dv];
+    cod = cv === 'rg' ? 'range' : CODS[cv];
+    if (fn === 'own') {
+      let g: (x: number) => number;
+      try { const n = parse(q<HTMLInputElement>('.ft-own').value); const vs = variables(n).filter((v) => v !== 'x'); if (vs.length) return fail(`Use only x in the formula (found ${vs.join(', ')}).`); const c = compile(n, ['x']); g = (x) => c([x]); } catch (e) { return fail(`Can't read that formula: ${(e as Error).message}`); }
+      dom = dv === 'ab' ? dom : I(a, b, true, true);
+      P = numericPreset(g, dom.lo, dom.hi, 'f(x)');
+      q('.ft-note').textContent = `Your own function is checked on [${fmt(dom.lo)}, ${fmt(dom.hi)}] by sampling 4000 points, so treat the answers as a good guess, not a proof.`;
+    } else {
+      P = PRESETS.find((p) => p.id === fn)!;
+      const notes: Record<string, string> = { ln: 'ln x only works for x > 0, so any domain is cut down to the part with x > 0.', recip: '1/x has no value at x = 0, so 0 is always left out of the domain.', sin: 'sin x repeats every 2π.' };
+      q('.ft-note').textContent = notes[fn] ?? '';
+    }
+    // Picture window: the domain if it is short, else a standard window.
+    const span = P.period ? [-7, 7] : [-4, 4];
+    let x0 = Number.isFinite(dom.lo) ? dom.lo : span[0], x1 = Number.isFinite(dom.hi) ? dom.hi : span[1];
+    if (!Number.isFinite(dom.lo) && Number.isFinite(dom.hi)) x0 = Math.min(span[0], dom.hi - 4); if (Number.isFinite(dom.lo) && !Number.isFinite(dom.hi)) x1 = Math.max(span[1], dom.lo + 4);
+    const pad = (x1 - x0) * 0.08; x0 -= pad; x1 += pad;
+    let lo = Infinity, hi = -Infinity;
+    for (let i = 0; i <= 400; i++) { const x = x0 + ((x1 - x0) * i) / 400, y = P.f(x); if (Number.isFinite(y) && Math.abs(y) < 8) { lo = Math.min(lo, y); hi = Math.max(hi, y); } }
+    if (!Number.isFinite(lo)) { lo = -4; hi = 4; }
+    lo = Math.min(lo, -1); hi = Math.max(hi, 1); const yp = (hi - lo) * 0.12; lo -= yp; hi += yp;
+    V = view(x0, x1, lo, hi, W, H);
+    kIn.min = String(Math.floor(lo)); kIn.max = String(Math.ceil(hi));
+    if (+kIn.value < lo || +kIn.value > hi) kIn.value = String(Math.round((lo + hi) / 2));
+    draw();
+  }
+
+  const inDom = (x: number) => (x > dom.lo || (x === dom.lo && dom.loC)) && (x < dom.hi || (x === dom.hi && dom.hiC));
+
+  function draw() {
+    const facts = q('.ft-facts'), say = q('.ft-say');
+    if (!P) { facts.replaceChildren(); say.textContent = ''; q('.ft-hit').textContent = ''; return; }
+    const p = P, k = +kIn.value; q('.ft-kv').textContent = fmt(k, 2);
+    const v = analyse(p, dom, cod), segs = segments(p, dom), xs = crossings(p, segs, k);
+    const codI = cod === 'range' ? null : cod;
+    paint(q<HTMLCanvasElement>('.ft-fig'), { w: W, h: H, alt: `Graph of ${p.label} with the line y = ${fmt(k, 2)} meeting it ${xs.length} times`, draw: (ctx, w, h, pl: Palette) => {
+      axes(ctx, V, pl);
+      if (codI) { // codomain band on the y-axis
+        const ya = py(V, Math.min(V.y1, codI.hi)), yb = py(V, Math.max(V.y0, codI.lo));
+        if (yb > ya) { ctx.fillStyle = pl.accent2; ctx.globalAlpha = 0.14; ctx.fillRect(V.l, ya, w - V.l - V.r, yb - ya); ctx.globalAlpha = 1; }
+      }
+      curve(ctx, V, p.f, pl.line, 1.5, [4, 4]);
+      curve(ctx, V, (x) => (inDom(x) ? p.f(x) : NaN), pl.accent, 2.6);
+      const X0 = px(V, Math.max(V.x0, Math.min(V.x1, 0)));
+      ctx.save(); ctx.strokeStyle = pl.good; ctx.lineWidth = 5; ctx.lineCap = 'butt';
+      for (const r of v.range) { const a = py(V, Math.max(V.y0, r.lo)), b = py(V, Math.min(V.y1, r.hi)); if (a > b) { ctx.beginPath(); ctx.moveTo(X0, a); ctx.lineTo(X0, b); ctx.stroke(); } }
+      ctx.restore();
+      line(ctx, V, V.x0, k, V.x1, k, xs.length === 1 ? pl.good : xs.length ? pl.bad : pl.warn, 2);
+      xs.forEach((x) => dot(ctx, V, x, k, pl.bad, 5));
+      label(ctx, V, V.x0, k, `y = ${fmt(k, 2)}`, pl.ink, 4, -4);
+      if (v.pair) { for (const x of v.pair) line(ctx, V, x, 0, x, p.f(x), pl.warn, 1.2, [3, 3]); }
+    } });
+    q('.ft-hit').textContent = `The line y = ${fmt(k, 2)} meets the graph ${xs.length === 0 ? 'nowhere' : xs.length === 1 ? 'once' : `${xs.length} times`}${xs.length ? ` (x = ${xs.slice(0, 5).map((x) => n4(x)).join(', ')}${xs.length > 5 ? ', …' : ''})` : ''}.`;
+    const codText = cod === 'range' ? `${showSet(v.range)} (the range)` : showSet([cod]);
+    const bij = v.oneOne && v.onto;
+    facts.replaceChildren(
+      fact('Domain', v.empty ? '∅ (nothing left)' : showSet([intersect(dom, p.natural)!]) + (p.id === 'recip' && dom.lo < 0 && dom.hi > 0 ? ' without 0' : ''), p.id === 'ln' && dom.lo <= 0 ? 'cut to x > 0' : ''),
+      fact('Range', showSet(v.range), 'the values f really takes'),
+      fact('Codomain', codText),
+      fact('One-one?', v.oneOne ? 'Yes' : 'No', v.pair ? `f(${n4(v.pair[0])}) = f(${n4(v.pair[1])}) = ${n4(p.f(v.pair[0]))}` : 'no two x share a y'),
+      fact('Onto?', v.onto ? 'Yes' : 'No', v.onto ? 'range = codomain' : v.missed !== null ? `nothing maps to ${n4(v.missed)}` : 'the range is smaller than the codomain'),
+      fact('Bijective?', bij ? 'Yes' : 'No', bij ? 'so f⁻¹ exists' : 'needs both'),
+    );
+    say.textContent = v.empty ? 'The domain has no x where the formula works.' : bij ? `Every horizontal line in the codomain meets the graph exactly once: ${p.label} is a bijection, so it has an inverse.` : !v.oneOne && !v.onto ? 'Some lines meet the graph more than once (not one-one) and some lines inside the codomain miss it (not onto).' : !v.oneOne ? 'Some horizontal lines meet the graph more than once, so it is not one-one.' : 'Some horizontal lines inside the codomain miss the graph, so it is not onto.';
+    q<HTMLButtonElement>('.ft-fix1').disabled = v.oneOne || v.empty; q<HTMLButtonElement>('.ft-fix2').disabled = v.onto || v.empty;
+    // Inverse: reflect in y = x.
+    const inv = q<HTMLCanvasElement>('.ft-inv');
+    const L = Math.max(Math.abs(V.x0), Math.abs(V.x1), Math.abs(V.y0), Math.abs(V.y1), 2), U = Math.min(L, 8), IV = view(-U, U, -U, U, W, W);
+    paint(inv, { w: W, h: W, alt: bij ? `${p.label} and its inverse, mirror images in y = x` : `${p.label} reflected in y = x; the reflection is not a function`, draw: (ctx, w, h, pl: Palette) => {
+      axes(ctx, IV, pl);
+      line(ctx, IV, -U, -U, U, U, pl.muted, 1, [5, 4]); label(ctx, IV, U * 0.55, U * 0.55, 'y = x', pl.muted, 6, 14);
+      curve(ctx, IV, (x) => (inDom(x) ? p.f(x) : NaN), pl.accent, 2.4);
+      // reflected points (f(x), x), drawn as a path in pieces
+      ctx.save(); ctx.beginPath(); ctx.rect(IV.l, IV.t, w - IV.l - IV.r, h - IV.t - IV.b); ctx.clip();
+      ctx.strokeStyle = bij ? pl.good : pl.bad; ctx.lineWidth = 2.4; ctx.beginPath();
+      let pen = false; const n = 1600;
+      for (let i = 0; i <= n; i++) { const x = -U + (2 * U * i) / n, y = p.f(x); if (!inDom(x) || !Number.isFinite(y) || Math.abs(y) > 4 * U) { pen = false; continue; } const X = px(IV, y), Y = py(IV, x); if (pen) ctx.lineTo(X, Y); else { ctx.moveTo(X, Y); pen = true; } }
+      ctx.stroke(); ctx.restore();
+    } });
+    const INV: Record<string, string> = { lin: '(x − 1)/2', sq: '√x', cube: '∛x', exp: 'ln x', ln: 'eˣ', sin: 'sin⁻¹ x', recip: '1/x', abs: 'x (on [0, ∞))' };
+    q('.ft-invnote').textContent = bij
+      ? `Blue: f. Green: its mirror image in the line y = x, which is f⁻¹${INV[p.id] && !(p.id === 'sq' && dom.lo < 0) && !(p.id === 'sin' && dom.lo !== -Math.PI / 2) ? ` = ${INV[p.id]}` : ''}. The domain of f⁻¹ is the range of f, ${showSet(v.range)}.`
+      : `Red: the mirror image of f in y = x. ${v.oneOne ? 'It is a function, but f is not onto your codomain, so f⁻¹ would not be defined on all of it. Choose "its range" as the codomain.' : 'A vertical line meets it more than once, so it is not a function: f has no inverse here. Restrict the domain to make f one-one.'}`;
+  }
+
+  // Make it one-one: keep the monotone piece nearest x = 0 (on the right of it where possible).
+  q('.ft-fix1').addEventListener('click', () => {
+    if (!P) return;
+    const segs = segments(P, dom);
+    const s = segs.find((g) => g.lo >= 0 || (g.lo < 0 && g.hi > 0)) ?? segs[segs.length - 1];
+    const lo = s.lo, hi = s.hi;
+    q<HTMLInputElement>('.ft-a').value = String(+lo.toFixed(6)); q<HTMLInputElement>('.ft-b').value = String(+hi.toFixed(6));
+    const d = q<HTMLSelectElement>('.ft-dom');
+    if (lo === 0 && hi === Infinity) d.value = s.loC ? 'p0' : 'pp';
+    else if (lo === -Math.PI / 2 && hi === Math.PI / 2) d.value = 'hp';
+    else if (Number.isFinite(lo) && Number.isFinite(hi)) d.value = 'ab';
+    else if (lo === -Infinity && hi === 0) d.value = 'n0';
+    else { d.value = 'ab'; q<HTMLInputElement>('.ft-a').value = String(Number.isFinite(lo) ? lo : hi - 4); q<HTMLInputElement>('.ft-b').value = String(Number.isFinite(hi) ? hi : lo + 4); }
+    setup();
+  });
+  q('.ft-fix2').addEventListener('click', () => { q<HTMLSelectElement>('.ft-cod').value = 'rg'; setup(); });
+  ['.ft-fn', '.ft-dom', '.ft-cod'].forEach((s) => q(s).addEventListener('change', setup));
+  ['.ft-own', '.ft-a', '.ft-b'].forEach((s) => q(s).addEventListener('input', setup));
+  kIn.addEventListener('input', draw);
+  const cv = q<HTMLCanvasElement>('.ft-fig');
+  let dragging = false;
+  const move = (e: PointerEvent) => { if (!dragging) return; const { Y } = pointer(cv, e, W, H); const k = Math.round(wy(V, Y) * 20) / 20; kIn.value = String(Math.max(+kIn.min, Math.min(+kIn.max, k))); draw(); };
+  cv.addEventListener('pointerdown', (e) => { dragging = true; cv.setPointerCapture(e.pointerId); move(e); });
+  cv.addEventListener('pointermove', move);
+  cv.addEventListener('pointerup', () => { dragging = false; }); cv.addEventListener('pointercancel', () => { dragging = false; });
+  document.addEventListener('fibub:theme', draw);
+  setup();
+
+  quiz(q('.ft-quiz'), (): Question[] => {
+    const a = rint(2, 5), b = rint(-6, 6, true), y0 = a * rint(-3, 4) + b;
+    const c = rint(-5, 5), m = rint(1, 4);
+    const cases: [string, boolean, string][] = [
+      ['f(x) = x² from ℝ to ℝ', false, 'f(−1) = f(1), so it is not one-one (and −1 is never reached, so not onto either).'],
+      ['f(x) = x³ from ℝ to ℝ', true, 'x³ always rises and takes every real value: one-one and onto.'],
+      ['f(x) = eˣ from ℝ to (0, ∞)', true, 'eˣ always rises and takes every positive value exactly once.'],
+      ['f(x) = |x| from ℝ to [0, ∞)', false, 'f(−2) = f(2) = 2, so it is not one-one.'],
+      ['f(x) = x² from [0, ∞) to [0, ∞)', true, 'On x ≥ 0, x² always rises and reaches every y ≥ 0 (at x = √y).'],
+      ['f(x) = 1/x from ℝ − {0} to ℝ', false, 'It is one-one, but 0 is never an answer, so it is not onto ℝ.'],
+    ];
+    const [txt, yes, why] = pick(cases);
+    const nm = rint(2, 3), nn = rint(nm, 5); const perm = Array.from({ length: nm }, (_, i) => nn - i).reduce((s, x) => s * x, 1);
+    return [
+      { text: `f(x) = ${a}x ${b < 0 ? '−' : '+'} ${Math.abs(b)} from ℝ to ℝ. What is f⁻¹(${y0})?`, answer: (y0 - b) / a, worked: `Solve ${a}x ${b < 0 ? '−' : '+'} ${Math.abs(b)} = ${y0}: x = (${y0} ${b < 0 ? '+' : '−'} ${Math.abs(b)}) / ${a} = ${fmt((y0 - b) / a, 4)}. In general f⁻¹(y) = (y ${b < 0 ? '+' : '−'} ${Math.abs(b)}) / ${a}.` },
+      { text: `What is the smallest value in the range of f(x) = x² ${c < 0 ? '−' : '+'} ${Math.abs(c)} on ℝ?`, answer: c, worked: `x² ≥ 0, with 0 at x = 0, so the smallest value is 0 ${c < 0 ? '−' : '+'} ${Math.abs(c)} = ${c}. The range is [${c}, ∞).` },
+      { text: `How many times does the line y = ${m * m} meet y = x² on ℝ?`, answer: 2, worked: `x² = ${m * m} at x = ${m} and x = −${m}: twice. That is why x² on ℝ is not one-one.` },
+      { text: `Is ${txt} a bijection (one-one and onto)?`, choices: ['Yes', 'No'], correct: yes ? 0 : 1, worked: why },
+      { text: `How many one-one functions are there from a set with ${nm} elements to a set with ${nn} elements?`, answer: perm, worked: `The first element has ${nn} choices, the next ${nn - 1}, and so on: ${Array.from({ length: nm }, (_, i) => nn - i).join(' × ')} = ${perm}.` },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .fty .ft-sl { display: grid; gap: 4px; color: var(--ink); font-size: 15px; margin-top: 10px; }
+  .fty .ft-sl input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .fty canvas.ft-fig { touch-action: none; cursor: ns-resize; }
+  .fty .ft-hit, .fty .ft-say { margin: 10px 0 0; font-weight: 600; overflow-wrap: anywhere; }
+  .fty .ft-abl input { max-width: 120px; }
+  .fty .ft-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+  .fty .btn { min-height: 44px; }
+</style>

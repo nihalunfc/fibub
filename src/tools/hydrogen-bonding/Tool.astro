@@ -1,0 +1,158 @@
+---
+// Hydrogen bonding in water and ice: a moving flat model of water molecules where hydrogen bonds (H···O) flicker
+// on and off in the liquid and lock into an open lattice in ice, with a live count; plus a sorter for which
+// molecules can hydrogen bond. Class 11 chemistry (chemical bonding, states of matter), Class 9 water.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+import { MOLS } from '../../lib/sci/hydrogen-bonding';
+---
+<div class="ax hbx">
+  <div class="ax-card">
+    <label class="hb-sl"><span class="hb-tv"></span><input class="hb-t" type="range" min="-20" max="100" step="1" value="25" aria-label="Temperature in degrees Celsius" /></label>
+    <p class="ax-big hb-big" aria-live="polite"></p>
+    <canvas class="ax-fig hb-fig" role="img"></canvas>
+    <div class="ax-row hb-ctl">
+      <button type="button" class="btn small secondary hb-play">Pause</button>
+      <span class="ax-legend hb-leg"><span class="hb-k hb-ko">O</span> oxygen <span class="hb-k hb-kh">H</span> hydrogen <span class="hb-k hb-kb">┄</span> hydrogen bond</span>
+    </div>
+    <dl class="ax-facts hb-facts"></dl>
+    <p class="ax-help">A flat teaching model, not a real simulation. Real ice is a 3D lattice where each molecule has four neighbours at the corners of a tetrahedron; here it is drawn flat, with the H–O–H angle squared off to fit the grid.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Can it hydrogen bond?</h2>
+    <p class="ax-help">A hydrogen bond needs an H on N, O or F (the donor) and a lone pair on N, O or F of another molecule (the acceptor).</p>
+    <div class="hb-mols" role="group" aria-label="Molecule">{MOLS.map((m, i) => <button type="button" data-m={m.id} aria-pressed={i === 0 ? 'true' : 'false'}>{m.formula}</button>)}</div>
+    <p class="ax-big hb-ans" aria-live="polite"></p>
+    <p class="hb-why"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="hb-try">
+      <li>Slide from 90 °C down to 1 °C. The bonds break and re-form all the time, but more of them last as the water cools.</li>
+      <li>Go below 0 °C. Every molecule locks into place with 4 hydrogen bonds, and the box holds fewer molecules: ice is less dense, so it floats.</li>
+      <li>In the sorter, compare H₂O with H₂S. Water boils at 100 °C; hydrogen sulfide, a heavier molecule, boils at about −60 °C. Hydrogen bonds make the difference.</li>
+      <li>Why does methoxymethane mix with water but its molecules not hold each other by hydrogen bonds?</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="hb-quiz" />
+</div>
+
+<script>
+  import { MOLS, hbond, hydrogens, bonds, squareIce, type Water } from '../../lib/sci/hydrogen-bonding';
+  import { paint, type Figure } from '../../lib/report';
+  import { quiz, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.hbx')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const L = 6, NL = 40, S = 60, W = L * S, H = L * S;
+  let seed = 12345; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const fact = (k: string, v: string, sm: string) => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); return el; };
+  const wrap = (v: number) => ((v % L) + L) % L;
+  const dw = (v: number) => v - L * Math.round(v / L);
+  let liquid: Water[] = [], ice = squareIce(L), shownIce: Water[] = ice, playing = !matchMedia('(prefers-reduced-motion: reduce)').matches, raf = 0, frame = 0;
+
+  function initLiquid() {
+    liquid = [];
+    while (liquid.length < NL) {
+      const w = { x: rnd() * L, y: rnd() * L, a: rnd() * 2 * Math.PI };
+      if (liquid.every((o) => Math.hypot(dw(w.x - o.x), dw(w.y - o.y)) > 0.8)) liquid.push(w);
+    }
+  }
+  const temp = () => +q<HTMLInputElement>('.hb-t').value;
+
+  function step() {
+    const T = temp();
+    if (T <= 0) { const amp = 0.012 * (T + 25) / 25; shownIce = ice.map((w) => ({ x: w.x + amp * (rnd() - 0.5), y: w.y + amp * (rnd() - 0.5), a: w.a + amp * (rnd() - 0.5) })); return; }
+    const s = 0.02 + 0.0007 * T, k = 0.04 * Math.max(0.05, 1 - T / 110);
+    for (const w of liquid) {
+      w.x = wrap(w.x + s * (rnd() - 0.5)); w.y = wrap(w.y + s * (rnd() - 0.5)); w.a += 12 * s * (rnd() - 0.5);
+      // Turn a little so one H points at the nearest neighbour's O (hydrogen bonds pull molecules into line).
+      let best: Water | null = null, bd = Infinity;
+      for (const o of liquid) { if (o === w) continue; const r = Math.hypot(dw(o.x - w.x), dw(o.y - w.y)); if (r < bd) { bd = r; best = o; } }
+      if (best) { const t = Math.atan2(dw(best.y - w.y), dw(best.x - w.x)), h = (52.25 * Math.PI) / 180; const opts = [t + h, t - h]; const want = opts.reduce((p, c) => (Math.abs(Math.sin((c - w.a) / 2)) < Math.abs(Math.sin((p - w.a) / 2)) ? c : p)); w.a += k * Math.atan2(Math.sin(want - w.a), Math.cos(want - w.a)); }
+    }
+    // Keep molecules apart (soft push), and pull very far neighbours closer a touch so the liquid stays packed.
+    for (let i = 0; i < liquid.length; i++) for (let j = i + 1; j < liquid.length; j++) {
+      const a = liquid[i], b = liquid[j], dx = dw(b.x - a.x), dy = dw(b.y - a.y), r = Math.hypot(dx, dy);
+      if (r < 0.85 && r > 1e-6) { const p = (0.85 - r) / 2 / r; a.x = wrap(a.x - dx * p); a.y = wrap(a.y - dy * p); b.x = wrap(b.x + dx * p); b.y = wrap(b.y + dy * p); }
+    }
+  }
+
+  function draw() {
+    const T = temp(), solid = T <= 0, ws = solid ? shownIce : liquid, ang = solid ? 90 : 104.5;
+    const bs = bonds(ws, ang, L), per = (2 * bs.length) / ws.length;
+    const fig: Figure = { w: W, h: H, alt: `${solid ? 'Ice' : 'Liquid water'} at ${T} °C: ${ws.length} molecules, ${bs.length} hydrogen bonds.`, draw: (ctx, w, h, pl) => {
+      ctx.strokeStyle = pl.line; ctx.lineWidth = 1; ctx.strokeRect(0.5, 0.5, w - 1, h - 1);
+      // Hydrogen bonds first, dashed.
+      ctx.setLineDash([3, 3]); ctx.strokeStyle = pl.accent; ctx.lineWidth = 2;
+      for (const [i, k, j] of bs) { const [hx, hy] = hydrogens(ws[i], ang)[k], o = ws[j]; const ex = hx + dw(o.x - hx), ey = hy + dw(o.y - hy); ctx.beginPath(); ctx.moveTo(hx * S, h - hy * S); ctx.lineTo(ex * S, h - ey * S); ctx.stroke(); }
+      ctx.setLineDash([]);
+      for (const m of ws) {
+        const hs = hydrogens(m, ang);
+        for (const dx of [-L, 0, L]) for (const dy of [-L, 0, L]) {
+          const X = (m.x + dx) * S, Y = h - (m.y + dy) * S; if (X < -30 || X > w + 30 || Y < -30 || Y > h + 30) continue;
+          ctx.strokeStyle = pl.ink; ctx.lineWidth = 3;
+          for (const [hx, hy] of hs) { ctx.beginPath(); ctx.moveTo(X, Y); ctx.lineTo((hx + dx) * S, h - (hy + dy) * S); ctx.stroke(); }
+          for (const [hx, hy] of hs) { ctx.beginPath(); ctx.arc((hx + dx) * S, h - (hy + dy) * S, 6, 0, 2 * Math.PI); ctx.fillStyle = pl.bg; ctx.fill(); ctx.strokeStyle = pl.ink; ctx.lineWidth = 1.5; ctx.stroke(); }
+          ctx.beginPath(); ctx.arc(X, Y, 12, 0, 2 * Math.PI); ctx.fillStyle = pl.bad; ctx.fill();
+        }
+      }
+    } };
+    paint(q<HTMLCanvasElement>('.hb-fig'), fig);
+    q('.hb-tv').textContent = `Temperature: ${T} °C`;
+    q('.hb-big').textContent = solid ? `Ice: ${bs.length} hydrogen bonds, locked in place` : T >= 100 ? `Boiling: ${bs.length} hydrogen bonds right now` : `Liquid water: ${bs.length} hydrogen bonds right now`;
+    if (frame++ % 6 === 0 || !playing) q('.hb-facts').replaceChildren(
+      ...[['Molecules in the box', `${ws.length}`, solid ? 'open lattice: fewer fit' : 'packed closer than in ice'],
+        ['Hydrogen bonds per molecule', per.toFixed(1), solid ? 'every molecule gives 2 and takes 2' : 'they break and re-form all the time'],
+        ['Density', solid ? 'lower: ice floats' : 'higher', 'real ice is about 9% less dense than water']].map(([k, v, sm]) => fact(k, v, sm)),
+    );
+  }
+
+  function loop() { step(); draw(); if (playing) raf = requestAnimationFrame(loop); }
+  q('.hb-play').addEventListener('click', () => { playing = !playing; q('.hb-play').textContent = playing ? 'Pause' : 'Play'; cancelAnimationFrame(raf); if (playing) loop(); else draw(); });
+  q('.hb-t').addEventListener('input', () => { if (!playing) { step(); draw(); } });
+  document.addEventListener('fibub:theme', draw);
+  initLiquid(); for (let i = 0; i < 120; i++) step();
+  q('.hb-play').textContent = playing ? 'Pause' : 'Play';
+  loop();
+
+  function pickMol(id: string) {
+    const m = MOLS.find((x) => x.id === id)!, h = hbond(m);
+    root.querySelectorAll('.hb-mols button').forEach((b) => b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.m === id)));
+    q('.hb-ans').textContent = h === 'both' ? `${m.formula}: yes, its molecules hydrogen bond to each other` : h === 'acceptor' ? `${m.formula}: only with water (it can accept, not give)` : `${m.formula}: no hydrogen bonds`;
+    q('.hb-ans').style.color = h === 'both' ? 'var(--good)' : h === 'acceptor' ? 'var(--warn)' : 'var(--bad)';
+    q('.hb-why').textContent = m.why;
+  }
+  root.querySelectorAll<HTMLButtonElement>('.hb-mols button').forEach((b) => b.addEventListener('click', () => pickMol(b.dataset.m!)));
+  pickMol('h2o');
+
+  quiz(q('.hb-quiz'), (): Question[] => {
+    const m1 = pick(MOLS.filter((m) => m.id !== 'ch3och3'));
+    return [
+      { text: `Can molecules of ${m1.formula} (${m1.name}) hydrogen bond to each other?`, choices: ['Yes', 'No'], correct: hbond(m1) === 'both' ? 0 : 1, worked: m1.why },
+      { text: 'In ice, how many hydrogen bonds does each water molecule take part in?', choices: ['2', '3', '4', '6'], correct: 2, worked: 'Each molecule gives two (through its two H atoms) and takes two (on the two lone pairs of its O): four in all, arranged as a tetrahedron in real ice.' },
+      { text: 'Why does ice float on water?', choices: ['Ice has air bubbles in it', 'Hydrogen bonds hold ice in an open lattice, so it is less dense', 'Ice molecules are lighter'], correct: 1, worked: 'In ice every molecule is held at the full hydrogen-bond distance in an open, cage-like lattice. When it melts, some bonds break and molecules pack closer, so liquid water is denser.' },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .hbx .hb-sl { display: grid; gap: 4px; color: var(--ink); font-size: 15px; }
+  .hbx .hb-sl input { width: 100%; height: 32px; accent-color: var(--accent); }
+  .hbx .hb-big { margin: 10px 0 6px; }
+  .hbx .hb-fig { max-width: 420px; margin: 0 auto; }
+  .hbx .hb-ctl { margin: 10px 0; }
+  .hbx .hb-play { min-height: 44px; min-width: 80px; }
+  .hbx .hb-k { display: inline-block; min-width: 18px; text-align: center; font-weight: 700; border-radius: 9px; font-size: 12px; }
+  .hbx .hb-ko { background: var(--bad); color: var(--bg); }
+  .hbx .hb-kh { border: 1.5px solid var(--ink); }
+  .hbx .hb-kb { color: var(--accent); }
+  .hbx .hb-mols { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .hbx .hb-mols button { min-height: 44px; min-width: 64px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font: inherit; cursor: pointer; }
+  .hbx .hb-mols button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .hbx .hb-ans { margin: 12px 0 4px; }
+  .hbx .hb-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+</style>

@@ -1,0 +1,208 @@
+---
+// Slope field and solutions: the direction field of dy/dx = f(x, y), tap to trace particular solutions, and the
+// separable or integrating-factor working for the ready-made equations (growth and decay, cooling, mixing tank,
+// two linear and two separable examples). Class 12 maths, differential equations.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax slf">
+  <div class="ax-card">
+    <h2>Pick an equation</h2>
+    <div class="ax-grid">
+      <label>Equation <select class="sf-eq">
+        <option value="growth" selected>Growth and decay: dy/dt = k y</option><option value="cooling">Cooling: dT/dt = −k (T − Tₛ)</option><option value="tank">Mixing tank: dy/dt = r c − (r/V) y</option>
+        <option value="lin1">Linear: dy/dx = x + y</option><option value="lin2">Linear: dy/dx + y/x = x²</option><option value="circ">Separable: dy/dx = −x/y</option><option value="xy">Separable: dy/dx = x y</option><option value="own">My own dy/dx = f(x, y)…</option>
+      </select></label>
+      <label class="sf-ownl" hidden>dy/dx = <input class="sf-own" type="text" value="x - y" autocomplete="off" spellcheck="false" /></label>
+    </div>
+    <div class="ax-row sf-win" hidden>
+      <label>x from <input class="sf-x0" type="number" value="-3" step="any" /></label><label>to <input class="sf-x1" type="number" value="3" step="any" /></label>
+      <label>y from <input class="sf-y0" type="number" value="-3" step="any" /></label><label>to <input class="sf-y1" type="number" value="3" step="any" /></label>
+    </div>
+    <p class="ax-err sf-err" hidden></p>
+    <p class="ax-help sf-story"></p>
+    <div class="sf-params"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>The slope field</h2>
+    <canvas class="ax-fig sf-fig" role="img"></canvas>
+    <p class="ax-help">Each little dash has the slope dy/dx at that point. Tap anywhere to draw the solution through it: it follows the dashes. Blue is the newest curve.</p>
+    <div class="ax-row">
+      <button type="button" class="btn small secondary sf-clear">Clear curves</button>
+      <label class="ax-check"><input type="checkbox" class="sf-exact" checked /> Show the formula answer (dashed)</label>
+    </div>
+    <dl class="ax-facts sf-facts"></dl>
+  </div>
+
+  <div class="ax-card sf-workc">
+    <h2>Solve it by hand</h2>
+    <p class="sf-kind"></p>
+    <ol class="sf-steps"></ol>
+    <p class="ax-big sf-ans"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sf-try">
+      <li>Growth: set k below 0 and the same equation describes decay. Every curve has the same shape, just scaled.</li>
+      <li>Cooling: start one curve above room temperature and one below. Both head for Tₛ, the flat line where dT/dt = 0.</li>
+      <li>Mixing tank: whatever salt you start with, the curves all approach c × V grams.</li>
+      <li>dy/dx = −x/y: the curves are circles, and each one stops on the x-axis, where the slope would be infinite.</li>
+      <li>Type your own, such as <code>x - y</code>, <code>sin(x) - y</code> or <code>y*(1 - y)</code>, and set the window.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="sf-quiz" />
+</div>
+
+<script>
+  import { ODE_PRESETS, paramsOf, trace, solveTo, type OdePreset } from '../../lib/sci/school-r-ode';
+  import { parse, compile, variables } from '../../lib/sci/expr';
+  import { paint, type Palette } from '../../lib/report';
+  import { view, px, py, wx, wy, axes, dot, pointer, fmt, type View } from '../../lib/sm-graph';
+  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.slf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380, H = 320;
+  let P: OdePreset | null = null, prm: Record<string, number> = {}, f: ((x: number, y: number) => number) | null = null;
+  let box: [number, number, number, number] = [-3, 3, -3, 3], V: View = view(-3, 3, -3, 3, W, H);
+  let pts: [number, number][] = [];
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+
+  function setEq() {
+    const id = q<HTMLSelectElement>('.sf-eq').value;
+    q('.sf-ownl').hidden = id !== 'own'; q('.sf-win').hidden = id !== 'own';
+    const holder = q('.sf-params'); holder.replaceChildren();
+    P = ODE_PRESETS.find((p) => p.id === id) ?? null;
+    if (P) {
+      prm = paramsOf(P);
+      for (const p of P.params) {
+        const lab = document.createElement('label'); lab.className = 'sf-sl';
+        const b = document.createElement('b'); b.textContent = fmt(p.value, 3);
+        const r = document.createElement('input'); Object.assign(r, { type: 'range', min: String(p.min), max: String(p.max), step: String(p.step), value: String(p.value) }); r.dataset.k = p.key;
+        r.addEventListener('input', () => { prm[p.key] = +r.value; b.textContent = fmt(+r.value, 3); build(); });
+        lab.append(`${p.label} = `, b, r); holder.append(lab);
+      }
+      box = [...P.win]; pts = [P.start];
+    } else pts = [];
+    build();
+  }
+
+  function build() {
+    const err = q('.sf-err'); err.hidden = true;
+    if (P) { const p = P, pr = prm; f = (x, y) => p.f(x, y, pr); q('.sf-story').textContent = `${p.eq}. ${p.story}`; }
+    else {
+      const nums = ['.sf-x0', '.sf-x1', '.sf-y0', '.sf-y1'].map((s) => Number(q<HTMLInputElement>(s).value));
+      const fail = (m: string) => { err.textContent = m; err.hidden = false; f = null; draw(); };
+      if (!nums.every(Number.isFinite) || nums[0] >= nums[1] || nums[2] >= nums[3]) return fail('Give a window with "from" smaller than "to".');
+      box = nums as [number, number, number, number];
+      try { const n = parse(q<HTMLInputElement>('.sf-own').value); const bad = variables(n).filter((v) => v !== 'x' && v !== 'y'); if (bad.length) return fail(`Use only x and y (found ${bad.join(', ')}).`); const c = compile(n, ['x', 'y']); f = (x, y) => c([x, y]); }
+      catch (e) { return fail(`Can't read that formula: ${(e as Error).message}`); }
+      q('.sf-story').textContent = 'Your own equation, drawn and solved numerically (Runge-Kutta, order 4).';
+      if (!pts.length) pts = [[(box[0] + box[1]) / 2, (box[2] + box[3]) / 2]];
+    }
+    V = view(box[0], box[1], box[2], box[3], W, H, { l: 40, r: 10, t: 12, b: 24 });
+    draw();
+  }
+
+  function draw() {
+    const facts = q('.sf-facts');
+    if (!f) { facts.replaceChildren(); return; }
+    const g = f, exactOn = q<HTMLInputElement>('.sf-exact').checked && !!P;
+    const curves = pts.map(([a, b]) => trace(g, a, b, box));
+    paint(q<HTMLCanvasElement>('.sf-fig'), { w: W, h: H, alt: `Slope field of ${P ? P.eq : 'your equation'} with ${pts.length} solution curve${pts.length === 1 ? '' : 's'}`, draw: (ctx, w, h, pl: Palette) => {
+      axes(ctx, V, pl, { xName: P?.xName ?? 'x', yName: P?.yName ?? 'y' });
+      // field: dashes of equal length on screen
+      const cols = 19, rows = 15, L = 8;
+      ctx.strokeStyle = pl.muted; ctx.lineWidth = 1.3; ctx.beginPath();
+      for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
+        const X = V.l + ((i + 0.5) * (w - V.l - V.r)) / cols, Y = V.t + ((j + 0.5) * (h - V.t - V.b)) / rows;
+        const s = g(wx(V, X), wy(V, Y));
+        let dx: number, dy: number;
+        if (!Number.isFinite(s)) { dx = 0; dy = L; } else {
+          const sx = (w - V.l - V.r) / (V.x1 - V.x0), sy = (h - V.t - V.b) / (V.y1 - V.y0), vx = sx, vy = -s * sy, m = Math.hypot(vx, vy);
+          dx = (vx / m) * L; dy = (vy / m) * L;
+        }
+        ctx.moveTo(X - dx, Y - dy); ctx.lineTo(X + dx, Y + dy);
+      }
+      ctx.stroke();
+      ctx.save(); ctx.beginPath(); ctx.rect(V.l, V.t, w - V.l - V.r, h - V.t - V.b); ctx.clip();
+      curves.forEach((c, k) => {
+        const newest = k === curves.length - 1;
+        ctx.strokeStyle = newest ? pl.accent : pl.accent2; ctx.lineWidth = newest ? 2.6 : 1.8; ctx.beginPath();
+        c.forEach(([x, y], i) => { const X = px(V, x), Y = py(V, y); if (i) ctx.lineTo(X, Y); else ctx.moveTo(X, Y); });
+        ctx.stroke();
+        if (exactOn && newest && P) {
+          const p = P, [a, b] = pts[k];
+          ctx.strokeStyle = pl.good; ctx.lineWidth = 1.6; ctx.setLineDash([5, 5]); ctx.beginPath(); let pen = false;
+          for (let i = 0; i <= 300; i++) { const x = V.x0 + ((V.x1 - V.x0) * i) / 300, y = p.exact(x, a, b, prm); if (!Number.isFinite(y) || Math.abs(y) > 1e6) { pen = false; continue; } const X = px(V, x), Y = py(V, y); if (pen) ctx.lineTo(X, Y); else { ctx.moveTo(X, Y); pen = true; } }
+          ctx.stroke(); ctx.setLineDash([]);
+        }
+      });
+      ctx.restore();
+      pts.forEach(([a, b], k) => dot(ctx, V, a, b, k === pts.length - 1 ? pl.accent : pl.accent2, 4.5));
+    } });
+    const last = pts[pts.length - 1];
+    if (!last) { facts.replaceChildren(); q('.sf-workc').hidden = true; return; }
+    const [a, b] = last, s = g(a, b), xe = a + (V.x1 - a) * 0.5;
+    const yn = solveTo(g, a, b, xe), ye = P ? P.exact(xe, a, b, prm) : NaN;
+    facts.replaceChildren(
+      fact('Start point', `(${fmt(a, 3)}, ${fmt(b, 3)})`),
+      fact('Slope there', Number.isFinite(s) ? fmt(s, 4) : 'undefined', 'dy/dx = f(x, y)'),
+      fact(`y at ${P?.xName.split(' ')[0] ?? 'x'} = ${fmt(xe, 3)}`, Number.isFinite(yn) ? fmt(yn, 4) : 'not reached', 'Runge-Kutta, 1000 steps'),
+      ...(P ? [fact('Formula gives', Number.isFinite(ye) ? fmt(ye, 4) : 'not defined', Number.isFinite(ye) && Number.isFinite(yn) ? `difference ${Math.abs(ye - yn) < 5e-5 ? 'under 0.0001' : fmt(Math.abs(ye - yn), 6)}` : '')] : []),
+    );
+    const wc = q('.sf-workc');
+    if (!P) { wc.hidden = true; return; }
+    wc.hidden = false;
+    const wk = P.work(a, b, prm);
+    q('.sf-kind').textContent = wk.kind === 'separable' ? 'This equation is separable: get all the y on one side and all the x (or t) on the other, then integrate.' : 'This is a linear equation dy/dx + P y = Q: multiply by the integrating factor e^(∫P dx), then integrate.';
+    q('.sf-steps').replaceChildren(...wk.steps.map((t) => { const li = document.createElement('li'); li.textContent = t; return li; }));
+    q('.sf-ans').textContent = wk.answer;
+  }
+
+  const cv = q<HTMLCanvasElement>('.sf-fig');
+  cv.addEventListener('click', (e) => {
+    if (!f) return;
+    const { X, Y } = pointer(cv, e as PointerEvent, W, H);
+    if (X < V.l || X > W - V.r || Y < V.t || Y > H - V.b) return;
+    let x = wx(V, X), y = wy(V, Y);
+    if (P?.id === 'lin2' && x <= 0) return;
+    const r = (v: number, span: number) => { const d = Math.pow(10, Math.floor(Math.log10(span)) - 2); return Math.round(v / d) * d; };
+    x = r(x, V.x1 - V.x0); y = r(y, V.y1 - V.y0);
+    pts.push([x, y]); if (pts.length > 8) pts.shift(); draw();
+  });
+  q('.sf-clear').addEventListener('click', () => { pts = []; draw(); });
+  q('.sf-exact').addEventListener('change', draw);
+  q('.sf-eq').addEventListener('change', setEq);
+  ['.sf-own', '.sf-x0', '.sf-x1', '.sf-y0', '.sf-y1'].forEach((s) => q(s).addEventListener('input', () => { pts = []; build(); }));
+  document.addEventListener('fibub:theme', draw);
+  setEq();
+
+  quiz(q('.sf-quiz'), (): Question[] => {
+    const k = pick([0.1, 0.2, 0.5]), y0 = rint(2, 9), t = rint(1, 5);
+    const Ts = rint(15, 30), T0 = rint(60, 95), kc = pick([0.05, 0.1, 0.2]), tc = rint(2, 10);
+    const x0 = rint(-2, 2), yy = rint(-3, 3);
+    const a = rint(1, 4), b = rint(2, 6);
+    return [
+      { text: `dy/dt = ${k} y with y(0) = ${y0}. What is y at t = ${t}? (2 decimal places)`, answer: y0 * Math.exp(k * t), tol: 0.006, worked: `y = ${y0} e^(${k} t), so y(${t}) = ${y0} e^(${fmt(k * t, 3)}) = ${fmt(y0 * Math.exp(k * t), 4)}.` },
+      { text: `Tea at ${T0} °C cools in a ${Ts} °C room with dT/dt = −${kc}(T − ${Ts}). What is T after ${tc} minutes? (1 decimal place)`, answer: Ts + (T0 - Ts) * Math.exp(-kc * tc), tol: 0.06, worked: `T = ${Ts} + (${T0} − ${Ts}) e^(−${kc} × ${tc}) = ${Ts} + ${T0 - Ts} × ${fmt(Math.exp(-kc * tc), 4)} = ${fmt(Ts + (T0 - Ts) * Math.exp(-kc * tc), 3)} °C.` },
+      { text: `What is the slope of the solution of dy/dx = x + y at the point (${x0}, ${yy})?`, answer: x0 + yy, worked: `Put the point into f(x, y) = x + y: ${x0} + ${yy < 0 ? `(${yy})` : yy} = ${x0 + yy}.` },
+      { text: `What is the integrating factor of dy/dx + ${a} y = ${b}? Type its value at x = 1 (2 decimal places).`, answer: Math.exp(a), tol: 0.006, worked: `IF = e^(∫${a} dx) = e^(${a}x), which is e^${a} ≈ ${fmt(Math.exp(a), 3)} at x = 1.` },
+      { text: 'Which equation is separable?', choices: ['dy/dx = x + y', 'dy/dx = x y', 'dy/dx = x² + y²'], correct: 1, worked: 'x y = (x)(y) splits into a function of x times a function of y, so dy/y = x dx. The other two do not split like that.' },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .slf .sf-sl { display: grid; gap: 4px; color: var(--ink); font-size: 15px; margin-top: 10px; }
+  .slf .sf-sl input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .slf .sf-win input { max-width: 90px; }
+  .slf canvas.sf-fig { cursor: crosshair; }
+  .slf .sf-steps { padding-left: 22px; display: grid; gap: 6px; overflow-wrap: anywhere; }
+  .slf .sf-ans { overflow-wrap: anywhere; margin: 8px 0 0; font-size: clamp(18px, 4.5vw, 24px); }
+  .slf .sf-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+  .slf .btn { min-height: 44px; }
+</style>

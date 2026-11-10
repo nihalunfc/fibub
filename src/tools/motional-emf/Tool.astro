@@ -1,0 +1,170 @@
+---
+// Rod on rails: a metal rod slides along two rails in a magnetic field. See the motional emf Bℓv, the current and
+// its direction (Lenz's law), the drag force, and how the rod slows when let go or speeds up to a top speed.
+import '../../styles/astro.css';
+---
+<div class="ax mem">
+  <div class="ax-card">
+    <h2>Rod on rails</h2>
+    <span class="ax-seg mem-mode" role="group" aria-label="How the rod moves"><button type="button" data-v="push" aria-pressed="true">Steady speed</button><button type="button" data-v="coast" aria-pressed="false">Push and let go</button><button type="button" data-v="pull" aria-pressed="false">Steady pull</button></span>
+    <canvas class="ax-fig mem-fig" aria-label="A rod sliding on two rails in a magnetic field"></canvas>
+    <div class="ax-legend"><span><i class="mem-kb"></i>field B into the page (×)</span><span><i class="mem-ki"></i>current</span><span><i class="mem-kf"></i>magnetic drag force</span></div>
+    <label class="mem-sl">Field B: <b class="mem-bv"></b><input type="range" class="mem-b" min="1" max="10" step="1" value="5" aria-label="Field in tenths of a tesla" /></label>
+    <label class="mem-sl">Rod length ℓ (gap between rails): <b class="mem-lv"></b><input type="range" class="mem-l" min="10" max="100" step="10" value="50" aria-label="Rod length in cm" /></label>
+    <label class="mem-sl">Resistance R: <b class="mem-rv"></b><input type="range" class="mem-r" min="1" max="10" step="1" value="2" aria-label="Resistance in ohm" /></label>
+    <label class="mem-sl mem-vwrap">Speed v: <b class="mem-vv"></b><input type="range" class="mem-v" min="1" max="10" step="1" value="4" aria-label="Speed in metre per second" /></label>
+    <label class="mem-sl mem-mwrap" hidden>Mass of the rod m: <b class="mem-mv"></b><input type="range" class="mem-m" min="1" max="10" step="1" value="2" aria-label="Mass in tenths of a kilogram" /></label>
+    <label class="mem-sl mem-fwrap" hidden>Pulling force: <b class="mem-fv"></b><input type="range" class="mem-f" min="1" max="20" step="1" value="5" aria-label="Force in tenths of a newton" /></label>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small mem-go">Start</button>
+      <button type="button" class="btn secondary small mem-reset">Reset</button>
+    </div>
+    <p class="ax-big mem-big" aria-live="polite"></p>
+    <p class="mem-text"></p>
+    <dl class="ax-facts mem-facts" style="margin-top:10px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Speed against time</h2>
+    <canvas class="ax-fig mem-graph" aria-label="The rod's speed against time"></canvas>
+    <p class="mem-gtext"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="mem-try">
+      <li>Double the speed: the emf, the current and the drag force all double, and the power goes up four times.</li>
+      <li>Push and let go: the rod slows down and stops, and its kinetic energy ends up as heat in the resistor.</li>
+      <li>Pull with a steady force: the rod speeds up until the drag matches the pull, then moves at a steady top speed.</li>
+      <li>Make R bigger: less current, less drag, so the rod coasts further and its top speed is higher.</li>
+      <li>Watch the current's direction: it always makes a force against the motion (Lenz's law).</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="mem-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .mem .mem-fig, .mem .mem-graph { max-width: 560px; margin: 10px auto 0; }
+  .mem .mem-sl { display: grid; gap: 6px; margin-top: 12px; color: var(--ink); font-size: 15px; }
+  .mem .mem-sl[hidden] { display: none; }
+  .mem input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .mem .ax-seg button { min-height: 40px; }
+  .mem-kb { background: var(--muted); }
+  .mem-ki { background: var(--good); }
+  .mem-kf { background: var(--bad); }
+  .mem-big { font-size: clamp(18px, 4.6vw, 24px); margin: 12px 0 0; }
+  .mem-text, .mem-gtext { margin: 6px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .mem-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .mem .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .mem .eq-q p { margin: 0 0 6px; }
+  .mem .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .mem .eq-ok { color: var(--good); font-weight: 600; }
+  .mem .eq-no { color: var(--bad); }
+  .mem .eq-work { margin-top: 4px; font-size: 14px; }
+  .mem .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .mem .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { rod, tau, speed, terminal, questions } from '../../lib/sci/motional-emf';
+  import { pagePalette } from '../../lib/report';
+  import { setup, arrow, sci3, fact, seg, onTheme, quiz } from '../../lib/school-p34';
+
+  const root = document.querySelector<HTMLElement>('.mem')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fig = q<HTMLCanvasElement>('.mem-fig'), graph = q<HTMLCanvasElement>('.mem-graph');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  type Mode = 'push' | 'coast' | 'pull';
+  let mode: Mode = 'push', t = 0, xPos = 0, running = false, last = 0;
+  const val = (s: string) => +q<HTMLInputElement>(s).value;
+  const p = () => ({ B: val('.mem-b') / 10, l: val('.mem-l') / 100, R: val('.mem-r'), v0: val('.mem-v'), m: val('.mem-m') / 10, F: val('.mem-f') / 10 });
+  const vNow = () => { const s = p(); return mode === 'push' ? s.v0 : speed(s.B, s.l, s.R, s.m, mode === 'coast' ? s.v0 : 0, mode === 'pull' ? s.F : 0, t); };
+
+  function draw() {
+    const pal = pagePalette(), c = setup(fig, 360, 220), s = p(), v = vNow(), r = rod(s.B, s.l, v, s.R);
+    c.fillStyle = pal.bg; c.fillRect(0, 0, 360, 220);
+    const gap = 50 + s.l * 110, top = 110 - gap / 2, bot = 110 + gap / 2;
+    c.fillStyle = pal.muted; c.font = '12px system-ui, sans-serif'; c.textAlign = 'center';
+    for (let x = 60; x < 360; x += 30) for (let y = 20; y < 210; y += 30) c.fillText('×', x, y + 4);
+    c.strokeStyle = pal.ink; c.lineWidth = 4; c.beginPath(); c.moveTo(30, top); c.lineTo(350, top); c.moveTo(30, bot); c.lineTo(350, bot); c.stroke();
+    // Resistor (zig-zag) across the left end.
+    c.lineWidth = 2; c.beginPath(); c.moveTo(30, top); c.lineTo(30, 110 - 20);
+    for (let k = 0; k < 6; k++) c.lineTo(30 + (k % 2 ? -8 : 8), 110 - 20 + (k + 1) * (40 / 6));
+    c.lineTo(30, 110 + 20); c.lineTo(30, bot); c.stroke();
+    c.fillStyle = pal.ink; c.textAlign = 'left'; c.fillText(`R = ${s.R} Ω`, 40, 112);
+    const rx = 110 + (xPos % 200);
+    c.strokeStyle = pal.accent2; c.lineWidth = 8; c.beginPath(); c.moveTo(rx, top - 6); c.lineTo(rx, bot + 6); c.stroke();
+    if (v > 1e-3) {
+      arrow(c, rx + 10, 110, rx + 10 + Math.min(60, 8 * v), 110, pal.ink, 2.5, 'v');
+      // Current: up the rod, left along the top rail, down through R, right along the bottom: anticlockwise.
+      const a = Math.min(4, 1.5 + r.I * 2);
+      arrow(c, rx - 10, bot - 12, rx - 10, top + 12, pal.good, a);
+      arrow(c, rx - 30, top + 9, rx - 80, top + 9, pal.good, a, 'I');
+      arrow(c, 70, bot - 9, 120, bot - 9, pal.good, a);
+      arrow(c, rx, 110 + gap / 4, rx - Math.min(70, 12 + 60 * Math.min(1, r.F)), 110 + gap / 4, pal.bad, 3, 'F');
+    }
+    fig.setAttribute('aria-label', `Rod moving at ${sci3(v)} metres per second; emf ${sci3(r.emf)} volts`);
+  }
+  function drawGraph() {
+    const pal = pagePalette(), c = setup(graph, 360, 180), s = p();
+    c.fillStyle = pal.bg; c.fillRect(0, 0, 360, 180);
+    const T = mode === 'push' ? 1 : tau(s.B, s.l, s.R, s.m), tEnd = 5 * T, vmax = Math.max(s.v0, mode === 'pull' ? terminal(s.B, s.l, s.R, s.F) : 0, 1);
+    const X0 = 40, X1 = 350, Y0 = 150, Y1 = 14, X = (tt: number) => X0 + (tt / tEnd) * (X1 - X0), Y = (v: number) => Y0 - (v / vmax) * (Y0 - Y1);
+    c.strokeStyle = pal.ink; c.lineWidth = 1; c.beginPath(); c.moveTo(X0, Y1); c.lineTo(X0, Y0); c.lineTo(X1, Y0); c.stroke();
+    c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText('time (s)', (X0 + X1) / 2, 176);
+    for (let k = 0; k <= 5; k++) c.fillText(sci3(k * T), X(k * T), Y0 + 13);
+    c.textAlign = 'right'; c.fillText(`${sci3(vmax)} m/s`, X0 - 2, Y1 + 8); c.fillText('0', X0 - 4, Y0);
+    c.strokeStyle = pal.accent; c.lineWidth = 2; c.beginPath();
+    for (let k = 0; k <= 200; k++) { const tt = (k / 200) * tEnd, v = mode === 'push' ? s.v0 : speed(s.B, s.l, s.R, s.m, mode === 'coast' ? s.v0 : 0, mode === 'pull' ? s.F : 0, tt); k ? c.lineTo(X(tt), Y(v)) : c.moveTo(X(tt), Y(v)); }
+    c.stroke();
+    c.fillStyle = pal.bad; c.beginPath(); c.arc(X(Math.min(t, tEnd)), Y(vNow()), 5, 0, Math.PI * 2); c.fill();
+  }
+  function texts() {
+    const s = p(), v = vNow(), r = rod(s.B, s.l, v, s.R), T = tau(s.B, s.l, s.R, s.m);
+    q('.mem-bv').textContent = `${s.B} T`; q('.mem-lv').textContent = `${Math.round(s.l * 100)} cm`; q('.mem-rv').textContent = `${s.R} Ω`;
+    q('.mem-vv').textContent = `${s.v0} m/s`; q('.mem-mv').textContent = `${s.m} kg`; q('.mem-fv').textContent = `${s.F} N`;
+    q('.mem-big').textContent = `ε = Bℓv = ${s.B} × ${s.l} × ${sci3(v)} = ${sci3(r.emf)} V`;
+    q('.mem-text').textContent = `Current I = ε/R = ${sci3(r.I)} A, flowing anticlockwise round the circuit (up through the rod). The field pushes on this current with F = BIℓ = ${sci3(r.F)} N, against the motion.`;
+    q('.mem-facts').replaceChildren(
+      fact('Speed now', `${sci3(v)} m/s`, mode === 'push' ? 'held steady by your push' : `after ${sci3(t)} s`),
+      fact('Power to keep it moving', `${sci3(r.P)} W`, 'F v'), fact('Heat in R', `${sci3(r.heat)} W`, 'I²R: the same'),
+      fact('Flux change per second', `${sci3(s.B * s.l * v)} Wb/s`, 'B × area swept per second'),
+    );
+    q('.mem-gtext').textContent = mode === 'push'
+      ? 'At a steady speed you must keep pushing with a force equal to the drag, and all your work turns into heat in the resistor.'
+      : mode === 'coast'
+        ? `Let go at ${s.v0} m/s, the rod slows as v = v₀ e^(−t/τ), with τ = mR/(B²ℓ²) = ${sci3(T)} s. Its kinetic energy, ½mv₀² = ${sci3(0.5 * s.m * s.v0 * s.v0)} J, all ends up as heat.`
+        : `Pulled from rest with ${s.F} N, it speeds up to the top speed v = FR/(B²ℓ²) = ${sci3(terminal(s.B, s.l, s.R, s.F))} m/s, where the drag equals the pull (τ = ${sci3(T)} s).`;
+  }
+  const all = () => { texts(); draw(); drawGraph(); };
+  function tick(now: number) {
+    const dt = last ? Math.min(0.05, (now - last) / 1000) : 0; last = now;
+    if (running) {
+      const s = p(), tEnd = mode === 'push' ? Infinity : 5 * tau(s.B, s.l, s.R, s.m);
+      t += dt; xPos += vNow() * dt * 25;
+      if (t >= tEnd) { t = tEnd; running = false; q('.mem-go').textContent = 'Start'; }
+      all();
+    }
+    requestAnimationFrame(tick);
+  }
+  const reset = () => { t = 0; xPos = 0; running = false; q('.mem-go').textContent = 'Start'; all(); };
+  seg(q('.mem-mode'), (v) => {
+    mode = v as Mode;
+    q('.mem-vwrap').hidden = mode === 'pull'; q('.mem-mwrap').hidden = mode === 'push'; q('.mem-fwrap').hidden = mode !== 'pull';
+    reset();
+  });
+  for (const s of ['.mem-b', '.mem-l', '.mem-r', '.mem-v', '.mem-m', '.mem-f']) q(s).addEventListener('input', () => (mode === 'push' ? all() : reset()));
+  q('.mem-go').addEventListener('click', () => {
+    if (reduce && mode !== 'push') { const s = p(); t = 5 * tau(s.B, s.l, s.R, s.m); all(); return; }
+    running = !running; q('.mem-go').textContent = running ? 'Pause' : 'Start';
+  });
+  q('.mem-reset').addEventListener('click', reset);
+  onTheme(all);
+  all();
+  quiz(q('.mem-quiz'), () => questions());
+  requestAnimationFrame(tick);
+</script>

@@ -1,0 +1,190 @@
+---
+// Carnot engine, refrigerator and heat pump (Learn): energy-flow picture with arrows to scale, efficiency 1 − Tc/Th,
+// COPs, the p–V cycle of an ideal gas with a dot going round it, and an inventor's-claim checker.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn cng">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">The best possible heat engine</h2>
+      <div class="ax-seg cn-mode" role="group" aria-label="Run it as"><button type="button" data-m="engine" aria-pressed="true">Engine</button><button type="button" data-m="fridge" aria-pressed="false">Refrigerator</button><button type="button" data-m="pump" aria-pressed="false">Heat pump</button></div>
+    </div>
+    <canvas class="lrn-cv cn-flow" style="margin-top:10px" aria-label="Energy flow: heat from the hot reservoir, work, and heat to the cold reservoir, with arrow widths to scale"></canvas>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Hot side T₁ <b class="cn-Thv"></b><input type="range" class="cn-Th" min="250" max="1500" step="5" value="500" aria-label="Hot reservoir temperature in kelvin" /></label>
+      <label class="lrn-sl">Cold side T₂ <b class="cn-Tcv"></b><input type="range" class="cn-Tc" min="200" max="1000" step="5" value="300" aria-label="Cold reservoir temperature in kelvin" /></label>
+      <label class="lrn-sl"><span class="cn-Qlab">Heat taken in per cycle Q₁</span> <b class="cn-Qv"></b><input type="range" class="cn-Q" min="100" max="5000" step="100" value="1000" aria-label="Heat per cycle in joules" /></label>
+    </div>
+    <p class="ax-err cn-err" hidden></p>
+    <p class="lrn-eq cn-eq"></p>
+    <dl class="ax-facts cn-facts" style="margin-top:10px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>The cycle on a p–V diagram</h2>
+    <canvas class="lrn-cv cn-pv" aria-label="Pressure against volume for the Carnot cycle: two isotherms and two adiabats, with a dot going round"></canvas>
+    <p class="lrn-eq cn-step" aria-live="off"></p>
+    <div class="ax-row" style="margin-top:6px"><button type="button" class="btn secondary small cn-play">Pause</button></div>
+    <p class="ax-help cn-gas"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check an inventor’s claim</h2>
+    <div class="ax-grid">
+      <label><span class="cn-clab">Claimed efficiency (%)</span><input type="text" inputmode="decimal" class="cn-claim" value="45" aria-label="Claimed efficiency or COP" /></label>
+    </div>
+    <p class="cn-verdict" style="margin:8px 0 0;font-weight:600"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Bring the cold side up close to the hot side: the efficiency drops towards zero. An engine needs a temperature difference.</li>
+      <li>Find the hot temperature that gives 50 % with the cold side at 300 K.</li>
+      <li>Switch to Refrigerator: the arrows turn round and work goes in. A small temperature difference gives a big COP.</li>
+      <li>Heat pump: its COP is always 1 more than the refrigerator’s at the same temperatures. Why?</li>
+      <li>Claim an engine of 60 % between 500 K and 300 K. Is it possible?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cn-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { carnotEff, copFridge, copHeatPump, carnotCycle, cyclePressure, GAS_R } from '../../lib/sci/n2-thermal';
+  import { mountQuiz, pick, one, r, fitCanvas, loop } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.cng')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v_ = (c: string) => +q<HTMLInputElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const degC = (K: number) => `${sig(K - 273.15, 4)} °C`.replace('-', '−');
+  let mode = 'engine', phase = 0;
+  const V1 = 0.001, RATIO = 2, GAMMA = 1.4;
+
+  function st() {
+    let Th = v_('.cn-Th'), Tc = v_('.cn-Tc'), clamped = false;
+    if (Tc >= Th - 5) { Tc = Th - 5; clamped = true; }
+    const eta = carnotEff(Th, Tc), Q = v_('.cn-Q');
+    let Qh: number, Qc: number, W: number;
+    if (mode === 'engine') { Qh = Q; W = eta * Qh; Qc = Qh - W; }
+    else if (mode === 'fridge') { Qc = Q; W = Qc / copFridge(Th, Tc); Qh = Qc + W; }
+    else { Qh = Q; W = Qh / copHeatPump(Th, Tc); Qc = Qh - W; }
+    // Gas amount so the isothermal step at Th takes in Qh: n = Qh / (R Th ln r)
+    const n = Qh / (GAS_R * Th * Math.log(RATIO));
+    return { Th, Tc, clamped, eta, Qh, Qc, W, n, cyc: carnotCycle(n, Th, Tc, V1, RATIO, GAMMA) };
+  }
+
+  function arrow(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, w: number, col: string) {
+    const a = Math.atan2(y2 - y1, x2 - x1), hl = Math.max(10, w * 0.9), hw = Math.max(8, w * 0.9);
+    const xb = x2 - hl * Math.cos(a), yb = y2 - hl * Math.sin(a);
+    ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = w; ctx.lineCap = 'butt';
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(xb, yb); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(xb + hw * Math.sin(a), yb - hw * Math.cos(a)); ctx.lineTo(xb - hw * Math.sin(a), yb + hw * Math.cos(a)); ctx.closePath(); ctx.fill();
+  }
+
+  function drawFlow(s: ReturnType<typeof st>) {
+    const { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.cn-flow'), 250), pal = pagePalette();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const hot = pal.red ? pal.ink : pal.bad, cold = pal.red ? pal.muted : pal.accent, work = pal.red ? pal.ink : pal.good;
+    const cx = Math.min(W * 0.38, 150), bw = Math.min(W * 0.6, 220);
+    ctx.fillStyle = hot; ctx.fillRect(cx - bw / 2, 6, bw, 40); ctx.fillStyle = cold; ctx.fillRect(cx - bw / 2, H - 46, bw, 40);
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 13px system-ui, sans-serif'; ctx.textAlign = 'center';
+    if (pal.red) ctx.fillStyle = '#000';
+    ctx.fillText(`Hot  T₁ = ${s.Th} K`, cx, 31); ctx.fillText(`Cold  T₂ = ${s.Tc} K`, cx, H - 21);
+    const big = Math.max(s.Qh, 1), wid = (x: number) => 4 + (x / big) * 30;
+    const ey = H / 2;
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, ey, 28, 0, 7); ctx.stroke();
+    ctx.fillStyle = pal.ink; ctx.font = '12px system-ui, sans-serif'; ctx.fillText(mode === 'engine' ? 'engine' : mode === 'fridge' ? 'fridge' : 'pump', cx, ey + 4);
+    const down = mode === 'engine';
+    if (down) { arrow(ctx, cx, 48, cx, ey - 30, wid(s.Qh), hot); arrow(ctx, cx, ey + 30, cx, H - 48, wid(s.Qc), cold); arrow(ctx, cx + 30, ey, Math.min(W - 10, cx + 30 + 90), ey, wid(s.W), work); }
+    else { arrow(ctx, cx, ey - 30, cx, 48, wid(s.Qh), hot); arrow(ctx, cx, H - 48, cx, ey + 30, wid(s.Qc), cold); arrow(ctx, Math.min(W - 10, cx + 30 + 90), ey, cx + 30, ey, wid(s.W), work); }
+    ctx.textAlign = 'left'; ctx.font = 'bold 12px system-ui, sans-serif';
+    const lx = cx + 22;
+    ctx.fillStyle = hot; ctx.fillText(`Q₁ = ${sig(s.Qh, 4)} J`, lx, 70);
+    ctx.fillStyle = cold; ctx.fillText(`Q₂ = ${sig(s.Qc, 4)} J`, lx, H - 58);
+    ctx.fillStyle = work; ctx.textAlign = 'right'; ctx.fillText(`W = ${sig(s.W, 4)} J`, W - 6, ey - 22);
+  }
+
+  function drawPV(s: ReturnType<typeof st>) {
+    const { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.cn-pv'), 240), pal = pagePalette(), c = s.cyc;
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const L = 44, Rm = 10, T = 10, B = H - 30, vMax = c.V[2] * 1.08, pMax = c.P[0] * 1.1;
+    const X = (v: number) => L + (v / vMax) * (W - L - Rm), Y = (p: number) => B - (p / pMax) * (B - T);
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, T); ctx.lineTo(L, B); ctx.lineTo(W - Rm, B); ctx.stroke();
+    ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('volume V (litres)', (L + W) / 2, H - 4);
+    for (let i = 0; i <= 4; i++) { const v = (vMax * i) / 4; ctx.fillText(sig(v * 1000, 2), X(v), B + 12); }
+    ctx.save(); ctx.translate(11, (T + B) / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('pressure p (kPa)', 0, 0); ctx.restore();
+    ctx.textAlign = 'right'; for (let i = 1; i <= 3; i++) { const p = (pMax * i) / 3; ctx.fillText(sig(p / 1000, 2), L - 3, Y(p) + 3); }
+    const legs: [number, number, number][] = [[0, c.V[0], c.V[1]], [1, c.V[1], c.V[2]], [2, c.V[2], c.V[3]], [3, c.V[3], c.V[0]]];
+    // shaded area = net work
+    ctx.beginPath(); legs.forEach(([lg, a, b], i) => { for (let k = 0; k <= 40; k++) { const v = a + ((b - a) * k) / 40, x = X(v), y = Y(cyclePressure(c, lg, v)); if (!i && !k) ctx.moveTo(x, y); else ctx.lineTo(x, y); } });
+    ctx.closePath(); ctx.fillStyle = pal.grid; ctx.fill();
+    const hot = pal.red ? pal.ink : pal.bad, cold = pal.red ? pal.muted : pal.accent;
+    legs.forEach(([lg, a, b]) => {
+      ctx.strokeStyle = lg === 0 ? hot : lg === 2 ? cold : pal.ink; ctx.lineWidth = 2; ctx.setLineDash(lg % 2 ? [5, 3] : []);
+      ctx.beginPath(); for (let k = 0; k <= 40; k++) { const v = a + ((b - a) * k) / 40, x = X(v), y = Y(cyclePressure(c, lg, v)); if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y); } ctx.stroke();
+    });
+    ctx.setLineDash([]);
+    ctx.fillStyle = pal.ink; ctx.font = 'bold 12px system-ui, sans-serif'; ctx.textAlign = 'left';
+    c.V.forEach((v, i) => ctx.fillText(String(i + 1), X(v) + 4, Y(c.P[i]) - 4));
+    // dot
+    const legIdx = Math.floor(phase) % 4, f = phase - Math.floor(phase), dir = mode === 'engine' ? 1 : -1;
+    const lg = dir > 0 ? legIdx : (3 - legIdx), [, a, b] = legs[lg], ff = dir > 0 ? f : 1 - f, v = a + (b - a) * ff;
+    ctx.fillStyle = pal.red ? pal.ink : pal.accent2; ctx.beginPath(); ctx.arc(X(v), Y(cyclePressure(c, lg, v)), 6, 0, 7); ctx.fill();
+    const names = ['1 → 2: expands at T₁, takes in Q₁ from the hot side', '2 → 3: expands with no heat flow; it cools from T₁ to T₂', '3 → 4: squeezed at T₂, gives Q₂ to the cold side', '4 → 1: squeezed with no heat flow; it warms back to T₁'];
+    const namesRev = ['2 → 1: squeezed at T₁, gives Q₁ to the hot side', '3 → 2: squeezed with no heat flow; it warms from T₂ to T₁', '4 → 3: expands at T₂, takes in Q₂ from the cold side', '1 → 4: expands with no heat flow; it cools to T₂'];
+    q('.cn-step').textContent = (dir > 0 ? names : namesRev)[lg];
+  }
+
+  function update() {
+    const s = st(), err = q('.cn-err');
+    err.hidden = !s.clamped; err.textContent = s.clamped ? `The cold side must be colder than the hot side; using T₂ = ${s.Tc} K.` : '';
+    q('.cn-Thv').textContent = `${s.Th} K (${degC(s.Th)})`; q('.cn-Tcv').textContent = `${s.Tc} K (${degC(s.Tc)})`; q('.cn-Qv').textContent = `${v_('.cn-Q')} J`;
+    q('.cn-Qlab').textContent = mode === 'engine' ? 'Heat taken in per cycle Q₁' : mode === 'fridge' ? 'Heat pulled out of the cold side Q₂' : 'Heat delivered to the warm side Q₁';
+    const cf = copFridge(s.Th, s.Tc), cp = copHeatPump(s.Th, s.Tc);
+    if (mode === 'engine') q('.cn-eq').textContent = `η = 1 − T₂/T₁ = 1 − ${s.Tc}/${s.Th} = ${sig(s.eta, 4)} = ${sig(s.eta * 100, 4)} %.  W = η Q₁ = ${sig(s.eta, 4)} × ${sig(s.Qh, 4)} = ${sig(s.W, 4)} J.  Q₂ = Q₁ − W = ${sig(s.Qc, 4)} J.`;
+    else if (mode === 'fridge') q('.cn-eq').textContent = `COP = Q₂ / W = T₂ / (T₁ − T₂) = ${s.Tc} / (${s.Th} − ${s.Tc}) = ${sig(cf, 4)}.  W = Q₂ / COP = ${sig(s.Qc, 4)} / ${sig(cf, 4)} = ${sig(s.W, 4)} J.  Q₁ = Q₂ + W = ${sig(s.Qh, 4)} J.`;
+    else q('.cn-eq').textContent = `COP = Q₁ / W = T₁ / (T₁ − T₂) = ${s.Th} / (${s.Th} − ${s.Tc}) = ${sig(cp, 4)}.  W = Q₁ / COP = ${sig(s.Qh, 4)} / ${sig(cp, 4)} = ${sig(s.W, 4)} J.  Q₂ = Q₁ − W = ${sig(s.Qc, 4)} J.`;
+    q('.cn-facts').replaceChildren(
+      fact('Carnot efficiency', `${sig(s.eta * 100, 4)} %`, 'as an engine'),
+      fact('Refrigerator COP', sig(cf, 4), 'heat moved out ÷ work in'),
+      fact('Heat pump COP', sig(cp, 4), 'heat delivered ÷ work in'),
+      fact('Work per cycle', `${sig(s.W, 4)} J`, mode === 'engine' ? 'out' : 'in'));
+    q('.cn-gas').textContent = `The gas: ${sig(s.n * 1000, 3)} mmol of air (γ = 1.4) starting at 1 litre and doubling its volume at T₁, so it takes in Q₁ = nRT₁ ln 2 = ${sig(s.Qh, 4)} J. The shaded area inside the loop is the net work, ${sig(s.cyc.W, 4)} J.`;
+    const claim = +(q<HTMLInputElement>('.cn-claim').value.replace(',', '.')), ver = q('.cn-verdict');
+    q('.cn-clab').textContent = mode === 'engine' ? 'Claimed efficiency (%)' : 'Claimed COP';
+    const best = mode === 'engine' ? s.eta * 100 : mode === 'fridge' ? cf : cp, unit = mode === 'engine' ? ' %' : '';
+    if (!Number.isFinite(claim) || claim <= 0) { ver.textContent = 'Type a number above zero.'; ver.style.color = 'var(--muted)'; }
+    else if (claim > best + 1e-9) { ver.textContent = `Impossible. Between ${s.Th} K and ${s.Tc} K nothing can beat the Carnot value of ${sig(best, 4)}${unit}; a claim of ${claim}${unit} breaks the second law of thermodynamics.`; ver.style.color = 'var(--bad)'; }
+    else { ver.textContent = `Allowed in principle: it is below the Carnot limit of ${sig(best, 4)}${unit}. Real machines lose some energy to friction and leaks, so they fall short of the limit.`; ver.style.color = 'var(--good)'; }
+    drawFlow(s); anim.redraw();
+  }
+
+  const anim = loop((dt) => { phase = (phase + dt * 0.5) % 4; drawPV(st()); }, q<HTMLButtonElement>('.cn-play'));
+  root.querySelectorAll<HTMLButtonElement>('.cn-mode button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m!; root.querySelectorAll('.cn-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q<HTMLInputElement>('.cn-claim').value = mode === 'engine' ? '45' : '3'; update();
+  }));
+  root.querySelectorAll('input').forEach((e) => e.addEventListener('input', update));
+  addEventListener('resize', update);
+  update();
+
+  mountQuiz(q('.cn-quiz'), () => {
+    const thC = pick(150, 600, 10), tcC = pick(10, 40), Th = thC + 273, Tc = tcC + 273, Qh = pick(5, 50) * 100;
+    const Tc2 = pick(250, 320, 5), target = pick(20, 60, 5), fTc = pick(250, 275), fTh = pick(295, 315);
+    const claim = Math.round(carnotEff(Th, Tc) * 100 + one([-10, 10]));
+    return [
+      { q: `An ideal engine works between ${thC} °C and ${tcC} °C. What is its efficiency in per cent? (Use T in K = °C + 273.)`, ans: carnotEff(Th, Tc) * 100, unit: '%', work: `T₁ = ${Th} K, T₂ = ${Tc} K. η = 1 − ${Tc}/${Th} = ${r(carnotEff(Th, Tc), 4)} = ${r(carnotEff(Th, Tc) * 100)} %` },
+      { q: `The same engine takes in ${Qh} J of heat per cycle. How much work does it do per cycle?`, ans: carnotEff(Th, Tc) * Qh, unit: 'J', work: `W = η Q₁ = ${r(carnotEff(Th, Tc), 4)} × ${Qh} = ${r(carnotEff(Th, Tc) * Qh)} J` },
+      { q: `An ideal refrigerator keeps its inside at ${fTc} K in a room at ${fTh} K. What is its COP?`, ans: copFridge(fTh, fTc), unit: '', work: `COP = T₂ / (T₁ − T₂) = ${fTc} / (${fTh} − ${fTc}) = ${r(copFridge(fTh, fTc))}` },
+      { q: `The cold side of a Carnot engine is at ${Tc2} K. How hot (in K) must the hot side be for ${target} % efficiency?`, ans: Tc2 / (1 - target / 100), unit: 'K', work: `1 − T₂/T₁ = ${target / 100}, so T₁ = T₂ / (1 − ${target / 100}) = ${Tc2} / ${r(1 - target / 100)} = ${r(Tc2 / (1 - target / 100), 4)} K` },
+      { q: `An inventor claims an engine of ${claim} % efficiency running between ${thC} °C and ${tcC} °C. Is that possible?`, ans: claim > carnotEff(Th, Tc) * 100 ? 1 : 0, choices: ['Possible in principle', 'Impossible'], work: `The Carnot limit is ${r(carnotEff(Th, Tc) * 100)} %. ${claim > carnotEff(Th, Tc) * 100 ? 'The claim is above it, so it is impossible.' : 'The claim is below it, so it is allowed (though a real engine would lose more).'}` },
+    ];
+  });
+</script>

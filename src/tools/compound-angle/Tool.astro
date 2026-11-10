@@ -1,0 +1,146 @@
+---
+// Compound angle: the stacked right triangles that prove sin(A + B) and cos(A + B), with A and B on sliders, the
+// lengths labelled with live numbers, and a table that checks every sum, difference and double angle formula.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax cpa">
+  <div class="ax-card">
+    <h2>Pick the two angles</h2>
+    <label class="cp-sl"><span>A = <b class="cp-av"></b>°</span><input class="cp-a" type="range" min="0" max="80" step="1" value="30" /></label>
+    <label class="cp-sl"><span>B = <b class="cp-bv"></b>°</span><input class="cp-b" type="range" min="0" max="80" step="1" value="45" /></label>
+    <div class="ax-row"><span class="ax-help">Prove</span>
+      <div class="ax-seg cp-show" role="group" aria-label="Which formula"><button type="button" data-s="sin" aria-pressed="true">sin(A + B)</button><button type="button" data-s="cos" aria-pressed="false">cos(A + B)</button></div>
+      <button type="button" class="btn small secondary cp-dbl">Make B = A</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="cp-title"></h2>
+    <canvas class="ax-fig cp-fig" role="img"></canvas>
+    <p class="ax-legend"><span><i class="cp-k1"></i>OQ = cos B</span><span><i class="cp-k2"></i>QP = sin B</span><span><i class="cp-k3"></i>OP = 1</span></p>
+    <ol class="cp-steps"></ol>
+    <p class="cp-sum"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Every formula, both sides</h2>
+    <p class="ax-help">The left side is worked out from the angle itself, the right side from the formula. They always agree.</p>
+    <div class="ax-scroll"><table class="cp-tab"><thead><tr><th>Formula</th><th class="r">Left</th><th class="r">Right</th></tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="cp-try">
+      <li>Set A = 30° and B = 45°: sin 75° comes out as 0.9659, which is (√6 + √2)/4.</li>
+      <li>Push A + B past 90°: P moves to the left of the y-axis and cos(A + B) turns negative, but the formulas still hold.</li>
+      <li>Press <b>Make B = A</b>: the sine formula becomes sin 2A = 2 sin A cos A.</li>
+      <li>Set B = 0: QP shrinks to nothing and sin(A + 0) = sin A.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="cp-quiz" />
+</div>
+
+<script>
+  import { proof, formulas, rad } from '../../lib/sci/school-compound';
+  import { paint, type Figure } from '../../lib/report';
+  import { view, line, dot, label, px, py, fmt, FONT } from '../../lib/sm-graph';
+  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.cpa')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380, H = 300;
+  let show = 'sin';
+  root.querySelectorAll<HTMLButtonElement>('.cp-show button').forEach((b) => b.addEventListener('click', () => { show = b.dataset.s!; root.querySelectorAll('.cp-show button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); draw(); }));
+  const f4 = (x: number) => fmt(x, 4);
+
+  function arc(ctx: CanvasRenderingContext2D, v: ReturnType<typeof view>, cx: number, cy: number, r: number, a0: number, a1: number, color: string, text: string) {
+    if (Math.abs(a1 - a0) < 1e-6) return;
+    const X = px(v, cx), Y = py(v, cy);
+    ctx.beginPath(); ctx.arc(X, Y, r, -a0, -a1, a1 > a0); ctx.strokeStyle = color; ctx.lineWidth = 1.6; ctx.setLineDash([]); ctx.stroke();
+    const m = (a0 + a1) / 2; ctx.font = FONT; ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(text, X + (r + 9) * Math.cos(m), Y - (r + 9) * Math.sin(m));
+  }
+
+  function draw() {
+    const A = +q<HTMLInputElement>('.cp-a').value, B = +q<HTMLInputElement>('.cp-b').value;
+    q('.cp-av').textContent = String(A); q('.cp-bv').textContent = String(B);
+    const p = proof(A, B), S = A + B;
+    const v = view(-0.55, 1.1, -0.08, 1.12, W, H, { l: 10, r: 10, t: 10, b: 10 });
+    const sinMode = show === 'sin';
+    q('.cp-title').textContent = sinMode ? `sin(${A}° + ${B}°) = sin ${S}° = ${f4(Math.sin(rad(S)))}` : `cos(${A}° + ${B}°) = cos ${S}° = ${f4(Math.cos(rad(S)))}`;
+    const fig: Figure = { w: W, h: H, alt: `Unit-length OP at ${S}° made of OQ = cos B at angle A and QP = sin B at right angles. ${sinMode ? `MP = RQ + NP = ${f4(p.RQ)} + ${f4(p.NP)}` : `OM = OR − NQ = ${f4(p.OR)} − ${f4(p.NQ)}`}.`, draw: (ctx, w, h, pl) => {
+      const hi = pl.bad, lo = pl.line;
+      line(ctx, v, -0.55, 0, 1.1, 0, pl.muted, 1.2);
+      line(ctx, v, 0, -0.08, 0, 1.12, pl.grid, 1);
+      // The helper lines: Q's drop to R, P's drop to M, and NQ level with Q.
+      line(ctx, v, p.Q.x, p.Q.y, p.R.x, 0, sinMode ? hi : lo, sinMode ? 3 : 1.2, sinMode ? [] : [4, 3]);
+      line(ctx, v, p.M.x, 0, p.N.x, p.N.y, sinMode ? hi : lo, sinMode ? 3 : 1.2, sinMode ? [] : [4, 3]);
+      line(ctx, v, p.N.x, p.N.y, p.P.x, p.P.y, sinMode ? pl.good : lo, sinMode ? 3 : 1.2, sinMode ? [] : [4, 3]);
+      line(ctx, v, p.N.x, p.N.y, p.Q.x, p.Q.y, sinMode ? lo : pl.good, sinMode ? 1.2 : 3, sinMode ? [4, 3] : []);
+      if (!sinMode) { line(ctx, v, 0, 0, p.R.x, 0, hi, 3); }
+      line(ctx, v, 0, 0, p.Q.x, p.Q.y, pl.accent, 2.4);
+      line(ctx, v, p.Q.x, p.Q.y, p.P.x, p.P.y, pl.accent2, 2.4);
+      line(ctx, v, 0, 0, p.P.x, p.P.y, pl.ink, 2.6);
+      arc(ctx, v, 0, 0, 34, 0, rad(A), pl.accent, 'A');
+      arc(ctx, v, 0, 0, 52, rad(A), rad(S), pl.accent2, 'B');
+      if (B > 0) arc(ctx, v, p.P.x, p.P.y, 22, -Math.PI / 2, -Math.PI / 2 + rad(A), pl.accent, 'A');
+      for (const [pt, n, dx, dy] of [[{ x: 0, y: 0 }, 'O', -12, 14], [p.Q, 'Q', 8, 4], [p.P, 'P', 6, -4], [p.R, 'R', 4, 16], [p.M, 'M', -12, 16], [p.N, 'N', -14, 2]] as const) {
+        dot(ctx, v, pt.x, pt.y, pl.ink, 3); label(ctx, v, pt.x, pt.y, n, pl.ink, dx, dy);
+      }
+      label(ctx, v, p.P.x / 2, p.P.y / 2, '1', pl.ink, -12, 0);
+    } };
+    paint(q<HTMLCanvasElement>('.cp-fig'), fig);
+    const steps = sinMode ? [
+      `In triangle OQP the angle at Q is 90° and OP = 1, so OQ = cos B = ${f4(Math.cos(rad(B)))} and QP = sin B = ${f4(Math.sin(rad(B)))}.`,
+      `Triangle ORQ: RQ = OQ sin A = sin A cos B = ${f4(p.RQ)} (red).`,
+      `Triangle QNP has the same angle A at P (its sides are at right angles to those of ORQ), so NP = QP cos A = cos A sin B = ${f4(p.NP)} (green).`,
+      `MP is the height of P: MP = RQ + NP. But MP is also OP sin(A + B) = sin(A + B).`,
+    ] : [
+      `In triangle OQP, OQ = cos B = ${f4(Math.cos(rad(B)))} and QP = sin B = ${f4(Math.sin(rad(B)))}.`,
+      `Triangle ORQ: OR = OQ cos A = cos A cos B = ${f4(p.OR)} (red).`,
+      `Triangle QNP: NQ = QP sin A = sin A sin B = ${f4(p.NQ)} (green).`,
+      `OM is how far right P is: OM = OR − NQ. But OM is also OP cos(A + B) = cos(A + B).`,
+    ];
+    q('.cp-steps').replaceChildren(...steps.map((s) => { const li = document.createElement('li'); li.textContent = s; return li; }));
+    q('.cp-sum').textContent = sinMode ? `So sin(A + B) = sin A cos B + cos A sin B = ${f4(p.RQ)} + ${f4(p.NP)} = ${f4(p.RQ + p.NP)}.` : `So cos(A + B) = cos A cos B − sin A sin B = ${f4(p.OR)} − ${f4(p.NQ)} = ${f4(p.OR - p.NQ)}.`;
+    q('.cp-tab tbody').replaceChildren(...formulas(A, B).map((r) => {
+      const tr = document.createElement('tr');
+      const bad = (x: number) => !Number.isFinite(x) || Math.abs(x) > 1e9;
+      [`${r.name} = ${r.rhs}`, bad(r.left) ? 'undefined' : f4(r.left), bad(r.right) ? 'undefined' : f4(r.right)].forEach((s, i) => { const td = document.createElement('td'); td.textContent = s; if (i) td.className = 'r'; tr.append(td); });
+      return tr;
+    }));
+  }
+  q('.cp-dbl').addEventListener('click', () => { const a = q<HTMLInputElement>('.cp-a').value; q<HTMLInputElement>('.cp-b').value = a; draw(); });
+  root.querySelectorAll('.cp-a, .cp-b').forEach((e) => e.addEventListener('input', draw));
+  document.addEventListener('fibub:theme', draw);
+  draw();
+
+  const TRIPLES = [[3, 4, 5], [5, 12, 13], [8, 15, 17], [7, 24, 25]];
+  quiz(q('.cp-quiz'), (): Question[] => {
+    const [a, b, c] = pick(TRIPLES), [d, e, f] = pick(TRIPLES), k = rint(2, 6), cv = rint(1, 4) / 5;
+    const ang = pick([[75, 45, 30, 'sin'], [15, 45, 30, 'cos'], [105, 60, 45, 'sin'], [15, 45, 30, 'sin'], [75, 45, 30, 'cos']] as [number, number, number, string][]);
+    const val = ang[3] === 'sin' ? Math.sin(rad(ang[0])) : Math.cos(rad(ang[0]));
+    const op = ang[0] === ang[1] + ang[2] ? '+' : '−';
+    return [
+      { text: `Find ${ang[3]} ${ang[0]}° using ${ang[3]}(${ang[1]}° ${op} ${ang[2]}°). Type a decimal or an exact form like (sqrt(6)+sqrt(2))/4.`, answer: val, tol: 1e-3, worked: `${ang[3]}(${ang[1]}° ${op} ${ang[2]}°) = ${ang[3] === 'sin' ? `sin ${ang[1]}° cos ${ang[2]}° ${op} cos ${ang[1]}° sin ${ang[2]}°` : `cos ${ang[1]}° cos ${ang[2]}° ${op === '+' ? '−' : '+'} sin ${ang[1]}° sin ${ang[2]}°`} = ${f4(val)}.` },
+      { text: `A and B are acute, sin A = ${a}/${c} and cos B = ${e}/${f}. Find sin(A + B) as a fraction.`, answer: (a * e + b * d) / (c * f), tol: 1e-4, worked: `cos A = ${b}/${c} and sin B = ${d}/${f} (Pythagoras). sin(A + B) = sin A cos B + cos A sin B = (${a}×${e} + ${b}×${d})/${c * f} = ${a * e + b * d}/${c * f}.` },
+      { text: `tan A = 1/${k}. Find tan(45° + A).`, answer: (k + 1) / (k - 1), tol: 1e-4, worked: `tan(45° + A) = (1 + tan A)/(1 − tan A) = (1 + 1/${k})/(1 − 1/${k}) = ${k + 1}/${k - 1}.` },
+      { text: `cos A = ${fmt(cv, 1)}. Find cos 2A.`, answer: 2 * cv * cv - 1, tol: 1e-4, worked: `cos 2A = 2cos² A − 1 = 2 × ${fmt(cv * cv, 2)} − 1 = ${fmt(2 * cv * cv - 1, 2)}.` },
+      { text: 'Which is equal to cos(A − B)?', choices: ['cos A cos B − sin A sin B', 'cos A cos B + sin A sin B', 'sin A cos B − cos A sin B'], correct: 1, worked: 'Replace B by −B in cos(A + B): cos(−B) = cos B and sin(−B) = −sin B, so cos(A − B) = cos A cos B + sin A sin B.' },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .cpa .cp-sl { display: grid; gap: 4px; color: var(--ink); font-size: 15px; margin-top: 8px; }
+  .cpa .cp-sl input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .cpa .ax-row { margin-top: 10px; flex-wrap: wrap; gap: 8px; }
+  .cpa .ax-seg button { min-height: 40px; }
+  .cpa i.cp-k1 { background: var(--accent); } .cpa i.cp-k2 { background: var(--warn); } .cpa i.cp-k3 { background: var(--ink); }
+  .cpa .cp-steps { padding-left: 22px; display: grid; gap: 4px; margin: 8px 0; }
+  .cpa .cp-sum { font-weight: 600; margin: 6px 0 0; }
+  .cpa .cp-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+  .cpa .cp-tab td:first-child { font-size: 14px; }
+</style>

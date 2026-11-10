@@ -1,0 +1,184 @@
+---
+// Mid-point theorem: drag a triangle's corners; the segment joining two mid-points stays parallel to the third side
+// and half as long. Also the converse and Varignon's parallelogram in any quadrilateral. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm mp">
+  <div class="ax-card">
+    <div class="ax-seg mp-mode" role="group" aria-label="What to show">
+      <button type="button" data-m="tri" aria-pressed="true">Theorem</button>
+      <button type="button" data-m="conv" aria-pressed="false">Converse</button>
+      <button type="button" data-m="quad" aria-pressed="false">Quadrilateral</button>
+    </div>
+    <p class="ax-help mp-say"></p>
+    <svg class="sm-fig mp-fig" viewBox="0 0 340 280" role="img" aria-label="A triangle with the mid-points of two sides joined"></svg>
+    <p class="ax-help">Drag the blue corners. They snap to the grid; each square is 1 cm.</p>
+    <div class="ax-row" style="margin-top:6px">
+      <button type="button" class="btn secondary small mp-pre" data-p="right">Right angle</button>
+      <button type="button" class="btn secondary small mp-pre" data-p="obtuse">Obtuse</button>
+      <button type="button" class="btn secondary small mp-pre" data-p="thin">Very thin</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Measure it</h2>
+    <div class="mp-lines"></div>
+    <p class="sm-f mp-verdict"></p>
+  </div>
+
+  <div class="ax-card mp-proof">
+    <h2>Why it is true</h2>
+    <ol class="sm-steps">
+      <li>Extend DE past E to a point F with EF = DE, and join F to C.</li>
+      <li>In triangles ADE and CFE: AE = CE (E is the mid-point), DE = FE (we chose it) and the angles at E are vertically opposite. So the triangles are congruent (SAS).</li>
+      <li>So CF = AD = DB, and angle ECF = angle EAD. These are alternate angles, so CF ∥ AB, that is CF ∥ DB.</li>
+      <li>DBCF has one pair of opposite sides equal and parallel (DB and CF), so it is a parallelogram.</li>
+      <li>So DF ∥ BC and DF = BC. Since DE is half of DF, DE ∥ BC and DE = ½ BC.</li>
+    </ol>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Drag A far away from BC. DE moves, but it stays parallel to BC and exactly half its length.</li>
+      <li>Squash the triangle flat with the Very thin button. The theorem still holds.</li>
+      <li>In Theorem mode, join all three mid-points in your head: the triangle splits into four copies of the small one, each a quarter of the area.</li>
+      <li>In Quadrilateral mode, make ABCD a kite, then a rectangle. What kind of parallelogram do the mid-points make each time?</li>
+      <li>Drag one corner of the quadrilateral inside so the shape caves in. The mid-points still make a parallelogram.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="mp-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .mp svg .mp-shape { fill: var(--accent-soft); fill-opacity: 0.45; stroke: var(--ink); stroke-width: 2; stroke-linejoin: round; }
+  .mp svg .mp-de { stroke: var(--warn); stroke-width: 3.5; }
+  .mp svg .mp-bc { stroke: var(--accent); stroke-width: 3.5; }
+  .mp svg .mp-par { fill: var(--good-soft); fill-opacity: 0.7; stroke: var(--good); stroke-width: 2.5; }
+  .mp svg .mp-mid { fill: var(--warn); stroke: var(--surface); stroke-width: 1.5; }
+  .mp svg .mp-diag { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 4; }
+  .mp svg .mp-lab { font-weight: 700; font-size: 15px; }
+  .mp .mp-lines p { margin: 4px 0; font-size: 16px; font-variant-numeric: tabular-nums; }
+</style>
+
+<script>
+  import { midpointTheorem, converse, varignon, type P } from '../../lib/sci/midpoint-l2';
+  import { randInt } from '../../lib/sci/smath';
+  import { S, dragOn, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.mp')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.mp-fig');
+  const U = 20; // px per cm
+  let mode = 'tri';
+  // Corners in cm on a 17 by 14 grid (y down).
+  let tri: Record<string, P> = { A: [6, 2], B: [2, 12], C: [15, 11] };
+  let quad: Record<string, P> = { A: [3, 3], B: [2, 12], C: [14, 11], D: [12, 2] };
+  const PRE: Record<string, Record<string, P>> = {
+    right: { A: [3, 2], B: [3, 12], C: [15, 12] },
+    obtuse: { A: [3, 3], B: [7, 12], C: [16, 12] },
+    thin: { A: [2, 6], B: [8, 8], C: [16, 7] },
+  };
+  const cm = (x: number) => (Math.round(x * 100) / 100).toLocaleString('en', { maximumFractionDigits: 2 });
+  const px = (p: P) => [p[0] * U, p[1] * U];
+
+  const pts = () => (mode === 'quad' ? quad : tri);
+
+  function grid() {
+    for (let x = 0; x <= 17; x++) S('line', { x1: x * U, y1: 0, x2: x * U, y2: 280, class: 'sm-grid' }, fig);
+    for (let y = 0; y <= 14; y++) S('line', { x1: 0, y1: y * U, x2: 340, y2: y * U, class: 'sm-grid' }, fig);
+  }
+  const seg = (a: P, b: P, cls: string) => { const [x1, y1] = px(a), [x2, y2] = px(b); S('line', { x1, y1, x2, y2, class: cls }, fig); };
+  const dot = (p: P, label: string, cls = 'mp-mid', off: P = [8, -8]) => { const [x, y] = px(p); S('circle', { cx: x, cy: y, r: 5, class: cls }, fig); S('text', { x: x + off[0], y: y + off[1], class: 'mp-lab' }, fig, label); };
+  const handle = (p: P, label: string, centre: P) => {
+    const [x, y] = px(p), d = Math.hypot(p[0] - centre[0], p[1] - centre[1]) || 1;
+    S('circle', { cx: x, cy: y, r: 20, class: 'sm-hit' }, fig);
+    S('circle', { cx: x, cy: y, r: 8, class: `sm-handle mp-h${label}` }, fig);
+    S('text', { x: x + ((p[0] - centre[0]) / d) * 18, y: y + ((p[1] - centre[1]) / d) * 18 + 5, 'text-anchor': 'middle', class: 'mp-lab' }, fig, label);
+  };
+  const line = (html: [string, string][]) => {
+    const box = q('.mp-lines'); box.replaceChildren();
+    for (const [k, v] of html) { const p = document.createElement('p'); const b = document.createElement('b'); b.textContent = k; p.append(b, ' ' + v); box.append(p); }
+  };
+
+  function draw() {
+    fig.replaceChildren(); grid();
+    const say = q('.mp-say'), verdict = q('.mp-verdict');
+    q('.mp-proof').hidden = mode !== 'tri';
+    if (mode === 'quad') {
+      const { A, B, C, D } = quad, v = varignon(A, B, C, D), c: P = [(A[0] + B[0] + C[0] + D[0]) / 4, (A[1] + B[1] + C[1] + D[1]) / 4];
+      S('polygon', { points: [A, B, C, D].map((p) => px(p).join(',')).join(' '), class: 'mp-shape' }, fig);
+      seg(A, C, 'mp-diag'); seg(B, D, 'mp-diag');
+      S('polygon', { points: v.pts.map((p) => px(p).join(',')).join(' '), class: 'mp-par' }, fig);
+      v.pts.forEach((p, i) => dot(p, 'PQRS'[i]));
+      handle(A, 'A', c); handle(B, 'B', c); handle(C, 'C', c); handle(D, 'D', c);
+      say.textContent = 'P, Q, R and S are the mid-points of the four sides. Join them in order.';
+      line([['PQ =', `${cm(v.PQ)} cm and RS = ${cm(v.RS)} cm, both half of diagonal AC = ${cm(v.AC)} cm`], ['QR =', `${cm(v.QR)} cm and SP = ${cm(v.SP)} cm, both half of diagonal BD = ${cm(v.BD)} cm`], ['Perimeter of PQRS =', `${cm(v.perimeter)} cm = AC + BD`], ['Area of PQRS =', `${cm(v.area)} cm², half of ABCD's ${cm(v.quadArea)} cm²`]]);
+      verdict.textContent = 'Opposite sides of PQRS are equal and parallel (each is parallel to a diagonal), so PQRS is always a parallelogram: the mid-point theorem used in triangles ABC and ACD.';
+      return;
+    }
+    const { A, B, C } = tri, c: P = [(A[0] + B[0] + C[0]) / 3, (A[1] + B[1] + C[1]) / 3];
+    S('polygon', { points: [A, B, C].map((p) => px(p).join(',')).join(' '), class: 'mp-shape' }, fig);
+    seg(B, C, 'mp-bc');
+    if (mode === 'tri') {
+      const m = midpointTheorem(A, B, C);
+      seg(m.D, m.E, 'mp-de');
+      dot(m.D, 'D', 'mp-mid', [-18, 0]); dot(m.E, 'E', 'mp-mid', [8, 0]);
+      handle(A, 'A', c); handle(B, 'B', c); handle(C, 'C', c);
+      say.textContent = 'D is the mid-point of AB and E is the mid-point of AC. Join D to E.';
+      line([['DE =', `${cm(m.DE)} cm`], ['BC =', `${cm(m.BC)} cm`], ['DE ÷ BC =', `${cm(m.DE)} ÷ ${cm(m.BC)} = ${cm(m.DE / m.BC)}`], ['∠ADE =', `${cm(m.ADE)}° and ∠ABC = ${cm(m.ABC)}° (corresponding angles)`]]);
+      verdict.textContent = `DE ∥ BC (the angle between them is ${cm(m.angle)}°) and DE = ½ BC. Drag any corner: it always holds.`;
+    } else {
+      const v = converse(A, B, C), D = v.D;
+      // Draw the parallel line through D across the triangle.
+      const d = [C[0] - B[0], C[1] - B[1]], L = Math.hypot(d[0], d[1]) || 1;
+      const far: P = [D[0] + (d[0] / L) * 30, D[1] + (d[1] / L) * 30], back: P = [D[0] - (d[0] / L) * 30, D[1] - (d[1] / L) * 30];
+      seg(back, far, 'mp-diag'); seg(D, v.F, 'mp-de');
+      dot(D, 'D', 'mp-mid', [-18, 0]); dot(v.F, 'F', 'mp-mid', [8, 0]);
+      handle(A, 'A', c); handle(B, 'B', c); handle(C, 'C', c);
+      say.textContent = 'D is the mid-point of AB. Draw a line through D parallel to BC; it meets AC at F.';
+      line([['AF =', `${cm(v.AF)} cm`], ['FC =', `${cm(v.FC)} cm`], ['AF ÷ AC =', cm(v.t)]]);
+      verdict.textContent = 'AF = FC, so F is the mid-point of AC. A line through the mid-point of one side, parallel to another side, cuts the third side in half.';
+    }
+  }
+
+  dragOn(fig, (x, y) => {
+    let best: string | null = null, bd = 26;
+    for (const [k, p] of Object.entries(pts())) { const d = Math.hypot(p[0] * U - x, p[1] * U - y); if (d < bd) { bd = d; best = k; } }
+    return best;
+  }, (id, x, y) => {
+    const P = pts(), np: P = [Math.max(1, Math.min(16, Math.round(x / U))), Math.max(1, Math.min(13, Math.round(y / U)))];
+    // Keep corners apart.
+    if (Object.entries(P).some(([k, p]) => k !== id && p[0] === np[0] && p[1] === np[1])) return;
+    if (P[id][0] === np[0] && P[id][1] === np[1]) return;
+    P[id] = np; draw();
+  });
+  root.querySelectorAll<HTMLButtonElement>('.mp-mode button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m!;
+    root.querySelectorAll<HTMLButtonElement>('.mp-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    root.querySelectorAll<HTMLElement>('.mp-pre').forEach((x) => { x.hidden = mode === 'quad'; });
+    draw();
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.mp-pre').forEach((b) => b.addEventListener('click', () => { tri = structuredClone(PRE[b.dataset.p!]); draw(); }));
+  draw();
+
+  quiz(q('.mp-quiz'), () => {
+    const out: Question[] = [];
+    const bc = randInt(6, 30);
+    out.push({ q: `In triangle ABC, D and E are the mid-points of AB and AC, and BC = ${bc} cm. How long is DE?`, want: [bc / 2], work: `By the mid-point theorem DE = ½ BC = ½ × ${bc} = ${bc / 2} cm.` });
+    const de = randInt(3, 15) + (randInt(0, 1) ? 0.5 : 0);
+    out.push({ q: `D and E are mid-points of AB and AC, and DE = ${de} cm. How long is BC?`, want: [de * 2], work: `DE = ½ BC, so BC = 2 × ${de} = ${de * 2} cm.` });
+    const s = [randInt(5, 14), randInt(5, 14), 0]; s[2] = randInt(Math.abs(s[0] - s[1]) + 1, s[0] + s[1] - 1);
+    const per = (s[0] + s[1] + s[2]) / 2;
+    out.push({ q: `A triangle has sides ${s.join(' cm, ')} cm. Join the mid-points of its three sides. What is the perimeter of the small triangle?`, want: [per], work: `Each side of the small triangle is half of a side of the big one, so its perimeter is ½ × (${s.join(' + ')}) = ${per} cm.` });
+    const ac = randInt(6, 20), bd = randInt(6, 20);
+    out.push({ q: `A quadrilateral has diagonals ${ac} cm and ${bd} cm. What is the perimeter of the shape made by joining the mid-points of its sides?`, want: [ac + bd], work: `Two sides are ½ × ${ac} each and two are ½ × ${bd} each, so the perimeter is ${ac} + ${bd} = ${ac + bd} cm.` });
+    return out;
+  });
+</script>

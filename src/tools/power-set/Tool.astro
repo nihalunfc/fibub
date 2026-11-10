@@ -1,0 +1,150 @@
+---
+// Power set builder: type up to 6 elements and see every subset, grouped by size, with C(n, k) and 2ⁿ, a yes/no
+// tree that shows why the count doubles with each element, and switches to build one subset.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax pws">
+  <div class="ax-card">
+    <h2>Your set</h2>
+    <label>Elements (1 to 6, separated by commas) <input class="pw-in" type="text" value="a, b, c" autocomplete="off" spellcheck="false" /></label>
+    <div class="ax-row pw-ex">
+      <button type="button" class="btn small secondary" data-v="a, b, c">{'{a, b, c}'}</button>
+      <button type="button" class="btn small secondary" data-v="1, 2, 3, 4">{'{1, 2, 3, 4}'}</button>
+      <button type="button" class="btn small secondary" data-v="red, blue">{'{red, blue}'}</button>
+      <button type="button" class="btn small secondary" data-v="x">{'{x}'}</button>
+    </div>
+    <p class="ax-err pw-err" hidden></p>
+    <p class="ax-help pw-drop" hidden></p>
+  </div>
+
+  <div class="ax-card pw-out">
+    <h2 class="pw-title"></h2>
+    <h3>Build one subset: is each element in or out?</h3>
+    <div class="pw-sw" role="group" aria-label="Elements in the subset"></div>
+    <p class="pw-pick"></p>
+    <svg class="pw-tree" role="img"></svg>
+    <p class="ax-help pw-tnote"></p>
+    <h3>All the subsets, by size</h3>
+    <div class="pw-cols"></div>
+    <dl class="ax-facts pw-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="pw-try">
+      <li>Add a fourth element and watch the count go from 8 to 16: every old subset now comes in two versions, with and without the new element.</li>
+      <li>Count the subsets in each column for {'{1, 2, 3, 4}'}: 1, 4, 6, 4, 1. That is a row of Pascal's triangle.</li>
+      <li>Type a set with one element. It has 2 subsets: ∅ and itself.</li>
+      <li>Type a, b, a: the repeat is dropped, because a set lists each element once.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="pw-quiz" />
+</div>
+
+<script>
+  import { readElements, subsets, size, show, code, nCr } from '../../lib/sci/school-powerset';
+  import { S } from '../../lib/smath-ui';
+  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.pws')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let items: string[] = [], mask = 0;
+  const fact = (k: string, v: string) => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; return el; };
+
+  function read() {
+    const r = readElements(q<HTMLInputElement>('.pw-in').value), err = q('.pw-err'), drop = q('.pw-drop');
+    drop.hidden = !r.dropped.length; drop.textContent = r.dropped.length ? `Repeats left out (a set lists each element once): ${r.dropped.join(', ')}.` : '';
+    if (!r.items.length || r.items.length > 6) { err.textContent = r.items.length ? 'Up to 6 elements, please: 7 would already make 128 subsets.' : 'Type at least one element.'; err.hidden = false; q('.pw-out').hidden = true; return; }
+    err.hidden = true; q('.pw-out').hidden = false;
+    if (r.items.join('\u0000') !== items.join('\u0000')) { items = r.items; mask = 0; }
+    draw();
+  }
+
+  function draw() {
+    const n = items.length, all = subsets(n);
+    q('.pw-title').textContent = `{${items.join(', ')}} has ${n} element${n === 1 ? '' : 's'}, so 2${'⁰¹²³⁴⁵⁶'[n]} = ${1 << n} subsets`;
+    q('.pw-sw').replaceChildren(...items.map((it, i) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'pw-chip'; b.dataset.i = String(i);
+      const on = !!((mask >> i) & 1); b.setAttribute('aria-pressed', String(on)); b.textContent = `${it}: ${on ? 'in' : 'out'}`;
+      b.addEventListener('click', () => { mask ^= 1 << i; draw(); });
+      return b;
+    }));
+    q('.pw-pick').textContent = `Your subset: ${show(mask, items)}   (switch code ${code(mask, n)})`;
+    // The yes/no tree, up to 4 elements.
+    const svg = root.querySelector<SVGSVGElement>('.pw-tree')!;
+    svg.replaceChildren();
+    if (n <= 4) {
+      const Wd = 380, lv = 46, Hh = lv * n + 34;
+      svg.setAttribute('viewBox', `0 0 ${Wd} ${Hh}`); svg.style.display = '';
+      svg.setAttribute('aria-label', `A tree: at each of the ${n} levels every branch splits into out (left) and in (right), giving ${1 << n} ends.`);
+      const xAt = (lvl: number, k: number) => ((k + 0.5) * Wd) / (1 << lvl);
+      for (let l = 0; l < n; l++) for (let k = 0; k < 1 << l; k++) for (const c of [0, 1]) {
+        const kk = 2 * k + c, onPath = k === pathK(l) && kk === pathK(l + 1);
+        S('line', { x1: xAt(l, k), y1: 14 + l * lv, x2: xAt(l + 1, kk), y2: 14 + (l + 1) * lv, class: onPath ? 'pw-on' : c ? 'pw-in1' : 'pw-out0' }, svg);
+        if (l === n - 1 || (1 << l) <= 4) S('text', { x: (xAt(l, k) + xAt(l + 1, kk)) / 2 + (c ? 6 : -6), y: 14 + l * lv + lv / 2, 'text-anchor': c ? 'start' : 'end', class: 'pw-tl' }, svg, (1 << l) <= 2 ? `${c ? '' : 'no '}${items[l]}` : c ? '✓' : '✗');
+      }
+      const leaf = pathK(n);
+      for (let k = 0; k < 1 << n; k++) S('circle', { cx: xAt(n, k), cy: 14 + n * lv, r: k === leaf ? 6 : 3.5, class: k === leaf ? 'pw-dot pw-on' : 'pw-dot' }, svg);
+      q('.pw-tnote').textContent = `Each level decides one element: out (left) or in (right). ${n} decisions with 2 choices each give 2 × … × 2 = ${1 << n} ends, one per subset. Your subset's path is drawn thick.`;
+    } else { svg.style.display = 'none'; q('.pw-tnote').textContent = 'The tree is drawn for up to 4 elements; it would be too wide on a phone for more.'; }
+    q('.pw-cols').replaceChildren(...Array.from({ length: n + 1 }, (_, k) => {
+      const col = document.createElement('div'); col.className = 'pw-col';
+      const h = document.createElement('p'); h.className = 'pw-ch'; h.textContent = `${k} element${k === 1 ? '' : 's'}: C(${n}, ${k}) = ${nCr(n, k)}`;
+      col.append(h, ...all.filter((m) => size(m) === k).map((m) => { const s = document.createElement('span'); s.className = 'pw-s' + (m === mask ? ' pw-cur' : ''); s.textContent = show(m, items); return s; }));
+      return col;
+    }));
+    q('.pw-facts').replaceChildren(
+      fact('Number of subsets, n(P(A))', `2${'⁰¹²³⁴⁵⁶'[n]} = ${1 << n}`),
+      fact('Proper subsets (all but A itself)', `${(1 << n) - 1}`),
+      fact('Counts by size', Array.from({ length: n + 1 }, (_, k) => nCr(n, k)).join(' + ') + ` = ${1 << n}`),
+      fact(`Subsets that contain ${items[0]}`, `${1 << (n - 1)}, exactly half`),
+    );
+  }
+  // The tree node on your subset's path at level l (counted left to right): out goes left, in goes right.
+  const pathK = (l: number) => { let k = 0; for (let j = 0; j < l; j++) k = 2 * k + ((mask >> j) & 1); return k; };
+
+  q('.pw-in').addEventListener('input', read);
+  root.querySelectorAll<HTMLButtonElement>('.pw-ex button').forEach((b) => b.addEventListener('click', () => { q<HTMLInputElement>('.pw-in').value = b.dataset.v!; read(); }));
+  read();
+
+  quiz(q('.pw-quiz'), (): Question[] => {
+    const n = rint(2, 7), m = rint(3, 6), k = rint(1, m - 1), p = rint(3, 6);
+    return [
+      { text: `A set has ${n} elements. How many subsets does it have?`, answer: 2 ** n, worked: `Each of the ${n} elements is either in or out: 2 × 2 × … (${n} times) = 2${'⁰¹²³⁴⁵⁶⁷'[n]} = ${2 ** n}.` },
+      { text: `How many proper subsets does a set with ${m} elements have?`, answer: 2 ** m - 1, worked: `All 2${'⁰¹²³⁴⁵⁶'[m]} = ${2 ** m} subsets, minus the set itself: ${2 ** m - 1}.` },
+      { text: `How many subsets of a ${m}-element set have exactly ${k} element${k === 1 ? '' : 's'}?`, answer: nCr(m, k), worked: `Choose ${k} of the ${m} elements: C(${m}, ${k}) = ${nCr(m, k)}.` },
+      { text: `A power set has ${2 ** p} elements. How many elements has the set?`, answer: p, worked: `2ⁿ = ${2 ** p} means n = ${p}.` },
+      pick([
+        { text: 'How many subsets does the empty set ∅ have?', choices: ['0', '1', '2'], correct: 1, worked: 'Just one: ∅ itself, since 2⁰ = 1.' },
+        { text: 'Is ∅ a subset of every set?', choices: ['Yes', 'No'], correct: 0, worked: 'Yes: there is no element of ∅ that fails to be in the other set, so ∅ ⊆ A for every A.' },
+        { text: 'Which is an element of P({1, 2})?', choices: ['1', '{1}', '{3}'], correct: 1, worked: 'P({1, 2}) = {∅, {1}, {2}, {1, 2}}. Its elements are sets, so {1} is one of them, but 1 is not.' },
+      ] as Question[]),
+    ];
+  });
+</script>
+
+<style is:inline>
+  .pws label { display: grid; gap: 4px; }
+  .pws .pw-in { min-height: 44px; }
+  .pws .ax-row { flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .pws h3 { margin: 16px 0 6px; font-size: 16px; }
+  .pws .pw-sw { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pws .pw-chip { min-height: 44px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font: inherit; cursor: pointer; }
+  .pws .pw-chip[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .pws .pw-pick { font-weight: 600; margin: 8px 0; white-space: pre-wrap; }
+  .pws .pw-tree { width: 100%; height: auto; display: block; }
+  .pws .pw-tree line { stroke: var(--line); stroke-width: 1.5; }
+  .pws .pw-tree line.pw-in1 { stroke: var(--muted); }
+  .pws .pw-tree line.pw-on { stroke: var(--accent); stroke-width: 4; }
+  .pws .pw-tree .pw-dot { fill: var(--muted); }
+  .pws .pw-tree .pw-dot.pw-on { fill: var(--accent); }
+  .pws .pw-tree .pw-tl { font-size: 11px; fill: var(--muted); }
+  .pws .pw-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)); gap: 10px; }
+  .pws .pw-col { display: flex; flex-wrap: wrap; gap: 4px; align-content: flex-start; border: 1px solid var(--line); border-radius: 10px; padding: 8px; }
+  .pws .pw-ch { width: 100%; margin: 0 0 4px; font-size: 13px; color: var(--muted); }
+  .pws .pw-s { padding: 2px 6px; border-radius: 6px; background: var(--surface); font-size: 14px; overflow-wrap: anywhere; }
+  .pws .pw-s.pw-cur { background: var(--accent); color: var(--accent-ink); }
+  .pws .pw-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+</style>

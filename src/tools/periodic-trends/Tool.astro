@@ -1,0 +1,158 @@
+---
+// Periodic trends: colour the table by atomic radius, first ionisation energy or electronegativity; tap an element
+// to graph its period or group; exceptions to the trend are flagged and explained. Maths in src/lib/sci/periodtrend.ts.
+import '../../styles/astro.css';
+---
+<div class="ax ptr">
+  <div class="ax-card">
+    <div class="ax-row">
+      <div class="ax-seg ptr-prop" role="group" aria-label="Property">
+        <button type="button" data-v="radius" aria-pressed="true">Atomic radius</button>
+        <button type="button" data-v="ie" aria-pressed="false">Ionisation energy</button>
+        <button type="button" data-v="en" aria-pressed="false">Electronegativity</button>
+      </div>
+    </div>
+    <div class="ptr-grid" role="grid" aria-label="Periodic table, periods 1 to 6"></div>
+    <p class="ax-help ptr-legend"></p>
+    <div class="ax-row">
+      <div class="ax-seg ptr-along" role="group" aria-label="Graph">
+        <button type="button" data-v="period" aria-pressed="true">Across the period</button>
+        <button type="button" data-v="group" aria-pressed="false">Down the group</button>
+      </div>
+    </div>
+    <canvas class="ptr-c" aria-label="Trend graph"></canvas>
+    <p class="ax-help">Tap an element to choose its period and group. Lanthanoids and actinoids are left out. Radii are approximate covalent radii rounded to 5 pm, for s- and p-block elements only; ionisation energies (NIST) and electronegativities (Pauling scale) are rounded textbook values.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="ptr-h"></h2>
+    <dl class="ax-facts ptr-facts"></dl>
+    <div class="ptr-flags"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="ptr-try">
+      <li>Pick atomic radius and go across period 2. Each step adds a proton that pulls the same shell in tighter.</li>
+      <li>Switch to ionisation energy across period 2. It rises, except at boron and oxygen: read why underneath.</li>
+      <li>Go down group 1. The atoms grow and the outer electron is easier to remove, which is why caesium is so reactive.</li>
+      <li>Look at group 13. Gallium is no bigger than aluminium: the ten d electrons in between change the pattern.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="ptr-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { MAIN, PROPS, value, inPeriod, inGroup, exceptions, questions, type Prop } from '../../lib/sci/periodtrend';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { pagePalette } from '../../lib/report';
+  import { setupCanvas, fmt, fact, lines, segmented, keepDrawn } from '../../lib/school-h4';
+
+  const root = document.querySelector<HTMLElement>('.ptr')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let prop: Prop = 'radius', along: 'period' | 'group' = 'period', sel = MAIN.find((e) => e.z === 6)!;
+  const H = 240;
+  const grid = q('.ptr-grid');
+  const cells = new Map<number, HTMLButtonElement>();
+  for (const e of MAIN) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'ptr-cell'; b.textContent = e.symbol;
+    b.style.gridRow = String(e.period); b.style.gridColumn = String(e.group);
+    b.setAttribute('aria-label', `${e.name}, ${e.z}`); b.dataset.z = String(e.z);
+    b.addEventListener('click', () => { sel = e; render(); });
+    grid.append(b); cells.set(e.z, b);
+  }
+
+  function colour() {
+    const vs = MAIN.map((e) => value(e, prop)).filter(Number.isFinite), lo = Math.min(...vs), hi = Math.max(...vs), pal = pagePalette();
+    for (const e of MAIN) {
+      const v = value(e, prop), b = cells.get(e.z)!;
+      if (!Number.isFinite(v)) { b.style.background = 'var(--surface)'; b.style.color = 'var(--muted)'; }
+      else { const t = (v - lo) / (hi - lo || 1); b.style.background = pal.red ? `rgba(163,0,0,${0.12 + 0.7 * t})` : `color-mix(in srgb, var(--accent) ${Math.round(8 + t * 82)}%, var(--bg))`; b.style.color = t > 0.55 ? 'var(--accent-ink, #fff)' : 'var(--ink)'; }
+      b.setAttribute('aria-pressed', String(e.z === sel.z));
+      b.classList.toggle('in-line', along === 'period' ? e.period === sel.period : e.group === sel.group);
+    }
+    const P = PROPS.find((p) => p.id === prop)!;
+    q('.ptr-legend').textContent = `Colour: ${P.name.toLowerCase()}, pale = low (${fmt(lo, prop === 'en' ? 2 : 0)}${P.unit ? ' ' + P.unit : ''}) to dark = high (${fmt(hi, prop === 'en' ? 2 : 0)}${P.unit ? ' ' + P.unit : ''}). Grey: no value shown.`;
+  }
+
+  function draw() {
+    const pal = pagePalette(), c = q<HTMLCanvasElement>('.ptr-c'), { ctx, w } = setupCanvas(c, H);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, H);
+    const list = along === 'period' ? inPeriod(sel.period) : inGroup(sel.group!), P = PROPS.find((p) => p.id === prop)!;
+    const vs = list.map((e) => value(e, prop)), ok = vs.filter(Number.isFinite), hi = Math.max(...ok, 0) * 1.12 || 1;
+    const x0 = 34, x1 = w - 8, y0 = 18, y1 = H - 30, bw = (x1 - x0) / list.length;
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0, y1); ctx.lineTo(x1, y1); ctx.stroke();
+    const flags = exceptions(list, prop, along), flagged = new Set(flags.map((f) => f.to.z));
+    ctx.font = `${bw < 20 ? 9 : 11}px system-ui, sans-serif`; ctx.textAlign = 'center';
+    let prev: [number, number] | null = null;
+    list.forEach((e, i) => {
+      const v = vs[i], cx = x0 + bw * (i + 0.5);
+      ctx.fillStyle = e.z === sel.z ? pal.ink : pal.muted; ctx.fillText(e.symbol, cx, y1 + 14);
+      if (!Number.isFinite(v)) { ctx.fillText('–', cx, y1 - 6); prev = null; return; }
+      const y = y1 - (v / hi) * (y1 - y0);
+      ctx.fillStyle = flagged.has(e.z) ? pal.bad : e.z === sel.z ? pal.accent : pal.grid;
+      ctx.fillRect(cx - bw * 0.35, y, bw * 0.7, y1 - y);
+      if (prev) { ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(cx, y); ctx.stroke(); }
+      prev = [cx, y];
+      if (bw >= 26) { ctx.fillStyle = pal.ink; ctx.fillText(fmt(v, prop === 'en' ? 2 : 0), cx, y - 4); }
+    });
+    ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText(`${P.name}${P.unit ? ` (${P.unit})` : ''}: ${along === 'period' ? `period ${sel.period}` : `group ${sel.group}`}${flags.length ? ' · red = exception' : ''}`, x0 + 4, 12);
+    c.setAttribute('aria-label', `${P.name} ${along === 'period' ? `across period ${sel.period}` : `down group ${sel.group}`}: ${list.map((e, i) => `${e.symbol} ${Number.isFinite(vs[i]) ? fmt(vs[i], 2) : 'none'}`).join(', ')}`);
+    return { list, flags };
+  }
+
+  function render() {
+    colour();
+    const { list, flags } = draw();
+    q('.ptr-h').textContent = `${sel.name} (${sel.symbol}, Z = ${sel.z})`;
+    const r = value(sel, 'radius'), ie = value(sel, 'ie');
+    q('.ptr-facts').replaceChildren(
+      fact('Place', `period ${sel.period}, group ${sel.group}`, `${sel.block}-block, ${sel.category}`),
+      fact('Atomic radius', Number.isFinite(r) ? `about ${r} pm` : 'not shown', Number.isFinite(r) ? 'covalent radius, rounded' : sel.group === 18 ? 'noble gases form almost no bonds' : 'radii shown for s and p blocks'),
+      fact('First ionisation energy', Number.isFinite(ie) ? `${ie} kJ/mol` : 'not known', Number.isFinite(sel.ie) ? `${sel.ie} eV per atom` : ''),
+      fact('Electronegativity', Number.isFinite(sel.en) ? fmt(sel.en, 2) : 'none given', 'Pauling scale'),
+    );
+    const vs = list.map((e) => value(e, prop)).filter(Number.isFinite);
+    const first = vs[0], last = vs[vs.length - 1], dir = last > first ? 'rises' : last < first ? 'falls' : 'stays about the same';
+    const P = PROPS.find((p) => p.id === prop)!;
+    const why = prop === 'radius'
+      ? (along === 'period' ? 'Across a period each element adds one proton and one electron to the same shell; the stronger pull draws the shell in.' : 'Down a group each element has one more shell, so the outer electrons sit further out.')
+      : prop === 'ie' ? (along === 'period' ? 'Across a period the nucleus pulls harder on electrons in the same shell, so they are harder to remove.' : 'Down a group the outer electron is further out and better shielded, so it is easier to remove.')
+      : (along === 'period' ? 'Across a period a stronger pull on the same shell attracts shared electrons more.' : 'Down a group the bonding electrons are further from the nucleus and less strongly attracted.');
+    q('.ptr-flags').replaceChildren(...lines([[`The trend: `, vs.length < 2 ? `no ${P.short} values to compare ${along === 'period' ? 'in this period' : 'in this group'}; pick another property or element.` : `${P.short} ${dir} ${along === 'period' ? `across period ${sel.period}` : `down group ${sel.group}`}. ${why}`] as [string, string],
+      ...flags.map((f) => [`Exception, ${f.from.symbol} → ${f.to.symbol}: `, f.why] as [string, string])]));
+  }
+
+  segmented(q('.ptr-prop'), (v) => { prop = v as Prop; render(); });
+  segmented(q('.ptr-along'), (v) => { along = v as 'period' | 'group'; render(); });
+  mountQuiz(q('.ptr-quiz'), () => questions());
+  render();
+  keepDrawn(q<HTMLCanvasElement>('.ptr-c'), render);
+</script>
+
+<style is:inline>
+  .ptr .ax-row { margin-top: 10px; }
+  .ptr .ax-seg button { min-height: 44px; }
+  .ptr .ptr-grid { display: grid; grid-template-columns: repeat(18, minmax(0, 1fr)); gap: 2px; margin-top: 12px; }
+  .ptr .ptr-cell { min-width: 0; aspect-ratio: 1 / 1.15; padding: 0; border: 1px solid var(--line); border-radius: 4px; font: inherit; font-size: clamp(8px, 2.6vw, 14px); font-weight: 600; cursor: pointer; background: var(--surface); color: var(--ink); }
+  .ptr .ptr-cell.in-line { outline: 2px solid var(--ink); outline-offset: -2px; }
+  .ptr .ptr-cell[aria-pressed=true] { outline: 3px solid var(--bad); outline-offset: -3px; }
+  .ptr .ptr-legend { margin-top: 6px; }
+  .ptr canvas { display: block; width: 100%; margin-top: 10px; }
+  .ptr .ptr-flags p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .ptr .ptr-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>

@@ -1,0 +1,31 @@
+// #1352 spring-mass
+export const path = '/learn/spring-mass/';
+export default async ({ page, check, BASE }) => {
+  const R = '.spm ';
+  const t = (s) => page.textContent(R + s);
+  const slide = async (sel, v) => { await page.$eval(R + sel, (e, v) => { e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); }, String(v)); await page.waitForTimeout(150); };
+  await page.goto(BASE + path); await page.waitForTimeout(600);
+  check((await t('.sp-eq')).includes('k = 20 N/m.  T = 2π√(m/k) = 2π√(0.5 / 20) = 0.9935 s.  Rest stretch x = mg/k = 0.5 × 9.8 / 20 = 24.50 cm.'), 'springs: 0.5 kg on 20 N/m: T 0.9935 s, stretch 24.5 cm (Python)');
+  check((await t('.sp-facts')).includes('31.6 cm/s') && (await t('.sp-facts')).includes('0.0250 J'), 'springs: top speed 31.6 cm/s, energy 0.025 J');
+  check(await page.isHidden(R + '.sp-k2'), 'springs: one spring hides k₂');
+  check((await t('.sp-cmp')).includes('series k = 10 N/m, T = 1.405 s;  parallel k = 40 N/m, T = 0.7025 s.  Series is slower by 2 times.'), 'springs: equal pair series vs parallel, ratio 2');
+  const inked = await page.$eval(R + '.sp-cv', (c) => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] < 150 || Math.abs(d[i] - d[i + 2]) > 60) n++; return n; });
+  check(inked > 300, `springs: picture drawn (${inked})`);
+  await page.click(R + '[data-m="series"]'); await slide('.sp-k2', 30);
+  check((await t('.sp-eq')).includes('1/k = 1/k₁ + 1/k₂ = 1/20 + 1/30, so k = 12 N/m.') && (await t('.sp-eq')).includes('= 1.283 s'), 'springs: 20 + 30 in series = 12 N/m, T 1.283 s (simulation 1.2826)');
+  await page.click(R + '[data-m="parallel"]'); await page.waitForTimeout(150);
+  check((await t('.sp-eq')).includes('k = k₁ + k₂ = 20 + 30 = 50 N/m.') && await page.isVisible(R + '.sp-k2'), 'springs: parallel 50 N/m');
+  await slide('.sp-m', 2);
+  check((await t('.sp-eq')).includes('2π√(2.0 / 50) = 1.257 s'), 'springs: 2 kg on 50 N/m');
+  await slide('.sp-A', 0);
+  check((await t('.sp-facts')).includes('Energy of the bobbing0 J'), 'springs: no pull, no energy');
+  await page.click(R + '.sp-play'); check((await t('.sp-play')) === 'Play', 'springs: pause');
+  const items = await page.$$(R + '.lq-item');
+  check(items.length === 5, 'springs: five questions');
+  const ans = await items[0].getAttribute('data-ans');
+  await (await items[0].$('.lq-in')).fill(String(+(+ans).toPrecision(4))); await (await items[0].$('.lq-check')).click();
+  check((await (await items[0].$('.lq-fb')).textContent()) === 'Right.', 'springs: series answer accepted');
+  const a4 = await items[4].getAttribute('data-ans');
+  await (await items[4].$('.lq-in')).fill(String(+a4 / 2)); await (await items[4].$('.lq-check')).click();
+  check((await (await items[4].$('.lq-fb')).textContent()).startsWith('Not quite'), 'springs: wrong cut-spring answer');
+};

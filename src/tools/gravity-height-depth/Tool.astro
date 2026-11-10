@@ -1,0 +1,190 @@
+---
+// g with height, depth and satellites: g against distance from the centre, a satellite's speed and period,
+// escape speed and the stationary orbit. Maths in src/lib/sci/gravheight.ts.
+import '../../styles/astro.css';
+---
+<div class="ax gh">
+  <div class="ax-card">
+    <div class="ax-row">
+      <span>Planet</span>
+      <div class="ax-seg gh-planet" role="group" aria-label="Planet">
+        <button type="button" data-v="earth" aria-pressed="true">Earth</button>
+        <button type="button" data-v="mars" aria-pressed="false">Mars</button>
+        <button type="button" data-v="moon" aria-pressed="false">Moon</button>
+      </div>
+    </div>
+    <canvas class="gh-c" aria-label="g against distance from the centre"></canvas>
+    <label>Where (drag on the graph too): <b class="gh-hv"></b><input class="gh-h" type="range" min="-6371" max="45000" step="1" value="400" /></label>
+    <div class="ax-row gh-row">
+      <label class="gh-num">Height in km (minus = depth) <input class="gh-hn" type="number" step="1" value="400" inputmode="numeric" /></label>
+      <label class="gh-num">Your mass in kg <input class="gh-m" type="number" step="1" min="1" value="50" inputmode="numeric" /></label>
+    </div>
+    <div class="ax-row gh-presets">
+      <button type="button" class="btn secondary small" data-h="0">Surface</button>
+      <button type="button" class="btn secondary small gh-half" data-h="-3185.5">Halfway down</button>
+      <button type="button" class="btn secondary small" data-h="400">Space station</button>
+      <button type="button" class="btn secondary small gh-geo">Stationary orbit</button>
+    </div>
+    <p class="ax-err gh-err" hidden></p>
+    <p class="ax-help gh-note" hidden></p>
+    <p class="ax-help">Inside, the planet is taken as a ball of even density, so g falls in a straight line to zero at the centre (the real Earth's dense core makes g rise a little first). Planet data: NASA fact sheets, rounded.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>g here, and a satellite here</h2>
+    <dl class="ax-facts gh-facts"></dl>
+    <div class="gh-eq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="gh-try">
+      <li>Go up by one Earth radius (6371 km). g is a quarter of its surface value, not half: it falls as 1/r².</li>
+      <li>Go halfway down to the centre. g is half: inside, it falls in a straight line.</li>
+      <li>Tap "Stationary orbit". The satellite takes as long to go round as the Earth takes to turn, so it hangs over one place.</li>
+      <li>Compare the escape speed with the orbit speed at any height: it is always √2 ≈ 1.41 times bigger.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="gh-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { planet, g0, gAt, gApproxHeight, orbit, escapeSpeed, stationaryHeight, questions } from '../../lib/sci/gravheight';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { pagePalette } from '../../lib/report';
+  import { setupCanvas, fmt, sig, fact, lines, segmented, keepDrawn } from '../../lib/school-h4';
+
+  const root = document.querySelector<HTMLElement>('.gh')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const slider = q<HTMLInputElement>('.gh-h'), num = q<HTMLInputElement>('.gh-hn'), mass = q<HTMLInputElement>('.gh-m');
+  let P = planet('earth');
+  const H = 300;
+  let geom = { x0: 0, x1: 0, rMax: 1 };
+  const hKm = () => Number(slider.value);
+  const maxKm = () => Math.round((P.R / 1000) * 7);
+
+  function setH(km: number) {
+    q('.gh-note').hidden = true;
+    const v = Math.max(-P.R / 1000, Math.min(maxKm(), km));
+    slider.value = String(v); num.value = String(Math.round(v * 10) / 10); draw();
+  }
+
+  function draw() {
+    const pal = pagePalette(), c = q<HTMLCanvasElement>('.gh-c'), { ctx, w } = setupCanvas(c, H);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, H);
+    const h = hKm() * 1000, R = P.R, gs = g0(P), g = gAt(P, h), rMax = 8; // graph to 8R from the centre
+    // planet cross-section on the left
+    const pr = Math.min(70, w * 0.16), pcx = pr + 10, pcy = 110;
+    ctx.fillStyle = pal.grid; ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(pcx, pcy, pr, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = pal.muted; ctx.beginPath(); ctx.arc(pcx, pcy, 2.5, 0, 7); ctx.fill();
+    const rr = (R + h) / R, scale = rr <= 1 ? pr * rr : pr + Math.min(1, Math.log(rr) / Math.log(rMax)) * (pr * 0.9);
+    const sx = pcx, sy = pcy - scale;
+    if (h < 0) { ctx.strokeStyle = pal.muted; ctx.setLineDash([3, 3]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(pcx, pcy - pr); ctx.lineTo(sx, sy); ctx.stroke(); ctx.setLineDash([]); }
+    ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(sx, sy, 5, 0, 7); ctx.fill();
+    if (h > 0) { ctx.strokeStyle = pal.accent; ctx.setLineDash([4, 4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(pcx, pcy, scale, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
+    ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(P.name, pcx, pcy + pr + 16); ctx.fillText('(height not to scale)', pcx, pcy + pr + 30);
+    // graph g against r/R
+    const gx0 = pcx + pr + 40, gx1 = w - 12, gy0 = 20, gy1 = H - 34;
+    geom = { x0: gx0, x1: gx1, rMax };
+    const X = (r: number) => gx0 + (r / rMax) * (gx1 - gx0), Y = (gg: number) => gy1 - (gg / gs) * (gy1 - gy0) * 0.92;
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(gx0, gy0); ctx.lineTo(gx0, gy1); ctx.lineTo(gx1, gy1); ctx.stroke();
+    ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center';
+    for (let k = 0; k <= rMax; k++) { if (gx1 - gx0 < 200 && k % 2 && k !== 1) continue; ctx.fillText(k === 1 ? 'R' : k === 0 ? '0' : `${k}R`, X(k), gy1 + 14); }
+    ctx.fillText('distance from the centre', (gx0 + gx1) / 2, gy1 + 28);
+    ctx.textAlign = 'right'; ctx.fillText(`${fmt(gs, 2)}`, gx0 - 4, Y(gs) + 4); ctx.fillText('0', gx0 - 4, gy1 + 4);
+    ctx.save(); ctx.translate(gx0 - 30, (gy0 + gy1) / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.fillText('g in m/s²', 0, 0); ctx.restore();
+    ctx.strokeStyle = pal.grid; ctx.beginPath(); ctx.moveTo(X(1), gy0); ctx.lineTo(X(1), gy1); ctx.stroke();
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2.5; ctx.beginPath();
+    for (let i = 0; i <= 400; i++) { const r = (i / 400) * rMax, gg = gAt(P, (r - 1) * R); i ? ctx.lineTo(X(r), Y(gg)) : ctx.moveTo(X(r), Y(gg)); }
+    ctx.stroke();
+    if (h > 0) { // the short cut g(1 − 2h/R), only near the surface
+      ctx.strokeStyle = pal.accent2; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5; ctx.beginPath();
+      for (let i = 0; i <= 100; i++) { const r = 1 + (i / 100) * 0.5, gg = gApproxHeight(P, (r - 1) * R); if (gg < 0) break; i ? ctx.lineTo(X(r), Y(gg)) : ctx.moveTo(X(r), Y(gg)); }
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+    const xr = Math.min(rMax, (R + h) / R);
+    ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(X(xr), Y(g), 6, 0, 7); ctx.fill();
+    ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = X(xr) > (gx0 + gx1) / 2 ? 'right' : 'left';
+    ctx.fillText(`g = ${fmt(g, 2)} m/s²`, X(xr) + (ctx.textAlign === 'right' ? -10 : 10), Math.max(gy0 + 10, Y(g) - 10));
+    c.setAttribute('aria-label', `${P.name}: g = ${fmt(g, 2)} m/s² at ${h >= 0 ? 'height' : 'depth'} ${fmt(Math.abs(h) / 1000, 0)} km`);
+
+    // readouts
+    const m = Number(mass.value), err = q('.gh-err');
+    err.hidden = m > 0; err.textContent = m > 0 ? '' : 'Type a mass above 0 kg.';
+    q('.gh-hv').textContent = h >= 0 ? `${fmt(h / 1000, 1)} km above the surface` : `${fmt(-h / 1000, 1)} km below the surface`;
+    const facts = [
+      fact('g here', `${fmt(g, 3)} m/s²`, `${fmt((g / gs) * 100, 1)} % of the surface value ${fmt(gs, 3)} m/s²`),
+    ];
+    if (m > 0) facts.push(fact('Your weight here', `${fmt(m * g, 1)} N`, `mass ${fmt(m, 1)} kg stays the same; on the surface ${fmt(m * gs, 1)} N`));
+    const eq: [string, string][] = [];
+    if (h >= 0) {
+      const o = orbit(P, h);
+      facts.push(
+        fact('Orbit speed here', `${fmt(o.v / 1000, 3)} km/s`, `√(GM/r), r = ${fmt(o.r / 1000, 0)} km`),
+        fact('Time for one orbit', o.T < 86400 * 2 ? `${fmt(o.T / 60, 1)} min` : `${fmt(o.T / 86400, 2)} days`, o.T >= 3600 ? `${fmt(o.T / 3600, 2)} h` : ''),
+        fact('Escape speed from here', `${fmt(o.vEsc / 1000, 3)} km/s`, `from the surface ${fmt(escapeSpeed(P) / 1000, 2)} km/s`),
+        fact('Energy of 1 kg in orbit', `${sig(o.e / 1e6, 4)} MJ`, `KE ${sig(o.ke / 1e6, 4)} MJ, PE ${sig(o.pe / 1e6, 4)} MJ`),
+      );
+      eq.push(['Above the surface: ', `g = GM/(R + h)² = ${sig(P.GM, 4)} ÷ (${fmt(R / 1000, 1)} + ${fmt(h / 1000, 1)} km)² = ${fmt(g, 3)} m/s². Near the surface the short cut g(1 − 2h/R) gives ${fmt(gApproxHeight(P, h), 3)} m/s² (dashed line).`]);
+      eq.push(['Satellite: ', `gravity gives the pull to the centre, m v²/r = GMm/r², so v = √(GM/r) and T = 2πr/v. Total energy E = −GMm/2r: a satellite is bound, and needs ${sig(-o.e / 1e6, 4)} MJ per kg more to escape.`]);
+    } else {
+      eq.push(['Inside: ', `only the part of the planet nearer the centre than you pulls you overall, so g = g₀ (1 − d/R) = ${fmt(gs, 3)} × (1 − ${fmt(-h / 1000, 1)} ÷ ${fmt(R / 1000, 1)}) = ${fmt(g, 3)} m/s².`]);
+    }
+    q('.gh-facts').replaceChildren(...facts);
+    q('.gh-eq').replaceChildren(...lines(eq));
+  }
+
+  segmented(q('.gh-planet'), (v) => {
+    P = planet(v);
+    slider.min = String(-P.R / 1000); slider.max = String(maxKm());
+    q<HTMLButtonElement>('.gh-half').dataset.h = String(-P.R / 2000);
+    setH(Math.min(hKm(), maxKm()));
+  });
+  slider.addEventListener('input', () => { q('.gh-note').hidden = true; num.value = slider.value; draw(); });
+  num.addEventListener('input', () => { const v = Number(num.value); if (num.value.trim() !== '' && Number.isFinite(v)) { slider.value = String(Math.max(-P.R / 1000, Math.min(maxKm(), v))); draw(); } });
+  num.addEventListener('change', () => setH(Number(num.value) || 0));
+  mass.addEventListener('input', draw);
+  root.querySelectorAll<HTMLButtonElement>('.gh-presets [data-h]').forEach((b) => b.addEventListener('click', () => setH(Number(b.dataset.h))));
+  q('.gh-geo').addEventListener('click', () => {
+    const hs = stationaryHeight(P) / 1000, note = q('.gh-note');
+    if (P.id === 'moon') { note.hidden = false; note.textContent = `The Moon turns so slowly that such an orbit would be ${fmt(hs, 0)} km up, too far out: the Earth's pull would take the satellite away.`; return; }
+    setH(Math.round(hs)); note.hidden = false; note.textContent = `Stationary orbit: ${fmt(hs, 0)} km above the equator, one orbit per turn of ${P.name} (${fmt(P.day / 3600, 2)} h).`;
+  });
+  const cv = q<HTMLCanvasElement>('.gh-c');
+  let dragging = false;
+  const fromX = (e: PointerEvent) => { const r = cv.getBoundingClientRect(), x = e.clientX - r.left; if (x < geom.x0 - 10) return; const rr = Math.max(0, Math.min(geom.rMax, ((x - geom.x0) / (geom.x1 - geom.x0)) * geom.rMax)); setH(Math.round((rr - 1) * P.R / 1000)); };
+  cv.addEventListener('pointerdown', (e) => { dragging = true; cv.setPointerCapture(e.pointerId); fromX(e); });
+  cv.addEventListener('pointermove', (e) => { if (dragging) fromX(e); });
+  cv.addEventListener('pointerup', () => { dragging = false; }); cv.addEventListener('pointercancel', () => { dragging = false; });
+  mountQuiz(q('.gh-quiz'), () => questions());
+  draw();
+  keepDrawn(cv, draw);
+</script>
+
+<style is:inline>
+  .gh canvas { display: block; width: 100%; margin-top: 10px; touch-action: pan-y; }
+  .gh > .ax-card:first-child > label { display: grid; margin-top: 10px; }
+  .gh input[type=range] { width: 100%; height: 32px; accent-color: var(--ink); }
+  .gh label b { color: var(--ink); }
+  .gh .gh-row { margin-top: 10px; }
+  .gh .gh-num { display: grid; gap: 4px; font-size: 14px; }
+  .gh .gh-num input { width: 9em; min-height: 44px; }
+  .gh .gh-presets { margin-top: 10px; }
+  .gh .gh-presets .btn, .gh .ax-seg button { min-height: 44px; }
+  .gh .gh-eq p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .gh .gh-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>

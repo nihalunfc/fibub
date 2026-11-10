@@ -1,0 +1,199 @@
+---
+// Water cycle simulator: a coast with sea, hills and land. Sun strength, air temperature, wind and the kind of ground
+// drive evaporation, cloud over the hills, rain, runoff to the river and water soaking in; a running water budget
+// shows that every drop is accounted for. A teaching box model with made-up round rates. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm wc">
+  <p class="ax-help">A teaching model with made-up round rates: it shows how the parts link up, not real weather.</p>
+  <div class="ax-card">
+    <div class="ax-row"><span class="wc-lab">Level</span>
+      <div class="ax-seg wc-level" role="group" aria-label="Level"><button type="button" data-v="8" aria-pressed="true">Class 6 to 8</button><button type="button" data-v="9" aria-pressed="false">Class 9 to 12</button></div></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>The coast</h2>
+    <svg class="sm-fig wc-fig" viewBox="0 0 340 240" role="img" aria-label="Sea on the left, hills and land on the right; arrows for evaporation, a cloud over the hills, rain, a river and water in the ground"></svg>
+    <p class="ax-big wc-clock"></p>
+    <div class="ax-row">
+      <button type="button" class="btn small wc-play">Play</button>
+      <button type="button" class="btn secondary small wc-day">Run 1 day</button>
+      <button type="button" class="btn secondary small wc-reset">Start again</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Settings</h2>
+    <div class="sm-sl"><b>sun</b><input type="range" class="wc-sr" min="0" max="100" step="5" value="70" aria-label="Sun strength, %" /><input type="number" class="wc-s" min="0" max="100" step="5" value="70" aria-label="Sun strength in percent" /></div>
+    <p class="ax-help">Sun strength, % (0 is night-like, 100 a cloudless summer noon). More sun, more evaporation.</p>
+    <div class="sm-sl"><b>T</b><input type="range" class="wc-tr" min="0" max="40" step="1" value="25" aria-label="Air temperature, °C" /><input type="number" class="wc-t" min="0" max="40" step="1" value="25" aria-label="Air temperature in °C" /></div>
+    <p class="ax-help">Air temperature at the coast, °C. Warm air holds much more water vapour.</p>
+    <div class="sm-sl"><b>wind</b><input type="range" class="wc-wr" min="0" max="100" step="5" value="50" aria-label="Wind, %" /><input type="number" class="wc-w" min="0" max="100" step="5" value="50" aria-label="Wind in percent" /></div>
+    <p class="ax-help">Wind from the sea, % (0 calm). Wind carries moist air inland and pushes it up over the hills.</p>
+    <div class="ax-row"><span class="wc-lab">Ground</span>
+      <div class="ax-seg wc-ground" role="group" aria-label="Ground"><button type="button" data-v="forest" aria-pressed="true">Forest</button><button type="button" data-v="farm" aria-pressed="false">Fields</button><button type="button" data-v="city" aria-pressed="false">City</button></div></div>
+    <p class="ax-help">How much rain runs straight off: forest 15%, fields 35%, city 80% (roofs and roads).</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Water budget</h2>
+    <p class="ax-help">Millimetres of water spread over the land, added up since you started.</p>
+    <svg class="sm-fig wc-bars" viewBox="0 0 340 170" role="img" aria-label="Bars: evaporated from the sea, from plants, rain, ran off, soaked in, river back to the sea"></svg>
+    <p class="sm-f wc-f1"></p>
+    <p class="sm-f wc-f2"></p>
+    <p class="sm-f wc-f3"></p>
+    <p class="sm-f wc-f4" data-only="9"></p>
+    <p class="sm-f wc-f5" data-only="9"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Press <b>Run 1 day</b> a few times. How many days pass before the first rain? Where does the cloud form?</li>
+      <li>Start again with the wind at 0. How much less rain reaches the land in 5 days?</li>
+      <li>Press <b>Start again</b> at 15 °C and run 5 days, then do the same at 35 °C. Why do hot coasts get heavy monsoon rain?</li>
+      <li>Run 5 days on <b>Forest</b>, then 5 days on <b>City</b>. Where does more water reach the river fast, and where is the ground refilled?</li>
+      <li>Check the last line of the budget: water is never made or lost, only moved.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="wc-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .wc .wc-lab { min-width: 5.5em; font-weight: 600; }
+  .wc svg .wc-skyb { fill: var(--accent-soft); fill-opacity: 0.35; }
+  .wc svg .wc-sea { fill: var(--accent); fill-opacity: 0.55; }
+  .wc svg .wc-land { fill: var(--good-soft); stroke: var(--good); stroke-width: 1.5; }
+  .wc svg .wc-soilw { fill: var(--accent); }
+  .wc svg .wc-sun { fill: var(--warn); }
+  .wc svg .wc-up { stroke: var(--accent); fill: none; stroke-linecap: round; }
+  .wc svg .wc-cloud { fill: var(--surface); stroke: var(--muted); stroke-width: 1.5; }
+  .wc svg .wc-drop { stroke: var(--accent); stroke-width: 2; stroke-linecap: round; }
+  .wc svg .wc-riv { fill: none; stroke: var(--accent); stroke-linecap: round; }
+  .wc svg .wc-tree { fill: var(--good); }
+  .wc svg .wc-bld { fill: var(--muted); }
+  .wc svg .wc-bar { fill: var(--accent); }
+  .wc svg .wc-bar2 { fill: var(--good); }
+  .wc svg .wc-bar3 { fill: var(--warn); }
+</style>
+
+<script>
+  import { GROUND, LIFT_COOLING, start, step, landWater, capacity, maxVapour, satVP, type Ground, type Params, type State } from '../../lib/sci/watercycle-j2';
+  import { S, pair, val, quiz, type Question } from '../../lib/smath-ui';
+  import { randInt } from '../../lib/sci/smath';
+
+  const root = document.querySelector<HTMLElement>('.wc')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const f1 = (x: number) => (Math.round(x * 10) / 10).toLocaleString('en', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const SB = q<HTMLInputElement>('.wc-s'), TB = q<HTMLInputElement>('.wc-t'), WB = q<HTMLInputElement>('.wc-w');
+  let level = '8', ground: Ground = 'forest', st: State = start(25), land0 = landWater(st), last = { evap: 0, plants: 0, cond: 0, rain: 0, runoff: 0, soak: 0, out: 0 };
+  let playing = false, raf = 0, acc = 0, prev = 0;
+
+  const params = (): Params => ({ sun: val(SB, 70, 0, 100) / 100, temp: val(TB, 25, 0, 40), wind: val(WB, 50, 0, 100) / 100, ground });
+  pair(q('.wc-sr'), SB, draw); pair(q('.wc-tr'), TB, draw); pair(q('.wc-wr'), WB, draw);
+
+  const seg = (sel: string, on: (v: string) => void) => {
+    const bs = [...root.querySelectorAll<HTMLButtonElement>(`${sel} button`)];
+    bs.forEach((b) => b.addEventListener('click', () => { bs.forEach((x) => x.setAttribute('aria-pressed', String(x === b))); on(b.dataset.v!); }));
+  };
+
+  function advance(hours: number) { for (let i = 0; i < hours; i++) { const r = step(st, params()); st = r.s; last = r.flows; } }
+
+  function picture(p: Params) {
+    const svg = q<SVGSVGElement>('.wc-fig'); svg.replaceChildren();
+    S('rect', { x: 0, y: 0, width: 340, height: 240, class: 'wc-skyb' }, svg);
+    S('circle', { cx: 40, cy: 34, r: 8 + 16 * p.sun, class: 'wc-sun' }, svg);
+    S('rect', { x: 0, y: 170, width: 125, height: 70, class: 'wc-sea' }, svg);
+    S('text', { x: 10, y: 228, style: 'font-weight:600' }, svg, 'Sea');
+    const landD = 'M120 240 L120 172 Q160 168 190 140 Q225 95 255 92 Q285 95 305 130 Q320 150 340 152 L340 240 Z';
+    S('path', { d: landD, class: 'wc-land' }, svg);
+    // Water in the ground: a band whose darkness follows the soil water.
+    S('rect', { x: 125, y: 205, width: 215, height: 35, class: 'wc-soilw', 'fill-opacity': (0.1 + 0.6 * Math.min(1, st.soil / 120)).toFixed(3) }, svg);
+    S('text', { x: 200, y: 228, class: 'sm-tick' }, svg, 'water in the ground');
+    // Ground cover.
+    for (let i = 0; i < 5; i++) {
+      const x = 205 + i * 22, y = 120 + Math.abs(i - 2) * 6;
+      if (ground === 'forest') S('path', { d: `M${x} ${y - 16} l7 14 h-14 Z`, class: 'wc-tree' }, svg);
+      else if (ground === 'farm') S('rect', { x: x - 7, y: y - 4, width: 14, height: 4, class: 'wc-tree' }, svg);
+      else S('rect', { x: x - 7, y: y - 18, width: 12, height: 18, class: 'wc-bld' }, svg);
+    }
+    // Evaporation arrows over the sea, width by the last hour's flow.
+    const ew = Math.min(6, 0.5 + last.evap * 10);
+    for (const x of [30, 65, 100]) S('path', { d: `M${x} 165 L${x} 120 M${x - 5} 128 L${x} 120 L${x + 5} 128`, class: 'wc-up', 'stroke-width': ew.toFixed(2) }, svg);
+    S('text', { x: 66, y: 112, 'text-anchor': 'middle', class: 'sm-tick' }, svg, 'evaporation');
+    // Wind arrow.
+    if (p.wind > 0) S('path', { d: `M110 70 L${110 + 50 * p.wind} 70 M${104 + 50 * p.wind} 65 L${110 + 50 * p.wind} 70 L${104 + 50 * p.wind} 75`, class: 'wc-up', 'stroke-width': 2 }, svg);
+    S('text', { x: 110, y: 62, class: 'sm-tick' }, svg, p.wind > 0 ? 'wind' : 'calm');
+    // Cloud over the hills, bigger with more water in it.
+    const c = Math.min(1, st.cloud / 4);
+    if (st.cloud > 0.05) {
+      const g = S('g', { transform: `translate(255 40) scale(${(0.5 + 0.7 * c).toFixed(3)})` }, svg);
+      S('path', { d: 'M-40 10 a14 14 0 0 1 10 -22 a20 20 0 0 1 36 -6 a16 16 0 0 1 26 10 a12 12 0 0 1 4 18 Z', class: 'wc-cloud wc-cl' }, g);
+    }
+    if (last.rain > 0.02) for (let i = 0; i < 7; i++) S('line', { x1: 228 + i * 9, y1: 62 + (i % 3) * 6, x2: 224 + i * 9, y2: 74 + (i % 3) * 6, class: 'wc-drop wc-rain' }, svg);
+    // River from the hills to the sea.
+    S('path', { d: 'M250 100 Q215 150 175 168 Q150 178 122 180', class: 'wc-riv', 'stroke-width': Math.min(7, 1 + st.river * 0.8).toFixed(2) }, svg);
+    S('text', { x: 160, y: 196, class: 'sm-tick' }, svg, 'river');
+  }
+
+  function bars() {
+    const svg = q<SVGSVGElement>('.wc-bars'); svg.replaceChildren();
+    const items: [string, number, string][] = [['from sea', st.fromSea, 'wc-bar'], ['from plants', st.plants, 'wc-bar2'], ['rain', st.rain, 'wc-bar'], ['ran off', st.runoff, 'wc-bar3'], ['soaked in', st.soak, 'wc-bar2'], ['river to sea', st.toSea, 'wc-bar3']];
+    const top = Math.max(5, ...items.map((i) => i[1])), L = 92, W = 200;
+    items.forEach(([n, v, cls], i) => {
+      const y = 10 + i * 26;
+      S('text', { x: L - 6, y: y + 14, 'text-anchor': 'end' }, svg, n);
+      S('rect', { x: L, y, width: Math.max(0.5, (W * v) / top), height: 18, class: cls }, svg);
+      S('text', { x: L + (W * v) / top + 5, y: y + 14, class: 'sm-tick' }, svg, `${f1(v)} mm`);
+    });
+  }
+
+  function draw() {
+    const p = params();
+    picture(p); bars();
+    const day = Math.floor(st.hour / 24) + 1, hr = st.hour % 24;
+    q('.wc-clock').textContent = `Day ${day}, hour ${hr}: ${last.rain > 0.02 ? 'raining on the hills' : st.cloud > 0.5 ? 'cloud building' : 'dry'}`;
+    q('.wc-f1').textContent = `Rain ${f1(st.rain)} mm = ran off ${f1(st.runoff)} mm + soaked in ${f1(st.soak)} mm (${GROUND[ground].name.toLowerCase()}: ${Math.round(GROUND[ground].runoff * 100)}% runs off).`;
+    q('.wc-f2').textContent = `Air over the land holds ${f1(st.vapour)} mm of vapour and the cloud ${f1(st.cloud)} mm. At ${f1(p.temp)} °C the air can hold up to ${f1(capacity(p.temp))} mm; over the hills, ${LIFT_COOLING} °C colder, only ${f1(capacity(p.temp - LIFT_COOLING))} mm.`;
+    const bal = landWater(st) - land0 - st.fromSea + st.toSea;
+    q('.wc-f3').textContent = `Every drop counted: change on land ${f1(landWater(st) - land0)} mm = from the sea ${f1(st.fromSea)} − back to the sea ${f1(st.toSea)} mm${Math.abs(bal) < 1e-6 ? ' ✓' : ''}.`;
+    q('.wc-f4').textContent = `Saturation vapour pressure (Tetens): e = 0.6108 × exp(17.27 T ÷ (T + 237.3)) = ${satVP(p.temp).toFixed(2)} kPa at ${f1(p.temp)} °C and ${satVP(p.temp - LIFT_COOLING).toFixed(2)} kPa at ${f1(p.temp - LIFT_COOLING)} °C.`;
+    q('.wc-f5').textContent = `A cubic metre of air can hold up to ${f1(maxVapour(p.temp))} g of water at ${f1(p.temp)} °C but only ${f1(maxVapour(p.temp - LIFT_COOLING))} g at ${f1(p.temp - LIFT_COOLING)} °C: rising air that cools must let water go as droplets (cloud).`;
+  }
+
+  const tick = (now: number) => {
+    if (!playing) { raf = 0; return; }
+    acc += prev ? Math.min(0.2, (now - prev) / 1000) * 12 : 0; prev = now;   // 12 model hours a second
+    const n = Math.floor(acc); if (n) { acc -= n; advance(n); draw(); }
+    raf = requestAnimationFrame(tick);
+  };
+  const play = q<HTMLButtonElement>('.wc-play');
+  play.addEventListener('click', () => { playing = !playing; play.textContent = playing ? 'Pause' : 'Play'; prev = 0; if (playing && !raf) raf = requestAnimationFrame(tick); });
+  q('.wc-day').addEventListener('click', () => { advance(24); draw(); });
+  q('.wc-reset').addEventListener('click', () => { st = start(val(TB, 25, 0, 40)); land0 = landWater(st); last = { evap: 0, plants: 0, cond: 0, rain: 0, runoff: 0, soak: 0, out: 0 }; draw(); });
+  seg('.wc-level', (v) => { level = v; root.querySelectorAll<HTMLElement>('[data-only]').forEach((e) => { e.hidden = e.dataset.only !== level; }); });
+  seg('.wc-ground', (v) => { ground = v as Ground; draw(); });
+  root.querySelectorAll<HTMLElement>('[data-only]').forEach((e) => { e.hidden = e.dataset.only !== level; });
+  draw();
+
+  quiz(q('.wc-quiz'), () => {
+    const out: Question[] = [];
+    const r1 = randInt(2, 12) * 5, sh = [15, 35, 80][randInt(0, 2)];
+    out.push({ q: `${r1} mm of rain falls on ground where ${sh}% runs off. How many mm run off?`, want: [(r1 * sh) / 100], work: `${r1} × ${sh} ÷ 100 = ${(r1 * sh) / 100} mm.` });
+    const r2 = randInt(20, 60), ro = randInt(3, r2 - 5);
+    out.push({ q: `${r2} mm of rain fell and ${ro} mm ran off. How many mm soaked into the ground?`, want: [r2 - ro], work: `Rain = runoff + soaked in, so ${r2} − ${ro} = ${r2 - ro} mm soaked in.` });
+    const hot = [25, 30, 35][randInt(0, 2)], cold = hot - [10, 15, 20][randInt(0, 2)], mh = Math.round(maxVapour(hot)), mc = Math.round(maxVapour(cold));
+    out.push({ q: `A cubic metre of air at ${hot} °C holds ${mh} g of water vapour (it is full). It rises and cools to ${cold} °C, where it can hold only ${mc} g. How many grams turn into cloud droplets?`, want: [mh - mc], work: `${mh} − ${mc} = ${mh - mc} g condense into droplets.` });
+    const a = randInt(2, 9) * 50, e = randInt(3, 8);
+    out.push({ q: `A pond of ${a} m² loses ${e} mm of water a day to evaporation. How many litres is that a day? (1 m² × 1 mm = 1 litre)`, want: [a * e], work: `${a} × ${e} = ${a * e} litres a day.` });
+    const ar = randInt(2, 9), mm = randInt(1, 6) * 10;
+    out.push({ q: `${mm} mm of rain falls on a town of ${ar} km². How many cubic metres of water is that? (1 km² = 1,000,000 m²)`, want: [ar * 1e6 * mm / 1000], work: `${ar} × 1,000,000 m² × ${mm / 1000} m = ${ar * 1000 * mm} m³.` });
+    return out;
+  });
+</script>

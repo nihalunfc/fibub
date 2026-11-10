@@ -1,0 +1,160 @@
+---
+// Thermal expansion of rails and bridges (Learn): ΔL = α L ΔT, the gap to leave, what happens when the gap closes,
+// and at Class 11 the stress in a rail that cannot move (σ = Y α ΔT) and area and volume expansion.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn txp">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Rails and bridges in the sun</h2>
+      <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="8" aria-pressed="true">Class 8–10</button><button type="button" data-level="11" aria-pressed="false">Class 11</button></div>
+    </div>
+    <div class="ax-row" style="margin-top:10px">
+      <div class="ax-seg tx-mode" role="group" aria-label="What to look at"><button type="button" data-m="rail" aria-pressed="true">Railway track</button><button type="button" data-m="bridge" aria-pressed="false">Bridge</button></div>
+    </div>
+    <canvas class="lrn-cv tx-cv" style="margin-top:10px" aria-label="Lengths of rail or a bridge deck with gaps between them; the gaps shrink as the temperature rises, and the rail bows when a gap closes"></canvas>
+    <p class="ax-help tx-scale"></p>
+    <div class="ax-grid" style="margin-top:8px">
+      <label class="lrn-sl">Temperature now <b class="tx-Tv"></b><input type="range" class="tx-T" min="-20" max="70" step="1" value="45" aria-label="Temperature now in degrees Celsius" /></label>
+      <label class="lrn-sl">Laid (gap set) at <b class="tx-T0v"></b><input type="range" class="tx-T0" min="-10" max="40" step="1" value="20" aria-label="Laying temperature in degrees Celsius" /></label>
+      <label class="lrn-sl">Length of each piece <b class="tx-Lv"></b><input type="range" class="tx-L" min="5" max="40" step="1" value="13" aria-label="Length of each piece in metres" /></label>
+      <label class="lrn-sl">Gap left when laid <b class="tx-gv"></b><input type="range" class="tx-g" min="0" max="20" step="0.5" value="5" aria-label="Gap in millimetres" /></label>
+      <label>Material<select class="tx-mat">
+        <option value="steel" selected>Steel</option><option value="concrete">Concrete</option><option value="aluminium">Aluminium</option><option value="copper">Copper</option><option value="brass">Brass</option><option value="glass">Ordinary glass</option><option value="invar">Invar (nickel steel)</option>
+      </select></label>
+    </div>
+    <p class="lrn-eq tx-eq"></p>
+    <p class="tx-state" style="margin:6px 0 0;font-weight:600"></p>
+    <dl class="ax-facts tx-facts" style="margin-top:10px"></dl>
+    <p class="ax-help">α and Y are rounded typical values for teaching; real ones vary with the exact alloy or mix.</p>
+  </div>
+
+  <div class="ax-card" data-only="11" hidden>
+    <h2>No gap: the stress in a welded rail</h2>
+    <p class="ax-help" style="margin-top:0">Modern track is welded into long lengths and clamped so it cannot grow. The rail then pushes on its fixings with the force it would take to squeeze it back by ΔL: stress σ = Y × strain = Y α ΔT.</p>
+    <p class="lrn-eq tx-seq"></p>
+    <h2 style="margin-top:14px">Area and volume grow too</h2>
+    <p class="lrn-eq tx-aeq"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Raise the temperature until the gap closes. How hot was it? Now make the gap bigger, or lay the track on a warmer day.</li>
+      <li>Switch to aluminium: it grows about twice as much as steel for the same warming.</li>
+      <li>Switch to Bridge and make the span 40 m: a bridge needs a much bigger joint than a rail, because ΔL grows with the length.</li>
+      <li>Steel and concrete grow by nearly the same amount, which is why steel rods can sit inside concrete without cracking it.</li>
+      <li>At Class 11, set the gap to 0 and see how big the stress gets on a hot day.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card tx-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { deltaL, thermalStress, areaVolume, gapNeeded, bowRise } from '../../lib/sci/n2-thermal';
+  import { mountQuiz, pick, one, r, fitCanvas, wireLevel } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+
+  // Rounded typical values for teaching: α in 1/K, Y in GPa.
+  const MAT: Record<string, { name: string; a: number; Y: number }> = {
+    steel: { name: 'steel', a: 12e-6, Y: 200 }, concrete: { name: 'concrete', a: 12e-6, Y: 30 }, aluminium: { name: 'aluminium', a: 23e-6, Y: 70 },
+    copper: { name: 'copper', a: 17e-6, Y: 120 }, brass: { name: 'brass', a: 19e-6, Y: 100 }, glass: { name: 'ordinary glass', a: 9e-6, Y: 70 }, invar: { name: 'invar', a: 1.2e-6, Y: 140 },
+  };
+  const root = document.querySelector<HTMLElement>('.txp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v_ = (c: string) => +q<HTMLInputElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  const mm = (m: number) => `${sig(m * 1000, 3)} mm`;
+  const neg = (s: string) => s.replace(/^-/, '−');
+  let mode = 'rail', level = '8';
+
+  function st() {
+    const m = MAT[q<HTMLSelectElement>('.tx-mat').value], T = v_('.tx-T'), T0 = v_('.tx-T0'), L = v_('.tx-L'), gap = v_('.tx-g') / 1000;
+    const dT = T - T0, dL = deltaL(m.a, L, dT), left = gap - dL, closeT = T0 + gap / (m.a * L);
+    return { m, T, T0, L, gap, dT, dL, left, closeT };
+  }
+
+  function draw() {
+    const s = st(), { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.tx-cv'), 190), pal = pagePalette();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    // Drawing scale: pieces drawn short; gaps and growth magnified so a few millimetres show.
+    const n = mode === 'rail' ? 3 : 2, gmm = Math.max(1, s.gap * 1000), mag = Math.min(3, ((W - 40) * 0.3) / ((n - 1) * gmm)), pieceW = (W - 40 - (n - 1) * gmm * mag) / n;   // mag: px per mm of gap
+    const gapPx = (g: number) => Math.max(0, g * 1000 * mag), growPx = s.dL * 1000 * mag;
+    const y0 = mode === 'rail' ? 110 : 90, hot = pal.red ? pal.ink : pal.bad;
+    if (mode === 'rail') {
+      ctx.fillStyle = pal.line; for (let x = 10; x < W - 6; x += 22) ctx.fillRect(x, y0 + 6, 12, 10);   // sleepers
+    } else {
+      ctx.fillStyle = pal.grid; ctx.fillRect(0, y0 + 14, W, H - y0 - 14);
+      ctx.fillStyle = pal.muted; [16, W / 2, W - 16].forEach((x) => ctx.fillRect(x - 8, y0 + 12, 16, H - y0 - 12));
+    }
+    const closed = s.left < 0, rise = closed ? bowRise(s.L, -s.left) : 0;
+    const pitch = pieceW + gapPx(s.gap), col = s.dT > 0 ? hot : s.dT < 0 ? (pal.red ? pal.muted : pal.accent) : pal.ink;
+    for (let i = 0; i < n; i++) {
+      const x = 20 + i * pitch;
+      ctx.strokeStyle = col; ctx.lineWidth = mode === 'rail' ? 5 : 10; ctx.lineCap = 'butt';
+      ctx.beginPath(); ctx.moveTo(x, y0);
+      if (closed) { const hp = Math.min(60, 10 + rise * 100); ctx.quadraticCurveTo(x + pitch / 2, y0 - hp, x + pitch, y0); }
+      else ctx.lineTo(x + Math.max(4, pieceW + growPx), y0);
+      ctx.stroke();
+      if (i < n - 1 && !closed) {
+        const gx = x + pieceW + growPx + gapPx(s.left) / 2;
+        ctx.fillStyle = pal.muted; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(`${sig(s.left * 1000, 2)} mm`, gx, y0 + 32);
+      }
+    }
+    ctx.fillStyle = pal.ink; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(`${s.T} °C`, 8, 18);
+    ctx.fillStyle = closed ? pal.bad : pal.muted; ctx.textAlign = 'right';
+    ctx.fillText(closed ? 'gap closed: the rail is squeezed and bows' : 'gaps', W - 8, 18);
+    q('.tx-scale').textContent = `Not to scale: each piece is drawn short and the gaps are magnified (${sig(mag, 2)} px per millimetre) so a few millimetres show.`;
+  }
+
+  function update() {
+    const s = st();
+    q('.tx-Tv').textContent = `${neg(String(s.T))} °C`; q('.tx-T0v').textContent = `${neg(String(s.T0))} °C`; q('.tx-Lv').textContent = `${s.L} m`; q('.tx-gv').textContent = `${v_('.tx-g')} mm`;
+    q('.tx-eq').textContent = `ΔL = α L ΔT = ${sig(s.m.a * 1e6, 3)}×10⁻⁶ /°C × ${s.L} m × (${neg(String(s.T))} − ${neg(String(s.T0))}) °C = ${neg(mm(s.dL))}.  Gap now = ${v_('.tx-g')} mm − ${neg(mm(s.dL))} = ${neg(mm(s.left))}.`;
+    const st_ = q('.tx-state');
+    if (s.left < 0) { st_.textContent = `The gap closed at ${sig(s.closeT, 4)} °C. The pieces now push on each other${mode === 'rail' ? ': without strong fixings the track would bow sideways or up' : ''}.`; st_.style.color = 'var(--bad)'; }
+    else { st_.textContent = s.gap > 0 ? `Gap still open. It would close at ${sig(s.closeT, 4)} °C.` : 'No gap: any warming squeezes the pieces.'; st_.style.color = 'var(--good)'; }
+    const items = [fact('Change in length', neg(mm(s.dL)), `for each ${s.L} m piece`), fact('Gap needed for 50 °C', mm(gapNeeded(s.m.a, s.L, s.T0, 50)), `laid at ${neg(String(s.T0))} °C`), fact('Strain ΔL / L', `${sig(s.m.a * s.dT * 1e6, 3)} millionths`, `α ΔT`)];
+    if (s.left < 0) items.push(fact('Bow if free to bend', `about ${sig(bowRise(s.L, -s.left) * 100, 2)} cm`, 'rise of a shallow arc, h ≈ √(3 L × excess / 8)'));
+    q('.tx-facts').replaceChildren(...items);
+    // Class 11
+    const sig_ = thermalStress(s.m.Y * 1e9, s.m.a, s.dT), area = 7700e-6;   // typical rail cross-section about 77 cm²
+    q('.tx-seq').textContent = `σ = Y α ΔT = ${s.m.Y}×10⁹ Pa × ${sig(s.m.a * 1e6, 3)}×10⁻⁶ /°C × ${neg(String(s.dT))} °C = ${neg(sig(sig_ / 1e6, 3))} MPa (${s.dT >= 0 ? 'compression' : 'tension'}).` + (mode === 'rail' ? `  On a rail of cross-section about 77 cm² that is a force of ${neg(sig(Math.abs(sig_) * area / 1000, 3))} kN.` : '');
+    const av = areaVolume(s.m.a, 1, s.dT);
+    q('.tx-aeq').textContent = `A 1 m square sheet: ΔA ≈ 2α A ΔT = ${neg(sig(av.dAapprox * 1e4, 4))} cm² (exact ${neg(sig((av.A - av.A0) * 1e4, 4))} cm²).  A 1 m cube: ΔV ≈ 3α V ΔT = ${neg(sig(av.dVapprox * 1e6, 4))} cm³ (exact ${neg(sig((av.V - av.V0) * 1e6, 4))} cm³). So β = 2α and γ = 3α.`;
+    draw();
+  }
+
+  wireLevel(root, (l) => { level = l; update(); });
+  root.querySelectorAll<HTMLButtonElement>('.tx-mode button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m!; root.querySelectorAll('.tx-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    const L = q<HTMLInputElement>('.tx-L'), g = q<HTMLInputElement>('.tx-g');
+    if (mode === 'bridge') { L.max = '200'; L.value = '40'; g.max = '60'; g.value = '20'; q<HTMLSelectElement>('.tx-mat').value = 'concrete'; }
+    else { L.max = '40'; L.value = '13'; g.max = '20'; g.value = '5'; q<HTMLSelectElement>('.tx-mat').value = 'steel'; }
+    update();
+  }));
+  root.querySelectorAll('input, select').forEach((e) => e.addEventListener('input', update));
+  addEventListener('resize', draw);
+  update();
+
+  mountQuiz(q('.tx-quiz'), () => {
+    const L = pick(10, 30), dT = pick(20, 45), L2 = pick(20, 120, 10), lay = pick(10, 25), hot = lay + pick(20, 35), dT3 = pick(15, 40);
+    const a = 12e-6, mats = ['steel', 'aluminium', 'invar'];
+    const pickM = one([0, 1]);
+    return [
+      { q: `A steel rail (α = 12 × 10⁻⁶ /°C) is ${L} m long. By how many millimetres does it grow when it warms by ${dT} °C?`, ans: deltaL(a, L, dT) * 1000, unit: 'mm', work: `ΔL = α L ΔT = 12×10⁻⁶ × ${L} × ${dT} = ${r(deltaL(a, L, dT), 3)} m = ${r(deltaL(a, L, dT) * 1000)} mm` },
+      { q: `A concrete bridge span (α = 12 × 10⁻⁶ /°C) is ${L2} m long. The joint is set at ${lay} °C. What is the smallest gap, in mm, so it just closes at ${hot} °C?`, ans: gapNeeded(a, L2, lay, hot) * 1000, unit: 'mm', work: `gap = α L (T_hot − T_laid) = 12×10⁻⁶ × ${L2} × ${hot - lay} = ${r(gapNeeded(a, L2, lay, hot) * 1000)} mm` },
+      { q: `An aluminium rod (α = 23 × 10⁻⁶ /°C) is exactly 2 m long at 20 °C. How long is it at ${20 + dT} °C, in metres?`, ans: 2 + deltaL(23e-6, 2, dT), unit: 'm', tol: 1e-6, work: `ΔL = 23×10⁻⁶ × 2 × ${dT} = ${r(deltaL(23e-6, 2, dT), 3)} m, so L = 2 + ${r(deltaL(23e-6, 2, dT), 3)} = ${(2 + deltaL(23e-6, 2, dT)).toFixed(5)} m` },
+      { q: `A steel rail (Y = 200 GPa, α = 12 × 10⁻⁶ /°C) is welded so it cannot grow. What stress, in MPa, builds up when it warms by ${dT3} °C?`, ans: thermalStress(200e9, a, dT3) / 1e6, unit: 'MPa', work: `σ = Y α ΔT = 200×10⁹ × 12×10⁻⁶ × ${dT3} = ${r(thermalStress(200e9, a, dT3) / 1e6)} MPa` },
+      pickM === 0
+        ? { q: 'Which of these grows least for the same warming, so it is used in clock pendulums and measuring tapes?', ans: 2, choices: mats.map((m) => m[0].toUpperCase() + m.slice(1)), work: 'Invar, a nickel steel, has α about 1.2×10⁻⁶ /°C, ten times smaller than steel (12×10⁻⁶) and twenty times smaller than aluminium (23×10⁻⁶).' }
+        : { q: 'A metal plate is warmed. Its area grows by about how many times α ΔT?', ans: 1, choices: ['1', '2', '3'], work: 'Each side grows by the factor (1 + αΔT), so the area grows by (1 + αΔT)² ≈ 1 + 2αΔT: β ≈ 2α. Volume grows by about 3αΔT.' },
+    ];
+  });
+</script>

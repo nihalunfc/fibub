@@ -1,0 +1,163 @@
+---
+// Henry's law: CO₂ in a soda bottle (pressure, temperature, opening the cap), which gases dissolve best, and
+// nitrogen in a diver's body water or oxygen for a climber.
+import '../../styles/astro.css';
+import '../../styles/chemquiz.css';
+---
+<div class="ax hl">
+  <div class="ax-card">
+    <h2>A bottle of soda</h2>
+    <label class="hl-rl"><span>p</span><input type="range" class="hl-p" min="0.5" max="5" step="0.1" value="2.5" aria-label="CO2 pressure in the bottle" /><output class="hl-op"></output></label>
+    <label class="hl-rl"><span>T</span><input type="range" class="hl-t" min="0" max="40" step="1" value="25" aria-label="Temperature" /><output class="hl-ot"></output></label>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn hl-open" aria-pressed="false">Open the bottle</button></div>
+    <div class="hl-row">
+      <svg class="hl-bottle" viewBox="0 0 120 220" role="img" aria-label="Bottle"></svg>
+      <div style="min-width:0">
+        <p class="ax-big hl-big" style="margin:0 0 4px"></p>
+        <p class="hl-sub" style="margin:0"></p>
+      </div>
+    </div>
+    <dl class="ax-facts hl-facts"></dl>
+    <p class="lx-eq hl-eq"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Which gas dissolves best?</h2>
+    <p class="ax-help" style="margin-top:0">Each gas at 1 bar over water at the temperature above. A bigger KH means the gas is harder to dissolve.</p>
+    <table class="hl-cmp"><thead><tr><th>Gas</th><th>KH (kbar)</th><th>mmol per litre</th></tr></thead><tbody></tbody></table>
+  </div>
+
+  <div class="ax-card">
+    <h2>Divers and climbers</h2>
+    <div class="ax-seg hl-who" role="group" aria-label="Diver or climber"><button type="button" data-w="dive" aria-pressed="true">Diver</button><button type="button" data-w="climb" aria-pressed="false">Climber</button></div>
+    <label class="hl-rl"><span class="hl-hl">d</span><input type="range" class="hl-h" min="0" max="40" step="1" value="30" aria-label="Depth" /><output class="hl-oh"></output></label>
+    <p class="ax-big hl-pbig" style="margin:12px 0 2px"></p>
+    <p class="hl-psub" style="margin:0 0 8px"></p>
+    <svg class="hl-bars" viewBox="0 0 320 90" role="img" aria-label="Dissolved gas compared with sea level"></svg>
+    <p class="lx-eq hl-peq"></p>
+    <p class="ax-help">A teaching model: body water is treated as plain water at 37 °C and the gas has all the time it needs to dissolve. It is not for planning dives or climbs.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lx-try">
+      <li>Double the pressure in the bottle. What happens to the dissolved CO₂?</li>
+      <li>Warm the bottle from 5 °C to 35 °C. Why does warm soda go flat faster?</li>
+      <li>Open the bottle. How many millilitres of gas come out of each litre?</li>
+      <li>Why does a fish need cold water more than warm water? (Look at oxygen in the table as you change T.)</li>
+      <li>Take the diver to 30 m. How many times more nitrogen dissolves than at the surface?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cq">
+    <h2>Check yourself</h2>
+    <ol class="cq-list"></ol>
+    <button type="button" class="btn secondary small cq-new">New questions</button>
+  </div>
+</div>
+
+<style is:inline>
+  .hl-rl { display: grid !important; grid-template-columns: 20px 1fr 110px; align-items: center; gap: 10px !important; margin-top: 12px; color: var(--ink) !important; }
+  .hl-rl input { height: 36px; accent-color: var(--accent); }
+  .hl-rl output { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; font-size: 14px; }
+  .hl-row { display: flex; gap: 14px; align-items: center; margin: 12px 0; }
+  .hl-bottle { width: 100px; flex: none; }
+  .hl .glass { fill: none; stroke: var(--ink); stroke-width: 2; }
+  .hl .liq { fill: var(--line); }
+  .hl .cap { fill: var(--ink); }
+  .hl .bub { fill: var(--surface); stroke: var(--ink); stroke-width: 1; }
+  .hl .esc { fill: var(--accent); }
+  .hl table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  .hl th, .hl td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; }
+  .hl-bars { display: block; width: 100%; max-width: 440px; margin: 0 auto; }
+  .hl .bar { fill: var(--muted); }
+  .hl .bar.now { fill: var(--accent); }
+  .hl .tx { fill: var(--ink); font: 12px system-ui, sans-serif; }
+</style>
+
+<script>
+  import { AIR, GASES, altitudePressure, depthPressure, dissolved, gasVolume, kh } from '../../lib/sci/henry';
+  import { mountQuiz, near, same, pickOne, rint, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.hl')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const NS = 'http://www.w3.org/2000/svg';
+  const sv = (tag: string, attrs: Record<string, string | number>, text?: string) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, String(v)); if (text != null) n.textContent = text; return n; };
+  const g3 = (x: number) => String(Number(x.toPrecision(3)));
+  let open = false, who: 'dive' | 'climb' = 'dive';
+  const spots = Array.from({ length: 40 }, (_, i) => [((i * 0.6180339887) % 1), ((i * 0.7548776662 + 0.13) % 1)]);
+  const lines = (el: HTMLElement, ls: string[]) => { el.replaceChildren(); ls.forEach((t, i) => { if (i) el.append(document.createElement('br')); el.append(t); }); };
+
+  function soda() {
+    const p = Number(q<HTMLInputElement>('.hl-p').value), tc = Number(q<HTMLInputElement>('.hl-t').value), T = tc + 273.15;
+    q('.hl-op').textContent = `${p.toFixed(1)} bar`; q('.hl-ot').textContent = `${tc} °C`;
+    const btn = q<HTMLButtonElement>('.hl-open'); btn.textContent = open ? 'Close it again' : 'Open the bottle'; btn.setAttribute('aria-pressed', String(open));
+    const sealed = dissolved(GASES.CO2, p, T), air = dissolved(GASES.CO2, AIR.CO2, T), now = open ? air : sealed;
+    const svg = q<SVGSVGElement>('.hl-bottle'); svg.replaceChildren();
+    svg.append(sv('path', { d: 'M48 10 H72 V40 Q100 60 100 90 V205 Q100 214 90 214 H30 Q20 214 20 205 V90 Q20 60 48 40 Z', class: 'glass' }));
+    svg.append(sv('path', { d: 'M22 95 H98 V205 Q98 212 90 212 H30 Q22 212 22 205 Z', class: 'liq' }));
+    if (!open) svg.append(sv('rect', { x: 45, y: 2, width: 30, height: 12, rx: 2, class: 'cap' }));
+    const nb = Math.min(40, Math.round(now.mol * 300));
+    for (let i = 0; i < nb; i++) svg.append(sv('circle', { cx: 28 + spots[i][0] * 64, cy: 102 + spots[i][1] * 104, r: 3, class: 'bub' }));
+    if (open) for (let i = 0; i < Math.min(20, Math.round((sealed.mol - air.mol) * 150)); i++) svg.append(sv('circle', { cx: 50 + spots[i][0] * 20, cy: 8 + spots[i][1] * 80, r: 2.5, class: 'esc' }));
+    svg.setAttribute('aria-label', `${open ? 'Open' : 'Sealed'} bottle with ${nb} bubbles of dissolved gas drawn`);
+    q('.hl-big').textContent = `${g3(now.grams)} g of CO₂ per litre`;
+    const out = sealed.mol - air.mol, vol = gasVolume(out, T) * 1000;
+    q('.hl-sub').textContent = open
+      ? `Open: the CO₂ pressure falls to the air's ${AIR.CO2} bar, so almost all of it must leave. Each litre gives off about ${Math.round(vol)} mL of gas (at 1 bar): the fizz.`
+      : `Sealed at ${p.toFixed(1)} bar of CO₂. Squeezing more gas in pushes more into the drink.`;
+    const f = q('.hl-facts'); f.replaceChildren();
+    const fact = (k: string, v: string, s = '') => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; dd.append(sm); } d.append(dt, dd); f.append(d); };
+    const K = kh(GASES.CO2, T);
+    fact('KH of CO₂', `${g3(K / 1000)} kbar`, `at ${tc} °C`);
+    fact('Mole fraction x', now.x.toExponential(2).replace('e-', ' × 10^−'));
+    fact('Dissolved', `${g3(now.mol * 1000)} mmol/L`);
+    lines(q('.hl-eq'), [`x = p / KH = ${open ? AIR.CO2 : p.toFixed(1)} bar / ${g3(K)} bar = ${now.x.toExponential(2)}`, `moles per litre ≈ x × 55.5 = ${g3(now.mol)} mol, × 44 g/mol = ${g3(now.grams)} g`]);
+    // gas comparison
+    const tb = q<HTMLTableElement>('.hl-cmp').tBodies[0]; tb.replaceChildren();
+    for (const g of Object.values(GASES)) { const tr = document.createElement('tr'); for (const v of [`${g.id === 'CO2' ? 'CO₂' : g.id === 'O2' ? 'O₂' : 'N₂'} (${g.name})`, g3(kh(g, T) / 1000), g3(dissolved(g, 1, T).mol * 1000)]) { const td = document.createElement('td'); td.textContent = v; tr.append(td); } tb.append(tr); }
+  }
+
+  function people() {
+    root.querySelectorAll<HTMLButtonElement>('.hl-who button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.w === who)));
+    const sl = q<HTMLInputElement>('.hl-h'), dive = who === 'dive';
+    if (sl.dataset.mode !== who) { sl.dataset.mode = who; sl.max = dive ? '40' : '8800'; sl.step = dive ? '1' : '100'; sl.value = dive ? '30' : '5000'; sl.setAttribute('aria-label', dive ? 'Depth' : 'Altitude'); }
+    const h = Number(sl.value), T = 310.15, gas = dive ? GASES.N2 : GASES.O2, share = dive ? AIR.N2 : AIR.O2;
+    q('.hl-hl').textContent = dive ? 'd' : 'h';
+    q('.hl-oh').textContent = dive ? `${h} m deep` : `${h} m up`;
+    const P = dive ? depthPressure(h) : altitudePressure(h), P0 = dive ? depthPressure(0) : altitudePressure(0);
+    const here = dissolved(gas, share * P, T), sea = dissolved(gas, share * P0, T), ratio = here.mol / sea.mol;
+    q('.hl-pbig').textContent = `${g3(ratio)} × the ${dive ? 'nitrogen' : 'oxygen'} at sea level`;
+    q('.hl-psub').textContent = dive
+      ? (h === 0 ? 'At the surface: 1 bar of air.' : `The water above presses with ${g3(P - 1)} bar more, so the air the diver breathes is at ${g3(P)} bar and more nitrogen dissolves in the blood. Coming up too fast lets it out as bubbles, which cause the bends.`)
+      : (h === 0 ? 'At sea level: 1.013 bar of air.' : `The air pressure is only ${g3(P)} bar, so less oxygen dissolves in the blood. Climbers can feel weak and dizzy: altitude sickness.`);
+    const svg = q<SVGSVGElement>('.hl-bars'); svg.replaceChildren();
+    const max = Math.max(here.mol, sea.mol), W = 200;
+    [[`sea level`, sea.mol, false], [dive ? `${h} m deep` : `${h} m up`, here.mol, true]].forEach(([lab, v, now], i) => {
+      svg.append(sv('text', { x: 0, y: 26 + i * 40, class: 'tx' }, String(lab)), sv('rect', { x: 90, y: 12 + i * 40, width: Math.max(2, (Number(v) / max) * W), height: 22, class: `bar${now ? ' now' : ''}` }));
+      svg.append(sv('text', { x: 94 + Math.max(2, (Number(v) / max) * W) - (Number(v) / max > 0.7 ? 70 : -4), y: 28 + i * 40, class: 'tx' }, `${g3(Number(v) * 1000)} mmol/L`));
+    });
+    lines(q('.hl-peq'), [`p(${dive ? 'N₂' : 'O₂'}) = ${share} × ${g3(P)} bar = ${g3(share * P)} bar`, `x = p / KH(37 °C) = ${g3(share * P)} / ${g3(kh(gas, T))} = ${here.x.toExponential(2)}`]);
+  }
+
+  ['.hl-p', '.hl-t'].forEach((s) => q(s).addEventListener('input', soda));
+  q('.hl-open').addEventListener('click', () => { open = !open; soda(); });
+  root.querySelectorAll<HTMLButtonElement>('.hl-who button').forEach((b) => b.addEventListener('click', () => { who = b.dataset.w as typeof who; people(); }));
+  q('.hl-h').addEventListener('input', people);
+  soda(); people();
+
+  mountQuiz(q('.cq'), (): Question[] => {
+    const p1 = rint(2, 8) / 2, K1 = pickOne([1.67, 1.5, 2.0]), x1 = p1 / (K1 * 1000);
+    const x2 = rint(5, 30) / 10000, n2 = x2 * 55.5;
+    const d3 = pickOne([10, 20, 30, 40]), r3 = 1 + d3 / 10;
+    const [ga, ka, gb, kb] = pickOne([['oxygen', 35, 'nitrogen', 76], ['carbon dioxide', 1.7, 'oxygen', 35], ['hydrogen', 71, 'nitrogen', 76], ['argon', 40, 'methane', 41]] as const), best = ka < kb ? ga : gb;
+    const x5 = rint(1, 9) / 10000, K5 = pickOne([1.7, 35, 76]), p5 = x5 * K5 * 1000;
+    return [
+      { q: `CO₂ is kept at ${p1} bar over water. KH = ${K1} kbar. What is the mole fraction of CO₂ in the water? (like 1.5×10^-3)`, hint: 'like 1.5×10^-3', answer: `${(x1 * 1000).toFixed(2)}×10^-3`, ok: near(x1, 0.01), worked: `x = p / KH = ${p1} / ${K1 * 1000} = ${(x1 * 1000).toFixed(2)} × 10⁻³.` },
+      { q: `A gas reaches mole fraction x = ${x2.toFixed(4)} in water. About how many moles dissolve in 1 litre? (1 L of water ≈ 55.5 mol; 3 significant figures)`, hint: 'a number', answer: String(Number(n2.toPrecision(3))), ok: near(n2, 0.02), worked: `n ≈ x × 55.5 = ${x2.toFixed(4)} × 55.5 = ${Number(n2.toPrecision(3))} mol.` },
+      { q: `A diver goes down ${d3} m (about 1 bar more per 10 m). How many times more nitrogen can dissolve in the blood than at the surface?`, hint: 'a number', answer: String(r3), ok: near(r3, 0.001), worked: `Pressure = 1 + ${d3}/10 = ${r3} bar, and dissolved gas ∝ pressure, so ${r3} times.` },
+      { q: `KH of ${ga} is ${ka} kbar and of ${gb} is ${kb} kbar at the same temperature. Which is more soluble in water?`, hint: 'gas name', answer: best, ok: same(best), worked: `x = p / KH, so the smaller KH (${Math.min(ka, kb)} kbar, ${best}) gives more gas in solution.` },
+      { q: `What partial pressure (in bar) of a gas with KH = ${K5} kbar gives x = ${x5.toFixed(4)}?`, hint: 'a number', answer: String(Number(p5.toPrecision(3))), ok: near(p5, 0.01), worked: `p = KH × x = ${K5 * 1000} × ${x5.toFixed(4)} = ${Number(p5.toPrecision(3))} bar.` },
+    ];
+  });
+</script>

@@ -1,0 +1,132 @@
+---
+// Springs and a mass (Learn): one spring, two in series or two in parallel, with a hanging mass bobbing up and down;
+// the combined spring constant, the stretch it hangs at, the period T = 2π√(m/k) and the energy.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn spm">
+  <div class="ax-card">
+    <h2>Hang a mass on springs</h2>
+    <div class="ax-seg sp-mode" role="group" aria-label="How the springs are joined"><button type="button" data-m="one" aria-pressed="true">One spring</button><button type="button" data-m="series" aria-pressed="false">Series</button><button type="button" data-m="parallel" aria-pressed="false">Parallel</button></div>
+    <canvas class="lrn-cv sp-cv" style="margin-top:10px" aria-label="A mass hanging from springs, bobbing up and down; dashed lines mark the spring's natural length and the resting position"></canvas>
+    <p class="lrn-eq sp-live" aria-live="off"></p>
+    <div class="ax-row" style="margin-top:6px"><button type="button" class="btn secondary small sp-play">Pause</button></div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Spring 1, k₁ <b class="sp-k1v"></b><input type="range" class="sp-k1" min="5" max="100" step="5" value="20" aria-label="Spring constant of spring 1 in newtons per metre" /></label>
+      <label class="lrn-sl sp-two" hidden>Spring 2, k₂ <b class="sp-k2v"></b><input type="range" class="sp-k2" min="5" max="100" step="5" value="20" aria-label="Spring constant of spring 2 in newtons per metre" /></label>
+      <label class="lrn-sl">Mass m <b class="sp-mv"></b><input type="range" class="sp-m" min="0.1" max="2" step="0.1" value="0.5" aria-label="Mass in kilograms" /></label>
+      <label class="lrn-sl">Pull down by (amplitude) <b class="sp-Av"></b><input type="range" class="sp-A" min="0" max="10" step="1" value="5" aria-label="Amplitude in centimetres" /></label>
+    </div>
+    <p class="lrn-eq sp-eq"></p>
+    <dl class="ax-facts sp-facts" style="margin-top:10px"></dl>
+    <p class="ax-help">Light springs (their own mass ignored) and g = 9.8 m/s².</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Series or parallel?</h2>
+    <p class="ax-help" style="margin-top:0"><b>Series</b>: one spring below the other. Both carry the full weight, so each stretches as if alone and the stretches add: the pair is softer, 1/k = 1/k₁ + 1/k₂. <b>Parallel</b>: side by side, sharing the weight. Both stretch by the same amount and their pulls add: the pair is stiffer, k = k₁ + k₂.</p>
+    <p class="lrn-eq sp-cmp"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Two equal springs in series: k halves and the period grows by √2. In parallel: k doubles and the period shrinks by √2.</li>
+      <li>Quadruple the mass: the period doubles. The amplitude makes no difference to the period.</li>
+      <li>Cut a spring in half and each half is twice as stiff (that is series in reverse).</li>
+      <li>Find two springs whose series pair has k = 12 N/m (try 20 and 30).</li>
+      <li>On a heavy mass, a softer spring hangs lower and bobs more slowly: T = 2π√(x/g), with x the resting stretch.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card sp-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { kSeries, kParallel, springT, staticStretch } from '../../lib/sci/n2-osc';
+  import { mountQuiz, pick, one, r, fitCanvas, loop } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+
+  const root = document.querySelector<HTMLElement>('.spm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const v_ = (c: string) => +q<HTMLInputElement>(c).value;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+  let mode = 'one', t = 0;
+
+  const st = () => {
+    const k1 = v_('.sp-k1'), k2 = v_('.sp-k2'), m = v_('.sp-m'), A = v_('.sp-A') / 100;
+    const k = mode === 'one' ? k1 : mode === 'series' ? kSeries([k1, k2]) : kParallel([k1, k2]);
+    return { k1, k2, m, A, k, T: springT(m, k), x0: staticStretch(m, k) };
+  };
+
+  function coil(ctx: CanvasRenderingContext2D, x: number, y1: number, y2: number, turns: number, w: number) {
+    ctx.beginPath(); ctx.moveTo(x, y1); const lead = 6, L = y2 - y1 - 2 * lead; ctx.lineTo(x, y1 + lead);
+    for (let i = 1; i <= turns * 2; i++) ctx.lineTo(x + (i === turns * 2 ? 0 : i % 2 ? -w : w), y1 + lead + (L * i) / (turns * 2));
+    ctx.lineTo(x, y2); ctx.stroke();
+  }
+
+  function draw(dt: number) {
+    t += dt;
+    const s = st(), { ctx, W, H } = fitCanvas(q<HTMLCanvasElement>('.sp-cv'), 300), pal = pagePalette();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const w = (2 * Math.PI) / s.T, x = s.A * Math.cos(w * t);    // displacement below rest, m
+    const top = 16, natural = 70, scale = Math.min(300, 150 / Math.max(0.05, s.x0 + s.A));   // px per metre for the stretch
+    const cx = W / 2, yRest = top + natural + s.x0 * scale, yMass = yRest + x * scale;
+    ctx.fillStyle = pal.ink; ctx.fillRect(cx - 70, top - 8, 140, 8);
+    ctx.strokeStyle = pal.line; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx - 90, top + natural); ctx.lineTo(cx + 90, top + natural); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - 90, yRest); ctx.lineTo(cx + 90, yRest); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('natural length', Math.min(W - 80, cx + 52), top + natural - 4); ctx.fillText('rest', Math.min(W - 40, cx + 52), yRest - 4);
+    const c1 = pal.red ? pal.ink : pal.accent, c2 = pal.red ? pal.muted : pal.accent2;
+    ctx.lineWidth = 2;
+    if (mode === 'parallel') {
+      const yb = yMass - 22; ctx.strokeStyle = c1; coil(ctx, cx - 30, top, yb, 8, 7); ctx.strokeStyle = c2; coil(ctx, cx + 30, top, yb, 8, 7);
+      ctx.fillStyle = pal.ink; ctx.fillRect(cx - 40, yb, 80, 4); ctx.strokeStyle = pal.ink; ctx.beginPath(); ctx.moveTo(cx, yb + 4); ctx.lineTo(cx, yMass - 2); ctx.stroke();
+    } else if (mode === 'series') {
+      // each spring stretches in proportion to 1/kᵢ
+      const total = yMass - 4 - top, f1 = (1 / s.k1) / (1 / s.k1 + 1 / s.k2), ymid = top + total * f1;
+      ctx.strokeStyle = c1; coil(ctx, cx, top, ymid, 6, 9); ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.arc(cx, ymid, 3, 0, 7); ctx.fill();
+      ctx.strokeStyle = c2; coil(ctx, cx, ymid, yMass - 2, 6, 9);
+    } else { ctx.strokeStyle = c1; coil(ctx, cx, top, yMass - 2, 10, 9); }
+    const bs = 22 + 14 * Math.sqrt(s.m);
+    ctx.fillStyle = pal.ink; ctx.fillRect(cx - bs / 2, yMass, bs, bs * 0.8);
+    ctx.fillStyle = pal.bg; ctx.textAlign = 'center'; ctx.font = 'bold 11px system-ui, sans-serif'; ctx.fillText(`${s.m} kg`, cx, yMass + bs * 0.45);
+    q('.sp-live').textContent = `t = ${t.toFixed(1)} s:  ${x >= 0 ? 'below' : 'above'} rest by ${Math.abs(x * 100).toFixed(1)} cm.`;
+  }
+
+  function update() {
+    const s = st();
+    q('.sp-k1v').textContent = `${s.k1} N/m`; q('.sp-k2v').textContent = `${s.k2} N/m`; q('.sp-mv').textContent = `${s.m.toFixed(1)} kg`; q('.sp-Av').textContent = `${v_('.sp-A')} cm`;
+    root.querySelectorAll<HTMLElement>('.sp-two').forEach((e) => { e.hidden = mode === 'one'; });
+    const kLine = mode === 'one' ? `k = ${s.k1} N/m.` : mode === 'series' ? `1/k = 1/k₁ + 1/k₂ = 1/${s.k1} + 1/${s.k2}, so k = ${sig(s.k, 4)} N/m.` : `k = k₁ + k₂ = ${s.k1} + ${s.k2} = ${sig(s.k, 4)} N/m.`;
+    q('.sp-eq').textContent = `${kLine}  T = 2π√(m/k) = 2π√(${s.m.toFixed(1)} / ${sig(s.k, 4)}) = ${sig(s.T, 4)} s.  Rest stretch x = mg/k = ${s.m.toFixed(1)} × 9.8 / ${sig(s.k, 4)} = ${sig(s.x0 * 100, 4)} cm.`;
+    const E = 0.5 * s.k * s.A * s.A;
+    q('.sp-facts').replaceChildren(fact('Combined k', `${sig(s.k, 4)} N/m`), fact('Period T', `${sig(s.T, 4)} s`, `${sig(1 / s.T, 4)} oscillations a second`), fact('Hangs lower by', `${sig(s.x0 * 100, 4)} cm`, 'than the natural length'), fact('Top speed', `${sig(s.A * 2 * Math.PI / s.T * 100, 3)} cm/s`, 'at the rest position'), fact('Energy of the bobbing', `${sig(E, 3)} J`, '½ k A²'));
+    const ks = kSeries([s.k1, s.k2]), kp = kParallel([s.k1, s.k2]);
+    q('.sp-cmp').textContent = `With k₁ = ${s.k1} and k₂ = ${s.k2} N/m and ${s.m.toFixed(1)} kg: series k = ${sig(ks, 4)} N/m, T = ${sig(springT(s.m, ks), 4)} s;  parallel k = ${sig(kp, 4)} N/m, T = ${sig(springT(s.m, kp), 4)} s.  Series is slower by ${sig(springT(s.m, ks) / springT(s.m, kp), 4)} times.`;
+    anim.redraw();
+  }
+
+  const anim = loop(draw, q<HTMLButtonElement>('.sp-play'));
+  root.querySelectorAll<HTMLButtonElement>('.sp-mode button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m!; root.querySelectorAll('.sp-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); t = 0; update();
+  }));
+  root.querySelectorAll('input').forEach((e) => e.addEventListener('input', update));
+  addEventListener('resize', () => anim.redraw());
+  update();
+
+  mountQuiz(q('.sp-quiz'), () => {
+    const k1 = pick(2, 12) * 10, k2 = pick(2, 12) * 10, m = pick(2, 20) / 10, k = pick(4, 40) * 5, n = one([2, 3, 4]), kc = pick(2, 10) * 10;
+    return [
+      { q: `Springs of ${k1} N/m and ${k2} N/m are joined in series. What is the spring constant of the pair?`, ans: kSeries([k1, k2]), unit: 'N/m', work: `1/k = 1/${k1} + 1/${k2}, so k = ${k1} × ${k2} / (${k1} + ${k2}) = ${r(kSeries([k1, k2]))} N/m` },
+      { q: `The same two springs (${k1} and ${k2} N/m) side by side in parallel: what is k?`, ans: kParallel([k1, k2]), unit: 'N/m', work: `k = k₁ + k₂ = ${k1} + ${k2} = ${k1 + k2} N/m` },
+      { q: `A ${m} kg mass bobs on a spring of k = ${k} N/m. What is the period?`, ans: springT(m, k), unit: 's', work: `T = 2π√(m/k) = 2π√(${m} / ${k}) = ${r(springT(m, k))} s` },
+      { q: `A ${m} kg mass hangs at rest from a spring of k = ${k} N/m. How far, in cm, is the spring stretched? (g = 9.8 m/s²)`, ans: staticStretch(m, k) * 100, unit: 'cm', work: `x = mg/k = ${m} × 9.8 / ${k} = ${r(staticStretch(m, k))} m = ${r(staticStretch(m, k) * 100)} cm` },
+      { q: `A spring of k = ${kc} N/m is cut into ${n} equal pieces. What is k for one piece?`, ans: kc * n, unit: 'N/m', work: `The ${n} pieces in series make the old spring: 1/${kc} = ${n} × 1/k', so k' = ${n} × ${kc} = ${kc * n} N/m` },
+    ];
+  });
+</script>

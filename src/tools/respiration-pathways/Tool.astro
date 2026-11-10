@@ -1,0 +1,145 @@
+---
+// Aerobic vs anaerobic respiration: glucose splits to pyruvate, then goes the aerobic way (carbon dioxide, water, lots
+// of ATP) or the anaerobic way (ethanol and carbon dioxide in yeast, lactic acid in muscle, little ATP). An oxygen
+// slider sets the share; the picture, the energy bar and the products (molecules and grams) follow.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm rsp">
+  <div class="ax-card">
+    <div class="ax-row"><b>Level</b>
+      <div class="ax-seg rsp-level" role="group" aria-label="Level"><button type="button" data-v="10" aria-pressed="true">Class 10</button><button type="button" data-v="11" aria-pressed="false">Class 11</button></div></div>
+    <div class="ax-row rsp-gap"><b>Cell</b>
+      <div class="ax-seg rsp-org" role="group" aria-label="Which cell"><button type="button" data-v="yeast" aria-pressed="true">Yeast</button><button type="button" data-v="muscle" aria-pressed="false">Your muscle</button></div></div>
+    <label class="rsp-gap">Oxygen supply: <b class="rsp-ov"></b>
+      <input type="range" class="rsp-o2" min="0" max="100" step="5" value="100" aria-label="Oxygen supply, per cent of pyruvate that can go the aerobic way" /></label>
+    <p class="ax-help">100 % means every pyruvate can be broken down with oxygen. 0 % means there is no oxygen at all.</p>
+    <label class="rsp-gap">Glucose: <b class="rsp-gv"></b>
+      <input type="range" class="rsp-g" min="0.1" max="2" step="0.1" value="1" aria-label="Glucose in moles" /></label>
+  </div>
+
+  <div class="ax-card">
+    <svg class="sm-fig rsp-fig" viewBox="0 0 340 300" role="img" aria-label="Glucose splits to pyruvate, which goes the aerobic or anaerobic way"></svg>
+    <p class="ax-big rsp-big" aria-live="polite"></p>
+    <div class="rsp-bar" aria-hidden="true"><span class="rsp-fill"></span></div>
+    <p class="ax-help rsp-barl"></p>
+    <p class="sm-f rsp-eq"></p>
+    <p class="rsp-say"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>What comes out</h2>
+    <div class="ax-scroll"><table class="rsp-tab"></table></div>
+    <p class="ax-help rsp-note"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Pick yeast and slide oxygen to 0 %. Which two products appear, and which one makes bread dough rise?</li>
+      <li>Pick your muscle and slide oxygen to 0 %, as in a hard sprint. What builds up, and what does it cause?</li>
+      <li>How many glucose molecules does each way need to make 76 ATP?</li>
+      <li>Class 11: check that the mass of what goes in equals the mass of what comes out.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Use 38 ATP for aerobic and 2 ATP for anaerobic respiration. Nothing is saved.</p>
+    <div class="rsp-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .rsp .rsp-gap { margin-top: 10px; display: block; }
+  .rsp .ax-row.rsp-gap { display: flex; }
+  .rsp label input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .rsp svg .rsp-box { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
+  .rsp svg .rsp-mito { fill: var(--good-soft); stroke: var(--good); stroke-width: 2; }
+  .rsp svg .rsp-an { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 2; }
+  .rsp svg .rsp-arr { stroke: var(--ink); fill: none; stroke-linecap: round; }
+  .rsp svg .rsp-arr.g { stroke: var(--good); } .rsp svg .rsp-arr.w { stroke: var(--warn); }
+  .rsp svg .rsp-dim { opacity: .3; }
+  .rsp svg text.rsp-t { font-size: 12px; font-weight: 600; }
+  .rsp svg text.rsp-s { font-size: 11px; fill: var(--muted); }
+  .rsp .rsp-bar { height: 22px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); overflow: hidden; margin-top: 6px; }
+  .rsp .rsp-fill { display: block; height: 100%; background: var(--good); }
+</style>
+
+<script>
+  import { respire, grams, glucoseFor, M, ATP_AEROBIC, ATP_GLYCOLYSIS, type Organism } from '../../lib/sci/respiration';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.rsp')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const O2 = q<HTMLInputElement>('.rsp-o2'), GL = q<HTMLInputElement>('.rsp-g'), fig = q<SVGSVGElement>('.rsp-fig');
+  let level = 10, org: Organism = 'yeast';
+
+  function draw() {
+    const f = Number(O2.value) / 100, mol = Number(GL.value), g = mol * M.glucose, r = respire(mol, f, org), per = respire(1, f, org);
+    q('.rsp-ov').textContent = `${fmt(f * 100, 0)} %`;
+    q('.rsp-gv').textContent = `${fmt(mol, 1)} mol (${fmt(g, 2)} g)`;
+    fig.replaceChildren();
+    const box = (x: number, y: number, w: number, h: number, cls: string, lines: string[], dim = false) => {
+      const gr = S('g', { class: dim ? 'rsp-dim' : '' }, fig);
+      S('rect', { x, y, width: w, height: h, rx: 10, class: cls }, gr);
+      lines.forEach((t, i) => S('text', { x: x + w / 2, y: y + 18 + i * 15, 'text-anchor': 'middle', class: i ? 'rsp-s' : 'rsp-t' }, gr, t));
+    };
+    box(110, 8, 120, 38, 'rsp-box', ['Glucose', '6 carbons']);
+    S('line', { x1: 170, y1: 46, x2: 170, y2: 92, class: 'rsp-arr', 'stroke-width': 4 }, fig);
+    S('text', { x: 180, y: 66, class: 'rsp-s' }, fig, level === 11 ? 'glycolysis, in the cytoplasm' : 'in the cytoplasm');
+    S('text', { x: 180, y: 80, class: 'rsp-s' }, fig, `+${ATP_GLYCOLYSIS} ATP`);
+    box(100, 92, 140, 38, 'rsp-box', ['2 pyruvate', '3 carbons each']);
+    const wA = 1 + 14 * (1 - f), wO = 1 + 14 * f;
+    S('path', { d: 'M140 130 Q120 160 80 196', class: 'rsp-arr w' + (f === 1 ? ' rsp-dim' : ''), 'stroke-width': wA }, fig);
+    S('path', { d: 'M200 130 Q220 160 260 196', class: 'rsp-arr g' + (f === 0 ? ' rsp-dim' : ''), 'stroke-width': wO }, fig);
+    S('text', { x: 6, y: 160, class: 'rsp-s' }, fig, 'no oxygen');
+    S('text', { x: 334, y: 160, 'text-anchor': 'end', class: 'rsp-s' }, fig, 'with oxygen');
+    box(8, 196, 150, 74, 'rsp-an', org === 'yeast' ? ['Ethanol + CO₂', 'yeast: fermentation', 'in the cytoplasm', '+0 more ATP'] : ['Lactic acid', 'muscle short of oxygen', 'in the cytoplasm', '+0 more ATP'], f === 1);
+    box(182, 196, 150, 74, 'rsp-mito', ['CO₂ + water', 'aerobic', 'in the mitochondria', `+${ATP_AEROBIC - ATP_GLYCOLYSIS} more ATP`], f === 0);
+    S('text', { x: 170, y: 292, 'text-anchor': 'middle', class: 'rsp-s' }, fig, `${fmt((1 - f) * 100, 0)} % this way ←   → ${fmt(f * 100, 0)} % this way`);
+
+    q('.rsp-big').textContent = `${fmt(per.atpPerGlucose, 1)} ATP per glucose`;
+    q<HTMLElement>('.rsp-fill').style.width = `${(100 * per.atpPerGlucose) / ATP_AEROBIC}%`;
+    q('.rsp-barl').textContent = `Out of a maximum of ${ATP_AEROBIC} ATP per glucose with plenty of oxygen. To make 76 ATP this cell needs ${fmt(glucoseFor(76, f), 1)} glucose molecules.`;
+    const anEq = org === 'yeast' ? 'glucose → ethanol + carbon dioxide + a little energy' : 'glucose → lactic acid + a little energy';
+    q('.rsp-eq').textContent = f === 1 ? 'glucose + oxygen → carbon dioxide + water + a lot of energy'
+      : f === 0 ? anEq : `Both at once: ${fmt(f * 100, 0)} % aerobic (glucose + oxygen → carbon dioxide + water) and ${fmt((1 - f) * 100, 0)} % ${anEq.replace('glucose → ', 'to ')}`;
+    if (level === 11) q('.rsp-eq').textContent += f === 1 ? '. C₆H₁₂O₆ + 6 O₂ → 6 CO₂ + 6 H₂O' : f === 0 ? (org === 'yeast' ? '. C₆H₁₂O₆ → 2 C₂H₅OH + 2 CO₂' : '. C₆H₁₂O₆ → 2 C₃H₆O₃') : '';
+    q('.rsp-say').textContent = org === 'yeast'
+      ? (f < 1 ? 'Without oxygen yeast ferments sugar: the carbon dioxide makes dough rise and bubbles in idli batter; the ethanol is why fermented fruit smells of alcohol.' : 'With oxygen, yeast breaks glucose all the way down, like our cells do, and grows fast.')
+      : (f < 1 ? 'In a sprint your muscles use oxygen faster than the blood brings it, so some pyruvate becomes lactic acid. It builds up and adds to the burning feeling and cramps; after you rest, it is carried away and broken down with oxygen.' : 'At rest your muscles get enough oxygen, so all the pyruvate goes into the mitochondria.');
+
+    // products table
+    const gr = grams(r), rows: [string, number, number][] = [
+      ['Glucose used', mol, g], ['Oxygen used', r.o2, gr.o2], ['Carbon dioxide', r.co2, gr.co2], ['Water', r.water, gr.water],
+      ...(org === 'yeast' ? [['Ethanol', r.ethanol, gr.ethanol] as [string, number, number]] : [['Lactic acid', r.lactic, gr.lactic] as [string, number, number]]),
+    ];
+    const tab = q<HTMLTableElement>('.rsp-tab'); tab.replaceChildren();
+    const head = tab.insertRow(); ['', 'Moles', 'Grams'].forEach((t) => head.append(Object.assign(document.createElement('th'), { textContent: t })));
+    for (const [n, m, gg] of rows) { const tr = tab.insertRow(); tr.dataset.k = n; [n, fmt(m, 3), fmt(gg, 2)].forEach((t) => tr.insertCell().textContent = t); }
+    const atpRow = tab.insertRow(); ['ATP made', fmt(r.atp, 2), '—'].forEach((t) => atpRow.insertCell().textContent = t);
+    const massIn = g + gr.o2, massOut = gr.co2 + gr.water + gr.ethanol + gr.lactic;
+    q('.rsp-note').textContent = level === 11 ? `Mass in ${fmt(massIn, 1)} g = mass out ${fmt(massOut, 1)} g (to rounding of the molar masses). Newer measurements put aerobic respiration nearer 30 to 32 ATP per glucose; school books use 38.` : 'One mole of glucose is about 180 g and holds 6.022 × 10²³ molecules. Newer measurements put aerobic respiration nearer 30 to 32 ATP per glucose; school books use 38.';
+  }
+
+  const seg = (sel: string, on: (v: string) => void) => q(sel).addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (!b) return; q(sel).querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); on(b.dataset.v!); });
+  seg('.rsp-org', (v) => { org = v as Organism; draw(); });
+  seg('.rsp-level', (v) => { level = Number(v); draw(); });
+  O2.addEventListener('input', draw); GL.addEventListener('input', draw);
+  draw();
+
+  quiz(q('.rsp-quiz'), () => {
+    const out: Question[] = [];
+    const n = randInt(2, 20);
+    out.push({ q: `How many ATP do ${n} glucose molecules give with plenty of oxygen?`, want: [38 * n], hint: 'ATP', work: `${n} × 38 = ${38 * n} ATP.` });
+    const m = randInt(2, 20);
+    out.push({ q: `How many ATP do ${m} glucose molecules give in a muscle with no oxygen?`, want: [2 * m], hint: 'ATP', work: `Only glycolysis works: ${m} × 2 = ${2 * m} ATP.` });
+    const k = randInt(1, 6);
+    out.push({ q: `A yeast cell with no oxygen ferments ${k} glucose molecules. How many carbon dioxide molecules does it give off?`, want: [2 * k], hint: 'molecules', work: `Each glucose gives 2 ethanol and 2 CO₂, so ${k} × 2 = ${2 * k} CO₂.` });
+    const opts = ['Mitochondria', 'Cytoplasm', 'Nucleus'], order = [0, 1, 2].sort(() => Math.random() - 0.5), pos = order.indexOf(0) + 1;
+    out.push({ q: `Where in the cell is pyruvate broken down with oxygen? ${order.map((x, i) => `${i + 1} ${opts[x]}`).join(', ')}.`, want: [pos], hint: 'type 1, 2 or 3', work: `${pos}: the mitochondria. Glucose to pyruvate happens in the cytoplasm.` });
+    return out;
+  });
+</script>

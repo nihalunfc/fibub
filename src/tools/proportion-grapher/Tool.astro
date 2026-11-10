@@ -1,0 +1,168 @@
+---
+// Direct and inverse proportion grapher: four everyday situations (pencils and cost, time and distance, workers
+// and days, speed and time). Drag a point along the graph; a table shows y ÷ x staying the same (direct) or x × y
+// staying the same (inverse). Fresh practice questions. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm pg">
+  <div class="ax-card">
+    <h2>Pick a situation</h2>
+    <div class="ax-seg pg-sc" role="group" aria-label="Situation">
+      <button type="button" data-s="pencils" aria-pressed="true">Pencils and cost</button>
+      <button type="button" data-s="trip" aria-pressed="false">Time and distance</button>
+      <button type="button" data-s="workers" aria-pressed="false">Workers and days</button>
+      <button type="button" data-s="speed" aria-pressed="false">Speed and time</button>
+    </div>
+    <p class="ax-help pg-about"></p>
+    <div class="sm-sl"><b>k</b><input type="range" class="pg-kr" aria-label="The constant" /><input type="number" class="pg-k" step="any" inputmode="decimal" aria-label="The constant" /></div>
+    <p class="ax-help pg-klab"></p>
+    <p class="ax-err pg-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The graph</h2>
+    <svg class="sm-fig pg-fig" viewBox="0 0 340 270" role="img" aria-label="Graph of y against x with a point you can drag along it"></svg>
+    <p class="ax-help">Drag the dot along the graph (or anywhere left and right on the picture).</p>
+    <p class="ax-big pg-big" aria-live="polite"></p>
+    <p class="sm-f pg-f"></p>
+    <div class="ax-scroll"><table class="pg-tab"></table></div>
+    <p class="sm-f pg-rule"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>With pencils, double the number of pencils. What happens to the cost? Where does the line start?</li>
+      <li>With workers, double the workers. What happens to the days? Does the curve ever touch the axes?</li>
+      <li>Look at the table: which column stays the same for each situation?</li>
+      <li>Change k. For direct proportion the line gets steeper; for inverse the whole curve moves out from the corner.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="pg-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .pg .ax-seg button { flex: 1 1 45%; }
+  .pg table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .pg th, .pg td { border: 1px solid var(--line); padding: 4px 8px; text-align: right; }
+  .pg td.pg-same { background: var(--good-soft); font-weight: 700; }
+</style>
+
+<script>
+  import { yOf, missing, type Kind } from '../../lib/sci/proportion-grapher';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, quiz, dragOn, pair, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.pg')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  type Sc = { kind: Kind; x: string; y: string; xu: string; yu: string; k: string; kmin: number; kmax: number; kstep: number; k0: number; xmin: number; xmax: number; xstep: number; x0: number; about: string };
+  const SC: Record<string, Sc> = {
+    pencils: { kind: 'direct', x: 'Pencils', y: 'Cost', xu: 'pencils', yu: '₹', k: 'price of one pencil in ₹', kmin: 1, kmax: 20, kstep: 1, k0: 5, xmin: 0, xmax: 12, xstep: 1, x0: 6, about: 'More pencils cost more: twice as many, twice the cost.' },
+    trip: { kind: 'direct', x: 'Time (h)', y: 'Distance (km)', xu: 'h', yu: 'km', k: 'speed in km/h (kept steady)', kmin: 10, kmax: 100, kstep: 5, k0: 60, xmin: 0, xmax: 10, xstep: 0.5, x0: 2, about: 'At a steady speed, driving for longer covers more distance in the same proportion.' },
+    workers: { kind: 'inverse', x: 'Workers', y: 'Days', xu: 'workers', yu: 'days', k: 'total work in worker-days', kmin: 6, kmax: 60, kstep: 1, k0: 24, xmin: 1, xmax: 12, xstep: 1, x0: 4, about: 'More workers finish a job sooner: twice the workers, half the days (if they all work at the same rate).' },
+    speed: { kind: 'inverse', x: 'Speed (km/h)', y: 'Time (h)', xu: 'km/h', yu: 'h', k: 'distance of the trip in km', kmin: 30, kmax: 300, kstep: 10, k0: 120, xmin: 10, xmax: 120, xstep: 10, x0: 40, about: 'For the same trip, going faster takes less time: twice the speed, half the time.' },
+  };
+  let sc = SC.pencils, x = sc.x0;
+  const KR = q<HTMLInputElement>('.pg-kr'), K = q<HTMLInputElement>('.pg-k');
+  const setK = pair(KR, K, draw);
+  const L = 48, Rr = 326, T = 14, B = 226;
+  let ymax = 1;
+
+  function setup() {
+    Object.assign(KR, { min: sc.kmin, max: sc.kmax, step: sc.kstep });
+    K.min = String(sc.kmin); K.max = String(sc.kmax * 10);
+    setK(sc.k0); x = sc.x0;
+    q('.pg-about').textContent = sc.about;
+    q('.pg-klab').textContent = `k is the ${sc.k}.`;
+  }
+  const readK = () => { const v = Number(K.value); return K.value.trim() !== '' && v > 0 && v <= sc.kmax * 10 ? v : null; };
+  const px = (v: number) => L + ((v - 0) / sc.xmax) * (Rr - L);
+  const py = (v: number) => B - (v / ymax) * (B - T);
+
+  function draw() {
+    const k = readK(), err = q('.pg-err');
+    if (k === null) { err.textContent = `Type a k from just above 0 up to ${sc.kmax * 10}.`; err.hidden = false; return; }
+    err.hidden = true;
+    const dir = sc.kind === 'direct';
+    ymax = dir ? k * sc.xmax : k / sc.xmin;
+    const svg = q<SVGSVGElement>('.pg-fig'); svg.replaceChildren();
+    for (let i = 0; i <= 4; i++) {
+      const yv = (ymax * i) / 4, gy = py(yv);
+      S('line', { x1: L, y1: gy, x2: Rr, y2: gy, class: 'sm-grid' }, svg);
+      S('text', { x: L - 4, y: gy + 4, 'text-anchor': 'end', class: 'sm-tick' }, svg, fmt(yv, 1));
+    }
+    const xt = sc.xmax / (sc.xmax > 20 ? 6 : sc.xmax > 10 ? 6 : 5);
+    for (let v = 0; v <= sc.xmax + 1e-9; v += xt) {
+      S('line', { x1: px(v), y1: T, x2: px(v), y2: B, class: 'sm-grid' }, svg);
+      S('text', { x: px(v), y: B + 14, 'text-anchor': 'middle', class: 'sm-tick' }, svg, fmt(v, 1));
+    }
+    S('line', { x1: L, y1: B, x2: Rr, y2: B, class: 'sm-axis' }, svg);
+    S('line', { x1: L, y1: T, x2: L, y2: B, class: 'sm-axis' }, svg);
+    S('text', { x: (L + Rr) / 2, y: B + 32, 'text-anchor': 'middle' }, svg, sc.x);
+    S('text', { x: 12, y: (T + B) / 2, 'text-anchor': 'middle', transform: `rotate(-90 12 ${(T + B) / 2})` }, svg, sc.y);
+    const pts: string[] = [];
+    const x0 = dir ? 0 : sc.xmin;
+    for (let i = 0; i <= 120; i++) { const xv = x0 + ((sc.xmax - x0) * i) / 120; pts.push(`${px(xv).toFixed(1)},${py(yOf(sc.kind, k, xv)).toFixed(1)}`); }
+    S('polyline', { points: pts.join(' '), class: 'sm-curve pg-curve' }, svg);
+    const y = yOf(sc.kind, k, x);
+    S('line', { x1: px(x), y1: py(y), x2: px(x), y2: B, class: 'sm-dash' }, svg);
+    S('line', { x1: L, y1: py(y), x2: px(x), y2: py(y), class: 'sm-dash' }, svg);
+    S('circle', { cx: px(x), cy: py(y), r: 10, class: 'sm-handle pg-h' }, svg);
+
+    const yu = sc.yu === '₹' ? `₹${fmt(y, 2)}` : `${fmt(y, 2)} ${sc.yu}`;
+    q('.pg-big').textContent = `${fmt(x, 2)} ${sc.xu} → ${yu}`;
+    q('.pg-f').textContent = dir
+      ? `Direct proportion: y = k × x, so ${sc.y.toLowerCase()} = ${fmt(k, 2)} × ${fmt(x, 2)} = ${fmt(y, 2)}. The graph is a straight line through 0.`
+      : `Inverse proportion: x × y = k, so ${sc.y.toLowerCase()} = ${fmt(k, 2)} ÷ ${fmt(x, 2)} = ${fmt(y, 2)}. The graph is a curve that never touches the axes.`;
+    const tab = q<HTMLTableElement>('.pg-tab'); tab.replaceChildren();
+    const h = tab.insertRow(); for (const s of [sc.x, sc.y, 'y ÷ x', 'x × y']) { const e = document.createElement('th'); e.textContent = s; h.append(e); }
+    const xs = dir ? [1, 2, 3, 4, 6].map((m) => m * (sc.xstep < 1 ? 1 : sc.xstep)) : [1, 2, 3, 4, 6].map((m) => m * sc.xmin * (sc.xmin === 1 ? 2 : 1));
+    for (const xv of xs) {
+      const yv = yOf(sc.kind, k, xv), r = tab.insertRow();
+      r.insertCell().textContent = fmt(xv, 2); r.insertCell().textContent = fmt(yv, 2);
+      const c1 = r.insertCell(); c1.textContent = fmt(yv / xv, 2); const c2 = r.insertCell(); c2.textContent = fmt(xv * yv, 2);
+      (dir ? c1 : c2).className = 'pg-same';
+    }
+    q('.pg-rule').textContent = dir
+      ? `y ÷ x is ${fmt(k, 2)} in every row: that is what direct proportion means. When x is multiplied by 2, so is y.`
+      : `x × y is ${fmt(k, 2)} in every row: that is what inverse proportion means. When x is multiplied by 2, y is divided by 2.`;
+  }
+
+  dragOn(q<SVGSVGElement>('.pg-fig'), (gx) => (gx > L - 20 ? 'p' : null), (_id, gx) => {
+    const raw = (gx - L) / (Rr - L) * sc.xmax, s = sc.xstep;
+    x = Math.min(sc.xmax, Math.max(Math.max(sc.xmin, s > 0 && sc.kind === 'direct' ? s : sc.xmin), Math.round(raw / s) * s));
+    draw();
+  });
+  root.querySelectorAll<HTMLButtonElement>('.pg-sc button').forEach((b) => b.addEventListener('click', () => {
+    sc = SC[b.dataset.s!];
+    root.querySelectorAll('.pg-sc button').forEach((e) => e.setAttribute('aria-pressed', String(e === b)));
+    setup(); draw();
+  }));
+  setup(); draw();
+
+  quiz(q('.pg-quiz'), () => {
+    const out: Question[] = [];
+    const u = randInt(3, 15), n1 = randInt(2, 6), n2 = randInt(7, 15);
+    out.push({ q: `${n1} notebooks cost ₹${u * n1}. How much do ${n2} notebooks cost?`, want: [u * n2],
+      work: `Direct proportion. One notebook costs ${u * n1} ÷ ${n1} = ₹${u}, so ${n2} cost ${n2} × ${u} = ₹${u * n2}.` });
+    const W = [12, 24, 36, 48, 60, 72][randInt(0, 5)], ds = [2, 3, 4, 6].filter((d) => W % d === 0), w1 = ds[randInt(0, ds.length - 1)];
+    let w2 = [2, 3, 4, 6, 8, 12].filter((d) => W % d === 0 && d !== w1)[randInt(0, 2)] ?? 12;
+    if (W % w2 !== 0) w2 = 12;
+    out.push({ q: `${w1} workers build a wall in ${W / w1} days. How many days would ${w2} workers take, working at the same rate?`, want: [missing('inverse', w1, W / w1, w2)],
+      work: `Inverse proportion. The job is ${w1} × ${W / w1} = ${W} worker-days, so ${w2} workers take ${W} ÷ ${w2} = ${fmt(W / w2, 2)} days.` });
+    const D = 60 * randInt(2, 6), s1 = [30, 40, 60][randInt(0, 2)], s2 = [20, 60, 80, 120].filter((s) => s !== s1)[randInt(0, 2)];
+    out.push({ q: `A trip takes ${fmt(D / s1, 2)} hours at ${s1} km/h. How long does it take at ${s2} km/h?`, want: [D / s2],
+      work: `Inverse proportion. The distance is ${s1} × ${fmt(D / s1, 2)} = ${D} km, so the time is ${D} ÷ ${s2} = ${fmt(D / s2, 2)} hours.` });
+    const kind = randInt(1, 3), a = randInt(2, 5);
+    const xs = [1, 2, 3, 6], ys = kind === 1 ? xs.map((v) => a * v) : kind === 2 ? xs.map((v) => (6 * a) / v) : xs.map((v) => v + a);
+    out.push({ q: `x: ${xs.join(', ')} and y: ${ys.join(', ')}. Type 1 if x and y are in direct proportion, 2 if inverse, 3 if neither.`, want: [kind],
+      work: kind === 1 ? `y ÷ x = ${a} every time, so direct proportion.` : kind === 2 ? `x × y = ${6 * a} every time, so inverse proportion.` : `y ÷ x changes (${ys.map((v, i) => fmt(v / xs[i], 2)).join(', ')}) and so does x × y (${ys.map((v, i) => v * xs[i]).join(', ')}), so neither: y is x + ${a}.` });
+    return out;
+  });
+</script>

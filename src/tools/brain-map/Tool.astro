@@ -1,0 +1,173 @@
+---
+// Brain map: a side view of the brain with its lobes and the deeper parts (hypothalamus, pituitary, midbrain, pons,
+// medulla, cerebellum, spinal cord). Tap a part to read what it does; "Find the part" asks you to tap the part that
+// handles an everyday action. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm brm">
+  <div class="ax-card">
+    <div class="ax-row"><b>Level</b>
+      <div class="ax-seg brm-level" role="group" aria-label="Level"><button type="button" data-v="10" aria-pressed="true">Class 10</button><button type="button" data-v="11" aria-pressed="false">Class 11</button></div></div>
+    <div class="ax-row brm-gap"><b>Mode</b>
+      <div class="ax-seg brm-mode" role="group" aria-label="Mode"><button type="button" data-v="explore" aria-pressed="true">Explore</button><button type="button" data-v="find" aria-pressed="false">Find the part</button><button type="button" data-v="split" aria-pressed="false">Fore, mid, hind</button></div></div>
+  </div>
+
+  <div class="ax-card">
+    <p class="brm-ask" aria-live="polite" hidden></p>
+    <svg class="sm-fig brm-fig" viewBox="0 0 340 270" role="img" aria-label="Side view of the brain, front on the left"></svg>
+    <div class="ax-legend brm-leg" hidden><span><i class="brm-kf"></i>Forebrain</span><span><i class="brm-km"></i>Midbrain</span><span><i class="brm-kh"></i>Hindbrain</span><span><i class="brm-ks"></i>Spinal cord and gland</span></div>
+    <div class="ax-row brm-gap brm-findrow" hidden><button type="button" class="btn small brm-next">Next action</button><span class="ax-pill brm-score"></span></div>
+    <p class="brm-res" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="brm-name">Tap a part of the brain</h2>
+    <p class="ax-pill brm-div"></p>
+    <p class="brm-t"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Tap each lobe of the cerebrum. Which one would be busy while you watch a film with the sound on? (More than one.)</li>
+      <li>Switch to Fore, mid, hind. Which part of the hindbrain sits under the back of the cerebrum?</li>
+      <li>Play Find the part until you get 10 right in a row.</li>
+      <li>Why is a hard knock to the back of the head, near the medulla, so dangerous?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Type the number of your answer. Nothing is saved.</p>
+    <div class="brm-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .brm .brm-gap { margin-top: 10px; }
+  .brm svg .brm-r { stroke: var(--ink); stroke-width: 1.5; cursor: pointer; fill: var(--surface); }
+  .brm svg .brm-r:hover { fill: var(--accent-soft); }
+  .brm svg .brm-r.on { fill: var(--accent); }
+  .brm svg .brm-r.good { fill: var(--good-soft); stroke: var(--good); stroke-width: 3; }
+  .brm svg .brm-r.bad { fill: var(--bad-soft); stroke: var(--bad); stroke-width: 3; }
+  .brm svg .brm-r.d-forebrain { fill: var(--accent-soft); } .brm svg .brm-r.d-midbrain { fill: var(--warn-soft); } .brm svg .brm-r.d-hindbrain { fill: var(--good-soft); } .brm svg .brm-r.d-spinal, .brm svg .brm-r.d-gland { fill: var(--bad-soft); }
+  .brm svg .brm-r.on.d-forebrain, .brm svg .brm-r.on.d-midbrain, .brm svg .brm-r.on.d-hindbrain, .brm svg .brm-r.on.d-spinal, .brm svg .brm-r.on.d-gland { stroke-width: 3.5; }
+  .brm svg .brm-gy { fill: none; stroke: var(--muted); stroke-width: 1; pointer-events: none; opacity: .6; }
+  .brm svg text { font-size: 11px; pointer-events: none; }
+  .brm svg line { pointer-events: none; }
+  .brm svg text.on { fill: var(--accent-ink); font-weight: 700; }
+  .brm .brm-ask { font-weight: 700; font-size: 17px; margin: 0 0 8px; }
+  .brm .brm-res { min-height: 1.4em; margin: 8px 0 0; }
+  .brm .brm-res.good { color: var(--good); font-weight: 600; } .brm .brm-res.bad { color: var(--bad); }
+  .brm .ax-legend i.brm-kf { background: var(--accent-soft); outline: 1px solid var(--ink); } .brm .ax-legend i.brm-km { background: var(--warn-soft); outline: 1px solid var(--ink); } .brm .ax-legend i.brm-kh { background: var(--good-soft); outline: 1px solid var(--ink); } .brm .ax-legend i.brm-ks { background: var(--bad-soft); outline: 1px solid var(--ink); }
+  .brm .brm-div:empty { display: none; }
+</style>
+
+<script>
+  import { REGIONS, SCENARIOS, DIVISIONS, regionById } from '../../lib/sci/brain';
+  import { S, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.brm')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.brm-fig');
+  let level = 10, mode = 'explore', sel = '', ask = -1, right = 0, tries = 0, streak = 0, answered = false;
+
+  // Shapes: side view, front of the head on the left. Deeper parts are drawn on top.
+  const SHAPES: Record<string, { d: string; lx: number; ly: number; label: string }> = {
+    frontal: { d: 'M44 136 Q16 74 80 34 Q118 16 150 20 L158 108 Q118 126 74 140 Z', lx: 90, ly: 80, label: 'frontal' },
+    parietal: { d: 'M150 20 Q220 12 256 48 L206 102 L158 108 Z', lx: 196, ly: 58, label: 'parietal' },
+    occipital: { d: 'M256 48 Q304 86 290 134 Q272 150 248 146 L206 102 Z', lx: 256, ly: 104, label: 'occipital' },
+    temporal: { d: 'M74 140 Q118 126 158 108 L206 102 L248 146 Q214 168 150 168 Q100 168 74 140 Z', lx: 128, ly: 148, label: 'temporal' },
+    hypothalamus: { d: 'M132 112 Q150 104 164 114 Q160 128 140 128 Q130 122 132 112 Z', lx: 112, ly: 108, label: '' },
+    pituitary: { d: 'M132 136 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0 Z', lx: 0, ly: 0, label: '' },
+    midbrain: { d: 'M168 112 L196 110 L198 136 L172 140 Z', lx: 0, ly: 0, label: '' },
+    pons: { d: 'M170 142 Q186 136 200 142 Q206 160 196 170 Q178 174 168 162 Z', lx: 0, ly: 0, label: '' },
+    cerebellum: { d: 'M214 168 Q222 140 262 146 Q300 154 292 182 Q280 206 240 202 Q214 196 214 168 Z', lx: 252, ly: 180, label: 'cerebellum' },
+    medulla: { d: 'M174 168 Q186 174 198 170 L196 206 L178 206 Z', lx: 0, ly: 0, label: '' },
+    cord: { d: 'M178 206 L196 206 L198 262 L180 262 Z', lx: 0, ly: 0, label: '' },
+  };
+  const SIDE: Record<string, [number, number, string]> = { hypothalamus: [96, 196, 'hypothalamus'], pituitary: [96, 214, 'pituitary'], midbrain: [96, 232, 'midbrain'], pons: [96, 250, 'pons'], medulla: [300, 222, 'medulla'], cord: [300, 248, 'spinal cord'] };
+  const ANCHOR: Record<string, [number, number]> = { hypothalamus: [146, 120], pituitary: [140, 140], midbrain: [184, 124], pons: [186, 156], medulla: [188, 190], cord: [189, 236] };
+
+  function draw() {
+    fig.replaceChildren();
+    for (const id of Object.keys(SHAPES)) {
+      const s = SHAPES[id], r = regionById(id)!;
+      let cls = 'brm-r';
+      if (mode === 'split') cls += ' d-' + r.division.split(' ')[0];
+      if (mode !== 'find' && id === sel) cls += mode === 'split' ? ' on' : ' on';
+      if (mode === 'find' && answered && id === sel) cls += SCENARIOS[ask].answer.includes(id) ? ' good' : ' bad';
+      if (mode === 'find' && answered && id !== sel && SCENARIOS[ask].answer.includes(id) && !SCENARIOS[ask].answer.includes(sel)) cls += ' good';
+      S('path', { d: s.d, class: cls, 'data-r': id, role: 'button', tabindex: 0, 'aria-label': r.name }, fig);
+      if (id === 'frontal') { S('path', { d: 'M60 100 Q80 90 100 104 M70 60 Q96 56 112 70 M118 40 Q130 60 124 86', class: 'brm-gy' }, fig); }
+      if (id === 'cerebellum') { S('path', { d: 'M222 176 Q256 166 288 176 M224 186 Q256 180 284 190', class: 'brm-gy' }, fig); }
+      if (s.label) S('text', { x: s.lx, y: s.ly, 'text-anchor': 'middle', class: id === sel && mode === 'explore' ? 'on' : '' }, fig, s.label);
+    }
+    for (const [id, [x, y, t]] of Object.entries(SIDE)) {
+      const [ax, ay] = ANCHOR[id];
+      S('line', { x1: ax, y1: ay, x2: x < 150 ? x + 4 : x - 4, y2: y - 4, stroke: 'currentColor', 'stroke-width': 0.8, opacity: 0.5 }, fig);
+      S('text', { x, y, 'text-anchor': x < 150 ? 'end' : 'start' }, fig, t);
+    }
+    S('text', { x: 6, y: 262 }, fig, '← front of the head');
+  }
+
+  function showInfo(id: string) {
+    const r = regionById(id);
+    if (!r) { q('.brm-name').textContent = 'Tap a part of the brain'; q('.brm-div').textContent = ''; q('.brm-t').textContent = ''; return; }
+    q('.brm-name').textContent = r.name;
+    q('.brm-div').textContent = DIVISIONS[r.division];
+    q('.brm-t').textContent = r.t10 + (level === 11 ? ' ' + r.t11 : '');
+  }
+
+  function newAsk() {
+    let n; do { n = Math.floor(Math.random() * SCENARIOS.length); } while (n === ask && SCENARIOS.length > 1);
+    ask = n; answered = false; sel = '';
+    q('.brm-ask').textContent = `Which part does this? ${SCENARIOS[ask].text}`;
+    q('.brm-res').textContent = ''; q('.brm-res').className = 'brm-res';
+    draw();
+  }
+
+  function tapRegion(id: string) {
+    sel = id;
+    if (mode === 'find') {
+      if (answered) return;
+      const ok = SCENARIOS[ask].answer.includes(id);
+      answered = true; tries++; if (ok) { right++; streak++; } else streak = 0;
+      const want = SCENARIOS[ask].answer.map((a) => regionById(a)!.name).join(' or ');
+      q('.brm-res').textContent = ok ? `Right! The ${regionById(id)!.name.toLowerCase()}.` : `Not quite: that is the ${regionById(id)!.name.toLowerCase()}. It is the ${want.toLowerCase()}.`;
+      q('.brm-res').className = 'brm-res ' + (ok ? 'good' : 'bad');
+      q('.brm-score').textContent = `${right} of ${tries} right, ${streak} in a row`;
+      showInfo(ok ? id : SCENARIOS[ask].answer[0]);
+    } else showInfo(id);
+    draw();
+  }
+
+  fig.addEventListener('click', (e) => { const p = (e.target as Element).closest('[data-r]'); if (p) tapRegion(p.getAttribute('data-r')!); });
+  fig.addEventListener('keydown', (e) => { if (e.key !== 'Enter' && e.key !== ' ') return; const p = (e.target as Element).closest('[data-r]'); if (p) { e.preventDefault(); tapRegion(p.getAttribute('data-r')!); } });
+  q('.brm-next').addEventListener('click', newAsk);
+  const seg = (s: string, on: (v: string) => void) => q(s).addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (!b) return; q(s).querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); on(b.dataset.v!); });
+  seg('.brm-level', (v) => { level = Number(v); showInfo(mode === 'find' && !answered ? '' : sel); });
+  seg('.brm-mode', (v) => {
+    mode = v; sel = ''; showInfo('');
+    q('.brm-ask').hidden = q('.brm-findrow').hidden = mode !== 'find';
+    q('.brm-leg').hidden = mode !== 'split';
+    q('.brm-res').textContent = '';
+    if (mode === 'find') { right = tries = streak = 0; q('.brm-score').textContent = '0 of 0 right'; newAsk(); } else draw();
+  });
+  draw();
+
+  const FACTS: { q: string; opts: string[]; right: number; why: string }[] = [
+    { q: 'Which part keeps your balance?', opts: ['Cerebellum', 'Medulla', 'Hypothalamus'], right: 0, why: 'The cerebellum keeps balance and posture.' },
+    { q: 'Which part controls your heartbeat and breathing without you thinking?', opts: ['Frontal lobe', 'Medulla', 'Occipital lobe'], right: 1, why: 'The medulla controls involuntary actions.' },
+    { q: 'Thinking and decisions happen mostly in the', opts: ['Pons', 'Cerebellum', 'Cerebrum'], right: 2, why: 'The cerebrum, the biggest part of the forebrain, does thinking.' },
+    { q: 'Which part controls hunger, thirst and body temperature?', opts: ['Hypothalamus', 'Cerebellum', 'Pons'], right: 0, why: 'The hypothalamus, deep in the forebrain.' },
+    { q: 'Which lobe handles seeing?', opts: ['Temporal', 'Occipital', 'Frontal'], right: 1, why: 'The occipital lobe at the back.' },
+    { q: 'Which is part of the hindbrain?', opts: ['Hypothalamus', 'Cerebrum', 'Pons'], right: 2, why: 'The hindbrain is the pons, medulla and cerebellum.' },
+    { q: 'What protects the brain?', opts: ['The skull and fluid around the brain', 'The ribs', 'The pituitary'], right: 0, why: 'The bony skull, plus fluid-filled membranes that cushion it.' },
+  ];
+  quiz(q('.brm-quiz'), () => [...FACTS].sort(() => Math.random() - 0.5).slice(0, 4).map((c) => {
+    const order = [0, 1, 2].sort(() => Math.random() - 0.5), pos = order.indexOf(c.right) + 1;
+    return { q: `${c.q} ${order.map((k, i) => `${i + 1} ${c.opts[k]}`).join(', ')}.`, want: [pos], hint: 'type 1, 2 or 3', work: `${pos}: ${c.opts[c.right]}. ${c.why}` } as Question;
+  }));
+</script>

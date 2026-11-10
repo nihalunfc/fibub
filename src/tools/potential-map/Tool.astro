@@ -1,0 +1,209 @@
+---
+// Equipotential map and potential hills: charges make hills (positive) and wells (negative); the map shows the
+// equipotential lines, the 3D view the hills, and a positive test charge rolls downhill along the field.
+import '../../styles/astro.css';
+---
+<div class="ax pmp">
+  <div class="ax-card">
+    <h2>Equipotential map</h2>
+    <div class="ax-row">
+      <label>Start from <select class="pmp-preset" style="width:auto">
+        <option value="one">One charge</option>
+        <option value="dipole" selected>A dipole (+ and −)</option>
+        <option value="like">Two like charges</option>
+        <option value="three">Three charges</option>
+      </select></label>
+    </div>
+    <canvas class="ax-fig pmp-fig" aria-label="Equipotential lines of the charges"></canvas>
+    <div class="ax-legend"><span><i class="pmp-kp"></i>high potential (hill)</span><span><i class="pmp-kn"></i>low potential (well)</span><span><i class="pmp-ke"></i>field at the probe</span></div>
+    <p class="pmp-hint">Drag a charge to move it; tap a charge to change it; tap anywhere else to put the probe there.</p>
+    <label class="pmp-sl">Chosen charge <b class="pmp-name">A</b>: <b class="pmp-qv"></b><input type="range" class="pmp-q" min="-5" max="5" step="1" value="2" aria-label="Charge of the chosen charge in nanocoulomb" /></label>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small pmp-roll">Let a + test charge roll</button>
+    </div>
+    <p class="ax-big pmp-big" aria-live="polite"></p>
+    <p class="pmp-text"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Potential hills in 3D</h2>
+    <canvas class="ax-fig pmp-3d" aria-label="The potential as a surface of hills and wells"></canvas>
+    <label class="pmp-sl">Turn the view: <b class="pmp-av">20°</b><input type="range" class="pmp-a" min="-60" max="60" step="1" value="20" aria-label="View angle in degrees" /></label>
+    <p class="pmp-note">Height = potential, cut off at ±1 kV so the peaks fit. Each equipotential line on the map is a contour line on these hills.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="pmp-try">
+      <li>Put the probe on the middle line of the dipole: V = 0 there, yet the field is not zero. Potential and field are different things.</li>
+      <li>Let a test charge roll: it runs downhill, crossing every equipotential at right angles.</li>
+      <li>Where the lines crowd together the hill is steep and the field is strong.</li>
+      <li>Choose Two like charges: between them is a saddle, where the field is zero but the potential is not.</li>
+      <li>Turn a charge to 0: its hill disappears and the other charges' hills are unchanged. Potentials simply add.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="pmp-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .pmp .pmp-fig { touch-action: none; cursor: crosshair; border: 1px solid var(--line); max-width: 560px; margin: 10px auto 0; }
+  .pmp .pmp-3d { max-width: 560px; margin: 0 auto; }
+  .pmp .pmp-sl { display: grid; gap: 6px; margin-top: 12px; color: var(--ink); font-size: 15px; }
+  .pmp input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .pmp .pmp-hint, .pmp .pmp-note { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
+  .pmp-kp { background: var(--bad); }
+  .pmp-kn { background: var(--accent); }
+  .pmp-ke { background: var(--good); }
+  .pmp-big { font-size: clamp(18px, 4.6vw, 24px); margin: 12px 0 0; }
+  .pmp-text { margin: 6px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .pmp-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .pmp .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .pmp .eq-q p { margin: 0 0 6px; }
+  .pmp .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .pmp .eq-ok { color: var(--good); font-weight: 600; }
+  .pmp .eq-no { color: var(--bad); }
+  .pmp .eq-work { margin-top: 4px; font-size: 14px; }
+  .pmp .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .pmp .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { potential, field, contour, rollPath, questions, type Charge } from '../../lib/sci/potential-map';
+  import { pagePalette } from '../../lib/report';
+  import { setup, arrow, sg, sci3, onTheme, quiz } from '../../lib/school-p34';
+
+  const root = document.querySelector<HTMLElement>('.pmp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fig = q<HTMLCanvasElement>('.pmp-fig'), f3 = q<HTMLCanvasElement>('.pmp-3d');
+  const W = 360, H = 280, PX = 10, BW = 36, BH = 28, NAMES = 'ABC', LEVELS = [50, 100, 200, 400, 800];
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const PRESETS: Record<string, Charge[]> = {
+    one: [{ q: 2, x: 18, y: 14 }],
+    dipole: [{ q: 2, x: 12, y: 14 }, { q: -2, x: 24, y: 14 }],
+    like: [{ q: 2, x: 12, y: 14 }, { q: 2, x: 24, y: 14 }],
+    three: [{ q: 3, x: 10, y: 10 }, { q: -2, x: 24, y: 8 }, { q: 1, x: 20, y: 22 }],
+  };
+  let cs: Charge[] = [], sel = 0, drag = -1, probe: [number, number] = [18, 20], roll: [number, number][] = [], rollAt = -1;
+  const load = (k: string) => { cs = PRESETS[k].map((c) => ({ ...c })); sel = 0; roll = []; rollAt = -1; };
+  const sx = (x: number) => x * PX, sy = (y: number) => H - y * PX;
+  const fmtQ = (v: number) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v)} nC`;
+  const hexA = (hex: string, a: number) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
+
+  function grid(h: number) {
+    const g: number[][] = [];
+    for (let j = 0; j * h <= BH + 1e-9; j++) { const row: number[] = []; for (let i = 0; i * h <= BW + 1e-9; i++) row.push(potential(cs, i * h, j * h)); g.push(row); }
+    return g;
+  }
+  function drawMap() {
+    const pal = pagePalette(), c = setup(fig, W, H);
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    // Shading: red for high potential, blue for low.
+    const cell = 0.5;
+    for (let y = 0; y < BH; y += cell) for (let x = 0; x < BW; x += cell) {
+      const V = potential(cs, x + cell / 2, y + cell / 2); if (!Number.isFinite(V)) continue;
+      const a = Math.min(0.55, Math.abs(Math.tanh(V / 600)) * 0.55);
+      c.fillStyle = hexA(V > 0 ? pal.bad : pal.accent, a); c.fillRect(sx(x), sy(y + cell), cell * PX + 0.5, cell * PX + 0.5);
+    }
+    const g = grid(0.5);
+    for (const L of [...LEVELS, ...LEVELS.map((v) => -v), 0]) {
+      c.strokeStyle = L === 0 ? pal.muted : pal.ink; c.lineWidth = L === 0 ? 1 : 1.2; if (L === 0) c.setLineDash([4, 4]);
+      c.beginPath();
+      for (const [x1, y1, x2, y2] of contour(g, 0, 0, 0.5, L)) { c.moveTo(sx(x1), sy(y1)); c.lineTo(sx(x2), sy(y2)); }
+      c.stroke(); c.setLineDash([]);
+    }
+    if (roll.length > 1) {
+      const n = rollAt < 0 ? roll.length : Math.min(roll.length, rollAt + 1);
+      c.strokeStyle = pal.good; c.lineWidth = 2.5; c.beginPath();
+      for (let k = 0; k < n; k++) { const [x, y] = roll[k]; k ? c.lineTo(sx(x), sy(y)) : c.moveTo(sx(x), sy(y)); }
+      c.stroke();
+      const [x, y] = roll[n - 1]; c.fillStyle = pal.good; c.beginPath(); c.arc(sx(x), sy(y), 6, 0, Math.PI * 2); c.fill();
+    }
+    const f = field(cs, ...probe);
+    if (f.E > 0) arrow(c, sx(probe[0]), sy(probe[1]), sx(probe[0]) + (32 * f.Ex) / f.E, sy(probe[1]) - (32 * f.Ey) / f.E, pal.good, 2.5, 'E');
+    c.strokeStyle = pal.ink; c.lineWidth = 2; c.beginPath(); c.arc(sx(probe[0]), sy(probe[1]), 5, 0, Math.PI * 2); c.stroke();
+    cs.forEach((ch, i) => {
+      const X = sx(ch.x), Y = sy(ch.y);
+      c.fillStyle = ch.q > 0 ? pal.bad : ch.q < 0 ? pal.accent : pal.muted; c.beginPath(); c.arc(X, Y, 11, 0, Math.PI * 2); c.fill();
+      if (i === sel) { c.strokeStyle = pal.ink; c.lineWidth = 2.5; c.beginPath(); c.arc(X, Y, 15, 0, Math.PI * 2); c.stroke(); }
+      c.fillStyle = pal.bg; c.font = '700 13px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(ch.q > 0 ? '+' : ch.q < 0 ? '−' : '0', X, Y + 5);
+      c.fillStyle = pal.ink; c.font = '700 12px system-ui, sans-serif'; c.fillText(`${NAMES[i]} ${fmtQ(ch.q)}`, X, Y + (ch.y > 3 ? 27 : -19));
+    });
+  }
+  function draw3d() {
+    const pal = pagePalette(), c = setup(f3, 360, 250), a = (+q<HTMLInputElement>('.pmp-a').value * Math.PI) / 180;
+    c.fillStyle = pal.bg; c.fillRect(0, 0, 360, 250);
+    const VC = 1000, Z = 75;
+    const P = (x: number, y: number, V: number): [number, number] => {
+      const X = x - BW / 2, Y = y - BH / 2, xr = X * Math.cos(a) - Y * Math.sin(a), yr = X * Math.sin(a) + Y * Math.cos(a);
+      const v = Math.max(-VC, Math.min(VC, Number.isFinite(V) ? V : Math.sign(V) * VC));
+      return [180 + xr * 7.2, 140 - yr * 3.4 - (v / VC) * Z];
+    };
+    const h = 1, g = grid(h);
+    for (const [dir, n, m] of [[0, g.length, g[0].length], [1, g[0].length, g.length]] as const) {
+      for (let k = 0; k < n; k++) {
+        for (let l = 0; l + 1 < m; l++) {
+          const [j1, i1, j2, i2] = dir === 0 ? [k, l, k, l + 1] : [l, k, l + 1, k];
+          const v = (g[j1][i1] + g[j2][i2]) / 2;
+          c.strokeStyle = v > 25 ? pal.bad : v < -25 ? pal.accent : pal.line; c.lineWidth = 1;
+          c.beginPath(); c.moveTo(...P(i1 * h, j1 * h, g[j1][i1])); c.lineTo(...P(i2 * h, j2 * h, g[j2][i2])); c.stroke();
+        }
+      }
+    }
+    const show = (x: number, y: number, col: string, r: number) => { c.fillStyle = col; c.beginPath(); c.arc(...P(x, y, potential(cs, x, y)), r, 0, Math.PI * 2); c.fill(); };
+    show(probe[0], probe[1], pal.ink, 4);
+    if (roll.length > 1) { const [x, y] = roll[rollAt < 0 ? roll.length - 1 : Math.min(roll.length - 1, rollAt)]; show(x, y, pal.good, 6); }
+    q('.pmp-av').textContent = `${Math.round((a * 180) / Math.PI)}°`;
+  }
+  function texts() {
+    const [x, y] = probe, V = potential(cs, x, y), f = field(cs, x, y), ch = cs[sel];
+    q('.pmp-name').textContent = NAMES[sel]; q('.pmp-qv').textContent = fmtQ(ch.q); q<HTMLInputElement>('.pmp-q').value = String(ch.q);
+    const dir = Math.round((((Math.atan2(f.Ey, f.Ex) * 180) / Math.PI) + 360) % 360);
+    q('.pmp-big').textContent = `Probe at (${sg(x)}, ${sg(y)}) cm: V = ${sci3(Math.abs(V) < 1e-9 ? 0 : V)} V`;
+    const parts = cs.map((c, i) => `${sci3((8.98755e9 * c.q * 1e-9) / (Math.hypot(x - c.x, y - c.y) / 100))} V from ${NAMES[i]}`).join(' + ');
+    q('.pmp-text').textContent = `V = Σ kq/r = ${parts}. The field there is ${sci3(f.E)} V/m, pointing ${dir}° anticlockwise from the right: straight downhill, at right angles to the equipotential lines (drawn every ±50, 100, 200, 400 and 800 V; dashed = 0 V).`;
+  }
+  const all = () => { texts(); drawMap(); draw3d(); };
+
+  const toBoard = (e: PointerEvent): [number, number] => { const r = fig.getBoundingClientRect(); return [(((e.clientX - r.left) / r.width) * W) / PX, (H - ((e.clientY - r.top) / r.height) * H) / PX]; };
+  fig.addEventListener('pointerdown', (e) => {
+    const [x, y] = toBoard(e);
+    let best = -1, bd = 2.4;
+    cs.forEach((ch, i) => { const d = Math.hypot(ch.x - x, ch.y - y); if (d < bd) { bd = d; best = i; } });
+    if (best >= 0) { sel = best; drag = best; fig.setPointerCapture(e.pointerId); }
+    else { probe = [Math.round(x * 2) / 2, Math.round(y * 2) / 2]; roll = []; rollAt = -1; }
+    e.preventDefault(); all();
+  });
+  fig.addEventListener('pointermove', (e) => {
+    if (drag < 0) return;
+    const [x, y] = toBoard(e), nx = Math.max(1, Math.min(35, Math.round(x))), ny = Math.max(1, Math.min(27, Math.round(y)));
+    if (cs.some((o, i) => i !== drag && o.x === nx && o.y === ny) || (nx === probe[0] && ny === probe[1])) return;
+    if (cs[drag].x !== nx || cs[drag].y !== ny) { cs[drag].x = nx; cs[drag].y = ny; roll = []; rollAt = -1; all(); }
+  });
+  const up = () => { drag = -1; };
+  fig.addEventListener('pointerup', up); fig.addEventListener('pointercancel', up);
+  q('.pmp-q').addEventListener('input', () => { cs[sel].q = +q<HTMLInputElement>('.pmp-q').value; roll = []; rollAt = -1; all(); });
+  q('.pmp-a').addEventListener('input', draw3d);
+  q('.pmp-preset').addEventListener('change', () => { load(q<HTMLSelectElement>('.pmp-preset').value); all(); });
+  let t0 = 0;
+  const anim = (t: number) => {
+    if (rollAt < 0) return;
+    if (!t0) t0 = t;
+    rollAt = Math.floor((t - t0) / 6);
+    drawMap(); draw3d();
+    if (rollAt >= roll.length - 1) { rollAt = -1; drawMap(); draw3d(); return; }
+    requestAnimationFrame(anim);
+  };
+  q('.pmp-roll').addEventListener('click', () => {
+    roll = rollPath(cs, probe[0], probe[1], BW, BH);
+    q('.pmp-roll').dataset.steps = String(roll.length);
+    if (reduce || roll.length < 3) { rollAt = -1; all(); return; }
+    rollAt = 0; t0 = 0; requestAnimationFrame(anim);
+  });
+  onTheme(all);
+  load('dipole'); all();
+  quiz(q('.pmp-quiz'), () => questions());
+</script>

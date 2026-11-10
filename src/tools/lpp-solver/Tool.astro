@@ -1,0 +1,213 @@
+---
+// LPP graphical solver: two variables, a few ≤ / ≥ constraints, the feasible region shaded, corner points with Z,
+// and the objective line sliding to the optimum; unbounded and infeasible cases flagged. Class 12 maths, linear
+// programming (corner point method), with production and diet stories.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax lpp">
+  <div class="ax-card">
+    <h2>The problem</h2>
+    <div class="ax-grid">
+      <label>Story <select class="lp-st">
+        <option value="furn" selected>Making tables and chairs</option><option value="diet">A cheapest diet</option><option value="farm">Planting two crops</option><option value="tie">Many best answers</option><option value="none">No feasible point</option><option value="own">My own</option>
+      </select></label>
+    </div>
+    <p class="ax-help lp-story"></p>
+    <div class="ax-row lp-obj">
+      <div class="ax-seg lp-goal" role="group" aria-label="Maximise or minimise"><button type="button" data-g="max" aria-pressed="true">Maximise</button><button type="button" data-g="min" aria-pressed="false">Minimise</button></div>
+      <span>Z =</span><input class="lp-p" type="number" step="any" value="50" aria-label="Coefficient of x in Z" /><span>x +</span><input class="lp-q" type="number" step="any" value="30" aria-label="Coefficient of y in Z" /><span>y</span>
+    </div>
+    <p class="ax-help">Subject to x ≥ 0, y ≥ 0 and:</p>
+    <ol class="lp-cons"></ol>
+    <button type="button" class="btn small secondary lp-add">Add a constraint</button>
+    <p class="ax-err lp-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Feasible region and corners</h2>
+    <canvas class="ax-fig lp-fig" role="img"></canvas>
+    <label class="lp-sl">Objective line Z = <b class="lp-kv"></b><input class="lp-k" type="range" min="0" max="1000" step="1" value="300" /></label>
+    <div class="ax-row"><button type="button" class="btn small lp-go">Slide to the best</button></div>
+    <p class="ax-help">Shaded: every (x, y) that meets all the constraints. Dashed: the line Z = k; sliding it keeps the same tilt. The last point it touches as it leaves the region is the optimum.</p>
+    <div class="ax-scroll"><table class="lp-tab"><thead><tr><th>Corner</th><th class="r">x</th><th class="r">y</th><th class="r">Z</th></tr></thead><tbody></tbody></table></div>
+    <p class="ax-big lp-ans"></p>
+    <p class="lp-say"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lp-try">
+      <li>In the diet story, switch to Maximise: the region goes on for ever and Z can grow without limit, so there is no maximum.</li>
+      <li>Pick "Many best answers": the objective line is parallel to one edge, so both corners on that edge (and every point between) give the best Z.</li>
+      <li>Make one constraint tighter (lower its right side) and watch the corner and the best Z move.</li>
+      <li>Change the profit per table until the best corner jumps to another one.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="lp-quiz" />
+</div>
+
+<script>
+  import { solve, type Con, type LppResult } from '../../lib/sci/school-r-lpp';
+  import { paint, type Palette } from '../../lib/report';
+  import { view, px, py, axes, line, dot, label, fmt, type View } from '../../lib/sm-graph';
+  import { quiz, rint, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.lpp')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const W = 380, H = 340;
+  type Story = { goal: 'max' | 'min'; p: number; q: number; cons: Con[]; note: string; x: string; y: string; z: string };
+  const K = (a: number, b: number, op: '<=' | '>=', c: number): Con => ({ a, b, op, c });
+  const STORIES: Record<string, Story> = {
+    furn: { goal: 'max', p: 50, q: 30, cons: [K(2, 1, '<=', 20), K(1, 2, '<=', 16)], x: 'tables', y: 'chairs', z: 'profit (₹ hundreds)', note: 'x tables and y chairs. A table needs 2 hours on the machine and 1 hour of finishing; a chair needs 1 and 2. There are 20 machine hours and 16 finishing hours. Profit: 50 per table, 30 per chair (made-up numbers).' },
+    diet: { goal: 'min', p: 4, q: 6, cons: [K(2, 1, '>=', 8), K(1, 3, '>=', 9)], x: 'units of food X', y: 'units of food Y', z: 'cost (₹)', note: 'Mix x units of food X and y units of food Y. Each unit of X gives 2 units of vitamin A and 1 of vitamin B; Y gives 1 and 3. You need at least 8 of A and 9 of B. X costs 4 and Y costs 6 (made-up numbers).' },
+    farm: { goal: 'max', p: 3, q: 2, cons: [K(1, 1, '<=', 50), K(1, 2, '>=', 40), K(3, 1, '<=', 90)], x: 'hectares of crop A', y: 'hectares of crop B', z: 'income (₹ lakh)', note: 'A farmer has 50 hectares. Crop A needs 3 units of fertiliser per hectare and B needs 1; there are 90 units. A contract needs x + 2y ≥ 40. Income: 3 per hectare of A, 2 of B (made-up numbers).' },
+    tie: { goal: 'max', p: 100, q: 50, cons: [K(2, 1, '<=', 20), K(1, 2, '<=', 16)], x: 'x', y: 'y', z: 'Z', note: 'The furniture limits again, but now Z = 100x + 50y, which is parallel to the machine-hours line 2x + y = 20.' },
+    none: { goal: 'max', p: 1, q: 1, cons: [K(1, 1, '<=', 2), K(1, 1, '>=', 5)], x: 'x', y: 'y', z: 'Z', note: 'x + y cannot be at most 2 and at least 5 at the same time.' },
+    own: { goal: 'max', p: 3, q: 4, cons: [K(1, 1, '<=', 6), K(1, 3, '<=', 12)], x: 'x', y: 'y', z: 'Z', note: 'Type your own objective and constraints.' },
+  };
+  let goal: 'max' | 'min' = 'max', st: Story = STORIES.furn, R: LppResult | null = null, V: View = view(0, 10, 0, 10, W, H), cons: Con[] = [];
+  const kIn = q<HTMLInputElement>('.lp-k');
+  const COLORS = ['accent', 'accent2', 'good', 'warn', 'bad'] as const;
+
+  function consRows() {
+    const ol = q('.lp-cons');
+    ol.replaceChildren(...cons.map((k, i) => {
+      const li = document.createElement('li'); li.className = 'lp-con';
+      const num = (v: number, lab: string) => { const e = document.createElement('input'); e.type = 'number'; e.step = 'any'; e.value = String(v); e.setAttribute('aria-label', lab); return e; };
+      const a = num(k.a, `Constraint ${i + 1}: x coefficient`), b = num(k.b, `Constraint ${i + 1}: y coefficient`), c = num(k.c, `Constraint ${i + 1}: right side`);
+      const op = document.createElement('select'); op.innerHTML = '<option value="<=">≤</option><option value=">=">≥</option>'; op.value = k.op; op.setAttribute('aria-label', `Constraint ${i + 1}: sign`);
+      const del = document.createElement('button'); del.type = 'button'; del.className = 'btn small secondary lp-del'; del.textContent = '✕'; del.setAttribute('aria-label', `Remove constraint ${i + 1}`);
+      const sp = (t: string) => { const s = document.createElement('span'); s.textContent = t; return s; };
+      li.append(a, sp('x +'), b, sp('y'), op, c, del);
+      const upd = () => { cons[i] = { a: Number(a.value), b: Number(b.value), op: op.value as '<=' | '>=', c: Number(c.value) }; run(); };
+      [a, b, c].forEach((e) => e.addEventListener('input', upd)); op.addEventListener('change', upd);
+      del.addEventListener('click', () => { cons.splice(i, 1); consRows(); run(); });
+      return li;
+    }));
+    q<HTMLButtonElement>('.lp-add').disabled = cons.length >= 5;
+  }
+
+  function story() {
+    const id = q<HTMLSelectElement>('.lp-st').value; st = STORIES[id];
+    goal = st.goal; cons = st.cons.map((k) => ({ ...k }));
+    q<HTMLInputElement>('.lp-p').value = String(st.p); q<HTMLInputElement>('.lp-q').value = String(st.q);
+    root.querySelectorAll('.lp-goal button').forEach((b) => b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.g === goal)));
+    q('.lp-story').textContent = st.note;
+    consRows(); run(true);
+  }
+
+  function run(resetK = false) {
+    const p = Number(q<HTMLInputElement>('.lp-p').value), qq = Number(q<HTMLInputElement>('.lp-q').value), err = q('.lp-err');
+    err.hidden = true;
+    const bad = cons.findIndex((k) => !(Number.isFinite(k.a) && Number.isFinite(k.b) && Number.isFinite(k.c)) || (k.a === 0 && k.b === 0));
+    if (!Number.isFinite(p) || !Number.isFinite(qq) || bad >= 0) { err.textContent = bad >= 0 ? `Constraint ${bad + 1} needs numbers, and x or y must have a coefficient other than 0.` : 'Z needs two numbers.'; err.hidden = false; R = null; draw(); return; }
+    R = solve(cons, p, qq, goal);
+    // window: corners and the axis intercepts of every line
+    let xm = 1, ym = 1;
+    for (const c of R.corners) { xm = Math.max(xm, c.p[0]); ym = Math.max(ym, c.p[1]); }
+    for (const k of cons) { if (k.a > 0 && k.c > 0) xm = Math.max(xm, k.c / k.a); if (k.b > 0 && k.c > 0) ym = Math.max(ym, k.c / k.b); }
+    xm *= 1.2; ym *= 1.2;
+    V = view(0, xm, 0, ym, W, H, { l: 40, r: 12, t: 12, b: 26 });
+    const zs = [0, p * xm + qq * ym, p * xm, qq * ym].filter(Number.isFinite), zlo = Math.min(...zs), zhi = Math.max(...zs);
+    kIn.min = String(Math.floor(zlo)); kIn.max = String(Math.ceil(zhi)); kIn.step = String(Math.max((zhi - zlo) / 400, 0.01));
+    if (resetK || +kIn.value < zlo || +kIn.value > zhi) kIn.value = String(goal === 'max' ? (zlo + zhi) * 0.15 : (zlo + zhi) * 0.6);
+    draw();
+  }
+
+  const letter = (i: number) => String.fromCharCode(65 + i);
+  function draw() {
+    const tb = q('.lp-tab tbody'), ans = q('.lp-ans'), say = q('.lp-say');
+    if (!R) { tb.replaceChildren(); ans.textContent = ''; say.textContent = ''; return; }
+    const r = R, p = Number(q<HTMLInputElement>('.lp-p').value), qq = Number(q<HTMLInputElement>('.lp-q').value), k = +kIn.value;
+    q('.lp-kv').textContent = fmt(k, 2);
+    paint(q<HTMLCanvasElement>('.lp-fig'), { w: W, h: H, alt: `Feasible region with ${r.corners.length} corners; ${r.status}`, draw: (ctx, w, h, pl: Palette) => {
+      axes(ctx, V, pl, { xName: st.x === 'x' ? 'x' : `x: ${st.x}`, yName: st.y === 'y' ? 'y' : `y: ${st.y}` });
+      ctx.save(); ctx.beginPath(); ctx.rect(V.l, V.t, w - V.l - V.r, h - V.t - V.b); ctx.clip();
+      if (r.region.length) {
+        ctx.fillStyle = pl.accent; ctx.globalAlpha = 0.16; ctx.beginPath();
+        r.region.forEach(([x, y], i) => { const X = px(V, Math.min(x, V.x1 * 10)), Y = py(V, Math.min(y, V.y1 * 10)); if (i) ctx.lineTo(X, Y); else ctx.moveTo(X, Y); });
+        ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+      }
+      ctx.restore();
+      cons.forEach((c, i) => {
+        const col = pl[COLORS[i % COLORS.length]];
+        let p1: [number, number], p2: [number, number];
+        if (Math.abs(c.b) > 1e-12) { p1 = [V.x0, (c.c - c.a * V.x0) / c.b]; p2 = [V.x1, (c.c - c.a * V.x1) / c.b]; } else { p1 = [c.c / c.a, V.y0]; p2 = [c.c / c.a, V.y1]; }
+        line(ctx, V, p1[0], p1[1], p2[0], p2[1], col, 2);
+        // label near the y-axis end or the x-axis end
+        const lx = Math.abs(c.b) > 1e-12 ? Math.min(V.x1 * 0.9, Math.max(0, c.a ? (c.c / c.a) * 0.08 : V.x1 * 0.05)) : c.c / c.a;
+        const ly = Math.abs(c.b) > 1e-12 ? (c.c - c.a * lx) / c.b : V.y1 * 0.9;
+        if (ly > V.y0 && ly < V.y1) label(ctx, V, lx, ly, `${i + 1}`, col, 4, -4);
+      });
+      if (Math.abs(qq) > 1e-12 || Math.abs(p) > 1e-12) {
+        if (Math.abs(qq) > 1e-12) line(ctx, V, V.x0, (k - p * V.x0) / qq, V.x1, (k - p * V.x1) / qq, pl.ink, 2, [7, 5]);
+        else line(ctx, V, k / p, V.y0, k / p, V.y1, pl.ink, 2, [7, 5]);
+      }
+      r.corners.forEach((c, i) => { dot(ctx, V, c.p[0], c.p[1], c.best ? pl.good : pl.ink, c.best ? 6.5 : 4.5); label(ctx, V, c.p[0], c.p[1], letter(i), pl.ink, 7, -5); });
+    } });
+    tb.replaceChildren(...r.corners.map((c, i) => {
+      const tr = document.createElement('tr'); if (c.best) tr.className = 'lp-best';
+      [letter(i), fmt(c.p[0], 3), fmt(c.p[1], 3), fmt(c.z, 3) + (c.best ? (goal === 'max' ? '  ← largest' : '  ← smallest') : '')].forEach((t, j) => { const td = document.createElement('td'); if (j) td.className = 'r'; td.textContent = t; tr.append(td); });
+      return tr;
+    }));
+    const word = goal === 'max' ? 'maximum' : 'minimum';
+    if (r.status === 'infeasible') { ans.textContent = 'No feasible point'; say.textContent = 'No (x, y) meets every constraint at once, so the problem has no solution. Check the ≤ and ≥ signs.'; return; }
+    if (r.status === 'unbounded') { ans.textContent = `No ${word}`; say.textContent = `The region is unbounded and Z can be made as ${goal === 'max' ? 'large' : 'small'} as you like inside it: the open half-plane Z ${goal === 'max' ? '>' : '<'} (best corner value) still meets the region.`; return; }
+    const bests = r.corners.map((c, i) => [c, i] as const).filter(([c]) => c.best);
+    ans.textContent = `${word[0].toUpperCase() + word.slice(1)} Z = ${fmt(r.best, 3)}`;
+    say.textContent = r.many
+      ? `Corners ${bests.map(([, i]) => letter(i)).join(' and ')} both give Z = ${fmt(r.best, 3)}, so every point on the edge between them is optimal too.`
+      : `At corner ${letter(bests[0][1])}: x = ${fmt(bests[0][0].p[0], 3)} ${st.x === 'x' ? '' : st.x}, y = ${fmt(bests[0][0].p[1], 3)} ${st.y === 'y' ? '' : st.y}${st.z === 'Z' ? '' : `, ${st.z} ${fmt(r.best, 3)}`}.` + (r.bounded ? '' : ` The region is unbounded, but the half-plane Z ${goal === 'max' ? '>' : '<'} ${fmt(r.best, 3)} has no point in it, so this is the true ${word}.`);
+  }
+
+  q('.lp-st').addEventListener('change', story);
+  root.querySelectorAll<HTMLButtonElement>('.lp-goal button').forEach((b) => b.addEventListener('click', () => { goal = b.dataset.g as 'max' | 'min'; root.querySelectorAll('.lp-goal button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); run(true); }));
+  ['.lp-p', '.lp-q'].forEach((s) => q(s).addEventListener('input', () => run()));
+  q('.lp-add').addEventListener('click', () => { if (cons.length < 5) { cons.push({ a: 1, b: 1, op: '<=', c: 10 }); consRows(); run(); } });
+  kIn.addEventListener('input', draw);
+  let anim = 0;
+  q('.lp-go').addEventListener('click', () => {
+    if (!R || R.status !== 'optimal') return;
+    cancelAnimationFrame(anim); const from = +kIn.value, to = R.best, t0 = performance.now();
+    const step = (t: number) => { const s = Math.min(1, (t - t0) / 1500); kIn.value = String(from + (to - from) * s); draw(); if (s < 1) anim = requestAnimationFrame(step); else { kIn.value = String(to); draw(); } };
+    anim = requestAnimationFrame(step);
+  });
+  document.addEventListener('fibub:theme', draw);
+  story();
+
+  quiz(q('.lp-quiz'), (): Question[] => {
+    const a = rint(2, 5), b = rint(2, 5), c = a * b * rint(1, 3);
+    const p1 = rint(2, 9), q1 = rint(2, 9);
+    const x0 = rint(1, 6), y0 = rint(1, 6), zp = rint(2, 6), zq = rint(2, 6);
+    const s1 = solve([K(1, 1, '<=', 6), K(1, 3, '<=', 12)], p1, q1, 'max');
+    return [
+      { text: `Where does the line ${a}x + ${b}y = ${c} cut the x-axis? (the x value)`, answer: c / a, worked: `Put y = 0: ${a}x = ${c}, so x = ${fmt(c / a, 4)}.` },
+      { text: `What is Z = ${zp}x + ${zq}y at the corner (${x0}, ${y0})?`, answer: zp * x0 + zq * y0, worked: `Z = ${zp} × ${x0} + ${zq} × ${y0} = ${zp * x0 + zq * y0}.` },
+      { text: `Maximise Z = ${p1}x + ${q1}y with x + y ≤ 6, x + 3y ≤ 12, x, y ≥ 0. The corners are (0, 0), (6, 0), (3, 3) and (0, 4). What is the maximum Z?`, answer: s1.best, worked: `Z at the corners: 0, ${6 * p1}, ${3 * p1 + 3 * q1}, ${4 * q1}. The largest is ${s1.best}.` },
+      { text: 'A feasible region is unbounded. Must a minimum of Z = x + y exist when x, y ≥ 0?', choices: ['Yes, always', 'No, never', 'Check: it exists if the half-plane Z < m has no point in the region'], correct: 2, worked: 'For an unbounded region, find the best corner value m and check whether the open half-plane Z < m (for a minimum) meets the region. Here x + y ≥ 0 everywhere, so a minimum does exist, but in general you must check.' },
+      { text: 'Does the point (2, 3) satisfy 3x + 2y ≤ 12?', choices: ['Yes', 'No'], correct: 0, worked: '3 × 2 + 2 × 3 = 12, and 12 ≤ 12, so yes: it is on the boundary line.' },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .lpp.ax .lp-obj input:not([type=range]), .lpp.ax .lp-con input:not([type=range]) { width: 68px; min-height: 40px; padding: 6px 8px; }
+  .lpp.ax .lp-con select { width: 56px; }
+  .lpp .lp-obj { margin: 10px 0 4px; }
+  .lpp .lp-cons { padding-left: 22px; display: grid; gap: 8px; margin: 6px 0 10px; }
+  .lpp .lp-con { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .lpp .lp-con select { min-height: 40px; }
+  .lpp .lp-del { min-height: 40px; min-width: 40px; padding: 4px 8px; }
+  .lpp .lp-sl { display: grid; gap: 4px; color: var(--ink); font-size: 15px; margin-top: 10px; }
+  .lpp .lp-sl input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .lpp .lp-tab { width: 100%; border-collapse: collapse; margin-top: 10px; font-variant-numeric: tabular-nums; }
+  .lpp .lp-tab th, .lpp .lp-tab td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+  .lpp .lp-tab .r { text-align: right; }
+  .lpp .lp-best td { font-weight: 700; color: var(--good); }
+  .lpp .lp-ans { margin: 12px 0 4px; }
+  .lpp .lp-say { font-weight: 600; margin: 0; overflow-wrap: anywhere; }
+  .lpp .lp-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+  .lpp .ax-seg button, .lpp .btn { min-height: 44px; }
+</style>

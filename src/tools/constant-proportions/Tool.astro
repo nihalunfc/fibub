@@ -1,0 +1,140 @@
+---
+// Law of constant proportions lab: analyse samples of a compound from different sources and see the same mass
+// ratio every time; Class 11 adds the law of multiple proportions. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax sm cp">
+  <div class="ax-card">
+    <div class="ax-seg cp-level" role="group" aria-label="Level"><button type="button" data-level="9" aria-pressed="true">Class 9</button><button type="button" data-level="11" aria-pressed="false">Class 11</button></div>
+    <h2 style="margin-top:12px">Take a sample</h2>
+    <div class="ax-grid">
+      <label>Compound<select class="cp-c"></select></label>
+      <label>Where it came from<select class="cp-s"></select></label>
+    </div>
+    <div class="sm-sl"><b>g</b><input type="range" class="cp-mr" min="1" max="100" step="1" value="18" aria-label="Sample mass slider" /><input type="number" class="cp-m" min="0.1" max="1000" step="0.1" value="18" inputmode="decimal" aria-label="Sample mass in grams" /></div>
+    <svg class="sm-fig cp-fig" viewBox="0 0 340 90" role="img" aria-label="The sample split into the mass of each element"></svg>
+    <div class="ax-row" style="margin-top:8px"><button type="button" class="btn small cp-go">Analyse this sample</button><button type="button" class="btn small secondary cp-clear">Clear table</button></div>
+    <p class="ax-help">The balance shows 0.01 g, so readings can be one step out, as in a real lab.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Results</h2>
+    <div class="ax-scroll"><table class="cp-tab"><thead></thead><tbody></tbody></table></div>
+    <p class="sm-f cp-sum" aria-live="polite"></p>
+    <p class="ax-big cp-big"></p>
+  </div>
+
+  <div class="ax-card" data-only="11" hidden>
+    <h2>Law of multiple proportions</h2>
+    <p class="ax-help">When two elements make more than one compound, the masses of one that join with a fixed mass of the other are in a simple whole-number ratio.</p>
+    <label class="cp-pl">Elements<select class="cp-p"></select></label>
+    <div class="ax-scroll"><table class="cp-mtab"><thead><tr><th>Compound</th><th class="r cp-mh"></th></tr></thead><tbody></tbody></table></div>
+    <p class="sm-f cp-msum"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Analyse water from three different sources. Does the ratio H : O change?</li>
+      <li>Analyse 2 g and then 90 g of carbon dioxide. The masses change; does the ratio?</li>
+      <li>Add up the element masses in any row. What law does that show?</li>
+      <li>Class 11: compare CO and CO₂. How many times more oxygen joins 1 g of carbon in CO₂?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cp-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .cp .cp-pl { max-width: 20em; margin: 8px 0; }
+  .cp .cp-fig { margin-top: 8px; }
+  .cp svg .cp-e0 { fill: var(--accent); } .cp svg .cp-e1 { fill: var(--warn); } .cp svg .cp-e2 { fill: var(--good); }
+  .cp svg .cp-lab { fill: var(--accent-ink); font-weight: 700; }
+  .cp [hidden] { display: none !important; }
+</style>
+
+<script>
+  import { COMPOUNDS, byId, split, ratio, roundedRatio, PAIRS, multiple, reading } from '../../lib/sci/constant-proportions';
+  import { fmt } from '../../lib/sci/smath';
+  import { S, pair, val } from '../../lib/smath-ui';
+  import { mountQuiz, wireLevel, pick, one, type QItem } from '../../lib/learnquiz-d';
+
+  const root = document.querySelector<HTMLElement>('.cp')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const Cs = q<HTMLSelectElement>('.cp-c'), Ss = q<HTMLSelectElement>('.cp-s'), M = q<HTMLInputElement>('.cp-m');
+  Cs.replaceChildren(...COMPOUNDS.map((c) => new Option(`${c.name} (${c.formula})`, c.id)));
+  q<HTMLSelectElement>('.cp-p').replaceChildren(...PAIRS.map((p, i) => new Option(`${p.a} and ${p.b}: ${p.formulas.join(', ')}`, String(i))));
+  pair(q('.cp-mr'), M, bar);
+  let rows: { src: string; m: number; parts: number[] }[] = [];
+  const seed = Number(new URLSearchParams(location.search).get('seed'));
+  let st = seed || Math.floor(Math.random() * 1e9) + 1;
+  const wob = () => { st = (st * 1103515245 + 12345) % 2147483648; return Math.floor((st / 2147483648) * 3) - 1; };
+
+  const fillSources = () => { Ss.replaceChildren(...byId(Cs.value).sources.map((s) => new Option(s, s))); };
+  Cs.addEventListener('change', () => { fillSources(); rows = []; table(); bar(); });
+  q('.cp-go').addEventListener('click', () => {
+    const c = byId(Cs.value), m = val(M, 18, 0.1, 1000), parts = split(c, m).map((p) => reading(p.mass, wob()));
+    rows.push({ src: Ss.value, m: reading(m, 0), parts });
+    if (Ss.selectedIndex < Ss.options.length - 1) Ss.selectedIndex++;
+    table();
+  });
+  q('.cp-clear').addEventListener('click', () => { rows = []; table(); });
+
+  function bar() {
+    const c = byId(Cs.value), m = val(M, 18, 0.1, 1000), p = split(c, m), fig = q<SVGSVGElement>('.cp-fig');
+    fig.replaceChildren();
+    let x = 10;
+    p.forEach((e, i) => {
+      const w = 320 * e.percent / 100;
+      S('rect', { x, y: 14, width: w, height: 40, class: 'cp-e' + i }, fig);
+      if (w > 30) S('text', { x: x + w / 2, y: 39, 'text-anchor': 'middle', class: 'cp-lab' }, fig, e.symbol);
+      S('text', { x: x + w / 2, y: 74, 'text-anchor': 'middle', class: 'sm-tick' }, fig, `${fmt(e.mass, 2)} g`);
+      x += w;
+    });
+    S('text', { x: 10, y: 10, class: 'sm-tick' }, fig, `${fmt(m, 2)} g of ${c.formula}`);
+  }
+
+  function table() {
+    const c = byId(Cs.value), sym = c.order;
+    const th = (t: string, r = false) => Object.assign(document.createElement('th'), { textContent: t, className: r ? 'r' : '' });
+    const tr0 = document.createElement('tr'); tr0.append(th('Source'), th('Sample (g)', true), ...sym.map((s) => th(`${s} (g)`, true)), th(`${sym.join(' : ')} by mass`, true));
+    q('.cp-tab thead').replaceChildren(tr0);
+    q('.cp-tab tbody').replaceChildren(...rows.map((r) => {
+      const tr = document.createElement('tr'), td = (t: string, cl = 'r') => Object.assign(document.createElement('td'), { textContent: t, className: cl });
+      tr.append(td(r.src, ''), td(fmt(r.m, 2)), ...r.parts.map((p) => td(p.toFixed(2))), td(ratio(r.parts).map((x, i) => (i ? x.toFixed(2) : '1')).join(' : ')));
+      return tr;
+    }));
+    const rr = roundedRatio(c), comp = split(c, 100), exact = ratio(comp.map((e) => e.mass));
+    if (!rows.length) { q('.cp-sum').textContent = 'Press "Analyse this sample" a few times, with different sources and sizes.'; q('.cp-big').textContent = ''; return; }
+    const rs = rows.map((r) => ratio(r.parts)), lo = rs.map((x) => x[1]), sumOk = rows.every((r) => Math.abs(r.parts.reduce((a, b) => a + b, 0) - r.m) <= 0.021 * r.parts.length);
+    q('.cp-sum').textContent = `${rows.length} sample${rows.length > 1 ? 's' : ''}: ${sym[1]} per 1 g of ${sym[0]} is between ${fmt(Math.min(...lo), 2)} and ${fmt(Math.max(...lo), 2)} g, the same within the balance's accuracy. With standard atomic masses it is exactly ${exact.map((x, i) => (i ? x.toFixed(3) : '1')).join(' : ')} (${comp.map((e) => `${e.symbol} ${e.percent.toFixed(2)}%`).join(', ')}). ${sumOk ? `In every row the element masses add up to the sample mass: mass is conserved (to within the balance's 0.01 g steps).` : ''}`;
+    q('.cp-big').textContent = `${sym.join(' : ')} ≈ ${rr.join(' : ')} by mass, from every source`;
+  }
+
+  function multi() {
+    const p = PAIRS[Number(q<HTMLSelectElement>('.cp-p').value)], r = multiple(p);
+    q('.cp-mh').textContent = `g of ${p.other} per 1 g of ${p.fixed}`;
+    q('.cp-mtab tbody').replaceChildren(...p.formulas.map((f, i) => { const tr = document.createElement('tr'); tr.append(Object.assign(document.createElement('td'), { textContent: `${p.names[i]} (${f})` }), Object.assign(document.createElement('td'), { textContent: r.per1[i].toFixed(3), className: 'r' })); return tr; }));
+    q('.cp-msum').textContent = r.simple ? `${r.per1.map((x) => x.toFixed(3)).join(' : ')} = ${r.simple.join(' : ')}, a simple whole-number ratio.` : '';
+  }
+  q('.cp-p').addEventListener('change', multi);
+  wireLevel(root, () => {});
+  fillSources(); bar(); table(); multi();
+
+  mountQuiz(q('.cp-quiz'), () => {
+    const out: QItem[] = [];
+    const w = pick(9, 90, 9);
+    out.push({ q: `Water has hydrogen and oxygen in the mass ratio 1 : 8. How many grams of oxygen are in ${w} g of water?`, ans: (w * 8) / 9, unit: 'g', work: `Oxygen is 8 parts out of 1 + 8 = 9: ${w} × 8/9 = ${fmt((w * 8) / 9, 2)} g.` });
+    const c = pick(3, 30, 3);
+    out.push({ q: `Carbon and oxygen join in the ratio 3 : 8 by mass to make carbon dioxide. How much oxygen joins ${c} g of carbon?`, ans: (c * 8) / 3, unit: 'g', work: `${c} × 8/3 = ${fmt((c * 8) / 3, 2)} g of oxygen, making ${fmt(c + (c * 8) / 3, 2)} g of carbon dioxide.` });
+    const mg = pick(5, 50, 5);
+    out.push({ q: `${mg} g of magnesium oxide is made of magnesium and oxygen in the ratio 3 : 2. How many grams of magnesium are in it?`, ans: (mg * 3) / 5, unit: 'g', work: `Magnesium is 3 parts out of 5: ${mg} × 3/5 = ${fmt((mg * 3) / 5, 2)} g.` });
+    const f = one([['CO', 'CO2', 2], ['SO2', 'SO3', 1.5], ['FeO', 'Fe2O3', 1.5]] as [string, string, number][]);
+    out.push({ q: `For a fixed mass of the other element, how many times as much oxygen is in ${f[1]} as in ${f[0]}?`, ans: f[2], abs: 0.01, work: `${f[0]} has ${f[0] === 'FeO' ? '1 O per Fe' : f[0] === 'CO' ? '1 O per C' : '2 O per S'}; ${f[1]} has ${f[1] === 'Fe2O3' ? '1.5 O per Fe' : f[1] === 'CO2' ? '2 O per C' : '3 O per S'}. Ratio ${f[2]}, a simple ratio (law of multiple proportions).` });
+    return out;
+  });
+</script>

@@ -1,0 +1,140 @@
+---
+// Parabolic dish (Learn, Class 11 conic sections): rays parallel to the axis bounce off a parabola and all meet at
+// the focus; a circle-shaped mirror with the same near-axis focus blurs them. Light from the focus leaves as a
+// parallel beam. Plus the focus of a real dish from its width and depth. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm pd">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Rays and the dish</h2>
+      <div class="ax-seg pd-shape" role="group" aria-label="Mirror shape"><button type="button" data-s="parabola" aria-pressed="true">Parabola</button><button type="button" data-s="circle" aria-pressed="false">Circle</button><button type="button" data-s="both" aria-pressed="false">Both</button></div>
+    </div>
+    <svg class="sm-fig pd-fig" viewBox="0 0 340 300" style="margin-top:10px" role="img" aria-label="A dish-shaped mirror with light rays coming in parallel to its axis and reflecting toward the focus"></svg>
+    <div class="sm-sl"><b>a</b><input type="range" class="pd-ar" min="0.5" max="6" step="0.1" value="2" aria-label="Focal length slider" /><input type="number" class="pd-a" min="0.2" max="20" step="0.1" value="2" inputmode="decimal" aria-label="Focal length a" /></div>
+    <div class="sm-sl"><b>w</b><input type="range" class="pd-wr" min="1" max="6.5" step="0.5" value="4" aria-label="Half-width slider" /><input type="number" class="pd-w" min="0.5" max="6.5" step="0.5" value="4" inputmode="decimal" aria-label="Half-width of the dish w" /></div>
+    <label class="ax-check"><input type="checkbox" class="pd-torch" /> Light starts at the focus (a torch or headlight)</label>
+    <p class="ax-err pd-err" hidden></p>
+    <p class="ax-help">a is the focal length (focus to vertex) and w is half the width of the dish, in any unit.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The numbers</h2>
+    <p class="sm-f pd-eq"></p>
+    <p class="sm-f pd-lr"></p>
+    <p class="sm-f pd-depth"></p>
+    <p class="sm-f pd-why"></p>
+    <p class="sm-f pd-circ"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Where does the receiver go?</h2>
+    <p class="ax-help">Measure a real dish (a satellite dish, a wok or a solar cooker): the width across the rim and the depth at the centre.</p>
+    <div class="ax-grid">
+      <label>Width across the rim D <input type="number" class="pd-D" min="0" step="1" value="60" inputmode="decimal" /></label>
+      <label>Depth at the centre d <input type="number" class="pd-d" min="0" step="0.5" value="6" inputmode="decimal" /></label>
+    </div>
+    <p class="ax-err pd-derr" hidden></p>
+    <p class="sm-f pd-f"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Pick Parabola. Every ray, near the axis or at the rim, passes through F. That is why dishes are parabolas.</li>
+      <li>Pick Circle, then make the dish wider. Rays near the rim cross the axis below F: a circle mirror only focuses well near its centre.</li>
+      <li>Tick "Light starts at the focus". The parabola sends the light out as a straight beam, like a car headlight.</li>
+      <li>Make a smaller: the dish gets deeper and the focus moves closer to it.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="pd-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .pd svg .pd-par { fill: none; stroke: var(--ink); stroke-width: 4; }
+  .pd svg .pd-cir { fill: none; stroke: var(--muted); stroke-width: 3; stroke-dasharray: 7 4; }
+  .pd svg .pd-in { stroke: var(--warn); stroke-width: 1.5; }
+  .pd svg .pd-out { stroke: var(--accent); stroke-width: 1.5; }
+  .pd svg .pd-outc { stroke: var(--bad); stroke-width: 1.3; }
+  .pd svg .pd-F { fill: var(--good); stroke: var(--surface); stroke-width: 2; }
+  .pd svg .pd-dir { stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 3 3; }
+  .pd .ax-grid input { width: 100%; min-height: 44px; }
+</style>
+
+<script>
+  import { dishY, reflect, parabolaRay, circleRay, axisCrossing, fromFocus, focusFromDish } from '../../lib/sci/parabolic-dish';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, pair, val, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.pd')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.pd-fig'), A = q<HTMLInputElement>('.pd-a'), Wb = q<HTMLInputElement>('.pd-w');
+  pair(q('.pd-ar'), A, draw); pair(q('.pd-wr'), Wb, draw);
+  q('.pd-torch').addEventListener('change', draw);
+  let shape = 'parabola';
+  root.querySelectorAll<HTMLButtonElement>('.pd-shape button').forEach((b) => b.addEventListener('click', () => { shape = b.dataset.s!; root.querySelectorAll('.pd-shape button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); draw(); }));
+  const s = 320 / 14, X = (x: number) => 170 + x * s, Y = (y: number) => 240 - y * s, TOP = 240 / s;
+  const seg = (p: number[], d: number[], len: number, cls: string) => S('line', { x1: X(p[0]), y1: Y(p[1]), x2: X(p[0] + d[0] * len), y2: Y(p[1] + d[1] * len), class: cls }, fig);
+
+  function draw() {
+    fig.replaceChildren();
+    const a = val(A, 2, 0.2, 20), w = val(Wb, 4, 0.5, 6.5), torch = q<HTMLInputElement>('.pd-torch').checked, err = q('.pd-err');
+    const par = shape !== 'circle', cir = shape !== 'parabola', R = 2 * a;
+    S('line', { x1: X(0), x2: X(0), y1: 0, y2: 300, class: 'sm-dash' }, fig);
+    if (a <= 2.2) { S('line', { x1: 0, x2: 340, y1: Y(-a), y2: Y(-a), class: 'pd-dir' }, fig); S('text', { x: 6, y: Y(-a) - 4, class: 'sm-tick' }, fig, 'directrix'); }
+    if (par) { const pts: string[] = []; for (let i = 0; i <= 80; i++) { const x = -w + (2 * w * i) / 80; pts.push(`${X(x)},${Y(dishY(x, a))}`); } S('polyline', { points: pts.join(' '), class: 'pd-par' }, fig); }
+    const cw = Math.min(w, R * 0.999);
+    if (cir) { const pts: string[] = []; for (let i = 0; i <= 80; i++) { const x = -cw + (2 * cw * i) / 80; pts.push(`${X(x)},${Y(R - Math.sqrt(R * R - x * x))}`); } S('polyline', { points: pts.join(' '), class: 'pd-cir' }, fig); }
+    err.hidden = !(cir && w >= R); err.textContent = cir && w >= R ? `A circle mirror with this focus has radius 2a = ${fmt(R)}, so it can be at most ${fmt(2 * R)} wide${0.95 * w >= R ? ': the outer rays miss it' : ''}.` : '';
+    const xs = Array.from({ length: 8 }, (_, i) => -0.95 * w + (1.9 * w * i) / 7);
+    let worst = 0;
+    for (const x0 of xs) {
+      if (par) {
+        if (torch) { const h = [x0, dishY(x0, a)], d = fromFocus(x0, a); S('line', { x1: X(0), y1: Y(a), x2: X(h[0]), y2: Y(h[1]), class: 'pd-in' }, fig); seg(h, d, 20, 'pd-out'); }
+        else { const r = parabolaRay(x0, a); S('line', { x1: X(x0), y1: 0, x2: X(x0), y2: Y(r.hit[1]), class: 'pd-in' }, fig); seg(r.hit, r.out, 20, 'pd-out'); }
+      }
+      if (cir) {
+        const r = circleRay(x0, a); if (!r) continue;
+        if (torch) { const l = Math.hypot(r.hit[0], r.hit[1] - a), d = reflect([r.hit[0] / l, (r.hit[1] - a) / l], [r.hit[0], r.hit[1] - R]);
+          if (!par) S('line', { x1: X(0), y1: Y(a), x2: X(r.hit[0]), y2: Y(r.hit[1]), class: 'pd-in' }, fig); seg(r.hit, d, 20, 'pd-outc'); }
+        else { if (!par) S('line', { x1: X(x0), y1: 0, x2: X(x0), y2: Y(r.hit[1]), class: 'pd-in' }, fig); seg(r.hit, r.out, 20, 'pd-outc'); worst = Math.max(worst, a - axisCrossing(r.hit, r.out)); }
+      }
+    }
+    S('circle', { cx: X(0), cy: Y(a), r: 6, class: 'pd-F' }, fig); S('text', { x: X(0) + 9, y: Y(a) - 6, style: 'font-weight:700' }, fig, 'F');
+    const depth = dishY(w, a);
+    q('.pd-eq').textContent = `Equation: x² = 4ay = ${fmt(4 * a, 3)}y, vertex at (0, 0), focus F = (0, ${fmt(a, 3)}), directrix y = −${fmt(a, 3)}. (Turned on its side it is the textbook form y² = 4ax.)`;
+    q('.pd-lr').textContent = `Latus rectum (the chord through F across the dish) = 4a = ${fmt(4 * a, 3)}.`;
+    q('.pd-depth').textContent = `Dish ${fmt(2 * w, 3)} wide: depth at the rim = w²/(4a) = ${fmt(w, 3)}²/${fmt(4 * a, 3)} = ${fmt(depth, 4)}, so F is ${a > depth ? 'above the rim' : a < depth ? 'inside the bowl' : 'level with the rim'}.`;
+    const x1 = xs[xs.length - 1], hp = [x1, dishY(x1, a)];
+    q('.pd-why').textContent = `Why every ray meets at F: any point P on the dish is as far from F as from the directrix. For the rim ray, P = (${fmt(hp[0], 3)}, ${fmt(hp[1], 3)}): PF = ${fmt(Math.hypot(hp[0], hp[1] - a), 4)} and its height above the directrix y + a = ${fmt(hp[1] + a, 4)}. The tangent at P cuts the angle between the incoming ray and PF in half, so the reflected ray goes through F.`;
+    q('.pd-circ').textContent = cir && !torch ? (worst > 0 ? `Circle mirror: the outermost ray that hits crosses the axis ${fmt(worst, 3)} below F. Near-axis rays meet close to F, so a circle mirror only focuses well when it is shallow (spherical aberration).` : 'Circle mirror: all rays here meet near F.') : '';
+  }
+
+  function dish() {
+    const D = Number(q<HTMLInputElement>('.pd-D').value), d = Number(q<HTMLInputElement>('.pd-d').value), err = q('.pd-derr');
+    const bad = !(D > 0) || !(d > 0) ? 'Type a width and a depth above 0.' : d > D ? 'The depth should be smaller than the width for a dish.' : '';
+    err.textContent = bad; err.hidden = !bad;
+    q('.pd-f').textContent = bad ? '' : `Half-width w = ${fmt(D / 2, 3)}. The rim point (w, d) is on x² = 4ay, so ${fmt(D / 2, 3)}² = 4a × ${fmt(d, 3)} and a = D²/(16 d) = ${fmt(D * D, 3)}/${fmt(16 * d, 3)} = ${fmt(focusFromDish(D, d), 3)}. Put the receiver that far above the centre of the dish (same units as you measured).`;
+  }
+  q('.pd-D').addEventListener('input', dish); q('.pd-d').addEventListener('input', dish);
+  draw(); dish();
+
+  quiz(q('.pd-quiz'), () => {
+    const out: Question[] = [];
+    const a1 = randInt(1, 6);
+    out.push({ q: `A dish has the shape x² = ${4 * a1}y. How high above the vertex is its focus?`, want: [a1], work: `Compare with x² = 4ay: 4a = ${4 * a1}, so a = ${a1}.` });
+    const a2 = randInt(2, 9);
+    out.push({ q: `How long is the latus rectum of y² = ${4 * a2}x?`, want: [4 * a2], work: `y² = 4ax with 4a = ${4 * a2}; the latus rectum is 4a = ${4 * a2}.` });
+    const D = randInt(4, 12) * 10, d = [4, 5, 8, 10][randInt(0, 3)], f = focusFromDish(D, d);
+    out.push({ q: `A dish is ${D} cm across and ${d} cm deep. How far above its centre (in cm) is the focus?`, want: [f], work: `a = D²/(16 d) = ${D * D}/${16 * d} = ${fmt(f, 4)}.` });
+    const a4 = randInt(1, 4), x4 = 2 * a4 * randInt(1, 3), y4 = (x4 * x4) / (4 * a4);
+    out.push({ q: `The point (${x4}, ${y4}) is on x² = ${4 * a4}y. How far is it from the focus?`, want: [y4 + a4], work: `Focus (0, ${a4}). Distance to the focus = distance to the directrix y = −${a4}, which is ${y4} + ${a4} = ${y4 + a4}.` });
+    return out;
+  });
+</script>

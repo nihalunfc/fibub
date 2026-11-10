@@ -1,0 +1,159 @@
+---
+// Kohlrausch's law: molar conductivity against √c for strong and weak electrolytes, extrapolation to Λ°m,
+// degree of dissociation, and the law of independent migration of ions (including Λ° of a weak acid).
+import '../../styles/astro.css';
+import '../../styles/chemquiz.css';
+---
+<div class="ax kl">
+  <div class="ax-card">
+    <label class="kl-pick">Electrolyte <select class="kl-e" aria-label="Electrolyte"></select></label>
+    <label class="kl-rl"><span>c</span><input type="range" class="kl-c" min="-4" max="-1" step="0.05" value="-2" aria-label="Concentration (log scale)" /><output class="kl-oc"></output></label>
+    <p class="ax-big kl-big" style="margin:12px 0 2px"></p>
+    <p class="kl-sub" style="margin:0 0 6px"></p>
+    <svg class="kl-svg" viewBox="0 0 320 220" role="img" aria-label="Molar conductivity against square root of concentration"></svg>
+    <dl class="ax-facts kl-facts"></dl>
+    <p class="lx-eq kl-eq"></p>
+    <p class="ax-help">Λ in S cm² mol⁻¹, c in mol/L, at 25 °C. Ion values are rounded typical values; the slope A (95 for 1:1 salts) is a teaching value. Weak electrolytes use K = 1.8 × 10⁻⁵ and Ostwald's dilution law. Faint curves: KCl and ethanoic acid for comparison.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Kohlrausch's law of independent migration</h2>
+    <p class="ax-help" style="margin-top:0">At infinite dilution each ion moves on its own, so Λ°m is the sum of the ions' own values: Λ°m = ν₊λ°₊ + ν₋λ°₋.</p>
+    <div class="kl-ions"><label>Cation <select class="kl-cat"></select></label><label>Anion <select class="kl-an"></select></label></div>
+    <p class="ax-big kl-ibig" style="margin:10px 0 2px"></p>
+    <p class="lx-eq kl-ieq"></p>
+    <h3 style="margin:16px 0 6px;font-size:16px">Λ° of a weak electrolyte from three strong ones</h3>
+    <div class="ax-seg kl-w" role="group" aria-label="Weak electrolyte"><button type="button" data-w="hac" aria-pressed="true">CH₃COOH</button><button type="button" data-w="nh4oh" aria-pressed="false">NH₄OH</button></div>
+    <p class="lx-eq kl-weq"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lx-try">
+      <li>KCl: is Λm against √c a straight line? Where does the dashed line meet the axis?</li>
+      <li>Switch to ethanoic acid. Why can't you extrapolate this curve to find Λ°m?</li>
+      <li>Dilute the acid from 0.1 to 0.0001 mol/L. How does α change?</li>
+      <li>Why is HCl's Λ° so much bigger than NaCl's? (Look at H⁺ in the ion card.)</li>
+      <li>Check that Λ°(HCl) + Λ°(CH₃COONa) − Λ°(NaCl) gives Λ°(CH₃COOH).</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cq">
+    <h2>Check yourself</h2>
+    <ol class="cq-list"></ol>
+    <button type="button" class="btn secondary small cq-new">New questions</button>
+  </div>
+</div>
+
+<style is:inline>
+  .kl-pick, .kl-ions label { display: flex; gap: 8px; align-items: center; font-weight: 650; flex-wrap: wrap; }
+  .kl-ions { display: flex; gap: 14px; flex-wrap: wrap; }
+  .kl select { font: inherit; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); max-width: 100%; }
+  .kl-rl { display: grid !important; grid-template-columns: 22px 1fr 120px; align-items: center; gap: 10px !important; margin-top: 12px; color: var(--ink) !important; }
+  .kl-rl input { height: 36px; accent-color: var(--accent); }
+  .kl-rl output { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; font-size: 14px; }
+  .kl-svg { display: block; width: 100%; max-width: 460px; margin: 6px auto 10px; }
+  .kl .axl { fill: none; stroke: var(--muted); stroke-width: 1; }
+  .kl .cv { fill: none; stroke: var(--ink); stroke-width: 2.4; }
+  .kl .ghost { fill: none; stroke: var(--line); stroke-width: 2; }
+  .kl .fit { stroke: var(--accent); stroke-width: 1.6; stroke-dasharray: 6 4; }
+  .kl .pt { fill: var(--surface); stroke: var(--ink); stroke-width: 1.6; }
+  .kl .now { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+  .kl .tx { fill: var(--muted); font: 11px system-ui, sans-serif; }
+  .kl .tb { fill: var(--ink); font: 600 12px system-ui, sans-serif; }
+</style>
+
+<script>
+  import { ELECTROLYTES, IONS, alphaOstwald, fitLine, kappa, limiting, molarConductivity, slopeA, stoich } from '../../lib/sci/kohlrausch';
+  import { mountQuiz, near, pickOne, rint, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.kl')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const NS = 'http://www.w3.org/2000/svg';
+  const sv = (tag: string, attrs: Record<string, string | number>, text?: string) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, String(v)); if (text != null) n.textContent = text; return n; };
+  const g3 = (x: number) => String(Number(x.toPrecision(3))).replace('-', '−'), g4 = (x: number) => String(Number(x.toPrecision(4)));
+  const ce = (c: number) => (c >= 0.001 ? String(Number(c.toPrecision(3))) : `${Number((c * 1e4).toPrecision(3))} × 10⁻⁴`);
+  const POINTS = [0.001, 0.005, 0.01, 0.02, 0.05, 0.1];
+  const sel = q<HTMLSelectElement>('.kl-e');
+  for (const e of ELECTROLYTES) sel.append(new Option(e.name, e.id));
+  const cat = q<HTMLSelectElement>('.kl-cat'), an = q<HTMLSelectElement>('.kl-an');
+  for (const [k, v] of Object.entries(IONS)) (v.z > 0 ? cat : an).append(new Option(`${v.name} (${v.lambda})`, k));
+  cat.value = 'Mg2+'; an.value = 'Cl-';
+  let weak = 'hac';
+
+  function lines(el: HTMLElement, ls: string[]) { el.replaceChildren(); ls.forEach((t, i) => { if (i) el.append(document.createElement('br')); el.append(t); }); }
+
+  function update() {
+    const e = ELECTROLYTES.find((x) => x.id === sel.value)!, c = 10 ** Number(q<HTMLInputElement>('.kl-c').value);
+    q('.kl-oc').textContent = `${ce(c)} mol/L`;
+    const L0 = limiting(e.cation, e.anion), lm = molarConductivity(e, c), k = kappa(lm, c);
+    q('.kl-big').textContent = `Λm = ${g4(lm)} S cm² mol⁻¹`;
+    // plot
+    const svg = q<SVGSVGElement>('.kl-svg'); svg.replaceChildren();
+    const X0 = 40, X1 = 310, Y0 = 190, Y1 = 12, XM = 0.33, YM = 450;
+    const px = (x: number) => X0 + (x / XM) * (X1 - X0), py = (y: number) => Y0 - (Math.max(0, y) / YM) * (Y0 - Y1);
+    svg.append(sv('path', { d: `M${X0} ${Y1} V${Y0} H${X1}`, class: 'axl' }));
+    for (const y of [0, 100, 200, 300, 400]) svg.append(sv('text', { x: X0 - 4, y: py(y) + 4, class: 'tx', 'text-anchor': 'end' }, String(y)));
+    for (const x of [0, 0.1, 0.2, 0.3]) svg.append(sv('text', { x: px(x), y: Y0 + 14, class: 'tx', 'text-anchor': 'middle' }, String(x)));
+    svg.append(sv('text', { x: X1, y: Y0 - 6, class: 'tx', 'text-anchor': 'end' }, '√c'), sv('text', { x: X0 + 4, y: Y1 + 4, class: 'tx' }, 'Λm'));
+    const curve = (ee: typeof e, cls: string) => { const pts: string[] = []; for (let i = 1; i <= 120; i++) { const s = (i / 120) * 0.32; pts.push(`${px(s).toFixed(1)},${py(molarConductivity(ee, s * s)).toFixed(1)}`); } svg.append(sv('polyline', { points: pts.join(' '), class: cls })); };
+    for (const id of ['kcl', 'hac']) if (id !== e.id) curve(ELECTROLYTES.find((x) => x.id === id)!, 'ghost');
+    curve(e, 'cv');
+    const xs = POINTS.map(Math.sqrt), ys = POINTS.map((p) => molarConductivity(e, p));
+    xs.forEach((x, i) => svg.append(sv('circle', { cx: px(x), cy: py(ys[i]), r: 4, class: 'pt' })));
+    const eq = q('.kl-eq'), f = q('.kl-facts'); f.replaceChildren();
+    const fact = (kk: string, v: string, s = '') => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = kk; const dd = document.createElement('dd'); dd.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; dd.append(sm); } d.append(dt, dd); f.append(d); };
+    fact('Conductivity κ', `${g4(k)} S cm⁻¹`, 'κ = Λm × c / 1000');
+    if (!e.weak) {
+      const fit = fitLine(xs, ys);
+      svg.append(sv('line', { x1: px(0), y1: py(fit.a), x2: px(0.32), y2: py(fit.a + fit.b * 0.32), class: 'fit' }));
+      svg.append(sv('text', { x: X0 + 6, y: py(fit.a) - 6, class: 'tb' }, `Λ°m ≈ ${Math.round(fit.a)}`));
+      q('.kl-sub').textContent = `Strong electrolyte: fully ionised at every concentration. Λm falls a little as c rises because the ions drag on each other, and the points lie on a straight line. Extend it to c = 0 to read Λ°m = ${Math.round(fit.a)}.`;
+      fact('Λ°m (line meets axis)', `${Math.round(fit.a)}`, `slope −A = ${g3(fit.b)}`);
+      fact('Λ°m from the ions', `${L0}`);
+      lines(eq, [`Λm = Λ°m − A√c = ${L0} − ${slopeA(e.cation, e.anion)} × √${ce(c)} = ${g4(lm)}`, `κ = Λm c / 1000 = ${g4(lm)} × ${ce(c)} / 1000 = ${g4(k)} S cm⁻¹`]);
+    } else {
+      const a = alphaOstwald(e.weak.K, c);
+      q('.kl-sub').textContent = 'Weak electrolyte: only a small fraction is ionised, and that fraction grows steeply on dilution. The curve shoots up near c = 0, so it cannot be extended to find Λ°m; use Kohlrausch\'s law instead (second card).';
+      fact('Degree of dissociation α', a.toFixed(4), `${(a * 100).toFixed(2)} % ionised`);
+      fact('Λ°m from the ions', `${L0}`);
+      lines(eq, [`K = cα² / (1 − α) = ${e.weak.K.toExponential(1).replace('e-', ' × 10^−')} gives α = ${a.toFixed(4)}`, `Λm = αΛ°m = ${a.toFixed(4)} × ${L0} = ${g4(lm)}`, `κ = Λm c / 1000 = ${g4(k)} S cm⁻¹`]);
+    }
+    svg.append(sv('circle', { cx: px(Math.sqrt(c)), cy: py(lm), r: 6, class: 'now' }));
+    svg.setAttribute('aria-label', `${e.name}: molar conductivity ${g4(lm)} at c = ${ce(c)} mol per litre`);
+  }
+
+  function updIons() {
+    const { nPlus, nMinus } = stoich(cat.value, an.value), C = IONS[cat.value], A = IONS[an.value], L = limiting(cat.value, an.value);
+    q('.kl-ibig').textContent = `Λ°m = ${L} S cm² mol⁻¹`;
+    lines(q('.kl-ieq'), [`Formula unit gives ${nPlus} ${C.name} and ${nMinus} ${A.name}`, `Λ°m = ${nPlus} × ${C.lambda} + ${nMinus} × ${A.lambda} = ${L}`]);
+  }
+
+  function updWeak() {
+    root.querySelectorAll<HTMLButtonElement>('.kl-w button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.w === weak)));
+    const hac = weak === 'hac';
+    const [s1, s2, s3, target] = hac ? [['H+', 'Cl-', 'HCl'], ['Na+', 'Ac-', 'CH₃COONa'], ['Na+', 'Cl-', 'NaCl'], ['H+', 'Ac-', 'CH₃COOH']] : [['NH4+', 'Cl-', 'NH₄Cl'], ['Na+', 'OH-', 'NaOH'], ['Na+', 'Cl-', 'NaCl'], ['NH4+', 'OH-', 'NH₄OH']];
+    const v = (s: string[]) => limiting(s[0], s[1]);
+    lines(q('.kl-weq'), [`Λ°(${target[2]}) = Λ°(${s1[2]}) + Λ°(${s2[2]}) − Λ°(${s3[2]})`, `= ${v(s1)} + ${v(s2)} − ${v(s3)} = ${v(s1) + v(s2) - v(s3)} S cm² mol⁻¹`, `The ${hac ? 'Na⁺ and Cl⁻' : 'Na⁺ and Cl⁻'} parts cancel, leaving ${IONS[target[0]].name} + ${IONS[target[1]].name}.`]);
+  }
+
+  sel.addEventListener('change', update); q('.kl-c').addEventListener('input', update);
+  cat.addEventListener('change', updIons); an.addEventListener('change', updIons);
+  root.querySelectorAll<HTMLButtonElement>('.kl-w button').forEach((b) => b.addEventListener('click', () => { weak = b.dataset.w!; updWeak(); }));
+  update(); updIons(); updWeak();
+
+  mountQuiz(q('.cq'), (): Question[] => {
+    const lp = rint(40, 80), lm1 = rint(60, 90), L1 = lp + lm1;
+    const L2 = pickOne([390, 391, 271]), lmw = rint(5, 40), a2 = lmw / L2;
+    const c3 = pickOne([0.01, 0.05, 0.1]), al3 = rint(10, 40) / 1000, K3 = (c3 * al3 * al3) / (1 - al3);
+    const lm4 = rint(100, 140), c4 = pickOne([0.01, 0.02, 0.05]), k4 = (lm4 * c4) / 1000;
+    const a5 = rint(420, 430), b5 = rint(85, 95), c5 = rint(124, 128), L5 = a5 + b5 - c5;
+    return [
+      { q: `λ°(M⁺) = ${lp} and λ°(X⁻) = ${lm1} S cm² mol⁻¹. What is Λ°m of the salt MX?`, hint: 'a number', answer: String(L1), ok: near(L1, 0.001), worked: `Λ°m = λ°₊ + λ°₋ = ${lp} + ${lm1} = ${L1} S cm² mol⁻¹.` },
+      { q: `A weak acid has Λm = ${lmw} S cm² mol⁻¹ and Λ°m = ${L2} S cm² mol⁻¹. What is its degree of dissociation α? (3 decimal places)`, hint: 'a number', answer: a2.toFixed(3), ok: near(a2, 0.01), worked: `α = Λm / Λ°m = ${lmw} / ${L2} = ${a2.toFixed(3)}.` },
+      { q: `A ${c3} mol/L weak acid is ${(al3 * 100).toFixed(1)} % dissociated (α = ${al3}). What is Ka? Give it like 1.8×10^-5.`, hint: 'like 1.8×10^-5', answer: `${(K3 / 10 ** Math.floor(Math.log10(K3))).toFixed(2)}×10^${Math.floor(Math.log10(K3))}`, ok: near(K3, 0.02), worked: `Ka = cα² / (1 − α) = ${c3} × ${al3}² / (1 − ${al3}) = ${K3.toExponential(2)}.` },
+      { q: `Λm = ${lm4} S cm² mol⁻¹ at c = ${c4} mol/L. What is the conductivity κ in S cm⁻¹? (like 0.0014)`, hint: 'a number', answer: String(Number(k4.toPrecision(3))), ok: near(k4, 0.01), worked: `κ = Λm × c / 1000 = ${lm4} × ${c4} / 1000 = ${Number(k4.toPrecision(3))} S cm⁻¹.` },
+      { q: `Λ°(HCl) = ${a5}, Λ°(CH₃COONa) = ${b5} and Λ°(NaCl) = ${c5} S cm² mol⁻¹. What is Λ°(CH₃COOH)?`, hint: 'a number', answer: String(L5), ok: near(L5, 0.001), worked: `Λ°(CH₃COOH) = Λ°(HCl) + Λ°(CH₃COONa) − Λ°(NaCl) = ${a5} + ${b5} − ${c5} = ${L5} S cm² mol⁻¹.` },
+    ];
+  });
+</script>

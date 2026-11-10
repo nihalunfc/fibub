@@ -1,0 +1,183 @@
+---
+// Sliding filament (Learn #1394): a sarcomere that shortens as actin slides over myosin. The A band stays the same
+// length while the I band and H zone shrink; the cross-bridge cycle with calcium and ATP is shown step by step.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn slf">
+  <div class="ax-card">
+    <h2>One sarcomere</h2>
+    <canvas class="lrn-cv sf-cv" aria-label="A sarcomere: Z lines, thin actin filaments and thick myosin filaments, with the A band, I band and H zone marked"></canvas>
+    <div class="ax-legend"><span><i class="sf-kt"></i>thin filament (actin)</span><span><i class="sf-km"></i>thick filament (myosin)</span><span><i class="sf-kz"></i>Z line</span></div>
+    <label class="lrn-sl" style="margin-top:10px">Sarcomere length <b class="sf-sv"></b><input type="range" class="sf-s" min="1.8" max="3.6" step="0.05" value="2.6" aria-label="Sarcomere length in micrometres" /></label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn small sf-con">Contract</button>
+      <button type="button" class="btn secondary small sf-rel">Relax</button>
+    </div>
+    <p class="ax-big sf-big" style="margin:8px 0 0" aria-live="polite"></p>
+    <dl class="ax-facts sf-facts" style="margin-top:10px"></dl>
+    <p class="lrn-eq sf-eq"></p>
+    <p class="ax-help">Rounded lengths for a skeletal muscle: thick filaments 1.6 µm (with a 0.2 µm middle part that has no heads), thin filaments 1.0 µm from each Z line. Drawn to scale; teaching model only.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The cross-bridge cycle</h2>
+    <canvas class="lrn-cv sf-xb" aria-label="One myosin head binding to actin, pulling and letting go"></canvas>
+    <p class="ax-big sf-step" style="margin:8px 0 0;font-size:20px" aria-live="polite"></p>
+    <p class="sf-stext" style="margin:4px 0 0"></p>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small sf-back">Back</button>
+      <button type="button" class="btn small sf-next">Next step</button>
+      <label class="ax-check"><input type="checkbox" class="sf-noatp" /> No ATP left</label>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Press Contract. Watch the A band number: it does not change, because the thick filaments do not shrink. They only slide.</li>
+      <li>The I band and H zone both get shorter. At 2.0 µm the H zone has gone: the thin filaments meet in the middle.</li>
+      <li>Stretch the sarcomere to 3.6 µm. The filaments no longer overlap, so no cross-bridges can form and the muscle cannot pull.</li>
+      <li>In the cycle, tick No ATP left and step on: the head stays stuck to actin (rigor). ATP is needed to let go, not only to pull.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card sf-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .slf .sf-kt { background: var(--accent); }
+  .slf .sf-km { background: var(--warn); }
+  .slf .sf-kz { background: var(--ink); }
+  .slf .sf-big { font-size: clamp(18px, 4.6vw, 24px); }
+  .slf .sf-stext { min-height: 3em; }
+</style>
+
+<script>
+  import { bands, shortening, CYCLE, THICK, THIN, BARE } from '../../lib/sci/sliding-filament';
+  import { mountQuiz, pick, one, r, fitCanvas, type QItem } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.slf')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const cv = q<HTMLCanvasElement>('.sf-cv'), xb = q<HTMLCanvasElement>('.sf-xb'), sl = q<HTMLInputElement>('.sf-s');
+  const H = 250, S0 = 2.6;
+  let Scur = 2.6, target: number | null = null, raf = 0, last = 0, wob = 0, step = 0;
+  const um = (x: number) => `${x.toFixed(2)} µm`;
+
+  function draw() {
+    const pal = pagePalette(), { ctx: c, W } = fitCanvas(cv, H), S = Scur, b = bands(S);
+    const k = (W - 24) / 3.7, cx = W / 2, X = (u: number) => cx + u * k;
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    const top = 20, bot = 160;
+    // Z lines (zig-zag)
+    c.strokeStyle = pal.ink; c.lineWidth = 3;
+    for (const z of [-S / 2, S / 2]) { c.beginPath(); for (let y = top, i = 0; y <= bot; y += 10, i++) { const x = X(z) + (i % 2 ? 3 : -3); i ? c.lineTo(x, y) : c.moveTo(x, y); } c.stroke(); }
+    // M line
+    c.strokeStyle = pal.muted; c.lineWidth = 1; c.setLineDash([3, 3]); c.beginPath(); c.moveTo(cx, top); c.lineTo(cx, bot); c.stroke(); c.setLineDash([]);
+    // Thin filaments from each Z line
+    c.strokeStyle = pal.accent; c.lineWidth = 3;
+    for (const y of [30, 70, 110, 150]) {
+      c.beginPath(); c.moveTo(X(-S / 2), y); c.lineTo(X(-S / 2 + THIN), y); c.stroke();
+      c.beginPath(); c.moveTo(X(S / 2), y); c.lineTo(X(S / 2 - THIN), y); c.stroke();
+    }
+    // Thick filaments with heads
+    for (const y of [50, 90, 130]) {
+      c.strokeStyle = pal.warn; c.lineWidth = 6; c.beginPath(); c.moveTo(X(-THICK / 2), y); c.lineTo(X(THICK / 2), y); c.stroke();
+      c.lineWidth = 1.6;
+      for (let u = BARE / 2; u <= THICK / 2 + 1e-9; u += 0.1) {
+        for (const sgn of [-1, 1]) {
+          const x = X(sgn * u), tilt = (wob ? Math.sin(wob + u * 9) * 3 : 0);
+          for (const dy of [-1, 1]) { c.beginPath(); c.moveTo(x, y + dy * 3); c.lineTo(x - sgn * (5 + tilt), y + dy * 11); c.stroke(); }
+        }
+      }
+    }
+    // Band brackets
+    const bracket = (a: number, z: number, y: number, label: string, col: string) => {
+      if (z - a < 1e-6) return;
+      c.strokeStyle = col; c.fillStyle = col; c.lineWidth = 1.5;
+      c.beginPath(); c.moveTo(X(a), y - 5); c.lineTo(X(a), y); c.lineTo(X(z), y); c.lineTo(X(z), y - 5); c.stroke();
+      c.font = '12px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(label, X((a + z) / 2), y + 14);
+    };
+    bracket(-THICK / 2, THICK / 2, 182, `A band ${b.A.toFixed(2)}`, pal.warn);
+    bracket(-S / 2, -THICK / 2, 182, 'I', pal.accent); bracket(THICK / 2, S / 2, 182, 'I', pal.accent);
+    if (b.H > 0) bracket(-b.H / 2, b.H / 2, 214, `H zone ${b.H.toFixed(2)}`, pal.ink);
+    bracket(-S / 2, S / 2, 244, `sarcomere ${S.toFixed(2)} µm (Z line to Z line)`, pal.muted);
+  }
+  function texts() {
+    const S = Scur, b = bands(S), sh = shortening(S0, S);
+    q('.sf-sv').textContent = um(S);
+    q('.sf-big').textContent = b.reach === 0 ? 'No overlap: no cross-bridges can form' : `${Math.round(b.reach * 100)} % of the myosin heads can reach actin`;
+    const f = (a: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = a; d.querySelector('dd')!.textContent = v; if (sm) { const x = document.createElement('small'); x.textContent = sm; d.querySelector('dd')!.append(x); } return d; };
+    q('.sf-facts').replaceChildren(
+      f('A band', um(b.A), 'never changes'), f('I band', um(b.I), 'both halves together'), f('H zone', um(b.H), b.H === 0 ? 'gone: thin filaments meet' : 'thick filament only'),
+      f('Overlap (each half)', um(b.overlap)), f(`Change from ${S0} µm`, `${sh >= 0 ? '' : '+'}${r(Math.abs(sh), 3)} %`, sh > 0 ? 'shorter' : sh < 0 ? 'longer' : 'the same'),
+    );
+    q('.sf-eq').textContent = `I band = sarcomere − A band = ${S.toFixed(2)} − 1.60 = ${b.I.toFixed(2)} µm.  H zone = sarcomere − 2 × thin filament = ${S.toFixed(2)} − 2.00 = ${(S - 2).toFixed(2)}${S < 2 ? ', so 0 (the thin filaments overlap)' : ''} µm.`;
+  }
+  const all = () => { texts(); draw(); };
+
+  function anim(t: number) {
+    const dt = last ? Math.min(0.05, (t - last) / 1000) : 0; last = t;
+    if (target === null) { raf = 0; last = 0; wob = 0; draw(); return; }
+    let S = Scur; const d = target - S, v = 0.6 * dt;
+    if (Math.abs(d) <= v) { S = target; target = null; } else S += Math.sign(d) * v;
+    Scur = S; sl.value = String(S); wob += dt * (d < 0 ? 18 : 0);
+    if (d < 0) { const ids = ['bind', 'stroke', 'release', 'cock']; step = CYCLE.findIndex((s) => s.id === ids[Math.floor(wob / 3) % 4]); cycle(); }
+    all(); raf = requestAnimationFrame(anim);
+  }
+  const go = (to: number, first: string) => { target = to; step = CYCLE.findIndex((s) => s.id === first); cycle(); if (!raf) raf = requestAnimationFrame(anim); };
+  q('.sf-con').addEventListener('click', () => go(2.0, 'ca'));
+  q('.sf-rel').addEventListener('click', () => go(S0, 'relax'));
+  sl.addEventListener('input', () => { target = null; Scur = +sl.value; all(); });
+
+  // One myosin head and a bit of actin, drawn for each step of the cycle.
+  function cycle() {
+    const noAtp = q<HTMLInputElement>('.sf-noatp').checked, s = CYCLE[step];
+    const pal = pagePalette(), { ctx: c, W } = fitCanvas(xb, 150);
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, 150);
+    const cx = W / 2, shift = ['stroke', 'release', 'cock'].includes(s.id) ? -26 : 0;
+    // Actin: a row of beads; tropomyosin covers the sites unless Ca²⁺ is bound.
+    c.fillStyle = pal.accent;
+    for (let x = 10 + (shift % 26 + 26) % 26; x < W; x += 13) { c.beginPath(); c.arc(x, 40, 6, 0, Math.PI * 2); c.fill(); }
+    const open = !['ca', 'relax'].includes(s.id);
+    c.strokeStyle = open ? pal.muted : pal.ink; c.lineWidth = 3; c.beginPath(); c.moveTo(0, open ? 30 : 40); c.lineTo(W, open ? 30 : 40); c.stroke();
+    c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'left'; c.fillText(open ? 'tropomyosin moved: sites open' : 'tropomyosin covers the sites', 6, 16);
+    // Myosin
+    c.fillStyle = pal.warn; c.fillRect(0, 118, W, 10);
+    const attached = ['bind', 'stroke'].includes(s.id) || (noAtp && ['release', 'cock'].includes(s.id));
+    const ang = s.id === 'stroke' || (noAtp && step > 3) ? -0.5 : s.id === 'cock' || s.id === 'bind' ? 0.5 : 0.2;
+    const bx = cx, by = 118, len = 62, hx = bx + Math.sin(ang) * len, hy = by - Math.cos(ang) * len * (attached ? 1 : 0.8);
+    c.strokeStyle = pal.warn; c.lineWidth = 6; c.beginPath(); c.moveTo(bx, by); c.lineTo(hx, hy + 10); c.stroke();
+    c.fillStyle = pal.warn; c.beginPath(); c.ellipse(hx, hy + 6, 11, 8, ang, 0, Math.PI * 2); c.fill();
+    c.fillStyle = pal.ink; c.font = '700 11px system-ui, sans-serif'; c.textAlign = 'left';
+    const tag = s.id === 'ca' || s.id === 'trop' ? 'Ca²⁺' : s.id === 'bind' ? 'ADP + Pi' : s.id === 'stroke' ? 'ADP + Pi released' : s.id === 'release' ? (noAtp ? 'no ATP: stuck' : 'ATP binds') : s.id === 'cock' ? (noAtp ? 'stuck (rigor)' : 'ATP → ADP + Pi') : 'Ca²⁺ pumped away';
+    c.fillText(tag, Math.min(W - 110, hx + 16), 92);
+    if (attached) { c.strokeStyle = pal.bad; c.lineWidth = 2; c.setLineDash([3, 3]); c.beginPath(); c.moveTo(hx, hy); c.lineTo(hx, 46); c.stroke(); c.setLineDash([]); }
+    q('.sf-step').textContent = `Step ${step + 1} of ${CYCLE.length}: ${s.title}`;
+    q('.sf-stext').textContent = noAtp && ['release', 'cock'].includes(s.id) ? 'With no ATP, nothing makes the head let go: it stays bound to actin. This stuck state is rigor, as in rigor mortis after death.' : s.text;
+    q<HTMLButtonElement>('.sf-back').disabled = step === 0;
+  }
+  q('.sf-next').addEventListener('click', () => { step = (step + 1) % CYCLE.length; cycle(); });
+  q('.sf-back').addEventListener('click', () => { if (step > 0) step--; cycle(); });
+  q('.sf-noatp').addEventListener('change', cycle);
+  new ResizeObserver(() => { draw(); cycle(); }).observe(cv);
+  new MutationObserver(() => { draw(); cycle(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
+  all(); cycle();
+
+  mountQuiz(q('.sf-quiz'), (): QItem[] => {
+    const A = one([1.5, 1.6]), thin = one([0.9, 1.0, 1.1]), S = pick(24, 32) / 10, S2 = pick(19, 23) / 10;
+    return [
+      { q: `A sarcomere is ${S} µm long and its A band is ${A} µm. How long is its I band (both halves together)?`, ans: S - A, unit: 'µm', abs: 0.005, work: `I band = sarcomere − A band = ${S} − ${A} = ${r(S - A)} µm.` },
+      { q: `Thin filaments are ${thin} µm long from each Z line. How long is the H zone when the sarcomere is ${S} µm?`, ans: S - 2 * thin, unit: 'µm', abs: 0.005, work: `H zone = sarcomere − 2 × thin filament = ${S} − ${r(2 * thin)} = ${r(S - 2 * thin)} µm.` },
+      { q: `The sarcomere shortens from ${S} µm to ${S2} µm. By what percentage did it shorten?`, ans: shortening(S, S2), unit: '%', work: `(${S} − ${S2}) ÷ ${S} × 100 = ${r(shortening(S, S2))} %.` },
+      one<QItem>([
+        { q: 'Which part keeps the same length when a muscle contracts?', ans: 0, choices: ['A band', 'I band', 'H zone', 'Sarcomere'], work: 'The A band is the length of the thick filaments. The filaments slide; they do not shrink, so the A band stays the same.' },
+        { q: 'Which ion binds to troponin to start contraction?', ans: 2, choices: ['Na⁺', 'K⁺', 'Ca²⁺', 'Cl⁻'], work: 'Calcium released from the sarcoplasmic reticulum binds troponin, which moves tropomyosin off the binding sites on actin.' },
+        { q: 'What makes a myosin head let go of actin?', ans: 1, choices: ['Calcium', 'A new ATP binding', 'ADP leaving', 'Tropomyosin'], work: 'A fresh ATP binding to the head makes it release actin. Without ATP the heads stay attached (rigor).' },
+      ]),
+    ];
+  });
+</script>

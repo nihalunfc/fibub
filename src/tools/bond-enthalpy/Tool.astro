@@ -1,0 +1,136 @@
+---
+// Bond enthalpy estimator: pick a reaction or count the bonds yourself; energy in to break bonds, energy out
+// when new bonds form, and ΔH ≈ broken − made on an energy ladder. Class 11 chemistry, thermodynamics.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+import { BONDS, REACTIONS } from '../../lib/sci/bond-enthalpy';
+---
+<div class="ax bex">
+  <div class="ax-card">
+    <label>Reaction
+      <select class="be-rx">{REACTIONS.map((r) => <option value={r.id}>{r.text}</option>)}<option value="own">My own: count the bonds below</option></select>
+    </label>
+    <p class="ax-big be-big" aria-live="polite"></p>
+    <p class="be-eq"></p>
+    <canvas class="ax-fig be-fig" role="img"></canvas>
+    <dl class="ax-facts be-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Bonds broken and made</h2>
+    <p class="ax-help">Count each bond in the molecules as written (2H₂O has four O–H bonds). The kJ/mol values are rounded averages; change any of them to try your own book's values.</p>
+    <label class="ax-check be-all-l"><input type="checkbox" class="be-all" /> Show every bond type</label>
+    <div class="ax-scroll"><table class="be-tab">
+      <thead><tr><th>Bond</th><th>kJ/mol</th><th>Broken</th><th>Made</th></tr></thead>
+      <tbody>{BONDS.map((b) => <tr data-b={b.id}><td>{b.label}</td><td><input type="number" class="be-kj" min="1" max="2000" step="1" value={b.kj} inputmode="numeric" aria-label={`${b.label} bond enthalpy`} /></td><td><input type="number" class="be-br" min="0" max="20" step="1" value="0" inputmode="numeric" aria-label={`${b.label} bonds broken`} /></td><td><input type="number" class="be-mk" min="0" max="20" step="1" value="0" inputmode="numeric" aria-label={`${b.label} bonds made`} /></td></tr>)}</tbody>
+    </table></div>
+    <p class="ax-err be-err" hidden></p>
+    <button type="button" class="btn small secondary be-reset">Put back the rounded values</button>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="be-try">
+      <li>Burning methane: breaking bonds costs about 2650 kJ, making them gives back about 3450 kJ. The difference is the heat you feel.</li>
+      <li>2HBr → H₂ + Br₂ comes out positive: the bonds made are weaker than the bonds broken, so it takes in heat.</li>
+      <li>Change C=O from 799 to 805. How much does the methane answer move? Small changes in averages add up.</li>
+      <li>Pick "My own" and count the bonds for C₂H₆ + Cl₂ → C₂H₅Cl + HCl. Compare with CH₄ + Cl₂.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="be-quiz" />
+</div>
+
+<script>
+  import { BONDS, REACTIONS, estimate, type Counts } from '../../lib/sci/bond-enthalpy';
+  import { paint, type Figure } from '../../lib/report';
+  import { fmt } from '../../lib/sm-graph';
+  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.bex')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const rows = [...root.querySelectorAll<HTMLTableRowElement>('.be-tab tbody tr')];
+  const W = 380, H = 300;
+  const int = (x: number) => String(Math.round(x)).replace('-', '−');
+  const fact = (k: string, v: string, sm = '') => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; if (sm) { const s = document.createElement('small'); s.textContent = sm; el.querySelector('dd')!.append(s); } return el; };
+  const inp = (r: HTMLElement, c: string) => r.querySelector<HTMLInputElement>(c)!;
+
+  function load() {
+    const id = q<HTMLSelectElement>('.be-rx').value, r = REACTIONS.find((x) => x.id === id);
+    if (r) rows.forEach((tr) => { inp(tr, '.be-br').value = String(r.broken[tr.dataset.b!] ?? 0); inp(tr, '.be-mk').value = String(r.made[tr.dataset.b!] ?? 0); });
+    run();
+  }
+
+  function run() {
+    const broken: Counts = {}, made: Counts = {}, vals: Record<string, number> = {};
+    let bad = '';
+    for (const tr of rows) {
+      const id = tr.dataset.b!, k = +inp(tr, '.be-kj').value, b = +inp(tr, '.be-br').value, m = +inp(tr, '.be-mk').value;
+      if (!(k > 0 && k <= 2000)) bad = `Bond enthalpies must be numbers from 1 to 2000 kJ/mol (check ${tr.cells[0].textContent}).`;
+      if (!(Number.isInteger(b) && b >= 0 && b <= 20 && Number.isInteger(m) && m >= 0 && m <= 20)) bad = `Bond counts must be whole numbers from 0 to 20 (check ${tr.cells[0].textContent}).`;
+      vals[id] = k; broken[id] = b; made[id] = m;
+    }
+    q('.be-err').hidden = !bad; q('.be-err').textContent = bad;
+    const all = q<HTMLInputElement>('.be-all').checked;
+    rows.forEach((tr) => { tr.hidden = !all && !broken[tr.dataset.b!] && !made[tr.dataset.b!]; });
+    if (bad) return;
+    const e = estimate(broken, made, vals);
+    const none = !e.lines.length;
+    q('.be-big').textContent = none ? 'Add some bonds to the table' : `ΔH ≈ ${int(e.dH)} kJ/mol: ${e.dH < 0 ? 'exothermic (gives out heat)' : e.dH > 0 ? 'endothermic (takes in heat)' : 'no heat change'}`;
+    q('.be-big').style.color = none ? '' : e.dH < 0 ? 'var(--good)' : e.dH > 0 ? 'var(--bad)' : '';
+    const part = (side: 'broken' | 'made') => e.lines.filter((l) => l.side === side).map((l) => `${l.n} × ${l.kj}`).join(' + ') || '0';
+    q('.be-eq').textContent = `ΔH = (bonds broken) − (bonds made) = (${part('broken')}) − (${part('made')}) = ${int(e.broken)} − ${int(e.made)} = ${int(e.dH)} kJ/mol`;
+    const top = Math.max(e.broken, e.made, 1), y = (v: number) => 40 + (1 - v / top) * (H - 90);
+    const fig: Figure = { w: W, h: H, alt: `Energy ladder: breaking bonds takes in ${int(e.broken)} kJ, making bonds gives out ${int(e.made)} kJ, so ΔH is about ${int(e.dH)} kJ/mol.`, draw: (ctx, w, h, pl) => {
+      const yR = y(0), yA = y(e.broken), yP = y(e.broken - e.made);
+      ctx.font = '13px system-ui, sans-serif'; ctx.textBaseline = 'bottom';
+      const lvl = (x0: number, x1: number, yy: number, txt: string, col: string, below = false) => { ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x0, yy); ctx.lineTo(x1, yy); ctx.stroke(); ctx.fillStyle = col; ctx.textAlign = 'center'; ctx.textBaseline = below ? 'top' : 'bottom'; ctx.fillText(txt, (x0 + x1) / 2, below ? yy + 5 : yy - 4); ctx.textBaseline = 'bottom'; };
+      const arrow = (x: number, ya: number, yb: number, col: string, txt: string, side: 1 | -1) => {
+        ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x, ya); ctx.lineTo(x, yb); ctx.stroke();
+        const d = yb > ya ? 1 : -1; if (Math.abs(yb - ya) > 8) { ctx.beginPath(); ctx.moveTo(x, yb); ctx.lineTo(x - 6, yb - 10 * d); ctx.lineTo(x + 6, yb - 10 * d); ctx.closePath(); ctx.fill(); }
+        ctx.textAlign = side > 0 ? 'left' : 'right'; ctx.textBaseline = 'middle'; ctx.fillText(txt, x + 8 * side, (ya + yb) / 2); ctx.textBaseline = 'bottom';
+      };
+      lvl(20, 130, yR, 'reactants', pl.ink); lvl(130, 250, yA, 'separate atoms', pl.muted); lvl(250, 360, yP, 'products', pl.ink, yP >= yR);
+      ctx.setLineDash([4, 4]); ctx.strokeStyle = pl.muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(20, yR); ctx.lineTo(360, yR); ctx.stroke(); ctx.setLineDash([]);
+      arrow(140, yR, yA, pl.bad, `+${int(e.broken)} in`, 1);
+      arrow(240, yA, yP, pl.good, `−${int(e.made)} out`, -1);
+      arrow(300, yR, yP, pl.accent, `ΔH ${int(e.dH)}`, 1);
+    } };
+    paint(q<HTMLCanvasElement>('.be-fig'), fig);
+    q('.be-facts').replaceChildren(
+      fact('Energy in: bonds broken', `${int(e.broken)} kJ`, 'breaking bonds always takes energy'),
+      fact('Energy out: bonds made', `${int(e.made)} kJ`, 'making bonds always gives energy'),
+      fact('Estimate ΔH', `${int(e.dH)} kJ/mol`, 'average bond enthalpies give an estimate, not the measured value'),
+    );
+  }
+
+  q('.be-rx').addEventListener('change', load);
+  q('.be-all').addEventListener('change', run);
+  rows.forEach((tr) => tr.querySelectorAll('input').forEach((i) => i.addEventListener('input', () => { if (!i.classList.contains('be-kj')) q<HTMLSelectElement>('.be-rx').value = 'own'; run(); })));
+  q('.be-reset').addEventListener('click', () => { rows.forEach((tr) => { inp(tr, '.be-kj').value = String(BONDS.find((b) => b.id === tr.dataset.b)!.kj); }); run(); });
+  document.addEventListener('fibub:theme', run);
+  q<HTMLSelectElement>('.be-rx').value = 'ch4'; load();
+
+  quiz(q('.be-quiz'), (): Question[] => {
+    const hh = rint(420, 450), xx = rint(150, 260), hx = rint(300, 440);
+    const ch = rint(405, 420);
+    const br = rint(300, 900), mk = rint(300, 900);
+    const [nm, nb] = pick([['methane, CH₄', 4], ['ethane, C₂H₆', 6], ['propane, C₃H₈', 8]] as [string, number][]);
+    return [
+      { text: `H–H = ${hh}, X–X = ${xx} and H–X = ${hx} kJ/mol. Estimate ΔH for H₂ + X₂ → 2HX, in kJ/mol.`, answer: hh + xx - 2 * hx, tol: 0.5, worked: `Broken: ${hh} + ${xx} = ${hh + xx}. Made: 2 × ${hx} = ${2 * hx}. ΔH = ${hh + xx} − ${2 * hx} = ${int(hh + xx - 2 * hx)} kJ/mol.` },
+      { text: `How much energy (kJ) does it take to break every C–H bond in 1 mol of ${nm}, if C–H = ${ch} kJ/mol?`, answer: nb * ch, tol: 0.5, worked: `${nm.split(', ')[1]} has ${nb} C–H bonds, so ${nb} × ${ch} = ${nb * ch} kJ.` },
+      { text: `Breaking bonds takes in ${br} kJ and making bonds gives out ${mk} kJ. The reaction is…`, choices: ['Exothermic (ΔH < 0)', 'Endothermic (ΔH > 0)', 'Neither (ΔH = 0)'], correct: br < mk ? 0 : br > mk ? 1 : 2, worked: `ΔH = ${br} − ${mk} = ${int(br - mk)} kJ/mol. Negative means heat is given out (exothermic); positive means it is taken in.` },
+    ];
+  });
+</script>
+
+<style is:inline>
+  .bex .be-big { margin: 12px 0 4px; }
+  .bex .be-eq { margin: 0 0 8px; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+  .bex .be-facts { margin-top: 12px; }
+  .bex .be-tab input { max-width: 76px; min-height: 40px; padding: 6px; }
+  .bex .be-tab td, .bex .be-tab th { padding: 5px 4px; }
+  .bex .be-all-l { margin: 8px 0; }
+  .bex .be-reset { margin-top: 10px; min-height: 44px; }
+  .bex .be-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+</style>

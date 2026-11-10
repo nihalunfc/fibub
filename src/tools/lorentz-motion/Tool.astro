@@ -1,0 +1,216 @@
+---
+// Charged particle in fields: circle and helix in a magnetic field, crossed E and B as a velocity selector, and a
+// cyclotron. Exact paths drawn and animated, with the formulas and live numbers. Everything runs in the browser.
+import '../../styles/astro.css';
+---
+<div class="ax lzm">
+  <div class="ax-card">
+    <h2>Set up the fields</h2>
+    <div class="ax-row">
+      <span class="ax-seg lzm-mode" role="group" aria-label="Situation"><button type="button" data-v="b" aria-pressed="true">Magnetic field</button><button type="button" data-v="eb" aria-pressed="false">Velocity selector</button><button type="button" data-v="cy" aria-pressed="false">Cyclotron</button></span>
+    </div>
+    <label style="margin-top:10px">Particle <select class="lzm-p">
+      <option value="proton">Proton (+e)</option><option value="electron">Electron (−e)</option><option value="alpha">Alpha particle (+2e)</option><option value="deuteron">Deuteron (+e)</option>
+    </select></label>
+    <label class="lzm-sl lzm-vrow">Speed: <b class="lzm-vv"></b><input type="range" class="lzm-v" min="0.1" max="5" step="0.1" value="1" aria-label="Speed in millions of metres per second" /></label>
+    <label class="lzm-sl">Magnetic field B: <b class="lzm-bv"></b><input type="range" class="lzm-b" min="0.01" max="1" step="0.01" value="0.1" aria-label="Magnetic field in tesla" /></label>
+    <label class="lzm-sl lzm-arow">Angle between the velocity and B: <b class="lzm-av"></b><input type="range" class="lzm-a" min="0" max="90" step="1" value="90" aria-label="Angle in degrees" /></label>
+    <label class="lzm-sl lzm-erow" hidden>Electric field E: <b class="lzm-ev"></b><input type="range" class="lzm-e" min="0" max="500" step="5" value="100" aria-label="Electric field in kilovolts per metre" /></label>
+    <label class="lzm-sl lzm-rrow" hidden>Radius of the dees: <b class="lzm-rv"></b><input type="range" class="lzm-r" min="0.1" max="1" step="0.05" value="0.5" aria-label="Dee radius in metres" /></label>
+    <label class="lzm-sl lzm-gvrow" hidden>Voltage across the gap: <b class="lzm-gvv"></b><input type="range" class="lzm-gv" min="10" max="200" step="10" value="50" aria-label="Gap voltage in kilovolts" /></label>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn small lzm-play">Pause</button><button type="button" class="btn secondary small lzm-again">Start again</button></div>
+  </div>
+
+  <div class="ax-card">
+    <canvas class="ax-fig lzm-fig"></canvas>
+    <p class="ax-help lzm-cap"></p>
+    <p class="ax-big lzm-big" aria-live="polite"></p>
+    <p class="lzm-formula"></p>
+    <dl class="ax-facts lzm-facts" style="margin-top:10px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lzm-try">
+      <li>At 90° the path is a circle. Lower the angle: the particle also slides along B and the circle opens into a helix. At 0° it goes straight along the field.</li>
+      <li>Double the speed: the radius doubles but the time for one turn stays the same.</li>
+      <li>Switch to an electron: it turns the other way and its circle is about 1840 times smaller.</li>
+      <li>In the velocity selector, set E = 100 kV/m and B = 0.1 T: only particles at 10⁶ m/s go straight through, whatever their charge or mass.</li>
+      <li>In the cyclotron, a bigger field or bigger dees give much more energy (K grows as B² R²).</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="lzm-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .lzm .lzm-sl { display: grid; gap: 6px; margin-top: 10px; color: var(--ink); font-size: 15px; }
+  .lzm input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .lzm-fig { max-width: 520px; margin-left: auto; margin-right: auto; }
+  .lzm-big { font-size: clamp(18px, 4.6vw, 24px); margin: 10px 0 0; }
+  .lzm-formula { margin: 6px 0 0; font-size: 16px; overflow-wrap: anywhere; }
+  .lzm-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .lzm .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .lzm .eq-q p { margin: 0 0 6px; }
+  .lzm .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .lzm .eq-ok { color: var(--good); font-weight: 600; }
+  .lzm .eq-no { color: var(--bad); }
+  .lzm .eq-work { margin-top: 4px; font-size: 14px; }
+  .lzm .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .lzm .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { helix, helixAt, crossed, cyclotron, questions, PARTICLES, MEV, type Particle } from '../../lib/sci/lorentz-motion';
+  import { pagePalette } from '../../lib/report';
+  import { sig } from '../../lib/sci/num';
+  import { quiz } from '../../lib/elec-quiz-ui';
+  import { setup, fact, seg, onTheme, arrow, still } from '../../lib/school-p2';
+
+  const root = document.querySelector<HTMLElement>('.lzm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fig = q<HTMLCanvasElement>('.lzm-fig');
+  const val = (c: string) => +q<HTMLInputElement>(c).value;
+  const W = 360, H = 260;
+  let mode = 'b', running = !still(), phase = 0, last = 0;
+  const part = () => q<HTMLSelectElement>('.lzm-p').value as Particle;
+  const len = (m: number) => { const a = Math.abs(m); return a >= 1 ? `${sig(m, 3)} m` : a >= 0.01 ? `${sig(m * 100, 3)} cm` : a >= 1e-3 ? `${sig(m * 1000, 3)} mm` : `${sig(m * 1e6, 3)} µm`; };
+  const time = (s: number) => s >= 1e-3 ? `${sig(s * 1000, 3)} ms` : s >= 1e-6 ? `${sig(s * 1e6, 3)} µs` : s >= 1e-9 ? `${sig(s * 1e9, 3)} ns` : `${sig(s * 1e12, 3)} ps`;
+  const freq = (f: number) => f >= 1e9 ? `${sig(f / 1e9, 3)} GHz` : f >= 1e6 ? `${sig(f / 1e6, 3)} MHz` : `${sig(f / 1e3, 3)} kHz`;
+  const energy = (J: number) => { const ev = J / 1.602176634e-19; return ev >= 1e6 ? `${sig(ev / 1e6, 3)} MeV` : ev >= 1e3 ? `${sig(ev / 1e3, 3)} keV` : `${sig(ev, 3)} eV`; };
+  const scale = (x: number) => sig(x, 3);
+  const v = () => val('.lzm-v') * 1e6, B = () => val('.lzm-b');
+
+  function header(c: CanvasRenderingContext2D, pal: ReturnType<typeof pagePalette>, text: string) { c.fillStyle = pal.muted; c.font = '12px system-ui, sans-serif'; c.textAlign = 'left'; c.fillText(text, 10, 18); }
+  function crossesB(c: CanvasRenderingContext2D, pal: ReturnType<typeof pagePalette>, x0: number, y0: number, x1: number, y1: number) {
+    c.strokeStyle = pal.line; c.lineWidth = 1;
+    for (let x = x0 + 15; x < x1; x += 30) for (let y = y0 + 15; y < y1; y += 30) { c.beginPath(); c.moveTo(x - 4, y - 4); c.lineTo(x + 4, y + 4); c.moveTo(x + 4, y - 4); c.lineTo(x - 4, y + 4); c.stroke(); }
+  }
+  function drawB(c: CanvasRenderingContext2D, pal: ReturnType<typeof pagePalette>) {
+    const p = part(), th = val('.lzm-a'), h = helix(p, v(), B(), th);
+    // Oblique view: B points to the right (x); y up the page; z drawn slanting back.
+    const turns = 3, tEnd = th === 0 ? 1 : turns * h.T, N = 600;
+    const pts = Array.from({ length: N + 1 }, (_, i) => helixAt(p, v(), B(), th, th === 0 ? (i / N) * 3 * h.T : (i / N) * tEnd));
+    const proj = (x: number, y: number, z: number) => [x + 0.45 * z, -y + 0.3 * z] as const;
+    const P2 = pts.map(([x, y, z]) => proj(x, y, z));
+    const xs = P2.map((p) => p[0]), ys = P2.map((p) => p[1]);
+    let minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+    const span = Math.max(maxX - minX, (maxY - minY) * 1.3, 1e-12), k = 300 / span;
+    const ox = 30 - minX * k + (300 - (maxX - minX) * k) / 2, oy = 140 - ((minY + maxY) / 2) * k;
+    // Field lines.
+    c.strokeStyle = pal.line; c.fillStyle = pal.line; c.lineWidth = 1;
+    for (const y of [50, 100, 150, 200, 240]) arrow(c, 14, y, 346, y, 6);
+    c.fillStyle = pal.muted; c.font = '12px system-ui, sans-serif'; c.textAlign = 'right'; c.fillText('B →', 346, 40);
+    c.strokeStyle = pal.accent; c.lineWidth = 2; c.beginPath();
+    const upto = Math.max(1, Math.floor(phase * N));
+    P2.forEach(([x, y], i) => { if (i > upto) return; const X = ox + x * k, Y = oy + y * k; i ? c.lineTo(X, Y) : c.moveTo(X, Y); }); c.stroke();
+    const [px, py] = P2[Math.min(upto, N)];
+    c.fillStyle = PARTICLES[p].q > 0 ? pal.bad : pal.accent; c.beginPath(); c.arc(ox + px * k, oy + py * k, 6, 0, Math.PI * 2); c.fill();
+    header(c, pal, th === 90 ? 'Circle in the plane at right angles to B' : th === 0 ? 'Straight along B: no magnetic force' : 'Helix round the field lines');
+    const bar = 60 / k; c.strokeStyle = pal.ink; c.lineWidth = 1.5; c.beginPath(); c.moveTo(20, 250); c.lineTo(80, 250); c.stroke(); c.fillStyle = pal.ink; c.textAlign = 'left'; c.fillText(len(bar), 86, 254);
+    fig.setAttribute('aria-label', `${PARTICLES[p].name} ${th === 90 ? 'circling' : th === 0 ? 'moving straight along' : 'spiralling along'} a magnetic field of ${scale(B())} tesla`);
+  }
+  function drawEB(c: CanvasRenderingContext2D, pal: ReturnType<typeof pagePalette>) {
+    const p = part(), E = val('.lzm-e') * 1e3, s = crossed(p, v(), E, B());
+    const L = 300, X0 = 30, Y0 = 140, slit = 10;
+    // Plates and field.
+    c.fillStyle = pal.ink; c.fillRect(X0, 34, L, 5); c.fillRect(X0, 241, L, 5);
+    c.fillStyle = pal.bad; c.font = '700 13px system-ui, sans-serif'; c.textAlign = 'left'; c.fillText('+', X0 - 16, 42); c.fillStyle = pal.accent; c.fillText('−', X0 - 16, 248);
+    crossesB(c, pal, X0, 40, X0 + L, 240);
+    c.fillStyle = pal.muted; c.font = '12px system-ui, sans-serif'; c.fillText('E ↓   B into the page ⊗', X0 + 4, 28);
+    // Exit slit.
+    c.fillStyle = pal.ink; c.fillRect(X0 + L + 8, 40, 4, Y0 - slit - 40); c.fillRect(X0 + L + 8, Y0 + slit, 4, 240 - Y0 - slit);
+    // Path in the region: E points down the page here, so y (up along E) is drawn downwards.
+    // Show the particle crossing the 1 m region (at most 40 turns of its wiggle, sampled finely enough).
+    const per = (2 * Math.PI) / Math.abs(s.omega), tEnd = s.vd > 0 ? Math.min(1.2 / s.vd, 40 * per) : 2 * per;
+    const N = Math.min(20000, Math.max(2000, Math.ceil((tEnd / per) * 60))), xs: [number, number][] = [];
+    for (let i = 0; i <= N; i++) {
+      const [x, y] = s.at((i / N) * tEnd), X = X0 + x * L, Y = Y0 + y * L;
+      if (X < X0 - 1 || X > X0 + L || Y < 40 || Y > 240) { xs.push([Math.max(X0, Math.min(X, X0 + L)), Math.max(40, Math.min(240, Y))]); break; }
+      xs.push([X, Y]);
+    }
+    c.strokeStyle = pal.accent; c.lineWidth = 2; c.beginPath();
+    const upto = Math.max(1, Math.floor(phase * (xs.length - 1)));
+    xs.forEach(([x, y], i) => { if (i > upto) return; i ? c.lineTo(x, y) : c.moveTo(x, y); }); c.stroke();
+    const [ex, ey] = xs[xs.length - 1];
+    if (ex >= X0 + L - 0.5 && Math.abs(ey - Y0) < slit) { c.setLineDash([4, 4]); c.beginPath(); c.moveTo(X0 + L, Y0); c.lineTo(352, Y0); c.stroke(); c.setLineDash([]); }
+    const [px, py] = xs[Math.min(upto, xs.length - 1)];
+    c.fillStyle = PARTICLES[p].q > 0 ? pal.bad : pal.accent; c.beginPath(); c.arc(px, py, 6, 0, Math.PI * 2); c.fill();
+    fig.setAttribute('aria-label', `Velocity selector: the ${PARTICLES[p].name.toLowerCase()} ${s.passes ? 'goes straight through' : 'is bent away'}`);
+  }
+  function drawCy(c: CanvasRenderingContext2D, pal: ReturnType<typeof pagePalette>) {
+    const p = part(), R = val('.lzm-r'), cy = cyclotron(p, B(), R, val('.lzm-gv') * 1e3);
+    const cx = 180, cyy = 135, k = 110 / R, gap = 6;
+    c.fillStyle = pal.grid; c.strokeStyle = pal.ink; c.lineWidth = 1.5;
+    c.beginPath(); c.arc(cx - gap, cyy, R * k, Math.PI / 2, (3 * Math.PI) / 2); c.closePath(); c.fill(); c.stroke();
+    c.beginPath(); c.arc(cx + gap, cyy, R * k, -Math.PI / 2, Math.PI / 2); c.closePath(); c.fill(); c.stroke();
+    c.fillStyle = pal.muted; c.font = '12px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText('D₁', cx - 70, cyy + 4); c.fillText('D₂', cx + 70, cyy + 4);
+    // Spiral: half-turns of growing radius, centres shifted so each half-turn starts where the last one ended.
+    const show = Math.min(cy.radii.length, 60), every = Math.max(1, Math.floor(cy.radii.length / show));
+    c.strokeStyle = pal.accent; c.lineWidth = 1.4; c.beginPath();
+    let y = cyy, first = true, drawn = 0;
+    const total = Math.ceil(cy.radii.length / every), upto = Math.max(1, Math.floor(phase * total));
+    for (let i = 0; i < cy.radii.length && drawn < upto; i += every, drawn++) {
+      const r = cy.radii[i] * k, right = Math.floor(i / every) % 2 === 0, ccy = right ? y - r : y + r;
+      if (first) { c.moveTo(cx, y); first = false; }
+      if (right) c.arc(cx + gap, ccy, r, Math.PI / 2, -Math.PI / 2, true); else c.arc(cx - gap, ccy, r, -Math.PI / 2, Math.PI / 2, true);
+      y = right ? ccy - r : ccy + r;
+    }
+    c.stroke();
+    c.fillStyle = pal.muted; c.textAlign = 'left'; c.fillText('B into the page ⊗; the gap voltage flips each half-turn', 10, 18);
+    if (every > 1) c.fillText(`(every ${every}th half-turn drawn)`, 10, 254);
+    fig.setAttribute('aria-label', `Cyclotron spiral: ${Math.round(cy.turns)} turns to reach the edge`);
+  }
+  function draw() {
+    const pal = pagePalette(), c = setup(fig, W, H);
+    c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+    if (mode === 'b') drawB(c, pal); else if (mode === 'eb') drawEB(c, pal); else drawCy(c, pal);
+  }
+  function texts() {
+    const p = part(), P = PARTICLES[p];
+    q('.lzm-vv').textContent = `${val('.lzm-v').toFixed(1)} × 10⁶ m/s`; q('.lzm-bv').textContent = `${B().toFixed(2)} T`; q('.lzm-av').textContent = `${val('.lzm-a')}°`;
+    q('.lzm-ev').textContent = `${val('.lzm-e')} kV/m`; q('.lzm-rv').textContent = `${val('.lzm-r').toFixed(2)} m`; q('.lzm-gvv').textContent = `${val('.lzm-gv')} kV`;
+    q('.lzm-arow').hidden = mode !== 'b'; q('.lzm-erow').hidden = mode !== 'eb'; q('.lzm-rrow').hidden = mode !== 'cy'; q('.lzm-gvrow').hidden = mode !== 'cy'; q('.lzm-vrow').hidden = mode === 'cy';
+    const qs = `${P.q > 0 ? '' : '−'}${Math.abs(P.q) === 1 ? '' : Math.abs(P.q)}e`;
+    if (mode === 'b') {
+      const h = helix(p, v(), B(), val('.lzm-a'));
+      q('.lzm-cap').textContent = 'The picture scales itself to fit; the bar shows the real size.';
+      q('.lzm-big').textContent = val('.lzm-a') === 0 ? 'No magnetic force: F = q v B sin 0° = 0' : `Radius r = ${len(h.r)}, one turn in ${time(h.T)}`;
+      q('.lzm-formula').textContent = `r = m v sin θ / (q B) = ${scale(P.m)} × ${scale(h.vPerp)} / (${scale(Math.abs(P.q) * 1.602e-19)} × ${scale(B())}) = ${len(h.r)}`;
+      q('.lzm-facts').replaceChildren(fact('Magnetic force F = q v B sin θ', `${scale(h.F)} N`), fact('Period T = 2π m / (q B)', time(h.T), 'the same at any speed'), fact('Cyclotron frequency', freq(h.f)), fact('Pitch of the helix', val('.lzm-a') === 90 ? '0 (a flat circle)' : len(h.pitch), 'p = v cos θ × T'), fact('Kinetic energy', energy(h.KE), 'B does no work, so it never changes'));
+    } else if (mode === 'eb') {
+      const E = val('.lzm-e') * 1e3, s = crossed(p, v(), E, B()), pass = s.passes || Math.abs(v() - s.vd) / s.vd < 0.005;
+      q('.lzm-cap').textContent = 'The region is drawn 1 m long. A particle that goes straight leaves through the slit.';
+      q('.lzm-big').textContent = pass ? `Straight through: v = E / B = ${scale(s.vd / 1e6)} × 10⁶ m/s` : `Bent ${v() > s.vd ? (P.q > 0 ? 'up' : 'down') : (P.q > 0 ? 'down' : 'up')}: only v = E / B = ${scale(s.vd / 1e6)} × 10⁶ m/s goes straight`;
+      q('.lzm-formula').textContent = `Electric force q E = ${scale(Math.abs(s.FE))} N; magnetic force q v B = ${scale(Math.abs(s.FB))} N. They balance when v = E / B = ${scale(E)} / ${scale(B())} = ${scale(s.vd)} m/s.`;
+      q('.lzm-facts').replaceChildren(fact('Speed that passes', `${scale(s.vd / 1e6)} × 10⁶ m/s`, 'same for every particle'), fact('Your particle', `${scale(v() / 1e6)} × 10⁶ m/s`), fact('Charge', qs), fact('Sideways swing', pass ? '0' : len(s.swing), 'if the region were wide enough'));
+    } else {
+      const R = val('.lzm-r'), cy = cyclotron(p, B(), R, val('.lzm-gv') * 1e3);
+      q('.lzm-cap').textContent = 'Each crossing of the gap adds q V of energy; the radius grows but the time per turn does not.';
+      q('.lzm-big').textContent = cy.vmax >= 2.99792458e8 ? 'Impossible: the simple formula gives a speed faster than light. Relativity stops a cyclotron keeping in step with such light particles, which is why cyclotrons speed up protons and ions, not electrons.' : `Leaves with ${energy(cy.KEmax)} after about ${Math.round(cy.turns)} turns`;
+      q('.lzm-formula').textContent = `f = q B / (2π m) = ${freq(cy.f)}; K = q² B² R² / (2 m) = ${energy(cy.KEmax)}`;
+      q('.lzm-facts').replaceChildren(fact('Oscillator frequency', freq(cy.f), 'must match the particle'), fact('Final energy', energy(cy.KEmax)), fact('Final speed', `${scale(cy.vmax / 1e6)} × 10⁶ m/s`, cy.vmax > 3e7 ? 'over 10% of light: real machines need corrections' : ''), fact('Gap crossings', String(cy.crossings), `${Math.round(cy.turns)} turns, ${time(cy.time)}`));
+    }
+  }
+  function loop(t: number) {
+    const dt = Math.min(0.05, (t - (last || t)) / 1000); last = t;
+    if (!running) { last = 0; return; }
+    phase = Math.min(1, phase + dt / 6); draw();
+    if (phase >= 1) { running = false; playText(); last = 0; return; }
+    requestAnimationFrame(loop);
+  }
+  const playText = () => { q('.lzm-play').textContent = running ? 'Pause' : 'Play'; };
+  const restart = () => { phase = still() ? 1 : 0; running = !still(); playText(); texts(); draw(); if (running) requestAnimationFrame(loop); };
+  const changed = () => { texts(); if (!running) { phase = 1; draw(); } };
+  for (const c of ['.lzm-v', '.lzm-b', '.lzm-a', '.lzm-e', '.lzm-r', '.lzm-gv']) q(c).addEventListener('input', changed);
+  q('.lzm-p').addEventListener('change', changed);
+  seg(q('.lzm-mode'), (m) => { mode = m; if (m === 'eb') { q<HTMLInputElement>('.lzm-e').value = '100'; q<HTMLInputElement>('.lzm-b').value = '0.1'; } if (m === 'cy') q<HTMLInputElement>('.lzm-b').value = '1'; restart(); });
+  q('.lzm-play').addEventListener('click', () => { if (!running && phase >= 1) phase = 0; running = !running; playText(); if (running) requestAnimationFrame(loop); });
+  q('.lzm-again').addEventListener('click', restart);
+  onTheme(draw);
+  restart();
+  quiz(q('.lzm-quiz'), () => questions());
+</script>

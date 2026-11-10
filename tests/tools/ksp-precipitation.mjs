@@ -1,0 +1,30 @@
+// #1363 Ksp precipitation predictor (maths in tests/sci-tools/ksp-precipitation.mjs)
+export const path = '/learn/ksp-precipitation/';
+export default async ({ page, check, BASE }) => {
+  const R = '.kpx ';
+  const t = (s) => page.textContent(R + s);
+  const slide = (s, v) => page.$eval(R + s, (e, v) => { e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); }, String(v));
+  await page.goto(`${BASE}/learn/ksp-precipitation/`); await page.waitForTimeout(500);
+  check((await t('.kp-big')) === 'Q > Ksp: a white solid of AgCl forms', `ksp: AgCl forms (${await t('.kp-big')})`);
+  check((await t('.kp-eq')).includes('= 5 × 10⁻⁵') && (await t('.kp-eq')).includes('Q = 5 × 10⁻⁵ × 5 × 10⁻⁵ = 2.5 × 10⁻⁹'), `ksp: working (${await t('.kp-eq')})`);
+  check((await t('.kp-facts')).includes('3.66 × 10⁻⁵ mol/L'), `ksp: amount (${await t('.kp-facts')})`);
+  await slide('.kp-c2', -60); check((await t('.kp-big')).startsWith('Q < Ksp'), 'ksp: dilute chloride, no solid');
+  await page.selectOption(R + '.kp-salt', 'pbi2'); await slide('.kp-c1', -20); await slide('.kp-c2', -17); await slide('.kp-v1', 50); await slide('.kp-v2', 50);
+  check((await t('.kp-big')).includes('yellow solid of PbI₂') && (await t('.kp-eq')).includes('² = '), `ksp: PbI2 (${await t('.kp-big')} ${await t('.kp-eq')})`);
+  const px = await page.evaluate(() => { const c = document.querySelector('.kp-fig'); const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] > 190 && d[i + 1] > 150 && d[i + 2] < 60) n++; return n; });
+  check(px > 100, `ksp: yellow solid drawn (${px} px)`);
+  await page.fill(R + '.kp-ksp', 'abc'); check(await page.isVisible(R + '.kp-err'), 'ksp: bad Ksp message');
+  await page.fill(R + '.kp-ksp', '7.1e-9'); check(await page.isHidden(R + '.kp-err'), 'ksp: message clears');
+  await page.click(R + '.kp-mode button[data-m=sol]');
+  await page.selectOption(R + '.kp-ci', 'none'); check((await t('.kp-big')) === 'Solubility s = 1.21 × 10⁻³ mol/L' && (await t('.kp-eq')).includes('4s³'), `ksp: PbI2 solubility (${await t('.kp-big')} ${await t('.kp-eq')})`);
+  await page.selectOption(R + '.kp-ci', 'X'); await slide('.kp-cc', -10);
+  check((await t('.kp-big')) === 's drops from 1.21 × 10⁻³ to 7.1 × 10⁻⁷ mol/L', `ksp: common ion (${await t('.kp-big')})`);
+  await page.selectOption(R + '.kp-salt', 'agcl'); await page.selectOption(R + '.kp-ci', 'none');
+  check((await t('.kp-big')) === 'Solubility s = 1.34 × 10⁻⁵ mol/L', `ksp: AgCl solubility (${await t('.kp-big')})`);
+  check((await page.$$eval(R + '.smq-q', (e) => e.length)) === 3, 'ksp: three quiz questions');
+  const q2 = await t('.smq-q:nth-child(2) .smq-text'); const m = q2.match(/Ksp = ([\d.]+) × 10([⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+)/);
+  const sup = { '⁻': '-', '⁰': 0, '¹': 1, '²': 2, '³': 3, '⁴': 4, '⁵': 5, '⁶': 6, '⁷': 7, '⁸': 8, '⁹': 9 };
+  const k = +m[1] * 10 ** +[...m[2]].map((c) => sup[c]).join('');
+  await page.fill(R + '.smq-q:nth-child(2) .smq-in', String(Math.sqrt(k))); await page.click(R + '.smq-q:nth-child(2) .smq-check');
+  check((await t('.smq-q:nth-child(2) .smq-out')) === 'Right!', 'ksp: quiz answer');
+};

@@ -1,0 +1,243 @@
+---
+// Organic reaction map (Learn): families of carbon compounds joined by textbook conversions, with reagents on
+// the arrows and a fewest-steps route finder ("get from A to B").
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn orm">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">Get from A to B</h2>
+      <div class="ax-seg orm-lv" role="group" aria-label="Level"><button type="button" data-v="11" aria-pressed="false">Class 11</button><button type="button" data-v="12" aria-pressed="true">Class 12</button></div>
+    </div>
+    <div class="orm-pick">
+      <label>From <select class="orm-from" aria-label="Start from"></select></label>
+      <button type="button" class="btn secondary small orm-swap" aria-label="Swap start and end">⇄</button>
+      <label>To <select class="orm-to" aria-label="End with"></select></label>
+    </div>
+    <label class="ax-check"><input type="checkbox" class="orm-keep" /> Keep the same number of carbons (no steps that add, remove or join carbons)</label>
+    <p class="ax-big orm-big" aria-live="polite"></p>
+    <ol class="orm-steps"></ol>
+    <p class="ax-help orm-other"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The map</h2>
+    <p class="ax-help">Tap a family to see what it makes (solid arrows) and what makes it (dashed). The route is the thick line. Above the gap: open chains; below: benzene rings.</p>
+    <svg class="orm-svg" viewBox="0 0 345 440" role="group" aria-label="Map of organic compound families joined by reactions"></svg>
+    <div class="orm-info" aria-live="polite"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Go from <b>1° alcohol</b> to <b>ketone</b>. Why can’t you oxidise a 1° alcohol straight to a ketone?</li>
+      <li>Go from <b>amide</b> to <b>1° amine</b>, then tick “Keep the same number of carbons”. Why does the Hoffmann step drop out?</li>
+      <li>Find a way to <b>add one carbon</b> to a chain (look for the KCN and Grignard steps), and a way to <b>lose one</b>.</li>
+      <li>Go from <b>nitrobenzene</b> to <b>phenol</b>. Why does the route go through the diazonium salt, and why must it be ice cold?</li>
+      <li>Switch to Class 11: which families are left, and can you still turn an alkene into an alkyne?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card orm-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<script>
+  import { FAMS, RXNS, famById, outOf, into, visible, route, routes, steps, dcText, type Rx } from '../../lib/sci/orgmap';
+  import { mountQuiz, one } from '../../lib/learnquiz-d';
+
+  const root = document.querySelector<HTMLElement>('.orm')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const NS = 'http://www.w3.org/2000/svg', BW = 80, BH = 36;
+  let lv: 11 | 12 = 12, from = 'alcohol1', to = 'ketone', sel = 'alcohol1';
+  const name = (id: string) => famById(id)!.name;
+  const ex = (id: string) => { const f = famById(id)!; return `${f.example}, ${f.exFormula}`; };
+  const sv = <K extends keyof SVGElementTagNameMap>(tag: K, at: Record<string, string | number>, text?: string) => {
+    const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(at)) e.setAttribute(k, String(v)); if (text) e.textContent = text; return e;
+  };
+
+  function fillSelects() {
+    const fams = visible(lv);
+    for (const [cls, val] of [['.orm-from', from], ['.orm-to', to]] as const) {
+      const s = q<HTMLSelectElement>(cls); s.replaceChildren();
+      const g1 = document.createElement('optgroup'), g2 = document.createElement('optgroup'); g1.label = 'Open chains'; g2.label = 'Benzene rings';
+      fams.forEach((f) => (f.aromatic ? g2 : g1).append(new Option(f.name, f.id)));
+      s.append(g1, g2); s.value = val;
+    }
+  }
+
+  // ---------- map ----------
+  function edgeLine(e: Rx, off: number) {
+    const a = famById(e.from)!, b = famById(e.to)!, dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1;
+    const nx = (-dy / L) * off, ny = (dx / L) * off;
+    const t0 = Math.min(BW / 2 / Math.abs(dx || 1e-9), BH / 2 / Math.abs(dy || 1e-9));
+    const t1 = Math.min((BW / 2 + 3) / Math.abs(dx || 1e-9), (BH / 2 + 3) / Math.abs(dy || 1e-9));
+    return { x1: a.x + dx * t0 + nx, y1: a.y + dy * t0 + ny, x2: b.x - dx * t1 + nx, y2: b.y - dy * t1 + ny };
+  }
+  function drawMap(path: Rx[] | null) {
+    const svg = q<SVGSVGElement>('.orm-svg'); svg.replaceChildren();
+    const defs = sv('defs', {});
+    for (const [id, cls] of [['orm-a1', 'orm-ah-route'], ['orm-a2', 'orm-ah-out'], ['orm-a3', 'orm-ah-in']]) {
+      const m = sv('marker', { id, viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 6, markerHeight: 6, orient: 'auto-start-reverse' });
+      m.append(sv('path', { d: 'M0,0 L10,5 L0,10 z', class: cls })); defs.append(m);
+    }
+    svg.append(defs);
+    svg.append(sv('line', { x1: 4, x2: 341, y1: 312, y2: 312, class: 'orm-split' }));
+    const fams = new Set(visible(lv).map((f) => f.id));
+    const live = RXNS.filter((r) => r.lv <= lv && fams.has(r.from) && fams.has(r.to));
+    const pairOff = (e: Rx) => (live.some((r) => r.from === e.to && r.to === e.from) ? 3 : 0);
+    const routeSet = new Set((path ?? []).map((r) => r.from + '>' + r.to));
+    const done = new Set<string>();
+    for (const e of live) {
+      const k = e.from + '>' + e.to; if (done.has(k)) continue; done.add(k);
+      const onRoute = routeSet.has(k), out = e.from === sel, inn = e.to === sel;
+      const cls = onRoute ? 'orm-e route' : out ? 'orm-e out' : inn ? 'orm-e in' : 'orm-e';
+      const l = edgeLine(e, pairOff(e));
+      const at: Record<string, string | number> = { ...l, class: cls };
+      if (onRoute) at['marker-end'] = 'url(#orm-a1)'; else if (out) at['marker-end'] = 'url(#orm-a2)'; else if (inn) at['marker-end'] = 'url(#orm-a3)';
+      svg.append(sv('line', at));
+    }
+    // draw highlighted edges again on top
+    svg.querySelectorAll('.orm-e.out, .orm-e.in, .orm-e.route').forEach((n) => svg.append(n));
+    const onPath = new Set([from, to, ...(path ?? []).map((r) => r.to)]);
+    for (const f of visible(lv)) {
+      const g = sv('g', { class: `orm-node${f.id === sel ? ' sel' : ''}${path && onPath.has(f.id) ? ' on' : ''}`, 'data-id': f.id, tabindex: 0, role: 'button', 'aria-label': `${f.name}: show its reactions` });
+      g.append(sv('rect', { x: f.x - BW / 2, y: f.y - BH / 2, width: BW, height: BH, rx: 8 }));
+      const lines = f.short.split('\n');
+      if (lines.length === 2) lines.forEach((t, i) => g.append(sv('text', { x: f.x, y: f.y - 3 + i * 13, class: 'orm-t' }, t)));
+      else { g.append(sv('text', { x: f.x, y: f.y - 1, class: 'orm-t' }, f.short)); g.append(sv('text', { x: f.x, y: f.y + 12, class: 'orm-g' }, f.general)); }
+      g.addEventListener('click', () => { sel = f.id; update(); });
+      g.addEventListener('keydown', (ev) => { if ((ev as KeyboardEvent).key === 'Enter' || (ev as KeyboardEvent).key === ' ') { ev.preventDefault(); sel = f.id; update(); } });
+      svg.append(g);
+    }
+  }
+
+  // ---------- details of the tapped family ----------
+  function info() {
+    const f = famById(sel)!, box = q('.orm-info'); box.replaceChildren();
+    const h = document.createElement('h3'); h.textContent = `${f.name} (${f.general})`; box.append(h);
+    const p = document.createElement('p'); p.className = 'ax-help'; p.textContent = `Example: ${ex(f.id)}.`; box.append(p);
+    const row = document.createElement('div'); row.className = 'ax-row';
+    const b1 = document.createElement('button'); b1.type = 'button'; b1.className = 'btn secondary small orm-start'; b1.textContent = 'Start here';
+    const b2 = document.createElement('button'); b2.type = 'button'; b2.className = 'btn secondary small orm-end'; b2.textContent = 'End here';
+    b1.addEventListener('click', () => { from = sel; fillSelects(); update(); });
+    b2.addEventListener('click', () => { to = sel; fillSelects(); update(); });
+    row.append(b1, b2); box.append(row);
+    const list = (title: string, rs: Rx[], dir: 'out' | 'in') => {
+      const t = document.createElement('p'); t.className = 'orm-lh'; t.textContent = rs.length ? title : `${title}: none on this map.`; box.append(t);
+      if (!rs.length) return;
+      const ul = document.createElement('ul'); ul.className = `orm-list orm-${dir}`;
+      for (const r of rs) {
+        const li = document.createElement('li'), b = document.createElement('b');
+        b.textContent = dir === 'out' ? `→ ${name(r.to)}` : `← ${name(r.from)}`;
+        li.append(b, document.createTextNode(`: ${r.reagent} (${r.name}${r.dc !== 0 ? `; ${dcText(r.dc)}` : ''}).`));
+        ul.append(li);
+      }
+      box.append(ul);
+    };
+    list('It makes', outOf(sel, lv).filter((r) => famById(r.to)!.lv <= lv), 'out');
+    list('It is made from', into(sel, lv).filter((r) => famById(r.from)!.lv <= lv), 'in');
+  }
+
+  // ---------- route ----------
+  function update() {
+    const keep = q<HTMLInputElement>('.orm-keep').checked, opts = { lv, keepCarbons: keep };
+    const path = route(from, to, opts), big = q('.orm-big'), ol = q('.orm-steps'); ol.replaceChildren();
+    if (from === to) big.textContent = 'Pick two different families.';
+    else if (!path) big.textContent = `No route from ${name(from).toLowerCase()} to ${name(to).toLowerCase()} on this map${keep ? ' while keeping the carbon count' : ''}.`;
+    else {
+      big.textContent = `${name(from)} → ${name(to)}: ${path.length} step${path.length === 1 ? '' : 's'}`;
+      for (const r of path) {
+        const li = document.createElement('li'), head = document.createElement('b');
+        head.textContent = `${name(r.from)} → ${name(r.to)}`;
+        const all = steps(r.from, r.to, lv).filter((x) => !keep || x.dc === 0);
+        const body = document.createElement('span');
+        body.textContent = all.map((x) => ` ${x.reagent}: ${x.name}${x.dc !== 0 ? ` (${dcText(x.dc)})` : ''}${x.note ? `. ${x.note}` : ''}.`).join(' Or:');
+        const e2 = document.createElement('small'); e2.textContent = `Example: ${ex(r.from)} → ${ex(r.to)}`;
+        li.append(head, body, e2); ol.append(li);
+      }
+    }
+    const other = path && path.length ? routes(from, to, path.length + 1, opts, 5).filter((p) => p.join() !== [from, ...path.map((r) => r.to)].join()).slice(0, 3) : [];
+    q('.orm-other').textContent = other.length ? `Other routes: ${other.map((p) => p.map((x) => famById(x)!.short.replace('-\n', '')).join(' → ')).join(';  ')}.` : '';
+    drawMap(path); info();
+  }
+
+  q<HTMLSelectElement>('.orm-from').addEventListener('change', (e) => { from = (e.target as HTMLSelectElement).value; sel = from; update(); });
+  q<HTMLSelectElement>('.orm-to').addEventListener('change', (e) => { to = (e.target as HTMLSelectElement).value; update(); });
+  q('.orm-swap').addEventListener('click', () => { [from, to] = [to, from]; fillSelects(); update(); });
+  q('.orm-keep').addEventListener('change', update);
+  root.querySelectorAll<HTMLButtonElement>('.orm-lv button').forEach((b) => b.addEventListener('click', () => {
+    lv = Number(b.dataset.v) as 11 | 12; root.querySelectorAll('.orm-lv button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    const ok = (id: string) => famById(id)!.lv <= lv;
+    if (!ok(from)) from = 'alkene'; if (!ok(to)) to = 'alkyne'; if (!ok(sel)) sel = from;
+    fillSelects(); update(); quiz();
+  }));
+  fillSelects(); update();
+
+  // ---------- Check yourself ----------
+  const box = q('.orm-quiz');
+  const quiz = () => {
+    box.querySelectorAll('.lq-list, .lq-score, .lq-new').forEach((n) => n.remove());
+    mountQuiz(box, () => {
+      const pool = RXNS.filter((r) => r.lv <= lv && famById(r.from)!.lv <= lv && famById(r.to)!.lv <= lv);
+      const shuffle = <T,>(a: T[]) => a.map((x) => [Math.random(), x] as const).sort((x, y) => x[0] - y[0]).map((x) => x[1]);
+      // 1: reagent
+      const r1 = one(pool), same = new Set(steps(r1.from, r1.to, 12).map((x) => x.reagent));
+      const wrong1 = shuffle([...new Set(pool.map((x) => x.reagent))].filter((x) => !same.has(x))).slice(0, 3);
+      const c1 = shuffle([r1.reagent, ...wrong1]);
+      // 2: product
+      const r2 = one(pool.filter((x) => x.from !== r1.from)), made = new Set(pool.filter((x) => x.from === r2.from && x.reagent === r2.reagent).map((x) => x.to));
+      const wrong2 = shuffle(visible(lv).map((f) => f.id).filter((id) => !made.has(id) && id !== r2.from)).slice(0, 3);
+      const c2 = shuffle([r2.to, ...wrong2]);
+      // 3: fewest steps
+      let a = '', b = '', d = 0;
+      for (let k = 0; k < 200; k++) { a = one(visible(lv)).id; b = one(visible(lv)).id; const p = route(a, b, { lv }); if (p && p.length >= 2 && p.length <= 4) { d = p.length; break; } }
+      const p3 = route(a, b, { lv })!;
+      // 4: carbon count
+      const r4 = one(pool.filter((x) => x.dc === 1 || x.dc === -1 || (x.dc === 0 && Math.random() < 0.15)));
+      const C4 = ['The same', 'One more', 'One fewer'], a4 = r4.dc === 0 ? 0 : r4.dc === 1 ? 1 : 2;
+      return [
+        { q: `Which reagent turns a ${name(r1.from).toLowerCase()} into a ${name(r1.to).toLowerCase()}?`, ans: c1.indexOf(r1.reagent), choices: c1, work: `${r1.reagent}: ${r1.name}. Example: ${ex(r1.from)} → ${ex(r1.to)}.` },
+        { q: `A ${name(r2.from).toLowerCase()} is treated with ${r2.reagent}. Which family do you get?`, ans: c2.indexOf(r2.to), choices: c2.map(name), work: `${r2.name}: ${name(r2.from)} → ${name(r2.to)}. Example: ${ex(r2.from)} → ${ex(r2.to)}.` },
+        { q: `On this map, what is the fewest number of steps from a ${name(a).toLowerCase()} to a ${name(b).toLowerCase()}?`, ans: d, unit: 'steps', abs: 0.01, work: p3.map((r) => `${name(r.from)} → ${name(r.to)} (${r.reagent})`).join('; then ') + `: ${d} steps.` },
+        { q: `${r4.name[0].toUpperCase() + r4.name.slice(1)} with ${r4.reagent} turns a ${name(r4.from).toLowerCase()} into a ${name(r4.to).toLowerCase()}. Compared with the starting compound, how many carbon atoms does the product have?`, ans: a4, choices: C4, work: `${C4[a4]}. Example: ${ex(r4.from)} → ${ex(r4.to)}.${r4.note ? ' ' + r4.note[0].toUpperCase() + r4.note.slice(1) + '.' : ''}` },
+      ];
+    });
+  };
+  quiz();
+</script>
+
+<style is:inline>
+  .orm .orm-pick { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: end; margin: 12px 0 8px; }
+  .orm .orm-pick label { display: grid; gap: 2px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .orm .orm-pick select { min-height: 44px; width: 100%; min-width: 0; font-size: 15px; }
+  .orm .orm-swap { min-width: 44px; padding: 0 10px; }
+  .orm .ax-seg button { min-height: 44px; padding: 8px 12px; }
+  .orm .orm-big { margin: 12px 0 6px; }
+  .orm .orm-steps { margin: 0; padding-left: 22px; display: grid; gap: 10px; font-size: 15px; }
+  .orm .orm-steps b { display: block; }
+  .orm .orm-steps small { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .orm .orm-svg { display: block; width: 100%; max-width: 560px; margin: 8px auto 0; height: auto; user-select: none; }
+  .orm .orm-split { stroke: var(--line); stroke-dasharray: 4 4; }
+  .orm .orm-e { stroke: var(--line); stroke-width: 0.8; opacity: 0.55; }
+  .orm .orm-e.out { stroke: var(--ink); stroke-width: 1.5; opacity: 1; }
+  .orm .orm-e.in { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 3; opacity: 1; }
+  .orm .orm-e.route { stroke: var(--accent); stroke-width: 3.5; opacity: 1; stroke-dasharray: none; }
+  .orm .orm-ah-route { fill: var(--accent); }
+  .orm .orm-ah-out { fill: var(--ink); }
+  .orm .orm-ah-in { fill: var(--muted); }
+  .orm .orm-node { cursor: pointer; }
+  .orm .orm-node rect { fill: var(--bg); stroke: var(--ink); stroke-width: 1; }
+  .orm .orm-node.on rect { stroke: var(--accent); stroke-width: 2.5; }
+  .orm .orm-node.sel rect { fill: var(--accent-soft); stroke-width: 2.5; }
+  .orm .orm-node:focus { outline: none; }
+  .orm .orm-node:focus-visible rect { stroke-width: 3; }
+  .orm .orm-t { font: 600 12px system-ui, sans-serif; fill: var(--ink); text-anchor: middle; }
+  .orm .orm-g { font: 10px system-ui, sans-serif; fill: var(--muted); text-anchor: middle; }
+  .orm .orm-info h3 { font-size: 17px; margin: 14px 0 4px; }
+  .orm .orm-info .ax-row { margin: 6px 0 4px; }
+  .orm .orm-lh { font-weight: 600; margin: 10px 0 4px; }
+  .orm .orm-list { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 14.5px; }
+</style>

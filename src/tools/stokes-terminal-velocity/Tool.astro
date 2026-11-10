@@ -1,0 +1,189 @@
+---
+// Terminal velocity in oil: drop a ball through a tall jar of glycerine, castor oil, honey or water; time it
+// between two marks and work out the viscosity; Stokes' law and the Reynolds number. Maths in src/lib/sci/stokes.ts.
+import '../../styles/astro.css';
+---
+<div class="ax sk">
+  <div class="ax-card">
+    <div class="ax-row">
+      <span>Ball</span>
+      <div class="ax-seg sk-ball" role="group" aria-label="Ball">
+        <button type="button" data-v="steel" aria-pressed="true">Steel</button>
+        <button type="button" data-v="glass" aria-pressed="false">Glass</button>
+        <button type="button" data-v="aluminium" aria-pressed="false">Aluminium</button>
+        <button type="button" data-v="nylon" aria-pressed="false">Nylon</button>
+      </div>
+    </div>
+    <div class="ax-row">
+      <span>Liquid</span>
+      <div class="ax-seg sk-liq" role="group" aria-label="Liquid">
+        <button type="button" data-v="glycerine" aria-pressed="true">Glycerine</button>
+        <button type="button" data-v="castor" aria-pressed="false">Castor oil</button>
+        <button type="button" data-v="honey" aria-pressed="false">Honey</button>
+        <button type="button" data-v="water" aria-pressed="false">Water</button>
+        <button type="button" data-v="mystery" aria-pressed="false">Mystery oil</button>
+      </div>
+    </div>
+    <label>Ball radius: <b class="sk-rv"></b><input class="sk-r" type="range" min="0.5" max="5" step="0.1" value="1" /></label>
+    <canvas class="sk-c" aria-label="A ball falling through a jar of liquid"></canvas>
+    <p class="sk-state"><span class="ax-pill sk-pill"></span></p>
+    <div class="ax-row">
+      <button type="button" class="btn small sk-drop">Drop the ball</button>
+      <button type="button" class="btn secondary small sk-skip" disabled>Skip to the end</button>
+      <button type="button" class="btn secondary small sk-reveal" hidden>Reveal the viscosity</button>
+    </div>
+    <p class="ax-help">The jar holds 40 cm of liquid with marks A and B 10 cm and 30 cm below the surface. Densities and viscosities are rounded values for about 20 °C; real ones change a lot with temperature. g = 9.8 m/s².</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Forces, speed and your timing</h2>
+    <dl class="ax-facts sk-facts"></dl>
+    <div class="sk-eq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sk-try">
+      <li>Double the radius. The terminal velocity goes up four times: v ∝ r².</li>
+      <li>Drop the same ball in honey. It is about 7 times thicker than glycerine, so the ball falls about 7 times slower.</li>
+      <li>Try a nylon ball in honey. It is lighter than the honey, so it floats up instead.</li>
+      <li>Try water. The ball goes so fast that the Reynolds number is far above 1 and Stokes' law no longer holds.</li>
+      <li>Pick the mystery oil, drop a ball, and work out the viscosity from your timing before you reveal it.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="sk-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { BALLS, LIQUIDS, fall, speedAt, distanceAt, timeToFall, etaFromSpeed, questions } from '../../lib/sci/stokes';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { pagePalette } from '../../lib/report';
+  import { setupCanvas, fmt, sig, fact, lines, segmented, keepDrawn } from '../../lib/school-h4';
+
+  const root = document.querySelector<HTMLElement>('.sk')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const H = 300, DEPTH = 0.4, MA = 0.1, MB = 0.3;
+  let ball = BALLS[0], liqId = 'glycerine', mystEta = 1.2, revealed = false;
+  let t0 = 0, simT = -1, running = false, done = false;
+
+  const liquid = () => liqId === 'mystery' ? { id: 'mystery', name: 'Mystery oil', rho: 1000, eta: mystEta } : LIQUIDS.find((l) => l.id === liqId)!;
+  const r = () => Number(q<HTMLInputElement>('.sk-r').value) / 1000;
+  const state = () => { const l = liquid(); return { l, f: fall(r(), ball.rho, l.rho, l.eta) }; };
+
+  function draw() {
+    const pal = pagePalette(), c = q<HTMLCanvasElement>('.sk-c'), { ctx, w } = setupCanvas(c, H);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, H);
+    const { l, f } = state();
+    // jar
+    const jx = 16, jw = Math.min(110, w * 0.3), top = 20, bot = H - 14, s = (bot - top) / DEPTH;
+    ctx.fillStyle = pal.red ? pal.grid : l.id === 'honey' ? 'rgba(194,106,0,0.28)' : l.id === 'water' ? 'rgba(31,95,174,0.15)' : 'rgba(201,162,39,0.25)';
+    ctx.fillRect(jx, top, jw, bot - top);
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(jx, top - 10); ctx.lineTo(jx, bot); ctx.lineTo(jx + jw, bot); ctx.lineTo(jx + jw, top - 10); ctx.stroke();
+    ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'left';
+    for (const [d, lab] of [[MA, 'A'], [MB, 'B']] as [number, string][]) { const y = top + d * s; ctx.strokeStyle = pal.accent2; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(jx - 4, y); ctx.lineTo(jx + jw + 4, y); ctx.stroke(); ctx.fillStyle = pal.accent2; ctx.fillText(lab, jx + jw + 7, y + 4); }
+    // the ball: at the surface before a drop, then where the fall puts it
+    const sinks = f.vt > 0;
+    let depth = 0;
+    if (simT >= 0 && sinks) depth = Math.min(DEPTH, distanceAt(f.vt, f.tau, simT));
+    const br = Math.max(3, Math.min(10, r() * 1000 * 2));
+    ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.arc(jx + jw / 2, top + Math.max(br, depth * s - br), br, 0, 7); ctx.fill();
+    if (simT >= 0) { ctx.fillStyle = pal.ink; ctx.font = '600 13px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(`${fmt(simT, 2)} s`, jx + jw / 2, 12); }
+    // speed against time over the first moments (6 τ)
+    const gx0 = jx + jw + 56, gx1 = w - 10, gy0 = 26, gy1 = H - 40;
+    if (gx1 - gx0 > 80 && sinks) {
+      const tMax = 6 * f.tau, X = (t: number) => gx0 + (t / tMax) * (gx1 - gx0), Y = (v: number) => gy1 - (v / f.vt) * (gy1 - gy0) * 0.85;
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(gx0, gy0); ctx.lineTo(gx0, gy1); ctx.lineTo(gx1, gy1); ctx.stroke();
+      ctx.strokeStyle = pal.muted; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(gx0, Y(f.vt)); ctx.lineTo(gx1, Y(f.vt)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = pal.accent; ctx.lineWidth = 2.5; ctx.beginPath();
+      for (let i = 0; i <= 120; i++) { const t = (i / 120) * tMax; i ? ctx.lineTo(X(t), Y(speedAt(f.vt, f.tau, t))) : ctx.moveTo(X(t), Y(0)); }
+      ctx.stroke();
+      ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center';
+      const unit = tMax < 1 ? 'ms' : 's', k = tMax < 1 ? 1000 : 1;
+      ctx.fillText('0', gx0, gy1 + 14); ctx.fillText(`${sig(tMax * k, 2)} ${unit}`, gx1 - 14, gy1 + 14); ctx.fillText('time after letting go', (gx0 + gx1) / 2, gy1 + 28);
+      ctx.textAlign = 'right'; ctx.fillText(`${sig(f.vt * 100, 3)}`, gx0 - 4, Y(f.vt) + 4); ctx.fillText('cm/s', gx0 - 4, Y(f.vt) + 16);
+      ctx.textAlign = 'left'; ctx.fillText('terminal velocity', gx0 + 6, Y(f.vt) - 6);
+    } else if (!sinks) { ctx.fillStyle = pal.muted; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText('The ball is lighter than the liquid:', gx0 - 40, 60); ctx.fillText('it floats up and never sinks.', gx0 - 40, 78); }
+    c.setAttribute('aria-label', `${ball.name} ball, radius ${fmt(r() * 1000, 1)} mm, in ${l.name.toLowerCase()}: terminal velocity ${sig(f.vt * 100, 3)} cm/s`);
+  }
+
+  function readout() {
+    const { l, f } = state(), pill = q('.sk-pill'), sinks = f.vt > 0;
+    q('.sk-rv').textContent = `${fmt(r() * 1000, 1)} mm`;
+    if (!sinks) { pill.textContent = 'Floats: the ball is lighter than the liquid'; pill.className = 'ax-pill warn sk-pill'; }
+    else if (f.re < 1) { pill.textContent = `Stokes' law holds: Reynolds number ${sig(f.re, 2)} (below 1)`; pill.className = 'ax-pill good sk-pill'; }
+    else { pill.textContent = `Too fast for Stokes' law: Reynolds number ${sig(f.re, 3)} (above 1); the real ball falls slower`; pill.className = 'ax-pill bad sk-pill'; }
+    const hide = l.id === 'mystery' && !revealed;
+    const facts = [
+      fact('Terminal velocity (Stokes)', sinks ? `${sig(f.vt * 100, 4)} cm/s` : 'none: it floats', `2r²(ρ − σ)g ÷ 9η`),
+      fact('Reaches 99 % of it after', sinks ? (f.tau * 4.6 < 1 ? `${sig(f.tau * 4.6 * 1000, 3)} ms` : `${sig(f.tau * 4.6, 3)} s`) : '–', `4.6 × τ, τ = 2ρr² ÷ 9η`),
+      fact('Forces at terminal speed', `${sig(f.weight * 1000, 3)} mN down`, `buoyancy ${sig(f.buoy * 1000, 3)} mN + drag ${sig(Math.max(0, f.weight - f.buoy) * 1000, 3)} mN up`),
+      fact('Liquid', `${l.name}: ${hide ? 'η = ? (find it)' : `η = ${fmt(l.eta, 3)} Pa s`}`, `density ${fmt(l.rho, 0)} kg/m³; ball ${fmt(ball.rho, 0)} kg/m³`),
+    ];
+    if (done && sinks) {
+      const tA = Math.round(timeToFall(f.vt, f.tau, MA) * 100) / 100, tB = Math.round(timeToFall(f.vt, f.tau, MB) * 100) / 100;
+      if (tB - tA >= 0.01) {
+        const v = (MB - MA) / (tB - tA), eta = etaFromSpeed(r(), ball.rho, l.rho, v);
+        facts.push(fact('Your stopwatch', `A at ${fmt(tA, 2)} s, B at ${fmt(tB, 2)} s`, `20 cm in ${fmt(tB - tA, 2)} s`));
+        facts.push(fact('Speed between the marks', `${sig(v * 100, 4)} cm/s`, ''));
+        facts.push(fact('Viscosity from your timing', `${sig(eta, 3)} Pa s`, hide ? 'reveal to compare' : `set value ${fmt(l.eta, 3)} Pa s`));
+      } else facts.push(fact('Your stopwatch', 'too fast to time', 'under 0.01 s between the marks'));
+    }
+    q('.sk-facts').replaceChildren(...facts);
+    q('.sk-eq').replaceChildren(...lines([
+      ['Forces: ', `weight down; buoyancy (the liquid pushed aside) and drag 6πηrv up. The drag grows with speed until the forces balance: then the speed stays steady at the terminal velocity.`],
+      ['Here: ', sinks ? `v = 2 × (${fmt(r() * 1000, 1)} × 10⁻³)² × (${fmt(ball.rho, 0)} − ${fmt(l.rho, 0)}) × 9.8 ÷ (9 × ${hide ? 'η' : fmt(l.eta, 3)}) = ${hide ? '?' : `${sig(f.vt, 4)} m/s`}.` : 'the ball is lighter than the liquid, so buoyancy wins and it rises.'],
+      ['Reynolds number: ', `Re = σ v (2r) ÷ η = ${sig(f.re, 3)}. Stokes' law is only good for slow, smooth flow, Re below about 1.`],
+    ]));
+    q('.sk-reveal').hidden = l.id !== 'mystery';
+  }
+
+  function stop() { running = false; q<HTMLButtonElement>('.sk-skip').disabled = true; q<HTMLButtonElement>('.sk-drop').disabled = false; }
+  function reset() { simT = -1; done = false; stop(); readout(); draw(); }
+  function frame(now: number) {
+    if (!running) return;
+    const { f } = state(), end = f.vt > 0 ? timeToFall(f.vt, f.tau, DEPTH) : 0;
+    simT = (now - t0) / 1000;
+    if (simT >= end) { simT = end; done = true; stop(); readout(); }
+    draw();
+    if (running) requestAnimationFrame(frame);
+  }
+  q('.sk-drop').addEventListener('click', () => {
+    const { f } = state(); if (f.vt <= 0) { reset(); return; }
+    simT = 0; done = false; running = true; t0 = performance.now(); q<HTMLButtonElement>('.sk-skip').disabled = false; q<HTMLButtonElement>('.sk-drop').disabled = true; readout(); requestAnimationFrame(frame);
+  });
+  q('.sk-skip').addEventListener('click', () => { const { f } = state(); simT = timeToFall(f.vt, f.tau, DEPTH); done = true; stop(); readout(); draw(); });
+  q('.sk-reveal').addEventListener('click', () => { revealed = true; readout(); });
+  segmented(q('.sk-ball'), (v) => { ball = BALLS.find((b) => b.id === v)!; reset(); });
+  segmented(q('.sk-liq'), (v) => { liqId = v; if (v === 'mystery') { mystEta = Math.round((0.3 + Math.random() * 2.7) * 10) / 10; revealed = false; } reset(); });
+  q('.sk-r').addEventListener('input', reset);
+  mountQuiz(q('.sk-quiz'), () => questions());
+  reset();
+  keepDrawn(q<HTMLCanvasElement>('.sk-c'), draw);
+</script>
+
+<style is:inline>
+  .sk canvas { display: block; width: 100%; margin-top: 10px; }
+  .sk > .ax-card:first-child > label { display: grid; margin-top: 10px; }
+  .sk .ax-row { margin-top: 10px; }
+  .sk input[type=range] { width: 100%; height: 32px; accent-color: var(--ink); }
+  .sk label b { color: var(--ink); }
+  .sk .ax-seg button, .sk .btn { min-height: 44px; }
+  .sk .sk-state { margin: 8px 0 0; }
+  .sk .sk-pill { font-size: 14px; white-space: normal; }
+  .sk .sk-eq p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .sk .sk-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>

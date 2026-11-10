@@ -1,0 +1,186 @@
+---
+// Counting machine (Learn, Class 11 permutations and combinations): arrange letters, seat people or pick teams.
+// Every arrangement is listed for small cases; the formula takes over for big ones. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm cm">
+  <div class="ax-card">
+    <div class="ax-row" style="justify-content:space-between">
+      <h2 style="margin:0">What are we counting?</h2>
+      <div class="ax-seg cm-mode" role="group" aria-label="What to count">
+        <button type="button" data-m="arrange" aria-pressed="true">Arrange (order matters)</button>
+        <button type="button" data-m="choose" aria-pressed="false">Choose (order does not)</button>
+        <button type="button" data-m="word" aria-pressed="false">Letters of a word</button>
+      </div>
+    </div>
+    <p class="ax-help cm-story"></p>
+    <div class="cm-nr">
+      <div class="sm-sl"><b>n</b><input type="range" class="cm-nrange" min="1" max="10" step="1" value="5" aria-label="n slider" /><input type="number" class="cm-n" min="1" max="30" step="1" value="5" inputmode="numeric" aria-label="n, how many different things" /></div>
+      <div class="sm-sl"><b>r</b><input type="range" class="cm-rrange" min="0" max="10" step="1" value="3" aria-label="r slider" /><input type="number" class="cm-r" min="0" max="30" step="1" value="3" inputmode="numeric" aria-label="r, how many are used" /></div>
+    </div>
+    <div class="cm-wordbox" hidden>
+      <label>Word <input type="text" class="cm-word" value="BANANA" maxlength="20" autocomplete="off" spellcheck="false" aria-label="Word whose letters are arranged" /></label>
+      <div class="ax-row" style="margin-top:6px">
+        <button type="button" class="btn secondary small cm-ex" data-w="BANANA">BANANA</button>
+        <button type="button" class="btn secondary small cm-ex" data-w="LEVEL">LEVEL</button>
+        <button type="button" class="btn secondary small cm-ex" data-w="MISSISSIPPI">MISSISSIPPI</button>
+        <button type="button" class="btn secondary small cm-ex" data-w="MATHS">MATHS</button>
+      </div>
+    </div>
+    <p class="ax-err cm-err" hidden></p>
+    <svg class="sm-fig cm-fig" viewBox="0 0 340 150" role="img" aria-label="Boxes to fill, each marked with how many choices it has"></svg>
+  </div>
+
+  <div class="ax-card">
+    <h2>The count, with your numbers</h2>
+    <dl class="ax-facts cm-facts"></dl>
+    <p class="sm-f cm-f1"></p>
+    <p class="sm-f cm-f2"></p>
+    <p class="sm-f cm-f3"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="cm-lh">Every one of them</h2>
+    <p class="ax-help cm-lnote"></p>
+    <div class="cm-list" aria-live="off"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Set n = 4 and r = 2. Arrange gives 12, Choose gives 6: each pair, such as AB, appears twice in the Arrange list (AB and BA).</li>
+      <li>Keep n = 5 and slide r from 0 to 5 in Choose mode. The counts 1, 5, 10, 10, 5, 1 are a row of Pascal's triangle, and nCr = nC(n − r).</li>
+      <li>Set r = n in Arrange mode: the count is n!. Why is 0! taken as 1? Look at r = n in the formula n!/(n − r)!.</li>
+      <li>Type your own name as the word. Repeated letters cut the count: swapping two identical letters makes no new word.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Type a whole number. Nothing is saved.</p>
+    <div class="cm-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .cm .cm-word { font-size: 18px; letter-spacing: 0.08em; text-transform: uppercase; min-height: 44px; width: 100%; max-width: 280px; }
+  .cm .cm-list { display: flex; flex-wrap: wrap; gap: 6px; max-height: 360px; overflow-y: auto; }
+  .cm .cm-chip { font: 600 15px ui-monospace, Menlo, Consolas, monospace; letter-spacing: 0.06em; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+  .cm .cm-chip.cm-grp { border-color: var(--accent); }
+  .cm .cm-chip small { font-weight: 400; color: var(--muted); letter-spacing: 0; }
+  .cm .cm-more { width: 100%; color: var(--muted); font-size: 14px; margin: 4px 0 0; }
+  .cm svg .cm-box { fill: var(--surface); stroke: var(--ink); stroke-width: 1.8; }
+  .cm svg .cm-big { font-size: 24px; font-weight: 700; }
+  .cm svg .cm-tile { stroke: var(--surface); stroke-width: 2; }
+  .cm svg .cm-tiletext { fill: #fff; font-weight: 700; font-size: 14px; }
+</style>
+
+<script>
+  import { fact, nPr, nCr, arrangements, selections, letterCounts, wordArrangements, distinctWords, big } from '../../lib/sci/counting-machine';
+  import { randInt } from '../../lib/sci/smath';
+  import { S, pair, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.cm')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.cm-fig');
+  const N = q<HTMLInputElement>('.cm-n'), R = q<HTMLInputElement>('.cm-r'), Rr = q<HTMLInputElement>('.cm-rrange');
+  const W = q<HTMLInputElement>('.cm-word');
+  pair(q('.cm-nrange'), N, draw); const setR = pair(Rr, R, draw);
+  const SHOW = 240;
+  const COLS = ['#1f6f8b', '#a23b72', '#2e7d32', '#c05600', '#5b4bb7', '#00796b', '#8d6e00', '#b71c1c', '#37474f', '#6d4c41'];
+  let mode = 'arrange';
+  root.querySelectorAll<HTMLButtonElement>('.cm-mode button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m!; root.querySelectorAll('.cm-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); draw();
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.cm-ex').forEach((b) => b.addEventListener('click', () => { W.value = b.dataset.w!; draw(); }));
+  W.addEventListener('input', draw);
+
+  const fact$ = (k: number) => (k <= 1 ? '1' : k <= 6 ? Array.from({ length: k }, (_, i) => k - i).join(' × ') : `${k} × ${k - 1} × … × 1`);
+  const fact$s = (k: number) => `${k}!`;
+  const facts = (rows: [string, string][]) => { const dl = q('.cm-facts'); dl.replaceChildren(...rows.map(([t, d]) => { const div = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = t; const dd = document.createElement('dd'); dd.textContent = d; div.append(dt, dd); return div; })); };
+  function list(items: string[], total: bigint, grp = false) {
+    const box = q('.cm-list');
+    box.replaceChildren(...items.map((s) => { const c = document.createElement('span'); c.className = 'cm-chip' + (grp ? ' cm-grp' : ''); c.textContent = s; return c; }));
+    if (total > BigInt(items.length)) { const p = document.createElement('p'); p.className = 'cm-more'; p.textContent = `… and ${big(total - BigInt(items.length))} more. Too many to list, so the formula does the counting.`; box.append(p); }
+  }
+  function boxes(labels: string[], under: string, tiles: string[]) {
+    fig.replaceChildren();
+    tiles.forEach((t, i) => {
+      const x = 170 - (tiles.length * 26) / 2 + i * 26 + 13;
+      S('circle', { cx: x, cy: 22, r: 12, class: 'cm-tile', fill: COLS[i % COLS.length] }, fig);
+      S('text', { x, y: 27, 'text-anchor': 'middle', class: 'cm-tiletext' }, fig, t);
+    });
+    const k = labels.length, g = k > 6 ? 8 : 18, w = Math.min(52, (320 - (k - 1) * g) / Math.max(1, k)), x0 = 170 - (k * w + (k - 1) * g) / 2;
+    if (!k) S('text', { x: 170, y: 88, 'text-anchor': 'middle' }, fig, 'r = 0: one way, doing nothing.');
+    labels.forEach((l, i) => {
+      const x = x0 + i * (w + g);
+      S('rect', { x, y: 58, width: w, height: 48, rx: 6, class: 'cm-box' }, fig);
+      S('text', { x: x + w / 2, y: 90, 'text-anchor': 'middle', class: 'cm-big', style: w < 22 ? 'font-size:13px' : w < 34 ? 'font-size:16px' : '' }, fig, l);
+      if (i < k - 1) S('text', { x: x + w + g / 2, y: 88, 'text-anchor': 'middle', class: 'cm-big', style: k > 6 ? 'font-size:11px' : 'font-size:18px' }, fig, '×');
+    });
+    S('text', { x: 170, y: 132, 'text-anchor': 'middle', style: 'fill:var(--muted)' }, fig, under);
+  }
+
+  function draw() {
+    const err = q('.cm-err'); err.hidden = true;
+    q('.cm-nr').hidden = mode === 'word'; q('.cm-wordbox').hidden = mode !== 'word';
+    const F1 = q('.cm-f1'), F2 = q('.cm-f2'), F3 = q('.cm-f3');
+    if (mode === 'word') {
+      const counts = letterCounts(W.value), n = counts.reduce((s, [, c]) => s + c, 0);
+      q('.cm-story').textContent = 'How many different words (they need not mean anything) can be made from all the letters? Identical letters swapped give the same word.';
+      if (!n) { err.textContent = 'Type a word with at least one letter.'; err.hidden = false; fig.replaceChildren(); facts([]); F1.textContent = F2.textContent = F3.textContent = ''; list([], 0n); return; }
+      const total = wordArrangements(W.value), reps = counts.filter(([, c]) => c > 1);
+      boxes(Array.from({ length: Math.min(n, 12) }, (_, i) => String(n - i)), `${n}! orders if every letter were different, then ÷ ${reps.length ? reps.map(([l, c]) => `${c}! for the ${c} ${l}s`).join(', ') : 'nothing: no letter repeats'}`, counts.map(([l]) => l).slice(0, 12));
+      facts([['Letters', String(n)], ['Repeats', reps.length ? reps.map(([l, c]) => `${l} × ${c}`).join(', ') : 'none'], ['Different words', big(total)]]);
+      F1.textContent = `All ${n} letters as if different: ${n}! = ${big(fact(n))}.`;
+      F2.textContent = reps.length ? `Different words = ${n}! / (${reps.map(([, c]) => `${c}!`).join(' × ')}) = ${big(fact(n))} / ${big(reps.reduce((v, [, c]) => v * fact(c), 1n))} = ${big(total)}.` : `No letter repeats, so every order is a different word: ${big(total)}.`;
+      F3.textContent = reps.length ? `Why divide? In any one word, the ${reps[0][1]} ${reps[0][0]}s can be shuffled among their own places in ${reps[0][1]}! = ${big(fact(reps[0][1]))} ways without changing the word.` : '';
+      q('.cm-lh').textContent = 'Every different word';
+      q('.cm-lnote').textContent = total <= BigInt(SHOW) ? `All ${big(total)}, in dictionary order.` : `The first ${SHOW}, in dictionary order.`;
+      list(distinctWords(W.value, SHOW), total);
+      return;
+    }
+    let n = Math.round(Number(N.value)), r = Math.round(Number(R.value));
+    if (!Number.isFinite(n) || n < 1 || n > 30) { err.textContent = 'n must be a whole number from 1 to 30.'; err.hidden = false; return; }
+    if (!Number.isFinite(r) || r < 0) r = 0;
+    Rr.max = String(Math.min(10, n));
+    if (r > n) { r = n; setR(r); err.textContent = `r cannot be more than n, so r is now ${n}.`; err.hidden = false; }
+    const items = Array.from({ length: n }, (_, i) => (i < 26 ? String.fromCharCode(65 + i) : String(i + 1)));
+    const P = nPr(n, r), C = nCr(n, r);
+    const slot = Array.from({ length: r }, (_, i) => String(n - i));
+    facts([['nPr (arrangements)', `${n}P${r} = ${big(P)}`], ['nCr (selections)', `${n}C${r} = ${big(C)}`], ['r! (orders of one choice)', `${r}! = ${big(fact(r))}`]]);
+    F1.textContent = `nPr = n!/(n − r)! = ${fact$s(n)}/${fact$s(n - r)} = ${r ? slot.join(' × ') : '1'} = ${big(P)}.`;
+    F2.textContent = `nCr = n!/(r! (n − r)!) = ${fact$s(n)}/(${fact$s(r)} × ${fact$s(n - r)}) = ${big(P)} / ${r <= 6 ? fact$(r) : big(fact(r))} = ${big(C)}.`;
+    F3.textContent = `Link: nPr = nCr × r!, here ${big(P)} = ${big(C)} × ${big(fact(r))}. Choosing first and then ordering gives every arrangement exactly once.`;
+    const T = items.slice(0, 10);
+    if (mode === 'arrange') {
+      q('.cm-story').textContent = `Seat ${r} of ${n} friends (${items.slice(0, Math.min(n, 6)).join(', ')}${n > 6 ? ', …' : ''}) on ${r} chairs in a row. AB and BA are different seatings.`;
+      boxes(slot, `Chair 1 has ${n} choices, the next has one fewer… = ${big(P)}`, T);
+      q('.cm-lh').textContent = 'Every arrangement';
+      q('.cm-lnote').textContent = P <= BigInt(SHOW) ? `All ${big(P)}, in dictionary order.` : `The first ${SHOW}, in dictionary order.`;
+      list(arrangements(items, r, SHOW).map((a) => a.join('') || '(empty)'), P);
+    } else {
+      q('.cm-story').textContent = `Pick a team of ${r} from ${n} players. AB and BA are the same team.`;
+      boxes(slot, `${big(P)} ordered picks ÷ ${r}! orders of each team = ${big(C)}`, T);
+      q('.cm-lh').textContent = 'Every selection';
+      q('.cm-lnote').textContent = (C <= BigInt(SHOW) ? `All ${big(C)}, in dictionary order.` : `The first ${SHOW}, in dictionary order.`) + (r > 1 ? ` Each one could be arranged in ${r}! = ${big(fact(r))} orders in the Arrange list.` : '');
+      list(selections(items, r, SHOW).map((a) => (a.length ? `{${a.join(', ')}}` : '{ } (the empty team)')), C, true);
+    }
+  }
+  draw();
+
+  const WORDS = ['APPLE', 'BANANA', 'COFFEE', 'LETTER', 'PEPPER', 'ASSASSIN', 'BALLOON', 'COMMITTEE', 'ENGINEERING', 'PARALLEL', 'INDIA', 'TATTOO'];
+  quiz(q('.cm-quiz'), () => {
+    const out: Question[] = [];
+    const n1 = randInt(5, 9), r1 = randInt(2, 4), P = Number(nPr(n1, r1));
+    out.push({ q: `In how many ways can ${r1} of ${n1} runners finish first, second${r1 > 2 ? ', third' : ''}${r1 > 3 ? ' and fourth' : ''} (no ties)?`, want: [P], tol: 0, work: `Order matters: ${n1}P${r1} = ${Array.from({ length: r1 }, (_, i) => n1 - i).join(' × ')} = ${P}.` });
+    const n2 = randInt(6, 12), r2 = randInt(2, 4), C = Number(nCr(n2, r2));
+    out.push({ q: `How many ways are there to choose ${r2} books to take on holiday from a shelf of ${n2}?`, want: [C], tol: 0, work: `Order does not matter: ${n2}C${r2} = ${n2}!/(${r2}! × ${n2 - r2}!) = ${Number(nPr(n2, r2))} / ${Number(fact(r2))} = ${C}.` });
+    const w = WORDS[randInt(0, WORDS.length - 1)], cts = letterCounts(w), reps = cts.filter(([, c]) => c > 1), A = Number(wordArrangements(w));
+    out.push({ q: `How many different arrangements are there of all the letters of ${w}?`, want: [A], tol: 0, work: `${w.length} letters with ${reps.map(([l, c]) => `${l} × ${c}`).join(', ')}: ${w.length}!/(${reps.map(([, c]) => `${c}!`).join(' × ')}) = ${A}.` });
+    const b = randInt(4, 7), g = randInt(3, 6), kb = randInt(2, 3), kg = randInt(1, 2), Cm = Number(nCr(b, kb) * nCr(g, kg));
+    out.push({ q: `A committee needs ${kb} boys from ${b} and ${kg} girl${kg > 1 ? 's' : ''} from ${g}. How many different committees are possible?`, want: [Cm], tol: 0, work: `Choose each group, then multiply: ${b}C${kb} × ${g}C${kg} = ${Number(nCr(b, kb))} × ${Number(nCr(g, kg))} = ${Cm}.` });
+    return out;
+  });
+</script>

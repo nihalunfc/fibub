@@ -1,0 +1,127 @@
+---
+// IUPAC temporary names for elements above 100: type an atomic number to build the name and symbol digit by digit,
+// or type a temporary name or symbol to read the number back. Maths in src/lib/sci/iupacname.ts.
+import '../../styles/astro.css';
+---
+<div class="ax en">
+  <div class="ax-card">
+    <div class="ax-row en-inrow">
+      <label class="en-zl">Atomic number <input class="en-z" type="text" inputmode="numeric" value="119" /></label>
+      <button type="button" class="btn secondary small en-dn" aria-label="One less">− 1</button>
+      <button type="button" class="btn secondary small en-up" aria-label="One more">+ 1</button>
+    </div>
+    <input class="en-zs" type="range" min="101" max="300" step="1" value="119" aria-label="Atomic number slider" />
+    <p class="ax-err en-err" hidden></p>
+    <div class="en-build" aria-live="polite"></div>
+    <p class="ax-big en-name"></p>
+    <dl class="ax-facts en-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Read a name back</h2>
+    <div class="ax-row">
+      <label class="en-backl">Temporary name or symbol <input class="en-back" type="text" value="Unbiunium" autocapitalize="off" spellcheck="false" /></label>
+    </div>
+    <p class="en-backres"></p>
+    <h2 class="en-h2">The number roots</h2>
+    <div class="ax-scroll"><table class="en-roots"><thead><tr><th>Digit</th><th>Root</th><th>Letter</th></tr></thead><tbody></tbody></table></div>
+    <p class="ax-help">Rules: write the roots in the order of the digits and add "ium". Drop the final "i" of bi and tri before "ium" (bium, trium), and the final "n" of enn before "nil" (ennil). The symbol is the first letter of each root. These names are only used until a new element's discovery is confirmed and it gets its real name.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="en-try">
+      <li>Type 118. Its temporary name was ununoctium (Uuo) until it was named oganesson in 2016.</li>
+      <li>Type 119 and 120. No one has made them yet; they would start a new row, period 8.</li>
+      <li>Type 109, 190 and 199 and spot each spelling rule at work.</li>
+      <li>Read "Unbiquadium" or "Ubq" back to its number.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="en-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { ROOTS, tempName, fromName, fromSymbol, placeOf, questions } from '../../lib/sci/iupacname';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { fact } from '../../lib/school-h4';
+
+  const root = document.querySelector<HTMLElement>('.en')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const zIn = q<HTMLInputElement>('.en-z'), zs = q<HTMLInputElement>('.en-zs'), back = q<HTMLInputElement>('.en-back');
+  q('.en-roots tbody').replaceChildren(...ROOTS.map((r, d) => { const tr = document.createElement('tr'); for (const t of [String(d), r, r[0]]) { const td = document.createElement('td'); td.textContent = t; tr.append(td); } return tr; }));
+
+  function show() {
+    const t = zIn.value.trim(), z = Number(t), err = q('.en-err');
+    if (!/^\d+$/.test(t) || z < 100 || z > 999) {
+      err.hidden = false; err.textContent = 'Type a whole number from 100 to 999.';
+      q('.en-build').replaceChildren(); q('.en-name').textContent = ''; q('.en-facts').replaceChildren(); return;
+    }
+    err.hidden = true;
+    if (z <= 300) zs.value = String(z);
+    const n = tempName(z), p = placeOf(z);
+    q('.en-build').replaceChildren(...n.digits.map((d, i) => {
+      const box = document.createElement('div'), dd = document.createElement('span'), rr = document.createElement('span');
+      box.className = 'en-chip'; dd.className = 'en-digit'; rr.className = 'en-root';
+      dd.textContent = String(d); rr.textContent = n.parts[i] === n.roots[i] ? n.roots[i] : `${n.parts[i]} (${n.roots[i]})`;
+      box.append(dd, rr); return box;
+    }), (() => { const box = document.createElement('div'), dd = document.createElement('span'), rr = document.createElement('span'); box.className = 'en-chip en-end'; dd.className = 'en-digit'; dd.textContent = '+'; rr.className = 'en-root'; rr.textContent = n.tail; box.append(dd, rr); return box; })());
+    q('.en-name').textContent = `${n.name} (${n.symbol})`;
+    const facts = [fact('Temporary name', n.name, `symbol ${n.symbol}`)];
+    if (n.parts.some((x, i) => x !== n.roots[i]) || n.tail !== 'ium') facts.push(fact('Spelling rule used', [n.parts.some((x) => x === 'en') ? '"enn" + "nil" → "ennil"' : '', n.tail === 'um' ? `"${n.roots[n.roots.length - 1]}" + "ium" → "${n.roots[n.roots.length - 1]}um"` : ''].filter(Boolean).join('; ')));
+    facts.push(fact('Real name', p.official ? `${p.official.name} (${p.official.symbol})` : z <= 118 ? '' : 'none yet: not made', p.official ? (z <= 100 ? 'named long ago; temporary names are only for Z above 100' : 'its temporary name is no longer used') : ''));
+    facts.push(fact('Place in the table', p.where));
+    q('.en-facts').replaceChildren(...facts);
+  }
+
+  function readBack() {
+    const s = back.value.trim(), out = q('.en-backres');
+    if (!s) { out.textContent = 'Type a name such as Unbiunium or a symbol such as Ubu.'; return; }
+    const z = fromSymbol(s) ?? fromName(s);
+    if (z === null) { out.textContent = 'That is not a temporary name or symbol. Check the roots in the table below.'; out.dataset.ok = '0'; return; }
+    const n = tempName(z); out.dataset.ok = '1';
+    out.textContent = `${n.name} (${n.symbol}) is element ${z}: ${n.roots.map((r, i) => `${r} = ${n.digits[i]}`).join(', ')}.`;
+  }
+
+  zIn.addEventListener('input', show);
+  zs.addEventListener('input', () => { zIn.value = zs.value; show(); });
+  const step = (d: number) => { const z = Number(zIn.value); zIn.value = String(Math.max(100, Math.min(999, (Number.isFinite(z) ? z : 119) + d))); show(); };
+  q('.en-dn').addEventListener('click', () => step(-1));
+  q('.en-up').addEventListener('click', () => step(1));
+  back.addEventListener('input', readBack);
+  mountQuiz(q('.en-quiz'), () => questions());
+  show(); readBack();
+</script>
+
+<style is:inline>
+  .en .ax-row { margin-top: 6px; align-items: end; }
+  .en .en-zl, .en .en-backl { display: grid; gap: 4px; font-size: 14px; }
+  .en .en-z { width: 7em; min-height: 44px; font-size: 18px; }
+  .en .en-back { width: min(18em, 80vw); min-height: 44px; }
+  .en .btn { min-height: 44px; }
+  .en input[type=range] { width: 100%; height: 32px; margin-top: 10px; accent-color: var(--ink); }
+  .en .en-build { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .en .en-chip { display: grid; justify-items: center; gap: 2px; min-width: 64px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  .en .en-chip.en-end { border-style: dashed; }
+  .en .en-digit { font-size: 22px; font-weight: 750; font-variant-numeric: tabular-nums; }
+  .en .en-root { font-size: 15px; color: var(--accent); font-weight: 650; }
+  .en .en-name { margin: 12px 0 4px; overflow-wrap: anywhere; }
+  .en .en-backres { margin: 10px 0 0; font-weight: 600; }
+  .en .en-backres[data-ok="0"] { color: var(--bad); }
+  .en .en-h2 { margin-top: 18px; }
+  .en .en-roots td, .en .en-roots th { padding: 4px 12px 4px 0; }
+  .en .en-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>

@@ -1,0 +1,230 @@
+---
+// Double circulation: blood cells flow round a loop through the heart, the lungs (or gills) and the body, coloured by
+// oxygen. Switch between a fish (single circulation), a frog (three chambers, mixing) and a human (four chambers).
+// Heart rate and stroke volume give the cardiac output and the time for one lap. Teaching model, not medical.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm hcx">
+  <p class="ax-help">A teaching model with typical round numbers for a resting adult. It is not a medical tool.</p>
+  <div class="ax-card">
+    <div class="ax-row"><b>Level</b>
+      <div class="ax-seg hcx-level" role="group" aria-label="Level"><button type="button" data-v="10" aria-pressed="true">Class 10</button><button type="button" data-v="11" aria-pressed="false">Class 11</button></div></div>
+    <div class="ax-row hcx-gap"><b>Animal</b>
+      <div class="ax-seg hcx-animal" role="group" aria-label="Animal"><button type="button" data-v="human" aria-pressed="true">Human (4 chambers)</button><button type="button" data-v="frog" aria-pressed="false">Frog (3)</button><button type="button" data-v="fish" aria-pressed="false">Fish (2)</button></div></div>
+    <div class="sm-sl"><b title="Heart rate">HR</b><input type="range" class="hcx-hrr" min="40" max="200" step="1" value="75" aria-label="Heart rate slider" /><input type="number" class="hcx-hr" min="20" max="250" step="1" value="75" inputmode="numeric" aria-label="Heart rate, beats a minute" /></div>
+    <div class="sm-sl"><b title="Stroke volume">SV</b><input type="range" class="hcx-svr" min="40" max="140" step="1" value="70" aria-label="Stroke volume slider" /><input type="number" class="hcx-sv" min="10" max="200" step="1" value="70" inputmode="numeric" aria-label="Stroke volume, mL a beat" /></div>
+    <p class="ax-help">HR: heart rate, beats a minute. SV: stroke volume, mL of blood each ventricle pushes out per beat.</p>
+  </div>
+
+  <div class="ax-card">
+    <svg class="sm-fig hcx-fig" viewBox="0 0 340 400" role="img" aria-label="Blood flowing round the heart, lungs and body"></svg>
+    <div class="ax-legend"><span><i class="hcx-kox"></i>Rich in oxygen</span><span><i class="hcx-kde"></i>Low in oxygen</span><span class="hcx-lmix"><i class="hcx-kmx"></i>Mixed</span><span><i class="hcx-kme"></i>The cell you follow</span></div>
+    <div class="ax-row hcx-gap"><button type="button" class="btn secondary small hcx-pause">Pause</button>
+      <p class="ax-help hcx-speed"></p></div>
+    <p class="hcx-now" aria-live="polite"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The numbers</h2>
+    <p class="ax-big hcx-big" aria-live="polite"></p>
+    <p class="sm-f hcx-f1"></p>
+    <p class="sm-f hcx-f2"></p>
+    <dl class="ax-facts hcx-facts"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>One trip round the body</h2>
+    <ol class="hcx-route"></ol>
+    <p class="hcx-say"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Follow the black-ringed cell in the human. How many times does it go through the heart before it comes back to the body?</li>
+      <li>Switch to the fish. Why does blood leaving the gills reach the body slowly, at low pressure?</li>
+      <li>Switch to the frog. Where does oxygen-rich blood meet oxygen-poor blood?</li>
+      <li>Raise the heart rate to 150 (running). How much faster does the blood go round?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. For the choices, type the number of your answer. Nothing is saved.</p>
+    <div class="hcx-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .hcx { --ox: #c0392b; --de: #2f6fb3; --mx: #7b3fa0; }
+  html[data-theme=dark] .hcx { --ox: #f28b82; --de: #7fb2f0; --mx: #c79be0; }
+  html.red-mode .hcx { --ox: #ff2a2a; --de: #6a0000; --mx: #a00000; }
+  .hcx .hcx-gap { margin-top: 10px; }
+  .hcx .sm-sl b { font-size: 14px; font-style: normal; font-family: inherit; }
+  .hcx svg .hcx-v { fill: none; stroke-width: 9; stroke-linejoin: round; stroke-linecap: round; opacity: .28; }
+  .hcx svg .ox { stroke: var(--ox); } .hcx svg .de { stroke: var(--de); } .hcx svg .mix { stroke: var(--mx); }
+  .hcx svg circle.ox { fill: var(--ox); stroke: none; } .hcx svg circle.de { fill: var(--de); stroke: none; } .hcx svg circle.mix { fill: var(--mx); stroke: none; }
+  .hcx svg circle.me { stroke: var(--ink); stroke-width: 2.5; }
+  .hcx svg .hcx-ch { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
+  .hcx svg .hcx-ch.on { stroke-width: 3.5; }
+  .hcx svg .hcx-org { fill: var(--bg); stroke: var(--muted); stroke-width: 1.5; }
+  .hcx svg text.hcx-t { font-size: 11px; font-weight: 600; }
+  .hcx svg text.hcx-m { font-size: 11px; fill: var(--muted); }
+  .hcx .ax-legend i.hcx-kox { background: var(--ox); } .hcx .ax-legend i.hcx-kde { background: var(--de); } .hcx .ax-legend i.hcx-kmx { background: var(--mx); }
+  .hcx .ax-legend i.hcx-kme { background: transparent; border: 2.5px solid var(--ink); border-radius: 50%; }
+  .hcx .hcx-route { margin: 0; padding-left: 1.4em; line-height: 1.7; }
+  .hcx .hcx-route li.on { font-weight: 700; }
+  .hcx .hcx-route li .hcx-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
+  .hcx .hcx-dot.ox { background: var(--ox); } .hcx .hcx-dot.de { background: var(--de); } .hcx .hcx-dot.mix { background: var(--mx); }
+  .hcx .hcx-now { min-height: 1.5em; margin: 6px 0 0; }
+</style>
+
+<script>
+  import { ROUTES, CHAMBERS, heartPasses, cardiacOutput, lapSeconds, lapsPerDay, litresPerDay, type Animal, type O2 } from '../../lib/sci/circulation';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, pair, val, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.hcx')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.hcx-fig');
+  const HR = q<HTMLInputElement>('.hcx-hr'), SV = q<HTMLInputElement>('.hcx-sv');
+  pair(q('.hcx-hrr'), HR, numbers); pair(q('.hcx-svr'), SV, numbers);
+  let animal: Animal = 'human', level = 10, paused = false, phase = 0, last = 0;
+  const FAST = 10; // the picture runs 10 times faster than real life
+
+  // Waypoints: x, y, oxygen state of the segment that starts here, route place of that segment.
+  type W = [number, number, O2, number];
+  const WAY: Record<Animal, W[]> = {
+    human: [[250, 360, 'ox', 0], [170, 360, 'de', 0], [90, 360, 'de', 1], [50, 360, 'de', 1], [50, 172, 'de', 1], [120, 172, 'de', 2], [120, 232, 'de', 3], [170, 232, 'de', 4], [170, 112, 'de', 4], [110, 112, 'de', 4], [110, 72, 'ox', 5], [230, 72, 'ox', 6], [230, 120, 'ox', 6], [220, 172, 'ox', 7], [220, 232, 'ox', 8], [290, 232, 'ox', 9], [290, 360, 'ox', 9]],
+    frog: [[250, 360, 'mix', 0], [170, 360, 'de', 0], [90, 360, 'de', 1], [50, 360, 'de', 1], [50, 172, 'de', 1], [120, 172, 'de', 2], [150, 236, 'mix', 3], [170, 236, 'mix', 4], [170, 112, 'mix', 4], [110, 112, 'mix', 4], [110, 72, 'ox', 5], [230, 72, 'ox', 6], [230, 120, 'ox', 6], [220, 172, 'ox', 7], [190, 236, 'mix', 8], [262, 236, 'mix', 9], [290, 236, 'mix', 9], [290, 360, 'mix', 9]],
+    fish: [[250, 360, 'ox', 0], [170, 360, 'de', 0], [90, 360, 'de', 1], [50, 360, 'de', 1], [50, 226, 'de', 1], [115, 226, 'de', 2], [200, 226, 'de', 3], [200, 196, 'de', 4], [200, 104, 'ox', 5], [160, 76, 'ox', 5], [240, 76, 'ox', 5], [200, 60, 'ox', 6], [290, 60, 'ox', 6], [290, 360, 'ox', 6]],
+  };
+  const lens = (w: W[]) => { const L = [0]; for (let i = 1; i <= w.length; i++) { const a = w[i - 1], b = w[i % w.length]; L.push(L[i - 1] + Math.hypot(b[0] - a[0], b[1] - a[1])); } return L; };
+  const locate = (w: W[], L: number[], d: number) => {
+    const tot = L[L.length - 1]; d = ((d % tot) + tot) % tot;
+    let i = 1; while (i < L.length - 1 && L[i] < d) i++;
+    const a = w[i - 1], b = w[i % w.length], t = (d - L[i - 1]) / (L[i] - L[i - 1] || 1);
+    return { x: a[0] + t * (b[0] - a[0]), y: a[1] + t * (b[1] - a[1]), o2: a[2], place: a[3] };
+  };
+
+  let dots: SVGCircleElement[] = [], chamberEls: Record<string, SVGRectElement> = {};
+  function drawFig() {
+    fig.replaceChildren(); chamberEls = {};
+    const w = WAY[animal];
+    const box = (x: number, y: number, wd: number, h: number, id: string, label: string, label2 = '') => {
+      chamberEls[id] = S('rect', { x, y, width: wd, height: h, rx: 10, class: 'hcx-ch' }, fig);
+      S('text', { x: x + wd / 2, y: y + h / 2 + (label2 ? -2 : 4), 'text-anchor': 'middle', class: 'hcx-t' }, fig, label);
+      if (label2) S('text', { x: x + wd / 2, y: y + h / 2 + 12, 'text-anchor': 'middle', class: 'hcx-t' }, fig, label2);
+    };
+    // organs
+    S('rect', { x: 70, y: 334, width: 200, height: 52, rx: 12, class: 'hcx-org' }, fig);
+    S('text', { x: 170, y: 380, 'text-anchor': 'middle', class: 'hcx-m' }, fig, 'body: all the organs');
+    if (animal === 'fish') {
+      S('rect', { x: 130, y: 40, width: 140, height: 72, rx: 14, class: 'hcx-org' }, fig);
+      S('text', { x: 150, y: 34, class: 'hcx-m' }, fig, 'gills (in water)');
+    } else {
+      S('ellipse', { cx: 98, cy: 72, rx: 38, ry: 34, class: 'hcx-org' }, fig);
+      S('ellipse', { cx: 242, cy: 72, rx: 38, ry: 34, class: 'hcx-org' }, fig);
+      S('text', { x: 170, y: 32, 'text-anchor': 'middle', class: 'hcx-m' }, fig, animal === 'frog' ? 'lungs (and skin)' : 'lungs');
+    }
+    // vessels, coloured by oxygen
+    for (let i = 0; i < w.length; i++) { const a = w[i], b = w[(i + 1) % w.length]; S('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], class: 'hcx-v ' + a[2] }, fig); }
+    // heart chambers
+    if (animal === 'human') {
+      box(80, 148, 80, 48, 'ra', 'Right', 'atrium'); box(180, 148, 80, 48, 'la', 'Left', 'atrium');
+      box(80, 206, 80, 54, 'rv', 'Right', 'ventricle'); box(180, 206, 80, 54, 'lv', 'Left', 'ventricle');
+      if (level === 11) {
+        S('text', { x: 120, y: 203, 'text-anchor': 'middle', class: 'hcx-m' }, fig, 'tricuspid');
+        S('text', { x: 220, y: 203, 'text-anchor': 'middle', class: 'hcx-m' }, fig, 'bicuspid (mitral)');
+        S('text', { x: 174, y: 140, 'text-anchor': 'start', class: 'hcx-m' }, fig, 'pulmonary');
+        S('text', { x: 296, y: 226, 'text-anchor': 'end', class: 'hcx-m' }, fig, 'aortic');
+        S('text', { x: 6, y: 286, class: 'hcx-m' }, fig, 'vena cava');
+        S('text', { x: 296, y: 300, class: 'hcx-m' }, fig, 'aorta');
+      }
+    } else if (animal === 'frog') {
+      box(80, 148, 80, 48, 'ra', 'Right', 'atrium'); box(180, 148, 80, 48, 'la', 'Left', 'atrium');
+      box(80, 206, 180, 54, 'v', 'One ventricle: blood mixes');
+    } else {
+      box(80, 198, 70, 56, 'a', 'Atrium'); box(160, 198, 80, 56, 'v', 'Ventricle');
+    }
+    S('text', { x: 170, y: animal === 'fish' ? 276 : 280, 'text-anchor': 'middle', class: 'hcx-m' }, fig, animal === 'fish' ? 'heart' : 'heart (its right side is on your left)');
+    // the moving blood cells
+    const n = animal === 'fish' ? 22 : 30;
+    dots = Array.from({ length: n }, (_, i) => S('circle', { r: i === 0 ? 7 : 5, class: i === 0 ? 'me' : '' }, fig));
+    placeDots();
+  }
+
+  function placeDots() {
+    const w = WAY[animal], L = lens(w), tot = L[L.length - 1];
+    let mePlace = 0;
+    dots.forEach((d, i) => {
+      const p = locate(w, L, phase * tot + (i * tot) / dots.length);
+      d.setAttribute('cx', String(p.x)); d.setAttribute('cy', String(p.y));
+      d.setAttribute('class', p.o2 + (i === 0 ? ' me' : ''));
+      if (i === 0) mePlace = p.place;
+    });
+    const route = ROUTES[animal], here = route[mePlace];
+    Object.entries(chamberEls).forEach(([id, el]) => el.classList.toggle('on', id === here.id));
+    const lis = q('.hcx-route').children;
+    for (let i = 0; i < lis.length; i++) lis[i].classList.toggle('on', i === mePlace);
+    const now = q('.hcx-now'), t = `The ringed cell is in the ${here.name}.`;
+    if (now.textContent !== t) now.textContent = t;
+  }
+
+  function numbers() {
+    const hr = val(HR, 75, 1, 300), sv = val(SV, 70, 1, 300), co = cardiacOutput(hr, sv), lap = lapSeconds(hr, sv);
+    q('.hcx-big').textContent = `Blood goes round once in about ${fmt(lap, 0)} seconds`;
+    q('.hcx-f1').textContent = `Cardiac output = heart rate × stroke volume = ${fmt(hr, 0)} × ${fmt(sv, 0)} mL = ${fmt(hr * sv, 0)} mL a minute = ${fmt(co, 2)} L a minute`;
+    q('.hcx-f2').textContent = `Time for one lap ≈ blood volume ÷ cardiac output = 5 L ÷ ${fmt(co, 2)} L a minute = ${fmt(lap / 60, 2)} min ≈ ${fmt(lap, 0)} s`;
+    const facts: [string, string][] = [['Chambers', String(CHAMBERS[animal])], ['Times through the heart per lap', String(heartPasses(animal))], ['Laps in a day', fmt(lapsPerDay(hr, sv), 0)], ['Pumped in a day', `${fmt(litresPerDay(hr, sv), 0)} L`]];
+    if (level === 11) facts.push(['Time per beat', `${fmt(60 / hr, 2)} s`]);
+    q('.hcx-facts').replaceChildren(...facts.map(([k, v]) => { const d = document.createElement('div'); d.append(Object.assign(document.createElement('dt'), { textContent: k }), Object.assign(document.createElement('dd'), { textContent: v })); return d; }));
+    q('.hcx-speed').textContent = `The picture runs ${FAST} times faster than real life: one lap takes ${fmt(lap / FAST, 1)} s on screen.`;
+  }
+
+  const SAY: Record<Animal, string> = {
+    human: 'Double circulation: blood goes through the heart twice on every trip, once on the way to the lungs and once on the way to the body. The two sides never mix, so the body gets blood that is fully rich in oxygen, at high pressure. Birds and mammals need this: keeping a warm body temperature uses a lot of energy.',
+    frog: 'Three chambers: two atria but one ventricle, so oxygen-rich and oxygen-poor blood partly mix. The body gets blood that is only partly rich in oxygen. That is enough for an animal whose body temperature follows its surroundings; frogs also take in oxygen through their moist skin.',
+    fish: 'Single circulation: blood goes through the heart only once on each trip. The heart pumps oxygen-poor blood to the gills, and from the gills it flows on to the body without going back to the heart, so it reaches the body at low pressure.',
+  };
+  function route() {
+    q('.hcx-route').replaceChildren(...ROUTES[animal].map((p) => { const li = document.createElement('li'); const d = document.createElement('span'); d.className = 'hcx-dot ' + p.o2; li.append(d, p.name); return li; }));
+    q('.hcx-say').textContent = SAY[animal] + (level === 11 && animal === 'human' ? ' The pulmonary artery is the only artery that carries oxygen-poor blood, and the pulmonary veins the only veins that carry oxygen-rich blood. Valves (tricuspid, bicuspid, and the semilunar valves at the pulmonary artery and aorta) stop blood flowing backwards.' : '');
+    q('.hcx-lmix').hidden = animal !== 'frog';
+  }
+  function all() { route(); drawFig(); numbers(); }
+
+  const seg = (sel: string, on: (v: string) => void) => q(sel).addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('button'); if (!b) return; q(sel).querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); on(b.dataset.v!); });
+  seg('.hcx-animal', (v) => { animal = v as Animal; phase = 0; all(); });
+  seg('.hcx-level', (v) => { level = Number(v); all(); });
+  q('.hcx-pause').addEventListener('click', () => { paused = !paused; q('.hcx-pause').textContent = paused ? 'Play' : 'Pause'; });
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { paused = true; q('.hcx-pause').textContent = 'Play'; }
+  const tick = (t: number) => {
+    const dt = last ? Math.min(0.1, (t - last) / 1000) : 0; last = t;
+    if (!paused) { phase = (phase + (dt * FAST) / lapSeconds(val(HR, 75, 1, 300), val(SV, 70, 1, 300))) % 1; placeDots(); }
+    requestAnimationFrame(tick);
+  };
+  all(); requestAnimationFrame(tick);
+
+  const CHOICE: { q: string; opts: string[]; right: number; why: string }[] = [
+    { q: 'Which chamber pumps blood to the lungs?', opts: ['Right ventricle', 'Left ventricle', 'Left atrium'], right: 0, why: 'The right ventricle sends oxygen-poor blood along the pulmonary artery to the lungs.' },
+    { q: 'Which chamber pumps blood to the whole body?', opts: ['Right atrium', 'Left ventricle', 'Right ventricle'], right: 1, why: 'The left ventricle pumps oxygen-rich blood into the aorta. Its wall is the thickest.' },
+    { q: 'Which vessel brings oxygen-rich blood from the lungs?', opts: ['Vena cava', 'Pulmonary artery', 'Pulmonary vein'], right: 2, why: 'The pulmonary vein carries oxygen-rich blood from the lungs to the left atrium.' },
+    { q: 'How many chambers does a fish heart have?', opts: ['Two', 'Three', 'Four'], right: 0, why: 'One atrium and one ventricle: a fish has single circulation.' },
+    { q: 'Why do birds and mammals need double circulation?', opts: ['They keep a warm body and need lots of oxygen', 'They live in water', 'Their blood has no haemoglobin'], right: 0, why: 'Keeping the body warm uses a lot of energy, so the body needs a steady supply of fully oxygen-rich blood.' },
+    { q: 'In which animal do oxygen-rich and oxygen-poor blood mix in the heart?', opts: ['Human', 'Frog', 'Bird'], right: 1, why: 'A frog has one ventricle shared by both streams.' },
+  ];
+  quiz(q('.hcx-quiz'), () => {
+    const out: Question[] = [];
+    for (const c of [...CHOICE].sort(() => Math.random() - 0.5).slice(0, 2)) {
+      const order = [0, 1, 2].sort(() => Math.random() - 0.5), pos = order.indexOf(c.right) + 1;
+      out.push({ q: `${c.q} ${order.map((k, i) => `${i + 1} ${c.opts[k]}`).join(', ')}.`, want: [pos], hint: 'type 1, 2 or 3', work: `${pos}: ${c.opts[c.right]}. ${c.why}` });
+    }
+    const hr = randInt(12, 30) * 5, sv = randInt(12, 20) * 5;
+    out.push({ q: `A heart beats ${hr} times a minute and pushes out ${sv} mL each beat. What is the cardiac output in litres a minute?`, want: [(hr * sv) / 1000], tol: 0.001, hint: 'L a minute', work: `${hr} × ${sv} mL = ${hr * sv} mL a minute = ${fmt((hr * sv) / 1000, 3)} L a minute.` });
+    const co = randInt(4, 12);
+    out.push({ q: `The cardiac output is ${co} L a minute and the body holds 5 L of blood. How many seconds does it take the blood to go round once?`, want: [300 / co], tol: 0.005, hint: 'seconds', work: `5 L ÷ ${co} L a minute = ${fmt(5 / co, 3)} min = ${fmt(300 / co, 1)} s.` });
+    return out;
+  });
+</script>

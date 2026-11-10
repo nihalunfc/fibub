@@ -1,0 +1,235 @@
+---
+// Centre of mass finder: masses on a seesaw with moments about a pivot, point masses on a plane, and a flat
+// shape made of squares. Maths in src/lib/sci/centre-of-mass.ts.
+import '../../styles/astro.css';
+---
+<div class="ax cm">
+  <div class="ax-card">
+    <div class="ax-row cm-top">
+      <div class="ax-seg cm-mode" role="group" aria-label="What to balance">
+        <button type="button" data-v="see" aria-pressed="true">Seesaw</button>
+        <button type="button" data-v="pts" aria-pressed="false">Point masses</button>
+        <button type="button" data-v="shape" aria-pressed="false">Flat shape</button>
+      </div>
+    </div>
+    <canvas class="cm-c" aria-label="The masses and their centre of mass"></canvas>
+    <p class="ax-help cm-hint"></p>
+    <div class="ax-row cm-btns">
+      <button type="button" class="btn small cm-bal">Move the pivot to the balance point</button>
+      <span class="cm-shapes ax-row" hidden>
+        <button type="button" class="btn secondary small" data-s="L">L shape</button>
+        <button type="button" class="btn secondary small" data-s="ring">Frame</button>
+        <button type="button" class="btn secondary small" data-s="T">T shape</button>
+        <button type="button" class="btn secondary small" data-s="clear">Clear</button>
+      </span>
+    </div>
+    <div class="cm-ctl">
+      <label class="cm-mrow">Mass 1 (blue): <b class="cm-m1v"></b><input class="cm-m1" type="range" min="0" max="60" step="1" value="30" /></label>
+      <label class="cm-mrow">Mass 2 (orange): <b class="cm-m2v"></b><input class="cm-m2" type="range" min="0" max="60" step="1" value="20" /></label>
+      <label class="cm-mrow">Mass 3 (green): <b class="cm-m3v"></b><input class="cm-m3" type="range" min="0" max="60" step="1" value="0" /></label>
+      <label class="cm-see">Pivot position: <b class="cm-pv"></b><input class="cm-p" type="range" min="-2" max="2" step="0.1" value="0" /></label>
+      <label class="cm-see">Mass of the plank itself: <b class="cm-Mv"></b><input class="cm-M" type="range" min="0" max="20" step="1" value="0" /></label>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="cm-h">Moments and balance</h2>
+    <p><span class="ax-pill cm-pill"></span></p>
+    <dl class="ax-facts cm-facts"></dl>
+    <div class="cm-eq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="cm-try">
+      <li>On the seesaw, put a 30 kg child 1 m from the pivot. Where must a 20 kg child sit to balance? Drag them there.</li>
+      <li>Give the plank some mass and move the pivot off-centre. The plank's own weight now has a moment too.</li>
+      <li>With point masses, make one mass much heavier. The centre of mass moves close to it.</li>
+      <li>Pick the Frame shape. Its centre of mass is in the empty middle: you could not balance it on a pin there, but it would hang straight from any point.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="cm-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { cm1d, moments, balanceAt, cm2d, cmCells, questions, type M1 } from '../../lib/sci/centre-of-mass';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { setupCanvas, arrow, text, f, fact, para, seg, keepDrawn, drag, type Palette } from '../../lib/school-n';
+
+  const root = document.querySelector<HTMLElement>('.cm')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c);
+  const val = (c: string) => Number(inp(c).value);
+  const H = 260;
+  let mode = 'see';
+  const seeX = [-1, 1.5, 0.5];
+  const pts: [number, number][] = [[2, 2], [8, 3], [5, 7]];
+  let cells = new Set<string>(), pivotX: number | null = null;
+  const pv = () => pivotX ?? val('.cm-p');
+  const SHAPES: Record<string, [number, number][]> = {
+    L: [[1, 1], [1, 2], [1, 3], [1, 4], [1, 5], [2, 5], [3, 5], [4, 5], [2, 1], [2, 2], [2, 3], [2, 4], [3, 4], [4, 4]],
+    ring: [[2, 1], [3, 1], [4, 1], [5, 1], [6, 1], [2, 2], [6, 2], [2, 3], [6, 3], [2, 4], [6, 4], [2, 5], [3, 5], [4, 5], [5, 5], [6, 5]],
+    T: [[1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1], [7, 1], [3, 2], [4, 2], [5, 2], [4, 3], [4, 4], [4, 5], [4, 6]],
+  };
+  const setShape = (k: string) => { cells = new Set((SHAPES[k] ?? []).map((c) => c.join(','))); };
+  setShape('L');
+  const masses = () => [val('.cm-m1'), val('.cm-m2'), val('.cm-m3')];
+  const seeList = (): M1[] => { const m = masses(), l: M1[] = m.map((mm, i) => ({ m: mm, x: seeX[i] })).filter((a) => a.m > 0); if (val('.cm-M') > 0) l.push({ m: val('.cm-M'), x: 0 }); return l; };
+  let geo = { s: 1, ox: 0, oy: 0, cell: 1, gx: 0, gy: 0 };
+  const cols = (pal: Palette) => [pal.accent, pal.accent2, pal.good];
+
+  function drawSee() {
+    const c = q<HTMLCanvasElement>('.cm-c'), { ctx, w, pal } = setupCanvas(c, H), piv = pv(), list = seeList(), mo = moments(list, piv);
+    const s = (w - 40) / 4.4, ox = w / 2, oy = 150; geo = { ...geo, s, ox, oy };
+    const tilt = mo.balanced ? 0 : Math.sign(mo.net) * Math.min(12, 2 + Math.abs(mo.net) / 40) * (Math.PI / 180);
+    const X = (x: number) => ox + x * s;
+    // ground and pivot
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, oy + 46); ctx.lineTo(w, oy + 46); ctx.stroke();
+    ctx.fillStyle = pal.muted; ctx.beginPath(); ctx.moveTo(X(piv), oy + 4); ctx.lineTo(X(piv) - 18, oy + 46); ctx.lineTo(X(piv) + 18, oy + 46); ctx.closePath(); ctx.fill();
+    ctx.save(); ctx.translate(X(piv), oy); ctx.rotate(tilt); ctx.translate(-X(piv), -oy);
+    ctx.fillStyle = val('.cm-M') > 0 ? pal.line : pal.grid; ctx.strokeStyle = pal.ink; ctx.fillRect(X(-2), oy - 6, 4 * s, 8); ctx.strokeRect(X(-2), oy - 6, 4 * s, 8);
+    for (let x = -2; x <= 2.001; x += 0.5) { ctx.beginPath(); ctx.moveTo(X(x), oy + 2); ctx.lineTo(X(x), oy + 7); ctx.stroke(); }
+    masses().forEach((m, i) => { if (m <= 0) return; const sz = 12 + Math.sqrt(m) * 3; ctx.fillStyle = cols(pal)[i]; ctx.fillRect(X(seeX[i]) - sz / 2, oy - 6 - sz, sz, sz); text(ctx, String(m), X(seeX[i]), oy - 6 - sz - 4, pal.ink, 'center', 11, 600); });
+    // balance point
+    const cmx = cm1d(list); if (list.length) { ctx.strokeStyle = pal.bad; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(cmx), oy + 10); ctx.lineTo(X(cmx), oy + 26); ctx.stroke(); text(ctx, 'CM', X(cmx), oy + 38, pal.bad, 'center', 11, 600); }
+    ctx.restore();
+    for (let x = -2; x <= 2; x++) text(ctx, `${x} m`.replace('-', '−'), X(x), oy + 62, pal.muted, 'center', 11);
+    if (!mo.balanced) arrow(ctx, X(piv) + Math.sign(mo.net) * 60, 40, 0, 26, pal.bad, mo.net > 0 ? 'right side drops' : 'left side drops');
+    c.setAttribute('aria-label', `Seesaw: ${mo.balanced ? 'balanced' : mo.net > 0 ? 'the right side drops' : 'the left side drops'}; centre of mass at ${f(cmx, 2)} m`);
+    return { mo, cmx, list, piv };
+  }
+
+  function drawPts() {
+    const c = q<HTMLCanvasElement>('.cm-c'), { ctx, w, pal } = setupCanvas(c, H), cell = Math.min((w - 30) / 10, (H - 30) / 10), gx = (w - cell * 10) / 2 + 8, gy = 10;
+    geo = { ...geo, cell, gx, gy };
+    const X = (x: number) => gx + x * cell, Y = (y: number) => gy + (10 - y) * cell;
+    ctx.strokeStyle = pal.grid; ctx.lineWidth = 1;
+    for (let i = 0; i <= 10; i++) { ctx.beginPath(); ctx.moveTo(X(i), Y(0)); ctx.lineTo(X(i), Y(10)); ctx.moveTo(X(0), Y(i)); ctx.lineTo(X(10), Y(i)); ctx.stroke(); }
+    for (let i = 0; i <= 10; i += 2) { text(ctx, String(i), X(i), Y(0) + 13, pal.muted, 'center', 10); text(ctx, String(i), X(0) - 4, Y(i) + 4, pal.muted, 'right', 10); }
+    const m = masses(), list = m.map((mm, i) => ({ m: mm, x: pts[i][0], y: pts[i][1] })).filter((a) => a.m > 0), r = cm2d(list);
+    m.forEach((mm, i) => { const rad = 6 + Math.sqrt(mm) * 1.6; ctx.fillStyle = cols(pal)[i]; ctx.globalAlpha = mm > 0 ? 1 : 0.25; ctx.beginPath(); ctx.arc(X(pts[i][0]), Y(pts[i][1]), rad, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; text(ctx, `${mm}`, X(pts[i][0]), Y(pts[i][1]) - rad - 3, pal.ink, 'center', 11, 600); });
+    if (list.length) { ctx.strokeStyle = pal.bad; ctx.lineWidth = 2.5; const cx = X(r.x), cy = Y(r.y); ctx.beginPath(); ctx.moveTo(cx - 9, cy); ctx.lineTo(cx + 9, cy); ctx.moveTo(cx, cy - 9); ctx.lineTo(cx, cy + 9); ctx.stroke(); ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI * 2); ctx.stroke(); }
+    c.setAttribute('aria-label', `Centre of mass at (${f(r.x, 2)}, ${f(r.y, 2)}) m`);
+    return { r, list };
+  }
+
+  function drawShape() {
+    const c = q<HTMLCanvasElement>('.cm-c'), { ctx, w, pal } = setupCanvas(c, H), cell = Math.min((w - 20) / 9, (H - 20) / 7), gx = (w - cell * 9) / 2, gy = 10;
+    geo = { ...geo, cell, gx, gy };
+    ctx.strokeStyle = pal.grid; ctx.lineWidth = 1;
+    for (let i = 0; i <= 9; i++) { ctx.beginPath(); ctx.moveTo(gx + i * cell, gy); ctx.lineTo(gx + i * cell, gy + 7 * cell); ctx.stroke(); }
+    for (let j = 0; j <= 7; j++) { ctx.beginPath(); ctx.moveTo(gx, gy + j * cell); ctx.lineTo(gx + 9 * cell, gy + j * cell); ctx.stroke(); }
+    const list = [...cells].map((s) => s.split(',').map(Number) as [number, number]);
+    ctx.fillStyle = pal.accent; ctx.globalAlpha = 0.55; for (const [x, y] of list) ctx.fillRect(gx + x * cell + 1, gy + y * cell + 1, cell - 2, cell - 2); ctx.globalAlpha = 1;
+    const r = cmCells(list);
+    if (r.n) { const cx = gx + r.x * cell, cy = gy + r.y * cell; ctx.strokeStyle = pal.bad; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(cx - 10, cy); ctx.lineTo(cx + 10, cy); ctx.moveTo(cx, cy - 10); ctx.lineTo(cx, cy + 10); ctx.stroke(); ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI * 2); ctx.stroke(); }
+    c.setAttribute('aria-label', r.n ? `A shape of ${r.n} squares; centre of mass at (${f(r.x, 2)}, ${f(r.y, 2)}) squares${r.inside ? '' : ', outside the shape'}` : 'An empty grid');
+    return r;
+  }
+
+  function draw() {
+    const m = masses();
+    q('.cm-m1v').textContent = `${m[0]} kg`; q('.cm-m2v').textContent = `${m[1]} kg`; q('.cm-m3v').textContent = `${m[2]} kg`;
+    q('.cm-pv').textContent = `${f(pv(), 2)} m`; q('.cm-Mv').textContent = `${val('.cm-M')} kg`;
+    root.querySelectorAll<HTMLElement>('.cm-see').forEach((e) => { e.hidden = mode !== 'see'; });
+    root.querySelectorAll<HTMLElement>('.cm-mrow').forEach((e) => { e.hidden = mode === 'shape'; });
+    q('.cm-bal').hidden = mode !== 'see'; q('.cm-shapes').hidden = mode !== 'shape';
+    const pill = q('.cm-pill'), eq: HTMLElement[] = [];
+    if (mode === 'see') {
+      q('.cm-hint').textContent = 'Drag the blocks along the plank, or drag the pivot. The plank runs from −2 m to 2 m.';
+      q('.cm-h').textContent = 'Moments and balance';
+      const { mo, cmx, list, piv } = drawSee();
+      pill.textContent = mo.balanced ? 'Balanced: the moments are equal' : mo.net > 0 ? 'Not balanced: the right side goes down' : 'Not balanced: the left side goes down';
+      pill.className = `ax-pill ${mo.balanced ? 'good' : 'warn'} cm-pill`;
+      const without2: M1[] = [0, 2].map((i) => ({ m: m[i], x: seeX[i] })).filter((a) => a.m > 0);
+      if (val('.cm-M') > 0) without2.push({ m: val('.cm-M'), x: 0 });
+      const fix = m[1] > 0 ? balanceAt(without2, piv, m[1]) : NaN;
+      q('.cm-facts').replaceChildren(
+        fact('Anticlockwise moment', `${f(mo.acw, 1)} N m`, 'from the left side'),
+        fact('Clockwise moment', `${f(mo.cw, 1)} N m`, 'from the right side'),
+        fact('Balance point (centre of mass)', `${f(cmx, 2)} m`),
+        ...(m[1] > 0 ? [fact('Mass 2 balances it at', Number.isFinite(fix) && Math.abs(fix) <= 2 ? `${f(fix, 2)} m` : 'off the plank')] : []),
+      );
+      const terms = list.map((a) => `${f(a.m, 0)} × ${f(Math.abs(a.x - piv), 2)}`);
+      eq.push(para([['Moment = force × distance from the pivot: '], `each mass pushes down with mg (g = 9.8 N per kg). Left: ${f(mo.acw, 1)} N m; right: ${f(mo.cw, 1)} N m.`]));
+      eq.push(para([['Principle of moments: '], `it balances when clockwise = anticlockwise. Here mass × distance: ${terms.join(', ') || 'nothing on the plank'}.`]));
+      eq.push(para([['Centre of mass: '], `x = Σmx ÷ Σm = ${f(cmx, 2)} m. Put the pivot there and it balances, whatever the masses.`]));
+    } else if (mode === 'pts') {
+      q('.cm-hint').textContent = 'Drag the balls to move them; set their masses with the sliders. The grid is in metres.';
+      q('.cm-h').textContent = 'Centre of mass';
+      const { r, list } = drawPts();
+      pill.textContent = list.length ? `Centre of mass at (${f(r.x, 2)}, ${f(r.y, 2)}) m` : 'Give at least one ball some mass'; pill.className = 'ax-pill good cm-pill';
+      q('.cm-facts').replaceChildren(fact('Total mass', `${f(r.M, 0)} kg`), fact('x of the centre', `${f(r.x, 2)} m`), fact('y of the centre', `${f(r.y, 2)} m`));
+      eq.push(para([['x = Σmx ÷ Σm: '], `(${list.map((a) => `${a.m} × ${f(a.x, 1)}`).join(' + ')}) ÷ ${f(r.M, 0)} = ${f(r.x, 2)} m.`]));
+      eq.push(para([['y = Σmy ÷ Σm: '], `(${list.map((a) => `${a.m} × ${f(a.y, 1)}`).join(' + ')}) ÷ ${f(r.M, 0)} = ${f(r.y, 2)} m.`]));
+    } else {
+      q('.cm-hint').textContent = 'Tap squares to add or remove them. All squares have the same mass.';
+      q('.cm-h').textContent = 'Centre of mass of the shape';
+      const r = drawShape();
+      pill.textContent = !r.n ? 'Tap some squares to make a shape' : r.inside ? 'You could balance it on a pin at the red mark' : 'The centre of mass is outside the shape!';
+      pill.className = `ax-pill ${r.inside || !r.n ? 'good' : 'warn'} cm-pill`;
+      q('.cm-facts').replaceChildren(fact('Squares', String(r.n)), fact('Across (from the left)', r.n ? `${f(r.x, 2)} squares` : '–'), fact('Down (from the top)', r.n ? `${f(r.y, 2)} squares` : '–'));
+      eq.push(para([['Equal squares: '], 'each square\'s mass acts at its centre, so the shape\'s centre of mass is the average of the square centres. A symmetric shape has it on the line of symmetry.']));
+      eq.push(para([['Hang it up: '], 'hung from any point, a flat shape turns until the centre of mass is directly below that point. Hang it from two points, draw both vertical lines, and they cross at the centre of mass.']));
+    }
+    q('.cm-eq').replaceChildren(...eq);
+  }
+
+  // dragging and tapping
+  const cv = q<HTMLCanvasElement>('.cm-c');
+  let grab = -1;
+  drag(cv, (px, py, first) => {
+    if (mode === 'see') {
+      const x = Math.max(-2, Math.min(2, Math.round(((px - geo.ox) / geo.s) * 10) / 10));
+      if (first) { const ds = seeX.map((sx, i) => (masses()[i] > 0 ? Math.abs(geo.ox + sx * geo.s - px) : Infinity)); const dp = Math.abs(geo.ox + pv() * geo.s - px) + (py > geo.oy ? 0 : 30); const i = ds.indexOf(Math.min(...ds)); grab = dp < ds[i] ? 3 : i; }
+      if (grab === 3) { inp('.cm-p').value = String(x); pivotX = null; } else if (grab >= 0) seeX[grab] = x;
+    } else if (mode === 'pts') {
+      const x = Math.max(0, Math.min(10, Math.round(((px - geo.gx) / geo.cell) * 2) / 2)), y = Math.max(0, Math.min(10, Math.round((10 - (py - geo.gy) / geo.cell) * 2) / 2));
+      if (first) { const ds = pts.map((p) => Math.hypot(geo.gx + p[0] * geo.cell - px, geo.gy + (10 - p[1]) * geo.cell - py)); grab = ds.indexOf(Math.min(...ds)); }
+      pts[grab] = [x, y];
+    } else {
+      if (!first) return;
+      const cx = Math.floor((px - geo.gx) / geo.cell), cy = Math.floor((py - geo.gy) / geo.cell);
+      if (cx < 0 || cx > 8 || cy < 0 || cy > 6) return;
+      const k = `${cx},${cy}`; if (cells.has(k)) cells.delete(k); else cells.add(k);
+    }
+    draw();
+  }, () => { grab = -1; });
+
+  q('.cm-bal').addEventListener('click', () => { const x = Math.max(-2, Math.min(2, cm1d(seeList()))); inp('.cm-p').value = String(x); pivotX = x; draw(); });
+  root.querySelectorAll<HTMLButtonElement>('.cm-shapes button').forEach((b) => b.addEventListener('click', () => { setShape(b.dataset.s!); draw(); }));
+  seg(q('.cm-mode'), (v) => { mode = v; draw(); });
+  root.querySelectorAll('.cm-ctl input').forEach((i) => i.addEventListener('input', () => { if (i === inp('.cm-p')) pivotX = null; draw(); }));
+  mountQuiz(q('.cm-quiz'), () => questions());
+  draw();
+  keepDrawn(cv, draw);
+</script>
+
+<style is:inline>
+  .cm .cm-top { margin-bottom: 10px; }
+  .cm .ax-seg button { min-height: 44px; }
+  .cm canvas { display: block; width: 100%; touch-action: none; }
+  .cm .cm-btns { margin-top: 8px; }
+  .cm .cm-btns [hidden], .cm .cm-ctl label[hidden] { display: none; }
+  .cm .cm-ctl { display: grid; gap: 10px; margin-top: 12px; }
+  .cm input[type=range] { width: 100%; height: 32px; accent-color: var(--ink); }
+  .cm label b { color: var(--ink); }
+  .cm .btn.small { min-height: 44px; }
+  .cm .cm-pill { font-size: 14px; white-space: normal; }
+  .cm .cm-eq p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .cm .cm-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>

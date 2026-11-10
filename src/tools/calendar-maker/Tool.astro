@@ -1,0 +1,143 @@
+---
+// Calendar maker: five ways to fit whole days and Moon months to a year of seasons (365 days only, Julian, Gregorian,
+// a pure Moon calendar, and Moon months with an extra adhik maas), run forward any number of years on a seasons
+// wheel, plus the leap year rule for any year. Mean values. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm cm">
+  <div class="ax-card">
+    <h2>Run the calendars forward</h2>
+    <div class="sm-sl"><b>years</b><input type="range" class="cm-yr" min="0" max="500" step="1" value="100" aria-label="Years run forward" /><input type="number" class="cm-y" min="0" max="5000" step="1" value="100" aria-label="Number of years, 0 to 5,000" /></div>
+    <div class="ax-row"><button type="button" class="btn secondary small cm-pre" data-y="1">1 year</button><button type="button" class="btn secondary small cm-pre" data-y="4">4</button><button type="button" class="btn secondary small cm-pre" data-y="19">19</button><button type="button" class="btn secondary small cm-pre" data-y="33">33</button><button type="button" class="btn secondary small cm-pre" data-y="400">400</button></div>
+    <p class="ax-help">All five calendars start with the spring equinox (when day and night are equal, about 20 March) on the same date. The dots show where it has slipped to.</p>
+    <svg class="sm-fig cm-wheel" viewBox="0 0 340 340" role="img" aria-label="Seasons wheel: the year as a circle of months, with a dot for where the equinox falls in each calendar"></svg>
+    <div class="ax-scroll"><table class="cm-tab"></table></div>
+    <p class="ax-err cm-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Adhik maas: the extra month</h2>
+    <p class="sm-f cm-a1"></p>
+    <p class="sm-f cm-a2"></p>
+    <p class="sm-f cm-a3"></p>
+    <p class="ax-help">A simple rule: add a 13th month whenever the Moon months have fallen more than half a month behind the seasons. Real Indian calendars decide it from the Sun's entry into each sign (sankranti), so the actual years can differ; check a panchang.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Is it a leap year?</h2>
+    <label>Year <input type="number" class="cm-ly" min="1" max="9999" step="1" value="2100" inputmode="numeric" /></label>
+    <p class="ax-big cm-l1"></p>
+    <p class="sm-f cm-l2"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Run 100 years. Which calendar loses the seasons fastest? Which one hardly moves?</li>
+      <li>Run 33 years and watch the Moon-only calendar: its dot has gone right round the wheel. That is why Ramzan and Eid move through every season.</li>
+      <li>Run 19 years. How many adhik maas were added, and how far is the lunisolar calendar out?</li>
+      <li>Type 1900, 2000 and 2100 in the leap year box. Which ones are leap years, and why?</li>
+      <li>How many years does the Julian calendar take to be a whole day out? (Look at the last column.)</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="cm-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .cm input.cm-ly { width: 7em; min-height: 40px; margin-left: 6px; }
+  .cm svg .cm-ring { fill: none; stroke: var(--line); stroke-width: 26; }
+  .cm svg .cm-k0 { fill: var(--muted); }
+  .cm svg .cm-k1 { fill: var(--warn); }
+  .cm svg .cm-k2 { fill: var(--good); }
+  .cm svg .cm-k3 { fill: var(--bad); }
+  .cm svg .cm-k4 { fill: var(--accent); }
+  .cm svg .cm-start { stroke: var(--ink); stroke-width: 2; stroke-dasharray: 4 3; }
+  .cm table td.r, .cm table th.r { text-align: right; }
+  .cm table td .cm-sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+</style>
+
+<script>
+  import { TROPICAL, SYNODIC, LUNAR_YEAR, KINDS, slip, lunisolar, metonic, isLeapGregorian, isLeapJulian, leapsBetween, yearsToSlip, type Kind } from '../../lib/sci/calendar-j2';
+  import { S, pair, quiz, type Question } from '../../lib/smath-ui';
+  import { randInt } from '../../lib/sci/smath';
+
+  const root = document.querySelector<HTMLElement>('.cm')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const Y = q<HTMLInputElement>('.cm-y');
+  const setY = pair(q('.cm-yr'), Y, draw);
+  const ORDER: Kind[] = ['plain', 'julian', 'gregorian', 'lunar', 'lunisolar'];
+  const COL = ['var(--muted)', 'var(--warn)', 'var(--good)', 'var(--bad)', 'var(--accent)'];
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const START = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+  const EQUINOX = 78.5;   // about 20 March, days after 1 January
+  const f1 = (x: number) => (Math.round(x * 10) / 10).toLocaleString('en');
+  const f2 = (x: number) => (Math.round(x * 100) / 100).toLocaleString('en');
+  const later = (d: number) => (Math.abs(d) < 0.05 ? 'on time' : `${f1(Math.abs(d))} days ${d > 0 ? 'later' : 'earlier'}`);
+
+  function readYears(): number | null { const v = Number(Y.value); return Number.isInteger(v) && v >= 0 && v <= 5000 ? v : null; }
+
+  function draw() {
+    const n = readYears(), err = q('.cm-err');
+    if (n === null) { err.textContent = 'Type a whole number of years from 0 to 5,000.'; err.hidden = false; return; }
+    err.hidden = true;
+    const svg = q<SVGSVGElement>('.cm-wheel'); svg.replaceChildren();
+    const C = 170, R = 120, at = (day: number, r: number) => { const a = (2 * Math.PI * day) / TROPICAL - Math.PI / 2; return [C + r * Math.cos(a), C + r * Math.sin(a)]; };
+    S('circle', { cx: C, cy: C, r: R, class: 'cm-ring' }, svg);
+    MONTHS.forEach((m, i) => {
+      const [x1, y1] = at(START[i], R - 13), [x2, y2] = at(START[i], R + 13); S('line', { x1, y1, x2, y2, class: 'sm-grid', style: 'stroke:var(--muted)' }, svg);
+      const [tx, ty] = at(START[i] + 15, R + 26); S('text', { x: tx, y: ty + 4, 'text-anchor': 'middle', class: 'sm-tick' }, svg, m);
+    });
+    for (const [d, label] of [[EQUINOX, 'spring'], [172, 'summer'], [265.5, 'autumn'], [355, 'winter']] as const) { const [tx, ty] = at(d, R - 30); S('text', { x: tx, y: ty + 4, 'text-anchor': 'middle', class: 'sm-tick' }, svg, label); }
+    const [sx, sy] = at(EQUINOX, R - 16), [ex, ey] = at(EQUINOX, R + 16);
+    S('line', { x1: sx, y1: sy, x2: ex, y2: ey, class: 'cm-start' }, svg);
+    const t = q<HTMLTableElement>('.cm-tab'); t.replaceChildren();
+    const h = t.insertRow(); ['Calendar', 'Year, days', `Equinox after ${n} yr`, 'Years to slip 1 day'].forEach((x, i) => { const e = document.createElement('th'); e.textContent = x; if (i) e.className = 'r'; h.append(e); });
+    ORDER.forEach((k, i) => {
+      const s = slip(k, n);
+      const [x, y] = at(EQUINOX + s, R - 2 + (i - 2) * 7);
+      S('circle', { cx: x, cy: y, r: 7, class: `cm-k${i} cm-dot`, stroke: 'var(--surface)', 'stroke-width': 1.5 }, svg);
+      const r = t.insertRow(), c0 = r.insertCell(), sw = document.createElement('span'); sw.className = 'cm-sw'; sw.style.background = COL[i]; c0.append(sw, KINDS[k].name);
+      const yl = k === 'lunisolar' ? (n ? (lunisolar(n).months * SYNODIC) / n : 12 * SYNODIC) : KINDS[k].year;
+      const c1 = r.insertCell(); c1.textContent = k === 'lunisolar' ? `${f2(yl)} avg` : String(+yl.toFixed(4)); c1.className = 'r';
+      const c2 = r.insertCell(); c2.textContent = later(s); c2.className = 'r';
+      const c3 = r.insertCell(); c3.textContent = k === 'lunisolar' ? 'kept within ½ month' : Math.abs(TROPICAL - KINDS[k].year) < 1e-9 ? 'never' : f1(yearsToSlip(k, 1)).replace(/^0$/, '< 0.1'); c3.className = 'r';
+    });
+    const L = lunisolar(n), m = metonic();
+    q('.cm-a1').textContent = `12 Moon months = 12 × ${SYNODIC.toFixed(4)} = ${LUNAR_YEAR.toFixed(2)} days, about ${f1(TROPICAL - LUNAR_YEAR)} days short of the ${TROPICAL} day year of seasons.`;
+    q('.cm-a2').textContent = n === 0 ? 'Run the calendars forward to see where the extra months go.' : `In ${n} years: ${L.months.toLocaleString('en')} months, with ${L.adhik.length} adhik maas${L.adhik.length ? ` (in year${L.adhik.length > 1 ? 's' : ''} ${L.adhik.slice(0, 20).join(', ')}${L.adhik.length > 20 ? ', ...' : ''})` : ''}. It ends ${later(L.lag)} than the seasons.`;
+    q('.cm-a3').textContent = `Why 7 in 19 years: 19 years of seasons = ${f1(m.years)} days and 235 Moon months (19 × 12 + 7) = ${f1(m.months)} days, only ${f1(Math.abs(m.diffHours))} hours apart.`;
+  }
+
+  function leap() {
+    const v = Number(q<HTMLInputElement>('.cm-ly').value), o1 = q('.cm-l1'), o2 = q('.cm-l2');
+    if (!Number.isInteger(v) || v < 1 || v > 9999) { o1.textContent = 'Type a year from 1 to 9999.'; o2.textContent = ''; return; }
+    const g = isLeapGregorian(v);
+    o1.textContent = `${v} is ${g ? 'a leap year' : 'not a leap year'}: ${g ? 366 : 365} days, February has ${g ? 29 : 28}.`;
+    o2.textContent = v % 4 !== 0 ? `${v} does not divide by 4, so no leap day.` : v % 100 !== 0 ? `${v} divides by 4 and not by 100, so it gets a leap day.` : v % 400 !== 0 ? `${v} divides by 100 but not by 400, so the Gregorian rule skips its leap day${isLeapJulian(v) ? ' (the old Julian calendar would have kept it)' : ''}.` : `${v} divides by 400, so it keeps its leap day.`;
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.cm-pre').forEach((b) => b.addEventListener('click', () => { setY(Number(b.dataset.y)); draw(); }));
+  q('.cm-ly').addEventListener('input', leap);
+  draw(); leap();
+
+  quiz(q('.cm-quiz'), () => {
+    const out: Question[] = [];
+    const y1 = [1900, 2000, 2024, 2025, 2100, 2400, 1996, 2026, 1800, 1600][randInt(0, 9)];
+    out.push({ q: `How many days are there in the year ${y1}?`, want: [isLeapGregorian(y1) ? 366 : 365], work: `${y1}: ${isLeapGregorian(y1) ? 'a leap year' : 'not a leap year'} (divisible by 4, except century years not divisible by 400), so ${isLeapGregorian(y1) ? 366 : 365} days.` });
+    const a = randInt(19, 21) * 100 + 1, b = a + randInt(1, 4) * 25 - 1;
+    out.push({ q: `How many leap years are there from ${a} to ${b}, both included?`, want: [leapsBetween(a, b)], work: `Count the years divisible by 4, then drop century years not divisible by 400: ${leapsBetween(a, b)} leap years.` });
+    const n = randInt(2, 9);
+    out.push({ q: `A festival is on a fixed date of a pure Moon calendar (12 months of 29.53 days). How many days earlier in the seasons is it after ${n} years? (year of seasons = 365.24 days)`, want: [n * (365.24 - 12 * 29.53)], tol: 0.02, work: `12 × 29.53 = 354.36 days, about 10.88 days short each year, so after ${n} years it is ${n} × 10.88 = ${f1(n * 10.88)} days earlier.` });
+    const c = randInt(2, 9) * 100;
+    out.push({ q: `The Julian year is 365.25 days and the year of seasons 365.2422 days. How many days out is the Julian calendar after ${c} years?`, want: [c * 0.0078], tol: 0.02, work: `365.25 − 365.2422 = 0.0078 days a year, so ${c} × 0.0078 = ${f2(c * 0.0078)} days.` });
+    const m = randInt(2, 6);
+    out.push({ q: `About how many days are ${m} Moon months? (one Moon month = 29.53 days)`, want: [m * 29.53], tol: 0.01, work: `${m} × 29.53 = ${f2(m * 29.53)} days.` });
+    return out;
+  });
+</script>

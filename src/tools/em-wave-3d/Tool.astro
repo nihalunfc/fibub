@@ -1,0 +1,120 @@
+---
+// An electromagnetic wave in 3D: the electric and magnetic fields wave at right angles to each other and to the
+// direction of travel, in step, moving at c. Change the wavelength and field strength; turn the view.
+import '../../styles/astro.css';
+---
+<div class="ax emw">
+  <div class="ax-card">
+    <h2>Electromagnetic wave</h2>
+    <canvas class="ax-fig emw-fig" aria-label="Electric and magnetic fields of a travelling wave"></canvas>
+    <div class="ax-legend"><span><i class="emw-ke"></i>electric field E</span><span><i class="emw-kb"></i>magnetic field B</span><span><i class="emw-kc"></i>direction of travel</span></div>
+    <label class="emw-sl">Wavelength λ: <b class="emw-lv"></b><input type="range" class="emw-l" min="0" max="1200" step="1" value="948" aria-label="Wavelength, from 1 nanometre to 1 kilometre" /></label>
+    <label class="emw-sl">Peak electric field E₀: <b class="emw-ev"></b><input type="range" class="emw-e" min="1" max="1000" step="1" value="10" aria-label="Peak electric field in volt per metre" /></label>
+    <label class="emw-sl">Turn the view: <b class="emw-av"></b><input type="range" class="emw-a" min="-60" max="60" step="1" value="30" aria-label="View angle in degrees" /></label>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn secondary small emw-play">Pause</button></div>
+    <p class="ax-big emw-big" aria-live="polite"></p>
+    <p class="emw-text"></p>
+    <dl class="ax-facts emw-facts" style="margin-top:10px"></dl>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="emw-try">
+      <li>Watch E and B: they peak together and pass through zero together. They are in phase.</li>
+      <li>Turn the view: E stays up and down, B stays side to side, and both are at right angles to the travel.</li>
+      <li>Slide the wavelength from radio to gamma rays: the picture looks the same, because all of them are the same kind of wave. Only λ and f change.</li>
+      <li>Make E₀ ten times bigger: B₀ goes up ten times, and the intensity a hundred times.</li>
+      <li>B₀ is tiny compared with E₀ because B₀ = E₀/c, and c is huge.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="emw-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .emw .emw-fig { max-width: 560px; margin: 0 auto; }
+  .emw .emw-sl { display: grid; gap: 6px; margin-top: 12px; color: var(--ink); font-size: 15px; }
+  .emw input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .emw-ke { background: var(--accent); }
+  .emw-kb { background: var(--warn); }
+  .emw-kc { background: var(--ink); }
+  .emw-big { font-size: clamp(18px, 4.6vw, 24px); margin: 12px 0 0; }
+  .emw-text { margin: 6px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .emw-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .emw .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .emw .eq-q p { margin: 0 0 6px; }
+  .emw .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .emw .eq-ok { color: var(--good); font-weight: 600; }
+  .emw .eq-no { color: var(--bad); }
+  .emw .eq-work { margin-top: 4px; font-size: 14px; }
+  .emw .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .emw .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { wave, at, cFromConstants, questions } from '../../lib/sci/em-wave-3d';
+  import { bandOf } from '../../lib/sci/em-spectrum';
+  import { pagePalette } from '../../lib/report';
+  import { setup, arrow, sci3, si, fact, onTheme, quiz } from '../../lib/school-p34';
+
+  const root = document.querySelector<HTMLElement>('.emw')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fig = q<HTMLCanvasElement>('.emw-fig');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let phase = 0, playing = !reduce, last = 0;
+  // Slider 0..1200 → λ from 10⁻⁹ m to 10³ m on a log scale; snapped to 3 significant figures.
+  const lamOf = (s: number) => Number(Math.pow(10, -9 + (12 * s) / 1200).toPrecision(3));
+  const val = (s: string) => +q<HTMLInputElement>(s).value;
+
+  function draw() {
+    const pal = pagePalette(), c = setup(fig, 360, 250), a = (val('.emw-a') * Math.PI) / 180;
+    c.fillStyle = pal.bg; c.fillRect(0, 0, 360, 250);
+    const S = 130, cx = 180, cy = 125;
+    // x: travel (−1..1 = two wavelengths), y: E (up), z: B (sideways).
+    const P = (x: number, y: number, z: number): [number, number] => {
+      const X = x * Math.cos(a) + z * Math.sin(a), Z = -x * Math.sin(a) + z * Math.cos(a);
+      return [cx + X * S, cy - y * 70 + Z * 28];
+    };
+    c.strokeStyle = pal.line; c.lineWidth = 1; c.beginPath(); c.moveTo(...P(-1.15, 0, 0)); c.lineTo(...P(1.15, 0, 0)); c.stroke();
+    arrow(c, ...P(0.95, 0, 0), ...P(1.25, 0, 0), pal.ink, 2.5, 'c');
+    const N = 120, X = (k: number) => -1 + (2 * k) / N;
+    for (const [col, dir] of [[pal.warn, 'z'], [pal.accent, 'y']] as const) {
+      c.strokeStyle = col; c.globalAlpha = 0.45; c.lineWidth = 1;
+      for (let k = 0; k <= N; k += 3) { const v = at(X(k), phase); c.beginPath(); c.moveTo(...P(X(k), 0, 0)); c.lineTo(...(dir === 'y' ? P(X(k), v, 0) : P(X(k), 0, v * 1.4))); c.stroke(); }
+      c.globalAlpha = 1; c.lineWidth = 2.5; c.beginPath();
+      for (let k = 0; k <= N; k++) { const v = at(X(k), phase), p = dir === 'y' ? P(X(k), v, 0) : P(X(k), 0, v * 1.4); k ? c.lineTo(...p) : c.moveTo(...p); }
+      c.stroke();
+    }
+    c.fillStyle = pal.muted; c.font = '11px system-ui, sans-serif'; c.textAlign = 'left'; c.fillText('two wavelengths shown', 8, 244);
+    c.fillStyle = pal.accent; c.font = '700 12px system-ui, sans-serif'; c.fillText('E', ...P(-1.1, 1.1, 0));
+    c.fillStyle = pal.warn; c.fillText('B', ...P(-1.1, 0, 1.6));
+  }
+  function texts() {
+    const lam = lamOf(val('.emw-l')), E0 = val('.emw-e'), w = wave(E0, lam), b = bandOf(lam);
+    q('.emw-lv').textContent = si(lam, 'm'); q('.emw-ev').textContent = `${E0} V/m`; q('.emw-av').textContent = `${val('.emw-a')}°`;
+    q('.emw-big').textContent = `${b.name}: f = c/λ = ${si(w.f, 'Hz')}`;
+    q('.emw-text').textContent = `Every EM wave travels through empty space at c = 1/√(µ₀ε₀) = ${sci3(cFromConstants())} m/s. With E₀ = ${E0} V/m, the magnetic field peaks at B₀ = E₀/c = ${sci3(w.B0)} T, and the wave carries I = ½cε₀E₀² = ${sci3(w.I)} W/m².`;
+    q('.emw-facts').replaceChildren(
+      fact('Wavelength λ', si(lam, 'm')), fact('Frequency f', si(w.f, 'Hz')), fact('Period T', si(w.T, 's')),
+      fact('Peak B₀', `${sci3(w.B0)} T`), fact('Intensity', `${sci3(w.I)} W/m²`), fact('Energy density', `${sci3(w.u)} J/m³`, 'average, half in E, half in B'),
+    );
+    fig.setAttribute('aria-label', `${b.name} wave, wavelength ${si(lam, 'm')}: E and B at right angles, in step`);
+  }
+  const all = () => { texts(); draw(); };
+  function tick(t: number) {
+    const dt = last ? Math.min(0.05, (t - last) / 1000) : 0; last = t;
+    if (playing) { phase = (phase + dt * 0.5) % 1; draw(); }
+    requestAnimationFrame(tick);
+  }
+  for (const s of ['.emw-l', '.emw-e']) q(s).addEventListener('input', all);
+  q('.emw-a').addEventListener('input', () => { q('.emw-av').textContent = `${val('.emw-a')}°`; draw(); });
+  q('.emw-play').addEventListener('click', () => { playing = !playing; q('.emw-play').textContent = playing ? 'Pause' : 'Play'; });
+  if (!playing) q('.emw-play').textContent = 'Play';
+  onTheme(draw);
+  all();
+  quiz(q('.emw-quiz'), () => questions());
+  requestAnimationFrame(tick);
+</script>

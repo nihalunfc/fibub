@@ -1,0 +1,194 @@
+---
+// Line forms (Learn, Class 11 straight lines): drag two points and every form of the line's equation updates
+// together; add a second line and a point for the angle between lines and the perpendicular distance.
+// Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm lf">
+  <div class="ax-card">
+    <h2>Drag the points</h2>
+    <svg class="sm-fig lf-fig" viewBox="0 0 340 340" role="img" aria-label="Grid with the line through A and B, its intercepts, and optionally a second line and a point"></svg>
+    <p class="ax-help">Drag A and B (and C, D and P when the extra part is on). Points snap to whole numbers.</p>
+    <label class="ax-check"><input type="checkbox" class="lf-more" /> Add a second line CD and a point P: angle between lines and distance</label>
+  </div>
+
+  <div class="ax-card">
+    <h2>The same line, every form</h2>
+    <p class="sm-f lf-pts"></p>
+    <dl class="lf-forms"></dl>
+  </div>
+
+  <div class="ax-card lf-extra" hidden>
+    <h2>Angle and distance</h2>
+    <p class="sm-f lf-l2"></p>
+    <p class="sm-f lf-ang"></p>
+    <p class="sm-f lf-meet"></p>
+    <p class="sm-f lf-dist"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Put A and B one above the other. The slope is undefined, the line is x = constant, and slope-intercept form disappears.</li>
+      <li>Drag B until the line passes through the origin. The intercept form no longer works: both intercepts are 0.</li>
+      <li>Turn on the second line. Make CD parallel to AB (same slope), then perpendicular (slopes multiply to −1).</li>
+      <li>Drag P onto the line AB: the distance becomes 0. Then move it away and compare the distance with the length of the dashed perpendicular.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Fractions like −3/4 are fine. Nothing is saved.</p>
+    <div class="lf-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .lf .lf-forms { display: grid; gap: 8px; margin: 8px 0 0; }
+  .lf .lf-forms div { border-left: 3px solid var(--accent); padding: 2px 0 2px 10px; }
+  .lf .lf-forms dt { font-size: 13px; color: var(--muted); }
+  .lf .lf-forms dd { margin: 0; font-size: 17px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .lf svg .lf-l1 { stroke: var(--accent); stroke-width: 2.5; }
+  .lf svg .lf-l2 { stroke: var(--warn); stroke-width: 2.5; }
+  .lf svg .lf-int { fill: var(--good); }
+  .lf svg .lf-p { fill: var(--bad); }
+  .lf svg .lf-perp { stroke: var(--bad); stroke-width: 1.8; stroke-dasharray: 5 4; }
+  .lf svg .lf-handle2 { fill: var(--warn); stroke: var(--surface); stroke-width: 2; }
+</style>
+
+<script>
+  import { through, slope, yIntercept, xIntercept, inclination, normalForm, angleBetween, parallel, perpendicular, distance, foot, meet, type Pt, type Line } from '../../lib/sci/line-forms';
+  import { fmt, randInt, fracText, gcd } from '../../lib/sci/smath';
+  import { S, dragOn, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.lf')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.lf-fig'), more = q<HTMLInputElement>('.lf-more');
+  const pts: Record<string, Pt> = { A: [-4, -1], B: [2, 3], C: [-6, 6], D: [6, 0], P: [5, -5] };
+  const W0 = -10, W1 = 10, L = 10, R = 330;
+  const px = (x: number) => L + ((x - W0) / (W1 - W0)) * (R - L), py = (y: number) => R - ((y - W0) / (W1 - W0)) * (R - L);
+  const ux = (p: number) => W0 + ((p - L) / (R - L)) * (W1 - W0), uy = (p: number) => W0 + ((R - p) / (R - L)) * (W1 - W0);
+  const P2 = (p: Pt) => `(${fmt(p[0], 3)}, ${fmt(p[1], 3)})`;
+  const neg = (s: string) => s.replace(/-/g, '−');
+  /** "− 3" / "+ 3" pieces for x − x₁ style brackets. */
+  const minus = (v: number) => (v === 0 ? '' : v < 0 ? ` + ${fmt(-v)}` : ` − ${fmt(v)}`);
+  /** a x + b y + c = 0 as text. */
+  function general(l: Line) {
+    const t: string[] = [];
+    const term = (k: number, v: string) => { if (!k) return; const s = Math.abs(k) === 1 && v ? v : fmt(Math.abs(k), 4) + v; t.push(t.length ? (k < 0 ? `− ${s}` : `+ ${s}`) : (k < 0 ? `−${s}` : s)); };
+    term(l.a, 'x'); term(l.b, 'y'); term(l.c, '');
+    return `${t.join(' ')} = 0`;
+  }
+  /** m x + c with fraction text. */
+  function mxc(mn: number, md: number, cn: number, cd: number) {
+    const m = fracText(mn, md), c = fracText(cn, cd);
+    let s = m === '0' ? '' : m === '1' ? 'x' : m === '−1' ? '−x' : (m.includes('/') ? `(${m})x` : `${m}x`);
+    if (c !== '0') s += s ? (c.startsWith('−') ? ` − ${c.slice(1)}` : ` + ${c}`) : c;
+    return s || '0';
+  }
+  const lineEnds = (l: Line): [Pt, Pt] | null => {
+    const P: Pt[] = [];
+    if (l.b !== 0) for (const x of [W0, W1]) { const y = (-l.c - l.a * x) / l.b; if (y >= W0 - 1e-9 && y <= W1 + 1e-9) P.push([x, y]); }
+    if (l.a !== 0) for (const y of [W0, W1]) { const x = (-l.c - l.b * y) / l.a; if (x >= W0 - 1e-9 && x <= W1 + 1e-9) P.push([x, y]); }
+    if (P.length < 2) return null;
+    let best: [Pt, Pt] = [P[0], P[1]], bd = 0;
+    for (const a of P) for (const b of P) { const d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (d > bd) { bd = d; best = [a, b]; } }
+    return best;
+  };
+  const dot = (p: Pt, cls: string, lab: string, r = 5) => { S('circle', { cx: px(p[0]), cy: py(p[1]), r, class: cls }, fig); if (lab) S('text', { x: px(p[0]) + 8, y: py(p[1]) - 7, style: 'font-weight:700' }, fig, lab); };
+
+  function draw() {
+    const on = more.checked;
+    q('.lf-extra').hidden = !on;
+    fig.replaceChildren();
+    for (let x = W0; x <= W1; x++) { S('line', { x1: px(x), x2: px(x), y1: L, y2: R, class: 'sm-grid', style: x % 5 ? 'opacity:.5' : '' }, fig); S('line', { x1: L, x2: R, y1: py(x), y2: py(x), class: 'sm-grid', style: x % 5 ? 'opacity:.5' : '' }, fig); }
+    S('line', { x1: L, x2: R, y1: py(0), y2: py(0), class: 'sm-axis' }, fig); S('line', { x1: px(0), x2: px(0), y1: L, y2: R, class: 'sm-axis' }, fig);
+    for (const v of [-5, 5]) { S('text', { x: px(v), y: py(0) + 14, 'text-anchor': 'middle', class: 'sm-tick' }, fig, fmt(v)); S('text', { x: px(0) - 4, y: py(v) + 4, 'text-anchor': 'end', class: 'sm-tick' }, fig, fmt(v)); }
+    const { A, B, C, D, P } = pts, l1 = through(A, B), l2 = on ? through(C, D) : null;
+    const seg = (l: Line | null, cls: string) => { const e = l && lineEnds(l); if (e) S('line', { x1: px(e[0][0]), y1: py(e[0][1]), x2: px(e[1][0]), y2: py(e[1][1]), class: cls }, fig); };
+    seg(l1, 'lf-l1'); seg(l2, 'lf-l2');
+    if (l1) {
+      const xi = xIntercept(l1), yi = yIntercept(l1);
+      if (Number.isFinite(xi) && Math.abs(xi) <= 10) dot([xi, 0], 'lf-int', '', 4.5);
+      if (Number.isFinite(yi) && Math.abs(yi) <= 10) dot([0, yi], 'lf-int', '', 4.5);
+    }
+    if (on && l1) {
+      const F = foot(l1, P);
+      if (Math.abs(F[0]) <= 12 && Math.abs(F[1]) <= 12) { S('line', { x1: px(P[0]), y1: py(P[1]), x2: px(F[0]), y2: py(F[1]), class: 'lf-perp' }, fig); dot(F, 'lf-p', 'F', 3.5); }
+      if (l2) { const M = meet(l1, l2); if (M && Math.abs(M[0]) <= 10 && Math.abs(M[1]) <= 10) dot(M, 'sm-handle', '', 4); }
+    }
+    const handles = on ? ['A', 'B', 'C', 'D', 'P'] : ['A', 'B'];
+    for (const k of handles) {
+      const p = pts[k];
+      S('circle', { cx: px(p[0]), cy: py(p[1]), r: 20, class: 'sm-hit' }, fig);
+      S('circle', { cx: px(p[0]), cy: py(p[1]), r: 9, class: (k === 'C' || k === 'D' ? 'lf-handle2' : k === 'P' ? 'lf-p' : 'sm-handle') + ` lf-h${k}` }, fig);
+      S('text', { x: px(p[0]) - 12, y: py(p[1]) + 22, 'text-anchor': 'middle', style: 'font-weight:700' }, fig, k);
+    }
+    const [x1, y1] = A, [x2, y2] = B, dx = x2 - x1, dy = y2 - y1;
+    q('.lf-pts').textContent = `A = ${P2(A)}, B = ${P2(B)}`;
+    const box = q('.lf-forms'); box.replaceChildren();
+    const row = (t: string, d: string, cls = '') => { const div = document.createElement('div'); if (cls) div.className = cls; const dt = document.createElement('dt'); dt.textContent = t; const dd = document.createElement('dd'); dd.textContent = neg(d); div.append(dt, dd); box.append(div); };
+    if (!l1) { row('Two points the same', 'A and B are the same point, so they do not fix a line. Drag one away.', 'lf-same'); return extra(null); }
+    const g = general(l1);
+    if (dx === 0) {
+      row('Slope', `x₂ − x₁ = 0, so the slope is undefined: the line is vertical (inclination 90°).`, 'lf-m');
+      row('Equation', `x = ${fmt(x1)}`, 'lf-eq');
+    } else {
+      const m = fracText(dy, dx);
+      row('Slope', `m = (y₂ − y₁)/(x₂ − x₁) = (${fmt(y2)} − ${fmt(y1)})/(${fmt(x2)} − ${fmt(x1)}) = ${fmt(dy)}/${fmt(dx)} = ${m}. Inclination θ = ${fmt(inclination(l1), 2)}° (tan θ = m).`.replace(/− -/g, '+ '), 'lf-m');
+      row('Two-point form', `y − y₁ = [(y₂ − y₁)/(x₂ − x₁)](x − x₁): y${minus(y1)} = (${fmt(dy)}/${fmt(dx)})(x${minus(x1)})`, 'lf-2p');
+      row('Point-slope form', `y − y₁ = m(x − x₁): y${minus(y1)} = ${m.includes('/') ? `(${m})` : m}(x${minus(x1)})`, 'lf-ps');
+      row('Slope-intercept form', `y = mx + c: y = ${mxc(dy, dx, x2 * y1 - x1 * y2, dx)}`, 'lf-si');
+    }
+    const xi = xIntercept(l1), yi = yIntercept(l1);
+    if (l1.c !== 0 && l1.a !== 0 && l1.b !== 0) { const wrap = (t: string) => (/[/−]/.test(t) ? `(${t})` : t); row('Intercept form', `x/a + y/b = 1: x/${wrap(fracText(-l1.c, l1.a))} + y/${wrap(fracText(-l1.c, l1.b))} = 1 (cuts the x axis at ${fmt(xi, 3)}, the y axis at ${fmt(yi, 3)})`, 'lf-ic'); }
+    else row('Intercept form', l1.c === 0 ? 'The line passes through the origin, so both intercepts are 0 and there is no intercept form.' : l1.a === 0 ? `The line is horizontal: it never meets the x axis, so there is no intercept form. It cuts the y axis at ${fmt(yi, 3)}.` : `The line is vertical: it never meets the y axis, so there is no intercept form. It cuts the x axis at ${fmt(xi, 3)}.`, 'lf-ic');
+    row('General form', `Ax + By + C = 0: ${g}  (A = ${fmt(l1.a)}, B = ${fmt(l1.b)}, C = ${fmt(l1.c)})`, 'lf-g');
+    const nf = normalForm(l1);
+    row('Normal form', `x cos ω + y sin ω = p: x cos ${fmt(nf.omega, 2)}° + y sin ${fmt(nf.omega, 2)}° = ${fmt(nf.p, 4)}  (p is the distance from the origin to the line)`, 'lf-nf');
+    extra(l1);
+  }
+
+  function extra(l1: Line | null) {
+    if (!more.checked) return;
+    const { C, D, P } = pts, l2 = through(C, D);
+    q('.lf-l2').textContent = l2 ? neg(`Line CD: ${general(l2)}, slope ${l2.b === 0 ? 'undefined (vertical)' : fracText(D[1] - C[1], D[0] - C[0])}.`) : 'C and D are the same point; drag one away.';
+    if (!l1 || !l2) { q('.lf-ang').textContent = ''; q('.lf-meet').textContent = ''; } else {
+      const th = angleBetween(l1, l2), m1 = slope(l1), m2 = slope(l2);
+      const how = parallel(l1, l2) ? 'The lines are parallel (equal slopes): the angle between them is 0°.' : perpendicular(l1, l2) ? `The lines are perpendicular${Number.isFinite(m1) && Number.isFinite(m2) ? ` (m₁ m₂ = ${fmt(m1 * m2, 4)})` : ''}: the angle is 90°.` : Number.isFinite(m1) && Number.isFinite(m2) ? `tan θ = |(m₁ − m₂)/(1 + m₁m₂)| = |(${fmt(m1, 4)} − ${fmt(m2, 4)})/(1 + ${fmt(m1 * m2, 4)})| = ${fmt(Math.tan((th * Math.PI) / 180), 4)}, so θ = ${fmt(th, 2)}° (the other angle is ${fmt(180 - th, 2)}°).` : `One line is vertical, so θ = 90° − (inclination of the other) = ${fmt(th, 2)}°.`;
+      q('.lf-ang').textContent = neg(how);
+      const M = meet(l1, l2);
+      q('.lf-meet').textContent = M ? `They meet at ${neg(P2(M))}.` : (distance(l1, C) < 1e-9 ? 'They are the same line.' : `Distance between the parallel lines: ${fmt(distance(l1, C), 4)}.`);
+    }
+    if (l1) {
+      const v = l1.a * P[0] + l1.b * P[1] + l1.c, d = distance(l1, P), F = foot(l1, P);
+      q('.lf-dist').textContent = neg(`Distance from P${P2(P)} to AB: |Ax₀ + By₀ + C|/√(A² + B²) = |${fmt(l1.a)}×${fmt(P[0])} + ${fmt(l1.b)}×${fmt(P[1])} + ${fmt(l1.c)}|/√(${fmt(l1.a * l1.a + l1.b * l1.b)}) = ${fmt(Math.abs(v))}/${fmt(Math.hypot(l1.a, l1.b), 4)} = ${fmt(d, 4)}. Foot of the perpendicular F = ${P2(F)}.${d === 0 ? ' P is on the line.' : ''}`);
+    } else q('.lf-dist').textContent = '';
+  }
+
+  dragOn(fig, (x, y) => {
+    let best: string | null = null, bd = 28;
+    for (const k of more.checked ? ['A', 'B', 'C', 'D', 'P'] : ['A', 'B']) { const d = Math.hypot(x - px(pts[k][0]), y - py(pts[k][1])); if (d < bd) { bd = d; best = k; } }
+    return best;
+  }, (id, x, y) => { pts[id] = [Math.round(Math.max(W0, Math.min(W1, ux(x)))), Math.round(Math.max(W0, Math.min(W1, uy(y))))]; draw(); });
+  more.addEventListener('change', draw);
+  draw();
+
+  quiz(q('.lf-quiz'), () => {
+    const out: Question[] = [];
+    let a: Pt, b: Pt;
+    do { a = [randInt(-6, 6), randInt(-6, 6)]; b = [randInt(-6, 6), randInt(-6, 6)]; } while (a[0] === b[0]);
+    out.push({ q: `Find the slope of the line through (${a[0]}, ${a[1]}) and (${b[0]}, ${b[1]}).`.replace(/-/g, '−'), want: [(b[1] - a[1]) / (b[0] - a[0])], tol: 1e-6, work: `m = (${b[1]} − ${a[1]})/(${b[0]} − ${a[0]}) = ${b[1] - a[1]}/${b[0] - a[0]} = ${fracText(b[1] - a[1], b[0] - a[0])}.`.replace(/− -/g, '+ ').replace(/-/g, '−') });
+    const m = randInt(-4, 4, true), c = randInt(-6, 6), x0 = randInt(-3, 3);
+    out.push({ q: `A line has slope ${m} and passes through (${x0}, ${m * x0 + c}). Where does it cut the y axis?`.replace(/-/g, '−'), want: [c], tol: 1e-6, work: `y − ${m * x0 + c} = ${m}(x − ${x0}); put x = 0: y = ${m * x0 + c} − ${m}×${x0} = ${c}.`.replace(/− -/g, '+ ').replace(/-/g, '−') });
+    const [p3, q3, h] = [[3, 4, 5], [4, 3, 5], [5, 12, 13], [12, 5, 13], [6, 8, 10]][randInt(0, 4)], X = randInt(-3, 3), Y = randInt(-3, 3), k = randInt(1, 4), sgn = randInt(0, 1) ? 1 : -1;
+    const C3 = sgn * k * h - p3 * X - q3 * Y;
+    out.push({ q: `How far is the point (${X}, ${Y}) from the line ${p3}x + ${q3}y ${C3 < 0 ? '−' : '+'} ${Math.abs(C3)} = 0?`.replace(/-/g, '−'), want: [k], tol: 1e-6, work: `|${p3}×${X} + ${q3}×${Y} + ${C3}|/√(${p3}² + ${q3}²) = ${k * h}/${h} = ${k}.`.replace(/\+ -/g, '− ').replace(/-/g, '−') });
+    const n1 = randInt(1, 5), d1 = randInt(1, 5) * (randInt(0, 1) ? 1 : -1), gg = gcd(n1, d1);
+    out.push({ q: `A line has slope ${fracText(n1, d1)}. What is the slope of a line perpendicular to it?`, want: [-d1 / n1], tol: 1e-6, work: `Perpendicular slopes multiply to −1, so m₂ = −1/(${fracText(n1, d1)}) = ${fracText(-d1 / gg, n1 / gg)}.` });
+    const A5 = randInt(1, 6), B5 = randInt(1, 6) * (randInt(0, 1) ? 1 : -1), xi = randInt(-5, 5, true), C5 = -A5 * xi;
+    out.push({ q: `Where does ${A5}x ${B5 < 0 ? '−' : '+'} ${Math.abs(B5)}y ${C5 < 0 ? '−' : '+'} ${Math.abs(C5)} = 0 cut the x axis? Give the x value.`, want: [xi], tol: 1e-6, work: `Put y = 0: ${A5}x = ${-C5}, so x = ${xi}.`.replace(/-/g, '−') });
+    return out;
+  });
+</script>

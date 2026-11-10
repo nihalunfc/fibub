@@ -1,0 +1,134 @@
+---
+// Echo and SONAR depth finder: a clap and its echo off a wall, or a ship's sound pulse to the sea floor and back.
+// Distance = speed × time ÷ 2; the shortest distance for a separate echo. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax sm es">
+  <div class="ax-card">
+    <div class="ax-seg es-mode" role="group" aria-label="Mode"><button type="button" data-m="echo" aria-pressed="true">Echo off a wall</button><button type="button" data-m="sonar" aria-pressed="false">SONAR at sea</button></div>
+    <svg class="sm-fig es-fig" viewBox="0 0 340 220" role="img" aria-label="Sound going out and coming back"></svg>
+    <div class="ax-row"><button type="button" class="btn small es-play">Send a sound</button><span class="ax-help es-clock" style="margin:0" aria-live="polite"></span></div>
+    <div class="es-echo">
+      <div class="sm-sl"><b>d</b><input type="range" class="es-dr" min="5" max="500" step="1" value="100" aria-label="Distance slider" /><input type="number" class="es-d" min="0.1" step="1" value="100" inputmode="decimal" aria-label="Distance to the wall in metres" /></div>
+      <div class="sm-sl"><b>°C</b><input type="range" class="es-tr" min="-10" max="45" step="1" value="22" aria-label="Air temperature slider" /><input type="number" class="es-t" min="-50" max="60" step="1" value="22" inputmode="decimal" aria-label="Air temperature in °C" /></div>
+    </div>
+    <div class="es-sonar" hidden>
+      <div class="sm-sl"><b>m</b><input type="range" class="es-hr" min="10" max="6000" step="10" value="1200" aria-label="Depth slider" /><input type="number" class="es-h" min="1" step="10" value="1200" inputmode="decimal" aria-label="Depth of the sea in metres" /></div>
+      <div class="sm-sl"><b>v</b><input type="range" class="es-vr" min="1400" max="1560" step="5" value="1500" aria-label="Speed of sound in water slider" /><input type="number" class="es-v" min="1000" max="2000" step="5" value="1500" inputmode="decimal" aria-label="Speed of sound in sea water, m/s" /></div>
+      <label class="es-tl">Or type a measured echo time (s)<input type="number" class="es-time" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 3.2" /></label>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>The numbers</h2>
+    <p class="ax-big es-big" aria-live="polite"></p>
+    <ol class="sm-steps es-steps"></ol>
+    <p class="sm-f es-note"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Move the wall closer until the page says you can't hear a separate echo. How far away is it?</li>
+      <li>Warm the air from 0 °C to 40 °C. Does the echo come back sooner or later?</li>
+      <li>At sea, the echo takes 4 s. How deep is the water?</li>
+      <li>Why does the distance get divided by 2?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card es-quiz"><h2>Check yourself</h2></div>
+</div>
+
+<style is:inline>
+  .es .es-mode { margin-bottom: 10px; }
+  .es .es-tl { margin-top: 8px; max-width: 22em; }
+  .es svg .es-wall { fill: var(--muted); }
+  .es svg .es-sea { fill: var(--accent-soft); }
+  .es svg .es-floor { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 2; }
+  .es svg .es-wave { fill: none; stroke: var(--accent); stroke-width: 3; }
+  .es svg .es-back { fill: none; stroke: var(--bad); stroke-width: 3; }
+  .es svg .es-body { fill: var(--ink); }
+  .es svg .es-ship { fill: var(--ink); }
+  .es [hidden] { display: none !important; }
+</style>
+
+<script>
+  import { airSpeed, echoTime, distance, minEcho, SEA } from '../../lib/sci/echo-sonar';
+  import { fmt } from '../../lib/sci/smath';
+  import { S, pair, val } from '../../lib/smath-ui';
+  import { mountQuiz, pick, one, type QItem } from '../../lib/learnquiz-d';
+
+  const root = document.querySelector<HTMLElement>('.es')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.es-fig');
+  const D = q<HTMLInputElement>('.es-d'), T = q<HTMLInputElement>('.es-t'), H = q<HTMLInputElement>('.es-h'), V = q<HTMLInputElement>('.es-v'), TM = q<HTMLInputElement>('.es-time');
+  pair(q('.es-dr'), D, draw); pair(q('.es-tr'), T, draw); pair(q('.es-hr'), H, draw); pair(q('.es-vr'), V, draw);
+  TM.addEventListener('input', draw);
+  let mode = 'echo', phase = -1, raf = 0;
+
+  root.querySelectorAll<HTMLButtonElement>('.es-mode button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.m!; root.querySelectorAll('.es-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.es-echo').hidden = mode !== 'echo'; q('.es-sonar').hidden = mode !== 'sonar'; phase = -1; cancelAnimationFrame(raf); draw();
+  }));
+
+  /** Depth used in SONAR mode: from the typed echo time if there is one, else the slider. */
+  const sonar = () => { const v = val(V, SEA, 100), t = Number(TM.value); const typed = TM.value.trim() !== '' && Number.isFinite(t) && t > 0; return { v, typed, h: typed ? distance(t, v) : val(H, 1200, 1), t: typed ? t : echoTime(val(H, 1200, 1), v) }; };
+
+  function draw() {
+    fig.replaceChildren();
+    const steps: string[] = [];
+    if (mode === 'echo') {
+      const d = val(D, 100, 0.1), Tc = val(T, 22, -50, 60), v = airSpeed(Tc), t = echoTime(d, v), m = minEcho(v);
+      S('rect', { x: 0, y: 190, width: 340, height: 30, class: 'es-floor' }, fig);
+      S('circle', { cx: 30, cy: 130, r: 9, class: 'es-body' }, fig); S('rect', { x: 24, y: 141, width: 12, height: 49, rx: 4, class: 'es-body' }, fig);
+      S('rect', { x: 300, y: 40, width: 22, height: 150, class: 'es-wall' }, fig);
+      S('line', { x1: 30, y1: 205, x2: 300, y2: 205, class: 'sm-dash' }, fig);
+      S('text', { x: 165, y: 214, 'text-anchor': 'middle', style: 'font-weight:700' }, fig, `d = ${fmt(d, 1)} m`);
+      if (phase >= 0) { const out = phase < 0.5, x = 40 + 255 * (out ? phase * 2 : 2 - phase * 2); S('path', { d: out ? `M${x},95 Q${x + 18},140 ${x},185` : `M${x},95 Q${x - 18},140 ${x},185`, class: out ? 'es-wave' : 'es-back' }, fig); }
+      q('.es-big').textContent = `Echo after ${fmt(t, 3)} s`;
+      steps.push(`Speed of sound in air at ${fmt(Tc)} °C: v = 331.3 × √(1 + ${fmt(Tc)}/273.15) ≈ ${fmt(v, 1)} m/s.`);
+      steps.push(`The sound goes to the wall and back: 2 × ${fmt(d, 1)} = ${fmt(2 * d, 1)} m.`);
+      steps.push(`Time = distance ÷ speed = ${fmt(2 * d, 1)} ÷ ${fmt(v, 1)} = ${fmt(t, 3)} s.`);
+      q('.es-note').textContent = t >= 0.1 ? `You hear a separate echo: it arrives more than 0.1 s after the clap. The wall must be at least ${fmt(m, 1)} m away for that at this temperature.` : `Too close for a separate echo: it returns in under 0.1 s, while the clap still seems to ring in your ears, so the two blur (a reverberation). Move the wall beyond ${fmt(m, 1)} m.`;
+      q('.es-clock').textContent = phase >= 0 ? `t = ${fmt(phase * t, 2)} s` : '';
+    } else {
+      const s = sonar(), deep = Math.min(1, s.h / 6000), fy = 50 + 30 + deep * 130;
+      S('rect', { x: 0, y: 50, width: 340, height: 170, class: 'es-sea' }, fig);
+      S('path', { d: `M0,${fy} Q90,${fy - 10} 170,${fy} T340,${fy} L340,220 L0,220 Z`, class: 'es-floor' }, fig);
+      S('path', { d: 'M135,38 L205,38 L195,52 L145,52 Z', class: 'es-ship' }, fig); S('rect', { x: 160, y: 26, width: 18, height: 12, class: 'es-ship' }, fig);
+      S('line', { x1: 220, y1: 52, x2: 220, y2: fy, class: 'sm-dash' }, fig);
+      S('text', { x: 226, y: (52 + fy) / 2, style: 'font-weight:700' }, fig, `${fmt(s.h, 0)} m`);
+      if (phase >= 0) { const down = phase < 0.5, y = 55 + (fy - 60) * (down ? phase * 2 : 2 - phase * 2); S('path', { d: down ? `M150,${y} Q170,${y + 12} 190,${y}` : `M150,${y} Q170,${y - 12} 190,${y}`, class: down ? 'es-wave' : 'es-back' }, fig); }
+      q('.es-big').textContent = s.typed ? `Depth = ${fmt(s.h, 1)} m` : `Echo after ${fmt(s.t, 3)} s`;
+      if (s.typed) { steps.push(`The pulse goes down and back up in ${fmt(s.t, 3)} s, so it travels ${fmt(s.v, 0)} × ${fmt(s.t, 3)} = ${fmt(s.v * s.t, 1)} m.`); steps.push(`Depth = half of that: ${fmt(s.v * s.t, 1)} ÷ 2 = ${fmt(s.h, 1)} m.`); }
+      else { steps.push(`Down and back: 2 × ${fmt(s.h, 0)} = ${fmt(2 * s.h, 0)} m.`); steps.push(`Time = ${fmt(2 * s.h, 0)} ÷ ${fmt(s.v, 0)} = ${fmt(s.t, 3)} s.`); }
+      q('.es-note').textContent = 'SONAR (sound navigation and ranging) sends ultrasound, too high for us to hear. Sound travels about 4 times faster in sea water than in air. 1 500 m/s is the usual school value; real sea water ranges from about 1 450 to 1 550 m/s with temperature, saltiness and depth.';
+      q('.es-clock').textContent = phase >= 0 ? `t = ${fmt(phase * s.t, 2)} s` : '';
+    }
+    q('.es-steps').replaceChildren(...steps.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+  }
+
+  q('.es-play').addEventListener('click', () => {
+    cancelAnimationFrame(raf);
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { phase = 0.5; draw(); return; }
+    const t0 = performance.now();
+    const step = (now: number) => { phase = Math.min(1, (now - t0) / 2400); draw(); if (phase < 1) raf = requestAnimationFrame(step); else { phase = -1; q('.es-clock').textContent = 'Echo heard.'; } };
+    raf = requestAnimationFrame(step);
+  });
+  draw();
+
+  mountQuiz(q('.es-quiz'), () => {
+    const out: QItem[] = [];
+    const t = one([0.5, 1, 1.5, 2, 3]), v = one([340, 344, 330]);
+    out.push({ q: `A girl claps in front of a cliff and hears the echo ${t} s later. Sound travels at ${v} m/s. How far away is the cliff?`, ans: (v * t) / 2, unit: 'm', work: `Distance = speed × time ÷ 2 = ${v} × ${t} ÷ 2 = ${fmt((v * t) / 2, 1)} m.` });
+    const ts = one([1.2, 2, 2.6, 3.4, 4, 5]);
+    out.push({ q: `A ship's SONAR pulse returns from the sea bed after ${ts} s. Sound travels at 1500 m/s in sea water. How deep is the sea?`, ans: (1500 * ts) / 2, unit: 'm', work: `Depth = 1500 × ${ts} ÷ 2 = ${fmt(750 * ts, 0)} m.` });
+    const vv = one([330, 340, 344, 350]);
+    out.push({ q: `The ear keeps a sound for about 0.1 s. With sound at ${vv} m/s, what is the shortest distance to a wall for a separate echo?`, ans: vv * 0.05, unit: 'm', work: `In 0.1 s sound goes ${vv} × 0.1 = ${fmt(vv * 0.1, 1)} m, there and back, so the wall must be ${fmt(vv * 0.05, 1)} m away.` });
+    const d = pick(200, 2000, 100);
+    out.push({ q: `How long does a SONAR echo take from a submarine ${d} m below a ship? (1500 m/s)`, ans: (2 * d) / 1500, unit: 's', work: `Time = 2 × ${d} ÷ 1500 = ${fmt((2 * d) / 1500, 3)} s.` });
+    return out;
+  });
+</script>

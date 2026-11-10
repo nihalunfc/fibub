@@ -1,0 +1,189 @@
+---
+// Logic gates: tap the inputs of AND, OR, NOT, NAND, NOR, XOR or XNOR and watch the output lamp and the live
+// truth-table row; build NOT/AND/OR from NAND or NOR only; chain two gates.
+import '../../styles/astro.css';
+import '../../styles/chemquiz.css';
+---
+<div class="ax lg">
+  <div class="ax-card">
+    <div class="ax-seg lg-g" role="group" aria-label="Gate">
+      <button type="button" data-g="AND" aria-pressed="true">AND</button><button type="button" data-g="OR" aria-pressed="false">OR</button><button type="button" data-g="NOT" aria-pressed="false">NOT</button><button type="button" data-g="NAND" aria-pressed="false">NAND</button><button type="button" data-g="NOR" aria-pressed="false">NOR</button><button type="button" data-g="XOR" aria-pressed="false">XOR</button><button type="button" data-g="XNOR" aria-pressed="false">XNOR</button>
+    </div>
+    <div class="lg-ins">
+      <button type="button" class="lg-in lg-a" data-v="0" aria-pressed="false">A = 0</button>
+      <button type="button" class="lg-in lg-b" data-v="0" aria-pressed="false">B = 0</button>
+    </div>
+    <svg class="lg-svg" viewBox="0 0 230 120" role="img" aria-label="Gate"></svg>
+    <p class="ax-big lg-big" style="margin:4px 0 2px"></p>
+    <p class="lg-rule" style="margin:0 0 8px"></p>
+    <p class="lx-eq lg-expr"></p>
+    <table class="lg-tt"><thead></thead><tbody></tbody></table>
+  </div>
+
+  <div class="ax-card">
+    <h2>Build any gate from one kind</h2>
+    <p class="ax-help" style="margin-top:0">NAND and NOR are called universal gates: with enough of either one you can make every other gate.</p>
+    <div class="ax-seg lg-u" role="group" aria-label="Universal gate"><button type="button" data-u="NAND" aria-pressed="true">Only NAND</button><button type="button" data-u="NOR" aria-pressed="false">Only NOR</button></div>
+    <div class="ax-seg lg-t" role="group" aria-label="Gate to build" style="margin-top:8px"><button type="button" data-t="NOT" aria-pressed="true">NOT</button><button type="button" data-t="AND" aria-pressed="false">AND</button><button type="button" data-t="OR" aria-pressed="false">OR</button></div>
+    <p class="lg-urecipe" style="margin:10px 0 4px"></p>
+    <table class="lg-ut"><thead></thead><tbody></tbody></table>
+  </div>
+
+  <div class="ax-card">
+    <h2>Two gates in a row</h2>
+    <p class="ax-help" style="margin-top:0">Y = G2( G1(A, B), C ). Choose the gates and tap the three inputs.</p>
+    <div class="lg-chain">
+      <label>G1 <select class="lg-g1"></select></label>
+      <label>G2 <select class="lg-g2"></select></label>
+    </div>
+    <div class="lg-ins">
+      <button type="button" class="lg-in lg-ca" data-v="1" aria-pressed="true">A = 1</button>
+      <button type="button" class="lg-in lg-cb" data-v="0" aria-pressed="false">B = 0</button>
+      <button type="button" class="lg-in lg-cc" data-v="1" aria-pressed="true">C = 1</button>
+    </div>
+    <p class="ax-big lg-cbig" style="margin:10px 0 2px"></p>
+    <p class="lx-eq lg-cwork"></p>
+    <table class="lg-ct"><thead></thead><tbody></tbody></table>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lx-try">
+      <li>Which gate is 1 only when both inputs are 1? Which is 1 when the inputs are different?</li>
+      <li>Compare AND and NAND row by row. What is the pattern?</li>
+      <li>Build OR from NAND gates. Why do the inputs go through NOT first?</li>
+      <li>Two gates in a row: pick AND then NOT. Which single gate does that make?</li>
+      <li>How many rows does the three-input table have? Why?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cq">
+    <h2>Check yourself</h2>
+    <ol class="cq-list"></ol>
+    <button type="button" class="btn secondary small cq-new">New questions</button>
+  </div>
+</div>
+
+<style is:inline>
+  .lg-ins { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+  .lg-in { min-width: 92px; min-height: 48px; font: 700 18px system-ui, sans-serif; border: 2px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .lg-in[aria-pressed=true] { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+  .lg-in[hidden] { display: none; }
+  .lg-svg { display: block; width: 100%; max-width: 380px; margin: 10px auto 4px; }
+  .lg .body { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
+  .lg .wire { fill: none; stroke: var(--ink); stroke-width: 2; }
+  .lg .wire.hi { stroke: var(--accent); stroke-width: 3; }
+  .lg .lamp { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
+  .lg .lamp.hi { fill: var(--accent); stroke: var(--accent); }
+  .lg .tb { fill: var(--ink); font: 600 13px system-ui, sans-serif; }
+  .lg table { border-collapse: collapse; margin-top: 10px; font-variant-numeric: tabular-nums; }
+  .lg th, .lg td { border: 1px solid var(--line); padding: 6px 14px; text-align: center; }
+  .lg tr.on td { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+  .lg-chain { display: flex; flex-wrap: wrap; gap: 12px; }
+  .lg-chain label { display: flex; gap: 6px; align-items: center; font-weight: 650; }
+  .lg-chain select { font: inherit; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+</style>
+
+<script>
+  import { COUNT, EXPR, GATES, RULE, chain, fromUniversal, gate, rows, truthTable, type Bit, type Gate } from '../../lib/sci/gates';
+  import { mountQuiz, same, pickOne, rint, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.lg')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const NS = 'http://www.w3.org/2000/svg';
+  const sv = (tag: string, attrs: Record<string, string | number>, text?: string) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, String(v)); if (text != null) n.textContent = text; return n; };
+  let g: Gate = 'AND', u: 'NAND' | 'NOR' = 'NAND', t: 'NOT' | 'AND' | 'OR' = 'NOT';
+  const bit = (el: HTMLElement) => Number(el.dataset.v) as Bit;
+  const setBit = (el: HTMLElement, v: Bit) => { el.dataset.v = String(v); el.setAttribute('aria-pressed', String(v === 1)); el.textContent = `${el.textContent!.split(' = ')[0]} = ${v}`; };
+
+  function table(el: HTMLTableElement, heads: string[], body: (Bit | string)[][], onRow: number) {
+    const th = el.tHead!, tb = el.tBodies[0];
+    th.replaceChildren(); tb.replaceChildren();
+    const hr = document.createElement('tr'); for (const h of heads) { const c = document.createElement('th'); c.textContent = h; hr.append(c); } th.append(hr);
+    body.forEach((r, i) => { const tr = document.createElement('tr'); if (i === onRow) tr.className = 'on'; for (const v of r) { const c = document.createElement('td'); c.textContent = String(v); tr.append(c); } tb.append(tr); });
+  }
+
+  function drawGate(a: Bit, b: Bit, y: Bit) {
+    const svg = q<SVGSVGElement>('.lg-svg'); svg.replaceChildren();
+    const one = g === 'NOT', orish = g === 'OR' || g === 'NOR' || g === 'XOR' || g === 'XNOR', bubble = g === 'NAND' || g === 'NOR' || g === 'XNOR' || g === 'NOT';
+    const inX = orish ? 66 : 60;
+    if (one) svg.append(sv('line', { x1: 14, y1: 60, x2: 60, y2: 60, class: `wire${a ? ' hi' : ''}` }));
+    else svg.append(sv('line', { x1: 14, y1: 40, x2: inX, y2: 40, class: `wire${a ? ' hi' : ''}` }), sv('line', { x1: 14, y1: 80, x2: inX, y2: 80, class: `wire${b ? ' hi' : ''}` }));
+    if (one) svg.append(sv('path', { d: 'M60 25 L60 95 L124 60 Z', class: 'body' }));
+    else if (orish) svg.append(sv('path', { d: 'M55 20 Q75 60 55 100 Q112 100 136 60 Q112 20 55 20 Z', class: 'body' }));
+    else svg.append(sv('path', { d: 'M60 20 H96 A40 40 0 0 1 96 100 H60 Z', class: 'body' }));
+    if (g === 'XOR' || g === 'XNOR') svg.append(sv('path', { d: 'M46 20 Q66 60 46 100', class: 'wire' }));
+    const end = one ? 124 : 136;
+    if (bubble) svg.append(sv('circle', { cx: end + 6, cy: 60, r: 6, class: 'body' }));
+    svg.append(sv('line', { x1: bubble ? end + 12 : end, y1: 60, x2: 192, y2: 60, class: `wire${y ? ' hi' : ''}` }));
+    svg.append(sv('circle', { cx: 206, cy: 60, r: 14, class: `lamp${y ? ' hi' : ''}` }));
+    if (one) svg.append(sv('text', { x: 2, y: 56, class: 'tb' }, `A`)); else svg.append(sv('text', { x: 2, y: 36, class: 'tb' }, 'A'), sv('text', { x: 2, y: 76, class: 'tb' }, 'B'));
+    svg.append(sv('text', { x: 200, y: 98, class: 'tb' }, `Y=${y}`));
+    svg.setAttribute('aria-label', `${g} gate, output ${y}`);
+  }
+
+  function update() {
+    root.querySelectorAll<HTMLButtonElement>('.lg-g button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.g === g)));
+    const A = q('.lg-a'), B = q('.lg-b'), one = g === 'NOT';
+    B.hidden = one;
+    const a = bit(A), b = one ? 0 : bit(B), y = gate(g, a, b);
+    drawGate(a, b as Bit, y);
+    q('.lg-big').textContent = `Y = ${y}`;
+    q('.lg-rule').textContent = RULE[g];
+    q('.lg-expr').textContent = EXPR[g];
+    table(q<HTMLTableElement>('.lg-tt'), one ? ['A', 'Y'] : ['A', 'B', 'Y'], truthTable(g), one ? a : a * 2 + b);
+  }
+
+  function updU() {
+    root.querySelectorAll<HTMLButtonElement>('.lg-u button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.u === u)));
+    root.querySelectorAll<HTMLButtonElement>('.lg-t button').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.t === t)));
+    const recipe: Record<string, string> = {
+      'NAND-NOT': 'Join both inputs of one NAND together: NAND(A, A) = NOT A.',
+      'NAND-AND': 'A NAND followed by a NAND used as NOT: NOT(NAND(A, B)) = A AND B.',
+      'NAND-OR': 'Turn A and B into NOT A and NOT B with two NANDs, then NAND those: NAND(Ā, B̄) = A OR B.',
+      'NOR-NOT': 'Join both inputs of one NOR together: NOR(A, A) = NOT A.',
+      'NOR-OR': 'A NOR followed by a NOR used as NOT: NOT(NOR(A, B)) = A OR B.',
+      'NOR-AND': 'Turn A and B into NOT A and NOT B with two NORs, then NOR those: NOR(Ā, B̄) = A AND B.',
+    };
+    q('.lg-urecipe').textContent = `${recipe[`${u}-${t}`]} That takes ${COUNT[t]} ${u} gate${COUNT[t] > 1 ? 's' : ''}.`;
+    const body = t === 'NOT' ? ([0, 1] as Bit[]).map((a) => [a, fromUniversal(u, t, a), gate('NOT', a)]) : ([[0, 0], [0, 1], [1, 0], [1, 1]] as Bit[][]).map(([a, b]) => [a, b, fromUniversal(u, t, a, b), gate(t, a, b)]);
+    table(q<HTMLTableElement>('.lg-ut'), t === 'NOT' ? ['A', `from ${u}`, 'NOT'] : ['A', 'B', `from ${u}`, t], body as Bit[][], -1);
+  }
+
+  function updC() {
+    const g1 = q<HTMLSelectElement>('.lg-g1').value as Gate, g2 = q<HTMLSelectElement>('.lg-g2').value as Gate;
+    const a = bit(q('.lg-ca')), b = bit(q('.lg-cb')), c = bit(q('.lg-cc'));
+    q('.lg-cc').hidden = g2 === 'NOT';
+    const m = g1 === 'NOT' ? gate(g1, a) : gate(g1, a, b), y = chain(g1, g2, a, b, c);
+    q('.lg-cbig').textContent = `Y = ${y}`;
+    q('.lg-cwork').textContent = `G1 = ${g1}(${g1 === 'NOT' ? a : `${a}, ${b}`}) = ${m}; Y = ${g2}(${g2 === 'NOT' ? m : `${m}, ${c}`}) = ${y}`;
+    const body: Bit[][] = [];
+    for (const x of [0, 1] as Bit[]) for (const yb of [0, 1] as Bit[]) for (const z of [0, 1] as Bit[]) body.push([x, yb, z, chain(g1, g2, x, yb, z)]);
+    table(q<HTMLTableElement>('.lg-ct'), ['A', 'B', 'C', 'Y'], body, a * 4 + b * 2 + c);
+  }
+
+  for (const s of ['.lg-g1', '.lg-g2']) { const el = q<HTMLSelectElement>(s); for (const x of GATES) el.append(new Option(x, x)); el.addEventListener('change', updC); }
+  q<HTMLSelectElement>('.lg-g1').value = 'AND'; q<HTMLSelectElement>('.lg-g2').value = 'OR';
+  root.querySelectorAll<HTMLButtonElement>('.lg-g button').forEach((x) => x.addEventListener('click', () => { g = x.dataset.g as Gate; update(); }));
+  root.querySelectorAll<HTMLButtonElement>('.lg-u button').forEach((x) => x.addEventListener('click', () => { u = x.dataset.u as typeof u; updU(); }));
+  root.querySelectorAll<HTMLButtonElement>('.lg-t button').forEach((x) => x.addEventListener('click', () => { t = x.dataset.t as typeof t; updU(); }));
+  for (const s of ['.lg-a', '.lg-b']) q(s).addEventListener('click', () => { setBit(q(s), (1 - bit(q(s))) as Bit); update(); });
+  for (const s of ['.lg-ca', '.lg-cb', '.lg-cc']) q(s).addEventListener('click', () => { setBit(q(s), (1 - bit(q(s))) as Bit); updC(); });
+  update(); updU(); updC();
+
+  mountQuiz(q('.cq'), (): Question[] => {
+    const two = GATES.filter((x) => x !== 'NOT');
+    const g1 = pickOne(two), a1 = rint(0, 1) as Bit, b1 = rint(0, 1) as Bit, y1 = gate(g1, a1, b1);
+    const [d2, n2] = pickOne([['is 1 only when both inputs are 1', 'AND'], ['is 0 only when both inputs are 1', 'NAND'], ['is 1 only when both inputs are 0', 'NOR'], ['is 1 when the inputs are different', 'XOR'], ['is 0 only when both inputs are 0', 'OR']] as const);
+    const c1 = pickOne(two), c2 = pickOne(two), a3 = rint(0, 1) as Bit, b3 = rint(0, 1) as Bit, cc = rint(0, 1) as Bit, y3 = chain(c1, c2, a3, b3, cc), m3 = gate(c1, a3, b3);
+    const n4 = rint(2, 5), r4 = rows(n4);
+    const u5 = pickOne(['NAND', 'NOR'] as const), t5 = pickOne(['NOT', 'AND', 'OR'] as const), k5 = COUNT[t5];
+    return [
+      { q: `A = ${a1}, B = ${b1}. What is the output of a ${g1} gate?`, hint: '0 or 1', answer: String(y1), ok: same(String(y1)), worked: `${RULE[g1]} So ${g1}(${a1}, ${b1}) = ${y1}.` },
+      { q: `Which gate's output ${d2}?`, hint: 'gate name', answer: n2, ok: same(n2, n2 + ' gate'), worked: `${RULE[n2]}` },
+      { q: `Y = ${c2}( ${c1}(A, B), C ) with A = ${a3}, B = ${b3}, C = ${cc}. What is Y?`, hint: '0 or 1', answer: String(y3), ok: same(String(y3)), worked: `${c1}(${a3}, ${b3}) = ${m3}, then ${c2}(${m3}, ${cc}) = ${y3}.` },
+      { q: `How many rows does the truth table of a circuit with ${n4} inputs have?`, hint: 'a whole number', answer: String(r4), ok: same(String(r4)), worked: `Each input is 0 or 1, so there are 2^${n4} = ${r4} combinations.` },
+      { q: `What is the smallest number of ${u5} gates needed to make a ${t5} gate (the usual way)?`, hint: 'a whole number', answer: String(k5), ok: same(String(k5)), worked: t5 === 'NOT' ? `Join the two inputs of one ${u5}: 1 gate.` : (u5 === 'NAND') === (t5 === 'AND') ? `One ${u5} followed by one ${u5} wired as NOT: 2 gates.` : `Two ${u5}s wired as NOT on the inputs, then one more ${u5}: 3 gates.` },
+    ];
+  });
+</script>

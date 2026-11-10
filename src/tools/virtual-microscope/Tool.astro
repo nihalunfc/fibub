@@ -1,0 +1,207 @@
+---
+// Virtual microscope (Learn): drawn specimens under a school compound microscope. Change the objective, focus,
+// light and stain, drag the slide, and (Class 9 and up) measure cells with the field of view and a ruler line.
+import '../../styles/astro.css';
+import '../../styles/learnquiz-d.css';
+---
+<div class="ax lrn vmi">
+  <div class="ax-card">
+    <div class="ax-seg" role="group" aria-label="Level"><button type="button" data-level="8" aria-pressed="true">Class 8</button><button type="button" data-level="9" aria-pressed="false">Class 9 and up</button></div>
+    <label style="display:grid;gap:4px;margin-top:10px">Slide
+      <select class="vm-spec"><option value="onion">Onion peel</option><option value="cheek">Cheek cells</option><option value="pond">Pond water</option></select>
+    </label>
+    <canvas class="lrn-cv vm-cv" aria-label="The view down the microscope: a bright circle with the specimen in it. Drag to move the slide."></canvas>
+    <div class="ax-row" style="margin-top:8px">
+      <div class="ax-seg vm-obj" role="group" aria-label="Objective lens"><button type="button" data-o="4" aria-pressed="true">4×</button><button type="button" data-o="10" aria-pressed="false">10×</button><button type="button" data-o="40" aria-pressed="false">40×</button></div>
+      <div class="ax-seg vm-mode" role="group" aria-label="Dragging the picture" data-only="9" hidden><button type="button" data-m="move" aria-pressed="true">Drag moves slide</button><button type="button" data-m="measure" aria-pressed="false">Drag measures</button></div>
+    </div>
+    <div class="ax-grid" style="margin-top:10px">
+      <label class="lrn-sl">Focus knob <b class="vm-fv"></b><input type="range" class="vm-f" min="0" max="100" step="1" value="20" aria-label="Focus knob" /></label>
+      <label class="lrn-sl">Light <b class="vm-lv"></b><input type="range" class="vm-l" min="20" max="100" step="5" value="80" aria-label="Light" /></label>
+      <label>Eyepiece <select class="vm-eye"><option value="10" selected>10×</option><option value="15">15×</option></select></label>
+      <label class="ax-check"><input type="checkbox" class="vm-stain" /> Add a stain</label>
+    </div>
+    <p class="ax-big vm-big" style="margin:10px 0 0"></p>
+    <p class="lrn-eq vm-eq"></p>
+    <dl class="ax-facts vm-facts" style="margin-top:10px"></dl>
+    <p class="ax-help vm-note"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lrn-try">
+      <li>Start with the 4× objective and focus until the picture is sharp. Then switch to 10× and 40×: only a small turn of the focus knob is needed.</li>
+      <li>At 40× the picture goes blurry with the smallest turn: a strong lens has a very thin layer in focus.</li>
+      <li>Look at onion peel without a stain, then add one. The nucleus is hard to see until it is stained.</li>
+      <li>In pond water, drag the slide around to find a paramecium, an amoeba and a green algae thread.</li>
+      <li>Class 9 and up: switch to "Drag measures" and drag across one cell to find its real size.</li>
+    </ul>
+    <p class="ax-help">The specimens are drawn, not photographs: they show the shapes and rough sizes you would see, not every detail.</p>
+  </div>
+
+  <div class="ax-card vm-quiz">
+    <h2>Check yourself</h2>
+  </div>
+</div>
+
+<style is:inline>
+  .vmi .vm-cv { aspect-ratio: 1; max-width: 460px; margin: 10px auto 0; cursor: grab; }
+  .vmi select { min-height: 44px; font-size: 16px; }
+  .vmi .ax-seg button { min-height: 44px; min-width: 56px; }
+</style>
+
+<script>
+  import { totalMag, fieldOfView, realSize, blurPx, rng, tileSeed } from '../../lib/sci/learnj-micro';
+  import { mountQuiz, pick, one, r, wireLevel } from '../../lib/learnquiz-d';
+  import { pagePalette } from '../../lib/report';
+
+  const root = document.querySelector<HTMLElement>('.vmi')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const FN = 18; // field number of the eyepiece, mm (a common value for school eyepieces)
+  const BEST: Record<number, number> = { 4: 46, 10: 50, 40: 52 }; // focus knob position that is sharp for each objective
+  let obj = 4, mode = 'move', level = '8', panX = 0, panY = 0, meas: null | { x0: number; y0: number; x1: number; y1: number } = null;
+  const fact = (k: string, v: string, sm = '') => { const d = document.createElement('div'); d.innerHTML = '<dt></dt><dd></dd>'; d.querySelector('dt')!.textContent = k; d.querySelector('dd')!.textContent = v; if (sm) { const e = document.createElement('small'); e.textContent = sm; d.querySelector('dd')!.append(e); } return d; };
+
+  type Ctx = CanvasRenderingContext2D;
+  const off = document.createElement('canvas');
+  type View = { c: Ctx; s: number; cx: number; cy: number; x0: number; x1: number; y0: number; y1: number; stain: boolean; red: boolean };
+  const X = (v: View, x: number) => v.cx + (x - panX) * v.s, Y = (v: View, y: number) => v.cy + (y - panY) * v.s;
+
+  function onion(v: View) {
+    const H = 70, j0 = Math.floor(v.y0 / H) - 1, j1 = Math.ceil(v.y1 / H) + 1, c = v.c;
+    const wall = v.red ? '#a30000' : v.stain ? '#7a5418' : 'rgba(90,90,70,0.45)', fill = v.red ? '#200000' : v.stain ? 'rgba(214,170,70,0.35)' : 'rgba(230,228,210,0.25)';
+    const nuc = v.red ? '#a30000' : v.stain ? '#5a3a0c' : 'rgba(120,120,100,0.25)';
+    for (let j = j0; j <= j1; j++) {
+      const off = rng(tileSeed(j, 7))() * 250, bx = (k: number) => k * 250 + off + (rng(tileSeed(k, j, 1))() - 0.5) * 80;
+      const k0 = Math.floor((v.x0 - off) / 250) - 1, k1 = Math.ceil((v.x1 - off) / 250) + 1;
+      for (let k = k0; k <= k1; k++) {
+        const xa = bx(k), xb = bx(k + 1), ya = j * H, R = rng(tileSeed(k, j, 2));
+        c.fillStyle = fill; c.strokeStyle = wall; c.lineWidth = Math.max(1, 5 * v.s);
+        c.beginPath(); c.rect(X(v, xa), Y(v, ya), (xb - xa) * v.s, H * v.s); c.fill(); c.stroke();
+        const nx = xa + (0.25 + 0.5 * R()) * (xb - xa), ny = ya + (0.3 + 0.4 * R()) * H;
+        c.fillStyle = nuc; c.beginPath(); c.ellipse(X(v, nx), Y(v, ny), 11 * v.s, 9 * v.s, 0, 0, 7); c.fill();
+      }
+    }
+  }
+  function cheek(v: View) {
+    const T = 220, c = v.c;
+    for (let i = Math.floor(v.x0 / T) - 1; i <= Math.ceil(v.x1 / T) + 1; i++) for (let j = Math.floor(v.y0 / T) - 1; j <= Math.ceil(v.y1 / T) + 1; j++) {
+      const R = rng(tileSeed(i, j, 3)), n = Math.floor(R() * 3);
+      for (let m = 0; m < n; m++) {
+        const x = (i + R()) * T, y = (j + R()) * T, rad = 30 + R() * 18, a0 = R() * 6;
+        c.beginPath();
+        for (let k = 0; k < 9; k++) { const a = a0 + (k / 9) * Math.PI * 2, rr = rad * (0.8 + R() * 0.35); const px = X(v, x + rr * Math.cos(a)), py = Y(v, y + rr * Math.sin(a)); if (k) c.lineTo(px, py); else c.moveTo(px, py); }
+        c.closePath();
+        c.fillStyle = v.red ? '#1c0000' : v.stain ? 'rgba(90,130,200,0.30)' : 'rgba(200,200,190,0.30)'; c.fill();
+        c.strokeStyle = v.red ? '#7a0000' : v.stain ? 'rgba(40,70,150,0.8)' : 'rgba(120,120,110,0.45)'; c.lineWidth = Math.max(1, 1.5 * v.s); c.stroke();
+        c.fillStyle = v.red ? '#a30000' : v.stain ? '#1d3a8a' : 'rgba(120,120,110,0.35)';
+        c.beginPath(); c.ellipse(X(v, x + (R() - 0.5) * 10), Y(v, y + (R() - 0.5) * 10), 6 * v.s, 5 * v.s, R() * 3, 0, 7); c.fill();
+      }
+    }
+  }
+  function pond(v: View) {
+    const T = 700, c = v.c, g = v.red ? '#a30000' : '#2e7d32', ink = v.red ? '#a30000' : 'rgba(70,70,60,0.85)';
+    for (let i = Math.floor(v.x0 / T) - 1; i <= Math.ceil(v.x1 / T) + 1; i++) for (let j = Math.floor(v.y0 / T) - 1; j <= Math.ceil(v.y1 / T) + 1; j++) {
+      const R = rng(tileSeed(i, j, 4)), kind = Math.floor(R() * 4), x = (i + 0.2 + 0.6 * R()) * T, y = (j + 0.2 + 0.6 * R()) * T, ang = R() * Math.PI;
+      c.save(); c.translate(X(v, x), Y(v, y)); c.rotate(ang); c.lineWidth = Math.max(1, 2 * v.s);
+      if (kind === 0) { // paramecium, about 200 µm long, slipper-shaped with cilia
+        c.fillStyle = v.red ? '#200000' : v.stain ? 'rgba(170,120,190,0.35)' : 'rgba(190,190,160,0.35)'; c.strokeStyle = ink;
+        c.beginPath(); c.ellipse(0, 0, 100 * v.s, 32 * v.s, 0, 0, 7); c.fill(); c.stroke();
+        if (v.s > 0.15) { c.beginPath(); for (let a = 0; a < 6.28; a += 0.18) { const px = 100 * Math.cos(a), py = 32 * Math.sin(a); c.moveTo(px * v.s, py * v.s); c.lineTo(px * 1.1 * v.s, py * 1.25 * v.s); } c.stroke(); }
+        c.fillStyle = ink; c.beginPath(); c.ellipse(10 * v.s, 0, 18 * v.s, 10 * v.s, 0, 0, 7); c.fill();
+        c.beginPath(); c.arc(-60 * v.s, 8 * v.s, 9 * v.s, 0, 7); c.arc(60 * v.s, -8 * v.s, 9 * v.s, 0, 7); c.stroke();
+      } else if (kind === 1) { // filament of green algae, 40 µm wide cells with a spiral band
+        for (let k = -4; k < 4; k++) {
+          c.strokeStyle = ink; c.fillStyle = v.red ? '#140000' : 'rgba(160,210,150,0.35)';
+          c.beginPath(); c.rect(k * 70 * v.s, -20 * v.s, 70 * v.s, 40 * v.s); c.fill(); c.stroke();
+          c.strokeStyle = g; c.beginPath(); for (let t = 0; t <= 70; t += 4) { const yy = 16 * Math.sin((t / 70) * Math.PI * 3); if (t) c.lineTo((k * 70 + t) * v.s, yy * v.s); else c.moveTo(k * 70 * v.s, yy * v.s); } c.stroke();
+        }
+      } else if (kind === 2) { // amoeba, a blob with pseudopods
+        c.fillStyle = v.red ? '#1c0000' : 'rgba(180,180,160,0.35)'; c.strokeStyle = ink; c.beginPath();
+        for (let k = 0; k <= 40; k++) { const a = (k / 40) * Math.PI * 2, rr = 80 + 35 * Math.sin(3 * a + ang) + 20 * Math.sin(5 * a); const px = rr * Math.cos(a) * v.s, py = rr * Math.sin(a) * v.s; if (k) c.lineTo(px, py); else c.moveTo(px, py); }
+        c.closePath(); c.fill(); c.stroke();
+        c.fillStyle = ink; c.beginPath(); c.arc(0, 0, 14 * v.s, 0, 7); c.fill();
+      } else { // green single cells (like Chlorella), about 8 µm
+        c.fillStyle = g; for (let k = 0; k < 14; k++) { c.beginPath(); c.arc((R() - 0.5) * 300 * v.s, (R() - 0.5) * 300 * v.s, Math.max(0.8, 4 * v.s), 0, 7); c.fill(); }
+      }
+      // bacteria: 2 µm dots, only visible at high power
+      if (v.s > 0.5) { c.fillStyle = ink; for (let k = 0; k < 30; k++) { c.beginPath(); c.arc((R() - 0.5) * 600 * v.s, (R() - 0.5) * 600 * v.s, 1 * v.s, 0, 7); c.fill(); } }
+      c.restore();
+    }
+  }
+
+  function render() {
+    const pal = pagePalette(), cv = q<HTMLCanvasElement>('.vm-cv'), W = Math.max(200, Math.min(460, cv.clientWidth || 340)), dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (cv.width !== Math.round(W * dpr)) { cv.width = cv.height = Math.round(W * dpr); }
+    const c = cv.getContext('2d')!; c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const eye = +q<HTMLSelectElement>('.vm-eye').value, focus = +q<HTMLInputElement>('.vm-f').value, light = +q<HTMLInputElement>('.vm-l').value, stain = q<HTMLInputElement>('.vm-stain').checked, spec = q<HTMLSelectElement>('.vm-spec').value;
+    const fov = fieldOfView(FN, obj) * 1000, rad = W / 2 - 4, s = (2 * rad) / fov, blur = blurPx(focus, BEST[obj], obj);
+    q('.vm-fv').textContent = String(focus); q('.vm-lv').textContent = light + '%';
+    c.fillStyle = pal.red ? '#000' : '#111'; c.fillRect(0, 0, W, W);
+    c.save(); c.beginPath(); c.arc(W / 2, W / 2, rad, 0, 7); c.clip();
+    c.fillStyle = pal.red ? '#2a0000' : pal.bg === '#ffffff' ? '#f6f3e8' : '#c9c5b8'; c.fillRect(0, 0, W, W);
+    // Draw the specimen sharp on a spare canvas, then copy it across once with the blur (blurring every
+    // shape separately is far too slow on phones).
+    off.width = cv.width; off.height = cv.height;
+    const oc = off.getContext('2d')!; oc.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const v: View = { c: oc, s, cx: W / 2, cy: W / 2, x0: panX - fov / 2, x1: panX + fov / 2, y0: panY - fov / 2, y1: panY + fov / 2, stain, red: pal.red };
+    (spec === 'onion' ? onion : spec === 'cheek' ? cheek : pond)(v);
+    c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.filter = blur > 0.3 ? `blur(${(blur * dpr).toFixed(1)}px)` : 'none'; c.drawImage(off, 0, 0); c.restore();
+    if (light < 100) { c.fillStyle = `rgba(0,0,0,${((100 - light) / 100) * 0.85})`; c.fillRect(0, 0, W, W); }
+    // scale bar
+    const bar = obj === 4 ? 1000 : obj === 10 ? 200 : 50, bl = bar * s;
+    c.fillStyle = pal.red ? '#a30000' : '#111'; c.fillRect(W / 2 - bl / 2, W - 34, bl, 4);
+    c.font = 'bold 12px system-ui, sans-serif'; c.textAlign = 'center'; c.fillText(bar >= 1000 ? `${bar / 1000} mm` : `${bar} µm`, W / 2, W - 40);
+    if (meas && level === '9') {
+      c.strokeStyle = pal.red ? '#a30000' : '#c62828'; c.lineWidth = 2.5; c.beginPath(); c.moveTo(X(v, meas.x0), Y(v, meas.y0)); c.lineTo(X(v, meas.x1), Y(v, meas.y1)); c.stroke();
+    }
+    c.restore();
+    c.strokeStyle = pal.red ? '#3a0000' : '#555'; c.lineWidth = 3; c.beginPath(); c.arc(W / 2, W / 2, rad, 0, 7); c.stroke();
+
+    const tot = totalMag(eye, obj), sharp = blur <= 0.6;
+    q('.vm-big').textContent = `${tot}× total${sharp ? ', in focus' : blur > 6 ? ', very blurry: turn the focus knob' : ', a little blurry'}`;
+    q('.vm-eq').textContent = `Total magnification = eyepiece × objective = ${eye} × ${obj} = ${tot}×`;
+    const facts = [
+      fact('Objective lens', `${obj}×`, obj === 4 ? 'start here: widest view, easy to focus' : obj === 40 ? 'high power: small view, thin layer in focus' : 'medium power'),
+      fact('Sharp at focus', String(BEST[obj]), sharp ? 'you are there' : `you are at ${focus}`),
+    ];
+    if (level === '9') {
+      facts.push(fact('Field of view', `${r(fov / 1000, 3)} mm = ${r(fov, 3)} µm`, `field number ${FN} mm ÷ ${obj}`));
+      if (meas) { const len = Math.hypot(meas.x1 - meas.x0, meas.y1 - meas.y0); facts.push(fact('Your ruler line', `${r(len, 3)} µm`, `${r(len / 1000, 3)} mm real size; it would look ${r(realSize(len, 1) * tot / 1000, 3)} mm long at ${tot}×`)); }
+    }
+    q('.vm-facts').replaceChildren(...facts);
+    q('.vm-note').textContent = spec === 'onion' ? 'Onion peel: brick-shaped plant cells with a thick cell wall, each with one nucleus. Iodine stains the nucleus brown.'
+      : spec === 'cheek' ? 'Cheek cells: flat, irregular animal cells with a thin cell membrane and no cell wall. Methylene blue stains the nucleus blue.'
+      : 'Pond water: living things moving in water: a slipper-shaped paramecium, an amoeba with pseudopods, threads of green algae and tiny green cells. At 40× you can just see bacteria as dots.';
+  }
+
+  // Dragging: move the slide or draw a ruler line.
+  { const cv = q<HTMLCanvasElement>('.vm-cv'); let drag: null | { x: number; y: number; px: number; py: number } = null;
+    const toWorld = (e: PointerEvent) => { const b = cv.getBoundingClientRect(), W = b.width, fov = fieldOfView(FN, obj) * 1000, s = (W - 8) / fov; return { x: panX + (e.clientX - b.left - W / 2) / s, y: panY + (e.clientY - b.top - W / 2) / s, s }; };
+    cv.addEventListener('pointerdown', (e) => { cv.setPointerCapture(e.pointerId); const w = toWorld(e); drag = { x: e.clientX, y: e.clientY, px: panX, py: panY }; if (mode === 'measure' && level === '9') meas = { x0: w.x, y0: w.y, x1: w.x, y1: w.y }; });
+    cv.addEventListener('pointermove', (e) => {
+      if (!drag) return; const w = toWorld(e);
+      if (mode === 'measure' && level === '9' && meas) { meas.x1 = w.x; meas.y1 = w.y; }
+      else { panX = Math.max(-4000, Math.min(4000, drag.px - (e.clientX - drag.x) / w.s)); panY = Math.max(-4000, Math.min(4000, drag.py - (e.clientY - drag.y) / w.s)); }
+      render();
+    });
+    const end = () => { drag = null; }; cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+  }
+  root.querySelectorAll<HTMLButtonElement>('.vm-obj button').forEach((b) => b.addEventListener('click', () => { obj = +b.dataset.o!; root.querySelectorAll('.vm-obj button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); render(); }));
+  root.querySelectorAll<HTMLButtonElement>('.vm-mode button').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.m!; root.querySelectorAll('.vm-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); }));
+  for (const s of ['.vm-f', '.vm-l', '.vm-eye', '.vm-stain']) q(s).addEventListener('input', render);
+  q('.vm-spec').addEventListener('change', () => { panX = panY = 0; meas = null; render(); });
+  addEventListener('resize', render);
+  wireLevel(root, (l) => { level = l; render(); });
+
+  mountQuiz(q('.vm-quiz'), () => {
+    const e = one([5, 10, 15]), o = one([4, 10, 40, 100]), f10 = one([1.6, 1.8, 2]), o2 = one([4, 40]), img = pick(6, 30), m = one([100, 400, 1000]);
+    return [
+      { q: `An eyepiece of ${e}× is used with a ${o}× objective. What is the total magnification?`, ans: e * o, unit: '×', work: `Total = eyepiece × objective = ${e} × ${o} = ${e * o}×` },
+      { q: `The field of view is ${f10} mm with the 10× objective. About how wide is it with the ${o2}× objective?`, ans: f10 * 10 / o2, unit: 'mm', work: `The field of view shrinks as the objective gets stronger: ${f10} × 10 ÷ ${o2} = ${r(f10 * 10 / o2)} mm` },
+      { q: `A cell looks ${img} mm wide in a drawing made at ${m}×. What is its real width in micrometres (µm)?`, ans: img * 1000 / m, unit: 'µm', work: `Real size = image size ÷ magnification = ${img} mm ÷ ${m} = ${r(img / m)} mm = ${r(img * 1000 / m)} µm` },
+      { q: 'Which objective lens should you start with when you put a new slide on?', ans: 0, choices: ['The lowest power, such as 4×', 'The highest power, such as 40×', 'It does not matter'], work: 'Start with the lowest power: the view is widest and the layer in focus is thickest, so the specimen is easy to find. Then move up.' },
+      { q: 'Why do we add a stain such as iodine or methylene blue?', ans: 1, choices: ['To kill the cells', 'To colour parts like the nucleus so they show up', 'To make the cells bigger'], work: 'Most cell parts are almost see-through. A stain colours some parts more than others, so the nucleus and cell edges stand out.' },
+    ];
+  });
+</script>

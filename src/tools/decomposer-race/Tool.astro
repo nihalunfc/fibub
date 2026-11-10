@@ -1,0 +1,168 @@
+---
+// Decomposer race: three compost heaps side by side. Choose what goes in each (leaves, peel, straw, paper, plastic),
+// how warm and how damp it is, and whether earthworms help, then run the days and see which heap breaks down first.
+// A teaching model with made-up round rates. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm dr">
+  <p class="ax-help">A teaching model: the rates are made-up round numbers that show the pattern, not measurements.</p>
+  <div class="ax-card">
+    <div class="ax-row"><span class="dr-lab">Level</span>
+      <div class="ax-seg dr-level" role="group" aria-label="Level"><button type="button" data-v="8" aria-pressed="true">Class 7 to 8</button><button type="button" data-v="11" aria-pressed="false">Class 9 to 12</button></div></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>The race</h2>
+    <svg class="sm-fig dr-heaps" viewBox="0 0 340 170" role="img" aria-label="Three compost heaps that shrink as their contents break down"></svg>
+    <div class="sm-sl"><b>day</b><input type="range" class="dr-dr" min="0" max="180" step="1" value="30" aria-label="Days" /><input type="number" class="dr-d" min="0" max="365" step="1" value="30" aria-label="Days since the heaps were made" /></div>
+    <div class="ax-row"><button type="button" class="btn small dr-play">Play</button><button type="button" class="btn secondary small dr-zero">Day 0</button></div>
+    <p class="ax-big dr-win"></p>
+    <svg class="sm-fig dr-chart" viewBox="0 0 340 220" role="img" aria-label="Grams left in each heap against days"></svg>
+  </div>
+
+  <div class="dr-lanes"></div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Give heaps A and B the same leaves and change only the temperature, from 10 °C to 30 °C. How many times faster is the warm heap?</li>
+      <li>Dry a heap out to 10% moisture, then soak it to 100%. Why is a waterlogged heap slow too?</li>
+      <li>Add earthworms. How many days do they save before half the leaves are gone?</li>
+      <li>Put a plastic bag in heap C. What is left after a whole year?</li>
+      <li>At 50 °C the heap slows down again. Why might very hot compost kill its own decomposers?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="dr-quiz"></div>
+  </div>
+</div>
+
+<template id="dr-lane">
+  <div class="ax-card dr-lane">
+    <h2 class="dr-name"></h2>
+    <label class="dr-row">Put in <select class="dr-mat"><option value="leaves">Green leaves</option><option value="peel">Fruit and vegetable peel</option><option value="straw">Dry straw</option><option value="paper">Newspaper</option><option value="plastic">Plastic bag</option></select></label>
+    <div class="sm-sl"><b>T</b><input type="range" class="dr-tr" min="0" max="60" step="1" aria-label="Temperature, °C" /><input type="number" class="dr-t" min="0" max="60" step="1" aria-label="Temperature of the heap in °C" /></div>
+    <div class="sm-sl"><b>wet</b><input type="range" class="dr-mr" min="0" max="100" step="5" aria-label="Moisture, %" /><input type="number" class="dr-m" min="0" max="100" step="5" aria-label="Moisture in percent" /></div>
+    <label class="dr-row"><input type="checkbox" class="dr-w" /> Earthworms in the heap</label>
+    <p class="sm-f dr-out"></p>
+    <p class="sm-f dr-k" data-only="11"></p>
+  </div>
+</template>
+
+<style is:inline>
+  .dr .dr-lab { min-width: 4em; font-weight: 600; }
+  .dr .dr-row { display: flex; gap: 8px; align-items: center; margin: 6px 0; flex-wrap: wrap; }
+  .dr select.dr-mat { min-height: 40px; max-width: 100%; }
+  .dr input.dr-w { width: 22px; height: 22px; }
+  .dr svg .dr-soil { fill: var(--muted); fill-opacity: 0.25; }
+  .dr svg .dr-a { fill: var(--good); stroke: var(--good); }
+  .dr svg .dr-b { fill: var(--warn); stroke: var(--warn); }
+  .dr svg .dr-c { fill: var(--accent); stroke: var(--accent); }
+  .dr svg path.dr-l { fill: none; stroke-width: 2.5; }
+  .dr svg .dr-heap { fill-opacity: 0.55; stroke-width: 1.5; }
+</style>
+
+<script>
+  import { MATERIALS, rate, massLeft, halfLife, tempFactor, moistureFactor, WORM_BOOST, type Lane, type MaterialId } from '../../lib/sci/decompose-j2';
+  import { S, pair, val, quiz, type Question } from '../../lib/smath-ui';
+  import { randInt } from '../../lib/sci/smath';
+
+  const root = document.querySelector<HTMLElement>('.dr')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const D = q<HTMLInputElement>('.dr-d');
+  const setD = pair(q('.dr-dr'), D, draw);
+  const NAMES = ['A', 'B', 'C'], CLS = ['dr-a', 'dr-b', 'dr-c'];
+  const START: Lane[] = [
+    { material: 'leaves', temp: 30, moisture: 60, worms: true },
+    { material: 'leaves', temp: 15, moisture: 20, worms: false },
+    { material: 'plastic', temp: 30, moisture: 60, worms: true },
+  ];
+  const M0 = 100;
+  let level = '8';
+  const f1 = (x: number) => (Math.round(x * 10) / 10).toLocaleString('en');
+  const f3 = (x: number) => (+x.toPrecision(3)).toString();
+
+  // Build the three lane cards from the template.
+  const tpl = document.getElementById('dr-lane') as HTMLTemplateElement;
+  const lanes = START.map((s, i) => {
+    const el = (tpl.content.firstElementChild!.cloneNode(true)) as HTMLElement;
+    el.classList.add(`dr-lane-${NAMES[i].toLowerCase()}`);
+    el.querySelector('.dr-name')!.textContent = `Heap ${NAMES[i]}`;
+    const mat = el.querySelector<HTMLSelectElement>('.dr-mat')!, T = el.querySelector<HTMLInputElement>('.dr-t')!, M = el.querySelector<HTMLInputElement>('.dr-m')!, W = el.querySelector<HTMLInputElement>('.dr-w')!;
+    mat.value = s.material; W.checked = s.worms;
+    pair(el.querySelector('.dr-tr')!, T, draw)(s.temp);
+    pair(el.querySelector('.dr-mr')!, M, draw)(s.moisture);
+    mat.addEventListener('change', draw); W.addEventListener('change', draw);
+    q('.dr-lanes').append(el);
+    return { el, read: (): Lane => ({ material: mat.value as MaterialId, temp: val(T, s.temp, 0, 60), moisture: val(M, s.moisture, 0, 100), worms: W.checked }) };
+  });
+
+  function draw() {
+    const day = val(D, 30, 0, 365), ls = lanes.map((l) => l.read());
+    // Heaps.
+    const hs = q<SVGSVGElement>('.dr-heaps'); hs.replaceChildren();
+    S('rect', { x: 0, y: 140, width: 340, height: 30, class: 'dr-soil' }, hs);
+    ls.forEach((l, i) => {
+      const m = massLeft(l, M0, day), cx = 60 + i * 110, h = 100 * Math.sqrt(m / M0), w = 45 + 45 * Math.sqrt(m / M0);
+      if (m > 0.5) S('path', { d: `M${cx - w} 140 Q${cx} ${140 - 2 * h} ${cx + w} 140 Z`, class: `${CLS[i]} dr-heap` }, hs);
+      S('text', { x: cx, y: 160, 'text-anchor': 'middle', style: 'font-weight:700' }, hs, `${NAMES[i]}: ${f1(m)} g`);
+      S('text', { x: cx, y: 18, 'text-anchor': 'middle', class: 'sm-tick' }, hs, MATERIALS[l.material].name.split(' ')[0].toLowerCase() + (l.worms ? ' + worms' : ''));
+    });
+    // Chart.
+    const svg = q<SVGSVGElement>('.dr-chart'); svg.replaceChildren();
+    const L = 40, R = 330, T = 12, B = 190, maxD = Math.max(60, Math.ceil(day / 30) * 30), X = (d: number) => L + ((R - L) * d) / maxD, Y = (g: number) => B - ((B - T) * g) / M0;
+    for (let g = 0; g <= M0; g += 25) { S('line', { x1: L, y1: Y(g), x2: R, y2: Y(g), class: 'sm-grid' }, svg); S('text', { x: L - 5, y: Y(g) + 4, 'text-anchor': 'end', class: 'sm-tick' }, svg, String(g)); }
+    for (let d = 0; d <= maxD; d += maxD / 6) S('text', { x: X(d), y: B + 15, 'text-anchor': 'middle', class: 'sm-tick' }, svg, String(Math.round(d)));
+    S('text', { x: (L + R) / 2, y: 218, 'text-anchor': 'middle', class: 'sm-tick' }, svg, 'days    (grams left, out of 100)');
+    ls.forEach((l, i) => {
+      let d = ''; for (let s = 0; s <= 120; s++) { const dd = (maxD * s) / 120; d += `${s ? 'L' : 'M'}${X(dd).toFixed(1)} ${Y(massLeft(l, M0, dd)).toFixed(1)}`; }
+      S('path', { d, class: `${CLS[i]} dr-l`, style: 'fill:none' }, svg);
+      S('circle', { cx: X(day), cy: Y(massLeft(l, M0, day)), r: 5, class: CLS[i] }, svg);
+    });
+    S('line', { x1: X(day), y1: T, x2: X(day), y2: B, class: 'sm-dash' }, svg);
+    // Lane text.
+    ls.forEach((l, i) => {
+      const m = massLeft(l, M0, day), hl = halfLife(l), el = lanes[i].el;
+      el.querySelector('.dr-out')!.textContent = rate(l) === 0 ? `Nothing breaks it down: all ${M0} g are still there after ${day} days.` : `After ${day} days: ${f1(m)} g of ${M0} g left (${f1(100 - m)}% broken down). Half is gone after ${f1(hl)} days.`;
+      el.querySelector('.dr-k')!.textContent = `Rate k = ${MATERIALS[l.material].k} × ${f3(tempFactor(l.temp))} (warmth) × ${f3(moistureFactor(l.moisture))} (moisture)${l.worms ? ` × ${WORM_BOOST} (worms)` : ''} = ${f3(rate(l))} per day; mass left = 100 × e^(−${f3(rate(l))} × ${day}) = ${f1(m)} g.`;
+    });
+    const order = ls.map((l, i) => ({ i, m: massLeft(l, M0, day) })).sort((a, b) => a.m - b.m);
+    q('.dr-win').textContent = day === 0 ? 'Day 0: every heap has 100 g' : Math.abs(order[0].m - order[1].m) < 0.05 ? `Day ${day}: a tie at the front` : `Day ${day}: heap ${NAMES[order[0].i]} leads with ${f1(order[0].m)} g left`;
+  }
+
+  let playing = false, raf = 0, prev = 0, acc = 0;
+  const play = q<HTMLButtonElement>('.dr-play');
+  const tick = (now: number) => {
+    if (!playing) { raf = 0; return; }
+    acc += prev ? Math.min(0.2, (now - prev) / 1000) * 20 : 0; prev = now;   // 20 days a second
+    if (acc >= 1) { const n = Math.floor(acc); acc -= n; const d = val(D, 0, 0, 365) + n; setD(Math.min(365, d)); draw(); if (d >= 365) { playing = false; play.textContent = 'Play'; } }
+    raf = requestAnimationFrame(tick);
+  };
+  play.addEventListener('click', () => { playing = !playing; play.textContent = playing ? 'Pause' : 'Play'; prev = 0; if (playing && !raf) raf = requestAnimationFrame(tick); });
+  q('.dr-zero').addEventListener('click', () => { setD(0); draw(); });
+  root.querySelectorAll<HTMLButtonElement>('.dr-level button').forEach((b) => b.addEventListener('click', () => {
+    root.querySelectorAll('.dr-level button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); level = b.dataset.v!;
+    root.querySelectorAll<HTMLElement>('[data-only]').forEach((e) => { e.hidden = e.dataset.only !== level; });
+  }));
+  root.querySelectorAll<HTMLElement>('[data-only]').forEach((e) => { e.hidden = e.dataset.only !== level; });
+  draw();
+
+  quiz(q('.dr-quiz'), () => {
+    const out: Question[] = [];
+    const days = randInt(3, 9) * 10;
+    out.push({ q: `Leaves take ${days} days to half rot at 20 °C. The rate doubles for every 10 °C warmer. How many days at 30 °C?`, want: [days / 2], work: `Twice as fast means half the time: ${days} ÷ 2 = ${days / 2} days.` });
+    const m0 = [80, 100, 160, 200, 400][randInt(0, 4)], h = randInt(1, 4);
+    out.push({ q: `A ${m0} g heap loses half its mass every 10 days. How many grams are left after ${h * 10} days?`, want: [m0 / 2 ** h], work: `Halve it ${h} time${h > 1 ? 's' : ''}: ${m0} ÷ ${2 ** h} = ${m0 / 2 ** h} g.` });
+    const drop = [10, 20, 30][randInt(0, 2)];
+    out.push({ q: `How many times slower does a heap rot when it is ${drop} °C colder (the rate halves for every 10 °C)?`, want: [2 ** (drop / 10)], work: `${drop / 10} halving${drop > 10 ? 's' : ''}: 2^${drop / 10} = ${2 ** (drop / 10)} times slower.` });
+    const start = randInt(5, 20) * 10, left = randInt(1, start / 10 - 1) * 10;
+    out.push({ q: `A heap went from ${start} g to ${left} g. What percent was broken down?`, want: [(100 * (start - left)) / start], work: `${start} − ${left} = ${start - left} g gone; ${start - left} ÷ ${start} × 100 = ${f1((100 * (start - left)) / start)}%.` });
+    const k = [0.01, 0.02, 0.05, 0.07][randInt(0, 3)];
+    out.push({ q: `For mass left = M₀ e^(−kt) with k = ${k} per day, how many days until half is gone? (half-life = ln 2 ÷ k; ln 2 ≈ 0.693; Class 11 and 12)`, want: [0.693 / k], tol: 0.01, work: `0.693 ÷ ${k} = ${f1(0.693 / k)} days.` });
+    return out;
+  });
+</script>

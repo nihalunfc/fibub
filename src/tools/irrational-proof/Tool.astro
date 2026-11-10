@@ -1,0 +1,167 @@
+---
+// Why √2 is irrational: hunt for a fraction a/b with a² = n·b² (it never works), see the exact digits of √n, and step
+// through the proof by contradiction for √p and for r + s√p. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm ir">
+  <div class="ax-card">
+    <h2>Hunt for a fraction equal to √n</h2>
+    <div class="sm-sl"><b>n</b><input type="range" class="ir-nr" min="2" max="30" step="1" value="2" aria-label="n slider" /><input type="number" class="ir-n" min="2" max="99" step="1" value="2" inputmode="numeric" aria-label="n (whole number)" /></div>
+    <div class="sm-sl"><b>b</b><input type="range" class="ir-br" min="1" max="200" step="1" value="5" aria-label="Bottom number slider" /><input type="number" class="ir-b" min="1" max="1000" step="1" value="5" inputmode="numeric" aria-label="Bottom number b" /></div>
+    <svg class="sm-fig ir-fig" viewBox="0 0 340 170" role="img" aria-label="Two bars comparing a squared with n times b squared"></svg>
+    <p class="sm-f ir-frac"></p>
+    <ul class="sm-steps ir-out"></ul>
+    <p class="ax-help">For each b the page picks the a that makes a/b closest to √n. If √n were a fraction, some b would make the two bars exactly equal.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The digits never settle into a pattern</h2>
+    <p class="sm-f ir-dig" style="font-family:ui-monospace,monospace"></p>
+    <p class="ax-help ir-dnote"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>The proof, one step at a time</h2>
+    <div class="ax-row">
+      <div class="ax-seg ir-which" role="group" aria-label="Which proof">
+        <button type="button" data-w="root" aria-pressed="true">√p is irrational</button>
+        <button type="button" data-w="sum" aria-pressed="false">r + s√p is irrational</button>
+      </div>
+    </div>
+    <div class="ax-row" style="margin-top:8px">
+      <label class="ax-help" style="margin:0">p <select class="ir-p" aria-label="The prime p">
+        <option>2</option><option>3</option><option>5</option><option>7</option><option>11</option><option>13</option>
+      </select></label>
+      <label class="ax-help ir-rs" style="margin:0" hidden>r <input class="ir-r" type="number" value="5" step="1" style="width:4.5em" aria-label="r" /></label>
+      <label class="ax-help ir-rs" style="margin:0" hidden>s <input class="ir-s" type="number" value="2" step="1" style="width:4.5em" aria-label="s" /></label>
+    </div>
+    <ol class="ir-steps"></ol>
+    <div class="ax-row">
+      <button type="button" class="btn small ir-next">Next step</button>
+      <button type="button" class="btn secondary small ir-all">Show all</button>
+      <button type="button" class="btn secondary small ir-reset">Start again</button>
+    </div>
+    <p class="ax-err ir-err" hidden></p>
+    <details class="ir-sq"><summary>Why does p divide a when p divides a²?</summary>
+      <p class="ax-help">Below is the remainder when a² is divided by p, for a = 1 to p − 1 (every other a gives one of these). None of them is 0, so if p does not divide a, it does not divide a² either.</p>
+      <p class="sm-f ir-mod"></p>
+    </details>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Set n = 2 and slide b. The bars come within 1 of each other (b = 5, 12, 29, 70...) but never meet.</li>
+      <li>Set n = 9 or 16. Now some b makes the bars equal: √9 and √16 are whole numbers.</li>
+      <li>Why does the proof need p to be prime? Try it with p = 4 in your head: 4 divides 2² but not 2.</li>
+      <li>Change r and s in the second proof. Does the argument ever break? Only if s = 0.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="ir-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .ir .ir-steps { padding-left: 1.4em; line-height: 1.6; margin: 10px 0; }
+  .ir .ir-steps li { margin-bottom: 8px; }
+  .ir .ir-steps li small { display: block; color: var(--muted); }
+  .ir .ir-steps li.ir-bang { color: var(--bad); font-weight: 600; }
+  .ir select { min-height: 40px; }
+  .ir .ir-rs input { min-height: 40px; }
+  .ir .ir-sq { margin-top: 10px; }
+  .ir .ir-sq summary { cursor: pointer; min-height: 32px; }
+  .ir svg .ir-b1 { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+  .ir svg .ir-b2 { fill: var(--good-soft); stroke: var(--good); stroke-width: 1.5; }
+</style>
+
+<script>
+  import { bestFraction, sqrtDigits, isSquare, rootProof, sumProof, recurringToFraction } from '../../lib/sci/irrational-proof';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, pair, val, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.ir')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.ir-fig');
+  const nB = q<HTMLInputElement>('.ir-n'), bB = q<HTMLInputElement>('.ir-b');
+  pair(q('.ir-nr'), nB, hunt); pair(q('.ir-br'), bB, hunt);
+  const li = (t: string) => Object.assign(document.createElement('li'), { textContent: t });
+
+  function hunt() {
+    const n = Math.round(val(nB, 2, 1, 99)), b = Math.round(val(bB, 5, 1, 1000)), f = bestFraction(n, b);
+    fig.replaceChildren();
+    const big = Math.max(f.a2, f.nb2), W = 230, x0 = 92;
+    const bar = (y: number, v: number, cls: string, lab: string) => {
+      S('rect', { x: x0, y, width: Math.max(1, (v / big) * W), height: 34, class: cls }, fig);
+      S('text', { x: x0 - 6, y: y + 22, 'text-anchor': 'end', style: 'font-weight:700' }, fig, lab);
+      S('text', { x: x0 + 6, y: y + 22 }, fig, v.toLocaleString('en'));
+    };
+    bar(22, f.a2, 'ir-b1', 'a²'); bar(70, f.nb2, 'ir-b2', `${n}b²`);
+    S('text', { x: 170, y: 140, 'text-anchor': 'middle', style: `font-weight:700;fill:var(${f.diff === 0 ? '--good' : '--bad'})` }, fig,
+      f.diff === 0 ? 'Equal! √n is this fraction.' : `Off by ${Math.abs(f.diff).toLocaleString('en')}`);
+    q('.ir-frac').innerHTML = '';
+    q('.ir-frac').append('Closest: ', Object.assign(document.createElement('span'), { className: 'v ir-ab', textContent: `a/b = ${f.a}/${b}` }), ` = ${(f.a / b).toFixed(8)}`);
+    const rows = [
+      `√${n} = ${sqrtDigits(n, 8)}…`,
+      `a² = ${f.a}² = ${f.a2.toLocaleString('en')} and ${n}b² = ${n} × ${b}² = ${f.nb2.toLocaleString('en')}.`,
+      f.diff === 0 ? `They are equal, so √${n} = ${f.a}/${b}: ${n} is a perfect square and √${n} is rational.` : `a² − ${n}b² = ${fmt(f.diff, 0)}, not 0, so a/b is not √${n}.`,
+    ];
+    q('.ir-out').replaceChildren(...rows.map(li));
+    const sq = isSquare(n);
+    q('.ir-dig').textContent = `√${n} = ${sqrtDigits(n, 40)}…`;
+    q('.ir-dnote').textContent = sq ? `${n} is a perfect square, so its root stops: it is rational.` : `${n} is not a perfect square, so √${n} goes on forever without repeating. Any fraction's decimal ends or repeats, so √${n} is not a fraction.`;
+  }
+  hunt();
+
+  // Proof stepper.
+  let which = 'root', shown = 1;
+  function steps() {
+    const p = Number(q<HTMLSelectElement>('.ir-p').value);
+    const r = Math.round(Number(q<HTMLInputElement>('.ir-r').value)), s = Math.round(Number(q<HTMLInputElement>('.ir-s').value));
+    const err = q('.ir-err');
+    root.querySelectorAll<HTMLElement>('.ir-rs').forEach((e) => { e.hidden = which !== 'sum'; });
+    if (which === 'sum' && (!Number.isFinite(r) || !Number.isFinite(s) || s === 0)) {
+      err.textContent = 's must be a whole number other than 0 (with s = 0 the number is just r, which is rational).'; err.hidden = false;
+      q('.ir-steps').replaceChildren(); return;
+    }
+    err.hidden = true;
+    const all = which === 'root' ? rootProof(p) : sumProof(p, r, s);
+    shown = Math.min(shown, all.length);
+    q('.ir-steps').replaceChildren(...all.slice(0, shown).map((st, i) => {
+      const e = document.createElement('li'); e.textContent = st.claim;
+      e.append(Object.assign(document.createElement('small'), { textContent: st.why }));
+      if (i === all.length - 2 && which === 'root') e.className = 'ir-bang';
+      return e;
+    }));
+    q<HTMLButtonElement>('.ir-next').disabled = shown >= all.length;
+    const mods = Array.from({ length: p - 1 }, (_, i) => `${i + 1}² → ${((i + 1) ** 2) % p}`);
+    q('.ir-mod').textContent = `Remainders on dividing by ${p}: ${mods.join(', ')}`;
+  }
+  q('.ir-next').addEventListener('click', () => { shown++; steps(); });
+  q('.ir-all').addEventListener('click', () => { shown = 99; steps(); });
+  q('.ir-reset').addEventListener('click', () => { shown = 1; steps(); });
+  q('.ir-p').addEventListener('change', steps);
+  for (const c of ['.ir-r', '.ir-s']) q(c).addEventListener('input', steps);
+  root.querySelectorAll<HTMLButtonElement>('.ir-which button').forEach((b) => b.addEventListener('click', () => {
+    which = b.dataset.w!; shown = 1; root.querySelectorAll('.ir-which button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); steps();
+  }));
+  steps();
+
+  quiz(q('.ir-quiz'), () => {
+    const out: Question[] = [];
+    { const n = [2, 3, 5, 6, 7, 10][randInt(0, 5)], b = randInt(3, 12), f = bestFraction(n, b);
+      out.push({ q: `Which whole number a makes a/${b} closest to √${n}?`, want: [f.a], tol: 0, hint: 'a', work: `${b} × √${n} = ${(b * Math.sqrt(n)).toFixed(3)}, so a = ${f.a}.` }); }
+    { const p = [3, 5, 7, 11][randInt(0, 3)];
+      out.push({ q: `In the proof that √${p} is irrational, we reach ${p}b² = a² and put a = ${p}c. Then b² = k × c². What is k?`, want: [p], tol: 0, hint: 'k', work: `${p}b² = ${p * p}c², and dividing by ${p} gives b² = ${p}c², so k = ${p}.` }); }
+    { let block: string; do { block = String(randInt(1, 98)).padStart(2, '0'); } while (block[0] === block[1]);
+      const [pp, qq] = recurringToFraction(block);
+      out.push({ q: `Write 0.${block}${block}${block}… (the ${block} repeats for ever) as a fraction p/q in lowest terms. Type p and q.`, want: [pp, qq], ordered: true, tol: 0, hint: 'p, q', work: `Let x = 0.${block}… Then 100x − x = ${Number(block)}, so x = ${Number(block)}/99 = ${pp}/${qq}. Its decimal repeats, so it is rational.` }); }
+    { const n = [2, 3, 5, 7][randInt(0, 3)], b = randInt(2, 9), a = bestFraction(n, b).a, d = a * a - n * b * b;
+      out.push({ q: `Work out a² − ${n}b² for a = ${a} and b = ${b}. (It is never 0, whatever whole numbers you pick.)`, want: [d], tol: 0, hint: 'a number', work: `${a}² − ${n} × ${b}² = ${a * a} − ${n * b * b} = ${fmt(d, 0)}.` }); }
+    return out;
+  });
+</script>

@@ -1,0 +1,204 @@
+---
+// Plane mirror lab: drag a laser to check that the angle of reflection equals the angle of incidence (with its image
+// as far behind the mirror as the laser is in front), count the images between two mirrors at any angle
+// (kaleidoscope), and tilt the mirrors of a periscope until light gets through. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm pm">
+  <div class="ax-card">
+    <div class="ax-row"><span class="pm-lab">Show</span>
+      <div class="ax-seg pm-mode" role="group" aria-label="Show"><button type="button" data-v="law" aria-pressed="true">Reflection</button><button type="button" data-v="two" aria-pressed="false">Two mirrors</button><button type="button" data-v="peri" aria-pressed="false">Periscope</button></div></div>
+  </div>
+
+  <div class="ax-card pm-law">
+    <h2>Law of reflection</h2>
+    <svg class="sm-fig pm-lfig" viewBox="0 0 340 330" role="img" aria-label="A laser shining on a flat mirror: the incident ray, the normal, the reflected ray and the laser's image behind the mirror"></svg>
+    <p class="ax-help">Drag the laser (the dot), or use the slider. The dashed line is the normal, at right angles to the mirror.</p>
+    <div class="sm-sl"><b>i</b><input type="range" class="pm-ir" min="0" max="80" step="1" value="35" aria-label="Angle of incidence, degrees" /><input type="number" class="pm-i" min="0" max="80" step="1" value="35" aria-label="Angle of incidence in degrees" /></div>
+    <p class="ax-big pm-lbig"></p>
+    <p class="sm-f pm-l1"></p>
+    <p class="sm-f pm-l2"></p>
+  </div>
+
+  <div class="ax-card pm-two" hidden>
+    <h2>Two mirrors at an angle</h2>
+    <svg class="sm-fig pm-tfig" viewBox="0 0 340 340" role="img" aria-label="Two mirrors meeting at a point with an object between them and all its images"></svg>
+    <div class="sm-sl"><b>θ</b><input type="range" class="pm-tr" min="30" max="180" step="1" value="60" aria-label="Angle between the mirrors, degrees" /><input type="number" class="pm-t" min="30" max="180" step="1" value="60" aria-label="Angle between the mirrors in degrees" /></div>
+    <p class="ax-help">Angle between the mirrors, 30° to 180° (180° is one flat mirror).</p>
+    <div class="sm-sl"><b>pos</b><input type="range" class="pm-pr" min="5" max="95" step="1" value="33" aria-label="Where the object sits between the mirrors, %" /><input type="number" class="pm-p" min="5" max="95" step="1" value="33" aria-label="Object position between the mirrors in percent" /></div>
+    <p class="ax-help">Where the object sits across the gap, % (50 is on the middle line).</p>
+    <div class="ax-row"><button type="button" class="btn secondary small pm-pre" data-t="90">90°</button><button type="button" class="btn secondary small pm-pre" data-t="72">72°</button><button type="button" class="btn secondary small pm-pre" data-t="60">60°</button><button type="button" class="btn secondary small pm-pre" data-t="45">45°</button><button type="button" class="btn secondary small pm-pre" data-t="30">30°</button></div>
+    <p class="ax-big pm-tbig"></p>
+    <p class="sm-f pm-t1"></p>
+    <p class="sm-f pm-t2"></p>
+  </div>
+
+  <div class="ax-card pm-peri" hidden>
+    <h2>Periscope</h2>
+    <svg class="sm-fig pm-pfig" viewBox="0 0 340 290" role="img" aria-label="A periscope tube with a mirror at each end and the path of light through it"></svg>
+    <div class="sm-sl"><b>tilt</b><input type="range" class="pm-gr" min="30" max="60" step="1" value="45" aria-label="Mirror tilt, degrees" /><input type="number" class="pm-g" min="30" max="60" step="1" value="45" aria-label="Mirror tilt in degrees" /></div>
+    <p class="ax-help">Both mirrors are tilted by this angle from flat, and stay parallel.</p>
+    <p class="ax-big pm-pbig"></p>
+    <p class="sm-f pm-p1"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Drag the laser all round. Is the reflected angle ever different from the incident angle?</li>
+      <li>Shine the laser straight down (i = 0°). Where does the light go?</li>
+      <li>Set two mirrors to 90°, 60° and 45°. Count the images and check 360 ÷ θ − 1.</li>
+      <li>At 72°, slide the object to 50% and away from it. Why does the count change by one?</li>
+      <li>Tilt the periscope mirrors away from 45°. How far can you go before the light hits the tube wall?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="pm-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .pm .pm-lab { min-width: 3.5em; font-weight: 600; }
+  .pm svg .pm-mir { stroke: var(--ink); stroke-width: 5; stroke-linecap: round; }
+  .pm svg .pm-back { stroke: var(--muted); stroke-width: 2; stroke-dasharray: 3 3; }
+  .pm svg .pm-ray { stroke: var(--bad); stroke-width: 2.5; fill: none; }
+  .pm svg .pm-ghost { stroke: var(--bad); stroke-width: 1.5; stroke-dasharray: 6 4; fill: none; opacity: 0.7; }
+  .pm svg .pm-arc { fill: none; stroke-width: 2; }
+  .pm svg .pm-ai { stroke: var(--accent); }
+  .pm svg .pm-ar { stroke: var(--good); }
+  .pm svg .pm-obj { fill: var(--accent); }
+  .pm svg .pm-img { fill: var(--accent); fill-opacity: 0.35; stroke: var(--accent); stroke-width: 0.6; }
+  .pm svg .pm-tube { fill: var(--surface); stroke: var(--ink); stroke-width: 2.5; }
+  .pm svg .pm-eye { fill: var(--good); }
+</style>
+
+<script>
+  import { wedgeImages, ruleCount, periscope } from '../../lib/sci/planemirror-j2';
+  import { S, pair, val, dragOn, quiz, type Question } from '../../lib/smath-ui';
+  import { randInt } from '../../lib/sci/smath';
+
+  const root = document.querySelector<HTMLElement>('.pm')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const I = q<HTMLInputElement>('.pm-i'), T = q<HTMLInputElement>('.pm-t'), P = q<HTMLInputElement>('.pm-p'), G = q<HTMLInputElement>('.pm-g');
+  const rad = (d: number) => (d * Math.PI) / 180;
+  let side = -1, dist = 150;   // the laser is on the left (−1) or right (+1) of the normal, `dist` px from O
+  const setI = pair(q('.pm-ir'), I, drawLaw), setT = pair(q('.pm-tr'), T, drawTwo);
+  pair(q('.pm-pr'), P, drawTwo); pair(q('.pm-gr'), G, drawPeri);
+
+  const OX = 170, OY = 210;
+  function drawLaw() {
+    const i = val(I, 35, 0, 80), svg = q<SVGSVGElement>('.pm-lfig'); svg.replaceChildren();
+    S('rect', { x: 20, y: OY, width: 300, height: 120, style: 'fill:var(--line);opacity:0.35' }, svg);
+    S('line', { x1: 20, y1: OY, x2: 320, y2: OY, class: 'pm-mir' }, svg);
+    for (let x = 30; x < 320; x += 14) S('line', { x1: x, y1: OY + 3, x2: x - 8, y2: OY + 12, class: 'pm-back' }, svg);
+    S('text', { x: 24, y: OY + 26, class: 'sm-tick' }, svg, 'mirror (behind it: the image)');
+    S('line', { x1: OX, y1: 18, x2: OX, y2: OY, class: 'sm-dash' }, svg);
+    S('text', { x: OX + 4, y: 28, class: 'sm-tick' }, svg, 'normal');
+    const lx = OX + side * dist * Math.sin(rad(i)), ly = OY - dist * Math.cos(rad(i));
+    const rx = OX - side * dist * Math.sin(rad(i)), ry = ly;
+    S('line', { x1: lx, y1: ly, x2: OX, y2: OY, class: 'pm-ray' }, svg);
+    S('line', { x1: OX, y1: OY, x2: rx, y2: ry, class: 'pm-ray' }, svg);
+    // Arrowheads in the middle of each ray.
+    const head = (x1: number, y1: number, x2: number, y2: number) => { const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, a = Math.atan2(y2 - y1, x2 - x1); S('path', { d: `M${mx + 8 * Math.cos(a)} ${my + 8 * Math.sin(a)}L${mx + 8 * Math.cos(a + 2.5)} ${my + 8 * Math.sin(a + 2.5)}L${mx + 8 * Math.cos(a - 2.5)} ${my + 8 * Math.sin(a - 2.5)}Z`, style: 'fill:var(--bad)' }, svg); };
+    head(lx, ly, OX, OY); head(OX, OY, rx, ry);
+    // Image of the laser: straight behind, as far behind as it is in front.
+    const iy = 2 * OY - ly;
+    S('line', { x1: OX, y1: OY, x2: lx, y2: Math.min(iy, 325), class: 'pm-ghost' }, svg);
+    S('line', { x1: lx, y1: ly, x2: lx, y2: Math.min(iy, 325), class: 'pm-back' }, svg);
+    if (iy < 330) S('circle', { cx: lx, cy: iy, r: 6, class: 'pm-img' }, svg);
+    if (i > 2) {
+      const r = 42;
+      const arc = (sgn: number, cls: string) => S('path', { d: `M${OX} ${OY - r}A${r} ${r} 0 0 ${sgn > 0 ? 1 : 0} ${OX + sgn * r * Math.sin(rad(i))} ${OY - r * Math.cos(rad(i))}`, class: `pm-arc ${cls}` }, svg);
+      arc(side, 'pm-ai'); arc(-side, 'pm-ar');
+      S('text', { x: OX + side * 60 * Math.sin(rad(i / 2)) - (side > 0 ? 0 : 22), y: OY - 60 * Math.cos(rad(i / 2)), style: 'fill:var(--accent);font-weight:700' }, svg, `i ${Math.round(i)}°`);
+      S('text', { x: OX - side * 60 * Math.sin(rad(i / 2)) - (side > 0 ? 22 : 0), y: OY - 60 * Math.cos(rad(i / 2)), style: 'fill:var(--good);font-weight:700' }, svg, `r ${Math.round(i)}°`);
+    }
+    S('circle', { cx: lx, cy: ly, r: 9, class: 'sm-handle' }, svg);
+    S('circle', { cx: lx, cy: ly, r: 24, class: 'sm-hit' }, svg);
+    S('text', { x: lx, y: ly - 14, 'text-anchor': 'middle', style: 'font-weight:600' }, svg, 'laser');
+    q('.pm-lbig').textContent = `i = ${Math.round(i)}°, r = ${Math.round(i)}°`;
+    q('.pm-l1').textContent = `Angle of incidence = angle of reflection = ${Math.round(i)}°, both measured from the normal. With the mirror surface the rays make 90° − ${Math.round(i)}° = ${90 - Math.round(i)}°.`;
+    const cm = ((OY - ly) / 10).toFixed(1);
+    q('.pm-l2').textContent = `The laser is ${cm} cm in front of the mirror (on this drawing); its image is ${cm} cm behind it, straight across. The reflected ray seems to come from that image.`;
+  }
+
+  dragOn(q('.pm-lfig'), (x, y) => { const i = val(I, 35, 0, 80), lx = OX + side * dist * Math.sin(rad(i)), ly = OY - dist * Math.cos(rad(i)); return Math.hypot(x - lx, y - ly) < 30 ? 'l' : null; }, (_id, x, y) => {
+    const dx = x - OX, dy = Math.max(10, OY - y);
+    side = dx < 0 ? -1 : 1; dist = Math.min(190, Math.max(60, Math.hypot(dx, dy)));
+    setI(Math.min(80, Math.round((Math.atan2(Math.abs(dx), dy) * 180) / Math.PI))); drawLaw();
+  });
+
+  // F shape (shows left-right flips), drawn round (0, 0) pointing out from the corner.
+  const F = 'M-6 -10 L6 -10 L6 -6 L-2 -6 L-2 -2 L4 -2 L4 2 L-2 2 L-2 10 L-6 10 Z';
+  function drawTwo() {
+    const th = val(T, 60, 30, 180), pos = val(P, 33, 5, 95), phi = (th * pos) / 100;
+    const svg = q<SVGSVGElement>('.pm-tfig'); svg.replaceChildren();
+    const C = 170, R = 140, rr = 95;
+    const pt = (a: number, r: number) => [C + r * Math.cos(rad(a)), C - r * Math.sin(rad(a))];
+    for (let k = 0; k < 360; k += 30) { const [x, y] = pt(k, R); S('line', { x1: C, y1: C, x2: x, y2: y, class: 'sm-grid' }, svg); }
+    const ims = wedgeImages(th, phi);
+    const place = (a: number, m: [number, number, number, number], cls: string) => {
+      const [x, y] = pt(a, rr);
+      // Object frame: rotated so the F stands along the ray at angle phi; image frame = mirror matrix × object frame.
+      const ca = Math.cos(rad(phi)), sa = Math.sin(rad(phi));
+      const o = [ca, sa, -sa, ca];   // math coords (y up), columns
+      const M = [m[0] * o[0] + m[2] * o[1], m[1] * o[0] + m[3] * o[1], m[0] * o[2] + m[2] * o[3], m[1] * o[2] + m[3] * o[3]];
+      // To screen (flip y): [a b c d] → matrix(a, −b, −c, d).
+      S('path', { d: F, class: cls, transform: `matrix(${M[0].toFixed(4)} ${(-M[1]).toFixed(4)} ${(-M[2]).toFixed(4)} ${M[3].toFixed(4)} ${x.toFixed(1)} ${y.toFixed(1)})` }, svg);
+    };
+    for (const im of ims) place(im.angle, im.matrix, 'pm-img pm-im');
+    place(phi, [1, 0, 0, 1], 'pm-obj');
+    const [ax, ay] = pt(0, R), [bx, by] = pt(th, R);
+    S('line', { x1: C, y1: C, x2: ax, y2: ay, class: 'pm-mir' }, svg);
+    S('line', { x1: C, y1: C, x2: bx, y2: by, class: 'pm-mir' }, svg);
+    S('text', { x: ax - 12, y: ay + 18, style: 'font-weight:700' }, svg, 'A');
+    S('text', { x: bx + (th > 150 ? 0 : 6), y: by - 6, style: 'font-weight:700' }, svg, 'B');
+    const rule = ruleCount(th, Math.abs(pos - 50) < 1e-9), q360 = 360 / th;
+    q('.pm-tbig').textContent = `${ims.length} image${ims.length === 1 ? '' : 's'} at ${Math.round(th)}°`;
+    q('.pm-t1').textContent = rule === null ? `360 ÷ ${Math.round(th)} = ${q360.toFixed(2)} is not a whole number, so the rule does not apply; counting the reflections gives ${ims.length}.` : `360 ÷ ${Math.round(th)} = ${Math.round(q360)}, ${Math.round(q360) % 2 === 0 ? `even, so images = ${Math.round(q360)} − 1 = ${rule}` : Math.abs(pos - 50) < 1e-9 ? `odd and the object is on the middle line, so images = ${Math.round(q360)} − 1 = ${rule}` : `odd and the object is off the middle line, so images = ${Math.round(q360)}`}.`;
+    q('.pm-t2').textContent = `Each image is the object reflected in A, then B, then A, ... (or B first): ${ims.map((m) => m.via).join(', ')}. An odd number of reflections flips the F; an even number only turns it.`;
+  }
+
+  function drawPeri() {
+    const g = val(G, 45, 30, 60), w = 40, h = 200, k = 1.15, ox = 150, oy = 270;
+    const X = (x: number) => ox + x * k, Y = (y: number) => oy - y * k;
+    const svg = q<SVGSVGElement>('.pm-pfig'); svg.replaceChildren();
+    // Tube with an opening at the top right and bottom left.
+    S('path', { d: `M${X(0)} ${Y(h)} L${X(w)} ${Y(h)} L${X(w)} ${Y(h - w)} M${X(w)} ${Y(0)} L${X(0)} ${Y(0)} L${X(0)} ${Y(w)} M${X(0)} ${Y(h)} L${X(0)} ${Y(w)} M${X(w)} ${Y(h - w)} L${X(w)} ${Y(0)}`, class: 'pm-tube', style: 'fill:none' }, svg);
+    const mir = (cy: number) => { const dx = (w / 2) * 1.0, dy = dx * Math.tan(rad(g)); S('line', { x1: X(w / 2 - dx), y1: Y(cy - dy), x2: X(w / 2 + dx), y2: Y(cy + dy), class: 'pm-mir' }, svg); };
+    mir(h - w / 2); mir(w / 2);
+    const r = periscope(g, w, h);
+    S('path', { d: r.path.map(([x, y], j) => `${j ? 'L' : 'M'}${X(x).toFixed(1)} ${Y(y).toFixed(1)}`).join(''), class: 'pm-ray pm-path' }, svg);
+    S('text', { x: X(2 * w) - 30, y: Y(h - w / 2) - 10, class: 'sm-tick' }, svg, 'light from the object');
+    S('circle', { cx: X(-w * 1.8), cy: Y(w / 2), r: 7, class: 'pm-eye' }, svg);
+    S('text', { x: X(-w * 1.8), y: Y(w / 2) + 22, 'text-anchor': 'middle', class: 'sm-tick' }, svg, 'eye');
+    q('.pm-pbig').textContent = r.out ? 'Light gets through' : 'Light hits the tube wall';
+    q('.pm-p1').textContent = `The top mirror turns the light through 2 × ${Math.round(g)}° = ${2 * Math.round(g)}°, so it goes down the tube ${Math.abs(r.down) < 0.5 ? 'straight' : `${Math.round(Math.abs(r.down))}° off straight`}. ${r.out ? 'The bottom mirror is parallel, so it turns the light back level and you see the object, the right way up.' : 'It never reaches the bottom mirror. Tilt the mirrors nearer 45°.'}`;
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.pm-mode button').forEach((b) => b.addEventListener('click', () => {
+    root.querySelectorAll('.pm-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    for (const m of ['law', 'two', 'peri']) q(`.pm-${m}`).hidden = m !== b.dataset.v;
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.pm-pre').forEach((b) => b.addEventListener('click', () => { setT(Number(b.dataset.t)); drawTwo(); }));
+  drawLaw(); drawTwo(); drawPeri();
+
+  quiz(q('.pm-quiz'), () => {
+    const out: Question[] = [];
+    const i = randInt(10, 80);
+    out.push({ q: `A ray hits a plane mirror with an angle of incidence of ${i}°. What is the angle of reflection, in degrees?`, want: [i], work: `The angle of reflection equals the angle of incidence: ${i}°.` });
+    const g = randInt(10, 80);
+    out.push({ q: `A ray makes ${g}° with the surface of a mirror. What is its angle of incidence, in degrees?`, want: [90 - g], work: `Incidence is measured from the normal, which is at 90° to the surface: 90 − ${g} = ${90 - g}°.` });
+    const th = [90, 60, 45, 36, 30, 20][randInt(0, 5)];
+    out.push({ q: `How many images do you see of a coin placed between two mirrors at ${th}° to each other?`, want: [360 / th - 1], work: `360 ÷ ${th} = ${360 / th}, which is even, so images = ${360 / th} − 1 = ${360 / th - 1}.` });
+    const d = randInt(2, 15) / 2;
+    out.push({ q: `You stand ${d} m in front of a plane mirror. How far are you from your image, in metres?`, want: [2 * d], work: `The image is ${d} m behind the mirror, so you are ${d} + ${d} = ${2 * d} m from it.` });
+    const n = [3, 5, 7, 9, 11][randInt(0, 4)];
+    out.push({ q: `Two mirrors show ${n} images of an object (360 ÷ θ is even). What is the angle θ between them, in degrees?`, want: [360 / (n + 1)], work: `n = 360 ÷ θ − 1, so θ = 360 ÷ (${n} + 1) = ${+(360 / (n + 1)).toFixed(2)}°.` });
+    return out;
+  });
+</script>

@@ -1,0 +1,34 @@
+// #1404 Faraday cage and shielding
+export const path = '/learn/faraday-cage/';
+export default async ({ page, check, BASE }) => {
+  await page.goto(`${BASE}/learn/faraday-cage/`); await page.waitForTimeout(800);
+  const R = '.fcg ', txt = (s) => page.textContent(R + s);
+  check((await txt('.fcg-big')) === 'Probe inside the hollow: E = 0 V/m', `cage: example (${await txt('.fcg-big')})`);
+  const inked = () => page.$eval(R + '.fcg-fig', (c) => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - d[0]) > 60 || Math.abs(d[i + 1] - d[1]) > 60) n++; return n; });
+  check((await inked()) > 1500, 'cage: field lines and tube drawn');
+  const fig = await page.$(R + '.fcg-fig'); await fig.scrollIntoViewIfNeeded();
+  let box = await fig.boundingBox(); const at = (x, y) => [box.x + ((x * 10) / 360) * box.width, box.y + ((280 - y * 10) / 280) * box.height];
+  await page.mouse.click(...at(18, 24)); await page.waitForTimeout(100);
+  check((await txt('.fcg-big')) === 'Probe outside the tube: E = 2190 V/m', `cage: probe above (${await txt('.fcg-big')})`);
+  await page.mouse.click(...at(8, 14)); await page.waitForTimeout(100);
+  check((await txt('.fcg-big')) === 'Probe outside the tube: E = 7810 V/m', `cage: probe beside (${await txt('.fcg-big')})`);
+  await page.mouse.click(...at(18, 20.5)); await page.waitForTimeout(100);
+  check((await txt('.fcg-big')) === 'Probe in the metal: E = 0 V/m', `cage: probe in the metal (${await txt('.fcg-big')})`);
+  await page.mouse.click(...at(18, 14)); await page.uncheck(R + '.fcg-tube'); await page.waitForTimeout(100);
+  check((await txt('.fcg-big')) === 'Probe where the hollow would be: E = 5000 V/m', `cage: no tube (${await txt('.fcg-big')})`);
+  await page.check(R + '.fcg-tube');
+  await page.$eval(R + '.fcg-a', (e) => { e.value = '45'; e.dispatchEvent(new Event('input', { bubbles: true })); });
+  await page.$eval(R + '.fcg-e', (e) => { e.value = '10'; e.dispatchEvent(new Event('input', { bubbles: true })); }); await page.waitForTimeout(100);
+  check((await txt('.fcg-big')) === 'Probe inside the hollow: E = 0 V/m' && (await txt('.fcg-av')) === '45°' && (await txt('.fcg-ev')) === '10 kV/m', 'cage: turning and strengthening the field keeps the inside at zero');
+  await page.click(R + '.fcg-mode button[data-v=in]'); await page.waitForTimeout(150);
+  check((await txt('.fcg-big')) === 'Probe outside the tube: E = 360 V/m' && !(await page.$eval(R + '.fcg-earthwrap', (e) => e.hidden)), `cage: charge inside, field outside (${await txt('.fcg-big')})`);
+  await page.check(R + '.fcg-earth'); await page.waitForTimeout(100);
+  check((await txt('.fcg-big')) === 'Probe outside the tube: E = 0 V/m' && (await txt('.fcg-text')).includes('Earthing'), `cage: earthed (${await txt('.fcg-big')})`);
+  await page.$eval(R + '.fcg-l', (e) => { e.value = '4'; e.dispatchEvent(new Event('input', { bubbles: true })); });
+  await fig.scrollIntoViewIfNeeded(); box = await fig.boundingBox(); await page.mouse.click(...at(18, 17)); await page.waitForTimeout(100);
+  check((await txt('.fcg-big')) === 'Probe inside the hollow: E = 2400 V/m', `cage: field inside the hollow (${await txt('.fcg-big')})`);
+  check((await page.$$(R + '.eq-q')).length === 4, 'cage: four practice questions');
+  const q1 = await page.textContent(R + '.eq-q:nth-child(1) p'), [a, b] = q1.match(/\+(\d+) µC charge is held.*carries \+(\d+) µC/).slice(1).map(Number);
+  await page.fill(R + '.eq-q:nth-child(1) .eq-in', String(a + b)); await page.click(R + '.eq-q:nth-child(1) .eq-go');
+  check((await page.textContent(R + '.eq-q:nth-child(1) .eq-res')).startsWith('Right'), 'cage: right answer accepted');
+};

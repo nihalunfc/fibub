@@ -1,0 +1,109 @@
+---
+// Electromagnetic spectrum explorer: drag along the wavelength from gamma rays to radio waves and see the band,
+// what it is used for, the frequency and the energy of one photon in joules and electronvolts.
+import '../../styles/astro.css';
+---
+<div class="ax ems">
+  <div class="ax-card">
+    <h2>Wavelength</h2>
+    <canvas class="ax-fig ems-fig" aria-label="The electromagnetic spectrum with a marker at the chosen wavelength"></canvas>
+    <label class="ems-sl">λ = <b class="ems-lv"></b><input type="range" class="ems-l" min="0" max="1600" step="1" value="672" aria-label="Wavelength, from 0.1 picometre to 1 kilometre" /></label>
+    <label class="ems-sl">Jump to <select class="ems-ex" style="width:auto"><option value="">an everyday example…</option></select></label>
+    <p class="ax-big ems-big" aria-live="polite"><span class="ems-sw" aria-hidden="true"></span><span class="ems-name"></span></p>
+    <p class="ems-uses"></p>
+    <dl class="ax-facts ems-facts" style="margin-top:10px"></dl>
+    <p class="ems-text"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="ems-try">
+      <li>Slide from radio to gamma rays: the wavelength shrinks, the frequency and the photon energy grow.</li>
+      <li>Find the visible band: it is a tiny slice, from about 400 nm to 700 nm.</li>
+      <li>Compare a microwave-oven photon (about 10⁻⁵ eV) with a UV photon (several eV). Only the UV one can break molecules, which is why UV burns skin.</li>
+      <li>Jump to FM radio: about 3 m long waves, roughly the length of a car.</li>
+      <li>Every wave here moves at the same speed c in empty space; f × λ is always 3 × 10⁸ m/s.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="ems-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .ems .ems-fig { max-width: 560px; margin: 0 auto; }
+  .ems .ems-sl { display: grid; gap: 6px; margin-top: 12px; color: var(--ink); font-size: 15px; }
+  .ems .ems-sl select { min-height: 40px; max-width: 100%; }
+  .ems input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
+  .ems-big { font-size: clamp(18px, 4.6vw, 24px); margin: 12px 0 0; display: flex; gap: 10px; align-items: center; }
+  .ems-sw { display: inline-block; width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--line); flex: none; }
+  .ems-sw[hidden] { display: none; }
+  .ems-uses, .ems-text { margin: 6px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .ems-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+  .ems .eq-list { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 14px; }
+  .ems .eq-q p { margin: 0 0 6px; }
+  .ems .eq-res { margin: 6px 0 0; font-size: 14px; min-height: 1em; }
+  .ems .eq-ok { color: var(--good); font-weight: 600; }
+  .ems .eq-no { color: var(--bad); }
+  .ems .eq-work { margin-top: 4px; font-size: 14px; }
+  .ems .eq-work summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
+  .ems .eq-work p { margin: 4px 0; }
+</style>
+
+<script>
+  import { BANDS, EXAMPLES, bandOf, photon, visibleRGB, questions } from '../../lib/sci/em-spectrum';
+  import { pagePalette } from '../../lib/report';
+  import { setup, sci3, si, fact, onTheme, quiz } from '../../lib/school-p34';
+
+  const root = document.querySelector<HTMLElement>('.ems')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const fig = q<HTMLCanvasElement>('.ems-fig'), lIn = q<HTMLInputElement>('.ems-l'), ex = q<HTMLSelectElement>('.ems-ex');
+  const LO = -13, HI = 3; // log10 of the wavelength range in metres
+  const lamOf = (s: number) => Number(Math.pow(10, LO + ((HI - LO) * s) / 1600).toPrecision(3));
+  const sOf = (lam: number) => Math.round(((Math.log10(lam) - LO) / (HI - LO)) * 1600);
+  const SHORT: Record<string, string> = { gamma: 'γ', xray: 'X', uv: 'UV', visible: '', ir: 'IR', micro: 'micro', radio: 'radio' };
+  let picked = '', exact: number | null = null;
+  const lamNow = () => exact ?? lamOf(+lIn.value);
+  for (const e of EXAMPLES) { const o = document.createElement('option'); o.value = String(e.lam); o.textContent = e.name; ex.append(o); }
+
+  function draw() {
+    const pal = pagePalette(), c = setup(fig, 360, 120), lam = lamNow();
+    c.fillStyle = pal.bg; c.fillRect(0, 0, 360, 120);
+    const X0 = 8, X1 = 352, X = (l: number) => X0 + ((Math.log10(l) - LO) / (HI - LO)) * (X1 - X0), Y0 = 30, Hh = 34;
+    BANDS.forEach((b, i) => {
+      const a = X(Math.max(b.min, 10 ** LO)), z = X(Math.min(b.max, 10 ** HI));
+      if (b.id === 'visible') {
+        for (let x = Math.floor(a); x < z; x++) { const nm = 10 ** (LO + ((x - X0) / (X1 - X0)) * (HI - LO)) * 1e9, rgb = visibleRGB(Math.min(700, Math.max(400, nm))); c.fillStyle = pal.red ? pal.accent : `rgb(${rgb!.join(',')})`; c.fillRect(x, Y0, 1.5, Hh); }
+      } else { c.fillStyle = i % 2 ? pal.grid : pal.line; c.fillRect(a, Y0, z - a, Hh); }
+      c.fillStyle = pal.ink; c.font = '11px system-ui, sans-serif'; c.textAlign = 'center';
+      if (SHORT[b.id]) c.fillText(SHORT[b.id], (a + z) / 2, Y0 + Hh / 2 + 4);
+    });
+    c.fillStyle = pal.muted; c.font = '10px system-ui, sans-serif'; c.textAlign = 'center';
+    for (const [l, t] of [[1e-12, '1 pm'], [1e-9, '1 nm'], [1e-6, '1 µm'], [1e-3, '1 mm'], [1, '1 m'], [1e3, '1 km']] as const) { c.fillText(t, X(l), Y0 + Hh + 14); c.fillRect(X(l), Y0 + Hh, 1, 4); }
+    c.fillText('shorter wavelength, higher frequency and energy ←    → longer wavelength', 180, 116);
+    const xm = X(lam);
+    c.fillStyle = pal.bad; c.beginPath(); c.moveTo(xm, Y0 - 2); c.lineTo(xm - 7, Y0 - 14); c.lineTo(xm + 7, Y0 - 14); c.closePath(); c.fill();
+    c.fillRect(xm - 1, Y0, 2, Hh);
+    c.fillStyle = pal.ink; c.font = '700 11px system-ui, sans-serif'; c.textAlign = xm < 60 ? 'left' : xm > 300 ? 'right' : 'center'; c.fillText(si(lam, 'm'), xm, Y0 - 17);
+    fig.setAttribute('aria-label', `Electromagnetic spectrum; marker at ${si(lam, 'm')}, ${bandOf(lam).name}`);
+  }
+  function texts() {
+    const lam = lamNow(), b = bandOf(lam), p = photon(lam), rgb = visibleRGB(lam * 1e9);
+    q('.ems-lv').textContent = si(lam, 'm');
+    q('.ems-name').textContent = b.name; const sw = q('.ems-sw'); sw.hidden = !rgb; if (rgb) sw.style.background = `rgb(${rgb.join(',')})`;
+    q('.ems-uses').textContent = (picked ? `${picked}. ` : '') + b.uses;
+    q('.ems-facts').replaceChildren(
+      fact('Frequency f = c/λ', si(p.f, 'Hz')), fact('Photon energy E = hf', `${sci3(p.E)} J`), fact('In electronvolts', `${sci3(p.eV)} eV`, 'E(eV) ≈ 1240 / λ(nm)'),
+      fact('Waves in 1 m', sci3(1 / lam), lam > 1 ? 'less than one' : ''),
+    );
+    q('.ems-text').textContent = `f = c / λ = 3 × 10⁸ / ${sci3(lam)} = ${sci3(p.f)} Hz. E = h f = 6.63 × 10⁻³⁴ × ${sci3(p.f)} = ${sci3(p.E)} J, and dividing by 1.6 × 10⁻¹⁹ J/eV gives ${sci3(p.eV)} eV. The band edges are the usual school conventions; real bands overlap.`;
+  }
+  const all = () => { texts(); draw(); };
+  lIn.addEventListener('input', () => { picked = ''; exact = null; ex.value = ''; all(); });
+  ex.addEventListener('change', () => { if (!ex.value) return; lIn.value = String(sOf(+ex.value)); exact = +ex.value; picked = ex.selectedOptions[0].textContent!; all(); });
+  onTheme(draw);
+  all();
+  quiz(q('.ems-quiz'), () => questions());
+</script>

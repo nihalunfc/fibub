@@ -1,0 +1,164 @@
+---
+// Event algebra: the sample space of two dice (or a coin and a die) as a grid, events A and B shaded, the cells of
+// A ∪ B, A ∩ B, A′, A − B outlined, the addition rule worked with the counts, and a simulation that checks it.
+import '../../styles/astro.css';
+import SmQuiz from '../../components/SmQuiz.astro';
+---
+<div class="ax eva">
+  <div class="ax-card">
+    <div class="ax-row"><span class="ax-help">Experiment</span>
+      <div class="ax-seg ev-sp" role="group" aria-label="Experiment"><button type="button" data-s="dice" aria-pressed="true">Two dice</button><button type="button" data-s="coin-die" aria-pressed="false">A coin and a die</button></div>
+    </div>
+    <div class="ax-grid">
+      <label><span><i class="ev-ka"></i> Event A: </span><select class="ev-a"></select></label>
+      <label class="ev-kal">k for A <input class="ev-ak" type="number" inputmode="numeric" /></label>
+      <label><span><i class="ev-kb"></i> Event B: </span><select class="ev-b"></select></label>
+      <label class="ev-kbl">k for B <input class="ev-bk" type="number" inputmode="numeric" /></label>
+    </div>
+    <div class="ax-row"><span class="ax-help">Outline</span>
+      <div class="ax-seg ev-op" role="group" aria-label="Outline which cells"></div>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2 class="ev-title"></h2>
+    <svg class="ev-grid" role="img"></svg>
+    <p class="ax-legend"><span><i class="ev-ka"></i>A</span><span><i class="ev-kb"></i>B</span><span><i class="ev-kab"></i>both</span><span><i class="ev-kop"></i>outlined: <b class="ev-opn"></b></span></p>
+    <dl class="ax-facts ev-facts"></dl>
+    <p class="ev-rule"></p>
+    <p class="ev-flags"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check it by experiment</h2>
+    <div class="ax-row">
+      <button type="button" class="btn small" data-n="100">Roll 100 times</button>
+      <button type="button" class="btn small" data-n="1000">1000 times</button>
+      <button type="button" class="btn small secondary" data-n="10000">10 000 times</button>
+    </div>
+    <p class="ev-sim" aria-live="polite">Nothing rolled yet.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="ev-try">
+      <li>Pick A = "the sum is 7" and B = "a double": no cell is both, so A and B are mutually exclusive and P(A ∪ B) = P(A) + P(B).</li>
+      <li>Pick A = "the sum is 9 or more" and B = "at least one die shows 6": 7 cells are in both, and adding P(A) and P(B) would count them twice.</li>
+      <li>Outline A′: it is everything A is not, and P(A′) = 1 − P(A).</li>
+      <li>With a coin and a die, heads and tails are mutually exclusive and exhaustive: together they fill the grid.</li>
+    </ul>
+  </div>
+
+  <SmQuiz cls="ev-quiz" />
+</div>
+
+<script>
+  import { outcomes, label, EVENTS, OPS, inOp, frac, count, simulate, type Space, type Op, type Outcome } from '../../lib/sci/school-events';
+  import { S } from '../../lib/smath-ui';
+  import { quiz, rint, pick, type Question } from '../../lib/sm-quiz';
+
+  const root = document.querySelector<HTMLElement>('.eva')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  let sp: Space = 'dice', op: Op = 'union';
+  const DEF: Record<Space, [string, string]> = { dice: ['sum-ge', 'has'], 'coin-die': ['head', 'die-even'] };
+  q('.ev-op').replaceChildren(...OPS.map((o) => { const b = document.createElement('button'); b.type = 'button'; b.dataset.op = o.id; b.textContent = o.sym; b.setAttribute('aria-pressed', String(o.id === op)); b.title = o.words; return b; }));
+  const fact = (k: string, v: string) => { const el = document.createElement('div'); el.innerHTML = '<dt></dt><dd></dd>'; el.querySelector('dt')!.textContent = k; el.querySelector('dd')!.textContent = v; return el; };
+
+  function fill() {
+    for (const [cls, def] of [['.ev-a', DEF[sp][0]], ['.ev-b', DEF[sp][1]]] as const) {
+      const s = q<HTMLSelectElement>(cls); s.replaceChildren(...EVENTS[sp].map((e) => new Option(e.text(e.k ? Number.NaN : 0).replace('NaN', 'k'), e.id))); s.value = def;
+    }
+    setK('a'); setK('b');
+  }
+  function setK(w: 'a' | 'b') {
+    const e = EVENTS[sp].find((x) => x.id === q<HTMLSelectElement>(`.ev-${w}`).value)!;
+    const lab = q(`.ev-k${w}l`), inp = q<HTMLInputElement>(`.ev-${w}k`);
+    lab.hidden = !e.k;
+    if (e.k) { inp.min = String(e.k[0]); inp.max = String(e.k[1]); inp.value = String(e.k[2]); }
+  }
+  const ev = (w: 'a' | 'b') => {
+    const e = EVENTS[sp].find((x) => x.id === q<HTMLSelectElement>(`.ev-${w}`).value)!;
+    let k = Number(q<HTMLInputElement>(`.ev-${w}k`).value);
+    if (e.k) k = Number.isFinite(k) ? Math.min(e.k[1], Math.max(e.k[0], Math.round(k))) : e.k[2];
+    return { test: (o: Outcome) => e.test(o, k), text: e.text(k) };
+  };
+
+  function draw() {
+    const A = ev('a'), B = ev('b'), all = outcomes(sp), c = count(sp, A.test, B.test), o = OPS.find((x) => x.id === op)!;
+    q('.ev-title').textContent = `A: ${A.text}. B: ${B.text}.`;
+    q('.ev-opn').textContent = o.sym;
+    const svg = root.querySelector<SVGSVGElement>('.ev-grid')!;
+    const cols = 6, rows = all.length / 6, cell = 52, L = 30, T = 24, Wd = L + cols * cell + 6, Hh = T + rows * cell + 6;
+    svg.setAttribute('viewBox', `0 0 ${Wd} ${Hh}`); svg.replaceChildren();
+    svg.setAttribute('aria-label', `${c.n} outcomes. A has ${c.nA}, B has ${c.nB}, both ${c.nAB}, ${o.sym} has ${all.filter((x) => inOp(op, A.test(x), B.test(x))).length}.`);
+    for (let j = 0; j < 6; j++) S('text', { x: L + j * cell + cell / 2, y: 16, 'text-anchor': 'middle', class: 'ev-hd' }, svg, sp === 'dice' ? `2nd: ${j + 1}` : `die ${j + 1}`);
+    for (let i = 0; i < rows; i++) S('text', { x: L - 6, y: T + i * cell + cell / 2 + 4, 'text-anchor': 'end', class: 'ev-hd' }, svg, sp === 'dice' ? String(i + 1) : i ? 'T' : 'H');
+    all.forEach((x, k) => {
+      const i = Math.floor(k / 6), j = k % 6, X = L + j * cell, Y = T + i * cell, a = A.test(x), b = B.test(x), on = inOp(op, a, b);
+      const g = S('g', { class: 'ev-c' + (on ? ' ev-on' : ''), 'data-k': k }, svg);
+      S('rect', { x: X + 2, y: Y + 2, width: cell - 4, height: cell - 4, rx: 6, class: 'ev-bg' }, g);
+      if (a) S('rect', { x: X + 2, y: Y + 2, width: b ? (cell - 4) / 2 : cell - 4, height: cell - 4, rx: 6, class: 'ev-A' }, g);
+      if (b) S('rect', { x: a ? X + cell / 2 : X + 2, y: Y + 2, width: a ? (cell - 4) / 2 : cell - 4, height: cell - 4, rx: 6, class: 'ev-B' }, g);
+      if (on) S('rect', { x: X + 3, y: Y + 3, width: cell - 6, height: cell - 6, rx: 6, class: 'ev-ring' }, g);
+      S('text', { x: X + cell / 2, y: Y + cell / 2 + 4, 'text-anchor': 'middle', class: 'ev-lb' }, g, sp === 'dice' ? String(x.a + x.b) : label(sp, x));
+    });
+    const nOp = all.filter((x) => inOp(op, A.test(x), B.test(x))).length, n = c.n;
+    q('.ev-facts').replaceChildren(
+      fact('n(S), all outcomes', String(n)),
+      fact('P(A)', `${c.nA}/${n} = ${frac(c.nA, n)}`), fact('P(B)', `${c.nB}/${n} = ${frac(c.nB, n)}`),
+      fact('P(A ∩ B)', `${c.nAB}/${n} = ${frac(c.nAB, n)}`), fact(`P(${o.sym}), ${o.words}`, `${nOp}/${n} = ${frac(nOp, n)}`),
+    );
+    q('.ev-rule').textContent = `Addition rule: P(A ∪ B) = P(A) + P(B) − P(A ∩ B) = ${c.nA}/${n} + ${c.nB}/${n} − ${c.nAB}/${n} = ${c.nU}/${n} = ${frac(c.nU, n)}. Counting the cells of A ∪ B gives ${c.nU} too.`;
+    q('.ev-flags').textContent = `${c.exclusive ? 'A and B are mutually exclusive: no outcome is in both, so P(A ∪ B) = P(A) + P(B).' : `A and B are not mutually exclusive: ${c.nAB} outcome${c.nAB === 1 ? ' is' : 's are'} in both, and would be counted twice without the − P(A ∩ B).`} ${c.exhaustive ? 'They are also exhaustive: together they cover every outcome.' : ''}`;
+    q('.ev-grid').dataset.u = String(c.nU / n);
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.ev-sp button').forEach((b) => b.addEventListener('click', () => { sp = b.dataset.s as Space; root.querySelectorAll('.ev-sp button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); fill(); draw(); q('.ev-sim').textContent = 'Nothing rolled yet.'; }));
+  root.querySelectorAll<HTMLButtonElement>('.ev-op button').forEach((b) => b.addEventListener('click', () => { op = b.dataset.op as Op; root.querySelectorAll('.ev-op button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); draw(); }));
+  q('.ev-a').addEventListener('change', () => { setK('a'); draw(); }); q('.ev-b').addEventListener('change', () => { setK('b'); draw(); });
+  q('.ev-ak').addEventListener('input', draw); q('.ev-bk').addEventListener('input', draw);
+  root.querySelectorAll<HTMLButtonElement>('[data-n]').forEach((b) => b.addEventListener('click', () => {
+    const N = +b.dataset.n!, A = ev('a'), B = ev('b'), r = simulate(sp, A.test, B.test, N, Math.random), c = count(sp, A.test, B.test);
+    const f = (x: number) => (x / N).toFixed(3);
+    q('.ev-sim').textContent = `${N.toLocaleString('en')} rolls: A ∪ B happened ${r.u.toLocaleString('en')} times, a relative frequency of ${f(r.u)}. The rule gives ${(c.nU / c.n).toFixed(3)}. From the same rolls: P(A) ≈ ${f(r.a)}, P(B) ≈ ${f(r.b)}, P(A ∩ B) ≈ ${f(r.ab)}, and ${f(r.a)} + ${f(r.b)} − ${f(r.ab)} = ${((r.a + r.b - r.ab) / N).toFixed(3)}. More rolls usually bring it closer.`;
+  }));
+  fill(); draw();
+
+  quiz(q('.ev-quiz'), (): Question[] => {
+    const pa = rint(2, 6) / 10, pb = rint(2, 6) / 10, pab = rint(1, Math.round(Math.min(pa, pb) * 10) - 1) / 10, k = rint(2, 12);
+    const nk = 6 - Math.abs(7 - k);
+    const pe = rint(1, 9) / 10;
+    return [
+      { text: `P(A) = ${pa}, P(B) = ${pb} and P(A ∩ B) = ${pab}. Find P(A ∪ B).`, answer: +(pa + pb - pab).toFixed(2), worked: `P(A ∪ B) = P(A) + P(B) − P(A ∩ B) = ${pa} + ${pb} − ${pab} = ${(pa + pb - pab).toFixed(2)}.` },
+      { text: `Two dice are rolled. What is the probability that the sum is ${k}? (A fraction is fine.)`, answer: nk / 36, tol: 1e-4, worked: `${nk} of the 36 equally likely outcomes add up to ${k}, so the probability is ${nk}/36 = ${frac(nk, 36)}.` },
+      { text: `P(E) = ${pe}. What is P(not E)?`, answer: +(1 - pe).toFixed(2), worked: `P(E′) = 1 − P(E) = 1 − ${pe} = ${(1 - pe).toFixed(2)}.` },
+      { text: 'Two dice: A = "the sum is 7", B = "a double". Are A and B mutually exclusive?', choices: ['Yes', 'No'], correct: 0, worked: 'A double has an even sum (2, 4, …, 12), so it can never add up to 7. No outcome is in both: they are mutually exclusive.' },
+      pick([
+        { text: 'If A and B are mutually exclusive, what is P(A ∩ B)?', choices: ['0', '1', 'P(A) × P(B)'], correct: 0, worked: 'Mutually exclusive means they cannot happen together, so A ∩ B = ∅ and its probability is 0.' },
+        { text: 'P(A − B) is the same as …', choices: ['P(A) − P(B)', 'P(A) − P(A ∩ B)', 'P(A ∪ B) − P(A)'], correct: 1, worked: 'A − B is the part of A outside B. Take the overlap out of A: P(A − B) = P(A) − P(A ∩ B).' },
+      ] as Question[]),
+    ];
+  });
+</script>
+
+<style is:inline>
+  .eva .ax-row { flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .eva .ax-seg { flex-wrap: wrap; }
+  .eva .ax-seg button { min-height: 40px; }
+  .eva .ax-grid { margin-top: 10px; }
+  .eva label > span { display: flex; align-items: center; gap: 4px; }
+  .eva i.ev-ka, .eva i.ev-kb, .eva i.ev-kab, .eva i.ev-kop { display: inline-block; width: 14px; height: 14px; border-radius: 3px; }
+  .eva i.ev-ka { background: var(--accent); opacity: 0.55; } .eva i.ev-kb { background: var(--warn); opacity: 0.55; }
+  .eva i.ev-kab { background: linear-gradient(90deg, var(--accent) 50%, var(--warn) 50%); opacity: 0.55; }
+  .eva i.ev-kop { border: 3px solid var(--ink); box-sizing: border-box; }
+  .eva .ev-grid { width: 100%; height: auto; display: block; max-width: 420px; }
+  .eva .ev-hd { font-size: 11px; fill: var(--muted); }
+  .eva .ev-bg { fill: var(--surface); stroke: var(--line); }
+  .eva .ev-A { fill: var(--accent); opacity: 0.45; }
+  .eva .ev-B { fill: var(--warn); opacity: 0.45; }
+  .eva .ev-ring { fill: none; stroke: var(--ink); stroke-width: 3; }
+  .eva .ev-lb { font-size: 14px; fill: var(--ink); font-weight: 600; }
+  .eva .ev-rule { font-weight: 600; margin: 10px 0 4px; }
+  .eva .ev-sim { margin: 10px 0 0; }
+  .eva .ev-try { padding-left: 20px; display: grid; gap: 6px; margin: 0; }
+</style>

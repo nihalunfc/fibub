@@ -1,0 +1,116 @@
+---
+// Polygenic traits: n genes with additive alleles; F1 × F1 children fall into 2n + 1 classes that become a bell
+// curve as genes are added; environmental spread smooths it; grow a random sample and compare.
+import '../../styles/astro.css';
+import '../../styles/chemquiz.css';
+---
+<div class="ax pg">
+  <div class="ax-card">
+    <p style="margin:0 0 6px;font-weight:650">Number of genes</p>
+    <div class="ax-seg pg-n" role="group" aria-label="Number of genes"><button type="button" data-n="1" aria-pressed="false">1</button><button type="button" data-n="2" aria-pressed="false">2</button><button type="button" data-n="3" aria-pressed="true">3</button><button type="button" data-n="4" aria-pressed="false">4</button><button type="button" data-n="5" aria-pressed="false">5</button><button type="button" data-n="6" aria-pressed="false">6</button></div>
+    <label class="pg-rl"><span>Env.</span><input type="range" class="pg-s" min="0" max="10" step="0.5" value="0" aria-label="Environmental spread" /><output class="pg-os"></output></label>
+    <div class="ax-row" style="margin-top:10px"><button type="button" class="btn pg-grow">Grow 1000 children</button><button type="button" class="btn secondary pg-clear" hidden>Clear</button></div>
+    <p class="ax-big pg-big" style="margin:12px 0 2px"></p>
+    <p class="pg-sub" style="margin:0 0 6px"></p>
+    <svg class="pg-svg" viewBox="0 0 320 210" role="img" aria-label="Distribution of plant height"></svg>
+    <dl class="ax-facts pg-facts"></dl>
+    <p class="lx-eq pg-eq"></p>
+    <p class="ax-help">A made-up plant: height 100 cm with no "plus" alleles, and each plus allele (capital letter) adds 5 cm. Both parents are heterozygous for every gene (AaBbCc …). Bars: expected share of children; dots: your random children.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="lx-try">
+      <li>Start with 1 gene. How many heights are possible? Now try 3 and 6 genes.</li>
+      <li>With 3 genes, what share of children are as short as the shortest parent type (no plus alleles)?</li>
+      <li>Grow 1000 children a few times. Do your dots match the bars?</li>
+      <li>Add environmental spread. When do the classes blur into one smooth bell curve?</li>
+      <li>Why do traits such as human height or skin colour show smooth variation instead of a few clear types?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card cq">
+    <h2>Check yourself</h2>
+    <ol class="cq-list"></ol>
+    <button type="button" class="btn secondary small cq-new">New questions</button>
+  </div>
+</div>
+
+<style is:inline>
+  .pg-rl { display: grid !important; grid-template-columns: 38px 1fr 70px; align-items: center; gap: 10px !important; margin-top: 12px; color: var(--ink) !important; }
+  .pg-rl input { height: 36px; accent-color: var(--accent); }
+  .pg-rl output { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; font-size: 14px; }
+  .pg-svg { display: block; width: 100%; max-width: 460px; margin: 6px auto 10px; }
+  .pg .axl { fill: none; stroke: var(--muted); stroke-width: 1; }
+  .pg .bar { fill: var(--ink); stroke: var(--ink); stroke-width: 1; }
+  .pg .smooth { fill: none; stroke: var(--accent); stroke-width: 2.6; }
+  .pg .pt { fill: var(--accent); stroke: var(--surface); stroke-width: 1.5; }
+  .pg .tx { fill: var(--muted); font: 11px system-ui, sans-serif; }
+</style>
+
+<script>
+  import { density, distribution, moments, ratio, sample, trait } from '../../lib/sci/polygenic';
+  import { mountQuiz, near, same, pickOne, rint, type Question } from '../../lib/chemquiz';
+
+  const root = document.querySelector<HTMLElement>('.pg')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const NS = 'http://www.w3.org/2000/svg';
+  const sv = (tag: string, attrs: Record<string, string | number>, text?: string) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, String(v)); if (text != null) n.textContent = text; return n; };
+  const BASE = 100, EFF = 5, LET = 'ABCDEF';
+  let n = 3, grown: number[] | null = null, seed = 1;
+
+  function update() {
+    root.querySelectorAll<HTMLButtonElement>('.pg-n button').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.n) === n)));
+    const sig = Number(q<HTMLInputElement>('.pg-s').value);
+    q('.pg-os').textContent = sig ? `±${sig} cm` : 'none';
+    q<HTMLButtonElement>('.pg-clear').hidden = !grown;
+    const dist = distribution(n), rt = ratio(n), m = moments(n);
+    const parent = LET.slice(0, n).split('').map((c) => c + c.toLowerCase()).join('');
+    q('.pg-big').textContent = `${2 * n + 1} height classes`;
+    q('.pg-sub').textContent = `${parent} × ${parent}: every child gets 0 to ${2 * n} plus alleles, so heights run from ${BASE} to ${trait(BASE, EFF, 2 * n)} cm in ${EFF} cm steps.`;
+    const svg = q<SVGSVGElement>('.pg-svg'); svg.replaceChildren();
+    const X0 = 30, X1 = 312, Y0 = 180, Y1 = 14, lo = BASE - 15, hi = trait(BASE, EFF, 12) + 15;
+    const px = (x: number) => X0 + ((x - lo) / (hi - lo)) * (X1 - X0);
+    const ymax = Math.max(...dist, ...(grown ? grown.map((c) => c / 1000) : [])) * 1.1;
+    const py = (p: number) => Y0 - (p / ymax) * (Y0 - Y1);
+    svg.append(sv('path', { d: `M${X0} ${Y1} V${Y0} H${X1}`, class: 'axl' }));
+    for (let x = 100; x <= 160; x += 20) svg.append(sv('text', { x: px(x), y: Y0 + 14, class: 'tx', 'text-anchor': 'middle' }, `${x}`));
+    svg.append(sv('text', { x: X1, y: Y0 + 28, class: 'tx', 'text-anchor': 'end' }, 'height (cm)'), sv('text', { x: X0 + 4, y: Y1 + 4, class: 'tx' }, `share (top ${(ymax * 100).toFixed(0)} %)`));
+    const w = Math.max(3, (EFF / (hi - lo)) * (X1 - X0) * 0.8);
+    dist.forEach((p, k) => svg.append(sv('rect', { x: px(trait(BASE, EFF, k)) - w / 2, y: py(p), width: w, height: Y0 - py(p), class: 'bar', 'fill-opacity': (0.15 + 0.75 * k / (2 * n)).toFixed(2) })));
+    if (sig > 0) {
+      const pts: string[] = [];
+      for (let i = 0; i <= 200; i++) { const x = lo + (i / 200) * (hi - lo); pts.push(`${px(x).toFixed(1)},${py(density(n, BASE, EFF, sig, x) * EFF).toFixed(1)}`); }
+      svg.append(sv('polyline', { points: pts.join(' '), class: 'smooth' }));
+    }
+    if (grown) grown.forEach((c, k) => svg.append(sv('circle', { cx: px(trait(BASE, EFF, k)), cy: py(c / 1000), r: 4.5, class: 'pt' })));
+    svg.setAttribute('aria-label', `${2 * n + 1} classes in the ratio ${rt.join(' : ')}`);
+    const f = q('.pg-facts'); f.replaceChildren();
+    const fact = (k: string, v: string, s = '') => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; if (s) { const sm = document.createElement('small'); sm.textContent = s; dd.append(sm); } d.append(dt, dd); f.append(d); };
+    fact('Ratio', rt.join(' : '), `out of ${4 ** n}`);
+    fact('Shortest or tallest', `1 in ${4 ** n}`, `(1/4)^${n} each`);
+    fact('Average height', `${trait(BASE, EFF, m.mean)} cm`);
+    fact('Spread (s.d.)', `${(m.sd * EFF).toFixed(2)} cm`, sig ? `plus environment ±${sig} cm` : 'genes only');
+    if (grown) fact('Your 1000 children', grown.join(' · '), 'shortest to tallest');
+    const mid = n;
+    q('.pg-eq').textContent = `P(k plus alleles) = C(${2 * n}, k) / 4^${n}; for k = ${mid}: ${rt[mid]} / ${4 ** n} = ${dist[mid].toFixed(4)}`;
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.pg-n button').forEach((b) => b.addEventListener('click', () => { n = Number(b.dataset.n); grown = null; update(); }));
+  q('.pg-s').addEventListener('input', update);
+  q('.pg-grow').addEventListener('click', () => { grown = sample(n, 1000, seed++); update(); });
+  q('.pg-clear').addEventListener('click', () => { grown = null; update(); });
+  update();
+
+  mountQuiz(q('.cq'), (): Question[] => {
+    const n1 = rint(1, 6), n2 = rint(2, 5), n3 = pickOne([2, 3]), k3 = rint(0, 2 * n3), p3 = distribution(n3)[k3], n4 = rint(2, 6), e4 = rint(2, 8), b4 = pickOne([50, 100, 120]);
+    const n5 = rint(1, 4);
+    return [
+      { q: `A trait is controlled by ${n1} gene${n1 > 1 ? 's' : ''} with additive alleles. How many phenotype classes appear when two all-heterozygous parents are crossed?`, hint: 'a whole number', answer: String(2 * n1 + 1), ok: same(String(2 * n1 + 1)), worked: `A child can have 0 to ${2 * n1} plus alleles: ${2 * n1} + 1 = ${2 * n1 + 1} classes.` },
+      { q: `With ${n2} genes, what fraction of the F2 children are as extreme as the darkest (all plus alleles) type? Give it as a decimal (4 significant figures).`, hint: 'a decimal', answer: String(Number((1 / 4 ** n2).toPrecision(4))), ok: near(1 / 4 ** n2, 0.005), worked: `Each gene must give two plus alleles (1/4), so (1/4)^${n2} = 1/${4 ** n2} = ${Number((1 / 4 ** n2).toPrecision(4))}.` },
+      { q: `With ${n3} genes, what is the probability that a child has exactly ${k3} plus alleles? (4 decimal places)`, hint: 'a decimal', answer: p3.toFixed(4), ok: near(p3, 0.002), worked: `C(${2 * n3}, ${k3}) / 4^${n3} = ${ratio(n3)[k3]} / ${4 ** n3} = ${p3.toFixed(4)}.` },
+      { q: `Base height ${b4} cm, each plus allele adds ${e4} cm, ${n4} genes. What is the tallest possible height, in cm?`, hint: 'a number', answer: String(b4 + 2 * n4 * e4), ok: near(b4 + 2 * n4 * e4, 0.0001), worked: `${2 * n4} plus alleles × ${e4} cm + ${b4} cm = ${b4 + 2 * n4 * e4} cm.` },
+      { q: `With ${n5} gene${n5 > 1 ? 's' : ''}, out of how many equally likely combinations is the F2 ratio counted? (the total of the ratio)`, hint: 'a whole number', answer: String(4 ** n5), ok: same(String(4 ** n5)), worked: `Each parent makes 2^${n5} kinds of gamete, so 2^${n5} × 2^${n5} = 4^${n5} = ${4 ** n5}.` },
+    ];
+  });
+</script>

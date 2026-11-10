@@ -1,0 +1,233 @@
+---
+// Histogram builder: raw numbers grouped into equal classes; a width slider and a start slider redraw the
+// histogram and frequency polygon; mean, median, mode, grouped mean; combined mean of two groups. Nothing is stored.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm hb">
+  <div class="ax-card">
+    <h2>Your data</h2>
+    <label>Numbers (commas, spaces or new lines)
+      <textarea class="hb-data" rows="4" spellcheck="false">47 62 55 71 38 66 59 84 52 73 45 68 77 61 49 90 57 64 70 35 58 81 63 54 67 42 75 60 69 56</textarea>
+    </label>
+    <div class="ax-row" style="margin-top:8px">
+      <button type="button" class="btn secondary small hb-pre" data-p="marks">Test marks</button>
+      <button type="button" class="btn secondary small hb-pre" data-p="plants">Plant heights</button>
+      <button type="button" class="btn secondary small hb-pre" data-p="travel">Minutes to school</button>
+    </div>
+    <p class="ax-help">The examples are made-up numbers. Type your own class's numbers to see your own picture.</p>
+    <p class="ax-err hb-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Histogram and frequency polygon</h2>
+    <div class="sm-sl"><b>w</b><input type="range" class="hb-wr" min="1" max="30" step="1" value="10" aria-label="Class width" /><input type="number" class="hb-w" min="0.1" step="any" value="10" aria-label="Class width" /></div>
+    <div class="sm-sl"><b>a</b><input type="range" class="hb-sr" min="20" max="35" step="1" value="30" aria-label="First class starts at" /><input type="number" class="hb-s" step="any" value="30" aria-label="First class starts at" /></div>
+    <p class="ax-help" style="margin-top:0">w is the class width, a is where the first class starts.</p>
+    <svg class="sm-fig hb-fig" viewBox="0 0 340 230" role="img" aria-label="Histogram with the frequency polygon over it"></svg>
+    <div class="ax-row" style="margin-top:8px">
+      <label class="ax-check"><input type="checkbox" class="hb-bars" checked /> Bars</label>
+      <label class="ax-check"><input type="checkbox" class="hb-poly" checked /> Frequency polygon</label>
+    </div>
+    <p class="sm-f hb-sum"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Frequency table</h2>
+    <div class="ax-scroll"><table class="hb-table"></table></div>
+    <p class="ax-help">A number equal to an upper limit goes into the next class: 40 goes in 40–50, not 30–40.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Mean, median and mode</h2>
+    <dl class="ax-facts hb-facts"></dl>
+    <p class="sm-f hb-gm"></p>
+    <p class="ax-help">The raw numbers give the exact mean. The table only knows the class marks, so its mean is an estimate. Wider classes usually move it further away.</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Combine two groups</h2>
+    <p class="ax-help" style="margin-top:0">Two classes took the same test. What is the average of everyone together?</p>
+    <div class="ax-grid">
+      <label>Pupils in group A <input type="number" class="hb-n1" min="1" step="1" value="30" /></label>
+      <label>Average of group A <input type="number" class="hb-m1" step="any" value="62" /></label>
+      <label>Pupils in group B <input type="number" class="hb-n2" min="1" step="1" value="20" /></label>
+      <label>Average of group B <input type="number" class="hb-m2" step="any" value="70" /></label>
+    </div>
+    <p class="sm-f hb-cm"></p>
+    <p class="ax-err hb-cerr" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Drag the width slider down to 1. Every bar is now almost one number: the picture is spiky and hard to read.</li>
+      <li>Drag it up to 30. Now there are only two or three bars and the shape is lost. Somewhere between 5 and 10 tells the story best.</li>
+      <li>Keep the width at 10 and slide the start from 30 to 35. The same numbers, a different-looking histogram.</li>
+      <li>Watch the grouped mean move away from the true mean as the classes get wider.</li>
+      <li>In the combine card, give both groups the same average. Does the size of the groups still matter?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="hb-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .hb svg .hb-bar { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.2; }
+  .hb svg .hb-pl { fill: none; stroke: var(--warn); stroke-width: 2.5; }
+  .hb svg .hb-dot { fill: var(--warn); }
+  .hb svg .hb-mean { stroke: var(--good); stroke-width: 2; stroke-dasharray: 6 4; }
+  .hb tr.hb-modal td { font-weight: 700; }
+  .hb textarea { min-height: 90px; }
+</style>
+
+<script>
+  import { parseData, group, polygon, mean, median, modes, groupedMean, modalClasses, niceStart, combinedMean, type Klass } from '../../lib/sci/histo-l2';
+  import { randInt } from '../../lib/sci/smath';
+  import { S, pair, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.hb')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const DATA = q<HTMLTextAreaElement>('.hb-data');
+  const WR = q<HTMLInputElement>('.hb-wr'), W = q<HTMLInputElement>('.hb-w'), SR = q<HTMLInputElement>('.hb-sr'), SB = q<HTMLInputElement>('.hb-s');
+  const PRE: Record<string, string> = {
+    marks: '47 62 55 71 38 66 59 84 52 73 45 68 77 61 49 90 57 64 70 35 58 81 63 54 67 42 75 60 69 56',
+    plants: '12.5 14.1 9.8 16.4 13.2 11.7 15.9 18.3 10.6 13.8 12.1 14.7 17.2 11.3 15.1 13.5 16.8 12.9 14.4 10.2',
+    travel: '5 8 12 15 7 22 18 10 25 9 14 30 6 11 16 20 13 8 35 12 17 9 21 10 15 40 11 19 14 7',
+  };
+  const fmt = (x: number, dp = 2) => (Math.round(x * 10 ** dp) / 10 ** dp).toLocaleString('en', { maximumFractionDigits: dp }).replace('-', '−');
+
+  let data: number[] = [];
+  const setStartRange = (w: number) => {
+    const s0 = niceStart(data, w), lo = s0 - w;
+    SR.min = String(Math.floor(lo)); SR.max = String(Math.ceil(Math.min(...data))); SR.step = w >= 1 ? '1' : '0.1';
+  };
+
+  function readData(): boolean {
+    const err = q('.hb-err'), r = parseData(DATA.value);
+    if (r.bad !== undefined) { err.textContent = `"${r.bad}" is not a number. Use only numbers, separated by commas or spaces.`; err.hidden = false; return false; }
+    if (r.data.length < 2) { err.textContent = 'Type at least two numbers.'; err.hidden = false; return false; }
+    if (r.data.length > 2000) { err.textContent = 'Up to 2 000 numbers, please.'; err.hidden = false; return false; }
+    err.hidden = true; data = r.data; return true;
+  }
+
+  function freshStart() {
+    if (!readData()) return;
+    const range = Math.max(...data) - Math.min(...data) || 1;
+    let w = Number(W.value);
+    if (!(w > 0) || range / w > 40 || range / w < 1.5) {
+      // A tidy width that gives about 6 classes.
+      const raw = range / 6, p = 10 ** Math.floor(Math.log10(raw)), m = raw / p;
+      w = (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p;
+    }
+    WR.min = String(Math.max(0.1, +(range / 30).toPrecision(1))); WR.max = String(+(range / 1.5).toPrecision(2)); WR.step = range < 30 ? '0.1' : '1';
+    setW(+w.toPrecision(6));
+    setStartRange(w); setS(niceStart(data, w));
+    draw();
+  }
+
+  function draw() {
+    if (!readData()) return;
+    const w = Number(W.value), err = q('.hb-err');
+    if (!(w > 0)) { err.textContent = 'The class width must be more than 0.'; err.hidden = false; return; }
+    let s = Number(SB.value); if (!Number.isFinite(s) || s > Math.min(...data)) s = niceStart(data, w);
+    const C = group(data, s, w);
+    if (C.length > 60) { err.textContent = 'That width makes more than 60 classes. Make it wider.'; err.hidden = false; return; }
+    picture(C);
+    table(C);
+    facts(C);
+  }
+
+  function picture(C: Klass[]) {
+    const svg = q<SVGSVGElement>('.hb-fig'); svg.replaceChildren();
+    const P = polygon(C), x0 = P[0].x, x1 = P.at(-1)!.x, fmax = Math.max(...C.map((c) => c.f));
+    const L = 34, R = 330, T = 14, B = 196;
+    const X = (x: number) => L + ((x - x0) / (x1 - x0)) * (R - L), Y = (f: number) => B - (f / (fmax * 1.12)) * (B - T);
+    const fs = fmax <= 10 ? 1 : fmax <= 25 ? 5 : 10 ** Math.floor(Math.log10(fmax / 2));
+    for (let f = 0; f <= fmax * 1.1; f += fs) { S('line', { x1: L, y1: Y(f), x2: R, y2: Y(f), class: 'sm-grid' }, svg); S('text', { x: L - 5, y: Y(f) + 4, 'text-anchor': 'end', class: 'sm-tick' }, svg, String(f)); }
+    if (q<HTMLInputElement>('.hb-bars').checked) for (const c of C) S('rect', { x: X(c.lo), y: Y(c.f), width: Math.max(0, X(c.hi) - X(c.lo)), height: B - Y(c.f), class: 'hb-bar' }, svg);
+    const every = Math.ceil((C.length + 1) / 8);
+    [...C.map((c) => c.lo), C.at(-1)!.hi].forEach((v, i) => { if (i % every === 0) S('text', { x: X(v), y: B + 14, 'text-anchor': 'middle', class: 'sm-tick' }, svg, fmt(v)); });
+    S('line', { x1: L, y1: B, x2: R, y2: B, class: 'sm-axis' }, svg);
+    S('line', { x1: L, y1: T, x2: L, y2: B, class: 'sm-axis' }, svg);
+    if (q<HTMLInputElement>('.hb-poly').checked) {
+      S('polyline', { points: P.map((p) => `${X(p.x)},${Y(p.y)}`).join(' '), class: 'hb-pl' }, svg);
+      for (const p of P) S('circle', { cx: X(p.x), cy: Y(p.y), r: 3.5, class: 'hb-dot' }, svg);
+    }
+    const m = mean(data);
+    S('line', { x1: X(m), y1: T, x2: X(m), y2: B, class: 'hb-mean' }, svg);
+    S('text', { x: X(m) + 4, y: T + 10, class: 'sm-tick' }, svg, 'mean');
+    S('text', { x: (L + R) / 2, y: 226, 'text-anchor': 'middle', class: 'sm-tick' }, svg, 'class limits');
+    q('.hb-sum').textContent = `${data.length} numbers from ${fmt(Math.min(...data))} to ${fmt(Math.max(...data))} in ${C.length} classes of width ${fmt(Number(W.value), 3)}. Tallest bar: ${fmax}.`;
+  }
+
+  function table(C: Klass[]) {
+    const t = q<HTMLTableElement>('.hb-table'); t.replaceChildren();
+    const h = t.insertRow(); for (const x of ['Class', 'Class mark', 'Frequency', 'f × mark']) { const e = document.createElement('th'); e.textContent = x; h.append(e); }
+    const top = Math.max(...C.map((c) => c.f));
+    for (const c of C) {
+      const r = t.insertRow(); if (c.f === top) r.className = 'hb-modal';
+      r.insertCell().textContent = `${fmt(c.lo, 3)} – ${fmt(c.hi, 3)}`;
+      r.insertCell().textContent = fmt(c.mark, 3);
+      const f = r.insertCell(); f.textContent = String(c.f); f.className = 'r';
+      const fx = r.insertCell(); fx.textContent = fmt(c.f * c.mark, 3); fx.className = 'r';
+    }
+    const r = t.insertRow(); r.insertCell().textContent = 'Total'; r.insertCell();
+    const n = r.insertCell(); n.textContent = String(data.length); n.className = 'r';
+    const s = r.insertCell(); s.textContent = fmt(C.reduce((a, c) => a + c.f * c.mark, 0), 3); s.className = 'r';
+  }
+
+  function facts(C: Klass[]) {
+    const md = modes(data), mc = modalClasses(C);
+    const rows: [string, string, string][] = [
+      ['Mean (exact)', fmt(mean(data)), `sum ÷ ${data.length}`],
+      ['Median', fmt(median(data)), data.length % 2 ? 'the middle number' : 'halfway between the two middle numbers'],
+      ['Mode', md.length ? md.map((v) => fmt(v)).join(', ') : 'none', md.length ? 'most common number' : 'every number appears once'],
+      ['Modal class', mc.map((c) => `${fmt(c.lo, 3)} – ${fmt(c.hi, 3)}`).join(', '), 'tallest bar'],
+    ];
+    const dl = q('.hb-facts'); dl.replaceChildren();
+    for (const [k, v, s] of rows) { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; const sm = document.createElement('small'); sm.textContent = s; dd.append(sm); d.append(dt, dd); dl.append(d); }
+    const n = C.reduce((a, c) => a + c.f, 0), sfx = C.reduce((a, c) => a + c.f * c.mark, 0), gm = groupedMean(C);
+    q('.hb-gm').textContent = `Mean from the table = Σ f × mark ÷ Σ f = ${fmt(sfx, 3)} ÷ ${n} = ${fmt(gm)} (the true mean is ${fmt(mean(data))}, off by ${fmt(Math.abs(gm - mean(data)))}).`;
+  }
+
+  function combine() {
+    const n1 = Number(q<HTMLInputElement>('.hb-n1').value), n2 = Number(q<HTMLInputElement>('.hb-n2').value);
+    const m1 = Number(q<HTMLInputElement>('.hb-m1').value), m2 = Number(q<HTMLInputElement>('.hb-m2').value), err = q('.hb-cerr');
+    if (!(Number.isInteger(n1) && Number.isInteger(n2) && n1 > 0 && n2 > 0) || !Number.isFinite(m1) || !Number.isFinite(m2) || q<HTMLInputElement>('.hb-m1').value === '' || q<HTMLInputElement>('.hb-m2').value === '') {
+      err.textContent = 'Group sizes must be whole numbers above 0, and both averages must be numbers.'; err.hidden = false; q('.hb-cm').textContent = ''; return;
+    }
+    err.hidden = true;
+    const cm = combinedMean([{ n: n1, mean: m1 }, { n: n2, mean: m2 }]);
+    q('.hb-cm').textContent = `Whole group average = (${n1} × ${fmt(m1)} + ${n2} × ${fmt(m2)}) ÷ (${n1} + ${n2}) = ${fmt(n1 * m1 + n2 * m2)} ÷ ${n1 + n2} = ${fmt(cm)}. Not (${fmt(m1)} + ${fmt(m2)}) ÷ 2 = ${fmt((m1 + m2) / 2)}, unless the groups are the same size.`;
+  }
+
+  const setW = pair(WR, W, () => { if (readData()) { setStartRange(Number(W.value)); setS(niceStart(data, Number(W.value))); } draw(); });
+  const setS = pair(SR, SB, draw);
+  DATA.addEventListener('input', freshStart);
+  root.querySelectorAll<HTMLInputElement>('.hb-bars, .hb-poly').forEach((c) => c.addEventListener('change', draw));
+  root.querySelectorAll<HTMLButtonElement>('.hb-pre').forEach((b) => b.addEventListener('click', () => { DATA.value = PRE[b.dataset.p!]; W.value = '0'; freshStart(); }));
+  root.querySelectorAll<HTMLInputElement>('.hb-n1, .hb-n2, .hb-m1, .hb-m2').forEach((i) => i.addEventListener('input', combine));
+  freshStart(); combine();
+
+  quiz(q('.hb-quiz'), () => {
+    const out: Question[] = [];
+    const w = [5, 10, 20][randInt(0, 2)], lo = randInt(1, 8) * w;
+    out.push({ q: `What is the class mark of the class ${lo} – ${lo + w}?`, want: [lo + w / 2], work: `Class mark = (lower limit + upper limit) ÷ 2 = (${lo} + ${lo + w}) ÷ 2 = ${lo + w / 2}.` });
+    const vals = Array.from({ length: 10 }, () => randInt(10, 49)), c0 = [20, 30][randInt(0, 1)];
+    const inC = vals.filter((v) => v >= c0 && v < c0 + 10).length;
+    out.push({ q: `How many of these numbers fall in the class ${c0} – ${c0 + 10}? ${vals.join(', ')}`, want: [inC], work: `Count the numbers from ${c0} up to but not including ${c0 + 10}: ${vals.filter((v) => v >= c0 && v < c0 + 10).join(', ') || 'none'}. That is ${inC}.` });
+    const f = [randInt(2, 6), randInt(3, 8), randInt(2, 6)], marks = [5, 15, 25];
+    const gm = (f[0] * 5 + f[1] * 15 + f[2] * 25) / (f[0] + f[1] + f[2]);
+    out.push({ q: `Classes 0–10, 10–20, 20–30 have frequencies ${f.join(', ')}. Estimate the mean from the table (2 decimal places).`, want: [Math.round(gm * 100) / 100], tol: 0.002,
+      work: `Class marks 5, 15, 25. Σ f × mark = ${f.map((x, i) => `${x} × ${marks[i]}`).join(' + ')} = ${f[0] * 5 + f[1] * 15 + f[2] * 25}. Σ f = ${f[0] + f[1] + f[2]}. Mean ≈ ${fmt(gm)}.` });
+    const n1 = randInt(15, 40), n2 = randInt(15, 40), m1 = randInt(50, 80), m2 = randInt(50, 80), cm = (n1 * m1 + n2 * m2) / (n1 + n2);
+    out.push({ q: `${n1} pupils average ${m1} marks and ${n2} other pupils average ${m2}. What is the average of all ${n1 + n2}? (2 decimal places)`, want: [Math.round(cm * 100) / 100], tol: 0.002,
+      work: `Total marks = ${n1} × ${m1} + ${n2} × ${m2} = ${n1 * m1 + n2 * m2}. Average = ${n1 * m1 + n2 * m2} ÷ ${n1 + n2} = ${fmt(cm)}.` });
+    return out;
+  });
+</script>

@@ -1,0 +1,183 @@
+---
+// Flowchart runner: six classic flowcharts (even or odd, largest of three, adding 1 to n, Euclid's HCF, leap
+// years, steps to 1). Type the inputs and follow the chart box by box, with the variables and output traced.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+import { CHARTS } from '../../lib/sci/flow-l2';
+---
+<div class="ax sm fc">
+  <div class="ax-card">
+    <h2>Pick a flowchart</h2>
+    <select class="fc-pick" aria-label="Flowchart">{CHARTS.map((c) => <option value={c.id}>{c.name}</option>)}</select>
+    <p class="ax-help fc-about"></p>
+    <div class="ax-grid fc-ins" style="margin-top:8px"></div>
+    <p class="ax-err fc-err" hidden></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Follow it</h2>
+    <svg class="sm-fig fc-fig" viewBox="0 0 340 320" role="img" aria-label="The flowchart, with the current box highlighted"></svg>
+    <div class="ax-row" style="margin-top:10px">
+      <button type="button" class="btn secondary small fc-back">◀ Back</button>
+      <button type="button" class="btn small fc-step">Step ▶</button>
+      <button type="button" class="btn secondary small fc-play">Play</button>
+      <button type="button" class="btn secondary small fc-end">To the end</button>
+    </div>
+    <p class="sm-f fc-note" aria-live="polite"></p>
+    <dl class="ax-facts fc-vars"></dl>
+    <p class="sm-f fc-out"></p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Trace table</h2>
+    <p class="ax-help" style="margin-top:0">Every box visited so far, with the variables after it. Tracing like this is how programmers check an algorithm by hand.</p>
+    <div class="ax-scroll fc-scroll"><table class="fc-table"></table></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>The shapes</h2>
+    <ul class="sm-try">
+      <li><b>Rounded box:</b> Start or Stop.</li>
+      <li><b>Slanted box:</b> input (read a value) or output (say a result).</li>
+      <li><b>Rectangle:</b> a process: work something out. "s ← s + i" means "s becomes s + i".</li>
+      <li><b>Diamond:</b> a decision, a yes-or-no question with two arrows out.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Add 1 to n with n = 5: how many times is the diamond visited? Now try n = 10. Can you predict it without running?</li>
+      <li>Leap year with 1900, 2000 and 2024. Why must "400 divides y?" come before "100 divides y?"</li>
+      <li>Largest of three with a = b = c = 7. Which path does it take? Is the answer still right?</li>
+      <li>Steps to 1 with n = 27. It climbs past 9 000 before falling back to 1.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Run the chart in your head (or on paper) and type what it says. Nothing is saved.</p>
+    <div class="fc-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .fc svg .fc-box { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+  .fc svg .fc-on { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 3; }
+  .fc svg .fc-done { fill: var(--bg); }
+  .fc svg .fc-arrow { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+  .fc svg .fc-taken { stroke: var(--accent); stroke-width: 2.5; }
+  .fc svg .fc-head { fill: var(--muted); }
+  .fc svg text.fc-t { font-size: 12px; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+  .fc svg text.fc-yn { font-size: 10.5px; font-weight: 700; fill: var(--muted); }
+  .fc .fc-scroll { max-height: 260px; overflow-y: auto; }
+  .fc .fc-table tr.fc-cur td { font-weight: 700; background: var(--accent-soft); }
+  .fc .fc-out { font-weight: 700; }
+  .fc select { width: 100%; }
+</style>
+
+<script>
+  import { CHARTS, run, type Chart, type Box, type Edge, type Side, type Step } from '../../lib/sci/flow-l2';
+  import { randInt } from '../../lib/sci/smath';
+  import { S, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.fc')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.fc-fig'), pickSel = q<HTMLSelectElement>('.fc-pick');
+  let chart: Chart = CHARTS[0], steps: Step[] = [], k = 0, timer = 0;
+
+  const W = (b: Box) => b.w ?? (b.kind === 'decision' ? 160 : b.kind === 'start' || b.kind === 'end' ? 110 : 150);
+  const H = (b: Box) => (b.kind === 'decision' ? 54 : 34);
+  const port = (b: Box, s: Side): [number, number] => s === 'b' ? [b.x, b.y + H(b) / 2] : s === 't' ? [b.x, b.y - H(b) / 2] : s === 'l' ? [b.x - W(b) / 2, b.y] : [b.x + W(b) / 2, b.y];
+
+  function inputs() {
+    const box = q('.fc-ins'); box.replaceChildren();
+    for (const i of chart.inputs) {
+      const l = document.createElement('label'); l.textContent = i.label + ' ';
+      const inp = document.createElement('input'); inp.type = 'number'; inp.step = '1'; inp.value = String(i.value); inp.className = `fc-in fc-in-${i.name}`; inp.dataset.n = i.name;
+      inp.addEventListener('input', prepare); l.append(inp); box.append(l);
+    }
+    q('.fc-about').textContent = chart.about;
+  }
+
+  function prepare() {
+    stop();
+    const vals: Record<string, number> = {}, err = q('.fc-err');
+    for (const i of chart.inputs) {
+      const e = root.querySelector<HTMLInputElement>(`.fc-in-${i.name}`)!, v = Number(e.value);
+      if (e.value.trim() === '' || !Number.isInteger(v) || v < i.min || v > i.max) { err.textContent = `${i.label} must be a whole number from ${i.min.toLocaleString('en')} to ${i.max.toLocaleString('en')}.`; err.hidden = false; steps = []; draw(); return; }
+      vals[i.name] = v;
+    }
+    err.hidden = true;
+    const r = run(chart, vals); steps = r.steps; k = 0;
+    if (!r.finished) { err.textContent = 'This run is very long, so it stops after 3 000 boxes.'; err.hidden = false; }
+    draw();
+  }
+
+  function edges(b: Box): [Edge, 'yes' | 'no' | ''][] { return b.kind === 'decision' ? [[b.yes!, 'yes'], [b.no!, 'no']] : b.next ? [[b.next, '']] : []; }
+
+  function draw() {
+    fig.replaceChildren(); fig.setAttribute('viewBox', `0 0 340 ${chart.height}`);
+    const defs = S('defs', {}, fig), m = S('marker', { id: 'fc-ah', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, defs);
+    S('path', { d: 'M0,0 L10,5 L0,10 Z', class: 'fc-head' }, m);
+    const byId = new Map(chart.boxes.map((b) => [b.id, b]));
+    const cur = steps[k], prev = k > 0 ? steps[k - 1] : null, visited = new Set(steps.slice(0, k + 1).map((s) => s.box));
+    for (const b of chart.boxes) for (const [e, lab] of edges(b)) {
+      const t = byId.get(e.to)!, p0 = port(b, e.out ?? 'b'), p1 = port(t, e.in ?? 't');
+      const taken = prev && prev.box === b.id && cur && cur.box === t.id && (!lab || prev.branch === lab);
+      S('polyline', { points: [p0, ...(e.via ?? []), p1].map((p) => p.join(',')).join(' '), class: `fc-arrow${taken ? ' fc-taken' : ''}`, 'marker-end': 'url(#fc-ah)' }, fig);
+      if (lab) S('text', { x: p0[0] + (e.out === 'r' ? 6 : e.out === 'l' ? -22 : 6), y: p0[1] + (e.out === 'r' || e.out === 'l' ? -5 : 13), class: 'fc-yn' }, fig, lab);
+    }
+    for (const b of chart.boxes) {
+      const w = W(b), h = H(b), on = cur && cur.box === b.id, cls = `fc-box fc-b-${b.id}${on ? ' fc-on' : visited.has(b.id) ? ' fc-done' : ''}`;
+      if (b.kind === 'decision') S('polygon', { points: `${b.x},${b.y - h / 2} ${b.x + w / 2},${b.y} ${b.x},${b.y + h / 2} ${b.x - w / 2},${b.y}`, class: cls }, fig);
+      else if (b.kind === 'input' || b.kind === 'output') S('polygon', { points: `${b.x - w / 2 + 10},${b.y - h / 2} ${b.x + w / 2},${b.y - h / 2} ${b.x + w / 2 - 10},${b.y + h / 2} ${b.x - w / 2},${b.y + h / 2}`, class: cls }, fig);
+      else S('rect', { x: b.x - w / 2, y: b.y - h / 2, width: w, height: h, rx: b.kind === 'process' ? 3 : 17, class: cls }, fig);
+      S('text', { x: b.x, y: b.y, class: 'fc-t' }, fig, b.text);
+    }
+    // Readouts.
+    q('.fc-note').textContent = cur ? `Box ${k + 1} of ${steps.length}: ${cur.note}` : '';
+    const dl = q('.fc-vars'); dl.replaceChildren();
+    if (cur) for (const [n, v] of Object.entries(cur.vars)) { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = n; const dd = document.createElement('dd'); dd.textContent = v.toLocaleString('en'); d.append(dt, dd); dl.append(d); }
+    q('.fc-out').textContent = cur && cur.out.length ? `Output: ${cur.out.join(', ')}` : '';
+    const t = q<HTMLTableElement>('.fc-table'); t.replaceChildren();
+    const names = [...new Set(steps.flatMap((s) => Object.keys(s.vars)))];
+    const hr = t.insertRow(); for (const x of ['#', 'Box', ...names]) { const th = document.createElement('th'); th.textContent = x; hr.append(th); }
+    steps.slice(0, k + 1).forEach((s, i) => {
+      const r = t.insertRow(); if (i === k) r.className = 'fc-cur';
+      r.insertCell().textContent = String(i + 1);
+      r.insertCell().textContent = byId.get(s.box)!.text + (s.branch ? ` → ${s.branch}` : '');
+      for (const n of names) r.insertCell().textContent = n in s.vars ? s.vars[n].toLocaleString('en') : '';
+    });
+    const sc = q('.fc-scroll'); sc.scrollTop = sc.scrollHeight;
+    q<HTMLButtonElement>('.fc-back').disabled = k === 0;
+    q<HTMLButtonElement>('.fc-step').disabled = !steps.length || k >= steps.length - 1;
+  }
+
+  const go = (d: number) => { if (!steps.length) return; k = Math.max(0, Math.min(steps.length - 1, k + d)); draw(); };
+  const stop = () => { if (timer) { clearInterval(timer); timer = 0; } q('.fc-play').textContent = 'Play'; };
+  q('.fc-step').addEventListener('click', () => { stop(); go(1); });
+  q('.fc-back').addEventListener('click', () => { stop(); go(-1); });
+  q('.fc-end').addEventListener('click', () => { stop(); go(1e9); });
+  q('.fc-play').addEventListener('click', () => {
+    if (timer) { stop(); return; }
+    if (k >= steps.length - 1) k = 0;
+    q('.fc-play').textContent = 'Pause';
+    timer = window.setInterval(() => { if (k >= steps.length - 1) stop(); else go(1); }, 450);
+  });
+  pickSel.addEventListener('change', () => { chart = CHARTS.find((c) => c.id === pickSel.value)!; inputs(); prepare(); });
+  inputs(); prepare();
+
+  const outOf = (id: string, inp: Record<string, number>) => run(CHARTS.find((c) => c.id === id)!, inp).steps.at(-1)!.out[0];
+  quiz(q('.fc-quiz'), () => {
+    const out: Question[] = [];
+    const n = randInt(4, 15);
+    out.push({ q: `"Add 1 to n" with n = ${n}: what does it say?`, want: [Number(outOf('sum', { n }))], work: `It adds 1 + 2 + … + ${n} = ${n} × ${n + 1} ÷ 2 = ${(n * (n + 1)) / 2}.` });
+    out.push({ q: `"Add 1 to n" with n = ${n}: how many times is the diamond (i ≤ n?) visited?`, want: [n + 1], work: `It answers yes for i = 1 to ${n} (${n} times) and no once when i = ${n + 1}, so the number of visits is ${n + 1}.` });
+    const g = randInt(2, 12), a = g * randInt(3, 15), b = g * randInt(2, 9);
+    out.push({ q: `"Euclid's HCF" with a = ${a} and b = ${b}: what does it say?`, want: [Number(outOf('hcf', { a, b }))], work: `It keeps replacing (a, b) by (b, a mod b) until b = 0, then says a = ${outOf('hcf', { a, b })}.` });
+    const c = [3, 5, 6, 7, 9, 10, 12][randInt(0, 6)], st = Number(outOf('collatz', { n: c }));
+    out.push({ q: `"Steps to 1" with n = ${c}: how many steps does it say?`, want: [st], work: `Path: ${(() => { const p = [c]; let x = c; while (x !== 1) { x = x % 2 ? 3 * x + 1 : x / 2; p.push(x); } return p.join(' → '); })()}, which is ${st} steps.` });
+    return out;
+  });
+</script>
