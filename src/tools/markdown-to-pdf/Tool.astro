@@ -1,0 +1,137 @@
+---
+// Markdown to PDF: write or paste Markdown, see the page, save as PDF with the browser's print or as HTML.
+---
+<div class="tool-ui mtp">
+  <div class="mtp-bar">
+    <label>Page size
+      <select class="mtp-size"><option value="A4">A4</option><option value="letter">Letter</option><option value="legal">Legal</option><option value="A5">A5</option></select>
+    </label>
+    <label>Text size
+      <select class="mtp-font"><option value="10pt">Small</option><option value="11pt" selected>Normal</option><option value="12.5pt">Large</option></select>
+    </label>
+    <label>Margins
+      <select class="mtp-margin"><option value="15mm">Narrow</option><option value="20mm" selected>Normal</option><option value="28mm">Wide</option></select>
+    </label>
+    <label class="mtp-check"><input type="checkbox" class="mtp-toc"> Table of contents</label>
+  </div>
+  <div class="mtp-cols">
+    <div>
+      <label for="mtp-in"><b>Your Markdown</b></label>
+      <textarea id="mtp-in" class="mtp-in" rows="18" spellcheck="false"></textarea>
+      <div class="mtp-row">
+        <label class="btn secondary mtp-open">Open a .md file<input type="file" class="mtp-md visually-hidden" accept=".md,.markdown,.txt,text/markdown,text/plain"></label>
+        <label class="btn secondary mtp-open">Add pictures<input type="file" class="mtp-img visually-hidden" accept="image/png,image/jpeg,image/gif,image/webp" multiple></label>
+      </div>
+      <p class="note mtp-imgs" hidden></p>
+    </div>
+    <div>
+      <b>Preview</b>
+      <div class="mtp-page md-body" aria-live="polite"></div>
+    </div>
+  </div>
+  <div class="mtp-row">
+    <button type="button" class="btn mtp-print">Save as PDF (print)</button>
+    <button type="button" class="btn secondary mtp-html">Download HTML</button>
+  </div>
+  <p class="note">In the print window choose <b>Save as PDF</b> as the printer. Turn off "Headers and footers" for a clean page. Nothing is uploaded.</p>
+</div>
+
+<style is:inline>
+  .mtp { display: grid; gap: 14px; margin-bottom: 32px; }
+  .mtp-bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+  .mtp-bar label { display: grid; gap: 4px; font-size: 14px; }
+  .mtp-check { display: flex !important; align-items: center; gap: 6px; }
+  .mtp-cols { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 900px) { .mtp-cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+  .mtp-in { width: 100%; box-sizing: border-box; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 14px; min-height: 300px; resize: vertical; }
+  .mtp-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .mtp-page { background: #fff; color: #111; border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; overflow-wrap: anywhere; overflow-x: auto; max-height: 560px; overflow-y: auto; font-size: var(--mtp-font, 11pt); line-height: 1.5; }
+  .mtp-page h1, .mtp-page h2, .mtp-page h3, .mtp-page h4 { line-height: 1.25; margin: 1.1em 0 .4em; }
+  .mtp-page h1 { font-size: 1.8em; border-bottom: 1px solid #ccc; padding-bottom: .2em; } .mtp-page h2 { font-size: 1.4em; } .mtp-page h3 { font-size: 1.15em; }
+  .mtp-page p, .mtp-page ul, .mtp-page ol, .mtp-page pre, .mtp-page table, .mtp-page blockquote { margin: .6em 0; }
+  .mtp-page ul, .mtp-page ol { padding-left: 1.6em; }
+  .mtp-page code { font-family: ui-monospace, Menlo, Consolas, monospace; background: #f1f1f1; padding: 0 .25em; border-radius: 3px; font-size: .92em; }
+  .mtp-page pre { background: #f6f6f6; border: 1px solid #ddd; padding: .7em; overflow-x: auto; white-space: pre-wrap; break-inside: avoid; }
+  .mtp-page pre code { background: none; padding: 0; }
+  .mtp-page table { border-collapse: collapse; width: auto; max-width: 100%; }
+  .mtp-page th, .mtp-page td { border: 1px solid #999; padding: .3em .6em; }
+  .mtp-page th { background: #eee; }
+  .mtp-page blockquote { border-left: 4px solid #bbb; padding-left: 1em; color: #444; }
+  .mtp-page img { max-width: 100%; height: auto; }
+  .mtp-page a { color: #0645ad; }
+  .mtp-page hr { border: 0; border-top: 1px solid #bbb; }
+  .mtp-page .md-toc { border: 1px solid #ccc; padding: .5em 1em; break-after: page; }
+  .mtp-page .md-toc ul { list-style: none; padding-left: 0; margin: 0; }
+  .mtp-page .md-toc .md-l1 { padding-left: 1.2em; } .mtp-page .md-toc .md-l2 { padding-left: 2.4em; }
+  .mtp-page .md-toc-title { font-weight: 700; margin: 0 0 .3em; }
+  .mtp-page .md-missing { color: #a00; font-style: italic; }
+  .mtp-page h1, .mtp-page h2, .mtp-page h3 { break-after: avoid; }
+  .mtp-page tr, .mtp-page img { break-inside: avoid; }
+  @media print {
+    body * { visibility: hidden !important; }
+    .mtp-page, .mtp-page * { visibility: visible !important; }
+    .mtp-page { position: absolute; left: 0; top: 0; width: 100%; max-height: none !important; overflow: visible !important; border: 0 !important; padding: 0 !important; }
+  }
+</style>
+
+<script>
+  import { markdownToHtml } from '../../lib/docs/markdown';
+  const root = document.querySelector('.mtp') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const input = $<HTMLTextAreaElement>('.mtp-in'), page = $<HTMLElement>('.mtp-page');
+  const size = $<HTMLSelectElement>('.mtp-size'), font = $<HTMLSelectElement>('.mtp-font'), margin = $<HTMLSelectElement>('.mtp-margin'), toc = $<HTMLInputElement>('.mtp-toc');
+  const imgsNote = $<HTMLElement>('.mtp-imgs'), pageCss = document.head.appendChild(document.createElement('style')); pageCss.className = 'mtp-pagecss';
+  const images: Record<string, string> = {};
+  input.value = `# My document
+
+Write or paste **Markdown** on the left. The page on the right updates as you type.
+
+## A list and a table
+
+- Headings, lists, *emphasis*, \`code\` and [links](https://fibub.com)
+- Tick boxes: 
+  - [x] done
+  - [ ] to do
+
+| Item | Qty | Price |
+|------|----:|------:|
+| Pens | 3 | 4.50 |
+| Paper | 1 | 12.00 |
+
+> A quote looks like this.
+
+\`\`\`
+code blocks keep
+    their spacing
+\`\`\`
+
+![A picture](photo.png)
+`;
+  function update() {
+    const r = markdownToHtml(input.value, { images, toc: toc.checked });
+    page.innerHTML = r.html;
+    page.style.setProperty('--mtp-font', font.value);
+    pageCss.textContent = `@page { size: ${size.value}; margin: ${margin.value}; } .mtp-page { font-size: ${font.value}; }`;
+    imgsNote.hidden = !r.missingImages.length && !Object.keys(images).length;
+    imgsNote.textContent = (Object.keys(images).length ? 'Pictures added: ' + Object.keys(images).join(', ') + '. ' : '') +
+      (r.missingImages.length ? 'Still needed: ' + r.missingImages.join(', ') + ' (add pictures with the same file name). Web addresses are not loaded, to keep your page private.' : '');
+  }
+  [input, size, font, margin, toc].forEach((e) => e.addEventListener('input', update));
+  const readText = (f: File) => new Promise<string>((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.readAsText(f); });
+  const readUrl = (f: File) => new Promise<string>((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.readAsDataURL(f); });
+  $<HTMLInputElement>('.mtp-md').addEventListener('change', async (e) => {
+    const f = (e.target as HTMLInputElement).files?.[0]; if (f) { input.value = await readText(f); update(); }
+  });
+  $<HTMLInputElement>('.mtp-img').addEventListener('change', async (e) => {
+    for (const f of Array.from((e.target as HTMLInputElement).files || [])) images[f.name.toLowerCase()] = await readUrl(f);
+    update();
+  });
+  $('.mtp-print').addEventListener('click', () => { update(); window.print(); });
+  $('.mtp-html').addEventListener('click', () => {
+    update();
+    const doc = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Document</title><style>@page{size:${size.value};margin:${margin.value}}body{font-family:system-ui,sans-serif;max-width:48rem;margin:2rem auto;padding:0 1rem;line-height:1.5;font-size:${font.value}}pre{background:#f6f6f6;padding:.7em;overflow-x:auto;white-space:pre-wrap}code{background:#f1f1f1;padding:0 .25em}pre code{background:none}table{border-collapse:collapse}th,td{border:1px solid #999;padding:.3em .6em}th{background:#eee}blockquote{border-left:4px solid #bbb;margin-left:0;padding-left:1em}img{max-width:100%}.md-toc{border:1px solid #ccc;padding:.5em 1em}.md-toc ul{list-style:none;padding:0}.md-l1{padding-left:1.2em}.md-l2{padding-left:2.4em}</style></head><body>${page.innerHTML}</body></html>`;
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([doc], { type: 'text/html' })); a.download = 'document.html'; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  });
+  update();
+</script>
