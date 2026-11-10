@@ -1,0 +1,176 @@
+---
+// Clock and turn angles: drag the minute hand (the hour hand follows) and read the angle between the hands; find
+// the times the hands make any angle; turn an arrow on a compass by any amount clockwise or anticlockwise. Nothing
+// is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm ck">
+  <div class="ax-card">
+    <div class="ax-seg ck-mode" role="group" aria-label="What to explore"><button type="button" data-m="clock" aria-pressed="true">Clock hands</button><button type="button" data-m="turn" aria-pressed="false">Turns and directions</button></div>
+
+    <div class="ck-clock">
+      <svg class="sm-fig ck-fig" viewBox="0 0 340 260" role="img" aria-label="A clock face; drag the long hand" style="margin-top:10px"></svg>
+      <p class="ax-help">Drag the long (minute) hand round; the hour hand follows. Or type the time.</p>
+      <div class="ax-row">
+        <label style="flex:1 1 7em">Hour <input type="number" class="ck-h" min="1" max="12" step="1" value="3" inputmode="numeric" /></label>
+        <label style="flex:1 1 7em">Minutes <input type="number" class="ck-m" min="0" max="59" step="1" value="30" inputmode="numeric" /></label>
+      </div>
+      <p class="ax-big ck-big" aria-live="polite"></p>
+      <ol class="sm-steps ck-steps"></ol>
+      <h3 style="margin:14px 0 4px">When do the hands make this angle?</h3>
+      <div class="ax-row"><label style="flex:1 1 9em">Angle (0° to 180°) <input type="number" class="ck-a" min="0" max="180" step="1" value="90" inputmode="decimal" /></label></div>
+      <p class="sm-f ck-times"></p>
+    </div>
+
+    <div class="ck-turn" hidden>
+      <svg class="sm-fig ck-rose" viewBox="0 0 340 260" role="img" aria-label="A compass with an arrow" style="margin-top:10px"></svg>
+      <label style="margin-top:8px">Start facing <select class="ck-start"><option value="0">North</option><option value="90">East</option><option value="180">South</option><option value="270">West</option></select></label>
+      <div class="sm-sl"><b>°</b><input type="range" class="ck-tr" min="-720" max="720" step="15" value="90" aria-label="Turn slider" /><input type="number" class="ck-t" min="-1440" max="1440" step="15" value="90" inputmode="decimal" aria-label="Turn in degrees, clockwise positive" /></div>
+      <p class="ax-help">Positive turns are clockwise, negative turns anticlockwise.</p>
+      <div class="ax-row">
+        <button type="button" class="btn secondary small ck-q" data-d="90">¼ turn ↻</button>
+        <button type="button" class="btn secondary small ck-q" data-d="180">½ turn ↻</button>
+        <button type="button" class="btn secondary small ck-q" data-d="270">¾ turn ↻</button>
+        <button type="button" class="btn secondary small ck-q" data-d="-90">¼ turn ↺</button>
+        <button type="button" class="btn secondary small ck-q" data-d="360">Full turn</button>
+      </div>
+      <p class="ax-big ck-tbig" aria-live="polite"></p>
+      <ol class="sm-steps ck-tsteps"></ol>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>At 3:00 the hands make a right angle. Is it still exactly 90° at 3:01? Why not?</li>
+      <li>Type 0 in "When do the hands make this angle". Why do the hands meet only 11 times in 12 hours, not 12?</li>
+      <li>Turn ¾ clockwise, then ¼ anticlockwise. Which single turn does the same?</li>
+      <li>How many degrees does the minute hand turn in 20 minutes? The hour hand?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Angles in degrees. Nothing is saved.</p>
+    <div class="ck-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .ck svg .ck-face { fill: var(--surface); stroke: var(--ink); stroke-width: 3; }
+  .ck svg .ck-hh { stroke: var(--ink); stroke-width: 7; stroke-linecap: round; }
+  .ck svg .ck-mh { stroke: var(--accent); stroke-width: 4; stroke-linecap: round; }
+  .ck svg .ck-arc { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1.5; }
+  .ck svg .ck-arrow { stroke: var(--accent); stroke-width: 5; stroke-linecap: round; fill: none; }
+  .ck svg .ck-head { fill: var(--accent); }
+  .ck svg .ck-path { fill: none; stroke: var(--warn); stroke-width: 2; }
+</style>
+
+<script>
+  import { hands, between, kind, timesAt, clockText, facing, turnWords, wrap, COMPASS } from '../../lib/sci/clock-school';
+  import { fmt, randInt } from '../../lib/sci/smath';
+  import { S, dragOn, pair, val, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.ck')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.ck-fig'), rose = q<SVGSVGElement>('.ck-rose');
+  const Hb = q<HTMLInputElement>('.ck-h'), Mb = q<HTMLInputElement>('.ck-m'), Ab = q<HTMLInputElement>('.ck-a'), Tb = q<HTMLInputElement>('.ck-t');
+  const setT = pair(q('.ck-tr'), Tb, drawTurn);
+  const CX = 170, CY = 130, RR = 105, rad = (d: number) => (d * Math.PI) / 180;
+  const at = (deg: number, r: number) => [CX + r * Math.sin(rad(deg)), CY - r * Math.cos(rad(deg))];
+  const li = (t: string) => Object.assign(document.createElement('li'), { textContent: t });
+
+  root.querySelectorAll<HTMLButtonElement>('.ck-mode button').forEach((b) => b.addEventListener('click', () => {
+    root.querySelectorAll('.ck-mode button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    q('.ck-clock').hidden = b.dataset.m !== 'clock'; q('.ck-turn').hidden = b.dataset.m !== 'turn';
+  }));
+
+  function readTime() {
+    let h = Math.round(val(Hb, 3, 0, 12)), m = val(Mb, 30, 0, 59.999);
+    if (h === 0) h = 12;
+    return { h, m };
+  }
+  function drawClock() {
+    const { h, m } = readTime(), H = hands(h, m), B = between(h, m);
+    fig.replaceChildren();
+    S('circle', { cx: CX, cy: CY, r: RR, class: 'ck-face' }, fig);
+    for (let i = 0; i < 60; i++) { const [x1, y1] = at(i * 6, RR - (i % 5 ? 5 : 11)), [x2, y2] = at(i * 6, RR - 2); S('line', { x1, y1, x2, y2, class: i % 5 ? 'sm-grid' : 'sm-axis' }, fig); }
+    for (let i = 1; i <= 12; i++) { const [x, y] = at(i * 30, RR - 24); S('text', { x, y: y + 5, 'text-anchor': 'middle', style: 'font-weight:600' }, fig, String(i)); }
+    // Arc for the smaller angle.
+    const a0 = H.hour, a1 = H.minute, d = wrap(a1 - a0), [from, sweep] = d <= 180 ? [a0, d] : [a1, 360 - d];
+    if (sweep > 0.01) { const [x1, y1] = at(from, 34), [x2, y2] = at(from + sweep, 34); S('path', { d: `M${CX},${CY} L${x1.toFixed(2)},${y1.toFixed(2)} A34,34 0 0 1 ${x2.toFixed(2)},${y2.toFixed(2)} Z`, class: 'ck-arc' }, fig); }
+    const [hx, hy] = at(H.hour, RR * 0.5), [mx, my] = at(H.minute, RR * 0.82);
+    S('line', { x1: CX, y1: CY, x2: hx, y2: hy, class: 'ck-hh' }, fig);
+    S('line', { x1: CX, y1: CY, x2: mx, y2: my, class: 'ck-mh' }, fig);
+    S('circle', { cx: CX, cy: CY, r: 5, style: 'fill:var(--ink)' }, fig);
+    S('circle', { cx: mx, cy: my, r: 22, class: 'sm-hit ck-grab' }, fig);
+    S('circle', { cx: mx, cy: my, r: 8, class: 'sm-handle' }, fig);
+    S('text', { x: 6, y: 252, class: 'sm-tick' }, fig, `${fmt(B.small, 2)}° and ${fmt(B.reflex, 2)}°`);
+    const time = `${h}:${String(Math.floor(m)).padStart(2, '0')}${m % 1 ? `:${String(Math.round((m % 1) * 60)).padStart(2, '0')}` : ''}`;
+    q('.ck-big').textContent = `${time}: ${fmt(B.small, 2)}° (${kind(B.small)})`;
+    q('.ck-steps').replaceChildren(...[
+      `Minute hand: 6° for every minute, so 6 × ${fmt(m, 2)} = ${fmt(H.minute, 2)}° past 12.`,
+      `Hour hand: 30° for every hour plus 0.5° for every minute, so 30 × ${h % 12} + 0.5 × ${fmt(m, 2)} = ${fmt(H.hour, 2)}° past 12.`,
+      `Difference: |${fmt(H.hour, 2)} − ${fmt(H.minute, 2)}| = ${fmt(Math.abs(H.hour - H.minute), 2)}°${Math.abs(H.hour - H.minute) > 180 ? `, more than 180°, so the smaller angle is 360° − ${fmt(Math.abs(H.hour - H.minute), 2)}° = ${fmt(B.small, 2)}°` : ''}.`,
+      `The other way round the clock is the reflex angle, 360° − ${fmt(B.small, 2)}° = ${fmt(B.reflex, 2)}°.`,
+    ].map(li));
+  }
+  function drawTimes() {
+    const a = Number(Ab.value);
+    if (Ab.value.trim() === '' || !(a >= 0 && a <= 180)) { q('.ck-times').textContent = 'Type an angle from 0° to 180°.'; return; }
+    const ts = timesAt(a);
+    q('.ck-times').textContent = `${ts.length} times in 12 hours: ${ts.map(clockText).join(', ')}.`;
+  }
+  function setTime(h: number, m: number) { Hb.value = String(h); Mb.value = String(m); drawClock(); }
+  [Hb, Mb].forEach((b) => b.addEventListener('input', drawClock));
+  Ab.addEventListener('input', drawTimes);
+  let lastMin = 30;
+  dragOn(fig, (x, y) => (Math.hypot(x - CX, y - CY) > 20 ? 'm' : null), (_id, x, y) => {
+    const deg = wrap((Math.atan2(x - CX, -(y - CY)) * 180) / Math.PI), mm = Math.round(deg / 6) % 60;
+    let { h } = readTime();
+    if (lastMin >= 45 && mm < 15) h = (h % 12) + 1;            // the minute hand passed 12 going forwards
+    else if (lastMin < 15 && mm >= 45) h = ((h + 10) % 12) + 1; // going backwards
+    lastMin = mm; setTime(h, mm);
+  });
+  Mb.addEventListener('input', () => { lastMin = val(Mb, 30, 0, 59); });
+
+  function drawTurn() {
+    const s = Number(q<HTMLSelectElement>('.ck-start').value), t = val(Tb, 90, -1440, 1440), F = facing(s, t);
+    rose.replaceChildren();
+    S('circle', { cx: CX, cy: CY, r: RR, class: 'ck-face' }, rose);
+    COMPASS.forEach((c, i) => { const [x, y] = at(i * 45, RR - 16); S('text', { x, y: y + 5, 'text-anchor': 'middle', style: i % 2 ? '' : 'font-weight:700' }, rose, c); });
+    // The path of the turn as a spiral so several turns show.
+    const n = Math.max(2, Math.ceil(Math.abs(t) / 5)), pts: string[] = [];
+    for (let i = 0; i <= n; i++) { const a = s + (t * i) / n, r = 30 + (Math.abs(t) > 360 ? (22 * i) / n : 8); const [x, y] = at(a, r); pts.push(`${x.toFixed(1)},${y.toFixed(1)}`); }
+    if (Math.abs(t) > 0) S('polyline', { points: pts.join(' '), class: 'ck-path' }, rose);
+    const [sx, sy] = at(s, RR * 0.7); S('line', { x1: CX, y1: CY, x2: sx, y2: sy, class: 'sm-dash' }, rose);
+    const [ex, ey] = at(F.bearing, RR * 0.7); S('line', { x1: CX, y1: CY, x2: ex, y2: ey, class: 'ck-arrow' }, rose);
+    const [l1x, l1y] = at(F.bearing - 8, RR * 0.58), [l2x, l2y] = at(F.bearing + 8, RR * 0.58), [tx, ty] = at(F.bearing, RR * 0.76);
+    S('polygon', { points: `${tx},${ty} ${l1x},${l1y} ${l2x},${l2y}`, class: 'ck-head' }, rose);
+    q('.ck-tbig').textContent = `Now facing ${F.name ?? `${fmt(F.bearing, 2)}° from north`}`;
+    const net = wrap(t);
+    q('.ck-tsteps').replaceChildren(...[
+      `You turned ${fmt(Math.abs(t), 2)}° ${t >= 0 ? 'clockwise' : 'anticlockwise'}: ${turnWords(t)}.`,
+      `Full turns (360°) bring you back to where you started, so only ${fmt(net, 2)}° clockwise${net ? ` (or ${fmt(360 - net, 2)}° anticlockwise)` : ''} matters.`,
+      `${fmt(s, 0)}° + ${fmt(net, 2)}° = ${fmt(F.bearing, 2)}° from north${F.name ? `: ${F.name}` : ''}.`,
+    ].map(li));
+  }
+  q('.ck-start').addEventListener('change', drawTurn);
+  root.querySelectorAll<HTMLButtonElement>('.ck-q').forEach((b) => b.addEventListener('click', () => { setT(Number(b.dataset.d)); drawTurn(); }));
+
+  drawClock(); drawTimes(); drawTurn();
+
+  quiz(q('.ck-quiz'), () => {
+    const out: Question[] = [];
+    const h = randInt(1, 12), m = randInt(0, 11) * 5, B = between(h, m);
+    out.push({ q: `What is the smaller angle between the hands at ${h}:${String(m).padStart(2, '0')}?`, want: [B.small], hint: 'degrees', work: `Minute hand 6 × ${m} = ${6 * m}°; hour hand 30 × ${h % 12} + 0.5 × ${m} = ${fmt(hands(h, m).hour, 1)}°; the smaller angle between them is ${fmt(B.small, 1)}°.` });
+    const k = randInt(2, 11) * 5;
+    out.push({ q: `How many degrees does the hour hand turn in ${k} minutes?`, want: [0.5 * k], hint: 'degrees', work: `The hour hand turns 30° in 60 minutes, which is 0.5° a minute: 0.5 × ${k} = ${fmt(0.5 * k, 1)}°.` });
+    const s = [0, 90, 180, 270][randInt(0, 3)], t = randInt(1, 7) * 90 * (Math.random() < 0.5 ? -1 : 1), F = facing(s, t), names = ['north', 'east', 'south', 'west'];
+    out.push({ q: `You face ${names[s / 90]} and make ${turnWords(t)}. How many degrees clockwise from north are you facing now (0 to 359)?`, want: [F.bearing], hint: 'degrees', work: `${s}° ${t >= 0 ? '+' : '−'} ${Math.abs(t)}° = ${s + t}°; take away or add whole turns of 360° to get ${F.bearing}°: you face ${F.name}.` });
+    const a = randInt(1, 11) * 30;
+    out.push({ q: `An angle of ${a}° is what fraction of a full turn? (A fraction like 1/4 is fine.)`, want: [a / 360], work: `${a} ÷ 360 = ${fmt(a / 360, 4)}.` });
+    return out;
+  });
+</script>
