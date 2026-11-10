@@ -1,0 +1,78 @@
+---
+// #T860 Cups to grams
+import { INGREDIENTS, UNIT_NAMES } from './data';
+const groups = [...new Set(INGREDIENTS.map((i) => i.group))];
+const units = Object.entries(UNIT_NAMES);
+---
+<div class="tool-ui ctg">
+  <section class="panel ctg-form">
+    <label>Ingredient
+      <select class="ctg-ing">
+        {groups.map((g) => <optgroup label={g}>{INGREDIENTS.filter((i) => i.group === g).map((i) => <option value={i.id} selected={i.id === 'ap-flour'}>{i.name}</option>)}</optgroup>)}
+      </select>
+    </label>
+    <div class="ctg-row">
+      <label>Amount <input class="ctg-amt" inputmode="decimal" value="1" /></label>
+      <label>From <select class="ctg-from">{units.map(([k, v]) => <option value={k} selected={k === 'uscup'}>{v}</option>)}</select></label>
+      <button type="button" class="btn secondary ctg-swap" aria-label="Swap from and to">⇄</button>
+      <label>To <select class="ctg-to">{units.map(([k, v]) => <option value={k} selected={k === 'g'}>{v}</option>)}</select></label>
+    </div>
+    <p class="ctg-big" aria-live="polite"></p>
+    <p class="ctg-say" aria-live="polite"></p>
+    <button type="button" class="btn secondary ctg-reset">Reset</button>
+  </section>
+  <section class="panel">
+    <h3 class="ctg-h">The same amount in every unit</h3>
+    <ul class="ctg-all"></ul>
+  </section>
+  <p class="ctg-fine">Approximate, from USDA FoodData Central household measures. How you fill the cup (scooped, spooned, sifted, packed) changes the weight by 10-20%, so weigh when it matters. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ctg { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ctg .panel { padding: 16px; }
+  .ctg-form { display: grid; gap: 12px; }
+  .ctg-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)); gap: 12px; align-items: end; }
+  .ctg label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ctg input, .ctg select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ctg input:focus, .ctg select:focus { border-color: var(--accent); outline: none; }
+  .ctg-swap { padding: 9px 12px; }
+  .ctg-reset { justify-self: start; padding: 8px 14px; }
+  .ctg-big { font-size: 26px; font-weight: 700; margin: 4px 0 0; overflow-wrap: anywhere; }
+  .ctg-say { margin: 0; color: var(--muted); font-size: 15px; }
+  .ctg-h { margin: 0 0 8px; font-size: 16px; }
+  .ctg-all { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 6px 14px; font-size: 15px; }
+  .ctg-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  import { INGREDIENTS, UNIT_NAMES, SHORT, convert } from './data';
+  const root = document.querySelector('.ctg') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const ing = $<HTMLSelectElement>('.ctg-ing'), amt = $<HTMLInputElement>('.ctg-amt');
+  const from = $<HTMLSelectElement>('.ctg-from'), to = $<HTMLSelectElement>('.ctg-to');
+  const big = $('.ctg-big'), say = $('.ctg-say'), all = $('.ctg-all');
+  // Grams and ml: whole numbers from 10 up, one decimal below. Other units: up to 2 decimals.
+  const fmt = (v: number, u: string) => {
+    const d = u === 'g' || u === 'ml' ? (Math.abs(v) >= 10 ? 0 : 1) : 2;
+    return v.toLocaleString('en-US', { maximumFractionDigits: d });
+  };
+  const calc = () => {
+    const i = INGREDIENTS.find((x) => x.id === ing.value)!;
+    const a = +amt.value.replace(',', '.');
+    all.innerHTML = '';
+    if (amt.value.trim() === '' || !Number.isFinite(a) || a < 0) { big.textContent = ''; say.textContent = 'Type an amount above.'; return; }
+    const r = convert(a, from.value, to.value, i);
+    big.textContent = `${fmt(r, to.value)} ${SHORT[to.value]}`;
+    say.textContent = `${fmt(a, from.value)} ${SHORT[from.value]} of ${i.name.replace(' (~)', '').toLowerCase()} is about ${fmt(r, to.value)} ${SHORT[to.value]}. A level US cup holds about ${i.g} g of it.`;
+    for (const u of Object.keys(UNIT_NAMES)) {
+      const li = document.createElement('li');
+      li.textContent = `${fmt(convert(a, from.value, u, i), u)} ${SHORT[u]}`;
+      li.dataset.u = u; all.append(li);
+    }
+  };
+  for (const el of [ing, amt, from, to]) el.addEventListener('input', calc);
+  $('.ctg-swap').addEventListener('click', () => { const f = from.value; from.value = to.value; to.value = f; calc(); });
+  $('.ctg-reset').addEventListener('click', () => { ing.value = 'ap-flour'; amt.value = '1'; from.value = 'uscup'; to.value = 'g'; calc(); });
+  calc();
+</script>

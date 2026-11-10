@@ -1,0 +1,162 @@
+---
+// #T866 Meal planner
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const MEALS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+---
+<div class="tool-ui mp">
+  <section class="panel mp-top">
+    <p class="mp-help">Type a meal name in any slot, and its ingredients underneath, one per line with the amount first (200 g rice, 2 eggs, 1 can tomatoes). The shopping list adds up the same ingredients.</p>
+    <label class="mp-check"><input type="checkbox" class="mp-remember" /> Remember my plan on this device</label>
+    <p class="mp-store">Off by default. When ticked, the plan is kept only in this browser (never sent anywhere) until you untick it or press Clear.</p>
+    <div class="mp-btns">
+      <button type="button" class="btn secondary mp-example">Example</button>
+      <button type="button" class="btn secondary mp-clear">Clear</button>
+    </div>
+  </section>
+  <div class="mp-week">
+    {DAYS.map((d, di) => (
+      <section class="panel mp-day">
+        <h3>{d}</h3>
+        {MEALS.map((m, mi) => (
+          <div class="mp-slot" data-c={`${di}-${mi}`}>
+            <label>{m} <input class="mp-name" type="text" maxlength="60" placeholder="Meal" /></label>
+            <textarea class="mp-ing" rows="2" spellcheck="false" aria-label={`${d} ${m.toLowerCase()} ingredients`} placeholder="Ingredients, one per line"></textarea>
+          </div>
+        ))}
+      </section>
+    ))}
+  </div>
+  <section class="panel mp-shop">
+    <h3>Shopping list</h3>
+    <p class="mp-sum" aria-live="polite"></p>
+    <div class="mp-list"></div>
+    <div class="mp-btns">
+      <button type="button" class="btn mp-print-b">Print or save as PDF</button>
+      <button type="button" class="btn secondary mp-txt">Download .txt</button>
+      <button type="button" class="btn secondary mp-copy">Copy list</button>
+    </div>
+  </section>
+  <p class="mp-fine">Amounts are added only when the unit is the same (200 g + 200 g = 400 g; 200 g and 1 cup stay apart). Groups are a best guess from the ingredient's name. Nothing you type leaves this page.</p>
+  <div class="mp-print" aria-hidden="true"></div>
+</div>
+
+<style is:inline>
+  .mp { display: grid; gap: 14px; margin-bottom: 32px; }
+  .mp .panel { padding: 16px; }
+  .mp-top { display: grid; gap: 8px; }
+  .mp-help, .mp-store { margin: 0; color: var(--muted); font-size: 14px; }
+  .mp-check { display: inline-flex; gap: 6px; align-items: center; font-size: 15px; }
+  .mp-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .mp-btns .btn { padding: 8px 14px; }
+  .mp-week { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 12px; }
+  .mp-day h3, .mp-shop h3 { margin: 0 0 8px; font-size: 17px; }
+  .mp-slot { display: grid; gap: 4px; margin-bottom: 10px; }
+  .mp-slot label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+  .mp input[type="text"], .mp textarea { font: inherit; font-size: 15px; color: var(--ink); padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); width: 100%; min-width: 0; box-sizing: border-box; }
+  .mp textarea { resize: vertical; font-size: 14px; }
+  .mp input:focus, .mp textarea:focus { border-color: var(--accent); outline: none; }
+  .mp-sum { margin: 0 0 8px; color: var(--muted); font-size: 14px; }
+  .mp-list h4 { margin: 10px 0 4px; font-size: 15px; }
+  .mp-list ul { margin: 0; padding-left: 20px; display: grid; gap: 2px; overflow-wrap: anywhere; }
+  .mp-fine { color: var(--muted); font-size: 13px; margin: 0; }
+  .mp-print { display: none; }
+  @media print {
+    body * { visibility: hidden !important; }
+    .mp-print, .mp-print * { visibility: visible !important; }
+    .mp-print { display: block; position: absolute; left: 0; top: 0; width: 100%; color: #000; background: #fff; font-size: 12pt; }
+    .mp-print table { border-collapse: collapse; width: 100%; margin-bottom: 12pt; }
+    .mp-print th, .mp-print td { border: 1px solid #999; padding: 4pt; text-align: left; vertical-align: top; }
+  }
+</style>
+
+<script>
+  import { merge, itemText, GROUPS } from './shop';
+  const KEY = 'fibub-meal-plan-v1';
+  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const MEALS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+  type Cell = { n: string; i: string };
+  const EXAMPLE: Record<string, Cell> = {
+    '0-0': { n: 'Porridge', i: '50 g oats\n250 ml milk\n1 banana' },
+    '1-0': { n: 'Porridge', i: '50 g oats\n250 ml milk\n1 banana' },
+    '0-2': { n: 'Chicken fried rice', i: '200 g rice\n300 g chicken breast\n2 eggs\n1 cup frozen peas\n2 tbsp soy sauce' },
+    '1-2': { n: 'Dal and rice', i: '200 g rice\n1 cup red lentils\n1 onion\n2 cloves garlic\n1 tsp turmeric' },
+    '2-2': { n: 'Pasta with tomato sauce', i: '250 g pasta\n1 can chopped tomatoes\n1 onion\n2 cloves garlic' },
+    '3-1': { n: 'Egg sandwiches', i: '4 slices bread\n2 eggs' },
+    '4-3': { n: 'Fruit', i: '2 apples' },
+    '5-2': { n: 'Roast chicken', i: '1.6 kg whole chicken\n500 g potatoes\n3 carrots' },
+  };
+  const root = document.querySelector('.mp') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const slots = [...root.querySelectorAll('.mp-slot')] as HTMLElement[];
+  const remember = $<HTMLInputElement>('.mp-remember'), list = $('.mp-list'), sum = $('.mp-sum'), printBox = $('.mp-print');
+  const cellOf = (el: HTMLElement) => ({ name: el.querySelector('.mp-name') as HTMLInputElement, ing: el.querySelector('.mp-ing') as HTMLTextAreaElement });
+  const read = (): Record<string, Cell> => {
+    const o: Record<string, Cell> = {};
+    for (const s of slots) { const c = cellOf(s); if (c.name.value.trim() || c.ing.value.trim()) o[s.dataset.c!] = { n: c.name.value, i: c.ing.value }; }
+    return o;
+  };
+  const write = (o: Record<string, Cell>) => { for (const s of slots) { const c = cellOf(s), v = o[s.dataset.c!]; c.name.value = v?.n || ''; c.ing.value = v?.i || ''; } };
+  const save = () => { if (!remember.checked) return; try { localStorage.setItem(KEY, JSON.stringify({ cells: read() })); } catch {} };
+  const forget = () => { try { localStorage.removeItem(KEY); } catch {} };
+  let shopping: { group: string; lines: string[] }[] = [];
+  const update = () => {
+    const cells = read();
+    const items = merge(Object.values(cells).flatMap((c) => c.i.split('\n')));
+    const order = [...GROUPS.map((g) => g[0]).reverse(), 'Other'];
+    shopping = order.map((g) => ({ group: g, lines: items.filter((it) => it.group === g).map(itemText) })).filter((g) => g.lines.length);
+    list.innerHTML = '';
+    for (const g of shopping) {
+      const h = document.createElement('h4'); h.textContent = g.group;
+      const ul = document.createElement('ul');
+      for (const l of g.lines) { const li = document.createElement('li'); li.textContent = l; ul.append(li); }
+      list.append(h, ul);
+    }
+    const meals = Object.values(cells).filter((c) => c.n.trim()).length;
+    sum.textContent = items.length ? `${items.length} ${items.length === 1 ? 'item' : 'items'} for ${meals} planned ${meals === 1 ? 'meal' : 'meals'}.` : 'Add ingredients to a meal and the list appears here.';
+    save();
+  };
+  const planText = () => {
+    const cells = read(), out: string[] = ['Meal plan', ''];
+    DAYS.forEach((d, di) => {
+      const ms = MEALS.map((m, mi) => [m, cells[`${di}-${mi}`]] as const).filter(([, c]) => c);
+      if (!ms.length) return;
+      out.push(d);
+      for (const [m, c] of ms) out.push(`  ${m}: ${c!.n.trim() || '(no name)'}`);
+    });
+    out.push('', 'Shopping list');
+    for (const g of shopping) { out.push('', g.group); for (const l of g.lines) out.push('  [ ] ' + l); }
+    return out.join('\n') + '\n';
+  };
+  const fillPrint = () => {
+    const cells = read();
+    printBox.innerHTML = '';
+    const h = document.createElement('h2'); h.textContent = 'Meal plan'; printBox.append(h);
+    const t = document.createElement('table'), hr = t.insertRow();
+    for (const x of ['', ...MEALS]) { const th = document.createElement('th'); th.textContent = x; hr.append(th); }
+    DAYS.forEach((d, di) => { const r = t.insertRow(); const th = document.createElement('th'); th.textContent = d; r.append(th); MEALS.forEach((_, mi) => { r.insertCell().textContent = cells[`${di}-${mi}`]?.n || ''; }); });
+    printBox.append(t);
+    const h2 = document.createElement('h2'); h2.textContent = 'Shopping list'; printBox.append(h2);
+    for (const g of shopping) { const h4 = document.createElement('h4'); h4.textContent = g.group; const ul = document.createElement('ul'); for (const l of g.lines) { const li = document.createElement('li'); li.textContent = l; ul.append(li); } printBox.append(h4, ul); }
+  };
+  root.querySelector('.mp-week')!.addEventListener('input', update);
+  remember.addEventListener('change', () => { if (remember.checked) save(); else forget(); });
+  $('.mp-example').addEventListener('click', () => { write(EXAMPLE); update(); });
+  $('.mp-clear').addEventListener('click', () => { write({}); remember.checked = false; forget(); update(); });
+  window.addEventListener('beforeprint', fillPrint);
+  $('.mp-print-b').addEventListener('click', () => { fillPrint(); window.print(); });
+  $('.mp-txt').addEventListener('click', () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([planText()], { type: 'text/plain' }));
+    a.download = 'meal-plan.txt'; document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  $('.mp-copy').addEventListener('click', async () => {
+    const b = $('.mp-copy');
+    try { await navigator.clipboard.writeText(shopping.map((g) => g.group + '\n' + g.lines.join('\n')).join('\n\n')); b.textContent = 'Copied'; } catch { b.textContent = 'Select and copy the list'; }
+    setTimeout(() => (b.textContent = 'Copy list'), 1500);
+  });
+  let stored: Record<string, Cell> | null = null;
+  try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s?.cells) stored = s.cells; } catch {}
+  if (stored) { remember.checked = true; write(stored); } else write(EXAMPLE);
+  update();
+</script>

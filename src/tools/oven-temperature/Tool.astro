@@ -1,0 +1,99 @@
+---
+// #T861 Oven temperature
+// UK gas mark scale with the usual Celsius and Fahrenheit settings printed on cookers and in recipes.
+const GAS = [
+  ['¼', 110, 225, 'Very cool'], ['½', 120, 250, 'Very cool'], ['1', 140, 275, 'Cool'], ['2', 150, 300, 'Cool'],
+  ['3', 170, 325, 'Warm'], ['4', 180, 350, 'Moderate'], ['5', 190, 375, 'Moderately hot'], ['6', 200, 400, 'Fairly hot'],
+  ['7', 220, 425, 'Hot'], ['8', 230, 450, 'Very hot'], ['9', 240, 475, 'Very hot'],
+];
+---
+<div class="tool-ui ov">
+  <section class="panel ov-form">
+    <div class="ov-row">
+      <label>Temperature <input class="ov-val" inputmode="decimal" value="180" /></label>
+      <label>In <select class="ov-unit"><option value="C">°C</option><option value="F">°F</option><option value="gas">Gas mark</option></select></label>
+      <label>Recipe is for <select class="ov-kind"><option value="conv">A conventional oven</option><option value="fan">A fan (convection) oven</option></select></label>
+    </div>
+    <div class="ov-row">
+      <label>Fan oven is cooler by (°C) <input class="ov-dc" inputmode="decimal" value="20" /></label>
+      <label>Fan oven is cooler by (°F) <input class="ov-df" inputmode="decimal" value="25" /></label>
+    </div>
+    <div class="ov-res" aria-live="polite">
+      <div><span class="ov-lab">Conventional oven</span><p class="ov-conv"></p></div>
+      <div><span class="ov-lab">Fan / convection oven</span><p class="ov-fan"></p></div>
+    </div>
+    <p class="ov-say" aria-live="polite"></p>
+    <button type="button" class="btn secondary ov-reset">Reset</button>
+  </section>
+  <section class="panel">
+    <h3 class="ov-h">Gas marks and named heats</h3>
+    <table class="ov-tab">
+      <thead><tr><th>Gas mark</th><th>°C</th><th>°F</th><th>Fan °C</th><th>Heat</th></tr></thead>
+      <tbody>{GAS.map(([g, c, f, name]) => <tr data-g={g} data-c={c} data-f={f}><td>{g}</td><td>{c}</td><td>{f}</td><td>{(c as number) - 20}</td><td>{name}</td></tr>)}</tbody>
+    </table>
+  </section>
+  <p class="ov-fine">Ovens vary, and many run hot or cold; an oven thermometer tells you the real heat. Nothing you type leaves this page.</p>
+</div>
+
+<style is:inline>
+  .ov { display: grid; gap: 14px; margin-bottom: 32px; }
+  .ov .panel { padding: 16px; }
+  .ov-form { display: grid; gap: 12px; }
+  .ov-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 12px; align-items: end; }
+  .ov label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .ov input, .ov select { font: inherit; color: var(--ink); padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; min-width: 0; }
+  .ov input:focus, .ov select:focus { border-color: var(--accent); outline: none; }
+  .ov-res { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+  .ov-res > div { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .ov-lab { font-size: 14px; color: var(--muted); }
+  .ov-conv, .ov-fan { font-size: 22px; font-weight: 700; margin: 4px 0 0; overflow-wrap: anywhere; }
+  .ov-say { margin: 0; color: var(--muted); font-size: 15px; }
+  .ov-reset { justify-self: start; padding: 8px 14px; }
+  .ov-h { margin: 0 0 8px; font-size: 16px; }
+  .ov-tab { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .ov-tab th, .ov-tab td { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--line); }
+  .ov-tab tr.on td { background: var(--accent-soft); font-weight: 600; }
+  .ov-fine { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<script>
+  const root = document.querySelector('.ov') as HTMLElement;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector(s) as T;
+  const val = $<HTMLInputElement>('.ov-val'), unit = $<HTMLSelectElement>('.ov-unit'), kind = $<HTMLSelectElement>('.ov-kind');
+  const dc = $<HTMLInputElement>('.ov-dc'), df = $<HTMLInputElement>('.ov-df');
+  const conv = $('.ov-conv'), fan = $('.ov-fan'), say = $('.ov-say');
+  const rows = [...root.querySelectorAll('.ov-tab tbody tr')] as HTMLElement[];
+  const gas = rows.map((r) => ({ g: r.dataset.g!, c: +r.dataset.c!, f: +r.dataset.f! }));
+  const toF = (c: number) => (c * 9) / 5 + 32, toC = (f: number) => ((f - 32) * 5) / 9;
+  const r0 = (v: number) => Math.round(v).toString();
+  const num = (s: string) => { s = s.trim().replace('¼', '1/4').replace('½', '1/2').replace(',', '.'); const m = s.match(/^(\d+)\/(\d+)$/); return m ? +m[1] / +m[2] : s === '' ? NaN : +s; };
+  const nearestGas = (c: number) => gas.reduce((b, x) => (Math.abs(x.c - c) < Math.abs(b.c - c) ? x : b));
+  const calc = () => {
+    const v = num(val.value), dC = num(dc.value) || 0, dF = num(df.value) || 0;
+    rows.forEach((r, i) => { r.classList.remove('on'); r.children[3].textContent = r0(gas[i].c - dC); });
+    if (!Number.isFinite(v)) { conv.textContent = fan.textContent = ''; say.textContent = 'Type a temperature above.'; return; }
+    // Work out the conventional setting in both scales; F comes from the typed value when it was F.
+    let cC: number, cF: number, how = '';
+    if (unit.value === 'gas') {
+      const g = gas.find((x) => num(x.g) === v);
+      if (!g) { conv.textContent = fan.textContent = ''; say.textContent = 'Gas marks run ¼, ½ and 1 to 9.'; return; }
+      cC = g.c; cF = g.f; how = `Gas mark ${g.g}`;
+      if (kind.value === 'fan') { cC += dC; cF += dF; }
+    } else {
+      const isC = unit.value === 'C';
+      if (kind.value === 'fan') { cC = isC ? v + dC : toC(v + dF); cF = isC ? toF(v + dC) : v + dF; }
+      else { cC = isC ? v : toC(v); cF = isC ? toF(v) : v; }
+      how = `${r0(v)} °${unit.value}`;
+    }
+    const g = nearestGas(cC), inRange = cC >= 100 && cC <= 255;
+    conv.textContent = `${r0(cC)} °C · ${r0(cF)} °F${inRange ? ` · gas ${g.g}` : ''}`;
+    fan.textContent = `${r0(cC - dC)} °C · ${r0(cF - dF)} °F`;
+    if (inRange) rows[gas.indexOf(g)].classList.add('on');
+    const heat = inRange ? rows[gas.indexOf(g)].lastElementChild!.textContent!.toLowerCase() : '';
+    say.textContent = `${how} in a ${kind.value === 'fan' ? 'fan' : 'conventional'} oven. ` +
+      (inRange ? `That is a ${heat} oven, nearest gas mark ${g.g}.` : 'That is outside the gas mark scale (about 110 to 240 °C).');
+  };
+  for (const el of [val, unit, kind, dc, df]) el.addEventListener('input', calc);
+  $('.ov-reset').addEventListener('click', () => { val.value = '180'; unit.value = 'C'; kind.value = 'conv'; dc.value = '20'; df.value = '25'; calc(); });
+  calc();
+</script>
