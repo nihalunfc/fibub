@@ -1,0 +1,213 @@
+---
+// Spinner designer: set the sectors of a spinner by angle, see each probability as angle ÷ 360°, spin once or
+// thousands of times and compare the share of landings with the theory; at Class 12 level give each sector points
+// and find the expected score. Nothing is stored or sent.
+import '../../styles/astro.css';
+import '../../styles/smath.css';
+---
+<div class="ax sm sp">
+  <div class="ax-card">
+    <div class="ax-seg sp-lvl" role="group" aria-label="Level"><button type="button" data-l="9" aria-pressed="true">Class 9–10: probability</button><button type="button" data-l="12" aria-pressed="false">Class 12: expected value</button></div>
+    <svg class="sm-fig sp-fig" viewBox="0 0 300 300" role="img" aria-label="The spinner with its sectors and pointer" style="max-width:320px;margin:10px auto 0"></svg>
+    <p class="ax-big sp-big" aria-live="polite" style="margin:8px 0 4px"></p>
+    <div class="ax-row">
+      <button type="button" class="btn small sp-spin" data-n="1">Spin once</button>
+      <button type="button" class="btn secondary small sp-spin" data-n="10">Spin 10</button>
+      <button type="button" class="btn secondary small sp-spin" data-n="1000">Spin 1 000</button>
+      <button type="button" class="btn secondary small sp-clear">Clear the tally</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Design the sectors</h2>
+    <div class="sp-rows"></div>
+    <p class="sp-tot ax-help" style="margin:6px 0"></p>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small sp-add">Add a sector</button>
+      <button type="button" class="btn secondary small sp-fit">Fit to 360°</button>
+      <button type="button" class="btn secondary small sp-eq">Make all equal</button>
+    </div>
+    <div class="ax-row">
+      <button type="button" class="btn secondary small sp-pre" data-p="180,120,60">Half, third, sixth</button>
+      <button type="button" class="btn secondary small sp-pre" data-p="90,90,90,90">Four equal</button>
+      <button type="button" class="btn secondary small sp-pre" data-p="300,60">Unfair 5 : 1</button>
+    </div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Theory against experiment</h2>
+    <div class="ax-scroll"><table class="sp-tab"></table></div>
+    <svg class="sm-fig sp-bars" viewBox="0 0 340 170" role="img" aria-label="Bars: share of spins for each sector, with the theoretical probability marked" style="margin-top:10px"></svg>
+    <ul class="sm-steps sp-out"></ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="sm-try">
+      <li>Spin 10 times, then 1 000 times more. The bars get closer to the marks: the more spins, the nearer the share comes to the probability.</li>
+      <li>Design a spinner where red has probability 1/3. What angle does it need?</li>
+      <li>Make a spinner that is unfair but where every sector still has the same expected points (Class 12).</li>
+      <li>Is a sector of 0° possible? What is its probability?</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <p class="ax-help">Fresh questions every time. Nothing is saved.</p>
+    <div class="sp-quiz"></div>
+  </div>
+</div>
+
+<style is:inline>
+  .sp svg .sp-sec { stroke: var(--surface); stroke-width: 2; }
+  .sp svg .sp-lab { font: 700 14px system-ui, sans-serif; fill: #fff; }
+  .sp svg .sp-needle { fill: var(--ink); }
+  .sp svg .sp-hub { fill: var(--ink); stroke: var(--surface); stroke-width: 3; }
+  .sp svg .sp-mark { stroke: var(--ink); stroke-width: 2.5; }
+  .sp .sp-row { display: grid; grid-template-columns: 1.4em 1fr 5.4em 5em 2.6em; gap: 8px; align-items: center; margin: 6px 0; }
+  .sp.sp-l9 .sp-row { grid-template-columns: 1.4em 1fr 5.4em 2.6em; }
+  .sp.sp-l9 .sp-pts { display: none; }
+  .sp .sp-sw { width: 1.3em; height: 1.3em; border-radius: 4px; }
+  .sp .sp-row input { min-height: 40px; width: 100%; min-width: 0; }
+  .sp .sp-row .btn { min-height: 40px; padding: 0; }
+  .sp .sp-tab { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .sp .sp-tab th, .sp .sp-tab td { border: 1px solid var(--line); padding: 4px 8px; text-align: right; }
+  .sp .sp-tab th:first-child, .sp .sp-tab td:first-child { text-align: left; }
+</style>
+
+<script>
+  import { probs, sectorAt, expected, normalise, spin, rng, type Sector } from '../../lib/sci/spinner-school';
+  import { fmt, fracText, randInt } from '../../lib/sci/smath';
+  import { S, quiz, type Question } from '../../lib/smath-ui';
+
+  const root = document.querySelector<HTMLElement>('.sp')!;
+  const q = <T extends Element = HTMLElement>(c: string) => root.querySelector(c) as unknown as T;
+  const fig = q<SVGSVGElement>('.sp-fig'), bars = q<SVGSVGElement>('.sp-bars');
+  const NAMES = ['Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Teal'];
+  const COL = ['#c8442b', '#2c62c4', '#2a8a4f', '#b8860b', '#7d48b8', '#1f8f94'];
+  let sec: Sector[] = [{ name: 'Red', deg: 120, points: 1 }, { name: 'Blue', deg: 120, points: 2 }, { name: 'Green', deg: 90, points: 5 }, { name: 'Yellow', deg: 30, points: 10 }];
+  let tally = sec.map(() => 0), spins = 0, pointer = 15, level = 9, anim = 0, last = -1;
+  const r = rng((Date.now() % 1e9) >>> 0);
+  root.classList.add('sp-l9');
+
+  const total = () => sec.reduce((t, s) => t + Math.max(0, s.deg), 0);
+  const P = (deg: number) => [150 + 120 * Math.sin((deg * Math.PI) / 180), 150 - 120 * Math.cos((deg * Math.PI) / 180)];
+
+  function rows() {
+    const box = q('.sp-rows'); box.replaceChildren();
+    sec.forEach((s, i) => {
+      const row = document.createElement('div'); row.className = 'sp-row';
+      const sw = document.createElement('span'); sw.className = 'sp-sw'; sw.style.background = COL[i];
+      const nm = document.createElement('span'); nm.textContent = s.name;
+      const deg = Object.assign(document.createElement('input'), { type: 'number', min: '0', max: '360', step: 'any', value: String(s.deg), className: 'sp-deg' });
+      deg.inputMode = 'decimal'; deg.setAttribute('aria-label', `${s.name} angle in degrees`);
+      deg.addEventListener('input', () => { const v = Number(deg.value); if (deg.value.trim() !== '' && Number.isFinite(v) && v >= 0) { sec[i].deg = v; draw(); } });
+      const pts = Object.assign(document.createElement('input'), { type: 'number', step: 'any', value: String(s.points), className: 'sp-pts' });
+      pts.inputMode = 'decimal'; pts.setAttribute('aria-label', `${s.name} points`);
+      pts.addEventListener('input', () => { const v = Number(pts.value); if (pts.value.trim() !== '' && Number.isFinite(v)) { sec[i].points = v; draw(); } });
+      const del = Object.assign(document.createElement('button'), { type: 'button', className: 'btn secondary small sp-del', textContent: '×' });
+      del.setAttribute('aria-label', `Remove ${s.name}`); del.disabled = sec.length <= 2;
+      del.addEventListener('click', () => { sec.splice(i, 1); tally.splice(i, 1); sec.forEach((x, j) => { x.name = NAMES[j]; }); rows(); draw(); });
+      row.append(sw, nm, deg, pts, del); box.append(row);
+    });
+    q<HTMLButtonElement>('.sp-add').disabled = sec.length >= 6;
+  }
+
+  function wheel() {
+    fig.replaceChildren();
+    const tot = total();
+    if (tot <= 0) { S('circle', { cx: 150, cy: 150, r: 120, class: 'sm-soft' }, fig); }
+    let a = 0;
+    sec.forEach((s, i) => {
+      const d = (Math.max(0, s.deg) / (tot || 1)) * 360; if (d <= 0) return;
+      const [x0, y0] = P(a), [x1, y1] = P(a + d);
+      const path = d >= 359.999 ? `M 150 30 A 120 120 0 1 1 149.99 30 Z` : `M 150 150 L ${x0} ${y0} A 120 120 0 ${d > 180 ? 1 : 0} 1 ${x1} ${y1} Z`;
+      const e = S('path', { d: path, class: 'sp-sec' }, fig); e.style.fill = COL[i];
+      if (d >= 18) { const m = a + d / 2, lx = 150 + 78 * Math.sin((m * Math.PI) / 180), ly = 150 - 78 * Math.cos((m * Math.PI) / 180); S('text', { x: lx, y: ly + 5, 'text-anchor': 'middle', class: 'sp-lab' }, fig, level === 12 ? `${fmt(s.points, 2)} pt` : s.name); }
+      a += d;
+    });
+    const g = S('g', { transform: `rotate(${pointer} 150 150)` }, fig);
+    S('polygon', { points: '150,40 143,150 157,150', class: 'sp-needle' }, g);
+    S('circle', { cx: 150, cy: 150, r: 10, class: 'sp-hub' }, fig);
+    S('line', { x1: 150, y1: 4, x2: 150, y2: 26, class: 'sp-mark' }, fig);
+  }
+
+  function draw() {
+    const tot = total(), p = probs(sec);
+    q('.sp-tot').textContent = Math.abs(tot - 360) < 1e-9 ? 'The angles add up to 360°.' : `The angles add up to ${fmt(tot, 2)}°, not 360°. The page shares the circle out in proportion; press "Fit to 360°" to fix the numbers.`;
+    wheel();
+    q('.sp-big').textContent = spins === 0 ? 'Not spun yet.' : `${last >= 0 ? `Last spin: ${sec[last]?.name ?? '—'}. ` : ''}${spins} spin${spins === 1 ? '' : 's'} so far.`;
+    const head = `<tr><th>Sector</th><th>Angle</th><th>P (theory)</th><th>Landed</th><th>Share</th>${level === 12 ? '<th>Points</th><th>P × points</th>' : ''}</tr>`;
+    const body = sec.map((s, i) => {
+      const deg = Math.max(0, s.deg), exact = Number.isInteger(deg) && Number.isInteger(tot) && tot > 0 ? fracText(deg, tot) : fmt(p[i], 4);
+      return `<tr><td>${s.name}</td><td>${fmt(deg, 2)}°</td><td>${exact} = ${fmt(p[i], 3)}</td><td>${tally[i]}</td><td>${spins ? fmt(tally[i] / spins, 3) : '—'}</td>${level === 12 ? `<td>${fmt(s.points, 2)}</td><td>${fmt(p[i] * s.points, 3)}</td>` : ''}</tr>`;
+    }).join('');
+    q('.sp-tab').innerHTML = head + body;
+    // Bars: share landed, with a mark at the theoretical probability.
+    bars.replaceChildren();
+    const w = 300 / sec.length, Y = (v: number) => 140 - v * 120;
+    S('line', { x1: 30, x2: 335, y1: 140, y2: 140, class: 'sm-axis' }, bars);
+    for (const v of [0, 0.5, 1]) S('text', { x: 26, y: Y(v) + 4, 'text-anchor': 'end', class: 'sm-tick' }, bars, String(v));
+    sec.forEach((s, i) => {
+      const x = 34 + i * w, sh = spins ? tally[i] / spins : 0;
+      const b = S('rect', { x: x + w * 0.15, y: Y(sh), width: w * 0.7, height: 140 - Y(sh) }, bars); b.style.fill = COL[i];
+      S('line', { x1: x + w * 0.05, x2: x + w * 0.95, y1: Y(p[i]), y2: Y(p[i]), class: 'sp-mark' }, bars);
+      S('text', { x: x + w / 2, y: 158, 'text-anchor': 'middle', class: 'sm-tick' }, bars, s.name);
+    });
+    const lines = [`P(sector) = its angle ÷ 360°. ${sec.map((s, i) => `P(${s.name}) = ${fmt(Math.max(0, s.deg), 2)}° ÷ ${fmt(tot, 2)}° = ${fmt(p[i], 3)}`).join('; ')}. They add up to 1.`];
+    if (spins) {
+      const worst = Math.max(...sec.map((_, i) => Math.abs(tally[i] / spins - p[i])));
+      lines.push(`After ${spins} spins the shares are at most ${fmt(worst * 100, 1)} percentage points from the theory. ${spins < 100 ? 'With few spins they can be far off.' : 'With many spins they settle close to it.'}`);
+    }
+    if (level === 12) {
+      const e = expected(sec), avg = spins ? sec.reduce((t, s, i) => t + tally[i] * s.points, 0) / spins : NaN;
+      lines.push(`Expected points per spin E(X) = Σ P × points = ${sec.map((s, i) => `${fmt(p[i], 3)} × ${fmt(s.points, 2)}`).join(' + ')} = ${fmt(e, 3)}.`);
+      if (spins) lines.push(`Your spins scored ${fmt(avg, 3)} points per spin on average.`);
+    }
+    q('.sp-out').replaceChildren(...lines.map((t) => Object.assign(document.createElement('li'), { textContent: t })));
+  }
+
+  function doSpin(n: number) {
+    if (total() <= 0) return;
+    if (n === 1) {
+      const target = r() * 360, from = pointer, to = from - (from % 360) + 360 * 3 + target, t0 = performance.now();
+      const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches, dur = reduce ? 0 : 900;
+      cancelAnimationFrame(anim);
+      const done = () => { pointer = to % 360; const i = sectorAt(sec, (pointer / 360) * total()); tally[i]++; spins++; last = i; draw(); };
+      if (!dur) { done(); return; }
+      const step = (now: number) => { const k = Math.min(1, (now - t0) / dur), e = 1 - (1 - k) ** 3; pointer = from + (to - from) * e; wheel(); if (k < 1) anim = requestAnimationFrame(step); else done(); };
+      anim = requestAnimationFrame(step);
+      return;
+    }
+    const c = spin(sec, n, r); c.forEach((k, i) => { tally[i] += k; }); spins += n; last = -1; draw();
+  }
+  root.querySelectorAll<HTMLButtonElement>('.sp-spin').forEach((b) => b.addEventListener('click', () => doSpin(Number(b.dataset.n))));
+  const clear = () => { tally = sec.map(() => 0); spins = 0; last = -1; };
+  q('.sp-clear').addEventListener('click', () => { clear(); draw(); });
+  q('.sp-add').addEventListener('click', () => { if (sec.length >= 6) return; sec.push({ name: NAMES[sec.length], deg: 60, points: 1 }); tally.push(0); rows(); draw(); });
+  const setDegs = (d: number[]) => { d.forEach((v, i) => { sec[i].deg = v; }); clear(); rows(); draw(); };
+  q('.sp-fit').addEventListener('click', () => setDegs(normalise(sec.map((s) => s.deg))));
+  q('.sp-eq').addEventListener('click', () => setDegs(normalise(sec.map(() => 1))));
+  root.querySelectorAll<HTMLButtonElement>('.sp-pre').forEach((b) => b.addEventListener('click', () => {
+    const d = b.dataset.p!.split(',').map(Number);
+    sec = d.map((deg, i) => ({ name: NAMES[i], deg, points: sec[i]?.points ?? 1 })); clear(); rows(); draw();
+  }));
+  root.querySelectorAll<HTMLButtonElement>('.sp-lvl button').forEach((b) => b.addEventListener('click', () => {
+    level = Number(b.dataset.l); root.classList.toggle('sp-l9', level !== 12);
+    root.querySelectorAll('.sp-lvl button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); draw();
+  }));
+  rows(); draw();
+
+  quiz(q('.sp-quiz'), () => {
+    const out: Question[] = [];
+    const d1 = [30, 45, 60, 72, 90, 120, 135, 180, 240][randInt(0, 8)];
+    out.push({ q: `A sector of a spinner has an angle of ${d1}°. What is the probability of landing on it? (a fraction or a decimal)`, want: [d1 / 360], tol: 0.002, work: `${d1}° ÷ 360° = ${fracText(d1, 360)} = ${fmt(d1 / 360, 4)}.` });
+    const [num, den] = [[1, 3], [1, 4], [2, 5], [3, 8], [5, 12], [1, 6], [3, 10]][randInt(0, 6)];
+    out.push({ q: `What angle gives a sector a probability of ${num}/${den}?`, want: [(360 * num) / den], work: `${num}/${den} × 360° = ${(360 * num) / den}°.` });
+    const red = [60, 90, 120, 150][randInt(0, 3)];
+    out.push({ q: `Red is ${red}° of a spinner. What is the probability of NOT landing on red?`, want: [1 - red / 360], tol: 0.002, work: `1 − ${red}/360 = ${fracText(360 - red, 360)} = ${fmt(1 - red / 360, 4)}.` });
+    const a = [90, 120, 180][randInt(0, 2)], pa = randInt(1, 5), pb = randInt(6, 12), e = (a / 360) * pa + ((360 - a) / 360) * pb;
+    out.push({ q: `A spinner pays ${pa} points on a ${a}° sector and ${pb} points on the rest. What is the expected score per spin?`, want: [e], tol: 0.005, work: `${fracText(a, 360)} × ${pa} + ${fracText(360 - a, 360)} × ${pb} = ${fmt(e, 4)}.` });
+    return out;
+  });
+</script>
