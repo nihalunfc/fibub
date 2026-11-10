@@ -1,0 +1,141 @@
+---
+// Hydraulic lift: a small piston and a big piston joined by oil. Pascal's law: the same pressure on both, so the
+// force is multiplied by the area ratio and the distance divided. Maths in src/lib/sci/hydraulic.ts.
+import '../../styles/astro.css';
+---
+<div class="ax hl">
+  <div class="ax-card">
+    <div class="ax-row hl-presets">
+      <button type="button" class="btn secondary small" data-p="garage">Garage car lift</button>
+      <button type="button" class="btn secondary small" data-p="jack">Bottle jack</button>
+      <button type="button" class="btn secondary small" data-p="press">Hydraulic press</button>
+    </div>
+    <canvas class="hl-c" aria-label="Hydraulic lift"></canvas>
+    <label>Push the small piston down (drag it in the picture too): <b class="hl-xv"></b><input class="hl-x" type="range" min="0" max="30" step="0.5" value="20" /></label>
+    <label>Small piston across: <b class="hl-d1v"></b><input class="hl-d1" type="range" min="1" max="10" step="0.5" value="4" /></label>
+    <label>Big piston across: <b class="hl-d2v"></b><input class="hl-d2" type="range" min="5" max="60" step="1" value="40" /></label>
+    <label>Load on the big piston: <b class="hl-mv"></b><input class="hl-m" type="range" min="0" max="6000" step="50" value="1200" /></label>
+    <p class="ax-help">The oil is taken as not squashing at all, and the pistons as light and free of friction. g = 9.8 m/s².</p>
+  </div>
+
+  <div class="ax-card">
+    <h2>Force in, force out</h2>
+    <dl class="ax-facts hl-facts"></dl>
+    <div class="hl-eq"></div>
+  </div>
+
+  <div class="ax-card">
+    <h2>Try this</h2>
+    <ul class="hl-try">
+      <li>Make the big piston twice as wide. The force it gives goes up four times: area grows with the square of the width.</li>
+      <li>Push the small piston all the way down. How far does the car go up? The force is multiplied, but the distance is divided by the same number.</li>
+      <li>Compare the work on each side (force × distance). They are the same: a hydraulic lift is a machine, not a free source of energy.</li>
+      <li>Make both pistons the same size. Now it gives no advantage, but it can still carry a push round a corner, like car brakes.</li>
+    </ul>
+  </div>
+
+  <div class="ax-card">
+    <h2>Check yourself</h2>
+    <div class="hl-quiz"></div>
+  </div>
+</div>
+
+<script>
+  import { lift, strokes, PRESETS, questions } from '../../lib/sci/hydraulic';
+  import { mountQuiz } from '../../lib/school-quiz-b';
+  import { pagePalette } from '../../lib/report';
+  import { setupCanvas, arrow, fmt, sig, fact, lines, keepDrawn } from '../../lib/school-h4';
+
+  const root = document.querySelector<HTMLElement>('.hl')!;
+  const q = <T extends HTMLElement = HTMLElement>(c: string) => root.querySelector(c) as T;
+  const inp = (c: string) => q<HTMLInputElement>(c), val = (c: string) => Number(inp(c).value);
+  const H = 300;
+  let small = { x: 0, y: 0, w: 0 };
+
+  function draw() {
+    const pal = pagePalette(), c = q<HTMLCanvasElement>('.hl-c'), { ctx, w } = setupCanvas(c, H);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, w, H);
+    const d1 = val('.hl-d1') / 100, d2 = Math.max(val('.hl-d2') / 100, d1), m = val('.hl-m'), x1 = val('.hl-x') / 100;
+    const o = lift(d1, d2, m, x1);
+    // geometry: widths drawn on a square-root scale so both fit; heights in proportion to the real movement
+    const base = H - 40, floor = H - 20, maxW = Math.min(w * 0.42, 190);
+    const w2 = maxW, w1 = Math.max(14, maxW * Math.sqrt(d1 / d2) * 0.6);
+    const lx = 20 + Math.max(0, (w * 0.3) - w1) / 2, rx = w - 20 - w2;
+    // movements are drawn to the same scale on both sides: the full 30 cm push is 88 px
+    const px = 88 / 0.3, top1 = 90 + x1 * px, top2 = 150 - Math.min(110, o.x2 * px);
+    // oil in both cylinders and the pipe
+    ctx.fillStyle = pal.red ? pal.grid : 'rgba(201,162,39,0.35)';
+    ctx.fillRect(lx, top1, w1, base - top1); ctx.fillRect(rx, top2, w2, base - top2); ctx.fillRect(lx, base - 18, rx + w2 - lx, 18);
+    // walls
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(lx, 60); ctx.lineTo(lx, base); ctx.lineTo(rx + w2, base); ctx.lineTo(rx + w2, 30); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(lx + w1, 60); ctx.lineTo(lx + w1, base - 18); ctx.lineTo(rx, base - 18); ctx.lineTo(rx, 30); ctx.stroke();
+    // pistons
+    ctx.fillStyle = pal.muted; ctx.fillRect(lx + 1, top1 - 8, w1 - 2, 8); ctx.fillRect(rx + 1, top2 - 8, w2 - 2, 8);
+    small = { x: lx, y: top1, w: w1 };
+    // effort arrow on the small piston, load on the big piston
+    const fLen = Math.min(60, 12 + Math.log10(1 + o.effort) * 14);
+    arrow(ctx, lx + w1 / 2, top1 - 8 - fLen, 0, fLen, pal.accent, '', 3);
+    ctx.fillStyle = pal.accent; ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(`F₁ = ${sig(o.effort, 3)} N`, Math.max(4, lx + w1 / 2 - 30), top1 - 22 - fLen);
+    if (m > 0) {
+      const bw = Math.min(w2 - 10, 120), bh = 22; ctx.fillStyle = pal.ink; ctx.fillRect(rx + (w2 - bw) / 2, top2 - 8 - bh, bw, bh);
+      ctx.fillStyle = pal.bg; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(`${fmt(m, 0)} kg`, rx + w2 / 2, top2 - 8 - bh / 2 + 4);
+      ctx.fillStyle = pal.accent2; ctx.font = '600 12px system-ui, sans-serif'; ctx.fillText(`F₂ = ${sig(o.load, 4)} N`, rx + w2 / 2, top2 - 8 - bh - 8);
+    }
+    ctx.fillStyle = pal.muted; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(`pressure ${sig(o.p / 1000, 4)} kPa everywhere`, (lx + rx + w2) / 2, floor + 6);
+    c.setAttribute('aria-label', `Hydraulic lift: ${sig(o.effort, 3)} N on the small piston holds ${fmt(m, 0)} kg`);
+
+    q('.hl-xv').textContent = `${fmt(x1 * 100, 1)} cm`;
+    q('.hl-d1v').textContent = `${fmt(d1 * 100, 1)} cm`;
+    q('.hl-d2v').textContent = `${fmt(d2 * 100, 0)} cm`;
+    q('.hl-mv').textContent = `${fmt(m, 0)} kg (${fmt(o.load, 0)} N)`;
+    q('.hl-facts').replaceChildren(
+      fact('Force needed on the small piston', `${sig(o.effort, 4)} N`, `like holding ${sig(o.effort / 9.8, 3)} kg`),
+      fact('Area ratio (force multiplied by)', `${sig(o.ratio, 4)} ×`, `(${fmt(d2 * 100, 1)} ÷ ${fmt(d1 * 100, 1)})²`),
+      fact('Pressure in the oil', `${sig(o.p / 1000, 4)} kPa`, `${sig(o.p / 101325, 3)} times air pressure`),
+      fact('The load rises', `${sig(o.x2 * 1000, 3)} mm`, `for ${fmt(x1 * 100, 1)} cm of push`),
+      fact('Work in = work out', `${sig(o.workIn, 4)} J`, `${sig(o.effort, 4)} N × ${fmt(x1, 3)} m = ${sig(o.load, 4)} N × ${sig(o.x2, 3)} m`),
+      fact('Strokes of 10 cm to lift it 1 m', `${strokes(d1, d2, 0.1, 1)}`, 'a valve lets the small cylinder refill'),
+    );
+    q('.hl-eq').replaceChildren(...lines([
+      ['Pascal\'s law: ', `a push on a liquid shut in a container raises the pressure by the same amount everywhere. p = F₁/A₁ = ${sig(o.effort, 4)} N ÷ ${sig(o.a1, 3)} m² = ${sig(o.p, 4)} Pa.`],
+      ['Big piston: ', `F₂ = p × A₂ = ${sig(o.p, 4)} × ${sig(o.a2, 3)} = ${sig(o.load, 4)} N, so F₂/F₁ = A₂/A₁ = ${sig(o.ratio, 4)}.`],
+      ['Distance: ', `the oil leaving the small cylinder fills the big one, A₁x₁ = A₂x₂, so x₂ = x₁ ÷ ${sig(o.ratio, 4)}.`],
+    ]));
+  }
+
+  root.querySelectorAll('input').forEach((i) => i.addEventListener('input', draw));
+  root.querySelectorAll<HTMLButtonElement>('.hl-presets [data-p]').forEach((b) => b.addEventListener('click', () => {
+    const p = PRESETS.find((x) => x.id === b.dataset.p)!;
+    inp('.hl-d1').value = String(p.d1 * 100); inp('.hl-d2').value = String(p.d2 * 100); inp('.hl-m').value = String(p.mass); draw();
+  }));
+  const cv = q<HTMLCanvasElement>('.hl-c');
+  let y0 = -1, x0v = 0;
+  cv.addEventListener('pointerdown', (e) => { const r = cv.getBoundingClientRect(), x = e.clientX - r.left; if (x < small.x - 20 || x > small.x + small.w + 20) return; y0 = e.clientY; x0v = val('.hl-x'); cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointermove', (e) => { if (y0 < 0) return; inp('.hl-x').value = String(Math.max(0, Math.min(30, Math.round((x0v + (e.clientY - y0) / 4) * 2) / 2))); draw(); });
+  const up = () => { y0 = -1; }; cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  mountQuiz(q('.hl-quiz'), () => questions());
+  draw();
+  keepDrawn(cv, draw);
+</script>
+
+<style is:inline>
+  .hl canvas { display: block; width: 100%; margin-top: 10px; touch-action: pan-y; }
+  .hl > .ax-card:first-child > label { display: grid; margin-top: 10px; }
+  .hl input[type=range] { width: 100%; height: 32px; accent-color: var(--ink); }
+  .hl label b { color: var(--ink); }
+  .hl .btn { min-height: 44px; }
+  .hl .hl-eq p { margin: 8px 0 0; font-size: 15px; overflow-wrap: anywhere; }
+  .hl .hl-try { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .sq-list { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 14px; }
+  .sq-text { margin: 0 0 6px; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ax .sq-row .sq-in { width: 7.5em; min-height: 44px; }
+  .sq-row .btn { min-height: 44px; }
+  .sq-unit { color: var(--muted); }
+  .sq-res { margin: 6px 0 0; font-weight: 650; }
+  .sq-res[data-ok="1"] { color: var(--good); }
+  .sq-res[data-ok="0"] { color: var(--bad); }
+  .sq-work { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line); color: var(--ink); font-size: 15px; }
+</style>
